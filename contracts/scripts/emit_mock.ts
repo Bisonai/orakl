@@ -15,9 +15,11 @@ async function main() {
     // parameters
     const specId = ethers.utils.id(12)
     const requester = owner.address
+    const payment = 123
+    console.log(requester)
 
     const nonce = await ethers.provider.getTransactionCount(owner.address)
-    const tx = await eventEmitter.buildRequest(specId, requester, { nonce })
+    const tx = await eventEmitter.buildRequest(specId, requester, payment, { nonce })
     const txReceipt = await tx.wait()
     console.log(txReceipt)
   }

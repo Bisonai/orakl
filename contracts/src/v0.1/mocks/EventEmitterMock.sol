@@ -5,9 +5,9 @@ contract EventEmitterMock {
     // Defined in Operator.sol of Chainlink v0.7
     event OracleRequest(
         bytes32 indexed specId,
-        address requester
+        address requester,
         /* bytes32 requestId, */
-        /* uint256 payment, */
+        uint256 payment
         /* address callbackAddr, */
         /* bytes4 callbackFunctionId */
         // uint256 cancelExpiration,
@@ -17,11 +17,13 @@ contract EventEmitterMock {
 
   function buildRequest(
     bytes32 specId,
-    address requester
+    address requester,
+    uint256 payment
   ) public {
       emit OracleRequest(
         specId,
-        requester
+        requester,
+        payment
       );
   }
 }
