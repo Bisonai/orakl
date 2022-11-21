@@ -3,21 +3,30 @@
 
 import { ethers } from 'ethers'
 import * as dotenv from 'dotenv'
+import listeners from '../listeners.json' assert { type: 'json' }
 dotenv.config()
 
-const provider = new ethers.providers.JsonRpcProvider(process.env.PROVIDER)
-console.log(provider)
+console.log(listeners)
 
-const filter = {
-  address: 'dai.tokens.ethers.eth',
-  topics: [ethers.utils.id('Transfer(address,address,uint256)')]
-}
+const provider_url = process.env.PROVIDER
+console.log(provider_url)
+const provider = new ethers.providers.JsonRpcProvider(provider_url)
 
-provider.on(filter, (log, event) => {
-  // Emitted whenever a DAI token transfer occurs
-})
+const topic = ethers.utils.id('OracleRequest(bytes32,address)')
+console.log(topic)
 
-provider.on('block', (blockNumber) => {
-  console.log(blockNumber)
-  // Emitted on every block change
+const addresses = listeners.AGGREGATORS
+
+const filterId = await provider.send('eth_newFilter', [
+  {
+    address: addresses,
+    topics: [topic]
+  }
+])
+
+provider.on('block', async () => {
+  const logs = await provider.send('eth_getFilterChanges', [filterId])
+  if (logs.length > 1) {
+    console.log(logs)
+  }
 })

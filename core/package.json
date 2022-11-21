@@ -3,13 +3,13 @@
   "version": "0.1.0",
   "description": "",
   "type": "module",
-  "main": "dist/index.ts",
+  "main": "dist/src/index.js",
   "author": "Bisonai",
   "license": "UNLINCENSED",
   "scripts": {
     "clean": "rm -rf dist",
     "build": "tsc",
-    "start": "node dist/index.js"
+    "start": "node dist/src/index.js"
   },
   "dependencies": {
     "bullmq": "^3.2.2",
