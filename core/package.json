@@ -1,0 +1,23 @@
+{
+  "name": "@bisonai/icn-core",
+  "version": "0.1.0",
+  "description": "",
+  "type": "module",
+  "main": "dist/index.ts",
+  "author": "Bisonai",
+  "license": "UNLINCENSED",
+  "scripts": {
+    "clean": "rm -rf dist",
+    "build": "tsc",
+    "start": "node dist/index.js"
+  },
+  "dependencies": {
+    "bullmq": "^3.2.2",
+    "dotenv": "^16.0.3",
+    "ethers": "^5.7.2"
+  },
+  "devDependencies": {
+    "@types/node": "^18.11.9",
+    "typescript": "^4.9.3"
+  }
+}
