@@ -4,29 +4,34 @@
 import { ethers } from 'ethers'
 import * as dotenv from 'dotenv'
 import listeners from '../listeners.json' assert { type: 'json' }
+
 dotenv.config()
 
-console.log(listeners)
+async function main() {
+  const provider_url = process.env.PROVIDER
+  console.log(provider_url)
+  const provider = new ethers.providers.JsonRpcProvider(provider_url)
 
-const provider_url = process.env.PROVIDER
-console.log(provider_url)
-const provider = new ethers.providers.JsonRpcProvider(provider_url)
+  listenGetFilterChanges(provider, listeners)
+}
 
-const topic = ethers.utils.id('OracleRequest(bytes32,address)')
-console.log(topic)
+async function listenGetFilterChanges(provider, listeners) {
+  const filterId = await provider.send('eth_newFilter', [
+    {
+      address: listeners.AGGREGATORS,
+      topics: [ethers.utils.id('OracleRequest(bytes32,address)')]
+    }
+  ])
 
-const addresses = listeners.AGGREGATORS
+  provider.on('block', async () => {
+    const logs = await provider.send('eth_getFilterChanges', [filterId])
+    if (logs.length > 1) {
+      console.log(logs)
+    }
+  })
+}
 
-const filterId = await provider.send('eth_newFilter', [
-  {
-    address: addresses,
-    topics: [topic]
-  }
-])
-
-provider.on('block', async () => {
-  const logs = await provider.send('eth_getFilterChanges', [filterId])
-  if (logs.length > 1) {
-    console.log(logs)
-  }
+main().catch((error) => {
+  console.error(error)
+  process.exitCode = 1
 })
