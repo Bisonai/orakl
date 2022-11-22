@@ -11,7 +11,8 @@
   "scripts": {
     "clean": "rm -rf dist",
     "build": "yarn clean && tsc",
-    "start": "yarn build && node dist/src/index.js"
+    "start": "yarn build && node dist/src/index.js",
+    "start:worker": "node dist/src/worker.js"
   },
   "dependencies": {
     "bullmq": "^3.2.2",

@@ -3,10 +3,12 @@
 
 import { ethers } from 'ethers'
 import * as dotenv from 'dotenv'
-import * as listeners from '../listeners.json'
+import { Queue } from 'bullmq'
 import { EventEmitterMock__factory } from '@bisonai/icn-contracts'
 import { RequestEventData, DataFeedRequest, IListeners, ILog } from './types'
 import { IcnError, IcnErrorCode } from './errors'
+import { buildBullMqConnection } from './utils'
+import * as listeners from '../listeners.json'
 
 dotenv.config()
 
@@ -43,7 +45,6 @@ async function listenGetFilterChanges(
   iface: ethers.utils.Interface
 ) {
   const eventTopicId = getEventTopicId(iface.events, 'OracleRequest')
-
   const filterId = await provider.send('eth_newFilter', [
     {
       address: listeners.AGGREGATORS,
@@ -51,15 +52,18 @@ async function listenGetFilterChanges(
     }
   ])
 
+  const queue = new Queue('foo', buildBullMqConnection())
+
   provider.on('block', async () => {
     const logs: ILog[] = await provider.send('eth_getFilterChanges', [filterId])
-    console.log(logs)
 
-    logs.forEach((log) => {
+    logs.forEach(async (log) => {
       const { specId, requester, payment } = iface.parseLog(log).args
       console.log(`specId ${specId}`)
       console.log(`requester ${requester}`)
       console.log(`payment ${payment.toString()}`)
+
+      await queue.add('myJobName', { specId, requester, payment })
     })
   })
 }

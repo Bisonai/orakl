@@ -3,12 +3,5 @@
 ## Run
 
 ```
-yarn build
-yarn run
+yarn start
 ```
-
-## TODO
-
-* `tsc`
-* `nvm`
-* es2020
