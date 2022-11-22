@@ -2,19 +2,22 @@
   "name": "@bisonai/icn-core",
   "version": "0.1.0",
   "description": "",
-  "type": "module",
+  "files": [
+    "dist"
+  ],
   "main": "dist/src/index.js",
   "author": "Bisonai",
-  "license": "UNLINCENSED",
+  "license": "UNLICENSED",
   "scripts": {
     "clean": "rm -rf dist",
-    "build": "tsc",
-    "start": "node dist/src/index.js"
+    "build": "yarn clean && tsc",
+    "start": "yarn build && node dist/src/index.js"
   },
   "dependencies": {
     "bullmq": "^3.2.2",
     "dotenv": "^16.0.3",
-    "ethers": "^5.7.2"
+    "ethers": "^5.7.2",
+    "@bisonai/icn-contracts": "0.1.0"
   },
   "devDependencies": {
     "@types/node": "^18.11.9",

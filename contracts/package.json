@@ -8,13 +8,11 @@
   "main": "dist/typechain-types/index.js",
   "author": "Bisonai",
   "homepage": "https://github.com/bisonai-cic/ICN#readme",
-  "license": "UNLINCENSED",
+  "license": "UNLICENSED",
   "scripts": {
     "clean": "npx hardhat clean && rm -rf dist",
     "compile": "npx hardhat compile",
     "test": "yarn compile && npx hardhat test",
-    "deploy": "npx hardhat deploy",
-    "mint": "npx hardhat mint",
     "build": "tsc",
     "pub": "yarn publish --access public"
   },
