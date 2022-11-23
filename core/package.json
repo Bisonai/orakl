@@ -5,13 +5,14 @@
   "files": [
     "dist"
   ],
-  "main": "dist/src/index.js",
+  "main": "dist/src/listener.js",
   "author": "Bisonai",
   "license": "UNLICENSED",
   "scripts": {
     "clean": "rm -rf dist",
     "build": "yarn clean && tsc",
-    "start": "yarn build && node dist/src/index.js"
+    "start:listener": "yarn build && node dist/src/listener.js",
+    "start:worker": "node dist/src/worker.js"
   },
   "dependencies": {
     "bullmq": "^3.2.2",
