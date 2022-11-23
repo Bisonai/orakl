@@ -1,5 +1,6 @@
-import { ethers } from 'hardhat'
+import pkg from 'hardhat'
 import assert from 'node:assert'
+const { ethers } = pkg
 
 async function main() {
   const [owner] = await ethers.getSigners()

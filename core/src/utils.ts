@@ -1,4 +1,5 @@
 import * as dotenv from 'dotenv'
+import * as Fs from 'node:fs/promises'
 
 dotenv.config()
 
@@ -14,4 +15,9 @@ export function buildBullMqConnection() {
 
 export function buildQueueName() {
   return 'worker-request-queue'
+}
+
+export async function loadJson(filepath) {
+  const json = await Fs.readFile(filepath, 'utf8')
+  return JSON.parse(json)
 }
