@@ -8,7 +8,7 @@ import { EventEmitterMock__factory } from '@bisonai/icn-contracts'
 import { RequestEventData, DataFeedRequest, IListeners, ILog } from './types'
 import { IcnError, IcnErrorCode } from './errors'
 import { buildBullMqConnection } from './utils'
-import * as listeners from '../listeners.json'
+import * as listeners from '../listeners.json' // FIXME find a better way of importing complicated settings
 
 dotenv.config()
 
