@@ -9,7 +9,7 @@ async function main() {
     '0xe78A0F7E598Cc8b0Bb87894B0F60dD2a88d6a8Ab',
     '0x5b1869D9A4C187F2EAa108f3062412ecf0526b24'
   ]
-  const specIds = [123, 43].map((i) => ethers.utils.id(String(i)))
+  const specIds = [...Array(count)].map((i) => ethers.utils.id(String(i)))
   const requesters = [...Array(count)].map(() => ethers.Wallet.createRandom().address)
   const payments = [...Array(count)].map(() => Math.floor(Math.random() * 10))
 
