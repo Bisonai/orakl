@@ -6,26 +6,23 @@ contract ICNOracle {
   mapping(uint256 => bool) public jobStatuses;
 
   // Mapping to store results of requests done
-  mapping(uint256 => bytes) public jobResults;
-
-  mapping(string => uint256) public urlJobIds;
+  mapping(uint256 => bytes32) public jobResults;
 
   uint256 jobId;
 
   event NewJob(uint256 jobId, string url);
 
-  function fetchData(string calldata url) external {
-    urlJobIds[url] = jobId;
+  function createNewJob(string calldata url) external {
     emit NewJob(jobId, url);
     jobId++;
   }
 
-  function setData(bytes calldata data, uint256 jobId) external {
+  function fulfilJob(bytes32 data, uint256 jobId) external {
     jobResults[jobId] = data;
     jobStatuses[jobId] = true;
   }
 
-  function getData(string calldata url) external view returns (bytes memory) {
-    return jobResults[urlJobIds[url]];
+  function getData(uint256 jobId) external view returns (bytes32) {
+    return jobResults[jobId];
   }
 }
