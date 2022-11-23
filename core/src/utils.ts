@@ -11,3 +11,7 @@ export function buildBullMqConnection() {
     }
   }
 }
+
+export function buildQueueName() {
+  return 'worker-request-queue'
+}

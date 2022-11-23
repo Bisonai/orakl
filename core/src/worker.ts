@@ -1,8 +1,8 @@
 import { Worker } from 'bullmq'
-import { buildBullMqConnection } from './utils'
+import { buildBullMqConnection, buildQueueName } from './utils'
 
 const worker = new Worker(
-  'foo',
+  buildQueueName(),
   async (job) => {
     console.log(job.data)
   },

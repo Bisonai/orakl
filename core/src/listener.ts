@@ -7,7 +7,7 @@ import { Queue } from 'bullmq'
 import { EventEmitterMock__factory } from '@bisonai/icn-contracts'
 import { RequestEventData, DataFeedRequest, IListeners, ILog } from './types'
 import { IcnError, IcnErrorCode } from './errors'
-import { buildBullMqConnection } from './utils'
+import { buildBullMqConnection, buildQueueName } from './utils'
 import * as listeners from '../listeners.json' // FIXME find a better way of importing complicated settings
 
 dotenv.config()
@@ -52,7 +52,7 @@ async function listenGetFilterChanges(
     }
   ])
 
-  const queue = new Queue('foo', buildBullMqConnection())
+  const queue = new Queue(buildQueueName(), buildBullMqConnection())
 
   provider.on('block', async () => {
     const logs: ILog[] = await provider.send('eth_getFilterChanges', [filterId])
