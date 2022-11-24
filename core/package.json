@@ -1,17 +1,21 @@
 {
   "name": "@bisonai/icn-core",
   "version": "0.1.0",
+  "type": "module",
   "description": "",
   "files": [
     "dist"
   ],
-  "main": "dist/src/listener.js",
+    "engines": {
+    "node": ">=18.12"
+  },
+  "exports": "./dist/src/listener.js",
   "author": "Bisonai",
   "license": "UNLICENSED",
   "scripts": {
     "clean": "rm -rf dist",
     "build": "yarn clean && tsc",
-    "start:listener": "yarn build && node dist/src/listener.js",
+    "start:listener": "yarn build && node --experimental-specifier-resolution=node --experimental-json-modules dist/src/listener.js",
     "start:worker": "node dist/src/worker.js"
   },
   "dependencies": {

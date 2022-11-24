@@ -5,20 +5,21 @@ import { ethers } from 'ethers'
 import * as dotenv from 'dotenv'
 import { Queue } from 'bullmq'
 import { EventEmitterMock__factory } from '@bisonai/icn-contracts'
-import { RequestEventData, DataFeedRequest, IListeners, ILog } from './types'
-import { IcnError, IcnErrorCode } from './errors'
-import { buildBullMqConnection, buildQueueName } from './utils'
-import * as listeners from '../listeners.json' // FIXME find a better way of importing complicated settings
+import { RequestEventData, DataFeedRequest, IListeners, ILog } from './types.js'
+import { IcnError, IcnErrorCode } from './errors.js'
+import { buildBullMqConnection, buildQueueName, loadJson } from './utils.js'
 
 dotenv.config()
 
 async function main() {
   const provider_url = process.env.PROVIDER
+  const listeners_path = process.env.LISTENERS // FIXME raise error when file does not exist
 
   console.log(provider_url)
   console.log(EventEmitterMock__factory.abi)
-  console.log(listeners)
+  console.log(listeners_path)
 
+  const listeners = await loadJson(listeners_path)
   const provider = new ethers.providers.JsonRpcProvider(provider_url)
   const iface = new ethers.utils.Interface(EventEmitterMock__factory.abi)
 
