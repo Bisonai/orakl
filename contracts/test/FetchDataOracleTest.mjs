@@ -1,8 +1,10 @@
-require('dotenv').config()
-const { expect } = require('chai')
-const { ethers } = require('hardhat')
-const axios = require('axios')
-const Web3 = require('web3')
+import { expect } from 'chai'
+import axios from 'axios'
+import Web3 from 'web3'
+
+import pkg from 'hardhat'
+import assert from 'node:assert'
+const { ethers } = pkg
 
 // Function to call external API request and return data
 async function callAPI(url) {
@@ -24,7 +26,7 @@ describe('Fetch data from API using Oracle', function () {
   let ICNOracle
   beforeEach(async function () {
     // Deploy ICN Oracle
-    OracleContract = await ethers.getContractFactory('ICNOracle')
+    let OracleContract = await ethers.getContractFactory('ICNOracle')
     ICNOracle = await OracleContract.deploy()
     await ICNOracle.deployed()
   })
