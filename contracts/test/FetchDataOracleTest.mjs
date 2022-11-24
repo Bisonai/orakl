@@ -56,7 +56,7 @@ describe('Fetch data from API using Oracle', function () {
         console.log(data.substring(0, 31))
         const oracleResponse = ethers.utils.formatBytes32String(data.substring(0, 31))
         console.log(oracleResponse)
-        await ICNOracle.fulfilJob(oracleResponse, jobId)
+        await ICNOracle.fulfillJob(oracleResponse, jobId)
       })
     }
   })

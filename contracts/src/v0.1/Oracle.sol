@@ -17,7 +17,7 @@ contract ICNOracle {
     jobId++;
   }
 
-  function fulfilJob(bytes32 data, uint256 jobId) external {
+  function fulfillJob(bytes32 data, uint256 jobId) external {
     jobResults[jobId] = data;
     jobStatuses[jobId] = true;
   }
