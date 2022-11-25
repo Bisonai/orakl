@@ -1,11 +1,13 @@
 {
   "compilerOptions": {
-    "module": "commonjs",
-    "target": "es2020",
+    "module": "es2022",
+    "moduleResolution": "node",
+    "target": "es2022",
     "strict": true,
     "esModuleInterop": true,
     "outDir": "dist",
+    "declaration": true,
   },
   "include": ["./typechain-types"],
-  "files": ["./hardhat.config.ts"]
+  "files": ["./hardhat.config.cts"]
 }
