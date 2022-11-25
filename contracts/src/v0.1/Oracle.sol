@@ -17,12 +17,12 @@ contract ICNOracle {
     jobId++;
   }
 
-  function fulfillJob(bytes32 data, uint256 jobId) external {
-    jobResults[jobId] = data;
-    jobStatuses[jobId] = true;
+  function fulfillJob(bytes32 data, uint256 _jobId) external {
+    jobResults[_jobId] = data;
+    jobStatuses[_jobId] = true;
   }
 
-  function getData(uint256 jobId) external view returns (bytes32) {
-    return jobResults[jobId];
+  function getData(uint256 _jobId) external view returns (bytes32) {
+    return jobResults[_jobId];
   }
 }
