@@ -1,16 +1,16 @@
 {
-  "active": false,
+  "active": true,
   "name": "KLAY_USD",
   "job_type": "DATA_FEED",
   "adapter_id": "efbdab54419511edb8780242ac120002",
   "oracle": "0xCC4377b912c4517Fe895817c6a7c6937D92A70B3",
-  "feed": [
+  "feeds": [
     {
       "url": "https://min-api.cryptocompare.com/data/pricemultifull?fsyms=KLAY&tsyms=USD",
       "headers": [
         {"Content-Type" :  "application/json"}
       ],
-      "request_type": "GET",
+      "method": "GET",
       "reducers": [
         {
           "function": "PARSE",
@@ -27,6 +27,7 @@
       "headers": [
         {"X-CoinAPI-Key": "209D7E0E-9330-4706-B693-6E2ED10279A5"}
       ],
+      "method": "GET",
       "reducers": [
         {
           "function": "PARSE",

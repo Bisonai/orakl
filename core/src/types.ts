@@ -39,7 +39,7 @@ interface IReducer {
 
 interface IFeed {
   url: string
-  request_type: string
+  method: string
   headers?: IHeader[]
   reducers?: IReducer[]
 }
@@ -50,5 +50,5 @@ export interface IAdapter {
   job_type: string
   adapter_id: string
   oracle: string
-  feed: IFeed
+  feeds: IFeed[]
 }
