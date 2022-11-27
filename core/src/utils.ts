@@ -13,8 +13,15 @@ export function buildBullMqConnection() {
   }
 }
 
+// FIXME create a settings file instead
 export function buildQueueName() {
   return 'worker-request-queue'
+}
+
+// FIXME create a settings file instead
+// TODO move adapter out of src directory
+export function buildAdapterRootDir() {
+  return './src/adapter/'
 }
 
 export async function loadJson(filepath) {
