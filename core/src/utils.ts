@@ -28,3 +28,9 @@ export async function loadJson(filepath) {
   const json = await Fs.readFile(filepath, 'utf8')
   return JSON.parse(json)
 }
+
+// https://medium.com/javascript-scene/reduce-composing-software-fe22f0c39a1d
+export const pipe =
+  (...fns) =>
+  (x) =>
+    fns.reduce((v, f) => f(v), x)

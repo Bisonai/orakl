@@ -5,28 +5,27 @@ import { got, Options } from 'got'
 import { IcnError, IcnErrorCode } from './errors.js'
 import { IAdapter } from './types.js'
 import { buildAdapterRootDir } from './utils.js'
-import { buildBullMqConnection, buildQueueName, loadJson } from './utils.js'
-import { parseReducer, mulReducer, reducerMapping } from './reducer.js'
+import { buildBullMqConnection, buildQueueName, loadJson, pipe } from './utils.js'
+import { reducerMapping } from './reducer.js'
+import { localAggregatorFn } from './settings.js'
 
-function prepareFeed(adapter) {
-  console.log(adapter)
-
-  return adapter.feeds.map((f) => {
+function extractFeeds(adapter) {
+  const adapterId = adapter.adapter_id
+  const feeds = adapter.feeds.map((f) => {
     const reducers = f.reducers?.map((r) => {
       // TODO check if exists
       return reducerMapping[r.function](r.args)
     })
 
-    const adapterId = 'kfew' // adapter.adapter_id
     return {
-      [adapterId]: {
-        url: f.url,
-        headers: f.headers,
-        method: f.method,
-        reducers
-      }
+      url: f.url,
+      headers: f.headers,
+      method: f.method,
+      reducers
     }
   })
+
+  return { [adapterId]: feeds }
 }
 
 async function loadAdapters() {
@@ -37,11 +36,7 @@ async function loadAdapters() {
     adapterPaths.map(async (ap) => validateAdapter(await loadJson(Path.join(adapterRootDir, ap))))
   )
   const activeRawAdapters = allRawAdapters.filter((a) => a.active)
-
-  const adapters = activeRawAdapters.map((a) => prepareFeed(a))
-  console.log('adapters', adapters)
-
-  return Object.assign({}, ...adapters)
+  return activeRawAdapters.map((a) => extractFeeds(a))
 }
 
 function validateAdapter(adapter): IAdapter {
@@ -61,32 +56,45 @@ function validateAdapter(adapter): IAdapter {
 async function fetch() {}
 
 async function main() {
-  const adapters = await loadAdapters()
+  const adapters = (await loadAdapters())[0] // FIXME
   console.log('adapters', adapters)
+
+  const adapterId = 'efbdab54419511edb8780242ac120002'
 
   const worker = new Worker(
     buildQueueName(),
     async (job) => {
-      console.log(job.data)
+      console.log('request', job.data)
 
-      const adapter = adapters['efbdab54419511edb8780242ac120002'] // FIXME
-      console.log('current adapter', adapter)
+      const results = await Promise.all(
+        adapters[adapterId].map(async (adapter) => {
+          console.log('current adapter', adapter)
 
-      const data = await got(adapter.url, {
-        headers: {
-          ...adapter.headers,
-          ...adapter.method
-        }
-      }).json()
-      console.log(data)
+          const options = {
+            method: adapter.method,
+            headers: adapter.headers
+          }
 
-      let tmp = data
-      for (const r of adapter.reducers) {
-        tmp = r(tmp)
+          try {
+            const rawData = await got(adapter.url, options).json()
+            return pipe(...adapter.reducers)(rawData)
+            // console.log(`data ${data}`)
+          } catch (e) {
+            // FIXME
+            console.log(e)
+          }
+        })
+      )
+      console.log(results)
+
+      // FIXME single node aggregation of multiple results
+      // FIXME check if aggregator is defined and if exists
+      try {
+        const aggregatedResult = localAggregatorFn(...results)
+        console.log(aggregatedResult)
+      } catch (e) {
+        console.log(e)
       }
-      console.log(tmp)
-
-      // TODO global reducer
     },
     buildBullMqConnection()
   )
