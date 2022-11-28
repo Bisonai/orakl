@@ -1,4 +1,5 @@
-import { ethers } from 'hardhat'
+import pkg from 'hardhat'
+const { ethers } = pkg
 
 async function main() {
   const [owner] = await ethers.getSigners()
