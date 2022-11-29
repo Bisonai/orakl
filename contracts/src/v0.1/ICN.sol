@@ -55,4 +55,71 @@ library ICN {
     Buffer.init(_request.buf, _data.length);
     Buffer.append(_request.buf, _data);
   }
+
+  /**
+   * @notice Adds a string value to the request in a key - value pair format
+   * @param _request - the initalized request
+   * @param _key - the name of the key
+   * @param _value - the string value to add
+   */
+  function add(Request memory _request, string memory _key, string memory _value) internal pure {
+    _request.buf.encodeString(_key);
+    _request.buf.encodeString(_value);
+  }
+
+  /**
+   * @notice Adds a byte value to the request in a key - value pair format
+   * @param _request - the initalized request
+   * @param _key - the name of the key
+   * @param _value - the bytes value to add
+   */
+  function addBytes(
+    Request memory _request,
+    string memory _key,
+    bytes memory _value
+  ) internal pure {
+    _request.buf.encodeString(_key);
+    _request.buf.encodeBytes(_value);
+  }
+
+  /**
+   * @notice Adds a Int256 value to the request in a key - value pair format
+   * @param _request - the initalized request
+   * @param _key - the name of the key
+   * @param _value - the int256 value to add
+   */
+  function addInt(Request memory _request, string memory _key, int256 _value) internal pure {
+    _request.buf.encodeString(_key);
+    _request.buf.encodeInt(_value);
+  }
+
+  /**
+   * @notice Adds a UInt256 value to the request in a key - value pair format
+   * @param _request - the initalized request
+   * @param _key - the name of the key
+   * @param _value - the uint256 value to add
+   */
+  function addUInt(Request memory _request, string memory _key, uint256 _value) internal pure {
+    _request.buf.encodeString(_key);
+    _request.buf.encodeUInt(_value);
+  }
+
+  /**
+   * @notice Adds an array of string value to the request in a key - value pair format
+   * @param _request - the initalized request
+   * @param _key - the name of the key
+   * @param _values - the array of string value to add
+   */
+  function addStringArray(
+    Request memory _request,
+    string memory _key,
+    string[] memory _values
+  ) internal pure {
+    _request.buf.encodeString(_key);
+    _request.buf.startArray();
+    for (uint256 i; i < _values.length; i++) {
+      _request.buf.encodeString(_values[i]);
+    }
+    _request.buf.endSequence();
+  }
 }
