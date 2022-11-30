@@ -11,7 +11,7 @@ describe('ICN Client Contract', function () {
   let ICNOracle
 
   it('Should request data from specific requestId of Oracle', async function () {
-    let OracleContract = await ethers.getContractFactory('ICNOracleNew')
+    let OracleContract = await ethers.getContractFactory('ICNOracle')
     ICNOracle = await OracleContract.deploy()
     await ICNOracle.deployed()
 
@@ -24,7 +24,7 @@ describe('ICN Client Contract', function () {
   })
 
   it('Should recieve an off-chain event of Requested', async function () {
-    let OracleContract = await ethers.getContractFactory('ICNOracleNew')
+    let OracleContract = await ethers.getContractFactory('ICNOracle')
     ICNOracle = await OracleContract.deploy()
     await ICNOracle.deployed()
 
@@ -43,4 +43,6 @@ describe('ICN Client Contract', function () {
       }
     }
   })
+
+  //TODO: Immitate Event listening in Tests
 })
