@@ -53,8 +53,6 @@ function validateAdapter(adapter): IAdapter {
   }
 }
 
-async function fetch() {}
-
 async function main() {
   const adapters = (await loadAdapters())[0] // FIXME
   console.log('adapters', adapters)
