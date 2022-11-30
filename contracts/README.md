@@ -5,3 +5,9 @@
 ```
 yarn compile
 ```
+
+# Run Hardhat Local Node
+
+```
+npx hardhat node
+```
