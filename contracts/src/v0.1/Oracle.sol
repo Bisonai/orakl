@@ -14,7 +14,6 @@ contract ICNOracle {
   event NewJob(uint256 jobId, string url);
 
   function createNewJob(string calldata url) external {
-
     emit NewJob(s_jobId, url);
     s_jobId++;
   }
@@ -26,6 +25,5 @@ contract ICNOracle {
 
   function getData(uint256 _jobId) external view returns (bytes32) {
     return s_jobResults[_jobId];
-
   }
 }
