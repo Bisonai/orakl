@@ -27,3 +27,28 @@ export interface ILog {
   transactionHash: string
   transactionIndex: string
 }
+
+interface IHeader {
+  'Content-Type': string
+}
+
+interface IReducer {
+  function: string
+  args: string[]
+}
+
+interface IFeed {
+  url: string
+  method: string
+  headers?: IHeader[]
+  reducers?: IReducer[]
+}
+
+export interface IAdapter {
+  active: boolean
+  name: string
+  job_type: string
+  adapter_id: string
+  oracle: string
+  feeds: IFeed[]
+}

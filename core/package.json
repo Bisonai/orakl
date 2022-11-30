@@ -6,7 +6,7 @@
   "files": [
     "dist"
   ],
-    "engines": {
+  "engines": {
     "node": ">=18.12"
   },
   "exports": "./dist/src/listener.js",
@@ -22,6 +22,8 @@
     "bullmq": "^3.2.2",
     "dotenv": "^16.0.3",
     "ethers": "^5.7.2",
+    "got": "^12.5.3",
+    "mathjs": "^11.4.0",
     "@bisonai/icn-contracts": "0.1.0"
   },
   "devDependencies": {
