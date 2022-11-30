@@ -8,6 +8,7 @@ import { EventEmitterMock__factory } from '@bisonai/icn-contracts'
 import { RequestEventData, DataFeedRequest, IListeners, ILog } from './types.js'
 import { IcnError, IcnErrorCode } from './errors.js'
 import { buildBullMqConnection, buildQueueName, loadJson } from './utils.js'
+import { workerRequestQueueName } from './settings.js'
 
 dotenv.config()
 
@@ -53,7 +54,7 @@ async function listenGetFilterChanges(
     }
   ])
 
-  const queue = new Queue(buildQueueName(), buildBullMqConnection())
+  const queue = new Queue(workerRequestQueueName, buildBullMqConnection())
 
   provider.on('block', async () => {
     const logs: ILog[] = await provider.send('eth_getFilterChanges', [filterId])
@@ -64,6 +65,7 @@ async function listenGetFilterChanges(
       console.log(`requester ${requester}`)
       console.log(`payment ${payment.toString()}`)
 
+      // FIXME replace myJobName
       await queue.add('myJobName', { specId, requester, payment })
     })
   })

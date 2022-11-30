@@ -1,13 +1,13 @@
 import * as Fs from 'node:fs/promises'
 import * as Path from 'node:path'
-import { Worker } from 'bullmq'
+import { Worker, Queue } from 'bullmq'
 import { got, Options } from 'got'
 import { IcnError, IcnErrorCode } from './errors.js'
 import { IAdapter } from './types.js'
 import { buildAdapterRootDir } from './utils.js'
-import { buildBullMqConnection, buildQueueName, loadJson, pipe } from './utils.js'
+import { buildBullMqConnection, loadJson, pipe } from './utils.js'
 import { reducerMapping } from './reducer.js'
-import { localAggregatorFn } from './settings.js'
+import { localAggregatorFn, workerRequestQueueName, reporterRequestQueueName } from './settings.js'
 
 function extractFeeds(adapter) {
   const adapterId = adapter.adapter_id
@@ -54,13 +54,17 @@ function validateAdapter(adapter): IAdapter {
 }
 
 async function main() {
-  const adapters = (await loadAdapters())[0] // FIXME
+  const adapters = (await loadAdapters())[0] // FIXME take all adapters
   console.log('adapters', adapters)
 
+  // FIXME take adapterId from job.data (information emitted by on-chain event)
   const adapterId = 'efbdab54419511edb8780242ac120002'
 
+  const queue = new Queue(reporterRequestQueueName, buildBullMqConnection())
+
+  // TODO if job not finished, return job in queue
   const worker = new Worker(
-    buildQueueName(),
+    workerRequestQueueName,
     async (job) => {
       console.log('request', job.data)
 
@@ -90,6 +94,7 @@ async function main() {
       try {
         const aggregatedResult = localAggregatorFn(...results)
         console.log(aggregatedResult)
+        await queue.add('myJobName', { aggregatedResult })
       } catch (e) {
         console.log(e)
       }
