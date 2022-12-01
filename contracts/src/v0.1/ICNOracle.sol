@@ -18,13 +18,13 @@ contract ICNOracle is IOracle {
   );
 
   function createNewRequest(
-    bytes32 _requestId,
+    bytes32 _jobId,
     uint256 _nonce,
     address _callbackAddress,
     bytes4 _callbackFunctionId,
     bytes calldata _data
   ) external {
-    emit NewRequest(_requestId, _nonce, _callbackAddress, _callbackFunctionId, _data);
+    emit NewRequest(_jobId, _nonce, _callbackAddress, _callbackFunctionId, _data);
   }
 
   function fulfillRequest(bytes32 _requestId, bytes32 _data) external {

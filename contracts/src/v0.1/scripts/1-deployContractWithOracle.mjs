@@ -1,4 +1,3 @@
-import Web3 from 'web3'
 import pkg from 'hardhat'
 const { ethers } = pkg
 

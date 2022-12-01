@@ -58,7 +58,7 @@ contract ICNClient {
     requestId = keccak256(abi.encodePacked(this, s_requestCount));
     s_pendingRequests[requestId] = _oracleAddress;
     IOracle(_oracleAddress).createNewRequest(
-      requestId,
+      _req.id,
       nonce,
       address(this),
       _req.callbackFunctionId,
