@@ -1,4 +1,3 @@
-import { expect } from 'chai'
 import { got } from 'got'
 import Web3 from 'web3'
 
