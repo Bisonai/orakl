@@ -1,25 +1,10 @@
 import { expect } from 'chai'
-import axios from 'axios'
+import { got } from 'got'
 import Web3 from 'web3'
 
 import pkg from 'hardhat'
 import assert from 'node:assert'
 const { ethers } = pkg
-
-async function callAPI(url) {
-  let res = await axios({
-    url: url,
-    method: 'get',
-    timeout: 8000,
-    headers: {
-      'Content-Type': 'application/json'
-    }
-  })
-  if (res.status == 200) {
-    console.log(res.status)
-  }
-  return res.data
-}
 
 async function main() {
   let httpProvider = new ethers.providers.JsonRpcProvider()
@@ -28,6 +13,7 @@ async function main() {
   let ICNOracle = await OracleContract.deploy()
   await ICNOracle.deployed()
 
+  // FIXME load from env file
   let privateKey = '0xea6c44ac03bff858b476bba40716402b03e41b8e97e276d1baec7c37d42484a0'
   let wallet = new ethers.Wallet(privateKey, httpProvider)
 
@@ -47,10 +33,9 @@ async function main() {
       console.log(_callbackFunctionId)
       let url = stringdata.substring(6)
       console.log(url)
-      let APIdata = await callAPI(url)
 
-      console.log(APIdata)
-
+      const APIdata = await got(url).json()
+      console.log(`APIdata: ${APIdata}`)
       ICNOracle.APIdata // PARSE string data and send external API Request
     }
   )
