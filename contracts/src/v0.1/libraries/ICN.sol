@@ -2,8 +2,8 @@
 // Reference - https://github.com/smartcontractkit/chainlink/blob/develop/contracts/src/v0.8/Chainlink.sol
 pragma solidity ^0.8.16;
 
-import {Buffer} from './libraries/Buffer.sol';
-import {CBOR} from './libraries/CBOR.sol';
+import {Buffer} from './Buffer.sol';
+import {CBOR} from './CBOR.sol';
 
 /// @title ICN Library
 /// @author Zahid Ahmed
