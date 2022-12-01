@@ -57,42 +57,50 @@ async function main() {
   const adapters = (await loadAdapters())[0] // FIXME
   console.log('adapters', adapters)
 
-  const adapterId = 'efbdab54419511edb8780242ac120002'
+  const adapterId = 'efbdab54419511edb8780242ac120002' // FIXME
 
   const worker = new Worker(
     buildQueueName(),
     async (job) => {
       console.log('request', job.data)
 
-      const results = await Promise.all(
-        adapters[adapterId].map(async (adapter) => {
-          console.log('current adapter', adapter)
+      if (true) {
+        const dataRequest = job.data._data
+        const url = Buffer.from(dataRequest.substring(2), 'hex').toString().substring(6)
+        console.log(url)
+        const rawData = await got(url).json()
+        console.log(rawData)
+      }
 
-          const options = {
-            method: adapter.method,
-            headers: adapter.headers
-          }
-
-          try {
-            const rawData = await got(adapter.url, options).json()
-            return pipe(...adapter.reducers)(rawData)
-            // console.log(`data ${data}`)
-          } catch (e) {
-            // FIXME
-            console.log(e)
-          }
-        })
-      )
-      console.log(results)
+      // const results = await Promise.all(
+      //   adapters[adapterId].map(async (adapter) => {
+      //     console.log('current adapter', adapter)
+      //
+      //     const options = {
+      //       method: adapter.method,
+      //       headers: adapter.headers
+      //     }
+      //
+      //     try {
+      //       const rawData = await got(adapter.url, options).json()
+      //       return pipe(...adapter.reducers)(rawData)
+      //       // console.log(`data ${data}`)
+      //     } catch (e) {
+      //       // FIXME
+      //       console.log(e)
+      //     }
+      //   })
+      // )
+      // console.log(results)
 
       // FIXME single node aggregation of multiple results
       // FIXME check if aggregator is defined and if exists
-      try {
-        const aggregatedResult = localAggregatorFn(...results)
-        console.log(aggregatedResult)
-      } catch (e) {
-        console.log(e)
-      }
+      // try {
+      //   const aggregatedResult = localAggregatorFn(...results)
+      //   console.log(aggregatedResult)
+      // } catch (e) {
+      //   console.log(e)
+      // }
     },
     buildBullMqConnection()
   )

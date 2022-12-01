@@ -14,6 +14,7 @@ export interface DataFeedRequest {
 export interface IListeners {
   VRF: string[]
   AGGREGATORS: string[]
+  ANY_API: string[]
 }
 
 export interface ILog {
