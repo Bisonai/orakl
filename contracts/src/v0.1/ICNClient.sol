@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: MIT
 // Reference - https://github.com/smartcontractkit/chainlink/blob/develop/contracts/src/v0.8/ChainlinkClient.sol
+pragma solidity ^0.8.16;
 
 import './ICN.sol';
 import './interfaces/IOracle.sol';
