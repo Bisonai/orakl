@@ -7,7 +7,8 @@ import { Queue } from 'bullmq'
 import { ICNOracle__factory } from '@bisonai/icn-contracts'
 import { RequestEventData, DataFeedRequest, IListeners, ILog } from './types.js'
 import { IcnError, IcnErrorCode } from './errors.js'
-import { buildBullMqConnection, buildQueueName, loadJson } from './utils.js'
+import { buildBullMqConnection, loadJson } from './utils.js'
+import { workerRequestQueueName } from './settings.js'
 
 dotenv.config()
 
@@ -53,7 +54,7 @@ async function listenGetFilterChanges(
     }
   ])
 
-  const queue = new Queue(buildQueueName(), buildBullMqConnection())
+  const queue = new Queue(workerRequestQueueName, buildBullMqConnection())
 
   provider.on('block', async () => {
     const logs: ILog[] = await provider.send('eth_getFilterChanges', [filterId])
@@ -66,6 +67,7 @@ async function listenGetFilterChanges(
       console.log(`callbackFunctionId ${callbackFunctionId}`)
       console.log(`_data ${_data}`)
 
+      // FIXME update name of job
       await queue.add('any-api', { requestId, nonce, callbackAddress, callbackFunctionId, _data })
       // await queue.add('myJobName', { specId, requester, payment })
     })
