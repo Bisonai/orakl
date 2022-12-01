@@ -3,7 +3,6 @@ pragma solidity ^0.8.16;
 
 contract ICNOracleRead {
   // Mapping to store completion statuses for requests to verify
-
   mapping(uint256 => bool) public s_jobStatuses;
 
   // Mapping to store results of requests done

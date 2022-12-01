@@ -10,14 +10,15 @@ contract ICNMock is ICNClient {
 
   constructor(address _oracleAddress) {
     setOracle(_oracleAddress);
+    // FIXME change jobId
     jobId = 'TEST1';
   }
 
   function requestData() public returns (bytes32 requestId) {
-    ICN.Request memory _req = buildRequest(jobId, address(this), this.fulfill.selector);
+    ICN.Request memory req = buildRequest(jobId, address(this), this.fulfill.selector);
 
-    _req.add('get', 'https://min-api.cryptocompare.com/data/pricemultifull?fsyms=ETH&tsyms=USD');
-    return sendRequest(_req);
+    req.add("get", "https://min-api.cryptocompare.com/data/pricemultifull?fsyms=ETH&tsyms=USD");
+    requestId = sendRequest(req);
   }
 
   function fulfill(bytes32 _requestId, bytes memory data) public {}

@@ -13,8 +13,8 @@ contract ICNClient {
   mapping(bytes32 => address) private s_pendingRequests;
 
   event Requested(bytes32 indexed id);
-  event Fulfilled(bytes32 indexed id);
-  event Cancelled(bytes32 indexed id);
+  event Fulfilled(bytes32 indexed id); // FIXME not used
+  event Cancelled(bytes32 indexed id); // FIXME not used
 
   /**
    * @notice Creates a request using the ICN library
