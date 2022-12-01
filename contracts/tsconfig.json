@@ -6,8 +6,8 @@
     "strict": true,
     "esModuleInterop": true,
     "outDir": "dist",
-    "declaration": true,
+    "declaration": true
   },
   "include": ["./typechain-types"],
-  "files": ["./hardhat.config.cts"]
+  "files": ["hardhat.config.cts"]
 }
