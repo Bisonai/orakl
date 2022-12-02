@@ -59,16 +59,24 @@ async function listenGetFilterChanges(
   provider.on('block', async () => {
     const logs: ILog[] = await provider.send('eth_getFilterChanges', [filterId])
     logs.forEach(async (log) => {
-      const { requestId, nonce, callbackAddress, callbackFunctionId, _data } =
+      const { requestId, jobId, nonce, callbackAddress, callbackFunctionId, _data } =
         iface.parseLog(log).args
       console.log(`requestId ${requestId}`)
+      console.log(`jobId ${jobId}`)
       console.log(`nonce ${nonce}`)
       console.log(`callbackAddress ${callbackAddress}`)
       console.log(`callbackFunctionId ${callbackFunctionId}`)
       console.log(`_data ${_data}`)
 
       // FIXME update name of job
-      await queue.add('any-api', { requestId, nonce, callbackAddress, callbackFunctionId, _data })
+      await queue.add(jobId, {
+        requestId,
+        jobId,
+        nonce,
+        callbackAddress,
+        callbackFunctionId,
+        _data
+      })
       // await queue.add('myJobName', { specId, requester, payment })
     })
   })

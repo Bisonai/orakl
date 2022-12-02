@@ -41,7 +41,7 @@ async function loadAdapters() {
 
 function validateAdapter(adapter): IAdapter {
   // TODO extract properties from Interface
-  const requiredProperties = ['active', 'name', 'job_type', 'adapter_id', 'oracle', 'feeds']
+  const requiredProperties = ['active', 'name', 'job_type', 'adapter_id', 'feeds']
   // TODO show where is the error
   const hasProperty = requiredProperties.map((p) => adapter.hasOwnProperty(p))
   const isValid = hasProperty.every((x) => x)
@@ -57,9 +57,6 @@ async function main() {
   const adapters = (await loadAdapters())[0] // FIXME take all adapters
   console.log('adapters', adapters)
 
-  // FIXME take adapterId from job.data (information emitted by on-chain event)
-  const adapterId = 'efbdab54419511edb8780242ac120002'
-
   const queue = new Queue(reporterRequestQueueName, buildBullMqConnection())
 
   // TODO if job not finished, return job in queue
@@ -69,14 +66,62 @@ async function main() {
     async (job) => {
       console.log('request', job.data)
 
-      if (true) {
-        const {
-          requestId,
-          nonce,
-          callbackAddress,
-          callbackFunctionId,
-          _data: dataRequest
-        } = job.data
+      const {
+        requestId,
+        jobId,
+        nonce,
+        callbackAddress,
+        callbackFunctionId,
+        _data: dataRequest
+      } = job.data
+
+      if (jobId == '0x0000000000000000000000000000000000000000000000000000000000000000') {
+        console.log('Predefined feed')
+
+        // FIXME take adapterId from job.data (information emitted by on-chain event)
+        const results = await Promise.all(
+          adapters[jobId].map(async (adapter) => {
+            console.log('current adapter', adapter)
+
+            const options = {
+              method: adapter.method,
+              headers: adapter.headers
+            }
+
+            try {
+              const rawData = await got(adapter.url, options).json()
+              return pipe(...adapter.reducers)(rawData)
+              // console.log(`data ${data}`)
+            } catch (e) {
+              // FIXME
+              console.log(e)
+            }
+          })
+        )
+        console.log(`results ${results}`)
+
+        // FIXME single node aggregation of multiple results
+        // FIXME check if aggregator is defined and if exists
+        try {
+          const data = localAggregatorFn(...results)
+          console.log(`data ${data}`)
+          await queue.add('reporter', {
+            requestId,
+            jobId,
+            callbackAddress,
+            callbackFunctionId,
+            data
+          })
+        } catch (e) {
+          console.log(e)
+        }
+      } else if (jobId == '0x1111111111111111111111111111111111111111111111111111111111111111') {
+        // VRF
+        console.log('VRF')
+      } else {
+        // Any API
+        console.log('Any API')
+
         const url = Buffer.from(dataRequest.substring(2), 'hex').toString().substring(6)
         console.log(url)
         const rawData: any = await got(url).json()
@@ -86,41 +131,12 @@ async function main() {
         console.log(data)
         await queue.add('reporter', {
           requestId,
+          jobId,
           callbackAddress,
           callbackFunctionId,
           data
         })
       }
-
-      // const results = await Promise.all(
-      //   adapters[adapterId].map(async (adapter) => {
-      //     console.log('current adapter', adapter)
-      //
-      //     const options = {
-      //       method: adapter.method,
-      //       headers: adapter.headers
-      //     }
-      //
-      //     try {
-      //       const rawData = await got(adapter.url, options).json()
-      //       return pipe(...adapter.reducers)(rawData)
-      //       // console.log(`data ${data}`)
-      //     } catch (e) {
-      //       // FIXME
-      //       console.log(e)
-      //     }
-      //   })
-      // )
-      // console.log(results)
-
-      // FIXME single node aggregation of multiple results
-      // FIXME check if aggregator is defined and if exists
-      // try {
-      //   const aggregatedResult = localAggregatorFn(...results)
-      //   console.log(aggregatedResult)
-      // } catch (e) {
-      //   console.log(e)
-      // }
     },
     buildBullMqConnection()
   )

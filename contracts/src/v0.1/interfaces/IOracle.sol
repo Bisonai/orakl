@@ -6,6 +6,7 @@ interface IOracle {
    * @notice Function to create a new oracle request
    */
   function createNewRequest(
+    bytes32 _requestId,
     bytes32 _jobId,
     uint256 _nonce,
     address _callbackAddress,
