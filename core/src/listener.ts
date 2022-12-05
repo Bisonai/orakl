@@ -5,10 +5,10 @@ import { ethers } from 'ethers'
 import * as dotenv from 'dotenv'
 import { Queue } from 'bullmq'
 import { ICNOracle__factory } from '@bisonai/icn-contracts'
-import { RequestEventData, DataFeedRequest, IListeners, ILog } from './types.js'
-import { IcnError, IcnErrorCode } from './errors.js'
-import { buildBullMqConnection, loadJson } from './utils.js'
-import { workerRequestQueueName } from './settings.js'
+import { RequestEventData, DataFeedRequest, IListeners, ILog } from './types'
+import { IcnError, IcnErrorCode } from './errors'
+import { buildBullMqConnection, loadJson } from './utils'
+import { workerRequestQueueName } from './settings'
 
 dotenv.config()
 

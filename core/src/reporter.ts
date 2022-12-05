@@ -1,8 +1,8 @@
 import { Worker } from 'bullmq'
 import { ethers } from 'ethers'
-import { buildBullMqConnection, buildQueueName, loadJson, pipe, remove0x } from './utils.js'
-import { reporterRequestQueueName } from './settings.js'
-import { IcnError, IcnErrorCode } from './errors.js'
+import { buildBullMqConnection, buildQueueName, loadJson, pipe, remove0x } from './utils'
+import { reporterRequestQueueName } from './settings'
+import { IcnError, IcnErrorCode } from './errors'
 
 function pad32Bytes(data) {
   data = remove0x(data)

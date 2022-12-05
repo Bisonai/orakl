@@ -1,6 +1,6 @@
 import { ethers } from 'ethers'
-import { IRequest } from '../types.js'
-import { remove0x } from '../utils.js'
+import { IRequest } from './types'
+import { remove0x } from './utils'
 
 const SIZELEN = 2
 
