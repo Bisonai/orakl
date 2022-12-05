@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: MIT
 // Reference - https://github.com/smartcontractkit/chainlink/blob/develop/contracts/src/v0.8/ChainlinkClient.sol
+pragma solidity ^0.8.16;
 
-import './ICN.sol';
+import './libraries/ICN.sol';
 import './interfaces/IOracle.sol';
 
 contract ICNClient {
@@ -12,8 +13,8 @@ contract ICNClient {
   mapping(bytes32 => address) private s_pendingRequests;
 
   event Requested(bytes32 indexed id);
-  event Fulfilled(bytes32 indexed id);
-  event Cancelled(bytes32 indexed id);
+  event Fulfilled(bytes32 indexed id); // FIXME not used
+  event Cancelled(bytes32 indexed id); // FIXME not used
 
   /**
    * @notice Creates a request using the ICN library
@@ -58,6 +59,7 @@ contract ICNClient {
     s_pendingRequests[requestId] = _oracleAddress;
     IOracle(_oracleAddress).createNewRequest(
       requestId,
+      _req.id,
       nonce,
       address(this),
       _req.callbackFunctionId,

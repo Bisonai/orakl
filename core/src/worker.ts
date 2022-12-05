@@ -1,13 +1,14 @@
 import * as Fs from 'node:fs/promises'
 import * as Path from 'node:path'
-import { Worker } from 'bullmq'
+import { Worker, Queue } from 'bullmq'
 import { got, Options } from 'got'
 import { IcnError, IcnErrorCode } from './errors.js'
 import { IAdapter } from './types.js'
-import { buildAdapterRootDir } from './utils.js'
-import { buildBullMqConnection, buildQueueName, loadJson, pipe } from './utils.js'
+import { buildBullMqConnection, loadJson, pipe } from './utils.js'
+import { buildAdapterRootDir, readFromJson } from './utils.js'
 import { reducerMapping } from './reducer.js'
-import { localAggregatorFn } from './settings.js'
+import { localAggregatorFn, workerRequestQueueName, reporterRequestQueueName } from './settings.js'
+import { decodeAnyApiRequest } from './utils/decoding.js'
 
 function extractFeeds(adapter) {
   const adapterId = adapter.adapter_id
@@ -41,7 +42,7 @@ async function loadAdapters() {
 
 function validateAdapter(adapter): IAdapter {
   // TODO extract properties from Interface
-  const requiredProperties = ['active', 'name', 'job_type', 'adapter_id', 'oracle', 'feeds']
+  const requiredProperties = ['active', 'name', 'job_type', 'adapter_id', 'feeds']
   // TODO show where is the error
   const hasProperty = requiredProperties.map((p) => adapter.hasOwnProperty(p))
   const isValid = hasProperty.every((x) => x)
@@ -53,46 +54,90 @@ function validateAdapter(adapter): IAdapter {
   }
 }
 
+async function processAnyApi(apiRequest) {
+  console.log('Any API', apiRequest)
+
+  const request = decodeAnyApiRequest(apiRequest)
+  let data: any = await got(request.get).json()
+
+  if (request.path) {
+    data = readFromJson(data, request.path)
+  }
+
+  return data
+}
+
 async function main() {
-  const adapters = (await loadAdapters())[0] // FIXME
+  const adapters = (await loadAdapters())[0] // FIXME take all adapters
   console.log('adapters', adapters)
 
-  const adapterId = 'efbdab54419511edb8780242ac120002'
+  const queue = new Queue(reporterRequestQueueName, buildBullMqConnection())
+
+  // TODO if job not finished, return job in queue
 
   const worker = new Worker(
-    buildQueueName(),
+    workerRequestQueueName,
     async (job) => {
       console.log('request', job.data)
 
-      const results = await Promise.all(
-        adapters[adapterId].map(async (adapter) => {
-          console.log('current adapter', adapter)
+      const {
+        requestId,
+        jobId,
+        nonce,
+        callbackAddress,
+        callbackFunctionId,
+        _data: dataRequest
+      } = job.data
 
-          const options = {
-            method: adapter.method,
-            headers: adapter.headers
-          }
+      let data // FIXME
 
-          try {
-            const rawData = await got(adapter.url, options).json()
-            return pipe(...adapter.reducers)(rawData)
-            // console.log(`data ${data}`)
-          } catch (e) {
-            // FIXME
-            console.log(e)
-          }
-        })
-      )
-      console.log(results)
+      if (jobId == '0x0000000000000000000000000000000000000000000000000000000000000000') {
+        console.log('Predefined feed')
 
-      // FIXME single node aggregation of multiple results
-      // FIXME check if aggregator is defined and if exists
-      try {
-        const aggregatedResult = localAggregatorFn(...results)
-        console.log(aggregatedResult)
-      } catch (e) {
-        console.log(e)
+        // FIXME take adapterId from job.data (information emitted by on-chain event)
+        const results = await Promise.all(
+          adapters[jobId].map(async (adapter) => {
+            console.log('current adapter', adapter)
+
+            const options = {
+              method: adapter.method,
+              headers: adapter.headers
+            }
+
+            try {
+              const rawData = await got(adapter.url, options).json()
+              return pipe(...adapter.reducers)(rawData)
+              // console.log(`data ${data}`)
+            } catch (e) {
+              // FIXME
+              console.log(e)
+            }
+          })
+        )
+        console.log(`results ${results}`)
+
+        // FIXME single node aggregation of multiple results
+        // FIXME check if aggregator is defined and if exists
+        try {
+          data = localAggregatorFn(...results)
+          console.log(`data ${data}`)
+        } catch (e) {
+          console.log(e)
+        }
+      } else if (jobId == '0x1111111111111111111111111111111111111111111111111111111111111111') {
+        // VRF
+        console.log('VRF')
+      } else {
+        data = processAnyApi(dataRequest)
       }
+
+      await queue.add('reporter', {
+        requestId,
+        jobId,
+        callbackAddress,
+        callbackFunctionId,
+        data
+      })
     },
     buildBullMqConnection()
   )

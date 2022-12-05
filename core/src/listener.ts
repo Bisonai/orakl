@@ -4,10 +4,11 @@
 import { ethers } from 'ethers'
 import * as dotenv from 'dotenv'
 import { Queue } from 'bullmq'
-import { EventEmitterMock__factory } from '@bisonai/icn-contracts'
+import { ICNOracle__factory } from '@bisonai/icn-contracts'
 import { RequestEventData, DataFeedRequest, IListeners, ILog } from './types.js'
 import { IcnError, IcnErrorCode } from './errors.js'
-import { buildBullMqConnection, buildQueueName, loadJson } from './utils.js'
+import { buildBullMqConnection, loadJson } from './utils.js'
+import { workerRequestQueueName } from './settings.js'
 
 dotenv.config()
 
@@ -16,12 +17,12 @@ async function main() {
   const listeners_path = process.env.LISTENERS // FIXME raise error when file does not exist
 
   console.log(provider_url)
-  console.log(EventEmitterMock__factory.abi)
+  console.log(ICNOracle__factory.abi)
   console.log(listeners_path)
 
   const listeners = await loadJson(listeners_path)
   const provider = new ethers.providers.JsonRpcProvider(provider_url)
-  const iface = new ethers.utils.Interface(EventEmitterMock__factory.abi)
+  const iface = new ethers.utils.Interface(ICNOracle__factory.abi)
 
   listenGetFilterChanges(provider, listeners, iface)
 }
@@ -45,26 +46,38 @@ async function listenGetFilterChanges(
   listeners: IListeners,
   iface: ethers.utils.Interface
 ) {
-  const eventTopicId = getEventTopicId(iface.events, 'OracleRequest')
+  const eventTopicId = getEventTopicId(iface.events, 'NewRequest')
   const filterId = await provider.send('eth_newFilter', [
     {
-      address: listeners.AGGREGATORS,
+      address: listeners.ANY_API,
       topics: [eventTopicId]
     }
   ])
 
-  const queue = new Queue(buildQueueName(), buildBullMqConnection())
+  const queue = new Queue(workerRequestQueueName, buildBullMqConnection())
 
   provider.on('block', async () => {
     const logs: ILog[] = await provider.send('eth_getFilterChanges', [filterId])
-
     logs.forEach(async (log) => {
-      const { specId, requester, payment } = iface.parseLog(log).args
-      console.log(`specId ${specId}`)
-      console.log(`requester ${requester}`)
-      console.log(`payment ${payment.toString()}`)
+      const { requestId, jobId, nonce, callbackAddress, callbackFunctionId, _data } =
+        iface.parseLog(log).args
+      console.log(`requestId ${requestId}`)
+      console.log(`jobId ${jobId}`)
+      console.log(`nonce ${nonce}`)
+      console.log(`callbackAddress ${callbackAddress}`)
+      console.log(`callbackFunctionId ${callbackFunctionId}`)
+      console.log(`_data ${_data}`)
 
-      await queue.add('myJobName', { specId, requester, payment })
+      // FIXME update name of job
+      await queue.add(jobId, {
+        requestId,
+        jobId,
+        nonce,
+        callbackAddress,
+        callbackFunctionId,
+        _data
+      })
+      // await queue.add('myJobName', { specId, requester, payment })
     })
   })
 }

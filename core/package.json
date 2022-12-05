@@ -16,7 +16,8 @@
     "clean": "rm -rf dist",
     "build": "yarn clean && tsc",
     "start:listener": "yarn build && node --experimental-specifier-resolution=node --experimental-json-modules dist/src/listener.js",
-    "start:worker": "node dist/src/worker.js"
+    "start:worker": "node dist/src/worker.js",
+    "start:reporter": "node dist/src/reporter.js"
   },
   "dependencies": {
     "bullmq": "^3.2.2",

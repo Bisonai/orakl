@@ -14,6 +14,7 @@ export interface DataFeedRequest {
 export interface IListeners {
   VRF: string[]
   AGGREGATORS: string[]
+  ANY_API: string[]
 }
 
 export interface ILog {
@@ -49,6 +50,10 @@ export interface IAdapter {
   name: string
   job_type: string
   adapter_id: string
-  oracle: string
   feeds: IFeed[]
+}
+
+export interface IRequest {
+  get: string
+  path?: string[]
 }

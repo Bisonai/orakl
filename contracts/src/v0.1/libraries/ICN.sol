@@ -2,8 +2,8 @@
 // Reference - https://github.com/smartcontractkit/chainlink/blob/develop/contracts/src/v0.8/Chainlink.sol
 pragma solidity ^0.8.16;
 
-import {Buffer} from './libraries/Buffer.sol';
-import {CBOR} from './libraries/CBOR.sol';
+import {Buffer} from './Buffer.sol';
+import {CBOR} from './CBOR.sol';
 
 /// @title ICN Library
 /// @author Zahid Ahmed
@@ -62,7 +62,11 @@ library ICN {
    * @param _key - the name of the key
    * @param _value - the string value to add
    */
-  function add(Request memory _request, string memory _key, string memory _value) internal pure {
+  function add(
+      Request memory _request,
+      string memory _key,
+      string memory _value
+  ) internal pure {
     _request.buf.encodeString(_key);
     _request.buf.encodeString(_value);
   }
@@ -88,7 +92,11 @@ library ICN {
    * @param _key - the name of the key
    * @param _value - the int256 value to add
    */
-  function addInt(Request memory _request, string memory _key, int256 _value) internal pure {
+  function addInt(
+      Request memory _request,
+      string memory _key,
+      int256 _value
+  ) internal pure {
     _request.buf.encodeString(_key);
     _request.buf.encodeInt(_value);
   }
@@ -99,7 +107,11 @@ library ICN {
    * @param _key - the name of the key
    * @param _value - the uint256 value to add
    */
-  function addUInt(Request memory _request, string memory _key, uint256 _value) internal pure {
+  function addUInt(
+      Request memory _request,
+      string memory _key,
+      uint256 _value
+  ) internal pure {
     _request.buf.encodeString(_key);
     _request.buf.encodeUInt(_value);
   }
