@@ -1,5 +1,6 @@
 import { ethers } from 'ethers'
 import { IRequest } from '../types.js'
+import { remove0x } from '../utils.js'
 
 const SIZELEN = 2
 
@@ -48,9 +49,7 @@ function readKeyOrValue(obj) {
 }
 
 export function decodeAnyApiRequest(anyApiRequest: string): IRequest {
-  if (anyApiRequest.substring(0, 2) == '0x') {
-    anyApiRequest = anyApiRequest.substring(2)
-  }
+  anyApiRequest = remove0x(anyApiRequest)
 
   let request = { get: '' }
 

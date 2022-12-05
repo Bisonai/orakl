@@ -38,6 +38,7 @@ export const pipe =
 
 /**
  * Access data in JSON based on given path.
+ *
  * Example
  * let json = {
  *     RAW: { ETH: { USD: { PRICE: 123 } } },
@@ -54,4 +55,10 @@ export function readFromJson(json, path: string[]) {
   }
 
   return v
+}
+
+export function remove0x(s) {
+  if (s.substring(0, 2) == '0x') {
+    return s.substring(2)
+  }
 }

@@ -1,10 +1,11 @@
 import { Worker } from 'bullmq'
 import { ethers } from 'ethers'
-import { buildBullMqConnection, buildQueueName, loadJson, pipe } from './utils.js'
+import { buildBullMqConnection, buildQueueName, loadJson, pipe, remove0x } from './utils.js'
 import { reporterRequestQueueName } from './settings.js'
 import { IcnError, IcnErrorCode } from './errors.js'
 
 function pad32Bytes(data) {
+  data = remove0x(data)
   let s = String(data)
   while (s.length < (64 || 2)) {
     s = '0' + s
@@ -12,23 +13,17 @@ function pad32Bytes(data) {
   return s
 }
 
-// function makeFunctionSelector(fnSignature) {
-//   return ethers.utils.id(fnSignature).slice(2).slice(0, 8)
-// }
-
 async function reporterJob(wallet) {
   // TODO send data back to Oracle
 
   async function wrapper(job) {
-    // console.log(wallet)
     console.log(job.data)
 
     try {
-      // const fnSelector = makeFunctionSelector('fulfill(bytes32,int256)')
-      const requestIdParam = pad32Bytes(job.data.requestId.slice(2))
-      const responseData = Math.floor(job.data.data) // FIXME
-      const responseParam = pad32Bytes(ethers.utils.hexlify(responseData).slice(2))
-      const payload = job.data.callbackFunctionId.slice(2) + requestIdParam + responseParam
+      const requestIdParam = pad32Bytes(job.data.requestId)
+      const responseData = Math.floor(job.data.data) // FIXME change response based on jobId
+      const responseParam = pad32Bytes(ethers.utils.hexlify(responseData))
+      const payload = remove0x(job.data.callbackFunctionId) + requestIdParam + responseParam
 
       const tx = {
         from: wallet.address,
