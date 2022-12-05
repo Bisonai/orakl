@@ -4,6 +4,8 @@ import { remove0x } from '../utils.js'
 
 const SIZELEN = 2
 
+// TODO implement parsing for higher groups
+// encoding algorithm is located in CBOR.sol (function encodeFixedNumeric)
 function hexToInt(hexNum, a) {
   const group = parseInt(hexNum, 16)
 
