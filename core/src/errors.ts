@@ -10,5 +10,6 @@ export enum IcnErrorCode {
   NonExistantEventError = 10000,
   InvalidOperator,
   MissingMnemonic,
-  MissingJsonRpcProvider
+  MissingJsonRpcProvider,
+  MissingKeyInJson
 }

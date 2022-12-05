@@ -5,9 +5,10 @@ import { got, Options } from 'got'
 import { IcnError, IcnErrorCode } from './errors.js'
 import { IAdapter } from './types.js'
 import { buildBullMqConnection, loadJson, pipe } from './utils.js'
-import { buildAdapterRootDir } from './utils.js'
+import { buildAdapterRootDir, readFromJson } from './utils.js'
 import { reducerMapping } from './reducer.js'
 import { localAggregatorFn, workerRequestQueueName, reporterRequestQueueName } from './settings.js'
+import { decodeAnyApiRequest } from './utils/decoding.js'
 
 function extractFeeds(adapter) {
   const adapterId = adapter.adapter_id
@@ -53,6 +54,19 @@ function validateAdapter(adapter): IAdapter {
   }
 }
 
+async function processAnyApi(apiRequest) {
+  console.log('Any API', apiRequest)
+
+  const request = decodeAnyApiRequest(apiRequest)
+  let data: any = await got(request.get).json()
+
+  if (request.path) {
+    data = readFromJson(data, request.path)
+  }
+
+  return data
+}
+
 async function main() {
   const adapters = (await loadAdapters())[0] // FIXME take all adapters
   console.log('adapters', adapters)
@@ -74,6 +88,8 @@ async function main() {
         callbackFunctionId,
         _data: dataRequest
       } = job.data
+
+      let data // FIXME
 
       if (jobId == '0x0000000000000000000000000000000000000000000000000000000000000000') {
         console.log('Predefined feed')
@@ -103,15 +119,8 @@ async function main() {
         // FIXME single node aggregation of multiple results
         // FIXME check if aggregator is defined and if exists
         try {
-          const data = localAggregatorFn(...results)
+          data = localAggregatorFn(...results)
           console.log(`data ${data}`)
-          await queue.add('reporter', {
-            requestId,
-            jobId,
-            callbackAddress,
-            callbackFunctionId,
-            data
-          })
         } catch (e) {
           console.log(e)
         }
@@ -119,24 +128,16 @@ async function main() {
         // VRF
         console.log('VRF')
       } else {
-        // Any API
-        console.log('Any API')
-
-        const url = Buffer.from(dataRequest.substring(2), 'hex').toString().substring(6)
-        console.log(url)
-        const rawData: any = await got(url).json()
-        console.log(rawData)
-        console.log(rawData['DISPLAY']['ETH']['USD'])
-        const data = rawData['RAW']['ETH']['USD']['PRICE'] // FIXME make it more general
-        console.log(data)
-        await queue.add('reporter', {
-          requestId,
-          jobId,
-          callbackAddress,
-          callbackFunctionId,
-          data
-        })
+        data = processAnyApi(dataRequest)
       }
+
+      await queue.add('reporter', {
+        requestId,
+        jobId,
+        callbackAddress,
+        callbackFunctionId,
+        data
+      })
     },
     buildBullMqConnection()
   )
