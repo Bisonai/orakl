@@ -1,6 +1,6 @@
 import * as dotenv from 'dotenv'
 import * as Fs from 'node:fs/promises'
-import { IcnError, IcnErrorCode } from './errors.js'
+import { IcnError, IcnErrorCode } from './errors'
 
 dotenv.config()
 
