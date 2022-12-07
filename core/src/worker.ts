@@ -3,12 +3,14 @@ import * as Path from 'node:path'
 import { Worker, Queue } from 'bullmq'
 import { got, Options } from 'got'
 import { IcnError, IcnErrorCode } from './errors'
-import { IAdapter } from './types'
+import { IAdapter, IVrfRequest, IVrfResponse } from './types'
 import { buildBullMqConnection, loadJson, pipe } from './utils'
 import { buildAdapterRootDir, readFromJson } from './utils'
 import { reducerMapping } from './reducer'
 import { localAggregatorFn, workerRequestQueueName, reporterRequestQueueName } from './settings'
 import { decodeAnyApiRequest } from './decoding'
+import { prove, verify } from './vrf/index'
+import { VRF_SK, VRF_PK } from './load-parameters'
 
 function extractFeeds(adapter) {
   const adapterId = adapter.adapter_id
@@ -65,6 +67,24 @@ async function processAnyApi(apiRequest) {
   }
 
   return data
+}
+
+function processVrfRequest(vrfRequest: IVrfRequest): IVrfResponse {
+  console.log('VRF Request')
+
+  const proof = prove(VRF_SK, vrfRequest.alpha)
+  // TODO remove status
+  const [status, beta] = verify(VRF_PK, proof, vrfRequest.alpha)
+
+  // TODO make sure beta is string
+  if (beta == null) {
+    throw Error()
+  }
+
+  return {
+    proof,
+    beta
+  }
 }
 
 async function main() {
