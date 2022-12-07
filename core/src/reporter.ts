@@ -3,6 +3,7 @@ import { ethers } from 'ethers'
 import { buildBullMqConnection, buildQueueName, loadJson, pipe, remove0x } from './utils'
 import { reporterRequestQueueName } from './settings'
 import { IcnError, IcnErrorCode } from './errors'
+import { PROVIDER, MNEMONIC, PRIVATE_KEY } from './load-parameters'
 
 function pad32Bytes(data) {
   data = remove0x(data)
@@ -45,16 +46,11 @@ async function reporterJob(wallet) {
 }
 
 async function main() {
-  const providerEnv = process.env.PROVIDER
-  // FIXME allow either private key or mnemonic
-  // const mnemonicEnv = process.env.MNEMONIC
-  const privateKeyEnv = process.env.PRIVATE_KEY
-
-  if (privateKeyEnv) {
-    if (providerEnv) {
-      const provider = new ethers.providers.JsonRpcProvider(providerEnv)
-      // const wallet = ethers.Wallet.fromMnemonic(mnemonicEnv).connect(provider)
-      const wallet = new ethers.Wallet(privateKeyEnv, provider)
+  if (PRIVATE_KEY) {
+    if (PROVIDER) {
+      const provider = new ethers.providers.JsonRpcProvider(PROVIDER)
+      // const wallet = ethers.Wallet.fromMnemonic(MNEMONIC).connect(provider)
+      const wallet = new ethers.Wallet(PRIVATE_KEY, provider)
       // TODO if job not finished, return job in queue
       const worker = new Worker(
         reporterRequestQueueName,

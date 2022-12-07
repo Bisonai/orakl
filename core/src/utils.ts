@@ -1,15 +1,13 @@
-import * as dotenv from 'dotenv'
 import * as Fs from 'node:fs/promises'
 import { IcnError, IcnErrorCode } from './errors'
-
-dotenv.config()
+import { REDIS_HOST, REDIS_PORT } from './load-parameters'
 
 export function buildBullMqConnection() {
   // FIXME Move to separate factory file?
   return {
     connection: {
-      host: process.env.REDIS_HOST || 'localhost',
-      port: Number(process.env.REDIS_PORT || 6379)
+      host: REDIS_HOST,
+      port: REDIS_PORT
     }
   }
 }

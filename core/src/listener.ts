@@ -2,26 +2,21 @@
 // 2. Listen on *multiple* smart contracts for *multiple* event types.
 
 import { ethers } from 'ethers'
-import * as dotenv from 'dotenv'
 import { Queue } from 'bullmq'
 import { ICNOracle__factory } from '@bisonai/icn-contracts'
 import { RequestEventData, DataFeedRequest, IListeners, ILog } from './types'
 import { IcnError, IcnErrorCode } from './errors'
 import { buildBullMqConnection, loadJson } from './utils'
 import { workerRequestQueueName } from './settings'
-
-dotenv.config()
+import { PROVIDER_URL, LISTENERS_PATH } from './load-parameters'
 
 async function main() {
-  const provider_url = process.env.PROVIDER
-  const listeners_path = process.env.LISTENERS // FIXME raise error when file does not exist
-
-  console.log(provider_url)
+  console.log(PROVIDER_URL)
   console.log(ICNOracle__factory.abi)
-  console.log(listeners_path)
+  console.log(LISTENERS_PATH)
 
-  const listeners = await loadJson(listeners_path)
-  const provider = new ethers.providers.JsonRpcProvider(provider_url)
+  const listeners = await loadJson(LISTENERS_PATH)
+  const provider = new ethers.providers.JsonRpcProvider(PROVIDER_URL)
   const iface = new ethers.utils.Interface(ICNOracle__factory.abi)
 
   listenGetFilterChanges(provider, listeners, iface)

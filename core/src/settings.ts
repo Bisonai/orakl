@@ -1,7 +1,7 @@
 import { aggregatorMapping } from './aggregator'
+import { LOCAL_AGGREGATOR } from './load-parameters'
 
-export const localAggregatorFn =
-  aggregatorMapping[process.env.LOCAL_AGGREGATOR?.toUpperCase() || 'MEAN']
+export const localAggregatorFn = aggregatorMapping[LOCAL_AGGREGATOR?.toUpperCase() || 'MEAN']
 
 export const workerRequestQueueName = 'worker-request-queue'
 
