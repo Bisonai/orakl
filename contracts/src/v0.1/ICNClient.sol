@@ -21,7 +21,7 @@ contract ICNClient {
   /**
    * @notice a modifier to declare the request is fulfiled by the oracle
    */
-  modifier storeICNRequestFulfilled(bytes32 _requestId) {
+  modifier ICNResponseFulfilled(bytes32 _requestId) {
     if (msg.sender != s_pendingRequests[_requestId]) {
       revert SenderIsNotOracle();
     }

@@ -7,7 +7,7 @@ error RequestAlreadyExists();
 error IncorrectRequestFulfillment();
 
 contract ICNOracle is IOracle {
-  // Storing requests
+  // Mapping RequestIDs => Hashes of Requests Data
   mapping(bytes32 => bytes32) private requests;
 
   event NewRequest(
