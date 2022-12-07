@@ -6,11 +6,11 @@ import { prove, verify, getFastVerifyComponents } from '../src/vrf/index'
 // TODO Add tests from https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-vrf-10#appendix-A-1
 
 describe('VRF', function () {
-  let alpha_string
+  let alpha
   let SK
   let PK
   beforeEach(() => {
-    alpha_string = '123'
+    alpha = '123'
     SK = '927a5ce18fd9bba52e8a006633600abf1cdfbaa87b76401590945cd211142688'
     PK =
       '04c322317773795c4c1c1f1dc57a0351af5c9cc5d6e7e46a5e477fa31f482ff4edf19814af61fa8baf8d70280171d1163bdcd732b43953aa02f545d8c4b4b5b19c'
@@ -19,7 +19,7 @@ describe('VRF', function () {
   test('Test proof generation', function () {
     const proofGt =
       '03f2e53ed55d152362e73459aeb64607a90900bac77fbc807955d7dcef835a0a2944a392fa7ce96e80ef347bc30e9deb8b858d6bfff20af8828635a9994ceffb90a17c40807dbe13c2056d87fcead9e634'
-    const proof = prove(SK, alpha_string)
+    const proof = prove(SK, alpha)
     expect(proof).toStrictEqual(proofGt)
   })
 
@@ -33,8 +33,8 @@ describe('VRF', function () {
       cGY: '41076761133918350571240208725724766016199597466412944191921220776340643881905'
     }
 
-    const proof = prove(SK, alpha_string)
-    const fast = getFastVerifyComponents(PK, proof, alpha_string)
+    const proof = prove(SK, alpha)
+    const fast = getFastVerifyComponents(PK, proof, alpha)
 
     expect(fast).toStrictEqual(fastGt)
   })
@@ -43,8 +43,8 @@ describe('VRF', function () {
     const statusGt = 'VALID'
     const betaGt = 'd530051e07609707944aa2f5cdf0cdd81f24d28fa283dae2526b46e31d0426a8'
 
-    const proof = prove(SK, alpha_string)
-    const [status, beta] = verify(PK, proof, alpha_string)
+    const proof = prove(SK, alpha)
+    const [status, beta] = verify(PK, proof, alpha)
 
     expect(status).toStrictEqual(statusGt)
     expect(beta).toStrictEqual(betaGt)

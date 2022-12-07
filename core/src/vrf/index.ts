@@ -244,5 +244,7 @@ export {
   ECVRF_verify as verify,
   ECVRF_decode_proof as decode,
   ECVRF_keygen as keygen,
-  getFastVerifyComponents as getFastVerifyComponents
+  getFastVerifyComponents as getFastVerifyComponents,
+  ECVRF_hash_to_curve,
+  point_to_string
 }
