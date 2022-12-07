@@ -1,11 +1,10 @@
 // https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-vrf-10.html
 
-const elliptic = require('elliptic')
-const BN = require('bn.js')
-const { createHmac, createHash } = require('crypto')
+import * as elliptic from 'elliptic'
+import * as BN from 'bn.js'
+import { createHmac, createHash } from 'crypto'
 
 const EC = new elliptic.ec('secp256k1')
-
 const suite_string = [0xfe] //ECVRF-SECP256K1-SHA256-TAI
 
 /**
