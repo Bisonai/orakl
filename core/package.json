@@ -21,12 +21,14 @@
     "test": "jest"
   },
   "dependencies": {
+    "bn.js": "^5.2.1",
     "bullmq": "^3.2.2",
     "dotenv": "^16.0.3",
+    "elliptic": "^6.5.4",
     "ethers": "^5.7.2",
     "got": "^12.5.3",
-    "@bisonai/icn-contracts": "0.1.0",
-    "mathjs": "^11.4.0"
+    "mathjs": "^11.4.0",
+    "@bisonai/icn-contracts": "0.1.0"
   },
   "devDependencies": {
     "@jest/globals": "^29.3.1",
