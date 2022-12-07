@@ -22,8 +22,8 @@ async function main() {
   ICNOracle.on(
     'NewRequest',
     async (requestId, jobId, nonce, callbackAddress, callbackFunctionId, _data) => {
+      console.log(requestId, callbackAddress, callbackFunctionId)
       console.log(_data)
-
       let stringdata = Web3.utils.hexToString(_data)
       console.log(stringdata)
       let url = stringdata.substring(6)

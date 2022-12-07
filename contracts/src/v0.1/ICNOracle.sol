@@ -49,7 +49,7 @@ contract ICNOracle is IOracle {
     bytes32 _requestId,
     address _callbackAddress,
     bytes4 _callbackFunctionId,
-    bytes32 _data
+    bytes calldata _data
   ) external returns (bool) {
     bytes32 paramsHash = keccak256(
       abi.encodePacked(_requestId, _callbackAddress, _callbackFunctionId)

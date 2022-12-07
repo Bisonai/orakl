@@ -18,9 +18,8 @@ describe('ICN Client Contract', function () {
     let UserContract = await ethers.getContractFactory('ICNMock')
     UserContract = await UserContract.deploy(ICNOracle.address)
     await UserContract.deployed()
-    console.log('Deployed User Contract Address:', UserContract.address)
 
-    await UserContract.requestData()
+    await expect(UserContract.requestData()).to.not.be.reverted
   })
 
   it('Should recieve an off-chain event of Requested', async function () {
@@ -31,7 +30,6 @@ describe('ICN Client Contract', function () {
     let UserContract = await ethers.getContractFactory('ICNMock')
     UserContract = await UserContract.deploy(ICNOracle.address)
     await UserContract.deployed()
-    console.log('Deployed User Contract Address:', UserContract.address)
 
     const tx = await UserContract.requestData()
     const receipt = await tx.wait()
@@ -39,10 +37,8 @@ describe('ICN Client Contract', function () {
     for (const event of receipt.events) {
       if (event.event == 'Requested') {
         let requestId = event.args.id
-        console.log('Request Id:', requestId)
+        expect(requestId).to.not.empty
       }
     }
   })
-
-  //TODO: Immitate Event listening in Tests
 })
