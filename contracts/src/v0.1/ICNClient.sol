@@ -5,6 +5,8 @@ pragma solidity ^0.8.16;
 import './libraries/ICN.sol';
 import './interfaces/IOracle.sol';
 
+error SenderIsNotOracle();
+
 contract ICNClient {
   using ICN for ICN.Request;
 
@@ -15,6 +17,19 @@ contract ICNClient {
   event Requested(bytes32 indexed id);
   event Fulfilled(bytes32 indexed id); // FIXME not used
   event Cancelled(bytes32 indexed id); // FIXME not used
+
+  /**
+   * @notice a modifier to declare the request is fulfiled by the oracle
+   */
+  modifier ICNResponseFulfilled(bytes32 _requestId) {
+    if (msg.sender != s_pendingRequests[_requestId]) {
+      revert SenderIsNotOracle();
+    }
+    delete s_pendingRequests[_requestId]; // Gas refund for clearing memory
+
+    _;
+    emit Fulfilled(_requestId);
+  }
 
   /**
    * @notice Creates a request using the ICN library
@@ -74,5 +89,13 @@ contract ICNClient {
    */
   function setOracle(address _oracleAddress) internal {
     s_oracle = _oracleAddress;
+  }
+
+  /**
+   * @notice The type and version of this contract
+   * @return Type and version string
+   */
+  function typeAndVersion() external pure returns (string memory) {
+    return 'ICNClient v0.1';
   }
 }

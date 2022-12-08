@@ -13,4 +13,10 @@ interface IOracle {
     bytes4 _callbackFunctionId,
     bytes calldata _data
   ) external;
+
+  /**
+   * @notice The type and version of this contract
+   * @return Type and version string
+   */
+  function typeAndVersion() external pure returns (string memory);
 }

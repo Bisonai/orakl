@@ -3,11 +3,12 @@ pragma solidity ^0.8.16;
 
 import './interfaces/IOracle.sol';
 
-contract ICNOracle is IOracle {
-  mapping(uint256 => bool) public s_requestStatuses;
+error RequestAlreadyExists();
+error IncorrectRequestFulfillment();
 
-  // Mapping to store results of requests done
-  mapping(uint256 => bytes32) public s_requestResults;
+contract ICNOracle is IOracle {
+  // Mapping RequestIDs => Hashes of Requests Data
+  mapping(bytes32 => bytes32) private requests;
 
   event NewRequest(
     bytes32 indexed requestId,
@@ -26,11 +27,48 @@ contract ICNOracle is IOracle {
     bytes4 _callbackFunctionId,
     bytes calldata _data
   ) external {
-      emit NewRequest(_requestId, _jobId, _nonce, _callbackAddress, _callbackFunctionId, _data);
+    if (requests[_requestId] != 0) {
+      revert RequestAlreadyExists();
+    }
+    requests[_requestId] = keccak256(
+      abi.encodePacked(_requestId, _callbackAddress, _callbackFunctionId)
+    );
+
+    emit NewRequest(_requestId, _jobId, _nonce, _callbackAddress, _callbackFunctionId, _data);
   }
 
-  function fulfillRequest(bytes32 _requestId, bytes32 _data) external {
-    // s_jobResults[_jobId] = data;
-    // s_jobStatuses[_jobId] = true;
+  /**
+   * //TODO - Add validator node checks
+   * @notice Fulfils oracle request
+   * @param _requestId - ID of the Oracle Request
+   * @param _callbackAddress - Callback Address of Oracle Fulfilment
+   * @param _callbackFunctionId - Return functionID callback
+   * @param _data - Return data for fulfilment
+   */
+  function fulfillOracleRequest(
+    bytes32 _requestId,
+    address _callbackAddress,
+    bytes4 _callbackFunctionId,
+    bytes calldata _data
+  ) external returns (bool) {
+    bytes32 paramsHash = keccak256(
+      abi.encodePacked(_requestId, _callbackAddress, _callbackFunctionId)
+    );
+    if (requests[_requestId] != paramsHash) {
+      revert IncorrectRequestFulfillment();
+    }
+    delete requests[_requestId];
+    (bool success, ) = _callbackAddress.call(
+      abi.encodeWithSelector(_callbackFunctionId, _requestId, _data)
+    );
+    return success;
+  }
+
+  /**
+   * @notice The type and version of this contract
+   * @return Type and version string
+   */
+  function typeAndVersion() external pure returns (string memory) {
+    return 'ICNClient v0.1';
   }
 }

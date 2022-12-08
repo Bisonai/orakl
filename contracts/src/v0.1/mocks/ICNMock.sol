@@ -7,22 +7,26 @@ contract ICNMock is ICNClient {
   using ICN for ICN.Request;
 
   bytes32 private jobId;
-  int256 public value;
+  int256 private value;
 
   constructor(address _oracleAddress) {
     setOracle(_oracleAddress);
     /* jobId = keccak256(abi.encodePacked("KLAY")); */
-    jobId = keccak256(abi.encodePacked("any-api-int256"));
+    jobId = keccak256(abi.encodePacked('any-api-int256'));
   }
 
   function requestData() public returns (bytes32 requestId) {
     ICN.Request memory req = buildRequest(jobId, address(this), this.fulfill.selector);
-    req.add("get", "https://min-api.cryptocompare.com/data/pricemultifull?fsyms=ETH&tsyms=USD");
-    req.add("path", "RAW,ETH,USD,PRICE");
+    req.add('get', 'https://min-api.cryptocompare.com/data/pricemultifull?fsyms=ETH&tsyms=USD');
+    req.add('path', 'RAW,ETH,USD,PRICE');
     return sendRequest(req);
   }
 
-  function fulfill(bytes32 _requestId, int256 _response) public {
-      value = _response;
+  function fulfill(bytes32 _requestId, int256 _response) public ICNResponseFulfilled(_requestId) {
+    value = _response;
+  }
+
+  function getValue() external view returns (int256) {
+    return value;
   }
 }
