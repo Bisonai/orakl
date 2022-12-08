@@ -25,4 +25,12 @@ contract ICNOracleRead {
   function getData(uint256 _jobId) external view returns (bytes32) {
     return s_jobResults[_jobId];
   }
+
+  /**
+   * @notice The type and version of this contract
+   * @return Type and version string
+   */
+  function typeAndVersion() external pure returns (string memory) {
+    return 'ICNClient v0.1';
+  }
 }

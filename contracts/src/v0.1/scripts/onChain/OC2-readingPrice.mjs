@@ -41,9 +41,6 @@ async function main() {
       console.log(await UserContract.getValue())
     }
   )
-
-  // const value = await UserContract.value()
-  // console.log(`value ${value}`)
 }
 
 main()

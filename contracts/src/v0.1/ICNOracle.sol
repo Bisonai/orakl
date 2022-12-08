@@ -63,4 +63,12 @@ contract ICNOracle is IOracle {
     );
     return success;
   }
+
+  /**
+   * @notice The type and version of this contract
+   * @return Type and version string
+   */
+  function typeAndVersion() external pure returns (string memory) {
+    return 'ICNClient v0.1';
+  }
 }

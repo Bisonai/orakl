@@ -26,8 +26,9 @@ contract ICNClient {
       revert SenderIsNotOracle();
     }
     delete s_pendingRequests[_requestId]; // Gas refund for clearing memory
-    emit Fulfilled(_requestId);
+
     _;
+    emit Fulfilled(_requestId);
   }
 
   /**
@@ -88,5 +89,13 @@ contract ICNClient {
    */
   function setOracle(address _oracleAddress) internal {
     s_oracle = _oracleAddress;
+  }
+
+  /**
+   * @notice The type and version of this contract
+   * @return Type and version string
+   */
+  function typeAndVersion() external pure returns (string memory) {
+    return 'ICNClient v0.1';
   }
 }
