@@ -1,12 +1,23 @@
 import pkg from 'hardhat'
 const { ethers } = pkg
 
+const ZERO_ADDRESS = ethers.constants.AddressZero
+
 async function main() {
   let VRFCoordinator = await ethers.getContractFactory('VRFCoordinator')
-  const blockhashStore = ethers.constants.AddressZero // FIXME
+  const blockhashStore = ZERO_ADDRESS // FIXME
   VRFCoordinator = await VRFCoordinator.deploy(blockhashStore)
   await VRFCoordinator.deployed()
   console.log('VRFCoordinator Address:', VRFCoordinator.address)
+
+  // Register Proving Key
+  const oracle = ZERO_ADDRESS // FIXME
+  const publicProvingKey = [1, 2] // FIXME
+  await VRFCoordinator.registerProvingKey(oracle, publicProvingKey)
+  VRFCoordinator.once('ProvingKeyRegistered', async (keyHash, oracle) => {
+    console.log(`keyHash ${keyHash}`)
+    console.log(`oracle ${oracle}`)
+  })
 
   const minimumRequestConfirmations = 3
   const maxGasLimit = 1_000_000
