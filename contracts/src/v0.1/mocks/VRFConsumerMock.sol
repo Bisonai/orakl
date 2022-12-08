@@ -32,7 +32,7 @@ contract VRFConsumerMock is VRFConsumerBase {
     bytes32 keyHash;
     uint64 subId = 1;
     uint16 requestConfirmations = 3;
-    uint32 callbackGasLimit = 3;
+    uint32 callbackGasLimit = 1_000_000;
     uint32 numWords = 1;
 
     requestId = COORDINATOR.requestRandomWords(
