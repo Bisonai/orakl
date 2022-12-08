@@ -19,7 +19,7 @@ contract VRFCoordinator is
   TypeAndVersionInterface,
   VRFCoordinatorInterface
 {
-  BlockhashStoreInterface public immutable BLOCKHASH_STORE;
+  // BlockhashStoreInterface public immutable BLOCKHASH_STORE;
 
   // We need to maintain a list of consuming addresses.
   // This bound ensures we are able to loop over them as needed.
@@ -167,9 +167,9 @@ contract VRFCoordinator is
   );
 
   constructor(
-    address blockhashStore
+    //  address blockhashStore
   ) ConfirmedOwner(msg.sender) {
-    BLOCKHASH_STORE = BlockhashStoreInterface(blockhashStore);
+    // BLOCKHASH_STORE = BlockhashStoreInterface(blockhashStore);
   }
 
   /**
@@ -499,12 +499,13 @@ contract VRFCoordinator is
     }
 
     bytes32 blockHash = blockhash(rc.blockNum);
-    if (blockHash == bytes32(0)) {
-      blockHash = BLOCKHASH_STORE.getBlockhash(rc.blockNum);
-      if (blockHash == bytes32(0)) {
-        revert BlockhashNotInStore(rc.blockNum);
-      }
-    }
+    // FIXME
+    //if (blockHash == bytes32(0)) {
+    //  blockHash = BLOCKHASH_STORE.getBlockhash(rc.blockNum);
+    //  if (blockHash == bytes32(0)) {
+    //    revert BlockhashNotInStore(rc.blockNum);
+    //  }
+    //}
 
     // The seed actually used by the VRF machinery, mixing in the blockhash
     uint256 actualSeed = uint256(keccak256(abi.encodePacked(proof.seed, blockHash)));

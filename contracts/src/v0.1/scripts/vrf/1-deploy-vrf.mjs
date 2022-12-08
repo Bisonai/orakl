@@ -5,8 +5,8 @@ const ZERO_ADDRESS = ethers.constants.AddressZero
 
 async function main() {
   let VRFCoordinator = await ethers.getContractFactory('VRFCoordinator')
-  const blockhashStore = ZERO_ADDRESS // FIXME
-  VRFCoordinator = await VRFCoordinator.deploy(blockhashStore)
+  // const blockhashStore = ZERO_ADDRESS // FIXME
+  VRFCoordinator = await VRFCoordinator.deploy(/* blockhashStore */)
   await VRFCoordinator.deployed()
   console.log('VRFCoordinator Address:', VRFCoordinator.address)
 
