@@ -18,6 +18,13 @@ uint64 subId = createSubscription()
 
 ```
 
+### Proving Keys
+
+```
+registerProvingKey
+deregisterProvingKey
+```
+
 #### Transfer Ownership
 ```
 requestSubscriptionOwnerTransfer

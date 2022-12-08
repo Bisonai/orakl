@@ -3,11 +3,11 @@
 
 import { ethers } from 'ethers'
 import { Queue } from 'bullmq'
-import { ICNOracle__factory } from '@bisonai/icn-contracts'
+import { ICNOracle__factory, VRFCoordinator__factory } from '@bisonai/icn-contracts'
 import { RequestEventData, DataFeedRequest, IListeners, ILog } from './types'
 import { IcnError, IcnErrorCode } from './errors'
 import { buildBullMqConnection, loadJson } from './utils'
-import { workerRequestQueueName } from './settings'
+import { WORKER_REQUEST_QUEUE_NAME, WORKER_VRF_QUEUE_NAME } from './settings'
 import { PROVIDER_URL, LISTENERS_PATH } from './load-parameters'
 
 async function main() {
@@ -17,9 +17,11 @@ async function main() {
 
   const listeners = await loadJson(LISTENERS_PATH)
   const provider = new ethers.providers.JsonRpcProvider(PROVIDER_URL)
-  const iface = new ethers.utils.Interface(ICNOracle__factory.abi)
 
-  listenGetFilterChanges(provider, listeners, iface)
+  const requestIface = new ethers.utils.Interface(ICNOracle__factory.abi)
+  const vrfIface = new ethers.utils.Interface(VRFCoordinator__factory.abi)
+
+  listenGetFilterChanges(provider, listeners, requestIface, vrfIface)
 }
 
 function getEventTopicId(
@@ -39,9 +41,14 @@ function getEventTopicId(
 async function listenGetFilterChanges(
   provider: ethers.providers.JsonRpcProvider,
   listeners: IListeners,
-  iface: ethers.utils.Interface
+  requestIface: ethers.utils.Interface,
+  vrfIface: ethers.utils.Interface
 ) {
-  const eventTopicId = getEventTopicId(iface.events, 'NewRequest')
+  const requestQueue = new Queue(WORKER_REQUEST_QUEUE_NAME, buildBullMqConnection())
+  const vrfQueue = new Queue(WORKER_VRF_QUEUE_NAME, buildBullMqConnection())
+
+  // Request
+  const eventTopicId = getEventTopicId(requestIface.events, 'NewRequest')
   const filterId = await provider.send('eth_newFilter', [
     {
       address: listeners.ANY_API,
@@ -49,13 +56,24 @@ async function listenGetFilterChanges(
     }
   ])
 
-  const queue = new Queue(workerRequestQueueName, buildBullMqConnection())
+  // VRF
+  const vrfEventTopicId = getEventTopicId(vrfIface.events, 'RandomWordsRequested')
+  const vrfFilterId = await provider.send('eth_newFilter', [
+    {
+      address: listeners.VRF,
+      topics: [vrfEventTopicId]
+    }
+  ])
+
+  console.log(vrfEventTopicId)
+  console.log(listeners.VRF)
 
   provider.on('block', async () => {
+    // Request
     const logs: ILog[] = await provider.send('eth_getFilterChanges', [filterId])
     logs.forEach(async (log) => {
       const { requestId, jobId, nonce, callbackAddress, callbackFunctionId, _data } =
-        iface.parseLog(log).args
+        requestIface.parseLog(log).args
       console.log(`requestId ${requestId}`)
       console.log(`jobId ${jobId}`)
       console.log(`nonce ${nonce}`)
@@ -64,7 +82,7 @@ async function listenGetFilterChanges(
       console.log(`_data ${_data}`)
 
       // FIXME update name of job
-      await queue.add(jobId, {
+      await requestQueue.add('request', {
         requestId,
         jobId,
         nonce,
@@ -72,8 +90,34 @@ async function listenGetFilterChanges(
         callbackFunctionId,
         _data
       })
-      // await queue.add('myJobName', { specId, requester, payment })
     })
+
+    // VRF
+    try {
+      const vrfLogs: ILog[] = await provider.send('eth_getFilterChanges', [vrfFilterId])
+      vrfLogs.forEach(async (log) => {
+        const {
+          keyHash, // FIXME
+          requestId,
+          preSeed,
+          subId, // FIXME
+          minimumRequestConfirmations, // FIXME
+          callbackGasLimit,
+          numWords, // FIXME
+          sender
+        } = vrfIface.parseLog(log).args
+        console.log('VRF')
+        console.log(`keyHash ${keyHash}`)
+        console.log(`requestId ${requestId}`)
+        console.log(`preSeed ${preSeed}`)
+
+        await vrfQueue.add('vrf', { requestId, alpha: preSeed, callbackGasLimit, sender })
+
+        // TODO add to queue
+      })
+    } catch (e) {
+      console.error(e)
+    }
   })
 }
 

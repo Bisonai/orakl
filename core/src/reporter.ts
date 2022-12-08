@@ -1,7 +1,7 @@
 import { Worker } from 'bullmq'
 import { ethers } from 'ethers'
 import { buildBullMqConnection, buildQueueName, loadJson, pipe, remove0x } from './utils'
-import { reporterRequestQueueName } from './settings'
+import { REPORTER_REQUEST_QUEUE_NAME, REPORTER_VRF_QUEUE_NAME } from './settings'
 import { IcnError, IcnErrorCode } from './errors'
 import { PROVIDER, MNEMONIC, PRIVATE_KEY } from './load-parameters'
 
@@ -14,7 +14,28 @@ function pad32Bytes(data) {
   return s
 }
 
-async function reporterJob(wallet) {
+function vrfJob(wallet) {
+  async function wrapper(job) {
+    const data = job.data
+    console.log('vrfJob', job.data)
+
+    console.log(`requestId ${data.requestId}`)
+    console.log(`alpha ${data.alpha}`)
+    console.log(`callbackGasLimit ${data.callbackGasLimit}`)
+    console.log(`sender ${data.sender}`)
+    console.log(`proof ${data.proof}`)
+    console.log(`beta ${data.beta}`)
+
+    try {
+    } catch (e) {
+      console.error(e)
+    }
+  }
+
+  return wrapper
+}
+
+function reporterJob(wallet) {
   // TODO send data back to Oracle
 
   async function wrapper(job) {
@@ -38,7 +59,7 @@ async function reporterJob(wallet) {
       const txReceipt = await wallet.sendTransaction(tx)
       console.log(txReceipt)
     } catch (e) {
-      console.log(e)
+      console.error(e)
     }
   }
 
@@ -52,11 +73,10 @@ async function main() {
       // const wallet = ethers.Wallet.fromMnemonic(MNEMONIC).connect(provider)
       const wallet = new ethers.Wallet(PRIVATE_KEY, provider)
       // TODO if job not finished, return job in queue
-      const worker = new Worker(
-        reporterRequestQueueName,
-        await reporterJob(wallet),
-        buildBullMqConnection()
-      )
+
+      new Worker(REPORTER_REQUEST_QUEUE_NAME, await reporterJob(wallet), buildBullMqConnection())
+
+      new Worker(REPORTER_VRF_QUEUE_NAME, await vrfJob(wallet), buildBullMqConnection())
     } else {
       throw new IcnError(IcnErrorCode.MissingJsonRpcProvider)
     }

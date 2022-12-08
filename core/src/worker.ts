@@ -1,5 +1,6 @@
 import * as Fs from 'node:fs/promises'
 import * as Path from 'node:path'
+import { BN } from 'bn.js'
 import { Worker, Queue } from 'bullmq'
 import { got, Options } from 'got'
 import { IcnError, IcnErrorCode } from './errors'
@@ -7,7 +8,13 @@ import { IAdapter, IVrfRequest, IVrfResponse } from './types'
 import { buildBullMqConnection, loadJson, pipe } from './utils'
 import { buildAdapterRootDir, readFromJson } from './utils'
 import { reducerMapping } from './reducer'
-import { localAggregatorFn, workerRequestQueueName, reporterRequestQueueName } from './settings'
+import {
+  localAggregatorFn,
+  WORKER_REQUEST_QUEUE_NAME,
+  REPORTER_REQUEST_QUEUE_NAME,
+  WORKER_VRF_QUEUE_NAME,
+  REPORTER_VRF_QUEUE_NAME
+} from './settings'
 import { decodeAnyApiRequest } from './decoding'
 import { prove, verify } from './vrf/index'
 import { VRF_SK, VRF_PK } from './load-parameters'
@@ -87,18 +94,54 @@ function processVrfRequest(vrfRequest: IVrfRequest): IVrfResponse {
   }
 }
 
+function vrfJob(queue) {
+  async function wrapper(job) {
+    const data = job.data
+    console.log('VRF request', data)
+
+    //
+    try {
+      const alpha = new BN(job.data.alpha.hex.slice(2), 'hex') // FIXME
+      console.log('alpha', alpha)
+      const { proof, beta } = processVrfRequest({ alpha })
+      console.log(`proof ${proof}`)
+      console.log(`beta ${beta}`)
+
+      await queue.add('report', {
+        requestId: data.requestId,
+        alpha: data.alpha,
+        callbackGasLimit: data.callbackGasLimit,
+        sender: data.sender,
+        proof,
+        beta
+      })
+    } catch (e) {
+      console.error(e)
+    }
+  }
+
+  return wrapper
+}
+
 async function main() {
   const adapters = (await loadAdapters())[0] // FIXME take all adapters
   console.log('adapters', adapters)
 
-  const queue = new Queue(reporterRequestQueueName, buildBullMqConnection())
+  const reporterRequestQueue = new Queue(REPORTER_REQUEST_QUEUE_NAME, buildBullMqConnection())
+  const reporterVrfQueue = new Queue(REPORTER_VRF_QUEUE_NAME, buildBullMqConnection())
 
   // TODO if job not finished, return job in queue
 
-  const worker = new Worker(
-    workerRequestQueueName,
+  const vrfWorker = new Worker(
+    WORKER_VRF_QUEUE_NAME,
+    vrfJob(reporterVrfQueue),
+    buildBullMqConnection()
+  )
+
+  const requestWorker = new Worker(
+    WORKER_REQUEST_QUEUE_NAME,
     async (job) => {
-      console.log('request', job.data)
+      console.log('Any API request', job.data)
 
       const {
         requestId,
@@ -130,7 +173,7 @@ async function main() {
               // console.log(`data ${data}`)
             } catch (e) {
               // FIXME
-              console.log(e)
+              console.error(e)
             }
           })
         )
@@ -142,7 +185,7 @@ async function main() {
           data = localAggregatorFn(...results)
           console.log(`data ${data}`)
         } catch (e) {
-          console.log(e)
+          console.error(e)
         }
       } else if (jobId == '0x1111111111111111111111111111111111111111111111111111111111111111') {
         // VRF
@@ -151,7 +194,7 @@ async function main() {
         data = processAnyApi(dataRequest)
       }
 
-      await queue.add('reporter', {
+      await reporterRequestQueue.add('report', {
         requestId,
         jobId,
         callbackAddress,

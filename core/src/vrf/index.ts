@@ -1,7 +1,7 @@
 // https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-vrf-10.html
 
-import * as elliptic from 'elliptic'
-import * as BN from 'bn.js'
+import { default as elliptic } from 'elliptic'
+import { BN } from 'bn.js'
 import { createHmac, createHash } from 'crypto'
 
 const EC = new elliptic.ec('secp256k1')
