@@ -8,22 +8,14 @@ contract EventEmitterMock {
         address requester,
         /* bytes32 requestId, */
         uint256 payment
-        /* address callbackAddr, */
-        /* bytes4 callbackFunctionId */
-        // uint256 cancelExpiration,
-        // uint256 dataVersion,
-        // bytes data
-  );
+    );
+    /* address callbackAddr, */
+    /* bytes4 callbackFunctionId */
+    // uint256 cancelExpiration,
+    // uint256 dataVersion,
+    // bytes data
 
-  function buildRequest(
-    bytes32 specId,
-    address requester,
-    uint256 payment
-  ) public {
-      emit OracleRequest(
-        specId,
-        requester,
-        payment
-      );
-  }
+    function buildRequest(bytes32 specId, address requester, uint256 payment) public {
+        emit OracleRequest(specId, requester, payment);
+    }
 }
