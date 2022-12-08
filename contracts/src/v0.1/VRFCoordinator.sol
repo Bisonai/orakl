@@ -99,7 +99,6 @@ contract VRFCoordinator is
   error NumWordsTooBig(uint32 have, uint32 want);
   error ProvingKeyAlreadyRegistered(bytes32 keyHash);
   error NoSuchProvingKey(bytes32 keyHash);
-  error InvalidLinkWeiPrice(int256 linkWei);
   error InsufficientGasForConsumer(uint256 have, uint256 want);
   error NoCorrespondingRequest();
   error IncorrectCommitment();
@@ -148,7 +147,6 @@ contract VRFCoordinator is
     // We make it configurable in case those operations are repriced.
     uint32 gasAfterPaymentCalculation;
   }
-  int256 private s_fallbackWeiPerUnitLink;
   Config private s_config;
   FeeConfig private s_feeConfig;
   struct FeeConfig {
@@ -168,7 +166,6 @@ contract VRFCoordinator is
     uint16 minimumRequestConfirmations,
     uint32 maxGasLimit,
     uint32 gasAfterPaymentCalculation,
-    int256 fallbackWeiPerUnitLink,
     FeeConfig feeConfig
   );
 
@@ -224,18 +221,16 @@ contract VRFCoordinator is
   }
 
   /**
-   * @notice Sets the configuration of the vrfv2 coordinator
+   * @notice Sets the configuration of the vrf coordinator
    * @param minimumRequestConfirmations global min for request confirmations
    * @param maxGasLimit global max for request gas limit
    * @param gasAfterPaymentCalculation gas used in doing accounting after completing the gas measurement
-   * @param fallbackWeiPerUnitLink fallback eth/link price in the case of a stale feed
    * @param feeConfig fee tier configuration
    */
   function setConfig(
     uint16 minimumRequestConfirmations,
     uint32 maxGasLimit,
     uint32 gasAfterPaymentCalculation,
-    int256 fallbackWeiPerUnitLink,
     FeeConfig memory feeConfig
   ) external onlyOwner {
     if (minimumRequestConfirmations > MAX_REQUEST_CONFIRMATIONS) {
@@ -245,9 +240,6 @@ contract VRFCoordinator is
         MAX_REQUEST_CONFIRMATIONS
       );
     }
-    if (fallbackWeiPerUnitLink <= 0) {
-      revert InvalidLinkWeiPrice(fallbackWeiPerUnitLink);
-    }
     s_config = Config({
       minimumRequestConfirmations: minimumRequestConfirmations,
       maxGasLimit: maxGasLimit,
@@ -255,12 +247,10 @@ contract VRFCoordinator is
       reentrancyLock: false
     });
     s_feeConfig = feeConfig;
-    s_fallbackWeiPerUnitLink = fallbackWeiPerUnitLink;
     emit ConfigSet(
       minimumRequestConfirmations,
       maxGasLimit,
       gasAfterPaymentCalculation,
-      fallbackWeiPerUnitLink,
       s_feeConfig
     );
   }
@@ -311,10 +301,6 @@ contract VRFCoordinator is
 
   function getTotalBalance() external view returns (uint256) {
     return s_totalBalance;
-  }
-
-  function getFallbackWeiPerUnitLink() external view returns (int256) {
-    return s_fallbackWeiPerUnitLink;
   }
 
   /**
@@ -613,13 +599,8 @@ contract VRFCoordinator is
     uint32 fulfillmentFlatFeeLinkPPM,
     uint256 weiPerUnitGas
   ) internal view returns (uint96) {
-    int256 weiPerUnitLink = s_fallbackWeiPerUnitLink;
-    if (weiPerUnitLink <= 0) {
-      revert InvalidLinkWeiPrice(weiPerUnitLink);
-    }
-    // (1e18 juels/link) (wei/gas * gas) / (wei/link) = juels
-    uint256 paymentNoFee = (1e18 * weiPerUnitGas * (gasAfterPaymentCalculation + startGas - gasleft())) /
-      uint256(weiPerUnitLink);
+    // (1e18 juels/link) (wei/gas * gas) = juels
+    uint256 paymentNoFee = (1e18 * weiPerUnitGas * (gasAfterPaymentCalculation + startGas - gasleft()));
     uint256 fee = 1e12 * uint256(fulfillmentFlatFeeLinkPPM);
     if (paymentNoFee > (1e27 - fee)) {
       revert PaymentTooLarge(); // Payment + fee cannot be more than all of the link in existence.

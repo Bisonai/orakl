@@ -6,25 +6,36 @@ import '../interfaces/VRFCoordinatorInterface.sol';
 
 
 contract VRFConsumerMock is VRFConsumerBase {
-  uint256 public randomResult;
+  uint256 public s_randomResult;
+  address private s_owner;
 
   VRFCoordinatorInterface COORDINATOR;
+
+  error OnlyOwner(address notOwner);
+
+  modifier onlyOwner() {
+      if (msg.sender != s_owner) {
+          revert OnlyOwner(msg.sender);
+      }
+      _;
+  }
 
   constructor(address coordinator)
       VRFConsumerBase(coordinator)
       // ConfirmedOwner(msg.sender) TODO
   {
+      s_owner = msg.sender;
       COORDINATOR = VRFCoordinatorInterface(coordinator);
   }
 
-  function request() public {
+  function requestRandomWords() public returns(uint256 requestId) {
     bytes32 keyHash;
-    uint64 subId;
-    uint16 requestConfirmations;
-    uint32 callbackGasLimit;
-    uint32 numWords;
+    uint64 subId = 1;
+    uint16 requestConfirmations = 3;
+    uint32 callbackGasLimit = 3;
+    uint32 numWords = 1;
 
-    uint256 requestId = COORDINATOR.requestRandomWords(
+    requestId = COORDINATOR.requestRandomWords(
       keyHash,
       subId,
       requestConfirmations,
@@ -35,6 +46,6 @@ contract VRFConsumerMock is VRFConsumerBase {
 
   function fulfillRandomWords(uint256 requestId, uint256[] memory randomWords) internal override {
     // requestId should be checked if it matches the expected request
-    randomResult = (randomWords[0] % 50) + 1;
+    s_randomResult = (randomWords[0] % 50) + 1;
   }
 }

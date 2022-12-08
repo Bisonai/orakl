@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.0;
+pragma solidity ^0.8.16;
 
 // https://github.com/smartcontractkit/chainlink/blob/develop/contracts/src/v0.8/VRF.sol
 
