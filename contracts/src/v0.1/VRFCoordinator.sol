@@ -576,17 +576,19 @@ contract VRFCoordinator is
     // We also add the flat link fee to the payment amount.
     // Its specified in millionths of link, if s_config.fulfillmentFlatFeeLinkPPM = 1
     // 1 link / 1e6 = 1e18 juels / 1e6 = 1e12 juels.
-    uint96 payment = calculatePaymentAmount(
-      startGas,
-      s_config.gasAfterPaymentCalculation,
-      getFeeTier(reqCount),
-      tx.gasprice
-    );
-    if (s_subscriptions[rc.subId].balance < payment) {
-      revert InsufficientBalance();
-    }
-    s_subscriptions[rc.subId].balance -= payment;
-    s_withdrawableTokens[s_provingKeys[keyHash]] += payment;
+    // FIXME fix payment
+    uint96 payment = 0;
+    // uint96 payment = calculatePaymentAmount(
+    //   startGas,
+    //   s_config.gasAfterPaymentCalculation,
+    //   getFeeTier(reqCount),
+    //   tx.gasprice
+    // );
+    // if (s_subscriptions[rc.subId].balance < payment) {
+    //   revert InsufficientBalance();
+    // }
+    // s_subscriptions[rc.subId].balance -= payment;
+    // s_withdrawableTokens[s_provingKeys[keyHash]] += payment;
     // Include payment in the event for tracking costs.
     emit RandomWordsFulfilled(requestId, randomness, payment, success);
     return payment;
