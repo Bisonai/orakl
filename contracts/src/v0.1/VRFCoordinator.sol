@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.4;
+pragma solidity ^0.8.16;
 
 // https://github.com/smartcontractkit/chainlink/blob/develop/contracts/src/v0.8/VRFCoordinatorV2.sol
 
@@ -18,10 +18,7 @@ contract VRFCoordinator is
   ConfirmedOwner,
   TypeAndVersionInterface,
   VRFCoordinatorInterface
-  /* ERC677ReceiverInterface */
 {
-  /* LinkTokenInterface public immutable LINK; */
-  /* AggregatorV3Interface public immutable LINK_ETH_FEED; */
   BlockhashStoreInterface public immutable BLOCKHASH_STORE;
 
   // We need to maintain a list of consuming addresses.
@@ -320,7 +317,6 @@ contract VRFCoordinator is
    * @param to address to send link to
    */
   function recoverFunds(address to) external onlyOwner {
-    // uint256 externalBalance = LINK.balanceOf(address(this)); // FIXME
     uint256 externalBalance = 100; //  FIXME
     uint256 internalBalance = uint256(s_totalBalance);
     if (internalBalance > externalBalance) {
