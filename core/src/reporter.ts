@@ -29,7 +29,10 @@ function vrfJob(wallet) {
 
     console.log(requestCommitment)
 
-    const proof = {}
+    const proof = {
+      pk: '',
+      seed: data.seed
+    }
 
     try {
     } catch (e) {

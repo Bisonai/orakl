@@ -112,6 +112,7 @@ async function listenGetFilterChanges(
 
         await vrfQueue.add('vrf', {
           blockNum: log.blockNumber,
+          blockHash: log.blockHash,
           requestId,
           alpha: preSeed,
           subId,

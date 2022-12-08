@@ -1,5 +1,6 @@
 import * as Fs from 'node:fs/promises'
 import * as Path from 'node:path'
+import { ethers } from 'ethers'
 import { BN } from 'bn.js'
 import { Worker, Queue } from 'bullmq'
 import { got, Options } from 'got'
@@ -99,9 +100,13 @@ function vrfJob(queue) {
     const data = job.data
     console.log('VRF request', data)
 
-    //
     try {
-      const alpha = new BN(job.data.alpha.hex.slice(2), 'hex') // FIXME
+      const preSeed = new BN(data.alpha.hex.slice(2), 'hex') // FIXME
+      const alpha = ethers.utils.solidityKeccak256(
+        ['uint256', 'bytes32'],
+        [preSeed.toString(), data.blockHash]
+      )
+
       console.log('alpha', alpha)
       const { proof, beta } = processVrfRequest({ alpha })
       console.log(`proof ${proof}`)
