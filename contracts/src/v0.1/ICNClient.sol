@@ -90,4 +90,6 @@ contract ICNClient {
     function typeAndVersion() external pure returns (string memory) {
         return "ICNClient v0.1";
     }
+
+    function validateCallback(bytes32 _requestId) internal ICNResponseFulfilled(_requestId) {}
 }
