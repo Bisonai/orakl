@@ -101,10 +101,10 @@ function vrfJob(queue) {
     console.log('VRF request', data)
 
     try {
-      const preSeed = new BN(data.alpha.hex.slice(2), 'hex') // FIXME
+      const seed = new BN(data.seed.hex.slice(2), 'hex') // FIXME
       const alpha = ethers.utils.solidityKeccak256(
         ['uint256', 'bytes32'],
-        [preSeed.toString(), data.blockHash]
+        [seed.toString(), data.blockHash]
       )
 
       console.log('alpha', alpha)
@@ -115,7 +115,7 @@ function vrfJob(queue) {
       await queue.add('report', {
         blockNum: data.blockNum,
         requestId: data.requestId,
-        alpha: data.alpha,
+        seed: data.seed,
         subId: data.subId,
         minimumRequestConfirmations: data.minimumRequestConfirmations,
         callbackGasLimit: data.callbackGasLimit,

@@ -107,14 +107,12 @@ async function listenGetFilterChanges(
           sender
         } = vrfIface.parseLog(log).args
         console.log('VRF')
-        console.log(`requestId ${requestId}`)
-        console.log(`preSeed ${preSeed}`)
 
         await vrfQueue.add('vrf', {
           blockNum: log.blockNumber,
           blockHash: log.blockHash,
           requestId,
-          alpha: preSeed,
+          seed: preSeed,
           subId,
           minimumRequestConfirmations,
           callbackGasLimit,
