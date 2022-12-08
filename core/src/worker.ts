@@ -146,7 +146,7 @@ async function main() {
         }
       } else if (jobId == '0x1111111111111111111111111111111111111111111111111111111111111111') {
         // VRF
-        console.log('VRF')
+        const res = processVrfRequest({ alpha: requestId })
       } else {
         data = processAnyApi(dataRequest)
       }
