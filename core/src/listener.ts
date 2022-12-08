@@ -97,21 +97,29 @@ async function listenGetFilterChanges(
       const vrfLogs: ILog[] = await provider.send('eth_getFilterChanges', [vrfFilterId])
       vrfLogs.forEach(async (log) => {
         const {
-          keyHash, // FIXME
+          // keyHash, // FIXME
           requestId,
           preSeed,
-          subId, // FIXME
-          minimumRequestConfirmations, // FIXME
+          subId,
+          minimumRequestConfirmations,
           callbackGasLimit,
-          numWords, // FIXME
+          numWords,
           sender
         } = vrfIface.parseLog(log).args
         console.log('VRF')
-        console.log(`keyHash ${keyHash}`)
         console.log(`requestId ${requestId}`)
         console.log(`preSeed ${preSeed}`)
 
-        await vrfQueue.add('vrf', { requestId, alpha: preSeed, callbackGasLimit, sender })
+        await vrfQueue.add('vrf', {
+          blockNum: log.blockNumber,
+          requestId,
+          alpha: preSeed,
+          subId,
+          minimumRequestConfirmations,
+          callbackGasLimit,
+          numWords,
+          sender
+        })
 
         // TODO add to queue
       })

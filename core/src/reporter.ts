@@ -19,12 +19,17 @@ function vrfJob(wallet) {
     const data = job.data
     console.log('vrfJob', job.data)
 
-    console.log(`requestId ${data.requestId}`)
-    console.log(`alpha ${data.alpha}`)
-    console.log(`callbackGasLimit ${data.callbackGasLimit}`)
-    console.log(`sender ${data.sender}`)
-    console.log(`proof ${data.proof}`)
-    console.log(`beta ${data.beta}`)
+    const requestCommitment = {
+      blockNum: data.blockNum,
+      subId: data.subId,
+      callbackGasLimit: data.callbackGasLimit,
+      numWords: data.numWords,
+      sender: data.sender
+    }
+
+    console.log(requestCommitment)
+
+    const proof = {}
 
     try {
     } catch (e) {

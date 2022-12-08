@@ -108,9 +108,13 @@ function vrfJob(queue) {
       console.log(`beta ${beta}`)
 
       await queue.add('report', {
+        blockNum: data.blockNum,
         requestId: data.requestId,
         alpha: data.alpha,
+        subId: data.subId,
+        minimumRequestConfirmations: data.minimumRequestConfirmations,
         callbackGasLimit: data.callbackGasLimit,
+        numWords: data.numWords,
         sender: data.sender,
         proof,
         beta
