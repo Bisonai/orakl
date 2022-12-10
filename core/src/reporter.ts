@@ -29,14 +29,14 @@ function vrfJob(wallet) {
 
     try {
       const requestCommitment = [
-        parseInt(data.blockNum, 16).toString(),
+        data.blockNum,
         '1',
-        data.callbackGasLimit.toString(),
-        data.numWords.toString(),
+        data.callbackGasLimit,
+        data.numWords,
         data.sender
       ]
-
       console.log('requestCommitment', requestCommitment)
+
       const proof = [data.pk, data.proof, data.alpha, data.uPoint, data.vComponents]
       console.log('proof', proof)
 
