@@ -543,8 +543,8 @@ contract VRFCoordinator is
    * @dev simulated offchain to determine if sufficient balance is present to fulfill the request
    */
  function fulfillRandomWords(VRF.Proof memory proof, RequestCommitment memory rc) external nonReentrant returns (uint96) {
-    uint256 startGas = gasleft();
-    (bytes32 keyHash, uint256 requestId, uint256 randomness) = getRandomnessFromProof(proof, rc);
+    // uint256 startGas = gasleft();
+    (/* bytes32 keyHash */, uint256 requestId, uint256 randomness) = getRandomnessFromProof(proof, rc);
 
     uint256[] memory randomWords = new uint256[](rc.numWords);
     for (uint256 i = 0; i < rc.numWords; i++) {
@@ -565,7 +565,7 @@ contract VRFCoordinator is
     s_config.reentrancyLock = false;
 
     // Increment the req count for fee tier selection.
-    uint64 reqCount = s_subscriptions[rc.subId].reqCount;
+    // uint64 reqCount = s_subscriptions[rc.subId].reqCount;
     s_subscriptions[rc.subId].reqCount += 1;
 
     // We want to charge users exactly for how much gas they use in their callback.

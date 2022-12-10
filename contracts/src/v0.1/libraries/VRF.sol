@@ -214,6 +214,7 @@ library VRF {
 
         // Step 6: Check validity c == c'
         require(uint128(derivedC) == _proof[2], "invalid proof");
+        return true;
     }
 
     /// @dev Decode VRF proof from bytes
@@ -503,7 +504,7 @@ library VRF {
      * @return output i.e., the random output implied by the proof
      * ***************************************************************************
      */
-  function randomValueFromVRFProof(Proof memory proof, bytes memory seed) internal view returns (uint256 output) {
+  function randomValueFromVRFProof(Proof memory proof, bytes memory seed) internal pure returns (uint256 output) {
     fastVerify(
         proof.pk,
         proof.proof,

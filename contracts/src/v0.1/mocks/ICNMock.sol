@@ -22,6 +22,7 @@ contract ICNMock is ICNClient {
     return sendRequest(req);
   }
 
+
   function fulfill(bytes32 _requestId, int256 _response) public ICNResponseFulfilled(_requestId) {
     value = _response;
   }
