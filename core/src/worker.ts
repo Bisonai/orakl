@@ -17,8 +17,8 @@ import {
   REPORTER_VRF_QUEUE_NAME
 } from './settings'
 import { decodeAnyApiRequest } from './decoding'
-import { prove, verify } from './vrf/index'
-import { VRF_SK, VRF_PK } from './load-parameters'
+import { prove, decode, verify, getFastVerifyComponents } from './vrf/index'
+import { VRF_SK, VRF_PK, VRF_PK_X, VRF_PK_Y } from './load-parameters'
 
 function extractFeeds(adapter) {
   const adapterId = adapter.adapter_id
@@ -81,17 +81,19 @@ function processVrfRequest(vrfRequest: IVrfRequest): IVrfResponse {
   console.log('VRF Request')
 
   const proof = prove(VRF_SK, vrfRequest.alpha)
-  // TODO remove status
-  const [status, beta] = verify(VRF_PK, proof, vrfRequest.alpha)
+  const [Gamma, c, s] = decode(proof)
+  const fast = getFastVerifyComponents(VRF_PK, proof, vrfRequest.alpha)
 
-  // TODO make sure beta is string
-  if (beta == null) {
+  if (fast == 'INVALID') {
+    console.error('INVALID')
     throw Error()
   }
 
   return {
-    proof,
-    beta
+    pk: [VRF_PK_X, VRF_PK_Y],
+    proof: [Gamma.x.toString(), Gamma.y.toString(), c.toString(), s.toString()],
+    uPoint: [fast.uX, fast.uY],
+    vComponents: [fast.sHX, fast.sHY, fast.cGX, fast.cGY]
   }
 }
 
@@ -108,11 +110,15 @@ function vrfJob(queue) {
       )
 
       console.log('alpha', alpha)
-      const { proof, beta } = processVrfRequest({ alpha })
-      console.log(`proof ${proof}`)
-      console.log(`beta ${beta}`)
+      const { pk, proof, uPoint, vComponents } = processVrfRequest({ alpha })
+
+      console.log('pk', pk)
+      console.log('proof', proof)
+      console.log('uPoint', uPoint)
+      console.log('vComponents', vComponents)
 
       await queue.add('report', {
+        callbackAddress: data.callbackAddress,
         blockNum: data.blockNum,
         requestId: data.requestId,
         seed: data.seed,
@@ -121,8 +127,11 @@ function vrfJob(queue) {
         callbackGasLimit: data.callbackGasLimit,
         numWords: data.numWords,
         sender: data.sender,
+        pk,
         proof,
-        beta
+        alpha,
+        uPoint,
+        vComponents
       })
     } catch (e) {
       console.error(e)

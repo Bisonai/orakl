@@ -60,3 +60,20 @@ export function remove0x(s) {
     return s.substring(2)
   }
 }
+
+export function add0x(s) {
+  if (s.substring(0, 2) == '0x') {
+    return s
+  } else {
+    return '0x' + s
+  }
+}
+
+export function pad32Bytes(data) {
+  data = remove0x(data)
+  let s = String(data)
+  while (s.length < (64 || 2)) {
+    s = '0' + s
+  }
+  return s
+}

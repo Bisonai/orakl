@@ -4,6 +4,8 @@ const { ethers } = pkg
 const ZERO_ADDRESS = ethers.constants.AddressZero
 
 async function main() {
+  const listen = false
+
   let VRFCoordinator = await ethers.getContractFactory('VRFCoordinator')
   // const blockhashStore = ZERO_ADDRESS // FIXME
   VRFCoordinator = await VRFCoordinator.deploy(/* blockhashStore */)
@@ -14,10 +16,13 @@ async function main() {
   const oracle = ZERO_ADDRESS // FIXME
   const publicProvingKey = [1, 2] // FIXME
   await VRFCoordinator.registerProvingKey(oracle, publicProvingKey)
-  VRFCoordinator.once('ProvingKeyRegistered', async (keyHash, oracle) => {
-    console.log(`keyHash ${keyHash}`)
-    console.log(`oracle ${oracle}`)
-  })
+
+  if (listen) {
+    VRFCoordinator.once('ProvingKeyRegistered', async (keyHash, oracle) => {
+      console.log(`keyHash ${keyHash}`)
+      console.log(`oracle ${oracle}`)
+    })
+  }
 
   const minimumRequestConfirmations = 3
   const maxGasLimit = 1_000_000
@@ -43,15 +48,17 @@ async function main() {
     feeConfig
   )
 
-  VRFCoordinator.once(
-    'ConfigSet',
-    async (minimumRequestConfirmations, maxGasLimit, gasAfterPaymentCalculation, feeConfig) => {
-      console.log(`minimumRequestConfirmations ${minimumRequestConfirmations}`)
-      console.log(`maxGasLimit ${maxGasLimit}`)
-      console.log(`gasAfterPaymentCalculation ${gasAfterPaymentCalculation}`)
-      /* console.log(`feeConfig ${feeConfig}`) */
-    }
-  )
+  if (listen) {
+    VRFCoordinator.once(
+      'ConfigSet',
+      async (minimumRequestConfirmations, maxGasLimit, gasAfterPaymentCalculation, feeConfig) => {
+        console.log(`minimumRequestConfirmations ${minimumRequestConfirmations}`)
+        console.log(`maxGasLimit ${maxGasLimit}`)
+        console.log(`gasAfterPaymentCalculation ${gasAfterPaymentCalculation}`)
+        /* console.log(`feeConfig ${feeConfig}`) */
+      }
+    )
+  }
 
   let VRFConsumerMock = await ethers.getContractFactory('VRFConsumerMock')
   VRFConsumerMock = await VRFConsumerMock.deploy(VRFCoordinator.address)
@@ -59,18 +66,26 @@ async function main() {
   console.log('VRFConsumerMock Address:', VRFConsumerMock.address)
 
   await VRFCoordinator.createSubscription()
-  VRFCoordinator.once('SubscriptionCreated', async (subId, owner) => {
-    console.log('SubscriptionCreated')
-    console.log(`subId ${subId}`)
-    console.log(`owner ${owner}`)
+  if (listen) {
+    VRFCoordinator.once('SubscriptionCreated', async (subId, owner) => {
+      console.log('SubscriptionCreated')
+      console.log(`subId ${subId}`)
+      console.log(`owner ${owner}`)
+    })
+  }
 
-    await VRFCoordinator.addConsumer(subId, VRFConsumerMock.address)
-    VRFCoordinator.once('SubscriptionConsumerAdded', async (subId, consumer) => {
+  const subId = 1
+  await VRFCoordinator.addConsumer(subId, VRFConsumerMock.address)
+  if (listen) {
+    await VRFCoordinator.once('SubscriptionConsumerAdded', async (subId, consumer) => {
       console.log('SubscriptionConsumerAdded')
       console.log(`subId ${subId}`)
       console.log(`consumer ${consumer}`)
     })
-  })
+  }
 }
 
-main()
+main().catch((error) => {
+  console.error(error)
+  process.exitCode = 1
+})

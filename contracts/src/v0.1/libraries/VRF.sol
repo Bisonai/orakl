@@ -34,6 +34,14 @@ library VRF {
     uint256 public constant NN =
         0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141;
 
+  struct Proof {
+    uint256[2] pk;
+    uint256[4] proof;
+    bytes seed;
+    uint256[2] uPoint;
+    uint256[4] vComponents;
+  }
+
     /// @dev Public key derivation from private key.
     /// Warning: this function should not be used to derive your public key as it would expose the private key.
     /// @param _d The scalar
@@ -205,7 +213,7 @@ library VRF {
         );
 
         // Step 6: Check validity c == c'
-        return uint128(derivedC) == _proof[2];
+        require(uint128(derivedC) == _proof[2], "invalid proof");
     }
 
     /// @dev Decode VRF proof from bytes
@@ -484,4 +492,37 @@ library VRF {
                 )
             );
     }
+
+  /* ***************************************************************************
+     * @notice Returns proof's output, if proof is valid. Otherwise reverts
+
+     * @param proof vrf proof components
+     * @param seed  seed used to generate the vrf output
+     *
+     * Throws if proof is invalid, otherwise:
+     * @return output i.e., the random output implied by the proof
+     * ***************************************************************************
+     */
+  function randomValueFromVRFProof(Proof memory proof, uint256 seed) internal view returns (uint256 output) {
+    fastVerify(
+        proof.pk,
+        proof.proof,
+        proof.seed, // FIXME
+        proof.uPoint,
+        proof.vComponents
+    );
+    /* verifyVRFProof( */
+    /*   proof.pk, */
+    /*   proof.gamma, */
+    /*   proof.c, */
+    /*   proof.s, */
+    /*   seed, */
+    /*   proof.uWitness, */
+    /*   proof.cGammaWitness, */
+    /*   proof.sHashWitness, */
+    /*   proof.zInv */
+    /* ); */
+    /* output = uint256(keccak256(abi.encode(proof.gamma))); // FIXME why gamma? */
+    output = 13; // FIXME
+  }
 }

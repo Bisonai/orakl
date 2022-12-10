@@ -1,40 +1,50 @@
 import { Worker } from 'bullmq'
 import { ethers } from 'ethers'
+import { VRFCoordinator__factory } from '@bisonai/icn-contracts'
 import { buildBullMqConnection, buildQueueName, loadJson, pipe, remove0x } from './utils'
 import { REPORTER_REQUEST_QUEUE_NAME, REPORTER_VRF_QUEUE_NAME } from './settings'
 import { IcnError, IcnErrorCode } from './errors'
 import { PROVIDER, MNEMONIC, PRIVATE_KEY } from './load-parameters'
+import { pad32Bytes, add0x } from './utils'
 
-function pad32Bytes(data) {
-  data = remove0x(data)
-  let s = String(data)
-  while (s.length < (64 || 2)) {
-    s = '0' + s
+async function sendTransaction(wallet, _from, to, payload, gasLimit?, value?) {
+  const tx = {
+    from: _from,
+    to: to,
+    data: add0x(payload),
+    gasLimit: gasLimit || '0x34710', // FIXME
+    value: value || '0x00'
   }
-  return s
+  console.debug('sendTransaction:tx')
+  console.debug(tx)
+
+  const txReceipt = await wallet.sendTransaction(tx)
+  console.debug(`sendTransaction:txReceipt ${txReceipt}`)
 }
 
 function vrfJob(wallet) {
   async function wrapper(job) {
     const data = job.data
-    console.log('vrfJob', job.data)
-
-    const requestCommitment = {
-      blockNum: data.blockNum,
-      subId: data.subId,
-      callbackGasLimit: data.callbackGasLimit,
-      numWords: data.numWords,
-      sender: data.sender
-    }
-
-    console.log(requestCommitment)
-
-    const proof = {
-      pk: '',
-      seed: data.seed
-    }
+    console.log('vrfJob', data)
 
     try {
+      const requestCommitment = [
+        parseInt(data.blockNum, 16).toString(),
+        '1',
+        data.callbackGasLimit.toString(),
+        data.numWords.toString(),
+        data.sender
+      ]
+
+      console.log('requestCommitment', requestCommitment)
+      const proof = [data.pk, data.proof, data.alpha, data.uPoint, data.vComponents]
+      console.log('proof', proof)
+
+      let iface = new ethers.utils.Interface(VRFCoordinator__factory.abi)
+      const payload = iface.encodeFunctionData('fulfillRandomWords', [proof, requestCommitment])
+
+      console.log('data.callbackAddress', data.callbackAddress)
+      await sendTransaction(wallet, wallet.address, data.callbackAddress, payload)
     } catch (e) {
       console.error(e)
     }

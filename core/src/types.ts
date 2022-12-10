@@ -63,6 +63,8 @@ export interface IVrfRequest {
 }
 
 export interface IVrfResponse {
-  proof: string
-  beta: string
+  pk: [number, number]
+  proof: [number, number, number, number]
+  uPoint: [number, number]
+  vComponents: [number, number, number, number]
 }

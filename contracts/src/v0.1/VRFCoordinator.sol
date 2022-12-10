@@ -9,12 +9,13 @@ import "./interfaces/BlockhashStoreInterface.sol";
 import "./interfaces/VRFCoordinatorInterface.sol";
 import "./interfaces/TypeAndVersionInterface.sol";
 /* import "./interfaces/ERC677ReceiverInterface.sol"; */
-import "./VRF.sol";
+/* import "./VRF.sol"; // TODO remove */
+import "./libraries/VRF.sol";
 import "./ConfirmedOwner.sol";
 import "./VRFConsumerBase.sol";
 
 contract VRFCoordinator is
-  VRF,
+  /* VRF, */
   ConfirmedOwner,
   TypeAndVersionInterface,
   VRFCoordinatorInterface
@@ -472,7 +473,7 @@ contract VRFCoordinator is
     return success;
   }
 
-  function getRandomnessFromProof(Proof memory proof, RequestCommitment memory rc)
+  function getRandomnessFromProof(VRF.Proof memory proof, RequestCommitment memory rc)
     private
     view
     returns (
@@ -541,7 +542,9 @@ contract VRFCoordinator is
    * @return payment amount billed to the subscription
    * @dev simulated offchain to determine if sufficient balance is present to fulfill the request
    */
-  function fulfillRandomWords(Proof memory proof, RequestCommitment memory rc) external nonReentrant returns (uint96) {
+ function fulfillRandomWords(VRF.Proof memory proof, RequestCommitment memory rc) external nonReentrant returns (uint96) {
+      return 0;
+/*
     uint256 startGas = gasleft();
     (bytes32 keyHash, uint256 requestId, uint256 randomness) = getRandomnessFromProof(proof, rc);
 
@@ -589,6 +592,7 @@ contract VRFCoordinator is
     // Include payment in the event for tracking costs.
     emit RandomWordsFulfilled(requestId, randomness, payment, success);
     return payment;
+*/
   }
 
   // Get the amount of gas used for fulfillment

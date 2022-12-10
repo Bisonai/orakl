@@ -1,5 +1,8 @@
 // https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-vrf-10.html
 
+// const elliptic = require('elliptic')
+// const BN = require('bn.js')
+
 import { default as elliptic } from 'elliptic'
 import { BN } from 'bn.js'
 import { createHmac, createHash } from 'crypto'
@@ -200,7 +203,7 @@ const ECVRF_decode_proof = (pi) => {
   return [Gamma, c, s]
 }
 
-const ECVRF_keygen = (entropy) => {
+const ECVRF_keygen = (entropy?) => {
   const keypair = entropy ? EC.genKeyPair({ entropy }) : EC.genKeyPair()
   const secret_key = keypair.getPrivate('hex')
   const public_key = keypair.getPublic('hex')
