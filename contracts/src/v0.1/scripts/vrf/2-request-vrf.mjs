@@ -16,7 +16,7 @@ async function main() {
 
   await VRFConsumerMock.requestRandomWords()
 
-  if (listen) {
+  if (listen || true) {
     VRFCoordinator.once(
       'RandomWordsRequested',
       async (
@@ -43,4 +43,7 @@ async function main() {
   }
 }
 
-main()
+main().catch((error) => {
+  console.error(error)
+  process.exitCode = 1
+})

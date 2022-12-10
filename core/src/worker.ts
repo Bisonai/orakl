@@ -6,7 +6,7 @@ import { Worker, Queue } from 'bullmq'
 import { got, Options } from 'got'
 import { IcnError, IcnErrorCode } from './errors'
 import { IAdapter, IVrfRequest, IVrfResponse } from './types'
-import { buildBullMqConnection, loadJson, pipe } from './utils'
+import { buildBullMqConnection, loadJson, pipe, remove0x } from './utils'
 import { buildAdapterRootDir, readFromJson } from './utils'
 import { reducerMapping } from './reducer'
 import {
@@ -80,6 +80,7 @@ async function processAnyApi(apiRequest) {
 function processVrfRequest(vrfRequest: IVrfRequest): IVrfResponse {
   console.log('VRF Request')
 
+  console.log('vrfRequest.alpha', vrfRequest.alpha)
   const proof = prove(VRF_SK, vrfRequest.alpha)
   const [Gamma, c, s] = decode(proof)
   const fast = getFastVerifyComponents(VRF_PK, proof, vrfRequest.alpha)
@@ -103,10 +104,8 @@ function vrfJob(queue) {
     console.log('VRF request', data)
 
     try {
-      const seed = new BN(data.seed.hex.slice(2), 'hex') // FIXME
-      const alpha = ethers.utils.solidityKeccak256(
-        ['uint256', 'bytes32'],
-        [seed.toString(), data.blockHash]
+      const alpha = remove0x(
+        ethers.utils.solidityKeccak256(['uint256', 'bytes32'], [data.seed, data.blockHash])
       )
 
       console.log('alpha', alpha)
@@ -116,6 +115,8 @@ function vrfJob(queue) {
       console.log('proof', proof)
       console.log('uPoint', uPoint)
       console.log('vComponents', vComponents)
+
+      console.log('data.seed', data.seed)
 
       await queue.add('report', {
         callbackAddress: data.callbackAddress,
@@ -129,7 +130,7 @@ function vrfJob(queue) {
         sender: data.sender,
         pk,
         proof,
-        alpha,
+        preSeed: data.seed,
         uPoint,
         vComponents
       })

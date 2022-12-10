@@ -30,21 +30,22 @@ function vrfJob(wallet) {
     try {
       const requestCommitment = [
         data.blockNum,
-        '1',
+        data.subId,
         data.callbackGasLimit,
         data.numWords,
         data.sender
       ]
       console.log('requestCommitment', requestCommitment)
 
-      const proof = [data.pk, data.proof, data.alpha, data.uPoint, data.vComponents]
+      const proof = [data.pk, data.proof, data.preSeed, data.uPoint, data.vComponents]
       console.log('proof', proof)
 
       let iface = new ethers.utils.Interface(VRFCoordinator__factory.abi)
       const payload = iface.encodeFunctionData('fulfillRandomWords', [proof, requestCommitment])
 
       console.log('data.callbackAddress', data.callbackAddress)
-      await sendTransaction(wallet, wallet.address, data.callbackAddress, payload)
+      const gasLimit = 3_000_000 // FIXME
+      await sendTransaction(wallet, wallet.address, data.callbackAddress, payload, gasLimit)
     } catch (e) {
       console.error(e)
     }

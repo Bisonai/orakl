@@ -37,7 +37,7 @@ library VRF {
   struct Proof {
     uint256[2] pk;
     uint256[4] proof;
-    bytes seed;
+    uint256 seed;
     uint256[2] uPoint;
     uint256[4] vComponents;
   }
@@ -503,26 +503,14 @@ library VRF {
      * @return output i.e., the random output implied by the proof
      * ***************************************************************************
      */
-  function randomValueFromVRFProof(Proof memory proof, uint256 seed) internal view returns (uint256 output) {
+  function randomValueFromVRFProof(Proof memory proof, bytes memory seed) internal view returns (uint256 output) {
     fastVerify(
         proof.pk,
         proof.proof,
-        proof.seed, // FIXME
+        seed,
         proof.uPoint,
         proof.vComponents
     );
-    /* verifyVRFProof( */
-    /*   proof.pk, */
-    /*   proof.gamma, */
-    /*   proof.c, */
-    /*   proof.s, */
-    /*   seed, */
-    /*   proof.uWitness, */
-    /*   proof.cGammaWitness, */
-    /*   proof.sHashWitness, */
-    /*   proof.zInv */
-    /* ); */
-    /* output = uint256(keccak256(abi.encode(proof.gamma))); // FIXME why gamma? */
-    output = 13; // FIXME
+    output = uint256(keccak256(abi.encode(proof.proof[0], proof.proof[1])));
   }
 }

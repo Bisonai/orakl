@@ -13,11 +13,14 @@ async function main() {
   console.log('VRFCoordinator Address:', VRFCoordinator.address)
 
   // Register Proving Key
-  const oracle = ZERO_ADDRESS // FIXME
-  const publicProvingKey = [1, 2] // FIXME
+  const oracle = '0x8626f6940E2eb28930eFb4CeF49B2d1F2C9C1199' // Hardhat account 19
+  const publicProvingKey = [
+    '95162740466861161360090244754314042169116280320223422208903791243647772670481',
+    '53113177277038648369733569993581365384831203706597936686768754351087979105423'
+  ]
   await VRFCoordinator.registerProvingKey(oracle, publicProvingKey)
 
-  if (listen) {
+  if (true || listen) {
     VRFCoordinator.once('ProvingKeyRegistered', async (keyHash, oracle) => {
       console.log(`keyHash ${keyHash}`)
       console.log(`oracle ${oracle}`)

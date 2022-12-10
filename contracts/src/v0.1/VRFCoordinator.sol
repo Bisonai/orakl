@@ -509,7 +509,7 @@ contract VRFCoordinator is
     //}
 
     // The seed actually used by the VRF machinery, mixing in the blockhash
-    uint256 actualSeed = uint256(keccak256(abi.encodePacked(proof.seed, blockHash)));
+    bytes memory actualSeed = abi.encodePacked(keccak256(abi.encodePacked(proof.seed, blockHash)));
     randomness = VRF.randomValueFromVRFProof(proof, actualSeed); // Reverts on failure
   }
 
@@ -543,8 +543,6 @@ contract VRFCoordinator is
    * @dev simulated offchain to determine if sufficient balance is present to fulfill the request
    */
  function fulfillRandomWords(VRF.Proof memory proof, RequestCommitment memory rc) external nonReentrant returns (uint96) {
-      return 0;
-/*
     uint256 startGas = gasleft();
     (bytes32 keyHash, uint256 requestId, uint256 randomness) = getRandomnessFromProof(proof, rc);
 
@@ -592,7 +590,6 @@ contract VRFCoordinator is
     // Include payment in the event for tracking costs.
     emit RandomWordsFulfilled(requestId, randomness, payment, success);
     return payment;
-*/
   }
 
   // Get the amount of gas used for fulfillment

@@ -115,7 +115,7 @@ async function listenGetFilterChanges(
             blockNum: log.blockNumber,
             blockHash: log.blockHash,
             requestId,
-            seed: preSeed,
+            seed: preSeed.toString(),
             subId,
             minimumRequestConfirmations,
             callbackGasLimit,
