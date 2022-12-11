@@ -1,7 +1,7 @@
 import { Worker } from 'bullmq'
 import { ethers } from 'ethers'
 import { VRFCoordinator__factory } from '@bisonai/icn-contracts'
-import { buildBullMqConnection, buildQueueName, loadJson, pipe, remove0x } from './utils'
+import { buildBullMqConnection, loadJson, pipe, remove0x } from './utils'
 import { REPORTER_REQUEST_QUEUE_NAME, REPORTER_VRF_QUEUE_NAME } from './settings'
 import { IcnError, IcnErrorCode } from './errors'
 import { PROVIDER, MNEMONIC, PRIVATE_KEY } from './load-parameters'
