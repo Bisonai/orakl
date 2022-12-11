@@ -7,7 +7,7 @@ import { got, Options } from 'got'
 import { IcnError, IcnErrorCode } from './errors'
 import { IAdapter, IVrfRequest, IVrfResponse } from './types'
 import { loadJson, pipe, remove0x } from './utils'
-import { buildAdapterRootDir, readFromJson } from './utils'
+import { readFromJson } from './utils'
 import { reducerMapping } from './reducer'
 import {
   localAggregatorFn,
@@ -15,7 +15,8 @@ import {
   REPORTER_REQUEST_QUEUE_NAME,
   WORKER_VRF_QUEUE_NAME,
   REPORTER_VRF_QUEUE_NAME,
-  BULLMQ_CONNECTION
+  BULLMQ_CONNECTION,
+  ADAPTER_ROOT_DIR
 } from './settings'
 import { decodeAnyApiRequest } from './decoding'
 import { prove, decode, verify, getFastVerifyComponents } from './vrf/index'
@@ -41,11 +42,10 @@ function extractFeeds(adapter) {
 }
 
 async function loadAdapters() {
-  const adapterRootDir = buildAdapterRootDir()
-  const adapterPaths = await Fs.readdir(adapterRootDir)
+  const adapterPaths = await Fs.readdir(ADAPTER_ROOT_DIR)
 
   const allRawAdapters = await Promise.all(
-    adapterPaths.map(async (ap) => validateAdapter(await loadJson(Path.join(adapterRootDir, ap))))
+    adapterPaths.map(async (ap) => validateAdapter(await loadJson(Path.join(ADAPTER_ROOT_DIR, ap))))
   )
   const activeRawAdapters = allRawAdapters.filter((a) => a.active)
   return activeRawAdapters.map((a) => extractFeeds(a))

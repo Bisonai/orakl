@@ -17,3 +17,5 @@ export const BULLMQ_CONNECTION = {
     port: REDIS_PORT
   }
 }
+
+export const ADAPTER_ROOT_DIR = './src/adapter/'

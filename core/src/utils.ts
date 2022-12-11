@@ -2,12 +2,6 @@ import * as Fs from 'node:fs/promises'
 import { IcnError, IcnErrorCode } from './errors'
 import { REDIS_HOST, REDIS_PORT } from './load-parameters'
 
-// FIXME create a settings file instead
-// TODO move adapter out of src directory
-export function buildAdapterRootDir() {
-  return './src/adapter/'
-}
-
 export async function loadJson(filepath) {
   const json = await Fs.readFile(filepath, 'utf8')
   return JSON.parse(json)
