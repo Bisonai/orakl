@@ -1,9 +1,16 @@
 // https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-vrf-10.html
 
-// const elliptic = require('elliptic')
-// const BN = require('bn.js')
+// FIXME This type of import solves the import different between node
+//       and jest execution.
+import pkg from 'elliptic'
+let ellipticPkg
+if (pkg == undefined) {
+  ellipticPkg = require('elliptic')
+} else {
+  ellipticPkg = pkg
+}
+const elliptic = ellipticPkg
 
-import { default as elliptic } from 'elliptic'
 import { BN } from 'bn.js'
 import { createHmac, createHash } from 'crypto'
 
