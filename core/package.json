@@ -18,6 +18,7 @@
     "start:listener": "yarn build && node --experimental-specifier-resolution=node --experimental-json-modules dist/src/listener.js",
     "start:worker": "node --experimental-specifier-resolution=node --experimental-json-modules dist/src/worker.js",
     "start:reporter": "node --experimental-specifier-resolution=node --experimental-json-modules dist/src/reporter.js",
+    "keygen": "node --experimental-specifier-resolution=node --experimental-json-modules dist/src/cli/vrf-keygen.js",
     "test": "jest"
   },
   "dependencies": {

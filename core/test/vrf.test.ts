@@ -1,16 +1,9 @@
 import { describe, expect, beforeEach, test } from '@jest/globals'
-import { prove, verify, getFastVerifyComponents, keygen } from '../src/vrf/index'
+import { prove, verify, getFastVerifyComponents } from '../src/vrf/index'
 
 // The following tests are used to make sure that the original
 // implementation was not affected during refactoring.
 // TODO Add tests from https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-vrf-10#appendix-A-1
-
-// describe('', function () {
-//   test('hello', function () {
-//     const key = keygen()
-//     console.log(key)
-//   })
-// })
 
 describe('VRF', function () {
   let alpha
