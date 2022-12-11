@@ -6,7 +6,7 @@ import { Worker, Queue } from 'bullmq'
 import { got, Options } from 'got'
 import { IcnError, IcnErrorCode } from './errors'
 import { IAdapter, IVrfRequest, IVrfResponse } from './types'
-import { buildBullMqConnection, loadJson, pipe, remove0x } from './utils'
+import { loadJson, pipe, remove0x } from './utils'
 import { buildAdapterRootDir, readFromJson } from './utils'
 import { reducerMapping } from './reducer'
 import {
@@ -14,7 +14,8 @@ import {
   WORKER_REQUEST_QUEUE_NAME,
   REPORTER_REQUEST_QUEUE_NAME,
   WORKER_VRF_QUEUE_NAME,
-  REPORTER_VRF_QUEUE_NAME
+  REPORTER_VRF_QUEUE_NAME,
+  BULLMQ_CONNECTION
 } from './settings'
 import { decodeAnyApiRequest } from './decoding'
 import { prove, decode, verify, getFastVerifyComponents } from './vrf/index'
@@ -146,16 +147,12 @@ async function main() {
   const adapters = (await loadAdapters())[0] // FIXME take all adapters
   console.log('adapters', adapters)
 
-  const reporterRequestQueue = new Queue(REPORTER_REQUEST_QUEUE_NAME, buildBullMqConnection())
-  const reporterVrfQueue = new Queue(REPORTER_VRF_QUEUE_NAME, buildBullMqConnection())
+  const reporterRequestQueue = new Queue(REPORTER_REQUEST_QUEUE_NAME, BULLMQ_CONNECTION)
+  const reporterVrfQueue = new Queue(REPORTER_VRF_QUEUE_NAME, BULLMQ_CONNECTION)
 
   // TODO if job not finished, return job in queue
 
-  const vrfWorker = new Worker(
-    WORKER_VRF_QUEUE_NAME,
-    vrfJob(reporterVrfQueue),
-    buildBullMqConnection()
-  )
+  const vrfWorker = new Worker(WORKER_VRF_QUEUE_NAME, vrfJob(reporterVrfQueue), BULLMQ_CONNECTION)
 
   const requestWorker = new Worker(
     WORKER_REQUEST_QUEUE_NAME,
@@ -221,7 +218,7 @@ async function main() {
         data
       })
     },
-    buildBullMqConnection()
+    BULLMQ_CONNECTION
   )
 }
 

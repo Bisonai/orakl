@@ -6,8 +6,8 @@ import { Queue } from 'bullmq'
 import { ICNOracle__factory, VRFCoordinator__factory } from '@bisonai/icn-contracts'
 import { RequestEventData, DataFeedRequest, IListeners, ILog } from './types'
 import { IcnError, IcnErrorCode } from './errors'
-import { buildBullMqConnection, loadJson } from './utils'
-import { WORKER_REQUEST_QUEUE_NAME, WORKER_VRF_QUEUE_NAME } from './settings'
+import { loadJson } from './utils'
+import { WORKER_REQUEST_QUEUE_NAME, WORKER_VRF_QUEUE_NAME, BULLMQ_CONNECTION } from './settings'
 import { PROVIDER_URL, LISTENERS_PATH } from './load-parameters'
 
 async function main() {
@@ -44,8 +44,8 @@ async function listenGetFilterChanges(
   requestIface: ethers.utils.Interface,
   vrfIface: ethers.utils.Interface
 ) {
-  const requestQueue = new Queue(WORKER_REQUEST_QUEUE_NAME, buildBullMqConnection())
-  const vrfQueue = new Queue(WORKER_VRF_QUEUE_NAME, buildBullMqConnection())
+  const requestQueue = new Queue(WORKER_REQUEST_QUEUE_NAME, BULLMQ_CONNECTION)
+  const vrfQueue = new Queue(WORKER_VRF_QUEUE_NAME, BULLMQ_CONNECTION)
 
   // Request
   const eventTopicId = getEventTopicId(requestIface.events, 'NewRequest')
@@ -125,8 +125,6 @@ async function listenGetFilterChanges(
         } catch (e) {
           console.error(e)
         }
-
-        // TODO add to queue
       })
     } catch (e) {
       console.error(e)

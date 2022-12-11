@@ -1,8 +1,8 @@
 import { Worker } from 'bullmq'
 import { ethers } from 'ethers'
 import { VRFCoordinator__factory } from '@bisonai/icn-contracts'
-import { buildBullMqConnection, loadJson, pipe, remove0x } from './utils'
-import { REPORTER_REQUEST_QUEUE_NAME, REPORTER_VRF_QUEUE_NAME } from './settings'
+import { loadJson, pipe, remove0x } from './utils'
+import { REPORTER_REQUEST_QUEUE_NAME, REPORTER_VRF_QUEUE_NAME, BULLMQ_CONNECTION } from './settings'
 import { IcnError, IcnErrorCode } from './errors'
 import { PROVIDER, MNEMONIC, PRIVATE_KEY } from './load-parameters'
 import { pad32Bytes, add0x } from './utils'
@@ -93,9 +93,9 @@ async function main() {
       const wallet = new ethers.Wallet(PRIVATE_KEY, provider)
       // TODO if job not finished, return job in queue
 
-      new Worker(REPORTER_REQUEST_QUEUE_NAME, await reporterJob(wallet), buildBullMqConnection())
+      new Worker(REPORTER_REQUEST_QUEUE_NAME, await reporterJob(wallet), BULLMQ_CONNECTION)
 
-      new Worker(REPORTER_VRF_QUEUE_NAME, await vrfJob(wallet), buildBullMqConnection())
+      new Worker(REPORTER_VRF_QUEUE_NAME, await vrfJob(wallet), BULLMQ_CONNECTION)
     } else {
       throw new IcnError(IcnErrorCode.MissingJsonRpcProvider)
     }

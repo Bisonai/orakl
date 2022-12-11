@@ -2,16 +2,6 @@ import * as Fs from 'node:fs/promises'
 import { IcnError, IcnErrorCode } from './errors'
 import { REDIS_HOST, REDIS_PORT } from './load-parameters'
 
-export function buildBullMqConnection() {
-  // FIXME Move to separate factory file?
-  return {
-    connection: {
-      host: REDIS_HOST,
-      port: REDIS_PORT
-    }
-  }
-}
-
 // FIXME create a settings file instead
 // TODO move adapter out of src directory
 export function buildAdapterRootDir() {

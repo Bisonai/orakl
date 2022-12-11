@@ -7,8 +7,7 @@ async function main() {
   const listen = false
 
   let VRFCoordinator = await ethers.getContractFactory('VRFCoordinator')
-  // const blockhashStore = ZERO_ADDRESS // FIXME
-  VRFCoordinator = await VRFCoordinator.deploy(/* blockhashStore */)
+  VRFCoordinator = await VRFCoordinator.deploy()
   await VRFCoordinator.deployed()
   console.log('VRFCoordinator Address:', VRFCoordinator.address)
 
@@ -58,7 +57,7 @@ async function main() {
         console.log(`minimumRequestConfirmations ${minimumRequestConfirmations}`)
         console.log(`maxGasLimit ${maxGasLimit}`)
         console.log(`gasAfterPaymentCalculation ${gasAfterPaymentCalculation}`)
-        /* console.log(`feeConfig ${feeConfig}`) */
+        console.log(`feeConfig ${feeConfig}`)
       }
     )
   }
