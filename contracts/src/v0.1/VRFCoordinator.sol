@@ -3,19 +3,15 @@ pragma solidity ^0.8.16;
 
 // https://github.com/smartcontractkit/chainlink/blob/develop/contracts/src/v0.8/VRFCoordinatorV2.sol
 
-/* import "./interfaces/LinkTokenInterface.sol"; */
 import "./interfaces/BlockhashStoreInterface.sol";
 /* import "./interfaces/AggregatorV3Interface.sol"; */
 import "./interfaces/VRFCoordinatorInterface.sol";
 import "./interfaces/TypeAndVersionInterface.sol";
-/* import "./interfaces/ERC677ReceiverInterface.sol"; */
-/* import "./VRF.sol"; // TODO remove */
 import "./libraries/VRF.sol";
 import "./ConfirmedOwner.sol";
 import "./VRFConsumerBase.sol";
 
 contract VRFCoordinator is
-  /* VRF, */
   ConfirmedOwner,
   TypeAndVersionInterface,
   VRFCoordinatorInterface
@@ -625,30 +621,6 @@ contract VRFCoordinator is
     }
   }
   */
-
-  // TODO delete
-  /* function onTokenTransfer( */
-  /*   address, /\* sender *\/ */
-  /*   uint256 amount, */
-  /*   bytes calldata data */
-  /* ) external override nonReentrant { */
-  /*   if (msg.sender != address(LINK)) { */
-  /*     revert OnlyCallableFromLink(); */
-  /*   } */
-  /*   if (data.length != 32) { */
-  /*     revert InvalidCalldata(); */
-  /*   } */
-  /*   uint64 subId = abi.decode(data, (uint64)); */
-  /*   if (s_subscriptionConfigs[subId].owner == address(0)) { */
-  /*     revert InvalidSubscription(); */
-  /*   } */
-  /*   // We do not check that the msg.sender is the subscription owner, */
-  /*   // anyone can fund a subscription. */
-  /*   uint256 oldBalance = s_subscriptions[subId].balance; */
-  /*   s_subscriptions[subId].balance += uint96(amount); */
-  /*   s_totalBalance += uint96(amount); */
-  /*   emit SubscriptionFunded(subId, oldBalance, oldBalance + amount); */
-  /* } */
 
   function getCurrentSubId() external view returns (uint64) {
     return s_currentSubId;
