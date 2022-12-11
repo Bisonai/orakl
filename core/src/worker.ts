@@ -186,9 +186,7 @@ async function main() {
             try {
               const rawData = await got(adapter.url, options).json()
               return pipe(...adapter.reducers)(rawData)
-              // console.log(`data ${data}`)
             } catch (e) {
-              // FIXME
               console.error(e)
             }
           })
