@@ -81,7 +81,6 @@ async function listenGetFilterChanges(
       console.log(`callbackFunctionId ${callbackFunctionId}`)
       console.log(`_data ${_data}`)
 
-      // FIXME update name of job
       await requestQueue.add('request', {
         requestId,
         jobId,
