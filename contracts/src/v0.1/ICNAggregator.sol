@@ -205,4 +205,8 @@ contract ICNAggregator is ICNClient {
     function getlatestRound() external view returns (uint256) {
         return latestCompletedAnswer;
     }
+
+    function getAnswersss() external view returns (int256) {
+        return currentAnswerValue;
+    }
 }
