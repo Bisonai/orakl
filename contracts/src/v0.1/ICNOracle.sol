@@ -63,6 +63,6 @@ contract ICNOracle is IOracle {
      * @return Type and version string
      */
     function typeAndVersion() external pure returns (string memory) {
-        return "ICNClient v0.1";
+        return "ICNOracle v0.1";
     }
 }

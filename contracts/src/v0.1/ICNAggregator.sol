@@ -166,4 +166,43 @@ contract ICNAggregator is ICNClient {
     function deleteAnswer(uint256 _answerId) private ensureAllResponsesReceived(_answerId) {
         delete answers[_answerId];
     }
+
+    ///// GETTERS //////
+
+    /**
+     * @notice get the most recently reported answer
+     */
+    function getlatestAnswer() external view returns (int256) {
+        return currentAnswers[latestCompletedAnswer];
+    }
+
+    /**
+     * @notice get the last updated at block timestamp
+     */
+    function getlatestTimestamp() external view returns (uint256) {
+        return updatedTimestamps[latestCompletedAnswer];
+    }
+
+    /**
+     * @notice get past rounds answers
+     * @param _roundId the answer number to retrieve the answer for
+     */
+    function getAnswer(uint256 _roundId) external view returns (int256) {
+        return currentAnswers[_roundId];
+    }
+
+    /**
+     * @notice get block timestamp when an answer was last updated
+     * @param _roundId the answer number to retrieve the updated timestamp for
+     */
+    function getTimestamp(uint256 _roundId) external view returns (uint256) {
+        return updatedTimestamps[_roundId];
+    }
+
+    /**
+     * @notice get the latest completed round where the answer was updated
+     */
+    function getlatestRound() external view returns (uint256) {
+        return latestCompletedAnswer;
+    }
 }
