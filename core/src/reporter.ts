@@ -1,19 +1,60 @@
 import { Worker } from 'bullmq'
 import { ethers } from 'ethers'
-import { buildBullMqConnection, buildQueueName, loadJson, pipe, remove0x } from './utils'
-import { reporterRequestQueueName } from './settings'
+import { VRFCoordinator__factory } from '@bisonai/icn-contracts'
+import { loadJson, pipe, remove0x } from './utils'
+import { REPORTER_REQUEST_QUEUE_NAME, REPORTER_VRF_QUEUE_NAME, BULLMQ_CONNECTION } from './settings'
 import { IcnError, IcnErrorCode } from './errors'
+import { PROVIDER, MNEMONIC, PRIVATE_KEY } from './load-parameters'
+import { pad32Bytes, add0x } from './utils'
 
-function pad32Bytes(data) {
-  data = remove0x(data)
-  let s = String(data)
-  while (s.length < (64 || 2)) {
-    s = '0' + s
+async function sendTransaction(wallet, _from, to, payload, gasLimit?, value?) {
+  const tx = {
+    from: _from,
+    to: to,
+    data: add0x(payload),
+    gasLimit: gasLimit || '0x34710', // FIXME
+    value: value || '0x00'
   }
-  return s
+  console.debug('sendTransaction:tx')
+  console.debug(tx)
+
+  const txReceipt = await wallet.sendTransaction(tx)
+  console.debug(`sendTransaction:txReceipt ${txReceipt}`)
 }
 
-async function reporterJob(wallet) {
+function vrfJob(wallet) {
+  async function wrapper(job) {
+    const data = job.data
+    console.log('vrfJob', data)
+
+    try {
+      const requestCommitment = [
+        data.blockNum,
+        data.subId,
+        data.callbackGasLimit,
+        data.numWords,
+        data.sender
+      ]
+      console.log('requestCommitment', requestCommitment)
+
+      const proof = [data.pk, data.proof, data.preSeed, data.uPoint, data.vComponents]
+      console.log('proof', proof)
+
+      let iface = new ethers.utils.Interface(VRFCoordinator__factory.abi)
+      const payload = iface.encodeFunctionData('fulfillRandomWords', [proof, requestCommitment])
+
+      console.log('data.callbackAddress', data.callbackAddress)
+      const gasLimit = 3_000_000 // FIXME
+      await sendTransaction(wallet, wallet.address, data.callbackAddress, payload, gasLimit)
+    } catch (e) {
+      console.error(e)
+    }
+  }
+
+  return wrapper
+}
+
+function reporterJob(wallet) {
   // TODO send data back to Oracle
 
   async function wrapper(job) {
@@ -37,7 +78,7 @@ async function reporterJob(wallet) {
       const txReceipt = await wallet.sendTransaction(tx)
       console.log(txReceipt)
     } catch (e) {
-      console.log(e)
+      console.error(e)
     }
   }
 
@@ -45,22 +86,16 @@ async function reporterJob(wallet) {
 }
 
 async function main() {
-  const providerEnv = process.env.PROVIDER
-  // FIXME allow either private key or mnemonic
-  // const mnemonicEnv = process.env.MNEMONIC
-  const privateKeyEnv = process.env.PRIVATE_KEY
-
-  if (privateKeyEnv) {
-    if (providerEnv) {
-      const provider = new ethers.providers.JsonRpcProvider(providerEnv)
-      // const wallet = ethers.Wallet.fromMnemonic(mnemonicEnv).connect(provider)
-      const wallet = new ethers.Wallet(privateKeyEnv, provider)
+  if (PRIVATE_KEY) {
+    if (PROVIDER) {
+      const provider = new ethers.providers.JsonRpcProvider(PROVIDER)
+      // const wallet = ethers.Wallet.fromMnemonic(MNEMONIC).connect(provider)
+      const wallet = new ethers.Wallet(PRIVATE_KEY, provider)
       // TODO if job not finished, return job in queue
-      const worker = new Worker(
-        reporterRequestQueueName,
-        await reporterJob(wallet),
-        buildBullMqConnection()
-      )
+
+      new Worker(REPORTER_REQUEST_QUEUE_NAME, await reporterJob(wallet), BULLMQ_CONNECTION)
+
+      new Worker(REPORTER_VRF_QUEUE_NAME, await vrfJob(wallet), BULLMQ_CONNECTION)
     } else {
       throw new IcnError(IcnErrorCode.MissingJsonRpcProvider)
     }

@@ -2,29 +2,26 @@
 // 2. Listen on *multiple* smart contracts for *multiple* event types.
 
 import { ethers } from 'ethers'
-import * as dotenv from 'dotenv'
 import { Queue } from 'bullmq'
-import { ICNOracle__factory } from '@bisonai/icn-contracts'
+import { ICNOracle__factory, VRFCoordinator__factory } from '@bisonai/icn-contracts'
 import { RequestEventData, DataFeedRequest, IListeners, ILog } from './types'
 import { IcnError, IcnErrorCode } from './errors'
-import { buildBullMqConnection, loadJson } from './utils'
-import { workerRequestQueueName } from './settings'
-
-dotenv.config()
+import { loadJson } from './utils'
+import { WORKER_REQUEST_QUEUE_NAME, WORKER_VRF_QUEUE_NAME, BULLMQ_CONNECTION } from './settings'
+import { PROVIDER_URL, LISTENERS_PATH } from './load-parameters'
 
 async function main() {
-  const provider_url = process.env.PROVIDER
-  const listeners_path = process.env.LISTENERS // FIXME raise error when file does not exist
-
-  console.log(provider_url)
+  console.log(PROVIDER_URL)
   console.log(ICNOracle__factory.abi)
-  console.log(listeners_path)
+  console.log(LISTENERS_PATH)
 
-  const listeners = await loadJson(listeners_path)
-  const provider = new ethers.providers.JsonRpcProvider(provider_url)
-  const iface = new ethers.utils.Interface(ICNOracle__factory.abi)
+  const listeners = await loadJson(LISTENERS_PATH)
+  const provider = new ethers.providers.JsonRpcProvider(PROVIDER_URL)
 
-  listenGetFilterChanges(provider, listeners, iface)
+  const requestIface = new ethers.utils.Interface(ICNOracle__factory.abi)
+  const vrfIface = new ethers.utils.Interface(VRFCoordinator__factory.abi)
+
+  listenGetFilterChanges(provider, listeners, requestIface, vrfIface)
 }
 
 function getEventTopicId(
@@ -44,9 +41,14 @@ function getEventTopicId(
 async function listenGetFilterChanges(
   provider: ethers.providers.JsonRpcProvider,
   listeners: IListeners,
-  iface: ethers.utils.Interface
+  requestIface: ethers.utils.Interface,
+  vrfIface: ethers.utils.Interface
 ) {
-  const eventTopicId = getEventTopicId(iface.events, 'NewRequest')
+  const requestQueue = new Queue(WORKER_REQUEST_QUEUE_NAME, BULLMQ_CONNECTION)
+  const vrfQueue = new Queue(WORKER_VRF_QUEUE_NAME, BULLMQ_CONNECTION)
+
+  // Request
+  const eventTopicId = getEventTopicId(requestIface.events, 'NewRequest')
   const filterId = await provider.send('eth_newFilter', [
     {
       address: listeners.ANY_API,
@@ -54,13 +56,24 @@ async function listenGetFilterChanges(
     }
   ])
 
-  const queue = new Queue(workerRequestQueueName, buildBullMqConnection())
+  // VRF
+  const vrfEventTopicId = getEventTopicId(vrfIface.events, 'RandomWordsRequested')
+  const vrfFilterId = await provider.send('eth_newFilter', [
+    {
+      address: listeners.VRF,
+      topics: [vrfEventTopicId]
+    }
+  ])
+
+  console.log(vrfEventTopicId)
+  console.log(listeners.VRF)
 
   provider.on('block', async () => {
+    // Request
     const logs: ILog[] = await provider.send('eth_getFilterChanges', [filterId])
     logs.forEach(async (log) => {
       const { requestId, jobId, nonce, callbackAddress, callbackFunctionId, _data } =
-        iface.parseLog(log).args
+        requestIface.parseLog(log).args
       console.log(`requestId ${requestId}`)
       console.log(`jobId ${jobId}`)
       console.log(`nonce ${nonce}`)
@@ -68,8 +81,7 @@ async function listenGetFilterChanges(
       console.log(`callbackFunctionId ${callbackFunctionId}`)
       console.log(`_data ${_data}`)
 
-      // FIXME update name of job
-      await queue.add(jobId, {
+      await requestQueue.add('request', {
         requestId,
         jobId,
         nonce,
@@ -77,8 +89,45 @@ async function listenGetFilterChanges(
         callbackFunctionId,
         _data
       })
-      // await queue.add('myJobName', { specId, requester, payment })
     })
+
+    // VRF
+    try {
+      const vrfLogs: ILog[] = await provider.send('eth_getFilterChanges', [vrfFilterId])
+      vrfLogs.forEach(async (log) => {
+        try {
+          const {
+            // keyHash, // FIXME
+            requestId,
+            preSeed,
+            subId,
+            minimumRequestConfirmations,
+            callbackGasLimit,
+            numWords,
+            sender
+          } = vrfIface.parseLog(log).args
+          console.debug('VRF')
+          console.debug(log)
+
+          await vrfQueue.add('vrf', {
+            callbackAddress: log.address,
+            blockNum: log.blockNumber,
+            blockHash: log.blockHash,
+            requestId,
+            seed: preSeed.toString(),
+            subId,
+            minimumRequestConfirmations,
+            callbackGasLimit,
+            numWords,
+            sender
+          })
+        } catch (e) {
+          console.error(e)
+        }
+      })
+    } catch (e) {
+      console.error(e)
+    }
   })
 }
 

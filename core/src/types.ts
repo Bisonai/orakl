@@ -57,3 +57,14 @@ export interface IRequest {
   get: string
   path?: string[]
 }
+
+export interface IVrfRequest {
+  alpha: string
+}
+
+export interface IVrfResponse {
+  pk: [number, number]
+  proof: [number, number, number, number]
+  uPoint: [number, number]
+  vComponents: [number, number, number, number]
+}
