@@ -18,4 +18,4 @@ export const BULLMQ_CONNECTION = {
   }
 }
 
-export const ADAPTER_ROOT_DIR = './src/adapter/'
+export const ADAPTER_ROOT_DIR = './adapter/'
