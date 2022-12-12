@@ -58,16 +58,14 @@ export interface IRequest {
   path?: string[]
 }
 
-export interface IVrfRequest {
-  alpha: string
+export interface IVrfResponse {
+  pk: [string, string]
+  proof: [string, string, string, string]
+  uPoint: [string, string]
+  vComponents: [string, string, string, string]
 }
 
-export interface IVrfResponse {
-  pk: [number, number]
-  proof: [number, number, number, number]
-  uPoint: [number, number]
-  vComponents: [number, number, number, number]
-}
+// Events
 
 export interface INewRequest {
   requestId: string
@@ -80,11 +78,79 @@ export interface INewRequest {
 
 export interface IRandomWordsRequested {
   keyHash: string
-  requestId: number
+  requestId: BigNumber
   preSeed: number
-  subId: number
+  subId: BigNumber
   minimumRequestConfirmations: number
   callbackGasLimit: number
   numWords: number
   sender: string
+}
+
+// Listener -> Worker
+
+export interface IPredefinedFeedListenerWorker {
+  requestId: string
+  jobId: string
+  nonce: string
+  callbackAddress: string
+  callbackFunctionId: string
+  _data: string
+}
+
+export interface IAnyApiListenerWorker {
+  requestId: string
+  jobId: string
+  nonce: string
+  callbackAddress: string
+  callbackFunctionId: string
+  _data: string
+}
+
+export interface IVrfListenerWorker {
+  callbackAddress: string
+  blockNum: string
+  blockHash: string
+  requestId: string
+  seed: string
+  subId: string
+  minimumRequestConfirmations: number
+  callbackGasLimit: number
+  numWords: number
+  sender: string
+}
+
+// Worker -> Reporter
+
+export interface IAnyApiWorkerReporter {
+  requestId: string
+  jobId: string
+  callbackAddress: string
+  callbackFunctionId: string
+  data: string | number
+}
+
+export interface IPredefinedFeedWorkerReporter {
+  requestId: string
+  jobId: string
+  callbackAddress: string
+  callbackFunctionId: string
+  data: string | number
+}
+
+export interface IVrfWorkerReporter {
+  callbackAddress: string
+  blockNum: string
+  requestId: string
+  seed: string
+  subId: string
+  minimumRequestConfirmations: number
+  callbackGasLimit: number
+  numWords: number
+  sender: string
+  pk: [string, string]
+  proof: [string, string, string, string]
+  preSeed: string
+  uPoint: [string, string]
+  vComponents: [string, string, string, string]
 }

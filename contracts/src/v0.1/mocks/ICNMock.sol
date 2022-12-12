@@ -17,12 +17,12 @@ contract ICNMock is ICNClient {
 
   function requestData() public returns (bytes32 requestId) {
     ICN.Request memory req = buildRequest(jobId, address(this), this.fulfill.selector);
-    req.add('get', 'https://min-api.cryptocompare.com/data/pricemultifull?fsyms=ETH&tsyms=USD');
-    req.add('path', 'RAW,ETH,USD,PRICE');
+    req.add("get", "https://min-api.cryptocompare.com/data/pricemultifull?fsyms=ETH&tsyms=USD");
+    req.add("path", "RAW,ETH,USD,PRICE");
     return sendRequest(req);
   }
 
-  function fulfill(bytes32 _requestId, int256 _response) public ICNResponseFulfilled(_requestId) {
+  function fulfill(bytes32 /* _requestId */, int256 _response) public { // ICNResponseFulfilled(_requestId) {
     value = _response;
   }
 

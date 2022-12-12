@@ -10,11 +10,13 @@ import {
   IListeners,
   ILog,
   INewRequest,
-  IRandomWordsRequested
+  IRandomWordsRequested,
+  IAnyApiListenerWorker,
+  IVrfListenerWorker
 } from './types'
 import { IcnError, IcnErrorCode } from './errors'
 import { loadJson } from './utils'
-import { WORKER_REQUEST_QUEUE_NAME, WORKER_VRF_QUEUE_NAME, BULLMQ_CONNECTION } from './settings'
+import { WORKER_ANY_API_QUEUE_NAME, WORKER_VRF_QUEUE_NAME, BULLMQ_CONNECTION } from './settings'
 import { PROVIDER_URL, LISTENERS_PATH } from './load-parameters'
 
 async function main() {
@@ -27,17 +29,17 @@ async function main() {
   const provider = new ethers.providers.JsonRpcProvider(PROVIDER_URL)
 
   const anyApiIface = new ethers.utils.Interface(ICNOracle__factory.abi)
-  listenGetFilterChanges(
+  listenToEvents(
     provider,
     listeners.ANY_API,
-    WORKER_REQUEST_QUEUE_NAME,
+    WORKER_ANY_API_QUEUE_NAME,
     'NewRequest',
     anyApiIface,
     processAnyApiEvent
   )
 
   const vrfIface = new ethers.utils.Interface(VRFCoordinator__factory.abi)
-  listenGetFilterChanges(
+  listenToEvents(
     provider,
     listeners.VRF,
     WORKER_VRF_QUEUE_NAME,
@@ -45,43 +47,65 @@ async function main() {
     vrfIface,
     processVrfEvent
   )
+
+  // TODO listen to events for Predefined Feeds
 }
 
 function processAnyApiEvent(iface, queue) {
   async function wrapper(log) {
     const eventData: INewRequest = iface.parseLog(log).args
-    console.debug('NewRequest', eventData)
+    console.debug('processAnyApiEvent:eventData', eventData)
 
-    await queue.add('anyApi', {
-      requestId: eventData.requestId,
+    const data: IAnyApiListenerWorker = {
+      requestId: eventData.requestId.toString(),
       jobId: eventData.jobId,
-      nonce: eventData.nonce,
+      nonce: eventData.nonce.toString(),
       callbackAddress: eventData.callbackAddress,
       callbackFunctionId: eventData.callbackFunctionId,
       _data: eventData._data // FIXME rename?
-    })
+    }
+    console.debug('processAnyApiEvent:data', data)
+
+    await queue.add('any-api', data)
   }
 
+  return wrapper
+}
+
+// TODO
+function processPredefinedFeedEvent(iface, queue) {
+  async function wrapper(log) {
+    const eventData = iface.parseLog(log).args
+    console.debug('processPredefinedEvent:eventData', eventData)
+
+    const data /*: IPredefinedFeedListenerWorker */ = {}
+    console.debug('processPredefinedEvent:data', data)
+
+    await queue.add('predefined-feed', data)
+  }
   return wrapper
 }
 
 function processVrfEvent(iface, queue) {
   async function wrapper(log) {
     const eventData: IRandomWordsRequested = iface.parseLog(log).args
-    console.debug('RequestRandomWords', eventData)
+    console.debug('processVrfEvent:eventData', eventData)
 
-    await queue.add('vrf', {
+    const data: IVrfListenerWorker = {
       callbackAddress: log.address,
       blockNum: log.blockNumber,
       blockHash: log.blockHash,
-      requestId: eventData.requestId,
+      requestId: eventData.requestId.toString(),
       seed: eventData.preSeed.toString(),
-      subId: eventData.subId,
+      subId: eventData.subId.toString(),
       minimumRequestConfirmations: eventData.minimumRequestConfirmations,
       callbackGasLimit: eventData.callbackGasLimit,
       numWords: eventData.numWords,
       sender: eventData.sender
-    })
+    }
+    console.debug('processVrfEvent:data', data)
+
+    await queue.add('vrf', data)
   }
 
   return wrapper
@@ -91,7 +115,7 @@ function getEventTopicId(
   events: { [name: string]: ethers.utils.EventFragment },
   eventName: string
 ): string {
-  console.log(events)
+  console.debug('getEventTopicId:events', events)
   for (const [key, value] of Object.entries(events)) {
     if (value.name == eventName) {
       return ethers.utils.id(key)
@@ -101,7 +125,7 @@ function getEventTopicId(
   throw new IcnError(IcnErrorCode.NonExistantEventError, `Event [${eventName}] not found.`)
 }
 
-async function listenGetFilterChanges(
+async function listenToEvents(
   provider: ethers.providers.JsonRpcProvider,
   listeners: IListeners,
   queueName: string,
@@ -119,8 +143,8 @@ async function listenGetFilterChanges(
     }
   ])
 
-  console.debug(`listenGetFilterChanges:topicId ${topicId}`)
-  console.debug(`listenGetFilterChanges:listeners ${listeners}`)
+  console.debug(`listenToEvents:topicId ${topicId}`)
+  console.debug(`listenToEvents:listeners ${listeners}`)
 
   provider.on('block', async () => {
     const logs: ILog[] = await provider.send('eth_getFilterChanges', [filterId])
