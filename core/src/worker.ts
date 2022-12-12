@@ -111,6 +111,7 @@ function anyApiJob(queueName) {
       const res = await processAnyApiRequest(inData._data)
 
       const outData: IAnyApiWorkerReporter = {
+        oracleCallbackAddress: inData.oracleCallbackAddress,
         requestId: inData.requestId,
         jobId: inData.jobId,
         callbackAddress: inData.callbackAddress,

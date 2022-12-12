@@ -1,6 +1,6 @@
 import { Worker } from 'bullmq'
 import { ethers } from 'ethers'
-import { VRFCoordinator__factory } from '@bisonai/icn-contracts'
+import { ICNOracle__factory, VRFCoordinator__factory } from '@bisonai/icn-contracts'
 import { sendTransaction } from './utils'
 import { REPORTER_ANY_API_QUEUE_NAME, REPORTER_VRF_QUEUE_NAME, BULLMQ_CONNECTION } from './settings'
 import { IAnyApiWorkerReporter, IVrfWorkerReporter, RequestCommitment, Proof } from './types'
@@ -23,24 +23,30 @@ async function main() {
 
     new Worker(REPORTER_ANY_API_QUEUE_NAME, await anyApiJob(wallet), BULLMQ_CONNECTION)
     new Worker(REPORTER_VRF_QUEUE_NAME, await vrfJob(wallet), BULLMQ_CONNECTION)
-    // TODO predefined feed
+    // TODO Predefined Feed
   } catch (e) {
     console.error(e)
   }
 }
 
 function anyApiJob(wallet) {
+  const iface = new ethers.utils.Interface(ICNOracle__factory.abi)
+
   async function wrapper(job) {
     const inData: IAnyApiWorkerReporter = job.data
     console.debug('anyApiJob:inData', inData)
 
     try {
-      const requestIdParam = pad32Bytes(inData.requestId)
-      const responseData = typeof inData.data === 'number' ? Math.floor(inData.data) : inData.data
-      const responseParam = pad32Bytes(ethers.utils.hexlify(responseData))
-      const payload = [inData.callbackFunctionId, requestIdParam, responseParam].join('')
+      const _data = typeof inData.data === 'number' ? Math.floor(inData.data) : inData.data
 
-      await sendTransaction(wallet, inData.callbackAddress, payload)
+      const payload = iface.encodeFunctionData('fulfillOracleRequest', [
+        inData.requestId,
+        inData.callbackAddress,
+        inData.callbackFunctionId,
+        _data
+      ])
+
+      await sendTransaction(wallet, inData.oracleCallbackAddress, payload)
     } catch (e) {
       console.error(e)
     }

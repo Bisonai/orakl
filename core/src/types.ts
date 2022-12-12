@@ -99,6 +99,7 @@ export interface IPredefinedFeedListenerWorker {
 }
 
 export interface IAnyApiListenerWorker {
+  oracleCallbackAddress: string
   requestId: string
   jobId: string
   nonce: string
@@ -123,6 +124,7 @@ export interface IVrfListenerWorker {
 // Worker -> Reporter
 
 export interface IAnyApiWorkerReporter {
+  oracleCallbackAddress: string
   requestId: string
   jobId: string
   callbackAddress: string

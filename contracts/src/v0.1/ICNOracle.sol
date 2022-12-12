@@ -38,7 +38,6 @@ contract ICNOracle is IOracle {
   }
 
   /**
-   * //TODO - Add validator node checks
    * @notice Fulfils oracle request
    * @param _requestId - ID of the Oracle Request
    * @param _callbackAddress - Callback Address of Oracle Fulfilment

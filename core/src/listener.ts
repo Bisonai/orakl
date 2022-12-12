@@ -57,6 +57,7 @@ function processAnyApiEvent(iface, queue) {
     console.debug('processAnyApiEvent:eventData', eventData)
 
     const data: IAnyApiListenerWorker = {
+      oracleCallbackAddress: log.address,
       requestId: eventData.requestId.toString(),
       jobId: eventData.jobId,
       nonce: eventData.nonce.toString(),

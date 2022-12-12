@@ -7,7 +7,7 @@ contract ICNMock is ICNClient {
   using ICN for ICN.Request;
 
   bytes32 private jobId;
-  int256 private value;
+  bytes public value;
 
   constructor(address _oracleAddress) {
     setOracle(_oracleAddress);
@@ -22,11 +22,7 @@ contract ICNMock is ICNClient {
     return sendRequest(req);
   }
 
-  function fulfill(bytes32 /* _requestId */, int256 _response) public { // ICNResponseFulfilled(_requestId) {
+  function fulfill(bytes32 _requestId, bytes memory _response) public ICNResponseFulfilled(_requestId) {
     value = _response;
-  }
-
-  function getValue() external view returns (int256) {
-    return value;
   }
 }
