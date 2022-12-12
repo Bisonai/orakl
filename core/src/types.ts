@@ -154,3 +154,20 @@ export interface IVrfWorkerReporter {
   uPoint: [string, string]
   vComponents: [string, string, string, string]
 }
+
+// VRF
+export type Proof = [
+  [string, string] /* pk */,
+  [string, string, string, string] /* proof */,
+  string /* preSeed */,
+  [string, string] /* uPoint */,
+  [string, string, string, string] /* vComponents */
+]
+
+export type RequestCommitment = [
+  string /* blockNum */,
+  string /* subId */,
+  number /* callbackGasLimit */,
+  number /* numWords */,
+  string /* sender */
+]
