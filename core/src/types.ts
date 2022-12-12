@@ -68,3 +68,23 @@ export interface IVrfResponse {
   uPoint: [number, number]
   vComponents: [number, number, number, number]
 }
+
+export interface INewRequest {
+  requestId: string
+  jobId: string
+  nonce: number
+  callbackAddress: string
+  callbackFunctionId: string
+  _data: string
+}
+
+export interface IRandomWordsRequested {
+  keyHash: string
+  requestId: number
+  preSeed: number
+  subId: number
+  minimumRequestConfirmations: number
+  callbackGasLimit: number
+  numWords: number
+  sender: string
+}

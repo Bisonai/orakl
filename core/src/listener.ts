@@ -4,24 +4,87 @@
 import { ethers } from 'ethers'
 import { Queue } from 'bullmq'
 import { ICNOracle__factory, VRFCoordinator__factory } from '@bisonai/icn-contracts'
-import { RequestEventData, DataFeedRequest, IListeners, ILog } from './types'
+import {
+  RequestEventData,
+  DataFeedRequest,
+  IListeners,
+  ILog,
+  INewRequest,
+  IRandomWordsRequested
+} from './types'
 import { IcnError, IcnErrorCode } from './errors'
 import { loadJson } from './utils'
 import { WORKER_REQUEST_QUEUE_NAME, WORKER_VRF_QUEUE_NAME, BULLMQ_CONNECTION } from './settings'
 import { PROVIDER_URL, LISTENERS_PATH } from './load-parameters'
 
 async function main() {
-  console.log(PROVIDER_URL)
-  console.log(ICNOracle__factory.abi)
-  console.log(LISTENERS_PATH)
+  console.debug('PROVIDER_URL', PROVIDER_URL)
+  console.debug('LISTENERS_PATH', LISTENERS_PATH)
+  console.debug('ICNOracle__factory.abi', ICNOracle__factory.abi)
+  console.debug('VRFCoordinator__factory.abi', VRFCoordinator__factory.abi)
 
   const listeners = await loadJson(LISTENERS_PATH)
   const provider = new ethers.providers.JsonRpcProvider(PROVIDER_URL)
 
-  const requestIface = new ethers.utils.Interface(ICNOracle__factory.abi)
-  const vrfIface = new ethers.utils.Interface(VRFCoordinator__factory.abi)
+  const anyApiIface = new ethers.utils.Interface(ICNOracle__factory.abi)
+  listenGetFilterChanges(
+    provider,
+    listeners.ANY_API,
+    WORKER_REQUEST_QUEUE_NAME,
+    'NewRequest',
+    anyApiIface,
+    processAnyApiEvent
+  )
 
-  listenGetFilterChanges(provider, listeners, requestIface, vrfIface)
+  const vrfIface = new ethers.utils.Interface(VRFCoordinator__factory.abi)
+  listenGetFilterChanges(
+    provider,
+    listeners.VRF,
+    WORKER_VRF_QUEUE_NAME,
+    'RandomWordsRequested',
+    vrfIface,
+    processVrfEvent
+  )
+}
+
+function processAnyApiEvent(iface, queue) {
+  async function wrapper(log) {
+    const eventData: INewRequest = iface.parseLog(log).args
+    console.debug('NewRequest', eventData)
+
+    await queue.add('anyApi', {
+      requestId: eventData.requestId,
+      jobId: eventData.jobId,
+      nonce: eventData.nonce,
+      callbackAddress: eventData.callbackAddress,
+      callbackFunctionId: eventData.callbackFunctionId,
+      _data: eventData._data // FIXME rename?
+    })
+  }
+
+  return wrapper
+}
+
+function processVrfEvent(iface, queue) {
+  async function wrapper(log) {
+    const eventData: IRandomWordsRequested = iface.parseLog(log).args
+    console.debug('RequestRandomWords', eventData)
+
+    await queue.add('vrf', {
+      callbackAddress: log.address,
+      blockNum: log.blockNumber,
+      blockHash: log.blockHash,
+      requestId: eventData.requestId,
+      seed: eventData.preSeed.toString(),
+      subId: eventData.subId,
+      minimumRequestConfirmations: eventData.minimumRequestConfirmations,
+      callbackGasLimit: eventData.callbackGasLimit,
+      numWords: eventData.numWords,
+      sender: eventData.sender
+    })
+  }
+
+  return wrapper
 }
 
 function getEventTopicId(
@@ -41,93 +104,27 @@ function getEventTopicId(
 async function listenGetFilterChanges(
   provider: ethers.providers.JsonRpcProvider,
   listeners: IListeners,
-  requestIface: ethers.utils.Interface,
-  vrfIface: ethers.utils.Interface
+  queueName: string,
+  eventName: string,
+  iface: ethers.utils.Interface,
+  wrapFn
 ) {
-  const requestQueue = new Queue(WORKER_REQUEST_QUEUE_NAME, BULLMQ_CONNECTION)
-  const vrfQueue = new Queue(WORKER_VRF_QUEUE_NAME, BULLMQ_CONNECTION)
-
-  // Request
-  const eventTopicId = getEventTopicId(requestIface.events, 'NewRequest')
+  const queue = new Queue(queueName, BULLMQ_CONNECTION)
+  const topicId = getEventTopicId(iface.events, eventName)
+  const fn = wrapFn(iface, queue)
   const filterId = await provider.send('eth_newFilter', [
     {
-      address: listeners.ANY_API,
-      topics: [eventTopicId]
+      address: listeners,
+      topics: [topicId]
     }
   ])
 
-  // VRF
-  const vrfEventTopicId = getEventTopicId(vrfIface.events, 'RandomWordsRequested')
-  const vrfFilterId = await provider.send('eth_newFilter', [
-    {
-      address: listeners.VRF,
-      topics: [vrfEventTopicId]
-    }
-  ])
-
-  console.log(vrfEventTopicId)
-  console.log(listeners.VRF)
+  console.debug(`listenGetFilterChanges:topicId ${topicId}`)
+  console.debug(`listenGetFilterChanges:listeners ${listeners}`)
 
   provider.on('block', async () => {
-    // Request
     const logs: ILog[] = await provider.send('eth_getFilterChanges', [filterId])
-    logs.forEach(async (log) => {
-      const { requestId, jobId, nonce, callbackAddress, callbackFunctionId, _data } =
-        requestIface.parseLog(log).args
-      console.log(`requestId ${requestId}`)
-      console.log(`jobId ${jobId}`)
-      console.log(`nonce ${nonce}`)
-      console.log(`callbackAddress ${callbackAddress}`)
-      console.log(`callbackFunctionId ${callbackFunctionId}`)
-      console.log(`_data ${_data}`)
-
-      await requestQueue.add('request', {
-        requestId,
-        jobId,
-        nonce,
-        callbackAddress,
-        callbackFunctionId,
-        _data
-      })
-    })
-
-    // VRF
-    try {
-      const vrfLogs: ILog[] = await provider.send('eth_getFilterChanges', [vrfFilterId])
-      vrfLogs.forEach(async (log) => {
-        try {
-          const {
-            // keyHash, // FIXME
-            requestId,
-            preSeed,
-            subId,
-            minimumRequestConfirmations,
-            callbackGasLimit,
-            numWords,
-            sender
-          } = vrfIface.parseLog(log).args
-          console.debug('VRF')
-          console.debug(log)
-
-          await vrfQueue.add('vrf', {
-            callbackAddress: log.address,
-            blockNum: log.blockNumber,
-            blockHash: log.blockHash,
-            requestId,
-            seed: preSeed.toString(),
-            subId,
-            minimumRequestConfirmations,
-            callbackGasLimit,
-            numWords,
-            sender
-          })
-        } catch (e) {
-          console.error(e)
-        }
-      })
-    } catch (e) {
-      console.error(e)
-    }
+    logs.forEach(fn)
   })
 }
 
