@@ -47,7 +47,6 @@ async function main() {
   //   vrfIface,
   //   processVrfEvent
   // )
-
   // TODO listen to events for Predefined Feeds
 }
 
@@ -152,47 +151,57 @@ async function listenToEvents(
   //   // const logs: ILog[] = await provider.send('eth_getFilterChanges', [filterId])
   //   // logs.forEach(fn)
   // })
-    const emit_contract = new ethers.Contract('0x45778c29A34bA00427620b937733490363839d8C', ICNOracle__factory.abi, provider);
+  const emit_contract = new ethers.Contract('0x45778c29A34bA00427620b937733490363839d8C', ICNOracle__factory.abi, provider);
 
   //   emit_contract.on(eventName,(_requestId, _jobId, _nonce, _callbackAddress, _callbackFunctionId, _data) =>{
   //     console.log({_requestId, _jobId, _nonce, _callbackAddress, _callbackFunctionId, _data});
   // });
+  let running = false;
+  setInterval(async () => {
+    if (!running) {
+      running = true
 
-  setInterval(async() => {
-    console.log('interval run');
-    await get_events('NewRequest', emit_contract,provider)
+      const logs = await get_events(eventName, emit_contract, provider)
+      logs.forEach(fn)
+      console.log('logs', logs);
+      running = false;
+    }
+    else {
+      console.log('running');
+    }
   }, 500);
- 
 }
 
+let start_block: number = 0;
+let end_block: number = 0;
+const block_file_path = 'src/data/block.txt';
 
-
-let start_block:number;
-const block_file_path='src/data/block.txt';
-
-async function get_events(eventName: string, emit_contract,provider) {
+async function get_events(eventName: string, emit_contract, provider) {
   try {
-    const emit_contract = new ethers.Contract('0x45778c29A34bA00427620b937733490363839d8C', ICNOracle__factory.abi, provider);
+    //const emit_contract = new ethers.Contract('0x45778c29A34bA00427620b937733490363839d8C', ICNOracle__factory.abi, provider);
 
-    if (!start_block) {
+    if (start_block <= 0) {
       const ct = await readTextFile(block_file_path);
-      start_block=parseInt(ct);
+      start_block = parseInt(ct);
     }
     const latest_block = await provider.getBlockNumber();
+    if (end_block < latest_block)
+      end_block = latest_block;
+    if (latest_block > (start_block + 1)) {
+      console.log(start_block + 1, ' - ', latest_block);
 
-    if (latest_block > (start_block)) {
-     console.log(start_block,' - ',latest_block);
-
-      const events = await emit_contract.queryFilter(eventName, start_block, latest_block);
+      const events = await emit_contract.queryFilter(eventName, start_block + 1, latest_block);
       //console.log(events);
-      start_block = latest_block;
       //save last block here
-      await writeTextFile(block_file_path,start_block.toString());
+      await writeTextFile(block_file_path, start_block.toString());
+      start_block = latest_block;
+      return events;
     }
     else console.log('already get data');
   } catch (error) {
     console.log(error);
   }
+  return [];
 }
 
 main().catch((error) => {
