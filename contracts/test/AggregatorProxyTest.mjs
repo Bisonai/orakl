@@ -15,6 +15,7 @@ describe('Testing Aggregator Contract', function () {
   let ICNOracle4
 
   let ICNAggregator
+  let ICNAggregatorProxy
 
   let minimumResponse = 2
   let oracleAddresses = []
@@ -49,12 +50,20 @@ describe('Testing Aggregator Contract', function () {
     let AggregatorContract = await ethers.getContractFactory('ICNAggregator')
     ICNAggregator = await AggregatorContract.deploy(minimumResponse, oracleAddresses, jobIds)
     await ICNAggregator.deployed()
+
+    // Deploy Aggregator Proxy Contract
+    let AggregatorProxyContract = await ethers.getContractFactory('ICNAggregatorProxy')
+    ICNAggregatorProxy = await AggregatorProxyContract.deploy(ICNAggregator.address)
+    await ICNAggregatorProxy.deployed()
   })
 
   it('Should Request and Fulfill Data from Oracles declared in Aggregator Contract fulfillments', async function () {
-    let latestRound = await ICNAggregator.latestRound()
-    expect(latestRound).to.be.equal(0)
-    expect(await ICNAggregator.getAnswer(latestRound)).to.be.equal(0)
+    let latestRound = await ICNAggregatorProxy.latestRound()
+    console.log(Number(latestRound))
+    expect(Number(latestRound)).to.be.equal(18446744073709552000)
+    expect(await ICNAggregatorProxy.getAnswer(latestRound)).to.be.equal(0)
+
+    // TODO: offChain Price Deviation
     const tx = await ICNAggregator.requestRate()
     const receipt = await tx.wait()
     let ETHUSDPRICE = 17000
@@ -93,8 +102,15 @@ describe('Testing Aggregator Contract', function () {
       ETHUSDPRICE
     )
 
-    latestRound = await ICNAggregator.latestRound()
-    expect(latestRound).to.be.equal(1)
-    expect(Number(await ICNAggregator.latestAnswer())).to.be.equal(17000)
+    latestRound = await ICNAggregatorProxy.latestRound()
+    expect(Number(latestRound)).to.be.equal(18446744073709551617)
+    let latestTimestamp = await ICNAggregatorProxy.latestTimestamp()
+    console.log(latestTimestamp)
+    expect(
+      Number(await ICNAggregatorProxy.latestAnswer()),
+      'Latest Answer is not Accurate'
+    ).to.be.equal(17000)
+    let roundAnswer = await ICNAggregatorProxy.getAnswer(await ICNAggregatorProxy.latestRound())
+    expect(roundAnswer, 'Round Answer Returned is not Accurate').to.be.equal(17000)
   })
 })

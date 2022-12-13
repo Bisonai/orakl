@@ -94,39 +94,6 @@ contract ICNAggregatorProxy is IAggregatorProxy {
     }
 
     /**
-     * @notice get data about a round.
-     */
-    function getRoundData(uint80 _roundId)
-        public
-        view
-        virtual
-        returns (uint80 roundId, int256 answer, uint256 startedAt, uint256 updatedAt, uint80 answeredInRound)
-    {
-        (uint16 phaseId, uint64 aggregatorRoundId) = parseIds(_roundId);
-
-        (roundId, answer, startedAt, updatedAt, answeredInRound) =
-            phaseAggregators[phaseId].getRoundData(aggregatorRoundId);
-
-        return addPhaseIds(roundId, answer, startedAt, updatedAt, answeredInRound, phaseId);
-    }
-
-    /**
-     * @notice get data about the latest round.
-     */
-    function latestRoundData()
-        public
-        view
-        virtual
-        returns (uint80 roundId, int256 answer, uint256 startedAt, uint256 updatedAt, uint80 answeredInRound)
-    {
-        Phase memory current = currentPhase; // cache storage reads
-
-        (roundId, answer, startedAt, updatedAt, answeredInRound) = current.aggregator.latestRoundData();
-
-        return addPhaseIds(roundId, answer, startedAt, updatedAt, answeredInRound, current.id);
-    }
-
-    /**
      * @notice returns the current phase's aggregator address.
      */
     function aggregator() external view returns (address) {
