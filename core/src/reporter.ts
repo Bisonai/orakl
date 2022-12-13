@@ -1,6 +1,6 @@
 import { Worker } from 'bullmq'
 import { ethers } from 'ethers'
-import { ICNOracle__factory, VRFCoordinator__factory } from '@bisonai/icn-contracts'
+import { ICNOracle__factory, VRFCoordinator__factory } from '../../contracts/typechain-types'
 import { sendTransaction } from './utils'
 import { REPORTER_ANY_API_QUEUE_NAME, REPORTER_VRF_QUEUE_NAME, BULLMQ_CONNECTION } from './settings'
 import { IAnyApiWorkerReporter, IVrfWorkerReporter, RequestCommitment, Proof } from './types'

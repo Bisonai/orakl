@@ -3,7 +3,7 @@
 
 import { ethers } from 'ethers'
 import { Queue } from 'bullmq'
-import { ICNOracle__factory, VRFCoordinator__factory } from '@bisonai/icn-contracts'
+import { ICNOracle__factory, VRFCoordinator__factory } from '../../contracts/typechain-types'
 import {
   RequestEventData,
   DataFeedRequest,
@@ -15,10 +15,10 @@ import {
   IVrfListenerWorker
 } from './types'
 import { IcnError, IcnErrorCode } from './errors'
-import { loadJson } from './utils'
+import { loadJson, readTextFile, writeTextFile } from './utils'
 import { WORKER_ANY_API_QUEUE_NAME, WORKER_VRF_QUEUE_NAME, BULLMQ_CONNECTION } from './settings'
 import { PROVIDER_URL, LISTENERS_PATH } from './load-parameters'
-
+import { filter } from 'mathjs'
 async function main() {
   console.debug('PROVIDER_URL', PROVIDER_URL)
   console.debug('LISTENERS_PATH', LISTENERS_PATH)
@@ -39,14 +39,14 @@ async function main() {
   )
 
   const vrfIface = new ethers.utils.Interface(VRFCoordinator__factory.abi)
-  listenToEvents(
-    provider,
-    listeners.VRF,
-    WORKER_VRF_QUEUE_NAME,
-    'RandomWordsRequested',
-    vrfIface,
-    processVrfEvent
-  )
+  // listenToEvents(
+  //   provider,
+  //   listeners.VRF,
+  //   WORKER_VRF_QUEUE_NAME,
+  //   'RandomWordsRequested',
+  //   vrfIface,
+  //   processVrfEvent
+  // )
 
   // TODO listen to events for Predefined Feeds
 }
@@ -147,10 +147,52 @@ async function listenToEvents(
   console.debug(`listenToEvents:topicId ${topicId}`)
   console.debug(`listenToEvents:listeners ${listeners}`)
 
-  provider.on('block', async () => {
-    const logs: ILog[] = await provider.send('eth_getFilterChanges', [filterId])
-    logs.forEach(fn)
-  })
+  // provider.on('block', async (blockNumber) => {
+  //   console.log('listen block',blockNumber)
+  //   // const logs: ILog[] = await provider.send('eth_getFilterChanges', [filterId])
+  //   // logs.forEach(fn)
+  // })
+    const emit_contract = new ethers.Contract('0x45778c29A34bA00427620b937733490363839d8C', ICNOracle__factory.abi, provider);
+
+  //   emit_contract.on(eventName,(_requestId, _jobId, _nonce, _callbackAddress, _callbackFunctionId, _data) =>{
+  //     console.log({_requestId, _jobId, _nonce, _callbackAddress, _callbackFunctionId, _data});
+  // });
+
+  setInterval(async() => {
+    console.log('interval run');
+    await get_events('NewRequest', emit_contract,provider)
+  }, 500);
+ 
+}
+
+
+
+let start_block:number;
+const block_file_path='src/data/block.txt';
+
+async function get_events(eventName: string, emit_contract,provider) {
+  try {
+    const emit_contract = new ethers.Contract('0x45778c29A34bA00427620b937733490363839d8C', ICNOracle__factory.abi, provider);
+
+    if (!start_block) {
+      const ct = await readTextFile(block_file_path);
+      start_block=parseInt(ct);
+    }
+    const latest_block = await provider.getBlockNumber();
+
+    if (latest_block > (start_block)) {
+     console.log(start_block,' - ',latest_block);
+
+      const events = await emit_contract.queryFilter(eventName, start_block, latest_block);
+      //console.log(events);
+      start_block = latest_block;
+      //save last block here
+      await writeTextFile(block_file_path,start_block.toString());
+    }
+    else console.log('already get data');
+  } catch (error) {
+    console.log(error);
+  }
 }
 
 main().catch((error) => {
