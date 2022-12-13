@@ -11,7 +11,7 @@ describe('ICN Client Contract', function () {
   let ICNOracle
 
   it('Should request data from specific requestId of Oracle', async function () {
-    let OracleContract = await ethers.getContractFactory('ICNOracle')
+    let OracleContract = await ethers.getContractFactory('ICNOracleRequest')
     ICNOracle = await OracleContract.deploy()
     await ICNOracle.deployed()
 
@@ -23,7 +23,7 @@ describe('ICN Client Contract', function () {
   })
 
   it('Should recieve an off-chain event of Requested', async function () {
-    let OracleContract = await ethers.getContractFactory('ICNOracle')
+    let OracleContract = await ethers.getContractFactory('ICNOracleRequest')
     ICNOracle = await OracleContract.deploy()
     await ICNOracle.deployed()
 

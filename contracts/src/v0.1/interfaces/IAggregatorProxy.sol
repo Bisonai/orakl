@@ -1,4 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.16;
 
-interface IAggregatorProxy {}
+import "./IAggregator.sol";
+
+interface IAggregatorProxy is IAggregator {}

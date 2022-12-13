@@ -176,14 +176,14 @@ contract ICNAggregator is ICNClient, IAggregator {
     /**
      * @notice get the most recently reported answer
      */
-    function getlatestAnswer() external view returns (int256) {
+    function latestAnswer() external view returns (int256) {
         return currentAnswers[latestCompletedAnswer];
     }
 
     /**
      * @notice get the last updated at block timestamp
      */
-    function getlatestTimestamp() external view returns (uint256) {
+    function latestTimestamp() external view returns (uint256) {
         return updatedTimestamps[latestCompletedAnswer];
     }
 
@@ -206,7 +206,7 @@ contract ICNAggregator is ICNClient, IAggregator {
     /**
      * @notice get the latest completed round where the answer was updated
      */
-    function getlatestRound() external view returns (uint256) {
+    function latestRound() external view returns (uint256) {
         return latestCompletedAnswer;
     }
 }
