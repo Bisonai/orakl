@@ -4,13 +4,14 @@ pragma solidity ^0.8.16;
 
 import "./ICNClient.sol";
 import "./libraries/Math.sol";
+import "./interfaces/IAggregator.sol";
 
 /**
  * @title onChain Aggregation Contract
  * @notice Runs onChain aggregation recieving answers from multiple nodes
  */
 
-contract ICNAggregator is ICNClient {
+contract ICNAggregator is ICNClient, IAggregator {
     struct Answer {
         uint128 minimumResponses;
         uint128 maxResponses;
