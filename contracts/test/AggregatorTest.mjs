@@ -31,7 +31,7 @@ describe('Testing Aggregator Contract', function () {
   let requestIds = []
   beforeEach(async function () {
     // Deploy ICN Oracle
-    let OracleContract = await ethers.getContractFactory('ICNOracle')
+    let OracleContract = await ethers.getContractFactory('ICNOracleAggregator')
     ICNOracle = await OracleContract.deploy()
     await ICNOracle.deployed()
     oracleAddresses.push(ICNOracle.address)
@@ -53,12 +53,9 @@ describe('Testing Aggregator Contract', function () {
     let AggregatorContract = await ethers.getContractFactory('ICNAggregator')
     ICNAggregator = await AggregatorContract.deploy(minimumResponse, oracleAddresses, jobIds)
     await ICNAggregator.deployed()
-    console.log('Aggregator Address: ', ICNAggregator.address)
-    console.log('Minimum Responses: ', minimumResponse)
-    console.log('Oracle Address:', oracleAddresses)
   })
 
-  it('Should Request Data from Oracles declared in Aggregator Contract', async function () {
+  it('Should Request and Fulfill Data from Oracles declared in Aggregator Contract fulfillments', async function () {
     let latestRound = await ICNAggregator.getlatestRound()
     expect(latestRound).to.be.equal(0)
     expect(await ICNAggregator.getAnswer(latestRound)).to.be.equal(0)
@@ -77,33 +74,31 @@ describe('Testing Aggregator Contract', function () {
       requestIds[0],
       ICNAggregator.address,
       '0xd8c6a442',
-      ethers.utils.formatBytes32String(ETHUSDPRICE.toString())
+      ETHUSDPRICE
     )
     await ICNOracle2.fulfillOracleRequest(
       requestIds[1],
       ICNAggregator.address,
       '0xd8c6a442',
-      ethers.utils.formatBytes32String(ETHUSDPRICE.toString())
+      ETHUSDPRICE
     )
 
     await ICNOracle3.fulfillOracleRequest(
       requestIds[2],
       ICNAggregator.address,
       '0xd8c6a442',
-      ethers.utils.formatBytes32String(ETHUSDPRICE.toString())
+      ETHUSDPRICE
     )
 
     await ICNOracle4.fulfillOracleRequest(
       requestIds[3],
       ICNAggregator.address,
       '0xd8c6a442',
-      ethers.utils.formatBytes32String(ETHUSDPRICE.toString())
+      ETHUSDPRICE
     )
 
-    console.log(await ICNAggregator.getAnswersss())
     latestRound = await ICNAggregator.getlatestRound()
     expect(latestRound).to.be.equal(1)
-    console.log(await ICNAggregator.getlatestAnswer())
-    expect(Number(await ICNAggregator.getlatestAnswer())).to.be.equal(22)
+    expect(Number(await ICNAggregator.getlatestAnswer())).to.be.equal(17000)
   })
 })

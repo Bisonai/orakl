@@ -6,7 +6,7 @@ import "./interfaces/IOracle.sol";
 error RequestAlreadyExists();
 error IncorrectRequestFulfillment();
 
-contract ICNOracle is IOracle {
+contract ICNOracleRequest is IOracle {
     // Mapping RequestIDs => Hashes of Requests Data
     mapping(bytes32 => bytes32) private requests;
 
@@ -63,6 +63,6 @@ contract ICNOracle is IOracle {
      * @return Type and version string
      */
     function typeAndVersion() external pure returns (string memory) {
-        return "ICNOracle v0.1";
+        return "ICNOracleRequest v0.1";
     }
 }

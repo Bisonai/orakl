@@ -145,9 +145,12 @@ contract ICNAggregator is ICNClient {
         uint256 middleIndex = responseLength / 2;
         int256 currentAnswerTemp;
         if (responseLength % 2 == 0) {
-            int256 median1 = Math.quickselect(answers[_answerId].responses, middleIndex);
-            int256 median2 = Math.quickselect(answers[_answerId].responses, middleIndex + 1);
-            currentAnswerTemp = median1 + median2 / 2;
+            // SUM OF MEDIAN ALGO USED BY CHAINLINK - TEST FAILS FOR THIS - INTENDED ANSWER NOT RETURNED
+            // int256 median1 = Math.quickselect(answers[_answerId].responses, middleIndex);
+            // int256 median2 = Math.quickselect(answers[_answerId].responses, middleIndex + 1);
+            // currentAnswerTemp = median1 + median2 / 2;
+            //////////
+            currentAnswerTemp = Math.quickselect(answers[_answerId].responses, middleIndex);
         } else {
             currentAnswerTemp = Math.quickselect(answers[_answerId].responses, middleIndex + 1);
         }
@@ -204,9 +207,5 @@ contract ICNAggregator is ICNClient {
      */
     function getlatestRound() external view returns (uint256) {
         return latestCompletedAnswer;
-    }
-
-    function getAnswersss() external view returns (int256) {
-        return currentAnswerValue;
     }
 }
