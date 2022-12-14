@@ -16,7 +16,12 @@ import {
 } from './types'
 import { IcnError, IcnErrorCode } from './errors'
 import { loadJson } from './utils'
-import { WORKER_ANY_API_QUEUE_NAME, WORKER_VRF_QUEUE_NAME, BULLMQ_CONNECTION } from './settings'
+import {
+  WORKER_ANY_API_QUEUE_NAME,
+  WORKER_VRF_QUEUE_NAME,
+  WORKER_AGGREGATOR_QUEUE_NAME,
+  BULLMQ_CONNECTION
+} from './settings'
 import { PROVIDER_URL, LISTENERS_PATH } from './load-parameters'
 
 async function main() {
@@ -38,6 +43,8 @@ async function main() {
     processAnyApiEvent
   )
 
+  // TODO listen to events for Predefined Feeds
+
   const vrfIface = new ethers.utils.Interface(VRFCoordinator__factory.abi)
   listenToEvents(
     provider,
@@ -48,7 +55,44 @@ async function main() {
     processVrfEvent
   )
 
-  // TODO listen to events for Predefined Feeds
+  // TODO load from contract ABI
+  const ICNOracleAggreagatorAbi = [
+    {
+      anonymous: false,
+      inputs: [
+        {
+          indexed: false,
+          internalType: 'uint256',
+          name: 'answerCounter',
+          type: 'uint256'
+        },
+        {
+          indexed: false,
+          internalType: 'address',
+          name: 'aggregatorAddress',
+          type: 'address'
+        },
+        {
+          indexed: false,
+          internalType: 'uint256',
+          name: 'roundTimestamp',
+          type: 'uint256'
+        }
+      ],
+      name: 'NewRound',
+      type: 'event'
+    }
+  ]
+  const aggreagatorIface = new ethers.utils.Interface(ICNOracleAggreagatorAbi)
+  listenToEvents(
+    provider,
+    // FIXME get aggregator list from ./aggregator/*.aggregator.json
+    listeners.AGGREAGATOR,
+    WORKER_AGGREGATOR_QUEUE_NAME,
+    'NewRound',
+    aggreagatorIface,
+    processAggregatorEvent
+  )
 }
 
 function processAnyApiEvent(iface, queue) {
@@ -107,6 +151,30 @@ function processVrfEvent(iface, queue) {
     console.debug('processVrfEvent:data', data)
 
     await queue.add('vrf', data)
+  }
+
+  return wrapper
+}
+
+function processAggregatorEvent(iface, queue) {
+  async function wrapper(log) {
+    const eventData /* : INewRound */ = iface.parseLog(log).args
+    console.debug('processAggregatorEvent:eventData', eventData)
+
+    // TODO Remove relevant delayed jobs from Fixed Heartbeast queue.
+    // TODO Remove relevant delayed jobs from Random Heartbeat queue.
+    // TODO Did I cause this emitted event? If yes put back Random Heartbeat and exit.
+
+    const data /* : IAggregatorListenerWorker */ = {
+      mustReport: true,
+      answerCounter: eventData.answerCounter, // FIXME Why do we need it?
+      aggregatorAddress: eventData.answerCounter, // FIXME Why do we need it?
+      roundTimestamp: eventData.roundTimestamp // FIXME why not roundId
+    }
+    console.debug('processAggregatorEvent:data', data)
+
+    await queue.add('aggregator', data)
+    // TODO Add Fixed Heartbeast job to relevant queue.
   }
 
   return wrapper

@@ -25,6 +25,8 @@ import {
   REPORTER_PREDEFINED_FEED_QUEUE_NAME,
   WORKER_VRF_QUEUE_NAME,
   REPORTER_VRF_QUEUE_NAME,
+  WORKER_AGGREGATOR_QUEUE_NAME,
+  REPORTER_AGGREGATOR_QUEUE_NAME,
   BULLMQ_CONNECTION,
   ADAPTER_ROOT_DIR
 } from './settings'
@@ -53,6 +55,12 @@ async function main() {
   const vrfWorker = new Worker(
     WORKER_VRF_QUEUE_NAME,
     vrfJob(REPORTER_VRF_QUEUE_NAME),
+    BULLMQ_CONNECTION
+  )
+
+  const aggregatorWorker = new Worker(
+    WORKER_AGGREGATOR_QUEUE_NAME,
+    aggregatorJob(REPORTER_AGGREGATOR_QUEUE_NAME, adapter),
     BULLMQ_CONNECTION
   )
 }
@@ -252,6 +260,41 @@ function processVrfRequest(alpha: string): IVrfResponse {
     uPoint: [fast.uX, fast.uY],
     vComponents: [fast.sHX, fast.sHY, fast.cGX, fast.cGY]
   }
+}
+
+function aggregatorJob(queueName, adapters) {
+  const queue = new Queue(queueName, BULLMQ_CONNECTION)
+
+  async function wrapper(job) {
+    const inData /* : IAggregatorListenerWorker */ = job.data
+    console.debug('aggregatorJob:inData', inData)
+
+    try {
+      // TODO Process data (same as in Predefined Feed or Request-Response)
+      const outData /* : IVrfWorkerReporter */ = {}
+      console.debug('aggregatorJob:outData', outData)
+
+      let dataDiverged = false
+      if (inData.mustReport) {
+        // TODO check
+      } else {
+        // Check if the new value reaches over threshold or absoluteThreshold.
+        if (dataDiverged) {
+          dataDiverged = true
+        } else {
+          // TODO Put Fixed Heartbeat to appropriate queue
+        }
+      }
+
+      if (inData.mustReport || dataDiverged) {
+        await queue.add('aggregator', outData)
+      }
+    } catch (e) {
+      console.error(e)
+    }
+  }
+
+  return wrapper
 }
 
 main().catch((error) => {

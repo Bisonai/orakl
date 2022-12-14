@@ -19,11 +19,11 @@ async function main() {
     const provider = new ethers.providers.JsonRpcProvider(PROVIDER)
     // const wallet = ethers.Wallet.fromMnemonic(MNEMONIC).connect(provider)
     const wallet = new ethers.Wallet(PRIVATE_KEY, provider)
-    // TODO if job not finished, return job in queue
 
     new Worker(REPORTER_ANY_API_QUEUE_NAME, await anyApiJob(wallet), BULLMQ_CONNECTION)
-    new Worker(REPORTER_VRF_QUEUE_NAME, await vrfJob(wallet), BULLMQ_CONNECTION)
     // TODO Predefined Feed
+    new Worker(REPORTER_VRF_QUEUE_NAME, await vrfJob(wallet), BULLMQ_CONNECTION)
+    new Worker(REPORTER_AGGREGATOR_QUEUE_NAME, await aggregatorJob(wallet), BULLMQ_CONNECTION)
   } catch (e) {
     console.error(e)
   }
@@ -84,6 +84,34 @@ function vrfJob(wallet) {
 
       const payload = iface.encodeFunctionData('fulfillRandomWords', [proof, rc])
       await sendTransaction(wallet, inData.callbackAddress, payload, gasLimit)
+    } catch (e) {
+      console.error(e)
+    }
+  }
+
+  return wrapper
+}
+
+function aggregatorJob(wallet) {
+  // TODO load from contract ABI
+  const ICNOracleAggreagatorAbi = []
+  const iface = new ethers.utils.Interface(ICNOracleAggreagatorAbi)
+
+  async function wrapper(job) {
+    const inData /*: IAggregatorWorkerReporter */ = job.data
+    console.debug('aggregatorJob:inData', inData)
+
+    try {
+      const fulfillOracleRequestParams /* :FulfillOracleRequestParams */ = [
+        inData.requestId,
+        inData.callbackAddress,
+        inData.callbackFunctionId,
+        inData.data
+      ]
+      const payload = iface.encodeFunctionData('fulfillOracleRequest', fulfillOracleRequestParams)
+
+      await sendTransaction(wallet, inData.callbackAddress, payload)
+      // TODO Put Random Heartbeat job to queue
     } catch (e) {
       console.error(e)
     }
