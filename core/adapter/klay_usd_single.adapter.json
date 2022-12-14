@@ -1,6 +1,6 @@
 {
   "active": false,
-  "name": "KLAY_USD",
+  "name": "KLAY/USD",
   "job_type": "DATA_FEED",
   "adapter_id": "efbdab54419511edb8780242ac120002",
   "feeds": [
