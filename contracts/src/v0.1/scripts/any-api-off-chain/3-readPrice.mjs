@@ -7,8 +7,11 @@ async function main() {
   UserContract = await UserContract.attach('0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512')
   console.log('Loaded Contract Address:', UserContract.address)
 
-  await UserContract.requestData()
-  console.log('Data Requested')
+  const value = await UserContract.value()
+  console.log(`value ${value}`)
 }
 
-main()
+main().catch((error) => {
+  console.error(error)
+  process.exitCode = 1
+})
