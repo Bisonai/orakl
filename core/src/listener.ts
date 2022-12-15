@@ -1,7 +1,7 @@
 // 1. Listen on *multiple* smart contracts for a *single* event type.
 // 2. Listen on *multiple* smart contracts for *multiple* event types.
 
-import { ethers } from 'ethers'
+import { Contract, ContractInterface, ethers } from 'ethers'
 import { Queue } from 'bullmq'
 import { ICNOracle__factory, VRFCoordinator__factory } from '../../contracts/typechain-types'
 import {
@@ -12,13 +12,14 @@ import {
   INewRequest,
   IRandomWordsRequested,
   IAnyApiListenerWorker,
-  IVrfListenerWorker
+  IVrfListenerWorker,
+  IListenerBlock
 } from './types'
 import { IcnError, IcnErrorCode } from './errors'
 import { loadJson, readTextFile, writeTextFile } from './utils'
 import { WORKER_ANY_API_QUEUE_NAME, WORKER_VRF_QUEUE_NAME, BULLMQ_CONNECTION } from './settings'
 import { PROVIDER_URL, LISTENERS_PATH } from './load-parameters'
-import { filter } from 'mathjs'
+
 async function main() {
   console.debug('PROVIDER_URL', PROVIDER_URL)
   console.debug('LISTENERS_PATH', LISTENERS_PATH)
@@ -28,25 +29,26 @@ async function main() {
   const listeners = await loadJson(LISTENERS_PATH)
   const provider = new ethers.providers.JsonRpcProvider(PROVIDER_URL)
 
-  const anyApiIface = new ethers.utils.Interface(ICNOracle__factory.abi)
+
+  //const anyApiIface = new ethers.utils.Interface(ICNOracle__factory.abi)
   listenToEvents(
     provider,
     listeners.ANY_API,
     WORKER_ANY_API_QUEUE_NAME,
     'NewRequest',
-    anyApiIface,
+    ICNOracle__factory.abi,
     processAnyApiEvent
   )
 
-  const vrfIface = new ethers.utils.Interface(VRFCoordinator__factory.abi)
-  // listenToEvents(
-  //   provider,
-  //   listeners.VRF,
-  //   WORKER_VRF_QUEUE_NAME,
-  //   'RandomWordsRequested',
-  //   vrfIface,
-  //   processVrfEvent
-  // )
+  //const vrfIface = new ethers.utils.Interface(VRFCoordinator__factory.abi)
+  listenToEvents(
+    provider,
+    listeners.VRF,
+    WORKER_VRF_QUEUE_NAME,
+    'RandomWordsRequested',
+    VRFCoordinator__factory.abi,
+    processVrfEvent
+  )
   // TODO listen to events for Predefined Feeds
 }
 
@@ -127,12 +129,13 @@ function getEventTopicId(
 
 async function listenToEvents(
   provider: ethers.providers.JsonRpcProvider,
-  listeners: IListeners,
+  listeners: Array<string>,
   queueName: string,
   eventName: string,
-  iface: ethers.utils.Interface,
+  ciface: Array<object>,
   wrapFn
 ) {
+  const iface = new ethers.utils.Interface(ciface);
   const queue = new Queue(queueName, BULLMQ_CONNECTION)
   const topicId = getEventTopicId(iface.events, eventName)
   const fn = wrapFn(iface, queue)
@@ -151,55 +154,57 @@ async function listenToEvents(
   //   // const logs: ILog[] = await provider.send('eth_getFilterChanges', [filterId])
   //   // logs.forEach(fn)
   // })
-  const emit_contract = new ethers.Contract('0x45778c29A34bA00427620b937733490363839d8C', ICNOracle__factory.abi, provider);
-
-  //   emit_contract.on(eventName,(_requestId, _jobId, _nonce, _callbackAddress, _callbackFunctionId, _data) =>{
-  //     console.log({_requestId, _jobId, _nonce, _callbackAddress, _callbackFunctionId, _data});
-  // });
+  const listener=listeners[0];
+  const emit_contract = new ethers.Contract(listeners[0], ciface, provider);
   let running = false;
+  const lstener_block:IListenerBlock={
+    startBlock:0,
+    filePath:`src/data/block_${listener}.txt`
+  }
   setInterval(async () => {
     if (!running) {
       running = true
-
-      const logs = await get_events(eventName, emit_contract, provider)
+      const logs = await get_events(eventName, emit_contract, provider,lstener_block)
       logs.forEach(fn)
-      console.log('logs', logs);
+      if(logs.length>0)
+        console.log('logs', logs);
       running = false;
     }
     else {
       console.log('running');
     }
   }, 500);
+
 }
 
-let start_block: number = 0;
-let end_block: number = 0;
-const block_file_path = 'src/data/block.txt';
 
-async function get_events(eventName: string, emit_contract, provider) {
+async function get_events(eventName: string, emit_contract:Contract, provider:ethers.providers.JsonRpcProvider,listener_block:IListenerBlock) {
   try {
-    //const emit_contract = new ethers.Contract('0x45778c29A34bA00427620b937733490363839d8C', ICNOracle__factory.abi, provider);
-
-    if (start_block <= 0) {
-      const ct = await readTextFile(block_file_path);
-      start_block = parseInt(ct);
+    if (listener_block.startBlock <= 0) {
+      let start="0";
+      try {
+        start = await readTextFile(listener_block.filePath);
+      } catch{
+      }
+      
+      listener_block.startBlock = parseInt(start);
     }
     const latest_block = await provider.getBlockNumber();
-    if (end_block < latest_block)
-      end_block = latest_block;
-    if (latest_block > (start_block + 1)) {
-      console.log(start_block + 1, ' - ', latest_block);
+    console.log(listener_block.startBlock, ' - ', latest_block);
+    
+    if (latest_block >= listener_block.startBlock) {
 
-      const events = await emit_contract.queryFilter(eventName, start_block + 1, latest_block);
+      const events = await emit_contract.queryFilter(eventName, listener_block.startBlock, latest_block);
       //console.log(events);
       //save last block here
-      await writeTextFile(block_file_path, start_block.toString());
-      start_block = latest_block;
+      console.log(listener_block.startBlock, ' - ', latest_block);
+      listener_block.startBlock = latest_block+1;
+      await writeTextFile(listener_block.filePath, listener_block.startBlock.toString());
       return events;
     }
-    else console.log('already get data');
+    //else console.log('already get data');
   } catch (error) {
-    console.log(error);
+    //console.log(error);
   }
   return [];
 }

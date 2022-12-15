@@ -173,3 +173,8 @@ export type RequestCommitment = [
   number /* numWords */,
   string /* sender */
 ]
+
+export interface IListenerBlock{
+  startBlock:number,
+  filePath:string
+}
