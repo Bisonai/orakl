@@ -8,7 +8,7 @@ const { ethers } = pkg
 
 import chai from 'chai'
 
-describe('Testing Aggregator Contract', function () {
+describe('Testing Aggregator Proxy Contract', function () {
   let ICNOracle
   let ICNOracle2
   let ICNOracle3
@@ -57,7 +57,7 @@ describe('Testing Aggregator Contract', function () {
     await ICNAggregatorProxy.deployed()
   })
 
-  it('Should Request and Fulfill Data from Oracles declared in Aggregator Contract fulfillments', async function () {
+  it('Should fulfill data through Proxys', async function () {
     let latestRound = await ICNAggregatorProxy.latestRound()
     console.log(Number(latestRound))
     expect(Number(latestRound)).to.be.equal(18446744073709552000)

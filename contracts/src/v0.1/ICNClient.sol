@@ -7,8 +7,6 @@ import "./interfaces/IOracle.sol";
 
 error SenderIsNotOracle();
 
-error SenderIsNotOracle();
-
 contract ICNClient {
     using ICN for ICN.Request;
 
@@ -84,4 +82,14 @@ contract ICNClient {
     function setOracle(address _oracleAddress) internal {
         s_oracle = _oracleAddress;
     }
+
+    /**
+     * @notice The type and version of this contract
+     * @return Type and version string
+     */
+    function typeAndVersion() external pure returns (string memory) {
+        return "ICNClient v0.1";
+    }
+
+    function validateCallback(bytes32 _requestId) internal ICNResponseFulfilled(_requestId) {}
 }
