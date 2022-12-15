@@ -174,7 +174,7 @@ export type RequestCommitment = [
   string /* sender */
 ]
 
-export interface IListenerBlock{
-  startBlock:number,
-  filePath:string
+export interface IListenerBlock {
+  startBlock: number
+  filePath: string
 }

@@ -1,9 +1,10 @@
 // 1. Listen on *multiple* smart contracts for a *single* event type.
 // 2. Listen on *multiple* smart contracts for *multiple* event types.
 
-import { Contract, ContractInterface, ethers } from 'ethers'
+import path from 'node:path'
+import { Contract, Event, ContractInterface, ethers } from 'ethers'
 import { Queue } from 'bullmq'
-import { ICNOracle__factory, VRFCoordinator__factory } from '../../contracts/typechain-types'
+import { ICNOracle__factory, VRFCoordinator__factory } from '@bisonai/icn-contracts'
 import {
   RequestEventData,
   DataFeedRequest,
@@ -17,7 +18,13 @@ import {
 } from './types'
 import { IcnError, IcnErrorCode } from './errors'
 import { loadJson, readTextFile, writeTextFile } from './utils'
-import { WORKER_ANY_API_QUEUE_NAME, WORKER_VRF_QUEUE_NAME, BULLMQ_CONNECTION } from './settings'
+import {
+  WORKER_ANY_API_QUEUE_NAME,
+  WORKER_VRF_QUEUE_NAME,
+  BULLMQ_CONNECTION,
+  LISTENER_ROOT_DIR,
+  LISTENER_DELAY
+} from './settings'
 import { PROVIDER_URL, LISTENERS_PATH } from './load-parameters'
 
 async function main() {
@@ -29,8 +36,6 @@ async function main() {
   const listeners = await loadJson(LISTENERS_PATH)
   const provider = new ethers.providers.JsonRpcProvider(PROVIDER_URL)
 
-
-  //const anyApiIface = new ethers.utils.Interface(ICNOracle__factory.abi)
   listenToEvents(
     provider,
     listeners.ANY_API,
@@ -40,7 +45,8 @@ async function main() {
     processAnyApiEvent
   )
 
-  //const vrfIface = new ethers.utils.Interface(VRFCoordinator__factory.abi)
+  // TODO listen to events for Predefined Feeds
+
   listenToEvents(
     provider,
     listeners.VRF,
@@ -49,7 +55,6 @@ async function main() {
     VRFCoordinator__factory.abi,
     processVrfEvent
   )
-  // TODO listen to events for Predefined Feeds
 }
 
 function processAnyApiEvent(iface, queue) {
@@ -132,10 +137,10 @@ async function listenToEvents(
   listeners: Array<string>,
   queueName: string,
   eventName: string,
-  ciface: Array<object>,
+  abi: Array<object>,
   wrapFn
 ) {
-  const iface = new ethers.utils.Interface(ciface);
+  const iface = new ethers.utils.Interface(abi)
   const queue = new Queue(queueName, BULLMQ_CONNECTION)
   const topicId = getEventTopicId(iface.events, eventName)
   const fn = wrapFn(iface, queue)
@@ -149,64 +154,61 @@ async function listenToEvents(
   console.debug(`listenToEvents:topicId ${topicId}`)
   console.debug(`listenToEvents:listeners ${listeners}`)
 
-  // provider.on('block', async (blockNumber) => {
-  //   console.log('listen block',blockNumber)
-  //   // const logs: ILog[] = await provider.send('eth_getFilterChanges', [filterId])
-  //   // logs.forEach(fn)
-  // })
-  const listener=listeners[0];
-  const emit_contract = new ethers.Contract(listeners[0], ciface, provider);
-  let running = false;
-  const lstener_block:IListenerBlock={
-    startBlock:0,
-    filePath:`src/data/block_${listener}.txt`
+  const listener = listeners[0]
+  const emitContract = new ethers.Contract(listeners[0], abi, provider)
+
+  const lstener_block: IListenerBlock = {
+    startBlock: 0,
+    filePath: path.join(LISTENER_ROOT_DIR, `${listener}.txt`)
   }
+
+  let running = false
   setInterval(async () => {
     if (!running) {
       running = true
-      const logs = await get_events(eventName, emit_contract, provider,lstener_block)
+      const logs = await get_events(eventName, emitContract, provider, lstener_block)
       logs.forEach(fn)
-      if(logs.length>0)
-        console.log('logs', logs);
-      running = false;
+      if (logs.length > 0) console.debug('logs', logs)
+      running = false
     }
-    else {
-      console.log('running');
-    }
-  }, 500);
-
+  }, LISTENER_DELAY)
 }
 
-
-async function get_events(eventName: string, emit_contract:Contract, provider:ethers.providers.JsonRpcProvider,listener_block:IListenerBlock) {
+async function get_events(
+  eventName: string,
+  emitContract: Contract,
+  provider: ethers.providers.JsonRpcProvider,
+  listenerBlock: IListenerBlock
+) {
   try {
-    if (listener_block.startBlock <= 0) {
-      let start="0";
+    let events: Event[] = []
+    if (listenerBlock.startBlock <= 0) {
+      let start = 0
       try {
-        start = await readTextFile(listener_block.filePath);
-      } catch{
+        start = parseInt(await readTextFile(listenerBlock.filePath))
+      } catch (e) {
+        console.error(e)
       }
-      
-      listener_block.startBlock = parseInt(start);
-    }
-    const latest_block = await provider.getBlockNumber();
-    console.log(listener_block.startBlock, ' - ', latest_block);
-    
-    if (latest_block >= listener_block.startBlock) {
 
-      const events = await emit_contract.queryFilter(eventName, listener_block.startBlock, latest_block);
-      //console.log(events);
-      //save last block here
-      console.log(listener_block.startBlock, ' - ', latest_block);
-      listener_block.startBlock = latest_block+1;
-      await writeTextFile(listener_block.filePath, listener_block.startBlock.toString());
-      return events;
+      listenerBlock.startBlock = start
     }
-    //else console.log('already get data');
-  } catch (error) {
-    //console.log(error);
+
+    const latest_block = await provider.getBlockNumber()
+    console.debug(`${listenerBlock.startBlock} - ${latest_block}`)
+
+    if (latest_block >= listenerBlock.startBlock) {
+      events = await emitContract.queryFilter(eventName, listenerBlock.startBlock, latest_block)
+      console.debug(`${listenerBlock.startBlock} - ${latest_block}`)
+
+      listenerBlock.startBlock = latest_block + 1
+      await writeTextFile(listenerBlock.filePath, listenerBlock.startBlock.toString())
+    }
+
+    return events
+  } catch (e) {
+    console.log(e)
+    throw Error(e)
   }
-  return [];
 }
 
 main().catch((error) => {

@@ -75,12 +75,10 @@ export async function sendTransaction(wallet, to, payload, gasLimit?, value?) {
 
 export async function readTextFile(filepath) {
   const ct = await Fs.readFile(filepath, 'utf8')
-  return ct;
+  return ct
 }
 
-export async function writeTextFile(filepath,content) {
-  await Fs.writeFile(filepath, content);
-  return true;
+export async function writeTextFile(filepath, content) {
+  await Fs.writeFile(filepath, content)
+  return true
 }
-
-
