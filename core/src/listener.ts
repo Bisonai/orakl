@@ -44,9 +44,6 @@ async function main() {
     ICNOracle__factory.abi,
     processAnyApiEvent
   )
-
-  // TODO listen to events for Predefined Feeds
-
   listenToEvents(
     provider,
     listeners.VRF,
@@ -153,6 +150,7 @@ async function listenToEvents(
 
   console.debug(`listenToEvents:topicId ${topicId}`)
   console.debug(`listenToEvents:listeners ${listeners}`)
+
 
   const listener = listeners[0]
   const emitContract = new ethers.Contract(listeners[0], abi, provider)
