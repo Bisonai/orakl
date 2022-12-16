@@ -29,8 +29,6 @@ async function main() {
   const listeners = await loadJson(LISTENERS_PATH)
   const provider = new ethers.providers.JsonRpcProvider(PROVIDER_URL)
 
-
-  //const anyApiIface = new ethers.utils.Interface(ICNOracle__factory.abi)
   listenToEvents(
     provider,
     listeners.ANY_API,
@@ -39,8 +37,6 @@ async function main() {
     ICNOracle__factory.abi,
     processAnyApiEvent
   )
-
-  //const vrfIface = new ethers.utils.Interface(VRFCoordinator__factory.abi)
   listenToEvents(
     provider,
     listeners.VRF,
@@ -149,16 +145,12 @@ async function listenToEvents(
   console.debug(`listenToEvents:topicId ${topicId}`)
   console.debug(`listenToEvents:listeners ${listeners}`)
 
-  // provider.on('block', async (blockNumber) => {
-  //   console.log('listen block',blockNumber)
-  //   // const logs: ILog[] = await provider.send('eth_getFilterChanges', [filterId])
-  //   // logs.forEach(fn)
-  // })
+
   const listener=listeners[0];
   const emit_contract = new ethers.Contract(listeners[0], ciface, provider);
   let running = false;
   const lstener_block:IListenerBlock={
-    startBlock:0,
+    startBlock:109508104,
     filePath:`src/data/block_${listener}.txt`
   }
   setInterval(async () => {
