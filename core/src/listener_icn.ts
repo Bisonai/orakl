@@ -2,7 +2,6 @@
 // 2. Listen on *multiple* smart contracts for *multiple* event types.
 
 import { ethers } from 'ethers'
-import { Queue } from 'bullmq'
 import { ICNOracle__factory } from '../../contracts/typechain-types'
 import {
   INewRequest,

@@ -33,7 +33,6 @@ async function main() {
   let running=false;
   setInterval(async () => {
     if (!running) {
-      //console.log('Ready running');
       running = true
       await getEvents.get_events();
       running = false;
