@@ -30,7 +30,7 @@ const config: HardhatUserConfig = {
     },
     baobab: {
       url: 'https://api.baobab.klaytn.net:8651',
-      accounts: ["798feb1b9e4a7b046a52807e4f4064a23ce9a546c303f58cbad7b4fa6ae33e85"],
+      ...commonConfig,
       gasPrice: 250_000_000_000
     },
     cypress: {
@@ -41,19 +41,6 @@ const config: HardhatUserConfig = {
   },
   paths: {
     sources: './src'
-  },
-  etherscan: {
-    apiKey: process.env.API_KEY,
-    customChains: [
-      {
-        network: "baobab",
-        chainId: 1001,
-        urls: {
-          apiURL: "https://api.baobab.klaytn.net:8651api",
-          browserURL: "https://api.baobab.klaytn.net:8651"
-        }
-      }
-    ]
   }
 }
 
