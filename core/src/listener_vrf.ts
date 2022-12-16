@@ -3,7 +3,7 @@
 
 import { ethers } from 'ethers'
 import { Queue } from 'bullmq'
-import { ICNOracle__factory, VRFCoordinator__factory } from '../../contracts/typechain-types'
+import { ICNOracle__factory, VRFCoordinator__factory } from '@bisonai/icn-contracts'
 import {
   INewRequest,
   IRandomWordsRequested,
@@ -11,7 +11,7 @@ import {
   IVrfListenerWorker,
   IListenerBlock
 } from './types'
-import { loadJson} from './utils'
+import { loadJson } from './utils'
 import { WORKER_ANY_API_QUEUE_NAME, WORKER_VRF_QUEUE_NAME, BULLMQ_CONNECTION } from './settings'
 import { PROVIDER_URL, LISTENERS_PATH } from './load-parameters'
 import { get_event, get_events } from './get-events'
@@ -24,25 +24,27 @@ async function main() {
 
   const listeners = await loadJson(LISTENERS_PATH)
   const provider = new ethers.providers.JsonRpcProvider(PROVIDER_URL)
-  const getEvents=new get_event(provider,listeners.VRF.address,WORKER_VRF_QUEUE_NAME,
+  const getEvents = new get_event(
+    provider,
+    listeners.VRF.address,
+    WORKER_VRF_QUEUE_NAME,
     'RandomWordsRequested',
     VRFCoordinator__factory.abi,
     listeners.VRF.blockFilePath,
-    processVrfEvent)
+    processVrfEvent
+  )
 
-  let running=false;
+  let running = false
   setInterval(async () => {
     if (!running) {
       running = true
-      await getEvents.get_events();
-      running = false;
+      await getEvents.get_events()
+      running = false
+    } else {
+      console.log('running')
     }
-    else {
-      console.log('running');
-    }
-  }, 500);
+  }, 500)
 }
-
 
 function processVrfEvent(iface, queue) {
   async function wrapper(log) {
@@ -71,5 +73,3 @@ main().catch((error) => {
   console.error(error)
   process.exitCode = 1
 })
-
-
