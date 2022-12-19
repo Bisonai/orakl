@@ -59,7 +59,6 @@ describe('Testing Aggregator Proxy Contract', function () {
 
   it('Should fulfill data through Proxys', async function () {
     let latestRound = await ICNAggregatorProxy.latestRound()
-    console.log(Number(latestRound))
     expect(Number(latestRound)).to.be.equal(18446744073709552000)
     expect(await ICNAggregatorProxy.getAnswer(latestRound)).to.be.equal(0)
 
@@ -73,7 +72,6 @@ describe('Testing Aggregator Proxy Contract', function () {
       }
     }
     expect(requestIds.length).to.be.equal(4)
-    console.log(requestIds)
 
     await ICNOracle.fulfillOracleRequest(
       requestIds[0],
@@ -105,12 +103,38 @@ describe('Testing Aggregator Proxy Contract', function () {
     latestRound = await ICNAggregatorProxy.latestRound()
     expect(Number(latestRound)).to.be.equal(18446744073709551617)
     let latestTimestamp = await ICNAggregatorProxy.latestTimestamp()
-    console.log(latestTimestamp)
+
     expect(
       Number(await ICNAggregatorProxy.latestAnswer()),
       'Latest Answer is not Accurate'
     ).to.be.equal(17000)
     let roundAnswer = await ICNAggregatorProxy.getAnswer(await ICNAggregatorProxy.latestRound())
     expect(roundAnswer, 'Round Answer Returned is not Accurate').to.be.equal(17000)
+  })
+
+  it('Should Request and Cancel Fulfillment Request', async function () {
+    let latestRound = await ICNAggregator.latestRound()
+    expect(latestRound).to.be.equal(0)
+    expect(await ICNAggregator.getAnswer(latestRound)).to.be.equal(0)
+    const tx = await ICNAggregator.requestRate()
+    const receipt = await tx.wait()
+    let ETHUSDPRICE = 17000
+    for (const event of receipt.events) {
+      if (event.event == 'Requested') {
+        requestIds.push(event.args.id)
+      }
+    }
+    expect(requestIds.length).to.be.equal(4)
+
+    await ICNOracle.cancelOracleRequest(requestIds[0], ICNAggregator.address, '0xd8c6a442')
+
+    expect(
+      await ICNOracle.fulfillOracleRequest(
+        requestIds[0],
+        ICNAggregator.address,
+        '0xd8c6a442',
+        ETHUSDPRICE
+      )
+    ).to.be.reverted
   })
 })
