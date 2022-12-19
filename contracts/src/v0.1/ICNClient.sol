@@ -14,10 +14,6 @@ contract ICNClient {
     uint256 private s_requestCount = 1;
     mapping(bytes32 => address) private s_pendingRequests;
 
-    event Requested(bytes32 indexed id);
-    event Fulfilled(bytes32 indexed id); // FIXME not used
-    event Cancelled(bytes32 indexed id); // FIXME not used
-
     /**
      * @notice a modifier to declare the request is fulfiled by the oracle
      */
@@ -28,7 +24,6 @@ contract ICNClient {
         delete s_pendingRequests[_requestId]; // Gas refund for clearing memory
 
         _;
-        emit Fulfilled(_requestId);
     }
 
     /**
@@ -72,8 +67,12 @@ contract ICNClient {
         IOracle(_oracleAddress).createNewRequest(
             requestId, _req.id, nonce, address(this), _req.callbackFunctionId, _req.buf.buf
         );
+    }
 
-        emit Requested(requestId);
+    function cancelICNRequest(bytes32 _requestId, address _callbackAddress, bytes4 _callbackFunc) internal {
+        bytes32 requestId = keccak256(abi.encodePacked(this, s_requestCount));
+        delete  s_pendingRequests[requestId];
+        IOracle(address(s_oracle)).cancelOracleRequest(_requestId, _callbackAddress, _callbackFunc);
     }
 
     /**

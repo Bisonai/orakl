@@ -19,4 +19,12 @@ interface IOracle {
      * @return Type and version string
      */
     function typeAndVersion() external pure returns (string memory);
+
+    /**
+     * @notice Cancelling Oracle Request
+     * @param _requestId - ID of the Oracle Request
+     * @param _callbackAddress - Callback Address of Oracle Cancellation
+     * @param _callbackFunctionId - Return functionID callback
+     */
+    function cancelOracleRequest(bytes32 _requestId, address _callbackAddress, bytes4 _callbackFunctionId) external;
 }

@@ -4,7 +4,7 @@ pragma solidity ^0.8.16;
 import "./interfaces/IOracle.sol";
 
 error RequestAlreadyExists();
-error IncorrectRequestFulfillment();
+error IncorrectRequest();
 
 contract ICNOracleAggregator is IOracle {
     // Mapping RequestIDs => Hashes of Requests Data
@@ -18,6 +18,9 @@ contract ICNOracleAggregator is IOracle {
         bytes4 callbackFunctionId,
         bytes _data
     );
+
+    event CancelOracleRequest(bytes32 indexed requestId);
+    event FulfillOracleRequest(address callbackAddress, bytes4 callbackFunctionId, uint256 _data);
 
     function createNewRequest(
         bytes32 _requestId,
@@ -51,11 +54,27 @@ contract ICNOracleAggregator is IOracle {
     ) external returns (bool) {
         bytes32 paramsHash = keccak256(abi.encodePacked(_requestId, _callbackAddress, _callbackFunctionId));
         if (requests[_requestId] != paramsHash) {
-            revert IncorrectRequestFulfillment();
+            revert IncorrectRequest();
         }
         delete requests[_requestId];
         (bool success,) = _callbackAddress.call(abi.encodeWithSelector(_callbackFunctionId, _requestId, _data));
+        emit FulfillOracleRequest(_callbackAddress, _callbackFunctionId, _data);
         return success;
+    }
+
+    /**
+     * @notice Cancelling Oracle Request
+     * @param _requestId - ID of the Oracle Request
+     * @param _callbackAddress - Callback Address of Oracle Cancellation
+     * @param _callbackFunctionId - Return functionID callback
+     */
+    function cancelOracleRequest(bytes32 _requestId, address _callbackAddress, bytes4 _callbackFunctionId) external {
+        bytes32 paramsHash = keccak256(abi.encodePacked(_requestId, _callbackAddress, _callbackFunctionId));
+        if (requests[_requestId] != paramsHash) {
+            revert IncorrectRequest();
+        }
+        delete requests[_requestId];
+        emit CancelOracleRequest(_requestId);
     }
 
     /**
