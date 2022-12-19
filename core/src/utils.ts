@@ -72,3 +72,13 @@ export async function sendTransaction(wallet, to, payload, gasLimit?, value?) {
   console.debug('sendTransaction:txReceipt')
   console.debug(txReceipt)
 }
+
+export async function readTextFile(filepath) {
+  const ct = await Fs.readFile(filepath, 'utf8')
+  return ct
+}
+
+export async function writeTextFile(filepath, content) {
+  await Fs.writeFile(filepath, content)
+  return true
+}

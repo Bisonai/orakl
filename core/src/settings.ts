@@ -23,3 +23,7 @@ export const BULLMQ_CONNECTION = {
 }
 
 export const ADAPTER_ROOT_DIR = './adapter/'
+
+export const LISTENER_ROOT_DIR = './listener/'
+
+export const LISTENER_DELAY = 500
