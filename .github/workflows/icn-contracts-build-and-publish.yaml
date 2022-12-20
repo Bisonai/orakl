@@ -1,0 +1,25 @@
+name: Publish Package to npmjs
+on: push
+  # release:
+  #   types: [created]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: '18.12'
+          registry-url: 'https://npm.pkg.github.com'
+          scope: '@bisonai-cic'
+          always-auth: true
+      - run: yarn
+        working-directory: ./contracts
+      - run: yarn compile
+        working-directory: ./contracts
+      - run: yarn build
+        working-directory: ./contracts
+      - run: yarn publish
+        working-directory: ./contracts
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
