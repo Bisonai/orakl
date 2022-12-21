@@ -22,5 +22,5 @@ interface SubscriptionInterface {
     ///// added interfaces /////
     function increaseSubBalance(uint64 subId,uint96 amount) external;
 
-    function decreaseSubBalance(uint64 subId,uint96 amount) external;
+    function withdraw(uint64 subId, uint96 amount) external;
 }
