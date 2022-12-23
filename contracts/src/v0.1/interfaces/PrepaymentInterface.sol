@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.16;
 
-interface SubscriptionInterface {
+interface PrepaymentInterface {
     ///// from VRFcoordinator /////
 
     function getSubscription(uint64 subId) external view
@@ -26,4 +26,9 @@ interface SubscriptionInterface {
 
     function decreaseSubBalance(uint64 subId,uint96 amount) external;
 
+    function getNonce(address consumer,uint64 subId) external view returns(uint64);
+
+    function increaseNonce(address consumer,uint64 subId) external;
+
+    function getSubOwner(uint64 subId)external returns(address owner);
 }
