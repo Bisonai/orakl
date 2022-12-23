@@ -22,6 +22,13 @@ describe('QuickSelect', function () {
     await contract.deployed()
   })
 
+  it('Compute median on array of single value', async function () {
+    const a = preprocessArray([1])
+    const k = getMiddleIndex(a)
+    const median = await contract.quickSelect(a, k)
+    expect(Number(median)).to.be.equal(1)
+  })
+
   it('Compute median on sorted array of even length', async function () {
     const a = preprocessArray([1, 2])
     const k = getMiddleIndex(a)
@@ -48,5 +55,23 @@ describe('QuickSelect', function () {
     const k = getMiddleIndex(a)
     const median = await contract.quickSelect(a, k)
     expect(Number(median)).to.be.equal(2)
+  })
+
+  it('Should reverd on k = 0', async function () {
+    const a = [1]
+    const k = 0
+    await expect(contract.quickSelect(a, k)).to.be.revertedWith('QS01')
+  })
+
+  it('Should revert on zero-length array', async function () {
+    const a = []
+    const k = 1
+    await expect(contract.quickSelect(a, k)).to.be.revertedWith('QS02')
+  })
+
+  it('Should revert on k larger than array length', async function () {
+    const a = [1, 2]
+    const k = 3
+    await expect(contract.quickSelect(a, k)).to.be.revertedWith('QS03')
   })
 })
