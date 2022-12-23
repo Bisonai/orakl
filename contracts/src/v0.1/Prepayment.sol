@@ -2,28 +2,18 @@
 pragma solidity ^0.8.16;
 import "openzeppelin-solidity/contracts/access/AccessControlEnumerable.sol";
 import "openzeppelin-solidity/contracts/access/Ownable.sol";
+import "./interfaces/PrepaymentInterface.sol";
 
-// import "./interfaces/BlockhashStoreInterface.sol";
-// /* import "./interfaces/AggregatorV3Interface.sol"; */
-// import "./interfaces/VRFCoordinatorInterface.sol";
-// import "./interfaces/TypeAndVersionInterface.sol";
-// import "./libraries/VRF.sol";
-// import "./ConfirmedOwner.sol";
-// import "./VRFConsumerBase.sol";
-
-contract Subscriptions is Ownable, AccessControlEnumerable {
+contract Prepayment is Ownable, AccessControlEnumerable, PrepaymentInterface {
     uint16 public constant MAX_CONSUMERS = 100;
     uint96 private s_totalBalance;
     error TooManyConsumers();
     error InsufficientBalance();
     error InvalidConsumer(uint64 subId, address consumer);
     error InvalidSubscription();
-    error OnlyCallableFromLink();
-    error InvalidCalldata();
     error MustBeSubOwner(address owner);
     error PendingRequestExists();
     error MustBeRequestedOwner(address proposedOwner);
-    error BalanceInvariantViolated(uint256 internalBalance, uint256 externalBalance); // Should never happen
     error Reentrant();
 
     event SubscriptionCreated(uint64 indexed subId, address owner);
@@ -33,15 +23,9 @@ contract Subscriptions is Ownable, AccessControlEnumerable {
     event SubscriptionCanceled(uint64 indexed subId, address to, uint256 amount);
     event SubscriptionOwnerTransferRequested(uint64 indexed subId, address from, address to);
     event SubscriptionOwnerTransferred(uint64 indexed subId, address from, address to);
-    event FundsRecovered(address to, uint256 amount);
-    event ConfigSet(
-        uint16 minimumRequestConfirmations,
-        uint32 maxGasLimit,
-        uint32 gasAfterPaymentCalculation,
-        FeeConfig feeConfig
-    );
+
     bytes32 public constant WITHDRAWER_ROLE = keccak256("WITHDRAWER_ROLE");
-    
+
     constructor() {
         _setupRole(DEFAULT_ADMIN_ROLE, _msgSender());
     }
@@ -63,47 +47,34 @@ contract Subscriptions is Ownable, AccessControlEnumerable {
         address[] consumers;
     }
 
-    struct FeeConfig {
-        // Flat fee charged per fulfillment in millionths of link
-        // So fee range is [0, 2^32/10^6].
-        uint32 fulfillmentFlatFeeLinkPPMTier1;
-        uint32 fulfillmentFlatFeeLinkPPMTier2;
-        uint32 fulfillmentFlatFeeLinkPPMTier3;
-        uint32 fulfillmentFlatFeeLinkPPMTier4;
-        uint32 fulfillmentFlatFeeLinkPPMTier5;
-        uint24 reqsForTier2;
-        uint24 reqsForTier3;
-        uint24 reqsForTier4;
-        uint24 reqsForTier5;
-    }
-
-
-    FeeConfig private s_feeConfig;
     mapping(address => mapping(uint64 => uint64)) private s_consumers;
 
-    /* subId */ /* subscriptionConfig */
+    /* subId */
+    /* subscriptionConfig */
     mapping(uint64 => SubscriptionConfig) private s_subscriptionConfigs;
 
-    /* subId */ /* subscription */
+    /* subId */
+    /* subscription */
     mapping(uint64 => Subscription) private s_subscriptions;
 
     // We make the sub count public so that its possible to
     // get all the current subscriptions via getSubscription.
     uint64 private s_currentSubId;
-    /* oracle */ /* KLAY balance */
-    mapping(address => uint96) private s_withdrawableTokens;
 
-    function getTotalBalance() external view returns (uint256) {
+    function getTotalBalance() external view  returns (uint256)  {
         return s_totalBalance;
     }
 
-
-    function getSubscription(
-        uint64 subId
-    )
+    function getSubscription(uint64 subId)
         external
         view
-        returns (uint96 balance, uint64 reqCount, address owner, address[] memory consumers)
+        
+        returns (
+            uint96 balance,
+            uint64 reqCount,
+            address owner,
+            address[] memory consumers
+        )
     {
         if (s_subscriptionConfigs[subId].owner == address(0)) {
             revert InvalidSubscription();
@@ -116,7 +87,7 @@ contract Subscriptions is Ownable, AccessControlEnumerable {
         );
     }
 
-    function createSubscription() external nonReentrant returns (uint64) {
+    function createSubscription() external  nonReentrant returns (uint64) {
         s_currentSubId++;
         uint64 currentSubId = s_currentSubId;
         address[] memory consumers = new address[](0);
@@ -131,10 +102,11 @@ contract Subscriptions is Ownable, AccessControlEnumerable {
         return currentSubId;
     }
 
-    function requestSubscriptionOwnerTransfer(
-        uint64 subId,
-        address newOwner
-    ) external onlySubOwner(subId) nonReentrant {
+    function requestSubscriptionOwnerTransfer(uint64 subId, address newOwner)
+        external 
+        onlySubOwner(subId)
+        nonReentrant
+    {
         // Proposing to address(0) would never be claimable so don't need to check.
         if (s_subscriptionConfigs[subId].requestedOwner != newOwner) {
             s_subscriptionConfigs[subId].requestedOwner = newOwner;
@@ -142,7 +114,7 @@ contract Subscriptions is Ownable, AccessControlEnumerable {
         }
     }
 
-    function acceptSubscriptionOwnerTransfer(uint64 subId) external nonReentrant {
+    function acceptSubscriptionOwnerTransfer(uint64 subId) external override nonReentrant {
         if (s_subscriptionConfigs[subId].owner == address(0)) {
             revert InvalidSubscription();
         }
@@ -155,10 +127,11 @@ contract Subscriptions is Ownable, AccessControlEnumerable {
         emit SubscriptionOwnerTransferred(subId, oldOwner, msg.sender);
     }
 
-    function removeConsumer(
-        uint64 subId,
-        address consumer
-    ) external onlySubOwner(subId) nonReentrant {
+    function removeConsumer(uint64 subId, address consumer)
+        external 
+        onlySubOwner(subId)
+        nonReentrant
+    {
         if (s_consumers[consumer][subId] == 0) {
             revert InvalidConsumer(subId, consumer);
         }
@@ -179,7 +152,7 @@ contract Subscriptions is Ownable, AccessControlEnumerable {
         emit SubscriptionConsumerRemoved(subId, consumer);
     }
 
-    function addConsumer(uint64 subId, address consumer) external onlySubOwner(subId) nonReentrant {
+    function addConsumer(uint64 subId, address consumer) external  onlySubOwner(subId) nonReentrant {
         // Already maxed, cannot add any more consumers.
         if (s_subscriptionConfigs[subId].consumers.length >= MAX_CONSUMERS) {
             revert TooManyConsumers();
@@ -196,17 +169,18 @@ contract Subscriptions is Ownable, AccessControlEnumerable {
         emit SubscriptionConsumerAdded(subId, consumer);
     }
 
-    function cancelSubscription(
-        uint64 subId,
-        address to
-    ) external onlySubOwner(subId) nonReentrant {
+    function cancelSubscription(uint64 subId, address to)
+        external 
+        onlySubOwner(subId)
+        nonReentrant
+    {
         if (pendingRequestExists(subId)) {
             revert PendingRequestExists();
         }
         cancelSubscriptionHelper(subId, to);
     }
 
-    function cancelSubscriptionHelper(uint64 subId, address to) private nonReentrant {
+    function cancelSubscriptionHelper(uint64 subId, address to) private  nonReentrant {
         SubscriptionConfig memory subConfig = s_subscriptionConfigs[subId];
         Subscription memory sub = s_subscriptions[subId];
         uint96 balance = sub.balance;
@@ -223,25 +197,53 @@ contract Subscriptions is Ownable, AccessControlEnumerable {
         emit SubscriptionCanceled(subId, to, balance);
     }
 
-    function pendingRequestExists(uint64 subId) public view returns (bool) {
-
-        // SubscriptionConfig memory subConfig = s_subscriptionConfigs[subId];
-        // for (uint256 i = 0; i < subConfig.consumers.length; i++) {
-        //     for (uint256 j = 0; j < s_provingKeyHashes.length; j++) {
-        //         (uint256 reqId, ) = computeRequestId(
-        //             s_provingKeyHashes[j],
-        //             subConfig.consumers[i],
-        //             subId,
-        //             s_consumers[subConfig.consumers[i]][subId]
-        //         );
-        //         if (s_requestCommitments[reqId] != 0) {
-        //             return true;
-        //         }
-        //     }
-        // }
+    function pendingRequestExists(
+        uint64 /* subId */
+    ) public pure  returns (bool) {
         return false;
     }
 
+
+    function decreaseSubBalance(uint64 subId,uint96 amount) external {
+        if (s_subscriptions[subId].balance < amount) {
+            revert InsufficientBalance();
+        }
+        s_subscriptions[subId].balance -= amount;
+        //increase request count
+        s_subscriptions[subId].reqCount+=1;
+    }
+
+    function deposit(uint64 subId) external payable  {
+        uint96 amount=  uint96(msg.value);
+        require(msg.sender.balance >=msg.value, "Insufficient account balance");
+        s_subscriptions[subId].balance = s_subscriptions[subId].balance + amount;
+        s_totalBalance += amount;
+    }
+
+    function withdraw(uint64 subId,uint96 amount) external  {
+        if (s_subscriptions[subId].balance < amount) {
+            revert InsufficientBalance();
+        }
+        require(address(this).balance >=amount, "Prepayment: Insufficient account balance");
+        s_subscriptions[subId].balance -= amount;
+        payable(msg.sender).transfer(amount);
+    }
+    
+    receive() external payable{
+            
+    }
+
+    function getNonce(address consumer,uint64 subId) external view  returns(uint64) {
+       return s_consumers[consumer][subId];
+    }
+
+    function increaseNonce(address consumer,uint64 subId) external  {
+       s_consumers[consumer][subId]+=1;
+    }
+
+    function getSubOwner(uint64 subId)external view returns(address owner){
+        return s_subscriptionConfigs[subId].owner;
+    }
     modifier onlySubOwner(uint64 subId) {
         address owner = s_subscriptionConfigs[subId].owner;
         if (owner == address(0)) {
@@ -257,6 +259,14 @@ contract Subscriptions is Ownable, AccessControlEnumerable {
         // if (s_config.reentrancyLock) {
         //     revert Reentrant();
         // }
+        _;
+    }
+
+    modifier onlyWithdrawer() {
+        require(
+            owner() == msg.sender || hasRole(WITHDRAWER_ROLE, msg.sender),
+            "Caller is not a withdrawer"
+        );
         _;
     }
 
