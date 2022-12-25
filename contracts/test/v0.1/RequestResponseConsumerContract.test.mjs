@@ -1,5 +1,4 @@
 import { expect } from 'chai'
-
 import pkg from 'hardhat'
 const { ethers } = pkg
 
@@ -12,7 +11,7 @@ describe('Request-Response user contract', function () {
     requestResponseCoordinator = await requestResponseCoordinator.deploy()
     await requestResponseCoordinator.deployed()
 
-    userContract = await ethers.getContractFactory('RequestResponseMock')
+    userContract = await ethers.getContractFactory('RequestResponseConsumerMock')
     userContract = await userContract.deploy(requestResponseCoordinator.address)
     await userContract.deployed()
   })
