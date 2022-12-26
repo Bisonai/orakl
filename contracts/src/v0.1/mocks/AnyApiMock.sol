@@ -1,17 +1,16 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.16;
 
-import "../ICNClient.sol";
+import "../RequestResponseConsumerBase.sol";
 
-contract ICNMock is ICNClient {
+contract AnyApiConsumerMock is RequestResponseConsumerBase {
     using ICN for ICN.Request;
 
     bytes32 private jobId;
-    int256 private value;
+    int256 public value;
 
     constructor(address _oracleAddress) {
         setOracle(_oracleAddress);
-        /* jobId = keccak256(abi.encodePacked("KLAY")); */
         jobId = keccak256(abi.encodePacked("any-api-int256"));
     }
 
@@ -24,9 +23,5 @@ contract ICNMock is ICNClient {
 
     function fulfill(bytes32 _requestId, int256 _response) public ICNResponseFulfilled(_requestId) {
         value = _response;
-    }
-
-    function getValue() external view returns (int256) {
-        return value;
     }
 }

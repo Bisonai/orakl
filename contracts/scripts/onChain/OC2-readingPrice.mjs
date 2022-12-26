@@ -1,12 +1,9 @@
 import Web3 from 'web3'
 import pkg from 'hardhat'
 const { ethers } = pkg
-import { expect } from 'chai'
 
 async function main() {
-  let httpProvider = new ethers.providers.JsonRpcProvider()
-
-  let OracleContract = await ethers.getContractFactory('ICNOracleAggregator')
+  let OracleContract = await ethers.getContractFactory('ICNOracle')
   let ICNOracle = await OracleContract.deploy()
   await ICNOracle.deployed()
   console.log('Deployed ICNOracle Address:', ICNOracle.address)
@@ -31,17 +28,15 @@ async function main() {
       let url = stringdata.substring(6)
       console.log(url)
 
-      await ICNOracle.cancelOracleRequest(requestId, callbackAddress, '0xbda71d04')
-
       // TODO: Parse URL and fetch latest ETH price from API
-      await expect(
-        ICNOracle.fulfillOracleRequest(
-          requestId,
-          callbackAddress,
-          '0xbda71d04',
-          Web3.utils.asciiToHex('2000')
-        )
-      ).to.be.revertedWith('IncorrectRequest()')
+      await ICNOracle.fulfillOracleRequest(
+        '0x490e8e14c62c900451fcb592a420341af42d1a6a483354efc7fb1a144b212771',
+        '0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512',
+        '0xbda71d04',
+        Web3.utils.asciiToHex('2000')
+      )
+
+      console.log(await UserContract.getValue())
     }
   )
 }

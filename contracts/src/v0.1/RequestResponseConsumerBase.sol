@@ -1,13 +1,14 @@
 // SPDX-License-Identifier: MIT
-// Reference - https://github.com/smartcontractkit/chainlink/blob/develop/contracts/src/v0.8/ChainlinkClient.sol
 pragma solidity ^0.8.16;
+
+// https://github.com/smartcontractkit/chainlink/blob/develop/contracts/src/v0.8/ChainlinkClient.sol
 
 import "./libraries/ICN.sol";
 import "./interfaces/IOracle.sol";
 
 error SenderIsNotOracle();
 
-contract ICNClient {
+abstract contract RequestResponseConsumerBase {
     using ICN for ICN.Request;
 
     address private s_oracle;
@@ -21,9 +22,16 @@ contract ICNClient {
         if (msg.sender != s_pendingRequests[_requestId]) {
             revert SenderIsNotOracle();
         }
-        delete s_pendingRequests[_requestId]; // Gas refund for clearing memory
+        delete s_pendingRequests[_requestId];
 
         _;
+    }
+
+    /**
+     * @notice Set oracle address
+     */
+    function setOracle(address _oracleAddress) internal {
+        s_oracle = _oracleAddress;
     }
 
     /**
@@ -69,26 +77,16 @@ contract ICNClient {
         );
     }
 
-    function cancelICNRequest(bytes32 _requestId, address _callbackAddress, bytes4 _callbackFunc) internal {
-        bytes32 requestId = keccak256(abi.encodePacked(this, s_requestCount));
-        delete  s_pendingRequests[requestId];
-        IOracle(address(s_oracle)).cancelOracleRequest(_requestId, _callbackAddress, _callbackFunc);
-    }
+    /**
+     * @notice FIXME Not finished implementation! Not called from anywhere!
+     */
+    // function cancelRequest(bytes32 _requestId, address _callbackAddress, bytes4 _callbackFunc) internal {
+    //     delete  s_pendingRequests[_requestId];
+    //     IOracle(address(s_oracle)).cancelOracleRequest(_requestId, _callbackAddress, _callbackFunc);
+    // }
 
     /**
-     * @notice a function to set oracle address
+     * @notice FIXME Not finished implementation! (called from aggregator contract)
      */
-    function setOracle(address _oracleAddress) internal {
-        s_oracle = _oracleAddress;
-    }
-
-    /**
-     * @notice The type and version of this contract
-     * @return Type and version string
-     */
-    function typeAndVersion() external pure returns (string memory) {
-        return "ICNClient v0.1";
-    }
-
     function validateCallback(bytes32 _requestId) internal ICNResponseFulfilled(_requestId) {}
 }

@@ -2,11 +2,12 @@
 pragma solidity ^0.8.16;
 
 import "./interfaces/IOracle.sol";
+import "./interfaces/TypeAndVersionInterface.sol";
 
 error RequestAlreadyExists();
 error IncorrectRequest();
 
-contract ICNOracleAggregator is IOracle {
+contract RequestResponseCoordinator is IOracle, TypeAndVersionInterface {
     // Mapping RequestIDs => Hashes of Requests Data
     mapping(bytes32 => bytes32) private requests;
 
@@ -20,7 +21,6 @@ contract ICNOracleAggregator is IOracle {
     );
 
     event CancelOracleRequest(bytes32 indexed requestId);
-    event FulfillOracleRequest(address callbackAddress, bytes4 callbackFunctionId, uint256 _data);
 
     function createNewRequest(
         bytes32 _requestId,
@@ -50,7 +50,7 @@ contract ICNOracleAggregator is IOracle {
         bytes32 _requestId,
         address _callbackAddress,
         bytes4 _callbackFunctionId,
-        uint256 _data
+        bytes calldata _data
     ) external returns (bool) {
         bytes32 paramsHash = keccak256(abi.encodePacked(_requestId, _callbackAddress, _callbackFunctionId));
         if (requests[_requestId] != paramsHash) {
@@ -58,7 +58,6 @@ contract ICNOracleAggregator is IOracle {
         }
         delete requests[_requestId];
         (bool success,) = _callbackAddress.call(abi.encodeWithSelector(_callbackFunctionId, _requestId, _data));
-        emit FulfillOracleRequest(_callbackAddress, _callbackFunctionId, _data);
         return success;
     }
 
@@ -81,7 +80,7 @@ contract ICNOracleAggregator is IOracle {
      * @notice The type and version of this contract
      * @return Type and version string
      */
-    function typeAndVersion() external pure returns (string memory) {
-        return "ICNOracleAggregator v0.1";
+    function typeAndVersion() external pure override(TypeAndVersionInterface) returns (string memory) {
+        return "RequestResponseCoordinator 0.1";
     }
 }

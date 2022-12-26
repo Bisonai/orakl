@@ -24,7 +24,11 @@ library Math {
      * @param _a The list of elements to pull from
      * @param _k The index, 1 based, of the elements you want to pull from when ordered
      */
-    function quickselect(int256[] memory _a, uint256 _k) internal pure returns (int256) {
+    function quickselect(int256[] memory _a, uint256 _k) internal pure returns (int256 pivot) {
+        require(_k > 0, "QS01");
+        require(_a.length > 0, "QS02");
+        require(_k <= _a.length, "QS03");
+
         int256[] memory a = _a;
         uint256 k = _k;
         uint256 aLen = a.length;
@@ -32,7 +36,6 @@ library Math {
         int256[] memory a2 = new int256[](aLen);
         uint256 a1Len;
         uint256 a2Len;
-        int256 pivot;
         uint256 i;
 
         while (true) {
