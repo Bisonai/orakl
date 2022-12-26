@@ -839,6 +839,6 @@ contract Aggregator is AggregatorInterface, ConfirmedOwner {
     }
 
     function validRoundId(uint256 _roundId) private pure returns (bool) {
-     return _roundId <= ROUND_MAX;
+  return _roundId <= ROUND_MAX;
     }
 }
