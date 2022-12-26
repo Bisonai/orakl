@@ -1,4 +1,4 @@
-name: Solhint
+name: "core: eslint"
 on: push
 jobs:
   build:
@@ -11,5 +11,5 @@ jobs:
           registry-url: 'https://npm.pkg.github.com'
       - run: yarn
         working-directory: ./contracts
-      - run: yarn solhint
+      - run: yarn eslint
         working-directory: ./contracts

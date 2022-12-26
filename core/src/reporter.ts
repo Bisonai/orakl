@@ -7,10 +7,9 @@ import { IAnyApiWorkerReporter, IVrfWorkerReporter, RequestCommitment, Proof } f
 import { IcnError, IcnErrorCode } from './errors'
 import {
   PROVIDER as PROVIDER_ENV,
-  PRIVATE_KEY as PRIVATE_KEY_ENV,
-  MNEMONIC
+  PRIVATE_KEY as PRIVATE_KEY_ENV
+  // MNEMONIC
 } from './load-parameters'
-import { pad32Bytes } from './utils'
 
 async function main() {
   try {

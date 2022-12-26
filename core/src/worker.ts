@@ -1,9 +1,8 @@
 import * as Fs from 'node:fs/promises'
 import * as Path from 'node:path'
 import { ethers } from 'ethers'
-import { BN } from 'bn.js'
 import { Worker, Queue } from 'bullmq'
-import { got, Options } from 'got'
+import { got } from 'got'
 import { IcnError, IcnErrorCode } from './errors'
 import {
   IAdapter,
@@ -29,7 +28,7 @@ import {
   ADAPTER_ROOT_DIR
 } from './settings'
 import { decodeAnyApiRequest } from './decoding'
-import { prove, decode, verify, getFastVerifyComponents } from './vrf/index'
+import { prove, decode, getFastVerifyComponents } from './vrf/index'
 import { VRF_SK, VRF_PK, VRF_PK_X, VRF_PK_Y } from './load-parameters'
 
 async function main() {
@@ -38,23 +37,15 @@ async function main() {
 
   // TODO if job not finished, return job in queue
 
-  const anyApiWorker = new Worker(
-    WORKER_ANY_API_QUEUE_NAME,
-    anyApiJob(REPORTER_ANY_API_QUEUE_NAME),
-    BULLMQ_CONNECTION
-  )
+  new Worker(WORKER_ANY_API_QUEUE_NAME, anyApiJob(REPORTER_ANY_API_QUEUE_NAME), BULLMQ_CONNECTION)
 
-  const predefinedFeedWorker = new Worker(
+  new Worker(
     WORKER_PREDEFINED_FEED_QUEUE_NAME,
     predefinedFeedJob(REPORTER_PREDEFINED_FEED_QUEUE_NAME, adapters),
     BULLMQ_CONNECTION
   )
 
-  const vrfWorker = new Worker(
-    WORKER_VRF_QUEUE_NAME,
-    vrfJob(REPORTER_VRF_QUEUE_NAME),
-    BULLMQ_CONNECTION
-  )
+  new Worker(WORKER_VRF_QUEUE_NAME, vrfJob(REPORTER_VRF_QUEUE_NAME), BULLMQ_CONNECTION)
 }
 
 function extractFeeds(adapter) {
@@ -90,7 +81,9 @@ function validateAdapter(adapter): IAdapter {
   // TODO extract properties from Interface
   const requiredProperties = ['active', 'name', 'job_type', 'adapter_id', 'feeds']
   // TODO show where is the error
-  const hasProperty = requiredProperties.map((p) => adapter.hasOwnProperty(p))
+  const hasProperty = requiredProperties.map((p) =>
+    Object.prototype.hasOwnProperty.call(adapter, p)
+  )
   const isValid = hasProperty.every((x) => x)
 
   if (isValid) {
@@ -133,7 +126,7 @@ async function processAnyApiRequest(reqEnc: string): Promise<string | number> {
   const req = decodeAnyApiRequest(reqEnc)
   console.debug('processAnyApiRequest:req', req)
 
-  let res: any = await got(req.get).json()
+  let res: string = await got(req.get).json()
   if (req.path) {
     res = readFromJson(res, req.path)
   }

@@ -1,0 +1,17 @@
+name: "contracts: solhint+eslint"
+on: push
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: '18.12'
+          registry-url: 'https://npm.pkg.github.com'
+      - run: yarn
+        working-directory: ./contracts
+      - run: yarn solhint
+        working-directory: ./contracts
+      - run: yarn eslint
+        working-directory: ./contracts

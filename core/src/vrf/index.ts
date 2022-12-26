@@ -150,7 +150,7 @@ const is_on_curve = (point) => {
     return false
   }
 
-  let lhs = y.mul(y).mod(EC.curve.p)
+  const lhs = y.mul(y).mod(EC.curve.p)
   let rhs = x.mul(x).mod(EC.curve.p).mul(x).mod(EC.curve.p)
 
   rhs = rhs.add(EC.curve.b).mod(EC.curve.p)
