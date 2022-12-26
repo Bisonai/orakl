@@ -4,8 +4,6 @@ const { ethers } = pkg
 import { expect } from 'chai'
 
 async function main() {
-  let httpProvider = new ethers.providers.JsonRpcProvider()
-
   let OracleContract = await ethers.getContractFactory('ICNOracleAggregator')
   let ICNOracle = await OracleContract.deploy()
   await ICNOracle.deployed()
