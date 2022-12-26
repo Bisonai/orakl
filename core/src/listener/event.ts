@@ -8,7 +8,7 @@ import { readTextFile, writeTextFile } from '../utils'
 import { PROVIDER_URL } from '../load-parameters'
 
 export class Event {
-  fn: (log: any) => void
+  fn: (log) => void
   emitContract: Contract
   listenerBlock: IListenerBlock
   provider: ethers.providers.JsonRpcProvider
@@ -17,7 +17,7 @@ export class Event {
 
   constructor(
     queueName: string,
-    wrapFn: (iface: ethers.utils.Interface, queue: Queue) => (log: any) => void,
+    wrapFn: (iface: ethers.utils.Interface, queue: Queue) => (log) => void,
     listener: IListenerConfig
   ) {
     console.debug(`listenToEvents:topicId ${listener.eventName}`)

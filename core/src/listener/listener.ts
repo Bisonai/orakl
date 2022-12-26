@@ -2,9 +2,8 @@
 // 2. Listen on *multiple* smart contracts for *multiple* event types.
 
 import { parseArgs } from 'node:util'
-import { ethers } from 'ethers'
 import { loadJson } from '../utils'
-import { WORKER_ANY_API_QUEUE_NAME, WORKER_VRF_QUEUE_NAME, BULLMQ_CONNECTION } from '../settings'
+import { WORKER_ANY_API_QUEUE_NAME, WORKER_VRF_QUEUE_NAME } from '../settings'
 import { LISTENERS_PATH } from '../load-parameters'
 import { Event } from './event'
 import { processICNEvent, processVrfEvent } from './processor'

@@ -1,6 +1,5 @@
 import * as Fs from 'node:fs/promises'
 import { IcnError, IcnErrorCode } from './errors'
-import { REDIS_HOST, REDIS_PORT } from './load-parameters'
 
 export async function loadJson(filepath) {
   const json = await Fs.readFile(filepath, 'utf8')

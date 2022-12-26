@@ -15,8 +15,8 @@ export function parseReducer(args: string[]) {
   return wrapper
 }
 
-export function mulReducer(args: Number[]) {
-  function wrapper(value: Number) {
+export function mulReducer(args: number[]) {
+  function wrapper(value: number) {
     return args.reduce((acc, v) => Number(acc) * Number(v), value)
   }
   return wrapper

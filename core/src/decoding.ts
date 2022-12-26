@@ -53,9 +53,9 @@ function readKeyOrValue(obj) {
 export function decodeAnyApiRequest(anyApiRequest: string): IRequest {
   anyApiRequest = remove0x(anyApiRequest)
 
-  let request = { get: '' }
+  const request = { get: '' }
 
-  let obj = {
+  const obj = {
     msg: anyApiRequest,
     counter: 0
   }
