@@ -13,6 +13,7 @@
   "author": "Bisonai",
   "license": "UNLICENSED",
   "scripts": {
+    "prepare": "cd .. && husky install core/.husky",
     "clean": "rm -rf dist",
     "build": "yarn clean && tsc",
     "start:listener": "yarn build && node --experimental-specifier-resolution=node --experimental-json-modules dist/src/listener/listener.js",
@@ -41,6 +42,7 @@
     "eslint": "^8.30.0",
     "eslint-config-prettier": "^8.5.0",
     "eslint-plugin-prettier": "^4.2.1",
+    "husky": "^8.0.2",
     "jest": "^29.3.1",
     "prettier": "^2.8.1",
     "ts-jest": "^29.0.3",
