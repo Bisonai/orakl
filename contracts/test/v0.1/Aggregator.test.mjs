@@ -3,6 +3,7 @@ import pkg from 'hardhat'
 const { ethers } = pkg
 
 let aggregator
+let aggregatorProxy
 const _paymentAmount = 1
 const _minSubmissionValue = 0
 const _maxSubmissionValue = 1_000
@@ -23,6 +24,7 @@ describe('Aggregator', function () {
   beforeEach(async function () {
     ;[owner, account0, account1, account2] = await ethers.getSigners()
 
+    // Aggregator
     aggregator = await ethers.getContractFactory('Aggregator')
 
     const _timeout = 10
@@ -40,6 +42,10 @@ describe('Aggregator', function () {
       _description
     )
     await aggregator.deployed()
+
+    // AggregatorProxy
+    aggregatorProxy = await ethers.getContractFactory('AggregatorProxy')
+    aggregatorProxy = await aggregatorProxy.deploy(aggregator.address)
 
     // Deposit KLAY to Aggregator
     const beforeBalance = await contractBalance(aggregator.address)
@@ -95,5 +101,13 @@ describe('Aggregator', function () {
     expect(Number(withdrawablePayment0)).to.be.equal(_paymentAmount)
     expect(Number(withdrawablePayment1)).to.be.equal(_paymentAmount)
     expect(Number(withdrawablePayment2)).to.be.equal(_paymentAmount)
+
+    const { answer } = await aggregatorProxy.latestRoundData()
+    expect(Number(answer)).to.be.equal(11)
+
+    const proposedAggregator = await aggregatorProxy.proposedAggregator()
+    expect(proposedAggregator).to.be.equal(ethers.constants.AddressZero)
+
+    expect(await aggregatorProxy.aggregator()).to.be.equal(aggregator.address)
   })
 })
