@@ -3,8 +3,6 @@ import pkg from 'hardhat'
 const { ethers } = pkg
 
 async function main() {
-  let httpProvider = new ethers.providers.JsonRpcProvider()
-
   let OracleContract = await ethers.getContractFactory('ICNOracle')
   let ICNOracle = await OracleContract.deploy()
   await ICNOracle.deployed()
@@ -37,6 +35,8 @@ async function main() {
         '0xbda71d04',
         Web3.utils.asciiToHex('2000')
       )
+
+      console.log(await UserContract.getValue())
     }
   )
 }
