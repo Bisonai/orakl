@@ -1,4 +1,4 @@
-name: Solhint
+name: Solhint+ESLint
 on: push
 jobs:
   build:
@@ -12,4 +12,6 @@ jobs:
       - run: yarn
         working-directory: ./contracts
       - run: yarn solhint
+        working-directory: ./contracts
+      - run: yarn eslint
         working-directory: ./contracts
