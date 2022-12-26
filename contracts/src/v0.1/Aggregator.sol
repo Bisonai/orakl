@@ -177,9 +177,8 @@ contract Aggregator is AggregatorInterface, ConfirmedOwner {
     external
   {
     bytes memory error = validateOracleRound(msg.sender, uint32(_roundId));
-    // FIXME
-    /* require(_submission >= minSubmissionValue, "value below minSubmissionValue"); */
-    /* require(_submission <= maxSubmissionValue, "value above maxSubmissionValue"); */
+    require(_submission >= minSubmissionValue, "value below minSubmissionValue");
+    require(_submission <= maxSubmissionValue, "value above maxSubmissionValue");
     require(error.length == 0, string(error));
 
     oracleInitializeNewRound(uint32(_roundId));
@@ -199,8 +198,8 @@ contract Aggregator is AggregatorInterface, ConfirmedOwner {
    * @param _added is the list of addresses for the new Oracles being added
    * @param _addedAdmins is the admin addresses for the new respective _added
    * list. Only this address is allowed to access the respective oracle's funds
-   * @param _minSubmissions is the new minimum submission count for each round
-   * @param _maxSubmissions is the new maximum submission count for each round
+   * @param _minSubmissionCount is the new minimum submission count for each round
+   * @param _maxSubmissionCount is the new maximum submission count for each round
    * @param _restartDelay is the number of rounds an Oracle has to wait before
    * they can initiate a round
    */
@@ -208,8 +207,8 @@ contract Aggregator is AggregatorInterface, ConfirmedOwner {
     address[] calldata _removed,
     address[] calldata _added,
     address[] calldata _addedAdmins,
-    uint32 _minSubmissions,
-    uint32 _maxSubmissions,
+    uint32 _minSubmissionCount,
+    uint32 _maxSubmissionCount,
     uint32 _restartDelay
   )
     external
@@ -226,22 +225,22 @@ contract Aggregator is AggregatorInterface, ConfirmedOwner {
       addOracle(_added[i], _addedAdmins[i]);
     }
 
-    updateFutureRounds(paymentAmount, _minSubmissions, _maxSubmissions, _restartDelay, timeout);
+    updateFutureRounds(paymentAmount, _minSubmissionCount, _maxSubmissionCount, _restartDelay, timeout);
   }
 
   /**
    * @notice update the round and payment related parameters for subsequent
    * rounds
    * @param _paymentAmount is the payment amount for subsequent rounds
-   * @param _minSubmissions is the new minimum submission count for each round
-   * @param _maxSubmissions is the new maximum submission count for each round
+   * @param _minSubmissionCount is the new minimum submission count for each round
+   * @param _maxSubmissionCount is the new maximum submission count for each round
    * @param _restartDelay is the number of rounds an Oracle has to wait before
    * they can initiate a round
    */
   function updateFutureRounds(
     uint128 _paymentAmount,
-    uint32 _minSubmissions,
-    uint32 _maxSubmissions,
+    uint32 _minSubmissionCount,
+    uint32 _maxSubmissionCount,
     uint32 _restartDelay,
     uint32 _timeout
   )
@@ -249,24 +248,24 @@ contract Aggregator is AggregatorInterface, ConfirmedOwner {
     onlyOwner
   {
     uint32 oracleNum = oracleCount(); // Save on storage reads
-    require(_maxSubmissions >= _minSubmissions, "max must equal/exceed min");
-    require(oracleNum >= _maxSubmissions, "max cannot exceed total");
+    require(_maxSubmissionCount >= _minSubmissionCount, "max must equal/exceed min");
+    require(oracleNum >= _maxSubmissionCount, "max cannot exceed total");
     require(oracleNum == 0 || oracleNum > _restartDelay, "delay cannot exceed total");
     require(recordedFunds.available >= requiredReserve(_paymentAmount), "insufficient funds for payment");
     if (oracleCount() > 0) {
-      require(_minSubmissions > 0, "min must be greater than 0");
+      require(_minSubmissionCount > 0, "min must be greater than 0");
     }
 
     paymentAmount = _paymentAmount;
-    minSubmissionCount = _minSubmissions;
-    maxSubmissionCount = _maxSubmissions;
+    minSubmissionCount = _minSubmissionCount;
+    maxSubmissionCount = _maxSubmissionCount;
     restartDelay = _restartDelay;
     timeout = _timeout;
 
     emit RoundDetailsUpdated(
       paymentAmount,
-      _minSubmissions,
-      _maxSubmissions,
+      _minSubmissionCount,
+      _maxSubmissionCount,
       _restartDelay,
       _timeout
     );

@@ -4,8 +4,11 @@ const { ethers } = pkg
 
 let aggregator
 const _paymentAmount = 1
-const _minSubmissionValue = 2
-const _maxSubmissionValue = 3
+const _minSubmissionValue = 0
+const _maxSubmissionValue = 1_000
+
+const _minSubmissionCount = 2
+const _maxSubmissionCount = 3
 
 let owner
 let account0
@@ -56,8 +59,8 @@ describe('Aggregator', function () {
       _removed,
       _added,
       _addedAdmins,
-      _minSubmissionValue,
-      _maxSubmissionValue,
+      _minSubmissionCount,
+      _maxSubmissionCount,
       _restartDelay
     )
   })
