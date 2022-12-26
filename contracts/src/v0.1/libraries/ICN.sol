@@ -1,13 +1,11 @@
 // SPDX-License-Identifier: MIT
-// Reference - https://github.com/smartcontractkit/chainlink/blob/develop/contracts/src/v0.8/Chainlink.sol
 pragma solidity ^0.8.16;
+
+// https://github.com/smartcontractkit/chainlink/blob/develop/contracts/src/v0.8/Chainlink.sol
 
 import {Buffer} from './Buffer.sol';
 import {CBOR} from './CBOR.sol';
 
-/// @title ICN Library
-/// @author Zahid Ahmed
-/// @notice ICN Library Contract for common functions
 
 library ICN {
   using CBOR for Buffer.buffer;

@@ -15,12 +15,6 @@ interface IOracle {
     ) external;
 
     /**
-     * @notice The type and version of this contract
-     * @return Type and version string
-     */
-    function typeAndVersion() external pure returns (string memory);
-
-    /**
      * @notice Cancelling Oracle Request
      * @param _requestId - ID of the Oracle Request
      * @param _callbackAddress - Callback Address of Oracle Cancellation
