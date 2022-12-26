@@ -41,11 +41,11 @@ abstract contract RequestResponseConsumerBase {
      * @param _callbackFunc function to use for callbacl
      * @return  req request in memory
      */
-    function buildRequest(bytes32 _jobId, address _callbackAddr, bytes4 _callbackFunc)
-        internal
-        pure
-        returns (ICN.Request memory req)
-    {
+    function buildRequest(
+        bytes32 _jobId,
+        address _callbackAddr,
+        bytes4 _callbackFunc
+    ) internal pure returns (ICN.Request memory req) {
         return req.initialize(_jobId, _callbackAddr, _callbackFunc);
     }
 
@@ -67,13 +67,21 @@ abstract contract RequestResponseConsumerBase {
      * @param _req The initialized Request
      * @return requestId The request ID
      */
-    function sendRequestTo(address _oracleAddress, ICN.Request memory _req) internal returns (bytes32 requestId) {
+    function sendRequestTo(
+        address _oracleAddress,
+        ICN.Request memory _req
+    ) internal returns (bytes32 requestId) {
         uint256 nonce = s_requestCount;
         s_requestCount = nonce + 1;
         requestId = keccak256(abi.encodePacked(this, s_requestCount));
         s_pendingRequests[requestId] = _oracleAddress;
         IOracle(_oracleAddress).createNewRequest(
-            requestId, _req.id, nonce, address(this), _req.callbackFunctionId, _req.buf.buf
+            requestId,
+            _req.id,
+            nonce,
+            address(this),
+            _req.callbackFunctionId,
+            _req.buf.buf
         );
     }
 

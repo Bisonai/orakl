@@ -33,7 +33,9 @@ contract RequestResponseCoordinator is IOracle, TypeAndVersionInterface {
         if (requests[_requestId] != 0) {
             revert RequestAlreadyExists();
         }
-        requests[_requestId] = keccak256(abi.encodePacked(_requestId, _callbackAddress, _callbackFunctionId));
+        requests[_requestId] = keccak256(
+            abi.encodePacked(_requestId, _callbackAddress, _callbackFunctionId)
+        );
 
         emit NewRequest(_requestId, _jobId, _nonce, _callbackAddress, _callbackFunctionId, _data);
     }
@@ -52,12 +54,16 @@ contract RequestResponseCoordinator is IOracle, TypeAndVersionInterface {
         bytes4 _callbackFunctionId,
         bytes calldata _data
     ) external returns (bool) {
-        bytes32 paramsHash = keccak256(abi.encodePacked(_requestId, _callbackAddress, _callbackFunctionId));
+        bytes32 paramsHash = keccak256(
+            abi.encodePacked(_requestId, _callbackAddress, _callbackFunctionId)
+        );
         if (requests[_requestId] != paramsHash) {
             revert IncorrectRequest();
         }
         delete requests[_requestId];
-        (bool success,) = _callbackAddress.call(abi.encodeWithSelector(_callbackFunctionId, _requestId, _data));
+        (bool success, ) = _callbackAddress.call(
+            abi.encodeWithSelector(_callbackFunctionId, _requestId, _data)
+        );
         return success;
     }
 
@@ -67,8 +73,14 @@ contract RequestResponseCoordinator is IOracle, TypeAndVersionInterface {
      * @param _callbackAddress - Callback Address of Oracle Cancellation
      * @param _callbackFunctionId - Return functionID callback
      */
-    function cancelOracleRequest(bytes32 _requestId, address _callbackAddress, bytes4 _callbackFunctionId) external {
-        bytes32 paramsHash = keccak256(abi.encodePacked(_requestId, _callbackAddress, _callbackFunctionId));
+    function cancelOracleRequest(
+        bytes32 _requestId,
+        address _callbackAddress,
+        bytes4 _callbackFunctionId
+    ) external {
+        bytes32 paramsHash = keccak256(
+            abi.encodePacked(_requestId, _callbackAddress, _callbackFunctionId)
+        );
         if (requests[_requestId] != paramsHash) {
             revert IncorrectRequest();
         }
@@ -80,7 +92,12 @@ contract RequestResponseCoordinator is IOracle, TypeAndVersionInterface {
      * @notice The type and version of this contract
      * @return Type and version string
      */
-    function typeAndVersion() external pure override(TypeAndVersionInterface) returns (string memory) {
+    function typeAndVersion()
+        external
+        pure
+        override(TypeAndVersionInterface)
+        returns (string memory)
+    {
         return "RequestResponseCoordinator 0.1";
     }
 }

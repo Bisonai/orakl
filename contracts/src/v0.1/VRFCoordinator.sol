@@ -146,7 +146,12 @@ contract VRFCoordinator is ConfirmedOwner, TypeAndVersionInterface, VRFCoordinat
         uint32 numWords,
         address indexed sender
     );
-    event RandomWordsFulfilled(uint256 indexed requestId, uint256 outputSeed, uint96 payment, bool success);
+    event RandomWordsFulfilled(
+        uint256 indexed requestId,
+        uint256 outputSeed,
+        uint96 payment,
+        bool success
+    );
 
     struct Config {
         uint16 minimumRequestConfirmations;
@@ -176,7 +181,10 @@ contract VRFCoordinator is ConfirmedOwner, TypeAndVersionInterface, VRFCoordinat
     }
 
     event ConfigSet(
-        uint16 minimumRequestConfirmations, uint32 maxGasLimit, uint32 gasAfterPaymentCalculation, FeeConfig feeConfig
+        uint16 minimumRequestConfirmations,
+        uint32 maxGasLimit,
+        uint32 gasAfterPaymentCalculation,
+        FeeConfig feeConfig
     );
 
     constructor()
@@ -191,7 +199,10 @@ contract VRFCoordinator is ConfirmedOwner, TypeAndVersionInterface, VRFCoordinat
      * @param oracle address of the oracle
      * @param publicProvingKey key that oracle can use to submit vrf fulfillments
      */
-    function registerProvingKey(address oracle, uint256[2] calldata publicProvingKey) external onlyOwner {
+    function registerProvingKey(
+        address oracle,
+        uint256[2] calldata publicProvingKey
+    ) external onlyOwner {
         bytes32 kh = hashOfKey(publicProvingKey);
         if (s_provingKeys[kh] != address(0)) {
             revert ProvingKeyAlreadyRegistered(kh);
@@ -246,7 +257,9 @@ contract VRFCoordinator is ConfirmedOwner, TypeAndVersionInterface, VRFCoordinat
     ) external onlyOwner {
         if (minimumRequestConfirmations > MAX_REQUEST_CONFIRMATIONS) {
             revert InvalidRequestConfirmations(
-                minimumRequestConfirmations, minimumRequestConfirmations, MAX_REQUEST_CONFIRMATIONS
+                minimumRequestConfirmations,
+                minimumRequestConfirmations,
+                MAX_REQUEST_CONFIRMATIONS
             );
         }
         s_config = Config({
@@ -256,15 +269,28 @@ contract VRFCoordinator is ConfirmedOwner, TypeAndVersionInterface, VRFCoordinat
             reentrancyLock: false
         });
         s_feeConfig = feeConfig;
-        emit ConfigSet(minimumRequestConfirmations, maxGasLimit, gasAfterPaymentCalculation, s_feeConfig);
+        emit ConfigSet(
+            minimumRequestConfirmations,
+            maxGasLimit,
+            gasAfterPaymentCalculation,
+            s_feeConfig
+        );
     }
 
     function getConfig()
         external
         view
-        returns (uint16 minimumRequestConfirmations, uint32 maxGasLimit, uint32 gasAfterPaymentCalculation)
+        returns (
+            uint16 minimumRequestConfirmations,
+            uint32 maxGasLimit,
+            uint32 gasAfterPaymentCalculation
+        )
     {
-        return (s_config.minimumRequestConfirmations, s_config.maxGasLimit, s_config.gasAfterPaymentCalculation);
+        return (
+            s_config.minimumRequestConfirmations,
+            s_config.maxGasLimit,
+            s_config.gasAfterPaymentCalculation
+        );
     }
 
     function getFeeConfig()
@@ -361,11 +387,13 @@ contract VRFCoordinator is ConfirmedOwner, TypeAndVersionInterface, VRFCoordinat
 
         // Input validation using the config storage word.
         if (
-            requestConfirmations < s_config.minimumRequestConfirmations
-                || requestConfirmations > MAX_REQUEST_CONFIRMATIONS
+            requestConfirmations < s_config.minimumRequestConfirmations ||
+            requestConfirmations > MAX_REQUEST_CONFIRMATIONS
         ) {
             revert InvalidRequestConfirmations(
-                requestConfirmations, s_config.minimumRequestConfirmations, MAX_REQUEST_CONFIRMATIONS
+                requestConfirmations,
+                s_config.minimumRequestConfirmations,
+                MAX_REQUEST_CONFIRMATIONS
             );
         }
 
@@ -386,11 +414,19 @@ contract VRFCoordinator is ConfirmedOwner, TypeAndVersionInterface, VRFCoordinat
         uint64 nonce = currentNonce + 1;
         (uint256 requestId, uint256 preSeed) = computeRequestId(keyHash, msg.sender, subId, nonce);
 
-        s_requestCommitments[requestId] =
-            keccak256(abi.encode(requestId, block.number, subId, callbackGasLimit, numWords, msg.sender));
+        s_requestCommitments[requestId] = keccak256(
+            abi.encode(requestId, block.number, subId, callbackGasLimit, numWords, msg.sender)
+        );
         emit RandomWordsRequested(
-            keyHash, requestId, preSeed, subId, requestConfirmations, callbackGasLimit, numWords, msg.sender
-            );
+            keyHash,
+            requestId,
+            preSeed,
+            subId,
+            requestConfirmations,
+            callbackGasLimit,
+            numWords,
+            msg.sender
+        );
         s_consumers[msg.sender][subId] = nonce;
 
         return requestId;
@@ -405,11 +441,12 @@ contract VRFCoordinator is ConfirmedOwner, TypeAndVersionInterface, VRFCoordinat
         return s_requestCommitments[requestId];
     }
 
-    function computeRequestId(bytes32 keyHash, address sender, uint64 subId, uint64 nonce)
-        private
-        pure
-        returns (uint256, uint256)
-    {
+    function computeRequestId(
+        bytes32 keyHash,
+        address sender,
+        uint64 subId,
+        uint64 nonce
+    ) private pure returns (uint256, uint256) {
         uint256 preSeed = uint256(keccak256(abi.encode(keyHash, sender, subId, nonce)));
         return (uint256(keccak256(abi.encode(keyHash, preSeed))), preSeed);
     }
@@ -418,7 +455,11 @@ contract VRFCoordinator is ConfirmedOwner, TypeAndVersionInterface, VRFCoordinat
      * @dev calls target address with exactly gasAmount gas and data as calldata
      * or reverts if at least gasAmount gas is not available.
      */
-    function callWithExactGas(uint256 gasAmount, address target, bytes memory data) private returns (bool success) {
+    function callWithExactGas(
+        uint256 gasAmount,
+        address target,
+        bytes memory data
+    ) private returns (bool success) {
         // solhint-disable-next-line no-inline-assembly
         assembly {
             let g := gas()
@@ -428,13 +469,19 @@ contract VRFCoordinator is ConfirmedOwner, TypeAndVersionInterface, VRFCoordinat
             // as we do not want to provide them with less, however that check itself costs
             // gas.  GAS_FOR_CALL_EXACT_CHECK ensures we have at least enough gas to be able
             // to revert if gasAmount >  63//64*gas available.
-            if lt(g, GAS_FOR_CALL_EXACT_CHECK) { revert(0, 0) }
+            if lt(g, GAS_FOR_CALL_EXACT_CHECK) {
+                revert(0, 0)
+            }
             g := sub(g, GAS_FOR_CALL_EXACT_CHECK)
             // if g - g//64 <= gasAmount, revert
             // (we subtract g//64 because of EIP-150)
-            if iszero(gt(sub(g, div(g, 64)), gasAmount)) { revert(0, 0) }
+            if iszero(gt(sub(g, div(g, 64)), gasAmount)) {
+                revert(0, 0)
+            }
             // solidity calls check that a contract actually exists at the destination, so we do the same
-            if iszero(extcodesize(target)) { revert(0, 0) }
+            if iszero(extcodesize(target)) {
+                revert(0, 0)
+            }
             // call and return whether we succeeded. ignore return data
             // call(gas,addr,value,argsOffset,argsLength,retOffset,retLength)
             success := call(gasAmount, target, 0, add(data, 0x20), mload(data), 0, 0)
@@ -442,11 +489,10 @@ contract VRFCoordinator is ConfirmedOwner, TypeAndVersionInterface, VRFCoordinat
         return success;
     }
 
-    function getRandomnessFromProof(VRF.Proof memory proof, RequestCommitment memory rc)
-        private
-        view
-        returns (bytes32 keyHash, uint256 requestId, uint256 randomness)
-    {
+    function getRandomnessFromProof(
+        VRF.Proof memory proof,
+        RequestCommitment memory rc
+    ) private view returns (bytes32 keyHash, uint256 requestId, uint256 randomness) {
         keyHash = hashOfKey(proof.pk);
         // Only registered proving keys are permitted.
         address oracle = s_provingKeys[keyHash];
@@ -459,8 +505,17 @@ contract VRFCoordinator is ConfirmedOwner, TypeAndVersionInterface, VRFCoordinat
             revert NoCorrespondingRequest();
         }
         if (
-            commitment
-                != keccak256(abi.encode(requestId, rc.blockNum, rc.subId, rc.callbackGasLimit, rc.numWords, rc.sender))
+            commitment !=
+            keccak256(
+                abi.encode(
+                    requestId,
+                    rc.blockNum,
+                    rc.subId,
+                    rc.callbackGasLimit,
+                    rc.numWords,
+                    rc.sender
+                )
+            )
         ) {
             revert IncorrectCommitment();
         }
@@ -475,15 +530,17 @@ contract VRFCoordinator is ConfirmedOwner, TypeAndVersionInterface, VRFCoordinat
         //}
 
         // The seed actually used by the VRF machinery, mixing in the blockhash
-        bytes memory actualSeed = abi.encodePacked(keccak256(abi.encodePacked(proof.seed, blockHash)));
+        bytes memory actualSeed = abi.encodePacked(
+            keccak256(abi.encodePacked(proof.seed, blockHash))
+        );
         randomness = VRF.randomValueFromVRFProof(proof, actualSeed); // Reverts on failure
     }
 
     /*
-   * @notice Compute fee based on the request count
-   * @param reqCount number of requests
-   * @return feePPM fee in LINK PPM
-   */
+     * @notice Compute fee based on the request count
+     * @param reqCount number of requests
+     * @return feePPM fee in LINK PPM
+     */
     function getFeeTier(uint64 reqCount) public view returns (uint32) {
         FeeConfig memory fc = s_feeConfig;
         if (0 <= reqCount && reqCount <= fc.reqsForTier2) {
@@ -502,19 +559,21 @@ contract VRFCoordinator is ConfirmedOwner, TypeAndVersionInterface, VRFCoordinat
     }
 
     /*
-   * @notice Fulfill a randomness request
-   * @param proof contains the proof and randomness
-   * @param rc request commitment pre-image, committed to at request time
-   * @return payment amount billed to the subscription
-   * @dev simulated offchain to determine if sufficient balance is present to fulfill the request
-   */
-    function fulfillRandomWords(VRF.Proof memory proof, RequestCommitment memory rc)
-        external
-        nonReentrant
-        returns (uint96)
-    {
+     * @notice Fulfill a randomness request
+     * @param proof contains the proof and randomness
+     * @param rc request commitment pre-image, committed to at request time
+     * @return payment amount billed to the subscription
+     * @dev simulated offchain to determine if sufficient balance is present to fulfill the request
+     */
+    function fulfillRandomWords(
+        VRF.Proof memory proof,
+        RequestCommitment memory rc
+    ) external nonReentrant returns (uint96) {
         // uint256 startGas = gasleft();
-        ( /* bytes32 keyHash */ , uint256 requestId, uint256 randomness) = getRandomnessFromProof(proof, rc);
+        (, /* bytes32 keyHash */ uint256 requestId, uint256 randomness) = getRandomnessFromProof(
+            proof,
+            rc
+        );
 
         uint256[] memory randomWords = new uint256[](rc.numWords);
         for (uint256 i = 0; i < rc.numWords; i++) {
@@ -523,7 +582,11 @@ contract VRFCoordinator is ConfirmedOwner, TypeAndVersionInterface, VRFCoordinat
 
         delete s_requestCommitments[requestId];
         VRFConsumerBase v;
-        bytes memory resp = abi.encodeWithSelector(v.rawFulfillRandomWords.selector, requestId, randomWords);
+        bytes memory resp = abi.encodeWithSelector(
+            v.rawFulfillRandomWords.selector,
+            requestId,
+            randomWords
+        );
         // Call with explicitly the amount of callback gas requested
         // Important to not let them exhaust the gas budget and avoid oracle payment.
         // Do not allow any non-view/non-pure coordinator functions to be called
@@ -570,7 +633,9 @@ contract VRFCoordinator is ConfirmedOwner, TypeAndVersionInterface, VRFCoordinat
         uint256 weiPerUnitGas
     ) internal view returns (uint96) {
         // (1e18 juels/link) (wei/gas * gas) = juels
-        uint256 paymentNoFee = (1e18 * weiPerUnitGas * (gasAfterPaymentCalculation + startGas - gasleft()));
+        uint256 paymentNoFee = (1e18 *
+            weiPerUnitGas *
+            (gasAfterPaymentCalculation + startGas - gasleft()));
         uint256 fee = 1e12 * uint256(fulfillmentFlatFeeLinkPPM);
         if (paymentNoFee > (1e27 - fee)) {
             revert PaymentTooLarge(); // Payment + fee cannot be more than all of the link in existence.
@@ -579,10 +644,10 @@ contract VRFCoordinator is ConfirmedOwner, TypeAndVersionInterface, VRFCoordinat
     }
 
     /*
-   * @notice Oracle withdraw LINK earned through fulfilling requests
-   * @param recipient where to send the funds
-   * @param amount amount to withdraw
-   */
+     * @notice Oracle withdraw LINK earned through fulfilling requests
+     * @param recipient where to send the funds
+     * @param amount amount to withdraw
+     */
     /*
   function oracleWithdraw(address recipient, uint96 amount) external nonReentrant {
     if (s_withdrawableTokens[msg.sender] < amount) {
@@ -603,7 +668,9 @@ contract VRFCoordinator is ConfirmedOwner, TypeAndVersionInterface, VRFCoordinat
     /**
      * @inheritdoc VRFCoordinatorInterface
      */
-    function getSubscription(uint64 subId)
+    function getSubscription(
+        uint64 subId
+    )
         external
         view
         override
@@ -628,8 +695,11 @@ contract VRFCoordinator is ConfirmedOwner, TypeAndVersionInterface, VRFCoordinat
         uint64 currentSubId = s_currentSubId;
         address[] memory consumers = new address[](0);
         s_subscriptions[currentSubId] = Subscription({balance: 0, reqCount: 0});
-        s_subscriptionConfigs[currentSubId] =
-            SubscriptionConfig({owner: msg.sender, requestedOwner: address(0), consumers: consumers});
+        s_subscriptionConfigs[currentSubId] = SubscriptionConfig({
+            owner: msg.sender,
+            requestedOwner: address(0),
+            consumers: consumers
+        });
 
         emit SubscriptionCreated(currentSubId, msg.sender);
         return currentSubId;
@@ -638,12 +708,10 @@ contract VRFCoordinator is ConfirmedOwner, TypeAndVersionInterface, VRFCoordinat
     /**
      * @inheritdoc VRFCoordinatorInterface
      */
-    function requestSubscriptionOwnerTransfer(uint64 subId, address newOwner)
-        external
-        override
-        onlySubOwner(subId)
-        nonReentrant
-    {
+    function requestSubscriptionOwnerTransfer(
+        uint64 subId,
+        address newOwner
+    ) external override onlySubOwner(subId) nonReentrant {
         // Proposing to address(0) would never be claimable so don't need to check.
         if (s_subscriptionConfigs[subId].requestedOwner != newOwner) {
             s_subscriptionConfigs[subId].requestedOwner = newOwner;
@@ -670,7 +738,10 @@ contract VRFCoordinator is ConfirmedOwner, TypeAndVersionInterface, VRFCoordinat
     /**
      * @inheritdoc VRFCoordinatorInterface
      */
-    function removeConsumer(uint64 subId, address consumer) external override onlySubOwner(subId) nonReentrant {
+    function removeConsumer(
+        uint64 subId,
+        address consumer
+    ) external override onlySubOwner(subId) nonReentrant {
         if (s_consumers[consumer][subId] == 0) {
             revert InvalidConsumer(subId, consumer);
         }
@@ -694,7 +765,10 @@ contract VRFCoordinator is ConfirmedOwner, TypeAndVersionInterface, VRFCoordinat
     /**
      * @inheritdoc VRFCoordinatorInterface
      */
-    function addConsumer(uint64 subId, address consumer) external override onlySubOwner(subId) nonReentrant {
+    function addConsumer(
+        uint64 subId,
+        address consumer
+    ) external override onlySubOwner(subId) nonReentrant {
         // Already maxed, cannot add any more consumers.
         if (s_subscriptionConfigs[subId].consumers.length >= MAX_CONSUMERS) {
             revert TooManyConsumers();
@@ -714,7 +788,10 @@ contract VRFCoordinator is ConfirmedOwner, TypeAndVersionInterface, VRFCoordinat
     /**
      * @inheritdoc VRFCoordinatorInterface
      */
-    function cancelSubscription(uint64 subId, address to) external override onlySubOwner(subId) nonReentrant {
+    function cancelSubscription(
+        uint64 subId,
+        address to
+    ) external override onlySubOwner(subId) nonReentrant {
         // if (pendingRequestExists(subId)) {
         //   revert PendingRequestExists();
         // }
@@ -746,9 +823,10 @@ contract VRFCoordinator is ConfirmedOwner, TypeAndVersionInterface, VRFCoordinat
      * @dev Looping is bounded to MAX_CONSUMERS*(number of keyhashes).
      * @dev Used to disable subscription canceling while outstanding request are present.
      */
-    function pendingRequestExists(uint64 /* subId */ ) public pure override returns (bool) {
+    function pendingRequestExists(uint64 /* subId */) public pure override returns (bool) {
         return false;
     }
+
     /*
   function pendingRequestExists(uint64 subId) public view override returns (bool) {
     SubscriptionConfig memory subConfig = s_subscriptionConfigs[subId];

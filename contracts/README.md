@@ -1,5 +1,11 @@
 # ICN contracts
 
+## Installation
+
+```
+yarn install
+```
+
 ## Compilation
 
 ```
