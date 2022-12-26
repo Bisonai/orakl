@@ -1,4 +1,4 @@
-name: ESLint
+name: "core: eslint"
 on: push
 jobs:
   build:

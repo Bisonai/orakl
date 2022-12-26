@@ -1,4 +1,4 @@
-name: Solhint+ESLint
+name: "contracts: solhint+eslint"
 on: push
 jobs:
   build:
