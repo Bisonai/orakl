@@ -324,104 +324,6 @@ contract Aggregator is AggregatorInterface, ConfirmedOwner {
   }
 
   /**
-   * @notice get the most recently reported answer
-   *
-   * @dev #[deprecated] Use latestRoundData instead. This does not error if no
-   * answer has been reached, it will simply return 0. Either wait to point to
-   * an already answered Aggregator or use the recommended latestRoundData
-   * instead which includes better verification information.
-   */
-  function latestAnswer()
-    public
-    view
-    virtual
-    override
-    returns (int256)
-  {
-    return rounds[latestRoundId].answer;
-  }
-
-  /**
-   * @notice get the most recent updated at timestamp
-   *
-   * @dev #[deprecated] Use latestRoundData instead. This does not error if no
-   * answer has been reached, it will simply return 0. Either wait to point to
-   * an already answered Aggregator or use the recommended latestRoundData
-   * instead which includes better verification information.
-   */
-  function latestTimestamp()
-    public
-    view
-    virtual
-    override
-    returns (uint256)
-  {
-    return rounds[latestRoundId].updatedAt;
-  }
-
-  /**
-   * @notice get the ID of the last updated round
-   *
-   * @dev #[deprecated] Use latestRoundData instead. This does not error if no
-   * answer has been reached, it will simply return 0. Either wait to point to
-   * an already answered Aggregator or use the recommended latestRoundData
-   * instead which includes better verification information.
-   */
-  function latestRound()
-    public
-    view
-    virtual
-    override
-    returns (uint256)
-  {
-    return latestRoundId;
-  }
-
-  /**
-   * @notice get past rounds answers
-   * @param _roundId the round number to retrieve the answer for
-   *
-   * @dev #[deprecated] Use getRoundData instead. This does not error if no
-   * answer has been reached, it will simply return 0. Either wait to point to
-   * an already answered Aggregator or use the recommended getRoundData
-   * instead which includes better verification information.
-   */
-  function getAnswer(uint256 _roundId)
-    public
-    view
-    virtual
-    override
-    returns (int256)
-  {
-    if (validRoundId(_roundId)) {
-      return rounds[uint32(_roundId)].answer;
-    }
-    return 0;
-  }
-
-  /**
-   * @notice get timestamp when an answer was last updated
-   * @param _roundId the round number to retrieve the updated timestamp for
-   *
-   * @dev #[deprecated] Use getRoundData instead. This does not error if no
-   * answer has been reached, it will simply return 0. Either wait to point to
-   * an already answered Aggregator or use the recommended getRoundData
-   * instead which includes better verification information.
-   */
-  function getTimestamp(uint256 _roundId)
-    public
-    view
-    virtual
-    override
-    returns (uint256)
-  {
-    if (validRoundId(_roundId)) {
-      return rounds[uint32(_roundId)].updatedAt;
-    }
-    return 0;
-  }
-
-  /**
    * @notice get data about a round. Consumers are encouraged to check
    * that they're receiving fresh data by inspecting the updatedAt and
    * answeredInRound return values.
@@ -1035,5 +937,4 @@ contract Aggregator is AggregatorInterface, ConfirmedOwner {
   {
     return _roundId <= ROUND_MAX;
   }
-
 }
