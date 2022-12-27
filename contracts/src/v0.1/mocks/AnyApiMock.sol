@@ -16,8 +16,8 @@ contract AnyApiConsumerMock is RequestResponseConsumerBase {
 
     function requestData() public returns (bytes32 requestId) {
         ICN.Request memory req = buildRequest(jobId, address(this), this.fulfill.selector);
-        req.add("get", "https://min-api.cryptocompare.com/data/pricemultifull?fsyms=ETH&tsyms=USD");
-        req.add("path", "RAW,ETH,USD,PRICE");
+        req.add("get", "https://min-api.cryptocompare.com/data/pricemultifull?fsyms=KLAY&tsyms=USD");
+        req.add("path", "RAW,KLAY,USD,PRICE");
         return sendRequest(req);
     }
 
