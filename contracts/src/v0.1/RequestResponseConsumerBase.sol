@@ -38,15 +38,15 @@ abstract contract RequestResponseConsumerBase {
      * @notice Creates a request using the ICN library
      * @param _jobId the job specification ID that the request is created for
      * @param _callbackAddr address to operate the callback
-     * @param _callbackFunc function to use for callbacl
+     * @param _callbackFunctionId function to use for callback
      * @return  req request in memory
      */
     function buildRequest(
         bytes32 _jobId,
         address _callbackAddr,
-        bytes4 _callbackFunc
+        bytes4 _callbackFunctionId
     ) internal pure returns (ICN.Request memory req) {
-        return req.initialize(_jobId, _callbackAddr, _callbackFunc);
+        return req.initialize(_jobId, _callbackAddr, _callbackFunctionId);
     }
 
     /**
@@ -75,26 +75,22 @@ abstract contract RequestResponseConsumerBase {
         s_requestCount = nonce + 1;
         requestId = keccak256(abi.encodePacked(this, s_requestCount));
         s_pendingRequests[requestId] = _oracleAddress;
-        IOracle(_oracleAddress).createNewRequest(
+        IOracle(_oracleAddress).createRequest(
             requestId,
             _req.id,
             nonce,
-            address(this),
             _req.callbackFunctionId,
             _req.buf.buf
         );
     }
 
     /**
-     * @notice FIXME Not finished implementation! Not called from anywhere!
+     * @notice Cancel request
+     * @param _requestId - ID of the Oracle Request
+     * @param _callbackFunctionId - Return functionID callback
      */
-    // function cancelRequest(bytes32 _requestId, address _callbackAddress, bytes4 _callbackFunc) internal {
-    //     delete  s_pendingRequests[_requestId];
-    //     IOracle(address(s_oracle)).cancelOracleRequest(_requestId, _callbackAddress, _callbackFunc);
-    // }
-
-    /**
-     * @notice FIXME Not finished implementation! (called from aggregator contract)
-     */
-    function validateCallback(bytes32 _requestId) internal ICNResponseFulfilled(_requestId) {}
+    function cancelRequest(bytes32 _requestId, bytes4 _callbackFunctionId) internal {
+        IOracle(s_oracle).cancelRequest(_requestId, _callbackFunctionId);
+        delete s_pendingRequests[_requestId];
+    }
 }

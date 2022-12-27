@@ -17,16 +17,16 @@ describe('Request-Response user contract', function () {
   })
 
   it('Should be able to request data', async function () {
-    await expect(userContract.requestData()).to.not.be.reverted
+    await expect(userContract.makeRequest()).to.not.be.reverted
   })
 
   it('Should emit event NewRequest', async function () {
-    const txReceipt = await (await userContract.requestData()).wait()
+    const txReceipt = await (await userContract.makeRequest()).wait()
 
     expect(txReceipt.events.length).to.be.equal(1)
 
     const event = requestResponseCoordinator.interface.parseLog(txReceipt.events[0])
-    expect(event.name).to.be.equal('NewRequest')
+    expect(event.name).to.be.equal('Requested')
 
     const eventArgs = [
       'requestId',
@@ -34,7 +34,7 @@ describe('Request-Response user contract', function () {
       'nonce',
       'callbackAddress',
       'callbackFunctionId',
-      '_data'
+      'data'
     ]
 
     for (const arg of eventArgs) {

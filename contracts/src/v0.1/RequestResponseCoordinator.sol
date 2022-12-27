@@ -1,47 +1,50 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.16;
 
+// https://github.com/smartcontractkit/chainlink/blob/develop/contracts/src/v0.7/Operator.sol
+
 import "./interfaces/IOracle.sol";
 import "./interfaces/TypeAndVersionInterface.sol";
 
+error FailedToCallback();
 error RequestAlreadyExists();
 error IncorrectRequest();
 
 contract RequestResponseCoordinator is IOracle, TypeAndVersionInterface {
-    // Mapping RequestIDs => Hashes of Requests Data
-    mapping(bytes32 => bytes32) private requests;
+    // Mapping requestIds => hashes of requests
+    mapping(bytes32 => bytes32) private s_requests;
 
-    event NewRequest(
+    event Requested(
         bytes32 indexed requestId,
         bytes32 jobId,
         uint256 nonce,
         address callbackAddress,
         bytes4 callbackFunctionId,
-        bytes _data
+        bytes data
     );
+    event Fulfilled(bytes32 indexed requestId);
+    event Cancelled(bytes32 indexed requestId);
 
-    event CancelOracleRequest(bytes32 indexed requestId);
-
-    function createNewRequest(
+    function createRequest(
         bytes32 _requestId,
         bytes32 _jobId,
         uint256 _nonce,
-        address _callbackAddress,
         bytes4 _callbackFunctionId,
         bytes calldata _data
     ) external {
-        if (requests[_requestId] != 0) {
+        address callbackAddress = msg.sender;
+
+        if (s_requests[_requestId] != 0) {
             revert RequestAlreadyExists();
         }
-        requests[_requestId] = keccak256(
-            abi.encodePacked(_requestId, _callbackAddress, _callbackFunctionId)
+        s_requests[_requestId] = keccak256(
+            abi.encodePacked(_requestId, callbackAddress, _callbackFunctionId)
         );
 
-        emit NewRequest(_requestId, _jobId, _nonce, _callbackAddress, _callbackFunctionId, _data);
+        emit Requested(_requestId, _jobId, _nonce, callbackAddress, _callbackFunctionId, _data);
     }
 
     /**
-     * //TODO - Add validator node checks
      * @notice Fulfils oracle request
      * @param _requestId - ID of the Oracle Request
      * @param _callbackAddress - Callback Address of Oracle Fulfilment
@@ -53,51 +56,48 @@ contract RequestResponseCoordinator is IOracle, TypeAndVersionInterface {
         address _callbackAddress,
         bytes4 _callbackFunctionId,
         bytes calldata _data
-    ) external returns (bool) {
+    ) external {
+        // TODO - Add validator node check
         bytes32 paramsHash = keccak256(
             abi.encodePacked(_requestId, _callbackAddress, _callbackFunctionId)
         );
-        if (requests[_requestId] != paramsHash) {
+        if (s_requests[_requestId] != paramsHash) {
             revert IncorrectRequest();
         }
-        delete requests[_requestId];
+        delete s_requests[_requestId];
         (bool success, ) = _callbackAddress.call(
             abi.encodeWithSelector(_callbackFunctionId, _requestId, _data)
         );
-        return success;
+        if (!success) {
+            revert FailedToCallback();
+        }
+        emit Fulfilled(_requestId);
     }
 
     /**
      * @notice Cancelling Oracle Request
      * @param _requestId - ID of the Oracle Request
-     * @param _callbackAddress - Callback Address of Oracle Cancellation
-     * @param _callbackFunctionId - Return functionID callback
      */
-    function cancelOracleRequest(
+    function cancelRequest(
         bytes32 _requestId,
-        address _callbackAddress,
         bytes4 _callbackFunctionId
     ) external {
+        address callbackAddress = msg.sender;
         bytes32 paramsHash = keccak256(
-            abi.encodePacked(_requestId, _callbackAddress, _callbackFunctionId)
+            abi.encodePacked(_requestId, callbackAddress, _callbackFunctionId)
         );
-        if (requests[_requestId] != paramsHash) {
+        if (s_requests[_requestId] != paramsHash) {
             revert IncorrectRequest();
         }
-        delete requests[_requestId];
-        emit CancelOracleRequest(_requestId);
+        delete s_requests[_requestId];
+        emit Cancelled(_requestId);
     }
 
     /**
      * @notice The type and version of this contract
      * @return Type and version string
      */
-    function typeAndVersion()
-        external
-        pure
-        override(TypeAndVersionInterface)
-        returns (string memory)
-    {
-        return "RequestResponseCoordinator 0.1";
+    function typeAndVersion() external pure virtual override returns (string memory) {
+        return "RequestResponseCoordinator v0.1";
     }
 }
