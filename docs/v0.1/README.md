@@ -1,6 +1,6 @@
 # v0.1
 
-The oracle version v0.1 uses Solidity version `^0.8.16`.
+The oracle version `v0.1` uses Solidity version `^0.8.16`.
 
 ## Installation
 
@@ -59,6 +59,25 @@ The list of predefined job requests can be found at [Predefined Job Requests pag
 
 ### Any API - HTTP GET Single Word Response
 
+To request data from any API one must build a request (`buildRequest`) specifying `jobId`, address of contract to fulfill and its function selector.
+Request is build through `add` methods on `ICN.request` object that accept key-value pairs in a form of strings.
+
+* `get`
+* `path`
+
+The function used for fulfillment must have parameters; `_requestId` defined as `bytes32` and fulfilling value `_response`.
+`_response` type can be one of the types shown in the table below.
+The response type is requested through `jobId`.
+
+| Response type | Job ID                                        |
+|---------------|-----------------------------------------------|
+| int256        | keccak256(abi.encodePacked("any-api-int256")) |
+| int128        | keccak256(abi.encodePacked("any-api-int128")) |
+| int64         | keccak256(abi.encodePacked("any-api-int64"))  |
+| int32         | keccak256(abi.encodePacked("any-api-int32"))  |
+
+#### Example of requesting price of KLAY/USD
+
 ```Solidity
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.16;
@@ -87,11 +106,9 @@ contract AnyApiConsumer is RequestResponseConsumerBase {
         value = _response;
     }
 }
-
 ```
 
 <!--
-### Any API - HTTP GET Single Word Response
 ### Any API - HTTP GET Multi-Variable Word Responses
 ### Any API - HTTP GET Element in Array Response
 ### Any API - HTTP GET Large Responses
