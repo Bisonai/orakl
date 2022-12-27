@@ -6,22 +6,26 @@ import "../RequestResponseConsumerBase.sol";
 contract RequestResponseConsumerMock is RequestResponseConsumerBase {
     using ICN for ICN.Request;
 
-    bytes32 private jobId;
-    int256 public value;
+    bytes32 private s_jobId;
+    int256 public s_response;
 
     constructor(address _oracleAddress) {
         setOracle(_oracleAddress);
-        jobId = keccak256(abi.encodePacked("any-api-int256"));
+        s_jobId = keccak256(abi.encodePacked("any-api-int256"));
     }
 
-    function requestData() public returns (bytes32 requestId) {
-        ICN.Request memory req = buildRequest(jobId, address(this), this.fulfill.selector);
+    function makeRequest() public returns (bytes32 requestId) {
+        ICN.Request memory req = buildRequest(s_jobId, address(this), this.fulfillRequest.selector);
         req.add("get", "https://min-api.cryptocompare.com/data/pricemultifull?fsyms=ETH&tsyms=USD");
         req.add("path", "RAW,ETH,USD,PRICE");
         return sendRequest(req);
     }
 
-    function fulfill(bytes32 _requestId, int256 _response) public ICNResponseFulfilled(_requestId) {
-        value = _response;
+    function cancelRequest(bytes32 _requestId) public {
+        cancelRequest(_requestId, this.fulfillRequest.selector);
+    }
+
+    function fulfillRequest(bytes32 _requestId, int256 _response) public ICNResponseFulfilled(_requestId) {
+        s_response = _response;
     }
 }

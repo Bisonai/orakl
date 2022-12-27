@@ -8,6 +8,8 @@ import {CBOR} from './CBOR.sol';
 
 
 library ICN {
+  uint256 internal constant defaultBufferSize = 256;
+
   using CBOR for Buffer.buffer;
 
   // structure for storing requests done off-chain
@@ -18,9 +20,6 @@ library ICN {
     uint256 nonce;
     Buffer.buffer buf;
   }
-
-  // Declaring default buffer size
-  uint256 internal constant defaultBuffSize = 256;
 
   /**
    * @notice Initializes a request
@@ -37,7 +36,7 @@ library ICN {
     address _callbackAddr,
     bytes4 _callbackFunc
   ) internal pure returns (ICN.Request memory) {
-    Buffer.init(_request.buf, defaultBuffSize);
+    Buffer.init(_request.buf, defaultBufferSize);
     _request.id = _jobId;
     _request.callbackAddress = _callbackAddr;
     _request.callbackFunctionId = _callbackFunc;

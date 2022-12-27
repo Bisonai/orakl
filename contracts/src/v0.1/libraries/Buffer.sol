@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
-// Reference - https://github.com/smartcontractkit/chainlink/blob/develop/contracts/src/v0.8/vendor/BufferChainlink.sol
 pragma solidity ^0.8.16;
+
+// https://github.com/smartcontractkit/chainlink/blob/develop/contracts/src/v0.8/vendor/BufferChainlink.sol
 
 /**
  * @dev Buffer library is a library that allows the ability to work with mutable byte buffers in solidity

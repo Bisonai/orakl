@@ -16,17 +16,12 @@ describe('Request-Response user contract', function () {
     await userContract.deployed()
   })
 
-  it('Should be able to request data', async function () {
-    await expect(userContract.requestData()).to.not.be.reverted
-  })
-
-  it('Should emit event NewRequest', async function () {
-    const txReceipt = await (await userContract.requestData()).wait()
-
-    expect(txReceipt.events.length).to.be.equal(1)
-
-    const event = requestResponseCoordinator.interface.parseLog(txReceipt.events[0])
-    expect(event.name).to.be.equal('NewRequest')
+  it('Request & Fulfill', async function () {
+    // Request
+    const requestReceipt = await (await userContract.makeRequest()).wait()
+    expect(requestReceipt.events.length).to.be.equal(1)
+    const requestEvent = requestResponseCoordinator.interface.parseLog(requestReceipt.events[0])
+    expect(requestEvent.name).to.be.equal('Requested')
 
     const eventArgs = [
       'requestId',
@@ -34,11 +29,28 @@ describe('Request-Response user contract', function () {
       'nonce',
       'callbackAddress',
       'callbackFunctionId',
-      '_data'
+      'data'
     ]
-
     for (const arg of eventArgs) {
-      expect(event.args[arg]).to.not.empty
+      expect(requestEvent.args[arg]).to.not.empty
     }
+
+    // Response
+    // TODO change after adding validation node check
+    const response = 123
+    const { requestId, callbackAddress, callbackFunctionId } = requestEvent.args
+    const fulfillReceipt = await (
+      await requestResponseCoordinator.fulfillRequestInt256(
+        requestId,
+        callbackAddress,
+        callbackFunctionId,
+        response
+      )
+    ).wait()
+    expect(fulfillReceipt.events.length).to.be.equal(1)
+    const fulfillEvent = requestResponseCoordinator.interface.parseLog(fulfillReceipt.events[0])
+    expect(fulfillEvent.name).to.be.equal('Fulfilled')
+    expect(fulfillEvent.args['requestId']).to.be.equal(requestId)
+    expect(Number(await userContract.s_response())).to.be.equal(response)
   })
 })
