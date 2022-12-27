@@ -15,24 +15,18 @@ contract Prepayment is Ownable, AccessControlEnumerable, PrepaymentInterface {
     error PendingRequestExists();
     error MustBeRequestedOwner(address proposedOwner);
     error Reentrant();
-      error ProvingKeyAlreadyRegistered(bytes32 keyHash);
-  error NoSuchProvingKey(bytes32 keyHash);
 
     event SubscriptionCreated(uint64 indexed subId, address owner);
     event SubscriptionFunded(uint64 indexed subId, uint256 oldBalance, uint256 newBalance);
-    event SubscriptionBanlanceDecreased(
-        uint64 indexed subId,
-        uint256 oldBalance,
-        uint256 newBalance
-    );
+    event SubscriptionDecreased(uint64 indexed subId, uint256 oldBalance, uint256 newBalance);
     event SubscriptionConsumerAdded(uint64 indexed subId, address consumer);
     event SubscriptionConsumerRemoved(uint64 indexed subId, address consumer);
     event SubscriptionCanceled(uint64 indexed subId, address to, uint256 amount);
     event SubscriptionOwnerTransferRequested(uint64 indexed subId, address from, address to);
     event SubscriptionOwnerTransferred(uint64 indexed subId, address from, address to);
-  event ProvingKeyRegistered(bytes32 keyHash, address indexed oracle);
-  event ProvingKeyDeregistered(bytes32 keyHash, address indexed oracle);
+
     bytes32 public constant WITHDRAWER_ROLE = keccak256("WITHDRAWER_ROLE");
+    bytes32 public constant ORACLE_ROLE = keccak256("ORACLE_ROLE");
 
     constructor() {
         _setupRole(DEFAULT_ADMIN_ROLE, _msgSender());
@@ -54,10 +48,6 @@ contract Prepayment is Ownable, AccessControlEnumerable, PrepaymentInterface {
         // consumer is valid without reading all the consumers from storage.
         address[] consumers;
     }
-  /* keyHash */ /* oracle */
-    mapping(bytes32 => address) private s_provingKeys;
-    bytes32[] private s_provingKeyHashes;
-     mapping(uint256 => bytes32) private s_requestCommitments;
 
     mapping(address => mapping(uint64 => uint64)) private s_consumers;
 
@@ -73,16 +63,20 @@ contract Prepayment is Ownable, AccessControlEnumerable, PrepaymentInterface {
     // get all the current subscriptions via getSubscription.
     uint64 private s_currentSubId;
 
-    function getTotalBalance() external view returns (uint256) {
+    function getTotalBalance() external view  returns (uint256)  {
         return s_totalBalance;
     }
 
-    function getSubscription(
-        uint64 subId
-    )
+    function getSubscription(uint64 subId)
         external
         view
-        returns (uint96 balance, uint64 reqCount, address owner, address[] memory consumers)
+        
+        returns (
+            uint96 balance,
+            uint64 reqCount,
+            address owner,
+            address[] memory consumers
+        )
     {
         if (s_subscriptionConfigs[subId].owner == address(0)) {
             revert InvalidSubscription();
@@ -110,11 +104,10 @@ contract Prepayment is Ownable, AccessControlEnumerable, PrepaymentInterface {
         return currentSubId;
     }
 
-    // @Kelvin: removed nonReentrant. Can be done in reporter to cancel all pending fulfillment
-    function requestSubscriptionOwnerTransfer(
-        uint64 subId,
-        address newOwner
-    ) external onlySubOwner(subId) noPendingRequest {
+    function requestSubscriptionOwnerTransfer(uint64 subId, address newOwner)
+        external 
+        onlySubOwner(subId)
+    {
         // Proposing to address(0) would never be claimable so don't need to check.
         if (s_subscriptionConfigs[subId].requestedOwner != newOwner) {
             s_subscriptionConfigs[subId].requestedOwner = newOwner;
@@ -122,7 +115,7 @@ contract Prepayment is Ownable, AccessControlEnumerable, PrepaymentInterface {
         }
     }
 
-    function acceptSubscriptionOwnerTransfer(uint64 subId) external override noPendingRequest {
+    function acceptSubscriptionOwnerTransfer(uint64 subId) external override {
         if (s_subscriptionConfigs[subId].owner == address(0)) {
             revert InvalidSubscription();
         }
@@ -135,10 +128,10 @@ contract Prepayment is Ownable, AccessControlEnumerable, PrepaymentInterface {
         emit SubscriptionOwnerTransferred(subId, oldOwner, msg.sender);
     }
 
-    function removeConsumer(
-        uint64 subId,
-        address consumer
-    ) external onlySubOwner(subId) noPendingRequest {
+    function removeConsumer(uint64 subId, address consumer)
+        external 
+        onlySubOwner(subId)
+    {
         if (s_consumers[consumer][subId] == 0) {
             revert InvalidConsumer(subId, consumer);
         }
@@ -159,7 +152,7 @@ contract Prepayment is Ownable, AccessControlEnumerable, PrepaymentInterface {
         emit SubscriptionConsumerRemoved(subId, consumer);
     }
 
-    function addConsumer(uint64 subId, address consumer) external onlySubOwner(subId) {
+    function addConsumer(uint64 subId, address consumer) external  onlySubOwner(subId){
         // Already maxed, cannot add any more consumers.
         if (s_subscriptionConfigs[subId].consumers.length >= MAX_CONSUMERS) {
             revert TooManyConsumers();
@@ -176,10 +169,10 @@ contract Prepayment is Ownable, AccessControlEnumerable, PrepaymentInterface {
         emit SubscriptionConsumerAdded(subId, consumer);
     }
 
-    function cancelSubscription(
-        uint64 subId,
-        address to
-    ) external onlySubOwner(subId) noPendingRequest {
+    function cancelSubscription(uint64 subId, address to)
+        external 
+        onlySubOwner(subId)
+    {
         if (pendingRequestExists(subId)) {
             revert PendingRequestExists();
         }
@@ -202,123 +195,59 @@ contract Prepayment is Ownable, AccessControlEnumerable, PrepaymentInterface {
         payable(address(to)).transfer(uint256(balance));
         emit SubscriptionCanceled(subId, to, balance);
     }
-    
-  function hashOfKey(uint256[2] memory publicKey) public pure returns (bytes32) {
-    return keccak256(abi.encode(publicKey));
-  }
-    function registerProvingKey(
-        address oracle,
-        uint256[2] calldata publicProvingKey
-    ) external onlyOwner {
-        bytes32 kh = hashOfKey(publicProvingKey);
-        if (s_provingKeys[kh] != address(0)) {
-            revert ProvingKeyAlreadyRegistered(kh);
-        }
-        s_provingKeys[kh] = oracle;
-        s_provingKeyHashes.push(kh);
-        emit ProvingKeyRegistered(kh, oracle);
-    }
 
-    /**
-     * @notice Deregisters a proving key to an oracle.
-     * @param publicProvingKey key that oracle can use to submit vrf fulfillments
-     */
-    function deregisterProvingKey(uint256[2] calldata publicProvingKey) external onlyOwner {
-        bytes32 kh = hashOfKey(publicProvingKey);
-        address oracle = s_provingKeys[kh];
-        if (oracle == address(0)) {
-            revert NoSuchProvingKey(kh);
-        }
-        delete s_provingKeys[kh];
-        for (uint256 i = 0; i < s_provingKeyHashes.length; i++) {
-            if (s_provingKeyHashes[i] == kh) {
-                bytes32 last = s_provingKeyHashes[s_provingKeyHashes.length - 1];
-                // Copy last element and overwrite kh to be deleted with it
-                s_provingKeyHashes[i] = last;
-                s_provingKeyHashes.pop();
-            }
-        }
-        emit ProvingKeyDeregistered(kh, oracle);
-    }
-
-    function computeRequestId(
-        bytes32 keyHash,
-        address sender,
-        uint64 subId,
-        uint64 nonce
-    ) private pure returns (uint256, uint256) {
-        uint256 preSeed = uint256(keccak256(abi.encode(keyHash, sender, subId, nonce)));
-        return (uint256(keccak256(abi.encode(keyHash, preSeed))), preSeed);
-    }
-
-    function pendingRequestExists(uint64 subId) public view returns (bool) {
-        SubscriptionConfig memory subConfig = s_subscriptionConfigs[subId];
-        for (uint256 i = 0; i < subConfig.consumers.length; i++) {
-            for (uint256 j = 0; j < s_provingKeyHashes.length; j++) {
-                (uint256 reqId, ) = computeRequestId(
-                    s_provingKeyHashes[j],
-                    subConfig.consumers[i],
-                    subId,
-                    s_consumers[subConfig.consumers[i]][subId]
-                );
-                if (s_requestCommitments[reqId] != 0) {
-                    return true;
-                }
-            }
-        }
+    function pendingRequestExists(
+        uint64 /* subId */
+    ) public pure  returns (bool) {
         return false;
     }
 
-    function decreaseSubBalance(uint64 subId, uint96 amount) external {
+
+    function decreaseSubBalance(uint64 subId,uint96 amount) external onlyOracle {
         if (s_subscriptions[subId].balance < amount) {
             revert InsufficientBalance();
         }
+        uint96 oldBalance = s_subscriptions[subId].balance;
         s_subscriptions[subId].balance -= amount;
         //increase request count
-        s_subscriptions[subId].reqCount += 1;
+        s_subscriptions[subId].reqCount+=1;
+        uint96 newBalance = s_subscriptions[subId].balance;
+        emit SubscriptionDecreased(subId, oldBalance, newBalance);
     }
-
-    function deposit(uint64 subId) external payable {
-        uint96 amount = uint96(msg.value);
-        require(msg.sender.balance >= msg.value, "Insufficient account balance");
-        uint256 oldBalance = s_subscriptions[subId].balance;
+    /// anybody can deposit, they just need to know the subID
+    function deposit(uint64 subId) external payable  {
+        uint96 amount=  uint96(msg.value);
+        require(msg.sender.balance >=msg.value, "Insufficient account balance");
+        uint96 oldBalance = s_subscriptions[subId].balance;
         s_subscriptions[subId].balance += amount;
-        uint256 newBalance = s_subscriptions[subId].balance;
         s_totalBalance += amount;
+        uint96 newBalance = s_subscriptions[subId].balance;
         emit SubscriptionFunded(subId, oldBalance, newBalance);
     }
 
-    function withdraw(uint64 subId, uint96 amount) external {
+    function withdraw(uint64 subId,uint96 amount) external onlySubOwner(subId){
         if (s_subscriptions[subId].balance < amount) {
             revert InsufficientBalance();
         }
-        require(address(this).balance >= amount, "Prepayment: Insufficient account balance");
-        uint256 oldBalance = s_subscriptions[subId].balance;
+        require(address(this).balance >=amount, "Prepayment: Insufficient account balance");
         s_subscriptions[subId].balance -= amount;
         payable(msg.sender).transfer(amount);
-        uint256 newBalance = s_subscriptions[subId].balance;
-        emit SubscriptionBanlanceDecreased(subId, oldBalance, newBalance);
+    }
+    
+    receive() external payable{    
     }
 
-    receive() external payable {}
-
-    function getNonce(address consumer, uint64 subId) external view returns (uint64) {
-        return s_consumers[consumer][subId];
+    function getNonce(address consumer,uint64 subId) external view  returns(uint64) {
+       return s_consumers[consumer][subId];
     }
 
-    function increaseNonce(address consumer, uint64 subId) external {
-        s_consumers[consumer][subId] += 1;
+    function increaseNonce(address consumer,uint64 subId) external {
+       s_consumers[consumer][subId]+=1;
     }
 
-    function getSubOwner(uint64 subId) external view returns (address owner) {
+    function getSubOwner(uint64 subId)external view returns(address owner){
         return s_subscriptionConfigs[subId].owner;
     }
-
-    modifier noPendingRequest(uint64 subId){
-        require(!pendingRequestExists(subId));
-        _;
-    }
-
     modifier onlySubOwner(uint64 subId) {
         address owner = s_subscriptionConfigs[subId].owner;
         if (owner == address(0)) {
@@ -329,14 +258,6 @@ contract Prepayment is Ownable, AccessControlEnumerable, PrepaymentInterface {
         }
         _;
     }
-
-    modifier nonReentrant() {
-        // if (s_config.reentrancyLock) {
-        //     revert Reentrant();
-        // }
-        _;
-    }
-
     modifier onlyWithdrawer() {
         require(
             owner() == msg.sender || hasRole(WITHDRAWER_ROLE, msg.sender),
@@ -345,6 +266,13 @@ contract Prepayment is Ownable, AccessControlEnumerable, PrepaymentInterface {
         _;
     }
 
+    modifier onlyOracle() {
+        require(
+            owner() == msg.sender || hasRole(ORACLE_ROLE, msg.sender),
+            "Caller is not a oracle"
+        );
+        _;
+    }
     function typeAndVersion() external pure virtual returns (string memory) {
         return "Subscription 0.1";
     }
