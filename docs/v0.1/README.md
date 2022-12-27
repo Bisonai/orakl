@@ -54,7 +54,7 @@ contract PriceConsumer {
 The most common and complicated job requests are predefined in the off-chain oracle, therefore they simplify on-chain request and postprocessing as well.
 
 * [Predefined Job Request](#predefined-job-request)
-* [Any API - HTTP GET Single Word Response](#any-api-http-get-single-word-response)
+* [Any API - HTTP GET Single Word Response](#any-api--http-get-single-word-response)
 
 ### Predefined Job Request
 
