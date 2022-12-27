@@ -49,29 +49,20 @@ contract RequestResponseCoordinator is IOracle, TypeAndVersionInterface {
      * @param _requestId - ID of the Oracle Request
      * @param _callbackAddress - Callback Address of Oracle Fulfilment
      * @param _callbackFunctionId - Return functionID callback
-     * @param _data - Return data for fulfilment
+     * @param _response - Return data for fulfilment
      */
-    function fulfillOracleRequest(
+    function fulfillRequestInt256(
         bytes32 _requestId,
         address _callbackAddress,
         bytes4 _callbackFunctionId,
-        bytes calldata _data
+        int256 _response
     ) external {
-        // TODO - Add validator node check
-        bytes32 paramsHash = keccak256(
-            abi.encodePacked(_requestId, _callbackAddress, _callbackFunctionId)
-        );
-        if (s_requests[_requestId] != paramsHash) {
-            revert IncorrectRequest();
-        }
-        delete s_requests[_requestId];
+        // TODO validate caller
+        beforeFulfillRequest(_requestId, _callbackAddress, _callbackFunctionId);
         (bool success, ) = _callbackAddress.call(
-            abi.encodeWithSelector(_callbackFunctionId, _requestId, _data)
+            abi.encodeWithSelector(_callbackFunctionId, _requestId, _response)
         );
-        if (!success) {
-            revert FailedToCallback();
-        }
-        emit Fulfilled(_requestId);
+        afterFulfillRequest(_requestId, success);
     }
 
     /**
@@ -82,6 +73,7 @@ contract RequestResponseCoordinator is IOracle, TypeAndVersionInterface {
         bytes32 _requestId,
         bytes4 _callbackFunctionId
     ) external {
+        // TODO validate caller
         address callbackAddress = msg.sender;
         bytes32 paramsHash = keccak256(
             abi.encodePacked(_requestId, callbackAddress, _callbackFunctionId)
@@ -99,5 +91,27 @@ contract RequestResponseCoordinator is IOracle, TypeAndVersionInterface {
      */
     function typeAndVersion() external pure virtual override returns (string memory) {
         return "RequestResponseCoordinator v0.1";
+    }
+
+    function beforeFulfillRequest(
+        bytes32 _requestId,
+        address _callbackAddress,
+        bytes4 _callbackFunctionId
+    ) private view {
+        bytes32 paramsHash = keccak256(
+            abi.encodePacked(_requestId, _callbackAddress, _callbackFunctionId)
+        );
+
+        if (s_requests[_requestId] != paramsHash) {
+            revert IncorrectRequest();
+        }
+    }
+
+    function afterFulfillRequest(bytes32 _requestId, bool _success) private {
+        if (!_success) {
+            revert FailedToCallback();
+        }
+        delete s_requests[_requestId];
+        emit Fulfilled(_requestId);
     }
 }
