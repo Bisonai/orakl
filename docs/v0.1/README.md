@@ -90,11 +90,12 @@ contract AnyApiConsumer is RequestResponseConsumerBase {
 
 ```
 
+<!--
 ### Any API - HTTP GET Single Word Response
 ### Any API - HTTP GET Multi-Variable Word Responses
 ### Any API - HTTP GET Element in Array Response
 ### Any API - HTTP GET Large Responses
-### Any API - Existing Job Request
+-->
 
 ## Verifiable Random Function
 
