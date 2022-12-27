@@ -69,12 +69,12 @@ The function used for fulfillment must have parameters; `_requestId` defined as 
 `_response` type can be one of the types shown in the table below.
 The response type is requested through `jobId`.
 
-| Response type | Job ID                                        |
-|---------------|-----------------------------------------------|
-| int256        | keccak256(abi.encodePacked("any-api-int256")) |
-| int128        | keccak256(abi.encodePacked("any-api-int128")) |
-| int64         | keccak256(abi.encodePacked("any-api-int64"))  |
-| int32         | keccak256(abi.encodePacked("any-api-int32"))  |
+| Response type | Job ID                                          |
+|---------------|-------------------------------------------------|
+| `int256`      | `keccak256(abi.encodePacked("any-api-int256"))` |
+| `int128`      | `keccak256(abi.encodePacked("any-api-int128"))` |
+| `int64`       | `keccak256(abi.encodePacked("any-api-int64"))`  |
+| `int32`       | `keccak256(abi.encodePacked("any-api-int32"))`  |
 
 #### Example of requesting price of KLAY/USD
 
