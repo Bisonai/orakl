@@ -21,7 +21,7 @@ The list of data feeds can be found at [Aggregated Data Feeds page](aggregated-d
 
 ### Example
 
-```solidity
+```Solidity
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.16;
 
@@ -59,7 +59,7 @@ The list of predefined job requests can be found at [Predefined Job Requests pag
 
 ### Any API - HTTP GET Single Word Response
 
-```solidity
+```Solidity
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.16;
 
@@ -98,7 +98,7 @@ contract AnyApiConsumer is RequestResponseConsumerBase {
 
 ## Verifiable Random Function
 
-```solidity
+```Solidity
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.16;
 
