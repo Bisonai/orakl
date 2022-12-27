@@ -16,7 +16,7 @@
     "prepare": "cd .. && husky install core/.husky",
     "clean": "rm -rf dist",
     "build": "yarn clean && tsc",
-    "start:listener": "yarn build && node --experimental-specifier-resolution=node --experimental-json-modules dist/src/listener/listener.js",
+    "start:listener": "node --experimental-specifier-resolution=node --experimental-json-modules /app/dist/src/listener/listener.js",
     "start:listener:vrf": "yarn start:listener --listener VRF",
     "start:listener:icn": "yarn start:listener --listener ICN",
     "start:worker": "node --experimental-specifier-resolution=node --experimental-json-modules dist/src/worker.js",
@@ -26,6 +26,7 @@
     "eslint": "DEBUG=eslint:cli-engine npx eslint 'src/**/*.ts' 'src/*.ts' 'test/*.ts'"
   },
   "dependencies": {
+    "@bisonai-cic/icn-contracts": "0.1.0",
     "bn.js": "^5.2.1",
     "bullmq": "^3.2.2",
     "dotenv": "^16.0.3",

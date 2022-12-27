@@ -1,7 +1,7 @@
 import * as path from 'node:path'
 import { Queue } from 'bullmq'
 import { Contract, ethers } from 'ethers'
-import * as IcnContracts from '@bisonai/icn-contracts'
+import * as IcnContracts from '@bisonai-cic/icn-contracts'
 import { BULLMQ_CONNECTION, LISTENER_ROOT_DIR, LISTENER_DELAY } from '../settings'
 import { IListenerBlock, IListenerConfig } from '../types'
 import { readTextFile, writeTextFile } from '../utils'
