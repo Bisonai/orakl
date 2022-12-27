@@ -1,10 +1,10 @@
 # Aggregated Data Feeds
 
-**Aggregated Data Feeds* are part of [Data Feed product](README.md#data-feed).
+**Aggregated Data Feeds** are part of [Data Feed product](README.md#data-feed).
 
 ## Baobab
 
-The feeds below are just examples below.
+The list of feeds below are just examples for now.
 
 | Name     | Address                                    | Deviation Threshold | Heartbeat |
 |----------|--------------------------------------------|---------------------|-----------|

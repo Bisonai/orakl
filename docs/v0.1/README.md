@@ -1,6 +1,6 @@
 # v0.1
 
-The oracle version v0.1 uses Solidity `^0.8.16`.
+The oracle version v0.1 uses Solidity version `^0.8.16`.
 
 ## Installation
 
@@ -14,12 +14,12 @@ yarn install @bisonai-cic/icn-contracts@v0.1
 * [Request-Response](#request-response)
 * [Verifiable Random Function](#verifiable-random-function)
 
-### Data Feed
+## Data Feed
 
-**Data Feed** provides the latest off-chain information free of charge.
-The list of data feeds can be found at [Data Feeds page](data-feeds.md).
+**Data Feed** provides the latest aggregated off-chain information sourced from multiple data providers.
+The list of data feeds can be found at [Aggregated Data Feeds page](aggregated-data-feeds.md).
 
-#### Example
+### Example
 
 ```solidity
 // SPDX-License-Identifier: MIT
@@ -48,18 +48,16 @@ contract PriceConsumer {
 
 ```
 
-### Request-Response
+## Request-Response
 
-**Request-Response** allows to query any information off-chain and bring them to your smart contract.
-The most common and complicated requests are predefined in the off-chain oracle, therefore they simplify on-chain request and postprocessing as well.
+**Request-Response** allows to query any information off-chain and bring it to your smart contract.
+The most common and complicated job requests are predefined in the off-chain oracle, therefore they simplify on-chain request and postprocessing as well.
 
-#### Predefined Data Feed
+### Predefined Job Request
 
-The list of predefined data feeds can be found at [Predefined Data Feeds page](predefined-data-feeds.md).
+The list of predefined job requests can be found at [Predefined Job Requests page](predefined-job-requests.md).
 
-#### Any API
-
-##### HTTP GET Single Word Response
+### Any API - HTTP GET Single Word Response
 
 ```solidity
 // SPDX-License-Identifier: MIT
@@ -92,14 +90,13 @@ contract AnyApiConsumer is RequestResponseConsumerBase {
 
 ```
 
-<!--
- * HTTP GET Multi-Variable Word Responses
- * HTTP GET Element in Array Response
- * HTTP GET Large Responses
- * Existing Job Request
--->
+### Any API - HTTP GET Single Word Response
+### Any API - HTTP GET Multi-Variable Word Responses
+### Any API - HTTP GET Element in Array Response
+### Any API - HTTP GET Large Responses
+### Any API - Existing Job Request
 
-### Verifiable Random Function
+## Verifiable Random Function
 
 ```solidity
 // SPDX-License-Identifier: MIT
@@ -132,8 +129,7 @@ contract VRFConsumer is VRFConsumerBase {
       COORDINATOR = VRFCoordinatorInterface(coordinator);
   }
 
-  function requestRandomWords() public returns(uint256 requestId) {
-    bytes32 keyHash = 0x47ede773ef09e40658e643fe79f8d1a27c0aa6eb7251749b268f829ea49f2024;
+  function requestRandomWords(bytes32 keyHash) public onlyOwner returns(uint256 requestId) {
     uint64 subId = 1;
     uint16 requestConfirmations = 3;
     uint32 callbackGasLimit = 1_000_000;
