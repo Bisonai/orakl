@@ -1,0 +1,84 @@
+version: '3.7'
+
+services:
+  redis:
+    # redis:7.0.5-alpine3.17
+    image: redis@sha256:06e4453169faaf4af93fe38689c8f8f85440990f9b9c1e91b0f9f98b1679452a
+    container_name: redis_dev
+    hostname: redis_dev
+    expose:
+      - 6379
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 30s
+      retries: 50
+    restart: always
+
+  listener-icn:
+    image: core-icn
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    environment:
+      - PROVIDER
+      - REDIS_HOST
+      - REDIS_PORT
+      - LISTENERS
+    container_name: listener_icn_dev
+    hostname: listener_icn_dev
+    entrypoint: ["yarn", "start:listener:icn"]
+    # TODO healthcheck
+    depends_on:
+      - redis
+
+  listener-vrf:
+    image: core-icn
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    environment:
+      - PROVIDER
+      - REDIS_HOST
+      - REDIS_PORT
+      - LISTENERS
+    container_name: listener_vrf_dev
+    hostname: listener_vrf_dev
+    entrypoint: ["yarn", "start:listener:vrf"]
+    # TODO healthcheck
+    depends_on:
+      - redis
+
+  worker:
+    image: core-icn
+    environment:
+      - PROVIDER
+      - REDIS_HOST
+      - REDIS_PORT
+      - LOCAL_AGGREGATOR
+      - VRF_SK
+      - VRF_PK
+      - VRF_PK_X
+      - VRF_PK_Y
+    container_name: worker_dev
+    hostname: worker_dev
+    entrypoint: ["yarn", "start:worker"]
+    # TODO healthcheck
+    depends_on:
+      - redis
+
+  reporter:
+    image: core-icn
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    environment:
+      - PROVIDER
+      - REDIS_HOST
+      - REDIS_PORT
+      - MNEMONIC
+      - PUBLIC_KEY
+      - PRIVATE_KEY
+    container_name: reporter_dev
+    hostname: reporter_dev
+    entrypoint: ["yarn", "start:reporter"]
+    # TODO healthcheck
+    depends_on:
+      - redis

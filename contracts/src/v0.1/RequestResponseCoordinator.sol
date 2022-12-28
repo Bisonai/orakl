@@ -69,10 +69,7 @@ contract RequestResponseCoordinator is IOracle, TypeAndVersionInterface {
      * @notice Cancelling Oracle Request
      * @param _requestId - ID of the Oracle Request
      */
-    function cancelRequest(
-        bytes32 _requestId,
-        bytes4 _callbackFunctionId
-    ) external {
+    function cancelRequest(bytes32 _requestId, bytes4 _callbackFunctionId) external {
         // TODO validate caller
         address callbackAddress = msg.sender;
         bytes32 paramsHash = keccak256(

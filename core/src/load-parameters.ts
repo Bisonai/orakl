@@ -25,7 +25,7 @@ export const PRIVATE_KEY = process.env.PRIVATE_KEY
 
 // VRF
 // TODO Add more verification
-export const VRF_SK = cantBeEmptyString(process.env.VRF_SK)
-export const VRF_PK = cantBeEmptyString(process.env.VRF_PK)
-export const VRF_PK_X = cantBeEmptyString(process.env.VRF_PK_X)
-export const VRF_PK_Y = cantBeEmptyString(process.env.VRF_PK_Y)
+export const VRF_SK = process.env.VRF_SK || ""
+export const VRF_PK = process.env.VRF_PK || ""
+export const VRF_PK_X = process.env.VRF_PK_X || ""
+export const VRF_PK_Y = process.env.VRF_PK_Y || ""

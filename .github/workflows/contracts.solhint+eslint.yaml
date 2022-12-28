@@ -1,5 +1,8 @@
 name: "contracts: solhint+eslint"
-on: push
+on:
+  push:
+    paths:
+      - 'contracts/**'
 jobs:
   build:
     runs-on: ubuntu-latest

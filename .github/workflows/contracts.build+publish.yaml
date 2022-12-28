@@ -1,8 +1,10 @@
-name: "contracts: test"
+name: "contracts: build & publish"
 on:
   push:
     paths:
       - 'contracts/**'
+  # release:
+  #   types: [created]
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -12,7 +14,15 @@ jobs:
         with:
           node-version: '18.12'
           registry-url: 'https://npm.pkg.github.com'
+          scope: '@bisonai-cic'
+          always-auth: true
       - run: yarn
         working-directory: ./contracts
-      - run: npx hardhat test
+      - run: yarn compile
         working-directory: ./contracts
+      - run: yarn build
+        working-directory: ./contracts
+      - run: yarn publish
+        working-directory: ./contracts
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

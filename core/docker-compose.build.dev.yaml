@@ -1,0 +1,9 @@
+version: '3.7'
+
+services:
+  icn:
+    build:
+      context: .
+      dockerfile: src/Dockerfile.dev
+      args:
+        - NPM_TOKEN

@@ -1,4 +1,5 @@
 import * as Fs from 'node:fs/promises'
+import * as fs from 'node:fs'
 import { IcnError, IcnErrorCode } from './errors'
 
 export async function loadJson(filepath) {
@@ -70,6 +71,12 @@ export async function sendTransaction(wallet, to, payload, gasLimit?, value?) {
   const txReceipt = await wallet.sendTransaction(tx)
   console.debug('sendTransaction:txReceipt')
   console.debug(txReceipt)
+}
+
+export function mkdir(dir: string) {
+  if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true })
+  }
 }
 
 export async function readTextFile(filepath: string) {
