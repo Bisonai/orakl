@@ -1,8 +1,8 @@
-name: Publish Package to npmjs
-on: push
-  # push:
-  #   paths:
-  #     - 'contracts/**'
+name: "contracts: build & publish"
+on:
+  push:
+    paths:
+      - 'contracts/**'
   # release:
   #   types: [created]
 jobs:
