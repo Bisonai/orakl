@@ -3,6 +3,7 @@ pragma solidity ^0.8.16;
 import "openzeppelin-solidity/contracts/access/AccessControlEnumerable.sol";
 import "openzeppelin-solidity/contracts/access/Ownable.sol";
 import "./interfaces/PrepaymentInterface.sol";
+import "./interfaces/CoordinatorBaseInterface.sol";
 
 contract Prepayment is Ownable, AccessControlEnumerable, PrepaymentInterface {
     uint16 public constant MAX_CONSUMERS = 100;
@@ -63,6 +64,8 @@ contract Prepayment is Ownable, AccessControlEnumerable, PrepaymentInterface {
     // get all the current subscriptions via getSubscription.
     uint64 private s_currentSubId;
 
+    CoordinatorBaseInterface[] private s_Coordinators;
+
     function getTotalBalance() external view  returns (uint256)  {
         return s_totalBalance;
     }
@@ -70,7 +73,6 @@ contract Prepayment is Ownable, AccessControlEnumerable, PrepaymentInterface {
     function getSubscription(uint64 subId)
         external
         view
-        
         returns (
             uint96 balance,
             uint64 reqCount,
@@ -196,12 +198,17 @@ contract Prepayment is Ownable, AccessControlEnumerable, PrepaymentInterface {
         emit SubscriptionCanceled(subId, to, balance);
     }
 
-    function pendingRequestExists(
-        uint64 /* subId */
-    ) public pure  returns (bool) {
+    function pendingRequestExists(uint64 subId) public view returns (bool) {
+        SubscriptionConfig memory subConfig = s_subscriptionConfigs[subId];
+        for (uint256 i = 0; i < subConfig.consumers.length; i++) {
+            for (uint256 j = 0; j < s_Coordinators.length; j++) {
+                bool rs=s_Coordinators[j].pendingRequestExists(subId,subConfig.consumers[i],s_consumers[subConfig.consumers[i]][subId]);
+                if(rs==true)
+                    return rs;
+            }
+        }
         return false;
     }
-
 
     function decreaseSubBalance(uint64 subId,uint96 amount) external onlyOracle {
         if (s_subscriptions[subId].balance < amount) {
@@ -230,10 +237,31 @@ contract Prepayment is Ownable, AccessControlEnumerable, PrepaymentInterface {
             revert InsufficientBalance();
         }
         require(address(this).balance >=amount, "Prepayment: Insufficient account balance");
+        uint256 oldBalance = s_subscriptions[subId].balance;
         s_subscriptions[subId].balance -= amount;
+        uint256 newBalance = s_subscriptions[subId].balance;
         payable(msg.sender).transfer(amount);
+        emit SubscriptionDecreased(subId, oldBalance, newBalance);
     }
     
+    function addCoordinator(CoordinatorBaseInterface coordinator) public onlyOwner {
+        s_Coordinators.push(coordinator);
+    }
+
+    function removeCoordinator(CoordinatorBaseInterface coordinator) public onlyOwner {
+        uint256 lastCoordinatorIndex = s_Coordinators.length - 1;
+        for (uint256 i = 0; i < s_Coordinators.length; i++) {
+            if (s_Coordinators[i] == coordinator) {
+                CoordinatorBaseInterface last = s_Coordinators[lastCoordinatorIndex];
+                // Storage write to preserve last element
+                s_Coordinators[i] = last;
+                // Storage remove last element
+                s_Coordinators.pop();
+                break;
+            }
+        }
+    }
+
     receive() external payable{    
     }
 

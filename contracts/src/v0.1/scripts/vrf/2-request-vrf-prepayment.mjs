@@ -3,8 +3,8 @@ const { ethers } = pkg
 
 async function main() {
   const listen = true
-  const VRFCoordinatorAddr = '0xB7f8BC63BbcaD18155201308C8f3540b07f84F5e'
-  const VRFConsumerMockAddr = '0x9A676e781A523b5d0C0e43731313A708CB607508'
+  const VRFCoordinatorAddr = '0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512'
+  const VRFConsumerMockAddr = '0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9'
 
   let VRFConsumerMock = await ethers.getContractFactory('VRFConsumerMock')
   VRFConsumerMock = await VRFConsumerMock.attach(VRFConsumerMockAddr)

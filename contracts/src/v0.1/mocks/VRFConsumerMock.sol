@@ -2,14 +2,13 @@
 pragma solidity ^0.8.16;
 
 import '../VRFConsumerBase.sol';
-import '../interfaces/VRFCoordinatorInterface.sol';
-
+import '../interfaces/VRFCoordinatorInterface1.sol';
 
 contract VRFConsumerMock is VRFConsumerBase {
   uint256 public s_randomResult;
   address private s_owner;
 
-  VRFCoordinatorInterface COORDINATOR;
+  VRFCoordinatorInterface1 COORDINATOR;
 
   error OnlyOwner(address notOwner);
 
@@ -25,7 +24,7 @@ contract VRFConsumerMock is VRFConsumerBase {
       // ConfirmedOwner(msg.sender) TODO
   {
       s_owner = msg.sender;
-      COORDINATOR = VRFCoordinatorInterface(coordinator);
+      COORDINATOR = VRFCoordinatorInterface1(coordinator);
   }
 
   function requestRandomWords() public returns(uint256 requestId) {
@@ -46,6 +45,7 @@ contract VRFConsumerMock is VRFConsumerBase {
 
   function fulfillRandomWords(uint256 /* requestId */, uint256[] memory randomWords) internal override {
     // requestId should be checked if it matches the expected request
-    s_randomResult = (randomWords[0] % 50) + 1;
+    //s_randomResult = (randomWords[0] % 50) + 1;
+    s_randomResult=randomWords[0];
   }
 }

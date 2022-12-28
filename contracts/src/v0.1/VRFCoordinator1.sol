@@ -8,11 +8,13 @@ import "./interfaces/PrepaymentInterface.sol";
 import "./libraries/VRF.sol";
 import "./ConfirmedOwner.sol";
 import "./VRFConsumerBase.sol";
+import "./interfaces/CoordinatorBaseInterface.sol";
 
 contract VRFCoordinator1 is
   ConfirmedOwner,
   TypeAndVersionInterface,
-  VRFCoordinatorInterface1
+  VRFCoordinatorInterface1,
+  CoordinatorBaseInterface
 {
   error TooManyConsumers();
   error InsufficientBalance();
@@ -517,15 +519,16 @@ contract VRFCoordinator1 is
     //uint96 payment = 0;
     (uint96 balance,uint64 reqCount,address owner,address[] memory consumers)= Prepayment.getSubscription(rc.subId);
 
-    uint96 payment = calculatePaymentAmount(
-      startGas,
-      s_config.gasAfterPaymentCalculation,
-      getFeeTier(reqCount),
-      tx.gasprice
-    );
-    if (balance < payment) {
-      revert InsufficientBalance();
-    }
+    // uint96 payment = calculatePaymentAmount(
+    //   startGas,
+    //   s_config.gasAfterPaymentCalculation,
+    //   getFeeTier(reqCount),
+    //   tx.gasprice
+    // );
+    // if (balance < payment) {
+    //   revert InsufficientBalance();
+    // }
+    uint96 payment=10**17;
     Prepayment.decreaseSubBalance(rc.subId, payment);
     //s_withdrawableTokens[s_provingKeys[rc.keyHash]] += payment; FIXME  Does need to do this?
     // Include payment in the event for tracking costs.
@@ -566,13 +569,19 @@ contract VRFCoordinator1 is
     }
   }
   */
-
-  /**
-   * @inheritdoc VRFCoordinatorInterface1
-   * @dev Looping is bounded to MAX_CONSUMERS*(number of keyhashes).
-   * @dev Used to disable subscription canceling while outstanding request are present.
-   */
-  function pendingRequestExists(uint64 /* subId */) public pure override returns (bool) { return false; }
+  function pendingRequestExists(
+        uint64 subId,
+        address consumer,
+        uint64 nonce
+    ) public view override returns (bool) {
+        for (uint256 j = 0; j < s_provingKeyHashes.length; j++) {
+            (uint256 reqId, ) = computeRequestId(s_provingKeyHashes[j], consumer, subId, nonce);
+            if (s_requestCommitments[reqId] != 0) {
+                return true;
+            }
+        }
+        return false;
+    }
 
   modifier nonReentrant() {
     if (s_config.reentrancyLock) {

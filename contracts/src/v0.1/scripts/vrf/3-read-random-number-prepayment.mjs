@@ -3,7 +3,7 @@ const { ethers } = pkg
 
 async function main() {
   const listen = false
-  const VRFConsumerMockAddr = '0x9A676e781A523b5d0C0e43731313A708CB607508';
+  const VRFConsumerMockAddr = '0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9';
 
 
   let VRFConsumerMock = await ethers.getContractFactory('VRFConsumerMock')
@@ -13,7 +13,7 @@ async function main() {
   console.log('randomNumber', randomNumber.toString())
 
 
-  const PrepaymentAdd = '0x610178dA211FEF7D417bC0e6FeD39F05609AD788';
+  const PrepaymentAdd = '0x5FbDB2315678afecb367f032d93F642f64180aa3';
   let Prepayment = await ethers.getContractFactory('Prepayment')
   Prepayment = await Prepayment.attach(PrepaymentAdd)
   console.log('Prepayment Address:', Prepayment.address);
