@@ -1,0 +1,17 @@
+{
+  "KLAY/USD": {
+    "paymentAmount": 1,
+    "timeout": 10,
+    "validator": "0x0000000000000000000000000000000000000000",
+    "minSubmissionValue": 0,
+    "maxSubmissionValue": 1000,
+    "minSubmissionCount": 2,
+    "maxSubmissionCount": 3,
+    "decimals": 18,
+    "description": "KLAY/USD",
+    "minSubmissionCount": 2,
+      "maxSubmissionCount": 3,
+    "restartDelay": 0,
+    "oracle": []
+  }
+}
