@@ -21,7 +21,7 @@ async function main() {
   console.log('VRFCoordinator Address:', VRFCoordinator.address)
 
   // Register Proving Key
-  const oracle = '0xc3d9a9c86093f7bd4660c498c31ECBc76aA1d044' // Hardhat account 19
+  const oracle = '0x8626f6940E2eb28930eFb4CeF49B2d1F2C9C1199' // Hardhat account 19
   const publicProvingKey = [
     '95162740466861161360090244754314042169116280320223422208903791243647772670481',
     '53113177277038648369733569993581365384831203706597936686768754351087979105423'
@@ -40,15 +40,15 @@ async function main() {
   const gasAfterPaymentCalculation = 1_000
 
   const feeConfig = {
-    fulfillmentFlatFeeLinkPPMTier1: 1,
+    fulfillmentFlatFeeLinkPPMTier1: 0,
     fulfillmentFlatFeeLinkPPMTier2: 0,
-    fulfillmentFlatFeeLinkPPMTier3: 2,
-    fulfillmentFlatFeeLinkPPMTier4: 3,
-    fulfillmentFlatFeeLinkPPMTier5: 4,
-    reqsForTier2: 1,
-    reqsForTier3: 2,
-    reqsForTier4: 3,
-    reqsForTier5: 4
+    fulfillmentFlatFeeLinkPPMTier3: 0,
+    fulfillmentFlatFeeLinkPPMTier4: 0,
+    fulfillmentFlatFeeLinkPPMTier5: 0,
+    reqsForTier2: 0,
+    reqsForTier3: 0,
+    reqsForTier4: 0,
+    reqsForTier5: 0
   }
 
   // Configure VRF Coordinator
@@ -95,6 +95,8 @@ async function main() {
     })
   }
   await Prepayment.deposit(subId, {value:parseEther(10)})
+  const oracleRole=await Prepayment.ORACLE_ROLE();
+  await Prepayment.grantRole(oracleRole,VRFCoordinator.address)
 }
 
 main().catch((error) => {

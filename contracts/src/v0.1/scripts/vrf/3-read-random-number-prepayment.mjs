@@ -12,14 +12,19 @@ async function main() {
   const randomNumber = await VRFConsumerMock.s_randomResult()
   console.log('randomNumber', randomNumber.toString())
 
-
   const PrepaymentAdd = '0x5FbDB2315678afecb367f032d93F642f64180aa3';
   let Prepayment = await ethers.getContractFactory('Prepayment')
   Prepayment = await Prepayment.attach(PrepaymentAdd)
   console.log('Prepayment Address:', Prepayment.address);
 
   const balance= (await Prepayment.getSubscription(1));
-    console.log('balance', balance);
+  console.log('sub balance', balance);
+  const withdrawer_balance_before=await ethers.provider.getBalance((await Prepayment.owner()));
+  console.log('withdraw balance before', withdrawer_balance_before);
+  await Prepayment.ownerWithdraw();
+
+  const withdrawer_balance_after=await ethers.provider.getBalance((await Prepayment.owner()));
+  console.log('withdraw balance after', withdrawer_balance_after);
 
 }
 
