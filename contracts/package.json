@@ -1,12 +1,12 @@
 {
-  "name": "@bisonai/icn-contracts",
+  "name": "@bisonai-cic/icn-contracts",
   "version": "0.1.0",
   "type": "module",
   "description": "",
   "files": [
     "dist"
   ],
-    "engines": {
+  "engines": {
     "node": ">=18.12"
   },
   "exports": "./dist/typechain-types/index.js",
@@ -15,11 +15,15 @@
   "homepage": "https://github.com/bisonai-cic/ICN#readme",
   "license": "UNLICENSED",
   "scripts": {
+    "prepare": "cd .. && husky install contracts/.husky",
     "clean": "npx hardhat clean && rm -rf dist",
     "compile": "npx hardhat compile",
     "test": "yarn compile && npx hardhat test",
     "build": "tsc",
-    "pub": "yarn publish --access public"
+    "pub": "yarn publish --access public",
+    "solhint": "./node_modules/.bin/solhint -f table src/**/*.sol",
+    "prettier:solidity": "./node_modules/.bin/prettier --write src/**/*.sol",
+    "eslint": "DEBUG=eslint:cli-engine npx eslint 'scripts/**'"
   },
   "devDependencies": {
     "@ethersproject/abi": "^5.4.7",
@@ -36,20 +40,30 @@
     "@types/chai": "^4.2.0",
     "@types/mocha": "^9.1.0",
     "@types/node": ">=12.0.0",
+    "@typescript-eslint/eslint-plugin": "^5.47.0",
+    "@typescript-eslint/parser": "^5.47.0",
     "axios": "^1.2.0",
     "chai": "^4.2.0",
     "dotenv": "^16.0.1",
+    "eslint": "^8.30.0",
+    "eslint-config-prettier": "^8.5.0",
+    "eslint-plugin-prettier": "^4.2.1",
     "esm": "^3.2.25",
     "ethers": "^5.4.7",
     "got": "^12.5.3",
     "hardhat": "^2.12.0-esm.1",
     "hardhat-gas-reporter": "^1.0.8",
+    "husky": "^8.0.2",
+    "prettier": "^2.8.1",
+    "prettier-plugin-solidity": "^1.1.0",
+    "solhint": "^3.3.7",
+    "solhint-plugin-prettier": "^0.0.5",
     "solidity-coverage": "^0.7.21",
     "ts-node": ">=8.0.0",
     "typechain": "^8.1.0",
     "typescript": "^4.9.3"
   },
-  "dependencies": {
-    "openzeppelin-solidity": "^4.6.0"
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
   }
 }
