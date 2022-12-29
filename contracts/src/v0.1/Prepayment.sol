@@ -310,6 +310,6 @@ contract Prepayment is Ownable, AccessControlEnumerable, PrepaymentInterface {
     }
 
     function typeAndVersion() external pure virtual returns (string memory) {
-        return "Subscription 0.1";
+        return "Prepayment v0.1";
     }
 }

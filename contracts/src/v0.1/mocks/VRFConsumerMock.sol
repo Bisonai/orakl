@@ -46,6 +46,6 @@ contract VRFConsumerMock is VRFConsumerBase {
   function fulfillRandomWords(uint256 /* requestId */, uint256[] memory randomWords) internal override {
     // requestId should be checked if it matches the expected request
     //s_randomResult = (randomWords[0] % 50) + 1;
-    s_randomResult=randomWords[0];
+    s_randomResult = randomWords[0];
   }
 }
