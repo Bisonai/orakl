@@ -1,6 +1,6 @@
 {
   "compilerOptions": {
-    "module": "es2022",
+    "module": "commonjs",
     "moduleResolution": "node",
     "target": "es2022",
     "strict": true,
@@ -8,6 +8,6 @@
     "outDir": "dist",
     "declaration": true
   },
-  "include": ["./typechain-types"],
+  "include": ["./typechain-types", "./hardhat.config.ts", "./scripts", "./deploy", "./test"],
   "files": ["hardhat.config.cts"]
 }
