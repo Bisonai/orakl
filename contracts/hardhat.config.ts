@@ -46,6 +46,9 @@ const config: HardhatUserConfig = {
   namedAccounts: {
     deployer: {
       default: 0
+    },
+    consumer: {
+      default: 19
     }
   }
 }
