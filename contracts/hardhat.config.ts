@@ -48,7 +48,16 @@ const config: HardhatUserConfig = {
       default: 0
     },
     consumer: {
-      default: 19
+      default: 1
+    },
+    feedOracle0: {
+      default: 2
+    },
+    feedOracle1: {
+      default: 3
+    },
+    feedOracle2: {
+      default: 4
     }
   }
 }
