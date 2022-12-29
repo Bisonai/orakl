@@ -52,6 +52,13 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     from: deployer,
     log: true
   })
+
+  // Data feed consumer
+  await deploy('DataFeedConsumerMock', {
+    args: [aggregatorProxyDeployment.address],
+    from: consumer,
+    log: true
+  })
 }
 
 export default func

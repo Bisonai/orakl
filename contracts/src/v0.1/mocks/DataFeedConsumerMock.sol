@@ -3,23 +3,24 @@ pragma solidity ^0.8.16;
 
 import "../interfaces/AggregatorInterface.sol";
 
-contract PriceConsumer {
+contract DataFeedConsumerMock {
     AggregatorInterface internal priceFeed;
+    int256 public s_price;
 
-    constructor() {
+    constructor(address _aggregatorProxy) {
         priceFeed = AggregatorInterface(
-            0xD4a33860578De61DBAbDc8BFdb98FD742fA7028e // FIXME
+            _aggregatorProxy
         );
     }
 
-    function getLatestPrice() public view returns (int) {
+    function getLatestPrice() public {
        (
            /*uint80 roundID*/,
-           int price,
+           int256 price,
            /*uint startedAt*/,
            /*uint timeStamp*/,
            /*uint80 answeredInRound*/
        ) = priceFeed.latestRoundData();
-       return price;
+       s_price = price;
     }
 }
