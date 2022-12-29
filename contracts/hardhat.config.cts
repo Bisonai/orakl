@@ -8,7 +8,9 @@ dotenv.config()
 
 const commonConfig = {
   gas: 5_000_000,
-  accounts: ["798feb1b9e4a7b046a52807e4f4064a23ce9a546c303f58cbad7b4fa6ae33e85"]
+  accounts: {
+    mnemonic: process.env.MNEMONIC || ''
+  }
 }
 
 const config: HardhatUserConfig = {
