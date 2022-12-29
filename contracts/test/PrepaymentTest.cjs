@@ -914,7 +914,7 @@ describe("Prepayment contract", function () {
     await prepayment.createSubscription();
 
     // Fixtures can return anything you consider useful for your tests
-    return { prepayment, owner, coordinator, consumer};
+    return { prepayment, owner, coordinator, consumer };
   }
 
   it.skip("Should create subscription", async function () {
@@ -1034,7 +1034,7 @@ describe("Prepayment contract", function () {
         console.log(parseInt(log.topics[1], 16))
       }
     }
-    const expected2 = ethers.BigNumber.from((await ethers.provider.getBalance(owner.address)))
+   // const expected2 = ethers.BigNumber.from((await ethers.provider.getBalance(owner.address)))
     //Deposit
     const transactionDeposit = await prePayment.deposit(SubID, { value: 100000 });
     //Check balance Before & After
@@ -1060,44 +1060,44 @@ describe("Prepayment contract", function () {
     expect(balanceOwnerAfter).to.be.greaterThan(balanceOwnerBefore)
     //expect(expected.isEqual(actual)).to.be.true;
   });
-  it.skip('Should cancel subscription without pending', async function () {
+  it.skip('Should cancel subscription, pending tx', async function () {
     const { prepayment, owner } = await loadFixture(
       deployMockFixture
     );
     await prepayment.cancelSubscription(1, owner.address);
   })
-  it('Should not cancel subscription with pending', async function () {
+  it.skip('Should not cancel subscription with pending tx', async function () {
     const { prepayment, owner, coordinator, consumer } = await loadFixture(
       deployMockFixture
     );
     // Register Proving Key
     const oracle = owner.address // Hardhat account 19
     const publicProvingKey = [
-        '95162740466861161360090244754314042169116280320223422208903791243647772670481',
-        '53113177277038648369733569993581365384831203706597936686768754351087979105423'
+      '95162740466861161360090244754314042169116280320223422208903791243647772670481',
+      '53113177277038648369733569993581365384831203706597936686768754351087979105423'
     ]
     await coordinator.registerProvingKey(oracle, publicProvingKey);
     const minimumRequestConfirmations = 3
     const maxGasLimit = 1_000_000
     const gasAfterPaymentCalculation = 1_000
     const feeConfig = {
-        fulfillmentFlatFeeLinkPPMTier1: 0,
-        fulfillmentFlatFeeLinkPPMTier2: 0,
-        fulfillmentFlatFeeLinkPPMTier3: 0,
-        fulfillmentFlatFeeLinkPPMTier4: 0,
-        fulfillmentFlatFeeLinkPPMTier5: 0,
-        reqsForTier2: 0,
-        reqsForTier3: 0,
-        reqsForTier4: 0,
-        reqsForTier5: 0
+      fulfillmentFlatFeeLinkPPMTier1: 0,
+      fulfillmentFlatFeeLinkPPMTier2: 0,
+      fulfillmentFlatFeeLinkPPMTier3: 0,
+      fulfillmentFlatFeeLinkPPMTier4: 0,
+      fulfillmentFlatFeeLinkPPMTier5: 0,
+      reqsForTier2: 0,
+      reqsForTier3: 0,
+      reqsForTier4: 0,
+      reqsForTier5: 0
     }
 
     // Configure VRF Coordinator
     await coordinator.setConfig(
-        minimumRequestConfirmations,
-        maxGasLimit,
-        gasAfterPaymentCalculation,
-        feeConfig
+      minimumRequestConfirmations,
+      maxGasLimit,
+      gasAfterPaymentCalculation,
+      feeConfig
     )
 
     const subId = 1
@@ -1107,5 +1107,46 @@ describe("Prepayment contract", function () {
     await consumer.requestRandomWords();
 
     await expect(prepayment.cancelSubscription(1, owner.address)).to.be.revertedWithCustomError(prepayment, 'PendingRequestExists');
-})
+  })
+  it('Should remove Coordinator', async function () {
+    const { prepayment, owner, coordinator, consumer } = await loadFixture(
+      deployMockFixture
+    );
+    // Register Proving Key
+    const oracle = owner.address // Hardhat account 19
+    const publicProvingKey = [
+      '95162740466861161360090244754314042169116280320223422208903791243647772670481',
+      '53113177277038648369733569993581365384831203706597936686768754351087979105423'
+    ]
+    await coordinator.registerProvingKey(oracle, publicProvingKey);
+    const minimumRequestConfirmations = 3
+    const maxGasLimit = 1_000_000
+    const gasAfterPaymentCalculation = 1_000
+    const feeConfig = {
+      fulfillmentFlatFeeLinkPPMTier1: 0,
+      fulfillmentFlatFeeLinkPPMTier2: 0,
+      fulfillmentFlatFeeLinkPPMTier3: 0,
+      fulfillmentFlatFeeLinkPPMTier4: 0,
+      fulfillmentFlatFeeLinkPPMTier5: 0,
+      reqsForTier2: 0,
+      reqsForTier3: 0,
+      reqsForTier4: 0,
+      reqsForTier5: 0
+    }
+
+    // Configure VRF Coordinator
+    await coordinator.setConfig(
+      minimumRequestConfirmations,
+      maxGasLimit,
+      gasAfterPaymentCalculation,
+      feeConfig
+    )
+
+    const subId = 1
+    await prepayment.addConsumer(subId, consumer.address);
+    await prepayment.addCoordinator(coordinator.address);
+    const tx=await (await prepayment.removeCoordinator(coordinator.address)).wait()
+    //const balanceSubBefore = await prepayment.getSubscription(subId);
+    expect(tx.status).to.equal(1)
+  })
 });
