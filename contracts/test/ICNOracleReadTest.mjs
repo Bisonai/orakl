@@ -22,7 +22,7 @@ async function callAPI(url) {
   return res.data
 }
 
-describe.skip('Fetch data from API using Oracle', function () {
+describe('Fetch data from API using Oracle', function () {
   let ICNOracle
   beforeEach(async function () {
     // Deploy ICN Oracle

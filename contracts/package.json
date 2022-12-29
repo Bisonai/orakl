@@ -18,6 +18,9 @@
     "build": "tsc",
     "pub": "yarn publish --access public"
   },
+  "engines": {
+    "node": ">=18.12"
+  },
   "devDependencies": {
     "@ethersproject/abi": "^5.4.7",
     "@ethersproject/providers": "^5.4.7",

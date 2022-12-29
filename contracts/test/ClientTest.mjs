@@ -6,7 +6,7 @@ import pkg from 'hardhat'
 import assert from 'node:assert'
 const { ethers } = pkg
 
-describe.skip('ICN Client Contract', function () {
+describe('ICN Client Contract', function () {
   let UserContract
   let ICNOracle
 
