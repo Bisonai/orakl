@@ -64,21 +64,20 @@ contract Prepayment is Ownable, AccessControlEnumerable, PrepaymentInterface {
     // get all the current subscriptions via getSubscription.
     uint64 private s_currentSubId;
 
+    uint96 public s_withdrawable;
+
     CoordinatorBaseInterface[] private s_Coordinators;
 
-    function getTotalBalance() external view  returns (uint256)  {
+    function getTotalBalance() external view returns (uint256) {
         return s_totalBalance;
     }
 
-    function getSubscription(uint64 subId)
+    function getSubscription(
+        uint64 subId
+    )
         external
         view
-        returns (
-            uint96 balance,
-            uint64 reqCount,
-            address owner,
-            address[] memory consumers
-        )
+        returns (uint96 balance, uint64 reqCount, address owner, address[] memory consumers)
     {
         if (s_subscriptionConfigs[subId].owner == address(0)) {
             revert InvalidSubscription();
@@ -106,10 +105,10 @@ contract Prepayment is Ownable, AccessControlEnumerable, PrepaymentInterface {
         return currentSubId;
     }
 
-    function requestSubscriptionOwnerTransfer(uint64 subId, address newOwner)
-        external 
-        onlySubOwner(subId)
-    {
+    function requestSubscriptionOwnerTransfer(
+        uint64 subId,
+        address newOwner
+    ) external onlySubOwner(subId) {
         // Proposing to address(0) would never be claimable so don't need to check.
         if (s_subscriptionConfigs[subId].requestedOwner != newOwner) {
             s_subscriptionConfigs[subId].requestedOwner = newOwner;
@@ -130,10 +129,7 @@ contract Prepayment is Ownable, AccessControlEnumerable, PrepaymentInterface {
         emit SubscriptionOwnerTransferred(subId, oldOwner, msg.sender);
     }
 
-    function removeConsumer(uint64 subId, address consumer)
-        external 
-        onlySubOwner(subId)
-    {
+    function removeConsumer(uint64 subId, address consumer) external onlySubOwner(subId) {
         if (s_consumers[consumer][subId] == 0) {
             revert InvalidConsumer(subId, consumer);
         }
@@ -154,7 +150,7 @@ contract Prepayment is Ownable, AccessControlEnumerable, PrepaymentInterface {
         emit SubscriptionConsumerRemoved(subId, consumer);
     }
 
-    function addConsumer(uint64 subId, address consumer) external  onlySubOwner(subId){
+    function addConsumer(uint64 subId, address consumer) external onlySubOwner(subId) {
         // Already maxed, cannot add any more consumers.
         if (s_subscriptionConfigs[subId].consumers.length >= MAX_CONSUMERS) {
             revert TooManyConsumers();
@@ -171,10 +167,7 @@ contract Prepayment is Ownable, AccessControlEnumerable, PrepaymentInterface {
         emit SubscriptionConsumerAdded(subId, consumer);
     }
 
-    function cancelSubscription(uint64 subId, address to)
-        external 
-        onlySubOwner(subId)
-    {
+    function cancelSubscription(uint64 subId, address to) external onlySubOwner(subId) {
         if (pendingRequestExists(subId)) {
             revert PendingRequestExists();
         }
@@ -202,29 +195,34 @@ contract Prepayment is Ownable, AccessControlEnumerable, PrepaymentInterface {
         SubscriptionConfig memory subConfig = s_subscriptionConfigs[subId];
         for (uint256 i = 0; i < subConfig.consumers.length; i++) {
             for (uint256 j = 0; j < s_Coordinators.length; j++) {
-                bool rs=s_Coordinators[j].pendingRequestExists(subId,subConfig.consumers[i],s_consumers[subConfig.consumers[i]][subId]);
-                if(rs==true)
-                    return rs;
+                bool rs = s_Coordinators[j].pendingRequestExists(
+                    subId,
+                    subConfig.consumers[i],
+                    s_consumers[subConfig.consumers[i]][subId]
+                );
+                if (rs == true) return rs;
             }
         }
         return false;
     }
 
-    function decreaseSubBalance(uint64 subId,uint96 amount) external onlyOracle {
+    function decreaseSubBalance(uint64 subId, uint96 amount) external onlyOracle {
         if (s_subscriptions[subId].balance < amount) {
             revert InsufficientBalance();
         }
         uint96 oldBalance = s_subscriptions[subId].balance;
         s_subscriptions[subId].balance -= amount;
         //increase request count
-        s_subscriptions[subId].reqCount+=1;
+        s_subscriptions[subId].reqCount += 1;
         uint96 newBalance = s_subscriptions[subId].balance;
+        s_withdrawable += amount;
         emit SubscriptionDecreased(subId, oldBalance, newBalance);
     }
+
     /// anybody can deposit, they just need to know the subID
-    function deposit(uint64 subId) external payable  {
-        uint96 amount=  uint96(msg.value);
-        require(msg.sender.balance >=msg.value, "Insufficient account balance");
+    function deposit(uint64 subId) external payable {
+        uint96 amount = uint96(msg.value);
+        require(msg.sender.balance >= msg.value, "Insufficient account balance");
         uint96 oldBalance = s_subscriptions[subId].balance;
         s_subscriptions[subId].balance += amount;
         s_totalBalance += amount;
@@ -232,18 +230,18 @@ contract Prepayment is Ownable, AccessControlEnumerable, PrepaymentInterface {
         emit SubscriptionFunded(subId, oldBalance, newBalance);
     }
 
-    function withdraw(uint64 subId,uint96 amount) external onlySubOwner(subId){
+    function withdraw(uint64 subId, uint96 amount) external onlySubOwner(subId) {
         if (s_subscriptions[subId].balance < amount) {
             revert InsufficientBalance();
         }
-        require(address(this).balance >=amount, "Prepayment: Insufficient account balance");
+        require(address(this).balance >= amount, "Prepayment: Insufficient account balance");
         uint256 oldBalance = s_subscriptions[subId].balance;
         s_subscriptions[subId].balance -= amount;
         uint256 newBalance = s_subscriptions[subId].balance;
         payable(msg.sender).transfer(amount);
         emit SubscriptionDecreased(subId, oldBalance, newBalance);
     }
-    
+
     function addCoordinator(CoordinatorBaseInterface coordinator) public onlyOwner {
         s_Coordinators.push(coordinator);
     }
@@ -262,20 +260,29 @@ contract Prepayment is Ownable, AccessControlEnumerable, PrepaymentInterface {
         }
     }
 
-    receive() external payable{    
+    function ownerWithdraw() external onlyWithdrawer {
+        require(
+            s_withdrawable > 0 && address(this).balance > s_withdrawable,
+            "Insufficient balance"
+        );
+        payable(msg.sender).transfer(s_withdrawable);
+        /// only for us, do we need to emit event here?
     }
 
-    function getNonce(address consumer,uint64 subId) external view  returns(uint64) {
-       return s_consumers[consumer][subId];
+    receive() external payable {}
+
+    function getNonce(address consumer, uint64 subId) external view returns (uint64) {
+        return s_consumers[consumer][subId];
     }
 
-    function increaseNonce(address consumer,uint64 subId) external {
-       s_consumers[consumer][subId]+=1;
+    function increaseNonce(address consumer, uint64 subId) external {
+        s_consumers[consumer][subId] += 1;
     }
 
-    function getSubOwner(uint64 subId)external view returns(address owner){
+    function getSubOwner(uint64 subId) external view returns (address owner) {
         return s_subscriptionConfigs[subId].owner;
     }
+
     modifier onlySubOwner(uint64 subId) {
         address owner = s_subscriptionConfigs[subId].owner;
         if (owner == address(0)) {
@@ -288,7 +295,7 @@ contract Prepayment is Ownable, AccessControlEnumerable, PrepaymentInterface {
     }
     modifier onlyWithdrawer() {
         require(
-            owner() == msg.sender || hasRole(WITHDRAWER_ROLE, msg.sender),
+            hasRole(WITHDRAWER_ROLE, msg.sender),
             "Caller is not a withdrawer"
         );
         _;
@@ -296,11 +303,12 @@ contract Prepayment is Ownable, AccessControlEnumerable, PrepaymentInterface {
 
     modifier onlyOracle() {
         require(
-            owner() == msg.sender || hasRole(ORACLE_ROLE, msg.sender),
-            "Caller is not a oracle"
+            hasRole(ORACLE_ROLE, msg.sender),
+            "Caller is not an oracle"
         );
         _;
     }
+
     function typeAndVersion() external pure virtual returns (string memory) {
         return "Subscription 0.1";
     }
