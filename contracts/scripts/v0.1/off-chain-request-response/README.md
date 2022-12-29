@@ -6,11 +6,11 @@ To deploy the smart contracts, run `npx hardhat deploy --network localhost`.
 ## Make request
 
 ```
-npx hardhat --network localhost run make-request.mjs
+npx hardhat --network localhost run make-request.ts
 ```
 
 ## Read response
 
 ```
-npx hardhat --network localhost run read-response.mjs
+npx hardhat --network localhost run read-response.ts
 ```
