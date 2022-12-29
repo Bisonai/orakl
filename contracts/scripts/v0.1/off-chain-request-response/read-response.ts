@@ -1,5 +1,4 @@
-import pkg from 'hardhat'
-const { ethers } = pkg
+import { ethers } from 'hardhat'
 
 async function main() {
   const userContract = await ethers.getContract('RequestResponseConsumerMock')
