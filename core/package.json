@@ -9,19 +9,18 @@
   "engines": {
     "node": ">=18.12"
   },
-  "exports": "./dist/src/listener.js",
   "author": "Bisonai",
   "license": "UNLICENSED",
   "scripts": {
     "prepare": "cd .. && husky install core/.husky",
     "clean": "rm -rf dist",
     "build": "yarn clean && tsc",
-    "start:listener": "node --experimental-specifier-resolution=node --experimental-json-modules /app/dist/src/listener/listener.js",
+    "start:listener": "node --experimental-specifier-resolution=node --experimental-json-modules dist/listener/listener.js",
     "start:listener:vrf": "yarn start:listener --listener VRF",
     "start:listener:icn": "yarn start:listener --listener ICN",
-    "start:worker": "node --experimental-specifier-resolution=node --experimental-json-modules dist/src/worker.js",
-    "start:reporter": "node --experimental-specifier-resolution=node --experimental-json-modules dist/src/reporter.js",
-    "keygen": "node --experimental-specifier-resolution=node --experimental-json-modules dist/src/cli/vrf-keygen.js",
+    "start:worker": "node --experimental-specifier-resolution=node --experimental-json-modules dist/worker.js",
+    "start:reporter": "node --experimental-specifier-resolution=node --experimental-json-modules dist/reporter.js",
+    "keygen": "node --experimental-specifier-resolution=node --experimental-json-modules dist/cli/vrf-keygen.js",
     "test": "jest",
     "eslint": "DEBUG=eslint:cli-engine npx eslint 'src/**/*.ts' 'src/*.ts' 'test/*.ts'"
   },

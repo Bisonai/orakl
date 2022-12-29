@@ -1,3 +1,4 @@
+import * as Path from 'node:path'
 import { aggregatorMapping } from './aggregator'
 import { LOCAL_AGGREGATOR, REDIS_HOST, REDIS_PORT } from './load-parameters'
 
@@ -24,6 +25,12 @@ export const BULLMQ_CONNECTION = {
 
 export const ADAPTER_ROOT_DIR = './adapter/'
 
-export const LISTENER_ROOT_DIR = './listener/'
+export const LISTENER_ROOT_DIR = './tmp/listener/'
+
+export const CONFIG_ROOT_DIR = './config/'
+
+export const LISTENER_CONFIG_FILE = Path.join(CONFIG_ROOT_DIR, 'listener.json')
+
+export const VRF_CONFIG_FILE = Path.join(CONFIG_ROOT_DIR, 'vrf.json')
 
 export const LISTENER_DELAY = 500

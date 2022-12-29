@@ -2,7 +2,6 @@
 
 This directory contains an implementation of ECVRF that was proposed at [draft-irtf-cfrg-vrf-10](https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-vrf-10).
 
-
 ## Basics
 
 ```
@@ -21,8 +20,8 @@ VRF_hash(SK, alpha) = VRF_proof_to_hash(VRF_prove(SK, alpha))
 
 Some parts of code were inspired by or copied from
 
-* [node-ecrg](https://github.com/KenshiTech/node-ecvrf)
-* [vrf-ts-256](https://github.com/cbrpunks/vrf-ts-256)
+- [node-ecrg](https://github.com/KenshiTech/node-ecvrf)
+- [vrf-ts-256](https://github.com/cbrpunks/vrf-ts-256)
 
 ## License
 

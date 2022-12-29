@@ -25,11 +25,11 @@ import {
   WORKER_VRF_QUEUE_NAME,
   REPORTER_VRF_QUEUE_NAME,
   BULLMQ_CONNECTION,
-  ADAPTER_ROOT_DIR
+  ADAPTER_ROOT_DIR,
+  VRF_CONFIG_FILE
 } from './settings'
 import { decodeAnyApiRequest } from './decoding'
 import { prove, decode, getFastVerifyComponents } from './vrf/index'
-import { VRF_SK, VRF_PK, VRF_PK_X, VRF_PK_Y } from './load-parameters'
 
 async function main() {
   const adapters = (await loadAdapters())[0] // FIXME take all adapters
@@ -45,7 +45,7 @@ async function main() {
     BULLMQ_CONNECTION
   )
 
-  new Worker(WORKER_VRF_QUEUE_NAME, vrfJob(REPORTER_VRF_QUEUE_NAME), BULLMQ_CONNECTION)
+  new Worker(WORKER_VRF_QUEUE_NAME, await vrfJob(REPORTER_VRF_QUEUE_NAME), BULLMQ_CONNECTION)
 }
 
 function extractFeeds(adapter) {
@@ -184,8 +184,10 @@ function predefinedFeedJob(queueName, adapters) {
   return wrapper
 }
 
-function vrfJob(queueName) {
+async function vrfJob(queueName) {
   const queue = new Queue(queueName, BULLMQ_CONNECTION)
+  // FIXME add checks if exists and if includes all information
+  const vrfConfig = await loadJson(VRF_CONFIG_FILE)
 
   async function wrapper(job) {
     const inData: IVrfListenerWorker = job.data
@@ -197,7 +199,7 @@ function vrfJob(queueName) {
       )
 
       console.debug('vrfJob:alpha', alpha)
-      const { pk, proof, uPoint, vComponents } = processVrfRequest(alpha)
+      const { pk, proof, uPoint, vComponents } = processVrfRequest(alpha, vrfConfig)
 
       const outData: IVrfWorkerReporter = {
         callbackAddress: inData.callbackAddress,
@@ -226,12 +228,12 @@ function vrfJob(queueName) {
   return wrapper
 }
 
-function processVrfRequest(alpha: string): IVrfResponse {
+function processVrfRequest(alpha: string, config): IVrfResponse {
   console.debug('processVrfRequest:alpha', alpha)
 
-  const proof = prove(VRF_SK, alpha)
+  const proof = prove(config.VRF_SK, alpha)
   const [Gamma, c, s] = decode(proof)
-  const fast = getFastVerifyComponents(VRF_PK, proof, alpha)
+  const fast = getFastVerifyComponents(config.VRF_PK, proof, alpha)
 
   if (fast == 'INVALID') {
     console.error('INVALID')
@@ -240,7 +242,7 @@ function processVrfRequest(alpha: string): IVrfResponse {
   }
 
   return {
-    pk: [VRF_PK_X, VRF_PK_Y],
+    pk: [config.VRF_PK_X, config.VRF_PK_Y],
     proof: [Gamma.x.toString(), Gamma.y.toString(), c.toString(), s.toString()],
     uPoint: [fast.uX, fast.uY],
     vComponents: [fast.sHX, fast.sHY, fast.cGX, fast.cGY]
