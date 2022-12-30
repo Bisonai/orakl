@@ -2,7 +2,6 @@
 pragma solidity ^0.8.16;
 
 interface PrepaymentInterface {
-    ///// from VRFcoordinator /////
 
     function getSubscription(uint64 subId) external view
         returns (uint96 balance, uint64 reqCount, address owner, address[] memory consumers);
