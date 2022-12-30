@@ -26,7 +26,7 @@ interface PrepaymentInterface {
 
     function getNonce(address consumer,uint64 subId) external view returns(uint64);
 
-    function increaseNonce(address consumer,uint64 subId) external;
+    function increaseNonce(address consumer, uint64 subId) external;
 
     function getSubOwner(uint64 subId)external returns(address owner);
 }
