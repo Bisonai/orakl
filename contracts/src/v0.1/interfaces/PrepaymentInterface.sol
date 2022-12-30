@@ -18,7 +18,6 @@ interface PrepaymentInterface {
 
     function cancelSubscription(uint64 subId, address to) external;
 
-    ///// added interfaces /////
     function deposit(uint64 subId) payable external;
 
     function withdraw(uint64 subId, uint96 amount) external;
