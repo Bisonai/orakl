@@ -28,11 +28,6 @@ contract Prepayment is Ownable, AccessControlEnumerable, PrepaymentInterface {
 
     bytes32 public constant WITHDRAWER_ROLE = keccak256("WITHDRAWER_ROLE");
     bytes32 public constant ORACLE_ROLE = keccak256("ORACLE_ROLE");
-
-    constructor() {
-        _setupRole(DEFAULT_ADMIN_ROLE, _msgSender());
-    }
-
     struct Account {
         // There are only 1e9*1e18 = 1e27 juels in existence, so the balance can fit in uint96 (2^96 ~ 7e28)
         uint96 balance; // Common link balance used for all consumer requests.
@@ -49,7 +44,6 @@ contract Prepayment is Ownable, AccessControlEnumerable, PrepaymentInterface {
         // consumer is valid without reading all the consumers from storage.
         address[] consumers;
     }
-
     mapping(address => mapping(uint64 => uint64)) private s_consumers;
 
     /* accId */
@@ -66,7 +60,13 @@ contract Prepayment is Ownable, AccessControlEnumerable, PrepaymentInterface {
 
     uint96 public s_withdrawable;
 
-    CoordinatorBaseInterface[] private s_Coordinators;
+    CoordinatorBaseInterface[] private s_coordinators;
+
+    constructor() {
+        _setupRole(DEFAULT_ADMIN_ROLE, _msgSender());
+    }
+
+    receive() external payable {}
 
     function getTotalBalance() external view returns (uint256) {
         return s_totalBalance;
@@ -174,6 +174,96 @@ contract Prepayment is Ownable, AccessControlEnumerable, PrepaymentInterface {
         cancelAccountHelper(accId, to);
     }
 
+    function withdraw(uint64 accId, uint96 amount) external onlyAccOwner(accId) {
+        if (s_accounts[accId].balance < amount) {
+            revert InsufficientBalance();
+        }
+        require(address(this).balance >= amount, "Prepayment: Insufficient account balance");
+        uint256 oldBalance = s_accounts[accId].balance;
+        s_accounts[accId].balance -= amount;
+        uint256 newBalance = s_accounts[accId].balance;
+        payable(msg.sender).transfer(amount);
+        emit AccountDecreased(accId, oldBalance, newBalance);
+    }
+
+    /// anybody can deposit, they just need to know the accID
+    function deposit(uint64 accId) external payable {
+        uint96 amount = uint96(msg.value);
+        require(msg.sender.balance >= msg.value, "Insufficient account balance");
+        uint96 oldBalance = s_accounts[accId].balance;
+        s_accounts[accId].balance += amount;
+        s_totalBalance += amount;
+        uint96 newBalance = s_accounts[accId].balance;
+        emit AccountFunded(accId, oldBalance, newBalance);
+    }
+
+    function chargeFee(uint64 accId, uint96 amount) external onlyOracle {
+        if (s_accounts[accId].balance < amount) {
+            revert InsufficientBalance();
+        }
+        uint96 oldBalance = s_accounts[accId].balance;
+        s_accounts[accId].balance -= amount;
+        //increase request count
+        s_accounts[accId].reqCount += 1;
+        uint96 newBalance = s_accounts[accId].balance;
+        s_withdrawable += amount;
+        emit AccountDecreased(accId, oldBalance, newBalance);
+    }
+
+    function ownerWithdraw() external onlyWithdrawer {
+        require(
+            s_withdrawable > 0 && address(this).balance > s_withdrawable,
+            "Insufficient balance"
+        );
+        payable(msg.sender).transfer(s_withdrawable);
+        /// only for us, do we need to emit event here?
+    }
+
+    function getNonce(address consumer, uint64 accId) external view returns (uint64) {
+        return s_consumers[consumer][accId];
+    }
+
+    function increaseNonce(address consumer, uint64 accId) external {
+        s_consumers[consumer][accId] += 1;
+    }
+
+    function getAccOwner(uint64 accId) external view returns (address owner) {
+        return s_accountConfigs[accId].owner;
+    }
+
+    function pendingRequestExists(uint64 accId) public view returns (bool) {
+        AccountConfig memory accConfig = s_accountConfigs[accId];
+        for (uint256 i = 0; i < accConfig.consumers.length; i++) {
+            for (uint256 j = 0; j < s_coordinators.length; j++) {
+                bool rs = s_coordinators[j].pendingRequestExists(
+                    accId,
+                    accConfig.consumers[i],
+                    s_consumers[accConfig.consumers[i]][accId]
+                );
+                if (rs == true) return rs;
+            }
+        }
+        return false;
+    }
+
+    function addCoordinator(CoordinatorBaseInterface coordinator) public onlyOwner {
+        s_coordinators.push(coordinator);
+    }
+
+    function removeCoordinator(CoordinatorBaseInterface coordinator) public onlyOwner {
+        uint256 lastCoordinatorIndex = s_coordinators.length - 1;
+        for (uint256 i = 0; i < s_coordinators.length; i++) {
+            if (s_coordinators[i] == coordinator) {
+                CoordinatorBaseInterface last = s_coordinators[lastCoordinatorIndex];
+                // Storage write to preserve last element
+                s_coordinators[i] = last;
+                // Storage remove last element
+                s_coordinators.pop();
+                break;
+            }
+        }
+    }
+
     function cancelAccountHelper(uint64 accId, address to) private {
         AccountConfig memory accConfig = s_accountConfigs[accId];
         Account memory acc = s_accounts[accId];
@@ -191,98 +281,6 @@ contract Prepayment is Ownable, AccessControlEnumerable, PrepaymentInterface {
         emit AccountCanceled(accId, to, balance);
     }
 
-    function pendingRequestExists(uint64 accId) public view returns (bool) {
-        AccountConfig memory accConfig = s_accountConfigs[accId];
-        for (uint256 i = 0; i < accConfig.consumers.length; i++) {
-            for (uint256 j = 0; j < s_Coordinators.length; j++) {
-                bool rs = s_Coordinators[j].pendingRequestExists(
-                    accId,
-                    accConfig.consumers[i],
-                    s_consumers[accConfig.consumers[i]][accId]
-                );
-                if (rs == true) return rs;
-            }
-        }
-        return false;
-    }
-
-    function decreaseAccBalance(uint64 accId, uint96 amount) external onlyOracle {
-        if (s_accounts[accId].balance < amount) {
-            revert InsufficientBalance();
-        }
-        uint96 oldBalance = s_accounts[accId].balance;
-        s_accounts[accId].balance -= amount;
-        //increase request count
-        s_accounts[accId].reqCount += 1;
-        uint96 newBalance = s_accounts[accId].balance;
-        s_withdrawable += amount;
-        emit AccountDecreased(accId, oldBalance, newBalance);
-    }
-
-    /// anybody can deposit, they just need to know the accID
-    function deposit(uint64 accId) external payable {
-        uint96 amount = uint96(msg.value);
-        require(msg.sender.balance >= msg.value, "Insufficient account balance");
-        uint96 oldBalance = s_accounts[accId].balance;
-        s_accounts[accId].balance += amount;
-        s_totalBalance += amount;
-        uint96 newBalance = s_accounts[accId].balance;
-        emit AccountFunded(accId, oldBalance, newBalance);
-    }
-
-    function withdraw(uint64 accId, uint96 amount) external onlyAccOwner(accId) {
-        if (s_accounts[accId].balance < amount) {
-            revert InsufficientBalance();
-        }
-        require(address(this).balance >= amount, "Prepayment: Insufficient account balance");
-        uint256 oldBalance = s_accounts[accId].balance;
-        s_accounts[accId].balance -= amount;
-        uint256 newBalance = s_accounts[accId].balance;
-        payable(msg.sender).transfer(amount);
-        emit AccountDecreased(accId, oldBalance, newBalance);
-    }
-
-    function addCoordinator(CoordinatorBaseInterface coordinator) public onlyOwner {
-        s_Coordinators.push(coordinator);
-    }
-
-    function removeCoordinator(CoordinatorBaseInterface coordinator) public onlyOwner {
-        uint256 lastCoordinatorIndex = s_Coordinators.length - 1;
-        for (uint256 i = 0; i < s_Coordinators.length; i++) {
-            if (s_Coordinators[i] == coordinator) {
-                CoordinatorBaseInterface last = s_Coordinators[lastCoordinatorIndex];
-                // Storage write to preserve last element
-                s_Coordinators[i] = last;
-                // Storage remove last element
-                s_Coordinators.pop();
-                break;
-            }
-        }
-    }
-
-    function ownerWithdraw() external onlyWithdrawer {
-        require(
-            s_withdrawable > 0 && address(this).balance > s_withdrawable,
-            "Insufficient balance"
-        );
-        payable(msg.sender).transfer(s_withdrawable);
-        /// only for us, do we need to emit event here?
-    }
-
-    receive() external payable {}
-
-    function getNonce(address consumer, uint64 accId) external view returns (uint64) {
-        return s_consumers[consumer][accId];
-    }
-
-    function increaseNonce(address consumer, uint64 accId) external {
-        s_consumers[consumer][accId] += 1;
-    }
-
-    function getAccOwner(uint64 accId) external view returns (address owner) {
-        return s_accountConfigs[accId].owner;
-    }
-
     modifier onlyAccOwner(uint64 accId) {
         address owner = s_accountConfigs[accId].owner;
         if (owner == address(0)) {
@@ -294,18 +292,12 @@ contract Prepayment is Ownable, AccessControlEnumerable, PrepaymentInterface {
         _;
     }
     modifier onlyWithdrawer() {
-        require(
-            hasRole(WITHDRAWER_ROLE, msg.sender),
-            "Caller is not a withdrawer"
-        );
+        require(hasRole(WITHDRAWER_ROLE, msg.sender), "Caller is not a withdrawer");
         _;
     }
 
     modifier onlyOracle() {
-        require(
-            hasRole(ORACLE_ROLE, msg.sender),
-            "Caller is not an oracle"
-        );
+        require(hasRole(ORACLE_ROLE, msg.sender), "Caller is not an oracle");
         _;
     }
 

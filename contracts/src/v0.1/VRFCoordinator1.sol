@@ -16,15 +16,10 @@ contract VRFCoordinator1 is
   VRFCoordinatorInterface1,
   CoordinatorBaseInterface
 {
-  error TooManyConsumers();
-  error InsufficientBalance();
   error InvalidConsumer(uint64 accId, address consumer);
   error InvalidAccount();
-  error OnlyCallableFromLink();
-  error InvalidCalldata();
   error MustBeAccOwner(address owner);
   error PendingRequestExists();
-  error MustBeRequestedOwner(address proposedOwner);
   error BalanceInvariantViolated(uint256 internalBalance, uint256 externalBalance); // Should never happen
   event FundsRecovered(address to, uint256 amount);
 
@@ -32,7 +27,8 @@ contract VRFCoordinator1 is
   // this contract through onTokenTransfer, cancelAccount and oracleWithdraw.
   // A discrepancy with this contract's link balance indicates someone
   // sent tokens using transfer and so we may need to use recoverFunds.
-  uint96 private s_totalBalance;
+
+
 
   // Set this maximum to 200 to give us a 56 block window to fulfill
   // the request before requiring the block hash feeder.
@@ -251,28 +247,10 @@ contract VRFCoordinator1 is
     );
   }
 
-  function getTotalBalance() external view returns (uint256) {
-    return s_totalBalance;
-  }
-
   /**
    * @notice Recover link sent with transfer instead of transferAndCall.
    * @param to address to send link to
    */
-  function recoverFunds(address to) external onlyOwner {
-    uint256 externalBalance = 100; //  FIXME
-    uint256 internalBalance = uint256(s_totalBalance);
-    if (internalBalance > externalBalance) {
-      revert BalanceInvariantViolated(internalBalance, externalBalance);
-    }
-    if (internalBalance < externalBalance) {
-      uint256 amount = externalBalance - internalBalance;
-      // LINK.transfer(to, amount); // FIXME
-      emit FundsRecovered(to, amount);
-    }
-    // If the balances are equal, nothing to be done.
-  }
-
   /**
    * @inheritdoc VRFCoordinatorInterface1
    */
@@ -529,46 +507,29 @@ contract VRFCoordinator1 is
     //   revert InsufficientBalance();
     // }
     uint96 payment=10**17;
-    Prepayment.decreaseAccBalance(rc.accId, payment);
+    Prepayment.chargeFee(rc.accId, payment);
     //s_withdrawableTokens[s_provingKeys[rc.keyHash]] += payment; FIXME  Does need to do this?
     // Include payment in the event for tracking costs.
     emit RandomWordsFulfilled(requestId, randomness, payment, success);
     return payment;
   }
 
-  // Get the amount of gas used for fulfillment
-  function calculatePaymentAmount(
-    uint256 startGas,
-    uint256 gasAfterPaymentCalculation,
-    uint32 fulfillmentFlatFeeLinkPPM,
-    uint256 weiPerUnitGas
-  ) internal view returns (uint96) {
-    // (1e18 juels/link) (wei/gas * gas) = juels
-    uint256 paymentNoFee = (1e18 * weiPerUnitGas * (gasAfterPaymentCalculation + startGas - gasleft()));
-    uint256 fee = 1e12 * uint256(fulfillmentFlatFeeLinkPPM);
-    if (paymentNoFee > (1e27 - fee)) {
-      revert PaymentTooLarge(); // Payment + fee cannot be more than all of the link in existence.
-    }
-    return uint96(paymentNoFee + fee);
-  }
+  //// Get the amount of gas used for fulfillment
+  // function calculatePaymentAmount(
+  //   uint256 startGas,
+  //   uint256 gasAfterPaymentCalculation,
+  //   uint32 fulfillmentFlatFeeLinkPPM,
+  //   uint256 weiPerUnitGas
+  // ) internal view returns (uint96) {
+  //   // (1e18 juels/link) (wei/gas * gas) = juels
+  //   uint256 paymentNoFee = (1e18 * weiPerUnitGas * (gasAfterPaymentCalculation + startGas - gasleft()));
+  //   uint256 fee = 1e12 * uint256(fulfillmentFlatFeeLinkPPM);
+  //   if (paymentNoFee > (1e27 - fee)) {
+  //     revert PaymentTooLarge(); // Payment + fee cannot be more than all of the link in existence.
+  //   }
+  //   return uint96(paymentNoFee + fee);
+  // }
 
-  /*
-   * @notice Oracle withdraw LINK earned through fulfilling requests
-   * @param recipient where to send the funds
-   * @param amount amount to withdraw
-   */
-  /*
-  function oracleWithdraw(address recipient, uint96 amount) external nonReentrant {
-    if (s_withdrawableTokens[msg.sender] < amount) {
-      revert InsufficientBalance();
-    }
-    s_withdrawableTokens[msg.sender] -= amount;
-    s_totalBalance -= amount;
-    if (!LINK.transfer(recipient, amount)) {
-      revert InsufficientBalance();
-    }
-  }
-  */
   function pendingRequestExists(
         uint64 accId,
         address consumer,

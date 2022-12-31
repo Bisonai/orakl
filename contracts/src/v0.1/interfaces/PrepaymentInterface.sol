@@ -24,7 +24,7 @@ interface PrepaymentInterface {
 
     function withdraw(uint64 accId, uint96 amount) external;
 
-    function decreaseAccBalance(uint64 accId,uint96 amount) external;
+    function chargeFee(uint64 accId,uint96 amount) external;
 
     function getNonce(address consumer,uint64 accId) external view returns(uint64);
 
