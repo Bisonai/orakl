@@ -30,57 +30,57 @@ describe("Prepayment contract", function () {
     consumer = await Consumer.deploy(coordinator.address)
     console.log('VRFConsumerMock Address:', consumer.address)
 
-    await prepayment.createSubscription();
+    await prepayment.createAccount();
 
     return { prepayment, owner, coordinator, consumer };
   }
 
-  it("Should create subscription", async function () {
+  it("Should create Account", async function () {
     const { prePayment, owner, addr1, addr2 } = await loadFixture(
       deployFixture
     );
-    const functionSignature = ethers.utils.id("SubscriptionCreated(uint64,address)")
-    const transaction = await prePayment.createSubscription();
+    const functionSignature = ethers.utils.id("AccountCreated(uint64,address)")
+    const transaction = await prePayment.createAccount();
     const transactionRe = await transaction.wait()
     const logs = transactionRe.logs
-    let SubID
+    let AccID
     for (const log of logs) {
       if (log.topics[0] === functionSignature) {
-        //1 is index arguments in event SubscriptionCreated
-        SubID = parseInt(log.topics[1], 16)
+        //1 is index arguments in event AccountCreated
+        AccID = parseInt(log.topics[1], 16)
         console.log(parseInt(log.topics[1], 16))
       }
     }
-    expect(SubID).to.be.equal(1)
-    console.log(SubID);
-    const transactionTemp = await prePayment.getSubscription(1);
+    expect(AccID).to.be.equal(1)
+    console.log(AccID);
+    const transactionTemp = await prePayment.getAccount(1);
     console.log(transactionTemp);
   });
   it("Should add consumer", async function () {
     const { prePayment, owner, addr1, addr2 } = await loadFixture(
       deployFixture
     );
-    const functionSignature = ethers.utils.id("SubscriptionCreated(uint64,address)")
-    const transaction = await prePayment.createSubscription();
+    const functionSignature = ethers.utils.id("AccountCreated(uint64,address)")
+    const transaction = await prePayment.createAccount();
     const transactionRe = await transaction.wait()
     const logs = transactionRe.logs
-    let SubID
+    let AccID
     for (const log of logs) {
       if (log.topics[0] === functionSignature) {
-        //1 is index arguments in event SubscriptionCreated
-        SubID = parseInt(log.topics[1], 16)
+        //1 is index arguments in event AccountCreated
+        AccID = parseInt(log.topics[1], 16)
         console.log(parseInt(log.topics[1], 16))
       }
     }
-    //expect(SubID==1)
-    console.log(SubID);
-    const ownerOfSubID = await prePayment.getSubOwner(SubID)
-    console.log(ownerOfSubID)
+    //expect(AccID==1)
+    console.log(AccID);
+    const ownerOfAccID = await prePayment.getAccOwner(AccID)
+    console.log(ownerOfAccID)
     //const signer=await  prePayment.connect(owner)
-    await prePayment.connect(owner).addConsumer(SubID, "0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9")
-    await prePayment.connect(owner).addConsumer(SubID, "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512")
+    await prePayment.connect(owner).addConsumer(AccID, "0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9")
+    await prePayment.connect(owner).addConsumer(AccID, "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512")
     // console.log(transactionTemp);
-    const transactionTemp2 = await prePayment.getSubscription(SubID)
+    const transactionTemp2 = await prePayment.getAccount(AccID)
     console.log(transactionTemp2);
     expect(transactionTemp2.consumers.length).to.equal(2)
   });
@@ -88,29 +88,29 @@ describe("Prepayment contract", function () {
     const { prePayment, owner, addr1, addr2 } = await loadFixture(
       deployFixture
     );
-    const functionSignature = ethers.utils.id("SubscriptionCreated(uint64,address)")
-    const transaction = await prePayment.createSubscription();
+    const functionSignature = ethers.utils.id("AccountCreated(uint64,address)")
+    const transaction = await prePayment.createAccount();
     const transactionRe = await transaction.wait()
     const logs = transactionRe.logs
-    let SubID
+    let AccID
     for (const log of logs) {
       if (log.topics[0] === functionSignature) {
-        //1 is index arguments in event SubscriptionCreated
-        SubID = parseInt(log.topics[1], 16)
+        //1 is index arguments in event AccountCreated
+        AccID = parseInt(log.topics[1], 16)
         console.log(parseInt(log.topics[1], 16))
       }
     }
-    //expect(SubID==1)
-    console.log(SubID);
-    await prePayment.connect(owner).addConsumer(SubID, "0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9")
-    await prePayment.connect(owner).addConsumer(SubID, "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512")
-    let transactionGetInforSub = await prePayment.getSubscription(SubID)
-    const lengthComsumerBefore = transactionGetInforSub.consumers.length
+    //expect(AccID==1)
+    console.log(AccID);
+    await prePayment.connect(owner).addConsumer(AccID, "0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9")
+    await prePayment.connect(owner).addConsumer(AccID, "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512")
+    let transactionGetInforAcc = await prePayment.getAccount(AccID)
+    const lengthComsumerBefore = transactionGetInforAcc.consumers.length
 
-    await prePayment.connect(owner).removeConsumer(SubID, "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512")
+    await prePayment.connect(owner).removeConsumer(AccID, "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512")
     // console.log(transactionTemp);
-    transactionGetInforSub = await prePayment.getSubscription(SubID)
-    const lengthComsumerAfter = transactionGetInforSub.consumers.length
+    transactionGetInforAcc = await prePayment.getAccount(AccID)
+    const lengthComsumerAfter = transactionGetInforAcc.consumers.length
     //console.log(transactionTemp2);
     expect(lengthComsumerBefore).to.be.greaterThan(lengthComsumerAfter)
   });
@@ -118,62 +118,62 @@ describe("Prepayment contract", function () {
     const { prePayment, owner, addr1, addr2 } = await loadFixture(
       deployFixture
     );
-    const functionSignature = ethers.utils.id("SubscriptionCreated(uint64,address)")
-    const transaction = await prePayment.createSubscription();
+    const functionSignature = ethers.utils.id("AccountCreated(uint64,address)")
+    const transaction = await prePayment.createAccount();
     const transactionRe = await transaction.wait()
     const logs = transactionRe.logs
-    let SubID
+    let AccID
     for (const log of logs) {
       if (log.topics[0] === functionSignature) {
-        //1 is index arguments in event SubscriptionCreated
-        SubID = parseInt(log.topics[1], 16)
+        //1 is index arguments in event AccountCreated
+        AccID = parseInt(log.topics[1], 16)
         console.log(parseInt(log.topics[1], 16))
       }
     }
-    const balanceBefore = await prePayment.getSubscription(SubID);
-    //expect(SubID==1)
-    const transactionDeposit = await prePayment.deposit(SubID, { value: 1000000000000000 });
-    const balanceAfter = await prePayment.getSubscription(SubID);
+    const balanceBefore = await prePayment.getAccount(AccID);
+    //expect(AccID==1)
+    const transactionDeposit = await prePayment.deposit(AccID, { value: 1000000000000000 });
+    const balanceAfter = await prePayment.getAccount(AccID);
     expect(balanceAfter.balance).to.be.greaterThan(balanceBefore.balance)
   });
   it("Should withdraw", async function () {
     const { prePayment, owner, addr1, addr2 } = await loadFixture(
       deployFixture
     );
-    const functionSignature = ethers.utils.id("SubscriptionCreated(uint64,address)")
-    const transaction = await prePayment.createSubscription();
+    const functionSignature = ethers.utils.id("AccountCreated(uint64,address)")
+    const transaction = await prePayment.createAccount();
     const transactionRe = await transaction.wait()
     const logs = transactionRe.logs
-    let SubID
+    let AccID
     for (const log of logs) {
       if (log.topics[0] === functionSignature) {
-        //1 is index arguments in event SubscriptionCreated
-        SubID = parseInt(log.topics[1], 16)
+        //1 is index arguments in event AccountCreated
+        AccID = parseInt(log.topics[1], 16)
         console.log(parseInt(log.topics[1], 16))
       }
     }
 
     //Deposit
-    const transactionDeposit = await prePayment.deposit(SubID, { value: 100000 });
+    const transactionDeposit = await prePayment.deposit(AccID, { value: 100000 });
     //Check balance Before & After
     const balanceOwnerBefore = parseInt((ethers.BigNumber.from((await ethers.provider.getBalance(owner.address)))).toString());
-    const balanceSubBefore = (await prePayment.getSubscription(SubID)).balance;
+    const balanceAccBefore = (await prePayment.getAccount(AccID)).balance;
     //Withdraw
-    const txWithdraw = await prePayment.connect(owner).withdraw(SubID, 50000);
+    const txWithdraw = await prePayment.connect(owner).withdraw(AccID, 50000);
     const txRecip = await txWithdraw.wait();
 
     const balanceOwnerAfter = parseInt((ethers.BigNumber.from((await ethers.provider.getBalance(owner.address)))).toString())
-    const balanceSubAfter = (await prePayment.getSubscription(SubID)).balance;
+    const balanceAccAfter = (await prePayment.getAccount(AccID)).balance;
     expect(balanceOwnerAfter).to.be.greaterThan(balanceOwnerBefore)
 
   });
-  it('Should cancel subscription, pending tx', async function () {
+  it('Should cancel Account, pending tx', async function () {
     const { prepayment, owner } = await loadFixture(
       deployMockFixture
     );
-    await prepayment.cancelSubscription(1, owner.address);
+    await prepayment.cancelAccount(1, owner.address);
   })
-  it('Should not cancel subscription with pending tx', async function () {
+  it('Should not cancel Account with pending tx', async function () {
     const { prepayment, owner, coordinator, consumer } = await loadFixture(
       deployMockFixture
     );
@@ -207,13 +207,13 @@ describe("Prepayment contract", function () {
       feeConfig
     )
 
-    const subId = 1
-    await prepayment.addConsumer(subId, consumer.address);
+    const AccId = 1
+    await prepayment.addConsumer(AccId, consumer.address);
     await prepayment.addCoordinator(coordinator.address);
 
     await consumer.requestRandomWords();
 
-    await expect(prepayment.cancelSubscription(1, owner.address)).to.be.revertedWithCustomError(prepayment, 'PendingRequestExists');
+    await expect(prepayment.cancelAccount(1, owner.address)).to.be.revertedWithCustomError(prepayment, 'PendingRequestExists');
   })
   it('Should remove Coordinator', async function () {
     const { prepayment, owner, coordinator, consumer } = await loadFixture(
@@ -249,8 +249,8 @@ describe("Prepayment contract", function () {
       feeConfig
     )
 
-    const subId = 1
-    await prepayment.addConsumer(subId, consumer.address);
+    const AccId = 1
+    await prepayment.addConsumer(AccId, consumer.address);
     await prepayment.addCoordinator(coordinator.address);
     const tx=await (await prepayment.removeCoordinator(coordinator.address)).wait()
     expect(tx.status).to.equal(1)

@@ -2,31 +2,33 @@
 pragma solidity ^0.8.16;
 
 interface PrepaymentInterface {
+    ///// from VRFcoordinator /////
 
-    function getSubscription(uint64 subId) external view
+    function getAccount(uint64 accId) external view
         returns (uint96 balance, uint64 reqCount, address owner, address[] memory consumers);
 
-    function createSubscription() external returns (uint64);
+    function createAccount() external returns (uint64);
 
-    function requestSubscriptionOwnerTransfer(uint64 subId, address newOwner) external;
+    function requestAccountOwnerTransfer(uint64 accId, address newOwner) external;
 
-    function acceptSubscriptionOwnerTransfer(uint64 subId) external;
+    function acceptAccountOwnerTransfer(uint64 accId) external;
 
-    function removeConsumer(uint64 subId, address consumer) external;
+    function removeConsumer(uint64 accId, address consumer) external;
 
-    function addConsumer(uint64 subId, address consumer) external;
+    function addConsumer(uint64 accId, address consumer) external;
 
-    function cancelSubscription(uint64 subId, address to) external;
+    function cancelAccount(uint64 accId, address to) external;
 
-    function deposit(uint64 subId) payable external;
+    ///// added interfaces /////
+    function deposit(uint64 accId) payable external;
 
-    function withdraw(uint64 subId, uint96 amount) external;
+    function withdraw(uint64 accId, uint96 amount) external;
 
-    function decreaseSubBalance(uint64 subId,uint96 amount) external;
+    function decreaseAccBalance(uint64 accId,uint96 amount) external;
 
-    function getNonce(address consumer,uint64 subId) external view returns(uint64);
+    function getNonce(address consumer,uint64 accId) external view returns(uint64);
 
-    function increaseNonce(address consumer, uint64 subId) external;
+    function increaseNonce(address consumer,uint64 accId) external;
 
-    function getSubOwner(uint64 subId)external returns(address owner);
+    function getAccOwner(uint64 accId)external returns(address owner);
 }

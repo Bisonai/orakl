@@ -76,25 +76,25 @@ async function main() {
   await VRFConsumerMock.deployed()
   console.log('VRFConsumerMock Address:', VRFConsumerMock.address)
 
-  await Prepayment.createSubscription()
+  await Prepayment.createAccount()
   if (listen) {
-    Prepayment.once('SubscriptionCreated', async (subId, owner) => {
-      console.log('SubscriptionCreated')
-      console.log(`subId ${subId}`)
+    Prepayment.once('AccountCreated', async (accId, owner) => {
+      console.log('AccountCreated')
+      console.log(`accId ${accId}`)
       console.log(`owner ${owner}`)
     })
   }
 
-  const subId = 1
-  await Prepayment.addConsumer(subId, VRFConsumerMock.address)
+  const accId = 1
+  await Prepayment.addConsumer(accId, VRFConsumerMock.address)
   if (listen) {
-    await Prepayment.once('SubscriptionConsumerAdded', async (subId, consumer) => {
-      console.log('SubscriptionConsumerAdded')
-      console.log(`subId ${subId}`)
+    await Prepayment.once('AccountConsumerAdded', async (accId, consumer) => {
+      console.log('AccountConsumerAdded')
+      console.log(`accId ${accId}`)
       console.log(`consumer ${consumer}`)
     })
   }
-  await Prepayment.deposit(subId, {value:parseEther(10)})
+  await Prepayment.deposit(accId, {value:parseEther(10)})
   const oracleRole=await Prepayment.ORACLE_ROLE();
   await Prepayment.grantRole(oracleRole,VRFCoordinator.address)
 }

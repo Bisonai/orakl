@@ -18,18 +18,18 @@ contract VRFCoordinator1 is
 {
   error TooManyConsumers();
   error InsufficientBalance();
-  error InvalidConsumer(uint64 subId, address consumer);
-  error InvalidSubscription();
+  error InvalidConsumer(uint64 accId, address consumer);
+  error InvalidAccount();
   error OnlyCallableFromLink();
   error InvalidCalldata();
-  error MustBeSubOwner(address owner);
+  error MustBeAccOwner(address owner);
   error PendingRequestExists();
   error MustBeRequestedOwner(address proposedOwner);
   error BalanceInvariantViolated(uint256 internalBalance, uint256 externalBalance); // Should never happen
   event FundsRecovered(address to, uint256 amount);
 
   // s_totalBalance tracks the total KLAY sent to/from
-  // this contract through onTokenTransfer, cancelSubscription and oracleWithdraw.
+  // this contract through onTokenTransfer, cancelAccount and oracleWithdraw.
   // A discrepancy with this contract's link balance indicates someone
   // sent tokens using transfer and so we may need to use recoverFunds.
   uint96 private s_totalBalance;
@@ -54,7 +54,7 @@ contract VRFCoordinator1 is
   error Reentrant();
   struct RequestCommitment {
     uint64 blockNum;
-    uint64 subId;
+    uint64 accId;
     uint32 callbackGasLimit;
     uint32 numWords;
     address sender;
@@ -77,7 +77,7 @@ contract VRFCoordinator1 is
     bytes32 indexed keyHash,
     uint256 requestId,
     uint256 preSeed,
-    uint64 indexed subId,
+    uint64 indexed accId,
     uint16 minimumRequestConfirmations,
     uint32 callbackGasLimit,
     uint32 numWords,
@@ -294,24 +294,24 @@ contract VRFCoordinator1 is
    */
   function requestRandomWords(
     bytes32 keyHash,
-    uint64 subId,
+    uint64 accId,
     uint16 requestConfirmations,
     uint32 callbackGasLimit,
     uint32 numWords
   ) external override nonReentrant returns (uint256) {
-    // Input validation using the subscription storage.
+    // Input validation using the account storage.
     // call to prepayment contract
-    address owner= Prepayment.getSubOwner(subId);
+    address owner= Prepayment.getAccOwner(accId);
     if (owner == address(0)) {
-      revert InvalidSubscription();
+      revert InvalidAccount();
     }
 
     // Its important to ensure that the consumer is in fact who they say they
-    // are, otherwise they could use someone else's subscription balance.
+    // are, otherwise they could use someone else's account balance.
     // A nonce of 0 indicates consumer is not allocated to the sub.
-    uint64 currentNonce = Prepayment.getNonce(msg.sender, subId);
+    uint64 currentNonce = Prepayment.getNonce(msg.sender, accId);
     if (currentNonce == 0) {
-      revert InvalidConsumer(subId, msg.sender);
+      revert InvalidConsumer(accId, msg.sender);
     }
 
     // Input validation using the config storage word.
@@ -340,16 +340,16 @@ contract VRFCoordinator1 is
     // The consequence for users is that they can send requests
     // for invalid keyHashes which will simply not be fulfilled.
     //uint64 nonce = currentNonce + 1;
-    (uint256 requestId, uint256 preSeed) = computeRequestId(keyHash, msg.sender, subId, currentNonce + 1);
+    (uint256 requestId, uint256 preSeed) = computeRequestId(keyHash, msg.sender, accId, currentNonce + 1);
 
     s_requestCommitments[requestId] = keccak256(
-      abi.encode(requestId, block.number, subId, callbackGasLimit, numWords, msg.sender)
+      abi.encode(requestId, block.number, accId, callbackGasLimit, numWords, msg.sender)
     );
     emit RandomWordsRequested(
       keyHash,
       requestId,
       preSeed,
-      subId,
+      accId,
       requestConfirmations,
       callbackGasLimit,
       numWords,
@@ -357,7 +357,7 @@ contract VRFCoordinator1 is
     );
 
     //increase nonce for consumer
-    Prepayment.increaseNonce(msg.sender, subId);
+    Prepayment.increaseNonce(msg.sender, accId);
 
     return requestId;
   }
@@ -374,10 +374,10 @@ contract VRFCoordinator1 is
   function computeRequestId(
     bytes32 keyHash,
     address sender,
-    uint64 subId,
+    uint64 accId,
     uint64 nonce
   ) private pure returns (uint256, uint256) {
-    uint256 preSeed = uint256(keccak256(abi.encode(keyHash, sender, subId, nonce)));
+    uint256 preSeed = uint256(keccak256(abi.encode(keyHash, sender, accId, nonce)));
     return (uint256(keccak256(abi.encode(keyHash, preSeed))), preSeed);
   }
 
@@ -440,7 +440,7 @@ contract VRFCoordinator1 is
       revert NoCorrespondingRequest();
     }
     if (
-      commitment != keccak256(abi.encode(requestId, rc.blockNum, rc.subId, rc.callbackGasLimit, rc.numWords, rc.sender))
+      commitment != keccak256(abi.encode(requestId, rc.blockNum, rc.accId, rc.callbackGasLimit, rc.numWords, rc.sender))
     ) {
       revert IncorrectCommitment();
     }
@@ -485,7 +485,7 @@ contract VRFCoordinator1 is
    * @notice Fulfill a randomness request
    * @param proof contains the proof and randomness
    * @param rc request commitment pre-image, committed to at request time
-   * @return payment amount billed to the subscription
+   * @return payment amount billed to the account
    * @dev simulated offchain to determine if sufficient balance is present to fulfill the request
    */
  function fulfillRandomWords(VRF.Proof memory proof, RequestCommitment memory rc) external nonReentrant returns (uint96) {
@@ -511,13 +511,13 @@ contract VRFCoordinator1 is
     s_config.reentrancyLock = false;
     // We want to charge users exactly for how much gas they use in their callback.
     // The gasAfterPaymentCalculation is meant to cover these additional operations where we
-    // decrement the subscription balance and increment the oracles withdrawable balance.
+    // decrement the account balance and increment the oracles withdrawable balance.
     // We also add the flat link fee to the payment amount.
     // Its specified in millionths of link, if s_config.fulfillmentFlatFeeLinkPPM = 1
     // 1 link / 1e6 = 1e18 juels / 1e6 = 1e12 juels.
     // FIXME fix payment
     //uint96 payment = 0;
-    (uint96 balance,uint64 reqCount,address owner,address[] memory consumers)= Prepayment.getSubscription(rc.subId);
+    (uint96 balance,uint64 reqCount,address owner,address[] memory consumers)= Prepayment.getAccount(rc.accId);
 
     // uint96 payment = calculatePaymentAmount(
     //   startGas,
@@ -529,7 +529,7 @@ contract VRFCoordinator1 is
     //   revert InsufficientBalance();
     // }
     uint96 payment=10**17;
-    Prepayment.decreaseSubBalance(rc.subId, payment);
+    Prepayment.decreaseAccBalance(rc.accId, payment);
     //s_withdrawableTokens[s_provingKeys[rc.keyHash]] += payment; FIXME  Does need to do this?
     // Include payment in the event for tracking costs.
     emit RandomWordsFulfilled(requestId, randomness, payment, success);
@@ -570,12 +570,12 @@ contract VRFCoordinator1 is
   }
   */
   function pendingRequestExists(
-        uint64 subId,
+        uint64 accId,
         address consumer,
         uint64 nonce
     ) public view override returns (bool) {
         for (uint256 j = 0; j < s_provingKeyHashes.length; j++) {
-            (uint256 reqId, ) = computeRequestId(s_provingKeyHashes[j], consumer, subId, nonce);
+            (uint256 reqId, ) = computeRequestId(s_provingKeyHashes[j], consumer, accId, nonce);
             if (s_requestCommitments[reqId] != 0) {
                 return true;
             }
