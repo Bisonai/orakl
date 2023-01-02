@@ -73,7 +73,7 @@ describe('Prepayment contract', function () {
 
     const accId = await createAccount(prepayment)
 
-    return { prepayment, owner, coordinator, consumer }
+    return { prepayment, coordinator, consumer, owner, accId }
   }
 
   it('Should create Account', async function () {
@@ -182,7 +182,7 @@ describe('Prepayment contract', function () {
   })
 
   it('Should not cancel Account with pending tx', async function () {
-    const { prepayment, owner, coordinator, consumer } = await loadFixture(deployMockFixture)
+    const { prepayment, owner, coordinator, consumer, accId } = await loadFixture(deployMockFixture)
     const {
       oracle,
       publicProvingKey,
@@ -201,7 +201,6 @@ describe('Prepayment contract', function () {
       feeConfig
     )
 
-    const accId = 1 // FIXME
     await prepayment.addConsumer(accId, consumer.address)
     await prepayment.addCoordinator(coordinator.address)
 
@@ -214,7 +213,7 @@ describe('Prepayment contract', function () {
   })
 
   it('Should remove Coordinator', async function () {
-    const { prepayment, owner, coordinator, consumer } = await loadFixture(deployMockFixture)
+    const { prepayment, owner, coordinator, consumer, accId } = await loadFixture(deployMockFixture)
     const {
       oracle,
       publicProvingKey,
@@ -233,7 +232,6 @@ describe('Prepayment contract', function () {
       feeConfig
     )
 
-    const accId = 1
     await prepayment.addConsumer(accId, consumer.address)
     await prepayment.addCoordinator(coordinator.address)
     const tx = await (await prepayment.removeCoordinator(coordinator.address)).wait()
