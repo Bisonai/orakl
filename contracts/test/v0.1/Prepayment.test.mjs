@@ -78,22 +78,12 @@ describe('Prepayment contract', function () {
 
   it('Should create Account', async function () {
     const { prepayment, owner, addr1, addr2 } = await loadFixture(deployFixture)
-    const txReceipt = await (await prepayment.createAccount()).wait()
-    expect(txReceipt.events.length).to.be.equal(1)
-
-    const txEvent = prepayment.interface.parseLog(txReceipt.events[0])
-    const { accId } = txEvent.args
-    expect(accId).to.be.equal(1)
+    await createAccount(prepayment)
   })
 
   it('Should add consumer', async function () {
     const { prepayment, owner, addr1, addr2 } = await loadFixture(deployFixture)
-    const txReceipt = await (await prepayment.createAccount()).wait()
-    expect(txReceipt.events.length).to.be.equal(1)
-
-    const txEvent = prepayment.interface.parseLog(txReceipt.events[0])
-    const { accId } = txEvent.args
-    expect(accId).to.be.equal(1)
+    const accId = await createAccount(prepayment)
 
     const ownerOfAccId = await prepayment.getAccountOwner(accId)
     expect(ownerOfAccId).to.be.equal(owner.address)
@@ -107,13 +97,7 @@ describe('Prepayment contract', function () {
 
   it('Should remove consumer', async function () {
     const { prepayment, owner, addr1, addr2 } = await loadFixture(deployFixture)
-
-    const txReceipt = await (await prepayment.createAccount()).wait()
-    expect(txReceipt.events.length).to.be.equal(1)
-
-    const txEvent = prepayment.interface.parseLog(txReceipt.events[0])
-    const { accId } = txEvent.args
-    expect(accId).to.be.equal(1)
+    const accId = await createAccount(prepayment)
 
     const consumer0 = '0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9'
     const consumer1 = '0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512'
@@ -130,12 +114,7 @@ describe('Prepayment contract', function () {
 
   it('Should deposit', async function () {
     const { prepayment, owner, addr1, addr2 } = await loadFixture(deployFixture)
-    const txReceipt = await (await prepayment.createAccount()).wait()
-    expect(txReceipt.events.length).to.be.equal(1)
-
-    const txEvent = prepayment.interface.parseLog(txReceipt.events[0])
-    const { accId } = txEvent.args
-    expect(accId).to.be.equal(1)
+    const accId = await createAccount(prepayment)
 
     const balanceBefore = await prepayment.getAccount(accId)
     const value = 1_000_000_000_000_000
