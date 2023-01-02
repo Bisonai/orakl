@@ -1,8 +1,20 @@
 import { expect } from 'chai'
 import { loadFixture } from '@nomicfoundation/hardhat-network-helpers'
+import { BigNumber } from 'ethers'
 
 function parseEther(amount) {
   return ethers.utils.parseUnits(amount.toString(), 18)
+}
+
+async function createAccount(prepayment) {
+  const txReceipt = await (await prepayment.createAccount()).wait()
+  expect(txReceipt.events.length).to.be.equal(1)
+
+  const txEvent = prepayment.interface.parseLog(txReceipt.events[0])
+  const { accId } = txEvent.args
+  expect(accId).to.be.equal(1)
+
+  return accId
 }
 
 describe('Prepayment contract', function () {
@@ -100,42 +112,31 @@ describe('Prepayment contract', function () {
     expect(balanceBefore.balance + value).to.be.equal(balanceAfter.balance)
   })
 
-  // it('Should withdraw', async function () {
-  //   const { prepayment, owner, addr1, addr2 } = await loadFixture(deployFixture)
-  //   const functionSignature = ethers.utils.id('AccountCreated(uint64,address)')
-  //   const transaction = await prepayment.createAccount()
-  //   const transactionRe = await transaction.wait()
-  //   const logs = transactionRe.logs
-  //   let AccID
-  //
-  //   for (const log of logs) {
-  //     if (log.topics[0] === functionSignature) {
-  //       // 1 is index arguments in event AccountCreated
-  //       AccID = parseInt(log.topics[1], 16)
-  //     }
-  //   }
-  //
-  //   // Deposit
-  //   const transactionDeposit = await prepayment.deposit(AccID, { value: 100000 })
-  //
-  //   //Check balance Before & After
-  //   const balanceOwnerBefore = parseInt(
-  //     ethers.BigNumber.from(await ethers.provider.getBalance(owner.address)).toString()
-  //   )
-  //   const balanceAccBefore = (await prepayment.getAccount(AccID)).balance
-  //
-  //   //Withdraw
-  //   const txWithdraw = await prepayment.connect(owner).withdraw(AccID, 50000)
-  //   const txRecip = await txWithdraw.wait()
-  //
-  //   const balanceOwnerAfter = parseInt(
-  //     ethers.BigNumber.from(await ethers.provider.getBalance(owner.address)).toString()
-  //   )
-  //   const balanceAccAfter = (await prepayment.getAccount(AccID)).balance
-  //
-  //   expect(balanceOwnerAfter).to.be.greaterThan(balanceOwnerBefore) // WRONG
-  // })
-  //
+  it('Should withdraw', async function () {
+    const { prepayment, owner, addr1, addr2 } = await loadFixture(deployFixture)
+    const accId = createAccount(prepayment)
+
+    const depositValue = 100_000
+    const transactionDeposit = await prepayment.deposit(accId, { value: depositValue })
+
+    const balanceOwnerBefore = await ethers.provider.getBalance(owner.address)
+    const balanceAccBefore = (await prepayment.getAccount(accId)).balance
+    expect(balanceAccBefore).to.be.equal(depositValue)
+
+    const withdrawValue = 50_000
+    const txReceipt = await (await prepayment.withdraw(accId, withdrawValue)).wait()
+
+    const balanceOwnerAfter = await ethers.provider.getBalance(owner.address)
+    const balanceAccAfter = (await prepayment.getAccount(accId)).balance
+
+    expect(balanceAccAfter).to.be.equal(depositValue - withdrawValue)
+
+    // FIXME
+    console.log(balanceOwnerBefore - balanceOwnerAfter)
+    console.log(txReceipt.effectiveGasPrice.toString())
+    // expect(balanceOwnerAfter).to.be.greaterThan(balanceOwnerBefore) // WRONG
+  })
+
   // it('Should cancel Account, pending tx', async function () {
   //   const { prepayment, owner } = await loadFixture(deployMockFixture)
   //   await prepayment.cancelAccount(1, owner.address)
