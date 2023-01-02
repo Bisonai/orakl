@@ -2,6 +2,38 @@ import { expect } from 'chai'
 import { loadFixture } from '@nomicfoundation/hardhat-network-helpers'
 import { BigNumber } from 'ethers'
 
+function vrfConfig() {
+  const oracle = '0x8626f6940E2eb28930eFb4CeF49B2d1F2C9C1199' // FIXME
+  const publicProvingKey = [
+    '95162740466861161360090244754314042169116280320223422208903791243647772670481',
+    '53113177277038648369733569993581365384831203706597936686768754351087979105423'
+  ]
+
+  const minimumRequestConfirmations = 3
+  const maxGasLimit = 1_000_000
+  const gasAfterPaymentCalculation = 1_000
+  const feeConfig = {
+    fulfillmentFlatFeeLinkPPMTier1: 0,
+    fulfillmentFlatFeeLinkPPMTier2: 0,
+    fulfillmentFlatFeeLinkPPMTier3: 0,
+    fulfillmentFlatFeeLinkPPMTier4: 0,
+    fulfillmentFlatFeeLinkPPMTier5: 0,
+    reqsForTier2: 0,
+    reqsForTier3: 0,
+    reqsForTier4: 0,
+    reqsForTier5: 0
+  }
+
+  return {
+    oracle,
+    publicProvingKey,
+    minimumRequestConfirmations,
+    maxGasLimit,
+    gasAfterPaymentCalculation,
+    feeConfig
+  }
+}
+
 function parseEther(amount) {
   return ethers.utils.parseUnits(amount.toString(), 18)
 }
@@ -39,7 +71,7 @@ describe('Prepayment contract', function () {
     const consumerContract = await ethers.getContractFactory('VRFConsumerMock')
     const consumer = await consumerContract.deploy(coordinator.address)
 
-    await prepayment.createAccount()
+    const accId = await createAccount(prepayment)
 
     return { prepayment, owner, coordinator, consumer }
   }
@@ -114,7 +146,7 @@ describe('Prepayment contract', function () {
 
   it('Should withdraw', async function () {
     const { prepayment, owner, addr1, addr2 } = await loadFixture(deployFixture)
-    const accId = createAccount(prepayment)
+    const accId = await createAccount(prepayment)
 
     const depositValue = 100_000
     const transactionDeposit = await prepayment.deposit(accId, { value: depositValue })
@@ -137,7 +169,7 @@ describe('Prepayment contract', function () {
     // expect(balanceOwnerAfter).to.be.greaterThan(balanceOwnerBefore) // WRONG
   })
 
-  it('Should cancel Account, pending tx', async function () {
+  it('Should cancel Account', async function () {
     const { prepayment, owner } = await loadFixture(deployMockFixture)
     const txReceipt = await (await prepayment.cancelAccount(1, owner.address)).wait()
     expect(txReceipt.events.length).to.be.equal(1)
@@ -149,86 +181,62 @@ describe('Prepayment contract', function () {
     expect(balance).to.be.equal(undefined)
   })
 
-  // it('Should not cancel Account with pending tx', async function () {
-  //   const { prepayment, owner, coordinator, consumer } = await loadFixture(deployMockFixture)
-  //   // Register Proving Key
-  //   const oracle = owner.address // Hardhat account 19
-  //   const publicProvingKey = [
-  //     '95162740466861161360090244754314042169116280320223422208903791243647772670481',
-  //     '53113177277038648369733569993581365384831203706597936686768754351087979105423'
-  //   ]
-  //   await coordinator.registerProvingKey(oracle, publicProvingKey)
-  //   const minimumRequestConfirmations = 3
-  //   const maxGasLimit = 1_000_000
-  //   const gasAfterPaymentCalculation = 1_000
-  //   const feeConfig = {
-  //     fulfillmentFlatFeeLinkPPMTier1: 0,
-  //     fulfillmentFlatFeeLinkPPMTier2: 0,
-  //     fulfillmentFlatFeeLinkPPMTier3: 0,
-  //     fulfillmentFlatFeeLinkPPMTier4: 0,
-  //     fulfillmentFlatFeeLinkPPMTier5: 0,
-  //     reqsForTier2: 0,
-  //     reqsForTier3: 0,
-  //     reqsForTier4: 0,
-  //     reqsForTier5: 0
-  //   }
-  //
-  //   // Configure VRF Coordinator
-  //   await coordinator.setConfig(
-  //     minimumRequestConfirmations,
-  //     maxGasLimit,
-  //     gasAfterPaymentCalculation,
-  //     feeConfig
-  //   )
-  //
-  //   const AccId = 1
-  //   await prepayment.addConsumer(AccId, consumer.address)
-  //   await prepayment.addCoordinator(coordinator.address)
-  //
-  //   await consumer.requestRandomWords()
-  //
-  //   await expect(prepayment.cancelAccount(1, owner.address)).to.be.revertedWithCustomError(
-  //     prepayment,
-  //     'PendingRequestExists'
-  //   )
-  // })
-  //
-  // it('Should remove Coordinator', async function () {
-  //   const { prepayment, owner, coordinator, consumer } = await loadFixture(deployMockFixture)
-  //   // Register Proving Key
-  //   const oracle = owner.address // Hardhat account 19
-  //   const publicProvingKey = [
-  //     '95162740466861161360090244754314042169116280320223422208903791243647772670481',
-  //     '53113177277038648369733569993581365384831203706597936686768754351087979105423'
-  //   ]
-  //   await coordinator.registerProvingKey(oracle, publicProvingKey)
-  //   const minimumRequestConfirmations = 3
-  //   const maxGasLimit = 1_000_000
-  //   const gasAfterPaymentCalculation = 1_000
-  //   const feeConfig = {
-  //     fulfillmentFlatFeeLinkPPMTier1: 0,
-  //     fulfillmentFlatFeeLinkPPMTier2: 0,
-  //     fulfillmentFlatFeeLinkPPMTier3: 0,
-  //     fulfillmentFlatFeeLinkPPMTier4: 0,
-  //     fulfillmentFlatFeeLinkPPMTier5: 0,
-  //     reqsForTier2: 0,
-  //     reqsForTier3: 0,
-  //     reqsForTier4: 0,
-  //     reqsForTier5: 0
-  //   }
-  //
-  //   // Configure VRF Coordinator
-  //   await coordinator.setConfig(
-  //     minimumRequestConfirmations,
-  //     maxGasLimit,
-  //     gasAfterPaymentCalculation,
-  //     feeConfig
-  //   )
-  //
-  //   const AccId = 1
-  //   await prepayment.addConsumer(AccId, consumer.address)
-  //   await prepayment.addCoordinator(coordinator.address)
-  //   const tx = await (await prepayment.removeCoordinator(coordinator.address)).wait()
-  //   expect(tx.status).to.equal(1)
-  // })
+  it('Should not cancel Account with pending tx', async function () {
+    const { prepayment, owner, coordinator, consumer } = await loadFixture(deployMockFixture)
+    const {
+      oracle,
+      publicProvingKey,
+      minimumRequestConfirmations,
+      maxGasLimit,
+      gasAfterPaymentCalculation,
+      feeConfig
+    } = vrfConfig()
+
+    await coordinator.registerProvingKey(oracle, publicProvingKey)
+
+    await coordinator.setConfig(
+      minimumRequestConfirmations,
+      maxGasLimit,
+      gasAfterPaymentCalculation,
+      feeConfig
+    )
+
+    const accId = 1 // FIXME
+    await prepayment.addConsumer(accId, consumer.address)
+    await prepayment.addCoordinator(coordinator.address)
+
+    await consumer.requestRandomWords()
+
+    await expect(prepayment.cancelAccount(1, owner.address)).to.be.revertedWithCustomError(
+      prepayment,
+      'PendingRequestExists'
+    )
+  })
+
+  it('Should remove Coordinator', async function () {
+    const { prepayment, owner, coordinator, consumer } = await loadFixture(deployMockFixture)
+    const {
+      oracle,
+      publicProvingKey,
+      minimumRequestConfirmations,
+      maxGasLimit,
+      gasAfterPaymentCalculation,
+      feeConfig
+    } = vrfConfig()
+
+    await coordinator.registerProvingKey(oracle, publicProvingKey)
+
+    await coordinator.setConfig(
+      minimumRequestConfirmations,
+      maxGasLimit,
+      gasAfterPaymentCalculation,
+      feeConfig
+    )
+
+    const accId = 1
+    await prepayment.addConsumer(accId, consumer.address)
+    await prepayment.addCoordinator(coordinator.address)
+    const tx = await (await prepayment.removeCoordinator(coordinator.address)).wait()
+    expect(tx.status).to.equal(1)
+  })
 })
