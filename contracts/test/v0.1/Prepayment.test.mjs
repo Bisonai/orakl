@@ -137,11 +137,18 @@ describe('Prepayment contract', function () {
     // expect(balanceOwnerAfter).to.be.greaterThan(balanceOwnerBefore) // WRONG
   })
 
-  // it('Should cancel Account, pending tx', async function () {
-  //   const { prepayment, owner } = await loadFixture(deployMockFixture)
-  //   await prepayment.cancelAccount(1, owner.address)
-  // })
-  //
+  it('Should cancel Account, pending tx', async function () {
+    const { prepayment, owner } = await loadFixture(deployMockFixture)
+    const txReceipt = await (await prepayment.cancelAccount(1, owner.address)).wait()
+    expect(txReceipt.events.length).to.be.equal(1)
+
+    const txEvent = prepayment.interface.parseLog(txReceipt.events[0])
+    const { accId, to, balance } = txEvent.args
+    expect(accId).to.be.equal(1)
+    expect(to).to.be.equal(owner.address)
+    expect(balance).to.be.equal(undefined)
+  })
+
   // it('Should not cancel Account with pending tx', async function () {
   //   const { prepayment, owner, coordinator, consumer } = await loadFixture(deployMockFixture)
   //   // Register Proving Key
