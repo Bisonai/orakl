@@ -1,6 +1,5 @@
 import { expect } from 'chai'
 import { loadFixture } from '@nomicfoundation/hardhat-network-helpers'
-import { BigNumber } from 'ethers'
 
 function vrfConfig() {
   const oracle = '0x8626f6940E2eb28930eFb4CeF49B2d1F2C9C1199' // FIXME
@@ -185,14 +184,14 @@ describe('Prepayment contract', function () {
 
     await consumer.requestRandomWords()
 
-    await expect(prepayment.cancelAccount(1, owner.address)).to.be.revertedWithCustomError(
+    await expect(prepayment.cancelAccount(accId, owner.address)).to.be.revertedWithCustomError(
       prepayment,
       'PendingRequestExists'
     )
   })
 
   it('Should remove Coordinator', async function () {
-    const { prepayment, owner, coordinator, consumer, accId } = await loadFixture(deployMockFixture)
+    const { prepayment, coordinator, consumer, accId } = await loadFixture(deployMockFixture)
     const {
       oracle,
       publicProvingKey,
@@ -213,7 +212,7 @@ describe('Prepayment contract', function () {
 
     await prepayment.addConsumer(accId, consumer.address)
     await prepayment.addCoordinator(coordinator.address)
-    const tx = await (await prepayment.removeCoordinator(coordinator.address)).wait()
-    expect(tx.status).to.equal(1)
+    const txReceipt = await (await prepayment.removeCoordinator(coordinator.address)).wait()
+    expect(txReceipt.status).to.equal(1)
   })
 })
