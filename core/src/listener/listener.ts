@@ -3,10 +3,14 @@
 
 import { parseArgs } from 'node:util'
 import { loadJson } from '../utils'
-import { WORKER_ANY_API_QUEUE_NAME, WORKER_VRF_QUEUE_NAME } from '../settings'
+import {
+  WORKER_ANY_API_QUEUE_NAME,
+  WORKER_VRF_QUEUE_NAME,
+  WORKER_AGGREGATOR_QUEUE_NAME
+} from '../settings'
 import { LISTENER_CONFIG_FILE } from '../settings'
 import { Event } from './event'
-import { processICNEvent, processVrfEvent } from './processor'
+import { processICNEvent, processVrfEvent, processAggregatorEvent } from './processor'
 
 const LISTENERS = {
   VRF: {
@@ -16,6 +20,10 @@ const LISTENERS = {
   ICN: {
     queueName: WORKER_ANY_API_QUEUE_NAME,
     fn: processICNEvent
+  },
+  AGGREGATOR: {
+    queueName: WORKER_AGGREGATOR_QUEUE_NAME,
+    fn: processAggregatorEvent
   }
 }
 

@@ -4,7 +4,8 @@ import {
   INewRequest,
   IRandomWordsRequested,
   IAnyApiListenerWorker,
-  IVrfListenerWorker
+  IVrfListenerWorker,
+  INewRound
 } from '../types'
 
 export function processICNEvent(iface: ethers.utils.Interface, queue: Queue) {
@@ -46,6 +47,26 @@ export function processVrfEvent(iface: ethers.utils.Interface, queue: Queue) {
     console.debug('processVrfEvent:data', data)
 
     await queue.add('vrf', data)
+  }
+  return wrapper
+}
+
+export function processAggregatorEvent(iface: ethers.utils.Interface, queue: Queue) {
+  async function wrapper(log) {
+    const eventData = iface.parseLog(log).args as unknown as INewRound
+    console.debug('processAggregatorEvent:eventData', eventData)
+
+    // TODO if I have emitted the event, then ignore
+
+    const data: IAggregatorListenerWorker = {
+      callbackAddress: log.address,
+      roundId: eventData.roudnId,
+      startedBy: eventData.startedBy,
+      startedAt: eventData.startedAt
+    }
+    console.debug('processAggregatorEvent:data', data)
+
+    await queue.add('aggregator', data)
   }
   return wrapper
 }
