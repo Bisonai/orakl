@@ -2,7 +2,9 @@ import { expect } from 'chai'
 import { loadFixture } from '@nomicfoundation/hardhat-network-helpers'
 
 function vrfConfig() {
-  const oracle = '0x8626f6940E2eb28930eFb4CeF49B2d1F2C9C1199' // FIXME
+  // FIXME
+  const oracle = '0x8626f6940E2eb28930eFb4CeF49B2d1F2C9C1199'
+  // FIXME
   const publicProvingKey = [
     '95162740466861161360090244754314042169116280320223422208903791243647772670481',
     '53113177277038648369733569993581365384831203706597936686768754351087979105423'
