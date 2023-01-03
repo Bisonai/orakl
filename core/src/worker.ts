@@ -38,7 +38,7 @@ async function main() {
   const adapters = (await loadAdapters())[0] // FIXME take all adapters
   console.debug('main:adapters', adapters)
 
-  // TODO if job not finished, return job in queue
+  const aggregators = await loadAggregators()
 
   new Worker(WORKER_ANY_API_QUEUE_NAME, anyApiJob(REPORTER_ANY_API_QUEUE_NAME), BULLMQ_CONNECTION)
 
@@ -55,6 +55,9 @@ async function main() {
     aggregatorJob(REPORTER_AGGREGATOR_QUEUE_NAME, adapters),
     BULLMQ_CONNECTION
   )
+
+  // Fixed Heartbeat
+  // Random Heardbeat
 }
 
 function extractFeeds(adapter) {
@@ -86,6 +89,16 @@ async function loadAdapters() {
   return activeRawAdapters.map((a) => extractFeeds(a))
 }
 
+async function loadAggregators() {
+  const aggregatorPaths = await Fs.readdir(AGGREGATOR_ROOT_DIR)
+
+  const allRawAggregators = await Promise.all(
+    aggregatorPaths.map(async (ap) => validateAggregator(await loadJson(Path.join(AGGREGATOR_ROOT_DIR, ap))))
+  )
+  const activeRawAggregators = allRawAggregators.filter((a) => a.active)
+  return activeRawAggregators
+}
+
 function validateAdapter(adapter): IAdapter {
   // TODO extract properties from Interface
   const requiredProperties = ['active', 'name', 'job_type', 'adapter_id', 'feeds']
@@ -98,7 +111,23 @@ function validateAdapter(adapter): IAdapter {
   if (isValid) {
     return adapter as IAdapter
   } else {
-    throw new IcnError(IcnErrorCode.InvalidOperator)
+    throw new IcnError(IcnErrorCode.InvalidAdapter)
+  }
+}
+
+function validateAggregator(adapter): IAggregator {
+  // TODO extract properties from Interface
+  const requiredProperties = ['active', 'name', 'aggregatorAddress', 'fixedHeartbeatRate', 'randomHeartbeatRate', 'threshold', 'absoluteThreshold', 'adapterId']
+  // TODO show where is the error
+  const hasProperty = requiredProperties.map((p) =>
+    Object.prototype.hasOwnProperty.call(adapter, p)
+  )
+  const isValid = hasProperty.every((x) => x)
+
+  if (isValid) {
+    return adapter as IAggregator
+  } else {
+    throw new IcnError(IcnErrorCode.InvalidAggregator)
   }
 }
 

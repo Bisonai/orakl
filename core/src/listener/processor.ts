@@ -3,9 +3,10 @@ import { ethers } from 'ethers'
 import {
   INewRequest,
   IRandomWordsRequested,
+  INewRound,
   IAnyApiListenerWorker,
   IVrfListenerWorker,
-  INewRound
+  IAggregatorListenerWorker
 } from '../types'
 
 export function processICNEvent(iface: ethers.utils.Interface, queue: Queue) {

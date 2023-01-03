@@ -130,9 +130,9 @@ export interface IVrfListenerWorker {
 export interface IAggregatorListenerWorker {
   mustReport: boolean
   callbackAddress: string
-  roundId: number
+  roundId: BigNumber
   startedBy: string
-  startedAt: number
+  startedAt: BigNumber
 }
 
 // Worker -> Reporter

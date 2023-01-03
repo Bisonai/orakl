@@ -9,13 +9,12 @@
     "eventName": "NewRequest",
     "factoryName": "ICNOracle__factory"
   },
-  "AGGREGATOR": [
+  "AGGREGATOR":
     {
       "address": "0x5FC8d32690cc91D4c39d9d3abcBD16989F875707",
       "eventName": "NewRound",
       "factoryName": "Aggregator__factory"
-    }
-  ],
+    },
   "ANY_API": [
     "0x45778c29A34bA00427620b937733490363839d8C"
   ]

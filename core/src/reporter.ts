@@ -1,9 +1,25 @@
 import { Worker } from 'bullmq'
 import { ethers } from 'ethers'
-import { ICNOracle__factory, VRFCoordinator__factory } from '@bisonai-cic/icn-contracts'
+import {
+  //ICNOracle__factory,
+  RequestResponseCoordinator__factory,
+  VRFCoordinator__factory,
+  Aggregator__factory
+} from '@bisonai-cic/icn-contracts'
 import { sendTransaction } from './utils'
-import { REPORTER_ANY_API_QUEUE_NAME, REPORTER_VRF_QUEUE_NAME, BULLMQ_CONNECTION } from './settings'
-import { IAnyApiWorkerReporter, IVrfWorkerReporter, RequestCommitment, Proof } from './types'
+import {
+  REPORTER_ANY_API_QUEUE_NAME,
+  REPORTER_VRF_QUEUE_NAME,
+  REPORTER_AGGREGATOR_QUEUE_NAME,
+  BULLMQ_CONNECTION
+} from './settings'
+import {
+  IAnyApiWorkerReporter,
+  IVrfWorkerReporter,
+  IAggregatorWorkerReporter,
+  RequestCommitment,
+  Proof
+} from './types'
 import { IcnError, IcnErrorCode } from './errors'
 import {
   PROVIDER as PROVIDER_ENV,
@@ -22,14 +38,15 @@ async function main() {
 
     new Worker(REPORTER_ANY_API_QUEUE_NAME, await anyApiJob(wallet), BULLMQ_CONNECTION)
     new Worker(REPORTER_VRF_QUEUE_NAME, await vrfJob(wallet), BULLMQ_CONNECTION)
-    // TODO Predefined Feed
+    new Worker(REPORTER_AGGREGATOR_QUEUE_NAME, await aggregatorJob(wallet), BULLMQ_CONNECTION)
   } catch (e) {
     console.error(e)
   }
 }
 
 function anyApiJob(wallet) {
-  const iface = new ethers.utils.Interface(ICNOracle__factory.abi)
+  //const iface = new ethers.utils.Interface(ICNOracle__factory.abi)
+  const iface = new ethers.utils.Interface(RequestResponseCoordinator__factory.abi)
 
   async function wrapper(job) {
     const inData: IAnyApiWorkerReporter = job.data
@@ -83,6 +100,28 @@ function vrfJob(wallet) {
 
       const payload = iface.encodeFunctionData('fulfillRandomWords', [proof, rc])
       await sendTransaction(wallet, inData.callbackAddress, payload, gasLimit)
+    } catch (e) {
+      console.error(e)
+    }
+  }
+
+  return wrapper
+}
+
+function aggregatorJob(wallet) {
+  const iface = new ethers.utils.Interface(Aggregator__factory.abi)
+
+  async function wrapper(job) {
+    const inData: IAggregatorWorkerReporter = job.data
+    console.debug('aggregatorJob:inData', inData)
+
+    try {
+      const payload = iface.encodeFunctionData('submit', [inData.roundId, inData.submission])
+
+      await sendTransaction(wallet, inData.callbackAddress, payload)
+
+      // TODO Put Random Heartbeat job to queue
+      const randomHeartbeat = 3 // seconds
     } catch (e) {
       console.error(e)
     }
