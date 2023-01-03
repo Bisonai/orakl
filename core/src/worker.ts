@@ -10,9 +10,10 @@ import {
   IPredefinedFeedListenerWorker,
   IAnyApiListenerWorker,
   IVrfListenerWorker,
+  IAggregatorListenerWorker,
   IAnyApiWorkerReporter,
   IPredefinedFeedWorkerReporter,
-  IVrfWorkerReporter
+  IVrfWorkerReporter,
 } from './types'
 import { loadJson, pipe, remove0x, readFromJson } from './utils'
 import { reducerMapping } from './reducer'
@@ -24,6 +25,8 @@ import {
   REPORTER_PREDEFINED_FEED_QUEUE_NAME,
   WORKER_VRF_QUEUE_NAME,
   REPORTER_VRF_QUEUE_NAME,
+  WORKER_AGGREGATOR_QUEUE_NAME,
+  REPORTER_AGGREGATOR_QUEUE_NAME,
   BULLMQ_CONNECTION,
   ADAPTER_ROOT_DIR,
   VRF_CONFIG_FILE
@@ -46,6 +49,12 @@ async function main() {
   )
 
   new Worker(WORKER_VRF_QUEUE_NAME, await vrfJob(REPORTER_VRF_QUEUE_NAME), BULLMQ_CONNECTION)
+
+  new Worker(
+    WORKER_AGGREGATOR_QUEUE_NAME,
+    aggregatorJob(REPORTER_AGGREGATOR_QUEUE_NAME, adapters),
+    BULLMQ_CONNECTION
+  )
 }
 
 function extractFeeds(adapter) {
@@ -247,6 +256,41 @@ function processVrfRequest(alpha: string, config): IVrfResponse {
     uPoint: [fast.uX, fast.uY],
     vComponents: [fast.sHX, fast.sHY, fast.cGX, fast.cGY]
   }
+}
+
+function aggregatorJob(queueName, adapters) {
+  const queue = new Queue(queueName, BULLMQ_CONNECTION)
+
+  async function wrapper(job) {
+    const inData: IAggregatorListenerWorker = job.data
+    console.debug('aggregatorJob:inData', inData)
+
+    try {
+      // TODO Fetch data (same as in Predefined Feed or Request-Response)
+      const outData /* : IAggregatorWorkerReporter */ = {}
+      console.debug('aggregatorJob:outData', outData)
+
+      let dataDiverged = false
+      if (inData.mustReport) {
+        // TODO check
+      } else {
+        // Check if the new value reaches over threshold or absoluteThreshold.
+        if (dataDiverged) {
+          dataDiverged = true
+        } else {
+          // TODO Put Fixed Heartbeat to appropriate queue
+        }
+      }
+
+      if (inData.mustReport || dataDiverged) {
+        await queue.add('aggregator', outData)
+      }
+    } catch (e) {
+      console.error(e)
+    }
+  }
+
+  return wrapper
 }
 
 main().catch((error) => {

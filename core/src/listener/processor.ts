@@ -59,8 +59,9 @@ export function processAggregatorEvent(iface: ethers.utils.Interface, queue: Que
     // TODO if I have emitted the event, then ignore
 
     const data: IAggregatorListenerWorker = {
+      mustReport: true,
       callbackAddress: log.address,
-      roundId: eventData.roudnId,
+      roundId: eventData.roundId,
       startedBy: eventData.startedBy,
       startedAt: eventData.startedAt
     }

@@ -87,6 +87,12 @@ export interface IRandomWordsRequested {
   sender: string
 }
 
+export interface INewRound {
+  roundId: BigNumber
+  startedBy: string
+  startedAt: BigNumber
+}
+
 // Listener -> Worker
 
 export interface IPredefinedFeedListenerWorker {
@@ -119,6 +125,14 @@ export interface IVrfListenerWorker {
   callbackGasLimit: number
   numWords: number
   sender: string
+}
+
+export interface IAggregatorListenerWorker {
+  mustReport: boolean
+  callbackAddress: string
+  roundId: number
+  startedBy: string
+  startedAt: number
 }
 
 // Worker -> Reporter
@@ -155,6 +169,12 @@ export interface IVrfWorkerReporter {
   preSeed: string
   uPoint: [string, string]
   vComponents: [string, string, string, string]
+}
+
+export interface IAggregatorWorkerReporter {
+  callbackAddress: string
+  roundId: number
+  submission: number
 }
 
 // VRF
