@@ -1,5 +1,6 @@
 import { expect } from 'chai'
 import { loadFixture } from '@nomicfoundation/hardhat-network-helpers'
+import { BigNumber } from 'ethers'
 
 function vrfConfig() {
   // FIXME
@@ -140,13 +141,13 @@ describe('Prepayment contract', function () {
 
     const balanceOwnerAfter = await ethers.provider.getBalance(owner.address)
     const balanceAccAfter = (await prepayment.getAccount(accId)).balance
-
     expect(balanceAccAfter).to.be.equal(depositValue - withdrawValue)
 
-    // FIXME
-    console.log(balanceOwnerBefore - balanceOwnerAfter)
-    console.log(txReceipt.effectiveGasPrice.toString())
-    // expect(balanceOwnerAfter).to.be.greaterThan(balanceOwnerBefore) // WRONG
+    expect(
+      balanceOwnerBefore
+        .add(withdrawValue)
+        .sub(txReceipt.cumulativeGasUsed * txReceipt.effectiveGasPrice)
+    ).to.be.equal(balanceOwnerAfter)
   })
 
   it('Should cancel Account', async function () {
