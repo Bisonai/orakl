@@ -17,9 +17,15 @@
     "build": "yarn clean && tsc",
     "start:listener": "node --experimental-specifier-resolution=node --experimental-json-modules dist/listener/listener.js",
     "start:listener:vrf": "yarn start:listener --listener VRF",
-    "start:listener:icn": "yarn start:listener --listener ICN",
+    "start:listener:rr": "yarn start:listener --listener ICN",
     "start:listener:aggregator": "yarn start:listener --listener AGGREGATOR",
-    "start:worker": "node --experimental-specifier-resolution=node --experimental-json-modules dist/worker.js",
+
+    "start:worker": "node --experimental-specifier-resolution=node --experimental-json-modules dist/worker/main.js",
+    "start:worker:aggregator": "yarn start:worker --worker AGGREGATOR",
+    "start:worker:vrf": "yarn start:worker --worker VRF",
+    "start:worker:any_api": "yarn start:worker --worker ANY_API",
+    "start:worker:predefined_feed": "yarn start:worker --worker PREDEFINED_FEED",
+
     "start:reporter": "node --experimental-specifier-resolution=node --experimental-json-modules dist/reporter.js",
     "keygen": "node --experimental-specifier-resolution=node --experimental-json-modules dist/cli/vrf-keygen.js",
     "test": "jest",

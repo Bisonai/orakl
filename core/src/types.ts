@@ -53,6 +53,17 @@ export interface IAdapter {
   feeds: IFeed[]
 }
 
+export interface IAggregator {
+  active: boolean
+  name: string
+  aggregatorAddress: string
+  fixedHeartbeatRate: number
+  randomHeartbeatRate: number
+  threshold: number
+  absoluteThreshold: number
+  adapterId: string
+}
+
 export interface IRequest {
   get: string
   path?: string[]
