@@ -26,9 +26,13 @@
     "start:worker:aggregator": "yarn start:worker --worker AGGREGATOR",
     "start:worker:vrf": "yarn start:worker --worker VRF",
     "start:worker:any_api": "yarn start:worker --worker ANY_API",
-    "start:worker:predefined_feed": "yarn start:worker --worker PREDEFINED_FEED",
+      "start:worker:predefined_feed": "yarn start:worker --worker PREDEFINED_FEED",
 
-    "start:reporter": "node --experimental-specifier-resolution=node --experimental-json-modules dist/reporter.js",
+    "start:reporter": "node --experimental-specifier-resolution=node --experimental-json-modules dist/reporter/main.js",
+    "start:reporter:vrf": "yarn start:reporter --reporter VRF",
+    "start:reporter:any_api": "yarn start:reporter --reporter ANY_API",
+    "start:reporter:aggregator": "yarn start:reporter --reporter AGGREGATOR",
+
     "keygen": "node --experimental-specifier-resolution=node --experimental-json-modules dist/cli/vrf-keygen.js",
     "test": "jest",
     "eslint": "DEBUG=eslint:cli-engine npx eslint 'src/**/*.ts' 'src/*.ts' 'test/*.ts'"

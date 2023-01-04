@@ -57,22 +57,6 @@ export function pad32Bytes(data) {
   return s
 }
 
-export async function sendTransaction(wallet, to, payload, gasLimit?, value?) {
-  const tx = {
-    from: wallet.address,
-    to: to,
-    data: add0x(payload),
-    gasLimit: gasLimit || '0x34710', // FIXME
-    value: value || '0x00'
-  }
-  console.debug('sendTransaction:tx')
-  console.debug(tx)
-
-  const txReceipt = await wallet.sendTransaction(tx)
-  console.debug('sendTransaction:txReceipt')
-  console.debug(txReceipt)
-}
-
 export function mkdir(dir: string) {
   if (!fs.existsSync(dir)) {
     fs.mkdirSync(dir, { recursive: true })

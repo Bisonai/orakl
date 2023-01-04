@@ -155,7 +155,7 @@ function fixedHeartbeatJob(
         const outData: IAggregatorWorkerReporter = {
           callbackAddress: inData.aggregatorAddress,
           roundId,
-          submission
+          submission: 0
         }
 
         console.debug('fixedHeartbeatJob:outData', outData)
