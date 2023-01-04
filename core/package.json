@@ -15,6 +15,8 @@
     "prepare": "cd .. && husky install core/.husky",
     "clean": "rm -rf dist",
     "build": "yarn clean && tsc",
+    "flush": "node --experimental-specifier-resolution=node --experimental-json-modules dist/flush-queues.js",
+
     "start:listener": "node --experimental-specifier-resolution=node --experimental-json-modules dist/listener/listener.js",
     "start:listener:vrf": "yarn start:listener --listener VRF",
     "start:listener:rr": "yarn start:listener --listener ICN",
