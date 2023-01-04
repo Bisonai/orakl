@@ -40,8 +40,8 @@ interface IReducer {
 
 interface IFeed {
   url: string
-  method: string
   headers?: IHeader[]
+  method: string
   reducers?: IReducer[]
 }
 
@@ -144,6 +144,21 @@ export interface IAggregatorListenerWorker {
   roundId: BigNumber
   startedBy: string
   startedAt: BigNumber
+}
+
+// Worker -> Worker
+
+export interface IAggregatorFixedHeartbeatWorker {
+  name: string
+  active: boolean
+  aggregatorAddress: string
+  fixedHeartbeatRate: number
+  randomHeartbeatRate: number
+  threshold: number
+  absoluteThreshold: number
+  adapterId: string
+  aggregatorId: string
+  adapter: IFeed[]
 }
 
 // Worker -> Reporter

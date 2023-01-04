@@ -2,13 +2,23 @@ import * as Fs from 'node:fs/promises'
 import * as Path from 'node:path'
 import { ethers } from 'ethers'
 import { Worker, Queue } from 'bullmq'
-// import { got } from 'got'
-import { loadAdapters, loadAggregators } from './utils'
+import {
+  fetchDataWithAdapter,
+  loadAdapters,
+  loadAggregators,
+  mergeAggregatorsAdapters
+} from './utils'
 import { reducerMapping } from './reducer'
-import { IAggregatorListenerWorker, IAggregatorWorkerReporter } from '../types'
+import {
+  IAggregatorListenerWorker,
+  IAggregatorWorkerReporter,
+  IAggregatorFixedHeartbeatWorker
+} from '../types'
 import {
   WORKER_AGGREGATOR_QUEUE_NAME,
   REPORTER_AGGREGATOR_QUEUE_NAME,
+  FIXED_HEARTBEAT_QUEUE_NAME,
+  RANDOM_HEARTBEAT_QUEUE_NAME,
   BULLMQ_CONNECTION
 } from '../settings'
 
@@ -16,19 +26,55 @@ export async function aggregatorWorker() {
   console.debug('aggregatorWorker')
 
   const adapters = await loadAdapters()
-  console.debug('main:adapters', adapters)
+  console.debug('aggregatorWorker:adapters', adapters)
 
   const aggregators = await loadAggregators()
-  console.debug('main:aggregators', aggregators)
+  console.debug('aggregatorWorker:aggregators', aggregators)
 
+  const aggregatorsWithAdapters = mergeAggregatorsAdapters(aggregators, adapters)
+  console.debug('aggregatorWorker:aggregatorsWithAdapters', aggregatorsWithAdapters)
+
+  // const res = adapters['0xf84be3681d32250d9fbe85ab1c56db59d9e1ef2dff242de066853b4a047e15e2'][0]
+  // const res = aggregatorsWithAdapters[0].adapter[0].reducers
+
+  // console.log(res)
+  // process.exit(0)
+
+  // console.log(adapters['0x47c99abed3324a2707c28affff1267e45918ec8c3f20b8aa892e8b065d2942dd'])
+  // console.log(
+  //   adapters['0x47c99abed3324a2707c28affff1267e45918ec8c3f20b8aa892e8b065d2942dd'][0]['reducers'][0]
+  // )
+  // process.exit(0)
+
+  // console.log(adapters['0xf84be3681d32250d9fbe85ab1c56db59d9e1ef2dff242de066853b4a047e15e2'])
+
+  // new Worker(
+  //   WORKER_AGGREGATOR_QUEUE_NAME,
+  //   aggregatorJob(REPORTER_AGGREGATOR_QUEUE_NAME, adapters),
+  //   BULLMQ_CONNECTION
+  // )
+
+  // Fixed Heartbeat
   new Worker(
-    WORKER_AGGREGATOR_QUEUE_NAME,
-    aggregatorJob(REPORTER_AGGREGATOR_QUEUE_NAME, adapters),
+    FIXED_HEARTBEAT_QUEUE_NAME,
+    fixedHeartbeatJob(
+      FIXED_HEARTBEAT_QUEUE_NAME,
+      REPORTER_AGGREGATOR_QUEUE_NAME,
+      aggregatorsWithAdapters
+    ),
     BULLMQ_CONNECTION
   )
 
-  // Fixed Heartbeat
-  // Random Heardbeat
+  // Random Heartbeat
+  // new Worker(
+  //   RANDOM_HEARTBEAT_QUEUE_NAME,
+  //   randomHeartbeatJob(
+  //     RANDOM_HEARTBEAT_QUEUE_NAME,
+  //     REPORTER_AGGREGATOR_QUEUE_NAME,
+  //     aggregatorsWithAdapters
+  //   ),
+  //   BULLMQ_CONNECTION
+  // )
 }
 
 function aggregatorJob(queueName, adapters) {
@@ -62,6 +108,45 @@ function aggregatorJob(queueName, adapters) {
       if (inData.mustReport || dataDiverged) {
         await queue.add('aggregator', outData)
       }
+    } catch (e) {
+      console.error(e)
+    }
+  }
+
+  return wrapper
+}
+
+function fixedHeartbeatJob(
+  heartbeatQueueName: string,
+  reporterQueueName: string,
+  agregatorsWithAdapters //: IAggregatorFixedHeartbeatWorker[]
+) {
+  console.debug('fixedHeartbeatJob')
+
+  const heartbeatQueue = new Queue(heartbeatQueueName, BULLMQ_CONNECTION)
+  const reporterQueue = new Queue(reporterQueueName, BULLMQ_CONNECTION)
+
+  for (const ag of agregatorsWithAdapters) {
+    heartbeatQueue.add('fixed-heartbeat', ag, { delay: ag.fixedHeartbeatRate })
+  }
+
+  async function wrapper(job) {
+    const inData: IAggregatorFixedHeartbeatWorker = job.data
+    // console.debug('fixedHeartbeatJob:inData', inData)
+
+    try {
+      const res = await fetchDataWithAdapter(inData.adapter)
+      console.log(res)
+
+      // const outData: IAggregatorWorkerReporter = {
+      //     callbackAddress: '0x',
+      //     roundId: 0,
+      //     submission: 0
+      // }
+      // console.debug('aggregatorJob:outData', outData)
+      // reporterQueue.add('aggregator', outData)
+
+      heartbeatQueue.add('fixed-heartbeat', inData, { delay: inData.fixedHeartbeatRate })
     } catch (e) {
       console.error(e)
     }

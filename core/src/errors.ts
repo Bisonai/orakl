@@ -11,7 +11,9 @@ export enum IcnErrorCode {
   InvalidOperator,
   InvalidAdapter,
   InvalidAggregator,
+  InvalidReducer,
   MissingMnemonic,
   MissingJsonRpcProvider,
-  MissingKeyInJson
+  MissingKeyInJson,
+  MissingAdapter
 }

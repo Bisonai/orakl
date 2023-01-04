@@ -1,10 +1,11 @@
 import * as Fs from 'node:fs/promises'
 import * as Path from 'node:path'
+import { got } from 'got'
 import { reducerMapping } from './reducer'
 import { IcnError, IcnErrorCode } from '../errors'
-import { loadJson } from '../utils'
+import { pipe, loadJson } from '../utils'
 import { IAdapter, IAggregator } from '../types'
-import { ADAPTER_ROOT_DIR, AGGREGATOR_ROOT_DIR } from '../settings'
+import { localAggregatorFn, ADAPTER_ROOT_DIR, AGGREGATOR_ROOT_DIR } from '../settings'
 
 export async function loadAdapters() {
   const adapterPaths = await Fs.readdir(ADAPTER_ROOT_DIR)
@@ -13,7 +14,7 @@ export async function loadAdapters() {
     adapterPaths.map(async (ap) => validateAdapter(await loadJson(Path.join(ADAPTER_ROOT_DIR, ap))))
   )
   const activeRawAdapters = allRawAdapters.filter((a) => a.active)
-  return activeRawAdapters.map((a) => extractFeeds(a))
+  return Object.assign({}, ...activeRawAdapters.map((a) => extractFeeds(a)))
 }
 
 export async function loadAggregators() {
@@ -25,31 +26,102 @@ export async function loadAggregators() {
     )
   )
   const activeRawAggregators = allRawAggregators.filter((a) => a.active)
-  return activeRawAggregators
+  return Object.assign({}, ...activeRawAggregators.map((a) => extractAggregators(a)))
+}
+
+export function mergeAggregatorsAdapters(aggregators, adapters) {
+  // FIXME use mapping instead
+  let aggregatorsWithAdapters: any = [] // TODO replace any
+
+  for (const agId in aggregators) {
+    const ag = aggregators[agId]
+    if (ag) {
+      const ad = adapters[ag.adapterId]
+
+      ag['aggregatorId'] = agId
+      ag['adapter'] = ad
+
+      aggregatorsWithAdapters.push(ag)
+    } else {
+      throw new IcnError(IcnErrorCode.MissingAdapter)
+    }
+  }
+
+  return aggregatorsWithAdapters
+}
+
+export async function fetchDataWithAdapter(adapter) {
+  const allResults = await Promise.all(
+    adapter.map(async (a) => {
+      const options = {
+        method: a.method,
+        headers: a.headers
+      }
+
+      try {
+        const rawData = await got(a.url, options).json()
+        console.debug('fetchDataWithAdapter', rawData)
+        // FIXME Built reducers just once and use. Currently, can't
+        // be passed to queue, therefore has to be recreated before
+        // every fetch.
+        const reducers = buildReducer(a.reducers)
+        return pipe(...reducers)(rawData)
+      } catch (e) {
+        console.error(e)
+      }
+    })
+  )
+  console.debug('predefinedFeedJob:allResults', allResults)
+
+  const aggregatedResults = localAggregatorFn(...allResults)
+  console.debug('fetchDataWithAdapter:aggregatedResults', aggregatedResults)
+
+  return aggregatedResults
+}
+
+function buildReducer(reducers) {
+  return reducers.map((r) => {
+    const reducer = reducerMapping[r.function]
+    if (!reducer) {
+      throw new IcnError(IcnErrorCode.InvalidReducer)
+    }
+    return reducer(r.args)
+  })
 }
 
 function extractFeeds(adapter) {
-  const adapterId = adapter.adapter_id
+  const adapterId = adapter.adapterId
   const feeds = adapter.feeds.map((f) => {
-    const reducers = f.reducers?.map((r) => {
-      // TODO check if exists
-      return reducerMapping[r.function](r.args)
-    })
-
     return {
       url: f.url,
       headers: f.headers,
       method: f.method,
-      reducers
+      reducers: f.reducers
     }
   })
 
   return { [adapterId]: feeds }
 }
 
+function extractAggregators(aggregator) {
+  const aggregatorId = aggregator.id
+  return {
+    [aggregatorId]: {
+      name: aggregator.name,
+      active: aggregator.active,
+      aggregatorAddress: aggregator.aggregatorAddress,
+      fixedHeartbeatRate: aggregator.fixedHeartbeatRate,
+      randomHeartbeatRate: aggregator.randomHeartbeatRate,
+      threshold: aggregator.threshold,
+      absoluteThreshold: aggregator.absoluteThreshold,
+      adapterId: aggregator.adapterId
+    }
+  }
+}
+
 function validateAdapter(adapter): IAdapter {
   // TODO extract properties from Interface
-  const requiredProperties = ['active', 'name', 'job_type', 'adapter_id', 'feeds']
+  const requiredProperties = ['active', 'name', 'jobType', 'adapterId', 'feeds']
   // TODO show where is the error
   const hasProperty = requiredProperties.map((p) =>
     Object.prototype.hasOwnProperty.call(adapter, p)
@@ -66,6 +138,7 @@ function validateAdapter(adapter): IAdapter {
 function validateAggregator(adapter): IAggregator {
   // TODO extract properties from Interface
   const requiredProperties = [
+    'id',
     'active',
     'name',
     'aggregatorAddress',
