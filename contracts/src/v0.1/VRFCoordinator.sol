@@ -202,7 +202,7 @@ contract VRFCoordinator is
             maxGasLimit: maxGasLimit,
             gasAfterPaymentCalculation: gasAfterPaymentCalculation,
             reentrancyLock: false,
-            keyHash:keyHash
+            keyHash: keyHash
         });
         s_feeConfig = feeConfig;
         emit ConfigSet(
@@ -570,6 +570,7 @@ contract VRFCoordinator is
     }
 
     receive() external payable {}
+
     /**
      * @inheritdoc VRFCoordinatorInterface
      */
@@ -578,12 +579,18 @@ contract VRFCoordinator is
         uint32 callbackGasLimit,
         uint32 numWords
     ) external payable override returns (uint256) {
-        require(msg.value>0,'Insufficient balance');
+        require(msg.value > 0, "Insufficient balance");
         // create account
         uint64 accId = Prepayment.createAccount();
         Prepayment.addConsumer(accId, msg.sender);
-        uint256 requestId=requestRandomWords(s_config.keyHash, accId, requestConfirmations, callbackGasLimit, numWords);
-        Prepayment.deposit{value:msg.value}(accId);
+        uint256 requestId = requestRandomWords(
+            s_config.keyHash,
+            accId,
+            requestConfirmations,
+            callbackGasLimit,
+            numWords
+        );
+        Prepayment.deposit{value: msg.value}(accId);
         return requestId;
     }
 
