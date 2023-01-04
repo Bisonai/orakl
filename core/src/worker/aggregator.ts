@@ -134,39 +134,37 @@ function fixedHeartbeatJob(
 
   async function wrapper(job) {
     const inData: IAggregatorFixedHeartbeatWorker = job.data
-
-    try {
-      const submission = await fetchDataWithAdapter(inData.adapter)
-      console.log(submission)
-    } catch (e) {
-      console.error(e)
-    }
-
-    try {
-      const lastSubmission = await latestRoundData(inData.aggregatorAddress)
-      console.log('fixedHeartbeatJob:lastSubmission', lastSubmission)
-
-      // TODO compare with previous aggregated submission
-    } catch (e) {
-      if (e.code == 'CALL_EXCEPTION' && e.reason == 'No data present') {
-        // No data were submitted to feed yet! Submitting for the
-        // first time!
-        const roundId = 1
-        const outData: IAggregatorWorkerReporter = {
-          callbackAddress: inData.aggregatorAddress,
-          roundId,
-          submission: 0
-        }
-
-        console.debug('fixedHeartbeatJob:outData', outData)
-        reporterQueue.add('aggregator', outData)
-      }
-    }
-
+    const outData = await prepareDataForReporter(inData)
+    reporterQueue.add('aggregator', outData)
     // heartbeatQueue.add('fixed-heartbeat', inData, { delay: inData.fixedHeartbeatRate })
   }
 
   return wrapper
+}
+
+async function prepareDataForReporter(data): Promise<IAggregatorWorkerReporter> {
+  const callbackAddress = data.aggregatorAddress
+  const submission = await fetchDataWithAdapter(data.adapter)
+
+  let roundId
+
+  try {
+    const lastSubmission = await latestRoundData(data.aggregatorAddress)
+    console.debug('fixedHeartbeatJob:lastSubmission', lastSubmission)
+    roundId = undefined // TODO extract roundId from the last submission
+  } catch (e) {
+    if (e.code == 'CALL_EXCEPTION' && e.reason == 'No data present') {
+      // No data were submitted to feed yet! Submitting for the
+      // first time!
+      roundId = 1
+    }
+  }
+
+  return {
+    callbackAddress,
+    roundId: 1,
+    submission: submission
+  }
 }
 
 async function latestRoundData(address: string) {
