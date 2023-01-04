@@ -21,6 +21,8 @@ import {
   RANDOM_HEARTBEAT_QUEUE_NAME,
   BULLMQ_CONNECTION
 } from '../settings'
+import { PROVIDER_URL } from '../load-parameters'
+import { Aggregator__factory } from '@bisonai-cic/icn-contracts'
 
 export async function aggregatorWorker() {
   console.debug('aggregatorWorker')
@@ -119,7 +121,7 @@ function aggregatorJob(queueName, adapters) {
 function fixedHeartbeatJob(
   heartbeatQueueName: string,
   reporterQueueName: string,
-  agregatorsWithAdapters //: IAggregatorFixedHeartbeatWorker[]
+  agregatorsWithAdapters: IAggregatorFixedHeartbeatWorker[]
 ) {
   console.debug('fixedHeartbeatJob')
 
@@ -132,25 +134,43 @@ function fixedHeartbeatJob(
 
   async function wrapper(job) {
     const inData: IAggregatorFixedHeartbeatWorker = job.data
-    // console.debug('fixedHeartbeatJob:inData', inData)
 
     try {
-      const res = await fetchDataWithAdapter(inData.adapter)
-      console.log(res)
-
-      // const outData: IAggregatorWorkerReporter = {
-      //     callbackAddress: '0x',
-      //     roundId: 0,
-      //     submission: 0
-      // }
-      // console.debug('aggregatorJob:outData', outData)
-      // reporterQueue.add('aggregator', outData)
-
-      heartbeatQueue.add('fixed-heartbeat', inData, { delay: inData.fixedHeartbeatRate })
+      const submission = await fetchDataWithAdapter(inData.adapter)
+      console.log(submission)
     } catch (e) {
       console.error(e)
     }
+
+    try {
+      const lastSubmission = await latestRoundData(inData.aggregatorAddress)
+      console.log('fixedHeartbeatJob:lastSubmission', lastSubmission)
+
+      // TODO compare with previous aggregated submission
+    } catch (e) {
+      if (e.code == 'CALL_EXCEPTION' && e.reason == 'No data present') {
+        // No data were submitted to feed yet! Submitting for the
+        // first time!
+        const roundId = 1
+        const outData: IAggregatorWorkerReporter = {
+          callbackAddress: inData.aggregatorAddress,
+          roundId,
+          submission
+        }
+
+        console.debug('fixedHeartbeatJob:outData', outData)
+        reporterQueue.add('aggregator', outData)
+      }
+    }
+
+    // heartbeatQueue.add('fixed-heartbeat', inData, { delay: inData.fixedHeartbeatRate })
   }
 
   return wrapper
+}
+
+async function latestRoundData(address: string) {
+  const provider = new ethers.providers.JsonRpcProvider(PROVIDER_URL)
+  const aggregator = new ethers.Contract(address, Aggregator__factory.abi, provider)
+  return await aggregator.latestRoundData()
 }
