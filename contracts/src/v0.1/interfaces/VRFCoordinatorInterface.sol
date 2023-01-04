@@ -47,4 +47,10 @@ interface VRFCoordinatorInterface {
     uint32 callbackGasLimit,
     uint32 numWords
   ) external returns (uint256 requestId);
+
+  function requestRandomWordsPayment(
+        uint16 requestConfirmations,
+        uint32 callbackGasLimit,
+        uint32 numWords
+    ) external payable returns (uint256);
 }

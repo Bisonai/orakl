@@ -1,6 +1,6 @@
 import { Worker } from 'bullmq'
 import { ethers } from 'ethers'
-import { ICNOracle__factory, VRFCoordinator__factory } from '@bisonai-cic/icn-contracts'
+import { IOracle__factory, VRFCoordinator__factory } from '@bisonai-cic/icn-contracts'
 import { sendTransaction } from './utils'
 import { REPORTER_ANY_API_QUEUE_NAME, REPORTER_VRF_QUEUE_NAME, BULLMQ_CONNECTION } from './settings'
 import { IAnyApiWorkerReporter, IVrfWorkerReporter, RequestCommitment, Proof } from './types'
@@ -29,7 +29,7 @@ async function main() {
 }
 
 function anyApiJob(wallet) {
-  const iface = new ethers.utils.Interface(ICNOracle__factory.abi)
+  const iface = new ethers.utils.Interface(IOracle__factory.abi)
 
   async function wrapper(job) {
     const inData: IAnyApiWorkerReporter = job.data

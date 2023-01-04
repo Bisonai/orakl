@@ -80,7 +80,7 @@ export interface IRandomWordsRequested {
   keyHash: string
   requestId: BigNumber
   preSeed: number
-  subId: BigNumber
+  accId: BigNumber
   minimumRequestConfirmations: number
   callbackGasLimit: number
   numWords: number

@@ -37,7 +37,7 @@ export function processVrfEvent(iface: ethers.utils.Interface, queue: Queue) {
       blockHash: log.blockHash,
       requestId: eventData.requestId.toString(),
       seed: eventData.preSeed.toString(),
-      subId: eventData.subId.toString(),
+      subId: eventData.accId.toString(),
       minimumRequestConfirmations: eventData.minimumRequestConfirmations,
       callbackGasLimit: eventData.callbackGasLimit,
       numWords: eventData.numWords,

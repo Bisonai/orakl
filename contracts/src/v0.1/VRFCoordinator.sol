@@ -35,6 +35,7 @@ contract VRFCoordinator is
     // 5k is plenty for an EXTCODESIZE call (2600) + warm CALL (100)
     // and some arithmetic operations.
     uint256 private constant GAS_FOR_CALL_EXACT_CHECK = 5_000;
+
     error InvalidRequestConfirmations(uint16 have, uint16 min, uint16 max);
     error GasLimitTooBig(uint32 have, uint32 want);
     error NumWordsTooBig(uint32 have, uint32 want);
@@ -92,6 +93,7 @@ contract VRFCoordinator is
         // Gas to cover oracle payment after we calculate the payment.
         // We make it configurable in case those operations are repriced.
         uint32 gasAfterPaymentCalculation;
+        bytes32 keyHash;
     }
     Config private s_config;
     FeeConfig private s_feeConfig;
@@ -185,6 +187,7 @@ contract VRFCoordinator is
         uint16 minimumRequestConfirmations,
         uint32 maxGasLimit,
         uint32 gasAfterPaymentCalculation,
+        bytes32 keyHash,
         FeeConfig memory feeConfig
     ) external onlyOwner {
         if (minimumRequestConfirmations > MAX_REQUEST_CONFIRMATIONS) {
@@ -198,7 +201,8 @@ contract VRFCoordinator is
             minimumRequestConfirmations: minimumRequestConfirmations,
             maxGasLimit: maxGasLimit,
             gasAfterPaymentCalculation: gasAfterPaymentCalculation,
-            reentrancyLock: false
+            reentrancyLock: false,
+            keyHash:keyHash
         });
         s_feeConfig = feeConfig;
         emit ConfigSet(
@@ -273,7 +277,7 @@ contract VRFCoordinator is
         uint16 requestConfirmations,
         uint32 callbackGasLimit,
         uint32 numWords
-    ) external override nonReentrant returns (uint256) {
+    ) public override nonReentrant returns (uint256) {
         // Input validation using the account storage.
         // call to prepayment contract
         address owner = Prepayment.getAccountOwner(accId);
@@ -563,6 +567,24 @@ contract VRFCoordinator is
             }
         }
         return false;
+    }
+
+    receive() external payable {}
+    /**
+     * @inheritdoc VRFCoordinatorInterface
+     */
+    function requestRandomWordsPayment(
+        uint16 requestConfirmations,
+        uint32 callbackGasLimit,
+        uint32 numWords
+    ) external payable override returns (uint256) {
+        require(msg.value>0,'Insufficient balance');
+        // create account
+        uint64 accId = Prepayment.createAccount();
+        Prepayment.addConsumer(accId, msg.sender);
+        uint256 requestId=requestRandomWords(s_config.keyHash, accId, requestConfirmations, callbackGasLimit, numWords);
+        Prepayment.deposit{value:msg.value}(accId);
+        return requestId;
     }
 
     modifier nonReentrant() {
