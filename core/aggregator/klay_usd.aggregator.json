@@ -1,9 +1,10 @@
 {
+  "id": "0xce5f1552a888bafaccb16f7c9ee3d4d28c552105f9ed0f74533a1a0a58d27aee",
   "name": "KLAY/USD",
   "active": true,
   "aggregatorAddress": "0x00000000000000000000000000000000000000000",
-  "fixedHeartbeatRate": 60,
-  "randomHeartbeatRate": 20,
+  "fixedHeartbeatRate": 5000,
+  "randomHeartbeatRate": 2000,
   "threshold": 0.05,
   "absoluteThreshold": 0.1,
   "adapterId": "0xf84be3681d32250d9fbe85ab1c56db59d9e1ef2dff242de066853b4a047e15e2"
