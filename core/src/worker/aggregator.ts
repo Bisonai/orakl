@@ -7,7 +7,8 @@ import {
   loadAdapters,
   loadAggregators,
   mergeAggregatorsAdapters,
-  uniform
+  uniform,
+  addReportProperty
 } from './utils'
 import { reducerMapping } from './reducer'
 import {
@@ -35,16 +36,18 @@ export async function aggregatorWorker() {
   const aggregators = await loadAggregators()
   console.debug('aggregatorWorker:aggregators', aggregators)
 
+  // TODO change to one big dict instead of list of dicts
   const aggregatorsWithAdapters = mergeAggregatorsAdapters(aggregators, adapters)
   console.debug('aggregatorWorker:aggregatorsWithAdapters', aggregatorsWithAdapters)
 
+  // Event based worker
   // new Worker(
   //   WORKER_AGGREGATOR_QUEUE_NAME,
-  //   aggregatorJob(REPORTER_AGGREGATOR_QUEUE_NAME, adapters),
+  //   aggregatorJob(REPORTER_AGGREGATOR_QUEUE_NAME, aggregatorsWithAdapters),
   //   BULLMQ_CONNECTION
   // )
 
-  // Fixed Heartbeat
+  // Fixed heartbeat worker
   new Worker(
     FIXED_HEARTBEAT_QUEUE_NAME,
     fixedHeartbeatJob(
@@ -55,7 +58,7 @@ export async function aggregatorWorker() {
     BULLMQ_CONNECTION
   )
 
-  // Random Heartbeat
+  // Random heartbeat worker
   new Worker(
     RANDOM_HEARTBEAT_QUEUE_NAME,
     randomHeartbeatJob(
@@ -67,43 +70,23 @@ export async function aggregatorWorker() {
   )
 }
 
-function aggregatorJob(reporterQueueName, adapters) {
+function aggregatorJob(reporterQueueName: string, aggregatorsWithAdapters) {
   // This job is coming from on-chain request (event NewRound). Oracle
   // needs to submit the latest data based on this request without any
-  // check of data change compared to previous submissions.
+  // check on time or data change.
   const reporterQueue = new Queue(reporterQueueName, BULLMQ_CONNECTION)
 
   async function wrapper(job) {
-    const inData: IAggregatorListenerWorker = job.data
-    console.debug('aggregatorJob:inData', inData)
-
-    try {
-      // TODO Fetch data (same as in Predefined Feed or Request-Response)
-      // const outData: IAggregatorWorkerReporter = {
-      //   callbackAddress: '0x',
-      //   roundId: 0,
-      //   submission: 0
-      // }
-      // console.debug('aggregatorJob:outData', outData)
-
-      let dataDiverged = false
-      if (inData.mustReport) {
-        // TODO check
-      } else {
-        // Check if the new value reaches over threshold or absoluteThreshold.
-        if (dataDiverged) {
-          dataDiverged = true
-        } else {
-          // TODO Put Fixed Heartbeat to appropriate queue
-        }
-      }
-
-      // if (inData.mustReport || dataDiverged) {
-      //   await reporterQueue.add('aggregator', outData)
-      // }
-    } catch (e) {
-      console.error(e)
-    }
+    //   const inData: IAggregatorListenerWorker = job.data
+    //   console.debug('aggregatorJob:inData', inData)
+    //
+    //   const aggregator = aggregatorsWithAdapters[inDadata.aggregatorAddress]
+    //
+    //   try {
+    //     const outData = await prepareDataForReporter(inData, true)
+    //   } catch (e) {
+    //     console.error(e)
+    //   }
   }
 
   return wrapper
@@ -121,13 +104,19 @@ function fixedHeartbeatJob(
 
   // Launch all aggregators to be executed with fixed heartbeat
   // TODO Add clock synchronization through on-chain public data timestamp
-  for (const ag of agregatorsWithAdapters) {
-    heartbeatQueue.add('fixed-heartbeat', ag, { delay: ag.fixedHeartbeatRate })
+  for (const k in agregatorsWithAdapters) {
+    const ag = agregatorsWithAdapters[k]
+    heartbeatQueue.add('fixed-heartbeat', addReportProperty(ag, true), {
+      delay: ag.fixedHeartbeatRate
+    })
   }
 
   async function wrapper(job) {
     const inData: IAggregatorHeartbeatWorker = job.data
-    const outData = await prepareDataForReporter(inData, true)
+    console.debug('fixedHeartbeatJob:inData', inData)
+    const outData = await prepareDataForReporter(inData)
+    console.debug('fixedHeartbeatJob:outData', outData)
+
     reporterQueue.add('aggregator', outData)
     heartbeatQueue.add('fixed-heartbeat', inData, { delay: inData.fixedHeartbeatRate })
   }
@@ -146,13 +135,19 @@ function randomHeartbeatJob(
   const reporterQueue = new Queue(reporterQueueName, BULLMQ_CONNECTION)
 
   // Launch all aggregators to be executed with random heartbeat
-  for (const ag of agregatorsWithAdapters) {
-    heartbeatQueue.add('random-heartbeat', ag, { delay: uniform(0, ag.randomHeartbeatRate) })
+  for (const k in agregatorsWithAdapters) {
+    const ag = agregatorsWithAdapters[k]
+    heartbeatQueue.add('random-heartbeat', ag, {
+      delay: uniform(0, ag.randomHeartbeatRate)
+    })
   }
 
   async function wrapper(job) {
     const inData: IAggregatorHeartbeatWorker = job.data
+    console.debug('randomHeartbeatJob:inData', inData)
     const outData = await prepareDataForReporter(inData)
+    console.debug('randomHeartbeatJob:outData', outData)
+
     if (outData.report) {
       reporterQueue.add('aggregator', outData)
     }
@@ -164,19 +159,20 @@ function randomHeartbeatJob(
   return wrapper
 }
 
-async function prepareDataForReporter(data, _report?: boolean): Promise<IAggregatorWorkerReporter> {
+async function prepareDataForReporter(data): Promise<IAggregatorWorkerReporter> {
   const callbackAddress = data.aggregatorAddress
   const submission = await fetchDataWithAdapter(data.adapter)
 
   let roundId = BigNumber.from(1)
-  let report = _report
+  let report = data.report
+  let firstSubmission = false
 
   try {
     const latestRoundData = await latestRoundDataCall(data.aggregatorAddress)
     const lastSubmission = latestRoundData.answer.toNumber()
     if (report === undefined) {
       report = shouldReport(lastSubmission, submission, data.threshold, data.absoluteThreshold)
-      console.log('prepareDtaForReporter:report', report)
+      console.log('prepareDataForReporter:report', report)
     }
     roundId = latestRoundData.roundId.add(1)
     console.debug('prepareDataForReporter:latestRoundData', latestRoundData)
@@ -184,14 +180,15 @@ async function prepareDataForReporter(data, _report?: boolean): Promise<IAggrega
     if (e.code == 'CALL_EXCEPTION' && e.reason == 'No data present') {
       // No data were submitted to feed yet! Submitting for the
       // first time!
+      firstSubmission = true
     }
   }
 
   return {
-    report: report || false,
+    report: report || firstSubmission,
     callbackAddress,
     roundId,
-    submission: submission
+    submission
   }
 }
 

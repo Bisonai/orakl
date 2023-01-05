@@ -33,21 +33,22 @@ export function mergeAggregatorsAdapters(aggregators, adapters) {
   // FIXME use mapping instead
   let aggregatorsWithAdapters: any = [] // TODO replace any
 
-  for (const agId in aggregators) {
-    const ag = aggregators[agId]
+  for (const agAddress in aggregators) {
+    const ag = aggregators[agAddress]
     if (ag) {
       const ad = adapters[ag.adapterId]
 
-      ag['aggregatorId'] = agId
+      ag['aggregatorAddress'] = agAddress
       ag['adapter'] = ad
 
-      aggregatorsWithAdapters.push(ag)
+      aggregatorsWithAdapters.push({ [agAddress]: ag })
     } else {
       throw new IcnError(IcnErrorCode.MissingAdapter)
     }
   }
 
-  return aggregatorsWithAdapters
+  return Object.assign({}, ...aggregatorsWithAdapters)
+  // return aggregatorsWithAdapters
 }
 
 export async function fetchDataWithAdapter(adapter) {
@@ -109,7 +110,6 @@ function extractAggregators(aggregator) {
     [aggregatorId]: {
       name: aggregator.name,
       active: aggregator.active,
-      aggregatorAddress: aggregator.aggregatorAddress,
       fixedHeartbeatRate: aggregator.fixedHeartbeatRate,
       randomHeartbeatRate: aggregator.randomHeartbeatRate,
       threshold: aggregator.threshold,
@@ -141,7 +141,6 @@ function validateAggregator(adapter): IAggregator {
     'id',
     'active',
     'name',
-    'aggregatorAddress',
     'fixedHeartbeatRate',
     'randomHeartbeatRate',
     'threshold',
@@ -166,4 +165,8 @@ export function uniform(a: number, b: number): number {
     throw new IcnError(IcnErrorCode.UniformWrongParams)
   }
   return a + Math.round(Math.random() * (b - a))
+}
+
+export function addReportProperty(o, report: boolean) {
+  return Object.assign({}, ...[o, { report }])
 }

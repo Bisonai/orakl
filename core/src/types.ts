@@ -147,8 +147,7 @@ export interface IVrfListenerWorker {
 }
 
 export interface IAggregatorListenerWorker {
-  mustReport: boolean
-  callbackAddress: string
+  aggregatorAddress: string
   roundId: BigNumber
   startedBy: string
   startedAt: BigNumber
@@ -206,7 +205,7 @@ export interface IVrfWorkerReporter {
 }
 
 export interface IAggregatorWorkerReporter {
-  report: boolean
+  report: boolean | undefined
   callbackAddress: string
   roundId: BigNumber
   submission: number
