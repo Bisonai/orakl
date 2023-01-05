@@ -3,6 +3,8 @@ import { buildAggregatorListener } from './aggregator'
 import { buildVrfListener } from './vrf'
 import { buildAnyApiListener } from './any-api'
 import { loadJson } from '../utils'
+import { validateListenerConfig } from './utils'
+import { IcnError, IcnErrorCode } from '../errors'
 import {
   WORKER_ANY_API_QUEUE_NAME,
   WORKER_VRF_QUEUE_NAME,
@@ -30,6 +32,14 @@ async function main() {
 
   const listener = loadArgs()
   const listenersConfig = await loadJson(LISTENER_CONFIG_FILE)
+
+  const isValid = Object.keys(listenersConfig).map((k) =>
+    validateListenerConfig(listenersConfig[k])
+  )
+
+  if (!isValid) {
+    throw new IcnError(IcnErrorCode.InvalidListenerConfig)
+  }
 
   console.log(listenersConfig)
 
