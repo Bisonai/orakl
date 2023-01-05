@@ -1,0 +1,32 @@
+{
+  "active": true,
+  "name": "ETH/USD",
+  "jobType": "DATA_FEED",
+  "adapterId": "0xf3fa6b402eb4c49347f9ac6c8c8e0baf0eacaf39bcd59583feb12d9b90720124",
+  "feeds": [
+    {
+      "url": "https://min-api.cryptocompare.com/data/pricemultifull?fsyms=ETH&tsyms=USD",
+      "headers": {
+        "Content-Type": "application/json"
+      },
+      "method": "GET",
+      "reducers": [
+        {
+          "function": "PARSE",
+          "args": [
+            "RAW",
+            "ETH",
+            "USD",
+            "PRICE"
+          ]
+        },
+        {
+          "function": "MUL",
+          "args": [
+            1000000000
+          ]
+        }
+      ]
+    }
+  ]
+}
