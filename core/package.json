@@ -17,9 +17,9 @@
     "build": "yarn clean && tsc",
     "flush": "node --experimental-specifier-resolution=node --experimental-json-modules dist/flush-queues.js",
 
-    "start:listener": "node --experimental-specifier-resolution=node --experimental-json-modules dist/listener/listener.js",
+    "start:listener": "node --experimental-specifier-resolution=node --experimental-json-modules dist/listener/main.js",
     "start:listener:vrf": "yarn start:listener --listener VRF",
-    "start:listener:rr": "yarn start:listener --listener ICN",
+    "start:listener:any_api": "yarn start:listener --listener ANY_API",
     "start:listener:aggregator": "yarn start:listener --listener AGGREGATOR",
 
     "start:worker": "node --experimental-specifier-resolution=node --experimental-json-modules dist/worker/main.js",
