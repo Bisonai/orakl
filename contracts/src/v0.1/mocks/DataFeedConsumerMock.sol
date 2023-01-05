@@ -6,6 +6,7 @@ import "../interfaces/AggregatorInterface.sol";
 contract DataFeedConsumerMock {
     AggregatorInterface internal priceFeed;
     int256 public s_price;
+    uint80 public s_roundID;
 
     constructor(address _aggregatorProxy) {
         priceFeed = AggregatorInterface(
@@ -15,13 +16,14 @@ contract DataFeedConsumerMock {
 
     function getLatestPrice() public {
        (
-           /*uint80 roundID*/,
+           uint80 roundID,
            int256 price,
            /*uint startedAt*/,
            /*uint timeStamp*/,
            /*uint80 answeredInRound*/
        ) = priceFeed.latestRoundData();
        s_price = price;
+       s_roundID = roundID;
     }
 
     function decimals() public view returns(uint8) {
