@@ -1,8 +1,7 @@
 {
-  "id": "0xce5f1552a888bafaccb16f7c9ee3d4d28c552105f9ed0f74533a1a0a58d27aee",
+  "id": "0x5FC8d32690cc91D4c39d9d3abcBD16989F875707",
   "name": "KLAY/USD",
   "active": true,
-  "aggregatorAddress": "0x5FC8d32690cc91D4c39d9d3abcBD16989F875707",
   "fixedHeartbeatRate": 5000,
   "randomHeartbeatRate": 2000,
   "threshold": 0.05,
