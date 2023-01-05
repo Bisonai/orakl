@@ -36,16 +36,15 @@ export async function aggregatorWorker() {
   const aggregators = await loadAggregators()
   console.debug('aggregatorWorker:aggregators', aggregators)
 
-  // TODO change to one big dict instead of list of dicts
   const aggregatorsWithAdapters = mergeAggregatorsAdapters(aggregators, adapters)
   console.debug('aggregatorWorker:aggregatorsWithAdapters', aggregatorsWithAdapters)
 
   // Event based worker
-  // new Worker(
-  //   WORKER_AGGREGATOR_QUEUE_NAME,
-  //   aggregatorJob(REPORTER_AGGREGATOR_QUEUE_NAME, aggregatorsWithAdapters),
-  //   BULLMQ_CONNECTION
-  // )
+  new Worker(
+    WORKER_AGGREGATOR_QUEUE_NAME,
+    aggregatorJob(REPORTER_AGGREGATOR_QUEUE_NAME, aggregatorsWithAdapters),
+    BULLMQ_CONNECTION
+  )
 
   // Fixed heartbeat worker
   new Worker(
@@ -77,16 +76,18 @@ function aggregatorJob(reporterQueueName: string, aggregatorsWithAdapters) {
   const reporterQueue = new Queue(reporterQueueName, BULLMQ_CONNECTION)
 
   async function wrapper(job) {
-    //   const inData: IAggregatorListenerWorker = job.data
-    //   console.debug('aggregatorJob:inData', inData)
-    //
-    //   const aggregator = aggregatorsWithAdapters[inDadata.aggregatorAddress]
-    //
-    //   try {
-    //     const outData = await prepareDataForReporter(inData, true)
-    //   } catch (e) {
-    //     console.error(e)
-    //   }
+    const inData: IAggregatorListenerWorker = job.data
+    console.debug('aggregatorJob:inData', inData)
+
+    const ag = addReportProperty(aggregatorsWithAdapters[inData.aggregatorAddress], true)
+
+    try {
+      const outData = await prepareDataForReporter(ag)
+      console.debug('aggregatorJob:outData', outData)
+      reporterQueue.add('aggregator', outData)
+    } catch (e) {
+      console.error(e)
+    }
   }
 
   return wrapper
