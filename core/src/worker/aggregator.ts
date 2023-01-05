@@ -1,18 +1,19 @@
 import * as Fs from 'node:fs/promises'
 import * as Path from 'node:path'
-import { ethers } from 'ethers'
+import { ethers, BigNumber } from 'ethers'
 import { Worker, Queue } from 'bullmq'
 import {
   fetchDataWithAdapter,
   loadAdapters,
   loadAggregators,
-  mergeAggregatorsAdapters
+  mergeAggregatorsAdapters,
+  uniform
 } from './utils'
 import { reducerMapping } from './reducer'
 import {
   IAggregatorListenerWorker,
   IAggregatorWorkerReporter,
-  IAggregatorFixedHeartbeatWorker,
+  IAggregatorHeartbeatWorker,
   ILatestRoundData
 } from '../types'
 import {
@@ -37,20 +38,6 @@ export async function aggregatorWorker() {
   const aggregatorsWithAdapters = mergeAggregatorsAdapters(aggregators, adapters)
   console.debug('aggregatorWorker:aggregatorsWithAdapters', aggregatorsWithAdapters)
 
-  // const res = adapters['0xf84be3681d32250d9fbe85ab1c56db59d9e1ef2dff242de066853b4a047e15e2'][0]
-  // const res = aggregatorsWithAdapters[0].adapter[0].reducers
-
-  // console.log(res)
-  // process.exit(0)
-
-  // console.log(adapters['0x47c99abed3324a2707c28affff1267e45918ec8c3f20b8aa892e8b065d2942dd'])
-  // console.log(
-  //   adapters['0x47c99abed3324a2707c28affff1267e45918ec8c3f20b8aa892e8b065d2942dd'][0]['reducers'][0]
-  // )
-  // process.exit(0)
-
-  // console.log(adapters['0xf84be3681d32250d9fbe85ab1c56db59d9e1ef2dff242de066853b4a047e15e2'])
-
   // new Worker(
   //   WORKER_AGGREGATOR_QUEUE_NAME,
   //   aggregatorJob(REPORTER_AGGREGATOR_QUEUE_NAME, adapters),
@@ -69,19 +56,22 @@ export async function aggregatorWorker() {
   )
 
   // Random Heartbeat
-  // new Worker(
-  //   RANDOM_HEARTBEAT_QUEUE_NAME,
-  //   randomHeartbeatJob(
-  //     RANDOM_HEARTBEAT_QUEUE_NAME,
-  //     REPORTER_AGGREGATOR_QUEUE_NAME,
-  //     aggregatorsWithAdapters
-  //   ),
-  //   BULLMQ_CONNECTION
-  // )
+  new Worker(
+    RANDOM_HEARTBEAT_QUEUE_NAME,
+    randomHeartbeatJob(
+      RANDOM_HEARTBEAT_QUEUE_NAME,
+      REPORTER_AGGREGATOR_QUEUE_NAME,
+      aggregatorsWithAdapters
+    ),
+    BULLMQ_CONNECTION
+  )
 }
 
-function aggregatorJob(queueName, adapters) {
-  const queue = new Queue(queueName, BULLMQ_CONNECTION)
+function aggregatorJob(reporterQueueName, adapters) {
+  // This job is coming from on-chain request (event NewRound). Oracle
+  // needs to submit the latest data based on this request without any
+  // check of data change compared to previous submissions.
+  const reporterQueue = new Queue(reporterQueueName, BULLMQ_CONNECTION)
 
   async function wrapper(job) {
     const inData: IAggregatorListenerWorker = job.data
@@ -89,12 +79,12 @@ function aggregatorJob(queueName, adapters) {
 
     try {
       // TODO Fetch data (same as in Predefined Feed or Request-Response)
-      const outData: IAggregatorWorkerReporter = {
-        callbackAddress: '0x',
-        roundId: 0,
-        submission: 0
-      }
-      console.debug('aggregatorJob:outData', outData)
+      // const outData: IAggregatorWorkerReporter = {
+      //   callbackAddress: '0x',
+      //   roundId: 0,
+      //   submission: 0
+      // }
+      // console.debug('aggregatorJob:outData', outData)
 
       let dataDiverged = false
       if (inData.mustReport) {
@@ -108,9 +98,9 @@ function aggregatorJob(queueName, adapters) {
         }
       }
 
-      if (inData.mustReport || dataDiverged) {
-        await queue.add('aggregator', outData)
-      }
+      // if (inData.mustReport || dataDiverged) {
+      //   await reporterQueue.add('aggregator', outData)
+      // }
     } catch (e) {
       console.error(e)
     }
@@ -122,20 +112,22 @@ function aggregatorJob(queueName, adapters) {
 function fixedHeartbeatJob(
   heartbeatQueueName: string,
   reporterQueueName: string,
-  agregatorsWithAdapters: IAggregatorFixedHeartbeatWorker[]
+  agregatorsWithAdapters: IAggregatorHeartbeatWorker[]
 ) {
   console.debug('fixedHeartbeatJob')
 
   const heartbeatQueue = new Queue(heartbeatQueueName, BULLMQ_CONNECTION)
   const reporterQueue = new Queue(reporterQueueName, BULLMQ_CONNECTION)
 
+  // Launch all aggregators to be executed with fixed heartbeat
+  // TODO Add clock synchronization through on-chain public data timestamp
   for (const ag of agregatorsWithAdapters) {
     heartbeatQueue.add('fixed-heartbeat', ag, { delay: ag.fixedHeartbeatRate })
   }
 
   async function wrapper(job) {
-    const inData: IAggregatorFixedHeartbeatWorker = job.data
-    const outData = await prepareDataForReporter(inData)
+    const inData: IAggregatorHeartbeatWorker = job.data
+    const outData = await prepareDataForReporter(inData, true)
     reporterQueue.add('aggregator', outData)
     heartbeatQueue.add('fixed-heartbeat', inData, { delay: inData.fixedHeartbeatRate })
   }
@@ -143,31 +135,84 @@ function fixedHeartbeatJob(
   return wrapper
 }
 
-async function prepareDataForReporter(data): Promise<IAggregatorWorkerReporter> {
+function randomHeartbeatJob(
+  heartbeatQueueName: string,
+  reporterQueueName: string,
+  agregatorsWithAdapters: IAggregatorHeartbeatWorker[]
+) {
+  console.debug('randomHeartbeatJob')
+
+  const heartbeatQueue = new Queue(heartbeatQueueName, BULLMQ_CONNECTION)
+  const reporterQueue = new Queue(reporterQueueName, BULLMQ_CONNECTION)
+
+  // Launch all aggregators to be executed with random heartbeat
+  for (const ag of agregatorsWithAdapters) {
+    heartbeatQueue.add('random-heartbeat', ag, { delay: uniform(0, ag.randomHeartbeatRate) })
+  }
+
+  async function wrapper(job) {
+    const inData: IAggregatorHeartbeatWorker = job.data
+    const outData = await prepareDataForReporter(inData)
+    if (outData.report) {
+      reporterQueue.add('aggregator', outData)
+    }
+    heartbeatQueue.add('random-heartbeat', inData, {
+      delay: uniform(0, inData.randomHeartbeatRate)
+    })
+  }
+
+  return wrapper
+}
+
+async function prepareDataForReporter(data, _report?: boolean): Promise<IAggregatorWorkerReporter> {
   const callbackAddress = data.aggregatorAddress
   const submission = await fetchDataWithAdapter(data.adapter)
 
-  let roundId
+  let roundId = BigNumber.from(1)
+  let report = _report
 
   try {
     const latestRoundData = await latestRoundDataCall(data.aggregatorAddress)
-    console.log('before:', latestRoundData.roundId)
+    const lastSubmission = latestRoundData.answer.toNumber()
+    if (report === undefined) {
+      report = shouldReport(lastSubmission, submission, data.threshold, data.absoluteThreshold)
+      console.log('prepareDtaForReporter:report', report)
+    }
     roundId = latestRoundData.roundId.add(1)
-    console.log('after:', roundId)
-    console.debug('fixedHeartbeatJob:latestRoundData', latestRoundData)
+    console.debug('prepareDataForReporter:latestRoundData', latestRoundData)
   } catch (e) {
     if (e.code == 'CALL_EXCEPTION' && e.reason == 'No data present') {
       // No data were submitted to feed yet! Submitting for the
       // first time!
-      roundId = 1
     }
   }
 
   return {
+    report: report || false,
     callbackAddress,
     roundId,
     submission: submission
   }
+}
+
+function shouldReport(
+  lastSubmission: number,
+  submission: number,
+  threshold: number,
+  absoluteThreshold: number
+): boolean {
+  if (lastSubmission && submission) {
+    const range = lastSubmission * threshold
+    const l = lastSubmission - range
+    const r = lastSubmission + range
+    return submission < l || submission > r
+  } else if (!lastSubmission && submission) {
+    // lastSubmission hit zero
+    return submission > absoluteThreshold
+  }
+
+  // Something strange happened, don't report!
+  return false
 }
 
 async function latestRoundDataCall(address: string): Promise<ILatestRoundData> {

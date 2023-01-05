@@ -156,7 +156,7 @@ export interface IAggregatorListenerWorker {
 
 // Worker -> Worker
 
-export interface IAggregatorFixedHeartbeatWorker {
+export interface IAggregatorHeartbeatWorker {
   name: string
   active: boolean
   aggregatorAddress: string
@@ -206,8 +206,9 @@ export interface IVrfWorkerReporter {
 }
 
 export interface IAggregatorWorkerReporter {
+  report: boolean
   callbackAddress: string
-  roundId: number
+  roundId: BigNumber
   submission: number
 }
 

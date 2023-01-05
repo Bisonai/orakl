@@ -160,3 +160,10 @@ function validateAggregator(adapter): IAggregator {
     throw new IcnError(IcnErrorCode.InvalidAggregator)
   }
 }
+
+export function uniform(a: number, b: number): number {
+  if (a > b) {
+    throw new IcnError(IcnErrorCode.UniformWrongParams)
+  }
+  return a + Math.round(Math.random() * (b - a))
+}
