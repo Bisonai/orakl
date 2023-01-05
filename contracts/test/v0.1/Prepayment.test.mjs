@@ -3,7 +3,9 @@ import { loadFixture } from '@nomicfoundation/hardhat-network-helpers'
 import { BigNumber } from 'ethers'
 
 function vrfConfig() {
-  const oracle = '0x8626f6940E2eb28930eFb4CeF49B2d1F2C9C1199' // FIXME
+  // FIXME
+  const oracle = '0x8626f6940E2eb28930eFb4CeF49B2d1F2C9C1199'
+  // FIXME
   const publicProvingKey = [
     '95162740466861161360090244754314042169116280320223422208903791243647772670481',
     '53113177277038648369733569993581365384831203706597936686768754351087979105423'
@@ -79,22 +81,12 @@ describe('Prepayment contract', function () {
 
   it('Should create Account', async function () {
     const { prepayment, owner, addr1, addr2 } = await loadFixture(deployFixture)
-    const txReceipt = await (await prepayment.createAccount()).wait()
-    expect(txReceipt.events.length).to.be.equal(1)
-
-    const txEvent = prepayment.interface.parseLog(txReceipt.events[0])
-    const { accId } = txEvent.args
-    expect(accId).to.be.equal(1)
+    await createAccount(prepayment)
   })
 
   it('Should add consumer', async function () {
     const { prepayment, owner, addr1, addr2 } = await loadFixture(deployFixture)
-    const txReceipt = await (await prepayment.createAccount()).wait()
-    expect(txReceipt.events.length).to.be.equal(1)
-
-    const txEvent = prepayment.interface.parseLog(txReceipt.events[0])
-    const { accId } = txEvent.args
-    expect(accId).to.be.equal(1)
+    const accId = await createAccount(prepayment)
 
     const ownerOfAccId = await prepayment.getAccountOwner(accId)
     expect(ownerOfAccId).to.be.equal(owner.address)
@@ -108,13 +100,7 @@ describe('Prepayment contract', function () {
 
   it('Should remove consumer', async function () {
     const { prepayment, owner, addr1, addr2 } = await loadFixture(deployFixture)
-
-    const txReceipt = await (await prepayment.createAccount()).wait()
-    expect(txReceipt.events.length).to.be.equal(1)
-
-    const txEvent = prepayment.interface.parseLog(txReceipt.events[0])
-    const { accId } = txEvent.args
-    expect(accId).to.be.equal(1)
+    const accId = await createAccount(prepayment)
 
     const consumer0 = '0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9'
     const consumer1 = '0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512'
@@ -131,12 +117,7 @@ describe('Prepayment contract', function () {
 
   it('Should deposit', async function () {
     const { prepayment, owner, addr1, addr2 } = await loadFixture(deployFixture)
-    const txReceipt = await (await prepayment.createAccount()).wait()
-    expect(txReceipt.events.length).to.be.equal(1)
-
-    const txEvent = prepayment.interface.parseLog(txReceipt.events[0])
-    const { accId } = txEvent.args
-    expect(accId).to.be.equal(1)
+    const accId = await createAccount(prepayment)
 
     const balanceBefore = await prepayment.getAccount(accId)
     const value = 1_000_000_000_000_000
@@ -161,13 +142,13 @@ describe('Prepayment contract', function () {
 
     const balanceOwnerAfter = await ethers.provider.getBalance(owner.address)
     const balanceAccAfter = (await prepayment.getAccount(accId)).balance
-
     expect(balanceAccAfter).to.be.equal(depositValue - withdrawValue)
 
-    // FIXME
-    console.log(balanceOwnerBefore - balanceOwnerAfter)
-    console.log(txReceipt.effectiveGasPrice.toString())
-    // expect(balanceOwnerAfter).to.be.greaterThan(balanceOwnerBefore) // WRONG
+    expect(
+      balanceOwnerBefore
+        .add(withdrawValue)
+        .sub(txReceipt.cumulativeGasUsed * txReceipt.effectiveGasPrice)
+    ).to.be.equal(balanceOwnerAfter)
   })
 
   it('Should cancel Account', async function () {
@@ -240,7 +221,7 @@ describe('Prepayment contract', function () {
   
     await prepayment.addConsumer(accId, consumer.address)
     await prepayment.addCoordinator(coordinator.address)
-    const tx = await (await prepayment.removeCoordinator(coordinator.address)).wait()
-    expect(tx.status).to.equal(1)
+    const txReceipt = await (await prepayment.removeCoordinator(coordinator.address)).wait()
+    expect(txReceipt.status).to.equal(1)
   })
 })

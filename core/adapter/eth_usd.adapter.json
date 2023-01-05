@@ -1,11 +1,11 @@
 {
   "active": true,
-  "name": "KLAY/USD",
+  "name": "ETH/USD",
   "jobType": "DATA_FEED",
-  "adapterId": "0x47c99abed3324a2707c28affff1267e45918ec8c3f20b8aa892e8b065d2942dd",
+  "adapterId": "0xf3fa6b402eb4c49347f9ac6c8c8e0baf0eacaf39bcd59583feb12d9b90720124",
   "feeds": [
     {
-      "url": "https://min-api.cryptocompare.com/data/pricemultifull?fsyms=KLAY&tsyms=USD",
+      "url": "https://min-api.cryptocompare.com/data/pricemultifull?fsyms=ETH&tsyms=USD",
       "headers": {
         "Content-Type": "application/json"
       },
@@ -15,7 +15,7 @@
           "function": "PARSE",
           "args": [
             "RAW",
-            "KLAY",
+            "ETH",
             "USD",
             "PRICE"
           ]

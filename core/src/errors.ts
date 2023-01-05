@@ -9,7 +9,12 @@ export class IcnError extends Error {
 export enum IcnErrorCode {
   NonExistantEventError = 10000,
   InvalidOperator,
+  InvalidAdapter,
+  InvalidAggregator,
+  InvalidReducer,
   MissingMnemonic,
   MissingJsonRpcProvider,
-  MissingKeyInJson
+  MissingKeyInJson,
+  MissingAdapter,
+  UniformWrongParams
 }

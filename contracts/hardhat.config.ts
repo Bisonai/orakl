@@ -2,6 +2,7 @@ import { HardhatUserConfig, task } from 'hardhat/config'
 import '@nomicfoundation/hardhat-toolbox'
 import '@nomiclabs/hardhat-web3'
 import '@nomiclabs/hardhat-ethers'
+import 'hardhat-deploy'
 import dotenv from 'dotenv'
 
 dotenv.config()
@@ -41,6 +42,23 @@ const config: HardhatUserConfig = {
   },
   paths: {
     sources: './src'
+  },
+  namedAccounts: {
+    deployer: {
+      default: 0
+    },
+    consumer: {
+      default: 1
+    },
+    feedOracle0: {
+      default: 2
+    },
+    feedOracle1: {
+      default: 3
+    },
+    feedOracle2: {
+      default: 4
+    }
   }
 }
 

@@ -3,3 +3,4 @@ artifacts/
 cache/
 dist/
 typechain-types/
+deployments/

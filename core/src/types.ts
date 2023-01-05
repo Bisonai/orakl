@@ -40,8 +40,8 @@ interface IReducer {
 
 interface IFeed {
   url: string
-  method: string
   headers?: IHeader[]
+  method: string
   reducers?: IReducer[]
 }
 
@@ -51,6 +51,17 @@ export interface IAdapter {
   job_type: string
   adapter_id: string
   feeds: IFeed[]
+}
+
+export interface IAggregator {
+  active: boolean
+  name: string
+  aggregatorAddress: string
+  fixedHeartbeatRate: number
+  randomHeartbeatRate: number
+  threshold: number
+  absoluteThreshold: number
+  adapterId: string
 }
 
 export interface IRequest {
@@ -63,6 +74,14 @@ export interface IVrfResponse {
   proof: [string, string, string, string]
   uPoint: [string, string]
   vComponents: [string, string, string, string]
+}
+
+export interface ILatestRoundData {
+  roundId: BigNumber
+  answer: BigNumber
+  startedAt: BigNumber
+  updatedAt: BigNumber
+  answeredInRound: BigNumber
 }
 
 // Events
@@ -85,6 +104,12 @@ export interface IRandomWordsRequested {
   callbackGasLimit: number
   numWords: number
   sender: string
+}
+
+export interface INewRound {
+  roundId: BigNumber
+  startedBy: string
+  startedAt: BigNumber
 }
 
 // Listener -> Worker
@@ -121,6 +146,28 @@ export interface IVrfListenerWorker {
   sender: string
 }
 
+export interface IAggregatorListenerWorker {
+  aggregatorAddress: string
+  roundId: BigNumber
+  startedBy: string
+  startedAt: BigNumber
+}
+
+// Worker -> Worker
+
+export interface IAggregatorHeartbeatWorker {
+  name: string
+  active: boolean
+  aggregatorAddress: string
+  fixedHeartbeatRate: number
+  randomHeartbeatRate: number
+  threshold: number
+  absoluteThreshold: number
+  adapterId: string
+  aggregatorId: string
+  adapter: IFeed[]
+}
+
 // Worker -> Reporter
 
 export interface IAnyApiWorkerReporter {
@@ -155,6 +202,13 @@ export interface IVrfWorkerReporter {
   preSeed: string
   uPoint: [string, string]
   vComponents: [string, string, string, string]
+}
+
+export interface IAggregatorWorkerReporter {
+  report: boolean | undefined
+  callbackAddress: string
+  roundId: BigNumber
+  submission: number
 }
 
 // VRF

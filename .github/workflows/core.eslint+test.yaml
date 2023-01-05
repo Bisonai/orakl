@@ -16,3 +16,5 @@ jobs:
         working-directory: ./contracts
       - run: yarn eslint
         working-directory: ./contracts
+      - run: yarn test
+        working-directory: ./contracts
