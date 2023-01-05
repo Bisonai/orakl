@@ -8,7 +8,7 @@ function vrfConfig() {
     '95162740466861161360090244754314042169116280320223422208903791243647772670481',
     '53113177277038648369733569993581365384831203706597936686768754351087979105423'
   ]
-
+  const keyHash = '0x47ede773ef09e40658e643fe79f8d1a27c0aa6eb7251749b268f829ea49f2024'
   const minimumRequestConfirmations = 3
   const maxGasLimit = 1_000_000
   const gasAfterPaymentCalculation = 1_000
@@ -29,6 +29,7 @@ function vrfConfig() {
     publicProvingKey,
     minimumRequestConfirmations,
     maxGasLimit,
+    keyHash,
     gasAfterPaymentCalculation,
     feeConfig
   }
@@ -73,7 +74,7 @@ describe('Prepayment contract', function () {
 
     const accId = await createAccount(prepayment)
 
-    return { prepayment, owner, coordinator, consumer }
+    return {accId, prepayment, owner, coordinator, consumer }
   }
 
   it('Should create Account', async function () {
@@ -182,11 +183,12 @@ describe('Prepayment contract', function () {
   })
 
   it('Should not cancel Account with pending tx', async function () {
-    const { prepayment, owner, coordinator, consumer } = await loadFixture(deployMockFixture)
+    const {accId , prepayment, owner, coordinator, consumer } = await loadFixture(deployMockFixture)
     const {
       oracle,
       publicProvingKey,
       minimumRequestConfirmations,
+      keyHash,
       maxGasLimit,
       gasAfterPaymentCalculation,
       feeConfig
@@ -198,28 +200,29 @@ describe('Prepayment contract', function () {
       minimumRequestConfirmations,
       maxGasLimit,
       gasAfterPaymentCalculation,
+      keyHash,
       feeConfig
     )
 
-    const accId = 1 // FIXME
     await prepayment.addConsumer(accId, consumer.address)
     await prepayment.addCoordinator(coordinator.address)
 
     await consumer.requestRandomWords()
 
-    await expect(prepayment.cancelAccount(1, owner.address)).to.be.revertedWithCustomError(
+    await expect(prepayment.cancelAccount(accId, owner.address)).to.be.revertedWithCustomError(
       prepayment,
       'PendingRequestExists'
     )
   })
 
   it('Should remove Coordinator', async function () {
-    const { prepayment, owner, coordinator, consumer } = await loadFixture(deployMockFixture)
+    const {accId , prepayment, owner, coordinator, consumer} = await loadFixture(deployMockFixture)
     const {
       oracle,
       publicProvingKey,
       minimumRequestConfirmations,
       maxGasLimit,
+      keyHash,
       gasAfterPaymentCalculation,
       feeConfig
     } = vrfConfig()
@@ -230,10 +233,11 @@ describe('Prepayment contract', function () {
       minimumRequestConfirmations,
       maxGasLimit,
       gasAfterPaymentCalculation,
+      keyHash,
       feeConfig
     )
 
-    const accId = 1
+  
     await prepayment.addConsumer(accId, consumer.address)
     await prepayment.addCoordinator(coordinator.address)
     const tx = await (await prepayment.removeCoordinator(coordinator.address)).wait()
