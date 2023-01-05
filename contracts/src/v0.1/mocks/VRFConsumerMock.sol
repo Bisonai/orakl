@@ -28,16 +28,11 @@ contract VRFConsumerMock is VRFConsumerBase {
       COORDINATOR = VRFCoordinatorInterface(coordinator);
   }
 
-  function requestRandomWords() public returns(uint256 requestId) {
-    bytes32 keyHash = 0x47ede773ef09e40658e643fe79f8d1a27c0aa6eb7251749b268f829ea49f2024;
-    uint64 subId = 1;
-    uint16 requestConfirmations = 3;
-    uint32 callbackGasLimit = 1_000_000;
-    uint32 numWords = 1;
+  function requestRandomWords( bytes32 keyHash, uint64 accId,uint16 requestConfirmations,uint32 callbackGasLimit,uint32 numWords ) public returns(uint256 requestId) {
 
     requestId = COORDINATOR.requestRandomWords(
       keyHash,
-      subId,
+      accId,
       requestConfirmations,
       callbackGasLimit,
       numWords

@@ -207,7 +207,7 @@ describe('Prepayment contract', function () {
     await prepayment.addConsumer(accId, consumer.address)
     await prepayment.addCoordinator(coordinator.address)
 
-    await consumer.requestRandomWords()
+    await consumer.requestRandomWords(keyHash,accId,minimumRequestConfirmations,maxGasLimit,1)
 
     await expect(prepayment.cancelAccount(accId, owner.address)).to.be.revertedWithCustomError(
       prepayment,
