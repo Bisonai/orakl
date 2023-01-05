@@ -20,11 +20,7 @@ function aggregatorJob(wallet) {
 
     try {
       const payload = iface.encodeFunctionData('submit', [inData.roundId, inData.submission])
-
       await sendTransaction(wallet, inData.callbackAddress, payload)
-
-      // TODO Put Random Heartbeat job to queue
-      // const randomHeartbeat = 3 // seconds
     } catch (e) {
       console.error(e)
     }

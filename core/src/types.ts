@@ -76,6 +76,14 @@ export interface IVrfResponse {
   vComponents: [string, string, string, string]
 }
 
+export interface ILatestRoundData {
+  roundId: BigNumber
+  answer: BigNumber
+  startedAt: BigNumber
+  updatedAt: BigNumber
+  answeredInRound: BigNumber
+}
+
 // Events
 
 export interface INewRequest {

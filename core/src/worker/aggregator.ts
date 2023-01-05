@@ -12,7 +12,8 @@ import { reducerMapping } from './reducer'
 import {
   IAggregatorListenerWorker,
   IAggregatorWorkerReporter,
-  IAggregatorFixedHeartbeatWorker
+  IAggregatorFixedHeartbeatWorker,
+  ILatestRoundData
 } from '../types'
 import {
   WORKER_AGGREGATOR_QUEUE_NAME,
@@ -136,7 +137,7 @@ function fixedHeartbeatJob(
     const inData: IAggregatorFixedHeartbeatWorker = job.data
     const outData = await prepareDataForReporter(inData)
     reporterQueue.add('aggregator', outData)
-    // heartbeatQueue.add('fixed-heartbeat', inData, { delay: inData.fixedHeartbeatRate })
+    heartbeatQueue.add('fixed-heartbeat', inData, { delay: inData.fixedHeartbeatRate })
   }
 
   return wrapper
@@ -149,9 +150,11 @@ async function prepareDataForReporter(data): Promise<IAggregatorWorkerReporter> 
   let roundId
 
   try {
-    const lastSubmission = await latestRoundData(data.aggregatorAddress)
-    console.debug('fixedHeartbeatJob:lastSubmission', lastSubmission)
-    roundId = undefined // TODO extract roundId from the last submission
+    const latestRoundData = await latestRoundDataCall(data.aggregatorAddress)
+    console.log('before:', latestRoundData.roundId)
+    roundId = latestRoundData.roundId.add(1)
+    console.log('after:', roundId)
+    console.debug('fixedHeartbeatJob:latestRoundData', latestRoundData)
   } catch (e) {
     if (e.code == 'CALL_EXCEPTION' && e.reason == 'No data present') {
       // No data were submitted to feed yet! Submitting for the
@@ -162,12 +165,12 @@ async function prepareDataForReporter(data): Promise<IAggregatorWorkerReporter> 
 
   return {
     callbackAddress,
-    roundId: 1,
+    roundId,
     submission: submission
   }
 }
 
-async function latestRoundData(address: string) {
+async function latestRoundDataCall(address: string): Promise<ILatestRoundData> {
   const provider = new ethers.providers.JsonRpcProvider(PROVIDER_URL)
   const aggregator = new ethers.Contract(address, Aggregator__factory.abi, provider)
   return await aggregator.latestRoundData()
