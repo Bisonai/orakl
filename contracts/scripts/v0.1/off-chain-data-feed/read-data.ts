@@ -15,7 +15,9 @@ async function main() {
 
   await dataFeedConsumerSigner.getLatestPrice()
   const price = await dataFeedConsumerSigner.s_price()
-  console.log(`Price ${price}`)
+  const decimals = await dataFeedConsumerSigner.decimals()
+  console.log(`Price\t${price}`)
+  console.log(`Decimals\t${decimals}`)
 }
 
 main().catch((error) => {

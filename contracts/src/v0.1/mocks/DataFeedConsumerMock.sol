@@ -23,4 +23,8 @@ contract DataFeedConsumerMock {
        ) = priceFeed.latestRoundData();
        s_price = price;
     }
+
+    function decimals() public view returns(uint8) {
+        return priceFeed.decimals();
+    }
 }

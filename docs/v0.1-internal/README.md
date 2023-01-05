@@ -66,9 +66,12 @@
 |----|----------|--------------------------------------------------------------------|-------------|
 
 
-## Data Feed
+## Aggregator
 
-TODO
+### Deploying new aggregator
+
+* `decimals` are set during deployment of `Aggregator` as well as in adapter definition to ensure the values provided by adapter are in the same expected format.
+* `minSubmissionValue`, `maxSubmissionValue`
 
 ## Request-Response
 
