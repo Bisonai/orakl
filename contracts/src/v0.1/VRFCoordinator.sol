@@ -479,7 +479,7 @@ contract VRFCoordinator is
         VRF.Proof memory proof,
         RequestCommitment memory rc
     ) external nonReentrant returns (uint96) {
-        uint256 startGas = gasleft();
+        /* uint256 startGas = gasleft(); */
         (, /* bytes32 keyHash */ uint256 requestId, uint256 randomness) = getRandomnessFromProof(
             proof,
             rc
@@ -514,8 +514,9 @@ contract VRFCoordinator is
         // 1 link / 1e6 = 1e18 juels / 1e6 = 1e12 juels.
         // FIXME fix payment
         //uint96 payment = 0;
-        (uint96 balance, uint64 reqCount, address owner, address[] memory consumers) = Prepayment
-            .getAccount(rc.accId);
+
+        /* (uint96 balance, uint64 reqCount, address owner, address[] memory consumers) = Prepayment */
+        /*     .getAccount(rc.accId); */
 
         // uint96 payment = calculatePaymentAmount(
         //   startGas,
