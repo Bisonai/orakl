@@ -16,5 +16,6 @@ export enum IcnErrorCode {
   MissingJsonRpcProvider,
   MissingKeyInJson,
   MissingAdapter,
-  UniformWrongParams
+  UniformWrongParams,
+  InvalidListenerConfig
 }
