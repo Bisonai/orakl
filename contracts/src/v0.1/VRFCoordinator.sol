@@ -61,11 +61,11 @@ contract VRFCoordinator is
     struct FeeConfig {
         // Flat fee charged per fulfillment in millionths of KLAY
         // So fee range is [0, 2^32/10^6].
-        uint32 fulfillmentFlatFeeLinkPPMTier1;
-        uint32 fulfillmentFlatFeeLinkPPMTier2;
-        uint32 fulfillmentFlatFeeLinkPPMTier3;
-        uint32 fulfillmentFlatFeeLinkPPMTier4;
-        uint32 fulfillmentFlatFeeLinkPPMTier5;
+        uint32 fulfillmentFlatFeeKlayPPMTier1;
+        uint32 fulfillmentFlatFeeKlayPPMTier2;
+        uint32 fulfillmentFlatFeeKlayPPMTier3;
+        uint32 fulfillmentFlatFeeKlayPPMTier4;
+        uint32 fulfillmentFlatFeeKlayPPMTier5;
         uint24 reqsForTier2;
         uint24 reqsForTier3;
         uint24 reqsForTier4;
@@ -227,11 +227,11 @@ contract VRFCoordinator is
         external
         view
         returns (
-            uint32 fulfillmentFlatFeeLinkPPMTier1,
-            uint32 fulfillmentFlatFeeLinkPPMTier2,
-            uint32 fulfillmentFlatFeeLinkPPMTier3,
-            uint32 fulfillmentFlatFeeLinkPPMTier4,
-            uint32 fulfillmentFlatFeeLinkPPMTier5,
+            uint32 fulfillmentFlatFeeKlayPPMTier1,
+            uint32 fulfillmentFlatFeeKlayPPMTier2,
+            uint32 fulfillmentFlatFeeKlayPPMTier3,
+            uint32 fulfillmentFlatFeeKlayPPMTier4,
+            uint32 fulfillmentFlatFeeKlayPPMTier5,
             uint24 reqsForTier2,
             uint24 reqsForTier3,
             uint24 reqsForTier4,
@@ -239,11 +239,11 @@ contract VRFCoordinator is
         )
     {
         return (
-            s_feeConfig.fulfillmentFlatFeeLinkPPMTier1,
-            s_feeConfig.fulfillmentFlatFeeLinkPPMTier2,
-            s_feeConfig.fulfillmentFlatFeeLinkPPMTier3,
-            s_feeConfig.fulfillmentFlatFeeLinkPPMTier4,
-            s_feeConfig.fulfillmentFlatFeeLinkPPMTier5,
+            s_feeConfig.fulfillmentFlatFeeKlayPPMTier1,
+            s_feeConfig.fulfillmentFlatFeeKlayPPMTier2,
+            s_feeConfig.fulfillmentFlatFeeKlayPPMTier3,
+            s_feeConfig.fulfillmentFlatFeeKlayPPMTier4,
+            s_feeConfig.fulfillmentFlatFeeKlayPPMTier5,
             s_feeConfig.reqsForTier2,
             s_feeConfig.reqsForTier3,
             s_feeConfig.reqsForTier4,
@@ -348,7 +348,6 @@ contract VRFCoordinator is
             revert InsufficientPayment(msg.value, 1);
         }
 
-        // create account
         uint64 accId = Prepayment.createAccount();
         Prepayment.addConsumer(accId, msg.sender);
         uint256 requestId = requestRandomWords(
@@ -373,23 +372,23 @@ contract VRFCoordinator is
     /*
      * @notice Compute fee based on the request count
      * @param reqCount number of requests
-     * @return feePPM fee in LINK PPM
+     * @return feePPM fee in KLAY PPM
      */
     function getFeeTier(uint64 reqCount) public view returns (uint32) {
         FeeConfig memory fc = s_feeConfig;
         if (0 <= reqCount && reqCount <= fc.reqsForTier2) {
-            return fc.fulfillmentFlatFeeLinkPPMTier1;
+            return fc.fulfillmentFlatFeeKlayPPMTier1;
         }
         if (fc.reqsForTier2 < reqCount && reqCount <= fc.reqsForTier3) {
-            return fc.fulfillmentFlatFeeLinkPPMTier2;
+            return fc.fulfillmentFlatFeeKlayPPMTier2;
         }
         if (fc.reqsForTier3 < reqCount && reqCount <= fc.reqsForTier4) {
-            return fc.fulfillmentFlatFeeLinkPPMTier3;
+            return fc.fulfillmentFlatFeeKlayPPMTier3;
         }
         if (fc.reqsForTier4 < reqCount && reqCount <= fc.reqsForTier5) {
-            return fc.fulfillmentFlatFeeLinkPPMTier4;
+            return fc.fulfillmentFlatFeeKlayPPMTier4;
         }
-        return fc.fulfillmentFlatFeeLinkPPMTier5;
+        return fc.fulfillmentFlatFeeKlayPPMTier5;
     }
 
     function pendingRequestExists(
