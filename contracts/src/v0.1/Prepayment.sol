@@ -60,7 +60,6 @@ contract Prepayment is
     error MustBeAccountOwner(address owner);
     error PendingRequestExists();
     error MustBeRequestedOwner(address proposedOwner);
-    error Reentrant();
 
     event AccountCreated(uint64 indexed accId, address owner);
     event AccountFunded(uint64 indexed accId, uint256 oldBalance, uint256 newBalance);
