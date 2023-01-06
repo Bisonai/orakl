@@ -23,9 +23,9 @@ interface PrepaymentInterface {
 
     function chargeFee(uint64 accId,uint96 amount) external;
 
-    function getNonce(address consumer,uint64 accId) external view returns(uint64);
+    function getNonce(address consumer,uint64 accId) external view returns (uint64);
 
-    function increaseNonce(address consumer,uint64 accId) external;
+    function increaseNonce(address consumer,uint64 accId) external returns (uint64);
 
     function getAccountOwner(uint64 accId)external returns(address owner);
 }

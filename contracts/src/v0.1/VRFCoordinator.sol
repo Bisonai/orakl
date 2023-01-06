@@ -424,7 +424,6 @@ contract VRFCoordinator is
         uint32 numWords
     ) public override nonReentrant returns (uint256) {
         // Input validation using the account storage.
-        // call to prepayment contract
         address owner = Prepayment.getAccountOwner(accId);
         if (owner == address(0)) {
             revert InvalidAccount();
@@ -451,8 +450,8 @@ contract VRFCoordinator is
         }
 
         // No lower bound on the requested gas limit. A user could request 0
-        // and they would simply be billed for the proof verification and wouldn't be
-        // able to do anything with the random value.
+        // and they would simply be billed for the proof verification and wouldn't
+        // be able to do anything with the random value.
         if (callbackGasLimit > s_config.maxGasLimit) {
             revert GasLimitTooBig(callbackGasLimit, s_config.maxGasLimit);
         }
@@ -464,12 +463,12 @@ contract VRFCoordinator is
         // Note we do not check whether the keyHash is valid to save gas.
         // The consequence for users is that they can send requests
         // for invalid keyHashes which will simply not be fulfilled.
-        //uint64 nonce = currentNonce + 1;
+        uint64 nonce = Prepayment.increaseNonce(msg.sender, accId);
         (uint256 requestId, uint256 preSeed) = computeRequestId(
             keyHash,
             msg.sender,
             accId,
-            currentNonce + 1
+            nonce
         );
 
         s_requestCommitments[requestId] = keccak256(
@@ -485,9 +484,6 @@ contract VRFCoordinator is
             numWords,
             msg.sender
         );
-
-        //increase nonce for consumer
-        Prepayment.increaseNonce(msg.sender, accId);
 
         return requestId;
     }

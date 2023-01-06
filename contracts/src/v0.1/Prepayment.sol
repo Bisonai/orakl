@@ -257,8 +257,16 @@ contract Prepayment is
         return s_consumers[consumer][accId];
     }
 
-    function increaseNonce(address consumer, uint64 accId) external {
-        s_consumers[consumer][accId] += 1;
+    function increaseNonce(
+        address consumer,
+        uint64 accId
+    )
+        external returns (uint64)
+    {
+        uint64 currentNonce = s_consumers[consumer][accId];
+        uint64 nonce = currentNonce + 1;
+        s_consumers[consumer][accId] = nonce;
+        return nonce;
     }
 
     function getAccountOwner(uint64 accId) external view returns (address owner) {
