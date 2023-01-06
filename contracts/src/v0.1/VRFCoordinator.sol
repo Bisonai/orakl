@@ -55,7 +55,6 @@ contract VRFCoordinator is
         // Gas to cover oracle payment after we calculate the payment.
         // We make it configurable in case those operations are repriced.
         uint32 gasAfterPaymentCalculation;
-        bytes32 keyHash;
     }
     Config private s_config;
 
@@ -348,6 +347,7 @@ contract VRFCoordinator is
         uint64 accId = Prepayment.createAccount();
         Prepayment.addConsumer(accId, msg.sender);
         uint256 requestId = requestRandomWords(
+            keyHash,
             accId,
             requestConfirmations,
             callbackGasLimit,

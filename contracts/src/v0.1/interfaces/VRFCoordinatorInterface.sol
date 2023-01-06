@@ -9,13 +9,13 @@ interface VRFCoordinatorInterface {
    * @return s_provingKeyHashes list of registered key hashes
    */
   function getRequestConfig()
-    external
-    view
-    returns (
-      uint16,
-      uint32,
-      bytes32[] memory
-    );
+      external
+      view
+      returns (
+          uint16,
+          uint32,
+          bytes32[] memory
+      );
 
   /**
    * @notice Request a set of random words.
@@ -41,16 +41,17 @@ interface VRFCoordinatorInterface {
    * a request to a response in fulfillRandomWords.
    */
   function requestRandomWords(
-    bytes32 keyHash,
-    uint64 accId,
-    uint16 minimumRequestConfirmations,
-    uint32 callbackGasLimit,
-    uint32 numWords
+      bytes32 keyHash,
+      uint64 accId,
+      uint16 minimumRequestConfirmations,
+      uint32 callbackGasLimit,
+      uint32 numWords
   ) external returns (uint256 requestId);
 
   function requestRandomWordsPayment(
-        uint16 requestConfirmations,
-        uint32 callbackGasLimit,
-        uint32 numWords
-    ) external payable returns (uint256);
+      bytes32 keyHash,
+      uint16 requestConfirmations,
+      uint32 callbackGasLimit,
+      uint32 numWords
+  ) external payable returns (uint256 requestId);
 }
