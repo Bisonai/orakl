@@ -76,7 +76,7 @@ describe('Prepayment contract', function () {
 
     const accId = await createAccount(prepayment)
 
-    return {accId, prepayment, owner, coordinator, consumer }
+    return { accId, prepayment, owner, coordinator, consumer }
   }
 
   it('Should create Account', async function () {
@@ -164,7 +164,7 @@ describe('Prepayment contract', function () {
   })
 
   it('Should not cancel Account with pending tx', async function () {
-    const {accId , prepayment, owner, coordinator, consumer } = await loadFixture(deployMockFixture)
+    const { accId, prepayment, owner, coordinator, consumer } = await loadFixture(deployMockFixture)
     const {
       oracle,
       publicProvingKey,
@@ -188,7 +188,7 @@ describe('Prepayment contract', function () {
     await prepayment.addConsumer(accId, consumer.address)
     await prepayment.addCoordinator(coordinator.address)
 
-    await consumer.requestRandomWords(keyHash,accId,minimumRequestConfirmations,maxGasLimit,1)
+    await consumer.requestRandomWords(keyHash, accId, minimumRequestConfirmations, maxGasLimit, 1)
 
     await expect(prepayment.cancelAccount(accId, owner.address)).to.be.revertedWithCustomError(
       prepayment,
@@ -197,7 +197,7 @@ describe('Prepayment contract', function () {
   })
 
   it('Should remove Coordinator', async function () {
-    const {accId , prepayment, owner, coordinator, consumer} = await loadFixture(deployMockFixture)
+    const { accId, prepayment, owner, coordinator, consumer } = await loadFixture(deployMockFixture)
     const {
       oracle,
       publicProvingKey,
@@ -218,7 +218,6 @@ describe('Prepayment contract', function () {
       feeConfig
     )
 
-  
     await prepayment.addConsumer(accId, consumer.address)
     await prepayment.addCoordinator(coordinator.address)
     const txReceipt = await (await prepayment.removeCoordinator(coordinator.address)).wait()
