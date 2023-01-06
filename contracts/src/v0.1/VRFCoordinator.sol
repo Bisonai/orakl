@@ -186,7 +186,6 @@ contract VRFCoordinator is
         uint16 minimumRequestConfirmations,
         uint32 maxGasLimit,
         uint32 gasAfterPaymentCalculation,
-        bytes32 keyHash,
         FeeConfig memory feeConfig
     ) external onlyOwner {
         if (minimumRequestConfirmations > MAX_REQUEST_CONFIRMATIONS) {
@@ -200,8 +199,7 @@ contract VRFCoordinator is
             minimumRequestConfirmations: minimumRequestConfirmations,
             maxGasLimit: maxGasLimit,
             gasAfterPaymentCalculation: gasAfterPaymentCalculation,
-            reentrancyLock: false,
-            keyHash: keyHash
+            reentrancyLock: false
         });
         s_feeConfig = feeConfig;
         emit ConfigSet(
@@ -347,6 +345,7 @@ contract VRFCoordinator is
      * @inheritdoc VRFCoordinatorInterface
      */
     function requestRandomWordsPayment(
+        bytes32 keyHash,
         uint16 requestConfirmations,
         uint32 callbackGasLimit,
         uint32 numWords
@@ -356,7 +355,6 @@ contract VRFCoordinator is
         uint64 accId = Prepayment.createAccount();
         Prepayment.addConsumer(accId, msg.sender);
         uint256 requestId = requestRandomWords(
-            s_config.keyHash,
             accId,
             requestConfirmations,
             callbackGasLimit,

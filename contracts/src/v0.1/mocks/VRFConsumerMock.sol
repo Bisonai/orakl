@@ -46,6 +46,7 @@ contract VRFConsumerMock is VRFConsumerBase {
   }
 
   function requestRandomWordsDirect(
+      bytes32 keyHash,
       uint16 requestConfirmations,
       uint32 callbackGasLimit,
       uint32 numWords
@@ -56,6 +57,7 @@ contract VRFConsumerMock is VRFConsumerBase {
       returns (uint256 requestId)
   {
     requestId = COORDINATOR.requestRandomWordsPayment{value:msg.value}(
+      keyHash,
       requestConfirmations,
       callbackGasLimit,
       numWords
