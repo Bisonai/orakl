@@ -22,8 +22,8 @@ interface VRFCoordinatorInterface {
    * @param keyHash - Corresponds to a particular oracle job which uses
    * that key for generating the VRF proof. Different keyHash's have different gas price
    * ceilings, so you can select a specific one to bound your maximum per request cost.
-   * @param subId  - The ID of the VRF subscription. Must be funded
-   * with the minimum subscription balance required for the selected keyHash.
+   * @param accId  - The ID of the account. Must be funded
+   * with the minimum account balance required for the selected keyHash.
    * @param minimumRequestConfirmations - How many blocks you'd like the
    * oracle to wait before responding to the request. See SECURITY CONSIDERATIONS
    * for why you may want to request more. The acceptable range is
@@ -42,7 +42,7 @@ interface VRFCoordinatorInterface {
    */
   function requestRandomWords(
     bytes32 keyHash,
-    uint64 subId,
+    uint64 accId,
     uint16 minimumRequestConfirmations,
     uint32 callbackGasLimit,
     uint32 numWords
