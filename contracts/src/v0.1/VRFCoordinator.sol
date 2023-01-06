@@ -343,9 +343,10 @@ contract VRFCoordinator is
         uint32 callbackGasLimit,
         uint32 numWords
     ) external payable override returns (uint256) {
-        // TODO setup minimum required payment
-        if (msg.value >= 1) {
-            revert InsufficientPayment(msg.value, 1);
+        // TODO setup minimum required payment outside
+        uint256 minimumPayment = 0;
+        if (msg.value < minimumPayment) {
+            revert InsufficientPayment(msg.value, minimumPayment);
         }
 
         uint64 accId = Prepayment.createAccount();
