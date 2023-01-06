@@ -464,12 +464,7 @@ contract VRFCoordinator is
         // The consequence for users is that they can send requests
         // for invalid keyHashes which will simply not be fulfilled.
         uint64 nonce = Prepayment.increaseNonce(msg.sender, accId);
-        (uint256 requestId, uint256 preSeed) = computeRequestId(
-            keyHash,
-            msg.sender,
-            accId,
-            nonce
-        );
+        (uint256 requestId, uint256 preSeed) = computeRequestId(keyHash, msg.sender, accId, nonce);
 
         s_requestCommitments[requestId] = keccak256(
             abi.encode(requestId, block.number, accId, callbackGasLimit, numWords, msg.sender)

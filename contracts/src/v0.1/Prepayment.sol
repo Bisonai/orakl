@@ -257,12 +257,7 @@ contract Prepayment is
         return s_consumers[consumer][accId];
     }
 
-    function increaseNonce(
-        address consumer,
-        uint64 accId
-    )
-        external returns (uint64)
-    {
+    function increaseNonce(address consumer, uint64 accId) external returns (uint64) {
         uint64 currentNonce = s_consumers[consumer][accId];
         uint64 nonce = currentNonce + 1;
         s_consumers[consumer][accId] = nonce;
