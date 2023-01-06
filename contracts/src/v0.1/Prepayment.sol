@@ -176,6 +176,9 @@ contract Prepayment is Ownable, AccessControlEnumerable, PrepaymentInterface {
     }
 
     function withdraw(uint64 accId, uint96 amount) external onlyAccOwner(accId) {
+        if (pendingRequestExists(accId)) {
+            revert PendingRequestExists();
+        }
         if (s_accounts[accId].balance < amount) {
             revert InsufficientBalance();
         }
