@@ -23,11 +23,6 @@ contract VRFCoordinator is
     error BalanceInvariantViolated(uint256 internalBalance, uint256 externalBalance); // Should never happen
     event FundsRecovered(address to, uint256 amount);
 
-    // s_totalBalance tracks the total KLAY sent to/from
-    // this contract through onTokenTransfer, cancelAccount and oracleWithdraw.
-    // A discrepancy with this contract's link balance indicates someone
-    // sent tokens using transfer and so we may need to use recoverFunds.
-
     // Set this maximum to 200 to give us a 56 block window to fulfill
     // the request before requiring the block hash feeder.
     uint16 public constant MAX_REQUEST_CONFIRMATIONS = 200;
