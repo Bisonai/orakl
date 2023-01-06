@@ -1,14 +1,58 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.16;
 
+// https://github.com/smartcontractkit/chainlink/blob/develop/contracts/src/v0.8/VRFCoordinatorV2.sol
+
 import "@openzeppelin/contracts/access/AccessControlEnumerable.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "./interfaces/PrepaymentInterface.sol";
 import "./interfaces/CoordinatorBaseInterface.sol";
+import "./interfaces/PrepaymentInterface.sol";
+import "./interfaces/TypeAndVersionInterface.sol";
 
-contract Prepayment is Ownable, AccessControlEnumerable, PrepaymentInterface {
+contract Prepayment is
+    AccessControlEnumerable,
+    Ownable,
+    PrepaymentInterface,
+    TypeAndVersionInterface
+{
     uint16 public constant MAX_CONSUMERS = 100;
+    bytes32 public constant WITHDRAWER_ROLE = keccak256("WITHDRAWER_ROLE");
+    bytes32 public constant ORACLE_ROLE = keccak256("ORACLE_ROLE");
+
     uint96 private s_totalBalance;
+
+    uint64 private s_currentAccId;
+
+    uint96 public s_withdrawable;
+
+    mapping(address => mapping(uint64 => uint64)) private s_consumers;
+
+    /* accId */ /* AccountConfig */
+    mapping(uint64 => AccountConfig) private s_accountConfigs;
+
+    /* accId */ /* account */
+    mapping(uint64 => Account) private s_accounts;
+
+    struct Account {
+        // There are only 1e9*1e18 = 1e27 juels in existence, so the balance can fit in uint96 (2^96 ~ 7e28)
+        uint96 balance; // Common link balance used for all consumer requests.
+        uint64 reqCount; // For fee tiers
+    }
+
+    struct AccountConfig {
+        address owner; // Owner can fund/withdraw/cancel the acc.
+        address requestedOwner; // For safely transferring acc ownership.
+        // Maintains the list of keys in s_consumers.
+        // We do this for 2 reasons:
+        // 1. To be able to clean up all keys from s_consumers when canceling a account.
+        // 2. To be able to return the list of all consumers in getAccount.
+        // Note that we need the s_consumers map to be able to directly check if a
+        // consumer is valid without reading all the consumers from storage.
+        address[] consumers;
+    }
+
+    CoordinatorBaseInterface[] private s_coordinators;
+
     error TooManyConsumers();
     error InsufficientBalance();
     error InvalidConsumer(uint64 accId, address consumer);
@@ -27,41 +71,26 @@ contract Prepayment is Ownable, AccessControlEnumerable, PrepaymentInterface {
     event AccountOwnerTransferRequested(uint64 indexed accId, address from, address to);
     event AccountOwnerTransferred(uint64 indexed accId, address from, address to);
 
-    bytes32 public constant WITHDRAWER_ROLE = keccak256("WITHDRAWER_ROLE");
-    bytes32 public constant ORACLE_ROLE = keccak256("ORACLE_ROLE");
-    struct Account {
-        // There are only 1e9*1e18 = 1e27 juels in existence, so the balance can fit in uint96 (2^96 ~ 7e28)
-        uint96 balance; // Common link balance used for all consumer requests.
-        uint64 reqCount; // For fee tiers
+    modifier onlyAccOwner(uint64 accId) {
+        address owner = s_accountConfigs[accId].owner;
+        if (owner == address(0)) {
+            revert InvalidAccount();
+        }
+        if (msg.sender != owner) {
+            revert MustBeAccountOwner(owner);
+        }
+        _;
     }
-    struct AccountConfig {
-        address owner; // Owner can fund/withdraw/cancel the acc.
-        address requestedOwner; // For safely transferring acc ownership.
-        // Maintains the list of keys in s_consumers.
-        // We do this for 2 reasons:
-        // 1. To be able to clean up all keys from s_consumers when canceling a account.
-        // 2. To be able to return the list of all consumers in getAccount.
-        // Note that we need the s_consumers map to be able to directly check if a
-        // consumer is valid without reading all the consumers from storage.
-        address[] consumers;
+
+    modifier onlyWithdrawer() {
+        require(hasRole(WITHDRAWER_ROLE, msg.sender), "Caller is not a withdrawer");
+        _;
     }
-    mapping(address => mapping(uint64 => uint64)) private s_consumers;
 
-    /* accId */
-    /* AccountConfig */
-    mapping(uint64 => AccountConfig) private s_accountConfigs;
-
-    /* accId */
-    /* account */
-    mapping(uint64 => Account) private s_accounts;
-
-    // We make the acc count public so that its possible to
-    // get all the current accounts via getAccount.
-    uint64 private s_currentAccId;
-
-    uint96 public s_withdrawable;
-
-    CoordinatorBaseInterface[] private s_coordinators;
+    modifier onlyOracle() {
+        require(hasRole(ORACLE_ROLE, msg.sender), "Caller is not an oracle");
+        _;
+    }
 
     constructor() {
         _setupRole(DEFAULT_ADMIN_ROLE, _msgSender());
@@ -235,6 +264,14 @@ contract Prepayment is Ownable, AccessControlEnumerable, PrepaymentInterface {
         return s_accountConfigs[accId].owner;
     }
 
+    /**
+     * @notice The type and version of this contract
+     * @return Type and version string
+     */
+    function typeAndVersion() external pure virtual override returns (string memory) {
+        return "Prepayment v0.1";
+    }
+
     function pendingRequestExists(uint64 accId) public view returns (bool) {
         AccountConfig memory accConfig = s_accountConfigs[accId];
         for (uint256 i = 0; i < accConfig.consumers.length; i++) {
@@ -283,29 +320,5 @@ contract Prepayment is Ownable, AccessControlEnumerable, PrepaymentInterface {
         //fix this
         payable(address(to)).transfer(uint256(balance));
         emit AccountCanceled(accId, to, balance);
-    }
-
-    modifier onlyAccOwner(uint64 accId) {
-        address owner = s_accountConfigs[accId].owner;
-        if (owner == address(0)) {
-            revert InvalidAccount();
-        }
-        if (msg.sender != owner) {
-            revert MustBeAccountOwner(owner);
-        }
-        _;
-    }
-    modifier onlyWithdrawer() {
-        require(hasRole(WITHDRAWER_ROLE, msg.sender), "Caller is not a withdrawer");
-        _;
-    }
-
-    modifier onlyOracle() {
-        require(hasRole(ORACLE_ROLE, msg.sender), "Caller is not an oracle");
-        _;
-    }
-
-    function typeAndVersion() external pure virtual returns (string memory) {
-        return "Prepayment v0.1";
     }
 }
