@@ -87,6 +87,7 @@ contract VRFCoordinator is
     /* error BlockhashNotInStore(uint256 blockNum); */
     /* error PaymentTooLarge(); */
     error Reentrant();
+    error InsufficientPayment(uint256 have, uint256 want);
 
     event ProvingKeyRegistered(bytes32 keyHash, address indexed oracle);
     event ProvingKeyDeregistered(bytes32 keyHash, address indexed oracle);
@@ -342,7 +343,11 @@ contract VRFCoordinator is
         uint32 callbackGasLimit,
         uint32 numWords
     ) external payable override returns (uint256) {
-        require(msg.value > 0, "Insufficient balance");
+        // TODO setup minimum required payment
+        if (msg.value >= 1) {
+            revert InsufficientPayment(msg.value, 1);
+        }
+
         // create account
         uint64 accId = Prepayment.createAccount();
         Prepayment.addConsumer(accId, msg.sender);
