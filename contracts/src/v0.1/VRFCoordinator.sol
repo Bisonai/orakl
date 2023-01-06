@@ -32,11 +32,13 @@ contract VRFCoordinator is
     mapping(bytes32 => address) private s_provingKeys;
 
     /* oracle */ /* KLAY balance */
-    mapping(address => uint96) private s_withdrawableTokens;
+    /* mapping(address => uint96) private s_withdrawableTokens; */
 
     /* requestID */ /* commitment */
     mapping(uint256 => bytes32) private s_requestCommitments;
 
+    // RequestCommitment holds information sent from off-chain oracle
+    // describing details of request.
     struct RequestCommitment {
         uint64 blockNum;
         uint64 accId;
@@ -58,7 +60,7 @@ contract VRFCoordinator is
     Config private s_config;
 
     struct FeeConfig {
-        // Flat fee charged per fulfillment in millionths of link
+        // Flat fee charged per fulfillment in millionths of KLAY
         // So fee range is [0, 2^32/10^6].
         uint32 fulfillmentFlatFeeLinkPPMTier1;
         uint32 fulfillmentFlatFeeLinkPPMTier2;
@@ -76,22 +78,17 @@ contract VRFCoordinator is
 
     error InvalidConsumer(uint64 accId, address consumer);
     error InvalidAccount();
-    error MustBeAccOwner(address owner);
-    error PendingRequestExists();
-    error BalanceInvariantViolated(uint256 internalBalance, uint256 externalBalance); // Should never happen
     error InvalidRequestConfirmations(uint16 have, uint16 min, uint16 max);
     error GasLimitTooBig(uint32 have, uint32 want);
     error NumWordsTooBig(uint32 have, uint32 want);
     error ProvingKeyAlreadyRegistered(bytes32 keyHash);
     error NoSuchProvingKey(bytes32 keyHash);
-    error InsufficientGasForConsumer(uint256 have, uint256 want);
     error NoCorrespondingRequest();
     error IncorrectCommitment();
-    error BlockhashNotInStore(uint256 blockNum);
-    error PaymentTooLarge();
+    /* error BlockhashNotInStore(uint256 blockNum); */
+    /* error PaymentTooLarge(); */
     error Reentrant();
 
-    event FundsRecovered(address to, uint256 amount);
     event ProvingKeyRegistered(bytes32 keyHash, address indexed oracle);
     event ProvingKeyDeregistered(bytes32 keyHash, address indexed oracle);
     event RandomWordsRequested(
@@ -138,7 +135,7 @@ contract VRFCoordinator is
     /**
      * @notice Registers a proving key to an oracle.
      * @param oracle address of the oracle
-     * @param publicProvingKey key that oracle can use to submit vrf fulfillments
+     * @param publicProvingKey key that oracle can use to submit VRF fulfillments
      */
     function registerProvingKey(
         address oracle,
@@ -155,7 +152,7 @@ contract VRFCoordinator is
 
     /**
      * @notice Deregisters a proving key to an oracle.
-     * @param publicProvingKey key that oracle can use to submit vrf fulfillments
+     * @param publicProvingKey key that oracle can use to submit VRF fulfillments
      */
     function deregisterProvingKey(uint256[2] calldata publicProvingKey) external onlyOwner {
         bytes32 kh = hashOfKey(publicProvingKey);
@@ -176,7 +173,7 @@ contract VRFCoordinator is
     }
 
     /**
-     * @notice Sets the configuration of the vrf coordinator
+     * @notice Sets the configuration of the VRF coordinator
      * @param minimumRequestConfirmations global min for request confirmations
      * @param maxGasLimit global max for request gas limit
      * @param gasAfterPaymentCalculation gas used in doing accounting after completing the gas measurement
@@ -254,10 +251,6 @@ contract VRFCoordinator is
         );
     }
 
-    /**
-     * @notice Recover link sent with transfer instead of transferAndCall.
-     * @param to address to send link to
-     */
     /**
      * @inheritdoc VRFCoordinatorInterface
      */
