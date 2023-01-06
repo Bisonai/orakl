@@ -16,7 +16,7 @@
     "prepare": "cd .. && husky install core/.husky",
     "clean": "rm -rf dist",
     "build": "yarn clean && tsc",
-    "start:listener": "node --experimental-specifier-resolution=node --experimental-json-modules /app/dist/src/listener/listener.js",
+    "start:listener": "node --experimental-specifier-resolution=node --experimental-json-modules dist/src/listener/listener.js",
     "start:listener:vrf": "yarn start:listener --listener VRF",
     "start:listener:icn": "yarn start:listener --listener ICN",
     "start:worker": "node --experimental-specifier-resolution=node --experimental-json-modules dist/src/worker.js",
@@ -32,6 +32,7 @@
     "dotenv": "^16.0.3",
     "elliptic": "^6.5.4",
     "ethers": "^5.7.2",
+    "express": "^4.18.2",
     "got": "^12.5.3",
     "mathjs": "^11.4.0"
   },
@@ -48,6 +49,7 @@
     "prettier": "^2.8.1",
     "ts-jest": "^29.0.3",
     "ts-node": "^10.9.1",
+    "express": "^4.18.2",
     "typescript": "^4.9.3"
   }
 }

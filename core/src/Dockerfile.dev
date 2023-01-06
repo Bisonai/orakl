@@ -27,3 +27,5 @@ RUN yarn install
 RUN rm .npmrc
 
 RUN npx tsc
+
+RUN apt-get update && apt-get install -y curl

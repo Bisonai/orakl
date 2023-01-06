@@ -16,7 +16,7 @@ services:
     restart: always
 
   listener-icn:
-    image: core-icn
+    image: core_icn
     extra_hosts:
       - "host.docker.internal:host-gateway"
     environment:
@@ -27,12 +27,19 @@ services:
     container_name: listener_icn_dev
     hostname: listener_icn_dev
     entrypoint: ["yarn", "start:listener:icn"]
-    # TODO healthcheck
+    expose:
+      - 8020
+    healthcheck:
+      test: "curl --fail http://localhost:8020/health-check || exit 1"
+      interval: 5s
+      timeout: 30s
+      retries: 3
+      start_period: 10s
     depends_on:
       - redis
 
   listener-vrf:
-    image: core-icn
+    image: core_icn
     extra_hosts:
       - "host.docker.internal:host-gateway"
     environment:
@@ -43,12 +50,19 @@ services:
     container_name: listener_vrf_dev
     hostname: listener_vrf_dev
     entrypoint: ["yarn", "start:listener:vrf"]
-    # TODO healthcheck
+    expose:
+      - 8010
+    healthcheck:
+      test: "curl -f http://localhost:8010/health-check || exit 1"
+      interval: 5s
+      timeout: 30s
+      retries: 3
+      start_period: 10s
     depends_on:
       - redis
 
   worker:
-    image: core-icn
+    image: core_icn
     environment:
       - PROVIDER
       - REDIS_HOST
@@ -61,12 +75,19 @@ services:
     container_name: worker_dev
     hostname: worker_dev
     entrypoint: ["yarn", "start:worker"]
-    # TODO healthcheck
+    expose:
+      - 8030
+    healthcheck:
+      test: "curl -f  http://localhost:8030/health-check || exit 1"
+      interval: 5s
+      timeout: 30s
+      retries: 3
+      start_period: 10s
     depends_on:
       - redis
 
   reporter:
-    image: core-icn
+    image: core_icn
     extra_hosts:
       - "host.docker.internal:host-gateway"
     environment:
@@ -79,6 +100,13 @@ services:
     container_name: reporter_dev
     hostname: reporter_dev
     entrypoint: ["yarn", "start:reporter"]
-    # TODO healthcheck
+    expose:
+      - 8040
+    healthcheck:
+      test: "curl -f  http://localhost:8040/health-check || exit 1"
+      interval: 5s
+      timeout: 30s
+      retries: 3
+      start_period: 10s
     depends_on:
       - redis

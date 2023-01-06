@@ -10,6 +10,8 @@ import {
   PRIVATE_KEY as PRIVATE_KEY_ENV
   // MNEMONIC
 } from './load-parameters'
+import express from 'express'
+import { healthCheck } from './healthchecker'
 
 async function main() {
   try {
@@ -26,6 +28,12 @@ async function main() {
   } catch (e) {
     console.error(e)
   }
+  // simple health check, later readness, liveness?
+  const server = express()
+  server.get('/health-check', (_, res) => {
+    res.send(healthCheck())
+  })
+  server.listen(8040)
 }
 
 function anyApiJob(wallet) {

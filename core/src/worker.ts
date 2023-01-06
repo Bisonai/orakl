@@ -30,6 +30,8 @@ import {
 import { decodeAnyApiRequest } from './decoding'
 import { prove, decode, getFastVerifyComponents } from './vrf/index'
 import { VRF_SK, VRF_PK, VRF_PK_X, VRF_PK_Y } from './load-parameters'
+import express from 'express'
+import { healthCheck } from './healthchecker'
 
 async function main() {
   const adapters = (await loadAdapters())[0] // FIXME take all adapters
@@ -46,6 +48,13 @@ async function main() {
   )
 
   new Worker(WORKER_VRF_QUEUE_NAME, vrfJob(REPORTER_VRF_QUEUE_NAME), BULLMQ_CONNECTION)
+
+  // simple health check, later readness, liveness?
+  const server = express()
+  server.get('/health-check', (_, res) => {
+    res.send(healthCheck())
+  })
+  server.listen(8030)
 }
 
 function extractFeeds(adapter) {

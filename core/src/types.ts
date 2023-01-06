@@ -184,3 +184,7 @@ export interface IListenerConfig {
   eventName: string
   factoryName: string
 }
+
+export interface HealthStatus {
+  status: string
+}
