@@ -70,6 +70,7 @@ contract Prepayment is
     event AccountCanceled(uint64 indexed accId, address to, uint256 amount);
     event AccountOwnerTransferRequested(uint64 indexed accId, address from, address to);
     event AccountOwnerTransferred(uint64 indexed accId, address from, address to);
+    event FundsWithdrawn(address to, uint256 amount);
 
     modifier onlyAccOwner(uint64 accId) {
         address owner = s_accountConfigs[accId].owner;
@@ -249,7 +250,7 @@ contract Prepayment is
             "Insufficient balance"
         );
         payable(msg.sender).transfer(s_withdrawable);
-        /// only for us, do we need to emit event here?
+        emit FundsWithdrawn(msg.sender, s_withdrawable);
     }
 
     function getNonce(address consumer, uint64 accId) external view returns (uint64) {
