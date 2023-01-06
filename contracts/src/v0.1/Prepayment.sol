@@ -25,6 +25,7 @@ contract Prepayment is
 
     uint96 public s_withdrawable;
 
+    /* consumer */ /* accId */ /* nonce */
     mapping(address => mapping(uint64 => uint64)) private s_consumers;
 
     /* accId */ /* AccountConfig */
@@ -35,7 +36,7 @@ contract Prepayment is
 
     struct Account {
         // There are only 1e9*1e18 = 1e27 juels in existence, so the balance can fit in uint96 (2^96 ~ 7e28)
-        uint96 balance; // Common link balance used for all consumer requests.
+        uint96 balance; // Common KLAY balance used for all consumer requests.
         uint64 reqCount; // For fee tiers
     }
 
@@ -44,7 +45,7 @@ contract Prepayment is
         address requestedOwner; // For safely transferring acc ownership.
         // Maintains the list of keys in s_consumers.
         // We do this for 2 reasons:
-        // 1. To be able to clean up all keys from s_consumers when canceling a account.
+        // 1. To be able to clean up all keys from s_consumers when canceling an account.
         // 2. To be able to return the list of all consumers in getAccount.
         // Note that we need the s_consumers map to be able to directly check if a
         // consumer is valid without reading all the consumers from storage.
@@ -60,6 +61,8 @@ contract Prepayment is
     error MustBeAccountOwner(address owner);
     error PendingRequestExists();
     error MustBeRequestedOwner(address proposedOwner);
+    error MustBeWithdrawer(address notWithdrawer);
+    error MustBeOracle(address notOracle);
 
     event AccountCreated(uint64 indexed accId, address owner);
     event AccountFunded(uint64 indexed accId, uint256 oldBalance, uint256 newBalance);
@@ -83,12 +86,16 @@ contract Prepayment is
     }
 
     modifier onlyWithdrawer() {
-        require(hasRole(WITHDRAWER_ROLE, msg.sender), "Caller is not a withdrawer");
+        if (!hasRole(WITHDRAWER_ROLE, msg.sender)) {
+            revert MustBeWithdrawer(msg.sender);
+        }
         _;
     }
 
     modifier onlyOracle() {
-        require(hasRole(ORACLE_ROLE, msg.sender), "Caller is not an oracle");
+        if (!hasRole(ORACLE_ROLE, msg.sender)) {
+            revert MustBeOracle(msg.sender);
+        }
         _;
     }
 
