@@ -359,8 +359,11 @@ contract Prepayment is
         return false;
     }
 
-    function addCoordinator(CoordinatorBaseInterface coordinator) public onlyOwner {
-        s_coordinators.push(coordinator);
+    /**
+     * @inheritdoc PrepaymentInterface
+     */
+    function addCoordinator(address coordinator) public override onlyOwner {
+        s_coordinators.push(CoordinatorBaseInterface(coordinator));
     }
 
     function removeCoordinator(CoordinatorBaseInterface coordinator) public onlyOwner {

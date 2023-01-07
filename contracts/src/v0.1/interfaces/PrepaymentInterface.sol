@@ -114,4 +114,10 @@ interface PrepaymentInterface {
      * otherwise.
      */
     function pendingRequestExists(uint64 accId) external view returns (bool);
+
+    /*
+     * @notice Add coordinator to be able to charge using Prepayment method.
+     * @param coordinator - address of coordinator
+     */
+    function addCoordinator(address coordinator) external;
 }
