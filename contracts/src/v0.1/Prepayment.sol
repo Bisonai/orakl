@@ -56,6 +56,7 @@ contract Prepayment is
 
     error TooManyConsumers();
     error InsufficientBalance();
+    error InsufficientConsumerBalance();
     error InvalidConsumer(uint64 accId, address consumer);
     error InvalidAccount();
     error MustBeAccountOwner(address owner);
@@ -109,6 +110,9 @@ contract Prepayment is
         return s_totalBalance;
     }
 
+    /**
+     * @inheritdoc PrepaymentInterface
+     */
     function getAccount(
         uint64 accId
     )
@@ -127,6 +131,9 @@ contract Prepayment is
         );
     }
 
+    /**
+     * @inheritdoc PrepaymentInterface
+     */
     function createAccount() external returns (uint64) {
         s_currentAccId++;
         uint64 currentAccId = s_currentAccId;
@@ -142,6 +149,9 @@ contract Prepayment is
         return currentAccId;
     }
 
+    /**
+     * @inheritdoc PrepaymentInterface
+     */
     function requestAccountOwnerTransfer(
         uint64 accId,
         address newOwner
@@ -153,6 +163,9 @@ contract Prepayment is
         }
     }
 
+    /**
+     * @inheritdoc PrepaymentInterface
+     */
     function acceptAccountOwnerTransfer(uint64 accId) external override {
         if (s_accountConfigs[accId].owner == address(0)) {
             revert InvalidAccount();
@@ -166,7 +179,10 @@ contract Prepayment is
         emit AccountOwnerTransferred(accId, oldOwner, msg.sender);
     }
 
-    function removeConsumer(uint64 accId, address consumer) external onlyAccOwner(accId) {
+    /**
+     * @inheritdoc PrepaymentInterface
+     */
+    function removeConsumer(uint64 accId, address consumer) external override onlyAccOwner(accId) {
         if (s_consumers[consumer][accId] == 0) {
             revert InvalidConsumer(accId, consumer);
         }
@@ -187,7 +203,10 @@ contract Prepayment is
         emit AccountConsumerRemoved(accId, consumer);
     }
 
-    function addConsumer(uint64 accId, address consumer) external onlyAccOwner(accId) {
+    /**
+     * @inheritdoc PrepaymentInterface
+     */
+    function addConsumer(uint64 accId, address consumer) external override onlyAccOwner(accId) {
         // Already maxed, cannot add any more consumers.
         if (s_accountConfigs[accId].consumers.length >= MAX_CONSUMERS) {
             revert TooManyConsumers();
@@ -204,7 +223,10 @@ contract Prepayment is
         emit AccountConsumerAdded(accId, consumer);
     }
 
-    function cancelAccount(uint64 accId, address to) external onlyAccOwner(accId) {
+    /**
+     * @inheritdoc PrepaymentInterface
+     */
+    function cancelAccount(uint64 accId, address to) external override onlyAccOwner(accId) {
         if (pendingRequestExists(accId)) {
             revert PendingRequestExists();
         }
@@ -263,6 +285,9 @@ contract Prepayment is
         return s_consumers[consumer][accId];
     }
 
+    /**
+     * @inheritdoc PrepaymentInterface
+     */
     function increaseNonce(address consumer, uint64 accId) external returns (uint64) {
         uint64 currentNonce = s_consumers[consumer][accId];
         uint64 nonce = currentNonce + 1;
@@ -270,6 +295,9 @@ contract Prepayment is
         return nonce;
     }
 
+    /**
+     * @inheritdoc PrepaymentInterface
+     */
     function getAccountOwner(uint64 accId) external view returns (address owner) {
         return s_accountConfigs[accId].owner;
     }
@@ -319,11 +347,13 @@ contract Prepayment is
         AccountConfig memory accConfig = s_accountConfigs[accId];
         Account memory acc = s_accounts[accId];
         uint96 balance = acc.balance;
+
         // Note bounded by MAX_CONSUMERS;
         // If no consumers, does nothing.
         for (uint256 i = 0; i < accConfig.consumers.length; i++) {
             delete s_consumers[accConfig.consumers[i]][accId];
         }
+
         delete s_accountConfigs[accId];
         delete s_accounts[accId];
         s_totalBalance -= balance;
