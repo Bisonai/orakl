@@ -83,7 +83,7 @@ contract VRFCoordinator is
     error NoSuchProvingKey(bytes32 keyHash);
     error NoCorrespondingRequest();
     error IncorrectCommitment();
-    /* error PaymentTooLarge(); */
+    error PaymentTooLarge();
     error Reentrant();
     error InsufficientPayment(uint256 have, uint256 want);
 
@@ -271,7 +271,7 @@ contract VRFCoordinator is
         VRF.Proof memory proof,
         RequestCommitment memory rc
     ) external nonReentrant returns (uint96) {
-        /* uint256 startGas = gasleft(); */
+        uint256 startGas = gasleft();
         (, /* bytes32 keyHash */ uint256 requestId, uint256 randomness) = getRandomnessFromProof(
             proof,
             rc
@@ -299,62 +299,29 @@ contract VRFCoordinator is
         s_config.reentrancyLock = true;
         bool success = callWithExactGas(rc.callbackGasLimit, rc.sender, resp);
         s_config.reentrancyLock = false;
+
         // We want to charge users exactly for how much gas they use in their callback.
         // The gasAfterPaymentCalculation is meant to cover these additional operations where we
         // decrement the account balance and increment the oracles withdrawable balance.
-        // We also add the flat link fee to the payment amount.
-        // Its specified in millionths of link, if s_config.fulfillmentFlatFeeLinkPPM = 1
-        // 1 link / 1e6 = 1e18 juels / 1e6 = 1e12 juels.
-        // FIXME fix payment
-        //uint96 payment = 0;
+        // We also add the flat KLAY fee to the payment amount.
+        // Its specified in millionths of KLAY, if s_config.fulfillmentFlatFeeKlayPPM = 1
+        // 1 KLAY / 1e6 = 1e18 pebs / 1e6 = 1e12 pebs.
+        (, uint64 reqCount, , ) = Prepayment.getAccount(rc.accId);
+        uint96 payment = calculatePaymentAmount(
+            startGas,
+            s_config.gasAfterPaymentCalculation,
+            getFeeTier(reqCount),
+            tx.gasprice
+        );
 
-        /* (uint96 balance, uint64 reqCount, address owner, address[] memory consumers) = Prepayment */
-        /*     .getAccount(rc.accId); */
-
-        // uint96 payment = calculatePaymentAmount(
-        //   startGas,
-        //   s_config.gasAfterPaymentCalculation,
-        //   getFeeTier(reqCount),
-        //   tx.gasprice
-        // );
-        // if (balance < payment) {
-        //   revert InsufficientBalance();
-        // }
-        uint96 payment = 10 ** 17;
         Prepayment.chargeFee(rc.accId, payment);
-        //s_withdrawableTokens[s_provingKeys[rc.keyHash]] += payment; FIXME  Does need to do this?
+
+        // FIXME
+        //s_withdrawableTokens[s_provingKeys[rc.keyHash]] += payment;
 
         // Include payment in the event for tracking costs.
         emit RandomWordsFulfilled(requestId, randomness, payment, success);
         return payment;
-    }
-
-    /**
-     * @inheritdoc VRFCoordinatorInterface
-     */
-    function requestRandomWordsPayment(
-        bytes32 keyHash,
-        uint16 requestConfirmations,
-        uint32 callbackGasLimit,
-        uint32 numWords
-    ) external payable override returns (uint256) {
-        // TODO setup minimum required payment outside
-        uint256 minimumPayment = 0;
-        if (msg.value < minimumPayment) {
-            revert InsufficientPayment(msg.value, minimumPayment);
-        }
-
-        uint64 accId = Prepayment.createAccount();
-        Prepayment.addConsumer(accId, msg.sender);
-        uint256 requestId = requestRandomWords(
-            keyHash,
-            accId,
-            requestConfirmations,
-            callbackGasLimit,
-            numWords
-        );
-        Prepayment.deposit{value: msg.value}(accId);
-        return requestId;
     }
 
     /**
@@ -479,21 +446,51 @@ contract VRFCoordinator is
         return requestId;
     }
 
-    //// Get the amount of gas used for fulfillment
-    // function calculatePaymentAmount(
-    //   uint256 startGas,
-    //   uint256 gasAfterPaymentCalculation,
-    //   uint32 fulfillmentFlatFeeLinkPPM,
-    //   uint256 weiPerUnitGas
-    // ) internal view returns (uint96) {
-    //   // (1e18 juels/link) (wei/gas * gas) = juels
-    //   uint256 paymentNoFee = (1e18 * weiPerUnitGas * (gasAfterPaymentCalculation + startGas - gasleft()));
-    //   uint256 fee = 1e12 * uint256(fulfillmentFlatFeeLinkPPM);
-    //   if (paymentNoFee > (1e27 - fee)) {
-    //     revert PaymentTooLarge(); // Payment + fee cannot be more than all of the link in existence.
-    //   }
-    //   return uint96(paymentNoFee + fee);
-    // }
+    /**
+     * @inheritdoc VRFCoordinatorInterface
+     */
+    function requestRandomWordsPayment(
+        bytes32 keyHash,
+        uint16 requestConfirmations,
+        uint32 callbackGasLimit,
+        uint32 numWords
+    ) external payable override returns (uint256) {
+        // TODO setup minimum required payment outside
+        uint256 minimumPayment = 0;
+        if (msg.value < minimumPayment) {
+            revert InsufficientPayment(msg.value, minimumPayment);
+        }
+
+        uint64 accId = Prepayment.createAccount();
+        Prepayment.addConsumer(accId, msg.sender);
+        uint256 requestId = requestRandomWords(
+            keyHash,
+            accId,
+            requestConfirmations,
+            callbackGasLimit,
+            numWords
+        );
+        Prepayment.deposit{value: msg.value}(accId);
+        return requestId;
+    }
+
+    // Get the amount of gas used for fulfillment
+    function calculatePaymentAmount(
+        uint256 startGas,
+        uint256 gasAfterPaymentCalculation,
+        uint32 fulfillmentFlatFeeKlayPPM,
+        uint256 pebPerUnitGas
+    ) internal view returns (uint96) {
+        // (1e18 peb/KLAY) (peb/gas * gas) = peb
+        uint256 paymentNoFee = (1e18 *
+            pebPerUnitGas *
+            (gasAfterPaymentCalculation + startGas - gasleft()));
+        uint256 fee = 1e12 * uint256(fulfillmentFlatFeeKlayPPM);
+        if (paymentNoFee > (1e27 - fee)) {
+            revert PaymentTooLarge(); // Payment + fee cannot be more than all of the KLAY in existence.
+        }
+        return uint96(paymentNoFee + fee);
+    }
 
     function computeRequestId(
         bytes32 keyHash,
