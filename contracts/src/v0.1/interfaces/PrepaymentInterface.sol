@@ -120,4 +120,10 @@ interface PrepaymentInterface {
      * @param coordinator - address of coordinator
      */
     function addCoordinator(address coordinator) external;
+
+    /*
+     * @notice Block coordinator from using Prepayment method.
+     * @param coordinator - address of coordinator
+     */
+    function removeCoordinator(address coordinator) external;
 }

@@ -366,14 +366,14 @@ contract Prepayment is
         s_coordinators.push(CoordinatorBaseInterface(coordinator));
     }
 
-    function removeCoordinator(CoordinatorBaseInterface coordinator) public onlyOwner {
-        uint256 lastCoordinatorIndex = s_coordinators.length - 1;
+    /**
+     * @inheritdoc PrepaymentInterface
+     */
+    function removeCoordinator(address coordinator) public override onlyOwner {
         for (uint256 i = 0; i < s_coordinators.length; i++) {
-            if (s_coordinators[i] == coordinator) {
-                CoordinatorBaseInterface last = s_coordinators[lastCoordinatorIndex];
-                // Storage write to preserve last element
+            if (s_coordinators[i] == CoordinatorBaseInterface(coordinator)) {
+                CoordinatorBaseInterface last = s_coordinators[s_coordinators.length - 1];
                 s_coordinators[i] = last;
-                // Storage remove last element
                 s_coordinators.pop();
                 break;
             }
