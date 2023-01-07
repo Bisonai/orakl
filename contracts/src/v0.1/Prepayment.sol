@@ -336,16 +336,24 @@ contract Prepayment is
         return "Prepayment v0.1";
     }
 
-    function pendingRequestExists(uint64 accId) public view returns (bool) {
+    /**
+     * @inheritdoc PrepaymentInterface
+     * @dev Looping is bounded to MAX_CONSUMERS*(number of keyhashes).
+     * @dev Used to disable subscription canceling while outstanding request are present.
+     */
+    function pendingRequestExists(uint64 accId) public view override returns (bool) {
         AccountConfig memory accConfig = s_accountConfigs[accId];
         for (uint256 i = 0; i < accConfig.consumers.length; i++) {
             for (uint256 j = 0; j < s_coordinators.length; j++) {
-                bool rs = s_coordinators[j].pendingRequestExists(
-                    accId,
-                    accConfig.consumers[i],
-                    s_consumers[accConfig.consumers[i]][accId]
-                );
-                if (rs == true) return rs;
+                if (
+                    s_coordinators[j].pendingRequestExists(
+                        accId,
+                        accConfig.consumers[i],
+                        s_consumers[accConfig.consumers[i]][accId]
+                    )
+                ) {
+                    return true;
+                }
             }
         }
         return false;

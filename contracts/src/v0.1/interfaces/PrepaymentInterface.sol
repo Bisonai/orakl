@@ -100,5 +100,18 @@ interface PrepaymentInterface {
      */
     function increaseNonce(address consumer, uint64 accId) external returns (uint64);
 
+    /**
+     * @notice Get address of account owner.
+     * @param accId - ID of the account
+     */
     function getAccountOwner(uint64 accId) external returns(address owner);
+
+    /*
+     * @notice Check to see if there exists a request commitment consumers
+     * for all consumers and keyhashes for a given acc.
+     * @param accId - ID of the account
+     * @return true if there exists at least one unfulfilled request for the account, false
+     * otherwise.
+     */
+    function pendingRequestExists(uint64 accId) external view returns (bool);
 }
