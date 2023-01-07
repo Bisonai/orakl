@@ -3,6 +3,12 @@ pragma solidity ^0.8.16;
 
 interface PrepaymentInterface {
     /**
+     * @notice Return total amount of KLAY held in contract.
+     * @return balance - A unique account id.
+     */
+    function getTotalBalance() external returns (uint96);
+
+    /**
      * @notice Get an account.
      * @param accId - ID of the account
      * @return balance - KLAY balance of the account in juels.
