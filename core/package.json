@@ -9,19 +9,27 @@
   "engines": {
     "node": ">=18.12"
   },
-  "exports": "./dist/src/listener.js",
   "author": "Bisonai",
   "license": "UNLICENSED",
   "scripts": {
     "prepare": "cd .. && husky install core/.husky",
     "clean": "rm -rf dist",
     "build": "yarn clean && tsc",
-    "start:listener": "node --experimental-specifier-resolution=node --experimental-json-modules dist/src/listener/listener.js",
+    "flush": "node --experimental-specifier-resolution=node --experimental-json-modules dist/flush-queues.js",
+    "start:listener": "node --experimental-specifier-resolution=node --experimental-json-modules dist/listener/main.js",
     "start:listener:vrf": "yarn start:listener --listener VRF",
-    "start:listener:icn": "yarn start:listener --listener ICN",
-    "start:worker": "node --experimental-specifier-resolution=node --experimental-json-modules dist/src/worker.js",
-    "start:reporter": "node --experimental-specifier-resolution=node --experimental-json-modules dist/src/reporter.js",
-    "keygen": "node --experimental-specifier-resolution=node --experimental-json-modules dist/src/cli/vrf-keygen.js",
+    "start:listener:any_api": "yarn start:listener --listener ANY_API",
+    "start:listener:aggregator": "yarn start:listener --listener AGGREGATOR",
+    "start:worker": "node --experimental-specifier-resolution=node --experimental-json-modules dist/worker/main.js",
+    "start:worker:aggregator": "yarn start:worker --worker AGGREGATOR",
+    "start:worker:vrf": "yarn start:worker --worker VRF",
+    "start:worker:any_api": "yarn start:worker --worker ANY_API",
+    "start:worker:predefined_feed": "yarn start:worker --worker PREDEFINED_FEED",
+    "start:reporter": "node --experimental-specifier-resolution=node --experimental-json-modules dist/reporter/main.js",
+    "start:reporter:vrf": "yarn start:reporter --reporter VRF",
+    "start:reporter:any_api": "yarn start:reporter --reporter ANY_API",
+    "start:reporter:aggregator": "yarn start:reporter --reporter AGGREGATOR",
+    "keygen": "node --experimental-specifier-resolution=node --experimental-json-modules dist/cli/vrf-keygen.js",
     "test": "jest",
     "eslint": "DEBUG=eslint:cli-engine npx eslint 'src/**/*.ts' 'src/*.ts' 'test/*.ts'"
   },
@@ -32,7 +40,6 @@
     "dotenv": "^16.0.3",
     "elliptic": "^6.5.4",
     "ethers": "^5.7.2",
-    "express": "^4.18.2",
     "got": "^12.5.3",
     "mathjs": "^11.4.0"
   },
@@ -49,7 +56,6 @@
     "prettier": "^2.8.1",
     "ts-jest": "^29.0.3",
     "ts-node": "^10.9.1",
-    "express": "^4.18.2",
     "typescript": "^4.9.3"
   }
 }

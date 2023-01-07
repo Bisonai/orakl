@@ -1,0 +1,46 @@
+import { parseArgs } from 'node:util'
+import { aggregatorWorker } from './aggregator'
+import { vrfWorker } from './vrf'
+import { anyApiWorker } from './any-api'
+import { predefinedFeedWorker } from './predefined-feed'
+import { healthChack } from '../health-checker'
+
+const WORKERS = {
+  AGGREGATOR: aggregatorWorker,
+  VRF: vrfWorker,
+  ANY_API: anyApiWorker,
+  PREDEFINED_FEED: predefinedFeedWorker
+}
+
+async function main() {
+  const worker = loadArgs()
+  WORKERS[worker]()
+  healthChack()
+}
+
+function loadArgs() {
+  const {
+    values: { worker }
+  } = parseArgs({
+    options: {
+      worker: {
+        type: 'string'
+      }
+    }
+  })
+
+  if (!worker) {
+    throw Error('Missing --worker argument.')
+  }
+
+  if (!Object.keys(WORKERS).includes(worker)) {
+    throw Error(`${worker} is not supported worker.`)
+  }
+
+  return worker
+}
+
+main().catch((error) => {
+  console.error(error)
+  process.exitCode = 1
+})

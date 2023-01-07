@@ -1,0 +1,17 @@
+{
+  "VRF": {
+    "address": "0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0",
+    "eventName": "RandomWordsRequested",
+    "factoryName": "VRFCoordinator__factory"
+  },
+  "ANY_API": {
+    "address": "0x45778c29A34bA00427620b937733490363839d8C",
+    "eventName": "Requested",
+    "factoryName": "RequestResponseCoordinator__factory"
+  },
+  "AGGREGATOR": {
+    "address": "0x5FC8d32690cc91D4c39d9d3abcBD16989F875707",
+    "eventName": "NewRound",
+    "factoryName": "Aggregator__factory"
+  }
+}

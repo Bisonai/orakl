@@ -16,7 +16,7 @@ COPY yarn.lock .
 
 COPY tsconfig.json .
 
-COPY listeners.json .
+COPY config config
 
 COPY adapter adapter
 

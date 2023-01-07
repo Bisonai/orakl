@@ -9,6 +9,10 @@ On MacOS install with `brew install redis` and launch with `brew services start 
 ## Run
 
 ```
+yarn install
+```
+
+```
 yarn start:listener:vrf
 yarn start:listener:icn
 yarn start:worker
