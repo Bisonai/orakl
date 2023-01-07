@@ -380,6 +380,12 @@ contract Prepayment is
         }
     }
 
+    /*
+     * @notice Remove consumers and account related information.
+     * @notice Return remaining balance.
+     * @param accId - ID of the account
+     * @param to - Where to send the remaining KLAY to
+     */
     function cancelAccountHelper(uint64 accId, address to) private {
         AccountConfig memory accConfig = s_accountConfigs[accId];
         Account memory acc = s_accounts[accId];
