@@ -104,6 +104,9 @@ contract Prepayment is
         _setupRole(DEFAULT_ADMIN_ROLE, _msgSender());
     }
 
+    /**
+     * @inheritdoc PrepaymentInterface
+     */
     function getTotalBalance() external view returns (uint256) {
         return s_totalBalance;
     }
@@ -116,6 +119,7 @@ contract Prepayment is
     )
         external
         view
+        override
         returns (uint96 balance, uint64 reqCount, address owner, address[] memory consumers)
     {
         if (s_accountConfigs[accId].owner == address(0)) {
@@ -132,7 +136,7 @@ contract Prepayment is
     /**
      * @inheritdoc PrepaymentInterface
      */
-    function createAccount() external returns (uint64) {
+    function createAccount() external override returns (uint64) {
         s_currentAccId++;
         uint64 currentAccId = s_currentAccId;
         address[] memory consumers = new address[](0);
@@ -153,7 +157,7 @@ contract Prepayment is
     function requestAccountOwnerTransfer(
         uint64 accId,
         address newOwner
-    ) external onlyAccOwner(accId) {
+    ) external override onlyAccOwner(accId) {
         // Proposing to address(0) would never be claimable so don't need to check.
         if (s_accountConfigs[accId].requestedOwner != newOwner) {
             s_accountConfigs[accId].requestedOwner = newOwner;
@@ -271,7 +275,7 @@ contract Prepayment is
     /**
      * @inheritdoc PrepaymentInterface
      */
-    function ownerWithdraw(uint96 amount) external onlyWithdrawer {
+    function ownerWithdraw(uint96 amount) external override onlyWithdrawer {
         if (address(this).balance < amount) {
             revert InsufficientBalance();
         }
@@ -312,7 +316,7 @@ contract Prepayment is
     /**
      * @inheritdoc PrepaymentInterface
      */
-    function increaseNonce(address consumer, uint64 accId) external returns (uint64) {
+    function increaseNonce(address consumer, uint64 accId) external override returns (uint64) {
         uint64 currentNonce = s_consumers[consumer][accId];
         uint64 nonce = currentNonce + 1;
         s_consumers[consumer][accId] = nonce;
@@ -322,7 +326,7 @@ contract Prepayment is
     /**
      * @inheritdoc PrepaymentInterface
      */
-    function getAccountOwner(uint64 accId) external view returns (address owner) {
+    function getAccountOwner(uint64 accId) external view override returns (address owner) {
         return s_accountConfigs[accId].owner;
     }
 

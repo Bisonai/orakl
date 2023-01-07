@@ -110,7 +110,7 @@ interface PrepaymentInterface {
      * @notice Get address of account owner.
      * @param accId - ID of the account
      */
-    function getAccountOwner(uint64 accId) external returns(address owner);
+    function getAccountOwner(uint64 accId) external returns (address owner);
 
     /*
      * @notice Check to see if there exists a request commitment consumers
