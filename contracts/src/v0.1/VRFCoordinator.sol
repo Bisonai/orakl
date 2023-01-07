@@ -123,8 +123,6 @@ contract VRFCoordinator is
         Prepayment = prepayment;
     }
 
-    receive() external payable {}
-
     /**
      * @notice Registers a proving key to an oracle.
      * @param oracle address of the oracle

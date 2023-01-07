@@ -104,8 +104,6 @@ contract Prepayment is
         _setupRole(DEFAULT_ADMIN_ROLE, _msgSender());
     }
 
-    receive() external payable {}
-
     function getTotalBalance() external view returns (uint256) {
         return s_totalBalance;
     }
