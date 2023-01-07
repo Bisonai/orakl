@@ -3,7 +3,6 @@ pragma solidity ^0.8.16;
 
 // https://github.com/smartcontractkit/chainlink/blob/develop/contracts/src/v0.8/VRFCoordinatorV2.sol
 
-import "./interfaces/BlockhashStoreInterface.sol";
 import "./interfaces/CoordinatorBaseInterface.sol";
 import "./interfaces/PrepaymentInterface.sol";
 import "./interfaces/TypeAndVersionInterface.sol";
@@ -84,7 +83,6 @@ contract VRFCoordinator is
     error NoSuchProvingKey(bytes32 keyHash);
     error NoCorrespondingRequest();
     error IncorrectCommitment();
-    /* error BlockhashNotInStore(uint256 blockNum); */
     /* error PaymentTooLarge(); */
     error Reentrant();
     error InsufficientPayment(uint256 have, uint256 want);
@@ -121,12 +119,7 @@ contract VRFCoordinator is
         _;
     }
 
-    constructor(
-        //  address blockhashStore
-        PrepaymentInterface prepayment
-    ) ConfirmedOwner(msg.sender) {
-        // BLOCKHASH_STORE = BlockhashStoreInterface(blockhashStore);
-        // set prepayment
+    constructor(PrepaymentInterface prepayment) ConfirmedOwner(msg.sender) {
         Prepayment = prepayment;
     }
 
@@ -296,6 +289,7 @@ contract VRFCoordinator is
             requestId,
             randomWords
         );
+
         // Call with explicitly the amount of callback gas requested
         // Important to not let them exhaust the gas budget and avoid oracle payment.
         // Do not allow any non-view/non-pure coordinator functions to be called
@@ -329,6 +323,7 @@ contract VRFCoordinator is
         uint96 payment = 10 ** 17;
         Prepayment.chargeFee(rc.accId, payment);
         //s_withdrawableTokens[s_provingKeys[rc.keyHash]] += payment; FIXME  Does need to do this?
+
         // Include payment in the event for tracking costs.
         emit RandomWordsFulfilled(requestId, randomness, payment, success);
         return payment;
@@ -580,13 +575,6 @@ contract VRFCoordinator is
         }
 
         bytes32 blockHash = blockhash(rc.blockNum);
-        // FIXME
-        //if (blockHash == bytes32(0)) {
-        //  blockHash = BLOCKHASH_STORE.getBlockhash(rc.blockNum);
-        //  if (blockHash == bytes32(0)) {
-        //    revert BlockhashNotInStore(rc.blockNum);
-        //  }
-        //}
 
         // The seed actually used by the VRF machinery, mixing in the blockhash
         bytes memory actualSeed = abi.encodePacked(
