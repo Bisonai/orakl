@@ -327,8 +327,12 @@ contract Prepayment is
         delete s_accountConfigs[accId];
         delete s_accounts[accId];
         s_totalBalance -= balance;
-        //fix this
-        payable(address(to)).transfer(uint256(balance));
+
+        (bool sent, ) = to.call{value: balance}("");
+        if (!sent) {
+            revert InsufficientBalance();
+        }
+
         emit AccountCanceled(accId, to, balance);
     }
 }
