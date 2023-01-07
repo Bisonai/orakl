@@ -233,55 +233,81 @@ contract Prepayment is
         cancelAccountHelper(accId, to);
     }
 
-    function withdraw(uint64 accId, uint96 amount) external onlyAccOwner(accId) {
-        if (pendingRequestExists(accId)) {
-            revert PendingRequestExists();
+    /**
+     * @inheritdoc PrepaymentInterface
+     */
+    function deposit(uint64 accId) external payable override {
+        if (msg.sender.balance < msg.value) {
+            revert InsufficientConsumerBalance();
         }
-        if (s_accounts[accId].balance < amount) {
-            revert InsufficientBalance();
-        }
-        require(address(this).balance >= amount, "Prepayment: Insufficient account balance");
-        uint256 oldBalance = s_accounts[accId].balance;
-        s_accounts[accId].balance -= amount;
-        uint256 newBalance = s_accounts[accId].balance;
-        payable(msg.sender).transfer(amount);
-        emit AccountDecreased(accId, oldBalance, newBalance);
-    }
-
-    /// anybody can deposit, they just need to know the accID
-    function deposit(uint64 accId) external payable {
-        uint96 amount = uint96(msg.value);
-        require(msg.sender.balance >= msg.value, "Insufficient account balance");
+        uint96 amount = uint96(msg.value); // FIXME
         uint96 oldBalance = s_accounts[accId].balance;
         s_accounts[accId].balance += amount;
         s_totalBalance += amount;
-        uint96 newBalance = s_accounts[accId].balance;
-        emit AccountFunded(accId, oldBalance, newBalance);
+        emit AccountFunded(accId, oldBalance, oldBalance + amount);
     }
 
-    function chargeFee(uint64 accId, uint96 amount) external onlyOracle {
-        if (s_accounts[accId].balance < amount) {
+    /**
+     * @inheritdoc PrepaymentInterface
+     */
+    function withdraw(uint64 accId, uint96 amount) external override onlyAccOwner(accId) {
+        if (pendingRequestExists(accId)) {
+            revert PendingRequestExists();
+        }
+
+        uint256 oldBalance = s_accounts[accId].balance;
+        if ((oldBalance < amount) || (address(this).balance < amount)) {
             revert InsufficientBalance();
         }
-        uint96 oldBalance = s_accounts[accId].balance;
+
         s_accounts[accId].balance -= amount;
-        //increase request count
+
+        (bool sent, ) = msg.sender.call{value: amount}("");
+        if (!sent) {
+            revert InsufficientBalance();
+        }
+
+        emit AccountDecreased(accId, oldBalance, oldBalance - amount);
+    }
+
+    /**
+     * @inheritdoc PrepaymentInterface
+     */
+    function ownerWithdraw(uint96 amount) external onlyWithdrawer {
+        if (address(this).balance < amount) {
+            revert InsufficientBalance();
+        }
+
+        s_withdrawable -= amount;
+
+        (bool sent, ) = msg.sender.call{value: amount}("");
+        if (!sent) {
+            revert InsufficientBalance();
+        }
+
+        emit FundsWithdrawn(msg.sender, amount);
+    }
+
+    /**
+     * @inheritdoc PrepaymentInterface
+     */
+    function chargeFee(uint64 accId, uint96 amount) external override onlyOracle {
+        uint96 oldBalance = s_accounts[accId].balance;
+        if (oldBalance < amount) {
+            revert InsufficientBalance();
+        }
+
+        s_accounts[accId].balance -= amount;
         s_accounts[accId].reqCount += 1;
-        uint96 newBalance = s_accounts[accId].balance;
         s_withdrawable += amount;
-        emit AccountDecreased(accId, oldBalance, newBalance);
+
+        emit AccountDecreased(accId, oldBalance, oldBalance - amount);
     }
 
-    function ownerWithdraw() external onlyWithdrawer {
-        require(
-            s_withdrawable > 0 && address(this).balance > s_withdrawable,
-            "Insufficient balance"
-        );
-        payable(msg.sender).transfer(s_withdrawable);
-        emit FundsWithdrawn(msg.sender, s_withdrawable);
-    }
-
-    function getNonce(address consumer, uint64 accId) external view returns (uint64) {
+    /**
+     * @inheritdoc PrepaymentInterface
+     */
+    function getNonce(address consumer, uint64 accId) external view override returns (uint64) {
         return s_consumers[consumer][accId];
     }
 
