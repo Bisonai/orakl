@@ -301,7 +301,10 @@ contract Prepayment is
     /**
      * @inheritdoc PrepaymentInterface
      */
-    function increaseNonce(address consumer, uint64 accId) external override returns (uint64) {
+    function increaseNonce(
+        address consumer,
+        uint64 accId
+    ) external override onlyRole(COORDINATOR_ROLE) returns (uint64) {
         uint64 currentNonce = s_consumers[consumer][accId];
         uint64 nonce = currentNonce + 1;
         s_consumers[consumer][accId] = nonce;
