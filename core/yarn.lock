@@ -305,10 +305,10 @@
   resolved "https://registry.yarnpkg.com/@bcoe/v8-coverage/-/v8-coverage-0.2.3.tgz#75a2e8b51cb758a7553d6804a5932d7aace75c39"
   integrity sha512-0hYQ8SB4Db5zvZB4axdMHGwEaQjkZzFjQiN9LVYvIFB2nSUHW9tYpxWriPrWDASIxiaXax83REcLxuSdnGPZtw==
 
-"@bisonai-cic/icn-contracts@0.1.0":
-  version "0.1.0"
-  resolved "https://npm.pkg.github.com/download/@bisonai-cic/icn-contracts/0.1.0/bb8f088fd5421cf954e773d1e8a4b3b8ddf58419#bb8f088fd5421cf954e773d1e8a4b3b8ddf58419"
-  integrity sha512-SJW0Y2Z8wjSyTLSvzzSW1n+KYZwVo0Mj7z873OZRXsYUsODXG4y8MIu6IanT2I586YHT0iH6Fbh9oKxxSQNEAQ==
+"@bisonai-cic/icn-contracts@^0.2.0":
+  version "0.2.0"
+  resolved "https://npm.pkg.github.com/download/@bisonai-cic/icn-contracts/0.2.0/35d73cd992473eb66145a36b7fad241cf2591834#35d73cd992473eb66145a36b7fad241cf2591834"
+  integrity sha512-MJKPZXWF0pZrecvKBcacfJ5yvoOLRpIVAunMZ1dZDAQICIjsS8VZfhv1ArYdn/TF+1atAwshBwOUfeFQGG21Gw==
 
 "@cspotcode/source-map-support@^0.8.0":
   version "0.8.1"
