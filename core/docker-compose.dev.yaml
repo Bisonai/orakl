@@ -17,254 +17,186 @@ services:
 
   listener-vrf:
     image: core_icn
-    extra_hosts:
+    container_name: listener_vrf_dev
+    hostname: listener_vrf_dev
+    entrypoint: ["yarn", "start:listener:vrf"]
+    extra_hosts: &common-extra-hosts
       - "host.docker.internal:host-gateway"
-    environment:
+    environment: &listener-common-env
       - PROVIDER
       - REDIS_HOST
       - REDIS_PORT
       - LISTENERS
-      - NODE_ENV
-    container_name: listener_vrf_dev
-    hostname: listener_vrf_dev
-    entrypoint: ["yarn", "start:listener:vrf"]
-    expose:
-      - 8888
-    healthcheck:
-      test: "curl --fail http://localhost:8888/health-check || exit 1"
+      - NODE_ENV=production
+    expose: &common-expose
+      - "${HEALTH_CHECK_PORT?:missing health check port}"
+    healthcheck: &common-health-check
+      test: "curl --fail http://localhost:${HEALTH_CHECK_PORT}/health-check || exit 1"
       interval: 5s
       timeout: 30s
       retries: 3
       start_period: 10s
-    depends_on:
+    depends_on: &common-depends-on
       - redis
 
   listener-any-api:
     image: core_icn
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
-    environment:
-      - PROVIDER
-      - REDIS_HOST
-      - REDIS_PORT
-      - LISTENERS
-      - NODE_ENV
     container_name: listener_any_api_dev
     hostname: listener_any_api_dev
     entrypoint: ["yarn", "start:listener:any_api"]
-    expose:
-      - 8888
-    healthcheck:
-      test: "curl --fail http://localhost:8888/health-check || exit 1"
-      interval: 5s
-      timeout: 30s
-      retries: 3
-      start_period: 10s
-    depends_on:
-      - redis
-
-  listener-aggregator:
-    image: core_icn
     extra_hosts:
       - "host.docker.internal:host-gateway"
     environment:
-      - PROVIDER
-      - REDIS_HOST
-      - REDIS_PORT
-      - LISTENERS
-      - NODE_ENV
+      <<: *listener-common-env
+    expose:
+      <<: *common-expose
+    healthcheck:
+      <<: *common-health-check
+    depends_on:
+      <<: *common-depends-on
+
+  listener-aggregator:
+    image: core_icn
     container_name: listener_aggregator_dev
     hostname: listener_aggregator_dev
     entrypoint: ["yarn", "start:listener:aggregator"]
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    environment:
+      <<: *listener-common-env
     expose:
-      - 8888
+      <<: *common-expose
     healthcheck:
-      test: "curl --fail http://localhost:8888/health-check || exit 1"
-      interval: 5s
-      timeout: 30s
-      retries: 3
-      start_period: 10s
+      <<: *common-health-check
     depends_on:
-      - redis
+      <<: *common-depends-on
 
   worker-vrf:
     image: core_icn
-    environment:
-      - PROVIDER
-      - REDIS_HOST
-      - REDIS_PORT
-      - LOCAL_AGGREGATOR
-      - VRF_SK
-      - VRF_PK
-      - VRF_PK_X
-      - VRF_PK_Y
-      - NODE_ENV      
     container_name: worker_vrf_dev
     hostname: worker_vrf_dev
     entrypoint: ["yarn", "start:worker:vrf"]
+    environment:
+      - PROVIDER
+      - REDIS_HOST
+      - REDIS_PORT
+      - LOCAL_AGGREGATOR
+      - VRF_SK
+      - VRF_PK
+      - VRF_PK_X
+      - VRF_PK_Y
+      - NODE_ENV=production
     expose:
-      - 8888
+      <<: *common-expose
     healthcheck:
-      test: "curl -f  http://localhost:8888/health-check || exit 1"
-      interval: 5s
-      timeout: 30s
-      retries: 3
-      start_period: 10s
+      <<: *common-health-check
     depends_on:
-      - redis
+      <<: *common-depends-on
 
   worker-any-api:
     image: core_icn
-    environment:
-      - PROVIDER
-      - REDIS_HOST
-      - REDIS_PORT
-      - LOCAL_AGGREGATOR
-      - VRF_SK
-      - VRF_PK
-      - VRF_PK_X
-      - VRF_PK_Y
-      - NODE_ENV      
     container_name: worker_any_api_dev
     hostname: worker_any_api_dev
     entrypoint: ["yarn", "start:worker:any_api"]
+    environment:
+      - PROVIDER
+      - REDIS_HOST
+      - REDIS_PORT
+      - LOCAL_AGGREGATOR
+      - NODE_ENV=production
     expose:
-      - 8888
+      <<: *common-expose
     healthcheck:
-      test: "curl -f  http://localhost:8888/health-check || exit 1"
-      interval: 5s
-      timeout: 30s
-      retries: 3
-      start_period: 10s
+      <<: *common-health-check
     depends_on:
-      - redis
+      <<: *common-depends-on
 
   worker-aggregator:
     image: core_icn
-    environment:
-      - PROVIDER
-      - REDIS_HOST
-      - REDIS_PORT
-      - LOCAL_AGGREGATOR
-      - VRF_SK
-      - VRF_PK
-      - VRF_PK_X
-      - VRF_PK_Y
-      - NODE_ENV      
     container_name: worker_aggregator_dev
     hostname: worker_aggregator_dev
     entrypoint: ["yarn", "start:worker:aggregator"]
-    expose:
-      - 8888
-    healthcheck:
-      test: "curl -f  http://localhost:8888/health-check || exit 1"
-      interval: 5s
-      timeout: 30s
-      retries: 3
-      start_period: 10s
-    depends_on:
-      - redis
-
-  worker-predefined-feed:
-    image: core_icn
     environment:
       - PROVIDER
       - REDIS_HOST
       - REDIS_PORT
       - LOCAL_AGGREGATOR
-      - VRF_SK
-      - VRF_PK
-      - VRF_PK_X
-      - VRF_PK_Y
-      - NODE_ENV      
+      - NODE_ENV=production
+    expose:
+      <<: *common-expose
+    healthcheck:
+      <<: *common-health-check
+    depends_on:
+      <<: *common-depends-on
+
+  worker-predefined-feed:
+    image: core_icn
     container_name: worker_predefined_feed_dev
     hostname: worker_predefined_feed_dev
     entrypoint: ["yarn", "start:worker:predefined_feed"]
+    environment:
+      - PROVIDER
+      - REDIS_HOST
+      - REDIS_PORT
+      - LOCAL_AGGREGATOR
+      - NODE_ENV=production
     expose:
-      - 8888
+      <<: *common-expose
     healthcheck:
-      test: "curl -f  http://localhost:8888/health-check || exit 1"
-      interval: 5s
-      timeout: 30s
-      retries: 3
-      start_period: 10s
+      <<: *common-health-check
     depends_on:
-      - redis
+      <<: *common-depends-on
 
   reporter-vrf:
     image: core_icn
     extra_hosts:
       - "host.docker.internal:host-gateway"
-    environment:
-      - PROVIDER
-      - REDIS_HOST
-      - REDIS_PORT
-      - MNEMONIC
-      - PUBLIC_KEY
-      - PRIVATE_KEY
-      - NODE_ENV       
     container_name: reporter_vrf_dev
     hostname: reporter_vrf_dev
     entrypoint: ["yarn", "start:reporter:vrf"]
+    environment: &reporter-common-env
+      - PROVIDER
+      - REDIS_HOST
+      - REDIS_PORT
+      - MNEMONIC
+      - PUBLIC_KEY
+      - PRIVATE_KEY
+      - NODE_ENV=production
     expose:
-      - 8888
+      <<: *common-expose
     healthcheck:
-      test: "curl -f  http://localhost:8888/health-check || exit 1"
-      interval: 5s
-      timeout: 30s
-      retries: 3
-      start_period: 10s
+      <<: *common-health-check
     depends_on:
-      - redis
+      <<: *common-depends-on
 
   reporter-any-api:
     image: core_icn
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
-    environment:
-      - PROVIDER
-      - REDIS_HOST
-      - REDIS_PORT
-      - MNEMONIC
-      - PUBLIC_KEY
-      - PRIVATE_KEY
-      - NODE_ENV       
     container_name: reporter_any_api_dev
     hostname: reporter_any_api_dev
     entrypoint: ["yarn", "start:reporter:any_api"]
-    expose:
-      - 8888
-    healthcheck:
-      test: "curl -f  http://localhost:8888/health-check || exit 1"
-      interval: 5s
-      timeout: 30s
-      retries: 3
-      start_period: 10s
-    depends_on:
-      - redis
-
-  reporter-aggregator:
-    image: core_icn
     extra_hosts:
       - "host.docker.internal:host-gateway"
     environment:
-      - PROVIDER
-      - REDIS_HOST
-      - REDIS_PORT
-      - MNEMONIC
-      - PUBLIC_KEY
-      - PRIVATE_KEY
-      - NODE_ENV       
+      <<: *reporter-common-env
+    expose:
+      <<: *common-expose
+    healthcheck:
+      <<: *common-health-check
+    depends_on:
+      <<: *common-depends-on
+
+  reporter-aggregator:
+    image: core_icn
     container_name: reporter_aggregator_dev
     hostname: reporter_aggregator_dev
     entrypoint: ["yarn", "start:reporter:aggregator"]
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    environment:
+      <<: *reporter-common-env
     expose:
-      - 8888
+      <<: *common-expose
     healthcheck:
-      test: "curl -f  http://localhost:8888/health-check || exit 1"
-      interval: 5s
-      timeout: 30s
-      retries: 3
-      start_period: 10s
+      <<: *common-health-check
     depends_on:
-      - redis      
+      <<: *common-depends-on
