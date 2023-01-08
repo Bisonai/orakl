@@ -62,14 +62,13 @@ contract Prepayment is
     error MustBeAccountOwner(address owner);
     error PendingRequestExists();
     error MustBeRequestedOwner(address proposedOwner);
-    error MustBeWithdrawer(address notWithdrawer);
 
     event AccountCreated(uint64 indexed accId, address owner);
-    event AccountFunded(uint64 indexed accId, uint256 oldBalance, uint256 newBalance);
-    event AccountDecreased(uint64 indexed accId, uint256 oldBalance, uint256 newBalance);
+    event AccountCanceled(uint64 indexed accId, address to, uint256 amount);
+    event AccountBalanceIncreased(uint64 indexed accId, uint256 oldBalance, uint256 newBalance);
+    event AccountBalanceDecreased(uint64 indexed accId, uint256 oldBalance, uint256 newBalance);
     event AccountConsumerAdded(uint64 indexed accId, address consumer);
     event AccountConsumerRemoved(uint64 indexed accId, address consumer);
-    event AccountCanceled(uint64 indexed accId, address to, uint256 amount);
     event AccountOwnerTransferRequested(uint64 indexed accId, address from, address to);
     event AccountOwnerTransferred(uint64 indexed accId, address from, address to);
     event FundsWithdrawn(address to, uint256 amount);
@@ -231,7 +230,7 @@ contract Prepayment is
         uint96 oldBalance = s_accounts[accId].balance;
         s_accounts[accId].balance += amount;
         s_totalBalance += amount;
-        emit AccountFunded(accId, oldBalance, oldBalance + amount);
+        emit AccountBalanceIncreased(accId, oldBalance, oldBalance + amount);
     }
 
     /**
@@ -254,7 +253,7 @@ contract Prepayment is
             revert InsufficientBalance();
         }
 
-        emit AccountDecreased(accId, oldBalance, oldBalance - amount);
+        emit AccountBalanceDecreased(accId, oldBalance, oldBalance - amount);
     }
 
     /**
@@ -288,7 +287,7 @@ contract Prepayment is
         s_accounts[accId].reqCount += 1;
         s_withdrawable += amount;
 
-        emit AccountDecreased(accId, oldBalance, oldBalance - amount);
+        emit AccountBalanceDecreased(accId, oldBalance, oldBalance - amount);
     }
 
     /**
