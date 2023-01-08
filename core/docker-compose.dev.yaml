@@ -28,12 +28,10 @@ services:
       - REDIS_HOST
       - REDIS_PORT
       - LISTENERS
-      - NODE_ENV="production"
-    expose:
-      - "${HEALTH_CHECK_PORT?:missing health check port}"
+      - NODE_ENV=production
     healthcheck:
       &common-health-check
-      test: "curl --fail http://localhost:${HEALTH_CHECK_PORT}/health-check || exit 1"
+      test: "curl --fail http://localhost:${HEALTH_CHECK_PORT} || exit 1"
       interval: 5s
       timeout: 30s
       retries: 3
@@ -48,15 +46,13 @@ services:
     entrypoint: ["yarn", "start:listener:any_api"]
     extra_hosts:
       - "host.docker.internal:host-gateway"
-    expose:
-      - "${HEALTH_CHECK_PORT?:missing health check port}"
     environment:
       - HEALTH_CHECK_PORT
       - PROVIDER
       - REDIS_HOST
       - REDIS_PORT
       - LISTENERS
-      - NODE_ENV="production"
+      - NODE_ENV=production
     healthcheck:
       <<: *common-health-check
     depends_on:
@@ -69,15 +65,13 @@ services:
     entrypoint: ["yarn", "start:listener:aggregator"]
     extra_hosts:
       - "host.docker.internal:host-gateway"
-    expose:
-      - "${HEALTH_CHECK_PORT?:missing health check port}"
     environment:
       - HEALTH_CHECK_PORT
       - PROVIDER
       - REDIS_HOST
       - REDIS_PORT
       - LISTENERS
-      - NODE_ENV="production"
+      - NODE_ENV=production
     healthcheck:
       <<: *common-health-check
     depends_on:
@@ -88,8 +82,6 @@ services:
     container_name: worker_vrf_dev
     hostname: worker_vrf_dev
     entrypoint: ["yarn", "start:worker:vrf"]
-    expose:
-      - "${HEALTH_CHECK_PORT?:missing health check port}"
     environment:
       - HEALTH_CHECK_PORT
       - PROVIDER
@@ -118,8 +110,6 @@ services:
       - REDIS_PORT
       - LOCAL_AGGREGATOR
       - NODE_ENV=production
-    expose:
-      - "${HEALTH_CHECK_PORT?:missing health check port}"
     healthcheck:
       <<: *common-health-check
     depends_on:
@@ -137,8 +127,6 @@ services:
       - REDIS_PORT
       - LOCAL_AGGREGATOR
       - NODE_ENV=production
-    expose:
-      - "${HEALTH_CHECK_PORT?:missing health check port}"
     healthcheck:
       <<: *common-health-check
     depends_on:
@@ -156,8 +144,6 @@ services:
       - REDIS_PORT
       - LOCAL_AGGREGATOR
       - NODE_ENV=production
-    expose:
-      - "${HEALTH_CHECK_PORT?:missing health check port}"
     healthcheck:
       <<: *common-health-check
     depends_on:
@@ -179,8 +165,6 @@ services:
       - PUBLIC_KEY
       - PRIVATE_KEY
       - NODE_ENV="production"
-    expose:
-      - "${HEALTH_CHECK_PORT?:missing health check port}"
     healthcheck:
       <<: *common-health-check
     depends_on:
@@ -202,8 +186,6 @@ services:
       - PUBLIC_KEY
       - PRIVATE_KEY
       - NODE_ENV="production"
-    expose:
-      - "${HEALTH_CHECK_PORT?:missing health check port}"
     healthcheck:
       <<: *common-health-check
     depends_on:
@@ -225,8 +207,6 @@ services:
       - PUBLIC_KEY
       - PRIVATE_KEY
       - NODE_ENV="production"
-    expose:
-      - "${HEALTH_CHECK_PORT?:missing health check port}"
     healthcheck:
       <<: *common-health-check
     depends_on:
