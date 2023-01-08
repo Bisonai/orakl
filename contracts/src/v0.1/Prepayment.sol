@@ -92,7 +92,7 @@ contract Prepayment is
     /**
      * @inheritdoc PrepaymentInterface
      */
-    function getTotalBalance() external view returns (uint256) {
+    function getTotalBalance() external view returns (uint96) {
         return s_totalBalance;
     }
 
