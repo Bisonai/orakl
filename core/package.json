@@ -34,7 +34,7 @@
     "eslint": "DEBUG=eslint:cli-engine npx eslint 'src/**/*.ts' 'src/*.ts' 'test/*.ts'"
   },
   "dependencies": {
-    "@bisonai-cic/icn-contracts": "0.1.0",
+    "@bisonai-cic/icn-contracts": "^0.1.0",
     "bn.js": "^5.2.1",
     "bullmq": "^3.2.2",
     "dotenv": "^16.0.3",
