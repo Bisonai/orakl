@@ -103,7 +103,6 @@ contract Prepayment is
     )
         external
         view
-        override
         returns (uint96 balance, uint64 reqCount, address owner, address[] memory consumers)
     {
         if (s_accountConfigs[accId].owner == address(0)) {
@@ -120,7 +119,7 @@ contract Prepayment is
     /**
      * @inheritdoc PrepaymentInterface
      */
-    function createAccount() external override returns (uint64) {
+    function createAccount() external returns (uint64) {
         s_currentAccId++;
         uint64 currentAccId = s_currentAccId;
         address[] memory consumers = new address[](0);
@@ -141,7 +140,7 @@ contract Prepayment is
     function requestAccountOwnerTransfer(
         uint64 accId,
         address newOwner
-    ) external override onlyAccOwner(accId) {
+    ) external onlyAccOwner(accId) {
         // Proposing to address(0) would never be claimable so don't need to check.
         if (s_accountConfigs[accId].requestedOwner != newOwner) {
             s_accountConfigs[accId].requestedOwner = newOwner;
@@ -152,7 +151,7 @@ contract Prepayment is
     /**
      * @inheritdoc PrepaymentInterface
      */
-    function acceptAccountOwnerTransfer(uint64 accId) external override {
+    function acceptAccountOwnerTransfer(uint64 accId) external {
         if (s_accountConfigs[accId].owner == address(0)) {
             revert InvalidAccount();
         }
@@ -168,7 +167,7 @@ contract Prepayment is
     /**
      * @inheritdoc PrepaymentInterface
      */
-    function removeConsumer(uint64 accId, address consumer) external override onlyAccOwner(accId) {
+    function removeConsumer(uint64 accId, address consumer) external onlyAccOwner(accId) {
         if (s_consumers[consumer][accId] == 0) {
             revert InvalidConsumer(accId, consumer);
         }
@@ -192,7 +191,7 @@ contract Prepayment is
     /**
      * @inheritdoc PrepaymentInterface
      */
-    function addConsumer(uint64 accId, address consumer) external override onlyAccOwner(accId) {
+    function addConsumer(uint64 accId, address consumer) external onlyAccOwner(accId) {
         // Already maxed, cannot add any more consumers.
         if (s_accountConfigs[accId].consumers.length >= MAX_CONSUMERS) {
             revert TooManyConsumers();
@@ -212,7 +211,7 @@ contract Prepayment is
     /**
      * @inheritdoc PrepaymentInterface
      */
-    function cancelAccount(uint64 accId, address to) external override onlyAccOwner(accId) {
+    function cancelAccount(uint64 accId, address to) external onlyAccOwner(accId) {
         if (pendingRequestExists(accId)) {
             revert PendingRequestExists();
         }
@@ -222,7 +221,7 @@ contract Prepayment is
     /**
      * @inheritdoc PrepaymentInterface
      */
-    function deposit(uint64 accId) external payable override {
+    function deposit(uint64 accId) external payable {
         if (msg.sender.balance < msg.value) {
             revert InsufficientConsumerBalance();
         }
@@ -236,7 +235,7 @@ contract Prepayment is
     /**
      * @inheritdoc PrepaymentInterface
      */
-    function withdraw(uint64 accId, uint96 amount) external override onlyAccOwner(accId) {
+    function withdraw(uint64 accId, uint96 amount) external onlyAccOwner(accId) {
         if (pendingRequestExists(accId)) {
             revert PendingRequestExists();
         }
@@ -259,7 +258,7 @@ contract Prepayment is
     /**
      * @inheritdoc PrepaymentInterface
      */
-    function ownerWithdraw(uint96 amount) external override onlyRole(WITHDRAWER_ROLE) {
+    function ownerWithdraw(uint96 amount) external onlyRole(WITHDRAWER_ROLE) {
         if (address(this).balance < amount) {
             revert InsufficientBalance();
         }
@@ -277,7 +276,7 @@ contract Prepayment is
     /**
      * @inheritdoc PrepaymentInterface
      */
-    function chargeFee(uint64 accId, uint96 amount) external override onlyRole(COORDINATOR_ROLE) {
+    function chargeFee(uint64 accId, uint96 amount) external onlyRole(COORDINATOR_ROLE) {
         uint96 oldBalance = s_accounts[accId].balance;
         if (oldBalance < amount) {
             revert InsufficientBalance();
@@ -293,7 +292,7 @@ contract Prepayment is
     /**
      * @inheritdoc PrepaymentInterface
      */
-    function getNonce(address consumer, uint64 accId) external view override returns (uint64) {
+    function getNonce(address consumer, uint64 accId) external view returns (uint64) {
         return s_consumers[consumer][accId];
     }
 
@@ -303,7 +302,7 @@ contract Prepayment is
     function increaseNonce(
         address consumer,
         uint64 accId
-    ) external override onlyRole(COORDINATOR_ROLE) returns (uint64) {
+    ) external onlyRole(COORDINATOR_ROLE) returns (uint64) {
         uint64 currentNonce = s_consumers[consumer][accId];
         uint64 nonce = currentNonce + 1;
         s_consumers[consumer][accId] = nonce;
@@ -313,7 +312,7 @@ contract Prepayment is
     /**
      * @inheritdoc PrepaymentInterface
      */
-    function getAccountOwner(uint64 accId) external view override returns (address owner) {
+    function getAccountOwner(uint64 accId) external view returns (address owner) {
         return s_accountConfigs[accId].owner;
     }
 
@@ -330,7 +329,7 @@ contract Prepayment is
      * @dev Looping is bounded to MAX_CONSUMERS*(number of keyhashes).
      * @dev Used to disable subscription canceling while outstanding request are present.
      */
-    function pendingRequestExists(uint64 accId) public view override returns (bool) {
+    function pendingRequestExists(uint64 accId) public view returns (bool) {
         AccountConfig memory accConfig = s_accountConfigs[accId];
         for (uint256 i = 0; i < accConfig.consumers.length; i++) {
             for (uint256 j = 0; j < s_coordinators.length; j++) {
@@ -351,14 +350,14 @@ contract Prepayment is
     /**
      * @inheritdoc PrepaymentInterface
      */
-    function addCoordinator(address coordinator) public override onlyOwner {
+    function addCoordinator(address coordinator) public onlyOwner {
         s_coordinators.push(CoordinatorBaseInterface(coordinator));
     }
 
     /**
      * @inheritdoc PrepaymentInterface
      */
-    function removeCoordinator(address coordinator) public override onlyOwner {
+    function removeCoordinator(address coordinator) public onlyOwner {
         for (uint256 i = 0; i < s_coordinators.length; i++) {
             if (s_coordinators[i] == CoordinatorBaseInterface(coordinator)) {
                 CoordinatorBaseInterface last = s_coordinators[s_coordinators.length - 1];

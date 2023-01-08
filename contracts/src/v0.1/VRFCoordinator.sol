@@ -245,7 +245,7 @@ contract VRFCoordinator is
     /**
      * @inheritdoc VRFCoordinatorInterface
      */
-    function getRequestConfig() external view override returns (uint16, uint32, bytes32[] memory) {
+    function getRequestConfig() external view returns (uint16, uint32, bytes32[] memory) {
         return (s_config.minimumRequestConfirmations, s_config.maxGasLimit, s_provingKeyHashes);
     }
 
@@ -356,7 +356,7 @@ contract VRFCoordinator is
         uint64 accId,
         address consumer,
         uint64 nonce
-    ) public view override returns (bool) {
+    ) public view returns (bool) {
         for (uint256 j = 0; j < s_provingKeyHashes.length; j++) {
             (uint256 reqId, ) = computeRequestId(s_provingKeyHashes[j], consumer, accId, nonce);
             if (s_requestCommitments[reqId] != 0) {
@@ -383,7 +383,7 @@ contract VRFCoordinator is
         uint16 requestConfirmations,
         uint32 callbackGasLimit,
         uint32 numWords
-    ) public override nonReentrant returns (uint256) {
+    ) public nonReentrant returns (uint256) {
         // Input validation using the account storage.
         address owner = Prepayment.getAccountOwner(accId);
         if (owner == address(0)) {
@@ -452,7 +452,7 @@ contract VRFCoordinator is
         uint16 requestConfirmations,
         uint32 callbackGasLimit,
         uint32 numWords
-    ) external payable override returns (uint256) {
+    ) external payable returns (uint256) {
         // TODO setup minimum required payment outside
         uint256 minimumPayment = 0;
         if (msg.value < minimumPayment) {
