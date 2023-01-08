@@ -17,7 +17,7 @@ contract Prepayment is
 {
     uint16 public constant MAX_CONSUMERS = 100;
     bytes32 public constant WITHDRAWER_ROLE = keccak256("WITHDRAWER_ROLE");
-    bytes32 public constant ORACLE_ROLE = keccak256("ORACLE_ROLE");
+    bytes32 public constant COORDINATOR_ROLE = keccak256("COORDINATOR_ROLE");
 
     uint96 private s_totalBalance;
 
@@ -63,7 +63,6 @@ contract Prepayment is
     error PendingRequestExists();
     error MustBeRequestedOwner(address proposedOwner);
     error MustBeWithdrawer(address notWithdrawer);
-    error MustBeOracle(address notOracle);
 
     event AccountCreated(uint64 indexed accId, address owner);
     event AccountFunded(uint64 indexed accId, uint256 oldBalance, uint256 newBalance);
@@ -82,20 +81,6 @@ contract Prepayment is
         }
         if (msg.sender != owner) {
             revert MustBeAccountOwner(owner);
-        }
-        _;
-    }
-
-    modifier onlyWithdrawer() {
-        if (!hasRole(WITHDRAWER_ROLE, msg.sender)) {
-            revert MustBeWithdrawer(msg.sender);
-        }
-        _;
-    }
-
-    modifier onlyOracle() {
-        if (!hasRole(ORACLE_ROLE, msg.sender)) {
-            revert MustBeOracle(msg.sender);
         }
         _;
     }
@@ -275,7 +260,7 @@ contract Prepayment is
     /**
      * @inheritdoc PrepaymentInterface
      */
-    function ownerWithdraw(uint96 amount) external override onlyWithdrawer {
+    function ownerWithdraw(uint96 amount) external override onlyRole(WITHDRAWER_ROLE) {
         if (address(this).balance < amount) {
             revert InsufficientBalance();
         }
@@ -293,7 +278,7 @@ contract Prepayment is
     /**
      * @inheritdoc PrepaymentInterface
      */
-    function chargeFee(uint64 accId, uint96 amount) external override onlyOracle {
+    function chargeFee(uint64 accId, uint96 amount) external override onlyRole(COORDINATOR_ROLE) {
         uint96 oldBalance = s_accounts[accId].balance;
         if (oldBalance < amount) {
             revert InsufficientBalance();

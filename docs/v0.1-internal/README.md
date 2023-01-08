@@ -90,6 +90,13 @@ Public proving key will be additionally stored in `s_provingKeyHashes` array.
 
 1. Call `deregisterProvingKey` with public proving key
 
+#### Roles
+
+https://docs.openzeppelin.com/contracts/4.x/access-control
+
+* `WITHDRAWER_ROLE`
+* `COORDINATOR_ROLE`
+
 ## Events
 
 There are important events we need to collect and analize to provide good user experience.
