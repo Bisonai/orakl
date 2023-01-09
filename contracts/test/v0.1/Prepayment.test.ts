@@ -42,11 +42,11 @@ function parseEther(amount) {
   return ethers.utils.parseUnits(amount.toString(), 18)
 }
 
-async function createAccount(prepayment) {
-  const txReceipt = await (await prepayment.createAccount()).wait()
+async function createAccount(prepaymentContract) {
+  const txReceipt = await (await prepaymentContract.createAccount()).wait()
   expect(txReceipt.events.length).to.be.equal(1)
 
-  const txEvent = prepayment.interface.parseLog(txReceipt.events[0])
+  const txEvent = prepaymentContract.interface.parseLog(txReceipt.events[0])
   const { accId } = txEvent.args
   expect(accId).to.be.equal(1)
 
@@ -55,100 +55,101 @@ async function createAccount(prepayment) {
 
 describe('Prepayment contract', function () {
   async function deployFixture() {
-    const prepaymentContract = await ethers.getContractFactory('Prepayment')
-    const [owner, addr1, addr2] = await ethers.getSigners()
-    const prepayment = await prepaymentContract.deploy()
-    await prepayment.deployed()
+    const { deployer, consumer } = await hre.getNamedAccounts()
 
-    return { prepayment, owner, addr1, addr2 }
+    let prepaymentContract = await ethers.getContractFactory('Prepayment', { signer: deployer })
+    prepaymentContract = await prepaymentContract.deploy()
+    await prepaymentContract.deployed()
+
+    return { prepaymentContract, deployer }
   }
 
   async function deployMockFixture() {
     const { deployer, consumer } = await hre.getNamedAccounts()
 
-    const prepaymentContract = await ethers.getContractFactory('Prepayment', {
+    let prepaymentContract = await ethers.getContractFactory('Prepayment', {
       signer: deployer
     })
-    const prepayment = await prepaymentContract.deploy()
+    prepaymentContract = await prepaymentContract.deploy()
 
-    const coordinatorContract = await ethers.getContractFactory('VRFCoordinator', {
+    let coordinatorContract = await ethers.getContractFactory('VRFCoordinator', {
       signer: deployer
     })
-    const coordinator = await coordinatorContract.deploy(prepayment.address)
+    coordinatorContract = await coordinatorContract.deploy(prepaymentContract.address)
 
     let consumerContract = await ethers.getContractFactory('VRFConsumerMock', {
       signer: consumer
     })
-    consumerContract = await consumerContract.deploy(coordinator.address)
+    consumerContract = await consumerContract.deploy(coordinatorContract.address)
 
-    const accId = await createAccount(prepayment)
+    const accId = await createAccount(prepaymentContract)
 
-    return { accId, deployer, consumer, prepayment, coordinator, consumerContract }
+    return { accId, deployer, consumer, prepaymentContract, coordinatorContract, consumerContract }
   }
 
   it('Should create Account', async function () {
-    const { prepayment, owner, addr1, addr2 } = await loadFixture(deployFixture)
-    await createAccount(prepayment)
+    const { prepaymentContract } = await loadFixture(deployFixture)
+    await createAccount(prepaymentContract)
   })
 
   it('Should add consumer', async function () {
-    const { prepayment, owner, addr1, addr2 } = await loadFixture(deployFixture)
-    const accId = await createAccount(prepayment)
+    const { prepaymentContract, deployer } = await loadFixture(deployFixture)
+    const accId = await createAccount(prepaymentContract)
 
-    const ownerOfAccId = await prepayment.getAccountOwner(accId)
-    expect(ownerOfAccId).to.be.equal(owner.address)
+    const ownerOfAccId = await prepaymentContract.getAccountOwner(accId)
+    expect(ownerOfAccId).to.be.equal(deployer)
 
-    await prepayment.addConsumer(accId, '0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9')
-    await prepayment.addConsumer(accId, '0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512')
+    await prepaymentContract.addConsumer(accId, '0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9')
+    await prepaymentContract.addConsumer(accId, '0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512')
 
-    const transactionTemp = await prepayment.getAccount(accId)
+    const transactionTemp = await prepaymentContract.getAccount(accId)
     expect(transactionTemp.consumers.length).to.equal(2)
   })
 
   it('Should remove consumer', async function () {
-    const { prepayment, owner, addr1, addr2 } = await loadFixture(deployFixture)
-    const accId = await createAccount(prepayment)
+    const { prepaymentContract, deployer } = await loadFixture(deployFixture)
+    const accId = await createAccount(prepaymentContract)
 
     const consumer0 = '0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9'
     const consumer1 = '0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512'
 
-    await prepayment.addConsumer(accId, consumer0)
-    await prepayment.addConsumer(accId, consumer1)
+    await prepaymentContract.addConsumer(accId, consumer0)
+    await prepaymentContract.addConsumer(accId, consumer1)
 
-    const consumerBefore = (await prepayment.getAccount(accId)).consumers.length
-    await prepayment.removeConsumer(accId, consumer1)
-    const consumerAfter = (await prepayment.getAccount(accId)).consumers.length
+    const consumerBefore = (await prepaymentContract.getAccount(accId)).consumers.length
+    await prepaymentContract.removeConsumer(accId, consumer1)
+    const consumerAfter = (await prepaymentContract.getAccount(accId)).consumers.length
 
     expect(consumerBefore).to.be.equal(consumerAfter + 1)
   })
 
   it('Should deposit', async function () {
-    const { prepayment, owner, addr1, addr2 } = await loadFixture(deployFixture)
-    const accId = await createAccount(prepayment)
+    const { prepaymentContract } = await loadFixture(deployFixture)
+    const accId = await createAccount(prepaymentContract)
 
-    const balanceBefore = await prepayment.getAccount(accId)
+    const balanceBefore = await prepaymentContract.getAccount(accId)
     const value = 1_000_000_000_000_000
-    await prepayment.deposit(accId, { value })
-    const balanceAfter = await prepayment.getAccount(accId)
+    await prepaymentContract.deposit(accId, { value })
+    const balanceAfter = await prepaymentContract.getAccount(accId)
     expect(balanceBefore.balance + value).to.be.equal(balanceAfter.balance)
   })
 
   it('Should withdraw', async function () {
-    const { prepayment, owner, addr1, addr2 } = await loadFixture(deployFixture)
-    const accId = await createAccount(prepayment)
+    const { prepaymentContract, deployer } = await loadFixture(deployFixture)
+    const accId = await createAccount(prepaymentContract)
 
     const depositValue = 100_000
-    const transactionDeposit = await prepayment.deposit(accId, { value: depositValue })
+    const transactionDeposit = await prepaymentContract.deposit(accId, { value: depositValue })
 
-    const balanceOwnerBefore = await ethers.provider.getBalance(owner.address)
-    const balanceAccBefore = (await prepayment.getAccount(accId)).balance
+    const balanceOwnerBefore = await ethers.provider.getBalance(deployer)
+    const balanceAccBefore = (await prepaymentContract.getAccount(accId)).balance
     expect(balanceAccBefore).to.be.equal(depositValue)
 
     const withdrawValue = 50_000
-    const txReceipt = await (await prepayment.withdraw(accId, withdrawValue)).wait()
+    const txReceipt = await (await prepaymentContract.withdraw(accId, withdrawValue)).wait()
 
-    const balanceOwnerAfter = await ethers.provider.getBalance(owner.address)
-    const balanceAccAfter = (await prepayment.getAccount(accId)).balance
+    const balanceOwnerAfter = await ethers.provider.getBalance(deployer)
+    const balanceAccAfter = (await prepaymentContract.getAccount(accId)).balance
     expect(balanceAccAfter).to.be.equal(depositValue - withdrawValue)
 
     expect(
@@ -159,11 +160,11 @@ describe('Prepayment contract', function () {
   })
 
   it('Should cancel Account', async function () {
-    const { prepayment, deployer } = await loadFixture(deployMockFixture)
-    const txReceipt = await (await prepayment.cancelAccount(1, deployer)).wait()
+    const { prepaymentContract, deployer } = await loadFixture(deployMockFixture)
+    const txReceipt = await (await prepaymentContract.cancelAccount(1, deployer)).wait()
     expect(txReceipt.events.length).to.be.equal(1)
 
-    const txEvent = prepayment.interface.parseLog(txReceipt.events[0])
+    const txEvent = prepaymentContract.interface.parseLog(txReceipt.events[0])
     const { accId, to, balance } = txEvent.args
     expect(accId).to.be.equal(1)
     expect(to).to.be.equal(deployer)
@@ -171,7 +172,7 @@ describe('Prepayment contract', function () {
   })
 
   it('Should not cancel Account with pending tx', async function () {
-    const { accId, prepayment, deployer, consumer, coordinator, consumerContract } =
+    const { accId, prepaymentContract, deployer, consumer, coordinatorContract, consumerContract } =
       await loadFixture(deployMockFixture)
     const {
       oracle,
@@ -183,17 +184,17 @@ describe('Prepayment contract', function () {
       feeConfig
     } = vrfConfig()
 
-    await coordinator.registerProvingKey(oracle, publicProvingKey)
+    await coordinatorContract.registerProvingKey(oracle, publicProvingKey)
 
-    await coordinator.setConfig(
+    await coordinatorContract.setConfig(
       minimumRequestConfirmations,
       maxGasLimit,
       gasAfterPaymentCalculation,
       Object.values(feeConfig)
     )
 
-    await prepayment.addConsumer(accId, consumerContract.address)
-    await prepayment.addCoordinator(coordinator.address)
+    await prepaymentContract.addConsumer(accId, consumerContract.address)
+    await prepaymentContract.addCoordinator(coordinatorContract.address)
 
     await consumerContract.requestRandomWords(
       keyHash,
@@ -203,16 +204,15 @@ describe('Prepayment contract', function () {
       1
     )
 
-    await expect(prepayment.cancelAccount(accId, consumer)).to.be.revertedWithCustomError(
-      prepayment,
+    await expect(prepaymentContract.cancelAccount(accId, consumer)).to.be.revertedWithCustomError(
+      prepaymentContract,
       'PendingRequestExists'
     )
   })
 
   it('Should remove Coordinator', async function () {
-    const { accId, prepayment, deployer, coordinator, consumer } = await loadFixture(
-      deployMockFixture
-    )
+    const { accId, prepaymentContract, deployer, coordinatorContract, consumer } =
+      await loadFixture(deployMockFixture)
     const {
       oracle,
       publicProvingKey,
@@ -223,18 +223,20 @@ describe('Prepayment contract', function () {
       feeConfig
     } = vrfConfig()
 
-    await coordinator.registerProvingKey(oracle, publicProvingKey)
+    await coordinatorContract.registerProvingKey(oracle, publicProvingKey)
 
-    await coordinator.setConfig(
+    await coordinatorContract.setConfig(
       minimumRequestConfirmations,
       maxGasLimit,
       gasAfterPaymentCalculation,
       Object.values(feeConfig)
     )
 
-    await prepayment.addConsumer(accId, consumer)
-    await prepayment.addCoordinator(coordinator.address)
-    const txReceipt = await (await prepayment.removeCoordinator(coordinator.address)).wait()
+    await prepaymentContract.addConsumer(accId, consumer)
+    await prepaymentContract.addCoordinator(coordinatorContract.address)
+    const txReceipt = await (
+      await prepaymentContract.removeCoordinator(coordinatorContract.address)
+    ).wait()
     expect(txReceipt.status).to.equal(1)
   })
 })
