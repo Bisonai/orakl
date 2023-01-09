@@ -1,12 +1,14 @@
 import * as http from 'http'
+import { NODE_ENV, HEALTH_CHECK_PORT } from './load-parameters'
 
-export function healthChack() {
-  process.env.NODE_ENV !== 'prod' ||
+export function healthCheck() {
+  if (NODE_ENV == 'production') {
     http
       .createServer(function (_, res) {
         res.writeHead(200, { 'Content-Type': 'text/plain' })
         res.write('ok')
         res.end()
       })
-      .listen(8888)
+      .listen(HEALTH_CHECK_PORT)
+  }
 }

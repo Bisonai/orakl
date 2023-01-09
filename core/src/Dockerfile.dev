@@ -22,6 +22,8 @@ COPY config config
 
 COPY adapter adapter
 
+COPY aggregator aggregator
+
 COPY src src
 
 RUN yarn install

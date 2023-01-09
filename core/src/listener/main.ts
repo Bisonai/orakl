@@ -11,7 +11,7 @@ import {
   WORKER_AGGREGATOR_QUEUE_NAME
 } from '../settings'
 import { LISTENER_CONFIG_FILE } from '../settings'
-import { healthChack } from '../health-checker'
+import { healthCheck } from '../health-checker'
 
 const LISTENERS = {
   AGGREGATOR: {
@@ -49,7 +49,7 @@ async function main() {
   const config = listenersConfig[listener]
   buildListener(queueName, config)
 
-  healthChack()
+  healthCheck()
 }
 
 function loadArgs() {
