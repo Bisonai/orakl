@@ -2,6 +2,7 @@ import { parseArgs } from 'node:util'
 import { aggregatorReporter } from './aggregator'
 import { vrfReporter } from './vrf'
 import { anyApiReporter } from './any-api'
+import { healthChack } from '../health-checker'
 
 const REPORTERS = {
   AGGREGATOR: aggregatorReporter,
@@ -12,6 +13,7 @@ const REPORTERS = {
 async function main() {
   const reporter = loadArgs()
   REPORTERS[reporter]()
+  healthChack()
 }
 
 function loadArgs() {

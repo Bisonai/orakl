@@ -104,6 +104,7 @@ export interface IRandomWordsRequested {
   callbackGasLimit: number
   numWords: number
   sender: string
+  subId: string
 }
 
 export interface INewRound {
@@ -237,4 +238,8 @@ export interface IListenerConfig {
   address: string
   eventName: string
   factoryName: string
+}
+
+export interface HealthStatus {
+  status: string
 }
