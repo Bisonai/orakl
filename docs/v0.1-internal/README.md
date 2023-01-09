@@ -113,6 +113,8 @@ On-chain part of Verifiable Random Function is implemented in following contract
 
 Every request includes `bytes32 keyhash` which uniquely identify an off-chain oracle that is requested for fulfilling randomness request.
 
+`VRFCoordinator` contract is utilizing OpenZeppelin's [Ownership and `Ownable`](https://docs.openzeppelin.com/contracts/4.x/access-control#ownership-and-ownable).
+
 #### Limitations of `VRFCoordinator`
 
 * `MAX_REQUEST_CONFIRMATIONS` (might be removed in near future)
@@ -132,22 +134,28 @@ constructor(PrepaymentInterface prepayment)
 Configuration of `VRFCoordinator` is performed through `setConfig` function.
 `setConfig` allows to update following parameters:
 
-* `minimumRequestConfirmations` (currently not utilized!)
-* `maxGasLimit` (total allowed gas limit for processing response)
+* `minimumRequestConfirmations` (Currently not utilized!)
+* `maxGasLimit` (Total allowed gas limit for processing response)
 * `gasAfterPaymentCalculation` (Global gas limit for operations after `calculatePaymentAmount` inside of `fulfillRandomWords`. Operations could be repriced, therefore this value is configurable.)
-* `feeConfig` (fee structure with 5 different price tiers and request count boundaries)
+* `feeConfig` (Fee structure with 5 different price tiers and request count boundaries)
 
 #### Adding a new oracle to serve VRF requests
 
-1. Receive public proving key (can be generated with `yarn keygen`)
-2. Call `registerProvingKey` with address of off-chain oracle and its public proving key
+In order to add new VRF off-chain oracle, one must generate VRF keys first.
+VRF keys can be generated using `yarn keygen` command.
+Then, call `registerProvingKey(address oracle, uint256[2] calldata publicProvingKey)` to assign oracle and its proving keys to `VRFCoordinator`.
+The registration can be performed only by owner of `VRFCordinator`.
+After successfull transaction, consumers can request VRF from newly added oracle through `VRFCoordinator`.
 
 Public proving key (key) and oracle's address (value) will be stored in mapping `s_provingKeys`.
 Public proving key will be additionally stored in `s_provingKeyHashes` array.
 
 #### Removing oracle to serve VRF requests
 
-1. Call `deregisterProvingKey` with public proving key
+Registered VRF oracle can be removed anytime through `deregisterProvingKey(uint256[2] calldata publicProvingKey)` function.
+The deregistration can be performed only by owner of `VRFCordinator`.
+After successfull transaction, consumers will not be able to ask for random words from removed VRF oracle.
+
 
 #### Roles
 
