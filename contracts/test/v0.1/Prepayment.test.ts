@@ -1,6 +1,7 @@
 import { expect } from 'chai'
 import { loadFixture } from '@nomicfoundation/hardhat-network-helpers'
 import { BigNumber } from 'ethers'
+import hre from 'hardhat'
 
 function vrfConfig() {
   // FIXME
@@ -63,20 +64,26 @@ describe('Prepayment contract', function () {
   }
 
   async function deployMockFixture() {
-    const [owner, account0, account1, account2] = await ethers.getSigners()
+    const { deployer, consumer } = await hre.getNamedAccounts()
 
-    const prepaymentContract = await ethers.getContractFactory('Prepayment')
+    const prepaymentContract = await ethers.getContractFactory('Prepayment', {
+      signer: deployer
+    })
     const prepayment = await prepaymentContract.deploy()
 
-    const coordinatorContract = await ethers.getContractFactory('VRFCoordinator')
+    const coordinatorContract = await ethers.getContractFactory('VRFCoordinator', {
+      signer: deployer
+    })
     const coordinator = await coordinatorContract.deploy(prepayment.address)
 
-    const consumerContract = await ethers.getContractFactory('VRFConsumerMock')
-    const consumer = await consumerContract.deploy(coordinator.address)
+    let consumerContract = await ethers.getContractFactory('VRFConsumerMock', {
+      signer: consumer
+    })
+    consumerContract = await consumerContract.deploy(coordinator.address)
 
     const accId = await createAccount(prepayment)
 
-    return { accId, prepayment, owner, coordinator, consumer }
+    return { accId, deployer, consumer, prepayment, coordinator, consumerContract }
   }
 
   it('Should create Account', async function () {
@@ -152,19 +159,20 @@ describe('Prepayment contract', function () {
   })
 
   it('Should cancel Account', async function () {
-    const { prepayment, owner } = await loadFixture(deployMockFixture)
-    const txReceipt = await (await prepayment.cancelAccount(1, owner.address)).wait()
+    const { prepayment, deployer } = await loadFixture(deployMockFixture)
+    const txReceipt = await (await prepayment.cancelAccount(1, deployer)).wait()
     expect(txReceipt.events.length).to.be.equal(1)
 
     const txEvent = prepayment.interface.parseLog(txReceipt.events[0])
     const { accId, to, balance } = txEvent.args
     expect(accId).to.be.equal(1)
-    expect(to).to.be.equal(owner.address)
+    expect(to).to.be.equal(deployer)
     expect(balance).to.be.equal(undefined)
   })
 
   it('Should not cancel Account with pending tx', async function () {
-    const { accId, prepayment, owner, coordinator, consumer } = await loadFixture(deployMockFixture)
+    const { accId, prepayment, deployer, consumer, coordinator, consumerContract } =
+      await loadFixture(deployMockFixture)
     const {
       oracle,
       publicProvingKey,
@@ -181,23 +189,30 @@ describe('Prepayment contract', function () {
       minimumRequestConfirmations,
       maxGasLimit,
       gasAfterPaymentCalculation,
-      keyHash,
-      feeConfig
+      Object.values(feeConfig)
     )
 
-    await prepayment.addConsumer(accId, consumer.address)
+    await prepayment.addConsumer(accId, consumerContract.address)
     await prepayment.addCoordinator(coordinator.address)
 
-    await consumer.requestRandomWords(keyHash, accId, minimumRequestConfirmations, maxGasLimit, 1)
+    await consumerContract.requestRandomWords(
+      keyHash,
+      accId,
+      minimumRequestConfirmations,
+      maxGasLimit,
+      1
+    )
 
-    await expect(prepayment.cancelAccount(accId, owner.address)).to.be.revertedWithCustomError(
+    await expect(prepayment.cancelAccount(accId, consumer)).to.be.revertedWithCustomError(
       prepayment,
       'PendingRequestExists'
     )
   })
 
   it('Should remove Coordinator', async function () {
-    const { accId, prepayment, owner, coordinator, consumer } = await loadFixture(deployMockFixture)
+    const { accId, prepayment, deployer, coordinator, consumer } = await loadFixture(
+      deployMockFixture
+    )
     const {
       oracle,
       publicProvingKey,
@@ -214,11 +229,10 @@ describe('Prepayment contract', function () {
       minimumRequestConfirmations,
       maxGasLimit,
       gasAfterPaymentCalculation,
-      keyHash,
-      feeConfig
+      Object.values(feeConfig)
     )
 
-    await prepayment.addConsumer(accId, consumer.address)
+    await prepayment.addConsumer(accId, consumer)
     await prepayment.addCoordinator(coordinator.address)
     const txReceipt = await (await prepayment.removeCoordinator(coordinator.address)).wait()
     expect(txReceipt.status).to.equal(1)
