@@ -80,11 +80,11 @@ The signer that sends the deployment transaction will receive [`DEFAULT_ADMIN_RO
 After the deployment, one has to connect it with coordinator contract that implements `CoordinatorBaseInterface` interface (`contracts/src/v0.1/interfaces/CoordinatorBaseInterface.sol`).
 It can be accomplished by calling `addCoordinator(address coordinator)` function.
 
-The order of operation has to be as follows.
+The order of operation has to be as follows:
 
 1. Deploy `Prepayment`
 2. Deploy `Coordinator`
-3. Connect coordinator with prepayment (`addCoordinator`)
+3. Connect `Coordinator` with `Prepayment` (`prepayment.addCoordinator(coordinator)`)
 
 ## Aggregator
 
@@ -111,11 +111,13 @@ On-chain part of Verifiable Random Function is implemented in following contract
 
 `VRFCoordinator` accept requests for random words from consumers and subsequently it is used to respond with generated VRF proof from off-chain oracle.
 
+Every request includes `bytes32 keyhash` which uniquely identify an off-chain oracle that is requested for fulfilling randomness request.
+
 #### Limitations of `VRFCoordinator`
 
 * `MAX_REQUEST_CONFIRMATIONS` (might be removed in near future)
-* `MAX_NUM_WORDS` = 500
-* `GAS_FOR_CALL_EXACT_CHECK` = 5,000
+* `MAX_NUM_WORDS = 500`
+* `GAS_FOR_CALL_EXACT_CHECK = 5,000`
 
 #### How to deploy and setup `VRFcoordinator`
 
@@ -125,9 +127,15 @@ Before being able to deploy `VRFCoordinator` one must have already deployed cont
 constructor(PrepaymentInterface prepayment)
 ```
 
+`VRFCoordinator` has to be then connected to `Prepayment` or any other smart contract that implements (`PrepaymentInterface`) interface.
 
+Configuration of `VRFCoordinator` is performed through `setConfig` function.
+`setConfig` allows to update following parameters:
 
-<!-- `VRFCoordinator` serves as a hub for multiple off-chain nodes. -->
+* `minimumRequestConfirmations` (currently not utilized!)
+* `maxGasLimit` (total allowed gas limit for processing response)
+* `gasAfterPaymentCalculation` (Global gas limit for operations after `calculatePaymentAmount` inside of `fulfillRandomWords`. Operations could be repriced, therefore this value is configurable.)
+* `feeConfig` (fee structure with 5 different price tiers and request count boundaries)
 
 #### Adding a new oracle to serve VRF requests
 
