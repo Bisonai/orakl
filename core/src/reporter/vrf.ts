@@ -22,7 +22,7 @@ function vrfJob(wallet) {
     try {
       const rc: RequestCommitment = [
         inData.blockNum,
-        inData.subId,
+        inData.accId,
         inData.callbackGasLimit,
         inData.numWords,
         inData.sender

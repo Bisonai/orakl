@@ -1,33 +1,22 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.16;
 
-import "./interfaces/BlockhashStoreInterface.sol";
-import "./interfaces/VRFCoordinatorInterface.sol";
-import "./interfaces/TypeAndVersionInterface.sol";
+// https://github.com/smartcontractkit/chainlink/blob/develop/contracts/src/v0.8/VRFCoordinatorV2.sol
+
+import "./interfaces/CoordinatorBaseInterface.sol";
 import "./interfaces/PrepaymentInterface.sol";
+import "./interfaces/TypeAndVersionInterface.sol";
+import "./interfaces/VRFCoordinatorInterface.sol";
 import "./libraries/VRF.sol";
 import "./ConfirmedOwner.sol";
 import "./VRFConsumerBase.sol";
-import "./interfaces/CoordinatorBaseInterface.sol";
 
 contract VRFCoordinator is
+    CoordinatorBaseInterface,
     ConfirmedOwner,
     TypeAndVersionInterface,
-    VRFCoordinatorInterface,
-    CoordinatorBaseInterface
+    VRFCoordinatorInterface
 {
-    error InvalidConsumer(uint64 accId, address consumer);
-    error InvalidAccount();
-    error MustBeAccOwner(address owner);
-    error PendingRequestExists();
-    error BalanceInvariantViolated(uint256 internalBalance, uint256 externalBalance); // Should never happen
-    event FundsRecovered(address to, uint256 amount);
-
-    // s_totalBalance tracks the total KLAY sent to/from
-    // this contract through onTokenTransfer, cancelAccount and oracleWithdraw.
-    // A discrepancy with this contract's link balance indicates someone
-    // sent tokens using transfer and so we may need to use recoverFunds.
-
     // Set this maximum to 200 to give us a 56 block window to fulfill
     // the request before requiring the block hash feeder.
     uint16 public constant MAX_REQUEST_CONFIRMATIONS = 200;
@@ -36,17 +25,19 @@ contract VRFCoordinator is
     // and some arithmetic operations.
     uint256 private constant GAS_FOR_CALL_EXACT_CHECK = 5_000;
 
-    error InvalidRequestConfirmations(uint16 have, uint16 min, uint16 max);
-    error GasLimitTooBig(uint32 have, uint32 want);
-    error NumWordsTooBig(uint32 have, uint32 want);
-    error ProvingKeyAlreadyRegistered(bytes32 keyHash);
-    error NoSuchProvingKey(bytes32 keyHash);
-    error InsufficientGasForConsumer(uint256 have, uint256 want);
-    error NoCorrespondingRequest();
-    error IncorrectCommitment();
-    error BlockhashNotInStore(uint256 blockNum);
-    error PaymentTooLarge();
-    error Reentrant();
+    bytes32[] private s_provingKeyHashes;
+
+    /* keyHash */ /* oracle */
+    mapping(bytes32 => address) private s_provingKeys;
+
+    /* oracle */ /* KLAY balance */
+    /* mapping(address => uint96) private s_withdrawableTokens; */
+
+    /* requestID */ /* commitment */
+    mapping(uint256 => bytes32) private s_requestCommitments;
+
+    // RequestCommitment holds information sent from off-chain oracle
+    // describing details of request.
     struct RequestCommitment {
         uint64 blockNum;
         uint64 accId;
@@ -55,16 +46,46 @@ contract VRFCoordinator is
         address sender;
     }
 
-    /* keyHash */ /* oracle */
-    mapping(bytes32 => address) private s_provingKeys;
+    struct Config {
+        uint16 minimumRequestConfirmations;
+        uint32 maxGasLimit;
+        // Reentrancy protection.
+        bool reentrancyLock;
+        // Gas to cover oracle payment after we calculate the payment.
+        // We make it configurable in case those operations are repriced.
+        uint32 gasAfterPaymentCalculation;
+    }
+    Config private s_config;
 
-    bytes32[] private s_provingKeyHashes;
+    struct FeeConfig {
+        // Flat fee charged per fulfillment in millionths of KLAY
+        // So fee range is [0, 2^32/10^6].
+        uint32 fulfillmentFlatFeeKlayPPMTier1;
+        uint32 fulfillmentFlatFeeKlayPPMTier2;
+        uint32 fulfillmentFlatFeeKlayPPMTier3;
+        uint32 fulfillmentFlatFeeKlayPPMTier4;
+        uint32 fulfillmentFlatFeeKlayPPMTier5;
+        uint24 reqsForTier2;
+        uint24 reqsForTier3;
+        uint24 reqsForTier4;
+        uint24 reqsForTier5;
+    }
+    FeeConfig private s_feeConfig;
 
-    /* oracle */ /* KLAY balance */
-    mapping(address => uint96) private s_withdrawableTokens;
+    PrepaymentInterface Prepayment;
 
-    /* requestID */ /* commitment */
-    mapping(uint256 => bytes32) private s_requestCommitments;
+    error InvalidConsumer(uint64 accId, address consumer);
+    error InvalidAccount();
+    error InvalidRequestConfirmations(uint16 have, uint16 min, uint16 max);
+    error GasLimitTooBig(uint32 have, uint32 want);
+    error NumWordsTooBig(uint32 have, uint32 want);
+    error ProvingKeyAlreadyRegistered(bytes32 keyHash);
+    error NoSuchProvingKey(bytes32 keyHash);
+    error NoCorrespondingRequest();
+    error IncorrectCommitment();
+    error PaymentTooLarge();
+    error Reentrant();
+    error InsufficientPayment(uint256 have, uint256 want);
 
     event ProvingKeyRegistered(bytes32 keyHash, address indexed oracle);
     event ProvingKeyDeregistered(bytes32 keyHash, address indexed oracle);
@@ -84,32 +105,6 @@ contract VRFCoordinator is
         uint96 payment,
         bool success
     );
-
-    struct Config {
-        uint16 minimumRequestConfirmations;
-        uint32 maxGasLimit;
-        // Reentrancy protection.
-        bool reentrancyLock;
-        // Gas to cover oracle payment after we calculate the payment.
-        // We make it configurable in case those operations are repriced.
-        uint32 gasAfterPaymentCalculation;
-        bytes32 keyHash;
-    }
-    Config private s_config;
-    FeeConfig private s_feeConfig;
-    struct FeeConfig {
-        // Flat fee charged per fulfillment in millionths of link
-        // So fee range is [0, 2^32/10^6].
-        uint32 fulfillmentFlatFeeLinkPPMTier1;
-        uint32 fulfillmentFlatFeeLinkPPMTier2;
-        uint32 fulfillmentFlatFeeLinkPPMTier3;
-        uint32 fulfillmentFlatFeeLinkPPMTier4;
-        uint32 fulfillmentFlatFeeLinkPPMTier5;
-        uint24 reqsForTier2;
-        uint24 reqsForTier3;
-        uint24 reqsForTier4;
-        uint24 reqsForTier5;
-    }
     event ConfigSet(
         uint16 minimumRequestConfirmations,
         uint32 maxGasLimit,
@@ -117,21 +112,21 @@ contract VRFCoordinator is
         FeeConfig feeConfig
     );
 
-    PrepaymentInterface Prepayment;
+    modifier nonReentrant() {
+        if (s_config.reentrancyLock) {
+            revert Reentrant();
+        }
+        _;
+    }
 
-    constructor(
-        //  address blockhashStore
-        PrepaymentInterface prepayment
-    ) ConfirmedOwner(msg.sender) {
-        // BLOCKHASH_STORE = BlockhashStoreInterface(blockhashStore);
-        // set prepayment
+    constructor(PrepaymentInterface prepayment) ConfirmedOwner(msg.sender) {
         Prepayment = prepayment;
     }
 
     /**
      * @notice Registers a proving key to an oracle.
      * @param oracle address of the oracle
-     * @param publicProvingKey key that oracle can use to submit vrf fulfillments
+     * @param publicProvingKey key that oracle can use to submit VRF fulfillments
      */
     function registerProvingKey(
         address oracle,
@@ -148,7 +143,7 @@ contract VRFCoordinator is
 
     /**
      * @notice Deregisters a proving key to an oracle.
-     * @param publicProvingKey key that oracle can use to submit vrf fulfillments
+     * @param publicProvingKey key that oracle can use to submit VRF fulfillments
      */
     function deregisterProvingKey(uint256[2] calldata publicProvingKey) external onlyOwner {
         bytes32 kh = hashOfKey(publicProvingKey);
@@ -163,21 +158,14 @@ contract VRFCoordinator is
                 // Copy last element and overwrite kh to be deleted with it
                 s_provingKeyHashes[i] = last;
                 s_provingKeyHashes.pop();
+                break;
             }
         }
         emit ProvingKeyDeregistered(kh, oracle);
     }
 
     /**
-     * @notice Returns the proving key hash key associated with this public key
-     * @param publicKey the key to return the hash of
-     */
-    function hashOfKey(uint256[2] memory publicKey) public pure returns (bytes32) {
-        return keccak256(abi.encode(publicKey));
-    }
-
-    /**
-     * @notice Sets the configuration of the vrf coordinator
+     * @notice Sets the configuration of the VRF coordinator
      * @param minimumRequestConfirmations global min for request confirmations
      * @param maxGasLimit global max for request gas limit
      * @param gasAfterPaymentCalculation gas used in doing accounting after completing the gas measurement
@@ -187,7 +175,6 @@ contract VRFCoordinator is
         uint16 minimumRequestConfirmations,
         uint32 maxGasLimit,
         uint32 gasAfterPaymentCalculation,
-        bytes32 keyHash,
         FeeConfig memory feeConfig
     ) external onlyOwner {
         if (minimumRequestConfirmations > MAX_REQUEST_CONFIRMATIONS) {
@@ -201,8 +188,7 @@ contract VRFCoordinator is
             minimumRequestConfirmations: minimumRequestConfirmations,
             maxGasLimit: maxGasLimit,
             gasAfterPaymentCalculation: gasAfterPaymentCalculation,
-            reentrancyLock: false,
-            keyHash: keyHash
+            reentrancyLock: false
         });
         s_feeConfig = feeConfig;
         emit ConfigSet(
@@ -233,11 +219,11 @@ contract VRFCoordinator is
         external
         view
         returns (
-            uint32 fulfillmentFlatFeeLinkPPMTier1,
-            uint32 fulfillmentFlatFeeLinkPPMTier2,
-            uint32 fulfillmentFlatFeeLinkPPMTier3,
-            uint32 fulfillmentFlatFeeLinkPPMTier4,
-            uint32 fulfillmentFlatFeeLinkPPMTier5,
+            uint32 fulfillmentFlatFeeKlayPPMTier1,
+            uint32 fulfillmentFlatFeeKlayPPMTier2,
+            uint32 fulfillmentFlatFeeKlayPPMTier3,
+            uint32 fulfillmentFlatFeeKlayPPMTier4,
+            uint32 fulfillmentFlatFeeKlayPPMTier5,
             uint24 reqsForTier2,
             uint24 reqsForTier3,
             uint24 reqsForTier4,
@@ -245,11 +231,11 @@ contract VRFCoordinator is
         )
     {
         return (
-            s_feeConfig.fulfillmentFlatFeeLinkPPMTier1,
-            s_feeConfig.fulfillmentFlatFeeLinkPPMTier2,
-            s_feeConfig.fulfillmentFlatFeeLinkPPMTier3,
-            s_feeConfig.fulfillmentFlatFeeLinkPPMTier4,
-            s_feeConfig.fulfillmentFlatFeeLinkPPMTier5,
+            s_feeConfig.fulfillmentFlatFeeKlayPPMTier1,
+            s_feeConfig.fulfillmentFlatFeeKlayPPMTier2,
+            s_feeConfig.fulfillmentFlatFeeKlayPPMTier3,
+            s_feeConfig.fulfillmentFlatFeeKlayPPMTier4,
+            s_feeConfig.fulfillmentFlatFeeKlayPPMTier5,
             s_feeConfig.reqsForTier2,
             s_feeConfig.reqsForTier3,
             s_feeConfig.reqsForTier4,
@@ -258,14 +244,135 @@ contract VRFCoordinator is
     }
 
     /**
-     * @notice Recover link sent with transfer instead of transferAndCall.
-     * @param to address to send link to
-     */
-    /**
      * @inheritdoc VRFCoordinatorInterface
      */
-    function getRequestConfig() external view override returns (uint16, uint32, bytes32[] memory) {
+    function getRequestConfig() external view returns (uint16, uint32, bytes32[] memory) {
         return (s_config.minimumRequestConfirmations, s_config.maxGasLimit, s_provingKeyHashes);
+    }
+
+    /**
+     * @notice Get request commitment
+     * @param requestId id of request
+     * @dev used to determine if a request is fulfilled or not
+     */
+    function getCommitment(uint256 requestId) external view returns (bytes32) {
+        return s_requestCommitments[requestId];
+    }
+
+    /*
+     * @notice Fulfill a randomness request
+     * @param proof contains the proof and randomness
+     * @param rc request commitment pre-image, committed to at request time
+     * @return payment amount billed to the account
+     * @dev simulated offchain to determine if sufficient balance is present to fulfill the request
+     */
+    function fulfillRandomWords(
+        VRF.Proof memory proof,
+        RequestCommitment memory rc
+    ) external nonReentrant returns (uint96) {
+        uint256 startGas = gasleft();
+        (, /* bytes32 keyHash */ uint256 requestId, uint256 randomness) = getRandomnessFromProof(
+            proof,
+            rc
+        );
+
+        uint256[] memory randomWords = new uint256[](rc.numWords);
+        for (uint256 i = 0; i < rc.numWords; i++) {
+            randomWords[i] = uint256(keccak256(abi.encode(randomness, i)));
+        }
+
+        delete s_requestCommitments[requestId];
+        VRFConsumerBase v;
+        bytes memory resp = abi.encodeWithSelector(
+            v.rawFulfillRandomWords.selector,
+            requestId,
+            randomWords
+        );
+
+        // Call with explicitly the amount of callback gas requested
+        // Important to not let them exhaust the gas budget and avoid oracle payment.
+        // Do not allow any non-view/non-pure coordinator functions to be called
+        // during the consumers callback code via reentrancyLock.
+        // Note that callWithExactGas will revert if we do not have sufficient gas
+        // to give the callee their requested amount.
+        s_config.reentrancyLock = true;
+        bool success = callWithExactGas(rc.callbackGasLimit, rc.sender, resp);
+        s_config.reentrancyLock = false;
+
+        // We want to charge users exactly for how much gas they use in their callback.
+        // The gasAfterPaymentCalculation is meant to cover these additional operations where we
+        // decrement the account balance and increment the oracles withdrawable balance.
+        // We also add the flat KLAY fee to the payment amount.
+        // Its specified in millionths of KLAY, if s_config.fulfillmentFlatFeeKlayPPM = 1
+        // 1 KLAY / 1e6 = 1e18 pebs / 1e6 = 1e12 pebs.
+        (, uint64 reqCount, , ) = Prepayment.getAccount(rc.accId);
+        uint96 payment = calculatePaymentAmount(
+            startGas,
+            s_config.gasAfterPaymentCalculation,
+            getFeeTier(reqCount),
+            tx.gasprice
+        );
+
+        Prepayment.chargeFee(rc.accId, payment);
+
+        // FIXME
+        //s_withdrawableTokens[s_provingKeys[rc.keyHash]] += payment;
+
+        // Include payment in the event for tracking costs.
+        emit RandomWordsFulfilled(requestId, randomness, payment, success);
+        return payment;
+    }
+
+    /**
+     * @notice The type and version of this contract
+     * @return Type and version string
+     */
+    function typeAndVersion() external pure virtual override returns (string memory) {
+        return "VRFCoordinator v0.1";
+    }
+
+    /*
+     * @notice Compute fee based on the request count
+     * @param reqCount number of requests
+     * @return feePPM fee in KLAY PPM
+     */
+    function getFeeTier(uint64 reqCount) public view returns (uint32) {
+        FeeConfig memory fc = s_feeConfig;
+        if (0 <= reqCount && reqCount <= fc.reqsForTier2) {
+            return fc.fulfillmentFlatFeeKlayPPMTier1;
+        }
+        if (fc.reqsForTier2 < reqCount && reqCount <= fc.reqsForTier3) {
+            return fc.fulfillmentFlatFeeKlayPPMTier2;
+        }
+        if (fc.reqsForTier3 < reqCount && reqCount <= fc.reqsForTier4) {
+            return fc.fulfillmentFlatFeeKlayPPMTier3;
+        }
+        if (fc.reqsForTier4 < reqCount && reqCount <= fc.reqsForTier5) {
+            return fc.fulfillmentFlatFeeKlayPPMTier4;
+        }
+        return fc.fulfillmentFlatFeeKlayPPMTier5;
+    }
+
+    function pendingRequestExists(
+        uint64 accId,
+        address consumer,
+        uint64 nonce
+    ) public view returns (bool) {
+        for (uint256 j = 0; j < s_provingKeyHashes.length; j++) {
+            (uint256 reqId, ) = computeRequestId(s_provingKeyHashes[j], consumer, accId, nonce);
+            if (s_requestCommitments[reqId] != 0) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * @notice Returns the proving key hash key associated with this public key
+     * @param publicKey the key to return the hash of
+     */
+    function hashOfKey(uint256[2] memory publicKey) public pure returns (bytes32) {
+        return keccak256(abi.encode(publicKey));
     }
 
     /**
@@ -277,9 +384,8 @@ contract VRFCoordinator is
         uint16 requestConfirmations,
         uint32 callbackGasLimit,
         uint32 numWords
-    ) public override nonReentrant returns (uint256) {
+    ) public nonReentrant returns (uint256) {
         // Input validation using the account storage.
-        // call to prepayment contract
         address owner = Prepayment.getAccountOwner(accId);
         if (owner == address(0)) {
             revert InvalidAccount();
@@ -306,8 +412,8 @@ contract VRFCoordinator is
         }
 
         // No lower bound on the requested gas limit. A user could request 0
-        // and they would simply be billed for the proof verification and wouldn't be
-        // able to do anything with the random value.
+        // and they would simply be billed for the proof verification and wouldn't
+        // be able to do anything with the random value.
         if (callbackGasLimit > s_config.maxGasLimit) {
             revert GasLimitTooBig(callbackGasLimit, s_config.maxGasLimit);
         }
@@ -319,13 +425,8 @@ contract VRFCoordinator is
         // Note we do not check whether the keyHash is valid to save gas.
         // The consequence for users is that they can send requests
         // for invalid keyHashes which will simply not be fulfilled.
-        //uint64 nonce = currentNonce + 1;
-        (uint256 requestId, uint256 preSeed) = computeRequestId(
-            keyHash,
-            msg.sender,
-            accId,
-            currentNonce + 1
-        );
+        uint64 nonce = Prepayment.increaseNonce(msg.sender, accId);
+        (uint256 requestId, uint256 preSeed) = computeRequestId(keyHash, msg.sender, accId, nonce);
 
         s_requestCommitments[requestId] = keccak256(
             abi.encode(requestId, block.number, accId, callbackGasLimit, numWords, msg.sender)
@@ -341,19 +442,53 @@ contract VRFCoordinator is
             msg.sender
         );
 
-        //increase nonce for consumer
-        Prepayment.increaseNonce(msg.sender, accId);
-
         return requestId;
     }
 
     /**
-     * @notice Get request commitment
-     * @param requestId id of request
-     * @dev used to determine if a request is fulfilled or not
+     * @inheritdoc VRFCoordinatorInterface
      */
-    function getCommitment(uint256 requestId) external view returns (bytes32) {
-        return s_requestCommitments[requestId];
+    function requestRandomWordsPayment(
+        bytes32 keyHash,
+        uint16 requestConfirmations,
+        uint32 callbackGasLimit,
+        uint32 numWords
+    ) external payable returns (uint256) {
+        // TODO setup minimum required payment outside
+        uint256 minimumPayment = 0;
+        if (msg.value < minimumPayment) {
+            revert InsufficientPayment(msg.value, minimumPayment);
+        }
+
+        uint64 accId = Prepayment.createAccount();
+        Prepayment.addConsumer(accId, msg.sender);
+        uint256 requestId = requestRandomWords(
+            keyHash,
+            accId,
+            requestConfirmations,
+            callbackGasLimit,
+            numWords
+        );
+        Prepayment.deposit{value: msg.value}(accId);
+        return requestId;
+    }
+
+    // Get the amount of gas used for fulfillment
+    function calculatePaymentAmount(
+        uint256 startGas,
+        uint256 gasAfterPaymentCalculation,
+        uint32 fulfillmentFlatFeeKlayPPM,
+        uint256 pebPerUnitGas
+    ) internal view returns (uint96) {
+        // (1e18 peb/KLAY) (peb/gas * gas) = peb
+        uint256 paymentNoFee = (1e18 *
+            pebPerUnitGas *
+            (gasAfterPaymentCalculation + startGas - gasleft()));
+        uint256 fee = 1e12 * uint256(fulfillmentFlatFeeKlayPPM);
+        if (paymentNoFee > (1e27 - fee)) {
+            revert PaymentTooLarge(); // Payment + fee cannot be more than all of the KLAY in existence.
+        }
+        return uint96(paymentNoFee + fee);
     }
 
     function computeRequestId(
@@ -436,176 +571,11 @@ contract VRFCoordinator is
         }
 
         bytes32 blockHash = blockhash(rc.blockNum);
-        // FIXME
-        //if (blockHash == bytes32(0)) {
-        //  blockHash = BLOCKHASH_STORE.getBlockhash(rc.blockNum);
-        //  if (blockHash == bytes32(0)) {
-        //    revert BlockhashNotInStore(rc.blockNum);
-        //  }
-        //}
 
         // The seed actually used by the VRF machinery, mixing in the blockhash
         bytes memory actualSeed = abi.encodePacked(
             keccak256(abi.encodePacked(proof.seed, blockHash))
         );
         randomness = VRF.randomValueFromVRFProof(proof, actualSeed); // Reverts on failure
-    }
-
-    /*
-     * @notice Compute fee based on the request count
-     * @param reqCount number of requests
-     * @return feePPM fee in LINK PPM
-     */
-    function getFeeTier(uint64 reqCount) public view returns (uint32) {
-        FeeConfig memory fc = s_feeConfig;
-        if (0 <= reqCount && reqCount <= fc.reqsForTier2) {
-            return fc.fulfillmentFlatFeeLinkPPMTier1;
-        }
-        if (fc.reqsForTier2 < reqCount && reqCount <= fc.reqsForTier3) {
-            return fc.fulfillmentFlatFeeLinkPPMTier2;
-        }
-        if (fc.reqsForTier3 < reqCount && reqCount <= fc.reqsForTier4) {
-            return fc.fulfillmentFlatFeeLinkPPMTier3;
-        }
-        if (fc.reqsForTier4 < reqCount && reqCount <= fc.reqsForTier5) {
-            return fc.fulfillmentFlatFeeLinkPPMTier4;
-        }
-        return fc.fulfillmentFlatFeeLinkPPMTier5;
-    }
-
-    /*
-     * @notice Fulfill a randomness request
-     * @param proof contains the proof and randomness
-     * @param rc request commitment pre-image, committed to at request time
-     * @return payment amount billed to the account
-     * @dev simulated offchain to determine if sufficient balance is present to fulfill the request
-     */
-    function fulfillRandomWords(
-        VRF.Proof memory proof,
-        RequestCommitment memory rc
-    ) external nonReentrant returns (uint96) {
-        uint256 startGas = gasleft();
-        (, /* bytes32 keyHash */ uint256 requestId, uint256 randomness) = getRandomnessFromProof(
-            proof,
-            rc
-        );
-
-        uint256[] memory randomWords = new uint256[](rc.numWords);
-        for (uint256 i = 0; i < rc.numWords; i++) {
-            randomWords[i] = uint256(keccak256(abi.encode(randomness, i)));
-        }
-
-        delete s_requestCommitments[requestId];
-        VRFConsumerBase v;
-        bytes memory resp = abi.encodeWithSelector(
-            v.rawFulfillRandomWords.selector,
-            requestId,
-            randomWords
-        );
-        // Call with explicitly the amount of callback gas requested
-        // Important to not let them exhaust the gas budget and avoid oracle payment.
-        // Do not allow any non-view/non-pure coordinator functions to be called
-        // during the consumers callback code via reentrancyLock.
-        // Note that callWithExactGas will revert if we do not have sufficient gas
-        // to give the callee their requested amount.
-        s_config.reentrancyLock = true;
-        bool success = callWithExactGas(rc.callbackGasLimit, rc.sender, resp);
-        s_config.reentrancyLock = false;
-        // We want to charge users exactly for how much gas they use in their callback.
-        // The gasAfterPaymentCalculation is meant to cover these additional operations where we
-        // decrement the account balance and increment the oracles withdrawable balance.
-        // We also add the flat link fee to the payment amount.
-        // Its specified in millionths of link, if s_config.fulfillmentFlatFeeLinkPPM = 1
-        // 1 link / 1e6 = 1e18 juels / 1e6 = 1e12 juels.
-        // FIXME fix payment
-        //uint96 payment = 0;
-        (uint96 balance, uint64 reqCount, address owner, address[] memory consumers) = Prepayment
-            .getAccount(rc.accId);
-
-        // uint96 payment = calculatePaymentAmount(
-        //   startGas,
-        //   s_config.gasAfterPaymentCalculation,
-        //   getFeeTier(reqCount),
-        //   tx.gasprice
-        // );
-        // if (balance < payment) {
-        //   revert InsufficientBalance();
-        // }
-        uint96 payment = 10 ** 17;
-        Prepayment.chargeFee(rc.accId, payment);
-        //s_withdrawableTokens[s_provingKeys[rc.keyHash]] += payment; FIXME  Does need to do this?
-        // Include payment in the event for tracking costs.
-        emit RandomWordsFulfilled(requestId, randomness, payment, success);
-        return payment;
-    }
-
-    //// Get the amount of gas used for fulfillment
-    // function calculatePaymentAmount(
-    //   uint256 startGas,
-    //   uint256 gasAfterPaymentCalculation,
-    //   uint32 fulfillmentFlatFeeLinkPPM,
-    //   uint256 weiPerUnitGas
-    // ) internal view returns (uint96) {
-    //   // (1e18 juels/link) (wei/gas * gas) = juels
-    //   uint256 paymentNoFee = (1e18 * weiPerUnitGas * (gasAfterPaymentCalculation + startGas - gasleft()));
-    //   uint256 fee = 1e12 * uint256(fulfillmentFlatFeeLinkPPM);
-    //   if (paymentNoFee > (1e27 - fee)) {
-    //     revert PaymentTooLarge(); // Payment + fee cannot be more than all of the link in existence.
-    //   }
-    //   return uint96(paymentNoFee + fee);
-    // }
-
-    function pendingRequestExists(
-        uint64 accId,
-        address consumer,
-        uint64 nonce
-    ) public view override returns (bool) {
-        for (uint256 j = 0; j < s_provingKeyHashes.length; j++) {
-            (uint256 reqId, ) = computeRequestId(s_provingKeyHashes[j], consumer, accId, nonce);
-            if (s_requestCommitments[reqId] != 0) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    receive() external payable {}
-
-    /**
-     * @inheritdoc VRFCoordinatorInterface
-     */
-    function requestRandomWordsPayment(
-        uint16 requestConfirmations,
-        uint32 callbackGasLimit,
-        uint32 numWords
-    ) external payable override returns (uint256) {
-        require(msg.value > 0, "Insufficient balance");
-        // create account
-        uint64 accId = Prepayment.createAccount();
-        Prepayment.addConsumer(accId, msg.sender);
-        uint256 requestId = requestRandomWords(
-            s_config.keyHash,
-            accId,
-            requestConfirmations,
-            callbackGasLimit,
-            numWords
-        );
-        Prepayment.deposit{value: msg.value}(accId);
-        return requestId;
-    }
-
-    modifier nonReentrant() {
-        if (s_config.reentrancyLock) {
-            revert Reentrant();
-        }
-        _;
-    }
-
-    /**
-     * @notice The type and version of this contract
-     * @return Type and version string
-     */
-    function typeAndVersion() external pure virtual override returns (string memory) {
-        return "VRFCoordinator 0.1";
     }
 }

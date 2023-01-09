@@ -1,6 +1,5 @@
 import { expect } from 'chai'
-import pkg from 'hardhat'
-const { ethers } = pkg
+import { ethers } from 'hardhat'
 
 let requestResponseCoordinator
 let userContract

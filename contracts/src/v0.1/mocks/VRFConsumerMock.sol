@@ -20,16 +20,22 @@ contract VRFConsumerMock is VRFConsumerBase {
       _;
   }
 
-  constructor(address coordinator)
-      VRFConsumerBase(coordinator)
-      // ConfirmedOwner(msg.sender) TODO
-  {
+  constructor(address coordinator) VRFConsumerBase(coordinator) {
       s_owner = msg.sender;
       COORDINATOR = VRFCoordinatorInterface(coordinator);
   }
 
-  function requestRandomWords( bytes32 keyHash, uint64 accId,uint16 requestConfirmations,uint32 callbackGasLimit,uint32 numWords ) public returns(uint256 requestId) {
-
+  function requestRandomWords(
+      bytes32 keyHash,
+      uint64 accId,
+      uint16 requestConfirmations,
+      uint32 callbackGasLimit,
+      uint32 numWords
+  )
+      public
+      onlyOwner
+      returns (uint256 requestId)
+  {
     requestId = COORDINATOR.requestRandomWords(
       keyHash,
       accId,
@@ -39,23 +45,34 @@ contract VRFConsumerMock is VRFConsumerBase {
     );
   }
 
-  function fulfillRandomWords(uint256 /* requestId */, uint256[] memory randomWords) internal override {
-    // requestId should be checked if it matches the expected request
-    s_randomResult = (randomWords[0] % 50) + 1;
-  }
-
   function requestRandomWordsDirect(
-    ) public payable returns (uint256 requestId) {
-
-    uint16 requestConfirmations = 3;
-    uint32 callbackGasLimit = 1_000_000;
-    uint32 numWords = 1;
-
-
+      bytes32 keyHash,
+      uint16 requestConfirmations,
+      uint32 callbackGasLimit,
+      uint32 numWords
+  )
+      public
+      payable
+      onlyOwner
+      returns (uint256 requestId)
+  {
     requestId = COORDINATOR.requestRandomWordsPayment{value:msg.value}(
+      keyHash,
       requestConfirmations,
       callbackGasLimit,
       numWords
     );
+  }
+
+  function fulfillRandomWords(
+      uint256 /* requestId */,
+      uint256[] memory randomWords
+  )
+      internal
+      override
+  {
+    // requestId should be checked if it matches the expected request
+    // Generate random value between 1 and 50.
+    s_randomResult = (randomWords[0] % 50) + 1;
   }
 }

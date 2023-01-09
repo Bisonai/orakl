@@ -140,7 +140,7 @@ export interface IVrfListenerWorker {
   blockHash: string
   requestId: string
   seed: string
-  subId: string
+  accId: string
   minimumRequestConfirmations: number
   callbackGasLimit: number
   numWords: number
@@ -193,7 +193,7 @@ export interface IVrfWorkerReporter {
   blockNum: string
   requestId: string
   seed: string
-  subId: string
+  accId: string
   minimumRequestConfirmations: number
   callbackGasLimit: number
   numWords: number
