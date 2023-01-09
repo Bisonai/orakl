@@ -45,6 +45,31 @@
 | 19 | public   | 0x8626f6940E2eb28930eFb4CeF49B2d1F2C9C1199                         |             |
 | 19 | private  | 0xdf57089febbacf7ba0bc227dafbffa9fc08a93fdc68e1e42411a14efcf23656e |             |
 
+## Payment methods
+
+Currently, we support two payment methods:
+
+* `Prepayment` (`contracts/src/v0.1/Prepayment.sol`)
+* Direct method
+
+### `Prepayment`
+`Prepayment` smart contract allows anybody (later referred as account owner) to create an account (`createAccount()`) that can be used to pay for Orakl services (VRF, Request-Response, ...).
+
+Before `Prepayment` can be used with specific service, it has to be connected with coordinator of that service (`addCoordinator(address coordinator)`).
+Later, we can remove coordinator from prepayment (`removeCoordinator(address coordinator)`).
+Connection and removal of coordinator from `Prepayment` has to be executed by account with `DEFAULT_ADMIN_ROLE`.
+
+KLAY tokens can be deposited (`deposit(uint64 accId)`) by anyone with knowledge of account ID (`uint64 accId`).
+Account owner can withdraw (`withdraw(uint64 accId, uint96 amount)`) any amount of  KLAY tokens from its own account (`uint64 accId`).
+In order to proceed with withdrawal, there must be no ongoing unfulfilled request (`pendingRequestExists(uint64 accId)`) through the account of interest.
+Account can be permanently removed (`cancelAccount(uint64 accId, address to)`) and remaining KLAY tokens are returned to predefined address (`address to`).
+Before an account can be used by any service connected to `Prepayment`, account owner has to attach consumer (`addConsumer(uint64 accId, address consumer)`) to account.
+Later, account owner can remove consumer (`removeConsumer(uint64 accId, address consumer)`) when consumer is not used in any of provided services.
+
+To change the owner of account, account owner can request (`function requestAccountOwnerTransfer(uint64 accId, address newOwner)`) to transfer the ownership.
+Acount ownership is not changed until proposed owner accepts the account ownership (`acceptAccountOwnerTransfer(uint64 accId)`).
+
+
 ## Aggregator
 
 ### Deploying new aggregator
@@ -68,13 +93,15 @@ On-chain part of Verifiable Random Function is implemented in following contract
 * `VRFCoordinator` (`contracts/src/v0.1/VRFCoordinator.sol`)
 * `VRFConsumerBase` (`contracts/src/v0.1/VRFConsumerBase.sol`)
 
-`VRFCoordinator` is accepting requests for random words from consumers and also is used as fulfilling medium through which off-chain oracle responds with VRF proof.
+`VRFCoordinator` is accepting requests for random words from consumers and is also used to fulfill randomness as a part of response from off-chain oracle.
 
-Limitations of `VRFCoordinator`
+#### Limitations of `VRFCoordinator`
 
 * `MAX_REQUEST_CONFIRMATIONS` (might be removed in near future)
 * `MAX_NUM_WORDS` (currently 500)
 * `GAS_FOR_CALL_EXACT_CHECK` (currently 5,000)
+
+#### How to deploy `VRFcoordinator`
 
 `VRFCoordinator` serves as a hub for multiple off-chain nodes.
 
