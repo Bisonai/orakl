@@ -86,6 +86,14 @@ The order of operation has to be as follows:
 2. Deploy `Coordinator`
 3. Connect `Coordinator` with `Prepayment` (`prepayment.addCoordinator(coordinator)`)
 
+#### `Prepayment` Roles
+
+OpenZeppelin's `AccessControlEnumerable` and `Ownable`
+
+* `DEFAULT_ADMIN_ROLE`
+* `WITHDRAWER_ROLE`
+* `COORDINATOR_ROLE`
+
 ## Aggregator
 
 ### Deploying new aggregator
@@ -145,7 +153,7 @@ In order to add new VRF off-chain oracle, one must generate VRF keys first.
 VRF keys can be generated using `yarn keygen` command.
 Then, call `registerProvingKey(address oracle, uint256[2] calldata publicProvingKey)` to assign oracle and its proving keys to `VRFCoordinator`.
 The registration can be performed only by owner of `VRFCordinator`.
-After successfull transaction, consumers can request VRF from newly added oracle through `VRFCoordinator`.
+After successful transaction, consumers can request VRF from newly added oracle through `VRFCoordinator`.
 
 Public proving key (key) and oracle's address (value) will be stored in mapping `s_provingKeys`.
 Public proving key will be additionally stored in `s_provingKeyHashes` array.
@@ -154,15 +162,12 @@ Public proving key will be additionally stored in `s_provingKeyHashes` array.
 
 Registered VRF oracle can be removed anytime through `deregisterProvingKey(uint256[2] calldata publicProvingKey)` function.
 The deregistration can be performed only by owner of `VRFCordinator`.
-After successfull transaction, consumers will not be able to ask for random words from removed VRF oracle.
+After successful transaction, consumers will not be able to ask for random words from removed VRF oracle.
 
 
-#### Roles
+#### `VRFCoordinator` Roles
 
-https://docs.openzeppelin.com/contracts/4.x/access-control
-
-* `WITHDRAWER_ROLE`
-* `COORDINATOR_ROLE`
+* `ConfifmedOwner` from Chainlink
 
 ## Events
 
