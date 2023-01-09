@@ -63,12 +63,28 @@ KLAY tokens can be deposited (`deposit(uint64 accId)`) by anyone with knowledge 
 Account owner can withdraw (`withdraw(uint64 accId, uint96 amount)`) any amount of  KLAY tokens from its own account (`uint64 accId`).
 In order to proceed with withdrawal, there must be no ongoing unfulfilled request (`pendingRequestExists(uint64 accId)`) through the account of interest.
 Account can be permanently removed (`cancelAccount(uint64 accId, address to)`) and remaining KLAY tokens are returned to predefined address (`address to`).
+
 Before an account can be used by any service connected to `Prepayment`, account owner has to attach consumer (`addConsumer(uint64 accId, address consumer)`) to account.
 Later, account owner can remove consumer (`removeConsumer(uint64 accId, address consumer)`) when consumer is not used in any of provided services.
 
 To change the owner of account, account owner can request (`function requestAccountOwnerTransfer(uint64 accId, address newOwner)`) to transfer the ownership.
 Acount ownership is not changed until proposed owner accepts the account ownership (`acceptAccountOwnerTransfer(uint64 accId)`).
 
+`Prepayment` contract is utilizing OpenZeppelin's [`AccessControl`](https://docs.openzeppelin.com/contracts/4.x/access-control#using-access-control).
+
+#### How to deploy and setup `Prepayment`
+
+Constructor of `Prepayment` smart contract does not require any parameters.
+The signer that sends the deployment transaction will receive [`DEFAULT_ADMIN_ROLE` role](https://docs.openzeppelin.com/contracts/4.x/access-control#using-access-control).
+
+After the deployment, one has to connect it with coordinator contract that implements `CoordinatorBaseInterface` interface (`contracts/src/v0.1/interfaces/CoordinatorBaseInterface.sol`).
+It can be accomplished by calling `addCoordinator(address coordinator)` function.
+
+The order of operation has to be as follows.
+
+1. Deploy `Prepayment`
+2. Deploy `Coordinator`
+3. Connect coordinator with prepayment (`addCoordinator`)
 
 ## Aggregator
 
@@ -86,24 +102,32 @@ Acount ownership is not changed until proposed owner accepts the account ownersh
 * HTTP GET Element in Array Response
 * HTTP GET Large Responses
 
-### Verifiable Random Function
+## Verifiable Random Function
 
 On-chain part of Verifiable Random Function is implemented in following contracts:
 
 * `VRFCoordinator` (`contracts/src/v0.1/VRFCoordinator.sol`)
 * `VRFConsumerBase` (`contracts/src/v0.1/VRFConsumerBase.sol`)
 
-`VRFCoordinator` is accepting requests for random words from consumers and is also used to fulfill randomness as a part of response from off-chain oracle.
+`VRFCoordinator` accept requests for random words from consumers and subsequently it is used to respond with generated VRF proof from off-chain oracle.
 
 #### Limitations of `VRFCoordinator`
 
 * `MAX_REQUEST_CONFIRMATIONS` (might be removed in near future)
-* `MAX_NUM_WORDS` (currently 500)
-* `GAS_FOR_CALL_EXACT_CHECK` (currently 5,000)
+* `MAX_NUM_WORDS` = 500
+* `GAS_FOR_CALL_EXACT_CHECK` = 5,000
 
-#### How to deploy `VRFcoordinator`
+#### How to deploy and setup `VRFcoordinator`
 
-`VRFCoordinator` serves as a hub for multiple off-chain nodes.
+Before being able to deploy `VRFCoordinator` one must have already deployed contract implementing `PrepaymentInterface` (`contracts/src/v0.1/interfaces/PrepaymentInterface.sol`). Address of contract that implements `PrepaymentInterface` is passed as single parameter to `VRFCoordinator` constructor.
+
+```
+constructor(PrepaymentInterface prepayment)
+```
+
+
+
+<!-- `VRFCoordinator` serves as a hub for multiple off-chain nodes. -->
 
 #### Adding a new oracle to serve VRF requests
 
