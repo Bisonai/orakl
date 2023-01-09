@@ -158,6 +158,7 @@ contract VRFCoordinator is
                 // Copy last element and overwrite kh to be deleted with it
                 s_provingKeyHashes[i] = last;
                 s_provingKeyHashes.pop();
+                break;
             }
         }
         emit ProvingKeyDeregistered(kh, oracle);
