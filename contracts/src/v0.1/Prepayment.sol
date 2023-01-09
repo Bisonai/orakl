@@ -351,6 +351,7 @@ contract Prepayment is
      * @inheritdoc PrepaymentInterface
      */
     function addCoordinator(address coordinator) public onlyOwner {
+        _grantRole(COORDINATOR_ROLE, coordinator);
         s_coordinators.push(CoordinatorBaseInterface(coordinator));
     }
 
@@ -358,6 +359,8 @@ contract Prepayment is
      * @inheritdoc PrepaymentInterface
      */
     function removeCoordinator(address coordinator) public onlyOwner {
+        _revokeRole(COORDINATOR_ROLE, coordinator);
+
         for (uint256 i = 0; i < s_coordinators.length; i++) {
             if (s_coordinators[i] == CoordinatorBaseInterface(coordinator)) {
                 CoordinatorBaseInterface last = s_coordinators[s_coordinators.length - 1];
