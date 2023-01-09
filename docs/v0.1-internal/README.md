@@ -45,6 +45,54 @@
 | 19 | public   | 0x8626f6940E2eb28930eFb4CeF49B2d1F2C9C1199                         |             |
 | 19 | private  | 0xdf57089febbacf7ba0bc227dafbffa9fc08a93fdc68e1e42411a14efcf23656e |             |
 
+## Payment methods
+
+Currently, we support two payment methods:
+
+* `Prepayment` (`contracts/src/v0.1/Prepayment.sol`)
+* Direct method
+
+### `Prepayment`
+`Prepayment` smart contract allows anybody (later referred as account owner) to create an account (`createAccount()`) that can be used to pay for Orakl services (VRF, Request-Response, ...).
+
+Before `Prepayment` can be used with specific service, it has to be connected with coordinator of that service (`addCoordinator(address coordinator)`).
+Later, we can remove coordinator from prepayment (`removeCoordinator(address coordinator)`).
+Connection and removal of coordinator from `Prepayment` has to be executed by account with `DEFAULT_ADMIN_ROLE`.
+
+KLAY tokens can be deposited (`deposit(uint64 accId)`) by anyone with knowledge of account ID (`uint64 accId`).
+Account owner can withdraw (`withdraw(uint64 accId, uint96 amount)`) any amount of  KLAY tokens from its own account (`uint64 accId`).
+In order to proceed with withdrawal, there must be no ongoing unfulfilled request (`pendingRequestExists(uint64 accId)`) through the account of interest.
+Account can be permanently removed (`cancelAccount(uint64 accId, address to)`) and remaining KLAY tokens are returned to predefined address (`address to`).
+
+Before an account can be used by any service connected to `Prepayment`, account owner has to attach consumer (`addConsumer(uint64 accId, address consumer)`) to account.
+Later, account owner can remove consumer (`removeConsumer(uint64 accId, address consumer)`) when consumer is not used in any of provided services.
+
+To change the owner of account, account owner can request (`function requestAccountOwnerTransfer(uint64 accId, address newOwner)`) to transfer the ownership.
+Acount ownership is not changed until proposed owner accepts the account ownership (`acceptAccountOwnerTransfer(uint64 accId)`).
+
+#### How to deploy and setup `Prepayment`
+
+Constructor of `Prepayment` smart contract does not require any parameters.
+The signer that sends the deployment transaction will receive [`DEFAULT_ADMIN_ROLE` role](https://docs.openzeppelin.com/contracts/4.x/access-control#using-access-control).
+
+After the deployment, one has to connect it with coordinator contract that implements `CoordinatorBaseInterface` interface (`contracts/src/v0.1/interfaces/CoordinatorBaseInterface.sol`).
+It can be accomplished by calling `addCoordinator(address coordinator)` function.
+
+The order of operation has to be as follows:
+
+1. Deploy `Prepayment`
+2. Deploy `Coordinator`
+3. Connect `Coordinator` with `Prepayment` (`prepayment.addCoordinator(coordinator)`)
+
+#### Roles
+
+
+`Prepayment` contract is utilizing OpenZeppelin's [`AccessControlEnumeratble` and `Ownable`](https://docs.openzeppelin.com/contracts/4.x/access-control#ownership-and-ownable).
+
+* `DEFAULT_ADMIN_ROLE`
+* `WITHDRAWER_ROLE`
+* `COORDINATOR_ROLE`
+
 ## Aggregator
 
 ### Deploying new aggregator
@@ -61,45 +109,66 @@
 * HTTP GET Element in Array Response
 * HTTP GET Large Responses
 
-### Verifiable Random Function
+## Verifiable Random Function
 
 On-chain part of Verifiable Random Function is implemented in following contracts:
 
 * `VRFCoordinator` (`contracts/src/v0.1/VRFCoordinator.sol`)
 * `VRFConsumerBase` (`contracts/src/v0.1/VRFConsumerBase.sol`)
 
-`VRFCoordinator` is accepting requests for random words from consumers and also is used as fulfilling medium through which off-chain oracle responds with VRF proof.
+`VRFCoordinator` accept requests for random words from consumers and subsequently it is used to respond with generated VRF proof from off-chain oracle.
 
-Limitations of `VRFCoordinator`
+Every request includes `bytes32 keyhash` which uniquely identify an off-chain oracle that is requested for fulfilling randomness request.
 
-* `MAX_REQUEST_CONFIRMATIONS` (might be removed in near future)
-* `MAX_NUM_WORDS` (currently 500)
-* `GAS_FOR_CALL_EXACT_CHECK` (currently 5,000)
+#### Limitations of `VRFCoordinator`
 
-`VRFCoordinator` serves as a hub for multiple off-chain nodes.
+* `MAX_REQUEST_CONFIRMATIONS` (Currently not supported!)
+* `MAX_NUM_WORDS = 500`
+* `GAS_FOR_CALL_EXACT_CHECK = 5,000`
 
-#### Adding a new oracle to serve VRF requests
+#### How to deploy and setup `VRFcoordinator`
 
-1. Receive public proving key (can be generated with `yarn keygen`)
-2. Call `registerProvingKey` with address of off-chain oracle and its public proving key
+Before being able to deploy `VRFCoordinator` one must have already deployed contract implementing `PrepaymentInterface` (`contracts/src/v0.1/interfaces/PrepaymentInterface.sol`). Address of contract that implements `PrepaymentInterface` is passed as single parameter to `VRFCoordinator` constructor.
+
+```
+constructor(PrepaymentInterface prepayment)
+```
+
+`VRFCoordinator` has to be then connected to `Prepayment` or any other smart contract that implements (`PrepaymentInterface`) interface.
+
+Configuration of `VRFCoordinator` is performed through `setConfig` function.
+`setConfig` allows to update following parameters:
+
+* `minimumRequestConfirmations` (Currently not supported!)
+* `maxGasLimit` (Total allowed gas limit for processing response)
+* `gasAfterPaymentCalculation` (Global gas limit for operations after `calculatePaymentAmount` inside of `fulfillRandomWords`. Operations could be repriced, therefore this value is configurable.)
+* `feeConfig` (Fee structure with 5 different price tiers and request count boundaries)
+
+#### Adding oracle to VRFCoordinator
+
+In order to add new VRF off-chain oracle, one must generate VRF keys first.
+VRF keys can be generated using `yarn keygen` command.
+Then, call `registerProvingKey(address oracle, uint256[2] calldata publicProvingKey)` to assign oracle and its proving keys to `VRFCoordinator`.
+The registration can be performed only by owner of `VRFCordinator`.
+After successful transaction, consumers can request random words through oracle newly added to `VRFCoordinator`.
 
 Public proving key (key) and oracle's address (value) will be stored in mapping `s_provingKeys`.
 Public proving key will be additionally stored in `s_provingKeyHashes` array.
 
-#### Removing oracle to serve VRF requests
+#### Removing oracle from VRF coordinator
 
-1. Call `deregisterProvingKey` with public proving key
+Registered VRF oracle can be removed anytime through `deregisterProvingKey(uint256[2] calldata publicProvingKey)` function.
+The deregistration can be performed only by owner of `VRFCordinator`.
+After successful transaction, consumers will not be able to request random words from removed oracle through `VRFCoordinator`.
+
 
 #### Roles
 
-https://docs.openzeppelin.com/contracts/4.x/access-control
-
-* `WITHDRAWER_ROLE`
-* `COORDINATOR_ROLE`
+* `ConfifmedOwner` from Chainlink
 
 ## Events
 
-There are important events we need to collect and analize to provide good user experience.
+There are important events we need to collect and analyze to provide good user experience.
 
 ## Data Feed
 
