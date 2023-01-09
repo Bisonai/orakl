@@ -70,8 +70,6 @@ Later, account owner can remove consumer (`removeConsumer(uint64 accId, address 
 To change the owner of account, account owner can request (`function requestAccountOwnerTransfer(uint64 accId, address newOwner)`) to transfer the ownership.
 Acount ownership is not changed until proposed owner accepts the account ownership (`acceptAccountOwnerTransfer(uint64 accId)`).
 
-`Prepayment` contract is utilizing OpenZeppelin's [`AccessControl`](https://docs.openzeppelin.com/contracts/4.x/access-control#using-access-control).
-
 #### How to deploy and setup `Prepayment`
 
 Constructor of `Prepayment` smart contract does not require any parameters.
@@ -86,9 +84,10 @@ The order of operation has to be as follows:
 2. Deploy `Coordinator`
 3. Connect `Coordinator` with `Prepayment` (`prepayment.addCoordinator(coordinator)`)
 
-#### `Prepayment` Roles
+#### Roles
 
-OpenZeppelin's `AccessControlEnumerable` and `Ownable`
+
+`Prepayment` contract is utilizing OpenZeppelin's [`AccessControlEnumeratble` and `Ownable`](https://docs.openzeppelin.com/contracts/4.x/access-control#ownership-and-ownable).
 
 * `DEFAULT_ADMIN_ROLE`
 * `WITHDRAWER_ROLE`
@@ -121,11 +120,9 @@ On-chain part of Verifiable Random Function is implemented in following contract
 
 Every request includes `bytes32 keyhash` which uniquely identify an off-chain oracle that is requested for fulfilling randomness request.
 
-`VRFCoordinator` contract is utilizing OpenZeppelin's [Ownership and `Ownable`](https://docs.openzeppelin.com/contracts/4.x/access-control#ownership-and-ownable).
-
 #### Limitations of `VRFCoordinator`
 
-* `MAX_REQUEST_CONFIRMATIONS` (might be removed in near future)
+* `MAX_REQUEST_CONFIRMATIONS` (Currently not supported!)
 * `MAX_NUM_WORDS = 500`
 * `GAS_FOR_CALL_EXACT_CHECK = 5,000`
 
@@ -142,36 +139,36 @@ constructor(PrepaymentInterface prepayment)
 Configuration of `VRFCoordinator` is performed through `setConfig` function.
 `setConfig` allows to update following parameters:
 
-* `minimumRequestConfirmations` (Currently not utilized!)
+* `minimumRequestConfirmations` (Currently not supported!)
 * `maxGasLimit` (Total allowed gas limit for processing response)
 * `gasAfterPaymentCalculation` (Global gas limit for operations after `calculatePaymentAmount` inside of `fulfillRandomWords`. Operations could be repriced, therefore this value is configurable.)
 * `feeConfig` (Fee structure with 5 different price tiers and request count boundaries)
 
-#### Adding a new oracle to serve VRF requests
+#### Adding oracle to VRFCoordinator
 
 In order to add new VRF off-chain oracle, one must generate VRF keys first.
 VRF keys can be generated using `yarn keygen` command.
 Then, call `registerProvingKey(address oracle, uint256[2] calldata publicProvingKey)` to assign oracle and its proving keys to `VRFCoordinator`.
 The registration can be performed only by owner of `VRFCordinator`.
-After successful transaction, consumers can request VRF from newly added oracle through `VRFCoordinator`.
+After successful transaction, consumers can request random words through oracle newly added to `VRFCoordinator`.
 
 Public proving key (key) and oracle's address (value) will be stored in mapping `s_provingKeys`.
 Public proving key will be additionally stored in `s_provingKeyHashes` array.
 
-#### Removing oracle to serve VRF requests
+#### Removing oracle from VRF coordinator
 
 Registered VRF oracle can be removed anytime through `deregisterProvingKey(uint256[2] calldata publicProvingKey)` function.
 The deregistration can be performed only by owner of `VRFCordinator`.
-After successful transaction, consumers will not be able to ask for random words from removed VRF oracle.
+After successful transaction, consumers will not be able to request random words from removed oracle through `VRFCoordinator`.
 
 
-#### `VRFCoordinator` Roles
+#### Roles
 
 * `ConfifmedOwner` from Chainlink
 
 ## Events
 
-There are important events we need to collect and analize to provide good user experience.
+There are important events we need to collect and analyze to provide good user experience.
 
 ## Data Feed
 
