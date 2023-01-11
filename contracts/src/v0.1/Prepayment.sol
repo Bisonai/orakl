@@ -19,11 +19,11 @@ contract Prepayment is
     bytes32 public constant WITHDRAWER_ROLE = keccak256("WITHDRAWER_ROLE");
     bytes32 public constant COORDINATOR_ROLE = keccak256("COORDINATOR_ROLE");
 
-    uint96 private s_totalBalance;
+    uint256 private s_totalBalance;
 
     uint64 private s_currentAccId;
 
-    uint96 public s_withdrawable;
+    uint256 public s_withdrawable;
 
     /* consumer */ /* accId */ /* nonce */
     mapping(address => mapping(uint64 => uint64)) private s_consumers;
@@ -35,8 +35,8 @@ contract Prepayment is
     mapping(uint64 => Account) private s_accounts;
 
     struct Account {
-        // There are only 1e9*1e18 = 1e27 juels in existence, so the balance can fit in uint96 (2^96 ~ 7e28)
-        uint96 balance; // Common KLAY balance used for all consumer requests.
+        // There are only 1e9*1e18 = 1e27 juels in existence, so the balance can fit in uint256 (2^96 ~ 7e28)
+        uint256 balance; // Common KLAY balance used for all consumer requests.
         uint64 reqCount; // For fee tiers
     }
 
@@ -91,7 +91,7 @@ contract Prepayment is
     /**
      * @inheritdoc PrepaymentInterface
      */
-    function getTotalBalance() external view returns (uint96) {
+    function getTotalBalance() external view returns (uint256) {
         return s_totalBalance;
     }
 
@@ -103,7 +103,7 @@ contract Prepayment is
     )
         external
         view
-        returns (uint96 balance, uint64 reqCount, address owner, address[] memory consumers)
+        returns (uint256 balance, uint64 reqCount, address owner, address[] memory consumers)
     {
         if (s_accountConfigs[accId].owner == address(0)) {
             revert InvalidAccount();
@@ -225,8 +225,8 @@ contract Prepayment is
         if (msg.sender.balance < msg.value) {
             revert InsufficientConsumerBalance();
         }
-        uint96 amount = uint96(msg.value); // FIXME
-        uint96 oldBalance = s_accounts[accId].balance;
+        uint256 amount = msg.value; // FIXME
+        uint256 oldBalance = s_accounts[accId].balance;
         s_accounts[accId].balance += amount;
         s_totalBalance += amount;
         emit AccountBalanceIncreased(accId, oldBalance, oldBalance + amount);
@@ -235,7 +235,7 @@ contract Prepayment is
     /**
      * @inheritdoc PrepaymentInterface
      */
-    function withdraw(uint64 accId, uint96 amount) external onlyAccOwner(accId) {
+    function withdraw(uint64 accId, uint256 amount) external onlyAccOwner(accId) {
         if (pendingRequestExists(accId)) {
             revert PendingRequestExists();
         }
@@ -258,7 +258,7 @@ contract Prepayment is
     /**
      * @inheritdoc PrepaymentInterface
      */
-    function ownerWithdraw(uint96 amount) external onlyRole(WITHDRAWER_ROLE) {
+    function ownerWithdraw(uint256 amount) external onlyRole(WITHDRAWER_ROLE) {
         if (address(this).balance < amount) {
             revert InsufficientBalance();
         }
@@ -276,8 +276,8 @@ contract Prepayment is
     /**
      * @inheritdoc PrepaymentInterface
      */
-    function chargeFee(uint64 accId, uint96 amount) external onlyRole(COORDINATOR_ROLE) {
-        uint96 oldBalance = s_accounts[accId].balance;
+    function chargeFee(uint64 accId, uint256 amount) external onlyRole(COORDINATOR_ROLE) {
+        uint256 oldBalance = s_accounts[accId].balance;
         if (oldBalance < amount) {
             revert InsufficientBalance();
         }
@@ -380,7 +380,7 @@ contract Prepayment is
     function cancelAccountHelper(uint64 accId, address to) private {
         AccountConfig memory accConfig = s_accountConfigs[accId];
         Account memory acc = s_accounts[accId];
-        uint96 balance = acc.balance;
+        uint256 balance = acc.balance;
 
         // Note bounded by MAX_CONSUMERS;
         // If no consumers, does nothing.

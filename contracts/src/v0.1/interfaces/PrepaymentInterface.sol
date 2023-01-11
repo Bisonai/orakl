@@ -6,7 +6,7 @@ interface PrepaymentInterface {
      * @notice Return total amount of KLAY held in contract.
      * @return balance - A unique account id.
      */
-    function getTotalBalance() external returns (uint96);
+    function getTotalBalance() external returns (uint256);
 
     /**
      * @notice Get an account.
@@ -17,7 +17,7 @@ interface PrepaymentInterface {
      * @return consumers - list of consumer address which are able to use this account.
      */
     function getAccount(uint64 accId) external view
-        returns (uint96 balance, uint64 reqCount, address owner, address[] memory consumers);
+        returns (uint256 balance, uint64 reqCount, address owner, address[] memory consumers);
 
     /**
      * @notice Create an account.
@@ -76,21 +76,21 @@ interface PrepaymentInterface {
      * @param accId - ID of the account
      * @param amount - KLAY amount to be withdrawn
      */
-    function withdraw(uint64 accId, uint96 amount) external;
+    function withdraw(uint64 accId, uint256 amount) external;
 
     /**
      * @notice Withdraw funds stored in contract.
      * @notice Can be executed only by WITHDRAWER_ROLE.
      * @param amount - KLAY amount to be withdrawn
      */
-    function ownerWithdraw(uint96 amount) external;
+    function ownerWithdraw(uint256 amount) external;
 
     /**
      * @notice Charge fee from service connected to account.
      * @param accId - ID of the account
      * @param amount - KLAY amount to be charged
      */
-    function chargeFee(uint64 accId, uint96 amount) external;
+    function chargeFee(uint64 accId, uint256 amount) external;
 
     /**
      * @notice Return nonce value.
