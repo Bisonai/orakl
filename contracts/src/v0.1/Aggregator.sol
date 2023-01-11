@@ -130,7 +130,6 @@ contract Aggregator is AggregatorInterface, ConfirmedOwner {
      * @param _description a short description of what is being reported
      */
     constructor(
-        /* address _link, */
         uint128 _paymentAmount,
         uint32 _timeout,
         address _validator,
@@ -268,7 +267,7 @@ contract Aggregator is AggregatorInterface, ConfirmedOwner {
     }
 
     /**
-     * @notice recalculate the amount of LINK available for payouts
+     * @notice recalculate the amount of KLAY available for payouts
      */
     function updateAvailableFunds() public {
         Funds memory funds = recordedFunds;
@@ -373,18 +372,18 @@ contract Aggregator is AggregatorInterface, ConfirmedOwner {
     }
 
     /**
-     * @notice query the available amount of LINK for an oracle to withdraw
+     * @notice query the available amount of KLAY for an oracle to withdraw
      */
     function withdrawablePayment(address _oracle) external view returns (uint256) {
         return oracles[_oracle].withdrawable;
     }
 
     /**
-     * @notice transfers the oracle's LINK to another address. Can only be called
+     * @notice transfers the oracle's KLAY to another address. Can only be called
      * by the oracle's admin.
-     * @param _oracle is the oracle whose LINK is transferred
-     * @param _recipient is the address to send the LINK to
-     * @param _amount is the amount of LINK to send
+     * @param _oracle is the oracle whose KLAY is transferred
+     * @param _recipient is the address to send the KLAY to
+     * @param _amount is the amount of KLAY to send
      */
     function withdrawPayment(address _oracle, address _recipient, uint256 _amount) external {
         require(oracles[_oracle].admin == msg.sender, "only callable by admin");
@@ -401,9 +400,9 @@ contract Aggregator is AggregatorInterface, ConfirmedOwner {
     }
 
     /**
-     * @notice transfers the owner's LINK to another address
-     * @param _recipient is the address to send the LINK to
-     * @param _amount is the amount of LINK to send
+     * @notice transfers the owner's KLAY to another address
+     * @param _recipient is the address to send the KLAY to
+     * @param _amount is the amount of KLAY to send
      */
     function withdrawFunds(address _recipient, uint256 _amount) external onlyOwner {
         uint256 available = uint256(recordedFunds.available);
