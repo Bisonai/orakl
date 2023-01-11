@@ -37,7 +37,10 @@
           "args": ["data", "rates", "USD"]
         },
         {
-          "function": "ROUND"
+          "function": "MUL",
+          "args": [
+            100000000
+          ]
         }
       ]
     }
