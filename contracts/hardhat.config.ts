@@ -30,7 +30,7 @@ const config: HardhatUserConfig = {
       gas: 1_400_000
     },
     baobab: {
-      url: 'https://api.baobab.klaytn.net:8651',
+      url: 'https://baobab01.fautor.app/',
       ...commonConfig,
       gasPrice: 250_000_000_000
     },
