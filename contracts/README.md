@@ -12,23 +12,21 @@ yarn install
 yarn compile
 ```
 
-## Run Hardhat Local Node
+## Deployment
+
+Deployment scripts are stored in [`deploy`](deploy) directory.
+
+### Localhost
+
+For local testing, it is best to both launch node and deploy with a single command.
+The command below can be used for launching local test network for both off-chain `yarn` scripts and Docker as well.
 
 ```
-npx hardhat node
+npx hardhat node --hostname 0.0.0.0
 ```
 
-## Testing Oracle Requests
-
-
-1. Run a local Hardhat Network
+### Baobab
 
 ```
-npx hardhat node
-```
-
-2. Run the event listening script replacing private key with PK returned from local hardhat node
-
-```
-npx hardhat run src/v0.1/scripts/eventListener.mjs --network localhost
+npx hardhat deploy --network baobab
 ```
