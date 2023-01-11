@@ -14,6 +14,7 @@ export const PROVIDER = process.env.PROVIDER
 
 // FIXME allow either private key or mnemonic
 export const MNEMONIC = process.env.MNEMONIC
+export const PUBLIC_KEY = process.env.PUBLIC_KEY
 export const PRIVATE_KEY = process.env.PRIVATE_KEY
 
 export const HEALTH_CHECK_PORT = process.env.HEALTH_CHECK_PORT
