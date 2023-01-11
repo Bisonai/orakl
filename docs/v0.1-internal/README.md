@@ -93,12 +93,25 @@ The order of operation has to be as follows:
 * `WITHDRAWER_ROLE`
 * `COORDINATOR_ROLE`
 
-## Aggregator
+## Aggregator & Aggregator Proxy
 
-### Deploying new aggregator
+On-chain part of Aggregator is implemented in
 
-* `decimals` are set during deployment of `Aggregator` as well as in adapter definition to ensure the values provided by adapter are in the same expected format.
-* `minSubmissionValue`, `maxSubmissionValue`
+* `Aggregator` ([`contracts/src/v0.1/Aggregator.sol`](`../../contracts/src/v0.1/Aggregator.sol`))
+* `AggregatorProxy` ([`contracts/src/v0.1/AggregatorProxy.sol`](`../../contracts/src/v0.1/AggregatorProxy.sol`))
+
+### How to deploy and setup `Aggregator`
+
+`Aggregator` smart contract is used for collecting data from off-chain submitted by off-chain oracles.
+`AggregatorProxy` is a smart contract that enables consumers to read the latest and as well as historical data aggregated in `Aggregator`.
+
+* `paymentAmount`
+* `timeout` (Currently not supported!)
+* `validator` (Not tested yet. Passing `null` address.)
+* `minSubmissionValue` (Minimum allowed submission by off-chain oracle)
+* `maxSubmissionValue` (Maximum allowed submission by off-chain oracle)
+* `decimals` (Number of decimals to offset the answer by. The same number is also defined in adapter definition that is related to aggregator)
+* `description` (Could include the adapter hash?)
 
 ## Request-Response
 
