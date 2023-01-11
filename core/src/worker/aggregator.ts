@@ -105,7 +105,6 @@ function fixedHeartbeatJob(
   for (const k in agregatorsWithAdapters) {
     const ag = agregatorsWithAdapters[k]
     if (ag.fixedHeartbeatRate.active) {
-      console.debug("was here")
       heartbeatQueue.add('fixed-heartbeat', addReportProperty(ag, true), {
         delay: ag.fixedHeartbeatRate.value
       })
@@ -216,6 +215,7 @@ function shouldReport(
 }
 
 async function latestRoundDataCall(address: string): Promise<ILatestRoundData> {
+  console.debug('latestRoundDataCall')
   const provider = new ethers.providers.JsonRpcProvider(PROVIDER_URL)
   const aggregator = new ethers.Contract(address, Aggregator__factory.abi, provider)
   return await aggregator.latestRoundData()
