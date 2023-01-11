@@ -104,9 +104,12 @@ function fixedHeartbeatJob(
   // TODO Add clock synchronization through on-chain public data timestamp
   for (const k in agregatorsWithAdapters) {
     const ag = agregatorsWithAdapters[k]
-    heartbeatQueue.add('fixed-heartbeat', addReportProperty(ag, true), {
-      delay: ag.fixedHeartbeatRate
-    })
+    if (ag.fixedHeartbeatRate.active) {
+      console.debug("was here")
+      heartbeatQueue.add('fixed-heartbeat', addReportProperty(ag, true), {
+        delay: ag.fixedHeartbeatRate.value
+      })
+    }
   }
 
   async function wrapper(job) {
@@ -116,7 +119,7 @@ function fixedHeartbeatJob(
     console.debug('fixedHeartbeatJob:outData', outData)
 
     reporterQueue.add('aggregator', outData)
-    heartbeatQueue.add('fixed-heartbeat', inData, { delay: inData.fixedHeartbeatRate })
+    heartbeatQueue.add('fixed-heartbeat', inData, { delay: inData.fixedHeartbeatRate.value })
   }
 
   return wrapper
@@ -135,9 +138,11 @@ function randomHeartbeatJob(
   // Launch all aggregators to be executed with random heartbeat
   for (const k in agregatorsWithAdapters) {
     const ag = agregatorsWithAdapters[k]
-    heartbeatQueue.add('random-heartbeat', ag, {
-      delay: uniform(0, ag.randomHeartbeatRate)
-    })
+    if (ag.randomHeartbeatRate.active) {
+      heartbeatQueue.add('random-heartbeat', ag, {
+        delay: uniform(0, ag.randomHeartbeatRate.value)
+      })
+    }
   }
 
   async function wrapper(job) {
@@ -150,7 +155,7 @@ function randomHeartbeatJob(
       reporterQueue.add('aggregator', outData)
     }
     heartbeatQueue.add('random-heartbeat', inData, {
-      delay: uniform(0, inData.randomHeartbeatRate)
+      delay: uniform(0, inData.randomHeartbeatRate.value)
     })
   }
 

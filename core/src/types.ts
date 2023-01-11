@@ -53,12 +53,17 @@ export interface IAdapter {
   feeds: IFeed[]
 }
 
+interface IProperty {
+  active: boolean
+  value: number
+}
+
 export interface IAggregator {
   active: boolean
   name: string
   aggregatorAddress: string
-  fixedHeartbeatRate: number
-  randomHeartbeatRate: number
+  fixedHeartbeatRate: IProperty
+  randomHeartbeatRate: IProperty
   threshold: number
   absoluteThreshold: number
   adapterId: string
@@ -160,8 +165,8 @@ export interface IAggregatorHeartbeatWorker {
   name: string
   active: boolean
   aggregatorAddress: string
-  fixedHeartbeatRate: number
-  randomHeartbeatRate: number
+  fixedHeartbeatRate: IProperty
+  randomHeartbeatRate: IProperty
   threshold: number
   absoluteThreshold: number
   adapterId: string
