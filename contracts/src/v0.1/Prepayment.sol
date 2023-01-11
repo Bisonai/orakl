@@ -23,16 +23,20 @@ contract Prepayment is
 
     uint64 private s_currentAccId;
 
-    uint256 public s_withdrawable;
-
-    /* consumer */ /* accId */ /* nonce */
+    /* consumer */
+    /* accId */
+    /* nonce */
     mapping(address => mapping(uint64 => uint64)) private s_consumers;
 
-    /* accId */ /* AccountConfig */
+    /* accId */
+    /* AccountConfig */
     mapping(uint64 => AccountConfig) private s_accountConfigs;
 
-    /* accId */ /* account */
+    /* accId */
+    /* account */
     mapping(uint64 => Account) private s_accounts;
+
+    mapping(address => uint256) s_nodes;
 
     struct Account {
         // There are only 1e9*1e18 = 1e27 juels in existence, so the balance can fit in uint256 (2^96 ~ 7e28)
@@ -258,13 +262,16 @@ contract Prepayment is
     /**
      * @inheritdoc PrepaymentInterface
      */
-    function ownerWithdraw(uint256 amount) external onlyRole(WITHDRAWER_ROLE) {
+    function nodeWithdraw(uint256 amount) external onlyRole(WITHDRAWER_ROLE) {
+        require(amount > 0, "Amount need to greater than Zero");
         if (address(this).balance < amount) {
             revert InsufficientBalance();
         }
-
-        s_withdrawable -= amount;
-
+        uint256 withdrawable = s_nodes[msg.sender];
+        if (withdrawable < amount) {
+            revert InsufficientBalance();
+        }
+        s_nodes[msg.sender] -= amount;
         (bool sent, ) = msg.sender.call{value: amount}("");
         if (!sent) {
             revert InsufficientBalance();
@@ -276,7 +283,11 @@ contract Prepayment is
     /**
      * @inheritdoc PrepaymentInterface
      */
-    function chargeFee(uint64 accId, uint256 amount) external onlyRole(COORDINATOR_ROLE) {
+    function chargeFee(
+        uint64 accId,
+        uint256 amount,
+        address node
+    ) external onlyRole(COORDINATOR_ROLE) {
         uint256 oldBalance = s_accounts[accId].balance;
         if (oldBalance < amount) {
             revert InsufficientBalance();
@@ -284,7 +295,7 @@ contract Prepayment is
 
         s_accounts[accId].balance -= amount;
         s_accounts[accId].reqCount += 1;
-        s_withdrawable += amount;
+        s_nodes[node] += amount;
 
         emit AccountBalanceDecreased(accId, oldBalance, oldBalance - amount);
     }

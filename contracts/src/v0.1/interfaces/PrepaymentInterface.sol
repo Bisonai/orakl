@@ -83,14 +83,14 @@ interface PrepaymentInterface {
      * @notice Can be executed only by WITHDRAWER_ROLE.
      * @param amount - KLAY amount to be withdrawn
      */
-    function ownerWithdraw(uint256 amount) external;
+    function nodeWithdraw(uint256 amount) external;
 
     /**
      * @notice Charge fee from service connected to account.
      * @param accId - ID of the account
      * @param amount - KLAY amount to be charged
      */
-    function chargeFee(uint64 accId, uint256 amount) external;
+    function chargeFee(uint64 accId, uint256 amount,address node) external;
 
     /**
      * @notice Return nonce value.
