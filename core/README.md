@@ -39,5 +39,7 @@ export ADAPTERID=
 Run
 
 ```shell
- yarn price_feed --adapterId ${ADAPTERID}
+yarn clean
+yarn build
+yarn price_feed --adapterId ${ADAPTERID}
 ```

@@ -16,24 +16,21 @@
     "clean": "rm -rf dist",
     "build": "yarn clean && tsc",
     "flush": "node --experimental-specifier-resolution=node --experimental-json-modules dist/flush-queues.js",
-
     "start:listener": "node --experimental-specifier-resolution=node --experimental-json-modules dist/listener/main.js",
     "start:listener:vrf": "yarn start:listener --listener VRF",
     "start:listener:any_api": "yarn start:listener --listener ANY_API",
     "start:listener:aggregator": "yarn start:listener --listener AGGREGATOR",
-
     "start:worker": "node --experimental-specifier-resolution=node --experimental-json-modules dist/worker/main.js",
     "start:worker:aggregator": "yarn start:worker --worker AGGREGATOR",
     "start:worker:vrf": "yarn start:worker --worker VRF",
     "start:worker:any_api": "yarn start:worker --worker ANY_API",
-      "start:worker:predefined_feed": "yarn start:worker --worker PREDEFINED_FEED",
-
+    "start:worker:predefined_feed": "yarn start:worker --worker PREDEFINED_FEED",
     "start:reporter": "node --experimental-specifier-resolution=node --experimental-json-modules dist/reporter/main.js",
     "start:reporter:vrf": "yarn start:reporter --reporter VRF",
     "start:reporter:any_api": "yarn start:reporter --reporter ANY_API",
     "start:reporter:aggregator": "yarn start:reporter --reporter AGGREGATOR",
-
     "keygen": "node --experimental-specifier-resolution=node --experimental-json-modules dist/cli/vrf-keygen.js",
+    "price_feed": "node --experimental-specifier-resolution=node --experimental-json-modules dist/cli/price-feed.js",
     "test": "jest",
     "eslint": "DEBUG=eslint:cli-engine npx eslint 'src/**/*.ts' 'src/*.ts' 'test/*.ts'"
   },
