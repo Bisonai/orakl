@@ -17,5 +17,7 @@ export enum IcnErrorCode {
   MissingKeyInJson,
   MissingAdapter,
   UniformWrongParams,
-  InvalidListenerConfig
+  InvalidListenerConfig,
+  InvalidPriceFeed,
+  InvalidPriceFeedFormat
 }

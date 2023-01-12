@@ -9,7 +9,6 @@ import { localAggregatorFn, ADAPTER_ROOT_DIR, AGGREGATOR_ROOT_DIR } from '../set
 
 export async function loadAdapters() {
   const adapterPaths = await Fs.readdir(ADAPTER_ROOT_DIR)
-
   const allRawAdapters = await Promise.all(
     adapterPaths.map(async (ap) => validateAdapter(await loadJson(Path.join(ADAPTER_ROOT_DIR, ap))))
   )
@@ -80,7 +79,7 @@ export async function fetchDataWithAdapter(adapter) {
   return aggregatedResults
 }
 
-function buildReducer(reducers) {
+export function buildReducer(reducers) {
   return reducers.map((r) => {
     const reducer = reducerMapping[r.function]
     if (!reducer) {
