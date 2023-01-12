@@ -25,3 +25,19 @@ yarn start:reporter
 docker compose -f docker-compose.build.dev.yaml build
 docker compose -f docker-compose.dev.yaml up
 ```
+
+## Run Cli script
+
+### How to run Price Feed script
+
+Export adapterId param
+
+```shell
+export ADAPTERID=
+```
+
+Run
+
+```shell
+ yarn price_feed --adapterId ${ADAPTERID}
+```
