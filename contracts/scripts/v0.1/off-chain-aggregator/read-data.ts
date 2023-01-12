@@ -3,16 +3,16 @@ import hre from 'hardhat'
 
 async function main() {
   const { network } = hre
-  let consumer
+  let _consumer
 
   if (network.name == 'localhost') {
-    const { _consumer } = await hre.getNamedAccounts()
-    consumer = _consumer
+    const { consumer } = await hre.getNamedAccounts()
+    _consumer = consumer
   } else {
     const PROVIDER = process.env.PROVIDER
     const MNEMONIC = process.env.MNEMONIC
     const provider = new ethers.providers.JsonRpcProvider(PROVIDER)
-    consumer = ethers.Wallet.fromMnemonic(MNEMONIC).connect(provider)
+    _consumer = ethers.Wallet.fromMnemonic(MNEMONIC).connect(provider)
   }
 
   const dataFeedConsumerMock = await ethers.getContract('DataFeedConsumerMock')
@@ -24,7 +24,7 @@ async function main() {
   console.log('DataFeedConsumerMock', dataFeedConsumerMock.address)
 
   try {
-    await dataFeedConsumerSigner.connect(consumer).getLatestPrice()
+    await dataFeedConsumerSigner.connect(_consumer).getLatestPrice()
     const price = await dataFeedConsumerSigner.s_price()
     const decimals = await dataFeedConsumerSigner.decimals()
     const round = await dataFeedConsumerSigner.s_roundID()
