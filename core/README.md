@@ -26,11 +26,11 @@ docker compose -f docker-compose.build.dev.yaml build
 docker compose -f docker-compose.dev.yaml up
 ```
 
-## Run Cli script
+## Run cli script
 
-### How to run Price Feed script
+### Run price-feed
 
-Export adapterId param
+Export adapterId
 
 ```shell
 export ADAPTERID=
