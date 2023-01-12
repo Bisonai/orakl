@@ -65,7 +65,9 @@ export async function fetchDataWithAdapter(adapter) {
         // be passed to queue, therefore has to be recreated before
         // every fetch.
         const reducers = buildReducer(a.reducers)
-        return pipe(...reducers)(rawData)
+        const data = pipe(...reducers)(rawData)
+        checkDataFormat(data)
+        return data
       } catch (e) {
         console.error(e)
       }
@@ -79,7 +81,17 @@ export async function fetchDataWithAdapter(adapter) {
   return aggregatedResults
 }
 
-export function buildReducer(reducers) {
+function checkDataFormat(data) {
+  if (!data) {
+    // check if priceFeed is null, undefined, NaN, "", 0, false
+    throw new IcnError(IcnErrorCode.InvalidPriceFeed)
+  } else if (!Number.isInteger(data)) {
+    // check if priceFeed is not Integer
+    throw new IcnError(IcnErrorCode.InvalidPriceFeedFormat)
+  }
+}
+
+function buildReducer(reducers) {
   return reducers.map((r) => {
     const reducer = reducerMapping[r.function]
     if (!reducer) {
