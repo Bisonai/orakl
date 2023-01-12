@@ -113,6 +113,18 @@ On-chain part of Aggregator is implemented in
 * `decimals` (Number of decimals to offset the answer by. The same number is also defined in adapter definition that is related to aggregator)
 * `description` (Could include the adapter hash?)
 
+After, the `Aggregator` is deployed, we have to define which off-chain oracles can report their off-chain values there.
+You can learn more about it in the section below.
+
+### How to defined oracles that will submit data from off-chain?
+
+`Aggregator` defines a function `changeOracles` which allows an update of oracles that can report their off-chain values.
+This function has to be called additionally after deployment to allow feed updates.
+
+`changeOracles` defines which oracles should be removed (`address[] calldata _removed`), which oracles should be added (`address[] calldata _added`) and who is allowed to withdraw (`withdrawPayment`) oracle's rewards (`address[] calldata _addedAdmins`).
+
+Every aggregator has lower (`uint32 _minSubmissionCount`) and upper (`uint32 _maxSubmissionCount`) boundary on how many submissions are required to compute a new answer for a round.
+
 ## Request-Response
 
 `RequestResponseCoordinator` (`contracts/src/v0.1/RequestResponseCoordinator.sol`) contract handles all the **Request-Response** requests.
