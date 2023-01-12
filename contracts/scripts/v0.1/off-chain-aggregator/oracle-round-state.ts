@@ -14,7 +14,7 @@ async function main() {
     const { feedOracle0 } = await hre.getNamedAccounts()
     _feedOracle0 = feedOracle0
     const PROVIDER = process.env.PROVIDER
-    const MNEMONIC = process.env.MNEMONIC
+    const MNEMONIC = process.env.MNEMONIC || ''
     const provider = new ethers.providers.JsonRpcProvider(PROVIDER)
     _consumer = ethers.Wallet.fromMnemonic(MNEMONIC).connect(provider)
   }

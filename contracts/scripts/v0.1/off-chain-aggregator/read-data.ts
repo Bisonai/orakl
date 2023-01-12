@@ -10,7 +10,7 @@ async function main() {
     _consumer = consumer
   } else {
     const PROVIDER = process.env.PROVIDER
-    const MNEMONIC = process.env.MNEMONIC
+    const MNEMONIC = process.env.MNEMONIC || ''
     const provider = new ethers.providers.JsonRpcProvider(PROVIDER)
     _consumer = ethers.Wallet.fromMnemonic(MNEMONIC).connect(provider)
   }
