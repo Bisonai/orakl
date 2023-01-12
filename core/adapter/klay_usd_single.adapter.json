@@ -13,18 +13,14 @@
       "reducers": [
         {
           "function": "PARSE",
-          "args": [
-            "RAW",
-            "KLAY",
-            "USD",
-            "PRICE"
-          ]
+          "args": ["RAW", "KLAY", "USD", "PRICE"]
         },
         {
-          "function": "MUL",
-          "args": [
-            1000000000
-          ]
+          "function": "POW10",
+          "args": "8"
+        },
+        {
+          "function": "ROUND"
         }
       ]
     }

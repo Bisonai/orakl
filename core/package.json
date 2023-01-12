@@ -1,6 +1,6 @@
 {
   "name": "@bisonai-cic/icn-core",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "type": "module",
   "description": "",
   "files": [
@@ -29,6 +29,7 @@
     "start:reporter:any_api": "yarn start:reporter --reporter ANY_API",
     "start:reporter:aggregator": "yarn start:reporter --reporter AGGREGATOR",
     "keygen": "node --experimental-specifier-resolution=node --experimental-json-modules dist/cli/vrf-keygen.js",
+    "price_feed": "node --experimental-specifier-resolution=node --experimental-json-modules dist/cli/price-feed.js",
     "flush": "node --experimental-specifier-resolution=node --experimental-json-modules dist/cli/flush-queues.js",
     "test": "jest",
     "eslint": "DEBUG=eslint:cli-engine npx eslint 'src/**/*.ts' 'src/*.ts' 'test/*.ts'"

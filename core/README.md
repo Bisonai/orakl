@@ -33,3 +33,17 @@ docker compose -f docker-compose.bull-monitor.yaml up
 ```
 
 Bull Queue Board: http://localhost:3000/queues/
+
+## Run cli script
+
+### Run price-feed
+
+```shell
+export ADAPTERID=
+```
+
+Run
+
+```shell
+yarn price_feed --adapterId ${ADAPTERID}
+```
