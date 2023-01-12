@@ -29,11 +29,11 @@ contract Aggregator is AggregatorInterface, ConfirmedOwner {
         uint32 maxSubmissions;
         uint32 minSubmissions;
         uint32 timeout;
-        uint128 paymentAmount;
+        uint256 paymentAmount;
     }
 
     struct OracleStatus {
-        uint128 withdrawable;
+        uint256 withdrawable;
         uint32 startingRound;
         uint32 endingRound;
         uint32 lastReportedRound;
@@ -51,14 +51,14 @@ contract Aggregator is AggregatorInterface, ConfirmedOwner {
     }
 
     struct Funds {
-        uint128 available;
-        uint128 allocated;
+        uint256 available;
+        uint256 allocated;
     }
 
     AggregatorValidatorInterface public validator;
 
     // Round related params
-    uint128 public paymentAmount;
+    uint256 public paymentAmount;
     uint32 public maxSubmissionCount;
     uint32 public minSubmissionCount;
     uint32 public restartDelay;
@@ -97,7 +97,7 @@ contract Aggregator is AggregatorInterface, ConfirmedOwner {
 
     event AvailableFundsUpdated(uint256 indexed amount);
     event RoundDetailsUpdated(
-        uint128 indexed paymentAmount,
+        uint256 indexed paymentAmount,
         uint32 indexed minSubmissionCount,
         uint32 indexed maxSubmissionCount,
         uint32 restartDelay,
@@ -129,7 +129,7 @@ contract Aggregator is AggregatorInterface, ConfirmedOwner {
      * @param _description a short description of what is being reported
      */
     constructor(
-        uint128 _paymentAmount,
+        uint256 _paymentAmount,
         uint32 _timeout,
         address _validator,
         int256 _minSubmissionValue,
@@ -218,7 +218,7 @@ contract Aggregator is AggregatorInterface, ConfirmedOwner {
      * they can initiate a round
      */
     function updateFutureRounds(
-        uint128 _paymentAmount,
+        uint256 _paymentAmount,
         uint32 _minSubmissionCount,
         uint32 _maxSubmissionCount,
         uint32 _restartDelay,
@@ -254,14 +254,14 @@ contract Aggregator is AggregatorInterface, ConfirmedOwner {
     /**
      * @notice the amount of payment yet to be withdrawn by oracles
      */
-    function allocatedFunds() external view returns (uint128) {
+    function allocatedFunds() external view returns (uint256) {
         return recordedFunds.allocated;
     }
 
     /**
      * @notice the amount of future funding available to oracles
      */
-    function availableFunds() external view returns (uint128) {
+    function availableFunds() external view returns (uint256) {
         return recordedFunds.available;
     }
 
@@ -274,7 +274,7 @@ contract Aggregator is AggregatorInterface, ConfirmedOwner {
         uint256 nowAvailable = address(this).balance - funds.allocated;
 
         if (funds.available != nowAvailable) {
-            recordedFunds.available = uint128(nowAvailable);
+            recordedFunds.available = nowAvailable;
             emit AvailableFundsUpdated(nowAvailable);
         }
     }
@@ -336,9 +336,7 @@ contract Aggregator is AggregatorInterface, ConfirmedOwner {
     /**
      * @notice get data about the latest round. Consumers are encouraged to check
      * that they're receiving fresh data by inspecting the updatedAt and
-     * answeredInRound return values. Consumers are encouraged to
-     * use this more fully featured method over the "legacy" latestRound/
-     * latestAnswer/latestTimestamp functions. Consumers are encouraged to check
+     * answeredInRound return values. Consumers are encouraged to check
      * that they're receiving fresh data by inspecting the updatedAt and
      * answeredInRound return values.
      * @return roundId is the round ID for which data was retrieved
@@ -387,13 +385,11 @@ contract Aggregator is AggregatorInterface, ConfirmedOwner {
     function withdrawPayment(address _oracle, address _recipient, uint256 _amount) external {
         require(oracles[_oracle].admin == msg.sender, "only callable by admin");
 
-        // Safe to downcast _amount because the total amount of LINK is less than 2^128.
-        uint128 amount = uint128(_amount);
-        uint128 available = oracles[_oracle].withdrawable;
-        require(available >= amount, "insufficient withdrawable funds");
+        uint256 available = oracles[_oracle].withdrawable;
+        require(available >= _amount, "insufficient withdrawable funds");
 
-        oracles[_oracle].withdrawable = available - amount;
-        recordedFunds.allocated = recordedFunds.allocated - amount;
+        oracles[_oracle].withdrawable = available - _amount;
+        recordedFunds.allocated = recordedFunds.allocated - _amount;
 
         /* assert(linkToken.transfer(_recipient, uint256(amount))); */
     }
@@ -502,9 +498,9 @@ contract Aggregator is AggregatorInterface, ConfirmedOwner {
             int256 _latestSubmission,
             uint64 _startedAt,
             uint64 _timeout,
-            uint128 _availableFunds,
+            uint256 _availableFunds,
             uint8 _oracleCount,
-            uint128 _paymentAmount
+            uint256 _paymentAmount
         )
     {
         require(msg.sender == tx.origin, "off-chain reading only");
@@ -629,9 +625,9 @@ contract Aggregator is AggregatorInterface, ConfirmedOwner {
             int256 _latestSubmission,
             uint64 _startedAt,
             uint64 _timeout,
-            uint128 _availableFunds,
+            uint256 _availableFunds,
             uint8 _oracleCount,
-            uint128 _paymentAmount
+            uint256 _paymentAmount
         )
     {
         Round storage round = rounds[0];
@@ -708,7 +704,7 @@ contract Aggregator is AggregatorInterface, ConfirmedOwner {
     }
 
     function payOracle(uint32 _roundId) private {
-        uint128 payment = details[_roundId].paymentAmount;
+        uint256 payment = details[_roundId].paymentAmount;
         Funds memory funds = recordedFunds;
         funds.available -= payment;
         funds.allocated += payment;
