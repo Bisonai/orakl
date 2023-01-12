@@ -577,7 +577,7 @@ contract Aggregator is AggregatorInterface, ConfirmedOwner {
 
     function oracleInitializeNewRound(uint32 _roundId) private {
         if (!newRound(_roundId)) return;
-        uint256 lastStarted = oracles[msg.sender].lastStartedRound; // cache storage reads
+        uint256 lastStarted = oracles[msg.sender].lastStartedRound;
         if (_roundId <= lastStarted + restartDelay && lastStarted != 0) return;
 
         initializeNewRound(_roundId);
@@ -587,7 +587,7 @@ contract Aggregator is AggregatorInterface, ConfirmedOwner {
 
     function requesterInitializeNewRound(uint32 _roundId) private {
         if (!newRound(_roundId)) return;
-        uint256 lastStarted = requesters[msg.sender].lastStartedRound; // cache storage reads
+        uint256 lastStarted = requesters[msg.sender].lastStartedRound;
         require(
             _roundId > lastStarted + requesters[msg.sender].delay || lastStarted == 0,
             "must delay requests"
@@ -695,7 +695,7 @@ contract Aggregator is AggregatorInterface, ConfirmedOwner {
     }
 
     function validateAnswer(uint32 _roundId, int256 _newAnswer) private {
-        AggregatorValidatorInterface av = validator; // cache storage reads
+        AggregatorValidatorInterface av = validator;
         if (address(av) == address(0)) return;
 
         uint32 prevRound = _roundId - 1;
@@ -802,7 +802,6 @@ contract Aggregator is AggregatorInterface, ConfirmedOwner {
         address _oracle,
         uint32 _roundId
     ) private view returns (bytes memory) {
-        // cache storage reads
         uint32 startingRound = oracles[_oracle].startingRound;
         uint32 rrId = reportingRoundId;
 
