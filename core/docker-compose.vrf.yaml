@@ -25,6 +25,12 @@ services:
       BULL_WATCH_QUEUE_PREFIXES: bull
       PORT: 3000
       UI: bull-master
+    healthcheck:
+      test: "curl --fail http://localhost:3000/health || exit 1"
+      interval: 5s
+      timeout: 30s
+      retries: 3
+      start_period: 10s          
 
   listener-vrf:
     image: core-icn
