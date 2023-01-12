@@ -38,8 +38,6 @@ Bull Queue Board: http://localhost:3000/queues/
 
 ### Run price-feed
 
-Export adapterId
-
 ```shell
 export ADAPTERID=
 ```
