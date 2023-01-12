@@ -95,6 +95,8 @@ contract Aggregator is AggregatorInterface, ConfirmedOwner {
     address[] private oracleAddresses;
     Funds private recordedFunds;
 
+    error InsufficientBalance();
+
     event AvailableFundsUpdated(uint256 indexed amount);
     event RoundDetailsUpdated(
         uint256 indexed paymentAmount,
@@ -391,7 +393,10 @@ contract Aggregator is AggregatorInterface, ConfirmedOwner {
         oracles[_oracle].withdrawable = available - _amount;
         recordedFunds.allocated = recordedFunds.allocated - _amount;
 
-        /* assert(linkToken.transfer(_recipient, uint256(amount))); */
+        (bool sent, ) = _recipient.call{value: _amount}("");
+        if (!sent) {
+            revert InsufficientBalance();
+        }
     }
 
     /**
@@ -400,13 +405,18 @@ contract Aggregator is AggregatorInterface, ConfirmedOwner {
      * @param _amount is the amount of KLAY to send
      */
     function withdrawFunds(address _recipient, uint256 _amount) external onlyOwner {
-        uint256 available = uint256(recordedFunds.available);
+        uint256 available = recordedFunds.available;
         require(
             available - requiredReserve(paymentAmount) >= _amount,
             "insufficient reserve funds"
         );
-        /* require(linkToken.transfer(_recipient, _amount), "token transfer failed"); */
-        /* updateAvailableFunds(); */
+
+        (bool sent, ) = _recipient.call{value: _amount}("");
+        if (!sent) {
+            revert InsufficientBalance();
+        }
+
+        updateAvailableFunds();
     }
 
     /**
