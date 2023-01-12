@@ -3,7 +3,6 @@ pragma solidity 0.8.16;
 
 // https://github.com/smartcontractkit/chainlink/blob/develop/contracts/src/v0.6/FluxAggregator.sol
 
-import "hardhat/console.sol";
 import "./Median.sol";
 import "./ConfirmedOwner.sol";
 import "./interfaces/AggregatorInterface.sol";
