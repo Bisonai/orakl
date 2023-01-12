@@ -154,9 +154,9 @@ contract Aggregator is AggregatorInterface, ConfirmedOwner {
      */
     function submit(uint256 _roundId, int256 _submission) external {
         bytes memory error = validateOracleRound(msg.sender, uint32(_roundId));
+        require(error.length == 0, string(error));
         require(_submission >= minSubmissionValue, "value below minSubmissionValue");
         require(_submission <= maxSubmissionValue, "value above maxSubmissionValue");
-        require(error.length == 0, string(error));
 
         oracleInitializeNewRound(uint32(_roundId));
         recordSubmission(_submission, uint32(_roundId));
