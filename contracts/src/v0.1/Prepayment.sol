@@ -264,8 +264,7 @@ contract Prepayment is
      * @inheritdoc PrepaymentInterface
      */
     function nodeWithdraw(uint256 amount) external onlyRole(WITHDRAWER_ROLE) {
-        if(amount==0)
-        {
+        if (amount == 0) {
             revert ZeroAmount();
         }
         if (address(this).balance < amount) {

@@ -258,9 +258,9 @@ contract VRFCoordinator is
         return (s_config.minimumRequestConfirmations, s_config.maxGasLimit, s_provingKeyHashes);
     }
 
-    function setPaymentConfig(uint256 gas, uint256 fee) public onlyOwner {
-        s_paymentConfig = PaymentConfig(gas, fee);
-        emit PaymentConfigSet(gas, fee);
+    function setPaymentConfig(uint256 fulfillmentFee, uint256 baseFee) public onlyOwner {
+        s_paymentConfig = PaymentConfig(fulfillmentFee, baseFee);
+        emit PaymentConfigSet(fulfillmentFee, baseFee);
     }
 
     function getPaymentConfig() external view returns (uint256, uint256) {
@@ -452,14 +452,9 @@ contract VRFCoordinator is
         // Note we do not check whether the keyHash is valid to save gas.
         // The consequence for users is that they can send requests
         // for invalid keyHashes which will simply not be fulfilled.
-        
-        uint64 nonce=Prepayment.increaseNonce(msg.sender, accId);
-        (uint256 requestId, uint256 preSeed) = computeRequestId(
-            keyHash,
-            msg.sender,
-            accId,
-            nonce
-        );
+
+        uint64 nonce = Prepayment.increaseNonce(msg.sender, accId);
+        (uint256 requestId, uint256 preSeed) = computeRequestId(keyHash, msg.sender, accId, nonce);
 
         s_requestCommitments[requestId] = keccak256(
             abi.encode(requestId, block.number, accId, callbackGasLimit, numWords, msg.sender)
@@ -475,7 +470,6 @@ contract VRFCoordinator is
             msg.sender,
             isDirectPayment
         );
-
 
         return requestId;
     }
