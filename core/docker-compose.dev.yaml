@@ -38,6 +38,7 @@ services:
       start_period: 10s
     depends_on:
       - redis
+    restart: unless-stopped
 
   listener-any-api:
     image: core-icn
@@ -57,6 +58,7 @@ services:
       <<: *common-health-check
     depends_on:
       - redis
+    restart: unless-stopped
 
   listener-aggregator:
     image: core-icn
@@ -76,6 +78,7 @@ services:
       <<: *common-health-check
     depends_on:
       - redis
+    restart: unless-stopped
 
   worker-vrf:
     image: core-icn
@@ -97,6 +100,7 @@ services:
       <<: *common-health-check
     depends_on:
       - redis
+    restart: unless-stopped
 
   worker-any-api:
     image: core-icn
@@ -114,6 +118,7 @@ services:
       <<: *common-health-check
     depends_on:
       - redis
+    restart: unless-stopped
 
   worker-aggregator:
     image: core-icn
@@ -131,6 +136,7 @@ services:
       <<: *common-health-check
     depends_on:
       - redis
+    restart: unless-stopped
 
   worker-predefined-feed:
     image: core-icn
@@ -148,6 +154,7 @@ services:
       <<: *common-health-check
     depends_on:
       - redis
+    restart: unless-stopped
 
   reporter-vrf:
     image: core-icn
@@ -169,6 +176,7 @@ services:
       <<: *common-health-check
     depends_on:
       - redis
+    restart: unless-stopped
 
   reporter-any-api:
     image: core-icn
@@ -190,6 +198,7 @@ services:
       <<: *common-health-check
     depends_on:
       - redis
+    restart: unless-stopped
 
   reporter-aggregator:
     image: core-icn
@@ -211,3 +220,4 @@ services:
       <<: *common-health-check
     depends_on:
       - redis
+    restart: unless-stopped

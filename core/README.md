@@ -26,6 +26,14 @@ docker compose -f docker-compose.build.dev.yaml build
 docker compose -f docker-compose.dev.yaml up
 ```
 
+## Local Bull Queue Monitoring
+
+```
+docker compose -f docker-compose.bull-monitor.yaml up
+```
+
+Bull Queue Board: http://localhost:3000/queues/
+
 ## Run cli script
 
 ### Run price-feed
@@ -39,7 +47,5 @@ export ADAPTERID=
 Run
 
 ```shell
-yarn clean
-yarn build
 yarn price_feed --adapterId ${ADAPTERID}
 ```

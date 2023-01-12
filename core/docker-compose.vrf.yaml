@@ -38,6 +38,7 @@ services:
       start_period: 10s
     depends_on:
       - redis
+    restart: unless-stopped
 
   worker-vrf:
     image: core-icn
@@ -59,6 +60,7 @@ services:
       <<: *common-health-check
     depends_on:
       - redis
+    restart: unless-stopped
 
   reporter-vrf:
     image: core-icn
@@ -80,3 +82,4 @@ services:
       <<: *common-health-check
     depends_on:
       - redis
+    restart: unless-stopped
