@@ -6,6 +6,8 @@ FROM node@sha256:0c3ea57b6c560f83120801e222691d9bd187c605605185810752a19225b5e4d
 
 ARG NPM_TOKEN
 
+RUN apt-get update && apt-get install -y curl
+
 WORKDIR /app
 
 COPY .npmrc .
@@ -19,6 +21,8 @@ COPY tsconfig.json .
 COPY config config
 
 COPY adapter adapter
+
+COPY aggregator aggregator
 
 COPY src src
 

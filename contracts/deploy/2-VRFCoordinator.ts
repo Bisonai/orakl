@@ -9,7 +9,10 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   console.log('2-VRFCoordinator.ts')
 
+  const prepayment = await ethers.getContract('Prepayment')
+
   const vrfCoordinatorDeployment = await deploy('VRFCoordinator', {
+    args: [prepayment.address],
     from: deployer,
     log: true
   })
@@ -41,18 +44,27 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     log: true
   })
 
-  const vrfCoordinatorConsumerSigner = await ethers.getContractAt(
-    'VRFCoordinator',
-    vrfCoordinatorDeployment.address,
+  const prepaymentConsumerSigner = await ethers.getContractAt(
+    'Prepayment',
+    prepayment.address,
     consumer
   )
 
-  // Create subscription
-  const subscriptionReceipt = await (await vrfCoordinatorConsumerSigner.createSubscription()).wait()
-  const { subId } = subscriptionReceipt.events[0].args
+  // Create account
+  const accountReceipt = await (await prepaymentConsumerSigner.createAccount()).wait()
+  const { accId } = accountReceipt.events[0].args
 
-  // Add consumer to subscription
-  await vrfCoordinatorConsumerSigner.addConsumer(subId, vrfConsumerMockDeployment.address)
+  // Add consumer to account
+  await prepaymentConsumerSigner.addConsumer(accId, vrfConsumerMockDeployment.address)
+
+  // Add VRFCoordinator to Prepayment
+  const prepaymentDeployerSigner = await ethers.getContractAt(
+    'Prepayment',
+    prepayment.address,
+    deployer
+  )
+
+  await prepaymentDeployerSigner.addCoordinator(vrfCoordinatorDeployment.address)
 }
 
 export default func

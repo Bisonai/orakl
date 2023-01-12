@@ -1,5 +1,5 @@
 import { Queue } from 'bullmq'
-import { ALL_QUEUES, BULLMQ_CONNECTION } from './settings'
+import { ALL_QUEUES, BULLMQ_CONNECTION } from '../settings'
 
 async function main() {
   for (const q of ALL_QUEUES) {

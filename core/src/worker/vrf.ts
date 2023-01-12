@@ -38,7 +38,7 @@ async function vrfJob(queueName) {
         blockNum: inData.blockNum,
         requestId: inData.requestId,
         seed: inData.seed,
-        subId: inData.subId,
+        accId: inData.accId,
         minimumRequestConfirmations: inData.minimumRequestConfirmations,
         callbackGasLimit: inData.callbackGasLimit,
         numWords: inData.numWords,

@@ -99,11 +99,12 @@ export interface IRandomWordsRequested {
   keyHash: string
   requestId: BigNumber
   preSeed: number
-  subId: BigNumber
+  accId: BigNumber
   minimumRequestConfirmations: number
   callbackGasLimit: number
   numWords: number
   sender: string
+  subId: string
 }
 
 export interface INewRound {
@@ -139,7 +140,7 @@ export interface IVrfListenerWorker {
   blockHash: string
   requestId: string
   seed: string
-  subId: string
+  accId: string
   minimumRequestConfirmations: number
   callbackGasLimit: number
   numWords: number
@@ -192,7 +193,7 @@ export interface IVrfWorkerReporter {
   blockNum: string
   requestId: string
   seed: string
-  subId: string
+  accId: string
   minimumRequestConfirmations: number
   callbackGasLimit: number
   numWords: number

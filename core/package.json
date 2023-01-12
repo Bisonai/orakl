@@ -15,7 +15,6 @@
     "prepare": "cd .. && husky install core/.husky",
     "clean": "rm -rf dist",
     "build": "yarn clean && tsc",
-    "flush": "node --experimental-specifier-resolution=node --experimental-json-modules dist/flush-queues.js",
     "start:listener": "node --experimental-specifier-resolution=node --experimental-json-modules dist/listener/main.js",
     "start:listener:vrf": "yarn start:listener --listener VRF",
     "start:listener:any_api": "yarn start:listener --listener ANY_API",
@@ -31,11 +30,12 @@
     "start:reporter:aggregator": "yarn start:reporter --reporter AGGREGATOR",
     "keygen": "node --experimental-specifier-resolution=node --experimental-json-modules dist/cli/vrf-keygen.js",
     "price_feed": "node --experimental-specifier-resolution=node --experimental-json-modules dist/cli/price-feed.js",
+    "flush": "node --experimental-specifier-resolution=node --experimental-json-modules dist/cli/flush-queues.js",
     "test": "jest",
     "eslint": "DEBUG=eslint:cli-engine npx eslint 'src/**/*.ts' 'src/*.ts' 'test/*.ts'"
   },
   "dependencies": {
-    "@bisonai-cic/icn-contracts": "0.1.0",
+    "@bisonai-cic/icn-contracts": "^0.2.0",
     "bn.js": "^5.2.1",
     "bullmq": "^3.2.2",
     "dotenv": "^16.0.3",

@@ -1,6 +1,5 @@
 import { expect } from 'chai'
-import pkg from 'hardhat'
-const { ethers } = pkg
+import { ethers } from 'hardhat'
 
 function preprocessArray(a) {
   if (a.length % 2 == 0) {

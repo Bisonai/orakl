@@ -1,78 +1,103 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.16;
 
+// https://github.com/smartcontractkit/chainlink/blob/develop/contracts/src/v0.8/VRFCoordinatorV2.sol
+
 import "@openzeppelin/contracts/access/AccessControlEnumerable.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "./interfaces/PrepaymentInterface.sol";
 import "./interfaces/CoordinatorBaseInterface.sol";
+import "./interfaces/PrepaymentInterface.sol";
+import "./interfaces/TypeAndVersionInterface.sol";
 
-contract Prepayment is Ownable, AccessControlEnumerable, PrepaymentInterface {
+contract Prepayment is
+    AccessControlEnumerable,
+    Ownable,
+    PrepaymentInterface,
+    TypeAndVersionInterface
+{
     uint16 public constant MAX_CONSUMERS = 100;
-    uint96 private s_totalBalance;
-    error TooManyConsumers();
-    error InsufficientBalance();
-    error InvalidConsumer(uint64 accId, address consumer);
-    error InvalidAccount();
-    error MustBeAccountOwner(address owner);
-    error PendingRequestExists();
-    error MustBeRequestedOwner(address proposedOwner);
-    error Reentrant();
-
-    event AccountCreated(uint64 indexed accId, address owner);
-    event AccountFunded(uint64 indexed accId, uint256 oldBalance, uint256 newBalance);
-    event AccountDecreased(uint64 indexed accId, uint256 oldBalance, uint256 newBalance);
-    event AccountConsumerAdded(uint64 indexed accId, address consumer);
-    event AccountConsumerRemoved(uint64 indexed accId, address consumer);
-    event AccountCanceled(uint64 indexed accId, address to, uint256 amount);
-    event AccountOwnerTransferRequested(uint64 indexed accId, address from, address to);
-    event AccountOwnerTransferred(uint64 indexed accId, address from, address to);
-
     bytes32 public constant WITHDRAWER_ROLE = keccak256("WITHDRAWER_ROLE");
-    bytes32 public constant ORACLE_ROLE = keccak256("ORACLE_ROLE");
+    bytes32 public constant COORDINATOR_ROLE = keccak256("COORDINATOR_ROLE");
+
+    uint96 private s_totalBalance;
+
+    uint64 private s_currentAccId;
+
+    uint96 public s_withdrawable;
+
+    /* consumer */ /* accId */ /* nonce */
+    mapping(address => mapping(uint64 => uint64)) private s_consumers;
+
+    /* accId */ /* AccountConfig */
+    mapping(uint64 => AccountConfig) private s_accountConfigs;
+
+    /* accId */ /* account */
+    mapping(uint64 => Account) private s_accounts;
+
     struct Account {
         // There are only 1e9*1e18 = 1e27 juels in existence, so the balance can fit in uint96 (2^96 ~ 7e28)
-        uint96 balance; // Common link balance used for all consumer requests.
+        uint96 balance; // Common KLAY balance used for all consumer requests.
         uint64 reqCount; // For fee tiers
     }
+
     struct AccountConfig {
         address owner; // Owner can fund/withdraw/cancel the acc.
         address requestedOwner; // For safely transferring acc ownership.
         // Maintains the list of keys in s_consumers.
         // We do this for 2 reasons:
-        // 1. To be able to clean up all keys from s_consumers when canceling a account.
+        // 1. To be able to clean up all keys from s_consumers when canceling an account.
         // 2. To be able to return the list of all consumers in getAccount.
         // Note that we need the s_consumers map to be able to directly check if a
         // consumer is valid without reading all the consumers from storage.
         address[] consumers;
     }
-    mapping(address => mapping(uint64 => uint64)) private s_consumers;
-
-    /* accId */
-    /* AccountConfig */
-    mapping(uint64 => AccountConfig) private s_accountConfigs;
-
-    /* accId */
-    /* account */
-    mapping(uint64 => Account) private s_accounts;
-
-    // We make the acc count public so that its possible to
-    // get all the current accounts via getAccount.
-    uint64 private s_currentAccId;
-
-    uint96 public s_withdrawable;
 
     CoordinatorBaseInterface[] private s_coordinators;
+
+    error TooManyConsumers();
+    error InsufficientBalance();
+    error InsufficientConsumerBalance();
+    error InvalidConsumer(uint64 accId, address consumer);
+    error InvalidAccount();
+    error MustBeAccountOwner(address owner);
+    error PendingRequestExists();
+    error MustBeRequestedOwner(address proposedOwner);
+
+    event AccountCreated(uint64 indexed accId, address owner);
+    event AccountCanceled(uint64 indexed accId, address to, uint256 amount);
+    event AccountBalanceIncreased(uint64 indexed accId, uint256 oldBalance, uint256 newBalance);
+    event AccountBalanceDecreased(uint64 indexed accId, uint256 oldBalance, uint256 newBalance);
+    event AccountConsumerAdded(uint64 indexed accId, address consumer);
+    event AccountConsumerRemoved(uint64 indexed accId, address consumer);
+    event AccountOwnerTransferRequested(uint64 indexed accId, address from, address to);
+    event AccountOwnerTransferred(uint64 indexed accId, address from, address to);
+    event FundsWithdrawn(address to, uint256 amount);
+
+    modifier onlyAccOwner(uint64 accId) {
+        address owner = s_accountConfigs[accId].owner;
+        if (owner == address(0)) {
+            revert InvalidAccount();
+        }
+        if (msg.sender != owner) {
+            revert MustBeAccountOwner(owner);
+        }
+        _;
+    }
 
     constructor() {
         _setupRole(DEFAULT_ADMIN_ROLE, _msgSender());
     }
 
-    receive() external payable {}
-
-    function getTotalBalance() external view returns (uint256) {
+    /**
+     * @inheritdoc PrepaymentInterface
+     */
+    function getTotalBalance() external view returns (uint96) {
         return s_totalBalance;
     }
 
+    /**
+     * @inheritdoc PrepaymentInterface
+     */
     function getAccount(
         uint64 accId
     )
@@ -91,6 +116,9 @@ contract Prepayment is Ownable, AccessControlEnumerable, PrepaymentInterface {
         );
     }
 
+    /**
+     * @inheritdoc PrepaymentInterface
+     */
     function createAccount() external returns (uint64) {
         s_currentAccId++;
         uint64 currentAccId = s_currentAccId;
@@ -106,6 +134,9 @@ contract Prepayment is Ownable, AccessControlEnumerable, PrepaymentInterface {
         return currentAccId;
     }
 
+    /**
+     * @inheritdoc PrepaymentInterface
+     */
     function requestAccountOwnerTransfer(
         uint64 accId,
         address newOwner
@@ -117,7 +148,10 @@ contract Prepayment is Ownable, AccessControlEnumerable, PrepaymentInterface {
         }
     }
 
-    function acceptAccountOwnerTransfer(uint64 accId) external override {
+    /**
+     * @inheritdoc PrepaymentInterface
+     */
+    function acceptAccountOwnerTransfer(uint64 accId) external {
         if (s_accountConfigs[accId].owner == address(0)) {
             revert InvalidAccount();
         }
@@ -130,6 +164,9 @@ contract Prepayment is Ownable, AccessControlEnumerable, PrepaymentInterface {
         emit AccountOwnerTransferred(accId, oldOwner, msg.sender);
     }
 
+    /**
+     * @inheritdoc PrepaymentInterface
+     */
     function removeConsumer(uint64 accId, address consumer) external onlyAccOwner(accId) {
         if (s_consumers[consumer][accId] == 0) {
             revert InvalidConsumer(accId, consumer);
@@ -151,6 +188,9 @@ contract Prepayment is Ownable, AccessControlEnumerable, PrepaymentInterface {
         emit AccountConsumerRemoved(accId, consumer);
     }
 
+    /**
+     * @inheritdoc PrepaymentInterface
+     */
     function addConsumer(uint64 accId, address consumer) external onlyAccOwner(accId) {
         // Already maxed, cannot add any more consumers.
         if (s_accountConfigs[accId].consumers.length >= MAX_CONSUMERS) {
@@ -168,6 +208,9 @@ contract Prepayment is Ownable, AccessControlEnumerable, PrepaymentInterface {
         emit AccountConsumerAdded(accId, consumer);
     }
 
+    /**
+     * @inheritdoc PrepaymentInterface
+     */
     function cancelAccount(uint64 accId, address to) external onlyAccOwner(accId) {
         if (pendingRequestExists(accId)) {
             revert PendingRequestExists();
@@ -175,134 +218,185 @@ contract Prepayment is Ownable, AccessControlEnumerable, PrepaymentInterface {
         cancelAccountHelper(accId, to);
     }
 
-    function withdraw(uint64 accId, uint96 amount) external onlyAccOwner(accId) {
-        if (s_accounts[accId].balance < amount) {
-            revert InsufficientBalance();
-        }
-        require(address(this).balance >= amount, "Prepayment: Insufficient account balance");
-        uint256 oldBalance = s_accounts[accId].balance;
-        s_accounts[accId].balance -= amount;
-        uint256 newBalance = s_accounts[accId].balance;
-        payable(msg.sender).transfer(amount);
-        emit AccountDecreased(accId, oldBalance, newBalance);
-    }
-
-    /// anybody can deposit, they just need to know the accID
+    /**
+     * @inheritdoc PrepaymentInterface
+     */
     function deposit(uint64 accId) external payable {
-        uint96 amount = uint96(msg.value);
-        require(msg.sender.balance >= msg.value, "Insufficient account balance");
+        if (msg.sender.balance < msg.value) {
+            revert InsufficientConsumerBalance();
+        }
+        uint96 amount = uint96(msg.value); // FIXME
         uint96 oldBalance = s_accounts[accId].balance;
         s_accounts[accId].balance += amount;
         s_totalBalance += amount;
-        uint96 newBalance = s_accounts[accId].balance;
-        emit AccountFunded(accId, oldBalance, newBalance);
+        emit AccountBalanceIncreased(accId, oldBalance, oldBalance + amount);
     }
 
-    function chargeFee(uint64 accId, uint96 amount) external onlyOracle {
-        if (s_accounts[accId].balance < amount) {
+    /**
+     * @inheritdoc PrepaymentInterface
+     */
+    function withdraw(uint64 accId, uint96 amount) external onlyAccOwner(accId) {
+        if (pendingRequestExists(accId)) {
+            revert PendingRequestExists();
+        }
+
+        uint256 oldBalance = s_accounts[accId].balance;
+        if ((oldBalance < amount) || (address(this).balance < amount)) {
             revert InsufficientBalance();
         }
-        uint96 oldBalance = s_accounts[accId].balance;
+
         s_accounts[accId].balance -= amount;
-        //increase request count
+
+        (bool sent, ) = msg.sender.call{value: amount}("");
+        if (!sent) {
+            revert InsufficientBalance();
+        }
+
+        emit AccountBalanceDecreased(accId, oldBalance, oldBalance - amount);
+    }
+
+    /**
+     * @inheritdoc PrepaymentInterface
+     */
+    function ownerWithdraw(uint96 amount) external onlyRole(WITHDRAWER_ROLE) {
+        if (address(this).balance < amount) {
+            revert InsufficientBalance();
+        }
+
+        s_withdrawable -= amount;
+
+        (bool sent, ) = msg.sender.call{value: amount}("");
+        if (!sent) {
+            revert InsufficientBalance();
+        }
+
+        emit FundsWithdrawn(msg.sender, amount);
+    }
+
+    /**
+     * @inheritdoc PrepaymentInterface
+     */
+    function chargeFee(uint64 accId, uint96 amount) external onlyRole(COORDINATOR_ROLE) {
+        uint96 oldBalance = s_accounts[accId].balance;
+        if (oldBalance < amount) {
+            revert InsufficientBalance();
+        }
+
+        s_accounts[accId].balance -= amount;
         s_accounts[accId].reqCount += 1;
-        uint96 newBalance = s_accounts[accId].balance;
         s_withdrawable += amount;
-        emit AccountDecreased(accId, oldBalance, newBalance);
+
+        emit AccountBalanceDecreased(accId, oldBalance, oldBalance - amount);
     }
 
-    function ownerWithdraw() external onlyWithdrawer {
-        require(
-            s_withdrawable > 0 && address(this).balance > s_withdrawable,
-            "Insufficient balance"
-        );
-        payable(msg.sender).transfer(s_withdrawable);
-        /// only for us, do we need to emit event here?
-    }
-
+    /**
+     * @inheritdoc PrepaymentInterface
+     */
     function getNonce(address consumer, uint64 accId) external view returns (uint64) {
         return s_consumers[consumer][accId];
     }
 
-    function increaseNonce(address consumer, uint64 accId) external {
-        s_consumers[consumer][accId] += 1;
+    /**
+     * @inheritdoc PrepaymentInterface
+     */
+    function increaseNonce(
+        address consumer,
+        uint64 accId
+    ) external onlyRole(COORDINATOR_ROLE) returns (uint64) {
+        uint64 currentNonce = s_consumers[consumer][accId];
+        uint64 nonce = currentNonce + 1;
+        s_consumers[consumer][accId] = nonce;
+        return nonce;
     }
 
+    /**
+     * @inheritdoc PrepaymentInterface
+     */
     function getAccountOwner(uint64 accId) external view returns (address owner) {
         return s_accountConfigs[accId].owner;
     }
 
+    /**
+     * @notice The type and version of this contract
+     * @return Type and version string
+     */
+    function typeAndVersion() external pure virtual override returns (string memory) {
+        return "Prepayment v0.1";
+    }
+
+    /**
+     * @inheritdoc PrepaymentInterface
+     * @dev Looping is bounded to MAX_CONSUMERS*(number of keyhashes).
+     * @dev Used to disable subscription canceling while outstanding request are present.
+     */
     function pendingRequestExists(uint64 accId) public view returns (bool) {
         AccountConfig memory accConfig = s_accountConfigs[accId];
         for (uint256 i = 0; i < accConfig.consumers.length; i++) {
             for (uint256 j = 0; j < s_coordinators.length; j++) {
-                bool rs = s_coordinators[j].pendingRequestExists(
-                    accId,
-                    accConfig.consumers[i],
-                    s_consumers[accConfig.consumers[i]][accId]
-                );
-                if (rs == true) return rs;
+                if (
+                    s_coordinators[j].pendingRequestExists(
+                        accId,
+                        accConfig.consumers[i],
+                        s_consumers[accConfig.consumers[i]][accId]
+                    )
+                ) {
+                    return true;
+                }
             }
         }
         return false;
     }
 
-    function addCoordinator(CoordinatorBaseInterface coordinator) public onlyOwner {
-        s_coordinators.push(coordinator);
+    /**
+     * @inheritdoc PrepaymentInterface
+     */
+    function addCoordinator(address coordinator) public onlyOwner {
+        _grantRole(COORDINATOR_ROLE, coordinator);
+        s_coordinators.push(CoordinatorBaseInterface(coordinator));
     }
 
-    function removeCoordinator(CoordinatorBaseInterface coordinator) public onlyOwner {
-        uint256 lastCoordinatorIndex = s_coordinators.length - 1;
+    /**
+     * @inheritdoc PrepaymentInterface
+     */
+    function removeCoordinator(address coordinator) public onlyOwner {
+        _revokeRole(COORDINATOR_ROLE, coordinator);
+
         for (uint256 i = 0; i < s_coordinators.length; i++) {
-            if (s_coordinators[i] == coordinator) {
-                CoordinatorBaseInterface last = s_coordinators[lastCoordinatorIndex];
-                // Storage write to preserve last element
+            if (s_coordinators[i] == CoordinatorBaseInterface(coordinator)) {
+                CoordinatorBaseInterface last = s_coordinators[s_coordinators.length - 1];
                 s_coordinators[i] = last;
-                // Storage remove last element
                 s_coordinators.pop();
                 break;
             }
         }
     }
 
+    /*
+     * @notice Remove consumers and account related information.
+     * @notice Return remaining balance.
+     * @param accId - ID of the account
+     * @param to - Where to send the remaining KLAY to
+     */
     function cancelAccountHelper(uint64 accId, address to) private {
         AccountConfig memory accConfig = s_accountConfigs[accId];
         Account memory acc = s_accounts[accId];
         uint96 balance = acc.balance;
+
         // Note bounded by MAX_CONSUMERS;
         // If no consumers, does nothing.
         for (uint256 i = 0; i < accConfig.consumers.length; i++) {
             delete s_consumers[accConfig.consumers[i]][accId];
         }
+
         delete s_accountConfigs[accId];
         delete s_accounts[accId];
         s_totalBalance -= balance;
-        //fix this
-        payable(address(to)).transfer(uint256(balance));
+
+        (bool sent, ) = to.call{value: balance}("");
+        if (!sent) {
+            revert InsufficientBalance();
+        }
+
         emit AccountCanceled(accId, to, balance);
-    }
-
-    modifier onlyAccOwner(uint64 accId) {
-        address owner = s_accountConfigs[accId].owner;
-        if (owner == address(0)) {
-            revert InvalidAccount();
-        }
-        if (msg.sender != owner) {
-            revert MustBeAccountOwner(owner);
-        }
-        _;
-    }
-    modifier onlyWithdrawer() {
-        require(hasRole(WITHDRAWER_ROLE, msg.sender), "Caller is not a withdrawer");
-        _;
-    }
-
-    modifier onlyOracle() {
-        require(hasRole(ORACLE_ROLE, msg.sender), "Caller is not an oracle");
-        _;
-    }
-
-    function typeAndVersion() external pure virtual returns (string memory) {
-        return "Prepayment v0.1";
     }
 }
