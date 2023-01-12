@@ -66,6 +66,7 @@ contract Prepayment is
     error MustBeAccountOwner(address owner);
     error PendingRequestExists();
     error MustBeRequestedOwner(address proposedOwner);
+    error ZeroAmount();
 
     event AccountCreated(uint64 indexed accId, address owner);
     event AccountCanceled(uint64 indexed accId, address to, uint256 amount);
@@ -229,7 +230,7 @@ contract Prepayment is
         if (msg.sender.balance < msg.value) {
             revert InsufficientConsumerBalance();
         }
-        uint256 amount = msg.value; // FIXME
+        uint256 amount = msg.value;
         uint256 oldBalance = s_accounts[accId].balance;
         s_accounts[accId].balance += amount;
         s_totalBalance += amount;
@@ -263,7 +264,10 @@ contract Prepayment is
      * @inheritdoc PrepaymentInterface
      */
     function nodeWithdraw(uint256 amount) external onlyRole(WITHDRAWER_ROLE) {
-        require(amount > 0, "Amount need to greater than Zero");
+        if(amount==0)
+        {
+            revert ZeroAmount();
+        }
         if (address(this).balance < amount) {
             revert InsufficientBalance();
         }
