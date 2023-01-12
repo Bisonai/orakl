@@ -74,7 +74,7 @@ contract Aggregator is AggregatorInterface, ConfirmedOwner {
     /**
      * @notice To ensure owner isn't withdrawing required funds as oracles are
      * submitting updates, we enforce that the contract maintains a minimum
-     * reserve of RESERVE_ROUNDS * oracleCount() LINK earmarked for payment to
+     * reserve of RESERVE_ROUNDS * oracleCount() KLAY earmarked for payment to
      * oracles. (Of course, this doesn't prevent the contract from running out of
      * funds without the owner's intervention.)
      */
