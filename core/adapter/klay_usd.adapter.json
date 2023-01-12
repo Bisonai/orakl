@@ -3,6 +3,7 @@
   "name": "KLAY/USD",
   "jobType": "DATA_FEED",
   "adapterId": "0xf84be3681d32250d9fbe85ab1c56db59d9e1ef2dff242de066853b4a047e15e2",
+  "decimal": "8",
   "feeds": [
     {
       "url": "https://min-api.cryptocompare.com/data/pricemultifull?fsyms=KLAY&tsyms=USD",
@@ -13,39 +14,54 @@
       "reducers": [
         {
           "function": "PARSE",
-          "args": [
-            "RAW",
-            "KLAY",
-            "USD",
-            "PRICE"
-          ]
+          "args": ["RAW", "KLAY", "USD", "PRICE"]
         },
         {
-          "function": "MUL",
-          "args": [
-            1000000000
-          ]
+          "function": "POW10",
+          "args": "8"
+        },
+        {
+          "function": "ROUND"
         }
       ]
     },
     {
-      "url": "https://rest.coinapi.io/v1/exchangerate/KLAY/USD",
+      "url": "https://api.coingecko.com/api/v3/simple/price?ids=klay-token&vs_currencies=usd",
       "headers": {
-        "X-CoinAPI-Key": "209D7E0E-9330-4706-B693-6E2ED10279A5"
+        "Content-Type": "application/json"
       },
       "method": "GET",
       "reducers": [
         {
           "function": "PARSE",
-          "args": [
-            "rate"
-          ]
+          "args": ["klay-token", "usd"]
         },
         {
-          "function": "MUL",
-          "args": [
-            1000000000
-          ]
+          "function": "POW10",
+          "args": "8"
+        },
+        {
+          "function": "ROUND"
+        }
+      ]
+    },
+    {
+      "url": "https://api.coinbase.com/v2/exchange-rates?currency=KLAY",
+      "headers": {
+        "Content-Type": "application/json"
+      },
+      "method": "GET",
+      "reducers": [
+        {
+          "function": "PARSE",
+          "args": ["data", "rates", "USD"]
+        },
+        {
+          "function": "POW10",
+          "args": "8"
+        },
+        {
+          "function": "ROUND"
         }
       ]
     }
