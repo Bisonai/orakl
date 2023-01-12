@@ -27,13 +27,12 @@ contract VRFCoordinator is
 
     bytes32[] private s_provingKeyHashes;
 
-    /* keyHash */ /* oracle */
+    /* keyHash */
+    /* oracle */
     mapping(bytes32 => address) private s_provingKeys;
 
-    /* oracle */ /* KLAY balance */
-    /* mapping(address => uint96) private s_withdrawableTokens; */
-
-    /* requestID */ /* commitment */
+    /* requestID */
+    /* commitment */
     mapping(uint256 => bytes32) private s_requestCommitments;
 
     // RequestCommitment holds information sent from off-chain oracle
@@ -74,6 +73,13 @@ contract VRFCoordinator is
 
     PrepaymentInterface Prepayment;
 
+    struct PaymentConfig {
+        uint256 fulfillmentFee;
+        uint256 baseFee;
+    }
+
+    PaymentConfig s_paymentConfig;
+
     error InvalidConsumer(uint64 accId, address consumer);
     error InvalidAccount();
     error InvalidRequestConfirmations(uint16 have, uint16 min, uint16 max);
@@ -97,12 +103,13 @@ contract VRFCoordinator is
         uint16 minimumRequestConfirmations,
         uint32 callbackGasLimit,
         uint32 numWords,
-        address indexed sender
+        address indexed sender,
+        bool isDirectPayment
     );
     event RandomWordsFulfilled(
         uint256 indexed requestId,
         uint256 outputSeed,
-        uint96 payment,
+        uint256 payment,
         bool success
     );
     event ConfigSet(
@@ -111,6 +118,7 @@ contract VRFCoordinator is
         uint32 gasAfterPaymentCalculation,
         FeeConfig feeConfig
     );
+    event PaymentConfigSet(uint256 fulfillmentFee, uint256 baseFee);
 
     modifier nonReentrant() {
         if (s_config.reentrancyLock) {
@@ -250,6 +258,19 @@ contract VRFCoordinator is
         return (s_config.minimumRequestConfirmations, s_config.maxGasLimit, s_provingKeyHashes);
     }
 
+    function setPaymentConfig(uint256 fulfillmentFee, uint256 baseFee) public onlyOwner {
+        s_paymentConfig = PaymentConfig(fulfillmentFee, baseFee);
+        emit PaymentConfigSet(fulfillmentFee, baseFee);
+    }
+
+    function getPaymentConfig() external view returns (uint256, uint256) {
+        return (s_paymentConfig.fulfillmentFee, s_paymentConfig.baseFee);
+    }
+
+    function estimateFee() public view returns (uint256) {
+        return s_paymentConfig.fulfillmentFee + s_paymentConfig.baseFee;
+    }
+
     /**
      * @notice Get request commitment
      * @param requestId id of request
@@ -268,10 +289,11 @@ contract VRFCoordinator is
      */
     function fulfillRandomWords(
         VRF.Proof memory proof,
-        RequestCommitment memory rc
-    ) external nonReentrant returns (uint96) {
+        RequestCommitment memory rc,
+        bool isDirectPayment
+    ) external nonReentrant returns (uint256) {
         uint256 startGas = gasleft();
-        (, /* bytes32 keyHash */ uint256 requestId, uint256 randomness) = getRandomnessFromProof(
+        (bytes32 keyHash, uint256 requestId, uint256 randomness) = getRandomnessFromProof(
             proof,
             rc
         );
@@ -306,14 +328,20 @@ contract VRFCoordinator is
         // Its specified in millionths of KLAY, if s_config.fulfillmentFlatFeeKlayPPM = 1
         // 1 KLAY / 1e6 = 1e18 pebs / 1e6 = 1e12 pebs.
         (, uint64 reqCount, , ) = Prepayment.getAccount(rc.accId);
-        uint96 payment = calculatePaymentAmount(
-            startGas,
-            s_config.gasAfterPaymentCalculation,
-            getFeeTier(reqCount),
-            tx.gasprice
-        );
 
-        Prepayment.chargeFee(rc.accId, payment);
+        uint256 payment;
+        if (isDirectPayment) {
+            payment = estimateFee();
+        } else {
+            payment = calculatePaymentAmount(
+                startGas,
+                s_config.gasAfterPaymentCalculation,
+                getFeeTier(reqCount),
+                tx.gasprice
+            );
+        }
+
+        Prepayment.chargeFee(rc.accId, payment, s_provingKeys[keyHash]);
 
         // FIXME
         //s_withdrawableTokens[s_provingKeys[rc.keyHash]] += payment;
@@ -375,17 +403,16 @@ contract VRFCoordinator is
         return keccak256(abi.encode(publicKey));
     }
 
-    /**
-     * @inheritdoc VRFCoordinatorInterface
-     */
-    function requestRandomWords(
+    function requestRandomWordsInternal(
         bytes32 keyHash,
         uint64 accId,
         uint16 requestConfirmations,
         uint32 callbackGasLimit,
-        uint32 numWords
-    ) public nonReentrant returns (uint256) {
+        uint32 numWords,
+        bool isDirectPayment
+    ) internal returns (uint256) {
         // Input validation using the account storage.
+        // call to prepayment contract
         address owner = Prepayment.getAccountOwner(accId);
         if (owner == address(0)) {
             revert InvalidAccount();
@@ -412,8 +439,8 @@ contract VRFCoordinator is
         }
 
         // No lower bound on the requested gas limit. A user could request 0
-        // and they would simply be billed for the proof verification and wouldn't
-        // be able to do anything with the random value.
+        // and they would simply be billed for the proof verification and wouldn't be
+        // able to do anything with the random value.
         if (callbackGasLimit > s_config.maxGasLimit) {
             revert GasLimitTooBig(callbackGasLimit, s_config.maxGasLimit);
         }
@@ -425,6 +452,7 @@ contract VRFCoordinator is
         // Note we do not check whether the keyHash is valid to save gas.
         // The consequence for users is that they can send requests
         // for invalid keyHashes which will simply not be fulfilled.
+
         uint64 nonce = Prepayment.increaseNonce(msg.sender, accId);
         (uint256 requestId, uint256 preSeed) = computeRequestId(keyHash, msg.sender, accId, nonce);
 
@@ -439,9 +467,31 @@ contract VRFCoordinator is
             requestConfirmations,
             callbackGasLimit,
             numWords,
-            msg.sender
+            msg.sender,
+            isDirectPayment
         );
 
+        return requestId;
+    }
+
+    /**
+     * @inheritdoc VRFCoordinatorInterface
+     */
+    function requestRandomWords(
+        bytes32 keyHash,
+        uint64 accId,
+        uint16 requestConfirmations,
+        uint32 callbackGasLimit,
+        uint32 numWords
+    ) public nonReentrant returns (uint256) {
+        uint256 requestId = requestRandomWordsInternal(
+            keyHash,
+            accId,
+            requestConfirmations,
+            callbackGasLimit,
+            numWords,
+            false
+        );
         return requestId;
     }
 
@@ -462,12 +512,13 @@ contract VRFCoordinator is
 
         uint64 accId = Prepayment.createAccount();
         Prepayment.addConsumer(accId, msg.sender);
-        uint256 requestId = requestRandomWords(
+        uint256 requestId = requestRandomWordsInternal(
             keyHash,
             accId,
             requestConfirmations,
             callbackGasLimit,
-            numWords
+            numWords,
+            true
         );
         Prepayment.deposit{value: msg.value}(accId);
         return requestId;
@@ -479,7 +530,7 @@ contract VRFCoordinator is
         uint256 gasAfterPaymentCalculation,
         uint32 fulfillmentFlatFeeKlayPPM,
         uint256 pebPerUnitGas
-    ) internal view returns (uint96) {
+    ) internal view returns (uint256) {
         // (1e18 peb/KLAY) (peb/gas * gas) = peb
         uint256 paymentNoFee = (1e18 *
             pebPerUnitGas *
@@ -488,7 +539,7 @@ contract VRFCoordinator is
         if (paymentNoFee > (1e27 - fee)) {
             revert PaymentTooLarge(); // Payment + fee cannot be more than all of the KLAY in existence.
         }
-        return uint96(paymentNoFee + fee);
+        return paymentNoFee + fee;
     }
 
     function computeRequestId(
