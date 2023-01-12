@@ -5,7 +5,7 @@ import { parseArgs } from 'node:util'
 async function main() {
   const adapterId: string = loadArgs()
   const adapters = await loadAdapters()
-  return fetchDataWithAdapter(adapters[adapterId])
+  fetchDataWithAdapter(adapters[adapterId])
 }
 
 function loadArgs(): string {
