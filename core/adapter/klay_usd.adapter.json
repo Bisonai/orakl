@@ -3,7 +3,7 @@
   "name": "KLAY/USD",
   "jobType": "DATA_FEED",
   "adapterId": "0xf84be3681d32250d9fbe85ab1c56db59d9e1ef2dff242de066853b4a047e15e2",
-  "decimal": "8",
+  "decimals": "8",
   "feeds": [
     {
       "url": "https://min-api.cryptocompare.com/data/pricemultifull?fsyms=KLAY&tsyms=USD",
