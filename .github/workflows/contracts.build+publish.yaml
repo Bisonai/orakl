@@ -2,7 +2,7 @@ name: "contracts: build & publish"
 on:
   push:
     paths:
-      - 'contracts/**'
+      - "contracts/**"
   # release:
   #   types: [created]
 jobs:
@@ -12,9 +12,9 @@ jobs:
       - uses: actions/checkout@v3
       - uses: actions/setup-node@v3
         with:
-          node-version: '18.12'
-          registry-url: 'https://npm.pkg.github.com'
-          scope: '@bisonai-cic'
+          node-version: "18.12"
+          registry-url: "https://npm.pkg.github.com"
+          scope: "@bisonai-cic"
           always-auth: true
       - run: yarn
         working-directory: ./contracts
