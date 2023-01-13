@@ -1,11 +1,11 @@
 import * as Fs from 'node:fs/promises'
 import * as Path from 'node:path'
-import { got } from 'got'
 import { reducerMapping } from './reducer'
 import { IcnError, IcnErrorCode } from '../errors'
 import { pipe, loadJson } from '../utils'
 import { IAdapter, IAggregator } from '../types'
 import { localAggregatorFn, ADAPTER_ROOT_DIR, AGGREGATOR_ROOT_DIR } from '../settings'
+import axios from 'axios'
 
 export async function loadAdapters() {
   const adapterPaths = await Fs.readdir(ADAPTER_ROOT_DIR)
@@ -59,7 +59,7 @@ export async function fetchDataWithAdapter(adapter) {
       }
 
       try {
-        const rawData = await got(a.url, options).json()
+        const rawData = (await axios.get(a.url, options)).data
         console.debug('fetchDataWithAdapter', rawData)
         // FIXME Built reducers just once and use. Currently, can't
         // be passed to queue, therefore has to be recreated before
@@ -74,6 +74,13 @@ export async function fetchDataWithAdapter(adapter) {
     })
   )
   console.debug('predefinedFeedJob:allResults', allResults)
+  // FIXME: Improve or use flags to Throw error when allResults has any undefined variable
+  for (const index in allResults) {
+    const priceFeed = allResults[index]
+    if (!priceFeed) {
+      throw new IcnError(IcnErrorCode.InvalidPriceFeed)
+    }
+  }
 
   const aggregatedResults = localAggregatorFn(...allResults)
   console.debug('fetchDataWithAdapter:aggregatedResults', aggregatedResults)
@@ -132,7 +139,7 @@ function extractAggregators(aggregator) {
 
 function validateAdapter(adapter): IAdapter {
   // TODO extract properties from Interface
-  const requiredProperties = ['active', 'name', 'jobType', 'adapterId', 'feeds']
+  const requiredProperties = ['active', 'name', 'jobType', 'adapterId', 'decimals', 'feeds']
   // TODO show where is the error
   const hasProperty = requiredProperties.map((p) =>
     Object.prototype.hasOwnProperty.call(adapter, p)
