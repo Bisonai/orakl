@@ -7,95 +7,242 @@ A Verifiable Random Function (VRF) is a cryptographic function that generates a 
 
 In the context of the blockchain, VRFs can be used to provide a source of randomness that is unpredictable and unbiased. This can be useful in various decentralized applications (dApps) that require randomness as a key component, such as in randomized auctions or as part of a decentralized game.
 
-[our name] is a decentralized oracle network that allows smart contracts to securely access off-chain data and other resources. VRF services on [our name] allow smart contracts to use the VRF function to generate verifiably random values, which can be used in various dApps that require randomness.
+Orakl is a decentralized oracle network that allows smart contracts to securely access off-chain data and other resources. VRF services on [our name] allow smart contracts to use the VRF function to generate verifiably random values, which can be used in various dApps that require randomness.
 
-2. Request a random word
+2. Prequisite: Create and fund your acount (recommended)
+You can interact with the prepayment contract to manage your accounts on Orakl.
+++ Main functions: should be done before making a request
++ Create account
+```
+   function createAccount() external returns (uint64) {
+        s_currentAccId++;
+        uint64 currentAccId = s_currentAccId;
+        address[] memory consumers = new address[](0);
+        s_accounts[currentAccId] = Account({balance: 0, reqCount: 0});
+        s_accountConfigs[currentAccId] = AccountConfig({
+            owner: msg.sender,
+            requestedOwner: address(0),
+            consumers: consumers
+        });
+
+        emit AccountCreated(currentAccId, msg.sender);
+        return currentAccId;
+    }
 
 ```
-// SPDX-License-Identifier: MIT
-pragma solidity ^0.8.16;
+This function creates a new account by incrementing a global variable `s_currentAccId` by 1 and storing the value in a local variable `currentAccId`. It then creates an empty array of addresses called consumers and assigns it to the consumers field of `s_accountConfigs[currentAccId]`. It also creates `s_accounts[currentAccId]` with balance and reqCount set to 0. Finally, it emits an event `AccountCreated` with the current account ID and the sender's address as arguments, and returns the current account ID.
 
-import '../VRFConsumerBase.sol';
-import '../interfaces/VRFCoordinatorInterface.sol';
++ deposit
+```
+function deposit(uint64 accId) external payable {
+        if (msg.sender.balance < msg.value) {
+            revert InsufficientConsumerBalance();
+        }
+        uint256 amount = msg.value;
+        uint256 oldBalance = s_accounts[accId].balance;
+        s_accounts[accId].balance += amount;
+        s_totalBalance += amount;
+        emit AccountBalanceIncreased(accId, oldBalance, oldBalance + amount);
+    }
 
+```
+This function retrieves the current balance of the account, adds the deposit amount to it. It also updates the total balance of all accounts by adding the deposit amount to the `s_totalBalance` variable. Finally, it emits an event `AccountBalanceIncreased` with the account ID, old balance and new balance as arguments.
++ add consumer
 
-contract VRFConsumerMock is VRFConsumerBase {
-  uint256 public s_randomResult;
-  address private s_owner;
+```
+function addConsumer(uint64 accId, address consumer) external onlyAccOwner(accId) {
+        // Already maxed, cannot add any more consumers.
+        if (s_accountConfigs[accId].consumers.length >= MAX_CONSUMERS) {
+            revert TooManyConsumers();
+        }
+        if (s_consumers[consumer][accId] != 0) {
+            // Idempotence - do nothing if already added.
+            // Ensures uniqueness in s_accounts[accId].consumers.
+            return;
+        }
+        // Initialize the nonce to 1, indicating the consumer is allocated.
+        s_consumers[consumer][accId] = 1;
+        s_accountConfigs[accId].consumers.push(consumer);
 
-  VRFCoordinatorInterface COORDINATOR;
+        emit AccountConsumerAdded(accId, consumer);
+    }
 
-  error OnlyOwner(address notOwner);
+```
+This function will update the `s_consumers[consumer][accId]` with the value 1, indicating that the consumer is allocated. It will then push the consumer address to the `s_accountConfigs[accId].consumers` array. Finally, it will emit an event AccountConsumerAdded with the account ID and consumer address as arguments.
+++ other functions:
++ Transfer ownership of an account
+```
+   function requestAccountOwnerTransfer(
+        uint64 accId,
+        address newOwner
+    ) external onlyAccOwner(accId) {
+        // Proposing to address(0) would never be claimable so don't need to check.
+        if (s_accountConfigs[accId].requestedOwner != newOwner) {
+            s_accountConfigs[accId].requestedOwner = newOwner;
+            emit AccountOwnerTransferRequested(accId, msg.sender, newOwner);
+        }
+    }
 
-  modifier onlyOwner() {
-      if (msg.sender != s_owner) {
-          revert OnlyOwner(msg.sender);
-      }
-      _;
-  }
+```
 
-  constructor(address coordinator)
-      VRFConsumerBase(coordinator)
-      // ConfirmedOwner(msg.sender) TODO
+This function will update the `s_accountConfigs[accId].requestedOwner` with the value of newOwner and emit an event AccountOwnerTransferRequested with the account ID, the current owner and the new owner address as arguments. This event indicates that a request for owner transfer has been made for the account.
++ Accept account ownership
+```
+function acceptAccountOwnerTransfer(uint64 accId) external {
+        if (s_accountConfigs[accId].owner == address(0)) {
+            revert InvalidAccount();
+        }
+        if (s_accountConfigs[accId].requestedOwner != msg.sender) {
+            revert MustBeRequestedOwner(s_accountConfigs[accId].requestedOwner);
+        }
+        address oldOwner = s_accountConfigs[accId].owner;
+        s_accountConfigs[accId].owner = msg.sender;
+        s_accountConfigs[accId].requestedOwner = address(0);
+        emit AccountOwnerTransferred(accId, oldOwner, msg.sender);
+    }
+
+```
+This function will update the `s_accountConfigs[accId].owner` with the value of the msg.sender which is the address of the new owner and set the `s_accountConfigs[accId].requestedOwner` to `address(0)`. Finally it will emit an event AccountOwnerTransferred with the account ID, the old owner and the new owner address as arguments. This event indicates that the transfer of ownership has been completed for the account.
++ Remove a consumer
+
+```
+function removeConsumer(uint64 accId, address consumer) external onlyAccOwner(accId) {
+        if (s_consumers[consumer][accId] == 0) {
+            revert InvalidConsumer(accId, consumer);
+        }
+        // Note bounded by MAX_CONSUMERS
+        address[] memory consumers = s_accountConfigs[accId].consumers;
+        uint256 lastConsumerIndex = consumers.length - 1;
+        for (uint256 i = 0; i < consumers.length; i++) {
+            if (consumers[i] == consumer) {
+                address last = consumers[lastConsumerIndex];
+                // Storage write to preserve last element
+                s_accountConfigs[accId].consumers[i] = last;
+                // Storage remove last element
+                s_accountConfigs[accId].consumers.pop();
+                break;
+            }
+        }
+        delete s_consumers[consumer][accId];
+        emit AccountConsumerRemoved(accId, consumer);
+    }
+
+```
+
+this functions will iterate over the `s_accountConfigs[accId].consumers` array to find the index of the consumer that needs to be removed. It will then swap the last element with the element to be removed and pop out the last element.
+It then delete the consumer from the `s_consumers[consumer][accId]` variable and emits an event `AccountConsumerRemoved` with the account ID and consumer address as arguments.
++ Cancel an account
+
+```
+function cancelAccount(uint64 accId, address to) external onlyAccOwner(accId) {
+        if (pendingRequestExists(accId)) {
+            revert PendingRequestExists();
+        }
+        cancelAccountHelper(accId, to);
+    }
+
+```
+
+This function checks if there are any pending requests for the account by calling a function `pendingRequestExists(accId)`. If there are any pending requests, the function will revert with the error message PendingRequestExists().If there are no pending requests, it calls another function `cancelAccountHelper(accId, to)` which will be responsible for canceling the account.
+By checking if there are any pending requests before canceling the account, it ensures that the account is not being cancelled in the middle of any important process.
+
++ withdraw funds from an account
+
+```
+function withdraw(uint64 accId, uint256 amount) external onlyAccOwner(accId) {
+        if (pendingRequestExists(accId)) {
+            revert PendingRequestExists();
+        }
+
+        uint256 oldBalance = s_accounts[accId].balance;
+        if ((oldBalance < amount) || (address(this).balance < amount)) {
+            revert InsufficientBalance();
+        }
+
+        s_accounts[accId].balance -= amount;
+
+        (bool sent, ) = msg.sender.call{value: amount}("");
+        if (!sent) {
+            revert InsufficientBalance();
+        }
+
+        emit AccountBalanceDecreased(accId, oldBalance, oldBalance - amount);
+    }
+
+```
+
+This function will subtract the amount to be withdrawn from the account's balance and will transfer the withdrawn amount to the owner of the account using the `msg.sender.call` method. Finally, it will emit an event AccountBalanceDecreased with the account ID, old balance and new balance as arguments. This event will indicate that the withdrawal has been completed.
+
+2. Request a random word with prepayment method
+
+```
+Check out the example here: VRFConsumerMock.sol [github link]
+
+++ Main functions
+
++ Request a random word
+
+```
+function requestRandomWords(
+      bytes32 keyHash,
+      uint64 accId,
+      uint16 requestConfirmations,
+      uint32 callbackGasLimit,
+      uint32 numWords
+  )
+      public
+      onlyOwner
+      returns (uint256 requestId)
   {
-      s_owner = msg.sender;
-      COORDINATOR = VRFCoordinatorInterface(coordinator);
-  }
-
-  function requestRandomWords() public returns(uint256 requestId) {
-    bytes32 keyHash = 0x47ede773ef09e40658e643fe79f8d1a27c0aa6eb7251749b268f829ea49f2024;
-    uint64 subId = 1;
-    uint16 requestConfirmations = 3;
-    uint32 callbackGasLimit = 1_000_000;
-    uint32 numWords = 1;
-
     requestId = COORDINATOR.requestRandomWords(
       keyHash,
-      subId,
+      accId,
       requestConfirmations,
       callbackGasLimit,
       numWords
     );
   }
 
-  function fulfillRandomWords(uint256 /* requestId */, uint256[] memory randomWords) internal override {
-    // requestId should be checked if it matches the expected request
-    s_randomResult = (randomWords[0] % 50) + 1;
-  }
-}
+```
+Arguments:
+
+keyHash: a bytes32 value representing the hash of the key used to generate the random words, also used to choose a trusted VRF provider.
+accId: a uint64 value representing the ID of the account associated with the request.
+requestConfirmations: a uint16 value representing the number of confirmations required for the request.The bigger value, the more secure the random value is. It must be greater than the `minimumRequestBlockConfirmations` and smaller than the `maximumRequestBlockConfirmations` on the coordinator contract.
+callbackGasLimit: a uint32 value representing the gas limit for the callback function that will be executed after the confirmations have been received.
+numWords: a uint32 value representing the number of random words requested.
+
+This function calls the `requestRandomWords()` function from the COORDINATOR contract, passing in the keyHash, accId, requestConfirmations, callbackGasLimit, and numWords as arguments. This will generate the request for random words.
+Finally, it will return the requestId that is generated by the requestRandomWords() function in the COORDINATOR contract.
+
++ fulfill a random word
 
 ```
-The VRFConsumerMock contract has a few different functions:
+function fulfillRandomWords(
+      uint256 /* requestId */,
+      uint256[] memory randomWords
+  )
+      internal
+      override
+  {
+    // requestId should be checked if it matches the expected request
+    // Generate random value between 1 and 50.
+    s_randomResult = (randomWords[0] % 50) + 1;
+  }
 
-requestRandomWords(): This function initiates a request to the VRF coordinator for a specified number of random words. It specifies the key hash, accId, request confirmations, callback gas limit, and number of words to be generated.
-fulfillRandomWords(): This function is called by the VRF coordinator when the requested random words are available. It stores the first random word in the s_randomResult storage variable and modulates it by 50, adding 1 to the result.
-The VRFConsumerMock contract also has a constructor function that sets the contract owner and the VRF coordinator address, and a onlyOwner() modifier that can be used to restrict certain functions to be called only by the contract owner.
+```
+arguments:
 
-This version of the VRFConsumerMock contract does not include the requestRandomWordsDirect() function, which allows the caller to specify a payment amount in Ether.
+requestId: a uint256 value representing the ID of the request
+randomWords: an array of uint256 values representing the random words generated in response to the request
+
+This function is called by the COORDINATOR contract to generate a random value between 1 and 50 by taking the first element of the randomWords array modulo 50 and adding 1 to it. The result is stored in the storage variable `s_randomResult`.
 
 
 3. Request random word direct payment
 
 
 
-4. the prepayment contract: create account, fund your account, add consomers, and more
-[link]
-The Prepayment contract is a contract that allows users to create and manage prepaid accounts that can be used to pay for external resources, such as API calls or other data.
-
-The contract includes functions for creating and managing prepaid accounts, such as:
-
-createAccount(): This function is used to create a new prepaid account.
-fundAccount(): This function is used to add funds to an existing prepaid account.
-decreaseAccount(): This function is used to decrease the balance of an existing prepaid account.
-cancelAccount(): This function is used to cancel an existing prepaid account and withdraw any remaining balance to the owner of the account.
-The contract also includes functions for managing the consumers (i.e., external entities) that are authorized to use the prepaid accounts, such as:
-
-addConsumer(): This function is used to add a new consumer to an existing prepaid account.
-removeConsumer(): This function is used to remove an existing consumer from a prepaid account.
-The contract also includes functions for safely transferring the ownership of a prepaid account, such as:
-
-requestAccountOwnerTransfer(): This function is used to request the transfer of ownership of a prepaid account to a new owner.
-transferAccountOwner(): This function is used to complete the transfer of ownership of a prepaid account.
 
 5. VRFCoordinator interface
 [link]
