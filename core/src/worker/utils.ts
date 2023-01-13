@@ -75,13 +75,10 @@ export async function fetchDataWithAdapter(adapter) {
   )
   console.debug('predefinedFeedJob:allResults', allResults)
   // FIXME: Improve or use flags to Throw error when allResults has any undefined variable
-  for (const index in allResults) {
-    const priceFeed = allResults[index]
-    if (!priceFeed) {
-      throw new IcnError(IcnErrorCode.InvalidPriceFeed)
-    }
+  const isValid = allResults.every((r) => r)
+  if (!isValid) {
+    throw new IcnError(IcnErrorCode.InvalidPriceFeed)
   }
-
   const aggregatedResults = localAggregatorFn(...allResults)
   console.debug('fetchDataWithAdapter:aggregatedResults', aggregatedResults)
 
