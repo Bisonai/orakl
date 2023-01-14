@@ -1,5 +1,5 @@
 import { Worker, Queue } from 'bullmq'
-import { got } from 'got'
+import axios from 'axios'
 import { loadAdapters } from './utils'
 import { IPredefinedFeedListenerWorker, IPredefinedFeedWorkerReporter } from '../types'
 import { pipe } from '../utils'
@@ -40,7 +40,7 @@ function predefinedFeedJob(queueName, adapters) {
           }
 
           try {
-            const rawData = await got(adapter.url, options).json()
+            const rawData = (await axios.get(adapter.url, options)).data
             return pipe(...adapter.reducers)(rawData)
           } catch (e) {
             console.error(e)

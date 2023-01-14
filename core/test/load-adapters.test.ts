@@ -1,4 +1,4 @@
-import { describe, expect, test } from '@jest/globals'
+import { describe, test } from '@jest/globals'
 import { fetchDataWithAdapter, loadAdapters } from '../src/worker/utils'
 
 describe('Load All Adapters', function () {

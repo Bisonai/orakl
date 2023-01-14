@@ -5,11 +5,7 @@ import { buildAnyApiListener } from './any-api'
 import { loadJson } from '../utils'
 import { validateListenerConfig } from './utils'
 import { IcnError, IcnErrorCode } from '../errors'
-import {
-  WORKER_ANY_API_QUEUE_NAME,
-  WORKER_VRF_QUEUE_NAME,
-  WORKER_AGGREGATOR_QUEUE_NAME
-} from '../settings'
+import { WORKER_ANY_API_QUEUE_NAME, WORKER_VRF_QUEUE_NAME } from '../settings'
 import { LISTENER_CONFIG_FILE } from '../settings'
 import { healthCheck } from '../health-checker'
 

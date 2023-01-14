@@ -1,6 +1,5 @@
 import { Worker, Queue } from 'bullmq'
 import axios from 'axios'
-import { IcnError, IcnErrorCode } from '../errors'
 import { IAnyApiListenerWorker, IAnyApiWorkerReporter } from '../types'
 import { readFromJson } from '../utils'
 import {
@@ -9,7 +8,6 @@ import {
   BULLMQ_CONNECTION
 } from '../settings'
 import { decodeAnyApiRequest } from '../decoding'
-import { prove, decode, getFastVerifyComponents } from '../vrf/index'
 
 export async function anyApiWorker() {
   console.debug('anyApiWorker')

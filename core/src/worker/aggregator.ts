@@ -1,5 +1,3 @@
-import * as Fs from 'node:fs/promises'
-import * as Path from 'node:path'
 import { ethers, BigNumber } from 'ethers'
 import { Worker, Queue } from 'bullmq'
 import {
@@ -10,7 +8,6 @@ import {
   uniform,
   addReportProperty
 } from './utils'
-import { reducerMapping } from './reducer'
 import {
   IAggregatorListenerWorker,
   IAggregatorWorkerReporter,

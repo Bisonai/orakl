@@ -31,6 +31,7 @@ export async function loadAggregators() {
 export function mergeAggregatorsAdapters(aggregators, adapters) {
   // FIXME use mapping instead
   // TODO replace any
+  /* eslint-disable @typescript-eslint/no-explicit-any */
   const aggregatorsWithAdapters: any = []
 
   for (const agAddress in aggregators) {
