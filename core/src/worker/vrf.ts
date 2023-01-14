@@ -1,5 +1,4 @@
 import { ethers } from 'ethers'
-import { loadAdapters, loadAggregators } from './utils'
 import { Worker, Queue } from 'bullmq'
 import { prove, decode, getFastVerifyComponents } from '../vrf/index'
 import { IVrfResponse, IVrfListenerWorker, IVrfWorkerReporter } from '../types'
