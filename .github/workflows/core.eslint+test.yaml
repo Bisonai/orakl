@@ -1,8 +1,8 @@
 name: "core: eslint"
-on:
-  push:
-    paths:
-      - "core/**"
+on: push
+  # push:
+  #   paths:
+  #     - "core/**"
 jobs:
   build:
     runs-on: ubuntu-latest
