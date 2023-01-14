@@ -14,7 +14,13 @@ jobs:
           registry-url: "https://npm.pkg.github.com"
       - run: yarn
         working-directory: ./core
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
       - run: yarn eslint
         working-directory: ./core
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
       - run: yarn test
         working-directory: ./core
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
