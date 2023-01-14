@@ -30,7 +30,8 @@ export async function loadAggregators() {
 
 export function mergeAggregatorsAdapters(aggregators, adapters) {
   // FIXME use mapping instead
-  let aggregatorsWithAdapters: any = [] // TODO replace any
+  // TODO replace any
+  const aggregatorsWithAdapters: any = []
 
   for (const agAddress in aggregators) {
     const ag = aggregators[agAddress]
@@ -47,7 +48,6 @@ export function mergeAggregatorsAdapters(aggregators, adapters) {
   }
 
   return Object.assign({}, ...aggregatorsWithAdapters)
-  // return aggregatorsWithAdapters
 }
 
 export async function fetchDataWithAdapter(adapter) {
