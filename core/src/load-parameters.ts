@@ -1,14 +1,6 @@
 import * as dotenv from 'dotenv'
 dotenv.config()
 
-function cantBeEmptyString(s) {
-  if (s.length == 0) {
-    throw Error()
-  } else {
-    return s
-  }
-}
-
 export const NODE_ENV = process.env.NODE_ENV
 
 export const PROVIDER_URL = process.env.PROVIDER

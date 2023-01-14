@@ -1,6 +1,5 @@
 import { Worker, Queue } from 'bullmq'
-import { got } from 'got'
-import { IcnError, IcnErrorCode } from '../errors'
+import axios from 'axios'
 import { IAnyApiListenerWorker, IAnyApiWorkerReporter } from '../types'
 import { readFromJson } from '../utils'
 import {
@@ -9,7 +8,6 @@ import {
   BULLMQ_CONNECTION
 } from '../settings'
 import { decodeAnyApiRequest } from '../decoding'
-import { prove, decode, getFastVerifyComponents } from '../vrf/index'
 
 export async function anyApiWorker() {
   console.debug('anyApiWorker')
@@ -49,7 +47,7 @@ async function processAnyApiRequest(reqEnc: string): Promise<string | number> {
   const req = decodeAnyApiRequest(reqEnc)
   console.debug('processAnyApiRequest:req', req)
 
-  let res: string = await got(req.get).json()
+  let res: string = (await axios.get(req.get)).data
   if (req.path) {
     res = readFromJson(res, req.path)
   }

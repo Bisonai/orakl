@@ -36,12 +36,12 @@
   },
   "dependencies": {
     "@bisonai-cic/icn-contracts": "^0.2.0",
+    "axios": "^1.2.2",
     "bn.js": "^5.2.1",
     "bullmq": "^3.2.2",
     "dotenv": "^16.0.3",
     "elliptic": "^6.5.4",
     "ethers": "^5.7.2",
-    "got": "^12.5.3",
     "mathjs": "^11.4.0"
   },
   "devDependencies": {
