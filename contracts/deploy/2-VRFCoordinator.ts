@@ -30,7 +30,11 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   // Register proving key
   console.log('Register proving key')
   for (const oracle of vrfConfig.oracle) {
-    await vrfCoordinator.registerProvingKey(oracle.address, oracle.publicProvingKey)
+    const tx = await (
+      await vrfCoordinator.registerProvingKey(oracle.address, oracle.publicProvingKey)
+    ).wait()
+    console.log(tx)
+    console.log(tx.events[0].args)
   }
 
   // Configure VRF coordinator

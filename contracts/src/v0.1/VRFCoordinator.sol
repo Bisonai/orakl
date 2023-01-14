@@ -3,6 +3,7 @@ pragma solidity ^0.8.16;
 
 // https://github.com/smartcontractkit/chainlink/blob/develop/contracts/src/v0.8/VRFCoordinatorV2.sol
 
+import "hardhat/console.sol";
 import "./interfaces/CoordinatorBaseInterface.sol";
 import "./interfaces/PrepaymentInterface.sol";
 import "./interfaces/TypeAndVersionInterface.sol";
@@ -536,6 +537,11 @@ contract VRFCoordinator is
             pebPerUnitGas *
             (gasAfterPaymentCalculation + startGas - gasleft()));
         uint256 fee = 1e12 * uint256(fulfillmentFlatFeeKlayPPM);
+
+        console.log(tx.gasprice);
+        console.log(paymentNoFee);
+        console.log(fee);
+
         if (paymentNoFee > (1e27 - fee)) {
             revert PaymentTooLarge(); // Payment + fee cannot be more than all of the KLAY in existence.
         }

@@ -6,7 +6,7 @@ import '../interfaces/VRFCoordinatorInterface.sol';
 
 
 contract VRFConsumerMock is VRFConsumerBase {
-  uint256 public s_randomResult;
+  uint256 public s_randomWord;
   address private s_owner;
 
   VRFCoordinatorInterface COORDINATOR;
@@ -73,6 +73,6 @@ contract VRFConsumerMock is VRFConsumerBase {
   {
     // requestId should be checked if it matches the expected request
     // Generate random value between 1 and 50.
-    s_randomResult = (randomWords[0] % 50) + 1;
+    s_randomWord = (randomWords[0] % 50) + 1;
   }
 }

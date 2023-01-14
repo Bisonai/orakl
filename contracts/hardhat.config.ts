@@ -27,10 +27,12 @@ const config: HardhatUserConfig = {
 
   networks: {
     localhost: {
-      gas: 1_400_000
+      gas: 1_400_000,
+      gasPrice: 250_000_000_000
     },
     baobab: {
-      url: 'https://baobab01.fautor.app/',
+      url: 'https://api.baobab.klaytn.net:8651',
+      chainId: 1001,
       ...commonConfig,
       gasPrice: 250_000_000_000
     },
