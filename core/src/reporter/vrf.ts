@@ -38,7 +38,11 @@ function vrfJob(wallet) {
       ]
       console.debug('vrfJob:proof', proof)
 
-      const payload = iface.encodeFunctionData('fulfillRandomWords', [proof, rc])
+      const payload = iface.encodeFunctionData('fulfillRandomWords', [
+        proof,
+        rc,
+        inData.isDirectPayment
+      ])
       await sendTransaction(wallet, inData.callbackAddress, payload, gasLimit)
     } catch (e) {
       console.error(e)

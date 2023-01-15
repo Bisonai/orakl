@@ -120,7 +120,7 @@ export interface IRandomWordsRequested {
   callbackGasLimit: number
   numWords: number
   sender: string
-  subId: string
+  isDirectPayment: boolean
 }
 
 export interface INewRound {
@@ -161,6 +161,7 @@ export interface IVrfListenerWorker {
   callbackGasLimit: number
   numWords: number
   sender: string
+  isDirectPayment: boolean
 }
 
 export interface IAggregatorListenerWorker {
@@ -214,6 +215,7 @@ export interface IVrfWorkerReporter {
   callbackGasLimit: number
   numWords: number
   sender: string
+  isDirectPayment: boolean
   pk: [string, string]
   proof: [string, string, string, string]
   preSeed: string

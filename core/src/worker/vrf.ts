@@ -42,6 +42,7 @@ async function vrfJob(queueName) {
         callbackGasLimit: inData.callbackGasLimit,
         numWords: inData.numWords,
         sender: inData.sender,
+        isDirectPayment: inData.isDirectPayment,
         pk,
         proof,
         preSeed: inData.seed,

@@ -22,7 +22,8 @@ function processVrfEvent(iface: ethers.utils.Interface, queue: Queue) {
       minimumRequestConfirmations: eventData.minimumRequestConfirmations,
       callbackGasLimit: eventData.callbackGasLimit,
       numWords: eventData.numWords,
-      sender: eventData.sender
+      sender: eventData.sender,
+      isDirectPayment: eventData.isDirectPayment
     }
     console.debug('processVrfEvent:data', data)
 
