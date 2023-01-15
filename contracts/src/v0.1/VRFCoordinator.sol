@@ -328,12 +328,11 @@ contract VRFCoordinator is
         // We also add the flat KLAY fee to the payment amount.
         // Its specified in millionths of KLAY, if s_config.fulfillmentFlatFeeKlayPPM = 1
         // 1 KLAY / 1e6 = 1e18 pebs / 1e6 = 1e12 pebs.
-        (, uint64 reqCount, , ) = Prepayment.getAccount(rc.accId);
+        (uint256 balance, uint64 reqCount, , ) = Prepayment.getAccount(rc.accId);
 
         uint256 payment;
         if (isDirectPayment) {
-            (uint256 fulfillmentFee, uint256 baseFee) = this.getPaymentConfig();
-            payment = fulfillmentFee + baseFee;
+            payment = balance;
         } else {
             payment = calculatePaymentAmount(
                 startGas,
