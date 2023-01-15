@@ -3,7 +3,6 @@ pragma solidity ^0.8.16;
 
 // https://github.com/smartcontractkit/chainlink/blob/develop/contracts/src/v0.8/VRFCoordinatorV2.sol
 
-import "hardhat/console.sol";
 import "./interfaces/CoordinatorBaseInterface.sol";
 import "./interfaces/PrepaymentInterface.sol";
 import "./interfaces/TypeAndVersionInterface.sol";
