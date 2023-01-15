@@ -51,6 +51,7 @@ services:
       - REDIS_HOST
       - REDIS_PORT
       - LOCAL_AGGREGATOR
+      - PUBLIC_KEY
       - NODE_ENV=production
     healthcheck:
       <<: *common-health-check
@@ -79,4 +80,3 @@ services:
     depends_on:
       - redis
     restart: unless-stopped
-

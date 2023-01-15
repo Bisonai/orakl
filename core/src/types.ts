@@ -89,6 +89,17 @@ export interface ILatestRoundData {
   answeredInRound: BigNumber
 }
 
+export interface IOracleRoundState {
+  _eligibleToSubmit: boolean
+  _roundId: number
+  _latestSubmission: BigNumber
+  _startedAt: BigNumber
+  _timeout: BigNumber
+  _availableFunds: BigNumber
+  _oracleCount: number
+  _paymentAmount: BigNumber
+}
+
 // Events
 
 export interface INewRequest {
@@ -213,7 +224,7 @@ export interface IVrfWorkerReporter {
 export interface IAggregatorWorkerReporter {
   report: boolean | undefined
   callbackAddress: string
-  roundId: BigNumber
+  roundId: number
   submission: number
 }
 
