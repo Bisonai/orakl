@@ -90,7 +90,6 @@ contract VRFCoordinator is
     error NoSuchProvingKey(bytes32 keyHash);
     error NoCorrespondingRequest();
     error IncorrectCommitment();
-    error PaymentTooLarge();
     error Reentrant();
     error InsufficientPayment(uint256 have, uint256 want);
 
@@ -337,8 +336,7 @@ contract VRFCoordinator is
             payment = calculatePaymentAmount(
                 startGas,
                 s_config.gasAfterPaymentCalculation,
-                getFeeTier(reqCount),
-                tx.gasprice
+                getFeeTier(reqCount)
             );
         }
 
@@ -529,22 +527,10 @@ contract VRFCoordinator is
     function calculatePaymentAmount(
         uint256 startGas,
         uint256 gasAfterPaymentCalculation,
-        uint32 fulfillmentFlatFeeKlayPPM,
-        uint256 pebPerUnitGas
+        uint32 fulfillmentFlatFeeKlayPPM
     ) internal view returns (uint256) {
-        // (1e18 peb/KLAY) (peb/gas * gas) = peb
-        uint256 paymentNoFee = (1e18 *
-            pebPerUnitGas *
-            (gasAfterPaymentCalculation + startGas - gasleft()));
+        uint256 paymentNoFee = tx.gasprice * (gasAfterPaymentCalculation + startGas - gasleft());
         uint256 fee = 1e12 * uint256(fulfillmentFlatFeeKlayPPM);
-
-        console.log(tx.gasprice);
-        console.log(paymentNoFee);
-        console.log(fee);
-
-        if (paymentNoFee > (1e27 - fee)) {
-            revert PaymentTooLarge(); // Payment + fee cannot be more than all of the KLAY in existence.
-        }
         return paymentNoFee + fee;
     }
 
