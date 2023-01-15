@@ -3,11 +3,16 @@ import { DeployFunction } from 'hardhat-deploy/types'
 const vrfConfig = require('../config/vrf.json')
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
-  const { deployments, getNamedAccounts } = hre
+  const { deployments, getNamedAccounts, network } = hre
   const { deploy } = deployments
   const { deployer, consumer } = await getNamedAccounts()
 
   console.log('2-VRFCoordinator.ts')
+
+  if (network.name == 'baobab') {
+    console.log('Skipping')
+    return
+  }
 
   const prepayment = await ethers.getContract('Prepayment')
 

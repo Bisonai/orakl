@@ -12,7 +12,7 @@ import {
   IAggregatorListenerWorker,
   IAggregatorWorkerReporter,
   IAggregatorHeartbeatWorker,
-  ILatestRoundData
+  IOracleRoundState
 } from '../types'
 import {
   WORKER_AGGREGATOR_QUEUE_NAME,
@@ -21,7 +21,7 @@ import {
   RANDOM_HEARTBEAT_QUEUE_NAME,
   BULLMQ_CONNECTION
 } from '../settings'
-import { PROVIDER_URL } from '../load-parameters'
+import { PROVIDER_URL, PUBLIC_KEY as ORACLE_ADDRESS } from '../load-parameters'
 import { Aggregator__factory } from '@bisonai-cic/icn-contracts'
 
 export async function aggregatorWorker() {
@@ -104,9 +104,11 @@ function fixedHeartbeatJob(
   // TODO Add clock synchronization through on-chain public data timestamp
   for (const k in agregatorsWithAdapters) {
     const ag = agregatorsWithAdapters[k]
-    heartbeatQueue.add('fixed-heartbeat', addReportProperty(ag, true), {
-      delay: ag.fixedHeartbeatRate
-    })
+    if (ag.fixedHeartbeatRate.active) {
+      heartbeatQueue.add('fixed-heartbeat', addReportProperty(ag, true), {
+        delay: ag.fixedHeartbeatRate.value
+      })
+    }
   }
 
   async function wrapper(job) {
@@ -116,7 +118,7 @@ function fixedHeartbeatJob(
     console.debug('fixedHeartbeatJob:outData', outData)
 
     reporterQueue.add('aggregator', outData)
-    heartbeatQueue.add('fixed-heartbeat', inData, { delay: inData.fixedHeartbeatRate })
+    heartbeatQueue.add('fixed-heartbeat', inData, { delay: inData.fixedHeartbeatRate.value })
   }
 
   return wrapper
@@ -135,9 +137,11 @@ function randomHeartbeatJob(
   // Launch all aggregators to be executed with random heartbeat
   for (const k in agregatorsWithAdapters) {
     const ag = agregatorsWithAdapters[k]
-    heartbeatQueue.add('random-heartbeat', ag, {
-      delay: uniform(0, ag.randomHeartbeatRate)
-    })
+    if (ag.randomHeartbeatRate.active) {
+      heartbeatQueue.add('random-heartbeat', ag, {
+        delay: uniform(0, ag.randomHeartbeatRate.value)
+      })
+    }
   }
 
   async function wrapper(job) {
@@ -150,7 +154,7 @@ function randomHeartbeatJob(
       reporterQueue.add('aggregator', outData)
     }
     heartbeatQueue.add('random-heartbeat', inData, {
-      delay: uniform(0, inData.randomHeartbeatRate)
+      delay: uniform(0, inData.randomHeartbeatRate.value)
     })
   }
 
@@ -160,32 +164,20 @@ function randomHeartbeatJob(
 async function prepareDataForReporter(data): Promise<IAggregatorWorkerReporter> {
   const callbackAddress = data.aggregatorAddress
   const submission = await fetchDataWithAdapter(data.adapter)
-
-  let roundId = BigNumber.from(1)
   let report = data.report
-  let firstSubmission = false
 
-  try {
-    const latestRoundData = await latestRoundDataCall(data.aggregatorAddress)
-    const lastSubmission = latestRoundData.answer.toNumber()
-    if (report === undefined) {
-      report = shouldReport(lastSubmission, submission, data.threshold, data.absoluteThreshold)
-      console.log('prepareDataForReporter:report', report)
-    }
-    roundId = latestRoundData.roundId.add(1)
-    console.debug('prepareDataForReporter:latestRoundData', latestRoundData)
-  } catch (e) {
-    if (e.code == 'CALL_EXCEPTION' && e.reason == 'No data present') {
-      // No data were submitted to feed yet! Submitting for the
-      // first time!
-      firstSubmission = true
-    }
+  const oracleRoundState = await oracleRoundStateCall(data.aggregatorAddress, ORACLE_ADDRESS)
+  console.debug('prepareDataForReporter:oracleRoundState', oracleRoundState)
+  const lastSubmission = oracleRoundState._latestSubmission.toNumber()
+  if (report === undefined) {
+    report = shouldReport(lastSubmission, submission, data.threshold, data.absoluteThreshold)
+    console.log('prepareDataForReporter:report', report)
   }
 
   return {
-    report: report || firstSubmission,
+    report,
     callbackAddress,
-    roundId,
+    roundId: oracleRoundState._roundId,
     submission
   }
 }
@@ -210,8 +202,12 @@ function shouldReport(
   return false
 }
 
-async function latestRoundDataCall(address: string): Promise<ILatestRoundData> {
+async function oracleRoundStateCall(
+  aggregatorAddress: string,
+  oracleAddress: string
+): Promise<IOracleRoundState> {
+  console.debug('oracleRoundStateCall')
   const provider = new ethers.providers.JsonRpcProvider(PROVIDER_URL)
-  const aggregator = new ethers.Contract(address, Aggregator__factory.abi, provider)
-  return await aggregator.latestRoundData()
+  const aggregator = new ethers.Contract(aggregatorAddress, Aggregator__factory.abi, provider)
+  return await aggregator.oracleRoundState(oracleAddress, 0)
 }

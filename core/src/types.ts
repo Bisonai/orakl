@@ -53,12 +53,17 @@ export interface IAdapter {
   feeds: IFeed[]
 }
 
+interface IProperty {
+  active: boolean
+  value: number
+}
+
 export interface IAggregator {
   active: boolean
   name: string
   aggregatorAddress: string
-  fixedHeartbeatRate: number
-  randomHeartbeatRate: number
+  fixedHeartbeatRate: IProperty
+  randomHeartbeatRate: IProperty
   threshold: number
   absoluteThreshold: number
   adapterId: string
@@ -82,6 +87,17 @@ export interface ILatestRoundData {
   startedAt: BigNumber
   updatedAt: BigNumber
   answeredInRound: BigNumber
+}
+
+export interface IOracleRoundState {
+  _eligibleToSubmit: boolean
+  _roundId: number
+  _latestSubmission: BigNumber
+  _startedAt: BigNumber
+  _timeout: BigNumber
+  _availableFunds: BigNumber
+  _oracleCount: number
+  _paymentAmount: BigNumber
 }
 
 // Events
@@ -160,8 +176,8 @@ export interface IAggregatorHeartbeatWorker {
   name: string
   active: boolean
   aggregatorAddress: string
-  fixedHeartbeatRate: number
-  randomHeartbeatRate: number
+  fixedHeartbeatRate: IProperty
+  randomHeartbeatRate: IProperty
   threshold: number
   absoluteThreshold: number
   adapterId: string
@@ -208,7 +224,7 @@ export interface IVrfWorkerReporter {
 export interface IAggregatorWorkerReporter {
   report: boolean | undefined
   callbackAddress: string
-  roundId: BigNumber
+  roundId: number
   submission: number
 }
 
