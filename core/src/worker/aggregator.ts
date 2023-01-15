@@ -1,4 +1,4 @@
-import { ethers, BigNumber } from 'ethers'
+import { ethers } from 'ethers'
 import { Worker, Queue } from 'bullmq'
 import {
   fetchDataWithAdapter,
