@@ -63,6 +63,9 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const accountReceipt = await (await prepaymentConsumerSigner.createAccount()).wait()
   const { accId } = accountReceipt.events[0].args
 
+  // Deposit 1 KLAY
+  await prepaymentConsumerSigner.deposit(accId, { value: ethers.utils.parseUnits('1', 'ether') })
+
   // Add consumer to account
   await prepaymentConsumerSigner.addConsumer(accId, vrfConsumerMockDeployment.address)
 
