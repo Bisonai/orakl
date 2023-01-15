@@ -1,7 +1,7 @@
 {
   "minimumRequestConfirmations": 3,
-  "maxGasLimit": 1000000,
-  "gasAfterPaymentCalculation": 1000000,
+  "maxGasLimit": 2500000,
+  "gasAfterPaymentCalculation": 33285,
   "feeConfig": {
     "fulfillmentFlatFeeKlayPPMTier1": 0,
     "fulfillmentFlatFeeKlayPPMTier2": 0,
