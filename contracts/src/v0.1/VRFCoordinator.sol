@@ -92,6 +92,7 @@ contract VRFCoordinator is
     error IncorrectCommitment();
     error Reentrant();
     error InsufficientPayment(uint256 have, uint256 want);
+    error RefundFailure();
 
     event ProvingKeyRegistered(bytes32 keyHash, address indexed oracle);
     event ProvingKeyDeregistered(bytes32 keyHash, address indexed oracle);
@@ -258,16 +259,16 @@ contract VRFCoordinator is
         return (s_config.minimumRequestConfirmations, s_config.maxGasLimit, s_provingKeyHashes);
     }
 
-    function setPaymentConfig(uint256 fulfillmentFee, uint256 baseFee) public onlyOwner {
-        s_paymentConfig = PaymentConfig(fulfillmentFee, baseFee);
-        emit PaymentConfigSet(fulfillmentFee, baseFee);
+    function setPaymentConfig(PaymentConfig memory paymentConfig) public onlyOwner {
+        s_paymentConfig = paymentConfig;
+        emit PaymentConfigSet(paymentConfig.fulfillmentFee, paymentConfig.baseFee);
     }
 
     function getPaymentConfig() external view returns (uint256, uint256) {
         return (s_paymentConfig.fulfillmentFee, s_paymentConfig.baseFee);
     }
 
-    function estimateFee() public view returns (uint256) {
+    function estimateDirectPaymentFee() public view returns (uint256) {
         return s_paymentConfig.fulfillmentFee + s_paymentConfig.baseFee;
     }
 
@@ -331,7 +332,8 @@ contract VRFCoordinator is
 
         uint256 payment;
         if (isDirectPayment) {
-            payment = estimateFee();
+            (uint256 fulfillmentFee, uint256 baseFee) = this.getPaymentConfig();
+            payment = fulfillmentFee + baseFee;
         } else {
             payment = calculatePaymentAmount(
                 startGas,
@@ -503,27 +505,35 @@ contract VRFCoordinator is
         uint32 callbackGasLimit,
         uint32 numWords
     ) external payable returns (uint256) {
-        // TODO setup minimum required payment outside
-        uint256 minimumPayment = 0;
-        if (msg.value < minimumPayment) {
-            revert InsufficientPayment(msg.value, minimumPayment);
+        uint256 vrfFee = estimateDirectPaymentFee();
+        if (msg.value < vrfFee) {
+            revert InsufficientPayment(msg.value, vrfFee);
         }
 
         uint64 accId = Prepayment.createAccount();
         Prepayment.addConsumer(accId, msg.sender);
+        bool isDirectPayment = true;
         uint256 requestId = requestRandomWordsInternal(
             keyHash,
             accId,
             requestConfirmations,
             callbackGasLimit,
             numWords,
-            true
+            isDirectPayment
         );
-        Prepayment.deposit{value: msg.value}(accId);
+        Prepayment.deposit{value: vrfFee}(accId);
+
+        uint256 remaining = msg.value - vrfFee;
+        if (remaining > 0) {
+            (bool sent, ) = msg.sender.call{value: remaining}("");
+            if (!sent) {
+                revert RefundFailure();
+            }
+        }
+
         return requestId;
     }
 
-    // Get the amount of gas used for fulfillment
     function calculatePaymentAmount(
         uint256 startGas,
         uint256 gasAfterPaymentCalculation,

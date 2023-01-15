@@ -25,6 +25,9 @@ contract VRFConsumerMock is VRFConsumerBase {
       COORDINATOR = VRFCoordinatorInterface(coordinator);
   }
 
+  // Receive remaining payment from requestRandomWordsPayment
+  receive() external payable {}
+
   function requestRandomWords(
       bytes32 keyHash,
       uint64 accId,
@@ -56,7 +59,7 @@ contract VRFConsumerMock is VRFConsumerBase {
       onlyOwner
       returns (uint256 requestId)
   {
-    requestId = COORDINATOR.requestRandomWordsPayment{value:msg.value}(
+    requestId = COORDINATOR.requestRandomWordsPayment{value: msg.value}(
       keyHash,
       requestConfirmations,
       callbackGasLimit,

@@ -33,8 +33,8 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     const tx = await (
       await vrfCoordinator.registerProvingKey(oracle.address, oracle.publicProvingKey)
     ).wait()
-    console.log(tx)
-    console.log(tx.events[0].args)
+    console.log('keyHash', tx.events[0].args.keyHash)
+    console.log('oracle', tx.events[0].args.oracle)
   }
 
   // Configure VRF coordinator
@@ -45,6 +45,8 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     vrfConfig.gasAfterPaymentCalculation,
     vrfConfig.feeConfig
   )
+
+  await vrfCoordinator.setPaymentConfig(vrfConfig.paymentConfig)
 
   // TODO deploy only for tests
   const vrfConsumerMockDeployment = await deploy('VRFConsumerMock', {
