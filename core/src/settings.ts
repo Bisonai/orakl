@@ -57,3 +57,5 @@ export const LISTENER_CONFIG_FILE = Path.join(CONFIG_ROOT_DIR, 'listener.json')
 export const VRF_CONFIG_FILE = Path.join(CONFIG_ROOT_DIR, 'vrf.json')
 
 export const LISTENER_DELAY = 500
+
+export const SETTINGS_DB_FILE = './settings.sqlite'
