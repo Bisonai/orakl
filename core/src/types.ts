@@ -256,5 +256,4 @@ export interface IListenerBlock {
 export interface IListenerConfig {
   address: string
   eventName: string
-  factoryName: string
 }

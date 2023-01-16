@@ -1,10 +1,11 @@
 import { Queue } from 'bullmq'
 import { ethers } from 'ethers'
+import { VRFCoordinator__factory } from '@bisonai-cic/icn-contracts'
 import { Event } from './event'
 import { IListenerConfig, IRandomWordsRequested, IVrfListenerWorker } from '../types'
 
 export function buildVrfListener(queueName: string, config: IListenerConfig) {
-  new Event(queueName, processVrfEvent, config).listen()
+  new Event(queueName, processVrfEvent, VRFCoordinator__factory.abi, config).listen()
 }
 
 function processVrfEvent(iface: ethers.utils.Interface, queue: Queue) {

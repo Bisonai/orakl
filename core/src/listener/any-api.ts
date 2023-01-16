@@ -1,10 +1,11 @@
 import { Queue } from 'bullmq'
 import { ethers } from 'ethers'
+import { RequestResponseCoordinator__factory } from '@bisonai-cic/icn-contracts'
 import { Event } from './event'
 import { IListenerConfig, INewRequest, IAnyApiListenerWorker } from '../types'
 
 export function buildAnyApiListener(queueName: string, config: IListenerConfig) {
-  new Event(queueName, processAnyApiEvent, config).listen()
+  new Event(queueName, processAnyApiEvent, RequestResponseCoordinator__factory.abi, config).listen()
 }
 
 export function processAnyApiEvent(iface: ethers.utils.Interface, queue: Queue) {
