@@ -1,29 +1,34 @@
 {
-  "active": false,
-  "name": "ETH/USD",
-  "jobType": "DATA_FEED",
-  "adapterId": "0xf3fa6b402eb4c49347f9ac6c8c8e0baf0eacaf39bcd59583feb12d9b90720124",
-  "decimals": "8",
-  "feeds": [
-    {
-      "url": "https://min-api.cryptocompare.com/data/pricemultifull?fsyms=ETH&tsyms=USD",
-      "headers": {
-        "Content-Type": "application/json"
-      },
-      "method": "GET",
-      "reducers": [
+    "id": "0xc9f7c0b3a3e75ca24b9d84ab2ebbcad5cff09317f87532e90b79bf2ebbb327a3",
+    "active": false,
+    "name": "ETH/USD",
+    "jobType": "DATA_FEED",
+    "decimals": "8",
+    "feeds": [
         {
-          "function": "PARSE",
-          "args": ["RAW", "ETH", "USD", "PRICE"]
-        },
-        {
-          "function": "POW10",
-          "args": "8"
-        },
-        {
-          "function": "ROUND"
+            "url": "https://min-api.cryptocompare.com/data/pricemultifull?fsyms=ETH&tsyms=USD",
+            "headers": {
+                "Content-Type": "application/json"
+            },
+            "method": "GET",
+            "reducers": [
+                {
+                    "function": "PARSE",
+                    "args": [
+                        "RAW",
+                        "ETH",
+                        "USD",
+                        "PRICE"
+                    ]
+                },
+                {
+                    "function": "POW10",
+                    "args": "8"
+                },
+                {
+                    "function": "ROUND"
+                }
+            ]
         }
-      ]
-    }
-  ]
+    ]
 }

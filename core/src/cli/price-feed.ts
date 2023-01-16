@@ -4,7 +4,7 @@ import { parseArgs } from 'node:util'
 
 async function main() {
   const adapterId: string = loadArgs()
-  const adapters = await loadAdapters()
+  const adapters = await loadAdapters({ postprocess: true })
   fetchDataWithAdapter(adapters[adapterId])
 }
 
