@@ -1,16 +1,16 @@
 {
-  "id": "0xa513E6E4b8f2a923D98304ec87F64353C4D5C853",
-  "name": "KLAY/USD",
-  "active": true,
-  "fixedHeartbeatRate": {
-      "active" : true,
-      "value": 5000
-  },
-  "randomHeartbeatRate": {
-      "active": false,
-      "value": 2000
-  },
-  "threshold": 0.05,
-  "absoluteThreshold": 0.1,
-  "adapterId": "0xf84be3681d32250d9fbe85ab1c56db59d9e1ef2dff242de066853b4a047e15e2"
+    "id": "0x0f283adfbb1eb73ad0098689bd0595b56265c77d24f620866f945fb2d849b123",
+    "active": true,
+    "name": "KLAY/USD",
+    "fixedHeartbeatRate": {
+        "active" : true,
+        "value": 5000
+    },
+    "randomHeartbeatRate": {
+        "active": false,
+        "value": 2000
+    },
+    "threshold": 0.05,
+    "absoluteThreshold": 0.1,
+    "adapterId": "0x00d5130063bee77302b133b5c6a0d6aede467a599d251aec842d24abeb5866a5"
 }
