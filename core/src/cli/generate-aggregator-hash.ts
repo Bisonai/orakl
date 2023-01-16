@@ -2,22 +2,22 @@ import * as Path from 'node:path'
 import { parseArgs } from 'node:util'
 import { computeDataHash } from './utils'
 import { loadJson } from '../utils'
-import { IAdapter } from '../types'
-import { loadAdapters } from '../worker/utils'
+import { IAggregator } from '../types'
+import { loadAggregators } from '../worker/utils'
 
 async function main() {
-  const { adapterPaths, verify } = loadArgs()
-  let adapters: IAdapter[] = []
+  const { aggregatorPaths, verify } = loadArgs()
+  let aggregators: IAggregator[] = []
 
-  if (adapterPaths.length) {
-    for (const ap of adapterPaths) {
-      adapters.push(await loadJson(ap))
+  if (aggregatorPaths.length) {
+    for (const ap of aggregatorPaths) {
+      aggregators.push(await loadJson(ap))
     }
   } else {
-    adapters = await loadAdapters({ postprocess: false })
+    aggregators = await loadAggregators({ postprocess: false })
   }
 
-  for (const data of adapters) {
+  for (const data of aggregators) {
     await computeDataHash({ data, verify })
   }
 }
@@ -25,7 +25,7 @@ async function main() {
 function loadArgs() {
   const {
     values: { verify },
-    positionals: adapterPaths
+    positionals: aggregatorPaths
   } = parseArgs({
     options: {
       verify: {
@@ -36,7 +36,7 @@ function loadArgs() {
     allowPositionals: true
   })
 
-  return { adapterPaths, verify }
+  return { aggregatorPaths, verify }
 }
 
 main().catch((error) => {
