@@ -30,7 +30,11 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   // Register proving key
   console.log('Register proving key')
   for (const oracle of vrfConfig.oracle) {
-    await vrfCoordinator.registerProvingKey(oracle.address, oracle.publicProvingKey)
+    const tx = await (
+      await vrfCoordinator.registerProvingKey(oracle.address, oracle.publicProvingKey)
+    ).wait()
+    console.log('keyHash', tx.events[0].args.keyHash)
+    console.log('oracle', tx.events[0].args.oracle)
   }
 
   // Configure VRF coordinator
@@ -41,6 +45,8 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     vrfConfig.gasAfterPaymentCalculation,
     vrfConfig.feeConfig
   )
+
+  await vrfCoordinator.setPaymentConfig(vrfConfig.paymentConfig)
 
   // TODO deploy only for tests
   const vrfConsumerMockDeployment = await deploy('VRFConsumerMock', {
@@ -58,6 +64,9 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   // Create account
   const accountReceipt = await (await prepaymentConsumerSigner.createAccount()).wait()
   const { accId } = accountReceipt.events[0].args
+
+  // Deposit 1 KLAY
+  await prepaymentConsumerSigner.deposit(accId, { value: ethers.utils.parseUnits('1', 'ether') })
 
   // Add consumer to account
   await prepaymentConsumerSigner.addConsumer(accId, vrfConsumerMockDeployment.address)

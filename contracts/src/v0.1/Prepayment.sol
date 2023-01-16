@@ -60,7 +60,6 @@ contract Prepayment is
 
     error TooManyConsumers();
     error InsufficientBalance();
-    error InsufficientConsumerBalance();
     error InvalidConsumer(uint64 accId, address consumer);
     error InvalidAccount();
     error MustBeAccountOwner(address owner);
@@ -227,9 +226,6 @@ contract Prepayment is
      * @inheritdoc PrepaymentInterface
      */
     function deposit(uint64 accId) external payable {
-        if (msg.sender.balance < msg.value) {
-            revert InsufficientConsumerBalance();
-        }
         uint256 amount = msg.value;
         uint256 oldBalance = s_accounts[accId].balance;
         s_accounts[accId].balance += amount;
