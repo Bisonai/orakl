@@ -30,6 +30,7 @@
     "start:reporter:aggregator": "yarn start:reporter --reporter AGGREGATOR",
     "keygen": "node --experimental-specifier-resolution=node --experimental-json-modules dist/cli/vrf-keygen.js",
     "price_feed": "node --experimental-specifier-resolution=node --experimental-json-modules dist/cli/price-feed.js",
+    "generate_hash": "node --experimental-specifier-resolution=node --experimental-json-modules dist/cli/generate-adapter-hash.js",
     "flush": "node --experimental-specifier-resolution=node --experimental-json-modules dist/cli/flush-queues.js",
     "test": "jest",
     "eslint": "DEBUG=eslint:cli-engine npx eslint 'src/**/*.ts' 'src/*.ts' 'test/*.ts'"
