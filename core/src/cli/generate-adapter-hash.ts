@@ -1,4 +1,3 @@
-import * as Path from 'node:path'
 import { parseArgs } from 'node:util'
 import { computeDataHash } from './utils'
 import { loadJson } from '../utils'
