@@ -1,4 +1,4 @@
-import { ethers, BigNumber } from 'ethers'
+import { ethers } from 'ethers'
 import { Worker, Queue } from 'bullmq'
 import {
   fetchDataWithAdapter,
@@ -27,10 +27,10 @@ import { Aggregator__factory } from '@bisonai-cic/icn-contracts'
 export async function aggregatorWorker() {
   console.debug('aggregatorWorker')
 
-  const adapters = await loadAdapters()
+  const adapters = await loadAdapters({ postprocess: true })
   console.debug('aggregatorWorker:adapters', adapters)
 
-  const aggregators = await loadAggregators()
+  const aggregators = await loadAggregators({ postprocess: true })
   console.debug('aggregatorWorker:aggregators', aggregators)
 
   const aggregatorsWithAdapters = mergeAggregatorsAdapters(aggregators, adapters)

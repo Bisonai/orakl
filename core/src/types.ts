@@ -46,10 +46,10 @@ interface IFeed {
 }
 
 export interface IAdapter {
+  id: string
   active: boolean
   name: string
   job_type: string
-  adapter_id: string
   feeds: IFeed[]
 }
 
@@ -59,6 +59,7 @@ interface IProperty {
 }
 
 export interface IAggregator {
+  id: string
   active: boolean
   name: string
   aggregatorAddress: string

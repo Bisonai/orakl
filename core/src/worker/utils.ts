@@ -7,23 +7,32 @@ import { IAdapter, IAggregator } from '../types'
 import { localAggregatorFn, ADAPTER_ROOT_DIR, AGGREGATOR_ROOT_DIR } from '../settings'
 import axios from 'axios'
 
-export async function loadAdapters() {
+export async function loadAdapters({ postprocess }: { postprocess?: boolean }) {
   const adapterPaths = await Fs.readdir(ADAPTER_ROOT_DIR)
   const allRawAdapters = await Promise.all(
     adapterPaths.map(async (ap) => validateAdapter(await loadJson(Path.join(ADAPTER_ROOT_DIR, ap))))
   )
+
+  if (!postprocess) {
+    return allRawAdapters
+  }
+
   const activeRawAdapters = allRawAdapters.filter((a) => a.active)
   return Object.assign({}, ...activeRawAdapters.map((a) => extractFeeds(a)))
 }
 
-export async function loadAggregators() {
+export async function loadAggregators({ postprocess }: { postprocess?: boolean }) {
   const aggregatorPaths = await Fs.readdir(AGGREGATOR_ROOT_DIR)
-
   const allRawAggregators = await Promise.all(
     aggregatorPaths.map(async (ap) =>
       validateAggregator(await loadJson(Path.join(AGGREGATOR_ROOT_DIR, ap)))
     )
   )
+
+  if (!postprocess) {
+    return allRawAggregators
+  }
+
   const activeRawAggregators = allRawAggregators.filter((a) => a.active)
   return Object.assign({}, ...activeRawAggregators.map((a) => extractAggregators(a)))
 }
@@ -107,7 +116,7 @@ function buildReducer(reducers) {
 }
 
 function extractFeeds(adapter) {
-  const adapterId = adapter.adapterId
+  const adapterId = adapter.id
   const feeds = adapter.feeds.map((f) => {
     return {
       url: f.url,
@@ -137,7 +146,7 @@ function extractAggregators(aggregator) {
 
 function validateAdapter(adapter): IAdapter {
   // TODO extract properties from Interface
-  const requiredProperties = ['active', 'name', 'jobType', 'adapterId', 'decimals', 'feeds']
+  const requiredProperties = ['id', 'active', 'name', 'jobType', 'decimals', 'feeds']
   // TODO show where is the error
   const hasProperty = requiredProperties.map((p) =>
     Object.prototype.hasOwnProperty.call(adapter, p)

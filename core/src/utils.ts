@@ -70,3 +70,7 @@ export async function readTextFile(filepath: string) {
 export async function writeTextFile(filepath: string, content: string) {
   await Fs.writeFile(filepath, content)
 }
+
+export function printObject(object) {
+  console.dir(object, { depth: null })
+}

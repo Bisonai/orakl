@@ -13,7 +13,7 @@ import {
 export async function predefinedFeedWorker() {
   console.debug('predefinedFeedWorker')
 
-  const adapters = (await loadAdapters())[0] // FIXME take all adapters
+  const adapters = (await loadAdapters({ postprocess: true }))[0] // FIXME take all adapters
   console.debug('predefinedFeedWorker:adapters', adapters)
 
   new Worker(
