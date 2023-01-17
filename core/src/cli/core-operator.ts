@@ -39,12 +39,13 @@ async function main() {
   // await db.migrate({ force: true }) // FIXME
 
   const chain = chainSub(db)
+  const service = serviceSub(db)
   const listener = listenerSub(db)
   const vrf = vrfSub(db)
 
   const cli = subcommands({
     name: 'operator',
-    cmds: { chain, listener, vrf }
+    cmds: { chain, service, listener, vrf }
   })
 
   run(binary(cli), process.argv)
@@ -91,6 +92,61 @@ function chainSub(db) {
     },
     handler: async ({ id, dryrun }) => {
       const query = `DELETE FROM Chain WHERE id=${id}`
+      if (dryrun) {
+        console.debug(query)
+      } else {
+        await db.run(query)
+      }
+    }
+  })
+
+  return subcommands({
+    name: 'chain',
+    cmds: { list, insert, remove }
+  })
+}
+
+function serviceSub(db) {
+  const list = command({
+    name: 'list',
+    args: {},
+    handler: async ({}) => {
+      const query = `SELECT * FROM Service`
+      const result = await db.all(query)
+      console.log(result)
+    }
+  })
+
+  const insert = command({
+    name: 'insert',
+    args: {
+      name: option({
+        type: string,
+        long: 'name'
+      }),
+      dryrun
+    },
+    handler: async ({ name, dryrun }) => {
+      const query = `INSERT INTO Service (name) VALUES ('${name}')`
+      if (dryrun) {
+        console.debug(query)
+      } else {
+        await db.run(query)
+      }
+    }
+  })
+
+  const remove = command({
+    name: 'remove',
+    args: {
+      id: option({
+        type: cmdnumber,
+        long: 'id'
+      }),
+      dryrun
+    },
+    handler: async ({ id, dryrun }) => {
+      const query = `DELETE FROM Service WHERE id=${id}`
       if (dryrun) {
         console.debug(query)
       } else {

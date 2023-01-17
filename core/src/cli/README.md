@@ -1,26 +1,36 @@
-## CLI
+# CLI
 
-### Prerequisities
+* [Core Operator](#core-operator)
+     * [Adapter](#adapter)
+     * [Aggregator](#aggregator)
+     * [Chain](#chain)
+     * [Service](#service)
+     * [Listener](#listener)
+* [Generate VRF Keys](#generate-vrf-keys)
+* [Generate Adapter Hash](#generate-adapter-hash)
+* [Generate Aggregator Hash](#generate-aggregator-hash)
+
+## Prerequisities
 
 ```
 yarn build
 ```
 
-### Core Operator
+## Core Operator
 
-#### Adapter
+### Adapter
 
 * Add new adapter
 * Activate adapter
 * Deactivate adapter
 
-#### Aggregator
+### Aggregator
 
 * Add new aggregator
 * Activate aggregator
 * Deactivate aggregator
 
-#### Chain
+### Chain
 
 List all chains
 
@@ -42,13 +52,41 @@ Insert new chain
 yarn cli chain insert --name other
 ```
 
-Remove chain by `id` filter
+Remove chain specified by `id`
 
 ```
 yarn cli chain remove --id 4
 ```
 
-#### Listener
+### Service
+
+List all services
+
+```
+yarn cli service list
+```
+
+```
+[
+  { id: 1, name: 'VRF' },
+  { id: 2, name: 'Aggregator' },
+  { id: 3, name: 'RequestResponse' }
+]
+```
+
+Insert new service
+
+```
+yarn cli service insert --name Automation
+```
+
+Remove service specified by `id`
+
+```
+yarn cli service remove --id 4
+```
+
+### Listener
 
 List all listeners
 
@@ -104,14 +142,14 @@ yarn cli listener insert \
     --eventName SomeEvent
 ```
 
-Remove listener based on `id` filter
+Remove listener specified by `id`
 
 ```
 yarn cli listener remove --id 4
 ```
 
 
-### VRF
+### Generate VRF keys
 
 List all VRF keys
 
@@ -136,13 +174,13 @@ yarn cli vrf insert \
     --chain baobab
 ```
 
-Remove VRF keys based on `id` filter.
+Remove VRF keys specified by `id`
 
 ```
 yarn cli vrf remove --id 2
 ```
 
-### Generate Adapter Hash
+## Generate Adapter Hash
 
 ```
 yarn adapter-hash [--verify] [file ...]
@@ -202,7 +240,7 @@ yarn adapter-hash adapter/klay_usd.adapter.json
 }
 ```
 
-### Generate Aggregator Hash
+## Generate Aggregator Hash
 
 ```
 yarn aggregator-hash [--verify] [file ...]
