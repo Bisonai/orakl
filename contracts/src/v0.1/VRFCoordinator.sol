@@ -8,12 +8,12 @@ import "./interfaces/PrepaymentInterface.sol";
 import "./interfaces/TypeAndVersionInterface.sol";
 import "./interfaces/VRFCoordinatorInterface.sol";
 import "./libraries/VRF.sol";
-import "./ConfirmedOwner.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 import "./VRFConsumerBase.sol";
 
 contract VRFCoordinator is
     CoordinatorBaseInterface,
-    ConfirmedOwner,
+    Ownable,
     TypeAndVersionInterface,
     VRFCoordinatorInterface
 {
@@ -127,7 +127,7 @@ contract VRFCoordinator is
         _;
     }
 
-    constructor(PrepaymentInterface prepayment) ConfirmedOwner(msg.sender) {
+    constructor(PrepaymentInterface prepayment) {
         Prepayment = prepayment;
     }
 

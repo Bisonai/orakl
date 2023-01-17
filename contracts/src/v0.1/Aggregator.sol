@@ -4,7 +4,7 @@ pragma solidity 0.8.16;
 // https://github.com/smartcontractkit/chainlink/blob/develop/contracts/src/v0.6/FluxAggregator.sol
 
 import "./Median.sol";
-import "./ConfirmedOwner.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 import "./interfaces/AggregatorInterface.sol";
 import "./interfaces/AggregatorValidatorInterface.sol";
 
@@ -16,7 +16,7 @@ import "./interfaces/AggregatorValidatorInterface.sol";
  * single answer. The latest aggregated answer is exposed as well as historical
  * answers and their updated at timestamp.
  */
-contract Aggregator is AggregatorInterface, ConfirmedOwner {
+contract Aggregator is AggregatorInterface, Ownable {
     struct Round {
         int256 answer;
         uint64 startedAt;
@@ -138,7 +138,7 @@ contract Aggregator is AggregatorInterface, ConfirmedOwner {
         int256 _maxSubmissionValue,
         uint8 _decimals,
         string memory _description
-    ) ConfirmedOwner(msg.sender) {
+    ) {
         updateFutureRounds(_paymentAmount, 0, 0, 0, _timeout);
         setValidator(_validator);
         minSubmissionValue = _minSubmissionValue;

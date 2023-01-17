@@ -3,7 +3,7 @@ pragma solidity ^0.8.16;
 
 // https://github.com/smartcontractkit/chainlink/blob/develop/contracts/src/v0.7/dev/AggregatorProxy.sol
 
-import "./ConfirmedOwner.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 import "./interfaces/AggregatorProxyInterface.sol";
 
 /**
@@ -12,7 +12,7 @@ import "./interfaces/AggregatorProxyInterface.sol";
  * CurrentAnswerInterface but delegates where it reads from to the owner, who is
  * trusted to update it.
  */
-contract AggregatorProxy is AggregatorProxyInterface, ConfirmedOwner {
+contract AggregatorProxy is AggregatorProxyInterface, Ownable {
     struct Phase {
         uint16 id;
         AggregatorProxyInterface aggregator;
@@ -33,7 +33,7 @@ contract AggregatorProxy is AggregatorProxyInterface, ConfirmedOwner {
         _;
     }
 
-    constructor(address aggregatorAddress) ConfirmedOwner(msg.sender) {
+    constructor(address aggregatorAddress) {
         setAggregator(aggregatorAddress);
     }
 
