@@ -1,0 +1,16 @@
+{
+    "id": "0x5e144ae08c37ec9f300c2dadf8e611d2255089e2d32838f004fb2f3b0644c4f7",
+    "active": false,
+    "name": "ETH/USD",
+    "fixedHeartbeatRate": {
+        "active": true,
+        "value": 10000
+    },
+    "randomHeartbeatRate": {
+        "active": false,
+        "value": 9000
+    },
+    "threshold": 0.09,
+    "absoluteThreshold": 0.01,
+    "adapterId": "0xc9f7c0b3a3e75ca24b9d84ab2ebbcad5cff09317f87532e90b79bf2ebbb327a3"
+}

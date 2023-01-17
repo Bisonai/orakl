@@ -9,21 +9,21 @@ interface VRFCoordinatorInterface {
    * @return s_provingKeyHashes list of registered key hashes
    */
   function getRequestConfig()
-    external
-    view
-    returns (
-      uint16,
-      uint32,
-      bytes32[] memory
-    );
+      external
+      view
+      returns (
+          uint16,
+          uint32,
+          bytes32[] memory
+      );
 
   /**
    * @notice Request a set of random words.
    * @param keyHash - Corresponds to a particular oracle job which uses
    * that key for generating the VRF proof. Different keyHash's have different gas price
    * ceilings, so you can select a specific one to bound your maximum per request cost.
-   * @param subId  - The ID of the VRF subscription. Must be funded
-   * with the minimum subscription balance required for the selected keyHash.
+   * @param accId  - The ID of the account. Must be funded
+   * with the minimum account balance required for the selected keyHash.
    * @param minimumRequestConfirmations - How many blocks you'd like the
    * oracle to wait before responding to the request. See SECURITY CONSIDERATIONS
    * for why you may want to request more. The acceptable range is
@@ -41,10 +41,17 @@ interface VRFCoordinatorInterface {
    * a request to a response in fulfillRandomWords.
    */
   function requestRandomWords(
-    bytes32 keyHash,
-    uint64 subId,
-    uint16 minimumRequestConfirmations,
-    uint32 callbackGasLimit,
-    uint32 numWords
+      bytes32 keyHash,
+      uint64 accId,
+      uint16 minimumRequestConfirmations,
+      uint32 callbackGasLimit,
+      uint32 numWords
   ) external returns (uint256 requestId);
+
+  function requestRandomWordsPayment(
+      bytes32 keyHash,
+      uint16 requestConfirmations,
+      uint32 callbackGasLimit,
+      uint32 numWords
+  ) external payable returns (uint256 requestId);
 }

@@ -1,0 +1,82 @@
+version: '3.7'
+
+services:
+  redis:
+    # redis:7.0.5-alpine3.17
+    image: redis@sha256:06e4453169faaf4af93fe38689c8f8f85440990f9b9c1e91b0f9f98b1679452a
+    container_name: redis_dev
+    hostname: redis_dev
+    expose:
+      - 6379
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 30s
+      retries: 50
+    restart: always
+
+  listener-aggregator:
+    image: core-icn
+    container_name: listener_aggregator_dev
+    hostname: listener_aggregator_dev
+    entrypoint: ["yarn", "start:listener:aggregator"]
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    environment:
+      - HEALTH_CHECK_PORT
+      - PROVIDER
+      - REDIS_HOST
+      - REDIS_PORT
+      - LISTENERS
+      - NODE_ENV=production
+    healthcheck:
+      &common-health-check
+      test: "curl --fail http://localhost:${HEALTH_CHECK_PORT} || exit 1"
+      interval: 5s
+      timeout: 30s
+      retries: 3
+      start_period: 10s
+    depends_on:
+      - redis
+    restart: unless-stopped
+
+  worker-aggregator:
+    image: core-icn
+    container_name: worker_aggregator_dev
+    hostname: worker_aggregator_dev
+    entrypoint: ["yarn", "start:worker:aggregator"]
+    environment:
+      - HEALTH_CHECK_PORT
+      - PROVIDER
+      - REDIS_HOST
+      - REDIS_PORT
+      - LOCAL_AGGREGATOR
+      - PUBLIC_KEY
+      - NODE_ENV=production
+    healthcheck:
+      <<: *common-health-check
+    depends_on:
+      - redis
+    restart: unless-stopped
+
+  reporter-aggregator:
+    image: core-icn
+    container_name: reporter_aggregator_dev
+    hostname: reporter_aggregator_dev
+    entrypoint: ["yarn", "start:reporter:aggregator"]
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    environment:
+      - HEALTH_CHECK_PORT
+      - PROVIDER
+      - REDIS_HOST
+      - REDIS_PORT
+      - MNEMONIC
+      - PUBLIC_KEY
+      - PRIVATE_KEY
+      - NODE_ENV="production"
+    healthcheck:
+      <<: *common-health-check
+    depends_on:
+      - redis
+    restart: unless-stopped

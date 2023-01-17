@@ -1,0 +1,26 @@
+name: "core: eslint"
+on:
+  push:
+    paths:
+      - "core/**"
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: "18.12"
+          registry-url: "https://npm.pkg.github.com"
+      - run: yarn
+        working-directory: ./core
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+      - run: yarn eslint
+        working-directory: ./core
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+      - run: yarn test
+        working-directory: ./core
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}

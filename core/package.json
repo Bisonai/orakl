@@ -1,6 +1,6 @@
 {
   "name": "@bisonai-cic/icn-core",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "type": "module",
   "description": "",
   "files": [
@@ -9,30 +9,41 @@
   "engines": {
     "node": ">=18.12"
   },
-  "exports": "./dist/src/listener.js",
   "author": "Bisonai",
   "license": "UNLICENSED",
   "scripts": {
     "prepare": "cd .. && husky install core/.husky",
     "clean": "rm -rf dist",
     "build": "yarn clean && tsc",
-    "start:listener": "node --experimental-specifier-resolution=node --experimental-json-modules /app/dist/src/listener/listener.js",
+    "start:listener": "node --experimental-specifier-resolution=node --experimental-json-modules dist/listener/main.js",
     "start:listener:vrf": "yarn start:listener --listener VRF",
-    "start:listener:icn": "yarn start:listener --listener ICN",
-    "start:worker": "node --experimental-specifier-resolution=node --experimental-json-modules dist/src/worker.js",
-    "start:reporter": "node --experimental-specifier-resolution=node --experimental-json-modules dist/src/reporter.js",
-    "keygen": "node --experimental-specifier-resolution=node --experimental-json-modules dist/src/cli/vrf-keygen.js",
+    "start:listener:any_api": "yarn start:listener --listener ANY_API",
+    "start:listener:aggregator": "yarn start:listener --listener AGGREGATOR",
+    "start:worker": "node --experimental-specifier-resolution=node --experimental-json-modules dist/worker/main.js",
+    "start:worker:aggregator": "yarn start:worker --worker AGGREGATOR",
+    "start:worker:vrf": "yarn start:worker --worker VRF",
+    "start:worker:any_api": "yarn start:worker --worker ANY_API",
+    "start:worker:predefined_feed": "yarn start:worker --worker PREDEFINED_FEED",
+    "start:reporter": "node --experimental-specifier-resolution=node --experimental-json-modules dist/reporter/main.js",
+    "start:reporter:vrf": "yarn start:reporter --reporter VRF",
+    "start:reporter:any_api": "yarn start:reporter --reporter ANY_API",
+    "start:reporter:aggregator": "yarn start:reporter --reporter AGGREGATOR",
+    "keygen": "node --experimental-specifier-resolution=node --experimental-json-modules dist/cli/vrf-keygen.js",
+    "price_feed": "node --experimental-specifier-resolution=node --experimental-json-modules dist/cli/price-feed.js",
+    "adapter-hash": "node --experimental-specifier-resolution=node --experimental-json-modules dist/cli/generate-adapter-hash.js",
+    "aggregator-hash": "node --experimental-specifier-resolution=node --experimental-json-modules dist/cli/generate-aggregator-hash.js",
+    "flush": "node --experimental-specifier-resolution=node --experimental-json-modules dist/cli/flush-queues.js",
     "test": "jest",
     "eslint": "DEBUG=eslint:cli-engine npx eslint 'src/**/*.ts' 'src/*.ts' 'test/*.ts'"
   },
   "dependencies": {
-    "@bisonai-cic/icn-contracts": "0.1.0",
+    "@bisonai-cic/icn-contracts": "^0.2.0",
+    "axios": "^1.2.2",
     "bn.js": "^5.2.1",
     "bullmq": "^3.2.2",
     "dotenv": "^16.0.3",
     "elliptic": "^6.5.4",
     "ethers": "^5.7.2",
-    "got": "^12.5.3",
     "mathjs": "^11.4.0"
   },
   "devDependencies": {
