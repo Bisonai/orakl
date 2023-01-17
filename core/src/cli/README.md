@@ -1,11 +1,11 @@
 # CLI
 
 * [Core Operator](#core-operator)
-     * [Adapter](#adapter)
-     * [Aggregator](#aggregator)
      * [Chain](#chain)
      * [Service](#service)
      * [Listener](#listener)
+     * [Adapter](#adapter)
+     * [Aggregator](#aggregator)
 * [Generate VRF Keys](#generate-vrf-keys)
 * [Generate Adapter Hash](#generate-adapter-hash)
 * [Generate Aggregator Hash](#generate-aggregator-hash)
@@ -17,18 +17,6 @@ yarn build
 ```
 
 ## Core Operator
-
-### Adapter
-
-* Add new adapter
-* Activate adapter
-* Deactivate adapter
-
-### Aggregator
-
-* Add new aggregator
-* Activate aggregator
-* Deactivate aggregator
 
 ### Chain
 
@@ -147,6 +135,18 @@ Remove listener specified by `id`
 ```
 yarn cli listener remove --id 4
 ```
+
+### Adapter
+
+* Add new adapter
+* Activate adapter
+* Deactivate adapter
+
+### Aggregator
+
+* Add new aggregator
+* Activate aggregator
+* Deactivate aggregator
 
 
 ### Generate VRF keys
