@@ -17,15 +17,27 @@ import {
   positional
 } from 'cmd-ts'
 
-const chain = option({
-  type: optional(string),
-  long: 'chain'
+const idOption = option({
+  type: cmdnumber,
+  long: 'id'
 })
 
-const dryrun = flag({
+const dryrunOption = flag({
   type: cmdboolean,
   long: 'dry-run'
 })
+
+const serviceOption = option({
+  type: optional(string),
+  long: 'service'
+})
+
+function buildOption({ name, isOptional }: { name: string; isOptional?: boolean }) {
+  return option({
+    type: isOptional ? optional(string) : string,
+    long: name
+  })
+}
 
 async function main() {
   const db = await open({
@@ -66,7 +78,7 @@ function chainSub(db) {
         type: string,
         long: 'name'
       }),
-      dryrun
+      dryrun: dryrunOption
     },
     handler: async ({ name, dryrun }) => {
       const query = `INSERT INTO Chain (name) VALUES ('${name}')`
@@ -81,11 +93,8 @@ function chainSub(db) {
   const remove = command({
     name: 'remove',
     args: {
-      id: option({
-        type: cmdnumber,
-        long: 'id'
-      }),
-      dryrun
+      id: idOption,
+      dryrun: dryrunOption
     },
     handler: async ({ id, dryrun }) => {
       const query = `DELETE FROM Chain WHERE id=${id}`
@@ -117,11 +126,8 @@ function serviceSub(db) {
   const insert = command({
     name: 'insert',
     args: {
-      name: option({
-        type: string,
-        long: 'name'
-      }),
-      dryrun
+      name: buildOption({ name: 'name' }),
+      dryrun: dryrunOption
     },
     handler: async ({ name, dryrun }) => {
       const query = `INSERT INTO Service (name) VALUES ('${name}')`
@@ -136,11 +142,8 @@ function serviceSub(db) {
   const remove = command({
     name: 'remove',
     args: {
-      id: option({
-        type: cmdnumber,
-        long: 'id'
-      }),
-      dryrun
+      id: idOption,
+      dryrun: dryrunOption
     },
     handler: async ({ id, dryrun }) => {
       const query = `DELETE FROM Service WHERE id=${id}`
@@ -162,12 +165,9 @@ function listenerSub(db) {
   const list = command({
     name: 'list',
     args: {
-      chain,
-      dryrun,
-      service: option({
-        type: optional(string),
-        long: 'service'
-      })
+      chain: buildOption({ name: 'chain', isOptional: true }),
+      service: buildOption({ name: 'service', isOptional: true }),
+      dryrun: dryrunOption
     },
     handler: async ({ chain, service, dryrun }) => {
       let where = ''
@@ -197,20 +197,11 @@ function listenerSub(db) {
   const insert = command({
     name: 'list',
     args: {
-      chain,
-      service: option({
-        type: string,
-        long: 'service'
-      }),
-      address: option({
-        type: string,
-        long: 'address'
-      }),
-      eventName: option({
-        type: string,
-        long: 'eventName'
-      }),
-      dryrun
+      chain: buildOption({ name: 'chain', isOptional: true }),
+      service: buildOption({ name: 'service' }),
+      address: buildOption({ name: 'address' }),
+      eventName: buildOption({ name: 'eventName' }),
+      dryrun: dryrunOption
     },
     handler: async ({ chain, service, address, eventName, dryrun }) => {
       const chainResult = await db.get(`SELECT id from Chain WHERE name='${chain}'`)
@@ -228,11 +219,8 @@ function listenerSub(db) {
   const remove = command({
     name: 'remove',
     args: {
-      dryrun,
-      id: option({
-        type: string,
-        long: 'id'
-      })
+      id: idOption,
+      dryrun: dryrunOption
     },
     handler: async ({ id, dryrun }) => {
       const query = `DELETE FROM Listener WHERE id=${id};`
@@ -254,8 +242,8 @@ function vrfSub(db) {
   const list = command({
     name: 'list',
     args: {
-      chain,
-      dryrun
+      chain: buildOption({ name: 'chain', isOptional: true }),
+      dryrun: dryrunOption
     },
     handler: async ({ chain, dryrun }) => {
       let where = ''
@@ -277,27 +265,12 @@ function vrfSub(db) {
   const insert = command({
     name: 'insert',
     args: {
-      chain: option({
-        type: string,
-        long: 'chain'
-      }),
-      sk: option({
-        type: string,
-        long: 'sk'
-      }),
-      pk: option({
-        type: string,
-        long: 'pk'
-      }),
-      pk_x: option({
-        type: string,
-        long: 'pk_x'
-      }),
-      pk_y: option({
-        type: string,
-        long: 'pk_y'
-      }),
-      dryrun
+      chain: buildOption({ name: 'chain' }),
+      sk: buildOption({ name: 'sk' }),
+      pk: buildOption({ name: 'pk' }),
+      pk_x: buildOption({ name: 'pk_x' }),
+      pk_y: buildOption({ name: 'pk_y' }),
+      dryrun: dryrunOption
     },
     handler: async ({ chain, dryrun, pk, sk, pk_x, pk_y }) => {
       const chainResult = await db.get(`SELECT id from Chain WHERE name='${chain}'`)
@@ -313,11 +286,8 @@ function vrfSub(db) {
   const remove = command({
     name: 'remove',
     args: {
-      id: option({
-        type: string,
-        long: 'id'
-      }),
-      dryrun
+      id: idOption,
+      dryrun: dryrunOption
     },
     handler: async ({ id, dryrun }) => {
       const query = `DELETE FROM VrfKey WHERE id=${id};`
