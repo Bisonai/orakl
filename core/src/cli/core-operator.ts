@@ -6,6 +6,7 @@ import { open } from 'sqlite'
 import {
   flag,
   boolean as cmdboolean,
+  number as cmdnumber,
   binary,
   optional,
   option,
@@ -35,7 +36,7 @@ async function main() {
     driver: sqlite.Database
   })
 
-  // await db.migrate({ force: false }) // FIXME
+  // await db.migrate({ force: true }) // FIXME
 
   const chain = chainSub(db)
   const listener = listenerSub(db)
@@ -60,9 +61,47 @@ function chainSub(db) {
     }
   })
 
+  const insert = command({
+    name: 'insert',
+    args: {
+      name: option({
+        type: string,
+        long: 'name'
+      }),
+      dryrun
+    },
+    handler: async ({ name, dryrun }) => {
+      const query = `INSERT INTO Chain (name) VALUES ('${name}')`
+      if (dryrun) {
+        console.debug(query)
+      } else {
+        await db.run(query)
+      }
+    }
+  })
+
+  const remove = command({
+    name: 'remove',
+    args: {
+      id: option({
+        type: cmdnumber,
+        long: 'id'
+      }),
+      dryrun
+    },
+    handler: async ({ id, dryrun }) => {
+      const query = `DELETE FROM Chain WHERE id=${id}`
+      if (dryrun) {
+        console.debug(query)
+      } else {
+        await db.run(query)
+      }
+    }
+  })
+
   return subcommands({
     name: 'chain',
-    cmds: { list }
+    cmds: { list, insert, remove }
   })
 }
 

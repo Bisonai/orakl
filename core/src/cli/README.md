@@ -28,6 +28,26 @@ List all chains
 yarn cli chain list
 ```
 
+```
+[
+  { id: 1, name: 'localhost' },
+  { id: 2, name: 'baobab' },
+  { id: 3, name: 'cypress' }
+]
+```
+
+Insert new chain
+
+```
+yarn cli chain insert --name other
+```
+
+Remove chain by `id` filter
+
+```
+yarn cli chain remove --id 4
+```
+
 #### Listener
 
 List all listeners
