@@ -16,6 +16,16 @@ import {
   positional
 } from 'cmd-ts'
 
+const chain = option({
+  type: optional(string),
+  long: 'chain'
+})
+
+const dryrun = flag({
+  type: cmdboolean,
+  long: 'dry-run'
+})
+
 // FIXME move somewhere else
 const ALLOWED_CHAINS = ['localhost', 'baobab', 'cypress']
 
@@ -24,29 +34,50 @@ async function main() {
     filename: SETTINGS_DB_FILE,
     driver: sqlite.Database
   })
-  await db.migrate({ force: true }) // FIXME
 
-  const chain = option({
-    type: optional(string),
-    long: 'chain'
+  // await db.migrate({ force: false }) // FIXME
+
+  const chain = chainSub(db)
+  const listener = listenerSub(db)
+  const vrf = vrfSub(db)
+
+  const cli = subcommands({
+    name: 'operator',
+    cmds: { chain, listener, vrf }
   })
 
-  const debug = flag({
-    type: cmdboolean,
-    long: 'debug'
+  run(binary(cli), process.argv)
+}
+
+function chainSub(db) {
+  const list = command({
+    name: 'list',
+    args: {},
+    handler: async ({}) => {
+      const query = `SELECT * FROM Chain`
+      const result = await db.all(query)
+      console.log(result)
+    }
   })
 
-  const listener = command({
-    name: 'listener',
+  return subcommands({
+    name: 'chain',
+    cmds: { list }
+  })
+}
+
+function listenerSub(db) {
+  const list = command({
+    name: 'list',
     args: {
       chain,
-      debug,
+      dryrun,
       service: option({
         type: optional(string),
         long: 'service'
       })
     },
-    handler: async ({ chain, service, debug }) => {
+    handler: async ({ chain, service, dryrun }) => {
       let where = ''
       if (chain) {
         where += ' WHERE '
@@ -55,47 +86,161 @@ async function main() {
       if (service) {
         if (where.length) {
           where += ' AND '
+        } else {
+          where += ' WHERE '
         }
         where += `serviceId = (SELECT id from Service WHERE name='${service}')`
       }
 
-      const query = `SELECT address, eventName FROM Listener ${where}`
-      if (debug) {
+      const query = `SELECT id, address, eventName FROM Listener ${where}`
+      if (dryrun) {
         console.debug(query)
+      } else {
+        const result = await db.all(query)
+        console.log(result)
       }
-
-      const result = await db.all(query)
-      console.log(result)
     }
   })
 
-  const vrf = command({
-    name: 'vrf',
+  const insert = command({
+    name: 'list',
     args: {
       chain,
-      debug
+      service: option({
+        type: string,
+        long: 'service'
+      }),
+      address: option({
+        type: string,
+        long: 'address'
+      }),
+      eventName: option({
+        type: string,
+        long: 'eventName'
+      }),
+      dryrun
     },
-    handler: async ({ chain, debug }) => {
-      let where = ''
-      if (chain) {
-        where += ' WHERE '
-        where += `chainId = (SELECT id from Chain WHERE name='${chain}')`
-      }
-      const query = `SELECT sk, pk, pk_x, pk_y FROM VrfKey ${where}`
-      if (debug) {
+    handler: async ({ chain, service, address, eventName, dryrun }) => {
+      const chainResult = await db.get(`SELECT id from Chain WHERE name='${chain}'`)
+      const serviceResult = await db.get(`SELECT id from Service WHERE name='${service}'`)
+      const query = `INSERT INTO Listener (chainId, serviceId, address, eventName) VALUES (${chainResult.id}, ${serviceResult.id},'${address}', '${eventName}');`
+
+      if (dryrun) {
         console.debug(query)
+      } else {
+        await db.run(query)
       }
-      const result = await db.all(query)
-      console.log(result)
     }
   })
 
-  const cli = subcommands({
-    name: 'operator',
-    cmds: { listener, vrf }
+  const remove = command({
+    name: 'remove',
+    args: {
+      dryrun,
+      id: option({
+        type: string,
+        long: 'id'
+      })
+    },
+    handler: async ({ id, dryrun }) => {
+      const query = `DELETE FROM Listener WHERE id=${id};`
+      if (dryrun) {
+        console.debug(query)
+      } else {
+        await db.run(query)
+      }
+    }
   })
 
-  run(binary(cli), process.argv)
+  return subcommands({
+    name: 'listener',
+    cmds: { list, insert, remove }
+  })
+}
+
+function vrfSub(db) {
+  const list = command({
+    name: 'list',
+    args: {
+      chain,
+      dryrun
+    },
+    handler: async ({ chain, dryrun }) => {
+      let where = ''
+      if (chain) {
+        // where += ' WHERE '
+        where += `AND Chain.name = '${chain}'`
+      }
+      const query = `SELECT VrfKey.id, Chain.name as chain, sk, pk, pk_x, pk_y FROM VrfKey LEFT OUTER JOIN Chain
+   ON VrfKey.chainId = Chain.id ${where};`
+      if (dryrun) {
+        console.debug(query)
+      } else {
+        const result = await db.all(query)
+        console.log(result)
+      }
+    }
+  })
+
+  const insert = command({
+    name: 'insert',
+    args: {
+      chain: option({
+        type: string,
+        long: 'chain'
+      }),
+      sk: option({
+        type: string,
+        long: 'sk'
+      }),
+      pk: option({
+        type: string,
+        long: 'pk'
+      }),
+      pk_x: option({
+        type: string,
+        long: 'pk_x'
+      }),
+      pk_y: option({
+        type: string,
+        long: 'pk_y'
+      }),
+      dryrun
+    },
+    handler: async ({ chain, dryrun, pk, sk, pk_x, pk_y }) => {
+      const chainResult = await db.get(`SELECT id from Chain WHERE name='${chain}'`)
+      const query = `INSERT INTO VrfKey (chainId, sk, pk, pk_x, pk_y) VALUES (${chainResult.id}, '${sk}', '${pk}', '${pk_x}', '${pk_y}');`
+      if (dryrun) {
+        console.debug(query)
+      } else {
+        await db.run(query)
+      }
+    }
+  })
+
+  const remove = command({
+    name: 'remove',
+    args: {
+      id: option({
+        type: string,
+        long: 'id'
+      }),
+      dryrun
+    },
+    handler: async ({ id, dryrun }) => {
+      const query = `DELETE FROM VrfKey WHERE id=${id};`
+      if (dryrun) {
+        console.debug(query)
+      } else {
+        await db.run(query)
+      }
+    }
+  })
+
+  return subcommands({
+    name: 'vrf',
+    cmds: { list, insert, remove }
+  })
 }
 
 main().catch((error) => {
