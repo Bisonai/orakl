@@ -27,9 +27,6 @@ const dryrun = flag({
   long: 'dry-run'
 })
 
-// FIXME move somewhere else
-const ALLOWED_CHAINS = ['localhost', 'baobab', 'cypress']
-
 async function main() {
   const db = await open({
     filename: SETTINGS_DB_FILE,
