@@ -56,7 +56,7 @@ contract Prepayment is
         address[] consumers;
     }
 
-    CoordinatorBaseInterface[] private s_coordinators;
+    CoordinatorBaseInterface[] public s_coordinators;
 
     error TooManyConsumers();
     error InsufficientBalance();
@@ -66,6 +66,7 @@ contract Prepayment is
     error PendingRequestExists();
     error MustBeRequestedOwner(address proposedOwner);
     error ZeroAmount();
+    error CoordinatorExists();
 
     event AccountCreated(uint64 indexed accId, address owner);
     event AccountCanceled(uint64 indexed accId, address to, uint256 amount);
@@ -361,6 +362,11 @@ contract Prepayment is
      * @inheritdoc PrepaymentInterface
      */
     function addCoordinator(address coordinator) public onlyOwner {
+        for (uint256 i = 0; i < s_coordinators.length; i++) {
+            if (s_coordinators[i] == CoordinatorBaseInterface(coordinator)) {
+                revert CoordinatorExists();
+            }
+        }
         _grantRole(COORDINATOR_ROLE, coordinator);
         s_coordinators.push(CoordinatorBaseInterface(coordinator));
     }
