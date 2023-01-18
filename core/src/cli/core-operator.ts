@@ -1,4 +1,3 @@
-import { parseArgs } from 'node:util'
 import { SETTINGS_DB_FILE } from '../settings'
 import sqlite from 'sqlite3'
 import { open } from 'sqlite'
@@ -184,7 +183,7 @@ function listenerSub(db) {
         where += `serviceId = (SELECT id from Service WHERE name='${service}')`
       }
 
-      const query = `SELECT id, address, eventName FROM Listener ${where}`
+      const query = `SELECT * FROM Listener ${where}`
       if (dryrun) {
         console.debug(query)
       } else {
