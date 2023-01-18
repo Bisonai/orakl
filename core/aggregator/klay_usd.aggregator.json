@@ -1,11 +1,11 @@
 {
-    "id": "0xcd15fe7e034efc7a17318a9eb8e403af0c430691885d613e53b2828ee515943c",
+    "id": "0x2d5d94df99ccad54f0f6a9d38f2340db793833947f86b207dcda38583dd263fa",
     "address": "0x2279B7A0a67DB372996a5FaB50D91eAA73d2eBe6",
     "active": true,
     "name": "KLAY/USD",
     "fixedHeartbeatRate": {
         "active" : true,
-        "value": 5000
+        "value": 15000
     },
     "randomHeartbeatRate": {
         "active": false,
