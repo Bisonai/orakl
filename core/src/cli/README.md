@@ -4,9 +4,9 @@
      * [Chain](#chain)
      * [Service](#service)
      * [Listener](#listener)
+     * [VRF](#vrf)
      * [Adapter](#adapter)
      * [Aggregator](#aggregator)
-* [Generate VRF Keys](#generate-vrf-keys)
 * [Generate Adapter Hash](#generate-adapter-hash)
 * [Generate Aggregator Hash](#generate-aggregator-hash)
 
@@ -136,20 +136,7 @@ Remove listener specified by `id`
 yarn cli listener remove --id 4
 ```
 
-### Adapter
-
-* Add new adapter
-* Activate adapter
-* Deactivate adapter
-
-### Aggregator
-
-* Add new aggregator
-* Activate aggregator
-* Deactivate aggregator
-
-
-### Generate VRF keys
+### VRF
 
 List all VRF keys
 
@@ -179,6 +166,19 @@ Remove VRF keys specified by `id`
 ```
 yarn cli vrf remove --id 2
 ```
+
+### Adapter
+
+* Add new adapter
+* Activate adapter
+* Deactivate adapter
+
+### Aggregator
+
+* Add new aggregator
+* Activate aggregator
+* Deactivate aggregator
+
 
 ## Generate Adapter Hash
 
