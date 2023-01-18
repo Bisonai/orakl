@@ -241,10 +241,9 @@ function vrfSub(db) {
     handler: async ({ chain, dryrun }) => {
       let where = ''
       if (chain) {
-        // where += ' WHERE '
         where += `AND Chain.name = '${chain}'`
       }
-      const query = `SELECT VrfKey.id, Chain.name as chain, sk, pk, pk_x, pk_y FROM VrfKey LEFT OUTER JOIN Chain
+      const query = `SELECT VrfKey.id, Chain.name as chain, sk, pk, pk_x, pk_y FROM VrfKey INNER JOIN Chain
    ON VrfKey.chainId = Chain.id ${where};`
       if (dryrun) {
         console.debug(query)
