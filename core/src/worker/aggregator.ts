@@ -5,8 +5,7 @@ import {
   loadAdapters,
   loadAggregators,
   mergeAggregatorsAdapters,
-  uniform,
-  addReportProperty
+  uniform
 } from './utils'
 import {
   IAggregatorListenerWorker,
@@ -75,8 +74,7 @@ function aggregatorJob(reporterQueueName: string, aggregatorsWithAdapters) {
   async function wrapper(job) {
     const inData: IAggregatorListenerWorker = job.data
     console.debug('aggregatorJob:inData', inData)
-
-    const ag = addReportProperty(aggregatorsWithAdapters[inData.aggregatorAddress], true)
+    const ag = addReportProperty(aggregatorsWithAdapters[inData.address], true)
 
     try {
       const outData = await prepareDataForReporter(ag)
@@ -114,11 +112,18 @@ function fixedHeartbeatJob(
   async function wrapper(job) {
     const inData: IAggregatorHeartbeatWorker = job.data
     console.debug('fixedHeartbeatJob:inData', inData)
-    const outData = await prepareDataForReporter(inData)
-    console.debug('fixedHeartbeatJob:outData', outData)
 
-    reporterQueue.add('aggregator', outData)
-    heartbeatQueue.add('fixed-heartbeat', inData, { delay: inData.fixedHeartbeatRate.value })
+    try {
+      const outData = await prepareDataForReporter(inData)
+      console.debug('fixedHeartbeatJob:outData', outData)
+      if (outData.report) {
+        reporterQueue.add('aggregator', outData)
+      }
+    } catch (e) {
+      console.error(e)
+    } finally {
+      heartbeatQueue.add('fixed-heartbeat', inData, { delay: inData.fixedHeartbeatRate.value })
+    }
   }
 
   return wrapper
@@ -147,26 +152,40 @@ function randomHeartbeatJob(
   async function wrapper(job) {
     const inData: IAggregatorHeartbeatWorker = job.data
     console.debug('randomHeartbeatJob:inData', inData)
-    const outData = await prepareDataForReporter(inData)
-    console.debug('randomHeartbeatJob:outData', outData)
 
-    if (outData.report) {
-      reporterQueue.add('aggregator', outData)
+    try {
+      const outData = await prepareDataForReporter(inData)
+      console.debug('randomHeartbeatJob:outData', outData)
+      if (outData.report) {
+        reporterQueue.add('aggregator', outData)
+      }
+    } catch (e) {
+      console.error(e)
+    } finally {
+      heartbeatQueue.add('random-heartbeat', inData, {
+        delay: uniform(0, inData.randomHeartbeatRate.value)
+      })
     }
-    heartbeatQueue.add('random-heartbeat', inData, {
-      delay: uniform(0, inData.randomHeartbeatRate.value)
-    })
   }
 
   return wrapper
 }
 
-async function prepareDataForReporter(data): Promise<IAggregatorWorkerReporter> {
-  const callbackAddress = data.aggregatorAddress
+/**
+ * Fetch the latest data and prepare them to be sent to reporter.
+ *
+ * @param {IAggregatorHeartbeatWorker} data
+ * @return {Promise<IAggregatorWorkerReporter>}
+ * @exception {InvalidPriceFeed} raised from `fetchDataWithadapter`
+ */
+async function prepareDataForReporter(
+  data: IAggregatorHeartbeatWorker
+): Promise<IAggregatorWorkerReporter> {
+  const callbackAddress = data.address
   const submission = await fetchDataWithAdapter(data.adapter)
   let report = data.report
 
-  const oracleRoundState = await oracleRoundStateCall(data.aggregatorAddress, ORACLE_ADDRESS)
+  const oracleRoundState = await oracleRoundStateCall(data.address, ORACLE_ADDRESS)
   console.debug('prepareDataForReporter:oracleRoundState', oracleRoundState)
   const lastSubmission = oracleRoundState._latestSubmission.toNumber()
   if (report === undefined) {
@@ -210,4 +229,8 @@ async function oracleRoundStateCall(
   const provider = new ethers.providers.JsonRpcProvider(PROVIDER_URL)
   const aggregator = new ethers.Contract(aggregatorAddress, Aggregator__factory.abi, provider)
   return await aggregator.oracleRoundState(oracleAddress, 0)
+}
+
+function addReportProperty(o, report: boolean) {
+  return Object.assign({}, ...[o, { report }])
 }

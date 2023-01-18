@@ -1,5 +1,6 @@
 {
-    "id": "0x5e144ae08c37ec9f300c2dadf8e611d2255089e2d32838f004fb2f3b0644c4f7",
+    "id": "0x4bbb04ac1bd973770a0b8e585a41147648980f3094ee7ac5597b2a987e9e96a9",
+    "address": "0x0000000000000000000000000000000000000000",
     "active": false,
     "name": "ETH/USD",
     "fixedHeartbeatRate": {

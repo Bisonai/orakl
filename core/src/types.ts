@@ -166,7 +166,7 @@ export interface IVrfListenerWorker {
 }
 
 export interface IAggregatorListenerWorker {
-  aggregatorAddress: string
+  address: string
   roundId: BigNumber
   startedBy: string
   startedAt: BigNumber
@@ -175,15 +175,16 @@ export interface IAggregatorListenerWorker {
 // Worker -> Worker
 
 export interface IAggregatorHeartbeatWorker {
+  id: string
+  address: string
   name: string
   active: boolean
-  aggregatorAddress: string
+  report?: boolean
   fixedHeartbeatRate: IProperty
   randomHeartbeatRate: IProperty
   threshold: number
   absoluteThreshold: number
   adapterId: string
-  aggregatorId: string
   adapter: IFeed[]
 }
 
