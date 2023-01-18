@@ -177,6 +177,7 @@ export interface IAggregatorListenerWorker {
 export interface IAggregatorHeartbeatWorker {
   name: string
   active: boolean
+  report?: boolean
   aggregatorAddress: string
   fixedHeartbeatRate: IProperty
   randomHeartbeatRate: IProperty

@@ -60,6 +60,13 @@ export function mergeAggregatorsAdapters(aggregators, adapters) {
   return Object.assign({}, ...aggregatorsWithAdapters)
 }
 
+/**
+ * Fetch data from API endpoints defined in `adapter`.
+ *
+ * @param {number} adapter Single data adapter to define which data to fetch.
+ * @return {number} aggregatedresults
+ * @exception {InvalidPriceFeed} raised when there is at least one undefined data point
+ */
 export async function fetchDataWithAdapter(adapter) {
   const allResults = await Promise.all(
     adapter.map(async (a) => {
@@ -84,7 +91,7 @@ export async function fetchDataWithAdapter(adapter) {
     })
   )
   console.debug('predefinedFeedJob:allResults', allResults)
-  // FIXME: Improve or use flags to Throw error when allResults has any undefined variable
+  // FIXME: Improve or use flags to throw error when allResults has any undefined variable
   const isValid = allResults.every((r) => r)
   if (!isValid) {
     throw new IcnError(IcnErrorCode.InvalidPriceFeed)
@@ -190,8 +197,4 @@ export function uniform(a: number, b: number): number {
     throw new IcnError(IcnErrorCode.UniformWrongParams)
   }
   return a + Math.round(Math.random() * (b - a))
-}
-
-export function addReportProperty(o, report: boolean) {
-  return Object.assign({}, ...[o, { report }])
 }
