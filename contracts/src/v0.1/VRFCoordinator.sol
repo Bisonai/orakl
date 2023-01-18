@@ -80,6 +80,7 @@ contract VRFCoordinator is
 
     PaymentConfig s_paymentConfig;
 
+    error InvalidKeyHash(bytes32 keyHash);
     error InvalidConsumer(uint64 accId, address consumer);
     error InvalidAccount();
     error InvalidRequestConfirmations(uint16 have, uint16 min, uint16 max);
@@ -127,8 +128,15 @@ contract VRFCoordinator is
         _;
     }
 
-    constructor(PrepaymentInterface prepayment) {
-        Prepayment = prepayment;
+    modifier onlyValidKeyHash(bytes32 keyHash) {
+        if (s_provingKeys[keyHash] == address(0)) {
+            revert InvalidKeyHash(keyHash);
+        }
+        _;
+    }
+
+    constructor(address prepayment) {
+        Prepayment = PrepaymentInterface(prepayment);
     }
 
     /**
@@ -482,7 +490,7 @@ contract VRFCoordinator is
         uint16 requestConfirmations,
         uint32 callbackGasLimit,
         uint32 numWords
-    ) public nonReentrant returns (uint256) {
+    ) public nonReentrant onlyValidKeyHash(keyHash) returns (uint256) {
         uint256 requestId = requestRandomWordsInternal(
             keyHash,
             accId,
@@ -502,7 +510,7 @@ contract VRFCoordinator is
         uint16 requestConfirmations,
         uint32 callbackGasLimit,
         uint32 numWords
-    ) external payable returns (uint256) {
+    ) external payable onlyValidKeyHash(keyHash) returns (uint256) {
         uint256 vrfFee = estimateDirectPaymentFee();
         if (msg.value < vrfFee) {
             revert InsufficientPayment(msg.value, vrfFee);
