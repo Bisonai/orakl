@@ -257,3 +257,10 @@ export interface IListenerConfig {
   address: string
   eventName: string
 }
+
+export interface IVrfConfig {
+  sk: string
+  pk: string
+  pk_x: string
+  pk_y: string
+}
