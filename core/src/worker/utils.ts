@@ -46,11 +46,7 @@ export function mergeAggregatorsAdapters(aggregators, adapters) {
   for (const agAddress in aggregators) {
     const ag = aggregators[agAddress]
     if (ag) {
-      const ad = adapters[ag.adapterId]
-
-      ag['aggregatorAddress'] = agAddress
-      ag['adapter'] = ad
-
+      ag['adapter'] = adapters[ag.adapterId]
       aggregatorsWithAdapters.push({ [agAddress]: ag })
     } else {
       throw new IcnError(IcnErrorCode.MissingAdapter)
@@ -137,9 +133,11 @@ function extractFeeds(adapter) {
 }
 
 function extractAggregators(aggregator) {
-  const aggregatorId = aggregator.id
+  const aggregatorAddress = aggregator.address
   return {
-    [aggregatorId]: {
+    [aggregatorAddress]: {
+      id: aggregator.id,
+      address: aggregator.address,
       name: aggregator.name,
       active: aggregator.active,
       fixedHeartbeatRate: aggregator.fixedHeartbeatRate,
@@ -171,6 +169,7 @@ function validateAggregator(adapter): IAggregator {
   // TODO extract properties from Interface
   const requiredProperties = [
     'id',
+    'address',
     'active',
     'name',
     'fixedHeartbeatRate',

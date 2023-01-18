@@ -75,7 +75,7 @@ function aggregatorJob(reporterQueueName: string, aggregatorsWithAdapters) {
   async function wrapper(job) {
     const inData: IAggregatorListenerWorker = job.data
     console.debug('aggregatorJob:inData', inData)
-    const ag = addReportProperty(aggregatorsWithAdapters[inData.aggregatorAddress], true)
+    const ag = addReportProperty(aggregatorsWithAdapters[inData.address], true)
 
     try {
       const outData = await prepareDataForReporter(ag)
@@ -182,11 +182,11 @@ function randomHeartbeatJob(
 async function prepareDataForReporter(
   data: IAggregatorHeartbeatWorker
 ): Promise<IAggregatorWorkerReporter> {
-  const callbackAddress = data.aggregatorAddress
+  const callbackAddress = data.address
   const submission = await fetchDataWithAdapter(data.adapter)
   let report = data.report
 
-  const oracleRoundState = await oracleRoundStateCall(data.aggregatorAddress, ORACLE_ADDRESS)
+  const oracleRoundState = await oracleRoundStateCall(data.address, ORACLE_ADDRESS)
   console.debug('prepareDataForReporter:oracleRoundState', oracleRoundState)
   const lastSubmission = oracleRoundState._latestSubmission.toNumber()
   if (report === undefined) {

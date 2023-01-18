@@ -20,7 +20,7 @@ function processAggregatorEvent(iface: ethers.utils.Interface, queue: Queue) {
     if (eventData.startedBy != PUBLIC_KEY) {
       // NewRound emitted by somebody else
       const data: IAggregatorListenerWorker = {
-        aggregatorAddress: log.address,
+        address: log.address,
         roundId: eventData.roundId,
         startedBy: eventData.startedBy,
         startedAt: eventData.startedAt
