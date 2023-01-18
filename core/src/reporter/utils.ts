@@ -36,9 +36,13 @@ export async function sendTransaction(wallet, to, payload, gasLimit?, value?) {
     from: wallet.address,
     to: to,
     data: add0x(payload),
-    gasLimit: gasLimit || '0x34710', // FIXME
     value: value || '0x00'
   }
+
+  if (gasLimit) {
+    tx['gasLimit'] = gasLimit
+  }
+
   console.debug('sendTransaction:tx')
   console.debug(tx)
 
