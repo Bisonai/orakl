@@ -11,8 +11,7 @@ import {
   IAggregatorListenerWorker,
   IAggregatorWorkerReporter,
   IAggregatorHeartbeatWorker,
-  IOracleRoundState,
-  IRandomWordsRequested
+  IOracleRoundState
 } from '../types'
 import {
   WORKER_AGGREGATOR_QUEUE_NAME,
