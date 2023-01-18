@@ -12,8 +12,7 @@ import {
   subcommands,
   command,
   run,
-  string,
-  positional
+  string
 } from 'cmd-ts'
 
 const idOption = option({
@@ -24,11 +23,6 @@ const idOption = option({
 const dryrunOption = flag({
   type: cmdboolean,
   long: 'dry-run'
-})
-
-const serviceOption = option({
-  type: optional(string),
-  long: 'service'
 })
 
 function buildOption({ name, isOptional }: { name: string; isOptional?: boolean }) {
@@ -63,8 +57,8 @@ function chainSub(db) {
   const list = command({
     name: 'list',
     args: {},
-    handler: async ({}) => {
-      const query = `SELECT * FROM Chain`
+    handler: async () => {
+      const query = 'SELECT * FROM Chain'
       const result = await db.all(query)
       console.log(result)
     }
@@ -115,8 +109,8 @@ function serviceSub(db) {
   const list = command({
     name: 'list',
     args: {},
-    handler: async ({}) => {
-      const query = `SELECT * FROM Service`
+    handler: async () => {
+      const query = 'SELECT * FROM Service'
       const result = await db.all(query)
       console.log(result)
     }

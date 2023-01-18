@@ -1,4 +1,4 @@
-import { describe, expect, beforeEach, test } from '@jest/globals'
+import { describe, expect, test } from '@jest/globals'
 import { postprocessListeners } from '../src/settings'
 
 describe('Listener', function () {

@@ -73,7 +73,7 @@ async function openDb() {
 }
 
 export function postprocessListeners(listeners): IListenerConfig[] {
-  let postprocessed = listeners.reduce((groups, item) => {
+  const postprocessed = listeners.reduce((groups, item) => {
     const group = groups[item.name] || []
     group.push(item)
     groups[item.name] = group
