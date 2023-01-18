@@ -1,10 +1,14 @@
 import { Queue } from 'bullmq'
 import { ethers } from 'ethers'
+import { VRFCoordinator__factory } from '@bisonai-cic/icn-contracts'
 import { Event } from './event'
 import { IListenerConfig, IRandomWordsRequested, IVrfListenerWorker } from '../types'
 
-export function buildVrfListener(queueName: string, config: IListenerConfig) {
-  new Event(queueName, processVrfEvent, config).listen()
+export function buildVrfListener(queueName: string, config: IListenerConfig[]) {
+  // FIXME remove loop and listen on multiple contract for the same event
+  for (const c of config) {
+    new Event(queueName, processVrfEvent, VRFCoordinator__factory.abi, c).listen()
+  }
 }
 
 function processVrfEvent(iface: ethers.utils.Interface, queue: Queue) {

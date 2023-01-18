@@ -1,7 +1,6 @@
 import * as path from 'node:path'
 import { Queue } from 'bullmq'
 import { Contract, ethers } from 'ethers'
-import * as IcnContracts from '@bisonai-cic/icn-contracts'
 import { BULLMQ_CONNECTION, LISTENER_ROOT_DIR, LISTENER_DELAY } from '../settings'
 import { IListenerBlock, IListenerConfig } from '../types'
 import { mkdir, readTextFile, writeTextFile } from '../utils'
@@ -18,20 +17,15 @@ export class Event {
   constructor(
     queueName: string,
     wrapFn: (iface: ethers.utils.Interface, queue: Queue) => (log) => void,
+    abi,
     listener: IListenerConfig
   ) {
     console.debug(`listenToEvents:topicId ${listener.eventName}`)
-
-    if (!IcnContracts[listener.factoryName]?.abi) {
-      throw Error(`Accessing undefined or incomplete factory ${listener.factoryName}`)
-    }
-
     console.debug('PROVIDER_URL', PROVIDER_URL)
     console.debug('LISTENER_ROOT_DIR', LISTENER_ROOT_DIR)
 
     mkdir(LISTENER_ROOT_DIR)
     const provider = new ethers.providers.JsonRpcProvider(PROVIDER_URL)
-    const abi = IcnContracts[listener.factoryName].abi
     const iface = new ethers.utils.Interface(abi)
     const queue = new Queue(queueName, BULLMQ_CONNECTION)
 

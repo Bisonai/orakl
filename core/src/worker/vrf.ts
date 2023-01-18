@@ -1,14 +1,15 @@
 import { ethers } from 'ethers'
 import { Worker, Queue } from 'bullmq'
 import { prove, decode, getFastVerifyComponents } from '../vrf/index'
-import { IVrfResponse, IVrfListenerWorker, IVrfWorkerReporter } from '../types'
+import { IVrfResponse, IVrfListenerWorker, IVrfWorkerReporter, IVrfConfig } from '../types'
 import {
   WORKER_VRF_QUEUE_NAME,
   REPORTER_VRF_QUEUE_NAME,
   BULLMQ_CONNECTION,
-  VRF_CONFIG_FILE
+  CHAIN,
+  getVrfConfig
 } from '../settings'
-import { loadJson, remove0x } from '../utils'
+import { remove0x } from '../utils'
 
 export async function vrfWorker() {
   console.debug('vrfWorker')
@@ -18,7 +19,7 @@ export async function vrfWorker() {
 async function vrfJob(queueName) {
   const queue = new Queue(queueName, BULLMQ_CONNECTION)
   // FIXME add checks if exists and if includes all information
-  const vrfConfig = await loadJson(VRF_CONFIG_FILE)
+  const vrfConfig = await getVrfConfig(CHAIN)
 
   async function wrapper(job) {
     const inData: IVrfListenerWorker = job.data
@@ -60,12 +61,12 @@ async function vrfJob(queueName) {
   return wrapper
 }
 
-function processVrfRequest(alpha: string, config): IVrfResponse {
+function processVrfRequest(alpha: string, config: IVrfConfig): IVrfResponse {
   console.debug('processVrfRequest:alpha', alpha)
 
-  const proof = prove(config.VRF_SK, alpha)
+  const proof = prove(config.sk, alpha)
   const [Gamma, c, s] = decode(proof)
-  const fast = getFastVerifyComponents(config.VRF_PK, proof, alpha)
+  const fast = getFastVerifyComponents(config.pk, proof, alpha)
 
   if (fast == 'INVALID') {
     console.error('INVALID')
@@ -74,7 +75,7 @@ function processVrfRequest(alpha: string, config): IVrfResponse {
   }
 
   return {
-    pk: [config.VRF_PK_X, config.VRF_PK_Y],
+    pk: [config.pk_x, config.pk_y],
     proof: [Gamma.x.toString(), Gamma.y.toString(), c.toString(), s.toString()],
     uPoint: [fast.uX, fast.uY],
     vComponents: [fast.sHX, fast.sHY, fast.cGX, fast.cGY]

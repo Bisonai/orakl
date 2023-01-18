@@ -1,6 +1,5 @@
-import { fetchDataWithAdapter, loadAdapters } from '../worker/utils'
-
 import { parseArgs } from 'node:util'
+import { fetchDataWithAdapter, loadAdapters } from '../worker/utils'
 
 async function main() {
   const adapterId: string = loadArgs()
