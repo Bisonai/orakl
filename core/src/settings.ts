@@ -1,6 +1,7 @@
 import * as Path from 'node:path'
 import sqlite from 'sqlite3'
 import { open } from 'sqlite'
+import { IListenerConfig } from './types'
 import { aggregatorMapping } from './aggregator'
 import { LOCAL_AGGREGATOR, REDIS_HOST, REDIS_PORT } from './load-parameters'
 
@@ -62,6 +63,8 @@ export const LISTENER_DELAY = 500
 
 export const SETTINGS_DB_FILE = './settings.sqlite'
 
+export const CHAIN = 'localhost'
+
 async function openDb() {
   return await open({
     filename: SETTINGS_DB_FILE,
@@ -69,7 +72,7 @@ async function openDb() {
   })
 }
 
-export function postprocessListeners(listeners) {
+export function postprocessListeners(listeners): IListenerConfig[] {
   let postprocessed = listeners.reduce((groups, item) => {
     const group = groups[item.name] || []
     group.push(item)
@@ -87,7 +90,7 @@ export function postprocessListeners(listeners) {
   return postprocessed
 }
 
-export async function getListeners(chain: string) {
+export async function getListeners(chain: string): Promise<IListenerConfig[]> {
   const db = await openDb()
   const query = `SELECT Service.name, address, eventName FROM Listener
     LEFT OUTER JOIN Service ON Service.id = Listener.serviceId

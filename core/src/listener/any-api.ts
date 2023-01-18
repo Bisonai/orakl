@@ -4,8 +4,11 @@ import { RequestResponseCoordinator__factory } from '@bisonai-cic/icn-contracts'
 import { Event } from './event'
 import { IListenerConfig, INewRequest, IAnyApiListenerWorker } from '../types'
 
-export function buildAnyApiListener(queueName: string, config: IListenerConfig) {
-  new Event(queueName, processAnyApiEvent, RequestResponseCoordinator__factory.abi, config).listen()
+export function buildAnyApiListener(queueName: string, config: IListenerConfig[]) {
+  // FIXME remove loop and listen on multiple contract for the same event
+  for (const c of config) {
+    new Event(queueName, processAnyApiEvent, RequestResponseCoordinator__factory.abi, c).listen()
+  }
 }
 
 export function processAnyApiEvent(iface: ethers.utils.Interface, queue: Queue) {

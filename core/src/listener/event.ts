@@ -21,7 +21,6 @@ export class Event {
     listener: IListenerConfig
   ) {
     console.debug(`listenToEvents:topicId ${listener.eventName}`)
-
     console.debug('PROVIDER_URL', PROVIDER_URL)
     console.debug('LISTENER_ROOT_DIR', LISTENER_ROOT_DIR)
 

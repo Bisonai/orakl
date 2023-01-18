@@ -5,12 +5,12 @@ import { buildAnyApiListener } from './any-api'
 import { loadJson } from '../utils'
 import { validateListenerConfig } from './utils'
 import { IcnError, IcnErrorCode } from '../errors'
-import { WORKER_ANY_API_QUEUE_NAME, WORKER_VRF_QUEUE_NAME } from '../settings'
-import { LISTENER_CONFIG_FILE } from '../settings'
+import { WORKER_ANY_API_QUEUE_NAME, WORKER_VRF_QUEUE_NAME, CHAIN } from '../settings'
+import { getListeners } from '../settings'
 import { healthCheck } from '../health-checker'
 
 const LISTENERS = {
-  AGGREGATOR: {
+  Aggregator: {
     queueName: WORKER_VRF_QUEUE_NAME,
     fn: buildAggregatorListener
   },
@@ -18,17 +18,15 @@ const LISTENERS = {
     queueName: WORKER_VRF_QUEUE_NAME,
     fn: buildVrfListener
   },
-  ANY_API: {
+  RequestResponse: {
     queueName: WORKER_ANY_API_QUEUE_NAME,
     fn: buildAnyApiListener
   }
 }
 
 async function main() {
-  console.debug('LISTENER_CONFIG_FILE', LISTENER_CONFIG_FILE)
-
   const listener = loadArgs()
-  const listenersConfig = await loadJson(LISTENER_CONFIG_FILE)
+  const listenersConfig = await getListeners(CHAIN)
 
   const isValid = Object.keys(listenersConfig).map((k) =>
     validateListenerConfig(listenersConfig[k])
