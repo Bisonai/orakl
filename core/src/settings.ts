@@ -1,4 +1,6 @@
 import * as Path from 'node:path'
+import sqlite from 'sqlite3'
+import { open } from 'sqlite'
 import { aggregatorMapping } from './aggregator'
 import { LOCAL_AGGREGATOR, REDIS_HOST, REDIS_PORT } from './load-parameters'
 
@@ -59,3 +61,39 @@ export const VRF_CONFIG_FILE = Path.join(CONFIG_ROOT_DIR, 'vrf.json')
 export const LISTENER_DELAY = 500
 
 export const SETTINGS_DB_FILE = './settings.sqlite'
+
+async function openDb() {
+  return await open({
+    filename: SETTINGS_DB_FILE,
+    driver: sqlite.Database
+  })
+}
+
+export function postprocessListeners(listeners) {
+  let postprocessed = listeners.reduce((groups, item) => {
+    const group = groups[item.name] || []
+    group.push(item)
+    groups[item.name] = group
+    return groups
+  }, {})
+
+  Object.keys(postprocessed).forEach((serviceName) => {
+    return postprocessed[serviceName].map((listener) => {
+      delete listener['name']
+      return listener
+    })
+  })
+
+  return postprocessed
+}
+
+export async function getListeners(chain: string) {
+  const db = await openDb()
+  const query = `SELECT Service.name, address, eventName FROM Listener
+    LEFT OUTER JOIN Service ON Service.id = Listener.serviceId
+    LEFT OUTER JOIN Chain ON Chain.id = Listener.chainId AND Chain.name = '${chain}'`
+  const result = await db.all(query)
+
+  const listeners = postprocessListeners(result)
+  return listeners
+}
