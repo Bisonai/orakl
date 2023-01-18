@@ -3,6 +3,7 @@ import { expect } from 'chai'
 import hre from 'hardhat'
 import { vrfConfig } from './VRF.config'
 import { parseKlay } from './utils'
+import { createAccount } from './Prepayment.utils'
 
 async function createAccount(prepaymentContract) {
   const txReceipt = await (await prepaymentContract.createAccount()).wait()
