@@ -17,9 +17,14 @@ export async function openDb() {
   })
 }
 
-export const dryrunOption = flag({
-  type: cmdboolean,
-  long: 'dry-run'
+export const chainOptionalOption = option({
+  type: optional(cmdstring),
+  long: 'chain'
+})
+
+export const serviceOptionalOption = option({
+  type: optional(cmdstring),
+  long: 'service'
 })
 
 export const idOption = option({
@@ -27,9 +32,7 @@ export const idOption = option({
   long: 'id'
 })
 
-export function buildStringOption({ name, isOptional }: { name: string; isOptional?: boolean }) {
-  return option({
-    type: isOptional ? optional(cmdstring) : cmdstring,
-    long: name
-  })
-}
+export const dryrunOption = flag({
+  type: cmdboolean,
+  long: 'dry-run'
+})

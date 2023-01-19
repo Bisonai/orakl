@@ -1,6 +1,7 @@
 import { chainSub } from './chain'
 import { serviceSub } from './service'
-import { openDb, dryrunOption, idOption, buildStringOption } from './utils'
+import { listenerSub } from './listener'
+import { openDb, dryrunOption, idOption } from './utils'
 
 import {
   flag,
@@ -31,83 +32,6 @@ async function main() {
   })
 
   run(binary(cli), process.argv)
-}
-
-function listenerSub(db) {
-  const list = command({
-    name: 'list',
-    args: {
-      chain: buildStringOption({ name: 'chain', isOptional: true }),
-      service: buildStringOption({ name: 'service', isOptional: true }),
-      dryrun: dryrunOption
-    },
-    handler: async ({ chain, service, dryrun }) => {
-      let where = ''
-      if (chain) {
-        where += ' WHERE '
-        where += `chainId = (SELECT id from Chain WHERE name='${chain}')`
-      }
-      if (service) {
-        if (where.length) {
-          where += ' AND '
-        } else {
-          where += ' WHERE '
-        }
-        where += `serviceId = (SELECT id from Service WHERE name='${service}')`
-      }
-
-      const query = `SELECT * FROM Listener ${where}`
-      if (dryrun) {
-        console.debug(query)
-      } else {
-        const result = await db.all(query)
-        console.log(result)
-      }
-    }
-  })
-
-  const insert = command({
-    name: 'list',
-    args: {
-      chain: buildStringOption({ name: 'chain', isOptional: true }),
-      service: buildStringOption({ name: 'service' }),
-      address: buildStringOption({ name: 'address' }),
-      eventName: buildStringOption({ name: 'eventName' }),
-      dryrun: dryrunOption
-    },
-    handler: async ({ chain, service, address, eventName, dryrun }) => {
-      const chainResult = await db.get(`SELECT id from Chain WHERE name='${chain}'`)
-      const serviceResult = await db.get(`SELECT id from Service WHERE name='${service}'`)
-      const query = `INSERT INTO Listener (chainId, serviceId, address, eventName) VALUES (${chainResult.id}, ${serviceResult.id},'${address}', '${eventName}');`
-
-      if (dryrun) {
-        console.debug(query)
-      } else {
-        await db.run(query)
-      }
-    }
-  })
-
-  const remove = command({
-    name: 'remove',
-    args: {
-      id: idOption,
-      dryrun: dryrunOption
-    },
-    handler: async ({ id, dryrun }) => {
-      const query = `DELETE FROM Listener WHERE id=${id};`
-      if (dryrun) {
-        console.debug(query)
-      } else {
-        await db.run(query)
-      }
-    }
-  })
-
-  return subcommands({
-    name: 'listener',
-    cmds: { list, insert, remove }
-  })
 }
 
 function vrfSub(db) {

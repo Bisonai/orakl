@@ -1,5 +1,5 @@
 import { command, subcommands, option, string as cmdstring } from 'cmd-ts'
-import { buildStringOption, dryrunOption, idOption } from './utils'
+import { dryrunOption, idOption } from './utils'
 
 export function serviceSub(db) {
   const list = command({
