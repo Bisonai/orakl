@@ -9,7 +9,8 @@ describe('CLI Service', function () {
   })
 
   test('Should list service', async function () {
-    await listHandler(db)()
+    const service = await listHandler(db)()
+    expect(service.length).toBeGreaterThan(0)
   })
 
   test('Should insert new service', async function () {

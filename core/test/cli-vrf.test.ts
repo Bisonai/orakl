@@ -16,7 +16,8 @@ describe('CLI Vrf', function () {
   })
 
   test('Should list all VRF keys', async function () {
-    await listHandler(DB)({})
+    const vrf = await listHandler(DB)({})
+    expect(vrf.length).toBeGreaterThan(0)
   })
 
   test('Should insert new VRF keys', async function () {

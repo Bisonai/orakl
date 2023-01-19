@@ -15,7 +15,8 @@ describe('CLI Listener', function () {
   })
 
   test('Should list all listeners', async function () {
-    await listHandler(DB)({})
+    const listener = await listHandler(DB)({})
+    expect(listener.length).toBeGreaterThan(0)
   })
 
   test('Should insert new listener', async function () {

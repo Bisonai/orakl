@@ -9,7 +9,8 @@ describe('CLI Chain', function () {
   })
 
   test('Should list chain', async function () {
-    await listHandler(db)()
+    const chain = await listHandler(db)()
+    expect(chain.length).toBeGreaterThan(0)
   })
 
   test('Should insert new chain', async function () {
