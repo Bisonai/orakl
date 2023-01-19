@@ -1,5 +1,4 @@
 import { describe, expect, beforeEach, test } from '@jest/globals'
-import { postprocessListeners } from '../src/settings'
 import { listHandler, insertHandler, removeHandler } from '../src/cli/operator/chain'
 import { openDb } from '../src/cli/operator/utils-test'
 
