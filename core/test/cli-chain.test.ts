@@ -1,11 +1,11 @@
 import { describe, expect, beforeEach, test } from '@jest/globals'
 import { listHandler, insertHandler, removeHandler } from '../src/cli/operator/chain'
-import { openDB } from '../src/cli/operator/utils-test'
+import { openDb } from '../src/cli/operator/utils-test'
 
 describe('CLI Chain', function () {
   let DB
   beforeEach(async () => {
-    DB = await openDB({ migrate: true })
+    DB = await openDb({ migrate: true })
   })
 
   test('Should list chain', async function () {
