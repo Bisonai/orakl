@@ -1,4 +1,5 @@
 import { chainSub } from './chain'
+import { serviceSub } from './service'
 import { openDb, dryrunOption, idOption, buildStringOption } from './utils'
 
 import {
@@ -30,55 +31,6 @@ async function main() {
   })
 
   run(binary(cli), process.argv)
-}
-
-function serviceSub(db) {
-  const list = command({
-    name: 'list',
-    args: {},
-    handler: async () => {
-      const query = 'SELECT * FROM Service'
-      const result = await db.all(query)
-      console.log(result)
-    }
-  })
-
-  const insert = command({
-    name: 'insert',
-    args: {
-      name: buildStringOption({ name: 'name' }),
-      dryrun: dryrunOption
-    },
-    handler: async ({ name, dryrun }) => {
-      const query = `INSERT INTO Service (name) VALUES ('${name}')`
-      if (dryrun) {
-        console.debug(query)
-      } else {
-        await db.run(query)
-      }
-    }
-  })
-
-  const remove = command({
-    name: 'remove',
-    args: {
-      id: idOption,
-      dryrun: dryrunOption
-    },
-    handler: async ({ id, dryrun }) => {
-      const query = `DELETE FROM Service WHERE id=${id}`
-      if (dryrun) {
-        console.debug(query)
-      } else {
-        await db.run(query)
-      }
-    }
-  })
-
-  return subcommands({
-    name: 'chain',
-    cmds: { list, insert, remove }
-  })
 }
 
 function listenerSub(db) {

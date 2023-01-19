@@ -3,7 +3,7 @@ import { postprocessListeners } from '../src/settings'
 import { listHandler, insertHandler, removeHandler } from '../src/cli/operator/chain'
 import { openDb } from '../src/cli/operator/utils-test'
 
-describe('CLI Operator', function () {
+describe('CLI Chain', function () {
   let db
   beforeEach(async () => {
     db = await openDb({ migrate: true })
@@ -21,7 +21,6 @@ describe('CLI Operator', function () {
   })
 
   test('Should not allow to insert the same chain more than once', async function () {
-    const chainBefore = await listHandler(db)()
     await insertHandler(db)({ name: 'ethereum' })
     await expect(async () => {
       await insertHandler(db)({ name: 'ethereum' })
