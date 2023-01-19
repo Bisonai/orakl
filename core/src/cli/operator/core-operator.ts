@@ -1,6 +1,5 @@
-import { SETTINGS_DB_FILE } from '../settings'
-import sqlite from 'sqlite3'
-import { open } from 'sqlite'
+import { chainSub } from './chain'
+import { openDb, dryrunOption, idOption, buildStringOption } from './utils'
 
 import {
   flag,
@@ -15,28 +14,8 @@ import {
   string
 } from 'cmd-ts'
 
-const idOption = option({
-  type: cmdnumber,
-  long: 'id'
-})
-
-const dryrunOption = flag({
-  type: cmdboolean,
-  long: 'dry-run'
-})
-
-function buildOption({ name, isOptional }: { name: string; isOptional?: boolean }) {
-  return option({
-    type: isOptional ? optional(string) : string,
-    long: name
-  })
-}
-
 async function main() {
-  const db = await open({
-    filename: SETTINGS_DB_FILE,
-    driver: sqlite.Database
-  })
+  const db = await openDb()
 
   // await db.migrate({ force: true }) // FIXME
 
@@ -53,58 +32,6 @@ async function main() {
   run(binary(cli), process.argv)
 }
 
-function chainSub(db) {
-  const list = command({
-    name: 'list',
-    args: {},
-    handler: async () => {
-      const query = 'SELECT * FROM Chain'
-      const result = await db.all(query)
-      console.log(result)
-    }
-  })
-
-  const insert = command({
-    name: 'insert',
-    args: {
-      name: option({
-        type: string,
-        long: 'name'
-      }),
-      dryrun: dryrunOption
-    },
-    handler: async ({ name, dryrun }) => {
-      const query = `INSERT INTO Chain (name) VALUES ('${name}')`
-      if (dryrun) {
-        console.debug(query)
-      } else {
-        await db.run(query)
-      }
-    }
-  })
-
-  const remove = command({
-    name: 'remove',
-    args: {
-      id: idOption,
-      dryrun: dryrunOption
-    },
-    handler: async ({ id, dryrun }) => {
-      const query = `DELETE FROM Chain WHERE id=${id}`
-      if (dryrun) {
-        console.debug(query)
-      } else {
-        await db.run(query)
-      }
-    }
-  })
-
-  return subcommands({
-    name: 'chain',
-    cmds: { list, insert, remove }
-  })
-}
-
 function serviceSub(db) {
   const list = command({
     name: 'list',
@@ -119,7 +46,7 @@ function serviceSub(db) {
   const insert = command({
     name: 'insert',
     args: {
-      name: buildOption({ name: 'name' }),
+      name: buildStringOption({ name: 'name' }),
       dryrun: dryrunOption
     },
     handler: async ({ name, dryrun }) => {
@@ -158,8 +85,8 @@ function listenerSub(db) {
   const list = command({
     name: 'list',
     args: {
-      chain: buildOption({ name: 'chain', isOptional: true }),
-      service: buildOption({ name: 'service', isOptional: true }),
+      chain: buildStringOption({ name: 'chain', isOptional: true }),
+      service: buildStringOption({ name: 'service', isOptional: true }),
       dryrun: dryrunOption
     },
     handler: async ({ chain, service, dryrun }) => {
@@ -190,10 +117,10 @@ function listenerSub(db) {
   const insert = command({
     name: 'list',
     args: {
-      chain: buildOption({ name: 'chain', isOptional: true }),
-      service: buildOption({ name: 'service' }),
-      address: buildOption({ name: 'address' }),
-      eventName: buildOption({ name: 'eventName' }),
+      chain: buildStringOption({ name: 'chain', isOptional: true }),
+      service: buildStringOption({ name: 'service' }),
+      address: buildStringOption({ name: 'address' }),
+      eventName: buildStringOption({ name: 'eventName' }),
       dryrun: dryrunOption
     },
     handler: async ({ chain, service, address, eventName, dryrun }) => {
@@ -235,7 +162,7 @@ function vrfSub(db) {
   const list = command({
     name: 'list',
     args: {
-      chain: buildOption({ name: 'chain', isOptional: true }),
+      chain: buildStringOption({ name: 'chain', isOptional: true }),
       dryrun: dryrunOption
     },
     handler: async ({ chain, dryrun }) => {
@@ -257,11 +184,11 @@ function vrfSub(db) {
   const insert = command({
     name: 'insert',
     args: {
-      chain: buildOption({ name: 'chain' }),
-      sk: buildOption({ name: 'sk' }),
-      pk: buildOption({ name: 'pk' }),
-      pk_x: buildOption({ name: 'pk_x' }),
-      pk_y: buildOption({ name: 'pk_y' }),
+      chain: buildStringOption({ name: 'chain' }),
+      sk: buildStringOption({ name: 'sk' }),
+      pk: buildStringOption({ name: 'pk' }),
+      pk_x: buildStringOption({ name: 'pk_x' }),
+      pk_y: buildStringOption({ name: 'pk_y' }),
       dryrun: dryrunOption
     },
     handler: async ({ chain, dryrun, pk, sk, pk_x, pk_y }) => {
