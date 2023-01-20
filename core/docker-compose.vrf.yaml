@@ -51,10 +51,6 @@ services:
       - REDIS_HOST
       - REDIS_PORT
       - LOCAL_AGGREGATOR
-      - VRF_SK
-      - VRF_PK
-      - VRF_PK_X
-      - VRF_PK_Y
       - NODE_ENV=production
     healthcheck:
       <<: *common-health-check
