@@ -22,11 +22,11 @@ COPY adapter adapter
 
 COPY aggregator aggregator
 
+RUN rm -rf src/db/*
+
 COPY src src
 
 COPY migrations migrations
-
-RUN rm -rf src/db/*
 
 RUN yarn install
 
