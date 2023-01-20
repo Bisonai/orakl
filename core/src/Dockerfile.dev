@@ -33,5 +33,3 @@ RUN yarn install
 RUN rm .npmrc
 
 RUN npx tsc
-
-CMD bash -E /bin/bash
