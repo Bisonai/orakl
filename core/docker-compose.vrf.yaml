@@ -37,7 +37,8 @@ services:
       retries: 3
       start_period: 10s
     depends_on:
-      - redis
+      redis: 
+        condition: service_healthy
     restart: unless-stopped
     volumes:
       - ~/icn:/app/src/db
@@ -61,7 +62,11 @@ services:
     healthcheck:
       <<: *common-health-check
     depends_on:
-      - redis
+      redis: 
+        condition: service_healthy
+      listener-vrf:
+        condition: service_healthy   
+      
     restart: unless-stopped
     volumes:
       - ~/icn:/app/src/db
@@ -85,7 +90,10 @@ services:
     healthcheck:
       <<: *common-health-check
     depends_on:
-      - redis
+      redis: 
+        condition: service_healthy
+      listener-vrf:
+        condition: service_healthy   
     restart: unless-stopped
     volumes:
       - ~/icn:/app/src/db 
