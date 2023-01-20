@@ -69,6 +69,22 @@ VALUES
   (SELECT id from Service WHERE name = 'RequestResponse'),
            '0x45778c29A34bA00427620b937733490363839d8C', 'Requested');
 
+CREATE TABLE Kv (
+  id       INTEGER       PRIMARY KEY,
+  chainId  INTEGER       NOT NULL,
+  key      VARCHAR(255)  NOT NULL,
+  value    VARCHAR(255)  NOT NULL
+);
+
+INSERT INTO Kv (chainId, key, value)
+VALUES
+  ((SELECT id from Chain WHERE name = 'localhost'), 'PROVIDER', 'http://127.0.0.1:8545'),
+  ((SELECT id from Chain WHERE name = 'localhost'), 'REDIS_HOST', 'localhost'),
+  ((SELECT id from Chain WHERE name = 'localhost'), 'REDIS_PORT', '6379'),
+  ((SELECT id from Chain WHERE name = 'localhost'), 'PUBLIC_KEY', '0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC'),
+  ((SELECT id from Chain WHERE name = 'localhost'), 'PRIVATE_KEY', '0x5de4111afa1a4b94908f83103eb1f1706367c2e68ca870fc3fb9a804cdab365a'),
+  ((SELECT id from Chain WHERE name = 'localhost'), 'LOCAL_AGGREGATOR', 'median');
+
 --------------------------------------------------------------------------------
 -- Down
 --------------------------------------------------------------------------------
@@ -77,3 +93,4 @@ DROP TABLE Chain;
 DROP TABLE VrfKey;
 DROP TABLE Service;
 DROP TABLE Listener;
+DROP TABLE Kv;
