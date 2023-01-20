@@ -7,6 +7,7 @@ import { IcnError, IcnErrorCode } from '../errors'
 import { WORKER_ANY_API_QUEUE_NAME, WORKER_VRF_QUEUE_NAME, CHAIN } from '../settings'
 import { getListeners } from '../settings'
 import { healthCheck } from '../health-checker'
+import { dbChecker } from '../db-checker'
 
 const LISTENERS = {
   Aggregator: {
@@ -24,6 +25,7 @@ const LISTENERS = {
 }
 
 async function main() {
+  await dbChecker()
   const listener = loadArgs()
   const listenersConfig = await getListeners(CHAIN)
 

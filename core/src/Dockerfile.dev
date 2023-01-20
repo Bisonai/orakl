@@ -18,16 +18,20 @@ COPY yarn.lock .
 
 COPY tsconfig.json .
 
-COPY config config
-
 COPY adapter adapter
 
 COPY aggregator aggregator
 
 COPY src src
 
+COPY migrations migrations
+
+RUN rm -rf src/db/*
+
 RUN yarn install
 
 RUN rm .npmrc
 
 RUN npx tsc
+
+CMD bash -E /bin/bash

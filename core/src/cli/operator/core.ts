@@ -20,7 +20,6 @@ async function main() {
     name: 'operator',
     cmds: { migrate, chain, service, listener, vrf }
   })
-
   run(binary(cli), process.argv)
 }
 

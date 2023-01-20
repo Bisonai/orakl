@@ -54,7 +54,7 @@ export const LISTENER_ROOT_DIR = './tmp/listener/'
 
 export const LISTENER_DELAY = 500
 
-export const SETTINGS_DB_FILE = './settings.sqlite'
+export const SETTINGS_DB_FILE = './src/db/settings.sqlite'
 
 export const CHAIN = 'localhost'
 

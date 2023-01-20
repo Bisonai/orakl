@@ -3,6 +3,7 @@ import { aggregatorReporter } from './aggregator'
 import { vrfReporter } from './vrf'
 import { anyApiReporter } from './any-api'
 import { healthCheck } from '../health-checker'
+import { dbChecker } from '../db-checker'
 
 const REPORTERS = {
   AGGREGATOR: aggregatorReporter,
@@ -11,6 +12,7 @@ const REPORTERS = {
 }
 
 async function main() {
+  await dbChecker()
   const reporter = loadArgs()
   REPORTERS[reporter]()
   healthCheck()

@@ -39,6 +39,8 @@ services:
     depends_on:
       - redis
     restart: unless-stopped
+    volumes:
+      - ~/icn:/app/src/db
 
   worker-vrf:
     image: core-icn
@@ -61,6 +63,8 @@ services:
     depends_on:
       - redis
     restart: unless-stopped
+    volumes:
+      - ~/icn:/app/src/db
 
   reporter-vrf:
     image: core-icn
@@ -83,3 +87,5 @@ services:
     depends_on:
       - redis
     restart: unless-stopped
+    volumes:
+      - ~/icn:/app/src/db 

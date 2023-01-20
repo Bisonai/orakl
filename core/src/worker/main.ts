@@ -4,6 +4,7 @@ import { vrfWorker } from './vrf'
 import { anyApiWorker } from './any-api'
 import { predefinedFeedWorker } from './predefined-feed'
 import { healthCheck } from '../health-checker'
+import { dbChecker } from '../db-checker'
 
 const WORKERS = {
   AGGREGATOR: aggregatorWorker,
@@ -13,6 +14,7 @@ const WORKERS = {
 }
 
 async function main() {
+  await dbChecker()
   const worker = loadArgs()
   WORKERS[worker]()
   healthCheck()
