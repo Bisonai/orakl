@@ -12,8 +12,6 @@ export const LOCAL_AGGREGATOR = process.env.LOCAL_AGGREGATOR
 
 export const PROVIDER = process.env.PROVIDER
 
-// FIXME allow either private key or mnemonic
-export const MNEMONIC = process.env.MNEMONIC
 export const PUBLIC_KEY = process.env.PUBLIC_KEY || ''
 export const PRIVATE_KEY = process.env.PRIVATE_KEY
 
