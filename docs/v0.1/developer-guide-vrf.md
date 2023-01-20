@@ -175,7 +175,6 @@ This function will subtract the amount to be withdrawn from the account's balanc
 
 3. Request a random word with prepayment method
 
-```
 Check out the example here: VRFConsumerMock.sol [github link]
 
 ++ Main functions
