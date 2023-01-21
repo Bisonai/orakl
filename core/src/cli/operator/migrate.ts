@@ -1,6 +1,8 @@
 import { flag, command, boolean as cmdboolean } from 'cmd-ts'
 
 export function migrateCmd(db) {
+  // migrate [--force]
+
   return command({
     name: 'migrate',
     args: {

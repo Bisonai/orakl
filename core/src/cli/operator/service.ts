@@ -2,6 +2,10 @@ import { command, subcommands, option, string as cmdstring } from 'cmd-ts'
 import { dryrunOption, idOption } from './utils'
 
 export function serviceSub(db) {
+  // service list
+  // service insert --name [name] [--dryrun]
+  // service remove --id [id]     [--dryrun]
+
   const list = command({
     name: 'list',
     args: {},

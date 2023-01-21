@@ -2,10 +2,10 @@ import { command, subcommands, optional, option, string as cmdstring } from 'cmd
 import { chainOptionalOption, dryrunOption, idOption, chainToId } from './utils'
 
 export function kvCmd(db) {
-  // kv list   --chain [chain]
-  // kv insert --chain [chain] --key [key] --value [value]
-  // kv remove --chain [chain] --key [key]
-  // kv update --chain [chain] --key [key] --value [value]
+  // kv list   [--chain [chain]] [--key [key]]
+  // kv insert  --chain [chain]   --key [key] --value [value] [--dryrun]
+  // kv remove  --chain [chain]   --key [key]                 [--dryrun]
+  // kv update  --chain [chain]   --key [key] --value [value] [--dryrun]
 
   const list = command({
     name: 'list',

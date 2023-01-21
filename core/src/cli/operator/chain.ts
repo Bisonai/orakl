@@ -2,6 +2,10 @@ import { command, subcommands, option, string as cmdstring } from 'cmd-ts'
 import { dryrunOption, idOption } from './utils'
 
 export function chainSub(db) {
+  // chain list
+  // chain insert --name [name] [--dryrun]
+  // chain remove --id [id]     [--dryrun]
+
   const list = command({
     name: 'list',
     args: {},
