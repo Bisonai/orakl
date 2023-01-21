@@ -116,7 +116,7 @@ export function insertHandler(db) {
   }) {
     const chainId = await chainToId(db, chain)
     const serviceId = await serviceToId(db, service)
-    const query = `INSERT INTO Listener (chainId, serviceId, address, eventName) VALUES (${chainId}, ${chainId},'${address}', '${eventName}');`
+    const query = `INSERT INTO Listener (chainId, serviceId, address, eventName) VALUES (${chainId}, ${serviceId},'${address}', '${eventName}');`
 
     if (dryrun) {
       console.debug(query)

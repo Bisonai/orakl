@@ -4,8 +4,8 @@ import { openDb } from '../src/cli/operator/utils-test'
 
 describe('CLI KV', function () {
   let DB
-  let KV_LOCALHOST = { key: 'someKey', value: 'someValue', chain: 'localhost' }
-  let KV_BAOBAB = { key: 'someKey', value: 'someValue', chain: 'baobab' }
+  const KV_LOCALHOST = { key: 'someKey', value: 'someValue', chain: 'localhost' }
+  const KV_BAOBAB = { key: 'someKey', value: 'someValue', chain: 'baobab' }
   beforeEach(async () => {
     DB = await openDb({ migrate: true })
   })

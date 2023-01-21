@@ -1,5 +1,5 @@
 import { command, subcommands, optional, option, string as cmdstring } from 'cmd-ts'
-import { chainOptionalOption, dryrunOption, idOption, chainToId } from './utils'
+import { chainOptionalOption, dryrunOption, chainToId } from './utils'
 
 export function kvCmd(db) {
   // kv list   [--chain [chain]] [--key [key]]
