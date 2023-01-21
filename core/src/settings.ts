@@ -76,18 +76,20 @@ export const BULLMQ_CONNECTION = {
 }
 
 async function openDb() {
-  return await open({
+  const db = await open({
     filename: SETTINGS_DB_FILE,
     driver: sqlite.Database
   })
-}
 
-export async function loadKeyValuePair({ db, key, chain }: { db; key: string; chain: string }) {
   const { count } = await db.get('SELECT count(*) AS count FROM sqlite_master WHERE type="table"')
   if (count == 0) {
     await db.migrate()
   }
 
+  return db
+}
+
+export async function loadKeyValuePair({ db, key, chain }: { db; key: string; chain: string }) {
   const kv = await listHandler(db)({ key, chain })
 
   if (kv.length == 0) {
