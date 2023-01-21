@@ -1,16 +1,20 @@
-import { command, subcommands, option, string as cmdstring } from 'cmd-ts'
+import { command, subcommands, optional, option, string as cmdstring } from 'cmd-ts'
 import { chainOptionalOption, dryrunOption, idOption, chainToId } from './utils'
 
 export function kvCmd(db) {
-  // kv list  --chain [chain]
-  // kv insert --key [key] --value [value] --chain [chain]
-  // kv remove --key [key] --chain [chain]
-  // kv update --key PUBLIC_KEY --value HELLO --chain localhost
+  // kv list   --chain [chain]
+  // kv insert --chain [chain] --key [key] --value [value]
+  // kv remove --chain [chain] --key [key]
+  // kv update --chain [chain] --key [key] --value [value]
 
   const list = command({
     name: 'list',
     args: {
-      chain: chainOptionalOption
+      chain: chainOptionalOption,
+      key: option({
+        type: optional(cmdstring),
+        long: 'key'
+      })
     },
     handler: listHandler(db)
   })
@@ -51,18 +55,47 @@ export function kvCmd(db) {
     handler: removeHandler(db)
   })
 
+  const update = command({
+    name: 'update',
+    args: {
+      key: option({
+        type: cmdstring,
+        long: 'key'
+      }),
+      value: option({
+        type: cmdstring,
+        long: 'value'
+      }),
+      chain: option({
+        type: cmdstring,
+        long: 'chain'
+      }),
+      dryrun: dryrunOption
+    },
+    handler: updateHandler(db)
+  })
+
   return subcommands({
     name: 'kv',
-    cmds: { list, insert, remove }
+    cmds: { list, insert, remove, update }
   })
 }
 
 export function listHandler(db) {
-  async function wrapper({ chain }: { chain?: string }) {
+  async function wrapper({ chain, key }: { chain?: string; key?: string }) {
     let where
     if (chain) {
       const chainId = await chainToId(db, chain)
       where = `WHERE chainId=${chainId}`
+    }
+
+    if (key) {
+      if (where) {
+        where += ` AND `
+      } else {
+        where = `WHERE `
+      }
+      where += `key='${key}'`
     }
     const query = `SELECT * FROM Kv ${where};`
     const result = await db.all(query)
@@ -99,6 +132,30 @@ export function removeHandler(db) {
   async function wrapper({ key, chain, dryrun }: { key: string; chain: string; dryrun?: boolean }) {
     const chainId = await chainToId(db, chain)
     const query = `DELETE FROM Kv WHERE chainId=${chainId} AND key='${key}';`
+    if (dryrun) {
+      console.debug(query)
+    } else {
+      const result = await db.run(query)
+      console.log(result)
+    }
+  }
+  return wrapper
+}
+
+export function updateHandler(db) {
+  async function wrapper({
+    key,
+    value,
+    chain,
+    dryrun
+  }: {
+    key: string
+    value: string
+    chain: string
+    dryrun?: boolean
+  }) {
+    const chainId = await chainToId(db, chain)
+    const query = `UPDATE Kv SET value='${value}' WHERE chainId=${chainId} AND key='${key}';`
     if (dryrun) {
       console.debug(query)
     } else {

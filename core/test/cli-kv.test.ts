@@ -1,5 +1,5 @@
 import { describe, expect, beforeEach, test } from '@jest/globals'
-import { listHandler, insertHandler, removeHandler } from '../src/cli/operator/kv'
+import { listHandler, insertHandler, removeHandler, updateHandler } from '../src/cli/operator/kv'
 import { openDb } from '../src/cli/operator/utils-test'
 
 describe('CLI KV', function () {
@@ -18,6 +18,16 @@ describe('CLI KV', function () {
   test('Should list all Key-Value pairs for localhost', async function () {
     const kv = await listHandler(DB)({ chain: 'localhost' })
     expect(kv.length).toBeGreaterThan(0)
+  })
+
+  test('Should list all PRIVATE_KEY keys in all chains', async function () {
+    const kv = await listHandler(DB)({ key: 'PRIVATE_KEY' })
+    expect(kv.length).toBeGreaterThan(0)
+  })
+
+  test('Should list single PRIVATE_KEY key for localhost chain', async function () {
+    const kv = await listHandler(DB)({ key: 'PRIVATE_KEY', chain: 'localhost' })
+    expect(kv.length).toEqual(1)
   })
 
   test('Should insert new Key-Value pair', async function () {
@@ -45,5 +55,14 @@ describe('CLI KV', function () {
     await removeHandler(DB)({ key: KV_LOCALHOST.key, chain: KV_LOCALHOST.chain })
     const kvAfter = await listHandler(DB)({})
     expect(kvAfter.length).toEqual(kvBefore.length - 1)
+  })
+
+  test('Should update value of already inserted Key-Value pair specified by key and chain', async function () {
+    await insertHandler(DB)(KV_LOCALHOST)
+    const newValue = 'newValue'
+    await updateHandler(DB)({ key: 'someKey', value: newValue, chain: 'localhost' })
+    const kv = await listHandler(DB)({ key: 'someKey', chain: 'localhost' })
+    expect(kv.length).toEqual(1)
+    expect(kv[0].value).toEqual(newValue)
   })
 })
