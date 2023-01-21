@@ -7,6 +7,6 @@ export class CliError extends Error {
 }
 
 export enum CliErrorCode {
-  NonExistantChain = 10000,
-  NonExistantService
+  NonExistentChain = 10000,
+  NonExistentService
 }

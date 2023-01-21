@@ -29,7 +29,7 @@ export async function chainToId(db, chain: string) {
   const query = `SELECT id from Chain WHERE name='${chain}';`
   const result: ChainId = await db.get(query)
   if (!result) {
-    throw new CliError(CliErrorCode.NonExistantChain)
+    throw new CliError(CliErrorCode.NonExistentChain)
   }
   return result.id
 }
@@ -38,7 +38,7 @@ export async function serviceToId(db, service: string) {
   const query = `SELECT id from Service WHERE name='${service}';`
   const result: ServiceId = await db.get(query)
   if (!result) {
-    throw new CliError(CliErrorCode.NonExistantService)
+    throw new CliError(CliErrorCode.NonExistentService)
   }
   return result.id
 }
