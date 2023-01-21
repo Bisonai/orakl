@@ -19,7 +19,7 @@ export function vrfSub(db) {
       chain: chainOptionalOption,
       dryrun: dryrunOption
     },
-    handler: listHandler(db)
+    handler: listHandler(db, true)
   })
 
   const insert = command({
@@ -65,7 +65,7 @@ export function vrfSub(db) {
   })
 }
 
-export function listHandler(db) {
+export function listHandler(db, print?) {
   async function wrapper({ chain, dryrun }: { chain?: string; dryrun?: boolean }) {
     let where = ''
     if (chain) {

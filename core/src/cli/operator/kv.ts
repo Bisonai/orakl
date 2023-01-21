@@ -1,7 +1,7 @@
 import { command, subcommands, optional, option, string as cmdstring } from 'cmd-ts'
 import {
-  chainOptionalOption,
   dryrunOption,
+  chainOptionalOption,
   chainToId,
   formatResultInsert,
   formatResultRemove
@@ -22,7 +22,7 @@ export function kvCmd(db) {
         long: 'key'
       })
     },
-    handler: listHandler(db)
+    handler: listHandler(db, true)
   })
 
   const insert = command({
@@ -87,7 +87,7 @@ export function kvCmd(db) {
   })
 }
 
-export function listHandler(db) {
+export function listHandler(db, print?) {
   async function wrapper({ chain, key }: { chain?: string; key?: string }) {
     let where = ''
     if (chain) {
@@ -105,7 +105,9 @@ export function listHandler(db) {
     }
     const query = `SELECT * FROM Kv ${where};`
     const result = await db.all(query)
-    console.log(result)
+    if (print) {
+      console.log(result)
+    }
     return result
   }
   return wrapper

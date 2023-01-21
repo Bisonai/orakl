@@ -33,7 +33,7 @@
     "adapter-hash": "node --experimental-specifier-resolution=node --experimental-json-modules dist/cli/generate-adapter-hash.js",
     "aggregator-hash": "node --experimental-specifier-resolution=node --experimental-json-modules dist/cli/generate-aggregator-hash.js",
     "flush": "node --experimental-specifier-resolution=node --experimental-json-modules dist/cli/flush-queues.js",
-    "cli": "node --experimental-specifier-resolution=node --experimental-json-modules dist/cli/operator/core.js",
+    "cli": "node --experimental-specifier-resolution=node --experimental-json-modules dist/cli/operator/main.js",
     "test": "jest",
     "eslint": "DEBUG=eslint:cli-engine npx eslint 'src/**/*.ts' 'src/*.ts' 'test/*.ts'"
   },

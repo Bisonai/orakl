@@ -9,7 +9,7 @@ export function chainSub(db) {
   const list = command({
     name: 'list',
     args: {},
-    handler: listHandler(db)
+    handler: listHandler(db, true)
   })
 
   const insert = command({
@@ -39,11 +39,13 @@ export function chainSub(db) {
   })
 }
 
-export function listHandler(db) {
+export function listHandler(db, print?) {
   async function wrapper() {
     const query = 'SELECT * FROM Chain'
     const result = await db.all(query)
-    console.log(result)
+    if (print) {
+      console.log(result)
+    }
     return result
   }
   return wrapper

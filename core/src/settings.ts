@@ -2,28 +2,57 @@ import sqlite from 'sqlite3'
 import { open } from 'sqlite'
 import { IListenerConfig, IVrfConfig } from './types'
 import { aggregatorMapping } from './aggregator'
-import { LOCAL_AGGREGATOR, REDIS_HOST, REDIS_PORT } from './load-parameters'
+import { listHandler } from './cli/operator/kv'
+import { IcnError, IcnErrorCode } from './errors'
+import * as dotenv from 'dotenv'
+dotenv.config()
+
+export const NODE_ENV = process.env.NODE_ENV
+export const CHAIN = process.env.CHAIN || 'localhost'
+
+export const SETTINGS_DB_FILE = './settings.sqlite' // FIXME
+const DB = await openDb()
+
+export const PROVIDER_URL = await loadKeyValuePair({ db: DB, key: 'PROVIDER_URL', chain: CHAIN })
+export const REDIS_HOST = await loadKeyValuePair({ db: DB, key: 'REDIS_HOST', chain: CHAIN })
+export const REDIS_PORT = Number(
+  await loadKeyValuePair({ db: DB, key: 'REDIS_PORT', chain: CHAIN })
+)
+export const PRIVATE_KEY = await loadKeyValuePair({ db: DB, key: 'PRIVATE_KEY', chain: CHAIN })
+export const PUBLIC_KEY = await loadKeyValuePair({ db: DB, key: 'PUBLIC_KEY', chain: CHAIN })
+export const LOCAL_AGGREGATOR = await loadKeyValuePair({
+  db: DB,
+  key: 'LOCAL_AGGREGATOR',
+  chain: CHAIN
+})
+export const HEALTH_CHECK_PORT = await loadKeyValuePair({
+  db: DB,
+  key: 'HEALTH_CHECK_PORT',
+  chain: CHAIN
+})
+export const LISTENER_DELAY = Number(
+  await loadKeyValuePair({
+    db: DB,
+    key: 'LISTENER_DELAY',
+    chain: CHAIN
+  })
+)
+
+// FIXME the contents of directories to SQLite or redis
+export const ADAPTER_ROOT_DIR = './adapter/'
+export const AGGREGATOR_ROOT_DIR = './aggregator/'
+export const LISTENER_ROOT_DIR = './tmp/listener/'
 
 export const localAggregatorFn = aggregatorMapping[LOCAL_AGGREGATOR?.toUpperCase() || 'MEAN']
-
 export const FIXED_HEARTBEAT_QUEUE_NAME = 'fixed-heartbeat-queue'
-
 export const RANDOM_HEARTBEAT_QUEUE_NAME = 'random-heartbeat-queue'
-
 export const WORKER_ANY_API_QUEUE_NAME = 'worker-any-api-queue'
-
 export const WORKER_PREDEFINED_FEED_QUEUE_NAME = 'worker-predefined-feed-queue'
-
 export const WORKER_VRF_QUEUE_NAME = 'worker-vrf-queue'
-
 export const WORKER_AGGREGATOR_QUEUE_NAME = 'worker-aggregator-queue'
-
 export const REPORTER_ANY_API_QUEUE_NAME = 'reporter-any-api-queue'
-
 export const REPORTER_PREDEFINED_FEED_QUEUE_NAME = 'reporter-predefined-feed-queue'
-
 export const REPORTER_VRF_QUEUE_NAME = 'reporter-vrf-queue'
-
 export const REPORTER_AGGREGATOR_QUEUE_NAME = 'reporter-aggregator-queue'
 
 export const ALL_QUEUES = [
@@ -46,23 +75,28 @@ export const BULLMQ_CONNECTION = {
   }
 }
 
-export const ADAPTER_ROOT_DIR = './adapter/'
-
-export const AGGREGATOR_ROOT_DIR = './aggregator/'
-
-export const LISTENER_ROOT_DIR = './tmp/listener/'
-
-export const LISTENER_DELAY = 500
-
-export const SETTINGS_DB_FILE = './settings.sqlite'
-
-export const CHAIN = 'localhost'
-
 async function openDb() {
   return await open({
     filename: SETTINGS_DB_FILE,
     driver: sqlite.Database
   })
+}
+
+export async function loadKeyValuePair({ db, key, chain }: { db; key: string; chain: string }) {
+  const { count } = await db.get('SELECT count(*) AS count FROM sqlite_master WHERE type="table"')
+  if (count == 0) {
+    await db.migrate()
+  }
+
+  const kv = await listHandler(db)({ key, chain })
+
+  if (kv.length == 0) {
+    throw new IcnError(IcnErrorCode.MissingKeyValuePair, `key: ${key}, chain: ${chain}`)
+  } else if (kv.length > 1) {
+    throw new IcnError(IcnErrorCode.UnexpectedQueryOutput)
+  }
+
+  return kv[0].value as string
 }
 
 export function postprocessListeners(listeners): IListenerConfig[] {

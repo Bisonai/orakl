@@ -22,7 +22,7 @@ export function listenerSub(db) {
       service: serviceOptionalOption,
       dryrun: dryrunOption
     },
-    handler: listHandler(db)
+    handler: listHandler(db, true)
   })
 
   const insert = command({
@@ -65,7 +65,7 @@ export function listenerSub(db) {
   })
 }
 
-export function listHandler(db) {
+export function listHandler(db, print?) {
   async function wrapper({
     chain,
     service,
@@ -95,7 +95,9 @@ export function listHandler(db) {
       console.debug(query)
     } else {
       const result = await db.all(query)
-      console.log(result)
+      if (print) {
+        console.log(result)
+      }
       return result
     }
   }
