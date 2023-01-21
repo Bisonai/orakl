@@ -89,16 +89,18 @@ VALUES
   ((SELECT id from Chain WHERE name = 'localhost'), 'LISTENER_DELAY', '500');
 
 CREATE TABLE Adapter (
-  id       INTEGER  PRIMARY KEY,
-  chainId  INTEGER  NOT NULL,
-  data     TEXT     NOT NULL,
+  id         INTEGER  PRIMARY KEY,
+  adapterId  INTEGER  NOT NULL UNIQUE,
+  chainId    INTEGER  NOT NULL,
+  data       TEXT     NOT NULL,
   CONSTRAINT Adapter_fk_chainId FOREIGN KEY (chainId)
     REFERENCES Chain (id) ON UPDATE CASCADE ON DELETE CASCADE
 );
 
-INSERT INTO Adapter (chainId, data)
+INSERT INTO Adapter (chainId, adapterId, data)
 VALUES
   ((SELECT id from Chain WHERE name = 'localhost'),
+  '0xc9f7c0b3a3e75ca24b9d84ab2ebbcad5cff09317f87532e90b79bf2ebbb327a3',
   '{
     "id": "0xc9f7c0b3a3e75ca24b9d84ab2ebbcad5cff09317f87532e90b79bf2ebbb327a3",
     "active": false,
@@ -134,6 +136,7 @@ VALUES
     ]
   }'),
   ((SELECT id from Chain WHERE name = 'localhost'),
+  '0x00d5130063bee77302b133b5c6a0d6aede467a599d251aec842d24abeb5866a5',
   '{
     "id": "0x00d5130063bee77302b133b5c6a0d6aede467a599d251aec842d24abeb5866a5",
     "active": true,
@@ -205,20 +208,22 @@ VALUES
   }');
 
 CREATE TABLE Aggregator (
-  id         INTEGER  PRIMARY KEY,
-  chainId    INTEGER  NOT NULL,
-  adapterId  INTEGER  NOT NULL,
-  data       TEXT     NOT NULL,
+  id            INTEGER  PRIMARY KEY,
+  aggregatorId  INTEGER  NOT NULL UNIQUE,
+  chainId       INTEGER  NOT NULL,
+  adapterId     INTEGER  NOT NULL,
+  data          TEXT     NOT NULL,
   CONSTRAINT Aggregator_fk_chainId FOREIGN KEY (chainId)
     REFERENCES Chain (id) ON UPDATE CASCADE ON DELETE CASCADE,
   CONSTRAINT Aggregator_fk_adapterId FOREIGN KEY (adapterId)
     REFERENCES Adapter (id) ON UPDATE CASCADE ON DELETE CASCADE
 );
 
-INSERT INTO Aggregator (chainId, adapterId, data)
+INSERT INTO Aggregator (chainId, adapterId, aggregatorId, data)
 VALUES
   ((SELECT id from Chain WHERE name = 'localhost'),
    (SELECT id from Adapter WHERE json_extract(Adapter.data, '$.id')='0xc9f7c0b3a3e75ca24b9d84ab2ebbcad5cff09317f87532e90b79bf2ebbb327a3'),
+   '0x4bbb04ac1bd973770a0b8e585a41147648980f3094ee7ac5597b2a987e9e96a9',
   '{
     "id": "0x4bbb04ac1bd973770a0b8e585a41147648980f3094ee7ac5597b2a987e9e96a9",
     "address": "0x0000000000000000000000000000000000000000",
@@ -238,6 +243,7 @@ VALUES
   }'),
   ((SELECT id from Chain WHERE name = 'localhost'),
    (SELECT id from Adapter WHERE json_extract(Adapter.data, '$.id')='0x00d5130063bee77302b133b5c6a0d6aede467a599d251aec842d24abeb5866a5'),
+   '0x2d5d94df99ccad54f0f6a9d38f2340db793833947f86b207dcda38583dd263fa',
   '{
     "id": "0x2d5d94df99ccad54f0f6a9d38f2340db793833947f86b207dcda38583dd263fa",
     "address": "0x2279B7A0a67DB372996a5FaB50D91eAA73d2eBe6",

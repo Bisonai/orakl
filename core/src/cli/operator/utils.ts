@@ -1,3 +1,4 @@
+import { open as openFile, readFile } from 'node:fs/promises'
 import {
   optional,
   boolean as cmdboolean,
@@ -71,4 +72,9 @@ export function formatResultInsert(output: DbCmdOutput): string {
 export function formatResultRemove(output: DbCmdOutput): string {
   const row = output.changes == 1 ? 'row' : 'rows'
   return `Removed ${output.changes} ${row}.`
+}
+
+export async function loadFile(filePath: string) {
+  const f = await openFile(filePath)
+  return readFile(f)
 }
