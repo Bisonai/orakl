@@ -80,7 +80,6 @@ export function printObject(object) {
 export function mkTmpFile({ fileName }: { fileName: string }): string {
   const appPrefix = 'orakl'
   const tmpDir = fs.mkdtempSync(path.join(tmpdir(), appPrefix))
-  console.log(tmpDir)
   const tmpFilePath = path.join(tmpDir, fileName)
   return tmpFilePath
 }
