@@ -83,10 +83,10 @@ export function kvCmd(db) {
 
 export function listHandler(db) {
   async function wrapper({ chain, key }: { chain?: string; key?: string }) {
-    let where
+    let where = ''
     if (chain) {
       const chainId = await chainToId(db, chain)
-      where = `WHERE chainId=${chainId}`
+      where += `WHERE chainId=${chainId}`
     }
 
     if (key) {
