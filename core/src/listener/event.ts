@@ -1,10 +1,9 @@
 import * as path from 'node:path'
 import { Queue } from 'bullmq'
 import { Contract, ethers } from 'ethers'
-import { BULLMQ_CONNECTION, LISTENER_ROOT_DIR, LISTENER_DELAY } from '../settings'
+import { PROVIDER_URL, BULLMQ_CONNECTION, LISTENER_ROOT_DIR, LISTENER_DELAY } from '../settings'
 import { IListenerBlock, IListenerConfig } from '../types'
 import { mkdir, readTextFile, writeTextFile } from '../utils'
-import { PROVIDER_URL } from '../load-parameters'
 
 export class Event {
   fn: (log) => void

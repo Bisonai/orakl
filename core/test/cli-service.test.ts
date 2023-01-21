@@ -1,11 +1,14 @@
 import { describe, expect, beforeEach, test } from '@jest/globals'
 import { listHandler, insertHandler, removeHandler } from '../src/cli/operator/service'
-import { openDb } from '../src/cli/operator/utils-test'
+import { mkTmpFile } from '../src/utils'
+import { openDb } from '../src/cli/operator/utils'
 
 describe('CLI Service', function () {
   let DB
+  const TMP_DB_FILE = mkTmpFile({ fileName: 'settings.test.sqlite' })
+
   beforeEach(async () => {
-    DB = await openDb({ migrate: true })
+    DB = await openDb({ dbFile: TMP_DB_FILE, migrate: true })
   })
 
   test('Should list service', async function () {

@@ -7,7 +7,7 @@ export class IcnError extends Error {
 }
 
 export enum IcnErrorCode {
-  NonExistantEventError = 10000,
+  NonExistentEventError = 10000,
   InvalidOperator,
   InvalidAdapter,
   InvalidAggregator,
@@ -19,5 +19,7 @@ export enum IcnErrorCode {
   UniformWrongParams,
   InvalidListenerConfig,
   InvalidPriceFeed,
-  InvalidPriceFeedFormat
+  InvalidPriceFeedFormat,
+  MissingKeyValuePair,
+  UnexpectedQueryOutput
 }

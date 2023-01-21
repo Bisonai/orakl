@@ -1,7 +1,20 @@
 import { command, subcommands, option, string as cmdstring } from 'cmd-ts'
-import { dryrunOption, idOption, chainOptionalOption, serviceOptionalOption } from './utils'
+import {
+  dryrunOption,
+  idOption,
+  chainOptionalOption,
+  serviceOptionalOption,
+  chainToId,
+  serviceToId,
+  formatResultInsert,
+  formatResultRemove
+} from './utils'
 
 export function listenerSub(db) {
+  // listener list   [--chain [chain]] [--service [service]]                                            [--dryrun]
+  // listener insert  --chain [chain]   --service [service] --address [address] --eventName [eventName] [--dryrun]
+  // listener remove  --id [id]                                                                         [--dryrun]
+
   const list = command({
     name: 'list',
     args: {
@@ -9,7 +22,7 @@ export function listenerSub(db) {
       service: serviceOptionalOption,
       dryrun: dryrunOption
     },
-    handler: listHandler(db)
+    handler: listHandler(db, true)
   })
 
   const insert = command({
@@ -52,7 +65,7 @@ export function listenerSub(db) {
   })
 }
 
-export function listHandler(db) {
+export function listHandler(db, print?) {
   async function wrapper({
     chain,
     service,
@@ -64,8 +77,8 @@ export function listHandler(db) {
   }) {
     let where = ''
     if (chain) {
-      where += ' WHERE '
-      where += `chainId = (SELECT id from Chain WHERE name='${chain}')`
+      const chainId = await chainToId(db, chain)
+      where += ` WHERE chainId=${chainId}`
     }
     if (service) {
       if (where.length) {
@@ -73,7 +86,8 @@ export function listHandler(db) {
       } else {
         where += ' WHERE '
       }
-      where += `serviceId = (SELECT id from Service WHERE name='${service}')`
+      const serviceId = await serviceToId(db, service)
+      where += `serviceId=${serviceId}`
     }
 
     const query = `SELECT * FROM Listener ${where}`
@@ -81,7 +95,9 @@ export function listHandler(db) {
       console.debug(query)
     } else {
       const result = await db.all(query)
-      console.log(result)
+      if (print) {
+        console.log(result)
+      }
       return result
     }
   }
@@ -102,14 +118,15 @@ export function insertHandler(db) {
     eventName: string
     dryrun?: boolean
   }) {
-    const chainResult = await db.get(`SELECT id from Chain WHERE name='${chain}'`)
-    const serviceResult = await db.get(`SELECT id from Service WHERE name='${service}'`)
-    const query = `INSERT INTO Listener (chainId, serviceId, address, eventName) VALUES (${chainResult.id}, ${serviceResult.id},'${address}', '${eventName}');`
+    const chainId = await chainToId(db, chain)
+    const serviceId = await serviceToId(db, service)
+    const query = `INSERT INTO Listener (chainId, serviceId, address, eventName) VALUES (${chainId}, ${serviceId},'${address}', '${eventName}');`
 
     if (dryrun) {
       console.debug(query)
     } else {
-      await db.run(query)
+      const result = await db.run(query)
+      console.log(formatResultInsert(result))
     }
   }
   return wrapper
@@ -121,7 +138,8 @@ export function removeHandler(db) {
     if (dryrun) {
       console.debug(query)
     } else {
-      await db.run(query)
+      const result = await db.run(query)
+      console.log(formatResultRemove(result))
     }
   }
   return wrapper

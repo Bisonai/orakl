@@ -3,7 +3,7 @@ import { ethers } from 'ethers'
 import { Aggregator__factory } from '@bisonai-cic/icn-contracts'
 import { Event } from './event'
 import { IListenerConfig, INewRound, IAggregatorListenerWorker } from '../types'
-import { PUBLIC_KEY } from '../load-parameters'
+import { PUBLIC_KEY } from '../settings'
 
 export function buildAggregatorListener(queueName: string, config: IListenerConfig[]) {
   // FIXME remove loop and listen on multiple contract for the same event

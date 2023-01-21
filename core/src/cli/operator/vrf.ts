@@ -1,14 +1,25 @@
 import { command, subcommands, option, string as cmdstring } from 'cmd-ts'
-import { dryrunOption, idOption, chainOptionalOption } from './utils'
+import {
+  dryrunOption,
+  idOption,
+  chainOptionalOption,
+  chainToId,
+  formatResultInsert,
+  formatResultRemove
+} from './utils'
 
 export function vrfSub(db) {
+  // vrf list   [--chain [chain]]                                                [--dryrun]
+  // vrf insert  --chain [chain] --pk [pk] --sk [sk] --pk_x [pk_x] --pk_y [pk_y] [--dryrun]
+  // vrf remove  --id [id]                                                       [--dryrun]
+
   const list = command({
     name: 'list',
     args: {
       chain: chainOptionalOption,
       dryrun: dryrunOption
     },
-    handler: listHandler(db)
+    handler: listHandler(db, true)
   })
 
   const insert = command({
@@ -54,7 +65,7 @@ export function vrfSub(db) {
   })
 }
 
-export function listHandler(db) {
+export function listHandler(db, print?) {
   async function wrapper({ chain, dryrun }: { chain?: string; dryrun?: boolean }) {
     let where = ''
     if (chain) {
@@ -66,7 +77,9 @@ export function listHandler(db) {
       console.debug(query)
     } else {
       const result = await db.all(query)
-      console.log(result)
+      if (print) {
+        console.log(result)
+      }
       return result
     }
   }
@@ -89,12 +102,13 @@ export function insertHandler(db) {
     pk_y: string
     dryrun?: boolean
   }) {
-    const chainResult = await db.get(`SELECT id from Chain WHERE name='${chain}'`)
-    const query = `INSERT INTO VrfKey (chainId, sk, pk, pk_x, pk_y) VALUES (${chainResult.id}, '${sk}', '${pk}', '${pk_x}', '${pk_y}');`
+    const chainId = await chainToId(db, chain)
+    const query = `INSERT INTO VrfKey (chainId, sk, pk, pk_x, pk_y) VALUES (${chainId}, '${sk}', '${pk}', '${pk_x}', '${pk_y}');`
     if (dryrun) {
       console.debug(query)
     } else {
-      await db.run(query)
+      const result = await db.run(query)
+      console.log(formatResultInsert(result))
     }
   }
   return wrapper
@@ -106,7 +120,8 @@ export function removeHandler(db) {
     if (dryrun) {
       console.debug(query)
     } else {
-      await db.run(query)
+      const result = await db.run(query)
+      console.log(formatResultRemove(result))
     }
   }
   return wrapper

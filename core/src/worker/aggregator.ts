@@ -20,7 +20,7 @@ import {
   RANDOM_HEARTBEAT_QUEUE_NAME,
   BULLMQ_CONNECTION
 } from '../settings'
-import { PROVIDER_URL, PUBLIC_KEY as ORACLE_ADDRESS } from '../load-parameters'
+import { PROVIDER_URL, PUBLIC_KEY as ORACLE_ADDRESS } from '../settings'
 import { Aggregator__factory } from '@bisonai-cic/icn-contracts'
 
 export async function aggregatorWorker() {

@@ -1,7 +1,11 @@
 import { command, subcommands, option, string as cmdstring } from 'cmd-ts'
-import { dryrunOption, idOption } from './utils'
+import { dryrunOption, idOption, formatResultInsert, formatResultRemove } from './utils'
 
 export function serviceSub(db) {
+  // service list
+  // service insert --name [name] [--dryrun]
+  // service remove --id [id]     [--dryrun]
+
   const list = command({
     name: 'list',
     args: {},
@@ -35,11 +39,13 @@ export function serviceSub(db) {
   })
 }
 
-export function listHandler(db) {
+export function listHandler(db, print?) {
   async function wrapper() {
     const query = 'SELECT * FROM Service'
     const result = await db.all(query)
-    console.log(result)
+    if (print) {
+      console.log(result)
+    }
     return result
   }
   return wrapper
@@ -51,7 +57,8 @@ export function insertHandler(db) {
     if (dryrun) {
       console.debug(query)
     } else {
-      await db.run(query)
+      const result = await db.run(query)
+      console.log(formatResultInsert(result))
     }
   }
   return wrapper
@@ -63,7 +70,8 @@ export function removeHandler(db) {
     if (dryrun) {
       console.debug(query)
     } else {
-      await db.run(query)
+      const result = await db.run(query)
+      console.log(formatResultRemove(result))
     }
   }
   return wrapper

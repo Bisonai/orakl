@@ -1,17 +1,12 @@
 import { ethers } from 'ethers'
 import { IcnError, IcnErrorCode } from '../errors'
-import {
-  PROVIDER as PROVIDER_ENV,
-  PRIVATE_KEY as PRIVATE_KEY_ENV
-  // MNEMONIC
-} from '../load-parameters'
+import { PROVIDER_URL as PROVIDER_ENV, PRIVATE_KEY as PRIVATE_KEY_ENV } from '../settings'
 import { add0x } from '../utils'
 
 export function buildWallet() {
   try {
     const { PRIVATE_KEY, PROVIDER } = checkParameters()
     const provider = new ethers.providers.JsonRpcProvider(PROVIDER)
-    // const wallet = ethers.Wallet.fromMnemonic(MNEMONIC).connect(provider)
     const wallet = new ethers.Wallet(PRIVATE_KEY, provider)
     return wallet
   } catch (e) {

@@ -23,11 +23,6 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
     environment:
-      - HEALTH_CHECK_PORT
-      - PROVIDER
-      - REDIS_HOST
-      - REDIS_PORT
-      - LISTENERS
       - NODE_ENV=production
     healthcheck:
       &common-health-check
@@ -48,11 +43,6 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
     environment:
-      - HEALTH_CHECK_PORT
-      - PROVIDER
-      - REDIS_HOST
-      - REDIS_PORT
-      - LISTENERS
       - NODE_ENV=production
     healthcheck:
       <<: *common-health-check
@@ -68,11 +58,6 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
     environment:
-      - HEALTH_CHECK_PORT
-      - PROVIDER
-      - REDIS_HOST
-      - REDIS_PORT
-      - LISTENERS
       - NODE_ENV=production
     healthcheck:
       <<: *common-health-check
@@ -86,15 +71,6 @@ services:
     hostname: worker_vrf_dev
     entrypoint: ["yarn", "start:worker:vrf"]
     environment:
-      - HEALTH_CHECK_PORT
-      - PROVIDER
-      - REDIS_HOST
-      - REDIS_PORT
-      - LOCAL_AGGREGATOR
-      - VRF_SK
-      - VRF_PK
-      - VRF_PK_X
-      - VRF_PK_Y
       - NODE_ENV=production
     healthcheck:
       <<: *common-health-check
@@ -108,11 +84,6 @@ services:
     hostname: worker_any_api_dev
     entrypoint: ["yarn", "start:worker:any_api"]
     environment:
-      - HEALTH_CHECK_PORT
-      - PROVIDER
-      - REDIS_HOST
-      - REDIS_PORT
-      - LOCAL_AGGREGATOR
       - NODE_ENV=production
     healthcheck:
       <<: *common-health-check
@@ -126,11 +97,6 @@ services:
     hostname: worker_aggregator_dev
     entrypoint: ["yarn", "start:worker:aggregator"]
     environment:
-      - HEALTH_CHECK_PORT
-      - PROVIDER
-      - REDIS_HOST
-      - REDIS_PORT
-      - LOCAL_AGGREGATOR
       - NODE_ENV=production
     healthcheck:
       <<: *common-health-check
@@ -144,11 +110,6 @@ services:
     hostname: worker_predefined_feed_dev
     entrypoint: ["yarn", "start:worker:predefined_feed"]
     environment:
-      - HEALTH_CHECK_PORT
-      - PROVIDER
-      - REDIS_HOST
-      - REDIS_PORT
-      - LOCAL_AGGREGATOR
       - NODE_ENV=production
     healthcheck:
       <<: *common-health-check
@@ -164,14 +125,7 @@ services:
     hostname: reporter_vrf_dev
     entrypoint: ["yarn", "start:reporter:vrf"]
     environment:
-      - HEALTH_CHECK_PORT
-      - PROVIDER
-      - REDIS_HOST
-      - REDIS_PORT
-      - MNEMONIC
-      - PUBLIC_KEY
-      - PRIVATE_KEY
-      - NODE_ENV="production"
+      - NODE_ENV=production
     healthcheck:
       <<: *common-health-check
     depends_on:
@@ -186,14 +140,7 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
     environment:
-      - HEALTH_CHECK_PORT
-      - PROVIDER
-      - REDIS_HOST
-      - REDIS_PORT
-      - MNEMONIC
-      - PUBLIC_KEY
-      - PRIVATE_KEY
-      - NODE_ENV="production"
+      - NODE_ENV=production
     healthcheck:
       <<: *common-health-check
     depends_on:
@@ -208,13 +155,6 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
     environment:
-      - HEALTH_CHECK_PORT
-      - PROVIDER
-      - REDIS_HOST
-      - REDIS_PORT
-      - MNEMONIC
-      - PUBLIC_KEY
-      - PRIVATE_KEY
       - NODE_ENV="production"
     healthcheck:
       <<: *common-health-check
