@@ -119,8 +119,7 @@ export function postprocessListeners(listeners): IListenerConfig[] {
   return postprocessed
 }
 
-export async function getListeners(chain: string): Promise<IListenerConfig[]> {
-  const db = await openDb()
+export async function getListeners(db, chain: string): Promise<IListenerConfig[]> {
   const query = `SELECT Service.name, address, eventName FROM Listener
     INNER JOIN Service ON Service.id = Listener.serviceId
     INNER JOIN Chain ON Chain.id=Listener.chainId AND Chain.name='${chain}'`
@@ -129,8 +128,7 @@ export async function getListeners(chain: string): Promise<IListenerConfig[]> {
   return listeners
 }
 
-export async function getVrfConfig(chain: string): Promise<IVrfConfig> {
-  const db = await openDb()
+export async function getVrfConfig(db, chain: string): Promise<IVrfConfig> {
   const query = `SELECT sk, pk, pk_x, pk_y FROM VrfKey
     INNER JOIN Chain ON Chain.id = VrfKey.chainId AND Chain.name='${chain}'`
   const vrfConfig = await db.get(query)

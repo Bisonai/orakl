@@ -4,7 +4,7 @@ import { buildVrfListener } from './vrf'
 import { buildAnyApiListener } from './any-api'
 import { validateListenerConfig } from './utils'
 import { IcnError, IcnErrorCode } from '../errors'
-import { WORKER_ANY_API_QUEUE_NAME, WORKER_VRF_QUEUE_NAME, CHAIN } from '../settings'
+import { WORKER_ANY_API_QUEUE_NAME, WORKER_VRF_QUEUE_NAME, DB, CHAIN } from '../settings'
 import { getListeners } from '../settings'
 import { healthCheck } from '../health-checker'
 
@@ -25,7 +25,7 @@ const LISTENERS = {
 
 async function main() {
   const listener = loadArgs()
-  const listenersConfig = await getListeners(CHAIN)
+  const listenersConfig = await getListeners(DB, CHAIN)
 
   const isValid = Object.keys(listenersConfig).map((k) =>
     validateListenerConfig(listenersConfig[k])

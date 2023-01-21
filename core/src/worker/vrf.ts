@@ -6,6 +6,7 @@ import {
   WORKER_VRF_QUEUE_NAME,
   REPORTER_VRF_QUEUE_NAME,
   BULLMQ_CONNECTION,
+  DB,
   CHAIN,
   getVrfConfig
 } from '../settings'
@@ -19,7 +20,7 @@ export async function vrfWorker() {
 async function vrfJob(queueName) {
   const queue = new Queue(queueName, BULLMQ_CONNECTION)
   // FIXME add checks if exists and if includes all information
-  const vrfConfig = await getVrfConfig(CHAIN)
+  const vrfConfig = await getVrfConfig(DB, CHAIN)
 
   async function wrapper(job) {
     const inData: IVrfListenerWorker = job.data
