@@ -1,18 +1,8 @@
-import * as Fs from 'node:fs/promises'
-import * as Path from 'node:path'
 import { reducerMapping } from './reducer'
 import { IcnError, IcnErrorCode } from '../errors'
-import { pipe, loadJson } from '../utils'
+import { pipe } from '../utils'
 import { IAdapter, IAggregator } from '../types'
-import {
-  getAdapters,
-  getAggregators,
-  localAggregatorFn,
-  DB,
-  CHAIN,
-  ADAPTER_ROOT_DIR,
-  AGGREGATOR_ROOT_DIR
-} from '../settings'
+import { getAdapters, getAggregators, localAggregatorFn, DB, CHAIN } from '../settings'
 import axios from 'axios'
 
 export async function loadAdapters({ postprocess }: { postprocess?: boolean }) {
