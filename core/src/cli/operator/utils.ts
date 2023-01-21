@@ -8,6 +8,8 @@ import {
 } from 'cmd-ts'
 import sqlite from 'sqlite3'
 import { open } from 'sqlite'
+import { CliError, CliErrorCode } from './error'
+import { ChainId } from './types'
 import { SETTINGS_DB_FILE } from '../../settings'
 
 export async function openDb() {
@@ -15,6 +17,15 @@ export async function openDb() {
     filename: SETTINGS_DB_FILE,
     driver: sqlite.Database
   })
+}
+
+export async function chainToId(db, chain: string) {
+  const query = `SELECT id from Chain WHERE name='${chain}';`
+  const result: ChainId = await db.get(query)
+  if (!result) {
+    throw new CliError(CliErrorCode.NonExistantChain)
+  }
+  return result.id
 }
 
 export const chainOptionalOption = option({

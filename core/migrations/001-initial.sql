@@ -73,7 +73,8 @@ CREATE TABLE Kv (
   id       INTEGER       PRIMARY KEY,
   chainId  INTEGER       NOT NULL,
   key      VARCHAR(255)  NOT NULL,
-  value    VARCHAR(255)  NOT NULL
+  value    VARCHAR(255)  NOT NULL,
+  UNIQUE(chainId, key) ON CONFLICT FAIL
 );
 
 INSERT INTO Kv (chainId, key, value)
