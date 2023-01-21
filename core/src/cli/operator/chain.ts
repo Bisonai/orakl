@@ -1,5 +1,5 @@
 import { command, subcommands, option, string as cmdstring } from 'cmd-ts'
-import { dryrunOption, idOption } from './utils'
+import { dryrunOption, idOption, formatResultInsert, formatResultRemove } from './utils'
 
 export function chainSub(db) {
   // chain list
@@ -55,7 +55,8 @@ export function insertHandler(db) {
     if (dryrun) {
       console.debug(query)
     } else {
-      await db.run(query)
+      const result = await db.run(query)
+      console.log(formatResultInsert(result))
     }
   }
   return wrapper
@@ -67,7 +68,8 @@ export function removeHandler(db) {
     if (dryrun) {
       console.debug(query)
     } else {
-      await db.run(query)
+      const result = await db.run(query)
+      console.log(formatResultRemove(result))
     }
   }
   return wrapper

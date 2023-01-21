@@ -5,7 +5,9 @@ import {
   chainOptionalOption,
   serviceOptionalOption,
   chainToId,
-  serviceToId
+  serviceToId,
+  formatResultInsert,
+  formatResultRemove
 } from './utils'
 
 export function listenerSub(db) {
@@ -121,7 +123,8 @@ export function insertHandler(db) {
     if (dryrun) {
       console.debug(query)
     } else {
-      await db.run(query)
+      const result = await db.run(query)
+      console.log(formatResultInsert(result))
     }
   }
   return wrapper
@@ -133,7 +136,8 @@ export function removeHandler(db) {
     if (dryrun) {
       console.debug(query)
     } else {
-      await db.run(query)
+      const result = await db.run(query)
+      console.log(formatResultRemove(result))
     }
   }
   return wrapper

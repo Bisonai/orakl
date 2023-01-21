@@ -9,7 +9,7 @@ import {
 import sqlite from 'sqlite3'
 import { open } from 'sqlite'
 import { CliError, CliErrorCode } from './error'
-import { ChainId, ServiceId } from './types'
+import { ChainId, ServiceId, DbCmdOutput } from './types'
 import { SETTINGS_DB_FILE } from '../../settings'
 
 export async function openDb() {
@@ -56,3 +56,13 @@ export const dryrunOption = flag({
   type: cmdboolean,
   long: 'dry-run'
 })
+
+export function formatResultInsert(output: DbCmdOutput): string {
+  const row = output.changes == 1 ? 'row' : 'rows'
+  return `Inserted ${output.changes} ${row}. The row id is ${output.lastID}.`
+}
+
+export function formatResultRemove(output: DbCmdOutput): string {
+  const row = output.changes == 1 ? 'row' : 'rows'
+  return `Removed ${output.changes} ${row}.`
+}

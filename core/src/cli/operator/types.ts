@@ -5,3 +5,8 @@ export interface ChainId {
 export interface ServiceId {
   id: number
 }
+
+export interface DbCmdOutput {
+  lastID: number
+  changes: number
+}

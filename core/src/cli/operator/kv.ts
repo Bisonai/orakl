@@ -1,5 +1,11 @@
 import { command, subcommands, optional, option, string as cmdstring } from 'cmd-ts'
-import { chainOptionalOption, dryrunOption, chainToId } from './utils'
+import {
+  chainOptionalOption,
+  dryrunOption,
+  chainToId,
+  formatResultInsert,
+  formatResultRemove
+} from './utils'
 
 export function kvCmd(db) {
   // kv list   [--chain [chain]] [--key [key]]
@@ -122,7 +128,8 @@ export function insertHandler(db) {
     if (dryrun) {
       console.debug(query)
     } else {
-      await db.run(query)
+      const result = await db.run(query)
+      console.log(formatResultInsert(result))
     }
   }
   return wrapper
@@ -136,7 +143,7 @@ export function removeHandler(db) {
       console.debug(query)
     } else {
       const result = await db.run(query)
-      console.log(result)
+      console.log(formatResultRemove(result))
     }
   }
   return wrapper

@@ -1,5 +1,12 @@
 import { command, subcommands, option, string as cmdstring } from 'cmd-ts'
-import { dryrunOption, idOption, chainOptionalOption, chainToId } from './utils'
+import {
+  dryrunOption,
+  idOption,
+  chainOptionalOption,
+  chainToId,
+  formatResultInsert,
+  formatResultRemove
+} from './utils'
 
 export function vrfSub(db) {
   // vrf list   [--chain [chain]]                                                [--dryrun]
@@ -98,7 +105,8 @@ export function insertHandler(db) {
     if (dryrun) {
       console.debug(query)
     } else {
-      await db.run(query)
+      const result = await db.run(query)
+      console.log(formatResultInsert(result))
     }
   }
   return wrapper
@@ -110,7 +118,8 @@ export function removeHandler(db) {
     if (dryrun) {
       console.debug(query)
     } else {
-      await db.run(query)
+      const result = await db.run(query)
+      console.log(formatResultRemove(result))
     }
   }
   return wrapper
