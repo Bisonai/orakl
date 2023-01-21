@@ -77,7 +77,9 @@ export function listHandler(db, print?) {
       console.debug(query)
     } else {
       const result = await db.all(query)
-      console.log(result)
+      if (print) {
+        console.log(result)
+      }
       return result
     }
   }
