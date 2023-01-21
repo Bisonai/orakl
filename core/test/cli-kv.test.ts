@@ -1,13 +1,16 @@
 import { describe, expect, beforeEach, test } from '@jest/globals'
 import { listHandler, insertHandler, removeHandler, updateHandler } from '../src/cli/operator/kv'
-import { openDb } from '../src/cli/operator/utils-test'
+import { mkTmpFile } from '../src/utils'
+import { openDb } from '../src/cli/operator/utils'
 
 describe('CLI KV', function () {
   let DB
+  const TMP_DB_FILE = mkTmpFile({ fileName: 'settings.test.sqlite' })
   const KV_LOCALHOST = { key: 'someKey', value: 'someValue', chain: 'localhost' }
   const KV_BAOBAB = { key: 'someKey', value: 'someValue', chain: 'baobab' }
+
   beforeEach(async () => {
-    DB = await openDb({ migrate: true })
+    DB = await openDb({ dbFile: TMP_DB_FILE, migrate: true })
   })
 
   test('Should list all Key-Value pairs', async function () {

@@ -12,11 +12,17 @@ import { CliError, CliErrorCode } from './error'
 import { ChainId, ServiceId, DbCmdOutput } from './types'
 import { SETTINGS_DB_FILE } from '../../settings'
 
-export async function openDb() {
-  return await open({
-    filename: SETTINGS_DB_FILE,
+export async function openDb({ dbFile, migrate }: { dbFile?: string; migrate?: boolean }) {
+  const db = await open({
+    filename: dbFile || SETTINGS_DB_FILE,
     driver: sqlite.Database
   })
+
+  if (migrate) {
+    await db.migrate({ force: true })
+  }
+
+  return db
 }
 
 export async function chainToId(db, chain: string) {

@@ -1,5 +1,7 @@
 import * as Fs from 'node:fs/promises'
 import * as fs from 'node:fs'
+import { tmpdir } from 'node:os'
+import path from 'node:path'
 import { IcnError, IcnErrorCode } from './errors'
 
 export async function loadJson(filepath) {
@@ -73,4 +75,12 @@ export async function writeTextFile(filepath: string, content: string) {
 
 export function printObject(object) {
   console.dir(object, { depth: null })
+}
+
+export function mkTmpFile({ fileName }: { fileName: string }): string {
+  const appPrefix = 'orakl'
+  const tmpDir = fs.mkdtempSync(path.join(tmpdir(), appPrefix))
+  console.log(tmpDir)
+  const tmpFilePath = path.join(tmpDir, fileName)
+  return tmpFilePath
 }

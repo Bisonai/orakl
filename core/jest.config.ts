@@ -1,15 +1,24 @@
-import type { Config } from 'jest'
+import type { JestConfigWithTsJest } from 'ts-jest'
 
-const config: Config = {
+const jestConfig: JestConfigWithTsJest = {
   verbose: true,
+  preset: 'ts-jest/presets/default-esm',
+  moduleNameMapper: {
+    '^(\\.{1,2}/.*)\\.js$': '$1'
+  },
+  transform: {
+    '^.+\\.(t|j)s$': [
+      'ts-jest',
+      {
+        useESM: true
+      }
+    ]
+  },
   moduleFileExtensions: ['js', 'json', 'ts'],
   rootDir: '.',
   testMatch: ['<rootDir>/test/*.ts'],
   moduleDirectories: ['node_modules', 'dist/src/', '<rootDir>'],
   testPathIgnorePatterns: [],
-  transform: {
-    '^.+\\.(t|j)s$': 'ts-jest'
-  },
   transformIgnorePatterns: ['node_modules/(?!@bisonai)'],
   extensionsToTreatAsEsm: ['.ts'],
   collectCoverageFrom: ['**/*.(t|j)s'],
@@ -20,4 +29,4 @@ const config: Config = {
   bail: true
 }
 
-export default config
+export default jestConfig

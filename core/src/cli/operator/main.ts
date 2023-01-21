@@ -9,7 +9,7 @@ import { openDb } from './utils'
 import { binary, subcommands, run } from 'cmd-ts'
 
 async function main() {
-  const db = await openDb()
+  const db = await openDb({})
 
   const chain = chainSub(db)
   const service = serviceSub(db)

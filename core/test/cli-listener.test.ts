@@ -1,17 +1,20 @@
 import { describe, expect, beforeEach, test } from '@jest/globals'
 import { listHandler, insertHandler, removeHandler } from '../src/cli/operator/listener'
-import { openDb } from '../src/cli/operator/utils-test'
+import { mkTmpFile } from '../src/utils'
+import { openDb } from '../src/cli/operator/utils'
 
 describe('CLI Listener', function () {
   let DB
+  const TMP_DB_FILE = mkTmpFile({ fileName: 'settings.test.sqlite' })
   const LISTENER = {
     chain: 'localhost',
     service: 'VRF',
     address: '0x0000000000000000000000000000000000000000',
     eventName: 'Event'
   }
+
   beforeEach(async () => {
-    DB = await openDb({ migrate: true })
+    DB = await openDb({ dbFile: TMP_DB_FILE, migrate: true })
   })
 
   test('Should list all listeners', async function () {
