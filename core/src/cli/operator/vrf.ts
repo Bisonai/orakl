@@ -1,7 +1,11 @@
 import { command, subcommands, option, string as cmdstring } from 'cmd-ts'
-import { dryrunOption, idOption, chainOptionalOption } from './utils'
+import { dryrunOption, idOption, chainOptionalOption, chainToId } from './utils'
 
 export function vrfSub(db) {
+  // vrf list   [--chain [chain]]                                                [--dryrun]
+  // vrf insert  --chain [chain] --pk [pk] --sk [sk] --pk_x [pk_x] --pk_y [pk_y] [--dryrun]
+  // vrf remove  --id [id]                                                       [--dryrun]
+
   const list = command({
     name: 'list',
     args: {
@@ -89,8 +93,8 @@ export function insertHandler(db) {
     pk_y: string
     dryrun?: boolean
   }) {
-    const chainResult = await db.get(`SELECT id from Chain WHERE name='${chain}'`)
-    const query = `INSERT INTO VrfKey (chainId, sk, pk, pk_x, pk_y) VALUES (${chainResult.id}, '${sk}', '${pk}', '${pk_x}', '${pk_y}');`
+    const chainId = await chainToId(db, chain)
+    const query = `INSERT INTO VrfKey (chainId, sk, pk, pk_x, pk_y) VALUES (${chainId}, '${sk}', '${pk}', '${pk_x}', '${pk_y}');`
     if (dryrun) {
       console.debug(query)
     } else {

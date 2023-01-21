@@ -9,7 +9,7 @@ import {
 import sqlite from 'sqlite3'
 import { open } from 'sqlite'
 import { CliError, CliErrorCode } from './error'
-import { ChainId } from './types'
+import { ChainId, ServiceId } from './types'
 import { SETTINGS_DB_FILE } from '../../settings'
 
 export async function openDb() {
@@ -24,6 +24,15 @@ export async function chainToId(db, chain: string) {
   const result: ChainId = await db.get(query)
   if (!result) {
     throw new CliError(CliErrorCode.NonExistantChain)
+  }
+  return result.id
+}
+
+export async function serviceToId(db, service: string) {
+  const query = `SELECT id from Service WHERE name='${service}';`
+  const result: ServiceId = await db.get(query)
+  if (!result) {
+    throw new CliError(CliErrorCode.NonExistantService)
   }
   return result.id
 }
