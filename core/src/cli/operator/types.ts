@@ -1,6 +1,5 @@
 import { Type } from 'cmd-ts'
-import { Stream } from 'stream'
-import fs from 'node:fs'
+import { existsSync } from 'node:fs'
 import { CliError, CliErrorCode } from './error'
 import { loadFile } from './utils'
 
@@ -19,7 +18,7 @@ export interface DbCmdOutput {
 
 export const ReadFile: Type<string, string> = {
   async from(filePath) {
-    if (!fs.existsSync(filePath)) {
+    if (!existsSync(filePath)) {
       throw new CliError(CliErrorCode.FileNotFound)
     }
 

@@ -1,12 +1,11 @@
-import { positional, flag, command, subcommands, option, string as cmdstring } from 'cmd-ts'
+import { flag, command, subcommands, option, string as cmdstring } from 'cmd-ts'
 import {
   chainOptionalOption,
   chainToId,
   dryrunOption,
   idOption,
   formatResultInsert,
-  formatResultRemove,
-  loadFile
+  formatResultRemove
 } from './utils'
 import { computeDataHash } from '../utils'
 import { printObject } from '../../utils'

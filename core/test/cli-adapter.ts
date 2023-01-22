@@ -7,7 +7,6 @@ describe('CLI Adapter', function () {
   let DB
   const TMP_DB_FILE = mkTmpFile({ fileName: 'settings.test.sqlite' })
   const ADAPTER = {
-    // id: '0xcd2db8af71a08b8ea15f82e40708e1f126561baeb0cbe5202d55714795be8650',
     active: true,
     name: 'X/Y',
     jobType: 'JOB',
