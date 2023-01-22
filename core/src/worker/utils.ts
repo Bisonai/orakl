@@ -1,39 +1,31 @@
-import * as Fs from 'node:fs/promises'
-import * as Path from 'node:path'
 import { reducerMapping } from './reducer'
 import { IcnError, IcnErrorCode } from '../errors'
-import { pipe, loadJson } from '../utils'
+import { pipe } from '../utils'
 import { IAdapter, IAggregator } from '../types'
-import { localAggregatorFn, ADAPTER_ROOT_DIR, AGGREGATOR_ROOT_DIR } from '../settings'
+import { getAdapters, getAggregators, localAggregatorFn, DB, CHAIN } from '../settings'
 import axios from 'axios'
 
 export async function loadAdapters({ postprocess }: { postprocess?: boolean }) {
-  const adapterPaths = await Fs.readdir(ADAPTER_ROOT_DIR)
-  const allRawAdapters = await Promise.all(
-    adapterPaths.map(async (ap) => validateAdapter(await loadJson(Path.join(ADAPTER_ROOT_DIR, ap))))
-  )
+  const rawAdapters = await getAdapters(DB, CHAIN)
+  const validatedRawAdapters = rawAdapters.map((a) => validateAdapter(JSON.parse(a.data)))
 
   if (!postprocess) {
-    return allRawAdapters
+    return validatedRawAdapters
   }
 
-  const activeRawAdapters = allRawAdapters.filter((a) => a.active)
+  const activeRawAdapters = validatedRawAdapters.filter((a) => a.active)
   return Object.assign({}, ...activeRawAdapters.map((a) => extractFeeds(a)))
 }
 
 export async function loadAggregators({ postprocess }: { postprocess?: boolean }) {
-  const aggregatorPaths = await Fs.readdir(AGGREGATOR_ROOT_DIR)
-  const allRawAggregators = await Promise.all(
-    aggregatorPaths.map(async (ap) =>
-      validateAggregator(await loadJson(Path.join(AGGREGATOR_ROOT_DIR, ap)))
-    )
-  )
+  const rawAggregators = await getAggregators(DB, CHAIN)
+  const validatedRawAggregators = rawAggregators.map((a) => validateAggregator(JSON.parse(a.data)))
 
   if (!postprocess) {
-    return allRawAggregators
+    return validatedRawAggregators
   }
 
-  const activeRawAggregators = allRawAggregators.filter((a) => a.active)
+  const activeRawAggregators = validatedRawAggregators.filter((a) => a.active)
   return Object.assign({}, ...activeRawAggregators.map((a) => extractAggregators(a)))
 }
 

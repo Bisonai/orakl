@@ -88,6 +88,180 @@ VALUES
   ((SELECT id from Chain WHERE name = 'localhost'), 'HEALTH_CHECK_PORT', '8888'),
   ((SELECT id from Chain WHERE name = 'localhost'), 'LISTENER_DELAY', '500');
 
+CREATE TABLE Adapter (
+  id         INTEGER   PRIMARY KEY,
+  adapterId  CHAR(66)  NOT NULL UNIQUE,
+  chainId    INTEGER   NOT NULL,
+  data       TEXT      NOT NULL,
+  CONSTRAINT Adapter_fk_chainId FOREIGN KEY (chainId)
+    REFERENCES Chain (id) ON UPDATE CASCADE ON DELETE CASCADE
+);
+
+INSERT INTO Adapter (chainId, adapterId, data)
+VALUES
+  ((SELECT id from Chain WHERE name = 'localhost'),
+  '0xc9f7c0b3a3e75ca24b9d84ab2ebbcad5cff09317f87532e90b79bf2ebbb327a3',
+  '{
+    "id": "0xc9f7c0b3a3e75ca24b9d84ab2ebbcad5cff09317f87532e90b79bf2ebbb327a3",
+    "active": false,
+    "name": "ETH/USD",
+    "jobType": "DATA_FEED",
+    "decimals": "8",
+    "feeds": [
+        {
+            "url": "https://min-api.cryptocompare.com/data/pricemultifull?fsyms=ETH&tsyms=USD",
+            "headers": {
+                "Content-Type": "application/json"
+            },
+            "method": "GET",
+            "reducers": [
+                {
+                    "function": "PARSE",
+                    "args": [
+                        "RAW",
+                        "ETH",
+                        "USD",
+                        "PRICE"
+                    ]
+                },
+                {
+                    "function": "POW10",
+                    "args": "8"
+                },
+                {
+                    "function": "ROUND"
+                }
+            ]
+        }
+    ]
+  }'),
+  ((SELECT id from Chain WHERE name = 'localhost'),
+  '0x00d5130063bee77302b133b5c6a0d6aede467a599d251aec842d24abeb5866a5',
+  '{
+    "id": "0x00d5130063bee77302b133b5c6a0d6aede467a599d251aec842d24abeb5866a5",
+    "active": true,
+    "name": "KLAY/USD",
+    "jobType": "DATA_FEED",
+    "decimals": "8",
+    "feeds": [
+        {
+            "url": "https://min-api.cryptocompare.com/data/pricemultifull?fsyms=KLAY&tsyms=USD",
+            "headers": {
+                "Content-Type": "application/json"
+            },
+            "method": "GET",
+            "reducers": [
+                {
+                    "function": "PARSE",
+                    "args": ["RAW", "KLAY", "USD", "PRICE"]
+                },
+                {
+                    "function": "POW10",
+                    "args": "8"
+                },
+                {
+                    "function": "ROUND"
+                }
+            ]
+        },
+        {
+            "url": "https://api.coingecko.com/api/v3/simple/price?ids=klay-token&vs_currencies=usd",
+            "headers": {
+                "Content-Type": "application/json"
+            },
+            "method": "GET",
+            "reducers": [
+                {
+                    "function": "PARSE",
+                    "args": ["klay-token", "usd"]
+                },
+                {
+                    "function": "POW10",
+                    "args": "8"
+                },
+                {
+                    "function": "ROUND"
+                }
+            ]
+        },
+        {
+            "url": "https://api.coinbase.com/v2/exchange-rates?currency=KLAY",
+            "headers": {
+                "Content-Type": "application/json"
+            },
+            "method": "GET",
+            "reducers": [
+                {
+                    "function": "PARSE",
+                    "args": ["data", "rates", "USD"]
+                },
+                {
+                    "function": "POW10",
+                    "args": "8"
+                },
+                {
+                    "function": "ROUND"
+                }
+            ]
+        }
+    ]
+  }');
+
+CREATE TABLE Aggregator (
+  id            INTEGER   PRIMARY KEY,
+  aggregatorId  CHAR(66)  NOT NULL UNIQUE,
+  chainId       INTEGER   NOT NULL,
+  adapterId     INTEGER   NOT NULL,
+  data          TEXT      NOT NULL,
+  CONSTRAINT Aggregator_fk_chainId FOREIGN KEY (chainId)
+    REFERENCES Chain (id) ON UPDATE CASCADE ON DELETE CASCADE,
+  CONSTRAINT Aggregator_fk_adapterId FOREIGN KEY (adapterId)
+    REFERENCES Adapter (id) ON UPDATE CASCADE ON DELETE CASCADE
+);
+
+INSERT INTO Aggregator (chainId, adapterId, aggregatorId, data)
+VALUES
+  ((SELECT id from Chain WHERE name = 'localhost'),
+   (SELECT id from Adapter WHERE json_extract(Adapter.data, '$.id')='0xc9f7c0b3a3e75ca24b9d84ab2ebbcad5cff09317f87532e90b79bf2ebbb327a3'),
+   '0x4bbb04ac1bd973770a0b8e585a41147648980f3094ee7ac5597b2a987e9e96a9',
+  '{
+    "id": "0x4bbb04ac1bd973770a0b8e585a41147648980f3094ee7ac5597b2a987e9e96a9",
+    "address": "0x0000000000000000000000000000000000000000",
+    "active": false,
+    "name": "ETH/USD",
+    "fixedHeartbeatRate": {
+        "active": true,
+        "value": 10000
+    },
+    "randomHeartbeatRate": {
+        "active": false,
+        "value": 9000
+    },
+    "threshold": 0.09,
+    "absoluteThreshold": 0.01,
+    "adapterId": "0xc9f7c0b3a3e75ca24b9d84ab2ebbcad5cff09317f87532e90b79bf2ebbb327a3"
+  }'),
+  ((SELECT id from Chain WHERE name = 'localhost'),
+   (SELECT id from Adapter WHERE json_extract(Adapter.data, '$.id')='0x00d5130063bee77302b133b5c6a0d6aede467a599d251aec842d24abeb5866a5'),
+   '0x2d5d94df99ccad54f0f6a9d38f2340db793833947f86b207dcda38583dd263fa',
+  '{
+    "id": "0x2d5d94df99ccad54f0f6a9d38f2340db793833947f86b207dcda38583dd263fa",
+    "address": "0x2279B7A0a67DB372996a5FaB50D91eAA73d2eBe6",
+    "active": true,
+    "name": "KLAY/USD",
+    "fixedHeartbeatRate": {
+        "active" : true,
+        "value": 15000
+    },
+    "randomHeartbeatRate": {
+        "active": false,
+        "value": 2000
+    },
+    "threshold": 0.05,
+    "absoluteThreshold": 0.1,
+    "adapterId": "0x00d5130063bee77302b133b5c6a0d6aede467a599d251aec842d24abeb5866a5"
+  }');
+
 --------------------------------------------------------------------------------
 -- Down
 --------------------------------------------------------------------------------
@@ -97,3 +271,5 @@ DROP TABLE VrfKey;
 DROP TABLE Service;
 DROP TABLE Listener;
 DROP TABLE Kv;
+DROP TABLE Adapter;
+DROP TABLE Aggregator;

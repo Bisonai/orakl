@@ -8,5 +8,7 @@ export class CliError extends Error {
 
 export enum CliErrorCode {
   NonExistentChain = 10000,
-  NonExistentService
+  NonExistentService,
+  FileNotFound,
+  InconsistentAdapterId
 }

@@ -11,7 +11,7 @@ export const NODE_ENV = process.env.NODE_ENV
 export const CHAIN = process.env.CHAIN || 'localhost'
 
 export const SETTINGS_DB_FILE = './settings.sqlite' // FIXME
-const DB = await openDb()
+export const DB = await openDb()
 
 export const PROVIDER_URL = await loadKeyValuePair({ db: DB, key: 'PROVIDER_URL', chain: CHAIN })
 export const REDIS_HOST = await loadKeyValuePair({ db: DB, key: 'REDIS_HOST', chain: CHAIN })
@@ -119,8 +119,7 @@ export function postprocessListeners(listeners): IListenerConfig[] {
   return postprocessed
 }
 
-export async function getListeners(chain: string): Promise<IListenerConfig[]> {
-  const db = await openDb()
+export async function getListeners(db, chain: string): Promise<IListenerConfig[]> {
   const query = `SELECT Service.name, address, eventName FROM Listener
     INNER JOIN Service ON Service.id = Listener.serviceId
     INNER JOIN Chain ON Chain.id=Listener.chainId AND Chain.name='${chain}'`
@@ -129,10 +128,23 @@ export async function getListeners(chain: string): Promise<IListenerConfig[]> {
   return listeners
 }
 
-export async function getVrfConfig(chain: string): Promise<IVrfConfig> {
-  const db = await openDb()
+export async function getVrfConfig(db, chain: string): Promise<IVrfConfig> {
   const query = `SELECT sk, pk, pk_x, pk_y FROM VrfKey
     INNER JOIN Chain ON Chain.id = VrfKey.chainId AND Chain.name='${chain}'`
   const vrfConfig = await db.get(query)
   return vrfConfig
+}
+
+export async function getAdapters(db, chain: string) {
+  const query = `SELECT data FROM Adapter
+    INNER JOIN Chain ON Chain.id = Adapter.chainId AND Chain.name='${chain}'`
+  const adapters = await db.all(query)
+  return adapters
+}
+
+export async function getAggregators(db, chain: string) {
+  const query = `SELECT data FROM Aggregator
+    INNER JOIN Chain ON Chain.id = Aggregator.chainId AND Chain.name='${chain}'`
+  const aggregators = await db.all(query)
+  return aggregators
 }

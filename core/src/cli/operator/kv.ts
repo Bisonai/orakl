@@ -7,7 +7,7 @@ import {
   formatResultRemove
 } from './utils'
 
-export function kvCmd(db) {
+export function kvSub(db) {
   // kv list   [--chain [chain]] [--key [key]]
   // kv insert  --chain [chain]   --key [key] --value [value] [--dryrun]
   // kv remove  --chain [chain]   --key [key]                 [--dryrun]
