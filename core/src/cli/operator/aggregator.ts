@@ -107,7 +107,7 @@ export function insertHandler(db) {
     if (adapter != aggregatorObject.adapterId) {
       throw new CliError(CliErrorCode.InconsistentAdapterId)
     } else {
-      const query = `SELECT id from Adapter WHERE adapterId='${adapterId}';`
+      const query = `SELECT id from Adapter WHERE adapterId='${adapter}';`
       const result = await db.get(query)
       adapterId = result.id
     }
