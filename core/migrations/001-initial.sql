@@ -89,10 +89,10 @@ VALUES
   ((SELECT id from Chain WHERE name = 'localhost'), 'LISTENER_DELAY', '500');
 
 CREATE TABLE Adapter (
-  id         INTEGER  PRIMARY KEY,
-  adapterId  INTEGER  NOT NULL UNIQUE,
-  chainId    INTEGER  NOT NULL,
-  data       TEXT     NOT NULL,
+  id         INTEGER   PRIMARY KEY,
+  adapterId  CHAR(66)  NOT NULL UNIQUE,
+  chainId    INTEGER   NOT NULL,
+  data       TEXT      NOT NULL,
   CONSTRAINT Adapter_fk_chainId FOREIGN KEY (chainId)
     REFERENCES Chain (id) ON UPDATE CASCADE ON DELETE CASCADE
 );
@@ -208,11 +208,11 @@ VALUES
   }');
 
 CREATE TABLE Aggregator (
-  id            INTEGER  PRIMARY KEY,
-  aggregatorId  INTEGER  NOT NULL UNIQUE,
-  chainId       INTEGER  NOT NULL,
-  adapterId     INTEGER  NOT NULL,
-  data          TEXT     NOT NULL,
+  id            INTEGER   PRIMARY KEY,
+  aggregatorId  CHAR(66)  NOT NULL UNIQUE,
+  chainId       INTEGER   NOT NULL,
+  adapterId     INTEGER   NOT NULL,
+  data          TEXT      NOT NULL,
   CONSTRAINT Aggregator_fk_chainId FOREIGN KEY (chainId)
     REFERENCES Chain (id) ON UPDATE CASCADE ON DELETE CASCADE,
   CONSTRAINT Aggregator_fk_adapterId FOREIGN KEY (adapterId)

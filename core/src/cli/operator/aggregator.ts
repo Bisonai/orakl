@@ -10,11 +10,13 @@ import {
 import { computeDataHash } from '../utils'
 import { printObject } from '../../utils'
 import { ReadFile } from './types'
+import { IAggregator } from '../..//types'
+import { CliError, CliErrorCode } from './error'
 
-export function adapterSub(db) {
-  // adapter list
-  // adapter insert --file-path [file-path] --chain [chain] [--dryrun]
-  // adapter remove --id [id]                               [--dryrun]
+export function aggregatorSub(db) {
+  // aggregator list
+  // aggregator insert --file-path [file-path] --chain [chain] [--dryrun]
+  // aggregator remove --id [id]                               [--dryrun]
 
   const list = command({
     name: 'list',
@@ -38,6 +40,10 @@ export function adapterSub(db) {
         type: cmdstring,
         long: 'chain'
       }),
+      adapter: option({
+        type: cmdstring,
+        long: 'adapter'
+      }),
       dryrun: dryrunOption
     },
     handler: insertHandler(db)
@@ -53,7 +59,7 @@ export function adapterSub(db) {
   })
 
   return subcommands({
-    name: 'adapter',
+    name: 'aggregator',
     cmds: { list, insert, remove }
   })
 }
@@ -65,7 +71,7 @@ export function listHandler(db, print?) {
       const chainId = await chainToId(db, chain)
       where += ` WHERE chainId=${chainId}`
     }
-    const query = `SELECT id, data FROM Adapter ${where};`
+    const query = `SELECT id, aggregatorId, adapterId, data FROM Aggregator ${where};`
     const result = await db.all(query)
     if (print) {
       for (const r of result) {
@@ -82,11 +88,30 @@ export function listHandler(db, print?) {
 }
 
 export function insertHandler(db) {
-  async function wrapper({ data, chain, dryrun }: { data; chain: string; dryrun?: boolean }) {
+  async function wrapper({
+    data,
+    chain,
+    adapter,
+    dryrun
+  }: {
+    data
+    chain: string
+    adapter
+    dryrun?: boolean
+  }) {
     const chainId = await chainToId(db, chain)
-    const adapterObject = await computeDataHash({ data })
-    const adapter = JSON.stringify(adapterObject)
-    const query = `INSERT INTO Adapter (chainId, adapterId, data) VALUES (${chainId}, '${adapterObject.id}', '${adapter}')`
+    const aggregatorObject = (await computeDataHash({ data })) as IAggregator
+    const aggregator = JSON.stringify(aggregatorObject)
+
+    let adapterId
+    if (adapter != aggregatorObject.adapterId) {
+      throw new CliError(CliErrorCode.InconsistentAdapterId)
+    } else {
+      const query = `SELECT id from Adapter WHERE adapterId='${adapterId}';`
+      const result = await db.get(query)
+      adapterId = result.id
+    }
+    const query = `INSERT INTO Aggregator (chainId, aggregatorId, adapterId, data) VALUES (${chainId}, '${aggregatorObject.id}', ${adapterId}, '${aggregator}')`
 
     if (dryrun) {
       console.debug(query)
@@ -100,7 +125,7 @@ export function insertHandler(db) {
 
 export function removeHandler(db) {
   async function wrapper({ id, dryrun }: { id: number; dryrun?: boolean }) {
-    const query = `DELETE FROM Adapter WHERE id=${id}`
+    const query = `DELETE FROM Aggregator WHERE id=${id}`
     if (dryrun) {
       console.debug(query)
     } else {
