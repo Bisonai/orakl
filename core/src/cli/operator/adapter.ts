@@ -1,4 +1,4 @@
-import { flag, command, subcommands, option, string as cmdstring } from 'cmd-ts'
+import { positional, flag, command, subcommands, option, string as cmdstring } from 'cmd-ts'
 import {
   chainOptionalOption,
   chainToId,
@@ -9,6 +9,8 @@ import {
   loadFile
 } from './utils'
 import { computeDataHash } from '../utils'
+import { printObject } from '../../utils'
+import { ReadFile } from './types'
 
 export function adapterSub(db) {
   // adapter list
@@ -29,9 +31,9 @@ export function adapterSub(db) {
   const insert = command({
     name: 'insert',
     args: {
-      filePath: option({
-        type: cmdstring,
-        long: 'file-path'
+      data: option({
+        type: ReadFile,
+        long: 'file'
       }),
       chain: option({
         type: cmdstring,
@@ -71,7 +73,7 @@ export function listHandler(db, print?) {
         const rJson = JSON.parse(r.data)
         if (!active || rJson.active) {
           console.log(`ID: ${r.id}`)
-          console.dir(rJson)
+          printObject(rJson)
         }
       }
     }
@@ -81,18 +83,9 @@ export function listHandler(db, print?) {
 }
 
 export function insertHandler(db) {
-  async function wrapper({
-    filePath,
-    chain,
-    dryrun
-  }: {
-    filePath: string
-    chain: string
-    dryrun?: boolean
-  }) {
+  async function wrapper({ data, chain, dryrun }: { data; chain: string; dryrun?: boolean }) {
     const chainId = await chainToId(db, chain)
-    const rawAdapter = JSON.parse((await loadFile(filePath)).toString())
-    const adapterObject = await computeDataHash({ data: rawAdapter })
+    const adapterObject = await computeDataHash({ data })
     const adapter = JSON.stringify(adapterObject)
     const query = `INSERT INTO Adapter (chainId, adapterId, data) VALUES (${chainId}, '${adapterObject.id}', '${adapter}')`
 
