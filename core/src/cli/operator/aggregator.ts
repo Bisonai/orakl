@@ -15,8 +15,8 @@ import { CliError, CliErrorCode } from './error'
 
 export function aggregatorSub(db) {
   // aggregator list
-  // aggregator insert --file-path [file-path] --chain [chain] [--dryrun]
-  // aggregator remove --id [id]                               [--dryrun]
+  // aggregator insert --file-path [file-path] --adapter [adapter] --chain [chain] [--dryrun]
+  // aggregator remove --id [id]                                                   [--dryrun]
 
   const list = command({
     name: 'list',
