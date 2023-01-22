@@ -1,11 +1,12 @@
 import { describe, expect, beforeEach, test } from '@jest/globals'
-import { listHandler, insertHandler, removeHandler } from '../src/cli/operator/adapter'
+import { listHandler, insertHandler, removeHandler } from '../src/cli/operator/aggregator'
 import { mkTmpFile } from '../src/utils'
 import { openDb } from '../src/cli/operator/utils'
 
 describe('CLI Aggregator', function () {
   let DB
   const TMP_DB_FILE = mkTmpFile({ fileName: 'settings.test.sqlite' })
+  const ADAPTER_ID = '0x00d5130063bee77302b133b5c6a0d6aede467a599d251aec842d24abeb5866a5'
   const AGGREGATOR = {
     address: '0x0000000000000000000000000000000000000000',
     active: true,
@@ -28,15 +29,15 @@ describe('CLI Aggregator', function () {
 
   test('Should insert new aggregator', async function () {
     const aggregatorBefore = await listHandler(DB)({})
-    await insertHandler(DB)({ data: AGGREGATOR, chain: 'localhost' })
+    await insertHandler(DB)({ data: AGGREGATOR, adapter: ADAPTER_ID, chain: 'localhost' })
     const aggregatorAfter = await listHandler(DB)({})
     expect(aggregatorAfter.length).toEqual(aggregatorBefore.length + 1)
   })
 
   test('Should not allow to insert the same aggregator more than once', async function () {
-    await insertHandler(DB)({ data: AGGREGATOR, chain: 'localhost' })
+    await insertHandler(DB)({ data: AGGREGATOR, adapter: ADAPTER_ID, chain: 'localhost' })
     await expect(async () => {
-      await insertHandler(DB)({ data: AGGREGATOR, chain: 'localhost' })
+      await insertHandler(DB)({ data: AGGREGATOR, adapter: ADAPTER_ID, chain: 'localhost' })
     }).rejects.toThrow()
   })
 
