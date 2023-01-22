@@ -33,7 +33,7 @@ export function adapterSub(db) {
     args: {
       data: option({
         type: ReadFile,
-        long: 'file'
+        long: 'file-path'
       }),
       chain: option({
         type: cmdstring,
