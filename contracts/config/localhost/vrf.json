@@ -13,7 +13,7 @@
         "reqsForTier4": 0,
         "reqsForTier5": 0
     },
-    "paymentConfig": {
+    "directPaymentConfig": {
         "fulfillmentFee": "250000000000000000",
         "baseFee": "500000000000000000"
     },

@@ -73,12 +73,12 @@ contract VRFCoordinator is
 
     PrepaymentInterface Prepayment;
 
-    struct PaymentConfig {
+    struct DirectPaymentConfig {
         uint256 fulfillmentFee;
         uint256 baseFee;
     }
 
-    PaymentConfig s_paymentConfig;
+    DirectPaymentConfig s_directPaymentConfig;
 
     error InvalidKeyHash(bytes32 keyHash);
     error InvalidConsumer(uint64 accId, address consumer);
@@ -119,7 +119,7 @@ contract VRFCoordinator is
         uint32 gasAfterPaymentCalculation,
         FeeConfig feeConfig
     );
-    event PaymentConfigSet(uint256 fulfillmentFee, uint256 baseFee);
+    event DirectPaymentConfigSet(uint256 fulfillmentFee, uint256 baseFee);
 
     modifier nonReentrant() {
         if (s_config.reentrancyLock) {
@@ -266,17 +266,17 @@ contract VRFCoordinator is
         return (s_config.minimumRequestConfirmations, s_config.maxGasLimit, s_provingKeyHashes);
     }
 
-    function setPaymentConfig(PaymentConfig memory paymentConfig) public onlyOwner {
-        s_paymentConfig = paymentConfig;
-        emit PaymentConfigSet(paymentConfig.fulfillmentFee, paymentConfig.baseFee);
+    function setDirectPaymentConfig(DirectPaymentConfig memory directPaymentConfig) public onlyOwner {
+        s_directPaymentConfig = directPaymentConfig;
+        emit DirectPaymentConfigSet(directPaymentConfig.fulfillmentFee, directPaymentConfig.baseFee);
     }
 
-    function getPaymentConfig() external view returns (uint256, uint256) {
-        return (s_paymentConfig.fulfillmentFee, s_paymentConfig.baseFee);
+    function getDirectPaymentConfig() external view returns (uint256, uint256) {
+        return (s_directPaymentConfig.fulfillmentFee, s_directPaymentConfig.baseFee);
     }
 
     function estimateDirectPaymentFee() public view returns (uint256) {
-        return s_paymentConfig.fulfillmentFee + s_paymentConfig.baseFee;
+        return s_directPaymentConfig.fulfillmentFee + s_directPaymentConfig.baseFee;
     }
 
     /**

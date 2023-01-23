@@ -1,6 +1,7 @@
 import { HardhatRuntimeEnvironment } from 'hardhat/types'
 import { DeployFunction } from 'hardhat-deploy/types'
 import { loadJson } from '../scripts/v0.1/utils'
+import { IVrfConfig } from '../scripts/v0.1/types'
 
 async function localhostDeployment(args) {
   const { deploy, vrfCoordinator, prepayment, consumer } = args
@@ -38,7 +39,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   console.log('2-VRFCoordinator.ts')
 
-  const vrfConfig = await loadJson(`config/${network.name}/vrf.json`)
+  const vrfConfig: IVrfConfig = await loadJson(`config/${network.name}/vrf.json`)
 
   const prepayment = await ethers.getContract('Prepayment')
 
@@ -75,7 +76,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   ).wait()
 
   // Configure payment for direct VRF request
-  await (await vrfCoordinator.setPaymentConfig(vrfConfig.paymentConfig)).wait()
+  await (await vrfCoordinator.setDirectPaymentConfig(vrfConfig.directPaymentConfig)).wait()
 
   // Add VRFCoordinator to Prepayment
   const prepaymentDeployerSigner = await ethers.getContractAt(
