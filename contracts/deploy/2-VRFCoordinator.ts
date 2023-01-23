@@ -3,35 +3,6 @@ import { DeployFunction } from 'hardhat-deploy/types'
 import { loadJson } from '../scripts/v0.1/utils'
 import { IVrfConfig } from '../scripts/v0.1/types'
 
-async function localhostDeployment(args) {
-  const { deploy, vrfCoordinator, prepayment, consumer } = args
-  const vrfConsumerMockDeployment = await deploy('VRFConsumerMock', {
-    args: [vrfCoordinator.address],
-    from: consumer,
-    log: true
-  })
-
-  const prepaymentConsumerSigner = await ethers.getContractAt(
-    'Prepayment',
-    prepayment.address,
-    consumer
-  )
-
-  // Create account
-  const accountReceipt = await (await prepaymentConsumerSigner.createAccount()).wait()
-  const { accId } = accountReceipt.events[0].args
-
-  // Deposit 1 KLAY
-  await (
-    await prepaymentConsumerSigner.deposit(accId, { value: ethers.utils.parseUnits('1', 'ether') })
-  ).wait()
-
-  // Add consumer to account
-  await (
-    await prepaymentConsumerSigner.addConsumer(accId, vrfConsumerMockDeployment.address)
-  ).wait()
-}
-
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployments, getNamedAccounts, network } = hre
   const { deploy } = deployments
@@ -89,6 +60,35 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   if (['localhost', 'hardhat'].includes(network.name)) {
     await localhostDeployment({ deploy, vrfCoordinator, consumer, prepayment })
   }
+}
+
+async function localhostDeployment(args) {
+  const { deploy, vrfCoordinator, prepayment, consumer } = args
+  const vrfConsumerMockDeployment = await deploy('VRFConsumerMock', {
+    args: [vrfCoordinator.address],
+    from: consumer,
+    log: true
+  })
+
+  const prepaymentConsumerSigner = await ethers.getContractAt(
+    'Prepayment',
+    prepayment.address,
+    consumer
+  )
+
+  // Create account
+  const accountReceipt = await (await prepaymentConsumerSigner.createAccount()).wait()
+  const { accId } = accountReceipt.events[0].args
+
+  // Deposit 1 KLAY
+  await (
+    await prepaymentConsumerSigner.deposit(accId, { value: ethers.utils.parseUnits('1', 'ether') })
+  ).wait()
+
+  // Add consumer to account
+  await (
+    await prepaymentConsumerSigner.addConsumer(accId, vrfConsumerMockDeployment.address)
+  ).wait()
 }
 
 export default func
