@@ -11,9 +11,6 @@ jobs:
       - uses: actions/setup-node@v3
         with:
           node-version: "18.12"
-          registry-url: "https://npm.pkg.github.com"
-          scope: "@bisonai-cic"
-          always-auth: true
       - run: yarn
         working-directory: ./contracts
       - run: yarn solhint
