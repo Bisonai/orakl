@@ -2,14 +2,20 @@
 
 ## Installation
 
-```
+```shell
 yarn install
 ```
 
 ## Compilation
 
-```
+```shell
 yarn compile
+```
+
+## Package
+
+```shell
+yarn build
 ```
 
 ## Deployment

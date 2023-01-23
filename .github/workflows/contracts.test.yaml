@@ -11,8 +11,15 @@ jobs:
       - uses: actions/setup-node@v3
         with:
           node-version: "18.12"
-          registry-url: "https://npm.pkg.github.com"
       - run: yarn
         working-directory: ./contracts
+      - run: yarn solhint
+        working-directory: ./contracts
+      - run: yarn eslint
+        working-directory: ./contracts
       - run: npx hardhat test
+        working-directory: ./contracts
+      - run: yarn compile
+        working-directory: ./contracts
+      - run: yarn build
         working-directory: ./contracts
