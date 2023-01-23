@@ -78,14 +78,28 @@ Parameter `--chain` corresponds to the name network to which VRF keys will be as
 
 ```shell
 yarn cli vrf insert \
-    --chain baobab \
+    --chain ${chain} \
     --pk [PK] \
     --sk [SK] \
     --pk_x [PK_X] \
     --pk_y [PK_Y]
 ```
 
-3. Launch `listener`, `worker` and `reporter`
+3. Setup listener
+
+VRF node has to be able to catch on-chain requests.
+You will need to know address of VRF coordinator (`vrfCoordinatorAddress`).
+Emitted event is called `RandomWordsRequested`.
+
+```
+yarn cli listener insert \
+    --service VRF \
+    --chain ${chain} \
+    --address ${vrfCoordinatorAddress} \
+    --eventName RandomWordsRequested
+```
+
+4. Launch `listener`, `worker` and `reporter`
 
 TODO update with Docker compose launch.
 
