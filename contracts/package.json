@@ -1,9 +1,10 @@
 {
   "name": "@bisonai-cic/icn-contracts",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "description": "",
   "files": [
-    "dist"
+    "./dist",
+    "./src"
   ],
   "engines": {
     "node": ">=18.12"
@@ -15,11 +16,10 @@
   "license": "UNLICENSED",
   "scripts": {
     "prepare": "cd .. && husky install contracts/.husky",
-    "copy-sol": "cp -r ./src/* ./dist/",
     "clean": "npx hardhat clean && rm -rf dist",
     "compile": "npx hardhat compile",
     "test": "yarn compile && npx hardhat test",
-    "build": "tsc && yarn copy-sol",
+    "build": "tsc",
     "pub": "yarn publish --access public",
     "solhint": "./node_modules/.bin/solhint -f table src/**/*.sol",
     "prettier:solidity": "./node_modules/.bin/prettier --write src/**/*.sol",
