@@ -47,8 +47,7 @@ const config: HardhatUserConfig = {
   },
   namedAccounts: {
     deployer: {
-      default: 0,
-      baobab: '0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266'
+      default: 0
     },
     consumer: {
       default: 1,
