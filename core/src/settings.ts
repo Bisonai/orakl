@@ -38,9 +38,7 @@ export const LISTENER_DELAY = Number(
   })
 )
 
-// FIXME the contents of directories to SQLite or redis
-export const ADAPTER_ROOT_DIR = './adapter/'
-export const AGGREGATOR_ROOT_DIR = './aggregator/'
+// FIXME Move to Redis
 export const LISTENER_ROOT_DIR = './tmp/listener/'
 
 export const localAggregatorFn = aggregatorMapping[LOCAL_AGGREGATOR?.toUpperCase() || 'MEAN']
