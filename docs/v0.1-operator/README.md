@@ -52,13 +52,13 @@ yarn cli kv insert --chain ${CHAIN} --key LISTENER_DELAY    --value 500
 To provide VRF service, one must generate VRF private and public keys.
 All keys can be generated with the command below
 
-```
+```shell
 yarn keygen
 ```
 
 The output format of command is shown below
 
-```
+```shell
 SK=
 PK=
 PK_X=

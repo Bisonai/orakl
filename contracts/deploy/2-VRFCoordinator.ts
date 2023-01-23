@@ -1,6 +1,35 @@
 import { HardhatRuntimeEnvironment } from 'hardhat/types'
 import { DeployFunction } from 'hardhat-deploy/types'
-const vrfConfig = require('../config/vrf.json')
+import { loadJson } from '../scripts/v0.1/utils'
+
+async function localhostDeployment(args) {
+  const { deploy, vrfCoordinator, prepayment, consumer } = args
+  const vrfConsumerMockDeployment = await deploy('VRFConsumerMock', {
+    args: [vrfCoordinator.address],
+    from: consumer,
+    log: true
+  })
+
+  const prepaymentConsumerSigner = await ethers.getContractAt(
+    'Prepayment',
+    prepayment.address,
+    consumer
+  )
+
+  // Create account
+  const accountReceipt = await (await prepaymentConsumerSigner.createAccount()).wait()
+  const { accId } = accountReceipt.events[0].args
+
+  // Deposit 1 KLAY
+  await (
+    await prepaymentConsumerSigner.deposit(accId, { value: ethers.utils.parseUnits('1', 'ether') })
+  ).wait()
+
+  // Add consumer to account
+  await (
+    await prepaymentConsumerSigner.addConsumer(accId, vrfConsumerMockDeployment.address)
+  ).wait()
+}
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployments, getNamedAccounts, network } = hre
@@ -9,10 +38,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   console.log('2-VRFCoordinator.ts')
 
-  if (network.name == 'baobab') {
-    console.log('Skipping')
-    return
-  }
+  const vrfConfig = await loadJson(`config/${network.name}/vrf.json`)
 
   const prepayment = await ethers.getContract('Prepayment')
 
@@ -39,37 +65,17 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   // Configure VRF coordinator
   console.log('Configure VRF coordinator')
-  await vrfCoordinator.setConfig(
-    vrfConfig.minimumRequestConfirmations,
-    vrfConfig.maxGasLimit,
-    vrfConfig.gasAfterPaymentCalculation,
-    vrfConfig.feeConfig
-  )
+  await (
+    await vrfCoordinator.setConfig(
+      vrfConfig.minimumRequestConfirmations,
+      vrfConfig.maxGasLimit,
+      vrfConfig.gasAfterPaymentCalculation,
+      vrfConfig.feeConfig
+    )
+  ).wait()
 
-  await vrfCoordinator.setPaymentConfig(vrfConfig.paymentConfig)
-
-  // TODO deploy only for tests
-  const vrfConsumerMockDeployment = await deploy('VRFConsumerMock', {
-    args: [vrfCoordinator.address],
-    from: consumer,
-    log: true
-  })
-
-  const prepaymentConsumerSigner = await ethers.getContractAt(
-    'Prepayment',
-    prepayment.address,
-    consumer
-  )
-
-  // Create account
-  const accountReceipt = await (await prepaymentConsumerSigner.createAccount()).wait()
-  const { accId } = accountReceipt.events[0].args
-
-  // Deposit 1 KLAY
-  await prepaymentConsumerSigner.deposit(accId, { value: ethers.utils.parseUnits('1', 'ether') })
-
-  // Add consumer to account
-  await prepaymentConsumerSigner.addConsumer(accId, vrfConsumerMockDeployment.address)
+  // Configure payment for direct VRF request
+  await (await vrfCoordinator.setPaymentConfig(vrfConfig.paymentConfig)).wait()
 
   // Add VRFCoordinator to Prepayment
   const prepaymentDeployerSigner = await ethers.getContractAt(
@@ -77,8 +83,11 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     prepayment.address,
     deployer
   )
+  await (await prepaymentDeployerSigner.addCoordinator(vrfCoordinatorDeployment.address)).wait()
 
-  await prepaymentDeployerSigner.addCoordinator(vrfCoordinatorDeployment.address)
+  if (['localhost', 'hardhat'].includes(network.name)) {
+    await localhostDeployment({ deploy, vrfCoordinator, consumer, prepayment })
+  }
 }
 
 export default func
