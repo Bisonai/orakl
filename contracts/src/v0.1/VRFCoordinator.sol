@@ -266,9 +266,14 @@ contract VRFCoordinator is
         return (s_config.minimumRequestConfirmations, s_config.maxGasLimit, s_provingKeyHashes);
     }
 
-    function setDirectPaymentConfig(DirectPaymentConfig memory directPaymentConfig) public onlyOwner {
+    function setDirectPaymentConfig(
+        DirectPaymentConfig memory directPaymentConfig
+    ) public onlyOwner {
         s_directPaymentConfig = directPaymentConfig;
-        emit DirectPaymentConfigSet(directPaymentConfig.fulfillmentFee, directPaymentConfig.baseFee);
+        emit DirectPaymentConfigSet(
+            directPaymentConfig.fulfillmentFee,
+            directPaymentConfig.baseFee
+        );
     }
 
     function getDirectPaymentConfig() external view returns (uint256, uint256) {
