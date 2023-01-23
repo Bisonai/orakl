@@ -1,6 +1,7 @@
 # v0.1 for operators
 
 ```shell
+nvm use v18.12.1
 yarn add @bisonai-cic/icn-core
 ```
 
@@ -22,27 +23,27 @@ Every settings is tied to a chain, therefore we recommend to set chain name to e
 In the example below, we use `baobab` which is Klaytn's test net.
 
 ```shell
-export CHAIN=baobab
+export chain=baobab
 ```
 
 ```shell
 # General
-yarn cli kv insert --chain ${CHAIN} --key PROVIDER_URL      --value https://api.baobab.klaytn.net:8651
-yarn cli kv insert --chain ${CHAIN} --key HEALTH_CHECK_PORT --value 8888
+yarn cli kv insert --chain ${chain} --key PROVIDER_URL      --value https://api.baobab.klaytn.net:8651
+yarn cli kv insert --chain ${chain} --key HEALTH_CHECK_PORT --value 8888
 
 # TODO update with docker compose settings
-yarn cli kv insert --chain ${CHAIN} --key REDIS_HOST        --value localhost
-yarn cli kv insert --chain ${CHAIN} --key REDIS_PORT        --value 6379
+yarn cli kv insert --chain ${chain} --key REDIS_HOST        --value localhost
+yarn cli kv insert --chain ${chain} --key REDIS_PORT        --value 6379
 
 # Reporter wallet
-yarn cli kv insert --chain ${CHAIN} --key PRIVATE_KEY       --value 0x...
-yarn cli kv insert --chain ${CHAIN} --key PUBLIC_KEY        --value 0x...
+yarn cli kv insert --chain ${chain} --key PRIVATE_KEY       --value 0x...
+yarn cli kv insert --chain ${chain} --key PUBLIC_KEY        --value 0x...
 
 # Aggregator
-yarn cli kv insert --chain ${CHAIN} --key LOCAL_AGGREGATOR  --value MEDIAN
+yarn cli kv insert --chain ${chain} --key LOCAL_AGGREGATOR  --value MEDIAN
 
 # Listener
-yarn cli kv insert --chain ${CHAIN} --key LISTENER_DELAY    --value 500
+yarn cli kv insert --chain ${chain} --key LISTENER_DELAY    --value 500
 ```
 
 ## Verifiable Random Function (VRF)
