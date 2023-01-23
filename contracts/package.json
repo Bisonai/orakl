@@ -1,9 +1,10 @@
 {
   "name": "@bisonai-cic/icn-contracts",
-  "version": "0.2.0",
+  "version": "0.3.2",
   "description": "",
   "files": [
-    "dist"
+    "./dist",
+    "./src"
   ],
   "engines": {
     "node": ">=18.12"

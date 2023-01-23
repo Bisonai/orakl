@@ -47,8 +47,7 @@ const config: HardhatUserConfig = {
   },
   namedAccounts: {
     deployer: {
-      default: 0,
-      baobab: '0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266'
+      default: 0
     },
     consumer: {
       default: 1,
@@ -65,6 +64,10 @@ const config: HardhatUserConfig = {
     feedOracle2: {
       default: 4,
       baobab: '0x15d34AAf54267DB7D7c367839AAf71A00a2C6A65'
+    },
+    vrfOracle0: {
+      default: 18,
+      baobab: '0xdd2fd4581271e230360230f9337d5c0430bf44c0'
     }
   }
 }

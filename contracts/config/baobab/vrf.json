@@ -13,9 +13,9 @@
         "reqsForTier4": 0,
         "reqsForTier5": 0
     },
-    "paymentConfig": {
-        "fulfillmentFee": "250000000000000000",
-        "baseFee": "500000000000000000"
+    "directPaymentConfig": {
+        "fulfillmentFee": "0",
+        "baseFee": "0"
     },
     "oracle": [
         {

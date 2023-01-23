@@ -14,7 +14,7 @@ import { IAggregator } from '../..//types'
 import { CliError, CliErrorCode } from './error'
 
 export function aggregatorSub(db) {
-  // aggregator list
+  // aggregator list [--active] [--chain [chain]]
   // aggregator insert --file-path [file-path] --adapter [adapter] --chain [chain] [--dryrun]
   // aggregator remove --id [id]                                                   [--dryrun]
 

@@ -2,7 +2,6 @@ import { ethers } from 'hardhat'
 import hre from 'hardhat'
 
 async function main() {
-  const vrfCoordinator = await ethers.getContract('VRFCoordinator')
   const vrfConsumerMock = await ethers.getContract('VRFConsumerMock')
   const { consumer } = await hre.getNamedAccounts()
 

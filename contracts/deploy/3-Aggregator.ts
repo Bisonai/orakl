@@ -7,7 +7,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deploy } = deployments
   const { deployer, consumer, feedOracle0, feedOracle1, feedOracle2 } = await getNamedAccounts()
 
-  console.log('3-DataFeed.ts')
+  console.log('3-Aggregator.ts')
 
   // Aggregator
   const config = dataFeedConfig['KLAY/USD']
@@ -29,7 +29,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   // Charge KLAY to Aggregator (usedd for paying oracles)
   const value = ethers.utils.parseEther('1.0')
-  await aggregator.deposit({ value })
+  await (await aggregator.deposit({ value })).wait()
 
   // Setup oracles that will contribute to Aggregator
   const removed = []
@@ -37,14 +37,16 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   // FIXME Most likely wrong. Learn more about addedAdmins.
   const addedAdmins = [feedOracle0]
 
-  await aggregator.changeOracles(
-    removed,
-    added,
-    addedAdmins,
-    config.minSubmissionCount,
-    config.maxSubmissionCount,
-    config.restartDelay
-  )
+  await (
+    await aggregator.changeOracles(
+      removed,
+      added,
+      addedAdmins,
+      config.minSubmissionCount,
+      config.maxSubmissionCount,
+      config.restartDelay
+    )
+  ).wait()
 
   // Aggregator Proxy
   const aggregatorProxyDeployment = await deploy('AggregatorProxy', {
@@ -52,6 +54,14 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     from: deployer,
     log: true
   })
+
+  if (['localhost', 'hardhat'].includes(network.name)) {
+    await localhostDeployment({ deploy, consumer, aggregatorProxyDeployment })
+  }
+}
+
+async function localhostDeployment(args) {
+  const { deploy, consumer, aggregatorProxyDeployment } = args
 
   // Data feed consumer
   await deploy('DataFeedConsumerMock', {
@@ -62,5 +72,5 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 }
 
 export default func
-func.id = 'deploy-data-feed'
-func.tags = ['data-feed']
+func.id = 'deploy-aggregator'
+func.tags = ['aggregator']

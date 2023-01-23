@@ -12,7 +12,7 @@ import { printObject } from '../../utils'
 import { ReadFile } from './types'
 
 export function adapterSub(db) {
-  // adapter list
+  // adapter list [--active] [--chain [chain]]
   // adapter insert --file-path [file-path] --chain [chain] [--dryrun]
   // adapter remove --id [id]                               [--dryrun]
 

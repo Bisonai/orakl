@@ -8,11 +8,6 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   console.log('0-Prepayment.ts')
 
-  if (network.name == 'baobab') {
-    console.log('Skipping')
-    return
-  }
-
   const prepaymentDeployment = await deploy('Prepayment', {
     from: deployer,
     log: true
