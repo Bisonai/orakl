@@ -1,4 +1,5 @@
 name: "contracts: test"
+on:
   push:
     paths:
       - "contracts/**"
