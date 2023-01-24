@@ -209,10 +209,11 @@ VALUES
 
 CREATE TABLE Aggregator (
   id            INTEGER   PRIMARY KEY,
-  aggregatorId  CHAR(66)  NOT NULL UNIQUE,
+  aggregatorId  CHAR(66)  NOT NULL,
   chainId       INTEGER   NOT NULL,
   adapterId     INTEGER   NOT NULL,
   data          TEXT      NOT NULL,
+  UNIQUE(aggregatorId, chainId) ON CONFLICT FAIL,
   CONSTRAINT Aggregator_fk_chainId FOREIGN KEY (chainId)
     REFERENCES Chain (id) ON UPDATE CASCADE ON DELETE CASCADE,
   CONSTRAINT Aggregator_fk_adapterId FOREIGN KEY (adapterId)

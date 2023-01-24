@@ -29,7 +29,7 @@
     "start:reporter:any_api": "yarn start:reporter --reporter ANY_API",
     "start:reporter:aggregator": "yarn start:reporter --reporter AGGREGATOR",
     "keygen": "node --no-warnings --experimental-specifier-resolution=node --experimental-json-modules dist/cli/vrf-keygen.js",
-    "price-feed": "node --no-warnings --experimental-specifier-resolution=node --experimental-json-modules dist/cli/price-feed.js",
+    "data-feed": "node --no-warnings --experimental-specifier-resolution=node --experimental-json-modules dist/cli/data-feed.js",
     "adapter-hash": "node --no-warnings --experimental-specifier-resolution=node --experimental-json-modules dist/cli/generate-adapter-hash.js",
     "aggregator-hash": "node --no-warnings --experimental-specifier-resolution=node --experimental-json-modules dist/cli/generate-aggregator-hash.js",
     "flush": "node --no-warnings --experimental-specifier-resolution=node --experimental-json-modules dist/cli/flush-queues.js",

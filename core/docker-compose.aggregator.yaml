@@ -24,16 +24,23 @@ services:
       - "host.docker.internal:host-gateway"
     environment:
       - NODE_ENV=production
+      - ORAKL_DIR=/app/db
+      - CHAIN
+      - HEALTH_CHECK_PORT
     healthcheck:
-      &common-health-check
+      &common-healthcheck
       test: "curl --fail http://localhost:${HEALTH_CHECK_PORT} || exit 1"
       interval: 5s
       timeout: 30s
       retries: 3
       start_period: 10s
     depends_on:
-      - redis
+      &common-depends_on
+      redis:
+        condition: service_healthy
     restart: unless-stopped
+    volumes:
+      - ${HOST_SETTINGS_DB_DIR}:/app/db
 
   worker-aggregator:
     image: core-icn
@@ -42,11 +49,16 @@ services:
     entrypoint: ["yarn", "start:worker:aggregator"]
     environment:
       - NODE_ENV=production
+      - ORAKL_DIR=/app/db
+      - CHAIN
+      - HEALTH_CHECK_PORT
     healthcheck:
-      <<: *common-health-check
+      <<: *common-healthcheck
     depends_on:
-      - redis
+      <<: *common-depends_on
     restart: unless-stopped
+    volumes:
+      - ${HOST_SETTINGS_DB_DIR}:/app/db
 
   reporter-aggregator:
     image: core-icn
@@ -56,9 +68,14 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
     environment:
-      - NODE_ENV="production"
+      - NODE_ENV=production
+      - ORAKL_DIR=/app/db
+      - CHAIN
+      - HEALTH_CHECK_PORT
     healthcheck:
-      <<: *common-health-check
+      <<: *common-healthcheck
     depends_on:
-      - redis
+      <<: *common-depends_on
     restart: unless-stopped
+    volumes:
+      - ${HOST_SETTINGS_DB_DIR}:/app/db

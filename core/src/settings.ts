@@ -1,3 +1,5 @@
+import path from 'node:path'
+import os from 'node:os'
 import sqlite from 'sqlite3'
 import { open } from 'sqlite'
 import { IListenerConfig, IVrfConfig } from './types'
@@ -8,9 +10,11 @@ import * as dotenv from 'dotenv'
 dotenv.config()
 
 export const NODE_ENV = process.env.NODE_ENV
+export const HEALTH_CHECK_PORT = process.env.HEALTH_CHECK_PORT
 export const CHAIN = process.env.CHAIN || 'localhost'
 
-export const SETTINGS_DB_FILE = './settings.sqlite' // FIXME
+export const ORAKL_DIR = process.env.ORAKL_DIR || path.join(os.homedir(), '.orakl')
+export const SETTINGS_DB_FILE = path.join(ORAKL_DIR, 'settings.sqlite')
 export const DB = await openDb()
 
 export const PROVIDER_URL = await loadKeyValuePair({ db: DB, key: 'PROVIDER_URL', chain: CHAIN })
@@ -23,11 +27,6 @@ export const PUBLIC_KEY = await loadKeyValuePair({ db: DB, key: 'PUBLIC_KEY', ch
 export const LOCAL_AGGREGATOR = await loadKeyValuePair({
   db: DB,
   key: 'LOCAL_AGGREGATOR',
-  chain: CHAIN
-})
-export const HEALTH_CHECK_PORT = await loadKeyValuePair({
-  db: DB,
-  key: 'HEALTH_CHECK_PORT',
   chain: CHAIN
 })
 export const LISTENER_DELAY = Number(

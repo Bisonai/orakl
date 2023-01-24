@@ -7,8 +7,9 @@
      * [VRF](#vrf)
      * [Adapter](#adapter)
      * [Aggregator](#aggregator)
-* [Generate Adapter Hash](#generate-adapter-hash)
-* [Generate Aggregator Hash](#generate-aggregator-hash)
+* [Generate adapter hash](#generate-adapter-hash)
+* [Generate aggregator hash](#generate-aggregator-hash)
+* [Fetch data from adapter](#fetch-data-with-adapter)
 
 ## Prerequisities
 
@@ -169,15 +170,61 @@ yarn cli vrf remove --id 2
 
 ### Adapter
 
-* Add new adapter
-* Activate adapter
-* Deactivate adapter
+List all adapters
+
+```shell
+yarn cli adapter list
+```
+
+List all adapters registered for `baobab` chain
+
+```shell
+yarn cli adapter list --chain baobab
+```
+
+Add new adaper
+
+```shell
+yarn cli adapter insert --file-path [adapter-file] --chain baobab
+```
+
+Remove adapter
+
+```shell
+yarn cli adapter remove --id [id]
+```
+
+* Activate adapter TODO
+* Deactivate adapter TODO
 
 ### Aggregator
 
-* Add new aggregator
-* Activate aggregator
-* Deactivate aggregator
+List all aggregators
+
+```shell
+yarn cli aggregator list
+```
+
+List all aggregators registered for `baobab` chain
+
+```shell
+yarn cli aggregator list --chain baobab
+```
+
+Add new aggregator
+
+```shell
+yarn cli aggregator insert --file-path [aggregator-file] --adapter [adapter-id] --chain baobab
+```
+
+Remove aggregator
+
+```shell
+yarn cli aggregator remove --id [id]
+```
+
+* Activate aggregator TODO
+* Deactivate aggregator TODO
 
 
 ## Generate Adapter Hash
@@ -249,7 +296,7 @@ yarn aggregator-hash [--verify] [file ...]
 Verify all aggregators from `AGGREGATOR_ROOT_DIR`
 
 ```
-yarn adapter-hash --verify
+yarn aggregator-hash --verify
 ```
 
 Generate aggregator with updated hash for KLAY/USD
@@ -269,4 +316,13 @@ yarn aggregator-hash aggregator/klay_usd.aggregator.json
   absoluteThreshold: 0.1,
   adapterId: '0x00d5130063bee77302b133b5c6a0d6aede467a599d251aec842d24abeb5866a5'
 }
+```
+
+## Fetch data with adapter
+
+Predefined registered adapters can be tested using `yarn data-feed` command.
+To see a list of all adapters run `yarn adapter list`.
+
+```shell
+yarn data-feed --adapterId [adapter-id]
 ```

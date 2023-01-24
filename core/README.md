@@ -2,8 +2,6 @@
 
 ## Local development
 
-Launch redis.
-
 On MacOS install with `brew install redis` and launch with `brew services start redis`.
 
 ## Build & Run
