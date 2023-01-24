@@ -25,14 +25,16 @@ services:
     environment:
       - NODE_ENV=production
     healthcheck:
-      &common-health-check
+      &common-healthcheck
       test: "curl --fail http://localhost:${HEALTH_CHECK_PORT} || exit 1"
       interval: 5s
       timeout: 30s
       retries: 3
       start_period: 10s
     depends_on:
-      - redis
+      &common-depends_on
+      redis:
+        condition: service_healthy
     restart: unless-stopped
 
   worker-aggregator:
@@ -43,9 +45,9 @@ services:
     environment:
       - NODE_ENV=production
     healthcheck:
-      <<: *common-health-check
+      <<: *common-healthcheck
     depends_on:
-      - redis
+      <<: *common-depends_on
     restart: unless-stopped
 
   reporter-aggregator:
@@ -58,7 +60,7 @@ services:
     environment:
       - NODE_ENV="production"
     healthcheck:
-      <<: *common-health-check
+      <<: *common-healthcheck
     depends_on:
-      - redis
+      <<: *common-depends_on
     restart: unless-stopped
