@@ -23,4 +23,5 @@ jobs:
       - run: yarn test
         working-directory: ./core
         env:
+          ORAKL_DIR: './'
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
