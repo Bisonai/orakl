@@ -18,11 +18,11 @@ COPY yarn.lock .
 
 COPY tsconfig.json .
 
-COPY config config
-
 COPY adapter adapter
 
 COPY aggregator aggregator
+
+COPY migrations migrations
 
 COPY src src
 
