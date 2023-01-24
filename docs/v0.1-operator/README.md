@@ -22,6 +22,12 @@ echo "NODE_ENV=production" >> .env
 echo "CHAIN=localhost" >> .env
 ```
 
+## Docker
+
+```shell
+docker compose -f docker-compose.build.yaml build
+```
+
 ## Prerequisities
 
 All settings are stored in a local database.
