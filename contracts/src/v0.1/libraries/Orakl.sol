@@ -7,7 +7,7 @@ import {Buffer} from './Buffer.sol';
 import {CBOR} from './CBOR.sol';
 
 
-library ICN {
+library Orakl {
   uint256 internal constant defaultBufferSize = 256;
 
   using CBOR for Buffer.buffer;
@@ -15,8 +15,8 @@ library ICN {
   // structure for storing requests done off-chain
   struct Request {
     bytes32 id;
-    address callbackAddress;
-    bytes4 callbackFunctionId;
+    address callbackAddr;
+    bytes4 callbackFunc;
     uint256 nonce;
     Buffer.buffer buf;
   }
@@ -35,11 +35,11 @@ library ICN {
     bytes32 _jobId,
     address _callbackAddr,
     bytes4 _callbackFunc
-  ) internal pure returns (ICN.Request memory) {
+  ) internal pure returns (Request memory) {
     Buffer.init(_request.buf, defaultBufferSize);
     _request.id = _jobId;
-    _request.callbackAddress = _callbackAddr;
-    _request.callbackFunctionId = _callbackFunc;
+    _request.callbackAddr = _callbackAddr;
+    _request.callbackFunc = _callbackFunc;
     return _request;
   }
 
