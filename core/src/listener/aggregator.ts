@@ -27,7 +27,7 @@ function processAggregatorEvent(iface: ethers.utils.Interface, queue: Queue) {
       }
       console.debug('processAggregatorEvent:data', data)
 
-      await queue.add('aggregator', data)
+      await queue.add('aggregator', data, { removeOnComplete: true })
     }
   }
 

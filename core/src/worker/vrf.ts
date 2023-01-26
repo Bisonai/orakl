@@ -53,7 +53,12 @@ async function vrfJob(queueName) {
       }
       console.debug('vrfJob:outData', outData)
 
-      await queue.add('vrf', outData)
+      await queue.add('vrf', outData, {
+        jobId: outData.requestId,
+        removeOnComplete: {
+          age: 1800 // 30 min
+        }
+      })
     } catch (e) {
       console.error(e)
     }
