@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.16;
 
-// https://github.com/smartcontractkit/chainlink/blob/develop/contracts/src/v0.7/Operator.sol
-
 // TODO direct payment config separation
 
 import "@openzeppelin/contracts/access/Ownable.sol";
@@ -100,8 +98,11 @@ contract RequestResponseCoordinator is
     event Requested(
         uint256 indexed requestId,
         bytes32 jobId,
-        uint64 nonce,
-        address callbackAddr,
+        uint64 indexed accId,
+        uint16 minimumRequestConfirmations,
+        uint32 callbackGasLimit,
+        address indexed sender,
+        /* bool isDirectPayment, */
         bytes data
     );
     event Fulfilled(uint256 indexed requestId, uint256 response, uint256 payment, bool success);
@@ -271,7 +272,17 @@ contract RequestResponseCoordinator is
 
         s_requestOwner[requestId] = msg.sender;
 
-        emit Requested(requestId, req.id, nonce, msg.sender, req.buf.buf);
+        /* bool isDirectPayment = false; */
+        emit Requested(
+            requestId,
+            req.id,
+            accId,
+            requestConfirmations,
+            callbackGasLimit,
+            msg.sender,
+            /* isDirectPayment, */
+            req.buf.buf
+        );
 
         return requestId;
     }

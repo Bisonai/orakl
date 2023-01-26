@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.16;
 
+import 'hardhat/console.sol';
 import "../RequestResponseConsumerBase.sol";
 import '../interfaces/RequestResponseCoordinatorInterface.sol';
 
@@ -34,10 +35,14 @@ contract RequestResponseConsumerMock is RequestResponseConsumerBase {
       uint32 callbackGasLimit
     )
         public
+        onlyOwner
         returns (uint256 requestId)
     {
         bytes32 jobId = keccak256(abi.encodePacked("any-api-int256"));
+        console.log('in2');
+        // FIXME!!
         Orakl.Request memory req = COORDINATOR.buildRequest(jobId);
+        console.log('in3');
         req.add("get", "https://min-api.cryptocompare.com/data/pricemultifull?fsyms=ETH&tsyms=USD");
         req.add("path", "RAW,ETH,USD,PRICE");
         requestId = COORDINATOR.sendRequest(
@@ -48,7 +53,7 @@ contract RequestResponseConsumerMock is RequestResponseConsumerBase {
         );
     }
 
-    function cancelRequest(uint256 requestId) public {
+    function cancelRequest(uint256 requestId) public onlyOwner {
         COORDINATOR.cancelRequest(requestId);
     }
 
