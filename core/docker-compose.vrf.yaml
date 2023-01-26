@@ -24,6 +24,10 @@ services:
       - "host.docker.internal:host-gateway"
     environment:
       - NODE_ENV=production
+      - ORAKL_DIR=/app/db
+      - CHAIN
+      - HEALTH_CHECK_PORT
+      - SLACK_WEBHOOK_URL
     healthcheck:
       &common-healthcheck
       test: "curl --fail http://localhost:${HEALTH_CHECK_PORT} || exit 1"
@@ -36,6 +40,8 @@ services:
       redis:
         condition: service_healthy
     restart: unless-stopped
+    volumes:
+      - ${HOST_SETTINGS_DB_DIR}:/app/db    
 
   worker-vrf:
     image: core-icn
@@ -44,11 +50,17 @@ services:
     entrypoint: ["yarn", "start:worker:vrf"]
     environment:
       - NODE_ENV=production
+      - ORAKL_DIR=/app/db
+      - CHAIN
+      - HEALTH_CHECK_PORT
+      - SLACK_WEBHOOK_URL
     healthcheck:
       <<: *common-healthcheck
     depends_on:
       <<: *common-depends_on
     restart: unless-stopped
+    volumes:
+      - ${HOST_SETTINGS_DB_DIR}:/app/db    
 
   reporter-vrf:
     image: core-icn
@@ -59,8 +71,14 @@ services:
     entrypoint: ["yarn", "start:reporter:vrf"]
     environment:
       - NODE_ENV=production
+      - ORAKL_DIR=/app/db
+      - CHAIN
+      - HEALTH_CHECK_PORT
+      - SLACK_WEBHOOK_URL
     healthcheck:
       <<: *common-healthcheck
     depends_on:
       <<: *common-depends_on
     restart: unless-stopped
+    volumes:
+      - ${HOST_SETTINGS_DB_DIR}:/app/db    

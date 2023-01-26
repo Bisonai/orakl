@@ -27,6 +27,7 @@ services:
       - ORAKL_DIR=/app/db
       - CHAIN
       - HEALTH_CHECK_PORT
+      - SLACK_WEBHOOK_URL
     healthcheck:
       &common-healthcheck
       test: "curl --fail http://localhost:${HEALTH_CHECK_PORT} || exit 1"
@@ -52,6 +53,7 @@ services:
       - ORAKL_DIR=/app/db
       - CHAIN
       - HEALTH_CHECK_PORT
+      - SLACK_WEBHOOK_URL      
     healthcheck:
       <<: *common-healthcheck
     depends_on:
@@ -72,6 +74,7 @@ services:
       - ORAKL_DIR=/app/db
       - CHAIN
       - HEALTH_CHECK_PORT
+      - SLACK_WEBHOOK_URL      
     healthcheck:
       <<: *common-healthcheck
     depends_on:
