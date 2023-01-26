@@ -31,7 +31,7 @@ function processVrfEvent(iface: ethers.utils.Interface, queue: Queue) {
     }
     console.debug('processVrfEvent:data', data)
 
-    await queue.add('vrf', data)
+    await queue.add('vrf', data, { jobId: data.requestId })
   }
 
   return wrapper

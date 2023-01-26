@@ -53,7 +53,7 @@ async function vrfJob(queueName) {
       }
       console.debug('vrfJob:outData', outData)
 
-      await queue.add('vrf', outData)
+      await queue.add('vrf', outData, { jobId: outData.requestId })
     } catch (e) {
       console.error(e)
     }
