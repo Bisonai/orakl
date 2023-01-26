@@ -11,11 +11,11 @@ export function vrfConfig() {
   const maxGasLimit = 1_000_000
   const gasAfterPaymentCalculation = 1_000
   const feeConfig = {
-    fulfillmentFlatFeeLinkPPMTier1: 0,
-    fulfillmentFlatFeeLinkPPMTier2: 0,
-    fulfillmentFlatFeeLinkPPMTier3: 0,
-    fulfillmentFlatFeeLinkPPMTier4: 0,
-    fulfillmentFlatFeeLinkPPMTier5: 0,
+    fulfillmentFlatFeeKlayPPMTier1: 0,
+    fulfillmentFlatFeeKlayPPMTier2: 0,
+    fulfillmentFlatFeeKlayPPMTier3: 0,
+    fulfillmentFlatFeeKlayPPMTier4: 0,
+    fulfillmentFlatFeeKlayPPMTier5: 0,
     reqsForTier2: 0,
     reqsForTier3: 0,
     reqsForTier4: 0,
