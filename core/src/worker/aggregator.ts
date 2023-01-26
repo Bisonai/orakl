@@ -79,7 +79,9 @@ function aggregatorJob(reporterQueueName: string, aggregatorsWithAdapters) {
     try {
       const outData = await prepareDataForReporter(ag)
       console.debug('aggregatorJob:outData', outData)
-      reporterQueue.add('aggregator', outData)
+      reporterQueue.add('aggregator', outData, {
+        removeOnComplete: true
+      })
     } catch (e) {
       console.error(e)
     }
@@ -104,7 +106,8 @@ function fixedHeartbeatJob(
     const ag = agregatorsWithAdapters[k]
     if (ag.fixedHeartbeatRate.active) {
       heartbeatQueue.add('fixed-heartbeat', addReportProperty(ag, true), {
-        delay: ag.fixedHeartbeatRate.value
+        delay: ag.fixedHeartbeatRate.value,
+        removeOnComplete: true
       })
     }
   }
@@ -117,12 +120,15 @@ function fixedHeartbeatJob(
       const outData = await prepareDataForReporter(inData)
       console.debug('fixedHeartbeatJob:outData', outData)
       if (outData.report) {
-        reporterQueue.add('aggregator', outData)
+        reporterQueue.add('aggregator', outData, { removeOnComplete: true })
       }
     } catch (e) {
       console.error(e)
     } finally {
-      heartbeatQueue.add('fixed-heartbeat', inData, { delay: inData.fixedHeartbeatRate.value })
+      heartbeatQueue.add('fixed-heartbeat', inData, {
+        delay: inData.fixedHeartbeatRate.value,
+        removeOnComplete: true
+      })
     }
   }
 
@@ -144,7 +150,8 @@ function randomHeartbeatJob(
     const ag = agregatorsWithAdapters[k]
     if (ag.randomHeartbeatRate.active) {
       heartbeatQueue.add('random-heartbeat', ag, {
-        delay: uniform(0, ag.randomHeartbeatRate.value)
+        delay: uniform(0, ag.randomHeartbeatRate.value),
+        removeOnComplete: true
       })
     }
   }
@@ -157,13 +164,14 @@ function randomHeartbeatJob(
       const outData = await prepareDataForReporter(inData)
       console.debug('randomHeartbeatJob:outData', outData)
       if (outData.report) {
-        reporterQueue.add('aggregator', outData)
+        reporterQueue.add('aggregator', outData, { removeOnComplete: true })
       }
     } catch (e) {
       console.error(e)
     } finally {
       heartbeatQueue.add('random-heartbeat', inData, {
-        delay: uniform(0, inData.randomHeartbeatRate.value)
+        delay: uniform(0, inData.randomHeartbeatRate.value),
+        removeOnComplete: true
       })
     }
   }
