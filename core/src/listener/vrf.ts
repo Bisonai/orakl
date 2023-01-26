@@ -31,7 +31,12 @@ function processVrfEvent(iface: ethers.utils.Interface, queue: Queue) {
     }
     console.debug('processVrfEvent:data', data)
 
-    await queue.add('vrf', data, { jobId: data.requestId })
+    await queue.add('vrf', data, {
+      jobId: data.requestId,
+      removeOnComplete: {
+        age: 1800 // 30 min
+      }
+    })
   }
 
   return wrapper
