@@ -7,6 +7,7 @@ import { IcnError, IcnErrorCode } from '../errors'
 import { WORKER_ANY_API_QUEUE_NAME, WORKER_VRF_QUEUE_NAME, DB, CHAIN } from '../settings'
 import { getListeners } from '../settings'
 import { healthCheck } from '../health-checker'
+import { hookConsoleError } from '../utils'
 
 const LISTENERS = {
   Aggregator: {
@@ -24,6 +25,7 @@ const LISTENERS = {
 }
 
 async function main() {
+  hookConsoleError()
   const listener = loadArgs()
   const listenersConfig = await getListeners(DB, CHAIN)
 

@@ -39,10 +39,12 @@
   },
   "dependencies": {
     "@bisonai-cic/icn-contracts": "^0.3.0",
+    "@slack/webhook": "^6.1.0",
     "axios": "^1.2.2",
     "bn.js": "^5.2.1",
     "bullmq": "^3.2.2",
     "cmd-ts": "^0.11.0",
+    "console-hook": "^0.0.2",
     "dotenv": "^16.0.3",
     "elliptic": "^6.5.4",
     "ethers": "^5.7.2",

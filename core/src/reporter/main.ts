@@ -3,6 +3,7 @@ import { aggregatorReporter } from './aggregator'
 import { vrfReporter } from './vrf'
 import { anyApiReporter } from './any-api'
 import { healthCheck } from '../health-checker'
+import { hookConsoleError } from '../utils'
 
 const REPORTERS = {
   AGGREGATOR: aggregatorReporter,
@@ -11,6 +12,7 @@ const REPORTERS = {
 }
 
 async function main() {
+  hookConsoleError()
   const reporter = loadArgs()
   REPORTERS[reporter]()
   healthCheck()

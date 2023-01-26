@@ -1,8 +1,10 @@
 import * as Fs from 'node:fs/promises'
 import * as fs from 'node:fs'
-import { tmpdir } from 'node:os'
+import os from 'node:os'
 import path from 'node:path'
 import { IcnError, IcnErrorCode } from './errors'
+import { IncomingWebhook } from '@slack/webhook'
+import Hook from 'console-hook'
 
 export async function loadJson(filepath) {
   const json = await Fs.readFile(filepath, 'utf8')
@@ -79,7 +81,28 @@ export function printObject(object) {
 
 export function mkTmpFile({ fileName }: { fileName: string }): string {
   const appPrefix = 'orakl'
-  const tmpDir = fs.mkdtempSync(path.join(tmpdir(), appPrefix))
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), appPrefix))
   const tmpFilePath = path.join(tmpDir, fileName)
   return tmpFilePath
+}
+
+function sendToSlack(error) {
+  const url = process.env.SLACK_WEBHOOK_URL
+  if (url) {
+    const webhook = new IncomingWebhook(url)
+    const text = ` :fire: _An error has occurred at_ \`${os.hostname()}\`\n \`\`\`${JSON.stringify(
+      error
+    )} \`\`\`\n>*System information*\n>*memory*: ${os.freemem()}/${os.totalmem()}\n>*machine*: ${os.machine()}\n>*platform*: ${os.platform()}\n>*upTime*: ${os.uptime()}\n>*version*: ${os.version()}
+   `
+    webhook.send({ text })
+  }
+}
+
+export function hookConsoleError() {
+  const consoleHook = Hook().attach((method, args) => {
+    if (method == 'error') {
+      sendToSlack(args)
+    }
+  })
+  consoleHook.detach
 }
