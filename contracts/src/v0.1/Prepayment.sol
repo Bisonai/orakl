@@ -18,11 +18,13 @@ contract Prepayment is
     uint16 public constant MAX_CONSUMERS = 100;
     bytes32 public constant WITHDRAWER_ROLE = keccak256("WITHDRAWER_ROLE");
     bytes32 public constant COORDINATOR_ROLE = keccak256("COORDINATOR_ROLE");
+    uint16 public constant MIN_BURN_RATIO = 20;
+    uint16 public constant MAX_BURN_RATIO = 50;
 
     uint256 private s_totalBalance;
 
     uint64 private s_currentAccId;
-    uint16 private burn_ratio = 20; //20%
+    uint16 public burn_ratio = 20; //20%
 
     /* consumer */
     /* accId */
@@ -68,6 +70,7 @@ contract Prepayment is
     error MustBeRequestedOwner(address proposedOwner);
     error ZeroAmount();
     error CoordinatorExists();
+    error InvalidBurnRatio();
 
     event AccountCreated(uint64 indexed accId, address owner);
     event AccountCanceled(uint64 indexed accId, address to, uint256 amount);
@@ -96,6 +99,9 @@ contract Prepayment is
     }
 
     function setBurnRatio(uint16 ratio) public onlyOwner {
+        if (ratio < MIN_BURN_RATIO || ratio > MAX_BURN_RATIO) {
+            revert InvalidBurnRatio();
+        }
         burn_ratio = ratio;
         emit SetBurnRatio(ratio);
     }
