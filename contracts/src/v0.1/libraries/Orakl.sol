@@ -24,23 +24,23 @@ library Orakl {
   /**
    * @notice Initializes a request
    * @dev Sets ID, callback address, and callback function
-   * @param _request The uninitialized request
-   * @param _jobId The Job Specification ID
-   * @param _callbackAddr The callback address
-   * @param _callbackFunc The callback function signature
+   * @param self The uninitialized request
+   * @param jobId The Job Specification ID
+   * @param callbackAddr The callback address
+   * @param callbackFunc The callback function signature
    * @return The initialized request
    */
   function initialize(
-    Request memory _request,
-    bytes32 _jobId,
-    address _callbackAddr,
-    bytes4 _callbackFunc
-  ) internal pure returns (Request memory) {
-    Buffer.init(_request.buf, defaultBufferSize);
-    _request.id = _jobId;
-    _request.callbackAddr = _callbackAddr;
-    _request.callbackFunc = _callbackFunc;
-    return _request;
+    Request memory self,
+    bytes32 jobId,
+    address callbackAddr,
+    bytes4 callbackFunc
+  ) internal pure returns (Orakl.Request memory) {
+    Buffer.init(self.buf, defaultBufferSize);
+    self.id = jobId;
+    self.callbackAddr = callbackAddr;
+    self.callbackFunc = callbackFunc;
+    return self;
   }
 
   /**
@@ -55,17 +55,17 @@ library Orakl {
 
   /**
    * @notice Adds a string value to the request in a key - value pair format
-   * @param _request - the initalized request
-   * @param _key - the name of the key
-   * @param _value - the string value to add
+   * @param self - the initalized request
+   * @param key - the name of the key
+   * @param value - the string value to add
    */
   function add(
-      Request memory _request,
-      string memory _key,
-      string memory _value
+      Request memory self,
+      string memory key,
+      string memory value
   ) internal pure {
-    _request.buf.encodeString(_key);
-    _request.buf.encodeString(_value);
+    self.buf.encodeString(key);
+    self.buf.encodeString(value);
   }
 
   /**
