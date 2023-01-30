@@ -22,6 +22,7 @@ contract Prepayment is
     uint256 private s_totalBalance;
 
     uint64 private s_currentAccId;
+    uint16 private burn_ratio = 20; //20%
 
     /* consumer */
     /* accId */
@@ -77,6 +78,7 @@ contract Prepayment is
     event AccountOwnerTransferRequested(uint64 indexed accId, address from, address to);
     event AccountOwnerTransferred(uint64 indexed accId, address from, address to);
     event FundsWithdrawn(address to, uint256 amount);
+    event SetBurnRatio(uint16 ratio);
 
     modifier onlyAccOwner(uint64 accId) {
         address owner = s_accountConfigs[accId].owner;
@@ -91,6 +93,11 @@ contract Prepayment is
 
     constructor() {
         _setupRole(DEFAULT_ADMIN_ROLE, _msgSender());
+    }
+
+    function setBurnRatio(uint16 ratio) public onlyOwner {
+        burn_ratio = ratio;
+        emit SetBurnRatio(ratio);
     }
 
     /**
@@ -295,7 +302,12 @@ contract Prepayment is
 
         s_accounts[accId].balance -= amount;
         s_accounts[accId].reqCount += 1;
-        s_nodes[node] += amount;
+        uint256 burnAmount = amount * (burn_ratio / 100);
+        s_nodes[node] += amount - burnAmount;
+        (bool sent, ) = address(0).call{value: burnAmount}("");
+        if (!sent) {
+            revert InsufficientBalance();
+        }
 
         emit AccountBalanceDecreased(accId, oldBalance, oldBalance - amount);
     }
