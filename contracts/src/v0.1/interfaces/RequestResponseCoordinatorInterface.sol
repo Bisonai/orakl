@@ -4,12 +4,14 @@ pragma solidity ^0.8.16;
 import "../libraries/Orakl.sol";
 
 interface RequestResponseCoordinatorInterface {
-    /**
-     * @notice Build a request using the Orakl library
-     * @param jobId the job specification ID that the request is created for
-     * @return req request in memory
-     */
-    function buildRequest(bytes32 jobId) external returns (Orakl.Request memory req);
+    // RequestCommitment holds information sent from off-chain oracle
+    // describing details of request.
+    struct RequestCommitment {
+        uint64 blockNum;
+        uint64 accId;
+        uint32 callbackGasLimit;
+        address sender;
+    }
 
     /**
      * @notice Creates a request to RequestResponse oracle
@@ -43,4 +45,11 @@ interface RequestResponseCoordinatorInterface {
      * @param requestId - ID of the Oracle Request
      */
     function cancelRequest(uint256 requestId) external;
+
+    function fulfillRequest(
+        uint256 requestId,
+        uint256 response,
+        RequestCommitment memory rc,
+        bool isDirectPayment
+    ) external returns (uint256);
 }
