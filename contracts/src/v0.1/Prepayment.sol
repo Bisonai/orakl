@@ -81,7 +81,7 @@ contract Prepayment is
     event AccountOwnerTransferRequested(uint64 indexed accId, address from, address to);
     event AccountOwnerTransferred(uint64 indexed accId, address from, address to);
     event FundsWithdrawn(address to, uint256 amount);
-    event SetBurnRatio(uint16 ratio);
+    event BurnRatioSet(uint16 ratio);
 
     modifier onlyAccOwner(uint64 accId) {
         address owner = s_accountConfigs[accId].owner;
