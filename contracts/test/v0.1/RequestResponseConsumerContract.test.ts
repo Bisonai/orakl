@@ -47,7 +47,12 @@ describe('Request-Response user contract', function () {
     consumerContract = await consumerContract.deploy(coordinatorContract.address)
     await consumerContract.deployed()
 
-    const accId = await createAccount(prepaymentContract.address, consumerContract.address)
+    const accId = await createAccount(
+      prepaymentContract.address,
+      consumerContract.address,
+      true,
+      true
+    )
 
     return {
       accId,
@@ -61,16 +66,6 @@ describe('Request-Response user contract', function () {
       consumerContract
     }
   }
-
-  // beforeEach(async function () {
-  //     requestResponseCoordinator = await ethers.getContractFactory('RequestResponseCoordinator')
-  // requestResponseCoordinator = await requestResponseCoordinator.deploy()
-  // await requestResponseCoordinator.deployed()
-  //
-  // userContract = await ethers.getContractFactory('RequestResponseConsumerMock')
-  // userContract = await userContract.deploy(requestResponseCoordinator.address)
-  // await userContract.deployed()
-  //   })
 
   it('Request & Fulfill', async function () {
     const {
