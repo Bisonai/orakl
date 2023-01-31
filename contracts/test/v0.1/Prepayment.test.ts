@@ -167,4 +167,28 @@ describe('Prepayment contract', function () {
     ).wait()
     expect(txReceipt.status).to.equal(1)
   })
+
+  it('Should chargeFee with burn token', async function () {
+    const { prepaymentContract, deployer, accId } = await loadFixture(deployFixture)
+    const accounts = await ethers.getSigners()
+    const node = accounts[0]
+
+    const depositValue = 1000
+    const feeAmount = 109
+    const transactionDeposit = await prepaymentContract.deposit(accId, { value: depositValue })
+    const role = await prepaymentContract.COORDINATOR_ROLE()
+    await prepaymentContract.grantRole(role, node.address)
+
+    const txReceipt = await (
+      await prepaymentContract.connect(node).chargeFee(accId, feeAmount, node.address)
+    ).wait()
+    const txEvent = prepaymentContract.interface.parseLog(txReceipt.events[0])
+    const { acc, oldBalance, newBalance, burnAmount } = txEvent.args
+    const balanceNode = await prepaymentContract.s_nodes(node.address)
+    const amount = burnAmount.toNumber() + balanceNode.toNumber()
+
+    expect(feeAmount).to.be.equal(amount)
+    console.log('burn amount', burnAmount.toString(),'- node balance', balanceNode.toString())
+
+  })
 })

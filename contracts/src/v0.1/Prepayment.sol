@@ -24,7 +24,7 @@ contract Prepayment is
     uint256 private s_totalBalance;
 
     uint64 private s_currentAccId;
-    uint16 public burn_ratio = 20; //20%
+    uint16 public s_BurnRatio = 20; //20%
 
     /* consumer */
     /* accId */
@@ -39,7 +39,7 @@ contract Prepayment is
     /* account */
     mapping(uint64 => Account) private s_accounts;
 
-    mapping(address => uint256) s_nodes;
+    mapping(address => uint256) public s_nodes;
 
     struct Account {
         // There are only 1e9*1e18 = 1e27 juels in existence, so the balance can fit in uint256 (2^96 ~ 7e28)
@@ -71,11 +71,17 @@ contract Prepayment is
     error ZeroAmount();
     error CoordinatorExists();
     error InvalidBurnRatio();
+    error BurnFeeFailed();
 
     event AccountCreated(uint64 indexed accId, address owner);
     event AccountCanceled(uint64 indexed accId, address to, uint256 amount);
     event AccountBalanceIncreased(uint64 indexed accId, uint256 oldBalance, uint256 newBalance);
-    event AccountBalanceDecreased(uint64 indexed accId, uint256 oldBalance, uint256 newBalance);
+    event AccountBalanceDecreased(
+        uint64 indexed accId,
+        uint256 oldBalance,
+        uint256 newBalance,
+        uint256 burnAmount
+    );
     event AccountConsumerAdded(uint64 indexed accId, address consumer);
     event AccountConsumerRemoved(uint64 indexed accId, address consumer);
     event AccountOwnerTransferRequested(uint64 indexed accId, address from, address to);
@@ -102,8 +108,8 @@ contract Prepayment is
         if (ratio < MIN_BURN_RATIO || ratio > MAX_BURN_RATIO) {
             revert InvalidBurnRatio();
         }
-        burn_ratio = ratio;
-        emit SetBurnRatio(ratio);
+        s_BurnRatio = ratio;
+        emit BurnRatioSet(ratio);
     }
 
     /**
@@ -267,7 +273,7 @@ contract Prepayment is
             revert InsufficientBalance();
         }
 
-        emit AccountBalanceDecreased(accId, oldBalance, oldBalance - amount);
+        emit AccountBalanceDecreased(accId, oldBalance, oldBalance - amount, 0);
     }
 
     /**
@@ -308,14 +314,14 @@ contract Prepayment is
 
         s_accounts[accId].balance -= amount;
         s_accounts[accId].reqCount += 1;
-        uint256 burnAmount = amount * (burn_ratio / 100);
+        uint256 burnAmount = (amount * s_BurnRatio) / 100;
         s_nodes[node] += amount - burnAmount;
         (bool sent, ) = address(0).call{value: burnAmount}("");
         if (!sent) {
             revert BurnFeeFailed();
         }
 
-        emit AccountBalanceDecreased(accId, oldBalance, oldBalance - amount);
+        emit AccountBalanceDecreased(accId, oldBalance, oldBalance - amount, burnAmount);
     }
 
     /**
