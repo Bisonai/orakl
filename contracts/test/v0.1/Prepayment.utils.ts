@@ -1,7 +1,12 @@
 import { expect } from 'chai'
 import hre from 'hardhat'
 
-export async function createAccount(prepaymentContractAddress, consumerContractAddress) {
+export async function createAccount(
+  prepaymentContractAddress,
+  consumerContractAddress,
+  deposit?: boolean,
+  assignConsumer?: boolean
+) {
   const { consumer } = await hre.getNamedAccounts()
   const prepaymentContract = await ethers.getContractAt(
     'Prepayment',
@@ -18,12 +23,16 @@ export async function createAccount(prepaymentContractAddress, consumerContractA
   expect(accId).to.be.equal(1)
 
   // DEPOSIT 1 ETHER
-  await (
-    await prepaymentContract.deposit(accId, { value: ethers.utils.parseUnits('1', 'ether') })
-  ).wait()
+  if (deposit) {
+    await (
+      await prepaymentContract.deposit(accId, { value: ethers.utils.parseUnits('1', 'ether') })
+    ).wait()
+  }
 
   // ASSIGN CONSUMER TO ACCOUNT
-  await (await prepaymentContract.addConsumer(accId, consumerContractAddress)).wait()
+  if (assignConsumer) {
+    await (await prepaymentContract.addConsumer(accId, consumerContractAddress)).wait()
+  }
 
   return accId
 }
