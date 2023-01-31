@@ -1,4 +1,5 @@
 import { ethers } from 'hardhat'
+import hre from 'hardhat'
 
 async function main() {
   const requestResponseConsumerMock = await ethers.getContract('RequestResponseConsumerMock')
