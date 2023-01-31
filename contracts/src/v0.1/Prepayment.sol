@@ -312,7 +312,7 @@ contract Prepayment is
         s_nodes[node] += amount - burnAmount;
         (bool sent, ) = address(0).call{value: burnAmount}("");
         if (!sent) {
-            revert InsufficientBalance();
+            revert BurnFeeFailed();
         }
 
         emit AccountBalanceDecreased(accId, oldBalance, oldBalance - amount);
