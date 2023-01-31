@@ -28,3 +28,10 @@ export interface IVrfConfig {
   paymentConfig: IDirectPaymentConfig
   oracle: IVrfOracle[]
 }
+
+export interface IRequestResponseConfig {
+  minimumRequestConfirmations: number
+  maxGasLimit: number
+  gasAfterPaymentCalculation: number
+  feeConfig: IFeeConfig
+}

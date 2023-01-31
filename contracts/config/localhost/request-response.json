@@ -1,0 +1,16 @@
+{
+    "minimumRequestConfirmations": 3,
+    "maxGasLimit": 1000000,
+    "gasAfterPaymentCalculation": 1000,
+    "feeConfig": {
+        "fulfillmentFlatFeeKlayPPMTier1": 0,
+        "fulfillmentFlatFeeKlayPPMTier2": 0,
+        "fulfillmentFlatFeeKlayPPMTier3": 0,
+        "fulfillmentFlatFeeKlayPPMTier4": 0,
+        "fulfillmentFlatFeeKlayPPMTier5": 0,
+        "reqsForTier2": 0,
+        "reqsForTier3": 0,
+        "reqsForTier4": 0,
+        "reqsForTier5": 0
+    }
+}
