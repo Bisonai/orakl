@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.16;
 
+import 'hardhat/console.sol';
 // https://github.com/smartcontractkit/chainlink/blob/develop/contracts/src/v0.8/vendor/BufferChainlink.sol
 
 /**
@@ -26,13 +27,14 @@ library Buffer {
    * @param capacity the number of bytes of space to allocate to the buffer
    * @return the buffer
    */
-  function init(buffer memory buf, uint256 capacity) internal pure returns (buffer memory) {
+      function init(buffer memory buf, uint256 capacity) internal /*pure*/ view returns (buffer memory) {
     // If capacity is not 32 bytes allocate remaining capacity
     if (capacity % 32 != 0) {
+      console.log('capacity % 32 != 0');
       capacity += 32 - (capacity % 32);
     }
 
-    //allocating memory space for buffer
+    // allocating memory space for buffer
     buf.capacity = capacity;
     assembly {
       let ptr := mload(0x40)
@@ -40,6 +42,10 @@ library Buffer {
       mstore(ptr, 0)
       mstore(0x40, add(32, add(ptr, capacity)))
     }
+
+    console.log('init buf.capacity %s', buf.capacity);
+    console.log('init buf.buf.length %s', buf.buf.length);
+
     return buf;
   }
 
@@ -123,9 +129,9 @@ library Buffer {
    * @param capacity the capacity to resize to
    */
   function resize(buffer memory buf, uint256 capacity) private pure {
-    bytes memory oldbuf = buf.buf;
-    init(buf, capacity);
-    append(buf, oldbuf);
+    /* bytes memory oldbuf = buf.buf; */
+    /* init(buf, capacity); */
+    /* append(buf, oldbuf); */
   }
 
   /**
@@ -141,7 +147,7 @@ library Buffer {
     bytes memory data,
     uint256 len
   ) internal pure returns (buffer memory) {
-    return write(buf, buf.buf.length, data, len);
+      return write(buf, buf.buf.length, data, len);
   }
 
   /**
@@ -151,7 +157,11 @@ library Buffer {
    * @param data The data to append.
    * @return The original buffer, for chaining.
    */
-  function append(buffer memory buf, bytes memory data) internal pure returns (buffer memory) {
+  function append(buffer memory buf, bytes memory data) internal /*pure*/ view returns (buffer memory) {
+    console.log('append buf.buf.length %s', buf.buf.length);
+    console.log('append buf.buf %s', string(buf.buf));
+    console.log('append data.length %s ', data.length);
+    console.log('append data %s ', string(data));
     return write(buf, buf.buf.length, data, data.length);
   }
 
@@ -166,24 +176,45 @@ library Buffer {
     buffer memory buf,
     uint256 off,
     uint8 data
-  ) internal pure returns (buffer memory) {
+  ) internal /*pure*/ view returns (buffer memory) {
+    console.log('writeUint8 buf.capacity', buf.capacity);
+    console.log('writeUint8 buf.buf.length', buf.buf.length);
+    console.log('writeUint8 buf.buf', string(buf.buf));
+    console.log('writeUint8 off', off);
+    console.log('writeUint8 data', data);
+
     if (off >= buf.capacity) {
+      console.log('writeUint8 resize');
       resize(buf, buf.capacity * 2);
     }
+
+    uint lenlen;
+    address destdest;
 
     assembly {
       // Memory address of the buffer data
       let bufptr := mload(buf)
       // Length of existing buffer data
       let buflen := mload(bufptr)
+      /* lenlen := buflen // DELETE */
       // Address = buffer address + sizeof(buffer length) + off
       let dest := add(add(bufptr, off), 32)
+      destdest := dest // DELETE
+      /* let dest := add(add(bufptr, off), 0x20) */
       mstore8(dest, data)
       // Update buffer length if we extended it
       if eq(off, buflen) {
         mstore(bufptr, add(buflen, 1))
       }
     }
+
+    console.log('writeUint8 lenlen %s', lenlen);
+    console.log('writeUint8 destdest %s', destdest);
+    /* console.log('writeUint8 address(buf.buf) %s', address(buf.buf)); */
+
+    console.log('writeUint8 buf.buf.length', buf.buf.length);
+    console.log('writeUint8 buf.buf', string(buf.buf));
+
     return buf;
   }
 
@@ -194,7 +225,10 @@ library Buffer {
    * @param data The data to append.
    * @return The original buffer, for chaining.
    */
-  function appendUint8(buffer memory buf, uint8 data) internal pure returns (buffer memory) {
+  function appendUint8(buffer memory buf, uint8 data) internal /*pure*/ view returns (buffer memory) {
+    console.log('appendUint8 data %s', data);
+    console.log('appendUint8 buf.buf.length %s', buf.buf.length);
+    console.log('appendUint8 buf.buf %s', string(buf.buf));
     return writeUint8(buf, buf.buf.length, data);
   }
 

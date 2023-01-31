@@ -216,6 +216,15 @@ contract RequestResponseCoordinator is
      * @inheritdoc RequestResponseCoordinatorInterface
      */
     function buildRequest(bytes32 jobId) external view returns (Orakl.Request memory req) {
+        /* function buildRequest(bytes32 jobId) external view returns (Orakl.Request memory) { */
+        /*     Orakl.Request memory req; */
+        /*     req = Orakl.initialize(req, jobId, address(this), this.fulfillRequest.selector); */
+
+        /*     console.log("buildRequest req.buf.capacity %s", req.buf.capacity); */
+        /*     console.log("buildRequest req.buf.buf.length %s", req.buf.buf.length); */
+
+        /*     return req; */
+
         return req.initialize(jobId, address(this), this.fulfillRequest.selector);
     }
 
