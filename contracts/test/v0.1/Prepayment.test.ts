@@ -115,7 +115,6 @@ describe('Prepayment contract', function () {
     await coordinatorContract.registerProvingKey(oracle, publicProvingKey)
 
     await coordinatorContract.setConfig(
-      minimumRequestConfirmations,
       maxGasLimit,
       gasAfterPaymentCalculation,
       Object.values(feeConfig)
@@ -154,7 +153,6 @@ describe('Prepayment contract', function () {
     await coordinatorContract.registerProvingKey(oracle, publicProvingKey)
 
     await coordinatorContract.setConfig(
-      minimumRequestConfirmations,
       maxGasLimit,
       gasAfterPaymentCalculation,
       Object.values(feeConfig)
@@ -188,7 +186,6 @@ describe('Prepayment contract', function () {
     const amount = burnAmount.toNumber() + balanceNode.toNumber()
 
     expect(feeAmount).to.be.equal(amount)
-    console.log('burn amount', burnAmount.toString(),'- node balance', balanceNode.toString())
-
+    console.log('burn amount', burnAmount.toString(), '- node balance', balanceNode.toString())
   })
 })

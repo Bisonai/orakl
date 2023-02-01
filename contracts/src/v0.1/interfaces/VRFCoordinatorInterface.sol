@@ -4,7 +4,6 @@ pragma solidity ^0.8.16;
 interface VRFCoordinatorInterface {
   /**
    * @notice Get configuration relevant for making requests
-   * @return minimumRequestConfirmations global min for request confirmations
    * @return maxGasLimit global max for request gas limit
    * @return s_provingKeyHashes list of registered key hashes
    */
@@ -12,7 +11,6 @@ interface VRFCoordinatorInterface {
       external
       view
       returns (
-          uint16,
           uint32,
           bytes32[] memory
       );

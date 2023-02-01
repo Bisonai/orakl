@@ -18,8 +18,8 @@ contract Prepayment is
     uint16 public constant MAX_CONSUMERS = 100;
     bytes32 public constant WITHDRAWER_ROLE = keccak256("WITHDRAWER_ROLE");
     bytes32 public constant COORDINATOR_ROLE = keccak256("COORDINATOR_ROLE");
-    uint16 public constant MIN_BURN_RATIO = 20;
-    uint16 public constant MAX_BURN_RATIO = 50;
+    uint16 public constant MIN_BURN_RATIO = 0;
+    uint16 public constant MAX_BURN_RATIO = 100;
 
     uint256 private s_totalBalance;
 
@@ -316,9 +316,11 @@ contract Prepayment is
         s_accounts[accId].reqCount += 1;
         uint256 burnAmount = (amount * s_BurnRatio) / 100;
         s_nodes[node] += amount - burnAmount;
-        (bool sent, ) = address(0).call{value: burnAmount}("");
-        if (!sent) {
-            revert BurnFeeFailed();
+        if (burnAmount > 0) {
+            (bool sent, ) = address(0).call{value: burnAmount}("");
+            if (!sent) {
+                revert BurnFeeFailed();
+            }
         }
 
         emit AccountBalanceDecreased(accId, oldBalance, oldBalance - amount, burnAmount);

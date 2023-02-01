@@ -46,7 +46,6 @@ contract VRFCoordinator is
     }
 
     struct Config {
-        uint16 minimumRequestConfirmations;
         uint32 maxGasLimit;
         // Reentrancy protection.
         bool reentrancyLock;
@@ -83,7 +82,7 @@ contract VRFCoordinator is
     error InvalidKeyHash(bytes32 keyHash);
     error InvalidConsumer(uint64 accId, address consumer);
     error InvalidAccount();
-    error InvalidRequestConfirmations(uint16 have, uint16 min, uint16 max);
+    error InvalidRequestConfirmations(uint16 have, uint16 max);
     error GasLimitTooBig(uint32 have, uint32 want);
     error NumWordsTooBig(uint32 have, uint32 want);
     error ProvingKeyAlreadyRegistered(bytes32 keyHash);
@@ -113,12 +112,7 @@ contract VRFCoordinator is
         uint256 payment,
         bool success
     );
-    event ConfigSet(
-        uint16 minimumRequestConfirmations,
-        uint32 maxGasLimit,
-        uint32 gasAfterPaymentCalculation,
-        FeeConfig feeConfig
-    );
+    event ConfigSet(uint32 maxGasLimit, uint32 gasAfterPaymentCalculation, FeeConfig feeConfig);
     event DirectPaymentConfigSet(uint256 fulfillmentFee, uint256 baseFee);
 
     modifier nonReentrant() {
@@ -182,53 +176,37 @@ contract VRFCoordinator is
 
     /**
      * @notice Sets the configuration of the VRF coordinator
-     * @param minimumRequestConfirmations global min for request confirmations
      * @param maxGasLimit global max for request gas limit
      * @param gasAfterPaymentCalculation gas used in doing accounting after completing the gas measurement
      * @param feeConfig fee tier configuration
      */
     function setConfig(
-        uint16 minimumRequestConfirmations,
         uint32 maxGasLimit,
         uint32 gasAfterPaymentCalculation,
         FeeConfig memory feeConfig
     ) external onlyOwner {
-        if (minimumRequestConfirmations > MAX_REQUEST_CONFIRMATIONS) {
-            revert InvalidRequestConfirmations(
-                minimumRequestConfirmations,
-                minimumRequestConfirmations,
-                MAX_REQUEST_CONFIRMATIONS
-            );
-        }
+        // if (minimumRequestConfirmations > MAX_REQUEST_CONFIRMATIONS) {
+        //     revert InvalidRequestConfirmations(
+        //         minimumRequestConfirmations,
+        //         minimumRequestConfirmations,
+        //         MAX_REQUEST_CONFIRMATIONS
+        //     );
+        // }
         s_config = Config({
-            minimumRequestConfirmations: minimumRequestConfirmations,
             maxGasLimit: maxGasLimit,
             gasAfterPaymentCalculation: gasAfterPaymentCalculation,
             reentrancyLock: false
         });
         s_feeConfig = feeConfig;
-        emit ConfigSet(
-            minimumRequestConfirmations,
-            maxGasLimit,
-            gasAfterPaymentCalculation,
-            s_feeConfig
-        );
+        emit ConfigSet(maxGasLimit, gasAfterPaymentCalculation, s_feeConfig);
     }
 
     function getConfig()
         external
         view
-        returns (
-            uint16 minimumRequestConfirmations,
-            uint32 maxGasLimit,
-            uint32 gasAfterPaymentCalculation
-        )
+        returns (uint32 maxGasLimit, uint32 gasAfterPaymentCalculation)
     {
-        return (
-            s_config.minimumRequestConfirmations,
-            s_config.maxGasLimit,
-            s_config.gasAfterPaymentCalculation
-        );
+        return (s_config.maxGasLimit, s_config.gasAfterPaymentCalculation);
     }
 
     function getFeeConfig()
@@ -262,8 +240,8 @@ contract VRFCoordinator is
     /**
      * @inheritdoc VRFCoordinatorInterface
      */
-    function getRequestConfig() external view returns (uint16, uint32, bytes32[] memory) {
-        return (s_config.minimumRequestConfirmations, s_config.maxGasLimit, s_provingKeyHashes);
+    function getRequestConfig() external view returns (uint32, bytes32[] memory) {
+        return (s_config.maxGasLimit, s_provingKeyHashes);
     }
 
     function setDirectPaymentConfig(
@@ -439,15 +417,8 @@ contract VRFCoordinator is
         }
 
         // Input validation using the config storage word.
-        if (
-            requestConfirmations < s_config.minimumRequestConfirmations ||
-            requestConfirmations > MAX_REQUEST_CONFIRMATIONS
-        ) {
-            revert InvalidRequestConfirmations(
-                requestConfirmations,
-                s_config.minimumRequestConfirmations,
-                MAX_REQUEST_CONFIRMATIONS
-            );
+        if (requestConfirmations > MAX_REQUEST_CONFIRMATIONS) {
+            revert InvalidRequestConfirmations(requestConfirmations, MAX_REQUEST_CONFIRMATIONS);
         }
 
         // No lower bound on the requested gas limit. A user could request 0
