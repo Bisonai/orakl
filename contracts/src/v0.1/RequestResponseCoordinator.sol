@@ -222,6 +222,10 @@ contract RequestResponseCoordinator is
         return s_directPaymentConfig.fulfillmentFee + s_directPaymentConfig.baseFee;
     }
 
+    function getPrepaymentAddress() public view returns (address) {
+        return address(s_prepayment);
+    }
+
     function requestData(
         Orakl.Request memory req,
         uint32 callbackGasLimit,
