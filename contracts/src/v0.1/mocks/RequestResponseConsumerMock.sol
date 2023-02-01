@@ -39,7 +39,7 @@ contract RequestResponseConsumerMock is RequestResponseConsumerBase {
         req.add("get", "https://min-api.cryptocompare.com/data/pricemultifull?fsyms=ETH&tsyms=USD");
         req.add("path", "RAW,ETH,USD,PRICE");
 
-        requestId = COORDINATOR.sendRequest(
+        requestId = COORDINATOR.requestData(
             req,
             accId,
             callbackGasLimit
@@ -60,7 +60,7 @@ contract RequestResponseConsumerMock is RequestResponseConsumerBase {
         req.add("get", "https://min-api.cryptocompare.com/data/pricemultifull?fsyms=ETH&tsyms=USD");
         req.add("path", "RAW,ETH,USD,PRICE");
 
-        requestId = COORDINATOR.sendRequestPayment{value: msg.value}(
+        requestId = COORDINATOR.requestDataDirect{value: msg.value}(
             req,
             callbackGasLimit
         );

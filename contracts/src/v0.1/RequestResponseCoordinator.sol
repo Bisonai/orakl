@@ -220,16 +220,16 @@ contract RequestResponseCoordinator is
         return s_directPaymentConfig.fulfillmentFee + s_directPaymentConfig.baseFee;
     }
 
-    function sendRequest(
+    function requestData(
         Orakl.Request memory req,
         uint64 accId,
         uint32 callbackGasLimit
     ) external nonReentrant returns (uint256 requestId) {
         bool isDirectPayment = false;
-        requestId = sendRequestInternal(req, accId, callbackGasLimit, isDirectPayment);
+        requestId = requestDataInternal(req, accId, callbackGasLimit, isDirectPayment);
     }
 
-    function sendRequestInternal(
+    function requestDataInternal(
         Orakl.Request memory req,
         uint64 accId,
         uint32 callbackGasLimit,
@@ -280,7 +280,7 @@ contract RequestResponseCoordinator is
         return requestId;
     }
 
-    function sendRequestPayment(
+    function requestDataDirect(
         Orakl.Request memory req,
         uint32 callbackGasLimit
     ) external payable returns (uint256) {
@@ -292,7 +292,7 @@ contract RequestResponseCoordinator is
         uint64 accId = Prepayment.createAccount();
         Prepayment.addConsumer(accId, msg.sender);
         bool isDirectPayment = true;
-        uint256 requestId = sendRequestInternal(req, accId, callbackGasLimit, isDirectPayment);
+        uint256 requestId = requestDataInternal(req, accId, callbackGasLimit, isDirectPayment);
         Prepayment.deposit{value: fee}(accId);
 
         uint256 remaining = msg.value - fee;

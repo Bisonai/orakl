@@ -29,13 +29,13 @@ interface RequestResponseCoordinatorInterface {
      * @return requestId - A unique identifier of the request. Can be used to match
      * a request to a response in fulfillRequest.
    */
-    function sendRequest(
+    function requestData(
         Orakl.Request memory req,
         uint64 accId,
         uint32 callbackGasLimit
     ) external returns (uint256);
 
-    function sendRequestPayment(
+    function requestDataDirect(
         Orakl.Request memory req,
         uint32 callbackGasLimit
     ) external payable returns (uint256);
