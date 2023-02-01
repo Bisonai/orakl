@@ -37,7 +37,7 @@ contract RequestResponseCoordinator is
 
     address[] private s_registeredOracles;
 
-    PrepaymentInterface Prepayment;
+    PrepaymentInterface s_prepayment;
 
     struct Config {
         uint32 maxGasLimit;
@@ -110,7 +110,7 @@ contract RequestResponseCoordinator is
     }
 
     constructor(address prepayment) {
-        Prepayment = PrepaymentInterface(prepayment);
+        s_prepayment = PrepaymentInterface(prepayment);
     }
 
     /**
@@ -237,7 +237,7 @@ contract RequestResponseCoordinator is
     ) internal returns (uint256) {
         // Input validation using the account storage.
         // call to prepayment contract
-        address owner = Prepayment.getAccountOwner(accId);
+        address owner = s_prepayment.getAccountOwner(accId);
         if (owner == address(0)) {
             revert InvalidAccount();
         }
@@ -245,7 +245,7 @@ contract RequestResponseCoordinator is
         // Its important to ensure that the consumer is in fact who they say they
         // are, otherwise they could use someone else's account balance.
         // A nonce of 0 indicates consumer is not allocated to the acc.
-        uint64 currentNonce = Prepayment.getNonce(msg.sender, accId);
+        uint64 currentNonce = s_prepayment.getNonce(msg.sender, accId);
         if (currentNonce == 0) {
             revert InvalidConsumer(accId, msg.sender);
         }
@@ -258,7 +258,7 @@ contract RequestResponseCoordinator is
             revert GasLimitTooBig(callbackGasLimit, s_config.maxGasLimit);
         }
 
-        uint64 nonce = Prepayment.increaseNonce(msg.sender, accId);
+        uint64 nonce = s_prepayment.increaseNonce(msg.sender, accId);
 
         uint256 requestId = computeRequestId(msg.sender, accId, nonce);
         s_requestCommitments[requestId] = keccak256(
@@ -289,11 +289,11 @@ contract RequestResponseCoordinator is
             revert InsufficientPayment(msg.value, fee);
         }
 
-        uint64 accId = Prepayment.createAccount();
-        Prepayment.addConsumer(accId, msg.sender);
+        uint64 accId = s_prepayment.createAccount();
+        s_prepayment.addConsumer(accId, msg.sender);
         bool isDirectPayment = true;
         uint256 requestId = requestDataInternal(req, accId, callbackGasLimit, isDirectPayment);
-        Prepayment.deposit{value: fee}(accId);
+        s_prepayment.deposit{value: fee}(accId);
 
         uint256 remaining = msg.value - fee;
         if (remaining > 0) {
@@ -377,7 +377,7 @@ contract RequestResponseCoordinator is
         // We also add the flat KLAY fee to the payment amount.
         // Its specified in millionths of KLAY, if s_config.fulfillmentFlatFeeKlayPPM = 1
         // 1 KLAY / 1e6 = 1e18 pebs / 1e6 = 1e12 pebs.
-        (uint256 balance, uint64 reqCount, , ) = Prepayment.getAccount(rc.accId);
+        (uint256 balance, uint64 reqCount, , ) = s_prepayment.getAccount(rc.accId);
 
         uint256 payment;
         if (isDirectPayment) {
@@ -390,7 +390,7 @@ contract RequestResponseCoordinator is
             );
         }
 
-        Prepayment.chargeFee(rc.accId, payment, msg.sender);
+        s_prepayment.chargeFee(rc.accId, payment, msg.sender);
 
         // Include payment in the event for tracking costs.
         emit Fulfilled(requestId, response, payment, success);
