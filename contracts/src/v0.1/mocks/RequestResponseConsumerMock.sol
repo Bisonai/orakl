@@ -40,9 +40,31 @@ contract RequestResponseConsumerMock is RequestResponseConsumerBase {
         req.add("get", "https://min-api.cryptocompare.com/data/pricemultifull?fsyms=ETH&tsyms=USD");
         req.add("path", "RAW,ETH,USD,PRICE");
 
-        requestId = sendRequest(
+        requestId = COORDINATOR.sendRequest(
             req,
             accId,
+            requestConfirmations,
+            callbackGasLimit
+        );
+    }
+
+    function requestDataDirect(
+      uint16 requestConfirmations,
+      uint32 callbackGasLimit
+    )
+        public
+        payable
+        onlyOwner
+        returns (uint256 requestId)
+    {
+        bytes32 jobId = keccak256(abi.encodePacked("any-api-int256"));
+
+        Orakl.Request memory req = buildRequest(jobId);
+        req.add("get", "https://min-api.cryptocompare.com/data/pricemultifull?fsyms=ETH&tsyms=USD");
+        req.add("path", "RAW,ETH,USD,PRICE");
+
+        requestId = COORDINATOR.sendRequestPayment{value: msg.value}(
+            req,
             requestConfirmations,
             callbackGasLimit
         );

@@ -81,6 +81,8 @@ contract RequestResponseCoordinator is
     error IncorrectCommitment();
     error NotRequestOwner();
     error Reentrant();
+    error InsufficientPayment(uint256 have, uint256 want);
+    error RefundFailure();
     error InvalidRequestConfirmations(uint16 have, uint16 min, uint16 max);
     error GasLimitTooBig(uint32 have, uint32 want);
     error OracleAlreadyRegistered(address oracle);
@@ -92,9 +94,9 @@ contract RequestResponseCoordinator is
         uint64 indexed accId,
         uint16 minimumRequestConfirmations,
         uint32 callbackGasLimit,
-        address indexed sender,
+        address indexed sender
         /* bool isDirectPayment, */
-        bytes data
+        /* bytes data */
     );
     event Fulfilled(uint256 indexed requestId, uint256 response, uint256 payment, bool success);
     event Cancelled(uint256 indexed requestId);
@@ -104,6 +106,7 @@ contract RequestResponseCoordinator is
         uint32 gasAfterPaymentCalculation,
         FeeConfig feeConfig
     );
+    event DirectPaymentConfigSet(uint256 fulfillmentFee, uint256 baseFee);
 
     event OracleRegistered(address oracle);
     event OracleDeregistered(address oracle);
@@ -203,15 +206,75 @@ contract RequestResponseCoordinator is
         );
     }
 
-    /**
-     * @inheritdoc RequestResponseCoordinatorInterface
-     */
+    function getFeeConfig()
+        external
+        view
+        returns (
+            uint32 fulfillmentFlatFeeKlayPPMTier1,
+            uint32 fulfillmentFlatFeeKlayPPMTier2,
+            uint32 fulfillmentFlatFeeKlayPPMTier3,
+            uint32 fulfillmentFlatFeeKlayPPMTier4,
+            uint32 fulfillmentFlatFeeKlayPPMTier5,
+            uint24 reqsForTier2,
+            uint24 reqsForTier3,
+            uint24 reqsForTier4,
+            uint24 reqsForTier5
+        )
+    {
+        return (
+            s_feeConfig.fulfillmentFlatFeeKlayPPMTier1,
+            s_feeConfig.fulfillmentFlatFeeKlayPPMTier2,
+            s_feeConfig.fulfillmentFlatFeeKlayPPMTier3,
+            s_feeConfig.fulfillmentFlatFeeKlayPPMTier4,
+            s_feeConfig.fulfillmentFlatFeeKlayPPMTier5,
+            s_feeConfig.reqsForTier2,
+            s_feeConfig.reqsForTier3,
+            s_feeConfig.reqsForTier4,
+            s_feeConfig.reqsForTier5
+        );
+    }
+
+    function setDirectPaymentConfig(
+        DirectPaymentConfig memory directPaymentConfig
+    ) public onlyOwner {
+        s_directPaymentConfig = directPaymentConfig;
+        emit DirectPaymentConfigSet(
+            directPaymentConfig.fulfillmentFee,
+            directPaymentConfig.baseFee
+        );
+    }
+
+    function getDirectPaymentConfig() external view returns (uint256, uint256) {
+        return (s_directPaymentConfig.fulfillmentFee, s_directPaymentConfig.baseFee);
+    }
+
+    function estimateDirectPaymentFee() public view returns (uint256) {
+        return s_directPaymentConfig.fulfillmentFee + s_directPaymentConfig.baseFee;
+    }
+
     function sendRequest(
         Orakl.Request memory req,
         uint64 accId,
         uint16 requestConfirmations,
         uint32 callbackGasLimit
-    ) public nonReentrant returns (uint256) {
+    ) external nonReentrant returns (uint256 requestId) {
+        bool isDirectPayment = false;
+        requestId = sendRequestInternal(
+            req,
+            accId,
+            requestConfirmations,
+            callbackGasLimit,
+            isDirectPayment
+        );
+    }
+
+    function sendRequestInternal(
+        Orakl.Request memory req,
+        uint64 accId,
+        uint16 requestConfirmations,
+        uint32 callbackGasLimit,
+        bool isDirectPayment
+    ) internal returns (uint256) {
         // Input validation using the account storage.
         // call to prepayment contract
         address owner = Prepayment.getAccountOwner(accId);
@@ -256,17 +319,49 @@ contract RequestResponseCoordinator is
 
         s_requestOwner[requestId] = msg.sender;
 
-        /* bool isDirectPayment = false; */
         emit Requested(
             requestId,
             req.id,
             accId,
             requestConfirmations,
             callbackGasLimit,
-            msg.sender,
+            msg.sender
             /* isDirectPayment, */
-            req.buf.buf
+            /* req.buf.buf */
         );
+
+        return requestId;
+    }
+
+    function sendRequestPayment(
+        Orakl.Request memory req,
+        uint16 requestConfirmations,
+        uint32 callbackGasLimit
+    ) external payable returns (uint256) {
+        uint256 fee = estimateDirectPaymentFee();
+        if (msg.value < fee) {
+            revert InsufficientPayment(msg.value, fee);
+        }
+
+        uint64 accId = Prepayment.createAccount();
+        Prepayment.addConsumer(accId, msg.sender);
+        bool isDirectPayment = true;
+        uint256 requestId = sendRequestInternal(
+            req,
+            accId,
+            requestConfirmations,
+            callbackGasLimit,
+            isDirectPayment
+        );
+        Prepayment.deposit{value: fee}(accId);
+
+        uint256 remaining = msg.value - fee;
+        if (remaining > 0) {
+            (bool sent, ) = msg.sender.call{value: remaining}("");
+            if (!sent) {
+                revert RefundFailure();
+            }
+        }
 
         return requestId;
     }

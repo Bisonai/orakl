@@ -95,8 +95,8 @@ describe('Request-Response user contract', function () {
       'accId',
       'minimumRequestConfirmations',
       'callbackGasLimit',
-      'sender',
-      'data'
+      'sender'
+      // 'data'
     ]
     for (const arg of eventArgs) {
       expect(requestEvent.args[arg]).to.not.be.undefined
@@ -137,6 +137,7 @@ describe('Request-Response user contract', function () {
     const prepaymentEvent = prepaymentContract.interface.parseLog(fulfillReceipt.events[0])
     expect(prepaymentEvent.name).to.be.equal('AccountBalanceDecreased')
     expect(prepaymentEvent.args.accId).to.be.equal(accId)
+
     // FIXME
     // expect(prepaymentEvent.args.oldBalance).to.be.equal()
     // expect(prepaymentEvent.args.newBalance).to.be.equal()

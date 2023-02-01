@@ -40,6 +40,12 @@ interface RequestResponseCoordinatorInterface {
         uint32 callbackGasLimit
     ) external returns (uint256);
 
+    function sendRequestPayment(
+        Orakl.Request memory req,
+        uint16 requestConfirmations,
+        uint32 callbackGasLimit
+    ) external payable returns (uint256);
+
     /**
      * @notice Cancelling oracle request
      * @param requestId - ID of the Oracle Request
