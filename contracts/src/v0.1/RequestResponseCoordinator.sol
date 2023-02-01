@@ -226,12 +226,7 @@ contract RequestResponseCoordinator is
         uint32 callbackGasLimit
     ) external nonReentrant returns (uint256 requestId) {
         bool isDirectPayment = false;
-        requestId = sendRequestInternal(
-            req,
-            accId,
-            callbackGasLimit,
-            isDirectPayment
-        );
+        requestId = sendRequestInternal(req, accId, callbackGasLimit, isDirectPayment);
     }
 
     function sendRequestInternal(
@@ -297,12 +292,7 @@ contract RequestResponseCoordinator is
         uint64 accId = Prepayment.createAccount();
         Prepayment.addConsumer(accId, msg.sender);
         bool isDirectPayment = true;
-        uint256 requestId = sendRequestInternal(
-            req,
-            accId,
-            callbackGasLimit,
-            isDirectPayment
-        );
+        uint256 requestId = sendRequestInternal(req, accId, callbackGasLimit, isDirectPayment);
         Prepayment.deposit{value: fee}(accId);
 
         uint256 remaining = msg.value - fee;

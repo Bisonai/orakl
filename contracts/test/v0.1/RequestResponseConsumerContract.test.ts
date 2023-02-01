@@ -79,7 +79,7 @@ describe('Request-Response user contract', function () {
 
     expect(requestReceipt.events.length).to.be.equal(1)
     const requestEvent = coordinatorContract.interface.parseLog(requestReceipt.events[0])
-    expect(requestEvent.name).to.be.equal('Requested')
+    expect(requestEvent.name).to.be.equal('DataRequested')
 
     const eventArgs = [
       'requestId',
