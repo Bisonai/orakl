@@ -36,7 +36,6 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   console.log('Configure Request-Response coordinator')
   await (
     await requestResponseCoordinator.setConfig(
-      requestResponseConfig.minimumRequestConfirmations,
       requestResponseConfig.maxGasLimit,
       requestResponseConfig.gasAfterPaymentCalculation,
       requestResponseConfig.feeConfig

@@ -1,5 +1,4 @@
 {
-    "minimumRequestConfirmations": 3,
     "maxGasLimit": 1000000,
     "gasAfterPaymentCalculation": 1000,
     "feeConfig": {

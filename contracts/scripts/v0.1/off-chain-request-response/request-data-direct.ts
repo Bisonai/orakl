@@ -11,9 +11,11 @@ async function main() {
     consumer
   )
 
-  const accId = 1
   const callbackGasLimit = 500_000
-  await requestResponseConsumerSigner.requestData(accId, callbackGasLimit)
+
+  await requestResponseConsumerSigner.requestDataDirect(callbackGasLimit, {
+    value: ethers.utils.parseEther('1.0')
+  })
 }
 
 main().catch((error) => {
