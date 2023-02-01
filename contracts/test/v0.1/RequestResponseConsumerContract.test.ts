@@ -112,7 +112,7 @@ describe('Request-Response user contract', function () {
     )
 
     const fulfillReceipt = await (
-      await coordinatorContractOracleSigner.fulfillRequest(
+      await coordinatorContractOracleSigner.fulfillDataRequest(
         requestId,
         response,
         requestCommitment,
@@ -136,7 +136,7 @@ describe('Request-Response user contract', function () {
 
     // COORDINATOR EVENT
     const fulfillEvent = coordinatorContract.interface.parseLog(fulfillReceipt.events[1])
-    expect(fulfillEvent.name).to.be.equal('Fulfilled')
+    expect(fulfillEvent.name).to.be.equal('DataRequestFulfilled')
     expect(fulfillEvent.args.requestId).to.be.equal(requestId)
     expect(Number(await consumerContract.s_response())).to.be.equal(response)
   })

@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.16;
 
-// TODO direct payment config separation
-
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "./interfaces/CoordinatorBaseInterface.sol";
 import "./interfaces/RequestResponseCoordinatorInterface.sol";
@@ -71,7 +69,6 @@ contract RequestResponseCoordinator is
 
     DirectPaymentConfig s_directPaymentConfig;
 
-    error InvalidRequest();
     error InvalidConsumer(uint64 accId, address consumer);
     error InvalidAccount();
     error UnregisteredOracleFulfillment(address oracle);
@@ -94,8 +91,8 @@ contract RequestResponseCoordinator is
         bool isDirectPayment,
         bytes data
     );
-    event Fulfilled(uint256 indexed requestId, uint256 response, uint256 payment, bool success);
-    event Cancelled(uint256 indexed requestId);
+    event DataRequestFulfilled(uint256 indexed requestId, uint256 response, uint256 payment, bool success);
+    event DataRequestCancelled(uint256 indexed requestId);
     event ConfigSet(uint32 maxGasLimit, uint32 gasAfterPaymentCalculation, FeeConfig feeConfig);
     event DirectPaymentConfigSet(uint256 fulfillmentFee, uint256 baseFee);
 
@@ -393,7 +390,7 @@ contract RequestResponseCoordinator is
         s_prepayment.chargeFee(rc.accId, payment, msg.sender);
 
         // Include payment in the event for tracking costs.
-        emit Fulfilled(requestId, response, payment, success);
+        emit DataRequestFulfilled(requestId, response, payment, success);
         return payment;
     }
 
@@ -413,7 +410,7 @@ contract RequestResponseCoordinator is
         delete s_requestCommitments[requestId];
         delete s_requestOwner[requestId];
 
-        emit Cancelled(requestId);
+        emit DataRequestCancelled(requestId);
     }
 
     /**
