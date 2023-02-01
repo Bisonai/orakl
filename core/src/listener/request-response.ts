@@ -29,7 +29,7 @@ function processEvent(iface: ethers.utils.Interface, queue: Queue) {
     }
     console.debug('requestResponse:processEvent:data', data)
 
-    await queue.add('icn', data)
+    await queue.add('request-response', data)
   }
 
   return wrapper
