@@ -494,16 +494,16 @@ contract VRFCoordinator is
         uint16 requestConfirmations,
         uint32 callbackGasLimit,
         uint32 numWords
-    ) public nonReentrant onlyValidKeyHash(keyHash) returns (uint256) {
-        uint256 requestId = requestRandomWordsInternal(
+    ) external nonReentrant onlyValidKeyHash(keyHash) returns (uint256 requestId) {
+        bool isDirectPayment = false;
+        requestId = requestRandomWordsInternal(
             keyHash,
             accId,
             requestConfirmations,
             callbackGasLimit,
             numWords,
-            false
+            isDirectPayment
         );
-        return requestId;
     }
 
     /**
@@ -514,7 +514,7 @@ contract VRFCoordinator is
         uint16 requestConfirmations,
         uint32 callbackGasLimit,
         uint32 numWords
-    ) external payable onlyValidKeyHash(keyHash) returns (uint256) {
+    ) external nonReentrant payable onlyValidKeyHash(keyHash) returns (uint256) {
         uint256 vrfFee = estimateDirectPaymentFee();
         if (msg.value < vrfFee) {
             revert InsufficientPayment(msg.value, vrfFee);
