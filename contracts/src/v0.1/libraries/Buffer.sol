@@ -32,7 +32,7 @@ library Buffer {
       capacity += 32 - (capacity % 32);
     }
 
-    //allocating memory space for buffer
+    // allocating memory space for buffer
     buf.capacity = capacity;
     assembly {
       let ptr := mload(0x40)

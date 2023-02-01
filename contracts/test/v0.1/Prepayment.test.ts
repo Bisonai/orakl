@@ -12,6 +12,7 @@ describe('Prepayment contract', function () {
       signer: deployer
     })
     prepaymentContract = await prepaymentContract.deploy()
+    await prepaymentContract.deployed()
 
     let coordinatorContract = await ethers.getContractFactory('VRFCoordinator', {
       signer: deployer
@@ -22,77 +23,109 @@ describe('Prepayment contract', function () {
       signer: consumer
     })
     consumerContract = await consumerContract.deploy(coordinatorContract.address)
+    await consumerContract.deployed()
 
-    const accId = await createAccount(prepaymentContract)
+    const accId = await createAccount(prepaymentContract.address, consumerContract.address)
 
-    return { accId, deployer, consumer, prepaymentContract, coordinatorContract, consumerContract }
+    const prepaymentContractConsumerSigner = await ethers.getContractAt(
+      'Prepayment',
+      prepaymentContract.address,
+      consumer
+    )
+
+    return {
+      accId,
+      deployer,
+      consumer,
+      prepaymentContract,
+      prepaymentContractConsumerSigner,
+      coordinatorContract,
+      consumerContract
+    }
   }
 
   it('Should add consumer', async function () {
-    const { prepaymentContract, deployer, accId } = await loadFixture(deployFixture)
-    const ownerOfAccId = await prepaymentContract.getAccountOwner(accId)
-    expect(ownerOfAccId).to.be.equal(deployer)
+    const { prepaymentContractConsumerSigner, consumer, deployer, accId } = await loadFixture(
+      deployFixture
+    )
 
-    await prepaymentContract.addConsumer(accId, '0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9')
-    await prepaymentContract.addConsumer(accId, '0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512')
+    const ownerOfAccId = await prepaymentContractConsumerSigner.getAccountOwner(accId)
+    expect(ownerOfAccId).to.be.equal(consumer)
 
-    const transactionTemp = await prepaymentContract.getAccount(accId)
+    await prepaymentContractConsumerSigner.addConsumer(
+      accId,
+      '0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9'
+    )
+    await prepaymentContractConsumerSigner.addConsumer(
+      accId,
+      '0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512'
+    )
+
+    const transactionTemp = await prepaymentContractConsumerSigner.getAccount(accId)
     expect(transactionTemp.consumers.length).to.equal(2)
   })
 
   it('Should remove consumer', async function () {
-    const { prepaymentContract, deployer, accId } = await loadFixture(deployFixture)
+    const { prepaymentContractConsumerSigner, deployer, accId } = await loadFixture(deployFixture)
     const consumer0 = '0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9'
     const consumer1 = '0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512'
 
-    await prepaymentContract.addConsumer(accId, consumer0)
-    await prepaymentContract.addConsumer(accId, consumer1)
+    await prepaymentContractConsumerSigner.addConsumer(accId, consumer0)
+    await prepaymentContractConsumerSigner.addConsumer(accId, consumer1)
 
-    const consumerBefore = (await prepaymentContract.getAccount(accId)).consumers.length
-    await prepaymentContract.removeConsumer(accId, consumer1)
-    const consumerAfter = (await prepaymentContract.getAccount(accId)).consumers.length
+    const consumerBefore = (await prepaymentContractConsumerSigner.getAccount(accId)).consumers
+      .length
+    await prepaymentContractConsumerSigner.removeConsumer(accId, consumer1)
+    const consumerAfter = (await prepaymentContractConsumerSigner.getAccount(accId)).consumers
+      .length
 
     expect(consumerBefore).to.be.equal(consumerAfter + 1)
   })
 
   it('Should deposit', async function () {
-    const { prepaymentContract, accId } = await loadFixture(deployFixture)
-    const balanceBefore = await prepaymentContract.getAccount(accId)
+    const { prepaymentContractConsumerSigner, accId } = await loadFixture(deployFixture)
+    const balanceBefore = await prepaymentContractConsumerSigner.getAccount(accId)
     const value = 1_000_000_000_000_000
-    await prepaymentContract.deposit(accId, { value })
-    const balanceAfter = await prepaymentContract.getAccount(accId)
-    expect(balanceBefore.balance + value).to.be.equal(balanceAfter.balance)
+    await prepaymentContractConsumerSigner.deposit(accId, { value })
+    const balanceAfter = await prepaymentContractConsumerSigner.getAccount(accId)
+    expect(balanceBefore.balance.add(value)).to.be.equal(balanceAfter.balance)
   })
 
   it('Should withdraw', async function () {
-    const { prepaymentContract, deployer, accId } = await loadFixture(deployFixture)
+    const { prepaymentContractConsumerSigner, consumer, accId } = await loadFixture(deployFixture)
     const depositValue = 100_000
-    const transactionDeposit = await prepaymentContract.deposit(accId, { value: depositValue })
+    const transactionDeposit = await prepaymentContractConsumerSigner.deposit(accId, {
+      value: depositValue
+    })
 
-    const balanceOwnerBefore = await ethers.provider.getBalance(deployer)
-    const balanceAccBefore = (await prepaymentContract.getAccount(accId)).balance
+    const balanceOwnerBefore = await ethers.provider.getBalance(consumer)
+    const balanceAccBefore = (await prepaymentContractConsumerSigner.getAccount(accId)).balance
     expect(balanceAccBefore).to.be.equal(depositValue)
 
     const withdrawValue = 50_000
-    const txReceipt = await (await prepaymentContract.withdraw(accId, withdrawValue)).wait()
+    const txReceipt = await (
+      await prepaymentContractConsumerSigner.withdraw(accId, withdrawValue)
+    ).wait()
 
-    const balanceOwnerAfter = await ethers.provider.getBalance(deployer)
-    const balanceAccAfter = (await prepaymentContract.getAccount(accId)).balance
+    const balanceOwnerAfter = await ethers.provider.getBalance(consumer)
+    const balanceAccAfter = (await prepaymentContractConsumerSigner.getAccount(accId)).balance
     expect(balanceAccAfter).to.be.equal(depositValue - withdrawValue)
 
     expect(
       balanceOwnerBefore
         .add(withdrawValue)
-        .sub(txReceipt.cumulativeGasUsed * txReceipt.effectiveGasPrice)
+        .sub(txReceipt.cumulativeGasUsed.mul(txReceipt.effectiveGasPrice))
     ).to.be.equal(balanceOwnerAfter)
   })
 
   it('Should cancel Account', async function () {
-    const { prepaymentContract, deployer } = await loadFixture(deployFixture)
-    const txReceipt = await (await prepaymentContract.cancelAccount(1, deployer)).wait()
+    const { prepaymentContractConsumerSigner, deployer } = await loadFixture(deployFixture)
+    const txReceipt = await (
+      await prepaymentContractConsumerSigner.cancelAccount(1, deployer)
+    ).wait()
     expect(txReceipt.events.length).to.be.equal(1)
 
-    const txEvent = prepaymentContract.interface.parseLog(txReceipt.events[0])
+    const txEvent = prepaymentContractConsumerSigner.interface.parseLog(txReceipt.events[0])
     const { accId, to, balance } = txEvent.args
     expect(accId).to.be.equal(1)
     expect(to).to.be.equal(deployer)
@@ -100,8 +133,15 @@ describe('Prepayment contract', function () {
   })
 
   it('Should not cancel Account with pending tx', async function () {
-    const { accId, prepaymentContract, deployer, consumer, coordinatorContract, consumerContract } =
-      await loadFixture(deployFixture)
+    const {
+      accId,
+      prepaymentContract,
+      prepaymentContractConsumerSigner,
+      deployer,
+      consumer,
+      coordinatorContract,
+      consumerContract
+    } = await loadFixture(deployFixture)
     const {
       oracle,
       publicProvingKey,
@@ -121,7 +161,7 @@ describe('Prepayment contract', function () {
       Object.values(feeConfig)
     )
 
-    await prepaymentContract.addConsumer(accId, consumerContract.address)
+    await prepaymentContractConsumerSigner.addConsumer(accId, consumerContract.address)
     await prepaymentContract.addCoordinator(coordinatorContract.address)
 
     await consumerContract.requestRandomWords(
@@ -132,15 +172,20 @@ describe('Prepayment contract', function () {
       1
     )
 
-    await expect(prepaymentContract.cancelAccount(accId, consumer)).to.be.revertedWithCustomError(
-      prepaymentContract,
-      'PendingRequestExists'
-    )
+    await expect(
+      prepaymentContractConsumerSigner.cancelAccount(accId, consumer)
+    ).to.be.revertedWithCustomError(prepaymentContract, 'PendingRequestExists')
   })
 
   it('Should remove Coordinator', async function () {
-    const { accId, prepaymentContract, deployer, coordinatorContract, consumer } =
-      await loadFixture(deployFixture)
+    const {
+      accId,
+      prepaymentContract,
+      prepaymentContractConsumerSigner,
+      deployer,
+      coordinatorContract,
+      consumer
+    } = await loadFixture(deployFixture)
     const {
       oracle,
       publicProvingKey,
@@ -160,7 +205,7 @@ describe('Prepayment contract', function () {
       Object.values(feeConfig)
     )
 
-    await prepaymentContract.addConsumer(accId, consumer)
+    await prepaymentContractConsumerSigner.addConsumer(accId, consumer)
     await prepaymentContract.addCoordinator(coordinatorContract.address)
     const txReceipt = await (
       await prepaymentContract.removeCoordinator(coordinatorContract.address)

@@ -50,7 +50,7 @@ function readKeyOrValue(obj) {
   return keyOrValue
 }
 
-export function decodeAnyApiRequest(anyApiRequest: string): IRequest {
+export function decodeRequest(anyApiRequest: string): IRequest {
   anyApiRequest = remove0x(anyApiRequest)
 
   const request = { get: '' }

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
-// Reference - https://github.com/smartcontractkit/chainlink/blob/develop/contracts/src/v0.8/vendor/CBORChainlink.sol
-
 pragma solidity ^0.8.16;
+
+// https://github.com/smartcontractkit/chainlink/blob/develop/contracts/src/v0.8/vendor/CBORChainlink.sol
 
 import {Buffer} from './Buffer.sol';
 

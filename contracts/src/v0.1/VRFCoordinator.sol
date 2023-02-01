@@ -393,13 +393,16 @@ contract VRFCoordinator is
         return fc.fulfillmentFlatFeeKlayPPMTier5;
     }
 
+    /**
+     * @inheritdoc CoordinatorBaseInterface
+     */
     function pendingRequestExists(
-        uint64 accId,
         address consumer,
+        uint64 accId,
         uint64 nonce
     ) public view returns (bool) {
-        for (uint256 j = 0; j < s_provingKeyHashes.length; j++) {
-            (uint256 reqId, ) = computeRequestId(s_provingKeyHashes[j], consumer, accId, nonce);
+        for (uint256 i = 0; i < s_provingKeyHashes.length; i++) {
+            (uint256 reqId, ) = computeRequestId(s_provingKeyHashes[i], consumer, accId, nonce);
             if (s_requestCommitments[reqId] != 0) {
                 return true;
             }
@@ -432,7 +435,7 @@ contract VRFCoordinator is
 
         // Its important to ensure that the consumer is in fact who they say they
         // are, otherwise they could use someone else's account balance.
-        // A nonce of 0 indicates consumer is not allocated to the sub.
+        // A nonce of 0 indicates consumer is not allocated to the acc.
         uint64 currentNonce = Prepayment.getNonce(msg.sender, accId);
         if (currentNonce == 0) {
             revert InvalidConsumer(accId, msg.sender);
@@ -460,10 +463,6 @@ contract VRFCoordinator is
         if (numWords > MAX_NUM_WORDS) {
             revert NumWordsTooBig(numWords, MAX_NUM_WORDS);
         }
-
-        // Note we do not check whether the keyHash is valid to save gas.
-        // The consequence for users is that they can send requests
-        // for invalid keyHashes which will simply not be fulfilled.
 
         uint64 nonce = Prepayment.increaseNonce(msg.sender, accId);
         (uint256 requestId, uint256 preSeed) = computeRequestId(keyHash, msg.sender, accId, nonce);
@@ -495,16 +494,16 @@ contract VRFCoordinator is
         uint16 requestConfirmations,
         uint32 callbackGasLimit,
         uint32 numWords
-    ) public nonReentrant onlyValidKeyHash(keyHash) returns (uint256) {
-        uint256 requestId = requestRandomWordsInternal(
+    ) external nonReentrant onlyValidKeyHash(keyHash) returns (uint256 requestId) {
+        bool isDirectPayment = false;
+        requestId = requestRandomWordsInternal(
             keyHash,
             accId,
             requestConfirmations,
             callbackGasLimit,
             numWords,
-            false
+            isDirectPayment
         );
-        return requestId;
     }
 
     /**
@@ -515,7 +514,7 @@ contract VRFCoordinator is
         uint16 requestConfirmations,
         uint32 callbackGasLimit,
         uint32 numWords
-    ) external payable onlyValidKeyHash(keyHash) returns (uint256) {
+    ) external payable nonReentrant onlyValidKeyHash(keyHash) returns (uint256) {
         uint256 vrfFee = estimateDirectPaymentFee();
         if (msg.value < vrfFee) {
             revert InsufficientPayment(msg.value, vrfFee);

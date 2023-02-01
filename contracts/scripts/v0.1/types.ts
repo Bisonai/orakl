@@ -20,6 +20,10 @@ interface IVrfOracle {
   publicProvingKey: [string, string]
 }
 
+interface IRequestResponseOracle {
+  address: string
+}
+
 export interface IVrfConfig {
   minimumRequestConfirmations: number
   maxGasLimit: number
@@ -27,4 +31,13 @@ export interface IVrfConfig {
   feeConfig: IFeeConfig
   paymentConfig: IDirectPaymentConfig
   oracle: IVrfOracle[]
+}
+
+export interface IRequestResponseConfig {
+  minimumRequestConfirmations: number
+  maxGasLimit: number
+  gasAfterPaymentCalculation: number
+  feeConfig: IFeeConfig
+  paymentConfig: IDirectPaymentConfig
+  oracle: IRequestResponseOracle[]
 }

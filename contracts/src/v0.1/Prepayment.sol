@@ -346,8 +346,8 @@ contract Prepayment is
             for (uint256 j = 0; j < s_coordinators.length; j++) {
                 if (
                     s_coordinators[j].pendingRequestExists(
-                        accId,
                         accConfig.consumers[i],
+                        accId,
                         s_consumers[accConfig.consumers[i]][accId]
                     )
                 ) {

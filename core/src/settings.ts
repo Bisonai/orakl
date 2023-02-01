@@ -43,11 +43,11 @@ export const LISTENER_ROOT_DIR = './tmp/listener/'
 export const localAggregatorFn = aggregatorMapping[LOCAL_AGGREGATOR?.toUpperCase() || 'MEAN']
 export const FIXED_HEARTBEAT_QUEUE_NAME = 'fixed-heartbeat-queue'
 export const RANDOM_HEARTBEAT_QUEUE_NAME = 'random-heartbeat-queue'
-export const WORKER_ANY_API_QUEUE_NAME = 'worker-any-api-queue'
+export const WORKER_REQUEST_RESPONSE_QUEUE_NAME = 'worker-request-response-queue'
 export const WORKER_PREDEFINED_FEED_QUEUE_NAME = 'worker-predefined-feed-queue'
 export const WORKER_VRF_QUEUE_NAME = 'worker-vrf-queue'
 export const WORKER_AGGREGATOR_QUEUE_NAME = 'worker-aggregator-queue'
-export const REPORTER_ANY_API_QUEUE_NAME = 'reporter-any-api-queue'
+export const REPORTER_REQUEST_RESPONSE_QUEUE_NAME = 'reporter-request-response-queue'
 export const REPORTER_PREDEFINED_FEED_QUEUE_NAME = 'reporter-predefined-feed-queue'
 export const REPORTER_VRF_QUEUE_NAME = 'reporter-vrf-queue'
 export const REPORTER_AGGREGATOR_QUEUE_NAME = 'reporter-aggregator-queue'
@@ -55,11 +55,11 @@ export const REPORTER_AGGREGATOR_QUEUE_NAME = 'reporter-aggregator-queue'
 export const ALL_QUEUES = [
   FIXED_HEARTBEAT_QUEUE_NAME,
   RANDOM_HEARTBEAT_QUEUE_NAME,
-  WORKER_ANY_API_QUEUE_NAME,
+  WORKER_REQUEST_RESPONSE_QUEUE_NAME,
   WORKER_PREDEFINED_FEED_QUEUE_NAME,
   WORKER_VRF_QUEUE_NAME,
   WORKER_AGGREGATOR_QUEUE_NAME,
-  REPORTER_ANY_API_QUEUE_NAME,
+  REPORTER_REQUEST_RESPONSE_QUEUE_NAME,
   REPORTER_PREDEFINED_FEED_QUEUE_NAME,
   REPORTER_VRF_QUEUE_NAME,
   REPORTER_AGGREGATOR_QUEUE_NAME
