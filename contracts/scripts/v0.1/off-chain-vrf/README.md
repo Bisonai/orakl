@@ -9,6 +9,12 @@ To deploy the smart contracts, run `npx hardhat deploy --network localhost`.
 npx hardhat --network localhost run request-vrf.ts
 ```
 
+## Request VRF with direct payment
+
+```
+npx hardhat --network localhost run request-vrf-direct.ts
+```
+
 ## Read VRF response
 
 ```
