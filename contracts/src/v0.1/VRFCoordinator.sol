@@ -514,7 +514,7 @@ contract VRFCoordinator is
         uint16 requestConfirmations,
         uint32 callbackGasLimit,
         uint32 numWords
-    ) external nonReentrant payable onlyValidKeyHash(keyHash) returns (uint256) {
+    ) external payable nonReentrant onlyValidKeyHash(keyHash) returns (uint256) {
         uint256 vrfFee = estimateDirectPaymentFee();
         if (msg.value < vrfFee) {
             revert InsufficientPayment(msg.value, vrfFee);
