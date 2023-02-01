@@ -20,10 +20,6 @@ interface RequestResponseCoordinatorInterface {
      * @param req The initialized Request
      * @param accId  - The ID of the account. Must be funded
      * with the minimum account balance required for the selected keyHash.
-     * @param requestConfirmations - How many blocks you'd like the
-     * oracle to wait before responding to the request. See SECURITY CONSIDERATIONS
-     * for why you may want to request more. The acceptable range is
-     * [minimumRequestBlockConfirmations, 200].
      * @param callbackGasLimit - How much gas you'd like to receive in your
      * fulfillRequest callback. Note that gasleft() inside fulfillRequest
      * may be slightly less than this amount because of gas used calling the function
@@ -36,13 +32,11 @@ interface RequestResponseCoordinatorInterface {
     function sendRequest(
         Orakl.Request memory req,
         uint64 accId,
-        uint16 requestConfirmations,
         uint32 callbackGasLimit
     ) external returns (uint256);
 
     function sendRequestPayment(
         Orakl.Request memory req,
-        uint16 requestConfirmations,
         uint32 callbackGasLimit
     ) external payable returns (uint256);
 

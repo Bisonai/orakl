@@ -223,14 +223,12 @@ contract RequestResponseCoordinator is
     function sendRequest(
         Orakl.Request memory req,
         uint64 accId,
-        uint16 requestConfirmations,
         uint32 callbackGasLimit
     ) external nonReentrant returns (uint256 requestId) {
         bool isDirectPayment = false;
         requestId = sendRequestInternal(
             req,
             accId,
-            requestConfirmations,
             callbackGasLimit,
             isDirectPayment
         );
@@ -239,7 +237,6 @@ contract RequestResponseCoordinator is
     function sendRequestInternal(
         Orakl.Request memory req,
         uint64 accId,
-        uint16 requestConfirmations,
         uint32 callbackGasLimit,
         bool isDirectPayment
     ) internal returns (uint256) {
@@ -290,7 +287,6 @@ contract RequestResponseCoordinator is
 
     function sendRequestPayment(
         Orakl.Request memory req,
-        uint16 requestConfirmations,
         uint32 callbackGasLimit
     ) external payable returns (uint256) {
         uint256 fee = estimateDirectPaymentFee();
@@ -304,7 +300,6 @@ contract RequestResponseCoordinator is
         uint256 requestId = sendRequestInternal(
             req,
             accId,
-            requestConfirmations,
             callbackGasLimit,
             isDirectPayment
         );
