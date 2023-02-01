@@ -1,14 +1,14 @@
 import { parseArgs } from 'node:util'
 import { aggregatorWorker } from './aggregator'
 import { vrfWorker } from './vrf'
-import { anyApiWorker } from './any-api'
+import { worker as requestResponseWorker } from './request-response'
 import { predefinedFeedWorker } from './predefined-feed'
 import { healthCheck } from '../health-checker'
 
 const WORKERS = {
   AGGREGATOR: aggregatorWorker,
   VRF: vrfWorker,
-  ANY_API: anyApiWorker,
+  REQUEST_RESPONSE: requestResponseWorker,
   PREDEFINED_FEED: predefinedFeedWorker
 }
 

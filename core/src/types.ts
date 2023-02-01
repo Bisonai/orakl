@@ -14,7 +14,7 @@ export interface DataFeedRequest {
 export interface IListeners {
   VRF: string[]
   AGGREGATORS: string[]
-  ANY_API: string[]
+  REQUEST_RESPONSE: string[]
 }
 
 export interface ILog {
@@ -141,7 +141,7 @@ export interface IPredefinedFeedListenerWorker {
   _data: string
 }
 
-export interface IAnyApiListenerWorker {
+export interface IRequestResponseListenerWorker {
   oracleCallbackAddress: string
   requestId: string
   jobId: string
@@ -190,7 +190,7 @@ export interface IAggregatorHeartbeatWorker {
 
 // Worker -> Reporter
 
-export interface IAnyApiWorkerReporter {
+export interface IRequestResponseWorkerReporter {
   oracleCallbackAddress: string
   requestId: string
   jobId: string

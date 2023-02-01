@@ -1,10 +1,10 @@
 import { parseArgs } from 'node:util'
 import { buildAggregatorListener } from './aggregator'
 import { buildVrfListener } from './vrf'
-import { buildAnyApiListener } from './any-api'
+import { buildListener as buildRequestResponseListener } from './request-response'
 import { validateListenerConfig } from './utils'
 import { IcnError, IcnErrorCode } from '../errors'
-import { WORKER_ANY_API_QUEUE_NAME, WORKER_VRF_QUEUE_NAME, DB, CHAIN } from '../settings'
+import { WORKER_REQUEST_RESPONSE_QUEUE_NAME, WORKER_VRF_QUEUE_NAME, DB, CHAIN } from '../settings'
 import { getListeners } from '../settings'
 import { healthCheck } from '../health-checker'
 
@@ -18,8 +18,8 @@ const LISTENERS = {
     fn: buildVrfListener
   },
   RequestResponse: {
-    queueName: WORKER_ANY_API_QUEUE_NAME,
-    fn: buildAnyApiListener
+    queueName: WORKER_REQUEST_RESPONSE_QUEUE_NAME,
+    fn: buildRequestResponseListener
   }
 }
 

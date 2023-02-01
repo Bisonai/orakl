@@ -2,21 +2,21 @@ import { Queue } from 'bullmq'
 import { ethers } from 'ethers'
 import { RequestResponseCoordinator__factory } from '@bisonai-cic/icn-contracts'
 import { Event } from './event'
-import { IListenerConfig, INewRequest, IAnyApiListenerWorker } from '../types'
+import { IListenerConfig, INewRequest, IRequestResponseListenerWorker } from '../types'
 
-export function buildAnyApiListener(queueName: string, config: IListenerConfig[]) {
+export function buildListener(queueName: string, config: IListenerConfig[]) {
   // FIXME remove loop and listen on multiple contract for the same event
   for (const c of config) {
-    new Event(queueName, processAnyApiEvent, RequestResponseCoordinator__factory.abi, c).listen()
+    new Event(queueName, processEvent, RequestResponseCoordinator__factory.abi, c).listen()
   }
 }
 
-export function processAnyApiEvent(iface: ethers.utils.Interface, queue: Queue) {
+function processEvent(iface: ethers.utils.Interface, queue: Queue) {
   async function wrapper(log) {
     const eventData = iface.parseLog(log).args as unknown as INewRequest
-    console.debug('processAnyApiEvent:eventData', eventData)
+    console.debug('requestResponse:processEvent:eventData', eventData)
 
-    const data: IAnyApiListenerWorker = {
+    const data: IRequestResponseListenerWorker = {
       oracleCallbackAddress: log.address,
       requestId: eventData.requestId.toString(),
       jobId: eventData.jobId.toString(),
@@ -25,7 +25,7 @@ export function processAnyApiEvent(iface: ethers.utils.Interface, queue: Queue) 
       callbackFunctionId: eventData.callbackFunctionId.toString(),
       _data: eventData._data.toString()
     }
-    console.debug('processAnyApiEvent:data', data)
+    console.debug('requestResponse:processEvent:data', data)
 
     await queue.add('icn', data)
   }

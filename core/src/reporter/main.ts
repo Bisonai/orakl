@@ -1,13 +1,13 @@
 import { parseArgs } from 'node:util'
 import { aggregatorReporter } from './aggregator'
 import { vrfReporter } from './vrf'
-import { anyApiReporter } from './any-api'
+import { reporter as requestResponseReporter } from './request-response'
 import { healthCheck } from '../health-checker'
 
 const REPORTERS = {
   AGGREGATOR: aggregatorReporter,
   VRF: vrfReporter,
-  ANY_API: anyApiReporter
+  REQUEST_RESPONSE: requestResponseReporter
 }
 
 async function main() {
