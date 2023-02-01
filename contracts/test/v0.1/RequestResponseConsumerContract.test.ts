@@ -42,7 +42,7 @@ describe('Request-Response user contract', function () {
     await consumerContract.deployed()
 
     const accId = await createAccount(
-      prepaymentContract.address,
+      await coordinatorContract.getPrepaymentAddress(),
       consumerContract.address,
       true,
       true
