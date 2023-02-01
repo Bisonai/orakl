@@ -1,22 +1,22 @@
-# Off-chain VRF Scripts
+# VRF Scripts
 
-Before running scripts in this folder, one must deploy `VRFCoordinator` and `VRFConsumerContract`.
+Before running scripts in this folder, one must deploy `VRFCoordinator` and `VRFConsumerMock`.
 To deploy the smart contracts, run `npx hardhat deploy --network localhost`.
 
 ## Request VRF
 
 ```
-npx hardhat --network localhost run request-vrf.ts
+npx hardhat run request-vrf.ts --network localhost
 ```
 
 ## Request VRF with direct payment
 
 ```
-npx hardhat --network localhost run request-vrf-direct.ts
+npx hardhat run request-vrf-direct.ts --network localhost
 ```
 
 ## Read VRF response
 
 ```
-npx hardhat --network localhost run read-vrf.ts
+npx hardhat run read-vrf.ts --network localhost
 ```
