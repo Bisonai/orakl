@@ -18,13 +18,13 @@ contract Prepayment is
     uint16 public constant MAX_CONSUMERS = 100;
     bytes32 public constant WITHDRAWER_ROLE = keccak256("WITHDRAWER_ROLE");
     bytes32 public constant COORDINATOR_ROLE = keccak256("COORDINATOR_ROLE");
-    uint16 public constant MIN_BURN_RATIO = 0;
-    uint16 public constant MAX_BURN_RATIO = 100;
+    uint8 public constant MIN_BURN_RATIO = 0;
+    uint8 public constant MAX_BURN_RATIO = 100;
 
     uint256 private s_totalBalance;
 
     uint64 private s_currentAccId;
-    uint16 public s_BurnRatio = 20; //20%
+    uint8 public s_BurnRatio = 20; //20%
 
     /* consumer */
     /* accId */
@@ -104,7 +104,7 @@ contract Prepayment is
         _setupRole(DEFAULT_ADMIN_ROLE, _msgSender());
     }
 
-    function setBurnRatio(uint16 ratio) public onlyOwner {
+    function setBurnRatio(uint8 ratio) public onlyOwner {
         if (ratio < MIN_BURN_RATIO || ratio > MAX_BURN_RATIO) {
             revert InvalidBurnRatio();
         }
