@@ -2,7 +2,7 @@ import { Queue } from 'bullmq'
 import { ethers } from 'ethers'
 import { RequestResponseCoordinator__factory } from '@bisonai-cic/icn-contracts'
 import { Event } from './event'
-import { IListenerConfig, INewRequest, IRequestResponseListenerWorker } from '../types'
+import { IListenerConfig, IDataRequested, IRequestResponseListenerWorker } from '../types'
 
 export function buildListener(queueName: string, config: IListenerConfig[]) {
   // FIXME remove loop and listen on multiple contract for the same event
@@ -13,17 +13,19 @@ export function buildListener(queueName: string, config: IListenerConfig[]) {
 
 function processEvent(iface: ethers.utils.Interface, queue: Queue) {
   async function wrapper(log) {
-    const eventData = iface.parseLog(log).args as unknown as INewRequest
+    const eventData = iface.parseLog(log).args as unknown as IDataRequested
     console.debug('requestResponse:processEvent:eventData', eventData)
 
     const data: IRequestResponseListenerWorker = {
-      oracleCallbackAddress: log.address,
+      callbackAddress: log.address,
+      blockNum: log.blockNumber,
       requestId: eventData.requestId.toString(),
       jobId: eventData.jobId.toString(),
-      nonce: eventData.nonce.toString(),
-      callbackAddress: eventData.callbackAddress.toString(),
-      callbackFunctionId: eventData.callbackFunctionId.toString(),
-      _data: eventData._data.toString()
+      accId: eventData.accId.toString(),
+      callbackGasLimit: eventData.callbackGasLimit,
+      sender: eventData.sender,
+      isDirectPayment: eventData.isDirectPayment,
+      data: eventData.data.toString()
     }
     console.debug('requestResponse:processEvent:data', data)
 

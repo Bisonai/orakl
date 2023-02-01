@@ -103,13 +103,14 @@ export interface IOracleRoundState {
 
 // Events
 
-export interface INewRequest {
-  requestId: string
+export interface IDataRequested {
+  requestId: BigNumber
   jobId: string
-  nonce: number
-  callbackAddress: string
-  callbackFunctionId: string
-  _data: string
+  accId: BigNumber
+  callbackGasLimit: number
+  sender: string
+  isDirectPayment: boolean
+  data: string
 }
 
 export interface IRandomWordsRequested {
@@ -142,13 +143,15 @@ export interface IPredefinedFeedListenerWorker {
 }
 
 export interface IRequestResponseListenerWorker {
-  oracleCallbackAddress: string
+  callbackAddress: string
+  blockNum: number
   requestId: string
   jobId: string
-  nonce: string
-  callbackAddress: string
-  callbackFunctionId: string
-  _data: string
+  accId: string
+  callbackGasLimit: number
+  sender: string
+  isDirectPayment: boolean
+  data: string
 }
 
 export interface IVrfListenerWorker {
@@ -191,11 +194,14 @@ export interface IAggregatorHeartbeatWorker {
 // Worker -> Reporter
 
 export interface IRequestResponseWorkerReporter {
-  oracleCallbackAddress: string
+  callbackAddress: string
+  blockNum: number
   requestId: string
   jobId: string
-  callbackAddress: string
-  callbackFunctionId: string
+  accId: string
+  callbackGasLimit: number
+  sender: string
+  isDirectPayment: boolean
   data: string | number
 }
 
@@ -241,11 +247,18 @@ export type Proof = [
   [string, string, string, string] /* vComponents */
 ]
 
-export type RequestCommitment = [
+export type RequestCommitmentVRF = [
   string /* blockNum */,
-  string /* subId */,
+  string /* accId */,
   number /* callbackGasLimit */,
   number /* numWords */,
+  string /* sender */
+]
+
+export type RequestCommitmentRequestResponse = [
+  number /* blockNum */,
+  string /* accId */,
+  number /* callbackGasLimit */,
   string /* sender */
 ]
 

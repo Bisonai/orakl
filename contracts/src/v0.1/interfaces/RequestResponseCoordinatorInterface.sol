@@ -45,7 +45,7 @@ interface RequestResponseCoordinatorInterface {
      */
     function cancelRequest(uint256 requestId) external;
 
-    function fulfillRequest(
+    function fulfillDataRequest(
         uint256 requestId,
         uint256 response,
         RequestCommitment memory rc,

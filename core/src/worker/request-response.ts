@@ -23,17 +23,20 @@ function job(queueName) {
 
   async function wrapper(job) {
     const inData: IRequestResponseListenerWorker = job.data
-    console.debug('requestResponseJob:inData', inData)
+    console.debug('requestResponse:job:inData', inData)
 
     try {
-      const res = await processRequest(inData._data)
+      const res = await processRequest(inData.data)
 
       const outData: IRequestResponseWorkerReporter = {
-        oracleCallbackAddress: inData.oracleCallbackAddress,
+        callbackAddress: inData.callbackAddress,
+        blockNum: inData.blockNum,
         requestId: inData.requestId,
         jobId: inData.jobId,
-        callbackAddress: inData.callbackAddress,
-        callbackFunctionId: inData.callbackFunctionId,
+        accId: inData.accId,
+        callbackGasLimit: inData.callbackGasLimit,
+        sender: inData.sender,
+        isDirectPayment: inData.isDirectPayment,
         data: res
       }
       console.debug('requestResponseJob:outData', outData)
@@ -49,13 +52,13 @@ function job(queueName) {
 
 async function processRequest(reqEnc: string): Promise<string | number> {
   const req = decodeRequest(reqEnc)
-  console.debug('processRequest:req', req)
+  console.debug('requestResponse:processRequest:req', req)
 
   let res: string = (await axios.get(req.get)).data
   if (req.path) {
     res = readFromJson(res, req.path)
   }
 
-  console.debug('processRequest:res', res)
+  console.debug('requestResponse:processRequest:res', res)
   return res
 }

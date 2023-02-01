@@ -61,13 +61,13 @@ INSERT INTO Listener (chainId, serviceId, address, eventName)
 VALUES
   ((SELECT id from Chain WHERE name = 'localhost'),
   (SELECT id from Service WHERE name = 'VRF'),
-           '0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0', 'RandomWordsRequested'),
+           '0xdc64a140aa3e981100a9beca4e685f962f0cf6c9', 'RandomWordsRequested'),
   ((SELECT id from Chain WHERE name = 'localhost'),
   (SELECT id from Service WHERE name = 'Aggregator'),
            '0xa513E6E4b8f2a923D98304ec87F64353C4D5C853', 'NewRound'),
   ((SELECT id from Chain WHERE name = 'localhost'),
   (SELECT id from Service WHERE name = 'RequestResponse'),
-           '0x45778c29A34bA00427620b937733490363839d8C', 'Requested');
+           '0xe7f1725e7734ce288f8367e1bb143e90bb3f0512', 'DataRequested');
 
 CREATE TABLE Kv (
   id       INTEGER       PRIMARY KEY,

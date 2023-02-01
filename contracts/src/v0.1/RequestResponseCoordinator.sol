@@ -329,7 +329,7 @@ contract RequestResponseCoordinator is
      * @param response - Return data for fulfilment
      * @param rc request commitment pre-image, committed to at request time
      */
-    function fulfillRequest(
+    function fulfillDataRequest(
         uint256 requestId,
         uint256 response,
         RequestCommitment memory rc,
@@ -356,7 +356,7 @@ contract RequestResponseCoordinator is
         delete s_requestCommitments[requestId];
         RequestResponseConsumerBase rr;
         bytes memory resp = abi.encodeWithSelector(
-            rr.rawFulfillRequest.selector,
+            rr.rawFulfillDataRequest.selector,
             requestId,
             response
         );

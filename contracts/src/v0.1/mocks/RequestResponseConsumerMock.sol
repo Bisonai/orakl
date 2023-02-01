@@ -66,7 +66,7 @@ contract RequestResponseConsumerMock is RequestResponseConsumerBase {
         );
     }
 
-    function fulfillRequest(
+    function fulfillDataRequest(
         uint256 /*requestId*/,
         uint256 response
     )

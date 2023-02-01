@@ -22,16 +22,16 @@ abstract contract RequestResponseConsumerBase {
      * @return req request in memory
      */
     function buildRequest(bytes32 jobId) internal view returns (Orakl.Request memory req) {
-        return req.initialize(jobId, address(COORDINATOR), COORDINATOR.fulfillRequest.selector);
+        return req.initialize(jobId, address(COORDINATOR), COORDINATOR.fulfillDataRequest.selector);
     }
 
-    function fulfillRequest(uint256 requestId, uint256 response) internal virtual;
+    function fulfillDataRequest(uint256 requestId, uint256 response) internal virtual;
 
-    function rawFulfillRequest(uint256 requestId, uint256 response) external {
+    function rawFulfillDataRequest(uint256 requestId, uint256 response) external {
         address coordinatorAddress = address(COORDINATOR);
         if (msg.sender != coordinatorAddress) {
             revert OnlyCoordinatorCanFulfill(msg.sender, coordinatorAddress);
         }
-        fulfillRequest(requestId, response);
+        fulfillDataRequest(requestId, response);
     }
 }

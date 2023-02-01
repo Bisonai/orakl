@@ -32,6 +32,13 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     requestResponseDeployment.address
   )
 
+  // Register oracle
+  console.log('Register oracle')
+  for (const oracle of requestResponseConfig.oracle) {
+    const tx = await (await requestResponseCoordinator.registerOracle(oracle.address)).wait()
+    console.log('oracle', tx.events[0].args.oracle)
+  }
+
   // Configure Request-Resopnse coordinator
   console.log('Configure Request-Response coordinator')
   await (
@@ -42,11 +49,14 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     )
   ).wait()
 
-  // TODO
   // Configure payment for direct Request-Response
-  // await (await requestResponsecoordinator.setDirectPaymentConfig(vrfConfig.directPaymentConfig)).wait()
+  await (
+    await requestResponseCoordinator.setDirectPaymentConfig(
+      requestResponseConfig.directPaymentConfig
+    )
+  ).wait()
 
-  // Add VRFCoordinator to Prepayment
+  // Add RequestResponseCoordinator to Prepayment
   const prepaymentDeployerSigner = await ethers.getContractAt(
     'Prepayment',
     prepayment.address,
