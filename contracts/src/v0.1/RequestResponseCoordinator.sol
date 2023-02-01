@@ -222,8 +222,8 @@ contract RequestResponseCoordinator is
 
     function requestData(
         Orakl.Request memory req,
-        uint64 accId,
-        uint32 callbackGasLimit
+        uint32 callbackGasLimit,
+        uint64 accId
     ) external nonReentrant returns (uint256 requestId) {
         bool isDirectPayment = false;
         requestId = requestDataInternal(req, accId, callbackGasLimit, isDirectPayment);
@@ -280,7 +280,7 @@ contract RequestResponseCoordinator is
         return requestId;
     }
 
-    function requestDataDirect(
+    function requestData(
         Orakl.Request memory req,
         uint32 callbackGasLimit
     ) external payable returns (uint256) {

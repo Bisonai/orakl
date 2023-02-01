@@ -13,7 +13,7 @@ async function main() {
 
   const callbackGasLimit = 500_000
 
-  await requestResponseConsumerSigner.requestDataDirect(callbackGasLimit, {
+  await requestResponseConsumerSigner.requestDataDirectPayment(callbackGasLimit, {
     value: ethers.utils.parseEther('1.0')
   })
 }

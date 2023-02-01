@@ -18,24 +18,23 @@ interface RequestResponseCoordinatorInterface {
      * @dev Generates and stores a request ID, increments the local nonce, creates a request on the target oracle contract.
      * @dev Emits Requested event.
      * @param req The initialized Request
-     * @param accId  - The ID of the account. Must be funded
-     * with the minimum account balance required for the selected keyHash.
      * @param callbackGasLimit - How much gas you'd like to receive in your
      * fulfillRequest callback. Note that gasleft() inside fulfillRequest
      * may be slightly less than this amount because of gas used calling the function
      * (argument decoding etc.), so you may need to request slightly more than you expect
-     * to have inside fulfillRequest. The acceptable range is
-     * [0, maxGasLimit]
+     * to have inside fulfillRequest. The acceptable range is [0, maxGasLimit]
+     * @param accId  - The ID of the account. Must be funded
+     * with the minimum account balance required for the selected keyHash.
      * @return requestId - A unique identifier of the request. Can be used to match
      * a request to a response in fulfillRequest.
    */
     function requestData(
         Orakl.Request memory req,
-        uint64 accId,
-        uint32 callbackGasLimit
+        uint32 callbackGasLimit,
+        uint64 accId
     ) external returns (uint256);
 
-    function requestDataDirect(
+    function requestData(
         Orakl.Request memory req,
         uint32 callbackGasLimit
     ) external payable returns (uint256);
