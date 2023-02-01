@@ -19,7 +19,6 @@ contract RequestResponseCoordinator is
 {
     using Orakl for Orakl.Request;
 
-    uint16 public constant MAX_REQUEST_CONFIRMATIONS = 200;
     // 5k is plenty for an EXTCODESIZE call (2600) + warm CALL (100)
     // and some arithmetic operations.
     uint256 private constant GAS_FOR_CALL_EXACT_CHECK = 5_000;
@@ -41,7 +40,6 @@ contract RequestResponseCoordinator is
     PrepaymentInterface Prepayment;
 
     struct Config {
-        uint16 minimumRequestConfirmations;
         uint32 maxGasLimit;
         // Reentrancy protection.
         bool reentrancyLock;
@@ -83,29 +81,22 @@ contract RequestResponseCoordinator is
     error Reentrant();
     error InsufficientPayment(uint256 have, uint256 want);
     error RefundFailure();
-    error InvalidRequestConfirmations(uint16 have, uint16 min, uint16 max);
     error GasLimitTooBig(uint32 have, uint32 want);
     error OracleAlreadyRegistered(address oracle);
     error NoSuchOracle(address oracle);
 
-    event Requested(
+    event DataRequested(
         uint256 indexed requestId,
         bytes32 jobId,
         uint64 indexed accId,
-        uint16 minimumRequestConfirmations,
         uint32 callbackGasLimit,
-        address indexed sender
-        /* bool isDirectPayment, */
-        /* bytes data */
+        address indexed sender,
+        bool isDirectPayment,
+        bytes data
     );
     event Fulfilled(uint256 indexed requestId, uint256 response, uint256 payment, bool success);
     event Cancelled(uint256 indexed requestId);
-    event ConfigSet(
-        uint16 minimumRequestConfirmations,
-        uint32 maxGasLimit,
-        uint32 gasAfterPaymentCalculation,
-        FeeConfig feeConfig
-    );
+    event ConfigSet(uint32 maxGasLimit, uint32 gasAfterPaymentCalculation, FeeConfig feeConfig);
     event DirectPaymentConfigSet(uint256 fulfillmentFee, uint256 baseFee);
 
     event OracleRegistered(address oracle);
@@ -157,53 +148,30 @@ contract RequestResponseCoordinator is
 
     /**
      * @notice Sets the general configuration
-     * @param minimumRequestConfirmations global min for request confirmations
      * @param maxGasLimit global max for request gas limit
      * @param gasAfterPaymentCalculation gas used in doing accounting after completing the gas measurement
      * @param feeConfig fee tier configuration
      */
     function setConfig(
-        uint16 minimumRequestConfirmations,
         uint32 maxGasLimit,
         uint32 gasAfterPaymentCalculation,
         FeeConfig memory feeConfig
     ) external onlyOwner {
-        if (minimumRequestConfirmations > MAX_REQUEST_CONFIRMATIONS) {
-            revert InvalidRequestConfirmations(
-                minimumRequestConfirmations,
-                minimumRequestConfirmations,
-                MAX_REQUEST_CONFIRMATIONS
-            );
-        }
         s_config = Config({
-            minimumRequestConfirmations: minimumRequestConfirmations,
             maxGasLimit: maxGasLimit,
             gasAfterPaymentCalculation: gasAfterPaymentCalculation,
             reentrancyLock: false
         });
         s_feeConfig = feeConfig;
-        emit ConfigSet(
-            minimumRequestConfirmations,
-            maxGasLimit,
-            gasAfterPaymentCalculation,
-            s_feeConfig
-        );
+        emit ConfigSet(maxGasLimit, gasAfterPaymentCalculation, s_feeConfig);
     }
 
     function getConfig()
         external
         view
-        returns (
-            uint16 minimumRequestConfirmations,
-            uint32 maxGasLimit,
-            uint32 gasAfterPaymentCalculation
-        )
+        returns (uint32 maxGasLimit, uint32 gasAfterPaymentCalculation)
     {
-        return (
-            s_config.minimumRequestConfirmations,
-            s_config.maxGasLimit,
-            s_config.gasAfterPaymentCalculation
-        );
+        return (s_config.maxGasLimit, s_config.gasAfterPaymentCalculation);
     }
 
     function getFeeConfig()
@@ -290,18 +258,6 @@ contract RequestResponseCoordinator is
             revert InvalidConsumer(accId, msg.sender);
         }
 
-        // Input validation using the config storage word.
-        if (
-            requestConfirmations < s_config.minimumRequestConfirmations ||
-            requestConfirmations > MAX_REQUEST_CONFIRMATIONS
-        ) {
-            revert InvalidRequestConfirmations(
-                requestConfirmations,
-                s_config.minimumRequestConfirmations,
-                MAX_REQUEST_CONFIRMATIONS
-            );
-        }
-
         // TODO update comment
         // No lower bound on the requested gas limit. A user could request 0
         // and they would simply be billed for the proof verification and wouldn't be
@@ -319,15 +275,14 @@ contract RequestResponseCoordinator is
 
         s_requestOwner[requestId] = msg.sender;
 
-        emit Requested(
+        emit DataRequested(
             requestId,
             req.id,
             accId,
-            requestConfirmations,
             callbackGasLimit,
-            msg.sender
-            /* isDirectPayment, */
-            /* req.buf.buf */
+            msg.sender,
+            isDirectPayment,
+            req.buf.buf
         );
 
         return requestId;

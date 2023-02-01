@@ -27,7 +27,6 @@ contract RequestResponseConsumerMock is RequestResponseConsumerBase {
 
     function requestData(
       uint64 accId,
-      uint16 requestConfirmations,
       uint32 callbackGasLimit
     )
         public
@@ -43,13 +42,11 @@ contract RequestResponseConsumerMock is RequestResponseConsumerBase {
         requestId = COORDINATOR.sendRequest(
             req,
             accId,
-            requestConfirmations,
             callbackGasLimit
         );
     }
 
     function requestDataDirect(
-      uint16 requestConfirmations,
       uint32 callbackGasLimit
     )
         public
@@ -65,7 +62,6 @@ contract RequestResponseConsumerMock is RequestResponseConsumerBase {
 
         requestId = COORDINATOR.sendRequestPayment{value: msg.value}(
             req,
-            requestConfirmations,
             callbackGasLimit
         );
     }

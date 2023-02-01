@@ -1,5 +1,4 @@
 export function requestResponseConfig() {
-  const minimumRequestConfirmations = 3
   const maxGasLimit = 1_000_000
   const gasAfterPaymentCalculation = 1_000
   const feeConfig = {
@@ -15,7 +14,6 @@ export function requestResponseConfig() {
   }
 
   return {
-    minimumRequestConfirmations,
     maxGasLimit,
     gasAfterPaymentCalculation,
     feeConfig

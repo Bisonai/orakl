@@ -8,8 +8,7 @@ import { requestResponseConfig } from './RequestResponse.config.ts'
 describe('Request-Response user contract', function () {
   async function deployFixture() {
     const { deployer, consumer, rrOracle0 } = await hre.getNamedAccounts()
-    const { minimumRequestConfirmations, maxGasLimit, gasAfterPaymentCalculation, feeConfig } =
-      requestResponseConfig()
+    const { maxGasLimit, gasAfterPaymentCalculation, feeConfig } = requestResponseConfig()
 
     // PREPAYMENT
     let prepaymentContract = await ethers.getContractFactory('Prepayment', {
@@ -27,12 +26,7 @@ describe('Request-Response user contract', function () {
 
     // COORDINATOR SETTINGS
     await (
-      await coordinatorContract.setConfig(
-        minimumRequestConfirmations,
-        maxGasLimit,
-        gasAfterPaymentCalculation,
-        feeConfig
-      )
+      await coordinatorContract.setConfig(maxGasLimit, gasAfterPaymentCalculation, feeConfig)
     ).wait()
 
     await (await coordinatorContract.registerOracle(rrOracle0)).wait()
@@ -56,7 +50,6 @@ describe('Request-Response user contract', function () {
 
     return {
       accId,
-      minimumRequestConfirmations,
       maxGasLimit,
       deployer,
       consumer,
@@ -70,7 +63,6 @@ describe('Request-Response user contract', function () {
   it('Request & Fulfill', async function () {
     const {
       accId,
-      minimumRequestConfirmations,
       maxGasLimit,
       consumerContract,
       coordinatorContract,
@@ -80,7 +72,7 @@ describe('Request-Response user contract', function () {
     } = await loadFixture(deployFixture)
 
     const requestReceipt = await (
-      await consumerContract.requestData(accId, minimumRequestConfirmations, maxGasLimit, {
+      await consumerContract.requestData(accId, maxGasLimit, {
         gasLimit: 500_000
       })
     ).wait()
@@ -93,10 +85,10 @@ describe('Request-Response user contract', function () {
       'requestId',
       'jobId',
       'accId',
-      'minimumRequestConfirmations',
       'callbackGasLimit',
-      'sender'
-      // 'data'
+      'sender',
+      'isDirectPayment',
+      'data'
     ]
     for (const arg of eventArgs) {
       expect(requestEvent.args[arg]).to.not.be.undefined
