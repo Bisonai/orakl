@@ -126,7 +126,6 @@ describe('Prepayment contract', function () {
     await consumerContract.requestRandomWords(
       keyHash,
       accId,
-      minimumRequestConfirmations,
       maxGasLimit,
       1
     )

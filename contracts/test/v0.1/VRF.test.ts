@@ -48,13 +48,7 @@ describe('VRF contract', function () {
     const numWords = 1
 
     await expect(
-      consumerContract.requestRandomWords(
-        dummyKeyHash,
-        accId,
-        minimumRequestConfirmations,
-        maxGasLimit,
-        numWords
-      )
+      consumerContract.requestRandomWords(dummyKeyHash, accId, maxGasLimit, numWords)
     ).to.be.revertedWithCustomError(coordinatorContract, 'InvalidKeyHash')
   })
 
@@ -66,13 +60,7 @@ describe('VRF contract', function () {
     const value = parseKlay(1)
 
     await expect(
-      consumerContract.requestRandomWordsDirect(
-        dummyKeyHash,
-        minimumRequestConfirmations,
-        maxGasLimit,
-        numWords,
-        { value }
-      )
+      consumerContract.requestRandomWordsDirect(dummyKeyHash, maxGasLimit, numWords, { value })
     ).to.be.revertedWithCustomError(coordinatorContract, 'InvalidKeyHash')
   })
 })

@@ -17,9 +17,6 @@ contract VRFCoordinator is
     TypeAndVersionInterface,
     VRFCoordinatorInterface
 {
-    // Set this maximum to 200 to give us a 56 block window to fulfill
-    // the request before requiring the block hash feeder.
-    uint16 public constant MAX_REQUEST_CONFIRMATIONS = 200;
     uint32 public constant MAX_NUM_WORDS = 500;
     // 5k is plenty for an EXTCODESIZE call (2600) + warm CALL (100)
     // and some arithmetic operations.
@@ -82,7 +79,6 @@ contract VRFCoordinator is
     error InvalidKeyHash(bytes32 keyHash);
     error InvalidConsumer(uint64 accId, address consumer);
     error InvalidAccount();
-    error InvalidRequestConfirmations(uint16 have, uint16 max);
     error GasLimitTooBig(uint32 have, uint32 want);
     error NumWordsTooBig(uint32 have, uint32 want);
     error ProvingKeyAlreadyRegistered(bytes32 keyHash);
@@ -100,7 +96,6 @@ contract VRFCoordinator is
         uint256 requestId,
         uint256 preSeed,
         uint64 indexed accId,
-        uint16 minimumRequestConfirmations,
         uint32 callbackGasLimit,
         uint32 numWords,
         address indexed sender,
@@ -185,13 +180,6 @@ contract VRFCoordinator is
         uint32 gasAfterPaymentCalculation,
         FeeConfig memory feeConfig
     ) external onlyOwner {
-        // if (minimumRequestConfirmations > MAX_REQUEST_CONFIRMATIONS) {
-        //     revert InvalidRequestConfirmations(
-        //         minimumRequestConfirmations,
-        //         minimumRequestConfirmations,
-        //         MAX_REQUEST_CONFIRMATIONS
-        //     );
-        // }
         s_config = Config({
             maxGasLimit: maxGasLimit,
             gasAfterPaymentCalculation: gasAfterPaymentCalculation,
@@ -396,7 +384,6 @@ contract VRFCoordinator is
     function requestRandomWordsInternal(
         bytes32 keyHash,
         uint64 accId,
-        uint16 requestConfirmations,
         uint32 callbackGasLimit,
         uint32 numWords,
         bool isDirectPayment
@@ -414,11 +401,6 @@ contract VRFCoordinator is
         uint64 currentNonce = Prepayment.getNonce(msg.sender, accId);
         if (currentNonce == 0) {
             revert InvalidConsumer(accId, msg.sender);
-        }
-
-        // Input validation using the config storage word.
-        if (requestConfirmations > MAX_REQUEST_CONFIRMATIONS) {
-            revert InvalidRequestConfirmations(requestConfirmations, MAX_REQUEST_CONFIRMATIONS);
         }
 
         // No lower bound on the requested gas limit. A user could request 0
@@ -447,7 +429,6 @@ contract VRFCoordinator is
             requestId,
             preSeed,
             accId,
-            requestConfirmations,
             callbackGasLimit,
             numWords,
             msg.sender,
@@ -463,14 +444,12 @@ contract VRFCoordinator is
     function requestRandomWords(
         bytes32 keyHash,
         uint64 accId,
-        uint16 requestConfirmations,
         uint32 callbackGasLimit,
         uint32 numWords
     ) public nonReentrant onlyValidKeyHash(keyHash) returns (uint256) {
         uint256 requestId = requestRandomWordsInternal(
             keyHash,
             accId,
-            requestConfirmations,
             callbackGasLimit,
             numWords,
             false
@@ -483,7 +462,6 @@ contract VRFCoordinator is
      */
     function requestRandomWordsPayment(
         bytes32 keyHash,
-        uint16 requestConfirmations,
         uint32 callbackGasLimit,
         uint32 numWords
     ) external payable onlyValidKeyHash(keyHash) returns (uint256) {
@@ -498,7 +476,6 @@ contract VRFCoordinator is
         uint256 requestId = requestRandomWordsInternal(
             keyHash,
             accId,
-            requestConfirmations,
             callbackGasLimit,
             numWords,
             isDirectPayment
