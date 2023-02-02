@@ -50,7 +50,7 @@ describe('CLI KV', function () {
     expect(kvAfter.length).toEqual(kvBefore.length + 1)
   })
 
-  test('Should insert-many new Key-Value pairs', async function () {
+  test('Should insertMany new Key-Value pairs', async function () {
     const kvBefore = await listHandler(DB)({})
     await insertManyHandler(DB)(KV_MANY_LOCALHOST)
     const kvAfter = await listHandler(DB)({})

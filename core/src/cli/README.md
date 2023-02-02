@@ -261,7 +261,7 @@ yarn kv insert \
 Insert many key-value pairs defined in JSON-formatted file
 
 ```shell
-yarn kv insert-many \
+yarn kv insertMany \
     --file-path path/to/file.json \
     --chain localhost
 ```

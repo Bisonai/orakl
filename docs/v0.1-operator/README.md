@@ -91,7 +91,7 @@ Below you can see the contents of a JSON file (`settings.json`) containing the s
 To load all settings with CLI at once, run the code below.
 
 ```shell
-yarn cli kv insert-many \
+yarn cli kv insertMany \
     --file-path settings.json \
     --chain ${chain}
 ```

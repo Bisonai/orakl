@@ -13,7 +13,7 @@ export function kvSub(db) {
   // kv insert       --chain [chain]   --key [key] --value [value] [--dryrun]
   // kv remove       --chain [chain]   --key [key]                 [--dryrun]
   // kv update       --chain [chain]   --key [key] --value [value] [--dryrun]
-  // kv insert-many  --chain [chain] --file-path [file-path]       [--dryrun]
+  // kv insertMany   --chain [chain] --file-path [file-path]       [--dryrun]
 
   const list = command({
     name: 'list',
@@ -48,7 +48,7 @@ export function kvSub(db) {
   })
 
   const insertMany = command({
-    name: 'insert-many',
+    name: 'insertMany',
     args: {
       data: option({
         type: ReadFile,
