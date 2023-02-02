@@ -7,6 +7,7 @@
      * [VRF](#vrf)
      * [Adapter](#adapter)
      * [Aggregator](#aggregator)
+     * [Key-Value](#key-value)
 * [Generate adapter hash](#generate-adapter-hash)
 * [Generate aggregator hash](#generate-aggregator-hash)
 * [Fetch data from adapter](#fetch-data-with-adapter)
@@ -225,6 +226,62 @@ yarn cli aggregator remove --id [id]
 
 * Activate aggregator TODO
 * Deactivate aggregator TODO
+
+### Key-Value
+
+List all key-value pairs
+
+```shell
+yarn kv list
+```
+
+List all key-value pairs in `localhost` network
+
+```shell
+yarn kv list --chain localhost
+```
+
+Display value for given key (`PUBLIC_ADDRESS`) in `localhost` network
+
+```shell
+yarn kv list \
+    --key PUBLIC_ADDRESS \
+    --chain localhost
+```
+
+Insert value (`8888`) for a key (`HEALTH_CHECK_PORT`) ona a `localhost` network
+
+```shell
+yarn kv insert \
+    --key HEALTH_CHECK_PORT \
+    --value 8888 \
+    --chain localhost
+```
+
+Insert many key-value pairs defined in JSON-formatted file
+
+```shell
+yarn kv insert-many \
+    --file-path path/to/file.json \
+    --chain localhost
+```
+
+Delete key-value pair defined by key (`PUBLIC_ADDRESS`) on a `localhost` network
+
+```shell
+yarn kv remove \
+    --key PUBLIC_ADDRESS \
+    --chain localhost
+```
+
+Update value (`8888`) for a key (`HEALTH_CHECK_PORT`) ona a `localhost` network
+
+```shell
+yarn kv udpate \
+    --key HEALTH_CHECK_PORT \
+    --value 8888 \
+    --chain localhost
+```
 
 
 ## Generate Adapter Hash
