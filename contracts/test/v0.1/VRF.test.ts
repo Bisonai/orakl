@@ -44,7 +44,7 @@ describe('VRF contract', function () {
       deployFixture
     )
 
-    const { minimumRequestConfirmations, maxGasLimit } = vrfConfig()
+    const { maxGasLimit } = vrfConfig()
     const numWords = 1
 
     await expect(
@@ -55,7 +55,7 @@ describe('VRF contract', function () {
   it('requestRandomWordsDirect should revert on InvalidKeyHash', async function () {
     const { coordinatorContract, consumerContract, dummyKeyHash } = await loadFixture(deployFixture)
 
-    const { minimumRequestConfirmations, maxGasLimit } = vrfConfig()
+    const { maxGasLimit } = vrfConfig()
     const numWords = 1
     const value = parseKlay(1)
 

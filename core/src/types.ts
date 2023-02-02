@@ -117,7 +117,6 @@ export interface IRandomWordsRequested {
   requestId: BigNumber
   preSeed: number
   accId: BigNumber
-  minimumRequestConfirmations: number
   callbackGasLimit: number
   numWords: number
   sender: string
@@ -158,7 +157,6 @@ export interface IVrfListenerWorker {
   requestId: string
   seed: string
   accId: string
-  minimumRequestConfirmations: number
   callbackGasLimit: number
   numWords: number
   sender: string
@@ -213,7 +211,6 @@ export interface IVrfWorkerReporter {
   requestId: string
   seed: string
   accId: string
-  minimumRequestConfirmations: number
   callbackGasLimit: number
   numWords: number
   sender: string

@@ -23,7 +23,6 @@ function processVrfEvent(iface: ethers.utils.Interface, queue: Queue) {
       requestId: eventData.requestId.toString(),
       seed: eventData.preSeed.toString(),
       accId: eventData.accId.toString(),
-      minimumRequestConfirmations: eventData.minimumRequestConfirmations,
       callbackGasLimit: eventData.callbackGasLimit,
       numWords: eventData.numWords,
       sender: eventData.sender,

@@ -105,7 +105,6 @@ describe('Prepayment contract', function () {
     const {
       oracle,
       publicProvingKey,
-      minimumRequestConfirmations,
       keyHash,
       maxGasLimit,
       gasAfterPaymentCalculation,
@@ -137,7 +136,6 @@ describe('Prepayment contract', function () {
     const {
       oracle,
       publicProvingKey,
-      minimumRequestConfirmations,
       maxGasLimit,
       keyHash,
       gasAfterPaymentCalculation,
