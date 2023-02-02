@@ -123,12 +123,7 @@ describe('Prepayment contract', function () {
     await prepaymentContract.addConsumer(accId, consumerContract.address)
     await prepaymentContract.addCoordinator(coordinatorContract.address)
 
-    await consumerContract.requestRandomWords(
-      keyHash,
-      accId,
-      maxGasLimit,
-      1
-    )
+    await consumerContract.requestRandomWords(keyHash, accId, maxGasLimit, 1)
 
     await expect(prepaymentContract.cancelAccount(accId, consumer)).to.be.revertedWithCustomError(
       prepaymentContract,
@@ -167,24 +162,26 @@ describe('Prepayment contract', function () {
 
   it('Should chargeFee with burn token', async function () {
     const { prepaymentContract, deployer, accId } = await loadFixture(deployFixture)
-    const accounts = await ethers.getSigners()
-    const node = accounts[0]
+    const { feedOracle0 } = await hre.getNamedAccounts()
+    const node = feedOracle0
+    const prepaymentNodeSigner = await ethers.getContractAt(
+      'Prepayment',
+      prepaymentContract.address,
+      node
+    )
 
     const depositValue = 1000
     const feeAmount = 109
     const transactionDeposit = await prepaymentContract.deposit(accId, { value: depositValue })
     const role = await prepaymentContract.COORDINATOR_ROLE()
-    await prepaymentContract.grantRole(role, node.address)
+    await prepaymentContract.grantRole(role, node)
 
-    const txReceipt = await (
-      await prepaymentContract.connect(node).chargeFee(accId, feeAmount, node.address)
-    ).wait()
+    const txReceipt = await (await prepaymentNodeSigner.chargeFee(accId, feeAmount, node)).wait()
     const txEvent = prepaymentContract.interface.parseLog(txReceipt.events[0])
-    const { acc, oldBalance, newBalance, burnAmount } = txEvent.args
-    const balanceNode = await prepaymentContract.s_nodes(node.address)
+    const { burnAmount } = txEvent.args
+    const balanceNode = await prepaymentContract.s_nodes(node)
     const amount = burnAmount.toNumber() + balanceNode.toNumber()
 
     expect(feeAmount).to.be.equal(amount)
-    console.log('burn amount', burnAmount.toString(), '- node balance', balanceNode.toString())
   })
 })
