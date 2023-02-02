@@ -69,6 +69,33 @@ yarn cli kv insert --chain ${chain} --key LOCAL_AGGREGATOR  --value MEDIAN
 yarn cli kv insert --chain ${chain} --key LISTENER_DELAY    --value 500
 ```
 
+### Loading settings from file
+
+Node settings as described in previous section can be also predefined in JSON file and set all with single command.
+
+Below you can see the contents of a JSON file (`settings.json`) containing the same settings as in the section above.
+
+```
+{
+  "PROVIDER_URL": "https://api.baobab.klaytn.net:8651",
+  "HEALTH_CHECK_PORT": "8888",
+  "REDIS_HOST": "localhost",
+  "REDIS_PORT": "6379",
+  "PRIVATE_KEY": "0x...",
+  "PUBLIC_KEY": "0x...",
+  "LOCAL_AGGREGATOR": "MEDIAN",
+  "LISTENER_DELAY": "500"
+}
+```
+
+To load all settings with CLI at once, run the code below.
+
+```shell
+yarn cli kv insert-many \
+    --file-path settings.json \
+    --chain ${chain}
+```
+
 ## Guides
 
 * [Verifiable Random Function (VRF)](vrf.md)
