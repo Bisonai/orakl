@@ -16,7 +16,6 @@ contract Prepayment is
     TypeAndVersionInterface
 {
     uint16 public constant MAX_CONSUMERS = 100;
-    bytes32 public constant WITHDRAWER_ROLE = keccak256("WITHDRAWER_ROLE");
     bytes32 public constant COORDINATOR_ROLE = keccak256("COORDINATOR_ROLE");
 
     uint256 private s_totalBalance;
@@ -260,7 +259,7 @@ contract Prepayment is
     /**
      * @inheritdoc PrepaymentInterface
      */
-    function nodeWithdraw(uint256 amount) external onlyRole(WITHDRAWER_ROLE) {
+    function nodeWithdraw(uint256 amount) external {
         if (amount == 0) {
             revert ZeroAmount();
         }
