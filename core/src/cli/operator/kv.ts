@@ -6,12 +6,14 @@ import {
   formatResultInsert,
   formatResultRemove
 } from './utils'
+import { ReadFile } from './types'
 
 export function kvSub(db) {
-  // kv list   [--chain [chain]] [--key [key]]
-  // kv insert  --chain [chain]   --key [key] --value [value] [--dryrun]
-  // kv remove  --chain [chain]   --key [key]                 [--dryrun]
-  // kv update  --chain [chain]   --key [key] --value [value] [--dryrun]
+  // kv list        [--chain [chain]] [--key [key]]
+  // kv insert       --chain [chain]   --key [key] --value [value] [--dryrun]
+  // kv remove       --chain [chain]   --key [key]                 [--dryrun]
+  // kv update       --chain [chain]   --key [key] --value [value] [--dryrun]
+  // kv insertMany   --chain [chain] --file-path [file-path]       [--dryrun]
 
   const list = command({
     name: 'list',
@@ -43,6 +45,22 @@ export function kvSub(db) {
       dryrun: dryrunOption
     },
     handler: insertHandler(db)
+  })
+
+  const insertMany = command({
+    name: 'insertMany',
+    args: {
+      data: option({
+        type: ReadFile,
+        long: 'file-path'
+      }),
+      chain: option({
+        type: cmdstring,
+        long: 'chain'
+      }),
+      dryrun: dryrunOption
+    },
+    handler: insertManyHandler(db)
   })
 
   const remove = command({
@@ -83,7 +101,7 @@ export function kvSub(db) {
 
   return subcommands({
     name: 'kv',
-    cmds: { list, insert, remove, update }
+    cmds: { list, insert, insertMany, remove, update }
   })
 }
 
@@ -127,6 +145,26 @@ export function insertHandler(db) {
   }) {
     const chainId = await chainToId(db, chain)
     const query = `INSERT INTO Kv (chainId, key, value) VALUES (${chainId}, '${key}', '${value}');`
+    if (dryrun) {
+      console.debug(query)
+    } else {
+      const result = await db.run(query)
+      console.log(formatResultInsert(result))
+    }
+  }
+  return wrapper
+}
+
+export function insertManyHandler(db) {
+  async function wrapper({ data, chain, dryrun }: { data; chain: string; dryrun?: boolean }) {
+    const chainId = await chainToId(db, chain)
+
+    const values: string[] = []
+    for (const key in data) {
+      values.push(`(${chainId}, '${key}', '${data[key]}')`)
+    }
+
+    const query = `INSERT INTO Kv (chainId, key, value) VALUES ${values.join()};`
     if (dryrun) {
       console.debug(query)
     } else {

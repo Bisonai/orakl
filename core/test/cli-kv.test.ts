@@ -1,5 +1,11 @@
 import { describe, expect, beforeEach, test } from '@jest/globals'
-import { listHandler, insertHandler, removeHandler, updateHandler } from '../src/cli/operator/kv'
+import {
+  listHandler,
+  insertHandler,
+  insertManyHandler,
+  removeHandler,
+  updateHandler
+} from '../src/cli/operator/kv'
 import { mkTmpFile } from '../src/utils'
 import { openDb } from '../src/cli/operator/utils'
 
@@ -8,6 +14,10 @@ describe('CLI KV', function () {
   const TMP_DB_FILE = mkTmpFile({ fileName: 'settings.test.sqlite' })
   const KV_LOCALHOST = { key: 'someKey', value: 'someValue', chain: 'localhost' }
   const KV_BAOBAB = { key: 'someKey', value: 'someValue', chain: 'baobab' }
+  const KV_MANY_LOCALHOST = {
+    chain: 'localhost',
+    data: [{ key1: 'val1' }, { key2: 'val2' }]
+  }
 
   beforeEach(async () => {
     DB = await openDb({ dbFile: TMP_DB_FILE, migrate: true })
@@ -38,6 +48,13 @@ describe('CLI KV', function () {
     await insertHandler(DB)(KV_LOCALHOST)
     const kvAfter = await listHandler(DB)({})
     expect(kvAfter.length).toEqual(kvBefore.length + 1)
+  })
+
+  test('Should insertMany new Key-Value pairs', async function () {
+    const kvBefore = await listHandler(DB)({})
+    await insertManyHandler(DB)(KV_MANY_LOCALHOST)
+    const kvAfter = await listHandler(DB)({})
+    expect(kvAfter.length).toEqual(kvBefore.length + KV_MANY_LOCALHOST.data.length)
   })
 
   test('Should not allow to insert the same Key-Value pair more than once in the same chain', async function () {
