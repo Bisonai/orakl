@@ -16,10 +16,7 @@ describe('CLI KV', function () {
   const KV_BAOBAB = { key: 'someKey', value: 'someValue', chain: 'baobab' }
   const KV_MANY_LOCALHOST = {
     chain: 'localhost',
-    data: [
-      { key: 'key1', value: 'val1' },
-      { key: 'key2', value: 'val2' }
-    ]
+    data: [{ key1: 'val1' }, { key2: 'val2' }]
   }
 
   beforeEach(async () => {
