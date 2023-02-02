@@ -54,7 +54,7 @@ describe('CLI KV', function () {
     const kvBefore = await listHandler(DB)({})
     await insertManyHandler(DB)(KV_MANY_LOCALHOST)
     const kvAfter = await listHandler(DB)({})
-    expect(kvAfter.length).toEqual(kvBefore.length + KV_MANY_LOCALHOST.length)
+    expect(kvAfter.length).toEqual(kvBefore.length + KV_MANY_LOCALHOST.data.length)
   })
 
   test('Should not allow to insert the same Key-Value pair more than once in the same chain', async function () {
