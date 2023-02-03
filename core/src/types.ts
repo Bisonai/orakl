@@ -14,7 +14,7 @@ export interface DataFeedRequest {
 export interface IListeners {
   VRF: string[]
   AGGREGATORS: string[]
-  ANY_API: string[]
+  REQUEST_RESPONSE: string[]
 }
 
 export interface ILog {
@@ -103,13 +103,14 @@ export interface IOracleRoundState {
 
 // Events
 
-export interface INewRequest {
-  requestId: string
+export interface IDataRequested {
+  requestId: BigNumber
   jobId: string
-  nonce: number
-  callbackAddress: string
-  callbackFunctionId: string
-  _data: string
+  accId: BigNumber
+  callbackGasLimit: number
+  sender: string
+  isDirectPayment: boolean
+  data: string
 }
 
 export interface IRandomWordsRequested {
@@ -140,14 +141,16 @@ export interface IPredefinedFeedListenerWorker {
   _data: string
 }
 
-export interface IAnyApiListenerWorker {
-  oracleCallbackAddress: string
+export interface IRequestResponseListenerWorker {
+  callbackAddress: string
+  blockNum: number
   requestId: string
   jobId: string
-  nonce: string
-  callbackAddress: string
-  callbackFunctionId: string
-  _data: string
+  accId: string
+  callbackGasLimit: number
+  sender: string
+  isDirectPayment: boolean
+  data: string
 }
 
 export interface IVrfListenerWorker {
@@ -188,12 +191,15 @@ export interface IAggregatorHeartbeatWorker {
 
 // Worker -> Reporter
 
-export interface IAnyApiWorkerReporter {
-  oracleCallbackAddress: string
+export interface IRequestResponseWorkerReporter {
+  callbackAddress: string
+  blockNum: number
   requestId: string
   jobId: string
-  callbackAddress: string
-  callbackFunctionId: string
+  accId: string
+  callbackGasLimit: number
+  sender: string
+  isDirectPayment: boolean
   data: string | number
 }
 
@@ -238,11 +244,18 @@ export type Proof = [
   [string, string, string, string] /* vComponents */
 ]
 
-export type RequestCommitment = [
+export type RequestCommitmentVRF = [
   string /* blockNum */,
-  string /* subId */,
+  string /* accId */,
   number /* callbackGasLimit */,
   number /* numWords */,
+  string /* sender */
+]
+
+export type RequestCommitmentRequestResponse = [
+  number /* blockNum */,
+  string /* accId */,
+  number /* callbackGasLimit */,
   string /* sender */
 ]
 

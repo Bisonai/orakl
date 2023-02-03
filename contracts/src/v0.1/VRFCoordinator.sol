@@ -67,7 +67,7 @@ contract VRFCoordinator is
     }
     FeeConfig private s_feeConfig;
 
-    PrepaymentInterface Prepayment;
+    PrepaymentInterface s_prepayment;
 
     struct DirectPaymentConfig {
         uint256 fulfillmentFee;
@@ -125,7 +125,7 @@ contract VRFCoordinator is
     }
 
     constructor(address prepayment) {
-        Prepayment = PrepaymentInterface(prepayment);
+        s_prepayment = PrepaymentInterface(prepayment);
     }
 
     /**
@@ -250,6 +250,10 @@ contract VRFCoordinator is
         return s_directPaymentConfig.fulfillmentFee + s_directPaymentConfig.baseFee;
     }
 
+    function getPrepaymentAddress() public view returns (address) {
+        return address(s_prepayment);
+    }
+
     /**
      * @notice Get request commitment
      * @param requestId id of request
@@ -306,7 +310,7 @@ contract VRFCoordinator is
         // We also add the flat KLAY fee to the payment amount.
         // Its specified in millionths of KLAY, if s_config.fulfillmentFlatFeeKlayPPM = 1
         // 1 KLAY / 1e6 = 1e18 pebs / 1e6 = 1e12 pebs.
-        (uint256 balance, uint64 reqCount, , ) = Prepayment.getAccount(rc.accId);
+        (uint256 balance, uint64 reqCount, , ) = s_prepayment.getAccount(rc.accId);
 
         uint256 payment;
         if (isDirectPayment) {
@@ -319,7 +323,7 @@ contract VRFCoordinator is
             );
         }
 
-        Prepayment.chargeFee(rc.accId, payment, s_provingKeys[keyHash]);
+        s_prepayment.chargeFee(rc.accId, payment, s_provingKeys[keyHash]);
 
         // FIXME
         //s_withdrawableTokens[s_provingKeys[rc.keyHash]] += payment;
@@ -359,13 +363,16 @@ contract VRFCoordinator is
         return fc.fulfillmentFlatFeeKlayPPMTier5;
     }
 
+    /**
+     * @inheritdoc CoordinatorBaseInterface
+     */
     function pendingRequestExists(
-        uint64 accId,
         address consumer,
+        uint64 accId,
         uint64 nonce
     ) public view returns (bool) {
-        for (uint256 j = 0; j < s_provingKeyHashes.length; j++) {
-            (uint256 reqId, ) = computeRequestId(s_provingKeyHashes[j], consumer, accId, nonce);
+        for (uint256 i = 0; i < s_provingKeyHashes.length; i++) {
+            (uint256 reqId, ) = computeRequestId(s_provingKeyHashes[i], consumer, accId, nonce);
             if (s_requestCommitments[reqId] != 0) {
                 return true;
             }
@@ -390,15 +397,15 @@ contract VRFCoordinator is
     ) internal returns (uint256) {
         // Input validation using the account storage.
         // call to prepayment contract
-        address owner = Prepayment.getAccountOwner(accId);
+        address owner = s_prepayment.getAccountOwner(accId);
         if (owner == address(0)) {
             revert InvalidAccount();
         }
 
         // Its important to ensure that the consumer is in fact who they say they
         // are, otherwise they could use someone else's account balance.
-        // A nonce of 0 indicates consumer is not allocated to the sub.
-        uint64 currentNonce = Prepayment.getNonce(msg.sender, accId);
+        // A nonce of 0 indicates consumer is not allocated to the acc.
+        uint64 currentNonce = s_prepayment.getNonce(msg.sender, accId);
         if (currentNonce == 0) {
             revert InvalidConsumer(accId, msg.sender);
         }
@@ -414,11 +421,7 @@ contract VRFCoordinator is
             revert NumWordsTooBig(numWords, MAX_NUM_WORDS);
         }
 
-        // Note we do not check whether the keyHash is valid to save gas.
-        // The consequence for users is that they can send requests
-        // for invalid keyHashes which will simply not be fulfilled.
-
-        uint64 nonce = Prepayment.increaseNonce(msg.sender, accId);
+        uint64 nonce = s_prepayment.increaseNonce(msg.sender, accId);
         (uint256 requestId, uint256 preSeed) = computeRequestId(keyHash, msg.sender, accId, nonce);
 
         s_requestCommitments[requestId] = keccak256(
@@ -446,15 +449,15 @@ contract VRFCoordinator is
         uint64 accId,
         uint32 callbackGasLimit,
         uint32 numWords
-    ) public nonReentrant onlyValidKeyHash(keyHash) returns (uint256) {
-        uint256 requestId = requestRandomWordsInternal(
+    ) external nonReentrant onlyValidKeyHash(keyHash) returns (uint256 requestId) {
+        bool isDirectPayment = false;
+        requestId = requestRandomWordsInternal(
             keyHash,
             accId,
             callbackGasLimit,
             numWords,
-            false
+            isDirectPayment
         );
-        return requestId;
     }
 
     /**
@@ -464,14 +467,14 @@ contract VRFCoordinator is
         bytes32 keyHash,
         uint32 callbackGasLimit,
         uint32 numWords
-    ) external payable onlyValidKeyHash(keyHash) returns (uint256) {
+    ) external payable nonReentrant onlyValidKeyHash(keyHash) returns (uint256) {
         uint256 vrfFee = estimateDirectPaymentFee();
         if (msg.value < vrfFee) {
             revert InsufficientPayment(msg.value, vrfFee);
         }
 
-        uint64 accId = Prepayment.createAccount();
-        Prepayment.addConsumer(accId, msg.sender);
+        uint64 accId = s_prepayment.createAccount();
+        s_prepayment.addConsumer(accId, msg.sender);
         bool isDirectPayment = true;
         uint256 requestId = requestRandomWordsInternal(
             keyHash,
@@ -480,7 +483,7 @@ contract VRFCoordinator is
             numWords,
             isDirectPayment
         );
-        Prepayment.deposit{value: vrfFee}(accId);
+        s_prepayment.deposit{value: vrfFee}(accId);
 
         uint256 remaining = msg.value - vrfFee;
         if (remaining > 0) {

@@ -1,6 +1,7 @@
 import { loadFixture } from '@nomicfoundation/hardhat-network-helpers'
 import { expect } from 'chai'
 import hre from 'hardhat'
+import { ethers } from 'hardhat'
 import { vrfConfig } from './VRF.config'
 import { parseKlay } from './utils'
 import { createAccount } from './Prepayment.utils'
@@ -13,18 +14,26 @@ describe('VRF contract', function () {
       signer: deployer
     })
     prepaymentContract = await prepaymentContract.deploy()
+    await prepaymentContract.deployed()
 
     let coordinatorContract = await ethers.getContractFactory('VRFCoordinator', {
       signer: deployer
     })
     coordinatorContract = await coordinatorContract.deploy(prepaymentContract.address)
+    await coordinatorContract.deployed()
 
     let consumerContract = await ethers.getContractFactory('VRFConsumerMock', {
       signer: consumer
     })
     consumerContract = await consumerContract.deploy(coordinatorContract.address)
+    await consumerContract.deployed()
 
-    const accId = await createAccount(prepaymentContract)
+    const accId = await createAccount(
+      await coordinatorContract.getPrepaymentAddress(),
+      consumerContract.address,
+      true,
+      true
+    )
 
     const dummyKeyHash = '0x00000773ef09e40658e643fe79f8d1a27c0aa6eb7251749b268f829ea49f2024'
 
@@ -32,7 +41,6 @@ describe('VRF contract', function () {
       accId,
       deployer,
       consumer,
-      prepaymentContract,
       coordinatorContract,
       consumerContract,
       dummyKeyHash

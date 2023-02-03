@@ -10,6 +10,8 @@ import {
   BULLMQ_CONNECTION
 } from '../settings'
 
+// FIXME currently not used!
+
 export async function predefinedFeedWorker() {
   console.debug('predefinedFeedWorker')
 

@@ -2,30 +2,77 @@
 pragma solidity ^0.8.16;
 
 import "../RequestResponseConsumerBase.sol";
+import '../interfaces/RequestResponseCoordinatorInterface.sol';
 
 contract RequestResponseConsumerMock is RequestResponseConsumerBase {
-    using ICN for ICN.Request;
+    using Orakl for Orakl.Request;
+    uint256 public s_response;
+    address private s_owner;
 
-    bytes32 private s_jobId;
-    int256 public s_response;
+    error OnlyOwner(address notOwner);
 
-    constructor(address _oracleAddress) {
-        setOracle(_oracleAddress);
-        s_jobId = keccak256(abi.encodePacked("any-api-int256"));
+    modifier onlyOwner() {
+        if (msg.sender != s_owner) {
+            revert OnlyOwner(msg.sender);
+        }
+        _;
     }
 
-    function makeRequest() public returns (bytes32 requestId) {
-        ICN.Request memory req = buildRequest(s_jobId, address(this), this.fulfillRequest.selector);
+    constructor(address coordinator) RequestResponseConsumerBase(coordinator) {
+        s_owner = msg.sender;
+    }
+
+    // Receive remaining payment from requestDataPayment
+    receive() external payable {}
+
+    function requestData(
+      uint64 accId,
+      uint32 callbackGasLimit
+    )
+        public
+        onlyOwner
+        returns (uint256 requestId)
+    {
+        bytes32 jobId = keccak256(abi.encodePacked("any-api-int256"));
+
+        Orakl.Request memory req = buildRequest(jobId);
         req.add("get", "https://min-api.cryptocompare.com/data/pricemultifull?fsyms=ETH&tsyms=USD");
         req.add("path", "RAW,ETH,USD,PRICE");
-        return sendRequest(req);
+
+        requestId = COORDINATOR.requestData(
+            req,
+            callbackGasLimit,
+            accId
+        );
     }
 
-    function cancelRequest(bytes32 _requestId) public {
-        cancelRequest(_requestId, this.fulfillRequest.selector);
+    function requestDataDirectPayment(
+      uint32 callbackGasLimit
+    )
+        public
+        payable
+        onlyOwner
+        returns (uint256 requestId)
+    {
+        bytes32 jobId = keccak256(abi.encodePacked("any-api-int256"));
+
+        Orakl.Request memory req = buildRequest(jobId);
+        req.add("get", "https://min-api.cryptocompare.com/data/pricemultifull?fsyms=ETH&tsyms=USD");
+        req.add("path", "RAW,ETH,USD,PRICE");
+
+        requestId = COORDINATOR.requestData{value: msg.value}(
+            req,
+            callbackGasLimit
+        );
     }
 
-    function fulfillRequest(bytes32 _requestId, int256 _response) public ICNResponseFulfilled(_requestId) {
-        s_response = _response;
+    function fulfillDataRequest(
+        uint256 /*requestId*/,
+        uint256 response
+    )
+        internal
+        override
+    {
+        s_response = response;
     }
 }

@@ -3,7 +3,7 @@ import { ethers } from 'ethers'
 import { VRFCoordinator__factory } from '@bisonai-cic/icn-contracts'
 import { sendTransaction, buildWallet } from './utils'
 import { REPORTER_VRF_QUEUE_NAME, BULLMQ_CONNECTION } from '../settings'
-import { IVrfWorkerReporter, RequestCommitment, Proof } from '../types'
+import { IVrfWorkerReporter, RequestCommitmentVRF, Proof } from '../types'
 
 export async function vrfReporter() {
   console.debug('vrfReporter')
@@ -20,7 +20,7 @@ function vrfJob(wallet) {
     console.debug('vrfJob:inData', inData)
 
     try {
-      const rc: RequestCommitment = [
+      const rc: RequestCommitmentVRF = [
         inData.blockNum,
         inData.accId,
         inData.callbackGasLimit,
