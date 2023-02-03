@@ -1,10 +1,17 @@
 import { parseArgs } from 'node:util'
+import pino from 'pino'
 import { buildAggregatorListener } from './aggregator'
 import { buildVrfListener } from './vrf'
 import { buildListener as buildRequestResponseListener } from './request-response'
 import { validateListenerConfig } from './utils'
 import { IcnError, IcnErrorCode } from '../errors'
-import { WORKER_REQUEST_RESPONSE_QUEUE_NAME, WORKER_VRF_QUEUE_NAME, DB, CHAIN } from '../settings'
+import {
+  WORKER_REQUEST_RESPONSE_QUEUE_NAME,
+  WORKER_VRF_QUEUE_NAME,
+  DB,
+  CHAIN,
+  LOG_LEVEL
+} from '../settings'
 import { getListeners } from '../settings'
 import { healthCheck } from '../health-checker'
 import { hookConsoleError } from '../utils'
@@ -24,6 +31,14 @@ const LISTENERS = {
   }
 }
 
+const transport = pino.transport({
+  target: 'pino-pretty',
+  options: { destination: 1 }
+})
+
+const logger = pino(transport)
+logger.level = LOG_LEVEL
+
 async function main() {
   hookConsoleError()
   const listener = loadArgs()
@@ -37,12 +52,12 @@ async function main() {
     throw new IcnError(IcnErrorCode.InvalidListenerConfig)
   }
 
-  console.log(listenersConfig)
+  logger.info(listenersConfig)
 
   const queueName = LISTENERS[listener].queueName
   const buildListener = LISTENERS[listener].fn
   const config = listenersConfig[listener]
-  buildListener(queueName, config)
+  buildListener(queueName, config, logger)
 
   healthCheck()
 }
@@ -70,6 +85,6 @@ function loadArgs() {
 }
 
 main().catch((error) => {
-  console.error(error)
+  logger.error(error)
   process.exitCode = 1
 })
