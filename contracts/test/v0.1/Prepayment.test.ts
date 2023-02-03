@@ -145,7 +145,6 @@ describe('Prepayment contract', function () {
     const {
       oracle,
       publicProvingKey,
-      minimumRequestConfirmations,
       keyHash,
       maxGasLimit,
       gasAfterPaymentCalculation,
@@ -155,7 +154,6 @@ describe('Prepayment contract', function () {
     await coordinatorContract.registerProvingKey(oracle, publicProvingKey)
 
     await coordinatorContract.setConfig(
-      minimumRequestConfirmations,
       maxGasLimit,
       gasAfterPaymentCalculation,
       Object.values(feeConfig)
@@ -164,13 +162,7 @@ describe('Prepayment contract', function () {
     await prepaymentContractConsumerSigner.addConsumer(accId, consumerContract.address)
     await prepaymentContract.addCoordinator(coordinatorContract.address)
 
-    await consumerContract.requestRandomWords(
-      keyHash,
-      accId,
-      minimumRequestConfirmations,
-      maxGasLimit,
-      1
-    )
+    await consumerContract.requestRandomWords(keyHash, accId, maxGasLimit, 1)
 
     await expect(
       prepaymentContractConsumerSigner.cancelAccount(accId, consumer)
@@ -189,7 +181,6 @@ describe('Prepayment contract', function () {
     const {
       oracle,
       publicProvingKey,
-      minimumRequestConfirmations,
       maxGasLimit,
       keyHash,
       gasAfterPaymentCalculation,
@@ -199,7 +190,6 @@ describe('Prepayment contract', function () {
     await coordinatorContract.registerProvingKey(oracle, publicProvingKey)
 
     await coordinatorContract.setConfig(
-      minimumRequestConfirmations,
       maxGasLimit,
       gasAfterPaymentCalculation,
       Object.values(feeConfig)
@@ -211,5 +201,30 @@ describe('Prepayment contract', function () {
       await prepaymentContract.removeCoordinator(coordinatorContract.address)
     ).wait()
     expect(txReceipt.status).to.equal(1)
+  })
+
+  it('Should chargeFee with burn token', async function () {
+    const { prepaymentContract, deployer, accId } = await loadFixture(deployFixture)
+    const { feedOracle0 } = await hre.getNamedAccounts()
+    const node = feedOracle0
+    const prepaymentNodeSigner = await ethers.getContractAt(
+      'Prepayment',
+      prepaymentContract.address,
+      node
+    )
+
+    const depositValue = 1000
+    const feeAmount = 109
+    const transactionDeposit = await prepaymentContract.deposit(accId, { value: depositValue })
+    const role = await prepaymentContract.COORDINATOR_ROLE()
+    await prepaymentContract.grantRole(role, node)
+
+    const txReceipt = await (await prepaymentNodeSigner.chargeFee(accId, feeAmount, node)).wait()
+    const txEvent = prepaymentContract.interface.parseLog(txReceipt.events[0])
+    const { burnAmount } = txEvent.args
+    const balanceNode = await prepaymentContract.s_nodes(node)
+    const amount = burnAmount.toNumber() + balanceNode.toNumber()
+
+    expect(feeAmount).to.be.equal(amount)
   })
 })

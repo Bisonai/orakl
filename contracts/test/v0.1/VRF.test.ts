@@ -52,35 +52,23 @@ describe('VRF contract', function () {
       deployFixture
     )
 
-    const { minimumRequestConfirmations, maxGasLimit } = vrfConfig()
+    const { maxGasLimit } = vrfConfig()
     const numWords = 1
 
     await expect(
-      consumerContract.requestRandomWords(
-        dummyKeyHash,
-        accId,
-        minimumRequestConfirmations,
-        maxGasLimit,
-        numWords
-      )
+      consumerContract.requestRandomWords(dummyKeyHash, accId, maxGasLimit, numWords)
     ).to.be.revertedWithCustomError(coordinatorContract, 'InvalidKeyHash')
   })
 
   it('requestRandomWordsDirect should revert on InvalidKeyHash', async function () {
     const { coordinatorContract, consumerContract, dummyKeyHash } = await loadFixture(deployFixture)
 
-    const { minimumRequestConfirmations, maxGasLimit } = vrfConfig()
+    const { maxGasLimit } = vrfConfig()
     const numWords = 1
     const value = parseKlay(1)
 
     await expect(
-      consumerContract.requestRandomWordsDirect(
-        dummyKeyHash,
-        minimumRequestConfirmations,
-        maxGasLimit,
-        numWords,
-        { value }
-      )
+      consumerContract.requestRandomWordsDirect(dummyKeyHash, maxGasLimit, numWords, { value })
     ).to.be.revertedWithCustomError(coordinatorContract, 'InvalidKeyHash')
   })
 })

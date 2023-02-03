@@ -43,7 +43,7 @@ pragma solidity ^0.8.16;
  * @dev committed to (let's call it keyHash). Create account, fund it
  * @dev and your consumer contract as a consumer of it (see VRFCoordinatorInterface
  * @dev account management functions).
- * @dev Call requestRandomWords(keyHash, accId, minimumRequestConfirmations,
+ * @dev Call requestRandomWords(keyHash, accId,
  * @dev callbackGasLimit, numWords),
  * @dev see (VRFCoordinatorInterface for a description of the arguments).
  *

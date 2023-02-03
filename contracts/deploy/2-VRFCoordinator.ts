@@ -39,7 +39,6 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   console.log('Configure VRF coordinator')
   await (
     await vrfCoordinator.setConfig(
-      vrfConfig.minimumRequestConfirmations,
       vrfConfig.maxGasLimit,
       vrfConfig.gasAfterPaymentCalculation,
       vrfConfig.feeConfig

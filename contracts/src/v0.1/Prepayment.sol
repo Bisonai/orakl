@@ -17,10 +17,13 @@ contract Prepayment is
 {
     uint16 public constant MAX_CONSUMERS = 100;
     bytes32 public constant COORDINATOR_ROLE = keccak256("COORDINATOR_ROLE");
+    uint8 public constant MIN_BURN_RATIO = 0;
+    uint8 public constant MAX_BURN_RATIO = 100;
 
     uint256 private s_totalBalance;
 
     uint64 private s_currentAccId;
+    uint8 public s_BurnRatio = 20; //20%
 
     /* consumer */
     /* accId */
@@ -35,7 +38,7 @@ contract Prepayment is
     /* account */
     mapping(uint64 => Account) private s_accounts;
 
-    mapping(address => uint256) s_nodes;
+    mapping(address => uint256) public s_nodes;
 
     struct Account {
         // There are only 1e9*1e18 = 1e27 juels in existence, so the balance can fit in uint256 (2^96 ~ 7e28)
@@ -66,16 +69,24 @@ contract Prepayment is
     error MustBeRequestedOwner(address proposedOwner);
     error ZeroAmount();
     error CoordinatorExists();
+    error InvalidBurnRatio();
+    error BurnFeeFailed();
 
     event AccountCreated(uint64 indexed accId, address owner);
     event AccountCanceled(uint64 indexed accId, address to, uint256 amount);
     event AccountBalanceIncreased(uint64 indexed accId, uint256 oldBalance, uint256 newBalance);
-    event AccountBalanceDecreased(uint64 indexed accId, uint256 oldBalance, uint256 newBalance);
+    event AccountBalanceDecreased(
+        uint64 indexed accId,
+        uint256 oldBalance,
+        uint256 newBalance,
+        uint256 burnAmount
+    );
     event AccountConsumerAdded(uint64 indexed accId, address consumer);
     event AccountConsumerRemoved(uint64 indexed accId, address consumer);
     event AccountOwnerTransferRequested(uint64 indexed accId, address from, address to);
     event AccountOwnerTransferred(uint64 indexed accId, address from, address to);
     event FundsWithdrawn(address to, uint256 amount);
+    event BurnRatioSet(uint16 ratio);
 
     modifier onlyAccOwner(uint64 accId) {
         address owner = s_accountConfigs[accId].owner;
@@ -90,6 +101,14 @@ contract Prepayment is
 
     constructor() {
         _setupRole(DEFAULT_ADMIN_ROLE, _msgSender());
+    }
+
+    function setBurnRatio(uint8 ratio) public onlyOwner {
+        if (ratio < MIN_BURN_RATIO || ratio > MAX_BURN_RATIO) {
+            revert InvalidBurnRatio();
+        }
+        s_BurnRatio = ratio;
+        emit BurnRatioSet(ratio);
     }
 
     /**
@@ -253,7 +272,7 @@ contract Prepayment is
             revert InsufficientBalance();
         }
 
-        emit AccountBalanceDecreased(accId, oldBalance, oldBalance - amount);
+        emit AccountBalanceDecreased(accId, oldBalance, oldBalance - amount, 0);
     }
 
     /**
@@ -294,9 +313,16 @@ contract Prepayment is
 
         s_accounts[accId].balance -= amount;
         s_accounts[accId].reqCount += 1;
-        s_nodes[node] += amount;
+        uint256 burnAmount = (amount * s_BurnRatio) / 100;
+        s_nodes[node] += amount - burnAmount;
+        if (burnAmount > 0) {
+            (bool sent, ) = address(0).call{value: burnAmount}("");
+            if (!sent) {
+                revert BurnFeeFailed();
+            }
+        }
 
-        emit AccountBalanceDecreased(accId, oldBalance, oldBalance - amount);
+        emit AccountBalanceDecreased(accId, oldBalance, oldBalance - amount, burnAmount);
     }
 
     /**

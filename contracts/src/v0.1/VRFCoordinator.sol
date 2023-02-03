@@ -17,9 +17,6 @@ contract VRFCoordinator is
     TypeAndVersionInterface,
     VRFCoordinatorInterface
 {
-    // Set this maximum to 200 to give us a 56 block window to fulfill
-    // the request before requiring the block hash feeder.
-    uint16 public constant MAX_REQUEST_CONFIRMATIONS = 200;
     uint32 public constant MAX_NUM_WORDS = 500;
     // 5k is plenty for an EXTCODESIZE call (2600) + warm CALL (100)
     // and some arithmetic operations.
@@ -46,7 +43,6 @@ contract VRFCoordinator is
     }
 
     struct Config {
-        uint16 minimumRequestConfirmations;
         uint32 maxGasLimit;
         // Reentrancy protection.
         bool reentrancyLock;
@@ -83,7 +79,6 @@ contract VRFCoordinator is
     error InvalidKeyHash(bytes32 keyHash);
     error InvalidConsumer(uint64 accId, address consumer);
     error InvalidAccount();
-    error InvalidRequestConfirmations(uint16 have, uint16 min, uint16 max);
     error GasLimitTooBig(uint32 have, uint32 want);
     error NumWordsTooBig(uint32 have, uint32 want);
     error ProvingKeyAlreadyRegistered(bytes32 keyHash);
@@ -101,7 +96,6 @@ contract VRFCoordinator is
         uint256 requestId,
         uint256 preSeed,
         uint64 indexed accId,
-        uint16 minimumRequestConfirmations,
         uint32 callbackGasLimit,
         uint32 numWords,
         address indexed sender,
@@ -113,12 +107,7 @@ contract VRFCoordinator is
         uint256 payment,
         bool success
     );
-    event ConfigSet(
-        uint16 minimumRequestConfirmations,
-        uint32 maxGasLimit,
-        uint32 gasAfterPaymentCalculation,
-        FeeConfig feeConfig
-    );
+    event ConfigSet(uint32 maxGasLimit, uint32 gasAfterPaymentCalculation, FeeConfig feeConfig);
     event DirectPaymentConfigSet(uint256 fulfillmentFee, uint256 baseFee);
 
     modifier nonReentrant() {
@@ -182,53 +171,30 @@ contract VRFCoordinator is
 
     /**
      * @notice Sets the configuration of the VRF coordinator
-     * @param minimumRequestConfirmations global min for request confirmations
      * @param maxGasLimit global max for request gas limit
      * @param gasAfterPaymentCalculation gas used in doing accounting after completing the gas measurement
      * @param feeConfig fee tier configuration
      */
     function setConfig(
-        uint16 minimumRequestConfirmations,
         uint32 maxGasLimit,
         uint32 gasAfterPaymentCalculation,
         FeeConfig memory feeConfig
     ) external onlyOwner {
-        if (minimumRequestConfirmations > MAX_REQUEST_CONFIRMATIONS) {
-            revert InvalidRequestConfirmations(
-                minimumRequestConfirmations,
-                minimumRequestConfirmations,
-                MAX_REQUEST_CONFIRMATIONS
-            );
-        }
         s_config = Config({
-            minimumRequestConfirmations: minimumRequestConfirmations,
             maxGasLimit: maxGasLimit,
             gasAfterPaymentCalculation: gasAfterPaymentCalculation,
             reentrancyLock: false
         });
         s_feeConfig = feeConfig;
-        emit ConfigSet(
-            minimumRequestConfirmations,
-            maxGasLimit,
-            gasAfterPaymentCalculation,
-            s_feeConfig
-        );
+        emit ConfigSet(maxGasLimit, gasAfterPaymentCalculation, s_feeConfig);
     }
 
     function getConfig()
         external
         view
-        returns (
-            uint16 minimumRequestConfirmations,
-            uint32 maxGasLimit,
-            uint32 gasAfterPaymentCalculation
-        )
+        returns (uint32 maxGasLimit, uint32 gasAfterPaymentCalculation)
     {
-        return (
-            s_config.minimumRequestConfirmations,
-            s_config.maxGasLimit,
-            s_config.gasAfterPaymentCalculation
-        );
+        return (s_config.maxGasLimit, s_config.gasAfterPaymentCalculation);
     }
 
     function getFeeConfig()
@@ -262,8 +228,8 @@ contract VRFCoordinator is
     /**
      * @inheritdoc VRFCoordinatorInterface
      */
-    function getRequestConfig() external view returns (uint16, uint32, bytes32[] memory) {
-        return (s_config.minimumRequestConfirmations, s_config.maxGasLimit, s_provingKeyHashes);
+    function getRequestConfig() external view returns (uint32, bytes32[] memory) {
+        return (s_config.maxGasLimit, s_provingKeyHashes);
     }
 
     function setDirectPaymentConfig(
@@ -425,7 +391,6 @@ contract VRFCoordinator is
     function requestRandomWordsInternal(
         bytes32 keyHash,
         uint64 accId,
-        uint16 requestConfirmations,
         uint32 callbackGasLimit,
         uint32 numWords,
         bool isDirectPayment
@@ -443,18 +408,6 @@ contract VRFCoordinator is
         uint64 currentNonce = s_prepayment.getNonce(msg.sender, accId);
         if (currentNonce == 0) {
             revert InvalidConsumer(accId, msg.sender);
-        }
-
-        // Input validation using the config storage word.
-        if (
-            requestConfirmations < s_config.minimumRequestConfirmations ||
-            requestConfirmations > MAX_REQUEST_CONFIRMATIONS
-        ) {
-            revert InvalidRequestConfirmations(
-                requestConfirmations,
-                s_config.minimumRequestConfirmations,
-                MAX_REQUEST_CONFIRMATIONS
-            );
         }
 
         // No lower bound on the requested gas limit. A user could request 0
@@ -479,7 +432,6 @@ contract VRFCoordinator is
             requestId,
             preSeed,
             accId,
-            requestConfirmations,
             callbackGasLimit,
             numWords,
             msg.sender,
@@ -495,7 +447,6 @@ contract VRFCoordinator is
     function requestRandomWords(
         bytes32 keyHash,
         uint64 accId,
-        uint16 requestConfirmations,
         uint32 callbackGasLimit,
         uint32 numWords
     ) external nonReentrant onlyValidKeyHash(keyHash) returns (uint256 requestId) {
@@ -503,7 +454,6 @@ contract VRFCoordinator is
         requestId = requestRandomWordsInternal(
             keyHash,
             accId,
-            requestConfirmations,
             callbackGasLimit,
             numWords,
             isDirectPayment
@@ -515,7 +465,6 @@ contract VRFCoordinator is
      */
     function requestRandomWordsPayment(
         bytes32 keyHash,
-        uint16 requestConfirmations,
         uint32 callbackGasLimit,
         uint32 numWords
     ) external payable nonReentrant onlyValidKeyHash(keyHash) returns (uint256) {
@@ -530,7 +479,6 @@ contract VRFCoordinator is
         uint256 requestId = requestRandomWordsInternal(
             keyHash,
             accId,
-            requestConfirmations,
             callbackGasLimit,
             numWords,
             isDirectPayment
