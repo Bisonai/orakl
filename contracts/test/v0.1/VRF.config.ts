@@ -7,7 +7,6 @@ export function vrfConfig() {
     '53113177277038648369733569993581365384831203706597936686768754351087979105423'
   ]
   const keyHash = '0x47ede773ef09e40658e643fe79f8d1a27c0aa6eb7251749b268f829ea49f2024'
-  const minimumRequestConfirmations = 3
   const maxGasLimit = 1_000_000
   const gasAfterPaymentCalculation = 1_000
   const feeConfig = {
@@ -25,7 +24,6 @@ export function vrfConfig() {
   return {
     oracle,
     publicProvingKey,
-    minimumRequestConfirmations,
     maxGasLimit,
     keyHash,
     gasAfterPaymentCalculation,

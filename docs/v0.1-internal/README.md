@@ -164,7 +164,6 @@ constructor(PrepaymentInterface prepayment)
 Configuration of `VRFCoordinator` is performed through `setConfig` function.
 `setConfig` allows to update following parameters:
 
-* `minimumRequestConfirmations` (Currently not supported!)
 * `maxGasLimit` (Total allowed gas limit for processing response)
 * `gasAfterPaymentCalculation` (Global gas limit for operations after `calculatePaymentAmount` inside of `fulfillRandomWords`. Operations could be repriced, therefore this value is configurable.)
 * `feeConfig` (Fee structure with 5 different price tiers and request count boundaries)

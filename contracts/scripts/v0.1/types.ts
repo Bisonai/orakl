@@ -25,7 +25,6 @@ interface IRequestResponseOracle {
 }
 
 export interface IVrfConfig {
-  minimumRequestConfirmations: number
   maxGasLimit: number
   gasAfterPaymentCalculation: number
   feeConfig: IFeeConfig
@@ -34,7 +33,6 @@ export interface IVrfConfig {
 }
 
 export interface IRequestResponseConfig {
-  minimumRequestConfirmations: number
   maxGasLimit: number
   gasAfterPaymentCalculation: number
   feeConfig: IFeeConfig
