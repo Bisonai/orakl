@@ -1,23 +1,27 @@
 import { Worker } from 'bullmq'
 import { ethers } from 'ethers'
+import { Logger } from 'pino'
 import { VRFCoordinator__factory } from '@bisonai-cic/icn-contracts'
 import { sendTransaction, buildWallet } from './utils'
 import { REPORTER_VRF_QUEUE_NAME, BULLMQ_CONNECTION } from '../settings'
 import { IVrfWorkerReporter, RequestCommitmentVRF, Proof } from '../types'
 
-export async function vrfReporter() {
-  console.debug('vrfReporter')
-  const wallet = buildWallet()
-  new Worker(REPORTER_VRF_QUEUE_NAME, await vrfJob(wallet), BULLMQ_CONNECTION)
+const FILE_NAME = import.meta.url
+
+export async function vrfReporter(_logger: Logger) {
+  _logger.debug({ name: 'vrfrReporter', file: FILE_NAME })
+  const wallet = buildWallet(_logger)
+  new Worker(REPORTER_VRF_QUEUE_NAME, await vrfJob(wallet, _logger), BULLMQ_CONNECTION)
 }
 
-function vrfJob(wallet) {
+function vrfJob(wallet, _logger: Logger) {
+  const logger = _logger.child({ name: 'vrfJob', file: FILE_NAME })
   const iface = new ethers.utils.Interface(VRFCoordinator__factory.abi)
   const gasLimit = 3_000_000 // FIXME
 
   async function wrapper(job) {
     const inData: IVrfWorkerReporter = job.data
-    console.debug('vrfJob:inData', inData)
+    logger.debug(inData, 'inData')
 
     try {
       const rc: RequestCommitmentVRF = [
@@ -27,7 +31,7 @@ function vrfJob(wallet) {
         inData.numWords,
         inData.sender
       ]
-      console.debug('vrfJob:rc', rc)
+      logger.debug(rc, 'rc')
 
       const proof: Proof = [
         inData.pk,
@@ -36,16 +40,16 @@ function vrfJob(wallet) {
         inData.uPoint,
         inData.vComponents
       ]
-      console.debug('vrfJob:proof', proof)
+      logger.debug(proof, 'proof')
 
       const payload = iface.encodeFunctionData('fulfillRandomWords', [
         proof,
         rc,
         inData.isDirectPayment
       ])
-      await sendTransaction(wallet, inData.callbackAddress, payload, gasLimit)
+      await sendTransaction({ wallet, to: inData.callbackAddress, payload, gasLimit, _logger })
     } catch (e) {
-      console.error(e)
+      logger.error(e)
     }
   }
 

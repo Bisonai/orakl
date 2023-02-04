@@ -1,26 +1,30 @@
 import { Worker } from 'bullmq'
 import { ethers } from 'ethers'
+import { Logger } from 'pino'
 import { RequestResponseCoordinator__factory } from '@bisonai-cic/icn-contracts'
 import { sendTransaction, buildWallet } from './utils'
 import { REPORTER_REQUEST_RESPONSE_QUEUE_NAME, BULLMQ_CONNECTION } from '../settings'
 import { IRequestResponseWorkerReporter, RequestCommitmentRequestResponse } from '../types'
 
-export async function reporter() {
-  console.debug('requestResponse:reporter')
-  const wallet = buildWallet()
-  new Worker(REPORTER_REQUEST_RESPONSE_QUEUE_NAME, await job(wallet), BULLMQ_CONNECTION)
+const FILE_NAME = import.meta.url
+
+export async function reporter(_logger: Logger) {
+  _logger.debug({ name: 'reporter', file: FILE_NAME })
+  const wallet = buildWallet(_logger)
+  new Worker(REPORTER_REQUEST_RESPONSE_QUEUE_NAME, await job(wallet, _logger), BULLMQ_CONNECTION)
 }
 
-function job(wallet) {
+function job(wallet, _logger: Logger) {
+  const logger = _logger.child({ name: 'job', file: FILE_NAME })
   const iface = new ethers.utils.Interface(RequestResponseCoordinator__factory.abi)
 
   async function wrapper(job) {
     const inData: IRequestResponseWorkerReporter = job.data
-    console.debug('requestResponse:job:inData', inData)
+    logger.debug(inData, 'inData')
 
     try {
       const data = typeof inData.data === 'number' ? Math.floor(inData.data) : inData.data
-      console.debug('requestResponse:job:data', data)
+      logger.debug(data, 'data')
 
       const rc: RequestCommitmentRequestResponse = [
         inData.blockNum,
@@ -29,10 +33,10 @@ function job(wallet) {
         inData.sender
       ]
 
-      console.debug('requestResponse:job:requestId', inData.requestId)
-      console.debug('requestResponse:job:rc', rc)
-      console.debug('requestResponse:job:data', data)
-      console.debug('requestResponse:job:isDirectPayment', inData.isDirectPayment)
+      logger.debug(inData.requestId, 'inData.requestId')
+      logger.debug(rc, 'rc')
+      logger.debug(data, 'data')
+      logger.debug(inData.isDirectPayment, 'inData.isDirectPayment')
 
       const payload = iface.encodeFunctionData('fulfillDataRequest', [
         inData.requestId,
@@ -41,9 +45,9 @@ function job(wallet) {
         inData.isDirectPayment
       ])
 
-      await sendTransaction(wallet, inData.callbackAddress, payload)
+      await sendTransaction({ wallet, to: inData.callbackAddress, payload, _logger })
     } catch (e) {
-      console.error(e)
+      logger.error(e)
     }
   }
 
