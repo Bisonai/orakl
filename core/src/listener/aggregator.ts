@@ -6,6 +6,8 @@ import { Event } from './event'
 import { IListenerConfig, INewRound, IAggregatorListenerWorker } from '../types'
 import { PUBLIC_KEY } from '../settings'
 
+const FILE_NAME = import.meta.url
+
 export function buildAggregatorListener(
   queueName: string,
   config: IListenerConfig[],
@@ -18,7 +20,7 @@ export function buildAggregatorListener(
 }
 
 function processAggregatorEvent(iface: ethers.utils.Interface, queue: Queue, _logger: Logger) {
-  const logger = _logger.child({ name: 'processAggregatorEvent', file: import.meta.url })
+  const logger = _logger.child({ name: 'processAggregatorEvent', file: FILE_NAME })
 
   async function wrapper(log) {
     const eventData = iface.parseLog(log).args as unknown as INewRound
