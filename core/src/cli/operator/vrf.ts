@@ -1,4 +1,5 @@
 import { command, subcommands, option, string as cmdstring } from 'cmd-ts'
+import { Logger } from 'pino'
 import {
   dryrunOption,
   idOption,
@@ -8,7 +9,7 @@ import {
   formatResultRemove
 } from './utils'
 
-export function vrfSub(db) {
+export function vrfSub(db, logger: Logger) {
   // vrf list   [--chain [chain]]                                                [--dryrun]
   // vrf insert  --chain [chain] --pk [pk] --sk [sk] --pk_x [pk_x] --pk_y [pk_y] [--dryrun]
   // vrf remove  --id [id]                                                       [--dryrun]
@@ -19,7 +20,7 @@ export function vrfSub(db) {
       chain: chainOptionalOption,
       dryrun: dryrunOption
     },
-    handler: listHandler(db, true)
+    handler: listHandler(db, true, logger)
   })
 
   const insert = command({
@@ -47,7 +48,7 @@ export function vrfSub(db) {
       }),
       dryrun: dryrunOption
     },
-    handler: insertHandler(db)
+    handler: insertHandler(db, logger)
   })
 
   const remove = command({
@@ -56,7 +57,7 @@ export function vrfSub(db) {
       id: idOption,
       dryrun: dryrunOption
     },
-    handler: removeHandler(db)
+    handler: removeHandler(db, logger)
   })
 
   return subcommands({
@@ -65,7 +66,7 @@ export function vrfSub(db) {
   })
 }
 
-export function listHandler(db, print?) {
+export function listHandler(db, print?: boolean, logger?: Logger) {
   async function wrapper({ chain, dryrun }: { chain?: string; dryrun?: boolean }) {
     let where = ''
     if (chain) {
@@ -74,11 +75,11 @@ export function listHandler(db, print?) {
     const query = `SELECT VrfKey.id, Chain.name as chain, sk, pk, pk_x, pk_y FROM VrfKey INNER JOIN Chain
    ON VrfKey.chainId = Chain.id ${where};`
     if (dryrun) {
-      console.debug(query)
+      logger?.debug(query)
     } else {
       const result = await db.all(query)
       if (print) {
-        console.log(result)
+        logger?.info(result)
       }
       return result
     }
@@ -86,7 +87,7 @@ export function listHandler(db, print?) {
   return wrapper
 }
 
-export function insertHandler(db) {
+export function insertHandler(db, logger?: Logger) {
   async function wrapper({
     chain,
     pk,
@@ -105,23 +106,23 @@ export function insertHandler(db) {
     const chainId = await chainToId(db, chain)
     const query = `INSERT INTO VrfKey (chainId, sk, pk, pk_x, pk_y) VALUES (${chainId}, '${sk}', '${pk}', '${pk_x}', '${pk_y}');`
     if (dryrun) {
-      console.debug(query)
+      logger?.debug(query)
     } else {
       const result = await db.run(query)
-      console.log(formatResultInsert(result))
+      logger?.info(formatResultInsert(result))
     }
   }
   return wrapper
 }
 
-export function removeHandler(db) {
+export function removeHandler(db, logger?: Logger) {
   async function wrapper({ id, dryrun }: { id: number; dryrun?: boolean }) {
     const query = `DELETE FROM VrfKey WHERE id=${id};`
     if (dryrun) {
-      console.debug(query)
+      logger?.debug(query)
     } else {
       const result = await db.run(query)
-      console.log(formatResultRemove(result))
+      logger?.info(formatResultRemove(result))
     }
   }
   return wrapper

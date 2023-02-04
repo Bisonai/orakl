@@ -1,7 +1,8 @@
 import { command, subcommands, option, string as cmdstring } from 'cmd-ts'
+import { Logger } from 'pino'
 import { dryrunOption, idOption, formatResultInsert, formatResultRemove } from './utils'
 
-export function chainSub(db) {
+export function chainSub(db, logger: Logger) {
   // chain list
   // chain insert --name [name] [--dryrun]
   // chain remove --id [id]     [--dryrun]
@@ -9,7 +10,7 @@ export function chainSub(db) {
   const list = command({
     name: 'list',
     args: {},
-    handler: listHandler(db, true)
+    handler: listHandler(db, true, logger)
   })
 
   const insert = command({
@@ -21,7 +22,7 @@ export function chainSub(db) {
       }),
       dryrun: dryrunOption
     },
-    handler: insertHandler(db)
+    handler: insertHandler(db, logger)
   })
 
   const remove = command({
@@ -30,7 +31,7 @@ export function chainSub(db) {
       id: idOption,
       dryrun: dryrunOption
     },
-    handler: removeHandler(db)
+    handler: removeHandler(db, logger)
   })
 
   return subcommands({
@@ -39,39 +40,39 @@ export function chainSub(db) {
   })
 }
 
-export function listHandler(db, print?) {
+export function listHandler(db, print?: boolean, logger?: Logger) {
   async function wrapper() {
     const query = 'SELECT * FROM Chain'
     const result = await db.all(query)
     if (print) {
-      console.log(result)
+      logger?.info(result)
     }
     return result
   }
   return wrapper
 }
 
-export function insertHandler(db) {
+export function insertHandler(db, logger?: Logger) {
   async function wrapper({ name, dryrun }: { name: string; dryrun?: boolean }) {
     const query = `INSERT INTO Chain (name) VALUES ('${name}')`
     if (dryrun) {
-      console.debug(query)
+      logger?.debug(query)
     } else {
       const result = await db.run(query)
-      console.log(formatResultInsert(result))
+      logger?.info(formatResultInsert(result))
     }
   }
   return wrapper
 }
 
-export function removeHandler(db) {
+export function removeHandler(db, logger?: Logger) {
   async function wrapper({ id, dryrun }: { id: number; dryrun?: boolean }) {
     const query = `DELETE FROM Chain WHERE id=${id}`
     if (dryrun) {
-      console.debug(query)
+      logger?.debug(query)
     } else {
       const result = await db.run(query)
-      console.log(formatResultRemove(result))
+      logger?.info(formatResultRemove(result))
     }
   }
   return wrapper

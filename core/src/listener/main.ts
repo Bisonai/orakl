@@ -1,4 +1,5 @@
 import { parseArgs } from 'node:util'
+import { buildLogger } from '../logger'
 import { buildAggregatorListener } from './aggregator'
 import { buildVrfListener } from './vrf'
 import { buildListener as buildRequestResponseListener } from './request-response'
@@ -24,8 +25,11 @@ const LISTENERS = {
   }
 }
 
+const FILE_NAME = import.meta.url
+const LOGGER = buildLogger('listener')
+
 async function main() {
-  hookConsoleError()
+  hookConsoleError(LOGGER)
   const listener = loadArgs()
   const listenersConfig = await getListeners(DB, CHAIN)
 
@@ -37,12 +41,12 @@ async function main() {
     throw new IcnError(IcnErrorCode.InvalidListenerConfig)
   }
 
-  console.log(listenersConfig)
+  LOGGER.info({ name: 'listener:main', file: FILE_NAME, ...listenersConfig }, 'listenersConfig')
 
   const queueName = LISTENERS[listener].queueName
   const buildListener = LISTENERS[listener].fn
   const config = listenersConfig[listener]
-  buildListener(queueName, config)
+  buildListener(queueName, config, LOGGER)
 
   healthCheck()
 }
@@ -69,7 +73,7 @@ function loadArgs() {
   return listener
 }
 
-main().catch((error) => {
-  console.error(error)
+main().catch((e) => {
+  LOGGER.error(e)
   process.exitCode = 1
 })

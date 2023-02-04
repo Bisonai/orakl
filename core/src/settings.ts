@@ -1,5 +1,5 @@
-import path from 'node:path'
 import os from 'node:os'
+import path from 'node:path'
 import sqlite from 'sqlite3'
 import { open } from 'sqlite'
 import { IListenerConfig, IVrfConfig } from './types'
@@ -12,6 +12,8 @@ dotenv.config()
 export const NODE_ENV = process.env.NODE_ENV
 export const HEALTH_CHECK_PORT = process.env.HEALTH_CHECK_PORT
 export const CHAIN = process.env.CHAIN || 'localhost'
+export const LOG_LEVEL = process.env.LOG_LEVEL || 'info'
+export const LOG_DIR = process.env.LOG_DIR || './'
 
 export const ORAKL_DIR = process.env.ORAKL_DIR || path.join(os.homedir(), '.orakl')
 export const SETTINGS_DB_FILE = path.join(ORAKL_DIR, 'settings.sqlite')

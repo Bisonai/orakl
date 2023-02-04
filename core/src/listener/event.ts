@@ -1,6 +1,7 @@
 import * as path from 'node:path'
 import { Queue } from 'bullmq'
 import { Contract, ethers } from 'ethers'
+import { Logger } from 'pino'
 import { PROVIDER_URL, BULLMQ_CONNECTION, LISTENER_ROOT_DIR, LISTENER_DELAY } from '../settings'
 import { IListenerBlock, IListenerConfig } from '../types'
 import { mkdir, readTextFile, writeTextFile } from '../utils'
@@ -12,16 +13,20 @@ export class Event {
   provider: ethers.providers.JsonRpcProvider
   eventName: string
   running: boolean
+  logger: Logger
 
   constructor(
     queueName: string,
-    wrapFn: (iface: ethers.utils.Interface, queue: Queue) => (log) => void,
+    wrapFn: (iface: ethers.utils.Interface, queue: Queue, logger: Logger) => (log) => void,
     abi,
-    listener: IListenerConfig
+    listener: IListenerConfig,
+    logger
   ) {
-    console.debug(`listenToEvents:topicId ${listener.eventName}`)
-    console.debug('PROVIDER_URL', PROVIDER_URL)
-    console.debug('LISTENER_ROOT_DIR', LISTENER_ROOT_DIR)
+    this.logger = logger
+
+    this.logger.debug({ name: 'Event:constructor' }, `listener.eventName=${listener.eventName}`)
+    this.logger.debug({ name: 'Event:constructor' }, `PROVIDER_URL=${PROVIDER_URL}`)
+    this.logger.debug({ name: 'Event:constructor' }, `LISTENER_ROOT_DIR=${LISTENER_ROOT_DIR}`)
 
     mkdir(LISTENER_ROOT_DIR)
     const provider = new ethers.providers.JsonRpcProvider(PROVIDER_URL)
@@ -30,7 +35,7 @@ export class Event {
 
     this.running = false
     this.provider = provider
-    this.fn = wrapFn(iface, queue)
+    this.fn = wrapFn(iface, queue, logger)
     this.eventName = listener.eventName
     this.emitContract = new ethers.Contract(listener.address, abi, provider)
     this.listenerBlock = {
@@ -46,7 +51,7 @@ export class Event {
         await this.filter()
         this.running = false
       } else {
-        console.debug('running')
+        this.logger.debug({ name: 'Event:listen' }, 'running')
       }
     }, LISTENER_DELAY)
   }
@@ -69,8 +74,10 @@ export class Event {
           latestBlock
         )
 
-        console.debug(this.listenerBlock.startBlock, '-', latestBlock)
-
+        this.logger.debug(
+          { name: 'Event:filter' },
+          `${this.listenerBlock.startBlock}-${latestBlock}`
+        )
         this.listenerBlock.startBlock = latestBlock + 1
         await writeTextFile(this.listenerBlock.filePath, this.listenerBlock.startBlock.toString())
 
@@ -79,7 +86,7 @@ export class Event {
         }
       }
     } catch (e) {
-      console.error(e)
+      this.logger.error({ name: 'Event:filter' }, e)
     }
   }
 

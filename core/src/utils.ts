@@ -75,10 +75,6 @@ export async function writeTextFile(filepath: string, content: string) {
   await Fs.writeFile(filepath, content)
 }
 
-export function printObject(object) {
-  console.dir(object, { depth: null })
-}
-
 export function mkTmpFile({ fileName }: { fileName: string }): string {
   const appPrefix = 'orakl'
   const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), appPrefix))
@@ -98,8 +94,8 @@ function sendToSlack(error) {
   }
 }
 
-export function hookConsoleError() {
-  const consoleHook = Hook().attach((method, args) => {
+export function hookConsoleError(logger) {
+  const consoleHook = Hook(logger).attach((method, args) => {
     if (method == 'error') {
       sendToSlack(args)
     }

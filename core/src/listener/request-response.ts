@@ -1,20 +1,25 @@
 import { Queue } from 'bullmq'
 import { ethers } from 'ethers'
+import { Logger } from 'pino'
 import { RequestResponseCoordinator__factory } from '@bisonai-cic/icn-contracts'
 import { Event } from './event'
 import { IListenerConfig, IDataRequested, IRequestResponseListenerWorker } from '../types'
 
-export function buildListener(queueName: string, config: IListenerConfig[]) {
+export function buildListener(queueName: string, config: IListenerConfig[], logger: Logger) {
   // FIXME remove loop and listen on multiple contract for the same event
   for (const c of config) {
-    new Event(queueName, processEvent, RequestResponseCoordinator__factory.abi, c).listen()
+    new Event(queueName, processEvent, RequestResponseCoordinator__factory.abi, c, logger).listen()
   }
 }
 
-function processEvent(iface: ethers.utils.Interface, queue: Queue) {
+const FILE_NAME = import.meta.url
+
+function processEvent(iface: ethers.utils.Interface, queue: Queue, _logger: Logger) {
+  const logger = _logger.child({ name: 'processEvent', file: FILE_NAME })
+
   async function wrapper(log) {
     const eventData = iface.parseLog(log).args as unknown as IDataRequested
-    console.debug('requestResponse:processEvent:eventData', eventData)
+    logger.debug(eventData, 'eventData')
 
     const data: IRequestResponseListenerWorker = {
       callbackAddress: log.address,
@@ -27,7 +32,7 @@ function processEvent(iface: ethers.utils.Interface, queue: Queue) {
       isDirectPayment: eventData.isDirectPayment,
       data: eventData.data.toString()
     }
-    console.debug('requestResponse:processEvent:data', data)
+    logger.debug(data, 'data')
 
     await queue.add('request-response', data)
   }

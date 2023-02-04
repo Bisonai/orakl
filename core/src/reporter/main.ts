@@ -1,4 +1,5 @@
 import { parseArgs } from 'node:util'
+import { buildLogger } from '../logger'
 import { aggregatorReporter } from './aggregator'
 import { vrfReporter } from './vrf'
 import { reporter as requestResponseReporter } from './request-response'
@@ -11,10 +12,12 @@ const REPORTERS = {
   REQUEST_RESPONSE: requestResponseReporter
 }
 
+const LOGGER = buildLogger('reporter')
+
 async function main() {
-  hookConsoleError()
+  hookConsoleError(LOGGER)
   const reporter = loadArgs()
-  REPORTERS[reporter]()
+  REPORTERS[reporter](LOGGER)
   healthCheck()
 }
 
@@ -41,6 +44,6 @@ function loadArgs() {
 }
 
 main().catch((error) => {
-  console.error(error)
+  LOGGER.error(error)
   process.exitCode = 1
 })

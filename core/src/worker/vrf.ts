@@ -1,5 +1,6 @@
 import { ethers } from 'ethers'
 import { Worker, Queue } from 'bullmq'
+import { Logger } from 'pino'
 import { prove, decode, getFastVerifyComponents } from '../vrf/index'
 import { IVrfResponse, IVrfListenerWorker, IVrfWorkerReporter, IVrfConfig } from '../types'
 import {
@@ -12,27 +13,34 @@ import {
 } from '../settings'
 import { remove0x } from '../utils'
 
-export async function vrfWorker() {
-  console.debug('vrfWorker')
-  new Worker(WORKER_VRF_QUEUE_NAME, await vrfJob(REPORTER_VRF_QUEUE_NAME), BULLMQ_CONNECTION)
+const FILE_NAME = import.meta.url
+
+export async function vrfWorker(_logger: Logger) {
+  _logger.debug({ name: 'vrfWorker', file: FILE_NAME })
+  new Worker(
+    WORKER_VRF_QUEUE_NAME,
+    await vrfJob(REPORTER_VRF_QUEUE_NAME, _logger),
+    BULLMQ_CONNECTION
+  )
 }
 
-async function vrfJob(queueName) {
+async function vrfJob(queueName: string, _logger: Logger) {
+  const logger = _logger.child({ name: 'vrfJob', file: FILE_NAME })
   const queue = new Queue(queueName, BULLMQ_CONNECTION)
   // FIXME add checks if exists and if includes all information
   const vrfConfig = await getVrfConfig(DB, CHAIN)
 
   async function wrapper(job) {
     const inData: IVrfListenerWorker = job.data
-    console.debug('vrfJob:inData', inData)
+    logger.debug(inData, 'inData')
 
     try {
       const alpha = remove0x(
         ethers.utils.solidityKeccak256(['uint256', 'bytes32'], [inData.seed, inData.blockHash])
       )
 
-      console.debug('vrfJob:alpha', alpha)
-      const { pk, proof, uPoint, vComponents } = processVrfRequest(alpha, vrfConfig)
+      logger.debug({ alpha })
+      const { pk, proof, uPoint, vComponents } = processVrfRequest(alpha, vrfConfig, _logger)
 
       const outData: IVrfWorkerReporter = {
         callbackAddress: inData.callbackAddress,
@@ -50,7 +58,7 @@ async function vrfJob(queueName) {
         uPoint,
         vComponents
       }
-      console.debug('vrfJob:outData', outData)
+      logger.debug(outData, 'outData')
 
       await queue.add('vrf', outData, {
         jobId: outData.requestId,
@@ -59,22 +67,22 @@ async function vrfJob(queueName) {
         }
       })
     } catch (e) {
-      console.error(e)
+      logger.error(e)
     }
   }
 
   return wrapper
 }
 
-function processVrfRequest(alpha: string, config: IVrfConfig): IVrfResponse {
-  console.debug('processVrfRequest:alpha', alpha)
+function processVrfRequest(alpha: string, config: IVrfConfig, _logger: Logger): IVrfResponse {
+  const logger = _logger.child({ name: 'processVrfRequest', file: FILE_NAME })
 
   const proof = prove(config.sk, alpha)
   const [Gamma, c, s] = decode(proof)
   const fast = getFastVerifyComponents(config.pk, proof, alpha)
 
   if (fast == 'INVALID') {
-    console.error('INVALID')
+    logger.error('INVALID')
     // TODO throw more specific error
     throw Error()
   }
