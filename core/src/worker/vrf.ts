@@ -39,7 +39,7 @@ async function vrfJob(queueName: string, _logger: Logger) {
         ethers.utils.solidityKeccak256(['uint256', 'bytes32'], [inData.seed, inData.blockHash])
       )
 
-      logger.debug(alpha, 'alpha')
+      logger.debug({ alpha })
       const { pk, proof, uPoint, vComponents } = processVrfRequest(alpha, vrfConfig, _logger)
 
       const outData: IVrfWorkerReporter = {
@@ -76,7 +76,6 @@ async function vrfJob(queueName: string, _logger: Logger) {
 
 function processVrfRequest(alpha: string, config: IVrfConfig, _logger: Logger): IVrfResponse {
   const logger = _logger.child({ name: 'processVrfRequest', file: FILE_NAME })
-  logger.debug(alpha, 'alpha')
 
   const proof = prove(config.sk, alpha)
   const [Gamma, c, s] = decode(proof)
