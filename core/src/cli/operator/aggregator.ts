@@ -1,4 +1,5 @@
 import { flag, command, subcommands, option, string as cmdstring } from 'cmd-ts'
+import { Logger } from 'pino'
 import {
   chainOptionalOption,
   chainToId,
@@ -8,12 +9,11 @@ import {
   formatResultRemove
 } from './utils'
 import { computeDataHash } from '../utils'
-import { printObject } from '../../utils'
 import { ReadFile } from './types'
 import { IAggregator } from '../..//types'
 import { CliError, CliErrorCode } from './error'
 
-export function aggregatorSub(db) {
+export function aggregatorSub(db, logger: Logger) {
   // aggregator list [--active] [--chain [chain]]
   // aggregator insert --file-path [file-path] --adapter [adapter] --chain [chain] [--dryrun]
   // aggregator remove --id [id]                                                   [--dryrun]
@@ -26,7 +26,7 @@ export function aggregatorSub(db) {
       }),
       chain: chainOptionalOption
     },
-    handler: listHandler(db, true)
+    handler: listHandler(db, true, logger)
   })
 
   const insert = command({
@@ -46,7 +46,7 @@ export function aggregatorSub(db) {
       }),
       dryrun: dryrunOption
     },
-    handler: insertHandler(db)
+    handler: insertHandler(db, logger)
   })
 
   const remove = command({
@@ -55,7 +55,7 @@ export function aggregatorSub(db) {
       id: idOption,
       dryrun: dryrunOption
     },
-    handler: removeHandler(db)
+    handler: removeHandler(db, logger)
   })
 
   return subcommands({
@@ -64,7 +64,7 @@ export function aggregatorSub(db) {
   })
 }
 
-export function listHandler(db, print?) {
+export function listHandler(db, print?: boolean, logger?: Logger) {
   async function wrapper({ chain, active }: { chain?: string; active?: boolean }) {
     let where = ''
     if (chain) {
@@ -77,8 +77,8 @@ export function listHandler(db, print?) {
       for (const r of result) {
         const rJson = JSON.parse(r.data)
         if (!active || rJson.active) {
-          console.log(`ID: ${r.id}`)
-          printObject(rJson)
+          logger?.info(`ID: ${r.id}`)
+          logger?.info(rJson)
         }
       }
     }
@@ -87,7 +87,7 @@ export function listHandler(db, print?) {
   return wrapper
 }
 
-export function insertHandler(db) {
+export function insertHandler(db, logger?: Logger) {
   async function wrapper({
     data,
     chain,
@@ -114,23 +114,23 @@ export function insertHandler(db) {
     const query = `INSERT INTO Aggregator (chainId, aggregatorId, adapterId, data) VALUES (${chainId}, '${aggregatorObject.id}', ${adapterId}, '${aggregator}')`
 
     if (dryrun) {
-      console.debug(query)
+      logger?.debug(query)
     } else {
       const result = await db.run(query)
-      console.log(formatResultInsert(result))
+      logger?.info(formatResultInsert(result))
     }
   }
   return wrapper
 }
 
-export function removeHandler(db) {
+export function removeHandler(db, logger?: Logger) {
   async function wrapper({ id, dryrun }: { id: number; dryrun?: boolean }) {
     const query = `DELETE FROM Aggregator WHERE id=${id}`
     if (dryrun) {
-      console.debug(query)
+      logger?.debug(query)
     } else {
       const result = await db.run(query)
-      console.log(formatResultRemove(result))
+      logger?.info(formatResultRemove(result))
     }
   }
   return wrapper

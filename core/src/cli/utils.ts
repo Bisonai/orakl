@@ -1,13 +1,15 @@
 import { ethers } from 'ethers'
+import { Logger } from 'pino'
 import { IAdapter, IAggregator } from '../types'
-import { printObject } from '../utils'
 
 export async function computeDataHash({
   data,
-  verify
+  verify,
+  logger
 }: {
   data: IAdapter | IAggregator
   verify?: boolean
+  logger?: Logger
 }): Promise<IAdapter | IAggregator> {
   const input = JSON.parse(JSON.stringify(data))
 
@@ -18,11 +20,11 @@ export async function computeDataHash({
   const hash = ethers.utils.keccak256(ethers.utils.toUtf8Bytes(JSON.stringify(input)))
 
   if (verify && data.id != hash) {
-    printObject(input)
+    logger?.info(input)
     throw Error(`Hashes do not match!\nExpected ${hash}, received ${data.id}.`)
   } else {
     data.id = hash
-    printObject(data)
+    logger?.info(data)
     return data
   }
 }

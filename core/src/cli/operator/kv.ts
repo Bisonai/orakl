@@ -1,4 +1,5 @@
 import { command, subcommands, optional, option, string as cmdstring } from 'cmd-ts'
+import { Logger } from 'pino'
 import {
   dryrunOption,
   chainOptionalOption,
@@ -8,7 +9,7 @@ import {
 } from './utils'
 import { ReadFile } from './types'
 
-export function kvSub(db) {
+export function kvSub(db, logger: Logger) {
   // kv list        [--chain [chain]] [--key [key]]
   // kv insert       --chain [chain]   --key [key] --value [value] [--dryrun]
   // kv remove       --chain [chain]   --key [key]                 [--dryrun]
@@ -24,7 +25,7 @@ export function kvSub(db) {
         long: 'key'
       })
     },
-    handler: listHandler(db, true)
+    handler: listHandler(db, true, logger)
   })
 
   const insert = command({
@@ -44,7 +45,7 @@ export function kvSub(db) {
       }),
       dryrun: dryrunOption
     },
-    handler: insertHandler(db)
+    handler: insertHandler(db, logger)
   })
 
   const insertMany = command({
@@ -60,7 +61,7 @@ export function kvSub(db) {
       }),
       dryrun: dryrunOption
     },
-    handler: insertManyHandler(db)
+    handler: insertManyHandler(db, logger)
   })
 
   const remove = command({
@@ -76,7 +77,7 @@ export function kvSub(db) {
       }),
       dryrun: dryrunOption
     },
-    handler: removeHandler(db)
+    handler: removeHandler(db, logger)
   })
 
   const update = command({
@@ -96,7 +97,7 @@ export function kvSub(db) {
       }),
       dryrun: dryrunOption
     },
-    handler: updateHandler(db)
+    handler: updateHandler(db, logger)
   })
 
   return subcommands({
@@ -105,7 +106,7 @@ export function kvSub(db) {
   })
 }
 
-export function listHandler(db, print?) {
+export function listHandler(db, print?: boolean, logger?: Logger) {
   async function wrapper({ chain, key }: { chain?: string; key?: string }) {
     let where = ''
     if (chain) {
@@ -124,14 +125,14 @@ export function listHandler(db, print?) {
     const query = `SELECT * FROM Kv ${where};`
     const result = await db.all(query)
     if (print) {
-      console.log(result)
+      logger?.info(result)
     }
     return result
   }
   return wrapper
 }
 
-export function insertHandler(db) {
+export function insertHandler(db, logger?: Logger) {
   async function wrapper({
     key,
     value,
@@ -146,16 +147,16 @@ export function insertHandler(db) {
     const chainId = await chainToId(db, chain)
     const query = `INSERT INTO Kv (chainId, key, value) VALUES (${chainId}, '${key}', '${value}');`
     if (dryrun) {
-      console.debug(query)
+      logger?.debug(query)
     } else {
       const result = await db.run(query)
-      console.log(formatResultInsert(result))
+      logger?.info(formatResultInsert(result))
     }
   }
   return wrapper
 }
 
-export function insertManyHandler(db) {
+export function insertManyHandler(db, logger?: Logger) {
   async function wrapper({ data, chain, dryrun }: { data; chain: string; dryrun?: boolean }) {
     const chainId = await chainToId(db, chain)
 
@@ -166,30 +167,30 @@ export function insertManyHandler(db) {
 
     const query = `INSERT INTO Kv (chainId, key, value) VALUES ${values.join()};`
     if (dryrun) {
-      console.debug(query)
+      logger?.debug(query)
     } else {
       const result = await db.run(query)
-      console.log(formatResultInsert(result))
+      logger?.info(formatResultInsert(result))
     }
   }
   return wrapper
 }
 
-export function removeHandler(db) {
+export function removeHandler(db, logger?: Logger) {
   async function wrapper({ key, chain, dryrun }: { key: string; chain: string; dryrun?: boolean }) {
     const chainId = await chainToId(db, chain)
     const query = `DELETE FROM Kv WHERE chainId=${chainId} AND key='${key}';`
     if (dryrun) {
-      console.debug(query)
+      logger?.debug(query)
     } else {
       const result = await db.run(query)
-      console.log(formatResultRemove(result))
+      logger?.info(formatResultRemove(result))
     }
   }
   return wrapper
 }
 
-export function updateHandler(db) {
+export function updateHandler(db, logger?: Logger) {
   async function wrapper({
     key,
     value,
@@ -204,10 +205,10 @@ export function updateHandler(db) {
     const chainId = await chainToId(db, chain)
     const query = `UPDATE Kv SET value='${value}' WHERE chainId=${chainId} AND key='${key}';`
     if (dryrun) {
-      console.debug(query)
+      logger?.debug(query)
     } else {
       const result = await db.run(query)
-      console.log(result)
+      logger?.info(result)
     }
   }
   return wrapper

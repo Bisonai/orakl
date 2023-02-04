@@ -1,4 +1,5 @@
 import { command, subcommands, option, string as cmdstring } from 'cmd-ts'
+import { Logger } from 'pino'
 import {
   dryrunOption,
   idOption,
@@ -10,7 +11,7 @@ import {
   formatResultRemove
 } from './utils'
 
-export function listenerSub(db) {
+export function listenerSub(db, logger: Logger) {
   // listener list   [--chain [chain]] [--service [service]]                                            [--dryrun]
   // listener insert  --chain [chain]   --service [service] --address [address] --eventName [eventName] [--dryrun]
   // listener remove  --id [id]                                                                         [--dryrun]
@@ -22,7 +23,7 @@ export function listenerSub(db) {
       service: serviceOptionalOption,
       dryrun: dryrunOption
     },
-    handler: listHandler(db, true)
+    handler: listHandler(db, true, logger)
   })
 
   const insert = command({
@@ -47,7 +48,7 @@ export function listenerSub(db) {
 
       dryrun: dryrunOption
     },
-    handler: insertHandler(db)
+    handler: insertHandler(db, logger)
   })
 
   const remove = command({
@@ -56,7 +57,7 @@ export function listenerSub(db) {
       id: idOption,
       dryrun: dryrunOption
     },
-    handler: removeHandler(db)
+    handler: removeHandler(db, logger)
   })
 
   return subcommands({
@@ -65,7 +66,7 @@ export function listenerSub(db) {
   })
 }
 
-export function listHandler(db, print?) {
+export function listHandler(db, print?: boolean, logger?: Logger) {
   async function wrapper({
     chain,
     service,
@@ -92,11 +93,11 @@ export function listHandler(db, print?) {
 
     const query = `SELECT * FROM Listener ${where}`
     if (dryrun) {
-      console.debug(query)
+      logger?.debug(query)
     } else {
       const result = await db.all(query)
       if (print) {
-        console.log(result)
+        logger?.info(result)
       }
       return result
     }
@@ -104,7 +105,7 @@ export function listHandler(db, print?) {
   return wrapper
 }
 
-export function insertHandler(db) {
+export function insertHandler(db, logger?: Logger) {
   async function wrapper({
     chain,
     service,
@@ -123,23 +124,23 @@ export function insertHandler(db) {
     const query = `INSERT INTO Listener (chainId, serviceId, address, eventName) VALUES (${chainId}, ${serviceId},'${address}', '${eventName}');`
 
     if (dryrun) {
-      console.debug(query)
+      logger?.debug(query)
     } else {
       const result = await db.run(query)
-      console.log(formatResultInsert(result))
+      logger?.info(formatResultInsert(result))
     }
   }
   return wrapper
 }
 
-export function removeHandler(db) {
+export function removeHandler(db, logger?: Logger) {
   async function wrapper({ id, dryrun }: { id: number; dryrun?: boolean }) {
     const query = `DELETE FROM Listener WHERE id=${id};`
     if (dryrun) {
-      console.debug(query)
+      logger?.debug(query)
     } else {
       const result = await db.run(query)
-      console.log(formatResultRemove(result))
+      logger?.info(formatResultRemove(result))
     }
   }
   return wrapper

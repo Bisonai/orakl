@@ -1,4 +1,5 @@
 import { flag, command, subcommands, option, string as cmdstring } from 'cmd-ts'
+import { Logger } from 'pino'
 import {
   chainOptionalOption,
   chainToId,
@@ -8,10 +9,9 @@ import {
   formatResultRemove
 } from './utils'
 import { computeDataHash } from '../utils'
-import { printObject } from '../../utils'
 import { ReadFile } from './types'
 
-export function adapterSub(db) {
+export function adapterSub(db, logger: Logger) {
   // adapter list [--active] [--chain [chain]]
   // adapter insert --file-path [file-path] --chain [chain] [--dryrun]
   // adapter remove --id [id]                               [--dryrun]
@@ -24,7 +24,7 @@ export function adapterSub(db) {
       }),
       chain: chainOptionalOption
     },
-    handler: listHandler(db, true)
+    handler: listHandler(db, true, logger)
   })
 
   const insert = command({
@@ -40,7 +40,7 @@ export function adapterSub(db) {
       }),
       dryrun: dryrunOption
     },
-    handler: insertHandler(db)
+    handler: insertHandler(db, logger)
   })
 
   const remove = command({
@@ -49,7 +49,7 @@ export function adapterSub(db) {
       id: idOption,
       dryrun: dryrunOption
     },
-    handler: removeHandler(db)
+    handler: removeHandler(db, logger)
   })
 
   return subcommands({
@@ -58,7 +58,7 @@ export function adapterSub(db) {
   })
 }
 
-export function listHandler(db, print?) {
+export function listHandler(db, print?: boolean, logger?: Logger) {
   async function wrapper({ chain, active }: { chain?: string; active?: boolean }) {
     let where = ''
     if (chain) {
@@ -71,8 +71,8 @@ export function listHandler(db, print?) {
       for (const r of result) {
         const rJson = JSON.parse(r.data)
         if (!active || rJson.active) {
-          console.log(`ID: ${r.id}`)
-          printObject(rJson)
+          logger?.info(`ID: ${r.id}`)
+          logger?.info(rJson)
         }
       }
     }
@@ -81,7 +81,7 @@ export function listHandler(db, print?) {
   return wrapper
 }
 
-export function insertHandler(db) {
+export function insertHandler(db, logger?: Logger) {
   async function wrapper({ data, chain, dryrun }: { data; chain: string; dryrun?: boolean }) {
     const chainId = await chainToId(db, chain)
     const adapterObject = await computeDataHash({ data })
@@ -89,23 +89,23 @@ export function insertHandler(db) {
     const query = `INSERT INTO Adapter (chainId, adapterId, data) VALUES (${chainId}, '${adapterObject.id}', '${adapter}')`
 
     if (dryrun) {
-      console.debug(query)
+      logger?.debug(query)
     } else {
       const result = await db.run(query)
-      console.log(formatResultInsert(result))
+      logger?.info(formatResultInsert(result))
     }
   }
   return wrapper
 }
 
-export function removeHandler(db) {
+export function removeHandler(db, logger?: Logger) {
   async function wrapper({ id, dryrun }: { id: number; dryrun?: boolean }) {
     const query = `DELETE FROM Adapter WHERE id=${id}`
     if (dryrun) {
-      console.debug(query)
+      logger?.debug(query)
     } else {
       const result = await db.run(query)
-      console.log(formatResultRemove(result))
+      logger?.info(formatResultRemove(result))
     }
   }
   return wrapper
