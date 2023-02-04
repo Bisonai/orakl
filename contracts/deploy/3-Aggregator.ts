@@ -1,6 +1,7 @@
 import { HardhatRuntimeEnvironment } from 'hardhat/types'
 import { DeployFunction } from 'hardhat-deploy/types'
-const dataFeedConfig = require('../config/data-feed.json')
+import { loadJson } from '../scripts/v0.1/utils'
+import { IAggregatorConfig } from '../scripts/v0.1/types'
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployments, getNamedAccounts } = hre
@@ -9,8 +10,12 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   console.log('3-Aggregator.ts')
 
+  const aggregatorConfig: IAggregatorConfig[] = await loadJson(
+    `config/${network.name}/aggregator.json`
+  )
+
   // Aggregator
-  const config = dataFeedConfig['KLAY/USD']
+  const config = aggregatorConfig[0]
   const aggregatorDeployment = await deploy('Aggregator', {
     args: [
       config.paymentAmount,

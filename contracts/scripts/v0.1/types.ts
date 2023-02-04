@@ -39,3 +39,15 @@ export interface IRequestResponseConfig {
   paymentConfig: IDirectPaymentConfig
   oracle: IRequestResponseOracle[]
 }
+
+export interface IAggregatorConfig {
+  name: string
+  paymentAmount: number
+  timeout: number
+  validator: string
+  minSubmissionCount: number
+  maxSubmissionCount: number
+  decimals: number
+  description: string
+  restartDelay: number
+}
