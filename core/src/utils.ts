@@ -4,7 +4,6 @@ import os from 'node:os'
 import path from 'node:path'
 import { IcnError, IcnErrorCode } from './errors'
 import { IncomingWebhook } from '@slack/webhook'
-import pino from 'pino'
 import Hook from 'console-hook'
 
 export async function loadJson(filepath) {
