@@ -25,6 +25,7 @@ const LISTENERS = {
   }
 }
 
+const FILE_NAME = import.meta.url
 const LOGGER = buildLogger('listener')
 
 async function main() {
@@ -40,10 +41,7 @@ async function main() {
     throw new IcnError(IcnErrorCode.InvalidListenerConfig)
   }
 
-  LOGGER.info(
-    { name: 'listener:main', file: import.meta.url, ...listenersConfig },
-    'listenersConfig'
-  )
+  LOGGER.info({ name: 'listener:main', file: FILE_NAME, ...listenersConfig }, 'listenersConfig')
 
   const queueName = LISTENERS[listener].queueName
   const buildListener = LISTENERS[listener].fn

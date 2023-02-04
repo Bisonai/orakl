@@ -12,8 +12,10 @@ export function buildListener(queueName: string, config: IListenerConfig[], logg
   }
 }
 
+const FILE_NAME = import.meta.url
+
 function processEvent(iface: ethers.utils.Interface, queue: Queue, _logger: Logger) {
-  const logger = _logger.child({ name: 'processEvent', file: import.meta.url })
+  const logger = _logger.child({ name: 'processEvent', file: FILE_NAME })
 
   async function wrapper(log) {
     const eventData = iface.parseLog(log).args as unknown as IDataRequested

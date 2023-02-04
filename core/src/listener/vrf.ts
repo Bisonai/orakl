@@ -5,6 +5,8 @@ import { VRFCoordinator__factory } from '@bisonai-cic/icn-contracts'
 import { Event } from './event'
 import { IListenerConfig, IRandomWordsRequested, IVrfListenerWorker } from '../types'
 
+const FILE_NAME = import.meta.url
+
 export function buildVrfListener(queueName: string, config: IListenerConfig[], logger: Logger) {
   // FIXME remove loop and listen on multiple contract for the same event
   for (const c of config) {
@@ -13,7 +15,7 @@ export function buildVrfListener(queueName: string, config: IListenerConfig[], l
 }
 
 function processVrfEvent(iface: ethers.utils.Interface, queue: Queue, _logger: Logger) {
-  const logger = _logger.child({ name: 'processVrfEvent', file: import.meta.url })
+  const logger = _logger.child({ name: 'processVrfEvent', file: FILE_NAME })
 
   async function wrapper(log) {
     const eventData = iface.parseLog(log).args as unknown as IRandomWordsRequested
