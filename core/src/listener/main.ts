@@ -28,7 +28,7 @@ const LISTENERS = {
 const LOGGER = buildLogger('listener')
 
 async function main() {
-  hookConsoleError()
+  hookConsoleError(LOGGER)
   const listener = loadArgs()
   const listenersConfig = await getListeners(DB, CHAIN)
 
