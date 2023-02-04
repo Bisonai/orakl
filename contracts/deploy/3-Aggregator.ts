@@ -16,8 +16,6 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       config.paymentAmount,
       config.timeout,
       config.validator,
-      config.minSubmissionValue,
-      config.maxSubmissionValue,
       config.decimals,
       config.description
     ],

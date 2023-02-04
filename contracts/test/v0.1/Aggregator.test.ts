@@ -4,8 +4,6 @@ import { ethers } from 'hardhat'
 let aggregator
 let aggregatorProxy
 const _paymentAmount = 1
-const _minSubmissionValue = 0
-const _maxSubmissionValue = 1_000
 
 const _minSubmissionCount = 2
 const _maxSubmissionCount = 3
@@ -35,8 +33,6 @@ describe('Aggregator', function () {
       _paymentAmount,
       _timeout,
       _validator,
-      _minSubmissionValue,
-      _maxSubmissionValue,
       _decimals,
       _description
     )
