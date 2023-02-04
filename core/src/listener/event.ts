@@ -24,9 +24,9 @@ export class Event {
   ) {
     this.logger = logger
 
-    this.logger.debug(`listenToEvents:topicId ${listener.eventName}`)
-    this.logger.debug(`PROVIDER_URL ${PROVIDER_URL}`)
-    this.logger.debug(`LISTENER_ROOT_DIR ${LISTENER_ROOT_DIR}`)
+    this.logger.debug({ name: 'Event:constructor' }, `listener.eventName=${listener.eventName}`)
+    this.logger.debug({ name: 'Event:constructor' }, `PROVIDER_URL=${PROVIDER_URL}`)
+    this.logger.debug({ name: 'Event:constructor' }, `LISTENER_ROOT_DIR=${LISTENER_ROOT_DIR}`)
 
     mkdir(LISTENER_ROOT_DIR)
     const provider = new ethers.providers.JsonRpcProvider(PROVIDER_URL)
@@ -51,7 +51,7 @@ export class Event {
         await this.filter()
         this.running = false
       } else {
-        this.logger.debug('running')
+        this.logger.debug({ name: 'Event:listen' }, 'running')
       }
     }, LISTENER_DELAY)
   }
@@ -74,7 +74,10 @@ export class Event {
           latestBlock
         )
 
-        this.logger.debug(`${this.listenerBlock.startBlock}-${latestBlock}`)
+        this.logger.debug(
+          { name: 'Event:filter' },
+          `${this.listenerBlock.startBlock}-${latestBlock}`
+        )
         this.listenerBlock.startBlock = latestBlock + 1
         await writeTextFile(this.listenerBlock.filePath, this.listenerBlock.startBlock.toString())
 
@@ -83,7 +86,7 @@ export class Event {
         }
       }
     } catch (e) {
-      this.logger.error(e)
+      this.logger.error({ name: 'Event:filter' }, e)
     }
   }
 
