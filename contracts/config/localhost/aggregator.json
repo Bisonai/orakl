@@ -1,15 +1,13 @@
-{
-  "KLAY/USD": {
+[
+  {
+    "name": "KLAY/USD",
     "paymentAmount": 1,
     "timeout": 10,
     "validator": "0x0000000000000000000000000000000000000000",
-    "minSubmissionValue": 0,
-    "maxSubmissionValue": 1000000000000,
     "minSubmissionCount": 1,
     "maxSubmissionCount": 1,
     "decimals": 8,
     "description": "KLAY/USD",
-    "restartDelay": 0,
-    "oracle": []
+    "restartDelay": 0
   }
-}
+]

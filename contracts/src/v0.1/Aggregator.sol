@@ -66,9 +66,6 @@ contract Aggregator is AggregatorInterface, Ownable {
     uint8 public override decimals;
     string public override description;
 
-    int256 public immutable minSubmissionValue;
-    int256 public immutable maxSubmissionValue;
-
     uint256 public constant override version = 3;
 
     /**
@@ -123,10 +120,6 @@ contract Aggregator is AggregatorInterface, Ownable {
      * allowed to lapse before allowing an oracle to skip an unfinished round
      * @param _validator is an optional contract address for validating
      * external validation of answers
-     * @param _minSubmissionValue is an immutable check for a lower bound of what
-     * submission values are accepted from an oracle
-     * @param _maxSubmissionValue is an immutable check for an upper bound of what
-     * submission values are accepted from an oracle
      * @param _decimals represents the number of decimals to offset the answer by
      * @param _description a short description of what is being reported
      */
@@ -134,15 +127,11 @@ contract Aggregator is AggregatorInterface, Ownable {
         uint256 _paymentAmount,
         uint32 _timeout,
         address _validator,
-        int256 _minSubmissionValue,
-        int256 _maxSubmissionValue,
         uint8 _decimals,
         string memory _description
     ) {
         updateFutureRounds(_paymentAmount, 0, 0, 0, _timeout);
         setValidator(_validator);
-        minSubmissionValue = _minSubmissionValue;
-        maxSubmissionValue = _maxSubmissionValue;
         decimals = _decimals;
         description = _description;
 
@@ -157,8 +146,6 @@ contract Aggregator is AggregatorInterface, Ownable {
     function submit(uint256 _roundId, int256 _submission) external {
         bytes memory error = validateOracleRound(msg.sender, uint32(_roundId));
         require(error.length == 0, string(error));
-        require(_submission >= minSubmissionValue, "value below minSubmissionValue");
-        require(_submission <= maxSubmissionValue, "value above maxSubmissionValue");
 
         oracleInitializeNewRound(uint32(_roundId));
         recordSubmission(_submission, uint32(_roundId));
