@@ -12,10 +12,12 @@ export function buildVrfListener(queueName: string, config: IListenerConfig[], l
   }
 }
 
-function processVrfEvent(iface: ethers.utils.Interface, queue: Queue, logger: Logger) {
+function processVrfEvent(iface: ethers.utils.Interface, queue: Queue, _logger: Logger) {
+  const logger = _logger.child({ name: 'processVrfEvent', file: import.meta.url })
+
   async function wrapper(log) {
     const eventData = iface.parseLog(log).args as unknown as IRandomWordsRequested
-    logger.debug({ name: 'processVrfEvent', ...eventData }, 'eventData')
+    logger.debug(eventData, 'eventData')
 
     const data: IVrfListenerWorker = {
       callbackAddress: log.address,
@@ -29,7 +31,7 @@ function processVrfEvent(iface: ethers.utils.Interface, queue: Queue, logger: Lo
       sender: eventData.sender,
       isDirectPayment: eventData.isDirectPayment
     }
-    logger.debug({ name: 'processVrfEvent', ...data }, 'data')
+    logger.debug(data, 'data')
 
     await queue.add('vrf', data, {
       jobId: data.requestId,
