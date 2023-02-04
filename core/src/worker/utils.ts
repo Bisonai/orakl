@@ -1,3 +1,4 @@
+import { Logger } from 'pino'
 import { reducerMapping } from './reducer'
 import { IcnError, IcnErrorCode } from '../errors'
 import { pipe } from '../utils'
@@ -55,7 +56,7 @@ export function mergeAggregatorsAdapters(aggregators, adapters) {
  * @return {number} aggregatedresults
  * @exception {InvalidPriceFeed} raised when there is at least one undefined data point
  */
-export async function fetchDataWithAdapter(adapter) {
+export async function fetchDataWithAdapter(adapter, logger?: Logger) {
   const allResults = await Promise.all(
     adapter.map(async (a) => {
       const options = {
@@ -65,7 +66,7 @@ export async function fetchDataWithAdapter(adapter) {
 
       try {
         const rawData = (await axios.get(a.url, options)).data
-        console.debug('fetchDataWithAdapter', rawData)
+        logger?.debug('fetchDataWithAdapter', rawData)
         // FIXME Built reducers just once and use. Currently, can't
         // be passed to queue, therefore has to be recreated before
         // every fetch.
@@ -74,18 +75,18 @@ export async function fetchDataWithAdapter(adapter) {
         checkDataFormat(data)
         return data
       } catch (e) {
-        console.error(e)
+        logger?.error(e)
       }
     })
   )
-  console.debug('predefinedFeedJob:allResults', allResults)
+  logger?.debug({ name: 'predefinedFeedJob', ...allResults }, 'allResults')
   // FIXME: Improve or use flags to throw error when allResults has any undefined variable
   const isValid = allResults.every((r) => r)
   if (!isValid) {
     throw new IcnError(IcnErrorCode.InvalidPriceFeed)
   }
   const aggregatedResults = localAggregatorFn(...allResults)
-  console.debug('fetchDataWithAdapter:aggregatedResults', aggregatedResults)
+  logger?.debug({ name: 'fetchDataWithAdapter', ...aggregatedResults }, 'aggregatedResults')
 
   return aggregatedResults
 }

@@ -75,7 +75,7 @@ function loadArgs() {
   return listener
 }
 
-main().catch((error) => {
-  LOGGER.error(error)
+main().catch((e) => {
+  LOGGER.error(e)
   process.exitCode = 1
 })

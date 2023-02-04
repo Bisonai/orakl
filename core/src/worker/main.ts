@@ -1,4 +1,5 @@
 import { parseArgs } from 'node:util'
+import { buildLogger } from '../logger'
 import { aggregatorWorker } from './aggregator'
 import { vrfWorker } from './vrf'
 import { worker as requestResponseWorker } from './request-response'
@@ -13,10 +14,12 @@ const WORKERS = {
   PREDEFINED_FEED: predefinedFeedWorker
 }
 
+const LOGGER = buildLogger('worker')
+
 async function main() {
-  hookConsoleError()
+  hookConsoleError(LOGGER)
   const worker = loadArgs()
-  WORKERS[worker]()
+  WORKERS[worker](LOGGER)
   healthCheck()
 }
 
@@ -42,7 +45,7 @@ function loadArgs() {
   return worker
 }
 
-main().catch((error) => {
-  console.error(error)
+main().catch((e) => {
+  LOGGER.error(e)
   process.exitCode = 1
 })

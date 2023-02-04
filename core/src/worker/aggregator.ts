@@ -1,5 +1,6 @@
 import { ethers } from 'ethers'
 import { Worker, Queue } from 'bullmq'
+import { Logger } from 'pino'
 import {
   fetchDataWithAdapter,
   loadAdapters,
@@ -23,22 +24,24 @@ import {
 import { PROVIDER_URL, PUBLIC_KEY as ORACLE_ADDRESS } from '../settings'
 import { Aggregator__factory } from '@bisonai-cic/icn-contracts'
 
-export async function aggregatorWorker() {
-  console.debug('aggregatorWorker')
+const FILE_NAME = import.meta.url
+
+export async function aggregatorWorker(_logger: Logger) {
+  const logger = _logger.child({ name: 'aggregatorWorker', file: FILE_NAME })
 
   const adapters = await loadAdapters({ postprocess: true })
-  console.debug('aggregatorWorker:adapters', adapters)
+  logger.debug(adapters, 'adapters')
 
   const aggregators = await loadAggregators({ postprocess: true })
-  console.debug('aggregatorWorker:aggregators', aggregators)
+  logger.debug(aggregators, 'aggregators')
 
   const aggregatorsWithAdapters = mergeAggregatorsAdapters(aggregators, adapters)
-  console.debug('aggregatorWorker:aggregatorsWithAdapters', aggregatorsWithAdapters)
+  logger.debug(aggregatorsWithAdapters, 'aggregatorsWithAdapters')
 
   // Event based worker
   new Worker(
     WORKER_AGGREGATOR_QUEUE_NAME,
-    aggregatorJob(REPORTER_AGGREGATOR_QUEUE_NAME, aggregatorsWithAdapters),
+    aggregatorJob(REPORTER_AGGREGATOR_QUEUE_NAME, aggregatorsWithAdapters, _logger),
     BULLMQ_CONNECTION
   )
 
@@ -48,7 +51,8 @@ export async function aggregatorWorker() {
     fixedHeartbeatJob(
       FIXED_HEARTBEAT_QUEUE_NAME,
       REPORTER_AGGREGATOR_QUEUE_NAME,
-      aggregatorsWithAdapters
+      aggregatorsWithAdapters,
+      _logger
     ),
     BULLMQ_CONNECTION
   )
@@ -59,13 +63,15 @@ export async function aggregatorWorker() {
     randomHeartbeatJob(
       RANDOM_HEARTBEAT_QUEUE_NAME,
       REPORTER_AGGREGATOR_QUEUE_NAME,
-      aggregatorsWithAdapters
+      aggregatorsWithAdapters,
+      _logger
     ),
     BULLMQ_CONNECTION
   )
 }
 
-function aggregatorJob(reporterQueueName: string, aggregatorsWithAdapters) {
+function aggregatorJob(reporterQueueName: string, aggregatorsWithAdapters, _logger: Logger) {
+  const logger = _logger.child({ name: 'aggregatorJob', file: FILE_NAME })
   // This job is coming from on-chain request (event NewRound). Oracle
   // needs to submit the latest data based on this request without any
   // check on time or data change.
@@ -73,17 +79,17 @@ function aggregatorJob(reporterQueueName: string, aggregatorsWithAdapters) {
 
   async function wrapper(job) {
     const inData: IAggregatorListenerWorker = job.data
-    console.debug('aggregatorJob:inData', inData)
+    logger.debug(inData, 'inData')
     const ag = addReportProperty(aggregatorsWithAdapters[inData.address], true)
 
     try {
-      const outData = await prepareDataForReporter(ag)
-      console.debug('aggregatorJob:outData', outData)
+      const outData = await prepareDataForReporter(ag, _logger)
+      logger.debug(outData, 'outData')
       reporterQueue.add('aggregator', outData, {
         removeOnComplete: true
       })
     } catch (e) {
-      console.error(e)
+      logger.error(e)
     }
   }
 
@@ -93,9 +99,10 @@ function aggregatorJob(reporterQueueName: string, aggregatorsWithAdapters) {
 function fixedHeartbeatJob(
   heartbeatQueueName: string,
   reporterQueueName: string,
-  agregatorsWithAdapters: IAggregatorHeartbeatWorker[]
+  agregatorsWithAdapters: IAggregatorHeartbeatWorker[],
+  _logger: Logger
 ) {
-  console.debug('fixedHeartbeatJob')
+  const logger = _logger.child({ name: 'fixedHeartBeatJob', file: FILE_NAME })
 
   const heartbeatQueue = new Queue(heartbeatQueueName, BULLMQ_CONNECTION)
   const reporterQueue = new Queue(reporterQueueName, BULLMQ_CONNECTION)
@@ -114,16 +121,16 @@ function fixedHeartbeatJob(
 
   async function wrapper(job) {
     const inData: IAggregatorHeartbeatWorker = job.data
-    console.debug('fixedHeartbeatJob:inData', inData)
+    logger.debug(inData, 'inData')
 
     try {
-      const outData = await prepareDataForReporter(inData)
-      console.debug('fixedHeartbeatJob:outData', outData)
+      const outData = await prepareDataForReporter(inData, _logger)
+      logger.debug(outData, 'outData')
       if (outData.report) {
         reporterQueue.add('aggregator', outData, { removeOnComplete: true })
       }
     } catch (e) {
-      console.error(e)
+      logger.error(e)
     } finally {
       heartbeatQueue.add('fixed-heartbeat', inData, {
         delay: inData.fixedHeartbeatRate.value,
@@ -138,9 +145,10 @@ function fixedHeartbeatJob(
 function randomHeartbeatJob(
   heartbeatQueueName: string,
   reporterQueueName: string,
-  agregatorsWithAdapters: IAggregatorHeartbeatWorker[]
+  agregatorsWithAdapters: IAggregatorHeartbeatWorker[],
+  _logger: Logger
 ) {
-  console.debug('randomHeartbeatJob')
+  const logger = _logger.child({ name: 'randomHeartbeatJob', file: FILE_NAME })
 
   const heartbeatQueue = new Queue(heartbeatQueueName, BULLMQ_CONNECTION)
   const reporterQueue = new Queue(reporterQueueName, BULLMQ_CONNECTION)
@@ -158,16 +166,16 @@ function randomHeartbeatJob(
 
   async function wrapper(job) {
     const inData: IAggregatorHeartbeatWorker = job.data
-    console.debug('randomHeartbeatJob:inData', inData)
+    logger.debug(inData, 'inData')
 
     try {
-      const outData = await prepareDataForReporter(inData)
-      console.debug('randomHeartbeatJob:outData', outData)
+      const outData = await prepareDataForReporter(inData, _logger)
+      logger.debug(outData, 'outData')
       if (outData.report) {
         reporterQueue.add('aggregator', outData, { removeOnComplete: true })
       }
     } catch (e) {
-      console.error(e)
+      logger.error(e)
     } finally {
       heartbeatQueue.add('random-heartbeat', inData, {
         delay: uniform(0, inData.randomHeartbeatRate.value),
@@ -187,18 +195,21 @@ function randomHeartbeatJob(
  * @exception {InvalidPriceFeed} raised from `fetchDataWithadapter`
  */
 async function prepareDataForReporter(
-  data: IAggregatorHeartbeatWorker
+  data: IAggregatorHeartbeatWorker,
+  _logger: Logger
 ): Promise<IAggregatorWorkerReporter> {
+  const logger = _logger.child({ name: 'prepareDataForReporter', file: FILE_NAME })
+
   const callbackAddress = data.address
   const submission = await fetchDataWithAdapter(data.adapter)
   let report = data.report
 
-  const oracleRoundState = await oracleRoundStateCall(data.address, ORACLE_ADDRESS)
-  console.debug('prepareDataForReporter:oracleRoundState', oracleRoundState)
+  const oracleRoundState = await oracleRoundStateCall(data.address, ORACLE_ADDRESS, _logger)
+  logger.debug(oracleRoundState, 'oracleRoundState')
   const lastSubmission = oracleRoundState._latestSubmission.toNumber()
   if (report === undefined) {
     report = shouldReport(lastSubmission, submission, data.threshold, data.absoluteThreshold)
-    console.log('prepareDataForReporter:report', report)
+    logger.debug(report, 'report')
   }
 
   return {
@@ -231,9 +242,11 @@ function shouldReport(
 
 async function oracleRoundStateCall(
   aggregatorAddress: string,
-  oracleAddress: string
+  oracleAddress: string,
+  logger: Logger
 ): Promise<IOracleRoundState> {
-  console.debug('oracleRoundStateCall')
+  logger.debug({ name: 'oracleRoundStateCall', file: FILE_NAME })
+
   const provider = new ethers.providers.JsonRpcProvider(PROVIDER_URL)
   const aggregator = new ethers.Contract(aggregatorAddress, Aggregator__factory.abi, provider)
   return await aggregator.oracleRoundState(oracleAddress, 0)

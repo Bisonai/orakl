@@ -1,5 +1,6 @@
 import { Worker, Queue } from 'bullmq'
 import axios from 'axios'
+import { Logger } from 'pino'
 import { loadAdapters } from './utils'
 import { IPredefinedFeedListenerWorker, IPredefinedFeedWorkerReporter } from '../types'
 import { pipe } from '../utils'
@@ -10,13 +11,15 @@ import {
   BULLMQ_CONNECTION
 } from '../settings'
 
+const FILE_NAME = import.meta.url
+
 // FIXME currently not used!
 
-export async function predefinedFeedWorker() {
-  console.debug('predefinedFeedWorker')
+export async function predefinedFeedWorker(_logger: Logger) {
+  const logger = _logger.child({ name: 'predefinedFeedWorker', file: FILE_NAME })
 
   const adapters = (await loadAdapters({ postprocess: true }))[0] // FIXME take all adapters
-  console.debug('predefinedFeedWorker:adapters', adapters)
+  logger.debug(adapters, 'adapters')
 
   new Worker(
     WORKER_PREDEFINED_FEED_QUEUE_NAME,
@@ -25,12 +28,13 @@ export async function predefinedFeedWorker() {
   )
 }
 
-function predefinedFeedJob(queueName, adapters) {
+function predefinedFeedJob(queueName, adapters, _logger?: Logger) {
+  const logger = _logger?.child({ name: 'predefinedFeedJob', file: FILE_NAME })
   const queue = new Queue(queueName, BULLMQ_CONNECTION)
 
   async function wrapper(job) {
     const inData: IPredefinedFeedListenerWorker = job.data
-    console.debug('predefinedFeedJob:inData', inData)
+    logger?.debug(inData, 'inData')
 
     // FIXME take adapterId from job.data (information emitted by on-chain event)
     try {
@@ -45,16 +49,16 @@ function predefinedFeedJob(queueName, adapters) {
             const rawData = (await axios.get(adapter.url, options)).data
             return pipe(...adapter.reducers)(rawData)
           } catch (e) {
-            console.error(e)
+            logger?.error(e)
           }
         })
       )
-      console.debug('predefinedFeedJob:allResults', allResults)
+      logger?.debug(allResults, 'allResults')
 
       // FIXME single node aggregation of multiple results
       // FIXME check if aggregator is defined and if exists
       const res = localAggregatorFn(...allResults)
-      console.debug('predefinedFeedJob:res', res)
+      logger?.debug(res, 'res')
 
       const outData: IPredefinedFeedWorkerReporter = {
         requestId: inData.requestId,
@@ -63,11 +67,11 @@ function predefinedFeedJob(queueName, adapters) {
         callbackFunctionId: inData.callbackFunctionId,
         data: res
       }
-      console.debug('predefinedFeedJob:outData', outData)
+      logger?.debug(outData, 'outData')
 
       await queue.add('predefined-feed', outData)
     } catch (e) {
-      console.error(e)
+      logger?.error(e)
     }
   }
 
