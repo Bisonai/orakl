@@ -6,6 +6,7 @@ import { IListenerConfig, IVrfConfig } from './types'
 import { aggregatorMapping } from './aggregator'
 import { listHandler } from './cli/operator/kv'
 import { IcnError, IcnErrorCode } from './errors'
+import { mkdir } from './utils'
 import * as dotenv from 'dotenv'
 dotenv.config()
 
@@ -75,6 +76,8 @@ export const BULLMQ_CONNECTION = {
 }
 
 async function openDb() {
+  mkdir(path.dirname(SETTINGS_DB_FILE))
+
   const db = await open({
     filename: SETTINGS_DB_FILE,
     driver: sqlite.Database
