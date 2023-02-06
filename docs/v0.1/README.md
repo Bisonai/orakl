@@ -1,4 +1,4 @@
-# v0.1
+# Developer's Guide (v0.1)
 
 Orakl is a decentralized oracle network that allows smart contracts to securely access off-chain data and other resources.
 
