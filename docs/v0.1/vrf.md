@@ -25,17 +25,18 @@ The details of both approaches are explained below.
 You can interact with the [Prepayment contract](https://github.com/Bisonai-CIC/orakl/blob/master/contracts/src/v0.1/Prepayment.sol) to manage your accounts in Orakl.
 There are several steps that has to be performed before creating a VRF request:
 
-1. [Create account](create-account)
-2. [Deposit KLAY to account](deposit-klay-to-account)
-3. [Add consumer](add-consumer)
+1. [Create account](#create-account)
+2. [Deposit KLAY to account](#deposit-klay-to-account)
+3. [Add consumer](#add-consumer)
 
 Prepayment supports many other helpful functions.
 In this document, we describe some of them:
 
-1. [Transfer account ownership](transfer-account-ownership)
-2. [Accept account ownership](accept-account-ownership)
-3. [Remove consumer](remove-consumer)
-4. [Cancel account](cancel-account)
+* [Transfer account ownership](#transfer-account-ownership)
+* [Accept account ownership](#accept-account-ownership)
+* [Remove consumer](#remove-consumer)
+* [Cancel account](#cancel-account)
+* [Withdraw funds from account](#withdraw-funds-from-account)
 
 The functions are described in subsections below.
 
@@ -188,11 +189,11 @@ function cancelAccount(uint64 accId, address to) external onlyAccOwner(accId) {
 ```
 
 This function checks if there are any pending requests for the account by calling a function `pendingRequestExists(accId)`.
-If there are any pending requests, the function will revert with the error message `PendingRequestExists()`.
-If there are no pending requests, it calls another function `cancelAccountHelper(accId, to)` which will be responsible for canceling the account.
+If there are any pending requests, the function reverts with the error message `PendingRequestExists()`.
+If there are no pending requests, it calls another function `cancelAccountHelper(accId, to)` which is responsible for canceling the account.
 By checking if there are any pending requests before canceling the account, it ensures that the account is not being cancelled in the middle of any important process.
 
-#### Withdraw funds from an account
+#### Withdraw funds from account
 
 ```Solidity
 function withdraw(uint64 accId, uint256 amount) external onlyAccOwner(accId) {
@@ -225,8 +226,8 @@ Finally, it emits an event `AccountBalanceDecreased` with the account ID, old ba
 A detailed example of how to use Orakl VRF can be found at example repository [`vrf-consumer`](https://github.com/Bisonai-CIC/vrf-consumer).
 There are two functions that has to be implemented:
 
-* [Request random words](request-random-words)
-* [fulfill-random words](fulfill-random-words)
+* [Request random words](#request-random-words)
+* [Fulfill-random words](#fulfill-random-words)
 
 
 #### Request random words
@@ -255,11 +256,11 @@ The arguments of `requestRandomWords` function are explained below:
 
 * `keyHash`: a `bytes32` value representing the hash of the key used to generate the random words, also used to choose a trusted VRF provider.
 * `accId`: a `uint64` value representing the ID of the account associated with the request.
-* `callbackGasLimit`: a `uint32` value representing the gas limit for the callback function that will be executed after the confirmations have been received.
+* `callbackGasLimit`: a `uint32` value representing the gas limit for the callback function that executes after the confirmations have been received.
 * `numWords`: a `uint32` value representing the number of random words requested.
 
 The function call `requestRandomWords()` on `COORDINATOR` contract passes `keyHash`, `accId`, `callbackGasLimit`, and `numWords` as arguments.
-Execution of this function will generate a request for random words that is uniquely defined with `requestId`, a return value from the function call on `COORDINATOR` contract.
+Execution of this function generates a request for random words that is uniquely defined with `requestId`, a return value from the function call on `COORDINATOR` contract.
 
 
 #### Fulfill random words
@@ -280,10 +281,10 @@ function fulfillRandomWords(
 
 The arguments of `fulfillRandomWords` function are explained below:
 
-`requestId`: `uint256` value representing the ID of the request
-`randomWords`: an array of `uint256` values representing the random words generated in response to the request
+* `requestId`: `uint256` value representing the ID of the request
+* `randomWords`: an array of `uint256` values representing the random words generated in response to the request
 
-This function is called by the `COORDINATOR` contract to generate a random value between 1 and 50 by taking the first element of the randomWords array modulo 50 and adding 1 to it.
+The function is called by the `COORDINATOR` contract to generate a random value between 1 and 50 by taking the first element of the `randomWords` array modulo 50 and adding 1 to it.
 The result is stored in the storage variable `s_randomResult`.
 
 
