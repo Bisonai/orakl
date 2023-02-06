@@ -1,5 +1,7 @@
 # v0.1
 
+Orakl is a decentralized oracle network that allows smart contracts to securely access off-chain data and other resources.
+
 The oracle version `v0.1` uses Solidity version `^0.8.16`.
 
 ## Installation
@@ -12,7 +14,7 @@ yarn install @bisonai-cic/icn-contracts@v0.1
 
 * [Data Feed](#data-feed)
 * [Request-Response](#request-response)
-* [Verifiable Random Function](#verifiable-random-function)
+* [Verifiable Random Function (VRF)](#verifiable-random-function-vrf)
 
 ## Data Feed
 
@@ -117,62 +119,12 @@ contract AnyApiConsumer is RequestResponseConsumerBase {
 ### Any API - HTTP GET Large Responses
 -->
 
-## Verifiable Random Function
+## Verifiable Random Function (VRF)
 
-```Solidity
-// SPDX-License-Identifier: MIT
-pragma solidity ^0.8.16;
-
-import "@bisonai-cic/icn-contracts/src/0.1/VRFConsumerBase.sol";
-import "@bisonai-cic/icn-contracts/src/0.1/ConfirmedOwner.sol";
-import "@bisonai-cic/icn-contracts/src/0.1/interfaces/VRFCoordinator.sol";
-
-contract VRFConsumer is VRFConsumerBase {
-  uint256 public s_randomResult;
-  address private s_owner;
-
-  VRFCoordinatorInterface COORDINATOR;
-
-  error OnlyOwner(address notOwner);
-
-  modifier onlyOwner() {
-      if (msg.sender != s_owner) {
-          revert OnlyOwner(msg.sender);
-      }
-      _;
-  }
-
-  constructor(address coordinator)
-      VRFConsumerBase(coordinator)
-      ConfirmedOwner(msg.sender)
-  {
-      s_owner = msg.sender;
-      COORDINATOR = VRFCoordinatorInterface(coordinator);
-  }
-
-  function requestRandomWords(bytes32 keyHash) public onlyOwner returns(uint256 requestId) {
-    uint64 subId = 1;
-    uint32 callbackGasLimit = 1_000_000;
-    uint32 numWords = 1;
-
-    requestId = COORDINATOR.requestRandomWords(
-      keyHash,
-      subId,
-      callbackGasLimit,
-      numWords
-    );
-  }
-
-  function fulfillRandomWords(uint256 /* requestId */, uint256[] memory randomWords) internal override {
-    // requestId should be checked if it matches the expected request
-    s_randomResult = (randomWords[0] % 50) + 1;
-  }
-}
-
-```
+The information describing how to use VRF can be found at [VRF](vrf.md).
+If you want to start using VRF right away, we recommend you to look at an example Hardhat project using Orakl VRF.
 
 ## Payments
 
 * Prepayment
-* Subscription
-* Direct (Pay as you go?)
+* Direct

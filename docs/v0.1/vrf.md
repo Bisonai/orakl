@@ -9,7 +9,7 @@ In the context of the blockchain, VRFs can be used to provide a source of random
 This can be useful in various decentralized applications (dApps) that require randomness as a key component, such as in randomized auctions or as part of a decentralized games.
 
 Orakl VRF allows smart contracts to use the VRF function to generate verifiably random values, which can be used in various dApps that require randomness.
-VRF can be requested using two different payment approaches:
+Orakl VRF can be requested using two different payment approaches:
 
 * [Prepayment](#prepayment-recommended)
 * [Direct Payment](#direct-payment)
