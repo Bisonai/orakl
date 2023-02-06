@@ -1,0 +1,36 @@
+*                                       @martinkersner
+
+# infra
+docker-compose.*                        @joseph-bisonai
+
+# on-chain
+Aggregator.sol                          @martinkersner
+AggregatorProxy.sol                     @martinkersner
+Median.sol                              @martinkersner
+Prepayment.sol                          @KelvinThai
+RequestResponseConsumerBase.sol         @bayram98
+RequestResponseCoordinator.sol          @bayram98
+SignedSafeMath.sol                      @martinkersner
+VRFConsumerBase.sol                     @KelvinThai
+VRFCoordinator                          @KelvinThai
+libraries/Buffer.sol                    @bayram98
+libraries/CBOR.sol                      @bayram98
+libraries/Math.sol                      @martinkersner
+libraries/Orakl.sol                     @bayram98
+libraries/VRF.sol                       @martinkersner
+libraries/ecc/                          @martinkersner
+mocks/DataFeedConsumerMock.sol          @martinkersner
+mocks/QuickSelectMock.sol               @martinkersner
+mocks/RequestResponseConsumerMock.sol   @bayram98
+mocks/VRFConsumerMock.sol               @KelvinThai
+interfaces/                             @Bisonai-CIC/dev-blockchain
+
+## off-chain
+listener/request-response.ts            @bayram98
+listener/vrf.ts                         @KelvinThai
+worker/request-response.ts              @bayram98
+worker/vrf.ts                           @KelvinThai
+reporter/request-response.ts            @bayram98
+reporter/vrf.ts                         @KelvinThai
+
+/README.md @martinkersner
