@@ -74,7 +74,14 @@ describe('VRF contract', function () {
   })
 
   it('requestRandomWords should revert with InsufficientPayment error', async function () {
-    const {accId,consumer, coordinatorContract, consumerContract, dummyKeyHash,prepaymentContract } = await loadFixture(deployFixture)
+    const {
+      accId,
+      consumer,
+      coordinatorContract,
+      consumerContract,
+      dummyKeyHash,
+      prepaymentContract
+    } = await loadFixture(deployFixture)
     const {
       oracle,
       publicProvingKey,
@@ -91,6 +98,8 @@ describe('VRF contract', function () {
       gasAfterPaymentCalculation,
       Object.values(feeConfig)
     )
+    const minBalance = ethers.utils.parseUnits('1', 15)
+    await coordinatorContract.setMinBalance(minBalance)
     const prepaymentContractConsumerSigner = await ethers.getContractAt(
       'Prepayment',
       prepaymentContract.address,
@@ -99,8 +108,6 @@ describe('VRF contract', function () {
 
     await prepaymentContractConsumerSigner.addConsumer(accId, consumerContract.address)
     await prepaymentContract.addCoordinator(coordinatorContract.address)
-    const value = 1_000_000_000_000
-    await prepaymentContractConsumerSigner.deposit(accId, { value })
     const numWords = 1
 
     await expect(

@@ -32,6 +32,8 @@ contract VRFCoordinator is
     /* commitment */
     mapping(uint256 => bytes32) private s_requestCommitments;
 
+    uint256 public s_minBalance;
+
     // RequestCommitment holds information sent from off-chain oracle
     // describing details of request.
     struct RequestCommitment {
@@ -109,6 +111,7 @@ contract VRFCoordinator is
     );
     event ConfigSet(uint32 maxGasLimit, uint32 gasAfterPaymentCalculation, FeeConfig feeConfig);
     event DirectPaymentConfigSet(uint256 fulfillmentFee, uint256 baseFee);
+    event MinBalanceSet(uint256 minBalance);
 
     modifier nonReentrant() {
         if (s_config.reentrancyLock) {
@@ -261,6 +264,11 @@ contract VRFCoordinator is
      */
     function getCommitment(uint256 requestId) external view returns (bytes32) {
         return s_requestCommitments[requestId];
+    }
+
+    function setMinBalance(uint256 minBalance) public onlyOwner {
+        s_minBalance = minBalance;
+        emit MinBalanceSet(minBalance);
     }
 
     /*
@@ -452,17 +460,10 @@ contract VRFCoordinator is
     ) external nonReentrant onlyValidKeyHash(keyHash) returns (uint256 requestId) {
         uint256 startGas = gasleft();
         bool isDirectPayment = false;
-        (uint256 balance, uint64 reqCount, , ) = s_prepayment.getAccount(accId);
+        (uint256 balance, , , ) = s_prepayment.getAccount(accId);
 
-        uint256 payment;
-
-        payment = calculatePaymentAmount(
-            startGas,
-            s_config.gasAfterPaymentCalculation,
-            getFeeTier(reqCount + 1)
-        );
-        if (balance < payment) {
-            revert InsufficientPayment(balance, payment);
+        if (balance < s_minBalance) {
+            revert InsufficientPayment(balance, s_minBalance);
         }
 
         requestId = requestRandomWordsInternal(

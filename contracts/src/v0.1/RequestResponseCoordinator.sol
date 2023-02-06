@@ -35,6 +35,8 @@ contract RequestResponseCoordinator is
 
     address[] private s_registeredOracles;
 
+    uint256 public s_minBalance;
+
     PrepaymentInterface s_prepayment;
 
     struct Config {
@@ -103,6 +105,7 @@ contract RequestResponseCoordinator is
 
     event OracleRegistered(address oracle);
     event OracleDeregistered(address oracle);
+    event MinBalanceSet(uint256 minBalance);
 
     modifier nonReentrant() {
         if (s_config.reentrancyLock) {
@@ -226,6 +229,11 @@ contract RequestResponseCoordinator is
         return address(s_prepayment);
     }
 
+    function setMinBalance(uint256 minBalance) public onlyOwner {
+        s_minBalance = minBalance;
+        emit MinBalanceSet(minBalance);
+    }
+
     function requestData(
         Orakl.Request memory req,
         uint32 callbackGasLimit,
@@ -233,17 +241,9 @@ contract RequestResponseCoordinator is
     ) external nonReentrant returns (uint256 requestId) {
         uint256 startGas = gasleft();
         bool isDirectPayment = false;
-        (uint256 balance, uint64 reqCount, , ) = s_prepayment.getAccount(accId);
-
-        uint256 payment;
-
-        payment = calculatePaymentAmount(
-            startGas,
-            s_config.gasAfterPaymentCalculation,
-            getFeeTier(reqCount + 1)
-        );
-        if (balance < payment) {
-            revert InsufficientPayment(balance, payment);
+        (uint256 balance, , , ) = s_prepayment.getAccount(accId);
+        if (balance < s_minBalance) {
+            revert InsufficientPayment(balance, s_minBalance);
         }
         requestId = requestDataInternal(req, accId, callbackGasLimit, isDirectPayment);
     }
