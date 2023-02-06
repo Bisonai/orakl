@@ -1,31 +1,35 @@
 # Prepayment
 
-## What is prepayment?
+## What is Prepayment?
 
 **Prepayment** is one of the payment solutions for Orakl Network.
 It is implemented within [`Prepayment` smart contract](https://github.com/Bisonai-CIC/orakl/blob/master/contracts/src/v0.1/Prepayment.sol) and currently it can be used as a payment for [Verifiable Random Function (VRF)](vrf.md) and [Request-Response](request-response.md).
-You can read about other supported payment solutions at [Payment section of the developer guide](readme.md#payment).
+You can read about other supported payment solutions at [Payment section of the Developer's guide](readme.md#payment).
 
-### How to use prepayment?
+## How to use Prepayment?
 
-You can interact with the [Prepayment contract](https://github.com/Bisonai-CIC/orakl/blob/master/contracts/src/v0.1/Prepayment.sol) to manage your account(s) in Orakl Network.
+The main components of **Prepayment** are **Account**, **Account Owner**, **Consumer** and **Coordinator**.
 
-There are several steps that has to be performed before creating a VRF request:
+**Account Owners** are entities that create an **Account** (`createAccount`).
+They can also close the **Account** (`cancelAccount`), add (`addConsumer`) or remove **Consumer** (`removeConsumer`) from their **Account(s)**.
+KLAY can be withdrawn from account only by the **Account Owner**, however anybody is allowed to deposit (`deposit`) KLAY to any account.
+**Consumers** assigned to **Account** use the account balance to pay for Orakl Network services.
+The ownership of account can be transfered to other entity through a two-step process (`requestAccountOwnerTransfer`, `acceptAccountOwnerTransfer`).
+**Coordinators** are smart contracts that can fulfill request issued by **Consumers**, and they are rewarded for their work (`chargeFee`).
+Consequently, they can withdraw their earnings (`nodeWidthdraw`).
+**Coordinators** can be added (`addCoordinator`) or removed (`removeCoordinator`) only by the owner of `Prepayment` smart contract.
+
+* [Prerequisites](#prerequisites)
+* [Other functions](#other-functions)
+
+There are several steps that has to be performed before being able to use **Prepayment** for Orakl Network services.
+The list of required step is shown below:
+
+### Prerequisites
 
 1. [Create account](#create-account)
 2. [Deposit KLAY to account](#deposit-klay-to-account)
 3. [Add consumer](#add-consumer)
-
-Prepayment supports many other helpful functions.
-In this document, we describe some of them:
-
-* [Transfer account ownership](#transfer-account-ownership)
-* [Accept account ownership](#accept-account-ownership)
-* [Remove consumer](#remove-consumer)
-* [Cancel account](#cancel-account)
-* [Withdraw funds from account](#withdraw-funds-from-account)
-
-The functions are described in subsections below.
 
 #### Create account
 
@@ -95,6 +99,19 @@ function addConsumer(uint64 accId, address consumer) external onlyAccOwner(accId
 This function increases the value of `s_consumers[consumer][accId]` by 1, indicating the number of consumer under given `accId`.
 Then, it pushes the consumer address to the `s_accountConfigs[accId].consumers` array.
 Finally, it emits an event `AccountConsumerAdded` with the account ID and consumer address as arguments.
+
+### Other functions
+
+Prepayment supports many other helpful functions.
+In this document, we describe some of them:
+
+* [Transfer account ownership](#transfer-account-ownership)
+* [Accept account ownership](#accept-account-ownership)
+* [Remove consumer](#remove-consumer)
+* [Cancel account](#cancel-account)
+* [Withdraw funds from account](#withdraw-funds-from-account)
+
+The functions are described in subsections below.
 
 #### Transfer account ownership
 

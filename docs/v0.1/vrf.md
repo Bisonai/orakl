@@ -18,7 +18,7 @@ Orakl Network VRF can be used with two different payment approaches:
 
 **Prepayment** requires user to create an account, deposit KLAY and assign consumer before being able to request for VRF.
 It is more suitable for users that know that they will use VRF often and possibly from multiple smart contracts.
-You can learn more about **Prepayment** at [developer's guide about prepayment](prepayment.md).
+You can learn more about **Prepayment** at [Developer's guide for Prepayment](prepayment.md).
 
 **Direct Payment** allows user to pay directly for VRF without any extra prerequisites.
 This approach is a great for infrequent use, or for users that do not want to hassle with **Prepayment** settings and want to use VRF as soon as possible.
