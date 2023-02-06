@@ -20,10 +20,10 @@ Coordinators can be added (`addCoordinator`) or removed (`removeCoordinator`) on
 ## How to use Prepayment?
 
 In the current stage, it is possible to control **Prepayment** only directly through smart contract interface.
-However, we are planning to make a user-friendly interface to create new account, deposit or withdraw KLAY and modify list of approved consumers. Stay tuned!
+However, we are planning to make a user-friendly interface to create new account, deposit or withdraw KLAY, and modify list of approved consumers. Stay tuned!
 
 There are [prerequisites that you have to do](#prerequisites) before you can use your **Prepayment** account to pay for Orakl Network services.
-If you are interested in more auxiliary functions defined on Prepayment smart contract, see [Other functions section](#other-functions).
+If you are already experienced with the basic prerequisities, you might be interested in [other auxiliary functions defined on Prepayment smart contract](#other-functions).
 
 The rest of the page is a description functions defined on `Prepayment` smart contract that are split to two groups.
 
@@ -107,7 +107,7 @@ Finally, it emits an event `AccountConsumerAdded` with the account ID and consum
 
 ### Other functions
 
-Prepayment supports many other helpful functions.
+`Prepayment` smart contract supports many other auxiliaty functions.
 In this document, we describe some of them:
 
 * [Transfer account ownership](#transfer-account-ownership)
@@ -115,8 +115,6 @@ In this document, we describe some of them:
 * [Remove consumer](#remove-consumer)
 * [Cancel account](#cancel-account)
 * [Withdraw funds from account](#withdraw-funds-from-account)
-
-The functions are described in subsections below.
 
 #### Transfer account ownership
 
