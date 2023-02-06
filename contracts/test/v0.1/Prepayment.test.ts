@@ -161,6 +161,8 @@ describe('Prepayment contract', function () {
 
     await prepaymentContractConsumerSigner.addConsumer(accId, consumerContract.address)
     await prepaymentContract.addCoordinator(coordinatorContract.address)
+    const value = 1_000_000_000_000_000
+    await prepaymentContractConsumerSigner.deposit(accId, { value })
 
     await consumerContract.requestRandomWords(keyHash, accId, maxGasLimit, 1)
 

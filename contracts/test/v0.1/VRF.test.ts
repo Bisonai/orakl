@@ -31,7 +31,7 @@ describe('VRF contract', function () {
     const accId = await createAccount(
       await coordinatorContract.getPrepaymentAddress(),
       consumerContract.address,
-      true,
+      false,
       true
     )
 
@@ -43,7 +43,8 @@ describe('VRF contract', function () {
       consumer,
       coordinatorContract,
       consumerContract,
-      dummyKeyHash
+      dummyKeyHash,
+      prepaymentContract
     }
   }
 
@@ -70,5 +71,40 @@ describe('VRF contract', function () {
     await expect(
       consumerContract.requestRandomWordsDirect(dummyKeyHash, maxGasLimit, numWords, { value })
     ).to.be.revertedWithCustomError(coordinatorContract, 'InvalidKeyHash')
+  })
+
+  it('requestRandomWords should revert with InsufficientPayment error', async function () {
+    const {accId,consumer, coordinatorContract, consumerContract, dummyKeyHash,prepaymentContract } = await loadFixture(deployFixture)
+    const {
+      oracle,
+      publicProvingKey,
+      keyHash,
+      maxGasLimit,
+      gasAfterPaymentCalculation,
+      feeConfig
+    } = vrfConfig()
+
+    await coordinatorContract.registerProvingKey(oracle, publicProvingKey)
+
+    await coordinatorContract.setConfig(
+      maxGasLimit,
+      gasAfterPaymentCalculation,
+      Object.values(feeConfig)
+    )
+    const prepaymentContractConsumerSigner = await ethers.getContractAt(
+      'Prepayment',
+      prepaymentContract.address,
+      consumer
+    )
+
+    await prepaymentContractConsumerSigner.addConsumer(accId, consumerContract.address)
+    await prepaymentContract.addCoordinator(coordinatorContract.address)
+    const value = 1_000_000_000_000
+    await prepaymentContractConsumerSigner.deposit(accId, { value })
+    const numWords = 1
+
+    await expect(
+      consumerContract.requestRandomWords(keyHash, accId, maxGasLimit, numWords)
+    ).to.be.revertedWithCustomError(coordinatorContract, 'InsufficientPayment')
   })
 })
