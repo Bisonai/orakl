@@ -1,5 +1,7 @@
 # Verifiable Random Function (VRF)
 
+A detailed example of how to use Orakl Network VRF can be found at example repository [`vrf-consumer`](https://github.com/Bisonai-CIC/vrf-consumer).
+
 ## What is Verifiable Random Function?
 
 A Verifiable Random Function (VRF) is a cryptographic function that generates a random value, or output, based on some input data (called the "seed").
@@ -14,223 +16,57 @@ Orakl VRF can be requested using two different payment approaches:
 * [Prepayment](#prepayment-recommended)
 * [Direct Payment](#direct-payment)
 
-**Prepayment** requires user to create an account and deposit KLAY before requesting VRF.
-With **Direct Payment**, user can pay for VRF together while requesting VRF.
-The details of both approaches are explained below.
+**Prepayment** requires user to create an account, deposit KLAY and assign consumer before being able to request for VRF.
+It is more suitable for users that know that they will use VRF often and possibly from multiple smart contracts.
+You can learn more about **Prepayment** at [developer's guide about prepayment](prepayment.md).
+
+**Direct Payment** allows user to pay directly for VRF without any extra prerequisites.
+This approach is a great for infrequent users that do not want to hassle with **Prepayment** settings and want to use VRF as soon as possible.
+
+In the rest of this document, we describe both **Prepayment** and **Direct Payment** approaches that can be used to request VRF.
 
 ## Prepayment (recommended)
 
-### 1. Prerequisite: Create and fund your acount
+We assume that at this point you have already created account through [`Prepayment` smart contract](https://github.com/Bisonai-CIC/orakl/blob/master/contracts/src/v0.1/Prepayment.sol), deposited KLAY, and assigned consumer(s) to it.
+If not, [please read how to do all the above](prepayment.md), in order to be able to continue in this guide.
 
-You can interact with the [Prepayment contract](https://github.com/Bisonai-CIC/orakl/blob/master/contracts/src/v0.1/Prepayment.sol) to manage your accounts in Orakl.
-There are several steps that has to be performed before creating a VRF request:
+After you created account (and obtained `accId`), deposited some KLAY and assigned at least one consumer, you can use it to request and fulfill random words.
 
-1. [Create account](#create-account)
-2. [Deposit KLAY to account](#deposit-klay-to-account)
-3. [Add consumer](#add-consumer)
-
-Prepayment supports many other helpful functions.
-In this document, we describe some of them:
-
-* [Transfer account ownership](#transfer-account-ownership)
-* [Accept account ownership](#accept-account-ownership)
-* [Remove consumer](#remove-consumer)
-* [Cancel account](#cancel-account)
-* [Withdraw funds from account](#withdraw-funds-from-account)
-
-The functions are described in subsections below.
-
-#### Create account
-
-```Solidity
-function createAccount() external returns (uint64) {
-    s_currentAccId++;
-    uint64 currentAccId = s_currentAccId;
-    address[] memory consumers = new address[](0);
-    s_accounts[currentAccId] = Account({balance: 0, reqCount: 0});
-    s_accountConfigs[currentAccId] = AccountConfig({
-        owner: msg.sender,
-        requestedOwner: address(0),
-        consumers: consumers
-    });
-
-    emit AccountCreated(currentAccId, msg.sender);
-    return currentAccId;
-}
-```
-
-This function creates a new account by incrementing a global variable `s_currentAccId` by 1 and storing the value in a local variable `currentAccId`.
-Then, it creates an empty array of addresses called consumers and assigns it to the consumers field of `s_accountConfigs[currentAccId]`.
-It also creates `s_accounts[currentAccId]` with balance and `reqCount` set to 0.
-Information about newly created account ID and sender's address are emitted using `AccountCreated` event.
-Finally, it returns the new account ID.
-
-#### Deposit KLAY to account
-
-```Solidity
-function deposit(uint64 accId) external payable {
-    if (msg.sender.balance < msg.value) {
-        revert InsufficientConsumerBalance();
-    }
-    uint256 amount = msg.value;
-    uint256 oldBalance = s_accounts[accId].balance;
-    S_accounts[accId].balance += amount;
-    s_totalBalance += amount;
-    emit AccountBalanceIncreased(accId, oldBalance, oldBalance + amount);
-}
-```
-
-This function retrieves the current balance of the account, and increases it by given deposit.
-It also updates the total balance of all accounts by adding the deposit amount to the `s_totalBalance` variable.
-Finally, it emits an event `AccountBalanceIncreased` with the account ID, old balance and new balance as arguments.
-
-#### Add consumer
-
-```Solidity
-function addConsumer(uint64 accId, address consumer) external onlyAccOwner(accId) {
-    // Already maxed, cannot add any more consumers.
-    if (s_accountConfigs[accId].consumers.length >= MAX_CONSUMERS) {
-        revert TooManyConsumers();
-    }
-    if (s_consumers[consumer][accId] != 0) {
-        // Idempotence - do nothing if already added.
-        // Ensures uniqueness in s_accounts[accId].consumers.
-        return;
-    }
-    // Initialize the nonce to 1, indicating the consumer is allocated.
-    s_consumers[consumer][accId] = 1;
-    s_accountConfigs[accId].consumers.push(consumer);
-
-    emit AccountConsumerAdded(accId, consumer);
-}
-```
-
-This function increases the value of `s_consumers[consumer][accId]` by 1, indicating the number of consumer under given `accId`.
-Then, it pushes the consumer address to the `s_accountConfigs[accId].consumers` array.
-Finally, it emits an event `AccountConsumerAdded` with the account ID and consumer address as arguments.
-
-#### Transfer account ownership
-
-```Solidity
-function requestAccountOwnerTransfer(
-    uint64 accId,
-    address newOwner
-) external onlyAccOwner(accId) {
-    // Proposing to address(0) would never be claimable so don't need to check.
-    if (s_accountConfigs[accId].requestedOwner != newOwner) {
-        s_accountConfigs[accId].requestedOwner = newOwner;
-        emit AccountOwnerTransferRequested(accId, msg.sender, newOwner);
-    }
-}
-```
-
-This function updates the `s_accountConfigs[accId].requestedOwner` with the value of `newOwner` and emits an event `AccountOwnerTransferRequested` with the account ID, the current owner and the new owner address as arguments.
-`AccountOwnerTransferRequested` indicates that a request for owner transfer has been made for the account.
-
-#### Accept account ownership
-
-```Solidity
-function acceptAccountOwnerTransfer(uint64 accId) external {
-    if (s_accountConfigs[accId].owner == address(0)) {
-        revert InvalidAccount();
-    }
-    if (s_accountConfigs[accId].requestedOwner != msg.sender) {
-        revert MustBeRequestedOwner(s_accountConfigs[accId].requestedOwner);
-    }
-    address oldOwner = s_accountConfigs[accId].owner;
-    s_accountConfigs[accId].owner = msg.sender;
-    s_accountConfigs[accId].requestedOwner = address(0);
-    emit AccountOwnerTransferred(accId, oldOwner, msg.sender);
-}
-```
-
-This function updates the `s_accountConfigs[accId].owner` with the value of the `msg.sender` which is the address of the new owner and set the `s_accountConfigs[accId].requestedOwner` to `address(0)`.
-Finally it emits `AccountOwnerTransferred` event with the account ID, the old owner and the new owner address as arguments.
-`AccountOwnerTransferred` indicates that the transfer of ownership has been completed for the account.
-
-#### Remove consumer
-
-```Solidity
-function removeConsumer(uint64 accId, address consumer) external onlyAccOwner(accId) {
-    if (s_consumers[consumer][accId] == 0) {
-        revert InvalidConsumer(accId, consumer);
-    }
-    // Note bounded by MAX_CONSUMERS
-    address[] memory consumers = s_accountConfigs[accId].consumers;
-    uint256 lastConsumerIndex = consumers.length - 1;
-    for (uint256 i = 0; i < consumers.length; i++) {
-        if (consumers[i] == consumer) {
-            address last = consumers[lastConsumerIndex];
-            // Storage write to preserve last element
-            s_accountConfigs[accId].consumers[i] = last;
-            // Storage remove last element
-            s_accountConfigs[accId].consumers.pop();
-            break;
-        }
-    }
-    delete s_consumers[consumer][accId];
-    emit AccountConsumerRemoved(accId, consumer);
-}
-```
-
-This function iterates over the `s_accountConfigs[accId].consumers` array to find the index of the consumer that needs to be removed.
-Then, it swaps the last element with the element to be removed and pop out the last element.
-Finally, it deletes the consumer from the `s_consumers[consumer][accId]` variable and emits an event `AccountConsumerRemoved` with the account ID and consumer address as arguments.
-
-#### Cancel account
-
-```Solidity
-function cancelAccount(uint64 accId, address to) external onlyAccOwner(accId) {
-    if (pendingRequestExists(accId)) {
-        revert PendingRequestExists();
-    }
-    cancelAccountHelper(accId, to);
-}
-```
-
-This function checks if there are any pending requests for the account by calling a function `pendingRequestExists(accId)`.
-If there are any pending requests, the function reverts with the error message `PendingRequestExists()`.
-If there are no pending requests, it calls another function `cancelAccountHelper(accId, to)` which is responsible for canceling the account.
-By checking if there are any pending requests before canceling the account, it ensures that the account is not being cancelled in the middle of any important process.
-
-#### Withdraw funds from account
-
-```Solidity
-function withdraw(uint64 accId, uint256 amount) external onlyAccOwner(accId) {
-    if (pendingRequestExists(accId)) {
-        revert PendingRequestExists();
-    }
-
-    uint256 oldBalance = s_accounts[accId].balance;
-    if ((oldBalance < amount) || (address(this).balance < amount)) {
-        revert InsufficientBalance();
-    }
-
-    s_accounts[accId].balance -= amount;
-
-    (bool sent, ) = msg.sender.call{value: amount}("");
-    if (!sent) {
-        revert InsufficientBalance();
-    }
-
-    emit AccountBalanceDecreased(accId, oldBalance, oldBalance - amount);
-}
-```
-
-This function subtracts the amount to be withdrawn from the account's balance and transfers the withdrawn amount to the owner of the account using the `msg.sender.call` method.
-Finally, it emits an event `AccountBalanceDecreased` with the account ID, old balance and new balance as arguments.
-`AccountBalanceDecreased` event indicates that the withdrawal has been completed.
-
-### 2. Request & fulfill random words
-
-A detailed example of how to use Orakl VRF can be found at example repository [`vrf-consumer`](https://github.com/Bisonai-CIC/vrf-consumer).
-There are two functions that has to be implemented:
-
+* [Initialization](#initialization)
 * [Request random words](#request-random-words)
 * [Fulfill-random words](#fulfill-random-words)
 
+User smart contract that wants to use Orakl Network VRF has to inherit from [`VRFConsumerBase` smart contract](https://github.com/Bisonai-CIC/orakl/blob/master/contracts/src/v0.1/VRFConsumerBase.sol).
 
-#### Request random words
+```Solidity
+import '@bisonai/orakl-contracts/src/v0.1/VRFConsumerBase.sol';
+contract VRFConsumer is VRFConsumerBase {
+    ...
+}
+```
+
+### Initialization
+
+VRF smart contract ([`VRFCoordinator`](https://github.com/Bisonai-CIC/orakl/blob/master/contracts/src/v0.1/VRFCoordinator.sol)) is used both for requesting random words and also for request fulfillments.
+We recommend you to bond `VRFCoordinator` interface with `VRFCordinator` address supplied through constructor parameter, and use use it random words request (`requestRandomWords`).
+
+```Solidity
+import '@bisonai/orakl-contracts/src/v0.1/VRFConsumerBase.sol';
+import '@bisonai/orakl-contracts/src/v0.1/interfaces/VRFCoordinatorInterface.sol';
+
+contract VRFConsumer is VRFConsumerBase {
+  VRFCoordinatorInterface COORDINATOR;
+
+  constructor(address coordinator) VRFConsumerBase(coordinator) {
+      COORDINATOR = VRFCoordinatorInterface(coordinator);
+  }
+```
+
+### Request random words
+
+Request for random words must be called from a contract that has been approved through `addConsumer` function of [`Prepayment` smart contract](https://github.com/Bisonai-CIC/orakl/blob/master/contracts/src/v0.1/Prepayment.sol).
+If the smart contract has not been approved, the request is rejected through `InvalidConsumer` error.
+If account (specified by `accId`) does not exist (`InvalidAccount` error), does not have balance high enough, or uses an unregistered `keyHash` (`InvalidKeyHash` error) request is rejected as well..
 
 ```Solidity
 function requestRandomWords(
@@ -252,7 +88,7 @@ function requestRandomWords(
 }
 ```
 
-The arguments of `requestRandomWords` function are explained below:
+Below, you can find an explanation of `requestRandomWords` arguments of function from [`VRFCoordinator` smart contract](https://github.com/Bisonai-CIC/orakl/blob/master/contracts/src/v0.1/VRFCoordinator.sol):
 
 * `keyHash`: a `bytes32` value representing the hash of the key used to generate the random words, also used to choose a trusted VRF provider.
 * `accId`: a `uint64` value representing the ID of the account associated with the request.
@@ -260,10 +96,13 @@ The arguments of `requestRandomWords` function are explained below:
 * `numWords`: a `uint32` value representing the number of random words requested.
 
 The function call `requestRandomWords()` on `COORDINATOR` contract passes `keyHash`, `accId`, `callbackGasLimit`, and `numWords` as arguments.
-Execution of this function generates a request for random words that is uniquely defined with `requestId`, a return value from the function call on `COORDINATOR` contract.
+After a successfull execution of this function, you obtain an ID (`requestId`) that uniquely defines your request.
+Later, when your request is fulfilled, the ID (`requestId`) is supplied together with random words in order to be able to make a match between requests and fulfillments when there is more than one requests.
 
+### Fulfill random words
 
-#### Fulfill random words
+`fulfillRandomWords` is a virtual function of [`VRFConsumerBase` smart contract](https://github.com/Bisonai-CIC/orakl/blob/master/contracts/src/v0.1/VRFConsumerBase.sol), and therefore must be overriden.
+This function is called by `VRFCoordinator` when fulfilling the request.
 
 ```Solidity
 function fulfillRandomWords(
@@ -293,9 +132,39 @@ The result is stored in the storage variable `s_randomResult`.
 **Direct Payment** represents an alternative payment method which does not require a user to create account, depositor KLAY, and assign consumer before being able to utilize VRF functionality.
 Request for VRF with direct payment is a little bit different compared to prepayment, however, fulfillment function is exactly same.
 
-### Request random words with direct payment (consumer)
+* [Initialization for direct payment](#initialization-for-direct-payment)
+* [Request random words with direct payment (consumer)](#request-random-words-with-direct-payment-consumer)
+* [Request random words with direct payment (coordinator)](#request-random-words-with-direct-payment-coordinator)
+
+### Initialization for direct payment
+
+There is no difference in initializing VRF user contract that request for VRF with **Prepayment** or **Direct Payment**.
+
+VRF smart contract ([`VRFCoordinator`](https://github.com/Bisonai-CIC/orakl/blob/master/contracts/src/v0.1/VRFCoordinator.sol)) is used both for requesting random words and also for request fulfillments.
+We recommend you to bond `VRFCoordinator` interface with `VRFCordinator` address supplied through constructor parameter, and use use it random words request (`requestRandomWordsPayment`).
 
 ```Solidity
+import '@bisonai/orakl-contracts/src/v0.1/VRFConsumerBase.sol';
+import '@bisonai/orakl-contracts/src/v0.1/interfaces/VRFCoordinatorInterface.sol';
+
+contract VRFConsumer is VRFConsumerBase {
+  VRFCoordinatorInterface COORDINATOR;
+
+  constructor(address coordinator) VRFConsumerBase(coordinator) {
+      COORDINATOR = VRFCoordinatorInterface(coordinator);
+  }
+```
+
+### Request random words with direct payment (consumer)
+
+The request for random words using **Direct Payment** is very similar to request using **Prepayment**.
+The only difference is that for **Direct Payment** user has to send KLAY together with call using `value` property, and the name of function is `requestRandomWordsPayment` instead of `requestRandomWords` usef for **Prepayment**.
+There are several checks that has to pass in order to successully request for VRF.
+You can read about about in one of the previous subsections called [Request random words](#request-random-words).
+
+```Solidity
+receive() external payable {}
+
 function requestRandomWordsDirect(
     bytes32 keyHash,
     uint32 callbackGasLimit,
@@ -314,14 +183,12 @@ function requestRandomWordsDirect(
 }
 ```
 
-This function calls the `requestRandomWordsPayment()` function from the `COORDINATOR` contract, passing in the `keyHash`, `callbackGasLimit`, and `numWords` as arguments.
+This function calls the `requestRandomWordsPayment()` function defined in `COORDINATOR` contract, and passes `keyHash`, `callbackGasLimit`, and `numWords` as arguments.
 The payment for service is sent through `msg.value` to the `requestRandomWordsPayment()` in `COORDINATOR` contract.
-If the payment is larger than expected payment, exceeding payment is returned to the caller of `requestRandomWordsPayment` function.
-It requires the consumer contract to define [`receive()` function](https://docs.soliditylang.org/en/v0.8.16/contracts.html#receive-ether-function).
+If the payment is larger than expected payment, exceeding payment is returned to the caller of `requestRandomWordsPayment` function, therfore it requires the user contract to define [`receive()` function](https://docs.soliditylang.org/en/v0.8.16/contracts.html#receive-ether-function) as shown in code listing.
 Eventually, it generates a request for random words.
 
 In the section below, you can find more detailed explanation how request for random words using direct payment works.
-
 
 ### Request random words with direct payment (coordinator)
 
