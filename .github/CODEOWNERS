@@ -23,7 +23,7 @@ mocks/DataFeedConsumerMock.sol @martinkersner
 mocks/QuickSelectMock.sol @martinkersner
 mocks/RequestResponseConsumerMock.sol @bayram98
 mocks/VRFConsumerMock.sol @KelvinThai
-interfaces/ @dev-blockchain
+interfaces/ @Bisonai-CIC/dev-blockchain
 
 ## off-chain
 listener/request-response.ts @bayram98
