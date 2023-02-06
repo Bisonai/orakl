@@ -121,8 +121,8 @@ contract AnyApiConsumer is RequestResponseConsumerBase {
 
 ## Verifiable Random Function (VRF)
 
-The information describing how to use VRF can be found at [VRF](vrf.md).
-If you want to start using VRF right away, we recommend you to look at an example Hardhat project using Orakl VRF.
+The detailed information about Orakl VRF can be found at [developer's guide on how to use VRF](vrf.md).
+If you want to start using VRF right away, we recommend you to look at [an example Hardhat project using Orakl VRF](https://github.com/Bisonai-CIC/vrf-consumer).
 
 ## Payments
 
