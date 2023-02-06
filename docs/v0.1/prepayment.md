@@ -6,24 +6,29 @@
 It is implemented within [`Prepayment` smart contract](https://github.com/Bisonai-CIC/orakl/blob/master/contracts/src/v0.1/Prepayment.sol) and currently it can be used as a payment for [Verifiable Random Function (VRF)](vrf.md) and [Request-Response](request-response.md).
 You can read about other supported payment solutions at [Payment section of the Developer's guide](readme.md#payment).
 
-## How to use Prepayment?
-
 The main components of **Prepayment** are **Account**, **Account Owner**, **Consumer** and **Coordinator**.
 
-**Account Owners** are entities that create an **Account** (`createAccount`).
-They can also close the **Account** (`cancelAccount`), add (`addConsumer`) or remove **Consumer** (`removeConsumer`) from their **Account(s)**.
-KLAY can be withdrawn from account only by the **Account Owner**, however anybody is allowed to deposit (`deposit`) KLAY to any account.
-**Consumers** assigned to **Account** use the account balance to pay for Orakl Network services.
+Account owners are entities that create an account (`createAccount`).
+They can also close the account (`cancelAccount`), add (`addConsumer`) or remove consumer (`removeConsumer`) from their account(s).
+KLAY can be withdrawn from account only by the account owner, however anybody is allowed to deposit (`deposit`) KLAY to any account.
+Consumers assigned to account use the account's balance to pay for Orakl Network services.
 The ownership of account can be transfered to other entity through a two-step process (`requestAccountOwnerTransfer`, `acceptAccountOwnerTransfer`).
-**Coordinators** are smart contracts that can fulfill request issued by **Consumers**, and they are rewarded for their work (`chargeFee`).
+Coordinators are smart contracts that can fulfill request issued by consumers, and they are rewarded for their work (`chargeFee`).
 Consequently, they can withdraw their earnings (`nodeWidthdraw`).
-**Coordinators** can be added (`addCoordinator`) or removed (`removeCoordinator`) only by the owner of `Prepayment` smart contract.
+Coordinators can be added (`addCoordinator`) or removed (`removeCoordinator`) only by the owner of `Prepayment` smart contract.
+
+## How to use Prepayment?
+
+In the current stage, it is possible to control **Prepayment** only directly through smart contract interface.
+However, we are planning to make a user-friendly interface to create new account, deposit or withdraw KLAY and modify list of approved consumers. Stay tuned!
+
+There are [prerequisites that you have to do](#prerequisites) before you can use your **Prepayment** account to pay for Orakl Network services.
+If you are interested in more auxiliary functions defined on Prepayment smart contract, see [Other functions section](#other-functions).
+
+The rest of the page is a description functions defined on `Prepayment` smart contract that are split to two groups.
 
 * [Prerequisites](#prerequisites)
 * [Other functions](#other-functions)
-
-There are several steps that has to be performed before being able to use **Prepayment** for Orakl Network services.
-The list of required step is shown below:
 
 ### Prerequisites
 
