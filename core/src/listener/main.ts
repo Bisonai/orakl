@@ -16,6 +16,7 @@ import { getListeners } from '../settings'
 import { launchHealthCheck } from '../health-check'
 import { hookConsoleError } from '../utils'
 import { IListeners } from './types'
+import { IListenerConfig } from '../types'
 
 const LISTENERS: IListeners = {
   Aggregator: buildAggregatorListener,
@@ -31,6 +32,13 @@ async function main() {
   const listener = loadArgs()
   const listenersConfig = await getListeners(DB, CHAIN)
 
+  validateListeners(listenersConfig, listener)
+
+  LISTENERS[listener](listenersConfig[listener], LOGGER)
+  launchHealthCheck()
+}
+
+function validateListeners(listenersConfig: IListenerConfig[], listener: string): void {
   const isValid = Object.keys(listenersConfig).map((k) =>
     validateListenerConfig(listenersConfig[k], LOGGER)
   )
@@ -45,10 +53,6 @@ async function main() {
   }
 
   LOGGER.info({ name: 'listener:main', file: FILE_NAME, ...listenersConfig }, 'listenersConfig')
-
-  LISTENERS[listener](listenersConfig[listener], LOGGER)
-
-  launchHealthCheck()
 }
 
 function loadArgs() {
