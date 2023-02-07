@@ -1,12 +1,13 @@
 import { parseArgs } from 'node:util'
 import { buildLogger } from '../logger'
-import { aggregatorReporter } from './aggregator'
-import { vrfReporter } from './vrf'
+import { reporter as aggregatorReporter } from './aggregator'
+import { reporter as vrfReporter } from './vrf'
 import { reporter as requestResponseReporter } from './request-response'
 import { launchHealthCheck } from '../health-check'
 import { hookConsoleError } from '../utils'
+import { IReporters } from './types'
 
-const REPORTERS = {
+const REPORTERS: IReporters = {
   AGGREGATOR: aggregatorReporter,
   VRF: vrfReporter,
   REQUEST_RESPONSE: requestResponseReporter
@@ -21,7 +22,7 @@ async function main() {
   launchHealthCheck()
 }
 
-function loadArgs() {
+function loadArgs(): string {
   const {
     values: { reporter }
   } = parseArgs({

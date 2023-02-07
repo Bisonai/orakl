@@ -2,7 +2,7 @@ import { Worker } from 'bullmq'
 import { ethers } from 'ethers'
 import { Logger } from 'pino'
 import { RequestResponseCoordinator__factory } from '@bisonai-cic/icn-contracts'
-import { sendTransaction, buildWallet } from './utils'
+import { sendTransaction, loadWalletParameters, buildWallet } from './utils'
 import { REPORTER_REQUEST_RESPONSE_QUEUE_NAME, BULLMQ_CONNECTION } from '../settings'
 import { IRequestResponseWorkerReporter, RequestCommitmentRequestResponse } from '../types'
 
@@ -10,7 +10,8 @@ const FILE_NAME = import.meta.url
 
 export async function reporter(_logger: Logger) {
   _logger.debug({ name: 'reporter', file: FILE_NAME })
-  const wallet = buildWallet(_logger)
+  const { privateKey, providerUrl } = loadWalletParameters()
+  const wallet = buildWallet({ privateKey, providerUrl })
   new Worker(REPORTER_REQUEST_RESPONSE_QUEUE_NAME, await job(wallet, _logger), BULLMQ_CONNECTION)
 }
 

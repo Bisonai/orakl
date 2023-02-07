@@ -6,18 +6,34 @@ import { add0x } from '../utils'
 
 const FILE_NAME = import.meta.url
 
-export function buildWallet(logger: Logger) {
-  try {
-    const { PRIVATE_KEY, PROVIDER } = checkParameters()
-    const provider = new ethers.providers.JsonRpcProvider(PROVIDER)
-    const wallet = new ethers.Wallet(PRIVATE_KEY, provider)
-    return wallet
-  } catch (e) {
-    logger.error(e)
+export async function buildWallet({
+  privateKey,
+  providerUrl,
+  testConnection
+}: {
+  privateKey: string
+  providerUrl: string
+  testConnection?: boolean
+}) {
+  const provider = new ethers.providers.JsonRpcProvider(providerUrl)
+  const wallet = new ethers.Wallet(privateKey, provider)
+
+  if (testConnection) {
+    try {
+      await wallet.getTransactionCount()
+    } catch (e) {
+      if (e.code == 'NETWORK_ERROR') {
+        throw new IcnError(IcnErrorCode.ProviderNetworkError, 'ProviderNetworkError', e.reason)
+      } else {
+        throw e
+      }
+    }
   }
+
+  return wallet
 }
 
-function checkParameters() {
+export function loadWalletParameters() {
   if (!PRIVATE_KEY_ENV) {
     throw new IcnError(IcnErrorCode.MissingMnemonic)
   }
@@ -26,7 +42,7 @@ function checkParameters() {
     throw new IcnError(IcnErrorCode.MissingJsonRpcProvider)
   }
 
-  return { PRIVATE_KEY: PRIVATE_KEY_ENV, PROVIDER: PROVIDER_ENV }
+  return { privateKey: PRIVATE_KEY_ENV, providerUrl: PROVIDER_ENV }
 }
 
 export async function sendTransaction({
@@ -39,25 +55,47 @@ export async function sendTransaction({
 }: {
   wallet
   to: string
-  payload: string
+  payload?: string
   gasLimit?: number | string
-  value?: number | string
-  _logger: Logger
+  value?: number | string | ethers.BigNumber
+  _logger?: Logger
 }) {
-  const logger = _logger.child({ name: 'sendTransaction', file: FILE_NAME })
+  const logger = _logger?.child({ name: 'sendTransaction', file: FILE_NAME })
+
+  if (payload) {
+    payload = add0x(payload)
+  }
 
   const tx = {
     from: wallet.address,
     to: to,
-    data: add0x(payload),
+    data: payload || '0x00',
     value: value || '0x00'
   }
 
   if (gasLimit) {
     tx['gasLimit'] = gasLimit
   }
-  logger.debug(tx, 'tx')
+  logger?.debug(tx, 'tx')
 
-  const txReceipt = await wallet.sendTransaction(tx)
-  logger.debug(txReceipt, 'txReceipt')
+  try {
+    const txReceipt = await (await wallet.sendTransaction(tx)).wait()
+    logger?.debug(txReceipt, 'txReceipt')
+  } catch (e) {
+    logger?.debug(e, 'e')
+
+    if (e.reason == 'invalid address') {
+      throw new IcnError(IcnErrorCode.TxInvalidAddress, 'TxInvalidAddress', e.value)
+    } else if (e.reason == 'processing response error') {
+      throw new IcnError(
+        IcnErrorCode.TxProcessingResponseError,
+        'TxProcessingResponseError',
+        e.value
+      )
+    } else if (e.code == 'UNPREDICTABLE_GAS_LIMIT') {
+      throw new IcnError(IcnErrorCode.TxCannotEstimateGasError, 'TxCannotEstimateGasError', e.value)
+    } else {
+      throw e
+    }
+  }
 }

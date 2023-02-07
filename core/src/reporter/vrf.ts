@@ -2,20 +2,21 @@ import { Worker } from 'bullmq'
 import { ethers } from 'ethers'
 import { Logger } from 'pino'
 import { VRFCoordinator__factory } from '@bisonai-cic/icn-contracts'
-import { sendTransaction, buildWallet } from './utils'
+import { loadWalletParameters, sendTransaction, buildWallet } from './utils'
 import { REPORTER_VRF_QUEUE_NAME, BULLMQ_CONNECTION } from '../settings'
 import { IVrfWorkerReporter, RequestCommitmentVRF, Proof } from '../types'
 
 const FILE_NAME = import.meta.url
 
-export async function vrfReporter(_logger: Logger) {
+export async function reporter(_logger: Logger) {
   _logger.debug({ name: 'vrfrReporter', file: FILE_NAME })
-  const wallet = buildWallet(_logger)
-  new Worker(REPORTER_VRF_QUEUE_NAME, await vrfJob(wallet, _logger), BULLMQ_CONNECTION)
+  const { privateKey, providerUrl } = loadWalletParameters()
+  const wallet = buildWallet({ privateKey, providerUrl })
+  new Worker(REPORTER_VRF_QUEUE_NAME, await job(wallet, _logger), BULLMQ_CONNECTION)
 }
 
-function vrfJob(wallet, _logger: Logger) {
-  const logger = _logger.child({ name: 'vrfJob', file: FILE_NAME })
+function job(wallet, _logger: Logger) {
+  const logger = _logger.child({ name: 'job', file: FILE_NAME })
   const iface = new ethers.utils.Interface(VRFCoordinator__factory.abi)
   const gasLimit = 3_000_000 // FIXME
 

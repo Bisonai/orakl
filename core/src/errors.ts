@@ -2,6 +2,7 @@ export class IcnError extends Error {
   constructor(public readonly code: IcnErrorCode, message?: string, public readonly value?) {
     super(message)
     this.name = IcnErrorCode[code]
+    this.value = value
     Object.setPrototypeOf(this, new.target.prototype)
   }
 }
@@ -22,5 +23,9 @@ export enum IcnErrorCode {
   InvalidPriceFeed,
   InvalidPriceFeedFormat,
   MissingKeyValuePair,
-  UnexpectedQueryOutput
+  UnexpectedQueryOutput,
+  TxInvalidAddress,
+  TxProcessingResponseError,
+  TxCannotEstimateGasError,
+  ProviderNetworkError
 }
