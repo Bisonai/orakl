@@ -30,11 +30,9 @@ const LOGGER = buildLogger('listener')
 async function main() {
   hookConsoleError(LOGGER)
   const listener = loadArgs()
-  const listenersConfig = await getListeners(DB, CHAIN)
-
-  validateListeners(listenersConfig, listener)
-
-  LISTENERS[listener](listenersConfig[listener], LOGGER)
+  const config = await getListeners(DB, CHAIN)
+  validateListeners(config, listener)
+  LISTENERS[listener](config[listener], LOGGER)
   launchHealthCheck()
 }
 
@@ -55,7 +53,7 @@ function validateListeners(listenersConfig: IListenerConfig[], listener: string)
   LOGGER.info({ name: 'listener:main', file: FILE_NAME, ...listenersConfig }, 'listenersConfig')
 }
 
-function loadArgs() {
+function loadArgs(): string {
   const {
     values: { listener }
   } = parseArgs({
