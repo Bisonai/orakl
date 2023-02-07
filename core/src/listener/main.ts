@@ -5,13 +5,7 @@ import { buildListener as buildVrfListener } from './vrf'
 import { buildListener as buildRequestResponseListener } from './request-response'
 import { validateListenerConfig } from './utils'
 import { IcnError, IcnErrorCode } from '../errors'
-import {
-  WORKER_AGGREGATOR_QUEUE_NAME,
-  WORKER_VRF_QUEUE_NAME,
-  WORKER_REQUEST_RESPONSE_QUEUE_NAME,
-  DB,
-  CHAIN
-} from '../settings'
+import { DB, CHAIN } from '../settings'
 import { getListeners } from '../settings'
 import { launchHealthCheck } from '../health-check'
 import { hookConsoleError } from '../utils'
