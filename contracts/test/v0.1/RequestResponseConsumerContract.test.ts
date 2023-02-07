@@ -4,6 +4,7 @@ import hre from 'hardhat'
 import { ethers } from 'hardhat'
 import { createAccount } from './Prepayment.utils'
 import { requestResponseConfig } from './RequestResponse.config.ts'
+import { parseKlay } from './utils'
 
 describe('Request-Response user contract', function () {
   async function deployFixture() {
@@ -31,6 +32,9 @@ describe('Request-Response user contract', function () {
 
     await (await coordinatorContract.registerOracle(rrOracle0)).wait()
 
+    const minBalance = ethers.utils.parseUnits('0.001')
+    await coordinatorContract.setMinBalance(minBalance)
+
     // CONNECT COORDINATOR AND PREPAYMENT
     await (await prepaymentContract.addCoordinator(coordinatorContract.address)).wait()
 
@@ -44,7 +48,7 @@ describe('Request-Response user contract', function () {
     const accId = await createAccount(
       await coordinatorContract.getPrepaymentAddress(),
       consumerContract.address,
-      true,
+      false,
       true
     )
 
@@ -70,7 +74,13 @@ describe('Request-Response user contract', function () {
       consumer,
       rrOracle0
     } = await loadFixture(deployFixture)
-
+    const prepaymentContractConsumerSigner = await ethers.getContractAt(
+      'Prepayment',
+      prepaymentContract.address,
+      consumer
+    )
+    const value = parseKlay(1)
+    await prepaymentContractConsumerSigner.deposit(accId, { value })
     const requestReceipt = await (
       await consumerContract.requestData(accId, maxGasLimit, {
         gasLimit: 500_000
@@ -139,5 +149,16 @@ describe('Request-Response user contract', function () {
     expect(fulfillEvent.name).to.be.equal('DataRequestFulfilled')
     expect(fulfillEvent.args.requestId).to.be.equal(requestId)
     expect(Number(await consumerContract.s_response())).to.be.equal(response)
+  })
+  it('requestData should revert with InsufficientPayment error', async function () {
+    const { accId, maxGasLimit, consumerContract, coordinatorContract } = await loadFixture(
+      deployFixture
+    )
+
+    await expect(
+      consumerContract.requestData(accId, maxGasLimit, {
+        gasLimit: 500_000
+      })
+    ).to.be.revertedWithCustomError(coordinatorContract, 'InsufficientPayment')
   })
 })
