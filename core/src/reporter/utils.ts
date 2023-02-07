@@ -82,11 +82,6 @@ export async function sendTransaction({
   } catch (e) {
     logger?.debug(e, 'e')
 
-    // console.log(e)
-    // console.log('BODY', e.body)
-    // console.log(e.reason)
-    // console.log(e.value)
-
     if (e.reason == 'invalid address') {
       throw new IcnError(IcnErrorCode.TxInvalidAddress, 'TxInvalidAddress', e.value)
     } else if (e.reason == 'processing response error') {
