@@ -1,5 +1,4 @@
 import { describe, test, expect } from '@jest/globals'
-import { Aggregator__factory } from '@bisonai-cic/icn-contracts'
 import { buildWallet, sendTransaction } from '../src/reporter/utils'
 import { ethers } from 'ethers'
 import { IcnErrorCode } from '../src/errors'
