@@ -7,7 +7,7 @@ import { validateListenerConfig } from './utils'
 import { IcnError, IcnErrorCode } from '../errors'
 import { WORKER_REQUEST_RESPONSE_QUEUE_NAME, WORKER_VRF_QUEUE_NAME, DB, CHAIN } from '../settings'
 import { getListeners } from '../settings'
-import { healthCheck } from '../health-checker'
+import { launchHealthCheck } from '../health-check'
 import { hookConsoleError } from '../utils'
 import { IListeners } from './types'
 
@@ -54,7 +54,7 @@ async function main() {
   const config = listenersConfig[listener]
   buildListener(queueName, config, LOGGER)
 
-  healthCheck()
+  launchHealthCheck()
 }
 
 function loadArgs() {

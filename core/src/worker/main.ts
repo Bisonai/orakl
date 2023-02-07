@@ -4,7 +4,7 @@ import { aggregatorWorker } from './aggregator'
 import { vrfWorker } from './vrf'
 import { worker as requestResponseWorker } from './request-response'
 import { predefinedFeedWorker } from './predefined-feed'
-import { healthCheck } from '../health-checker'
+import { launchHealthCheck } from '../health-check'
 import { hookConsoleError } from '../utils'
 
 const WORKERS = {
@@ -20,7 +20,7 @@ async function main() {
   hookConsoleError(LOGGER)
   const worker = loadArgs()
   WORKERS[worker](LOGGER)
-  healthCheck()
+  launchHealthCheck()
 }
 
 function loadArgs() {

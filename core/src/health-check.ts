@@ -1,7 +1,7 @@
 import * as http from 'http'
 import { NODE_ENV, HEALTH_CHECK_PORT } from './settings'
 
-export function healthCheck() {
+export function launchHealthCheck() {
   if (NODE_ENV == 'production') {
     http
       .createServer(function (_, res) {

@@ -3,7 +3,7 @@ import { buildLogger } from '../logger'
 import { aggregatorReporter } from './aggregator'
 import { vrfReporter } from './vrf'
 import { reporter as requestResponseReporter } from './request-response'
-import { healthCheck } from '../health-checker'
+import { launchHealthCheck } from '../health-check'
 import { hookConsoleError } from '../utils'
 
 const REPORTERS = {
@@ -18,7 +18,7 @@ async function main() {
   hookConsoleError(LOGGER)
   const reporter = loadArgs()
   REPORTERS[reporter](LOGGER)
-  healthCheck()
+  launchHealthCheck()
 }
 
 function loadArgs() {
