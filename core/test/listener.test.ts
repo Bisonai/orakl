@@ -62,6 +62,7 @@ describe('Listener', function () {
         //eventName: 'RandomWordsRequested'
       }
     ]
+    /* eslint-disable @typescript-eslint/no-explicit-any */
     const isValid = validateListenerConfig(config as any)
     expect(isValid).toBe(false)
   })
