@@ -24,6 +24,8 @@ export async function buildWallet({
     } catch (e) {
       if (e.code == 'NETWORK_ERROR') {
         throw new IcnError(IcnErrorCode.ProviderNetworkError, 'ProviderNetworkError', e.reason)
+      } else {
+        throw e
       }
     }
   }
