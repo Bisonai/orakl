@@ -18,6 +18,7 @@ export enum IcnErrorCode {
   MissingAdapter,
   UniformWrongParams,
   InvalidListenerConfig,
+  UndefinedListenerRequested,
   InvalidPriceFeed,
   InvalidPriceFeedFormat,
   MissingKeyValuePair,

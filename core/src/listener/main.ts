@@ -9,8 +9,9 @@ import { WORKER_REQUEST_RESPONSE_QUEUE_NAME, WORKER_VRF_QUEUE_NAME, DB, CHAIN } 
 import { getListeners } from '../settings'
 import { healthCheck } from '../health-checker'
 import { hookConsoleError } from '../utils'
+import { IListeners } from './types'
 
-const LISTENERS = {
+const LISTENERS: IListeners = {
   Aggregator: {
     queueName: WORKER_VRF_QUEUE_NAME,
     fn: buildAggregatorListener
@@ -34,11 +35,16 @@ async function main() {
   const listenersConfig = await getListeners(DB, CHAIN)
 
   const isValid = Object.keys(listenersConfig).map((k) =>
-    validateListenerConfig(listenersConfig[k])
+    validateListenerConfig(listenersConfig[k], LOGGER)
   )
 
   if (!isValid) {
     throw new IcnError(IcnErrorCode.InvalidListenerConfig)
+  }
+
+  if (!LISTENERS[listener] || !listenersConfig[listener]) {
+    LOGGER.error({ name: 'listener:main', file: FILE_NAME, listener }, 'listener')
+    throw new IcnError(IcnErrorCode.UndefinedListenerRequested)
   }
 
   LOGGER.info({ name: 'listener:main', file: FILE_NAME, ...listenersConfig }, 'listenersConfig')
