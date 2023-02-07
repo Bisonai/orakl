@@ -4,15 +4,12 @@ import { Logger } from 'pino'
 import { Aggregator__factory } from '@bisonai-cic/icn-contracts'
 import { Event } from './event'
 import { IListenerConfig, INewRound, IAggregatorListenerWorker } from '../types'
-import { PUBLIC_KEY } from '../settings'
+import { PUBLIC_KEY, WORKER_AGGREGATOR_QUEUE_NAME } from '../settings'
 
 const FILE_NAME = import.meta.url
 
-export function buildAggregatorListener(
-  queueName: string,
-  config: IListenerConfig[],
-  logger: Logger
-) {
+export function buildAggregatorListener(config: IListenerConfig[], logger: Logger) {
+  const queueName = WORKER_AGGREGATOR_QUEUE_NAME
   // FIXME remove loop and listen on multiple contract for the same event
   for (const c of config) {
     new Event(queueName, processAggregatorEvent, Aggregator__factory.abi, c, logger).listen()

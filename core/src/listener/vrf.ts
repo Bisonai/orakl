@@ -4,10 +4,12 @@ import { Logger } from 'pino'
 import { VRFCoordinator__factory } from '@bisonai-cic/icn-contracts'
 import { Event } from './event'
 import { IListenerConfig, IRandomWordsRequested, IVrfListenerWorker } from '../types'
+import { WORKER_VRF_QUEUE_NAME } from '../settings'
 
 const FILE_NAME = import.meta.url
 
-export function buildVrfListener(queueName: string, config: IListenerConfig[], logger: Logger) {
+export function buildVrfListener(config: IListenerConfig[], logger: Logger) {
+  const queueName = WORKER_VRF_QUEUE_NAME
   // FIXME remove loop and listen on multiple contract for the same event
   for (const c of config) {
     new Event(queueName, processVrfEvent, VRFCoordinator__factory.abi, c, logger).listen()

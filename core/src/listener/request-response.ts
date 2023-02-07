@@ -4,8 +4,10 @@ import { Logger } from 'pino'
 import { RequestResponseCoordinator__factory } from '@bisonai-cic/icn-contracts'
 import { Event } from './event'
 import { IListenerConfig, IDataRequested, IRequestResponseListenerWorker } from '../types'
+import { WORKER_REQUEST_RESPONSE_QUEUE_NAME } from '../settings'
 
-export function buildListener(queueName: string, config: IListenerConfig[], logger: Logger) {
+export function buildListener(config: IListenerConfig[], logger: Logger) {
+  const queueName = WORKER_REQUEST_RESPONSE_QUEUE_NAME
   // FIXME remove loop and listen on multiple contract for the same event
   for (const c of config) {
     new Event(queueName, processEvent, RequestResponseCoordinator__factory.abi, c, logger).listen()
