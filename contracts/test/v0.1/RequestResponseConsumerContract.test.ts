@@ -32,7 +32,7 @@ describe('Request-Response user contract', function () {
 
     await (await coordinatorContract.registerOracle(rrOracle0)).wait()
 
-    const minBalance = ethers.utils.parseUnits('1', 15)
+    const minBalance = ethers.utils.parseUnits('0.001')
     await coordinatorContract.setMinBalance(minBalance)
 
     // CONNECT COORDINATOR AND PREPAYMENT

@@ -239,7 +239,6 @@ contract RequestResponseCoordinator is
         uint32 callbackGasLimit,
         uint64 accId
     ) external nonReentrant returns (uint256 requestId) {
-        uint256 startGas = gasleft();
         bool isDirectPayment = false;
         (uint256 balance, , , ) = s_prepayment.getAccount(accId);
         if (balance < s_minBalance) {

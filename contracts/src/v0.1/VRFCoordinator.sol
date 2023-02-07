@@ -458,13 +458,12 @@ contract VRFCoordinator is
         uint32 callbackGasLimit,
         uint32 numWords
     ) external nonReentrant onlyValidKeyHash(keyHash) returns (uint256 requestId) {
-        uint256 startGas = gasleft();
-        bool isDirectPayment = false;
         (uint256 balance, , , ) = s_prepayment.getAccount(accId);
 
         if (balance < s_minBalance) {
             revert InsufficientPayment(balance, s_minBalance);
         }
+        bool isDirectPayment = false;
 
         requestId = requestRandomWordsInternal(
             keyHash,

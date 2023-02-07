@@ -3,6 +3,7 @@ import { expect } from 'chai'
 import hre from 'hardhat'
 import { vrfConfig } from './VRF.config'
 import { createAccount } from './Prepayment.utils'
+import { parseKlay } from './utils'
 
 describe('Prepayment contract', function () {
   async function deployFixture() {
@@ -161,7 +162,7 @@ describe('Prepayment contract', function () {
 
     await prepaymentContractConsumerSigner.addConsumer(accId, consumerContract.address)
     await prepaymentContract.addCoordinator(coordinatorContract.address)
-    const value = 1_000_000_000_000_000
+    const value = parseKlay(1)
     await prepaymentContractConsumerSigner.deposit(accId, { value })
 
     await consumerContract.requestRandomWords(keyHash, accId, maxGasLimit, 1)

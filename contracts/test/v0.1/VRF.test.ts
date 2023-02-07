@@ -22,6 +22,10 @@ describe('VRF contract', function () {
     coordinatorContract = await coordinatorContract.deploy(prepaymentContract.address)
     await coordinatorContract.deployed()
 
+    //coordinator contract settings
+    const minBalance = ethers.utils.parseUnits('0.001')
+    await coordinatorContract.setMinBalance(minBalance)
+
     let consumerContract = await ethers.getContractFactory('VRFConsumerMock', {
       signer: consumer
     })
@@ -98,8 +102,7 @@ describe('VRF contract', function () {
       gasAfterPaymentCalculation,
       Object.values(feeConfig)
     )
-    const minBalance = ethers.utils.parseUnits('1', 15)
-    await coordinatorContract.setMinBalance(minBalance)
+
     const prepaymentContractConsumerSigner = await ethers.getContractAt(
       'Prepayment',
       prepaymentContract.address,
