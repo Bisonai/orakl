@@ -1,28 +1,21 @@
 import { parseArgs } from 'node:util'
 import { buildLogger } from '../logger'
-import { buildAggregatorListener } from './aggregator'
-import { buildVrfListener } from './vrf'
+import { buildListener as buildAggregatorListener } from './aggregator'
+import { buildListener as buildVrfListener } from './vrf'
 import { buildListener as buildRequestResponseListener } from './request-response'
 import { validateListenerConfig } from './utils'
 import { IcnError, IcnErrorCode } from '../errors'
-import { WORKER_REQUEST_RESPONSE_QUEUE_NAME, WORKER_VRF_QUEUE_NAME, DB, CHAIN } from '../settings'
+import { DB, CHAIN } from '../settings'
 import { getListeners } from '../settings'
-import { healthCheck } from '../health-checker'
+import { launchHealthCheck } from '../health-check'
 import { hookConsoleError } from '../utils'
+import { IListeners } from './types'
+import { IListenerConfig } from '../types'
 
-const LISTENERS = {
-  Aggregator: {
-    queueName: WORKER_VRF_QUEUE_NAME,
-    fn: buildAggregatorListener
-  },
-  VRF: {
-    queueName: WORKER_VRF_QUEUE_NAME,
-    fn: buildVrfListener
-  },
-  RequestResponse: {
-    queueName: WORKER_REQUEST_RESPONSE_QUEUE_NAME,
-    fn: buildRequestResponseListener
-  }
+const LISTENERS: IListeners = {
+  Aggregator: buildAggregatorListener,
+  VRF: buildVrfListener,
+  RequestResponse: buildRequestResponseListener
 }
 
 const FILE_NAME = import.meta.url
@@ -31,27 +24,30 @@ const LOGGER = buildLogger('listener')
 async function main() {
   hookConsoleError(LOGGER)
   const listener = loadArgs()
-  const listenersConfig = await getListeners(DB, CHAIN)
+  const config = await getListeners(DB, CHAIN)
+  validateListeners(config, listener)
+  LISTENERS[listener](config[listener], LOGGER)
+  launchHealthCheck()
+}
 
+function validateListeners(listenersConfig: IListenerConfig[], listener: string): void {
   const isValid = Object.keys(listenersConfig).map((k) =>
-    validateListenerConfig(listenersConfig[k])
+    validateListenerConfig(listenersConfig[k], LOGGER)
   )
 
   if (!isValid) {
     throw new IcnError(IcnErrorCode.InvalidListenerConfig)
   }
 
+  if (!LISTENERS[listener] || !listenersConfig[listener]) {
+    LOGGER.error({ name: 'listener:main', file: FILE_NAME, listener }, 'listener')
+    throw new IcnError(IcnErrorCode.UndefinedListenerRequested)
+  }
+
   LOGGER.info({ name: 'listener:main', file: FILE_NAME, ...listenersConfig }, 'listenersConfig')
-
-  const queueName = LISTENERS[listener].queueName
-  const buildListener = LISTENERS[listener].fn
-  const config = listenersConfig[listener]
-  buildListener(queueName, config, LOGGER)
-
-  healthCheck()
 }
 
-function loadArgs() {
+function loadArgs(): string {
   const {
     values: { listener }
   } = parseArgs({
