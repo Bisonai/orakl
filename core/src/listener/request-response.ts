@@ -6,6 +6,8 @@ import { Event } from './event'
 import { IListenerConfig, IDataRequested, IRequestResponseListenerWorker } from '../types'
 import { WORKER_REQUEST_RESPONSE_QUEUE_NAME } from '../settings'
 
+const FILE_NAME = import.meta.url
+
 export function buildListener(config: IListenerConfig[], logger: Logger) {
   const queueName = WORKER_REQUEST_RESPONSE_QUEUE_NAME
   // FIXME remove loop and listen on multiple contract for the same event
@@ -13,8 +15,6 @@ export function buildListener(config: IListenerConfig[], logger: Logger) {
     new Event(queueName, processEvent, RequestResponseCoordinator__factory.abi, c, logger).listen()
   }
 }
-
-const FILE_NAME = import.meta.url
 
 function processEvent(iface: ethers.utils.Interface, queue: Queue, _logger: Logger) {
   const logger = _logger.child({ name: 'processEvent', file: FILE_NAME })
