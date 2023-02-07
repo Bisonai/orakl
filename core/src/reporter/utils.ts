@@ -92,6 +92,8 @@ export async function sendTransaction({
       )
     } else if (e.code == 'UNPREDICTABLE_GAS_LIMIT') {
       throw new IcnError(IcnErrorCode.TxCannotEstimateGasError, 'TxCannotEstimateGasError', e.value)
+    } else {
+      throw e
     }
   }
 }
