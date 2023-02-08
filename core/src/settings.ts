@@ -21,10 +21,14 @@ export const SETTINGS_DB_FILE = path.join(ORAKL_DIR, 'settings.sqlite')
 export const DB = await openDb()
 
 export const PROVIDER_URL = await loadKeyValuePair({ db: DB, key: 'PROVIDER_URL', chain: CHAIN })
-export const REDIS_HOST = await loadKeyValuePair({ db: DB, key: 'REDIS_HOST', chain: CHAIN })
-export const REDIS_PORT = Number(
-  await loadKeyValuePair({ db: DB, key: 'REDIS_PORT', chain: CHAIN })
-)
+export const REDIS_HOST =
+  process.env.REDIS_HOST || (await loadKeyValuePair({ db: DB, key: 'REDIS_HOST', chain: CHAIN }))
+export const REDIS_PORT = process.env.REDIS_PORT
+  ? Number(process.env.REDIS_PORT)
+  : Number(await loadKeyValuePair({ db: DB, key: 'REDIS_PORT', chain: CHAIN }))
+export const SLACK_WEBHOOK_URL =
+  process.env.SLACK_WEBHOOK_URL ||
+  (await loadKeyValuePair({ db: DB, key: 'SLACK_WEBHOOK_URL', chain: CHAIN }))
 export const PRIVATE_KEY = await loadKeyValuePair({ db: DB, key: 'PRIVATE_KEY', chain: CHAIN })
 export const PUBLIC_KEY = await loadKeyValuePair({ db: DB, key: 'PUBLIC_KEY', chain: CHAIN })
 export const LOCAL_AGGREGATOR = await loadKeyValuePair({
