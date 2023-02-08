@@ -10,8 +10,8 @@ jobs:
       - uses: actions/setup-node@v3
         with:
           node-version: "18.12"
-          registry-url: "https://npm.pkg.github.com"
-          scope: "@bisonai-cic"
+          registry-url: 'https://registry.npmjs.org'
+          scope: "@bisonai"
           always-auth: true
       - run: yarn
         working-directory: ./contracts
@@ -25,7 +25,7 @@ jobs:
         working-directory: ./contracts
       - run: yarn build
         working-directory: ./contracts
-      - run: yarn publish --new-version ${{ github.event.release.tag_name }}
+      - run: yarn publish --new-version ${{ github.event.release.tag_name }} --access public
         working-directory: ./contracts
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
