@@ -14,20 +14,20 @@ jobs:
           registry-url: "https://registry.npmjs.org"
           scope: "@bisonai"
           always-auth: true
-      - run: cat "/home/runner/work/_temp/.npmrc" > $GITHUB_OUTPUT
-      # - run: yarn
-      #   working-directory: ./contracts
-      # - run: yarn solhint
-      #   working-directory: ./contracts
-      # - run: yarn eslint
-      #   working-directory: ./contracts
-      # - run: npx hardhat test
-      #   working-directory: ./contracts
-      # - run: yarn compile
-      #   working-directory: ./contracts
-      # - run: yarn build
-      #   working-directory: ./contracts
+      - run: yarn
+        working-directory: ./contracts
+      - run: yarn solhint
+        working-directory: ./contracts
+      - run: yarn eslint
+        working-directory: ./contracts
+      - run: npx hardhat test
+        working-directory: ./contracts
+      - run: yarn compile
+        working-directory: ./contracts
+      - run: yarn build
+        working-directory: ./contracts
+      - run: yarn publish --new-version 0.4.4 --access public
       # - run: yarn publish --new-version ${{ github.event.release.tag_name }} --access public
-      #   working-directory: ./contracts
-      #   env:
-      #     NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        working-directory: ./contracts
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
