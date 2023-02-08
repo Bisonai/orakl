@@ -9,7 +9,7 @@ nvm use v18.12.1
 Clone, build and setup
 
 ```shelll
-git clone https://github.com/bisonai-cic/ICN
+git clone https://github.com/bisonai-cic/orakl
 cd ICN/core
 
 # FIXME

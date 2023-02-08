@@ -1,7 +1,7 @@
 import { Worker } from 'bullmq'
 import { ethers } from 'ethers'
 import { Logger } from 'pino'
-import { VRFCoordinator__factory } from '@bisonai-cic/icn-contracts'
+import { VRFCoordinator__factory } from '@bisonai/orakl-contracts'
 import { loadWalletParameters, sendTransaction, buildWallet } from './utils'
 import { REPORTER_VRF_QUEUE_NAME, BULLMQ_CONNECTION } from '../settings'
 import { IVrfWorkerReporter, RequestCommitmentVRF, Proof } from '../types'

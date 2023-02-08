@@ -7,7 +7,7 @@ The oracle version `v0.1` uses Solidity version `^0.8.16`.
 ## Installation
 
 ```
-yarn install @bisonai-cic/icn-contracts@v0.1
+yarn install @bisonai/orakl-contracts@v0.4.4
 ```
 
 ## Products
@@ -27,7 +27,7 @@ The list of data feeds can be found at [Aggregated Data Feeds page](aggregated-d
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.16;
 
-import "@bisonai-cic/icn-contracts/src/0.1/interfaces/AggregatorInterface.sol";
+import "@bisonai/orakl-contracts/src/0.1/interfaces/AggregatorInterface.sol";
 
 contract PriceConsumer {
     AggregatorInterface internal priceFeed;
@@ -87,7 +87,7 @@ The response type is requested through `jobId`.
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.16;
 
-import "@bisonai-cic/icn-contracts/src/0.1/RequestResponseConsumerBase.sol";
+import "@bisonai/orakl-contracts/src/0.1/RequestResponseConsumerBase.sol";
 
 contract AnyApiConsumer is RequestResponseConsumerBase {
     using ICN for ICN.Request;
@@ -122,7 +122,7 @@ contract AnyApiConsumer is RequestResponseConsumerBase {
 ## Verifiable Random Function (VRF)
 
 The detailed information about Orakl VRF can be found at [developer's guide on how to use VRF](vrf.md).
-If you want to start using VRF right away, we recommend you to look at [an example Hardhat project using Orakl VRF](https://github.com/Bisonai-CIC/vrf-consumer).
+If you want to start using VRF right away, we recommend you to look at [an example Hardhat project using Orakl VRF](https://github.com/Bisonai/vrf-consumer).
 
 ## Payment
 

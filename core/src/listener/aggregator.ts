@@ -1,7 +1,7 @@
 import { Queue } from 'bullmq'
 import { ethers } from 'ethers'
 import { Logger } from 'pino'
-import { Aggregator__factory } from '@bisonai-cic/icn-contracts'
+import { Aggregator__factory } from '@bisonai/orakl-contracts'
 import { Event } from './event'
 import { IListenerConfig, INewRound, IAggregatorListenerWorker } from '../types'
 import { PUBLIC_KEY, WORKER_AGGREGATOR_QUEUE_NAME } from '../settings'

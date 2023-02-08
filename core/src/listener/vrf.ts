@@ -1,7 +1,7 @@
 import { Queue } from 'bullmq'
 import { ethers } from 'ethers'
 import { Logger } from 'pino'
-import { VRFCoordinator__factory } from '@bisonai-cic/icn-contracts'
+import { VRFCoordinator__factory } from '@bisonai/orakl-contracts'
 import { Event } from './event'
 import { IListenerConfig, IRandomWordsRequested, IVrfListenerWorker } from '../types'
 import { WORKER_VRF_QUEUE_NAME } from '../settings'

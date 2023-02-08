@@ -1,7 +1,7 @@
 import { Queue } from 'bullmq'
 import { ethers } from 'ethers'
 import { Logger } from 'pino'
-import { RequestResponseCoordinator__factory } from '@bisonai-cic/icn-contracts'
+import { RequestResponseCoordinator__factory } from '@bisonai/orakl-contracts'
 import { Event } from './event'
 import { IListenerConfig, IDataRequested, IRequestResponseListenerWorker } from '../types'
 import { WORKER_REQUEST_RESPONSE_QUEUE_NAME } from '../settings'
