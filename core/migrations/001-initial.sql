@@ -86,6 +86,7 @@ VALUES
   ((SELECT id from Chain WHERE name = 'localhost'), 'PUBLIC_KEY', '0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC'),
   ((SELECT id from Chain WHERE name = 'localhost'), 'LOCAL_AGGREGATOR', 'MEDIAN'),
   ((SELECT id from Chain WHERE name = 'localhost'), 'HEALTH_CHECK_PORT', '8888'),
+  ((SELECT id from Chain WHERE name = 'localhost'), 'SLACK_WEBHOOK_URL', ''),        
   ((SELECT id from Chain WHERE name = 'localhost'), 'LISTENER_DELAY', '500');
 
 CREATE TABLE Adapter (
