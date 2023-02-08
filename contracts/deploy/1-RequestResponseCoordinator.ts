@@ -10,14 +10,9 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   console.log('1-RequestResponseCoordinator.ts')
 
-  const requestResponseConfig: IRequestResponseConfig = await loadJson(
+  const config: IRequestResponseConfig = await loadJson(
     `config/${network.name}/request-response.json`
   )
-
-  if (network.name == 'baobab') {
-    console.log('Skipping')
-    return
-  }
 
   const prepayment = await ethers.getContract('Prepayment')
 
@@ -34,27 +29,23 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   // Register oracle
   console.log('Register oracle')
-  for (const oracle of requestResponseConfig.oracle) {
+  for (const oracle of config.oracle) {
     const tx = await (await requestResponseCoordinator.registerOracle(oracle.address)).wait()
     console.log('oracle', tx.events[0].args.oracle)
   }
 
-  // Configure Request-Resopnse coordinator
+  // Configure Request-Response coordinator
   console.log('Configure Request-Response coordinator')
   await (
     await requestResponseCoordinator.setConfig(
-      requestResponseConfig.maxGasLimit,
-      requestResponseConfig.gasAfterPaymentCalculation,
-      requestResponseConfig.feeConfig
+      config.maxGasLimit,
+      config.gasAfterPaymentCalculation,
+      config.feeConfig
     )
   ).wait()
 
   // Configure payment for direct Request-Response
-  await (
-    await requestResponseCoordinator.setDirectPaymentConfig(
-      requestResponseConfig.directPaymentConfig
-    )
-  ).wait()
+  await (await requestResponseCoordinator.setDirectPaymentConfig(config.directPaymentConfig)).wait()
 
   // Add RequestResponseCoordinator to Prepayment
   const prepaymentDeployerSigner = await ethers.getContractAt(
@@ -64,13 +55,15 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   )
   await (await prepaymentDeployerSigner.addCoordinator(requestResponseCoordinator.address)).wait()
 
+  // Localhost deployment
   if (['localhost', 'hardhat'].includes(network.name)) {
-    await localhostDeployment({ deploy, requestResponseCoordinator, prepayment, consumer })
+    await localhostDeployment({ deploy, requestResponseCoordinator, prepayment })
   }
 }
 
 async function localhostDeployment(args) {
-  const { deploy, requestResponseCoordinator, prepayment, consumer } = args
+  const { consumer } = await getNamedAccounts()
+  const { deploy, requestResponseCoordinator, prepayment } = args
 
   const requestResponseConsumerMockDeployment = await deploy('RequestResponseConsumerMock', {
     args: [requestResponseCoordinator.address],
