@@ -1,6 +1,6 @@
 {
     "maxGasLimit": 1000000,
-    "gasAfterPaymentCalculation": 1000,
+    "gasAfterPaymentCalculation": 90692,
     "feeConfig": {
         "fulfillmentFlatFeeKlayPPMTier1": 0,
         "fulfillmentFlatFeeKlayPPMTier2": 0,

@@ -6,11 +6,11 @@ import { IVrfConfig } from '../scripts/v0.1/types'
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployments, getNamedAccounts, network } = hre
   const { deploy } = deployments
-  const { deployer, consumer } = await getNamedAccounts()
+  const { deployer } = await getNamedAccounts()
 
   console.log('2-VRFCoordinator.ts')
 
-  const vrfConfig: IVrfConfig = await loadJson(`config/${network.name}/vrf.json`)
+  const config: IVrfConfig = await loadJson(`config/${network.name}/vrf.json`)
 
   const prepayment = await ethers.getContract('Prepayment')
 
@@ -27,7 +27,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   // Register proving key
   console.log('Register proving key')
-  for (const oracle of vrfConfig.oracle) {
+  for (const oracle of config.oracle) {
     const tx = await (
       await vrfCoordinator.registerProvingKey(oracle.address, oracle.publicProvingKey)
     ).wait()
@@ -39,14 +39,14 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   console.log('Configure VRF coordinator')
   await (
     await vrfCoordinator.setConfig(
-      vrfConfig.maxGasLimit,
-      vrfConfig.gasAfterPaymentCalculation,
-      vrfConfig.feeConfig
+      config.maxGasLimit,
+      config.gasAfterPaymentCalculation,
+      config.feeConfig
     )
   ).wait()
 
   // Configure payment for direct VRF request
-  await (await vrfCoordinator.setDirectPaymentConfig(vrfConfig.directPaymentConfig)).wait()
+  await (await vrfCoordinator.setDirectPaymentConfig(config.directPaymentConfig)).wait()
 
   // Add VRFCoordinator to Prepayment
   const prepaymentDeployerSigner = await ethers.getContractAt(
@@ -56,13 +56,15 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   )
   await (await prepaymentDeployerSigner.addCoordinator(vrfCoordinatorDeployment.address)).wait()
 
+  // Localhost deployment
   if (['localhost', 'hardhat'].includes(network.name)) {
-    await localhostDeployment({ deploy, vrfCoordinator, consumer, prepayment })
+    await localhostDeployment({ deploy, vrfCoordinator, prepayment })
   }
 }
 
 async function localhostDeployment(args) {
-  const { deploy, vrfCoordinator, prepayment, consumer } = args
+  const { consumer } = await getNamedAccounts()
+  const { deploy, vrfCoordinator, prepayment } = args
   const vrfConsumerMockDeployment = await deploy('VRFConsumerMock', {
     args: [vrfCoordinator.address],
     from: consumer,
