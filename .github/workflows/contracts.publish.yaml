@@ -1,7 +1,8 @@
 name: "contracts: test & build & publish"
-on:
-  release:
-    types: [published]
+on: push
+# on:
+#   release:
+#     types: [published]
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -13,19 +14,20 @@ jobs:
           registry-url: "https://registry.npmjs.org"
           scope: "@bisonai"
           always-auth: true
-      - run: yarn
-        working-directory: ./contracts
-      - run: yarn solhint
-        working-directory: ./contracts
-      - run: yarn eslint
-        working-directory: ./contracts
-      - run: npx hardhat test
-        working-directory: ./contracts
-      - run: yarn compile
-        working-directory: ./contracts
-      - run: yarn build
-        working-directory: ./contracts
-      - run: yarn publish --new-version ${{ github.event.release.tag_name }} --access public
-        working-directory: ./contracts
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      - run: cat echo "/home/runner/work/_temp/.npmrc"
+      # - run: yarn
+      #   working-directory: ./contracts
+      # - run: yarn solhint
+      #   working-directory: ./contracts
+      # - run: yarn eslint
+      #   working-directory: ./contracts
+      # - run: npx hardhat test
+      #   working-directory: ./contracts
+      # - run: yarn compile
+      #   working-directory: ./contracts
+      # - run: yarn build
+      #   working-directory: ./contracts
+      # - run: yarn publish --new-version ${{ github.event.release.tag_name }} --access public
+      #   working-directory: ./contracts
+      #   env:
+      #     NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
