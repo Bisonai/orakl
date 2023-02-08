@@ -12,7 +12,7 @@ export async function reporter(_logger: Logger) {
   _logger.debug({ name: 'reporter', file: FILE_NAME })
 
   const { privateKey, providerUrl } = loadWalletParameters()
-  const wallet = buildWallet({ privateKey, providerUrl })
+  const wallet = await buildWallet({ privateKey, providerUrl })
   new Worker(REPORTER_AGGREGATOR_QUEUE_NAME, await job(wallet, _logger), BULLMQ_CONNECTION)
 }
 
