@@ -1,4 +1,4 @@
-# ICN contracts
+# Orakl Network Contracts
 
 ## Installation
 

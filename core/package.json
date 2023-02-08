@@ -38,7 +38,7 @@
     "eslint": "DEBUG=eslint:cli-engine npx eslint 'src/**/*.ts' 'src/*.ts' 'test/*.ts'"
   },
   "dependencies": {
-    "@bisonai-cic/icn-contracts": "^0.4.3",
+    "@bisonai/orakl-contracts": "^0.4.4",
     "@slack/webhook": "^6.1.0",
     "axios": "^1.2.2",
     "bn.js": "^5.2.1",

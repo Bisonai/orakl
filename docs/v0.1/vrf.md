@@ -1,6 +1,6 @@
 # Verifiable Random Function (VRF)
 
-A detailed example of how to use Orakl Network VRF can be found at example repository [`vrf-consumer`](https://github.com/Bisonai-CIC/vrf-consumer).
+A detailed example of how to use Orakl Network VRF can be found at example repository [`vrf-consumer`](https://github.com/Bisonai/vrf-consumer).
 
 ## What is Verifiable Random Function?
 
