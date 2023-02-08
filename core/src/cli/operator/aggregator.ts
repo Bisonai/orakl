@@ -71,7 +71,7 @@ export function aggregatorSub(db, logger: Logger) {
 
   return subcommands({
     name: 'aggregator',
-    cmds: { list, insert, remove,insertFromChain }
+    cmds: { list, insert, remove, insertFromChain }
   })
 }
 
@@ -163,10 +163,10 @@ export function insertFromChainHandler(db, logger?: Logger) {
   }) {
     const fromChainId = await chainToId(db, fromChain)
     const toChainId = await chainToId(db, toChain)
-    let adapterId
+
     const queryAdapter = `SELECT id from Adapter WHERE adapterId='${adapter}' and chainId=${fromChainId};`
     const result = await db.get(queryAdapter)
-    adapterId = result.id
+    const adapterId = result.id
     const query = `INSERT INTO Aggregator (chainId, aggregatorId, adapterId, data) 
     SELECT ${toChainId}, aggregatorId, adapterId, data FROM Aggregator 
     WHERE chainId=${fromChainId} and aggregatorId='${aggregatorId}' and adapterId='${adapterId}'`
