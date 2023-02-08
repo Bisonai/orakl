@@ -1,8 +1,7 @@
 name: "contracts: test & build & publish"
-on: push
-# on:
-#   release:
-#     types: [published]
+on:
+  release:
+    types: [published]
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -26,8 +25,7 @@ jobs:
         working-directory: ./contracts
       - run: yarn build
         working-directory: ./contracts
-      - run: yarn publish --new-version 0.4.4 --access public
-      # - run: yarn publish --new-version ${{ github.event.release.tag_name }} --access public
+      - run: yarn publish --new-version ${{ github.event.release.tag_name }} --access public
         working-directory: ./contracts
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
