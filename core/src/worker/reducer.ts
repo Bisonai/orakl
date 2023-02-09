@@ -12,7 +12,8 @@ export const requestResponseReducerMapping = {
   mul: mulFn,
   div: divFn,
   pow10: pow10Fn,
-  round: roundFn
+  round: roundFn,
+  index: indexFn
 }
 
 /**
@@ -65,6 +66,21 @@ export function pow10Fn(args: number) {
 export function roundFn() {
   function wrapper(value: number) {
     return Math.round(value)
+  }
+  return wrapper
+}
+
+export function indexFn(args: number) {
+  if (args < 0) {
+    throw new IcnError(IcnErrorCode.IndexOutofBoundaries)
+  }
+
+  function wrapper(obj) {
+    if (args >= obj.length) {
+      throw new IcnError(IcnErrorCode.IndexOutofBoundaries)
+    } else {
+      return obj[args]
+    }
   }
   return wrapper
 }

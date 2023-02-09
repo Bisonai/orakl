@@ -5,6 +5,7 @@ import {
   divFn,
   pow10Fn,
   roundFn,
+  indexFn,
   requestResponseReducerMapping
 } from '../src/worker/reducer'
 import { buildReducer } from '../src/worker/utils'
@@ -74,5 +75,20 @@ describe('Reducers', function () {
     expect(roundFn()(1.1)).toBe(1)
     expect(roundFn()(1.5)).toBe(2)
     expect(roundFn()(1.9)).toBe(2)
+  })
+
+  test('Index below lower boundary', function () {
+    const arr = [1, 2, 3]
+    expect(() => indexFn(-1)(arr)).toThrow()
+  })
+
+  test('Index above higher boundary', function () {
+    const arr = [1, 2, 3]
+    expect(() => indexFn(3)(arr)).toThrow()
+  })
+
+  test('Index', function () {
+    const arr = [1, 2, 3]
+    expect(indexFn(1)(arr)).toBe(2)
   })
 })
