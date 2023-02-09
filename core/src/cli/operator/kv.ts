@@ -37,7 +37,8 @@ export function kvSub(db, logger: Logger) {
       }),
       value: option({
         type: cmdstring,
-        long: 'value'
+        long: 'value',
+        defaultValue: () => ''
       }),
       chain: option({
         type: cmdstring,
@@ -89,7 +90,8 @@ export function kvSub(db, logger: Logger) {
       }),
       value: option({
         type: cmdstring,
-        long: 'value'
+        long: 'value',
+        defaultValue: () => ''
       }),
       chain: option({
         type: cmdstring,
