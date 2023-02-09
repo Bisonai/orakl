@@ -27,5 +27,6 @@ export enum IcnErrorCode {
   TxInvalidAddress,
   TxProcessingResponseError,
   TxCannotEstimateGasError,
-  ProviderNetworkError
+  ProviderNetworkError,
+  InvalidDecodedMesssageLength
 }
