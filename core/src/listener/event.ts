@@ -82,6 +82,7 @@ export class Event {
         await writeTextFile(this.listenerBlock.filePath, this.listenerBlock.startBlock.toString())
 
         if (events?.length > 0) {
+          this.logger.debug({ name: 'Event:filter' }, `${events}`)
           events.forEach(this.fn)
         }
       }

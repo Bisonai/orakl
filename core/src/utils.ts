@@ -6,7 +6,7 @@ import { IcnError, IcnErrorCode } from './errors'
 import { IncomingWebhook } from '@slack/webhook'
 import Hook from 'console-hook'
 import { SLACK_WEBHOOK_URL } from './settings'
-
+import urlExist from 'url-exist'
 export async function loadJson(filepath) {
   const json = await Fs.readFile(filepath, 'utf8')
   return JSON.parse(json)
@@ -83,14 +83,19 @@ export function mkTmpFile({ fileName }: { fileName: string }): string {
   return tmpFilePath
 }
 
-function sendToSlack(error) {
-  if (SLACK_WEBHOOK_URL) {
+async function sendToSlack(error) {
+  const exists = await urlExist(SLACK_WEBHOOK_URL)
+  if (exists) {
     const webhook = new IncomingWebhook(SLACK_WEBHOOK_URL)
     const text = ` :fire: _An error has occurred at_ \`${os.hostname()}\`\n \`\`\`${JSON.stringify(
       error
     )} \`\`\`\n>*System information*\n>*memory*: ${os.freemem()}/${os.totalmem()}\n>*machine*: ${os.machine()}\n>*platform*: ${os.platform()}\n>*upTime*: ${os.uptime()}\n>*version*: ${os.version()}
    `
-    webhook.send({ text })
+    try {
+      await webhook.send({ text })
+    } catch (e) {
+      console.log('utils:sendToSlack', `${e}`)
+    }
   }
 }
 

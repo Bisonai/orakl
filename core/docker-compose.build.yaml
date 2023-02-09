@@ -5,6 +5,4 @@ services:
     build:
       context: .
       dockerfile: src/Dockerfile.dev
-      args:
-        - NPM_TOKEN
     image: core-icn
