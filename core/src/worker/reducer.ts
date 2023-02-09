@@ -11,7 +11,8 @@ export const requestResponseReducerMapping = {
   path: parseFn,
   mul: mulFn,
   div: divFn,
-  pow10: pow10Fn
+  pow10: pow10Fn,
+  round: roundFn
 }
 
 /**
@@ -42,14 +43,14 @@ export function parseFn(args: string | string[]) {
 
 export function mulFn(args: number) {
   function wrapper(value: number) {
-    return args * value
+    return value * args
   }
   return wrapper
 }
 
 export function divFn(args: number) {
   function wrapper(value: number) {
-    return args / value
+    return value / args
   }
   return wrapper
 }

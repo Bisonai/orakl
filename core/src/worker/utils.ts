@@ -107,7 +107,7 @@ export function buildReducer(reducerMapping, reducers) {
     if (!reducer) {
       throw new IcnError(IcnErrorCode.InvalidReducer)
     }
-    return reducer(r.args)
+    return reducer(r?.args)
   })
 }
 

@@ -1,5 +1,14 @@
 import { describe, test, expect } from '@jest/globals'
-import { parseFn, mulFn, pow10Fn, roundFn } from '../src/worker/reducer'
+import {
+  parseFn,
+  mulFn,
+  divFn,
+  pow10Fn,
+  roundFn,
+  requestResponseReducerMapping
+} from '../src/worker/reducer'
+import { buildReducer } from '../src/worker/utils'
+import { pipe } from '../src/utils'
 
 describe('Reducers', function () {
   test('parseFn with array input', function () {
@@ -26,8 +35,38 @@ describe('Reducers', function () {
     expect(mulFn(2)(3)).toBe(6)
   })
 
+  test('Div', function () {
+    expect(divFn(2)(8)).toBe(4)
+  })
+
+  test('Build mul reducer', function () {
+    // 2 * 3 = 6
+    const request = [{ function: 'mul', args: 3 }]
+    const reducers = buildReducer(requestResponseReducerMapping, request)
+    expect(pipe(...reducers)(2)).toBe(6)
+  })
+
+  test('Mul & div reducer', function () {
+    // 10 * 8 / 2 = 40
+    const request = [
+      { function: 'mul', args: 8 },
+      { function: 'div', args: 2 }
+    ]
+    const reducers = buildReducer(requestResponseReducerMapping, request)
+    expect(pipe(...reducers)(10)).toBe(40)
+  })
+
+  test('Div & round reducer', function () {
+    // round(3 / 2) = 2
+    const request = [{ function: 'div', args: 2 }, { function: 'round' }]
+    const reducers = buildReducer(requestResponseReducerMapping, request)
+    expect(pipe(...reducers)(3)).toBe(2)
+  })
+
   test('Pow10', function () {
+    // (10 ** 4) * 1
     expect(pow10Fn(4)(1)).toBe(10_000)
+    // (10 ** 4) * 2
     expect(pow10Fn(4)(2)).toBe(20_000)
   })
 
