@@ -39,7 +39,7 @@ After you created account (and obtained `accId`), deposited some KLAY and assign
 User smart contract that wants to use Orakl Network VRF has to inherit from [`VRFConsumerBase` abstract smart contract](https://github.com/Bisonai-CIC/orakl/blob/master/contracts/src/v0.1/VRFConsumerBase.sol).
 
 ```Solidity
-import '@bisonai/orakl-contracts/src/v0.1/VRFConsumerBase.sol';
+import "@bisonai/orakl-contracts/src/v0.1/VRFConsumerBase.sol";
 contract VRFConsumer is VRFConsumerBase {
     ...
 }
@@ -51,8 +51,8 @@ VRF smart contract ([`VRFCoordinator`](https://github.com/Bisonai-CIC/orakl/blob
 We recommend you to bond `VRFCoordinator` interface with `VRFCordinator` address supplied through a constructor parameter, and use use it for random words requests (`requestRandomWords`).
 
 ```Solidity
-import '@bisonai/orakl-contracts/src/v0.1/VRFConsumerBase.sol';
-import '@bisonai/orakl-contracts/src/v0.1/interfaces/VRFCoordinatorInterface.sol';
+import "@bisonai/orakl-contracts/src/v0.1/VRFConsumerBase.sol";
+import "@bisonai/orakl-contracts/src/v0.1/interfaces/VRFCoordinatorInterface.sol";
 
 contract VRFConsumer is VRFConsumerBase {
   VRFCoordinatorInterface COORDINATOR;
@@ -141,7 +141,7 @@ Request for VRF with **Direct Payment** is only a little bit different compared 
 User smart contract that wants to use Orakl Network VRF has to inherit from [`VRFConsumerBase` abstract smart contract](https://github.com/Bisonai-CIC/orakl/blob/master/contracts/src/v0.1/VRFConsumerBase.sol).
 
 ```Solidity
-import '@bisonai/orakl-contracts/src/v0.1/VRFConsumerBase.sol';
+import "@bisonai/orakl-contracts/src/v0.1/VRFConsumerBase.sol";
 contract VRFConsumer is VRFConsumerBase {
     ...
 }
@@ -155,8 +155,8 @@ VRF smart contract ([`VRFCoordinator`](https://github.com/Bisonai-CIC/orakl/blob
 We recommend you to bond `VRFCoordinator` interface with `VRFCordinator` address supplied through a constructor parameter, and use use it for random words requests (`requestRandomWordsPayment`).
 
 ```Solidity
-import '@bisonai/orakl-contracts/src/v0.1/VRFConsumerBase.sol';
-import '@bisonai/orakl-contracts/src/v0.1/interfaces/VRFCoordinatorInterface.sol';
+import "@bisonai/orakl-contracts/src/v0.1/VRFConsumerBase.sol";
+import "@bisonai/orakl-contracts/src/v0.1/interfaces/VRFCoordinatorInterface.sol";
 
 contract VRFConsumer is VRFConsumerBase {
   VRFCoordinatorInterface COORDINATOR;
