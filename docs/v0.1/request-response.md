@@ -25,16 +25,16 @@ In the rest of this document, we describe both **Prepayment** and **Direct Payme
 We assume that at this point you have already created account through [`Prepayment` smart contract](https://github.com/Bisonai-CIC/orakl/blob/master/contracts/src/v0.1/Prepayment.sol), deposited KLAY, and assigned consumer(s) to it.
 If not, [please read how to do all the above](prepayment.md), in order to be able to continue in this guide.
 
-After you created account (and obtained `accId`), deposited some KLAY and assigned at least one consumer, you can use it to request and fulfill random words.
+After you created account (and obtained `accId`), deposited some KLAY and assigned at least one consumer, you can use it to request data and receive response.
 
 * [Initialization](#initialization)
 * [Request data](#request-data)
 * [Receive response](#receive-response)
 
-User smart contract that wants to utilize Orakl Network Request-Response has to inherit from [`VRFRequestResponseBase` abstract smart contract](https://github.com/Bisonai-CIC/orakl/blob/master/contracts/src/v0.1/ReqeustResponseConsumerBase.sol).
+User smart contract that wants to utilize Orakl Network Request-Response has to inherit from [`VRFRequestResponseBase` abstract smart contract](https://github.com/Bisonai-CIC/orakl/blob/master/contracts/src/v0.1/RequestResponseConsumerBase.sol).
 
 ```Solidity
-import '@bisonai/orakl-contracts/src/v0.1/RequestResponseConsumerBase.sol';
+import "@bisonai/orakl-contracts/src/v0.1/RequestResponseConsumerBase.sol";
 contract RequestResponseConsumer is RequestResponseConsumerBase {
     ...
 }
@@ -46,7 +46,7 @@ Request-Response smart contract ([`RequestResponseCoordinator`](https://github.c
 Address of deployed `RequestResponseCoordinator` is used for initialization of parent class `RequestResponseConsumerBase` from which consumer's contract has to inherit.
 
 ```Solidity
-import '@bisonai/orakl-contracts/src/v0.1/RequestResponseConsumerBase.sol';
+import "@bisonai/orakl-contracts/src/v0.1/RequestResponseConsumerBase.sol";
 
 contract RequestResponseConsumer is RequestResponseConsumerBase {
   constructor(address coordinator) RequestResponseConsumerBase(coordinator) {
@@ -84,10 +84,11 @@ function requestData(
 
 Below, you can find an explanation of `requestData` function and its arguments defined at [`RequestResponseCoordinator` smart contract](https://github.com/Bisonai-CIC/orakl/blob/master/contracts/src/v0.1/RequestResponseCoordinator.sol):
 
+* `req`: a `Request` structure that holds encoded user request
 * `accId`: a `uint64` value representing the ID of the account associated with the request.
 * `callbackGasLimit`: a `uint32` value representing the gas limit for the callback function that executes after the confirmations have been received.
 
-The function call `requestData()` on `COORDINATOR` contract passes `accId` and `callbackGasLimit` as arguments.
+The function call `requestData()` on `COORDINATOR` contract passes `req`, `accId` and `callbackGasLimit` as arguments.
 After a successfull execution of this function, you obtain an ID (`requestId`) that uniquely defines your request.
 Later, when your request is fulfilled, the ID (`requestId`) is supplied together with response to be able to make a match between requests and fulfillments when there is more than one request.
 
@@ -129,7 +130,7 @@ Request-Response with **Direct Payment** is only a little bit different compared
 User smart contract that wants to utilize Orakl Network Request-Response has to inherit from [`VRFRequestResponseBase` abstract smart contract](https://github.com/Bisonai-CIC/orakl/blob/master/contracts/src/v0.1/ReqeustResponseConsumerBase.sol).
 
 ```Solidity
-import '@bisonai/orakl-contracts/src/v0.1/RequestResponseConsumerBase.sol';
+import "@bisonai/orakl-contracts/src/v0.1/RequestResponseConsumerBase.sol";
 contract RequestResponseConsumer is RequestResponseConsumerBase {
     ...
 }
@@ -143,7 +144,7 @@ Request-Response smart contract ([`RequestResponseCoordinator`](https://github.c
 Address of deployed `RequestResponseCoordinator` is used for initialization of parent class `RequestResponseConsumerBase` from which consumer's contract has to inherit.
 
 ```Solidity
-import '@bisonai/orakl-contracts/src/v0.1/RequestResponseConsumerBase.sol';
+import "@bisonai/orakl-contracts/src/v0.1/RequestResponseConsumerBase.sol";
 
 contract RequestResponseConsumer is RequestResponseConsumerBase {
   constructor(address coordinator) RequestResponseConsumerBase(coordinator) {
@@ -222,6 +223,6 @@ function requestData(
 
 This function first calculates a fee (`fee`) for the request by calling `estimateDirectPaymentFee()` function.
 `isDirectPayment` variable indicates whether the request is created through **Prepayment** or **Direct Payment** method.
-Then, it deposits the required fee (`fee`) to the account by calling `Prepayment.deposit(accId)` and passing the fee (`fee`) as value.
+Then, it deposits the required fee (`fee`) to the account by calling `s_prepayment.deposit(accId)` and passing the fee (`fee`) as value.
 If the amount of KLAY passed by `msg.value` to the `requestData` is larger than required fee (`fee`), the remaining amount is sent back to the caller using the `msg.sender.call()` method.
 Finally, the function returns `requestId` that is generated by the `requestDataInternal()` function.
