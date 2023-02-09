@@ -10,14 +10,16 @@ describe('Decode incoming request', function () {
       path: 'RAW,ETH,USD,PRICE'
     }
 
-    let bufferList: Buffer = Buffer.from('')
+    const b: Buffer[] = []
     for (const key in request) {
-      bufferList = Buffer.concat([bufferList, cbor.encode(key), cbor.encode(request[key])])
+      b.push(cbor.encode(key))
+      b.push(cbor.encode(request[key]))
     }
-    const hexValue = add0x(bufferList.toString('hex'))
-    const decodedRequest = await decodeRequest(hexValue)
 
-    expect(decodedRequest[0].input).toStrictEqual(request.get)
-    expect(decodedRequest[1].input).toStrictEqual(request.path)
+    const buffer = Buffer.concat(b).toString('hex')
+    const decodedRequest = await decodeRequest(add0x(buffer))
+
+    expect(decodedRequest[0].args).toStrictEqual(request.get)
+    expect(decodedRequest[1].args).toStrictEqual(request.path)
   })
 })

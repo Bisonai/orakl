@@ -15,7 +15,7 @@ export async function decodeRequest(anyApiRequest: string): Promise<IRequestOper
   }
 
   for (let i = 0; i < decodedMessage.length; i += 2) {
-    request.push({ opcode: decodedMessage[i], input: decodedMessage[i + 1] })
+    request.push({ function: decodedMessage[i], args: decodedMessage[i + 1] })
   }
 
   return request

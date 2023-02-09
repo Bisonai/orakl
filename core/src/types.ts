@@ -71,8 +71,8 @@ export interface IAggregator {
 }
 
 export interface IRequestOperation {
-  opcode: string
-  input: string
+  function: string
+  args: string
 }
 
 export interface IVrfResponse {
