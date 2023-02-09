@@ -8,8 +8,9 @@ describe('Decode incoming request', function () {
       get: 'https://min-api.cryptocompare.com/data/pricemultifull?fsyms=ETH&tsyms=USD',
       path: 'RAW,ETH,USD,PRICE'
     }
+
     let bufferList: Buffer = Buffer.from('')
-    for (let key in anyApi) {
+    for (const key in anyApi) {
       bufferList = Buffer.concat([bufferList, cbor.encode(key), cbor.encode(anyApi[key])])
     }
     const hexValue = '0x' + bufferList.toString('hex')
