@@ -17,7 +17,11 @@ describe('CLI KV', function () {
   const KV_EMPTY = { key: 'someKey', value: '', chain: 'localhost' }
   const KV_MANY_LOCALHOST = {
     chain: 'localhost',
-    data: [{ key1: 'val1' }, { key2: 'val2' }]
+    data: [{ key1: 'val1' }]
+  }
+  const KV_MANY_EMPTY_VALUE = {
+    chain: 'localhost',
+    data: [{ key1: '' }, { key2: 'val2' }]
   }
 
   beforeEach(async () => {
@@ -63,6 +67,13 @@ describe('CLI KV', function () {
     await insertManyHandler(DB)(KV_MANY_LOCALHOST)
     const kvAfter = await listHandler(DB)({})
     expect(kvAfter.length).toEqual(kvBefore.length + KV_MANY_LOCALHOST.data.length)
+  })
+
+  test('Should insertMany new Key-Value pair that has value defined as an empty string', async function () {
+    const kvBefore = await listHandler(DB)({})
+    await insertManyHandler(DB)(KV_MANY_EMPTY_VALUE)
+    const kvAfter = await listHandler(DB)({})
+    expect(kvAfter.length).toEqual(kvBefore.length + KV_MANY_EMPTY_VALUE.data.length)
   })
 
   test('Should not allow to insert the same Key-Value pair more than once in the same chain', async function () {
