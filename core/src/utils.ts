@@ -85,12 +85,16 @@ export function mkTmpFile({ fileName }: { fileName: string }): string {
 
 function sendToSlack(error) {
   if (SLACK_WEBHOOK_URL) {
-    const webhook = new IncomingWebhook(SLACK_WEBHOOK_URL)
-    const text = ` :fire: _An error has occurred at_ \`${os.hostname()}\`\n \`\`\`${JSON.stringify(
-      error
-    )} \`\`\`\n>*System information*\n>*memory*: ${os.freemem()}/${os.totalmem()}\n>*machine*: ${os.machine()}\n>*platform*: ${os.platform()}\n>*upTime*: ${os.uptime()}\n>*version*: ${os.version()}
+    try {
+      const webhook = new IncomingWebhook(SLACK_WEBHOOK_URL)
+      const text = ` :fire: _An error has occurred at_ \`${os.hostname()}\`\n \`\`\`${JSON.stringify(
+        error
+      )} \`\`\`\n>*System information*\n>*memory*: ${os.freemem()}/${os.totalmem()}\n>*machine*: ${os.machine()}\n>*platform*: ${os.platform()}\n>*upTime*: ${os.uptime()}\n>*version*: ${os.version()}
    `
-    webhook.send({ text })
+      webhook.send({ text })
+    } catch (e) {
+      this.logger.debug({ name: 'utils:sendToSlack' }, `${e}`)
+    }
   }
 }
 
