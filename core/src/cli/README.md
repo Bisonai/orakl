@@ -258,6 +258,14 @@ yarn kv insert \
     --chain localhost
 ```
 
+If you want to insert key-value pair where value is an empty string, you can omit the `--value` parameter.
+
+```shell
+yarn kv insert \
+    --key SLACK_WEBHOOK_URL \
+    --chain localhost
+```
+
 Insert many key-value pairs defined in JSON-formatted file
 
 ```shell
@@ -283,6 +291,13 @@ yarn kv udpate \
     --chain localhost
 ```
 
+If you want to update key-value pair with a value that is an empty string, you can omit the `--value` parameter.
+
+```shell
+yarn kv update \
+    --key SLACK_WEBHOOK_URL \
+    --chain localhost
+```
 
 ## Generate Adapter Hash
 
