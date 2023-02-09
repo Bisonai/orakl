@@ -23,9 +23,16 @@ export enum IcnErrorCode {
   InvalidPriceFeed,
   InvalidPriceFeedFormat,
   MissingKeyValuePair,
+<<<<<<< HEAD
   UnexpectedQueryOutput,
   TxInvalidAddress,
   TxProcessingResponseError,
   TxCannotEstimateGasError,
   ProviderNetworkError
+||||||| parent of 44b0629 (feat: add InvalidDecodedMessageLength eror)
+  UnexpectedQueryOutput
+=======
+  UnexpectedQueryOutput,
+  InvalidDecodedMesssageLength
+>>>>>>> 44b0629 (feat: add InvalidDecodedMessageLength eror)
 }
