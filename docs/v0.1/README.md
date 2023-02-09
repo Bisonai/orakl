@@ -66,7 +66,7 @@ After understanding the basics of Request-Response, you can look at[an example H
 
 ## Verifiable Random Function (VRF)
 
-VRF allows for the generation of random numbers on the blockchain in a verifiable and transparent manner.
+**Verifiable Random Function** allows for the generation of random numbers on the blockchain in a verifiable and transparent manner.
 This can be useful for a wide range of use cases, such as gaming and gambling applications, where a fair and unbiased random number generator is essential.
 
 The detailed information about Orakl VRF can be found at [developer's guide on how to use VRF](vrf.md).
