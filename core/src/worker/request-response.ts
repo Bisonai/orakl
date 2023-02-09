@@ -1,14 +1,15 @@
 import { Worker, Queue } from 'bullmq'
 import axios from 'axios'
 import { Logger } from 'pino'
+import { buildReducer } from './utils'
+import { decodeRequest } from './decoding'
 import { IRequestResponseListenerWorker, IRequestResponseWorkerReporter } from '../types'
-import { readFromJson } from '../utils'
+import { pipe } from '../utils'
 import {
   WORKER_REQUEST_RESPONSE_QUEUE_NAME,
   REPORTER_REQUEST_RESPONSE_QUEUE_NAME,
   BULLMQ_CONNECTION
 } from '../settings'
-import { decodeRequest } from './decoding'
 
 const FILE_NAME = import.meta.url
 
@@ -59,10 +60,12 @@ async function processRequest(reqEnc: string, _logger: Logger): Promise<string |
   const req = await decodeRequest(reqEnc)
   logger.debug(req, 'req')
 
-  let res: string = (await axios.get(req.get)).data
-  if (req.path) {
-    res = readFromJson(res, req.path)
+  const options = {
+    method: 'GET'
   }
+  const rawData = (await axios.get(req[0].args, options)).data
+  const reducers = buildReducer(req.slice(1))
+  const res = pipe(...reducers)(rawData)
 
   logger.debug(res, 'res')
   return res
