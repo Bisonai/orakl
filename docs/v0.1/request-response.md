@@ -4,7 +4,9 @@ A detailed example of how to use Orakl Network Request-Response can be found at 
 
 ## What is Request-Response?
 
-TODO general
+The Orakl Network Request-Response serves as a solution to cover a wide range of use cases.
+While it may not be possible to bring every data feed directly to the blockchain, the Request-Response allows users to specify within their smart contracts the specific data they require and how it should be processed before it is received on-chain.
+This feature returns data in several predefined formats such as Single Word Response and Multi-Variable Word Responses, providing users with greater flexibility and control over their data, and allowing them to access a wide range of external data sources.
 
 Orakl Network Request-Response can be used with two different payment approaches:
 
