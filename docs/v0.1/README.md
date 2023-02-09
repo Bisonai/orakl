@@ -1,10 +1,12 @@
 # Developer's Guide (v0.1)
 
-Orakl is a decentralized oracle network that allows smart contracts to securely access off-chain data and other resources.
+Orakl Network is a decentralized oracle network that allows smart contracts to securely access off-chain data and other resources.
 
 ## Installation
 
 > The oracle version `v0.1` uses Solidity version `^0.8.16`.
+> The version of npm package `@bisonai/orakl-contract` is an internal version of package to recognize changes.
+> In the closed alpha version, smart contracts are all defined under v0.1 but are expected to be frequently changed.
 
 ```
 yarn install @bisonai/orakl-contracts@v0.4.4
@@ -56,3 +58,8 @@ Orakl Network Request-Response can be used with two different payment approaches
 **Prepayment** allows consumers of Orakl Network to prepay for services, and then using those funds when interacting with Orakl Network.
 It is currently accepted payment method for both VRF and Request-Response.
 If you want to learn more about prepayment, go to [developer's guide on how to use Prepayment](prepayment.md).
+
+### Direct Payment
+
+**Direct Payment** method allows to use Orakl Network's services without requiring to create any account in advance.
+All services can be requested and paid at the time of the request.
