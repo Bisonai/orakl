@@ -1,8 +1,8 @@
 version: '3.7'
 
 services:
-  icn:
+  orakl:
     build:
       context: .
       dockerfile: src/Dockerfile.dev
-    image: core-icn
+    image: orakl:v.0.0.1
