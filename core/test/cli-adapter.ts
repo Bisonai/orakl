@@ -1,5 +1,10 @@
 import { describe, expect, beforeEach, test } from '@jest/globals'
-import { listHandler, insertHandler, removeHandler } from '../src/cli/operator/adapter'
+import {
+  listHandler,
+  insertHandler,
+  removeHandler,
+  insertFromChainHandler
+} from '../src/cli/operator/adapter'
 import { mkTmpFile } from '../src/utils'
 import { openDb } from '../src/cli/operator/utils'
 
@@ -53,5 +58,14 @@ describe('CLI Adapter', function () {
     await removeHandler(DB)({ id: 1 })
     const adapterAfter = await listHandler(DB)({})
     expect(adapterAfter.length).toEqual(adapterBefore.length - 1)
+  })
+
+  test('Should insert new adapter from other chain', async function () {
+    await insertHandler(DB)({ data: ADAPTER, chain: 'localhost' })
+    const adapterBefore = await listHandler(DB)({})
+    const adapterId =JSON.parse(adapterBefore[0].data).id
+    await insertFromChainHandler(DB)({ adapterId, fromChain: 'localhost', toChain: 'baobab' })
+    const adapterAfter = await listHandler(DB)({})
+    expect(adapterAfter.length).toEqual(adapterBefore.length + 1)
   })
 })

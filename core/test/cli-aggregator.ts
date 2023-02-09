@@ -1,6 +1,11 @@
 import { describe, expect, beforeEach, test } from '@jest/globals'
-import { listHandler, insertHandler, removeHandler } from '../src/cli/operator/aggregator'
-import { mkTmpFile } from '../src/utils'
+import {
+  listHandler,
+  insertHandler,
+  removeHandler,
+  insertFromChainHandler
+} from '../src/cli/operator/aggregator'
+import { hookConsoleError, mkTmpFile } from '../src/utils'
 import { openDb } from '../src/cli/operator/utils'
 
 describe('CLI Aggregator', function () {
@@ -46,5 +51,20 @@ describe('CLI Aggregator', function () {
     await removeHandler(DB)({ id: 1 })
     const aggregatorAfter = await listHandler(DB)({})
     expect(aggregatorAfter.length).toEqual(aggregatorBefore.length - 1)
+  })
+  test('Should insert new aggregator from other chain', async function () {
+    await insertHandler(DB)({ data: AGGREGATOR, adapter: ADAPTER_ID, chain: 'localhost' })
+    const aggregatorBefore = await listHandler(DB)({})
+    const aggregatorId = '0x2d5d94df99ccad54f0f6a9d38f2340db793833947f86b207dcda38583dd263fa'
+    console.log(aggregatorId)
+
+    await insertFromChainHandler(DB)({
+      aggregatorId,
+      adapter: ADAPTER_ID,
+      fromChain: 'localhost',
+      toChain: 'baobab'
+    })
+    const aggregatorAfter = await listHandler(DB)({})
+    expect(aggregatorAfter.length).toEqual(aggregatorBefore.length + 1)
   })
 })
