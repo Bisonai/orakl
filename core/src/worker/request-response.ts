@@ -56,7 +56,7 @@ function job(queueName: string, _logger: Logger) {
 
 async function processRequest(reqEnc: string, _logger: Logger): Promise<string | number> {
   const logger = _logger.child({ name: 'processRequest', file: FILE_NAME })
-  const req = decodeRequest(reqEnc)
+  const req = await decodeRequest(reqEnc)
   logger.debug(req, 'req')
 
   let res: string = (await axios.get(req.get)).data
