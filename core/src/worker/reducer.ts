@@ -72,12 +72,12 @@ export function roundFn() {
 
 export function indexFn(args: number) {
   if (args < 0) {
-    throw new IcnError(IcnErrorCode.IndexOutofBoundaries)
+    throw new IcnError(IcnErrorCode.IndexOutOfBoundaries)
   }
 
   function wrapper(obj) {
     if (args >= obj.length) {
-      throw new IcnError(IcnErrorCode.IndexOutofBoundaries)
+      throw new IcnError(IcnErrorCode.IndexOutOfBoundaries)
     } else {
       return obj[args]
     }

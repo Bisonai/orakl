@@ -29,5 +29,5 @@ export enum IcnErrorCode {
   TxCannotEstimateGasError,
   ProviderNetworkError,
   InvalidDecodedMesssageLength,
-  IndexOutofBoundaries
+  IndexOutOfBoundaries
 }
