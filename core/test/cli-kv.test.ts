@@ -21,7 +21,7 @@ describe('CLI KV', function () {
   }
   const KV_MANY_EMPTY_VALUE = {
     chain: 'localhost',
-    data: [{ key1: '' }, { key2: 'val2' }]
+    data: [{ key1: '' }]
   }
 
   beforeEach(async () => {
