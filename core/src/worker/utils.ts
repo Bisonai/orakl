@@ -101,7 +101,7 @@ function checkDataFormat(data) {
   }
 }
 
-function buildReducer(reducers) {
+export function buildReducer(reducers) {
   return reducers.map((r) => {
     const reducer = reducerMapping[r.function]
     if (!reducer) {
