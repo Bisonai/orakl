@@ -14,9 +14,14 @@ describe('CLI KV', function () {
   const TMP_DB_FILE = mkTmpFile({ fileName: 'settings.test.sqlite' })
   const KV_LOCALHOST = { key: 'someKey', value: 'someValue', chain: 'localhost' }
   const KV_BAOBAB = { key: 'someKey', value: 'someValue', chain: 'baobab' }
+  const KV_EMPTY = { key: 'someKey', value: '', chain: 'localhost' }
   const KV_MANY_LOCALHOST = {
     chain: 'localhost',
-    data: [{ key1: 'val1' }, { key2: 'val2' }]
+    data: [{ key1: 'val1' }]
+  }
+  const KV_MANY_EMPTY_VALUE = {
+    chain: 'localhost',
+    data: [{ key1: '' }]
   }
 
   beforeEach(async () => {
@@ -50,11 +55,25 @@ describe('CLI KV', function () {
     expect(kvAfter.length).toEqual(kvBefore.length + 1)
   })
 
+  test('Should insert new empty value', async function () {
+    const kvBefore = await listHandler(DB)({})
+    await insertHandler(DB)(KV_EMPTY)
+    const kvAfter = await listHandler(DB)({})
+    expect(kvAfter.length).toEqual(kvBefore.length + 1)
+  })
+
   test('Should insertMany new Key-Value pairs', async function () {
     const kvBefore = await listHandler(DB)({})
     await insertManyHandler(DB)(KV_MANY_LOCALHOST)
     const kvAfter = await listHandler(DB)({})
     expect(kvAfter.length).toEqual(kvBefore.length + KV_MANY_LOCALHOST.data.length)
+  })
+
+  test('Should insertMany new Key-Value pair that has value defined as an empty string', async function () {
+    const kvBefore = await listHandler(DB)({})
+    await insertManyHandler(DB)(KV_MANY_EMPTY_VALUE)
+    const kvAfter = await listHandler(DB)({})
+    expect(kvAfter.length).toEqual(kvBefore.length + KV_MANY_EMPTY_VALUE.data.length)
   })
 
   test('Should not allow to insert the same Key-Value pair more than once in the same chain', async function () {
@@ -84,5 +103,15 @@ describe('CLI KV', function () {
     const kv = await listHandler(DB)({ key: 'someKey', chain: 'localhost' })
     expect(kv.length).toEqual(1)
     expect(kv[0].value).toEqual(newValue)
+  })
+
+  test('Should update with empty value', async function () {
+    await insertHandler(DB)(KV_LOCALHOST)
+    const value = ''
+    const key = 'someKey'
+    await updateHandler(DB)({ key, value, chain: 'localhost' })
+    const kv = await listHandler(DB)({ key, chain: 'localhost' })
+    expect(kv.length).toEqual(1)
+    expect(kv[0].value).toEqual(value)
   })
 })
