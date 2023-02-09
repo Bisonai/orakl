@@ -195,7 +195,7 @@ Remove adapter
 yarn cli adapter remove --id [id]
 ```
 
-Add new adaper from other chain
+Add new adapter from other chain
 
 ```shell
 yarn cli adapter insertFromChain --adapter-id [adapter-id] --from-chain [from-chain] --to-chain [to-chain]
