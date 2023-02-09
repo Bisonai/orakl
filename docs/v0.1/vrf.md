@@ -104,7 +104,7 @@ Later, when your request is fulfilled, the ID (`requestId`) is supplied together
 
 `fulfillRandomWords` is a virtual function of [`VRFConsumerBase` smart contract](https://github.com/Bisonai-CIC/orakl/blob/master/contracts/src/v0.1/VRFConsumerBase.sol), and therefore must be overriden.
 This function is called by `VRFCoordinator` when fulfilling the request.
-`callbackGasLimit` paramter defined during VRF request denotes the amount of gas required for execuction of this function.
+`callbackGasLimit` parameter defined during VRF request denotes the amount of gas required for execuction of this function.
 
 ```Solidity
 function fulfillRandomWords(
@@ -122,13 +122,12 @@ function fulfillRandomWords(
 
 The arguments of `fulfillRandomWords` function are explained below:
 
-* `requestId`: `uint256` value representing the ID of the request
+* `requestId`: a `uint256` value representing the ID of the request
 * `randomWords`: an array of `uint256` values representing the random words generated in response to the request
 
 This function is executed from previously defined `COORDINATOR` contract.
 After receiving random value(s) (`randomWords`) which can be any number in range of `uint256` data type, it takes the first random element and limits it to a range between 1 and 50.
 The result is saved in the storage variable `s_randomResult`.
-
 
 ## Direct Payment
 
@@ -242,7 +241,7 @@ function requestRandomWordsPayment(
 }
 ```
 
-This function first calculates the fee (`vrfFee`) for the request by calling `estimateDirectPaymentFee()` function.
+This function first calculates a fee (`vrfFee`) for the request by calling `estimateDirectPaymentFee()` function.
 `isDirectPayment` variable indicates whether the request is created through **Prepayment** or **Direct Payment** method.
 Then, it deposits the required fee (`vrfFee`) to the account by calling `Prepayment.deposit(accId)` and passing the fee (`vrfFee`) as value.
 If the amount of KLAY passed by `msg.value` to the `requestRandomWordsPayment` is larger than required fee (`vrfFee`), the remaining amount is sent back to the caller using the `msg.sender.call()` method.
