@@ -97,3 +97,4 @@ services:
     volumes:
       - ${HOST_SETTINGS_DB_DIR}:/app/db    
       - ${HOST_SETTINGS_LOG_DIR}:/app/log
+ 
