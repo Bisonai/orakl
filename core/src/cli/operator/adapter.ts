@@ -137,7 +137,7 @@ export function insertFromChainHandler(db, logger?: Logger) {
     const fromChainId = await chainToId(db, fromChain)
     const toChainId = await chainToId(db, toChain)
 
-    const query = `INSERT INTO Adapter (chainId, adapterId, data) SELECT ${toChainId},adapterId, data FROM Adapter WHERE chainId=${fromChainId} and adapterId='${adapterId}'`
+    const query = `INSERT INTO Adapter (chainId, adapterId, data) SELECT ${toChainId}, adapterId, data FROM Adapter WHERE chainId=${fromChainId} and adapterId='${adapterId}'`
 
     if (dryrun) {
       logger?.debug(query)
