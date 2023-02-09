@@ -3,6 +3,7 @@ import axios from 'axios'
 import { Logger } from 'pino'
 import { buildReducer } from './utils'
 import { decodeRequest } from './decoding'
+import { requestResponseReducerMapping } from './reducer'
 import { IRequestResponseListenerWorker, IRequestResponseWorkerReporter } from '../types'
 import { pipe } from '../utils'
 import {
@@ -64,7 +65,7 @@ async function processRequest(reqEnc: string, _logger: Logger): Promise<string |
     method: 'GET'
   }
   const rawData = (await axios.get(req[0].args, options)).data
-  const reducers = buildReducer(req.slice(1))
+  const reducers = buildReducer(requestResponseReducerMapping, req.slice(1))
   const res = pipe(...reducers)(rawData)
 
   logger.debug(res, 'res')

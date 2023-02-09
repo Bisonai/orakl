@@ -1,5 +1,5 @@
 import { Logger } from 'pino'
-import { reducerMapping } from './reducer'
+import { dataFeedReducerMapping } from './reducer'
 import { IcnError, IcnErrorCode } from '../errors'
 import { pipe } from '../utils'
 import { IAdapter, IAggregator } from '../types'
@@ -70,7 +70,7 @@ export async function fetchDataWithAdapter(adapter, logger?: Logger) {
         // FIXME Built reducers just once and use. Currently, can't
         // be passed to queue, therefore has to be recreated before
         // every fetch.
-        const reducers = buildReducer(a.reducers)
+        const reducers = buildReducer(dataFeedReducerMapping, a.reducers)
         const data = pipe(...reducers)(rawData)
         checkDataFormat(data)
         return data
@@ -101,7 +101,7 @@ function checkDataFormat(data) {
   }
 }
 
-export function buildReducer(reducers) {
+export function buildReducer(reducerMapping, reducers) {
   return reducers.map((r) => {
     const reducer = reducerMapping[r.function]
     if (!reducer) {
