@@ -8,7 +8,7 @@ import {
   REPORTER_REQUEST_RESPONSE_QUEUE_NAME,
   BULLMQ_CONNECTION
 } from '../settings'
-import { decodeRequest } from '../decoding'
+import { decodeRequest } from './decoding'
 
 const FILE_NAME = import.meta.url
 

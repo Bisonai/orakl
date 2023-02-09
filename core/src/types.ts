@@ -70,9 +70,9 @@ export interface IAggregator {
   adapterId: string
 }
 
-export interface IRequest {
-  get: string
-  path?: string[]
+export interface IRequestOperation {
+  opcode: string
+  input: string
 }
 
 export interface IVrfResponse {
