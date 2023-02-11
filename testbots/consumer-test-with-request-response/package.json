@@ -1,0 +1,59 @@
+{
+  "name": "@bisonai/orakl-core",
+  "version": "0.2.0",
+  "type": "module",
+  "description": "",
+  "files": [
+    "dist"
+  ],
+  "engines": {
+    "node": ">=18.12"
+  },
+  "author": "Bisonai",
+  "license": "UNLICENSED",
+  "scripts": {
+    "prepare": "cd .. && husky install core/.husky",
+    "clean": "rm -rf dist",
+    "build": "yarn clean && tsc",
+    "start:request:vrf-prepayment": "yarn build && node --no-warnings --experimental-specifier-resolution=node --experimental-json-modules dist/request/vrf-consumer.js",
+    "start:request:vrf-direct": "yarn build && node --no-warnings --experimental-specifier-resolution=node --experimental-json-modules dist/request/vrf-consumer-direct.js",
+    "start:request:request-response": "yarn build && node --no-warnings --experimental-specifier-resolution=node --experimental-json-modules dist/request/request-response.js",
+    "start:request:request-response-direct": "yarn build && node --no-warnings --experimental-specifier-resolution=node --experimental-json-modules dist/request/request-response-direct.js",
+    "start:listener:vrf-consumer": "yarn build && node --no-warnings --experimental-specifier-resolution=node --experimental-json-modules dist/listener/vrf-consumer.js",
+    "start:listener:rr-consumer": "yarn build && node --no-warnings --experimental-specifier-resolution=node --experimental-json-modules dist/listener/request-response.js",
+    "keygen": "node --no-warnings --experimental-specifier-resolution=node --experimental-json-modules dist/cli/vrf-keygen.js",
+    "test": "node --no-warnings --experimental-vm-modules node_modules/jest/bin/jest.js",
+    "eslint": "DEBUG=eslint:cli-engine npx eslint 'src/**/*.ts' 'src/*.ts' 'test/*.ts'"
+  },
+  "dependencies": {
+    "@bisonai/orakl-contracts": "^0.4.4",
+    "@slack/webhook": "^6.1.0",
+    "axios": "^1.2.2",
+    "bn.js": "^5.2.1",
+    "bullmq": "^3.2.2",
+    "console-hook": "^0.0.2",
+    "dotenv": "^16.0.3",
+    "elliptic": "^6.5.4",
+    "ethers": "^5.7.2",
+    "mathjs": "^11.4.0",
+    "pino": "^8.8.0",
+    "pino-pretty": "^9.1.1",
+    "sqlite": "^4.1.2",
+    "sqlite3": "^5.1.4"
+  },
+  "devDependencies": {
+    "@jest/globals": "^29.3.1",
+    "@types/node": "^18.11.9",
+    "@typescript-eslint/eslint-plugin": "^5.47.0",
+    "@typescript-eslint/parser": "^5.47.0",
+    "eslint": "^8.30.0",
+    "eslint-config-prettier": "^8.5.0",
+    "eslint-plugin-prettier": "^4.2.1",
+    "husky": "^8.0.3",
+    "jest": "^29.3.1",
+    "prettier": "^2.8.1",
+    "ts-jest": "^29.0.3",
+    "ts-node": "^10.9.1",
+    "typescript": "^4.9.3"
+  }
+}
