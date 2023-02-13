@@ -207,9 +207,8 @@ describe('Prepayment contract', function () {
   })
 
   it('Should chargeFee with burn token', async function () {
-    const { prepaymentContract, deployer, accId } = await loadFixture(deployFixture)
-    const { feedOracle0 } = await hre.getNamedAccounts()
-    const node = feedOracle0
+    const { prepaymentContract, accId } = await loadFixture(deployFixture)
+    const { feedOracle0: node } = await hre.getNamedAccounts()
     const prepaymentNodeSigner = await ethers.getContractAt(
       'Prepayment',
       prepaymentContract.address,
@@ -230,9 +229,8 @@ describe('Prepayment contract', function () {
     expect(feeAmount).to.be.equal(amount)
   })
   it('Should revert with error invalid coordinator', async function () {
-    const { prepaymentContract, deployer, accId } = await loadFixture(deployFixture)
-    const { feedOracle0 } = await hre.getNamedAccounts()
-    const node = feedOracle0
+    const { prepaymentContract, accId } = await loadFixture(deployFixture)
+    const { feedOracle0: node } = await hre.getNamedAccounts()
     const prepaymentNodeSigner = await ethers.getContractAt(
       'Prepayment',
       prepaymentContract.address,
