@@ -2,7 +2,6 @@ import * as Fs from 'node:fs/promises'
 import * as fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
-import { IcnError, IcnErrorCode } from './errors'
 import { IncomingWebhook } from '@slack/webhook'
 import Hook from 'console-hook'
 import { SLACK_WEBHOOK_URL } from './settings'
@@ -17,27 +16,6 @@ export const pipe =
   (...fns) =>
   (x) =>
     fns.reduce((v, f) => f(v), x)
-
-/**
- * Access data in JSON based on given path.
- *
- * Example
- * let json = {
- *     RAW: { ETH: { USD: { PRICE: 123 } } },
- *     DISPLAY: { ETH: { USD: [Object] } }
- * }
- * readFromJson(json, ['RAW', 'ETH', 'USD', 'PRICE']) // return 123
- */
-export function readFromJson(json, path: string[]) {
-  let v = json
-
-  for (const p of path) {
-    if (p in v) v = v[p]
-    else throw new IcnError(IcnErrorCode.MissingKeyInJson)
-  }
-
-  return v
-}
 
 export function remove0x(s) {
   if (s.substring(0, 2) == '0x') {

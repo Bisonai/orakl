@@ -36,8 +36,9 @@ contract RequestResponseConsumerMock is RequestResponseConsumerBase {
         bytes32 jobId = keccak256(abi.encodePacked("any-api-int256"));
 
         Orakl.Request memory req = buildRequest(jobId);
-        req.add("get", "https://min-api.cryptocompare.com/data/pricemultifull?fsyms=ETH&tsyms=USD");
-        req.add("path", "RAW,ETH,USD,PRICE");
+        req.add("get", "https://min-api.cryptocompare.com/data/pricemultifull?fsyms=KLAY&tsyms=USD");
+        req.add("path", "RAW,KLAY,USD,PRICE");
+        req.add("pow10", "8");
 
         requestId = COORDINATOR.requestData(
             req,
@@ -57,8 +58,9 @@ contract RequestResponseConsumerMock is RequestResponseConsumerBase {
         bytes32 jobId = keccak256(abi.encodePacked("any-api-int256"));
 
         Orakl.Request memory req = buildRequest(jobId);
-        req.add("get", "https://min-api.cryptocompare.com/data/pricemultifull?fsyms=ETH&tsyms=USD");
-        req.add("path", "RAW,ETH,USD,PRICE");
+        req.add("get", "https://min-api.cryptocompare.com/data/pricemultifull?fsyms=KLAY&tsyms=USD");
+        req.add("path", "RAW,KLAY,USD,PRICE");
+        req.add("pow10", "8");
 
         requestId = COORDINATOR.requestData{value: msg.value}(
             req,
