@@ -91,9 +91,10 @@ VALUES
 
 CREATE TABLE Adapter (
   id         INTEGER   PRIMARY KEY,
-  adapterId  CHAR(66)  NOT NULL UNIQUE,
+  adapterId  CHAR(66)  NOT NULL,
   chainId    INTEGER   NOT NULL,
   data       TEXT      NOT NULL,
+  UNIQUE(adapterId, chainId) ON CONFLICT FAIL
   CONSTRAINT Adapter_fk_chainId FOREIGN KEY (chainId)
     REFERENCES Chain (id) ON UPDATE CASCADE ON DELETE CASCADE
 );
