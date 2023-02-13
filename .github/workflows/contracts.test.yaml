@@ -13,7 +13,7 @@ jobs:
           node-version: "18.12"
       - run: yarn
         working-directory: ./contracts
-      - run: yarn prettier-solidity-write
+      - run: yarn prettier-solidity-check
         working-directory: ./contracts
       - run: yarn solhint
         working-directory: ./contracts
