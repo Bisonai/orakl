@@ -4,8 +4,8 @@ import { Contract, ethers } from "ethers";
 import { Logger } from "pino";
 import { IListenerBlock, IListenerConfig } from "../types";
 import { mkdir, readTextFile, writeTextFile } from "../utils";
-import * as dotenv from 'dotenv'
-dotenv.config()
+import * as dotenv from "dotenv";
+dotenv.config();
 
 const PROVIDER_URL = process.env.PROVIDER_URL;
 const LISTENER_ROOT_DIR: string = "./tmp/listener/";
@@ -82,7 +82,9 @@ export class Event {
         );
 
         if (events?.length > 0) {
-          events.forEach(this.fn);
+          for await (const event of events) {
+            this.fn(event);
+          }
         }
       }
     } catch (e) {

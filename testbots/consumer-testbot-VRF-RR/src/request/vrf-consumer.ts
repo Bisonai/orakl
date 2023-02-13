@@ -2,20 +2,15 @@ import * as dotenv from "dotenv";
 dotenv.config();
 import { ethers } from "ethers";
 import { existsSync } from "fs";
-import { readTextFile, writeTextFile } from "../utils";
+import { readTextFile, writeTextAppend, writeTextFile } from "../utils";
 import { buildWallet, sendTransaction } from "./utils";
 
 const abis = await readTextFile("./src/abis/consumer.json");
 const VRF_CONSUMER = process.env.VRF_CONSUMER;
 const ACC_ID = process.env.ACC_ID;
 let jsonResult: any = [];
-const jsonPath = "./tmp/request/requestRandomwords.json";
-if (!existsSync(jsonPath))
-  await writeTextFile(jsonPath, JSON.stringify(jsonResult));
-const data = await readTextFile(jsonPath);
-if (data) jsonResult = JSON.parse(data);
 
-async function sendRequestRandomWords(numberOfRequest: number) {
+export async function sendRequestRandomWords() {
   const iface = new ethers.utils.Interface(abis);
   const gasLimit = 3_000_000; // FIXME
   const keyHash =
@@ -23,6 +18,16 @@ async function sendRequestRandomWords(numberOfRequest: number) {
   const callbackGasLimit = 500_000;
   const numWords = 2;
   const wallet = buildWallet();
+  const d = new Date();
+  const m = d.toISOString().split("T")[0];
+  const jsonPath = `./tmp/request/requestRandomwords-${m}.json`;
+  const errorPath = `./tmp/request/requestRandomwords-error-${m}.json`;
+
+  let fileData: string = "";
+  if (existsSync(jsonPath)) fileData = await readTextFile(jsonPath);
+  await writeTextFile(jsonPath, JSON.stringify(jsonResult));
+
+  if (fileData) jsonResult = JSON.parse(fileData);
   try {
     const payload = iface.encodeFunctionData("requestRandomWords", [
       keyHash,
@@ -31,38 +36,31 @@ async function sendRequestRandomWords(numberOfRequest: number) {
       numWords,
     ]);
     let requested = 0;
-    const requests = Array.from(Array(numberOfRequest).keys());
-    await Promise.all(
-      requests.map(async (request) => {
-        try {
-          const txReceipt = await sendTransaction(
-            wallet,
-            VRF_CONSUMER,
-            payload,
-            gasLimit
-          );
-          console.log("request randomword: ", request);
-          requested += 1;
-          const tx = await txReceipt.wait();
-          const requestObject = iface.parseLog(tx.logs[1]).args;
-          console.log("tx", requestObject);
-
-          const result = {
-            requestId: requestObject.requestId.toString(),
-            accId: requestObject.accId.toString(),
-            isDirectPayment: requestObject.isDirectPayment,
-          };
-          jsonResult.push(result);
-        } catch (error) {
-          console.log("send request error", error);
-        }
-      })
+    const txReceipt = await sendTransaction(
+      wallet,
+      VRF_CONSUMER,
+      payload,
+      gasLimit
     );
+    requested += 1;
+    const tx = await txReceipt.wait();
+    const requestObject = iface.parseLog(tx.logs[1]).args;
+
+    if (tx.status == true) {
+      const result = {
+        block: tx.blockNumber1,
+        txHash: tx.transactionHash,
+        requestId: requestObject.requestId.toString(),
+        accId: requestObject.accId.toString(),
+        isDirectPayment: requestObject.isDirectPayment,
+      };
+      jsonResult.push(result);
+      console.log("Requested: ", tx.blockNumber);
+    }
 
     await writeTextFile(jsonPath, JSON.stringify(jsonResult));
   } catch (error) {
     console.log(error);
+    await writeTextAppend(errorPath, `${d.toISOString()}:${error}\n`);
   }
 }
-
-sendRequestRandomWords(1);
