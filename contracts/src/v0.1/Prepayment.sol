@@ -2,21 +2,17 @@
 pragma solidity ^0.8.16;
 
 // https://github.com/smartcontractkit/chainlink/blob/develop/contracts/src/v0.8/VRFCoordinatorV2.sol
-
-import "@openzeppelin/contracts/access/AccessControlEnumerable.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "./interfaces/CoordinatorBaseInterface.sol";
 import "./interfaces/PrepaymentInterface.sol";
 import "./interfaces/TypeAndVersionInterface.sol";
 
 contract Prepayment is
-    AccessControlEnumerable,
     Ownable,
     PrepaymentInterface,
     TypeAndVersionInterface
 {
     uint16 public constant MAX_CONSUMERS = 100;
-    bytes32 public constant COORDINATOR_ROLE = keccak256("COORDINATOR_ROLE");
     uint8 public constant MIN_BURN_RATIO = 0;
     uint8 public constant MAX_BURN_RATIO = 100;
 
@@ -71,6 +67,7 @@ contract Prepayment is
     error CoordinatorExists();
     error InvalidBurnRatio();
     error BurnFeeFailed();
+    error InvalidCoordinator();
 
     event AccountCreated(uint64 indexed accId, address owner);
     event AccountCanceled(uint64 indexed accId, address to, uint256 amount);
@@ -98,9 +95,23 @@ contract Prepayment is
         }
         _;
     }
+    modifier onlyCoordinator(){
+        bool isCoordinator=false;
+        for (uint256 i = 0; i < s_coordinators.length; i++) {
+            if(s_coordinators[i]==CoordinatorBaseInterface(msg.sender))
+            {
+                isCoordinator=true;
+                break;
+            }
+        }
+        if(isCoordinator==false)
+        {
+            revert InvalidCoordinator();
+        }
+        _;
+    }
 
     constructor() {
-        _setupRole(DEFAULT_ADMIN_ROLE, _msgSender());
     }
 
     function setBurnRatio(uint8 ratio) public onlyOwner {
@@ -305,7 +316,7 @@ contract Prepayment is
         uint64 accId,
         uint256 amount,
         address node
-    ) external onlyRole(COORDINATOR_ROLE) {
+    ) external onlyCoordinator {
         uint256 oldBalance = s_accounts[accId].balance;
         if (oldBalance < amount) {
             revert InsufficientBalance();
@@ -338,7 +349,7 @@ contract Prepayment is
     function increaseNonce(
         address consumer,
         uint64 accId
-    ) external onlyRole(COORDINATOR_ROLE) returns (uint64) {
+    ) external onlyCoordinator returns (uint64) {
         uint64 currentNonce = s_consumers[consumer][accId];
         uint64 nonce = currentNonce + 1;
         s_consumers[consumer][accId] = nonce;
@@ -392,7 +403,6 @@ contract Prepayment is
                 revert CoordinatorExists();
             }
         }
-        _grantRole(COORDINATOR_ROLE, coordinator);
         s_coordinators.push(CoordinatorBaseInterface(coordinator));
     }
 
@@ -400,7 +410,6 @@ contract Prepayment is
      * @inheritdoc PrepaymentInterface
      */
     function removeCoordinator(address coordinator) public onlyOwner {
-        _revokeRole(COORDINATOR_ROLE, coordinator);
 
         for (uint256 i = 0; i < s_coordinators.length; i++) {
             if (s_coordinators[i] == CoordinatorBaseInterface(coordinator)) {

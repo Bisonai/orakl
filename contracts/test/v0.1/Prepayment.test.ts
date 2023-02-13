@@ -218,9 +218,8 @@ describe('Prepayment contract', function () {
 
     const depositValue = 1000
     const feeAmount = 109
-    const transactionDeposit = await prepaymentContract.deposit(accId, { value: depositValue })
-    const role = await prepaymentContract.COORDINATOR_ROLE()
-    await prepaymentContract.grantRole(role, node)
+    await prepaymentContract.deposit(accId, { value: depositValue })
+    await prepaymentContract.addCoordinator(node)
 
     const txReceipt = await (await prepaymentNodeSigner.chargeFee(accId, feeAmount, node)).wait()
     const txEvent = prepaymentContract.interface.parseLog(txReceipt.events[0])
@@ -229,5 +228,22 @@ describe('Prepayment contract', function () {
     const amount = burnAmount.toNumber() + balanceNode.toNumber()
 
     expect(feeAmount).to.be.equal(amount)
+  })
+  it('Should revert with error invalid coordinator', async function () {
+    const { prepaymentContract, deployer, accId } = await loadFixture(deployFixture)
+    const { feedOracle0 } = await hre.getNamedAccounts()
+    const node = feedOracle0
+    const prepaymentNodeSigner = await ethers.getContractAt(
+      'Prepayment',
+      prepaymentContract.address,
+      node
+    )
+    const depositValue = 1000
+    const feeAmount = 109
+    await prepaymentContract.deposit(accId, { value: depositValue })
+
+    await expect(
+      prepaymentNodeSigner.chargeFee(accId, feeAmount, node)
+    ).to.be.revertedWithCustomError(prepaymentContract, 'InvalidCoordinator')
   })
 })
