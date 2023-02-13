@@ -7,11 +7,7 @@ import "./interfaces/CoordinatorBaseInterface.sol";
 import "./interfaces/PrepaymentInterface.sol";
 import "./interfaces/TypeAndVersionInterface.sol";
 
-contract Prepayment is
-    Ownable,
-    PrepaymentInterface,
-    TypeAndVersionInterface
-{
+contract Prepayment is Ownable, PrepaymentInterface, TypeAndVersionInterface {
     uint16 public constant MAX_CONSUMERS = 100;
     uint8 public constant MIN_BURN_RATIO = 0;
     uint8 public constant MAX_BURN_RATIO = 100;
@@ -95,24 +91,21 @@ contract Prepayment is
         }
         _;
     }
-    modifier onlyCoordinator(){
-        bool isCoordinator=false;
+    modifier onlyCoordinator() {
+        bool isCoordinator = false;
         for (uint256 i = 0; i < s_coordinators.length; i++) {
-            if(s_coordinators[i]==CoordinatorBaseInterface(msg.sender))
-            {
-                isCoordinator=true;
+            if (s_coordinators[i] == CoordinatorBaseInterface(msg.sender)) {
+                isCoordinator = true;
                 break;
             }
         }
-        if(isCoordinator==false)
-        {
+        if (isCoordinator == false) {
             revert InvalidCoordinator();
         }
         _;
     }
 
-    constructor() {
-    }
+    constructor() {}
 
     function setBurnRatio(uint8 ratio) public onlyOwner {
         if (ratio < MIN_BURN_RATIO || ratio > MAX_BURN_RATIO) {
@@ -312,11 +305,7 @@ contract Prepayment is
     /**
      * @inheritdoc PrepaymentInterface
      */
-    function chargeFee(
-        uint64 accId,
-        uint256 amount,
-        address node
-    ) external onlyCoordinator {
+    function chargeFee(uint64 accId, uint256 amount, address node) external onlyCoordinator {
         uint256 oldBalance = s_accounts[accId].balance;
         if (oldBalance < amount) {
             revert InsufficientBalance();
@@ -410,7 +399,6 @@ contract Prepayment is
      * @inheritdoc PrepaymentInterface
      */
     function removeCoordinator(address coordinator) public onlyOwner {
-
         for (uint256 i = 0; i < s_coordinators.length; i++) {
             if (s_coordinators[i] == CoordinatorBaseInterface(coordinator)) {
                 CoordinatorBaseInterface last = s_coordinators[s_coordinators.length - 1];
