@@ -11,7 +11,8 @@ import sqlite from 'sqlite3'
 import { open } from 'sqlite'
 import { CliError, CliErrorCode } from './error'
 import { ChainId, ServiceId, DbCmdOutput } from './types'
-import { SETTINGS_DB_FILE } from '../../settings'
+
+const SETTINGS_DB_FILE = '~/.orakl/settings.sqlite' // FIXME
 
 export async function openDb({ dbFile, migrate }: { dbFile?: string; migrate?: boolean }) {
   const db = await open({

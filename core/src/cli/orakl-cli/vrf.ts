@@ -1,5 +1,4 @@
 import { command, subcommands, option, string as cmdstring } from 'cmd-ts'
-import { Logger } from 'pino'
 import {
   dryrunOption,
   idOption,
@@ -9,7 +8,7 @@ import {
   formatResultRemove
 } from './utils'
 
-export function vrfSub(db, logger: Logger) {
+export function vrfSub(db) {
   // vrf list   [--chain [chain]]                                                [--dryrun]
   // vrf insert  --chain [chain] --pk [pk] --sk [sk] --pk_x [pk_x] --pk_y [pk_y] [--dryrun]
   // vrf remove  --id [id]                                                       [--dryrun]
@@ -20,7 +19,7 @@ export function vrfSub(db, logger: Logger) {
       chain: chainOptionalOption,
       dryrun: dryrunOption
     },
-    handler: listHandler(db, true, logger)
+    handler: listHandler(db, true)
   })
 
   const insert = command({
@@ -48,7 +47,7 @@ export function vrfSub(db, logger: Logger) {
       }),
       dryrun: dryrunOption
     },
-    handler: insertHandler(db, logger)
+    handler: insertHandler(db)
   })
 
   const remove = command({
@@ -57,7 +56,7 @@ export function vrfSub(db, logger: Logger) {
       id: idOption,
       dryrun: dryrunOption
     },
-    handler: removeHandler(db, logger)
+    handler: removeHandler(db)
   })
 
   return subcommands({
@@ -66,7 +65,7 @@ export function vrfSub(db, logger: Logger) {
   })
 }
 
-export function listHandler(db, print?: boolean, logger?: Logger) {
+export function listHandler(db, print?: boolean) {
   async function wrapper({ chain, dryrun }: { chain?: string; dryrun?: boolean }) {
     let where = ''
     if (chain) {
@@ -75,11 +74,11 @@ export function listHandler(db, print?: boolean, logger?: Logger) {
     const query = `SELECT VrfKey.id, Chain.name as chain, sk, pk, pk_x, pk_y FROM VrfKey INNER JOIN Chain
    ON VrfKey.chainId = Chain.id ${where};`
     if (dryrun) {
-      logger?.debug(query)
+      console.debug(query)
     } else {
       const result = await db.all(query)
       if (print) {
-        logger?.info(result)
+        console.log(result)
       }
       return result
     }
@@ -87,7 +86,7 @@ export function listHandler(db, print?: boolean, logger?: Logger) {
   return wrapper
 }
 
-export function insertHandler(db, logger?: Logger) {
+export function insertHandler(db) {
   async function wrapper({
     chain,
     pk,
@@ -106,23 +105,23 @@ export function insertHandler(db, logger?: Logger) {
     const chainId = await chainToId(db, chain)
     const query = `INSERT INTO VrfKey (chainId, sk, pk, pk_x, pk_y) VALUES (${chainId}, '${sk}', '${pk}', '${pk_x}', '${pk_y}');`
     if (dryrun) {
-      logger?.debug(query)
+      console.debug(query)
     } else {
       const result = await db.run(query)
-      logger?.info(formatResultInsert(result))
+      console.log(formatResultInsert(result))
     }
   }
   return wrapper
 }
 
-export function removeHandler(db, logger?: Logger) {
+export function removeHandler(db) {
   async function wrapper({ id, dryrun }: { id: number; dryrun?: boolean }) {
     const query = `DELETE FROM VrfKey WHERE id=${id};`
     if (dryrun) {
-      logger?.debug(query)
+      console.debug(query)
     } else {
       const result = await db.run(query)
-      logger?.info(formatResultRemove(result))
+      console.log(formatResultRemove(result))
     }
   }
   return wrapper
