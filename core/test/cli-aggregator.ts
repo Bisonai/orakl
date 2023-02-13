@@ -54,7 +54,6 @@ describe('CLI Aggregator', function () {
   })
   test('Should insert new aggregator from other chain', async function () {
     const firstChain = 'localhost'
-    const before = await listHandler(DB)({})
     await insertHandler(DB)({ data: AGGREGATOR, adapter: ADAPTER_ID, chain: firstChain })
     const aggregatorBefore = await listHandler(DB)({})
     const aggregatorId = JSON.parse(aggregatorBefore[aggregatorBefore.length - 1].data).id
