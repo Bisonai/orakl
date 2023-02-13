@@ -5,7 +5,7 @@ import {
   removeHandler,
   insertFromChainHandler
 } from '../src/cli/operator/aggregator'
-import { hookConsoleError, mkTmpFile } from '../src/utils'
+import { mkTmpFile } from '../src/utils'
 import { openDb } from '../src/cli/operator/utils'
 
 describe('CLI Aggregator', function () {
