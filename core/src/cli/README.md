@@ -1,16 +1,16 @@
 # CLI
 
-* [Core Operator](#core-operator)
-     * [Chain](#chain)
-     * [Service](#service)
-     * [Listener](#listener)
-     * [VRF](#vrf)
-     * [Adapter](#adapter)
-     * [Aggregator](#aggregator)
-     * [Key-Value](#key-value)
-* [Generate adapter hash](#generate-adapter-hash)
-* [Generate aggregator hash](#generate-aggregator-hash)
-* [Fetch data from adapter](#fetch-data-with-adapter)
+- [Core Operator](#core-operator)
+  - [Chain](#chain)
+  - [Service](#service)
+  - [Listener](#listener)
+  - [VRF](#vrf)
+  - [Adapter](#adapter)
+  - [Aggregator](#aggregator)
+  - [Key-Value](#key-value)
+- [Generate adapter hash](#generate-adapter-hash)
+- [Generate aggregator hash](#generate-aggregator-hash)
+- [Fetch data from adapter](#fetch-data-with-adapter)
 
 ## Prerequisities
 
@@ -195,8 +195,14 @@ Remove adapter
 yarn cli adapter remove --id [id]
 ```
 
-* Activate adapter TODO
-* Deactivate adapter TODO
+Add new adaper from other chain
+
+```shell
+yarn cli adapter insertFromChain --adapter-id [adapter-id] --from-chain [from-chain] --to-chain [to-chain]
+```
+
+- Activate adapter TODO
+- Deactivate adapter TODO
 
 ### Aggregator
 
@@ -224,8 +230,14 @@ Remove aggregator
 yarn cli aggregator remove --id [id]
 ```
 
-* Activate aggregator TODO
-* Deactivate aggregator TODO
+Add new aggregator from other chain
+
+```shell
+yarn cli aggregator insertFromChain --aggregator-id [aggregator-id] --adapter [adapter-id] --from-chain [from-chain] --to-chain [to-chain]
+```
+
+- Activate aggregator TODO
+- Deactivate aggregator TODO
 
 ### Key-Value
 
