@@ -69,7 +69,10 @@ library Math {
      * @param _a The pointer to the first in memory array
      * @param _b The pointer to the second in memory array
      */
-    function swap(int256[] memory _a, int256[] memory _b) private pure returns (int256[] memory, int256[] memory) {
+    function swap(
+        int256[] memory _a,
+        int256[] memory _b
+    ) private pure returns (int256[] memory, int256[] memory) {
         return (_b, _a);
     }
 }

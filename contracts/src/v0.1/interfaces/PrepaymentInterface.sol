@@ -16,7 +16,11 @@ interface PrepaymentInterface {
      * @return owner - owner of the account.
      * @return consumers - list of consumer address which are able to use this account.
      */
-    function getAccount(uint64 accId) external view
+    function getAccount(
+        uint64 accId
+    )
+        external
+        view
         returns (uint256 balance, uint64 reqCount, address owner, address[] memory consumers);
 
     /**
@@ -68,7 +72,7 @@ interface PrepaymentInterface {
      * @notice Anybody can deposit KLAY, there are no restrictions.
      * @param accId - ID of the account
      */
-    function deposit(uint64 accId) payable external;
+    function deposit(uint64 accId) external payable;
 
     /**
      * @notice Withdraw KLAY from account.
@@ -90,7 +94,7 @@ interface PrepaymentInterface {
      * @param accId - ID of the account
      * @param amount - KLAY amount to be charged
      */
-    function chargeFee(uint64 accId, uint256 amount,address node) external;
+    function chargeFee(uint64 accId, uint256 amount, address node) external;
 
     /**
      * @notice Return nonce value.
