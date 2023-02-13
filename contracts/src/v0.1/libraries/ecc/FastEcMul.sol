@@ -40,7 +40,7 @@ library FastEcMul {
         // Loop while `r[0] >= sqrt(_nn)`
         // Or in other words, `r[0] * r[0] >= _nn`
         // When `r[0] >= 2**128`, `r[0] * r[0]` will overflow so we must check that before
-        while ((r[0] >= 2**128) || (r[0] * r[0] >= _nn)) {
+        while ((r[0] >= 2 ** 128) || (r[0] * r[0] >= _nn)) {
             uint256 quotient = r[1] / r[0];
             (r[1], r[0]) = (r[0], r[1] - quotient * r[0]);
             (t[1], t[0]) = (t[0], t[1] - int256(quotient) * t[0]);
@@ -59,10 +59,7 @@ library FastEcMul {
 
         //-b1*k
         uint256[3] memory test2;
-        (test2[0], test2[1], test2[2]) = _multiply256(
-            uint256(-ab[1]),
-            uint256(k)
-        );
+        (test2[0], test2[1], test2[2]) = _multiply256(uint256(-ab[1]), uint256(k));
 
         //c1 and c2
         uint256[2] memory c1;
@@ -80,15 +77,11 @@ library FastEcMul {
 
         // the decomposition of k in k1 and k2
         int256 k1 = int256(
-            (int256(k) -
-                int256(c1[0]) *
-                int256(ab[0]) -
-                int256(c2[0]) *
-                int256(ab[2])) % int256(_nn)
+            (int256(k) - int256(c1[0]) * int256(ab[0]) - int256(c2[0]) * int256(ab[2])) %
+                int256(_nn)
         );
         int256 k2 = int256(
-            (-int256(c1[0]) * int256(ab[1]) - int256(c2[0]) * int256(ab[3])) %
-                int256(_nn)
+            (-int256(c1[0]) * int256(ab[1]) - int256(c2[0]) * int256(ab[3])) % int256(_nn)
         );
         if (uint256(_abs(k1)) > (_nn / 2)) {
             k1 = int256(uint256(k1) - _nn);
@@ -123,14 +116,7 @@ library FastEcMul {
             }
         }
 
-        (uint256 x, uint256 y, uint256 z) = _simMulWnaf(
-            wnaf,
-            maxCount,
-            _points,
-            _aa,
-            _beta,
-            _pp
-        );
+        (uint256 x, uint256 y, uint256 z) = _simMulWnaf(wnaf, maxCount, _points, _aa, _beta, _pp);
 
         return EllipticCurve.toAffine(x, y, z, _pp);
     }
@@ -267,10 +253,7 @@ library FastEcMul {
                     ki := mod(k, 16)
                     k := add(sub(k, ki), mul(gt(ki, 8), 16))
                     // if sign = 1, store ki; if sign = -1, store 16 - ki
-                    mstore8(
-                        add(ptr, length),
-                        add(mul(ki, sign), sub(8, mul(sign, 8)))
-                    )
+                    mstore8(add(ptr, length), add(mul(ki, sign), sub(8, mul(sign, 8))))
                 }
                 length := add(length, 1)
                 k := div(k, 2)
@@ -295,15 +278,7 @@ library FastEcMul {
         uint256 _aa,
         uint256 _beta,
         uint256 _pp
-    )
-        private
-        pure
-        returns (
-            uint256,
-            uint256,
-            uint256
-        )
-    {
+    ) private pure returns (uint256, uint256, uint256) {
         uint256[3] memory mulPoint;
         uint256[3][4][4] memory iP;
         _lookupSimMul(iP, _points, _aa, _beta, _pp);
@@ -438,28 +413,14 @@ library FastEcMul {
     /// @param _a uint256
     /// @param _b uint256
     /// @return (ab2, ab1, ab0)
-    function _multiply256(uint256 _a, uint256 _b)
-        private
-        pure
-        returns (
-            uint256,
-            uint256,
-            uint256
-        )
-    {
+    function _multiply256(uint256 _a, uint256 _b) private pure returns (uint256, uint256, uint256) {
         uint256 aM = _a >> 128;
         uint256 am = _a & U128_MAX;
         uint256 bM = _b >> 128;
         uint256 bm = _b & U128_MAX;
         uint256 ab0 = am * bm;
-        uint256 ab1 = (ab0 >> 128) +
-            ((aM * bm) & U128_MAX) +
-            ((am * bM) & U128_MAX);
-        uint256 ab2 = (ab1 >> 128) +
-            aM *
-            bM +
-            ((aM * bm) >> 128) +
-            ((am * bM) >> 128);
+        uint256 ab1 = (ab0 >> 128) + ((aM * bm) & U128_MAX) + ((am * bM) & U128_MAX);
+        uint256 ab2 = (ab1 >> 128) + aM * bM + ((aM * bm) >> 128) + ((am * bM) >> 128);
         ab1 &= U128_MAX;
         ab0 &= U128_MAX;
 
@@ -483,15 +444,10 @@ library FastEcMul {
             shift++;
         }
         shift = 256 - shift;
-        aM =
-            (_aM << shift) +
-            (shift > 128 ? _am << (shift - 128) : _am >> (128 - shift));
+        aM = (_aM << shift) + (shift > 128 ? _am << (shift - 128) : _am >> (128 - shift));
         uint256 a0 = (_am << shift) & U128_MAX;
 
-        (uint256 b1, uint256 b0) = (
-            (_b << shift) >> 128,
-            (_b << shift) & U128_MAX
-        );
+        (uint256 b1, uint256 b0) = ((_b << shift) >> 128, (_b << shift) & U128_MAX);
 
         uint256 rM;
         uint256 q = aM / b1;

@@ -9,24 +9,22 @@ contract DataFeedConsumerMock {
     uint80 public s_roundID;
 
     constructor(address _aggregatorProxy) {
-        priceFeed = AggregatorInterface(
-            _aggregatorProxy
-        );
+        priceFeed = AggregatorInterface(_aggregatorProxy);
     }
 
     function getLatestPrice() public {
-       (
-           uint80 roundID,
-           int256 price,
-           /*uint startedAt*/,
-           /*uint timeStamp*/,
-           /*uint80 answeredInRound*/
-       ) = priceFeed.latestRoundData();
-       s_price = price;
-       s_roundID = roundID;
+        (
+            uint80 roundID,
+            int256 price /*uint startedAt*/ /*uint timeStamp*/ /*uint80 answeredInRound*/,
+            ,
+            ,
+
+        ) = priceFeed.latestRoundData();
+        s_price = price;
+        s_roundID = roundID;
     }
 
-    function decimals() public view returns(uint8) {
+    function decimals() public view returns (uint8) {
         return priceFeed.decimals();
     }
 }
