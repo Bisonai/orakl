@@ -22,7 +22,8 @@
     "build": "tsc",
     "pub": "yarn publish --access public",
     "solhint": "./node_modules/.bin/solhint -f table src/**/*.sol",
-    "prettier:solidity": "./node_modules/.bin/prettier --write src/**/*.sol",
+    "prettier-solidity-write": "./node_modules/.bin/prettier --write src",
+    "prettier-solidity-check": "./node_modules/.bin/prettier --check src",
     "eslint": "DEBUG=eslint:cli-engine npx eslint 'scripts/**'"
   },
   "devDependencies": {
