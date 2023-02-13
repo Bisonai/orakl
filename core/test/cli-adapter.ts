@@ -61,10 +61,15 @@ describe('CLI Adapter', function () {
   })
 
   test('Should insert new adapter from other chain', async function () {
-    await insertHandler(DB)({ data: ADAPTER, chain: 'localhost' })
+    const firstChain = 'localhost'
+    await insertHandler(DB)({ data: ADAPTER, chain: firstChain })
     const adapterBefore = await listHandler(DB)({})
-    const adapterId =JSON.parse(adapterBefore[0].data).id
-    await insertFromChainHandler(DB)({ adapterId, fromChain: 'localhost', toChain: 'baobab' })
+    const adapterId = JSON.parse(adapterBefore[adapterBefore.length - 1].data).id
+    await insertFromChainHandler(DB)({
+      adapterId,
+      fromChain: firstChain,
+      toChain: 'baobab'
+    })
     const adapterAfter = await listHandler(DB)({})
     expect(adapterAfter.length).toEqual(adapterBefore.length + 1)
   })

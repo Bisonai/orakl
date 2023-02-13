@@ -167,8 +167,8 @@ export function insertFromChainHandler(db, logger?: Logger) {
     const queryAdapter = `SELECT id from Adapter WHERE adapterId='${adapter}' and chainId=${fromChainId};`
     const result = await db.get(queryAdapter)
     const adapterId = result.id
-    const query = `INSERT INTO Aggregator (chainId, aggregatorId, adapterId, data) 
-    SELECT ${toChainId}, aggregatorId, adapterId, data FROM Aggregator 
+    const query = `INSERT INTO Aggregator (chainId, aggregatorId, adapterId, data)
+    SELECT ${toChainId}, aggregatorId, adapterId, data FROM Aggregator
     WHERE chainId=${fromChainId} and aggregatorId='${aggregatorId}' and adapterId='${adapterId}'`
 
     if (dryrun) {

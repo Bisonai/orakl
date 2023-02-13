@@ -53,15 +53,15 @@ describe('CLI Aggregator', function () {
     expect(aggregatorAfter.length).toEqual(aggregatorBefore.length - 1)
   })
   test('Should insert new aggregator from other chain', async function () {
-    await insertHandler(DB)({ data: AGGREGATOR, adapter: ADAPTER_ID, chain: 'localhost' })
+    const firstChain = 'localhost'
+    const before = await listHandler(DB)({})
+    await insertHandler(DB)({ data: AGGREGATOR, adapter: ADAPTER_ID, chain: firstChain })
     const aggregatorBefore = await listHandler(DB)({})
-    const aggregatorId = '0x2d5d94df99ccad54f0f6a9d38f2340db793833947f86b207dcda38583dd263fa'
-    console.log(aggregatorId)
-
+    const aggregatorId = JSON.parse(aggregatorBefore[aggregatorBefore.length - 1].data).id
     await insertFromChainHandler(DB)({
       aggregatorId,
       adapter: ADAPTER_ID,
-      fromChain: 'localhost',
+      fromChain: firstChain,
       toChain: 'baobab'
     })
     const aggregatorAfter = await listHandler(DB)({})
