@@ -39,11 +39,9 @@ jobs:
       - name: Extract version from the latest published package
         id: npmPackageVersion
         run: echo "VERSION=`npm view @bisonai/orakl-cli version`" >> $GITHUB_OUTPUT
-      - name: Show my version
-        run: 'echo "version ${{ steps.packageJsonVersion.outputs.value }} ${{ steps.npmPackageVersion.outputs.VERSION }}"'
-      # - name: Publish package
-      #   if: steps.packageJsonVersion.outputs.value != steps.npmPackageVersion.outputs.VERSION
-      #   run: yarn publish --new-version ${{ steps.version.outputs.value }} --access public
-      #   working-directory: ./core/src/cli/orakl-cli
-      #   env:
-      #     NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      - name: Publish package
+        if: steps.packageJsonVersion.outputs.value != steps.npmPackageVersion.outputs.VERSION
+        run: yarn publish --new-version ${{ steps.packageJsonVersion.outputs.value }} --access public
+        working-directory: ./core/src/cli/orakl-cli
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
