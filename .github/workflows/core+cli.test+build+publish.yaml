@@ -12,7 +12,8 @@ jobs:
       - uses: actions/setup-node@v3
         with:
           node-version: "18.12"
-      - run: yarn
+      - name: Install dependencies
+        run: yarn install
         working-directory: ./core
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
@@ -27,12 +28,21 @@ jobs:
         env:
           ORAKL_DIR: './'
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-      - name: Build core
+      - name: Build package
         run: yarn build
         working-directory: ./core
 
-      # CLI
-      - name: Build orakl-cli
+  cli:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: "18.12"
+      - name: Install dependencies
+        run: yarn install
+        working-directory: ./core/src/cli/orakl-cli
+      - name: Build package
         run: yarn build
         working-directory: ./core/src/cli/orakl-cli
       - name: Extract version from package.json
