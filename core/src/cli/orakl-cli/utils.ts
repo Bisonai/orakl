@@ -1,4 +1,4 @@
-import { open as openFile, readFile } from 'node:fs/promises'
+import { open as openFile, readFile, stat } from 'node:fs/promises'
 import {
   optional,
   boolean as cmdboolean,
@@ -7,16 +7,23 @@ import {
   flag,
   option
 } from 'cmd-ts'
+
 import sqlite from 'sqlite3'
 import { open } from 'sqlite'
 import { CliError, CliErrorCode } from './error'
 import { ChainId, ServiceId, DbCmdOutput } from './types'
 
-const SETTINGS_DB_FILE = '~/.orakl/settings.sqlite' // FIXME
+export async function openDb({ dbFile, migrate }: { dbFile: string; migrate?: boolean }) {
+  const dbFileExists = await stat(dbFile)
+    .then(() => true)
+    .catch(() => false)
 
-export async function openDb({ dbFile, migrate }: { dbFile?: string; migrate?: boolean }) {
+  if (!dbFileExists) {
+    throw new CliError(CliErrorCode.FileNotFound)
+  }
+
   const db = await open({
-    filename: dbFile || SETTINGS_DB_FILE,
+    filename: dbFile,
     driver: sqlite.Database
   })
 

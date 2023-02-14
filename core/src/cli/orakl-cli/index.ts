@@ -1,5 +1,7 @@
-#!/usr/bin/env node
+#!/usr/bin/env node --no-warnings --experimental-specifier-resolution=node
 
+import os from 'node:os'
+import path from 'node:path'
 import { chainSub } from './chain'
 import { serviceSub } from './service'
 import { listenerSub } from './listener'
@@ -13,7 +15,8 @@ import { openDb } from './utils'
 import { binary, subcommands, run } from 'cmd-ts'
 
 async function main() {
-  const db = await openDb({})
+  const dbFile = path.join(os.homedir(), '.orakl/settings.sqlite')
+  const db = await openDb({ dbFile })
 
   const chain = chainSub(db)
   const service = serviceSub(db)
@@ -33,5 +36,6 @@ async function main() {
 }
 
 main().catch((error) => {
+  console.error(error)
   process.exitCode = 1
 })
