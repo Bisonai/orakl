@@ -7,7 +7,7 @@ import {
   formatResultInsert,
   formatResultRemove
 } from './utils'
-import { computeDataHash } from '../utils'
+import { computeDataHash } from './utils'
 import { ReadFile } from './types'
 
 export function adapterSub(db) {

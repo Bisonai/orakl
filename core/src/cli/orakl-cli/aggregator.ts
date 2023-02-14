@@ -7,7 +7,7 @@ import {
   formatResultInsert,
   formatResultRemove
 } from './utils'
-import { computeDataHash } from '../utils'
+import { computeDataHash } from './utils'
 import { ReadFile } from './types'
 import { IAggregator } from '../../types'
 import { CliError, CliErrorCode } from './error'
