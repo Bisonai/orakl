@@ -4,9 +4,25 @@ on: push
 #   push:
 #     paths:
 #       - "core/src/cli/orakl-cli/**"
+
 jobs:
-  cli-build:
+  build:
     runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: "18.12"
+      - name: Install dependencies
+        run: yarn --cwd . install
+        working-directory: ./core/src/cli/orakl-cli
+      - name: Build package
+        run: yarn --cwd . build
+        working-directory: ./core/src/cli/orakl-cli
+
+  publish:
+    runs-on: ubuntu-latest
+    needs: build
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-node@v3
@@ -15,18 +31,19 @@ jobs:
           registry-url: "https://registry.npmjs.org"
           scope: "@bisonai"
           always-auth: true
-      - name: Install dependencies
-        run: yarn --cwd . install
-        working-directory: ./core/src/cli/orakl-cli
-      - name: Build package
-        run: yarn --cwd . build
-        working-directory: ./core/src/cli/orakl-cli
       - name: Extract version from package.json
         uses: sergeysova/jq-action@v2
-        id: version
+        id: packageJsonVersion
         with:
           cmd: 'jq .version ./core/src/cli/orakl-cli/package.json -r'
-      - run: yarn publish --new-version ${{ steps.version.outputs.value }} --access public
-        working-directory: ./core/src/cli/orakl-cli
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      - name: Extract version from the latest published package
+        id: npmPackageVersion
+        run: npm view @bisonai/orakl-cli version
+      - name: Show my version
+        run: 'echo "version ${{ steps.packageJsonVersion.outputs.value }} ${{ steps.npmPackageVersion.outputs.value }}"'
+      # - name: Publish package
+      #   if: steps.packageJsonVersion.outputs.value != steps.npmPackageVersion.outputs.value
+      #   run: yarn publish --new-version ${{ steps.version.outputs.value }} --access public
+      #   working-directory: ./core/src/cli/orakl-cli
+      #   env:
+      #     NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
