@@ -2,6 +2,15 @@
 
 This package is used controlling [Orakl Network](https://www.orakl.network/) nodes.
 
+## Development
+
+```shell
+yarn install
+yarn build
+```
+
+## How To Use
+
 - [Chain](#chain)
 - [Service](#service)
 - [Listener](#listener)
@@ -10,7 +19,7 @@ This package is used controlling [Orakl Network](https://www.orakl.network/) nod
 - [Aggregator](#aggregator)
 - [Key-Value](#key-value)
 
-## Chain
+### Chain
 
 List all chains
 
@@ -38,7 +47,7 @@ Remove chain specified by `id`
 npx orakl-cli chain remove --id 4
 ```
 
-## Service
+### Service
 
 List all services
 
@@ -66,7 +75,7 @@ Remove service specified by `id`
 npx orakl-cli service remove --id 4
 ```
 
-## Listener
+### Listener
 
 List all listeners
 
@@ -159,7 +168,7 @@ Remove VRF keys specified by `id`
 npx orakl-cli vrf remove --id 2
 ```
 
-## Adapter
+### Adapter
 
 List all adapters
 
@@ -191,7 +200,7 @@ Add new adapter from other chain
 npx orakl-cli adapter insertFromChain --adapter-id [adapter-id] --from-chain [from-chain] --to-chain [to-chain]
 ```
 
-## Aggregator
+### Aggregator
 
 List all aggregators
 
@@ -223,7 +232,7 @@ Add new aggregator from other chain
 npx orakl-cli aggregator insertFromChain --aggregator-id [aggregator-id] --adapter [adapter-id] --from-chain [from-chain] --to-chain [to-chain]
 ```
 
-## Key-Value
+### Key-Value
 
 List all key-value pairs
 
