@@ -1,5 +1,4 @@
 import { flag, command, subcommands, option, string as cmdstring } from 'cmd-ts'
-import { Logger } from 'pino'
 import {
   chainOptionalOption,
   chainToId,
@@ -8,12 +7,12 @@ import {
   formatResultInsert,
   formatResultRemove
 } from './utils'
-import { computeDataHash } from '../utils'
-import { ReadFile } from './types'
-import { IAggregator } from '../..//types'
+import { computeDataHash } from './utils'
+import { ReadFile } from './cli-types'
+import { IAggregator } from './types'
 import { CliError, CliErrorCode } from './error'
 
-export function aggregatorSub(db, logger: Logger) {
+export function aggregatorSub(db) {
   // aggregator list [--active] [--chain [chain]]
   // aggregator insert --file-path [file-path] --adapter [adapter] --chain [chain] [--dryrun]
   // aggregator remove --id [id]                                                   [--dryrun]
@@ -26,7 +25,7 @@ export function aggregatorSub(db, logger: Logger) {
       }),
       chain: chainOptionalOption
     },
-    handler: listHandler(db, true, logger)
+    handler: listHandler(db, true)
   })
 
   const insert = command({
@@ -46,7 +45,7 @@ export function aggregatorSub(db, logger: Logger) {
       }),
       dryrun: dryrunOption
     },
-    handler: insertHandler(db, logger)
+    handler: insertHandler(db)
   })
 
   const remove = command({
@@ -55,7 +54,7 @@ export function aggregatorSub(db, logger: Logger) {
       id: idOption,
       dryrun: dryrunOption
     },
-    handler: removeHandler(db, logger)
+    handler: removeHandler(db)
   })
   const insertFromChain = command({
     name: 'insertFromChain',
@@ -66,7 +65,7 @@ export function aggregatorSub(db, logger: Logger) {
       toChain: option({ type: cmdstring, long: 'to-chain' }),
       dryrun: dryrunOption
     },
-    handler: insertFromChainHandler(db, logger)
+    handler: insertFromChainHandler(db)
   })
 
   return subcommands({
@@ -75,7 +74,7 @@ export function aggregatorSub(db, logger: Logger) {
   })
 }
 
-export function listHandler(db, print?: boolean, logger?: Logger) {
+export function listHandler(db, print?: boolean) {
   async function wrapper({ chain, active }: { chain?: string; active?: boolean }) {
     let where = ''
     if (chain) {
@@ -88,8 +87,8 @@ export function listHandler(db, print?: boolean, logger?: Logger) {
       for (const r of result) {
         const rJson = JSON.parse(r.data)
         if (!active || rJson.active) {
-          logger?.info(`ID: ${r.id}`)
-          logger?.info(rJson)
+          console.log(`ID: ${r.id}`)
+          console.log(rJson)
         }
       }
     }
@@ -98,7 +97,7 @@ export function listHandler(db, print?: boolean, logger?: Logger) {
   return wrapper
 }
 
-export function insertHandler(db, logger?: Logger) {
+export function insertHandler(db) {
   async function wrapper({
     data,
     chain,
@@ -125,29 +124,29 @@ export function insertHandler(db, logger?: Logger) {
     const query = `INSERT INTO Aggregator (chainId, aggregatorId, adapterId, data) VALUES (${chainId}, '${aggregatorObject.id}', ${adapterId}, '${aggregator}')`
 
     if (dryrun) {
-      logger?.debug(query)
+      console.debug(query)
     } else {
       const result = await db.run(query)
-      logger?.info(formatResultInsert(result))
+      console.log(formatResultInsert(result))
     }
   }
   return wrapper
 }
 
-export function removeHandler(db, logger?: Logger) {
+export function removeHandler(db) {
   async function wrapper({ id, dryrun }: { id: number; dryrun?: boolean }) {
     const query = `DELETE FROM Aggregator WHERE id=${id}`
     if (dryrun) {
-      logger?.debug(query)
+      console.debug(query)
     } else {
       const result = await db.run(query)
-      logger?.info(formatResultRemove(result))
+      console.log(formatResultRemove(result))
     }
   }
   return wrapper
 }
 
-export function insertFromChainHandler(db, logger?: Logger) {
+export function insertFromChainHandler(db) {
   async function wrapper({
     aggregatorId,
     adapter,
@@ -172,10 +171,10 @@ export function insertFromChainHandler(db, logger?: Logger) {
     WHERE chainId=${fromChainId} and aggregatorId='${aggregatorId}' and adapterId='${adapterId}'`
 
     if (dryrun) {
-      logger?.debug(query)
+      console.debug(query)
     } else {
       const result = await db.run(query)
-      logger?.info(formatResultInsert(result))
+      console.log(formatResultInsert(result))
     }
   }
   return wrapper

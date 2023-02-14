@@ -9,18 +9,27 @@ import {
 } from 'cmd-ts'
 import sqlite from 'sqlite3'
 import { open } from 'sqlite'
+import { ethers } from 'ethers'
+import { IAdapter, IAggregator } from './types'
 import { CliError, CliErrorCode } from './error'
-import { ChainId, ServiceId, DbCmdOutput } from './types'
-import { SETTINGS_DB_FILE } from '../../settings'
+import { ChainId, ServiceId, DbCmdOutput } from './cli-types'
 
-export async function openDb({ dbFile, migrate }: { dbFile?: string; migrate?: boolean }) {
+export async function openDb({
+  dbFile,
+  migrate,
+  migrationsPath
+}: {
+  dbFile: string
+  migrate?: boolean
+  migrationsPath?: string
+}) {
   const db = await open({
-    filename: dbFile || SETTINGS_DB_FILE,
+    filename: dbFile,
     driver: sqlite.Database
   })
 
   if (migrate) {
-    await db.migrate({ force: true })
+    await db.migrate({ force: true, migrationsPath })
   }
 
   return db
@@ -77,4 +86,29 @@ export function formatResultRemove(output: DbCmdOutput): string {
 export async function loadFile(filePath: string) {
   const f = await openFile(filePath)
   return readFile(f)
+}
+
+export async function computeDataHash({
+  data,
+  verify
+}: {
+  data: IAdapter | IAggregator
+  verify?: boolean
+}): Promise<IAdapter | IAggregator> {
+  const input = JSON.parse(JSON.stringify(data))
+
+  // Don't use `id` and `active` in hash computation
+  delete input.id
+  delete input.active
+
+  const hash = ethers.utils.keccak256(ethers.utils.toUtf8Bytes(JSON.stringify(input)))
+
+  if (verify && data.id != hash) {
+    console.info(input)
+    throw Error(`Hashes do not match!\nExpected ${hash}, received ${data.id}.`)
+  } else {
+    data.id = hash
+    console.info(data)
+    return data
+  }
 }

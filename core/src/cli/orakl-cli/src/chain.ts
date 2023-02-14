@@ -1,16 +1,15 @@
 import { command, subcommands, option, string as cmdstring } from 'cmd-ts'
-import { Logger } from 'pino'
 import { dryrunOption, idOption, formatResultInsert, formatResultRemove } from './utils'
 
-export function serviceSub(db, logger: Logger) {
-  // service list
-  // service insert --name [name] [--dryrun]
-  // service remove --id [id]     [--dryrun]
+export function chainSub(db) {
+  // chain list
+  // chain insert --name [name] [--dryrun]
+  // chain remove --id [id]     [--dryrun]
 
   const list = command({
     name: 'list',
     args: {},
-    handler: listHandler(db, true, logger)
+    handler: listHandler(db, true)
   })
 
   const insert = command({
@@ -22,7 +21,7 @@ export function serviceSub(db, logger: Logger) {
       }),
       dryrun: dryrunOption
     },
-    handler: insertHandler(db, logger)
+    handler: insertHandler(db)
   })
 
   const remove = command({
@@ -31,48 +30,48 @@ export function serviceSub(db, logger: Logger) {
       id: idOption,
       dryrun: dryrunOption
     },
-    handler: removeHandler(db, logger)
+    handler: removeHandler(db)
   })
 
   return subcommands({
-    name: 'service',
+    name: 'chain',
     cmds: { list, insert, remove }
   })
 }
 
-export function listHandler(db, print?: boolean, logger?: Logger) {
+export function listHandler(db, print?: boolean) {
   async function wrapper() {
-    const query = 'SELECT * FROM Service'
+    const query = 'SELECT * FROM Chain'
     const result = await db.all(query)
     if (print) {
-      logger?.info(result)
+      console.log(result)
     }
     return result
   }
   return wrapper
 }
 
-export function insertHandler(db, logger?: Logger) {
+export function insertHandler(db) {
   async function wrapper({ name, dryrun }: { name: string; dryrun?: boolean }) {
-    const query = `INSERT INTO Service (name) VALUES ('${name}')`
+    const query = `INSERT INTO Chain (name) VALUES ('${name}')`
     if (dryrun) {
-      logger?.info(query)
+      console.debug(query)
     } else {
       const result = await db.run(query)
-      logger?.info(formatResultInsert(result))
+      console.log(formatResultInsert(result))
     }
   }
   return wrapper
 }
 
-export function removeHandler(db, logger?: Logger) {
+export function removeHandler(db) {
   async function wrapper({ id, dryrun }: { id: number; dryrun?: boolean }) {
-    const query = `DELETE FROM Service WHERE id=${id}`
+    const query = `DELETE FROM Chain WHERE id=${id}`
     if (dryrun) {
-      logger?.debug(query)
+      console.debug(query)
     } else {
       const result = await db.run(query)
-      logger?.info(formatResultRemove(result))
+      console.log(formatResultRemove(result))
     }
   }
   return wrapper

@@ -1,5 +1,4 @@
 import { command, subcommands, optional, option, string as cmdstring } from 'cmd-ts'
-import { Logger } from 'pino'
 import {
   dryrunOption,
   chainOptionalOption,
@@ -7,9 +6,9 @@ import {
   formatResultInsert,
   formatResultRemove
 } from './utils'
-import { ReadFile } from './types'
+import { ReadFile } from './cli-types'
 
-export function kvSub(db, logger: Logger) {
+export function kvSub(db) {
   // kv list        [--chain [chain]] [--key [key]]
   // kv insert       --chain [chain]   --key [key] --value [value] [--dryrun]
   // kv remove       --chain [chain]   --key [key]                 [--dryrun]
@@ -25,7 +24,7 @@ export function kvSub(db, logger: Logger) {
         long: 'key'
       })
     },
-    handler: listHandler(db, true, logger)
+    handler: listHandler(db, true)
   })
 
   const insert = command({
@@ -46,7 +45,7 @@ export function kvSub(db, logger: Logger) {
       }),
       dryrun: dryrunOption
     },
-    handler: insertHandler(db, logger)
+    handler: insertHandler(db)
   })
 
   const insertMany = command({
@@ -62,7 +61,7 @@ export function kvSub(db, logger: Logger) {
       }),
       dryrun: dryrunOption
     },
-    handler: insertManyHandler(db, logger)
+    handler: insertManyHandler(db)
   })
 
   const remove = command({
@@ -78,7 +77,7 @@ export function kvSub(db, logger: Logger) {
       }),
       dryrun: dryrunOption
     },
-    handler: removeHandler(db, logger)
+    handler: removeHandler(db)
   })
 
   const update = command({
@@ -99,7 +98,7 @@ export function kvSub(db, logger: Logger) {
       }),
       dryrun: dryrunOption
     },
-    handler: updateHandler(db, logger)
+    handler: updateHandler(db)
   })
 
   return subcommands({
@@ -108,7 +107,7 @@ export function kvSub(db, logger: Logger) {
   })
 }
 
-export function listHandler(db, print?: boolean, logger?: Logger) {
+export function listHandler(db, print?: boolean) {
   async function wrapper({ chain, key }: { chain?: string; key?: string }) {
     let where = ''
     if (chain) {
@@ -127,14 +126,14 @@ export function listHandler(db, print?: boolean, logger?: Logger) {
     const query = `SELECT * FROM Kv ${where};`
     const result = await db.all(query)
     if (print) {
-      logger?.info(result)
+      console.log(result)
     }
     return result
   }
   return wrapper
 }
 
-export function insertHandler(db, logger?: Logger) {
+export function insertHandler(db) {
   async function wrapper({
     key,
     value,
@@ -149,16 +148,16 @@ export function insertHandler(db, logger?: Logger) {
     const chainId = await chainToId(db, chain)
     const query = `INSERT INTO Kv (chainId, key, value) VALUES (${chainId}, '${key}', '${value}');`
     if (dryrun) {
-      logger?.debug(query)
+      console.debug(query)
     } else {
       const result = await db.run(query)
-      logger?.info(formatResultInsert(result))
+      console.log(formatResultInsert(result))
     }
   }
   return wrapper
 }
 
-export function insertManyHandler(db, logger?: Logger) {
+export function insertManyHandler(db) {
   async function wrapper({ data, chain, dryrun }: { data; chain: string; dryrun?: boolean }) {
     const chainId = await chainToId(db, chain)
 
@@ -169,30 +168,30 @@ export function insertManyHandler(db, logger?: Logger) {
 
     const query = `INSERT INTO Kv (chainId, key, value) VALUES ${values.join()};`
     if (dryrun) {
-      logger?.debug(query)
+      console.debug(query)
     } else {
       const result = await db.run(query)
-      logger?.info(formatResultInsert(result))
+      console.log(formatResultInsert(result))
     }
   }
   return wrapper
 }
 
-export function removeHandler(db, logger?: Logger) {
+export function removeHandler(db) {
   async function wrapper({ key, chain, dryrun }: { key: string; chain: string; dryrun?: boolean }) {
     const chainId = await chainToId(db, chain)
     const query = `DELETE FROM Kv WHERE chainId=${chainId} AND key='${key}';`
     if (dryrun) {
-      logger?.debug(query)
+      console.debug(query)
     } else {
       const result = await db.run(query)
-      logger?.info(formatResultRemove(result))
+      console.log(formatResultRemove(result))
     }
   }
   return wrapper
 }
 
-export function updateHandler(db, logger?: Logger) {
+export function updateHandler(db) {
   async function wrapper({
     key,
     value,
@@ -207,10 +206,10 @@ export function updateHandler(db, logger?: Logger) {
     const chainId = await chainToId(db, chain)
     const query = `UPDATE Kv SET value='${value}' WHERE chainId=${chainId} AND key='${key}';`
     if (dryrun) {
-      logger?.debug(query)
+      console.debug(query)
     } else {
       const result = await db.run(query)
-      logger?.info(result)
+      console.log(result)
     }
   }
   return wrapper

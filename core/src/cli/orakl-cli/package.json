@@ -1,0 +1,32 @@
+{
+    "name": "@bisonai/orakl-cli",
+    "version": "0.1.1",
+    "type": "module",
+    "description": "Package to control Orakl Network node",
+    "files": [
+        "dist",
+        "migrations"
+    ],
+    "keywords": ["oracle", "orakl", "cli"],
+    "author": "Bisonai",
+    "homepage": "https://github.com/Bisonai/orakl/tree/master/core/src/cli/orakl-cli#readme",
+    "license": "MIT",
+    "scripts": {
+        "clean": "rm -rf dist",
+        "build": "yarn clean && tsc"
+    },
+    "bin": {
+        "cli": "dist/index.js"
+    },
+    "dependencies": {
+        "ethers": "^5.7.2",
+        "cmd-ts": "^0.11.0",
+        "sqlite": "^4.1.2",
+        "sqlite3": "^5.1.4"
+    },
+    "devDependencies": {
+        "@types/node": "^18.11.9",
+        "ts-node": "^10.9.1",
+        "typescript": "^4.9.3"
+    }
+}
