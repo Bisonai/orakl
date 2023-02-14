@@ -2,13 +2,14 @@ import { describe, expect, beforeEach, test } from '@jest/globals'
 import { listHandler, insertHandler, removeHandler } from '../src/cli/orakl-cli/src/service'
 import { openDb } from '../src/cli/orakl-cli/src/utils'
 import { mkTmpFile } from '../src/utils'
+import { TEST_MIGRATIONS_PATH } from '../src/settings'
 
 describe('CLI Service', function () {
   let DB
   const TMP_DB_FILE = mkTmpFile({ fileName: 'settings.test.sqlite' })
 
   beforeEach(async () => {
-    DB = await openDb({ dbFile: TMP_DB_FILE, migrate: true })
+    DB = await openDb({ dbFile: TMP_DB_FILE, migrate: true, migrationsPath: TEST_MIGRATIONS_PATH })
   })
 
   test('Should list service', async function () {

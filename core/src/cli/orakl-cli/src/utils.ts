@@ -14,14 +14,22 @@ import { IAdapter, IAggregator } from './types'
 import { CliError, CliErrorCode } from './error'
 import { ChainId, ServiceId, DbCmdOutput } from './cli-types'
 
-export async function openDb({ dbFile, migrate }: { dbFile: string; migrate?: boolean }) {
+export async function openDb({
+  dbFile,
+  migrate,
+  migrationsPath
+}: {
+  dbFile: string
+  migrate?: boolean
+  migrationsPath?: string
+}) {
   const db = await open({
     filename: dbFile,
     driver: sqlite.Database
   })
 
   if (migrate) {
-    await db.migrate({ force: true })
+    await db.migrate({ force: true, migrationsPath })
   }
 
   return db
