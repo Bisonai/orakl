@@ -13,5 +13,10 @@
     },
     "bin": {
         "cli": "dist/cli/orakl-cli/index.js"
+    },
+    "dependencies": {
+        "cmd-ts": "^0.11.0",
+        "sqlite": "^4.1.2",
+        "sqlite3": "^5.1.4"
     }
 }
