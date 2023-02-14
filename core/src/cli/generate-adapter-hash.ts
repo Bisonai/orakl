@@ -1,5 +1,5 @@
 import { parseArgs } from 'node:util'
-import { computeDataHash } from './utils'
+import { computeDataHash } from './orakl-cli/utils'
 import { loadJson } from '../utils'
 import { IAdapter } from '../types'
 import { loadAdapters } from '../worker/utils'
