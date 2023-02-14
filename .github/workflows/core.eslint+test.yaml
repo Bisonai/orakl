@@ -39,8 +39,7 @@ jobs:
         uses: sergeysova/jq-action@v2
         id: version
         with:
-          cmd: 'jq .version package.json -r'
-        working-directory: ./core/src/cli/orakl-cli
+          cmd: 'jq .version ./core/src/cli/orakl-cli/package.json -r'
       - name: Show my version
         run: 'echo "version ${{ steps.version.outputs.value }}"'
       # - run: yarn publish --new-version ${{ steps.version.outputs.value }} --access public
