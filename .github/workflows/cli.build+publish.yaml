@@ -1,10 +1,8 @@
 name: "cli: build+publish"
-on: push
-# on:
-#   push:
-#     paths:
-#       - "core/src/cli/orakl-cli/**"
-
+on:
+  push:
+    paths:
+      - "core/src/cli/orakl-cli/**"
 jobs:
   build:
     runs-on: ubuntu-latest
