@@ -3,7 +3,7 @@ on: push
 # on:
 #   push:
 #     paths:
-#       - "core/**"
+#       - "core/src/cli/orakl-cli/**"
 jobs:
   cli-build:
     runs-on: ubuntu-latest
@@ -12,6 +12,9 @@ jobs:
       - uses: actions/setup-node@v3
         with:
           node-version: "18.12"
+          registry-url: "https://registry.npmjs.org"
+          scope: "@bisonai"
+          always-auth: true
       - name: Install dependencies
         run: yarn --cwd . install
         working-directory: ./core/src/cli/orakl-cli
@@ -23,9 +26,7 @@ jobs:
         id: version
         with:
           cmd: 'jq .version ./core/src/cli/orakl-cli/package.json -r'
-      - name: Show my version
-        run: 'echo "version ${{ steps.version.outputs.value }}"'
-      # - run: yarn publish --new-version ${{ steps.version.outputs.value }} --access public
-      #   working-directory: ./core/src/cli/orakl-cli
-      #   env:
-      #     NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      - run: yarn publish --new-version ${{ steps.version.outputs.value }} --access public
+        working-directory: ./core/src/cli/orakl-cli
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
