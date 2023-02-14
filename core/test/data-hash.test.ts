@@ -1,6 +1,6 @@
 import { describe, test } from '@jest/globals'
 import { loadAdapters, loadAggregators } from '../src/worker/utils'
-import { computeDataHash } from '../src/cli/orakl-cli/utils'
+import { computeDataHash } from '../src/cli/orakl-cli/src/utils'
 
 describe('Data Hash Checks', function () {
   test('Adapters Hash Check', async function () {

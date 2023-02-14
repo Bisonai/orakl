@@ -1,6 +1,6 @@
 import { describe, expect, beforeEach, test } from '@jest/globals'
-import { listHandler, insertHandler, removeHandler } from '../src/cli/orakl-cli/chain'
-import { openDb } from '../src/cli/orakl-cli/utils'
+import { listHandler, insertHandler, removeHandler } from '../src/cli/orakl-cli/src/chain'
+import { openDb } from '../src/cli/orakl-cli/src/utils'
 import { mkTmpFile } from '../src/utils'
 
 describe('CLI Chain', function () {

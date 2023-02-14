@@ -4,8 +4,8 @@ import {
   insertHandler,
   removeHandler,
   insertFromChainHandler
-} from '../src/cli/orakl-cli/aggregator'
-import { openDb } from '../src/cli/orakl-cli/utils'
+} from '../src/cli/orakl-cli/src/aggregator'
+import { openDb } from '../src/cli/orakl-cli/src/utils'
 import { mkTmpFile } from '../src/utils'
 
 describe('CLI Aggregator', function () {

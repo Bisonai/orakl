@@ -5,8 +5,8 @@ import {
   insertManyHandler,
   removeHandler,
   updateHandler
-} from '../src/cli/orakl-cli/kv'
-import { openDb } from '../src/cli/orakl-cli/utils'
+} from '../src/cli/orakl-cli/src/kv'
+import { openDb } from '../src/cli/orakl-cli/src/utils'
 import { mkTmpFile } from '../src/utils'
 
 describe('CLI KV', function () {
