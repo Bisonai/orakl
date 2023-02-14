@@ -37,7 +37,7 @@ npx orakl-cli chain list
 
 Insert new chain
 
-```
+```shell
 npx orakl-cli chain insert --name other
 ```
 
