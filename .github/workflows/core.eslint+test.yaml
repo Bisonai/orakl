@@ -11,19 +11,38 @@ jobs:
       - uses: actions/setup-node@v3
         with:
           node-version: "18.12"
-          registry-url: "https://npm.pkg.github.com"
       - run: yarn
         working-directory: ./core
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-      - run: yarn eslint
+      - name: Run eslint
+        run: yarn eslint
         working-directory: ./core
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-      - run: yarn test
+      - name: Run test
+        run: yarn test
         working-directory: ./core
         env:
           ORAKL_DIR: './'
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-      - run: yarn build
+      - name: Build core
+        run: yarn build
         working-directory: ./core
+
+      # CLI
+      - name: Build orakl-cli
+        run: yarn build
+        working-directory: ./core/src/cli/orakl-cli
+      - name: Extract version from package.json
+        uses: sergeysova/jq-action@v2
+        id: version
+        with:
+          cmd: 'jq .version package.json -r'
+        working-directory: ./core/src/cli/orakl-cli
+      - name: Show my version
+        run: 'echo "version ${{ steps.version.outputs.value }}"'
+      # - run: yarn publish --new-version ${{ steps.version.outputs.value }} --access public
+      #   working-directory: ./core/src/cli/orakl-cli
+      #   env:
+      #     NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
