@@ -3,6 +3,9 @@
     "version": "0.1.0",
     "type": "module",
     "description": "Package to control Orakl Network node",
+    "files": [
+        "dist"
+    ],
     "keywords": ["oracle", "orakl", "cli"],
     "author": "Bisonai",
     "homepage": "https://github.com/Bisonai/orakl/tree/master/core/src/cli/orakl-cli#readme",
@@ -12,7 +15,7 @@
         "build": "yarn clean && tsc"
     },
     "bin": {
-        "cli": "dist/cli/orakl-cli/index.js"
+        "cli": "dist/index.js"
     },
     "dependencies": {
         "ethers": "^5.7.2",
