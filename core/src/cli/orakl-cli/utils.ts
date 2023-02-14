@@ -13,13 +13,23 @@ import { open } from 'sqlite'
 import { CliError, CliErrorCode } from './error'
 import { ChainId, ServiceId, DbCmdOutput } from './types'
 
-export async function openDb({ dbFile, migrate }: { dbFile: string; migrate?: boolean }) {
-  const dbFileExists = await stat(dbFile)
-    .then(() => true)
-    .catch(() => false)
+export async function openDb({
+  dbFile,
+  migrate,
+  checkIfExists
+}: {
+  dbFile: string
+  migrate?: boolean
+  checkIfExists?: boolean
+}) {
+  if (checkIfExists) {
+    const dbFileExists = await stat(dbFile)
+      .then(() => true)
+      .catch(() => false)
 
-  if (!dbFileExists) {
-    throw new CliError(CliErrorCode.FileNotFound)
+    if (!dbFileExists) {
+      throw new CliError(CliErrorCode.FileNotFound)
+    }
   }
 
   const db = await open({
