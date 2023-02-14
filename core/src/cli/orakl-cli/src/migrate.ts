@@ -1,7 +1,7 @@
-import { flag, command, boolean as cmdboolean } from 'cmd-ts'
+import { flag, option, optional, command, string as cmdstring, boolean as cmdboolean } from 'cmd-ts'
 
 export function migrateCmd(db) {
-  // migrate [--force]
+  // migrate [--force] [--migrationspath [path]]
 
   return command({
     name: 'migrate',
@@ -9,10 +9,14 @@ export function migrateCmd(db) {
       force: flag({
         type: cmdboolean,
         long: 'force'
+      }),
+      migrationsPath: option({
+        type: optional(cmdstring),
+        long: 'migrationsPath'
       })
     },
-    handler: async ({ force }) => {
-      await db.migrate({ force })
+    handler: async ({ force, migrationsPath }) => {
+      await db.migrate({ force, migrationsPath })
     }
   })
 }

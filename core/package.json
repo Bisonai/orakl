@@ -33,7 +33,7 @@
     "adapter-hash": "node --no-warnings --experimental-specifier-resolution=node --experimental-json-modules dist/cli/generate-adapter-hash.js",
     "aggregator-hash": "node --no-warnings --experimental-specifier-resolution=node --experimental-json-modules dist/cli/generate-aggregator-hash.js",
     "flush": "node --no-warnings --experimental-specifier-resolution=node --experimental-json-modules dist/cli/flush-queues.js",
-    "cli": "node --no-warnings --experimental-specifier-resolution=node --experimental-json-modules dist/cli/orakl-cli/index.js",
+    "cli": "node --no-warnings --experimental-specifier-resolution=node --experimental-json-modules dist/cli/orakl-cli/src/index.js",
     "test": "node --no-warnings --experimental-vm-modules node_modules/jest/bin/jest.js",
     "eslint": "DEBUG=eslint:cli-engine npx eslint 'src/**/*.ts' 'src/*.ts' 'test/*.ts'"
   },

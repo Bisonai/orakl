@@ -1,4 +1,4 @@
-import { open as openFile, readFile, stat } from 'node:fs/promises'
+import { open as openFile, readFile } from 'node:fs/promises'
 import {
   optional,
   boolean as cmdboolean,
@@ -14,25 +14,7 @@ import { IAdapter, IAggregator } from './types'
 import { CliError, CliErrorCode } from './error'
 import { ChainId, ServiceId, DbCmdOutput } from './cli-types'
 
-export async function openDb({
-  dbFile,
-  migrate,
-  checkIfExists
-}: {
-  dbFile: string
-  migrate?: boolean
-  checkIfExists?: boolean
-}) {
-  if (checkIfExists) {
-    const dbFileExists = await stat(dbFile)
-      .then(() => true)
-      .catch(() => false)
-
-    if (!dbFileExists) {
-      throw new CliError(CliErrorCode.FileNotFound)
-    }
-  }
-
+export async function openDb({ dbFile, migrate }: { dbFile: string; migrate?: boolean }) {
   const db = await open({
     filename: dbFile,
     driver: sqlite.Database

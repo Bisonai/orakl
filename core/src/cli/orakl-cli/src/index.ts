@@ -16,7 +16,7 @@ import { binary, subcommands, run } from 'cmd-ts'
 
 async function main() {
   const dbFile = path.join(os.homedir(), '.orakl/settings.sqlite')
-  const db = await openDb({ dbFile, checkIfExists: true })
+  const db = await openDb({ dbFile })
 
   const chain = chainSub(db)
   const service = serviceSub(db)
