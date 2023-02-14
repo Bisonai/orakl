@@ -38,11 +38,11 @@ jobs:
           cmd: 'jq .version ./core/src/cli/orakl-cli/package.json -r'
       - name: Extract version from the latest published package
         id: npmPackageVersion
-        run: npm view @bisonai/orakl-cli version
+        run: echo "VERSION=`npm view @bisonai/orakl-cli version`" >> $GITHUB_OUTPUT
       - name: Show my version
-        run: 'echo "version ${{ steps.packageJsonVersion.outputs.value }} ${{ steps.npmPackageVersion.outputs.value }}"'
+        run: 'echo "version ${{ steps.packageJsonVersion.outputs.value }} ${{ steps.npmPackageVersion.outputs.VERSION }}"'
       # - name: Publish package
-      #   if: steps.packageJsonVersion.outputs.value != steps.npmPackageVersion.outputs.value
+      #   if: steps.packageJsonVersion.outputs.value != steps.npmPackageVersion.outputs.VERSION
       #   run: yarn publish --new-version ${{ steps.version.outputs.value }} --access public
       #   working-directory: ./core/src/cli/orakl-cli
       #   env:
