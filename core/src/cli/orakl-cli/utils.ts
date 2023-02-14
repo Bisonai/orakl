@@ -7,7 +7,6 @@ import {
   flag,
   option
 } from 'cmd-ts'
-
 import sqlite from 'sqlite3'
 import { open } from 'sqlite'
 import { CliError, CliErrorCode } from './error'

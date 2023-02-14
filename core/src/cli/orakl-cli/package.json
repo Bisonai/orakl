@@ -3,7 +3,7 @@
     "version": "0.1.0",
     "type": "module",
     "description": "Package to control Orakl Network node",
-    "keywords": ["oracle", "orakl"],
+    "keywords": ["oracle", "orakl", "cli"],
     "author": "Bisonai",
     "license": "MIT",
     "scripts": {
