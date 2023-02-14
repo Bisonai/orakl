@@ -1,7 +1,7 @@
 import { describe, expect, beforeEach, test } from '@jest/globals'
-import { listHandler, insertHandler, removeHandler } from '../src/cli/operator/vrf'
+import { listHandler, insertHandler, removeHandler } from '../src/cli/orakl-cli/vrf'
+import { openDb } from '../src/cli/orakl-cli/utils'
 import { mkTmpFile } from '../src/utils'
-import { openDb } from '../src/cli/operator/utils'
 
 describe('CLI Vrf', function () {
   let DB

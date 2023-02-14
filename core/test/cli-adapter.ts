@@ -4,9 +4,9 @@ import {
   insertHandler,
   removeHandler,
   insertFromChainHandler
-} from '../src/cli/operator/adapter'
+} from '../src/cli/orakl-cli/adapter'
+import { openDb } from '../src/cli/orakl-cli/utils'
 import { mkTmpFile } from '../src/utils'
-import { openDb } from '../src/cli/operator/utils'
 
 describe('CLI Adapter', function () {
   let DB

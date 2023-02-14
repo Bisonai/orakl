@@ -1,7 +1,7 @@
 import { describe, expect, beforeEach, test } from '@jest/globals'
-import { listHandler, insertHandler, removeHandler } from '../src/cli/operator/service'
+import { listHandler, insertHandler, removeHandler } from '../src/cli/orakl-cli/service'
+import { openDb } from '../src/cli/orakl-cli/utils'
 import { mkTmpFile } from '../src/utils'
-import { openDb } from '../src/cli/operator/utils'
 
 describe('CLI Service', function () {
   let DB

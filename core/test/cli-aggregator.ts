@@ -4,9 +4,9 @@ import {
   insertHandler,
   removeHandler,
   insertFromChainHandler
-} from '../src/cli/operator/aggregator'
+} from '../src/cli/orakl-cli/aggregator'
+import { openDb } from '../src/cli/orakl-cli/utils'
 import { mkTmpFile } from '../src/utils'
-import { openDb } from '../src/cli/operator/utils'
 
 describe('CLI Aggregator', function () {
   let DB
