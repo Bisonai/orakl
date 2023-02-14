@@ -8,7 +8,7 @@ import {
   formatResultRemove
 } from './utils'
 import { computeDataHash } from './utils'
-import { ReadFile } from './types'
+import { ReadFile } from './cli-types'
 
 export function adapterSub(db) {
   // adapter list [--active] [--chain [chain]]

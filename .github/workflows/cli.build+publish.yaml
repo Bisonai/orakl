@@ -1,4 +1,4 @@
-name: "core+cli"
+name: "cli: build+publish"
 on: push
 # on:
 #   push:

@@ -10,9 +10,9 @@ import {
 import sqlite from 'sqlite3'
 import { open } from 'sqlite'
 import { ethers } from 'ethers'
-import { IAdapter, IAggregator } from '../../types'
+import { IAdapter, IAggregator } from './types'
 import { CliError, CliErrorCode } from './error'
-import { ChainId, ServiceId, DbCmdOutput } from './types'
+import { ChainId, ServiceId, DbCmdOutput } from './cli-types'
 
 export async function openDb({
   dbFile,

@@ -8,8 +8,8 @@ import {
   formatResultRemove
 } from './utils'
 import { computeDataHash } from './utils'
-import { ReadFile } from './types'
-import { IAggregator } from '../../types'
+import { ReadFile } from './cli-types'
+import { IAggregator } from './types'
 import { CliError, CliErrorCode } from './error'
 
 export function aggregatorSub(db) {

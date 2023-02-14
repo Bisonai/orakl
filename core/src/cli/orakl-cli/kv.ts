@@ -6,7 +6,7 @@ import {
   formatResultInsert,
   formatResultRemove
 } from './utils'
-import { ReadFile } from './types'
+import { ReadFile } from './cli-types'
 
 export function kvSub(db) {
   // kv list        [--chain [chain]] [--key [key]]
