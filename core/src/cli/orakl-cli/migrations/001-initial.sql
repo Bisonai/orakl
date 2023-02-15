@@ -64,7 +64,7 @@ VALUES
            '0x0165878a594ca255338adfa4d48449f69242eb8f', 'RandomWordsRequested'),
   ((SELECT id from Chain WHERE name = 'localhost'),
   (SELECT id from Service WHERE name = 'Aggregator'),
-           '0xa513E6E4b8f2a923D98304ec87F64353C4D5C853', 'NewRound'),
+           '0xB7f8BC63BbcaD18155201308C8f3540b07f84F5e', 'NewRound'),
   ((SELECT id from Chain WHERE name = 'localhost'),
   (SELECT id from Service WHERE name = 'RequestResponse'),
            '0xe7f1725e7734ce288f8367e1bb143e90bb3f0512', 'DataRequested');
@@ -141,7 +141,7 @@ VALUES
   '0x00d5130063bee77302b133b5c6a0d6aede467a599d251aec842d24abeb5866a5',
   '{
     "id": "0x00d5130063bee77302b133b5c6a0d6aede467a599d251aec842d24abeb5866a5",
-    "active": true,
+    "active": false,
     "name": "KLAY/USD",
     "jobType": "DATA_FEED",
     "decimals": "8",
@@ -250,7 +250,7 @@ VALUES
   '{
     "id": "0x2d5d94df99ccad54f0f6a9d38f2340db793833947f86b207dcda38583dd263fa",
     "address": "0x2279B7A0a67DB372996a5FaB50D91eAA73d2eBe6",
-    "active": true,
+    "active": false,
     "name": "KLAY/USD",
     "fixedHeartbeatRate": {
         "active" : true,
