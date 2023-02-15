@@ -48,7 +48,7 @@ export async function sendRequestRandomWords() {
 
     if (tx.status == true) {
       const result = {
-        block: tx.blockNumber1,
+        block: tx.blockNumber,
         txHash: tx.transactionHash,
         requestId: requestObject.requestId.toString(),
         accId: requestObject.accId.toString(),

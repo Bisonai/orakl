@@ -7,7 +7,6 @@ import { buildWallet, sendTransaction } from "./utils";
 
 const abis = await readTextFile("./src/abis/request-response.json");
 const RR_CONSUMER = process.env.RR_CONSUMER;
-const ACC_ID = process.env.ACC_ID;
 let jsonResult: any = [];
 
 export async function sendRequestDataDirect() {
@@ -37,7 +36,7 @@ export async function sendRequestDataDirect() {
     console.log("tx", requestObject);
 
     const result = {
-      block: tx.blockNumber1,
+      block: tx.blockNumber,
       txHash: tx.transactionHash,
       requestId: requestObject.requestId.toString(),
       accId: requestObject.accId.toString(),

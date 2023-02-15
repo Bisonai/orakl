@@ -45,7 +45,7 @@ export async function sendRequestRandomWordsDirect() {
     const requestObject = iface.parseLog(tx.logs[4]).args;
 
     const result = {
-      block: tx.blockNumber1,
+      block: tx.blockNumber,
       txHash: tx.transactionHash,
       requestId: requestObject.requestId.toString(),
       accId: requestObject.accId.toString(),

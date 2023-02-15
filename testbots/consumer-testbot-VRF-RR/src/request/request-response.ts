@@ -38,7 +38,7 @@ export async function sendRequestData() {
     console.log("tx", requestObject);
 
     const result = {
-      block: tx.blockNumber1,
+      block: tx.blockNumber,
       txHash: tx.transactionHash,
       requestId: requestObject.requestId.toString(),
       accId: requestObject.accId.toString(),

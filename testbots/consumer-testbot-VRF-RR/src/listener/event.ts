@@ -1,7 +1,5 @@
 import * as path from "node:path";
-
 import { Contract, ethers } from "ethers";
-import { Logger } from "pino";
 import { IListenerBlock, IListenerConfig } from "../types";
 import { mkdir, readTextFile, writeTextFile } from "../utils";
 import * as dotenv from "dotenv";
@@ -17,7 +15,6 @@ export class Event {
   provider: ethers.providers.JsonRpcProvider;
   eventName: string;
   running: boolean;
-  logger: Logger;
 
   constructor(
     wrapFn: (iface: ethers.utils.Interface) => (log) => void,

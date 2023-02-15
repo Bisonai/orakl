@@ -12,7 +12,6 @@
   "author": "Bisonai",
   "license": "UNLICENSED",
   "scripts": {
-    "prepare": "cd .. && husky install core/.husky",
     "clean": "rm -rf dist",
     "build": "yarn clean && tsc",
     "start:request": "yarn build && node --no-warnings --experimental-specifier-resolution=node --experimental-json-modules dist/request/main.js",
@@ -23,20 +22,13 @@
     "eslint": "DEBUG=eslint:cli-engine npx eslint 'src/**/*.ts' 'src/*.ts' 'test/*.ts'"
   },
   "dependencies": {
-    "@bisonai/orakl-contracts": "^0.4.4",
     "@slack/webhook": "^6.1.0",
     "axios": "^1.2.2",
     "bn.js": "^5.2.1",
-    "bullmq": "^3.2.2",
     "console-hook": "^0.0.2",
     "dotenv": "^16.0.3",
-    "elliptic": "^6.5.4",
     "ethers": "^5.7.2",
-    "mathjs": "^11.4.0",
-    "pino": "^8.8.0",
-    "pino-pretty": "^9.1.1",
-    "sqlite": "^4.1.2",
-    "sqlite3": "^5.1.4"
+    "mathjs": "^11.4.0"
   },
   "devDependencies": {
     "@jest/globals": "^29.3.1",
@@ -46,7 +38,6 @@
     "eslint": "^8.30.0",
     "eslint-config-prettier": "^8.5.0",
     "eslint-plugin-prettier": "^4.2.1",
-    "husky": "^8.0.3",
     "jest": "^29.3.1",
     "prettier": "^2.8.1",
     "ts-jest": "^29.0.3",
