@@ -19,9 +19,11 @@ import {
   REPORTER_AGGREGATOR_QUEUE_NAME,
   FIXED_HEARTBEAT_QUEUE_NAME,
   RANDOM_HEARTBEAT_QUEUE_NAME,
-  BULLMQ_CONNECTION
+  BULLMQ_CONNECTION,
+  PROVIDER_URL,
+  PUBLIC_KEY as ORACLE_ADDRESS
 } from '../settings'
-import { PROVIDER_URL, PUBLIC_KEY as ORACLE_ADDRESS } from '../settings'
+import { IcnError, IcnErrorCode } from '../errors'
 import { Aggregator__factory } from '@bisonai/orakl-contracts'
 
 const FILE_NAME = import.meta.url
@@ -80,6 +82,13 @@ function aggregatorJob(reporterQueueName: string, aggregatorsWithAdapters, _logg
   async function wrapper(job) {
     const inData: IAggregatorListenerWorker = job.data
     logger.debug(inData, 'inData')
+
+    if (!aggregatorsWithAdapters[inData.address]) {
+      const msg = `Address not found in aggregators ${inData.address}`
+      logger.error(msg)
+      throw new IcnError(IcnErrorCode.AggregatorNotFound, msg)
+    }
+
     const ag = addReportProperty(aggregatorsWithAdapters[inData.address], true)
 
     try {
