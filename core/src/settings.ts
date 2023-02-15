@@ -11,6 +11,7 @@ import * as dotenv from 'dotenv'
 dotenv.config()
 
 export const TEST_MIGRATIONS_PATH = 'src/cli/orakl-cli/migrations'
+export const DEPLOYMENT_NAME = process.env.DEPLOYMENT_NAME || 'orakl'
 export const NODE_ENV = process.env.NODE_ENV
 export const HEALTH_CHECK_PORT = process.env.HEALTH_CHECK_PORT
 export const CHAIN = process.env.CHAIN || 'localhost'
@@ -49,16 +50,16 @@ export const LISTENER_DELAY = Number(
 export const LISTENER_ROOT_DIR = './tmp/listener/'
 
 export const localAggregatorFn = aggregatorMapping[LOCAL_AGGREGATOR?.toUpperCase() || 'MEAN']
-export const FIXED_HEARTBEAT_QUEUE_NAME = 'fixed-heartbeat-queue'
-export const RANDOM_HEARTBEAT_QUEUE_NAME = 'random-heartbeat-queue'
-export const WORKER_REQUEST_RESPONSE_QUEUE_NAME = 'worker-request-response-queue'
-export const WORKER_PREDEFINED_FEED_QUEUE_NAME = 'worker-predefined-feed-queue'
-export const WORKER_VRF_QUEUE_NAME = 'worker-vrf-queue'
-export const WORKER_AGGREGATOR_QUEUE_NAME = 'worker-aggregator-queue'
-export const REPORTER_REQUEST_RESPONSE_QUEUE_NAME = 'reporter-request-response-queue'
-export const REPORTER_PREDEFINED_FEED_QUEUE_NAME = 'reporter-predefined-feed-queue'
-export const REPORTER_VRF_QUEUE_NAME = 'reporter-vrf-queue'
-export const REPORTER_AGGREGATOR_QUEUE_NAME = 'reporter-aggregator-queue'
+export const FIXED_HEARTBEAT_QUEUE_NAME = `${DEPLOYMENT_NAME}-fixed-heartbeat-queue`
+export const RANDOM_HEARTBEAT_QUEUE_NAME = `${DEPLOYMENT_NAME}-random-heartbeat-queue`
+export const WORKER_REQUEST_RESPONSE_QUEUE_NAME = `${DEPLOYMENT_NAME}-worker-request-response-queue`
+export const WORKER_PREDEFINED_FEED_QUEUE_NAME = `${DEPLOYMENT_NAME}-worker-predefined-feed-queue`
+export const WORKER_VRF_QUEUE_NAME = `${DEPLOYMENT_NAME}-worker-vrf-queue`
+export const WORKER_AGGREGATOR_QUEUE_NAME = `${DEPLOYMENT_NAME}-worker-aggregator-queue`
+export const REPORTER_REQUEST_RESPONSE_QUEUE_NAME = `${DEPLOYMENT_NAME}-reporter-request-response-queue`
+export const REPORTER_PREDEFINED_FEED_QUEUE_NAME = `${DEPLOYMENT_NAME}-reporter-predefined-feed-queue`
+export const REPORTER_VRF_QUEUE_NAME = `${DEPLOYMENT_NAME}-reporter-vrf-queue`
+export const REPORTER_AGGREGATOR_QUEUE_NAME = `${DEPLOYMENT_NAME}-reporter-aggregator-queue`
 
 export const ALL_QUEUES = [
   FIXED_HEARTBEAT_QUEUE_NAME,
