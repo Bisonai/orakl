@@ -36,9 +36,9 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   // Setup oracles that will contribute to Aggregator
   const removed = []
-  const added = [feedOracle0]
-  // FIXME Most likely wrong. Learn more about addedAdmins.
-  const addedAdmins = [feedOracle0]
+  const added = [feedOracle0, feedOracle1]
+  // Oracle itself is admin, can be separated.
+  const addedAdmins = [feedOracle0, feedOracle1]
 
   await (
     await aggregator.changeOracles(
