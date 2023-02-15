@@ -4,5 +4,5 @@ services:
   orakl:
     build:
       context: .
-      dockerfile: src/Dockerfile.dev
+      dockerfile: src/Dockerfile
     image: jolol/orakl:v.0.0.7
