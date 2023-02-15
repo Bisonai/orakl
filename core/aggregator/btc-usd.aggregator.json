@@ -1,0 +1,17 @@
+{
+  "id": "0xbbab0c626396a6732f1f00aa4809ca7367823fc37279986a6e7692a623ee2415",
+  "address": "0x81707AE2629F738e0dd368608815FB2FfDD8C1F2",
+  "active": true,
+  "name": "BTC/USD",
+  "fixedHeartbeatRate": {
+    "active": true,
+    "value": 15000
+  },
+  "randomHeartbeatRate": {
+    "active": false,
+    "value": 2000
+  },
+  "threshold": 0.05,
+  "absoluteThreshold": 0.1,
+  "adapterId": "0xe63985ed9d9aae887bdcfa03b53a1bea6fd1acc58b8cd51a9a69ede43eac6235"
+}
