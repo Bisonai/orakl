@@ -8,7 +8,6 @@ async function main() {
   if (network.name == 'localhost') {
     const { consumer } = await hre.getNamedAccounts()
     _consumer = consumer
-    console.log(consumer)
   } else {
     const PROVIDER = process.env.PROVIDER
     const MNEMONIC = process.env.MNEMONIC || ''
