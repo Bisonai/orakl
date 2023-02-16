@@ -15,7 +15,8 @@ import { openDb } from './utils'
 import { binary, subcommands, run } from 'cmd-ts'
 
 async function main() {
-  const dbFile = path.join(os.homedir(), '.orakl/settings.sqlite')
+  const ORAKL_DIR = process.env.ORAKL_DIR || path.join(os.homedir(), '.orakl')
+  const dbFile = path.join(ORAKL_DIR, 'settings.sqlite')
   const db = await openDb({ dbFile })
 
   const chain = chainSub(db)
