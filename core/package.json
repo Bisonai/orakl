@@ -15,22 +15,18 @@
     "prepare": "cd .. && husky install core/.husky",
     "clean": "rm -rf dist",
     "build": "yarn clean && tsc",
-
     "start:listener": "node --no-warnings --experimental-specifier-resolution=node --experimental-json-modules dist/listener/main.js",
     "start:listener:vrf": "yarn start:listener --listener VRF",
     "start:listener:request_response": "yarn start:listener --listener RequestResponse",
     "start:listener:aggregator": "yarn start:listener --listener Aggregator",
-
     "start:worker": "node --no-warnings --experimental-specifier-resolution=node --experimental-json-modules dist/worker/main.js",
     "start:worker:aggregator": "yarn start:worker --worker AGGREGATOR",
     "start:worker:vrf": "yarn start:worker --worker VRF",
     "start:worker:request_response": "yarn start:worker --worker REQUEST_RESPONSE",
-
     "start:reporter": "node --no-warnings --experimental-specifier-resolution=node --experimental-json-modules dist/reporter/main.js",
     "start:reporter:vrf": "yarn start:reporter --reporter VRF",
     "start:reporter:request_response": "yarn start:reporter --reporter REQUEST_RESPONSE",
     "start:reporter:aggregator": "yarn start:reporter --reporter AGGREGATOR",
-
     "keygen": "node --no-warnings --experimental-specifier-resolution=node --experimental-json-modules dist/cli/vrf-keygen.js",
     "data-feed": "node --no-warnings --experimental-specifier-resolution=node --experimental-json-modules dist/cli/data-feed.js",
     "adapter-hash": "node --no-warnings --experimental-specifier-resolution=node --experimental-json-modules dist/cli/generate-adapter-hash.js",
@@ -56,6 +52,7 @@
     "mathjs": "^11.4.0",
     "pino": "^8.8.0",
     "pino-pretty": "^9.1.1",
+    "redis": "^4.6.4",
     "sqlite": "^4.1.2",
     "sqlite3": "^5.1.4",
     "url-exist": "^3.0.1"
