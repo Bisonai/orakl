@@ -1,4 +1,3 @@
-import { ethers } from 'ethers'
 import { Worker, Queue } from 'bullmq'
 import { Logger } from 'pino'
 import {
@@ -11,8 +10,7 @@ import {
 import {
   IAggregatorListenerWorker,
   IAggregatorWorkerReporter,
-  IAggregatorHeartbeatWorker,
-  IOracleRoundState
+  IAggregatorHeartbeatWorker
 } from '../types'
 import {
   WORKER_AGGREGATOR_QUEUE_NAME,
@@ -20,11 +18,10 @@ import {
   FIXED_HEARTBEAT_QUEUE_NAME,
   RANDOM_HEARTBEAT_QUEUE_NAME,
   BULLMQ_CONNECTION,
-  PROVIDER_URL,
-  PUBLIC_KEY as ORACLE_ADDRESS
+  PUBLIC_KEY as OPERATOR_ADDRESS
 } from '../settings'
 import { IcnError, IcnErrorCode } from '../errors'
-import { Aggregator__factory } from '@bisonai/orakl-contracts'
+import { oracleRoundStateCall } from './utils'
 
 const FILE_NAME = import.meta.url
 
@@ -60,16 +57,16 @@ export async function aggregatorWorker(_logger: Logger) {
   )
 
   // Random heartbeat worker
-  new Worker(
-    RANDOM_HEARTBEAT_QUEUE_NAME,
-    randomHeartbeatJob(
-      RANDOM_HEARTBEAT_QUEUE_NAME,
-      REPORTER_AGGREGATOR_QUEUE_NAME,
-      aggregatorsWithAdapters,
-      _logger
-    ),
-    BULLMQ_CONNECTION
-  )
+  // new Worker(
+  //   RANDOM_HEARTBEAT_QUEUE_NAME,
+  //   randomHeartbeatJob(
+  //     RANDOM_HEARTBEAT_QUEUE_NAME,
+  //     REPORTER_AGGREGATOR_QUEUE_NAME,
+  //     aggregatorsWithAdapters,
+  //     _logger
+  //   ),
+  //   BULLMQ_CONNECTION
+  // )
 }
 
 function aggregatorJob(reporterQueueName: string, aggregatorsWithAdapters, _logger: Logger) {
@@ -92,7 +89,7 @@ function aggregatorJob(reporterQueueName: string, aggregatorsWithAdapters, _logg
     const ag = addReportProperty(aggregatorsWithAdapters[inData.address], true)
 
     try {
-      const outData = await prepareDataForReporter(ag, _logger)
+      const outData = await prepareDataForReporter({ data: ag, workerSource: 'regular', _logger })
       logger.debug(outData, 'outData')
       reporterQueue.add('aggregator', outData, {
         removeOnComplete: true
@@ -133,7 +130,7 @@ function fixedHeartbeatJob(
     logger.debug(inData, 'inData')
 
     try {
-      const outData = await prepareDataForReporter(inData, _logger)
+      const outData = await prepareDataForReporter({ data: inData, workerSource: 'fixed', _logger })
       logger.debug(outData, 'outData')
       if (outData.report) {
         reporterQueue.add('aggregator', outData, { removeOnComplete: true })
@@ -178,7 +175,11 @@ function randomHeartbeatJob(
     logger.debug(inData, 'inData')
 
     try {
-      const outData = await prepareDataForReporter(inData, _logger)
+      const outData = await prepareDataForReporter({
+        data: inData,
+        workerSource: 'random',
+        _logger
+      })
       logger.debug(outData, 'outData')
       if (outData.report) {
         reporterQueue.add('aggregator', outData, { removeOnComplete: true })
@@ -203,20 +204,30 @@ function randomHeartbeatJob(
  * @return {Promise<IAggregatorWorkerReporter>}
  * @exception {InvalidPriceFeed} raised from `fetchDataWithadapter`
  */
-async function prepareDataForReporter(
-  data: IAggregatorHeartbeatWorker,
+async function prepareDataForReporter({
+  data,
+  workerSource,
+  _logger
+}: {
+  data: IAggregatorHeartbeatWorker
+  workerSource: string
   _logger: Logger
-): Promise<IAggregatorWorkerReporter> {
+}): Promise<IAggregatorWorkerReporter> {
   const logger = _logger.child({ name: 'prepareDataForReporter', file: FILE_NAME })
 
   const callbackAddress = data.address
   const submission = await fetchDataWithAdapter(data.adapter)
   let report = data.report
 
-  const oracleRoundState = await oracleRoundStateCall(data.address, ORACLE_ADDRESS, _logger)
+  const oracleRoundState = await oracleRoundStateCall({
+    aggregatorAddress: data.address,
+    operatorAddress: OPERATOR_ADDRESS,
+    logger
+  })
   logger.debug(oracleRoundState, 'oracleRoundState')
-  const lastSubmission = oracleRoundState._latestSubmission.toNumber()
+
   if (report === undefined) {
+    const lastSubmission = oracleRoundState._latestSubmission.toNumber()
     report = shouldReport(lastSubmission, submission, data.threshold, data.absoluteThreshold)
     logger.debug(report, 'report')
   }
@@ -224,11 +235,23 @@ async function prepareDataForReporter(
   return {
     report,
     callbackAddress,
-    roundId: oracleRoundState._roundId,
-    submission
+    workerSource,
+    submission,
+    roundId: oracleRoundState._roundId
   }
 }
 
+/**
+ * Test whether the current submission deviates from the last
+ * submission more than given threshold or absolute threshold. If yes,
+ * return `true`, otherwise `false`.
+ *
+ * @param {number} lastSubmission
+ * @param {number} submission
+ * @param {number} threshold
+ * @param {number} absolutethreshold
+ * @return {boolean}
+ */
 function shouldReport(
   lastSubmission: number,
   submission: number,
@@ -247,18 +270,6 @@ function shouldReport(
 
   // Something strange happened, don't report!
   return false
-}
-
-async function oracleRoundStateCall(
-  aggregatorAddress: string,
-  oracleAddress: string,
-  logger: Logger
-): Promise<IOracleRoundState> {
-  logger.debug({ name: 'oracleRoundStateCall', file: FILE_NAME })
-
-  const provider = new ethers.providers.JsonRpcProvider(PROVIDER_URL)
-  const aggregator = new ethers.Contract(aggregatorAddress, Aggregator__factory.abi, provider)
-  return await aggregator.oracleRoundState(oracleAddress, 0)
 }
 
 function addReportProperty(o, report: boolean) {

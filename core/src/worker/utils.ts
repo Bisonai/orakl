@@ -1,10 +1,21 @@
+import axios from 'axios'
+import { ethers } from 'ethers'
 import { Logger } from 'pino'
 import { dataFeedReducerMapping } from './reducer'
 import { IcnError, IcnErrorCode } from '../errors'
 import { pipe } from '../utils'
-import { IAdapter, IAggregator } from '../types'
-import { getAdapters, getAggregators, localAggregatorFn, DB, CHAIN } from '../settings'
-import axios from 'axios'
+import { IAdapter, IAggregator, IOracleRoundState } from '../types'
+import {
+  getAdapters,
+  getAggregators,
+  localAggregatorFn,
+  DB,
+  CHAIN,
+  PROVIDER_URL
+} from '../settings'
+import { Aggregator__factory } from '@bisonai/orakl-contracts'
+
+const FILE_NAME = import.meta.url
 
 export async function loadAdapters({ postprocess }: { postprocess?: boolean }) {
   const rawAdapters = await getAdapters(DB, CHAIN)
@@ -189,4 +200,28 @@ export function uniform(a: number, b: number): number {
     throw new IcnError(IcnErrorCode.UniformWrongParams)
   }
   return a + Math.round(Math.random() * (b - a))
+}
+
+export async function oracleRoundStateCall({
+  aggregatorAddress,
+  operatorAddress,
+  logger,
+  roundId
+}: {
+  aggregatorAddress: string
+  operatorAddress: string
+  roundId?: number
+  logger?: Logger
+}): Promise<IOracleRoundState> {
+  logger?.debug({ name: 'oracleRoundStateCall', file: FILE_NAME })
+
+  const provider = new ethers.providers.JsonRpcProvider(PROVIDER_URL)
+  const aggregator = new ethers.Contract(aggregatorAddress, Aggregator__factory.abi, provider)
+
+  let queriedRoundId = 0
+  if (roundId) {
+    queriedRoundId = roundId
+  }
+
+  return await aggregator.oracleRoundState(operatorAddress, queriedRoundId)
 }

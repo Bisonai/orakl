@@ -233,6 +233,7 @@ export interface IAggregatorWorkerReporter {
   callbackAddress: string
   roundId: number
   submission: number
+  workerSource: string
 }
 
 // VRF
