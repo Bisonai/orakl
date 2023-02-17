@@ -1,5 +1,5 @@
 {
-    "id": "0x9b1c98f4aa4648753683fc1e8c323f2df3ee78820898cfb856940dc7af32b583",
+    "id": "0x7f1847f6eb6a9a0bb3e7013a5133a4eb93369cedb22c0d01986e50ef4332885a",
     "address": "0xb7f8bc63bbcad18155201308c8f3540b07f84f5e",
     "active": true,
     "name": "ETH/USD",
@@ -8,8 +8,8 @@
         "value": 15000
     },
     "randomHeartbeatRate": {
-        "active": false,
-        "value": 2000
+        "active": true,
+        "value": 5000
     },
     "threshold": 0.05,
     "absoluteThreshold": 0.1,
