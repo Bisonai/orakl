@@ -51,31 +51,31 @@ describe('Reporter', function () {
     console.log(beforeBalanceOfTo)
     console.log(beforeBalanceOfAccount1)
 
-    // const tx = {
-    //   from: account1.address,
-    //   to: to,
-    //   value: amount,
-    //   gas: '300000'
-    // }
+    const tx = {
+      from: account1.address,
+      to: to,
+      value: amount,
+      gas: '300000'
+    }
 
-    // // Sign transaction
-    // const signTx: any = await caver.klay.accounts.signTransaction(tx)
+    // Sign transaction
+    const signTx: any = await caver.klay.accounts.signTransaction(tx)
 
-    // // Send signed transaction
-    // const txReceipt = await caver.klay.sendSignedTransaction(signTx)
-    // const txFee = BigNumber.from(txReceipt.effectiveGasPrice).mul(BigNumber.from(txReceipt.gasUsed))
-    // const afterBalanceOfTo = await caver.klay.getBalance(to)
-    // const afterBalanceOfAccount1 = await caver.klay.getBalance(account1.address)
+    // Send signed transaction
+    const txReceipt = await caver.klay.sendSignedTransaction(signTx)
+    const txFee = BigNumber.from(txReceipt.effectiveGasPrice).mul(BigNumber.from(txReceipt.gasUsed))
+    const afterBalanceOfTo = await caver.klay.getBalance(to)
+    const afterBalanceOfAccount1 = await caver.klay.getBalance(account1.address)
 
-    // expect(
-    //   BigNumber.from(afterBalanceOfTo).eq(
-    //     BigNumber.from(beforeBalanceOfTo).add(BigNumber.from(amount))
-    //   )
-    // ).toBe(true)
-    // expect(
-    //   BigNumber.from(afterBalanceOfAccount1).eq(
-    //     BigNumber.from(beforeBalanceOfAccount1).sub(BigNumber.from(amount)).sub(txFee)
-    //   )
-    // ).toBe(true)
+    expect(
+      BigNumber.from(afterBalanceOfTo).eq(
+        BigNumber.from(beforeBalanceOfTo).add(BigNumber.from(amount))
+      )
+    ).toBe(true)
+    expect(
+      BigNumber.from(afterBalanceOfAccount1).eq(
+        BigNumber.from(beforeBalanceOfAccount1).sub(BigNumber.from(amount)).sub(txFee)
+      )
+    ).toBe(true)
   })
 })
