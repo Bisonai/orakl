@@ -3,12 +3,13 @@ import { BigNumber, ethers } from 'ethers'
 import Caver from 'caver-js'
 import { NODE_ENV } from '../src/settings'
 
-let PROVIDER_URL
-if (NODE_ENV != 'development') {
-  PROVIDER_URL = 'https://api.baobab.klaytn.net:8651'
-} else {
-  PROVIDER_URL = 'http://127.0.0.1:8551'
-}
+let PROVIDER_URL = 'https://api.baobab.klaytn.net:8651'
+
+// if (NODE_ENV != 'development') {
+//   PROVIDER_URL = 'https://api.baobab.klaytn.net:8651'
+// } else {
+//   PROVIDER_URL = 'http://127.0.0.1:8551'
+// }
 
 const caver = new Caver(PROVIDER_URL)
 const password = 'trb}RROVYs#ye2rq'
