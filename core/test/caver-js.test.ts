@@ -38,8 +38,11 @@ const key = {
 
 describe('Reporter', function () {
   test('Send signed tx with is caver-js', async function () {
+    console.log('Started')
     const account1 = caver.klay.accounts.decrypt(key, password)
+    console.log('Account', account1)
     caver.klay.accounts.wallet.add(account1.privateKey)
+    console.log('Wallet connected')
 
     const amount = ethers.utils.parseEther('0.001')
     const to = '0xeF5cd886C7f8d85fbe8023291761341aCBb4DA01'
