@@ -30,5 +30,6 @@ export enum IcnErrorCode {
   ProviderNetworkError,
   InvalidDecodedMesssageLength,
   IndexOutOfBoundaries,
-  AggregatorNotFound
+  AggregatorNotFound,
+  AggregatorJobCanTakeMoreBreak
 }

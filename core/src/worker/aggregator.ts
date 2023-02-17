@@ -1,12 +1,6 @@
 import { Worker, Queue } from 'bullmq'
 import { Logger } from 'pino'
-import {
-  fetchDataWithAdapter,
-  loadAdapters,
-  loadAggregators,
-  mergeAggregatorsAdapters,
-  uniform
-} from './utils'
+import type { RedisClientType } from 'redis'
 import {
   IAggregatorListenerWorker,
   IAggregatorWorkerReporter,
@@ -18,10 +12,21 @@ import {
   FIXED_HEARTBEAT_QUEUE_NAME,
   RANDOM_HEARTBEAT_QUEUE_NAME,
   BULLMQ_CONNECTION,
-  PUBLIC_KEY as OPERATOR_ADDRESS
+  PUBLIC_KEY as OPERATOR_ADDRESS,
+  lastSubmissionTimeKey,
+  REDIS_HOST,
+  REDIS_PORT
 } from '../settings'
 import { IcnError, IcnErrorCode } from '../errors'
-import { oracleRoundStateCall } from './utils'
+import { createRedisClient } from '../utils'
+import {
+  fetchDataWithAdapter,
+  loadAdapters,
+  loadAggregators,
+  mergeAggregatorsAdapters,
+  uniform,
+  oracleRoundStateCall
+} from './utils'
 
 const FILE_NAME = import.meta.url
 
@@ -37,6 +42,8 @@ export async function aggregatorWorker(_logger: Logger) {
   const aggregatorsWithAdapters = mergeAggregatorsAdapters(aggregators, adapters)
   logger.debug(aggregatorsWithAdapters, 'aggregatorsWithAdapters')
 
+  const redisClient = await createRedisClient(REDIS_HOST, REDIS_PORT)
+
   // Event based worker
   new Worker(
     WORKER_AGGREGATOR_QUEUE_NAME,
@@ -51,22 +58,23 @@ export async function aggregatorWorker(_logger: Logger) {
       FIXED_HEARTBEAT_QUEUE_NAME,
       REPORTER_AGGREGATOR_QUEUE_NAME,
       aggregatorsWithAdapters,
+      redisClient,
       _logger
     ),
     BULLMQ_CONNECTION
   )
 
   // Random heartbeat worker
-  new Worker(
-    RANDOM_HEARTBEAT_QUEUE_NAME,
-    randomHeartbeatJob(
-      RANDOM_HEARTBEAT_QUEUE_NAME,
-      REPORTER_AGGREGATOR_QUEUE_NAME,
-      aggregatorsWithAdapters,
-      _logger
-    ),
-    BULLMQ_CONNECTION
-  )
+  // new Worker(
+  //   RANDOM_HEARTBEAT_QUEUE_NAME,
+  //   randomHeartbeatJob(
+  //     RANDOM_HEARTBEAT_QUEUE_NAME,
+  //     REPORTER_AGGREGATOR_QUEUE_NAME,
+  //     aggregatorsWithAdapters,
+  //     _logger
+  //   ),
+  //   BULLMQ_CONNECTION
+  // )
 }
 
 function aggregatorJob(reporterQueueName: string, aggregatorsWithAdapters, _logger: Logger) {
@@ -106,6 +114,7 @@ function fixedHeartbeatJob(
   heartbeatQueueName: string,
   reporterQueueName: string,
   agregatorsWithAdapters: IAggregatorHeartbeatWorker[],
+  redisClient: RedisClientType,
   _logger: Logger
 ) {
   const logger = _logger.child({ name: 'fixedHeartBeatJob', file: FILE_NAME })
@@ -114,7 +123,6 @@ function fixedHeartbeatJob(
   const reporterQueue = new Queue(reporterQueueName, BULLMQ_CONNECTION)
 
   // Launch all aggregators to be executed with fixed heartbeat
-  // TODO Add clock synchronization through on-chain public data timestamp
   for (const k in agregatorsWithAdapters) {
     const ag = agregatorsWithAdapters[k]
     if (ag.fixedHeartbeatRate.active) {
@@ -129,17 +137,29 @@ function fixedHeartbeatJob(
     const inData: IAggregatorHeartbeatWorker = job.data
     logger.debug(inData, 'inData')
 
+    const now = Date.now()
+    const lastSubmissionTime = Number(await redisClient.get(lastSubmissionTimeKey(inData.address)))
+    const nextHeartbeat = lastSubmissionTime + inData.fixedHeartbeatRate.value
+
     try {
+      if (now < nextHeartbeat) {
+        throw new IcnError(IcnErrorCode.AggregatorJobCanTakeMoreBreak)
+      }
+
       const outData = await prepareDataForReporter({ data: inData, workerSource: 'fixed', _logger })
       logger.debug(outData, 'outData')
       if (outData.report) {
         reporterQueue.add('aggregator', outData, { removeOnComplete: true })
       }
     } catch (e) {
-      logger.error(e)
+      if (e.code == IcnErrorCode.AggregatorJobCanTakeMoreBreak) {
+        logger.info(e)
+      } else {
+        logger.error(e)
+      }
     } finally {
       heartbeatQueue.add('fixed-heartbeat', inData, {
-        delay: inData.fixedHeartbeatRate.value,
+        delay: nextHeartbeat - now,
         removeOnComplete: true
       })
     }

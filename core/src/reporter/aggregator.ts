@@ -4,16 +4,21 @@ import { Logger } from 'pino'
 import { RedisClientType } from 'redis'
 import { Aggregator__factory } from '@bisonai/orakl-contracts'
 import { ISubmissionInfo } from './types'
-import { loadWalletParameters, sendTransaction, buildWallet, createRedisClient } from './utils'
+import { loadWalletParameters, sendTransaction, buildWallet } from './utils'
 import {
   REPORTER_AGGREGATOR_QUEUE_NAME,
   BULLMQ_CONNECTION,
   PUBLIC_KEY as OPERATOR_ADDRESS,
   REDIS_HOST,
   REDIS_PORT,
-  DEPLOYMENT_NAME
+  DEPLOYMENT_NAME,
+  toSubmitRoundIdKey,
+  submittedRoundIdKey,
+  submitterKey,
+  lastSubmissionTimeKey
 } from '../settings'
 import { IAggregatorWorkerReporter } from '../types'
+import { createRedisClient } from '../utils'
 import { oracleRoundStateCall } from '../worker/utils'
 
 const FILE_NAME = import.meta.url
@@ -75,6 +80,7 @@ function job(wallet, redisClient: RedisClientType, _logger: Logger) {
         await sendTransaction({ wallet, to: aggregatorAddress, payload, _logger })
 
         await redisClient.set(submittedRoundIdKey(aggregatorAddress), inData.roundId)
+        await redisClient.set(lastSubmissionTimeKey(aggregatorAddress), Date.now())
       } else {
         logger.info(`Data for ${inData.roundId} has already been submitted!`)
       }
@@ -85,18 +91,6 @@ function job(wallet, redisClient: RedisClientType, _logger: Logger) {
   }
 
   return wrapper
-}
-
-function toSubmitRoundIdKey(aggregatorAddress: string): string {
-  return `${aggregatorAddress}-toSubmitRoundId-${DEPLOYMENT_NAME}`
-}
-
-function submittedRoundIdKey(aggregatorAddress: string): string {
-  return `${aggregatorAddress}-submittedRoundId-${DEPLOYMENT_NAME}`
-}
-
-function submitterKey(aggregatorAddress: string): string {
-  return `${aggregatorAddress}-submitter-${DEPLOYMENT_NAME}`
 }
 
 async function getSubmissionInfo(

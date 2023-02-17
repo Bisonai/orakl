@@ -156,3 +156,19 @@ export async function getAggregators(db, chain: string) {
   const aggregators = await db.all(query)
   return aggregators
 }
+
+export function toSubmitRoundIdKey(aggregatorAddress: string): string {
+  return `${aggregatorAddress}-toSubmitRoundId-${DEPLOYMENT_NAME}`
+}
+
+export function submittedRoundIdKey(aggregatorAddress: string): string {
+  return `${aggregatorAddress}-submittedRoundId-${DEPLOYMENT_NAME}`
+}
+
+export function submitterKey(aggregatorAddress: string): string {
+  return `${aggregatorAddress}-submitter-${DEPLOYMENT_NAME}`
+}
+
+export function lastSubmissionTimeKey(aggregatorAddress: string): string {
+  return `${aggregatorAddress}-lastSubmission-${DEPLOYMENT_NAME}`
+}

@@ -1,7 +1,5 @@
 import { ethers } from 'ethers'
 import { Logger } from 'pino'
-import { createClient } from 'redis'
-import { RedisClientType } from 'redis'
 import { IcnError, IcnErrorCode } from '../errors'
 import { PROVIDER_URL as PROVIDER_ENV, PRIVATE_KEY as PRIVATE_KEY_ENV } from '../settings'
 import { add0x } from '../utils'
@@ -100,13 +98,4 @@ export async function sendTransaction({
       throw e
     }
   }
-}
-
-export async function createRedisClient(host: string, port: number): Promise<RedisClientType> {
-  const client: RedisClientType = createClient({
-    // redis[s]://[[username][:password]@][host][:port][/db-number]
-    url: `redis://${host}:${port}`
-  })
-  await client.connect()
-  return client
 }
