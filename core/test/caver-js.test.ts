@@ -1,4 +1,4 @@
-import { describe, test, expect } from '@jest/globals'
+import { describe, test, expect, jest } from '@jest/globals'
 import { BigNumber, ethers } from 'ethers'
 import Caver from 'caver-js'
 
@@ -43,7 +43,7 @@ describe('Reporter', function () {
     console.log('Account', account1)
     caver.klay.accounts.wallet.add(account1.privateKey)
     console.log('Wallet connected')
-
+    jest.setTimeout(30000)
     const amount = ethers.utils.parseEther('0.001')
     const to = '0xeF5cd886C7f8d85fbe8023291761341aCBb4DA01'
     const beforeBalanceOfTo = await caver.klay.getBalance(to)
