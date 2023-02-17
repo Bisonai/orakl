@@ -3,7 +3,6 @@ import { BigNumber, ethers } from 'ethers'
 import Caver from 'caver-js'
 
 const PROVIDER_URL = 'https://api.baobab.klaytn.net:8651'
-
 // if (NODE_ENV != 'development') {
 //   PROVIDER_URL = 'https://api.baobab.klaytn.net:8651'
 // } else {
@@ -37,13 +36,13 @@ const key = {
 }
 
 describe('Reporter', function () {
+  jest.setTimeout(30000)
   test('Send signed tx with is caver-js', async function () {
     console.log('Started')
     const account1 = caver.klay.accounts.decrypt(key, password)
     console.log('Account', account1)
     caver.klay.accounts.wallet.add(account1.privateKey)
     console.log('Wallet connected')
-    jest.setTimeout(30000)
     const amount = ethers.utils.parseEther('0.001')
     const to = '0xeF5cd886C7f8d85fbe8023291761341aCBb4DA01'
     const beforeBalanceOfTo = await caver.klay.getBalance(to)
