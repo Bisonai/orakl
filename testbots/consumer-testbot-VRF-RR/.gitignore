@@ -1,7 +1,7 @@
 yarn-error.log
+yarn.lock
 .env
+.DS_Store
 dist/
 node_modules/
 tmp/
-listener/*
-.DS_Store
