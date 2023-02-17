@@ -2,13 +2,14 @@ import * as dotenv from "dotenv";
 dotenv.config();
 import { ethers } from "ethers";
 import { existsSync } from "fs";
+import { ILogData } from "../types";
 import { readTextFile, writeTextAppend, writeTextFile } from "../utils";
 import { buildWallet, sendTransaction } from "./utils";
 
 const abis = await readTextFile("./src/abis/request-response.json");
 const RR_CONSUMER = process.env.RR_CONSUMER;
 const ACC_ID = process.env.ACC_ID;
-const jsonResult: any = [];
+let jsonResult: ILogData[] = [];
 export async function sendRequestData() {
   const iface = new ethers.utils.Interface(abis);
   const gasLimit = 3_000_000; // FIXME
@@ -17,11 +18,13 @@ export async function sendRequestData() {
   const d = new Date();
   const m = d.toISOString().split("T")[0];
   const jsonPath = `./tmp/request/request-response-${m}.json`;
-  const errorPath = `./tmp/request/request-response-error-${m}.json`;
+  const errorPath = `./tmp/request/request-response-error-${m}.txt`;
 
   let fileData = "";
   if (existsSync(jsonPath)) fileData = await readTextFile(jsonPath);
   await writeTextFile(jsonPath, JSON.stringify(jsonResult));
+  if (fileData) jsonResult = <ILogData[]>JSON.parse(fileData);
+
   try {
     const payload = iface.encodeFunctionData("requestData", [
       ACC_ID,
@@ -37,7 +40,7 @@ export async function sendRequestData() {
     const requestObject = iface.parseLog(tx.logs[1]).args;
     console.log("tx", requestObject);
 
-    const result = {
+    const result: ILogData = {
       block: tx.blockNumber,
       txHash: tx.transactionHash,
       requestId: requestObject.requestId.toString(),

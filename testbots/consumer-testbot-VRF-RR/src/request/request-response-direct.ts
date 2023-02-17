@@ -2,12 +2,13 @@ import * as dotenv from "dotenv";
 dotenv.config();
 import { ethers } from "ethers";
 import { existsSync } from "fs";
+import { ILogData } from "../types";
 import { readTextFile, writeTextAppend, writeTextFile } from "../utils";
 import { buildWallet, sendTransaction } from "./utils";
 
 const abis = await readTextFile("./src/abis/request-response.json");
 const RR_CONSUMER = process.env.RR_CONSUMER;
-const jsonResult: any = [];
+let jsonResult: ILogData[] = [];
 
 export async function sendRequestDataDirect() {
   const iface = new ethers.utils.Interface(abis);
@@ -17,10 +18,12 @@ export async function sendRequestDataDirect() {
   const d = new Date();
   const m = d.toISOString().split("T")[0];
   const jsonPath = `./tmp/request/request-response-direct-${m}.json`;
-  const errorPath = `./tmp/request/request-response-direct-error-${m}.json`;
+  const errorPath = `./tmp/request/request-response-direct-error-${m}.txt`;
 
   let fileData = "";
   if (existsSync(jsonPath)) fileData = await readTextFile(jsonPath);
+  if (fileData) jsonResult = <ILogData[]>JSON.parse(fileData);
+
   try {
     const payload = iface.encodeFunctionData("requestDataDirectPayment", [
       callbackGasLimit,
@@ -35,7 +38,7 @@ export async function sendRequestDataDirect() {
     const requestObject = iface.parseLog(tx.logs[4]).args;
     console.log("tx", requestObject);
 
-    const result = {
+    const result: ILogData = {
       block: tx.blockNumber,
       txHash: tx.transactionHash,
       requestId: requestObject.requestId.toString(),

@@ -1,11 +1,11 @@
 import { ethers } from "ethers";
 import { Event } from "./event";
-import { IListenerConfig } from "../types";
+import { IListenerConfig, IRRLogData } from "../types";
 import { existsSync } from "fs";
 import { readTextFile, writeTextFile } from "../utils";
 
 const abis = await readTextFile(`./src/abis/request-response.json`);
-let jsonResult: any = [];
+let jsonResult: IRRLogData[] = [];
 let fileData = "";
 export function buildListener(config: IListenerConfig) {
   new Event(processConsumerEvent, abis, config).listen();
@@ -20,9 +20,10 @@ function processConsumerEvent(iface: ethers.utils.Interface) {
     const jsonPath = `./tmp/listener/request-respone-fulfill-log-${m}.json`;
     if (existsSync(jsonPath)) fileData = await readTextFile(jsonPath);
 
-    if (fileData && jsonResult.length == 0) jsonResult = JSON.parse(fileData);
+    if (fileData && jsonResult.length == 0)
+      jsonResult = <IRRLogData[]>JSON.parse(fileData);
     if (eventData) {
-      const result = {
+      const result: IRRLogData = {
         block: log.blockNumber,
         address: log.address,
         txHash: log.transactionHash,

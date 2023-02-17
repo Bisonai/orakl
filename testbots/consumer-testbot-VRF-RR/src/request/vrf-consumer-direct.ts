@@ -2,13 +2,13 @@ import * as dotenv from "dotenv";
 dotenv.config();
 import { ethers } from "ethers";
 import { existsSync } from "fs";
+import { ILogData } from "../types";
 import { readTextFile, writeTextAppend, writeTextFile } from "../utils";
 import { buildWallet, sendTransaction } from "./utils";
 
 const abis = await readTextFile("./src/abis/consumer.json");
 const VRF_CONSUMER = process.env.VRF_CONSUMER;
-const ACC_ID = process.env.ACC_ID;
-let jsonResult: any = [];
+let jsonResult: ILogData[] = [];
 
 export async function sendRequestRandomWordsDirect() {
   const iface = new ethers.utils.Interface(abis);
@@ -21,11 +21,11 @@ export async function sendRequestRandomWordsDirect() {
   const d = new Date();
   const m = d.toISOString().split("T")[0];
   const jsonPath = `./tmp/request/requestRandomwords-Direct-${m}.json`;
-  const errorPath = `./tmp/request/requestRandomwords-Direct-error-${m}.json`;
+  const errorPath = `./tmp/request/requestRandomwords-Direct-error-${m}.txt`;
   let fileData = "";
   if (existsSync(jsonPath)) fileData = await readTextFile(jsonPath);
   await writeTextFile(jsonPath, JSON.stringify(jsonResult));
-  if (fileData) jsonResult = JSON.parse(fileData);
+  if (fileData) jsonResult = <ILogData[]>JSON.parse(fileData);
   try {
     const payload = iface.encodeFunctionData("requestRandomWordsDirect", [
       keyHash,
@@ -44,7 +44,7 @@ export async function sendRequestRandomWordsDirect() {
     const tx = await txReceipt.wait();
     const requestObject = iface.parseLog(tx.logs[4]).args;
 
-    const result = {
+    const result: ILogData = {
       block: tx.blockNumber,
       txHash: tx.transactionHash,
       requestId: requestObject.requestId.toString(),

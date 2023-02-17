@@ -1,12 +1,12 @@
 import { ethers } from "ethers";
 import { Event } from "./event";
-import { IListenerConfig } from "../types";
+import { IListenerConfig, IVRFLogData } from "../types";
 import { existsSync } from "fs";
 import { readTextFile, writeTextFile } from "../utils";
 
 const abis = await readTextFile("./src/abis/consumer.json");
 let eventCount = 0;
-let jsonResult: any = [];
+let jsonResult: IVRFLogData[] = [];
 let fileData = "";
 export function buildVrfListener(config: IListenerConfig) {
   new Event(processConsumerEvent, abis, config).listen();
@@ -21,10 +21,11 @@ function processConsumerEvent(iface: ethers.utils.Interface) {
     const jsonPath = `./tmp/listener/consumer-fulfill-log-${m}.json`;
     if (existsSync(jsonPath)) fileData = await readTextFile(jsonPath);
 
-    if (fileData && jsonResult.length == 0) jsonResult = JSON.parse(fileData);
+    if (fileData && jsonResult.length == 0)
+      jsonResult = <IVRFLogData[]>JSON.parse(fileData);
 
     if (eventData) {
-      const result = {
+      const result: IVRFLogData = {
         block: log.blockNumber,
         address: log.address,
         txHash: log.transactionHash,
