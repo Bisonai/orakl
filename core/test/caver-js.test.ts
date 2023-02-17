@@ -1,9 +1,8 @@
 import { describe, test, expect } from '@jest/globals'
 import { BigNumber, ethers } from 'ethers'
 import Caver from 'caver-js'
-import { NODE_ENV } from '../src/settings'
 
-let PROVIDER_URL = 'https://api.baobab.klaytn.net:8651'
+const PROVIDER_URL = 'https://api.baobab.klaytn.net:8651'
 
 // if (NODE_ENV != 'development') {
 //   PROVIDER_URL = 'https://api.baobab.klaytn.net:8651'
