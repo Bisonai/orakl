@@ -57,16 +57,16 @@ export async function aggregatorWorker(_logger: Logger) {
   )
 
   // Random heartbeat worker
-  // new Worker(
-  //   RANDOM_HEARTBEAT_QUEUE_NAME,
-  //   randomHeartbeatJob(
-  //     RANDOM_HEARTBEAT_QUEUE_NAME,
-  //     REPORTER_AGGREGATOR_QUEUE_NAME,
-  //     aggregatorsWithAdapters,
-  //     _logger
-  //   ),
-  //   BULLMQ_CONNECTION
-  // )
+  new Worker(
+    RANDOM_HEARTBEAT_QUEUE_NAME,
+    randomHeartbeatJob(
+      RANDOM_HEARTBEAT_QUEUE_NAME,
+      REPORTER_AGGREGATOR_QUEUE_NAME,
+      aggregatorsWithAdapters,
+      _logger
+    ),
+    BULLMQ_CONNECTION
+  )
 }
 
 function aggregatorJob(reporterQueueName: string, aggregatorsWithAdapters, _logger: Logger) {
