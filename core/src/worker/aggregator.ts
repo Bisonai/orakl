@@ -128,7 +128,8 @@ function fixedHeartbeatJob(
     if (ag.fixedHeartbeatRate.active) {
       heartbeatQueue.add('fixed-heartbeat', addReportProperty(ag, true), {
         delay: ag.fixedHeartbeatRate.value,
-        removeOnComplete: true
+        removeOnComplete: 1000,
+        removeOnFail: 5000
       })
     }
   }
@@ -138,7 +139,8 @@ function fixedHeartbeatJob(
     logger.debug(inData, 'inData')
 
     const now = Date.now()
-    const lastSubmissionTime = Number(await redisClient.get(lastSubmissionTimeKey(inData.address)))
+    const lastSubmissionTime =
+      Number(await redisClient.get(lastSubmissionTimeKey(inData.address))) || now
     const nextHeartbeat = lastSubmissionTime + inData.fixedHeartbeatRate.value
 
     try {
@@ -158,9 +160,11 @@ function fixedHeartbeatJob(
         logger.error(e)
       }
     } finally {
+      const delay = Math.max(0, nextHeartbeat - now)
       heartbeatQueue.add('fixed-heartbeat', inData, {
-        delay: nextHeartbeat - now,
-        removeOnComplete: true
+        delay,
+        removeOnComplete: 1000,
+        removeOnFail: 5000
       })
     }
   }

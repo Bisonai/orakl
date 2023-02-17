@@ -79,8 +79,10 @@ function job(wallet, redisClient: RedisClientType, _logger: Logger) {
         const payload = iface.encodeFunctionData('submit', [inData.roundId, inData.submission])
         await sendTransaction({ wallet, to: aggregatorAddress, payload, _logger })
 
+        const now = Date.now()
         await redisClient.set(submittedRoundIdKey(aggregatorAddress), inData.roundId)
-        await redisClient.set(lastSubmissionTimeKey(aggregatorAddress), Date.now())
+        await redisClient.set(lastSubmissionTimeKey(aggregatorAddress), now)
+        logger.debug(`Submitted`)
       } else {
         logger.info(`Data for ${inData.roundId} has already been submitted!`)
       }
