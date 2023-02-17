@@ -23,7 +23,7 @@ export async function sendRequestRandomWords() {
   const jsonPath = `./tmp/request/requestRandomwords-${m}.json`;
   const errorPath = `./tmp/request/requestRandomwords-error-${m}.json`;
 
-  let fileData: string = "";
+  let fileData = "";
   if (existsSync(jsonPath)) fileData = await readTextFile(jsonPath);
   await writeTextFile(jsonPath, JSON.stringify(jsonResult));
 

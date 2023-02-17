@@ -1,7 +1,7 @@
 import { ethers } from "ethers";
 import { add0x } from "../utils";
-import * as dotenv from 'dotenv'
-dotenv.config()
+import * as dotenv from "dotenv";
+dotenv.config();
 
 const PRIVATE_KEY_ENV = process.env.PRIVATE_KEY;
 const PROVIDER_ENV = process.env.PROVIDER_URL;

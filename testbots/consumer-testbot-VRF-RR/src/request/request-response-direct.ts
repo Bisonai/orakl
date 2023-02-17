@@ -7,7 +7,7 @@ import { buildWallet, sendTransaction } from "./utils";
 
 const abis = await readTextFile("./src/abis/request-response.json");
 const RR_CONSUMER = process.env.RR_CONSUMER;
-let jsonResult: any = [];
+const jsonResult: any = [];
 
 export async function sendRequestDataDirect() {
   const iface = new ethers.utils.Interface(abis);

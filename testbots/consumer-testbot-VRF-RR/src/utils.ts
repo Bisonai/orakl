@@ -11,7 +11,6 @@ export function add0x(s) {
   }
 }
 
-
 export function mkdir(dir: string) {
   if (!fs.existsSync(dir)) {
     fs.mkdirSync(dir, { recursive: true });

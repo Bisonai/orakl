@@ -8,7 +8,7 @@ import { buildWallet, sendTransaction } from "./utils";
 const abis = await readTextFile("./src/abis/request-response.json");
 const RR_CONSUMER = process.env.RR_CONSUMER;
 const ACC_ID = process.env.ACC_ID;
-let jsonResult: any = [];
+const jsonResult: any = [];
 export async function sendRequestData() {
   const iface = new ethers.utils.Interface(abis);
   const gasLimit = 3_000_000; // FIXME

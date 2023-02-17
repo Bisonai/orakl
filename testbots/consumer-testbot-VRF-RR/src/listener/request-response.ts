@@ -41,7 +41,7 @@ function processConsumerEvent(iface: ethers.utils.Interface) {
 async function main() {
   const listenersConfig: IListenerConfig = {
     address: process.env.RR_CONSUMER ?? "",
-    eventName: "DataFulfilled"
+    eventName: "DataFulfilled",
   };
 
   console.log(listenersConfig);

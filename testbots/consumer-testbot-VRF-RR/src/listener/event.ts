@@ -6,7 +6,7 @@ import * as dotenv from "dotenv";
 dotenv.config();
 
 const PROVIDER_URL = process.env.PROVIDER_URL;
-const LISTENER_ROOT_DIR: string = "./tmp/listener/";
+const LISTENER_ROOT_DIR = "./tmp/listener/";
 const LISTENER_DELAY = 1000;
 export class Event {
   fn: (log) => void;
