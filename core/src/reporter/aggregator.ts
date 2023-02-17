@@ -25,6 +25,13 @@ export async function reporter(_logger: Logger) {
   const wallet = await buildWallet({ privateKey, providerUrl })
   const redisClient = await createRedisClient(REDIS_HOST, REDIS_PORT)
 
+  const regex = new RegExp(`${DEPLOYMENT_NAME}$`)
+  for await (const key of redisClient.scanIterator()) {
+    if (regex.test(key)) {
+      redisClient.del(key)
+    }
+  }
+
   new Worker(
     REPORTER_AGGREGATOR_QUEUE_NAME,
     await job(wallet, redisClient, _logger),
@@ -81,15 +88,15 @@ function job(wallet, redisClient: RedisClientType, _logger: Logger) {
 }
 
 function toSubmitRoundIdKey(aggregatorAddress: string): string {
-  return `${aggregatorAddress}-${DEPLOYMENT_NAME}-toSubmitRoundId`
+  return `${aggregatorAddress}-toSubmitRoundId-${DEPLOYMENT_NAME}`
 }
 
 function submittedRoundIdKey(aggregatorAddress: string): string {
-  return `${aggregatorAddress}-${DEPLOYMENT_NAME}-submittedRoundId`
+  return `${aggregatorAddress}-submittedRoundId-${DEPLOYMENT_NAME}`
 }
 
 function submitterKey(aggregatorAddress: string): string {
-  return `${aggregatorAddress}-${DEPLOYMENT_NAME}-submitter`
+  return `${aggregatorAddress}-submitter-${DEPLOYMENT_NAME}`
 }
 
 async function getSubmissionInfo(
