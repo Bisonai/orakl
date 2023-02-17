@@ -4,7 +4,7 @@ import Caver from 'caver-js'
 import { NODE_ENV } from '../src/settings'
 
 let PROVIDER_URL
-if (NODE_ENV == 'development') {
+if (NODE_ENV != 'development') {
   PROVIDER_URL = 'https://api.baobab.klaytn.net:8651'
 } else {
   PROVIDER_URL = 'http://127.0.0.1:8551'
