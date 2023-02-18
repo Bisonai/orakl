@@ -128,8 +128,8 @@ function fixedHeartbeatJob(
     if (ag.fixedHeartbeatRate.active) {
       heartbeatQueue.add('fixed-heartbeat', addReportProperty(ag, true), {
         delay: ag.fixedHeartbeatRate.value,
-        removeOnComplete: 1000,
-        removeOnFail: 5000
+        removeOnComplete: 500,
+        removeOnFail: 1_000
       })
     }
   }
@@ -139,32 +139,37 @@ function fixedHeartbeatJob(
     logger.debug(inData, 'inData')
 
     const now = Date.now()
-    const lastSubmissionTime =
-      Number(await redisClient.get(lastSubmissionTimeKey(inData.address))) || now
-    const nextHeartbeat = lastSubmissionTime + inData.fixedHeartbeatRate.value
+    const lastSubmissionTime = Number(await redisClient.get(lastSubmissionTimeKey(inData.address)))
+    const isFirstSubmission = lastSubmissionTime == 0
 
     try {
-      if (now < nextHeartbeat) {
-        throw new IcnError(IcnErrorCode.AggregatorJobCanTakeMoreBreak)
-      }
+      logger.debug(
+        { isFirstSubmission, now, /*toSubmitTime,*/ lastSubmissionTime /*nextHeartbeat*/ },
+        'times'
+      ) // TODO delete
 
       const outData = await prepareDataForReporter({ data: inData, workerSource: 'fixed', _logger })
       logger.debug(outData, 'outData')
       if (outData.report) {
-        reporterQueue.add('aggregator', outData, { removeOnComplete: true })
+        await redisClient.set(toSubmitTimeKey(inData.address), now)
+        reporterQueue.add('aggregator', outData, {
+          removeOnComplete: true,
+          jobId: 'fixmeJobId'
+        })
       }
     } catch (e) {
-      if (e.code == IcnErrorCode.AggregatorJobCanTakeMoreBreak) {
-        logger.info(e)
-      } else {
-        logger.error(e)
-      }
+      logger.error(e)
     } finally {
-      const delay = Math.max(0, nextHeartbeat - now)
+      const delay = isFirstSubmission
+        ? inData.fixedHeartbeatRate.value
+        : Math.max(inData.fixedHeartbeatRate.value, now - lastSubmissionTime)
+
+      logger.debug({ delay }, 'delay') // TODO delete
+
       heartbeatQueue.add('fixed-heartbeat', inData, {
         delay,
-        removeOnComplete: 1000,
-        removeOnFail: 5000
+        removeOnComplete: 500,
+        removeOnFail: 1_000
       })
     }
   }
