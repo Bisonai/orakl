@@ -122,14 +122,17 @@ function fixedHeartbeatJob(
   const heartbeatQueue = new Queue(heartbeatQueueName, BULLMQ_CONNECTION)
   const reporterQueue = new Queue(reporterQueueName, BULLMQ_CONNECTION)
 
+  const REMOVE_ON_COMPLETE = 500
+  const REMOVE_ON_FAIL = 1_000
+
   // Launch all aggregators to be executed with fixed heartbeat
   for (const k in agregatorsWithAdapters) {
     const ag = agregatorsWithAdapters[k]
     if (ag.fixedHeartbeatRate.active) {
       heartbeatQueue.add('fixed-heartbeat', addReportProperty(ag, true), {
         delay: ag.fixedHeartbeatRate.value,
-        removeOnComplete: 500,
-        removeOnFail: 1_000
+        removeOnComplete: REMOVE_ON_COMPLETE,
+        removeOnFail: REMOVE_ON_FAIL
       })
     }
   }
@@ -138,23 +141,23 @@ function fixedHeartbeatJob(
     const inData: IAggregatorHeartbeatWorker = job.data
     logger.debug(inData, 'inData')
 
+    const aggregatorAddress = inData.address
     const now = Date.now()
-    const lastSubmissionTime = Number(await redisClient.get(lastSubmissionTimeKey(inData.address)))
+    const lastSubmissionTime = Number(
+      await redisClient.get(lastSubmissionTimeKey(aggregatorAddress))
+    )
     const isFirstSubmission = lastSubmissionTime == 0
 
     try {
-      logger.debug(
-        { isFirstSubmission, now, /*toSubmitTime,*/ lastSubmissionTime /*nextHeartbeat*/ },
-        'times'
-      ) // TODO delete
+      logger.debug({ isFirstSubmission, now, lastSubmissionTime }, 'times') // TODO delete
 
       const outData = await prepareDataForReporter({ data: inData, workerSource: 'fixed', _logger })
       logger.debug(outData, 'outData')
       if (outData.report) {
-        await redisClient.set(toSubmitTimeKey(inData.address), now)
         reporterQueue.add('aggregator', outData, {
-          removeOnComplete: true,
-          jobId: 'fixmeJobId'
+          removeOnComplete: REMOVE_ON_COMPLETE,
+          removeOnFail: REMOVE_ON_FAIL,
+          jobId: buildReporterJobId({ aggregatorAddress, ...outData })
         })
       }
     } catch (e) {
@@ -168,8 +171,8 @@ function fixedHeartbeatJob(
 
       heartbeatQueue.add('fixed-heartbeat', inData, {
         delay,
-        removeOnComplete: 500,
-        removeOnFail: 1_000
+        removeOnComplete: REMOVE_ON_COMPLETE,
+        removeOnFail: REMOVE_ON_FAIL
       })
     }
   }
@@ -303,4 +306,14 @@ function shouldReport(
 
 function addReportProperty(o, report: boolean) {
   return Object.assign({}, ...[o, { report }])
+}
+
+function buildReporterJobId({
+  aggregatorAddress,
+  roundId
+}: {
+  aggregatorAddress: string
+  roundId: number
+}) {
+  return `${roundId}-${aggregatorAddress}`
 }
