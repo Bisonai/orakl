@@ -153,10 +153,15 @@ function fixedHeartbeatJob(
     const isFirstSubmission = lastSubmissionTime == 0
 
     let slept = false
+    const ACCEPTABLE_TIME_RANGE = 500
+
     try {
       if (
         isFirstSubmission ||
-        Math.max(lastSubmissionTime, toSubmitTime) + inData.fixedHeartbeatRate.value <= now
+        Math.max(lastSubmissionTime, toSubmitTime) +
+          inData.fixedHeartbeatRate.value -
+          ACCEPTABLE_TIME_RANGE <=
+          now
       ) {
         await redisClient.set(toSubmitTimeKey(aggregatorAddress), now)
 
