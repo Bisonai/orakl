@@ -161,6 +161,10 @@ export function toSubmitRoundIdKey(aggregatorAddress: string): string {
   return `${aggregatorAddress}-toSubmitRoundId-${DEPLOYMENT_NAME}`
 }
 
+export function toSubmitTimeKey(aggregatorAddress: string): string {
+  return `${aggregatorAddress}-toSubmitTime-${DEPLOYMENT_NAME}`
+}
+
 export function submittedRoundIdKey(aggregatorAddress: string): string {
   return `${aggregatorAddress}-submittedRoundId-${DEPLOYMENT_NAME}`
 }

@@ -180,7 +180,7 @@ export interface IAggregatorHeartbeatWorker {
   address: string
   name: string
   active: boolean
-  report?: boolean
+  report: boolean
   fixedHeartbeatRate: IProperty
   randomHeartbeatRate: IProperty
   threshold: number

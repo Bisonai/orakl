@@ -13,9 +13,10 @@ import {
   RANDOM_HEARTBEAT_QUEUE_NAME,
   BULLMQ_CONNECTION,
   PUBLIC_KEY as OPERATOR_ADDRESS,
-  lastSubmissionTimeKey,
   REDIS_HOST,
-  REDIS_PORT
+  REDIS_PORT,
+  lastSubmissionTimeKey,
+  toSubmitTimeKey
 } from '../settings'
 import { IcnError, IcnErrorCode } from '../errors'
 import { createRedisClient } from '../utils'
@@ -29,6 +30,10 @@ import {
 } from './utils'
 
 const FILE_NAME = import.meta.url
+
+// FIXME move to settings?
+const REMOVE_ON_COMPLETE = 500
+const REMOVE_ON_FAIL = 1_000
 
 export async function aggregatorWorker(_logger: Logger) {
   const logger = _logger.child({ name: 'aggregatorWorker', file: FILE_NAME })
@@ -65,16 +70,16 @@ export async function aggregatorWorker(_logger: Logger) {
   )
 
   // Random heartbeat worker
-  // new Worker(
-  //   RANDOM_HEARTBEAT_QUEUE_NAME,
-  //   randomHeartbeatJob(
-  //     RANDOM_HEARTBEAT_QUEUE_NAME,
-  //     REPORTER_AGGREGATOR_QUEUE_NAME,
-  //     aggregatorsWithAdapters,
-  //     _logger
-  //   ),
-  //   BULLMQ_CONNECTION
-  // )
+  new Worker(
+    RANDOM_HEARTBEAT_QUEUE_NAME,
+    randomHeartbeatJob(
+      RANDOM_HEARTBEAT_QUEUE_NAME,
+      REPORTER_AGGREGATOR_QUEUE_NAME,
+      aggregatorsWithAdapters,
+      _logger
+    ),
+    BULLMQ_CONNECTION
+  )
 }
 
 function aggregatorJob(reporterQueueName: string, aggregatorsWithAdapters, _logger: Logger) {
@@ -94,6 +99,7 @@ function aggregatorJob(reporterQueueName: string, aggregatorsWithAdapters, _logg
       throw new IcnError(IcnErrorCode.AggregatorNotFound, msg)
     }
 
+    // TODO check on existence
     const ag = addReportProperty(aggregatorsWithAdapters[inData.address], true)
 
     try {
@@ -122,9 +128,6 @@ function fixedHeartbeatJob(
   const heartbeatQueue = new Queue(heartbeatQueueName, BULLMQ_CONNECTION)
   const reporterQueue = new Queue(reporterQueueName, BULLMQ_CONNECTION)
 
-  const REMOVE_ON_COMPLETE = 500
-  const REMOVE_ON_FAIL = 1_000
-
   // Launch all aggregators to be executed with fixed heartbeat
   for (const k in agregatorsWithAdapters) {
     const ag = agregatorsWithAdapters[k]
@@ -146,26 +149,44 @@ function fixedHeartbeatJob(
     const lastSubmissionTime = Number(
       await redisClient.get(lastSubmissionTimeKey(aggregatorAddress))
     )
+    const toSubmitTime = Number(await redisClient.get(toSubmitTimeKey(aggregatorAddress)))
     const isFirstSubmission = lastSubmissionTime == 0
 
+    let slept = false
     try {
-      logger.debug({ isFirstSubmission, now, lastSubmissionTime }, 'times') // TODO delete
+      if (
+        isFirstSubmission ||
+        Math.max(lastSubmissionTime, toSubmitTime) + inData.fixedHeartbeatRate.value <= now
+      ) {
+        await redisClient.set(toSubmitTimeKey(aggregatorAddress), now)
 
-      const outData = await prepareDataForReporter({ data: inData, workerSource: 'fixed', _logger })
-      logger.debug(outData, 'outData')
-      if (outData.report) {
-        reporterQueue.add('aggregator', outData, {
-          removeOnComplete: REMOVE_ON_COMPLETE,
-          removeOnFail: REMOVE_ON_FAIL,
-          jobId: buildReporterJobId({ aggregatorAddress, ...outData })
+        const outData = await prepareDataForReporter({
+          data: inData,
+          workerSource: 'fixed',
+          _logger
         })
+        logger.debug(outData, 'outData')
+
+        if (outData.report) {
+          reporterQueue.add('aggregator', outData, {
+            removeOnComplete: REMOVE_ON_COMPLETE,
+            removeOnFail: REMOVE_ON_FAIL,
+            jobId: buildReporterJobId({ aggregatorAddress, ...outData })
+          })
+        }
+      } else {
+        logger.debug('Sleep more')
+        slept = true
       }
     } catch (e) {
       logger.error(e)
     } finally {
-      const delay = isFirstSubmission
-        ? inData.fixedHeartbeatRate.value
-        : Math.max(inData.fixedHeartbeatRate.value, now - lastSubmissionTime)
+      const delay = slept
+        ? Math.max(
+            0,
+            inData.fixedHeartbeatRate.value - (now - Math.max(lastSubmissionTime, toSubmitTime))
+          )
+        : inData.fixedHeartbeatRate.value
 
       logger.debug({ delay }, 'delay') // TODO delete
 
@@ -195,9 +216,10 @@ function randomHeartbeatJob(
   for (const k in agregatorsWithAdapters) {
     const ag = agregatorsWithAdapters[k]
     if (ag.randomHeartbeatRate.active) {
-      heartbeatQueue.add('random-heartbeat', ag, {
+      heartbeatQueue.add('random-heartbeat', addReportProperty(ag, undefined), {
         delay: uniform(0, ag.randomHeartbeatRate.value),
-        removeOnComplete: true
+        removeOnComplete: REMOVE_ON_COMPLETE,
+        removeOnFail: REMOVE_ON_FAIL
       })
     }
   }
@@ -205,6 +227,8 @@ function randomHeartbeatJob(
   async function wrapper(job) {
     const inData: IAggregatorHeartbeatWorker = job.data
     logger.debug(inData, 'inData')
+
+    const aggregatorAddress = inData.address
 
     try {
       const outData = await prepareDataForReporter({
@@ -214,14 +238,19 @@ function randomHeartbeatJob(
       })
       logger.debug(outData, 'outData')
       if (outData.report) {
-        reporterQueue.add('aggregator', outData, { removeOnComplete: true })
+        reporterQueue.add('aggregator', outData, {
+          removeOnComplete: REMOVE_ON_COMPLETE,
+          removeOnFail: REMOVE_ON_FAIL,
+          jobId: buildReporterJobId({ aggregatorAddress, ...outData })
+        })
       }
     } catch (e) {
       logger.error(e)
     } finally {
       heartbeatQueue.add('random-heartbeat', inData, {
         delay: uniform(0, inData.randomHeartbeatRate.value),
-        removeOnComplete: true
+        removeOnComplete: REMOVE_ON_COMPLETE,
+        removeOnFail: REMOVE_ON_FAIL
       })
     }
   }
@@ -259,9 +288,9 @@ async function prepareDataForReporter({
   logger.debug(oracleRoundState, 'oracleRoundState')
 
   if (report === undefined) {
-    const lastSubmission = oracleRoundState._latestSubmission.toNumber()
-    report = shouldReport(lastSubmission, submission, data.threshold, data.absoluteThreshold)
-    logger.debug(report, 'report')
+    const latestSubmission = oracleRoundState._latestSubmission.toNumber()
+    report = shouldReport(latestSubmission, submission, data.threshold, data.absoluteThreshold)
+    logger.debug({ report }, 'report')
   }
 
   return {
@@ -278,33 +307,33 @@ async function prepareDataForReporter({
  * submission more than given threshold or absolute threshold. If yes,
  * return `true`, otherwise `false`.
  *
- * @param {number} lastSubmission
+ * @param {number} latestSubmission
  * @param {number} submission
  * @param {number} threshold
  * @param {number} absolutethreshold
  * @return {boolean}
  */
 function shouldReport(
-  lastSubmission: number,
+  latestSubmission: number,
   submission: number,
   threshold: number,
   absoluteThreshold: number
 ): boolean {
-  if (lastSubmission && submission) {
-    const range = lastSubmission * threshold
-    const l = lastSubmission - range
-    const r = lastSubmission + range
+  if (latestSubmission && submission) {
+    const range = latestSubmission * threshold
+    const l = latestSubmission - range
+    const r = latestSubmission + range
     return submission < l || submission > r
-  } else if (!lastSubmission && submission) {
-    // lastSubmission hit zero
+  } else if (!latestSubmission && submission) {
+    // latestSubmission hit zero
     return submission > absoluteThreshold
+  } else {
+    // Something strange happened, don't report!
+    return false
   }
-
-  // Something strange happened, don't report!
-  return false
 }
 
-function addReportProperty(o, report: boolean) {
+function addReportProperty(o, report: boolean | undefined) {
   return Object.assign({}, ...[o, { report }])
 }
 
