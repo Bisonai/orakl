@@ -8,6 +8,10 @@ import { PUBLIC_KEY, WORKER_AGGREGATOR_QUEUE_NAME } from '../settings'
 
 const FILE_NAME = import.meta.url
 
+// FIXME move to settings?
+const REMOVE_ON_COMPLETE = 500
+const REMOVE_ON_FAIL = 1_000
+
 export function buildListener(config: IListenerConfig[], logger: Logger) {
   const queueName = WORKER_AGGREGATOR_QUEUE_NAME
   // FIXME remove loop and listen on multiple contract for the same event
@@ -27,13 +31,16 @@ function processEvent(iface: ethers.utils.Interface, queue: Queue, _logger: Logg
       // NewRound emitted by somebody else
       const data: IAggregatorListenerWorker = {
         address: log.address.toLowerCase(),
-        roundId: eventData.roundId,
+        roundId: eventData.roundId.toNumber(),
         startedBy: eventData.startedBy,
         startedAt: eventData.startedAt
       }
       logger.debug(data, 'data')
 
-      await queue.add('aggregator', data, { removeOnComplete: true })
+      await queue.add('aggregator', data, {
+        removeOnComplete: REMOVE_ON_COMPLETE,
+        removeOnFail: REMOVE_ON_FAIL
+      })
     }
   }
 

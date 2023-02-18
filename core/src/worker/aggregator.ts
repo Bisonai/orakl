@@ -15,6 +15,7 @@ import {
   PUBLIC_KEY as OPERATOR_ADDRESS,
   REDIS_HOST,
   REDIS_PORT,
+  DEPLOYMENT_NAME,
   lastSubmissionTimeKey,
   toSubmitTimeKey
 } from '../settings'
@@ -103,10 +104,21 @@ function aggregatorJob(reporterQueueName: string, aggregatorsWithAdapters, _logg
     const ag = addReportProperty(aggregatorsWithAdapters[inData.address], true)
 
     try {
-      const outData = await prepareDataForReporter({ data: ag, workerSource: 'regular', _logger })
+      const outData = await prepareDataForReporter({
+        data: ag,
+        workerSource: 'regular',
+        _logger,
+        roundId: inData.roundId
+      })
       logger.debug(outData, 'outData')
       reporterQueue.add('aggregator', outData, {
-        removeOnComplete: true
+        removeOnComplete: REMOVE_ON_COMPLETE,
+        removeOnFail: REMOVE_ON_FAIL,
+        jobId: buildReporterJobId({
+          aggregatorAddress: ag.address,
+          deploymentName: DEPLOYMENT_NAME,
+          ...outData
+        })
       })
     } catch (e) {
       logger.error(e)
@@ -176,7 +188,11 @@ function fixedHeartbeatJob(
           reporterQueue.add('aggregator', outData, {
             removeOnComplete: REMOVE_ON_COMPLETE,
             removeOnFail: REMOVE_ON_FAIL,
-            jobId: buildReporterJobId({ aggregatorAddress, ...outData })
+            jobId: buildReporterJobId({
+              aggregatorAddress,
+              deploymentName: DEPLOYMENT_NAME,
+              ...outData
+            })
           })
         }
       } else {
@@ -246,7 +262,11 @@ function randomHeartbeatJob(
         reporterQueue.add('aggregator', outData, {
           removeOnComplete: REMOVE_ON_COMPLETE,
           removeOnFail: REMOVE_ON_FAIL,
-          jobId: buildReporterJobId({ aggregatorAddress, ...outData })
+          jobId: buildReporterJobId({
+            aggregatorAddress,
+            deploymentName: DEPLOYMENT_NAME,
+            ...outData
+          })
         })
       }
     } catch (e) {
@@ -273,10 +293,12 @@ function randomHeartbeatJob(
 async function prepareDataForReporter({
   data,
   workerSource,
+  roundId,
   _logger
 }: {
   data: IAggregatorHeartbeatWorker
   workerSource: string
+  roundId?: number
   _logger: Logger
 }): Promise<IAggregatorWorkerReporter> {
   const logger = _logger.child({ name: 'prepareDataForReporter', file: FILE_NAME })
@@ -288,11 +310,13 @@ async function prepareDataForReporter({
   const oracleRoundState = await oracleRoundStateCall({
     aggregatorAddress: data.address,
     operatorAddress: OPERATOR_ADDRESS,
+    roundId,
     logger
   })
   logger.debug(oracleRoundState, 'oracleRoundState')
 
   if (report === undefined) {
+    // TODO does _latestsubmission hold the aggregated value?
     const latestSubmission = oracleRoundState._latestSubmission.toNumber()
     report = shouldReport(latestSubmission, submission, data.threshold, data.absoluteThreshold)
     logger.debug({ report }, 'report')
@@ -303,7 +327,7 @@ async function prepareDataForReporter({
     callbackAddress,
     workerSource,
     submission,
-    roundId: oracleRoundState._roundId
+    roundId: roundId || oracleRoundState._roundId
   }
 }
 
@@ -344,10 +368,12 @@ function addReportProperty(o, report: boolean | undefined) {
 
 function buildReporterJobId({
   aggregatorAddress,
-  roundId
+  roundId,
+  deploymentName
 }: {
   aggregatorAddress: string
   roundId: number
+  deploymentName: string
 }) {
-  return `${roundId}-${aggregatorAddress}`
+  return `${roundId}-${aggregatorAddress}-${deploymentName}`
 }

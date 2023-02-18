@@ -168,7 +168,7 @@ export interface IVrfListenerWorker {
 
 export interface IAggregatorListenerWorker {
   address: string
-  roundId: BigNumber
+  roundId: number
   startedBy: string
   startedAt: BigNumber
 }
