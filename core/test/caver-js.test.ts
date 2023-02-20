@@ -37,11 +37,11 @@ const key = {
   version: 4
 }
 
-describe('Reporter', function () {
+describe('Test Caver-js', function () {
   jest.setTimeout(30000)
 
   if (NODE_ENV == 'development')
-    test.only('Send signed tx with is caver-js', async function () {
+    test.only('Send signed tx with is caver-js on Baobab', async function () {
       const account1 = caver.klay.accounts.decrypt(key, password)
       caver.klay.accounts.wallet.add(account1.privateKey)
       console.log('Wallet connected')
@@ -77,7 +77,7 @@ describe('Reporter', function () {
     })
 
   if (NODE_ENV == 'test')
-    test.only('Send signed tx with is caver-js', async function () {
+    test.only('Send signed tx with is ethers on local', async function () {
       const provider = new ethers.providers.JsonRpcProvider(PROVIDER_URL)
       const privateKey = '0x4bbbf85ce3377467afe5d46f804f221813b2bb87f24d81f60f1fcdbf7cbf4356' // Account 7
       const wallet = await new ethers.Wallet(privateKey, provider)
