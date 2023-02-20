@@ -4,7 +4,7 @@ import Caver from 'caver-js'
 import { NODE_ENV } from '../src/settings'
 
 let PROVIDER_URL
-if (NODE_ENV == 'development') {
+if (NODE_ENV != 'test') {
   PROVIDER_URL = 'https://api.baobab.klaytn.net:8651'
 } else {
   // PROVIDER_URL = 'http://127.0.0.1:8551' // Local Klaytn Sandbox
@@ -40,7 +40,7 @@ const key = {
 describe('Test Caver-js', function () {
   jest.setTimeout(30000)
 
-  if (NODE_ENV == 'development')
+  if (NODE_ENV != 'test')
     test.only('Send signed tx with is caver-js on Baobab', async function () {
       const account1 = caver.klay.accounts.decrypt(key, password)
       caver.klay.accounts.wallet.add(account1.privateKey)
