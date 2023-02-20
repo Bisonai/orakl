@@ -39,8 +39,8 @@ const key = {
 
 describe('Test Caver-js', function () {
   jest.setTimeout(30000)
-
-  if (NODE_ENV != 'test')
+  console.log('NODE_ENV:', NODE_ENV)
+  if (!NODE_ENV)
     test.only('Send signed tx with is caver-js on Baobab', async function () {
       const account1 = caver.klay.accounts.decrypt(key, password)
       caver.klay.accounts.wallet.add(account1.privateKey)
@@ -76,7 +76,7 @@ describe('Test Caver-js', function () {
       ).toBe(true)
     })
 
-  if (NODE_ENV == 'test')
+  if (NODE_ENV)
     test.only('Send signed tx with is ethers on local', async function () {
       const provider = new ethers.providers.JsonRpcProvider(PROVIDER_URL)
       const privateKey = '0x4bbbf85ce3377467afe5d46f804f221813b2bb87f24d81f60f1fcdbf7cbf4356' // Account 7
