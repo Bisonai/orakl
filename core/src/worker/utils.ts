@@ -4,7 +4,7 @@ import { Logger } from 'pino'
 import { dataFeedReducerMapping } from './reducer'
 import { IcnError, IcnErrorCode } from '../errors'
 import { pipe } from '../utils'
-import { IAdapter, IAggregator, IOracleRoundState } from '../types'
+import { IAdapter, IAggregator, IOracleRoundState, IRoundData } from '../types'
 import {
   getAdapters,
   getAggregators,
@@ -215,6 +215,7 @@ export async function oracleRoundStateCall({
 }): Promise<IOracleRoundState> {
   logger?.debug({ name: 'oracleRoundStateCall', file: FILE_NAME })
 
+  // TODO move out and reuse
   const provider = new ethers.providers.JsonRpcProvider(PROVIDER_URL)
   const aggregator = new ethers.Contract(aggregatorAddress, Aggregator__factory.abi, provider)
 
@@ -224,4 +225,17 @@ export async function oracleRoundStateCall({
   }
 
   return await aggregator.oracleRoundState(operatorAddress, queriedRoundId)
+}
+
+export async function getRoundDataCall({
+  aggregatorAddress,
+  roundId
+}: {
+  aggregatorAddress: string
+  roundId: number
+}): Promise<IRoundData> {
+  // TODO move out and reuse
+  const provider = new ethers.providers.JsonRpcProvider(PROVIDER_URL)
+  const aggregator = new ethers.Contract(aggregatorAddress, Aggregator__factory.abi, provider)
+  return await aggregator.getRoundData(roundId)
 }

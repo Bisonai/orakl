@@ -101,6 +101,14 @@ export interface IOracleRoundState {
   _paymentAmount: BigNumber
 }
 
+export interface IRoundData {
+  roundId: BigNumber
+  answer: BigNumber
+  startedAt: BigNumber
+  updatedAt: BigNumber
+  answeredInRound: BigNumber
+}
+
 // Events
 
 export interface IDataRequested {

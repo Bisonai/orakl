@@ -27,7 +27,8 @@ import {
   loadAggregators,
   mergeAggregatorsAdapters,
   uniform,
-  oracleRoundStateCall
+  oracleRoundStateCall,
+  getRoundDataCall
 } from './utils'
 
 const FILE_NAME = import.meta.url
@@ -135,7 +136,7 @@ function fixedHeartbeatJob(
   redisClient: RedisClientType,
   _logger: Logger
 ) {
-  const logger = _logger.child({ name: 'fixedHeartBeatJob', file: FILE_NAME })
+  const logger = _logger.child({ name: 'fixedHeartbeatJob', file: FILE_NAME })
 
   const heartbeatQueue = new Queue(heartbeatQueueName, BULLMQ_CONNECTION)
   const reporterQueue = new Queue(reporterQueueName, BULLMQ_CONNECTION)
@@ -168,12 +169,30 @@ function fixedHeartbeatJob(
     const ACCEPTABLE_TIME_RANGE = 500
 
     try {
+      //
+      const oracleRoundState = await oracleRoundStateCall({
+        aggregatorAddress,
+        operatorAddress: OPERATOR_ADDRESS,
+        logger
+      })
+      const oracleRoundState2 = await oracleRoundStateCall({
+        aggregatorAddress,
+        operatorAddress: OPERATOR_ADDRESS,
+        roundId: oracleRoundState._roundId,
+        logger
+      })
+      logger.debug(oracleRoundState2, 'oracleRoundState2')
+
       if (
         isFirstSubmission ||
-        Math.max(lastSubmissionTime, toSubmitTime) +
+        (oracleRoundState2._startedAt.toNumber() +
           inData.fixedHeartbeatRate.value -
           ACCEPTABLE_TIME_RANGE <=
-          now
+          now &&
+          Math.max(lastSubmissionTime, toSubmitTime) +
+            inData.fixedHeartbeatRate.value -
+            ACCEPTABLE_TIME_RANGE <=
+            now)
       ) {
         await redisClient.set(toSubmitTimeKey(aggregatorAddress), now)
 
