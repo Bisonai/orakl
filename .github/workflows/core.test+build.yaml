@@ -25,7 +25,8 @@ jobs:
         run: yarn test
         working-directory: ./core
         env:
-          ORAKL_DIR: './'
+          NODE_ENV: "development"
+          ORAKL_DIR: "./"
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
       - name: Build package
         run: yarn build
