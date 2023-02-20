@@ -1,13 +1,15 @@
 import { describe, test, expect, jest } from '@jest/globals'
 import { BigNumber, ethers } from 'ethers'
 import Caver from 'caver-js'
+import { NODE_ENV } from '../src/settings'
 
-const PROVIDER_URL = 'https://api.baobab.klaytn.net:8651'
-// if (NODE_ENV != 'development') {
-//   PROVIDER_URL = 'https://api.baobab.klaytn.net:8651'
-// } else {
-//   PROVIDER_URL = 'http://127.0.0.1:8551'
-// }
+let PROVIDER_URL
+if (NODE_ENV == 'development') {
+  PROVIDER_URL = 'https://api.baobab.klaytn.net:8651'
+} else {
+  // PROVIDER_URL = 'http://127.0.0.1:8551' // Local Klaytn Sandbox
+  PROVIDER_URL = 'http://127.0.0.1:8545'
+}
 
 const caver = new Caver(PROVIDER_URL)
 const password = 'trb}RROVYs#ye2rq'
@@ -37,45 +39,67 @@ const key = {
 
 describe('Reporter', function () {
   jest.setTimeout(30000)
-  test('Send signed tx with is caver-js', async function () {
-    console.log('Started')
-    const account1 = caver.klay.accounts.decrypt(key, password)
-    console.log('Account', account1)
-    caver.klay.accounts.wallet.add(account1.privateKey)
-    console.log('Wallet connected')
-    const amount = ethers.utils.parseEther('0.001')
-    const to = '0xeF5cd886C7f8d85fbe8023291761341aCBb4DA01'
-    const beforeBalanceOfTo = await caver.klay.getBalance(to)
-    const beforeBalanceOfAccount1 = await caver.klay.getBalance(account1.address)
 
-    console.log(beforeBalanceOfTo)
-    console.log(beforeBalanceOfAccount1)
-
-    const tx = {
-      from: account1.address,
-      to: to,
-      value: amount,
-      gas: '300000'
-    }
-
-    // Sign transaction
-    const signTx: any = await caver.klay.accounts.signTransaction(tx)
-
-    // Send signed transaction
-    const txReceipt = await caver.klay.sendSignedTransaction(signTx)
-    const txFee = BigNumber.from(txReceipt.effectiveGasPrice).mul(BigNumber.from(txReceipt.gasUsed))
-    const afterBalanceOfTo = await caver.klay.getBalance(to)
-    const afterBalanceOfAccount1 = await caver.klay.getBalance(account1.address)
-
-    expect(
-      BigNumber.from(afterBalanceOfTo).eq(
-        BigNumber.from(beforeBalanceOfTo).add(BigNumber.from(amount))
+  if (NODE_ENV == 'development')
+    test.only('Send signed tx with is caver-js', async function () {
+      const account1 = caver.klay.accounts.decrypt(key, password)
+      caver.klay.accounts.wallet.add(account1.privateKey)
+      console.log('Wallet connected')
+      const amount = ethers.utils.parseEther('0.001')
+      const to = '0xeF5cd886C7f8d85fbe8023291761341aCBb4DA01'
+      const beforeBalanceOfTo = await caver.klay.getBalance(to)
+      const beforeBalanceOfAccount1 = await caver.klay.getBalance(account1.address)
+      const tx = {
+        from: account1.address,
+        to: to,
+        value: amount,
+        gas: '300000'
+      }
+      // Sign transaction
+      const signTx: any = await caver.klay.accounts.signTransaction(tx)
+      // Send signed transaction
+      const txReceipt = await caver.klay.sendSignedTransaction(signTx)
+      const txFee = BigNumber.from(txReceipt.effectiveGasPrice).mul(
+        BigNumber.from(txReceipt.gasUsed)
       )
-    ).toBe(true)
-    expect(
-      BigNumber.from(afterBalanceOfAccount1).eq(
-        BigNumber.from(beforeBalanceOfAccount1).sub(BigNumber.from(amount)).sub(txFee)
-      )
-    ).toBe(true)
-  })
+      const afterBalanceOfTo = await caver.klay.getBalance(to)
+      const afterBalanceOfAccount1 = await caver.klay.getBalance(account1.address)
+      expect(
+        BigNumber.from(afterBalanceOfTo).eq(
+          BigNumber.from(beforeBalanceOfTo).add(BigNumber.from(amount))
+        )
+      ).toBe(true)
+      expect(
+        BigNumber.from(afterBalanceOfAccount1).eq(
+          BigNumber.from(beforeBalanceOfAccount1).sub(BigNumber.from(amount)).sub(txFee)
+        )
+      ).toBe(true)
+    })
+
+  if (NODE_ENV == 'test')
+    test.only('Send signed tx with is caver-js', async function () {
+      const provider = new ethers.providers.JsonRpcProvider(PROVIDER_URL)
+      const privateKey = '0x4bbbf85ce3377467afe5d46f804f221813b2bb87f24d81f60f1fcdbf7cbf4356' // Account 7
+      const wallet = await new ethers.Wallet(privateKey, provider)
+
+      const amount = ethers.utils.parseEther('0.001')
+      const to = '0xeF5cd886C7f8d85fbe8023291761341aCBb4DA01'
+      const beforeBalanceOfTo = await provider.getBalance(to)
+
+      const tx = {
+        from: wallet.address,
+        to: to,
+        value: amount
+      }
+
+      // Send transaction
+      const txReceipt = await wallet.sendTransaction(tx)
+      const afterBalanceOfTo = await provider.getBalance(to)
+      console.log('txReceipt:', txReceipt)
+      expect(
+        BigNumber.from(afterBalanceOfTo).eq(
+          BigNumber.from(beforeBalanceOfTo).add(BigNumber.from(amount))
+        )
+      ).toBe(true)
+    })
 })
