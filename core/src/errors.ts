@@ -31,5 +31,7 @@ export enum IcnErrorCode {
   InvalidDecodedMesssageLength,
   IndexOutOfBoundaries,
   AggregatorNotFound,
-  AggregatorJobCanTakeMoreBreak
+  AggregatorJobCanTakeMoreBreak,
+  UndefinedAggregator,
+  UnexpectedNumberOfJobsInQueue
 }

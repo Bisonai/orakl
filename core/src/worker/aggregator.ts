@@ -1,10 +1,10 @@
 import { Worker, Queue } from 'bullmq'
 import { Logger } from 'pino'
-import type { RedisClientType } from 'redis'
 import {
-  IAggregatorListenerWorker,
+  IAggregatorWorker,
   IAggregatorWorkerReporter,
-  IAggregatorHeartbeatWorker
+  IAggregatorHeartbeatWorker,
+  IAggregatorJob
 } from '../types'
 import {
   WORKER_AGGREGATOR_QUEUE_NAME,
@@ -16,11 +16,13 @@ import {
   REDIS_HOST,
   REDIS_PORT,
   DEPLOYMENT_NAME,
+  REMOVE_ON_COMPLETE,
+  REMOVE_ON_FAIL,
   lastSubmissionTimeKey,
   toSubmitTimeKey
 } from '../settings'
 import { IcnError, IcnErrorCode } from '../errors'
-import { createRedisClient } from '../utils'
+import { createRedisClient, buildReporterJobId } from '../utils'
 import {
   fetchDataWithAdapter,
   loadAdapters,
@@ -32,10 +34,6 @@ import {
 } from './utils'
 
 const FILE_NAME = import.meta.url
-
-// FIXME move to settings?
-const REMOVE_ON_COMPLETE = 500
-const REMOVE_ON_FAIL = 1_000
 
 export async function aggregatorWorker(_logger: Logger) {
   const logger = _logger.child({ name: 'aggregatorWorker', file: FILE_NAME })
@@ -49,7 +47,18 @@ export async function aggregatorWorker(_logger: Logger) {
   const aggregatorsWithAdapters = mergeAggregatorsAdapters(aggregators, adapters)
   logger.debug(aggregatorsWithAdapters, 'aggregatorsWithAdapters')
 
-  const redisClient = await createRedisClient(REDIS_HOST, REDIS_PORT)
+  // Launch all aggregators to be executed with random heartbeat
+  const heartbeatQueue = new Queue(RANDOM_HEARTBEAT_QUEUE_NAME, BULLMQ_CONNECTION)
+  for (const aggregatorAddress in aggregatorsWithAdapters) {
+    const aggregator = aggregatorsWithAdapters[aggregatorAddress]
+    if (aggregator.randomHeartbeatRate.active) {
+      await heartbeatQueue.add('random-heartbeat', addReportProperty(aggregator, undefined), {
+        delay: uniform(0, aggregator.randomHeartbeatRate.value),
+        removeOnComplete: REMOVE_ON_COMPLETE,
+        removeOnFail: REMOVE_ON_FAIL
+      })
+    }
+  }
 
   // Event based worker
   new Worker(
@@ -61,64 +70,53 @@ export async function aggregatorWorker(_logger: Logger) {
   // Fixed heartbeat worker
   new Worker(
     FIXED_HEARTBEAT_QUEUE_NAME,
-    fixedHeartbeatJob(
-      FIXED_HEARTBEAT_QUEUE_NAME,
-      REPORTER_AGGREGATOR_QUEUE_NAME,
-      aggregatorsWithAdapters,
-      redisClient,
-      _logger
-    ),
+    fixedHeartbeatJob(WORKER_AGGREGATOR_QUEUE_NAME, _logger),
     BULLMQ_CONNECTION
   )
 
   // Random heartbeat worker
   new Worker(
     RANDOM_HEARTBEAT_QUEUE_NAME,
-    randomHeartbeatJob(
-      RANDOM_HEARTBEAT_QUEUE_NAME,
-      REPORTER_AGGREGATOR_QUEUE_NAME,
-      aggregatorsWithAdapters,
-      _logger
-    ),
+    randomHeartbeatJob(RANDOM_HEARTBEAT_QUEUE_NAME, REPORTER_AGGREGATOR_QUEUE_NAME, _logger),
     BULLMQ_CONNECTION
   )
 }
 
-function aggregatorJob(reporterQueueName: string, aggregatorsWithAdapters, _logger: Logger) {
+function aggregatorJob(
+  reporterQueueName: string,
+  aggregatorsWithAdapters: IAggregatorJob[],
+  _logger: Logger
+) {
   const logger = _logger.child({ name: 'aggregatorJob', file: FILE_NAME })
-  // This job is coming from on-chain request (event NewRound). Oracle
-  // needs to submit the latest data based on this request without any
-  // check on time or data change.
   const reporterQueue = new Queue(reporterQueueName, BULLMQ_CONNECTION)
 
   async function wrapper(job) {
-    const inData: IAggregatorListenerWorker = job.data
-    logger.debug(inData, 'inData')
+    const inData: IAggregatorWorker = job.data
+    const aggregatorAddress = inData.aggregatorAddress
+    const roundId = inData.roundId
 
-    if (!aggregatorsWithAdapters[inData.address]) {
-      const msg = `Address not found in aggregators ${inData.address}`
-      logger.error(msg)
-      throw new IcnError(IcnErrorCode.AggregatorNotFound, msg)
+    if (!aggregatorsWithAdapters[aggregatorAddress]) {
+      throw new IcnError(IcnErrorCode.UndefinedAggregator)
     }
 
-    // TODO check on existence
-    const ag = addReportProperty(aggregatorsWithAdapters[inData.address], true)
-
     try {
+      const aggregator = addReportProperty(aggregatorsWithAdapters[aggregatorAddress], true)
+
       const outData = await prepareDataForReporter({
-        data: ag,
-        workerSource: 'regular',
-        _logger,
-        roundId: inData.roundId
+        data: aggregator,
+        workerSource: inData.workerSource,
+        roundId,
+        _logger
       })
       logger.debug(outData, 'outData')
-      reporterQueue.add('aggregator', outData, {
+
+      await reporterQueue.add(inData.workerSource, outData, {
         removeOnComplete: REMOVE_ON_COMPLETE,
         removeOnFail: REMOVE_ON_FAIL,
         jobId: buildReporterJobId({
-          aggregatorAddress: ag.address,
-          deploymentName: DEPLOYMENT_NAME,
-          ...outData
+          aggregatorAddress,
+          roundId,
+          deploymentName: DEPLOYMENT_NAME
         })
       })
     } catch (e) {
@@ -129,112 +127,35 @@ function aggregatorJob(reporterQueueName: string, aggregatorsWithAdapters, _logg
   return wrapper
 }
 
-function fixedHeartbeatJob(
-  heartbeatQueueName: string,
-  reporterQueueName: string,
-  agregatorsWithAdapters: IAggregatorHeartbeatWorker[],
-  redisClient: RedisClientType,
-  _logger: Logger
-) {
+function fixedHeartbeatJob(aggregatorJobQueueName: string, _logger: Logger) {
   const logger = _logger.child({ name: 'fixedHeartbeatJob', file: FILE_NAME })
-
-  const heartbeatQueue = new Queue(heartbeatQueueName, BULLMQ_CONNECTION)
-  const reporterQueue = new Queue(reporterQueueName, BULLMQ_CONNECTION)
-
-  // Launch all aggregators to be executed with fixed heartbeat
-  for (const k in agregatorsWithAdapters) {
-    const ag = agregatorsWithAdapters[k]
-    if (ag.fixedHeartbeatRate.active) {
-      heartbeatQueue.add('fixed-heartbeat', addReportProperty(ag, true), {
-        delay: ag.fixedHeartbeatRate.value,
-        removeOnComplete: REMOVE_ON_COMPLETE,
-        removeOnFail: REMOVE_ON_FAIL
-      })
-    }
-  }
+  const queue = new Queue(aggregatorJobQueueName, BULLMQ_CONNECTION)
 
   async function wrapper(job) {
     const inData: IAggregatorHeartbeatWorker = job.data
-    logger.debug(inData, 'inData')
-
-    const aggregatorAddress = inData.address
-    const now = Date.now()
-    const lastSubmissionTime = Number(
-      await redisClient.get(lastSubmissionTimeKey(aggregatorAddress))
-    )
-    const toSubmitTime = Number(await redisClient.get(toSubmitTimeKey(aggregatorAddress)))
-    const isFirstSubmission = lastSubmissionTime == 0
-
-    let slept = false
-    const ACCEPTABLE_TIME_RANGE = 500
+    const aggregatorAddress = inData.aggregatorAddress
 
     try {
-      //
       const oracleRoundState = await oracleRoundStateCall({
         aggregatorAddress,
         operatorAddress: OPERATOR_ADDRESS,
         logger
       })
-      const oracleRoundState2 = await oracleRoundStateCall({
+
+      const outData: IAggregatorWorker = {
         aggregatorAddress,
-        operatorAddress: OPERATOR_ADDRESS,
         roundId: oracleRoundState._roundId,
-        logger
-      })
-      logger.debug(oracleRoundState2, 'oracleRoundState2')
+        workerSource: 'fixed'
+      }
 
-      if (
-        isFirstSubmission ||
-        (oracleRoundState2._startedAt.toNumber() +
-          inData.fixedHeartbeatRate.value -
-          ACCEPTABLE_TIME_RANGE <=
-          now &&
-          Math.max(lastSubmissionTime, toSubmitTime) +
-            inData.fixedHeartbeatRate.value -
-            ACCEPTABLE_TIME_RANGE <=
-            now)
-      ) {
-        await redisClient.set(toSubmitTimeKey(aggregatorAddress), now)
-
-        const outData = await prepareDataForReporter({
-          data: inData,
-          workerSource: 'fixed',
-          _logger
+      if (oracleRoundState._eligibleToSubmit) {
+        await queue.add('fixed', outData, {
+          removeOnComplete: REMOVE_ON_COMPLETE,
+          removeOnFail: REMOVE_ON_FAIL
         })
-        logger.debug(outData, 'outData')
-
-        if (outData.report) {
-          reporterQueue.add('aggregator', outData, {
-            removeOnComplete: REMOVE_ON_COMPLETE,
-            removeOnFail: REMOVE_ON_FAIL,
-            jobId: buildReporterJobId({
-              aggregatorAddress,
-              deploymentName: DEPLOYMENT_NAME,
-              ...outData
-            })
-          })
-        }
-      } else {
-        logger.debug('Sleep more')
-        slept = true
       }
     } catch (e) {
       logger.error(e)
-    } finally {
-      const delay = slept
-        ? Math.max(
-            0,
-            inData.fixedHeartbeatRate.value - (now - Math.max(lastSubmissionTime, toSubmitTime))
-          )
-        : inData.fixedHeartbeatRate.value
-
-      logger.debug({ delay }, 'delay') // TODO delete
-
-      heartbeatQueue.add('fixed-heartbeat', inData, {
-        delay,
-        removeOnComplete: REMOVE_ON_COMPLETE,
-        removeOnFail: REMOVE_ON_FAIL
-      })
     }
   }
 
@@ -244,7 +165,6 @@ function fixedHeartbeatJob(
 function randomHeartbeatJob(
   heartbeatQueueName: string,
   reporterQueueName: string,
-  agregatorsWithAdapters: IAggregatorHeartbeatWorker[],
   _logger: Logger
 ) {
   const logger = _logger.child({ name: 'randomHeartbeatJob', file: FILE_NAME })
@@ -252,20 +172,8 @@ function randomHeartbeatJob(
   const heartbeatQueue = new Queue(heartbeatQueueName, BULLMQ_CONNECTION)
   const reporterQueue = new Queue(reporterQueueName, BULLMQ_CONNECTION)
 
-  // Launch all aggregators to be executed with random heartbeat
-  for (const k in agregatorsWithAdapters) {
-    const ag = agregatorsWithAdapters[k]
-    if (ag.randomHeartbeatRate.active) {
-      heartbeatQueue.add('random-heartbeat', addReportProperty(ag, undefined), {
-        delay: uniform(0, ag.randomHeartbeatRate.value),
-        removeOnComplete: REMOVE_ON_COMPLETE,
-        removeOnFail: REMOVE_ON_FAIL
-      })
-    }
-  }
-
   async function wrapper(job) {
-    const inData: IAggregatorHeartbeatWorker = job.data
+    const inData: IAggregatorJob = job.data
     logger.debug(inData, 'inData')
 
     const aggregatorAddress = inData.address
@@ -278,7 +186,7 @@ function randomHeartbeatJob(
       })
       logger.debug(outData, 'outData')
       if (outData.report) {
-        reporterQueue.add('aggregator', outData, {
+        await reporterQueue.add('random', outData, {
           removeOnComplete: REMOVE_ON_COMPLETE,
           removeOnFail: REMOVE_ON_FAIL,
           jobId: buildReporterJobId({
@@ -291,7 +199,7 @@ function randomHeartbeatJob(
     } catch (e) {
       logger.error(e)
     } finally {
-      heartbeatQueue.add('random-heartbeat', inData, {
+      await heartbeatQueue.add('random-heartbeat', inData, {
         delay: uniform(0, inData.randomHeartbeatRate.value),
         removeOnComplete: REMOVE_ON_COMPLETE,
         removeOnFail: REMOVE_ON_FAIL
@@ -315,7 +223,7 @@ async function prepareDataForReporter({
   roundId,
   _logger
 }: {
-  data: IAggregatorHeartbeatWorker
+  data: IAggregatorJob
   workerSource: string
   roundId?: number
   _logger: Logger
@@ -383,16 +291,4 @@ function shouldReport(
 
 function addReportProperty(o, report: boolean | undefined) {
   return Object.assign({}, ...[o, { report }])
-}
-
-function buildReporterJobId({
-  aggregatorAddress,
-  roundId,
-  deploymentName
-}: {
-  aggregatorAddress: string
-  roundId: number
-  deploymentName: string
-}) {
-  return `${roundId}-${aggregatorAddress}-${deploymentName}`
 }

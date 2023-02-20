@@ -46,6 +46,10 @@ export const LISTENER_DELAY = Number(
   })
 )
 
+// BullMQ
+export const REMOVE_ON_COMPLETE = 500
+export const REMOVE_ON_FAIL = 1_000
+
 // FIXME Move to Redis
 export const LISTENER_ROOT_DIR = './tmp/listener/'
 

@@ -174,16 +174,19 @@ export interface IVrfListenerWorker {
   isDirectPayment: boolean
 }
 
-export interface IAggregatorListenerWorker {
-  address: string
+export interface IAggregatorWorker {
+  aggregatorAddress: string
   roundId: number
-  startedBy: string
-  startedAt: BigNumber
+  workerSource: string
 }
 
 // Worker -> Worker
 
 export interface IAggregatorHeartbeatWorker {
+  aggregatorAddress: string
+}
+
+export interface IAggregatorJob {
   id: string
   address: string
   name: string
@@ -195,6 +198,7 @@ export interface IAggregatorHeartbeatWorker {
   absoluteThreshold: number
   adapterId: string
   adapter: IFeed[]
+  aggregatorAddress: string
 }
 
 // Worker -> Reporter

@@ -96,3 +96,15 @@ export async function createRedisClient(host: string, port: number): Promise<Red
   await client.connect()
   return client
 }
+
+export function buildReporterJobId({
+  aggregatorAddress,
+  roundId,
+  deploymentName
+}: {
+  aggregatorAddress: string
+  roundId: number
+  deploymentName: string
+}) {
+  return `${roundId}-${aggregatorAddress}-${deploymentName}`
+}
