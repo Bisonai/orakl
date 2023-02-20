@@ -49,7 +49,8 @@ export interface IAdapter {
   id: string
   active: boolean
   name: string
-  job_type: string
+  jobType: string
+  decimals: number
   feeds: IFeed[]
 }
 
@@ -199,6 +200,7 @@ export interface IAggregatorJob {
   adapterId: string
   adapter: IFeed[]
   aggregatorAddress: string
+  decimals: number
 }
 
 // Worker -> Reporter

@@ -245,7 +245,13 @@ async function prepareDataForReporter({
   if (report === undefined) {
     // TODO does _latestsubmission hold the aggregated value?
     const latestSubmission = oracleRoundState._latestSubmission.toNumber()
-    report = shouldReport(latestSubmission, submission, data.threshold, data.absoluteThreshold)
+    report = shouldReport(
+      latestSubmission,
+      submission,
+      data.decimals,
+      data.threshold,
+      data.absoluteThreshold
+    )
     logger.debug({ report }, 'report')
   }
 
@@ -272,14 +278,18 @@ async function prepareDataForReporter({
 function shouldReport(
   latestSubmission: number,
   submission: number,
+  decimals: number,
   threshold: number,
   absoluteThreshold: number
 ): boolean {
   if (latestSubmission && submission) {
-    const range = latestSubmission * threshold
-    const l = latestSubmission - range
-    const r = latestSubmission + range
-    return submission < l || submission > r
+    const latestSubmissionReal = latestSubmission / Math.pow(10, decimals)
+    const submissionReal = submission / Math.pow(10, decimals)
+
+    const range = latestSubmissionReal * threshold
+    const l = latestSubmissionReal - range
+    const r = latestSubmissionReal + range
+    return submissionReal < l || submissionReal > r
   } else if (!latestSubmission && submission) {
     // latestSubmission hit zero
     return submission > absoluteThreshold

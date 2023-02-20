@@ -50,7 +50,10 @@ export function mergeAggregatorsAdapters(aggregators, adapters) {
   for (const agAddress in aggregators) {
     const ag = aggregators[agAddress]
     if (ag) {
-      ag['adapter'] = adapters[ag.adapterId]
+      // FIXME test on existence
+      ag.decimals = adapters[ag.adapterId].decimals
+      ag.adapter = adapters[ag.adapterId].feeds
+
       aggregatorsWithAdapters.push({ [agAddress]: ag })
     } else {
       throw new IcnError(IcnErrorCode.MissingAdapter)
@@ -133,7 +136,7 @@ function extractFeeds(adapter) {
     }
   })
 
-  return { [adapterId]: feeds }
+  return { [adapterId]: { decimals: adapter.decimals, feeds } }
 }
 
 function extractAggregators(aggregator) {

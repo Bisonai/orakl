@@ -41,7 +41,7 @@ export async function reporter(_logger: Logger) {
 
   const worker = new Worker(
     REPORTER_AGGREGATOR_QUEUE_NAME,
-    await job(wallet, redisClient, _logger),
+    await job(wallet, _logger),
     BULLMQ_CONNECTION
   )
 }
