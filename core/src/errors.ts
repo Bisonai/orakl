@@ -17,6 +17,7 @@ export enum IcnErrorCode {
   MissingJsonRpcProvider,
   MissingKeyInJson,
   MissingAdapter,
+  MissingAggregator,
   UniformWrongParams,
   InvalidListenerConfig,
   UndefinedListenerRequested,
@@ -29,5 +30,9 @@ export enum IcnErrorCode {
   TxCannotEstimateGasError,
   ProviderNetworkError,
   InvalidDecodedMesssageLength,
-  IndexOutOfBoundaries
+  IndexOutOfBoundaries,
+  AggregatorNotFound,
+  AggregatorJobCanTakeMoreBreak,
+  UndefinedAggregator,
+  UnexpectedNumberOfJobsInQueue
 }
