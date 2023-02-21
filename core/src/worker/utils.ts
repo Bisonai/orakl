@@ -38,7 +38,7 @@ export async function loadAggregators({ postprocess }: { postprocess?: boolean }
   return Object.assign({}, ...activeRawAggregators.map((a) => extractAggregators(a)))
 }
 
-export function mergeAggregatorsAdapters(aggregators, adapters) {
+export function mergeAggregatorsAdapters(aggregators, adapters: IAdapter[]) {
   // FIXME use mapping instead
   // TODO replace any
   /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -56,7 +56,7 @@ export function mergeAggregatorsAdapters(aggregators, adapters) {
     }
 
     aggregator.decimals = adapter.decimals
-    aggregator.adapter = adapter.feegregatords
+    aggregator.adapter = adapter.feeds
 
     aggregatorsWithAdapters.push({ [agAddress]: aggregator })
   }
