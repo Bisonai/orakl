@@ -1,0 +1,15 @@
+[
+    {
+        "name": "ETH/USD",
+        "paymentAmount": 0,
+        "timeout": 10,
+        "validator": "0x0000000000000000000000000000000000000000",
+        "minSubmissionCount": 1,
+        "maxSubmissionCount": 1,
+        "decimals": 8,
+        "description": "ETH/USD",
+        "restartDelay": 0,
+        "oracles": ["0x46B853723c002Ff5c1D0F4a0E6671F31B2C2A480"],
+        "admins": ["0x46B853723c002Ff5c1D0F4a0E6671F31B2C2A480"]
+    }
+]
