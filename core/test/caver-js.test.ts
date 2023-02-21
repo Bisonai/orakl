@@ -25,7 +25,7 @@ describe('Test Caver-js', function () {
         gas: '21000'
       }
       // Sign transaction
-      const signTx = await account1.signTransaction(tx)
+      const signTx: any = await account1.signTransaction(tx)
 
       // Send signed transaction
       const txReceipt = await caver.klay.sendSignedTransaction(signTx)
