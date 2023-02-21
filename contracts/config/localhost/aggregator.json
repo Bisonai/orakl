@@ -1,13 +1,15 @@
 [
-  {
-    "name": "KLAY/USD",
-    "paymentAmount": 1,
-    "timeout": 10,
-    "validator": "0x0000000000000000000000000000000000000000",
-    "minSubmissionCount": 1,
-    "maxSubmissionCount": 2,
-    "decimals": 8,
-    "description": "KLAY/USD",
-    "restartDelay": 0
-  }
+    {
+        "name": "ETH/USD",
+        "paymentAmount": 0,
+        "timeout": 10,
+        "validator": "0x0000000000000000000000000000000000000000",
+        "minSubmissionCount": 1,
+        "maxSubmissionCount": 2,
+        "decimals": 8,
+        "description": "ETH/USD",
+        "restartDelay": 0,
+        "oracles": [],
+        "admins": []
+    }
 ]

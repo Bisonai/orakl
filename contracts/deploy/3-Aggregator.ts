@@ -30,15 +30,14 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   const aggregator = await ethers.getContractAt('Aggregator', aggregatorDeployment.address)
 
-  // Charge KLAY to Aggregator (usedd for paying oracles)
+  // Charge KLAY to Aggregator (used for paying oracles)
   const value = ethers.utils.parseEther('1.0')
   await (await aggregator.deposit({ value })).wait()
 
   // Setup oracles that will contribute to Aggregator
   const removed = []
-  const added = [feedOracle0, feedOracle1]
-  // Oracle itself is admin, can be separated.
-  const addedAdmins = [feedOracle0, feedOracle1]
+  const added = config.oracles.length ? config.oracles : [feedOracle0, feedOracle1]
+  const addedAdmins = config.admins.length ? config.admins : [feedOracle0, feedOracle1]
 
   await (
     await aggregator.changeOracles(
