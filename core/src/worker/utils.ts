@@ -48,16 +48,20 @@ export function mergeAggregatorsAdapters(aggregators, adapters) {
   const aggregatorsWithAdapters: any = []
 
   for (const agAddress in aggregators) {
-    const ag = aggregators[agAddress]
-    if (ag) {
-      // FIXME test on existence
-      ag.decimals = adapters[ag.adapterId].decimals
-      ag.adapter = adapters[ag.adapterId].feeds
+    const aggregator = aggregators[agAddress]
+    if (!aggregator) {
+      throw new IcnError(IcnErrorCode.MissingAggregator)
+    }
 
-      aggregatorsWithAdapters.push({ [agAddress]: ag })
-    } else {
+    const adapter = adapters[aggregator?.adapterId]
+    if (!adapter) {
       throw new IcnError(IcnErrorCode.MissingAdapter)
     }
+
+    aggregator.decimals = adapter.decimals
+    aggregator.adapter = adapter.feegregatords
+
+    aggregatorsWithAdapters.push({ [agAddress]: aggregator })
   }
 
   return Object.assign({}, ...aggregatorsWithAdapters)
