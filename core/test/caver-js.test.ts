@@ -62,7 +62,7 @@ describe('Test Caver-js', function () {
       // Send transaction
       const txReceipt = await wallet.sendTransaction(tx)
       const afterBalanceOfTo = await provider.getBalance(to)
-
+      console.log(txReceipt)
       expect(
         BigNumber.from(afterBalanceOfTo).eq(
           BigNumber.from(beforeBalanceOfTo).add(BigNumber.from(amount))
