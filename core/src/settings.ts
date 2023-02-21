@@ -93,6 +93,8 @@ function createJsonRpcProvider() {
 export const PROVIDER = createJsonRpcProvider()
 
 async function openDb() {
+  mkdir(path.dirname(SETTINGS_DB_FILE))
+
   const db = await open({
     filename: SETTINGS_DB_FILE,
     driver: sqlite.Database
