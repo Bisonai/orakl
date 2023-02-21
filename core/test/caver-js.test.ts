@@ -1,8 +1,6 @@
 import { describe, test, expect, jest } from '@jest/globals'
 import { BigNumber, ethers } from 'ethers'
 import Caver from 'caver-js'
-import * as dotenv from 'dotenv'
-dotenv.config()
 
 describe('Test Caver-js', function () {
   jest.setTimeout(10000)
@@ -26,7 +24,7 @@ describe('Test Caver-js', function () {
         gas: '21000'
       }
       // Sign transaction
-      const signTx = await caver.klay.accounts.signTransaction(tx)
+      const signTx: any = await caver.klay.accounts.signTransaction(tx)
       // Send signed transaction
       const txReceipt = await caver.klay.sendSignedTransaction(signTx)
       console.log('Baobab txReceipt:', txReceipt)
