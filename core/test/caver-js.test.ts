@@ -15,7 +15,7 @@ describe('Test Caver-js', function () {
       const amount = caver.utils.toPeb(1, 'mKLAY')
       const to = '0xeF5cd886C7f8d85fbe8023291761341aCBb4DA01'
       const beforeBalanceOfTo = await caver.klay.getBalance(to)
-      const beforeBalanceOfAccount1 = await caver.klay.getBalance(account.address)
+      const beforeBalanceOfAccount = await caver.klay.getBalance(account.address)
 
       const txReceipt = await caver.klay.sendTransaction({
         type: 'VALUE_TRANSFER',
@@ -29,7 +29,7 @@ describe('Test Caver-js', function () {
         BigNumber.from(txReceipt.gasUsed)
       )
       const afterBalanceOfTo = await caver.klay.getBalance(to)
-      const afterBalanceOfAccount1 = await caver.klay.getBalance(account.address)
+      const afterBalanceOfAccount = await caver.klay.getBalance(account.address)
 
       expect(
         BigNumber.from(afterBalanceOfTo).eq(
@@ -37,8 +37,8 @@ describe('Test Caver-js', function () {
         )
       ).toBe(true)
       expect(
-        BigNumber.from(afterBalanceOfAccount1).eq(
-          BigNumber.from(beforeBalanceOfAccount1).sub(BigNumber.from(amount)).sub(txFee)
+        BigNumber.from(afterBalanceOfAccount).eq(
+          BigNumber.from(beforeBalanceOfAccount).sub(BigNumber.from(amount)).sub(txFee)
         )
       ).toBe(true)
     })
@@ -50,7 +50,7 @@ describe('Test Caver-js', function () {
       const amount = ethers.utils.parseEther('0.001')
       const to = '0xeF5cd886C7f8d85fbe8023291761341aCBb4DA01'
       const beforeBalanceOfTo = await provider.getBalance(to)
-      const beforeBalanceOfAccount1 = await provider.getBalance(wallet.address)
+      const beforeBalanceOfAccount = await provider.getBalance(wallet.address)
 
       const tx = {
         from: wallet.address,
@@ -61,11 +61,11 @@ describe('Test Caver-js', function () {
       // Send transaction
       const txReceipt = await (await wallet.sendTransaction(tx)).wait()
       const afterBalanceOfTo = await provider.getBalance(to)
-      const afterBalanceOfAccount1 = await provider.getBalance(wallet.address)
+      const afterBalanceOfAccount = await provider.getBalance(wallet.address)
       const txFee = txReceipt.cumulativeGasUsed.mul(txReceipt.effectiveGasPrice)
 
       expect(afterBalanceOfTo.eq(beforeBalanceOfTo.add(amount))).toBe(true)
-      expect(afterBalanceOfAccount1.eq(beforeBalanceOfAccount1.sub(amount).sub(txFee))).toBe(true)
+      expect(afterBalanceOfAccount.eq(beforeBalanceOfAccount.sub(amount).sub(txFee))).toBe(true)
     })
   }
 })
