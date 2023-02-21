@@ -21,7 +21,6 @@ async function main() {
     await vrfConsumerSigner.requestRandomWords(keyHash, accId, callbackGasLimit, numWords)
   ).wait()
   const event = vrfCoordinator.interface.parseLog(txReceipt.events[0])
-
   expect(event.args.requestId.toString()).to.not.equal(null)
 }
 
