@@ -19,8 +19,10 @@ jobs:
         working-directory: ./contracts
       - run: yarn build
         working-directory: ./contracts
-      - run: npx hardhat node
+      - run: | 
+          npx hardhat node & 
+          npx hardhat deploy --network localhost
         working-directory: ./contracts
-      - run: npx hardhat run test/v0.1/VRF.Integration.test.ts --network localhost
+      - run: npx hardhat run scripts/v0.1/vrf/vrf-integration.ts --network localhost
         env:
           GITHUB_ACTIONS: $GITHUB_ACTIONS
