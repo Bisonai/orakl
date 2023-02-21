@@ -12,6 +12,7 @@ describe('Test Caver-js', function () {
       const caver = new Caver(PROVIDER_URL)
       const privateKey = process.env.CAVER_PRIVATE_KEY || ''
       const account1 = caver.klay.accounts.privateKeyToAccount(privateKey)
+
       console.log('Address:', account1.address)
       const amount = ethers.utils.parseEther('0.001')
       const to = '0xeF5cd886C7f8d85fbe8023291761341aCBb4DA01'
@@ -24,7 +25,8 @@ describe('Test Caver-js', function () {
         gas: '21000'
       }
       // Sign transaction
-      const signTx: any = await caver.klay.accounts.signTransaction(tx)
+      const signTx = await account1.signTransaction(tx)
+
       // Send signed transaction
       const txReceipt = await caver.klay.sendSignedTransaction(signTx)
       console.log('Baobab txReceipt:', txReceipt)
