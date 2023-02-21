@@ -1,5 +1,4 @@
 import os from 'node:os'
-import fs from 'node:fs'
 import path from 'node:path'
 import sqlite from 'sqlite3'
 import { open } from 'sqlite'
@@ -94,23 +93,15 @@ function createJsonRpcProvider() {
 export const PROVIDER = createJsonRpcProvider()
 
 async function openDb() {
-  // TODO DELETE
-  mkdir(path.dirname(SETTINGS_DB_FILE))
-  fs.readdirSync(path.dirname(SETTINGS_DB_FILE)).forEach((file) => {
-    console.log(file)
-  })
-
   const db = await open({
     filename: SETTINGS_DB_FILE,
     driver: sqlite.Database
   })
 
   const { count } = await db.get('SELECT count(*) AS count FROM sqlite_master WHERE type="table"')
-  console.log(`ORAKL_DIR ${ORAKL_DIR}`)
-  console.log(`SETTINGS_DB_FILE ${SETTINGS_DB_FILE}`)
-  console.log(`table count ${count}`)
+
   if (count == 0) {
-    await db.migrate({ migrationsPath: TEST_MIGRATIONS_PATH, force: true })
+    await db.migrate({ migrationsPath: TEST_MIGRATIONS_PATH })
   }
 
   return db
