@@ -20,7 +20,7 @@ import {
   REMOVE_ON_FAIL
 } from '../settings'
 import { IcnError, IcnErrorCode } from '../errors'
-import { createRedisClient, buildReporterJobId } from '../utils'
+import { buildReporterJobId } from '../utils'
 import {
   fetchDataWithAdapter,
   loadAdapters,
