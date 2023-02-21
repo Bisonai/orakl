@@ -23,7 +23,7 @@ jobs:
         run: yarn build
         working-directory: ./contracts
       - name: Run node and Deploy
-        run: npx hardhat node & npx hardhat deploy --network localhost
+        run: npx hardhat node & npx hardhat deploy
         working-directory: ./contracts
       - name: Request Randomwords
         run: npx hardhat run scripts/v0.1/vrf/vrf-integration.ts --network localhost
