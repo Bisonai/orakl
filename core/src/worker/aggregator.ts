@@ -13,8 +13,6 @@ import {
   RANDOM_HEARTBEAT_QUEUE_NAME,
   BULLMQ_CONNECTION,
   PUBLIC_KEY as OPERATOR_ADDRESS,
-  REDIS_HOST,
-  REDIS_PORT,
   DEPLOYMENT_NAME,
   REMOVE_ON_COMPLETE,
   REMOVE_ON_FAIL
@@ -27,8 +25,7 @@ import {
   loadAggregators,
   mergeAggregatorsAdapters,
   uniform,
-  oracleRoundStateCall,
-  getRoundDataCall
+  oracleRoundStateCall
 } from './utils'
 
 const FILE_NAME = import.meta.url
