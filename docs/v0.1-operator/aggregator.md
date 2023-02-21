@@ -35,13 +35,13 @@ In the example settings below, we are using `ETH/USD` data feed.
 
 ```shell
 yarn cli adapter insert
-    --chain baobab \
-    --file-path adapter/eth-usd.adapter.json
+    --chain ${chain} \
+    --file-path ${adapterFilePath}
 
 yarn cli aggregator insert \
-    --chain baobab \
-    --file-path aggregator/baobab/eth-usd.aggregator.json \
-    --adapter 0x7e6552824ce107ab0d6e4266ba6b93f0afe5aa576a491364fc01881a34ddb12b
+    --chain ${chain} \
+    --file-path ${aggregatorFilePath} \
+    --adapter ${adapterId}
 ```
 
 3. Launch
