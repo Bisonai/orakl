@@ -2,6 +2,7 @@ import os from 'node:os'
 import path from 'node:path'
 import sqlite from 'sqlite3'
 import { open } from 'sqlite'
+import { ethers } from 'ethers'
 import { IListenerConfig, IVrfConfig } from './types'
 import { aggregatorMapping } from './aggregator'
 import { listHandler } from './cli/orakl-cli/src/kv'
@@ -84,6 +85,12 @@ export const BULLMQ_CONNECTION = {
     port: REDIS_PORT
   }
 }
+
+function createJsonRpcProvider() {
+  return new ethers.providers.JsonRpcProvider(PROVIDER_URL)
+}
+
+export const PROVIDER = createJsonRpcProvider()
 
 async function openDb() {
   mkdir(path.dirname(SETTINGS_DB_FILE))

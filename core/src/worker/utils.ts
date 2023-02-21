@@ -5,14 +5,7 @@ import { dataFeedReducerMapping } from './reducer'
 import { IcnError, IcnErrorCode } from '../errors'
 import { pipe } from '../utils'
 import { IAdapter, IAggregator, IOracleRoundState, IRoundData } from '../types'
-import {
-  getAdapters,
-  getAggregators,
-  localAggregatorFn,
-  DB,
-  CHAIN,
-  PROVIDER_URL
-} from '../settings'
+import { getAdapters, getAggregators, localAggregatorFn, DB, CHAIN, PROVIDER } from '../settings'
 import { Aggregator__factory } from '@bisonai/orakl-contracts'
 
 const FILE_NAME = import.meta.url
@@ -222,9 +215,7 @@ export async function oracleRoundStateCall({
 }): Promise<IOracleRoundState> {
   logger?.debug({ name: 'oracleRoundStateCall', file: FILE_NAME })
 
-  // TODO move out and reuse
-  const provider = new ethers.providers.JsonRpcProvider(PROVIDER_URL)
-  const aggregator = new ethers.Contract(aggregatorAddress, Aggregator__factory.abi, provider)
+  const aggregator = new ethers.Contract(aggregatorAddress, Aggregator__factory.abi, PROVIDER)
 
   let queriedRoundId = 0
   if (roundId) {
@@ -241,8 +232,6 @@ export async function getRoundDataCall({
   aggregatorAddress: string
   roundId: number
 }): Promise<IRoundData> {
-  // TODO move out and reuse
-  const provider = new ethers.providers.JsonRpcProvider(PROVIDER_URL)
-  const aggregator = new ethers.Contract(aggregatorAddress, Aggregator__factory.abi, provider)
+  const aggregator = new ethers.Contract(aggregatorAddress, Aggregator__factory.abi, PROVIDER)
   return await aggregator.getRoundData(roundId)
 }
