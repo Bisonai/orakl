@@ -3,8 +3,15 @@ import { ethers } from 'ethers'
 import { Logger } from 'pino'
 import { Aggregator__factory } from '@bisonai/orakl-contracts'
 import { Event } from './event'
-import { IListenerConfig, INewRound, IAggregatorListenerWorker } from '../types'
-import { PUBLIC_KEY, WORKER_AGGREGATOR_QUEUE_NAME } from '../settings'
+import { IListenerConfig, INewRound, IAggregatorWorker } from '../types'
+import { buildReporterJobId } from '../utils'
+import {
+  PUBLIC_KEY,
+  WORKER_AGGREGATOR_QUEUE_NAME,
+  DEPLOYMENT_NAME,
+  REMOVE_ON_COMPLETE,
+  REMOVE_ON_FAIL
+} from '../settings'
 
 const FILE_NAME = import.meta.url
 
@@ -24,16 +31,21 @@ function processEvent(iface: ethers.utils.Interface, queue: Queue, _logger: Logg
     logger.debug(eventData, 'eventData')
 
     if (eventData.startedBy != PUBLIC_KEY) {
+      const aggregatorAddress = log.address.toLowerCase()
+      const roundId = eventData.roundId.toNumber()
       // NewRound emitted by somebody else
-      const data: IAggregatorListenerWorker = {
-        address: log.address,
-        roundId: eventData.roundId,
-        startedBy: eventData.startedBy,
-        startedAt: eventData.startedAt
+      const data: IAggregatorWorker = {
+        aggregatorAddress,
+        roundId,
+        workerSource: 'event'
       }
       logger.debug(data, 'data')
 
-      await queue.add('aggregator', data, { removeOnComplete: true })
+      await queue.add('aggregator', data, {
+        removeOnComplete: REMOVE_ON_COMPLETE,
+        removeOnFail: REMOVE_ON_FAIL,
+        jobId: buildReporterJobId({ aggregatorAddress, roundId, deploymentName: DEPLOYMENT_NAME })
+      })
     }
   }
 

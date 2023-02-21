@@ -2,6 +2,8 @@ import * as Fs from 'node:fs/promises'
 import * as fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
+import { createClient } from 'redis'
+import type { RedisClientType } from 'redis'
 import { IncomingWebhook } from '@slack/webhook'
 import Hook from 'console-hook'
 import { SLACK_WEBHOOK_URL } from './settings'
@@ -84,4 +86,25 @@ export function hookConsoleError(logger) {
     }
   })
   consoleHook.detach
+}
+
+export async function createRedisClient(host: string, port: number): Promise<RedisClientType> {
+  const client: RedisClientType = createClient({
+    // redis[s]://[[username][:password]@][host][:port][/db-number]
+    url: `redis://${host}:${port}`
+  })
+  await client.connect()
+  return client
+}
+
+export function buildReporterJobId({
+  aggregatorAddress,
+  roundId,
+  deploymentName
+}: {
+  aggregatorAddress: string
+  roundId: number
+  deploymentName: string
+}) {
+  return `${roundId}-${aggregatorAddress}-${deploymentName}`
 }

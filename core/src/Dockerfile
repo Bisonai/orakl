@@ -14,8 +14,6 @@ COPY yarn.lock .
 
 COPY tsconfig.json .
 
-COPY migrations migrations
-
 COPY src src
 
 RUN yarn install
