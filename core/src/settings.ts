@@ -1,4 +1,5 @@
 import os from 'node:os'
+import fs from 'node:fs'
 import path from 'node:path'
 import sqlite from 'sqlite3'
 import { open } from 'sqlite'
@@ -93,7 +94,11 @@ function createJsonRpcProvider() {
 export const PROVIDER = createJsonRpcProvider()
 
 async function openDb() {
+  // TODO DELETE
   mkdir(path.dirname(SETTINGS_DB_FILE))
+  fs.readdirSync(path.dirname(SETTINGS_DB_FILE)).forEach((file) => {
+    console.log(file)
+  })
 
   const db = await open({
     filename: SETTINGS_DB_FILE,
