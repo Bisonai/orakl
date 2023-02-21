@@ -101,6 +101,8 @@ async function openDb() {
   })
 
   const { count } = await db.get('SELECT count(*) AS count FROM sqlite_master WHERE type="table"')
+  console.log(`settings ${SETTINGS_DB_FILE}`)
+  console.log(`table count ${count}`)
   if (count == 0) {
     await db.migrate({ migrationsPath: TEST_MIGRATIONS_PATH, force: true })
   }
