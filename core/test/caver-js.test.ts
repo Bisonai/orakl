@@ -4,7 +4,6 @@ import Caver from 'caver-js'
 
 describe('Test Caver-js', function () {
   jest.setTimeout(10000)
-  console.log('GITHUB_ACTIONS:', process.env.GITHUB_ACTIONS)
 
   if (process.env.GITHUB_ACTIONS) {
     test('Send signed tx with is caver-js on Baobab', async function () {
@@ -13,7 +12,6 @@ describe('Test Caver-js', function () {
       const privateKey = process.env.CAVER_PRIVATE_KEY || ''
       const account1 = caver.klay.accounts.privateKeyToAccount(privateKey)
 
-      console.log('Address:', account1.address)
       const amount = ethers.utils.parseEther('0.001')
       const to = '0xeF5cd886C7f8d85fbe8023291761341aCBb4DA01'
       const beforeBalanceOfTo = await caver.klay.getBalance(to)
@@ -26,10 +24,9 @@ describe('Test Caver-js', function () {
       }
       // Sign transaction
       const signTx: any = await account1.signTransaction(tx)
-
       // Send signed transaction
       const txReceipt = await caver.klay.sendSignedTransaction(signTx)
-      console.log('Baobab txReceipt:', txReceipt)
+
       const txFee = BigNumber.from(txReceipt.effectiveGasPrice).mul(
         BigNumber.from(txReceipt.gasUsed)
       )
@@ -54,6 +51,7 @@ describe('Test Caver-js', function () {
       const amount = ethers.utils.parseEther('0.001')
       const to = '0xeF5cd886C7f8d85fbe8023291761341aCBb4DA01'
       const beforeBalanceOfTo = await provider.getBalance(to)
+      const beforeBalanceOfAccount1 = await provider.getBalance(wallet.address)
 
       const tx = {
         from: wallet.address,
@@ -62,14 +60,13 @@ describe('Test Caver-js', function () {
       }
 
       // Send transaction
-      const txReceipt = await wallet.sendTransaction(tx)
+      const txReceipt = await (await wallet.sendTransaction(tx)).wait()
       const afterBalanceOfTo = await provider.getBalance(to)
-      console.log(txReceipt)
-      expect(
-        BigNumber.from(afterBalanceOfTo).eq(
-          BigNumber.from(beforeBalanceOfTo).add(BigNumber.from(amount))
-        )
-      ).toBe(true)
+      const afterBalanceOfAccount1 = await provider.getBalance(wallet.address)
+      const txFee = txReceipt.cumulativeGasUsed.mul(txReceipt.effectiveGasPrice)
+
+      expect(afterBalanceOfTo.eq(beforeBalanceOfTo.add(amount))).toBe(true)
+      expect(afterBalanceOfAccount1.eq(beforeBalanceOfAccount1.sub(amount).sub(txFee))).toBe(true)
     })
   }
 })
