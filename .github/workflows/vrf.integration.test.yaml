@@ -13,17 +13,20 @@ jobs:
       - uses: actions/setup-node@v3
         with:
           node-version: "18.12"
-      - run: yarn
+      - name: Install
+        run: yarn
         working-directory: ./contracts
-      - run: yarn compile
+      - name: Compile
+        run: yarn compile
         working-directory: ./contracts
-      - run: yarn build
+      - name: Build
+        run: yarn build
         working-directory: ./contracts
-      - run: npx hardhat node
+      - name: Run node and Deploy
+        run: npx hardhat node & npx hardhat deploy --network localhost
         working-directory: ./contracts
-      - run: npx hardhat deploy --network localhost
-        working-directory: ./contracts
-      - run: npx hardhat run scripts/v0.1/vrf/vrf-integration.ts --network localhost
+      - name: Request Randomwords
+        run: npx hardhat run scripts/v0.1/vrf/vrf-integration.ts --network localhost
         working-directory: ./contracts
         env:
           GITHUB_ACTIONS: $GITHUB_ACTIONS
