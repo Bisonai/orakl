@@ -6,7 +6,6 @@ import { loadWalletParameters, sendTransaction, buildWallet } from './utils'
 import {
   REPORTER_AGGREGATOR_QUEUE_NAME,
   BULLMQ_CONNECTION,
-  DEPLOYMENT_NAME,
   FIXED_HEARTBEAT_QUEUE_NAME
 } from '../settings'
 import { IAggregatorWorkerReporter, IAggregatorHeartbeatWorker } from '../types'
