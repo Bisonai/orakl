@@ -10,28 +10,27 @@ describe('Test Caver-js', function () {
       const PROVIDER_URL = 'https://api.baobab.klaytn.net:8651'
       const caver = new Caver(PROVIDER_URL)
       const privateKey = process.env.CAVER_PRIVATE_KEY || ''
-      const account1 = caver.klay.accounts.privateKeyToAccount(privateKey)
+      const account = caver.klay.accounts.wallet.add(privateKey)
 
-      const amount = ethers.utils.parseEther('0.001')
+      const amount = caver.utils.toPeb(1, 'mKLAY')
       const to = '0xeF5cd886C7f8d85fbe8023291761341aCBb4DA01'
       const beforeBalanceOfTo = await caver.klay.getBalance(to)
-      const beforeBalanceOfAccount1 = await caver.klay.getBalance(account1.address)
-      const tx = {
-        from: account1.address,
+      const beforeBalanceOfAccount1 = await caver.klay.getBalance(account.address)
+
+      const txReceipt = await caver.klay.sendTransaction({
+        type: 'VALUE_TRANSFER',
+        from: account.address,
         to: to,
-        value: amount,
-        gas: '21000'
-      }
-      // Sign transaction
-      const signTx = await account1.signTransaction(tx)
-      // Send signed transaction
-      const txReceipt = await caver.klay.sendSignedTransaction(signTx)
+        gas: '21000',
+        value: amount
+      })
 
       const txFee = BigNumber.from(txReceipt.effectiveGasPrice).mul(
         BigNumber.from(txReceipt.gasUsed)
       )
       const afterBalanceOfTo = await caver.klay.getBalance(to)
-      const afterBalanceOfAccount1 = await caver.klay.getBalance(account1.address)
+      const afterBalanceOfAccount1 = await caver.klay.getBalance(account.address)
+
       expect(
         BigNumber.from(afterBalanceOfTo).eq(
           BigNumber.from(beforeBalanceOfTo).add(BigNumber.from(amount))
