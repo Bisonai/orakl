@@ -1,0 +1,26 @@
+name: "contracts-vrf: integration-test"
+on:
+  push:
+    paths:
+      - "contracts/**"
+    branches:
+      - "296-integration-test-for-vrf-onchain-components"
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: "18.12"
+      - run: yarn
+        working-directory: ./contracts
+      - run: yarn compile
+        working-directory: ./contracts
+      - run: yarn build
+        working-directory: ./contracts
+      - run: npx hardhat node
+        working-directory: ./contracts
+      - run: npx hardhat run test/v0.1/VRF.Integration.test.ts --network localhost
+        env:
+          GITHUB_ACTIONS: $GITHUB_ACTIONS
