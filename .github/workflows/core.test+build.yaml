@@ -25,9 +25,9 @@ jobs:
         run: yarn test
         working-directory: ./core
         env:
-          NODE_ENV: "development"
           ORAKL_DIR: "./"
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+          CAVER_PRIVATE_KEY: ${{ secrets.CaverPrivateKey}}
       - name: Build package
         run: yarn build
         working-directory: ./core
