@@ -10,7 +10,11 @@ import { Aggregator__factory } from '@bisonai/orakl-contracts'
 
 const FILE_NAME = import.meta.url
 
-export async function loadAdapters({ postprocess }: { postprocess?: boolean }): Promise<IAdapter> {
+export async function loadAdapters({
+  postprocess
+}: {
+  postprocess?: boolean
+}): Promise<IAdapter[]> {
   const rawAdapters = await getAdapters(DB, CHAIN)
   const validatedRawAdapters = rawAdapters.map((a) => validateAdapter(JSON.parse(a.data)))
 
