@@ -1,26 +1,15 @@
 import { Job, Worker, Queue } from 'bullmq'
 import { ethers } from 'ethers'
 import { Logger } from 'pino'
-import { RedisClientType } from 'redis'
 import { Aggregator__factory } from '@bisonai/orakl-contracts'
-import { ISubmissionInfo } from './types'
 import { loadWalletParameters, sendTransaction, buildWallet } from './utils'
 import {
   REPORTER_AGGREGATOR_QUEUE_NAME,
   BULLMQ_CONNECTION,
-  PUBLIC_KEY as OPERATOR_ADDRESS,
-  REDIS_HOST,
-  REDIS_PORT,
   DEPLOYMENT_NAME,
-  FIXED_HEARTBEAT_QUEUE_NAME,
-  toSubmitRoundIdKey,
-  submittedRoundIdKey,
-  submitterKey,
-  lastSubmissionTimeKey
+  FIXED_HEARTBEAT_QUEUE_NAME
 } from '../settings'
 import { IAggregatorWorkerReporter, IAggregatorHeartbeatWorker } from '../types'
-import { createRedisClient } from '../utils'
-import { oracleRoundStateCall } from '../worker/utils'
 import { IcnError, IcnErrorCode } from '../errors'
 
 const FILE_NAME = import.meta.url
@@ -30,20 +19,8 @@ export async function reporter(_logger: Logger) {
 
   const { privateKey, providerUrl } = loadWalletParameters()
   const wallet = await buildWallet({ privateKey, providerUrl })
-  const redisClient = await createRedisClient(REDIS_HOST, REDIS_PORT)
 
-  const regex = new RegExp(`${DEPLOYMENT_NAME}$`)
-  for await (const key of redisClient.scanIterator()) {
-    if (regex.test(key)) {
-      redisClient.del(key)
-    }
-  }
-
-  const worker = new Worker(
-    REPORTER_AGGREGATOR_QUEUE_NAME,
-    await job(wallet, _logger),
-    BULLMQ_CONNECTION
-  )
+  new Worker(REPORTER_AGGREGATOR_QUEUE_NAME, await job(wallet, _logger), BULLMQ_CONNECTION)
 }
 
 function job(wallet, _logger: Logger) {
@@ -78,7 +55,7 @@ function job(wallet, _logger: Logger) {
       const outData: IAggregatorHeartbeatWorker = {
         aggregatorAddress
       }
-      const fixedJob = await heartbeatQueue.add('fixed-heartbeat', outData, {
+      await heartbeatQueue.add('fixed-heartbeat', outData, {
         delay: 15_000, // FIXME
         removeOnComplete: true,
         removeOnFail: true,

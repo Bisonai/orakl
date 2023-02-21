@@ -17,9 +17,7 @@ import {
   REDIS_PORT,
   DEPLOYMENT_NAME,
   REMOVE_ON_COMPLETE,
-  REMOVE_ON_FAIL,
-  lastSubmissionTimeKey,
-  toSubmitTimeKey
+  REMOVE_ON_FAIL
 } from '../settings'
 import { IcnError, IcnErrorCode } from '../errors'
 import { createRedisClient, buildReporterJobId } from '../utils'
@@ -283,8 +281,9 @@ function shouldReport(
   absoluteThreshold: number
 ): boolean {
   if (latestSubmission && submission) {
-    const latestSubmissionReal = latestSubmission / Math.pow(10, decimals)
-    const submissionReal = submission / Math.pow(10, decimals)
+    const denominator = Math.pow(10, decimals)
+    const latestSubmissionReal = latestSubmission / denominator
+    const submissionReal = submission / denominator
 
     const range = latestSubmissionReal * threshold
     const l = latestSubmissionReal - range
