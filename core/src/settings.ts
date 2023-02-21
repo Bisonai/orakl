@@ -101,9 +101,9 @@ async function openDb() {
   })
 
   const { count } = await db.get('SELECT count(*) AS count FROM sqlite_master WHERE type="table"')
-  if (count == 0) {
-    await db.migrate()
-  }
+  // if (count == 0) {
+  await db.migrate()
+  // }
 
   return db
 }
