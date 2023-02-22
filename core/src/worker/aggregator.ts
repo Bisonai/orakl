@@ -113,11 +113,11 @@ function aggregatorJob(
     const aggregatorAddress = inData.aggregatorAddress
     const roundId = inData.roundId
 
-    if (!aggregatorsWithAdapters[aggregatorAddress]) {
-      throw new IcnError(IcnErrorCode.UndefinedAggregator)
-    }
-
     try {
+      if (!aggregatorsWithAdapters[aggregatorAddress]) {
+        throw new IcnError(IcnErrorCode.UndefinedAggregator, `${aggregatorAddress}`)
+      }
+
       const aggregator = addReportProperty(aggregatorsWithAdapters[aggregatorAddress], true)
 
       const outData = await prepareDataForReporter({
@@ -152,6 +152,7 @@ function fixedHeartbeatJob(aggregatorJobQueueName: string, _logger: Logger) {
 
   async function wrapper(job) {
     const inData: IAggregatorHeartbeatWorker = job.data
+    logger.debug(inData, 'inData')
     const aggregatorAddress = inData.aggregatorAddress
 
     try {
@@ -175,6 +176,7 @@ function fixedHeartbeatJob(aggregatorJobQueueName: string, _logger: Logger) {
       }
     } catch (e) {
       logger.error(e)
+      throw e
     }
   }
 
