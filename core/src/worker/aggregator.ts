@@ -90,7 +90,12 @@ export async function aggregatorWorker(_logger: Logger) {
   // Random heartbeat worker
   new Worker(
     RANDOM_HEARTBEAT_QUEUE_NAME,
-    randomHeartbeatJob(RANDOM_HEARTBEAT_QUEUE_NAME, REPORTER_AGGREGATOR_QUEUE_NAME, _logger),
+    randomHeartbeatJob(
+      RANDOM_HEARTBEAT_QUEUE_NAME,
+      REPORTER_AGGREGATOR_QUEUE_NAME,
+      aggregatorsWithAdapters,
+      _logger
+    ),
     BULLMQ_CONNECTION
   )
 }
@@ -118,6 +123,7 @@ function aggregatorJob(
       const outData = await prepareDataForReporter({
         data: aggregator,
         workerSource: inData.workerSource,
+        delay: aggregator.fixedHeartbeatRate.value,
         roundId,
         _logger
       })
@@ -178,6 +184,7 @@ function fixedHeartbeatJob(aggregatorJobQueueName: string, _logger: Logger) {
 function randomHeartbeatJob(
   heartbeatQueueName: string,
   reporterQueueName: string,
+  aggregatorsWithAdapters: IAggregatorJob[],
   _logger: Logger
 ) {
   const logger = _logger.child({ name: 'randomHeartbeatJob', file: FILE_NAME })
@@ -190,11 +197,17 @@ function randomHeartbeatJob(
     logger.debug(inData, 'inData')
 
     const aggregatorAddress = inData.address
+    const aggregator = aggregatorsWithAdapters[aggregatorAddress]
+
+    if (!aggregator) {
+      throw new IcnError(IcnErrorCode.UndefinedAggregator)
+    }
 
     try {
       const outData = await prepareDataForReporter({
         data: inData,
         workerSource: 'random',
+        delay: aggregator.fixedHeartbeatRate.value,
         _logger
       })
       logger.debug(outData, 'outData')
@@ -227,17 +240,23 @@ function randomHeartbeatJob(
  * Fetch the latest data and prepare them to be sent to reporter.
  *
  * @param {IAggregatorHeartbeatWorker} data
- * @return {Promise<IAggregatorWorkerReporter>}
+ * @param {string} workerSource
+ * @param {number} delay
+ * @param {number} roundId
+ * @param {Logger} _logger
+ * @return {Promise<IAggregatorJob}
  * @exception {InvalidPriceFeed} raised from `fetchDataWithadapter`
  */
 async function prepareDataForReporter({
   data,
   workerSource,
+  delay,
   roundId,
   _logger
 }: {
   data: IAggregatorJob
   workerSource: string
+  delay: number
   roundId?: number
   _logger: Logger
 }): Promise<IAggregatorWorkerReporter> {
@@ -272,6 +291,7 @@ async function prepareDataForReporter({
     report,
     callbackAddress,
     workerSource,
+    delay,
     submission,
     roundId: roundId || oracleRoundState._roundId
   }
