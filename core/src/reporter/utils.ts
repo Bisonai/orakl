@@ -79,8 +79,11 @@ export async function sendTransaction({
   logger?.debug(tx, 'tx')
 
   try {
-    const txReceipt = await (await wallet.sendTransaction(tx)).wait()
+    const txReceipt = await (await wallet.sendTransaction(tx)).wait(0)
     logger?.debug(txReceipt, 'txReceipt')
+    if (txReceipt === null) {
+      throw new IcnError(IcnErrorCode.TxNotMined)
+    }
   } catch (e) {
     logger?.debug(e, 'e')
 
