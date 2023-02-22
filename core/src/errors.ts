@@ -34,5 +34,6 @@ export enum IcnErrorCode {
   AggregatorNotFound,
   AggregatorJobCanTakeMoreBreak,
   UndefinedAggregator,
-  UnexpectedNumberOfJobsInQueue
+  UnexpectedNumberOfJobsInQueue,
+  TxNotMined
 }

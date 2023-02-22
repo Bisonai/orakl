@@ -46,6 +46,7 @@ function processEvent(iface: ethers.utils.Interface, queue: Queue, _logger: Logg
         removeOnFail: REMOVE_ON_FAIL,
         jobId: buildReporterJobId({ aggregatorAddress, roundId, deploymentName: DEPLOYMENT_NAME })
       })
+      logger.debug({ job: 'event-added' }, 'job-added')
     }
   }
 
