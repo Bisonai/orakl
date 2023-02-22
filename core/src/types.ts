@@ -248,6 +248,7 @@ export interface IAggregatorWorkerReporter {
   roundId: number
   submission: number
   workerSource: string
+  delay: number
 }
 
 // VRF

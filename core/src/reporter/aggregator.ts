@@ -55,7 +55,7 @@ function job(wallet, _logger: Logger) {
         aggregatorAddress
       }
       await heartbeatQueue.add('fixed-heartbeat', outData, {
-        delay: 15_000, // FIXME
+        delay: inData.delay,
         removeOnComplete: true,
         removeOnFail: true,
         jobId: aggregatorAddress

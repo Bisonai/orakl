@@ -42,12 +42,30 @@ export async function aggregatorWorker(_logger: Logger) {
   const aggregatorsWithAdapters = mergeAggregatorsAdapters(aggregators, adapters)
   logger.debug(aggregatorsWithAdapters, 'aggregatorsWithAdapters')
 
-  // Launch all aggregators to be executed with random heartbeat
-  const heartbeatQueue = new Queue(RANDOM_HEARTBEAT_QUEUE_NAME, BULLMQ_CONNECTION)
+  const randomHeartbeatQueue = new Queue(RANDOM_HEARTBEAT_QUEUE_NAME, BULLMQ_CONNECTION)
+  const fixedHeartbeatQueue = new Queue(FIXED_HEARTBEAT_QUEUE_NAME, BULLMQ_CONNECTION)
+
+  // Launch all aggregators to be executed with random and fixed heartbeat
   for (const aggregatorAddress in aggregatorsWithAdapters) {
     const aggregator = aggregatorsWithAdapters[aggregatorAddress]
+    if (aggregator.fixedHeartbeatRate.active) {
+      await fixedHeartbeatQueue.add(
+        'fixed-heartbeat',
+        { aggregatorAddress },
+        {
+          delay: await getSynchronizedDelay(
+            aggregatorAddress,
+            aggregator.fixedHeartbeatRate.value,
+            _logger
+          ),
+          removeOnComplete: true,
+          removeOnFail: true
+        }
+      )
+    }
+
     if (aggregator.randomHeartbeatRate.active) {
-      await heartbeatQueue.add('random-heartbeat', addReportProperty(aggregator, undefined), {
+      await randomHeartbeatQueue.add('random-heartbeat', addReportProperty(aggregator, undefined), {
         delay: uniform(0, aggregator.randomHeartbeatRate.value),
         removeOnComplete: REMOVE_ON_COMPLETE,
         removeOnFail: REMOVE_ON_FAIL
@@ -72,7 +90,12 @@ export async function aggregatorWorker(_logger: Logger) {
   // Random heartbeat worker
   new Worker(
     RANDOM_HEARTBEAT_QUEUE_NAME,
-    randomHeartbeatJob(RANDOM_HEARTBEAT_QUEUE_NAME, REPORTER_AGGREGATOR_QUEUE_NAME, _logger),
+    randomHeartbeatJob(
+      RANDOM_HEARTBEAT_QUEUE_NAME,
+      REPORTER_AGGREGATOR_QUEUE_NAME,
+      aggregatorsWithAdapters,
+      _logger
+    ),
     BULLMQ_CONNECTION
   )
 }
@@ -100,6 +123,7 @@ function aggregatorJob(
       const outData = await prepareDataForReporter({
         data: aggregator,
         workerSource: inData.workerSource,
+        delay: aggregator.fixedHeartbeatRate.value,
         roundId,
         _logger
       })
@@ -160,6 +184,7 @@ function fixedHeartbeatJob(aggregatorJobQueueName: string, _logger: Logger) {
 function randomHeartbeatJob(
   heartbeatQueueName: string,
   reporterQueueName: string,
+  aggregatorsWithAdapters: IAggregatorJob[],
   _logger: Logger
 ) {
   const logger = _logger.child({ name: 'randomHeartbeatJob', file: FILE_NAME })
@@ -172,11 +197,17 @@ function randomHeartbeatJob(
     logger.debug(inData, 'inData')
 
     const aggregatorAddress = inData.address
+    const aggregator = aggregatorsWithAdapters[aggregatorAddress]
+
+    if (!aggregator) {
+      throw new IcnError(IcnErrorCode.UndefinedAggregator)
+    }
 
     try {
       const outData = await prepareDataForReporter({
         data: inData,
         workerSource: 'random',
+        delay: aggregator.fixedHeartbeatRate.value,
         _logger
       })
       logger.debug(outData, 'outData')
@@ -209,17 +240,23 @@ function randomHeartbeatJob(
  * Fetch the latest data and prepare them to be sent to reporter.
  *
  * @param {IAggregatorHeartbeatWorker} data
- * @return {Promise<IAggregatorWorkerReporter>}
+ * @param {string} workerSource
+ * @param {number} delay
+ * @param {number} roundId
+ * @param {Logger} _logger
+ * @return {Promise<IAggregatorJob}
  * @exception {InvalidPriceFeed} raised from `fetchDataWithadapter`
  */
 async function prepareDataForReporter({
   data,
   workerSource,
+  delay,
   roundId,
   _logger
 }: {
   data: IAggregatorJob
   workerSource: string
+  delay: number
   roundId?: number
   _logger: Logger
 }): Promise<IAggregatorWorkerReporter> {
@@ -254,6 +291,7 @@ async function prepareDataForReporter({
     report,
     callbackAddress,
     workerSource,
+    delay,
     submission,
     roundId: roundId || oracleRoundState._roundId
   }
@@ -297,4 +335,34 @@ function shouldReport(
 
 function addReportProperty(o, report: boolean | undefined) {
   return Object.assign({}, ...[o, { report }])
+}
+
+async function getSynchronizedDelay(
+  aggregatorAddress: string,
+  delay: number,
+  _logger: Logger
+): Promise<number> {
+  // FIXME modify aggregator to use single contract call
+
+  let startedAt = 0
+  const { _startedAt, _roundId } = await oracleRoundStateCall({
+    aggregatorAddress,
+    operatorAddress: OPERATOR_ADDRESS
+  })
+
+  if (_startedAt.toNumber() != 0) {
+    startedAt = _startedAt.toNumber()
+  } else {
+    const { _startedAt } = await oracleRoundStateCall({
+      aggregatorAddress,
+      operatorAddress: OPERATOR_ADDRESS,
+      roundId: Math.max(0, _roundId - 1)
+    })
+    startedAt = _startedAt.toNumber()
+  }
+
+  _logger.debug({ startedAt }, 'synchronizedDelay')
+  const synchronizedDelay = delay - (startedAt % delay)
+  _logger.debug({ synchronizedDelay }, 'synchronizedDelay')
+  return synchronizedDelay
 }
