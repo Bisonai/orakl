@@ -32,9 +32,9 @@ function job(wallet, _logger: Logger) {
     const inData: IAggregatorWorkerReporter = job.data
     logger.debug(inData, 'inData')
 
-    try {
-      const aggregatorAddress = inData.callbackAddress
+    const aggregatorAddress = inData.callbackAddress
 
+    try {
       const payload = iface.encodeFunctionData('submit', [inData.roundId, inData.submission])
       const gasLimit = 300_000 // FIXME move to settings outside of code
       // TODO retry when transaction failed

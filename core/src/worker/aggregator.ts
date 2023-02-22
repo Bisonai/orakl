@@ -140,6 +140,7 @@ function aggregatorJob(
       })
     } catch (e) {
       logger.error(e)
+      throw e
     }
   }
 
