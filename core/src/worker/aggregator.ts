@@ -342,16 +342,27 @@ async function getSynchronizedDelay(
   delay: number,
   _logger: Logger
 ): Promise<number> {
-  const startedAt = await getRoundStartedAt(aggregatorAddress)
-  const synchronizedDelay = delay - (startedAt % delay)
-  _logger.debug({ synchronizedDelay }, 'synchronizedDelay')
-  return synchronizedDelay
-}
+  // FIXME modify aggregator to use single contract call
 
-async function getRoundStartedAt(aggregatorAddress: string): Promise<number> {
-  const { _startedAt } = await oracleRoundStateCall({
+  let startedAt: number = 0
+  let { _startedAt, _roundId } = await oracleRoundStateCall({
     aggregatorAddress,
     operatorAddress: OPERATOR_ADDRESS
   })
-  return _startedAt.toNumber()
+
+  if (_startedAt.toNumber() != 0) {
+    startedAt = _startedAt.toNumber()
+  } else {
+    const { _startedAt } = await oracleRoundStateCall({
+      aggregatorAddress,
+      operatorAddress: OPERATOR_ADDRESS,
+      roundId: Math.max(0, _roundId - 1)
+    })
+    startedAt = _startedAt.toNumber()
+  }
+
+  _logger.debug({ startedAt }, 'synchronizedDelay')
+  const synchronizedDelay = delay - (startedAt % delay)
+  _logger.debug({ synchronizedDelay }, 'synchronizedDelay')
+  return synchronizedDelay
 }
