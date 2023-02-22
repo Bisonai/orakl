@@ -60,6 +60,7 @@ function job(wallet, _logger: Logger) {
         removeOnFail: true,
         jobId: aggregatorAddress
       })
+      logger.debug({ job: 'added', delay: inData.delay }, 'job-added')
     } catch (e) {
       logger.error(e)
       throw e
