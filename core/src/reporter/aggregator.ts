@@ -37,8 +37,11 @@ function job(wallet, _logger: Logger) {
 
       const payload = iface.encodeFunctionData('submit', [inData.roundId, inData.submission])
       const gasLimit = 300_000 // FIXME move to settings outside of code
+      // TODO retry when transaction failed
       await sendTransaction({ wallet, to: aggregatorAddress, payload, _logger, gasLimit })
-
+    } catch (e) {
+      logger.error(e)
+    } finally {
       const allDelayed = (await heartbeatQueue.getJobs(['delayed'])).filter(
         (job) => job.opts.jobId == aggregatorAddress
       )
@@ -62,9 +65,6 @@ function job(wallet, _logger: Logger) {
         jobId: aggregatorAddress
       })
       logger.debug({ job: 'added', delay: inData.delay }, 'job-added')
-    } catch (e) {
-      logger.error(e)
-      throw e
     }
   }
 
