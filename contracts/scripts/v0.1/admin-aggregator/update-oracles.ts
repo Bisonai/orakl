@@ -11,8 +11,8 @@ async function main() {
 
   const aggregator = await ethers.getContract('Aggregator')
 
-  const removed = []
-  const added = []
+  const removed: string[] = []
+  const added: string[] = []
   const addedAdmins = added
   const minSubmissionCount = 1
   const maxSubmissionCount = 1
