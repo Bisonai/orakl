@@ -344,7 +344,7 @@ async function getSynchronizedDelay(
 ): Promise<number> {
   // FIXME modify aggregator to use single contract call
 
-  const startedAt = 0
+  let startedAt = 0
   const { _startedAt, _roundId } = await oracleRoundStateCall({
     aggregatorAddress,
     operatorAddress: OPERATOR_ADDRESS
