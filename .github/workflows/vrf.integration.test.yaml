@@ -3,6 +3,7 @@ on:
   push:
     paths:
       - "contracts/**"
+      - "core/**"
     branches:
       - "296-integration-test-for-vrf-onchain-components"
 jobs:
@@ -13,20 +14,35 @@ jobs:
       - uses: actions/setup-node@v3
         with:
           node-version: "18.12"
+
       - name: Install
         run: yarn
         working-directory: ./contracts
+
       - name: Compile
         run: yarn compile
         working-directory: ./contracts
+
       - name: Build
         run: yarn build
         working-directory: ./contracts
+
       - name: Run node and Deploy
         run: npx hardhat node & npx hardhat deploy
         working-directory: ./contracts
+
       - name: Request Randomwords
         run: npx hardhat run scripts/v0.1/vrf/vrf-integration.ts --network localhost
         working-directory: ./contracts
-        env:
-          GITHUB_ACTIONS: $GITHUB_ACTIONS
+
+      - name: Core - install
+        run: yarn
+        working-directory: ./core
+
+      - name: Core - build
+        run: yarn build
+        working-directory: ./core
+
+      - name: Core - start listener
+        run: yarn start:listener:vrf
+        working-directory: ./core

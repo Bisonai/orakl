@@ -12,7 +12,6 @@ async function main() {
     consumer
   )
   const vrfCoordinator = await ethers.getContract('VRFCoordinator')
-
   const keyHash = '0x47ede773ef09e40658e643fe79f8d1a27c0aa6eb7251749b268f829ea49f2024'
   const accId = 2
   const callbackGasLimit = 500_000
