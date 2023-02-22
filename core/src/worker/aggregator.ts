@@ -42,12 +42,30 @@ export async function aggregatorWorker(_logger: Logger) {
   const aggregatorsWithAdapters = mergeAggregatorsAdapters(aggregators, adapters)
   logger.debug(aggregatorsWithAdapters, 'aggregatorsWithAdapters')
 
-  // Launch all aggregators to be executed with random heartbeat
-  const heartbeatQueue = new Queue(RANDOM_HEARTBEAT_QUEUE_NAME, BULLMQ_CONNECTION)
+  const randomHeartbeatQueue = new Queue(RANDOM_HEARTBEAT_QUEUE_NAME, BULLMQ_CONNECTION)
+  const fixedHeartbeatQueue = new Queue(FIXED_HEARTBEAT_QUEUE_NAME, BULLMQ_CONNECTION)
+
+  // Launch all aggregators to be executed with random and fixed heartbeat
   for (const aggregatorAddress in aggregatorsWithAdapters) {
     const aggregator = aggregatorsWithAdapters[aggregatorAddress]
+    if (aggregator.fixedHeartbeatRate.active) {
+      await fixedHeartbeatQueue.add(
+        'fixed-heartbeat',
+        { aggregatorAddress },
+        {
+          delay: await getSynchronizedDelay(
+            aggregatorAddress,
+            aggregator.fixedHeartbeatRate.value,
+            _logger
+          ),
+          removeOnComplete: true,
+          removeOnFail: true
+        }
+      )
+    }
+
     if (aggregator.randomHeartbeatRate.active) {
-      await heartbeatQueue.add('random-heartbeat', addReportProperty(aggregator, undefined), {
+      await randomHeartbeatQueue.add('random-heartbeat', addReportProperty(aggregator, undefined), {
         delay: uniform(0, aggregator.randomHeartbeatRate.value),
         removeOnComplete: REMOVE_ON_COMPLETE,
         removeOnFail: REMOVE_ON_FAIL
@@ -297,4 +315,23 @@ function shouldReport(
 
 function addReportProperty(o, report: boolean | undefined) {
   return Object.assign({}, ...[o, { report }])
+}
+
+async function getSynchronizedDelay(
+  aggregatorAddress: string,
+  delay: number,
+  _logger: Logger
+): Promise<number> {
+  const startedAt = await getRoundStartedAt(aggregatorAddress)
+  const synchronizedDelay = delay - (startedAt % delay)
+  _logger.debug({ synchronizedDelay }, 'synchronizedDelay')
+  return synchronizedDelay
+}
+
+async function getRoundStartedAt(aggregatorAddress: string): Promise<number> {
+  const { _startedAt } = await oracleRoundStateCall({
+    aggregatorAddress,
+    operatorAddress: OPERATOR_ADDRESS
+  })
+  return _startedAt.toNumber()
 }
