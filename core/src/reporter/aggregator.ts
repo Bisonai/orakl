@@ -36,7 +36,8 @@ function job(wallet, _logger: Logger) {
       const aggregatorAddress = inData.callbackAddress
 
       const payload = iface.encodeFunctionData('submit', [inData.roundId, inData.submission])
-      await sendTransaction({ wallet, to: aggregatorAddress, payload, _logger })
+      const gasLimit = 300_000 // FIXME move to settings outside of code
+      await sendTransaction({ wallet, to: aggregatorAddress, payload, _logger, gasLimit })
 
       const allDelayed = (await heartbeatQueue.getJobs(['delayed'])).filter(
         (job) => job.opts.jobId == aggregatorAddress
