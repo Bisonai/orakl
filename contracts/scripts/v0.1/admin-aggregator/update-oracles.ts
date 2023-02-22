@@ -3,7 +3,6 @@ import hre from 'hardhat'
 
 async function main() {
   const { network } = hre
-  const { feedOracle0 } = await hre.getNamedAccounts()
 
   if (network.name == 'localhost') {
     console.log('Exiting')
