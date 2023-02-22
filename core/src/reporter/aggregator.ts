@@ -34,6 +34,8 @@ function job(wallet, _logger: Logger) {
 
     const aggregatorAddress = inData.callbackAddress
 
+    await submitFixedHeartbeatJob(heartbeatQueue, aggregatorAddress, inData.delay, logger)
+
     try {
       const payload = iface.encodeFunctionData('submit', [inData.roundId, inData.submission])
       const gasLimit = 300_000 // FIXME move to settings outside of code
@@ -41,32 +43,39 @@ function job(wallet, _logger: Logger) {
       await sendTransaction({ wallet, to: aggregatorAddress, payload, _logger, gasLimit })
     } catch (e) {
       logger.error(e)
-    } finally {
-      const allDelayed = (await heartbeatQueue.getJobs(['delayed'])).filter(
-        (job) => job.opts.jobId == aggregatorAddress
-      )
-
-      if (allDelayed.length > 1) {
-        throw new IcnError(IcnErrorCode.UnexpectedNumberOfJobsInQueue)
-      } else if (allDelayed.length == 1) {
-        const delayedJob = allDelayed[0]
-        delayedJob.remove()
-
-        logger.debug({ job: 'deleted' }, 'job-deleted')
-      }
-
-      const outData: IAggregatorHeartbeatWorker = {
-        aggregatorAddress
-      }
-      await heartbeatQueue.add('fixed-heartbeat', outData, {
-        delay: inData.delay,
-        removeOnComplete: true,
-        removeOnFail: true,
-        jobId: aggregatorAddress
-      })
-      logger.debug({ job: 'added', delay: inData.delay }, 'job-added')
     }
   }
 
   return wrapper
+}
+
+async function submitFixedHeartbeatJob(
+  heartbeatQueue: Queue,
+  aggregatorAddress: string,
+  delay: number,
+  logger: Logger
+) {
+  const allDelayed = (await heartbeatQueue.getJobs(['delayed'])).filter(
+    (job) => job.opts.jobId == aggregatorAddress
+  )
+
+  if (allDelayed.length > 1) {
+    throw new IcnError(IcnErrorCode.UnexpectedNumberOfJobsInQueue)
+  } else if (allDelayed.length == 1) {
+    const delayedJob = allDelayed[0]
+    delayedJob.remove()
+
+    logger.debug({ job: 'deleted' }, 'job-deleted')
+  }
+
+  const outData: IAggregatorHeartbeatWorker = {
+    aggregatorAddress
+  }
+  await heartbeatQueue.add('fixed-heartbeat', outData, {
+    delay: delay,
+    removeOnComplete: true,
+    removeOnFail: true,
+    jobId: aggregatorAddress
+  })
+  logger.debug({ job: 'added', delay: delay }, 'job-added')
 }
