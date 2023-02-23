@@ -175,6 +175,7 @@ function fixedHeartbeatJob(aggregatorJobQueueName: string, _logger: Logger) {
         operatorAddress: OPERATOR_ADDRESS,
         logger
       })
+      logger.debug(oracleRoundState, 'oracleRoundState-fixed')
 
       const roundId = oracleRoundState._roundId
 
@@ -186,11 +187,15 @@ function fixedHeartbeatJob(aggregatorJobQueueName: string, _logger: Logger) {
       logger.debug(outData, 'outData-fixed')
 
       if (oracleRoundState._eligibleToSubmit) {
+        logger.debug({ job: 'added', eligible: true, roundId }, 'before-eligible-fixed')
         await queue.add('fixed', outData, {
           removeOnComplete: REMOVE_ON_COMPLETE,
           removeOnFail: REMOVE_ON_FAIL,
           jobId: buildReporterJobId({ aggregatorAddress, roundId, deploymentName: DEPLOYMENT_NAME })
         })
+        logger.debug({ job: 'added', eligible: true, roundId }, 'eligible-fixed')
+      } else {
+        logger.debug({ eligible: false, roundId }, 'non-eligible-fixed')
       }
     } catch (e) {
       logger.error(e)
@@ -238,7 +243,7 @@ function randomHeartbeatJob(
           jobId: buildReporterJobId({
             aggregatorAddress,
             deploymentName: DEPLOYMENT_NAME,
-            ...outData
+            roundId: outData.roundId
           })
         })
       }
