@@ -48,6 +48,15 @@ jobs:
       - name: Core - start listener
         run: yarn start:listener:vrf &
         working-directory: ./core
+
       - name: Core - start worker
         run: yarn start:worker:vrf &
         working-directory: ./core
+
+      - name: Core - start reporter
+        run: yarn start:reporter:vrf &
+        working-directory: ./core
+
+      - name: get Randomwords
+        run: npx hardhat run scripts/v0.1/vrf/vrf-integration-read.ts --network localhost
+        working-directory: ./contracts
