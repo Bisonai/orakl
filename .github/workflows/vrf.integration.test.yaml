@@ -46,5 +46,8 @@ jobs:
         working-directory: ./core
 
       - name: Core - start listener
-        run: start:listener:vrf &
+        run: yarn start:listener:vrf &
+        working-directory: ./core
+      - name: Core - start worker
+        run: yarn start:worker:vrf &
         working-directory: ./core
