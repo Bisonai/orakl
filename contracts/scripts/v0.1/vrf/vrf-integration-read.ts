@@ -8,7 +8,7 @@ async function main() {
   console.log(randomWord.toString())
   expect(randomWord.toString()).to.not.equal('0')
 }
-setInterval(() => {
+setTimeout(() => {
   main().catch((error) => {
     console.error(error)
     process.exitCode = 1
