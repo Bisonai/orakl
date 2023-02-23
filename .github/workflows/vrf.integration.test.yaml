@@ -34,7 +34,8 @@ jobs:
       - name: Request Randomwords
         run: npx hardhat run scripts/v0.1/vrf/vrf-integration.ts --network localhost
         working-directory: ./contracts
-
+      - name: Install pm2
+        run: npm install pm2
       - name: Core - install
         run: yarn
         working-directory: ./core
@@ -44,5 +45,16 @@ jobs:
         working-directory: ./core
 
       - name: Core - start listener
-        run: yarn start:listener:vrf
+        run: npx pm2 start yarn -name lvrf -- start:listener:vrf
         working-directory: ./core
+
+      - name: Core - start listener
+        run: npx pm2 start yarn -name wvrf -- start:worker:vrf
+        working-directory: ./core
+
+      - name: Core - start listener
+        run: npx pm2 start yarn -name rrf -- start:reporter:vrf
+        working-directory: ./core
+      
+      - name: Get random words
+        run: npx hardhat run scripts/v0.1/vrf/vrf-integration-read.ts --network localhost
