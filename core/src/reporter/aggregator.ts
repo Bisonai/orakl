@@ -74,8 +74,9 @@ async function submitFixedHeartbeatJob(
   await heartbeatQueue.add('fixed-heartbeat', outData, {
     delay: delay,
     removeOnComplete: true,
-    removeOnFail: true,
-    jobId: aggregatorAddress
+    jobId: aggregatorAddress,
+    attempts: 3,
+    backoff: 1_000
   })
   logger.debug({ job: 'added', delay: delay }, 'job-added')
 }

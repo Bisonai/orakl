@@ -69,7 +69,7 @@ export function mergeAggregatorsAdapters(aggregators, adapters: IAdapter[]) {
  *
  * @param {number} adapter Single data adapter to define which data to fetch.
  * @return {number} aggregatedresults
- * @exception {InvalidPriceFeed} raised when there is at least one undefined data point
+ * @exception {InvalidDataFeed} raised when there is at least one undefined data point
  */
 export async function fetchDataWithAdapter(adapter, logger?: Logger) {
   const allResults = await Promise.all(
@@ -95,12 +95,13 @@ export async function fetchDataWithAdapter(adapter, logger?: Logger) {
     })
   )
   logger?.debug({ name: 'predefinedFeedJob', ...allResults }, 'allResults')
-  // FIXME: Improve or use flags to throw error when allResults has any undefined variable
-  const isValid = allResults.every((r) => r)
-  if (!isValid) {
-    throw new IcnError(IcnErrorCode.InvalidPriceFeed)
+
+  const filteredResults = allResults.filter((r) => r)
+  if (filteredResults.length == 0) {
+    throw new IcnError(IcnErrorCode.IncompleteDataFeed)
   }
-  const aggregatedResults = localAggregatorFn(...allResults)
+
+  const aggregatedResults = localAggregatorFn(...filteredResults)
   logger?.debug({ name: 'fetchDataWithAdapter', ...aggregatedResults }, 'aggregatedResults')
 
   return aggregatedResults
@@ -109,10 +110,10 @@ export async function fetchDataWithAdapter(adapter, logger?: Logger) {
 function checkDataFormat(data) {
   if (!data) {
     // check if priceFeed is null, undefined, NaN, "", 0, false
-    throw new IcnError(IcnErrorCode.InvalidPriceFeed)
+    throw new IcnError(IcnErrorCode.InvalidDataFeed)
   } else if (!Number.isInteger(data)) {
     // check if priceFeed is not Integer
-    throw new IcnError(IcnErrorCode.InvalidPriceFeedFormat)
+    throw new IcnError(IcnErrorCode.InvalidDataFeedFormat)
   }
 }
 
