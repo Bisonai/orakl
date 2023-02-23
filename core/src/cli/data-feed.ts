@@ -4,7 +4,15 @@ import { fetchDataWithAdapter, loadAdapters } from '../worker/utils'
 async function main() {
   const adapterId: string = loadArgs()
   const adapters = await loadAdapters({ postprocess: true })
-  fetchDataWithAdapter(adapters[adapterId])
+
+  let round = 1
+  while (1 == 1) {
+    const price = await fetchDataWithAdapter(adapters[adapterId].feeds, round++)
+    const now = new Date()
+    console.log(`Round: ${round - 1}, Price: ${price}, Time:${now}\n\n`)
+    const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms * 1000))
+    await sleep(1)
+  }
 }
 
 function loadArgs(): string {

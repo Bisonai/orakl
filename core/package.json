@@ -50,6 +50,7 @@
     "dotenv": "^16.0.3",
     "elliptic": "^6.5.4",
     "ethers": "^5.7.2",
+    "json2csv": "^6.0.0-alpha.2",
     "mathjs": "^11.4.0",
     "pino": "^8.8.0",
     "pino-pretty": "^9.1.1",
