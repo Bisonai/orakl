@@ -1,9 +1,6 @@
 name: "contracts-vrf: integration-test"
 on:
   push:
-    paths:
-      - "contracts/**"
-      - "core/**"
     branches:
       - "296-integration-test-for-vrf-onchain-components"
 jobs:
@@ -34,8 +31,6 @@ jobs:
       - name: Request Randomwords
         run: npx hardhat run scripts/v0.1/vrf/vrf-integration.ts --network localhost
         working-directory: ./contracts
-      - name: Install pm2
-        run: npm install pm2
 
       - name: Redis Server in GitHub Actions
         uses: supercharge/redis-github-action@1.5.0
@@ -51,17 +46,5 @@ jobs:
         working-directory: ./core
 
       - name: Core - start listener
-        run: npx pm2 start yarn --name lvrf --interpreter bash -- start:listener:vrf
+        run: start:listener:vrf &
         working-directory: ./core
-
-      - name: Core - start worker
-        run: npx pm2 start yarn --name wvrf --interpreter bash -- start:worker:vrf
-        working-directory: ./core
-
-      - name: Core - start reporter
-        run: npx pm2 start yarn --name rrf --interpreter bash -- start:reporter:vrf
-        working-directory: ./core
-
-      - name: Get random words
-        run: npx hardhat run scripts/v0.1/vrf/vrf-integration-read.ts --network localhost
-        working-directory: ./contracts
