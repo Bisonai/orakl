@@ -45,15 +45,19 @@ jobs:
         working-directory: ./core
 
       - name: Core - start listener
-        run: npx pm2 start yarn --name lvrf --interpreter bash -- start:listener:vrf && npx pm2 log 0
+        run: npx pm2 start yarn --name lvrf --interpreter bash -- start:listener:vrf
         working-directory: ./core
 
       - name: Core - start worker
-        run: npx pm2 start yarn --name wvrf --interpreter bash -- start:worker:vrf && npx pm2 log 0
+        run: npx pm2 start yarn --name wvrf --interpreter bash -- start:worker:vrf
         working-directory: ./core
 
       - name: Core - start reporter
-        run: npx pm2 start yarn --name rrf --interpreter bash -- start:reporter:vrf && npx pm2 log 0
+        run: npx pm2 start yarn --name rrf --interpreter bash -- start:reporter:vrf
+        working-directory: ./core
+
+      - name: pm2 log
+        run: npx pm2 log 0
         working-directory: ./core
 
       - name: Get random words
