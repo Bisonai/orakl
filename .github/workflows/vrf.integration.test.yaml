@@ -36,6 +36,12 @@ jobs:
         working-directory: ./contracts
       - name: Install pm2
         run: npm install pm2
+
+      - name: Redis Server in GitHub Actions
+        uses: supercharge/redis-github-action@1.5.0
+        with:
+          redis-version: 6
+
       - name: Core - install
         run: yarn
         working-directory: ./core
@@ -54,10 +60,6 @@ jobs:
 
       - name: Core - start reporter
         run: npx pm2 start yarn --name rrf --interpreter bash -- start:reporter:vrf
-        working-directory: ./core
-
-      - name: pm2 log
-        run: npx pm2 log 0
         working-directory: ./core
 
       - name: Get random words
