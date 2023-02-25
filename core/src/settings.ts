@@ -11,7 +11,7 @@ import { mkdir } from './utils'
 import * as dotenv from 'dotenv'
 dotenv.config()
 
-export const TEST_MIGRATIONS_PATH = 'src/cli/orakl-cli/migrations'
+export const MIGRATIONS_PATH = 'src/cli/orakl-cli/migrations'
 export const DEPLOYMENT_NAME = process.env.DEPLOYMENT_NAME || 'orakl'
 export const NODE_ENV = process.env.NODE_ENV
 export const HEALTH_CHECK_PORT = process.env.HEALTH_CHECK_PORT
@@ -102,7 +102,7 @@ async function openDb() {
 
   const { count } = await db.get('SELECT count(*) AS count FROM sqlite_master WHERE type="table"')
   if (count == 0) {
-    await db.migrate({ migrationsPath: TEST_MIGRATIONS_PATH })
+    await db.migrate({ migrationsPath: MIGRATIONS_PATH })
   }
 
   return db

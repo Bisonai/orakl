@@ -1,8 +1,6 @@
-name: "contracts-vrf: integration-test"
-on:
-  push:
-    branches:
-      - "296-integration-test-for-vrf-onchain-components"
+name: "vrf: integration-test"
+on: push
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -24,12 +22,8 @@ jobs:
         run: yarn build
         working-directory: ./contracts
 
-      - name: Run node and Deploy
+      - name: Run node and deploy
         run: npx hardhat node & npx hardhat deploy
-        working-directory: ./contracts
-
-      - name: Request Randomwords
-        run: npx hardhat run scripts/v0.1/vrf/vrf-integration.ts --network localhost
         working-directory: ./contracts
 
       - name: Redis Server in GitHub Actions
@@ -49,6 +43,10 @@ jobs:
         run: yarn start:listener:vrf &
         working-directory: ./core
 
+      - name: Request random words
+        run: npx hardhat run scripts/v0.1/vrf/integration/request-vrf.ts --network localhost
+        working-directory: ./contracts
+
       - name: Core - start worker
         run: yarn start:worker:vrf &
         working-directory: ./core
@@ -57,6 +55,6 @@ jobs:
         run: yarn start:reporter:vrf &
         working-directory: ./core
 
-      - name: get Randomwords
-        run: npx hardhat run scripts/v0.1/vrf/vrf-integration-read.ts --network localhost
+      - name: Get random words
+        run: npx hardhat run scripts/v0.1/vrf/integration/read-vrf.ts --network localhost
         working-directory: ./contracts
