@@ -9,9 +9,7 @@ async function main() {
   expect(randomWord.toString()).to.not.equal('0')
 }
 
-setTimeout(() => {
-  main().catch((error) => {
-    console.error(error)
-    process.exitCode = 1
-  })
-}, 1000 * 20)
+main().catch((error) => {
+  console.error(error)
+  process.exitCode = 1
+})
