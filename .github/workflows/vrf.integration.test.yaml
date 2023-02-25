@@ -1,8 +1,12 @@
 name: "vrf: integration-test"
-on: push
+
+on:
+  issue_comment:
+    types: [created, edited, deleted]
 
 jobs:
   build:
+    if: contains(github.event.comment.html_url, '/pull/') && contains(github.event.comment.body, '/integration')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
