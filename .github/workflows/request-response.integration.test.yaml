@@ -3,11 +3,9 @@ name: "request-response: integration-test"
 on:
   issue_comment:
     types: [created, edited, deleted]
-  push:
-    branches:
-      - "316-integration-test-for-request-response"
 jobs:
   build:
+    if: ${{ github.event.issue.pull_request }} && contains(github.event.comment.body, '/integration')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
