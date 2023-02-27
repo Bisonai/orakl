@@ -7,7 +7,6 @@ import type { RedisClientType } from 'redis'
 import { IncomingWebhook } from '@slack/webhook'
 import Hook from 'console-hook'
 import { SLACK_WEBHOOK_URL } from './settings'
-import urlExist from 'url-exist'
 export async function loadJson(filepath) {
   const json = await Fs.readFile(filepath, 'utf8')
   return JSON.parse(json)
