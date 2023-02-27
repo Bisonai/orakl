@@ -19,7 +19,6 @@ async function main() {
   const txReceipt = await (
     await requestResponseConsumerSigner.requestData(accId, callbackGasLimit)
   ).wait()
-  console.log(txReceipt, requestResponse.address)
   const event = requestResponse.interface.parseLog(txReceipt.events[0])
   expect(event.args.requestId.toString()).to.not.equal(null)
 }
