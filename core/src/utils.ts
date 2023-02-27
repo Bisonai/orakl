@@ -63,16 +63,30 @@ export function mkTmpFile({ fileName }: { fileName: string }): string {
   return tmpFilePath
 }
 
+let slackSentTime = new Date().getTime()
+let errMsg = null
+
 async function sendToSlack(error) {
-  const exists = await urlExist(SLACK_WEBHOOK_URL)
-  if (exists) {
+  if (SLACK_WEBHOOK_URL) {
     const webhook = new IncomingWebhook(SLACK_WEBHOOK_URL)
     const text = ` :fire: _An error has occurred at_ \`${os.hostname()}\`\n \`\`\`${JSON.stringify(
-      error
+      error[1]
     )} \`\`\`\n>*System information*\n>*memory*: ${os.freemem()}/${os.totalmem()}\n>*machine*: ${os.machine()}\n>*platform*: ${os.platform()}\n>*upTime*: ${os.uptime()}\n>*version*: ${os.version()}
    `
     try {
-      await webhook.send({ text })
+      if (errMsg == error[1].message) {
+        const currentDate = new Date()
+        const oneMinuteAgo = new Date(currentDate.getTime() - 60000)
+        if (slackSentTime < oneMinuteAgo.getTime()) {
+          await webhook.send({ text })
+          errMsg = error[1].message
+          slackSentTime = new Date().getTime()
+        }
+      } else {
+        await webhook.send({ text })
+        errMsg = error[1].message
+        slackSentTime = new Date().getTime()
+      }
     } catch (e) {
       console.log('utils:sendToSlack', `${e}`)
     }
