@@ -30,15 +30,16 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   const aggregator = await ethers.getContractAt('Aggregator', aggregatorDeployment.address)
 
-  // Charge KLAY to Aggregator (usedd for paying oracles)
-  const value = ethers.utils.parseEther('1.0')
-  await (await aggregator.deposit({ value })).wait()
+  // Charge KLAY to Aggregator (used for paying oracles)
+  if (config.paymentAmount > 0) {
+    const value = ethers.utils.parseEther('1.0')
+    await (await aggregator.deposit({ value })).wait()
+  }
 
   // Setup oracles that will contribute to Aggregator
   const removed = []
-  const added = [feedOracle0]
-  // FIXME Most likely wrong. Learn more about addedAdmins.
-  const addedAdmins = [feedOracle0]
+  const added = config.oracles.length ? config.oracles : [feedOracle0, feedOracle1]
+  const addedAdmins = config.admins.length ? config.admins : [feedOracle0, feedOracle1]
 
   await (
     await aggregator.changeOracles(

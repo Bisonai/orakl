@@ -8,7 +8,7 @@ import {
 } from '../src/cli/orakl-cli/src/kv'
 import { openDb } from '../src/cli/orakl-cli/src/utils'
 import { mkTmpFile } from '../src/utils'
-import { TEST_MIGRATIONS_PATH } from '../src/settings'
+import { MIGRATIONS_PATH } from '../src/settings'
 
 describe('CLI KV', function () {
   let DB
@@ -26,7 +26,7 @@ describe('CLI KV', function () {
   }
 
   beforeEach(async () => {
-    DB = await openDb({ dbFile: TMP_DB_FILE, migrate: true, migrationsPath: TEST_MIGRATIONS_PATH })
+    DB = await openDb({ dbFile: TMP_DB_FILE, migrate: true, migrationsPath: MIGRATIONS_PATH })
   })
 
   test('Should list all Key-Value pairs', async function () {

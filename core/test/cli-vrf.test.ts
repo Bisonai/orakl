@@ -2,7 +2,7 @@ import { describe, expect, beforeEach, test } from '@jest/globals'
 import { listHandler, insertHandler, removeHandler } from '../src/cli/orakl-cli/src/vrf'
 import { openDb } from '../src/cli/orakl-cli/src/utils'
 import { mkTmpFile } from '../src/utils'
-import { TEST_MIGRATIONS_PATH } from '../src/settings'
+import { MIGRATIONS_PATH } from '../src/settings'
 
 describe('CLI Vrf', function () {
   let DB
@@ -16,7 +16,7 @@ describe('CLI Vrf', function () {
   }
 
   beforeEach(async () => {
-    DB = await openDb({ dbFile: TMP_DB_FILE, migrate: true, migrationsPath: TEST_MIGRATIONS_PATH })
+    DB = await openDb({ dbFile: TMP_DB_FILE, migrate: true, migrationsPath: MIGRATIONS_PATH })
   })
 
   test('Should list all VRF keys', async function () {

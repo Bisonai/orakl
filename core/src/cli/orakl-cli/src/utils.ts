@@ -100,6 +100,7 @@ export async function computeDataHash({
   // Don't use `id` and `active` in hash computation
   delete input.id
   delete input.active
+  delete input.address
 
   const hash = ethers.utils.keccak256(ethers.utils.toUtf8Bytes(JSON.stringify(input)))
 

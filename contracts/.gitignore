@@ -6,3 +6,4 @@ cache/
 node_modules/
 typechain-types/
 deployments/localhost/
+deployments/*/solcInputs

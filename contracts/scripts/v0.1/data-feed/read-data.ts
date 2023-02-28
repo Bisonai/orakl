@@ -18,13 +18,14 @@ async function main() {
   const dataFeedConsumerMock = await ethers.getContract('DataFeedConsumerMock')
   const dataFeedConsumerSigner = await ethers.getContractAt(
     'DataFeedConsumerMock',
-    dataFeedConsumerMock.address
+    dataFeedConsumerMock.address,
+    _consumer
   )
 
   console.log('DataFeedConsumerMock', dataFeedConsumerMock.address)
 
   try {
-    await dataFeedConsumerSigner.connect(_consumer).getLatestPrice()
+    await dataFeedConsumerSigner.getLatestPrice()
     const price = await dataFeedConsumerSigner.s_price()
     const decimals = await dataFeedConsumerSigner.decimals()
     const round = await dataFeedConsumerSigner.s_roundID()

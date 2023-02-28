@@ -64,7 +64,7 @@ VALUES
            '0x0165878a594ca255338adfa4d48449f69242eb8f', 'RandomWordsRequested'),
   ((SELECT id from Chain WHERE name = 'localhost'),
   (SELECT id from Service WHERE name = 'Aggregator'),
-           '0xa513E6E4b8f2a923D98304ec87F64353C4D5C853', 'NewRound'),
+           '0xB7f8BC63BbcaD18155201308C8f3540b07f84F5e', 'NewRound'),
   ((SELECT id from Chain WHERE name = 'localhost'),
   (SELECT id from Service WHERE name = 'RequestResponse'),
            '0xe7f1725e7734ce288f8367e1bb143e90bb3f0512', 'DataRequested');
@@ -141,7 +141,7 @@ VALUES
   '0x00d5130063bee77302b133b5c6a0d6aede467a599d251aec842d24abeb5866a5',
   '{
     "id": "0x00d5130063bee77302b133b5c6a0d6aede467a599d251aec842d24abeb5866a5",
-    "active": true,
+    "active": false,
     "name": "KLAY/USD",
     "jobType": "DATA_FEED",
     "decimals": "8",
@@ -226,10 +226,10 @@ INSERT INTO Aggregator (chainId, adapterId, aggregatorId, data)
 VALUES
   ((SELECT id from Chain WHERE name = 'localhost'),
    (SELECT id from Adapter WHERE json_extract(Adapter.data, '$.id')='0xc9f7c0b3a3e75ca24b9d84ab2ebbcad5cff09317f87532e90b79bf2ebbb327a3'),
-   '0x4bbb04ac1bd973770a0b8e585a41147648980f3094ee7ac5597b2a987e9e96a9',
+   '0x5e144ae08c37ec9f300c2dadf8e611d2255089e2d32838f004fb2f3b0644c4f7',
   '{
-    "id": "0x4bbb04ac1bd973770a0b8e585a41147648980f3094ee7ac5597b2a987e9e96a9",
-    "address": "0x0000000000000000000000000000000000000000",
+    "id": "0x5e144ae08c37ec9f300c2dadf8e611d2255089e2d32838f004fb2f3b0644c4f7",
+    "address": "",
     "active": false,
     "name": "ETH/USD",
     "fixedHeartbeatRate": {
@@ -246,11 +246,11 @@ VALUES
   }'),
   ((SELECT id from Chain WHERE name = 'localhost'),
    (SELECT id from Adapter WHERE json_extract(Adapter.data, '$.id')='0x00d5130063bee77302b133b5c6a0d6aede467a599d251aec842d24abeb5866a5'),
-   '0x2d5d94df99ccad54f0f6a9d38f2340db793833947f86b207dcda38583dd263fa',
+   '0x44191f35b9d3fc54e6b27d7269b85c92d1a372302cb0173afeee388f4c7e793e',
   '{
-    "id": "0x2d5d94df99ccad54f0f6a9d38f2340db793833947f86b207dcda38583dd263fa",
-    "address": "0x2279B7A0a67DB372996a5FaB50D91eAA73d2eBe6",
-    "active": true,
+    "id": "0x44191f35b9d3fc54e6b27d7269b85c92d1a372302cb0173afeee388f4c7e793e",
+    "address": "",
+    "active": false,
     "name": "KLAY/USD",
     "fixedHeartbeatRate": {
         "active" : true,

@@ -1,12 +1,20 @@
+import axios from 'axios'
+import { ethers } from 'ethers'
 import { Logger } from 'pino'
 import { dataFeedReducerMapping } from './reducer'
 import { IcnError, IcnErrorCode } from '../errors'
 import { pipe } from '../utils'
-import { IAdapter, IAggregator } from '../types'
-import { getAdapters, getAggregators, localAggregatorFn, DB, CHAIN } from '../settings'
-import axios from 'axios'
+import { IAdapter, IAggregator, IOracleRoundState, IRoundData } from '../types'
+import { getAdapters, getAggregators, localAggregatorFn, DB, CHAIN, PROVIDER } from '../settings'
+import { Aggregator__factory } from '@bisonai/orakl-contracts'
 
-export async function loadAdapters({ postprocess }: { postprocess?: boolean }) {
+const FILE_NAME = import.meta.url
+
+export async function loadAdapters({
+  postprocess
+}: {
+  postprocess?: boolean
+}): Promise<IAdapter[]> {
   const rawAdapters = await getAdapters(DB, CHAIN)
   const validatedRawAdapters = rawAdapters.map((a) => validateAdapter(JSON.parse(a.data)))
 
@@ -30,20 +38,27 @@ export async function loadAggregators({ postprocess }: { postprocess?: boolean }
   return Object.assign({}, ...activeRawAggregators.map((a) => extractAggregators(a)))
 }
 
-export function mergeAggregatorsAdapters(aggregators, adapters) {
+export function mergeAggregatorsAdapters(aggregators, adapters: IAdapter[]) {
   // FIXME use mapping instead
   // TODO replace any
   /* eslint-disable @typescript-eslint/no-explicit-any */
   const aggregatorsWithAdapters: any = []
 
   for (const agAddress in aggregators) {
-    const ag = aggregators[agAddress]
-    if (ag) {
-      ag['adapter'] = adapters[ag.adapterId]
-      aggregatorsWithAdapters.push({ [agAddress]: ag })
-    } else {
+    const aggregator = aggregators[agAddress]
+    if (!aggregator) {
+      throw new IcnError(IcnErrorCode.MissingAggregator)
+    }
+
+    const adapter = adapters[aggregator?.adapterId]
+    if (!adapter) {
       throw new IcnError(IcnErrorCode.MissingAdapter)
     }
+
+    aggregator.decimals = adapter.decimals
+    aggregator.adapter = adapter.feeds
+
+    aggregatorsWithAdapters.push({ [agAddress]: aggregator })
   }
 
   return Object.assign({}, ...aggregatorsWithAdapters)
@@ -54,7 +69,7 @@ export function mergeAggregatorsAdapters(aggregators, adapters) {
  *
  * @param {number} adapter Single data adapter to define which data to fetch.
  * @return {number} aggregatedresults
- * @exception {InvalidPriceFeed} raised when there is at least one undefined data point
+ * @exception {InvalidDataFeed} raised when there is at least one undefined data point
  */
 export async function fetchDataWithAdapter(adapter, logger?: Logger) {
   const allResults = await Promise.all(
@@ -80,12 +95,13 @@ export async function fetchDataWithAdapter(adapter, logger?: Logger) {
     })
   )
   logger?.debug({ name: 'predefinedFeedJob', ...allResults }, 'allResults')
-  // FIXME: Improve or use flags to throw error when allResults has any undefined variable
-  const isValid = allResults.every((r) => r)
-  if (!isValid) {
-    throw new IcnError(IcnErrorCode.InvalidPriceFeed)
+
+  const filteredResults = allResults.filter((r) => r)
+  if (filteredResults.length == 0) {
+    throw new IcnError(IcnErrorCode.IncompleteDataFeed)
   }
-  const aggregatedResults = localAggregatorFn(...allResults)
+
+  const aggregatedResults = localAggregatorFn(...filteredResults)
   logger?.debug({ name: 'fetchDataWithAdapter', ...aggregatedResults }, 'aggregatedResults')
 
   return aggregatedResults
@@ -94,10 +110,10 @@ export async function fetchDataWithAdapter(adapter, logger?: Logger) {
 function checkDataFormat(data) {
   if (!data) {
     // check if priceFeed is null, undefined, NaN, "", 0, false
-    throw new IcnError(IcnErrorCode.InvalidPriceFeed)
+    throw new IcnError(IcnErrorCode.InvalidDataFeed)
   } else if (!Number.isInteger(data)) {
     // check if priceFeed is not Integer
-    throw new IcnError(IcnErrorCode.InvalidPriceFeedFormat)
+    throw new IcnError(IcnErrorCode.InvalidDataFeedFormat)
   }
 }
 
@@ -122,7 +138,7 @@ function extractFeeds(adapter) {
     }
   })
 
-  return { [adapterId]: feeds }
+  return { [adapterId]: { decimals: adapter.decimals, feeds } }
 }
 
 function extractAggregators(aggregator) {
@@ -189,4 +205,38 @@ export function uniform(a: number, b: number): number {
     throw new IcnError(IcnErrorCode.UniformWrongParams)
   }
   return a + Math.round(Math.random() * (b - a))
+}
+
+export async function oracleRoundStateCall({
+  aggregatorAddress,
+  operatorAddress,
+  logger,
+  roundId
+}: {
+  aggregatorAddress: string
+  operatorAddress: string
+  roundId?: number
+  logger?: Logger
+}): Promise<IOracleRoundState> {
+  logger?.debug({ name: 'oracleRoundStateCall', file: FILE_NAME })
+
+  const aggregator = new ethers.Contract(aggregatorAddress, Aggregator__factory.abi, PROVIDER)
+
+  let queriedRoundId = 0
+  if (roundId) {
+    queriedRoundId = roundId
+  }
+
+  return await aggregator.oracleRoundState(operatorAddress, queriedRoundId)
+}
+
+export async function getRoundDataCall({
+  aggregatorAddress,
+  roundId
+}: {
+  aggregatorAddress: string
+  roundId: number
+}): Promise<IRoundData> {
+  const aggregator = new ethers.Contract(aggregatorAddress, Aggregator__factory.abi, PROVIDER)
+  return await aggregator.getRoundData(roundId)
 }

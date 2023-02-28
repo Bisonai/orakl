@@ -7,7 +7,7 @@ import {
 } from '../src/cli/orakl-cli/src/adapter'
 import { openDb } from '../src/cli/orakl-cli/src/utils'
 import { mkTmpFile } from '../src/utils'
-import { TEST_MIGRATIONS_PATH } from '../src/settings'
+import { MIGRATIONS_PATH } from '../src/settings'
 
 describe('CLI Adapter', function () {
   let DB
@@ -35,7 +35,7 @@ describe('CLI Adapter', function () {
     DB = await openDb({
       dbFile: TMP_DB_FILE,
       migrate: true,
-      migrationsPath: TEST_MIGRATIONS_PATH
+      migrationsPath: MIGRATIONS_PATH
     })
   })
 

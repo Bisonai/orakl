@@ -23,7 +23,6 @@
     "start:worker:aggregator": "yarn start:worker --worker AGGREGATOR",
     "start:worker:vrf": "yarn start:worker --worker VRF",
     "start:worker:request_response": "yarn start:worker --worker REQUEST_RESPONSE",
-    "start:worker:predefined_feed": "yarn start:worker --worker PREDEFINED_FEED",
     "start:reporter": "node --no-warnings --experimental-specifier-resolution=node --experimental-json-modules dist/reporter/main.js",
     "start:reporter:vrf": "yarn start:reporter --reporter VRF",
     "start:reporter:request_response": "yarn start:reporter --reporter REQUEST_RESPONSE",
@@ -35,7 +34,8 @@
     "flush": "node --no-warnings --experimental-specifier-resolution=node --experimental-json-modules dist/cli/flush-queues.js",
     "cli": "node --no-warnings --experimental-specifier-resolution=node --experimental-json-modules dist/cli/orakl-cli/src/index.js",
     "test": "node --no-warnings --experimental-vm-modules node_modules/jest/bin/jest.js",
-    "eslint": "DEBUG=eslint:cli-engine npx eslint 'src/**/*.ts' 'src/*.ts' 'test/*.ts'"
+    "eslint": "DEBUG=eslint:cli-engine npx eslint 'src/**/*.ts' 'src/*.ts' 'test/*.ts'",
+    "bull-dashboard": "docker-compose -f docker-compose.bull-monitor.yaml up"
   },
   "dependencies": {
     "@bisonai/orakl-contracts": "^0.4.4",
@@ -43,6 +43,7 @@
     "axios": "^1.2.2",
     "bn.js": "^5.2.1",
     "bullmq": "^3.2.2",
+    "caver-js": "^1.10.1",
     "cbor": "^8.1.0",
     "cmd-ts": "^0.11.0",
     "console-hook": "^0.0.2",
@@ -52,6 +53,7 @@
     "mathjs": "^11.4.0",
     "pino": "^8.8.0",
     "pino-pretty": "^9.1.1",
+    "redis": "^4.6.4",
     "sqlite": "^4.1.2",
     "sqlite3": "^5.1.4",
     "url-exist": "^3.0.1"

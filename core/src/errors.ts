@@ -17,11 +17,13 @@ export enum IcnErrorCode {
   MissingJsonRpcProvider,
   MissingKeyInJson,
   MissingAdapter,
+  MissingAggregator,
   UniformWrongParams,
   InvalidListenerConfig,
   UndefinedListenerRequested,
-  InvalidPriceFeed,
-  InvalidPriceFeedFormat,
+  InvalidDataFeed,
+  IncompleteDataFeed,
+  InvalidDataFeedFormat,
   MissingKeyValuePair,
   UnexpectedQueryOutput,
   TxInvalidAddress,
@@ -29,5 +31,10 @@ export enum IcnErrorCode {
   TxCannotEstimateGasError,
   ProviderNetworkError,
   InvalidDecodedMesssageLength,
-  IndexOutOfBoundaries
+  IndexOutOfBoundaries,
+  AggregatorNotFound,
+  AggregatorJobCanTakeMoreBreak,
+  UndefinedAggregator,
+  UnexpectedNumberOfJobsInQueue,
+  TxNotMined
 }

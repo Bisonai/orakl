@@ -46,10 +46,11 @@ interface IFeed {
 }
 
 export interface IAdapter {
-  id: string
-  active: boolean
-  name: string
-  job_type: string
+  id?: string
+  active?: boolean
+  name?: string
+  jobType?: string
+  decimals: number
   feeds: IFeed[]
 }
 
@@ -99,6 +100,14 @@ export interface IOracleRoundState {
   _availableFunds: BigNumber
   _oracleCount: number
   _paymentAmount: BigNumber
+}
+
+export interface IRoundData {
+  roundId: BigNumber
+  answer: BigNumber
+  startedAt: BigNumber
+  updatedAt: BigNumber
+  answeredInRound: BigNumber
 }
 
 // Events
@@ -166,27 +175,32 @@ export interface IVrfListenerWorker {
   isDirectPayment: boolean
 }
 
-export interface IAggregatorListenerWorker {
-  address: string
-  roundId: BigNumber
-  startedBy: string
-  startedAt: BigNumber
+export interface IAggregatorWorker {
+  aggregatorAddress: string
+  roundId: number
+  workerSource: string
 }
 
 // Worker -> Worker
 
 export interface IAggregatorHeartbeatWorker {
+  aggregatorAddress: string
+}
+
+export interface IAggregatorJob {
   id: string
   address: string
   name: string
   active: boolean
-  report?: boolean
+  report: boolean
   fixedHeartbeatRate: IProperty
   randomHeartbeatRate: IProperty
   threshold: number
   absoluteThreshold: number
   adapterId: string
   adapter: IFeed[]
+  aggregatorAddress: string
+  decimals: number
 }
 
 // Worker -> Reporter
@@ -233,6 +247,8 @@ export interface IAggregatorWorkerReporter {
   callbackAddress: string
   roundId: number
   submission: number
+  workerSource: string
+  delay: number
 }
 
 // VRF
