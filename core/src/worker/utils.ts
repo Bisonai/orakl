@@ -7,7 +7,6 @@ import { pipe } from '../utils'
 import { IAdapter, IAggregator, IOracleRoundState, IRoundData } from '../types'
 import { getAdapters, getAggregators, localAggregatorFn, DB, CHAIN, PROVIDER } from '../settings'
 import { Aggregator__factory } from '@bisonai/orakl-contracts'
-import { median } from 'mathjs'
 import fs from 'fs'
 import json2csv from 'json2csv'
 import path from 'path'
@@ -83,7 +82,6 @@ function writeData(round, url, data) {
     data: data,
     time: now
   }
-  // console.log(exportData)
   let row
   const filename = path.join('src/cli', 'data.csv')
   if (!fs.existsSync(filename)) {
@@ -97,7 +95,6 @@ function writeData(round, url, data) {
 }
 
 export async function fetchDataWithAdapter(adapter, round?, logger?: Logger) {
-  // console.log('Adapter:', adapter)
   let allResults = await Promise.all(
     adapter.map(async (a) => {
       const options = {
@@ -106,7 +103,6 @@ export async function fetchDataWithAdapter(adapter, round?, logger?: Logger) {
       }
 
       try {
-        // console.log('Trying to fetch:', a.url)
         const rawData = (await axios.get(a.url, options)).data
         logger?.debug('fetchDataWithAdapter', rawData)
         // FIXME Built reducers just once and use. Currently, can't
@@ -114,10 +110,7 @@ export async function fetchDataWithAdapter(adapter, round?, logger?: Logger) {
         // every fetch.
         const reducers = buildReducer(dataFeedReducerMapping, a.reducers)
         const data = pipe(...reducers)(rawData)
-        // console.log('a:', a.url, data)
-        // data = null
         checkDataFormat(data, a.url)
-        // console.log(round, a.url, data)
         return data
       } catch (e) {
         logger?.error(e)
@@ -129,16 +122,13 @@ export async function fetchDataWithAdapter(adapter, round?, logger?: Logger) {
     const a = adapter[k]
     writeData(round, a.url, allResults[k])
   }
-  console.log(allResults)
   logger?.debug({ name: 'predefinedFeedJob', ...allResults }, 'allResults')
   // FIXME: Improve or use flags to throw error when allResults has any undefined variable
   const isValid = allResults.every((r) => r)
   if (!isValid) {
     // throw new IcnError(IcnErrorCode.InvalidPriceFeed)
     allResults = cleanData(allResults)
-    console.log('CleanedData:', allResults)
   }
-  // console.log(localAggregatorFn)
   const aggregatedResults = localAggregatorFn(allResults)
   logger?.debug({ name: 'fetchDataWithAdapter', ...aggregatedResults }, 'aggregatedResults')
   writeData(round, 'data', aggregatedResults)
@@ -146,19 +136,14 @@ export async function fetchDataWithAdapter(adapter, round?, logger?: Logger) {
 }
 
 function cleanData(allResult) {
-  console.log('CleanDaata')
   return allResult.filter(Number)
 }
 
 function checkDataFormat(data, url) {
   if (!data) {
-    // check if priceFeed is null, undefined, NaN, "", 0, false
-    console.log('Error: InvalidPriceFeed', url, data)
-    // throw new IcnError(IcnErrorCode.InvalidPriceFeed)
+    throw new IcnError(IcnErrorCode.InvalidPriceFeed)
   } else if (!Number.isInteger(data)) {
-    // check if priceFeed is not Integer
-    console.log('Error: InvalidPriceFeedFormat', url, data)
-    // throw new IcnError(IcnErrorCode.InvalidPriceFeedFormat)
+    throw new IcnError(IcnErrorCode.InvalidPriceFeedFormat)
   }
 }
 

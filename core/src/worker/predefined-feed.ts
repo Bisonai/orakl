@@ -58,8 +58,6 @@ function predefinedFeedJob(queueName, adapters, _logger?: Logger) {
       // FIXME single node aggregation of multiple results
       // FIXME check if aggregator is defined and if exists
 
-      console.log('res', allResults)
-      console.log('local', localAggregatorFn)
       const res = localAggregatorFn(...allResults)
       logger?.debug(res, 'res')
 
