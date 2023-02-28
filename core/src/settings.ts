@@ -4,12 +4,13 @@ import sqlite from 'sqlite3'
 import { open } from 'sqlite'
 import { IListenerConfig, IVrfConfig } from './types'
 import { aggregatorMapping } from './aggregator'
-import { listHandler } from './cli/operator/kv'
+import { listHandler } from './cli/orakl-cli/src/kv'
 import { IcnError, IcnErrorCode } from './errors'
 import { mkdir } from './utils'
 import * as dotenv from 'dotenv'
 dotenv.config()
 
+export const TEST_MIGRATIONS_PATH = 'src/cli/orakl-cli/migrations'
 export const NODE_ENV = process.env.NODE_ENV
 export const HEALTH_CHECK_PORT = process.env.HEALTH_CHECK_PORT
 export const CHAIN = process.env.CHAIN || 'localhost'

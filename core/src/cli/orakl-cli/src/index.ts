@@ -1,3 +1,7 @@
+#!/usr/bin/env node --no-warnings --experimental-specifier-resolution=node
+
+import os from 'node:os'
+import path from 'node:path'
 import { chainSub } from './chain'
 import { serviceSub } from './service'
 import { listenerSub } from './listener'
@@ -7,23 +11,22 @@ import { kvSub } from './kv'
 import { adapterSub } from './adapter'
 import { aggregatorSub } from './aggregator'
 import { openDb } from './utils'
-import { buildLogger } from '../../logger'
 
 import { binary, subcommands, run } from 'cmd-ts'
 
-const LOGGER = buildLogger('cli')
-
 async function main() {
-  const db = await openDb({})
+  const ORAKL_DIR = process.env.ORAKL_DIR || path.join(os.homedir(), '.orakl')
+  const dbFile = path.join(ORAKL_DIR, 'settings.sqlite')
+  const db = await openDb({ dbFile })
 
-  const chain = chainSub(db, LOGGER)
-  const service = serviceSub(db, LOGGER)
-  const listener = listenerSub(db, LOGGER)
-  const vrf = vrfSub(db, LOGGER)
+  const chain = chainSub(db)
+  const service = serviceSub(db)
+  const listener = listenerSub(db)
+  const vrf = vrfSub(db)
   const migrate = migrateCmd(db)
-  const kv = kvSub(db, LOGGER)
-  const adapter = adapterSub(db, LOGGER)
-  const aggregator = aggregatorSub(db, LOGGER)
+  const kv = kvSub(db)
+  const adapter = adapterSub(db)
+  const aggregator = aggregatorSub(db)
 
   const cli = subcommands({
     name: 'operator',
@@ -34,6 +37,6 @@ async function main() {
 }
 
 main().catch((error) => {
-  LOGGER.error(error)
+  console.error(error)
   process.exitCode = 1
 })

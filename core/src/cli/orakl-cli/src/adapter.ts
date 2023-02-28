@@ -1,5 +1,4 @@
 import { flag, command, subcommands, option, string as cmdstring } from 'cmd-ts'
-import { Logger } from 'pino'
 import {
   chainOptionalOption,
   chainToId,
@@ -8,10 +7,10 @@ import {
   formatResultInsert,
   formatResultRemove
 } from './utils'
-import { computeDataHash } from '../utils'
-import { ReadFile } from './types'
+import { computeDataHash } from './utils'
+import { ReadFile } from './cli-types'
 
-export function adapterSub(db, logger: Logger) {
+export function adapterSub(db) {
   // adapter list [--active] [--chain [chain]]
   // adapter insert --file-path [file-path] --chain [chain] [--dryrun]
   // adapter remove --id [id]                               [--dryrun]
@@ -24,7 +23,7 @@ export function adapterSub(db, logger: Logger) {
       }),
       chain: chainOptionalOption
     },
-    handler: listHandler(db, true, logger)
+    handler: listHandler(db, true)
   })
 
   const insert = command({
@@ -40,7 +39,7 @@ export function adapterSub(db, logger: Logger) {
       }),
       dryrun: dryrunOption
     },
-    handler: insertHandler(db, logger)
+    handler: insertHandler(db)
   })
 
   const remove = command({
@@ -49,16 +48,27 @@ export function adapterSub(db, logger: Logger) {
       id: idOption,
       dryrun: dryrunOption
     },
-    handler: removeHandler(db, logger)
+    handler: removeHandler(db)
+  })
+
+  const insertFromChain = command({
+    name: 'insertFromChain',
+    args: {
+      adapterId: option({ type: cmdstring, long: 'adapter-id' }),
+      fromChain: option({ type: cmdstring, long: 'from-chain' }),
+      toChain: option({ type: cmdstring, long: 'to-chain' }),
+      dryrun: dryrunOption
+    },
+    handler: insertFromChainHandler(db)
   })
 
   return subcommands({
     name: 'adapter',
-    cmds: { list, insert, remove }
+    cmds: { list, insert, remove, insertFromChain }
   })
 }
 
-export function listHandler(db, print?: boolean, logger?: Logger) {
+export function listHandler(db, print?: boolean) {
   async function wrapper({ chain, active }: { chain?: string; active?: boolean }) {
     let where = ''
     if (chain) {
@@ -71,8 +81,8 @@ export function listHandler(db, print?: boolean, logger?: Logger) {
       for (const r of result) {
         const rJson = JSON.parse(r.data)
         if (!active || rJson.active) {
-          logger?.info(`ID: ${r.id}`)
-          logger?.info(rJson)
+          console.log(`ID: ${r.id}`)
+          console.log(rJson)
         }
       }
     }
@@ -81,7 +91,7 @@ export function listHandler(db, print?: boolean, logger?: Logger) {
   return wrapper
 }
 
-export function insertHandler(db, logger?: Logger) {
+export function insertHandler(db) {
   async function wrapper({ data, chain, dryrun }: { data; chain: string; dryrun?: boolean }) {
     const chainId = await chainToId(db, chain)
     const adapterObject = await computeDataHash({ data })
@@ -89,23 +99,50 @@ export function insertHandler(db, logger?: Logger) {
     const query = `INSERT INTO Adapter (chainId, adapterId, data) VALUES (${chainId}, '${adapterObject.id}', '${adapter}')`
 
     if (dryrun) {
-      logger?.debug(query)
+      console.debug(query)
     } else {
       const result = await db.run(query)
-      logger?.info(formatResultInsert(result))
+      console.log(formatResultInsert(result))
     }
   }
   return wrapper
 }
 
-export function removeHandler(db, logger?: Logger) {
+export function removeHandler(db) {
   async function wrapper({ id, dryrun }: { id: number; dryrun?: boolean }) {
     const query = `DELETE FROM Adapter WHERE id=${id}`
     if (dryrun) {
-      logger?.debug(query)
+      console.debug(query)
     } else {
       const result = await db.run(query)
-      logger?.info(formatResultRemove(result))
+      console.log(formatResultRemove(result))
+    }
+  }
+  return wrapper
+}
+
+export function insertFromChainHandler(db) {
+  async function wrapper({
+    adapterId,
+    fromChain,
+    toChain,
+    dryrun
+  }: {
+    adapterId: string
+    fromChain: string
+    toChain: string
+    dryrun?: boolean
+  }) {
+    const fromChainId = await chainToId(db, fromChain)
+    const toChainId = await chainToId(db, toChain)
+
+    const query = `INSERT INTO Adapter (chainId, adapterId, data) SELECT ${toChainId}, adapterId, data FROM Adapter WHERE chainId=${fromChainId} and adapterId='${adapterId}'`
+
+    if (dryrun) {
+      console.debug(query)
+    } else {
+      const result = await db.run(query)
+      console.log(formatResultInsert(result))
     }
   }
   return wrapper

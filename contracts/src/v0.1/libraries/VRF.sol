@@ -18,29 +18,25 @@ library VRF {
      */
 
     // Generator coordinate `x` of the EC curve
-    uint256 public constant GX =
-        0x79BE667EF9DCBBAC55A06295CE870B07029BFCDB2DCE28D959F2815B16F81798;
+    uint256 public constant GX = 0x79BE667EF9DCBBAC55A06295CE870B07029BFCDB2DCE28D959F2815B16F81798;
     // Generator coordinate `y` of the EC curve
-    uint256 public constant GY =
-        0x483ADA7726A3C4655DA4FBFC0E1108A8FD17B448A68554199C47D08FFB10D4B8;
+    uint256 public constant GY = 0x483ADA7726A3C4655DA4FBFC0E1108A8FD17B448A68554199C47D08FFB10D4B8;
     // Constant `a` of EC equation
     uint256 public constant AA = 0;
     // Constant `b` of EC equation
     uint256 public constant BB = 7;
     // Prime number of the curve
-    uint256 public constant PP =
-        0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEFFFFFC2F;
+    uint256 public constant PP = 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEFFFFFC2F;
     // Order of the curve
-    uint256 public constant NN =
-        0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141;
+    uint256 public constant NN = 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141;
 
-  struct Proof {
-    uint256[2] pk;
-    uint256[4] proof;
-    uint256 seed;
-    uint256[2] uPoint;
-    uint256[4] vComponents;
-  }
+    struct Proof {
+        uint256[2] pk;
+        uint256[4] proof;
+        uint256 seed;
+        uint256[2] uPoint;
+        uint256[4] vComponents;
+    }
 
     /// @dev Public key derivation from private key.
     /// Warning: this function should not be used to derive your public key as it would expose the private key.
@@ -69,11 +65,7 @@ library VRF {
     /// @param _gammaX The x-coordinate of the gamma EC point
     /// @param _gammaY The y-coordinate of the gamma EC point
     /// @return The VRF hash ouput as shas256 digest
-    function gammaToHash(uint256 _gammaX, uint256 _gammaY)
-        internal
-        pure
-        returns (bytes32)
-    {
+    function gammaToHash(uint256 _gammaX, uint256 _gammaY) internal pure returns (bytes32) {
         bytes memory c = abi.encodePacked(
             // Cipher suite code (SECP256K1-SHA256-TAI is 0xFE)
             uint8(0xFE),
@@ -99,10 +91,7 @@ library VRF {
         bytes memory _message
     ) internal pure returns (bool) {
         // Step 2: Hash to try and increment (outputs a hashed value, a finite EC point in G)
-        (uint256 hPointX, uint256 hPointY) = hashToTryAndIncrement(
-            _publicKey,
-            _message
-        );
+        (uint256 hPointX, uint256 hPointY) = hashToTryAndIncrement(_publicKey, _message);
 
         // Step 3: U = s*B - c*Y (where B is the generator)
         (uint256 uPointX, uint256 uPointY) = ecMulSubMul(
@@ -157,10 +146,7 @@ library VRF {
         uint256[4] memory _vComponents
     ) internal pure returns (bool) {
         // Step 2: Hash to try and increment -> hashed value, a finite EC point in G
-        (uint256 hPointX, uint256 hPointY) = hashToTryAndIncrement(
-            _publicKey,
-            _message
-        );
+        (uint256 hPointX, uint256 hPointY) = hashToTryAndIncrement(_publicKey, _message);
 
         // Step 3 & Step 4:
         // U = s*B - c*Y (where B is the generator)
@@ -174,20 +160,8 @@ library VRF {
                 _uPoint[0],
                 _uPoint[1]
             ) ||
-            !ecMulVerify(
-                _proof[3],
-                hPointX,
-                hPointY,
-                _vComponents[0],
-                _vComponents[1]
-            ) ||
-            !ecMulVerify(
-                _proof[2],
-                _proof[0],
-                _proof[1],
-                _vComponents[2],
-                _vComponents[3]
-            )
+            !ecMulVerify(_proof[3], hPointX, hPointY, _vComponents[0], _vComponents[1]) ||
+            !ecMulVerify(_proof[2], _proof[0], _proof[1], _vComponents[2], _vComponents[3])
         ) {
             return false;
         }
@@ -220,11 +194,7 @@ library VRF {
     /// @dev Decode VRF proof from bytes
     /// @param _proof The VRF proof as bytes
     /// @return The VRF proof as an array composed of `[gamma-x, gamma-y, c, s]`
-    function decodeProof(bytes memory _proof)
-        internal
-        pure
-        returns (uint256[4] memory)
-    {
+    function decodeProof(bytes memory _proof) internal pure returns (uint256[4] memory) {
         require(_proof.length == 81, "Malformed VRF proof");
         uint8 gammaSign;
         uint256 gammaX;
@@ -244,11 +214,7 @@ library VRF {
     /// @dev Decode EC point from bytes
     /// @param _point The EC point as bytes
     /// @return The point as `[point-x, point-y]`
-    function decodePoint(bytes memory _point)
-        internal
-        pure
-        returns (uint256[2] memory)
-    {
+    function decodePoint(bytes memory _point) internal pure returns (uint256[2] memory) {
         require(_point.length == 33, "Malformed compressed EC point");
         uint8 sign;
         uint256 x;
@@ -272,10 +238,7 @@ library VRF {
         bytes memory _message
     ) internal pure returns (uint256[2] memory, uint256[4] memory) {
         // Requirements for Step 3: U = s*B - c*Y (where B is the generator)
-        (uint256 hPointX, uint256 hPointY) = hashToTryAndIncrement(
-            _publicKey,
-            _message
-        );
+        (uint256 hPointX, uint256 hPointY) = hashToTryAndIncrement(_publicKey, _message);
         (uint256 uPointX, uint256 uPointY) = ecMulSubMul(
             _proof[3],
             GX,
@@ -286,11 +249,7 @@ library VRF {
         );
         // Requirements for Step 4: V = s*H - c*Gamma
         (uint256 sHX, uint256 sHY) = derivePoint(_proof[3], hPointX, hPointY);
-        (uint256 cGammaX, uint256 cGammaY) = derivePoint(
-            _proof[2],
-            _proof[0],
-            _proof[1]
-        );
+        (uint256 cGammaX, uint256 cGammaY) = derivePoint(_proof[2], _proof[0], _proof[1]);
 
         return ([uPointX, uPointY], [sHX, sHY, cGammaX, cGammaY]);
     }
@@ -384,11 +343,7 @@ library VRF {
     /// @param _x The coordinate `x` of the point
     /// @param _y The coordinate `y` of the point
     /// @return The point coordinates as bytes
-    function encodePoint(uint256 _x, uint256 _y)
-        internal
-        pure
-        returns (bytes memory)
-    {
+    function encodePoint(uint256 _x, uint256 _y) internal pure returns (bytes memory) {
         uint8 prefix = uint8(2 + (_y % 2));
 
         return abi.encodePacked(prefix, _x);
@@ -480,11 +435,7 @@ library VRF {
     /// @param _x The coordinate `x` of the point
     /// @param _y The coordinate `y` of the point
     /// @return The address of the EC point digest (keccak256)
-    function pointToAddress(uint256 _x, uint256 _y)
-        internal
-        pure
-        returns (address)
-    {
+    function pointToAddress(uint256 _x, uint256 _y) internal pure returns (address) {
         return
             address(
                 uint160(
@@ -494,7 +445,7 @@ library VRF {
             );
     }
 
-  /* ***************************************************************************
+    /* ***************************************************************************
      * @notice Returns proof's output, if proof is valid. Otherwise reverts
 
      * @param proof vrf proof components
@@ -504,14 +455,11 @@ library VRF {
      * @return output i.e., the random output implied by the proof
      * ***************************************************************************
      */
-  function randomValueFromVRFProof(Proof memory proof, bytes memory seed) internal pure returns (uint256 output) {
-    fastVerify(
-        proof.pk,
-        proof.proof,
-        seed,
-        proof.uPoint,
-        proof.vComponents
-    );
-    output = uint256(keccak256(abi.encode(proof.proof[0], proof.proof[1])));
-  }
+    function randomValueFromVRFProof(
+        Proof memory proof,
+        bytes memory seed
+    ) internal pure returns (uint256 output) {
+        fastVerify(proof.pk, proof.proof, seed, proof.uPoint, proof.vComponents);
+        output = uint256(keccak256(abi.encode(proof.proof[0], proof.proof[1])));
+    }
 }

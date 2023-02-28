@@ -40,11 +40,7 @@ library EllipticCurve {
     /// @param _exp exponent
     /// @param _pp modulus
     /// @return r such that r = b**e (mod _pp)
-    function expMod(
-        uint256 _base,
-        uint256 _exp,
-        uint256 _pp
-    ) internal pure returns (uint256) {
+    function expMod(uint256 _base, uint256 _exp, uint256 _pp) internal pure returns (uint256) {
         require(_pp != 0, "Modulus is zero");
 
         if (_base == 0) return 0;
@@ -58,11 +54,7 @@ library EllipticCurve {
             } gt(bit, 0) {
 
             } {
-                r := mulmod(
-                    mulmod(r, r, _pp),
-                    exp(_base, iszero(iszero(and(_exp, bit)))),
-                    _pp
-                )
+                r := mulmod(mulmod(r, r, _pp), exp(_base, iszero(iszero(and(_exp, bit)))), _pp)
                 r := mulmod(
                     mulmod(r, r, _pp),
                     exp(_base, iszero(iszero(and(_exp, div(bit, 2))))),
@@ -119,10 +111,7 @@ library EllipticCurve {
         uint256 _bb,
         uint256 _pp
     ) internal pure returns (uint256) {
-        require(
-            _prefix == 0x02 || _prefix == 0x03,
-            "Invalid compressed EC point prefix"
-        );
+        require(_prefix == 0x02 || _prefix == 0x03, "Invalid compressed EC point prefix");
 
         // x^3 + ax + b
         uint256 y2 = addmod(
@@ -175,11 +164,7 @@ library EllipticCurve {
     /// @param _y coordinate y of P1
     /// @param _pp the modulus
     /// @return (x, -y)
-    function ecInv(
-        uint256 _x,
-        uint256 _y,
-        uint256 _pp
-    ) internal pure returns (uint256, uint256) {
+    function ecInv(uint256 _x, uint256 _y, uint256 _pp) internal pure returns (uint256, uint256) {
         return (_x, (_pp - _y) % _pp);
     }
 
@@ -278,15 +263,7 @@ library EllipticCurve {
         uint256 _y2,
         uint256 _z2,
         uint256 _pp
-    )
-        internal
-        pure
-        returns (
-            uint256,
-            uint256,
-            uint256
-        )
-    {
+    ) internal pure returns (uint256, uint256, uint256) {
         if (_x1 == 0 && _y1 == 0) return (_x2, _y2, _z2);
         if (_x2 == 0 && _y2 == 0) return (_x1, _y1, _z1);
 
@@ -306,10 +283,7 @@ library EllipticCurve {
         ];
 
         // In case of zs[0] == zs[2] && zs[1] == zs[3], double function should be used
-        require(
-            zs[0] != zs[2] || zs[1] != zs[3],
-            "Use jacDouble function instead"
-        );
+        require(zs[0] != zs[2] || zs[1] != zs[3], "Use jacDouble function instead");
 
         uint256[4] memory hr;
         //h
@@ -324,11 +298,7 @@ library EllipticCurve {
         uint256 qx = addmod(mulmod(hr[1], hr[1], _pp), _pp - hr[3], _pp);
         qx = addmod(qx, _pp - mulmod(2, mulmod(zs[0], hr[2], _pp), _pp), _pp);
         // qy = -s1*z1*h^3+r(u1*h^2 -x^3)
-        uint256 qy = mulmod(
-            hr[1],
-            addmod(mulmod(zs[0], hr[2], _pp), _pp - qx, _pp),
-            _pp
-        );
+        uint256 qy = mulmod(hr[1], addmod(mulmod(zs[0], hr[2], _pp), _pp - qx, _pp), _pp);
         qy = addmod(qy, _pp - mulmod(zs[1], hr[3], _pp), _pp);
         // qz = h*z1*z2
         uint256 qz = mulmod(hr[0], mulmod(_z1, _z2, _pp), _pp);
@@ -348,15 +318,7 @@ library EllipticCurve {
         uint256 _z,
         uint256 _aa,
         uint256 _pp
-    )
-        internal
-        pure
-        returns (
-            uint256,
-            uint256,
-            uint256
-        )
-    {
+    ) internal pure returns (uint256, uint256, uint256) {
         if (_z == 0) return (_x, _y, _z);
 
         // We follow the equations described in https://pdfs.semanticscholar.org/5c64/29952e08025a9649c2b0ba32518e9a7fb5c2.pdf Section 5
@@ -369,11 +331,7 @@ library EllipticCurve {
         // s
         uint256 s = mulmod(4, mulmod(_x, y, _pp), _pp);
         // m
-        uint256 m = addmod(
-            mulmod(3, x, _pp),
-            mulmod(_aa, mulmod(z, z, _pp), _pp),
-            _pp
-        );
+        uint256 m = addmod(mulmod(3, x, _pp), mulmod(_aa, mulmod(z, z, _pp), _pp), _pp);
 
         // x, y, z at this point will be reassigned and rather represent qx, qy, qz from the paper
         // This allows to reduce the gas cost and stack footprint of the algorithm
@@ -406,15 +364,7 @@ library EllipticCurve {
         uint256 _z,
         uint256 _aa,
         uint256 _pp
-    )
-        internal
-        pure
-        returns (
-            uint256,
-            uint256,
-            uint256
-        )
-    {
+    ) internal pure returns (uint256, uint256, uint256) {
         // Early return in case that `_d == 0`
         if (_d == 0) {
             return (_x, _y, _z);

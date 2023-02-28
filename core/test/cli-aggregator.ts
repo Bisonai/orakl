@@ -1,7 +1,13 @@
 import { describe, expect, beforeEach, test } from '@jest/globals'
-import { listHandler, insertHandler, removeHandler } from '../src/cli/operator/aggregator'
+import {
+  listHandler,
+  insertHandler,
+  removeHandler,
+  insertFromChainHandler
+} from '../src/cli/orakl-cli/src/aggregator'
+import { openDb } from '../src/cli/orakl-cli/src/utils'
 import { mkTmpFile } from '../src/utils'
-import { openDb } from '../src/cli/operator/utils'
+import { TEST_MIGRATIONS_PATH } from '../src/settings'
 
 describe('CLI Aggregator', function () {
   let DB
@@ -19,7 +25,7 @@ describe('CLI Aggregator', function () {
   }
 
   beforeEach(async () => {
-    DB = await openDb({ dbFile: TMP_DB_FILE, migrate: true })
+    DB = await openDb({ dbFile: TMP_DB_FILE, migrate: true, migrationsPath: TEST_MIGRATIONS_PATH })
   })
 
   test('Should list Aggregators', async function () {
@@ -46,5 +52,19 @@ describe('CLI Aggregator', function () {
     await removeHandler(DB)({ id: 1 })
     const aggregatorAfter = await listHandler(DB)({})
     expect(aggregatorAfter.length).toEqual(aggregatorBefore.length - 1)
+  })
+  test('Should insert new aggregator from other chain', async function () {
+    const firstChain = 'localhost'
+    await insertHandler(DB)({ data: AGGREGATOR, adapter: ADAPTER_ID, chain: firstChain })
+    const aggregatorBefore = await listHandler(DB)({})
+    const aggregatorId = JSON.parse(aggregatorBefore[aggregatorBefore.length - 1].data).id
+    await insertFromChainHandler(DB)({
+      aggregatorId,
+      adapter: ADAPTER_ID,
+      fromChain: firstChain,
+      toChain: 'baobab'
+    })
+    const aggregatorAfter = await listHandler(DB)({})
+    expect(aggregatorAfter.length).toEqual(aggregatorBefore.length + 1)
   })
 })

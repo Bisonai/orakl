@@ -1,0 +1,17 @@
+{
+  "id": "0x6a7802151ac349feef5a9a678df338ac0cc76b3a66494570a3a56f826125c10f",
+  "address": "0x81707AE2629F738e0dd368608815FB2FfDD8C1F2",
+  "active": true,
+  "name": "KLAY/USD",
+  "fixedHeartbeatRate": {
+    "active": true,
+    "value": 15000
+  },
+  "randomHeartbeatRate": {
+    "active": false,
+    "value": 2000
+  },
+  "threshold": 0.05,
+  "absoluteThreshold": 0.1,
+  "adapterId": "0x0db2dce17745882ea457e651adf1eb0080b5f432d1876df56f1967b5288f338b"
+}

@@ -1,27 +1,32 @@
-name: "core: eslint"
+name: "core: test+build"
 on:
   push:
     paths:
       - "core/**"
 jobs:
-  build:
+  core-build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-node@v3
         with:
           node-version: "18.12"
-          registry-url: "https://npm.pkg.github.com"
-      - run: yarn
+      - name: Install dependencies
+        run: yarn install
         working-directory: ./core
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-      - run: yarn eslint
+      - name: Run eslint
+        run: yarn eslint
         working-directory: ./core
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-      - run: yarn test
+      - name: Run test
+        run: yarn test
         working-directory: ./core
         env:
           ORAKL_DIR: './'
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+      - name: Build package
+        run: yarn build
+        working-directory: ./core
