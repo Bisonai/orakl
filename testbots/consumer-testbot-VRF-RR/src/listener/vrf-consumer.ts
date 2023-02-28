@@ -1,6 +1,6 @@
 import { ethers } from "ethers";
 import { Event } from "./event";
-import { IListenerConfig, IVRFLogData } from "../types";
+import { IListenerConfig, ILogData, IVRFLogData } from "../types";
 import { existsSync } from "fs";
 import { readTextFile, writeTextFile } from "../utils";
 
@@ -15,7 +15,7 @@ export function buildVrfListener(config: IListenerConfig) {
 function processConsumerEvent(iface: ethers.utils.Interface) {
   async function wrapper(log) {
     const eventData = iface.parseLog(log).args;
-
+    console.log(log);
     const d = new Date();
     const m = d.toISOString().split("T")[0];
     const jsonPath = `./tmp/listener/consumer-fulfill-log-${m}.json`;
@@ -25,6 +25,41 @@ function processConsumerEvent(iface: ethers.utils.Interface) {
       jsonResult = <IVRFLogData[]>JSON.parse(fileData);
 
     if (eventData) {
+      let requestedTime: number = 0;
+      let respondedTime: number = 0;
+      let totalResponseTime: number = 0;
+
+      try {
+        const jsonRequestRandomwordsPath = `./tmp/request/requestRandomwords-${m}.json`;
+        const jsonRequestRandomwordsPathDirect = `./tmp/request/requestRandomwords-Direct-${m}.json`;
+        const blockInfor = await log.getBlock();
+        respondedTime = blockInfor.timestamp;
+        let contents = "";
+        let dataRequestedRandomwords: ILogData[];
+        let requestInfor: ILogData | undefined;
+        if (existsSync(jsonRequestRandomwordsPath)) {
+          contents = await readTextFile(jsonRequestRandomwordsPath);
+          dataRequestedRandomwords = <ILogData[]>JSON.parse(contents);
+          requestInfor = dataRequestedRandomwords.find(
+            (obj) => obj.requestId === eventData.requestId.toString()
+          );
+          if (!requestInfor && existsSync(jsonRequestRandomwordsPathDirect)) {
+            console.log("direct random", requestInfor);
+            contents = await readTextFile(jsonRequestRandomwordsPathDirect);
+            dataRequestedRandomwords = <ILogData[]>JSON.parse(contents);
+            requestInfor = dataRequestedRandomwords.find(
+              (obj) => obj.requestId === eventData.requestId.toString()
+            );
+          }
+          console.log(requestInfor);
+          if (requestInfor) {
+            requestedTime = requestInfor.requestedTime;
+            totalResponseTime = blockInfor.timestamp - requestedTime;
+          }
+        }
+      } catch (error) {
+        console.error(error);
+      }
       const result: IVRFLogData = {
         block: log.blockNumber,
         address: log.address,
@@ -33,6 +68,9 @@ function processConsumerEvent(iface: ethers.utils.Interface) {
         randomWords: eventData.randomWords.map((r) => {
           return r.toString();
         }),
+        requestedTime,
+        respondedTime,
+        totalRequestTime:totalResponseTime,
       };
       jsonResult.push(result);
       await writeTextFile(jsonPath, JSON.stringify(jsonResult, null, 2));

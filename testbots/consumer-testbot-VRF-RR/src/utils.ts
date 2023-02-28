@@ -2,6 +2,9 @@ import * as Fs from "node:fs/promises";
 import * as fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { ethers } from "ethers";
+import * as dotenv from "dotenv";
+dotenv.config();
 
 export function add0x(s) {
   if (s.substring(0, 2) == "0x") {
@@ -32,4 +35,17 @@ export function mkTmpFile({ fileName }: { fileName: string }): string {
   const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), appPrefix));
   const tmpFilePath = path.join(tmpDir, fileName);
   return tmpFilePath;
+}
+export async function getTimestampByBlock(blockNumber: number) {
+  let timestamp: number = 0;
+  try {
+    const provider = new ethers.providers.JsonRpcProvider(
+      process.env.PROVIDER_URL
+    );
+
+    timestamp = (await provider.getBlock(blockNumber)).timestamp;
+  } catch (error) {
+    await getTimestampByBlock(blockNumber);
+  }
+  return timestamp;
 }

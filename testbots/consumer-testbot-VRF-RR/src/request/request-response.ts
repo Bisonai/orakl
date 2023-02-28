@@ -3,7 +3,12 @@ dotenv.config();
 import { ethers } from "ethers";
 import { existsSync } from "fs";
 import { ILogData } from "../types";
-import { readTextFile, writeTextAppend, writeTextFile } from "../utils";
+import {
+  getTimestampByBlock,
+  readTextFile,
+  writeTextAppend,
+  writeTextFile,
+} from "../utils";
 import { buildWallet, sendTransaction } from "./utils";
 
 const abis = await readTextFile("./src/abis/request-response.json");
@@ -30,25 +35,21 @@ export async function sendRequestData() {
       ACC_ID,
       callbackGasLimit,
     ]);
-    const txReceipt = await sendTransaction(
-      wallet,
-      RR_CONSUMER,
-      payload,
-      gasLimit
-    );
-    const tx = await txReceipt.wait();
-    const requestObject = iface.parseLog(tx.logs[1]).args;
-    console.log("tx", requestObject);
+    const tx = await sendTransaction(wallet, RR_CONSUMER, payload, gasLimit);
+    const txReceipt = await tx.wait();
+    const requestObject = iface.parseLog(txReceipt.logs[1]).args;
+    const requestedTime = await getTimestampByBlock(txReceipt.blockNumber);
 
     const result: ILogData = {
-      block: tx.blockNumber,
-      txHash: tx.transactionHash,
+      block: txReceipt.blockNumber,
+      txHash: txReceipt.transactionHash,
       requestId: requestObject.requestId.toString(),
       accId: requestObject.accId.toString(),
       isDirectPayment: requestObject.isDirectPayment,
+      requestedTime,
     };
     jsonResult.push(result);
-    console.log("Requested: ", tx.blockNumber);
+    console.log("Requested: ", txReceipt.blockNumber);
 
     await writeTextFile(jsonPath, JSON.stringify(jsonResult));
   } catch (error) {

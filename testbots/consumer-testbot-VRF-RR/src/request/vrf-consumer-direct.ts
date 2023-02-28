@@ -3,7 +3,12 @@ dotenv.config();
 import { ethers } from "ethers";
 import { existsSync } from "fs";
 import { ILogData } from "../types";
-import { readTextFile, writeTextAppend, writeTextFile } from "../utils";
+import {
+  getTimestampByBlock,
+  readTextFile,
+  writeTextAppend,
+  writeTextFile,
+} from "../utils";
 import { buildWallet, sendTransaction } from "./utils";
 
 const abis = await readTextFile("./src/abis/consumer.json");
@@ -20,8 +25,8 @@ export async function sendRequestRandomWordsDirect() {
   const wallet = buildWallet();
   const d = new Date();
   const m = d.toISOString().split("T")[0];
-  const jsonPath = `./tmp/request/requestRandomwords-Direct-${m}.json`;
-  const errorPath = `./tmp/request/requestRandomwords-Direct-error-${m}.txt`;
+  const jsonPath = `./tmp/request/requestRandomwords-${m}.json`;
+  const errorPath = `./tmp/request/requestRandomwords-error-${m}.txt`;
   let fileData = "";
   if (existsSync(jsonPath)) fileData = await readTextFile(jsonPath);
   await writeTextFile(jsonPath, JSON.stringify(jsonResult));
@@ -34,25 +39,27 @@ export async function sendRequestRandomWordsDirect() {
     ]);
     const value = ethers.utils.parseEther("0.1");
 
-    const txReceipt = await sendTransaction(
+    const tx = await sendTransaction(
       wallet,
       VRF_CONSUMER,
       payload,
       gasLimit,
       value
     );
-    const tx = await txReceipt.wait();
-    const requestObject = iface.parseLog(tx.logs[4]).args;
+    const txReceipt = await tx.wait();
+    const requestObject = iface.parseLog(txReceipt.logs[4]).args;
+    const requestedTime = await getTimestampByBlock(txReceipt.blockNumber);
 
     const result: ILogData = {
-      block: tx.blockNumber,
-      txHash: tx.transactionHash,
+      block: txReceipt.blockNumber,
+      txHash: txReceipt.transactionHash,
       requestId: requestObject.requestId.toString(),
       accId: requestObject.accId.toString(),
       isDirectPayment: requestObject.isDirectPayment,
+      requestedTime,
     };
     jsonResult.push(result);
-    console.log("Requested: ", tx.blockNumber);
+    console.log("Requested: ", txReceipt.blockNumber);
 
     await writeTextFile(jsonPath, JSON.stringify(jsonResult));
   } catch (error) {
