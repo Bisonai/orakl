@@ -1,5 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing'
-import { VersioningType, RequestMethod, INestApplication } from '@nestjs/common'
+import { INestApplication } from '@nestjs/common'
 import * as request from 'supertest'
 import { AppModule } from './../src/app.module'
 import { setAppSettings } from './../src/app.settings'
@@ -13,13 +13,7 @@ describe('AppController (e2e)', () => {
     }).compile()
 
     app = moduleFixture.createNestApplication()
-
-    app.setGlobalPrefix('api', {
-      exclude: [{ path: 'health', method: RequestMethod.GET }]
-    })
-    app.enableVersioning({
-      type: VersioningType.URI
-    })
+    setAppSettings(app)
     await app.init()
   })
 
@@ -27,14 +21,14 @@ describe('AppController (e2e)', () => {
     return request(app.getHttpServer()).get('/health').expect(200).expect('OK')
   })
 
+  it('/api (GET)', () => {
+    return request(app.getHttpServer()).get('/api').expect(200).expect('Orakl Network API')
+  })
+
   it('/api/v1/feed (GET)', () => {
     return request(app.getHttpServer())
       .get('/api/v1/feed')
       .expect(200)
       .expect('This action returns all feed')
-  })
-
-  it('/api (GET)', () => {
-    return request(app.getHttpServer()).get('/api').expect(200).expect('Orakl Network API')
   })
 })

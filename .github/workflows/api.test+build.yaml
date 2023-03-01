@@ -1,0 +1,28 @@
+name: "core: test+build"
+on:
+  push:
+    paths:
+      - "api/**"
+jobs:
+  core-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: "18.12"
+      - name: Install dependencies
+        run: yarn install
+        working-directory: ./api
+      - name: Run eslint
+        run: yarn lint
+        working-directory: ./api
+      - name: Run test
+        run: yarn test
+        working-directory: ./api
+      - name: Run e2e2 test
+        run: yarn test:e2e
+        working-directory: ./api
+      - name: Build package
+        run: yarn build
+        working-directory: ./api
