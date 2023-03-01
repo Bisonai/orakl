@@ -1,3 +1,4 @@
+import axios from 'axios'
 import { Worker, Queue, Job } from 'bullmq'
 import { Logger } from 'pino'
 import {
@@ -15,12 +16,12 @@ import {
   PUBLIC_KEY as OPERATOR_ADDRESS,
   DEPLOYMENT_NAME,
   REMOVE_ON_COMPLETE,
-  REMOVE_ON_FAIL
+  REMOVE_ON_FAIL,
+  ORAKL_API_DATA_FEED_ENDPOINT
 } from '../settings'
 import { IcnError, IcnErrorCode } from '../errors'
 import { buildReporterJobId } from '../utils'
 import {
-  fetchDataWithAdapter,
   loadAdapters,
   loadAggregators,
   mergeAggregatorsAdapters,
@@ -270,13 +271,12 @@ function randomHeartbeatJob(
 /**
  * Fetch the latest data and prepare them to be sent to reporter.
  *
- * @param {IAggregatorHeartbeatWorker} data
+ * @param {IAggregatorJob} data
  * @param {string} workerSource
  * @param {number} delay
  * @param {number} roundId
  * @param {Logger} _logger
  * @return {Promise<IAggregatorJob}
- * @exception {InvalidDataFeed} raised from `fetchDataWithadapter`
  */
 async function prepareDataForReporter({
   data,
@@ -294,7 +294,7 @@ async function prepareDataForReporter({
   const logger = _logger.child({ name: 'prepareDataForReporter', file: FILE_NAME })
 
   const callbackAddress = data.address
-  const submission = await fetchDataWithAdapter(data.adapter)
+  const submission = await fetchDataFeed({ id: data.id, logger })
   let report = data.report
 
   const oracleRoundState = await oracleRoundStateCall({
@@ -325,6 +325,27 @@ async function prepareDataForReporter({
     delay,
     submission,
     roundId: roundId || oracleRoundState._roundId
+  }
+}
+
+/* Fetch data from Orakl API Data Feed endpoint given aggregator ID.
+ *
+ * @param {string} aggregator ID
+ * @param {Logger} logger
+ * @return {number} the latest aggregated value
+ * @exception {FailedToFetchFromDataFeed} raised when Orakl Network
+ * API does not respond or responds in an unexpected format.
+ */
+async function fetchDataFeed({ id, logger }: { id: string; logger: Logger }): Promise<number> {
+  try {
+    const url = [ORAKL_API_DATA_FEED_ENDPOINT, id].join('/')
+    logger.debug({ url }, 'data-feed-url')
+    const value = (await axios.get(url)).data
+    logger.debug({ value }, 'data-feed-value')
+    return value
+  } catch (e) {
+    logger.error(e)
+    throw new IcnError(IcnErrorCode.FailedToFetchFromDataFeed)
   }
 }
 
