@@ -3,20 +3,20 @@
 ## Installation
 
 ```shell
-$ yarn install
+yarn install
 ```
 
 ## Running the app
 
 ```shell
 # development
-$ yarn run start
+yarn run start
 
 # watch mode
-$ yarn run start:dev
+yarn run start:dev
 
 # production mode
-$ yarn run start:prod
+yarn run start:prod
 ```
 
 Go to http://localhost:3000/api
@@ -25,13 +25,13 @@ Go to http://localhost:3000/api
 
 ```shell
 # unit tests
-$ yarn run test
+yarn run test
 
 # e2e tests
-$ yarn run test:e2e
+yarn run test:e2e
 
 # test coverage
-$ yarn run test:cov
+yarn run test:cov
 ```
 
 ## Endpoints
@@ -44,6 +44,6 @@ GET http://localhost:3000/health
 
 GET http://localhost:3000/docs
 
-### List data feeds `/api/v1/feed`
+### List data feeds
 
 GET http://localhost:3000/api/v1/feed
