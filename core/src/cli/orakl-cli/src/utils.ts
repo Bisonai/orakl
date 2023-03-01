@@ -1,4 +1,6 @@
 import { open as openFile, readFile } from 'node:fs/promises'
+import * as fs from 'node:fs'
+import path from 'node:path'
 import {
   optional,
   boolean as cmdboolean,
@@ -14,6 +16,12 @@ import { IAdapter, IAggregator } from './types'
 import { CliError, CliErrorCode } from './error'
 import { ChainId, ServiceId, DbCmdOutput } from './cli-types'
 
+function mkdir(dir: string) {
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true })
+  }
+}
+
 export async function openDb({
   dbFile,
   migrate,
@@ -23,6 +31,8 @@ export async function openDb({
   migrate?: boolean
   migrationsPath?: string
 }) {
+  mkdir(path.dirname(dbFile))
+
   const db = await open({
     filename: dbFile,
     driver: sqlite.Database
