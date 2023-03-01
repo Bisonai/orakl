@@ -1,4 +1,4 @@
-name: "core: test+build"
+name: "api: test+build"
 on:
   push:
     paths:
