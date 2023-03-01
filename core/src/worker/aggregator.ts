@@ -43,7 +43,7 @@ export async function aggregatorWorker(_logger: Logger) {
   const aggregatorsWithAdapters = mergeAggregatorsAdapters(aggregators, adapters)
   logger.debug(aggregatorsWithAdapters, 'aggregatorsWithAdapters')
 
-  const randomHeartbeatQueue = new Queue(RANDOM_HEARTBEAT_QUEUE_NAME, BULLMQ_CONNECTION)
+  // const randomHeartbeatQueue = new Queue(RANDOM_HEARTBEAT_QUEUE_NAME, BULLMQ_CONNECTION)
   const fixedHeartbeatQueue = new Queue(FIXED_HEARTBEAT_QUEUE_NAME, BULLMQ_CONNECTION)
 
   // Launch all aggregators to be executed with random and fixed heartbeat
@@ -65,13 +65,13 @@ export async function aggregatorWorker(_logger: Logger) {
       )
     }
 
-    if (aggregator.randomHeartbeatRate.active) {
-      await randomHeartbeatQueue.add('random-heartbeat', addReportProperty(aggregator, undefined), {
-        delay: uniform(0, aggregator.randomHeartbeatRate.value),
-        removeOnComplete: REMOVE_ON_COMPLETE,
-        removeOnFail: REMOVE_ON_FAIL
-      })
-    }
+    // if (aggregator.randomHeartbeatRate.active) {
+    //   await randomHeartbeatQueue.add('random-heartbeat', addReportProperty(aggregator, undefined), {
+    //     delay: uniform(0, aggregator.randomHeartbeatRate.value),
+    //     removeOnComplete: REMOVE_ON_COMPLETE,
+    //     removeOnFail: REMOVE_ON_FAIL
+    //   })
+    // }
   }
 
   // Event based worker
@@ -146,7 +146,7 @@ function aggregatorJob(
         })
       })
     } catch (e) {
-      // `IncompleteDataFeed` exception can be raised from `prepareDataForReporter`.
+      // `FailedToFetchFromDataFeed` exception can be raised from `prepareDataForReporter`.
       // `aggregatorJob` is being triggered by either `fixed` or `event` worker.
       // `event` job will not be resubmitted. `fixed` job might be
       // resubmitted, however due to the nature of fixed job cycle, the
@@ -249,7 +249,7 @@ function randomHeartbeatJob(
         })
       }
     } catch (e) {
-      // It is possible that `IncompleteDataFeed` is raised from
+      // It is possible that `FailedToFetchFromDataFeed` is raised from
       // `prepareDataForReporter` which means that fetched data are
       // not qualified to be used for submission. This exception is
       // okay to ignore within random heartbeat because random
@@ -277,6 +277,7 @@ function randomHeartbeatJob(
  * @param {number} roundId
  * @param {Logger} _logger
  * @return {Promise<IAggregatorJob}
+ * @exception {FailedToFetchFromDataFeed} raised from `fetchDataFeed`
  */
 async function prepareDataForReporter({
   data,
