@@ -1,4 +1,4 @@
-# ICN core
+# Orakl Network Core
 
 ## Local development
 
