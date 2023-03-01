@@ -1,9 +1,11 @@
-import { Injectable } from '@nestjs/common'
+import { Logger, Injectable } from '@nestjs/common'
 import { CreateFeedDto } from './dto/create-feed.dto'
 import { UpdateFeedDto } from './dto/update-feed.dto'
 
 @Injectable()
 export class FeedService {
+  private readonly logger = new Logger(FeedService.name)
+
   create(createFeedDto: CreateFeedDto) {
     return 'This action adds a new feed'
   }
@@ -13,8 +15,10 @@ export class FeedService {
   }
 
   findOne(id: string) {
-    const dummyValue = 123456
-    return dummyValue
+    // FIXME
+    const value = 123456789
+    this.logger.log(`findOne ${value}`)
+    return value
   }
 
   update(id: number, updateFeedDto: UpdateFeedDto) {

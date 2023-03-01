@@ -1,6 +1,6 @@
-import axios from 'axios'
 import { Worker, Queue, Job } from 'bullmq'
 import { Logger } from 'pino'
+import { fetchDataFeed, fetchDataFeedMetadata } from './api'
 import {
   IAggregatorWorker,
   IAggregatorWorkerReporter,
@@ -16,8 +16,7 @@ import {
   PUBLIC_KEY as OPERATOR_ADDRESS,
   DEPLOYMENT_NAME,
   REMOVE_ON_COMPLETE,
-  REMOVE_ON_FAIL,
-  ORAKL_API_DATA_FEED_ENDPOINT
+  REMOVE_ON_FAIL
 } from '../settings'
 import { IcnError, IcnErrorCode } from '../errors'
 import { buildReporterJobId } from '../utils'
@@ -125,12 +124,13 @@ function aggregatorJob(
         throw new IcnError(IcnErrorCode.UndefinedAggregator, `${aggregatorAddress}`)
       }
 
-      const aggregator = addReportProperty(aggregatorsWithAdapters[aggregatorAddress], true)
+      const aggregator = aggregatorsWithAdapters[aggregatorAddress]
 
       const outData = await prepareDataForReporter({
-        data: aggregator,
+        id: aggregator.id,
+        report: true,
         workerSource: inData.workerSource,
-        delay: aggregator.fixedHeartbeatRate.value,
+        delay: aggregator.fixedHeartbeatRate.value, // FIXME
         roundId,
         _logger
       })
@@ -231,9 +231,9 @@ function randomHeartbeatJob(
 
     try {
       const outData = await prepareDataForReporter({
-        data: inData,
+        id: inData.id,
         workerSource: 'random',
-        delay: aggregator.fixedHeartbeatRate.value,
+        delay: aggregator.fixedHeartbeatRate.value, // FIXME
         _logger
       })
       logger.debug(outData, 'outData-random')
@@ -271,7 +271,8 @@ function randomHeartbeatJob(
 /**
  * Fetch the latest data and prepare them to be sent to reporter.
  *
- * @param {IAggregatorJob} data
+ * @param {string} id: aggregator ID
+ * @param {boolean} report: whether to submission must be reported
  * @param {string} workerSource
  * @param {number} delay
  * @param {number} roundId
@@ -280,13 +281,15 @@ function randomHeartbeatJob(
  * @exception {FailedToFetchFromDataFeed} raised from `fetchDataFeed`
  */
 async function prepareDataForReporter({
-  data,
+  id,
+  report,
   workerSource,
   delay,
   roundId,
   _logger
 }: {
-  data: IAggregatorJob
+  id: string
+  report?: boolean
   workerSource: string
   delay: number
   roundId?: number
@@ -294,12 +297,15 @@ async function prepareDataForReporter({
 }): Promise<IAggregatorWorkerReporter> {
   const logger = _logger.child({ name: 'prepareDataForReporter', file: FILE_NAME })
 
-  const callbackAddress = data.address
-  const submission = await fetchDataFeed({ id: data.id, logger })
-  let report = data.report
+  const { address, decimals, threshold, absoluteThreshold } = await fetchDataFeedMetadata({
+    id,
+    logger
+  })
+
+  const submission = await fetchDataFeed({ id, logger })
 
   const oracleRoundState = await oracleRoundStateCall({
-    aggregatorAddress: data.address,
+    aggregatorAddress: address,
     operatorAddress: OPERATOR_ADDRESS,
     roundId,
     logger
@@ -309,44 +315,17 @@ async function prepareDataForReporter({
   if (report === undefined) {
     // TODO does _latestsubmission hold the aggregated value?
     const latestSubmission = oracleRoundState._latestSubmission.toNumber()
-    report = shouldReport(
-      latestSubmission,
-      submission,
-      data.decimals,
-      data.threshold,
-      data.absoluteThreshold
-    )
+    report = shouldReport(latestSubmission, submission, decimals, threshold, absoluteThreshold)
     logger.debug({ report }, 'report')
   }
 
   return {
     report,
-    callbackAddress,
+    callbackAddress: address,
     workerSource,
     delay,
     submission,
     roundId: roundId || oracleRoundState._roundId
-  }
-}
-
-/* Fetch data from Orakl API Data Feed endpoint given aggregator ID.
- *
- * @param {string} aggregator ID
- * @param {Logger} logger
- * @return {number} the latest aggregated value
- * @exception {FailedToFetchFromDataFeed} raised when Orakl Network
- * API does not respond or responds in an unexpected format.
- */
-async function fetchDataFeed({ id, logger }: { id: string; logger: Logger }): Promise<number> {
-  try {
-    const url = [ORAKL_API_DATA_FEED_ENDPOINT, id].join('/')
-    logger.debug({ url }, 'data-feed-url')
-    const value = (await axios.get(url)).data
-    logger.debug({ value }, 'data-feed-value')
-    return value
-  } catch (e) {
-    logger.error(e)
-    throw new IcnError(IcnErrorCode.FailedToFetchFromDataFeed)
   }
 }
 

@@ -25,6 +25,18 @@ export class FeedController {
     return this.feedService.findOne(id)
   }
 
+  @Get(':id/metadata')
+  metadata(@Param('id') id: string) {
+    // TODO MetadataFeedDto
+    return {
+      id,
+      address: '0xB7f8BC63BbcaD18155201308C8f3540b07f84F5e',
+      decimals: 8,
+      threshold: 0.05,
+      absoluteThreshold: 0.1
+    }
+  }
+
   @Patch(':id')
   update(@Param('id') id: string, @Body() updateFeedDto: UpdateFeedDto) {
     return this.feedService.update(+id, updateFeedDto)
