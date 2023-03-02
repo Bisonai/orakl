@@ -4,9 +4,10 @@ import { AppService } from './app.service'
 import { AppController } from './app.controller'
 import { FeedService } from './feed/feed.service'
 import { FeedModule } from './feed/feed.module'
+import { ChainModule } from './chain/chain.module';
 
 @Module({
-  imports: [FeedModule],
+  imports: [FeedModule, ChainModule],
   controllers: [AppController, FeedController],
   providers: [AppService, FeedService]
 })
