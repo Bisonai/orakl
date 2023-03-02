@@ -10,7 +10,6 @@ import "./interfaces/VRFCoordinatorInterface.sol";
 import "./libraries/VRF.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "./VRFConsumerBase.sol";
-import "hardhat/console.sol";
 
 contract VRFCoordinator is
     CoordinatorBaseInterface,
