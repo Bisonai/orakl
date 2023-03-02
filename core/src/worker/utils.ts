@@ -3,7 +3,7 @@ import { ethers } from 'ethers'
 import { Logger } from 'pino'
 import { dataFeedReducerMapping } from './reducer'
 import { IcnError, IcnErrorCode } from '../errors'
-import { pipe } from '../utils'
+import { pipe, writeTextFile } from '../utils'
 import { IAdapter, IAggregator, IOracleRoundState, IRoundData } from '../types'
 import {
   getAdapters,
@@ -12,11 +12,11 @@ import {
   DB,
   CHAIN,
   PROVIDER,
-  STORE_ADAPTER_FETCH_RESULT
+  STORE_ADAPTER_FETCH_RESULT,
+  LOG_DIR
 } from '../settings'
 import { Aggregator__factory } from '@bisonai/orakl-contracts'
 import fs from 'fs'
-import json2csv from 'json2csv'
 import path from 'path'
 const FILE_NAME = import.meta.url
 
@@ -81,7 +81,7 @@ export function mergeAggregatorsAdapters(aggregators, adapters: IAdapter[]) {
  * @return {number} aggregatedresults
  * @exception {InvalidDataFeed} raised when there is at least one undefined data point
  */
-export async function fetchDataWithAdapter(adapter, round?, logger?: Logger) {
+export async function fetchDataWithAdapter(adapter, adapterName?, round?, logger?: Logger) {
   const allResults = await Promise.all(
     adapter.map(async (a) => {
       const options = {
@@ -118,30 +118,28 @@ export async function fetchDataWithAdapter(adapter, round?, logger?: Logger) {
   if (STORE_ADAPTER_FETCH_RESULT) {
     for (const k in adapter) {
       const a = adapter[k]
-      writeData(round, a.url, allResults[k])
+      writeData(adapterName, round, a.url, allResults[k] || 'Undefined')
     }
-    writeData(round, 'AggregatedResult', aggregatedResults)
+    writeData(adapterName, round, 'AggregatedResult', aggregatedResults)
   }
   return aggregatedResults
 }
 
-function writeData(round, url, data) {
-  const exportData = {
-    round: round,
-    url: url,
-    data: data,
-    time: new Date().getTime()
+async function writeData(adapterName, round, url, data) {
+  adapterName = adapterName.replace('/', '-')
+  const filePath = path.join(LOG_DIR, `${adapterName}-fetchHistory.txt`)
+  if (!fs.existsSync(filePath)) {
+    await writeTextFile(filePath, '')
   }
-  let row
-  const filename = path.join('src/cli', 'fetchHistory.csv')
-  if (!fs.existsSync(filename)) {
-    row = json2csv.parse(exportData, { header: true })
-  } else {
-    // Rows without headers.
-    row = json2csv.parse(exportData, { header: false })
-  }
-  fs.appendFileSync(filename, row)
-  fs.appendFileSync(filename, '\r\n')
+  fs.appendFileSync(
+    filePath,
+    JSON.stringify({
+      round,
+      url,
+      data,
+      time: new Date().getTime()
+    }) + '\n'
+  )
 }
 
 function checkDataFormat(data) {
@@ -175,7 +173,7 @@ function extractFeeds(adapter) {
     }
   })
 
-  return { [adapterId]: { decimals: adapter.decimals, feeds } }
+  return { [adapterId]: { name: adapter.name, decimals: adapter.decimals, feeds } }
 }
 
 function extractAggregators(aggregator) {

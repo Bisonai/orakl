@@ -1,17 +1,18 @@
 import { parseArgs } from 'node:util'
 import { fetchDataWithAdapter, loadAdapters } from '../worker/utils'
-import { STORE_ADAPTER_FETCH_RESULT } from '../settings'
 
 async function main() {
   const adapterId: string = loadArgs()
   const adapters = await loadAdapters({ postprocess: true })
-  let round = 1
-  while (STORE_ADAPTER_FETCH_RESULT) {
-    const price = await fetchDataWithAdapter(adapters[adapterId].feeds, round++)
-    const now = new Date()
-    console.log(`Round: ${round - 1}, Price: ${price}, Time:${now}\n\n`)
-
-    const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms * 1000))
+  const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms * 1000))
+  let roundCount = 1
+  while (true) {
+    const price = await fetchDataWithAdapter(
+      adapters[adapterId].feeds,
+      adapters[adapterId].name,
+      roundCount++
+    )
+    console.log({ roundCount: roundCount - 1, price, time: new Date() })
     await sleep(1)
   }
 }
