@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common'
 import { Chain, Prisma } from '@prisma/client'
 import { PrismaService } from '../prisma.service'
 import { CreateChainDto } from './dto/create-chain.dto'
+import { UpdateChainDto } from './dto/update-chain.dto'
 
 @Injectable()
 export class ChainService {
@@ -36,11 +37,11 @@ export class ChainService {
 
   async update(params: {
     where: Prisma.ChainWhereUniqueInput
-    data: Prisma.ChainUpdateInput
+    updateChainDto: UpdateChainDto
   }): Promise<Chain> {
-    const { where, data } = params
+    const { where, updateChainDto } = params
     return this.prisma.chain.update({
-      data,
+      data: updateChainDto,
       where
     })
   }

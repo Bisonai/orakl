@@ -2,6 +2,7 @@ import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/commo
 import { Chain as ChainModel } from '@prisma/client'
 import { ChainService } from './chain.service'
 import { CreateChainDto } from './dto/create-chain.dto'
+import { UpdateChainDto } from './dto/update-chain.dto'
 
 @Controller('chain')
 export class ChainController {
@@ -23,11 +24,13 @@ export class ChainController {
   }
 
   @Patch(':id')
-  async update(@Param('id') id: string, @Body() chainData: { name: string }): Promise<ChainModel> {
-    const { name } = chainData
+  async update(
+    @Param('id') id: string,
+    @Body() updateChainDto: UpdateChainDto
+  ): Promise<ChainModel> {
     return this.chainService.update({
       where: { id: Number(id) },
-      data: { name }
+      updateChainDto
     })
   }
 
