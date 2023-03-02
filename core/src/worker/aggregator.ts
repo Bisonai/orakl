@@ -1,4 +1,4 @@
-import { Worker, Queue } from 'bullmq'
+import { Worker, Queue, Job } from 'bullmq'
 import { Logger } from 'pino'
 import {
   IAggregatorWorker,
@@ -42,12 +42,30 @@ export async function aggregatorWorker(_logger: Logger) {
   const aggregatorsWithAdapters = mergeAggregatorsAdapters(aggregators, adapters)
   logger.debug(aggregatorsWithAdapters, 'aggregatorsWithAdapters')
 
-  // Launch all aggregators to be executed with random heartbeat
-  const heartbeatQueue = new Queue(RANDOM_HEARTBEAT_QUEUE_NAME, BULLMQ_CONNECTION)
+  const randomHeartbeatQueue = new Queue(RANDOM_HEARTBEAT_QUEUE_NAME, BULLMQ_CONNECTION)
+  const fixedHeartbeatQueue = new Queue(FIXED_HEARTBEAT_QUEUE_NAME, BULLMQ_CONNECTION)
+
+  // Launch all aggregators to be executed with random and fixed heartbeat
   for (const aggregatorAddress in aggregatorsWithAdapters) {
     const aggregator = aggregatorsWithAdapters[aggregatorAddress]
+    if (aggregator.fixedHeartbeatRate.active) {
+      await fixedHeartbeatQueue.add(
+        'fixed-heartbeat',
+        { aggregatorAddress },
+        {
+          delay: await getSynchronizedDelay(
+            aggregatorAddress,
+            aggregator.fixedHeartbeatRate.value,
+            _logger
+          ),
+          removeOnComplete: true,
+          removeOnFail: true
+        }
+      )
+    }
+
     if (aggregator.randomHeartbeatRate.active) {
-      await heartbeatQueue.add('random-heartbeat', addReportProperty(aggregator, undefined), {
+      await randomHeartbeatQueue.add('random-heartbeat', addReportProperty(aggregator, undefined), {
         delay: uniform(0, aggregator.randomHeartbeatRate.value),
         removeOnComplete: REMOVE_ON_COMPLETE,
         removeOnFail: REMOVE_ON_FAIL
@@ -59,7 +77,12 @@ export async function aggregatorWorker(_logger: Logger) {
   new Worker(
     WORKER_AGGREGATOR_QUEUE_NAME,
     aggregatorJob(REPORTER_AGGREGATOR_QUEUE_NAME, aggregatorsWithAdapters, _logger),
-    BULLMQ_CONNECTION
+    {
+      ...BULLMQ_CONNECTION,
+      settings: {
+        backoffStrategy: aggregatorJobBackOffStrategy
+      }
+    }
   )
 
   // Fixed heartbeat worker
@@ -70,11 +93,16 @@ export async function aggregatorWorker(_logger: Logger) {
   )
 
   // Random heartbeat worker
-  new Worker(
-    RANDOM_HEARTBEAT_QUEUE_NAME,
-    randomHeartbeatJob(RANDOM_HEARTBEAT_QUEUE_NAME, REPORTER_AGGREGATOR_QUEUE_NAME, _logger),
-    BULLMQ_CONNECTION
-  )
+  // new Worker(
+  //   RANDOM_HEARTBEAT_QUEUE_NAME,
+  //   randomHeartbeatJob(
+  //     RANDOM_HEARTBEAT_QUEUE_NAME,
+  //     REPORTER_AGGREGATOR_QUEUE_NAME,
+  //     aggregatorsWithAdapters,
+  //     _logger
+  //   ),
+  //   BULLMQ_CONNECTION
+  // )
 }
 
 function aggregatorJob(
@@ -85,25 +113,27 @@ function aggregatorJob(
   const logger = _logger.child({ name: 'aggregatorJob', file: FILE_NAME })
   const reporterQueue = new Queue(reporterQueueName, BULLMQ_CONNECTION)
 
-  async function wrapper(job) {
+  async function wrapper(job: Job) {
     const inData: IAggregatorWorker = job.data
+    logger.debug(inData, 'inData-regular')
     const aggregatorAddress = inData.aggregatorAddress
     const roundId = inData.roundId
 
-    if (!aggregatorsWithAdapters[aggregatorAddress]) {
-      throw new IcnError(IcnErrorCode.UndefinedAggregator)
-    }
-
     try {
+      if (!aggregatorsWithAdapters[aggregatorAddress]) {
+        throw new IcnError(IcnErrorCode.UndefinedAggregator, `${aggregatorAddress}`)
+      }
+
       const aggregator = addReportProperty(aggregatorsWithAdapters[aggregatorAddress], true)
 
       const outData = await prepareDataForReporter({
         data: aggregator,
         workerSource: inData.workerSource,
+        delay: aggregator.fixedHeartbeatRate.value,
         roundId,
         _logger
       })
-      logger.debug(outData, 'outData')
+      logger.debug(outData, 'outData-regular')
 
       await reporterQueue.add(inData.workerSource, outData, {
         removeOnComplete: REMOVE_ON_COMPLETE,
@@ -115,7 +145,15 @@ function aggregatorJob(
         })
       })
     } catch (e) {
+      // `IncompleteDataFeed` exception can be raised from `prepareDataForReporter`.
+      // `aggregatorJob` is being triggered by either `fixed` or `event` worker.
+      // `event` job will not be resubmitted. `fixed` job might be
+      // resubmitted, however due to the nature of fixed job cycle, the
+      // resubmission might be delayed more than is acceptable. For this
+      // reason jobs processed with `aggregatorJob` job must be retried with
+      // appropriate logic.
       logger.error(e)
+      throw e
     }
   }
 
@@ -126,8 +164,9 @@ function fixedHeartbeatJob(aggregatorJobQueueName: string, _logger: Logger) {
   const logger = _logger.child({ name: 'fixedHeartbeatJob', file: FILE_NAME })
   const queue = new Queue(aggregatorJobQueueName, BULLMQ_CONNECTION)
 
-  async function wrapper(job) {
+  async function wrapper(job: Job) {
     const inData: IAggregatorHeartbeatWorker = job.data
+    logger.debug(inData, 'inData-fixed')
     const aggregatorAddress = inData.aggregatorAddress
 
     try {
@@ -136,21 +175,31 @@ function fixedHeartbeatJob(aggregatorJobQueueName: string, _logger: Logger) {
         operatorAddress: OPERATOR_ADDRESS,
         logger
       })
+      logger.debug(oracleRoundState, 'oracleRoundState-fixed')
+
+      const roundId = oracleRoundState._roundId
 
       const outData: IAggregatorWorker = {
         aggregatorAddress,
-        roundId: oracleRoundState._roundId,
+        roundId: roundId,
         workerSource: 'fixed'
       }
+      logger.debug(outData, 'outData-fixed')
 
       if (oracleRoundState._eligibleToSubmit) {
+        logger.debug({ job: 'added', eligible: true, roundId }, 'before-eligible-fixed')
         await queue.add('fixed', outData, {
           removeOnComplete: REMOVE_ON_COMPLETE,
-          removeOnFail: REMOVE_ON_FAIL
+          removeOnFail: REMOVE_ON_FAIL,
+          jobId: buildReporterJobId({ aggregatorAddress, roundId, deploymentName: DEPLOYMENT_NAME })
         })
+        logger.debug({ job: 'added', eligible: true, roundId }, 'eligible-fixed')
+      } else {
+        logger.debug({ eligible: false, roundId }, 'non-eligible-fixed')
       }
     } catch (e) {
       logger.error(e)
+      throw e
     }
   }
 
@@ -160,6 +209,7 @@ function fixedHeartbeatJob(aggregatorJobQueueName: string, _logger: Logger) {
 function randomHeartbeatJob(
   heartbeatQueueName: string,
   reporterQueueName: string,
+  aggregatorsWithAdapters: IAggregatorJob[],
   _logger: Logger
 ) {
   const logger = _logger.child({ name: 'randomHeartbeatJob', file: FILE_NAME })
@@ -167,19 +217,25 @@ function randomHeartbeatJob(
   const heartbeatQueue = new Queue(heartbeatQueueName, BULLMQ_CONNECTION)
   const reporterQueue = new Queue(reporterQueueName, BULLMQ_CONNECTION)
 
-  async function wrapper(job) {
+  async function wrapper(job: Job) {
     const inData: IAggregatorJob = job.data
-    logger.debug(inData, 'inData')
+    logger.debug(inData, 'inData-random')
 
     const aggregatorAddress = inData.address
+    const aggregator = aggregatorsWithAdapters[aggregatorAddress]
+
+    if (!aggregator) {
+      throw new IcnError(IcnErrorCode.UndefinedAggregator)
+    }
 
     try {
       const outData = await prepareDataForReporter({
         data: inData,
         workerSource: 'random',
+        delay: aggregator.fixedHeartbeatRate.value,
         _logger
       })
-      logger.debug(outData, 'outData')
+      logger.debug(outData, 'outData-random')
       if (outData.report) {
         await reporterQueue.add('random', outData, {
           removeOnComplete: REMOVE_ON_COMPLETE,
@@ -187,11 +243,17 @@ function randomHeartbeatJob(
           jobId: buildReporterJobId({
             aggregatorAddress,
             deploymentName: DEPLOYMENT_NAME,
-            ...outData
+            roundId: outData.roundId
           })
         })
       }
     } catch (e) {
+      // It is possible that `IncompleteDataFeed` is raised from
+      // `prepareDataForReporter` which means that fetched data are
+      // not qualified to be used for submission. This exception is
+      // okay to ignore within random heartbeat because random
+      // heartbeat is executed in frequent intervals and data
+      // request will be performed soon again.
       logger.error(e)
     } finally {
       await heartbeatQueue.add('random-heartbeat', inData, {
@@ -209,17 +271,23 @@ function randomHeartbeatJob(
  * Fetch the latest data and prepare them to be sent to reporter.
  *
  * @param {IAggregatorHeartbeatWorker} data
- * @return {Promise<IAggregatorWorkerReporter>}
- * @exception {InvalidPriceFeed} raised from `fetchDataWithadapter`
+ * @param {string} workerSource
+ * @param {number} delay
+ * @param {number} roundId
+ * @param {Logger} _logger
+ * @return {Promise<IAggregatorJob}
+ * @exception {InvalidDataFeed} raised from `fetchDataWithadapter`
  */
 async function prepareDataForReporter({
   data,
   workerSource,
+  delay,
   roundId,
   _logger
 }: {
   data: IAggregatorJob
   workerSource: string
+  delay: number
   roundId?: number
   _logger: Logger
 }): Promise<IAggregatorWorkerReporter> {
@@ -254,6 +322,7 @@ async function prepareDataForReporter({
     report,
     callbackAddress,
     workerSource,
+    delay,
     submission,
     roundId: roundId || oracleRoundState._roundId
   }
@@ -297,4 +366,44 @@ function shouldReport(
 
 function addReportProperty(o, report: boolean | undefined) {
   return Object.assign({}, ...[o, { report }])
+}
+
+async function getSynchronizedDelay(
+  aggregatorAddress: string,
+  delay: number,
+  _logger: Logger
+): Promise<number> {
+  // FIXME modify aggregator to use single contract call
+
+  let startedAt = 0
+  const { _startedAt, _roundId } = await oracleRoundStateCall({
+    aggregatorAddress,
+    operatorAddress: OPERATOR_ADDRESS
+  })
+
+  if (_startedAt.toNumber() != 0) {
+    startedAt = _startedAt.toNumber()
+  } else {
+    const { _startedAt } = await oracleRoundStateCall({
+      aggregatorAddress,
+      operatorAddress: OPERATOR_ADDRESS,
+      roundId: Math.max(0, _roundId - 1)
+    })
+    startedAt = _startedAt.toNumber()
+  }
+
+  _logger.debug({ startedAt }, 'synchronizedDelay')
+  const synchronizedDelay = delay - (startedAt % delay)
+  _logger.debug({ synchronizedDelay }, 'synchronizedDelay')
+  return synchronizedDelay
+}
+
+function aggregatorJobBackOffStrategy(
+  attemptsMade: number,
+  type: string,
+  err: Error,
+  job: Job
+): number {
+  // TODO stop if there is newer job submitted
+  return 1_000
 }

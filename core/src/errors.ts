@@ -21,8 +21,9 @@ export enum IcnErrorCode {
   UniformWrongParams,
   InvalidListenerConfig,
   UndefinedListenerRequested,
-  InvalidPriceFeed,
-  InvalidPriceFeedFormat,
+  InvalidDataFeed,
+  IncompleteDataFeed,
+  InvalidDataFeedFormat,
   MissingKeyValuePair,
   UnexpectedQueryOutput,
   TxInvalidAddress,
@@ -34,5 +35,6 @@ export enum IcnErrorCode {
   AggregatorNotFound,
   AggregatorJobCanTakeMoreBreak,
   UndefinedAggregator,
-  UnexpectedNumberOfJobsInQueue
+  UnexpectedNumberOfJobsInQueue,
+  TxNotMined
 }

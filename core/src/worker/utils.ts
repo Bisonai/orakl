@@ -79,7 +79,7 @@ export function mergeAggregatorsAdapters(aggregators, adapters: IAdapter[]) {
  *
  * @param {number} adapter Single data adapter to define which data to fetch.
  * @return {number} aggregatedresults
- * @exception {InvalidPriceFeed} raised when there is at least one undefined data point
+ * @exception {InvalidDataFeed} raised when there is at least one undefined data point
  */
 export async function fetchDataWithAdapter(adapter, round?, logger?: Logger) {
   const allResults = await Promise.all(
@@ -110,10 +110,10 @@ export async function fetchDataWithAdapter(adapter, round?, logger?: Logger) {
   // FIXME: Make Logic when we need to fail adapter reading
   const filteredResults = allResults.filter((r) => r)
   if (filteredResults.length == 0) {
-    throw new IcnError(IcnErrorCode.InvalidPriceFeed)
+    throw new IcnError(IcnErrorCode.IncompleteDataFeed)
   }
 
-  const aggregatedResults = localAggregatorFn(filteredResults)
+  const aggregatedResults = localAggregatorFn(...filteredResults)
   logger?.debug({ name: 'fetchDataWithAdapter', ...aggregatedResults }, 'aggregatedResults')
 
   if (STORE_ADAPTER_FETCH_RESULT) {
@@ -147,9 +147,11 @@ function writeData(round, url, data) {
 
 function checkDataFormat(data) {
   if (!data) {
-    throw new IcnError(IcnErrorCode.InvalidPriceFeed)
+    // check if priceFeed is null, undefined, NaN, "", 0, false
+    throw new IcnError(IcnErrorCode.InvalidDataFeed)
   } else if (!Number.isInteger(data)) {
-    throw new IcnError(IcnErrorCode.InvalidPriceFeedFormat)
+    // check if priceFeed is not Integer
+    throw new IcnError(IcnErrorCode.InvalidDataFeedFormat)
   }
 }
 
