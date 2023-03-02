@@ -65,6 +65,7 @@ export const REPORTER_REQUEST_RESPONSE_QUEUE_NAME = `${DEPLOYMENT_NAME}-reporter
 export const REPORTER_PREDEFINED_FEED_QUEUE_NAME = `${DEPLOYMENT_NAME}-reporter-predefined-feed-queue`
 export const REPORTER_VRF_QUEUE_NAME = `${DEPLOYMENT_NAME}-reporter-vrf-queue`
 export const REPORTER_AGGREGATOR_QUEUE_NAME = `${DEPLOYMENT_NAME}-reporter-aggregator-queue`
+export const STORE_ADAPTER_FETCH_RESULT = true
 
 export const ALL_QUEUES = [
   FIXED_HEARTBEAT_QUEUE_NAME,

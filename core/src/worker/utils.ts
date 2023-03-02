@@ -5,7 +5,15 @@ import { dataFeedReducerMapping } from './reducer'
 import { IcnError, IcnErrorCode } from '../errors'
 import { pipe } from '../utils'
 import { IAdapter, IAggregator, IOracleRoundState, IRoundData } from '../types'
-import { getAdapters, getAggregators, localAggregatorFn, DB, CHAIN, PROVIDER } from '../settings'
+import {
+  getAdapters,
+  getAggregators,
+  localAggregatorFn,
+  DB,
+  CHAIN,
+  PROVIDER,
+  STORE_ADAPTER_FETCH_RESULT
+} from '../settings'
 import { Aggregator__factory } from '@bisonai/orakl-contracts'
 import fs from 'fs'
 import json2csv from 'json2csv'
@@ -73,27 +81,6 @@ export function mergeAggregatorsAdapters(aggregators, adapters: IAdapter[]) {
  * @return {number} aggregatedresults
  * @exception {InvalidPriceFeed} raised when there is at least one undefined data point
  */
-
-function writeData(round, url, data) {
-  const now = new Date().getTime()
-  const exportData = {
-    round: round,
-    url: url,
-    data: data,
-    time: now
-  }
-  let row
-  const filename = path.join('src/cli', 'data.csv')
-  if (!fs.existsSync(filename)) {
-    row = json2csv.parse(exportData, { header: true })
-  } else {
-    // Rows without headers.
-    row = json2csv.parse(exportData, { header: false })
-  }
-  fs.appendFileSync(filename, row)
-  fs.appendFileSync(filename, '\r\n')
-}
-
 export async function fetchDataWithAdapter(adapter, round?, logger?: Logger) {
   let allResults = await Promise.all(
     adapter.map(async (a) => {
@@ -110,7 +97,7 @@ export async function fetchDataWithAdapter(adapter, round?, logger?: Logger) {
         // every fetch.
         const reducers = buildReducer(dataFeedReducerMapping, a.reducers)
         const data = pipe(...reducers)(rawData)
-        checkDataFormat(data, a.url)
+        checkDataFormat(data)
         return data
       } catch (e) {
         logger?.error(e)
@@ -118,28 +105,47 @@ export async function fetchDataWithAdapter(adapter, round?, logger?: Logger) {
     })
   )
 
-  for (const k in adapter) {
-    const a = adapter[k]
-    writeData(round, a.url, allResults[k])
-  }
   logger?.debug({ name: 'predefinedFeedJob', ...allResults }, 'allResults')
-  // FIXME: Improve or use flags to throw error when allResults has any undefined variable
-  const isValid = allResults.every((r) => r)
-  if (!isValid) {
-    // throw new IcnError(IcnErrorCode.InvalidPriceFeed)
-    allResults = cleanData(allResults)
+
+  // FIXME: Make Logic when we need to fail adapter reading
+  const filteredResults = allResults.filter((r) => r)
+  if (filteredResults.length == 0) {
+    throw new IcnError(IcnErrorCode.InvalidPriceFeed)
   }
-  const aggregatedResults = localAggregatorFn(allResults)
+
+  const aggregatedResults = localAggregatorFn(filteredResults)
   logger?.debug({ name: 'fetchDataWithAdapter', ...aggregatedResults }, 'aggregatedResults')
-  writeData(round, 'data', aggregatedResults)
+
+  if (STORE_ADAPTER_FETCH_RESULT) {
+    for (const k in adapter) {
+      const a = adapter[k]
+      writeData(round, a.url, allResults[k])
+    }
+    writeData(round, 'AggregatedResult', aggregatedResults)
+  }
   return aggregatedResults
 }
 
-function cleanData(allResult) {
-  return allResult.filter(Number)
+function writeData(round, url, data) {
+  const exportData = {
+    round: round,
+    url: url,
+    data: data,
+    time: new Date().getTime()
+  }
+  let row
+  const filename = path.join('src/cli', 'fetchHistory.csv')
+  if (!fs.existsSync(filename)) {
+    row = json2csv.parse(exportData, { header: true })
+  } else {
+    // Rows without headers.
+    row = json2csv.parse(exportData, { header: false })
+  }
+  fs.appendFileSync(filename, row)
+  fs.appendFileSync(filename, '\r\n')
 }
 
-function checkDataFormat(data, url) {
+function checkDataFormat(data) {
   if (!data) {
     throw new IcnError(IcnErrorCode.InvalidPriceFeed)
   } else if (!Number.isInteger(data)) {
