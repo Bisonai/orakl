@@ -4,7 +4,18 @@ import { fetchDataWithAdapter, loadAdapters } from '../worker/utils'
 async function main() {
   const adapterId: string = loadArgs()
   const adapters = await loadAdapters({ postprocess: true })
-  fetchDataWithAdapter(adapters[adapterId])
+  const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms * 1000))
+  let roundCount = 1
+
+  while (roundCount <= 999_999) {
+    const price = await fetchDataWithAdapter(
+      adapters[adapterId].feeds,
+      adapters[adapterId].name,
+      roundCount++
+    )
+    console.log({ roundCount: roundCount - 1, price, time: new Date() })
+    await sleep(1)
+  }
 }
 
 function loadArgs(): string {

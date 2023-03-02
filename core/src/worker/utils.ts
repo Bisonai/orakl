@@ -3,11 +3,21 @@ import { ethers } from 'ethers'
 import { Logger } from 'pino'
 import { dataFeedReducerMapping } from './reducer'
 import { IcnError, IcnErrorCode } from '../errors'
-import { pipe } from '../utils'
+import { pipe, writeTextFile } from '../utils'
 import { IAdapter, IAggregator, IOracleRoundState, IRoundData } from '../types'
-import { getAdapters, getAggregators, localAggregatorFn, DB, CHAIN, PROVIDER } from '../settings'
+import {
+  getAdapters,
+  getAggregators,
+  localAggregatorFn,
+  DB,
+  CHAIN,
+  PROVIDER,
+  STORE_ADAPTER_FETCH_RESULT,
+  LOG_DIR
+} from '../settings'
 import { Aggregator__factory } from '@bisonai/orakl-contracts'
-
+import fs from 'fs'
+import path from 'path'
 const FILE_NAME = import.meta.url
 
 export async function loadAdapters({
@@ -71,7 +81,7 @@ export function mergeAggregatorsAdapters(aggregators, adapters: IAdapter[]) {
  * @return {number} aggregatedresults
  * @exception {InvalidDataFeed} raised when there is at least one undefined data point
  */
-export async function fetchDataWithAdapter(adapter, logger?: Logger) {
+export async function fetchDataWithAdapter(adapter, adapterName?, round?, logger?: Logger) {
   const allResults = await Promise.all(
     adapter.map(async (a) => {
       const options = {
@@ -96,6 +106,7 @@ export async function fetchDataWithAdapter(adapter, logger?: Logger) {
   )
   logger?.debug({ name: 'predefinedFeedJob', ...allResults }, 'allResults')
 
+  // FIXME: Make Logic when we need to fail adapter reading
   const filteredResults = allResults.filter((r) => r)
   if (filteredResults.length == 0) {
     throw new IcnError(IcnErrorCode.IncompleteDataFeed)
@@ -104,7 +115,31 @@ export async function fetchDataWithAdapter(adapter, logger?: Logger) {
   const aggregatedResults = localAggregatorFn(...filteredResults)
   logger?.debug({ name: 'fetchDataWithAdapter', ...aggregatedResults }, 'aggregatedResults')
 
+  if (STORE_ADAPTER_FETCH_RESULT) {
+    for (const k in adapter) {
+      const a = adapter[k]
+      writeData(adapterName, round, a.url, allResults[k] || 'Undefined')
+    }
+    writeData(adapterName, round, 'AggregatedResult', aggregatedResults)
+  }
   return aggregatedResults
+}
+
+async function writeData(adapterName, round, url, data) {
+  adapterName = adapterName.replace('/', '-')
+  const filePath = path.join(LOG_DIR, `${adapterName}-fetchHistory.txt`)
+  if (!fs.existsSync(filePath)) {
+    await writeTextFile(filePath, '')
+  }
+  fs.appendFileSync(
+    filePath,
+    JSON.stringify({
+      round,
+      url,
+      data,
+      time: new Date().getTime()
+    }) + '\n'
+  )
 }
 
 function checkDataFormat(data) {
@@ -138,7 +173,7 @@ function extractFeeds(adapter) {
     }
   })
 
-  return { [adapterId]: { decimals: adapter.decimals, feeds } }
+  return { [adapterId]: { name: adapter.name, decimals: adapter.decimals, feeds } }
 }
 
 function extractAggregators(aggregator) {
