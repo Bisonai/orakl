@@ -104,7 +104,6 @@ export async function fetchDataWithAdapter(adapter, round?, logger?: Logger) {
       }
     })
   )
-
   logger?.debug({ name: 'predefinedFeedJob', ...allResults }, 'allResults')
 
   // FIXME: Make Logic when we need to fail adapter reading
