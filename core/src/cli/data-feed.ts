@@ -6,7 +6,8 @@ async function main() {
   const adapters = await loadAdapters({ postprocess: true })
   const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms * 1000))
   let roundCount = 1
-  while (true) {
+
+  while (roundCount <= 999_999) {
     const price = await fetchDataWithAdapter(
       adapters[adapterId].feeds,
       adapters[adapterId].name,
