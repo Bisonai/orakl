@@ -82,7 +82,7 @@ export function mergeAggregatorsAdapters(aggregators, adapters: IAdapter[]) {
  * @exception {InvalidPriceFeed} raised when there is at least one undefined data point
  */
 export async function fetchDataWithAdapter(adapter, round?, logger?: Logger) {
-  let allResults = await Promise.all(
+  const allResults = await Promise.all(
     adapter.map(async (a) => {
       const options = {
         method: a.method,
