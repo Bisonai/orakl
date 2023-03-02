@@ -106,7 +106,7 @@ contract RequestResponseCoordinator is
     event OracleRegistered(address oracle);
     event OracleDeregistered(address oracle);
     event MinBalanceSet(uint256 minBalance);
-    event RequestResponseCoordinatorPrepayment(address prepayment);
+    event RequestResponseCoordinatorConnected(address prepayment);
 
     modifier nonReentrant() {
         if (s_config.reentrancyLock) {
