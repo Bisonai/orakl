@@ -1,16 +1,14 @@
 import { Injectable } from '@nestjs/common'
 import { Chain, Prisma } from '@prisma/client'
 import { PrismaService } from '../prisma.service'
+import { CreateChainDto } from './dto/create-chain.dto'
 
 @Injectable()
 export class ChainService {
   constructor(private prisma: PrismaService) {}
 
-  async create(data: Prisma.ChainCreateInput): Promise<Chain> {
-    const { name } = data
-    return this.prisma.chain.create({
-      data
-    })
+  async create(createChainDto: CreateChainDto): Promise<Chain> {
+    return this.prisma.chain.create({ data: createChainDto })
   }
 
   async findAll(params: {

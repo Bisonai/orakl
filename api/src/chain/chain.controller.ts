@@ -1,17 +1,15 @@
 import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common'
 import { Chain as ChainModel } from '@prisma/client'
 import { ChainService } from './chain.service'
+import { CreateChainDto } from './dto/create-chain.dto'
 
 @Controller('chain')
 export class ChainController {
   constructor(private readonly chainService: ChainService) {}
 
   @Post()
-  async create(@Body() chainData: { name: string }): Promise<ChainModel> {
-    const { name } = chainData
-    return this.chainService.create({
-      name
-    })
+  async create(@Body() createChainDto: CreateChainDto): Promise<ChainModel> {
+    return this.chainService.create(createChainDto)
   }
 
   @Get()
