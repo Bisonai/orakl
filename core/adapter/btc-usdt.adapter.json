@@ -1,7 +1,7 @@
 {
-  "id": "0xde668099683c82838dc59e9f7c403cb064544a3dc6522a5efc2ce2ecde4317cd",
+  "id": "0x193a5f196fce5b0cc022f7c298b71d425886e062a3f3401db68f7df4ae6ed9c1",
   "active": true,
-  "name": "BTC/USD",
+  "name": "BTC/USDT",
   "jobType": "DATA_FEED",
   "decimals": 8,
   "feeds": [
