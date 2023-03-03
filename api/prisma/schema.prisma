@@ -20,12 +20,14 @@ model Feed {
   source       String
   decimals     Int
   latestRound  Int
+  definition   Json
   adapter      Adapter   @relation(fields: [adapterId], references: [id])
   adapterId    Int
 }
 
 model Adapter {
   id         Int     @default(autoincrement()) @id
+  adapterId  String
   name       String
   feeds      Feed[]
 }

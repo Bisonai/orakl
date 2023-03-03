@@ -4,7 +4,10 @@ import { ChainService } from './chain.service'
 import { CreateChainDto } from './dto/create-chain.dto'
 import { UpdateChainDto } from './dto/update-chain.dto'
 
-@Controller('chain')
+@Controller({
+  path: 'chain',
+  version: '1'
+})
 export class ChainController {
   constructor(private readonly chainService: ChainService) {}
 
