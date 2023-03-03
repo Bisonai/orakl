@@ -47,7 +47,8 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   // Configure payment for direct VRF request
   await (await vrfCoordinator.setDirectPaymentConfig(config.directPaymentConfig)).wait()
-
+  // Configure minBalance
+  await (await vrfCoordinator.setMinBalance(config.minBalance)).wait()
   // Add VRFCoordinator to Prepayment
   const prepaymentDeployerSigner = await ethers.getContractAt(
     'Prepayment',
