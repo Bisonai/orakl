@@ -1,8 +1,7 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common'
+import { Controller, Get, Post, Body, Param } from '@nestjs/common'
 import { Adapter as AdapterModel } from '@prisma/client'
 import { AdapterService } from './adapter.service'
 import { CreateAdapterDto } from './dto/create-adapter.dto'
-import { UpdateAdapterDto } from './dto/update-adapter.dto'
 
 @Controller({
   path: 'adapter',
@@ -24,15 +23,5 @@ export class AdapterController {
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.adapterService.findOne({ id: Number(id) })
-  }
-
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updateAdapterDto: UpdateAdapterDto) {
-    return this.adapterService.update(+id, updateAdapterDto)
-  }
-
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.adapterService.remove(+id)
   }
 }

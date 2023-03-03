@@ -1,9 +1,7 @@
 import { Injectable } from '@nestjs/common'
 import { Adapter, Prisma } from '@prisma/client'
 import { PrismaService } from '../prisma.service'
-import { FeedDto } from '../feed/dto/feed.dto'
 import { CreateAdapterDto } from './dto/create-adapter.dto'
-import { UpdateAdapterDto } from './dto/update-adapter.dto'
 
 @Injectable()
 export class AdapterService {
@@ -42,13 +40,5 @@ export class AdapterService {
     return this.prisma.adapter.findUnique({
       where: chainWhereUniqueInput
     })
-  }
-
-  update(id: number, updateAdapterDto: UpdateAdapterDto) {
-    return `This action updates a #${id} adapter`
-  }
-
-  remove(id: number) {
-    return `This action removes a #${id} adapter`
   }
 }
