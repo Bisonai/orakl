@@ -7,7 +7,7 @@
     "dist"
   ],
   "engines": {
-    "node": ">=18.12"
+    "node": ">=16.12"
   },
   "author": "Bisonai",
   "license": "UNLICENSED",
@@ -17,6 +17,7 @@
     "start:request": "yarn build && node --no-warnings --experimental-specifier-resolution=node --experimental-json-modules dist/request/main.js",
     "start:listener:vrf-consumer": "yarn build && node --no-warnings --experimental-specifier-resolution=node --experimental-json-modules dist/listener/vrf-consumer.js",
     "start:listener:rr-consumer": "yarn build && node --no-warnings --experimental-specifier-resolution=node --experimental-json-modules dist/listener/request-response.js",
+    "start:reporter": "yarn build && node --no-warnings --experimental-specifier-resolution=node --experimental-json-modules dist/reporter/main.js",
     "eslint": "DEBUG=eslint:cli-engine npx eslint 'src/**/*.ts' 'src/*.ts'"
   },
   "dependencies": {

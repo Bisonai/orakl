@@ -49,11 +49,11 @@ export async function sendRequestData() {
       requestedTime,
     };
     jsonResult.push(result);
-    console.log("Requested: ", txReceipt.blockNumber);
+    console.log("RR-Prepayment:Requested: ", txReceipt.blockNumber);
 
     await writeTextFile(jsonPath, JSON.stringify(jsonResult));
   } catch (error) {
-    console.log(error);
+    console.log("RR-Prepayment", error);
     await writeTextAppend(errorPath, `${d.toISOString()}:${error}\n`);
   }
 }

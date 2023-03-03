@@ -12,6 +12,8 @@ import {
 import { buildWallet, sendTransaction } from "./utils";
 
 const abis = await readTextFile("./src/abis/request-response.json");
+const rrAbis = await readTextFile("./src/abis/rr-coordinator.json");
+
 const RR_CONSUMER = process.env.RR_CONSUMER;
 let jsonResult: ILogData[] = [];
 
@@ -33,7 +35,23 @@ export async function sendRequestDataDirect() {
     const payload = iface.encodeFunctionData("requestDataDirectPayment", [
       callbackGasLimit,
     ]);
-    const tx = await sendTransaction(wallet, RR_CONSUMER, payload, gasLimit);
+    const provider = new ethers.providers.JsonRpcProvider(
+      process.env.PROVIDER_URL
+    );
+    const rrCoordinator = new ethers.Contract(
+      "0x402ab86A36686980F47C7097483d3ff1EAd5efE9",
+      rrAbis,
+      provider
+    );
+
+    const value = await rrCoordinator.estimateDirectPaymentFee();
+    const tx = await sendTransaction(
+      wallet,
+      RR_CONSUMER,
+      payload,
+      gasLimit,
+      value
+    );
     const txReceipt = await tx.wait();
     const requestObject = iface.parseLog(txReceipt.logs[4]).args;
     const requestedTime = await getTimestampByBlock(txReceipt.blockNumber);
@@ -47,11 +65,11 @@ export async function sendRequestDataDirect() {
       requestedTime,
     };
     jsonResult.push(result);
-    console.log("Requested: ", txReceipt.blockNumber);
+    console.log("RR-Direct: Requested ", txReceipt.blockNumber);
 
     await writeTextFile(jsonPath, JSON.stringify(jsonResult));
   } catch (error) {
-    console.log(error);
+    console.log("RR-Direct", error);
     await writeTextAppend(errorPath, `${d.toISOString()}:${error}\n`);
   }
 }

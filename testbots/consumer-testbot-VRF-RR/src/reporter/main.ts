@@ -1,7 +1,9 @@
-import { reportVRF } from "./vrf-reporter";
+import { reportRR } from "./request-response";
+import { reportVRF } from "./vrf";
 
 async function main() {
-  reportVRF();
+  await reportVRF();
+  await reportRR();
 }
 main().catch((error) => {
   console.error(error);

@@ -39,7 +39,7 @@ export async function reportVRF() {
     dataRequesteds.map(async (rq) => {
       let responseBlock: number = 0;
       let address: string = "";
-      let ResponseTxHash: string = "";
+      let responseTxHash: string = "";
       let randomWords: string[] = [];
       let respondedTime: number = 0;
       let totalResponseTime: number = 0;
@@ -54,7 +54,7 @@ export async function reportVRF() {
         randomWords = responseInfor.randomWords;
         hasResponse = true;
         address = responseInfor.address;
-        ResponseTxHash = responseInfor.txHash;
+        responseTxHash = responseInfor.txHash;
         totalResponse += 1;
         if (totalResponseTime > 0) {
           if (totalResponseTime < minResponseTime || minResponseTime === 0)
@@ -66,11 +66,11 @@ export async function reportVRF() {
       const result: IVRFReporterData = {
         requestBlock: rq?.block,
         requestId: rq?.requestId,
-        RequestTxHash: rq?.txHash,
+        requestTxHash: rq?.txHash,
         requestedTime: rq?.requestedTime,
         responseBlock,
         address,
-        ResponseTxHash,
+        responseTxHash,
         randomWords,
         respondedTime,
         totalResponseTime,
@@ -96,7 +96,5 @@ export async function reportVRF() {
   };
   await writeTextFile(jsonSummaryPath, JSON.stringify(summaryInfor, null, 2));
   await writeTextFile(jsonPath, JSON.stringify(jsonResult, null, 2));
-  console.log("finish");
-  console.debug("request+direct:", dataRequesteds.length);
-  console.debug("response:", dataResponseds.length);
+  console.log("vrf:finish");
 }

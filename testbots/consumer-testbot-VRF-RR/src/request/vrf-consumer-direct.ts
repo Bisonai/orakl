@@ -12,6 +12,8 @@ import {
 import { buildWallet, sendTransaction } from "./utils";
 
 const abis = await readTextFile("./src/abis/consumer.json");
+const vrfAbis = await readTextFile("./src/abis/vrf-coordinator.json");
+
 const VRF_CONSUMER = process.env.VRF_CONSUMER;
 let jsonResult: ILogData[] = [];
 
@@ -37,7 +39,16 @@ export async function sendRequestRandomWordsDirect() {
       callbackGasLimit,
       numWords,
     ]);
-    const value = ethers.utils.parseEther("0.1");
+    const provider = new ethers.providers.JsonRpcProvider(
+      process.env.PROVIDER_URL
+    );
+    const vrfCoordinator = new ethers.Contract(
+      "0xfa605ca6dc9414e0f7fa322d3fd76535b33f7a4f",
+      vrfAbis,
+      provider
+    );
+
+    const value = await vrfCoordinator.estimateDirectPaymentFee();
 
     const tx = await sendTransaction(
       wallet,
@@ -59,11 +70,11 @@ export async function sendRequestRandomWordsDirect() {
       requestedTime,
     };
     jsonResult.push(result);
-    console.log("Requested: ", txReceipt.blockNumber);
+    console.log("VRF-Direct: Requested ", txReceipt.blockNumber);
 
     await writeTextFile(jsonPath, JSON.stringify(jsonResult));
   } catch (error) {
-    console.log(error);
+    console.log("VRF-Direct:", error);
     await writeTextAppend(errorPath, `${d.toISOString()}:${error}\n`);
   }
 }

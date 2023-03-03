@@ -44,10 +44,23 @@ export interface IVRFReporterData {
   requestBlock: number | undefined;
   responseBlock: number | undefined;
   address: string | undefined;
-  RequestTxHash: string | undefined;
-  ResponseTxHash: string | undefined;
+  requestTxHash: string | undefined;
+  responseTxHash: string | undefined;
   requestId: string | undefined;
   randomWords: string[] | undefined;
+  respondedTime: number | undefined;
+  requestedTime: number | undefined;
+  totalResponseTime: number | undefined;
+  hasResponse: boolean | undefined;
+}
+export interface IRRReporterData {
+  requestBlock: number | undefined;
+  responseBlock: number | undefined;
+  address: string | undefined;
+  requestTxHash: string | undefined;
+  responseTxHash: string | undefined;
+  requestId: string | undefined;
+  response: string | undefined;
   respondedTime: number | undefined;
   requestedTime: number | undefined;
   totalResponseTime: number | undefined;
