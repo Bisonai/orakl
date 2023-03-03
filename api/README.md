@@ -6,6 +6,17 @@
 yarn install
 ```
 
+## Local development
+
+```shell
+brew install postgresql@14
+brew services start postgresql@14
+```
+
+```shell
+createdb orakl
+```
+
 ## Running the app
 
 ```shell
