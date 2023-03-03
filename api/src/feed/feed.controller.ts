@@ -7,11 +7,11 @@ export class FeedController {
 
   @Get()
   findAll() {
-    return this.feedService.findAll()
+    return this.feedService.findAll({})
   }
 
   @Get(':id')
   findOne(@Param('id') id: string) {
-    return this.feedService.findOne(+id)
+    return this.feedService.findOne({ id: Number(id) })
   }
 }
