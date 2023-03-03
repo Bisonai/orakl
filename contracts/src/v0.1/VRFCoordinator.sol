@@ -112,7 +112,7 @@ contract VRFCoordinator is
     event ConfigSet(uint32 maxGasLimit, uint32 gasAfterPaymentCalculation, FeeConfig feeConfig);
     event DirectPaymentConfigSet(uint256 fulfillmentFee, uint256 baseFee);
     event MinBalanceSet(uint256 minBalance);
-    event VRFCoordinatorConnected(address prepayment);
+    event PrepaymentSet(address prepayment);
 
     modifier nonReentrant() {
         if (s_config.reentrancyLock) {
@@ -130,7 +130,7 @@ contract VRFCoordinator is
 
     constructor(address prepayment) {
         s_prepayment = PrepaymentInterface(prepayment);
-        emit VRFCoordinatorConnected(prepayment);
+        emit PrepaymentSet(prepayment);
     }
 
     /**
