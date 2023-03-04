@@ -81,3 +81,11 @@ GET http://localhost:3000/docs
 ### List data feeds
 
 GET http://localhost:3000/api/v1/feed
+
+
+## How to use?
+
+1. Insert `Chain`s (should be done only once, can be included in migration file)
+2. Insert `Adapter` (initial settings)
+3. Insert `Aggregator` (initial settings)
+3. Insert `Data` (during regular data fetching with Orakl Network Fetcher)

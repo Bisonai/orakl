@@ -64,7 +64,7 @@ CREATE UNIQUE INDEX "Adapter_adapterId_key" ON "Adapter"("adapterId");
 CREATE UNIQUE INDEX "Aggregator_aggregatorId_key" ON "Aggregator"("aggregatorId");
 
 -- AddForeignKey
-ALTER TABLE "Feed" ADD CONSTRAINT "Feed_adapterId_fkey" FOREIGN KEY ("adapterId") REFERENCES "Adapter"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "Feed" ADD CONSTRAINT "Feed_adapterId_fkey" FOREIGN KEY ("adapterId") REFERENCES "Adapter"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "Aggregator" ADD CONSTRAINT "Aggregator_adapterId_fkey" FOREIGN KEY ("adapterId") REFERENCES "Adapter"("id") ON DELETE RESTRICT ON UPDATE CASCADE;

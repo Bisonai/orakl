@@ -1,23 +1,30 @@
 import { Injectable } from '@nestjs/common'
 import { Aggregator, Prisma } from '@prisma/client'
 import { PrismaService } from '../prisma.service'
-import { CreateAggregatorDto } from './dto/create-aggregator.dto'
-import { UpdateAggregatorDto } from './dto/update-aggregator.dto'
+import { AggregatorDto } from './dto/aggregator.dto'
 
 @Injectable()
 export class AggregatorService {
   constructor(private prisma: PrismaService) {}
 
-  create(createAggregatorDto: CreateAggregatorDto): Promise<Aggregator> {
-    const data = {
-      aggregatorId: '',
-      active: false,
-      name: '',
-      heartbeat: 10_000,
-      threshold: 0.04,
-      absoluteThreshold: 0.1,
-      adapterId: 1,
-      chainId: 1
+  async create(aggregatorDto: AggregatorDto): Promise<Aggregator> {
+    const chain = await this.prisma.chain.findUnique({
+      where: { name: aggregatorDto.chainName }
+    })
+
+    const adapter = await this.prisma.adapter.findUnique({
+      where: { adapterId: aggregatorDto.adapterId }
+    })
+
+    const data: Prisma.AggregatorUncheckedCreateInput = {
+      aggregatorId: aggregatorDto.aggregatorId,
+      active: aggregatorDto.active,
+      name: aggregatorDto.name,
+      heartbeat: aggregatorDto.heartbeat,
+      threshold: aggregatorDto.threshold,
+      absoluteThreshold: aggregatorDto.absoluteThreshold,
+      adapterId: adapter.id,
+      chainId: chain.id
     }
 
     return this.prisma.aggregator.create({ data })
@@ -45,6 +52,12 @@ export class AggregatorService {
   ): Promise<Aggregator | null> {
     return this.prisma.aggregator.findUnique({
       where: aggregatorWhereUniqueInput
+    })
+  }
+
+  async remove(where: Prisma.AggregatorWhereUniqueInput): Promise<Aggregator> {
+    return this.prisma.aggregator.delete({
+      where
     })
   }
 }

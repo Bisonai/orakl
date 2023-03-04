@@ -1,8 +1,7 @@
 import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common'
 import { Chain as ChainModel } from '@prisma/client'
 import { ChainService } from './chain.service'
-import { CreateChainDto } from './dto/create-chain.dto'
-import { UpdateChainDto } from './dto/update-chain.dto'
+import { ChainDto } from './dto/chain.dto'
 
 @Controller({
   path: 'chain',
@@ -12,8 +11,8 @@ export class ChainController {
   constructor(private readonly chainService: ChainService) {}
 
   @Post()
-  async create(@Body() createChainDto: CreateChainDto): Promise<ChainModel> {
-    return this.chainService.create(createChainDto)
+  async create(@Body() chainDto: ChainDto): Promise<ChainModel> {
+    return this.chainService.create(chainDto)
   }
 
   @Get()
@@ -27,7 +26,7 @@ export class ChainController {
   }
 
   @Patch(':id')
-  async update(@Param('id') id: string, @Body() chainDto: UpdateChainDto): Promise<ChainModel> {
+  async update(@Param('id') id: string, @Body() chainDto: ChainDto): Promise<ChainModel> {
     return this.chainService.update({
       where: { id: Number(id) },
       chainDto

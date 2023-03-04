@@ -54,5 +54,8 @@ describe('AdapterService', () => {
 
     const a = await adapter.findOne({ id })
     expect(a.feeds.length).toBe(1)
+
+    // Cleanup
+    await adapter.remove({ id })
   })
 })

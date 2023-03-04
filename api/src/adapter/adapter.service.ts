@@ -1,13 +1,13 @@
 import { Injectable } from '@nestjs/common'
 import { Adapter, Prisma } from '@prisma/client'
 import { PrismaService } from '../prisma.service'
-import { CreateAdapterDto } from './dto/create-adapter.dto'
+import { AdapterDto } from './dto/adapter.dto'
 
 @Injectable()
 export class AdapterService {
   constructor(private prisma: PrismaService) {}
 
-  create(adapterDto: CreateAdapterDto): Promise<Adapter> {
+  create(adapterDto: AdapterDto): Promise<Adapter> {
     const data: Prisma.AdapterCreateInput = {
       adapterId: adapterDto.adapterId,
       name: adapterDto.name,
@@ -39,12 +39,18 @@ export class AdapterService {
     })
   }
 
-  async findOne(adapterWhereUniqueInput: Prisma.AdapterWhereUniqueInput): Promise<Adapter | null> {
+  async findOne(adapterWhereUniqueInput: Prisma.AdapterWhereUniqueInput) {
     return this.prisma.adapter.findUnique({
       where: adapterWhereUniqueInput,
       include: {
         feeds: true
       }
+    })
+  }
+
+  async remove(where: Prisma.AdapterWhereUniqueInput): Promise<Adapter> {
+    return this.prisma.adapter.delete({
+      where
     })
   }
 }

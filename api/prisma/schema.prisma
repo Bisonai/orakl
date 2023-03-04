@@ -23,9 +23,9 @@ model Feed {
   definition  Json
 
   // Adapter relation
-  adapter   Adapter @relation(fields: [adapterId], references: [id])
+  adapter   Adapter @relation(fields: [adapterId], references: [id], onDelete: Cascade)
   adapterId Int
-  Data      Data[]
+  data      Data[]
 }
 
 model Adapter {
@@ -45,7 +45,7 @@ model Aggregator {
   heartbeat         Int
   threshold         Float
   absoluteThreshold Float
-  Data              Data[]
+  data              Data[]
   adapter           Adapter @relation(fields: [adapterId], references: [id])
   adapterId         Int
   chain             Chain   @relation(fields: [chainId], references: [id])

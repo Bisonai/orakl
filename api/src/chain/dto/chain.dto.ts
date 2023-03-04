@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger'
 
-export class CreateChainDto {
+export class ChainDto {
   @ApiProperty()
   name: string
 }

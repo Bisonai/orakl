@@ -1,7 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger'
 import { FeedDto as Feed } from '../../feed/dto/feed.dto'
 
-export class CreateAdapterDto {
+export class AdapterDto {
   @ApiProperty()
   adapterId: string
 

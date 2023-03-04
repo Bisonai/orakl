@@ -3,46 +3,52 @@ import { ChainService } from './chain.service'
 import { PrismaService } from '../prisma.service'
 
 describe('ChainService', () => {
-  let service: ChainService
+  let chain: ChainService
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [ChainService, PrismaService]
     }).compile()
 
-    service = module.get<ChainService>(ChainService)
+    chain = module.get<ChainService>(ChainService)
   })
 
   it('should be defined', () => {
-    expect(service).toBeDefined()
+    expect(chain).toBeDefined()
   })
 
   it('should insert new chain', async () => {
     const name = 'baobab'
-    const chain = await service.create({ name })
-    expect(chain.name).toBe(name)
+    const ch = await chain.create({ name })
+    expect(ch.name).toBe(name)
 
     // The same chain cannot be defined twice
     expect(async () => {
-      await service.create({ name })
+      await chain.create({ name })
     }).rejects.toThrow()
+
+    // Cleanup
+    await chain.remove({ id: ch.id })
   })
 
   it('should update the name of chain', async () => {
     const wrongName = 'cipress'
-    const wrongChain = await service.create({ name: wrongName })
+    const wrongChain = await chain.create({ name: wrongName })
 
     const name = 'cypress'
     const id = wrongChain.id
 
-    const chain = await service.update({
+    const ch = await chain.update({
       where: { id },
       chainDto: { name }
     })
-    expect(chain.name).toBe(name)
+    expect(ch.name).toBe(name)
+
+    // Cleanup
+    await chain.remove({ id })
   })
 
   it('should update the name of chain', async () => {
-    const chains = await service.findAll({})
+    await chain.findAll({})
   })
 })

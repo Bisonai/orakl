@@ -1,6 +1,8 @@
 import { ApiProperty } from '@nestjs/swagger'
+import { ChainDto as Chain } from '../../chain/dto/chain.dto'
+import { AdapterDto as Adapter } from '../../adapter/dto/adapter.dto'
 
-export class CreateAggregatorDto {
+export class AggregatorDto {
   @ApiProperty()
   aggregatorId: string
 
@@ -20,8 +22,8 @@ export class CreateAggregatorDto {
   absoluteThreshold: number
 
   @ApiProperty()
-  adapterId: number
+  adapterId: string
 
   @ApiProperty()
-  chainId: number
+  chainName: string
 }

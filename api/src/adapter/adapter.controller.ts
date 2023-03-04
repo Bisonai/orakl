@@ -1,7 +1,7 @@
 import { Controller, Get, Post, Body, Param } from '@nestjs/common'
 import { Adapter as AdapterModel } from '@prisma/client'
 import { AdapterService } from './adapter.service'
-import { CreateAdapterDto } from './dto/create-adapter.dto'
+import { AdapterDto } from './dto/adapter.dto'
 
 @Controller({
   path: 'adapter',
@@ -11,8 +11,8 @@ export class AdapterController {
   constructor(private readonly adapterService: AdapterService) {}
 
   @Post()
-  create(@Body() createAdapterDto: CreateAdapterDto): Promise<AdapterModel> {
-    return this.adapterService.create(createAdapterDto)
+  create(@Body() adapterDto: AdapterDto): Promise<AdapterModel> {
+    return this.adapterService.create(adapterDto)
   }
 
   @Get()
