@@ -78,7 +78,9 @@ GET http://localhost:3000/health
 
 ### Open API (Swagger)
 
+```shell
 GET http://localhost:3000/docs
+```
 
 ### List data feeds
 

@@ -12,6 +12,7 @@ jobs:
         image: postgres
         env:
           POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: orakl-test
         options: >-
           --health-cmd pg_isready
           --health-interval 10s
@@ -30,7 +31,9 @@ jobs:
         run: yarn lint
         working-directory: ./api
       - name: Run test
-        run: ./test.sh
+        run: |
+          DATABASE_URL="postgresql://postgres:postgres@localhost:5432/${DB_NAME}?schema=public" npx prisma migrate dev --name init
+          DATABASE_URL="postgresql://postgres:postgres@localhost:5432/${DB_NAME}?schema=public" yarn test
         working-directory: ./api
       - name: Run e2e2 test
         run: yarn test:e2e
