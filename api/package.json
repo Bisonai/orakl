@@ -1,7 +1,7 @@
 {
   "name": "@bisonai/orakl-api",
   "version": "0.1.0",
-  "description": "",
+  "description": "The Orakl Network API",
   "author": "Bisonai",
   "private": true,
   "license": "MIT",
