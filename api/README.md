@@ -72,7 +72,9 @@ yarn test:cov
 
 ## Health
 
+```shell
 GET http://localhost:3000/health
+```
 
 ### Open API (Swagger)
 
