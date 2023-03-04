@@ -36,9 +36,9 @@ export class AdapterService {
     })
   }
 
-  async findOne(chainWhereUniqueInput: Prisma.AdapterWhereUniqueInput): Promise<Adapter | null> {
+  async findOne(adapterWhereUniqueInput: Prisma.AdapterWhereUniqueInput): Promise<Adapter | null> {
     return this.prisma.adapter.findUnique({
-      where: chainWhereUniqueInput
+      where: adapterWhereUniqueInput
     })
   }
 }
