@@ -11,23 +11,60 @@ datasource db {
 }
 
 model Chain {
-  id         Int     @default(autoincrement()) @id
-  name       String
+  id         Int          @id @default(autoincrement())
+  name       String       @unique
+  Aggregator Aggregator[]
 }
 
 model Feed {
-  id           Int      @default(autoincrement()) @id
-  source       String
-  decimals     Int
-  latestRound  Int
-  definition   Json
-  adapter      Adapter   @relation(fields: [adapterId], references: [id])
-  adapterId    Int
+  id          Int    @id @default(autoincrement())
+  source      String
+  decimals    Int
+  latestRound Int
+  definition  Json
+
+  // Adapter relation
+  adapter   Adapter @relation(fields: [adapterId], references: [id])
+  adapterId Int
 }
 
 model Adapter {
-  id         Int     @default(autoincrement()) @id
-  adapterId  String
+  id         Int          @id @default(autoincrement())
+  adapterId  String       @unique
   name       String
   feeds      Feed[]
+  Aggregator Aggregator[]
 }
+
+model Aggregator {
+  id                Int     @id @default(autoincrement())
+  aggregatorId      String  @unique
+  active            Boolean @default(false)
+  name              String
+  heartbeat         Int
+  threshold         Float
+  absoluteThreshold Float
+
+  // Adapter relation
+  adapter   Adapter @relation(fields: [adapterId], references: [id])
+  adapterId Int
+
+  // Chain relation
+  chain   Chain @relation(fields: [chainId], references: [id])
+  chainId Int
+}
+
+//model Data {
+//  id            BigInt      @default(autoincrement()) @id
+//  round         BigInt
+//  timestamp     DateTime    @db.Timestamptz(x)
+//  value         Int
+//
+//  // Aggregator relation
+//  aggregator    Aggregator  @relation(fields: [aggregatorId], references: [id])
+//  aggregatorId  Int
+//
+//  // Feed relation
+//  feed          Feed        @relation(fields: [feedId], references: [id])
+//  feedId        Int
+//}

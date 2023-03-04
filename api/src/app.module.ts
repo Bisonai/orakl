@@ -9,10 +9,13 @@ import { AdapterModule } from './adapter/adapter.module'
 import { AdapterController } from './adapter/adapter.controller'
 import { AdapterService } from './adapter/adapter.service'
 import { PrismaService } from './prisma.service'
+import { AggregatorModule } from './aggregator/aggregator.module'
+import { AggregatorController } from './aggregator/aggregator.controller'
+import { AggregatorService } from './aggregator/aggregator.service'
 
 @Module({
-  imports: [ChainModule, AdapterModule, FeedModule],
-  controllers: [AppController, AdapterController, FeedController],
-  providers: [AppService, PrismaService, AdapterService, FeedService]
+  imports: [ChainModule, AdapterModule, FeedModule, AggregatorModule],
+  controllers: [AppController, AdapterController, FeedController, AggregatorController],
+  providers: [AppService, PrismaService, AdapterService, FeedService, AggregatorService]
 })
 export class AppModule {}
