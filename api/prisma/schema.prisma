@@ -18,8 +18,7 @@ model Chain {
 
 model Feed {
   id          Int    @id @default(autoincrement())
-  source      String
-  decimals    Int
+  name        String
   latestRound Int
   definition  Json
 
@@ -33,6 +32,7 @@ model Adapter {
   id         Int          @id @default(autoincrement())
   adapterId  String       @unique
   name       String
+  decimals   Int
   feeds      Feed[]
   Aggregator Aggregator[]
 }

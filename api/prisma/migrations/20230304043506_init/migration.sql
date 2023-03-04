@@ -9,8 +9,7 @@ CREATE TABLE "Chain" (
 -- CreateTable
 CREATE TABLE "Feed" (
     "id" SERIAL NOT NULL,
-    "source" TEXT NOT NULL,
-    "decimals" INTEGER NOT NULL,
+    "name" TEXT NOT NULL,
     "latestRound" INTEGER NOT NULL,
     "definition" JSONB NOT NULL,
     "adapterId" INTEGER NOT NULL,
@@ -23,6 +22,7 @@ CREATE TABLE "Adapter" (
     "id" SERIAL NOT NULL,
     "adapterId" TEXT NOT NULL,
     "name" TEXT NOT NULL,
+    "decimals" INTEGER NOT NULL,
 
     CONSTRAINT "Adapter_pkey" PRIMARY KEY ("id")
 );

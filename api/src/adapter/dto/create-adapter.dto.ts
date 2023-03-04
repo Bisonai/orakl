@@ -8,6 +8,9 @@ export class CreateAdapterDto {
   @ApiProperty()
   name: string
 
+  @ApiProperty()
+  decimals: number
+
   @ApiProperty({ type: () => [Feed] })
   feeds: Feed[]
 }

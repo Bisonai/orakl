@@ -11,10 +11,13 @@ export class AdapterService {
     const data: Prisma.AdapterCreateInput = {
       adapterId: adapterDto.adapterId,
       name: adapterDto.name,
+      decimals: adapterDto.decimals,
       feeds: {
         create: adapterDto.feeds
       }
     }
+
+    // TODO validate
 
     return this.prisma.adapter.create({ data })
   }
@@ -38,7 +41,10 @@ export class AdapterService {
 
   async findOne(adapterWhereUniqueInput: Prisma.AdapterWhereUniqueInput): Promise<Adapter | null> {
     return this.prisma.adapter.findUnique({
-      where: adapterWhereUniqueInput
+      where: adapterWhereUniqueInput,
+      include: {
+        feeds: true
+      }
     })
   }
 }
