@@ -1,6 +1,6 @@
 import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common'
 import { DataService } from './data.service'
-import { CreateDatumDto } from './dto/create-datum.dto'
+import { DatumDto } from './dto/datum.dto'
 
 @Controller({
   path: 'data',
@@ -10,8 +10,8 @@ export class DataController {
   constructor(private readonly dataService: DataService) {}
 
   @Post()
-  create(@Body() createDatumDto: CreateDatumDto) {
-    return this.dataService.create(createDatumDto)
+  create(@Body() datumDto: DatumDto) {
+    return this.dataService.create(datumDto)
   }
 
   @Get()

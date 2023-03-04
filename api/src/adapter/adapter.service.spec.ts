@@ -17,7 +17,7 @@ describe('AdapterService', () => {
     expect(adapter).toBeDefined()
   })
 
-  it('', async () => {
+  it('should insert adapter and find it', async () => {
     const feeds = [
       {
         name: 'Binance-BTC-USD',
@@ -52,8 +52,8 @@ describe('AdapterService', () => {
       feeds
     })
 
-    const a = await adapter.findOne({ id })
-    expect(a.feeds.length).toBe(1)
+    const adapterObj = await adapter.findOne({ id })
+    expect(adapterObj.feeds.length).toBe(1)
 
     // Cleanup
     await adapter.remove({ id })

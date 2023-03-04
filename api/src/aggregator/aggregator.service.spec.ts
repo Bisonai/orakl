@@ -23,7 +23,7 @@ describe('AggregatorService', () => {
     expect(aggregator).toBeDefined()
   })
 
-  it('should create aggregator', async () => {
+  it('should insert aggregator', async () => {
     // Chain
     const chainObj = await chain.create({ name: 'aggregator-test-chain' })
 
@@ -54,16 +54,16 @@ describe('AggregatorService', () => {
         })
       }
     ]
-
     const adapterObj = await adapter.create({
-      adapterId: '0x0db2dce17745882ea457e651adf1eb0080b5f432d1876df56f1967b5288f338b',
+      adapterId: 'adapterId-aggregator-test',
       name: 'BTC-USD',
       decimals: 8,
       feeds
     })
 
-    const data = {
-      aggregatorId: '0xd6fbe30bd6249b3093ee065496115e5736bbe760cadfc85598ef27eb4739a849',
+    // Aggregator
+    const aggregatorData = {
+      aggregatorId: 'aggregatorId-aggregator-test',
       active: false,
       name: 'ETH-USD',
       heartbeat: 10_000,
@@ -72,8 +72,7 @@ describe('AggregatorService', () => {
       adapterId: adapterObj.adapterId,
       chainName: chainObj.name
     }
-
-    const aggregatorObj = await aggregator.create(data)
+    const aggregatorObj = await aggregator.create(aggregatorData)
 
     // Cleanup
     await aggregator.remove({ id: aggregatorObj.id })
