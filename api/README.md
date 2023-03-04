@@ -88,6 +88,12 @@ GET http://localhost:3000/docs
 GET http://localhost:3000/api/v1/feed
 ```
 
+### List data adapters
+
+```shell
+GET http://localhost:3000/api/v1/adapter
+```
+
 ## How to use?
 
 1. Insert `Chain`s (should be done only once, can be included in migration file)

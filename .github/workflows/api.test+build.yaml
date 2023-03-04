@@ -34,8 +34,10 @@ jobs:
         working-directory: ./api
       - name: Run test
         run: |
-          DATABASE_URL="postgresql://postgres:postgres@localhost:5432/${DB_NAME}?schema=public" npx prisma migrate dev --name init
-          DATABASE_URL="postgresql://postgres:postgres@localhost:5432/${DB_NAME}?schema=public" yarn test
+          npx prisma migrate dev --name init
+          yarn test
+        env:
+          DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/orakl-test?schema=public"
         working-directory: ./api
       - name: Run e2e2 test
         run: yarn test:e2e
