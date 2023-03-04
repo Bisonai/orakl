@@ -2,7 +2,7 @@
   "name": "@bisonai/orakl-api",
   "version": "0.1.0",
   "description": "",
-  "author": "",
+  "author": "Bisonai",
   "private": true,
   "license": "MIT",
   "scripts": {
