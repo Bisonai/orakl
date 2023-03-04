@@ -23,7 +23,7 @@ describe('ChainService', () => {
     expect(ch.name).toBe(name)
 
     // The same chain cannot be defined twice
-    expect(async () => {
+    await expect(async () => {
       await chain.create({ name })
     }).rejects.toThrow()
 
