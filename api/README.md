@@ -59,13 +59,13 @@ Go to http://localhost:3000/api
 
 ```shell
 # unit tests
-yarn run test
+yarn test
 
 # e2e tests
-yarn run test:e2e
+yarn test:e2e
 
 # test coverage
-yarn run test:cov
+yarn test:cov
 ```
 
 ## Endpoints

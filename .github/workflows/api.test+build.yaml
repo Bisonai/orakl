@@ -6,6 +6,16 @@ on:
 jobs:
   core-build:
     runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-node@v3
@@ -18,7 +28,7 @@ jobs:
         run: yarn lint
         working-directory: ./api
       - name: Run test
-        run: yarn test
+        run: ./test.sh
         working-directory: ./api
       - name: Run e2e2 test
         run: yarn test:e2e
