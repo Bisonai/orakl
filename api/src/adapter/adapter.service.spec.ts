@@ -53,6 +53,6 @@ describe('AdapterService', () => {
     })
 
     const a = await adapter.findOne({ id })
-    console.log(a)
+    expect(a.feeds.length).toBe(1)
   })
 })
