@@ -84,8 +84,9 @@ GET http://localhost:3000/docs
 
 ### List data feeds
 
+```shell
 GET http://localhost:3000/api/v1/feed
-
+```
 
 ## How to use?
 
