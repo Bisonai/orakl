@@ -28,16 +28,18 @@ export interface IVrfConfig {
   maxGasLimit: number
   gasAfterPaymentCalculation: number
   feeConfig: IFeeConfig
-  paymentConfig: IDirectPaymentConfig
+  directPaymentConfig: IDirectPaymentConfig
   oracle: IVrfOracle[]
+  minBalance: string
 }
 
 export interface IRequestResponseConfig {
   maxGasLimit: number
   gasAfterPaymentCalculation: number
   feeConfig: IFeeConfig
-  paymentConfig: IDirectPaymentConfig
+  directPaymentConfig: IDirectPaymentConfig
   oracle: IRequestResponseOracle[]
+  minBalance: string
 }
 
 export interface IAggregatorConfig {

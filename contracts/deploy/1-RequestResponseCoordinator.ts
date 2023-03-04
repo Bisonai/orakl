@@ -46,7 +46,8 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   // Configure payment for direct Request-Response
   await (await requestResponseCoordinator.setDirectPaymentConfig(config.directPaymentConfig)).wait()
-
+  // Configure minBalance
+  await (await requestResponseCoordinator.setMinBalance(config.minBalance)).wait()
   // Add RequestResponseCoordinator to Prepayment
   const prepaymentDeployerSigner = await ethers.getContractAt(
     'Prepayment',
