@@ -17,6 +17,19 @@ brew services start postgresql@14
 createdb orakl
 ```
 
+## Prisma
+
+```shell
+npx prisma format
+npx prisma migrate dev --name init
+```
+
+## New endpoint
+
+```shell
+nest g resource name
+```
+
 ## Running the app
 
 ```shell

@@ -42,6 +42,18 @@ CREATE TABLE "Aggregator" (
     CONSTRAINT "Aggregator_pkey" PRIMARY KEY ("id")
 );
 
+-- CreateTable
+CREATE TABLE "Data" (
+    "id" BIGSERIAL NOT NULL,
+    "round" BIGINT NOT NULL,
+    "timestamp" TIMESTAMPTZ NOT NULL,
+    "value" INTEGER NOT NULL,
+    "aggregatorId" INTEGER NOT NULL,
+    "feedId" INTEGER NOT NULL,
+
+    CONSTRAINT "Data_pkey" PRIMARY KEY ("id")
+);
+
 -- CreateIndex
 CREATE UNIQUE INDEX "Chain_name_key" ON "Chain"("name");
 
@@ -59,3 +71,9 @@ ALTER TABLE "Aggregator" ADD CONSTRAINT "Aggregator_adapterId_fkey" FOREIGN KEY 
 
 -- AddForeignKey
 ALTER TABLE "Aggregator" ADD CONSTRAINT "Aggregator_chainId_fkey" FOREIGN KEY ("chainId") REFERENCES "Chain"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Data" ADD CONSTRAINT "Data_aggregatorId_fkey" FOREIGN KEY ("aggregatorId") REFERENCES "Aggregator"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Data" ADD CONSTRAINT "Data_feedId_fkey" FOREIGN KEY ("feedId") REFERENCES "Feed"("id") ON DELETE RESTRICT ON UPDATE CASCADE;

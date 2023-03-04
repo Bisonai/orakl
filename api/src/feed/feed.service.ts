@@ -5,6 +5,7 @@ import { PrismaService } from '../prisma.service'
 @Injectable()
 export class FeedService {
   constructor(private prisma: PrismaService) {}
+
   async findAll(params: {
     skip?: number
     take?: number

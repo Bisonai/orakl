@@ -12,9 +12,10 @@ import { PrismaService } from './prisma.service'
 import { AggregatorModule } from './aggregator/aggregator.module'
 import { AggregatorController } from './aggregator/aggregator.controller'
 import { AggregatorService } from './aggregator/aggregator.service'
+import { DataModule } from './data/data.module';
 
 @Module({
-  imports: [ChainModule, AdapterModule, FeedModule, AggregatorModule],
+  imports: [ChainModule, AdapterModule, FeedModule, AggregatorModule, DataModule],
   controllers: [AppController, AdapterController, FeedController, AggregatorController],
   providers: [AppService, PrismaService, AdapterService, FeedService, AggregatorService]
 })

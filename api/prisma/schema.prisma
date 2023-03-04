@@ -26,6 +26,7 @@ model Feed {
   // Adapter relation
   adapter   Adapter @relation(fields: [adapterId], references: [id])
   adapterId Int
+  Data      Data[]
 }
 
 model Adapter {
@@ -44,27 +45,20 @@ model Aggregator {
   heartbeat         Int
   threshold         Float
   absoluteThreshold Float
-
-  // Adapter relation
-  adapter   Adapter @relation(fields: [adapterId], references: [id])
-  adapterId Int
-
-  // Chain relation
-  chain   Chain @relation(fields: [chainId], references: [id])
-  chainId Int
+  Data              Data[]
+  adapter           Adapter @relation(fields: [adapterId], references: [id])
+  adapterId         Int
+  chain             Chain   @relation(fields: [chainId], references: [id])
+  chainId           Int
 }
 
-//model Data {
-//  id            BigInt      @default(autoincrement()) @id
-//  round         BigInt
-//  timestamp     DateTime    @db.Timestamptz(x)
-//  value         Int
-//
-//  // Aggregator relation
-//  aggregator    Aggregator  @relation(fields: [aggregatorId], references: [id])
-//  aggregatorId  Int
-//
-//  // Feed relation
-//  feed          Feed        @relation(fields: [feedId], references: [id])
-//  feedId        Int
-//}
+model Data {
+  id           BigInt     @id @default(autoincrement())
+  round        BigInt
+  timestamp    DateTime   @db.Timestamptz
+  value        Int
+  aggregator   Aggregator @relation(fields: [aggregatorId], references: [id])
+  aggregatorId Int
+  feed         Feed       @relation(fields: [feedId], references: [id])
+  feedId       Int
+}
