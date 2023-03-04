@@ -88,10 +88,16 @@ GET http://localhost:3000/docs
 GET http://localhost:3000/api/v1/feed
 ```
 
-### List data adapters
+### List all adapters
 
 ```shell
 GET http://localhost:3000/api/v1/adapter
+```
+
+### List all aggregators
+
+```shell
+GET http://localhost:3000/api/v1/aggregator
 ```
 
 ## How to use?

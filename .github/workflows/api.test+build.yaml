@@ -41,6 +41,8 @@ jobs:
         working-directory: ./api
       - name: Run e2e2 test
         run: yarn test:e2e
+        env:
+          DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/orakl-test?schema=public"
         working-directory: ./api
       - name: Build package
         run: yarn build
