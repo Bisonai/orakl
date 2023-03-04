@@ -37,11 +37,11 @@ export class ChainService {
 
   async update(params: {
     where: Prisma.ChainWhereUniqueInput
-    updateChainDto: UpdateChainDto
+    chainDto: UpdateChainDto
   }): Promise<Chain> {
-    const { where, updateChainDto } = params
+    const { where, chainDto } = params
     return this.prisma.chain.update({
-      data: updateChainDto,
+      data: chainDto,
       where
     })
   }

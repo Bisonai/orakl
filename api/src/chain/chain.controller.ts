@@ -27,13 +27,10 @@ export class ChainController {
   }
 
   @Patch(':id')
-  async update(
-    @Param('id') id: string,
-    @Body() updateChainDto: UpdateChainDto
-  ): Promise<ChainModel> {
+  async update(@Param('id') id: string, @Body() chainDto: UpdateChainDto): Promise<ChainModel> {
     return this.chainService.update({
       where: { id: Number(id) },
-      updateChainDto
+      chainDto
     })
   }
 
