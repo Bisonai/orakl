@@ -45,7 +45,7 @@ export function adapterSub(db) {
       id: idOption,
       dryrun: dryrunOption
     },
-    handler: removeHandler(db)
+    handler: removeHandler()
   })
 
   const insertFromChain = command({
@@ -84,15 +84,11 @@ export function insertHandler() {
   return wrapper
 }
 
-export function removeHandler(db) {
-  async function wrapper({ id, dryrun }: { id: number; dryrun?: boolean }) {
-    const query = `DELETE FROM Adapter WHERE id=${id}`
-    if (dryrun) {
-      console.debug(query)
-    } else {
-      const result = await db.run(query)
-      console.log(formatResultRemove(result))
-    }
+export function removeHandler() {
+  async function wrapper({ id }: { id: number }) {
+    const endpoint = buildUrl(ADAPTER_ENDPOINT, id.toString())
+    const result = (await axios.delete(endpoint)).data
+    console.dir(result, { depth: null })
   }
   return wrapper
 }
