@@ -19,8 +19,8 @@ const AGGREGATOR_ENDPOINT = buildUrl(ORAKL_NETWORK_API_URL, 'aggregator')
 
 export function aggregatorSub(db) {
   // aggregator list [--active] [--chain [chain]]
-  // aggregator insert --file-path [file-path] --adapter [adapter] --chain [chain] [--dryrun]
-  // aggregator remove --id [id]                                                   [--dryrun]
+  // aggregator insert --file-path [file-path] --chain [chain]
+  // aggregator remove --id [id]
 
   const list = command({
     name: 'list',
@@ -43,14 +43,9 @@ export function aggregatorSub(db) {
       chain: option({
         type: cmdstring,
         long: 'chain'
-      }),
-      adapter: option({
-        type: cmdstring,
-        long: 'adapter'
-      }),
-      dryrun: dryrunOption
+      })
     },
-    handler: insertHandler(db)
+    handler: insertHandler()
   })
 
   const remove = command({
@@ -96,38 +91,10 @@ export function listHandler(print?: boolean) {
   return wrapper
 }
 
-export function insertHandler(db) {
-  async function wrapper({
-    data,
-    chain,
-    adapter,
-    dryrun
-  }: {
-    data
-    chain: string
-    adapter
-    dryrun?: boolean
-  }) {
-    const chainId = await chainToId(db, chain)
-    const aggregatorObject = (await computeDataHash({ data })) as IAggregator
-    const aggregator = JSON.stringify(aggregatorObject)
-
-    let adapterId
-    if (adapter != aggregatorObject.adapterId) {
-      throw new CliError(CliErrorCode.InconsistentAdapterId)
-    } else {
-      const query = `SELECT id from Adapter WHERE adapterId='${adapter}';`
-      const result = await db.get(query)
-      adapterId = result.id
-    }
-    const query = `INSERT INTO Aggregator (chainId, aggregatorId, adapterId, data) VALUES (${chainId}, '${aggregatorObject.id}', ${adapterId}, '${aggregator}')`
-
-    if (dryrun) {
-      console.debug(query)
-    } else {
-      const result = await db.run(query)
-      console.log(formatResultInsert(result))
-    }
+export function insertHandler() {
+  async function wrapper({ data, chain }: { data; chain: string }) {
+    const result = (await axios.post(AGGREGATOR_ENDPOINT, { ...data, chain })).data
+    console.dir(result, { depth: null })
   }
   return wrapper
 }
