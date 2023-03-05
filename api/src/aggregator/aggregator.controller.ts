@@ -1,8 +1,18 @@
-import { Controller, Get, Post, Body, Delete, Param } from '@nestjs/common'
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Delete,
+  Param,
+  HttpException,
+  HttpStatus
+} from '@nestjs/common'
 import { Aggregator as AggregatorModel } from '@prisma/client'
 import { AggregatorService } from './aggregator.service'
 import { AggregatorDto } from './dto/aggregator.dto'
 import { AggregatorWhereDto } from './dto/aggregator-where.dto'
+import { PRISMA_ERRORS } from '../errors'
 
 @Controller({
   path: 'aggregator',
@@ -12,8 +22,15 @@ export class AggregatorController {
   constructor(private readonly aggregatorService: AggregatorService) {}
 
   @Post()
-  create(@Body() aggregatorDto: AggregatorDto): Promise<AggregatorModel> {
-    return this.aggregatorService.create(aggregatorDto)
+  async create(@Body() aggregatorDto: AggregatorDto) {
+    return await this.aggregatorService.create(aggregatorDto).catch((err) => {
+      throw new HttpException(
+        {
+          message: PRISMA_ERRORS[err.code](err.meta)
+        },
+        HttpStatus.BAD_REQUEST
+      )
+    })
   }
 
   @Get()

@@ -92,8 +92,13 @@ export function listHandler(print?: boolean) {
 
 export function insertHandler() {
   async function wrapper({ data, chain }: { data; chain: string }) {
-    const result = (await axios.post(AGGREGATOR_ENDPOINT, { ...data, chain })).data
-    console.dir(result, { depth: null })
+    try {
+      const result = (await axios.post(AGGREGATOR_ENDPOINT, { ...data, chain })).data
+      console.dir(result, { depth: null })
+    } catch (e) {
+      console.error('Aggregator was not inserted. Reason:')
+      console.error(e?.response?.data?.message)
+    }
   }
   return wrapper
 }

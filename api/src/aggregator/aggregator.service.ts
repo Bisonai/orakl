@@ -28,7 +28,7 @@ export class AggregatorService {
       chainId: chain.id
     }
 
-    return this.prisma.aggregator.create({ data })
+    return await this.prisma.aggregator.create({ data })
   }
 
   async findAll(params: {
