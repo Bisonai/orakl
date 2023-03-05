@@ -1,5 +1,7 @@
+import axios from 'axios'
 import { command, subcommands, option, string as cmdstring } from 'cmd-ts'
-import { dryrunOption, idOption, formatResultInsert, formatResultRemove } from './utils'
+import { dryrunOption, idOption, formatResultInsert, formatResultRemove, buildUrl } from './utils'
+import { ORAKL_NETWORK_API_URL } from './settings'
 
 export function chainSub(db) {
   // chain list
@@ -9,7 +11,7 @@ export function chainSub(db) {
   const list = command({
     name: 'list',
     args: {},
-    handler: listHandler(db, true)
+    handler: listHandler(true)
   })
 
   const insert = command({
@@ -39,10 +41,10 @@ export function chainSub(db) {
   })
 }
 
-export function listHandler(db, print?: boolean) {
+export function listHandler(print?: boolean) {
   async function wrapper() {
-    const query = 'SELECT * FROM Chain'
-    const result = await db.all(query)
+    const endpoint = buildUrl(ORAKL_NETWORK_API_URL, 'chain')
+    const result = (await axios.get(endpoint)).data
     if (print) {
       console.log(result)
     }
