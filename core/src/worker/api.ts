@@ -53,7 +53,7 @@ export async function fetchAggregatorMetadata({
     const metadata = (await axios.get(url)).data
     logger.debug({ metadata }, 'data-feed-metadata')
     // TODO check for IDataFeedMetadata type
-    return metadata as IDataFeedMetadata
+    return metadata as IAggregatorMetadata
   } catch (e) {
     logger.error(e)
     throw new IcnError(IcnErrorCode.FailedToFetchFromDataFeed)
