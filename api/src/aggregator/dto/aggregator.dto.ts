@@ -2,7 +2,7 @@ import { ApiProperty } from '@nestjs/swagger'
 
 export class AggregatorDto {
   @ApiProperty()
-  aggregatorId: string
+  id: string
 
   @ApiProperty()
   active: boolean
@@ -26,5 +26,5 @@ export class AggregatorDto {
   adapterId: string
 
   @ApiProperty()
-  chainName: string
+  chain: string
 }
