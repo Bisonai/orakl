@@ -4,7 +4,7 @@
   "decimals": 8,
   "feeds": [
     {
-      "name": "Binance-BTCUSD",
+      "name": "Binance-BTC-USD",
       "definition": {
         "url": "https://api.binance.us/api/v3/ticker/price?symbol=BTCUSD",
         "headers": {
@@ -29,7 +29,7 @@
       }
     },
     {
-      "name": "Coinbase-BTCUSD",
+      "name": "Coinbase-BTC-USD",
       "definition": {
         "url": "https://api.exchange.coinbase.com/products/BTC-USD/ticker",
         "headers": {
@@ -54,7 +54,7 @@
       }
     },
     {
-      "name": "Bybit-BTCUSD",
+      "name": "Bybit-BTC-USD",
       "definition": {
         "url": "https://api.bybit.com/derivatives/v3/public/tickers?symbol=BTCUSD",
         "headers": {
@@ -90,7 +90,7 @@
       }
     },
     {
-      "name": "Bitstamp-BTCUSD",
+      "name": "Bitstamp-BTC-USD",
       "definition": {
         "url": "https://www.bitstamp.net/api/v2/ticker/btcusd",
         "headers": {
