@@ -23,7 +23,7 @@ export function chainSub(db) {
       }),
       dryrun: dryrunOption
     },
-    handler: insertHandler(db)
+    handler: insertHandler()
   })
 
   const remove = command({
@@ -46,22 +46,18 @@ export function listHandler(print?: boolean) {
     const endpoint = buildUrl(ORAKL_NETWORK_API_URL, 'chain')
     const result = (await axios.get(endpoint)).data
     if (print) {
-      console.log(result)
+      console.dir(result, { depth: null })
     }
     return result
   }
   return wrapper
 }
 
-export function insertHandler(db) {
-  async function wrapper({ name, dryrun }: { name: string; dryrun?: boolean }) {
-    const query = `INSERT INTO Chain (name) VALUES ('${name}')`
-    if (dryrun) {
-      console.debug(query)
-    } else {
-      const result = await db.run(query)
-      console.log(formatResultInsert(result))
-    }
+export function insertHandler() {
+  async function wrapper({ name }: { name: string }) {
+    const endpoint = buildUrl(ORAKL_NETWORK_API_URL, 'chain')
+    const result = (await axios.post(endpoint, { name })).data
+    console.dir(result, { depth: null })
   }
   return wrapper
 }
