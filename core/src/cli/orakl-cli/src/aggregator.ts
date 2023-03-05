@@ -1,22 +1,12 @@
 import axios from 'axios'
 import { flag, command, subcommands, option, string as cmdstring } from 'cmd-ts'
-import {
-  chainOptionalOption,
-  chainToId,
-  idOption,
-  formatResultInsert,
-  formatResultRemove,
-  buildUrl
-} from './utils'
-import { computeDataHash } from './utils'
+import { chainOptionalOption, idOption, buildUrl } from './utils'
 import { ReadFile } from './cli-types'
-import { IAggregator } from './types'
-import { CliError, CliErrorCode } from './error'
 import { ORAKL_NETWORK_API_URL } from './settings'
 
 const AGGREGATOR_ENDPOINT = buildUrl(ORAKL_NETWORK_API_URL, 'aggregator')
 
-export function aggregatorSub(db) {
+export function aggregatorSub() {
   // aggregator list [--active] [--chain [chain]]
   // aggregator insert --file-path [file-path] --chain [chain]
   // aggregator remove --id [id]

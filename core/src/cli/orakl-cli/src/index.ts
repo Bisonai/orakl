@@ -26,7 +26,7 @@ async function main() {
   const migrate = migrateCmd(db)
   const kv = kvSub(db)
   const adapter = adapterSub()
-  const aggregator = aggregatorSub(db)
+  const aggregator = aggregatorSub()
 
   const cli = subcommands({
     name: 'operator',
