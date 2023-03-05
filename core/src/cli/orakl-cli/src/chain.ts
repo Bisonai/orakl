@@ -1,14 +1,14 @@
 import axios from 'axios'
 import { command, subcommands, option, string as cmdstring } from 'cmd-ts'
-import { dryrunOption, idOption, formatResultRemove, buildUrl } from './utils'
+import { idOption, buildUrl } from './utils'
 import { ORAKL_NETWORK_API_URL } from './settings'
 
 const CHAIN_ENDPOINT = buildUrl(ORAKL_NETWORK_API_URL, 'chain')
 
 export function chainSub() {
   // chain list
-  // chain insert --name [name] [--dryrun]
-  // chain remove --id [id]     [--dryrun]
+  // chain insert --name [name]
+  // chain remove --id [id]
 
   const list = command({
     name: 'list',
@@ -22,8 +22,7 @@ export function chainSub() {
       name: option({
         type: cmdstring,
         long: 'name'
-      }),
-      dryrun: dryrunOption
+      })
     },
     handler: insertHandler()
   })
@@ -31,8 +30,7 @@ export function chainSub() {
   const remove = command({
     name: 'remove',
     args: {
-      id: idOption,
-      dryrun: dryrunOption
+      id: idOption
     },
     handler: removeHandler()
   })
