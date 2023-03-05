@@ -11,7 +11,7 @@ import {
   WORKER_AGGREGATOR_QUEUE_NAME,
   REPORTER_AGGREGATOR_QUEUE_NAME,
   FIXED_HEARTBEAT_QUEUE_NAME,
-  RANDOM_HEARTBEAT_QUEUE_NAME,
+  // RANDOM_HEARTBEAT_QUEUE_NAME,
   BULLMQ_CONNECTION,
   PUBLIC_KEY as OPERATOR_ADDRESS,
   DEPLOYMENT_NAME,
@@ -207,6 +207,9 @@ function fixedHeartbeatJob(aggregatorJobQueueName: string, _logger: Logger) {
   return wrapper
 }
 
+/**
+ * @deprecated The method should not be used
+ */
 function randomHeartbeatJob(
   heartbeatQueueName: string,
   reporterQueueName: string,
