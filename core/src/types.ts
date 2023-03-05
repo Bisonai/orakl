@@ -203,7 +203,7 @@ export interface IAggregatorJob {
   decimals: number
 }
 
-export interface IDataFeedMetadata {
+export interface IAggregatorMetadata {
   id: string
   address: string
   decimals: number

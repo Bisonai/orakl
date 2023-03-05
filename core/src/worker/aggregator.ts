@@ -1,6 +1,6 @@
 import { Worker, Queue, Job } from 'bullmq'
 import { Logger } from 'pino'
-import { fetchDataFeed, fetchDataFeedMetadata } from './api'
+import { fetchDataFeed, fetchAggregatorMetadata } from './api'
 import {
   IAggregatorWorker,
   IAggregatorWorkerReporter,
@@ -297,7 +297,7 @@ async function prepareDataForReporter({
 }): Promise<IAggregatorWorkerReporter> {
   const logger = _logger.child({ name: 'prepareDataForReporter', file: FILE_NAME })
 
-  const { address, decimals, threshold, absoluteThreshold } = await fetchDataFeedMetadata({
+  const { address, decimals, threshold, absoluteThreshold } = await fetchAggregatorMetadata({
     id,
     logger
   })

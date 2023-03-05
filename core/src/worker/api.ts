@@ -1,6 +1,6 @@
 import axios from 'axios'
 import { Logger } from 'pino'
-import { IDataFeedMetadata } from '../types'
+import { IAggregatorMetadata } from '../types'
 import { IcnError, IcnErrorCode } from '../errors'
 import { ORAKL_API_DATA_FEED_ENDPOINT } from '../settings'
 
@@ -40,13 +40,13 @@ export async function fetchDataFeed({
  * @exception {FailedToFetchFromDataFeed} raised when Orakl Network
  * API does not respond or responds in an unexpected format.
  */
-export async function fetchDataFeedMetadata({
+export async function fetchAggregatorMetadata({
   id,
   logger
 }: {
   id: string
   logger: Logger
-}): Promise<IDataFeedMetadata> {
+}): Promise<IAggregatorMetadata> {
   try {
     const url = [ORAKL_API_DATA_FEED_ENDPOINT, id, 'metadata'].join('/')
     logger.debug({ url }, 'data-feed-url')
