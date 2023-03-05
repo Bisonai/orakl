@@ -3,6 +3,7 @@ name: "request-response: integration-test"
 on:
   issue_comment:
     types: [created, edited, deleted]
+
 jobs:
   build:
     if: ${{ github.event.issue.pull_request }} && contains(github.event.comment.body, '/integration')

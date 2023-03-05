@@ -1,7 +1,9 @@
 name: "contracts: test & build & publish"
+
 on:
   release:
     types: [published]
+
 jobs:
   build:
     runs-on: ubuntu-latest

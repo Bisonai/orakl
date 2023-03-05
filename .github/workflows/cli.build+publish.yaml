@@ -1,8 +1,12 @@
 name: "cli: build+publish"
+
 on:
   push:
+    branches-ignore:
+      - "master"
     paths:
       - "core/src/cli/orakl-cli/**"
+
 jobs:
   build:
     runs-on: ubuntu-latest

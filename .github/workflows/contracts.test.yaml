@@ -1,8 +1,12 @@
 name: "contracts: test"
+
 on:
   push:
+    branches-ignore:
+      - "master"
     paths:
       - "contracts/**"
+
 jobs:
   build:
     runs-on: ubuntu-latest
