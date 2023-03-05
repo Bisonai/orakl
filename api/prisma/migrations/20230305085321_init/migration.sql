@@ -10,7 +10,6 @@ CREATE TABLE "Chain" (
 CREATE TABLE "Feed" (
     "id" SERIAL NOT NULL,
     "name" TEXT NOT NULL,
-    "latestRound" INTEGER NOT NULL,
     "definition" JSONB NOT NULL,
     "adapterId" INTEGER NOT NULL,
 

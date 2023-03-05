@@ -1,3 +1,4 @@
+import axios from 'axios'
 import { flag, command, subcommands, option, string as cmdstring } from 'cmd-ts'
 import {
   chainOptionalOption,
@@ -5,25 +6,26 @@ import {
   dryrunOption,
   idOption,
   formatResultInsert,
-  formatResultRemove
+  formatResultRemove,
+  buildUrl
 } from './utils'
 import { computeDataHash } from './utils'
 import { ReadFile } from './cli-types'
+import { ORAKL_NETWORK_API_URL } from './settings'
+
+const ADAPTER_ENDPOINT = buildUrl(ORAKL_NETWORK_API_URL, 'adapter')
 
 export function adapterSub(db) {
-  // adapter list [--active] [--chain [chain]]
-  // adapter insert --file-path [file-path] --chain [chain] [--dryrun]
-  // adapter remove --id [id]                               [--dryrun]
+  // adapter list
+  // adapter insert --file-path [file-path]
+  // adapter remove --id [id]
 
   const list = command({
     name: 'list',
     args: {
-      active: flag({
-        long: 'active'
-      }),
       chain: chainOptionalOption
     },
-    handler: listHandler(db, true)
+    handler: listHandler(true)
   })
 
   const insert = command({
@@ -32,14 +34,9 @@ export function adapterSub(db) {
       data: option({
         type: ReadFile,
         long: 'file-path'
-      }),
-      chain: option({
-        type: cmdstring,
-        long: 'chain'
-      }),
-      dryrun: dryrunOption
+      })
     },
-    handler: insertHandler(db)
+    handler: insertHandler()
   })
 
   const remove = command({
@@ -68,42 +65,21 @@ export function adapterSub(db) {
   })
 }
 
-export function listHandler(db, print?: boolean) {
-  async function wrapper({ chain, active }: { chain?: string; active?: boolean }) {
-    let where = ''
-    if (chain) {
-      const chainId = await chainToId(db, chain)
-      where += ` WHERE chainId=${chainId}`
-    }
-    const query = `SELECT id, data FROM Adapter ${where};`
-    const result = await db.all(query)
+export function listHandler(print?: boolean) {
+  async function wrapper({ chain }: { chain?: string }) {
+    const result = (await axios.get(ADAPTER_ENDPOINT)).data
     if (print) {
-      for (const r of result) {
-        const rJson = JSON.parse(r.data)
-        if (!active || rJson.active) {
-          console.log(`ID: ${r.id}`)
-          console.log(rJson)
-        }
-      }
+      console.dir(result, { depth: null })
     }
     return result
   }
   return wrapper
 }
 
-export function insertHandler(db) {
-  async function wrapper({ data, chain, dryrun }: { data; chain: string; dryrun?: boolean }) {
-    const chainId = await chainToId(db, chain)
-    const adapterObject = await computeDataHash({ data })
-    const adapter = JSON.stringify(adapterObject)
-    const query = `INSERT INTO Adapter (chainId, adapterId, data) VALUES (${chainId}, '${adapterObject.id}', '${adapter}')`
-
-    if (dryrun) {
-      console.debug(query)
-    } else {
-      const result = await db.run(query)
-      console.log(formatResultInsert(result))
-    }
+export function insertHandler() {
+  async function wrapper({ data }: { data }) {
+    const result = (await axios.post(ADAPTER_ENDPOINT, data)).data
+    console.dir(result, { depth: null })
   }
   return wrapper
 }

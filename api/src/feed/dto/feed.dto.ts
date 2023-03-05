@@ -5,8 +5,5 @@ export class FeedDto {
   name: string
 
   @ApiProperty()
-  latestRound: number
-
-  @ApiProperty()
   definition: string
 }

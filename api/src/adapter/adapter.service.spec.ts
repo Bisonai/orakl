@@ -21,8 +21,7 @@ describe('AdapterService', () => {
     const feeds = [
       {
         name: 'Binance-BTC-USD',
-        latestRound: -1,
-        definition: JSON.stringify({
+        definition: {
           url: 'https://api.binance.us/api/v3/ticker/price?symbol=BTCUSD',
           headers: {
             'Content-Type': 'application/json'
@@ -41,12 +40,12 @@ describe('AdapterService', () => {
               function: 'ROUND'
             }
           ]
-        })
+        }
       }
     ]
 
     const { id } = await adapter.create({
-      adapterId: '0xe63985ed9d9aae887bdcfa03b53a1bea6fd1acc58b8cd51a9a69ede43eac6235',
+      id: '0xe63985ed9d9aae887bdcfa03b53a1bea6fd1acc58b8cd51a9a69ede43eac6235',
       name: 'BTC-USD',
       decimals: 8,
       feeds
