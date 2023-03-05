@@ -24,14 +24,14 @@ describe('CLI Adapter', function () {
   }
 
   test.skip('Should list Adapters', async function () {
-    const adapter = await listHandler()({})
+    const adapter = await listHandler()()
     expect(adapter.length).toBeGreaterThan(0)
   })
 
   test.skip('Should insert new adapter', async function () {
-    const adapterBefore = await listHandler()({})
+    const adapterBefore = await listHandler()()
     await insertHandler()({ data: ADAPTER })
-    const adapterAfter = await listHandler()({})
+    const adapterAfter = await listHandler()()
     expect(adapterAfter.length).toEqual(adapterBefore.length + 1)
   })
 
@@ -43,9 +43,9 @@ describe('CLI Adapter', function () {
   })
 
   test.skip('Should delete adapter based on id', async function () {
-    const adapterBefore = await listHandler()({})
+    const adapterBefore = await listHandler()()
     await removeHandler()({ id: 1 })
-    const adapterAfter = await listHandler()({})
+    const adapterAfter = await listHandler()()
     expect(adapterAfter.length).toEqual(adapterBefore.length - 1)
   })
 })
