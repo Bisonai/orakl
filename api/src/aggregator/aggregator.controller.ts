@@ -17,9 +17,13 @@ export class AggregatorController {
   }
 
   @Get()
-  findAll(@Body() aggregatorDto: AggregatorDto) {
-    console.log(aggregatorDto)
-    return this.aggregatorService.findAll({ where: { chain: { name: 'baobab' } } })
+  findAll(@Body() whereDto: AggregatorWhereDto) {
+    return this.aggregatorService.findAll({
+      where: {
+        chain: { name: whereDto.chain },
+        active: whereDto.active
+      }
+    })
   }
 
   @Get(':id')
