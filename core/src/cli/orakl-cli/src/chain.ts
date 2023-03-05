@@ -1,7 +1,9 @@
 import axios from 'axios'
 import { command, subcommands, option, string as cmdstring } from 'cmd-ts'
-import { dryrunOption, idOption, formatResultInsert, formatResultRemove, buildUrl } from './utils'
+import { dryrunOption, idOption, formatResultRemove, buildUrl } from './utils'
 import { ORAKL_NETWORK_API_URL } from './settings'
+
+const CHAIN_ENDPOINT = buildUrl(ORAKL_NETWORK_API_URL, 'chain')
 
 export function chainSub(db) {
   // chain list
@@ -32,7 +34,7 @@ export function chainSub(db) {
       id: idOption,
       dryrun: dryrunOption
     },
-    handler: removeHandler(db)
+    handler: removeHandler()
   })
 
   return subcommands({
@@ -43,8 +45,7 @@ export function chainSub(db) {
 
 export function listHandler(print?: boolean) {
   async function wrapper() {
-    const endpoint = buildUrl(ORAKL_NETWORK_API_URL, 'chain')
-    const result = (await axios.get(endpoint)).data
+    const result = (await axios.get(CHAIN_ENDPOINT)).data
     if (print) {
       console.dir(result, { depth: null })
     }
@@ -55,22 +56,17 @@ export function listHandler(print?: boolean) {
 
 export function insertHandler() {
   async function wrapper({ name }: { name: string }) {
-    const endpoint = buildUrl(ORAKL_NETWORK_API_URL, 'chain')
-    const result = (await axios.post(endpoint, { name })).data
+    const result = (await axios.post(CHAIN_ENDPOINT, { name })).data
     console.dir(result, { depth: null })
   }
   return wrapper
 }
 
-export function removeHandler(db) {
-  async function wrapper({ id, dryrun }: { id: number; dryrun?: boolean }) {
-    const query = `DELETE FROM Chain WHERE id=${id}`
-    if (dryrun) {
-      console.debug(query)
-    } else {
-      const result = await db.run(query)
-      console.log(formatResultRemove(result))
-    }
+export function removeHandler() {
+  async function wrapper({ id }: { id: number }) {
+    const endpoint = buildUrl(CHAIN_ENDPOINT, id.toString())
+    const result = (await axios.delete(endpoint)).data
+    console.dir(result, { depth: null })
   }
   return wrapper
 }
