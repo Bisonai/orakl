@@ -1,17 +1,10 @@
 {
-    "id": "0xfda8c08a8b7641e001ad23c0fb363a9e7aab1e3a7eb8a6ddee41deeb7e3ef279",
-    "address": "0xB7f8BC63BbcaD18155201308C8f3540b07f84F5e",
-    "active": true,
-    "name": "ETH/USD",
-    "fixedHeartbeatRate": {
-        "active": true,
-        "value": 15000
-    },
-    "randomHeartbeatRate": {
-        "active": true,
-        "value": 5000
-    },
-    "threshold": 0.05,
-    "absoluteThreshold": 0.1,
-    "adapterId": "0x7e6552824ce107ab0d6e4266ba6b93f0afe5aa576a491364fc01881a34ddb12b"
+  "id": "0xfda8c08a8b7641e001ad23c0fb363a9e7aab1e3a7eb8a6ddee41deeb7e3ef279",
+  "active": true,
+  "name": "ETH-USD",
+  "address": "",
+  "heartbeat": 15000,
+  "threshold": 0.05,
+  "absoluteThreshold": 0.1,
+  "adapterId": "0x7e6552824ce107ab0d6e4266ba6b93f0afe5aa576a491364fc01881a34ddb12b"
 }
