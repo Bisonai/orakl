@@ -5,7 +5,7 @@ import { ORAKL_NETWORK_API_URL } from './settings'
 
 const CHAIN_ENDPOINT = buildUrl(ORAKL_NETWORK_API_URL, 'chain')
 
-export function chainSub(db) {
+export function chainSub() {
   // chain list
   // chain insert --name [name] [--dryrun]
   // chain remove --id [id]     [--dryrun]

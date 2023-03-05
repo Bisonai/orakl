@@ -19,7 +19,7 @@ async function main() {
   const dbFile = path.join(ORAKL_DIR, 'settings.sqlite')
   const db = await openDb({ dbFile })
 
-  const chain = chainSub(db)
+  const chain = chainSub()
   const service = serviceSub(db)
   const listener = listenerSub(db)
   const vrf = vrfSub(db)
