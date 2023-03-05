@@ -19,7 +19,6 @@ model Chain {
 model Feed {
   id          Int     @id @default(autoincrement())
   name        String
-  latestRound Int
   definition  Json
   adapter     Adapter @relation(fields: [adapterId], references: [id], onDelete: Cascade)
   adapterId   Int

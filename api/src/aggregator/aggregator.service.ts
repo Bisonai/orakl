@@ -9,7 +9,7 @@ export class AggregatorService {
 
   async create(aggregatorDto: AggregatorDto): Promise<Aggregator> {
     const chain = await this.prisma.chain.findUnique({
-      where: { name: aggregatorDto.chainName }
+      where: { name: aggregatorDto.chain }
     })
 
     const adapter = await this.prisma.adapter.findUnique({
@@ -17,7 +17,7 @@ export class AggregatorService {
     })
 
     const data: Prisma.AggregatorUncheckedCreateInput = {
-      aggregatorId: aggregatorDto.aggregatorId,
+      aggregatorId: aggregatorDto.id,
       active: aggregatorDto.active,
       name: aggregatorDto.name,
       address: aggregatorDto.address,
@@ -28,7 +28,7 @@ export class AggregatorService {
       chainId: chain.id
     }
 
-    return this.prisma.aggregator.create({ data })
+    return await this.prisma.aggregator.create({ data })
   }
 
   async findAll(params: {

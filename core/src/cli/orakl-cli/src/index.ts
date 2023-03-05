@@ -19,14 +19,14 @@ async function main() {
   const dbFile = path.join(ORAKL_DIR, 'settings.sqlite')
   const db = await openDb({ dbFile })
 
-  const chain = chainSub(db)
+  const chain = chainSub()
   const service = serviceSub(db)
   const listener = listenerSub(db)
   const vrf = vrfSub(db)
   const migrate = migrateCmd(db)
   const kv = kvSub(db)
-  const adapter = adapterSub(db)
-  const aggregator = aggregatorSub(db)
+  const adapter = adapterSub()
+  const aggregator = aggregatorSub()
 
   const cli = subcommands({
     name: 'operator',

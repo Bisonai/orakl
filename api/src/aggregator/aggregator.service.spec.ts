@@ -31,8 +31,7 @@ describe('AggregatorService', () => {
     const feeds = [
       {
         name: 'Binance-BTC-USD',
-        latestRound: -1,
-        definition: JSON.stringify({
+        definition: {
           url: 'https://api.binance.us/api/v3/ticker/price?symbol=BTCUSD',
           headers: {
             'Content-Type': 'application/json'
@@ -51,11 +50,11 @@ describe('AggregatorService', () => {
               function: 'ROUND'
             }
           ]
-        })
+        }
       }
     ]
     const adapterObj = await adapter.create({
-      adapterId: 'adapterId-aggregator-test',
+      id: 'adapterId-aggregator-test',
       name: 'BTC-USD',
       decimals: 8,
       feeds
@@ -63,7 +62,7 @@ describe('AggregatorService', () => {
 
     // Aggregator
     const aggregatorData = {
-      aggregatorId: 'aggregatorId-aggregator-test',
+      id: 'aggregatorId-aggregator-test',
       active: false,
       name: 'ETH-USD',
       address: '0x',
@@ -71,7 +70,7 @@ describe('AggregatorService', () => {
       threshold: 0.04,
       absoluteThreshold: 0.1,
       adapterId: adapterObj.adapterId,
-      chainName: chainObj.name
+      chain: chainObj.name
     }
     const aggregatorObj = await aggregator.create(aggregatorData)
 

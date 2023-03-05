@@ -3,7 +3,7 @@ import { FeedDto as Feed } from '../../feed/dto/feed.dto'
 
 export class AdapterDto {
   @ApiProperty()
-  adapterId: string
+  id: string
 
   @ApiProperty()
   name: string

@@ -1,9 +1,9 @@
 import { ApiProperty } from '@nestjs/swagger'
 
-export class FeedDto {
+export class AggregatorWhereDto {
   @ApiProperty()
-  name: string
+  active?: boolean
 
   @ApiProperty()
-  definition: any
+  chain?: string
 }
