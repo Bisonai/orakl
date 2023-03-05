@@ -1,30 +1,19 @@
 import axios from 'axios'
-import { flag, command, subcommands, option, string as cmdstring } from 'cmd-ts'
-import {
-  chainOptionalOption,
-  chainToId,
-  dryrunOption,
-  idOption,
-  formatResultInsert,
-  formatResultRemove,
-  buildUrl
-} from './utils'
-import { computeDataHash } from './utils'
+import { command, subcommands, option } from 'cmd-ts'
+import { idOption, buildUrl } from './utils'
 import { ReadFile } from './cli-types'
 import { ORAKL_NETWORK_API_URL } from './settings'
 
 const ADAPTER_ENDPOINT = buildUrl(ORAKL_NETWORK_API_URL, 'adapter')
 
-export function adapterSub(db) {
+export function adapterSub() {
   // adapter list
   // adapter insert --file-path [file-path]
   // adapter remove --id [id]
 
   const list = command({
     name: 'list',
-    args: {
-      chain: chainOptionalOption
-    },
+    args: {},
     handler: listHandler(true)
   })
 
@@ -42,8 +31,7 @@ export function adapterSub(db) {
   const remove = command({
     name: 'remove',
     args: {
-      id: idOption,
-      dryrun: dryrunOption
+      id: idOption
     },
     handler: removeHandler()
   })
@@ -55,7 +43,7 @@ export function adapterSub(db) {
 }
 
 export function listHandler(print?: boolean) {
-  async function wrapper({ chain }: { chain?: string }) {
+  async function wrapper() {
     const result = (await axios.get(ADAPTER_ENDPOINT)).data
     if (print) {
       console.dir(result, { depth: null })

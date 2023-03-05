@@ -1,4 +1,4 @@
-import { describe, expect, beforeEach, test } from '@jest/globals'
+import { describe, expect, test } from '@jest/globals'
 import { listHandler, insertHandler, removeHandler } from '../src/cli/orakl-cli/src/adapter'
 
 describe('CLI Adapter', function () {

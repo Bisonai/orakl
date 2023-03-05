@@ -25,7 +25,7 @@ async function main() {
   const vrf = vrfSub(db)
   const migrate = migrateCmd(db)
   const kv = kvSub(db)
-  const adapter = adapterSub(db)
+  const adapter = adapterSub()
   const aggregator = aggregatorSub(db)
 
   const cli = subcommands({
