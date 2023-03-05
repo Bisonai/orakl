@@ -48,20 +48,9 @@ export function adapterSub(db) {
     handler: removeHandler()
   })
 
-  const insertFromChain = command({
-    name: 'insertFromChain',
-    args: {
-      adapterId: option({ type: cmdstring, long: 'adapter-id' }),
-      fromChain: option({ type: cmdstring, long: 'from-chain' }),
-      toChain: option({ type: cmdstring, long: 'to-chain' }),
-      dryrun: dryrunOption
-    },
-    handler: insertFromChainHandler(db)
-  })
-
   return subcommands({
     name: 'adapter',
-    cmds: { list, insert, remove, insertFromChain }
+    cmds: { list, insert, remove }
   })
 }
 
@@ -89,33 +78,6 @@ export function removeHandler() {
     const endpoint = buildUrl(ADAPTER_ENDPOINT, id.toString())
     const result = (await axios.delete(endpoint)).data
     console.dir(result, { depth: null })
-  }
-  return wrapper
-}
-
-export function insertFromChainHandler(db) {
-  async function wrapper({
-    adapterId,
-    fromChain,
-    toChain,
-    dryrun
-  }: {
-    adapterId: string
-    fromChain: string
-    toChain: string
-    dryrun?: boolean
-  }) {
-    const fromChainId = await chainToId(db, fromChain)
-    const toChainId = await chainToId(db, toChain)
-
-    const query = `INSERT INTO Adapter (chainId, adapterId, data) SELECT ${toChainId}, adapterId, data FROM Adapter WHERE chainId=${fromChainId} and adapterId='${adapterId}'`
-
-    if (dryrun) {
-      console.debug(query)
-    } else {
-      const result = await db.run(query)
-      console.log(formatResultInsert(result))
-    }
   }
   return wrapper
 }
