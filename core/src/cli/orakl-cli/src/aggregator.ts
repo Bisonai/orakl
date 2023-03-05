@@ -1,3 +1,4 @@
+import axios from 'axios'
 import { flag, command, subcommands, option, string as cmdstring } from 'cmd-ts'
 import {
   chainOptionalOption,
@@ -5,12 +6,16 @@ import {
   dryrunOption,
   idOption,
   formatResultInsert,
-  formatResultRemove
+  formatResultRemove,
+  buildUrl
 } from './utils'
 import { computeDataHash } from './utils'
 import { ReadFile } from './cli-types'
 import { IAggregator } from './types'
 import { CliError, CliErrorCode } from './error'
+import { ORAKL_NETWORK_API_URL } from './settings'
+
+const AGGREGATOR_ENDPOINT = buildUrl(ORAKL_NETWORK_API_URL, 'aggregator')
 
 export function aggregatorSub(db) {
   // aggregator list [--active] [--chain [chain]]
@@ -25,7 +30,7 @@ export function aggregatorSub(db) {
       }),
       chain: chainOptionalOption
     },
-    handler: listHandler(db, true)
+    handler: listHandler(true)
   })
 
   const insert = command({
@@ -74,23 +79,17 @@ export function aggregatorSub(db) {
   })
 }
 
-export function listHandler(db, print?: boolean) {
+export function listHandler(print?: boolean) {
   async function wrapper({ chain, active }: { chain?: string; active?: boolean }) {
-    let where = ''
-    if (chain) {
-      const chainId = await chainToId(db, chain)
-      where += ` WHERE chainId=${chainId}`
+    // cmd-ts does not allow to set boolean flag to undefined. It can
+    // be either true of false. When `active` is not set, we assume that
+    // user wants to see all aggregators.
+    if (!active) {
+      active = undefined
     }
-    const query = `SELECT id, aggregatorId, adapterId, data FROM Aggregator ${where};`
-    const result = await db.all(query)
+    const result = (await axios.get(AGGREGATOR_ENDPOINT, { data: { chain, active } })).data
     if (print) {
-      for (const r of result) {
-        const rJson = JSON.parse(r.data)
-        if (!active || rJson.active) {
-          console.log(`ID: ${r.id}`)
-          console.log(rJson)
-        }
-      }
+      console.dir(result, { depth: null })
     }
     return result
   }
