@@ -11,6 +11,9 @@ export class AggregatorDto {
   name: string
 
   @ApiProperty()
+  address: string
+
+  @ApiProperty()
   heartbeat: number
 
   @ApiProperty()

@@ -17,15 +17,13 @@ model Chain {
 }
 
 model Feed {
-  id          Int    @id @default(autoincrement())
+  id          Int     @id @default(autoincrement())
   name        String
   latestRound Int
   definition  Json
-
-  // Adapter relation
-  adapter   Adapter @relation(fields: [adapterId], references: [id], onDelete: Cascade)
-  adapterId Int
-  data      Data[]
+  adapter     Adapter @relation(fields: [adapterId], references: [id], onDelete: Cascade)
+  adapterId   Int
+  Data        Data[]
 }
 
 model Adapter {
@@ -39,17 +37,20 @@ model Adapter {
 
 model Aggregator {
   id                Int     @id @default(autoincrement())
-  aggregatorId      String  @unique
+  aggregatorId      String
   active            Boolean @default(false)
   name              String
+  address           String  @unique
   heartbeat         Int
   threshold         Float
   absoluteThreshold Float
-  data              Data[]
+  Data              Data[]
   adapter           Adapter @relation(fields: [adapterId], references: [id])
   adapterId         Int
   chain             Chain   @relation(fields: [chainId], references: [id])
   chainId           Int
+
+  @@unique([aggregatorId, chainId])
 }
 
 model Data {

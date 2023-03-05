@@ -20,6 +20,7 @@ export class AggregatorService {
       aggregatorId: aggregatorDto.aggregatorId,
       active: aggregatorDto.active,
       name: aggregatorDto.name,
+      address: aggregatorDto.address,
       heartbeat: aggregatorDto.heartbeat,
       threshold: aggregatorDto.threshold,
       absoluteThreshold: aggregatorDto.absoluteThreshold,

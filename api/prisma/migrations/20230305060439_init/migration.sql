@@ -33,6 +33,7 @@ CREATE TABLE "Aggregator" (
     "aggregatorId" TEXT NOT NULL,
     "active" BOOLEAN NOT NULL DEFAULT false,
     "name" TEXT NOT NULL,
+    "address" TEXT NOT NULL,
     "heartbeat" INTEGER NOT NULL,
     "threshold" DOUBLE PRECISION NOT NULL,
     "absoluteThreshold" DOUBLE PRECISION NOT NULL,
@@ -61,7 +62,10 @@ CREATE UNIQUE INDEX "Chain_name_key" ON "Chain"("name");
 CREATE UNIQUE INDEX "Adapter_adapterId_key" ON "Adapter"("adapterId");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "Aggregator_aggregatorId_key" ON "Aggregator"("aggregatorId");
+CREATE UNIQUE INDEX "Aggregator_address_key" ON "Aggregator"("address");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "Aggregator_aggregatorId_chainId_key" ON "Aggregator"("aggregatorId", "chainId");
 
 -- AddForeignKey
 ALTER TABLE "Feed" ADD CONSTRAINT "Feed_adapterId_fkey" FOREIGN KEY ("adapterId") REFERENCES "Adapter"("id") ON DELETE CASCADE ON UPDATE CASCADE;

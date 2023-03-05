@@ -69,6 +69,7 @@ describe('DataService', () => {
       aggregatorId: 'aggregatorId-data-test',
       active: false,
       name: 'ETH-USD',
+      address: '0x',
       heartbeat: 10_000,
       threshold: 0.04,
       absoluteThreshold: 0.1,
