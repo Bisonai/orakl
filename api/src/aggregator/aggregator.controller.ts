@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param } from '@nestjs/common'
+import { Controller, Get, Post, Body, Delete, Param } from '@nestjs/common'
 import { Aggregator as AggregatorModel } from '@prisma/client'
 import { AggregatorService } from './aggregator.service'
 import { AggregatorDto } from './dto/aggregator.dto'
@@ -29,5 +29,10 @@ export class AggregatorController {
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.aggregatorService.findOne({ id: Number(id) })
+  }
+
+  @Delete(':id')
+  async remove(@Param('id') id: string): Promise<AggregatorModel> {
+    return this.aggregatorService.remove({ id: Number(id) })
   }
 }

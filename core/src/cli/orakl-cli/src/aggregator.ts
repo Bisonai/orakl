@@ -51,10 +51,9 @@ export function aggregatorSub(db) {
   const remove = command({
     name: 'remove',
     args: {
-      id: idOption,
-      dryrun: dryrunOption
+      id: idOption
     },
-    handler: removeHandler(db)
+    handler: removeHandler()
   })
   const insertFromChain = command({
     name: 'insertFromChain',
@@ -99,15 +98,11 @@ export function insertHandler() {
   return wrapper
 }
 
-export function removeHandler(db) {
-  async function wrapper({ id, dryrun }: { id: number; dryrun?: boolean }) {
-    const query = `DELETE FROM Aggregator WHERE id=${id}`
-    if (dryrun) {
-      console.debug(query)
-    } else {
-      const result = await db.run(query)
-      console.log(formatResultRemove(result))
-    }
+export function removeHandler() {
+  async function wrapper({ id }: { id: number }) {
+    const endpoint = buildUrl(AGGREGATOR_ENDPOINT, id.toString())
+    const result = (await axios.delete(endpoint)).data
+    console.dir(result, { depth: null })
   }
   return wrapper
 }
