@@ -365,6 +365,9 @@ function shouldReport(
   }
 }
 
+/**
+ * @deprecated The method should not be used
+ */
 function addReportProperty(o, report: boolean | undefined) {
   return Object.assign({}, ...[o, { report }])
 }
