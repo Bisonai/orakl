@@ -3,7 +3,6 @@ import { flag, command, subcommands, option, string as cmdstring } from 'cmd-ts'
 import {
   chainOptionalOption,
   chainToId,
-  dryrunOption,
   idOption,
   formatResultInsert,
   formatResultRemove,
@@ -55,21 +54,10 @@ export function aggregatorSub(db) {
     },
     handler: removeHandler()
   })
-  const insertFromChain = command({
-    name: 'insertFromChain',
-    args: {
-      aggregatorId: option({ type: cmdstring, long: 'aggregator-id' }),
-      adapter: option({ type: cmdstring, long: 'adapter' }),
-      fromChain: option({ type: cmdstring, long: 'from-chain' }),
-      toChain: option({ type: cmdstring, long: 'to-chain' }),
-      dryrun: dryrunOption
-    },
-    handler: insertFromChainHandler(db)
-  })
 
   return subcommands({
     name: 'aggregator',
-    cmds: { list, insert, remove, insertFromChain }
+    cmds: { list, insert, remove }
   })
 }
 
@@ -108,40 +96,6 @@ export function removeHandler() {
     const endpoint = buildUrl(AGGREGATOR_ENDPOINT, id.toString())
     const result = (await axios.delete(endpoint)).data
     console.dir(result, { depth: null })
-  }
-  return wrapper
-}
-
-export function insertFromChainHandler(db) {
-  async function wrapper({
-    aggregatorId,
-    adapter,
-    fromChain,
-    toChain,
-    dryrun
-  }: {
-    aggregatorId: string
-    adapter: string
-    fromChain: string
-    toChain: string
-    dryrun?: boolean
-  }) {
-    const fromChainId = await chainToId(db, fromChain)
-    const toChainId = await chainToId(db, toChain)
-
-    const queryAdapter = `SELECT id from Adapter WHERE adapterId='${adapter}' and chainId=${fromChainId};`
-    const result = await db.get(queryAdapter)
-    const adapterId = result.id
-    const query = `INSERT INTO Aggregator (chainId, aggregatorId, adapterId, data)
-    SELECT ${toChainId}, aggregatorId, adapterId, data FROM Aggregator
-    WHERE chainId=${fromChainId} and aggregatorId='${aggregatorId}' and adapterId='${adapterId}'`
-
-    if (dryrun) {
-      console.debug(query)
-    } else {
-      const result = await db.run(query)
-      console.log(formatResultInsert(result))
-    }
   }
   return wrapper
 }
