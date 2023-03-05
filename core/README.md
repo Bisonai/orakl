@@ -1,4 +1,4 @@
-# ICN core
+# Orakl Network Core
 
 ## Local development
 
@@ -44,7 +44,7 @@ docker compose -f docker-compose.aggregator.yaml up
 docker compose -f docker-compose.bull-monitor.yaml up
 ```
 
-Bull Queue Board: http://localhost:3000/queues/
+Bull Queue Board: http://localhost:3001/queues
 
 ## Run cli script
 

@@ -203,6 +203,14 @@ export interface IAggregatorJob {
   decimals: number
 }
 
+export interface IAggregatorMetadata {
+  id: string
+  address: string
+  decimals: number
+  threshold: number
+  absoluteThreshold: number
+}
+
 // Worker -> Reporter
 
 export interface IRequestResponseWorkerReporter {

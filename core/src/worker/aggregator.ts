@@ -1,5 +1,6 @@
 import { Worker, Queue, Job } from 'bullmq'
 import { Logger } from 'pino'
+import { fetchDataFeed, fetchAggregatorMetadata } from './api'
 import {
   IAggregatorWorker,
   IAggregatorWorkerReporter,
@@ -10,7 +11,7 @@ import {
   WORKER_AGGREGATOR_QUEUE_NAME,
   REPORTER_AGGREGATOR_QUEUE_NAME,
   FIXED_HEARTBEAT_QUEUE_NAME,
-  RANDOM_HEARTBEAT_QUEUE_NAME,
+  // RANDOM_HEARTBEAT_QUEUE_NAME,
   BULLMQ_CONNECTION,
   PUBLIC_KEY as OPERATOR_ADDRESS,
   DEPLOYMENT_NAME,
@@ -20,7 +21,6 @@ import {
 import { IcnError, IcnErrorCode } from '../errors'
 import { buildReporterJobId } from '../utils'
 import {
-  fetchDataWithAdapter,
   loadAdapters,
   loadAggregators,
   mergeAggregatorsAdapters,
@@ -42,7 +42,7 @@ export async function aggregatorWorker(_logger: Logger) {
   const aggregatorsWithAdapters = mergeAggregatorsAdapters(aggregators, adapters)
   logger.debug(aggregatorsWithAdapters, 'aggregatorsWithAdapters')
 
-  const randomHeartbeatQueue = new Queue(RANDOM_HEARTBEAT_QUEUE_NAME, BULLMQ_CONNECTION)
+  // const randomHeartbeatQueue = new Queue(RANDOM_HEARTBEAT_QUEUE_NAME, BULLMQ_CONNECTION)
   const fixedHeartbeatQueue = new Queue(FIXED_HEARTBEAT_QUEUE_NAME, BULLMQ_CONNECTION)
 
   // Launch all aggregators to be executed with random and fixed heartbeat
@@ -64,13 +64,13 @@ export async function aggregatorWorker(_logger: Logger) {
       )
     }
 
-    if (aggregator.randomHeartbeatRate.active) {
-      await randomHeartbeatQueue.add('random-heartbeat', addReportProperty(aggregator, undefined), {
-        delay: uniform(0, aggregator.randomHeartbeatRate.value),
-        removeOnComplete: REMOVE_ON_COMPLETE,
-        removeOnFail: REMOVE_ON_FAIL
-      })
-    }
+    // if (aggregator.randomHeartbeatRate.active) {
+    //   await randomHeartbeatQueue.add('random-heartbeat', addReportProperty(aggregator, undefined), {
+    //     delay: uniform(0, aggregator.randomHeartbeatRate.value),
+    //     removeOnComplete: REMOVE_ON_COMPLETE,
+    //     removeOnFail: REMOVE_ON_FAIL
+    //   })
+    // }
   }
 
   // Event based worker
@@ -124,12 +124,13 @@ function aggregatorJob(
         throw new IcnError(IcnErrorCode.UndefinedAggregator, `${aggregatorAddress}`)
       }
 
-      const aggregator = addReportProperty(aggregatorsWithAdapters[aggregatorAddress], true)
+      const aggregator = aggregatorsWithAdapters[aggregatorAddress]
 
       const outData = await prepareDataForReporter({
-        data: aggregator,
+        id: aggregator.id,
+        report: true,
         workerSource: inData.workerSource,
-        delay: aggregator.fixedHeartbeatRate.value,
+        delay: aggregator.fixedHeartbeatRate.value, // FIXME
         roundId,
         _logger
       })
@@ -145,7 +146,7 @@ function aggregatorJob(
         })
       })
     } catch (e) {
-      // `IncompleteDataFeed` exception can be raised from `prepareDataForReporter`.
+      // `FailedToFetchFromDataFeed` exception can be raised from `prepareDataForReporter`.
       // `aggregatorJob` is being triggered by either `fixed` or `event` worker.
       // `event` job will not be resubmitted. `fixed` job might be
       // resubmitted, however due to the nature of fixed job cycle, the
@@ -206,6 +207,9 @@ function fixedHeartbeatJob(aggregatorJobQueueName: string, _logger: Logger) {
   return wrapper
 }
 
+/**
+ * @deprecated The method should not be used
+ */
 function randomHeartbeatJob(
   heartbeatQueueName: string,
   reporterQueueName: string,
@@ -230,9 +234,9 @@ function randomHeartbeatJob(
 
     try {
       const outData = await prepareDataForReporter({
-        data: inData,
+        id: inData.id,
         workerSource: 'random',
-        delay: aggregator.fixedHeartbeatRate.value,
+        delay: aggregator.fixedHeartbeatRate.value, // FIXME
         _logger
       })
       logger.debug(outData, 'outData-random')
@@ -248,7 +252,7 @@ function randomHeartbeatJob(
         })
       }
     } catch (e) {
-      // It is possible that `IncompleteDataFeed` is raised from
+      // It is possible that `FailedToFetchFromDataFeed` is raised from
       // `prepareDataForReporter` which means that fetched data are
       // not qualified to be used for submission. This exception is
       // okay to ignore within random heartbeat because random
@@ -270,22 +274,25 @@ function randomHeartbeatJob(
 /**
  * Fetch the latest data and prepare them to be sent to reporter.
  *
- * @param {IAggregatorHeartbeatWorker} data
+ * @param {string} id: aggregator ID
+ * @param {boolean} report: whether to submission must be reported
  * @param {string} workerSource
  * @param {number} delay
  * @param {number} roundId
  * @param {Logger} _logger
  * @return {Promise<IAggregatorJob}
- * @exception {InvalidDataFeed} raised from `fetchDataWithadapter`
+ * @exception {FailedToFetchFromDataFeed} raised from `fetchDataFeed`
  */
 async function prepareDataForReporter({
-  data,
+  id,
+  report,
   workerSource,
   delay,
   roundId,
   _logger
 }: {
-  data: IAggregatorJob
+  id: string
+  report?: boolean
   workerSource: string
   delay: number
   roundId?: number
@@ -293,12 +300,15 @@ async function prepareDataForReporter({
 }): Promise<IAggregatorWorkerReporter> {
   const logger = _logger.child({ name: 'prepareDataForReporter', file: FILE_NAME })
 
-  const callbackAddress = data.address
-  const submission = await fetchDataWithAdapter(data.adapter)
-  let report = data.report
+  const { address, decimals, threshold, absoluteThreshold } = await fetchAggregatorMetadata({
+    id,
+    logger
+  })
+
+  const submission = await fetchDataFeed({ id, logger })
 
   const oracleRoundState = await oracleRoundStateCall({
-    aggregatorAddress: data.address,
+    aggregatorAddress: address,
     operatorAddress: OPERATOR_ADDRESS,
     roundId,
     logger
@@ -308,19 +318,13 @@ async function prepareDataForReporter({
   if (report === undefined) {
     // TODO does _latestsubmission hold the aggregated value?
     const latestSubmission = oracleRoundState._latestSubmission.toNumber()
-    report = shouldReport(
-      latestSubmission,
-      submission,
-      data.decimals,
-      data.threshold,
-      data.absoluteThreshold
-    )
+    report = shouldReport(latestSubmission, submission, decimals, threshold, absoluteThreshold)
     logger.debug({ report }, 'report')
   }
 
   return {
     report,
-    callbackAddress,
+    callbackAddress: address,
     workerSource,
     delay,
     submission,
@@ -364,6 +368,9 @@ function shouldReport(
   }
 }
 
+/**
+ * @deprecated The method should not be used
+ */
 function addReportProperty(o, report: boolean | undefined) {
   return Object.assign({}, ...[o, { report }])
 }

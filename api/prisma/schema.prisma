@@ -1,0 +1,65 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Chain {
+  id         Int          @id @default(autoincrement())
+  name       String       @unique
+  Aggregator Aggregator[]
+}
+
+model Feed {
+  id          Int     @id @default(autoincrement())
+  name        String
+  latestRound Int
+  definition  Json
+  adapter     Adapter @relation(fields: [adapterId], references: [id], onDelete: Cascade)
+  adapterId   Int
+  Data        Data[]
+}
+
+model Adapter {
+  id         Int          @id @default(autoincrement())
+  adapterId  String       @unique
+  name       String
+  decimals   Int
+  feeds      Feed[]
+  Aggregator Aggregator[]
+}
+
+model Aggregator {
+  id                Int     @id @default(autoincrement())
+  aggregatorId      String
+  active            Boolean @default(false)
+  name              String
+  address           String  @unique
+  heartbeat         Int
+  threshold         Float
+  absoluteThreshold Float
+  Data              Data[]
+  adapter           Adapter @relation(fields: [adapterId], references: [id])
+  adapterId         Int
+  chain             Chain   @relation(fields: [chainId], references: [id])
+  chainId           Int
+
+  @@unique([aggregatorId, chainId])
+}
+
+model Data {
+  id           BigInt     @id @default(autoincrement())
+  round        BigInt
+  timestamp    DateTime   @db.Timestamptz
+  value        Int
+  aggregator   Aggregator @relation(fields: [aggregatorId], references: [id])
+  aggregatorId Int
+  feed         Feed       @relation(fields: [feedId], references: [id])
+  feedId       Int
+}

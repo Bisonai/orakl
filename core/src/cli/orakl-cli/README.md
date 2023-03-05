@@ -1,6 +1,6 @@
 # `orakl-cli`
 
-This package is used controlling [Orakl Network](https://www.orakl.network/) nodes.
+This package is used controlling [Orakl Network](https://orakl.network) nodes.
 
 ## Development
 
@@ -8,6 +8,12 @@ This package is used controlling [Orakl Network](https://www.orakl.network/) nod
 yarn install
 yarn build
 ```
+
+## Settings
+
+Orakl CLI uses SQLite in backend to store all relevant settings.
+The default database (`settings.sqlite`) is stored at `${HOME}/.orakl`.
+If you wish to change the default location, you can set it with `ORAKL_DIR` environment variable.
 
 ## How To Use
 

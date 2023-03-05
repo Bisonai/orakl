@@ -24,6 +24,7 @@ export enum IcnErrorCode {
   InvalidDataFeed,
   IncompleteDataFeed,
   InvalidDataFeedFormat,
+  FailedToFetchFromDataFeed,
   MissingKeyValuePair,
   UnexpectedQueryOutput,
   TxInvalidAddress,
