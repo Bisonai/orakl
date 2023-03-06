@@ -2,18 +2,21 @@ import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/commo
 import { JobDto } from './dto/job.dto'
 import { InjectQueue } from '@nestjs/bullmq'
 import { Queue } from 'bullmq'
+import { Logger } from '@nestjs/common'
 
 @Controller({
   version: '1'
 })
 export class JobController {
+  private readonly logger = new Logger(JobController.name)
   constructor(@InjectQueue('orakl-fetcher-queue') private queue: Queue) {}
 
-  @Get('start')
-  async start() {
+  @Get('start/:aggregator')
+  async start(@Param('aggregator') id: string) {
     console.log('added job')
+    // TODO check aggregator
     const job = await this.queue.add(
-      'job-name',
+      id,
       { foo: 'bar' },
       {
         repeat: {
@@ -25,11 +28,18 @@ export class JobController {
     )
   }
 
-  @Get('stop')
-  async stop() {
-    // TODO filter among all job
-    const allDelayed = await this.queue.getJobs(['delayed'])
-    const job = allDelayed[0]
-    job.remove()
+  @Get('stop/:aggregator')
+  async stop(@Param('aggregator') id: string) {
+    const delayed = await this.queue.getJobs(['delayed'])
+    const filtered = delayed.filter((job) => job.name == id)
+
+    if (filtered.length == 1) {
+      const job = filtered[0]
+      job.remove()
+      this.logger.log(`Job ${id} removed`)
+    } else if (filtered.length == 0) {
+      this.logger.error(`job ${id} does not exist`)
+    } else {
+    }
   }
 }
