@@ -13,7 +13,7 @@ import sqlite from 'sqlite3'
 import { open } from 'sqlite'
 import { ethers } from 'ethers'
 import { IAdapter, IAggregator } from './types'
-import { CliError, CliErrorCode } from './error'
+import { CliError, CliErrorCode } from './errors'
 import { ChainId, ServiceId, DbCmdOutput } from './cli-types'
 
 function mkdir(dir: string) {

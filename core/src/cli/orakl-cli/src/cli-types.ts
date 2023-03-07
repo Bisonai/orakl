@@ -1,6 +1,6 @@
 import { Type } from 'cmd-ts'
 import { existsSync } from 'node:fs'
-import { CliError, CliErrorCode } from './error'
+import { CliError, CliErrorCode } from './errors'
 import { loadFile } from './utils'
 
 export interface ChainId {

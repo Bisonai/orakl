@@ -10,6 +10,7 @@ import { migrateCmd } from './migrate'
 import { kvSub } from './kv'
 import { adapterSub } from './adapter'
 import { aggregatorSub } from './aggregator'
+import { fetcherSub } from './fetcher'
 import { openDb } from './utils'
 
 import { binary, subcommands, run } from 'cmd-ts'
@@ -27,10 +28,11 @@ async function main() {
   const kv = kvSub(db)
   const adapter = adapterSub()
   const aggregator = aggregatorSub()
+  const fetcher = fetcherSub()
 
   const cli = subcommands({
     name: 'operator',
-    cmds: { migrate, kv, chain, service, listener, vrf, adapter, aggregator }
+    cmds: { migrate, kv, chain, service, listener, vrf, adapter, aggregator, fetcher }
   })
 
   run(binary(cli), process.argv)

@@ -15,6 +15,11 @@ Orakl CLI uses SQLite in backend to store all relevant settings.
 The default database (`settings.sqlite`) is stored at `${HOME}/.orakl`.
 If you wish to change the default location, you can set it with `ORAKL_DIR` environment variable.
 
+### Environment Variables
+
+* `ORAKL_NETWORK_API_URL`
+* `ORAKL_NETWORK_FETCHER_URL`
+
 ## How To Use
 
 - [Chain](#chain)
