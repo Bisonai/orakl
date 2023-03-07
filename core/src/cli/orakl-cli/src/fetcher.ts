@@ -1,6 +1,6 @@
 import axios from 'axios'
 import { command, subcommands, option, string as cmdstring } from 'cmd-ts'
-import { idOption, buildUrl } from './utils'
+import { buildUrl } from './utils'
 import { ORAKL_NETWORK_FETCHER_URL } from './settings'
 
 export function fetcherSub() {
