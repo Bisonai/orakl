@@ -8,10 +8,10 @@ export class AdapterService {
   constructor(private prisma: PrismaService) {}
 
   create(adapterDto: AdapterDto): Promise<Adapter> {
-    // TODO validate
+    // TODO validate data
 
     const data: Prisma.AdapterCreateInput = {
-      adapterId: adapterDto.id,
+      adapterHash: adapterDto.adapterHash,
       name: adapterDto.name,
       decimals: adapterDto.decimals,
       feeds: {

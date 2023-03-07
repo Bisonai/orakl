@@ -2,7 +2,7 @@ import { ApiProperty } from '@nestjs/swagger'
 
 export class DatumDto {
   @ApiProperty()
-  aggregator: number
+  aggregatorId: number
 
   @ApiProperty()
   timestamp: string | Date

@@ -17,26 +17,26 @@ model Chain {
 }
 
 model Feed {
-  id          Int     @id @default(autoincrement())
-  name        String
-  definition  Json
-  adapter     Adapter @relation(fields: [adapterId], references: [id], onDelete: Cascade)
-  adapterId   Int
-  Data        Data[]
+  id         Int     @id @default(autoincrement())
+  name       String
+  definition Json
+  adapter    Adapter @relation(fields: [adapterId], references: [id], onDelete: Cascade)
+  adapterId  Int
+  Data       Data[]
 }
 
 model Adapter {
-  id         Int          @id @default(autoincrement())
-  adapterId  String       @unique
-  name       String
-  decimals   Int
-  feeds      Feed[]
-  Aggregator Aggregator[]
+  id          Int          @id @default(autoincrement())
+  adapterHash String       @unique
+  name        String
+  decimals    Int
+  feeds       Feed[]
+  Aggregator  Aggregator[]
 }
 
 model Aggregator {
   id                Int     @id @default(autoincrement())
-  aggregatorId      String
+  aggregatorHash    String
   active            Boolean @default(false)
   name              String
   address           String  @unique
@@ -49,7 +49,7 @@ model Aggregator {
   chain             Chain   @relation(fields: [chainId], references: [id])
   chainId           Int
 
-  @@unique([aggregatorId, chainId])
+  @@unique([aggregatorHash, chainId])
 }
 
 model Data {

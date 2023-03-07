@@ -11,7 +11,7 @@ export class DataService {
     const data: Prisma.DataUncheckedCreateInput = {
       timestamp: datumDto.timestamp,
       value: datumDto.value,
-      aggregatorId: datumDto.aggregator,
+      aggregatorId: datumDto.aggregatorId,
       feedId: datumDto.feed
     }
     return this.prisma.data.create({ data })
@@ -22,7 +22,7 @@ export class DataService {
       return {
         timestamp: new Date(d.timestamp),
         value: d.value,
-        aggregatorId: d.aggregator,
+        aggregatorId: d.aggregatorId,
         feedId: d.feed
       }
     })

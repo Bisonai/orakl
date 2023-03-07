@@ -13,11 +13,11 @@ export class AggregatorService {
     })
 
     const adapter = await this.prisma.adapter.findUnique({
-      where: { adapterId: aggregatorDto.adapterId }
+      where: { adapterHash: aggregatorDto.adapterHash }
     })
 
     const data: Prisma.AggregatorUncheckedCreateInput = {
-      aggregatorId: aggregatorDto.id,
+      aggregatorHash: aggregatorDto.aggregatorHash,
       active: aggregatorDto.active,
       name: aggregatorDto.name,
       address: aggregatorDto.address,

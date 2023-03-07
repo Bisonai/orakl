@@ -53,7 +53,7 @@ export class AggregatorController {
   async findOne(@Param('id') aggregatorHash: string, @Body('chain') chain) {
     const { id: chainId } = await this.chainService.findOne({ name: chain })
     return await this.aggregatorService.findOne({
-      aggregatorId_chainId: { aggregatorId: aggregatorHash, chainId }
+      aggregatorHash_chainId: { aggregatorHash, chainId }
     })
   }
 
@@ -69,7 +69,7 @@ export class AggregatorController {
   ) {
     const { id: chainId } = await this.chainService.findOne({ name: aggregatorUpdateDto.chain })
     return this.aggregatorService.update({
-      where: { aggregatorId_chainId: { aggregatorId: aggregatorHash, chainId } },
+      where: { aggregatorHash_chainId: { aggregatorHash, chainId } },
       active: aggregatorUpdateDto.active
     })
   }

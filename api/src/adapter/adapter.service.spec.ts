@@ -45,7 +45,7 @@ describe('AdapterService', () => {
     ]
 
     const { id } = await adapter.create({
-      id: '0xe63985ed9d9aae887bdcfa03b53a1bea6fd1acc58b8cd51a9a69ede43eac6235',
+      adapterHash: '0xe63985ed9d9aae887bdcfa03b53a1bea6fd1acc58b8cd51a9a69ede43eac6235',
       name: 'BTC-USD',
       decimals: 8,
       feeds

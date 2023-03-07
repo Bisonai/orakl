@@ -19,7 +19,7 @@ CREATE TABLE "Feed" (
 -- CreateTable
 CREATE TABLE "Adapter" (
     "id" SERIAL NOT NULL,
-    "adapterId" TEXT NOT NULL,
+    "adapterHash" TEXT NOT NULL,
     "name" TEXT NOT NULL,
     "decimals" INTEGER NOT NULL,
 
@@ -29,7 +29,7 @@ CREATE TABLE "Adapter" (
 -- CreateTable
 CREATE TABLE "Aggregator" (
     "id" SERIAL NOT NULL,
-    "aggregatorId" TEXT NOT NULL,
+    "aggregatorHash" TEXT NOT NULL,
     "active" BOOLEAN NOT NULL DEFAULT false,
     "name" TEXT NOT NULL,
     "address" TEXT NOT NULL,
@@ -57,13 +57,13 @@ CREATE TABLE "Data" (
 CREATE UNIQUE INDEX "Chain_name_key" ON "Chain"("name");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "Adapter_adapterId_key" ON "Adapter"("adapterId");
+CREATE UNIQUE INDEX "Adapter_adapterHash_key" ON "Adapter"("adapterHash");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "Aggregator_address_key" ON "Aggregator"("address");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "Aggregator_aggregatorId_chainId_key" ON "Aggregator"("aggregatorId", "chainId");
+CREATE UNIQUE INDEX "Aggregator_aggregatorHash_chainId_key" ON "Aggregator"("aggregatorHash", "chainId");
 
 -- AddForeignKey
 ALTER TABLE "Feed" ADD CONSTRAINT "Feed_adapterId_fkey" FOREIGN KEY ("adapterId") REFERENCES "Adapter"("id") ON DELETE CASCADE ON UPDATE CASCADE;
