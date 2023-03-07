@@ -10,6 +10,10 @@ export function fetcherSub() {
       id: option({
         type: cmdstring,
         long: 'id'
+      }),
+      chain: option({
+        type: cmdstring,
+        long: 'chain'
       })
     },
     handler: startHandler()
@@ -21,6 +25,10 @@ export function fetcherSub() {
       id: option({
         type: cmdstring,
         long: 'id'
+      }),
+      chain: option({
+        type: cmdstring,
+        long: 'chain'
       })
     },
     handler: stopHandler()
@@ -33,10 +41,10 @@ export function fetcherSub() {
 }
 
 export function startHandler() {
-  async function wrapper({ id }: { id: string }) {
+  async function wrapper({ id, chain }: { id: string; chain: string }) {
     const startEndpoint = buildUrl(ORAKL_NETWORK_FETCHER_URL, `start/${id}`)
     try {
-      const response = await axios.get(startEndpoint)
+      const response = await axios.get(startEndpoint, { data: { chain } })
       console.log(response?.data)
     } catch (e) {
       console.dir(e?.response?.data, { depth: null })
@@ -46,10 +54,10 @@ export function startHandler() {
 }
 
 export function stopHandler() {
-  async function wrapper({ id }: { id: string }) {
+  async function wrapper({ id, chain }: { id: string; chain: string }) {
     const stopEndpoint = buildUrl(ORAKL_NETWORK_FETCHER_URL, `stop/${id}`)
     try {
-      const response = await axios.get(stopEndpoint)
+      const response = await axios.get(stopEndpoint, { data: { chain } })
       console.log(response?.data)
     } catch (e) {
       console.dir(e?.response?.data, { depth: null })
