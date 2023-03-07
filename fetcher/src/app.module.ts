@@ -4,6 +4,7 @@ import { JobModule } from './job/job.module'
 import { BullModule } from '@nestjs/bullmq'
 import { AppController } from './app.controller'
 import { AppService } from './app.service'
+import { ConfigService } from '@nestjs/config'
 
 @Module({
   imports: [
@@ -14,6 +15,6 @@ import { AppService } from './app.service'
     BullModule
   ],
   controllers: [AppController],
-  providers: [AppService]
+  providers: [AppService, ConfigService]
 })
 export class AppModule {}

@@ -8,6 +8,21 @@ Orakl Network Fetcher collects regularly data defined through aggregators define
 yarn install
 ```
 
+## Settings
+
+Orakl Network Fetcher requires to set the following environment variables.
+
+* `REDIS_HOST`
+* `REDIS_PORT`
+* `ORAKL_NETWORK_API_URL`
+* `APP_PORT`
+
+You can copy them from `.env.example` to `.env` and fill the appropriate values.
+
+```shell
+cp .env.example .env
+```
+
 ## Running the app
 
 ```shell
