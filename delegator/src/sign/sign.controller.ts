@@ -11,7 +11,7 @@ export class SignController {
   constructor(private readonly signService: SignService) {}
 
   @Post()
-  create(@Body() signDto: SignDto): Promise<TransactionModel> {
+  async create(@Body() signDto: SignDto): Promise<Number> {
     return this.signService.create(signDto)
   }
 
@@ -22,11 +22,11 @@ export class SignController {
 
   @Get(':id')
   findOne(@Param('id') id: string) {
-    return this.signService.findOne(+id)
+    return this.signService.findOne({ id: Number(id) })
   }
 
-  // @Patch(':id')
-  // update(@Param('id') id: string, @Body() updateSignDto: UpdateSignDto) {
-  //   return this.signService.update(+id, updateSignDto)
-  // }
+  @Patch(':id')
+  async update(@Param('id') id: string, @Body() signDto: SignDto): Promise<TransactionModel> {
+    return this.signService.update({ where: { id: Number(id) }, signDto })
+  }
 }

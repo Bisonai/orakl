@@ -2,13 +2,20 @@ import { Injectable } from '@nestjs/common'
 import { Transaction, Prisma } from '@prisma/client'
 import { PrismaService } from '../prisma.service'
 import { SignDto } from './dto/sign.dto'
+import { approveAndSign } from './helper/utils'
 
 @Injectable()
 export class SignService {
   constructor(private prisma: PrismaService) {}
 
-  create(signDto: SignDto): Promise<Transaction> {
-    return this.prisma.transaction.create({ data: signDto })
+  async create(signDto: SignDto): Promise<Number> {
+    const data: Prisma.TransactionCreateInput = {
+      tx: signDto.tx,
+      signed: 'false'
+    }
+    const result = await this.prisma.transaction.create({ data })
+    approveAndSign(result)
+    return result.id
   }
 
   async findAll(params: {
@@ -28,11 +35,19 @@ export class SignService {
     })
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} sign`
+  async findOne(
+    transactionWhereQuniqueInput: Prisma.TransactionWhereUniqueInput
+  ): Promise<Transaction | null> {
+    return this.prisma.transaction.findUnique({
+      where: transactionWhereQuniqueInput
+    })
   }
 
-  // update(id: number, updateSignDto: UpdateSignDto) {
-  //   return `This action updates a #${id} sign`
-  // }
+  async update(params: { where: Prisma.TransactionWhereUniqueInput; signDto: SignDto }) {
+    const { where, signDto } = params
+    return this.prisma.transaction.update({
+      data: signDto,
+      where
+    })
+  }
 }
