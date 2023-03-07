@@ -28,7 +28,7 @@ export class AggregatorService {
       chainId: chain.id
     }
 
-    return await this.prisma.aggregator.create({ data })
+    return this.prisma.aggregator.create({ data })
   }
 
   async findAll(params: {
@@ -65,6 +65,17 @@ export class AggregatorService {
 
   async remove(where: Prisma.AggregatorWhereUniqueInput): Promise<Aggregator> {
     return this.prisma.aggregator.delete({
+      where
+    })
+  }
+
+  async update(params: {
+    where: Prisma.AggregatorWhereUniqueInput
+    active: boolean
+  }): Promise<Aggregator> {
+    const { where, active } = params
+    return this.prisma.aggregator.update({
+      data: { active },
       where
     })
   }

@@ -2,6 +2,7 @@ import {
   Controller,
   Get,
   Post,
+  Patch,
   Body,
   Delete,
   Param,
@@ -13,6 +14,7 @@ import { AggregatorService } from './aggregator.service'
 import { ChainService } from '../chain/chain.service'
 import { AggregatorDto } from './dto/aggregator.dto'
 import { AggregatorWhereDto } from './dto/aggregator-where.dto'
+import { AggregatorUpdateDto } from './dto/aggregator-update.dto'
 import { PRISMA_ERRORS } from '../errors'
 
 @Controller({
@@ -56,7 +58,19 @@ export class AggregatorController {
   }
 
   @Delete(':id')
-  async remove(@Param('id') id: string): Promise<AggregatorModel> {
+  async remove(@Param('id') id: string) {
     return this.aggregatorService.remove({ id: Number(id) })
+  }
+
+  @Patch(':id')
+  async update(
+    @Param('id') aggregatorHash: string,
+    @Body('data') aggregatorUpdateDto: AggregatorUpdateDto
+  ) {
+    const { id: chainId } = await this.chainService.findOne({ name: aggregatorUpdateDto.chain })
+    return this.aggregatorService.update({
+      where: { aggregatorId_chainId: { aggregatorId: aggregatorHash, chainId } },
+      active: aggregatorUpdateDto.active
+    })
   }
 }
