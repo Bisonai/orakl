@@ -45,9 +45,8 @@ CREATE TABLE "Aggregator" (
 -- CreateTable
 CREATE TABLE "Data" (
     "id" BIGSERIAL NOT NULL,
-    "round" BIGINT NOT NULL,
     "timestamp" TIMESTAMPTZ NOT NULL,
-    "value" INTEGER NOT NULL,
+    "value" BIGINT NOT NULL,
     "aggregatorId" INTEGER NOT NULL,
     "feedId" INTEGER NOT NULL,
 

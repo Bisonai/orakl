@@ -81,9 +81,8 @@ describe('DataService', () => {
     const { feeds: feedsObj } = await adapter.findOne({ id: adapterObj.id })
     expect(feeds.length).toBe(1)
     const dataObj = await data.create({
-      round: 123,
       timestamp: new Date(Date.now()),
-      value: 1,
+      value: 2241772466578,
       aggregator: aggregatorObj.id,
       feed: feedsObj[0].id
     })

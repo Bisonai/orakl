@@ -54,9 +54,8 @@ model Aggregator {
 
 model Data {
   id           BigInt     @id @default(autoincrement())
-  round        BigInt
   timestamp    DateTime   @db.Timestamptz
-  value        Int
+  value        BigInt
   aggregator   Aggregator @relation(fields: [aggregatorId], references: [id])
   aggregatorId Int
   feed         Feed       @relation(fields: [feedId], references: [id])
