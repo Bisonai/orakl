@@ -9,13 +9,25 @@ export class DataService {
 
   async create(datumDto: DatumDto): Promise<Data> {
     const data: Prisma.DataUncheckedCreateInput = {
-      round: datumDto.round,
       timestamp: datumDto.timestamp,
       value: datumDto.value,
       aggregatorId: datumDto.aggregator,
       feedId: datumDto.feed
     }
     return this.prisma.data.create({ data })
+  }
+
+  async createMany(dataDto: DatumDto[]) {
+    const data: Prisma.DataCreateManyInput[] = dataDto.map((d) => {
+      return {
+        timestamp: new Date(d.timestamp),
+        value: d.value,
+        aggregatorId: d.aggregator,
+        feedId: d.feed
+      }
+    })
+
+    return this.prisma.data.createMany({ data })
   }
 
   async findAll(params: {
