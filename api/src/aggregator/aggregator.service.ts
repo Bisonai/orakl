@@ -52,7 +52,14 @@ export class AggregatorService {
     aggregatorWhereUniqueInput: Prisma.AggregatorWhereUniqueInput
   ): Promise<Aggregator | null> {
     return this.prisma.aggregator.findUnique({
-      where: aggregatorWhereUniqueInput
+      where: aggregatorWhereUniqueInput,
+      include: {
+        adapter: {
+          include: {
+            feeds: true
+          }
+        }
+      }
     })
   }
 

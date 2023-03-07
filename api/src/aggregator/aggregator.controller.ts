@@ -10,6 +10,7 @@ import {
 } from '@nestjs/common'
 import { Aggregator as AggregatorModel } from '@prisma/client'
 import { AggregatorService } from './aggregator.service'
+import { ChainService } from '../chain/chain.service'
 import { AggregatorDto } from './dto/aggregator.dto'
 import { AggregatorWhereDto } from './dto/aggregator-where.dto'
 import { PRISMA_ERRORS } from '../errors'
@@ -19,7 +20,10 @@ import { PRISMA_ERRORS } from '../errors'
   version: '1'
 })
 export class AggregatorController {
-  constructor(private readonly aggregatorService: AggregatorService) {}
+  constructor(
+    private readonly aggregatorService: AggregatorService,
+    private readonly chainService: ChainService
+  ) {}
 
   @Post()
   async create(@Body() aggregatorDto: AggregatorDto) {
@@ -44,8 +48,11 @@ export class AggregatorController {
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.aggregatorService.findOne({ id: Number(id) })
+  async findOne(@Param('id') aggregatorHash: string, @Body('chain') chain) {
+    const { id: chainId } = await this.chainService.findOne({ name: chain })
+    return await this.aggregatorService.findOne({
+      aggregatorId_chainId: { aggregatorId: aggregatorHash, chainId }
+    })
   }
 
   @Delete(':id')
