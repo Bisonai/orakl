@@ -8,35 +8,6 @@ export function buildUrl(host: string, path: string) {
   return url.replace(/([^:]\/)\/+/g, '$1')
 }
 
-export async function loadAggregator(aggregatorId: string, chain: string) {
-  let response = {}
-  try {
-    const url = buildUrl(process.env.ORAKL_NETWORK_API_URL, `aggregator/${aggregatorId}`)
-    response = (await axios.get(url, { data: { chain } }))?.data
-  } catch (e) {
-    this.logger.error(e)
-  } finally {
-    return response
-  }
-}
-
-/* DEPRECATED */
-// export async function loadAdapters({
-//   postprocess
-// }: {
-//   postprocess?: boolean
-// }) /*: Promise<IAdapter[]>*/ {
-//   const rawAdapters = [] //await getAdapters(DB, CHAIN)
-//   const validatedRawAdapters = rawAdapters.map((a) => validateAdapter(JSON.parse(a.data)))
-//
-//   if (!postprocess) {
-//     return validatedRawAdapters
-//   }
-//
-//   const activeRawAdapters = validatedRawAdapters.filter((a) => a.active)
-//   return Object.assign({}, ...activeRawAdapters.map((a) => extractFeeds(a)))
-// }
-
 /**
  * Fetch data from data sources defined in `adapter`.
  *
