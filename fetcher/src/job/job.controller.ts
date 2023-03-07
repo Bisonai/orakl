@@ -1,4 +1,4 @@
-import { Controller, Get, Param } from '@nestjs/common'
+import { Controller, Get, Param, HttpStatus, HttpException } from '@nestjs/common'
 import { JobDto } from './dto/job.dto'
 import { InjectQueue } from '@nestjs/bullmq'
 import { Queue } from 'bullmq'
@@ -13,7 +13,6 @@ export class JobController {
 
   @Get('start/:aggregator')
   async start(@Param('aggregator') id: string) {
-    console.log('added job')
     // TODO check aggregator
     const job = await this.queue.add(
       id,
@@ -26,6 +25,9 @@ export class JobController {
         removeOnFail: true
       }
     )
+    const msg = `Added [${id}]`
+    this.logger.log(msg)
+    return msg
   }
 
   @Get('stop/:aggregator')
@@ -36,10 +38,17 @@ export class JobController {
     if (filtered.length == 1) {
       const job = filtered[0]
       job.remove()
-      this.logger.log(`Job ${id} removed`)
+      const msg = `Removed [${id}]`
+      this.logger.log(msg)
+      return msg
     } else if (filtered.length == 0) {
-      this.logger.error(`job ${id} does not exist`)
+      const msg = `Job [${id}] does not exist`
+      this.logger.error(msg)
+      throw new HttpException(msg, HttpStatus.NOT_FOUND)
     } else {
+      const msg = 'Found more than one job satisfying your criteria'
+      this.logger.error(msg)
+      throw new HttpException(msg, HttpStatus.INTERNAL_SERVER_ERROR)
     }
   }
 }
