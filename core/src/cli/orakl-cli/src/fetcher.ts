@@ -3,6 +3,8 @@ import { command, subcommands, option, string as cmdstring } from 'cmd-ts'
 import { buildUrl } from './utils'
 import { ORAKL_NETWORK_FETCHER_URL } from './settings'
 
+const FETCHER_ENDPOINT = buildUrl(ORAKL_NETWORK_FETCHER_URL, 'api/v1')
+
 export function fetcherSub() {
   const start = command({
     name: 'start',
@@ -42,7 +44,7 @@ export function fetcherSub() {
 
 export function startHandler() {
   async function wrapper({ id, chain }: { id: string; chain: string }) {
-    const startEndpoint = buildUrl(ORAKL_NETWORK_FETCHER_URL, `start/${id}`)
+    const startEndpoint = buildUrl(FETCHER_ENDPOINT, `start/${id}`)
     try {
       const response = await axios.get(startEndpoint, { data: { chain } })
       console.log(response?.data)
@@ -55,7 +57,7 @@ export function startHandler() {
 
 export function stopHandler() {
   async function wrapper({ id, chain }: { id: string; chain: string }) {
-    const stopEndpoint = buildUrl(ORAKL_NETWORK_FETCHER_URL, `stop/${id}`)
+    const stopEndpoint = buildUrl(FETCHER_ENDPOINT, `stop/${id}`)
     try {
       const response = await axios.get(stopEndpoint, { data: { chain } })
       console.log(response?.data)
