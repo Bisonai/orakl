@@ -8,14 +8,11 @@ import { approveAndSign } from './helper/utils'
 export class SignService {
   constructor(private prisma: PrismaService) {}
 
-  async create(signDto: SignDto): Promise<Number> {
-    const data: Prisma.TransactionCreateInput = {
-      tx: signDto.tx,
-      signed: 'false'
-    }
+  async create(data: SignDto) {
     const result = await this.prisma.transaction.create({ data })
+    // console.log(data)
     approveAndSign(result)
-    return result.id
+    // return result.id
   }
 
   async findAll(params: {

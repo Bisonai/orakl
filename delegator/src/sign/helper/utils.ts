@@ -4,6 +4,8 @@ import Caver, { AbiItem, SingleKeyring } from 'caver-js'
 import { SignDto } from '../dto/sign.dto'
 import { dummyFactory } from './dummyFactory'
 import { DelegatorError, DelegatorErrorCode } from './errors'
+import { SignatureData } from 'caver-js'
+import { SignTxData } from './types'
 
 const PROVIDER_URL = 'https://api.baobab.klaytn.net:8651'
 const caver = new Caver(PROVIDER_URL)
@@ -18,32 +20,29 @@ export async function loadJson(filepath) {
 }
 
 function encryptMethodName(method: string) {
-  return caver.utils.sha3(method).slice(0, 10)
+  return caver.klay.abi.encodeFunctionSignature(method)
 }
 
-async function getSignedTx(txId) {
-  // TODO: read Tx it from DB
-  const contract = new caver.contract(dummyFactory.abi as AbiItem[], dummyFactory.address)
-  const input = contract.methods.increament().encodeABI()
-  const rawTx = caver.transaction.feeDelegatedSmartContractExecution.create({
-    from: keyring.address,
-    to: contract._address,
-    input: input,
-    gas: 90000
-  })
-  const newRawTx = caver.transaction.feeDelegatedSmartContractExecution.create({
+async function getSignedTx(rawTx) {
+  const signature: SignatureData = new caver.wallet.keyring.signatureData([
+    rawTx.v,
+    rawTx.r,
+    rawTx.s
+  ])
+
+  const iTx: SignTxData = {
     from: rawTx.from,
     to: rawTx.to,
     input: rawTx.input,
     gas: rawTx.gas,
-    signatures: rawTx.signatures,
+    signatures: [signature],
     value: rawTx.value,
     chainId: rawTx.chainId,
     gasPrice: rawTx.gasPrice,
     nonce: rawTx.nonce
-  })
-  await caver.wallet.sign(keyring.address, newRawTx)
-  return newRawTx
+  }
+
+  return await caver.transaction.feeDelegatedSmartContractExecution.create({ ...iTx })
 }
 
 async function signByFeePayerAndExecuteTransaction(rawTx) {
@@ -74,9 +73,7 @@ async function validateTransaction(rawTx) {
 }
 
 export async function approveAndSign(input: Transaction) {
-  console.log('Input', input)
-
-  const rawTx = await getSignedTx(input.id)
+  const rawTx = await getSignedTx(input)
   await validateTransaction(rawTx)
 
   const receipt = await signByFeePayerAndExecuteTransaction(rawTx)

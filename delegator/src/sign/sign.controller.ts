@@ -11,7 +11,7 @@ export class SignController {
   constructor(private readonly signService: SignService) {}
 
   @Post()
-  async create(@Body() signDto: SignDto): Promise<Number> {
+  async create(@Body('data') signDto: SignDto) {
     return this.signService.create(signDto)
   }
 
