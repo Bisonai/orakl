@@ -1,6 +1,6 @@
 -- CreateTable
 CREATE TABLE "Chain" (
-    "id" SERIAL NOT NULL,
+    "id" BIGSERIAL NOT NULL,
     "name" TEXT NOT NULL,
 
     CONSTRAINT "Chain_pkey" PRIMARY KEY ("id")
@@ -8,17 +8,17 @@ CREATE TABLE "Chain" (
 
 -- CreateTable
 CREATE TABLE "Feed" (
-    "id" SERIAL NOT NULL,
+    "id" BIGSERIAL NOT NULL,
     "name" TEXT NOT NULL,
     "definition" JSONB NOT NULL,
-    "adapterId" INTEGER NOT NULL,
+    "adapterId" BIGINT NOT NULL,
 
     CONSTRAINT "Feed_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "Adapter" (
-    "id" SERIAL NOT NULL,
+    "id" BIGSERIAL NOT NULL,
     "adapterHash" TEXT NOT NULL,
     "name" TEXT NOT NULL,
     "decimals" INTEGER NOT NULL,
@@ -28,7 +28,7 @@ CREATE TABLE "Adapter" (
 
 -- CreateTable
 CREATE TABLE "Aggregator" (
-    "id" SERIAL NOT NULL,
+    "id" BIGSERIAL NOT NULL,
     "aggregatorHash" TEXT NOT NULL,
     "active" BOOLEAN NOT NULL DEFAULT false,
     "name" TEXT NOT NULL,
@@ -36,8 +36,8 @@ CREATE TABLE "Aggregator" (
     "heartbeat" INTEGER NOT NULL,
     "threshold" DOUBLE PRECISION NOT NULL,
     "absoluteThreshold" DOUBLE PRECISION NOT NULL,
-    "adapterId" INTEGER NOT NULL,
-    "chainId" INTEGER NOT NULL,
+    "adapterId" BIGINT NOT NULL,
+    "chainId" BIGINT NOT NULL,
 
     CONSTRAINT "Aggregator_pkey" PRIMARY KEY ("id")
 );
@@ -47,8 +47,8 @@ CREATE TABLE "Data" (
     "id" BIGSERIAL NOT NULL,
     "timestamp" TIMESTAMPTZ NOT NULL,
     "value" BIGINT NOT NULL,
-    "aggregatorId" INTEGER NOT NULL,
-    "feedId" INTEGER NOT NULL,
+    "aggregatorId" BIGINT NOT NULL,
+    "feedId" BIGINT NOT NULL,
 
     CONSTRAINT "Data_pkey" PRIMARY KEY ("id")
 );
@@ -58,7 +58,7 @@ CREATE TABLE "Aggregate" (
     "id" BIGSERIAL NOT NULL,
     "timestamp" TIMESTAMPTZ NOT NULL,
     "value" BIGINT NOT NULL,
-    "aggregatorId" INTEGER NOT NULL,
+    "aggregatorId" BIGINT NOT NULL,
 
     CONSTRAINT "Aggregate_pkey" PRIMARY KEY ("id")
 );
@@ -74,6 +74,9 @@ CREATE UNIQUE INDEX "Aggregator_address_key" ON "Aggregator"("address");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "Aggregator_aggregatorHash_chainId_key" ON "Aggregator"("aggregatorHash", "chainId");
+
+-- CreateIndex
+CREATE INDEX "Aggregate_aggregatorId_timestamp_idx" ON "Aggregate"("aggregatorId", "timestamp" DESC);
 
 -- AddForeignKey
 ALTER TABLE "Feed" ADD CONSTRAINT "Feed_adapterId_fkey" FOREIGN KEY ("adapterId") REFERENCES "Adapter"("id") ON DELETE CASCADE ON UPDATE CASCADE;

@@ -11,22 +11,22 @@ datasource db {
 }
 
 model Chain {
-  id         BigInt          @id @default(autoincrement())
+  id         BigInt       @id @default(autoincrement())
   name       String       @unique
   Aggregator Aggregator[]
 }
 
 model Feed {
-  id         BigInt     @id @default(autoincrement())
+  id         BigInt  @id @default(autoincrement())
   name       String
   definition Json
   adapter    Adapter @relation(fields: [adapterId], references: [id], onDelete: Cascade)
-  adapterId  Int
+  adapterId  BigInt
   Data       Data[]
 }
 
 model Adapter {
-  id          BigInt          @id @default(autoincrement())
+  id          BigInt       @id @default(autoincrement())
   adapterHash String       @unique
   name        String
   decimals    Int
@@ -35,7 +35,7 @@ model Adapter {
 }
 
 model Aggregator {
-  id                BigInt         @id @default(autoincrement())
+  id                BigInt      @id @default(autoincrement())
   aggregatorHash    String
   active            Boolean     @default(false)
   name              String
@@ -45,9 +45,9 @@ model Aggregator {
   absoluteThreshold Float
   Data              Data[]
   adapter           Adapter     @relation(fields: [adapterId], references: [id])
-  adapterId         Int
+  adapterId         BigInt
   chain             Chain       @relation(fields: [chainId], references: [id])
-  chainId           Int
+  chainId           BigInt
   Aggregate         Aggregate[]
 
   @@unique([aggregatorHash, chainId])
@@ -58,9 +58,9 @@ model Data {
   timestamp    DateTime   @db.Timestamptz
   value        BigInt
   aggregator   Aggregator @relation(fields: [aggregatorId], references: [id])
-  aggregatorId Int
+  aggregatorId BigInt
   feed         Feed       @relation(fields: [feedId], references: [id])
-  feedId       Int
+  feedId       BigInt
 }
 
 model Aggregate {
@@ -68,5 +68,7 @@ model Aggregate {
   timestamp    DateTime   @db.Timestamptz
   value        BigInt
   aggregator   Aggregator @relation(fields: [aggregatorId], references: [id])
-  aggregatorId Int
+  aggregatorId BigInt
+
+  @@index([aggregatorId, timestamp(sort: Desc)])
 }
