@@ -1,5 +1,5 @@
 import { Injectable, HttpException, HttpStatus, Logger } from '@nestjs/common'
-import { Adapter, Prisma } from '@prisma/client'
+import { Prisma } from '@prisma/client'
 import { PrismaService } from '../prisma.service'
 import { AdapterDto } from './dto/adapter.dto'
 import { PRISMA_ERRORS } from '../errors'
@@ -37,9 +37,9 @@ export class AdapterService {
     cursor?: Prisma.AdapterWhereUniqueInput
     where?: Prisma.AdapterWhereInput
     orderBy?: Prisma.AdapterOrderByWithRelationInput
-  }): Promise<Adapter[]> {
+  }) {
     const { skip, take, cursor, where, orderBy } = params
-    return this.prisma.adapter.findMany({
+    return await this.prisma.adapter.findMany({
       skip,
       take,
       cursor,
@@ -49,7 +49,7 @@ export class AdapterService {
   }
 
   async findOne(adapterWhereUniqueInput: Prisma.AdapterWhereUniqueInput) {
-    return this.prisma.adapter.findUnique({
+    return await this.prisma.adapter.findUnique({
       where: adapterWhereUniqueInput,
       include: {
         feeds: true
@@ -57,8 +57,8 @@ export class AdapterService {
     })
   }
 
-  async remove(where: Prisma.AdapterWhereUniqueInput): Promise<Adapter> {
-    return this.prisma.adapter.delete({
+  async remove(where: Prisma.AdapterWhereUniqueInput) {
+    return await this.prisma.adapter.delete({
       where
     })
   }
