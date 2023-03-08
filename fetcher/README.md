@@ -55,3 +55,25 @@ yarn run test:e2e
 # test coverage
 yarn run test:cov
 ```
+
+## Configure Orakl Network Fetcher
+
+```shell
+yarn cli chain insert --name localhost
+yarn cli adapter insert --file-path adapter/btc-usdt.adapter.json
+
+# adapterHash=0xd6fbe30bd6249b3093ee065496115e5736bbe760cadfc85598ef27eb4739a849
+yarn cli aggregator insert --file-path aggregator/localhost/btc-usdt.aggregator.json --chain localhost
+```
+
+## Start data collection and aggregation
+
+```shell
+yarn cli fetcher start --id 0xd6fbe30bd6249b3093ee065496115e5736bbe760cadfc85598ef27eb4739a849 --chain localhost
+```
+
+## Stop data collection and aggregation
+
+```shell
+yarn cli fetcher stop --id 0xd6fbe30bd6249b3093ee065496115e5736bbe760cadfc85598ef27eb4739a849 --chain localhost
+```
