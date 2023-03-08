@@ -9,6 +9,8 @@ const PROVIDER_URL = 'https://api.baobab.klaytn.net:8651'
 const caver = new Caver(PROVIDER_URL)
 const feePayerKeyring = caver.wallet.keyring.createFromPrivateKey(process.env.SIGNER_PRIVATE_KEY)
 caver.wallet.add(feePayerKeyring)
+const keyring = caver.wallet.keyring.createFromPrivateKey(process.env.CAVER_PRIVATE_KEY)
+caver.wallet.add(keyring)
 
 export async function loadJson(filepath) {
   const json = await Fs.readFile(filepath, 'utf8')
@@ -22,9 +24,6 @@ function encryptMethodName(method: string) {
 async function getSignedTx(txId) {
   // TODO: read Tx it from DB
   const contract = new caver.contract(dummyFactory.abi as AbiItem[], dummyFactory.address)
-  const keyring = caver.wallet.keyring.createFromPrivateKey(process.env.CAVER_PRIVATE_KEY)
-  caver.wallet.add(keyring)
-
   const input = contract.methods.increament().encodeABI()
   const rawTx = caver.transaction.feeDelegatedSmartContractExecution.create({
     from: keyring.address,
