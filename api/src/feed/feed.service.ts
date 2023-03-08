@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common'
-import { Feed, Prisma } from '@prisma/client'
+import { Prisma } from '@prisma/client'
 import { PrismaService } from '../prisma.service'
 
 @Injectable()
@@ -12,9 +12,9 @@ export class FeedService {
     cursor?: Prisma.FeedWhereUniqueInput
     where?: Prisma.FeedWhereInput
     orderBy?: Prisma.FeedOrderByWithRelationInput
-  }): Promise<Feed[]> {
+  }) {
     const { skip, take, cursor, where, orderBy } = params
-    return this.prisma.feed.findMany({
+    return await this.prisma.feed.findMany({
       skip,
       take,
       cursor,
@@ -23,8 +23,8 @@ export class FeedService {
     })
   }
 
-  async findOne(feedWhereUniqueInput: Prisma.FeedWhereUniqueInput): Promise<Feed | null> {
-    return this.prisma.feed.findUnique({
+  async findOne(feedWhereUniqueInput: Prisma.FeedWhereUniqueInput) {
+    return await this.prisma.feed.findUnique({
       where: feedWhereUniqueInput
     })
   }
