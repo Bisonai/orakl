@@ -11,13 +11,13 @@ datasource db {
 }
 
 model Chain {
-  id         Int          @id @default(autoincrement())
+  id         BigInt          @id @default(autoincrement())
   name       String       @unique
   Aggregator Aggregator[]
 }
 
 model Feed {
-  id         Int     @id @default(autoincrement())
+  id         BigInt     @id @default(autoincrement())
   name       String
   definition Json
   adapter    Adapter @relation(fields: [adapterId], references: [id], onDelete: Cascade)
@@ -26,7 +26,7 @@ model Feed {
 }
 
 model Adapter {
-  id          Int          @id @default(autoincrement())
+  id          BigInt          @id @default(autoincrement())
   adapterHash String       @unique
   name        String
   decimals    Int
@@ -35,7 +35,7 @@ model Adapter {
 }
 
 model Aggregator {
-  id                Int         @id @default(autoincrement())
+  id                BigInt         @id @default(autoincrement())
   aggregatorHash    String
   active            Boolean     @default(false)
   name              String

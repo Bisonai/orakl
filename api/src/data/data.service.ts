@@ -14,7 +14,7 @@ export class DataService {
       aggregatorId: datumDto.aggregatorId,
       feedId: datumDto.feedId
     }
-    return this.prisma.data.create({ data })
+    return await this.prisma.data.create({ data })
   }
 
   async createMany(dataDto: DatumDto[]) {

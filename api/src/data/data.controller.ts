@@ -10,8 +10,8 @@ export class DataController {
   constructor(private readonly dataService: DataService) {}
 
   @Post()
-  create(@Body('data') dataDto: DatumDto[]) {
-    return this.dataService.createMany(dataDto)
+  async create(@Body('data') dataDto: DatumDto[]) {
+    return await this.dataService.createMany(dataDto)
   }
 
   @Get()

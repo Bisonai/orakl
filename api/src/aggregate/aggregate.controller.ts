@@ -10,7 +10,7 @@ export class AggregateController {
   constructor(private readonly aggregateService: AggregateService) {}
 
   @Post()
-  async create(@Body() aggregateDto: AggregateDto) {
+  async create(@Body('data') aggregateDto: AggregateDto) {
     return await this.aggregateService.create(aggregateDto)
   }
 

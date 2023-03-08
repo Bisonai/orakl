@@ -2,8 +2,8 @@ import { Processor, WorkerHost } from '@nestjs/bullmq'
 import { Logger } from '@nestjs/common'
 import { Job } from 'bullmq'
 import { FetcherError, FetcherErrorCode } from './job.errors'
-import { fetchData /*, aggregateData*/ } from './job.utils'
-import { insertMultipleData } from './job.api'
+import { fetchData, aggregateData } from './job.utils'
+import { insertMultipleData, insertAggregateData } from './job.api'
 
 @Processor('orakl-fetcher-queue')
 export class JobProcessor extends WorkerHost {
@@ -22,10 +22,13 @@ export class JobProcessor extends WorkerHost {
       // const name = inData[aggregatorHash].name
       const feeds = inData[aggregatorHash].feeds
       const data = await fetchData(feeds)
-      // const aggregate = aggregateData(data)
+      const aggregate = aggregateData(data)
 
       try {
-        await insertMultipleData({ aggregatorId, timestamp, data })
+        let response = await insertMultipleData({ aggregatorId, timestamp, data })
+        this.logger.debug(response)
+        response = await insertAggregateData({ aggregatorId, timestamp, value: aggregate })
+        this.logger.debug(response)
       } catch (e) {
         this.logger.error(e)
       }

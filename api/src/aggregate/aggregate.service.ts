@@ -8,7 +8,13 @@ export class AggregateService {
   constructor(private prisma: PrismaService) {}
 
   async create(aggregateDto: AggregateDto) {
-    return await this.prisma.aggregate.create({ data: aggregateDto })
+    const data: Prisma.AggregateUncheckedCreateInput = {
+      timestamp: new Date(aggregateDto.timestamp),
+      value: aggregateDto.value,
+      aggregatorId: aggregateDto.aggregatorId
+    }
+
+    return await this.prisma.aggregate.create({ data })
   }
 
   async findAll(params: {

@@ -24,16 +24,38 @@ export async function insertMultipleData({
 }) {
   const _data = data.map((d) => {
     return {
-      aggregatorId,
-      timestamp,
-      value: d.value,
-      feedId: d.id
+      aggregatorId: aggregatorId,
+      feedId: d.id,
+      timestamp: timestamp,
+      value: d.value
     }
   })
 
   const url = buildUrl(process.env.ORAKL_NETWORK_API_URL, 'data')
   const response = await axios.post(url, { data: _data })
-  console.log(response.data)
+  return {
+    status: response?.status,
+    statusText: response?.statusText,
+    data: response?.data
+  }
+}
+
+export async function insertAggregateData({
+  aggregatorId,
+  timestamp,
+  value
+}: {
+  aggregatorId: string
+  timestamp: string
+  value: number
+}) {
+  const url = buildUrl(process.env.ORAKL_NETWORK_API_URL, 'aggregate')
+  const response = await axios.post(url, { data: { aggregatorId, timestamp, value } })
+  return {
+    status: response?.status,
+    statusText: response?.statusText,
+    data: response?.data
+  }
 }
 
 export async function updateAggregator(aggregatorHash: string, chain: string, active: boolean) {
