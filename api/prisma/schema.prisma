@@ -35,19 +35,20 @@ model Adapter {
 }
 
 model Aggregator {
-  id                Int     @id @default(autoincrement())
+  id                Int         @id @default(autoincrement())
   aggregatorHash    String
-  active            Boolean @default(false)
+  active            Boolean     @default(false)
   name              String
-  address           String  @unique
+  address           String      @unique
   heartbeat         Int
   threshold         Float
   absoluteThreshold Float
   Data              Data[]
-  adapter           Adapter @relation(fields: [adapterId], references: [id])
+  adapter           Adapter     @relation(fields: [adapterId], references: [id])
   adapterId         Int
-  chain             Chain   @relation(fields: [chainId], references: [id])
+  chain             Chain       @relation(fields: [chainId], references: [id])
   chainId           Int
+  Aggregate         Aggregate[]
 
   @@unique([aggregatorHash, chainId])
 }
@@ -60,4 +61,12 @@ model Data {
   aggregatorId Int
   feed         Feed       @relation(fields: [feedId], references: [id])
   feedId       Int
+}
+
+model Aggregate {
+  id           BigInt     @id @default(autoincrement())
+  timestamp    DateTime   @db.Timestamptz
+  value        BigInt
+  aggregator   Aggregator @relation(fields: [aggregatorId], references: [id])
+  aggregatorId Int
 }
