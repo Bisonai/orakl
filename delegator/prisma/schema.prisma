@@ -8,7 +8,16 @@ datasource db {
 }
 
 model Transaction {
-  id     Int    @id @default(autoincrement())
-  tx     String
-  signed String
+  id       Int    @id @default(autoincrement())
+  from     String
+  to       String
+  input    String
+  gas      String
+  value    String
+  chainId  String
+  gasPrice String
+  nonce    String
+  v String
+  r String
+  s String
 }
