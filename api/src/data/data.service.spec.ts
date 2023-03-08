@@ -84,7 +84,7 @@ describe('DataService', () => {
       timestamp: new Date(Date.now()),
       value: 2241772466578,
       aggregatorId: aggregatorObj.id,
-      feed: feedsObj[0].id
+      feedId: feedsObj[0].id
     })
 
     // Cleanup
