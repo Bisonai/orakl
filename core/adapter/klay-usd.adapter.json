@@ -1,5 +1,5 @@
 {
-  "id": "0x0db2dce17745882ea457e651adf1eb0080b5f432d1876df56f1967b5288f338b",
+  "adapterHash": "0x0db2dce17745882ea457e651adf1eb0080b5f432d1876df56f1967b5288f338b",
   "name": "KLAY-USD",
   "decimals": "8",
   "feeds": [

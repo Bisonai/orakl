@@ -1,5 +1,5 @@
 {
-  "id": "0x7e6552824ce107ab0d6e4266ba6b93f0afe5aa576a491364fc01881a34ddb12b",
+  "adapterHash": "0x7e6552824ce107ab0d6e4266ba6b93f0afe5aa576a491364fc01881a34ddb12b",
   "name": "ETH-USD",
   "decimals": 8,
   "feeds": [
