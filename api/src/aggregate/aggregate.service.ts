@@ -7,8 +7,8 @@ import { AggregateDto } from './dto/aggregate.dto'
 export class AggregateService {
   constructor(private prisma: PrismaService) {}
 
-  create(aggregateDto: AggregateDto) {
-    return 'This action adds a new aggregate'
+  async create(aggregateDto: AggregateDto) {
+    return await this.prisma.aggregate.create({ data: aggregateDto })
   }
 
   async findAll(params: {
@@ -19,7 +19,7 @@ export class AggregateService {
     orderBy?: Prisma.AggregateOrderByWithRelationInput
   }) {
     const { skip, take, cursor, where, orderBy } = params
-    return this.prisma.aggregate.findMany({
+    return await this.prisma.aggregate.findMany({
       skip,
       take,
       cursor,
@@ -28,22 +28,22 @@ export class AggregateService {
     })
   }
 
-  findOne(aggregateWhereUniqueInput: Prisma.AggregateWhereUniqueInput) {
-    return this.prisma.aggregate.findUnique({
+  async findOne(aggregateWhereUniqueInput: Prisma.AggregateWhereUniqueInput) {
+    return await this.prisma.aggregate.findUnique({
       where: aggregateWhereUniqueInput
     })
   }
 
   async update(params: { where: Prisma.AggregateWhereUniqueInput; aggregateDto: AggregateDto }) {
     const { where, aggregateDto } = params
-    return this.prisma.aggregate.update({
+    return await this.prisma.aggregate.update({
       data: aggregateDto,
       where
     })
   }
 
-  remove(where: Prisma.AggregateWhereUniqueInput) {
-    return this.prisma.aggregate.delete({
+  async remove(where: Prisma.AggregateWhereUniqueInput) {
+    return await this.prisma.aggregate.delete({
       where
     })
   }
