@@ -55,17 +55,24 @@ export function listHandler(print?: boolean) {
 
 export function insertHandler() {
   async function wrapper({ data }: { data }) {
-    const result = (await axios.post(ADAPTER_ENDPOINT, data)).data
-    console.dir(result, { depth: null })
+    try {
+      const response = (await axios.post(ADAPTER_ENDPOINT, data)).data
+      console.dir(response, { depth: null })
+    } catch (e) {
+      console.dir(e?.response?.data, { depth: null })
+    }
   }
   return wrapper
 }
 
 export function removeHandler() {
   async function wrapper({ id }: { id: number }) {
-    const endpoint = buildUrl(ADAPTER_ENDPOINT, id.toString())
-    const result = (await axios.delete(endpoint)).data
-    console.dir(result, { depth: null })
+    try {
+      const endpoint = buildUrl(ADAPTER_ENDPOINT, id.toString())
+      const response = (await axios.delete(endpoint)).data
+    } catch (e) {
+      console.dir(e?.response?.data, { depth: null })
+    }
   }
   return wrapper
 }
