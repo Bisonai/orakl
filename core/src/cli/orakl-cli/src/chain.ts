@@ -77,7 +77,8 @@ export function removeHandler() {
     if (!(await isOraklNetworkApiHealthy())) return
 
     try {
-      const result = (await axios.delete(buildUrl(CHAIN_ENDPOINT, id.toString()))).data
+      const endpoint = buildUrl(CHAIN_ENDPOINT, id.toString())
+      const result = (await axios.delete(endpoint)).data
       console.dir(result, { depth: null })
     } catch (e) {
       console.dir(e?.response?.data, { depth: null })
