@@ -1,15 +1,4 @@
-import {
-  Controller,
-  Get,
-  Post,
-  Patch,
-  Body,
-  Delete,
-  Param,
-  HttpException,
-  HttpStatus
-} from '@nestjs/common'
-import { Aggregator as AggregatorModel } from '@prisma/client'
+import { Controller, Get, Post, Patch, Body, Delete, Param } from '@nestjs/common'
 import { AggregatorService } from './aggregator.service'
 import { ChainService } from '../chain/chain.service'
 import { AggregatorDto } from './dto/aggregator.dto'

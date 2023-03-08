@@ -70,6 +70,7 @@ export function removeHandler() {
     try {
       const endpoint = buildUrl(ADAPTER_ENDPOINT, id.toString())
       const response = (await axios.delete(endpoint)).data
+      console.dir(response, { depth: null })
     } catch (e) {
       console.dir(e?.response?.data, { depth: null })
     }

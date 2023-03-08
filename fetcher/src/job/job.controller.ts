@@ -1,5 +1,4 @@
 import { Controller, Get, Body, Param, HttpStatus, HttpException, Logger } from '@nestjs/common'
-import { JobDto } from './dto/job.dto'
 import { InjectQueue } from '@nestjs/bullmq'
 import { Queue } from 'bullmq'
 import { extractFeeds } from './job.utils'
@@ -36,7 +35,7 @@ export class JobController {
     // TODO Validate adapter
 
     // Launch recurrent data collection
-    const job = await this.queue.add(aggregatorHash, feeds, {
+    await this.queue.add(aggregatorHash, feeds, {
       repeat: {
         every: 2_000 // FIXME load env settings
       },
