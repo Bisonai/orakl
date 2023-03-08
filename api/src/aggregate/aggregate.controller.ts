@@ -15,18 +15,18 @@ export class AggregateController {
   }
 
   @Get()
-  findAll() {
-    return this.aggregateService.findAll({})
+  async findAll() {
+    return await this.aggregateService.findAll({})
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.aggregateService.findOne({ id: Number(id) })
+  async findOne(@Param('id') id: string) {
+    return await this.aggregateService.findOne({ id: Number(id) })
   }
 
   @Patch(':id')
   async update(@Param('id') id: string, @Body() aggregateDto: AggregateDto) {
-    return this.aggregateService.update({
+    return await this.aggregateService.update({
       where: { id: Number(id) },
       aggregateDto
     })
