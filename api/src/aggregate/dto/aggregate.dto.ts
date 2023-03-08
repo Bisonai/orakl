@@ -2,7 +2,7 @@ import { ApiProperty } from '@nestjs/swagger'
 
 export class AggregateDto {
   @ApiProperty()
-  aggregatorId: number
+  aggregatorId: bigint
 
   @ApiProperty()
   timestamp: string | Date

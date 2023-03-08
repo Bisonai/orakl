@@ -8,7 +8,7 @@ export class DatumDto {
   timestamp: string | Date
 
   @ApiProperty()
-  value: number
+  value: bigint
 
   @ApiProperty()
   feedId: bigint
