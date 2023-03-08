@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common'
-import { Data, Prisma } from '@prisma/client'
+import { Prisma } from '@prisma/client'
 import { PrismaService } from '../prisma.service'
 import { DatumDto } from './dto/datum.dto'
 
@@ -27,7 +27,7 @@ export class DataService {
       }
     })
 
-    return this.prisma.data.createMany({ data })
+    return await this.prisma.data.createMany({ data })
   }
 
   async findAll(params: {
@@ -36,9 +36,9 @@ export class DataService {
     cursor?: Prisma.DataWhereUniqueInput
     where?: Prisma.DataWhereInput
     orderBy?: Prisma.DataOrderByWithRelationInput
-  }): Promise<Data[]> {
+  }) {
     const { skip, take, cursor, where, orderBy } = params
-    return this.prisma.data.findMany({
+    return await this.prisma.data.findMany({
       skip,
       take,
       cursor,
@@ -47,14 +47,14 @@ export class DataService {
     })
   }
 
-  async findOne(dataWhereUniqueInput: Prisma.DataWhereUniqueInput): Promise<Data | null> {
-    return this.prisma.data.findUnique({
+  async findOne(dataWhereUniqueInput: Prisma.DataWhereUniqueInput) {
+    return await this.prisma.data.findUnique({
       where: dataWhereUniqueInput
     })
   }
 
   async remove(where: Prisma.DataWhereUniqueInput) {
-    return this.prisma.data.delete({
+    return await this.prisma.data.delete({
       where
     })
   }

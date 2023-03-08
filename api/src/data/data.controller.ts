@@ -15,12 +15,12 @@ export class DataController {
   }
 
   @Get()
-  findAll() {
-    return this.dataService.findAll({})
+  async findAll() {
+    return await this.dataService.findAll({})
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.dataService.findOne({ id: Number(id) })
+  async findOne(@Param('id') id: string) {
+    return await this.dataService.findOne({ id: Number(id) })
   }
 }
