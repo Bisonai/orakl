@@ -7,12 +7,12 @@ import { DatumDto } from './dto/datum.dto'
 export class DataService {
   constructor(private prisma: PrismaService) {}
 
-  async create(datumDto: DatumDto): Promise<Data> {
+  async create(datumDto: DatumDto) {
     const data: Prisma.DataUncheckedCreateInput = {
       timestamp: datumDto.timestamp,
       value: datumDto.value,
       aggregatorId: datumDto.aggregatorId,
-      feedId: datumDto.feed
+      feedId: datumDto.feedId
     }
     return this.prisma.data.create({ data })
   }
@@ -23,7 +23,7 @@ export class DataService {
         timestamp: new Date(d.timestamp),
         value: d.value,
         aggregatorId: d.aggregatorId,
-        feedId: d.feed
+        feedId: d.feedId
       }
     })
 
@@ -53,7 +53,7 @@ export class DataService {
     })
   }
 
-  async remove(where: Prisma.DataWhereUniqueInput): Promise<Data> {
+  async remove(where: Prisma.DataWhereUniqueInput) {
     return this.prisma.data.delete({
       where
     })

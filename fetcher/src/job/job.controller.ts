@@ -1,8 +1,7 @@
-import { Controller, Get, Body, Param, HttpStatus, HttpException } from '@nestjs/common'
+import { Controller, Get, Body, Param, HttpStatus, HttpException, Logger } from '@nestjs/common'
 import { JobDto } from './dto/job.dto'
 import { InjectQueue } from '@nestjs/bullmq'
 import { Queue } from 'bullmq'
-import { Logger } from '@nestjs/common'
 import { extractFeeds } from './job.utils'
 import { loadAggregator, activateAggregator, deactivateAggregator } from './job.api'
 
@@ -32,7 +31,7 @@ export class JobController {
     }
 
     const adapter = aggregator['adapter']
-    const feeds = extractFeeds(adapter, aggregator['id']) // FIXME define types
+    const feeds = extractFeeds(adapter, aggregator['id'], aggregator['aggregatorHash']) // FIXME define types
 
     // TODO Validate adapter
 

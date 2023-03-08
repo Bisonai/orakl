@@ -11,5 +11,5 @@ export class DatumDto {
   value: number
 
   @ApiProperty()
-  feed: number
+  feedId: number
 }

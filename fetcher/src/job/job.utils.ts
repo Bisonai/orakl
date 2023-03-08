@@ -89,8 +89,8 @@ function validateAdapter(adapter) /*: IAdapter*/ {
   }
 }
 
-export function extractFeeds(adapter, aggregatorId: string) {
-  const adapterId = adapter.adapterId
+export function extractFeeds(adapter, aggregatorId: string, aggregatorHash: string) {
+  const adapterHash = adapter.adapterHash
   const feeds = adapter.feeds.map((f) => {
     return {
       id: f.id,
@@ -103,8 +103,9 @@ export function extractFeeds(adapter, aggregatorId: string) {
   })
 
   return {
-    [adapterId]: {
+    [adapterHash]: {
       aggregatorId: aggregatorId,
+      aggregatorHash: aggregatorHash,
       name: adapter.name,
       decimals: adapter.decimals,
       feeds

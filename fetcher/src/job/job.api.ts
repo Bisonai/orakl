@@ -24,10 +24,10 @@ export async function insertMultipleData({
 }) {
   const _data = data.map((d) => {
     return {
-      aggregator: aggregatorId,
+      aggregatorId,
       timestamp,
       value: d.value,
-      feed: d.id
+      feedId: d.id
     }
   })
 
