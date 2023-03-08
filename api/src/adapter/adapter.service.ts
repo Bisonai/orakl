@@ -1,17 +1,20 @@
-import { Injectable } from '@nestjs/common'
-import { Adapter, Prisma } from '@prisma/client'
+import { Injectable, HttpException, HttpStatus, Logger } from '@nestjs/common'
+import { Prisma } from '@prisma/client'
 import { PrismaService } from '../prisma.service'
 import { AdapterDto } from './dto/adapter.dto'
+import { PRISMA_ERRORS } from '../errors'
 
 @Injectable()
 export class AdapterService {
+  private readonly logger = new Logger(AdapterService.name)
+
   constructor(private prisma: PrismaService) {}
 
-  create(adapterDto: AdapterDto): Promise<Adapter> {
-    // TODO validate
+  async create(adapterDto: AdapterDto) {
+    // TODO validate data
 
     const data: Prisma.AdapterCreateInput = {
-      adapterId: adapterDto.id,
+      adapterHash: adapterDto.adapterHash,
       name: adapterDto.name,
       decimals: adapterDto.decimals,
       feeds: {
@@ -19,7 +22,13 @@ export class AdapterService {
       }
     }
 
-    return this.prisma.adapter.create({ data })
+    try {
+      return await this.prisma.adapter.create({ data })
+    } catch (e) {
+      const msg = PRISMA_ERRORS[e.code](e.meta)
+      this.logger.error(msg)
+      throw new HttpException(msg, HttpStatus.BAD_REQUEST)
+    }
   }
 
   async findAll(params: {
@@ -28,9 +37,9 @@ export class AdapterService {
     cursor?: Prisma.AdapterWhereUniqueInput
     where?: Prisma.AdapterWhereInput
     orderBy?: Prisma.AdapterOrderByWithRelationInput
-  }): Promise<Adapter[]> {
+  }) {
     const { skip, take, cursor, where, orderBy } = params
-    return this.prisma.adapter.findMany({
+    return await this.prisma.adapter.findMany({
       skip,
       take,
       cursor,
@@ -40,7 +49,7 @@ export class AdapterService {
   }
 
   async findOne(adapterWhereUniqueInput: Prisma.AdapterWhereUniqueInput) {
-    return this.prisma.adapter.findUnique({
+    return await this.prisma.adapter.findUnique({
       where: adapterWhereUniqueInput,
       include: {
         feeds: true
@@ -48,8 +57,8 @@ export class AdapterService {
     })
   }
 
-  async remove(where: Prisma.AdapterWhereUniqueInput): Promise<Adapter> {
-    return this.prisma.adapter.delete({
+  async remove(where: Prisma.AdapterWhereUniqueInput) {
+    return await this.prisma.adapter.delete({
       where
     })
   }

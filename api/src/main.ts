@@ -1,7 +1,14 @@
 import { NestFactory } from '@nestjs/core'
 import { AppModule } from './app.module'
 import { setAppSettings } from './app.settings'
+import { ConfigService } from '@nestjs/config'
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger'
+
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore: Unreachable code error
+BigInt.prototype.toJSON = function (): string {
+  return this.toString()
+}
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
@@ -18,6 +25,8 @@ async function bootstrap() {
   const document = SwaggerModule.createDocument(app, config)
   SwaggerModule.setup('docs', app, document)
 
-  await app.listen(3000)
+  const configService = app.get(ConfigService)
+  const port = configService.get('APP_PORT')
+  await app.listen(port)
 }
 bootstrap()

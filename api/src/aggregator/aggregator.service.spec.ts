@@ -54,7 +54,7 @@ describe('AggregatorService', () => {
       }
     ]
     const adapterObj = await adapter.create({
-      id: 'adapterId-aggregator-test',
+      adapterHash: 'adapterHash-aggregator-test',
       name: 'BTC-USD',
       decimals: 8,
       feeds
@@ -62,14 +62,14 @@ describe('AggregatorService', () => {
 
     // Aggregator
     const aggregatorData = {
-      id: 'aggregatorId-aggregator-test',
+      aggregatorHash: 'aggregatorHash-aggregator-test',
       active: false,
       name: 'ETH-USD',
       address: '0x',
       heartbeat: 10_000,
       threshold: 0.04,
       absoluteThreshold: 0.1,
-      adapterId: adapterObj.adapterId,
+      adapterHash: adapterObj.adapterHash,
       chain: chainObj.name
     }
     const aggregatorObj = await aggregator.create(aggregatorData)

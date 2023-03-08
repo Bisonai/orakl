@@ -57,7 +57,7 @@ describe('DataService', () => {
       }
     ]
     const adapterObj = await adapter.create({
-      id: 'adapterId-data-test',
+      adapterHash: 'adapterHash-data-test',
       name: 'BTC-USD',
       decimals: 8,
       feeds
@@ -65,14 +65,14 @@ describe('DataService', () => {
 
     // Aggregator
     const aggregatorData = {
-      id: 'aggregatorId-data-test',
+      aggregatorHash: 'aggregatorHash-data-test',
       active: false,
       name: 'ETH-USD',
       address: '0x',
       heartbeat: 10_000,
       threshold: 0.04,
       absoluteThreshold: 0.1,
-      adapterId: adapterObj.adapterId,
+      adapterHash: adapterObj.adapterHash,
       chain: chainObj.name
     }
     const aggregatorObj = await aggregator.create(aggregatorData)
@@ -81,11 +81,10 @@ describe('DataService', () => {
     const { feeds: feedsObj } = await adapter.findOne({ id: adapterObj.id })
     expect(feeds.length).toBe(1)
     const dataObj = await data.create({
-      round: 123,
       timestamp: new Date(Date.now()),
-      value: 1,
-      aggregator: aggregatorObj.id,
-      feed: feedsObj[0].id
+      value: BigInt(2241772466578),
+      aggregatorId: aggregatorObj.id,
+      feedId: feedsObj[0].id
     })
 
     // Cleanup

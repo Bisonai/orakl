@@ -1,23 +1,41 @@
-import { Injectable } from '@nestjs/common'
-import { Aggregator, Prisma } from '@prisma/client'
+import { Injectable, HttpStatus, HttpException, Logger } from '@nestjs/common'
+import { Prisma } from '@prisma/client'
 import { PrismaService } from '../prisma.service'
 import { AggregatorDto } from './dto/aggregator.dto'
 
 @Injectable()
 export class AggregatorService {
+  private readonly logger = new Logger(AggregatorService.name)
+
   constructor(private prisma: PrismaService) {}
 
-  async create(aggregatorDto: AggregatorDto): Promise<Aggregator> {
+  async create(aggregatorDto: AggregatorDto) {
+    // chain
+    const chainName = aggregatorDto.chain
     const chain = await this.prisma.chain.findUnique({
-      where: { name: aggregatorDto.chain }
+      where: { name: chainName }
     })
 
+    if (chain == null) {
+      const msg = `chain.name [${chainName}] not found`
+      this.logger.error(msg)
+      throw new HttpException(msg, HttpStatus.NOT_FOUND)
+    }
+
+    // adapter
+    const adapterHash = aggregatorDto.adapterHash
     const adapter = await this.prisma.adapter.findUnique({
-      where: { adapterId: aggregatorDto.adapterId }
+      where: { adapterHash }
     })
+
+    if (adapter == null) {
+      const msg = `adapter.adapterHash [${adapterHash}] not found`
+      this.logger.error(msg)
+      throw new HttpException(msg, HttpStatus.NOT_FOUND)
+    }
 
     const data: Prisma.AggregatorUncheckedCreateInput = {
-      aggregatorId: aggregatorDto.id,
+      aggregatorHash: aggregatorDto.aggregatorHash,
       active: aggregatorDto.active,
       name: aggregatorDto.name,
       address: aggregatorDto.address,
@@ -37,9 +55,9 @@ export class AggregatorService {
     cursor?: Prisma.AggregatorWhereUniqueInput
     where?: Prisma.AggregatorWhereInput
     orderBy?: Prisma.AggregatorOrderByWithRelationInput
-  }): Promise<Aggregator[]> {
+  }) {
     const { skip, take, cursor, where, orderBy } = params
-    return this.prisma.aggregator.findMany({
+    return await this.prisma.aggregator.findMany({
       skip,
       take,
       cursor,
@@ -48,16 +66,29 @@ export class AggregatorService {
     })
   }
 
-  async findOne(
-    aggregatorWhereUniqueInput: Prisma.AggregatorWhereUniqueInput
-  ): Promise<Aggregator | null> {
-    return this.prisma.aggregator.findUnique({
-      where: aggregatorWhereUniqueInput
+  async findOne(aggregatorWhereUniqueInput: Prisma.AggregatorWhereUniqueInput) {
+    return await this.prisma.aggregator.findUnique({
+      where: aggregatorWhereUniqueInput,
+      include: {
+        adapter: {
+          include: {
+            feeds: true
+          }
+        }
+      }
     })
   }
 
-  async remove(where: Prisma.AggregatorWhereUniqueInput): Promise<Aggregator> {
-    return this.prisma.aggregator.delete({
+  async remove(where: Prisma.AggregatorWhereUniqueInput) {
+    return await this.prisma.aggregator.delete({
+      where
+    })
+  }
+
+  async update(params: { where: Prisma.AggregatorWhereUniqueInput; active: boolean }) {
+    const { where, active } = params
+    return await this.prisma.aggregator.update({
+      data: { active },
       where
     })
   }

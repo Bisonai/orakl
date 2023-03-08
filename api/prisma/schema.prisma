@@ -11,54 +11,64 @@ datasource db {
 }
 
 model Chain {
-  id         Int          @id @default(autoincrement())
+  id         BigInt       @id @default(autoincrement())
   name       String       @unique
   Aggregator Aggregator[]
 }
 
 model Feed {
-  id          Int     @id @default(autoincrement())
-  name        String
-  definition  Json
-  adapter     Adapter @relation(fields: [adapterId], references: [id], onDelete: Cascade)
-  adapterId   Int
-  Data        Data[]
+  id         BigInt  @id @default(autoincrement())
+  name       String
+  definition Json
+  adapter    Adapter @relation(fields: [adapterId], references: [id], onDelete: Cascade)
+  adapterId  BigInt
+  Data       Data[]
 }
 
 model Adapter {
-  id         Int          @id @default(autoincrement())
-  adapterId  String       @unique
-  name       String
-  decimals   Int
-  feeds      Feed[]
-  Aggregator Aggregator[]
+  id          BigInt       @id @default(autoincrement())
+  adapterHash String       @unique
+  name        String
+  decimals    Int
+  feeds       Feed[]
+  Aggregator  Aggregator[]
 }
 
 model Aggregator {
-  id                Int     @id @default(autoincrement())
-  aggregatorId      String
-  active            Boolean @default(false)
+  id                BigInt      @id @default(autoincrement())
+  aggregatorHash    String
+  active            Boolean     @default(false)
   name              String
-  address           String  @unique
+  address           String      @unique
   heartbeat         Int
   threshold         Float
   absoluteThreshold Float
   Data              Data[]
-  adapter           Adapter @relation(fields: [adapterId], references: [id])
-  adapterId         Int
-  chain             Chain   @relation(fields: [chainId], references: [id])
-  chainId           Int
+  adapter           Adapter     @relation(fields: [adapterId], references: [id])
+  adapterId         BigInt
+  chain             Chain       @relation(fields: [chainId], references: [id])
+  chainId           BigInt
+  Aggregate         Aggregate[]
 
-  @@unique([aggregatorId, chainId])
+  @@unique([aggregatorHash, chainId])
 }
 
 model Data {
   id           BigInt     @id @default(autoincrement())
-  round        BigInt
   timestamp    DateTime   @db.Timestamptz
-  value        Int
+  value        BigInt
   aggregator   Aggregator @relation(fields: [aggregatorId], references: [id])
-  aggregatorId Int
+  aggregatorId BigInt
   feed         Feed       @relation(fields: [feedId], references: [id])
-  feedId       Int
+  feedId       BigInt
+}
+
+model Aggregate {
+  id           BigInt     @id @default(autoincrement())
+  timestamp    DateTime   @db.Timestamptz
+  value        BigInt
+  aggregator   Aggregator @relation(fields: [aggregatorId], references: [id])
+  aggregatorId BigInt
+
+  @@index([aggregatorId, timestamp(sort: Desc)])
 }

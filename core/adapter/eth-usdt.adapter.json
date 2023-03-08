@@ -1,5 +1,5 @@
 {
-  "id": "0x07f815d15dcc6c72a69361841eb0acc290b57859b3e3070d74aeb18740dee6f8",
+  "adapterHash": "0x07f815d15dcc6c72a69361841eb0acc290b57859b3e3070d74aeb18740dee6f8",
   "name": "ETH-USDT",
   "decimals": 8,
   "feeds": [

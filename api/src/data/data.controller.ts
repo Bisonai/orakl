@@ -10,17 +10,17 @@ export class DataController {
   constructor(private readonly dataService: DataService) {}
 
   @Post()
-  create(@Body() datumDto: DatumDto) {
-    return this.dataService.create(datumDto)
+  async create(@Body('data') dataDto: DatumDto[]) {
+    return await this.dataService.createMany(dataDto)
   }
 
   @Get()
-  findAll() {
-    return this.dataService.findAll({})
+  async findAll() {
+    return await this.dataService.findAll({})
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.dataService.findOne({ id: Number(id) })
+  async findOne(@Param('id') id: string) {
+    return await this.dataService.findOne({ id: Number(id) })
   }
 }

@@ -10,5 +10,6 @@ export enum CliErrorCode {
   NonExistentChain = 10000,
   NonExistentService,
   FileNotFound,
-  InconsistentAdapterId
+  InconsistentAdapterId,
+  EnvironmentVariableNotSet
 }

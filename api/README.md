@@ -6,6 +6,19 @@
 yarn install
 ```
 
+## Settings
+
+Orakl Network API requires to set the following environment variables.
+
+* `DATABASE_URL`
+* `APP_PORT`
+
+You can copy them from `.env.example` to `.env` and fill the appropriate values.
+
+```shell
+cp .env.example .env
+```
+
 ## Local development
 
 ```shell
