@@ -21,8 +21,8 @@ export class AggregatorController {
   }
 
   @Get()
-  findAll(@Body() whereDto: AggregatorWhereDto) {
-    return this.aggregatorService.findAll({
+  async findAll(@Body() whereDto: AggregatorWhereDto) {
+    return await this.aggregatorService.findAll({
       where: {
         chain: { name: whereDto.chain },
         active: whereDto.active
@@ -40,7 +40,7 @@ export class AggregatorController {
 
   @Delete(':id')
   async remove(@Param('id') id: string) {
-    return this.aggregatorService.remove({ id: Number(id) })
+    return await this.aggregatorService.remove({ id: Number(id) })
   }
 
   @Patch(':id')
@@ -49,7 +49,7 @@ export class AggregatorController {
     @Body('data') aggregatorUpdateDto: AggregatorUpdateDto
   ) {
     const { id: chainId } = await this.chainService.findOne({ name: aggregatorUpdateDto.chain })
-    return this.aggregatorService.update({
+    return await this.aggregatorService.update({
       where: { aggregatorHash_chainId: { aggregatorHash, chainId } },
       active: aggregatorUpdateDto.active
     })

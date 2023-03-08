@@ -1,5 +1,5 @@
 import { Injectable, HttpStatus, HttpException, Logger } from '@nestjs/common'
-import { Aggregator, Prisma } from '@prisma/client'
+import { Prisma } from '@prisma/client'
 import { PrismaService } from '../prisma.service'
 import { AggregatorDto } from './dto/aggregator.dto'
 
@@ -46,7 +46,7 @@ export class AggregatorService {
       chainId: chain.id
     }
 
-    return this.prisma.aggregator.create({ data })
+    return await this.prisma.aggregator.create({ data })
   }
 
   async findAll(params: {
@@ -55,9 +55,9 @@ export class AggregatorService {
     cursor?: Prisma.AggregatorWhereUniqueInput
     where?: Prisma.AggregatorWhereInput
     orderBy?: Prisma.AggregatorOrderByWithRelationInput
-  }): Promise<Aggregator[]> {
+  }) {
     const { skip, take, cursor, where, orderBy } = params
-    return this.prisma.aggregator.findMany({
+    return await this.prisma.aggregator.findMany({
       skip,
       take,
       cursor,
@@ -66,10 +66,8 @@ export class AggregatorService {
     })
   }
 
-  async findOne(
-    aggregatorWhereUniqueInput: Prisma.AggregatorWhereUniqueInput
-  ): Promise<Aggregator | null> {
-    return this.prisma.aggregator.findUnique({
+  async findOne(aggregatorWhereUniqueInput: Prisma.AggregatorWhereUniqueInput) {
+    return await this.prisma.aggregator.findUnique({
       where: aggregatorWhereUniqueInput,
       include: {
         adapter: {
@@ -81,18 +79,15 @@ export class AggregatorService {
     })
   }
 
-  async remove(where: Prisma.AggregatorWhereUniqueInput): Promise<Aggregator> {
-    return this.prisma.aggregator.delete({
+  async remove(where: Prisma.AggregatorWhereUniqueInput) {
+    return await this.prisma.aggregator.delete({
       where
     })
   }
 
-  async update(params: {
-    where: Prisma.AggregatorWhereUniqueInput
-    active: boolean
-  }): Promise<Aggregator> {
+  async update(params: { where: Prisma.AggregatorWhereUniqueInput; active: boolean }) {
     const { where, active } = params
-    return this.prisma.aggregator.update({
+    return await this.prisma.aggregator.update({
       data: { active },
       where
     })
