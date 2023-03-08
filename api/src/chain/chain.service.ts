@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common'
-import { Chain, Prisma } from '@prisma/client'
+import { Prisma } from '@prisma/client'
 import { PrismaService } from '../prisma.service'
 import { ChainDto } from './dto/chain.dto'
 
@@ -7,8 +7,8 @@ import { ChainDto } from './dto/chain.dto'
 export class ChainService {
   constructor(private prisma: PrismaService) {}
 
-  async create(chainDto: ChainDto): Promise<Chain> {
-    return this.prisma.chain.create({ data: chainDto })
+  async create(chainDto: ChainDto) {
+    return await this.prisma.chain.create({ data: chainDto })
   }
 
   async findAll(params: {
@@ -17,9 +17,9 @@ export class ChainService {
     cursor?: Prisma.ChainWhereUniqueInput
     where?: Prisma.ChainWhereInput
     orderBy?: Prisma.ChainOrderByWithRelationInput
-  }): Promise<Chain[]> {
+  }) {
     const { skip, take, cursor, where, orderBy } = params
-    return this.prisma.chain.findMany({
+    return await this.prisma.chain.findMany({
       skip,
       take,
       cursor,
@@ -28,25 +28,22 @@ export class ChainService {
     })
   }
 
-  async findOne(chainWhereUniqueInput: Prisma.ChainWhereUniqueInput): Promise<Chain | null> {
-    return this.prisma.chain.findUnique({
+  async findOne(chainWhereUniqueInput: Prisma.ChainWhereUniqueInput) {
+    return await this.prisma.chain.findUnique({
       where: chainWhereUniqueInput
     })
   }
 
-  async update(params: {
-    where: Prisma.ChainWhereUniqueInput
-    chainDto: ChainDto
-  }): Promise<Chain> {
+  async update(params: { where: Prisma.ChainWhereUniqueInput; chainDto: ChainDto }) {
     const { where, chainDto } = params
-    return this.prisma.chain.update({
+    return await this.prisma.chain.update({
       data: chainDto,
       where
     })
   }
 
-  async remove(where: Prisma.ChainWhereUniqueInput): Promise<Chain> {
-    return this.prisma.chain.delete({
+  async remove(where: Prisma.ChainWhereUniqueInput) {
+    return await this.prisma.chain.delete({
       where
     })
   }
