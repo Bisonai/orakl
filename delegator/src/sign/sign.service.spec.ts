@@ -1,9 +1,8 @@
 import { Test, TestingModule } from '@nestjs/testing'
 import { SignService } from './sign.service'
 import { PrismaService } from '../prisma.service'
-import Caver, { AbiItem, SingleKeyring } from 'caver-js'
+import Caver, { AbiItem } from 'caver-js'
 import { dummyFactory } from './helper/dummyFactory'
-import { SignatureData } from 'caver-js'
 
 const PROVIDER_URL = 'https://api.baobab.klaytn.net:8651'
 const caver = new Caver(PROVIDER_URL)

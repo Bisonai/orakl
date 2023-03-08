@@ -10,9 +10,7 @@ export class SignService {
 
   async create(data: SignDto) {
     const result = await this.prisma.transaction.create({ data })
-    // console.log(data)
     approveAndSign(result)
-    // return result.id
   }
 
   async findAll(params: {
