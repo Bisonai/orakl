@@ -24,6 +24,11 @@ export class AggregateController {
     return await this.aggregateService.findOne({ id: Number(id) })
   }
 
+  @Get(':hash/latest')
+  async findLatest(@Param('hash') aggregatorHash: string) {
+    return await this.aggregateService.findLatest({ aggregatorHash })
+  }
+
   @Patch(':id')
   async update(@Param('id') id: string, @Body() aggregateDto: AggregateDto) {
     return await this.aggregateService.update({

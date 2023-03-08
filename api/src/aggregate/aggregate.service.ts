@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common'
 import { Prisma } from '@prisma/client'
 import { PrismaService } from '../prisma.service'
 import { AggregateDto } from './dto/aggregate.dto'
+import { LatestAggregateDto } from './dto/latest-aggregate.dto'
 
 @Injectable()
 export class AggregateService {
@@ -51,6 +52,22 @@ export class AggregateService {
   async remove(where: Prisma.AggregateWhereUniqueInput) {
     return await this.prisma.aggregate.delete({
       where
+    })
+  }
+
+  /*
+   * `findLatest` is used by Aggregator heartbeat process that
+   * periodically requests the latest aggregated data.
+   */
+  async findLatest(latestAggregateDto: LatestAggregateDto) {
+    const { aggregatorHash } = latestAggregateDto
+    return await this.prisma.aggregate.findFirst({
+      where: { aggregator: { aggregatorHash } },
+      orderBy: [
+        {
+          timestamp: 'desc'
+        }
+      ]
     })
   }
 }
