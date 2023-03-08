@@ -78,7 +78,7 @@ export function removeHandler() {
 
     try {
       const endpoint = buildUrl(CHAIN_ENDPOINT, id.toString())
-      const result = (await axios.delete(endpoint)).data
+      const result = (await axios.delete(endpoint))?.data
       console.dir(result, { depth: null })
     } catch (e) {
       console.dir(e?.response?.data, { depth: null })
