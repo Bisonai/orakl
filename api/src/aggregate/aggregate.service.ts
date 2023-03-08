@@ -12,7 +12,7 @@ export class AggregateService {
     const data: Prisma.AggregateUncheckedCreateInput = {
       timestamp: new Date(aggregateDto.timestamp),
       value: aggregateDto.value,
-      aggregatorId: aggregateDto.aggregatorId
+      aggregatorId: BigInt(aggregateDto.aggregatorId)
     }
 
     return await this.prisma.aggregate.create({ data })
