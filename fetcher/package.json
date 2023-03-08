@@ -1,8 +1,8 @@
 {
-  "name": "fetcher",
+  "name": "@bisonai/orakl-fetcher",
   "version": "0.0.1",
-  "description": "",
-  "author": "",
+  "description": "The Orakl Network Fetcher",
+  "author": "Bisonai",
   "private": true,
   "license": "MIT",
   "scripts": {
