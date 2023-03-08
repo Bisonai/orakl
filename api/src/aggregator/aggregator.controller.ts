@@ -15,7 +15,6 @@ import { ChainService } from '../chain/chain.service'
 import { AggregatorDto } from './dto/aggregator.dto'
 import { AggregatorWhereDto } from './dto/aggregator-where.dto'
 import { AggregatorUpdateDto } from './dto/aggregator-update.dto'
-import { PRISMA_ERRORS } from '../errors'
 
 @Controller({
   path: 'aggregator',
@@ -29,14 +28,7 @@ export class AggregatorController {
 
   @Post()
   async create(@Body() aggregatorDto: AggregatorDto) {
-    return await this.aggregatorService.create(aggregatorDto).catch((err) => {
-      throw new HttpException(
-        {
-          message: PRISMA_ERRORS[err.code](err.meta)
-        },
-        HttpStatus.BAD_REQUEST
-      )
-    })
+    return await this.aggregatorService.create(aggregatorDto)
   }
 
   @Get()

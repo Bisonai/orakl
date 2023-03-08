@@ -1,20 +1,38 @@
-import { Injectable } from '@nestjs/common'
+import { Injectable, HttpStatus, HttpException, Logger } from '@nestjs/common'
 import { Aggregator, Prisma } from '@prisma/client'
 import { PrismaService } from '../prisma.service'
 import { AggregatorDto } from './dto/aggregator.dto'
 
 @Injectable()
 export class AggregatorService {
+  private readonly logger = new Logger(AggregatorService.name)
+
   constructor(private prisma: PrismaService) {}
 
-  async create(aggregatorDto: AggregatorDto): Promise<Aggregator> {
+  async create(aggregatorDto: AggregatorDto) {
+    // chain
+    const chainName = aggregatorDto.chain
     const chain = await this.prisma.chain.findUnique({
-      where: { name: aggregatorDto.chain }
+      where: { name: chainName }
     })
 
+    if (chain == null) {
+      const msg = `chain.name [${chainName}] not found`
+      this.logger.error(msg)
+      throw new HttpException(msg, HttpStatus.NOT_FOUND)
+    }
+
+    // adapter
+    const adapterHash = aggregatorDto.adapterHash
     const adapter = await this.prisma.adapter.findUnique({
-      where: { adapterHash: aggregatorDto.adapterHash }
+      where: { adapterHash }
     })
+
+    if (adapter == null) {
+      const msg = `adapter.adapterHash [${adapterHash}] not found`
+      this.logger.error(msg)
+      throw new HttpException(msg, HttpStatus.NOT_FOUND)
+    }
 
     const data: Prisma.AggregatorUncheckedCreateInput = {
       aggregatorHash: aggregatorDto.aggregatorHash,

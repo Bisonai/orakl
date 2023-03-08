@@ -11,8 +11,8 @@ export class AdapterController {
   constructor(private readonly adapterService: AdapterService) {}
 
   @Post()
-  create(@Body() adapterDto: AdapterDto): Promise<AdapterModel> {
-    return this.adapterService.create(adapterDto)
+  async create(@Body() adapterDto: AdapterDto) {
+    return await this.adapterService.create(adapterDto)
   }
 
   @Get()
