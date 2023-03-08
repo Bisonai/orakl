@@ -82,7 +82,7 @@ describe('DataService', () => {
     expect(feeds.length).toBe(1)
     const dataObj = await data.create({
       timestamp: new Date(Date.now()),
-      value: 2241772466578,
+      value: BigInt(2241772466578),
       aggregatorId: aggregatorObj.id,
       feedId: feedsObj[0].id
     })
