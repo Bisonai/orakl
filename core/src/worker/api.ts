@@ -41,7 +41,7 @@ export async function fetchDataFeed({
  * @param {string} aggregator address
  * @param {Logger} logger
  * @return {Aggregator}
- * @exception {FailedToGetAggregate}
+ * @exception {FailedToGetAggregator}
  */
 export async function getAggregatorGivenAddress({
   aggregatorAddress,
@@ -81,8 +81,8 @@ export async function getAggregatorGivenAddress({
  *
  * @param {string} chain name
  * @param {Logger} logger
- * @return {Aggregator}
- * @exception {FailedToGetAggregate}
+ * @return {Aggregator[]}
+ * @exception {FailedToGetAggregator}
  */
 export async function getActiveAggregators({
   chain,
