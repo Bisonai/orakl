@@ -6,7 +6,7 @@ import { ethers } from 'ethers'
 import { IListenerConfig, IVrfConfig } from './types'
 import { aggregatorMapping } from './aggregator'
 import { listHandler } from './cli/orakl-cli/src/kv'
-import { IcnError, IcnErrorCode } from './errors'
+import { OraklError, OraklErrorCode } from './errors'
 import { mkdir } from './utils'
 import * as dotenv from 'dotenv'
 dotenv.config()
@@ -116,9 +116,9 @@ export async function loadKeyValuePair({ db, key, chain }: { db; key: string; ch
   const kv = await listHandler(db)({ key, chain })
 
   if (kv.length == 0) {
-    throw new IcnError(IcnErrorCode.MissingKeyValuePair, `key: ${key}, chain: ${chain}`)
+    throw new OraklError(OraklErrorCode.MissingKeyValuePair, `key: ${key}, chain: ${chain}`)
   } else if (kv.length > 1) {
-    throw new IcnError(IcnErrorCode.UnexpectedQueryOutput)
+    throw new OraklError(OraklErrorCode.UnexpectedQueryOutput)
   }
 
   return kv[0].value as string

@@ -2,7 +2,7 @@ import axios from 'axios'
 import { URL } from 'node:url'
 import { Logger } from 'pino'
 import { IAggregatorNew, IAggregate } from '../types'
-import { IcnError, IcnErrorCode } from '../errors'
+import { OraklError, OraklErrorCode } from '../errors'
 import { ORAKL_NETWORK_API_URL } from '../settings'
 import { buildUrl } from '../utils'
 
@@ -31,7 +31,7 @@ export async function fetchDataFeed({
     return response
   } catch (e) {
     logger.error(e)
-    throw new IcnError(IcnErrorCode.FailedToGetAggregate)
+    throw new OraklError(OraklErrorCode.FailedToGetAggregate)
   }
 }
 
@@ -58,7 +58,7 @@ export async function getAggregatorGivenAddress({
     response = (await axios.get(url.toString()))?.data
   } catch (e) {
     logger.error(e)
-    throw new IcnError(IcnErrorCode.FailedToGetAggregator)
+    throw new OraklError(OraklErrorCode.FailedToGetAggregator)
   }
 
   if (response.length == 1) {
@@ -67,11 +67,11 @@ export async function getAggregatorGivenAddress({
   } else if (response.length == 0) {
     const msg = 'No aggregator found'
     logger.error(msg)
-    throw new IcnError(IcnErrorCode.FailedToGetAggregator, msg)
+    throw new OraklError(OraklErrorCode.FailedToGetAggregator, msg)
   } else {
     const msg = `Expected one aggregator, received ${response.length}`
     logger.error(msg)
-    throw new IcnError(IcnErrorCode.FailedToGetAggregator, msg)
+    throw new OraklError(OraklErrorCode.FailedToGetAggregator, msg)
   }
 }
 
@@ -99,7 +99,7 @@ export async function getActiveAggregators({
     return response
   } catch (e) {
     logger.error(e)
-    throw new IcnError(IcnErrorCode.FailedToGetAggregator)
+    throw new OraklError(OraklErrorCode.FailedToGetAggregator)
   }
 }
 
@@ -127,6 +127,6 @@ export async function getAggregator({
     return response
   } catch (e) {
     logger.error(e)
-    throw new IcnError(IcnErrorCode.FailedToGetAggregator)
+    throw new OraklError(OraklErrorCode.FailedToGetAggregator)
   }
 }

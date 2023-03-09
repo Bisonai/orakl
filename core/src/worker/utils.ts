@@ -2,7 +2,7 @@ import axios from 'axios'
 import { ethers } from 'ethers'
 import { Logger } from 'pino'
 import { dataFeedReducerMapping } from './reducer'
-import { IcnError, IcnErrorCode } from '../errors'
+import { OraklError, OraklErrorCode } from '../errors'
 import { pipe, writeTextFile } from '../utils'
 import { IAdapter, IAggregator, IOracleRoundState, IRoundData } from '../types'
 import {
@@ -57,12 +57,12 @@ export function mergeAggregatorsAdapters(aggregators, adapters: IAdapter[]) {
   for (const agAddress in aggregators) {
     const aggregator = aggregators[agAddress]
     if (!aggregator) {
-      throw new IcnError(IcnErrorCode.MissingAggregator)
+      throw new OraklError(OraklErrorCode.MissingAggregator)
     }
 
     const adapter = adapters[aggregator?.adapterId]
     if (!adapter) {
-      throw new IcnError(IcnErrorCode.MissingAdapter)
+      throw new OraklError(OraklErrorCode.MissingAdapter)
     }
 
     aggregator.decimals = adapter.decimals
@@ -109,7 +109,7 @@ export async function fetchDataWithAdapter(adapter, adapterName?, round?, logger
   // FIXME: Make Logic when we need to fail adapter reading
   const filteredResults = allResults.filter((r) => r)
   if (filteredResults.length == 0) {
-    throw new IcnError(IcnErrorCode.IncompleteDataFeed)
+    throw new OraklError(OraklErrorCode.IncompleteDataFeed)
   }
 
   const aggregatedResults = localAggregatorFn(...filteredResults)
@@ -145,10 +145,10 @@ async function writeData(adapterName, round, url, data) {
 function checkDataFormat(data) {
   if (!data) {
     // check if priceFeed is null, undefined, NaN, "", 0, false
-    throw new IcnError(IcnErrorCode.InvalidDataFeed)
+    throw new OraklError(OraklErrorCode.InvalidDataFeed)
   } else if (!Number.isInteger(data)) {
     // check if priceFeed is not Integer
-    throw new IcnError(IcnErrorCode.InvalidDataFeedFormat)
+    throw new OraklError(OraklErrorCode.InvalidDataFeedFormat)
   }
 }
 
@@ -156,7 +156,7 @@ export function buildReducer(reducerMapping, reducers) {
   return reducers.map((r) => {
     const reducer = reducerMapping[r.function]
     if (!reducer) {
-      throw new IcnError(IcnErrorCode.InvalidReducer)
+      throw new OraklError(OraklErrorCode.InvalidReducer)
     }
     return reducer(r?.args)
   })
@@ -205,7 +205,7 @@ function validateAdapter(adapter): IAdapter {
   if (isValid) {
     return adapter as IAdapter
   } else {
-    throw new IcnError(IcnErrorCode.InvalidAdapter)
+    throw new OraklError(OraklErrorCode.InvalidAdapter)
   }
 }
 
@@ -231,13 +231,13 @@ function validateAggregator(adapter): IAggregator {
   if (isValid) {
     return adapter as IAggregator
   } else {
-    throw new IcnError(IcnErrorCode.InvalidAggregator)
+    throw new OraklError(OraklErrorCode.InvalidAggregator)
   }
 }
 
 export function uniform(a: number, b: number): number {
   if (a > b) {
-    throw new IcnError(IcnErrorCode.UniformWrongParams)
+    throw new OraklError(OraklErrorCode.UniformWrongParams)
   }
   return a + Math.round(Math.random() * (b - a))
 }

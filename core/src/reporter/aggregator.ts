@@ -9,7 +9,7 @@ import {
   FIXED_HEARTBEAT_QUEUE_NAME
 } from '../settings'
 import { IAggregatorWorkerReporter, IAggregatorHeartbeatWorker } from '../types'
-import { IcnError, IcnErrorCode } from '../errors'
+import { OraklError, OraklErrorCode } from '../errors'
 
 const FILE_NAME = import.meta.url
 
@@ -60,7 +60,7 @@ async function submitHeartbeatJob(
   )
 
   if (allDelayed.length > 1) {
-    throw new IcnError(IcnErrorCode.UnexpectedNumberOfJobsInQueue)
+    throw new OraklError(OraklErrorCode.UnexpectedNumberOfJobsInQueue)
   } else if (allDelayed.length == 1) {
     const delayedJob = allDelayed[0]
     delayedJob.remove()

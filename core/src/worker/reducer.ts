@@ -1,4 +1,4 @@
-import { IcnError, IcnErrorCode } from '../errors'
+import { OraklError, OraklErrorCode } from '../errors'
 
 export const dataFeedReducerMapping = {
   PARSE: parseFn,
@@ -36,7 +36,7 @@ export function parseFn(args: string | string[]) {
   function wrapper(obj) {
     for (const a of args) {
       if (a in obj) obj = obj[a]
-      else throw new IcnError(IcnErrorCode.MissingKeyInJson)
+      else throw new OraklError(OraklErrorCode.MissingKeyInJson)
     }
     return obj
   }
@@ -73,12 +73,12 @@ export function roundFn() {
 
 export function indexFn(args: number) {
   if (args < 0) {
-    throw new IcnError(IcnErrorCode.IndexOutOfBoundaries)
+    throw new OraklError(OraklErrorCode.IndexOutOfBoundaries)
   }
 
   function wrapper(obj) {
     if (args >= obj.length) {
-      throw new IcnError(IcnErrorCode.IndexOutOfBoundaries)
+      throw new OraklError(OraklErrorCode.IndexOutOfBoundaries)
     } else {
       return obj[args]
     }
