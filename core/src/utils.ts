@@ -47,6 +47,10 @@ export function mkdir(dir: string) {
   }
 }
 
+export async function writeTextFile(filepath: string, content: string) {
+  await Fs.writeFile(filepath, content)
+}
+
 export async function readTextFile(filepath: string) {
   return await Fs.readFile(filepath, 'utf8')
 }

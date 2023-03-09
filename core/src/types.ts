@@ -6,11 +6,6 @@ export interface RequestEventData {
   payment: BigNumber
 }
 
-export interface DataFeedRequest {
-  from: string
-  specId: string
-}
-
 export interface IListeners {
   VRF: string[]
   AGGREGATORS: string[]
@@ -27,50 +22,6 @@ export interface ILog {
   topics: string[]
   transactionHash: string
   transactionIndex: string
-}
-
-interface IHeader {
-  'Content-Type': string
-}
-
-interface IReducer {
-  function: string
-  args: string[]
-}
-
-interface IFeed {
-  url: string
-  headers?: IHeader[]
-  method: string
-  reducers?: IReducer[]
-}
-
-// TODO deprecate
-export interface IAdapter {
-  id?: string
-  active?: boolean
-  name?: string
-  jobType?: string
-  decimals: number
-  feeds: IFeed[]
-}
-
-interface IProperty {
-  active: boolean
-  value: number
-}
-
-// TODO deprecate
-export interface IAggregator {
-  id: string
-  active: boolean
-  name: string
-  aggregatorAddress: string
-  fixedHeartbeatRate: IProperty
-  randomHeartbeatRate: IProperty
-  threshold: number
-  absoluteThreshold: number
-  adapterId: string
 }
 
 export interface IRequestOperation {
@@ -143,15 +94,6 @@ export interface INewRound {
 
 // Listener -> Worker
 
-export interface IPredefinedFeedListenerWorker {
-  requestId: string
-  jobId: string
-  nonce: string
-  callbackAddress: string
-  callbackFunctionId: string
-  _data: string
-}
-
 export interface IRequestResponseListenerWorker {
   callbackAddress: string
   blockNum: number
@@ -189,30 +131,6 @@ export interface IAggregatorHeartbeatWorker {
   aggregatorAddress: string
 }
 
-export interface IAggregatorJob {
-  id: string
-  address: string
-  name: string
-  active: boolean
-  report: boolean
-  fixedHeartbeatRate: IProperty
-  randomHeartbeatRate: IProperty
-  threshold: number
-  absoluteThreshold: number
-  adapterId: string
-  adapter: IFeed[]
-  aggregatorAddress: string
-  decimals: number
-}
-
-export interface IAggregatorMetadata {
-  id: string
-  address: string
-  decimals: number
-  threshold: number
-  absoluteThreshold: number
-}
-
 // Worker -> Reporter
 
 export interface IRequestResponseWorkerReporter {
@@ -224,14 +142,6 @@ export interface IRequestResponseWorkerReporter {
   callbackGasLimit: number
   sender: string
   isDirectPayment: boolean
-  data: string | number
-}
-
-export interface IPredefinedFeedWorkerReporter {
-  requestId: string
-  jobId: string
-  callbackAddress: string
-  callbackFunctionId: string
   data: string | number
 }
 
@@ -303,6 +213,15 @@ export interface IVrfConfig {
 }
 
 // Data Feed
+interface IHeader {
+  'Content-Type': string
+}
+
+interface IReducer {
+  function: string
+  args: string[]
+}
+
 export interface IFeedDefinition {
   url: string
   method: string
@@ -310,22 +229,22 @@ export interface IFeedDefinition {
   reducers: IReducer[]
 }
 
-export interface IFeedNew {
+export interface IFeed {
   id: bigint
   adapterId: bigint
   name: string
   definition: IFeedDefinition
 }
 
-export interface IAdapterNew {
+export interface IAdapter {
   id: bigint
   adapterHash: string
   name: string
   decimals: number
-  feeds: IFeedNew[]
+  feeds: IFeed[]
 }
 
-export interface IAggregatorNew {
+export interface IAggregator {
   id: bigint
   aggregatorHash: string
   active: boolean
@@ -336,7 +255,7 @@ export interface IAggregatorNew {
   absoluteThreshold: number
   adapterId: bigint
   chainId: bigint
-  adapter?: IAdapterNew
+  adapter?: IAdapter
 }
 
 export interface IAggregate {

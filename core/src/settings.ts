@@ -155,17 +155,3 @@ export async function getVrfConfig(db, chain: string): Promise<IVrfConfig> {
   const vrfConfig = await db.get(query)
   return vrfConfig
 }
-
-export async function getAdapters(db, chain: string) {
-  const query = `SELECT data FROM Adapter
-    INNER JOIN Chain ON Chain.id = Adapter.chainId AND Chain.name='${chain}'`
-  const adapters = await db.all(query)
-  return adapters
-}
-
-export async function getAggregators(db, chain: string) {
-  const query = `SELECT data FROM Aggregator
-    INNER JOIN Chain ON Chain.id = Aggregator.chainId AND Chain.name='${chain}'`
-  const aggregators = await db.all(query)
-  return aggregators
-}

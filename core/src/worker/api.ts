@@ -1,7 +1,7 @@
 import axios from 'axios'
 import { URL } from 'node:url'
 import { Logger } from 'pino'
-import { IAggregatorNew, IAggregate } from '../types'
+import { IAggregator, IAggregate } from '../types'
 import { OraklError, OraklErrorCode } from '../errors'
 import { ORAKL_NETWORK_API_URL } from '../settings'
 import { buildUrl } from '../utils'
@@ -49,7 +49,7 @@ export async function getAggregatorGivenAddress({
 }: {
   aggregatorAddress: string
   logger: Logger
-}): Promise<IAggregatorNew> {
+}): Promise<IAggregator> {
   const url = new URL(AGGREGATOR_ENDPOINT)
   url.searchParams.append('address', aggregatorAddress)
 
@@ -90,7 +90,7 @@ export async function getActiveAggregators({
 }: {
   chain: string
   logger: Logger
-}): Promise<IAggregatorNew[]> {
+}): Promise<IAggregator[]> {
   try {
     const url = new URL(AGGREGATOR_ENDPOINT)
     url.searchParams.append('active', 'true')
@@ -120,7 +120,7 @@ export async function getAggregator({
   aggregatorHash: string
   chain: string
   logger: Logger
-}): Promise<IAggregatorNew> {
+}): Promise<IAggregator> {
   try {
     const url = buildUrl(AGGREGATOR_ENDPOINT, `${aggregatorHash}/${chain}`)
     const response = (await axios.get(url))?.data

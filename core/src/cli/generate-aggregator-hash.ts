@@ -1,7 +1,7 @@
 import { parseArgs } from 'node:util'
 import { computeDataHash } from './orakl-cli/src/utils'
 import { loadJson } from '../utils'
-import { IAggregator } from '../types'
+import { IAggregator } from './orakl-cli/src/cli-types'
 
 async function main() {
   const { aggregatorPaths, verify } = loadArgs()

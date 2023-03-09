@@ -13,9 +13,8 @@ import {
 import sqlite from 'sqlite3'
 import { open } from 'sqlite'
 import { ethers } from 'ethers'
-import { IAdapter, IAggregator } from './types'
 import { CliError, CliErrorCode } from './errors'
-import { ChainId, ServiceId, DbCmdOutput } from './cli-types'
+import { IAdapter, IAggregator, ChainId, ServiceId, DbCmdOutput } from './cli-types'
 import { ORAKL_NETWORK_API_URL, ORAKL_NETWORK_FETCHER_URL } from './settings'
 
 function mkdir(dir: string) {

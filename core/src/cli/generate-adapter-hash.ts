@@ -1,7 +1,7 @@
 import { parseArgs } from 'node:util'
 import { computeDataHash } from './orakl-cli/src/utils'
 import { loadJson } from '../utils'
-import { IAdapter } from '../types'
+import { IAdapter } from './orakl-cli/src/cli-types'
 
 async function main() {
   const { adapterPaths, verify } = loadArgs()
