@@ -51,10 +51,6 @@ export async function readTextFile(filepath: string) {
   return await Fs.readFile(filepath, 'utf8')
 }
 
-export async function writeTextFile(filepath: string, content: string) {
-  await Fs.writeFile(filepath, content)
-}
-
 export function mkTmpFile({ fileName }: { fileName: string }): string {
   const appPrefix = 'orakl'
   const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), appPrefix))

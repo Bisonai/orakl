@@ -4,7 +4,6 @@ import sqlite from 'sqlite3'
 import { open } from 'sqlite'
 import { ethers } from 'ethers'
 import { IListenerConfig, IVrfConfig } from './types'
-import { aggregatorMapping } from './aggregator'
 import { listHandler } from './cli/orakl-cli/src/kv'
 import { OraklError, OraklErrorCode } from './errors'
 import { mkdir } from './utils'
@@ -57,7 +56,6 @@ export const REMOVE_ON_FAIL = 1_000
 // FIXME Move to Redis
 export const LISTENER_ROOT_DIR = './tmp/listener/'
 
-export const localAggregatorFn = aggregatorMapping[LOCAL_AGGREGATOR?.toUpperCase() || 'MEAN']
 export const FIXED_HEARTBEAT_QUEUE_NAME = `${DEPLOYMENT_NAME}-fixed-heartbeat-queue`
 export const RANDOM_HEARTBEAT_QUEUE_NAME = `${DEPLOYMENT_NAME}-random-heartbeat-queue`
 export const WORKER_REQUEST_RESPONSE_QUEUE_NAME = `${DEPLOYMENT_NAME}-worker-request-response-queue`

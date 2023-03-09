@@ -1,13 +1,5 @@
 import { OraklError, OraklErrorCode } from '../errors'
 
-export const dataFeedReducerMapping = {
-  PARSE: parseFn,
-  MUL: mulFn,
-  POW10: pow10Fn,
-  ROUND: roundFn,
-  INDEX: indexFn
-}
-
 export const requestResponseReducerMapping = {
   path: parseFn,
   mul: mulFn,
