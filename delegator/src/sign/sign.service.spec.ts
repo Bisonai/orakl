@@ -24,31 +24,32 @@ describe('SignService', () => {
   it('SignedRawTx should not be empty/null', async () => {
     const contract = new caver.contract(dummyFactory.abi as AbiItem[], dummyFactory.address)
     const input = contract.methods.increament().encodeABI()
-    const rawTx = caver.transaction.feeDelegatedSmartContractExecution.create({
+    const tx = caver.transaction.feeDelegatedSmartContractExecution.create({
       from: keyring.address,
       to: contract._address,
       input: input,
       gas: 90000
     })
 
-    await caver.wallet.sign(keyring.address, rawTx)
+    await caver.wallet.sign(keyring.address, tx)
     const data: SignDto = {
-      from: rawTx.from,
-      to: rawTx.to,
-      input: rawTx.input,
-      gas: rawTx.gas,
-      value: rawTx.value,
-      chainId: rawTx.chainId,
-      gasPrice: rawTx.gasPrice,
-      nonce: rawTx.nonce,
-      v: rawTx.signatures[0].v,
-      r: rawTx.signatures[0].r,
-      s: rawTx.signatures[0].s,
-      rawTx: rawTx.getRawTransaction()
+      from: tx.from,
+      to: tx.to,
+      input: tx.input,
+      gas: tx.gas,
+      value: tx.value,
+      chainId: tx.chainId,
+      gasPrice: tx.gasPrice,
+      nonce: tx.nonce,
+      v: tx.signatures[0].v,
+      r: tx.signatures[0].r,
+      s: tx.signatures[0].s,
+      rawTx: tx.getRawTransaction()
     }
     const transactionId = await service.create(data)
     const transaction = await service.findOne({ id: transactionId })
     console.log('TransactionId', transactionId)
     console.log('Transaction', transaction.signedRawTx)
+    await service.remove({ id: transactionId })
   })
 })

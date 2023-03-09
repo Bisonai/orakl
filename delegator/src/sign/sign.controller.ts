@@ -1,5 +1,14 @@
-import { Controller, Get, Post, Body, Patch, Param } from '@nestjs/common'
-import { Transaction as TransactionModel } from '@prisma/client'
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  HttpException,
+  HttpStatus,
+  Delete
+} from '@nestjs/common'
 import { SignService } from './sign.service'
 import { SignDto } from './dto/sign.dto'
 
@@ -12,21 +21,30 @@ export class SignController {
 
   @Post()
   async create(@Body('data') signDto: SignDto) {
-    return this.signService.create(signDto)
+    try {
+      return await this.signService.create(signDto)
+    } catch (e) {
+      throw new HttpException(e.message, HttpStatus.FORBIDDEN)
+    }
   }
 
   @Get()
-  findAll() {
-    return this.signService.findAll({})
+  async findAll() {
+    return await this.signService.findAll({})
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.signService.findOne({ id: Number(id) })
+  async findOne(@Param('id') id: string) {
+    return await this.signService.findOne({ id: Number(id) })
   }
 
   @Patch(':id')
-  async update(@Param('id') id: string, @Body() signDto: SignDto): Promise<TransactionModel> {
+  async update(@Param('id') id: string, @Body() signDto: SignDto) {
     return this.signService.update({ where: { id: Number(id) }, signDto })
+  }
+
+  @Delete(':id')
+  async remove(@Param('id') id: string) {
+    return await this.signService.remove({ id: Number(id) })
   }
 }

@@ -53,4 +53,10 @@ export class SignService {
       where
     })
   }
+
+  async remove(where: Prisma.TransactionWhereUniqueInput) {
+    return this.prisma.transaction.delete({
+      where
+    })
+  }
 }
