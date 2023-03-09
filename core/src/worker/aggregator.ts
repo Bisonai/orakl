@@ -1,17 +1,11 @@
 import { Worker, Queue, Job } from 'bullmq'
 import { Logger } from 'pino'
 import { getAggregatorGivenAddress, getActiveAggregators, fetchDataFeed } from './api'
-import {
-  IAggregatorWorker,
-  IAggregatorWorkerReporter
-  // IAggregatorHeartbeatWorker,
-  // IAggregatorJob
-} from '../types'
+import { IAggregatorWorker, IAggregatorWorkerReporter } from '../types'
 import {
   WORKER_AGGREGATOR_QUEUE_NAME,
   REPORTER_AGGREGATOR_QUEUE_NAME,
   FIXED_HEARTBEAT_QUEUE_NAME,
-  // RANDOM_HEARTBEAT_QUEUE_NAME,
   BULLMQ_CONNECTION,
   PUBLIC_KEY as OPERATOR_ADDRESS,
   DEPLOYMENT_NAME,
@@ -19,7 +13,6 @@ import {
   REMOVE_ON_FAIL,
   CHAIN
 } from '../settings'
-// import { IcnError, IcnErrorCode } from '../errors'
 import { buildReporterJobId } from '../utils'
 import { oracleRoundStateCall } from './utils'
 
@@ -44,14 +37,6 @@ export async function aggregatorWorker(_logger: Logger) {
         removeOnFail: true
       }
     )
-
-    // if (aggregator.randomHeartbeatRate.active) {
-    //   await randomHeartbeatQueue.add('random-heartbeat', addReportProperty(aggregator, undefined), {
-    //     delay: uniform(0, aggregator.randomHeartbeatRate.value),
-    //     removeOnComplete: REMOVE_ON_COMPLETE,
-    //     removeOnFail: REMOVE_ON_FAIL
-    //   })
-    // }
   }
 
   // Event based worker
@@ -68,18 +53,6 @@ export async function aggregatorWorker(_logger: Logger) {
     heartbeatJob(WORKER_AGGREGATOR_QUEUE_NAME, _logger),
     BULLMQ_CONNECTION
   )
-
-  // Random heartbeat worker
-  // new Worker(
-  //   RANDOM_HEARTBEAT_QUEUE_NAME,
-  //   randomHeartbeatJob(
-  //     RANDOM_HEARTBEAT_QUEUE_NAME,
-  //     REPORTER_AGGREGATOR_QUEUE_NAME,
-  //     aggregatorsWithAdapters,
-  //     _logger
-  //   ),
-  //   BULLMQ_CONNECTION
-  // )
 }
 
 function aggregatorJob(reporterQueueName: string, _logger: Logger) {
@@ -179,70 +152,6 @@ function heartbeatJob(aggregatorJobQueueName: string, _logger: Logger) {
 
   return wrapper
 }
-
-/**
- * @deprecated The method should not be used
- */
-// function randomHeartbeatJob(
-//   heartbeatQueueName: string,
-//   reporterQueueName: string,
-//   aggregatorsWithAdapters: IAggregatorJob[],
-//   _logger: Logger
-// ) {
-//   const logger = _logger.child({ name: 'randomHeartbeatJob', file: FILE_NAME })
-//
-//   const heartbeatQueue = new Queue(heartbeatQueueName, BULLMQ_CONNECTION)
-//   const reporterQueue = new Queue(reporterQueueName, BULLMQ_CONNECTION)
-//
-//   async function wrapper(job: Job) {
-//     const inData: IAggregatorJob = job.data
-//     logger.debug(inData, 'inData-random')
-//
-//     const aggregatorAddress = inData.address
-//     const aggregator = aggregatorsWithAdapters[aggregatorAddress]
-//
-//     if (!aggregator) {
-//       throw new IcnError(IcnErrorCode.UndefinedAggregator)
-//     }
-//
-//     try {
-//       const outData = await prepareDataForReporter({
-//         id: inData.id,
-//         workerSource: 'random',
-//         delay: aggregator.fixedHeartbeatRate.value, // FIXME
-//         _logger
-//       })
-//       logger.debug(outData, 'outData-random')
-//       if (outData.report) {
-//         await reporterQueue.add('random', outData, {
-//           removeOnComplete: REMOVE_ON_COMPLETE,
-//           removeOnFail: REMOVE_ON_FAIL,
-//           jobId: buildReporterJobId({
-//             aggregatorAddress,
-//             deploymentName: DEPLOYMENT_NAME,
-//             roundId: outData.roundId
-//           })
-//         })
-//       }
-//     } catch (e) {
-//       // It is possible that `FailedToFetchFromDataFeed` is raised from
-//       // `prepareDataForReporter` which means that fetched data are
-//       // not qualified to be used for submission. This exception is
-//       // okay to ignore within random heartbeat because random
-//       // heartbeat is executed in frequent intervals and data
-//       // request will be performed soon again.
-//       logger.error(e)
-//     } finally {
-//       await heartbeatQueue.add('random-heartbeat', inData, {
-//         delay: uniform(0, inData.randomHeartbeatRate.value),
-//         removeOnComplete: REMOVE_ON_COMPLETE,
-//         removeOnFail: REMOVE_ON_FAIL
-//       })
-//     }
-//   }
-//
-//   return wrapper
-// }
 
 /**
  * Fetch the latest data and prepare them to be sent to reporter.
