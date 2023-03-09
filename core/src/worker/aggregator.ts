@@ -1,16 +1,11 @@
 import { Worker, Queue, Job } from 'bullmq'
 import { Logger } from 'pino'
-import {
-  getAggregatorGivenAddress,
-  getAggregator,
-  getActiveAggregators,
-  fetchDataFeed
-} from './api'
+import { getAggregatorGivenAddress, getActiveAggregators, fetchDataFeed } from './api'
 import {
   IAggregatorWorker,
-  IAggregatorWorkerReporter,
-  IAggregatorHeartbeatWorker,
-  IAggregatorJob
+  IAggregatorWorkerReporter
+  // IAggregatorHeartbeatWorker,
+  // IAggregatorJob
 } from '../types'
 import {
   WORKER_AGGREGATOR_QUEUE_NAME,
@@ -24,15 +19,9 @@ import {
   REMOVE_ON_FAIL,
   CHAIN
 } from '../settings'
-import { IcnError, IcnErrorCode } from '../errors'
+// import { IcnError, IcnErrorCode } from '../errors'
 import { buildReporterJobId } from '../utils'
-import {
-  loadAdapters,
-  loadAggregators,
-  mergeAggregatorsAdapters,
-  uniform,
-  oracleRoundStateCall
-} from './utils'
+import { oracleRoundStateCall } from './utils'
 
 const FILE_NAME = import.meta.url
 
@@ -310,6 +299,8 @@ async function prepareDataForReporter({
  * Test whether the current submission deviates from the last
  * submission more than given threshold or absolute threshold. If yes,
  * return `true`, otherwise `false`.
+ *
+ * TODO move to Orakl Fetcher
  *
  * @param {number} latest submission value
  * @param {number} current submission value
