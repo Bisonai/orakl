@@ -38,22 +38,19 @@ const FILE_NAME = import.meta.url
 
 export async function aggregatorWorker(_logger: Logger) {
   const logger = _logger.child({ name: 'aggregatorWorker', file: FILE_NAME })
-
   const aggregators = await getActiveAggregators({ chain: CHAIN, logger })
-  console.log(aggregators)
 
   const fixedHeartbeatQueue = new Queue(FIXED_HEARTBEAT_QUEUE_NAME, BULLMQ_CONNECTION)
 
   // Launch all active aggregators
-  for (const ag of aggregators) {
-    const aggregatorAddress = '0x0DCd1Bf9A1b36cE34237eEaFef220932846BCD82' // FIXME
-    // const aggregatorAddress = ag['address'] // FIXME define type
+  for (const aggregator of aggregators) {
+    const aggregatorAddress = aggregator.address
 
     await fixedHeartbeatQueue.add(
       'heartbeat',
       { aggregatorAddress },
       {
-        delay: await getSynchronizedDelay(aggregatorAddress, ag['heartbeat'], _logger), // FIXME define type
+        delay: await getSynchronizedDelay(aggregatorAddress, aggregator.heartbeat, _logger),
         removeOnComplete: true,
         removeOnFail: true
       }
@@ -348,6 +345,8 @@ function shouldReport(
 /**
  * Compute the number of seconds until the next round.
  *
+ * FIXME modify aggregator to use single contract call
+ *
  * @param {string} aggregator address
  * @param {number} heartbeat
  * @param {Logger}
@@ -358,8 +357,6 @@ async function getSynchronizedDelay(
   heartbeat: number,
   _logger: Logger
 ): Promise<number> {
-  // FIXME modify aggregator to use single contract call
-
   let startedAt = 0
   const { _startedAt, _roundId } = await oracleRoundStateCall({
     aggregatorAddress,

@@ -336,7 +336,7 @@ export interface IAggregatorNew {
   absoluteThreshold: number
   adapterId: bigint
   chainId: bigint
-  adapter: IAdapterNew
+  adapter?: IAdapterNew
 }
 
 export interface IAggregate {
