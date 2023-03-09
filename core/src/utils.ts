@@ -122,3 +122,16 @@ export function buildReporterJobId({
 }) {
   return `${roundId}-${aggregatorAddress}-${deploymentName}`
 }
+
+/*
+ * Connect `host` and `path` to a single url string, and remove all
+ * duplicates of `/` (= slash character) except the first occurrence.
+ *
+ * @param {string} host, presumably includes scheme string `http(s)://`
+ * @param {string} endpoint path
+ * @return {string} concatenated string composed of host and endpoint path
+ */
+export function buildUrl(host: string, path: string) {
+  const url = [host, path].join('/')
+  return url.replace(/([^:]\/)\/+/g, '$1')
+}

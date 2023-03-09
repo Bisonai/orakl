@@ -11,10 +11,7 @@ import { mkdir } from './utils'
 import * as dotenv from 'dotenv'
 dotenv.config()
 
-// Orakl Network API
-const ORAKL_API_VERSION = '1'
-const ORAKL_API_HOST_NAME = `http://localhost:3000/api/v${ORAKL_API_VERSION}`
-export const ORAKL_API_DATA_FEED_ENDPOINT = [ORAKL_API_HOST_NAME, 'feed'].join('/')
+export const ORAKL_NETWORK_API_URL = process.env.ORAKL_NETWORK_API_URL | 'http://localhost:3000'
 
 export const MIGRATIONS_PATH = 'src/cli/orakl-cli/migrations'
 export const DEPLOYMENT_NAME = process.env.DEPLOYMENT_NAME || 'orakl'

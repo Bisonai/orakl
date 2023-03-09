@@ -45,6 +45,7 @@ interface IFeed {
   reducers?: IReducer[]
 }
 
+// TODO deprecate
 export interface IAdapter {
   id?: string
   active?: boolean
@@ -59,6 +60,7 @@ interface IProperty {
   value: number
 }
 
+// TODO deprecate
 export interface IAggregator {
   id: string
   active: boolean
@@ -254,7 +256,7 @@ export interface IAggregatorWorkerReporter {
   report: boolean | undefined
   callbackAddress: string
   roundId: number
-  submission: number
+  submission: bigint
   workerSource: string
   delay: number
 }
@@ -298,4 +300,48 @@ export interface IVrfConfig {
   pk: string
   pk_x: string
   pk_y: string
+}
+
+// Data Feed
+export interface IFeedDefinition {
+  url: string
+  method: string
+  headers: IHeader[]
+  reducers: IReducer[]
+}
+
+export interface IFeedNew {
+  id: bigint
+  adapterId: bigint
+  name: string
+  definition: IFeedDefinition
+}
+
+export interface IAdapterNew {
+  id: bigint
+  adapterHash: string
+  name: string
+  decimals: number
+  feeds: IFeedNew[]
+}
+
+export interface IAggregatorNew {
+  id: bigint
+  aggregatorHash: string
+  active: boolean
+  name: string
+  address: string
+  heartbeat: number
+  threshold: number
+  absoluteThreshold: number
+  adapterId: bigint
+  chainId: bigint
+  adapter: IAdapterNew
+}
+
+export interface IAggregate {
+  id: bigint
+  timestamp: string | Date
+  value: bigint
+  aggregatorId: bigint
 }
