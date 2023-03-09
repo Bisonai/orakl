@@ -1,7 +1,7 @@
 import { describe, test, expect } from '@jest/globals'
 import { buildWallet, sendTransaction } from '../src/reporter/utils'
 import { ethers } from 'ethers'
-import { IcnErrorCode } from '../src/errors'
+import { OraklErrorCode } from '../src/errors'
 
 // The following tests have to be run with hardhat network launched.
 // If the hardhat cannot be detected tests are skipped.
@@ -26,7 +26,7 @@ describe('Reporter', function () {
         await sendTransaction({ wallet, to, payload })
       }).rejects.toThrow('TxInvalidAddress')
     } catch (e) {
-      if (e.code == IcnErrorCode.ProviderNetworkError) {
+      if (e.code == OraklErrorCode.ProviderNetworkError) {
         return 0
       } else {
         throw e
@@ -51,7 +51,7 @@ describe('Reporter', function () {
         await sendTransaction({ wallet, to, value })
       }).rejects.toThrow('TxProcessingResponseError')
     } catch (e) {
-      if (e.code == IcnErrorCode.ProviderNetworkError) {
+      if (e.code == OraklErrorCode.ProviderNetworkError) {
         return 0
       } else {
         throw e

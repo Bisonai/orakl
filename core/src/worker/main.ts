@@ -3,15 +3,13 @@ import { buildLogger } from '../logger'
 import { aggregatorWorker } from './aggregator'
 import { vrfWorker } from './vrf'
 import { worker as requestResponseWorker } from './request-response'
-import { predefinedFeedWorker } from './predefined-feed'
 import { launchHealthCheck } from '../health-check'
 import { hookConsoleError } from '../utils'
 
 const WORKERS = {
   AGGREGATOR: aggregatorWorker,
   VRF: vrfWorker,
-  REQUEST_RESPONSE: requestResponseWorker,
-  PREDEFINED_FEED: predefinedFeedWorker
+  REQUEST_RESPONSE: requestResponseWorker
 }
 
 const LOGGER = buildLogger('worker')

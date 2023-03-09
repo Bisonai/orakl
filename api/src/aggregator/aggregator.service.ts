@@ -66,7 +66,7 @@ export class AggregatorService {
     })
   }
 
-  async findOne(aggregatorWhereUniqueInput: Prisma.AggregatorWhereUniqueInput) {
+  async findUnique(aggregatorWhereUniqueInput: Prisma.AggregatorWhereUniqueInput) {
     return await this.prisma.aggregator.findUnique({
       where: aggregatorWhereUniqueInput,
       include: {

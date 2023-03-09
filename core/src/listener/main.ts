@@ -4,7 +4,7 @@ import { buildListener as buildAggregatorListener } from './aggregator'
 import { buildListener as buildVrfListener } from './vrf'
 import { buildListener as buildRequestResponseListener } from './request-response'
 import { validateListenerConfig } from './utils'
-import { IcnError, IcnErrorCode } from '../errors'
+import { OraklError, OraklErrorCode } from '../errors'
 import { DB, CHAIN } from '../settings'
 import { getListeners } from '../settings'
 import { launchHealthCheck } from '../health-check'
@@ -36,12 +36,12 @@ function validateListeners(listenersConfig: IListenerConfig[], listener: string)
   )
 
   if (!isValid) {
-    throw new IcnError(IcnErrorCode.InvalidListenerConfig)
+    throw new OraklError(OraklErrorCode.InvalidListenerConfig)
   }
 
   if (!LISTENERS[listener] || !listenersConfig[listener]) {
     LOGGER.error({ name: 'listener:main', file: FILE_NAME, listener }, 'listener')
-    throw new IcnError(IcnErrorCode.UndefinedListenerRequested)
+    throw new OraklError(OraklErrorCode.UndefinedListenerRequested)
   }
 
   LOGGER.info({ name: 'listener:main', file: FILE_NAME, ...listenersConfig }, 'listenersConfig')

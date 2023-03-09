@@ -4,17 +4,13 @@ import sqlite from 'sqlite3'
 import { open } from 'sqlite'
 import { ethers } from 'ethers'
 import { IListenerConfig, IVrfConfig } from './types'
-import { aggregatorMapping } from './aggregator'
 import { listHandler } from './cli/orakl-cli/src/kv'
-import { IcnError, IcnErrorCode } from './errors'
+import { OraklError, OraklErrorCode } from './errors'
 import { mkdir } from './utils'
 import * as dotenv from 'dotenv'
 dotenv.config()
 
-// Orakl Network API
-const ORAKL_API_VERSION = '1'
-const ORAKL_API_HOST_NAME = `http://localhost:3000/api/v${ORAKL_API_VERSION}`
-export const ORAKL_API_DATA_FEED_ENDPOINT = [ORAKL_API_HOST_NAME, 'feed'].join('/')
+export const ORAKL_NETWORK_API_URL = process.env.ORAKL_NETWORK_API_URL || 'http://localhost:3000'
 
 export const MIGRATIONS_PATH = 'src/cli/orakl-cli/migrations'
 export const DEPLOYMENT_NAME = process.env.DEPLOYMENT_NAME || 'orakl'
@@ -60,7 +56,6 @@ export const REMOVE_ON_FAIL = 1_000
 // FIXME Move to Redis
 export const LISTENER_ROOT_DIR = './tmp/listener/'
 
-export const localAggregatorFn = aggregatorMapping[LOCAL_AGGREGATOR?.toUpperCase() || 'MEAN']
 export const FIXED_HEARTBEAT_QUEUE_NAME = `${DEPLOYMENT_NAME}-fixed-heartbeat-queue`
 export const RANDOM_HEARTBEAT_QUEUE_NAME = `${DEPLOYMENT_NAME}-random-heartbeat-queue`
 export const WORKER_REQUEST_RESPONSE_QUEUE_NAME = `${DEPLOYMENT_NAME}-worker-request-response-queue`
@@ -119,9 +114,9 @@ export async function loadKeyValuePair({ db, key, chain }: { db; key: string; ch
   const kv = await listHandler(db)({ key, chain })
 
   if (kv.length == 0) {
-    throw new IcnError(IcnErrorCode.MissingKeyValuePair, `key: ${key}, chain: ${chain}`)
+    throw new OraklError(OraklErrorCode.MissingKeyValuePair, `key: ${key}, chain: ${chain}`)
   } else if (kv.length > 1) {
-    throw new IcnError(IcnErrorCode.UnexpectedQueryOutput)
+    throw new OraklError(OraklErrorCode.UnexpectedQueryOutput)
   }
 
   return kv[0].value as string
@@ -159,18 +154,4 @@ export async function getVrfConfig(db, chain: string): Promise<IVrfConfig> {
     INNER JOIN Chain ON Chain.id = VrfKey.chainId AND Chain.name='${chain}'`
   const vrfConfig = await db.get(query)
   return vrfConfig
-}
-
-export async function getAdapters(db, chain: string) {
-  const query = `SELECT data FROM Adapter
-    INNER JOIN Chain ON Chain.id = Adapter.chainId AND Chain.name='${chain}'`
-  const adapters = await db.all(query)
-  return adapters
-}
-
-export async function getAggregators(db, chain: string) {
-  const query = `SELECT data FROM Aggregator
-    INNER JOIN Chain ON Chain.id = Aggregator.chainId AND Chain.name='${chain}'`
-  const aggregators = await db.all(query)
-  return aggregators
 }
