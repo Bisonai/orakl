@@ -9,8 +9,16 @@ export class SignService {
   constructor(private prisma: PrismaService) {}
 
   async create(data: SignDto) {
-    const result = await this.prisma.transaction.create({ data })
-    approveAndSign(result)
+    const transaction = await this.prisma.transaction.create({ data })
+    const signedRawTx = await approveAndSign(transaction)
+    data.signedRawTx = signedRawTx
+
+    await this.update({
+      where: { id: Number(transaction.id) },
+      signDto: data
+    })
+
+    return transaction.id
   }
 
   async findAll(params: {

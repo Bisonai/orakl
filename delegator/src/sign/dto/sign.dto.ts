@@ -33,4 +33,10 @@ export class SignDto {
 
   @ApiProperty()
   s: string
+
+  @ApiProperty()
+  rawTx: string
+
+  @ApiProperty()
+  signedRawTx?: string
 }

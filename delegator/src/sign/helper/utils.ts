@@ -21,31 +21,32 @@ function encryptMethodName(method: string) {
   return caver.klay.abi.encodeFunctionSignature(method)
 }
 
-async function getSignedTx(rawTx) {
+async function signByFeePayerAndExecuteTransaction(input: Transaction) {
+  // TODO: decode Tx from rawTx
+  // let tx = caver.transaction.decode(input.rawTx)
+  // console.log('rawTx:', tx)
+
   const signature: SignatureData = new caver.wallet.keyring.signatureData([
-    rawTx.v,
-    rawTx.r,
-    rawTx.s
+    input.v,
+    input.r,
+    input.s
   ])
 
   const iTx: SignTxData = {
-    from: rawTx.from,
-    to: rawTx.to,
-    input: rawTx.input,
-    gas: rawTx.gas,
+    from: input.from,
+    to: input.to,
+    input: input.input,
+    gas: input.gas,
     signatures: [signature],
-    value: rawTx.value,
-    chainId: rawTx.chainId,
-    gasPrice: rawTx.gasPrice,
-    nonce: rawTx.nonce
+    value: input.value,
+    chainId: input.chainId,
+    gasPrice: input.gasPrice,
+    nonce: input.nonce
   }
 
-  return await caver.transaction.feeDelegatedSmartContractExecution.create({ ...iTx })
-}
-
-async function signByFeePayerAndExecuteTransaction(rawTx) {
-  await caver.wallet.signAsFeePayer(feePayerKeyring.address, rawTx)
-  return await caver.rpc.klay.sendRawTransaction(rawTx.getRawTransaction())
+  const tx = await caver.transaction.feeDelegatedSmartContractExecution.create({ ...iTx })
+  await caver.wallet.signAsFeePayer(feePayerKeyring.address, tx)
+  return tx.getRawTransaction()
 }
 
 async function validateTransaction(rawTx) {
@@ -71,9 +72,6 @@ async function validateTransaction(rawTx) {
 }
 
 export async function approveAndSign(input: Transaction) {
-  const rawTx = await getSignedTx(input)
-  await validateTransaction(rawTx)
-
-  const receipt = await signByFeePayerAndExecuteTransaction(rawTx)
-  console.log('Receipt:', receipt)
+  await validateTransaction(input)
+  return await signByFeePayerAndExecuteTransaction(input)
 }
