@@ -59,19 +59,19 @@ export async function getAggregatorGivenAddress({
   } catch (e) {
     logger.error(e)
     throw new IcnError(IcnErrorCode.FailedToGetAggregator)
-  } finally {
-    if (response.length == 1) {
-      logger.debug(response)
-      return response[0]
-    } else if (response.length == 0) {
-      const msg = 'No aggregator found'
-      logger.error(msg)
-      throw new IcnError(IcnErrorCode.FailedToGetAggregator, msg)
-    } else {
-      const msg = `Expected one aggregator, received ${response.length}`
-      logger.error(msg)
-      throw new IcnError(IcnErrorCode.FailedToGetAggregator, msg)
-    }
+  }
+
+  if (response.length == 1) {
+    logger.debug(response)
+    return response[0]
+  } else if (response.length == 0) {
+    const msg = 'No aggregator found'
+    logger.error(msg)
+    throw new IcnError(IcnErrorCode.FailedToGetAggregator, msg)
+  } else {
+    const msg = `Expected one aggregator, received ${response.length}`
+    logger.error(msg)
+    throw new IcnError(IcnErrorCode.FailedToGetAggregator, msg)
   }
 }
 
