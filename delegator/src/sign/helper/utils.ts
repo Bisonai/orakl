@@ -9,8 +9,6 @@ const PROVIDER_URL = 'https://api.baobab.klaytn.net:8651'
 const caver = new Caver(PROVIDER_URL)
 const feePayerKeyring = caver.wallet.keyring.createFromPrivateKey(process.env.SIGNER_PRIVATE_KEY)
 caver.wallet.add(feePayerKeyring)
-const keyring = caver.wallet.keyring.createFromPrivateKey(process.env.CAVER_PRIVATE_KEY)
-caver.wallet.add(keyring)
 
 export async function loadJson(filepath) {
   const json = await Fs.readFile(filepath, 'utf8')
