@@ -43,22 +43,14 @@ export class AggregatorController {
    */
   @Get()
   async findAll(@Query() query: AggregatorQueryDto) {
-    const { chain, active } = query
+    const { chain, active, address } = query
 
     return await this.aggregatorService.findAll({
       where: {
         chain: { name: chain },
-        active: active
+        active,
+        address
       }
-    })
-  }
-
-  // TODO deprecate
-  @Get(':id')
-  async findOne(@Param('id') aggregatorHash: string, @Body('chain') chain) {
-    const { id: chainId } = await this.chainService.findOne({ name: chain })
-    return await this.aggregatorService.findOne({
-      aggregatorHash_chainId: { aggregatorHash, chainId }
     })
   }
 

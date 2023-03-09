@@ -66,20 +66,6 @@ export class AggregatorService {
     })
   }
 
-  //  TODO deprecate
-  async findOne(aggregatorWhereUniqueInput: Prisma.AggregatorWhereUniqueInput) {
-    return await this.prisma.aggregator.findUnique({
-      where: aggregatorWhereUniqueInput,
-      include: {
-        adapter: {
-          include: {
-            feeds: true
-          }
-        }
-      }
-    })
-  }
-
   async findUnique(aggregatorWhereUniqueInput: Prisma.AggregatorWhereUniqueInput) {
     return await this.prisma.aggregator.findUnique({
       where: aggregatorWhereUniqueInput,
