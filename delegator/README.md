@@ -6,6 +6,20 @@
 yarn install
 ```
 
+## Settings
+
+Orakl Delegator requires to set the following environment variables.
+
+- `DATABASE_URL`
+- `APP_PORT`
+- `CAVER_PRIVATE_KEY`
+- `SIGNER_PRIVATE_KEY`
+  You can copy them from `.env.example` to `.env` and fill the appropriate values.
+
+```shell
+cp .env.example .env
+```
+
 ## Local Development
 
 ```shell
@@ -51,7 +65,7 @@ yarn run test:e2e
 yarn run test:cov
 ```
 
-## API Link
+## API swagger
 
 ```bash
 http://localhost:3000/docs
