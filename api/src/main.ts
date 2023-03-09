@@ -1,3 +1,4 @@
+import { ValidationPipe } from '@nestjs/common'
 import { NestFactory } from '@nestjs/core'
 import { AppModule } from './app.module'
 import { setAppSettings } from './app.settings'
@@ -12,9 +13,10 @@ BigInt.prototype.toJSON = function (): string {
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
-    logger: ['error', 'warn', 'log', 'debug']
+    logger: ['error', 'warn', 'log', 'debug'] // FIXME
   })
   setAppSettings(app)
+  app.useGlobalPipes(new ValidationPipe({ whitelist: false, transform: true }))
 
   const version = '1.0'
   const config = new DocumentBuilder()
