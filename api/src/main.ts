@@ -12,9 +12,7 @@ BigInt.prototype.toJSON = function (): string {
 }
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule, {
-    logger: ['error', 'warn', 'log', 'debug'] // FIXME
-  })
+  const app = await NestFactory.create(AppModule)
   setAppSettings(app)
   app.useGlobalPipes(new ValidationPipe({ whitelist: false, transform: true }))
 

@@ -14,7 +14,6 @@ import {
 import { AggregatorService } from './aggregator.service'
 import { ChainService } from '../chain/chain.service'
 import { AggregatorDto } from './dto/aggregator.dto'
-// import { AggregatorWhereDto } from './dto/aggregator-where.dto'
 import { AggregatorQueryDto } from './dto/aggregator-query.dto'
 import { AggregatorUpdateDto } from './dto/aggregator-update.dto'
 
