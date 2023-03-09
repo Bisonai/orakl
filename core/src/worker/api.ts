@@ -36,7 +36,7 @@ export async function fetchDataFeed({
 }
 
 /**
- * Get `Aggregator` given aggregator address.
+ * Get single `Aggregator` given aggregator address.
  *
  * @param {string} aggregator address
  * @param {Logger} logger
@@ -50,26 +50,28 @@ export async function getAggregatorGivenAddress({
   aggregatorAddress: string
   logger: Logger
 }): Promise<IAggregatorNew> {
+  const url = new URL(AGGREGATOR_ENDPOINT)
+  url.searchParams.append('address', aggregatorAddress)
+
+  let response = []
   try {
-    const url = new URL(AGGREGATOR_ENDPOINT)
-    url.searchParams.append('address', aggregatorAddress)
-    const response = (await axios.get(url.toString()))?.data
-    if (response.length == 0) {
-      const msg = 'nothing found'
-      console.log(msg)
-      throw new Error(msg)
-    } else if (response.length == 1) {
-      logger.debug(response)
-      return response[0]
-    } else {
-      console.dir(response, { depth: null })
-      const msg = 'too many found'
-      console.log(msg)
-      throw new Error(msg)
-    }
+    response = (await axios.get(url.toString()))?.data
   } catch (e) {
     logger.error(e)
     throw new IcnError(IcnErrorCode.FailedToGetAggregator)
+  } finally {
+    if (response.length == 1) {
+      logger.debug(response)
+      return response[0]
+    } else if (response.length == 0) {
+      const msg = 'No aggregator found'
+      logger.error(msg)
+      throw new IcnError(IcnErrorCode.FailedToGetAggregator, msg)
+    } else {
+      const msg = `Expected one aggregator, received ${response.length}`
+      logger.error(msg)
+      throw new IcnError(IcnErrorCode.FailedToGetAggregator, msg)
+    }
   }
 }
 
