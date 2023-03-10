@@ -1,6 +1,6 @@
 import { ethers } from 'ethers'
 import { Logger } from 'pino'
-import { IcnError, IcnErrorCode } from '../errors'
+import { OraklError, OraklErrorCode } from '../errors'
 import { PROVIDER_URL as PROVIDER_ENV, PRIVATE_KEY as PRIVATE_KEY_ENV } from '../settings'
 import { add0x } from '../utils'
 
@@ -23,7 +23,7 @@ export async function buildWallet({
       await wallet.getTransactionCount()
     } catch (e) {
       if (e.code == 'NETWORK_ERROR') {
-        throw new IcnError(IcnErrorCode.ProviderNetworkError, 'ProviderNetworkError', e.reason)
+        throw new OraklError(OraklErrorCode.ProviderNetworkError, 'ProviderNetworkError', e.reason)
       } else {
         throw e
       }
@@ -35,11 +35,11 @@ export async function buildWallet({
 
 export function loadWalletParameters() {
   if (!PRIVATE_KEY_ENV) {
-    throw new IcnError(IcnErrorCode.MissingMnemonic)
+    throw new OraklError(OraklErrorCode.MissingMnemonic)
   }
 
   if (!PROVIDER_ENV) {
-    throw new IcnError(IcnErrorCode.MissingJsonRpcProvider)
+    throw new OraklError(OraklErrorCode.MissingJsonRpcProvider)
   }
 
   return { privateKey: PRIVATE_KEY_ENV, providerUrl: PROVIDER_ENV }
@@ -82,21 +82,25 @@ export async function sendTransaction({
     const txReceipt = await (await wallet.sendTransaction(tx)).wait(1)
     logger?.debug(txReceipt, 'txReceipt')
     if (txReceipt === null) {
-      throw new IcnError(IcnErrorCode.TxNotMined)
+      throw new OraklError(OraklErrorCode.TxNotMined)
     }
   } catch (e) {
     logger?.debug(e, 'e')
 
     if (e.reason == 'invalid address') {
-      throw new IcnError(IcnErrorCode.TxInvalidAddress, 'TxInvalidAddress', e.value)
+      throw new OraklError(OraklErrorCode.TxInvalidAddress, 'TxInvalidAddress', e.value)
     } else if (e.reason == 'processing response error') {
-      throw new IcnError(
-        IcnErrorCode.TxProcessingResponseError,
+      throw new OraklError(
+        OraklErrorCode.TxProcessingResponseError,
         'TxProcessingResponseError',
         e.value
       )
     } else if (e.code == 'UNPREDICTABLE_GAS_LIMIT') {
-      throw new IcnError(IcnErrorCode.TxCannotEstimateGasError, 'TxCannotEstimateGasError', e.value)
+      throw new OraklError(
+        OraklErrorCode.TxCannotEstimateGasError,
+        'TxCannotEstimateGasError',
+        e.value
+      )
     } else {
       throw e
     }

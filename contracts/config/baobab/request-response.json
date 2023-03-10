@@ -1,24 +1,25 @@
 {
-    "maxGasLimit": 2500000,
-    "gasAfterPaymentCalculation": 0,
-    "feeConfig": {
-        "fulfillmentFlatFeeKlayPPMTier1": 0,
-        "fulfillmentFlatFeeKlayPPMTier2": 0,
-        "fulfillmentFlatFeeKlayPPMTier3": 0,
-        "fulfillmentFlatFeeKlayPPMTier4": 0,
-        "fulfillmentFlatFeeKlayPPMTier5": 0,
-        "reqsForTier2": 0,
-        "reqsForTier3": 0,
-        "reqsForTier4": 0,
-        "reqsForTier5": 0
-    },
-    "directPaymentConfig": {
-        "fulfillmentFee": 0,
-        "baseFee": 0
-    },
-    "oracle": [
-        {
-            "address": "0x46B853723c002Ff5c1D0F4a0E6671F31B2C2A480"
-        }
-    ]
+  "maxGasLimit": 2500000,
+  "gasAfterPaymentCalculation": 0,
+  "feeConfig": {
+    "fulfillmentFlatFeeKlayPPMTier1": 0,
+    "fulfillmentFlatFeeKlayPPMTier2": 0,
+    "fulfillmentFlatFeeKlayPPMTier3": 0,
+    "fulfillmentFlatFeeKlayPPMTier4": 0,
+    "fulfillmentFlatFeeKlayPPMTier5": 0,
+    "reqsForTier2": 0,
+    "reqsForTier3": 0,
+    "reqsForTier4": 0,
+    "reqsForTier5": 0
+  },
+  "directPaymentConfig": {
+    "fulfillmentFee": 0,
+    "baseFee": 0
+  },
+  "oracle": [
+    {
+      "address": "0x46B853723c002Ff5c1D0F4a0E6671F31B2C2A480"
+    }
+  ],
+  "minBalance": "100000000000000000"
 }

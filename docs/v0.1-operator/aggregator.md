@@ -34,7 +34,7 @@ yarn cli listener insert \
 In the example settings below, we are using `ETH/USD` data feed.
 
 ```shell
-yarn cli adapter insert
+yarn cli adapter insert \
     --chain ${chain} \
     --file-path ${adapterFilePath}
 

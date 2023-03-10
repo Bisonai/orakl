@@ -10,6 +10,7 @@ import { migrateCmd } from './migrate'
 import { kvSub } from './kv'
 import { adapterSub } from './adapter'
 import { aggregatorSub } from './aggregator'
+import { fetcherSub } from './fetcher'
 import { openDb } from './utils'
 
 import { binary, subcommands, run } from 'cmd-ts'
@@ -19,18 +20,19 @@ async function main() {
   const dbFile = path.join(ORAKL_DIR, 'settings.sqlite')
   const db = await openDb({ dbFile })
 
-  const chain = chainSub(db)
+  const chain = chainSub()
   const service = serviceSub(db)
   const listener = listenerSub(db)
   const vrf = vrfSub(db)
   const migrate = migrateCmd(db)
   const kv = kvSub(db)
-  const adapter = adapterSub(db)
-  const aggregator = aggregatorSub(db)
+  const adapter = adapterSub()
+  const aggregator = aggregatorSub()
+  const fetcher = fetcherSub()
 
   const cli = subcommands({
     name: 'operator',
-    cmds: { migrate, kv, chain, service, listener, vrf, adapter, aggregator }
+    cmds: { migrate, kv, chain, service, listener, vrf, adapter, aggregator, fetcher }
   })
 
   run(binary(cli), process.argv)

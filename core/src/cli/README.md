@@ -101,12 +101,3 @@ yarn aggregator-hash aggregator/klay_usd.aggregator.json
   adapterId: '0x00d5130063bee77302b133b5c6a0d6aede467a599d251aec842d24abeb5866a5'
 }
 ```
-
-## Fetch data with adapter
-
-Predefined registered adapters can be tested using `yarn data-feed` command.
-To see a list of all adapters run `yarn adapter list`.
-
-```shell
-yarn data-feed --adapterId [adapter-id]
-```

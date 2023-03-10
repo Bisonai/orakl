@@ -1,19 +1,16 @@
 import { parseArgs } from 'node:util'
 import { computeDataHash } from './orakl-cli/src/utils'
 import { loadJson } from '../utils'
-import { IAdapter } from '../types'
-import { loadAdapters } from '../worker/utils'
+import { IAdapter } from './orakl-cli/src/cli-types'
 
 async function main() {
   const { adapterPaths, verify } = loadArgs()
-  let adapters: IAdapter[] = []
+  const adapters: IAdapter[] = []
 
   if (adapterPaths.length) {
     for (const ap of adapterPaths) {
       adapters.push(await loadJson(ap))
     }
-  } else {
-    adapters = await loadAdapters({ postprocess: false })
   }
 
   for (const data of adapters) {

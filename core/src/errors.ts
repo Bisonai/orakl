@@ -1,40 +1,42 @@
-export class IcnError extends Error {
-  constructor(public readonly code: IcnErrorCode, message?: string, public readonly value?) {
+export class OraklError extends Error {
+  constructor(public readonly code: OraklErrorCode, message?: string, public readonly value?) {
     super(message)
-    this.name = IcnErrorCode[code]
+    this.name = OraklErrorCode[code]
     this.value = value
     Object.setPrototypeOf(this, new.target.prototype)
   }
 }
 
-export enum IcnErrorCode {
+export enum OraklErrorCode {
   NonExistentEventError = 10000,
-  InvalidOperator,
+  AggregatorJobCanTakeMoreBreak,
+  AggregatorNotFound,
+  FailedToGetAggregate,
+  FailedToGetAggregator,
+  IncompleteDataFeed,
+  IndexOutOfBoundaries,
   InvalidAdapter,
   InvalidAggregator,
+  InvalidDataFeed,
+  InvalidDataFeedFormat,
+  InvalidDecodedMesssageLength,
+  InvalidListenerConfig,
+  InvalidOperator,
   InvalidReducer,
-  MissingMnemonic,
-  MissingJsonRpcProvider,
-  MissingKeyInJson,
   MissingAdapter,
   MissingAggregator,
-  UniformWrongParams,
-  InvalidListenerConfig,
-  UndefinedListenerRequested,
-  InvalidDataFeed,
-  IncompleteDataFeed,
-  InvalidDataFeedFormat,
+  MissingJsonRpcProvider,
+  MissingKeyInJson,
   MissingKeyValuePair,
-  UnexpectedQueryOutput,
-  TxInvalidAddress,
-  TxProcessingResponseError,
-  TxCannotEstimateGasError,
+  MissingMnemonic,
   ProviderNetworkError,
-  InvalidDecodedMesssageLength,
-  IndexOutOfBoundaries,
-  AggregatorNotFound,
-  AggregatorJobCanTakeMoreBreak,
+  TxCannotEstimateGasError,
+  TxInvalidAddress,
+  TxNotMined,
+  TxProcessingResponseError,
   UndefinedAggregator,
+  UndefinedListenerRequested,
   UnexpectedNumberOfJobsInQueue,
-  TxNotMined
+  UnexpectedQueryOutput,
+  UniformWrongParams
 }

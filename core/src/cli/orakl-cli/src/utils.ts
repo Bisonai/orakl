@@ -1,4 +1,7 @@
 import { open as openFile, readFile } from 'node:fs/promises'
+import * as fs from 'node:fs'
+import path from 'node:path'
+import axios from 'axios'
 import {
   optional,
   boolean as cmdboolean,
@@ -10,9 +13,15 @@ import {
 import sqlite from 'sqlite3'
 import { open } from 'sqlite'
 import { ethers } from 'ethers'
-import { IAdapter, IAggregator } from './types'
-import { CliError, CliErrorCode } from './error'
-import { ChainId, ServiceId, DbCmdOutput } from './cli-types'
+import { CliError, CliErrorCode } from './errors'
+import { IAdapter, IAggregator, ChainId, ServiceId, DbCmdOutput } from './cli-types'
+import { ORAKL_NETWORK_API_URL, ORAKL_NETWORK_FETCHER_URL } from './settings'
+
+function mkdir(dir: string) {
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true })
+  }
+}
 
 export async function openDb({
   dbFile,
@@ -23,6 +32,8 @@ export async function openDb({
   migrate?: boolean
   migrationsPath?: string
 }) {
+  mkdir(path.dirname(dbFile))
+
   const db = await open({
     filename: dbFile,
     driver: sqlite.Database
@@ -111,5 +122,30 @@ export async function computeDataHash({
     data.id = hash
     console.info(data)
     return data
+  }
+}
+
+export function buildUrl(host: string, path: string) {
+  const url = [host, path].join('/')
+  return url.replace(/([^:]\/)\/+/g, '$1')
+}
+
+export async function isOraklNetworkApiHealthy() {
+  const ORAKL_NETWORK_API_HEALTH_ENDPOINT = buildUrl(ORAKL_NETWORK_API_URL, 'health')
+  try {
+    return 'OK' === (await axios.get(ORAKL_NETWORK_API_HEALTH_ENDPOINT))?.data
+  } catch (e) {
+    console.error(`Orakl Network API [${ORAKL_NETWORK_API_URL}] is down`)
+    return false
+  }
+}
+
+export async function isOraklFetcherHealthy() {
+  const ORAKL_NETWORK_FETCHER_ENDPOINT = buildUrl(ORAKL_NETWORK_FETCHER_URL, 'health')
+  try {
+    return 'OK' === (await axios.get(ORAKL_NETWORK_FETCHER_ENDPOINT))?.data
+  } catch (e) {
+    console.error(`Orakl Network Fetcher [${ORAKL_NETWORK_FETCHER_URL}] is down`)
+    return false
   }
 }

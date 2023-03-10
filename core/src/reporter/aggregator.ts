@@ -9,7 +9,7 @@ import {
   FIXED_HEARTBEAT_QUEUE_NAME
 } from '../settings'
 import { IAggregatorWorkerReporter, IAggregatorHeartbeatWorker } from '../types'
-import { IcnError, IcnErrorCode } from '../errors'
+import { OraklError, OraklErrorCode } from '../errors'
 
 const FILE_NAME = import.meta.url
 
@@ -34,7 +34,7 @@ function job(wallet, _logger: Logger) {
 
     const aggregatorAddress = inData.callbackAddress
 
-    await submitFixedHeartbeatJob(heartbeatQueue, aggregatorAddress, inData.delay, logger)
+    await submitHeartbeatJob(heartbeatQueue, aggregatorAddress, inData.delay, logger)
 
     try {
       const payload = iface.encodeFunctionData('submit', [inData.roundId, inData.submission])
@@ -49,7 +49,7 @@ function job(wallet, _logger: Logger) {
   return wrapper
 }
 
-async function submitFixedHeartbeatJob(
+async function submitHeartbeatJob(
   heartbeatQueue: Queue,
   aggregatorAddress: string,
   delay: number,
@@ -60,7 +60,7 @@ async function submitFixedHeartbeatJob(
   )
 
   if (allDelayed.length > 1) {
-    throw new IcnError(IcnErrorCode.UnexpectedNumberOfJobsInQueue)
+    throw new OraklError(OraklErrorCode.UnexpectedNumberOfJobsInQueue)
   } else if (allDelayed.length == 1) {
     const delayedJob = allDelayed[0]
     delayedJob.remove()
@@ -71,7 +71,7 @@ async function submitFixedHeartbeatJob(
   const outData: IAggregatorHeartbeatWorker = {
     aggregatorAddress
   }
-  await heartbeatQueue.add('fixed-heartbeat', outData, {
+  await heartbeatQueue.add('heartbeat', outData, {
     delay: delay,
     removeOnComplete: true,
     jobId: aggregatorAddress,

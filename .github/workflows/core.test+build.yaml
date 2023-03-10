@@ -1,8 +1,12 @@
 name: "core: test+build"
+
 on:
   push:
+    branches-ignore:
+      - "master"
     paths:
       - "core/**"
+
 jobs:
   core-build:
     runs-on: ubuntu-latest

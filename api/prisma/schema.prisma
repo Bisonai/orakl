@@ -1,0 +1,74 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Chain {
+  id         BigInt       @id @default(autoincrement())
+  name       String       @unique
+  Aggregator Aggregator[]
+}
+
+model Feed {
+  id         BigInt  @id @default(autoincrement())
+  name       String
+  definition Json
+  adapter    Adapter @relation(fields: [adapterId], references: [id], onDelete: Cascade)
+  adapterId  BigInt
+  Data       Data[]
+}
+
+model Adapter {
+  id          BigInt       @id @default(autoincrement())
+  adapterHash String       @unique
+  name        String
+  decimals    Int
+  feeds       Feed[]
+  Aggregator  Aggregator[]
+}
+
+model Aggregator {
+  id                BigInt      @id @default(autoincrement())
+  aggregatorHash    String
+  active            Boolean     @default(false)
+  name              String
+  address           String      @unique
+  heartbeat         Int
+  threshold         Float
+  absoluteThreshold Float
+  Data              Data[]
+  adapter           Adapter     @relation(fields: [adapterId], references: [id])
+  adapterId         BigInt
+  chain             Chain       @relation(fields: [chainId], references: [id])
+  chainId           BigInt
+  Aggregate         Aggregate[]
+
+  @@unique([aggregatorHash, chainId])
+}
+
+model Data {
+  id           BigInt     @id @default(autoincrement())
+  timestamp    DateTime   @db.Timestamptz
+  value        BigInt
+  aggregator   Aggregator @relation(fields: [aggregatorId], references: [id])
+  aggregatorId BigInt
+  feed         Feed       @relation(fields: [feedId], references: [id])
+  feedId       BigInt
+}
+
+model Aggregate {
+  id           BigInt     @id @default(autoincrement())
+  timestamp    DateTime   @db.Timestamptz
+  value        BigInt
+  aggregator   Aggregator @relation(fields: [aggregatorId], references: [id])
+  aggregatorId BigInt
+
+  @@index([aggregatorId, timestamp(sort: Desc)])
+}

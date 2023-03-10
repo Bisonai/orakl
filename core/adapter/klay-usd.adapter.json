@@ -1,49 +1,60 @@
 {
-    "id": "0x0db2dce17745882ea457e651adf1eb0080b5f432d1876df56f1967b5288f338b",
-    "active": true,
-    "name": "KLAY/USD",
-    "jobType": "DATA_FEED",
-    "decimals": "8",
-    "feeds": [
-        {
-            "url": "https://api.coingecko.com/api/v3/simple/price?ids=klay-token&vs_currencies=usd",
-            "headers": {
-                "Content-Type": "application/json"
-            },
-            "method": "GET",
-            "reducers": [
-                {
-                    "function": "PARSE",
-                    "args": ["klay-token", "usd"]
-                },
-                {
-                    "function": "POW10",
-                    "args": "8"
-                },
-                {
-                    "function": "ROUND"
-                }
-            ]
+  "adapterHash": "0x0db2dce17745882ea457e651adf1eb0080b5f432d1876df56f1967b5288f338b",
+  "name": "KLAY-USD",
+  "decimals": "8",
+  "feeds": [
+    {
+      "name": "Coingecko-KLAY-USD",
+      "definition": {
+        "url": "https://api.coingecko.com/api/v3/simple/price?ids=klay-token&vs_currencies=usd",
+        "headers": {
+          "Content-Type": "application/json"
         },
-        {
-            "url": "https://api.coinbase.com/v2/exchange-rates?currency=KLAY",
-            "headers": {
-                "Content-Type": "application/json"
-            },
-            "method": "GET",
-            "reducers": [
-                {
-                    "function": "PARSE",
-                    "args": ["data", "rates", "USD"]
-                },
-                {
-                    "function": "POW10",
-                    "args": "8"
-                },
-                {
-                    "function": "ROUND"
-                }
+        "method": "GET",
+        "reducers": [
+          {
+            "function": "PARSE",
+            "args": [
+              "klay-token",
+              "usd"
             ]
-        }
-    ]
+          },
+          {
+            "function": "POW10",
+            "args": "8"
+          },
+          {
+            "function": "ROUND"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Coinbase-KLAY-USD",
+      "definition": {
+        "url": "https://api.coinbase.com/v2/exchange-rates?currency=KLAY",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "method": "GET",
+        "reducers": [
+          {
+            "function": "PARSE",
+            "args": [
+              "data",
+              "rates",
+              "USD"
+            ]
+          },
+          {
+            "function": "POW10",
+            "args": "8"
+          },
+          {
+            "function": "ROUND"
+          }
+        ]
+      }
+    }
+  ]
 }
