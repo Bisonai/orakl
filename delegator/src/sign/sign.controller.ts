@@ -20,7 +20,7 @@ export class SignController {
   constructor(private readonly signService: SignService) {}
 
   @Post()
-  async create(@Body('data') signDto: SignDto) {
+  async create(@Body() signDto: SignDto) {
     try {
       return await this.signService.create(signDto)
     } catch (e) {

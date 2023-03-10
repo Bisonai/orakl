@@ -1,8 +1,9 @@
-import { Injectable } from '@nestjs/common'
+import { HttpException, HttpStatus, Injectable } from '@nestjs/common'
 import { Transaction, Prisma } from '@prisma/client'
 import { PrismaService } from '../prisma.service'
 import { SignDto } from './dto/sign.dto'
-import { approveAndSign } from './helper/utils'
+import { DelegatorError } from './helper/errors'
+import { signTxByFeePayer, validateTransaction } from './helper/utils'
 
 @Injectable()
 export class SignService {
@@ -10,15 +11,15 @@ export class SignService {
 
   async create(data: SignDto) {
     const transaction = await this.prisma.transaction.create({ data })
-    const signedRawTx = await approveAndSign(transaction)
-    data.signedRawTx = signedRawTx
-
-    await this.update({
-      where: { id: Number(transaction.id) },
-      signDto: data
-    })
-
-    return transaction.id
+    try {
+      validateTransaction(transaction)
+    } catch (e) {
+      const msg = `DelegatorError: ${e.name}`
+      throw new HttpException(msg, HttpStatus.BAD_REQUEST)
+    }
+    const signedRawTx = await signTxByFeePayer(transaction)
+    this.updateSignedRawTransaction(transaction.id, signedRawTx)
+    return this.findOne({ id: transaction.id })
   }
 
   async findAll(params: {
@@ -51,6 +52,13 @@ export class SignService {
     return this.prisma.transaction.update({
       data: signDto,
       where
+    })
+  }
+
+  async updateSignedRawTransaction(id: number, signedRawTx: string) {
+    return this.prisma.transaction.update({
+      data: { signedRawTx },
+      where: { id }
     })
   }
 

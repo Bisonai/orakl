@@ -17,7 +17,6 @@ describe('SignService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [SignService, PrismaService]
     }).compile()
-
     service = module.get<SignService>(SignService)
   })
 
@@ -35,7 +34,7 @@ describe('SignService', () => {
     const data: SignDto = {
       from: tx.from,
       to: tx.to,
-      input: tx.input,
+      input: '0xasd',
       gas: tx.gas,
       value: tx.value,
       chainId: tx.chainId,
@@ -46,10 +45,7 @@ describe('SignService', () => {
       s: tx.signatures[0].s,
       rawTx: tx.getRawTransaction()
     }
-    const transactionId = await service.create(data)
-    const transaction = await service.findOne({ id: transactionId })
-    console.log('TransactionId', transactionId)
-    console.log('Transaction', transaction.signedRawTx)
-    await service.remove({ id: transactionId })
+    const transaction = await service.create(data)
+    console.log('Transaction:', transaction)
   })
 })

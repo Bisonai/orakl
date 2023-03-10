@@ -1,4 +1,3 @@
-import * as Fs from 'node:fs/promises'
 import { Transaction } from '@prisma/client'
 import Caver from 'caver-js'
 import { DelegatorError, DelegatorErrorCode } from './errors'
@@ -10,20 +9,11 @@ const caver = new Caver(PROVIDER_URL)
 const feePayerKeyring = caver.wallet.keyring.createFromPrivateKey(process.env.SIGNER_PRIVATE_KEY)
 caver.wallet.add(feePayerKeyring)
 
-export async function loadJson(filepath) {
-  const json = await Fs.readFile(filepath, 'utf8')
-  return JSON.parse(json)
-}
-
 function encryptMethodName(method: string) {
   return caver.klay.abi.encodeFunctionSignature(method)
 }
 
-async function signByFeePayerAndExecuteTransaction(input: Transaction) {
-  // TODO: decode Tx from rawTx
-  // let tx = caver.transaction.decode(input.rawTx)
-  // console.log('rawTx:', tx)
-
+export async function signTxByFeePayer(input: Transaction) {
   const signature: SignatureData = new caver.wallet.keyring.signatureData([
     input.v,
     input.r,
@@ -47,9 +37,16 @@ async function signByFeePayerAndExecuteTransaction(input: Transaction) {
   return tx.getRawTransaction()
 }
 
-async function validateTransaction(rawTx) {
-  const filePath = './src/sign/whitelist/contractsList.json'
-  const contractList = await loadJson(filePath)
+export function validateTransaction(rawTx) {
+  // FIXME
+  // const filePath = './src/sign/whitelist/contractsList.json'
+  // const contractList = await loadJson(filePath)
+  const contractList = {
+    '0x5b7a8096dd24ceda17f47ae040539dc0566cd1c9': {
+      methods: ['increament()', 'decreament()'],
+      reporters: ['0x42cbc5b3fb1b7b62fb8bd7c1d475bee35ad3e5f4']
+    }
+  }
 
   if (!(rawTx.to in contractList)) {
     throw new DelegatorError(DelegatorErrorCode.InvalidContract)
@@ -67,9 +64,4 @@ async function validateTransaction(rawTx) {
   if (!isValidMethod) {
     throw new DelegatorError(DelegatorErrorCode.InvalidMethod)
   }
-}
-
-export async function approveAndSign(input: Transaction) {
-  await validateTransaction(input)
-  return await signByFeePayerAndExecuteTransaction(input)
 }
