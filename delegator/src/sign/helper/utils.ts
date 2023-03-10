@@ -38,9 +38,7 @@ export async function signTxByFeePayer(input: Transaction) {
 }
 
 export function validateTransaction(rawTx) {
-  // FIXME
-  // const filePath = './src/sign/whitelist/contractsList.json'
-  // const contractList = await loadJson(filePath)
+  // FIXME remove simple whiteListing settings and setup db
   const contractList = {
     '0x5b7a8096dd24ceda17f47ae040539dc0566cd1c9': {
       methods: ['increament()', 'decreament()'],
