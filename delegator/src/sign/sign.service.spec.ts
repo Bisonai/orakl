@@ -34,7 +34,7 @@ describe('SignService', () => {
     const data: SignDto = {
       from: tx.from,
       to: tx.to,
-      input: '0xasd',
+      input: tx.input,
       gas: tx.gas,
       value: tx.value,
       chainId: tx.chainId,
@@ -45,6 +45,7 @@ describe('SignService', () => {
       s: tx.signatures[0].s,
       rawTx: tx.getRawTransaction()
     }
+    console.log('Input:', data)
     const transaction = await service.create(data)
     console.log('Transaction:', transaction)
   })
