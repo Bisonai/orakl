@@ -13,6 +13,7 @@ CREATE TABLE "Transaction" (
     "r" TEXT NOT NULL,
     "s" TEXT NOT NULL,
     "rawTx" TEXT NOT NULL,
+    "signedRawTx" TEXT,
 
     CONSTRAINT "Transaction_pkey" PRIMARY KEY ("id")
 );
