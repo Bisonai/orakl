@@ -63,7 +63,7 @@ INSERT INTO Listener (chainId, serviceId, address, eventName)
 VALUES
   ((SELECT id from Chain WHERE name = 'localhost'),
   (SELECT id from Service WHERE name = 'VRF'),
-           '0x0165878a594ca255338adfa4d48449f69242eb8f', 'RandomWordsRequested'),
+           '0xa513E6E4b8f2a923D98304ec87F64353C4D5C853', 'RandomWordsRequested'),
   ((SELECT id from Chain WHERE name = 'localhost'),
   (SELECT id from Service WHERE name = 'Aggregator'),
            '0xB7f8BC63BbcaD18155201308C8f3540b07f84F5e', 'NewRound'),
