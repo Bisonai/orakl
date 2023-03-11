@@ -1,4 +1,4 @@
-name: "vrf: test+publish"
+name: "vrf: build+publish"
 
 on:
   push:
@@ -8,21 +8,7 @@ on:
       - "vrf/**"
 
 jobs:
-  test:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-node@v3
-        with:
-          node-version: "18.12"
-      - name: Install dependencies
-        run: yarn --cwd . install
-        working-directory: ./vrf
-      - name: Run lint
-        run: yarn --cwd . lint
-        working-directory: ./vrf
-
-  publish:
+  build-publish:
     runs-on: ubuntu-latest
     needs: test
     steps:
@@ -33,6 +19,12 @@ jobs:
           registry-url: "https://registry.npmjs.org"
           scope: "@bisonai"
           always-auth: true
+      - name: Install dependencies
+        run: yarn --cwd . install
+        working-directory: ./vrf
+      - name: Run lint
+        run: yarn --cwd . lint
+        working-directory: ./vrf
       - name: Build package
         run: yarn --cwd . build
         working-directory: ./vrf
