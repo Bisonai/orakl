@@ -55,13 +55,6 @@ export async function readTextFile(filepath: string) {
   return await Fs.readFile(filepath, 'utf8')
 }
 
-export function mkTmpFile({ fileName }: { fileName: string }): string {
-  const appPrefix = 'orakl'
-  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), appPrefix))
-  const tmpFilePath = path.join(tmpDir, fileName)
-  return tmpFilePath
-}
-
 let slackSentTime = new Date().getTime()
 let errMsg = null
 
