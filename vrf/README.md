@@ -22,6 +22,12 @@ VRF_hash(SK, alpha) = VRF_proof_to_hash(VRF_prove(SK, alpha))
 yarn test
 ```
 
+## Linter
+
+```shell
+yarn lint
+```
+
 ## Acknowledgements
 
 Some parts of code were inspired by or copied from
