@@ -3,6 +3,7 @@
   "version": "0.0.1",
   "description": "The Orakl Network Fetcher",
   "author": "Bisonai",
+  "homepage": "https://github.com/Bisonai/orakl/tree/master/fetcher#orakl-network-fetcher",
   "private": true,
   "license": "MIT",
   "scripts": {

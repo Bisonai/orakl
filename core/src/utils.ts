@@ -1,7 +1,6 @@
 import * as Fs from 'node:fs/promises'
 import * as fs from 'node:fs'
 import os from 'node:os'
-import path from 'node:path'
 import { createClient } from 'redis'
 import type { RedisClientType } from 'redis'
 import { IncomingWebhook } from '@slack/webhook'
@@ -53,13 +52,6 @@ export async function writeTextFile(filepath: string, content: string) {
 
 export async function readTextFile(filepath: string) {
   return await Fs.readFile(filepath, 'utf8')
-}
-
-export function mkTmpFile({ fileName }: { fileName: string }): string {
-  const appPrefix = 'orakl'
-  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), appPrefix))
-  const tmpFilePath = path.join(tmpDir, fileName)
-  return tmpFilePath
 }
 
 let slackSentTime = new Date().getTime()
