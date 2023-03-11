@@ -38,6 +38,7 @@
   },
   "dependencies": {
     "@bisonai/orakl-contracts": "^0.4.4",
+    "@bisonai/orakl-vrf": "^0.1.0",
     "@slack/webhook": "^6.1.0",
     "axios": "^1.2.2",
     "bn.js": "^5.2.1",
