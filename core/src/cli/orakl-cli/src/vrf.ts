@@ -45,6 +45,10 @@ export function vrfSub(db) {
         type: cmdstring,
         long: 'pk_y'
       }),
+      key_hash: option({
+        type: cmdstring,
+        long: 'key_hash'
+      }),
       dryrun: dryrunOption
     },
     handler: insertHandler(db)
@@ -71,7 +75,7 @@ export function listHandler(db, print?: boolean) {
     if (chain) {
       where += `AND Chain.name = '${chain}'`
     }
-    const query = `SELECT VrfKey.id, Chain.name as chain, sk, pk, pk_x, pk_y FROM VrfKey INNER JOIN Chain
+    const query = `SELECT VrfKey.id, Chain.name as chain, sk, pk, pk_x, pk_y, key_hash FROM VrfKey INNER JOIN Chain
    ON VrfKey.chainId = Chain.id ${where};`
     if (dryrun) {
       console.debug(query)
@@ -93,6 +97,7 @@ export function insertHandler(db) {
     sk,
     pk_x,
     pk_y,
+    key_hash,
     dryrun
   }: {
     chain: string
@@ -100,10 +105,11 @@ export function insertHandler(db) {
     sk: string
     pk_x: string
     pk_y: string
+    key_hash: string
     dryrun?: boolean
   }) {
     const chainId = await chainToId(db, chain)
-    const query = `INSERT INTO VrfKey (chainId, sk, pk, pk_x, pk_y) VALUES (${chainId}, '${sk}', '${pk}', '${pk_x}', '${pk_y}');`
+    const query = `INSERT INTO VrfKey (chainId, sk, pk, pk_x, pk_y, key_hash) VALUES (${chainId}, '${sk}', '${pk}', '${pk_x}', '${pk_y}', '${key_hash}');`
     if (dryrun) {
       console.debug(query)
     } else {

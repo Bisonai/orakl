@@ -210,6 +210,7 @@ export interface IVrfConfig {
   pk: string
   pk_x: string
   pk_y: string
+  key_hash: string
 }
 
 // Data Feed

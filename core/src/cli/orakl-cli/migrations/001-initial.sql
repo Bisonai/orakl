@@ -14,23 +14,25 @@ VALUES
   ('cypress');
 
 CREATE TABLE VrfKey (
-  id      INTEGER        PRIMARY KEY,
-  chainId INTEGER        NOT NULL,
-  sk      CHARACTER(64)  NOT NULL,
-  pk      CHARACTER(130) NOT NULL,
-  pk_x    CHARACTER(77)  NOT NULL,
-  pk_y    CHARACTER(77)  NOT NULL,
+  id       INTEGER        PRIMARY KEY,
+  chainId  INTEGER        NOT NULL,
+  sk       CHARACTER(64)  NOT NULL,
+  pk       CHARACTER(130) NOT NULL,
+  pk_x     CHARACTER(77)  NOT NULL,
+  pk_y     CHARACTER(77)  NOT NULL,
+  key_hash CHARACTER(66)  NOT NULL,
   CONSTRAINT VrfKey_fk_chainId FOREIGN KEY (chainId)
     REFERENCES Chain (id) ON UPDATE CASCADE ON DELETE CASCADE
 );
 
-INSERT INTO VrfKey (chainId, sk, pk, pk_x, pk_y)
+INSERT INTO VrfKey (chainId, sk, pk, pk_x, pk_y, key_hash)
 VALUES (
   (SELECT id from Chain WHERE name = 'localhost'),
   'a0282885368c7f3046749babc93724c25e48c95fe790d625a2cedef0f194a73f',
   '04d26433ce8f3cd46a98d2d24ee3c4e02688f5b73f61a489df611b06a59e023a11756cfe3662aba23a471f836da3b171333425213cc9e3d35ab0f2ae4247ac8c8f',
   '95162740466861161360090244754314042169116280320223422208903791243647772670481',
-  '53113177277038648369733569993581365384831203706597936686768754351087979105423'
+  '53113177277038648369733569993581365384831203706597936686768754351087979105423',
+  '0x47ede773ef09e40658e643fe79f8d1a27c0aa6eb7251749b268f829ea49f2024'
 );
 
 CREATE TABLE Service (
@@ -61,7 +63,7 @@ INSERT INTO Listener (chainId, serviceId, address, eventName)
 VALUES
   ((SELECT id from Chain WHERE name = 'localhost'),
   (SELECT id from Service WHERE name = 'VRF'),
-           '0x0165878a594ca255338adfa4d48449f69242eb8f', 'RandomWordsRequested'),
+           '0xa513E6E4b8f2a923D98304ec87F64353C4D5C853', 'RandomWordsRequested'),
   ((SELECT id from Chain WHERE name = 'localhost'),
   (SELECT id from Service WHERE name = 'Aggregator'),
            '0xB7f8BC63BbcaD18155201308C8f3540b07f84F5e', 'NewRound'),
