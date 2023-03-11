@@ -2,7 +2,7 @@
     "name": "@bisonai/orakl-cli",
     "version": "0.3.1",
     "type": "module",
-    "description": "Package to control Orakl Network node",
+    "description": "The Orakl Network CLI tool",
     "files": [
         "dist",
         "migrations"
