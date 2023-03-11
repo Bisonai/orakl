@@ -16,6 +16,12 @@ VRF_verify(PK, alpha, pi)
 VRF_hash(SK, alpha) = VRF_proof_to_hash(VRF_prove(SK, alpha))
 ```
 
+## Tests
+
+```shell
+yarn test
+```
+
 ## Acknowledgements
 
 Some parts of code were inspired by or copied from
