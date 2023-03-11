@@ -43,10 +43,8 @@ interface IFeed {
 }
 
 export interface IAdapter {
-  id?: string
-  active?: boolean
-  name?: string
-  jobType?: string
+  adapterHash?: string
+  name: string
   decimals: number
   feeds: IFeed[]
 }

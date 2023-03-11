@@ -17,7 +17,8 @@
     "license": "MIT",
     "scripts": {
         "clean": "rm -rf dist",
-        "build": "yarn clean && tsc"
+        "build": "yarn clean && tsc",
+        "cli": "node --no-warnings --experimental-specifier-resolution=node --experimental-json-modules dist/index.js"
     },
     "bin": {
         "cli": "dist/index.js"

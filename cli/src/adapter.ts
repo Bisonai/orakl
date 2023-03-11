@@ -1,7 +1,7 @@
 import axios from 'axios'
-import { command, subcommands, option } from 'cmd-ts'
-import { idOption, buildUrl } from './utils'
-import { ReadFile } from './cli-types'
+import { command, flag, subcommands, option, boolean as cmdboolean } from 'cmd-ts'
+import { idOption, buildUrl, computeDataHash } from './utils'
+import { ReadFile, IAdapter } from './cli-types'
 import { ORAKL_NETWORK_API_URL } from './settings'
 
 const ADAPTER_ENDPOINT = buildUrl(ORAKL_NETWORK_API_URL, 'api/v1/adapter')
@@ -10,6 +10,7 @@ export function adapterSub() {
   // adapter list
   // adapter insert --file-path [file-path]
   // adapter remove --id [id]
+  // adapter hash --file-path [file-path] --verify
 
   const list = command({
     name: 'list',
@@ -36,9 +37,24 @@ export function adapterSub() {
     handler: removeHandler()
   })
 
+  const hash = command({
+    name: 'hash',
+    args: {
+      verify: flag({
+        type: cmdboolean,
+        long: 'verify'
+      }),
+      data: option({
+        type: ReadFile,
+        long: 'file-path'
+      })
+    },
+    handler: hashHandler()
+  })
+
   return subcommands({
     name: 'adapter',
-    cmds: { list, insert, remove }
+    cmds: { list, insert, remove, hash }
   })
 }
 
@@ -73,6 +89,19 @@ export function removeHandler() {
       console.dir(response, { depth: null })
     } catch (e) {
       console.dir(e?.response?.data, { depth: null })
+    }
+  }
+  return wrapper
+}
+
+export function hashHandler() {
+  async function wrapper({ data, verify }: { data; verify: boolean }) {
+    try {
+      const adapter = data as IAdapter
+      const adapterWithCorrectHash = await computeDataHash({ data: adapter, verify })
+      console.dir(adapterWithCorrectHash, { depth: null })
+    } catch (e) {
+      console.error(e.message)
     }
   }
   return wrapper

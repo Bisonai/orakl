@@ -103,24 +103,25 @@ export async function computeDataHash({
   data,
   verify
 }: {
-  data: IAdapter | IAggregator
+  data: IAdapter // | IAggregator
   verify?: boolean
-}): Promise<IAdapter | IAggregator> {
+}): Promise<IAdapter /* | IAggregator*/> {
   const input = JSON.parse(JSON.stringify(data))
 
   // Don't use `id` and `active` in hash computation
-  delete input.id
-  delete input.active
-  delete input.address
+  delete input.adapterHash
+  // delete input.active
+  // delete input.address
 
   const hash = ethers.utils.keccak256(ethers.utils.toUtf8Bytes(JSON.stringify(input)))
 
-  if (verify && data.id != hash) {
-    console.info(input)
-    throw Error(`Hashes do not match!\nExpected ${hash}, received ${data.id}.`)
+  if (verify && data.adapterHash != hash) {
+    throw new CliError(
+      CliErrorCode.UnmatchingHash,
+      `Hashes do not match!\nExpected ${hash}, received ${data.adapterHash}.`
+    )
   } else {
-    data.id = hash
-    console.info(data)
+    data.adapterHash = hash
     return data
   }
 }
