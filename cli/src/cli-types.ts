@@ -49,19 +49,13 @@ export interface IAdapter {
   feeds: IFeed[]
 }
 
-interface IProperty {
-  active: boolean
-  value: number
-}
-
 export interface IAggregator {
-  id: string
+  aggregatorHash?: string
   active: boolean
   name: string
-  aggregatorAddress: string
-  fixedHeartbeatRate: IProperty
-  randomHeartbeatRate: IProperty
+  address: string
+  heartbeat: number
   threshold: number
   absoluteThreshold: number
-  adapterId: string
+  adapterHash: string
 }

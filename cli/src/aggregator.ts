@@ -1,7 +1,14 @@
 import axios from 'axios'
-import { flag, command, subcommands, option, string as cmdstring } from 'cmd-ts'
-import { chainOptionalOption, idOption, buildUrl } from './utils'
-import { ReadFile } from './cli-types'
+import {
+  flag,
+  command,
+  subcommands,
+  option,
+  string as cmdstring,
+  boolean as cmdboolean
+} from 'cmd-ts'
+import { chainOptionalOption, idOption, buildUrl, computeAggregatorHash } from './utils'
+import { ReadFile, IAggregator } from './cli-types'
 import { ORAKL_NETWORK_API_URL } from './settings'
 
 const AGGREGATOR_ENDPOINT = buildUrl(ORAKL_NETWORK_API_URL, 'api/v1/aggregator')
@@ -10,6 +17,7 @@ export function aggregatorSub() {
   // aggregator list [--active] [--chain [chain]]
   // aggregator insert --file-path [file-path] --chain [chain]
   // aggregator remove --id [id]
+  // aggregator hash --file-path [file-path] --verify
 
   const list = command({
     name: 'list',
@@ -45,9 +53,24 @@ export function aggregatorSub() {
     handler: removeHandler()
   })
 
+  const hash = command({
+    name: 'hash',
+    args: {
+      verify: flag({
+        type: cmdboolean,
+        long: 'verify'
+      }),
+      data: option({
+        type: ReadFile,
+        long: 'file-path'
+      })
+    },
+    handler: hashHandler()
+  })
+
   return subcommands({
     name: 'aggregator',
-    cmds: { list, insert, remove }
+    cmds: { list, insert, remove, hash }
   })
 }
 
@@ -86,6 +109,19 @@ export function removeHandler() {
     const endpoint = buildUrl(AGGREGATOR_ENDPOINT, id.toString())
     const result = (await axios.delete(endpoint)).data
     console.dir(result, { depth: null })
+  }
+  return wrapper
+}
+
+export function hashHandler() {
+  async function wrapper({ data, verify }: { data; verify: boolean }) {
+    try {
+      const aggregator = data as IAggregator
+      const aggregatorWithCorrectHash = await computeAggregatorHash({ data: aggregator, verify })
+      console.dir(aggregatorWithCorrectHash, { depth: null })
+    } catch (e) {
+      console.error(e.message)
+    }
   }
   return wrapper
 }

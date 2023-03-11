@@ -99,19 +99,17 @@ export async function loadFile(filePath: string) {
   return readFile(f)
 }
 
-export async function computeDataHash({
+export async function computeAdapterHash({
   data,
   verify
 }: {
-  data: IAdapter // | IAggregator
+  data: IAdapter
   verify?: boolean
-}): Promise<IAdapter /* | IAggregator*/> {
+}): Promise<IAdapter> {
   const input = JSON.parse(JSON.stringify(data))
 
-  // Don't use `id` and `active` in hash computation
+  // Don't use following properties in computation of hash
   delete input.adapterHash
-  // delete input.active
-  // delete input.address
 
   const hash = ethers.utils.keccak256(ethers.utils.toUtf8Bytes(JSON.stringify(input)))
 
@@ -122,6 +120,33 @@ export async function computeDataHash({
     )
   } else {
     data.adapterHash = hash
+    return data
+  }
+}
+
+export async function computeAggregatorHash({
+  data,
+  verify
+}: {
+  data: IAggregator
+  verify?: boolean
+}): Promise<IAggregator> {
+  const input = JSON.parse(JSON.stringify(data))
+
+  // Don't use following properties in computation of hash
+  delete input.aggregatorHash
+  delete input.active
+  delete input.address
+
+  const hash = ethers.utils.keccak256(ethers.utils.toUtf8Bytes(JSON.stringify(input)))
+
+  if (verify && data.aggregatorHash != hash) {
+    throw new CliError(
+      CliErrorCode.UnmatchingHash,
+      `Hashes do not match!\nExpected ${hash}, received ${data.aggregatorHash}.`
+    )
+  } else {
+    data.aggregatorHash = hash
     return data
   }
 }
