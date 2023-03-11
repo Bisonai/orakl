@@ -1,7 +1,6 @@
 import { describe, expect, beforeEach, test } from '@jest/globals'
-import { listHandler, insertHandler, removeHandler } from '../src/cli/orakl-cli/src/service'
-import { openDb } from '../src/cli/orakl-cli/src/utils'
-import { mkTmpFile } from '../src/utils'
+import { listHandler, insertHandler, removeHandler } from '../src/service'
+import { mkTmpFile, openDb } from '../src/utils'
 import { MIGRATIONS_PATH } from '../src/settings'
 
 describe('CLI Service', function () {

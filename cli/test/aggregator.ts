@@ -1,5 +1,5 @@
 import { describe, expect, test } from '@jest/globals'
-import { listHandler, insertHandler, removeHandler } from '../src/cli/orakl-cli/src/aggregator'
+import { listHandler, insertHandler, removeHandler } from '../src/aggregator'
 
 describe('CLI Aggregator', function () {
   const AGGREGATOR = {

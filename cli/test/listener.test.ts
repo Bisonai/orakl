@@ -1,6 +1,6 @@
 import { describe, expect, beforeEach, test } from '@jest/globals'
-import { listHandler, insertHandler, removeHandler } from '../src/cli/orakl-cli/src/listener'
-import { openDb } from '../src/cli/orakl-cli/src/utils'
+import { listHandler, insertHandler, removeHandler } from '../src/listener'
+import { openDb } from '../src/utils'
 import { mkTmpFile } from '../src/utils'
 import { MIGRATIONS_PATH } from '../src/settings'
 

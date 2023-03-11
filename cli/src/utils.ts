@@ -1,6 +1,7 @@
 import { open as openFile, readFile } from 'node:fs/promises'
 import * as fs from 'node:fs'
 import path from 'node:path'
+import os from 'node:os'
 import axios from 'axios'
 import {
   optional,
@@ -174,4 +175,11 @@ export async function isOraklFetcherHealthy() {
     console.error(`Orakl Network Fetcher [${ORAKL_NETWORK_FETCHER_URL}] is down`)
     return false
   }
+}
+
+export function mkTmpFile({ fileName }: { fileName: string }): string {
+  const appPrefix = 'orakl'
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), appPrefix))
+  const tmpFilePath = path.join(tmpDir, fileName)
+  return tmpFilePath
 }

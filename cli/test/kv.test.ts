@@ -5,8 +5,8 @@ import {
   insertManyHandler,
   removeHandler,
   updateHandler
-} from '../src/cli/orakl-cli/src/kv'
-import { openDb } from '../src/cli/orakl-cli/src/utils'
+} from '../src/kv'
+import { openDb } from '../src/utils'
 import { mkTmpFile } from '../src/utils'
 import { MIGRATIONS_PATH } from '../src/settings'
 
