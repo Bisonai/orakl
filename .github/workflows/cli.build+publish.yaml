@@ -17,10 +17,10 @@ jobs:
           node-version: "18.12"
       - name: Install dependencies
         run: yarn --cwd . install
-        working-directory: ./core/src/cli/orakl-cli
+        working-directory: ./cli
       - name: Build package
         run: yarn --cwd . build
-        working-directory: ./core/src/cli/orakl-cli
+        working-directory: ./cli
 
   publish:
     runs-on: ubuntu-latest
@@ -44,6 +44,6 @@ jobs:
       - name: Publish package
         if: steps.packageJsonVersion.outputs.value != steps.npmPackageVersion.outputs.VERSION
         run: yarn publish --new-version ${{ steps.packageJsonVersion.outputs.value }} --access public
-        working-directory: ./core/src/cli/orakl-cli
+        working-directory: ./cli
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
