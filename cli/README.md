@@ -20,6 +20,10 @@ If you wish to change the default location, you can set it with `ORAKL_DIR` envi
 * `ORAKL_NETWORK_API_URL`
 * `ORAKL_NETWORK_FETCHER_URL`
 
+## Publishing
+
+`@bisonai/orakl-cli` is published through [Github Actions pipeline](https://github.com/Bisonai/orakl/blob/master/.github/workflows/cli.build+publish.yaml) when package version specified in `package.json` changes.
+
 ## How To Use
 
 - [Chain](#chain)
