@@ -13,7 +13,7 @@
         "cli"
     ],
     "author": "Bisonai",
-    "homepage": "https://github.com/Bisonai/orakl/tree/master/core/src/cli/orakl-cli#readme",
+    "homepage": "https://github.com/Bisonai/orakl/tree/master/cli#orakl-network-cli",
     "license": "MIT",
     "scripts": {
         "clean": "rm -rf dist",

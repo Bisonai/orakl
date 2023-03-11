@@ -2,7 +2,7 @@
   "name": "@bisonai/orakl-core",
   "version": "0.3.0",
   "type": "module",
-  "description": "",
+  "description": "The Orakl Network Core",
   "files": [
     "dist"
   ],
@@ -10,6 +10,7 @@
     "node": ">=18.12"
   },
   "author": "Bisonai",
+  "homepage": "https://github.com/Bisonai/orakl/tree/master/core#orakl-network-core",
   "license": "UNLICENSED",
   "scripts": {
     "prepare": "cd .. && husky install core/.husky",

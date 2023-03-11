@@ -1,4 +1,4 @@
-# Orakl CLI
+# Orakl Network CLI
 
 This package is used controlling [Orakl Network](https://orakl.network) nodes.
 
