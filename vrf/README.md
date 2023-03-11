@@ -34,6 +34,10 @@ yarn test
 yarn lint
 ```
 
+## Publishing
+
+`@bisonai/orakl-vrf` is published through [Github Actions pipeline](https://github.com/Bisonai/orakl/blob/master/.github/workflows/vrf.build+publish.yaml) when package version specified in `package.json` changes.
+
 ## Acknowledgements
 
 Some parts of code were inspired by or copied from
