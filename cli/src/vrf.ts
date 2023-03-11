@@ -69,7 +69,7 @@ export function vrfSub(db) {
   const keygen = command({
     name: 'keygen',
     args: {},
-    handler: keygenHandler(db)
+    handler: keygenHandler()
   })
 
   return subcommands({
@@ -142,7 +142,7 @@ export function removeHandler(db) {
   return wrapper
 }
 
-export function keygenHandler(db) {
+export function keygenHandler() {
   async function wrapper() {
     const key = keygen()
     const pkX = key.public_key.x.toString()
