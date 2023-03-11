@@ -17,11 +17,7 @@ export class Event {
 
   constructor(
     queueName: string,
-    wrapFn /*(
-      iface: ethers.utils.Interface,
-      queue: Queue,
-      logger: Logger
-    ) => Promise<(log) => Promise<void>>*/,
+    wrapFn: (iface: ethers.utils.Interface, queue: Queue, logger: Logger) => (log) => void,
     abi,
     listener: IListenerConfig,
     logger
