@@ -4,7 +4,6 @@ import sqlite from 'sqlite3'
 import { open } from 'sqlite'
 import { ethers } from 'ethers'
 import { IListenerConfig, IVrfConfig } from './types'
-import { OraklError, OraklErrorCode } from './errors'
 import { mkdir } from './utils'
 import * as dotenv from 'dotenv'
 dotenv.config()

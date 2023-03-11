@@ -1,7 +1,6 @@
 import * as Fs from 'node:fs/promises'
 import * as fs from 'node:fs'
 import os from 'node:os'
-import path from 'node:path'
 import { createClient } from 'redis'
 import type { RedisClientType } from 'redis'
 import { IncomingWebhook } from '@slack/webhook'
