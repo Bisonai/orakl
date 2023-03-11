@@ -12,9 +12,9 @@
   "exports": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "keywords": [
-    "oracle",
-    "orakl",
-    "vrf",
+    "Oracle",
+    "Orakl",
+    "VRF",
     "Verifiable Random Function"
   ],
   "author": "Bisonai",

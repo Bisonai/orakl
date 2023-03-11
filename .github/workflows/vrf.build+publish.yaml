@@ -24,6 +24,9 @@ jobs:
       - name: Build package
         run: yarn --cwd . build
         working-directory: ./vrf
+      - name: List everything
+        run: ls -la
+        working-directory: ./vrf
 
   publish:
     runs-on: ubuntu-latest
@@ -48,9 +51,8 @@ jobs:
         run: ls -la
         working-directory: ./vrf
       - name: Publish package
-        # if: steps.packageJsonVersion.outputs.value != steps.npmPackageVersion.outputs.VERSION
-        # run: yarn publish --new-version ${{ steps.packageJsonVersion.outputs.value }} --access public
-        run: yarn publish --new-version 0.1.0 --access public
+        if: steps.packageJsonVersion.outputs.value != steps.npmPackageVersion.outputs.VERSION
+        run: yarn publish --new-version ${{ steps.packageJsonVersion.outputs.value }} --access public
         working-directory: ./vrf
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
