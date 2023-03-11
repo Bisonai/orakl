@@ -18,6 +18,9 @@ jobs:
       - name: Install dependencies
         run: yarn --cwd . install
         working-directory: ./cli
+      - name: Run lint
+        run: yarn lint
+        working-directory: ./cli
       - name: Build package
         run: yarn --cwd . build
         working-directory: ./cli
@@ -37,7 +40,7 @@ jobs:
         uses: sergeysova/jq-action@v2
         id: packageJsonVersion
         with:
-          cmd: "jq .version ./core/src/cli/orakl-cli/package.json -r"
+          cmd: "jq .version ./cli/package.json -r"
       - name: Extract version from the latest published package
         id: npmPackageVersion
         run: echo "VERSION=`npm view @bisonai/orakl-cli version`" >> $GITHUB_OUTPUT
