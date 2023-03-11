@@ -22,8 +22,7 @@ jobs:
         run: yarn --cwd . lint
         working-directory: ./vrf
 
-
-  build-publish:
+  publish:
     runs-on: ubuntu-latest
     needs: build
     steps:
