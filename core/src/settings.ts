@@ -4,7 +4,6 @@ import sqlite from 'sqlite3'
 import { open } from 'sqlite'
 import { ethers } from 'ethers'
 import { IListenerConfig, IVrfConfig } from './types'
-import { listHandler } from './cli/orakl-cli/src/kv'
 import { OraklError, OraklErrorCode } from './errors'
 import { mkdir } from './utils'
 import * as dotenv from 'dotenv'
@@ -25,29 +24,14 @@ export const ORAKL_DIR = process.env.ORAKL_DIR || path.join(os.homedir(), '.orak
 export const SETTINGS_DB_FILE = path.join(ORAKL_DIR, 'settings.sqlite')
 export const DB = await openDb()
 
-export const PROVIDER_URL = await loadKeyValuePair({ db: DB, key: 'PROVIDER_URL', chain: CHAIN })
-export const REDIS_HOST =
-  process.env.REDIS_HOST || (await loadKeyValuePair({ db: DB, key: 'REDIS_HOST', chain: CHAIN }))
-export const REDIS_PORT = process.env.REDIS_PORT
-  ? Number(process.env.REDIS_PORT)
-  : Number(await loadKeyValuePair({ db: DB, key: 'REDIS_PORT', chain: CHAIN }))
-export const SLACK_WEBHOOK_URL =
-  process.env.SLACK_WEBHOOK_URL ||
-  (await loadKeyValuePair({ db: DB, key: 'SLACK_WEBHOOK_URL', chain: CHAIN }))
-export const PRIVATE_KEY = await loadKeyValuePair({ db: DB, key: 'PRIVATE_KEY', chain: CHAIN })
-export const PUBLIC_KEY = await loadKeyValuePair({ db: DB, key: 'PUBLIC_KEY', chain: CHAIN })
-export const LOCAL_AGGREGATOR = await loadKeyValuePair({
-  db: DB,
-  key: 'LOCAL_AGGREGATOR',
-  chain: CHAIN
-})
-export const LISTENER_DELAY = Number(
-  await loadKeyValuePair({
-    db: DB,
-    key: 'LISTENER_DELAY',
-    chain: CHAIN
-  })
-)
+export const PROVIDER_URL = process.env.PROVIDER_URL || 'http://127.0.0.1:8545'
+export const REDIS_HOST = process.env.REDIS_HOST || 'localhost'
+export const REDIS_PORT = process.env.REDIS_PORT ? Number(process.env.REDIS_PORT) : 6379
+export const SLACK_WEBHOOK_URL = process.env.SLACK_WEBHOOK_URL || ''
+export const PRIVATE_KEY = String(process.env.PRIVATE_KEY)
+export const PUBLIC_KEY = String(process.env.PUBLIC_KEY)
+export const LOCAL_AGGREGATOR = process.env.LOCAL_AGGREGATOR || 'MEDIAN'
+export const LISTENER_DELAY = Number(process.env.LISTENER_DELAY) || 500
 
 // BullMQ
 export const REMOVE_ON_COMPLETE = 500
@@ -108,18 +92,6 @@ async function openDb() {
   }
 
   return db
-}
-
-export async function loadKeyValuePair({ db, key, chain }: { db; key: string; chain: string }) {
-  const kv = await listHandler(db)({ key, chain })
-
-  if (kv.length == 0) {
-    throw new OraklError(OraklErrorCode.MissingKeyValuePair, `key: ${key}, chain: ${chain}`)
-  } else if (kv.length > 1) {
-    throw new OraklError(OraklErrorCode.UnexpectedQueryOutput)
-  }
-
-  return kv[0].value as string
 }
 
 export function postprocessListeners(listeners): IListenerConfig[] {

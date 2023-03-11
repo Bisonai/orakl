@@ -7,7 +7,6 @@ import { serviceSub } from './service'
 import { listenerSub } from './listener'
 import { vrfSub } from './vrf'
 import { migrateCmd } from './migrate'
-import { kvSub } from './kv'
 import { adapterSub } from './adapter'
 import { aggregatorSub } from './aggregator'
 import { fetcherSub } from './fetcher'
@@ -25,14 +24,13 @@ async function main() {
   const listener = listenerSub(db)
   const vrf = vrfSub(db)
   const migrate = migrateCmd(db)
-  const kv = kvSub(db)
   const adapter = adapterSub()
   const aggregator = aggregatorSub()
   const fetcher = fetcherSub()
 
   const cli = subcommands({
     name: 'operator',
-    cmds: { migrate, kv, chain, service, listener, vrf, adapter, aggregator, fetcher }
+    cmds: { migrate, chain, service, listener, vrf, adapter, aggregator, fetcher }
   })
 
   run(binary(cli), process.argv)

@@ -71,26 +71,6 @@ VALUES
   (SELECT id from Service WHERE name = 'RequestResponse'),
            '0xe7f1725e7734ce288f8367e1bb143e90bb3f0512', 'DataRequested');
 
-CREATE TABLE Kv (
-  id       INTEGER       PRIMARY KEY,
-  chainId  INTEGER       NOT NULL,
-  key      VARCHAR(255)  NOT NULL,
-  value    VARCHAR(255)  NOT NULL,
-  UNIQUE(chainId, key) ON CONFLICT FAIL
-);
-
-INSERT INTO Kv (chainId, key, value)
-VALUES
-  ((SELECT id from Chain WHERE name = 'localhost'), 'PROVIDER_URL', 'http://127.0.0.1:8545'),
-  ((SELECT id from Chain WHERE name = 'localhost'), 'REDIS_HOST', 'localhost'),
-  ((SELECT id from Chain WHERE name = 'localhost'), 'REDIS_PORT', '6379'),
-  ((SELECT id from Chain WHERE name = 'localhost'), 'PRIVATE_KEY', '0x5de4111afa1a4b94908f83103eb1f1706367c2e68ca870fc3fb9a804cdab365a'),
-  ((SELECT id from Chain WHERE name = 'localhost'), 'PUBLIC_KEY', '0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC'),
-  ((SELECT id from Chain WHERE name = 'localhost'), 'LOCAL_AGGREGATOR', 'MEDIAN'),
-  ((SELECT id from Chain WHERE name = 'localhost'), 'HEALTH_CHECK_PORT', '8888'),
-  ((SELECT id from Chain WHERE name = 'localhost'), 'SLACK_WEBHOOK_URL', ''),
-  ((SELECT id from Chain WHERE name = 'localhost'), 'LISTENER_DELAY', '500');
-
 CREATE TABLE Adapter (
   id         INTEGER   PRIMARY KEY,
   adapterId  CHAR(66)  NOT NULL,
@@ -275,6 +255,5 @@ DROP TABLE Chain;
 DROP TABLE VrfKey;
 DROP TABLE Service;
 DROP TABLE Listener;
-DROP TABLE Kv;
 DROP TABLE Adapter;
 DROP TABLE Aggregator;
