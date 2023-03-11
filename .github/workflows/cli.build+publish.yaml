@@ -5,7 +5,7 @@ on:
     branches-ignore:
       - "master"
     paths:
-      - "core/src/cli/orakl-cli/**"
+      - "cli/**"
 
 jobs:
   build:
