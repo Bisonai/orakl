@@ -1,4 +1,6 @@
 import { command, subcommands, option, string as cmdstring } from 'cmd-ts'
+import ethers from 'ethers'
+import { keygen } from '@bisonai/orakl-vrf'
 import {
   dryrunOption,
   idOption,
@@ -12,6 +14,7 @@ export function vrfSub(db) {
   // vrf list   [--chain [chain]]                                                [--dryrun]
   // vrf insert  --chain [chain] --pk [pk] --sk [sk] --pk_x [pk_x] --pk_y [pk_y] [--dryrun]
   // vrf remove  --id [id]                                                       [--dryrun]
+  // vrf keygen
 
   const list = command({
     name: 'list',
@@ -63,9 +66,15 @@ export function vrfSub(db) {
     handler: removeHandler(db)
   })
 
+  const keygen = command({
+    name: 'keygen',
+    args: {},
+    handler: keygenHandler(db)
+  })
+
   return subcommands({
     name: 'vrf',
-    cmds: { list, insert, remove }
+    cmds: { list, insert, remove, keygen }
   })
 }
 
@@ -129,6 +138,22 @@ export function removeHandler(db) {
       const result = await db.run(query)
       console.log(formatResultRemove(result))
     }
+  }
+  return wrapper
+}
+
+export function keygenHandler(db) {
+  async function wrapper() {
+    const key = keygen()
+    const pkX = key.public_key.x.toString()
+    const pkY = key.public_key.y.toString()
+    const keyHash = ethers.utils.solidityKeccak256(['uint256', 'uint256'], [pkX, pkY])
+
+    console.log(`sk=${key.secret_key}`)
+    console.log(`pk=${key.public_key.key}`)
+    console.log(`pk_x=${pkX}`)
+    console.log(`pk_y=${pkY}`)
+    console.log(`key_hash=${keyHash}`)
   }
   return wrapper
 }
