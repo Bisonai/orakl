@@ -12,7 +12,7 @@ dotenv.config()
 
 export const ORAKL_NETWORK_API_URL = process.env.ORAKL_NETWORK_API_URL || 'http://localhost:3000'
 
-export const MIGRATIONS_PATH = 'src/cli/orakl-cli/migrations'
+export const MIGRATIONS_PATH = process.env.MIGRATIONS_PATH || '../cli/migrations'
 export const DEPLOYMENT_NAME = process.env.DEPLOYMENT_NAME || 'orakl'
 export const NODE_ENV = process.env.NODE_ENV
 export const HEALTH_CHECK_PORT = process.env.HEALTH_CHECK_PORT
