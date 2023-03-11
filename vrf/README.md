@@ -1,6 +1,6 @@
 # Orakl Network VRF
 
-Orakl Network VRF is based on ECVRF that was proposed at [draft-irtf-cfrg-vrf-10](https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-vrf-10).
+Orakl Network VRF is based on ECVRF that was proposed at [draft-irtf-cfrg-vrf-10](https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-vrf-10). Orakl Network VRF is used in [Orakl Network Core](https://github.com/Bisonai/orakl/tree/master/core) and [Orakl Network CLI](https://github.com/Bisonai/orakl/tree/master/cli).
 
 ## Basics
 
