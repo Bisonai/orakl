@@ -1,4 +1,4 @@
-name: "vrf: build+publish"
+name: "vrf: test+publish"
 
 on:
   push:
@@ -8,7 +8,7 @@ on:
       - "vrf/**"
 
 jobs:
-  build:
+  test:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -21,14 +21,9 @@ jobs:
       - name: Run lint
         run: yarn --cwd . lint
         working-directory: ./vrf
-      - name: Build package
-        run: yarn --cwd . build
-        working-directory: ./vrf
-      - name: List everything
-        run: ls -la
-        working-directory: ./vrf
 
-  publish:
+
+  build-publish:
     runs-on: ubuntu-latest
     needs: build
     steps:
@@ -39,17 +34,17 @@ jobs:
           registry-url: "https://registry.npmjs.org"
           scope: "@bisonai"
           always-auth: true
+      - name: Build package
+        run: yarn --cwd . build
+        working-directory: ./vrf
       - name: Extract version from package.json
         uses: sergeysova/jq-action@v2
         id: packageJsonVersion
         with:
           cmd: "jq .version ./vrf/package.json -r"
-      # - name: Extract version from the latest published package
-      #   id: npmPackageVersion
-      #   run: echo "VERSION=`npm view @bisonai/orakl-vrf version`" >> $GITHUB_OUTPUT
-      - name: List everything
-        run: ls -la
-        working-directory: ./vrf
+      - name: Extract version from the latest published package
+        id: npmPackageVersion
+        run: echo "VERSION=`npm view @bisonai/orakl-vrf version`" >> $GITHUB_OUTPUT
       - name: Publish package
         if: steps.packageJsonVersion.outputs.value != steps.npmPackageVersion.outputs.VERSION
         run: yarn publish --new-version ${{ steps.packageJsonVersion.outputs.value }} --access public
