@@ -1,14 +1,4 @@
-import {
-  Controller,
-  Get,
-  Post,
-  Body,
-  Patch,
-  Param,
-  HttpException,
-  HttpStatus,
-  Delete
-} from '@nestjs/common'
+import { Controller, Post, Body, HttpException, HttpStatus } from '@nestjs/common'
 import { SignService } from './sign.service'
 import { SignDto } from './dto/sign.dto'
 
@@ -26,25 +16,5 @@ export class SignController {
     } catch (e) {
       throw new HttpException(e.message, HttpStatus.FORBIDDEN)
     }
-  }
-
-  @Get()
-  async findAll() {
-    return await this.signService.findAll({})
-  }
-
-  @Get(':id')
-  async findOne(@Param('id') id: string) {
-    return await this.signService.findOne({ id: BigInt(id) })
-  }
-
-  @Patch(':id')
-  async update(@Param('id') id: string, @Body() signDto: SignDto) {
-    return this.signService.update({ where: { id: BigInt(id) }, signDto })
-  }
-
-  @Delete(':id')
-  async remove(@Param('id') id: string) {
-    return await this.signService.remove({ id: BigInt(id) })
   }
 }
