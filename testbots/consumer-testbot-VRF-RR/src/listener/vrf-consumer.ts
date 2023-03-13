@@ -52,7 +52,7 @@ function processConsumerEvent(iface: ethers.utils.Interface) {
             );
           }
           console.log(requestInfor);
-          if (requestInfor) {
+          if (requestInfor && requestInfor.requestedTime > 0) {
             requestedTime = requestInfor.requestedTime;
             totalResponseTime = blockInfor.timestamp - requestedTime;
           }
@@ -70,7 +70,7 @@ function processConsumerEvent(iface: ethers.utils.Interface) {
         }),
         requestedTime,
         respondedTime,
-        totalRequestTime:totalResponseTime,
+        totalRequestTime: totalResponseTime,
       };
       jsonResult.push(result);
       await writeTextFile(jsonPath, JSON.stringify(jsonResult, null, 2));
