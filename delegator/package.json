@@ -1,5 +1,5 @@
 {
-  "name": "delegator",
+  "name": "@bisonai/orakl-delegator",
   "version": "0.0.1",
   "description": "The Orakl Network Delegator API",
   "author": "Bisonai",
