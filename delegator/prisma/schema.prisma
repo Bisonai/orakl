@@ -8,7 +8,7 @@ datasource db {
 }
 
 model Transaction {
-  id          Int     @id @default(autoincrement())
+  id          BigInt  @id @default(autoincrement())
   from        String
   to          String
   input       String
