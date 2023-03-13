@@ -54,8 +54,8 @@ function validateTransaction(tx) {
 @Injectable()
 export class SignService {
   constructor(private prisma: PrismaService) {
-    caver = new Caver(PROVIDER_URL)
-    feePayerKeyring = caver.wallet.keyring.createFromPrivateKey(process.env.SIGNER_PRIVATE_KEY)
+    caver = new Caver(process.env.PROVIDER_URL)
+    feePayerKeyring = caver.wallet.keyring.createFromPrivateKey(process.env.DELEGATOR_PRIVATE_KEY)
     caver.wallet.add(feePayerKeyring)
   }
 

@@ -5,8 +5,7 @@ import Caver, { AbiItem, Transaction } from 'caver-js'
 import { dummyFactory } from './dummyFactory'
 import { SignDto } from './dto/sign.dto'
 
-const PROVIDER_URL = 'https://api.baobab.klaytn.net:8651'
-const caver = new Caver(PROVIDER_URL)
+const caver = new Caver(process.env.PROVIDER_URL)
 const keyring = caver.wallet.keyring.createFromPrivateKey(process.env.CAVER_PRIVATE_KEY)
 caver.wallet.add(keyring)
 
