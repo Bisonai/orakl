@@ -4,7 +4,7 @@
   "decimals": 8,
   "feeds": [
     {
-      "name": "Bybit-ticker-BTC-USDT",
+      "name": "Bybit-BTC-USDT",
       "definition": {
         "url": "https://api.bybit.com/derivatives/v3/public/tickers?symbol=BTCUSDT",
         "headers": {

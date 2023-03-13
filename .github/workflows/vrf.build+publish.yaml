@@ -1,11 +1,11 @@
-name: "cli: build+publish"
+name: "vrf: build+publish"
 
 on:
   push:
     branches-ignore:
       - "master"
     paths:
-      - "cli/**"
+      - "vrf/**"
 
 jobs:
   build-publish:
@@ -20,24 +20,24 @@ jobs:
           always-auth: true
       - name: Install dependencies
         run: yarn --cwd . install
-        working-directory: ./cli
+        working-directory: ./vrf
       - name: Run lint
         run: yarn --cwd . lint
-        working-directory: ./cli
+        working-directory: ./vrf
       - name: Build package
         run: yarn --cwd . build
-        working-directory: ./cli
+        working-directory: ./vrf
       - name: Extract version from package.json
         uses: sergeysova/jq-action@v2
         id: packageJsonVersion
         with:
-          cmd: "jq .version ./cli/package.json -r"
+          cmd: "jq .version ./vrf/package.json -r"
       - name: Extract version from the latest published package
         id: npmPackageVersion
-        run: echo "VERSION=`npm view @bisonai/orakl-cli version`" >> $GITHUB_OUTPUT
+        run: echo "VERSION=`npm view @bisonai/orakl-vrf version`" >> $GITHUB_OUTPUT
       - name: Publish package
         if: steps.packageJsonVersion.outputs.value != steps.npmPackageVersion.outputs.VERSION
         run: yarn publish --new-version ${{ steps.packageJsonVersion.outputs.value }} --access public
-        working-directory: ./cli
+        working-directory: ./vrf
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

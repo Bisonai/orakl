@@ -1,7 +1,7 @@
 import { ethers } from 'ethers'
 import { Worker, Queue } from 'bullmq'
 import { Logger } from 'pino'
-import { prove, decode, getFastVerifyComponents } from '../vrf/index'
+import { prove, decode, getFastVerifyComponents } from '@bisonai/orakl-vrf'
 import { IVrfResponse, IVrfListenerWorker, IVrfWorkerReporter, IVrfConfig } from '../types'
 import {
   WORKER_VRF_QUEUE_NAME,

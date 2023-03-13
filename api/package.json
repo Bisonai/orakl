@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "description": "The Orakl Network API",
   "author": "Bisonai",
+  "homepage": "https://github.com/Bisonai/orakl/tree/master/api#orakl-network-api",
   "private": true,
   "license": "MIT",
   "scripts": {

@@ -12,7 +12,7 @@
   "exports": "./dist/typechain-types/index.js",
   "types": "./dist/typechain-types/index.js",
   "author": "Bisonai",
-  "homepage": "https://github.com/bisonai/orakl#readme",
+  "homepage": "https://github.com/Bisonai/orakl/tree/master/contracts#orakl-network-contracts",
   "license": "UNLICENSED",
   "scripts": {
     "prepare": "cd .. && husky install contracts/.husky",
