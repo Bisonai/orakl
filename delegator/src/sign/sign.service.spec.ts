@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing'
 import { SignService } from './sign.service'
 import { PrismaService } from '../prisma.service'
-import Caver, { AbiItem } from 'caver-js'
+import Caver, { AbiItem, Transaction } from 'caver-js'
 import { dummyFactory } from './helper/dummyFactory'
 import { SignDto } from './dto/sign.dto'
 
@@ -45,8 +45,13 @@ describe('SignService', () => {
       s: tx.signatures[0].s,
       rawTx: tx.getRawTransaction()
     }
-    console.log('Input:', data)
     const transaction = await service.create(data)
-    console.log('Transaction:', transaction)
+    expect(transaction.signedRawTx)
+
+    const oldNonce = (await caver.rpc.klay.getAccount(keyring.address)).account.nonce
+    await caver.rpc.klay.sendRawTransaction(transaction.signedRawTx)
+
+    const newNonce = (await caver.rpc.klay.getAccount(keyring.address)).account.nonce
+    expect(oldNonce + 1).toBe(newNonce)
   })
 })
