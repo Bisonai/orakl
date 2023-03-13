@@ -21,19 +21,10 @@ async function signTxByFeePayer(input: Transaction) {
     input.s
   ])
 
-  const iTx: SignTxData = {
-    from: input.from,
-    to: input.to,
-    input: input.input,
-    gas: input.gas,
-    signatures: [signature],
-    value: input.value,
-    chainId: input.chainId,
-    gasPrice: input.gasPrice,
-    nonce: input.nonce
-  }
-
-  const tx = await caver.transaction.feeDelegatedSmartContractExecution.create({ ...iTx })
+  const tx = await caver.transaction.feeDelegatedSmartContractExecution.create({
+    ...input,
+    signatures: [signature]
+  })
   await caver.wallet.signAsFeePayer(feePayerKeyring.address, tx)
   return tx.getRawTransaction()
 }
