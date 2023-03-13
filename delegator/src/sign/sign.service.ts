@@ -78,8 +78,8 @@ export class SignService {
       throw new HttpException(msg, HttpStatus.BAD_REQUEST)
     }
     const signedRawTx = await signTxByFeePayer(transaction)
-    this.updateSignedRawTransaction(transaction.id, signedRawTx)
-    return this.findOne({ id: transaction.id })
+    const signedRawTransaction = await this.updateSignedRawTransaction(transaction.id, signedRawTx)
+    return signedRawTransaction
   }
 
   async findAll(params: {
