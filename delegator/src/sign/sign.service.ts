@@ -2,12 +2,76 @@ import { HttpException, HttpStatus, Injectable } from '@nestjs/common'
 import { Transaction, Prisma } from '@prisma/client'
 import { PrismaService } from '../prisma.service'
 import { SignDto } from './dto/sign.dto'
-import { DelegatorError } from './helper/errors'
-import { signTxByFeePayer, validateTransaction } from './helper/utils'
+import Caver from 'caver-js'
+import { SignatureData } from 'caver-js'
+import { DelegatorError, DelegatorErrorCode } from './helper/errors'
+import { SignTxData } from './helper/types'
+
+const PROVIDER_URL = 'https://api.baobab.klaytn.net:8651'
+let caver, feePayerKeyring
+
+function encryptMethodName(methodName: string) {
+  return caver.klay.abi.encodeFunctionSignature(methodName)
+}
+
+async function signTxByFeePayer(input: Transaction) {
+  const signature: SignatureData = new caver.wallet.keyring.signatureData([
+    input.v,
+    input.r,
+    input.s
+  ])
+
+  const iTx: SignTxData = {
+    from: input.from,
+    to: input.to,
+    input: input.input,
+    gas: input.gas,
+    signatures: [signature],
+    value: input.value,
+    chainId: input.chainId,
+    gasPrice: input.gasPrice,
+    nonce: input.nonce
+  }
+
+  const tx = await caver.transaction.feeDelegatedSmartContractExecution.create({ ...iTx })
+  await caver.wallet.signAsFeePayer(feePayerKeyring.address, tx)
+  return tx.getRawTransaction()
+}
+
+function validateTransaction(tx) {
+  // FIXME remove simple whiteListing settings and setup db
+  const contractList = {
+    '0x5b7a8096dd24ceda17f47ae040539dc0566cd1c9': {
+      methods: ['increament()', 'decreament()'],
+      reporters: ['0x42cbc5b3fb1b7b62fb8bd7c1d475bee35ad3e5f4']
+    }
+  }
+
+  if (!(tx.to in contractList)) {
+    throw new DelegatorError(DelegatorErrorCode.InvalidContract)
+  }
+  if (!contractList[tx.to].reporters.includes(tx.from)) {
+    throw new DelegatorError(DelegatorErrorCode.InvalidReporter)
+  }
+  let isValidMethod = false
+  for (const method of contractList[tx.to].methods) {
+    const encryptedMessage = encryptMethodName(method)
+    if (encryptedMessage == tx.input) {
+      isValidMethod = true
+    }
+  }
+  if (!isValidMethod) {
+    throw new DelegatorError(DelegatorErrorCode.InvalidMethod)
+  }
+}
 
 @Injectable()
 export class SignService {
-  constructor(private prisma: PrismaService) {}
+  constructor(private prisma: PrismaService) {
+    caver = new Caver(PROVIDER_URL)
+    feePayerKeyring = caver.wallet.keyring.createFromPrivateKey(process.env.SIGNER_PRIVATE_KEY)
+    caver.wallet.add(feePayerKeyring)
+  }
 
   async create(data: SignDto) {
     const transaction = await this.prisma.transaction.create({ data })
@@ -55,7 +119,7 @@ export class SignService {
     })
   }
 
-  async updateSignedRawTransaction(id: number, signedRawTx: string) {
+  async updateSignedRawTransaction(id: bigint, signedRawTx: string) {
     return this.prisma.transaction.update({
       data: { signedRawTx },
       where: { id }
