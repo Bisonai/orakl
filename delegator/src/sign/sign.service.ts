@@ -4,8 +4,7 @@ import { PrismaService } from '../prisma.service'
 import { SignDto } from './dto/sign.dto'
 import Caver from 'caver-js'
 import { SignatureData } from 'caver-js'
-import { DelegatorError, DelegatorErrorCode } from './helper/errors'
-import { SignTxData } from './helper/types'
+import { DelegatorError, DelegatorErrorCode } from './errors'
 
 const PROVIDER_URL = 'https://api.baobab.klaytn.net:8651'
 let caver, feePayerKeyring
