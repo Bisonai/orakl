@@ -47,10 +47,9 @@ describe('SignService', () => {
     const transaction = await service.create(data)
     expect(transaction.signedRawTx)
 
-    const oldNonce = (await caver.rpc.klay.getAccount(keyring.address)).account.nonce
+    const oldCounter = await contract.methods.COUNTER().call()
     await caver.rpc.klay.sendRawTransaction(transaction.signedRawTx)
-
-    const newNonce = (await caver.rpc.klay.getAccount(keyring.address)).account.nonce
-    expect(oldNonce + 1).toBe(newNonce)
+    const newCounter = await contract.methods.COUNTER().call()
+    expect(Number(oldCounter) + 1).toBe(Number(newCounter))
   })
 })
