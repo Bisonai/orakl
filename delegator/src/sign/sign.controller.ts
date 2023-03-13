@@ -35,16 +35,16 @@ export class SignController {
 
   @Get(':id')
   async findOne(@Param('id') id: string) {
-    return await this.signService.findOne({ id: Number(id) })
+    return await this.signService.findOne({ id: BigInt(id) })
   }
 
   @Patch(':id')
   async update(@Param('id') id: string, @Body() signDto: SignDto) {
-    return this.signService.update({ where: { id: Number(id) }, signDto })
+    return this.signService.update({ where: { id: BigInt(id) }, signDto })
   }
 
   @Delete(':id')
   async remove(@Param('id') id: string) {
-    return await this.signService.remove({ id: Number(id) })
+    return await this.signService.remove({ id: BigInt(id) })
   }
 }

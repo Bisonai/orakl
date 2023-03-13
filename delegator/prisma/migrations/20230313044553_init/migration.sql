@@ -1,6 +1,6 @@
 -- CreateTable
 CREATE TABLE "Transaction" (
-    "id" SERIAL NOT NULL,
+    "id" BIGSERIAL NOT NULL,
     "from" TEXT NOT NULL,
     "to" TEXT NOT NULL,
     "input" TEXT NOT NULL,
