@@ -14,7 +14,8 @@ Orakl Delegator requires to set the following environment variables.
 - `APP_PORT`
 - `CAVER_PRIVATE_KEY`
 - `SIGNER_PRIVATE_KEY`
-  You can copy them from `.env.example` to `.env` and fill the appropriate values.
+
+You can copy them from `.env.example` to `.env` and fill the appropriate values.
 
 ```shell
 cp .env.example .env
