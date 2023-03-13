@@ -10,7 +10,7 @@ async function bootstrap() {
 
   const config = new DocumentBuilder()
     .setTitle('Orakl Network Delegator')
-    .setDescription('The Orakl Network Delegator API description')
+    .setDescription('The Orakl Network Delegator description')
     .setVersion('1.0')
     .build()
   const document = SwaggerModule.createDocument(app, config)

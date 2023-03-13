@@ -1,24 +1,27 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { INestApplication } from '@nestjs/common';
-import * as request from 'supertest';
-import { AppModule } from './../src/app.module';
+import { Test, TestingModule } from '@nestjs/testing'
+import { INestApplication } from '@nestjs/common'
+import request from 'supertest'
+import { AppModule } from './../src/app.module'
+import { setAppSettings } from './../src/app.settings'
 
 describe('AppController (e2e)', () => {
-  let app: INestApplication;
+  let app: INestApplication
 
   beforeEach(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
-      imports: [AppModule],
-    }).compile();
+      imports: [AppModule]
+    }).compile()
 
-    app = moduleFixture.createNestApplication();
-    await app.init();
-  });
+    app = moduleFixture.createNestApplication()
+    setAppSettings(app)
+    await app.init()
+  })
 
-  it('/ (GET)', () => {
-    return request(app.getHttpServer())
-      .get('/')
-      .expect(200)
-      .expect('Hello World!');
-  });
-});
+  it('/health (GET)', () => {
+    return request(app.getHttpServer()).get('/health').expect(200).expect('OK')
+  })
+
+  it('/api (GET)', () => {
+    return request(app.getHttpServer()).get('/api').expect(200).expect('Orakl Network Delegator')
+  })
+})
