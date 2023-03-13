@@ -22,7 +22,7 @@ describe('SignService', () => {
 
   it('SignedRawTx should not be empty/null', async () => {
     const contract = new caver.contract(dummyFactory.abi as AbiItem[], dummyFactory.address)
-    const input = contract.methods.increament().encodeABI()
+    const input = contract.methods.increment().encodeABI()
     const tx = caver.transaction.feeDelegatedSmartContractExecution.create({
       from: keyring.address,
       to: contract._address,

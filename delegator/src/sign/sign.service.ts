@@ -41,8 +41,8 @@ async function signTxByFeePayer(input: Transaction) {
 function validateTransaction(tx) {
   // FIXME remove simple whiteListing settings and setup db
   const contractList = {
-    '0x5b7a8096dd24ceda17f47ae040539dc0566cd1c9': {
-      methods: ['increament()', 'decreament()'],
+    '0x93120927379723583c7a0dd2236fcb255e96949f': {
+      methods: ['increment()', 'decrement()'],
       reporters: ['0x42cbc5b3fb1b7b62fb8bd7c1d475bee35ad3e5f4']
     }
   }
