@@ -53,14 +53,10 @@ function validateTransaction(tx) {
   if (!contractList[tx.to].reporters.includes(tx.from)) {
     throw new DelegatorError(DelegatorErrorCode.InvalidReporter)
   }
-  let isValidMethod = false
-  for (const method of contractList[tx.to].methods) {
-    const encryptedMessage = encryptMethodName(method)
-    if (encryptedMessage == tx.input) {
-      isValidMethod = true
-    }
-  }
-  if (!isValidMethod) {
+  const isAllowedMethod = contractList[tx.to].methods.some(
+    (method) => encryptMethodName(method) == tx.input
+  )
+  if (!isAllowedMethod) {
     throw new DelegatorError(DelegatorErrorCode.InvalidMethod)
   }
 }
