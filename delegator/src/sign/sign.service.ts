@@ -102,7 +102,7 @@ export class SignService {
     const contractList = {
       '0x93120927379723583c7a0dd2236fcb255e96949f': {
         methods: ['increment()', 'decrement()'],
-        reporters: ['0x42cbc5b3fb1b7b62fb8bd7c1d475bee35ad3e5f4']
+        reporters: ['0x260836ac4f046b6887bbe16b322e7f1e5f9a0452']
       }
     }
 
