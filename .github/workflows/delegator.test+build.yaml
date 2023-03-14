@@ -1,0 +1,59 @@
+name: "delegator: test+build"
+
+on:
+  push:
+    branches-ignore:
+      - "master"
+    paths:
+      - "delegator/**"
+
+jobs:
+  core-build:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: orakl-test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: "18.12"
+      - name: Install dependencies
+        run: yarn install
+        working-directory: ./delegator
+      - name: Run eslint
+        run: yarn lint
+        working-directory: ./delegator
+      - name: Run test
+        run: |
+          npx prisma migrate dev --name init
+          yarn test
+        env:
+          DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/orakl-test?schema=public"
+          PROVIDER_URL: "https://api.baobab.klaytn.net:8651"
+          DELEGATOR_FEEPAYER_PK: ${{ secrets.DELEGATOR_FEEPAYER_PK}}
+          DELEGATOR_REPORTER_PK: ${{ secrets.DELEGATOR_REPORTER_PK}}
+        working-directory: ./delegator
+      - name: Run e2e2 test
+        run: yarn test:e2e
+        env:
+          DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/orakl-test?schema=public"
+          PROVIDER_URL: "https://api.baobab.klaytn.net:8651"
+          DELEGATOR_FEEPAYER_PK: ${{ secrets.DELEGATOR_FEEPAYER_PK}}
+          DELEGATOR_REPORTER_PK: ${{ secrets.DELEGATOR_REPORTER_PK}}
+        working-directory: ./delegator
+      - name: Build package
+        run: yarn build
+        working-directory: ./delegator

@@ -1,12 +1,12 @@
 import { Test, TestingModule } from '@nestjs/testing'
 import { SignService } from './sign.service'
 import { PrismaService } from '../prisma.service'
-import Caver, { AbiItem, Transaction } from 'caver-js'
+import Caver, { AbiItem } from 'caver-js'
 import { dummyFactory } from './dummyFactory'
 import { SignDto } from './dto/sign.dto'
 
 const caver = new Caver(process.env.PROVIDER_URL)
-const keyring = caver.wallet.keyring.createFromPrivateKey(process.env.CAVER_PRIVATE_KEY)
+const keyring = caver.wallet.keyring.createFromPrivateKey(process.env.DELEGATOR_REPORTER_PK)
 caver.wallet.add(keyring)
 
 describe('SignService', () => {

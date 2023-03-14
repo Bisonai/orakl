@@ -11,7 +11,7 @@ yarn install
 Orakl Delegator requires to set the following environment variables.
 
 - `DATABASE_URL`
-- `DELEGATOR_PRIVATE_KEY`
+- `DELEGATOR_FEEPAYER_PK`
 - `PROVIDER_URL`
 - `APP_PORT`
 
