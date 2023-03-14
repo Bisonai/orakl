@@ -2,7 +2,7 @@ name: "vrf: integration-test"
 
 on:
   push:
-    branches-ignore:
+    branches:
       - "368-update-integration-test-with-hardhat-public-and-private-keys-for-reporter"
   # issue_comment:
   #   types: [created, edited, deleted]
