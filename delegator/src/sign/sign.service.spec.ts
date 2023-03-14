@@ -6,7 +6,7 @@ import { dummyFactory } from './dummyFactory'
 import { SignDto } from './dto/sign.dto'
 
 const caver = new Caver(process.env.PROVIDER_URL)
-const keyring = caver.wallet.keyring.createFromPrivateKey(process.env.DELEGATOR_TEST_PRIVATE_KEY)
+const keyring = caver.wallet.keyring.createFromPrivateKey(process.env.DELEGATOR_REPORTER_PK)
 caver.wallet.add(keyring)
 
 describe('SignService', () => {

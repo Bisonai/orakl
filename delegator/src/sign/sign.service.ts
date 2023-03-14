@@ -14,7 +14,7 @@ export class SignService {
   constructor(private prisma: PrismaService) {
     this.caver = new Caver(process.env.PROVIDER_URL)
     this.feePayerKeyring = this.caver.wallet.keyring.createFromPrivateKey(
-      process.env.DELEGATOR_PRIVATE_KEY
+      process.env.DELEGATOR_FEEPAYER_PK
     )
     this.caver.wallet.add(this.feePayerKeyring)
   }
