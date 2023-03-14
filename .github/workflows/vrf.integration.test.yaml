@@ -59,8 +59,8 @@ jobs:
         run: yarn start:reporter:vrf &
         working-directory: ./core
         env:
-          PRIVATE_KEY: ${{ secrets.PRIVATE_KEY }}
-          PUBLIC_KEY: ${{ secrets.PUBLIC_KEY }}
+          PRIVATE_KEY: ${{ secrets.INTEGRATION_PRIVATE_KEY }}
+          PUBLIC_KEY: ${{ secrets.INTEGRATION_PUBLIC_KEY }}
 
       - name: Get random words
         run: npx hardhat run scripts/v0.1/vrf/integration/read-vrf.ts --network localhost
