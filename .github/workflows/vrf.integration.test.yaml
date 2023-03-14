@@ -1,12 +1,15 @@
 name: "vrf: integration-test"
 
 on:
-  issue_comment:
-    types: [created, edited, deleted]
+  push:
+    branches-ignore:
+      - "368-update-integration-test-with-hardhat-public-and-private-keys-for-reporter"
+  # issue_comment:
+  #   types: [created, edited, deleted]
 
 jobs:
   build:
-    if: ${{ github.event.issue.pull_request }} && contains(github.event.comment.body, '/integration')
+    # if: ${{ github.event.issue.pull_request }} && contains(github.event.comment.body, '/integration')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
