@@ -11,7 +11,7 @@ import { chainOptionalOption, idOption, buildUrl, computeAggregatorHash } from '
 import { ReadFile, IAggregator } from './cli-types'
 import { ORAKL_NETWORK_API_URL } from './settings'
 
-const AGGREGATOR_ENDPOINT = buildUrl(ORAKL_NETWORK_API_URL, 'api/v1/aggregator')
+const AGGREGATOR_ENDPOINT = buildUrl(ORAKL_NETWORK_API_URL, 'aggregator')
 
 export function aggregatorSub() {
   // aggregator list [--active] [--chain [chain]]

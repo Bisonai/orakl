@@ -3,7 +3,7 @@ import { command, subcommands, option, string as cmdstring } from 'cmd-ts'
 import { idOption, buildUrl, isOraklNetworkApiHealthy } from './utils'
 import { ORAKL_NETWORK_API_URL } from './settings'
 
-const CHAIN_ENDPOINT = buildUrl(ORAKL_NETWORK_API_URL, 'api/v1/chain')
+const CHAIN_ENDPOINT = buildUrl(ORAKL_NETWORK_API_URL, 'chain')
 
 export function chainSub() {
   // chain list

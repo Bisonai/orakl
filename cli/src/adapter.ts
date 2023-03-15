@@ -4,7 +4,7 @@ import { idOption, buildUrl, computeAdapterHash } from './utils'
 import { ReadFile, IAdapter } from './cli-types'
 import { ORAKL_NETWORK_API_URL } from './settings'
 
-const ADAPTER_ENDPOINT = buildUrl(ORAKL_NETWORK_API_URL, 'api/v1/adapter')
+const ADAPTER_ENDPOINT = buildUrl(ORAKL_NETWORK_API_URL, 'adapter')
 
 export function adapterSub() {
   // adapter list
