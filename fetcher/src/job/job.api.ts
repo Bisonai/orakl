@@ -4,8 +4,8 @@ import { buildUrl } from './job.utils'
 export async function loadAggregator(aggregatorHash: string, chain: string) {
   let response = {}
   try {
-    const url = buildUrl(process.env.ORAKL_NETWORK_API_URL, `aggregator/${aggregatorHash}`)
-    response = (await axios.get(url, { data: { chain } }))?.data
+    const url = buildUrl(process.env.ORAKL_NETWORK_API_URL, `aggregator/${aggregatorHash}/${chain}`)
+    response = (await axios.get(url))?.data
   } catch (e) {
     this.logger.error(e)
   } finally {
