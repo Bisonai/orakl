@@ -12,7 +12,7 @@ import {
 
 export function vrfSub(db) {
   // vrf list   [--chain [chain]]                                                [--dryrun]
-  // vrf insert  --chain [chain] --pk [pk] --sk [sk] --pk_x [pk_x] --pk_y [pk_y] [--dryrun]
+  // vrf insert  --chain [chain] --pk [pk] --sk [sk] --pk_x [pk_x] --pk_y [pk_y] --key_hash [key_hash] [--dryrun]
   // vrf remove  --id [id]                                                       [--dryrun]
   // vrf keygen
 
