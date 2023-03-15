@@ -1,12 +1,12 @@
 {
-  "adapterHash": "0xb0c3c252c76334d29db18a5324e9ee815d95395689b532e9e58c1ecc05411993",
-  "name": "BTC-USDT",
+  "adapterHash": "0xf8ba3eafdf66c135dcd093dbb1bfdb10dca956ee3c75b510f76407353eb251d0",
+  "name": "SOL-USDT",
   "decimals": 8,
   "feeds": [
     {
-      "name": "Bybit-BTC-USDT",
+      "name": "Bybit-SOL-USDT",
       "definition": {
-        "url": "https://api.bybit.com/derivatives/v3/public/tickers?symbol=BTCUSDT",
+        "url": "https://api.bybit.com/derivatives/v3/public/tickers?symbol=SOLUSDT",
         "headers": {
           "Content-Type": "application/json"
         },
@@ -35,9 +35,9 @@
       }
     },
     {
-      "name": "Binance-BTC-USDT",
+      "name": "Binance-SOL-USDT",
       "definition": {
-        "url": "https://api.binance.com/api/v3/avgPrice?symbol=BTCUSDT",
+        "url": "https://api.binance.com/api/v3/avgPrice?symbol=SOLUSDT",
         "headers": {
           "Content-Type": "application/json"
         },
@@ -58,32 +58,9 @@
       }
     },
     {
-      "name": "Coinbase-BTC-USDT",
+      "name": "Kucoin-SOL-USDT",
       "definition": {
-        "url": "https://api.coinbase.com/v2/exchange-rates?currency=BTC",
-        "headers": {
-          "Content-Type": "application/json"
-        },
-        "method": "GET",
-        "reducers": [
-          {
-            "function": "PARSE",
-            "args": ["data", "rates", "USDT"]
-          },
-          {
-            "function": "POW10",
-            "args": 8
-          },
-          {
-            "function": "ROUND"
-          }
-        ]
-      }
-    },
-    {
-      "name": "Kucoin-BTC-USDT",
-      "definition": {
-        "url": "https://api.kucoin.com/api/v1/market/orderbook/level1?symbol=BTC-USDT",
+        "url": "https://api.kucoin.com/api/v1/market/orderbook/level1?symbol=SOL-USDT",
         "headers": {
           "Content-Type": "application/json"
         },
@@ -104,9 +81,9 @@
       }
     },
     {
-      "name": "Crypto-BTC-USDT",
+      "name": "Crypto-SOL-USDT",
       "definition": {
-        "url": "https://api.crypto.com/v2/public/get-ticker?instrument_name=BTC_USDT",
+        "url": "https://api.crypto.com/v2/public/get-ticker?instrument_name=SOL_USDT",
         "headers": {
           "Content-Type": "application/json"
         },
@@ -135,9 +112,9 @@
       }
     },
     {
-      "name": "Btse-BTC-USDT",
+      "name": "Btse-SOL-USDT",
       "definition": {
-        "url": "https://api.btse.com/spot/api/v3.2/price?symbol=BTC-USDT",
+        "url": "https://api.btse.com/spot/api/v3.2/price?symbol=SOL-USDT",
         "headers": {
           "Content-Type": "application/json"
         },
@@ -162,9 +139,32 @@
       }
     },
     {
-      "name": "Bittrex-BTC-USDT",
+      "name": "Coinbase-SOL-USDT",
       "definition": {
-        "url": "https://api.bittrex.com/v3/markets/BTC-USDT/ticker",
+        "url": "https://api.coinbase.com/v2/exchange-rates?currency=SOL",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "method": "GET",
+        "reducers": [
+          {
+            "function": "PARSE",
+            "args": ["data", "rates", "USDT"]
+          },
+          {
+            "function": "POW10",
+            "args": 8
+          },
+          {
+            "function": "ROUND"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Bittrex-SOL-USDT",
+      "definition": {
+        "url": "https://api.bittrex.com/v3/markets/SOL-USDT/ticker",
         "headers": {
           "Content-Type": "application/json"
         },
@@ -185,9 +185,9 @@
       }
     },
     {
-      "name": "Gateio-BTC-USDT",
+      "name": "Gateio-SOL-USDT",
       "definition": {
-        "url": "https://api.gateio.ws/api/v4/spot/tickers?currency_pair=BTC_USDT",
+        "url": "https://api.gateio.ws/api/v4/spot/tickers?currency_pair=SOL_USDT",
         "headers": {
           "Content-Type": "application/json"
         },
@@ -212,9 +212,9 @@
       }
     },
     {
-      "name": "Lbkex-BTC-USDT",
+      "name": "Lbkex-SOL-USDT",
       "definition": {
-        "url": "https://api.lbkex.com/v2/ticker/24hr.do?symbol=btc_usdt",
+        "url": "https://api.lbkex.com/v2/ticker/24hr.do?symbol=sol_usdt",
         "headers": {
           "Content-Type": "application/json"
         },
@@ -243,9 +243,9 @@
       }
     },
     {
-      "name": "Coinex-BTC-USDT",
+      "name": "Coinex-SOL-USDT",
       "definition": {
-        "url": "https://api.coinex.com/v1/market/ticker?market=BTCUSDT",
+        "url": "https://api.coinex.com/v1/market/ticker?market=SOLUSDT",
         "headers": {
           "Content-Type": "application/json"
         },

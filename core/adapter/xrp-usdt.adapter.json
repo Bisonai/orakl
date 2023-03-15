@@ -1,12 +1,12 @@
 {
-  "adapterHash": "0xb0c3c252c76334d29db18a5324e9ee815d95395689b532e9e58c1ecc05411993",
-  "name": "BTC-USDT",
+  "adapterHash": "0x61dc4a3225212016c0cbe5deffa1db31e01837fb0a061ff1cf355650287e0162",
+  "name": "XRP-USDT",
   "decimals": 8,
   "feeds": [
     {
-      "name": "Bybit-BTC-USDT",
+      "name": "Bybit-XRP-USDT",
       "definition": {
-        "url": "https://api.bybit.com/derivatives/v3/public/tickers?symbol=BTCUSDT",
+        "url": "https://api.bybit.com/derivatives/v3/public/tickers?symbol=XRPUSDT",
         "headers": {
           "Content-Type": "application/json"
         },
@@ -35,9 +35,9 @@
       }
     },
     {
-      "name": "Binance-BTC-USDT",
+      "name": "Binance-XRP-USDT",
       "definition": {
-        "url": "https://api.binance.com/api/v3/avgPrice?symbol=BTCUSDT",
+        "url": "https://api.binance.com/api/v3/avgPrice?symbol=XRPUSDT",
         "headers": {
           "Content-Type": "application/json"
         },
@@ -58,32 +58,9 @@
       }
     },
     {
-      "name": "Coinbase-BTC-USDT",
+      "name": "Kucoin-XRP-USDT",
       "definition": {
-        "url": "https://api.coinbase.com/v2/exchange-rates?currency=BTC",
-        "headers": {
-          "Content-Type": "application/json"
-        },
-        "method": "GET",
-        "reducers": [
-          {
-            "function": "PARSE",
-            "args": ["data", "rates", "USDT"]
-          },
-          {
-            "function": "POW10",
-            "args": 8
-          },
-          {
-            "function": "ROUND"
-          }
-        ]
-      }
-    },
-    {
-      "name": "Kucoin-BTC-USDT",
-      "definition": {
-        "url": "https://api.kucoin.com/api/v1/market/orderbook/level1?symbol=BTC-USDT",
+        "url": "https://api.kucoin.com/api/v1/market/orderbook/level1?symbol=XRP-USDT",
         "headers": {
           "Content-Type": "application/json"
         },
@@ -104,9 +81,9 @@
       }
     },
     {
-      "name": "Crypto-BTC-USDT",
+      "name": "Crypto-XRP-USDT",
       "definition": {
-        "url": "https://api.crypto.com/v2/public/get-ticker?instrument_name=BTC_USDT",
+        "url": "https://api.crypto.com/v2/public/get-ticker?instrument_name=XRP_USDT",
         "headers": {
           "Content-Type": "application/json"
         },
@@ -135,9 +112,9 @@
       }
     },
     {
-      "name": "Btse-BTC-USDT",
+      "name": "Btse-XRP-USDT",
       "definition": {
-        "url": "https://api.btse.com/spot/api/v3.2/price?symbol=BTC-USDT",
+        "url": "https://api.btse.com/spot/api/v3.2/price?symbol=XRP-USDT",
         "headers": {
           "Content-Type": "application/json"
         },
@@ -162,9 +139,32 @@
       }
     },
     {
-      "name": "Bittrex-BTC-USDT",
+      "name": "Coinbase-XRP-USDT",
       "definition": {
-        "url": "https://api.bittrex.com/v3/markets/BTC-USDT/ticker",
+        "url": "https://api.coinbase.com/v2/exchange-rates?currency=XRP",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "method": "GET",
+        "reducers": [
+          {
+            "function": "PARSE",
+            "args": ["data", "rates", "USDT"]
+          },
+          {
+            "function": "POW10",
+            "args": 8
+          },
+          {
+            "function": "ROUND"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Bittrex-XRP-USDT",
+      "definition": {
+        "url": "https://api.bittrex.com/v3/markets/XRP-USDT/ticker",
         "headers": {
           "Content-Type": "application/json"
         },
@@ -185,9 +185,9 @@
       }
     },
     {
-      "name": "Gateio-BTC-USDT",
+      "name": "Gateio-XRP-USDT",
       "definition": {
-        "url": "https://api.gateio.ws/api/v4/spot/tickers?currency_pair=BTC_USDT",
+        "url": "https://api.gateio.ws/api/v4/spot/tickers?currency_pair=XRP_USDT",
         "headers": {
           "Content-Type": "application/json"
         },
@@ -212,9 +212,9 @@
       }
     },
     {
-      "name": "Lbkex-BTC-USDT",
+      "name": "Lbkex-XRP-USDT",
       "definition": {
-        "url": "https://api.lbkex.com/v2/ticker/24hr.do?symbol=btc_usdt",
+        "url": "https://api.lbkex.com/v2/ticker/24hr.do?symbol=xrp_usdt",
         "headers": {
           "Content-Type": "application/json"
         },
@@ -243,9 +243,9 @@
       }
     },
     {
-      "name": "Coinex-BTC-USDT",
+      "name": "Coinex-XRP-USDT",
       "definition": {
-        "url": "https://api.coinex.com/v1/market/ticker?market=BTCUSDT",
+        "url": "https://api.coinex.com/v1/market/ticker?market=XRPUSDT",
         "headers": {
           "Content-Type": "application/json"
         },

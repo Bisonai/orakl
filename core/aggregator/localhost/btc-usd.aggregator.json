@@ -1,7 +1,7 @@
 {
-  "aggregatorHash": "0xf20b2026ffa2efe041172d87fbb8e35eeb168ec8df952c91e9c58abf64e0345f",
+  "aggregatorHash": "0x016bee83072e35bf8d8e559fbc437f1818f8ff86705e2ad2d67ad75ce21bf8f0",
   "active": false,
-  "name": "BTC-USDT",
+  "name": "BTC-USD",
   "address": "",
   "heartbeat": 15000,
   "threshold": 0.05,

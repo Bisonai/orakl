@@ -1,12 +1,12 @@
 {
-  "adapterHash": "0xb0c3c252c76334d29db18a5324e9ee815d95395689b532e9e58c1ecc05411993",
-  "name": "BTC-USDT",
+  "adapterHash": "0xf7385af79a7201e79185c79ff80dfa9d39960bb5c0d62e837477e0f0a87df716",
+  "name": "TRX-USDT",
   "decimals": 8,
   "feeds": [
     {
-      "name": "Bybit-BTC-USDT",
+      "name": "Bybit-TRX-USDT",
       "definition": {
-        "url": "https://api.bybit.com/derivatives/v3/public/tickers?symbol=BTCUSDT",
+        "url": "https://api.bybit.com/derivatives/v3/public/tickers?symbol=TRXUSDT",
         "headers": {
           "Content-Type": "application/json"
         },
@@ -35,9 +35,9 @@
       }
     },
     {
-      "name": "Binance-BTC-USDT",
+      "name": "Binance-TRX-USDT",
       "definition": {
-        "url": "https://api.binance.com/api/v3/avgPrice?symbol=BTCUSDT",
+        "url": "https://api.binance.com/api/v3/avgPrice?symbol=TRXUSDT",
         "headers": {
           "Content-Type": "application/json"
         },
@@ -58,32 +58,9 @@
       }
     },
     {
-      "name": "Coinbase-BTC-USDT",
+      "name": "Kucoin-TRX-USDT",
       "definition": {
-        "url": "https://api.coinbase.com/v2/exchange-rates?currency=BTC",
-        "headers": {
-          "Content-Type": "application/json"
-        },
-        "method": "GET",
-        "reducers": [
-          {
-            "function": "PARSE",
-            "args": ["data", "rates", "USDT"]
-          },
-          {
-            "function": "POW10",
-            "args": 8
-          },
-          {
-            "function": "ROUND"
-          }
-        ]
-      }
-    },
-    {
-      "name": "Kucoin-BTC-USDT",
-      "definition": {
-        "url": "https://api.kucoin.com/api/v1/market/orderbook/level1?symbol=BTC-USDT",
+        "url": "https://api.kucoin.com/api/v1/market/orderbook/level1?symbol=TRX-USDT",
         "headers": {
           "Content-Type": "application/json"
         },
@@ -104,40 +81,9 @@
       }
     },
     {
-      "name": "Crypto-BTC-USDT",
+      "name": "Btse-TRX-USDT",
       "definition": {
-        "url": "https://api.crypto.com/v2/public/get-ticker?instrument_name=BTC_USDT",
-        "headers": {
-          "Content-Type": "application/json"
-        },
-        "method": "GET",
-        "reducers": [
-          {
-            "function": "PARSE",
-            "args": ["result", "data"]
-          },
-          {
-            "function": "INDEX",
-            "args": 0
-          },
-          {
-            "function": "PARSE",
-            "args": ["a"]
-          },
-          {
-            "function": "POW10",
-            "args": 8
-          },
-          {
-            "function": "ROUND"
-          }
-        ]
-      }
-    },
-    {
-      "name": "Btse-BTC-USDT",
-      "definition": {
-        "url": "https://api.btse.com/spot/api/v3.2/price?symbol=BTC-USDT",
+        "url": "https://api.btse.com/spot/api/v3.2/price?symbol=TRX-USDT",
         "headers": {
           "Content-Type": "application/json"
         },
@@ -162,9 +108,9 @@
       }
     },
     {
-      "name": "Bittrex-BTC-USDT",
+      "name": "Bittrex-TRX-USDT",
       "definition": {
-        "url": "https://api.bittrex.com/v3/markets/BTC-USDT/ticker",
+        "url": "https://api.bittrex.com/v3/markets/TRX-USDT/ticker",
         "headers": {
           "Content-Type": "application/json"
         },
@@ -185,9 +131,9 @@
       }
     },
     {
-      "name": "Gateio-BTC-USDT",
+      "name": "Gateio-TRX-USDT",
       "definition": {
-        "url": "https://api.gateio.ws/api/v4/spot/tickers?currency_pair=BTC_USDT",
+        "url": "https://api.gateio.ws/api/v4/spot/tickers?currency_pair=TRX_USDT",
         "headers": {
           "Content-Type": "application/json"
         },
@@ -212,9 +158,9 @@
       }
     },
     {
-      "name": "Lbkex-BTC-USDT",
+      "name": "Lbkex-TRX-USDT",
       "definition": {
-        "url": "https://api.lbkex.com/v2/ticker/24hr.do?symbol=btc_usdt",
+        "url": "https://api.lbkex.com/v2/ticker/24hr.do?symbol=trx_usdt",
         "headers": {
           "Content-Type": "application/json"
         },
@@ -243,9 +189,9 @@
       }
     },
     {
-      "name": "Coinex-BTC-USDT",
+      "name": "Coinex-TRX-USDT",
       "definition": {
-        "url": "https://api.coinex.com/v1/market/ticker?market=BTCUSDT",
+        "url": "https://api.coinex.com/v1/market/ticker?market=TRXUSDT",
         "headers": {
           "Content-Type": "application/json"
         },

@@ -1,12 +1,12 @@
 {
-  "adapterHash": "0xb0c3c252c76334d29db18a5324e9ee815d95395689b532e9e58c1ecc05411993",
-  "name": "BTC-USDT",
+  "adapterHash": "0x8b4d886ffb1b1f24bd6069f648b03413d79ffcf84f56f3ae23857a02fa4186a5",
+  "name": "BNB-USDT",
   "decimals": 8,
   "feeds": [
     {
-      "name": "Bybit-BTC-USDT",
+      "name": "Bybit-BNB-USDT",
       "definition": {
-        "url": "https://api.bybit.com/derivatives/v3/public/tickers?symbol=BTCUSDT",
+        "url": "https://api.bybit.com/derivatives/v3/public/tickers?symbol=BNBUSDT",
         "headers": {
           "Content-Type": "application/json"
         },
@@ -35,9 +35,9 @@
       }
     },
     {
-      "name": "Binance-BTC-USDT",
+      "name": "Binance-BNB-USDT",
       "definition": {
-        "url": "https://api.binance.com/api/v3/avgPrice?symbol=BTCUSDT",
+        "url": "https://api.binance.com/api/v3/avgPrice?symbol=BNBUSDT",
         "headers": {
           "Content-Type": "application/json"
         },
@@ -58,9 +58,9 @@
       }
     },
     {
-      "name": "Coinbase-BTC-USDT",
+      "name": "Coinbase-BNB-USDT",
       "definition": {
-        "url": "https://api.coinbase.com/v2/exchange-rates?currency=BTC",
+        "url": "https://api.coinbase.com/v2/exchange-rates?currency=BNB",
         "headers": {
           "Content-Type": "application/json"
         },
@@ -81,9 +81,9 @@
       }
     },
     {
-      "name": "Kucoin-BTC-USDT",
+      "name": "Kucoin-BNB-USDT",
       "definition": {
-        "url": "https://api.kucoin.com/api/v1/market/orderbook/level1?symbol=BTC-USDT",
+        "url": "https://api.kucoin.com/api/v1/market/orderbook/level1?symbol=BNB-USDT",
         "headers": {
           "Content-Type": "application/json"
         },
@@ -104,40 +104,9 @@
       }
     },
     {
-      "name": "Crypto-BTC-USDT",
+      "name": "Btse-BNB-USDT",
       "definition": {
-        "url": "https://api.crypto.com/v2/public/get-ticker?instrument_name=BTC_USDT",
-        "headers": {
-          "Content-Type": "application/json"
-        },
-        "method": "GET",
-        "reducers": [
-          {
-            "function": "PARSE",
-            "args": ["result", "data"]
-          },
-          {
-            "function": "INDEX",
-            "args": 0
-          },
-          {
-            "function": "PARSE",
-            "args": ["a"]
-          },
-          {
-            "function": "POW10",
-            "args": 8
-          },
-          {
-            "function": "ROUND"
-          }
-        ]
-      }
-    },
-    {
-      "name": "Btse-BTC-USDT",
-      "definition": {
-        "url": "https://api.btse.com/spot/api/v3.2/price?symbol=BTC-USDT",
+        "url": "https://api.btse.com/spot/api/v3.2/price?symbol=BNB-USDT",
         "headers": {
           "Content-Type": "application/json"
         },
@@ -162,32 +131,9 @@
       }
     },
     {
-      "name": "Bittrex-BTC-USDT",
+      "name": "Gateio-BNB-USDT",
       "definition": {
-        "url": "https://api.bittrex.com/v3/markets/BTC-USDT/ticker",
-        "headers": {
-          "Content-Type": "application/json"
-        },
-        "method": "GET",
-        "reducers": [
-          {
-            "function": "PARSE",
-            "args": ["lastTradeRate"]
-          },
-          {
-            "function": "POW10",
-            "args": 8
-          },
-          {
-            "function": "ROUND"
-          }
-        ]
-      }
-    },
-    {
-      "name": "Gateio-BTC-USDT",
-      "definition": {
-        "url": "https://api.gateio.ws/api/v4/spot/tickers?currency_pair=BTC_USDT",
+        "url": "https://api.gateio.ws/api/v4/spot/tickers?currency_pair=BNB_USDT",
         "headers": {
           "Content-Type": "application/json"
         },
@@ -212,9 +158,9 @@
       }
     },
     {
-      "name": "Lbkex-BTC-USDT",
+      "name": "Lbkex-BNB-USDT",
       "definition": {
-        "url": "https://api.lbkex.com/v2/ticker/24hr.do?symbol=btc_usdt",
+        "url": "https://api.lbkex.com/v2/ticker/24hr.do?symbol=bnb_usdt",
         "headers": {
           "Content-Type": "application/json"
         },
@@ -243,9 +189,9 @@
       }
     },
     {
-      "name": "Coinex-BTC-USDT",
+      "name": "Coinex-BNB-USDT",
       "definition": {
-        "url": "https://api.coinex.com/v1/market/ticker?market=BTCUSDT",
+        "url": "https://api.coinex.com/v1/market/ticker?market=BNBUSDT",
         "headers": {
           "Content-Type": "application/json"
         },
