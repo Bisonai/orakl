@@ -1,4 +1,4 @@
-import { Controller, Query, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common'
+import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common'
 import { ListenerService } from './listener.service'
 import { CreateListenerDto } from './dto/create-listener.dto'
 import { UpdateListenerDto } from './dto/update-listener.dto'
