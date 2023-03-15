@@ -93,9 +93,8 @@ export async function isOraklNetworkApiHealthy() {
 }
 
 export async function isOraklFetcherHealthy() {
-  const ORAKL_NETWORK_FETCHER_ENDPOINT = buildUrl(ORAKL_NETWORK_FETCHER_URL, 'health')
   try {
-    return 'OK' === (await axios.get(ORAKL_NETWORK_FETCHER_ENDPOINT))?.data
+    return 200 === (await axios.get(ORAKL_NETWORK_FETCHER_URL))?.status
   } catch (e) {
     console.error(`Orakl Network Fetcher [${ORAKL_NETWORK_FETCHER_URL}] is down`)
     return false
