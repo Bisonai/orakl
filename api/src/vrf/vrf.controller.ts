@@ -16,8 +16,8 @@ export class VrfController {
   }
 
   @Get()
-  async findAll() {
-    return this.vrfService.findAll({})
+  async findAll(@Body('chain') chain: string) {
+    return this.vrfService.findAll({ where: { chain: { name: chain } } })
   }
 
   @Get(':id')
