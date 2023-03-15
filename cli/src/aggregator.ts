@@ -7,17 +7,23 @@ import {
   string as cmdstring,
   boolean as cmdboolean
 } from 'cmd-ts'
-import { chainOptionalOption, idOption, buildUrl, computeAggregatorHash } from './utils'
+import {
+  chainOptionalOption,
+  idOption,
+  buildUrl,
+  computeAggregatorHash,
+  isOraklNetworkApiHealthy
+} from './utils'
 import { ReadFile, IAggregator } from './cli-types'
 import { ORAKL_NETWORK_API_URL } from './settings'
 
 const AGGREGATOR_ENDPOINT = buildUrl(ORAKL_NETWORK_API_URL, 'aggregator')
 
 export function aggregatorSub() {
-  // aggregator list [--active] [--chain [chain]]
-  // aggregator insert --file-path [file-path] --chain [chain]
-  // aggregator remove --id [id]
-  // aggregator hash --file-path [file-path] --verify
+  // aggregator list [--active] [--chain ${chain}]
+  // aggregator insert --file-path ${filePath} --chain ${chain}
+  // aggregator remove --id ${id}
+  // aggregator hash --file-path ${filePath} --verify
 
   const list = command({
     name: 'list',
@@ -76,23 +82,32 @@ export function aggregatorSub() {
 
 export function listHandler(print?: boolean) {
   async function wrapper({ chain, active }: { chain?: string; active?: boolean }) {
+    if (!(await isOraklNetworkApiHealthy())) return
+
     // cmd-ts does not allow to set boolean flag to undefined. It can
     // be either true of false. When `active` is not set, we assume that
     // user wants to see all aggregators.
     if (!active) {
       active = undefined
     }
-    const result = (await axios.get(AGGREGATOR_ENDPOINT, { data: { chain, active } })).data
-    if (print) {
-      console.dir(result, { depth: null })
+
+    try {
+      const result = (await axios.get(AGGREGATOR_ENDPOINT, { data: { chain, active } })).data
+      if (print) {
+        console.dir(result, { depth: null })
+      }
+      return result
+    } catch (e) {
+      console.dir(e?.response?.data, { depth: null })
     }
-    return result
   }
   return wrapper
 }
 
 export function insertHandler() {
   async function wrapper({ data, chain }: { data; chain: string }) {
+    if (!(await isOraklNetworkApiHealthy())) return
+
     try {
       const result = (await axios.post(AGGREGATOR_ENDPOINT, { ...data, chain })).data
       console.dir(result, { depth: null })
@@ -106,9 +121,16 @@ export function insertHandler() {
 
 export function removeHandler() {
   async function wrapper({ id }: { id: number }) {
-    const endpoint = buildUrl(AGGREGATOR_ENDPOINT, id.toString())
-    const result = (await axios.delete(endpoint)).data
-    console.dir(result, { depth: null })
+    if (!(await isOraklNetworkApiHealthy())) return
+
+    try {
+      const endpoint = buildUrl(AGGREGATOR_ENDPOINT, id.toString())
+      const result = (await axios.delete(endpoint)).data
+      console.dir(result, { depth: null })
+    } catch (e) {
+      console.error('Aggregator was not deleted. Reason:')
+      console.error(e?.response?.data?.message)
+    }
   }
   return wrapper
 }
@@ -120,6 +142,7 @@ export function hashHandler() {
       const aggregatorWithCorrectHash = await computeAggregatorHash({ data: aggregator, verify })
       console.dir(aggregatorWithCorrectHash, { depth: null })
     } catch (e) {
+      console.error('Aggregator hash could not be computed. Reason:')
       console.error(e.message)
     }
   }

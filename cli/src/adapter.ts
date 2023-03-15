@@ -8,9 +8,9 @@ const ADAPTER_ENDPOINT = buildUrl(ORAKL_NETWORK_API_URL, 'adapter')
 
 export function adapterSub() {
   // adapter list
-  // adapter insert --file-path [file-path]
-  // adapter remove --id [id]
-  // adapter hash --file-path [file-path] --verify
+  // adapter insert --file-path ${filePath}
+  // adapter remove --id ${id}
+  // adapter hash --file-path ${filePath} --verify
 
   const list = command({
     name: 'list',
