@@ -10,9 +10,10 @@ import { DataModule } from './data/data.module'
 import { AggregateModule } from './aggregate/aggregate.module'
 import { ServiceModule } from './service/service.module';
 import { ListenerModule } from './listener/listener.module';
+import { VrfModule } from './vrf/vrf.module';
 
 @Module({
-  imports: [ChainModule, AdapterModule, FeedModule, AggregatorModule, DataModule, AggregateModule, ServiceModule, ListenerModule],
+  imports: [ChainModule, AdapterModule, FeedModule, AggregatorModule, DataModule, AggregateModule, ServiceModule, ListenerModule, VrfModule],
   controllers: [AppController],
   providers: [AppService, ConfigService]
 })

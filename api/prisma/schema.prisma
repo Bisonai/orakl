@@ -15,6 +15,7 @@ model Chain {
   name       String       @unique
   Aggregator Aggregator[]
   Listener   Listener[]
+  VrfKey     VrfKey[]
 }
 
 model Service {
@@ -24,13 +25,24 @@ model Service {
 }
 
 model Listener {
-  id        BigInt @id @default(autoincrement())
-  address   String @db.VarChar(42)
-  eventName String @db.VarChar(255)
-  chain   Chain  @relation(fields: [chainId], references: [id])
-  chainId BigInt
+  id        BigInt  @id @default(autoincrement())
+  address   String  @db.VarChar(42)
+  eventName String  @db.VarChar(255)
+  chain     Chain   @relation(fields: [chainId], references: [id])
+  chainId   BigInt
   service   Service @relation(fields: [serviceId], references: [id])
   serviceId BigInt
+}
+
+model VrfKey {
+  id      BigInt @id @default(autoincrement())
+  sk      String @db.VarChar(64)
+  pk      String @db.VarChar(130)
+  pkX     String @db.VarChar(77)
+  pkY     String @db.VarChar(77)
+  keyHash String @db.VarChar(66)
+  chain   Chain  @relation(fields: [chainId], references: [id])
+  chainId BigInt
 }
 
 model Feed {
