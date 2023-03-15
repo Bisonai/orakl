@@ -16,6 +16,11 @@ model Chain {
   Aggregator Aggregator[]
 }
 
+model Service {
+  id         BigInt       @id @default(autoincrement())
+  name       String       @unique
+}
+
 model Feed {
   id         BigInt  @id @default(autoincrement())
   name       String
