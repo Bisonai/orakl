@@ -20,7 +20,7 @@ describe('ListenerService', () => {
   })
 
   it('should be defined', () => {
-    expect(service).toBeDefined()
+    expect(listener).toBeDefined()
   })
 
   it('should insert listener', async () => {
