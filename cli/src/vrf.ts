@@ -1,28 +1,24 @@
+import axios from 'axios'
 import { command, subcommands, option, string as cmdstring } from 'cmd-ts'
 import ethers from 'ethers'
 import { keygen } from '@bisonai/orakl-vrf'
-import {
-  dryrunOption,
-  idOption,
-  chainOptionalOption,
-  chainToId,
-  formatResultInsert,
-  formatResultRemove
-} from './utils'
+import { idOption, chainOptionalOption, buildUrl, isOraklNetworkApiHealthy } from './utils'
+import { ORAKL_NETWORK_API_URL } from './settings'
 
-export function vrfSub(db) {
-  // vrf list   [--chain [chain]]                                                [--dryrun]
-  // vrf insert  --chain [chain] --pk [pk] --sk [sk] --pk_x [pk_x] --pk_y [pk_y] --key_hash [key_hash] [--dryrun]
-  // vrf remove  --id [id]                                                       [--dryrun]
+const VRF_ENDPOINT = buildUrl(ORAKL_NETWORK_API_URL, 'vrf')
+
+export function vrfSub() {
+  // vrf list   [--chain ${chain}]
+  // vrf insert  --chain ${chain} --pk ${pk} --sk ${sk} --pkX ${pk_x} --pkY ${pkY} --keyHash ${keyHash}
+  // vrf remove  --id ${id}
   // vrf keygen
 
   const list = command({
     name: 'list',
     args: {
-      chain: chainOptionalOption,
-      dryrun: dryrunOption
+      chain: chainOptionalOption
     },
-    handler: listHandler(db, true)
+    handler: listHandler(true)
   })
 
   const insert = command({
@@ -40,30 +36,28 @@ export function vrfSub(db) {
         type: cmdstring,
         long: 'pk'
       }),
-      pk_x: option({
+      pkX: option({
         type: cmdstring,
-        long: 'pk_x'
+        long: 'pkX'
       }),
-      pk_y: option({
+      pkY: option({
         type: cmdstring,
-        long: 'pk_y'
+        long: 'pkY'
       }),
-      key_hash: option({
+      keyHash: option({
         type: cmdstring,
-        long: 'key_hash'
-      }),
-      dryrun: dryrunOption
+        long: 'keyHash'
+      })
     },
-    handler: insertHandler(db)
+    handler: insertHandler()
   })
 
   const remove = command({
     name: 'remove',
     args: {
-      id: idOption,
-      dryrun: dryrunOption
+      id: idOption
     },
-    handler: removeHandler(db)
+    handler: removeHandler()
   })
 
   const keygen = command({
@@ -78,65 +72,63 @@ export function vrfSub(db) {
   })
 }
 
-export function listHandler(db, print?: boolean) {
-  async function wrapper({ chain, dryrun }: { chain?: string; dryrun?: boolean }) {
-    let where = ''
-    if (chain) {
-      where += `AND Chain.name = '${chain}'`
-    }
-    const query = `SELECT VrfKey.id, Chain.name as chain, sk, pk, pk_x, pk_y, key_hash FROM VrfKey INNER JOIN Chain
-   ON VrfKey.chainId = Chain.id ${where};`
-    if (dryrun) {
-      console.debug(query)
-    } else {
-      const result = await db.all(query)
+export function listHandler(print?: boolean) {
+  async function wrapper({ chain }: { chain?: string }) {
+    if (!(await isOraklNetworkApiHealthy())) return
+
+    try {
+      const result = (await axios.get(VRF_ENDPOINT, { data: { chain } }))?.data
       if (print) {
-        console.log(result)
+        console.dir(result, { depth: null })
       }
       return result
+    } catch (e) {
+      console.dir(e?.response?.data, { depth: null })
     }
   }
   return wrapper
 }
 
-export function insertHandler(db) {
+export function insertHandler() {
   async function wrapper({
     chain,
     pk,
     sk,
-    pk_x,
-    pk_y,
-    key_hash,
-    dryrun
+    pkX,
+    pkY,
+    keyHash
   }: {
     chain: string
     pk: string
     sk: string
-    pk_x: string
-    pk_y: string
-    key_hash: string
-    dryrun?: boolean
+    pkX: string
+    pkY: string
+    keyHash: string
   }) {
-    const chainId = await chainToId(db, chain)
-    const query = `INSERT INTO VrfKey (chainId, sk, pk, pk_x, pk_y, key_hash) VALUES (${chainId}, '${sk}', '${pk}', '${pk_x}', '${pk_y}', '${key_hash}');`
-    if (dryrun) {
-      console.debug(query)
-    } else {
-      const result = await db.run(query)
-      console.log(formatResultInsert(result))
+    if (!(await isOraklNetworkApiHealthy())) return
+
+    try {
+      const result = (await axios.post(VRF_ENDPOINT, { chain, pk, sk, pkX, pkY, keyHash })).data
+      console.dir(result, { depth: null })
+    } catch (e) {
+      console.error('VRF key was not inserted. Reason:')
+      console.error(e?.response?.data?.message)
     }
   }
   return wrapper
 }
 
-export function removeHandler(db) {
-  async function wrapper({ id, dryrun }: { id: number; dryrun?: boolean }) {
-    const query = `DELETE FROM VrfKey WHERE id=${id};`
-    if (dryrun) {
-      console.debug(query)
-    } else {
-      const result = await db.run(query)
-      console.log(formatResultRemove(result))
+export function removeHandler() {
+  async function wrapper({ id }: { id: number }) {
+    if (!(await isOraklNetworkApiHealthy())) return
+
+    try {
+      const endpoint = buildUrl(VRF_ENDPOINT, id.toString())
+      const result = (await axios.delete(endpoint)).data
+      console.dir(result, { depth: null })
+    } catch (e) {
+      console.error('VRF key was not deleted. Reason:')
+      console.error(e?.response?.data?.message)
     }
   }
   return wrapper
