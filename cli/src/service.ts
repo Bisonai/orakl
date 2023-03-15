@@ -66,7 +66,8 @@ export function insertHandler() {
       const response = (await axios.post(SERVICE_ENDPOINT, { name }))?.data
       console.dir(response, { depth: null })
     } catch (e) {
-      console.dir(e?.response?.data, { depth: null })
+      console.error('Service was not inserted. Reason:')
+      console.error(e?.response?.data?.message)
     }
   }
   return wrapper
@@ -81,7 +82,8 @@ export function removeHandler() {
       const result = (await axios.delete(endpoint))?.data
       console.dir(result, { depth: null })
     } catch (e) {
-      console.dir(e?.response?.data, { depth: null })
+      console.error('Service was not deleted. Reason:')
+      console.error(e?.response?.data?.message)
     }
   }
   return wrapper
