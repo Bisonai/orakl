@@ -143,9 +143,9 @@ export function keygenHandler() {
 
     console.log(`sk=${key.secret_key}`)
     console.log(`pk=${key.public_key.key}`)
-    console.log(`pk_x=${pkX}`)
-    console.log(`pk_y=${pkY}`)
-    console.log(`key_hash=${keyHash}`)
+    console.log(`pkX=${pkX}`)
+    console.log(`pkY=${pkY}`)
+    console.log(`keyHash=${keyHash}`)
   }
   return wrapper
 }
