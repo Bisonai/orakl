@@ -14,11 +14,23 @@ model Chain {
   id         BigInt       @id @default(autoincrement())
   name       String       @unique
   Aggregator Aggregator[]
+  Listener   Listener[]
 }
 
 model Service {
-  id         BigInt       @id @default(autoincrement())
-  name       String       @unique
+  id       BigInt     @id @default(autoincrement())
+  name     String     @unique
+  Listener Listener[]
+}
+
+model Listener {
+  id        BigInt @id @default(autoincrement())
+  address   String @db.VarChar(42)
+  eventName String @db.VarChar(255)
+  chain   Chain  @relation(fields: [chainId], references: [id])
+  chainId BigInt
+  service   Service @relation(fields: [serviceId], references: [id])
+  serviceId BigInt
 }
 
 model Feed {
