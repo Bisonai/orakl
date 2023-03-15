@@ -16,10 +16,6 @@ COPY tsconfig.json .
 
 COPY src src
 
-RUN mkdir -p migrations
-
-COPY migrations migrations
-
 RUN yarn install
 
 RUN npx tsc
