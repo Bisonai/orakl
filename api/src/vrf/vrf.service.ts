@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common'
+import { Injectable, HttpStatus, HttpException, Logger } from '@nestjs/common'
 import { Prisma } from '@prisma/client'
 import { PrismaService } from '../prisma.service'
 import { CreateVrfKeyDto } from './dto/create-vrf-key.dto'
@@ -6,6 +6,8 @@ import { UpdateVrfKeyDto } from './dto/update-vrf-key.dto'
 
 @Injectable()
 export class VrfService {
+  private readonly logger = new Logger(VrfService.name)
+
   constructor(private prisma: PrismaService) {}
 
   async create(createVrfKeyDto: CreateVrfKeyDto) {
@@ -14,6 +16,12 @@ export class VrfService {
     const chain = await this.prisma.chain.findUnique({
       where: { name: chainName }
     })
+
+    if (chain == null) {
+      const msg = `chain.name [${chainName}] not found`
+      this.logger.error(msg)
+      throw new HttpException(msg, HttpStatus.NOT_FOUND)
+    }
 
     const data: Prisma.VrfKeyUncheckedCreateInput = {
       sk: createVrfKeyDto.sk,
