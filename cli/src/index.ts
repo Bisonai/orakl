@@ -21,7 +21,7 @@ async function main() {
 
   const chain = chainSub()
   const service = serviceSub()
-  const listener = listenerSub(db)
+  const listener = listenerSub()
   const vrf = vrfSub(db)
   const migrate = migrateCmd(db)
   const adapter = adapterSub()

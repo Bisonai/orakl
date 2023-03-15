@@ -1,7 +1,8 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common'
+import { Controller, Query, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common'
 import { ListenerService } from './listener.service'
 import { CreateListenerDto } from './dto/create-listener.dto'
 import { UpdateListenerDto } from './dto/update-listener.dto'
+import { QueryListenerDto } from './dto/query-listener.dto'
 
 @Controller({
   path: 'listener',
@@ -16,8 +17,15 @@ export class ListenerController {
   }
 
   @Get()
-  async findAll() {
-    return await this.listenerService.findAll({})
+  async findAll(@Query() query: QueryListenerDto) {
+    const { chain, service } = query
+
+    return await this.listenerService.findAll({
+      where: {
+        chain: { name: chain },
+        service: { name: service }
+      }
+    })
   }
 
   @Get(':id')
