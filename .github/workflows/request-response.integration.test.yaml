@@ -58,6 +58,9 @@ jobs:
       - name: Core - start reporter
         run: yarn start:reporter:request_response &
         working-directory: ./core
+        env:
+          PRIVATE_KEY: ${{ secrets.INTEGRATION_PRIVATE_KEY }}
+          PUBLIC_KEY: ${{ secrets.INTEGRATION_PUBLIC_KEY }}
 
       - name: Get data
         run: npx hardhat run scripts/v0.1/request-response/integration/read-data.ts --network localhost
