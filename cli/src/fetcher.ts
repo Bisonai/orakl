@@ -4,6 +4,9 @@ import { buildUrl, isOraklFetcherHealthy } from './utils'
 import { ORAKL_NETWORK_FETCHER_URL } from './settings'
 
 export function fetcherSub() {
+  // fetcher start --id ${aggregatorHash} --chain ${chain}
+  // fetcher stop --id ${aggregatorHash} --chain ${chain}
+
   const start = command({
     name: 'start',
     args: {
