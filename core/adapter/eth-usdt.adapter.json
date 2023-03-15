@@ -1,5 +1,5 @@
 {
-  "adapterHash": "0x07f815d15dcc6c72a69361841eb0acc290b57859b3e3070d74aeb18740dee6f8",
+  "adapterHash": "0x41fd9f73cb9b3a62225cf4ea8612b10cdbe4fcaedfc43e81854a4bf4815864c9",
   "name": "ETH-USDT",
   "decimals": 8,
   "feeds": [
@@ -14,10 +14,7 @@
         "reducers": [
           {
             "function": "PARSE",
-            "args": [
-              "result",
-              "list"
-            ]
+            "args": ["result", "list"]
           },
           {
             "function": "INDEX",
@@ -25,9 +22,7 @@
           },
           {
             "function": "PARSE",
-            "args": [
-              "lastPrice"
-            ]
+            "args": ["lastPrice"]
           },
           {
             "function": "POW10",
@@ -50,9 +45,7 @@
         "reducers": [
           {
             "function": "PARSE",
-            "args": [
-              "price"
-            ]
+            "args": ["price"]
           },
           {
             "function": "POW10",
@@ -75,10 +68,7 @@
         "reducers": [
           {
             "function": "PARSE",
-            "args": [
-              "data",
-              "price"
-            ]
+            "args": ["data", "price"]
           },
           {
             "function": "POW10",
@@ -101,10 +91,7 @@
         "reducers": [
           {
             "function": "PARSE",
-            "args": [
-              "result",
-              "data"
-            ]
+            "args": ["result", "data"]
           },
           {
             "function": "INDEX",
@@ -112,9 +99,7 @@
           },
           {
             "function": "PARSE",
-            "args": [
-              "a"
-            ]
+            "args": ["a"]
           },
           {
             "function": "POW10",
@@ -141,9 +126,7 @@
           },
           {
             "function": "PARSE",
-            "args": [
-              "indexPrice"
-            ]
+            "args": ["indexPrice"]
           },
           {
             "function": "POW10",
@@ -166,11 +149,7 @@
         "reducers": [
           {
             "function": "PARSE",
-            "args": [
-              "data",
-              "rates",
-              "USDT"
-            ]
+            "args": ["data", "rates", "USDT"]
           },
           {
             "function": "POW10",
@@ -193,9 +172,7 @@
         "reducers": [
           {
             "function": "PARSE",
-            "args": [
-              "lastTradeRate"
-            ]
+            "args": ["lastTradeRate"]
           },
           {
             "function": "POW10",
@@ -222,9 +199,7 @@
           },
           {
             "function": "PARSE",
-            "args": [
-              "last"
-            ]
+            "args": ["last"]
           },
           {
             "function": "POW10",
@@ -247,9 +222,7 @@
         "reducers": [
           {
             "function": "PARSE",
-            "args": [
-              "data"
-            ]
+            "args": ["data"]
           },
           {
             "function": "INDEX",
@@ -257,10 +230,7 @@
           },
           {
             "function": "PARSE",
-            "args": [
-              "ticker",
-              "latest"
-            ]
+            "args": ["ticker", "latest"]
           },
           {
             "function": "POW10",
@@ -283,11 +253,7 @@
         "reducers": [
           {
             "function": "PARSE",
-            "args": [
-              "data",
-              "ticker",
-              "last"
-            ]
+            "args": ["data", "ticker", "last"]
           },
           {
             "function": "POW10",

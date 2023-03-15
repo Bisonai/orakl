@@ -1,7 +1,7 @@
 {
-  "adapterHash": "0x0db2dce17745882ea457e651adf1eb0080b5f432d1876df56f1967b5288f338b",
+  "adapterHash": "0x69f797b7591e939b45f8aa51766bd696dfc2707d6316743b3c8c8bdfac73eb93",
   "name": "KLAY-USD",
-  "decimals": "8",
+  "decimals": 8,
   "feeds": [
     {
       "name": "Coingecko-KLAY-USD",
@@ -14,10 +14,7 @@
         "reducers": [
           {
             "function": "PARSE",
-            "args": [
-              "klay-token",
-              "usd"
-            ]
+            "args": ["klay-token", "usd"]
           },
           {
             "function": "POW10",
@@ -40,11 +37,7 @@
         "reducers": [
           {
             "function": "PARSE",
-            "args": [
-              "data",
-              "rates",
-              "USD"
-            ]
+            "args": ["data", "rates", "USD"]
           },
           {
             "function": "POW10",

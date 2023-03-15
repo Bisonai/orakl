@@ -1,5 +1,5 @@
 {
-  "adapterHash": "0x7e6552824ce107ab0d6e4266ba6b93f0afe5aa576a491364fc01881a34ddb12b",
+  "adapterHash": "0x0b754850b753b9eca61724dc780c02d5f9a62a08c8853b80a213a03d85e35729",
   "name": "ETH-USD",
   "decimals": 8,
   "feeds": [
@@ -14,9 +14,7 @@
         "reducers": [
           {
             "function": "PARSE",
-            "args": [
-              "price"
-            ]
+            "args": ["price"]
           },
           {
             "function": "POW10",
@@ -39,9 +37,7 @@
         "reducers": [
           {
             "function": "PARSE",
-            "args": [
-              "price"
-            ]
+            "args": ["price"]
           },
           {
             "function": "POW10",
@@ -64,10 +60,7 @@
         "reducers": [
           {
             "function": "PARSE",
-            "args": [
-              "result",
-              "list"
-            ]
+            "args": ["result", "list"]
           },
           {
             "function": "INDEX",
@@ -75,9 +68,7 @@
           },
           {
             "function": "PARSE",
-            "args": [
-              "lastPrice"
-            ]
+            "args": ["lastPrice"]
           },
           {
             "function": "POW10",
@@ -100,9 +91,7 @@
         "reducers": [
           {
             "function": "PARSE",
-            "args": [
-              "last"
-            ]
+            "args": ["last"]
           },
           {
             "function": "POW10",
@@ -125,9 +114,7 @@
         "reducers": [
           {
             "function": "PARSE",
-            "args": [
-              "last"
-            ]
+            "args": ["last"]
           },
           {
             "function": "POW10",

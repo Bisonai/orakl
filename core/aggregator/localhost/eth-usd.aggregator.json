@@ -1,10 +1,10 @@
 {
-  "aggregatorHash": "0xfda8c08a8b7641e001ad23c0fb363a9e7aab1e3a7eb8a6ddee41deeb7e3ef279",
+  "aggregatorHash": "0x83ee7acfcb8cc1793056ffc0d98273f7ed72c50eb58437b8e1f2176c4893b0e3",
   "active": false,
   "name": "ETH-USD",
   "address": "",
   "heartbeat": 15000,
   "threshold": 0.05,
   "absoluteThreshold": 0.1,
-  "adapterHash": "0x7e6552824ce107ab0d6e4266ba6b93f0afe5aa576a491364fc01881a34ddb12b"
+  "adapterHash": "0x0b754850b753b9eca61724dc780c02d5f9a62a08c8853b80a213a03d85e35729"
 }
