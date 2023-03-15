@@ -158,9 +158,8 @@ export function buildUrl(host: string, path: string) {
 }
 
 export async function isOraklNetworkApiHealthy() {
-  const ORAKL_NETWORK_API_HEALTH_ENDPOINT = buildUrl(ORAKL_NETWORK_API_URL, 'health')
   try {
-    return 'OK' === (await axios.get(ORAKL_NETWORK_API_HEALTH_ENDPOINT))?.data
+    return 200 === (await axios.get(ORAKL_NETWORK_API_URL))?.status
   } catch (e) {
     console.error(`Orakl Network API [${ORAKL_NETWORK_API_URL}] is down`)
     return false

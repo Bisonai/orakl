@@ -20,7 +20,7 @@ async function main() {
   const db = await openDb({ dbFile })
 
   const chain = chainSub()
-  const service = serviceSub(db)
+  const service = serviceSub()
   const listener = listenerSub(db)
   const vrf = vrfSub(db)
   const migrate = migrateCmd(db)
