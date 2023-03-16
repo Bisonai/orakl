@@ -1,5 +1,3 @@
 # Documentation
 
-## Version
-
-* [operators](v0.1-operator), [internal](v0.1-internal)
+Documentation was moved to https://orakl-network.gitbook.io
