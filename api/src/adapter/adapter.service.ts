@@ -3,7 +3,6 @@ import { Prisma } from '@prisma/client'
 import { PrismaService } from '../prisma.service'
 import { AdapterDto } from './dto/adapter.dto'
 import { PRISMA_ERRORS } from '../errors'
-import { ApiAdapterError, ApiAdapterErrorCode } from './adapter-errors'
 import { ethers } from 'ethers'
 @Injectable()
 export class AdapterService {
@@ -24,9 +23,8 @@ export class AdapterService {
     try {
       await this.computeAdapterHash({ data: adapterDto, verify: true })
     } catch (e) {
-      const msg = e.name
-      this.logger.error(msg)
-      throw new HttpException(msg, HttpStatus.BAD_REQUEST)
+      this.logger.error(e)
+      throw new HttpException(e, HttpStatus.BAD_REQUEST)
     }
 
     try {
@@ -84,10 +82,7 @@ export class AdapterService {
 
     const hash = ethers.utils.keccak256(ethers.utils.toUtf8Bytes(JSON.stringify(input)))
     if (verify && data.adapterHash != hash) {
-      throw new ApiAdapterError(
-        ApiAdapterErrorCode.UnmatchingHash,
-        `Hashes do not match!\nExpected ${hash}, received ${data.adapterHash}.`
-      )
+      throw `Hashes do not match!\nExpected ${hash}, received ${data.adapterHash}.`
     } else {
       data.adapterHash = hash
       return data
