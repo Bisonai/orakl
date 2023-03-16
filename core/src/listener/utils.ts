@@ -27,7 +27,7 @@ const FILE_NAME = import.meta.url
  *    }
  *  ]
  *
- * Listener Configuration
+ * Listener Group Configuration
  *  {
  *    'VRF': [
  *      {
@@ -51,7 +51,7 @@ const FILE_NAME = import.meta.url
  *  }
  *
  * @param {IListenerRawConfig[]} list of listener raw configurations
- * @return {IListenerGroupConfig[]} list of listener postprocessed configurations
+ * @return {IListenerGroupConfig} grouped raw listener configurations based on `service` property
  */
 export function postprocessListeners({
   listenersRawConfig
