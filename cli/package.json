@@ -4,8 +4,7 @@
     "type": "module",
     "description": "The Orakl Network CLI",
     "files": [
-        "dist",
-        "migrations"
+        "dist"
     ],
     "keywords": [
         "Oracle",
