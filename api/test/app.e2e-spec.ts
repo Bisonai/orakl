@@ -17,11 +17,7 @@ describe('AppController (e2e)', () => {
     await app.init()
   })
 
-  it('/health (GET)', () => {
-    return request(app.getHttpServer()).get('/health').expect(200).expect('OK')
-  })
-
-  it('/api (GET)', () => {
-    return request(app.getHttpServer()).get('/api').expect(200).expect('Orakl Network API')
+  it('/api/v1 (GET)', () => {
+    return request(app.getHttpServer()).get('/api/v1').expect(200).expect('Orakl Network API')
   })
 })

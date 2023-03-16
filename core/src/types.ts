@@ -200,17 +200,28 @@ export interface IListenerBlock {
   filePath: string
 }
 
+export interface IListenerRawConfig {
+  address: string
+  eventName: string
+  service: string
+  chain?: string
+}
+
 export interface IListenerConfig {
   address: string
   eventName: string
 }
 
+export interface IListenerGroupConfig {
+  [key: string]: IListenerConfig[]
+}
+
 export interface IVrfConfig {
   sk: string
   pk: string
-  pk_x: string
-  pk_y: string
-  key_hash: string
+  pkX: string
+  pkY: string
+  keyHash: string
 }
 
 // Data Feed

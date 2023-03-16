@@ -7,10 +7,9 @@ import {
   WORKER_VRF_QUEUE_NAME,
   REPORTER_VRF_QUEUE_NAME,
   BULLMQ_CONNECTION,
-  DB,
-  CHAIN,
-  getVrfConfig
+  CHAIN
 } from '../settings'
+import { getVrfConfig } from '../api'
 import { remove0x } from '../utils'
 
 const FILE_NAME = import.meta.url
@@ -28,7 +27,7 @@ async function vrfJob(queueName: string, _logger: Logger) {
   const logger = _logger.child({ name: 'vrfJob', file: FILE_NAME })
   const queue = new Queue(queueName, BULLMQ_CONNECTION)
   // FIXME add checks if exists and if includes all information
-  const vrfConfig = await getVrfConfig(DB, CHAIN)
+  const vrfConfig = await getVrfConfig({ chain: CHAIN, logger })
 
   async function wrapper(job) {
     const inData: IVrfListenerWorker = job.data
@@ -88,7 +87,7 @@ function processVrfRequest(alpha: string, config: IVrfConfig, _logger: Logger): 
   }
 
   return {
-    pk: [config.pk_x, config.pk_y],
+    pk: [config.pkX, config.pkY],
     proof: [Gamma.x.toString(), Gamma.y.toString(), c.toString(), s.toString()],
     uPoint: [fast.uX, fast.uY],
     vComponents: [fast.sHX, fast.sHY, fast.cGX, fast.cGY]

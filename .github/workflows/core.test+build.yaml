@@ -20,8 +20,8 @@ jobs:
         working-directory: ./core
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-      - name: Run eslint
-        run: yarn eslint
+      - name: Run lint
+        run: yarn lint
         working-directory: ./core
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}

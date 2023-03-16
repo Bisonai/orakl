@@ -7,6 +7,14 @@ CREATE TABLE "Chain" (
 );
 
 -- CreateTable
+CREATE TABLE "Service" (
+    "id" BIGSERIAL NOT NULL,
+    "name" TEXT NOT NULL,
+
+    CONSTRAINT "Service_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
 CREATE TABLE "Feed" (
     "id" BIGSERIAL NOT NULL,
     "name" TEXT NOT NULL,
@@ -65,6 +73,9 @@ CREATE TABLE "Aggregate" (
 
 -- CreateIndex
 CREATE UNIQUE INDEX "Chain_name_key" ON "Chain"("name");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "Service_name_key" ON "Service"("name");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "Adapter_adapterHash_key" ON "Adapter"("adapterHash");

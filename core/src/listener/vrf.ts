@@ -4,10 +4,11 @@ import { Logger } from 'pino'
 import { VRFCoordinator__factory } from '@bisonai/orakl-contracts'
 import { Event } from './event'
 import { IListenerConfig, IRandomWordsRequested, IVrfListenerWorker } from '../types'
-import { DB, WORKER_VRF_QUEUE_NAME, CHAIN, getVrfConfig } from '../settings'
+import { WORKER_VRF_QUEUE_NAME, CHAIN } from '../settings'
+import { getVrfConfig } from '../api'
 
 const FILE_NAME = import.meta.url
-const { key_hash: KEY_HASH } = await getVrfConfig(DB, CHAIN)
+const { keyHash: KEY_HASH } = await getVrfConfig({ chain: CHAIN })
 
 export function buildListener(config: IListenerConfig[], logger: Logger) {
   const queueName = WORKER_VRF_QUEUE_NAME

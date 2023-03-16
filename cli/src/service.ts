@@ -1,15 +1,19 @@
+import axios from 'axios'
 import { command, subcommands, option, string as cmdstring } from 'cmd-ts'
-import { dryrunOption, idOption, formatResultInsert, formatResultRemove } from './utils'
+import { idOption, buildUrl, isOraklNetworkApiHealthy } from './utils'
+import { ORAKL_NETWORK_API_URL } from './settings'
 
-export function serviceSub(db) {
+const SERVICE_ENDPOINT = buildUrl(ORAKL_NETWORK_API_URL, 'service')
+
+export function serviceSub() {
   // service list
-  // service insert --name [name] [--dryrun]
-  // service remove --id [id]     [--dryrun]
+  // service insert --name ${name}
+  // service remove --id ${id}
 
   const list = command({
     name: 'list',
     args: {},
-    handler: listHandler(db, true)
+    handler: listHandler(true)
   })
 
   const insert = command({
@@ -18,19 +22,17 @@ export function serviceSub(db) {
       name: option({
         type: cmdstring,
         long: 'name'
-      }),
-      dryrun: dryrunOption
+      })
     },
-    handler: insertHandler(db)
+    handler: insertHandler()
   })
 
   const remove = command({
     name: 'remove',
     args: {
-      id: idOption,
-      dryrun: dryrunOption
+      id: idOption
     },
-    handler: removeHandler(db)
+    handler: removeHandler()
   })
 
   return subcommands({
@@ -39,39 +41,49 @@ export function serviceSub(db) {
   })
 }
 
-export function listHandler(db, print?: boolean) {
+export function listHandler(print?: boolean) {
   async function wrapper() {
-    const query = 'SELECT * FROM Service'
-    const result = await db.all(query)
-    if (print) {
-      console.log(result)
-    }
-    return result
-  }
-  return wrapper
-}
+    if (!(await isOraklNetworkApiHealthy())) return
 
-export function insertHandler(db) {
-  async function wrapper({ name, dryrun }: { name: string; dryrun?: boolean }) {
-    const query = `INSERT INTO Service (name) VALUES ('${name}')`
-    if (dryrun) {
-      console.debug(query)
-    } else {
-      const result = await db.run(query)
-      console.log(formatResultInsert(result))
+    try {
+      const result = (await axios.get(SERVICE_ENDPOINT))?.data
+      if (print) {
+        console.dir(result, { depth: null })
+      }
+      return result
+    } catch (e) {
+      console.dir(e?.response?.data, { depth: null })
     }
   }
   return wrapper
 }
 
-export function removeHandler(db) {
-  async function wrapper({ id, dryrun }: { id: number; dryrun?: boolean }) {
-    const query = `DELETE FROM Service WHERE id=${id}`
-    if (dryrun) {
-      console.debug(query)
-    } else {
-      const result = await db.run(query)
-      console.log(formatResultRemove(result))
+export function insertHandler() {
+  async function wrapper({ name }: { name: string }) {
+    if (!(await isOraklNetworkApiHealthy())) return
+
+    try {
+      const response = (await axios.post(SERVICE_ENDPOINT, { name }))?.data
+      console.dir(response, { depth: null })
+    } catch (e) {
+      console.error('Service was not inserted. Reason:')
+      console.error(e?.response?.data?.message)
+    }
+  }
+  return wrapper
+}
+
+export function removeHandler() {
+  async function wrapper({ id }: { id: number }) {
+    if (!(await isOraklNetworkApiHealthy())) return
+
+    try {
+      const endpoint = buildUrl(SERVICE_ENDPOINT, id.toString())
+      const result = (await axios.delete(endpoint))?.data
+      console.dir(result, { depth: null })
+    } catch (e) {
+      console.error('Service was not deleted. Reason:')
+      console.error(e?.response?.data?.message)
     }
   }
   return wrapper

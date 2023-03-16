@@ -3,12 +3,12 @@ import { command, subcommands, option, string as cmdstring } from 'cmd-ts'
 import { idOption, buildUrl, isOraklNetworkApiHealthy } from './utils'
 import { ORAKL_NETWORK_API_URL } from './settings'
 
-const CHAIN_ENDPOINT = buildUrl(ORAKL_NETWORK_API_URL, 'api/v1/chain')
+const CHAIN_ENDPOINT = buildUrl(ORAKL_NETWORK_API_URL, 'chain')
 
 export function chainSub() {
   // chain list
-  // chain insert --name [name]
-  // chain remove --id [id]
+  // chain insert --name ${name}
+  // chain remove --id ${id}
 
   const list = command({
     name: 'list',
@@ -66,7 +66,8 @@ export function insertHandler() {
       const response = (await axios.post(CHAIN_ENDPOINT, { name }))?.data
       console.dir(response, { depth: null })
     } catch (e) {
-      console.dir(e?.response?.data, { depth: null })
+      console.error('Chain was not inserted. Reason:')
+      console.error(e?.response?.data?.message)
     }
   }
   return wrapper
@@ -81,7 +82,8 @@ export function removeHandler() {
       const result = (await axios.delete(endpoint))?.data
       console.dir(result, { depth: null })
     } catch (e) {
-      console.dir(e?.response?.data, { depth: null })
+      console.error('Chain was not deleted. Reason:')
+      console.error(e?.response?.data?.message)
     }
   }
   return wrapper

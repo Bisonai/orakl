@@ -47,8 +47,4 @@ describe('ChainService', () => {
     // Cleanup
     await chain.remove({ id })
   })
-
-  it('should update the name of chain', async () => {
-    await chain.findAll({})
-  })
 })
