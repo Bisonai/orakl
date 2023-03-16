@@ -212,6 +212,10 @@ export interface IListenerConfig {
   eventName: string
 }
 
+export interface IListenerGroupConfig {
+  [key: string]: IListenerConfig[]
+}
+
 export interface IVrfConfig {
   sk: string
   pk: string

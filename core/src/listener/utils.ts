@@ -1,4 +1,4 @@
-import { IListenerRawConfig, IListenerConfig } from '../types'
+import { IListenerRawConfig, IListenerConfig, IListenerGroupConfig } from '../types'
 import { Logger } from 'pino'
 
 const FILE_NAME = import.meta.url
@@ -51,13 +51,13 @@ const FILE_NAME = import.meta.url
  *  }
  *
  * @param {IListenerRawConfig[]} list of listener raw configurations
- * @return {IListenerRawConfig[]} list of listener postprocessed configurations
+ * @return {IListenerGroupConfig[]} list of listener postprocessed configurations
  */
 export function postprocessListeners({
   listenersRawConfig
 }: {
   listenersRawConfig: IListenerRawConfig[]
-}): IListenerConfig[] | {} {
+}): IListenerGroupConfig {
   const postprocessed = listenersRawConfig.reduce((groups, item) => {
     const group = groups[item.service] || []
     group.push(item)

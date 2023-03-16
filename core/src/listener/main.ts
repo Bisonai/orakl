@@ -10,7 +10,6 @@ import { getListeners } from './api'
 import { launchHealthCheck } from '../health-check'
 import { hookConsoleError } from '../utils'
 import { IListeners } from './types'
-import { IListenerConfig } from '../types'
 
 const LISTENERS: IListeners = {
   Aggregator: buildAggregatorListener,

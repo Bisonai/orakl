@@ -33,7 +33,7 @@
     "aggregator-hash": "node --no-warnings --experimental-specifier-resolution=node --experimental-json-modules dist/cli/generate-aggregator-hash.js",
     "flush": "node --no-warnings --experimental-specifier-resolution=node --experimental-json-modules dist/tools/flush-queues.js",
     "test": "node --no-warnings --experimental-vm-modules node_modules/jest/bin/jest.js",
-    "eslint": "DEBUG=eslint:cli-engine npx eslint 'src/**/*.ts' 'src/*.ts' 'test/*.ts'",
+    "lint": "DEBUG=eslint:cli-engine npx eslint 'src/**/*.ts' 'src/*.ts' 'test/*.ts'",
     "bull-dashboard": "docker-compose -f docker-compose.bull-monitor.yaml up"
   },
   "dependencies": {
