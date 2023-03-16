@@ -78,6 +78,10 @@ export function postprocessListeners({
 /**
  * Check whether every listener within a listener config contains
  * required properties: `address` and `eventName`.
+ *
+ * @param {IListenerConfig[]} listener configuration used for launching listeners
+ * @param {pino.Logger?}
+ * @return {boolean} true when the given listener configuration is valid, otherwise false
  */
 export function validateListenerConfig(config: IListenerConfig[], logger?: Logger): boolean {
   const requiredProperties = ['address', 'eventName']
