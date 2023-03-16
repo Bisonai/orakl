@@ -3,6 +3,7 @@ import { Prisma } from '@prisma/client'
 import { PrismaService } from '../prisma.service'
 import { CreateListenerDto } from './dto/create-listener.dto'
 import { UpdateListenerDto } from './dto/update-listener.dto'
+import { flattenListener } from './listener.utils'
 
 @Injectable()
 export class ListenerService {
@@ -53,19 +54,37 @@ export class ListenerService {
     orderBy?: Prisma.ListenerOrderByWithRelationInput
   }) {
     const { skip, take, cursor, where, orderBy } = params
-    return await this.prisma.listener.findMany({
+    const listeners = await this.prisma.listener.findMany({
       skip,
       take,
       cursor,
       where,
-      orderBy
+      orderBy,
+      select: {
+        address: true,
+        eventName: true,
+        service: { select: { name: true } },
+        chain: { select: { name: true } }
+      }
+    })
+
+    return listeners.map((L) => {
+      return flattenListener(L)
     })
   }
 
   async findOne(listenerWhereUniqueInput: Prisma.ListenerWhereUniqueInput) {
-    return await this.prisma.listener.findUnique({
-      where: listenerWhereUniqueInput
+    const listener = await this.prisma.listener.findUnique({
+      where: listenerWhereUniqueInput,
+      select: {
+        address: true,
+        eventName: true,
+        service: { select: { name: true } },
+        chain: { select: { name: true } }
+      }
     })
+
+    return flattenListener(listener)
   }
 
   async update(params: {

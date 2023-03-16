@@ -200,6 +200,13 @@ export interface IListenerBlock {
   filePath: string
 }
 
+export interface IListenerRawConfig {
+  address: string
+  eventName: string
+  service: string
+  chain: string
+}
+
 export interface IListenerConfig {
   address: string
   eventName: string
