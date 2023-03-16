@@ -34,7 +34,7 @@ The Orakl Network CLI tries to connect to the required services with URL environ
 
 ## Publishing
 
-The Orakl Network CLI (`@bisonai/orakl-cli`) is published through [Github Actions pipeline](https://github.com/Bisonai/orakl/blob/master/.github/workflows/cli.build+publish.yaml) when package version specified in `package.json` changes.
+The `@bisonai/orakl-cli` package is published through [Github Actions pipeline](https://github.com/Bisonai/orakl/blob/master/.github/workflows/cli.build+publish.yaml) when the version the package specified in `package.json` changes.
 
 The package is published at [NPM registry](https://www.npmjs.com/package/@bisonai/orakl-cli).
 
