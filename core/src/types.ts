@@ -204,7 +204,7 @@ export interface IListenerRawConfig {
   address: string
   eventName: string
   service: string
-  chain: string
+  chain?: string
 }
 
 export interface IListenerConfig {
