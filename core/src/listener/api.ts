@@ -27,8 +27,8 @@ export async function getListeners({
   logger?: Logger
 }): Promise<IListenerRawConfig[]> {
   try {
-    const listenerEndpoint = buildUrl(ORAKL_NETWORK_API_URL, 'listener')
-    return (await axios.get(listenerEndpoint, { data: { service, chain } }))?.data
+    const endpoint = buildUrl(ORAKL_NETWORK_API_URL, 'listener')
+    return (await axios.get(endpoint, { data: { service, chain } }))?.data
   } catch (e) {
     logger?.error({ name: 'getListeners', file: FILE_NAME, ...e }, 'error')
     throw new OraklError(OraklErrorCode.GetListenerRequestFailed)

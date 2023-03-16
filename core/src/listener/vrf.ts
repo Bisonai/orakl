@@ -8,8 +8,7 @@ import { WORKER_VRF_QUEUE_NAME, CHAIN } from '../settings'
 import { getVrfConfig } from '../api'
 
 const FILE_NAME = import.meta.url
-// const { keyHash: KEY_HASH } = await getVrfConfig(CHAIN)
-const KEY_HASH = ''
+const { keyHash: KEY_HASH } = await getVrfConfig({ chain: CHAIN })
 
 export function buildListener(config: IListenerConfig[], logger: Logger) {
   const queueName = WORKER_VRF_QUEUE_NAME

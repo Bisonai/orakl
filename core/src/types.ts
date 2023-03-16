@@ -215,9 +215,9 @@ export interface IListenerConfig {
 export interface IVrfConfig {
   sk: string
   pk: string
-  pk_x: string
-  pk_y: string
-  key_hash: string
+  pkX: string
+  pkY: string
+  keyHash: string
 }
 
 // Data Feed

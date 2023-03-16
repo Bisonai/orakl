@@ -1,9 +1,9 @@
 import axios from 'axios'
 import { Logger } from 'pino'
 import { IVrfConfig } from './types'
-import { ORAKL_NETWORK_API_URL } from '../settings'
-import { buildUrl } from '../utils'
-import { OraklError, OraklErrorCode } from '../errors'
+import { ORAKL_NETWORK_API_URL } from './settings'
+import { buildUrl } from './utils'
+import { OraklError, OraklErrorCode } from './errors'
 
 const FILE_NAME = import.meta.url
 
@@ -24,7 +24,7 @@ export async function getVrfConfig({
 }): Promise<IVrfConfig> {
   try {
     const endpoint = buildUrl(ORAKL_NETWORK_API_URL, 'vrf')
-    return (await axios.get(ednpoint, { data: { chain } }))?.data
+    return (await axios.get(endpoint, { data: { chain } }))?.data
   } catch (e) {
     logger?.error({ name: 'getVrfConfig', file: FILE_NAME, ...e }, 'error')
     throw new OraklError(OraklErrorCode.GetVrfConfigRequestFailed)

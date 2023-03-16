@@ -27,14 +27,13 @@ async function vrfJob(queueName: string, _logger: Logger) {
   const logger = _logger.child({ name: 'vrfJob', file: FILE_NAME })
   const queue = new Queue(queueName, BULLMQ_CONNECTION)
   // FIXME add checks if exists and if includes all information
-  const vrfConfig = await getVrfConfig(CHAIN)
+  const vrfConfig = await getVrfConfig({ chain: CHAIN, logger })
 
   async function wrapper(job) {
-    /*
-        const inData: IVrfListenerWorker = job.data
-        logger.debug(inData, 'inData')
+    const inData: IVrfListenerWorker = job.data
+    logger.debug(inData, 'inData')
 
-        try {
+    try {
       const alpha = remove0x(
         ethers.utils.solidityKeccak256(['uint256', 'bytes32'], [inData.seed, inData.blockHash])
       )
@@ -69,7 +68,6 @@ async function vrfJob(queueName: string, _logger: Logger) {
     } catch (e) {
       logger.error(e)
     }
-      */
   }
 
   return wrapper
@@ -89,7 +87,7 @@ function processVrfRequest(alpha: string, config: IVrfConfig, _logger: Logger): 
   }
 
   return {
-    pk: [config.pk_x, config.pk_y],
+    pk: [config.pkX, config.pkY],
     proof: [Gamma.x.toString(), Gamma.y.toString(), c.toString(), s.toString()],
     uPoint: [fast.uX, fast.uY],
     vComponents: [fast.sHX, fast.sHY, fast.cGX, fast.cGY]
