@@ -61,6 +61,7 @@ export class ListenerService {
       where,
       orderBy,
       select: {
+        id: true,
         address: true,
         eventName: true,
         service: { select: { name: true } },
@@ -77,6 +78,7 @@ export class ListenerService {
     const listener = await this.prisma.listener.findUnique({
       where: listenerWhereUniqueInput,
       select: {
+        id: true,
         address: true,
         eventName: true,
         service: { select: { name: true } },
