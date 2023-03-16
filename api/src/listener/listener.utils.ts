@@ -1,5 +1,3 @@
-import { Listener } from '@prisma/client'
-
 export function flattenListener(L) {
   return {
     id: L.id,

@@ -10,9 +10,11 @@ const FILE_NAME = import.meta.url
 /**
  * Fetch listeners from the Orakl Network API that are associated with
  * given `service` and `chain`.
+ *
  * @param {string} service name
  * @param {string} chain name
  * @param {pino.Logger} logger
+ * @return {Promise<IListenerRawConfig[]>} raw listener configuration
  * @exception {GetListenerRequestFailed}
  */
 export async function getListeners({
