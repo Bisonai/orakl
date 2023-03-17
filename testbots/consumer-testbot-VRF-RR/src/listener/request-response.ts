@@ -19,6 +19,7 @@ function processConsumerEvent(iface: ethers.utils.Interface) {
     const m = d.toISOString().split("T")[0];
     const jsonPath = `./tmp/listener/request-respone-fulfill-log-${m}.json`;
     if (existsSync(jsonPath)) fileData = await readTextFile(jsonPath);
+    else jsonResult = [];
 
     if (fileData && jsonResult.length == 0)
       jsonResult = <IRRLogData[]>JSON.parse(fileData);

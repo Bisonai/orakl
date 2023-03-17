@@ -15,11 +15,11 @@ export function buildVrfListener(config: IListenerConfig) {
 function processConsumerEvent(iface: ethers.utils.Interface) {
   async function wrapper(log) {
     const eventData = iface.parseLog(log).args;
-    console.log(log);
     const d = new Date();
     const m = d.toISOString().split("T")[0];
     const jsonPath = `./tmp/listener/consumer-fulfill-log-${m}.json`;
     if (existsSync(jsonPath)) fileData = await readTextFile(jsonPath);
+    else jsonResult = [];
 
     if (fileData && jsonResult.length == 0)
       jsonResult = <IVRFLogData[]>JSON.parse(fileData);

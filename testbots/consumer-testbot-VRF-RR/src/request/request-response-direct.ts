@@ -17,18 +17,19 @@ const rrAbis = await readTextFile("./src/abis/rr-coordinator.json");
 const RR_CONSUMER = process.env.RR_CONSUMER;
 let jsonResult: ILogData[] = [];
 
-export async function sendRequestDataDirect() {
+export async function sendRequestDataDirect(date: string) {
   const iface = new ethers.utils.Interface(abis);
   const gasLimit = 3_000_000; // FIXME
   const callbackGasLimit = 500_000;
   const wallet = buildWallet();
-  const d = new Date();
-  const m = d.toISOString().split("T")[0];
-  const jsonPath = `./tmp/request/request-response-${m}.json`;
-  const errorPath = `./tmp/request/request-response-error-${m}.txt`;
+
+  const jsonPath = `./tmp/request/request-response-${date}.json`;
+  const errorPath = `./tmp/request/request-response-error-${date}.txt`;
 
   let fileData = "";
   if (existsSync(jsonPath)) fileData = await readTextFile(jsonPath);
+  else jsonResult = [];
+
   if (fileData) jsonResult = <ILogData[]>JSON.parse(fileData);
 
   try {
@@ -70,6 +71,7 @@ export async function sendRequestDataDirect() {
     await writeTextFile(jsonPath, JSON.stringify(jsonResult));
   } catch (error) {
     console.log("RR-Direct", error);
+    const d = new Date();
     await writeTextAppend(errorPath, `${d.toISOString()}:${error}\n`);
   }
 }

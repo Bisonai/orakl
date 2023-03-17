@@ -8,10 +8,12 @@ async function main() {
   setInterval(async () => {
     if (running) return;
     running = true;
-    await sendRequestRandomWords();
-    await sendRequestRandomWordsDirect();
-    await sendRequestData();
-    await sendRequestDataDirect();
+    const d = new Date();
+    const m = d.toISOString().split("T")[0];
+    await sendRequestRandomWords(m);
+    await sendRequestRandomWordsDirect(m);
+    // await sendRequestData(m);
+    // await sendRequestDataDirect(m);
     running = false;
   }, 1000 * 30);
 }

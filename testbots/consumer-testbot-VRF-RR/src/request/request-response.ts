@@ -14,19 +14,21 @@ import { buildWallet, sendTransaction } from "./utils";
 const abis = await readTextFile("./src/abis/request-response.json");
 const RR_CONSUMER = process.env.RR_CONSUMER;
 const ACC_ID = process.env.ACC_ID;
+
 let jsonResult: ILogData[] = [];
-export async function sendRequestData() {
+export async function sendRequestData(date: string) {
   const iface = new ethers.utils.Interface(abis);
   const gasLimit = 3_000_000; // FIXME
   const callbackGasLimit = 500_000;
   const wallet = buildWallet();
-  const d = new Date();
-  const m = d.toISOString().split("T")[0];
-  const jsonPath = `./tmp/request/request-response-${m}.json`;
-  const errorPath = `./tmp/request/request-response-error-${m}.txt`;
+
+  const jsonPath = `./tmp/request/request-response-${date}.json`;
+  const errorPath = `./tmp/request/request-response-error-${date}.txt`;
 
   let fileData = "";
   if (existsSync(jsonPath)) fileData = await readTextFile(jsonPath);
+  else jsonResult = [];
+
   await writeTextFile(jsonPath, JSON.stringify(jsonResult));
   if (fileData) jsonResult = <ILogData[]>JSON.parse(fileData);
 
@@ -50,10 +52,10 @@ export async function sendRequestData() {
     };
     jsonResult.push(result);
     console.log("RR-Prepayment:Requested: ", txReceipt.blockNumber);
-
     await writeTextFile(jsonPath, JSON.stringify(jsonResult));
   } catch (error) {
     console.log("RR-Prepayment", error);
+    const d = new Date();
     await writeTextAppend(errorPath, `${d.toISOString()}:${error}\n`);
   }
 }

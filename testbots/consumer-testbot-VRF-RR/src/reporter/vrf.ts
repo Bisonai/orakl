@@ -9,11 +9,12 @@ import { existsSync } from "fs";
 import { getTimestampByBlock, readTextFile, writeTextFile } from "../utils";
 let requestedNumber = 0;
 let totalResponse = 0;
-let jsonResult: IVRFReporterData[] = [];
 let minResponseTime = 0;
 let maxResponseTime = 0;
 export async function reportVRF() {
+  let jsonResult: IVRFReporterData[] = [];
   const d = new Date();
+  const td = d.toISOString().split("T")[0];
   d.setDate(d.getDate() - 1);
   const m = d.toISOString().split("T")[0];
   const jsonPath = `./tmp/reporter/vrf-${m}.json`;
@@ -23,11 +24,19 @@ export async function reportVRF() {
   const jsonRequestDirectPath = `./tmp/request/requestRandomwords-Direct-${m}.json`;
 
   const jsonResponsePath = `./tmp/listener/consumer-fulfill-log-${m}.json`;
+  const jsonResponsePathToday = `./tmp/listener/consumer-fulfill-log-${td}.json`;
+
   if (!existsSync(jsonRequestPath) || !existsSync(jsonResponsePath)) return;
   const jsonRequest = await readTextFile(jsonRequestPath);
   const jsonResponse = await readTextFile(jsonResponsePath);
   const dataRequesteds = <ILogData[]>JSON.parse(jsonRequest);
   const dataResponseds = <IVRFLogData[]>JSON.parse(jsonResponse);
+  if (existsSync(jsonResponsePathToday)) {
+    const jsonResponseToday = await readTextFile(jsonResponsePathToday);
+    const dataResponsedsToday = <IVRFLogData[]>JSON.parse(jsonResponseToday);
+    if (dataResponsedsToday.length > 0)
+      dataResponseds.push(...dataResponsedsToday);
+  }
 
   if (existsSync(jsonRequestDirectPath)) {
     const requestDirects = await readTextFile(jsonRequestDirectPath);

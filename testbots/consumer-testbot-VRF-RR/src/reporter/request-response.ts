@@ -4,10 +4,11 @@ import { existsSync } from "fs";
 import { readTextFile, writeTextFile } from "../utils";
 let requestedNumber = 0;
 let totalResponse = 0;
-let jsonResult: IRRReporterData[] = [];
 let minResponseTime = 0;
 let maxResponseTime = 0;
 export async function reportRR() {
+  let jsonResult: IRRReporterData[] = [];
+
   const d = new Date();
   d.setDate(d.getDate() - 1);
   const m = d.toISOString().split("T")[0];

@@ -15,27 +15,29 @@ const abis = await readTextFile("./src/abis/consumer.json");
 const vrfAbis = await readTextFile("./src/abis/vrf-coordinator.json");
 
 const VRF_CONSUMER = process.env.VRF_CONSUMER;
+const KEY_HASH = process.env.KEY_HASH;
+
 let jsonResult: ILogData[] = [];
 
-export async function sendRequestRandomWordsDirect() {
+export async function sendRequestRandomWordsDirect(date: string) {
   const iface = new ethers.utils.Interface(abis);
   const gasLimit = 3_000_000; // FIXME
-  const keyHash =
-    "0x47ede773ef09e40658e643fe79f8d1a27c0aa6eb7251749b268f829ea49f2024";
+
   const callbackGasLimit = 500_000;
   const numWords = 2;
   const wallet = buildWallet();
-  const d = new Date();
-  const m = d.toISOString().split("T")[0];
-  const jsonPath = `./tmp/request/requestRandomwords-${m}.json`;
-  const errorPath = `./tmp/request/requestRandomwords-error-${m}.txt`;
+
+  const jsonPath = `./tmp/request/requestRandomwords-${date}.json`;
+  const errorPath = `./tmp/request/requestRandomwords-error-${date}.txt`;
   let fileData = "";
   if (existsSync(jsonPath)) fileData = await readTextFile(jsonPath);
+  else jsonResult = [];
+
   await writeTextFile(jsonPath, JSON.stringify(jsonResult));
   if (fileData) jsonResult = <ILogData[]>JSON.parse(fileData);
   try {
     const payload = iface.encodeFunctionData("requestRandomWordsDirect", [
-      keyHash,
+      KEY_HASH,
       callbackGasLimit,
       numWords,
     ]);
@@ -75,6 +77,7 @@ export async function sendRequestRandomWordsDirect() {
     await writeTextFile(jsonPath, JSON.stringify(jsonResult));
   } catch (error) {
     console.log("VRF-Direct:", error);
+    const d = new Date();
     await writeTextAppend(errorPath, `${d.toISOString()}:${error}\n`);
   }
 }

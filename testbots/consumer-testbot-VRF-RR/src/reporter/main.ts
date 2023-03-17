@@ -7,8 +7,9 @@ async function main() {
   await reportRR();
 }
 
-// run at 0h
-nodeCron.schedule("0 0 * * *", async () => {
+// [minute] [hour] [day of month] [month] [day of week]
+// run at 1h
+nodeCron.schedule("0 1 * * *", async () => {
   main().catch((error) => {
     console.error(error);
     process.exitCode = 1;
