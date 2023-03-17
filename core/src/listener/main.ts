@@ -19,16 +19,15 @@ const LISTENERS: IListeners = {
 
 const FILE_NAME = import.meta.url
 const LOGGER = buildLogger('listener')
-const SERVICE = 'VRF'
 
 async function main() {
   hookConsoleError(LOGGER)
-  const listener = loadArgs()
-  const listenersRawConfig = await getListeners({ service: SERVICE, chain: CHAIN })
+  const service = loadArgs()
+  const listenersRawConfig = await getListeners({ service, chain: CHAIN })
   if (listenersRawConfig.length == 0) {
     throw new OraklError(
       OraklErrorCode.NoListenerFoundGivenRequirements,
-      `service: [${SERVICE}], chain: [${CHAIN}]`
+      `service: [${service}], chain: [${CHAIN}]`
     )
   }
   const listenersConfig = postprocessListeners({ listenersRawConfig })
@@ -40,37 +39,37 @@ async function main() {
     throw new OraklError(OraklErrorCode.InvalidListenerConfig)
   }
 
-  if (!LISTENERS[listener] || !listenersConfig[listener]) {
-    LOGGER.error({ name: 'listener:main', file: FILE_NAME, listener }, 'listener')
+  if (!LISTENERS[service] || !listenersConfig[service]) {
+    LOGGER.error({ name: 'listener:main', file: FILE_NAME, service }, 'service')
     throw new OraklError(OraklErrorCode.UndefinedListenerRequested)
   }
   LOGGER.info({ name: 'listener:main', file: FILE_NAME, ...listenersConfig }, 'listenersConfig')
 
-  LISTENERS[listener](listenersConfig[listener], LOGGER)
+  LISTENERS[service](listenersConfig[service], LOGGER)
 
   launchHealthCheck()
 }
 
 function loadArgs(): string {
   const {
-    values: { listener }
+    values: { service }
   } = parseArgs({
     options: {
-      listener: {
+      service: {
         type: 'string'
       }
     }
   })
 
-  if (!listener) {
-    throw Error('Missing --listener argument.')
+  if (!service) {
+    throw Error('Missing --service argument.')
   }
 
-  if (!Object.keys(LISTENERS).includes(listener)) {
-    throw Error(`${listener} is not supported listener.`)
+  if (!Object.keys(LISTENERS).includes(service)) {
+    throw Error(`${service} is not supported service.`)
   }
 
-  return listener
+  return service
 }
 
 main().catch((e) => {
