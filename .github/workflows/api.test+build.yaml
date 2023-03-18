@@ -10,6 +10,7 @@ on:
 jobs:
   core-build:
     runs-on: ubuntu-latest
+    timeout-minutes: 3
 
     services:
       postgres:
