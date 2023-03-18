@@ -163,17 +163,14 @@ contract VRFCoordinator is
         }
         delete s_provingKeys[kh];
 		uint256 provingKeyHashesLength = s_provingKeyHashes.length;
-        for (uint256 i; i < provingKeyHashesLength; ) {
+        for (uint256 i; i < provingKeyHashesLength; i++) {
             if (s_provingKeyHashes[i] == kh) {
-                bytes32 last = s_provingKeyHashes[s_provingKeyHashes.length - 1];
+                bytes32 last = s_provingKeyHashes[provingKeyHashesLength - 1];
                 // Copy last element and overwrite kh to be deleted with it
                 s_provingKeyHashes[i] = last;
                 s_provingKeyHashes.pop();
                 break;
             }
-			unchecked {
-				++i;
-			}
         }
         emit ProvingKeyDeregistered(kh, oracle);
     }
