@@ -6,8 +6,8 @@ import { OraklError, OraklErrorCode } from '../errors'
 import { ORAKL_NETWORK_API_URL } from '../settings'
 import { buildUrl } from '../utils'
 
-export const AGGREGATE_ENDPOINT = buildUrl(ORAKL_NETWORK_API_URL, 'api/v1/aggregate')
-export const AGGREGATOR_ENDPOINT = buildUrl(ORAKL_NETWORK_API_URL, 'api/v1/aggregator')
+export const AGGREGATE_ENDPOINT = buildUrl(ORAKL_NETWORK_API_URL, 'aggregate')
+export const AGGREGATOR_ENDPOINT = buildUrl(ORAKL_NETWORK_API_URL, 'aggregator')
 
 /**
  * Fetch aggregate data from `Orakl Network API` data feed endpoint
