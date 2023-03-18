@@ -48,6 +48,7 @@
     "console-hook": "^0.0.2",
     "dotenv": "^16.0.3",
     "ethers": "^5.7.2",
+    "express": "^4.18.2",
     "mathjs": "^11.4.0",
     "pino": "^8.8.0",
     "pino-pretty": "^9.1.1",

@@ -208,8 +208,10 @@ export interface IListenerRawConfig {
 }
 
 export interface IListenerConfig {
+  id: string
   address: string
   eventName: string
+  chain: string
 }
 
 export interface IListenerGroupConfig {

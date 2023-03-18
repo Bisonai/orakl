@@ -2,7 +2,7 @@ import { Queue } from 'bullmq'
 import { ethers } from 'ethers'
 import { Logger } from 'pino'
 import { Aggregator__factory } from '@bisonai/orakl-contracts'
-import { Event } from './event'
+// import { Event } from './event'
 import { IListenerConfig, INewRound, IAggregatorWorker } from '../types'
 import { buildReporterJobId } from '../utils'
 import {
@@ -18,9 +18,9 @@ const FILE_NAME = import.meta.url
 export function buildListener(config: IListenerConfig[], logger: Logger) {
   const queueName = WORKER_AGGREGATOR_QUEUE_NAME
   // FIXME remove loop and listen on multiple contract for the same event
-  for (const c of config) {
-    new Event(queueName, processEvent, Aggregator__factory.abi, c, logger).listen()
-  }
+  // for (const c of config) {
+  //   new Event(queueName, processEvent, Aggregator__factory.abi, c, logger).listen()
+  // }
 }
 
 function processEvent(iface: ethers.utils.Interface, queue: Queue, _logger: Logger) {
