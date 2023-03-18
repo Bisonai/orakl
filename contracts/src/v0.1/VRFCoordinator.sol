@@ -162,7 +162,7 @@ contract VRFCoordinator is
             revert NoSuchProvingKey(kh);
         }
         delete s_provingKeys[kh];
-uint256 provingKeyHashesLength = s_provingKeyHashes.length;
+        uint256 provingKeyHashesLength = s_provingKeyHashes.length;
         for (uint256 i; i < provingKeyHashesLength; i++) {
             if (s_provingKeyHashes[i] == kh) {
                 bytes32 last = s_provingKeyHashes[provingKeyHashesLength - 1];
