@@ -1,18 +1,13 @@
-import { ethers } from "ethers";
-import {
-  IListenerConfig,
-  ILogData,
-  IVRFLogData,
-  IVRFReporterData,
-} from "../types";
+import { ILogData, IVRFLogData, IVRFReporterData } from "../types";
 import { existsSync } from "fs";
-import { getTimestampByBlock, readTextFile, writeTextFile } from "../utils";
-let requestedNumber = 0;
-let totalResponse = 0;
-let minResponseTime = 0;
-let maxResponseTime = 0;
+import { readTextFile, writeTextFile } from "../utils";
+
 export async function reportVRF() {
   let jsonResult: IVRFReporterData[] = [];
+  let requestedNumber = 0;
+  let totalResponse = 0;
+  let minResponseTime = 0;
+  let maxResponseTime = 0;
   const d = new Date();
   const td = d.toISOString().split("T")[0];
   d.setDate(d.getDate() - 1);
