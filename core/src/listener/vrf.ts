@@ -8,7 +8,6 @@ import { IListenerConfig, IRandomWordsRequested, IVrfListenerWorker } from '../t
 import {
   WORKER_VRF_QUEUE_NAME,
   CHAIN,
-  DEPLOYMENT_NAME,
   VRF_LISTENER_STATE_NAME as listenerStateName
 } from '../settings'
 import { getVrfConfig } from '../api'

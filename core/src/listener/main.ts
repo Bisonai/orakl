@@ -8,7 +8,7 @@ import { OraklError, OraklErrorCode } from '../errors'
 import { CHAIN } from '../settings'
 import { getListeners } from './api'
 import { hookConsoleError } from '../utils'
-import { IListeners } from './types'
+// import { IListeners } from './types'
 
 import { createClient } from 'redis'
 

@@ -33,6 +33,7 @@ export class PubSubStop {
    */
   async setupSubscriber(listenerId, id: string) {
     const channelName = this.getChannelName(id)
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const unsubscribeFn = async (message, channel) => {
       clearInterval(listenerId)
       await this.subscriber.unsubscribe(channelName)

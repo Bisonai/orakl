@@ -1,5 +1,4 @@
 import express, { Request, Response } from 'express'
-import { Queue } from 'bullmq'
 import { Logger } from 'pino'
 import { State } from './state'
 import { PubSubStop } from './pub-sub-stop'
@@ -17,29 +16,33 @@ export async function watchman({
   logger?: Logger
 }) {
   const app = express()
-  const port =
-    /**
-     * List all listeners.
-     */
-    app.get('/all', async (req: Request, res: Response) => {
-      try {
-        const all = await state.all()
-        res.status(200).send(all)
-      } catch (e) {
-        console.log(e)
-        res.status(500).send(e)
-      }
-    })
+
+  /**
+   * List all listeners.
+   */
+  app.get('/all', async (req: Request, res: Response) => {
+    logger?.debug('/all')
+
+    try {
+      const all = await state.all()
+      res.status(200).send(all)
+    } catch (e) {
+      logger?.error(e)
+      res.status(500).send(e)
+    }
+  })
 
   /**
    * List active listeners.
    */
   app.get('/active', async (req: Request, res: Response) => {
+    logger?.debug('/active')
+
     try {
       const active = await state.active()
       res.status(200).send(active)
     } catch (e) {
-      console.log(e)
+      logger?.error(e)
       res.status(500).send(e)
     }
   })
@@ -49,15 +52,17 @@ export async function watchman({
    */
   app.get('/start/:id', async (req: Request, res: Response) => {
     const { id } = req.params
+    logger?.debug(`/start/${id}`)
 
     try {
       const listener = await state.add(id)
       listenFn(listener)
 
       const msg = `Listener with ID=${id} started`
+      logger?.debug(msg)
       res.status(200).send(msg)
     } catch (e) {
-      console.log(e)
+      logger?.error(e.message)
       res.status(500).send(e.message)
     }
   })
@@ -66,17 +71,18 @@ export async function watchman({
    * Stop a specific listener.
    */
   app.get('/stop/:id', async (req: Request, res: Response) => {
-    // const params = req.params
     const { id } = req.params
+    logger?.debug(`/stop/${id}`)
 
     try {
       await state.remove(id)
       await pubsub.stop(id)
 
       const msg = `Listener with ID=${id} stopped`
+      logger?.debug(msg)
       res.status(200).send(msg)
     } catch (e) {
-      console.log(e)
+      logger?.error(e.message)
       res.status(500).send(e.message)
     }
   })
@@ -88,5 +94,5 @@ export async function watchman({
     res.send('ok')
   })
 
-  app.listen(LISTENER_PORT, () => {})
+  app.listen(LISTENER_PORT)
 }
