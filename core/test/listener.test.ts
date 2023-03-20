@@ -46,8 +46,10 @@ describe('Listener', function () {
   test('Should pass the validation of listener config', function () {
     const config = [
       {
+        id: '0',
         address: '0x0165878a594ca255338adfa4d48449f69242eb8f',
-        eventName: 'RandomWordsRequested'
+        eventName: 'RandomWordsRequested',
+        chain: 'localhost'
       }
     ]
     const isValid = validateListenerConfig(config)
