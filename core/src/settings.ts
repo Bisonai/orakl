@@ -53,7 +53,7 @@ export const ALL_QUEUES = [
 
 export const VRF_LISTENER_STATE_NAME = `${DEPLOYMENT_NAME}-listener-vrf-state`
 export const REQUEST_RESPONSE_LISTENER_STATE_NAME = `${DEPLOYMENT_NAME}-listener-request-response-state`
-export const AGGREGATOR_LISTENER_STATE_NAME = `${DEPLOYMENT_NAME}-listener-aggregator-state`
+export const DATA_FEED_LISTENER_STATE_NAME = `${DEPLOYMENT_NAME}-listener-data-feed-state`
 
 export const BULLMQ_CONNECTION = {
   connection: {

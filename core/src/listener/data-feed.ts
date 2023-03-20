@@ -1,8 +1,10 @@
 import { Queue } from 'bullmq'
 import { ethers } from 'ethers'
 import { Logger } from 'pino'
+import type { RedisClientType } from 'redis'
 import { Aggregator__factory } from '@bisonai/orakl-contracts'
-// import { Event } from './event'
+import { listen } from './listener'
+import { State } from './state'
 import { IListenerConfig, INewRound, IAggregatorWorker } from '../types'
 import { buildReporterJobId } from '../utils'
 import {
@@ -10,17 +12,43 @@ import {
   WORKER_AGGREGATOR_QUEUE_NAME,
   DEPLOYMENT_NAME,
   REMOVE_ON_COMPLETE,
-  REMOVE_ON_FAIL
+  REMOVE_ON_FAIL,
+  CHAIN,
+  DATA_FEED_LISTENER_STATE_NAME as listenerStateName
 } from '../settings'
+import { watchman } from './watchman'
 
 const FILE_NAME = import.meta.url
 
-export function buildListener(config: IListenerConfig[], logger: Logger) {
+export async function buildListener(
+  config: IListenerConfig[],
+  redisClient: RedisClientType,
+  logger: Logger
+) {
   const queueName = WORKER_AGGREGATOR_QUEUE_NAME
-  // FIXME remove loop and listen on multiple contract for the same event
-  // for (const c of config) {
-  //   new Event(queueName, processEvent, Aggregator__factory.abi, c, logger).listen()
-  // }
+  const service = 'Aggregator'
+  const chain = CHAIN
+
+  const state = new State({ redisClient, listenerStateName, service, chain, logger })
+  // Previously stored listener config is ignored,
+  // and replaced with the latest state of Orakl Network.
+  await state.init()
+
+  const listenFn = listen({
+    queueName,
+    processEventFn: processEvent,
+    abi: Aggregator__factory.abi,
+    redisClient,
+    logger
+  })
+
+  for (const listener of config) {
+    await state.add(listener.id)
+    const intervalId = await listenFn(listener)
+    await state.update(listener.id, intervalId)
+  }
+
+  watchman({ listenFn, state, logger })
 }
 
 function processEvent(iface: ethers.utils.Interface, queue: Queue, _logger: Logger) {

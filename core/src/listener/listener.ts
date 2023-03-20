@@ -1,6 +1,7 @@
 import { Queue } from 'bullmq'
 import { ethers } from 'ethers'
 import { Logger } from 'pino'
+import type { RedisClientType } from 'redis'
 import { PROVIDER_URL, BULLMQ_CONNECTION, LISTENER_DELAY } from '../settings'
 import { IListenerConfig } from '../types'
 
@@ -12,9 +13,9 @@ export function listen({
   logger
 }: {
   queueName: string
-  processEventFn
+  processEventFn: (iface: ethers.utils.Interface, queue: Queue, logger: Logger) => (log) => void
   abi
-  redisClient
+  redisClient: RedisClientType
   logger: Logger
 }) {
   async function wrapper(listener: IListenerConfig): Promise<number> {

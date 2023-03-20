@@ -1,6 +1,7 @@
 import { Queue } from 'bullmq'
 import { ethers } from 'ethers'
 import { Logger } from 'pino'
+import type { RedisClientType } from 'redis'
 import { VRFCoordinator__factory } from '@bisonai/orakl-contracts'
 import { listen } from './listener'
 import { State } from './state'
@@ -16,15 +17,18 @@ import { watchman } from './watchman'
 const FILE_NAME = import.meta.url
 const { keyHash: KEY_HASH } = await getVrfConfig({ chain: CHAIN })
 
-export async function buildListener(config: IListenerConfig[], redisClient, logger: Logger) {
+export async function buildListener(
+  config: IListenerConfig[],
+  redisClient: RedisClientType,
+  logger: Logger
+) {
   const queueName = WORKER_VRF_QUEUE_NAME
-
   const service = 'VRF'
   const chain = CHAIN
 
+  const state = new State({ redisClient, listenerStateName, service, chain, logger })
   // Previously stored listener config is ignored,
   // and replaced with the latest state of Orakl Network.
-  const state = new State({ redisClient, listenerStateName, service, chain, logger })
   await state.init()
 
   const listenFn = listen({

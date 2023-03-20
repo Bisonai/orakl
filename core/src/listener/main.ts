@@ -1,4 +1,5 @@
 import { parseArgs } from 'node:util'
+import type { RedisClientType } from 'redis'
 import { buildLogger } from '../logger'
 import { buildListener as buildDataFeedListener } from './data-feed'
 import { buildListener as buildVrfListener } from './vrf'
@@ -8,11 +9,11 @@ import { OraklError, OraklErrorCode } from '../errors'
 import { CHAIN } from '../settings'
 import { getListeners } from './api'
 import { hookConsoleError } from '../utils'
-// import { IListeners } from './types'
+import { IListeners } from './types'
 
 import { createClient } from 'redis'
 
-const LISTENERS /*: IListeners*/ = {
+const LISTENERS: IListeners = {
   Aggregator: buildDataFeedListener,
   VRF: buildVrfListener,
   RequestResponse: buildRequestResponseListener
@@ -38,7 +39,7 @@ async function main() {
     throw new OraklError(OraklErrorCode.UndefinedListenerRequested)
   }
 
-  const redisClient = createClient()
+  const redisClient: RedisClientType = createClient()
   await redisClient.connect()
 
   LISTENERS[service](listenersConfig[service], redisClient, LOGGER)
