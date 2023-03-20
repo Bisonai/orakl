@@ -3,14 +3,14 @@ import { ILogData, IRRLogData, IRRReporterData } from "../types";
 import { existsSync } from "fs";
 import { readTextFile, writeTextFile } from "../utils";
 
-export async function reportRR() {
+export async function reportRR(date:number) {
   let jsonResult: IRRReporterData[] = [];
   let requestedNumber = 0;
   let totalResponse = 0;
   let minResponseTime = 0;
   let maxResponseTime = 0;
   const d = new Date();
-  d.setDate(d.getDate() - 1);
+  d.setDate(d.getDate() - date);
   const m = d.toISOString().split("T")[0];
   const jsonPath = `./tmp/reporter/rr-${m}.json`;
   const jsonSummaryPath = `./tmp/reporter/rr-summary-${m}.json`;

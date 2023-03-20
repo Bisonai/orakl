@@ -1,8 +1,7 @@
 import { ILogData, IVRFLogData, IVRFReporterData } from "../types";
 import { existsSync } from "fs";
 import { readTextFile, writeTextFile } from "../utils";
-
-export async function reportVRF() {
+export async function reportVRF(date: number = 1) {
   let jsonResult: IVRFReporterData[] = [];
   let requestedNumber = 0;
   let totalResponse = 0;
@@ -10,7 +9,7 @@ export async function reportVRF() {
   let maxResponseTime = 0;
   const d = new Date();
   const td = d.toISOString().split("T")[0];
-  d.setDate(d.getDate() - 1);
+  d.setDate(d.getDate() - date);
   const m = d.toISOString().split("T")[0];
   const jsonPath = `./tmp/reporter/vrf-${m}.json`;
   const jsonSummaryPath = `./tmp/reporter/vrf-summary-${m}.json`;
@@ -81,14 +80,13 @@ export async function reportVRF() {
         hasResponse,
       };
       requestedNumber++;
+      jsonResult.push(result);
       console.debug(
         "reporter:data",
         jsonResult.length,
         "event:",
         requestedNumber
       );
-
-      jsonResult.push(result);
     })
   );
   const summaryInfor = {
@@ -100,5 +98,5 @@ export async function reportVRF() {
   };
   await writeTextFile(jsonSummaryPath, JSON.stringify(summaryInfor, null, 2));
   await writeTextFile(jsonPath, JSON.stringify(jsonResult, null, 2));
-  console.log("vrf:finish");
+  console.log(`${new Date()}`, "vrf:finish");
 }

@@ -6,23 +6,26 @@ import { getTimestampByBlock, readTextFile, writeTextFile } from "../utils";
 
 const abis = await readTextFile(`./src/abis/request-response.json`);
 let jsonResult: IRRLogData[] = [];
-let fileData = "";
 export function buildListener(config: IListenerConfig) {
+  
   new Event(processConsumerEvent, abis, config).listen();
 }
 
 function processConsumerEvent(iface: ethers.utils.Interface) {
+  let fileData = "";
   async function wrapper(log) {
     const eventData = iface.parseLog(log).args;
 
     const d = new Date();
     const m = d.toISOString().split("T")[0];
     const jsonPath = `./tmp/listener/request-respone-fulfill-log-${m}.json`;
-    if (existsSync(jsonPath)) fileData = await readTextFile(jsonPath);
-    else jsonResult = [];
-
-    if (fileData && jsonResult.length == 0)
-      jsonResult = <IRRLogData[]>JSON.parse(fileData);
+    if (existsSync(jsonPath)) {
+      fileData = await readTextFile(jsonPath);
+      if (fileData && jsonResult.length == 0)
+        jsonResult = <IRRLogData[]>JSON.parse(fileData);
+    } else {
+      jsonResult = [];
+    }
 
     if (eventData) {
       let requestedTime: number = 0;

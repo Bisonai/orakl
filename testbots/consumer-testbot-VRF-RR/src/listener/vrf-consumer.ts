@@ -7,22 +7,25 @@ import { readTextFile, writeTextFile } from "../utils";
 const abis = await readTextFile("./src/abis/consumer.json");
 let eventCount = 0;
 let jsonResult: IVRFLogData[] = [];
-let fileData = "";
 export function buildVrfListener(config: IListenerConfig) {
   new Event(processConsumerEvent, abis, config).listen();
 }
 
 function processConsumerEvent(iface: ethers.utils.Interface) {
+  let fileData = "";
+
   async function wrapper(log) {
     const eventData = iface.parseLog(log).args;
     const d = new Date();
     const m = d.toISOString().split("T")[0];
     const jsonPath = `./tmp/listener/consumer-fulfill-log-${m}.json`;
-    if (existsSync(jsonPath)) fileData = await readTextFile(jsonPath);
-    else jsonResult = [];
-
-    if (fileData && jsonResult.length == 0)
-      jsonResult = <IVRFLogData[]>JSON.parse(fileData);
+    if (existsSync(jsonPath)) {
+      fileData = await readTextFile(jsonPath);
+      if (fileData && jsonResult.length == 0)
+        jsonResult = <IVRFLogData[]>JSON.parse(fileData);
+    } else {
+      jsonResult = [];
+    }
 
     if (eventData) {
       let requestedTime: number = 0;
