@@ -24,7 +24,7 @@ export async function aggregatorWorker(_logger: Logger) {
 
   const fixedHeartbeatQueue = new Queue(FIXED_HEARTBEAT_QUEUE_NAME, BULLMQ_CONNECTION)
 
-  // Launch all active aggregators
+  // Launch all aggregators
   for (const aggregator of aggregators) {
     const aggregatorAddress = aggregator.address
 

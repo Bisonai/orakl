@@ -60,7 +60,7 @@ export async function insertAggregateData({
 
 export async function updateAggregator(aggregatorHash: string, chain: string, active: boolean) {
   const url = buildUrl(process.env.ORAKL_NETWORK_API_URL, `aggregator/${aggregatorHash}`)
-  const response = await axios.patch(url, { data: { active, chain } })
+  const response = await axios.patch(url, { data: { chain } })
   return response?.data
 }
 

@@ -3,7 +3,6 @@ import { listHandler, insertHandler, removeHandler } from '../src/aggregator'
 
 describe('CLI Aggregator', function () {
   const AGGREGATOR = {
-    active: true,
     name: 'X-Y',
     address: '0x0000000000000000000000000000000000000000',
     fixedHeartbeatRate: 15_000,

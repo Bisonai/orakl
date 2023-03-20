@@ -136,7 +136,6 @@ export async function computeAggregatorHash({
 
   // Don't use following properties in computation of hash
   delete input.aggregatorHash
-  delete input.active
   delete input.address
 
   const hash = ethers.utils.keccak256(ethers.utils.toUtf8Bytes(JSON.stringify(input)))

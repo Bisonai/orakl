@@ -51,7 +51,6 @@ export interface IAdapter {
 
 export interface IAggregator {
   aggregatorHash?: string
-  active: boolean
   name: string
   address: string
   heartbeat: number

@@ -37,7 +37,6 @@ export class AggregatorService {
 
     const data: Prisma.AggregatorUncheckedCreateInput = {
       aggregatorHash: aggregatorDto.aggregatorHash,
-      active: aggregatorDto.active,
       name: aggregatorDto.name,
       address: aggregatorDto.address,
       heartbeat: aggregatorDto.heartbeat,
@@ -93,13 +92,14 @@ export class AggregatorService {
     })
   }
 
-  async update(params: { where: Prisma.AggregatorWhereUniqueInput; active: boolean }) {
-    const { where, active } = params
-    return await this.prisma.aggregator.update({
-      data: { active },
-      where
-    })
-  }
+  // TODO: FIX Updata function
+  // async update(params: { where: Prisma.AggregatorWhereUniqueInput; aggregatorDto: AggregatorDto }) {
+  //   const { where, aggregatorDto } = params
+  //   return await this.prisma.aggregator.update({
+  //     data: aggregatorDto,
+  //     where
+  //   })
+  // }
 
   async computeAggregatorHash({
     data,
@@ -112,7 +112,6 @@ export class AggregatorService {
 
     // Don't use following properties in computation of hash
     delete input.aggregatorHash
-    delete input.active
     delete input.address
 
     const hash = ethers.utils.keccak256(ethers.utils.toUtf8Bytes(JSON.stringify(input)))

@@ -248,7 +248,6 @@ export interface IAdapter {
 export interface IAggregator {
   id: bigint
   aggregatorHash: string
-  active: boolean
   name: string
   address: string
   heartbeat: number
