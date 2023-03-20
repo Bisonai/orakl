@@ -26,13 +26,17 @@ export function listen({
     const processEvent = processEventFn(iface, queue, logger)
     const listenerRedisKey = `listener:${listener.id}`
 
-    let observedBlock = (await redisClient.get(listenerRedisKey)) || 0
+    let observedBlock = Number(await redisClient.get(listenerRedisKey)) || 0
+    logger.debug(`observedBlock: ${observedBlock}`)
 
     const intervalObj = setInterval(async () => {
       try {
         const latestBlock = await provider.getBlockNumber()
 
         if (latestBlock > observedBlock) {
+          observedBlock = latestBlock
+          await redisClient.set(listenerRedisKey, observedBlock)
+
           logger.debug(`latest: ${latestBlock}, observedBlock: ${observedBlock}`)
           const events = await contract.queryFilter(listener.eventName, observedBlock, latestBlock)
 
@@ -41,9 +45,6 @@ export function listen({
             events.forEach(processEvent)
           }
         }
-
-        observedBlock = latestBlock
-        await redisClient.set(listenerRedisKey, observedBlock)
       } catch (e) {
         logger.error({ name: 'listen:wrapper' }, e)
       }

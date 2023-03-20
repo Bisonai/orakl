@@ -66,7 +66,12 @@ function processEvent(iface: ethers.utils.Interface, queue: Queue, _logger: Logg
     }
     logger.debug(data, 'data')
 
-    await queue.add('request-response', data)
+    await queue.add('request-response', data, {
+      jobId: data.requestId,
+      removeOnComplete: {
+        age: 1_800
+      }
+    })
   }
 
   return wrapper
