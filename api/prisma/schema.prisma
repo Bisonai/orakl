@@ -37,7 +37,6 @@ model Adapter {
 model Aggregator {
   id                BigInt      @id @default(autoincrement())
   aggregatorHash    String
-  active            Boolean     @default(false)
   name              String
   address           String      @unique
   heartbeat         Int

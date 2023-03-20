@@ -30,7 +30,6 @@ CREATE TABLE "Adapter" (
 CREATE TABLE "Aggregator" (
     "id" BIGSERIAL NOT NULL,
     "aggregatorHash" TEXT NOT NULL,
-    "active" BOOLEAN NOT NULL DEFAULT false,
     "name" TEXT NOT NULL,
     "address" TEXT NOT NULL,
     "heartbeat" INTEGER NOT NULL,
