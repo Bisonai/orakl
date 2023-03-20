@@ -9,7 +9,7 @@ import {
   isListenerHealthy
 } from './utils'
 
-import { ORAKL_NETWORK_API_URL } from './settings'
+import { ORAKL_NETWORK_API_URL, LISTENER_SERVICE_HOST, LISTENER_SERVICE_PORT } from './settings'
 
 const LISTENER_ENDPOINT = buildUrl(ORAKL_NETWORK_API_URL, 'listener')
 
@@ -67,12 +67,12 @@ export function listenerSub() {
       host: option({
         type: cmdstring,
         long: 'host',
-        defaultValue: () => 'http://localhost'
+        defaultValue: () => LISTENER_SERVICE_HOST
       }),
       port: option({
         type: cmdstring,
         long: 'port',
-        defaultValue: () => '4000'
+        defaultValue: () => String(LISTENER_SERVICE_PORT)
       })
     },
     handler: activateHandler()
@@ -85,12 +85,12 @@ export function listenerSub() {
       host: option({
         type: cmdstring,
         long: 'host',
-        defaultValue: () => 'http://localhost'
+        defaultValue: () => LISTENER_SERVICE_HOST
       }),
       port: option({
         type: cmdstring,
         long: 'port',
-        defaultValue: () => '4000'
+        defaultValue: () => String(LISTENER_SERVICE_PORT)
       })
     },
     handler: deactivateHandler()
