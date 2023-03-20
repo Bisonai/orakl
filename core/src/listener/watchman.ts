@@ -50,7 +50,7 @@ export async function watchman({
   /**
    * Launch new listener.
    */
-  app.get('/start/:id', async (req: Request, res: Response) => {
+  app.get('/activate/:id', async (req: Request, res: Response) => {
     const { id } = req.params
     logger?.debug(`/start/${id}`)
 
@@ -58,19 +58,19 @@ export async function watchman({
       const listener = await state.add(id)
       listenFn(listener)
 
-      const msg = `Listener with ID=${id} started`
-      logger?.debug(msg)
-      res.status(200).send(msg)
+      const message = `Listener with ID=${id} started`
+      logger?.debug(message)
+      res.status(200).send({ message })
     } catch (e) {
       logger?.error(e.message)
-      res.status(500).send(e.message)
+      res.status(500).send({ message: e.message })
     }
   })
 
   /**
    * Stop a specific listener.
    */
-  app.get('/stop/:id', async (req: Request, res: Response) => {
+  app.get('/deactivate/:id', async (req: Request, res: Response) => {
     const { id } = req.params
     logger?.debug(`/stop/${id}`)
 
@@ -78,12 +78,12 @@ export async function watchman({
       await state.remove(id)
       await pubsub.stop(id)
 
-      const msg = `Listener with ID=${id} stopped`
-      logger?.debug(msg)
-      res.status(200).send(msg)
+      const message = `Listener with ID=${id} stopped`
+      logger?.debug(message)
+      res.status(200).send({ message })
     } catch (e) {
       logger?.error(e.message)
-      res.status(500).send(e.message)
+      res.status(500).send({ message: e.message })
     }
   })
 
@@ -91,7 +91,7 @@ export async function watchman({
    * Report on health of listener service.
    */
   app.get('/health', (req: Request, res: Response) => {
-    res.send('ok')
+    res.status(200).send('ok')
   })
 
   app.listen(LISTENER_PORT)

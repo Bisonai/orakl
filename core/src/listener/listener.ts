@@ -38,7 +38,7 @@ export function listen({
           const events = await contract.queryFilter(listener.eventName, observedBlock, latestBlock)
 
           if (events?.length > 0) {
-            // logger.debug({ name: 'Event:filter' }, `${events}`)
+            logger.debug({ name: 'listen:wrapper' }, `${events}`)
             events.forEach(processEvent)
           }
         }
@@ -47,7 +47,7 @@ export function listen({
         await redisClient.set(listenerRedisKey, observedBlock)
       } catch (e) {
         console.error(e)
-        // logger.error({ name: 'Event:filter' }, e)
+        logger.error({ name: 'listen:wrapper' }, e)
       }
     }, LISTENER_DELAY)
     pubsub.setupSubscriber(listenerId, listener.id)

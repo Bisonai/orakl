@@ -5,7 +5,8 @@ import {
   chainOptionalOption,
   serviceOptionalOption,
   buildUrl,
-  isOraklNetworkApiHealthy
+  isOraklNetworkApiHealthy,
+  isListenerHealthy
 } from './utils'
 
 import { ORAKL_NETWORK_API_URL } from './settings'
@@ -16,6 +17,8 @@ export function listenerSub() {
   // listener list   [--chain ${chain}] [--service ${service}]
   // listener insert  --chain ${chain}   --service ${service} --address ${address} --eventName ${eventName}
   // listener remove  --id ${id}
+  // listener activate --host ${host} --port ${port} --id ${id}
+  // listener deactivate --host ${host} --port ${port} --id ${id}
 
   const list = command({
     name: 'list',
@@ -57,9 +60,45 @@ export function listenerSub() {
     handler: removeHandler()
   })
 
+  const activate = command({
+    name: 'activate',
+    args: {
+      id: idOption,
+      host: option({
+        type: cmdstring,
+        long: 'host',
+        defaultValue: () => 'http://localhost'
+      }),
+      port: option({
+        type: cmdstring,
+        long: 'port',
+        defaultValue: () => '4000'
+      })
+    },
+    handler: activateHandler()
+  })
+
+  const deactivate = command({
+    name: 'deactivate',
+    args: {
+      id: idOption,
+      host: option({
+        type: cmdstring,
+        long: 'host',
+        defaultValue: () => 'http://localhost'
+      }),
+      port: option({
+        type: cmdstring,
+        long: 'port',
+        defaultValue: () => '4000'
+      })
+    },
+    handler: deactivateHandler()
+  })
+
   return subcommands({
     name: 'listener',
-    cmds: { list, insert, remove }
+    cmds: { list, insert, remove, activate, deactivate }
   })
 }
 
@@ -117,6 +156,42 @@ export function removeHandler() {
       console.dir(result, { depth: null })
     } catch (e) {
       console.error('Listener was not deleted. Reason:')
+      console.error(e?.response?.data?.message)
+    }
+  }
+  return wrapper
+}
+
+export function activateHandler() {
+  async function wrapper({ host, port, id }: { host: string; port: string; id: number }) {
+    const listenerServiceEndpoint = `${host}:${port}`
+    if (!(await isListenerHealthy(listenerServiceEndpoint))) return
+
+    const activateListenerEndpoint = buildUrl(listenerServiceEndpoint, `activate/${id}`)
+
+    try {
+      const result = (await axios.get(activateListenerEndpoint)).data
+      console.log(result?.message)
+    } catch (e) {
+      console.error('Listener was not activated. Reason:')
+      console.error(e?.response?.data?.message)
+    }
+  }
+  return wrapper
+}
+
+export function deactivateHandler() {
+  async function wrapper({ host, port, id }: { host: string; port: string; id: number }) {
+    const listenerServiceEndpoint = `${host}:${port}`
+    if (!(await isListenerHealthy(listenerServiceEndpoint))) return
+
+    const deactivateListenerEndpoint = buildUrl(listenerServiceEndpoint, `deactivate/${id}`)
+
+    try {
+      const result = (await axios.get(deactivateListenerEndpoint)).data
+      console.log(result?.message)
+    } catch (e) {
+      console.error('Listener was not deactivated. Reason:')
       console.error(e?.response?.data?.message)
     }
   }
