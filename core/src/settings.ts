@@ -27,9 +27,6 @@ export const LISTENER_PORT = process.env.LISTENER_PORT || 4000
 export const REMOVE_ON_COMPLETE = 500
 export const REMOVE_ON_FAIL = 1_000
 
-// FIXME Move to Redis
-export const LISTENER_ROOT_DIR = './tmp/listener/'
-
 export const FIXED_HEARTBEAT_QUEUE_NAME = `${DEPLOYMENT_NAME}-fixed-heartbeat-queue`
 export const RANDOM_HEARTBEAT_QUEUE_NAME = `${DEPLOYMENT_NAME}-random-heartbeat-queue`
 export const WORKER_REQUEST_RESPONSE_QUEUE_NAME = `${DEPLOYMENT_NAME}-worker-request-response-queue`

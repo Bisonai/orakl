@@ -195,11 +195,6 @@ export type RequestCommitmentRequestResponse = [
   string /* sender */
 ]
 
-export interface IListenerBlock {
-  startBlock: number
-  filePath: string
-}
-
 export interface IListenerRawConfig {
   address: string
   eventName: string

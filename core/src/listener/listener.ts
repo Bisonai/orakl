@@ -1,8 +1,8 @@
 import { Queue } from 'bullmq'
-import { Contract, ethers } from 'ethers'
+import { ethers } from 'ethers'
 import { Logger } from 'pino'
 import { PROVIDER_URL, BULLMQ_CONNECTION, LISTENER_DELAY } from '../settings'
-import { IListenerBlock, IListenerConfig } from '../types'
+import { IListenerConfig } from '../types'
 import { PubSubStop } from './pub-sub-stop'
 
 export function listen({
