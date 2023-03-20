@@ -30,8 +30,9 @@ export function listen({
     const intervalObj = setInterval(async () => {
       try {
         const latestBlock = await provider.getBlockNumber()
-        logger.debug(`latest: ${latestBlock}, observedBlock: ${observedBlock}`)
+
         if (latestBlock > observedBlock) {
+          logger.debug(`latest: ${latestBlock}, observedBlock: ${observedBlock}`)
           const events = await contract.queryFilter(listener.eventName, observedBlock, latestBlock)
 
           if (events?.length > 0) {
