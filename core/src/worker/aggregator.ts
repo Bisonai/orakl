@@ -18,8 +18,8 @@ import { oracleRoundStateCall } from './utils'
 
 const FILE_NAME = import.meta.url
 
-export async function aggregatorWorker(_logger: Logger) {
-  const logger = _logger.child({ name: 'aggregatorWorker', file: FILE_NAME })
+export async function worker(_logger: Logger) {
+  const logger = _logger.child({ name: 'worker', file: FILE_NAME })
   const aggregators = await getActiveAggregators({ chain: CHAIN, logger })
 
   const fixedHeartbeatQueue = new Queue(FIXED_HEARTBEAT_QUEUE_NAME, BULLMQ_CONNECTION)

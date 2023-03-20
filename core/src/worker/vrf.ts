@@ -14,8 +14,8 @@ import { remove0x } from '../utils'
 
 const FILE_NAME = import.meta.url
 
-export async function vrfWorker(_logger: Logger) {
-  _logger.debug({ name: 'vrfWorker', file: FILE_NAME })
+export async function worker(_logger: Logger) {
+  _logger.debug({ name: 'worker', file: FILE_NAME })
   new Worker(
     WORKER_VRF_QUEUE_NAME,
     await vrfJob(REPORTER_VRF_QUEUE_NAME, _logger),
