@@ -66,7 +66,6 @@ describe('DataService', () => {
     // Aggregator
     const aggregatorData = {
       aggregatorHash: '0xa6addebb7d36e846c0393f4d672f8aecbdbced5d9885971bf078b19a714ca595',
-      active: false,
       name: 'BTC-USD',
       address: '0x',
       heartbeat: 10_000,
