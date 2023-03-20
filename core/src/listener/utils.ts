@@ -54,7 +54,7 @@ const FILE_NAME = import.meta.url
  * @param {IListenerRawConfig[]} list of listener raw configurations
  * @return {IListenerGroupConfig} grouped raw listener configurations based on `service` property
  */
-function groupListeners({
+export function groupListeners({
   listenersRawConfig
 }: {
   listenersRawConfig: IListenerRawConfig[]
@@ -84,7 +84,7 @@ function groupListeners({
  * @param {pino.Logger?}
  * @return {boolean} true when the given listener configuration is valid, otherwise false
  */
-function validateListenerConfig(config: IListenerConfig[], logger?: Logger): boolean {
+export function validateListenerConfig(config: IListenerConfig[], logger?: Logger): boolean {
   const requiredProperties = ['address', 'eventName']
 
   for (const c of config) {

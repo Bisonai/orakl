@@ -1,5 +1,5 @@
 import { describe, expect, test } from '@jest/globals'
-import { postprocessListeners, validateListenerConfig } from '../src/listener/utils'
+import { groupListeners, validateListenerConfig } from '../src/listener/utils'
 
 describe('Listener', function () {
   test('Postprocess listeners', function () {
@@ -39,7 +39,7 @@ describe('Listener', function () {
         }
       ]
     }
-    const output = postprocessListeners({ listenersRawConfig: input })
+    const output = groupListeners({ listenersRawConfig: input })
     expect(expectedOutput).toStrictEqual(output)
   })
 
