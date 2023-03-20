@@ -1,34 +1,47 @@
 import express, { Request, Response } from 'express'
 import { Queue } from 'bullmq'
 import { Logger } from 'pino'
-import { getListener } from './api'
-
-const LISTENER_PORT = 4000
+import { State } from './state'
+import { PubSubStop } from './pub-sub-stop'
+import { LISTENER_PORT } from '../settings'
 
 export async function watchman({
-  redisClient,
   listenFn,
-  service,
-  chain,
+  pubsub,
+  state,
   logger
 }: {
-  redisClient
   listenFn
-  service: string
-  chain: string
+  pubsub: PubSubStop
+  state: State
   logger?: Logger
 }) {
-  const publisher = redisClient.duplicate()
-  await publisher.connect()
-
   const app = express()
-  const port = LISTENER_PORT
+  const port =
+    /**
+     * List all listeners.
+     */
+    app.get('/all', async (req: Request, res: Response) => {
+      try {
+        const all = await state.all()
+        res.status(200).send(all)
+      } catch (e) {
+        console.log(e)
+        res.status(500).send(e)
+      }
+    })
 
   /**
    * List active listeners.
    */
-  app.get('/active', (req: Request, res: Response) => {
-    res.send('active')
+  app.get('/active', async (req: Request, res: Response) => {
+    try {
+      const active = await state.active()
+      res.status(200).send(active)
+    } catch (e) {
+      console.log(e)
+      res.status(500).send(e)
+    }
   })
 
   /**
@@ -37,36 +50,35 @@ export async function watchman({
   app.get('/start/:id', async (req: Request, res: Response) => {
     const { id } = req.params
 
-    // 1. fetch data from Orakl Network API
-    // call start
     try {
-      const listener = await getListener({ id, logger })
-      if (listener == null) {
-        // TODO
-        console.log('listener.length == null')
-      } else if (listener.service != service || listener.chain != chain) {
-        // TODO
-        console.log('(listener.service != service || listener.chain != chain)')
-      } else {
-        listenFn(listener)
-      }
+      const listener = await state.add(id)
+      listenFn(listener)
+
+      const msg = `Listener with ID=${id} started`
+      res.status(200).send(msg)
     } catch (e) {
       console.log(e)
+      res.status(500).send(e.message)
     }
-
-    res.send('start')
   })
 
   /**
    * Stop a specific listener.
    */
   app.get('/stop/:id', async (req: Request, res: Response) => {
-    const params = req.params
-    const channelName = `listener:stop:${params.id}`
+    // const params = req.params
+    const { id } = req.params
 
-    // TODO check on channel name
-    await publisher.publish(channelName, 'stop') // FIXME
-    res.send('stop')
+    try {
+      await state.remove(id)
+      await pubsub.stop(id)
+
+      const msg = `Listener with ID=${id} stopped`
+      res.status(200).send(msg)
+    } catch (e) {
+      console.log(e)
+      res.status(500).send(e.message)
+    }
   })
 
   /**
@@ -76,5 +88,5 @@ export async function watchman({
     res.send('ok')
   })
 
-  app.listen(port, () => {})
+  app.listen(LISTENER_PORT, () => {})
 }

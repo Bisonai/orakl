@@ -2,30 +2,42 @@ import { Queue } from 'bullmq'
 import { ethers } from 'ethers'
 import { Logger } from 'pino'
 import { VRFCoordinator__factory } from '@bisonai/orakl-contracts'
-import { IListenerConfig, IRandomWordsRequested, IVrfListenerWorker } from '../types'
-import { WORKER_VRF_QUEUE_NAME, CHAIN } from '../settings'
-import { getVrfConfig } from '../api'
 import { listen } from './listener'
+import { State } from './state'
+import { IListenerConfig, IRandomWordsRequested, IVrfListenerWorker } from '../types'
+import {
+  WORKER_VRF_QUEUE_NAME,
+  CHAIN,
+  DEPLOYMENT_NAME,
+  VRF_LISTENER_STATE_NAME as listenerStateName
+} from '../settings'
+import { getVrfConfig } from '../api'
+import { PubSubStop } from './pub-sub-stop'
+import { watchman } from './watchman'
 
 const FILE_NAME = import.meta.url
 const { keyHash: KEY_HASH } = await getVrfConfig({ chain: CHAIN })
-import { watchman } from './watchman'
 
 export async function buildListener(config: IListenerConfig[], redisClient, logger: Logger) {
   const queueName = WORKER_VRF_QUEUE_NAME
 
-  const configName = 'listener-vrf-config' // TODO deployment-name
   const service = 'VRF'
+  const chain = CHAIN
 
   // Previously stored listener config is ignored,
   // and replaced with the latest state of Orakl Network.
-  await redisClient.set(configName, JSON.stringify(config))
+  const state = new State({ redisClient, listenerStateName, service, chain, logger })
+  await state.init(config)
+
+  const pubsub = new PubSubStop(redisClient)
+  await pubsub.init()
 
   const listenFn = listen({
     queueName,
     processEventFn: processEvent,
     abi: VRFCoordinator__factory.abi,
     redisClient,
+    pubsub,
     logger
   })
 
@@ -33,7 +45,7 @@ export async function buildListener(config: IListenerConfig[], redisClient, logg
     listenFn(listener)
   }
 
-  watchman({ redisClient, listenFn, service, chain: CHAIN })
+  watchman({ listenFn, pubsub, state, logger })
 }
 
 function processEvent(iface: ethers.utils.Interface, queue: Queue, _logger: Logger) {

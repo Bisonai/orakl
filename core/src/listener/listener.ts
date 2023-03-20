@@ -3,18 +3,21 @@ import { Contract, ethers } from 'ethers'
 import { Logger } from 'pino'
 import { PROVIDER_URL, BULLMQ_CONNECTION, LISTENER_DELAY } from '../settings'
 import { IListenerBlock, IListenerConfig } from '../types'
+import { PubSubStop } from './pub-sub-stop'
 
 export function listen({
   queueName,
   processEventFn,
   abi,
   redisClient,
+  pubsub,
   logger
 }: {
   queueName: string
   processEventFn
   abi
   redisClient
+  pubsub: PubSubStop
   logger: Logger
 }) {
   async function wrapper(listener: IListenerConfig) {
@@ -47,16 +50,7 @@ export function listen({
         // logger.error({ name: 'Event:filter' }, e)
       }
     }, LISTENER_DELAY)
-
-    // Subcription to stop listener loop
-    const subscriber = redisClient.duplicate()
-    await subscriber.connect()
-    const channelName = `listener:stop:${listener.id}` // FIXME
-    const stopListener = async (message, channel) => {
-      clearInterval(listenerId)
-      await subscriber.unsubscribe(channelName)
-    }
-    await subscriber.subscribe(channelName, stopListener)
+    pubsub.setupSubscriber(listenerId, listener.id)
   }
 
   return wrapper

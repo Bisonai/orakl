@@ -8,26 +8,26 @@ const FILE_NAME = import.meta.url
 
 export class State {
   redisClient
-  configName: string
+  listenerStateName: string
   service: string
   chain: string
   logger: Logger
 
   constructor({
     redisClient,
-    configName,
+    listenerStateName,
     service,
     chain,
     logger
   }: {
     redisClient
-    configName: string
+    listenerStateName: string
     service: string
     chain: string
     logger: Logger
   }) {
     this.redisClient = redisClient
-    this.configName = configName
+    this.listenerStateName = listenerStateName
     this.service = service
     this.chain = chain
     this.logger = logger
@@ -37,10 +37,11 @@ export class State {
    * Initialize a state with multiple listener configurations at
    * once. This method is expected to be called once, after the object
    * is initialized.
+   *
    * @param {IListenerConfig[]} list of listener configurations
    */
   async init(config: IListenerConfig[]) {
-    await this.redisClient.set(this.configName, JSON.stringify(config))
+    await this.redisClient.set(this.listenerStateName, JSON.stringify(config))
   }
 
   /**
@@ -55,7 +56,7 @@ export class State {
    * List all active listeners.
    */
   async active() {
-    return JSON.parse(await this.redisClient.get(this.configName))
+    return JSON.parse(await this.redisClient.get(this.listenerStateName))
   }
 
   /**
@@ -96,7 +97,7 @@ export class State {
 
     // Update active listeners
     const updatedActiveListeners = [...activeListeners, ...toAddListener]
-    await this.redisClient.set(this.configName, JSON.stringify(updatedActiveListeners))
+    await this.redisClient.set(this.listenerStateName, JSON.stringify(updatedActiveListeners))
 
     return toAddListener[0]
   }
@@ -121,6 +122,6 @@ export class State {
       throw new OraklError(OraklErrorCode.ListenerNotRemoved, msg)
     }
 
-    await this.redisClient.set(this.configName, JSON.stringify(updatedActiveListeners))
+    await this.redisClient.set(this.listenerStateName, JSON.stringify(updatedActiveListeners))
   }
 }

@@ -41,5 +41,7 @@ export enum OraklErrorCode {
   UndefinedListenerRequested,
   UnexpectedNumberOfJobsInQueue,
   UnexpectedQueryOutput,
-  UniformWrongParams
+  UniformWrongParams,
+  ListenerNotRemoved,
+  ListenerNotAdded
 }
