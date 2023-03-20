@@ -11,7 +11,6 @@ import {
   VRF_LISTENER_STATE_NAME as listenerStateName
 } from '../settings'
 import { getVrfConfig } from '../api'
-import { PubSubStop } from './pub-sub-stop'
 import { watchman } from './watchman'
 
 const FILE_NAME = import.meta.url
@@ -26,25 +25,23 @@ export async function buildListener(config: IListenerConfig[], redisClient, logg
   // Previously stored listener config is ignored,
   // and replaced with the latest state of Orakl Network.
   const state = new State({ redisClient, listenerStateName, service, chain, logger })
-  await state.init(config)
-
-  const pubsub = new PubSubStop(redisClient)
-  await pubsub.init()
+  await state.init()
 
   const listenFn = listen({
     queueName,
     processEventFn: processEvent,
     abi: VRFCoordinator__factory.abi,
     redisClient,
-    pubsub,
     logger
   })
 
   for (const listener of config) {
-    listenFn(listener)
+    await state.add(listener.id)
+    const intervalId = await listenFn(listener)
+    await state.update(listener.id, intervalId)
   }
 
-  watchman({ listenFn, pubsub, state, logger })
+  watchman({ listenFn, state, logger })
 }
 
 function processEvent(iface: ethers.utils.Interface, queue: Queue, _logger: Logger) {

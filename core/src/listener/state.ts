@@ -1,5 +1,5 @@
 import { Logger } from 'pino'
-import { getListeners } from './api'
+import { getListeners, getListener } from './api'
 import { postprocessListeners } from './utils'
 import { IListenerConfig } from '../types'
 import { OraklError, OraklErrorCode } from '../errors'
@@ -37,11 +37,9 @@ export class State {
    * Initialize a state with multiple listener configurations at
    * once. This method is expected to be called once, after the object
    * is initialized.
-   *
-   * @param {IListenerConfig[]} list of listener configurations
    */
-  async init(config: IListenerConfig[]) {
-    await this.redisClient.set(this.listenerStateName, JSON.stringify(config))
+  async init() {
+    await this.redisClient.set(this.listenerStateName, JSON.stringify([]))
   }
 
   /**
@@ -60,13 +58,31 @@ export class State {
   }
 
   /**
+   * Update the listener defined as IListenerConfig with
+   * intervalId. IntervalId is used to `clearInterval`.
+   *
+   * @param {string} listener ID
+   * @param {number} interval ID
+   */
+  async update(id: string, intervalId: number) {
+    const activeListeners = await this.active()
+
+    const index = activeListeners.findIndex((L) => L.id == id)
+    const updatedListener = activeListeners.splice(index, 1)[0]
+
+    const updatedActiveListeners = [...activeListeners, { ...updatedListener, intervalId }]
+    await this.redisClient.set(this.listenerStateName, JSON.stringify(updatedActiveListeners))
+  }
+
+  /**
    * Add listener based given `id`. Listener can be added only if it
    * corresponds to the `service` and `chain` state.
    *
    * @param {string} listener ID
+   * @return {IListenerConfig}
    * @exception {OraklErrorCode.ListenerNotAdded} raise when no listener was added
    */
-  async add(id: string) {
+  async add(id: string): Promise<IListenerConfig> {
     // Check if listener is not active yet
     const activeListeners = await this.active()
     const isAlreadyActive = activeListeners.filter((L) => L.id === id) || []
@@ -111,17 +127,20 @@ export class State {
    */
   async remove(id: string) {
     const activeListeners = await this.active()
-
-    const updatedActiveListeners = activeListeners.filter((L) => L.id != id)
-
     const numActiveListeners = activeListeners.length
-    const numUpdatedActiveListeners = updatedActiveListeners.length
+
+    const index = activeListeners.findIndex((L) => L.id == id)
+    const removedListener = activeListeners.splice(index, 1)[0]
+
+    const numUpdatedActiveListeners = activeListeners.length
     if (numActiveListeners == numUpdatedActiveListeners) {
       const msg = `Listener with ID=${id} was not removed.`
       this.logger?.debug({ name: 'remove', file: FILE_NAME }, msg)
       throw new OraklError(OraklErrorCode.ListenerNotRemoved, msg)
     }
 
-    await this.redisClient.set(this.listenerStateName, JSON.stringify(updatedActiveListeners))
+    // Update active listeners
+    await this.redisClient.set(this.listenerStateName, JSON.stringify(activeListeners))
+    clearInterval(removedListener.intervalId)
   }
 }

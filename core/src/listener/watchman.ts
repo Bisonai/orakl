@@ -1,17 +1,14 @@
 import express, { Request, Response } from 'express'
 import { Logger } from 'pino'
 import { State } from './state'
-import { PubSubStop } from './pub-sub-stop'
 import { LISTENER_PORT } from '../settings'
 
 export async function watchman({
   listenFn,
-  pubsub,
   state,
   logger
 }: {
   listenFn
-  pubsub: PubSubStop
   state: State
   logger?: Logger
 }) {
@@ -52,11 +49,12 @@ export async function watchman({
    */
   app.get('/activate/:id', async (req: Request, res: Response) => {
     const { id } = req.params
-    logger?.debug(`/start/${id}`)
+    logger?.debug(`/activate/${id}`)
 
     try {
       const listener = await state.add(id)
-      listenFn(listener)
+      const intervalId = await listenFn(listener)
+      await state.update(listener.id, intervalId)
 
       const message = `Listener with ID=${id} started`
       logger?.debug(message)
@@ -72,11 +70,10 @@ export async function watchman({
    */
   app.get('/deactivate/:id', async (req: Request, res: Response) => {
     const { id } = req.params
-    logger?.debug(`/stop/${id}`)
+    logger?.debug(`/deactivate/${id}`)
 
     try {
       await state.remove(id)
-      await pubsub.stop(id)
 
       const message = `Listener with ID=${id} stopped`
       logger?.debug(message)
