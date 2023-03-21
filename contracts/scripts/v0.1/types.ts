@@ -66,7 +66,7 @@ export interface ICoordinatorDirectPaymentConfig {
   directPaymentConfig: IDirectPaymentConfig
 }
 
-export interface IRRCConfig {
+export interface IRequestResponseCoordinatorConfig {
   requestResponseCoordinatorAddress?: string
   deploy?: ICoordinatorDeploy
   registerOracle?: string[]
@@ -87,7 +87,7 @@ interface IDeregisterProvingKey {
   publicProvingKey: [string, string]
 }
 
-export interface IVRFCoordinatorConfig {
+export interface IVrfCoordinatorConfig {
   vrfCoordinatorAddress?: string
   deploy?: ICoordinatorDeploy
   registerProvingKey?: IRegisterProvingKey[]

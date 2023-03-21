@@ -77,7 +77,7 @@ export async function loadMigration(dirPath: string): Promise<string[]> {
  *
  * @params {dirPath} migration directory
  * @params {migrationFileName} name of executed migration file that should be included to migration lock file
- * @return {void}
+ * @return {Promise<void>}
  */
 export async function updateMigration(dirPath: string, migrationFileName: string) {
   const migrationLockFilePath = path.join(dirPath, MIGRATION_LOCK_FILE_NAME)

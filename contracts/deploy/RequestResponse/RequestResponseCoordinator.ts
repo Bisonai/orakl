@@ -10,7 +10,7 @@ import {
   validateMinBalanceConfig,
   validateSetConfig
 } from '../../scripts/v0.1/utils'
-import { IRRCConfig } from '../../scripts/v0.1/types'
+import { IRequestResponseCoordinatorConfig } from '../../scripts/v0.1/types'
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployments, getNamedAccounts, network } = hre
@@ -23,7 +23,9 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const migrationFilesNames = await loadMigration(migrationDirPath)
 
   for (const migration of migrationFilesNames) {
-    const config: IRRCConfig = await loadJson(path.join(migrationDirPath, migration))
+    const config: IRequestResponseCoordinatorConfig = await loadJson(
+      path.join(migrationDirPath, migration)
+    )
 
     const prepayment = await ethers.getContract('Prepayment')
     let requestResponseCoordinator: ethers.Contract = undefined

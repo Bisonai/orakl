@@ -12,7 +12,7 @@ import {
   validateVrfDeregisterProvingKey,
   validateVrfRegisterProvingKey
 } from '../../scripts/v0.1/utils'
-import { IVRFCoordinatorConfig } from '../../scripts/v0.1/types'
+import { IVrfCoordinatorConfig } from '../../scripts/v0.1/types'
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployments, getNamedAccounts, network } = hre
@@ -25,7 +25,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const migrationFilesNames = await loadMigration(migrationDirPath)
 
   for (const migration of migrationFilesNames) {
-    const config: IVRFCoordinatorConfig = await loadJson(path.join(migrationDirPath, migration))
+    const config: IVrfCoordinatorConfig = await loadJson(path.join(migrationDirPath, migration))
 
     const prepayment = await ethers.getContract('Prepayment')
     let vrfCoordinator: ethers.Contract = undefined
