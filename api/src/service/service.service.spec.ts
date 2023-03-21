@@ -1,16 +1,23 @@
 import { Test, TestingModule } from '@nestjs/testing'
 import { ServiceService } from './service.service'
 import { PrismaService } from '../prisma.service'
+import { PrismaClient } from '@prisma/client'
 
 describe('ServiceService', () => {
   let service: ServiceService
+  let prisma
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [ServiceService, PrismaService]
     }).compile()
-    jest.setTimeout(10000)
     service = module.get<ServiceService>(ServiceService)
+    prisma = module.get<PrismaClient>(PrismaService)
+  })
+
+  afterEach(async () => {
+    jest.resetModules()
+    await prisma.$disconnect()
   })
 
   it('should be defined', () => {

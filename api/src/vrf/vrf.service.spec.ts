@@ -2,10 +2,12 @@ import { Test, TestingModule } from '@nestjs/testing'
 import { VrfService } from './vrf.service'
 import { ChainService } from '../chain/chain.service'
 import { PrismaService } from '../prisma.service'
+import { PrismaClient } from '@prisma/client'
 
 describe('VrfService', () => {
   let vrf: VrfService
   let chain: ChainService
+  let prisma
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -14,6 +16,12 @@ describe('VrfService', () => {
 
     vrf = module.get<VrfService>(VrfService)
     chain = module.get<ChainService>(ChainService)
+    prisma = module.get<PrismaClient>(PrismaService)
+  })
+
+  afterAll(async () => {
+    jest.resetModules()
+    await prisma.$disconnect()
   })
 
   it('should be defined', () => {
