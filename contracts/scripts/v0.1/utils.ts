@@ -5,10 +5,11 @@ import {
   IRRCDeploy,
   IAggregatorDeployConfig,
   IAggregatorChangeOraclesConfig,
-  IRRCSetDirectPaymentConfig,
   IVRFDeploy,
   IRegisterProvingKey,
-  IDeregisterProvingKey
+  IDeregisterProvingKey,
+  ICoordinatorConfig,
+  ICoordinatorDirectPaymentConfig
 } from './types'
 
 const MIGRATION_LOCK_FILE_NAME = 'migration.lock'
@@ -140,7 +141,7 @@ export function validateRRCDeployConfig(config: IRRCDeploy): boolean {
   }
 }
 
-export function validateRRCSetMinBalanceConfig(config: IRRCSetMinBalance): boolean {
+export function validateMinBalanceConfig(config: IRRCSetMinBalance): boolean {
   const requiredProperties = ['minBalance']
 
   if (!validateProperties(config, requiredProperties)) {
@@ -150,7 +151,7 @@ export function validateRRCSetMinBalanceConfig(config: IRRCSetMinBalance): boole
   }
 }
 
-export function validateRRCSetConfig(config: IRRCSetConfig): boolean {
+export function validateSetConfig(config: ICoordinatorConfig): boolean {
   const requiredProperties = ['maxGasLimit', 'gasAfterPaymentCalculation', 'feeConfig']
 
   if (!validateProperties(config, requiredProperties)) {
@@ -160,7 +161,7 @@ export function validateRRCSetConfig(config: IRRCSetConfig): boolean {
   }
 }
 
-export function validateRRCSetDirectPaymentConfig(config: IRRCSetDirectPaymentConfig): boolean {
+export function validateDirectPaymentConfig(config: ICoordinatorDirectPaymentConfig): boolean {
   if (!validateProperties(config, ['directPaymentConfig'])) {
     return false
   }
@@ -182,22 +183,26 @@ export function validateVrfDeployConfig(config: IVrfDeploy): boolean {
   }
 }
 
-export function validateVrfRegisterProvingKey(config: IRegisterProvingKey): boolean {
+export function validateVrfRegisterProvingKey(config: IRegisterProvingKey[]): boolean {
   const requiredProperties = ['address', 'publicProvingKey']
 
-  if (!validateProperties(config, requiredProperties)) {
-    return false
-  } else {
-    return true
+  for (const c of config) {
+    if (!validateProperties(c, requiredProperties)) {
+      return false
+    }
   }
+
+  return true
 }
 
-export function validateVrfDeregisterProvingKey(config: IDeregisterProvingKey): boolean {
+export function validateVrfDeregisterProvingKey(config: IDeregisterProvingKey[]): boolean {
   const requiredProperties = ['publicProvingKey']
 
-  if (!validateProperties(config, requiredProperties)) {
-    return false
-  } else {
-    return true
+  for (const c of config) {
+    if (!validateProperties(c, requiredProperties)) {
+      return false
+    }
   }
+
+  return true
 }

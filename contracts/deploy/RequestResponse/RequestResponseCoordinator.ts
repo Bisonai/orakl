@@ -6,9 +6,9 @@ import {
   loadMigration,
   updateMigration,
   validateRRCDeployConfig,
-  validateRRCSetMinBalanceConfig,
+  validateMinBalanceConfig,
   validateRRCSetConfig,
-  validateRRCSetDirectPaymentConfig
+  validateDirectPaymentConfig
 } from '../../scripts/v0.1/utils'
 import { IRRCConfig } from '../../scripts/v0.1/types'
 
@@ -109,7 +109,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     if (config.setDirectPaymentConfig) {
       console.log('setDirectPaymentConfig')
       const setDirectPaymentConfig = config.setDirectPaymentConfig
-      if (!validateRRCSetDirectPaymentConfig(setDirectPaymentConfig)) {
+      if (!validateDirectPaymentConfig(setDirectPaymentConfig)) {
         throw new Error('Invalid RRC setDirectPaymentConfig config')
       }
 
@@ -124,7 +124,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     if (config.setMinBalance) {
       console.log('setMinBalance')
       const setMinBalanceConfig = config.setMinBalance
-      if (!validateRRCSetMinBalanceConfig(setMinBalanceConfig)) {
+      if (!validateMinBalanceConfig(setMinBalanceConfig)) {
         throw new Error('Invalid RRC setMinBalance config')
       }
 

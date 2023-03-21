@@ -5,9 +5,12 @@ import {
   loadJson,
   loadMigration,
   updateMigration,
+  validateDirectPaymentConfig,
+  validateMinBalanceConfig,
+  validateSetConfig,
   validateVrfDeployConfig,
-  validateVrfRegisterProvingKey,
-  validateVrfDeregisterProvingKey
+  validateVrfDeregisterProvingKey,
+  validateVrfRegisterProvingKey
 } from '../../scripts/v0.1/utils'
 import { IVRFCoordinatorConfig } from '../../scripts/v0.1/types'
 
@@ -27,6 +30,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     const prepayment = await ethers.getContract('Prepayment')
     let vrfCoordinator: ethers.Contract = undefined
 
+    // Deploy VRFCoordinator ////////////////////////////////////////////////////
     if (config.deploy) {
       console.log('deploy')
       const deployConfig = config.deploy
@@ -63,7 +67,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       ? vrfCoordinator
       : await ethers.getContractAt('VRFCoordinator', config.vrfCoordinatorAddress)
 
-    // Register proving key ////////////////////////////////
+    // Register proving key /////////////////////////////////////////////////////
     if (config.registerProvingKey) {
       console.log('registerProvingKey')
       const registerProvingKeyConfig = config.registerProvingKey
@@ -97,11 +101,13 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       }
     }
 
-    // Configure VRF coordinator
+    // Configure VRF coordinator ////////////////////////////////////////////////
     if (config.setConfig) {
       console.log('setConfig')
       const setConfig = config.setConfig
-      // TODO validation
+      if (!validateSetConfig(setConfig)) {
+        throw new Error('Invalid VRF setConfig config')
+      }
 
       await (
         await vrfCoordinator.setConfig(
@@ -112,11 +118,13 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       ).wait()
     }
 
-    // Configure payment for direct VRF request /////////
+    // Configure payment for direct VRF request /////////////////////////////////
     if (config.setDirectPaymentConfig) {
       console.log('setDirectPaymentConfig')
       const setDirectPaymentConfig = config.setDirectPaymentConfig
-      // TODO validation
+      if (!validateDirectPaymentConfig(setDirectPaymentConfig)) {
+        throw new Error('Invalid VRF setDirectPaymentConfig config')
+      }
 
       await (
         await vrfCoordinator.setDirectPaymentConfig(setDirectPaymentConfig.directPaymentConfig)
@@ -127,12 +135,14 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     if (config.setMinBalance) {
       console.log('setMinBalance')
       const setMinBalanceConfig = config.setMinBalance
-      // TODO validatino
+      if (!validateMinBalanceConfig(setMinBalanceConfig)) {
+        throw new Error('Invalid RRC setMinBalance config')
+      }
 
       await (await vrfCoordinator.setMinBalance(setMinBalanceConfig.minBalance)).wait()
     }
 
-    // Add VRFCoordinator to Prepayment //////////////////
+    // Add VRFCoordinator to Prepayment /////////////////////////////////////////
     if (config.addCoordinator) {
       console.log('addCoordinator')
       const addCoordinatorConfig = config.addCoordinator

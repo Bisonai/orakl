@@ -65,7 +65,7 @@ export interface IRRCDeploy {
   version: string
 }
 
-export interface ISetDirectPaymentConfig {
+export interface ICoordinatorDirectPaymentConfig {
   directPaymentConfig: IDirectPaymentConfig
 }
 
@@ -75,7 +75,7 @@ export interface IRRCConfig {
   registerOracle?: string[]
   deregisterOracle?: string[]
   setConfig?: ICoordinatorConfig
-  setDirectPaymentConfig?: ISetDirectPaymentConfig
+  setDirectPaymentConfig?: ICoordinatorDirectPaymentConfig
   setMinBalance?: ICoordinatorMinBalance
   addCoordinator?: IAddCoordinator
 }
@@ -100,7 +100,7 @@ export interface IVRFCoordinatorConfig {
   registerProvingKey?: IRegisterProvingKey[]
   deregisterProvingKey?: IDeregisterProvingKey[]
   setConfig?: ICoordinatorConfig
-  setDirectPaymentConfig?: ISetDirectPaymentConfig
+  setDirectPaymentConfig?: ICoordinatorDirectPaymentConfig
   setMinBalance?: ICoordinatorMinBalance
   addCoordinator?: IAddCoordinator
 }
