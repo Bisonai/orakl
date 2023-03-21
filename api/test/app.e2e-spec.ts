@@ -25,9 +25,10 @@ describe('AppController (e2e)', () => {
   afterEach(async () => {
     jest.resetModules()
     await prisma.$disconnect()
+    await app.close()
   })
 
-  it('/api/v1 (GET)', () => {
-    return request(app.getHttpServer()).get('/api/v1').expect(200).expect('Orakl Network API')
-  }, 10000)
+  it('/api/v1 (GET)', async () => {
+    return await request(app.getHttpServer()).get('/api/v1').expect(200).expect('Orakl Network API')
+  })
 })
