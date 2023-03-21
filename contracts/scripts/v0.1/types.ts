@@ -42,6 +42,7 @@ export interface IRequestResponseConfig {
   minBalance: string
 }
 
+// Aggregator
 interface IAggregatorDeployConfig {
   name: string
   paymentAmount: number
@@ -65,4 +66,43 @@ interface IAggregatorChangeOraclesConfig {
 export interface IAggregatorConfig {
   deploy?: IAggregatorDeployConfig
   changeOracles?: IAggregatorChangeOraclesConfig
+}
+
+// RequestResponseCoordinator
+export interface IRRCDeploy {
+  version: string
+}
+
+export interface IRRCSetConfig {
+  maxGasLimit: number
+  gasAfterPaymentCalculation: number
+  feeConfig: IFeeConfig
+}
+
+interface IRRCDirectPaymentConfig {
+  fulfillmentFee: string
+  baseFee: string
+}
+
+export interface IRRCSetDirectPaymentConfig {
+  directPaymentConfig: IRRCDirectPaymentConfig
+}
+
+export interface IRRCSetMinBalance {
+  minBalance: string
+}
+
+export interface IRRCAddCoordinator {
+  prepaymentAddress: string
+}
+
+export interface IRRCConfig {
+  requestResponseCoordinatorAddress?: string
+  deploy?: IRRCDeploy
+  registerOracle?: string[]
+  deregisterOracle?: string[]
+  setConfig?: IRRCSetConfig
+  setDirectPaymentConfig?: IRRCSetDirectPaymentConfig
+  setMinBalance?: IRRCSetMinBalance
+  addCoordinator?: IRRCAddCoordinator
 }

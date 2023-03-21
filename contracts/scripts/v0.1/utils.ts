@@ -1,6 +1,11 @@
 import { readdir, readFile, appendFile } from 'node:fs/promises'
 import * as path from 'node:path'
-import { IAggregatorDeployConfig, IAggregatorChangeOraclesConfig } from './types'
+import {
+  IRRCSetMinBalance,
+  IRRCDeploy,
+  IAggregatorDeployConfig,
+  IAggregatorChangeOraclesConfig
+} from './types'
 
 const MIGRATION_LOCK_FILE_NAME = 'migration.lock'
 
@@ -75,6 +80,14 @@ export async function updateMigration(dirPath: string, migrationFileName: string
   await appendFile(migrationLockFilePath, `${migrationFileName}\n`)
 }
 
+function validateProperties(config, requiredProperties: string[]) {
+  for (const rp of requiredProperties) {
+    if (config[rp] === undefined) return false
+  }
+
+  return true
+}
+
 export function validateAggregatorDeployConfig(config: IAggregatorDeployConfig): boolean {
   const requiredProperties = [
     'name',
@@ -85,9 +98,7 @@ export function validateAggregatorDeployConfig(config: IAggregatorDeployConfig):
     'description'
   ]
 
-  for (const p of requiredProperties) {
-    if (config[p] === undefined) return false
-  }
+  if (!validateProperties(config, requiredProperties)) return false
 
   if (config.paymentAmount > 0 && config.depositAmount > 0) {
     return false
@@ -108,9 +119,29 @@ export function validateAggregatorChangeOraclesConfig(
     'restartDelay'
   ]
 
-  for (const p of requiredProperties) {
-    if (config[p] === undefined) return false
+  if (!validateProperties(config, requiredProperties)) {
+    return false
+  } else {
+    return true
   }
+}
 
-  return true
+export function validateRRCDeployConfig(config: IRRCDeploy): boolean {
+  const requiredProperties = ['version']
+
+  if (!validateProperties(config, requiredProperties)) {
+    return false
+  } else {
+    return true
+  }
+}
+
+export function validateRRCSetMinBalanceConfig(config: IRRCSetMinBalance): boolean {
+  const requiredProperties = ['minBalance']
+
+  if (!validateProperties(config, requiredProperties)) {
+    return false
+  } else {
+    return true
+  }
 }

@@ -6,7 +6,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deploy } = deployments
   const { deployer } = await getNamedAccounts()
 
-  console.log('0-Prepayment.ts')
+  console.log('Prepayment.ts')
 
   const prepaymentDeployment = await deploy('Prepayment', {
     from: deployer,

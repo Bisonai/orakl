@@ -1,0 +1,38 @@
+{
+  "requestResponseCoordinatorAddress": "",
+  "deploy": {
+    "version": "0.1.0"
+  },
+  "registerOracle": [
+    "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC"
+  ],
+  "deregisterOracle": [],
+  "setConfig": {
+    "maxGasLimit": 2500000,
+    "gasAfterPaymentCalculation": 90692,
+    "feeConfig": {
+      "fulfillmentFlatFeeKlayPPMTier1": 0,
+      "fulfillmentFlatFeeKlayPPMTier2": 0,
+      "fulfillmentFlatFeeKlayPPMTier3": 0,
+      "fulfillmentFlatFeeKlayPPMTier4": 0,
+      "fulfillmentFlatFeeKlayPPMTier5": 0,
+      "reqsForTier2": 0,
+      "reqsForTier3": 0,
+      "reqsForTier4": 0,
+      "reqsForTier5": 0
+    }
+  },
+  "setDirectPaymentConfig": {
+    "directPaymentConfig": {
+      "fulfillmentFee": "250000000000000000",
+      "baseFee": "500000000000000000"
+    }
+  },
+  "setMinBalance": {
+    "minBalance": "100000000000000000"
+  },
+  "addCoordinator": {
+    "prepaymentAddress": "",
+    "requestResponseCoordinatorAddress": ""
+  }
+}
