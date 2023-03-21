@@ -42,14 +42,27 @@ export interface IRequestResponseConfig {
   minBalance: string
 }
 
-export interface IAggregatorConfig {
+interface IAggregatorDeployConfig {
   name: string
   paymentAmount: number
   timeout: number
   validator: string
-  minSubmissionCount: number
-  maxSubmissionCount: number
   decimals: number
   description: string
+  depositAmount?: number
+}
+
+interface IAggregatorChangeOraclesConfig {
+  removed: string[]
+  added: string[]
+  addedAdmins: string[]
+  minSubmissionCount: number
+  maxSubmissionCount: number
   restartDelay: number
+  aggregatorAddress?: string
+}
+
+export interface IAggregatorConfig {
+  deploy?: IAggregatorDeployConfig
+  changeOracles?: IAggregatorChangeOraclesConfig
 }
