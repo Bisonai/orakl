@@ -22,7 +22,7 @@ describe('VrfService', () => {
 
   it('should be defined', async () => {
     // Chain
-    const chainObj = await chain.create({ name: 'listener-test-chain' })
+    const chainObj = await chain.create({ name: 'vrf-test-chain' })
 
     // VRF Key
     const vrfKeyObj = await vrf.create({

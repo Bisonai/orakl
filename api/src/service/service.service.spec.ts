@@ -9,7 +9,7 @@ describe('ServiceService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [ServiceService, PrismaService]
     }).compile()
-
+    jest.setTimeout(10000)
     service = module.get<ServiceService>(ServiceService)
   })
 

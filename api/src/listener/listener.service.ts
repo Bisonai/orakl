@@ -13,7 +13,7 @@ export class ListenerService {
 
   async create(createListenerDto: CreateListenerDto) {
     // chain
-    const chainName = createListenerDto.chain
+    const chainName = createListenerDto.chain.toString()
     const chain = await this.prisma.chain.findUnique({
       where: { name: chainName }
     })
@@ -25,7 +25,7 @@ export class ListenerService {
     }
 
     // chain
-    const serviceName = createListenerDto.service
+    const serviceName = createListenerDto.service.toString()
     const service = await this.prisma.service.findUnique({
       where: { name: serviceName }
     })

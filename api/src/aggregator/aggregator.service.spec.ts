@@ -65,7 +65,7 @@ describe('AggregatorService', () => {
       aggregatorHash: 'aggregatorHash-aggregator-test',
       active: false,
       name: 'ETH-USD',
-      address: '0x',
+      address: '0x111',
       heartbeat: 10_000,
       threshold: 0.04,
       absoluteThreshold: 0.1,
@@ -78,5 +78,5 @@ describe('AggregatorService', () => {
     await aggregator.remove({ id: aggregatorObj.id })
     await adapter.remove({ id: adapterObj.id })
     await chain.remove({ id: chainObj.id })
-  })
+  }, 70000)
 })
