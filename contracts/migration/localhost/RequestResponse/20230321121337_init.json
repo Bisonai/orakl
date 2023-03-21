@@ -33,6 +33,6 @@
   },
   "addCoordinator": {
     "prepaymentAddress": "",
-    "requestResponseCoordinatorAddress": ""
+    "coordinatorAddress": ""
   }
 }

@@ -15,31 +15,8 @@ interface IFeeConfig {
   reqsForTier5: number
 }
 
-interface IVrfOracle {
-  address: string
-  publicProvingKey: [string, string]
-}
-
 interface IRequestResponseOracle {
   address: string
-}
-
-export interface IVrfConfig {
-  maxGasLimit: number
-  gasAfterPaymentCalculation: number
-  feeConfig: IFeeConfig
-  directPaymentConfig: IDirectPaymentConfig
-  oracle: IVrfOracle[]
-  minBalance: string
-}
-
-export interface IRequestResponseConfig {
-  maxGasLimit: number
-  gasAfterPaymentCalculation: number
-  feeConfig: IFeeConfig
-  directPaymentConfig: IDirectPaymentConfig
-  oracle: IRequestResponseOracle[]
-  minBalance: string
 }
 
 // Aggregator
@@ -68,32 +45,28 @@ export interface IAggregatorConfig {
   changeOracles?: IAggregatorChangeOraclesConfig
 }
 
-// RequestResponseCoordinator
-export interface IRRCDeploy {
-  version: string
-}
-
-export interface IRRCSetConfig {
+export interface ICoordinatorConfig {
   maxGasLimit: number
   gasAfterPaymentCalculation: number
   feeConfig: IFeeConfig
 }
 
-interface IRRCDirectPaymentConfig {
-  fulfillmentFee: string
-  baseFee: string
-}
-
-export interface IRRCSetDirectPaymentConfig {
-  directPaymentConfig: IRRCDirectPaymentConfig
-}
-
-export interface IRRCSetMinBalance {
+export interface ICoordinatorMinBalance {
   minBalance: string
 }
 
-export interface IRRCAddCoordinator {
+export interface IAddCoordinator {
   prepaymentAddress: string
+  coordinatorAddress: string
+}
+
+// RequestResponseCoordinator
+export interface IRRCDeploy {
+  version: string
+}
+
+export interface ISetDirectPaymentConfig {
+  directPaymentConfig: IDirectPaymentConfig
 }
 
 export interface IRRCConfig {
@@ -101,8 +74,33 @@ export interface IRRCConfig {
   deploy?: IRRCDeploy
   registerOracle?: string[]
   deregisterOracle?: string[]
-  setConfig?: IRRCSetConfig
-  setDirectPaymentConfig?: IRRCSetDirectPaymentConfig
-  setMinBalance?: IRRCSetMinBalance
-  addCoordinator?: IRRCAddCoordinator
+  setConfig?: ICoordinatorConfig
+  setDirectPaymentConfig?: ISetDirectPaymentConfig
+  setMinBalance?: ICoordinatorMinBalance
+  addCoordinator?: IAddCoordinator
+}
+
+// VRFCoordinator
+interface IVrfDeploy {
+  version: string
+}
+
+interface IRegisterProvingKey {
+  address: string
+  publicProvingKey: [string, string]
+}
+
+interface IDeregisterProvingKey {
+  publicProvingKey: [string, string]
+}
+
+export interface IVRFCoordinatorConfig {
+  vrfCoordinatorAddress?: string
+  deploy?: IVrfDeploy
+  registerProvingKey?: IRegisterProvingKey[]
+  deregisterProvingKey?: IDeregisterProvingKey[]
+  setConfig?: ICoordinatorConfig
+  setDirectPaymentConfig?: ISetDirectPaymentConfig
+  setMinBalance?: ICoordinatorMinBalance
+  addCoordinator?: IAddCoordinator
 }

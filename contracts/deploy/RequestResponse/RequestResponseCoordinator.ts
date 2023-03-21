@@ -25,8 +25,8 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   for (const migration of migrationFilesNames) {
     const config: IRRCConfig = await loadJson(path.join(migrationDirPath, migration))
 
+    const prepayment = await ethers.getContract('Prepayment')
     let requestResponseCoordinator: ethers.Contract = undefined
-    let prepayment: ethers.Contract = undefined
 
     // Deploy RequestResponseCoordinator ////////////////////////////////////////
     if (config.deploy) {
@@ -36,7 +36,6 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
         throw new Error('Invalid RRC deploy config')
       }
 
-      prepayment = await ethers.getContract('Prepayment')
       const requestResponseCoordinatorName = `RequestResponseCoordinator_${deployConfig.version}`
 
       const requestResponseDeployment = await deploy(requestResponseCoordinatorName, {
@@ -135,26 +134,18 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     // Add RequestResponseCoordinator to Prepayment /////////////////////////////
     if (config.addCoordinator) {
       console.log('addCoordinator')
-
       const addCoordinatorConfig = config.addCoordinator
 
-      const prepaymentAddress = prepayment
-        ? prepayment.address
-        : addCoordinatorConfig.prepaymentAddress
-      if (!prepaymentAddress) {
-        throw new Error('Prepayment address is undefined')
-      }
-
-      const requestResponseCoordinatorAddress = prepayment
+      const requestResponseCoordinatorAddress = requestResponseCoordinator
         ? requestResponseCoordinator.address
-        : addCoordinatorConfig.requestResponseCoordinatorAddress
+        : addCoordinatorConfig.coordinatorAddress
       if (!requestResponseCoordinatorAddress) {
         throw new Error('requestResponseCoordinator address is undefined')
       }
 
       const prepaymentDeployerSigner = await ethers.getContractAt(
         'Prepayment',
-        prepaymentAddress,
+        prepayment.address,
         deployer
       )
       await (

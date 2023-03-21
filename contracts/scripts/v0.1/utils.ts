@@ -5,7 +5,10 @@ import {
   IRRCDeploy,
   IAggregatorDeployConfig,
   IAggregatorChangeOraclesConfig,
-  IRRCSetDirectPaymentConfig
+  IRRCSetDirectPaymentConfig,
+  IVRFDeploy,
+  IRegisterProvingKey,
+  IDeregisterProvingKey
 } from './types'
 
 const MIGRATION_LOCK_FILE_NAME = 'migration.lock'
@@ -167,4 +170,34 @@ export function validateRRCSetDirectPaymentConfig(config: IRRCSetDirectPaymentCo
   }
 
   return true
+}
+
+export function validateVrfDeployConfig(config: IVrfDeploy): boolean {
+  const requiredProperties = ['version']
+
+  if (!validateProperties(config, requiredProperties)) {
+    return false
+  } else {
+    return true
+  }
+}
+
+export function validateVrfRegisterProvingKey(config: IRegisterProvingKey): boolean {
+  const requiredProperties = ['address', 'publicProvingKey']
+
+  if (!validateProperties(config, requiredProperties)) {
+    return false
+  } else {
+    return true
+  }
+}
+
+export function validateVrfDeregisterProvingKey(config: IDeregisterProvingKey): boolean {
+  const requiredProperties = ['publicProvingKey']
+
+  if (!validateProperties(config, requiredProperties)) {
+    return false
+  } else {
+    return true
+  }
 }
