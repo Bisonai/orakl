@@ -92,5 +92,5 @@ describe('DataService', () => {
     await aggregator.remove({ id: aggregatorObj.id })
     await adapter.remove({ id: adapterObj.id })
     await chain.remove({ id: chainObj.id })
-  }, 70000)
+  })
 })
