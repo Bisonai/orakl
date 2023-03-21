@@ -14,7 +14,7 @@ export class AdapterController {
     return await this.adapterService.create(adapterDto)
   }
 
-  @Post('get-hash')
+  @Post('hash')
   async generateHash(@Body() adapterDto: AdapterDto, verify?: boolean) {
     return await this.adapterService.computeAdapterHash({ data: adapterDto, verify })
   }

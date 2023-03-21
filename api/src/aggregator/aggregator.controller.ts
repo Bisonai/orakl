@@ -34,7 +34,7 @@ export class AggregatorController {
     return await this.aggregatorService.create(aggregatorDto)
   }
 
-  @Post('get-hash')
+  @Post('hash')
   async generateHash(@Body() adapterDto: AggregatorDto, verify?: boolean) {
     return await this.aggregatorService.computeAggregatorHash({ data: adapterDto, verify })
   }
