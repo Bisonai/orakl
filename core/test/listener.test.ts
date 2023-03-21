@@ -1,5 +1,5 @@
 import { describe, expect, test } from '@jest/globals'
-import { postprocessListeners, validateListenerConfig } from '../src/listener/utils'
+import { groupListeners, validateListenerConfig } from '../src/listener/utils'
 
 describe('Listener', function () {
   test('Postprocess listeners', function () {
@@ -39,15 +39,17 @@ describe('Listener', function () {
         }
       ]
     }
-    const output = postprocessListeners({ listenersRawConfig: input })
+    const output = groupListeners({ listenersRawConfig: input })
     expect(expectedOutput).toStrictEqual(output)
   })
 
   test('Should pass the validation of listener config', function () {
     const config = [
       {
+        id: '0',
         address: '0x0165878a594ca255338adfa4d48449f69242eb8f',
-        eventName: 'RandomWordsRequested'
+        eventName: 'RandomWordsRequested',
+        chain: 'localhost'
       }
     ]
     const isValid = validateListenerConfig(config)

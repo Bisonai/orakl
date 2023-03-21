@@ -5,10 +5,11 @@ import {
   chainOptionalOption,
   serviceOptionalOption,
   buildUrl,
-  isOraklNetworkApiHealthy
+  isOraklNetworkApiHealthy,
+  isListenerHealthy
 } from './utils'
 
-import { ORAKL_NETWORK_API_URL } from './settings'
+import { ORAKL_NETWORK_API_URL, LISTENER_SERVICE_HOST, LISTENER_SERVICE_PORT } from './settings'
 
 const LISTENER_ENDPOINT = buildUrl(ORAKL_NETWORK_API_URL, 'listener')
 
@@ -16,6 +17,9 @@ export function listenerSub() {
   // listener list   [--chain ${chain}] [--service ${service}]
   // listener insert  --chain ${chain}   --service ${service} --address ${address} --eventName ${eventName}
   // listener remove  --id ${id}
+  // listener active --host ${host} --port ${port}
+  // listener activate --host ${host} --port ${port} --id ${id}
+  // listener deactivate --host ${host} --port ${port} --id ${id}
 
   const list = command({
     name: 'list',
@@ -57,9 +61,62 @@ export function listenerSub() {
     handler: removeHandler()
   })
 
+  const active = command({
+    name: 'active',
+    args: {
+      host: option({
+        type: cmdstring,
+        long: 'host',
+        defaultValue: () => LISTENER_SERVICE_HOST
+      }),
+      port: option({
+        type: cmdstring,
+        long: 'port',
+        defaultValue: () => String(LISTENER_SERVICE_PORT)
+      })
+    },
+    handler: activeHandler()
+  })
+
+  const activate = command({
+    name: 'activate',
+    args: {
+      id: idOption,
+      host: option({
+        type: cmdstring,
+        long: 'host',
+        defaultValue: () => LISTENER_SERVICE_HOST
+      }),
+      port: option({
+        type: cmdstring,
+        long: 'port',
+        defaultValue: () => String(LISTENER_SERVICE_PORT)
+      })
+    },
+    handler: activateHandler()
+  })
+
+  const deactivate = command({
+    name: 'deactivate',
+    args: {
+      id: idOption,
+      host: option({
+        type: cmdstring,
+        long: 'host',
+        defaultValue: () => LISTENER_SERVICE_HOST
+      }),
+      port: option({
+        type: cmdstring,
+        long: 'port',
+        defaultValue: () => String(LISTENER_SERVICE_PORT)
+      })
+    },
+    handler: deactivateHandler()
+  })
+
   return subcommands({
     name: 'listener',
-    cmds: { list, insert, remove }
+    cmds: { list, insert, remove, active, activate, deactivate }
   })
 }
 
@@ -117,6 +174,59 @@ export function removeHandler() {
       console.dir(result, { depth: null })
     } catch (e) {
       console.error('Listener was not deleted. Reason:')
+      console.error(e?.response?.data?.message)
+    }
+  }
+  return wrapper
+}
+
+export function activeHandler() {
+  async function wrapper({ host, port }: { host: string; port: string }) {
+    const listenerServiceEndpoint = `${host}:${port}`
+    if (!(await isListenerHealthy(listenerServiceEndpoint))) return
+
+    const activeListenerEndpoint = buildUrl(listenerServiceEndpoint, 'active')
+
+    try {
+      const result = (await axios.get(activeListenerEndpoint)).data
+      console.log(result)
+    } catch (e) {
+      console.error(e?.response?.data?.message)
+    }
+  }
+  return wrapper
+}
+
+export function activateHandler() {
+  async function wrapper({ host, port, id }: { host: string; port: string; id: number }) {
+    const listenerServiceEndpoint = `${host}:${port}`
+    if (!(await isListenerHealthy(listenerServiceEndpoint))) return
+
+    const activateListenerEndpoint = buildUrl(listenerServiceEndpoint, `activate/${id}`)
+
+    try {
+      const result = (await axios.get(activateListenerEndpoint)).data
+      console.log(result?.message)
+    } catch (e) {
+      console.error('Listener was not activated. Reason:')
+      console.error(e?.response?.data?.message)
+    }
+  }
+  return wrapper
+}
+
+export function deactivateHandler() {
+  async function wrapper({ host, port, id }: { host: string; port: string; id: number }) {
+    const listenerServiceEndpoint = `${host}:${port}`
+    if (!(await isListenerHealthy(listenerServiceEndpoint))) return
+
+    const deactivateListenerEndpoint = buildUrl(listenerServiceEndpoint, `deactivate/${id}`)
+
+    try {
+      const result = (await axios.get(deactivateListenerEndpoint)).data
+      console.log(result?.message)
+    } catch (e) {
+      console.error('Listener was not deactivated. Reason:')
       console.error(e?.response?.data?.message)
     }
   }

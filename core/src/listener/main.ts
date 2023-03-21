@@ -1,18 +1,20 @@
 import { parseArgs } from 'node:util'
+import type { RedisClientType } from 'redis'
 import { buildLogger } from '../logger'
-import { buildListener as buildAggregatorListener } from './aggregator'
+import { buildListener as buildDataFeedListener } from './data-feed'
 import { buildListener as buildVrfListener } from './vrf'
 import { buildListener as buildRequestResponseListener } from './request-response'
-import { postprocessListeners, validateListenerConfig } from './utils'
+import { postprocessListeners } from './utils'
 import { OraklError, OraklErrorCode } from '../errors'
 import { CHAIN } from '../settings'
 import { getListeners } from './api'
-import { launchHealthCheck } from '../health-check'
 import { hookConsoleError } from '../utils'
 import { IListeners } from './types'
 
+import { createClient } from 'redis'
+
 const LISTENERS: IListeners = {
-  Aggregator: buildAggregatorListener,
+  Aggregator: buildDataFeedListener,
   VRF: buildVrfListener,
   RequestResponse: buildRequestResponseListener
 }
@@ -23,31 +25,24 @@ const LOGGER = buildLogger('listener')
 async function main() {
   hookConsoleError(LOGGER)
   const service = loadArgs()
-  const listenersRawConfig = await getListeners({ service, chain: CHAIN })
-  if (listenersRawConfig.length == 0) {
-    throw new OraklError(
-      OraklErrorCode.NoListenerFoundGivenRequirements,
-      `service: [${service}], chain: [${CHAIN}]`
-    )
-  }
-  const listenersConfig = postprocessListeners({ listenersRawConfig })
-  const isValid = Object.keys(listenersConfig).map((k) =>
-    validateListenerConfig(listenersConfig[k], LOGGER)
-  )
 
-  if (!isValid.every((t) => t)) {
-    throw new OraklError(OraklErrorCode.InvalidListenerConfig)
-  }
+  const listenersRawConfig = await getListeners({ service, chain: CHAIN })
+  const listenersConfig = postprocessListeners({
+    listenersRawConfig,
+    service,
+    chain: CHAIN,
+    logger: LOGGER
+  })
 
   if (!LISTENERS[service] || !listenersConfig[service]) {
     LOGGER.error({ name: 'listener:main', file: FILE_NAME, service }, 'service')
     throw new OraklError(OraklErrorCode.UndefinedListenerRequested)
   }
-  LOGGER.info({ name: 'listener:main', file: FILE_NAME, ...listenersConfig }, 'listenersConfig')
 
-  LISTENERS[service](listenersConfig[service], LOGGER)
+  const redisClient: RedisClientType = createClient()
+  await redisClient.connect()
 
-  launchHealthCheck()
+  LISTENERS[service](listenersConfig[service], redisClient, LOGGER)
 }
 
 function loadArgs(): string {

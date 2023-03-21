@@ -1,5 +1,6 @@
-import { IListenerRawConfig, IListenerConfig, IListenerGroupConfig } from '../types'
 import { Logger } from 'pino'
+import { OraklError, OraklErrorCode } from '../errors'
+import { IListenerRawConfig, IListenerConfig, IListenerGroupConfig } from '../types'
 
 const FILE_NAME = import.meta.url
 
@@ -53,7 +54,7 @@ const FILE_NAME = import.meta.url
  * @param {IListenerRawConfig[]} list of listener raw configurations
  * @return {IListenerGroupConfig} grouped raw listener configurations based on `service` property
  */
-export function postprocessListeners({
+export function groupListeners({
   listenersRawConfig
 }: {
   listenersRawConfig: IListenerRawConfig[]
@@ -96,4 +97,38 @@ export function validateListenerConfig(config: IListenerConfig[], logger?: Logge
   }
 
   return true
+}
+
+export function postprocessListeners({
+  listenersRawConfig,
+  service,
+  chain,
+  logger
+}: {
+  listenersRawConfig: IListenerRawConfig[]
+  service: string
+  chain: string
+  logger?: Logger
+}): IListenerGroupConfig {
+  if (listenersRawConfig.length == 0) {
+    throw new OraklError(
+      OraklErrorCode.NoListenerFoundGivenRequirements,
+      `service: [${service}], chain: [${chain}]`
+    )
+  }
+  const listenersConfig = groupListeners({ listenersRawConfig })
+  const isValid = Object.keys(listenersConfig).map((k) =>
+    validateListenerConfig(listenersConfig[k], logger)
+  )
+
+  if (!isValid.every((t) => t)) {
+    throw new OraklError(OraklErrorCode.InvalidListenerConfig)
+  }
+
+  logger?.info(
+    { name: 'postprocessListeners', file: FILE_NAME, ...listenersConfig },
+    'listenersConfig'
+  )
+
+  return listenersConfig
 }

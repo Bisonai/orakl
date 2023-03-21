@@ -21,13 +21,11 @@ export const PRIVATE_KEY = String(process.env.PRIVATE_KEY)
 export const PUBLIC_KEY = String(process.env.PUBLIC_KEY)
 export const LOCAL_AGGREGATOR = process.env.LOCAL_AGGREGATOR || 'MEDIAN'
 export const LISTENER_DELAY = Number(process.env.LISTENER_DELAY) || 500
+export const LISTENER_PORT = process.env.LISTENER_PORT || 4000
 
 // BullMQ
 export const REMOVE_ON_COMPLETE = 500
 export const REMOVE_ON_FAIL = 1_000
-
-// FIXME Move to Redis
-export const LISTENER_ROOT_DIR = './tmp/listener/'
 
 export const FIXED_HEARTBEAT_QUEUE_NAME = `${DEPLOYMENT_NAME}-fixed-heartbeat-queue`
 export const RANDOM_HEARTBEAT_QUEUE_NAME = `${DEPLOYMENT_NAME}-random-heartbeat-queue`
@@ -52,6 +50,10 @@ export const ALL_QUEUES = [
   REPORTER_VRF_QUEUE_NAME,
   REPORTER_AGGREGATOR_QUEUE_NAME
 ]
+
+export const VRF_LISTENER_STATE_NAME = `${DEPLOYMENT_NAME}-listener-vrf-state`
+export const REQUEST_RESPONSE_LISTENER_STATE_NAME = `${DEPLOYMENT_NAME}-listener-request-response-state`
+export const DATA_FEED_LISTENER_STATE_NAME = `${DEPLOYMENT_NAME}-listener-data-feed-state`
 
 export const BULLMQ_CONNECTION = {
   connection: {

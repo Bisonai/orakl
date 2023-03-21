@@ -1,11 +1,11 @@
 import * as Fs from 'node:fs/promises'
-import * as fs from 'node:fs'
 import os from 'node:os'
 import { createClient } from 'redis'
 import type { RedisClientType } from 'redis'
 import { IncomingWebhook } from '@slack/webhook'
 import Hook from 'console-hook'
 import { SLACK_WEBHOOK_URL } from './settings'
+
 export async function loadJson(filepath) {
   const json = await Fs.readFile(filepath, 'utf8')
   return JSON.parse(json)
@@ -38,20 +38,6 @@ export function pad32Bytes(data) {
     s = '0' + s
   }
   return s
-}
-
-export function mkdir(dir: string) {
-  if (!fs.existsSync(dir)) {
-    fs.mkdirSync(dir, { recursive: true })
-  }
-}
-
-export async function writeTextFile(filepath: string, content: string) {
-  await Fs.writeFile(filepath, content)
-}
-
-export async function readTextFile(filepath: string) {
-  return await Fs.readFile(filepath, 'utf8')
 }
 
 let slackSentTime = new Date().getTime()
