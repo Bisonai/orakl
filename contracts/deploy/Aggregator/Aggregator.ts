@@ -100,8 +100,6 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
     await updateMigration(migrationDirPath, migration)
   }
-
-  return 0
 }
 
 async function localhostDeployment(args) {

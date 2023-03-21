@@ -4,8 +4,11 @@ import * as path from 'node:path'
 import {
   loadJson,
   loadMigration,
+  updateMigration,
   validateRRCDeployConfig,
-  validateRRCSetMinBalanceConfig
+  validateRRCSetMinBalanceConfig,
+  validateRRCSetConfig,
+  validateRRCSetDirectPaymentConfig
 } from '../../scripts/v0.1/utils'
 import { IRRCConfig } from '../../scripts/v0.1/types'
 
@@ -27,6 +30,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
     // Deploy RequestResponseCoordinator ////////////////////////////////////////
     if (config.deploy) {
+      console.log('deploy')
       const deployConfig = config.deploy
       if (!validateRRCDeployConfig(deployConfig)) {
         throw new Error('Invalid RRC deploy config')
@@ -89,6 +93,9 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     if (config.setConfig) {
       console.log('setConfig')
       const setConfig = config.setConfig
+      if (!validateRRCSetConfig(setConfig)) {
+        throw new Error('Invalid RRC setConfig config')
+      }
 
       await (
         await requestResponseCoordinator.setConfig(
@@ -103,6 +110,9 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     if (config.setDirectPaymentConfig) {
       console.log('setDirectPaymentConfig')
       const setDirectPaymentConfig = config.setDirectPaymentConfig
+      if (!validateRRCSetDirectPaymentConfig(setDirectPaymentConfig)) {
+        throw new Error('Invalid RRC setDirectPaymentConfig config')
+      }
 
       await (
         await requestResponseCoordinator.setDirectPaymentConfig(
@@ -151,6 +161,8 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
         await prepaymentDeployerSigner.addCoordinator(requestResponseCoordinatorAddress)
       ).wait()
     }
+
+    await updateMigration(migrationDirPath, migration)
   }
 }
 

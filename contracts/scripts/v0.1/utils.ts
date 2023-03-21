@@ -4,7 +4,8 @@ import {
   IRRCSetMinBalance,
   IRRCDeploy,
   IAggregatorDeployConfig,
-  IAggregatorChangeOraclesConfig
+  IAggregatorChangeOraclesConfig,
+  IRRCSetDirectPaymentConfig
 } from './types'
 
 const MIGRATION_LOCK_FILE_NAME = 'migration.lock'
@@ -144,4 +145,26 @@ export function validateRRCSetMinBalanceConfig(config: IRRCSetMinBalance): boole
   } else {
     return true
   }
+}
+
+export function validateRRCSetConfig(config: IRRCSetConfig): boolean {
+  const requiredProperties = ['maxGasLimit', 'gasAfterPaymentCalculation', 'feeConfig']
+
+  if (!validateProperties(config, requiredProperties)) {
+    return false
+  } else {
+    return true
+  }
+}
+
+export function validateRRCSetDirectPaymentConfig(config: IRRCSetDirectPaymentConfig): boolean {
+  if (!validateProperties(config, ['directPaymentConfig'])) {
+    return false
+  }
+
+  if (!validateProperties(config.directPaymentConfig, ['fulfillmentFee', 'baseFee'])) {
+    return false
+  }
+
+  return true
 }
