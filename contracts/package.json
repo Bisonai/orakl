@@ -25,9 +25,10 @@
     "prettier-solidity-write": "./node_modules/.bin/prettier --write src",
     "prettier-solidity-check": "./node_modules/.bin/prettier --check src",
     "eslint": "DEBUG=eslint:cli-engine npx eslint 'scripts/**'",
-    "deploy:rr": "npx hardhat deploy --deploy-scripts deploy/1-requestResponse",
-    "deploy:vrf": "npx hardhat deploy --deploy-scripts deploy/2-vrf",
-    "deploy:aggregator": "npx hardhat deploy --deploy-scripts deploy/3-aggregator"
+    "deploy:prepayment": "npx hardhat deploy --network localhost --deploy-scripts deploy/Prepayment",
+    "deploy:rr": "npx hardhat deploy --network localhost --deploy-scripts deploy/RequestResponse",
+    "deploy:vrf": "npx hardhat deploy --network localhost --deploy-scripts deploy/VRF",
+    "deploy:aggregator": "npx hardhat deploy --network localhost --deploy-scripts deploy/Aggregator"
   },
   "devDependencies": {
     "@ethersproject/abi": "^5.4.7",
