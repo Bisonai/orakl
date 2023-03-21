@@ -50,7 +50,6 @@ export class AggregatorService {
     try {
       await this.computeAggregatorHash({ data: aggregatorDto, verify: true })
     } catch (e) {
-      console.log(e)
       this.logger.error(e)
       throw new HttpException(e, HttpStatus.BAD_REQUEST)
     }
@@ -113,6 +112,7 @@ export class AggregatorService {
     // Don't use following properties in computation of hash
     delete input.aggregatorHash
     delete input.address
+    delete input.active
 
     const hash = ethers.utils.keccak256(ethers.utils.toUtf8Bytes(JSON.stringify(input)))
 
