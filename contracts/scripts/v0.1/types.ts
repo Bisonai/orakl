@@ -15,10 +15,6 @@ interface IFeeConfig {
   reqsForTier5: number
 }
 
-interface IRequestResponseOracle {
-  address: string
-}
-
 // Aggregator
 interface IAggregatorDeployConfig {
   name: string

@@ -5,7 +5,7 @@ import {
   IRRCDeploy,
   IAggregatorDeployConfig,
   IAggregatorChangeOraclesConfig,
-  IVRFDeploy,
+  IVrfDeploy,
   IRegisterProvingKey,
   IDeregisterProvingKey,
   ICoordinatorConfig,
