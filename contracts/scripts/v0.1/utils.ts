@@ -19,7 +19,7 @@ export async function loadJson(filepath: string) {
     return JSON.parse(json)
   } catch (e) {
     console.error(e)
-    raise(e)
+    throw e
   }
 }
 
@@ -60,7 +60,7 @@ export async function loadMigration(dirPath: string): Promise<string[]> {
     console.error(err)
   }
 
-  let doneMigrations = []
+  let doneMigrations: string[] = []
   if (migrationLockFileExist) {
     const migrationLockFilePath = path.join(dirPath, MIGRATION_LOCK_FILE_NAME)
     doneMigrations = await readMigrationLockFile(migrationLockFilePath)
@@ -84,7 +84,8 @@ export async function updateMigration(dirPath: string, migrationFileName: string
   await appendFile(migrationLockFilePath, `${migrationFileName}\n`)
 }
 
-function validateProperties(config, requiredProperties: string[]) {
+/* eslint-disable @typescript-eslint/no-explicit-any */
+function validateProperties(config: any, requiredProperties: string[]) {
   for (const rp of requiredProperties) {
     if (config[rp] === undefined) return false
   }
@@ -104,7 +105,7 @@ export function validateAggregatorDeployConfig(config: IAggregatorDeployConfig):
 
   if (!validateProperties(config, requiredProperties)) return false
 
-  if (config.paymentAmount > 0 && config.depositAmount > 0) {
+  if (config.paymentAmount > 0 && config.depositAmount && config.depositAmount > 0) {
     return false
   }
 

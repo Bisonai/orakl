@@ -16,7 +16,7 @@ interface IFeeConfig {
 }
 
 // Aggregator
-interface IAggregatorDeployConfig {
+export interface IAggregatorDeployConfig {
   name: string
   paymentAmount: number
   timeout: number
@@ -26,7 +26,7 @@ interface IAggregatorDeployConfig {
   depositAmount?: number
 }
 
-interface IAggregatorChangeOraclesConfig {
+export interface IAggregatorChangeOraclesConfig {
   removed: string[]
   added: string[]
   addedAdmins: string[]
@@ -48,7 +48,7 @@ export interface ICoordinatorConfig {
 }
 
 // Coordinator
-interface ICoordinatorDeploy {
+export interface ICoordinatorDeploy {
   version: string
 }
 
@@ -78,12 +78,12 @@ export interface IRequestResponseCoordinatorConfig {
 }
 
 // VRFCoordinator
-interface IRegisterProvingKey {
+export interface IRegisterProvingKey {
   address: string
   publicProvingKey: [string, string]
 }
 
-interface IDeregisterProvingKey {
+export interface IDeregisterProvingKey {
   publicProvingKey: [string, string]
 }
 
