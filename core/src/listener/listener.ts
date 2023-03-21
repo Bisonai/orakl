@@ -13,7 +13,11 @@ export function listen({
   logger
 }: {
   queueName: string
-  processEventFn: (iface: ethers.utils.Interface, queue: Queue, logger: Logger) => (log) => void
+  processEventFn: (
+    iface: ethers.utils.Interface,
+    queue: Queue,
+    logger: Logger
+  ) => Promise<(log) => Promise<void>>
   abi
   redisClient: RedisClientType
   logger: Logger
@@ -23,7 +27,7 @@ export function listen({
     const contract = new ethers.Contract(listener.address, abi, provider)
     const iface = new ethers.utils.Interface(abi)
     const queue = new Queue(queueName, BULLMQ_CONNECTION)
-    const processEvent = processEventFn(iface, queue, logger)
+    const processEvent = await processEventFn(iface, queue, logger)
     const listenerRedisKey = `listener:${listener.id}`
 
     let observedBlock = Number(await redisClient.get(listenerRedisKey)) || 0
@@ -32,6 +36,7 @@ export function listen({
     const intervalObj = setInterval(async () => {
       try {
         const latestBlock = await provider.getBlockNumber()
+        observedBlock = Math.min(observedBlock, latestBlock)
 
         if (latestBlock > observedBlock) {
           observedBlock = latestBlock

@@ -15,7 +15,6 @@ import { getVrfConfig } from '../api'
 import { watchman } from './watchman'
 
 const FILE_NAME = import.meta.url
-const { keyHash: KEY_HASH } = await getVrfConfig({ chain: CHAIN })
 
 export async function buildListener(
   config: IListenerConfig[],
@@ -48,14 +47,15 @@ export async function buildListener(
   watchman({ listenFn, state, logger })
 }
 
-function processEvent(iface: ethers.utils.Interface, queue: Queue, _logger: Logger) {
+async function processEvent(iface: ethers.utils.Interface, queue: Queue, _logger: Logger) {
   const logger = _logger.child({ name: 'processEvent', file: FILE_NAME })
+  const { keyHash } = await getVrfConfig({ chain: CHAIN })
 
   async function wrapper(log) {
     const eventData = iface.parseLog(log).args as unknown as IRandomWordsRequested
     logger.debug(eventData, 'eventData')
 
-    if (eventData.keyHash != KEY_HASH) {
+    if (eventData.keyHash != keyHash) {
       logger.info(`Ignore event with keyhash [${eventData.keyHash}]`)
     } else {
       const data: IVrfListenerWorker = {

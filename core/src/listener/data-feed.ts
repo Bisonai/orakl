@@ -51,7 +51,7 @@ export async function buildListener(
   watchman({ listenFn, state, logger })
 }
 
-function processEvent(iface: ethers.utils.Interface, queue: Queue, _logger: Logger) {
+async function processEvent(iface: ethers.utils.Interface, queue: Queue, _logger: Logger) {
   const logger = _logger.child({ name: 'processEvent', file: FILE_NAME })
 
   async function wrapper(log) {
