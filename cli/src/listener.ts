@@ -17,6 +17,7 @@ export function listenerSub() {
   // listener list   [--chain ${chain}] [--service ${service}]
   // listener insert  --chain ${chain}   --service ${service} --address ${address} --eventName ${eventName}
   // listener remove  --id ${id}
+  // listener active --host ${host} --port ${port}
   // listener activate --host ${host} --port ${port} --id ${id}
   // listener deactivate --host ${host} --port ${port} --id ${id}
 
@@ -60,6 +61,23 @@ export function listenerSub() {
     handler: removeHandler()
   })
 
+  const active = command({
+    name: 'active',
+    args: {
+      host: option({
+        type: cmdstring,
+        long: 'host',
+        defaultValue: () => LISTENER_SERVICE_HOST
+      }),
+      port: option({
+        type: cmdstring,
+        long: 'port',
+        defaultValue: () => String(LISTENER_SERVICE_PORT)
+      })
+    },
+    handler: activeHandler()
+  })
+
   const activate = command({
     name: 'activate',
     args: {
@@ -98,7 +116,7 @@ export function listenerSub() {
 
   return subcommands({
     name: 'listener',
-    cmds: { list, insert, remove, activate, deactivate }
+    cmds: { list, insert, remove, active, activate, deactivate }
   })
 }
 
@@ -156,6 +174,23 @@ export function removeHandler() {
       console.dir(result, { depth: null })
     } catch (e) {
       console.error('Listener was not deleted. Reason:')
+      console.error(e?.response?.data?.message)
+    }
+  }
+  return wrapper
+}
+
+export function activeHandler() {
+  async function wrapper({ host, port }: { host: string; port: string }) {
+    const listenerServiceEndpoint = `${host}:${port}`
+    if (!(await isListenerHealthy(listenerServiceEndpoint))) return
+
+    const activeListenerEndpoint = buildUrl(listenerServiceEndpoint, 'active')
+
+    try {
+      const result = (await axios.get(activeListenerEndpoint)).data
+      console.log(result)
+    } catch (e) {
       console.error(e?.response?.data?.message)
     }
   }
