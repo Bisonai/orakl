@@ -77,6 +77,11 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     // Update oracles that are allowed to submit to Aggregator /////////////////
     if (config.changeOracles) {
       const changeOraclesConfig = config.changeOracles
+
+      if (!validateAggregatorChangeOraclesConfig(changeOraclesConfig)) {
+        throw new Error('Invalid Aggregator changeOracles config')
+      }
+
       aggregator = aggregator
         ? aggregator
         : await ethers.getContractAt('Aggregator', changeOraclesConfig.aggregatorAddress)
