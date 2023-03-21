@@ -6,6 +6,13 @@
     "./dist",
     "./src"
   ],
+  "keywords": [
+      "Oracle",
+      "Orakl",
+      "Orakl Network",
+      "Blockchain",
+      "Web3"
+  ],
   "engines": {
     "node": ">=18.12"
   },
@@ -13,7 +20,7 @@
   "types": "./dist/typechain-types/index.js",
   "author": "Bisonai",
   "homepage": "https://github.com/Bisonai/orakl/tree/master/contracts#orakl-network-contracts",
-  "license": "UNLICENSED",
+  "license": "MIT",
   "scripts": {
     "prepare": "cd .. && husky install contracts/.husky",
     "clean": "npx hardhat clean && rm -rf dist",
