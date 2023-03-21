@@ -75,7 +75,7 @@ function checkDataFormat(data) {
 
 function validateAdapter(adapter) /*: IAdapter*/ {
   // TODO extract properties from Interface
-  const requiredProperties = ['id', 'name', 'jobType', 'decimals', 'feeds']
+  const requiredProperties = ['id', 'active', 'name', 'jobType', 'decimals', 'feeds']
   // TODO show where is the error
   const hasProperty = requiredProperties.map((p) =>
     Object.prototype.hasOwnProperty.call(adapter, p)

@@ -5,6 +5,9 @@ export class AggregatorDto {
   aggregatorHash: string
 
   @ApiProperty()
+  active: boolean
+
+  @ApiProperty()
   name: string
 
   @ApiProperty()

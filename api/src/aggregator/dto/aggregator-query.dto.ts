@@ -4,6 +4,9 @@ import { toBoolean } from '../../common/helper/cast.helper'
 
 export class AggregatorQueryDto {
   @Transform(({ value }) => toBoolean(value))
+  @ApiProperty({ type: Boolean })
+  active?: boolean
+
   @ApiProperty()
   chain?: string
 

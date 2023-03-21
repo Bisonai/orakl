@@ -40,18 +40,19 @@ export class AggregatorController {
   }
 
   /**
-   * Find all `Aggregator`s based on their assigned `chain` & `address`.
+   * Find all `Aggregator`s based on their `active`ness and assigned `chain`.
    * Used by `Orakl Network Aggregator` during launch of worker.
    *
    * @Query {AggregatorQuerydto}
    */
   @Get()
   async findAll(@Query() query: AggregatorQueryDto) {
-    const { chain, address } = query
+    const { chain, active, address } = query
 
     return await this.aggregatorService.findAll({
       where: {
         chain: { name: chain },
+        active,
         address
       }
     })
@@ -93,13 +94,15 @@ export class AggregatorController {
     return await this.aggregatorService.remove({ id: Number(id) })
   }
 
-  // FIX: Update
-  // @Patch(':id')
-  // async update(@Param('id') aggregatorHash: string, @Body('data') aggregatorDto: AggregatorDto) {
-  //   const { id: chainId } = await this.chainService.findOne({ name: aggregatorDto.chain })
-  //   return await this.aggregatorService.update({
-  //     where: { aggregatorHash_chainId: { aggregatorHash, chainId } },
-  //     aggregatorDto
-  //   })
-  // }
+  @Patch(':id')
+  async update(
+    @Param('id') aggregatorHash: string,
+    @Body('data') aggregatorUpdateDto: AggregatorUpdateDto
+  ) {
+    const { id: chainId } = await this.chainService.findOne({ name: aggregatorUpdateDto.chain })
+    return await this.aggregatorService.update({
+      where: { aggregatorHash_chainId: { aggregatorHash, chainId } },
+      active: aggregatorUpdateDto.active
+    })
+  }
 }

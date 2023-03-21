@@ -93,6 +93,7 @@ export async function getActiveAggregators({
 }): Promise<IAggregator[]> {
   try {
     const url = new URL(AGGREGATOR_ENDPOINT)
+    url.searchParams.append('active', 'true')
     url.searchParams.append('chain', chain)
     const response = (await axios.get(url.toString()))?.data
     return response

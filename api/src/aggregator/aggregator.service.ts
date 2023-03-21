@@ -37,6 +37,7 @@ export class AggregatorService {
 
     const data: Prisma.AggregatorUncheckedCreateInput = {
       aggregatorHash: aggregatorDto.aggregatorHash,
+      active: aggregatorDto.active,
       name: aggregatorDto.name,
       address: aggregatorDto.address,
       heartbeat: aggregatorDto.heartbeat,
@@ -92,14 +93,13 @@ export class AggregatorService {
     })
   }
 
-  // TODO: FIX Updata function
-  // async update(params: { where: Prisma.AggregatorWhereUniqueInput; aggregatorDto: AggregatorDto }) {
-  //   const { where, aggregatorDto } = params
-  //   return await this.prisma.aggregator.update({
-  //     data: aggregatorDto,
-  //     where
-  //   })
-  // }
+  async update(params: { where: Prisma.AggregatorWhereUniqueInput; active: boolean }) {
+    const { where, active } = params
+    return await this.prisma.aggregator.update({
+      data: { active },
+      where
+    })
+  }
 
   async computeAggregatorHash({
     data,
