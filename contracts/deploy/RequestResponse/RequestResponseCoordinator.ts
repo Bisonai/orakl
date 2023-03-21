@@ -5,10 +5,10 @@ import {
   loadJson,
   loadMigration,
   updateMigration,
-  validateRRCDeployConfig,
+  validateCoordinatorDeployConfig,
+  validateDirectPaymentConfig,
   validateMinBalanceConfig,
-  validateRRCSetConfig,
-  validateDirectPaymentConfig
+  validateSetConfig
 } from '../../scripts/v0.1/utils'
 import { IRRCConfig } from '../../scripts/v0.1/types'
 
@@ -32,7 +32,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     if (config.deploy) {
       console.log('deploy')
       const deployConfig = config.deploy
-      if (!validateRRCDeployConfig(deployConfig)) {
+      if (!validateCoordinatorDeployConfig(deployConfig)) {
         throw new Error('Invalid RRC deploy config')
       }
 
@@ -92,7 +92,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     if (config.setConfig) {
       console.log('setConfig')
       const setConfig = config.setConfig
-      if (!validateRRCSetConfig(setConfig)) {
+      if (!validateSetConfig(setConfig)) {
         throw new Error('Invalid RRC setConfig config')
       }
 

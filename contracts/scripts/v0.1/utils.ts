@@ -1,11 +1,10 @@
 import { readdir, readFile, appendFile } from 'node:fs/promises'
 import * as path from 'node:path'
 import {
-  IRRCSetMinBalance,
-  IRRCDeploy,
+  ICoordinatorMinBalance,
+  ICoordinatorDeploy,
   IAggregatorDeployConfig,
   IAggregatorChangeOraclesConfig,
-  IVrfDeploy,
   IRegisterProvingKey,
   IDeregisterProvingKey,
   ICoordinatorConfig,
@@ -131,7 +130,7 @@ export function validateAggregatorChangeOraclesConfig(
   }
 }
 
-export function validateRRCDeployConfig(config: IRRCDeploy): boolean {
+export function validateCoordinatorDeployConfig(config: ICoordinatorDeploy): boolean {
   const requiredProperties = ['version']
 
   if (!validateProperties(config, requiredProperties)) {
@@ -141,7 +140,7 @@ export function validateRRCDeployConfig(config: IRRCDeploy): boolean {
   }
 }
 
-export function validateMinBalanceConfig(config: IRRCSetMinBalance): boolean {
+export function validateMinBalanceConfig(config: ICoordinatorMinBalance): boolean {
   const requiredProperties = ['minBalance']
 
   if (!validateProperties(config, requiredProperties)) {
@@ -171,16 +170,6 @@ export function validateDirectPaymentConfig(config: ICoordinatorDirectPaymentCon
   }
 
   return true
-}
-
-export function validateVrfDeployConfig(config: IVrfDeploy): boolean {
-  const requiredProperties = ['version']
-
-  if (!validateProperties(config, requiredProperties)) {
-    return false
-  } else {
-    return true
-  }
 }
 
 export function validateVrfRegisterProvingKey(config: IRegisterProvingKey[]): boolean {

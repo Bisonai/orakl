@@ -47,6 +47,11 @@ export interface ICoordinatorConfig {
   feeConfig: IFeeConfig
 }
 
+// Coordinator
+interface ICoordinatorDeploy {
+  version: string
+}
+
 export interface ICoordinatorMinBalance {
   minBalance: string
 }
@@ -57,17 +62,13 @@ export interface IAddCoordinator {
 }
 
 // RequestResponseCoordinator
-export interface IRRCDeploy {
-  version: string
-}
-
 export interface ICoordinatorDirectPaymentConfig {
   directPaymentConfig: IDirectPaymentConfig
 }
 
 export interface IRRCConfig {
   requestResponseCoordinatorAddress?: string
-  deploy?: IRRCDeploy
+  deploy?: ICoordinatorDeploy
   registerOracle?: string[]
   deregisterOracle?: string[]
   setConfig?: ICoordinatorConfig
@@ -77,10 +78,6 @@ export interface IRRCConfig {
 }
 
 // VRFCoordinator
-interface IVrfDeploy {
-  version: string
-}
-
 interface IRegisterProvingKey {
   address: string
   publicProvingKey: [string, string]
@@ -92,7 +89,7 @@ interface IDeregisterProvingKey {
 
 export interface IVRFCoordinatorConfig {
   vrfCoordinatorAddress?: string
-  deploy?: IVrfDeploy
+  deploy?: ICoordinatorDeploy
   registerProvingKey?: IRegisterProvingKey[]
   deregisterProvingKey?: IDeregisterProvingKey[]
   setConfig?: ICoordinatorConfig

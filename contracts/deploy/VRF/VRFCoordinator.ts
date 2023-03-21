@@ -5,10 +5,10 @@ import {
   loadJson,
   loadMigration,
   updateMigration,
+  validateCoordinatorDeployConfig,
   validateDirectPaymentConfig,
   validateMinBalanceConfig,
   validateSetConfig,
-  validateVrfDeployConfig,
   validateVrfDeregisterProvingKey,
   validateVrfRegisterProvingKey
 } from '../../scripts/v0.1/utils'
@@ -34,7 +34,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     if (config.deploy) {
       console.log('deploy')
       const deployConfig = config.deploy
-      if (!validateVrfDeployConfig(deployConfig)) {
+      if (!validateCoordinatorDeployConfig(deployConfig)) {
         throw new Error('Invalid VRF deploy config')
       }
 
@@ -162,7 +162,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       await (await prepaymentDeployerSigner.addCoordinator(vrfCoordinatorAddress)).wait()
     }
 
-    // await updateMigration(migrationDirPath, migration)
+    await updateMigration(migrationDirPath, migration)
   }
 }
 
