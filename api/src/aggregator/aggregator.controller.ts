@@ -89,6 +89,26 @@ export class AggregatorController {
       throw new HttpException(msg, HttpStatus.NOT_FOUND)
     }
 
+    // verify aggregator on load
+    const newAggregatorDto: AggregatorDto = {
+      aggregatorHash: aggregatorRecord.aggregatorHash,
+      active: aggregatorRecord.active,
+      name: aggregatorRecord.name,
+      address: aggregatorRecord.address,
+      heartbeat: aggregatorRecord.heartbeat,
+      threshold: aggregatorRecord.threshold,
+      absoluteThreshold: aggregatorRecord.absoluteThreshold,
+      adapterHash: aggregatorRecord.adapter.adapterHash,
+      chain: chain
+    }
+
+    try {
+      await this.aggregatorService.computeAggregatorHash({ data: newAggregatorDto, verify: true })
+    } catch (e) {
+      const msg = `verify Aggregator hash [${aggregatorHash}] failed on load`
+      this.logger.error(msg)
+      throw new HttpException(msg, HttpStatus.METHOD_NOT_ALLOWED)
+    }
     return aggregatorRecord
   }
 
