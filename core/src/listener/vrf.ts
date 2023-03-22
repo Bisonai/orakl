@@ -1,30 +1,61 @@
 import { Queue } from 'bullmq'
 import { ethers } from 'ethers'
 import { Logger } from 'pino'
+import type { RedisClientType } from 'redis'
 import { VRFCoordinator__factory } from '@bisonai/orakl-contracts'
-import { Event } from './event'
+import { listen } from './listener'
+import { State } from './state'
 import { IListenerConfig, IRandomWordsRequested, IVrfListenerWorker } from '../types'
-import { DB, WORKER_VRF_QUEUE_NAME, CHAIN, getVrfConfig } from '../settings'
+import {
+  WORKER_VRF_QUEUE_NAME,
+  CHAIN,
+  VRF_LISTENER_STATE_NAME as listenerStateName
+} from '../settings'
+import { getVrfConfig } from '../api'
+import { watchman } from './watchman'
 
 const FILE_NAME = import.meta.url
-const { key_hash: KEY_HASH } = await getVrfConfig(DB, CHAIN)
 
-export function buildListener(config: IListenerConfig[], logger: Logger) {
+export async function buildListener(
+  config: IListenerConfig[],
+  redisClient: RedisClientType,
+  logger: Logger
+) {
   const queueName = WORKER_VRF_QUEUE_NAME
-  // FIXME remove loop and listen on multiple contract for the same event
-  for (const c of config) {
-    new Event(queueName, processEvent, VRFCoordinator__factory.abi, c, logger).listen()
+  const service = 'VRF'
+  const chain = CHAIN
+
+  const state = new State({ redisClient, listenerStateName, service, chain, logger })
+  // Previously stored listener config is ignored,
+  // and replaced with the latest state of Orakl Network.
+  await state.init()
+
+  const listenFn = listen({
+    queueName,
+    processEventFn: processEvent,
+    abi: VRFCoordinator__factory.abi,
+    redisClient,
+    logger
+  })
+
+  for (const listener of config) {
+    await state.add(listener.id)
+    const intervalId = await listenFn(listener)
+    await state.update(listener.id, intervalId)
   }
+
+  watchman({ listenFn, state, logger })
 }
 
-function processEvent(iface: ethers.utils.Interface, queue: Queue, _logger: Logger) {
+async function processEvent(iface: ethers.utils.Interface, queue: Queue, _logger: Logger) {
   const logger = _logger.child({ name: 'processEvent', file: FILE_NAME })
+  const { keyHash } = await getVrfConfig({ chain: CHAIN })
 
   async function wrapper(log) {
     const eventData = iface.parseLog(log).args as unknown as IRandomWordsRequested
     logger.debug(eventData, 'eventData')
 
-    if (eventData.keyHash != KEY_HASH) {
+    if (eventData.keyHash != keyHash) {
       logger.info(`Ignore event with keyhash [${eventData.keyHash}]`)
     } else {
       const data: IVrfListenerWorker = {

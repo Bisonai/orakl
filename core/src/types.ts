@@ -195,22 +195,30 @@ export type RequestCommitmentRequestResponse = [
   string /* sender */
 ]
 
-export interface IListenerBlock {
-  startBlock: number
-  filePath: string
+export interface IListenerRawConfig {
+  address: string
+  eventName: string
+  service: string
+  chain?: string
 }
 
 export interface IListenerConfig {
+  id: string
   address: string
   eventName: string
+  chain: string
+}
+
+export interface IListenerGroupConfig {
+  [key: string]: IListenerConfig[]
 }
 
 export interface IVrfConfig {
   sk: string
   pk: string
-  pk_x: string
-  pk_y: string
-  key_hash: string
+  pkX: string
+  pkY: string
+  keyHash: string
 }
 
 // Data Feed

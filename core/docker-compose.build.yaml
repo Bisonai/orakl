@@ -5,4 +5,4 @@ services:
     build:
       context: .
       dockerfile: src/Dockerfile
-    image: bisonai/orakl:v0.0.0-dev-alpha
+    image: bisonai/orakl:v0.0.2

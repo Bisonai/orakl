@@ -1,19 +1,20 @@
 import { parseArgs } from 'node:util'
+import type { RedisClientType } from 'redis'
 import { buildLogger } from '../logger'
-import { buildListener as buildAggregatorListener } from './aggregator'
+import { buildListener as buildDataFeedListener } from './data-feed'
 import { buildListener as buildVrfListener } from './vrf'
 import { buildListener as buildRequestResponseListener } from './request-response'
-import { validateListenerConfig } from './utils'
+import { postprocessListeners } from './utils'
 import { OraklError, OraklErrorCode } from '../errors'
-import { DB, CHAIN } from '../settings'
-import { getListeners } from '../settings'
-import { launchHealthCheck } from '../health-check'
+import { CHAIN } from '../settings'
+import { getListeners } from './api'
 import { hookConsoleError } from '../utils'
 import { IListeners } from './types'
-import { IListenerConfig } from '../types'
+
+import { createClient } from 'redis'
 
 const LISTENERS: IListeners = {
-  Aggregator: buildAggregatorListener,
+  Aggregator: buildDataFeedListener,
   VRF: buildVrfListener,
   RequestResponse: buildRequestResponseListener
 }
@@ -23,50 +24,47 @@ const LOGGER = buildLogger('listener')
 
 async function main() {
   hookConsoleError(LOGGER)
-  const listener = loadArgs()
-  const config = await getListeners(DB, CHAIN)
-  validateListeners(config, listener)
-  LISTENERS[listener](config[listener], LOGGER)
-  launchHealthCheck()
-}
+  const service = loadArgs()
 
-function validateListeners(listenersConfig: IListenerConfig[], listener: string): void {
-  const isValid = Object.keys(listenersConfig).map((k) =>
-    validateListenerConfig(listenersConfig[k], LOGGER)
-  )
+  const listenersRawConfig = await getListeners({ service, chain: CHAIN })
+  const listenersConfig = postprocessListeners({
+    listenersRawConfig,
+    service,
+    chain: CHAIN,
+    logger: LOGGER
+  })
 
-  if (!isValid) {
-    throw new OraklError(OraklErrorCode.InvalidListenerConfig)
-  }
-
-  if (!LISTENERS[listener] || !listenersConfig[listener]) {
-    LOGGER.error({ name: 'listener:main', file: FILE_NAME, listener }, 'listener')
+  if (!LISTENERS[service] || !listenersConfig[service]) {
+    LOGGER.error({ name: 'listener:main', file: FILE_NAME, service }, 'service')
     throw new OraklError(OraklErrorCode.UndefinedListenerRequested)
   }
 
-  LOGGER.info({ name: 'listener:main', file: FILE_NAME, ...listenersConfig }, 'listenersConfig')
+  const redisClient: RedisClientType = createClient()
+  await redisClient.connect()
+
+  LISTENERS[service](listenersConfig[service], redisClient, LOGGER)
 }
 
 function loadArgs(): string {
   const {
-    values: { listener }
+    values: { service }
   } = parseArgs({
     options: {
-      listener: {
+      service: {
         type: 'string'
       }
     }
   })
 
-  if (!listener) {
-    throw Error('Missing --listener argument.')
+  if (!service) {
+    throw Error('Missing --service argument.')
   }
 
-  if (!Object.keys(LISTENERS).includes(listener)) {
-    throw Error(`${listener} is not supported listener.`)
+  if (!Object.keys(LISTENERS).includes(service)) {
+    throw Error(`${service} is not supported service.`)
   }
 
-  return listener
+  return service
 }
 
 main().catch((e) => {

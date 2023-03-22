@@ -13,6 +13,8 @@ export enum OraklErrorCode {
   AggregatorNotFound,
   FailedToGetAggregate,
   FailedToGetAggregator,
+  GetListenerRequestFailed,
+  GetVrfConfigRequestFailed,
   IncompleteDataFeed,
   IndexOutOfBoundaries,
   InvalidAdapter,
@@ -29,6 +31,7 @@ export enum OraklErrorCode {
   MissingKeyInJson,
   MissingKeyValuePair,
   MissingMnemonic,
+  NoListenerFoundGivenRequirements,
   ProviderNetworkError,
   TxCannotEstimateGasError,
   TxInvalidAddress,
@@ -38,5 +41,7 @@ export enum OraklErrorCode {
   UndefinedListenerRequested,
   UnexpectedNumberOfJobsInQueue,
   UnexpectedQueryOutput,
-  UniformWrongParams
+  UniformWrongParams,
+  ListenerNotRemoved,
+  ListenerNotAdded
 }

@@ -6,6 +6,13 @@
     "./dist",
     "./src"
   ],
+  "keywords": [
+      "Oracle",
+      "Orakl",
+      "Orakl Network",
+      "Blockchain",
+      "Web3"
+  ],
   "engines": {
     "node": ">=18.12"
   },
@@ -13,7 +20,7 @@
   "types": "./dist/typechain-types/index.js",
   "author": "Bisonai",
   "homepage": "https://github.com/Bisonai/orakl/tree/master/contracts#orakl-network-contracts",
-  "license": "UNLICENSED",
+  "license": "MIT",
   "scripts": {
     "prepare": "cd .. && husky install contracts/.husky",
     "clean": "npx hardhat clean && rm -rf dist",
@@ -24,7 +31,12 @@
     "solhint": "./node_modules/.bin/solhint -f table src/**/*.sol",
     "prettier-solidity-write": "./node_modules/.bin/prettier --write src",
     "prettier-solidity-check": "./node_modules/.bin/prettier --check src",
-    "eslint": "DEBUG=eslint:cli-engine npx eslint 'scripts/**'"
+    "eslint": "DEBUG=eslint:cli-engine npx eslint 'scripts/**'",
+    "deploy:localhost": "npx hardhat deploy --network localhost",
+    "deploy:localhost:prepayment": "yarn deploy:localhost --deploy-scripts deploy/Prepayment",
+    "deploy:localhost:rr": "yarn deploy:localhost --deploy-scripts deploy/RequestResponse",
+    "deploy:localhost:vrf": "yarn deploy:localhost --deploy-scripts deploy/VRF",
+    "deploy:localhost:aggregator": "yarn deploy:localhost --deploy-scripts deploy/Aggregator"
   },
   "devDependencies": {
     "@ethersproject/abi": "^5.4.7",

@@ -1,9 +1,7 @@
-import { VersioningType, RequestMethod } from '@nestjs/common'
+import { VersioningType } from '@nestjs/common'
 
 export function setAppSettings(app) {
-  app.setGlobalPrefix('api', {
-    exclude: [{ path: 'health', method: RequestMethod.GET }]
-  })
+  app.setGlobalPrefix('api')
   app.enableVersioning({
     type: VersioningType.URI
   })

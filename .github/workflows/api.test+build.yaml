@@ -10,6 +10,7 @@ on:
 jobs:
   core-build:
     runs-on: ubuntu-latest
+    timeout-minutes: 3
 
     services:
       postgres:
@@ -44,7 +45,7 @@ jobs:
           DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/orakl-test?schema=public"
         working-directory: ./api
       - name: Run e2e2 test
-        run: yarn test:e2e
+        run: yarn test:e2e --forceExit
         env:
           DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/orakl-test?schema=public"
         working-directory: ./api

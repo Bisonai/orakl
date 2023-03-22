@@ -1,9 +1,11 @@
 import { Test, TestingModule } from '@nestjs/testing'
 import { ChainService } from './chain.service'
 import { PrismaService } from '../prisma.service'
+import { PrismaClient } from '@prisma/client'
 
 describe('ChainService', () => {
   let chain: ChainService
+  let prisma
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -11,6 +13,12 @@ describe('ChainService', () => {
     }).compile()
 
     chain = module.get<ChainService>(ChainService)
+    prisma = module.get<PrismaClient>(PrismaService)
+  })
+
+  afterEach(async () => {
+    jest.resetModules()
+    await prisma.$disconnect()
   })
 
   it('should be defined', () => {
@@ -46,9 +54,5 @@ describe('ChainService', () => {
 
     // Cleanup
     await chain.remove({ id })
-  })
-
-  it('should update the name of chain', async () => {
-    await chain.findAll({})
   })
 })

@@ -3,6 +3,7 @@
 
 generator client {
   provider = "prisma-client-js"
+  engineType = "binary"
 }
 
 datasource db {
@@ -11,64 +12,102 @@ datasource db {
 }
 
 model Chain {
-  id         BigInt       @id @default(autoincrement())
+  id         BigInt       @id @default(autoincrement()) @map("chain_id")
   name       String       @unique
   Aggregator Aggregator[]
+  Listener   Listener[]   
+  VrfKey     VrfKey[]     
+  @@map("chains")
+}
+
+model Service {
+  id       BigInt     @id @default(autoincrement()) @map("service_id")
+  name     String     @unique
+  Listener Listener[] 
+  @@map("services")
+}
+
+model Listener {
+  id        BigInt  @id @default(autoincrement()) @map("listener_id")
+  address   String  @db.VarChar(42)
+  eventName String  @db.VarChar(255) @map("event_name")
+  chain     Chain   @relation(fields: [chainId], references: [id])
+  chainId   BigInt  @map("chain_id")
+  service   Service @relation(fields: [serviceId], references: [id])
+  serviceId BigInt  @map("service_id")
+  @@map("listeners")
+}
+
+model VrfKey {
+  id      BigInt @id @default(autoincrement()) @map("vrf_key_id")
+  sk      String @db.VarChar(64)
+  pk      String @db.VarChar(130)
+  pkX     String @db.VarChar(77) @map("pk_x")
+  pkY     String @db.VarChar(77) @map("pk_y")
+  keyHash String @db.VarChar(66) @map("key_hash")
+  chain   Chain  @relation(fields: [chainId], references: [id])
+  chainId BigInt @map("chain_id")
+  @@map("vrf_keys")
 }
 
 model Feed {
-  id         BigInt  @id @default(autoincrement())
+  id         BigInt  @id @default(autoincrement()) @map("feed_id")
   name       String
   definition Json
   adapter    Adapter @relation(fields: [adapterId], references: [id], onDelete: Cascade)
-  adapterId  BigInt
-  Data       Data[]
+  adapterId  BigInt @map("adapter_id")
+  Data       Data[] 
+  @@map("feeds")
 }
 
 model Adapter {
-  id          BigInt       @id @default(autoincrement())
-  adapterHash String       @unique
+  id          BigInt       @id @default(autoincrement()) @map("adapter_id")
+  adapterHash String       @unique @map("adapter_hash")
   name        String
   decimals    Int
   feeds       Feed[]
-  Aggregator  Aggregator[]
+  Aggregator  Aggregator[] 
+  @@map("adapters")
 }
 
 model Aggregator {
-  id                BigInt      @id @default(autoincrement())
-  aggregatorHash    String
+  id                BigInt      @id @default(autoincrement()) @map("aggregator_id")
+  aggregatorHash    String      @map("aggregator_hash")
   active            Boolean     @default(false)
   name              String
   address           String      @unique
   heartbeat         Int
   threshold         Float
-  absoluteThreshold Float
-  Data              Data[]
+  absoluteThreshold Float       @map("absolute_threshold")
+  Data              Data[]      
   adapter           Adapter     @relation(fields: [adapterId], references: [id])
-  adapterId         BigInt
+  adapterId         BigInt      @map("adapter_id")
   chain             Chain       @relation(fields: [chainId], references: [id])
-  chainId           BigInt
-  Aggregate         Aggregate[]
+  chainId           BigInt      @map("chain_id")
+  Aggregate         Aggregate[] 
 
   @@unique([aggregatorHash, chainId])
+  @@map("aggregators")
 }
 
 model Data {
-  id           BigInt     @id @default(autoincrement())
+  id           BigInt     @id @default(autoincrement()) @map("data_id")
   timestamp    DateTime   @db.Timestamptz
   value        BigInt
   aggregator   Aggregator @relation(fields: [aggregatorId], references: [id])
-  aggregatorId BigInt
+  aggregatorId BigInt     @map("aggregator_id")
   feed         Feed       @relation(fields: [feedId], references: [id])
-  feedId       BigInt
+  feedId       BigInt     @map("feed_id")
+  @@map("data")  
 }
 
 model Aggregate {
-  id           BigInt     @id @default(autoincrement())
+  id           BigInt     @id @default(autoincrement()) @map("aggregate_id")
   timestamp    DateTime   @db.Timestamptz
   value        BigInt
   aggregator   Aggregator @relation(fields: [aggregatorId], references: [id])
-  aggregatorId BigInt
+  aggregatorId BigInt     @map("aggregator_id")
 
   @@index([aggregatorId, timestamp(sort: Desc)])
+  @@map("aggregates")
 }

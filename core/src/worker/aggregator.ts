@@ -18,8 +18,8 @@ import { oracleRoundStateCall } from './utils'
 
 const FILE_NAME = import.meta.url
 
-export async function aggregatorWorker(_logger: Logger) {
-  const logger = _logger.child({ name: 'aggregatorWorker', file: FILE_NAME })
+export async function worker(_logger: Logger) {
+  const logger = _logger.child({ name: 'worker', file: FILE_NAME })
   const aggregators = await getActiveAggregators({ chain: CHAIN, logger })
 
   const fixedHeartbeatQueue = new Queue(FIXED_HEARTBEAT_QUEUE_NAME, BULLMQ_CONNECTION)
@@ -85,7 +85,13 @@ function aggregatorJob(reporterQueueName: string, _logger: Logger) {
 
       await reporterQueue.add(inData.workerSource, outData, {
         removeOnComplete: REMOVE_ON_COMPLETE,
-        removeOnFail: REMOVE_ON_FAIL,
+        // Reporter job can fail, and should be either retried or
+        // removed. We need to remove the job after repeated failure
+        // to prevent deadlock when running with a single node operator.
+        // After removing the job on failure, we can resubmit the job
+        // with the same unique ID representing the submission for
+        // specific aggregator on specific round.
+        removeOnFail: true,
         jobId: buildReporterJobId({
           aggregatorAddress,
           roundId,

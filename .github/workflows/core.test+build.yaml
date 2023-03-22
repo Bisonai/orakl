@@ -10,6 +10,8 @@ on:
 jobs:
   core-build:
     runs-on: ubuntu-latest
+    timeout-minutes: 3
+
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-node@v3
@@ -20,8 +22,8 @@ jobs:
         working-directory: ./core
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-      - name: Run eslint
-        run: yarn eslint
+      - name: Run lint
+        run: yarn lint
         working-directory: ./core
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}

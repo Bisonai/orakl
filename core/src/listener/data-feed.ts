@@ -1,0 +1,82 @@
+import { Queue } from 'bullmq'
+import { ethers } from 'ethers'
+import { Logger } from 'pino'
+import type { RedisClientType } from 'redis'
+import { Aggregator__factory } from '@bisonai/orakl-contracts'
+import { listen } from './listener'
+import { State } from './state'
+import { IListenerConfig, INewRound, IAggregatorWorker } from '../types'
+import { buildReporterJobId } from '../utils'
+import {
+  PUBLIC_KEY,
+  WORKER_AGGREGATOR_QUEUE_NAME,
+  DEPLOYMENT_NAME,
+  REMOVE_ON_COMPLETE,
+  REMOVE_ON_FAIL,
+  CHAIN,
+  DATA_FEED_LISTENER_STATE_NAME as listenerStateName
+} from '../settings'
+import { watchman } from './watchman'
+
+const FILE_NAME = import.meta.url
+
+export async function buildListener(
+  config: IListenerConfig[],
+  redisClient: RedisClientType,
+  logger: Logger
+) {
+  const queueName = WORKER_AGGREGATOR_QUEUE_NAME
+  const service = 'Aggregator'
+  const chain = CHAIN
+
+  const state = new State({ redisClient, listenerStateName, service, chain, logger })
+  // Previously stored listener config is ignored,
+  // and replaced with the latest state of Orakl Network.
+  await state.init()
+
+  const listenFn = listen({
+    queueName,
+    processEventFn: processEvent,
+    abi: Aggregator__factory.abi,
+    redisClient,
+    logger
+  })
+
+  for (const listener of config) {
+    await state.add(listener.id)
+    const intervalId = await listenFn(listener)
+    await state.update(listener.id, intervalId)
+  }
+
+  watchman({ listenFn, state, logger })
+}
+
+async function processEvent(iface: ethers.utils.Interface, queue: Queue, _logger: Logger) {
+  const logger = _logger.child({ name: 'processEvent', file: FILE_NAME })
+
+  async function wrapper(log) {
+    const eventData = iface.parseLog(log).args as unknown as INewRound
+    logger.debug(eventData, 'eventData')
+
+    if (eventData.startedBy != PUBLIC_KEY) {
+      const aggregatorAddress = log.address.toLowerCase()
+      const roundId = eventData.roundId.toNumber()
+      // NewRound emitted by somebody else
+      const data: IAggregatorWorker = {
+        aggregatorAddress,
+        roundId,
+        workerSource: 'event'
+      }
+      logger.debug(data, 'data')
+
+      await queue.add('event', data, {
+        removeOnComplete: REMOVE_ON_COMPLETE,
+        removeOnFail: REMOVE_ON_FAIL,
+        jobId: buildReporterJobId({ aggregatorAddress, roundId, deploymentName: DEPLOYMENT_NAME })
+      })
+      logger.debug({ job: 'event-added' }, 'job-added')
+    }
+  }
+
+  return wrapper
+}

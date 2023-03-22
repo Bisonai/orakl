@@ -1,16 +1,16 @@
 import axios from 'axios'
 import { command, flag, subcommands, option, boolean as cmdboolean } from 'cmd-ts'
-import { idOption, buildUrl } from './utils'
+import { idOption, buildUrl, isOraklNetworkApiHealthy } from './utils'
 import { ReadFile, IAdapter } from './cli-types'
 import { ORAKL_NETWORK_API_URL } from './settings'
 
-const ADAPTER_ENDPOINT = buildUrl(ORAKL_NETWORK_API_URL, 'api/v1/adapter')
+const ADAPTER_ENDPOINT = buildUrl(ORAKL_NETWORK_API_URL, 'adapter')
 
 export function adapterSub() {
   // adapter list
-  // adapter insert --file-path [file-path]
-  // adapter remove --id [id]
-  // adapter hash --file-path [file-path] --verify
+  // adapter insert --file-path ${filePath}
+  // adapter remove --id ${id}
+  // adapter hash --file-path ${filePath} --verify
 
   const list = command({
     name: 'list',
@@ -60,22 +60,31 @@ export function adapterSub() {
 
 export function listHandler(print?: boolean) {
   async function wrapper() {
-    const result = (await axios.get(ADAPTER_ENDPOINT)).data
-    if (print) {
-      console.dir(result, { depth: null })
+    if (!(await isOraklNetworkApiHealthy())) return
+
+    try {
+      const result = (await axios.get(ADAPTER_ENDPOINT)).data
+      if (print) {
+        console.dir(result, { depth: null })
+      }
+      return result
+    } catch (e) {
+      console.dir(e?.response?.data, { depth: null })
     }
-    return result
   }
   return wrapper
 }
 
 export function insertHandler() {
   async function wrapper({ data }: { data }) {
+    if (!(await isOraklNetworkApiHealthy())) return
+
     try {
       const response = (await axios.post(ADAPTER_ENDPOINT, data)).data
       console.dir(response, { depth: null })
     } catch (e) {
-      console.dir(e?.response?.data, { depth: null })
+      console.error('Adapter was not inserted. Reason:')
+      console.error(e?.response?.data?.message)
     }
   }
   return wrapper
@@ -83,12 +92,15 @@ export function insertHandler() {
 
 export function removeHandler() {
   async function wrapper({ id }: { id: number }) {
+    if (!(await isOraklNetworkApiHealthy())) return
+
     try {
       const endpoint = buildUrl(ADAPTER_ENDPOINT, id.toString())
       const response = (await axios.delete(endpoint)).data
       console.dir(response, { depth: null })
     } catch (e) {
-      console.dir(e?.response?.data, { depth: null })
+      console.error('Adapter was not deleted. Reason:')
+      console.error(e?.response?.data?.message)
     }
   }
   return wrapper
@@ -103,6 +115,7 @@ export function hashHandler() {
         .data
       console.dir(adapterWithCorrectHash, { depth: null })
     } catch (e) {
+      console.error('Adapter hash could not be computed. Reason:')
       console.error(e.message)
     }
   }
