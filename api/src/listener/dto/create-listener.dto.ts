@@ -8,8 +8,8 @@ export class CreateListenerDto {
   eventName: string
 
   @ApiProperty()
-  chain: string | bigint
+  chain: string
 
   @ApiProperty()
-  service: string | bigint
+  service: string
 }

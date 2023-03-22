@@ -11,8 +11,8 @@ export class CreateReporterDto {
   oracleAddress: string
 
   @ApiProperty()
-  chain: string //| bigint
+  chain: string
 
   @ApiProperty()
-  service: string //| bigint
+  service: string
 }

@@ -49,13 +49,13 @@ export async function getService({
   serviceName: string
   logger: Logger
 }) {
-  const serviceObj = await this.prisma.service.findUnique({
+  const serviceObj = await service.findUnique({
     where: { name: serviceName }
   })
 
   if (serviceObj == null) {
     const msg = `service.name [${serviceName}] not found`
-    this.logger.error(msg)
+    logger.error(msg)
     throw new HttpException(msg, HttpStatus.NOT_FOUND)
   }
 

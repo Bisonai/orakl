@@ -15,6 +15,7 @@ describe('ListenerService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [ListenerService, ServiceService, ChainService, PrismaService]
     }).compile()
+
     chain = module.get<ChainService>(ChainService)
     service = module.get<ServiceService>(ServiceService)
     listener = module.get<ListenerService>(ListenerService)

@@ -14,11 +14,11 @@ export class ReporterService {
 
   async create(createReporterDto: CreateReporterDto) {
     // chain
-    const chainName = createReporterDto.chain.toString()
+    const chainName = createReporterDto.chain
     const chain = await getChain({ chain: this.prisma.chain, chainName, logger: this.logger })
 
     // service
-    const serviceName = createReporterDto.service.toString()
+    const serviceName = createReporterDto.service
     const service = await getService({
       service: this.prisma.service,
       serviceName,

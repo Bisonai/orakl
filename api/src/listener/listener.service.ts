@@ -14,11 +14,11 @@ export class ListenerService {
 
   async create(createListenerDto: CreateListenerDto) {
     // chain
-    const chainName = createListenerDto.chain.toString()
+    const chainName = createListenerDto.chain
     const chain = await getChain({ chain: this.prisma.chain, chainName, logger: this.logger })
 
     // service
-    const serviceName = createListenerDto.service.toString()
+    const serviceName = createListenerDto.service
     const service = await getService({
       service: this.prisma.service,
       serviceName,
