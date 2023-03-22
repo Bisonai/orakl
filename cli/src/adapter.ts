@@ -1,6 +1,6 @@
 import axios from 'axios'
 import { command, flag, subcommands, option, boolean as cmdboolean } from 'cmd-ts'
-import { idOption, buildUrl, computeAdapterHash } from './utils'
+import { idOption, buildUrl } from './utils'
 import { ReadFile, IAdapter } from './cli-types'
 import { ORAKL_NETWORK_API_URL } from './settings'
 
@@ -97,8 +97,10 @@ export function removeHandler() {
 export function hashHandler() {
   async function wrapper({ data, verify }: { data; verify: boolean }) {
     try {
+      const endpoint = buildUrl(ADAPTER_ENDPOINT, 'hash')
       const adapter = data as IAdapter
-      const adapterWithCorrectHash = await computeAdapterHash({ data: adapter, verify })
+      const adapterWithCorrectHash = (await axios.post(endpoint, adapter, { params: { verify } }))
+        .data
       console.dir(adapterWithCorrectHash, { depth: null })
     } catch (e) {
       console.error(e.message)

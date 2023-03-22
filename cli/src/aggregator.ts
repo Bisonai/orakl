@@ -7,7 +7,7 @@ import {
   string as cmdstring,
   boolean as cmdboolean
 } from 'cmd-ts'
-import { chainOptionalOption, idOption, buildUrl, computeAggregatorHash } from './utils'
+import { chainOptionalOption, idOption, buildUrl } from './utils'
 import { ReadFile, IAggregator } from './cli-types'
 import { ORAKL_NETWORK_API_URL } from './settings'
 
@@ -116,8 +116,13 @@ export function removeHandler() {
 export function hashHandler() {
   async function wrapper({ data, verify }: { data; verify: boolean }) {
     try {
+      const endpoint = buildUrl(AGGREGATOR_ENDPOINT, 'hash')
       const aggregator = data as IAggregator
-      const aggregatorWithCorrectHash = await computeAggregatorHash({ data: aggregator, verify })
+      const aggregatorWithCorrectHash = (
+        await axios.post(endpoint, aggregator, {
+          params: { verify }
+        })
+      ).data
       console.dir(aggregatorWithCorrectHash, { depth: null })
     } catch (e) {
       console.error(e.message)
