@@ -9,7 +9,7 @@ import { IListenerConfig, IRandomWordsRequested, IVrfListenerWorker } from '../t
 import {
   WORKER_VRF_QUEUE_NAME,
   CHAIN,
-  VRF_LISTENER_STATE_NAME as listenerStateName,
+  VRF_LISTENER_STATE_NAME,
   VRF_SERVICE_NAME
 } from '../settings'
 import { getVrfConfig } from '../api'
@@ -23,13 +23,15 @@ export async function buildListener(
   logger: Logger
 ) {
   const queueName = WORKER_VRF_QUEUE_NAME
-  const service = VRF_SERVICE_NAME
-  const chain = CHAIN
 
-  const state = new State({ redisClient, listenerStateName, service, chain, logger })
-  // Previously stored listener config is ignored,
-  // and replaced with the latest state of Orakl Network.
-  await state.init()
+  const state = new State({
+    redisClient,
+    stateName: VRF_LISTENER_STATE_NAME,
+    service: VRF_SERVICE_NAME,
+    chain: CHAIN,
+    logger
+  })
+  await state.clear()
 
   const listenFn = listen({
     queueName,

@@ -10,7 +10,6 @@ import { CHAIN } from '../settings'
 import { getListeners } from './api'
 import { hookConsoleError } from '../utils'
 import { IListeners } from './types'
-
 import { createClient } from 'redis'
 
 const LISTENERS: IListeners = {

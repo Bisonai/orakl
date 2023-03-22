@@ -2,11 +2,14 @@ import { Job, Worker, Queue } from 'bullmq'
 import { ethers } from 'ethers'
 import { Logger } from 'pino'
 import { Aggregator__factory } from '@bisonai/orakl-contracts'
+import { getReporters } from './api'
 import { loadWalletParameters, sendTransaction, buildWallet } from './utils'
 import {
   REPORTER_AGGREGATOR_QUEUE_NAME,
   BULLMQ_CONNECTION,
-  FIXED_HEARTBEAT_QUEUE_NAME
+  FIXED_HEARTBEAT_QUEUE_NAME,
+  DATA_FEED_SERVICE_NAME,
+  CHAIN
 } from '../settings'
 import { IAggregatorWorkerReporter, IAggregatorHeartbeatWorker } from '../types'
 import { OraklError, OraklErrorCode } from '../errors'
@@ -16,10 +19,12 @@ const FILE_NAME = import.meta.url
 export async function reporter(_logger: Logger) {
   _logger.debug({ name: 'reporter', file: FILE_NAME })
 
-  const { privateKey, providerUrl } = loadWalletParameters()
-  const wallet = await buildWallet({ privateKey, providerUrl })
+  const reporterConfig = await getReporters({ service: DATA_FEED_SERVICE_NAME, chain: CHAIN })
 
-  new Worker(REPORTER_AGGREGATOR_QUEUE_NAME, await job(wallet, _logger), BULLMQ_CONNECTION)
+  // const { privateKey, providerUrl } = loadWalletParameters()
+  // const wallet = await buildWallet({ privateKey, providerUrl })
+
+  // new Worker(REPORTER_AGGREGATOR_QUEUE_NAME, await job(wallet, _logger), BULLMQ_CONNECTION)
 }
 
 function job(wallet, _logger: Logger) {

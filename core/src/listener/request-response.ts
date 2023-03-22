@@ -9,7 +9,7 @@ import { IListenerConfig, IDataRequested, IRequestResponseListenerWorker } from 
 import {
   WORKER_REQUEST_RESPONSE_QUEUE_NAME,
   CHAIN,
-  REQUEST_RESPONSE_LISTENER_STATE_NAME as listenerStateName,
+  REQUEST_RESPONSE_LISTENER_STATE_NAME,
   REQUEST_RESPONSE_SERVICE_NAME
 } from '../settings'
 import { watchman } from './watchman'
@@ -22,13 +22,15 @@ export async function buildListener(
   logger: Logger
 ) {
   const queueName = WORKER_REQUEST_RESPONSE_QUEUE_NAME
-  const service = REQUEST_RESPONSE_SERVICE_NAME
-  const chain = CHAIN
 
-  const state = new State({ redisClient, listenerStateName, service, chain, logger })
-  // Previously stored listener config is ignored,
-  // and replaced with the latest state of Orakl Network.
-  await state.init()
+  const state = new State({
+    redisClient,
+    stateName: REQUEST_RESPONSE_LISTENER_STATE_NAME,
+    service: REQUEST_RESPONSE_SERVICE_NAME,
+    chain: CHAIN,
+    logger
+  })
+  await state.clear()
 
   const listenFn = listen({
     queueName,

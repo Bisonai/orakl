@@ -9,38 +9,36 @@ const FILE_NAME = import.meta.url
 
 export class State {
   redisClient: RedisClientType
-  listenerStateName: string
+  stateName: string
   service: string
   chain: string
   logger: Logger
 
   constructor({
     redisClient,
-    listenerStateName,
+    stateName,
     service,
     chain,
     logger
   }: {
     redisClient: RedisClientType
-    listenerStateName: string
+    stateName: string
     service: string
     chain: string
     logger: Logger
   }) {
     this.redisClient = redisClient
-    this.listenerStateName = listenerStateName
+    this.stateName = stateName
     this.service = service
     this.chain = chain
     this.logger = logger
   }
 
   /**
-   * Initialize a state with multiple listener configurations at
-   * once. This method is expected to be called once, after the object
-   * is initialized.
+   * Clear listener state.
    */
-  async init() {
-    await this.redisClient.set(this.listenerStateName, JSON.stringify([]))
+  async clear() {
+    await this.redisClient.set(this.stateName, JSON.stringify([]))
   }
 
   /**
@@ -55,7 +53,7 @@ export class State {
    * List all active listeners.
    */
   async active() {
-    const state = await this.redisClient.get(this.listenerStateName)
+    const state = await this.redisClient.get(this.stateName)
     return state ? JSON.parse(state) : []
   }
 
@@ -73,7 +71,7 @@ export class State {
     const updatedListener = activeListeners.splice(index, 1)[0]
 
     const updatedActiveListeners = [...activeListeners, { ...updatedListener, intervalId }]
-    await this.redisClient.set(this.listenerStateName, JSON.stringify(updatedActiveListeners))
+    await this.redisClient.set(this.stateName, JSON.stringify(updatedActiveListeners))
   }
 
   /**
@@ -115,7 +113,7 @@ export class State {
 
     // Update active listeners
     const updatedActiveListeners = [...activeListeners, ...toAddListener]
-    await this.redisClient.set(this.listenerStateName, JSON.stringify(updatedActiveListeners))
+    await this.redisClient.set(this.stateName, JSON.stringify(updatedActiveListeners))
 
     return toAddListener[0]
   }
@@ -142,7 +140,7 @@ export class State {
     }
 
     // Update active listeners
-    await this.redisClient.set(this.listenerStateName, JSON.stringify(activeListeners))
+    await this.redisClient.set(this.stateName, JSON.stringify(activeListeners))
     clearInterval(removedListener.intervalId)
   }
 }
