@@ -13,9 +13,8 @@ import {
 } from 'cmd-ts'
 import sqlite from 'sqlite3'
 import { open } from 'sqlite'
-import { ethers } from 'ethers'
 import { CliError, CliErrorCode } from './errors'
-import { IAdapter, IAggregator, ChainId, ServiceId, DbCmdOutput } from './cli-types'
+import { ChainId, ServiceId, DbCmdOutput } from './cli-types'
 import { ORAKL_NETWORK_API_URL, ORAKL_NETWORK_FETCHER_URL } from './settings'
 
 function mkdir(dir: string) {
@@ -110,58 +109,6 @@ export async function isValidUrl(url: string) {
     return Boolean(new URL(url))
   } catch (e) {
     return false
-  }
-}
-
-export async function computeAdapterHash({
-  data,
-  verify
-}: {
-  data: IAdapter
-  verify?: boolean
-}): Promise<IAdapter> {
-  const input = JSON.parse(JSON.stringify(data))
-
-  // Don't use following properties in computation of hash
-  delete input.adapterHash
-
-  const hash = ethers.utils.keccak256(ethers.utils.toUtf8Bytes(JSON.stringify(input)))
-
-  if (verify && data.adapterHash != hash) {
-    throw new CliError(
-      CliErrorCode.UnmatchingHash,
-      `Hashes do not match!\nExpected ${hash}, received ${data.adapterHash}.`
-    )
-  } else {
-    data.adapterHash = hash
-    return data
-  }
-}
-
-export async function computeAggregatorHash({
-  data,
-  verify
-}: {
-  data: IAggregator
-  verify?: boolean
-}): Promise<IAggregator> {
-  const input = JSON.parse(JSON.stringify(data))
-
-  // Don't use following properties in computation of hash
-  delete input.aggregatorHash
-  delete input.active
-  delete input.address
-
-  const hash = ethers.utils.keccak256(ethers.utils.toUtf8Bytes(JSON.stringify(input)))
-
-  if (verify && data.aggregatorHash != hash) {
-    throw new CliError(
-      CliErrorCode.UnmatchingHash,
-      `Hashes do not match!\nExpected ${hash}, received ${data.aggregatorHash}.`
-    )
-  } else {
-    data.aggregatorHash = hash
-    return data
   }
 }
 
