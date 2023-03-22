@@ -1,9 +1,10 @@
-import { Injectable, HttpStatus, HttpException, Logger } from '@nestjs/common'
+import { Injectable, Logger } from '@nestjs/common'
 import { Prisma } from '@prisma/client'
 import { PrismaService } from '../prisma.service'
 import { CreateListenerDto } from './dto/create-listener.dto'
 import { UpdateListenerDto } from './dto/update-listener.dto'
 import { flattenListener } from './listener.utils'
+import { getChain, getService } from '../common/utils'
 
 @Injectable()
 export class ListenerService {
@@ -14,28 +15,17 @@ export class ListenerService {
   async create(createListenerDto: CreateListenerDto) {
     // chain
     const chainName = createListenerDto.chain.toString()
-    const chain = await this.prisma.chain.findUnique({
-      where: { name: chainName }
-    })
+    const chain = await getChain({ chain: this.prisma.chain, chainName, logger: this.logger })
 
-    if (chain == null) {
-      const msg = `chain.name [${chainName}] not found`
-      this.logger.error(msg)
-      throw new HttpException(msg, HttpStatus.NOT_FOUND)
-    }
-
-    // chain
+    // service
     const serviceName = createListenerDto.service.toString()
-    const service = await this.prisma.service.findUnique({
-      where: { name: serviceName }
+    const service = await getService({
+      service: this.prisma.service,
+      serviceName,
+      logger: this.logger
     })
 
-    if (service == null) {
-      const msg = `service.name [${serviceName}] not found`
-      this.logger.error(msg)
-      throw new HttpException(msg, HttpStatus.NOT_FOUND)
-    }
-
+    // listener
     const data: Prisma.ListenerUncheckedCreateInput = {
       address: createListenerDto.address,
       eventName: createListenerDto.eventName,
