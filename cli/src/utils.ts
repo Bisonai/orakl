@@ -101,13 +101,13 @@ export async function isOraklFetcherHealthy() {
   }
 }
 
-export async function isListenerHealthy(url: string) {
+export async function isServiceHealthy(url: string) {
   const healthEndpoint = buildUrl(url, 'health')
   try {
     return 200 === (await axios.get(healthEndpoint))?.status
   } catch (e) {
     console.log(e)
-    console.error(`Listener [${healthEndpoint}] is down`)
+    console.error(`${healthEndpoint} is down`)
     return false
   }
 }

@@ -6,7 +6,7 @@ import {
   serviceOptionalOption,
   buildUrl,
   isOraklNetworkApiHealthy,
-  isListenerHealthy
+  isServiceHealthy
 } from './utils'
 
 import { ORAKL_NETWORK_API_URL, LISTENER_SERVICE_HOST, LISTENER_SERVICE_PORT } from './settings'
@@ -183,7 +183,7 @@ export function removeHandler() {
 export function activeHandler() {
   async function wrapper({ host, port }: { host: string; port: string }) {
     const listenerServiceEndpoint = `${host}:${port}`
-    if (!(await isListenerHealthy(listenerServiceEndpoint))) return
+    if (!(await isServiceHealthy(listenerServiceEndpoint))) return
 
     const activeListenerEndpoint = buildUrl(listenerServiceEndpoint, 'active')
 
@@ -200,7 +200,7 @@ export function activeHandler() {
 export function activateHandler() {
   async function wrapper({ host, port, id }: { host: string; port: string; id: number }) {
     const listenerServiceEndpoint = `${host}:${port}`
-    if (!(await isListenerHealthy(listenerServiceEndpoint))) return
+    if (!(await isServiceHealthy(listenerServiceEndpoint))) return
 
     const activateListenerEndpoint = buildUrl(listenerServiceEndpoint, `activate/${id}`)
 
@@ -218,7 +218,7 @@ export function activateHandler() {
 export function deactivateHandler() {
   async function wrapper({ host, port, id }: { host: string; port: string; id: number }) {
     const listenerServiceEndpoint = `${host}:${port}`
-    if (!(await isListenerHealthy(listenerServiceEndpoint))) return
+    if (!(await isServiceHealthy(listenerServiceEndpoint))) return
 
     const deactivateListenerEndpoint = buildUrl(listenerServiceEndpoint, `deactivate/${id}`)
 
