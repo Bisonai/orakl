@@ -15,7 +15,7 @@ const REPORTER_ENDPOINT = buildUrl(ORAKL_NETWORK_API_URL, 'reporter')
 
 export function reporterSub() {
   // reporter list   [--chain ${chain}] [--service ${service}]
-  // reporter insert  --chain ${chain}   --service ${service} --address ${address} --eventName ${eventName}
+  // reporter insert  --chain ${chain}   --service ${service} --address ${address} --privateKey ${privateKey} --oracleAddress ${oracleAddress}
   // reporter remove  --id ${id}
 
   const list = command({
