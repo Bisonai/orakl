@@ -59,7 +59,7 @@ export class State {
 
   /**
    * Update the listener defined as IListenerConfig with
-   * intervalId. IntervalId is used to `clearInterval`.
+   * `intervalId`. `intervalId` is used to `clearInterval`.
    *
    * @param {string} listener ID
    * @param {number} interval ID
@@ -123,7 +123,7 @@ export class State {
    * it was in an active state.
    *
    * @param {string} listener ID
-   * @exception {OraklErrorCode.ListenerNotRemoved} raise when no listener removed
+   * @exception {OraklErrorCode.ListenerNotRemoved} raise when no listener was removed
    */
   async remove(id: string) {
     const activeListeners = await this.active()
