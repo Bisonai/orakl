@@ -85,7 +85,13 @@ function aggregatorJob(reporterQueueName: string, _logger: Logger) {
 
       await reporterQueue.add(inData.workerSource, outData, {
         removeOnComplete: REMOVE_ON_COMPLETE,
-        removeOnFail: REMOVE_ON_FAIL,
+        // Reporter job can fail, and should be either retried or
+        // removed. We need to remove the job after repeated failure
+        // to prevent deadlock when running with a single node operator.
+        // After removing the job on failure, we can resubmit the job
+        // with the same unique ID representing the submission for
+        // specific aggregator on specific round.
+        removeOnFail: true,
         jobId: buildReporterJobId({
           aggregatorAddress,
           roundId,
