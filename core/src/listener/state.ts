@@ -1,4 +1,5 @@
 import { Logger } from 'pino'
+import type { RedisClientType } from 'redis'
 import { getListeners } from './api'
 import { postprocessListeners } from './utils'
 import { IListenerConfig } from '../types'
@@ -7,7 +8,7 @@ import { OraklError, OraklErrorCode } from '../errors'
 const FILE_NAME = import.meta.url
 
 export class State {
-  redisClient
+  redisClient: RedisClientType
   listenerStateName: string
   service: string
   chain: string
@@ -20,7 +21,7 @@ export class State {
     chain,
     logger
   }: {
-    redisClient
+    redisClient: RedisClientType
     listenerStateName: string
     service: string
     chain: string
@@ -54,7 +55,8 @@ export class State {
    * List all active listeners.
    */
   async active() {
-    return JSON.parse(await this.redisClient.get(this.listenerStateName))
+    const state = await this.redisClient.get(this.listenerStateName)
+    return state ? JSON.parse(state) : []
   }
 
   /**
