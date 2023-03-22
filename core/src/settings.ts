@@ -21,9 +21,12 @@ export const PRIVATE_KEY = String(process.env.PRIVATE_KEY)
 export const PUBLIC_KEY = String(process.env.PUBLIC_KEY)
 export const LOCAL_AGGREGATOR = process.env.LOCAL_AGGREGATOR || 'MEDIAN'
 export const LISTENER_DELAY = Number(process.env.LISTENER_DELAY) || 500
-export const LISTENER_PORT = process.env.LISTENER_PORT || 4000
 
-export const AGGREGATOR_SERVICE_NAME = 'Aggregator'
+// Service ports are used for communication to watchman from the outside
+export const LISTENER_PORT = process.env.LISTENER_PORT || 4_000
+export const REPORTER_PORT = process.env.REPORTER_PORT || 6_000
+
+export const DATA_FEED_SERVICE_NAME = 'Aggregator'
 export const VRF_SERVICE_NAME = 'VRF'
 export const REQUEST_RESPONSE_SERVICE_NAME = 'RequestResponse'
 

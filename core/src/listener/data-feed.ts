@@ -14,7 +14,8 @@ import {
   REMOVE_ON_COMPLETE,
   REMOVE_ON_FAIL,
   CHAIN,
-  DATA_FEED_LISTENER_STATE_NAME as listenerStateName
+  DATA_FEED_LISTENER_STATE_NAME as listenerStateName,
+  DATA_FEED_SERVICE_NAME
 } from '../settings'
 import { watchman } from './watchman'
 
@@ -26,7 +27,7 @@ export async function buildListener(
   logger: Logger
 ) {
   const queueName = WORKER_AGGREGATOR_QUEUE_NAME
-  const service = 'Aggregator'
+  const service = DATA_FEED_SERVICE_NAME
   const chain = CHAIN
 
   const state = new State({ redisClient, listenerStateName, service, chain, logger })

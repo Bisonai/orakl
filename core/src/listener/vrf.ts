@@ -9,7 +9,8 @@ import { IListenerConfig, IRandomWordsRequested, IVrfListenerWorker } from '../t
 import {
   WORKER_VRF_QUEUE_NAME,
   CHAIN,
-  VRF_LISTENER_STATE_NAME as listenerStateName
+  VRF_LISTENER_STATE_NAME as listenerStateName,
+  VRF_SERVICE_NAME
 } from '../settings'
 import { getVrfConfig } from '../api'
 import { watchman } from './watchman'
@@ -22,7 +23,7 @@ export async function buildListener(
   logger: Logger
 ) {
   const queueName = WORKER_VRF_QUEUE_NAME
-  const service = 'VRF'
+  const service = VRF_SERVICE_NAME
   const chain = CHAIN
 
   const state = new State({ redisClient, listenerStateName, service, chain, logger })
