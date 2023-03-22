@@ -1,5 +1,5 @@
 import { Logger } from 'pino'
-import { getListeners, getListener } from './api'
+import { getListeners } from './api'
 import { postprocessListeners } from './utils'
 import { IListenerConfig } from '../types'
 import { OraklError, OraklErrorCode } from '../errors'
