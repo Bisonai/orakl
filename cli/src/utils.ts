@@ -1,7 +1,6 @@
 import { open as openFile, readFile } from 'node:fs/promises'
 import axios from 'axios'
 import { optional, number as cmdnumber, string as cmdstring, option } from 'cmd-ts'
-import { CliError, CliErrorCode } from './errors'
 import { ORAKL_NETWORK_API_URL, ORAKL_NETWORK_FETCHER_URL } from './settings'
 
 export const chainOptionalOption = option({

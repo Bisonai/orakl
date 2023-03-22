@@ -7,12 +7,7 @@ import {
   string as cmdstring,
   boolean as cmdboolean
 } from 'cmd-ts'
-import {
-  chainOptionalOption,
-  idOption,
-  buildUrl,
-  isOraklNetworkApiHealthy
-} from './utils'
+import { chainOptionalOption, idOption, buildUrl, isOraklNetworkApiHealthy } from './utils'
 import { ReadFile, IAggregator } from './cli-types'
 import { ORAKL_NETWORK_API_URL } from './settings'
 
