@@ -30,4 +30,26 @@ describe('ReporterService', () => {
   it('should be defined', () => {
     expect(reporter).toBeDefined()
   })
+
+  it('should insert reporter', async () => {
+    // Chain
+    const chainObj = await chain.create({ name: 'reporter-test-chain' })
+
+    // Service
+    const serviceObj = await service.create({ name: 'reporter-test-service' })
+
+    // Reporter
+    const reporterObj = await reporter.create({
+      address: '0x',
+      privateKey: '0x',
+      oracleAddress: '0x',
+      chain: chainObj.name,
+      service: serviceObj.name
+    })
+
+    // Cleanup
+    await reporter.remove({ id: reporterObj.id })
+    await service.remove({ id: serviceObj.id })
+    await chain.remove({ id: chainObj.id })
+  })
 })

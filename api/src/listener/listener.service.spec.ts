@@ -38,6 +38,7 @@ describe('ListenerService', () => {
     // Service
     const serviceObj = await service.create({ name: 'listener-test-service' })
 
+    // Listener
     const listenerObj = await listener.create({
       address: '0x',
       eventName: 'TestEventName',
