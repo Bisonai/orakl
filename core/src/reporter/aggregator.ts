@@ -25,7 +25,6 @@ export async function reporter(_logger: Logger) {
 function job(wallet, _logger: Logger) {
   const logger = _logger.child({ name: 'aggregatorJob', file: FILE_NAME })
   const iface = new ethers.utils.Interface(Aggregator__factory.abi)
-
   const heartbeatQueue = new Queue(FIXED_HEARTBEAT_QUEUE_NAME, BULLMQ_CONNECTION)
 
   async function wrapper(job: Job) {
@@ -33,7 +32,6 @@ function job(wallet, _logger: Logger) {
     logger.debug(inData, 'inData')
 
     const aggregatorAddress = inData.callbackAddress
-
     await submitHeartbeatJob(heartbeatQueue, aggregatorAddress, inData.delay, logger)
 
     try {
