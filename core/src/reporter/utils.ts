@@ -6,31 +6,29 @@ import { add0x } from '../utils'
 
 const FILE_NAME = import.meta.url
 
-export async function buildWallet({
+export function buildWallet({
   privateKey,
-  providerUrl,
-  testConnection
+  providerUrl
 }: {
   privateKey: string
   providerUrl: string
-  testConnection?: boolean
 }) {
   const provider = new ethers.providers.JsonRpcProvider(providerUrl)
   const wallet = new ethers.Wallet(privateKey, provider)
 
-  if (testConnection) {
-    try {
-      await wallet.getTransactionCount()
-    } catch (e) {
-      if (e.code == 'NETWORK_ERROR') {
-        throw new OraklError(OraklErrorCode.ProviderNetworkError, 'ProviderNetworkError', e.reason)
-      } else {
-        throw e
-      }
+  return wallet
+}
+
+export async function testConnection(wallet: ethers.Wallet) {
+  try {
+    await wallet.getTransactionCount()
+  } catch (e) {
+    if (e.code == 'NETWORK_ERROR') {
+      throw new OraklError(OraklErrorCode.ProviderNetworkError, 'ProviderNetworkError', e.reason)
+    } else {
+      throw e
     }
   }
-
-  return wallet
 }
 
 export function loadWalletParameters() {
@@ -51,16 +49,16 @@ export async function sendTransaction({
   payload,
   gasLimit,
   value,
-  _logger
+  logger
 }: {
   wallet
   to: string
   payload?: string
   gasLimit?: number | string
   value?: number | string | ethers.BigNumber
-  _logger?: Logger
+  logger?: Logger
 }) {
-  const logger = _logger?.child({ name: 'sendTransaction', file: FILE_NAME })
+  const _logger = logger?.child({ name: 'sendTransaction', file: FILE_NAME })
 
   if (payload) {
     payload = add0x(payload)
@@ -76,16 +74,16 @@ export async function sendTransaction({
   if (gasLimit) {
     tx['gasLimit'] = gasLimit
   }
-  logger?.debug(tx, 'tx')
+  _logger?.debug(tx, 'tx')
 
   try {
     const txReceipt = await (await wallet.sendTransaction(tx)).wait(1)
-    logger?.debug(txReceipt, 'txReceipt')
+    _logger?.debug(txReceipt, 'txReceipt')
     if (txReceipt === null) {
       throw new OraklError(OraklErrorCode.TxNotMined)
     }
   } catch (e) {
-    logger?.debug(e, 'e')
+    _logger?.debug(e, 'e')
 
     if (e.reason == 'invalid address') {
       throw new OraklError(OraklErrorCode.TxInvalidAddress, 'TxInvalidAddress', e.value)

@@ -3,7 +3,6 @@ import { ethers } from 'ethers'
 import { Logger } from 'pino'
 import type { RedisClientType } from 'redis'
 import { Aggregator__factory } from '@bisonai/orakl-contracts'
-import { getReporters } from './api'
 import { State } from './state'
 import { sendTransaction } from './utils'
 import {
@@ -21,9 +20,7 @@ import { OraklError, OraklErrorCode } from '../errors'
 const FILE_NAME = import.meta.url
 
 export async function reporter(redisClient: RedisClientType, _logger: Logger) {
-  _logger.debug({ name: 'reporter', file: FILE_NAME })
-
-  // const reporterConfig = await getReporters({ service: DATA_FEED_SERVICE_NAME, chain: CHAIN })
+  const logger = _logger.child({ name: 'reporter', file: FILE_NAME })
 
   const state = new State({
     redisClient,
@@ -31,15 +28,15 @@ export async function reporter(redisClient: RedisClientType, _logger: Logger) {
     stateName: DATA_FEED_REPORTER_STATE_NAME,
     service: DATA_FEED_SERVICE_NAME,
     chain: CHAIN,
-    logger: _logger
+    logger
   })
-  await state.clear()
+  await state.refresh()
 
-  new Worker(REPORTER_AGGREGATOR_QUEUE_NAME, await job(state, _logger), BULLMQ_CONNECTION)
+  new Worker(REPORTER_AGGREGATOR_QUEUE_NAME, await job(state, logger), BULLMQ_CONNECTION)
+  logger.debug('Reporter worker launched')
 }
 
-function job(state: State, _logger: Logger) {
-  const logger = _logger.child({ name: 'aggregatorJob', file: FILE_NAME })
+function job(state: State, logger: Logger) {
   const iface = new ethers.utils.Interface(Aggregator__factory.abi)
   const heartbeatQueue = new Queue(FIXED_HEARTBEAT_QUEUE_NAME, BULLMQ_CONNECTION)
 
@@ -62,13 +59,14 @@ function job(state: State, _logger: Logger) {
       const gasLimit = 300_000 // FIXME move to settings outside of code
 
       // TODO retry when transaction failed
-      await sendTransaction({ wallet, to: oracleAddress, payload, _logger, gasLimit })
+      await sendTransaction({ wallet, to: oracleAddress, payload, logger, gasLimit })
     } catch (e) {
       logger.error(e)
       throw e
     }
   }
 
+  logger.debug('Reporter job built')
   return wrapper
 }
 
@@ -102,4 +100,5 @@ async function submitHeartbeatJob(
     backoff: 1_000
   })
   logger.debug({ job: 'added', delay: delay }, 'job-added')
+  logger.debug('Reporter submitted heartbeat job')
 }

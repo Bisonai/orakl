@@ -35,7 +35,7 @@ export async function oracleRoundStateCall({
   roundId?: number
   logger?: Logger
 }): Promise<IOracleRoundState> {
-  logger?.debug({ name: 'oracleRoundStateCall', file: FILE_NAME })
+  logger?.debug({ aggregatorAddress, operatorAddress }, 'oracleRoundStateCall')
 
   const aggregator = new ethers.Contract(aggregatorAddress, Aggregator__factory.abi, PROVIDER)
 

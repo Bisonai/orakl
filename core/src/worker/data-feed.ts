@@ -1,17 +1,18 @@
 import { Worker, Queue, Job } from 'bullmq'
 import { Logger } from 'pino'
 import { getAggregatorGivenAddress, getActiveAggregators, fetchDataFeed } from './api'
+import { getReporterByOracleAddress } from '../api'
 import { IAggregatorWorker, IAggregatorWorkerReporter } from '../types'
 import {
   WORKER_AGGREGATOR_QUEUE_NAME,
   REPORTER_AGGREGATOR_QUEUE_NAME,
   FIXED_HEARTBEAT_QUEUE_NAME,
   BULLMQ_CONNECTION,
-  PUBLIC_KEY as OPERATOR_ADDRESS,
   DEPLOYMENT_NAME,
   REMOVE_ON_COMPLETE,
   REMOVE_ON_FAIL,
-  CHAIN
+  CHAIN,
+  DATA_FEED_SERVICE_NAME
 } from '../settings'
 import { buildReporterJobId } from '../utils'
 import { oracleRoundStateCall } from './utils'
@@ -22,17 +23,33 @@ export async function worker(_logger: Logger) {
   const logger = _logger.child({ name: 'worker', file: FILE_NAME })
   const aggregators = await getActiveAggregators({ chain: CHAIN, logger })
 
+  if (aggregators.length == 0) {
+    logger.warn('No active aggregators')
+    return 1
+  }
+
+  console.log(aggregators)
+  const oracleOperatorMapping = {
+    oracleAddress: 'operatorAddress'
+  }
+
   const fixedHeartbeatQueue = new Queue(FIXED_HEARTBEAT_QUEUE_NAME, BULLMQ_CONNECTION)
 
   // Launch all active aggregators
   for (const aggregator of aggregators) {
     const aggregatorAddress = aggregator.address
 
+    const operatorAddress = await getOperatorAddress({ oracleAddress: aggregatorAddress, logger })
     await fixedHeartbeatQueue.add(
       'heartbeat',
       { aggregatorAddress },
       {
-        delay: await getSynchronizedDelay(aggregatorAddress, aggregator.heartbeat, _logger),
+        delay: await getSynchronizedDelay({
+          aggregatorAddress,
+          operatorAddress,
+          heartbeat: aggregator.heartbeat,
+          logger
+        }),
         removeOnComplete: true,
         removeOnFail: true
       }
@@ -66,6 +83,7 @@ function aggregatorJob(reporterQueueName: string, _logger: Logger) {
     const roundId = inData.roundId
 
     try {
+      const operatorAddress = await getOperatorAddress({ oracleAddress: aggregatorAddress, logger })
       const { aggregatorHash, heartbeat } = await getAggregatorGivenAddress({
         aggregatorAddress,
         logger
@@ -74,11 +92,12 @@ function aggregatorJob(reporterQueueName: string, _logger: Logger) {
       const outData = await prepareDataForReporter({
         aggregatorHash,
         aggregatorAddress,
+        operatorAddress,
         report: true,
         workerSource: inData.workerSource,
         delay: heartbeat,
         roundId,
-        _logger
+        logger
       })
 
       logger.debug(outData, 'outData-regular')
@@ -123,9 +142,10 @@ function heartbeatJob(aggregatorJobQueueName: string, _logger: Logger) {
     logger.debug(aggregatorAddress, 'aggregatorAddress-fixed')
 
     try {
+      const operatorAddress = await getOperatorAddress({ oracleAddress: aggregatorAddress, logger })
       const oracleRoundState = await oracleRoundStateCall({
         aggregatorAddress,
-        operatorAddress: OPERATOR_ADDRESS,
+        operatorAddress,
         logger
       })
       logger.debug(oracleRoundState, 'oracleRoundState-fixed')
@@ -174,27 +194,30 @@ function heartbeatJob(aggregatorJobQueueName: string, _logger: Logger) {
 async function prepareDataForReporter({
   aggregatorHash,
   aggregatorAddress,
+  operatorAddress,
   report,
   workerSource,
   delay,
   roundId,
-  _logger
+  logger
 }: {
   aggregatorHash: string
   aggregatorAddress: string
+  operatorAddress: string
   report?: boolean
   workerSource: string
   delay: number
   roundId?: number
-  _logger: Logger
+  logger: Logger
 }): Promise<IAggregatorWorkerReporter> {
-  const logger = _logger.child({ name: 'prepareDataForReporter', file: FILE_NAME })
+  logger.debug('prepareDataForReporter')
 
-  const { value } = await fetchDataFeed({ aggregatorHash, logger })
+  // const { value } = await fetchDataFeed({ aggregatorHash, logger })
+  const value = 978124 // FIXME
 
   const oracleRoundState = await oracleRoundStateCall({
     aggregatorAddress,
-    operatorAddress: OPERATOR_ADDRESS,
+    operatorAddress,
     roundId,
     logger
   })
@@ -258,15 +281,24 @@ function shouldReport(
  * @param {Logger}
  * @return {number} delay in seconds until the next round
  */
-async function getSynchronizedDelay(
-  aggregatorAddress: string,
-  heartbeat: number,
-  _logger: Logger
-): Promise<number> {
+async function getSynchronizedDelay({
+  aggregatorAddress,
+  operatorAddress,
+  heartbeat,
+  logger
+}: {
+  aggregatorAddress: string
+  operatorAddress: string
+  heartbeat: number
+  logger: Logger
+}): Promise<number> {
+  logger.debug('getSynchronizedDelay')
+
   let startedAt = 0
   const { _startedAt, _roundId } = await oracleRoundStateCall({
     aggregatorAddress,
-    operatorAddress: OPERATOR_ADDRESS
+    operatorAddress,
+    logger
   })
 
   if (_startedAt.toNumber() != 0) {
@@ -274,15 +306,15 @@ async function getSynchronizedDelay(
   } else {
     const { _startedAt } = await oracleRoundStateCall({
       aggregatorAddress,
-      operatorAddress: OPERATOR_ADDRESS,
+      operatorAddress,
       roundId: Math.max(0, _roundId - 1)
     })
     startedAt = _startedAt.toNumber()
   }
 
-  _logger.debug({ startedAt }, 'startedAt')
+  logger.debug({ startedAt }, 'startedAt')
   const delay = heartbeat - (startedAt % heartbeat)
-  _logger.debug({ delay }, 'delay')
+  logger.debug({ delay }, 'delay')
 
   return delay
 }
@@ -295,4 +327,21 @@ function aggregatorJobBackOffStrategy(
 ): number {
   // TODO stop if there is newer job submitted
   return 1_000
+}
+
+async function getOperatorAddress({
+  oracleAddress,
+  logger
+}: {
+  oracleAddress: string
+  logger: Logger
+}) {
+  return await (
+    await getReporterByOracleAddress({
+      service: DATA_FEED_SERVICE_NAME,
+      chain: CHAIN,
+      oracleAddress,
+      logger
+    })
+  ).address
 }

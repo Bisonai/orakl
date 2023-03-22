@@ -1,7 +1,7 @@
 import { Logger } from 'pino'
 import { ethers } from 'ethers'
 import type { RedisClientType } from 'redis'
-import { getReporters, getReporter } from './api'
+import { getReporters, getReporter } from '../api'
 import { IReporterConfig } from '../types'
 import { OraklError, OraklErrorCode } from '../errors'
 import { buildWallet } from './utils'
@@ -37,14 +37,17 @@ export class State {
     this.stateName = stateName
     this.service = service
     this.chain = chain
-    this.logger = logger
+    this.logger = logger.child({ name: 'State', file: FILE_NAME })
+    this.logger.debug('Reporter state initialized')
   }
 
   /**
    * Clear reporter state.
    */
   async clear() {
+    this.logger.debug('clear')
     await this.redisClient.set(this.stateName, JSON.stringify([]))
+    this.logger.debug('Reporter state cleared')
   }
 
   /**
@@ -52,6 +55,7 @@ export class State {
    * be either active or inactive.
    */
   async all() {
+    this.logger.debug('all')
     return await getReporters({ service: this.service, chain: this.chain, logger: this.logger })
   }
 
@@ -59,6 +63,7 @@ export class State {
    * List all active reporters.
    */
   async active() {
+    this.logger.debug('active')
     const state = await this.redisClient.get(this.stateName)
     return state ? JSON.parse(state) : []
   }
@@ -73,6 +78,8 @@ export class State {
    * @exception {OraklErrorCode.ReporterNotAdded} raise when no reporter was added
    */
   async add(id: string, oracleAddress: string): Promise<IReporterConfig> {
+    this.logger.debug('add')
+
     // Check if reporter is not active yet
     const activeReporters = await this.active()
     const isAlreadyActive = activeReporters.filter((L) => L.id === id) || []
@@ -112,6 +119,8 @@ export class State {
    * @exception {OraklErrorCode.ReporterNotRemoved} raise when no reporter was removed
    */
   async remove(id: string) {
+    this.logger.debug('remove')
+
     const activeReporters = await this.active()
     const numActiveReporters = activeReporters.length
 
@@ -144,9 +153,12 @@ export class State {
    * activate them. Previously active reporters are deactivated.
    */
   async refresh() {
+    this.logger.debug('refresh')
+
+    // Fetch
     const reporters = await this.all()
-    const wallets = reporters.map(async (R) => {
-      const W = await buildWallet({
+    const wallets = reporters.map((R) => {
+      const W = buildWallet({
         privateKey: R.privateKey,
         providerUrl: this.providerUrl
       })

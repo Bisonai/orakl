@@ -25,6 +25,21 @@ export class ReporterController {
     })
   }
 
+  @Get('oracle-address/:oracleAddress')
+  async findByOracleAddress(
+    @Body('chain') chain: string,
+    @Body('service') service: string,
+    @Param('chain') oracleAddress: string
+  ) {
+    return await this.reporterService.findAll({
+      where: {
+        oracleAddress,
+        chain: { name: chain },
+        service: { name: service }
+      }
+    })
+  }
+
   @Get(':id')
   async findOne(@Param('id') id: string) {
     return await this.reporterService.findOne({ id: Number(id) })
