@@ -119,7 +119,7 @@ export class State {
   }
 
   /**
-   * Remove listener based given `id`. Listener can removed only if
+   * Remove listener given listener `id`. Listener can removed only if
    * it was in an active state.
    *
    * @param {string} listener ID

@@ -99,19 +99,45 @@ export class State {
       privateKey: toAddReporter.privateKey,
       providerUrl: this.providerUrl
     })
-    this.wallets.push({ oracleAddress: wallet })
+    this.wallets = { ...this.wallets, oracleAddress: wallet }
 
     return toAddReporter
   }
 
   /**
-   * Remove reporter based given `id`. Reporter can removed only if
+   * Remove reporter given reporter `id`. Reporter can removed only if
    * it was in an active state.
    *
    * @param {string} reporter ID
    * @exception {OraklErrorCode.ReporterNotRemoved} raise when no reporter was removed
    */
-  async remove(id: string) {}
+  async remove(id: string) {
+    const activeReporters = await this.active()
+    const numActiveReporters = activeReporters.length
+
+    const index = activeReporters.findIndex((L) => L.id == id)
+    const removedReporter = activeReporters.splice(index, 1)[0]
+
+    const numUpdatedActiveReporters = activeReporters.length
+    if (numActiveReporters == numUpdatedActiveReporters) {
+      const msg = `Reporter with ID=${id} was not removed. Reporter was not found.`
+      this.logger?.debug({ name: 'remove', file: FILE_NAME }, msg)
+      throw new OraklError(OraklErrorCode.ReporterNotRemoved, msg)
+    }
+
+    const oracleAddress = removedReporter.oracleAddress
+    if (!this.wallets[oracleAddress]) {
+      const msg = `Reporter with ID=${id} was not removed. Wallet associated with ${oracleAddress} oracle was not found.`
+      this.logger?.debug({ name: 'remove', file: FILE_NAME }, msg)
+      throw new OraklError(OraklErrorCode.ReporterNotRemoved, msg)
+    }
+
+    // Update active reporters
+    await this.redisClient.set(this.stateName, JSON.stringify(activeReporters))
+
+    // Update wallets
+    delete this.wallets[oracleAddress]
+  }
 
   /**
    * Get all reporters for `service` and `chain` of state, and
@@ -119,11 +145,16 @@ export class State {
    */
   async refresh() {
     const reporters = await this.all()
-    await this.clear()
+    const wallets = reporters.map(async (R) => {
+      const W = await buildWallet({
+        privateKey: R.privateKey,
+        providerUrl: this.providerUrl
+      })
+      return { [R.oracleAddress]: W }
+    })
 
-    // TODO
-    for (const r in reporters) {
-    }
-    // return JSON.parse(await this.redisClient.get(this.stateName))
+    // Update
+    await this.redisClient.set(this.stateName, JSON.stringify(reporters))
+    this.wallets = Object.assign({}, ...wallets)
   }
 }
