@@ -62,6 +62,10 @@ export const VRF_LISTENER_STATE_NAME = `${DEPLOYMENT_NAME}-listener-vrf-state`
 export const REQUEST_RESPONSE_LISTENER_STATE_NAME = `${DEPLOYMENT_NAME}-listener-request-response-state`
 export const DATA_FEED_LISTENER_STATE_NAME = `${DEPLOYMENT_NAME}-listener-data-feed-state`
 
+// export const VRF_LISTENER_STATE_NAME = `${DEPLOYMENT_NAME}-reporter-vrf-state`
+// export const REQUEST_RESPONSE_LISTENER_STATE_NAME = `${DEPLOYMENT_NAME}-reporter-request-response-state`
+export const DATA_FEED_REPORTER_STATE_NAME = `${DEPLOYMENT_NAME}-reporter-data-feed-state`
+
 export const BULLMQ_CONNECTION = {
   connection: {
     host: REDIS_HOST,

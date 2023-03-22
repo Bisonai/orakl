@@ -1,6 +1,7 @@
 import { Worker } from 'bullmq'
 import { ethers } from 'ethers'
 import { Logger } from 'pino'
+import type { RedisClientType } from 'redis'
 import { RequestResponseCoordinator__factory } from '@bisonai/orakl-contracts'
 import { sendTransaction, loadWalletParameters, buildWallet } from './utils'
 import { REPORTER_REQUEST_RESPONSE_QUEUE_NAME, BULLMQ_CONNECTION } from '../settings'
@@ -8,7 +9,7 @@ import { IRequestResponseWorkerReporter, RequestCommitmentRequestResponse } from
 
 const FILE_NAME = import.meta.url
 
-export async function reporter(_logger: Logger) {
+export async function reporter(redisClient: RedisClientType, _logger: Logger) {
   _logger.debug({ name: 'reporter', file: FILE_NAME })
   const { privateKey, providerUrl } = loadWalletParameters()
   const wallet = await buildWallet({ privateKey, providerUrl })
