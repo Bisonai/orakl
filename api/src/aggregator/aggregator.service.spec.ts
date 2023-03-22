@@ -3,11 +3,13 @@ import { AggregatorService } from './aggregator.service'
 import { ChainService } from '../chain/chain.service'
 import { AdapterService } from '../adapter/adapter.service'
 import { PrismaService } from '../prisma.service'
+import { PrismaClient } from '@prisma/client'
 
 describe('AggregatorService', () => {
   let aggregator: AggregatorService
   let chain: ChainService
   let adapter: AdapterService
+  let prisma
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -17,6 +19,12 @@ describe('AggregatorService', () => {
     aggregator = module.get<AggregatorService>(AggregatorService)
     adapter = module.get<AdapterService>(AdapterService)
     chain = module.get<ChainService>(ChainService)
+    prisma = module.get<PrismaClient>(PrismaService)
+  })
+
+  afterEach(async () => {
+    jest.resetModules()
+    await prisma.$disconnect()
   })
 
   it('should be defined', () => {
@@ -65,7 +73,7 @@ describe('AggregatorService', () => {
       aggregatorHash: 'aggregatorHash-aggregator-test',
       active: false,
       name: 'ETH-USD',
-      address: '0x',
+      address: '0x111',
       heartbeat: 10_000,
       threshold: 0.04,
       absoluteThreshold: 0.1,
@@ -78,5 +86,5 @@ describe('AggregatorService', () => {
     await aggregator.remove({ id: aggregatorObj.id })
     await adapter.remove({ id: adapterObj.id })
     await chain.remove({ id: chainObj.id })
-  })
+  }, 10000)
 })

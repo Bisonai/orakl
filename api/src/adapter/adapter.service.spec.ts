@@ -1,9 +1,11 @@
 import { Test, TestingModule } from '@nestjs/testing'
 import { AdapterService } from './adapter.service'
 import { PrismaService } from '../prisma.service'
+import { PrismaClient } from '@prisma/client'
 
 describe('AdapterService', () => {
   let adapter: AdapterService
+  let prisma
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -11,6 +13,12 @@ describe('AdapterService', () => {
     }).compile()
 
     adapter = module.get<AdapterService>(AdapterService)
+    prisma = module.get<PrismaClient>(PrismaService)
+  })
+
+  afterEach(async () => {
+    jest.resetModules()
+    await prisma.$disconnect()
   })
 
   it('should be defined', () => {
