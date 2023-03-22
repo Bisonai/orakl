@@ -112,3 +112,39 @@ export function extractFeeds(adapter, aggregatorId: string, aggregatorHash: stri
     }
   }
 }
+
+/**
+ * Test whether the current submission deviates from the last
+ * submission more than given threshold or absolute threshold. If yes,
+ * return `true`, otherwise `false`.
+ *
+ * @param {number} latest submission value
+ * @param {number} current submission value
+ * @param {number} threshold configuration
+ * @param {number} absolute threshold configuration
+ * @return {boolean}
+ */
+export function shouldReport(
+  latestSubmission: number,
+  submission: number,
+  decimals: number,
+  threshold: number,
+  absoluteThreshold: number
+): boolean {
+  if (latestSubmission && submission) {
+    const denominator = Math.pow(10, decimals)
+    const latestSubmissionReal = latestSubmission / denominator
+    const submissionReal = submission / denominator
+
+    const range = latestSubmissionReal * threshold
+    const l = latestSubmissionReal - range
+    const r = latestSubmissionReal + range
+    return submissionReal < l || submissionReal > r
+  } else if (!latestSubmission && submission) {
+    // latestSubmission hit zero
+    return submission > absoluteThreshold
+  } else {
+    // Something strange happened, don't report!
+    return false
+  }
+}
