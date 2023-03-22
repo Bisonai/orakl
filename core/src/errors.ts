@@ -14,6 +14,7 @@ export enum OraklErrorCode {
   FailedToGetAggregate,
   FailedToGetAggregator,
   GetListenerRequestFailed,
+  GetReporterRequestFailed,
   GetVrfConfigRequestFailed,
   IncompleteDataFeed,
   IndexOutOfBoundaries,
@@ -43,5 +44,7 @@ export enum OraklErrorCode {
   UnexpectedQueryOutput,
   UniformWrongParams,
   ListenerNotRemoved,
-  ListenerNotAdded
+  ListenerNotAdded,
+  ReporterNotRemoved,
+  ReporterNotAdded
 }

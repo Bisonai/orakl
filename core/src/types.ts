@@ -195,6 +195,15 @@ export type RequestCommitmentRequestResponse = [
   string /* sender */
 ]
 
+export interface IVrfConfig {
+  sk: string
+  pk: string
+  pkX: string
+  pkY: string
+  keyHash: string
+}
+
+// Listener
 export interface IListenerRawConfig {
   address: string
   eventName: string
@@ -213,12 +222,14 @@ export interface IListenerGroupConfig {
   [key: string]: IListenerConfig[]
 }
 
-export interface IVrfConfig {
-  sk: string
-  pk: string
-  pkX: string
-  pkY: string
-  keyHash: string
+// Reporter
+export interface IReporterConfig {
+  id: string
+  address: string
+  privateKey: string
+  oracleAddress: string
+  chain: string
+  service: string
 }
 
 // Data Feed

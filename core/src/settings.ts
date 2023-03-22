@@ -23,6 +23,10 @@ export const LOCAL_AGGREGATOR = process.env.LOCAL_AGGREGATOR || 'MEDIAN'
 export const LISTENER_DELAY = Number(process.env.LISTENER_DELAY) || 500
 export const LISTENER_PORT = process.env.LISTENER_PORT || 4000
 
+export const AGGREGATOR_SERVICE_NAME = 'Aggregator'
+export const VRF_SERVICE_NAME = 'VRF'
+export const REQUEST_RESPONSE_SERVICE_NAME = 'RequestResponse'
+
 // BullMQ
 export const REMOVE_ON_COMPLETE = 500
 export const REMOVE_ON_FAIL = 1_000
