@@ -19,6 +19,11 @@ import { oracleRoundStateCall } from './utils'
 
 const FILE_NAME = import.meta.url
 
+/**
+ * Get all active aggregators, create their initial jobs, and submit
+ * them to the {heartbeat} queue. Launch {event} and {heartbeat}
+ * workers.
+ */
 export async function worker(_logger: Logger) {
   const logger = _logger.child({ name: 'worker', file: FILE_NAME })
   const aggregators = await getActiveAggregators({ chain: CHAIN, logger })
@@ -28,14 +33,8 @@ export async function worker(_logger: Logger) {
     return 1
   }
 
-  console.log(aggregators)
-  const oracleOperatorMapping = {
-    oracleAddress: 'operatorAddress'
-  }
-
-  const fixedHeartbeatQueue = new Queue(FIXED_HEARTBEAT_QUEUE_NAME, BULLMQ_CONNECTION)
-
   // Launch all active aggregators
+  const fixedHeartbeatQueue = new Queue(FIXED_HEARTBEAT_QUEUE_NAME, BULLMQ_CONNECTION)
   for (const aggregator of aggregators) {
     const aggregatorAddress = aggregator.address
 
@@ -72,6 +71,17 @@ export async function worker(_logger: Logger) {
   )
 }
 
+/**
+ * Aggregator worker receives both {event} and {heartbeat}
+ * jobs. {event} jobs are created by listener. {heartbeat} jobs are
+ * either created during a launch of a worker, or inside of a reporter.
+ *
+ * Worker accepts job, parses the request, fetches the latest
+ * aggregated data from the Orakl Network API for a specific
+ * aggregator, and communicated with Aggregator smart contract to find
+ * out the which round ID, it can submit the latest value. Then, it
+ * create a new job and passes it to reporter worker.
+ */
 function aggregatorJob(reporterQueueName: string, _logger: Logger) {
   const logger = _logger.child({ name: 'aggregatorJob', file: FILE_NAME })
   const reporterQueue = new Queue(reporterQueueName, BULLMQ_CONNECTION)
@@ -290,6 +300,13 @@ function aggregatorJobBackOffStrategy(
   return 1_000
 }
 
+/**
+ * Get address of node operator given an `oracleAddress`. The data are fetched from the Orakl Network API.
+ *
+ * @param {string} oracle address
+ * @return {string} address of node operator
+ * @exception {OraklErrorCode.GetReporterRequestFailed} raises when request failed
+ */
 async function getOperatorAddress({
   oracleAddress,
   logger
@@ -297,6 +314,8 @@ async function getOperatorAddress({
   oracleAddress: string
   logger: Logger
 }) {
+  logger.debug('getOperatorAddress')
+
   return await (
     await getReporterByOracleAddress({
       service: DATA_FEED_SERVICE_NAME,
