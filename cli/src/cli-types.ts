@@ -1,7 +1,7 @@
 import { Type } from 'cmd-ts'
 import { existsSync } from 'node:fs'
 import { CliError, CliErrorCode } from './errors'
-import { loadFile } from './utils'
+import { isValidUrl, loadFile, loadJsonFromUrl } from './utils'
 
 export interface ChainId {
   id: number
@@ -18,11 +18,16 @@ export interface DbCmdOutput {
 
 export const ReadFile: Type<string, string> = {
   async from(filePath) {
-    if (!existsSync(filePath)) {
-      throw new CliError(CliErrorCode.FileNotFound)
+    if (await isValidUrl(filePath)) {
+      // load from Url
+      return await loadJsonFromUrl(filePath)
+    } else {
+      // load from Path
+      if (!existsSync(filePath)) {
+        throw new CliError(CliErrorCode.FileNotFound)
+      }
+      return JSON.parse((await loadFile(filePath)).toString())
     }
-
-    return JSON.parse((await loadFile(filePath)).toString())
   }
 }
 

@@ -100,6 +100,19 @@ export async function loadFile(filePath: string) {
   return readFile(f)
 }
 
+export async function loadJsonFromUrl(url: string) {
+  const res = await (await fetch(url, { method: 'Get' })).json()
+  return res
+}
+
+export async function isValidUrl(url: string) {
+  try {
+    return Boolean(new URL(url))
+  } catch (e) {
+    return false
+  }
+}
+
 export async function computeAdapterHash({
   data,
   verify
