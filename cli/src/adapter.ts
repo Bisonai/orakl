@@ -8,9 +8,9 @@ const ADAPTER_ENDPOINT = buildUrl(ORAKL_NETWORK_API_URL, 'adapter')
 
 export function adapterSub() {
   // adapter list
-  // adapter insert --file-path ${filePath}
+  // adapter insert --source ${source}
   // adapter remove --id ${id}
-  // adapter hash --file-path ${filePath} --verify
+  // adapter hash --source ${source} --verify
 
   const list = command({
     name: 'list',
@@ -23,7 +23,7 @@ export function adapterSub() {
     args: {
       data: option({
         type: ReadFile,
-        long: 'file-path'
+        long: 'source'
       })
     },
     handler: insertHandler()
@@ -46,7 +46,7 @@ export function adapterSub() {
       }),
       data: option({
         type: ReadFile,
-        long: 'file-path'
+        long: 'source'
       })
     },
     handler: hashHandler()

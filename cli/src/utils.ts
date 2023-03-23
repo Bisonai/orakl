@@ -18,8 +18,8 @@ export const idOption = option({
   long: 'id'
 })
 
-export async function loadFile(filePath: string) {
-  const f = await openFile(filePath)
+export async function loadFile(source: string) {
+  const f = await openFile(source)
   return readFile(f)
 }
 

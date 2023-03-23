@@ -4,16 +4,16 @@ import { CliError, CliErrorCode } from './errors'
 import { isValidUrl, loadFile, loadJsonFromUrl } from './utils'
 
 export const ReadFile: Type<string, string> = {
-  async from(filePath) {
-    if (await isValidUrl(filePath)) {
+  async from(source) {
+    if (await isValidUrl(source)) {
       // load from Url
-      return await loadJsonFromUrl(filePath)
+      return await loadJsonFromUrl(source)
     } else {
       // load from Path
-      if (!existsSync(filePath)) {
+      if (!existsSync(source)) {
         throw new CliError(CliErrorCode.FileNotFound)
       }
-      return JSON.parse((await loadFile(filePath)).toString())
+      return JSON.parse((await loadFile(source)).toString())
     }
   }
 }

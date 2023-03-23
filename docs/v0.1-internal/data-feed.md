@@ -9,11 +9,11 @@ mkdir ~/.orakl-one ~/.orakl-two
 ORAKL_DIR=~/.orakl-one yarn cli migrate --force --migrationsPath src/cli/orakl-cli/migrations/
 ORAKL_DIR=~/.orakl-two yarn cli migrate --force --migrationsPath src/cli/orakl-cli/migrations/
 
-ORAKL_DIR=~/.orakl-one yarn cli adapter insert --chain localhost --file-path adapter/eth-usd.adapter.json
-ORAKL_DIR=~/.orakl-two yarn cli adapter insert --chain localhost --file-path adapter/eth-usd.adapter.json
+ORAKL_DIR=~/.orakl-one yarn cli adapter insert --chain localhost --source adapter/eth-usd.adapter.json
+ORAKL_DIR=~/.orakl-two yarn cli adapter insert --chain localhost --source adapter/eth-usd.adapter.json
 
-ORAKL_DIR=~/.orakl-one yarn cli aggregator insert --chain localhost --file-path aggregator/eth-usd.aggregator.json --adapter 0x7e6552824ce107ab0d6e4266ba6b93f0afe5aa576a491364fc01881a34ddb12b
-ORAKL_DIR=~/.orakl-two yarn cli aggregator insert --chain localhost --file-path aggregator/eth-usd.aggregator.json --adapter 0x7e6552824ce107ab0d6e4266ba6b93f0afe5aa576a491364fc01881a34ddb12b
+ORAKL_DIR=~/.orakl-one yarn cli aggregator insert --chain localhost --source aggregator/eth-usd.aggregator.json --adapter 0x7e6552824ce107ab0d6e4266ba6b93f0afe5aa576a491364fc01881a34ddb12b
+ORAKL_DIR=~/.orakl-two yarn cli aggregator insert --chain localhost --source aggregator/eth-usd.aggregator.json --adapter 0x7e6552824ce107ab0d6e4266ba6b93f0afe5aa576a491364fc01881a34ddb12b
 
 ORAKL_DIR=~/.orakl-two yarn cli kv update --chain localhost --key PUBLIC_KEY --value 0x90F79bf6EB2c4f870365E785982E1f101E93b906
 ORAKL_DIR=~/.orakl-two yarn cli kv update --chain localhost --key PRIVATE_KEY --value 0x7c852118294e51e653712a81e05800f419141751be58f605c371e15141b007a6
