@@ -7,13 +7,7 @@ import {
   string as cmdstring,
   boolean as cmdboolean
 } from 'cmd-ts'
-import {
-  chainOptionalOption,
-  idOption,
-  buildUrl,
-  computeAggregatorHash,
-  isOraklNetworkApiHealthy
-} from './utils'
+import { chainOptionalOption, idOption, buildUrl, isOraklNetworkApiHealthy } from './utils'
 import { ReadFile, IAggregator } from './cli-types'
 import { ORAKL_NETWORK_API_URL } from './settings'
 
@@ -21,9 +15,9 @@ const AGGREGATOR_ENDPOINT = buildUrl(ORAKL_NETWORK_API_URL, 'aggregator')
 
 export function aggregatorSub() {
   // aggregator list [--active] [--chain ${chain}]
-  // aggregator insert --file-path ${filePath} --chain ${chain}
+  // aggregator insert --source ${source} --chain ${chain}
   // aggregator remove --id ${id}
-  // aggregator hash --file-path ${filePath} --verify
+  // aggregator hash --source ${source} --verify
 
   const list = command({
     name: 'list',
@@ -41,7 +35,7 @@ export function aggregatorSub() {
     args: {
       data: option({
         type: ReadFile,
-        long: 'file-path'
+        long: 'source'
       }),
       chain: option({
         type: cmdstring,
@@ -68,7 +62,7 @@ export function aggregatorSub() {
       }),
       data: option({
         type: ReadFile,
-        long: 'file-path'
+        long: 'source'
       })
     },
     handler: hashHandler()
@@ -138,8 +132,13 @@ export function removeHandler() {
 export function hashHandler() {
   async function wrapper({ data, verify }: { data; verify: boolean }) {
     try {
+      const endpoint = buildUrl(AGGREGATOR_ENDPOINT, 'hash')
       const aggregator = data as IAggregator
-      const aggregatorWithCorrectHash = await computeAggregatorHash({ data: aggregator, verify })
+      const aggregatorWithCorrectHash = (
+        await axios.post(endpoint, aggregator, {
+          params: { verify }
+        })
+      ).data
       console.dir(aggregatorWithCorrectHash, { depth: null })
     } catch (e) {
       console.error('Aggregator hash could not be computed. Reason:')

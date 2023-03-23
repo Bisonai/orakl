@@ -38,7 +38,7 @@ describe('AggregatorService', () => {
     // Adapter
     const feeds = [
       {
-        name: 'Binance-BTC-USD',
+        name: 'Binance-BTC-USD-aggregator',
         definition: {
           url: 'https://api.binance.us/api/v3/ticker/price?symbol=BTCUSD',
           headers: {
@@ -62,7 +62,7 @@ describe('AggregatorService', () => {
       }
     ]
     const adapterObj = await adapter.create({
-      adapterHash: 'adapterHash-aggregator-test',
+      adapterHash: '0xf9b8b8d3276a46ce36620fe19d98de894b2b493b7ccf77e3800a6aafac6bcfc6',
       name: 'BTC-USD',
       decimals: 8,
       feeds
@@ -70,9 +70,9 @@ describe('AggregatorService', () => {
 
     // Aggregator
     const aggregatorData = {
-      aggregatorHash: 'aggregatorHash-aggregator-test',
+      aggregatorHash: '0x7c7c327f4d1724905d94057dd1efba894895d1b159a1279a6f3656c9185fdad8',
       active: false,
-      name: 'ETH-USD',
+      name: 'BTC-USD',
       address: '0x111',
       heartbeat: 10_000,
       threshold: 0.04,

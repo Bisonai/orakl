@@ -34,6 +34,14 @@ export class AggregatorController {
     return await this.aggregatorService.create(aggregatorDto)
   }
 
+  @Post('hash')
+  async generateHash(@Body() aggregatorDto: AggregatorDto, @Query('verify') verify?: boolean) {
+    return await this.aggregatorService.computeAggregatorHash({
+      data: aggregatorDto,
+      verify: verify
+    })
+  }
+
   /**
    * Find all `Aggregator`s based on their `active`ness and assigned `chain`.
    * Used by `Orakl Network Aggregator` during launch of worker.
@@ -81,6 +89,18 @@ export class AggregatorController {
       throw new HttpException(msg, HttpStatus.NOT_FOUND)
     }
 
+    try {
+      await this.aggregatorService.verifyAggregatorHashOnLoad(
+        {
+          aggregatorHash_chainId: { aggregatorHash, chainId: chainRecord.id }
+        },
+        chain
+      )
+    } catch (e) {
+      const msg = `verify Aggregator hash [${aggregatorHash}] failed on load`
+      this.logger.error(msg)
+      throw new HttpException(msg, HttpStatus.METHOD_NOT_ALLOWED)
+    }
     return aggregatorRecord
   }
 

@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param, Delete } from '@nestjs/common'
+import { Controller, Get, Post, Body, Param, Delete, Query } from '@nestjs/common'
 import { AdapterService } from './adapter.service'
 import { AdapterDto } from './dto/adapter.dto'
 
@@ -12,6 +12,11 @@ export class AdapterController {
   @Post()
   async create(@Body() adapterDto: AdapterDto) {
     return await this.adapterService.create(adapterDto)
+  }
+
+  @Post('hash')
+  async generateHash(@Body() adapterDto: AdapterDto, @Query('verify') verify?: boolean) {
+    return await this.adapterService.computeAdapterHash({ data: adapterDto, verify: verify })
   }
 
   @Get()

@@ -12,10 +12,10 @@ yarn install
 
 Orakl Network Fetcher requires to set the following environment variables.
 
-* `REDIS_HOST`
-* `REDIS_PORT`
-* `ORAKL_NETWORK_API_URL`
-* `APP_PORT`
+- `REDIS_HOST`
+- `REDIS_PORT`
+- `ORAKL_NETWORK_API_URL`
+- `APP_PORT`
 
 You can copy them from `.env.example` to `.env` and fill the appropriate values.
 
@@ -38,10 +38,10 @@ yarn run start:prod
 
 ## Endpoints
 
-* `GET /health`
-* `GET /api`
-* `GET /api/v1/start/{aggregator}`
-* `GET /api/v1/stop/{aggregator}`
+- `GET /health`
+- `GET /api`
+- `GET /api/v1/start/{aggregator}`
+- `GET /api/v1/stop/{aggregator}`
 
 ## Test
 
@@ -60,10 +60,10 @@ yarn run test:cov
 
 ```shell
 yarn cli chain insert --name localhost
-yarn cli adapter insert --file-path adapter/btc-usdt.adapter.json
+yarn cli adapter insert --source adapter/btc-usdt.adapter.json
 
 # adapterHash=0xd6fbe30bd6249b3093ee065496115e5736bbe760cadfc85598ef27eb4739a849
-yarn cli aggregator insert --file-path aggregator/localhost/btc-usdt.aggregator.json --chain localhost
+yarn cli aggregator insert --source aggregator/localhost/btc-usdt.aggregator.json --chain localhost
 ```
 
 ## Start data collection and aggregation

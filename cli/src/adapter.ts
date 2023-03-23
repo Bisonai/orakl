@@ -1,6 +1,6 @@
 import axios from 'axios'
 import { command, flag, subcommands, option, boolean as cmdboolean } from 'cmd-ts'
-import { idOption, buildUrl, computeAdapterHash, isOraklNetworkApiHealthy } from './utils'
+import { idOption, buildUrl, isOraklNetworkApiHealthy } from './utils'
 import { ReadFile, IAdapter } from './cli-types'
 import { ORAKL_NETWORK_API_URL } from './settings'
 
@@ -8,9 +8,9 @@ const ADAPTER_ENDPOINT = buildUrl(ORAKL_NETWORK_API_URL, 'adapter')
 
 export function adapterSub() {
   // adapter list
-  // adapter insert --file-path ${filePath}
+  // adapter insert --source ${source}
   // adapter remove --id ${id}
-  // adapter hash --file-path ${filePath} --verify
+  // adapter hash --source ${source} --verify
 
   const list = command({
     name: 'list',
@@ -23,7 +23,7 @@ export function adapterSub() {
     args: {
       data: option({
         type: ReadFile,
-        long: 'file-path'
+        long: 'source'
       })
     },
     handler: insertHandler()
@@ -46,7 +46,7 @@ export function adapterSub() {
       }),
       data: option({
         type: ReadFile,
-        long: 'file-path'
+        long: 'source'
       })
     },
     handler: hashHandler()
@@ -109,8 +109,10 @@ export function removeHandler() {
 export function hashHandler() {
   async function wrapper({ data, verify }: { data; verify: boolean }) {
     try {
+      const endpoint = buildUrl(ADAPTER_ENDPOINT, 'hash')
       const adapter = data as IAdapter
-      const adapterWithCorrectHash = await computeAdapterHash({ data: adapter, verify })
+      const adapterWithCorrectHash = (await axios.post(endpoint, adapter, { params: { verify } }))
+        .data
       console.dir(adapterWithCorrectHash, { depth: null })
     } catch (e) {
       console.error('Adapter hash could not be computed. Reason:')

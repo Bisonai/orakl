@@ -1,15 +1,20 @@
 import { Type } from 'cmd-ts'
 import { existsSync } from 'node:fs'
 import { CliError, CliErrorCode } from './errors'
-import { loadFile } from './utils'
+import { isValidUrl, loadFile, loadJsonFromUrl } from './utils'
 
+// ReadFile function is to load json file from
+// url-link, or from local file directory
 export const ReadFile: Type<string, string> = {
-  async from(filePath) {
-    if (!existsSync(filePath)) {
-      throw new CliError(CliErrorCode.FileNotFound)
+  async from(source) {
+    if (await isValidUrl(source)) {
+      return await loadJsonFromUrl(source)
+    } else {
+      if (!existsSync(source)) {
+        throw new CliError(CliErrorCode.FileNotFound)
+      }
+      return JSON.parse((await loadFile(source)).toString())
     }
-
-    return JSON.parse((await loadFile(filePath)).toString())
   }
 }
 

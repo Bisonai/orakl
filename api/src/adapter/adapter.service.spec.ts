@@ -28,7 +28,7 @@ describe('AdapterService', () => {
   it('should insert adapter and find it', async () => {
     const feeds = [
       {
-        name: 'Binance-BTC-USD',
+        name: 'Binance-BTC-USD-adapter',
         definition: {
           url: 'https://api.binance.us/api/v3/ticker/price?symbol=BTCUSD',
           headers: {
@@ -53,7 +53,7 @@ describe('AdapterService', () => {
     ]
 
     const { id } = await adapter.create({
-      adapterHash: '0xe63985ed9d9aae887bdcfa03b53a1bea6fd1acc58b8cd51a9a69ede43eac6235',
+      adapterHash: '0xbb555a249d01133784fa04c608ce03c129f73f2a1ef7473d0cfffdc4bcba794e',
       name: 'BTC-USD',
       decimals: 8,
       feeds

@@ -1,5 +1,6 @@
 import { Injectable, HttpStatus, HttpException, Logger } from '@nestjs/common'
 import { Prisma } from '@prisma/client'
+import { ethers } from 'ethers'
 import { PrismaService } from '../prisma.service'
 import { AggregatorDto } from './dto/aggregator.dto'
 
@@ -46,6 +47,12 @@ export class AggregatorService {
       chainId: chain.id
     }
 
+    try {
+      await this.computeAggregatorHash({ data: aggregatorDto, verify: true })
+    } catch (e) {
+      this.logger.error(e)
+      throw new HttpException(e, HttpStatus.BAD_REQUEST)
+    }
     return await this.prisma.aggregator.create({ data })
   }
 
@@ -91,5 +98,48 @@ export class AggregatorService {
       data: { active },
       where
     })
+  }
+
+  async verifyAggregatorHashOnLoad(
+    aggregatorWhereUniqueInput: Prisma.AggregatorWhereUniqueInput,
+    chain: string
+  ): Promise<AggregatorDto> {
+    const aggregatorRecord = await this.findUnique(aggregatorWhereUniqueInput)
+    const aggregatorDto: AggregatorDto = {
+      aggregatorHash: aggregatorRecord.aggregatorHash,
+      active: aggregatorRecord.active,
+      name: aggregatorRecord.name,
+      address: aggregatorRecord.address,
+      heartbeat: aggregatorRecord.heartbeat,
+      threshold: aggregatorRecord.threshold,
+      absoluteThreshold: aggregatorRecord.absoluteThreshold,
+      adapterHash: aggregatorRecord.adapter.adapterHash,
+      chain: chain
+    }
+    return await this.computeAggregatorHash({ data: aggregatorDto, verify: true })
+  }
+
+  async computeAggregatorHash({
+    data,
+    verify
+  }: {
+    data: AggregatorDto
+    verify?: boolean
+  }): Promise<AggregatorDto> {
+    const input = JSON.parse(JSON.stringify(data))
+
+    // Don't use following properties in computation of hash
+    delete input.aggregatorHash
+    delete input.address
+    delete input.active
+
+    const hash = ethers.utils.keccak256(ethers.utils.toUtf8Bytes(JSON.stringify(input)))
+
+    if (verify && data.aggregatorHash != hash) {
+      throw `Hashes do not match!\nExpected ${hash}, received ${data.aggregatorHash}.`
+    } else {
+      data.aggregatorHash = hash
+      return data
+    }
   }
 }
