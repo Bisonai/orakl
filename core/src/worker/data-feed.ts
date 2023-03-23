@@ -21,8 +21,10 @@ const FILE_NAME = import.meta.url
 
 /**
  * Get all active aggregators, create their initial jobs, and submit
- * them to the {heartbeat} queue. Launch {event} and {heartbeat}
+ * them to the [heartbeat] queue. Launch [event] and [heartbeat]
  * workers.
+ *
+ * @param {Logger} pino logger
  */
 export async function worker(_logger: Logger) {
   const logger = _logger.child({ name: 'worker', file: FILE_NAME })
@@ -30,7 +32,6 @@ export async function worker(_logger: Logger) {
 
   if (aggregators.length == 0) {
     logger.warn('No active aggregators')
-    return 1
   }
 
   // Launch all active aggregators
@@ -55,7 +56,7 @@ export async function worker(_logger: Logger) {
     )
   }
 
-  // Event based worker
+  // {event}  worker
   new Worker(WORKER_AGGREGATOR_QUEUE_NAME, aggregatorJob(REPORTER_AGGREGATOR_QUEUE_NAME, _logger), {
     ...BULLMQ_CONNECTION,
     settings: {
@@ -63,7 +64,7 @@ export async function worker(_logger: Logger) {
     }
   })
 
-  // Fixed heartbeat worker
+  // {heartbeat} worker
   new Worker(
     FIXED_HEARTBEAT_QUEUE_NAME,
     heartbeatJob(WORKER_AGGREGATOR_QUEUE_NAME, _logger),
@@ -72,7 +73,7 @@ export async function worker(_logger: Logger) {
 }
 
 /**
- * Aggregator worker receives both {event} and {heartbeat}
+ * [aggregator] worker receives both [event] and [heartbeat]
  * jobs. {event} jobs are created by listener. {heartbeat} jobs are
  * either created during a launch of a worker, or inside of a reporter.
  *
@@ -81,6 +82,10 @@ export async function worker(_logger: Logger) {
  * aggregator, and communicated with Aggregator smart contract to find
  * out the which round ID, it can submit the latest value. Then, it
  * create a new job and passes it to reporter worker.
+ *
+ * @param {string} reporter queue name
+ * @param {Logger} pino logger
+ * @return {} [aggregator] job processor
  */
 function aggregatorJob(reporterQueueName: string, _logger: Logger) {
   const logger = _logger.child({ name: 'aggregatorJob', file: FILE_NAME })
@@ -143,6 +148,29 @@ function aggregatorJob(reporterQueueName: string, _logger: Logger) {
   return wrapper
 }
 
+/**
+ * [heartbeat] worker receives job either from the launch of the Data
+ * Feed Worker service, or from the Data Feed Reporter service. In
+ * both cases heartbeat job is delayed by the `heartbeat` amount of
+ * time specified in milliseconds.
+ *
+ * [heartbeat] job execution is independent of [event] job, however
+ * only one of them is eligible to submit to Aggregator smart contract
+ * for a specific round ID.
+ *
+ * At first, [heartbeat] worker finds out what round is currently
+ * accepting submissions given an operator address extracted from
+ * associated aggregator address. Then, it creates a new job with a
+ * unique ID denoting the request for report on a specific
+ * round. Finally, it submits the job to the [aggregator] worker.  The
+ * job ID is created with the same format as in Data Feed Listener
+ * service, which protects the [aggregator] worker from processing the
+ * same request twice.
+ *
+ * @params {string} name of queue processed by [aggregator] worker
+ * @params {Logger} pino logger
+ * @return {} [heartbeat] job processor
+ */
 function heartbeatJob(aggregatorJobQueueName: string, _logger: Logger) {
   const logger = _logger.child({ name: 'heartbeatJob', file: FILE_NAME })
   const queue = new Queue(aggregatorJobQueueName, BULLMQ_CONNECTION)
