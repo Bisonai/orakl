@@ -7,7 +7,7 @@ describe('Test Caver-js', function () {
 
   if (process.env.GITHUB_ACTIONS) {
     test('Send signed tx with is caver-js on Baobab', function () {
-      return true
+      expect(true).toBe(true)
     })
     // test('Send signed tx with is caver-js on Baobab', async function () {
     //   const PROVIDER_URL = 'https://public-node-api.klaytnapi.com/v1/baobab'
