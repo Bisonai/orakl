@@ -17,6 +17,9 @@ export function reporterSub() {
   // reporter list   [--chain ${chain}] [--service ${service}]
   // reporter insert  --chain ${chain}   --service ${service} --address ${address} --privateKey ${privateKey} --oracleAddress ${oracleAddress}
   // reporter remove  --id ${id}
+  // reporter active --host ${host} --port ${port}
+  // reporter activate --host ${host} --port ${port} --id ${id}
+  // reporter deactivate --host ${host} --port ${port} --id ${id}
 
   const list = command({
     name: 'list',
@@ -62,9 +65,62 @@ export function reporterSub() {
     handler: removeHandler()
   })
 
+  const active = command({
+    name: 'active',
+    args: {
+      host: option({
+        type: cmdstring,
+        long: 'host',
+        defaultValue: () => REPORTER_SERVICE_HOST
+      }),
+      port: option({
+        type: cmdstring,
+        long: 'port',
+        defaultValue: () => String(REPORTER_SERVICE_PORT)
+      })
+    },
+    handler: activeHandler()
+  })
+
+  const activate = command({
+    name: 'activate',
+    args: {
+      id: idOption,
+      host: option({
+        type: cmdstring,
+        long: 'host',
+        defaultValue: () => REPORTER_SERVICE_HOST
+      }),
+      port: option({
+        type: cmdstring,
+        long: 'port',
+        defaultValue: () => String(REPORTER_SERVICE_PORT)
+      })
+    },
+    handler: activateHandler()
+  })
+
+  const deactivate = command({
+    name: 'deactivate',
+    args: {
+      id: idOption,
+      host: option({
+        type: cmdstring,
+        long: 'host',
+        defaultValue: () => REPORTER_SERVICE_HOST
+      }),
+      port: option({
+        type: cmdstring,
+        long: 'port',
+        defaultValue: () => String(REPORTER_SERVICE_PORT)
+      })
+    },
+    handler: deactivateHandler()
+  })
+
   return subcommands({
     name: 'reporter',
-    cmds: { list, insert, remove }
+    cmds: { list, insert, remove, active, activate, deactivate }
   })
 }
 
@@ -125,6 +181,59 @@ export function removeHandler() {
       console.dir(result, { depth: null })
     } catch (e) {
       console.error('Reporter was not deleted. Reason:')
+      console.error(e?.response?.data?.message)
+    }
+  }
+  return wrapper
+}
+
+export function activeHandler() {
+  async function wrapper({ host, port }: { host: string; port: string }) {
+    const reporterServiceEndpoint = `${host}:${port}`
+    if (!(await isServiceHealthy(reporterServiceEndpoint))) return
+
+    const activeReporterEndpoint = buildUrl(reporterServiceEndpoint, 'active')
+
+    try {
+      const result = (await axios.get(activeReporterEndpoint)).data
+      console.log(result)
+    } catch (e) {
+      console.error(e?.response?.data?.message)
+    }
+  }
+  return wrapper
+}
+
+export function activateHandler() {
+  async function wrapper({ host, port, id }: { host: string; port: string; id: number }) {
+    const reporterServiceEndpoint = `${host}:${port}`
+    if (!(await isServiceHealthy(reporterServiceEndpoint))) return
+
+    const activateReporterEndpoint = buildUrl(reporterServiceEndpoint, `activate/${id}`)
+
+    try {
+      const result = (await axios.get(activateReporterEndpoint)).data
+      console.log(result?.message)
+    } catch (e) {
+      console.error('Reporter was not activated. Reason:')
+      console.error(e?.response?.data?.message)
+    }
+  }
+  return wrapper
+}
+
+export function deactivateHandler() {
+  async function wrapper({ host, port, id }: { host: string; port: string; id: number }) {
+    const reporterServiceEndpoint = `${host}:${port}`
+    if (!(await isServiceHealthy(reporterServiceEndpoint))) return
+
+    const deactivateReporterEndpoint = buildUrl(reporterServiceEndpoint, `deactivate/${id}`)
+
+    try {
+      const result = (await axios.get(deactivateReporterEndpoint)).data
+      console.log(result?.message)
+    } catch (e) {
+      console.error('Reporter was not deactivated. Reason:')
       console.error(e?.response?.data?.message)
     }
   }
