@@ -47,5 +47,6 @@ export enum OraklErrorCode {
   ListenerNotAdded,
   ReporterNotRemoved,
   ReporterNotAdded,
-  WalletNotActive
+  WalletNotActive,
+  UnexpectedNumberOfDeadlockJobs
 }

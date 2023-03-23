@@ -1,6 +1,7 @@
 import { Worker, Queue, Job } from 'bullmq'
 import { Logger } from 'pino'
 import { getAggregatorGivenAddress, getActiveAggregators, fetchDataFeed } from './api'
+import { OraklError, OraklErrorCode } from '../errors'
 import { getReporterByOracleAddress } from '../api'
 import { IAggregatorWorker, IAggregatorWorkerReporter } from '../types'
 import {
@@ -199,10 +200,30 @@ function heartbeatJob(aggregatorJobQueueName: string, _logger: Logger) {
 
       if (oracleRoundState._eligibleToSubmit) {
         logger.debug({ job: 'added', eligible: true, roundId }, 'before-eligible-fixed')
+
+        const jobId = buildReporterJobId({
+          aggregatorAddress,
+          roundId,
+          deploymentName: DEPLOYMENT_NAME
+        })
+
+        // [heartbeat] worker is executed at predefined intervals and
+        // is of vital importance for repeated submission to
+        // Aggregator smart contract. [heartbeat] worker is not executed
+        // earlier than N miliseconds (also called as a heartbeat) after
+        // the latest submission. If the Aggregator smart contract
+        // tells us that we are eligible to submit to `roundId`, it
+        // means that reporter has not submitted any value there yet.
+        // It also means there was no submission in the last N milliseconds.
+        // If we happen to be at that situation, we assume there is
+        // a deadlock and the Orakl Network Reporter service failed on
+        // to submit on particular `roundId`.
+        await removeDeadlock(queue, jobId, logger)
+
         await queue.add('fixed', outData, {
           removeOnComplete: REMOVE_ON_COMPLETE,
           removeOnFail: REMOVE_ON_FAIL,
-          jobId: buildReporterJobId({ aggregatorAddress, roundId, deploymentName: DEPLOYMENT_NAME })
+          jobId
         })
         logger.debug({ job: 'added', eligible: true, roundId }, 'eligible-fixed')
       } else {
@@ -352,4 +373,32 @@ async function getOperatorAddress({
       logger
     })
   ).address
+}
+
+/**
+ * Remove deadlock: The job has already been requested and accepted
+ * from the other end of queue, however, the job might not have been
+ * accomplished successfully there. The function deletes the
+ * previously submitted job, so it can be resubmitted again.
+ *
+ * Note: This function should be called only when we are certain that
+ * there is any deadlock. Deadlock detection is not part of this
+ * function.
+ *
+ * @param {queue} queue
+ * @param {string} job ID
+ * @param {Logger} pino logger
+ */
+async function removeDeadlock(queue: Queue, jobId: string, logger: Logger) {
+  const blockingJob = (await queue.getJobs(['completed'])).filter((job) => job.opts.jobId == jobId)
+
+  if (blockingJob.length == 1) {
+    blockingJob[0].remove()
+    logger.warn(`Removed blocking job with ID ${jobId}`)
+  } else if (blockingJob.length > 1) {
+    throw new OraklError(
+      OraklErrorCode.UnexpectedNumberOfDeadlockJobs,
+      `Found ${blockingJob.length} blocking jobs. Expected 1 at most.`
+    )
+  }
 }
