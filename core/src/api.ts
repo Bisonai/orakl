@@ -124,7 +124,7 @@ export async function getReporterByOracleAddress({
 
     return reporter[0]
   } catch (e) {
-    logger.error({ name: 'getReporters', file: FILE_NAME, ...e }, 'error')
+    logger.error({ name: 'getReportersByOracleAddress', file: FILE_NAME, ...e }, 'error')
     throw new OraklError(OraklErrorCode.GetReporterRequestFailed)
   }
 }

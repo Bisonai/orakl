@@ -56,16 +56,16 @@ export async function watchman({ state, logger }: { state: State; logger: Logger
    */
   app.get('/activate/:id', async (req: Request, res: Response) => {
     const { id } = req.params
-    logger?.debug(`/activate/${id}`)
+    logger.debug(`/activate/${id}`)
 
     try {
-      const reporter = await state.add(id)
+      await state.add(id)
 
       const message = `Reporter with ID=${id} started`
-      logger?.debug(message)
+      logger.debug(message)
       res.status(200).send({ message })
     } catch (e) {
-      logger?.error(e.message)
+      logger.error(e.message)
       res.status(500).send({ message: e.message })
     }
   })
@@ -75,16 +75,16 @@ export async function watchman({ state, logger }: { state: State; logger: Logger
    */
   app.get('/deactivate/:id', async (req: Request, res: Response) => {
     const { id } = req.params
-    logger?.debug(`/deactivate/${id}`)
+    logger.debug(`/deactivate/${id}`)
 
     try {
       await state.remove(id)
 
       const message = `Reporter with ID=${id} stopped`
-      logger?.debug(message)
+      logger.debug(message)
       res.status(200).send({ message })
     } catch (e) {
-      logger?.error(e.message)
+      logger.error(e.message)
       res.status(500).send({ message: e.message })
     }
   })

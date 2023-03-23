@@ -5,8 +5,6 @@ import { IOracleRoundState, IRoundData } from '../types'
 import { PROVIDER } from '../settings'
 import { Aggregator__factory } from '@bisonai/orakl-contracts'
 
-const FILE_NAME = import.meta.url
-
 export function buildReducer(reducerMapping, reducers) {
   return reducers.map((r) => {
     const reducer = reducerMapping[r.function]

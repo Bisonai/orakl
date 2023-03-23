@@ -1,5 +1,4 @@
 import { Logger } from 'pino'
-import { ethers } from 'ethers'
 import type { RedisClientType } from 'redis'
 import { getReporters, getReporter } from '../api'
 import { IReporterConfig } from '../types'

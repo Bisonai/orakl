@@ -57,7 +57,7 @@ export async function worker(_logger: Logger) {
     )
   }
 
-  // {event}  worker
+  // [event]  worker
   new Worker(WORKER_AGGREGATOR_QUEUE_NAME, aggregatorJob(REPORTER_AGGREGATOR_QUEUE_NAME, _logger), {
     ...BULLMQ_CONNECTION,
     settings: {
@@ -65,7 +65,7 @@ export async function worker(_logger: Logger) {
     }
   })
 
-  // {heartbeat} worker
+  // [heartbeat] worker
   new Worker(
     FIXED_HEARTBEAT_QUEUE_NAME,
     heartbeatJob(WORKER_AGGREGATOR_QUEUE_NAME, _logger),

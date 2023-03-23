@@ -3,10 +3,10 @@ import { HttpStatus, HttpException, Logger } from '@nestjs/common'
 /**
  * Find chain given `chainName`.
  *
- * @params {} prisma client for chain
+ * @params {PrismaService.chain} prisma client for chain
  * @params {string} chain name
  * @params {Logger} NestJS logger
- * @return {} chain object represented by a `chainName`
+ * @return {Chain} chain object represented by a `chainName`
  * @exception {HttpException} raise when there is no chain with `chainName`
  */
 export async function getChain({
@@ -34,10 +34,10 @@ export async function getChain({
 /**
  * Find service given `serviceName`.
  *
- * @params {} prisma client for service
+ * @params {PrismaService.service} prisma client for service
  * @params {string} service name
  * @params {Logger} NestJS logger
- * @return {} service object represented by a `serviceName`
+ * @return {Service} service object represented by a `serviceName`
  * @exception {HttpException} raise when there is no service with `serviceName`
  */
 export async function getService({
