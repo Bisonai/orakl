@@ -17,15 +17,13 @@ describe('Test Caver-js', function () {
       const beforeBalanceOfTo = await caver.klay.getBalance(to)
       const beforeBalanceOfAccount = await caver.klay.getBalance(account.address)
 
-      const txReceipt = await (
-        await caver.klay.sendTransaction({
-          type: 'VALUE_TRANSFER',
-          from: account.address,
-          to: to,
-          gas: '21000',
-          value: amount
-        })
-      ).wait()
+      const txReceipt = await caver.klay.sendTransaction({
+        type: 'VALUE_TRANSFER',
+        from: account.address,
+        to: to,
+        gas: '21000',
+        value: amount
+      })
 
       const txFee = BigNumber.from(txReceipt.effectiveGasPrice).mul(
         BigNumber.from(txReceipt.gasUsed)
