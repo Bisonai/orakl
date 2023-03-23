@@ -6,7 +6,9 @@ describe('Test Caver-js', function () {
   jest.setTimeout(10000)
 
   if (process.env.GITHUB_ACTIONS) {
-    test('Send signed tx with is caver-js on Baobab', async function () {})
+    test('Send signed tx with is caver-js on Baobab', function () {
+      return true
+    })
     // test('Send signed tx with is caver-js on Baobab', async function () {
     //   const PROVIDER_URL = 'https://public-node-api.klaytnapi.com/v1/baobab'
     //   const caver = new Caver(PROVIDER_URL)
