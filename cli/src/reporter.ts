@@ -9,17 +9,18 @@ import {
   isServiceHealthy
 } from './utils'
 
-import { ORAKL_NETWORK_API_URL, LISTENER_SERVICE_HOST, LISTENER_SERVICE_PORT } from './settings'
+import { ORAKL_NETWORK_API_URL, REPORTER_SERVICE_HOST, REPORTER_SERVICE_PORT } from './settings'
 
-const LISTENER_ENDPOINT = buildUrl(ORAKL_NETWORK_API_URL, 'listener')
+const REPORTER_ENDPOINT = buildUrl(ORAKL_NETWORK_API_URL, 'reporter')
 
-export function listenerSub() {
-  // listener list   [--chain ${chain}] [--service ${service}]
-  // listener insert  --chain ${chain}   --service ${service} --address ${address} --eventName ${eventName}
-  // listener remove  --id ${id}
-  // listener active --host ${host} --port ${port}
-  // listener activate --host ${host} --port ${port} --id ${id}
-  // listener deactivate --host ${host} --port ${port} --id ${id}
+export function reporterSub() {
+  // reporter list   [--chain ${chain}] [--service ${service}]
+  // reporter insert  --chain ${chain}   --service ${service} --address ${address} --privateKey ${privateKey} --oracleAddress ${oracleAddress}
+  // reporter remove  --id ${id}
+  // reporter active --host ${host} --port ${port}
+  // reporter activate --host ${host} --port ${port} --id ${id}
+  // reporter deactivate --host ${host} --port ${port} --id ${id}
+  // reporter refresh --host ${host} --port ${port}
 
   const list = command({
     name: 'list',
@@ -45,9 +46,13 @@ export function listenerSub() {
         type: cmdstring,
         long: 'address'
       }),
-      eventName: option({
+      privateKey: option({
         type: cmdstring,
-        long: 'eventName'
+        long: 'privateKey'
+      }),
+      oracleAddress: option({
+        type: cmdstring,
+        long: 'oracleAddress'
       })
     },
     handler: insertHandler()
@@ -67,12 +72,12 @@ export function listenerSub() {
       host: option({
         type: cmdstring,
         long: 'host',
-        defaultValue: () => LISTENER_SERVICE_HOST
+        defaultValue: () => REPORTER_SERVICE_HOST
       }),
       port: option({
         type: cmdstring,
         long: 'port',
-        defaultValue: () => String(LISTENER_SERVICE_PORT)
+        defaultValue: () => String(REPORTER_SERVICE_PORT)
       })
     },
     handler: activeHandler()
@@ -85,12 +90,12 @@ export function listenerSub() {
       host: option({
         type: cmdstring,
         long: 'host',
-        defaultValue: () => LISTENER_SERVICE_HOST
+        defaultValue: () => REPORTER_SERVICE_HOST
       }),
       port: option({
         type: cmdstring,
         long: 'port',
-        defaultValue: () => String(LISTENER_SERVICE_PORT)
+        defaultValue: () => String(REPORTER_SERVICE_PORT)
       })
     },
     handler: activateHandler()
@@ -103,20 +108,37 @@ export function listenerSub() {
       host: option({
         type: cmdstring,
         long: 'host',
-        defaultValue: () => LISTENER_SERVICE_HOST
+        defaultValue: () => REPORTER_SERVICE_HOST
       }),
       port: option({
         type: cmdstring,
         long: 'port',
-        defaultValue: () => String(LISTENER_SERVICE_PORT)
+        defaultValue: () => String(REPORTER_SERVICE_PORT)
       })
     },
     handler: deactivateHandler()
   })
 
+  const refresh = command({
+    name: 'refresh',
+    args: {
+      host: option({
+        type: cmdstring,
+        long: 'host',
+        defaultValue: () => REPORTER_SERVICE_HOST
+      }),
+      port: option({
+        type: cmdstring,
+        long: 'port',
+        defaultValue: () => String(REPORTER_SERVICE_PORT)
+      })
+    },
+    handler: refreshHandler()
+  })
+
   return subcommands({
-    name: 'listener',
-    cmds: { list, insert, remove, active, activate, deactivate }
+    name: 'reporter',
+    cmds: { list, insert, remove, active, activate, deactivate, refresh }
   })
 }
 
@@ -125,7 +147,7 @@ export function listHandler(print?: boolean) {
     if (!(await isOraklNetworkApiHealthy())) return
 
     try {
-      const result = (await axios.get(LISTENER_ENDPOINT, { data: { chain, service } }))?.data
+      const result = (await axios.get(REPORTER_ENDPOINT, { data: { chain, service } }))?.data
       if (print) {
         console.dir(result, { depth: null })
       }
@@ -142,21 +164,24 @@ export function insertHandler() {
     chain,
     service,
     address,
-    eventName
+    privateKey,
+    oracleAddress
   }: {
     chain: string
     service: string
     address: string
-    eventName: string
+    privateKey: string
+    oracleAddress: string
   }) {
     if (!(await isOraklNetworkApiHealthy())) return
 
     try {
-      const result = (await axios.post(LISTENER_ENDPOINT, { chain, service, address, eventName }))
-        .data
+      const result = (
+        await axios.post(REPORTER_ENDPOINT, { chain, service, address, privateKey, oracleAddress })
+      ).data
       console.dir(result, { depth: null })
     } catch (e) {
-      console.error('Listener was not inserted. Reason:')
+      console.error('Reporter was not inserted. Reason:')
       console.error(e?.response?.data?.message)
     }
   }
@@ -167,13 +192,13 @@ export function removeHandler() {
   async function wrapper({ id }: { id: number }) {
     if (!(await isOraklNetworkApiHealthy())) return
 
-    const endpoint = buildUrl(LISTENER_ENDPOINT, id.toString())
+    const endpoint = buildUrl(REPORTER_ENDPOINT, id.toString())
 
     try {
       const result = (await axios.delete(endpoint)).data
       console.dir(result, { depth: null })
     } catch (e) {
-      console.error('Listener was not deleted. Reason:')
+      console.error('Reporter was not deleted. Reason:')
       console.error(e?.response?.data?.message)
     }
   }
@@ -182,13 +207,13 @@ export function removeHandler() {
 
 export function activeHandler() {
   async function wrapper({ host, port }: { host: string; port: string }) {
-    const listenerServiceEndpoint = `${host}:${port}`
-    if (!(await isServiceHealthy(listenerServiceEndpoint))) return
+    const reporterServiceEndpoint = `${host}:${port}`
+    if (!(await isServiceHealthy(reporterServiceEndpoint))) return
 
-    const activeListenerEndpoint = buildUrl(listenerServiceEndpoint, 'active')
+    const activeReporterEndpoint = buildUrl(reporterServiceEndpoint, 'active')
 
     try {
-      const result = (await axios.get(activeListenerEndpoint)).data
+      const result = (await axios.get(activeReporterEndpoint)).data
       console.log(result)
     } catch (e) {
       console.error(e?.response?.data?.message)
@@ -199,16 +224,16 @@ export function activeHandler() {
 
 export function activateHandler() {
   async function wrapper({ host, port, id }: { host: string; port: string; id: number }) {
-    const listenerServiceEndpoint = `${host}:${port}`
-    if (!(await isServiceHealthy(listenerServiceEndpoint))) return
+    const reporterServiceEndpoint = `${host}:${port}`
+    if (!(await isServiceHealthy(reporterServiceEndpoint))) return
 
-    const activateListenerEndpoint = buildUrl(listenerServiceEndpoint, `activate/${id}`)
+    const activateReporterEndpoint = buildUrl(reporterServiceEndpoint, `activate/${id}`)
 
     try {
-      const result = (await axios.get(activateListenerEndpoint)).data
+      const result = (await axios.get(activateReporterEndpoint)).data
       console.log(result?.message)
     } catch (e) {
-      console.error('Listener was not activated. Reason:')
+      console.error('Reporter was not activated. Reason:')
       console.error(e?.response?.data?.message)
     }
   }
@@ -217,16 +242,34 @@ export function activateHandler() {
 
 export function deactivateHandler() {
   async function wrapper({ host, port, id }: { host: string; port: string; id: number }) {
-    const listenerServiceEndpoint = `${host}:${port}`
-    if (!(await isServiceHealthy(listenerServiceEndpoint))) return
+    const reporterServiceEndpoint = `${host}:${port}`
+    if (!(await isServiceHealthy(reporterServiceEndpoint))) return
 
-    const deactivateListenerEndpoint = buildUrl(listenerServiceEndpoint, `deactivate/${id}`)
+    const deactivateReporterEndpoint = buildUrl(reporterServiceEndpoint, `deactivate/${id}`)
 
     try {
-      const result = (await axios.get(deactivateListenerEndpoint)).data
+      const result = (await axios.get(deactivateReporterEndpoint)).data
       console.log(result?.message)
     } catch (e) {
-      console.error('Listener was not deactivated. Reason:')
+      console.error('Reporter was not deactivated. Reason:')
+      console.error(e?.response?.data?.message)
+    }
+  }
+  return wrapper
+}
+
+export function refreshHandler() {
+  async function wrapper({ host, port }: { host: string; port: string }) {
+    const reporterServiceEndpoint = `${host}:${port}`
+    if (!(await isServiceHealthy(reporterServiceEndpoint))) return
+
+    const refreshReporterEndpoint = buildUrl(reporterServiceEndpoint, 'refresh')
+
+    try {
+      const result = (await axios.get(refreshReporterEndpoint)).data
+      console.log(result?.message)
+    } catch (e) {
+      console.error('Reporters were not refreshed. Reason:')
       console.error(e?.response?.data?.message)
     }
   }

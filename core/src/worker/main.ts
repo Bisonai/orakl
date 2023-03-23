@@ -1,13 +1,13 @@
 import { parseArgs } from 'node:util'
 import { buildLogger } from '../logger'
-import { worker as aggregatorWorker } from './aggregator'
+import { worker as dataFeedWorker } from './data-feed'
 import { worker as vrfWorker } from './vrf'
 import { worker as requestResponseWorker } from './request-response'
 import { launchHealthCheck } from '../health-check'
 import { hookConsoleError } from '../utils'
 
 const WORKERS = {
-  AGGREGATOR: aggregatorWorker,
+  AGGREGATOR: dataFeedWorker,
   VRF: vrfWorker,
   REQUEST_RESPONSE: requestResponseWorker
 }

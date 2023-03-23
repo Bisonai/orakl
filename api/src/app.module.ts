@@ -11,6 +11,7 @@ import { AggregateModule } from './aggregate/aggregate.module'
 import { ServiceModule } from './service/service.module'
 import { ListenerModule } from './listener/listener.module'
 import { VrfModule } from './vrf/vrf.module'
+import { ReporterModule } from './reporter/reporter.module'
 
 @Module({
   imports: [
@@ -22,7 +23,8 @@ import { VrfModule } from './vrf/vrf.module'
     AggregateModule,
     ServiceModule,
     ListenerModule,
-    VrfModule
+    VrfModule,
+    ReporterModule
   ],
   controllers: [AppController],
   providers: [AppService, ConfigService]

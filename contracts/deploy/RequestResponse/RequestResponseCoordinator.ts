@@ -57,8 +57,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
         await localhostDeployment({
           deploy,
           requestResponseCoordinator,
-          prepayment,
-          name: deployConfig.version
+          prepayment
         })
       }
     }
@@ -161,10 +160,9 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
 async function localhostDeployment(args) {
   const { consumer } = await getNamedAccounts()
-  const { deploy, requestResponseCoordinator, prepayment, name } = args
-  const requestResponseConsumerMockName = `RequestResponseConsumerMock_${name}`
+  const { deploy, requestResponseCoordinator, prepayment } = args
 
-  const requestResponseConsumerMockDeployment = await deploy(requestResponseConsumerMockName, {
+  const requestResponseConsumerMockDeployment = await deploy('RequestResponseConsumerMock', {
     contract: 'RequestResponseConsumerMock',
     args: [requestResponseCoordinator.address],
     from: consumer,

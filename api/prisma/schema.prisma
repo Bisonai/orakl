@@ -2,7 +2,7 @@
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
 generator client {
-  provider = "prisma-client-js"
+  provider   = "prisma-client-js"
   engineType = "binary"
 }
 
@@ -15,26 +15,31 @@ model Chain {
   id         BigInt       @id @default(autoincrement()) @map("chain_id")
   name       String       @unique
   Aggregator Aggregator[]
-  Listener   Listener[]   
-  VrfKey     VrfKey[]     
+  Listener   Listener[]
+  VrfKey     VrfKey[]
+  Reporter   Reporter[]
+
   @@map("chains")
 }
 
 model Service {
   id       BigInt     @id @default(autoincrement()) @map("service_id")
   name     String     @unique
-  Listener Listener[] 
+  Listener Listener[]
+  Reporter Reporter[]
+
   @@map("services")
 }
 
 model Listener {
   id        BigInt  @id @default(autoincrement()) @map("listener_id")
   address   String  @db.VarChar(42)
-  eventName String  @db.VarChar(255) @map("event_name")
+  eventName String  @map("event_name") @db.VarChar(255)
   chain     Chain   @relation(fields: [chainId], references: [id])
   chainId   BigInt  @map("chain_id")
   service   Service @relation(fields: [serviceId], references: [id])
   serviceId BigInt  @map("service_id")
+
   @@map("listeners")
 }
 
@@ -42,11 +47,12 @@ model VrfKey {
   id      BigInt @id @default(autoincrement()) @map("vrf_key_id")
   sk      String @db.VarChar(64)
   pk      String @db.VarChar(130)
-  pkX     String @db.VarChar(77) @map("pk_x")
-  pkY     String @db.VarChar(77) @map("pk_y")
-  keyHash String @db.VarChar(66) @map("key_hash")
+  pkX     String @map("pk_x") @db.VarChar(77)
+  pkY     String @map("pk_y") @db.VarChar(77)
+  keyHash String @map("key_hash") @db.VarChar(66)
   chain   Chain  @relation(fields: [chainId], references: [id])
   chainId BigInt @map("chain_id")
+
   @@map("vrf_keys")
 }
 
@@ -55,8 +61,9 @@ model Feed {
   name       String
   definition Json
   adapter    Adapter @relation(fields: [adapterId], references: [id], onDelete: Cascade)
-  adapterId  BigInt @map("adapter_id")
-  Data       Data[] 
+  adapterId  BigInt  @map("adapter_id")
+  Data       Data[]
+
   @@map("feeds")
 }
 
@@ -66,7 +73,8 @@ model Adapter {
   name        String
   decimals    Int
   feeds       Feed[]
-  Aggregator  Aggregator[] 
+  Aggregator  Aggregator[]
+
   @@map("adapters")
 }
 
@@ -79,12 +87,12 @@ model Aggregator {
   heartbeat         Int
   threshold         Float
   absoluteThreshold Float       @map("absolute_threshold")
-  Data              Data[]      
+  Data              Data[]
   adapter           Adapter     @relation(fields: [adapterId], references: [id])
   adapterId         BigInt      @map("adapter_id")
   chain             Chain       @relation(fields: [chainId], references: [id])
   chainId           BigInt      @map("chain_id")
-  Aggregate         Aggregate[] 
+  Aggregate         Aggregate[]
 
   @@unique([aggregatorHash, chainId])
   @@map("aggregators")
@@ -98,7 +106,8 @@ model Data {
   aggregatorId BigInt     @map("aggregator_id")
   feed         Feed       @relation(fields: [feedId], references: [id])
   feedId       BigInt     @map("feed_id")
-  @@map("data")  
+
+  @@map("data")
 }
 
 model Aggregate {
@@ -110,4 +119,18 @@ model Aggregate {
 
   @@index([aggregatorId, timestamp(sort: Desc)])
   @@map("aggregates")
+}
+
+model Reporter {
+  id            BigInt  @id @default(autoincrement()) @map("reporter_id")
+  address       String  @db.VarChar(42)
+  privateKey    String  @db.VarChar(66)
+  oracleAddress String  @db.VarChar(42)
+  chain         Chain   @relation(fields: [chainId], references: [id])
+  chainId       BigInt  @map("chain_id")
+  service       Service @relation(fields: [serviceId], references: [id])
+  serviceId     BigInt  @map("service_id")
+
+  @@unique([address, chainId, serviceId])
+  @@map("reporters")
 }

@@ -5,8 +5,6 @@ import { IOracleRoundState, IRoundData } from '../types'
 import { PROVIDER } from '../settings'
 import { Aggregator__factory } from '@bisonai/orakl-contracts'
 
-const FILE_NAME = import.meta.url
-
 export function buildReducer(reducerMapping, reducers) {
   return reducers.map((r) => {
     const reducer = reducerMapping[r.function]
@@ -35,7 +33,7 @@ export async function oracleRoundStateCall({
   roundId?: number
   logger?: Logger
 }): Promise<IOracleRoundState> {
-  logger?.debug({ name: 'oracleRoundStateCall', file: FILE_NAME })
+  logger?.debug({ aggregatorAddress, operatorAddress }, 'oracleRoundStateCall')
 
   const aggregator = new ethers.Contract(aggregatorAddress, Aggregator__factory.abi, PROVIDER)
 

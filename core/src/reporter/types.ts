@@ -1,5 +1,6 @@
 import { Logger } from 'pino'
+import type { RedisClientType } from 'redis'
 
 export interface IReporters {
-  [index: string]: (_logger: Logger) => Promise<void>
+  [index: string]: (redisClient: RedisClientType, _logger: Logger) => Promise<void>
 }

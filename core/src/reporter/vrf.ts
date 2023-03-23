@@ -1,6 +1,7 @@
 import { Worker } from 'bullmq'
 import { ethers } from 'ethers'
 import { Logger } from 'pino'
+import type { RedisClientType } from 'redis'
 import { VRFCoordinator__factory } from '@bisonai/orakl-contracts'
 import { loadWalletParameters, sendTransaction, buildWallet } from './utils'
 import { REPORTER_VRF_QUEUE_NAME, BULLMQ_CONNECTION } from '../settings'
@@ -8,15 +9,15 @@ import { IVrfWorkerReporter, RequestCommitmentVRF, Proof } from '../types'
 
 const FILE_NAME = import.meta.url
 
-export async function reporter(_logger: Logger) {
-  _logger.debug({ name: 'vrfrReporter', file: FILE_NAME })
+export async function reporter(redisClient: RedisClientType, _logger: Logger) {
+  const logger = _logger.child({ name: 'reporter', file: FILE_NAME })
+
   const { privateKey, providerUrl } = loadWalletParameters()
   const wallet = await buildWallet({ privateKey, providerUrl })
-  new Worker(REPORTER_VRF_QUEUE_NAME, await job(wallet, _logger), BULLMQ_CONNECTION)
+  new Worker(REPORTER_VRF_QUEUE_NAME, await job(wallet, logger), BULLMQ_CONNECTION)
 }
 
-function job(wallet, _logger: Logger) {
-  const logger = _logger.child({ name: 'job', file: FILE_NAME })
+function job(wallet, logger: Logger) {
   const iface = new ethers.utils.Interface(VRFCoordinator__factory.abi)
   const gasLimit = 3_000_000 // FIXME
 
@@ -48,7 +49,7 @@ function job(wallet, _logger: Logger) {
         rc,
         inData.isDirectPayment
       ])
-      await sendTransaction({ wallet, to: inData.callbackAddress, payload, gasLimit, _logger })
+      await sendTransaction({ wallet, to: inData.callbackAddress, payload, gasLimit, logger })
     } catch (e) {
       logger.error(e)
     }

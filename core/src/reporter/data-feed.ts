@@ -1,62 +1,85 @@
 import { Job, Worker, Queue } from 'bullmq'
 import { ethers } from 'ethers'
 import { Logger } from 'pino'
+import type { RedisClientType } from 'redis'
 import { Aggregator__factory } from '@bisonai/orakl-contracts'
-import { loadWalletParameters, sendTransaction, buildWallet } from './utils'
+import { State } from './state'
+import { sendTransaction } from './utils'
+import { watchman } from './watchman'
 import {
   REPORTER_AGGREGATOR_QUEUE_NAME,
   BULLMQ_CONNECTION,
-  FIXED_HEARTBEAT_QUEUE_NAME
+  FIXED_HEARTBEAT_QUEUE_NAME,
+  CHAIN,
+  DATA_FEED_REPORTER_STATE_NAME,
+  DATA_FEED_SERVICE_NAME,
+  PROVIDER_URL
 } from '../settings'
 import { IAggregatorWorkerReporter, IAggregatorHeartbeatWorker } from '../types'
 import { OraklError, OraklErrorCode } from '../errors'
 
 const FILE_NAME = import.meta.url
 
-export async function reporter(_logger: Logger) {
-  _logger.debug({ name: 'reporter', file: FILE_NAME })
+export async function reporter(redisClient: RedisClientType, _logger: Logger) {
+  const logger = _logger.child({ name: 'reporter', file: FILE_NAME })
 
-  const { privateKey, providerUrl } = loadWalletParameters()
-  const wallet = await buildWallet({ privateKey, providerUrl })
+  const state = new State({
+    redisClient,
+    providerUrl: PROVIDER_URL,
+    stateName: DATA_FEED_REPORTER_STATE_NAME,
+    service: DATA_FEED_SERVICE_NAME,
+    chain: CHAIN,
+    logger
+  })
+  await state.refresh()
 
-  new Worker(REPORTER_AGGREGATOR_QUEUE_NAME, await job(wallet, _logger), BULLMQ_CONNECTION)
+  new Worker(REPORTER_AGGREGATOR_QUEUE_NAME, await job(state, logger), BULLMQ_CONNECTION)
+  await watchman({ state, logger })
+  logger.debug('Reporter worker launched')
 }
 
-function job(wallet, _logger: Logger) {
-  const logger = _logger.child({ name: 'aggregatorJob', file: FILE_NAME })
+function job(state: State, logger: Logger) {
   const iface = new ethers.utils.Interface(Aggregator__factory.abi)
-
   const heartbeatQueue = new Queue(FIXED_HEARTBEAT_QUEUE_NAME, BULLMQ_CONNECTION)
 
   async function wrapper(job: Job) {
     const inData: IAggregatorWorkerReporter = job.data
     logger.debug(inData, 'inData')
 
-    const aggregatorAddress = inData.callbackAddress
+    const oracleAddress = inData.callbackAddress
+    await submitHeartbeatJob(heartbeatQueue, oracleAddress, inData.delay, logger)
 
-    await submitHeartbeatJob(heartbeatQueue, aggregatorAddress, inData.delay, logger)
+    const wallet = state.wallets[oracleAddress]
+    if (!wallet) {
+      const msg = `Wallet for aggregator ${oracleAddress} is not active`
+      logger.error(msg)
+      throw new OraklError(OraklErrorCode.WalletNotActive, msg)
+    }
 
     try {
       const payload = iface.encodeFunctionData('submit', [inData.roundId, inData.submission])
       const gasLimit = 300_000 // FIXME move to settings outside of code
+
       // TODO retry when transaction failed
-      await sendTransaction({ wallet, to: aggregatorAddress, payload, _logger, gasLimit })
+      await sendTransaction({ wallet, to: oracleAddress, payload, logger, gasLimit })
     } catch (e) {
       logger.error(e)
+      throw e
     }
   }
 
+  logger.debug('Reporter job built')
   return wrapper
 }
 
 async function submitHeartbeatJob(
   heartbeatQueue: Queue,
-  aggregatorAddress: string,
+  oracleAddress: string,
   delay: number,
   logger: Logger
 ) {
   const allDelayed = (await heartbeatQueue.getJobs(['delayed'])).filter(
-    (job) => job.opts.jobId == aggregatorAddress
+    (job) => job.opts.jobId == oracleAddress
   )
 
   if (allDelayed.length > 1) {
@@ -69,14 +92,15 @@ async function submitHeartbeatJob(
   }
 
   const outData: IAggregatorHeartbeatWorker = {
-    aggregatorAddress
+    aggregatorAddress: oracleAddress
   }
   await heartbeatQueue.add('heartbeat', outData, {
     delay: delay,
     removeOnComplete: true,
-    jobId: aggregatorAddress,
+    jobId: oracleAddress,
     attempts: 3,
     backoff: 1_000
   })
   logger.debug({ job: 'added', delay: delay }, 'job-added')
+  logger.debug('Reporter submitted heartbeat job')
 }

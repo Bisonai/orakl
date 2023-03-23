@@ -1,24 +1,24 @@
 import { Test, TestingModule } from '@nestjs/testing'
-import { ListenerService } from './listener.service'
+import { ReporterService } from './reporter.service'
 import { ChainService } from '../chain/chain.service'
 import { ServiceService } from '../service/service.service'
 import { PrismaService } from '../prisma.service'
 import { PrismaClient } from '@prisma/client'
 
-describe('ListenerService', () => {
+describe('ReporterService', () => {
   let chain: ChainService
   let service: ServiceService
-  let listener: ListenerService
+  let reporter: ReporterService
   let prisma
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      providers: [ListenerService, ServiceService, ChainService, PrismaService]
+      providers: [ReporterService, ServiceService, ChainService, PrismaService]
     }).compile()
 
     chain = module.get<ChainService>(ChainService)
     service = module.get<ServiceService>(ServiceService)
-    listener = module.get<ListenerService>(ListenerService)
+    reporter = module.get<ReporterService>(ReporterService)
     prisma = module.get<PrismaClient>(PrismaService)
   })
 
@@ -28,26 +28,27 @@ describe('ListenerService', () => {
   })
 
   it('should be defined', () => {
-    expect(listener).toBeDefined()
+    expect(reporter).toBeDefined()
   })
 
-  it('should insert listener', async () => {
+  it('should insert reporter', async () => {
     // Chain
-    const chainObj = await chain.create({ name: 'listener-test-chain' })
+    const chainObj = await chain.create({ name: 'reporter-test-chain' })
 
     // Service
-    const serviceObj = await service.create({ name: 'listener-test-service' })
+    const serviceObj = await service.create({ name: 'reporter-test-service' })
 
-    // Listener
-    const listenerObj = await listener.create({
+    // Reporter
+    const reporterObj = await reporter.create({
       address: '0x',
-      eventName: 'TestEventName',
+      privateKey: '0x',
+      oracleAddress: '0x',
       chain: chainObj.name,
       service: serviceObj.name
     })
 
     // Cleanup
-    await listener.remove({ id: listenerObj.id })
+    await reporter.remove({ id: reporterObj.id })
     await service.remove({ id: serviceObj.id })
     await chain.remove({ id: chainObj.id })
   })

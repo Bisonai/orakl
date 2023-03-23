@@ -5,3 +5,6 @@ export const ORAKL_NETWORK_FETCHER_URL =
 
 export const LISTENER_SERVICE_HOST = process.env.LISTENER_SERVICE_HOST || 'http://localhost'
 export const LISTENER_SERVICE_PORT = process.env.LISTENER_SERVICE_PORT || 4000
+
+export const REPORTER_SERVICE_HOST = process.env.REPORTER_SERVICE_HOST || 'http://localhost'
+export const REPORTER_SERVICE_PORT = process.env.REPORTER_SERVICE_PORT || 6000

@@ -1,11 +1,14 @@
 import { ApiProperty } from '@nestjs/swagger'
 
-export class CreateListenerDto {
+export class CreateReporterDto {
   @ApiProperty()
   address: string
 
   @ApiProperty()
-  eventName: string
+  privateKey: string
+
+  @ApiProperty()
+  oracleAddress: string
 
   @ApiProperty()
   chain: string

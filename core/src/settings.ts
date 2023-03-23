@@ -21,7 +21,14 @@ export const PRIVATE_KEY = String(process.env.PRIVATE_KEY)
 export const PUBLIC_KEY = String(process.env.PUBLIC_KEY)
 export const LOCAL_AGGREGATOR = process.env.LOCAL_AGGREGATOR || 'MEDIAN'
 export const LISTENER_DELAY = Number(process.env.LISTENER_DELAY) || 500
-export const LISTENER_PORT = process.env.LISTENER_PORT || 4000
+
+// Service ports are used for communication to watchman from the outside
+export const LISTENER_PORT = process.env.LISTENER_PORT || 4_000
+export const REPORTER_PORT = process.env.REPORTER_PORT || 6_000
+
+export const DATA_FEED_SERVICE_NAME = 'Aggregator'
+export const VRF_SERVICE_NAME = 'VRF'
+export const REQUEST_RESPONSE_SERVICE_NAME = 'RequestResponse'
 
 // BullMQ
 export const REMOVE_ON_COMPLETE = 500
@@ -54,6 +61,10 @@ export const ALL_QUEUES = [
 export const VRF_LISTENER_STATE_NAME = `${DEPLOYMENT_NAME}-listener-vrf-state`
 export const REQUEST_RESPONSE_LISTENER_STATE_NAME = `${DEPLOYMENT_NAME}-listener-request-response-state`
 export const DATA_FEED_LISTENER_STATE_NAME = `${DEPLOYMENT_NAME}-listener-data-feed-state`
+
+// export const VRF_LISTENER_STATE_NAME = `${DEPLOYMENT_NAME}-reporter-vrf-state`
+// export const REQUEST_RESPONSE_LISTENER_STATE_NAME = `${DEPLOYMENT_NAME}-reporter-request-response-state`
+export const DATA_FEED_REPORTER_STATE_NAME = `${DEPLOYMENT_NAME}-reporter-data-feed-state`
 
 export const BULLMQ_CONNECTION = {
   connection: {
