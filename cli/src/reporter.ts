@@ -20,6 +20,7 @@ export function reporterSub() {
   // reporter active --host ${host} --port ${port}
   // reporter activate --host ${host} --port ${port} --id ${id}
   // reporter deactivate --host ${host} --port ${port} --id ${id}
+  // reporter refresh --host ${host} --port ${port}
 
   const list = command({
     name: 'list',
@@ -118,9 +119,26 @@ export function reporterSub() {
     handler: deactivateHandler()
   })
 
+  const refresh = command({
+    name: 'refresh',
+    args: {
+      host: option({
+        type: cmdstring,
+        long: 'host',
+        defaultValue: () => REPORTER_SERVICE_HOST
+      }),
+      port: option({
+        type: cmdstring,
+        long: 'port',
+        defaultValue: () => String(REPORTER_SERVICE_PORT)
+      })
+    },
+    handler: refreshHandler()
+  })
+
   return subcommands({
     name: 'reporter',
-    cmds: { list, insert, remove, active, activate, deactivate }
+    cmds: { list, insert, remove, active, activate, deactivate, refresh }
   })
 }
 
@@ -234,6 +252,24 @@ export function deactivateHandler() {
       console.log(result?.message)
     } catch (e) {
       console.error('Reporter was not deactivated. Reason:')
+      console.error(e?.response?.data?.message)
+    }
+  }
+  return wrapper
+}
+
+export function refreshHandler() {
+  async function wrapper({ host, port }: { host: string; port: string }) {
+    const reporterServiceEndpoint = `${host}:${port}`
+    if (!(await isServiceHealthy(reporterServiceEndpoint))) return
+
+    const refreshReporterEndpoint = buildUrl(reporterServiceEndpoint, 'refresh')
+
+    try {
+      const result = (await axios.get(refreshReporterEndpoint)).data
+      console.log(result?.message)
+    } catch (e) {
+      console.error('Reporters were not refreshed. Reason:')
       console.error(e?.response?.data?.message)
     }
   }
