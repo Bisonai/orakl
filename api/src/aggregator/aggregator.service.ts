@@ -100,6 +100,25 @@ export class AggregatorService {
     })
   }
 
+  async verifyAggregatorHashOnLoad(
+    aggregatorWhereUniqueInput: Prisma.AggregatorWhereUniqueInput,
+    chain: string
+  ): Promise<AggregatorDto> {
+    const aggregatorRecord = await this.findUnique(aggregatorWhereUniqueInput)
+    const aggregatorDto: AggregatorDto = {
+      aggregatorHash: aggregatorRecord.aggregatorHash,
+      active: aggregatorRecord.active,
+      name: aggregatorRecord.name,
+      address: aggregatorRecord.address,
+      heartbeat: aggregatorRecord.heartbeat,
+      threshold: aggregatorRecord.threshold,
+      absoluteThreshold: aggregatorRecord.absoluteThreshold,
+      adapterHash: aggregatorRecord.adapter.adapterHash,
+      chain: chain
+    }
+    return await this.computeAggregatorHash({ data: aggregatorDto, verify: true })
+  }
+
   async computeAggregatorHash({
     data,
     verify
