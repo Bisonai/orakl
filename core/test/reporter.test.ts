@@ -14,8 +14,7 @@ describe('Reporter', function () {
     try {
       const wallet = await buildWallet({
         privateKey: PRIVATE_KEY,
-        providerUrl: PROVIDER_URL,
-        testConnection: true
+        providerUrl: PROVIDER_URL
       })
 
       wallet.getBalance()
@@ -40,8 +39,7 @@ describe('Reporter', function () {
 
       const wallet = await buildWallet({
         privateKey,
-        providerUrl: PROVIDER_URL,
-        testConnection: true
+        providerUrl: PROVIDER_URL
       })
 
       const to = '0x976EA74026E726554dB657fA54763abd0C3a0aa9' // hardhat account 6
