@@ -30,7 +30,8 @@ export async function loadJsonFromUrl(url: string) {
 
 export async function isValidUrl(url: string) {
   try {
-    return Boolean(new URL(url))
+    new URL(url)
+    return true
   } catch (e) {
     return false
   }
