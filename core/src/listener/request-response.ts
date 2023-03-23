@@ -46,7 +46,7 @@ export async function buildListener(
     await state.update(listener.id, intervalId)
   }
 
-  watchman({ listenFn, state, logger })
+  await watchman({ listenFn, state, logger })
 }
 
 async function processEvent(iface: ethers.utils.Interface, queue: Queue, _logger: Logger) {
