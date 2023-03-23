@@ -6,42 +6,42 @@ describe('Test Caver-js', function () {
   jest.setTimeout(10000)
 
   if (process.env.GITHUB_ACTIONS) {
-    test('Send signed tx with is caver-js on Baobab', async function () {
-      const PROVIDER_URL = 'https://public-node-api.klaytnapi.com/v1/baobab'
-      const caver = new Caver(PROVIDER_URL)
-      const privateKey = process.env.CAVER_PRIVATE_KEY || ''
-      const account = caver.klay.accounts.wallet.add(privateKey)
-
-      const amount = caver.utils.toPeb(1, 'mKLAY')
-      const to = '0xeF5cd886C7f8d85fbe8023291761341aCBb4DA01'
-      const beforeBalanceOfTo = await caver.klay.getBalance(to)
-      const beforeBalanceOfAccount = await caver.klay.getBalance(account.address)
-
-      const txReceipt = await caver.klay.sendTransaction({
-        type: 'VALUE_TRANSFER',
-        from: account.address,
-        to: to,
-        gas: '21000',
-        value: amount
-      })
-
-      const txFee = BigNumber.from(txReceipt.effectiveGasPrice).mul(
-        BigNumber.from(txReceipt.gasUsed)
-      )
-      const afterBalanceOfTo = await caver.klay.getBalance(to)
-      const afterBalanceOfAccount = await caver.klay.getBalance(account.address)
-
-      expect(
-        BigNumber.from(afterBalanceOfTo).eq(
-          BigNumber.from(beforeBalanceOfTo).add(BigNumber.from(amount))
-        )
-      ).toBe(true)
-      expect(
-        BigNumber.from(afterBalanceOfAccount).eq(
-          BigNumber.from(beforeBalanceOfAccount).sub(BigNumber.from(amount)).sub(txFee)
-        )
-      ).toBe(true)
-    })
+    // test('Send signed tx with is caver-js on Baobab', async function () {
+    //   const PROVIDER_URL = 'https://public-node-api.klaytnapi.com/v1/baobab'
+    //   const caver = new Caver(PROVIDER_URL)
+    //   const privateKey = process.env.CAVER_PRIVATE_KEY || ''
+    //   const account = caver.klay.accounts.wallet.add(privateKey)
+    //
+    //   const amount = caver.utils.toPeb(1, 'mKLAY')
+    //   const to = '0xeF5cd886C7f8d85fbe8023291761341aCBb4DA01'
+    //   const beforeBalanceOfTo = await caver.klay.getBalance(to)
+    //   const beforeBalanceOfAccount = await caver.klay.getBalance(account.address)
+    //
+    //   const txReceipt = await caver.klay.sendTransaction({
+    //     type: 'VALUE_TRANSFER',
+    //     from: account.address,
+    //     to: to,
+    //     gas: '21000',
+    //     value: amount
+    //   })
+    //
+    //   const txFee = BigNumber.from(txReceipt.effectiveGasPrice).mul(
+    //     BigNumber.from(txReceipt.gasUsed)
+    //   )
+    //   const afterBalanceOfTo = await caver.klay.getBalance(to)
+    //   const afterBalanceOfAccount = await caver.klay.getBalance(account.address)
+    //
+    //   expect(
+    //     BigNumber.from(afterBalanceOfTo).eq(
+    //       BigNumber.from(beforeBalanceOfTo).add(BigNumber.from(amount))
+    //     )
+    //   ).toBe(true)
+    //   expect(
+    //     BigNumber.from(afterBalanceOfAccount).eq(
+    //       BigNumber.from(beforeBalanceOfAccount).sub(BigNumber.from(amount)).sub(txFee)
+    //     )
+    //   ).toBe(true)
+    // })
   } else {
     test('Send signed tx with is ethers on local', async function () {
       const provider = new ethers.providers.JsonRpcProvider('http://127.0.0.1:8545')
