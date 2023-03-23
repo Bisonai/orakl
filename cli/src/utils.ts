@@ -24,8 +24,7 @@ export async function loadFile(source: string) {
 }
 
 export async function loadJsonFromUrl(url: string) {
-  const res = await (await fetch(url, { method: 'Get' })).json()
-  return res
+  return await (await fetch(url, { method: 'GET' })).json()
 }
 
 export async function isValidUrl(url: string) {
