@@ -388,6 +388,9 @@ async function getOperatorAddress({
  * @param {queue} queue
  * @param {string} job ID
  * @param {Logger} pino logger
+ * @return {void}
+ * @except {OraklErrorCode.UnexpectedNumberOfDeadlockJobs} raise when
+ * more than single deadlock found
  */
 async function removeDeadlock(queue: Queue, jobId: string, logger: Logger) {
   const blockingJob = (await queue.getJobs(['completed'])).filter((job) => job.opts.jobId == jobId)
