@@ -73,11 +73,10 @@ export class State {
    * corresponds to the `service` and `chain` state.
    *
    * @param {string} reporter ID
-   * @param {string} oracle address assigned to reporter
    * @return {IReporterConfig}
    * @exception {OraklErrorCode.ReporterNotAdded} raise when no reporter was added
    */
-  async add(id: string, oracleAddress: string): Promise<IReporterConfig> {
+  async add(id: string): Promise<IReporterConfig> {
     this.logger.debug('add')
 
     // Check if reporter is not active yet
@@ -106,7 +105,7 @@ export class State {
       privateKey: toAddReporter.privateKey,
       providerUrl: this.providerUrl
     })
-    this.wallets = { ...this.wallets, oracleAddress: wallet }
+    this.wallets = { ...this.wallets, [toAddReporter.oracleAddress]: wallet }
 
     return toAddReporter
   }
@@ -168,5 +167,7 @@ export class State {
     // Update
     await this.redisClient.set(this.stateName, JSON.stringify(reporters))
     this.wallets = Object.assign({}, ...wallets)
+
+    return reporters
   }
 }

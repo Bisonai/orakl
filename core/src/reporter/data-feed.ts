@@ -5,6 +5,7 @@ import type { RedisClientType } from 'redis'
 import { Aggregator__factory } from '@bisonai/orakl-contracts'
 import { State } from './state'
 import { sendTransaction } from './utils'
+import { watchman } from './watchman'
 import {
   REPORTER_AGGREGATOR_QUEUE_NAME,
   BULLMQ_CONNECTION,
@@ -33,6 +34,7 @@ export async function reporter(redisClient: RedisClientType, _logger: Logger) {
   await state.refresh()
 
   new Worker(REPORTER_AGGREGATOR_QUEUE_NAME, await job(state, logger), BULLMQ_CONNECTION)
+  await watchman({ state, logger })
   logger.debug('Reporter worker launched')
 }
 
