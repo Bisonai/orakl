@@ -11,7 +11,6 @@ import {
   BULLMQ_CONNECTION,
   DEPLOYMENT_NAME,
   REMOVE_ON_COMPLETE,
-  REMOVE_ON_FAIL,
   CHAIN,
   DATA_FEED_SERVICE_NAME
 } from '../settings'
@@ -222,7 +221,9 @@ function heartbeatJob(aggregatorJobQueueName: string, _logger: Logger) {
 
         await queue.add('fixed', outData, {
           removeOnComplete: REMOVE_ON_COMPLETE,
-          removeOnFail: REMOVE_ON_FAIL,
+          // When [aggregator] worker fails, we want to be able to
+          // resubmit the job with the same job ID.
+          removeOnFail: true,
           jobId
         })
         logger.debug({ job: 'added', eligible: true, roundId }, 'eligible-fixed')
