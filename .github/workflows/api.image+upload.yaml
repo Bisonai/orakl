@@ -53,7 +53,7 @@ jobs:
         uses: aws-actions/configure-aws-credentials@v2
         with:
           aws-region: ${{ secrets.AWS_REGION }}
-          role-session-name: oraklrolesession
+          role-session-name: githubAction
           role-to-assume: ${{ secrets.ROLE_ARN }}
 
       - name: Login to Amazon ECR
