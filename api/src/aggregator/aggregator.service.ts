@@ -3,6 +3,7 @@ import { Prisma } from '@prisma/client'
 import { ethers } from 'ethers'
 import { PrismaService } from '../prisma.service'
 import { AggregatorDto } from './dto/aggregator.dto'
+import { IAggregator } from './aggregator.types'
 
 @Injectable()
 export class AggregatorService {
@@ -35,6 +36,21 @@ export class AggregatorService {
       throw new HttpException(msg, HttpStatus.NOT_FOUND)
     }
 
+    try {
+      const aggregator: IAggregator = {
+        aggregatorHash: aggregatorDto.aggregatorHash,
+        name: aggregatorDto.name,
+        heartbeat: aggregatorDto.heartbeat,
+        threshold: aggregatorDto.threshold,
+        absoluteThreshold: aggregatorDto.absoluteThreshold,
+        adapterHash: aggregatorDto.adapterHash
+      }
+      await this.computeAggregatorHash({ data: aggregator, verify: true })
+    } catch (e) {
+      this.logger.error(e)
+      throw new HttpException(e, HttpStatus.BAD_REQUEST)
+    }
+
     const data: Prisma.AggregatorUncheckedCreateInput = {
       aggregatorHash: aggregatorDto.aggregatorHash,
       active: aggregatorDto.active,
@@ -47,12 +63,6 @@ export class AggregatorService {
       chainId: chain.id
     }
 
-    try {
-      await this.computeAggregatorHash({ data: aggregatorDto, verify: true })
-    } catch (e) {
-      this.logger.error(e)
-      throw new HttpException(e, HttpStatus.BAD_REQUEST)
-    }
     return await this.prisma.aggregator.create({ data })
   }
 
@@ -103,35 +113,24 @@ export class AggregatorService {
   async verifyAggregatorHashOnLoad(
     aggregatorWhereUniqueInput: Prisma.AggregatorWhereUniqueInput,
     chain: string
-  ): Promise<AggregatorDto> {
+  ) {
     const aggregatorRecord = await this.findUnique(aggregatorWhereUniqueInput)
-    const aggregatorDto: AggregatorDto = {
+    const aggregator: IAggregator = {
       aggregatorHash: aggregatorRecord.aggregatorHash,
-      active: aggregatorRecord.active,
       name: aggregatorRecord.name,
-      address: aggregatorRecord.address,
       heartbeat: aggregatorRecord.heartbeat,
       threshold: aggregatorRecord.threshold,
       absoluteThreshold: aggregatorRecord.absoluteThreshold,
-      adapterHash: aggregatorRecord.adapter.adapterHash,
-      chain: chain
+      adapterHash: aggregatorRecord.adapter.adapterHash
     }
-    return await this.computeAggregatorHash({ data: aggregatorDto, verify: true })
+    await this.computeAggregatorHash({ data: aggregator, verify: true })
   }
 
-  async computeAggregatorHash({
-    data,
-    verify
-  }: {
-    data: AggregatorDto
-    verify?: boolean
-  }): Promise<AggregatorDto> {
+  async computeAggregatorHash({ data, verify }: { data: IAggregator; verify?: boolean }) {
     const input = JSON.parse(JSON.stringify(data))
 
     // Don't use following properties in computation of hash
     delete input.aggregatorHash
-    delete input.address
-    delete input.active
 
     const hash = ethers.utils.keccak256(ethers.utils.toUtf8Bytes(JSON.stringify(input)))
 
