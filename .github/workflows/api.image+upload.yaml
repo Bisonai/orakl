@@ -6,7 +6,7 @@ on:
       - master
     types:
       - closed
-## remove after test      
+## remove after test remove administrator access   
   push:
     branches:
       - i-424/docker-hub-is-slow
