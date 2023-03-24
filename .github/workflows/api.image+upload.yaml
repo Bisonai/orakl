@@ -10,6 +10,9 @@ on:
     branches:
       - i-424/docker-hub-is-slow
 
+env:
+  ecr_url: public.ecr.aws/u6t6w0e4/orakl-api
+
 jobs:
   prepare:
     name: Prepare Build
@@ -50,9 +53,9 @@ jobs:
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v2
         with:
-          aws-region: ${{ secrets.aws_region }}
+          aws-region: ${{ secrets.AWS_REGION }}
           role-session-name: oraklrolesession
-          role-to-assume: ${{ secrets.role_arn }}
+          role-to-assume: ${{ secrets.ROLE_ARN }}
 
       - name: Login to Amazon ECR
         id: login-ecr
@@ -60,5 +63,5 @@ jobs:
 
       - name: Publish Image to ECR(orakl)
         run: |
-          docker tag bisonai/orakl-api:latest ${{ secrets.ecr_url }}:${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }}
+          docker tag bisonai/orakl-api:latest ${{ env.ecr_url }}:${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }}
           docker push ${{ env.ecr_url }}:${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }}
