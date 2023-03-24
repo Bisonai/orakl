@@ -30,7 +30,7 @@ The general path for deployment script is `deploy/${network}/${service}`.
 Migration files are stored under [`migration` directory](migration).
 The migration files are separated based on the `network` and `service`.
 The general path to migration directory is `migration/${network}/${service}`.
-Every migration directory should contain JSON migration files that contain migratino definitions, and `migration.lock` which stores which migration has already been executed.
+Every migration directory should contain JSON migration files that contain migration definitions, and `migration.lock` which stores which migration has already been executed.
 
 The names of migration files should be consistent.
 We recommend to use the following script to generate a new migration file.
@@ -65,5 +65,5 @@ yarn deploy:localhost:rr
 ### Aggregator
 
 ```shell
-yarn deploy:aggregator
+yarn deploy:localhost:aggregator
 ```
