@@ -15,7 +15,8 @@ import {
   DATA_FEED_SERVICE_NAME,
   PROVIDER_URL,
   HEARTBEAT_JOB_NAME,
-  DEPLOYMENT_NAME
+  DEPLOYMENT_NAME,
+  HEARTBEAT_QUEUE_SETTINGS
 } from '../settings'
 import { IAggregatorWorkerReporter, IAggregatorHeartbeatWorker } from '../types'
 import { OraklError, OraklErrorCode } from '../errors'
@@ -94,8 +95,9 @@ async function submitHeartbeatJob(
   delay: number,
   logger: Logger
 ) {
+  const jobId = buildHeartbeatJobId({ oracleAddress, deploymentName: DEPLOYMENT_NAME })
   const allDelayed = (await heartbeatQueue.getJobs(['delayed'])).filter(
-    (job) => job.opts.jobId == oracleAddress
+    (job) => job.opts.jobId == jobId
   )
 
   if (allDelayed.length > 1) {
@@ -104,19 +106,17 @@ async function submitHeartbeatJob(
     const delayedJob = allDelayed[0]
     delayedJob.remove()
 
-    logger.debug({ job: 'deleted' }, 'job-deleted')
+    logger.debug({ job: 'deleted' }, `Reporter deleted heartbeat job with ID=${jobId}`)
   }
 
   const jobData: IAggregatorHeartbeatWorker = {
     oracleAddress
   }
   await heartbeatQueue.add(HEARTBEAT_JOB_NAME, jobData, {
+    jobId,
     delay,
-    removeOnComplete: true,
-    jobId: buildHeartbeatJobId({ oracleAddress, deploymentName: DEPLOYMENT_NAME }),
-    attempts: 10,
-    backoff: 1_000
+    ...HEARTBEAT_QUEUE_SETTINGS
   })
-  logger.debug({ job: 'added', delay: delay }, 'job-added')
-  logger.debug('Reporter submitted heartbeat job')
+
+  logger.debug({ job: 'added', delay }, `Reporter submitted heartbeat job with ID=${jobId}`)
 }

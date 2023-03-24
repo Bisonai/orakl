@@ -13,9 +13,10 @@ import {
   REMOVE_ON_COMPLETE,
   CHAIN,
   DATA_FEED_SERVICE_NAME,
-  HEARTBEAT_JOB_NAME
+  HEARTBEAT_JOB_NAME,
+  HEARTBEAT_QUEUE_SETTINGS
 } from '../settings'
-import { buildReporterJobId, buildHeartbeatJobId } from '../utils'
+import { buildSubmissionRoundJobId, buildHeartbeatJobId } from '../utils'
 import { oracleRoundStateCall } from './utils'
 
 const FILE_NAME = import.meta.url
@@ -45,16 +46,14 @@ export async function worker(_logger: Logger) {
       oracleAddress
     }
     await heartbeatQueue.add(HEARTBEAT_JOB_NAME, jobData, {
+      jobId: buildHeartbeatJobId({ oracleAddress, deploymentName: DEPLOYMENT_NAME }),
       delay: await getSynchronizedDelay({
         oracleAddress,
         operatorAddress,
         heartbeat: aggregator.heartbeat,
         logger
       }),
-      removeOnComplete: true,
-      jobId: buildHeartbeatJobId({ oracleAddress, deploymentName: DEPLOYMENT_NAME }),
-      attempts: 10,
-      backoff: 1_000
+      ...HEARTBEAT_QUEUE_SETTINGS
     })
   }
 
@@ -136,6 +135,11 @@ function aggregatorJob(reporterQueueName: string, _logger: Logger) {
       logger.debug(outData, 'outData-regular')
 
       await reporterQueue.add(inData.workerSource, outData, {
+        jobId: buildSubmissionRoundJobId({
+          oracleAddress,
+          roundId,
+          deploymentName: DEPLOYMENT_NAME
+        }),
         removeOnComplete: REMOVE_ON_COMPLETE,
         // Reporter job can fail, and should be either retried or
         // removed. We need to remove the job after repeated failure
@@ -143,12 +147,7 @@ function aggregatorJob(reporterQueueName: string, _logger: Logger) {
         // After removing the job on failure, we can resubmit the job
         // with the same unique ID representing the submission for
         // specific aggregator on specific round.
-        removeOnFail: true,
-        jobId: buildReporterJobId({
-          oracleAddress,
-          roundId,
-          deploymentName: DEPLOYMENT_NAME
-        })
+        removeOnFail: true
       })
     } catch (e) {
       // `FailedToFetchFromDataFeed` exception can be raised from `prepareDataForReporter`.
@@ -218,7 +217,7 @@ function heartbeatJob(aggregatorJobQueueName: string, _logger: Logger) {
       if (oracleRoundState._eligibleToSubmit) {
         logger.debug({ job: 'added', eligible: true, roundId }, 'before-eligible-fixed')
 
-        const jobId = buildReporterJobId({
+        const jobId = buildSubmissionRoundJobId({
           oracleAddress,
           roundId,
           deploymentName: DEPLOYMENT_NAME

@@ -6,7 +6,7 @@ import { Aggregator__factory } from '@bisonai/orakl-contracts'
 import { listen } from './listener'
 import { State } from './state'
 import { IListenerConfig, INewRound, IAggregatorWorker } from '../types'
-import { buildReporterJobId } from '../utils'
+import { buildSubmissionRoundJobId } from '../utils'
 import {
   PUBLIC_KEY,
   WORKER_AGGREGATOR_QUEUE_NAME,
@@ -73,9 +73,13 @@ async function processEvent(iface: ethers.utils.Interface, queue: Queue, _logger
       logger.debug(data, 'data')
 
       await queue.add('event', data, {
+        jobId: buildSubmissionRoundJobId({
+          oracleAddress,
+          roundId,
+          deploymentName: DEPLOYMENT_NAME
+        }),
         removeOnComplete: REMOVE_ON_COMPLETE,
-        removeOnFail: REMOVE_ON_FAIL,
-        jobId: buildReporterJobId({ oracleAddress, roundId, deploymentName: DEPLOYMENT_NAME })
+        removeOnFail: REMOVE_ON_FAIL
       })
       logger.debug({ job: 'event-added' }, 'job-added')
     }

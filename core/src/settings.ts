@@ -78,3 +78,9 @@ function createJsonRpcProvider() {
 }
 
 export const PROVIDER = createJsonRpcProvider()
+
+export const HEARTBEAT_QUEUE_SETTINGS = {
+  removeOnComplete: true,
+  attempts: 10,
+  backoff: 1_000
+}

@@ -89,7 +89,7 @@ export async function createRedisClient(host: string, port: number): Promise<Red
   return client
 }
 
-export function buildReporterJobId({
+export function buildSubmissionRoundJobId({
   oracleAddress,
   roundId,
   deploymentName
