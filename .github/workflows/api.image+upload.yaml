@@ -9,7 +9,7 @@ on:
   push:
     branches:
       - i-424/docker-hub-is-slow
-      
+
 
 env:
   ecr_url: public.ecr.aws/u6t6w0e4/orakl-api
@@ -46,6 +46,20 @@ jobs:
 
     steps:
       - uses: actions/checkout@v3
+      - name: set JDK
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'corretto'
+          java-version: '17'
+          cache: 'gradle'
+
+      - name: Run chmod to make gradlew executable
+        run: chmod +x gradlew
+
+      - name: Gradle Build Movie
+        uses: gradle/gradle-build-action@v2
+        with:
+          arguments: build
 
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v1-node16
