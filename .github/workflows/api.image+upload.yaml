@@ -36,6 +36,7 @@ jobs:
     needs: prepare
 
     permissions:
+      id-token: write
       contents: read    # This is required for actions/checkout
 
     outputs:
