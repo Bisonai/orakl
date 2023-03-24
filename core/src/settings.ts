@@ -19,6 +19,7 @@ export const REDIS_PORT = process.env.REDIS_PORT ? Number(process.env.REDIS_PORT
 
 console.log('REDIS_HOST:', REDIS_HOST)
 console.log('REDIS_PORT:', REDIS_PORT)
+
 export const SLACK_WEBHOOK_URL = process.env.SLACK_WEBHOOK_URL || ''
 export const PRIVATE_KEY = String(process.env.PRIVATE_KEY)
 export const PUBLIC_KEY = String(process.env.PUBLIC_KEY)
