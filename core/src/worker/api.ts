@@ -38,20 +38,20 @@ export async function fetchDataFeed({
 /**
  * Get single `Aggregator` given aggregator address.
  *
- * @param {string} aggregator address
+ * @param {string} oracle address
  * @param {Logger} logger
  * @return {Aggregator}
  * @exception {FailedToGetAggregator}
  */
 export async function getAggregatorGivenAddress({
-  aggregatorAddress,
+  oracleAddress,
   logger
 }: {
-  aggregatorAddress: string
+  oracleAddress: string
   logger: Logger
 }): Promise<IAggregator> {
   const url = new URL(AGGREGATOR_ENDPOINT)
-  url.searchParams.append('address', aggregatorAddress)
+  url.searchParams.append('address', oracleAddress)
 
   let response = []
   try {

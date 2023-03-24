@@ -120,7 +120,7 @@ export interface IVrfListenerWorker {
 }
 
 export interface IAggregatorWorker {
-  aggregatorAddress: string
+  oracleAddress: string
   roundId: number
   workerSource: string
 }
@@ -128,7 +128,7 @@ export interface IAggregatorWorker {
 // Worker -> Worker
 
 export interface IAggregatorHeartbeatWorker {
-  aggregatorAddress: string
+  oracleAddress: string
 }
 
 // Worker -> Reporter

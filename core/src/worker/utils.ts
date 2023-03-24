@@ -23,19 +23,19 @@ export function uniform(a: number, b: number): number {
 }
 
 export async function oracleRoundStateCall({
-  aggregatorAddress,
+  oracleAddress,
   operatorAddress,
   logger,
   roundId
 }: {
-  aggregatorAddress: string
+  oracleAddress: string
   operatorAddress: string
   roundId?: number
   logger?: Logger
 }): Promise<IOracleRoundState> {
-  logger?.debug({ aggregatorAddress, operatorAddress }, 'oracleRoundStateCall')
+  logger?.debug({ oracleAddress, operatorAddress }, 'oracleRoundStateCall')
 
-  const aggregator = new ethers.Contract(aggregatorAddress, Aggregator__factory.abi, PROVIDER)
+  const aggregator = new ethers.Contract(oracleAddress, Aggregator__factory.abi, PROVIDER)
 
   let queriedRoundId = 0
   if (roundId) {
@@ -46,12 +46,12 @@ export async function oracleRoundStateCall({
 }
 
 export async function getRoundDataCall({
-  aggregatorAddress,
+  oracleAddress,
   roundId
 }: {
-  aggregatorAddress: string
+  oracleAddress: string
   roundId: number
 }): Promise<IRoundData> {
-  const aggregator = new ethers.Contract(aggregatorAddress, Aggregator__factory.abi, PROVIDER)
+  const aggregator = new ethers.Contract(oracleAddress, Aggregator__factory.abi, PROVIDER)
   return await aggregator.getRoundData(roundId)
 }

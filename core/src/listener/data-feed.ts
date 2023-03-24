@@ -62,11 +62,11 @@ async function processEvent(iface: ethers.utils.Interface, queue: Queue, _logger
     logger.debug(eventData, 'eventData')
 
     if (eventData.startedBy != PUBLIC_KEY) {
-      const aggregatorAddress = log.address.toLowerCase()
+      const oracleAddress = log.address.toLowerCase()
       const roundId = eventData.roundId.toNumber()
       // NewRound emitted by somebody else
       const data: IAggregatorWorker = {
-        aggregatorAddress,
+        oracleAddress,
         roundId,
         workerSource: 'event'
       }
@@ -75,7 +75,7 @@ async function processEvent(iface: ethers.utils.Interface, queue: Queue, _logger
       await queue.add('event', data, {
         removeOnComplete: REMOVE_ON_COMPLETE,
         removeOnFail: REMOVE_ON_FAIL,
-        jobId: buildReporterJobId({ aggregatorAddress, roundId, deploymentName: DEPLOYMENT_NAME })
+        jobId: buildReporterJobId({ oracleAddress, roundId, deploymentName: DEPLOYMENT_NAME })
       })
       logger.debug({ job: 'event-added' }, 'job-added')
     }

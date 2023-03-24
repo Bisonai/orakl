@@ -38,20 +38,20 @@ export async function worker(_logger: Logger) {
   // Launch all active aggregators
   const heartbeatQueue = new Queue(HEARTBEAT_QUEUE_NAME, BULLMQ_CONNECTION)
   for (const aggregator of aggregators) {
-    const aggregatorAddress = aggregator.address
+    const oracleAddress = aggregator.address
 
-    const operatorAddress = await getOperatorAddress({ oracleAddress: aggregatorAddress, logger })
+    const operatorAddress = await getOperatorAddress({ oracleAddress, logger })
     await heartbeatQueue.add(
       HEARTBEAT_JOB_NAME,
-      { aggregatorAddress },
+      { oracleAddress },
       {
         delay: await getSynchronizedDelay({
-          aggregatorAddress,
+          oracleAddress,
           operatorAddress,
           heartbeat: aggregator.heartbeat,
           logger
         }),
-        removeOnComplete: true,
+        removeOnComplete: REMOVE_ON_COMPLETE,
         removeOnFail: true
       }
     )
@@ -111,19 +111,19 @@ function aggregatorJob(reporterQueueName: string, _logger: Logger) {
   async function wrapper(job: Job) {
     const inData: IAggregatorWorker = job.data
     logger.debug(inData, 'inData-regular')
-    const aggregatorAddress = inData.aggregatorAddress
+    const oracleAddress = inData.oracleAddress
     const roundId = inData.roundId
 
     try {
-      const operatorAddress = await getOperatorAddress({ oracleAddress: aggregatorAddress, logger })
+      const operatorAddress = await getOperatorAddress({ oracleAddress, logger })
       const { aggregatorHash, heartbeat } = await getAggregatorGivenAddress({
-        aggregatorAddress,
+        oracleAddress,
         logger
       })
 
       const outData = await prepareDataForReporter({
         aggregatorHash,
-        aggregatorAddress,
+        oracleAddress,
         operatorAddress,
         report: true,
         workerSource: inData.workerSource,
@@ -144,7 +144,7 @@ function aggregatorJob(reporterQueueName: string, _logger: Logger) {
         // specific aggregator on specific round.
         removeOnFail: true,
         jobId: buildReporterJobId({
-          aggregatorAddress,
+          oracleAddress,
           roundId,
           deploymentName: DEPLOYMENT_NAME
         })
@@ -194,12 +194,12 @@ function heartbeatJob(aggregatorJobQueueName: string, _logger: Logger) {
 
   async function wrapper(job: Job) {
     try {
-      const { aggregatorAddress } = job.data
-      logger.debug(aggregatorAddress, 'aggregatorAddress-fixed')
+      const { oracleAddress } = job.data
+      logger.debug(oracleAddress, 'oracleAddress-fixed')
 
-      const operatorAddress = await getOperatorAddress({ oracleAddress: aggregatorAddress, logger })
+      const operatorAddress = await getOperatorAddress({ oracleAddress, logger })
       const oracleRoundState = await oracleRoundStateCall({
-        aggregatorAddress,
+        oracleAddress,
         operatorAddress,
         logger
       })
@@ -208,7 +208,7 @@ function heartbeatJob(aggregatorJobQueueName: string, _logger: Logger) {
       const roundId = oracleRoundState._roundId
 
       const outData: IAggregatorWorker = {
-        aggregatorAddress,
+        oracleAddress,
         roundId: roundId,
         workerSource: 'fixed'
       }
@@ -218,7 +218,7 @@ function heartbeatJob(aggregatorJobQueueName: string, _logger: Logger) {
         logger.debug({ job: 'added', eligible: true, roundId }, 'before-eligible-fixed')
 
         const jobId = buildReporterJobId({
-          aggregatorAddress,
+          oracleAddress,
           roundId,
           deploymentName: DEPLOYMENT_NAME
         })
@@ -260,6 +260,7 @@ function heartbeatJob(aggregatorJobQueueName: string, _logger: Logger) {
  * Fetch the latest data and prepare them to be sent to reporter.
  *
  * @param {string} id: aggregator ID
+ * @param {string} oracle address
  * @param {boolean} report: whether to submission must be reported
  * @param {string} workerSource
  * @param {number} delay
@@ -270,7 +271,7 @@ function heartbeatJob(aggregatorJobQueueName: string, _logger: Logger) {
  */
 async function prepareDataForReporter({
   aggregatorHash,
-  aggregatorAddress,
+  oracleAddress,
   operatorAddress,
   report,
   workerSource,
@@ -279,7 +280,7 @@ async function prepareDataForReporter({
   logger
 }: {
   aggregatorHash: string
-  aggregatorAddress: string
+  oracleAddress: string
   operatorAddress: string
   report?: boolean
   workerSource: string
@@ -292,7 +293,7 @@ async function prepareDataForReporter({
   const { value } = await fetchDataFeed({ aggregatorHash, logger })
 
   const oracleRoundState = await oracleRoundStateCall({
-    aggregatorAddress,
+    oracleAddress,
     operatorAddress,
     roundId,
     logger
@@ -301,7 +302,7 @@ async function prepareDataForReporter({
 
   return {
     report,
-    callbackAddress: aggregatorAddress,
+    callbackAddress: oracleAddress,
     workerSource,
     delay,
     submission: value,
@@ -320,12 +321,12 @@ async function prepareDataForReporter({
  * @return {number} delay in seconds until the next round
  */
 async function getSynchronizedDelay({
-  aggregatorAddress,
+  oracleAddress,
   operatorAddress,
   heartbeat,
   logger
 }: {
-  aggregatorAddress: string
+  oracleAddress: string
   operatorAddress: string
   heartbeat: number
   logger: Logger
@@ -334,7 +335,7 @@ async function getSynchronizedDelay({
 
   let startedAt = 0
   const { _startedAt, _roundId } = await oracleRoundStateCall({
-    aggregatorAddress,
+    oracleAddress,
     operatorAddress,
     logger
   })
@@ -343,7 +344,7 @@ async function getSynchronizedDelay({
     startedAt = _startedAt.toNumber()
   } else {
     const { _startedAt } = await oracleRoundStateCall({
-      aggregatorAddress,
+      oracleAddress,
       operatorAddress,
       roundId: Math.max(0, _roundId - 1)
     })

@@ -90,15 +90,15 @@ export async function createRedisClient(host: string, port: number): Promise<Red
 }
 
 export function buildReporterJobId({
-  aggregatorAddress,
+  oracleAddress,
   roundId,
   deploymentName
 }: {
-  aggregatorAddress: string
+  oracleAddress: string
   roundId: number
   deploymentName: string
 }) {
-  return `${roundId}-${aggregatorAddress}-${deploymentName}`
+  return `${roundId}-${oracleAddress}-${deploymentName}`
 }
 
 /*

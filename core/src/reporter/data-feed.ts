@@ -93,7 +93,7 @@ async function submitHeartbeatJob(
   }
 
   const outData: IAggregatorHeartbeatWorker = {
-    aggregatorAddress: oracleAddress
+    oracleAddress
   }
   await heartbeatQueue.add(HEARTBEAT_JOB_NAME, outData, {
     delay: delay,
