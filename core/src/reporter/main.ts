@@ -8,6 +8,7 @@ import { launchHealthCheck } from '../health-check'
 import { hookConsoleError } from '../utils'
 import { IReporters } from './types'
 import { createClient } from 'redis'
+import { REDIS_HOST, REDIS_PORT } from '../settings'
 
 const REPORTERS: IReporters = {
   AGGREGATOR: dataFeedReporter,
@@ -21,7 +22,7 @@ async function main() {
   hookConsoleError(LOGGER)
   const reporter = loadArgs()
 
-  const redisClient: RedisClientType = createClient()
+  const redisClient: RedisClientType = createClient({ url: `redis://${REDIS_HOST}:${REDIS_PORT}` })
   await redisClient.connect()
 
   REPORTERS[reporter](redisClient, LOGGER)

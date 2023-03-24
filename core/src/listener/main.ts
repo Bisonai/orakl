@@ -38,10 +38,7 @@ async function main() {
     throw new OraklError(OraklErrorCode.UndefinedListenerRequested)
   }
 
-  const redisClient: RedisClientType = createClient(
-    {
-      url: `redis://${REDIS_HOST}:${REDIS_PORT}`
-    })
+  const redisClient: RedisClientType = createClient({ url: `redis://${REDIS_HOST}:${REDIS_PORT}` })
   
   await redisClient.connect()
 
