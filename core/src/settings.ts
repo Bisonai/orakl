@@ -44,6 +44,8 @@ export const REPORTER_PREDEFINED_FEED_QUEUE_NAME = `${DEPLOYMENT_NAME}-reporter-
 export const REPORTER_VRF_QUEUE_NAME = `${DEPLOYMENT_NAME}-reporter-vrf-queue`
 export const REPORTER_AGGREGATOR_QUEUE_NAME = `${DEPLOYMENT_NAME}-reporter-aggregator-queue`
 
+export const HEARTBEAT_JOB_NAME = `${DEPLOYMENT_NAME}-heartbeat-job`
+
 export const ALL_QUEUES = [
   HEARTBEAT_QUEUE_NAME,
   WORKER_REQUEST_RESPONSE_QUEUE_NAME,

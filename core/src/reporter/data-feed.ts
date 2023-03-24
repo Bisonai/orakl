@@ -13,7 +13,8 @@ import {
   CHAIN,
   DATA_FEED_REPORTER_STATE_NAME,
   DATA_FEED_SERVICE_NAME,
-  PROVIDER_URL
+  PROVIDER_URL,
+  HEARTBEAT_JOB_NAME
 } from '../settings'
 import { IAggregatorWorkerReporter, IAggregatorHeartbeatWorker } from '../types'
 import { OraklError, OraklErrorCode } from '../errors'
@@ -94,7 +95,7 @@ async function submitHeartbeatJob(
   const outData: IAggregatorHeartbeatWorker = {
     aggregatorAddress: oracleAddress
   }
-  await heartbeatQueue.add('heartbeat', outData, {
+  await heartbeatQueue.add(HEARTBEAT_JOB_NAME, outData, {
     delay: delay,
     removeOnComplete: true,
     jobId: oracleAddress,

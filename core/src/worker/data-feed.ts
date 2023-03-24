@@ -12,7 +12,8 @@ import {
   DEPLOYMENT_NAME,
   REMOVE_ON_COMPLETE,
   CHAIN,
-  DATA_FEED_SERVICE_NAME
+  DATA_FEED_SERVICE_NAME,
+  HEARTBEAT_JOB_NAME
 } from '../settings'
 import { buildReporterJobId } from '../utils'
 import { oracleRoundStateCall } from './utils'
@@ -41,7 +42,7 @@ export async function worker(_logger: Logger) {
 
     const operatorAddress = await getOperatorAddress({ oracleAddress: aggregatorAddress, logger })
     await heartbeatQueue.add(
-      'heartbeat',
+      HEARTBEAT_JOB_NAME,
       { aggregatorAddress },
       {
         delay: await getSynchronizedDelay({
