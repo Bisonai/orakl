@@ -14,7 +14,8 @@ import {
   CHAIN,
   DATA_FEED_SERVICE_NAME,
   HEARTBEAT_JOB_NAME,
-  HEARTBEAT_QUEUE_SETTINGS
+  HEARTBEAT_QUEUE_SETTINGS,
+  AGGREGATOR_QUEUE_SETTINGS
 } from '../settings'
 import { buildSubmissionRoundJobId, buildHeartbeatJobId } from '../utils'
 import { oracleRoundStateCall } from './utils'
@@ -191,6 +192,7 @@ function aggregatorJob(reporterQueueName: string, _logger: Logger) {
 function heartbeatJob(aggregatorJobQueueName: string, _logger: Logger) {
   const logger = _logger.child({ name: 'heartbeatJob', file: FILE_NAME })
   const aggregatorQueue = new Queue(aggregatorJobQueueName, BULLMQ_CONNECTION)
+  const reporterQueue = new Queue(REPORTER_AGGREGATOR_QUEUE_NAME, BULLMQ_CONNECTION)
 
   async function wrapper(job: Job) {
     try {
@@ -234,18 +236,17 @@ function heartbeatJob(aggregatorJobQueueName: string, _logger: Logger) {
         // If we happen to be at that situation, we assume there is
         // a deadlock and the Orakl Network Reporter service failed on
         // to submit on particular `roundId`.
-        await removeDeadlock(aggregatorQueue, jobId, logger)
+        await removeAggregatorDeadlock(aggregatorQueue, jobId, logger)
 
         await aggregatorQueue.add('fixed', outData, {
+          jobId,
           removeOnComplete: REMOVE_ON_COMPLETE,
-          // When [aggregator] worker fails, we want to be able to
-          // resubmit the job with the same job ID.
-          removeOnFail: true,
-          jobId
+          ...AGGREGATOR_QUEUE_SETTINGS
         })
         logger.debug({ job: 'added', eligible: true, roundId }, 'eligible-fixed')
       } else {
-        logger.debug({ eligible: false, roundId }, 'non-eligible-fixed')
+        const msg = `Non-eligible to submit for oracle ${oracleAddress} with operator ${operatorAddress}`
+        throw new OraklError(OraklErrorCode.NonEligibleToSubmit, msg)
       }
     } catch (e) {
       logger.error(e)
@@ -395,24 +396,26 @@ async function getOperatorAddress({
 }
 
 /**
- * Remove deadlock: The job has already been requested and accepted
- * from the other end of queue, however, the job might not have been
- * accomplished successfully there. The function deletes the
+ * Remove aggregator deadlock: The job has already been requested and
+ * accepted from the other end of queue, however, the job might not
+ * have been accomplished successfully there. The function deletes the
  * previously submitted job, so it can be resubmitted again.
  *
  * Note: This function should be called only when we are certain that
  * there is any deadlock. Deadlock detection is not part of this
  * function.
  *
- * @param {queue} queue
+ * @param {queue} aggregator queue
  * @param {string} job ID
  * @param {Logger} pino logger
  * @return {void}
  * @except {OraklErrorCode.UnexpectedNumberOfDeadlockJobs} raise when
  * more than single deadlock found
  */
-async function removeDeadlock(queue: Queue, jobId: string, logger: Logger) {
-  const blockingJob = (await queue.getJobs(['completed'])).filter((job) => job.opts.jobId == jobId)
+async function removeAggregatorDeadlock(aggregatorQueue: Queue, jobId: string, logger: Logger) {
+  const blockingJob = (await aggregatorQueue.getJobs(['completed'])).filter(
+    (job) => job.opts.jobId == jobId
+  )
 
   if (blockingJob.length == 1) {
     blockingJob[0].remove()

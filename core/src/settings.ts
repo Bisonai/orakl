@@ -84,3 +84,11 @@ export const HEARTBEAT_QUEUE_SETTINGS = {
   attempts: 10,
   backoff: 1_000
 }
+
+export const AGGREGATOR_QUEUE_SETTINGS = {
+  // When [aggregator] worker fails, we want to be able to
+  // resubmit the job with the same job ID.
+  removeOnFail: true,
+  attempts: 10,
+  backoff: 1_000
+}

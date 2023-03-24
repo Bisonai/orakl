@@ -12,10 +12,10 @@ import {
   WORKER_AGGREGATOR_QUEUE_NAME,
   DEPLOYMENT_NAME,
   REMOVE_ON_COMPLETE,
-  REMOVE_ON_FAIL,
   CHAIN,
   DATA_FEED_LISTENER_STATE_NAME,
-  DATA_FEED_SERVICE_NAME
+  DATA_FEED_SERVICE_NAME,
+  AGGREGATOR_QUEUE_SETTINGS
 } from '../settings'
 import { watchman } from './watchman'
 
@@ -56,6 +56,7 @@ export async function buildListener(
 
 async function processEvent(iface: ethers.utils.Interface, queue: Queue, _logger: Logger) {
   const logger = _logger.child({ name: 'processEvent', file: FILE_NAME })
+  const aggregatorQueue = queue
 
   async function wrapper(log) {
     const eventData = iface.parseLog(log).args as unknown as INewRound
@@ -72,16 +73,17 @@ async function processEvent(iface: ethers.utils.Interface, queue: Queue, _logger
       }
       logger.debug(data, 'data')
 
-      await queue.add('event', data, {
-        jobId: buildSubmissionRoundJobId({
-          oracleAddress,
-          roundId,
-          deploymentName: DEPLOYMENT_NAME
-        }),
-        removeOnComplete: REMOVE_ON_COMPLETE,
-        removeOnFail: REMOVE_ON_FAIL
+      const jobId = buildSubmissionRoundJobId({
+        oracleAddress,
+        roundId,
+        deploymentName: DEPLOYMENT_NAME
       })
-      logger.debug({ job: 'event-added' }, 'job-added')
+      await aggregatorQueue.add('event', data, {
+        jobId,
+        removeOnComplete: REMOVE_ON_COMPLETE,
+        ...AGGREGATOR_QUEUE_SETTINGS
+      })
+      logger.debug({ job: 'event-added' }, `Listener submitted job with ID=${jobId}`)
     }
   }
 
