@@ -14,10 +14,12 @@ import {
   DATA_FEED_REPORTER_STATE_NAME,
   DATA_FEED_SERVICE_NAME,
   PROVIDER_URL,
-  HEARTBEAT_JOB_NAME
+  HEARTBEAT_JOB_NAME,
+  DEPLOYMENT_NAME
 } from '../settings'
 import { IAggregatorWorkerReporter, IAggregatorHeartbeatWorker } from '../types'
 import { OraklError, OraklErrorCode } from '../errors'
+import { buildHeartbeatJobId } from '../utils'
 
 const FILE_NAME = import.meta.url
 
@@ -73,6 +75,19 @@ function job(state: State, logger: Logger) {
   return wrapper
 }
 
+/**
+ * Reported job might have been requested by [event] worker or
+ * [deviation] worker before the end of heartbeat delay. If that is
+ * the case, there is still waiting delayed heartbeat job in the
+ * heartbeat queue. If that is the case, we remove it. Then, we submit
+ * the new heartbeat job.
+ *
+ * @param {Queue} heartbeat queue
+ * @param {string} oracle address
+ * @param {delay} heartbeat delay
+ * @param {Logger} pino logger
+ * @return {void}
+ */
 async function submitHeartbeatJob(
   heartbeatQueue: Queue,
   oracleAddress: string,
@@ -92,14 +107,14 @@ async function submitHeartbeatJob(
     logger.debug({ job: 'deleted' }, 'job-deleted')
   }
 
-  const outData: IAggregatorHeartbeatWorker = {
+  const jobData: IAggregatorHeartbeatWorker = {
     oracleAddress
   }
-  await heartbeatQueue.add(HEARTBEAT_JOB_NAME, outData, {
-    delay: delay,
+  await heartbeatQueue.add(HEARTBEAT_JOB_NAME, jobData, {
+    delay,
     removeOnComplete: true,
-    jobId: oracleAddress,
-    attempts: 3,
+    jobId: buildHeartbeatJobId({ oracleAddress, deploymentName: DEPLOYMENT_NAME }),
+    attempts: 10,
     backoff: 1_000
   })
   logger.debug({ job: 'added', delay: delay }, 'job-added')

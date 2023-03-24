@@ -101,6 +101,16 @@ export function buildReporterJobId({
   return `${roundId}-${oracleAddress}-${deploymentName}`
 }
 
+export function buildHeartbeatJobId({
+  oracleAddress,
+  deploymentName
+}: {
+  oracleAddress: string
+  deploymentName: string
+}) {
+  return `${oracleAddress}-${deploymentName}`
+}
+
 /*
  * Connect `host` and `path` to a single url string, and remove all
  * duplicates of `/` (= slash character) except the first occurrence.

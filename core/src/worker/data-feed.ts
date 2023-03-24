@@ -3,7 +3,7 @@ import { Logger } from 'pino'
 import { getAggregatorGivenAddress, getActiveAggregators, fetchDataFeed } from './api'
 import { OraklError, OraklErrorCode } from '../errors'
 import { getReporterByOracleAddress } from '../api'
-import { IAggregatorWorker, IAggregatorWorkerReporter } from '../types'
+import { IAggregatorWorker, IAggregatorWorkerReporter, IAggregatorHeartbeatWorker } from '../types'
 import {
   WORKER_AGGREGATOR_QUEUE_NAME,
   REPORTER_AGGREGATOR_QUEUE_NAME,
@@ -15,7 +15,7 @@ import {
   DATA_FEED_SERVICE_NAME,
   HEARTBEAT_JOB_NAME
 } from '../settings'
-import { buildReporterJobId } from '../utils'
+import { buildReporterJobId, buildHeartbeatJobId } from '../utils'
 import { oracleRoundStateCall } from './utils'
 
 const FILE_NAME = import.meta.url
@@ -41,20 +41,21 @@ export async function worker(_logger: Logger) {
     const oracleAddress = aggregator.address
 
     const operatorAddress = await getOperatorAddress({ oracleAddress, logger })
-    await heartbeatQueue.add(
-      HEARTBEAT_JOB_NAME,
-      { oracleAddress },
-      {
-        delay: await getSynchronizedDelay({
-          oracleAddress,
-          operatorAddress,
-          heartbeat: aggregator.heartbeat,
-          logger
-        }),
-        removeOnComplete: REMOVE_ON_COMPLETE,
-        removeOnFail: true
-      }
-    )
+    const jobData: IAggregatorHeartbeatWorker = {
+      oracleAddress
+    }
+    await heartbeatQueue.add(HEARTBEAT_JOB_NAME, jobData, {
+      delay: await getSynchronizedDelay({
+        oracleAddress,
+        operatorAddress,
+        heartbeat: aggregator.heartbeat,
+        logger
+      }),
+      removeOnComplete: true,
+      jobId: buildHeartbeatJobId({ oracleAddress, deploymentName: DEPLOYMENT_NAME }),
+      attempts: 10,
+      backoff: 1_000
+    })
   }
 
   // [aggregator] worker
@@ -190,7 +191,7 @@ function aggregatorJob(reporterQueueName: string, _logger: Logger) {
  */
 function heartbeatJob(aggregatorJobQueueName: string, _logger: Logger) {
   const logger = _logger.child({ name: 'heartbeatJob', file: FILE_NAME })
-  const queue = new Queue(aggregatorJobQueueName, BULLMQ_CONNECTION)
+  const aggregatorQueue = new Queue(aggregatorJobQueueName, BULLMQ_CONNECTION)
 
   async function wrapper(job: Job) {
     try {
@@ -234,9 +235,9 @@ function heartbeatJob(aggregatorJobQueueName: string, _logger: Logger) {
         // If we happen to be at that situation, we assume there is
         // a deadlock and the Orakl Network Reporter service failed on
         // to submit on particular `roundId`.
-        await removeDeadlock(queue, jobId, logger)
+        await removeDeadlock(aggregatorQueue, jobId, logger)
 
-        await queue.add('fixed', outData, {
+        await aggregatorQueue.add('fixed', outData, {
           removeOnComplete: REMOVE_ON_COMPLETE,
           // When [aggregator] worker fails, we want to be able to
           // resubmit the job with the same job ID.
