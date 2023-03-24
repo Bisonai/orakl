@@ -1,7 +1,7 @@
 version: '3.7'
 
 services:
-  orakl-cli:
+  orakl-api:
     build:
       context: .
       dockerfile: src/Dockerfile

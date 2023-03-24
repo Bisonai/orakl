@@ -46,7 +46,7 @@ jobs:
       - name: Docker build orakl-api
         run: |
           docker-compose -f api/docker-compose.build.yaml build
-          IMAGE_ID=$(docker-compose -f api/docker-compose.build.yaml images --quiet service_name)
+          IMAGE_ID=$(docker-compose -f api/docker-compose.build.yaml images --quiet orakl-api)
 
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v2
