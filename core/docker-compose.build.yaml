@@ -5,4 +5,4 @@ services:
     build:
       context: .
       dockerfile: src/Dockerfile
-    image: orakl
+    image: orakl-core
