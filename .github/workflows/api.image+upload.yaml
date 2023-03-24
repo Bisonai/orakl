@@ -63,5 +63,5 @@ jobs:
 
       - name: Publish Image to ECR(orakl)
         run: |
-          docker tag bisonai/orakl-api:latest ${{ env.ecr_url }}:${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }}
+          docker tag orakl-api ${{ env.ecr_url }}:${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }}
           docker push ${{ env.ecr_url }}:${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }}
