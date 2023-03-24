@@ -13,7 +13,7 @@ on:
 
 env:
   ecr_url: public.ecr.aws/u6t6w0e4/orakl-api
-  aws_region: us-east-2
+  aws_region: ap-southeast-1
 
 jobs:
   prepare:
