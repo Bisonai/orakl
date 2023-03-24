@@ -38,7 +38,7 @@ jobs:
 
     permissions:
       id-token: write
-      contents: read    # This is required for actions/checkout
+      contents: read 
 
     outputs:
       tag_date: ${{ steps.tag.outputs.date }}
@@ -46,23 +46,9 @@ jobs:
 
     steps:
       - uses: actions/checkout@v3
-      - name: set JDK
-        uses: actions/setup-java@v3
-        with:
-          distribution: 'corretto'
-          java-version: '17'
-          cache: 'gradle'
-
-      - name: Run chmod to make gradlew executable
-        run: chmod +x gradlew
-
-      - name: Gradle Build Movie
-        uses: gradle/gradle-build-action@v2
-        with:
-          arguments: build
 
       - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v1-node16
+        uses: aws-actions/configure-aws-credentials@20ce4e5
         with:
           aws-region: ${{ secrets.AWS_REGION }}
           role-session-name: GitHubActions
