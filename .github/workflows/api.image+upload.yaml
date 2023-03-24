@@ -47,8 +47,7 @@ jobs:
       - uses: actions/checkout@v3
 
       - name: Docker build orakl-api
-        run: |
-          docker-compose -f api/docker-compose.build.yaml build
+        run:  docker-compose -f api/docker-compose.build.yaml build
 
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v2
