@@ -14,6 +14,7 @@ on:
 env:
   ecr_url: public.ecr.aws/u6t6w0e4/orakl-api
   aws_region: ap-southeast-1
+  role_arn: arn:aws:iam::831311642255:role/orakl_ecr_github_upload
 
 jobs:
   prepare:
@@ -52,7 +53,8 @@ jobs:
         uses: aws-actions/configure-aws-credentials@v2
         with:
           aws-region: ${{ env.aws_region }}
-          role-to-assume: ${{ secrets.ROLE_ARN }}
+          role-session-name: oraklrolesession
+          role-to-assume: ${{ env.role_arn }}
 
       - name: Login to Amazon ECR
         id: login-ecr
