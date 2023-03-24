@@ -10,12 +10,6 @@ on:
     branches:
       - i-424/docker-hub-is-slow
 
-
-env:
-  ecr_url: public.ecr.aws/u6t6w0e4/orakl-api
-  aws_region: ap-southeast-1
-  role_arn: arn:aws:iam::831311642255:role/orakl_ecr_github_upload
-
 jobs:
   prepare:
     name: Prepare Build
@@ -49,21 +43,22 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
+      - name: Docker build orakl-api
+        run: docker-compose -f api/docker-compose.build.yaml build
+        IMAGE_ID=$(docker-compose -f api/docker-compose.build.yaml images --quiet service_name)
+
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v2
         with:
-          aws-region: ${{ env.aws_region }}
+          aws-region: ${{ secrets.aws_region }}
           role-session-name: oraklrolesession
-          role-to-assume: ${{ env.role_arn }}
+          role-to-assume: ${{ secrets.role_arn }}
 
       - name: Login to Amazon ECR
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v1
 
-      - name: Docker build orakl-api
-        run: docker-compose -f api/docker-compose.build.yaml build
-
       - name: Publish Image to ECR(orakl)
         run: |
-          docker tag orakl-api:latest ${{ env.ecr_url }}:${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }}
+          docker tag orakl-api:${IMAGE_ID} ${{ secrets.ecr_url }}:${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }}
           docker push ${{ env.ecr_url }}:${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }}
