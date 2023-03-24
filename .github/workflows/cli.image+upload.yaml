@@ -5,7 +5,7 @@ on:
     branches:
       - master
     paths:
-      - "api/**"
+      - "cli/**"
     types:
       - closed
 ## remove after test 
@@ -13,10 +13,10 @@ on:
     branches:
       - i-424/docker-hub-is-slow
     paths:
-      - "api/**"      
+      - "cli/**"      
 
 env:
-  ecr_url: public.ecr.aws/u6t6w0e4/orakl-api
+  ecr_url: public.ecr.aws/u6t6w0e4/orakl-cli
 
 jobs:
   prepare:
@@ -51,8 +51,8 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - name: Docker build orakl-api
-        run:  docker-compose -f api/docker-compose.build.yaml build
+      - name: Docker build orakl-cli
+        run:  docker-compose -f cli/docker-compose.build.yaml build
 
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v2
@@ -68,5 +68,5 @@ jobs:
 
       - name: Publish Image to ECR(orakl)
         run: |
-          docker tag orakl-api ${{ env.ecr_url }}:${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }}
+          docker tag orakl-cli ${{ env.ecr_url }}:${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }}
           docker push ${{ env.ecr_url }}:${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }}
