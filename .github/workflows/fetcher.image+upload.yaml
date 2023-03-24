@@ -8,12 +8,6 @@ on:
       - "fetcher/**"
     types:
       - closed
-## remove after test 
-  push:
-    branches:
-      - i-424/docker-hub-is-slow
-    paths:
-      - "fetcher/**"      
 
 env:
   ecr_url: public.ecr.aws/u6t6w0e4/orakl-fetcher
