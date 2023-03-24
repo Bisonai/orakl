@@ -46,9 +46,6 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - name: Docker build orakl-api
-        run: docker-compose -f api/docker-compose.build.yaml build
-
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v1-node16
         with:
@@ -59,6 +56,9 @@ jobs:
       - name: Login to Amazon ECR
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v1
+
+      - name: Docker build orakl-api
+        run: docker-compose -f api/docker-compose.build.yaml build
 
       - name: Publish Image to ECR(orakl)
         run: |
