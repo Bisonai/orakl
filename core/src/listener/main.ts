@@ -6,7 +6,7 @@ import { buildListener as buildVrfListener } from './vrf'
 import { buildListener as buildRequestResponseListener } from './request-response'
 import { postprocessListeners } from './utils'
 import { OraklError, OraklErrorCode } from '../errors'
-import { CHAIN } from '../settings'
+import { CHAIN, REDIS_HOST, REDIS_PORT } from '../settings'
 import { getListeners } from './api'
 import { hookConsoleError } from '../utils'
 import { IListeners } from './types'
@@ -38,7 +38,8 @@ async function main() {
     throw new OraklError(OraklErrorCode.UndefinedListenerRequested)
   }
 
-  const redisClient: RedisClientType = createClient()
+  const redisClient: RedisClientType = createClient({ url: `redis://${REDIS_HOST}:${REDIS_PORT}` })
+
   await redisClient.connect()
 
   LISTENERS[service](listenersConfig[service], redisClient, LOGGER)
