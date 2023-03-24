@@ -39,7 +39,7 @@ async function main() {
   }
 
   const redisClient: RedisClientType = createClient({ url: `redis://${REDIS_HOST}:${REDIS_PORT}` })
-  
+
   await redisClient.connect()
 
   LISTENERS[service](listenersConfig[service], redisClient, LOGGER)
