@@ -16,6 +16,9 @@ export const STORE_ADAPTER_FETCH_RESULT = process.env.STORE_ADAPTER_FETCH_RESULT
 export const PROVIDER_URL = process.env.PROVIDER_URL || 'http://127.0.0.1:8545'
 export const REDIS_HOST = process.env.REDIS_HOST || 'localhost'
 export const REDIS_PORT = process.env.REDIS_PORT ? Number(process.env.REDIS_PORT) : 6379
+
+console.log('REDIS_HOST:', REDIS_HOST)
+console.log('REDIS_PORT:', REDIS_PORT)
 export const SLACK_WEBHOOK_URL = process.env.SLACK_WEBHOOK_URL || ''
 export const PRIVATE_KEY = String(process.env.PRIVATE_KEY)
 export const PUBLIC_KEY = String(process.env.PUBLIC_KEY)
