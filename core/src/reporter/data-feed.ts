@@ -9,7 +9,7 @@ import { watchman } from './watchman'
 import {
   REPORTER_AGGREGATOR_QUEUE_NAME,
   BULLMQ_CONNECTION,
-  FIXED_HEARTBEAT_QUEUE_NAME,
+  HEARTBEAT_QUEUE_NAME,
   CHAIN,
   DATA_FEED_REPORTER_STATE_NAME,
   DATA_FEED_SERVICE_NAME,
@@ -40,7 +40,7 @@ export async function reporter(redisClient: RedisClientType, _logger: Logger) {
 
 function job(state: State, logger: Logger) {
   const iface = new ethers.utils.Interface(Aggregator__factory.abi)
-  const heartbeatQueue = new Queue(FIXED_HEARTBEAT_QUEUE_NAME, BULLMQ_CONNECTION)
+  const heartbeatQueue = new Queue(HEARTBEAT_QUEUE_NAME, BULLMQ_CONNECTION)
 
   async function wrapper(job: Job) {
     const inData: IAggregatorWorkerReporter = job.data

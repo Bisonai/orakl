@@ -7,7 +7,7 @@ import { IAggregatorWorker, IAggregatorWorkerReporter } from '../types'
 import {
   WORKER_AGGREGATOR_QUEUE_NAME,
   REPORTER_AGGREGATOR_QUEUE_NAME,
-  FIXED_HEARTBEAT_QUEUE_NAME,
+  HEARTBEAT_QUEUE_NAME,
   BULLMQ_CONNECTION,
   DEPLOYMENT_NAME,
   REMOVE_ON_COMPLETE,
@@ -21,7 +21,7 @@ const FILE_NAME = import.meta.url
 
 /**
  * Get all active aggregators, create their initial jobs, and submit
- * them to the [heartbeat] queue. Launch [event] and [heartbeat]
+ * them to the [heartbeat] queue. Launch [aggregator] and [heartbeat]
  * workers.
  *
  * @param {Logger} pino logger
@@ -35,12 +35,12 @@ export async function worker(_logger: Logger) {
   }
 
   // Launch all active aggregators
-  const fixedHeartbeatQueue = new Queue(FIXED_HEARTBEAT_QUEUE_NAME, BULLMQ_CONNECTION)
+  const heartbeatQueue = new Queue(HEARTBEAT_QUEUE_NAME, BULLMQ_CONNECTION)
   for (const aggregator of aggregators) {
     const aggregatorAddress = aggregator.address
 
     const operatorAddress = await getOperatorAddress({ oracleAddress: aggregatorAddress, logger })
-    await fixedHeartbeatQueue.add(
+    await heartbeatQueue.add(
       'heartbeat',
       { aggregatorAddress },
       {
@@ -56,20 +56,36 @@ export async function worker(_logger: Logger) {
     )
   }
 
-  // [event]  worker
-  new Worker(WORKER_AGGREGATOR_QUEUE_NAME, aggregatorJob(REPORTER_AGGREGATOR_QUEUE_NAME, _logger), {
-    ...BULLMQ_CONNECTION,
-    settings: {
-      backoffStrategy: aggregatorJobBackOffStrategy
+  // [aggregator] worker
+  const aggregatorWorker = new Worker(
+    WORKER_AGGREGATOR_QUEUE_NAME,
+    aggregatorJob(REPORTER_AGGREGATOR_QUEUE_NAME, _logger),
+    {
+      ...BULLMQ_CONNECTION,
+      settings: {
+        backoffStrategy: aggregatorJobBackOffStrategy
+      }
     }
+  )
+
+  aggregatorWorker.on('error', (e) => {
+    logger.error(e)
   })
 
   // [heartbeat] worker
-  new Worker(
-    FIXED_HEARTBEAT_QUEUE_NAME,
+  const heartbeatWorker = new Worker(
+    HEARTBEAT_QUEUE_NAME,
     heartbeatJob(WORKER_AGGREGATOR_QUEUE_NAME, _logger),
     BULLMQ_CONNECTION
   )
+
+  heartbeatWorker.on('error', (e) => {
+    logger.error(e)
+  })
+
+  heartbeatWorker.on('failed', (job: Job, error: Error) => {
+    // Do something with the return value.
+  })
 }
 
 /**
@@ -176,10 +192,10 @@ function heartbeatJob(aggregatorJobQueueName: string, _logger: Logger) {
   const queue = new Queue(aggregatorJobQueueName, BULLMQ_CONNECTION)
 
   async function wrapper(job: Job) {
-    const { aggregatorAddress } = job.data
-    logger.debug(aggregatorAddress, 'aggregatorAddress-fixed')
-
     try {
+      const { aggregatorAddress } = job.data
+      logger.debug(aggregatorAddress, 'aggregatorAddress-fixed')
+
       const operatorAddress = await getOperatorAddress({ oracleAddress: aggregatorAddress, logger })
       const oracleRoundState = await oracleRoundStateCall({
         aggregatorAddress,

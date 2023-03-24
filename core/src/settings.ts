@@ -34,8 +34,7 @@ export const REQUEST_RESPONSE_SERVICE_NAME = 'RequestResponse'
 export const REMOVE_ON_COMPLETE = 500
 export const REMOVE_ON_FAIL = 1_000
 
-export const FIXED_HEARTBEAT_QUEUE_NAME = `${DEPLOYMENT_NAME}-fixed-heartbeat-queue`
-export const RANDOM_HEARTBEAT_QUEUE_NAME = `${DEPLOYMENT_NAME}-random-heartbeat-queue`
+export const HEARTBEAT_QUEUE_NAME = `${DEPLOYMENT_NAME}-heartbeat-queue`
 export const WORKER_REQUEST_RESPONSE_QUEUE_NAME = `${DEPLOYMENT_NAME}-worker-request-response-queue`
 export const WORKER_PREDEFINED_FEED_QUEUE_NAME = `${DEPLOYMENT_NAME}-worker-predefined-feed-queue`
 export const WORKER_VRF_QUEUE_NAME = `${DEPLOYMENT_NAME}-worker-vrf-queue`
@@ -46,8 +45,7 @@ export const REPORTER_VRF_QUEUE_NAME = `${DEPLOYMENT_NAME}-reporter-vrf-queue`
 export const REPORTER_AGGREGATOR_QUEUE_NAME = `${DEPLOYMENT_NAME}-reporter-aggregator-queue`
 
 export const ALL_QUEUES = [
-  FIXED_HEARTBEAT_QUEUE_NAME,
-  RANDOM_HEARTBEAT_QUEUE_NAME,
+  HEARTBEAT_QUEUE_NAME,
   WORKER_REQUEST_RESPONSE_QUEUE_NAME,
   WORKER_PREDEFINED_FEED_QUEUE_NAME,
   WORKER_VRF_QUEUE_NAME,
