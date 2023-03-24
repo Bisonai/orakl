@@ -1,8 +1,8 @@
 version: '3.7'
 
 services:
-  orakl-cli:
+  orakl-api:
     build:
       context: .
       dockerfile: src/Dockerfile
-    image: bisonai/orakl-api:v0.0.1
+    image: orakl-api
