@@ -56,9 +56,9 @@ export async function sendTransaction({
   payload?: string
   gasLimit?: number | string
   value?: number | string | ethers.BigNumber
-  logger?: Logger
+  logger: Logger
 }) {
-  const _logger = logger?.child({ name: 'sendTransaction', file: FILE_NAME })
+  const _logger = logger.child({ name: 'sendTransaction', file: FILE_NAME })
 
   if (payload) {
     payload = add0x(payload)
@@ -74,26 +74,35 @@ export async function sendTransaction({
   if (gasLimit) {
     tx['gasLimit'] = gasLimit
   }
-  _logger?.debug(tx, 'tx')
+  _logger.debug(tx, 'tx')
 
   try {
     const txReceipt = await (await wallet.sendTransaction(tx)).wait(1)
-    _logger?.debug(txReceipt, 'txReceipt')
+    _logger.debug(txReceipt, 'txReceipt')
     if (txReceipt === null) {
       throw new OraklError(OraklErrorCode.TxNotMined)
     }
   } catch (e) {
-    _logger?.debug(e, 'e')
+    _logger.debug(e, 'e')
 
     if (e.reason == 'invalid address') {
+      const msg = `TxInvalidAddress ${e.value}`
+      _logger.error(msg)
+
       throw new OraklError(OraklErrorCode.TxInvalidAddress, 'TxInvalidAddress', e.value)
     } else if (e.reason == 'processing response error') {
+      const msg = `TxProcessingResponseError ${e.value}`
+      _logger.error(msg)
+
       throw new OraklError(
         OraklErrorCode.TxProcessingResponseError,
         'TxProcessingResponseError',
         e.value
       )
     } else if (e.code == 'UNPREDICTABLE_GAS_LIMIT') {
+      const msg = 'TxCannotEstimateGasError'
+      _logger.error(msg)
+
       throw new OraklError(
         OraklErrorCode.TxCannotEstimateGasError,
         'TxCannotEstimateGasError',
