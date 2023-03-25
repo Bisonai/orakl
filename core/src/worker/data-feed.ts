@@ -20,7 +20,7 @@ import {
   DATA_FEED_WORKER_STATE_NAME
 } from '../settings'
 import { buildSubmissionRoundJobId, buildHeartbeatJobId } from '../utils'
-import { oracleRoundStateCall } from './utils'
+import { oracleRoundStateCall } from './data-feed.utils'
 import { watchman } from './watchman'
 import { getOperatorAddress } from './data-feed.utils'
 

@@ -1,13 +1,12 @@
 import { Queue } from 'bullmq'
 import { Logger } from 'pino'
 import type { RedisClientType } from 'redis'
-import { oracleRoundStateCall } from './utils'
 import { IAggregatorHeartbeatWorker } from '../types'
 import { getAggregator } from './api'
 import { OraklError, OraklErrorCode } from '../errors'
 import { buildHeartbeatJobId } from '../utils'
 import { HEARTBEAT_JOB_NAME, DEPLOYMENT_NAME, HEARTBEAT_QUEUE_SETTINGS } from '../settings'
-import { getOperatorAddress } from './data-feed.utils'
+import { getOperatorAddress, getSynchronizedDelay } from './data-feed.utils'
 import { IAggregatorConfig } from './types'
 
 const FILE_NAME = import.meta.url
@@ -91,7 +90,7 @@ export class State {
     }
     await this.heartbeatQueue.add(HEARTBEAT_JOB_NAME, jobData, {
       jobId: buildHeartbeatJobId({ oracleAddress, deploymentName: DEPLOYMENT_NAME }),
-      delay: await this.getSynchronizedDelay({
+      delay: await getSynchronizedDelay({
         oracleAddress,
         operatorAddress,
         heartbeat,
@@ -99,54 +98,6 @@ export class State {
       }),
       ...HEARTBEAT_QUEUE_SETTINGS
     })
-  }
-
-  /**
-   * Compute the number of seconds until the next round.
-   *
-   * FIXME modify aggregator to use single contract call
-   *
-   * @param {string} aggregator address
-   * @param {number} heartbeat
-   * @param {Logger}
-   * @return {number} delay in seconds until the next round
-   */
-  async getSynchronizedDelay({
-    oracleAddress,
-    operatorAddress,
-    heartbeat,
-    logger
-  }: {
-    oracleAddress: string
-    operatorAddress: string
-    heartbeat: number
-    logger: Logger
-  }): Promise<number> {
-    this.logger.debug('getSynchronizedDelay')
-
-    let startedAt = 0
-    const { _startedAt, _roundId } = await oracleRoundStateCall({
-      oracleAddress,
-      operatorAddress,
-      logger
-    })
-
-    if (_startedAt.toNumber() != 0) {
-      startedAt = _startedAt.toNumber()
-    } else {
-      const { _startedAt } = await oracleRoundStateCall({
-        oracleAddress,
-        operatorAddress,
-        roundId: Math.max(0, _roundId - 1)
-      })
-      startedAt = _startedAt.toNumber()
-    }
-
-    this.logger.debug({ startedAt }, 'startedAt')
-    const delay = heartbeat - (startedAt % heartbeat)
-    this.logger.debug({ delay }, 'delay')
-
-    return delay
   }
 
   /**
