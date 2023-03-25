@@ -196,9 +196,9 @@ function heartbeatJob(aggregatorJobQueueName: string, state: State, _logger: Log
   const reporterQueue = new Queue(REPORTER_AGGREGATOR_QUEUE_NAME, BULLMQ_CONNECTION)
 
   async function wrapper(job: Job) {
+    const { oracleAddress } = job.data
     try {
-      const { oracleAddress } = job.data
-      logger.debug(oracleAddress, 'oracleAddress-fixed')
+      logger.debug({ oracleAddress }, 'oracleAddress-fixed')
 
       // [hearbeat] worker can be controlled by watchman which can
       // either activate or deactive a [heartbeat] job. When
@@ -261,6 +261,8 @@ function heartbeatJob(aggregatorJobQueueName: string, state: State, _logger: Log
         throw new OraklError(OraklErrorCode.NonEligibleToSubmit, msg)
       }
     } catch (e) {
+      const msg = `Heartbeat job for oracle ${oracleAddress} died.`
+      logger.error(msg)
       logger.error(e)
       throw e
     }

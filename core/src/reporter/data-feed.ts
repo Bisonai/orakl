@@ -58,7 +58,7 @@ function job(state: State, logger: Logger) {
 
     const wallet = state.wallets[oracleAddress]
     if (!wallet) {
-      const msg = `Wallet for aggregator ${oracleAddress} is not active`
+      const msg = `Wallet for oracle ${oracleAddress} is not active`
       logger.error(msg)
       throw new OraklError(OraklErrorCode.WalletNotActive, msg)
     }
