@@ -182,28 +182,4 @@ export class State {
     // Update active aggregators
     await this.redisClient.set(this.stateName, JSON.stringify(activeAggregators))
   }
-
-  /**
-   * Get all reporters for `service` and `chain` of state, and
-   * activate them. Previously active reporters are deactivated.
-   */
-  // async refresh() {
-  //   this.logger.debug('refresh')
-  //
-  //   // Fetch
-  //   const reporters = await this.all()
-  //   const wallets = reporters.map((R) => {
-  //     const W = buildWallet({
-  //       privateKey: R.privateKey,
-  //       providerUrl: this.providerUrl
-  //     })
-  p //     return { [R.oracleAddress]: W }
-  //   })
-  //
-  //   // Update
-  //   await this.redisClient.set(this.stateName, JSON.stringify(reporters))
-  //   this.wallets = Object.assign({}, ...wallets)
-  //
-  //   return reporters
-  // }
 }
