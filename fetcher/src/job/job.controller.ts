@@ -3,6 +3,7 @@ import { InjectQueue } from '@nestjs/bullmq'
 import { Queue } from 'bullmq'
 import { extractFeeds } from './job.utils'
 import { loadAggregator, activateAggregator, deactivateAggregator } from './job.api'
+import { FETCHER_QUEUE_NAME } from '../settings'
 
 @Controller({
   version: '1'
@@ -10,7 +11,7 @@ import { loadAggregator, activateAggregator, deactivateAggregator } from './job.
 export class JobController {
   private readonly logger = new Logger(JobController.name)
 
-  constructor(@InjectQueue('orakl-fetcher-queue') private queue: Queue) {}
+  constructor(@InjectQueue(FETCHER_QUEUE_NAME) private queue: Queue) {}
 
   @Get('start/:aggregator')
   async start(@Param('aggregator') aggregatorHash: string, @Body('chain') chain) {
