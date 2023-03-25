@@ -67,7 +67,28 @@ export class State {
   }
 
   /**
+   * Check whether given `aggregatorHash` is active in local state or
+   * not.
    *
+   * @param {string} aggregator hash
+   */
+  async isActive(aggregatorHash: string) {
+    this.logger.debug('isActive')
+    const activeAggregators = await this.active()
+    const isAlreadyActive =
+      activeAggregators.filter((L) => L.aggregatorHash === aggregatorHash) || []
+
+    if (isAlreadyActive.length > 0) {
+      return true
+    } else {
+      return false
+    }
+  }
+
+  /**
+   * Launch heartbeat job for aggregator denoted by `aggregatorHash`.
+   *
+   * @param {string} aggregator hash
    */
   async launchHeartbeatJob(aggregatorHash: string) {
     const aggregator = await getAggregator({
