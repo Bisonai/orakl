@@ -59,14 +59,14 @@ export class JobController {
 
   @Get('stop/:aggregator')
   async stop(@Param('aggregator') aggregatorHash: string, @Body('chain') chain) {
-    const delayed = await this.queue.getJobs(['delayed'])
-    const filtered = delayed.filter((job) => job.name == aggregatorHash)
+    const repeatable = await this.queue.getRepeatableJobs()
+    const filtered = repeatable.filter((job) => job.name == aggregatorHash)
 
     if (filtered.length == 1) {
       const job = filtered[0]
 
       try {
-        job.remove()
+        await this.queue.removeRepeatableByKey(job.key)
 
         // TODO log the command to separate table
         const res = await deactivateAggregator(aggregatorHash, chain)
