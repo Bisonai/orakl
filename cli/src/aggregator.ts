@@ -7,9 +7,15 @@ import {
   string as cmdstring,
   boolean as cmdboolean
 } from 'cmd-ts'
-import { chainOptionalOption, idOption, buildUrl, isOraklNetworkApiHealthy } from './utils'
+import {
+  chainOptionalOption,
+  idOption,
+  buildUrl,
+  isOraklNetworkApiHealthy,
+  isServiceHealthy
+} from './utils'
 import { ReadFile, IAggregator } from './cli-types'
-import { ORAKL_NETWORK_API_URL } from './settings'
+import { ORAKL_NETWORK_API_URL, WORKER_SERVICE_HOST, WORKER_SERVICE_PORT } from './settings'
 
 const AGGREGATOR_ENDPOINT = buildUrl(ORAKL_NETWORK_API_URL, 'aggregator')
 
@@ -18,6 +24,9 @@ export function aggregatorSub() {
   // aggregator insert --source ${source} --chain ${chain}
   // aggregator remove --id ${id}
   // aggregator hash --source ${source} --verify
+  // aggregator active --host ${host} --port ${port}
+  // aggregator activate --host ${host} --port ${port} --aggregatorHash ${aggregatorHash}
+  // aggregator deactivate --host ${host} --port ${port} --aggregatorHash ${aggregatorHash}
 
   const list = command({
     name: 'list',
@@ -68,9 +77,69 @@ export function aggregatorSub() {
     handler: hashHandler()
   })
 
+  const active = command({
+    name: 'active',
+    args: {
+      host: option({
+        type: cmdstring,
+        long: 'host',
+        defaultValue: () => WORKER_SERVICE_HOST
+      }),
+      port: option({
+        type: cmdstring,
+        long: 'port',
+        defaultValue: () => String(WORKER_SERVICE_PORT)
+      })
+    },
+    handler: activeHandler()
+  })
+
+  const activate = command({
+    name: 'activate',
+    args: {
+      aggregatorHash: option({
+        type: cmdstring,
+        long: 'aggregatorHash'
+      }),
+      host: option({
+        type: cmdstring,
+        long: 'host',
+        defaultValue: () => WORKER_SERVICE_HOST
+      }),
+      port: option({
+        type: cmdstring,
+        long: 'port',
+        defaultValue: () => String(WORKER_SERVICE_PORT)
+      })
+    },
+    handler: activateHandler()
+  })
+
+  const deactivate = command({
+    name: 'deactivate',
+
+    args: {
+      aggregatorHash: option({
+        type: cmdstring,
+        long: 'aggregatorHash'
+      }),
+      host: option({
+        type: cmdstring,
+        long: 'host',
+        defaultValue: () => WORKER_SERVICE_HOST
+      }),
+      port: option({
+        type: cmdstring,
+        long: 'port',
+        defaultValue: () => String(WORKER_SERVICE_PORT)
+      })
+    },
+    handler: deactivateHandler()
+  })
+
   return subcommands({
     name: 'aggregator',
-    cmds: { list, insert, remove, hash }
+    cmds: { list, insert, remove, hash, active, activate, deactivate }
   })
 }
 
@@ -151,6 +220,81 @@ export function hashHandler() {
     } catch (e) {
       console.error('Aggregator hash could not be computed. Reason:')
       console.error(e.message)
+    }
+  }
+  return wrapper
+}
+
+export function activeHandler() {
+  async function wrapper({ host, port }: { host: string; port: string }) {
+    const aggregatorServiceEndpoint = `${host}:${port}`
+    if (!(await isServiceHealthy(aggregatorServiceEndpoint))) return
+
+    const activeAggregatorEndpoint = buildUrl(aggregatorServiceEndpoint, 'active')
+
+    try {
+      const result = (await axios.get(activeAggregatorEndpoint)).data
+      console.log(result)
+    } catch (e) {
+      console.error(e?.response?.data?.message)
+    }
+  }
+  return wrapper
+}
+
+export function activateHandler() {
+  async function wrapper({
+    host,
+    port,
+    aggregatorHash
+  }: {
+    host: string
+    port: string
+    aggregatorHash: string
+  }) {
+    const aggregatorServiceEndpoint = `${host}:${port}`
+    if (!(await isServiceHealthy(aggregatorServiceEndpoint))) return
+
+    const activateAggregatorEndpoint = buildUrl(
+      aggregatorServiceEndpoint,
+      `activate/${aggregatorHash}`
+    )
+
+    try {
+      const result = (await axios.get(activateAggregatorEndpoint)).data
+      console.log(result?.message)
+    } catch (e) {
+      console.error('Aggregator was not activated. Reason:')
+      console.error(e?.response?.data?.message)
+    }
+  }
+  return wrapper
+}
+
+export function deactivateHandler() {
+  async function wrapper({
+    host,
+    port,
+    aggregatorHash
+  }: {
+    host: string
+    port: string
+    aggregatorHash: string
+  }) {
+    const aggregatorServiceEndpoint = `${host}:${port}`
+    if (!(await isServiceHealthy(aggregatorServiceEndpoint))) return
+
+    const deactivateAggregatorEndpoint = buildUrl(
+      aggregatorServiceEndpoint,
+      `deactivate/${aggregatorHash}`
+    )
+
+    try {
+      const result = (await axios.get(deactivateAggregatorEndpoint)).data
+      console.log(result?.message)
+    } catch (e) {
+      console.error('Aggregator was not deactivated. Reason:')
+      console.error(e?.response?.data?.message)
     }
   }
   return wrapper
