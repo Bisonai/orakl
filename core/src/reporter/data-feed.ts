@@ -37,6 +37,8 @@ export async function reporter(redisClient: RedisClientType, _logger: Logger) {
   })
   await state.refresh()
 
+  logger.debug(await state.active(), 'Active reporters')
+
   new Worker(REPORTER_AGGREGATOR_QUEUE_NAME, await job(state, logger), BULLMQ_CONNECTION)
   await watchman({ state, logger })
   logger.debug('Reporter worker launched')
