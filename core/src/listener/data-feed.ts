@@ -7,8 +7,8 @@ import { listen } from './listener'
 import { State } from './state'
 import { IListenerConfig, INewRound, IAggregatorWorker } from '../types'
 import { buildSubmissionRoundJobId } from '../utils'
+import { getReporterByOracleAddress } from '../api'
 import {
-  PUBLIC_KEY,
   WORKER_AGGREGATOR_QUEUE_NAME,
   DEPLOYMENT_NAME,
   REMOVE_ON_COMPLETE,
@@ -62,28 +62,46 @@ async function processEvent(iface: ethers.utils.Interface, queue: Queue, _logger
     const eventData = iface.parseLog(log).args as unknown as INewRound
     logger.debug(eventData, 'eventData')
 
-    if (eventData.startedBy != PUBLIC_KEY) {
-      const oracleAddress = log.address.toLowerCase()
+    try {
+      const oracleAddress = log.address
       const roundId = eventData.roundId.toNumber()
-      // NewRound emitted by somebody else
-      const data: IAggregatorWorker = {
-        oracleAddress,
-        roundId,
-        workerSource: 'event'
-      }
-      logger.debug(data, 'data')
 
-      const jobId = buildSubmissionRoundJobId({
-        oracleAddress,
-        roundId,
-        deploymentName: DEPLOYMENT_NAME
-      })
-      await aggregatorQueue.add('event', data, {
-        jobId,
-        removeOnComplete: REMOVE_ON_COMPLETE,
-        ...AGGREGATOR_QUEUE_SETTINGS
-      })
-      logger.debug({ job: 'event-added' }, `Listener submitted job with ID=${jobId}`)
+      const reporterAddress = await (
+        await getReporterByOracleAddress({
+          service: DATA_FEED_SERVICE_NAME,
+          chain: CHAIN,
+          oracleAddress,
+          logger
+        })
+      ).address
+
+      if (eventData.startedBy != reporterAddress) {
+        // NewRound emitted by somebody else
+        const data: IAggregatorWorker = {
+          oracleAddress,
+          roundId,
+          workerSource: 'event'
+        }
+        logger.debug(data, 'data')
+
+        const jobId = buildSubmissionRoundJobId({
+          oracleAddress,
+          roundId,
+          deploymentName: DEPLOYMENT_NAME
+        })
+        await aggregatorQueue.add('event', data, {
+          jobId,
+          removeOnComplete: REMOVE_ON_COMPLETE,
+          ...AGGREGATOR_QUEUE_SETTINGS
+        })
+        logger.debug({ job: 'event-added' }, `Listener submitted job with ID=${jobId}`)
+      } else {
+        logger.debug(
+          `Ignore event. NewRound event emitted by ${eventData.startedBy} for round ${roundId}`
+        )
+      }
+    } catch (e) {
+      logger.error(e)
     }
   }
 
