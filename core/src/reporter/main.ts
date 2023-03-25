@@ -8,7 +8,6 @@ import { reporter as requestResponseReporter } from './request-response'
 import { launchHealthCheck } from '../health-check'
 import { hookConsoleError } from '../utils'
 import { IReporters } from './types'
-import { createClient } from 'redis'
 import { REDIS_HOST, REDIS_PORT } from '../settings'
 
 const REPORTERS: IReporters = {
