@@ -86,7 +86,15 @@ export function listHandler(print?: boolean) {
     }
 
     try {
-      const result = (await axios.get(AGGREGATOR_ENDPOINT, { data: { chain, active } })).data
+      const url = new URL(AGGREGATOR_ENDPOINT)
+      if (active) {
+        url.searchParams.append('active', 'true')
+      }
+      if (chain) {
+        url.searchParams.append('chain', chain)
+      }
+
+      const result = (await axios.get(url.toString())).data
       if (print) {
         console.dir(result, { depth: null })
       }
