@@ -34,6 +34,7 @@ export class State {
   }) {
     this.redisClient = redisClient
     this.stateName = stateName
+    this.heartbeatQueue = heartbeatQueue
     this.chain = chain
     this.logger = logger.child({ name: 'State', file: FILE_NAME })
     this.logger.debug('Aggregator state initialized')

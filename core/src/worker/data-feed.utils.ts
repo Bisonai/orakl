@@ -53,7 +53,7 @@ export async function getSynchronizedDelay({
   heartbeat: number
   logger: Logger
 }): Promise<number> {
-  this.logger.debug('getSynchronizedDelay')
+  logger.debug('getSynchronizedDelay')
 
   let startedAt = 0
   const { _startedAt, _roundId } = await oracleRoundStateCall({
@@ -73,9 +73,9 @@ export async function getSynchronizedDelay({
     startedAt = _startedAt.toNumber()
   }
 
-  this.logger.debug({ startedAt }, 'startedAt')
+  logger.debug({ startedAt }, 'startedAt')
   const delay = heartbeat - (startedAt % heartbeat)
-  this.logger.debug({ delay }, 'delay')
+  logger.debug({ delay }, 'delay')
 
   return delay
 }
