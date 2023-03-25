@@ -75,7 +75,7 @@ export async function worker(redisClient: RedisClientType, _logger: Logger) {
   // [heartbeat] worker
   const heartbeatWorker = new Worker(
     HEARTBEAT_QUEUE_NAME,
-    heartbeatJob(WORKER_AGGREGATOR_QUEUE_NAME, _logger),
+    heartbeatJob(WORKER_AGGREGATOR_QUEUE_NAME, state, _logger),
     BULLMQ_CONNECTION
   )
 
@@ -190,7 +190,7 @@ function aggregatorJob(reporterQueueName: string, _logger: Logger) {
  * @params {Logger} pino logger
  * @return {} [heartbeat] job processor
  */
-function heartbeatJob(aggregatorJobQueueName: string, _logger: Logger) {
+function heartbeatJob(aggregatorJobQueueName: string, state: State, _logger: Logger) {
   const logger = _logger.child({ name: 'heartbeatJob', file: FILE_NAME })
   const aggregatorQueue = new Queue(aggregatorJobQueueName, BULLMQ_CONNECTION)
   const reporterQueue = new Queue(REPORTER_AGGREGATOR_QUEUE_NAME, BULLMQ_CONNECTION)
@@ -199,6 +199,17 @@ function heartbeatJob(aggregatorJobQueueName: string, _logger: Logger) {
     try {
       const { oracleAddress } = job.data
       logger.debug(oracleAddress, 'oracleAddress-fixed')
+
+      // [hearbeat] worker can be controlled by watchman which can
+      // either activate or deactive a [heartbeat] job. When
+      // [heartbeat] job cannot be found in a local aggregator state,
+      // the job is assumed to be terminated, and worker will drop any
+      // incoming job that should be performed on aggregator denoted
+      // by `aggregatorAddress`.
+      if (!state.isActive({ oracleAddress })) {
+        logger.warn(`Heartbeat job for oracle ${oracleAddress} is no longer active. Exiting.`)
+        return 0
+      }
 
       const operatorAddress = await getOperatorAddress({ oracleAddress, logger })
       const oracleRoundState = await oracleRoundStateCall({

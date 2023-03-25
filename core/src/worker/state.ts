@@ -67,16 +67,15 @@ export class State {
   }
 
   /**
-   * Check whether given `aggregatorHash` is active in local state or
+   * Check whether given `oracleAddress` is active in local state or
    * not.
    *
-   * @param {string} aggregator hash
+   * @param {string} oracleAddress
    */
-  async isActive(aggregatorHash: string) {
+  async isActive({ oracleAddress }: { oracleAddress: string }) {
     this.logger.debug('isActive')
     const activeAggregators = await this.active()
-    const isAlreadyActive =
-      activeAggregators.filter((L) => L.aggregatorHash === aggregatorHash) || []
+    const isAlreadyActive = activeAggregators.filter((L) => L.address === oracleAddress) || []
 
     if (isAlreadyActive.length > 0) {
       return true
