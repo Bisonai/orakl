@@ -104,6 +104,11 @@ export async function sendTransaction({
       _logger.error(msg)
 
       throw new OraklError(OraklErrorCode.TxMissingResponseError, 'TxMissingResponseError')
+    } else if (e.reason == 'transaction failed') {
+      const msg = 'TxTransactionFailed'
+      _logger.error(msg)
+
+      throw new OraklError(OraklErrorCode.TxTransactionFailed, 'TxTransactionFailed')
     } else if (e.code == 'UNPREDICTABLE_GAS_LIMIT') {
       const msg = 'TxCannotEstimateGasError'
       _logger.error(msg)

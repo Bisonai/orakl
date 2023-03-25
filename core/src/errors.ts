@@ -52,5 +52,6 @@ export enum OraklErrorCode {
   NonEligibleToSubmit,
   AggregatorNotRemoved,
   AggregatorNotAdded,
-  TxMissingResponseError
+  TxMissingResponseError,
+  TxTransactionFailed
 }
