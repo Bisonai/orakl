@@ -1,25 +1,23 @@
 {
   "deploy": {
-    "name": "ETH-USD",
+    "name": "BNB-USDT",
     "paymentAmount": 0,
     "timeout": 10,
     "validator": "0x0000000000000000000000000000000000000000",
     "decimals": 8,
-    "description": "ETH-USD",
+    "description": "BNB-USDT",
     "depositAmount": 1.0
   },
   "changeOracles": {
     "removed": [],
     "added": [
-      "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC",
-      "0x90F79bf6EB2c4f870365E785982E1f101E93b906"
+        "0x8128a28663250f2969bd6F5e039e6641aca2a7bD"
     ],
     "addedAdmins": [
-      "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC",
-      "0x90F79bf6EB2c4f870365E785982E1f101E93b906"
+        "0x8128a28663250f2969bd6F5e039e6641aca2a7bD"
     ],
     "minSubmissionCount": 1,
-    "maxSubmissionCount": 2,
+    "maxSubmissionCount": 1,
     "restartDelay": 0
   }
 }

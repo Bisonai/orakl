@@ -1,0 +1,667 @@
+{
+  "address": "0xCe0BBfA49C0b82B9768DFB8d1f1efC907a496842",
+  "abi": [
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "aggregatorAddress",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "nonpayable",
+      "type": "constructor"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "previous",
+          "type": "address"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "latest",
+          "type": "address"
+        }
+      ],
+      "name": "AggregatorConfirmed",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "current",
+          "type": "address"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "proposed",
+          "type": "address"
+        }
+      ],
+      "name": "AggregatorProposed",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "int256",
+          "name": "current",
+          "type": "int256"
+        },
+        {
+          "indexed": true,
+          "internalType": "uint256",
+          "name": "roundId",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "updatedAt",
+          "type": "uint256"
+        }
+      ],
+      "name": "AnswerUpdated",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "uint256",
+          "name": "roundId",
+          "type": "uint256"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "startedBy",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "startedAt",
+          "type": "uint256"
+        }
+      ],
+      "name": "NewRound",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "previousOwner",
+          "type": "address"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "newOwner",
+          "type": "address"
+        }
+      ],
+      "name": "OwnershipTransferred",
+      "type": "event"
+    },
+    {
+      "inputs": [],
+      "name": "aggregator",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "aggregatorAddress",
+          "type": "address"
+        }
+      ],
+      "name": "confirmAggregator",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "decimals",
+      "outputs": [
+        {
+          "internalType": "uint8",
+          "name": "",
+          "type": "uint8"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "description",
+      "outputs": [
+        {
+          "internalType": "string",
+          "name": "",
+          "type": "string"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint80",
+          "name": "roundId",
+          "type": "uint80"
+        }
+      ],
+      "name": "getRoundData",
+      "outputs": [
+        {
+          "internalType": "uint80",
+          "name": "id",
+          "type": "uint80"
+        },
+        {
+          "internalType": "int256",
+          "name": "answer",
+          "type": "int256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "startedAt",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "updatedAt",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint80",
+          "name": "answeredInRound",
+          "type": "uint80"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "latestRoundData",
+      "outputs": [
+        {
+          "internalType": "uint80",
+          "name": "id",
+          "type": "uint80"
+        },
+        {
+          "internalType": "int256",
+          "name": "answer",
+          "type": "int256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "startedAt",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "updatedAt",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint80",
+          "name": "answeredInRound",
+          "type": "uint80"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "owner",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint16",
+          "name": "phaseId_",
+          "type": "uint16"
+        }
+      ],
+      "name": "phaseAggregators",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "phaseId",
+      "outputs": [
+        {
+          "internalType": "uint16",
+          "name": "",
+          "type": "uint16"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "aggregatorAddress",
+          "type": "address"
+        }
+      ],
+      "name": "proposeAggregator",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "proposedAggregator",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint80",
+          "name": "roundId",
+          "type": "uint80"
+        }
+      ],
+      "name": "proposedGetRoundData",
+      "outputs": [
+        {
+          "internalType": "uint80",
+          "name": "id",
+          "type": "uint80"
+        },
+        {
+          "internalType": "int256",
+          "name": "answer",
+          "type": "int256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "startedAt",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "updatedAt",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint80",
+          "name": "answeredInRound",
+          "type": "uint80"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "proposedLatestRoundData",
+      "outputs": [
+        {
+          "internalType": "uint80",
+          "name": "id",
+          "type": "uint80"
+        },
+        {
+          "internalType": "int256",
+          "name": "answer",
+          "type": "int256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "startedAt",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "updatedAt",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint80",
+          "name": "answeredInRound",
+          "type": "uint80"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "renounceOwnership",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "newOwner",
+          "type": "address"
+        }
+      ],
+      "name": "transferOwnership",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "version",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    }
+  ],
+  "transactionHash": "0x34e8a725e0ff8958a1fb39b41724aaed40bfeadef10b1a9f3375bc743a0141bb",
+  "receipt": {
+    "to": null,
+    "from": "0xa195bE68Bd37EBFfB056279Dc3d236fAa6F23670",
+    "contractAddress": "0xCe0BBfA49C0b82B9768DFB8d1f1efC907a496842",
+    "transactionIndex": 1,
+    "gasUsed": "1206435",
+    "logsBloom": "0x00000000000000000000000000000000000000000000000000800000000000000000000000000000000000000000000000000000000000000000000000000000000000400000020000000000000000000001000000000000000000000000000000000000020000000000000000000800000000000000000000000000000000400000000400000000000000000000000000000000000000000000000000000000000001000000040000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000020020000000000000000000000000000000000000000000000000000000000000000",
+    "blockHash": "0x1bdd286376b1ead9366cb05c7f34874c2bd34aed6bedcc187f8d31816ccd6a75",
+    "transactionHash": "0x34e8a725e0ff8958a1fb39b41724aaed40bfeadef10b1a9f3375bc743a0141bb",
+    "logs": [
+      {
+        "transactionIndex": 1,
+        "blockNumber": 118129761,
+        "transactionHash": "0x34e8a725e0ff8958a1fb39b41724aaed40bfeadef10b1a9f3375bc743a0141bb",
+        "address": "0xCe0BBfA49C0b82B9768DFB8d1f1efC907a496842",
+        "topics": [
+          "0x8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e0",
+          "0x0000000000000000000000000000000000000000000000000000000000000000",
+          "0x000000000000000000000000a195be68bd37ebffb056279dc3d236faa6f23670"
+        ],
+        "data": "0x",
+        "logIndex": 0,
+        "blockHash": "0x1bdd286376b1ead9366cb05c7f34874c2bd34aed6bedcc187f8d31816ccd6a75"
+      }
+    ],
+    "blockNumber": 118129761,
+    "cumulativeGasUsed": "1240297",
+    "status": 1,
+    "byzantium": true
+  },
+  "args": [
+    "0x99E9E1a78498575E78F46675b54847767C5787Fb"
+  ],
+  "numDeployments": 1,
+  "solcInputHash": "69525704db89214225c437788fadcfbc",
+  "metadata": "{\"compiler\":{\"version\":\"0.8.16+commit.07a7930e\"},\"language\":\"Solidity\",\"output\":{\"abi\":[{\"inputs\":[{\"internalType\":\"address\",\"name\":\"aggregatorAddress\",\"type\":\"address\"}],\"stateMutability\":\"nonpayable\",\"type\":\"constructor\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"previous\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"latest\",\"type\":\"address\"}],\"name\":\"AggregatorConfirmed\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"current\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"proposed\",\"type\":\"address\"}],\"name\":\"AggregatorProposed\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"int256\",\"name\":\"current\",\"type\":\"int256\"},{\"indexed\":true,\"internalType\":\"uint256\",\"name\":\"roundId\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"updatedAt\",\"type\":\"uint256\"}],\"name\":\"AnswerUpdated\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"uint256\",\"name\":\"roundId\",\"type\":\"uint256\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"startedBy\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"startedAt\",\"type\":\"uint256\"}],\"name\":\"NewRound\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"previousOwner\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"newOwner\",\"type\":\"address\"}],\"name\":\"OwnershipTransferred\",\"type\":\"event\"},{\"inputs\":[],\"name\":\"aggregator\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"aggregatorAddress\",\"type\":\"address\"}],\"name\":\"confirmAggregator\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"decimals\",\"outputs\":[{\"internalType\":\"uint8\",\"name\":\"\",\"type\":\"uint8\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"description\",\"outputs\":[{\"internalType\":\"string\",\"name\":\"\",\"type\":\"string\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint80\",\"name\":\"roundId\",\"type\":\"uint80\"}],\"name\":\"getRoundData\",\"outputs\":[{\"internalType\":\"uint80\",\"name\":\"id\",\"type\":\"uint80\"},{\"internalType\":\"int256\",\"name\":\"answer\",\"type\":\"int256\"},{\"internalType\":\"uint256\",\"name\":\"startedAt\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"updatedAt\",\"type\":\"uint256\"},{\"internalType\":\"uint80\",\"name\":\"answeredInRound\",\"type\":\"uint80\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"latestRoundData\",\"outputs\":[{\"internalType\":\"uint80\",\"name\":\"id\",\"type\":\"uint80\"},{\"internalType\":\"int256\",\"name\":\"answer\",\"type\":\"int256\"},{\"internalType\":\"uint256\",\"name\":\"startedAt\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"updatedAt\",\"type\":\"uint256\"},{\"internalType\":\"uint80\",\"name\":\"answeredInRound\",\"type\":\"uint80\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"owner\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint16\",\"name\":\"phaseId_\",\"type\":\"uint16\"}],\"name\":\"phaseAggregators\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"phaseId\",\"outputs\":[{\"internalType\":\"uint16\",\"name\":\"\",\"type\":\"uint16\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"aggregatorAddress\",\"type\":\"address\"}],\"name\":\"proposeAggregator\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"proposedAggregator\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint80\",\"name\":\"roundId\",\"type\":\"uint80\"}],\"name\":\"proposedGetRoundData\",\"outputs\":[{\"internalType\":\"uint80\",\"name\":\"id\",\"type\":\"uint80\"},{\"internalType\":\"int256\",\"name\":\"answer\",\"type\":\"int256\"},{\"internalType\":\"uint256\",\"name\":\"startedAt\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"updatedAt\",\"type\":\"uint256\"},{\"internalType\":\"uint80\",\"name\":\"answeredInRound\",\"type\":\"uint80\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"proposedLatestRoundData\",\"outputs\":[{\"internalType\":\"uint80\",\"name\":\"id\",\"type\":\"uint80\"},{\"internalType\":\"int256\",\"name\":\"answer\",\"type\":\"int256\"},{\"internalType\":\"uint256\",\"name\":\"startedAt\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"updatedAt\",\"type\":\"uint256\"},{\"internalType\":\"uint80\",\"name\":\"answeredInRound\",\"type\":\"uint80\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"renounceOwnership\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"newOwner\",\"type\":\"address\"}],\"name\":\"transferOwnership\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"version\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"}],\"devdoc\":{\"kind\":\"dev\",\"methods\":{\"confirmAggregator(address)\":{\"details\":\"Reverts if the given address doesn't match what was previously proposed\",\"params\":{\"aggregatorAddress\":\"The new address for the aggregator contract\"}},\"getRoundData(uint80)\":{\"details\":\"Note that answer and updatedAt may change between queries.\",\"params\":{\"roundId\":\"the requested round ID as presented through the proxy, this is made up of the aggregator's round ID with the phase ID encoded in the two highest order bytes\"},\"returns\":{\"answer\":\"is the answer for the given round\",\"answeredInRound\":\"is the round ID of the round in which the answer was computed. (Only some AggregatorV3Interface implementations return meaningful values)\",\"id\":\"is the round ID from the aggregator for which the data was retrieved combined with an phase to ensure that round IDs get larger as time moves forward.\",\"startedAt\":\"is the timestamp when the round was started. (Only some AggregatorV3Interface implementations return meaningful values)\",\"updatedAt\":\"is the timestamp when the round last was updated (i.e. answer was last computed)\"}},\"latestRoundData()\":{\"details\":\"Note that answer and updatedAt may change between queries.\",\"returns\":{\"answer\":\"is the answer for the given round\",\"answeredInRound\":\"is the round ID of the round in which the answer was computed. (Only some AggregatorV3Interface implementations return meaningful values)\",\"id\":\"is the round ID from the aggregator for which the data was retrieved combined with an phase to ensure that round IDs get larger as time moves forward.\",\"startedAt\":\"is the timestamp when the round was started. (Only some AggregatorV3Interface implementations return meaningful values)\",\"updatedAt\":\"is the timestamp when the round last was updated (i.e. answer was last computed)\"}},\"owner()\":{\"details\":\"Returns the address of the current owner.\"},\"phaseAggregators(uint16)\":{\"params\":{\"phaseId_\":\"uint16\"}},\"proposeAggregator(address)\":{\"params\":{\"aggregatorAddress\":\"The new address for the aggregator contract\"}},\"proposedGetRoundData(uint80)\":{\"params\":{\"roundId\":\"the round ID to retrieve the round data for\"},\"returns\":{\"answer\":\"is the answer for the given round\",\"answeredInRound\":\"is the round ID of the round in which the answer was computed.\",\"id\":\"is the round ID for which data was retrieved\",\"startedAt\":\"is the timestamp when the round was started. (Only some AggregatorV3Interface implementations return meaningful values)\",\"updatedAt\":\"is the timestamp when the round last was updated (i.e. answer was last computed)\"}},\"proposedLatestRoundData()\":{\"returns\":{\"answer\":\"is the answer for the given round\",\"answeredInRound\":\"is the round ID of the round in which the answer was computed.\",\"id\":\"is the round ID for which data was retrieved\",\"startedAt\":\"is the timestamp when the round was started. (Only some AggregatorV3Interface implementations return meaningful values)\",\"updatedAt\":\"is the timestamp when the round last was updated (i.e. answer was last computed)\"}},\"renounceOwnership()\":{\"details\":\"Leaves the contract without owner. It will not be possible to call `onlyOwner` functions anymore. Can only be called by the current owner. NOTE: Renouncing ownership will leave the contract without an owner, thereby removing any functionality that is only available to the owner.\"},\"transferOwnership(address)\":{\"details\":\"Transfers ownership of the contract to a new account (`newOwner`). Can only be called by the current owner.\"}},\"title\":\"A trusted proxy for updating where current answers are read from\",\"version\":1},\"userdoc\":{\"kind\":\"user\",\"methods\":{\"aggregator()\":{\"notice\":\"returns the current phase's aggregator address.\"},\"confirmAggregator(address)\":{\"notice\":\"Allows the owner to confirm and change the address to the proposed aggregator\"},\"decimals()\":{\"notice\":\"represents the number of decimals the aggregator responses represent.\"},\"description()\":{\"notice\":\"returns the description of the aggregator the proxy points to.\"},\"getRoundData(uint80)\":{\"notice\":\"get data about a round. Consumers are encouraged to check that they're receiving fresh data by inspecting the updatedAt and answeredInRound return values. Note that different underlying implementations of AggregatorV3Interface have slightly different semantics for some of the return values. Consumers should determine what implementations they expect to receive data from and validate that they can properly handle return data from all of them.\"},\"latestRoundData()\":{\"notice\":\"get data about the latest round. Consumers are encouraged to check that they're receiving fresh data by inspecting the updatedAt and answeredInRound return values. Note that different underlying implementations of AggregatorV3Interface have slightly different semantics for some of the return values. Consumers should determine what implementations they expect to receive data from and validate that they can properly handle return data from all of them.\"},\"phaseAggregators(uint16)\":{\"notice\":\"return a phase aggregator using the phaseId\"},\"phaseId()\":{\"notice\":\"returns the current phase's ID.\"},\"proposeAggregator(address)\":{\"notice\":\"Allows the owner to propose a new address for the aggregator\"},\"proposedAggregator()\":{\"notice\":\"returns the current proposed aggregator\"},\"proposedGetRoundData(uint80)\":{\"notice\":\"Used if an aggregator contract has been proposed.\"},\"proposedLatestRoundData()\":{\"notice\":\"Used if an aggregator contract has been proposed.\"},\"version()\":{\"notice\":\"the version number representing the type of aggregator the proxy points to.\"}},\"notice\":\"This contract provides a consistent address for the CurrentAnswerInterface but delegates where it reads from to the owner, who is trusted to update it.\",\"version\":1}},\"settings\":{\"compilationTarget\":{\"src/v0.1/AggregatorProxy.sol\":\"AggregatorProxy\"},\"evmVersion\":\"london\",\"libraries\":{},\"metadata\":{\"bytecodeHash\":\"ipfs\",\"useLiteralContent\":true},\"optimizer\":{\"enabled\":true,\"runs\":1000},\"remappings\":[]},\"sources\":{\"@openzeppelin/contracts/access/Ownable.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\n// OpenZeppelin Contracts (last updated v4.7.0) (access/Ownable.sol)\\n\\npragma solidity ^0.8.0;\\n\\nimport \\\"../utils/Context.sol\\\";\\n\\n/**\\n * @dev Contract module which provides a basic access control mechanism, where\\n * there is an account (an owner) that can be granted exclusive access to\\n * specific functions.\\n *\\n * By default, the owner account will be the one that deploys the contract. This\\n * can later be changed with {transferOwnership}.\\n *\\n * This module is used through inheritance. It will make available the modifier\\n * `onlyOwner`, which can be applied to your functions to restrict their use to\\n * the owner.\\n */\\nabstract contract Ownable is Context {\\n    address private _owner;\\n\\n    event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);\\n\\n    /**\\n     * @dev Initializes the contract setting the deployer as the initial owner.\\n     */\\n    constructor() {\\n        _transferOwnership(_msgSender());\\n    }\\n\\n    /**\\n     * @dev Throws if called by any account other than the owner.\\n     */\\n    modifier onlyOwner() {\\n        _checkOwner();\\n        _;\\n    }\\n\\n    /**\\n     * @dev Returns the address of the current owner.\\n     */\\n    function owner() public view virtual returns (address) {\\n        return _owner;\\n    }\\n\\n    /**\\n     * @dev Throws if the sender is not the owner.\\n     */\\n    function _checkOwner() internal view virtual {\\n        require(owner() == _msgSender(), \\\"Ownable: caller is not the owner\\\");\\n    }\\n\\n    /**\\n     * @dev Leaves the contract without owner. It will not be possible to call\\n     * `onlyOwner` functions anymore. Can only be called by the current owner.\\n     *\\n     * NOTE: Renouncing ownership will leave the contract without an owner,\\n     * thereby removing any functionality that is only available to the owner.\\n     */\\n    function renounceOwnership() public virtual onlyOwner {\\n        _transferOwnership(address(0));\\n    }\\n\\n    /**\\n     * @dev Transfers ownership of the contract to a new account (`newOwner`).\\n     * Can only be called by the current owner.\\n     */\\n    function transferOwnership(address newOwner) public virtual onlyOwner {\\n        require(newOwner != address(0), \\\"Ownable: new owner is the zero address\\\");\\n        _transferOwnership(newOwner);\\n    }\\n\\n    /**\\n     * @dev Transfers ownership of the contract to a new account (`newOwner`).\\n     * Internal function without access restriction.\\n     */\\n    function _transferOwnership(address newOwner) internal virtual {\\n        address oldOwner = _owner;\\n        _owner = newOwner;\\n        emit OwnershipTransferred(oldOwner, newOwner);\\n    }\\n}\\n\",\"keccak256\":\"0xa94b34880e3c1b0b931662cb1c09e5dfa6662f31cba80e07c5ee71cd135c9673\",\"license\":\"MIT\"},\"@openzeppelin/contracts/utils/Context.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\n// OpenZeppelin Contracts v4.4.1 (utils/Context.sol)\\n\\npragma solidity ^0.8.0;\\n\\n/**\\n * @dev Provides information about the current execution context, including the\\n * sender of the transaction and its data. While these are generally available\\n * via msg.sender and msg.data, they should not be accessed in such a direct\\n * manner, since when dealing with meta-transactions the account sending and\\n * paying for execution may not be the actual sender (as far as an application\\n * is concerned).\\n *\\n * This contract is only required for intermediate, library-like contracts.\\n */\\nabstract contract Context {\\n    function _msgSender() internal view virtual returns (address) {\\n        return msg.sender;\\n    }\\n\\n    function _msgData() internal view virtual returns (bytes calldata) {\\n        return msg.data;\\n    }\\n}\\n\",\"keccak256\":\"0xe2e337e6dde9ef6b680e07338c493ebea1b5fd09b43424112868e9cc1706bca7\",\"license\":\"MIT\"},\"src/v0.1/AggregatorProxy.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\npragma solidity ^0.8.16;\\n\\n// https://github.com/smartcontractkit/chainlink/blob/develop/contracts/src/v0.7/dev/AggregatorProxy.sol\\n\\nimport \\\"@openzeppelin/contracts/access/Ownable.sol\\\";\\nimport \\\"./interfaces/AggregatorProxyInterface.sol\\\";\\n\\n/**\\n * @title A trusted proxy for updating where current answers are read from\\n * @notice This contract provides a consistent address for the\\n * CurrentAnswerInterface but delegates where it reads from to the owner, who is\\n * trusted to update it.\\n */\\ncontract AggregatorProxy is AggregatorProxyInterface, Ownable {\\n    struct Phase {\\n        uint16 id;\\n        AggregatorProxyInterface aggregator;\\n    }\\n    AggregatorProxyInterface private s_proposedAggregator;\\n    mapping(uint16 => AggregatorProxyInterface) private s_phaseAggregators;\\n    Phase private s_currentPhase;\\n\\n    uint256 private constant PHASE_OFFSET = 64;\\n    uint256 private constant PHASE_SIZE = 16;\\n    uint256 private constant MAX_ID = 2 ** (PHASE_OFFSET + PHASE_SIZE) - 1;\\n\\n    event AggregatorProposed(address indexed current, address indexed proposed);\\n    event AggregatorConfirmed(address indexed previous, address indexed latest);\\n\\n    modifier hasProposal() {\\n        require(address(s_proposedAggregator) != address(0), \\\"No proposed aggregator present\\\");\\n        _;\\n    }\\n\\n    constructor(address aggregatorAddress) {\\n        setAggregator(aggregatorAddress);\\n    }\\n\\n    /**\\n     * @notice get data about a round. Consumers are encouraged to check\\n     * that they're receiving fresh data by inspecting the updatedAt and\\n     * answeredInRound return values.\\n     * Note that different underlying implementations of AggregatorV3Interface\\n     * have slightly different semantics for some of the return values. Consumers\\n     * should determine what implementations they expect to receive\\n     * data from and validate that they can properly handle return data from all\\n     * of them.\\n     * @param roundId the requested round ID as presented through the proxy, this\\n     * is made up of the aggregator's round ID with the phase ID encoded in the\\n     * two highest order bytes\\n     * @return id is the round ID from the aggregator for which the data was\\n     * retrieved combined with an phase to ensure that round IDs get larger as\\n     * time moves forward.\\n     * @return answer is the answer for the given round\\n     * @return startedAt is the timestamp when the round was started.\\n     * (Only some AggregatorV3Interface implementations return meaningful values)\\n     * @return updatedAt is the timestamp when the round last was updated (i.e.\\n     * answer was last computed)\\n     * @return answeredInRound is the round ID of the round in which the answer\\n     * was computed.\\n     * (Only some AggregatorV3Interface implementations return meaningful values)\\n     * @dev Note that answer and updatedAt may change between queries.\\n     */\\n    function getRoundData(\\n        uint80 roundId\\n    )\\n        public\\n        view\\n        virtual\\n        override\\n        returns (\\n            uint80 id,\\n            int256 answer,\\n            uint256 startedAt,\\n            uint256 updatedAt,\\n            uint80 answeredInRound\\n        )\\n    {\\n        (uint16 _phaseId, uint64 aggregatorRoundId) = parseIds(roundId);\\n\\n        (id, answer, startedAt, updatedAt, answeredInRound) = s_phaseAggregators[_phaseId]\\n            .getRoundData(aggregatorRoundId);\\n\\n        return addPhaseIds(id, answer, startedAt, updatedAt, answeredInRound, _phaseId);\\n    }\\n\\n    /**\\n     * @notice get data about the latest round. Consumers are encouraged to check\\n     * that they're receiving fresh data by inspecting the updatedAt and\\n     * answeredInRound return values.\\n     * Note that different underlying implementations of AggregatorV3Interface\\n     * have slightly different semantics for some of the return values. Consumers\\n     * should determine what implementations they expect to receive\\n     * data from and validate that they can properly handle return data from all\\n     * of them.\\n     * @return id is the round ID from the aggregator for which the data was\\n     * retrieved combined with an phase to ensure that round IDs get larger as\\n     * time moves forward.\\n     * @return answer is the answer for the given round\\n     * @return startedAt is the timestamp when the round was started.\\n     * (Only some AggregatorV3Interface implementations return meaningful values)\\n     * @return updatedAt is the timestamp when the round last was updated (i.e.\\n     * answer was last computed)\\n     * @return answeredInRound is the round ID of the round in which the answer\\n     * was computed.\\n     * (Only some AggregatorV3Interface implementations return meaningful values)\\n     * @dev Note that answer and updatedAt may change between queries.\\n     */\\n    function latestRoundData()\\n        public\\n        view\\n        virtual\\n        override\\n        returns (\\n            uint80 id,\\n            int256 answer,\\n            uint256 startedAt,\\n            uint256 updatedAt,\\n            uint80 answeredInRound\\n        )\\n    {\\n        Phase memory current = s_currentPhase; // cache storage reads\\n\\n        (id, answer, startedAt, updatedAt, answeredInRound) = current.aggregator.latestRoundData();\\n\\n        return addPhaseIds(id, answer, startedAt, updatedAt, answeredInRound, current.id);\\n    }\\n\\n    /**\\n     * @notice Used if an aggregator contract has been proposed.\\n     * @param roundId the round ID to retrieve the round data for\\n     * @return id is the round ID for which data was retrieved\\n     * @return answer is the answer for the given round\\n     * @return startedAt is the timestamp when the round was started.\\n     * (Only some AggregatorV3Interface implementations return meaningful values)\\n     * @return updatedAt is the timestamp when the round last was updated (i.e.\\n     * answer was last computed)\\n     * @return answeredInRound is the round ID of the round in which the answer\\n     * was computed.\\n     */\\n    function proposedGetRoundData(\\n        uint80 roundId\\n    )\\n        external\\n        view\\n        virtual\\n        override\\n        hasProposal\\n        returns (\\n            uint80 id,\\n            int256 answer,\\n            uint256 startedAt,\\n            uint256 updatedAt,\\n            uint80 answeredInRound\\n        )\\n    {\\n        return s_proposedAggregator.getRoundData(roundId);\\n    }\\n\\n    /**\\n     * @notice Used if an aggregator contract has been proposed.\\n     * @return id is the round ID for which data was retrieved\\n     * @return answer is the answer for the given round\\n     * @return startedAt is the timestamp when the round was started.\\n     * (Only some AggregatorV3Interface implementations return meaningful values)\\n     * @return updatedAt is the timestamp when the round last was updated (i.e.\\n     * answer was last computed)\\n     * @return answeredInRound is the round ID of the round in which the answer\\n     * was computed.\\n     */\\n    function proposedLatestRoundData()\\n        external\\n        view\\n        virtual\\n        override\\n        hasProposal\\n        returns (\\n            uint80 id,\\n            int256 answer,\\n            uint256 startedAt,\\n            uint256 updatedAt,\\n            uint80 answeredInRound\\n        )\\n    {\\n        return s_proposedAggregator.latestRoundData();\\n    }\\n\\n    /**\\n     * @notice returns the current phase's aggregator address.\\n     */\\n    function aggregator() external view override returns (address) {\\n        return address(s_currentPhase.aggregator);\\n    }\\n\\n    /**\\n     * @notice returns the current phase's ID.\\n     */\\n    function phaseId() external view override returns (uint16) {\\n        return s_currentPhase.id;\\n    }\\n\\n    /**\\n     * @notice represents the number of decimals the aggregator responses represent.\\n     */\\n    function decimals() external view override returns (uint8) {\\n        return s_currentPhase.aggregator.decimals();\\n    }\\n\\n    /**\\n     * @notice the version number representing the type of aggregator the proxy\\n     * points to.\\n     */\\n    function version() external view override returns (uint256) {\\n        return s_currentPhase.aggregator.version();\\n    }\\n\\n    /**\\n     * @notice returns the description of the aggregator the proxy points to.\\n     */\\n    function description() external view override returns (string memory) {\\n        return s_currentPhase.aggregator.description();\\n    }\\n\\n    /**\\n     * @notice returns the current proposed aggregator\\n     */\\n    function proposedAggregator() external view override returns (address) {\\n        return address(s_proposedAggregator);\\n    }\\n\\n    /**\\n     * @notice return a phase aggregator using the phaseId\\n     *\\n     * @param phaseId_ uint16\\n     */\\n    function phaseAggregators(uint16 phaseId_) external view override returns (address) {\\n        return address(s_phaseAggregators[phaseId_]);\\n    }\\n\\n    /**\\n     * @notice Allows the owner to propose a new address for the aggregator\\n     * @param aggregatorAddress The new address for the aggregator contract\\n     */\\n    function proposeAggregator(address aggregatorAddress) external onlyOwner {\\n        s_proposedAggregator = AggregatorProxyInterface(aggregatorAddress);\\n        emit AggregatorProposed(address(s_currentPhase.aggregator), aggregatorAddress);\\n    }\\n\\n    /**\\n     * @notice Allows the owner to confirm and change the address\\n     * to the proposed aggregator\\n     * @dev Reverts if the given address doesn't match what was previously\\n     * proposed\\n     * @param aggregatorAddress The new address for the aggregator contract\\n     */\\n    function confirmAggregator(address aggregatorAddress) external onlyOwner {\\n        require(aggregatorAddress == address(s_proposedAggregator), \\\"Invalid proposed aggregator\\\");\\n        address previousAggregator = address(s_currentPhase.aggregator);\\n        delete s_proposedAggregator;\\n        setAggregator(aggregatorAddress);\\n        emit AggregatorConfirmed(previousAggregator, aggregatorAddress);\\n    }\\n\\n    function setAggregator(address aggregatorAddress) internal {\\n        uint16 id = s_currentPhase.id + 1;\\n        s_currentPhase = Phase(id, AggregatorProxyInterface(aggregatorAddress));\\n        s_phaseAggregators[id] = AggregatorProxyInterface(aggregatorAddress);\\n    }\\n\\n    function addPhase(uint16 phase, uint64 originalId) internal pure returns (uint80) {\\n        return uint80((uint256(phase) << PHASE_OFFSET) | originalId);\\n    }\\n\\n    function parseIds(uint256 roundId) internal pure returns (uint16, uint64) {\\n        uint16 _phaseId = uint16(roundId >> PHASE_OFFSET);\\n        uint64 aggregatorRoundId = uint64(roundId);\\n\\n        return (_phaseId, aggregatorRoundId);\\n    }\\n\\n    function addPhaseIds(\\n        uint80 roundId,\\n        int256 answer,\\n        uint256 startedAt,\\n        uint256 updatedAt,\\n        uint80 answeredInRound,\\n        uint16 _phaseId\\n    ) internal pure returns (uint80, int256, uint256, uint256, uint80) {\\n        return (\\n            addPhase(_phaseId, uint64(roundId)),\\n            answer,\\n            startedAt,\\n            updatedAt,\\n            addPhase(_phaseId, uint64(answeredInRound))\\n        );\\n    }\\n}\\n\",\"keccak256\":\"0x4597d9766553c571292af38fabe60b0ccc63e00e07daa42a7fb8aa77ba167d20\",\"license\":\"MIT\"},\"src/v0.1/interfaces/AggregatorInterface.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\npragma solidity ^0.8.16;\\n\\n// https://github.com/smartcontractkit/chainlink/blob/develop/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol\\n// https://github.com/smartcontractkit/chainlink/blob/develop/contracts/src/v0.6/interfaces/AggregatorInterface.sol\\n\\ninterface AggregatorInterface {\\n    function decimals() external view returns (uint8);\\n\\n    function description() external view returns (string memory);\\n\\n    function version() external view returns (uint256);\\n\\n    function getRoundData(\\n        uint80 _roundId\\n    )\\n        external\\n        view\\n        returns (\\n            uint80 roundId,\\n            int256 answer,\\n            uint256 startedAt,\\n            uint256 updatedAt,\\n            uint80 answeredInRound\\n        );\\n\\n    function latestRoundData()\\n        external\\n        view\\n        returns (\\n            uint80 roundId,\\n            int256 answer,\\n            uint256 startedAt,\\n            uint256 updatedAt,\\n            uint80 answeredInRound\\n        );\\n\\n    event AnswerUpdated(int256 indexed current, uint256 indexed roundId, uint256 updatedAt);\\n\\n    event NewRound(uint256 indexed roundId, address indexed startedBy, uint256 startedAt);\\n}\\n\",\"keccak256\":\"0x26bafd15507308cacdae598eb1a246442d9f4acecd5ad36f47d2d1437fa13bce\",\"license\":\"MIT\"},\"src/v0.1/interfaces/AggregatorProxyInterface.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\npragma solidity ^0.8.16;\\n\\n// https://github.com/smartcontractkit/chainlink/blob/develop/contracts/src/v0.7/interfaces/AggregatorProxyInterface.sol\\n\\nimport \\\"./AggregatorInterface.sol\\\";\\n\\ninterface AggregatorProxyInterface is AggregatorInterface {\\n    function phaseAggregators(uint16 phaseId) external view returns (address);\\n\\n    function phaseId() external view returns (uint16);\\n\\n    function proposedAggregator() external view returns (address);\\n\\n    function proposedGetRoundData(\\n        uint80 roundId\\n    )\\n        external\\n        view\\n        returns (\\n            uint80 id,\\n            int256 answer,\\n            uint256 startedAt,\\n            uint256 updatedAt,\\n            uint80 answeredInRound\\n        );\\n\\n    function proposedLatestRoundData()\\n        external\\n        view\\n        returns (\\n            uint80 id,\\n            int256 answer,\\n            uint256 startedAt,\\n            uint256 updatedAt,\\n            uint80 answeredInRound\\n        );\\n\\n    function aggregator() external view returns (address);\\n}\\n\",\"keccak256\":\"0x336ae5f1f792b891494d602932249faced91b0c48de9a8ff5cb591fc8c698490\",\"license\":\"MIT\"}},\"version\":1}",
+  "bytecode": "0x608060405234801561001057600080fd5b50604051610f11380380610f1183398101604081905261002f9161010e565b61003833610047565b61004181610097565b5061016e565b600080546001600160a01b038381166001600160a01b0319831681178455604051919092169283917f8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e09190a35050565b6003546000906100ac9061ffff16600161013e565b60408051808201825261ffff9092168083526001600160a01b039094166020928301819052600380546201000083026001600160b01b031990911687171790556000948552600290925290922080546001600160a01b03191690921790915550565b60006020828403121561012057600080fd5b81516001600160a01b038116811461013757600080fd5b9392505050565b61ffff81811683821601908082111561016757634e487b7160e01b600052601160045260246000fd5b5092915050565b610d948061017d6000396000f3fe608060405234801561001057600080fd5b50600436106101005760003560e01c80638f6b4d9111610097578063e8c4be3011610066578063e8c4be3014610250578063f2fde38b14610261578063f8a2abd314610274578063feaf968c1461028757600080fd5b80638f6b4d91146101f55780639a6fc8f5146101fd578063a928c09614610210578063c15973041461022357600080fd5b80636001ac53116100d35780636001ac531461017b578063715018a6146101c55780637284e416146101cf5780638da5cb5b146101e457600080fd5b8063245a7bfc14610105578063313ce5671461013557806354fd4d501461014f57806358303b1014610165575b600080fd5b6003546201000090046001600160a01b03165b6040516001600160a01b0390911681526020015b60405180910390f35b61013d61028f565b60405160ff909116815260200161012c565b610157610310565b60405190815260200161012c565b60035460405161ffff909116815260200161012c565b61018e610189366004610b0f565b61038c565b6040805169ffffffffffffffffffff968716815260208101959095528401929092526060830152909116608082015260a00161012c565b6101cd61047e565b005b6101d7610492565b60405161012c9190610b57565b6000546001600160a01b0316610118565b61018e610512565b61018e61020b366004610b0f565b6105fd565b6101cd61021e366004610b8a565b6106e6565b610118610231366004610bb3565b61ffff166000908152600260205260409020546001600160a01b031690565b6001546001600160a01b0316610118565b6101cd61026f366004610b8a565b6107c7565b6101cd610282366004610b8a565b610857565b61018e6108c5565b6000600360000160029054906101000a90046001600160a01b03166001600160a01b031663313ce5676040518163ffffffff1660e01b8152600401602060405180830381865afa1580156102e7573d6000803e3d6000fd5b505050506040513d601f19601f8201168201806040525081019061030b9190610bd7565b905090565b6000600360000160029054906101000a90046001600160a01b03166001600160a01b03166354fd4d506040518163ffffffff1660e01b8152600401602060405180830381865afa158015610368573d6000803e3d6000fd5b505050506040513d601f19601f8201168201806040525081019061030b9190610bfa565b60015460009081908190819081906001600160a01b03166103f45760405162461bcd60e51b815260206004820152601e60248201527f4e6f2070726f706f7365642061676772656761746f722070726573656e74000060448201526064015b60405180910390fd5b600154604051639a6fc8f560e01b815269ffffffffffffffffffff881660048201526001600160a01b0390911690639a6fc8f59060240160a060405180830381865afa158015610448573d6000803e3d6000fd5b505050506040513d601f19601f8201168201806040525081019061046c9190610c13565b939a9299509097509550909350915050565b6104866109a4565b61049060006109fe565b565b6060600360000160029054906101000a90046001600160a01b03166001600160a01b0316637284e4166040518163ffffffff1660e01b8152600401600060405180830381865afa1580156104ea573d6000803e3d6000fd5b505050506040513d6000823e601f3d908101601f1916820160405261030b9190810190610c81565b60015460009081908190819081906001600160a01b03166105755760405162461bcd60e51b815260206004820152601e60248201527f4e6f2070726f706f7365642061676772656761746f722070726573656e74000060448201526064016103eb565b600160009054906101000a90046001600160a01b03166001600160a01b031663feaf968c6040518163ffffffff1660e01b815260040160a060405180830381865afa1580156105c8573d6000803e3d6000fd5b505050506040513d601f19601f820116820180604052508101906105ec9190610c13565b945094509450945094509091929394565b60008060008060008060006106208869ffffffffffffffffffff16604081901c91565b61ffff821660009081526002602052604090819020549051639a6fc8f560e01b815267ffffffffffffffff831660048201529294509092506001600160a01b031690639a6fc8f59060240160a060405180830381865afa158015610688573d6000803e3d6000fd5b505050506040513d601f19601f820116820180604052508101906106ac9190610c13565b67ffffffffffffffff94851660409790971b69ffff0000000000000000169687179d939c50919a5098509190911690921794509092505050565b6106ee6109a4565b6001546001600160a01b0382811691161461074b5760405162461bcd60e51b815260206004820152601b60248201527f496e76616c69642070726f706f7365642061676772656761746f72000000000060448201526064016103eb565b6003546001805473ffffffffffffffffffffffffffffffffffffffff191690556201000090046001600160a01b031661078382610a5b565b816001600160a01b0316816001600160a01b03167f33745f67a407dcb785417f9c123dd3641479a102674b6e35c1f10975625b90e960405160405180910390a35050565b6107cf6109a4565b6001600160a01b03811661084b5760405162461bcd60e51b815260206004820152602660248201527f4f776e61626c653a206e6577206f776e657220697320746865207a65726f206160448201527f646472657373000000000000000000000000000000000000000000000000000060648201526084016103eb565b610854816109fe565b50565b61085f6109a4565b6001805473ffffffffffffffffffffffffffffffffffffffff19166001600160a01b0383811691821790925560035460405191926201000090910416907fc0f151710f03d713b71d9970cee0d5b11ddc9a7552abaa3f6ee818010f21600d90600090a350565b60408051808201825260035461ffff811682526201000090046001600160a01b03166020820181905282517ffeaf968c0000000000000000000000000000000000000000000000000000000081529251600093849384938493849363feaf968c9160048083019260a09291908290030181865afa15801561094a573d6000803e3d6000fd5b505050506040513d601f19601f8201168201806040525081019061096e9190610c13565b945169ffff000000000000000060409190911b1667ffffffffffffffff94851681179b939a509198509650919092161792509050565b6000546001600160a01b031633146104905760405162461bcd60e51b815260206004820181905260248201527f4f776e61626c653a2063616c6c6572206973206e6f7420746865206f776e657260448201526064016103eb565b600080546001600160a01b0383811673ffffffffffffffffffffffffffffffffffffffff19831681178455604051919092169283917f8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e09190a35050565b600354600090610a709061ffff166001610d2e565b60408051808201825261ffff9092168083526001600160a01b039094166020928301819052600380546201000083027fffffffffffffffffffff00000000000000000000000000000000000000000000909116871717905560009485526002909252909220805473ffffffffffffffffffffffffffffffffffffffff191690921790915550565b69ffffffffffffffffffff8116811461085457600080fd5b600060208284031215610b2157600080fd5b8135610b2c81610af7565b9392505050565b60005b83811015610b4e578181015183820152602001610b36565b50506000910152565b6020815260008251806020840152610b76816040850160208701610b33565b601f01601f19169190910160400192915050565b600060208284031215610b9c57600080fd5b81356001600160a01b0381168114610b2c57600080fd5b600060208284031215610bc557600080fd5b813561ffff81168114610b2c57600080fd5b600060208284031215610be957600080fd5b815160ff81168114610b2c57600080fd5b600060208284031215610c0c57600080fd5b5051919050565b600080600080600060a08688031215610c2b57600080fd5b8551610c3681610af7565b809550506020860151935060408601519250606086015191506080860151610c5d81610af7565b809150509295509295909350565b634e487b7160e01b600052604160045260246000fd5b600060208284031215610c9357600080fd5b815167ffffffffffffffff80821115610cab57600080fd5b818401915084601f830112610cbf57600080fd5b815181811115610cd157610cd1610c6b565b604051601f8201601f19908116603f01168101908382118183101715610cf957610cf9610c6b565b81604052828152876020848701011115610d1257600080fd5b610d23836020830160208801610b33565b979650505050505050565b61ffff818116838216019080821115610d5757634e487b7160e01b600052601160045260246000fd5b509291505056fea2646970667358221220d9d71c8c63932287caf85b304fe47f0e01e01f82482e5bb8e5cab6e361139f7164736f6c63430008100033",
+  "deployedBytecode": "0x608060405234801561001057600080fd5b50600436106101005760003560e01c80638f6b4d9111610097578063e8c4be3011610066578063e8c4be3014610250578063f2fde38b14610261578063f8a2abd314610274578063feaf968c1461028757600080fd5b80638f6b4d91146101f55780639a6fc8f5146101fd578063a928c09614610210578063c15973041461022357600080fd5b80636001ac53116100d35780636001ac531461017b578063715018a6146101c55780637284e416146101cf5780638da5cb5b146101e457600080fd5b8063245a7bfc14610105578063313ce5671461013557806354fd4d501461014f57806358303b1014610165575b600080fd5b6003546201000090046001600160a01b03165b6040516001600160a01b0390911681526020015b60405180910390f35b61013d61028f565b60405160ff909116815260200161012c565b610157610310565b60405190815260200161012c565b60035460405161ffff909116815260200161012c565b61018e610189366004610b0f565b61038c565b6040805169ffffffffffffffffffff968716815260208101959095528401929092526060830152909116608082015260a00161012c565b6101cd61047e565b005b6101d7610492565b60405161012c9190610b57565b6000546001600160a01b0316610118565b61018e610512565b61018e61020b366004610b0f565b6105fd565b6101cd61021e366004610b8a565b6106e6565b610118610231366004610bb3565b61ffff166000908152600260205260409020546001600160a01b031690565b6001546001600160a01b0316610118565b6101cd61026f366004610b8a565b6107c7565b6101cd610282366004610b8a565b610857565b61018e6108c5565b6000600360000160029054906101000a90046001600160a01b03166001600160a01b031663313ce5676040518163ffffffff1660e01b8152600401602060405180830381865afa1580156102e7573d6000803e3d6000fd5b505050506040513d601f19601f8201168201806040525081019061030b9190610bd7565b905090565b6000600360000160029054906101000a90046001600160a01b03166001600160a01b03166354fd4d506040518163ffffffff1660e01b8152600401602060405180830381865afa158015610368573d6000803e3d6000fd5b505050506040513d601f19601f8201168201806040525081019061030b9190610bfa565b60015460009081908190819081906001600160a01b03166103f45760405162461bcd60e51b815260206004820152601e60248201527f4e6f2070726f706f7365642061676772656761746f722070726573656e74000060448201526064015b60405180910390fd5b600154604051639a6fc8f560e01b815269ffffffffffffffffffff881660048201526001600160a01b0390911690639a6fc8f59060240160a060405180830381865afa158015610448573d6000803e3d6000fd5b505050506040513d601f19601f8201168201806040525081019061046c9190610c13565b939a9299509097509550909350915050565b6104866109a4565b61049060006109fe565b565b6060600360000160029054906101000a90046001600160a01b03166001600160a01b0316637284e4166040518163ffffffff1660e01b8152600401600060405180830381865afa1580156104ea573d6000803e3d6000fd5b505050506040513d6000823e601f3d908101601f1916820160405261030b9190810190610c81565b60015460009081908190819081906001600160a01b03166105755760405162461bcd60e51b815260206004820152601e60248201527f4e6f2070726f706f7365642061676772656761746f722070726573656e74000060448201526064016103eb565b600160009054906101000a90046001600160a01b03166001600160a01b031663feaf968c6040518163ffffffff1660e01b815260040160a060405180830381865afa1580156105c8573d6000803e3d6000fd5b505050506040513d601f19601f820116820180604052508101906105ec9190610c13565b945094509450945094509091929394565b60008060008060008060006106208869ffffffffffffffffffff16604081901c91565b61ffff821660009081526002602052604090819020549051639a6fc8f560e01b815267ffffffffffffffff831660048201529294509092506001600160a01b031690639a6fc8f59060240160a060405180830381865afa158015610688573d6000803e3d6000fd5b505050506040513d601f19601f820116820180604052508101906106ac9190610c13565b67ffffffffffffffff94851660409790971b69ffff0000000000000000169687179d939c50919a5098509190911690921794509092505050565b6106ee6109a4565b6001546001600160a01b0382811691161461074b5760405162461bcd60e51b815260206004820152601b60248201527f496e76616c69642070726f706f7365642061676772656761746f72000000000060448201526064016103eb565b6003546001805473ffffffffffffffffffffffffffffffffffffffff191690556201000090046001600160a01b031661078382610a5b565b816001600160a01b0316816001600160a01b03167f33745f67a407dcb785417f9c123dd3641479a102674b6e35c1f10975625b90e960405160405180910390a35050565b6107cf6109a4565b6001600160a01b03811661084b5760405162461bcd60e51b815260206004820152602660248201527f4f776e61626c653a206e6577206f776e657220697320746865207a65726f206160448201527f646472657373000000000000000000000000000000000000000000000000000060648201526084016103eb565b610854816109fe565b50565b61085f6109a4565b6001805473ffffffffffffffffffffffffffffffffffffffff19166001600160a01b0383811691821790925560035460405191926201000090910416907fc0f151710f03d713b71d9970cee0d5b11ddc9a7552abaa3f6ee818010f21600d90600090a350565b60408051808201825260035461ffff811682526201000090046001600160a01b03166020820181905282517ffeaf968c0000000000000000000000000000000000000000000000000000000081529251600093849384938493849363feaf968c9160048083019260a09291908290030181865afa15801561094a573d6000803e3d6000fd5b505050506040513d601f19601f8201168201806040525081019061096e9190610c13565b945169ffff000000000000000060409190911b1667ffffffffffffffff94851681179b939a509198509650919092161792509050565b6000546001600160a01b031633146104905760405162461bcd60e51b815260206004820181905260248201527f4f776e61626c653a2063616c6c6572206973206e6f7420746865206f776e657260448201526064016103eb565b600080546001600160a01b0383811673ffffffffffffffffffffffffffffffffffffffff19831681178455604051919092169283917f8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e09190a35050565b600354600090610a709061ffff166001610d2e565b60408051808201825261ffff9092168083526001600160a01b039094166020928301819052600380546201000083027fffffffffffffffffffff00000000000000000000000000000000000000000000909116871717905560009485526002909252909220805473ffffffffffffffffffffffffffffffffffffffff191690921790915550565b69ffffffffffffffffffff8116811461085457600080fd5b600060208284031215610b2157600080fd5b8135610b2c81610af7565b9392505050565b60005b83811015610b4e578181015183820152602001610b36565b50506000910152565b6020815260008251806020840152610b76816040850160208701610b33565b601f01601f19169190910160400192915050565b600060208284031215610b9c57600080fd5b81356001600160a01b0381168114610b2c57600080fd5b600060208284031215610bc557600080fd5b813561ffff81168114610b2c57600080fd5b600060208284031215610be957600080fd5b815160ff81168114610b2c57600080fd5b600060208284031215610c0c57600080fd5b5051919050565b600080600080600060a08688031215610c2b57600080fd5b8551610c3681610af7565b809550506020860151935060408601519250606086015191506080860151610c5d81610af7565b809150509295509295909350565b634e487b7160e01b600052604160045260246000fd5b600060208284031215610c9357600080fd5b815167ffffffffffffffff80821115610cab57600080fd5b818401915084601f830112610cbf57600080fd5b815181811115610cd157610cd1610c6b565b604051601f8201601f19908116603f01168101908382118183101715610cf957610cf9610c6b565b81604052828152876020848701011115610d1257600080fd5b610d23836020830160208801610b33565b979650505050505050565b61ffff818116838216019080821115610d5757634e487b7160e01b600052601160045260246000fd5b509291505056fea2646970667358221220d9d71c8c63932287caf85b304fe47f0e01e01f82482e5bb8e5cab6e361139f7164736f6c63430008100033",
+  "devdoc": {
+    "kind": "dev",
+    "methods": {
+      "confirmAggregator(address)": {
+        "details": "Reverts if the given address doesn't match what was previously proposed",
+        "params": {
+          "aggregatorAddress": "The new address for the aggregator contract"
+        }
+      },
+      "getRoundData(uint80)": {
+        "details": "Note that answer and updatedAt may change between queries.",
+        "params": {
+          "roundId": "the requested round ID as presented through the proxy, this is made up of the aggregator's round ID with the phase ID encoded in the two highest order bytes"
+        },
+        "returns": {
+          "answer": "is the answer for the given round",
+          "answeredInRound": "is the round ID of the round in which the answer was computed. (Only some AggregatorV3Interface implementations return meaningful values)",
+          "id": "is the round ID from the aggregator for which the data was retrieved combined with an phase to ensure that round IDs get larger as time moves forward.",
+          "startedAt": "is the timestamp when the round was started. (Only some AggregatorV3Interface implementations return meaningful values)",
+          "updatedAt": "is the timestamp when the round last was updated (i.e. answer was last computed)"
+        }
+      },
+      "latestRoundData()": {
+        "details": "Note that answer and updatedAt may change between queries.",
+        "returns": {
+          "answer": "is the answer for the given round",
+          "answeredInRound": "is the round ID of the round in which the answer was computed. (Only some AggregatorV3Interface implementations return meaningful values)",
+          "id": "is the round ID from the aggregator for which the data was retrieved combined with an phase to ensure that round IDs get larger as time moves forward.",
+          "startedAt": "is the timestamp when the round was started. (Only some AggregatorV3Interface implementations return meaningful values)",
+          "updatedAt": "is the timestamp when the round last was updated (i.e. answer was last computed)"
+        }
+      },
+      "owner()": {
+        "details": "Returns the address of the current owner."
+      },
+      "phaseAggregators(uint16)": {
+        "params": {
+          "phaseId_": "uint16"
+        }
+      },
+      "proposeAggregator(address)": {
+        "params": {
+          "aggregatorAddress": "The new address for the aggregator contract"
+        }
+      },
+      "proposedGetRoundData(uint80)": {
+        "params": {
+          "roundId": "the round ID to retrieve the round data for"
+        },
+        "returns": {
+          "answer": "is the answer for the given round",
+          "answeredInRound": "is the round ID of the round in which the answer was computed.",
+          "id": "is the round ID for which data was retrieved",
+          "startedAt": "is the timestamp when the round was started. (Only some AggregatorV3Interface implementations return meaningful values)",
+          "updatedAt": "is the timestamp when the round last was updated (i.e. answer was last computed)"
+        }
+      },
+      "proposedLatestRoundData()": {
+        "returns": {
+          "answer": "is the answer for the given round",
+          "answeredInRound": "is the round ID of the round in which the answer was computed.",
+          "id": "is the round ID for which data was retrieved",
+          "startedAt": "is the timestamp when the round was started. (Only some AggregatorV3Interface implementations return meaningful values)",
+          "updatedAt": "is the timestamp when the round last was updated (i.e. answer was last computed)"
+        }
+      },
+      "renounceOwnership()": {
+        "details": "Leaves the contract without owner. It will not be possible to call `onlyOwner` functions anymore. Can only be called by the current owner. NOTE: Renouncing ownership will leave the contract without an owner, thereby removing any functionality that is only available to the owner."
+      },
+      "transferOwnership(address)": {
+        "details": "Transfers ownership of the contract to a new account (`newOwner`). Can only be called by the current owner."
+      }
+    },
+    "title": "A trusted proxy for updating where current answers are read from",
+    "version": 1
+  },
+  "userdoc": {
+    "kind": "user",
+    "methods": {
+      "aggregator()": {
+        "notice": "returns the current phase's aggregator address."
+      },
+      "confirmAggregator(address)": {
+        "notice": "Allows the owner to confirm and change the address to the proposed aggregator"
+      },
+      "decimals()": {
+        "notice": "represents the number of decimals the aggregator responses represent."
+      },
+      "description()": {
+        "notice": "returns the description of the aggregator the proxy points to."
+      },
+      "getRoundData(uint80)": {
+        "notice": "get data about a round. Consumers are encouraged to check that they're receiving fresh data by inspecting the updatedAt and answeredInRound return values. Note that different underlying implementations of AggregatorV3Interface have slightly different semantics for some of the return values. Consumers should determine what implementations they expect to receive data from and validate that they can properly handle return data from all of them."
+      },
+      "latestRoundData()": {
+        "notice": "get data about the latest round. Consumers are encouraged to check that they're receiving fresh data by inspecting the updatedAt and answeredInRound return values. Note that different underlying implementations of AggregatorV3Interface have slightly different semantics for some of the return values. Consumers should determine what implementations they expect to receive data from and validate that they can properly handle return data from all of them."
+      },
+      "phaseAggregators(uint16)": {
+        "notice": "return a phase aggregator using the phaseId"
+      },
+      "phaseId()": {
+        "notice": "returns the current phase's ID."
+      },
+      "proposeAggregator(address)": {
+        "notice": "Allows the owner to propose a new address for the aggregator"
+      },
+      "proposedAggregator()": {
+        "notice": "returns the current proposed aggregator"
+      },
+      "proposedGetRoundData(uint80)": {
+        "notice": "Used if an aggregator contract has been proposed."
+      },
+      "proposedLatestRoundData()": {
+        "notice": "Used if an aggregator contract has been proposed."
+      },
+      "version()": {
+        "notice": "the version number representing the type of aggregator the proxy points to."
+      }
+    },
+    "notice": "This contract provides a consistent address for the CurrentAnswerInterface but delegates where it reads from to the owner, who is trusted to update it.",
+    "version": 1
+  },
+  "storageLayout": {
+    "storage": [
+      {
+        "astId": 7,
+        "contract": "src/v0.1/AggregatorProxy.sol:AggregatorProxy",
+        "label": "_owner",
+        "offset": 0,
+        "slot": "0",
+        "type": "t_address"
+      },
+      {
+        "astId": 2355,
+        "contract": "src/v0.1/AggregatorProxy.sol:AggregatorProxy",
+        "label": "s_proposedAggregator",
+        "offset": 0,
+        "slot": "1",
+        "type": "t_contract(AggregatorProxyInterface)8101"
+      },
+      {
+        "astId": 2360,
+        "contract": "src/v0.1/AggregatorProxy.sol:AggregatorProxy",
+        "label": "s_phaseAggregators",
+        "offset": 0,
+        "slot": "2",
+        "type": "t_mapping(t_uint16,t_contract(AggregatorProxyInterface)8101)"
+      },
+      {
+        "astId": 2363,
+        "contract": "src/v0.1/AggregatorProxy.sol:AggregatorProxy",
+        "label": "s_currentPhase",
+        "offset": 0,
+        "slot": "3",
+        "type": "t_struct(Phase)2352_storage"
+      }
+    ],
+    "types": {
+      "t_address": {
+        "encoding": "inplace",
+        "label": "address",
+        "numberOfBytes": "20"
+      },
+      "t_contract(AggregatorProxyInterface)8101": {
+        "encoding": "inplace",
+        "label": "contract AggregatorProxyInterface",
+        "numberOfBytes": "20"
+      },
+      "t_mapping(t_uint16,t_contract(AggregatorProxyInterface)8101)": {
+        "encoding": "mapping",
+        "key": "t_uint16",
+        "label": "mapping(uint16 => contract AggregatorProxyInterface)",
+        "numberOfBytes": "32",
+        "value": "t_contract(AggregatorProxyInterface)8101"
+      },
+      "t_struct(Phase)2352_storage": {
+        "encoding": "inplace",
+        "label": "struct AggregatorProxy.Phase",
+        "members": [
+          {
+            "astId": 2348,
+            "contract": "src/v0.1/AggregatorProxy.sol:AggregatorProxy",
+            "label": "id",
+            "offset": 0,
+            "slot": "0",
+            "type": "t_uint16"
+          },
+          {
+            "astId": 2351,
+            "contract": "src/v0.1/AggregatorProxy.sol:AggregatorProxy",
+            "label": "aggregator",
+            "offset": 2,
+            "slot": "0",
+            "type": "t_contract(AggregatorProxyInterface)8101"
+          }
+        ],
+        "numberOfBytes": "32"
+      },
+      "t_uint16": {
+        "encoding": "inplace",
+        "label": "uint16",
+        "numberOfBytes": "2"
+      }
+    }
+  }
+}
