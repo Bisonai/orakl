@@ -29,7 +29,7 @@ export class ReporterController {
   async findByOracleAddress(
     @Body('chain') chain: string,
     @Body('service') service: string,
-    @Param('chain') oracleAddress: string
+    @Param('oracleAddress') oracleAddress: string
   ) {
     return await this.reporterService.findAll({
       where: {
