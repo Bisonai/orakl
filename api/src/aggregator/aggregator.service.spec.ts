@@ -70,7 +70,7 @@ describe('AggregatorService', () => {
 
     // Aggregator
     const aggregatorData = {
-      aggregatorHash: '0x7c7c327f4d1724905d94057dd1efba894895d1b159a1279a6f3656c9185fdad8',
+      aggregatorHash: '0xc1df01f46e2e128b61a6644aeede3446b2ac86ff0fc7919cadebd0c6938e83b6',
       active: false,
       name: 'BTC-USD',
       address: '0x111',
