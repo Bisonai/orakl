@@ -51,5 +51,6 @@ export enum OraklErrorCode {
   UnexpectedNumberOfDeadlockJobs,
   NonEligibleToSubmit,
   AggregatorNotRemoved,
-  AggregatorNotAdded
+  AggregatorNotAdded,
+  TxMissingResponseError
 }
