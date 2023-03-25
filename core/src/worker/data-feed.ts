@@ -1,7 +1,7 @@
 import { Worker, Queue, Job } from 'bullmq'
 import { Logger } from 'pino'
 import type { RedisClientType } from 'redis'
-import { getAggregatorGivenAddress, getActiveAggregators, fetchDataFeed } from './api'
+import { getAggregatorGivenAddress, getAggregators, fetchDataFeed } from './api'
 import { State } from './state'
 import { OraklError, OraklErrorCode } from '../errors'
 import { IAggregatorWorker, IAggregatorWorkerReporter, IAggregatorHeartbeatWorker } from '../types'
@@ -13,7 +13,6 @@ import {
   DEPLOYMENT_NAME,
   REMOVE_ON_COMPLETE,
   CHAIN,
-  DATA_FEED_SERVICE_NAME,
   HEARTBEAT_JOB_NAME,
   HEARTBEAT_QUEUE_SETTINGS,
   AGGREGATOR_QUEUE_SETTINGS,
@@ -42,13 +41,12 @@ export async function worker(redisClient: RedisClientType, _logger: Logger) {
     redisClient,
     stateName: DATA_FEED_WORKER_STATE_NAME,
     heartbeatQueue,
-    service: DATA_FEED_SERVICE_NAME,
     chain: CHAIN,
     logger
   })
   await state.clear()
 
-  const activeAggregators = await getActiveAggregators({ chain: CHAIN, logger })
+  const activeAggregators = await getAggregators({ chain: CHAIN, active: true, logger })
   if (activeAggregators.length == 0) {
     logger.warn('No active aggregators')
   }

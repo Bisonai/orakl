@@ -76,25 +76,30 @@ export async function getAggregatorGivenAddress({
 }
 
 /**
- * Get all active `Aggregator`s from `Orakl API` given an aggregator
- * hash and chain.
+ * Get all `Aggregator`s on given `chain`. The data are fetched from
+ * the `Orakl Network API`.
  *
  * @param {string} chain name
+ * @param {string} activeness of aggregator
  * @param {Logger} logger
  * @return {Aggregator[]}
  * @exception {FailedToGetAggregator}
  */
-export async function getActiveAggregators({
+export async function getAggregators({
   chain,
+  active,
   logger
 }: {
   chain: string
+  active?: boolean
   logger: Logger
 }): Promise<IAggregator[]> {
   try {
     const url = new URL(AGGREGATOR_ENDPOINT)
-    url.searchParams.append('active', 'true')
     url.searchParams.append('chain', chain)
+    if (active) {
+      url.searchParams.append('active', 'true')
+    }
     const response = (await axios.get(url.toString()))?.data
     return response
   } catch (e) {

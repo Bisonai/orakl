@@ -2,7 +2,7 @@ import { Queue } from 'bullmq'
 import { Logger } from 'pino'
 import type { RedisClientType } from 'redis'
 import { IAggregatorHeartbeatWorker } from '../types'
-import { getAggregator } from './api'
+import { getAggregator, getAggregators } from './api'
 import { OraklError, OraklErrorCode } from '../errors'
 import { buildHeartbeatJobId } from '../utils'
 import { HEARTBEAT_JOB_NAME, DEPLOYMENT_NAME, HEARTBEAT_QUEUE_SETTINGS } from '../settings'
@@ -15,7 +15,6 @@ export class State {
   redisClient: RedisClientType
   stateName: string
   heartbeatQueue: Queue
-  service: string
   chain: string
   logger: Logger
   wallets
@@ -24,46 +23,42 @@ export class State {
     redisClient,
     stateName,
     heartbeatQueue,
-    service,
     chain,
     logger
   }: {
     redisClient: RedisClientType
     stateName: string
     heartbeatQueue: Queue
-    service: string
     chain: string
     logger: Logger
   }) {
     this.redisClient = redisClient
     this.stateName = stateName
-    this.service = service
     this.chain = chain
     this.logger = logger.child({ name: 'State', file: FILE_NAME })
-    this.logger.debug('Worker state initialized')
+    this.logger.debug('Aggregator state initialized')
   }
 
   /**
-   * Clear worker state.
+   * Clear aggregator state.
    */
   async clear() {
     this.logger.debug('clear')
     await this.redisClient.set(this.stateName, JSON.stringify([]))
-    this.logger.debug('Worker state cleared')
+    this.logger.debug('Aggregator state cleared')
   }
 
   /**
-   * List all workers given `service` and `chain`. The workers can
+   * List all aggregators given `chain`. The aggregator can
    * be either active or inactive.
-   * FIXME
    */
   async all() {
-    // this.logger.debug('all')
-    // return await getReporters({ service: this.service, chain: this.chain, logger: this.logger })
+    this.logger.debug('all')
+    return await getAggregators({ chain: this.chain, logger: this.logger })
   }
 
   /**
-   * List all active workers.
+   * List all aggregators in an active state.
    */
   async active() {
     this.logger.debug('active')
@@ -101,12 +96,12 @@ export class State {
   }
 
   /**
-   * Add worker given `aggregatorHash`. Worker can be added only if it
-   * corresponds to the `service` and `chain` state.
+   * Add aggregator given `aggregatorHash`. Aggregator can be added only if it
+   * corresponds to the `chain` state.
    *
    * @param {string} aggregator hash
    * @return {IAggregatorConfig}
-   * @exception {OraklErrorCode.AggregatorNotAdded} raise when no worker was added
+   * @exception {OraklErrorCode.AggregatorNotAdded} raise when no aggregator was added
    */
   async add(aggregatorHash: string): Promise<IAggregatorConfig> {
     this.logger.debug('add')
@@ -119,7 +114,7 @@ export class State {
       activeAggregators.filter((L) => L.aggregatorHash === aggregatorHash) || []
 
     if (isAlreadyActive.length > 0) {
-      const msg = `Worker with aggregatorHash=${aggregatorHash} was not added. It is already active.`
+      const msg = `Aggregator with aggregatorHash=${aggregatorHash} was not added. It is already active.`
       this.logger?.debug({ name: 'add', file: FILE_NAME }, msg)
       throw new OraklError(OraklErrorCode.AggregatorNotAdded, msg)
     }
@@ -130,7 +125,7 @@ export class State {
       logger: this.logger
     })
     if (!toAddAggregator || !toAddAggregator.active) {
-      const msg = `Aggregator with aggregatorHash=${aggregatorHash} cannot be found / is not active for service=${this.service} on chain=${this.chain}`
+      const msg = `Aggregator with aggregatorHash=${aggregatorHash} cannot be found / is not active on chain=${this.chain}`
       this.logger?.debug({ name: 'add', file: FILE_NAME }, msg)
       throw new OraklError(OraklErrorCode.AggregatorNotAdded, msg)
     }
@@ -144,8 +139,7 @@ export class State {
       heartbeat: toAddAggregator.heartbeat,
       threshold: toAddAggregator.threshold,
       absoluteThreshold: toAddAggregator.absoluteThreshold,
-      chain: this.chain,
-      service: this.service
+      chain: this.chain
     }
     await this.redisClient.set(
       this.stateName,

@@ -14,5 +14,4 @@ export interface IAggregatorConfig {
   threshold: number
   absoluteThreshold: number
   chain: string
-  service: string
 }
