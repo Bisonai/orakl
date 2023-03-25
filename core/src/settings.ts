@@ -24,7 +24,7 @@ export const LISTENER_DELAY = Number(process.env.LISTENER_DELAY) || 500
 
 // Service ports are used for communication to watchman from the outside
 export const LISTENER_PORT = process.env.LISTENER_PORT || 4_000
-export const WORKER_PORT = process.env.LISTENER_PORT || 5_000
+export const WORKER_PORT = process.env.WORKER_PORT || 5_001
 export const REPORTER_PORT = process.env.REPORTER_PORT || 6_000
 
 export const DATA_FEED_SERVICE_NAME = 'Aggregator'
