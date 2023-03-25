@@ -1,6 +1,7 @@
 import { Worker, Queue } from 'bullmq'
 import axios from 'axios'
 import { Logger } from 'pino'
+import type { RedisClientType } from 'redis'
 import { buildReducer } from './utils'
 import { decodeRequest } from './decoding'
 import { requestResponseReducerMapping } from './reducer'
@@ -14,7 +15,7 @@ import {
 
 const FILE_NAME = import.meta.url
 
-export async function worker(_logger: Logger) {
+export async function worker(redisClient: RedisClientType, _logger: Logger) {
   _logger.debug({ name: 'worker', file: FILE_NAME })
   new Worker(
     WORKER_REQUEST_RESPONSE_QUEUE_NAME,

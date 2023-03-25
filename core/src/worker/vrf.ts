@@ -1,6 +1,7 @@
 import { ethers } from 'ethers'
 import { Worker, Queue } from 'bullmq'
 import { Logger } from 'pino'
+import type { RedisClientType } from 'redis'
 import { prove, decode, getFastVerifyComponents } from '@bisonai/orakl-vrf'
 import { IVrfResponse, IVrfListenerWorker, IVrfWorkerReporter, IVrfConfig } from '../types'
 import {
@@ -14,7 +15,7 @@ import { remove0x } from '../utils'
 
 const FILE_NAME = import.meta.url
 
-export async function worker(_logger: Logger) {
+export async function worker(redisClient: RedisClientType, _logger: Logger) {
   _logger.debug({ name: 'worker', file: FILE_NAME })
   new Worker(
     WORKER_VRF_QUEUE_NAME,

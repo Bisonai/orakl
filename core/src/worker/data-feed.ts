@@ -1,8 +1,9 @@
 import { Worker, Queue, Job } from 'bullmq'
 import { Logger } from 'pino'
+import type { RedisClientType } from 'redis'
 import { getAggregatorGivenAddress, getActiveAggregators, fetchDataFeed } from './api'
+import { State } from './state'
 import { OraklError, OraklErrorCode } from '../errors'
-import { getReporterByOracleAddress } from '../api'
 import { IAggregatorWorker, IAggregatorWorkerReporter, IAggregatorHeartbeatWorker } from '../types'
 import {
   WORKER_AGGREGATOR_QUEUE_NAME,
@@ -15,10 +16,13 @@ import {
   DATA_FEED_SERVICE_NAME,
   HEARTBEAT_JOB_NAME,
   HEARTBEAT_QUEUE_SETTINGS,
-  AGGREGATOR_QUEUE_SETTINGS
+  AGGREGATOR_QUEUE_SETTINGS,
+  DATA_FEED_WORKER_STATE_NAME
 } from '../settings'
 import { buildSubmissionRoundJobId, buildHeartbeatJobId } from '../utils'
 import { oracleRoundStateCall } from './utils'
+import { watchman } from './watchman'
+import { getOperatorAddress } from './data-feed.utils'
 
 const FILE_NAME = import.meta.url
 
@@ -27,35 +31,31 @@ const FILE_NAME = import.meta.url
  * them to the [heartbeat] queue. Launch [aggregator] and [heartbeat]
  * workers.
  *
+ * @param {RedisClientType} redis client
  * @param {Logger} pino logger
  */
-export async function worker(_logger: Logger) {
+export async function worker(redisClient: RedisClientType, _logger: Logger) {
   const logger = _logger.child({ name: 'worker', file: FILE_NAME })
-  const aggregators = await getActiveAggregators({ chain: CHAIN, logger })
+  const heartbeatQueue = new Queue(HEARTBEAT_QUEUE_NAME, BULLMQ_CONNECTION)
 
-  if (aggregators.length == 0) {
+  const state = new State({
+    redisClient,
+    stateName: DATA_FEED_WORKER_STATE_NAME,
+    heartbeatQueue,
+    service: DATA_FEED_SERVICE_NAME,
+    chain: CHAIN,
+    logger
+  })
+  await state.clear()
+
+  const activeAggregators = await getActiveAggregators({ chain: CHAIN, logger })
+  if (activeAggregators.length == 0) {
     logger.warn('No active aggregators')
   }
 
   // Launch all active aggregators
-  const heartbeatQueue = new Queue(HEARTBEAT_QUEUE_NAME, BULLMQ_CONNECTION)
-  for (const aggregator of aggregators) {
-    const oracleAddress = aggregator.address
-
-    const operatorAddress = await getOperatorAddress({ oracleAddress, logger })
-    const jobData: IAggregatorHeartbeatWorker = {
-      oracleAddress
-    }
-    await heartbeatQueue.add(HEARTBEAT_JOB_NAME, jobData, {
-      jobId: buildHeartbeatJobId({ oracleAddress, deploymentName: DEPLOYMENT_NAME }),
-      delay: await getSynchronizedDelay({
-        oracleAddress,
-        operatorAddress,
-        heartbeat: aggregator.heartbeat,
-        logger
-      }),
-      ...HEARTBEAT_QUEUE_SETTINGS
-    })
+  for (const aggregator of activeAggregators) {
+    await state.add(aggregator.aggregatorHash)
   }
 
   // [aggregator] worker
@@ -88,6 +88,9 @@ export async function worker(_logger: Logger) {
   heartbeatWorker.on('failed', (job: Job, error: Error) => {
     // Do something with the return value.
   })
+
+  await watchman({ state, logger })
+  logger.debug('Worker launched')
 }
 
 /**
@@ -311,54 +314,6 @@ async function prepareDataForReporter({
   }
 }
 
-/**
- * Compute the number of seconds until the next round.
- *
- * FIXME modify aggregator to use single contract call
- *
- * @param {string} aggregator address
- * @param {number} heartbeat
- * @param {Logger}
- * @return {number} delay in seconds until the next round
- */
-async function getSynchronizedDelay({
-  oracleAddress,
-  operatorAddress,
-  heartbeat,
-  logger
-}: {
-  oracleAddress: string
-  operatorAddress: string
-  heartbeat: number
-  logger: Logger
-}): Promise<number> {
-  logger.debug('getSynchronizedDelay')
-
-  let startedAt = 0
-  const { _startedAt, _roundId } = await oracleRoundStateCall({
-    oracleAddress,
-    operatorAddress,
-    logger
-  })
-
-  if (_startedAt.toNumber() != 0) {
-    startedAt = _startedAt.toNumber()
-  } else {
-    const { _startedAt } = await oracleRoundStateCall({
-      oracleAddress,
-      operatorAddress,
-      roundId: Math.max(0, _roundId - 1)
-    })
-    startedAt = _startedAt.toNumber()
-  }
-
-  logger.debug({ startedAt }, 'startedAt')
-  const delay = heartbeat - (startedAt % heartbeat)
-  logger.debug({ delay }, 'delay')
-
-  return delay
-}
-
 function aggregatorJobBackOffStrategy(
   attemptsMade: number,
   type: string,
@@ -367,32 +322,6 @@ function aggregatorJobBackOffStrategy(
 ): number {
   // TODO stop if there is newer job submitted
   return 1_000
-}
-
-/**
- * Get address of node operator given an `oracleAddress`. The data are fetched from the Orakl Network API.
- *
- * @param {string} oracle address
- * @return {string} address of node operator
- * @exception {OraklErrorCode.GetReporterRequestFailed} raises when request failed
- */
-async function getOperatorAddress({
-  oracleAddress,
-  logger
-}: {
-  oracleAddress: string
-  logger: Logger
-}) {
-  logger.debug('getOperatorAddress')
-
-  return await (
-    await getReporterByOracleAddress({
-      service: DATA_FEED_SERVICE_NAME,
-      chain: CHAIN,
-      oracleAddress,
-      logger
-    })
-  ).address
 }
 
 /**

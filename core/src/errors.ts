@@ -49,5 +49,7 @@ export enum OraklErrorCode {
   ReporterNotAdded,
   WalletNotActive,
   UnexpectedNumberOfDeadlockJobs,
-  NonEligibleToSubmit
+  NonEligibleToSubmit,
+  AggregatorNotRemoved,
+  AggregatorNotAdded
 }
