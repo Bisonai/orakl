@@ -37,32 +37,16 @@ export async function watchman({ state, logger }: { state: State; logger: Logger
   })
 
   /**
-   * Refresh workers.
-   */
-  app.get('/refresh', async (req: Request, res: Response) => {
-    logger.debug('/refresh')
-
-    try {
-      // const active = await state.refresh()
-      const active = undefined
-      res.status(200).send(active)
-    } catch (e) {
-      logger.error(e)
-      res.status(500).send(e)
-    }
-  })
-
-  /**
    * Launch new worker.
    */
-  app.get('/activate/:id', async (req: Request, res: Response) => {
-    const { id } = req.params
-    logger.debug(`/activate/${id}`)
+  app.get('/activate/:aggregatorHash', async (req: Request, res: Response) => {
+    const { aggregatorHash } = req.params
+    logger.debug(`/activate/${aggregatorHash}`)
 
     try {
-      // await state.add(id)
+      await state.add(aggregatorHash)
 
-      const message = `Worker with ID=${id} started`
+      const message = `Worker with aggregatorHash=${aggregatorHash} started`
       logger.debug(message)
       res.status(200).send({ message })
     } catch (e) {
@@ -74,14 +58,14 @@ export async function watchman({ state, logger }: { state: State; logger: Logger
   /**
    * Stop a specific worker.
    */
-  app.get('/deactivate/:id', async (req: Request, res: Response) => {
-    const { id } = req.params
-    logger.debug(`/deactivate/${id}`)
+  app.get('/deactivate/:aggregatorHash', async (req: Request, res: Response) => {
+    const { aggregatorHash } = req.params
+    logger.debug(`/deactivate/${aggregatorHash}`)
 
     try {
-      // await state.remove(id)
+      await state.remove(aggregatorHash)
 
-      const message = `Worker with ID=${id} stopped`
+      const message = `Worker with aggregatorHash=${aggregatorHash} stopped`
       logger.debug(message)
       res.status(200).send({ message })
     } catch (e) {
