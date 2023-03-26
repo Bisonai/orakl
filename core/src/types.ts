@@ -121,6 +121,7 @@ export interface IVrfListenerWorker {
 
 export interface IAggregatorWorker {
   oracleAddress: string
+  operatorAddress
   roundId: number
   workerSource: string
 }
@@ -168,12 +169,10 @@ export interface IVrfWorkerReporter {
 }
 
 export interface IAggregatorWorkerReporter {
-  report: boolean | undefined
-  callbackAddress: string
+  oracleAddress: string
   roundId: number
   submission: bigint
   workerSource: string
-  delay: number
 }
 
 // VRF

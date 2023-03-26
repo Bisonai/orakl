@@ -28,7 +28,7 @@ import {
 import { buildSubmissionRoundJobId, buildHeartbeatJobId } from '../utils'
 import { oracleRoundStateCall } from './data-feed.utils'
 import { watchman } from './watchman'
-import { getOperatorAddress } from './data-feed.utils'
+import { getOperatorAddress } from '../api'
 
 const FILE_NAME = import.meta.url
 
@@ -141,27 +141,16 @@ function aggregatorJob(submitHeartbeatQueue: Queue, reporterQueue: Queue, _logge
   async function wrapper(job: Job) {
     const inData: IAggregatorWorker = job.data
     logger.debug(inData, 'inData')
-    const oracleAddress = inData.oracleAddress
-    const roundId = inData.roundId
+    const { oracleAddress, operatorAddress, roundId, workerSource } = inData
 
     try {
-      const operatorAddress = await getOperatorAddress({ oracleAddress, logger })
+      // TODO store in ephemeral state
       const { aggregatorHash, heartbeat: delay } = await getAggregatorGivenAddress({
         oracleAddress,
         logger
       })
 
-      const outDataReporter = await prepareDataForReporter({
-        aggregatorHash,
-        oracleAddress,
-        operatorAddress,
-        report: true,
-        workerSource: inData.workerSource,
-        delay,
-        roundId,
-        logger
-      })
-      logger.debug(outDataReporter, 'outDataReporter')
+      const { value: submission } = await fetchDataFeed({ aggregatorHash, logger })
 
       // Submit heartbeat
       const outDataSubmitHeartbeat: IAggregatorSubmitHeartbeatWorker = {
@@ -174,7 +163,14 @@ function aggregatorJob(submitHeartbeatQueue: Queue, reporterQueue: Queue, _logge
       })
 
       // Report submission
-      await reporterQueue.add(inData.workerSource, outDataReporter, {
+      const outDataReporter: IAggregatorWorkerReporter = {
+        oracleAddress,
+        submission,
+        roundId,
+        workerSource
+      }
+      logger.debug(outDataReporter, 'outDataReporter')
+      await reporterQueue.add(workerSource, outDataReporter, {
         jobId: buildSubmissionRoundJobId({
           oracleAddress,
           roundId,
@@ -262,6 +258,7 @@ function heartbeatJob(aggregatorQueue: Queue, state: State, _logger: Logger) {
       const { roundId, eligibleToSubmit } = oracleRoundState
       const outData: IAggregatorWorker = {
         oracleAddress,
+        operatorAddress,
         roundId,
         workerSource: 'heartbeat'
       }
@@ -359,60 +356,6 @@ function submitHeartbeatJob(heartbeatQueue: Queue, _logger: Logger) {
   }
 
   return wrapper
-}
-
-/**
- * Fetch the latest data and prepare them to be sent to reporter.
- *
- * @param {string} id: aggregator ID
- * @param {string} oracle address
- * @param {boolean} report: whether to submission must be reported
- * @param {string} workerSource
- * @param {number} delay
- * @param {number} roundId
- * @param {Logger} _logger
- * @return {Promise<IAggregatorJob}
- * @exception {FailedToFetchFromDataFeed} raised from `fetchDataFeed`
- */
-async function prepareDataForReporter({
-  aggregatorHash,
-  oracleAddress,
-  operatorAddress,
-  report,
-  workerSource,
-  delay,
-  roundId,
-  logger
-}: {
-  aggregatorHash: string
-  oracleAddress: string
-  operatorAddress: string
-  report?: boolean
-  workerSource: string
-  delay: number
-  roundId?: number
-  logger: Logger
-}): Promise<IAggregatorWorkerReporter> {
-  logger.debug('prepareDataForReporter')
-
-  const { value } = await fetchDataFeed({ aggregatorHash, logger })
-
-  const oracleRoundState = await oracleRoundStateCall({
-    oracleAddress,
-    operatorAddress,
-    roundId,
-    logger
-  })
-  logger.debug(oracleRoundState, 'oracleRoundState')
-
-  return {
-    report,
-    callbackAddress: oracleAddress,
-    workerSource,
-    delay,
-    submission: value,
-    roundId: roundId || oracleRoundState.roundId
-  }
 }
 
 /**

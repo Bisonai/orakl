@@ -7,7 +7,7 @@ import { listen } from './listener'
 import { State } from './state'
 import { IListenerConfig, INewRound, IAggregatorWorker } from '../types'
 import { buildSubmissionRoundJobId } from '../utils'
-import { getReporterByOracleAddress } from '../api'
+import { getOperatorAddress } from '../api'
 import {
   WORKER_AGGREGATOR_QUEUE_NAME,
   DEPLOYMENT_NAME,
@@ -65,20 +65,13 @@ async function processEvent(iface: ethers.utils.Interface, queue: Queue, _logger
     try {
       const oracleAddress = log.address
       const roundId = eventData.roundId.toNumber()
+      const operatorAddress = await getOperatorAddress({ oracleAddress, logger })
 
-      const reporterAddress = await (
-        await getReporterByOracleAddress({
-          service: DATA_FEED_SERVICE_NAME,
-          chain: CHAIN,
-          oracleAddress,
-          logger
-        })
-      ).address
-
-      if (eventData.startedBy != reporterAddress) {
+      if (eventData.startedBy != operatorAddress) {
         // NewRound emitted by somebody else
         const data: IAggregatorWorker = {
           oracleAddress,
+          operatorAddress,
           roundId,
           workerSource: 'event'
         }

@@ -67,8 +67,8 @@ function job(state: State, logger: Logger) {
   async function wrapper(job: Job) {
     const inData: IAggregatorWorkerReporter = job.data
     logger.debug(inData, 'inData')
+    const { roundId, submission, oracleAddress } = inData
 
-    const oracleAddress = inData.callbackAddress
     const wallet = state.wallets[oracleAddress]
     if (!wallet) {
       const msg = `Wallet for oracle ${oracleAddress} is not active`
@@ -76,7 +76,7 @@ function job(state: State, logger: Logger) {
       throw new OraklError(OraklErrorCode.WalletNotActive, msg)
     }
 
-    const payload = iface.encodeFunctionData('submit', [inData.roundId, inData.submission])
+    const payload = iface.encodeFunctionData('submit', [roundId, submission])
     const gasLimit = 300_000 // FIXME move to settings outside of code
 
     const NUM_TRANSACTION_TRIALS = 3

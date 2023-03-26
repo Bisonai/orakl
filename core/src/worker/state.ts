@@ -11,7 +11,7 @@ import {
   HEARTBEAT_QUEUE_SETTINGS,
   SUBMIT_HEARTBEAT_QUEUE_SETTINGS
 } from '../settings'
-import { getOperatorAddress, getSynchronizedDelay } from './data-feed.utils'
+import { getSynchronizedDelay } from './data-feed.utils'
 import { IAggregatorConfig } from './types'
 
 const FILE_NAME = import.meta.url
