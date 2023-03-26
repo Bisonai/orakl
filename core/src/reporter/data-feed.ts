@@ -63,15 +63,25 @@ function job(state: State, logger: Logger) {
       throw new OraklError(OraklErrorCode.WalletNotActive, msg)
     }
 
-    try {
-      const payload = iface.encodeFunctionData('submit', [inData.roundId, inData.submission])
-      const gasLimit = 300_000 // FIXME move to settings outside of code
+    const payload = iface.encodeFunctionData('submit', [inData.roundId, inData.submission])
+    const gasLimit = 300_000 // FIXME move to settings outside of code
 
-      // TODO retry when transaction failed
-      await sendTransaction({ wallet, to: oracleAddress, payload, logger, gasLimit })
-    } catch (e) {
-      logger.error(e)
-      throw e
+    const NUM_TRANSACTION_TRIALS = 3
+    for (let i = 0; i < NUM_TRANSACTION_TRIALS; ++i) {
+      try {
+        await sendTransaction({ wallet, to: oracleAddress, payload, logger, gasLimit })
+        break
+      } catch (e) {
+        if (
+          ![
+            OraklErrorCode.TxNotMined,
+            OraklErrorCode.TxProcessingResponseError,
+            OraklErrorCode.TxMissingResponseError
+          ].includes(e.code)
+        ) {
+          throw e
+        }
+      }
     }
   }
 
