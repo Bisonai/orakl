@@ -73,10 +73,7 @@ export async function worker(redisClient: RedisClientType, _logger: Logger) {
     WORKER_AGGREGATOR_QUEUE_NAME,
     aggregatorJob(submitHeartbeatQueue, reporterQueue, _logger),
     {
-      ...BULLMQ_CONNECTION,
-      settings: {
-        backoffStrategy: aggregatorJobBackOffStrategy
-      }
+      ...BULLMQ_CONNECTION
     }
   )
   aggregatorWorker.on('error', (e) => {
@@ -416,16 +413,6 @@ async function prepareDataForReporter({
     submission: value,
     roundId: roundId || oracleRoundState._roundId
   }
-}
-
-function aggregatorJobBackOffStrategy(
-  attemptsMade: number,
-  type: string,
-  err: Error,
-  job: Job
-): number {
-  // TODO stop if there is newer job submitted
-  return 1_000
 }
 
 /**
