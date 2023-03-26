@@ -36,11 +36,11 @@ export async function reporter(redisClient: RedisClientType, _logger: Logger) {
 
   logger.debug(await state.active(), 'Active reporters')
 
-  const reporterWorker = new Worker(
-    REPORTER_AGGREGATOR_QUEUE_NAME,
-    await job(state, logger),
-    BULLMQ_CONNECTION
-  )
+  const DATA_FEED_REPORTER_WORKER_CONCURRENCY = 5
+  const reporterWorker = new Worker(REPORTER_AGGREGATOR_QUEUE_NAME, await job(state, logger), {
+    ...BULLMQ_CONNECTION,
+    concurrency: DATA_FEED_REPORTER_WORKER_CONCURRENCY
+  })
   reporterWorker.on('error', (e) => {
     logger.error(e)
   })
