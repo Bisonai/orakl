@@ -4,19 +4,26 @@ import type { RedisClientType } from 'redis'
 import { getAggregatorGivenAddress, getAggregators, fetchDataFeed } from './api'
 import { State } from './state'
 import { OraklError, OraklErrorCode } from '../errors'
-import { IAggregatorWorker, IAggregatorWorkerReporter, IAggregatorHeartbeatWorker } from '../types'
 import {
-  WORKER_AGGREGATOR_QUEUE_NAME,
-  REPORTER_AGGREGATOR_QUEUE_NAME,
-  HEARTBEAT_QUEUE_NAME,
-  BULLMQ_CONNECTION,
-  DEPLOYMENT_NAME,
-  REMOVE_ON_COMPLETE,
-  CHAIN,
-  HEARTBEAT_JOB_NAME,
-  HEARTBEAT_QUEUE_SETTINGS,
+  IAggregatorWorker,
+  IAggregatorWorkerReporter,
+  IAggregatorHeartbeatWorker,
+  IAggregatorSubmitHeartbeatWorker
+} from '../types'
+import {
   AGGREGATOR_QUEUE_SETTINGS,
-  DATA_FEED_WORKER_STATE_NAME
+  BULLMQ_CONNECTION,
+  CHAIN,
+  DATA_FEED_WORKER_STATE_NAME,
+  DEPLOYMENT_NAME,
+  HEARTBEAT_JOB_NAME,
+  HEARTBEAT_QUEUE_NAME,
+  HEARTBEAT_QUEUE_SETTINGS,
+  REMOVE_ON_COMPLETE,
+  REPORTER_AGGREGATOR_QUEUE_NAME,
+  SUBMIT_HEARTBEAT_QUEUE_NAME,
+  SUBMIT_HEARTBEAT_QUEUE_SETTINGS,
+  WORKER_AGGREGATOR_QUEUE_NAME
 } from '../settings'
 import { buildSubmissionRoundJobId, buildHeartbeatJobId } from '../utils'
 import { oracleRoundStateCall } from './data-feed.utils'
@@ -35,7 +42,12 @@ const FILE_NAME = import.meta.url
  */
 export async function worker(redisClient: RedisClientType, _logger: Logger) {
   const logger = _logger.child({ name: 'worker', file: FILE_NAME })
+
+  // Queues
+  const aggregatorQueue = new Queue(WORKER_AGGREGATOR_QUEUE_NAME, BULLMQ_CONNECTION)
   const heartbeatQueue = new Queue(HEARTBEAT_QUEUE_NAME, BULLMQ_CONNECTION)
+  const submitHeartbeatQueue = new Queue(SUBMIT_HEARTBEAT_QUEUE_NAME, BULLMQ_CONNECTION)
+  const reporterQueue = new Queue(REPORTER_AGGREGATOR_QUEUE_NAME, BULLMQ_CONNECTION)
 
   const state = new State({
     redisClient,
@@ -59,7 +71,7 @@ export async function worker(redisClient: RedisClientType, _logger: Logger) {
   // [aggregator] worker
   const aggregatorWorker = new Worker(
     WORKER_AGGREGATOR_QUEUE_NAME,
-    aggregatorJob(REPORTER_AGGREGATOR_QUEUE_NAME, _logger),
+    aggregatorJob(submitHeartbeatQueue, reporterQueue, _logger),
     {
       ...BULLMQ_CONNECTION,
       settings: {
@@ -67,7 +79,6 @@ export async function worker(redisClient: RedisClientType, _logger: Logger) {
       }
     }
   )
-
   aggregatorWorker.on('error', (e) => {
     logger.error(e)
   })
@@ -75,16 +86,21 @@ export async function worker(redisClient: RedisClientType, _logger: Logger) {
   // [heartbeat] worker
   const heartbeatWorker = new Worker(
     HEARTBEAT_QUEUE_NAME,
-    heartbeatJob(WORKER_AGGREGATOR_QUEUE_NAME, state, _logger),
+    heartbeatJob(aggregatorQueue, state, _logger),
     BULLMQ_CONNECTION
   )
-
   heartbeatWorker.on('error', (e) => {
     logger.error(e)
   })
 
-  heartbeatWorker.on('failed', (job: Job, error: Error) => {
-    // Do something with the return value.
+  // [submitHeartbeat] worker
+  const submitHeartbeatWorker = new Worker(
+    SUBMIT_HEARTBEAT_QUEUE_NAME,
+    submitHeartbeatJob(heartbeatQueue, _logger),
+    BULLMQ_CONNECTION
+  )
+  submitHeartbeatWorker.on('error', (e) => {
+    logger.error(e)
   })
 
   await watchman({ state, logger })
@@ -102,41 +118,51 @@ export async function worker(redisClient: RedisClientType, _logger: Logger) {
  * out the which round ID, it can submit the latest value. Then, it
  * create a new job and passes it to reporter worker.
  *
- * @param {string} reporter queue name
+ * @param {Queue} submit heartbeat queue
+ * @param {Queue} reporter queue
  * @param {Logger} pino logger
  * @return {} [aggregator] job processor
  */
-function aggregatorJob(reporterQueueName: string, _logger: Logger) {
-  const logger = _logger.child({ name: 'aggregatorJob', file: FILE_NAME })
-  const reporterQueue = new Queue(reporterQueueName, BULLMQ_CONNECTION)
+function aggregatorJob(submitHeartbeatQueue: Queue, reporterQueue: Queue, _logger: Logger) {
+  const logger = _logger.child({ name: 'aggregatorJob' })
 
   async function wrapper(job: Job) {
     const inData: IAggregatorWorker = job.data
-    logger.debug(inData, 'inData-regular')
+    logger.debug(inData, 'inData')
     const oracleAddress = inData.oracleAddress
     const roundId = inData.roundId
 
     try {
       const operatorAddress = await getOperatorAddress({ oracleAddress, logger })
-      const { aggregatorHash, heartbeat } = await getAggregatorGivenAddress({
+      const { aggregatorHash, heartbeat: delay } = await getAggregatorGivenAddress({
         oracleAddress,
         logger
       })
 
-      const outData = await prepareDataForReporter({
+      const outDataReporter = await prepareDataForReporter({
         aggregatorHash,
         oracleAddress,
         operatorAddress,
         report: true,
         workerSource: inData.workerSource,
-        delay: heartbeat,
+        delay,
         roundId,
         logger
       })
+      logger.debug(outDataReporter, 'outDataReporter')
 
-      logger.debug(outData, 'outData-regular')
+      // Submit heartbeat
+      const outDataSubmitHeartbeat: IAggregatorSubmitHeartbeatWorker = {
+        oracleAddress,
+        delay
+      }
+      logger.debug(outDataSubmitHeartbeat, 'outDataSubmitHeartbeat')
+      await submitHeartbeatQueue.add('aggregator-submission', outDataSubmitHeartbeat, {
+        ...SUBMIT_HEARTBEAT_QUEUE_SETTINGS
+      })
 
-      await reporterQueue.add(inData.workerSource, outData, {
+      // Report submission
+      await reporterQueue.add(inData.workerSource, outDataReporter, {
         jobId: buildSubmissionRoundJobId({
           oracleAddress,
           roundId,
@@ -149,6 +175,8 @@ function aggregatorJob(reporterQueueName: string, _logger: Logger) {
         // After removing the job on failure, we can resubmit the job
         // with the same unique ID representing the submission for
         // specific aggregator on specific round.
+        //
+        // FIXME Rethink!
         removeOnFail: true
       })
     } catch (e) {
@@ -186,17 +214,17 @@ function aggregatorJob(reporterQueueName: string, _logger: Logger) {
  * service, which protects the [aggregator] worker from processing the
  * same request twice.
  *
- * @params {string} name of queue processed by [aggregator] worker
+ * @params {Queue} aggregator queue
  * @params {Logger} pino logger
  * @return {} [heartbeat] job processor
  */
-function heartbeatJob(aggregatorJobQueueName: string, state: State, _logger: Logger) {
-  const logger = _logger.child({ name: 'heartbeatJob', file: FILE_NAME })
-  const aggregatorQueue = new Queue(aggregatorJobQueueName, BULLMQ_CONNECTION)
-  const reporterQueue = new Queue(REPORTER_AGGREGATOR_QUEUE_NAME, BULLMQ_CONNECTION)
+function heartbeatJob(aggregatorQueue: Queue, state: State, _logger: Logger) {
+  const logger = _logger.child({ name: 'heartbeatJob' })
 
   async function wrapper(job: Job) {
-    const { oracleAddress } = job.data
+    const inData: IAggregatorHeartbeatWorker = job.data
+    const oracleAddress = inData.oracleAddress
+
     try {
       logger.debug({ oracleAddress }, 'oracleAddress-fixed')
 
@@ -266,6 +294,57 @@ function heartbeatJob(aggregatorJobQueueName: string, state: State, _logger: Log
       logger.error(e)
       throw e
     }
+  }
+
+  return wrapper
+}
+
+/**
+ * Reported job might have been requested by [event] worker or
+ * [deviation] worker before the end of heartbeat delay. If that is
+ * the case, there is still waiting delayed heartbeat job in the
+ * heartbeat queue. If that is the case, we remove it. Then, we submit
+ * the new heartbeat job.
+ *
+ * @param {Queue} [heartbeat] queue
+ * @param {Logger} pino logger
+ * @return {} [submitHeartbeat] job processor
+ */
+function submitHeartbeatJob(heartbeatQueue: Queue, _logger: Logger) {
+  const logger = _logger.child({ name: 'submitHeartbeatJob' })
+
+  async function wrapper(job: Job) {
+    const inData: IAggregatorSubmitHeartbeatWorker = job.data
+    const oracleAddress = inData.oracleAddress
+    const delay = inData.delay
+
+    const jobId = buildHeartbeatJobId({ oracleAddress, deploymentName: DEPLOYMENT_NAME })
+    const allDelayed = (await heartbeatQueue.getJobs(['delayed'])).filter(
+      (job) => job.opts.jobId == jobId
+    )
+
+    if (allDelayed.length > 1) {
+      throw new OraklError(
+        OraklErrorCode.UnexpectedNumberOfJobsInQueue,
+        `Number of jobs ${allDelayed.length}`
+      )
+    } else if (allDelayed.length == 1) {
+      const delayedJob = allDelayed[0]
+      delayedJob.remove()
+
+      logger.debug({ job: 'deleted' }, `Reporter deleted heartbeat job with ID=${jobId}`)
+    }
+
+    const outData: IAggregatorHeartbeatWorker = {
+      oracleAddress
+    }
+    await heartbeatQueue.add(HEARTBEAT_JOB_NAME, outData, {
+      jobId,
+      delay,
+      ...HEARTBEAT_QUEUE_SETTINGS
+    })
+
+    logger.debug({ job: 'added', delay }, `Reporter submitted heartbeat job with ID=${jobId}`)
   }
 
   return wrapper

@@ -35,6 +35,7 @@ export const REQUEST_RESPONSE_SERVICE_NAME = 'RequestResponse'
 export const REMOVE_ON_COMPLETE = 500
 export const REMOVE_ON_FAIL = 1_000
 
+export const SUBMIT_HEARTBEAT_QUEUE_NAME = `${DEPLOYMENT_NAME}-submitheartbeat-queue`
 export const HEARTBEAT_QUEUE_NAME = `${DEPLOYMENT_NAME}-heartbeat-queue`
 export const WORKER_REQUEST_RESPONSE_QUEUE_NAME = `${DEPLOYMENT_NAME}-worker-request-response-queue`
 export const WORKER_PREDEFINED_FEED_QUEUE_NAME = `${DEPLOYMENT_NAME}-worker-predefined-feed-queue`
@@ -48,6 +49,7 @@ export const REPORTER_AGGREGATOR_QUEUE_NAME = `${DEPLOYMENT_NAME}-reporter-aggre
 export const HEARTBEAT_JOB_NAME = `${DEPLOYMENT_NAME}-heartbeat-job`
 
 export const ALL_QUEUES = [
+  SUBMIT_HEARTBEAT_QUEUE_NAME,
   HEARTBEAT_QUEUE_NAME,
   WORKER_REQUEST_RESPONSE_QUEUE_NAME,
   WORKER_PREDEFINED_FEED_QUEUE_NAME,
@@ -94,6 +96,13 @@ export const AGGREGATOR_QUEUE_SETTINGS = {
   // When [aggregator] worker fails, we want to be able to
   // resubmit the job with the same job ID.
   removeOnFail: true,
+  attempts: 10,
+  backoff: 1_000
+}
+
+export const SUBMIT_HEARTBEAT_QUEUE_SETTINGS = {
+  removeOnComplete: REMOVE_ON_COMPLETE,
+  removeOnFail: REMOVE_ON_FAIL,
   attempts: 10,
   backoff: 1_000
 }

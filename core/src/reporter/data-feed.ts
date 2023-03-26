@@ -9,14 +9,11 @@ import { watchman } from './watchman'
 import {
   REPORTER_AGGREGATOR_QUEUE_NAME,
   BULLMQ_CONNECTION,
-  HEARTBEAT_QUEUE_NAME,
   CHAIN,
   DATA_FEED_REPORTER_STATE_NAME,
   DATA_FEED_SERVICE_NAME,
   PROVIDER_URL,
-  HEARTBEAT_JOB_NAME,
-  DEPLOYMENT_NAME,
-  HEARTBEAT_QUEUE_SETTINGS
+  DEPLOYMENT_NAME
 } from '../settings'
 import { IAggregatorWorkerReporter, IAggregatorHeartbeatWorker } from '../types'
 import { OraklError, OraklErrorCode } from '../errors'
@@ -47,15 +44,12 @@ export async function reporter(redisClient: RedisClientType, _logger: Logger) {
 
 function job(state: State, logger: Logger) {
   const iface = new ethers.utils.Interface(Aggregator__factory.abi)
-  const heartbeatQueue = new Queue(HEARTBEAT_QUEUE_NAME, BULLMQ_CONNECTION)
 
   async function wrapper(job: Job) {
     const inData: IAggregatorWorkerReporter = job.data
     logger.debug(inData, 'inData')
 
     const oracleAddress = inData.callbackAddress
-    await submitHeartbeatJob(heartbeatQueue, oracleAddress, inData.delay, logger)
-
     const wallet = state.wallets[oracleAddress]
     if (!wallet) {
       const msg = `Wallet for oracle ${oracleAddress} is not active`
@@ -81,55 +75,12 @@ function job(state: State, logger: Logger) {
         ) {
           throw e
         }
+
+        logger.info(`Retrying transaction. Trial number: ${i}`)
       }
     }
   }
 
   logger.debug('Reporter job built')
   return wrapper
-}
-
-/**
- * Reported job might have been requested by [event] worker or
- * [deviation] worker before the end of heartbeat delay. If that is
- * the case, there is still waiting delayed heartbeat job in the
- * heartbeat queue. If that is the case, we remove it. Then, we submit
- * the new heartbeat job.
- *
- * @param {Queue} heartbeat queue
- * @param {string} oracle address
- * @param {delay} heartbeat delay
- * @param {Logger} pino logger
- * @return {void}
- */
-async function submitHeartbeatJob(
-  heartbeatQueue: Queue,
-  oracleAddress: string,
-  delay: number,
-  logger: Logger
-) {
-  const jobId = buildHeartbeatJobId({ oracleAddress, deploymentName: DEPLOYMENT_NAME })
-  const allDelayed = (await heartbeatQueue.getJobs(['delayed'])).filter(
-    (job) => job.opts.jobId == jobId
-  )
-
-  if (allDelayed.length > 1) {
-    throw new OraklError(OraklErrorCode.UnexpectedNumberOfJobsInQueue)
-  } else if (allDelayed.length == 1) {
-    const delayedJob = allDelayed[0]
-    delayedJob.remove()
-
-    logger.debug({ job: 'deleted' }, `Reporter deleted heartbeat job with ID=${jobId}`)
-  }
-
-  const jobData: IAggregatorHeartbeatWorker = {
-    oracleAddress
-  }
-  await heartbeatQueue.add(HEARTBEAT_JOB_NAME, jobData, {
-    jobId,
-    delay,
-    ...HEARTBEAT_QUEUE_SETTINGS
-  })
-
-  logger.debug({ job: 'added', delay }, `Reporter submitted heartbeat job with ID=${jobId}`)
 }

@@ -131,6 +131,11 @@ export interface IAggregatorHeartbeatWorker {
   oracleAddress: string
 }
 
+export interface IAggregatorSubmitHeartbeatWorker {
+  oracleAddress: string
+  delay: number
+}
+
 // Worker -> Reporter
 
 export interface IRequestResponseWorkerReporter {
