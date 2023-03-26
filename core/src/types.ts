@@ -45,14 +45,14 @@ export interface ILatestRoundData {
 }
 
 export interface IOracleRoundState {
-  _eligibleToSubmit: boolean
-  _roundId: number
-  _latestSubmission: BigNumber
-  _startedAt: BigNumber
-  _timeout: BigNumber
-  _availableFunds: BigNumber
-  _oracleCount: number
-  _paymentAmount: BigNumber
+  eligibleToSubmit: boolean
+  roundId: number
+  latestSubmission: BigNumber
+  startedAt: BigNumber
+  timeout: BigNumber
+  availableFunds: BigNumber
+  oracleCount: number
+  paymentAmount: BigNumber
 }
 
 export interface IRoundData {

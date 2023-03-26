@@ -55,27 +55,25 @@ export async function getSynchronizedDelay({
 }): Promise<number> {
   logger.debug('getSynchronizedDelay')
 
-  let startedAt = 0
-  const { _startedAt, _roundId } = await oracleRoundStateCall({
+  const { startedAt, roundId } = await oracleRoundStateCall({
     oracleAddress,
     operatorAddress,
     logger
   })
 
-  if (_startedAt.toNumber() != 0) {
-    startedAt = _startedAt.toNumber()
-  } else {
-    const { _startedAt } = await oracleRoundStateCall({
+  let startTime = startedAt.toNumber()
+
+  if (startTime == 0) {
+    const { startedAt } = await oracleRoundStateCall({
       oracleAddress,
       operatorAddress,
-      roundId: Math.max(0, _roundId - 1)
+      roundId: Math.max(0, roundId - 1)
     })
-    startedAt = _startedAt.toNumber()
+    startTime = startedAt.toNumber()
   }
 
-  logger.debug({ startedAt }, 'startedAt')
-  const delay = heartbeat - (startedAt % heartbeat)
-  logger.debug({ delay }, 'delay')
+  const delay = heartbeat - (startTime % heartbeat)
+  logger.debug({ heartbeat, delay, startTime })
 
   return delay
 }
@@ -100,7 +98,17 @@ export async function oracleRoundStateCall({
     queriedRoundId = roundId
   }
 
-  return await aggregator.oracleRoundState(operatorAddress, queriedRoundId)
+  const state = await aggregator.oracleRoundState(operatorAddress, queriedRoundId)
+  return {
+    eligibleToSubmit: state._eligibleToSubmit,
+    roundId: state._roundId,
+    latestSubmission: state._latestSubmission,
+    startedAt: state._startedAt,
+    timeout: state._timeout,
+    availableFunds: state._availableFunds,
+    oracleCount: state._oracleCount,
+    paymentAmount: state._paymentAmount
+  }
 }
 
 export async function getRoundDataCall({

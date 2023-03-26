@@ -237,7 +237,7 @@ function heartbeatJob(aggregatorQueue: Queue, state: State, _logger: Logger) {
     const oracleAddress = inData.oracleAddress
 
     try {
-      logger.debug({ oracleAddress }, 'oracleAddress-fixed')
+      logger.debug({ oracleAddress })
 
       // [hearbeat] worker can be controlled by watchman which can
       // either activate or deactive a [heartbeat] job. When
@@ -256,18 +256,17 @@ function heartbeatJob(aggregatorQueue: Queue, state: State, _logger: Logger) {
         operatorAddress,
         logger
       })
-      logger.debug(oracleRoundState, 'oracleRoundState-fixed')
+      logger.debug(oracleRoundState, 'oracleRoundState')
 
-      const roundId = oracleRoundState._roundId
-
+      const { roundId, eligibleToSubmit } = oracleRoundState
       const outData: IAggregatorWorker = {
         oracleAddress,
-        roundId: roundId,
-        workerSource: 'fixed'
+        roundId,
+        workerSource: 'heartbeat'
       }
-      logger.debug(outData, 'outData-fixed')
+      logger.debug(outData, 'outData')
 
-      if (oracleRoundState._eligibleToSubmit) {
+      if (eligibleToSubmit) {
         logger.debug({ job: 'added', eligible: true, roundId }, 'before-eligible-fixed')
 
         const jobId = buildSubmissionRoundJobId({
@@ -411,7 +410,7 @@ async function prepareDataForReporter({
     workerSource,
     delay,
     submission: value,
-    roundId: roundId || oracleRoundState._roundId
+    roundId: roundId || oracleRoundState.roundId
   }
 }
 
