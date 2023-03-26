@@ -38,6 +38,11 @@ export class State {
    * Clear listener state.
    */
   async clear() {
+    const activeListeners = await this.active()
+    for (const listener of activeListeners) {
+      await this.remove(listener.id)
+    }
+
     await this.redisClient.set(this.stateName, JSON.stringify([]))
   }
 

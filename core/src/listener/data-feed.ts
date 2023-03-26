@@ -57,6 +57,7 @@ export async function buildListener(
   async function handleExit() {
     logger.info('Exiting. Wait for graceful shutdown.')
 
+    await state.clear()
     await redisClient.quit()
     await watchmanServer.close()
   }
