@@ -84,7 +84,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
       aggregator = aggregator
         ? aggregator
-        : await ethers.getContractAt('Aggregator', changeOraclesConfig.aggregatorAddress)
+        : await ethers.getContractAt('Aggregator', config.aggregatorAddress)
 
       await (
         await aggregator.changeOracles(
