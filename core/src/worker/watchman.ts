@@ -82,5 +82,5 @@ export async function watchman({ state, logger }: { state: State; logger: Logger
     res.status(200).send('ok')
   })
 
-  app.listen(WORKER_PORT)
+  return app.listen(WORKER_PORT)
 }

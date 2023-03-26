@@ -103,7 +103,7 @@ export async function worker(redisClient: RedisClientType, _logger: Logger) {
     logger.error(e)
   })
 
-  await watchman({ state, logger })
+  const watchmanServer = await watchman({ state, logger })
 
   // Graceful shutdown
   async function handleExit() {
@@ -113,6 +113,7 @@ export async function worker(redisClient: RedisClientType, _logger: Logger) {
     await aggregatorWorker.close()
     await heartbeatWorker.close()
     await submitHeartbeatWorker.close()
+    await watchmanServer.close()
   }
   process.on('SIGINT', handleExit)
   process.on('SIGTERM', handleExit)

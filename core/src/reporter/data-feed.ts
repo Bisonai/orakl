@@ -45,7 +45,7 @@ export async function reporter(redisClient: RedisClientType, _logger: Logger) {
     logger.error(e)
   })
 
-  await watchman({ state, logger })
+  const watchmanServer = await watchman({ state, logger })
 
   // Graceful shutdown
   async function handleExit() {
@@ -53,6 +53,7 @@ export async function reporter(redisClient: RedisClientType, _logger: Logger) {
 
     await redisClient.quit()
     await reporterWorker.close()
+    await watchmanServer.close()
   }
   process.on('SIGINT', handleExit)
   process.on('SIGTERM', handleExit)
