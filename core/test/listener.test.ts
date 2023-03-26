@@ -49,7 +49,8 @@ describe('Listener', function () {
         id: '0',
         address: '0x0165878a594ca255338adfa4d48449f69242eb8f',
         eventName: 'RandomWordsRequested',
-        chain: 'localhost'
+        chain: 'localhost',
+        intervalId: 123
       }
     ]
     const isValid = validateListenerConfig(config)
@@ -59,8 +60,11 @@ describe('Listener', function () {
   test('Should fail the validation of listener config', function () {
     const config = [
       {
-        address: '0x0165878a594ca255338adfa4d48449f69242eb8f'
+        id: '0',
+        address: '0x0165878a594ca255338adfa4d48449f69242eb8f',
         //eventName: 'RandomWordsRequested'
+        chain: 'localhost',
+        intervalId: 123
       }
     ]
     /* eslint-disable @typescript-eslint/no-explicit-any */
