@@ -144,6 +144,8 @@ export class State {
 
     // Update wallets
     delete this.wallets[oracleAddress]
+
+    return removedReporter
   }
 
   /**

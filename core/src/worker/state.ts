@@ -1,17 +1,10 @@
 import { Queue } from 'bullmq'
 import { Logger } from 'pino'
 import type { RedisClientType } from 'redis'
-import { IAggregatorHeartbeatWorker, IAggregatorSubmitHeartbeatWorker } from '../types'
+import { IAggregatorSubmitHeartbeatWorker } from '../types'
 import { getAggregator, getAggregators } from './api'
 import { OraklError, OraklErrorCode } from '../errors'
-import { buildHeartbeatJobId } from '../utils'
-import {
-  HEARTBEAT_JOB_NAME,
-  DEPLOYMENT_NAME,
-  HEARTBEAT_QUEUE_SETTINGS,
-  SUBMIT_HEARTBEAT_QUEUE_SETTINGS
-} from '../settings'
-import { getSynchronizedDelay } from './data-feed.utils'
+import { SUBMIT_HEARTBEAT_QUEUE_SETTINGS } from '../settings'
 import { IAggregatorConfig } from './types'
 
 const FILE_NAME = import.meta.url
@@ -191,5 +184,7 @@ export class State {
 
     // Update active aggregators
     await this.redisClient.set(this.stateName, JSON.stringify(activeAggregators))
+
+    return removedAggregator
   }
 }

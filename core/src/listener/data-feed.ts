@@ -83,7 +83,6 @@ async function processEvent(iface: ethers.utils.Interface, queue: Queue, _logger
         // NewRound emitted by somebody else
         const data: IAggregatorWorker = {
           oracleAddress,
-          operatorAddress,
           roundId,
           workerSource: 'event'
         }

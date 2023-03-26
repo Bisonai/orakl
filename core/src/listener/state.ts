@@ -142,5 +142,7 @@ export class State {
     // Update active listeners
     await this.redisClient.set(this.stateName, JSON.stringify(activeListeners))
     clearInterval(removedListener.intervalId)
+
+    return removedListener
   }
 }

@@ -1,9 +1,7 @@
 import { ethers } from 'ethers'
 import { Logger } from 'pino'
 import { IOracleRoundState, IRoundData } from '../types'
-import { getReporterByOracleAddress } from '../api'
 import { PROVIDER } from '../settings'
-import { CHAIN, DATA_FEED_SERVICE_NAME } from '../settings'
 import { Aggregator__factory } from '@bisonai/orakl-contracts'
 
 /**

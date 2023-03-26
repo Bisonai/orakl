@@ -1,4 +1,3 @@
-import { Logger } from 'pino'
 import { OraklError, OraklErrorCode } from '../errors'
 
 export function buildReducer(reducerMapping, reducers) {

@@ -141,7 +141,7 @@ function aggregatorJob(submitHeartbeatQueue: Queue, reporterQueue: Queue, _logge
   async function wrapper(job: Job) {
     const inData: IAggregatorWorker = job.data
     logger.debug(inData, 'inData')
-    const { oracleAddress, operatorAddress, roundId, workerSource } = inData
+    const { oracleAddress, roundId, workerSource } = inData
 
     try {
       // TODO store in ephemeral state
@@ -258,7 +258,6 @@ function heartbeatJob(aggregatorQueue: Queue, state: State, _logger: Logger) {
       const { roundId, eligibleToSubmit } = oracleRoundState
       const outData: IAggregatorWorker = {
         oracleAddress,
-        operatorAddress,
         roundId,
         workerSource: 'heartbeat'
       }

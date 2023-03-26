@@ -121,7 +121,6 @@ export interface IVrfListenerWorker {
 
 export interface IAggregatorWorker {
   oracleAddress: string
-  operatorAddress
   roundId: number
   workerSource: string
 }

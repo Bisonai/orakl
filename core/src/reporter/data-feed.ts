@@ -1,4 +1,4 @@
-import { Job, Worker, Queue } from 'bullmq'
+import { Job, Worker } from 'bullmq'
 import { ethers } from 'ethers'
 import { Logger } from 'pino'
 import type { RedisClientType } from 'redis'
@@ -12,12 +12,10 @@ import {
   CHAIN,
   DATA_FEED_REPORTER_STATE_NAME,
   DATA_FEED_SERVICE_NAME,
-  PROVIDER_URL,
-  DEPLOYMENT_NAME
+  PROVIDER_URL
 } from '../settings'
-import { IAggregatorWorkerReporter, IAggregatorHeartbeatWorker } from '../types'
+import { IAggregatorWorkerReporter } from '../types'
 import { OraklError, OraklErrorCode } from '../errors'
-import { buildHeartbeatJobId } from '../utils'
 
 const FILE_NAME = import.meta.url
 
