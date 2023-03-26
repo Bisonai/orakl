@@ -41,6 +41,7 @@ export const WORKER_REQUEST_RESPONSE_QUEUE_NAME = `${DEPLOYMENT_NAME}-worker-req
 export const WORKER_PREDEFINED_FEED_QUEUE_NAME = `${DEPLOYMENT_NAME}-worker-predefined-feed-queue`
 export const WORKER_VRF_QUEUE_NAME = `${DEPLOYMENT_NAME}-worker-vrf-queue`
 export const WORKER_AGGREGATOR_QUEUE_NAME = `${DEPLOYMENT_NAME}-worker-aggregator-queue`
+export const WORKER_CHECK_HEARTBEAT_QUEUE_NAME = `${DEPLOYMENT_NAME}-worker-checkheartbeat-queue`
 export const REPORTER_REQUEST_RESPONSE_QUEUE_NAME = `${DEPLOYMENT_NAME}-reporter-request-response-queue`
 export const REPORTER_PREDEFINED_FEED_QUEUE_NAME = `${DEPLOYMENT_NAME}-reporter-predefined-feed-queue`
 export const REPORTER_VRF_QUEUE_NAME = `${DEPLOYMENT_NAME}-reporter-vrf-queue`
@@ -55,6 +56,7 @@ export const ALL_QUEUES = [
   WORKER_PREDEFINED_FEED_QUEUE_NAME,
   WORKER_VRF_QUEUE_NAME,
   WORKER_AGGREGATOR_QUEUE_NAME,
+  WORKER_CHECK_HEARTBEAT_QUEUE_NAME,
   REPORTER_REQUEST_RESPONSE_QUEUE_NAME,
   REPORTER_PREDEFINED_FEED_QUEUE_NAME,
   REPORTER_VRF_QUEUE_NAME,
@@ -105,4 +107,14 @@ export const SUBMIT_HEARTBEAT_QUEUE_SETTINGS = {
   removeOnFail: REMOVE_ON_FAIL,
   attempts: 10,
   backoff: 1_000
+}
+
+export const CHECK_HEARTBEAT_QUEUE_SETTINGS = {
+  removeOnComplete: REMOVE_ON_COMPLETE,
+  removeOnFail: REMOVE_ON_FAIL,
+  attempts: 10,
+  backoff: 1_000,
+  repeat: {
+    every: 2_000
+  }
 }

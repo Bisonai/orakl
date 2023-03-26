@@ -72,7 +72,7 @@ export class State {
   /**
    * List all aggregators in an active state.
    */
-  async active() {
+  async active(): Promise<IAggregatorConfig[]> {
     this.logger.debug('active')
     const state = await this.redisClient.get(this.stateName)
     return state ? JSON.parse(state) : []
@@ -140,7 +140,8 @@ export class State {
       heartbeat: toAddAggregator.heartbeat,
       threshold: toAddAggregator.threshold,
       absoluteThreshold: toAddAggregator.absoluteThreshold,
-      chain: this.chain
+      chain: this.chain,
+      timestamp: Date.now()
     }
     await this.redisClient.set(
       this.stateName,
@@ -186,5 +187,35 @@ export class State {
     await this.redisClient.set(this.stateName, JSON.stringify(activeAggregators))
 
     return removedAggregator
+  }
+
+  /**
+   * Update active aggregator denoted by `oracleAddress` with the
+   * current `timestamp`.
+   *
+   * @param {string} oracle address
+   * @return {IAggregatorConfig} update aggregator config
+   */
+  async updateTimestamp(oracleAddress: string) {
+    this.logger.debug('update')
+
+    const activeAggregators = await this.active()
+    const index = activeAggregators.findIndex((L) => L.address == oracleAddress)
+    if (index == -1) {
+      throw new OraklError(OraklErrorCode.AggregatorNotFoundInState)
+    }
+    const timestamp = Date.now()
+    const updatedAggregator: IAggregatorConfig = {
+      ...activeAggregators.splice(index, 1)[0],
+      timestamp
+    }
+
+    // Update active aggregators
+    await this.redisClient.set(
+      this.stateName,
+      JSON.stringify([...activeAggregators, updatedAggregator])
+    )
+
+    return updatedAggregator
   }
 }

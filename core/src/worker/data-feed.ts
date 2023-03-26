@@ -23,7 +23,9 @@ import {
   REPORTER_AGGREGATOR_QUEUE_NAME,
   SUBMIT_HEARTBEAT_QUEUE_NAME,
   SUBMIT_HEARTBEAT_QUEUE_SETTINGS,
-  WORKER_AGGREGATOR_QUEUE_NAME
+  WORKER_AGGREGATOR_QUEUE_NAME,
+  WORKER_CHECK_HEARTBEAT_QUEUE_NAME,
+  CHECK_HEARTBEAT_QUEUE_SETTINGS
 } from '../settings'
 import { buildSubmissionRoundJobId, buildHeartbeatJobId } from '../utils'
 import { oracleRoundStateCall } from './data-feed.utils'
@@ -48,6 +50,13 @@ export async function worker(redisClient: RedisClientType, _logger: Logger) {
   const heartbeatQueue = new Queue(HEARTBEAT_QUEUE_NAME, BULLMQ_CONNECTION)
   const submitHeartbeatQueue = new Queue(SUBMIT_HEARTBEAT_QUEUE_NAME, BULLMQ_CONNECTION)
   const reporterQueue = new Queue(REPORTER_AGGREGATOR_QUEUE_NAME, BULLMQ_CONNECTION)
+  const checkHeartbeatQueue = new Queue(WORKER_CHECK_HEARTBEAT_QUEUE_NAME, BULLMQ_CONNECTION)
+
+  // Clear previous jobs from repeatable [checkHeartbeat] queue
+  const repeatableJobs = await checkHeartbeatQueue.getRepeatableJobs()
+  for (const job of repeatableJobs) {
+    await checkHeartbeatQueue.removeRepeatableByKey(job.key)
+  }
 
   const state = new State({
     redisClient,
@@ -101,6 +110,17 @@ export async function worker(redisClient: RedisClientType, _logger: Logger) {
     logger.error(e)
   })
 
+  // [checkHeartbeat] worker
+  const checkHeartbeatWorker = new Worker(
+    WORKER_CHECK_HEARTBEAT_QUEUE_NAME,
+    checkHeartbeatJob(submitHeartbeatQueue, state, _logger),
+    BULLMQ_CONNECTION
+  )
+  checkHeartbeatWorker.on('error', (e) => {
+    logger.error(e)
+  })
+  checkHeartbeatQueue.add('livecheck', {}, CHECK_HEARTBEAT_QUEUE_SETTINGS)
+
   const watchmanServer = await watchman({ state, logger })
 
   // Graceful shutdown
@@ -111,6 +131,7 @@ export async function worker(redisClient: RedisClientType, _logger: Logger) {
     await aggregatorWorker.close()
     await heartbeatWorker.close()
     await submitHeartbeatWorker.close()
+    await checkHeartbeatWorker.close()
     await watchmanServer.close()
   }
   process.on('SIGINT', handleExit)
@@ -291,6 +312,8 @@ function heartbeatJob(aggregatorQueue: Queue, state: State, _logger: Logger) {
           ...AGGREGATOR_QUEUE_SETTINGS
         })
         logger.debug({ job: 'added', eligible: true, roundId }, 'eligible-fixed')
+
+        await state.updateTimestamp(oracleAddress)
       } else {
         const msg = `Non-eligible to submit for oracle ${oracleAddress} with operator ${operatorAddress}`
         throw new OraklError(OraklErrorCode.NonEligibleToSubmit, msg)
@@ -352,6 +375,45 @@ function submitHeartbeatJob(heartbeatQueue: Queue, _logger: Logger) {
     })
 
     logger.debug({ job: 'added', delay }, `Reporter submitted heartbeat job with ID=${jobId}`)
+  }
+
+  return wrapper
+}
+
+/**
+ * [checkHeartbeat] job is executed in regular intervals to check
+ * whether any of active heartbeat aggregators died. If any of
+ * heartbeat jobs has died, resubmit the [heartbeat] job.
+ *
+ * @param {Queue} [submitHeartbeat] queue
+ * @param {State} ephemeral aggregator state
+ * @param {Logger} pino logger
+ */
+function checkHeartbeatJob(submitHeartbeatQueue: Queue, state: State, _logger: Logger) {
+  const logger = _logger.child({ name: 'checkHeartbeatJob' })
+
+  async function wrapper(job: Job) {
+    const activeAggregators = await state.active()
+    for (const aggregator of activeAggregators) {
+      const timeBuffer = 2_000
+      const heartbeatDeadline = aggregator.timestamp + aggregator.heartbeat + timeBuffer
+      const isDead = Date.now() > heartbeatDeadline ? true : false
+
+      // Resubmit heartbeat when dead
+      if (isDead) {
+        const oracleAddress = aggregator.address
+        logger.warn(`Aggregator heartbeat job for oracle ${oracleAddress} found dead.`)
+        const outDataSubmitHeartbeat: IAggregatorSubmitHeartbeatWorker = {
+          oracleAddress,
+          delay: aggregator.heartbeat
+        }
+        logger.debug(outDataSubmitHeartbeat, 'outDataSubmitHeartbeat')
+        await submitHeartbeatQueue.add('checkHeartbeat-submission', outDataSubmitHeartbeat, {
+          ...SUBMIT_HEARTBEAT_QUEUE_SETTINGS
+        })
+        logger.info(`Aggregater heartbeat job for oracle ${oracleAddress} resubmitted.`)
+      }
+    }
   }
 
   return wrapper

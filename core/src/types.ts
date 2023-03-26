@@ -219,6 +219,7 @@ export interface IListenerConfig {
   address: string
   eventName: string
   chain: string
+  intervalId: number
 }
 
 export interface IListenerGroupConfig {

@@ -52,7 +52,7 @@ export class State {
   /**
    * List all active listeners.
    */
-  async active() {
+  async active(): Promise<IListenerConfig[]> {
     const state = await this.redisClient.get(this.stateName)
     return state ? JSON.parse(state) : []
   }
