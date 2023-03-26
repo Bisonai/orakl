@@ -103,7 +103,7 @@ export async function worker(redisClient: RedisClientType, _logger: Logger) {
   // [submitHeartbeat] worker
   const submitHeartbeatWorker = new Worker(
     SUBMIT_HEARTBEAT_QUEUE_NAME,
-    submitHeartbeatJob(heartbeatQueue, _logger),
+    submitHeartbeatJob(heartbeatQueue, state, _logger),
     BULLMQ_CONNECTION
   )
   submitHeartbeatWorker.on('error', (e) => {
@@ -243,8 +243,9 @@ function aggregatorJob(submitHeartbeatQueue: Queue, reporterQueue: Queue, _logge
  * service, which protects the [aggregator] worker from processing the
  * same request twice.
  *
- * @params {Queue} aggregator queue
- * @params {Logger} pino logger
+ * @param {Queue} aggregator queue
+ * @param {State} ephemeral aggregator state
+ * @param {Logger} pino logger
  * @return {} [heartbeat] job processor
  */
 function heartbeatJob(aggregatorQueue: Queue, state: State, _logger: Logger) {
@@ -312,8 +313,6 @@ function heartbeatJob(aggregatorQueue: Queue, state: State, _logger: Logger) {
           ...AGGREGATOR_QUEUE_SETTINGS
         })
         logger.debug({ job: 'added', eligible: true, roundId }, 'eligible-fixed')
-
-        await state.updateTimestamp(oracleAddress)
       } else {
         const msg = `Non-eligible to submit for oracle ${oracleAddress} with operator ${operatorAddress}`
         throw new OraklError(OraklErrorCode.NonEligibleToSubmit, msg)
@@ -337,10 +336,11 @@ function heartbeatJob(aggregatorQueue: Queue, state: State, _logger: Logger) {
  * the new heartbeat job.
  *
  * @param {Queue} [heartbeat] queue
+ * @param {State} ephemeral aggregator state
  * @param {Logger} pino logger
  * @return {} [submitHeartbeat] job processor
  */
-function submitHeartbeatJob(heartbeatQueue: Queue, _logger: Logger) {
+function submitHeartbeatJob(heartbeatQueue: Queue, state: State, _logger: Logger) {
   const logger = _logger.child({ name: 'submitHeartbeatJob' })
 
   async function wrapper(job: Job) {
@@ -373,6 +373,8 @@ function submitHeartbeatJob(heartbeatQueue: Queue, _logger: Logger) {
       delay,
       ...HEARTBEAT_QUEUE_SETTINGS
     })
+
+    await state.updateTimestamp(oracleAddress)
 
     logger.debug({ job: 'added', delay }, `Reporter submitted heartbeat job with ID=${jobId}`)
   }

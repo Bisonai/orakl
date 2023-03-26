@@ -197,7 +197,7 @@ export class State {
    * @return {IAggregatorConfig} update aggregator config
    */
   async updateTimestamp(oracleAddress: string) {
-    this.logger.debug('update')
+    this.logger.debug('updateTimestamp')
 
     const activeAggregators = await this.active()
     const index = activeAggregators.findIndex((L) => L.address == oracleAddress)
