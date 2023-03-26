@@ -105,13 +105,17 @@ export async function worker(redisClient: RedisClientType, _logger: Logger) {
 
   await watchman({ state, logger })
 
-  process.on('SIGINT', async function () {
-    logger.debug('Caught SIGINT. Wait for graceful shutdown.')
+  // Graceful shutdown
+  async function handleExit() {
+    logger.info('Exiting. Wait for graceful shutdown.')
 
+    await redisClient.quit()
     await aggregatorWorker.close()
     await heartbeatWorker.close()
     await submitHeartbeatWorker.close()
-  })
+  }
+  process.on('SIGINT', handleExit)
+  process.on('SIGTERM', handleExit)
 
   logger.debug('Worker launched')
 }

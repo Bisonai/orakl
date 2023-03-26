@@ -36,9 +36,27 @@ export async function reporter(redisClient: RedisClientType, _logger: Logger) {
 
   logger.debug(await state.active(), 'Active reporters')
 
-  new Worker(REPORTER_AGGREGATOR_QUEUE_NAME, await job(state, logger), BULLMQ_CONNECTION)
+  const reporterWorker = new Worker(
+    REPORTER_AGGREGATOR_QUEUE_NAME,
+    await job(state, logger),
+    BULLMQ_CONNECTION
+  )
+  reporterWorker.on('error', (e) => {
+    logger.error(e)
+  })
 
   await watchman({ state, logger })
+
+  // Graceful shutdown
+  async function handleExit() {
+    logger.info('Exiting. Wait for graceful shutdown.')
+
+    await redisClient.quit()
+    await reporterWorker.close()
+  }
+  process.on('SIGINT', handleExit)
+  process.on('SIGTERM', handleExit)
+
   logger.debug('Reporter launched')
 }
 
