@@ -1,11 +1,16 @@
 import { Queue } from 'bullmq'
 import { Logger } from 'pino'
 import type { RedisClientType } from 'redis'
-import { IAggregatorHeartbeatWorker } from '../types'
+import { IAggregatorHeartbeatWorker, IAggregatorSubmitHeartbeatWorker } from '../types'
 import { getAggregator, getAggregators } from './api'
 import { OraklError, OraklErrorCode } from '../errors'
 import { buildHeartbeatJobId } from '../utils'
-import { HEARTBEAT_JOB_NAME, DEPLOYMENT_NAME, HEARTBEAT_QUEUE_SETTINGS } from '../settings'
+import {
+  HEARTBEAT_JOB_NAME,
+  DEPLOYMENT_NAME,
+  HEARTBEAT_QUEUE_SETTINGS,
+  SUBMIT_HEARTBEAT_QUEUE_SETTINGS
+} from '../settings'
 import { getOperatorAddress, getSynchronizedDelay } from './data-feed.utils'
 import { IAggregatorConfig } from './types'
 
@@ -15,6 +20,7 @@ export class State {
   redisClient: RedisClientType
   stateName: string
   heartbeatQueue: Queue
+  submitHeartbeatQueue: Queue
   chain: string
   logger: Logger
   wallets
@@ -23,18 +29,21 @@ export class State {
     redisClient,
     stateName,
     heartbeatQueue,
+    submitHeartbeatQueue,
     chain,
     logger
   }: {
     redisClient: RedisClientType
     stateName: string
     heartbeatQueue: Queue
+    submitHeartbeatQueue: Queue
     chain: string
     logger: Logger
   }) {
     this.redisClient = redisClient
     this.stateName = stateName
     this.heartbeatQueue = heartbeatQueue
+    this.submitHeartbeatQueue = submitHeartbeatQueue
     this.chain = chain
     this.logger = logger.child({ name: 'State', file: FILE_NAME })
     this.logger.debug('Aggregator state initialized')
@@ -45,7 +54,16 @@ export class State {
    */
   async clear() {
     this.logger.debug('clear')
+
+    // Clear aggregator ephemeral state
     await this.redisClient.set(this.stateName, JSON.stringify([]))
+
+    // Remove previously launched heartbeat jobs
+    const delayedJobs = await this.heartbeatQueue.getJobs(['delayed'])
+    for (const job of delayedJobs) {
+      await job.remove()
+    }
+
     this.logger.debug('Aggregator state cleared')
   }
 
@@ -86,37 +104,6 @@ export class State {
   }
 
   /**
-   * Launch heartbeat job for aggregator denoted by `aggregatorHash`.
-   *
-   * @param {string} aggregator hash
-   */
-  async launchHeartbeatJob(aggregatorHash: string) {
-    const aggregator = await getAggregator({
-      aggregatorHash,
-      chain: this.chain,
-      logger: this.logger
-    })
-
-    const oracleAddress = aggregator.address
-    const heartbeat = aggregator.heartbeat
-
-    const operatorAddress = await getOperatorAddress({ oracleAddress, logger: this.logger })
-    const jobData: IAggregatorHeartbeatWorker = {
-      oracleAddress
-    }
-    await this.heartbeatQueue.add(HEARTBEAT_JOB_NAME, jobData, {
-      jobId: buildHeartbeatJobId({ oracleAddress, deploymentName: DEPLOYMENT_NAME }),
-      delay: await getSynchronizedDelay({
-        oracleAddress,
-        operatorAddress,
-        heartbeat,
-        logger: this.logger
-      }),
-      ...HEARTBEAT_QUEUE_SETTINGS
-    })
-  }
-
-  /**
    * Add aggregator given `aggregatorHash`. Aggregator can be added only if it
    * corresponds to the `chain` state.
    *
@@ -136,7 +123,7 @@ export class State {
 
     if (isAlreadyActive.length > 0) {
       const msg = `Aggregator with aggregatorHash=${aggregatorHash} was not added. It is already active.`
-      this.logger?.debug({ name: 'add', file: FILE_NAME }, msg)
+      this.logger.debug({ name: 'add', file: FILE_NAME }, msg)
       throw new OraklError(OraklErrorCode.AggregatorNotAdded, msg)
     }
 
@@ -147,7 +134,7 @@ export class State {
     })
     if (!toAddAggregator || !toAddAggregator.active) {
       const msg = `Aggregator with aggregatorHash=${aggregatorHash} cannot be found / is not active on chain=${this.chain}`
-      this.logger?.debug({ name: 'add', file: FILE_NAME }, msg)
+      this.logger.debug({ name: 'add', file: FILE_NAME }, msg)
       throw new OraklError(OraklErrorCode.AggregatorNotAdded, msg)
     }
 
@@ -166,7 +153,15 @@ export class State {
       this.stateName,
       JSON.stringify([...activeAggregators, aggregatorConfig])
     )
-    await this.launchHeartbeatJob(aggregatorHash)
+
+    const outDataSubmitHeartbeat: IAggregatorSubmitHeartbeatWorker = {
+      oracleAddress: toAddAggregator.address,
+      delay: toAddAggregator.heartbeat
+    }
+    this.logger.debug(outDataSubmitHeartbeat, 'outDataSubmitHeartbeat')
+    await this.submitHeartbeatQueue.add('state-submission', outDataSubmitHeartbeat, {
+      ...SUBMIT_HEARTBEAT_QUEUE_SETTINGS
+    })
 
     return aggregatorConfig
   }
@@ -190,7 +185,7 @@ export class State {
     const numUpdatedActiveAggregators = activeAggregators.length
     if (numActiveAggregators == numUpdatedActiveAggregators) {
       const msg = `Aggregator with aggregatorHash=${aggregatorHash} was not removed. Aggregator was not found.`
-      this.logger?.debug({ name: 'remove', file: FILE_NAME }, msg)
+      this.logger.debug({ name: 'remove', file: FILE_NAME }, msg)
       throw new OraklError(OraklErrorCode.AggregatorNotRemoved, msg)
     }
 

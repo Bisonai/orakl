@@ -53,6 +53,7 @@ export async function worker(redisClient: RedisClientType, _logger: Logger) {
     redisClient,
     stateName: DATA_FEED_WORKER_STATE_NAME,
     heartbeatQueue,
+    submitHeartbeatQueue,
     chain: CHAIN,
     logger
   })
@@ -340,7 +341,7 @@ function submitHeartbeatJob(heartbeatQueue: Queue, _logger: Logger) {
       )
     } else if (allDelayed.length == 1) {
       const delayedJob = allDelayed[0]
-      delayedJob.remove()
+      await delayedJob.remove()
 
       logger.debug({ job: 'deleted' }, `Reporter deleted heartbeat job with ID=${jobId}`)
     }
