@@ -8,7 +8,6 @@ import {
   isOraklNetworkApiHealthy,
   isServiceHealthy
 } from './utils'
-
 import { ORAKL_NETWORK_API_URL, LISTENER_SERVICE_HOST, LISTENER_SERVICE_PORT } from './settings'
 
 const LISTENER_ENDPOINT = buildUrl(ORAKL_NETWORK_API_URL, 'listener')

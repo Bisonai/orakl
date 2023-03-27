@@ -16,6 +16,7 @@ import { ChainService } from '../chain/chain.service'
 import { AggregatorDto } from './dto/aggregator.dto'
 import { AggregatorQueryDto } from './dto/aggregator-query.dto'
 import { AggregatorUpdateDto } from './dto/aggregator-update.dto'
+import { IAggregator } from './aggregator.types'
 
 @Controller({
   path: 'aggregator',
@@ -36,8 +37,17 @@ export class AggregatorController {
 
   @Post('hash')
   async generateHash(@Body() aggregatorDto: AggregatorDto, @Query('verify') verify?: boolean) {
+    const aggregator: IAggregator = {
+      aggregatorHash: aggregatorDto.aggregatorHash,
+      name: aggregatorDto.name,
+      heartbeat: aggregatorDto.heartbeat,
+      threshold: aggregatorDto.threshold,
+      absoluteThreshold: aggregatorDto.absoluteThreshold,
+      adapterHash: aggregatorDto.adapterHash
+    }
+
     return await this.aggregatorService.computeAggregatorHash({
-      data: aggregatorDto,
+      data: aggregator,
       verify: verify
     })
   }

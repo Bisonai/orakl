@@ -1,7 +1,7 @@
 import axios from 'axios'
 import { Logger } from 'pino'
 import { IVrfConfig, IReporterConfig } from './types'
-import { ORAKL_NETWORK_API_URL } from './settings'
+import { ORAKL_NETWORK_API_URL, DATA_FEED_SERVICE_NAME, CHAIN } from './settings'
 import { buildUrl } from './utils'
 import { OraklError, OraklErrorCode } from './errors'
 
@@ -127,4 +127,31 @@ export async function getReporterByOracleAddress({
     logger.error({ name: 'getReportersByOracleAddress', file: FILE_NAME, ...e }, 'error')
     throw new OraklError(OraklErrorCode.GetReporterRequestFailed)
   }
+}
+
+/**
+ * Get address of node operator given an `oracleAddress`. The data are
+ * fetched from the Orakl Network API.
+ *
+ * @param {string} oracle address
+ * @return {string} address of node operator
+ * @exception {OraklErrorCode.GetReporterRequestFailed} raises when request failed
+ */
+export async function getOperatorAddress({
+  oracleAddress,
+  logger
+}: {
+  oracleAddress: string
+  logger: Logger
+}) {
+  logger.debug('getOperatorAddress')
+
+  return await (
+    await getReporterByOracleAddress({
+      service: DATA_FEED_SERVICE_NAME,
+      chain: CHAIN,
+      oracleAddress,
+      logger
+    })
+  ).address
 }

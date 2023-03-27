@@ -68,7 +68,7 @@ export class State {
   }
 
   /**
-   * Add reporter based given `id`. Reporter can be added only if it
+   * Add reporter given `id`. Reporter can be added only if it
    * corresponds to the `service` and `chain` state.
    *
    * @param {string} reporter ID
@@ -110,7 +110,7 @@ export class State {
   }
 
   /**
-   * Remove reporter given reporter `id`. Reporter can removed only if
+   * Remove reporter given reporter `id`. Reporter can be removed only if
    * it was in an active state.
    *
    * @param {string} reporter ID
@@ -144,6 +144,8 @@ export class State {
 
     // Update wallets
     delete this.wallets[oracleAddress]
+
+    return removedReporter
   }
 
   /**

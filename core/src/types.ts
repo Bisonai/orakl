@@ -45,14 +45,14 @@ export interface ILatestRoundData {
 }
 
 export interface IOracleRoundState {
-  _eligibleToSubmit: boolean
-  _roundId: number
-  _latestSubmission: BigNumber
-  _startedAt: BigNumber
-  _timeout: BigNumber
-  _availableFunds: BigNumber
-  _oracleCount: number
-  _paymentAmount: BigNumber
+  eligibleToSubmit: boolean
+  roundId: number
+  latestSubmission: BigNumber
+  startedAt: BigNumber
+  timeout: BigNumber
+  availableFunds: BigNumber
+  oracleCount: number
+  paymentAmount: BigNumber
 }
 
 export interface IRoundData {
@@ -120,7 +120,7 @@ export interface IVrfListenerWorker {
 }
 
 export interface IAggregatorWorker {
-  aggregatorAddress: string
+  oracleAddress: string
   roundId: number
   workerSource: string
 }
@@ -128,7 +128,12 @@ export interface IAggregatorWorker {
 // Worker -> Worker
 
 export interface IAggregatorHeartbeatWorker {
-  aggregatorAddress: string
+  oracleAddress: string
+}
+
+export interface IAggregatorSubmitHeartbeatWorker {
+  oracleAddress: string
+  delay: number
 }
 
 // Worker -> Reporter
@@ -163,12 +168,10 @@ export interface IVrfWorkerReporter {
 }
 
 export interface IAggregatorWorkerReporter {
-  report: boolean | undefined
-  callbackAddress: string
+  oracleAddress: string
   roundId: number
   submission: bigint
   workerSource: string
-  delay: number
 }
 
 // VRF
@@ -216,6 +219,7 @@ export interface IListenerConfig {
   address: string
   eventName: string
   chain: string
+  intervalId: number
 }
 
 export interface IListenerGroupConfig {

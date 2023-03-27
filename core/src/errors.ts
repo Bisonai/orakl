@@ -10,7 +10,6 @@ export class OraklError extends Error {
 export enum OraklErrorCode {
   NonExistentEventError = 10000,
   AggregatorJobCanTakeMoreBreak,
-  AggregatorNotFound,
   FailedToGetAggregate,
   FailedToGetAggregator,
   GetListenerRequestFailed,
@@ -48,5 +47,11 @@ export enum OraklErrorCode {
   ReporterNotRemoved,
   ReporterNotAdded,
   WalletNotActive,
-  UnexpectedNumberOfDeadlockJobs
+  UnexpectedNumberOfDeadlockJobs,
+  NonEligibleToSubmit,
+  AggregatorNotRemoved,
+  AggregatorNotAdded,
+  TxMissingResponseError,
+  TxTransactionFailed,
+  AggregatorNotFoundInState
 }

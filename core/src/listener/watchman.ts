@@ -91,5 +91,5 @@ export async function watchman({
     res.status(200).send('ok')
   })
 
-  app.listen(LISTENER_PORT)
+  return app.listen(LISTENER_PORT)
 }

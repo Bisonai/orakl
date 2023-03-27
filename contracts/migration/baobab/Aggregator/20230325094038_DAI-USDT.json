@@ -1,0 +1,23 @@
+{
+  "deploy": {
+    "name": "DAI-USDT",
+    "paymentAmount": 0,
+    "timeout": 10,
+    "validator": "0x0000000000000000000000000000000000000000",
+    "decimals": 8,
+    "description": "DAI-USDT",
+    "depositAmount": 1.0
+  },
+  "changeOracles": {
+    "removed": [],
+    "added": [
+        "0x73a7d19D14f7DFAC5B799E405E22133b2Adc57a6"
+    ],
+    "addedAdmins": [
+        "0x73a7d19D14f7DFAC5B799E405E22133b2Adc57a6"
+    ],
+    "minSubmissionCount": 1,
+    "maxSubmissionCount": 1,
+    "restartDelay": 0
+  }
+}

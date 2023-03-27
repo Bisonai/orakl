@@ -1,4 +1,6 @@
-import { describe, test, expect } from '@jest/globals'
+import { describe, test, expect, beforeEach } from '@jest/globals'
+import pino from 'pino'
+import { Logger } from 'pino'
 import { buildWallet, sendTransaction } from '../src/reporter/utils'
 import { ethers } from 'ethers'
 import { OraklErrorCode } from '../src/errors'
@@ -8,6 +10,15 @@ import { OraklErrorCode } from '../src/errors'
 describe('Reporter', function () {
   const PROVIDER_URL = 'http://127.0.0.1:8545'
   const PRIVATE_KEY = '0x5de4111afa1a4b94908f83103eb1f1706367c2e68ca870fc3fb9a804cdab365a' // hardhat account 2
+  let logger: Logger
+
+  beforeEach(() => {
+    const transport = pino.transport({
+      target: 'pino/file',
+      options: { destination: '/dev/null' }
+    })
+    logger = pino(transport)
+  })
 
   if (!process.env.GITHUB_ACTIONS) {
     test('Send payload to invalid address', async function () {
@@ -22,7 +33,7 @@ describe('Reporter', function () {
         const payload = '0x'
 
         expect(async () => {
-          await sendTransaction({ wallet, to, payload })
+          await sendTransaction({ wallet, to, payload, logger })
         }).rejects.toThrow('TxInvalidAddress')
       } catch (e) {
         if (e.code == OraklErrorCode.ProviderNetworkError) {
@@ -46,7 +57,7 @@ describe('Reporter', function () {
         const value = ethers.utils.parseUnits('1')
 
         expect(async () => {
-          await sendTransaction({ wallet, to, value })
+          await sendTransaction({ wallet, to, value, logger })
         }).rejects.toThrow('TxProcessingResponseError')
       } catch (e) {
         if (e.code == OraklErrorCode.ProviderNetworkError) {

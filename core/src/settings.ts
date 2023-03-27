@@ -24,6 +24,7 @@ export const LISTENER_DELAY = Number(process.env.LISTENER_DELAY) || 500
 
 // Service ports are used for communication to watchman from the outside
 export const LISTENER_PORT = process.env.LISTENER_PORT || 4_000
+export const WORKER_PORT = process.env.WORKER_PORT || 5_001
 export const REPORTER_PORT = process.env.REPORTER_PORT || 6_000
 
 export const DATA_FEED_SERVICE_NAME = 'Aggregator'
@@ -34,24 +35,28 @@ export const REQUEST_RESPONSE_SERVICE_NAME = 'RequestResponse'
 export const REMOVE_ON_COMPLETE = 500
 export const REMOVE_ON_FAIL = 1_000
 
-export const FIXED_HEARTBEAT_QUEUE_NAME = `${DEPLOYMENT_NAME}-fixed-heartbeat-queue`
-export const RANDOM_HEARTBEAT_QUEUE_NAME = `${DEPLOYMENT_NAME}-random-heartbeat-queue`
+export const SUBMIT_HEARTBEAT_QUEUE_NAME = `${DEPLOYMENT_NAME}-submitheartbeat-queue`
+export const HEARTBEAT_QUEUE_NAME = `${DEPLOYMENT_NAME}-heartbeat-queue`
 export const WORKER_REQUEST_RESPONSE_QUEUE_NAME = `${DEPLOYMENT_NAME}-worker-request-response-queue`
 export const WORKER_PREDEFINED_FEED_QUEUE_NAME = `${DEPLOYMENT_NAME}-worker-predefined-feed-queue`
 export const WORKER_VRF_QUEUE_NAME = `${DEPLOYMENT_NAME}-worker-vrf-queue`
 export const WORKER_AGGREGATOR_QUEUE_NAME = `${DEPLOYMENT_NAME}-worker-aggregator-queue`
+export const WORKER_CHECK_HEARTBEAT_QUEUE_NAME = `${DEPLOYMENT_NAME}-worker-checkheartbeat-queue`
 export const REPORTER_REQUEST_RESPONSE_QUEUE_NAME = `${DEPLOYMENT_NAME}-reporter-request-response-queue`
 export const REPORTER_PREDEFINED_FEED_QUEUE_NAME = `${DEPLOYMENT_NAME}-reporter-predefined-feed-queue`
 export const REPORTER_VRF_QUEUE_NAME = `${DEPLOYMENT_NAME}-reporter-vrf-queue`
 export const REPORTER_AGGREGATOR_QUEUE_NAME = `${DEPLOYMENT_NAME}-reporter-aggregator-queue`
 
+export const HEARTBEAT_JOB_NAME = `${DEPLOYMENT_NAME}-heartbeat-job`
+
 export const ALL_QUEUES = [
-  FIXED_HEARTBEAT_QUEUE_NAME,
-  RANDOM_HEARTBEAT_QUEUE_NAME,
+  SUBMIT_HEARTBEAT_QUEUE_NAME,
+  HEARTBEAT_QUEUE_NAME,
   WORKER_REQUEST_RESPONSE_QUEUE_NAME,
   WORKER_PREDEFINED_FEED_QUEUE_NAME,
   WORKER_VRF_QUEUE_NAME,
   WORKER_AGGREGATOR_QUEUE_NAME,
+  WORKER_CHECK_HEARTBEAT_QUEUE_NAME,
   REPORTER_REQUEST_RESPONSE_QUEUE_NAME,
   REPORTER_PREDEFINED_FEED_QUEUE_NAME,
   REPORTER_VRF_QUEUE_NAME,
@@ -62,8 +67,12 @@ export const VRF_LISTENER_STATE_NAME = `${DEPLOYMENT_NAME}-listener-vrf-state`
 export const REQUEST_RESPONSE_LISTENER_STATE_NAME = `${DEPLOYMENT_NAME}-listener-request-response-state`
 export const DATA_FEED_LISTENER_STATE_NAME = `${DEPLOYMENT_NAME}-listener-data-feed-state`
 
-// export const VRF_LISTENER_STATE_NAME = `${DEPLOYMENT_NAME}-reporter-vrf-state`
-// export const REQUEST_RESPONSE_LISTENER_STATE_NAME = `${DEPLOYMENT_NAME}-reporter-request-response-state`
+// export const VRF_WORKER_STATE_NAME = `${DEPLOYMENT_NAME}-worker-vrf-state`
+// export const REQUEST_RESPONSE_WORKER_STATE_NAME = `${DEPLOYMENT_NAME}-worker-request-response-state`
+export const DATA_FEED_WORKER_STATE_NAME = `${DEPLOYMENT_NAME}-worker-data-feed-state`
+
+// export const VRF_REPORTER_STATE_NAME = `${DEPLOYMENT_NAME}-reporter-vrf-state`
+// export const REQUEST_RESPONSE_REPORTER_STATE_NAME = `${DEPLOYMENT_NAME}-reporter-request-response-state`
 export const DATA_FEED_REPORTER_STATE_NAME = `${DEPLOYMENT_NAME}-reporter-data-feed-state`
 
 export const BULLMQ_CONNECTION = {
@@ -78,3 +87,34 @@ function createJsonRpcProvider() {
 }
 
 export const PROVIDER = createJsonRpcProvider()
+
+export const HEARTBEAT_QUEUE_SETTINGS = {
+  removeOnComplete: true,
+  attempts: 10,
+  backoff: 1_000
+}
+
+export const AGGREGATOR_QUEUE_SETTINGS = {
+  // When [aggregator] worker fails, we want to be able to
+  // resubmit the job with the same job ID.
+  removeOnFail: true,
+  attempts: 10,
+  backoff: 1_000
+}
+
+export const SUBMIT_HEARTBEAT_QUEUE_SETTINGS = {
+  removeOnComplete: REMOVE_ON_COMPLETE,
+  removeOnFail: REMOVE_ON_FAIL,
+  attempts: 10,
+  backoff: 1_000
+}
+
+export const CHECK_HEARTBEAT_QUEUE_SETTINGS = {
+  removeOnComplete: REMOVE_ON_COMPLETE,
+  removeOnFail: REMOVE_ON_FAIL,
+  attempts: 10,
+  backoff: 1_000,
+  repeat: {
+    every: 2_000
+  }
+}

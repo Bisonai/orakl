@@ -38,6 +38,11 @@ export class State {
    * Clear listener state.
    */
   async clear() {
+    const activeListeners = await this.active()
+    for (const listener of activeListeners) {
+      await this.remove(listener.id)
+    }
+
     await this.redisClient.set(this.stateName, JSON.stringify([]))
   }
 
@@ -52,7 +57,7 @@ export class State {
   /**
    * List all active listeners.
    */
-  async active() {
+  async active(): Promise<IListenerConfig[]> {
     const state = await this.redisClient.get(this.stateName)
     return state ? JSON.parse(state) : []
   }
@@ -142,5 +147,7 @@ export class State {
     // Update active listeners
     await this.redisClient.set(this.stateName, JSON.stringify(activeListeners))
     clearInterval(removedListener.intervalId)
+
+    return removedListener
   }
 }

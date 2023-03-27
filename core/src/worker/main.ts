@@ -1,12 +1,16 @@
 import { parseArgs } from 'node:util'
-import { buildLogger } from '../logger'
+import type { RedisClientType } from 'redis'
+import { createClient } from 'redis'
+import { IWorkers } from './types'
 import { worker as dataFeedWorker } from './data-feed'
-import { worker as vrfWorker } from './vrf'
 import { worker as requestResponseWorker } from './request-response'
+import { worker as vrfWorker } from './vrf'
+import { buildLogger } from '../logger'
 import { launchHealthCheck } from '../health-check'
 import { hookConsoleError } from '../utils'
+import { REDIS_HOST, REDIS_PORT } from '../settings'
 
-const WORKERS = {
+const WORKERS: IWorkers = {
   AGGREGATOR: dataFeedWorker,
   VRF: vrfWorker,
   REQUEST_RESPONSE: requestResponseWorker
@@ -17,7 +21,13 @@ const LOGGER = buildLogger('worker')
 async function main() {
   hookConsoleError(LOGGER)
   const worker = loadArgs()
-  WORKERS[worker](LOGGER)
+
+  const redisClient: RedisClientType = createClient({ url: `redis://${REDIS_HOST}:${REDIS_PORT}` })
+  await redisClient.connect()
+
+  WORKERS[worker](redisClient, LOGGER)
+
+  // TODO later replace with watchman after it becomes utilized in every service
   launchHealthCheck()
 }
 

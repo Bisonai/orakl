@@ -1,76 +1,143 @@
 import { Worker, Queue, Job } from 'bullmq'
 import { Logger } from 'pino'
-import { getAggregatorGivenAddress, getActiveAggregators, fetchDataFeed } from './api'
+import type { RedisClientType } from 'redis'
+import { getAggregatorGivenAddress, getAggregators, fetchDataFeed } from './api'
+import { State } from './state'
 import { OraklError, OraklErrorCode } from '../errors'
-import { getReporterByOracleAddress } from '../api'
-import { IAggregatorWorker, IAggregatorWorkerReporter } from '../types'
 import {
-  WORKER_AGGREGATOR_QUEUE_NAME,
-  REPORTER_AGGREGATOR_QUEUE_NAME,
-  FIXED_HEARTBEAT_QUEUE_NAME,
+  IAggregatorWorker,
+  IAggregatorWorkerReporter,
+  IAggregatorHeartbeatWorker,
+  IAggregatorSubmitHeartbeatWorker
+} from '../types'
+import {
+  AGGREGATOR_QUEUE_SETTINGS,
   BULLMQ_CONNECTION,
-  DEPLOYMENT_NAME,
-  REMOVE_ON_COMPLETE,
-  REMOVE_ON_FAIL,
   CHAIN,
-  DATA_FEED_SERVICE_NAME
+  DATA_FEED_WORKER_STATE_NAME,
+  DEPLOYMENT_NAME,
+  HEARTBEAT_JOB_NAME,
+  HEARTBEAT_QUEUE_NAME,
+  HEARTBEAT_QUEUE_SETTINGS,
+  REMOVE_ON_COMPLETE,
+  REPORTER_AGGREGATOR_QUEUE_NAME,
+  SUBMIT_HEARTBEAT_QUEUE_NAME,
+  SUBMIT_HEARTBEAT_QUEUE_SETTINGS,
+  WORKER_AGGREGATOR_QUEUE_NAME,
+  WORKER_CHECK_HEARTBEAT_QUEUE_NAME,
+  CHECK_HEARTBEAT_QUEUE_SETTINGS
 } from '../settings'
-import { buildReporterJobId } from '../utils'
-import { oracleRoundStateCall } from './utils'
+import { buildSubmissionRoundJobId, buildHeartbeatJobId } from '../utils'
+import { oracleRoundStateCall } from './data-feed.utils'
+import { watchman } from './watchman'
+import { getOperatorAddress } from '../api'
 
 const FILE_NAME = import.meta.url
 
 /**
  * Get all active aggregators, create their initial jobs, and submit
- * them to the [heartbeat] queue. Launch [event] and [heartbeat]
+ * them to the [heartbeat] queue. Launch [aggregator] and [heartbeat]
  * workers.
  *
+ * @param {RedisClientType} redis client
  * @param {Logger} pino logger
  */
-export async function worker(_logger: Logger) {
+export async function worker(redisClient: RedisClientType, _logger: Logger) {
   const logger = _logger.child({ name: 'worker', file: FILE_NAME })
-  const aggregators = await getActiveAggregators({ chain: CHAIN, logger })
 
-  if (aggregators.length == 0) {
+  // Queues
+  const aggregatorQueue = new Queue(WORKER_AGGREGATOR_QUEUE_NAME, BULLMQ_CONNECTION)
+  const heartbeatQueue = new Queue(HEARTBEAT_QUEUE_NAME, BULLMQ_CONNECTION)
+  const submitHeartbeatQueue = new Queue(SUBMIT_HEARTBEAT_QUEUE_NAME, BULLMQ_CONNECTION)
+  const reporterQueue = new Queue(REPORTER_AGGREGATOR_QUEUE_NAME, BULLMQ_CONNECTION)
+  const checkHeartbeatQueue = new Queue(WORKER_CHECK_HEARTBEAT_QUEUE_NAME, BULLMQ_CONNECTION)
+
+  // Clear previous jobs from repeatable [checkHeartbeat] queue
+  const repeatableJobs = await checkHeartbeatQueue.getRepeatableJobs()
+  for (const job of repeatableJobs) {
+    await checkHeartbeatQueue.removeRepeatableByKey(job.key)
+  }
+
+  const state = new State({
+    redisClient,
+    stateName: DATA_FEED_WORKER_STATE_NAME,
+    heartbeatQueue,
+    submitHeartbeatQueue,
+    chain: CHAIN,
+    logger
+  })
+  await state.clear()
+
+  const activeAggregators = await getAggregators({ chain: CHAIN, active: true, logger })
+  if (activeAggregators.length == 0) {
     logger.warn('No active aggregators')
   }
 
   // Launch all active aggregators
-  const fixedHeartbeatQueue = new Queue(FIXED_HEARTBEAT_QUEUE_NAME, BULLMQ_CONNECTION)
-  for (const aggregator of aggregators) {
-    const aggregatorAddress = aggregator.address
-
-    const operatorAddress = await getOperatorAddress({ oracleAddress: aggregatorAddress, logger })
-    await fixedHeartbeatQueue.add(
-      'heartbeat',
-      { aggregatorAddress },
-      {
-        delay: await getSynchronizedDelay({
-          aggregatorAddress,
-          operatorAddress,
-          heartbeat: aggregator.heartbeat,
-          logger
-        }),
-        removeOnComplete: true,
-        removeOnFail: true
-      }
-    )
+  for (const aggregator of activeAggregators) {
+    await state.add(aggregator.aggregatorHash)
   }
 
-  // [event]  worker
-  new Worker(WORKER_AGGREGATOR_QUEUE_NAME, aggregatorJob(REPORTER_AGGREGATOR_QUEUE_NAME, _logger), {
-    ...BULLMQ_CONNECTION,
-    settings: {
-      backoffStrategy: aggregatorJobBackOffStrategy
+  // [aggregator] worker
+  const aggregatorWorker = new Worker(
+    WORKER_AGGREGATOR_QUEUE_NAME,
+    aggregatorJob(submitHeartbeatQueue, reporterQueue, _logger),
+    {
+      ...BULLMQ_CONNECTION
     }
+  )
+  aggregatorWorker.on('error', (e) => {
+    logger.error(e)
   })
 
   // [heartbeat] worker
-  new Worker(
-    FIXED_HEARTBEAT_QUEUE_NAME,
-    heartbeatJob(WORKER_AGGREGATOR_QUEUE_NAME, _logger),
+  const heartbeatWorker = new Worker(
+    HEARTBEAT_QUEUE_NAME,
+    heartbeatJob(aggregatorQueue, state, _logger),
     BULLMQ_CONNECTION
   )
+  heartbeatWorker.on('error', (e) => {
+    logger.error(e)
+  })
+
+  // [submitHeartbeat] worker
+  const submitHeartbeatWorker = new Worker(
+    SUBMIT_HEARTBEAT_QUEUE_NAME,
+    submitHeartbeatJob(heartbeatQueue, state, _logger),
+    BULLMQ_CONNECTION
+  )
+  submitHeartbeatWorker.on('error', (e) => {
+    logger.error(e)
+  })
+
+  // [checkHeartbeat] worker
+  const checkHeartbeatWorker = new Worker(
+    WORKER_CHECK_HEARTBEAT_QUEUE_NAME,
+    checkHeartbeatJob(submitHeartbeatQueue, state, _logger),
+    BULLMQ_CONNECTION
+  )
+  checkHeartbeatWorker.on('error', (e) => {
+    logger.error(e)
+  })
+  checkHeartbeatQueue.add('livecheck', {}, CHECK_HEARTBEAT_QUEUE_SETTINGS)
+
+  const watchmanServer = await watchman({ state, logger })
+
+  // Graceful shutdown
+  async function handleExit() {
+    logger.info('Exiting. Wait for graceful shutdown.')
+
+    await redisClient.quit()
+    await aggregatorWorker.close()
+    await heartbeatWorker.close()
+    await submitHeartbeatWorker.close()
+    await checkHeartbeatWorker.close()
+    await watchmanServer.close()
+  }
+  process.on('SIGINT', handleExit)
+  process.on('SIGTERM', handleExit)
+
+  logger.debug('Worker launched')
 }
 
 /**
@@ -84,41 +151,52 @@ export async function worker(_logger: Logger) {
  * out the which round ID, it can submit the latest value. Then, it
  * create a new job and passes it to reporter worker.
  *
- * @param {string} reporter queue name
+ * @param {Queue} submit heartbeat queue
+ * @param {Queue} reporter queue
  * @param {Logger} pino logger
  * @return {} [aggregator] job processor
  */
-function aggregatorJob(reporterQueueName: string, _logger: Logger) {
-  const logger = _logger.child({ name: 'aggregatorJob', file: FILE_NAME })
-  const reporterQueue = new Queue(reporterQueueName, BULLMQ_CONNECTION)
+function aggregatorJob(submitHeartbeatQueue: Queue, reporterQueue: Queue, _logger: Logger) {
+  const logger = _logger.child({ name: 'aggregatorJob' })
 
   async function wrapper(job: Job) {
     const inData: IAggregatorWorker = job.data
-    logger.debug(inData, 'inData-regular')
-    const aggregatorAddress = inData.aggregatorAddress
-    const roundId = inData.roundId
+    logger.debug(inData, 'inData')
+    const { oracleAddress, roundId, workerSource } = inData
 
     try {
-      const operatorAddress = await getOperatorAddress({ oracleAddress: aggregatorAddress, logger })
-      const { aggregatorHash, heartbeat } = await getAggregatorGivenAddress({
-        aggregatorAddress,
+      // TODO store in ephemeral state
+      const { aggregatorHash, heartbeat: delay } = await getAggregatorGivenAddress({
+        oracleAddress,
         logger
       })
 
-      const outData = await prepareDataForReporter({
-        aggregatorHash,
-        aggregatorAddress,
-        operatorAddress,
-        report: true,
-        workerSource: inData.workerSource,
-        delay: heartbeat,
+      const { value: submission } = await fetchDataFeed({ aggregatorHash, logger })
+
+      // Submit heartbeat
+      const outDataSubmitHeartbeat: IAggregatorSubmitHeartbeatWorker = {
+        oracleAddress,
+        delay
+      }
+      logger.debug(outDataSubmitHeartbeat, 'outDataSubmitHeartbeat')
+      await submitHeartbeatQueue.add('aggregator-submission', outDataSubmitHeartbeat, {
+        ...SUBMIT_HEARTBEAT_QUEUE_SETTINGS
+      })
+
+      // Report submission
+      const outDataReporter: IAggregatorWorkerReporter = {
+        oracleAddress,
+        submission,
         roundId,
-        logger
-      })
-
-      logger.debug(outData, 'outData-regular')
-
-      await reporterQueue.add(inData.workerSource, outData, {
+        workerSource
+      }
+      logger.debug(outDataReporter, 'outDataReporter')
+      await reporterQueue.add(workerSource, outDataReporter, {
+        jobId: buildSubmissionRoundJobId({
+          oracleAddress,
+          roundId,
+          deploymentName: DEPLOYMENT_NAME
+        }),
         removeOnComplete: REMOVE_ON_COMPLETE,
         // Reporter job can fail, and should be either retried or
         // removed. We need to remove the job after repeated failure
@@ -126,12 +204,9 @@ function aggregatorJob(reporterQueueName: string, _logger: Logger) {
         // After removing the job on failure, we can resubmit the job
         // with the same unique ID representing the submission for
         // specific aggregator on specific round.
-        removeOnFail: true,
-        jobId: buildReporterJobId({
-          aggregatorAddress,
-          roundId,
-          deploymentName: DEPLOYMENT_NAME
-        })
+        //
+        // FIXME Rethink!
+        removeOnFail: true
       })
     } catch (e) {
       // `FailedToFetchFromDataFeed` exception can be raised from `prepareDataForReporter`.
@@ -168,41 +243,53 @@ function aggregatorJob(reporterQueueName: string, _logger: Logger) {
  * service, which protects the [aggregator] worker from processing the
  * same request twice.
  *
- * @params {string} name of queue processed by [aggregator] worker
- * @params {Logger} pino logger
+ * @param {Queue} aggregator queue
+ * @param {State} ephemeral aggregator state
+ * @param {Logger} pino logger
  * @return {} [heartbeat] job processor
  */
-function heartbeatJob(aggregatorJobQueueName: string, _logger: Logger) {
-  const logger = _logger.child({ name: 'heartbeatJob', file: FILE_NAME })
-  const queue = new Queue(aggregatorJobQueueName, BULLMQ_CONNECTION)
+function heartbeatJob(aggregatorQueue: Queue, state: State, _logger: Logger) {
+  const logger = _logger.child({ name: 'heartbeatJob' })
 
   async function wrapper(job: Job) {
-    const { aggregatorAddress } = job.data
-    logger.debug(aggregatorAddress, 'aggregatorAddress-fixed')
+    const inData: IAggregatorHeartbeatWorker = job.data
+    const oracleAddress = inData.oracleAddress
 
     try {
-      const operatorAddress = await getOperatorAddress({ oracleAddress: aggregatorAddress, logger })
+      logger.debug({ oracleAddress })
+
+      // [hearbeat] worker can be controlled by watchman which can
+      // either activate or deactive a [heartbeat] job. When
+      // [heartbeat] job cannot be found in a local aggregator state,
+      // the job is assumed to be terminated, and worker will drop any
+      // incoming job that should be performed on aggregator denoted
+      // by `aggregatorAddress`.
+      if (!state.isActive({ oracleAddress })) {
+        logger.warn(`Heartbeat job for oracle ${oracleAddress} is no longer active. Exiting.`)
+        return 0
+      }
+
+      const operatorAddress = await getOperatorAddress({ oracleAddress, logger })
       const oracleRoundState = await oracleRoundStateCall({
-        aggregatorAddress,
+        oracleAddress,
         operatorAddress,
         logger
       })
-      logger.debug(oracleRoundState, 'oracleRoundState-fixed')
+      logger.debug(oracleRoundState, 'oracleRoundState')
 
-      const roundId = oracleRoundState._roundId
-
+      const { roundId, eligibleToSubmit } = oracleRoundState
       const outData: IAggregatorWorker = {
-        aggregatorAddress,
-        roundId: roundId,
-        workerSource: 'fixed'
+        oracleAddress,
+        roundId,
+        workerSource: 'heartbeat'
       }
-      logger.debug(outData, 'outData-fixed')
+      logger.debug(outData, 'outData')
 
-      if (oracleRoundState._eligibleToSubmit) {
+      if (eligibleToSubmit) {
         logger.debug({ job: 'added', eligible: true, roundId }, 'before-eligible-fixed')
 
-        const jobId = buildReporterJobId({
-          aggregatorAddress,
+        const jobId = buildSubmissionRoundJobId({
+          oracleAddress,
           roundId,
           deploymentName: DEPLOYMENT_NAME
         })
@@ -218,18 +305,21 @@ function heartbeatJob(aggregatorJobQueueName: string, _logger: Logger) {
         // If we happen to be at that situation, we assume there is
         // a deadlock and the Orakl Network Reporter service failed on
         // to submit on particular `roundId`.
-        await removeDeadlock(queue, jobId, logger)
+        await removeAggregatorDeadlock(aggregatorQueue, jobId, logger)
 
-        await queue.add('fixed', outData, {
+        await aggregatorQueue.add('fixed', outData, {
+          jobId,
           removeOnComplete: REMOVE_ON_COMPLETE,
-          removeOnFail: REMOVE_ON_FAIL,
-          jobId
+          ...AGGREGATOR_QUEUE_SETTINGS
         })
         logger.debug({ job: 'added', eligible: true, roundId }, 'eligible-fixed')
       } else {
-        logger.debug({ eligible: false, roundId }, 'non-eligible-fixed')
+        const msg = `Non-eligible to submit for oracle ${oracleAddress} with operator ${operatorAddress}`
+        throw new OraklError(OraklErrorCode.NonEligibleToSubmit, msg)
       }
     } catch (e) {
+      const msg = `Heartbeat job for oracle ${oracleAddress} died.`
+      logger.error(msg)
       logger.error(e)
       throw e
     }
@@ -239,161 +329,119 @@ function heartbeatJob(aggregatorJobQueueName: string, _logger: Logger) {
 }
 
 /**
- * Fetch the latest data and prepare them to be sent to reporter.
+ * Reported job might have been requested by [event] worker or
+ * [deviation] worker before the end of heartbeat delay. If that is
+ * the case, there is still waiting delayed heartbeat job in the
+ * heartbeat queue. If that is the case, we remove it. Then, we submit
+ * the new heartbeat job.
  *
- * @param {string} id: aggregator ID
- * @param {boolean} report: whether to submission must be reported
- * @param {string} workerSource
- * @param {number} delay
- * @param {number} roundId
- * @param {Logger} _logger
- * @return {Promise<IAggregatorJob}
- * @exception {FailedToFetchFromDataFeed} raised from `fetchDataFeed`
+ * @param {Queue} [heartbeat] queue
+ * @param {State} ephemeral aggregator state
+ * @param {Logger} pino logger
+ * @return {} [submitHeartbeat] job processor
  */
-async function prepareDataForReporter({
-  aggregatorHash,
-  aggregatorAddress,
-  operatorAddress,
-  report,
-  workerSource,
-  delay,
-  roundId,
-  logger
-}: {
-  aggregatorHash: string
-  aggregatorAddress: string
-  operatorAddress: string
-  report?: boolean
-  workerSource: string
-  delay: number
-  roundId?: number
-  logger: Logger
-}): Promise<IAggregatorWorkerReporter> {
-  logger.debug('prepareDataForReporter')
+function submitHeartbeatJob(heartbeatQueue: Queue, state: State, _logger: Logger) {
+  const logger = _logger.child({ name: 'submitHeartbeatJob' })
 
-  const { value } = await fetchDataFeed({ aggregatorHash, logger })
+  async function wrapper(job: Job) {
+    const inData: IAggregatorSubmitHeartbeatWorker = job.data
+    const oracleAddress = inData.oracleAddress
+    const delay = inData.delay
 
-  const oracleRoundState = await oracleRoundStateCall({
-    aggregatorAddress,
-    operatorAddress,
-    roundId,
-    logger
-  })
-  logger.debug(oracleRoundState, 'oracleRoundState')
+    const jobId = buildHeartbeatJobId({ oracleAddress, deploymentName: DEPLOYMENT_NAME })
+    const allDelayed = (await heartbeatQueue.getJobs(['delayed'])).filter(
+      (job) => job.opts.jobId == jobId
+    )
 
-  return {
-    report,
-    callbackAddress: aggregatorAddress,
-    workerSource,
-    delay,
-    submission: value,
-    roundId: roundId || oracleRoundState._roundId
-  }
-}
+    if (allDelayed.length > 1) {
+      throw new OraklError(
+        OraklErrorCode.UnexpectedNumberOfJobsInQueue,
+        `Number of jobs ${allDelayed.length}`
+      )
+    } else if (allDelayed.length == 1) {
+      const delayedJob = allDelayed[0]
+      await delayedJob.remove()
 
-/**
- * Compute the number of seconds until the next round.
- *
- * FIXME modify aggregator to use single contract call
- *
- * @param {string} aggregator address
- * @param {number} heartbeat
- * @param {Logger}
- * @return {number} delay in seconds until the next round
- */
-async function getSynchronizedDelay({
-  aggregatorAddress,
-  operatorAddress,
-  heartbeat,
-  logger
-}: {
-  aggregatorAddress: string
-  operatorAddress: string
-  heartbeat: number
-  logger: Logger
-}): Promise<number> {
-  logger.debug('getSynchronizedDelay')
+      logger.debug({ job: 'deleted' }, `Reporter deleted heartbeat job with ID=${jobId}`)
+    }
 
-  let startedAt = 0
-  const { _startedAt, _roundId } = await oracleRoundStateCall({
-    aggregatorAddress,
-    operatorAddress,
-    logger
-  })
-
-  if (_startedAt.toNumber() != 0) {
-    startedAt = _startedAt.toNumber()
-  } else {
-    const { _startedAt } = await oracleRoundStateCall({
-      aggregatorAddress,
-      operatorAddress,
-      roundId: Math.max(0, _roundId - 1)
+    const outData: IAggregatorHeartbeatWorker = {
+      oracleAddress
+    }
+    await heartbeatQueue.add(HEARTBEAT_JOB_NAME, outData, {
+      jobId,
+      delay,
+      ...HEARTBEAT_QUEUE_SETTINGS
     })
-    startedAt = _startedAt.toNumber()
+
+    await state.updateTimestamp(oracleAddress)
+
+    logger.debug({ job: 'added', delay }, `Reporter submitted heartbeat job with ID=${jobId}`)
   }
 
-  logger.debug({ startedAt }, 'startedAt')
-  const delay = heartbeat - (startedAt % heartbeat)
-  logger.debug({ delay }, 'delay')
-
-  return delay
-}
-
-function aggregatorJobBackOffStrategy(
-  attemptsMade: number,
-  type: string,
-  err: Error,
-  job: Job
-): number {
-  // TODO stop if there is newer job submitted
-  return 1_000
+  return wrapper
 }
 
 /**
- * Get address of node operator given an `oracleAddress`. The data are fetched from the Orakl Network API.
+ * [checkHeartbeat] job is executed in regular intervals to check
+ * whether any of active heartbeat aggregators died. If any of
+ * heartbeat jobs has died, resubmit the [heartbeat] job.
  *
- * @param {string} oracle address
- * @return {string} address of node operator
- * @exception {OraklErrorCode.GetReporterRequestFailed} raises when request failed
+ * @param {Queue} [submitHeartbeat] queue
+ * @param {State} ephemeral aggregator state
+ * @param {Logger} pino logger
  */
-async function getOperatorAddress({
-  oracleAddress,
-  logger
-}: {
-  oracleAddress: string
-  logger: Logger
-}) {
-  logger.debug('getOperatorAddress')
+function checkHeartbeatJob(submitHeartbeatQueue: Queue, state: State, _logger: Logger) {
+  const logger = _logger.child({ name: 'checkHeartbeatJob' })
 
-  return await (
-    await getReporterByOracleAddress({
-      service: DATA_FEED_SERVICE_NAME,
-      chain: CHAIN,
-      oracleAddress,
-      logger
-    })
-  ).address
+  async function wrapper(job: Job) {
+    const activeAggregators = await state.active()
+    for (const aggregator of activeAggregators) {
+      const timeBuffer = 2_000
+      const heartbeatDeadline = aggregator.timestamp + aggregator.heartbeat + timeBuffer
+      const isDead = Date.now() > heartbeatDeadline ? true : false
+
+      // Resubmit heartbeat when dead
+      if (isDead) {
+        const oracleAddress = aggregator.address
+        logger.warn(`Aggregator heartbeat job for oracle ${oracleAddress} found dead.`)
+        const outDataSubmitHeartbeat: IAggregatorSubmitHeartbeatWorker = {
+          oracleAddress,
+          delay: aggregator.heartbeat
+        }
+        logger.debug(outDataSubmitHeartbeat, 'outDataSubmitHeartbeat')
+        await submitHeartbeatQueue.add('checkHeartbeat-submission', outDataSubmitHeartbeat, {
+          ...SUBMIT_HEARTBEAT_QUEUE_SETTINGS
+        })
+        logger.info(`Aggregater heartbeat job for oracle ${oracleAddress} resubmitted.`)
+      }
+    }
+  }
+
+  return wrapper
 }
 
 /**
- * Remove deadlock: The job has already been requested and accepted
- * from the other end of queue, however, the job might not have been
- * accomplished successfully there. The function deletes the
+ * Remove aggregator deadlock: The job has already been requested and
+ * accepted from the other end of queue, however, the job might not
+ * have been accomplished successfully there. The function deletes the
  * previously submitted job, so it can be resubmitted again.
  *
  * Note: This function should be called only when we are certain that
  * there is any deadlock. Deadlock detection is not part of this
  * function.
  *
- * @param {queue} queue
+ * @param {queue} aggregator queue
  * @param {string} job ID
  * @param {Logger} pino logger
  * @return {void}
  * @except {OraklErrorCode.UnexpectedNumberOfDeadlockJobs} raise when
  * more than single deadlock found
  */
-async function removeDeadlock(queue: Queue, jobId: string, logger: Logger) {
-  const blockingJob = (await queue.getJobs(['completed'])).filter((job) => job.opts.jobId == jobId)
+async function removeAggregatorDeadlock(aggregatorQueue: Queue, jobId: string, logger: Logger) {
+  const blockingJob = (await aggregatorQueue.getJobs(['completed'])).filter(
+    (job) => job.opts.jobId == jobId
+  )
 
   if (blockingJob.length == 1) {
     blockingJob[0].remove()

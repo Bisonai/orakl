@@ -33,10 +33,12 @@
     "prettier-solidity-check": "./node_modules/.bin/prettier --check src",
     "eslint": "DEBUG=eslint:cli-engine npx eslint 'scripts/**'",
     "deploy:localhost": "npx hardhat deploy --network localhost",
+    "deploy:baobab": "npx hardhat deploy --network baobab",
     "deploy:localhost:prepayment": "yarn deploy:localhost --deploy-scripts deploy/Prepayment",
     "deploy:localhost:rr": "yarn deploy:localhost --deploy-scripts deploy/RequestResponse",
     "deploy:localhost:vrf": "yarn deploy:localhost --deploy-scripts deploy/VRF",
-    "deploy:localhost:aggregator": "yarn deploy:localhost --deploy-scripts deploy/Aggregator"
+    "deploy:localhost:aggregator": "yarn deploy:localhost --deploy-scripts deploy/Aggregator",
+    "deploy:baobab:aggregator": "yarn deploy:baobab --deploy-scripts deploy/Aggregator"
   },
   "devDependencies": {
     "@ethersproject/abi": "^5.4.7",
