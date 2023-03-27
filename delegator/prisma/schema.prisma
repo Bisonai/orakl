@@ -8,7 +8,7 @@ datasource db {
 }
 
 model Transaction {
-  id          BigInt  @id @default(autoincrement())
+  id          BigInt  @id @default(autoincrement()) @map("transaction_id")
   from        String
   to          String
   input       String
@@ -22,4 +22,44 @@ model Transaction {
   s           String
   rawTx       String
   signedRawTx String?
+
+  @@map("transactions")
+}
+
+model Organization {
+  id   Int    @id @default(autoincrement()) @map("organization_id")
+  name String @unique
+
+  Reporter Reporter[]
+
+  @@map("organizations")
+}
+
+model Contract {
+  id       Int        @id @default(autoincrement()) @map("contract_id")
+  address  String     @unique
+  Method   Method[]
+  Reporter Reporter[]
+
+  @@map("contracts")
+}
+
+model Method {
+  id         Int      @id @default(autoincrement())
+  name       String
+  contract   Contract @relation(fields: [contractId], references: [id])
+  contractId Int      @map("contract_id")
+
+  @@map("methods")
+}
+
+model Reporter {
+  id             Int          @id @default(autoincrement())
+  address        String
+  contract       Contract     @relation(fields: [contractId], references: [id])
+  contractId     Int          @map("contract_id")
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  organizationId Int          @map("organization_id")
+
+  @@map("reporters")
 }
