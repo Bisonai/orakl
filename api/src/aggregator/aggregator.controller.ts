@@ -100,12 +100,9 @@ export class AggregatorController {
     }
 
     try {
-      await this.aggregatorService.verifyAggregatorHashOnLoad(
-        {
-          aggregatorHash_chainId: { aggregatorHash, chainId: chainRecord.id }
-        },
-        chain
-      )
+      await this.aggregatorService.verifyAggregatorHashOnLoad({
+        aggregatorHash_chainId: { aggregatorHash, chainId: chainRecord.id }
+      })
     } catch (e) {
       const msg = `verify Aggregator hash [${aggregatorHash}] failed on load`
       this.logger.error(msg)
