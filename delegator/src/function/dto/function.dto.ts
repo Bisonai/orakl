@@ -6,4 +6,7 @@ export class FunctionDto {
 
   @ApiProperty()
   contractId: number
+
+  @ApiProperty()
+  encodedName: string
 }

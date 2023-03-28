@@ -42,15 +42,15 @@ export class FunctionService {
       select: {
         id: true,
         name: true,
+        encodedName: true,
         contract: { select: { address: true } }
       }
     })
-
     return functions.map((M) => {
       return {
         id: M.id,
         name: M.name,
-        encodedName: encodedName,
+        encodedName: M.encodedName,
         address: M.contract.address
       }
     })

@@ -7,4 +7,4 @@ import { PrismaService } from 'src/prisma.service'
   controllers: [FunctionController],
   providers: [FunctionService, PrismaService]
 })
-export class MethodModule {}
+export class FunctionModule {}
