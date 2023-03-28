@@ -1,6 +1,6 @@
 # Orakl Network Fetcher
 
-Orakl Network Fetcher collects regularly data defined through aggregators defined within [Orakl Network API](https://github.com/Bisonai/orakl/tree/master/api).
+The Orakl Network Fetcher regularly collects data defined through aggregators registered withing the [Orakl Network API](https://github.com/Bisonai/orakl/tree/master/api).
 
 ## Installation
 
@@ -56,24 +56,12 @@ yarn run test:e2e
 yarn run test:cov
 ```
 
-## Configure Orakl Network Fetcher
+## Documentation
 
-```shell
-yarn cli chain insert --name localhost
-yarn cli adapter insert --source adapter/btc-usdt.adapter.json
+- [Learn about how the Orakl Network Fetcher can be controlled](https://orakl-network.gitbook.io/docs/orakl-network-cli/fetcher) by the [Orakl Network CLI](https://orakl-network.gitbook.io/docs/orakl-network-cli/introduction)
+- [Documentation for the Orakl Network Operators](https://orakl-network.gitbook.io/docs/node-operators-guide/orakl-network-fetcher)
 
-# adapterHash=0xd6fbe30bd6249b3093ee065496115e5736bbe760cadfc85598ef27eb4739a849
-yarn cli aggregator insert --source aggregator/localhost/btc-usdt.aggregator.json --chain localhost
-```
 
-## Start data collection and aggregation
+## License
 
-```shell
-yarn cli fetcher start --id 0xd6fbe30bd6249b3093ee065496115e5736bbe760cadfc85598ef27eb4739a849 --chain localhost
-```
-
-## Stop data collection and aggregation
-
-```shell
-yarn cli fetcher stop --id 0xd6fbe30bd6249b3093ee065496115e5736bbe760cadfc85598ef27eb4739a849 --chain localhost
-```
+[MIT License](LICENSE)
