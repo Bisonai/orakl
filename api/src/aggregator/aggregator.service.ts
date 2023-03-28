@@ -4,6 +4,7 @@ import { ethers } from 'ethers'
 import { PrismaService } from '../prisma.service'
 import { AggregatorDto } from './dto/aggregator.dto'
 import { IAggregator } from './aggregator.types'
+import { PRISMA_ERRORS } from '../errors'
 
 @Injectable()
 export class AggregatorService {
@@ -63,7 +64,18 @@ export class AggregatorService {
       chainId: chain.id
     }
 
-    return await this.prisma.aggregator.create({ data })
+    try {
+      return await this.prisma.aggregator.create({ data })
+    } catch (e) {
+      const errMsgFn = PRISMA_ERRORS[e.code]
+      if (errMsgFn) {
+        const msg = errMsgFn(e.meta)
+        this.logger.error(msg)
+        throw new HttpException(msg, HttpStatus.BAD_REQUEST)
+      } else {
+        throw e
+      }
+    }
   }
 
   async findAll(params: {
