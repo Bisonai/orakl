@@ -35,12 +35,13 @@ CREATE TABLE "contracts" (
 );
 
 -- CreateTable
-CREATE TABLE "methods" (
+CREATE TABLE "functions" (
     "id" SERIAL NOT NULL,
     "name" TEXT NOT NULL,
+    "encodedName" TEXT NOT NULL,
     "contract_id" INTEGER NOT NULL,
 
-    CONSTRAINT "methods_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "functions_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -60,7 +61,7 @@ CREATE UNIQUE INDEX "organizations_name_key" ON "organizations"("name");
 CREATE UNIQUE INDEX "contracts_address_key" ON "contracts"("address");
 
 -- AddForeignKey
-ALTER TABLE "methods" ADD CONSTRAINT "methods_contract_id_fkey" FOREIGN KEY ("contract_id") REFERENCES "contracts"("contract_id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "functions" ADD CONSTRAINT "functions_contract_id_fkey" FOREIGN KEY ("contract_id") REFERENCES "contracts"("contract_id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "reporters" ADD CONSTRAINT "reporters_contract_id_fkey" FOREIGN KEY ("contract_id") REFERENCES "contracts"("contract_id") ON DELETE RESTRICT ON UPDATE CASCADE;

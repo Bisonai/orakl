@@ -38,19 +38,20 @@ model Organization {
 model Contract {
   id       Int        @id @default(autoincrement()) @map("contract_id")
   address  String     @unique
-  Method   Method[]
+  Method   Function[]
   Reporter Reporter[]
 
   @@map("contracts")
 }
 
-model Method {
-  id         Int      @id @default(autoincrement())
-  name       String
-  contract   Contract @relation(fields: [contractId], references: [id])
-  contractId Int      @map("contract_id")
+model Function {
+  id          Int      @id @default(autoincrement())
+  name        String
+  encodedName String
+  contract    Contract @relation(fields: [contractId], references: [id])
+  contractId  Int      @map("contract_id")
 
-  @@map("methods")
+  @@map("functions")
 }
 
 model Reporter {
