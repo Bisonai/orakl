@@ -122,10 +122,7 @@ export class AggregatorService {
     })
   }
 
-  async verifyAggregatorHashOnLoad(
-    aggregatorWhereUniqueInput: Prisma.AggregatorWhereUniqueInput,
-    chain: string
-  ) {
+  async verifyAggregatorHashOnLoad(aggregatorWhereUniqueInput: Prisma.AggregatorWhereUniqueInput) {
     const aggregatorRecord = await this.findUnique(aggregatorWhereUniqueInput)
     const aggregator: IAggregator = {
       aggregatorHash: aggregatorRecord.aggregatorHash,
