@@ -1,55 +1,55 @@
 -- CreateTable
 CREATE TABLE "transactions" (
     "transaction_id" BIGSERIAL NOT NULL,
-    "from" TEXT NOT NULL,
-    "to" TEXT NOT NULL,
-    "input" TEXT NOT NULL,
-    "gas" TEXT NOT NULL,
-    "value" TEXT NOT NULL,
-    "chainId" TEXT NOT NULL,
-    "gasPrice" TEXT NOT NULL,
-    "nonce" TEXT NOT NULL,
-    "v" TEXT NOT NULL,
-    "r" TEXT NOT NULL,
-    "s" TEXT NOT NULL,
-    "rawTx" TEXT NOT NULL,
-    "signedRawTx" TEXT,
+    "from" VARCHAR(42) NOT NULL,
+    "to" VARCHAR(42) NOT NULL,
+    "input" VARCHAR(1024) NOT NULL,
+    "gas" VARCHAR(20) NOT NULL,
+    "value" VARCHAR(20) NOT NULL,
+    "chainId" VARCHAR(20) NOT NULL,
+    "gasPrice" VARCHAR(20) NOT NULL,
+    "nonce" VARCHAR(20) NOT NULL,
+    "v" VARCHAR(66) NOT NULL,
+    "r" VARCHAR(66) NOT NULL,
+    "s" VARCHAR(66) NOT NULL,
+    "rawTx" VARCHAR(1024) NOT NULL,
+    "signedRawTx" VARCHAR(1024),
 
     CONSTRAINT "transactions_pkey" PRIMARY KEY ("transaction_id")
 );
 
 -- CreateTable
 CREATE TABLE "organizations" (
-    "organization_id" SERIAL NOT NULL,
-    "name" TEXT NOT NULL,
+    "organization_id" BIGSERIAL NOT NULL,
+    "name" VARCHAR(50) NOT NULL,
 
     CONSTRAINT "organizations_pkey" PRIMARY KEY ("organization_id")
 );
 
 -- CreateTable
 CREATE TABLE "contracts" (
-    "contract_id" SERIAL NOT NULL,
-    "address" TEXT NOT NULL,
+    "contract_id" BIGSERIAL NOT NULL,
+    "address" VARCHAR(42) NOT NULL,
 
     CONSTRAINT "contracts_pkey" PRIMARY KEY ("contract_id")
 );
 
 -- CreateTable
 CREATE TABLE "functions" (
-    "id" SERIAL NOT NULL,
-    "name" TEXT NOT NULL,
-    "encodedName" TEXT NOT NULL,
-    "contract_id" INTEGER NOT NULL,
+    "id" BIGSERIAL NOT NULL,
+    "name" VARCHAR(100) NOT NULL,
+    "encodedName" VARCHAR(11) NOT NULL,
+    "contract_id" BIGINT NOT NULL,
 
     CONSTRAINT "functions_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "reporters" (
-    "id" SERIAL NOT NULL,
-    "address" TEXT NOT NULL,
-    "contract_id" INTEGER NOT NULL,
-    "organization_id" INTEGER NOT NULL,
+    "id" BIGSERIAL NOT NULL,
+    "address" VARCHAR(42) NOT NULL,
+    "contract_id" BIGINT NOT NULL,
+    "organization_id" BIGINT NOT NULL,
 
     CONSTRAINT "reporters_pkey" PRIMARY KEY ("id")
 );

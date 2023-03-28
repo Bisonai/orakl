@@ -9,26 +9,26 @@ datasource db {
 
 model Transaction {
   id          BigInt  @id @default(autoincrement()) @map("transaction_id")
-  from        String
-  to          String
-  input       String
-  gas         String
-  value       String
-  chainId     String
-  gasPrice    String
-  nonce       String
-  v           String
-  r           String
-  s           String
-  rawTx       String
-  signedRawTx String?
+  from        String  @db.VarChar(42)
+  to          String  @db.VarChar(42)
+  input       String  @db.VarChar(1024)
+  gas         String  @db.VarChar(20)
+  value       String  @db.VarChar(20)
+  chainId     String  @db.VarChar(20)
+  gasPrice    String  @db.VarChar(20)
+  nonce       String  @db.VarChar(20)
+  v           String  @db.VarChar(66)
+  r           String  @db.VarChar(66)
+  s           String  @db.VarChar(66)
+  rawTx       String  @db.VarChar(1024)
+  signedRawTx String? @db.VarChar(1024)
 
   @@map("transactions")
 }
 
 model Organization {
-  id   Int    @id @default(autoincrement()) @map("organization_id")
-  name String @unique
+  id   BigInt @id @default(autoincrement()) @map("organization_id")
+  name String @unique @db.VarChar(50)
 
   Reporter Reporter[]
 
@@ -36,31 +36,31 @@ model Organization {
 }
 
 model Contract {
-  id       Int        @id @default(autoincrement()) @map("contract_id")
-  address  String     @unique
-  Method   Function[]
+  id       BigInt     @id @default(autoincrement()) @map("contract_id")
+  address  String     @unique @db.VarChar(42)
+  Function Function[]
   Reporter Reporter[]
 
   @@map("contracts")
 }
 
 model Function {
-  id          Int      @id @default(autoincrement())
-  name        String
-  encodedName String
+  id          BigInt   @id @default(autoincrement())
+  name        String   @db.VarChar(100)
+  encodedName String   @db.VarChar(11)
   contract    Contract @relation(fields: [contractId], references: [id])
-  contractId  Int      @map("contract_id")
+  contractId  BigInt   @map("contract_id")
 
   @@map("functions")
 }
 
 model Reporter {
-  id             Int          @id @default(autoincrement())
-  address        String
+  id             BigInt       @id @default(autoincrement())
+  address        String       @db.VarChar(42)
   contract       Contract     @relation(fields: [contractId], references: [id])
-  contractId     Int          @map("contract_id")
+  contractId     BigInt       @map("contract_id")
   organization   Organization @relation(fields: [organizationId], references: [id])
-  organizationId Int          @map("organization_id")
+  organizationId BigInt       @map("organization_id")
 
   @@map("reporters")
 }
