@@ -34,8 +34,6 @@ async function main() {
     cmds: { chain, service, listener, vrf, adapter, aggregator, fetcher, reporter, version }
   })
 
-  console.log()
-
   run(binary(cli), process.argv)
 }
 
