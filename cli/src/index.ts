@@ -1,5 +1,6 @@
 #!/usr/bin/env node --no-warnings --experimental-specifier-resolution=node
 
+import { command } from 'cmd-ts'
 import { chainSub } from './chain'
 import { serviceSub } from './service'
 import { listenerSub } from './listener'
@@ -20,11 +21,20 @@ async function main() {
   const aggregator = aggregatorSub()
   const fetcher = fetcherSub()
   const reporter = reporterSub()
+  const version = command({
+    name: 'version',
+    args: {},
+    handler: () => {
+      console.log(`Orakl Network CLI v${process.env.npm_package_version}`)
+    }
+  })
 
   const cli = subcommands({
     name: 'operator',
-    cmds: { chain, service, listener, vrf, adapter, aggregator, fetcher, reporter }
+    cmds: { chain, service, listener, vrf, adapter, aggregator, fetcher, reporter, version }
   })
+
+  console.log()
 
   run(binary(cli), process.argv)
 }
