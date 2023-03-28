@@ -30,9 +30,14 @@ export class AdapterService {
     try {
       return await this.prisma.adapter.create({ data })
     } catch (e) {
-      const msg = PRISMA_ERRORS[e.code](e.meta)
-      this.logger.error(msg)
-      throw new HttpException(msg, HttpStatus.BAD_REQUEST)
+      const errMsgFn = PRISMA_ERRORS[e.code]
+      if (errMsgFn) {
+        const msg = errMsgFn(e.meta)
+        this.logger.error(msg)
+        throw new HttpException(msg, HttpStatus.BAD_REQUEST)
+      } else {
+        throw e
+      }
     }
   }
 
