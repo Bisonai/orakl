@@ -78,10 +78,6 @@ export class SignService {
     })
   }
 
-  encryptMethodName(methodName: string) {
-    return this.caver.klay.abi.encodeFunctionSignature(methodName)
-  }
-
   async signTxByFeePayer(input: Transaction) {
     const signature: SignatureData = new this.caver.wallet.keyring.signatureData([
       input.v,
@@ -97,26 +93,25 @@ export class SignService {
     return tx.getRawTransaction()
   }
 
-  validateTransaction(tx) {
-    // FIXME remove simple whiteListing settings and setup db
-    const contractList = {
-      '0x93120927379723583c7a0dd2236fcb255e96949f': {
-        methods: ['increment()', 'decrement()'],
-        reporters: ['0x260836ac4f046b6887bbe16b322e7f1e5f9a0452']
+  async validateTransaction(tx) {
+    console.log(tx)
+    const result = await this.prisma.contract.findMany({
+      where: {
+        address: tx.to,
+        Reporter: {
+          some: {
+            address: tx.from
+          }
+        },
+        Function: {
+          some: {
+            encodedName: tx.input.substring(0, 11)
+          }
+        }
       }
-    }
-
-    if (!(tx.to in contractList)) {
-      throw new DelegatorError(DelegatorErrorCode.InvalidContract)
-    }
-    if (!contractList[tx.to].reporters.includes(tx.from)) {
-      throw new DelegatorError(DelegatorErrorCode.InvalidReporter)
-    }
-    const isAllowedMethod = contractList[tx.to].methods.some(
-      (method) => this.encryptMethodName(method) == tx.input
-    )
-    if (!isAllowedMethod) {
-      throw new DelegatorError(DelegatorErrorCode.InvalidMethod)
+    })
+    if (result.length != 1) {
+      throw new DelegatorError(DelegatorErrorCode.InvalidTransaction)
     }
   }
 }
