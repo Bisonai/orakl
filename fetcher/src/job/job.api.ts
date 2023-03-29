@@ -1,16 +1,24 @@
 import axios from 'axios'
-import { HttpStatus, HttpException } from '@nestjs/common'
+import { HttpStatus, HttpException, Logger } from '@nestjs/common'
 import { buildUrl } from './job.utils'
 import { IRawData, IData, IAggregator } from './job.types'
 
-export async function loadAggregator(aggregatorHash: string, chain: string) {
+export async function loadAggregator({
+  aggregatorHash,
+  chain,
+  logger
+}: {
+  aggregatorHash: string
+  chain: string
+  logger: Logger
+}) {
   try {
     const url = buildUrl(process.env.ORAKL_NETWORK_API_URL, `aggregator/${aggregatorHash}/${chain}`)
     const aggregator: IAggregator = (await axios.get(url))?.data
     return aggregator
   } catch (e) {
     const msg = `Loading aggregator with hash ${aggregatorHash} for chain ${chain} failed.`
-    this.logger.error(msg)
+    logger.error(msg)
     throw new HttpException(msg, HttpStatus.BAD_REQUEST)
   }
 }

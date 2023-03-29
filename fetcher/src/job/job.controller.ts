@@ -15,7 +15,7 @@ export class JobController {
 
   @Get('start/:aggregator')
   async start(@Param('aggregator') aggregatorHash: string, @Body('chain') chain) {
-    const aggregator = await loadAggregator(aggregatorHash, chain)
+    const aggregator = await loadAggregator({ aggregatorHash, chain, logger: this.logger })
 
     if (Object.keys(aggregator).length == 0) {
       const msg = `Aggregator [${aggregatorHash}] not found`
