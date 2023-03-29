@@ -109,7 +109,7 @@ export class SignService {
         }
       }
     })
-    if (result.length != 1) {
+    if (result.length == 0) {
       throw new DelegatorError(DelegatorErrorCode.InvalidTransaction)
     }
   }
