@@ -60,6 +60,9 @@ CREATE UNIQUE INDEX "organizations_name_key" ON "organizations"("name");
 -- CreateIndex
 CREATE UNIQUE INDEX "contracts_address_key" ON "contracts"("address");
 
+-- CreateIndex
+CREATE UNIQUE INDEX "reporters_address_key" ON "reporters"("address");
+
 -- AddForeignKey
 ALTER TABLE "functions" ADD CONSTRAINT "functions_contract_id_fkey" FOREIGN KEY ("contract_id") REFERENCES "contracts"("contract_id") ON DELETE RESTRICT ON UPDATE CASCADE;
 

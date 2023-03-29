@@ -56,7 +56,7 @@ model Function {
 
 model Reporter {
   id             BigInt       @id @default(autoincrement())
-  address        String       @db.VarChar(42)
+  address        String       @unique @db.VarChar(42)
   contract       Contract     @relation(fields: [contractId], references: [id])
   contractId     BigInt       @map("contract_id")
   organization   Organization @relation(fields: [organizationId], references: [id])
