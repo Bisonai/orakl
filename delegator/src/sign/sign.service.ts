@@ -94,7 +94,6 @@ export class SignService {
   }
 
   async validateTransaction(tx) {
-    console.log(tx)
     const result = await this.prisma.contract.findMany({
       where: {
         address: tx.to,
