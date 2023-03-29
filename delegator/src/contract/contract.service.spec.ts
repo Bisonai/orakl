@@ -28,7 +28,6 @@ describe('ContractService', () => {
   it('should insert new Contract', async () => {
     const address = '0x0000000000000000000000000000000000000001'
     const contractData = await contract.create({ address })
-    console.log(contractData)
     expect(contractData.address).toBe(address)
 
     // The same Contract cannot be defined twice
