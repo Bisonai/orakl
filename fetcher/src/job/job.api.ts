@@ -1,5 +1,6 @@
 import axios from 'axios'
 import { buildUrl } from './job.utils'
+import { IRawData, IData } from './job.types'
 
 export async function loadAggregator(aggregatorHash: string, chain: string) {
   let response = {}
@@ -20,9 +21,9 @@ export async function insertMultipleData({
 }: {
   aggregatorId: string
   timestamp: string
-  data: any[]
+  data: IRawData[]
 }) {
-  const _data = data.map((d) => {
+  const _data: IData[] = data.map((d) => {
     return {
       aggregatorId: aggregatorId,
       feedId: d.id,
@@ -58,7 +59,7 @@ export async function insertAggregateData({
   }
 }
 
-export async function updateAggregator(aggregatorHash: string, chain: string, active: boolean) {
+async function updateAggregator(aggregatorHash: string, chain: string, active: boolean) {
   const url = buildUrl(process.env.ORAKL_NETWORK_API_URL, `aggregator/${aggregatorHash}`)
   const response = await axios.patch(url, { data: { active, chain } })
   return response?.data
