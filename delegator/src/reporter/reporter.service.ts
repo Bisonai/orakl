@@ -34,21 +34,21 @@ export class ReporterService {
   }
 
   async findOne(reporterWhereUniqueInput: Prisma.ReporterWhereUniqueInput) {
-    return await this.prisma.organization.findUnique({
+    return await this.prisma.reporter.findUnique({
       where: reporterWhereUniqueInput
     })
   }
 
   async update(params: { where: Prisma.ReporterWhereUniqueInput; reporterDto: ReporterDto }) {
     const { where, reporterDto } = params
-    return await this.prisma.organization.update({
+    return await this.prisma.reporter.update({
       data: reporterDto,
       where
     })
   }
 
   async remove(where: Prisma.ReporterWhereUniqueInput) {
-    return await this.prisma.organization.delete({
+    return await this.prisma.reporter.delete({
       where
     })
   }

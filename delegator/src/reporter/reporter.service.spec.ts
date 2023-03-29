@@ -1,18 +1,27 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { ReporterService } from './reporter.service';
+import { Test, TestingModule } from '@nestjs/testing'
+import { ReporterService } from './reporter.service'
+import { PrismaService } from '../prisma.service'
+import { PrismaClient } from '@prisma/client'
 
 describe('ReporterService', () => {
-  let service: ReporterService;
+  let reporter: ReporterService
+  let prisma
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      providers: [ReporterService],
-    }).compile();
+      providers: [ReporterService, PrismaService]
+    }).compile()
 
-    service = module.get<ReporterService>(ReporterService);
-  });
+    reporter = module.get<ReporterService>(ReporterService)
+    prisma = module.get<PrismaClient>(PrismaService)
+  })
+
+  afterEach(async () => {
+    jest.resetModules()
+    await prisma.$disconnect()
+  })
 
   it('should be defined', () => {
-    expect(service).toBeDefined();
-  });
-});
+    expect(reporter).toBeDefined()
+  })
+})

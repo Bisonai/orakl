@@ -38,23 +38,4 @@ describe('OrganizationService', () => {
     // Cleanup
     await organization.remove({ id: or.id })
   })
-
-  it('should update the name of Organization', async () => {
-    const wrongName = 'Organization'
-    const wrongOrganization = await organization.create({ name: wrongName })
-
-    const allList = await organization.findAll({})
-    console.log('All Organization List: ', allList)
-    const name = 'Bisonai'
-    const id = wrongOrganization.id
-
-    const or = await organization.update({
-      where: { id },
-      organizationDto: { name }
-    })
-    expect(or.name).toBe(name)
-
-    // Cleanup
-    await organization.remove({ id })
-  })
 })

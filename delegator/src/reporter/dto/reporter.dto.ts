@@ -5,8 +5,8 @@ export class ReporterDto {
   address: string
 
   @ApiProperty()
-  contractId: number
+  contractId: bigint
 
   @ApiProperty()
-  organizationId: number
+  organizationId: bigint
 }
