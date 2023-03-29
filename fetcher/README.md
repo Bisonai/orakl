@@ -38,7 +38,7 @@ yarn run start:prod
 
 ## Endpoints
 
-- `GET /health`
+- `GET /` (health endpoint)
 - `GET /api`
 - `GET /api/v1/start/{aggregator}`
 - `GET /api/v1/stop/{aggregator}`
