@@ -23,15 +23,13 @@ export class JobController {
       throw new HttpException(msg, HttpStatus.NOT_FOUND)
     }
 
-    // TODO define aggregator type
-    if (aggregator['active']) {
+    if (aggregator.active) {
       const msg = `Aggregator [${aggregatorHash}] is already active`
       this.logger.error(msg)
       throw new HttpException(msg, HttpStatus.BAD_REQUEST)
     }
 
-    const adapter = aggregator['adapter']
-    const feeds = extractFeeds(adapter, aggregator['id'], aggregator['aggregatorHash']) // FIXME define types
+    const feeds = extractFeeds(aggregator.adapter, aggregator.id, aggregator.aggregatorHash)
 
     // TODO Validate adapter
 

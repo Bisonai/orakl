@@ -2,6 +2,7 @@ import axios from 'axios'
 import { DATA_FEED_REDUCER_MAPPING } from './job.reducer'
 import { LOCAL_AGGREGATOR_FN } from './job.aggregator'
 import { FetcherError, FetcherErrorCode } from './job.errors'
+import { IAdapter } from './job.types'
 
 export function buildUrl(host: string, path: string) {
   const url = [host, path].join('/')
@@ -73,7 +74,7 @@ function checkDataFormat(data) {
   }
 }
 
-function validateAdapter(adapter) /*: IAdapter*/ {
+function validateAdapter(adapter): IAdapter {
   // TODO extract properties from Interface
   const requiredProperties = ['id', 'active', 'name', 'jobType', 'decimals', 'feeds']
   // TODO show where is the error
@@ -83,13 +84,13 @@ function validateAdapter(adapter) /*: IAdapter*/ {
   const isValid = hasProperty.every((x) => x)
 
   if (isValid) {
-    return adapter /*as IAdapter*/
+    return adapter as IAdapter
   } else {
     throw new FetcherError(FetcherErrorCode.InvalidAdapter)
   }
 }
 
-export function extractFeeds(adapter, aggregatorId: string, aggregatorHash: string) {
+export function extractFeeds(adapter, aggregatorId: bigint, aggregatorHash: string) {
   const adapterHash = adapter.adapterHash
   const feeds = adapter.feeds.map((f) => {
     return {
