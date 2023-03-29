@@ -20,7 +20,7 @@ export class FunctionService {
     const data: Prisma.FunctionUncheckedCreateInput = {
       name: functionDto.name,
       encodedName: this.encryptFunctionName(functionDto.name),
-      contractId: functionDto.contractId
+      contractId: BigInt(functionDto.contractId)
     }
     return await this.prisma.function.create({ data })
   }
@@ -57,21 +57,21 @@ export class FunctionService {
   }
 
   async findOne(functionWhereUniqueInput: Prisma.FunctionWhereUniqueInput) {
-    return await this.prisma.organization.findUnique({
+    return await this.prisma.function.findUnique({
       where: functionWhereUniqueInput
     })
   }
 
   async update(params: { where: Prisma.FunctionWhereUniqueInput; functionDto: FunctionDto }) {
     const { where, functionDto } = params
-    return await this.prisma.organization.update({
+    return await this.prisma.function.update({
       data: functionDto,
       where
     })
   }
 
   async remove(where: Prisma.FunctionWhereUniqueInput) {
-    return await this.prisma.organization.delete({
+    return await this.prisma.function.delete({
       where
     })
   }

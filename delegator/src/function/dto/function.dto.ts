@@ -5,8 +5,8 @@ export class FunctionDto {
   name: string
 
   @ApiProperty()
-  contractId: number
+  contractId: bigint
 
   @ApiProperty()
-  encodedName: string
+  encodedName?: string
 }
