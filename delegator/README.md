@@ -56,9 +56,39 @@ yarn run start:prod
 
 ## Endpoints
 
+App
+
 - `GET /health`
 - `GET /api`
+
+Sign
+
 - `GET /api/v1/sign/{tx}`
+- `POST /api/v1/sign/{tx}`
+
+Organization
+
+- `POST /api/v1/organization/{name}`
+- `GET /api/v1/organization/{id}`
+- `DELETE /api/v1/organization/{id}`
+
+Contract
+
+- `POST /api/v1/contract/{address}`
+- `GET /api/v1/contract/{id}`
+- `DELETE /api/v1/contract/{id}`
+
+Function
+
+- `POST /api/v1/function/{functionName}`
+- `GET /api/v1/function/{id}`
+- `DELETE /api/v1/function/{id}`
+
+Reporter
+
+- `POST /api/v1/reporter/{address}`
+- `GET /api/v1/reporter/{id}`
+- `DELETE /api/v1/reporter/{id}`
 
 ## Test
 
