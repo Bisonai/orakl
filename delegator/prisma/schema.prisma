@@ -55,7 +55,7 @@ model Contract {
 model Function {
   id          BigInt        @id @default(autoincrement())
   name        String        @db.VarChar(100)
-  encodedName String        @db.VarChar(10)
+  encodedName String        @unique @db.VarChar(10)
   contract    Contract      @relation(fields: [contractId], references: [id])
   contractId  BigInt        @map("contract_id")
   Transaction Transaction[]

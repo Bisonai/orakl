@@ -73,9 +73,10 @@ export class SignService {
         address: transaction.to
       }
     })
+    const encodedName = transaction.input.substring(0, 10)
     const functions = await this.prisma.function.findUnique({
       where: {
-        encodedName: transaction.input.substring(0, 10)
+        encodedName
       }
     })
     const reporter = await this.prisma.reporter.findUnique({
@@ -83,11 +84,6 @@ export class SignService {
         address: transaction.from
       }
     })
-
-    console.log('function:', functions)
-    console.log('contract:', contract)
-    console.log('function:', reporter)
-
     return this.prisma.transaction.update({
       data: {
         succeed,
