@@ -20,7 +20,7 @@ export class FunctionService {
     const data: Prisma.FunctionUncheckedCreateInput = {
       name: functionDto.name,
       encodedName: this.encryptFunctionName(functionDto.name),
-      contractId: BigInt(functionDto.contractId)
+      contractId: functionDto.contractId
     }
     return await this.prisma.function.create({ data })
   }
