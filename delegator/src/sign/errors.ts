@@ -8,5 +8,5 @@ export class DelegatorError extends Error {
 }
 
 export enum DelegatorErrorCode {
-  InvalidTransaction
+  NotApprovedTransaction
 }
