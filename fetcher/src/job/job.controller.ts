@@ -31,8 +31,6 @@ export class JobController {
 
     const feeds = extractFeeds(aggregator.adapter, aggregator.id, aggregator.aggregatorHash)
 
-    // TODO Validate adapter
-
     // Launch recurrent data collection
     await this.queue.add(aggregatorHash, feeds, {
       repeat: {
