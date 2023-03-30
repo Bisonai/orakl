@@ -56,39 +56,33 @@ yarn run start:prod
 
 ## Endpoints
 
-App
+### Health
 
-- `GET /health`
-- `GET /api`
+- `GET http://localhost:3000/health`
 
-Sign
+## API swagger
 
-- `GET /api/v1/sign/{tx}`
-- `POST /api/v1/sign/{tx}`
+- `http://localhost:3000/docs`
 
-Organization
+### List all signed transactions
 
-- `POST /api/v1/organization/{name}`
-- `GET /api/v1/organization/{id}`
-- `DELETE /api/v1/organization/{id}`
+- `GET http://localhost:3000/api/v1/sign/{tx}`
 
-Contract
+### List all organization
 
-- `POST /api/v1/contract/{address}`
-- `GET /api/v1/contract/{id}`
-- `DELETE /api/v1/contract/{id}`
+- `GET http://localhost:3000/api/v1/organization`
 
-Function
+### List all contract address
 
-- `POST /api/v1/function/{functionName}`
-- `GET /api/v1/function/{id}`
-- `DELETE /api/v1/function/{id}`
+- `GET http://localhost:3000/api/v1/contract/{id}`
 
-Reporter
+### List all function methods
 
-- `POST /api/v1/reporter/{address}`
-- `GET /api/v1/reporter/{id}`
-- `DELETE /api/v1/reporter/{id}`
+- `GET http://localhost:3000/api/v1/function/{id}`
+
+### List all reporter
+
+- `GET http://localhost:3000/api/v1/reporter/{id}`
 
 ## Test
 
@@ -101,10 +95,4 @@ yarn run test:e2e
 
 # test coverage
 yarn run test:cov
-```
-
-## API swagger
-
-```bash
-http://localhost:3000/docs
 ```
