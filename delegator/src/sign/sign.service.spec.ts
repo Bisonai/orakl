@@ -4,6 +4,10 @@ import { PrismaService } from '../prisma.service'
 import Caver, { AbiItem } from 'caver-js'
 import { dummyFactory } from './dummyFactory'
 import { SignDto } from './dto/sign.dto'
+import { OrganizationService } from '../organization/organization.service'
+import { ContractService } from '../contract/contract.service'
+import { FunctionService } from '../function/function.service'
+import { ReporterService } from '../reporter/reporter.service'
 
 const caver = new Caver(process.env.PROVIDER_URL)
 const keyring = caver.wallet.keyring.createFromPrivateKey(process.env.DELEGATOR_REPORTER_PK)
@@ -11,12 +15,27 @@ caver.wallet.add(keyring)
 
 describe('SignService', () => {
   let service: SignService
+  let organizationService: OrganizationService
+  let contractService: ContractService
+  let functionService: FunctionService
+  let reporterService: ReporterService
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      providers: [SignService, PrismaService]
+      providers: [
+        SignService,
+        PrismaService,
+        OrganizationService,
+        ContractService,
+        FunctionService,
+        ReporterService
+      ]
     }).compile()
     service = module.get<SignService>(SignService)
+    organizationService = module.get<OrganizationService>(OrganizationService)
+    contractService = module.get<ContractService>(ContractService)
+    functionService = module.get<FunctionService>(FunctionService)
+    reporterService = module.get<ReporterService>(ReporterService)
   })
 
   it('SignedRawTx should not be empty/null', async () => {
@@ -44,6 +63,32 @@ describe('SignService', () => {
       s: tx.signatures[0].s,
       rawTx: tx.getRawTransaction()
     }
+
+    // Setup Contract
+    const con = await contractService.create({ address: tx.to })
+    expect(con.address).toBe(tx.to)
+
+    // Setup Organization
+    const organizationName = 'BisonAI'
+    const org = await organizationService.create({ name: organizationName })
+    expect(org.name).toBe(organizationName)
+
+    // Setup functionName
+    const functionMethod = 'increment()'
+    const fun = await functionService.create({
+      name: functionMethod,
+      contractId: con.id
+    })
+    expect(fun.name).toBe(functionMethod)
+
+    // Setup reporter
+    const rep = await reporterService.create({
+      address: tx.from,
+      contractId: con.id,
+      organizationId: org.id
+    })
+    expect(rep.address).toBe(tx.from)
+
     const transaction = await service.create(data)
     expect(transaction.signedRawTx)
 
@@ -51,5 +96,11 @@ describe('SignService', () => {
     await caver.rpc.klay.sendRawTransaction(transaction.signedRawTx)
     const newCounter = await contract.methods.COUNTER().call()
     expect(Number(oldCounter) + 1).toBe(Number(newCounter))
+
+    // cleanup
+    await reporterService.remove({ id: rep.id })
+    await functionService.remove({ id: fun.id })
+    await organizationService.remove({ id: org.id })
+    await contractService.remove({ id: con.id })
   })
 })

@@ -8,7 +8,5 @@ export class DelegatorError extends Error {
 }
 
 export enum DelegatorErrorCode {
-  InvalidReporter,
-  InvalidContract,
-  InvalidMethod
+  NotApprovedTransaction
 }

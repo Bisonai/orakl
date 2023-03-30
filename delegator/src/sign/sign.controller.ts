@@ -1,4 +1,4 @@
-import { Controller, Post, Body, HttpException, HttpStatus } from '@nestjs/common'
+import { Controller, Get, Post, Body, HttpException, HttpStatus, Param } from '@nestjs/common'
 import { SignService } from './sign.service'
 import { SignDto } from './dto/sign.dto'
 
@@ -16,5 +16,15 @@ export class SignController {
     } catch (e) {
       throw new HttpException(e.message, HttpStatus.FORBIDDEN)
     }
+  }
+
+  @Get()
+  findAll() {
+    return this.signService.findAll({})
+  }
+
+  @Get(':id')
+  findOne(@Param('id') id: string) {
+    return this.signService.findOne({ id: Number(id) })
   }
 }

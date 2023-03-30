@@ -28,8 +28,8 @@ export class SignService {
       throw new HttpException(msg, HttpStatus.BAD_REQUEST)
     }
     const signedRawTx = await this.signTxByFeePayer(transaction)
-    const signedRawTransaction = await this.updateSignedRawTransaction(transaction.id, signedRawTx)
-    return signedRawTransaction
+    const signedTransaction = await this.updateTransaction(transaction, signedRawTx)
+    return signedTransaction
   }
 
   async findAll(params: {
@@ -65,9 +65,33 @@ export class SignService {
     })
   }
 
-  async updateSignedRawTransaction(id: bigint, signedRawTx: string) {
+  async updateTransaction(transaction: Transaction, signedRawTx: string) {
+    const id = transaction.id
+    const succeed = true
+    const contract = await this.prisma.contract.findUnique({
+      where: {
+        address: transaction.to
+      }
+    })
+    const encodedName = transaction.input.substring(0, 10)
+    const functions = await this.prisma.function.findUnique({
+      where: {
+        encodedName
+      }
+    })
+    const reporter = await this.prisma.reporter.findUnique({
+      where: {
+        address: transaction.from
+      }
+    })
     return this.prisma.transaction.update({
-      data: { signedRawTx },
+      data: {
+        succeed,
+        signedRawTx,
+        functionId: functions.id,
+        contractId: contract.id,
+        reporterId: reporter.id
+      },
       where: { id }
     })
   }
@@ -76,10 +100,6 @@ export class SignService {
     return this.prisma.transaction.delete({
       where
     })
-  }
-
-  encryptMethodName(methodName: string) {
-    return this.caver.klay.abi.encodeFunctionSignature(methodName)
   }
 
   async signTxByFeePayer(input: Transaction) {
@@ -97,26 +117,24 @@ export class SignService {
     return tx.getRawTransaction()
   }
 
-  validateTransaction(tx) {
-    // FIXME remove simple whiteListing settings and setup db
-    const contractList = {
-      '0x93120927379723583c7a0dd2236fcb255e96949f': {
-        methods: ['increment()', 'decrement()'],
-        reporters: ['0x260836ac4f046b6887bbe16b322e7f1e5f9a0452']
+  async validateTransaction(tx) {
+    const result = await this.prisma.contract.findMany({
+      where: {
+        address: tx.to,
+        Reporter: {
+          some: {
+            address: tx.from
+          }
+        },
+        Function: {
+          some: {
+            encodedName: tx.input.substring(0, 10)
+          }
+        }
       }
-    }
-
-    if (!(tx.to in contractList)) {
-      throw new DelegatorError(DelegatorErrorCode.InvalidContract)
-    }
-    if (!contractList[tx.to].reporters.includes(tx.from)) {
-      throw new DelegatorError(DelegatorErrorCode.InvalidReporter)
-    }
-    const isAllowedMethod = contractList[tx.to].methods.some(
-      (method) => this.encryptMethodName(method) == tx.input
-    )
-    if (!isAllowedMethod) {
-      throw new DelegatorError(DelegatorErrorCode.InvalidMethod)
+    })
+    if (result.length == 0) {
+      throw new DelegatorError(DelegatorErrorCode.NotApprovedTransaction)
     }
   }
 }
