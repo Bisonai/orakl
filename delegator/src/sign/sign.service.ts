@@ -104,13 +104,13 @@ export class SignService {
         },
         Function: {
           some: {
-            encodedName: tx.input.substring(0, 11)
+            encodedName: tx.input.substring(0, 10)
           }
         }
       }
     })
     if (result.length == 0) {
-      throw new DelegatorError(DelegatorErrorCode.InvalidTransaction)
+      throw new DelegatorError(DelegatorErrorCode.NotApprovedTransaction)
     }
   }
 }
