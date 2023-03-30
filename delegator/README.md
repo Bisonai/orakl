@@ -66,7 +66,7 @@ yarn run start:prod
 
 ### List all signed transactions
 
-- `GET http://localhost:3000/api/v1/sign/{tx}`
+- `GET http://localhost:3000/api/v1/sign`
 
 ### List all organization
 
@@ -74,15 +74,15 @@ yarn run start:prod
 
 ### List all contract address
 
-- `GET http://localhost:3000/api/v1/contract/{id}`
+- `GET http://localhost:3000/api/v1/contract`
 
 ### List all function methods
 
-- `GET http://localhost:3000/api/v1/function/{id}`
+- `GET http://localhost:3000/api/v1/function`
 
 ### List all reporter
 
-- `GET http://localhost:3000/api/v1/reporter/{id}`
+- `GET http://localhost:3000/api/v1/reporter`
 
 ## Test
 
