@@ -20,7 +20,7 @@ export class JobProcessor extends WorkerHost {
       const aggregatorHash = keys[0]
       const aggregatorId = inData[aggregatorHash].aggregatorId
       const feeds = inData[aggregatorHash].feeds
-      const data = await fetchData(feeds)
+      const data = await fetchData(feeds, this.logger)
       const aggregate = aggregateData(data)
 
       try {

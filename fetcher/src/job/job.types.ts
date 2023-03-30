@@ -54,3 +54,8 @@ export interface IAggregator {
   chainId: bigint
   adapter: IAdapter
 }
+
+export interface IFetchedData {
+  id: string
+  value: number
+}
