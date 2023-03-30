@@ -28,8 +28,8 @@ export class SignService {
       throw new HttpException(msg, HttpStatus.BAD_REQUEST)
     }
     const signedRawTx = await this.signTxByFeePayer(transaction)
-    const signedRawTransaction = await this.updateSignedRawTransaction(transaction.id, signedRawTx)
-    return signedRawTransaction
+    const signedTransaction = await this.updateTransaction(transaction, signedRawTx)
+    return signedTransaction
   }
 
   async findAll(params: {
@@ -65,9 +65,37 @@ export class SignService {
     })
   }
 
-  async updateSignedRawTransaction(id: bigint, signedRawTx: string) {
+  async updateTransaction(transaction: Transaction, signedRawTx: string) {
+    const id = transaction.id
+    const succeed = true
+    const contract = await this.prisma.contract.findUnique({
+      where: {
+        address: transaction.to
+      }
+    })
+    const functions = await this.prisma.function.findUnique({
+      where: {
+        encodedName: transaction.input.substring(0, 10)
+      }
+    })
+    const reporter = await this.prisma.reporter.findUnique({
+      where: {
+        address: transaction.from
+      }
+    })
+
+    console.log('function:', functions)
+    console.log('contract:', contract)
+    console.log('function:', reporter)
+
     return this.prisma.transaction.update({
-      data: { signedRawTx },
+      data: {
+        succeed,
+        signedRawTx,
+        functionId: functions.id,
+        contractId: contract.id,
+        reporterId: reporter.id
+      },
       where: { id }
     })
   }

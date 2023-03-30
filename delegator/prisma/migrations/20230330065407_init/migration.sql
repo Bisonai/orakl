@@ -14,6 +14,10 @@ CREATE TABLE "transactions" (
     "s" VARCHAR(66) NOT NULL,
     "rawTx" VARCHAR(1024) NOT NULL,
     "signedRawTx" VARCHAR(1024),
+    "succeed" BOOLEAN,
+    "function_id" BIGINT,
+    "contract_id" BIGINT,
+    "reporter_id" BIGINT,
 
     CONSTRAINT "transactions_pkey" PRIMARY KEY ("transaction_id")
 );
@@ -38,7 +42,7 @@ CREATE TABLE "contracts" (
 CREATE TABLE "functions" (
     "id" BIGSERIAL NOT NULL,
     "name" VARCHAR(100) NOT NULL,
-    "encodedName" VARCHAR(11) NOT NULL,
+    "encodedName" VARCHAR(10) NOT NULL,
     "contract_id" BIGINT NOT NULL,
 
     CONSTRAINT "functions_pkey" PRIMARY KEY ("id")
@@ -61,7 +65,19 @@ CREATE UNIQUE INDEX "organizations_name_key" ON "organizations"("name");
 CREATE UNIQUE INDEX "contracts_address_key" ON "contracts"("address");
 
 -- CreateIndex
+CREATE UNIQUE INDEX "functions_encodedName_key" ON "functions"("encodedName");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "reporters_address_key" ON "reporters"("address");
+
+-- AddForeignKey
+ALTER TABLE "transactions" ADD CONSTRAINT "transactions_function_id_fkey" FOREIGN KEY ("function_id") REFERENCES "functions"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "transactions" ADD CONSTRAINT "transactions_contract_id_fkey" FOREIGN KEY ("contract_id") REFERENCES "contracts"("contract_id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "transactions" ADD CONSTRAINT "transactions_reporter_id_fkey" FOREIGN KEY ("reporter_id") REFERENCES "reporters"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "functions" ADD CONSTRAINT "functions_contract_id_fkey" FOREIGN KEY ("contract_id") REFERENCES "contracts"("contract_id") ON DELETE RESTRICT ON UPDATE CASCADE;
@@ -70,4 +86,4 @@ ALTER TABLE "functions" ADD CONSTRAINT "functions_contract_id_fkey" FOREIGN KEY 
 ALTER TABLE "reporters" ADD CONSTRAINT "reporters_contract_id_fkey" FOREIGN KEY ("contract_id") REFERENCES "contracts"("contract_id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "reporters" ADD CONSTRAINT "reporters_organization_id_fkey" FOREIGN KEY ("organization_id") REFERENCES "organizations"("organization_id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "reporters" ADD CONSTRAINT "reporters_organization_id_fkey" FOREIGN KEY ("organization_id") REFERENCES "organizations"("organization_id") ON DELETE CASCADE ON UPDATE CASCADE;
