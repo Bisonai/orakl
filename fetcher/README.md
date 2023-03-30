@@ -1,6 +1,6 @@
 # Orakl Network Fetcher
 
-The Orakl Network Fetcher regularly collects data defined through aggregators registered withing the [Orakl Network API](https://github.com/Bisonai/orakl/tree/master/api).
+The Orakl Network Fetcher regularly collects data defined through aggregators registered within the [Orakl Network API](https://github.com/Bisonai/orakl/tree/master/api).
 
 ## Installation
 
