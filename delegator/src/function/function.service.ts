@@ -3,6 +3,7 @@ import { Prisma } from '@prisma/client'
 import { PrismaService } from '../prisma.service'
 import { FunctionDto } from './dto/function.dto'
 import Caver from 'caver-js'
+import { flattenFunction } from './functions.utils'
 
 @Injectable()
 export class FunctionService {
@@ -46,20 +47,22 @@ export class FunctionService {
         contract: { select: { address: true } }
       }
     })
-    return functions.map((M) => {
-      return {
-        id: M.id,
-        name: M.name,
-        encodedName: M.encodedName,
-        address: M.contract.address
-      }
+    return functions.map((F) => {
+      return flattenFunction(F)
     })
   }
 
   async findOne(functionWhereUniqueInput: Prisma.FunctionWhereUniqueInput) {
-    return await this.prisma.function.findUnique({
-      where: functionWhereUniqueInput
+    const functionInfo = await this.prisma.function.findUnique({
+      where: functionWhereUniqueInput,
+      select: {
+        id: true,
+        name: true,
+        encodedName: true,
+        contract: { select: { address: true } }
+      }
     })
+    return flattenFunction(functionInfo)
   }
 
   async update(params: { where: Prisma.FunctionWhereUniqueInput; functionDto: FunctionDto }) {
