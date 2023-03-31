@@ -2,6 +2,7 @@ import axios from 'axios'
 import { DATA_FEED_REDUCER_MAPPING } from './job.reducer'
 import { LOCAL_AGGREGATOR_FN } from './job.aggregator'
 import { FetcherError, FetcherErrorCode } from './job.errors'
+import { IAdapter, IFetchedData } from './job.types'
 
 export function buildUrl(host: string, path: string) {
   const url = [host, path].join('/')
@@ -12,10 +13,11 @@ export function buildUrl(host: string, path: string) {
  * Fetch data from data sources defined in `adapter`.
  *
  * @param {} adapter Single data adapter to define which data to fetch.
+ * @param {} NestJs logger
  * @return {number} aggregatedresults
  */
-export async function fetchData(adapter) {
-  return await Promise.all(
+export async function fetchData(adapter, logger) {
+  const data = await Promise.allSettled(
     adapter.map(async (a) => {
       const options = {
         method: a.method,
@@ -33,17 +35,18 @@ export async function fetchData(adapter) {
         checkDataFormat(datum)
         return { id: a.id, value: datum }
       } catch (e) {
-        console.error(`Error in ${a.name}`)
-        console.error(e)
-        return { id: a.id, value: undefined }
+        logger.error(`Error in ${a.name}`)
+        logger.error(e)
+        throw e
       }
     })
   )
+
+  return data.flatMap((D) => (D.status == 'fulfilled' ? [D.value] : []))
 }
 
-// TODO define data type
-export function aggregateData(data: number[]): number {
-  const aggregate = LOCAL_AGGREGATOR_FN(data.map((d) => d['value']))
+export function aggregateData(data: IFetchedData[]): number {
+  const aggregate = LOCAL_AGGREGATOR_FN(data.map((d) => d.value))
   return aggregate
 }
 
@@ -73,7 +76,7 @@ function checkDataFormat(data) {
   }
 }
 
-function validateAdapter(adapter) /*: IAdapter*/ {
+function validateAdapter(adapter): IAdapter {
   // TODO extract properties from Interface
   const requiredProperties = ['id', 'active', 'name', 'jobType', 'decimals', 'feeds']
   // TODO show where is the error
@@ -83,13 +86,13 @@ function validateAdapter(adapter) /*: IAdapter*/ {
   const isValid = hasProperty.every((x) => x)
 
   if (isValid) {
-    return adapter /*as IAdapter*/
+    return adapter as IAdapter
   } else {
     throw new FetcherError(FetcherErrorCode.InvalidAdapter)
   }
 }
 
-export function extractFeeds(adapter, aggregatorId: string, aggregatorHash: string) {
+export function extractFeeds(adapter, aggregatorId: bigint, aggregatorHash: string) {
   const adapterHash = adapter.adapterHash
   const feeds = adapter.feeds.map((f) => {
     return {

@@ -1,15 +1,25 @@
 import axios from 'axios'
+import { HttpStatus, HttpException, Logger } from '@nestjs/common'
 import { buildUrl } from './job.utils'
+import { IRawData, IData, IAggregator } from './job.types'
 
-export async function loadAggregator(aggregatorHash: string, chain: string) {
-  let response = {}
+export async function loadAggregator({
+  aggregatorHash,
+  chain,
+  logger
+}: {
+  aggregatorHash: string
+  chain: string
+  logger: Logger
+}) {
   try {
     const url = buildUrl(process.env.ORAKL_NETWORK_API_URL, `aggregator/${aggregatorHash}/${chain}`)
-    response = (await axios.get(url))?.data
+    const aggregator: IAggregator = (await axios.get(url))?.data
+    return aggregator
   } catch (e) {
-    this.logger.error(e)
-  } finally {
-    return response
+    const msg = `Loading aggregator with hash ${aggregatorHash} for chain ${chain} failed.`
+    logger.error(msg)
+    throw new HttpException(msg, HttpStatus.BAD_REQUEST)
   }
 }
 
@@ -20,9 +30,9 @@ export async function insertMultipleData({
 }: {
   aggregatorId: string
   timestamp: string
-  data: any[]
+  data: IRawData[]
 }) {
-  const _data = data.map((d) => {
+  const _data: IData[] = data.map((d) => {
     return {
       aggregatorId: aggregatorId,
       feedId: d.id,
@@ -58,7 +68,7 @@ export async function insertAggregateData({
   }
 }
 
-export async function updateAggregator(aggregatorHash: string, chain: string, active: boolean) {
+async function updateAggregator(aggregatorHash: string, chain: string, active: boolean) {
   const url = buildUrl(process.env.ORAKL_NETWORK_API_URL, `aggregator/${aggregatorHash}`)
   const response = await axios.patch(url, { data: { active, chain } })
   return response?.data

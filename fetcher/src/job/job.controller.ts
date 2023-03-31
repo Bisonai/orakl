@@ -15,7 +15,7 @@ export class JobController {
 
   @Get('start/:aggregator')
   async start(@Param('aggregator') aggregatorHash: string, @Body('chain') chain) {
-    const aggregator = await loadAggregator(aggregatorHash, chain)
+    const aggregator = await loadAggregator({ aggregatorHash, chain, logger: this.logger })
 
     if (Object.keys(aggregator).length == 0) {
       const msg = `Aggregator [${aggregatorHash}] not found`
@@ -23,17 +23,13 @@ export class JobController {
       throw new HttpException(msg, HttpStatus.NOT_FOUND)
     }
 
-    // TODO define aggregator type
-    if (aggregator['active']) {
+    if (aggregator.active) {
       const msg = `Aggregator [${aggregatorHash}] is already active`
       this.logger.error(msg)
       throw new HttpException(msg, HttpStatus.BAD_REQUEST)
     }
 
-    const adapter = aggregator['adapter']
-    const feeds = extractFeeds(adapter, aggregator['id'], aggregator['aggregatorHash']) // FIXME define types
-
-    // TODO Validate adapter
+    const feeds = extractFeeds(aggregator.adapter, aggregator.id, aggregator.aggregatorHash)
 
     // Launch recurrent data collection
     await this.queue.add(aggregatorHash, feeds, {
