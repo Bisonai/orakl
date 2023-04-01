@@ -7,6 +7,12 @@ import "../interfaces/RequestResponseCoordinatorInterface.sol";
 contract RequestResponseConsumerMock is RequestResponseConsumerBase {
     using Orakl for Orakl.Request;
     uint256 public s_response;
+    int256 public s_responseInt256;
+    bool public s_responseBool;
+    string public s_responseString;
+    bytes32 public s_responseBytes32;
+    bytes public s_responseBytes;
+
     address private s_owner;
 
     error OnlyOwner(address notOwner);
@@ -29,7 +35,7 @@ contract RequestResponseConsumerMock is RequestResponseConsumerBase {
         uint64 accId,
         uint32 callbackGasLimit
     ) public onlyOwner returns (uint256 requestId) {
-        bytes32 jobId = keccak256(abi.encodePacked("any-api-int256"));
+        bytes32 jobId = keccak256(abi.encodePacked("Uint256"));
 
         Orakl.Request memory req = buildRequest(jobId);
         req.add(
@@ -45,7 +51,7 @@ contract RequestResponseConsumerMock is RequestResponseConsumerBase {
     function requestDataDirectPayment(
         uint32 callbackGasLimit
     ) public payable onlyOwner returns (uint256 requestId) {
-        bytes32 jobId = keccak256(abi.encodePacked("any-api-int256"));
+        bytes32 jobId = keccak256(abi.encodePacked("Uint256"));
 
         Orakl.Request memory req = buildRequest(jobId);
         req.add(
@@ -58,7 +64,33 @@ contract RequestResponseConsumerMock is RequestResponseConsumerBase {
         requestId = COORDINATOR.requestData{value: msg.value}(req, callbackGasLimit);
     }
 
-    function fulfillDataRequest(uint256 /*requestId*/, uint256 response) internal override {
+    function fulfillDataRequestUint256(uint256 /*requestId*/, uint256 response) internal override {
         s_response = response;
+    }
+
+    function fulfillDataRequestInt256(uint256 /*requestId*/, int256 response) internal override {
+        s_responseInt256 = response;
+    }
+
+    function fulfillDataRequestBool(uint256 /*requestId*/, bool response) internal override {
+        s_responseBool = response;
+    }
+
+    function fulfillDataRequestString(
+        uint256 /*requestId*/,
+        string memory response
+    ) internal override {
+        s_responseString = response;
+    }
+
+    function fulfillDataRequestBytes32(uint256 /*requestId*/, bytes32 response) internal override {
+        s_responseBytes32 = response;
+    }
+
+    function fulfillDataRequestBytes(
+        uint256 /*requestId*/,
+        bytes memory response
+    ) internal override {
+        s_responseBytes = response;
     }
 }

@@ -45,9 +45,44 @@ interface RequestResponseCoordinatorInterface {
      */
     function cancelRequest(uint256 requestId) external;
 
-    function fulfillDataRequest(
+    function fulfillDataRequestUint256(
         uint256 requestId,
         uint256 response,
+        RequestCommitment memory rc,
+        bool isDirectPayment
+    ) external returns (uint256);
+
+    function fulfillDataRequestInt256(
+        uint256 requestId,
+        int256 response,
+        RequestCommitment memory rc,
+        bool isDirectPayment
+    ) external returns (uint256);
+
+    function fulfillDataRequestBool(
+        uint256 requestId,
+        bool response,
+        RequestCommitment memory rc,
+        bool isDirectPayment
+    ) external returns (uint256);
+
+    function fulfillDataRequestString(
+        uint256 requestId,
+        string memory response,
+        RequestCommitment memory rc,
+        bool isDirectPayment
+    ) external returns (uint256);
+
+    function fulfillDataRequestBytes32(
+        uint256 requestId,
+        bytes32 response,
+        RequestCommitment memory rc,
+        bool isDirectPayment
+    ) external returns (uint256);
+
+    function fulfillDataRequestBytes(
+        uint256 requestId,
+        bytes memory response,
         RequestCommitment memory rc,
         bool isDirectPayment
     ) external returns (uint256);
