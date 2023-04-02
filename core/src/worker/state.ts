@@ -174,7 +174,6 @@ export class State {
     const numActiveAggregators = activeAggregators.length
 
     const index = activeAggregators.findIndex((L) => L.aggregatorHash == aggregatorHash)
-
     if (index === -1) {
       const msg = `Aggregator with aggregatorHash=${aggregatorHash} was not found.`
       this.logger?.debug({ name: 'remove', file: FILE_NAME }, msg)
