@@ -53,5 +53,7 @@ export enum OraklErrorCode {
   AggregatorNotAdded,
   TxMissingResponseError,
   TxTransactionFailed,
-  AggregatorNotFoundInState
+  AggregatorNotFoundInState,
+  ListenerNotFoundInState,
+  ReporterNotFoundInState
 }

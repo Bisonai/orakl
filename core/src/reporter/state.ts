@@ -123,6 +123,13 @@ export class State {
     const numActiveReporters = activeReporters.length
 
     const index = activeReporters.findIndex((L) => L.id == id)
+
+    if (index === -1) {
+      const msg = `Reporter with ID=${id} was not found.`
+      this.logger?.debug({ name: 'remove', file: FILE_NAME }, msg)
+      throw new OraklError(OraklErrorCode.ReporterNotFoundInState, msg)
+    }
+
     const removedReporter = activeReporters.splice(index, 1)[0]
 
     const numUpdatedActiveReporters = activeReporters.length

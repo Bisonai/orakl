@@ -135,6 +135,13 @@ export class State {
     const numActiveListeners = activeListeners.length
 
     const index = activeListeners.findIndex((L) => L.id == id)
+
+    if (index === -1) {
+      const msg = `Listener with ID=${id} was not found.`
+      this.logger?.debug({ name: 'remove', file: FILE_NAME }, msg)
+      throw new OraklError(OraklErrorCode.ListenerNotFoundInState, msg)
+    }
+
     const removedListener = activeListeners.splice(index, 1)[0]
 
     const numUpdatedActiveListeners = activeListeners.length
