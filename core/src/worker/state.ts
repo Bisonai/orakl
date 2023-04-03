@@ -176,7 +176,7 @@ export class State {
     const index = activeAggregators.findIndex((L) => L.aggregatorHash == aggregatorHash)
     if (index === -1) {
       const msg = `Aggregator with aggregatorHash=${aggregatorHash} was not found.`
-      this.logger?.debug({ name: 'remove', file: FILE_NAME }, msg)
+      this.logger.debug({ name: 'remove', file: FILE_NAME }, msg)
       throw new OraklError(OraklErrorCode.AggregatorNotFoundInState, msg)
     }
 
