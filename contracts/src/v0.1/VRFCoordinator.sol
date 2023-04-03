@@ -22,11 +22,10 @@ contract VRFCoordinator is
     // and some arithmetic operations.
     uint256 private constant GAS_FOR_CALL_EXACT_CHECK = 5_000;
 
-    bytes32[] private s_provingKeyHashes;
-
-    /* keyHash */
-    /* oracle */
-    mapping(bytes32 => address) private s_provingKeys;
+    address[] private sOracles;
+    mapping(address => bytes32) private sOracleToKeyHash;
+    bytes32[] private sKeyHashes;
+    mapping(bytes32 => address) private sKeyHashToOracle;
 
     /* requestID */
     /* commitment */
@@ -83,7 +82,8 @@ contract VRFCoordinator is
     error InvalidAccount();
     error GasLimitTooBig(uint32 have, uint32 want);
     error NumWordsTooBig(uint32 have, uint32 want);
-    error ProvingKeyAlreadyRegistered(bytes32 keyHash);
+    error OracleAlreadyRegistered(address oracle);
+    error NoSuchOracle(address oracle);
     error NoSuchProvingKey(bytes32 keyHash);
     error NoCorrespondingRequest();
     error IncorrectCommitment();
@@ -91,8 +91,8 @@ contract VRFCoordinator is
     error InsufficientPayment(uint256 have, uint256 want);
     error RefundFailure();
 
-    event ProvingKeyRegistered(bytes32 keyHash, address indexed oracle);
-    event ProvingKeyDeregistered(bytes32 keyHash, address indexed oracle);
+    event OracleRegistered(address indexed oracle, bytes32 keyHash);
+    event OracleDeregistered(address indexed oracle, bytes32 keyHash);
     event RandomWordsRequested(
         bytes32 indexed keyHash,
         uint256 requestId,
@@ -122,7 +122,7 @@ contract VRFCoordinator is
     }
 
     modifier onlyValidKeyHash(bytes32 keyHash) {
-        if (s_provingKeys[keyHash] == address(0)) {
+        if (sKeyHashToOracle[keyHash] == address(0)) {
             revert InvalidKeyHash(keyHash);
         }
         _;
@@ -134,45 +134,56 @@ contract VRFCoordinator is
     }
 
     /**
-     * @notice Registers a proving key to an oracle.
+     * @notice Registers an oracle and its proving key.
      * @param oracle address of the oracle
      * @param publicProvingKey key that oracle can use to submit VRF fulfillments
      */
-    function registerProvingKey(
+    function registerOracle(
         address oracle,
         uint256[2] calldata publicProvingKey
     ) external onlyOwner {
-        bytes32 kh = hashOfKey(publicProvingKey);
-        if (s_provingKeys[kh] != address(0)) {
-            revert ProvingKeyAlreadyRegistered(kh);
+        if (sOracleToKeyHash[oracle] != bytes32(0)) {
+            revert OracleAlreadyRegistered(oracle);
         }
-        s_provingKeys[kh] = oracle;
-        s_provingKeyHashes.push(kh);
-        emit ProvingKeyRegistered(kh, oracle);
+
+        bytes32 kh = hashOfKey(publicProvingKey);
+        sOracles.push(oracle);
+        sKeyHashes.push(kh);
+        sOracleToKeyHash[oracle] = kh;
+        sKeyHashToOracle[kh] = oracle;
+
+        emit OracleRegistered(oracle, kh);
     }
 
     /**
-     * @notice Deregisters a proving key to an oracle.
-     * @param publicProvingKey key that oracle can use to submit VRF fulfillments
+     * @notice Deregisters an oracle.
+     * @param oracle address representing oracle that can submit VRF fulfillments
      */
-    function deregisterProvingKey(uint256[2] calldata publicProvingKey) external onlyOwner {
-        bytes32 kh = hashOfKey(publicProvingKey);
-        address oracle = s_provingKeys[kh];
-        if (oracle == address(0)) {
-            revert NoSuchProvingKey(kh);
+    function deregisterOracle(address oracle) external onlyOwner {
+        bytes32 kh = sOracleToKeyHash[oracle];
+        if (kh == bytes32(0)) {
+            revert NoSuchOracle(oracle);
         }
-        delete s_provingKeys[kh];
-        uint256 provingKeyHashesLength = s_provingKeyHashes.length;
-        for (uint256 i; i < provingKeyHashesLength; i++) {
-            if (s_provingKeyHashes[i] == kh) {
-                bytes32 last = s_provingKeyHashes[provingKeyHashesLength - 1];
-                // Copy last element and overwrite kh to be deleted with it
-                s_provingKeyHashes[i] = last;
-                s_provingKeyHashes.pop();
+        delete sOracleToKeyHash[oracle];
+        delete sKeyHashToOracle[kh];
+
+        uint256 oraclesLength = sOracles.length;
+        for (uint256 i; i < oraclesLength; ++i) {
+            if (sOracles[i] == oracle) {
+                // oracles
+                address lastOracle = sOracles[oraclesLength - 1];
+                sOracles[i] = lastOracle;
+                sOracles.pop();
+
+                // key hashes
+                bytes32 lastKeyHash = sKeyHashes[oraclesLength - 1];
+                sKeyHashes[i] = lastKeyHash;
+                sKeyHashes.pop();
                 break;
             }
         }
-        emit ProvingKeyDeregistered(kh, oracle);
+
+        emit OracleDeregistered(oracle, kh);
     }
 
     /**
@@ -235,7 +246,7 @@ contract VRFCoordinator is
      * @inheritdoc VRFCoordinatorInterface
      */
     function getRequestConfig() external view returns (uint32, bytes32[] memory) {
-        return (s_config.maxGasLimit, s_provingKeyHashes);
+        return (s_config.maxGasLimit, sKeyHashes);
     }
 
     function setDirectPaymentConfig(
@@ -334,10 +345,10 @@ contract VRFCoordinator is
             );
         }
 
-        s_prepayment.chargeFee(rc.accId, payment, s_provingKeys[keyHash]);
+        s_prepayment.chargeFee(rc.accId, payment, sKeyHashToOracle[keyHash]);
 
         // FIXME
-        //s_withdrawableTokens[s_provingKeys[rc.keyHash]] += payment;
+        //s_withdrawableTokens[sKeyHashToOracle[rc.keyHash]] += payment;
 
         // Include payment in the event for tracking costs.
         emit RandomWordsFulfilled(requestId, randomness, payment, success);
@@ -382,8 +393,8 @@ contract VRFCoordinator is
         uint64 accId,
         uint64 nonce
     ) public view returns (bool) {
-        for (uint256 i = 0; i < s_provingKeyHashes.length; i++) {
-            (uint256 reqId, ) = computeRequestId(s_provingKeyHashes[i], consumer, accId, nonce);
+        for (uint256 i = 0; i < sKeyHashes.length; i++) {
+            (uint256 reqId, ) = computeRequestId(sKeyHashes[i], consumer, accId, nonce);
             if (s_requestCommitments[reqId] != 0) {
                 return true;
             }
@@ -577,7 +588,7 @@ contract VRFCoordinator is
     ) private view returns (bytes32 keyHash, uint256 requestId, uint256 randomness) {
         keyHash = hashOfKey(proof.pk);
         // Only registered proving keys are permitted.
-        address oracle = s_provingKeys[keyHash];
+        address oracle = sKeyHashToOracle[keyHash];
         if (oracle == address(0)) {
             revert NoSuchProvingKey(keyHash);
         }
