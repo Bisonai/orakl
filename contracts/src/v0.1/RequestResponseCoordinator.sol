@@ -39,8 +39,6 @@ contract RequestResponseCoordinator is
 
     PrepaymentInterface s_prepayment;
 
-    mapping(bytes4 => uint256) private sFulfillFunctionSelector;
-
     struct Config {
         uint32 maxGasLimit;
         // Reentrancy protection.
@@ -85,6 +83,7 @@ contract RequestResponseCoordinator is
     error GasLimitTooBig(uint32 have, uint32 want);
     error OracleAlreadyRegistered(address oracle);
     error NoSuchOracle(address oracle);
+    error InvalidJobId();
 
     event DataRequested(
         uint256 indexed requestId,
@@ -275,6 +274,9 @@ contract RequestResponseCoordinator is
         uint32 callbackGasLimit,
         uint64 accId
     ) external nonReentrant returns (uint256 requestId) {
+        if (!validateJobId(req.id)) {
+            revert InvalidJobId();
+        }
         bool isDirectPayment = false;
         (uint256 balance, , , ) = s_prepayment.getAccount(accId);
         if (balance < s_minBalance) {
@@ -338,6 +340,9 @@ contract RequestResponseCoordinator is
         Orakl.Request memory req,
         uint32 callbackGasLimit
     ) external payable returns (uint256) {
+        if (!validateJobId(req.id)) {
+            revert InvalidJobId();
+        }
         uint256 fee = estimateDirectPaymentFee();
         if (msg.value < fee) {
             revert InsufficientPayment(msg.value, fee);
@@ -666,5 +671,14 @@ contract RequestResponseCoordinator is
         uint256 payment = pay(rc, isDirectPayment, startGas);
         emit DataRequestFulfilledBytes(requestId, response, payment, success);
         return payment;
+    }
+
+    function validateJobId(bytes32 jobId) internal returns (bool) {
+        return (jobId == keccak256("uint256") ||
+            jobId == keccak256("int256") ||
+            jobId == keccak256("bool") ||
+            jobId == keccak256("string") ||
+            jobId == keccak256("bytes32") ||
+            jobId == keccak256("bytes"));
     }
 }

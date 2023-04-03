@@ -35,8 +35,7 @@ contract RequestResponseConsumerMock is RequestResponseConsumerBase {
         uint64 accId,
         uint32 callbackGasLimit
     ) public onlyOwner returns (uint256 requestId) {
-        bytes32 jobId = keccak256(abi.encodePacked("Uint256"));
-
+        bytes32 jobId = keccak256(abi.encodePacked("uint256"));
         Orakl.Request memory req = buildRequest(jobId);
         req.add(
             "get",
@@ -51,8 +50,7 @@ contract RequestResponseConsumerMock is RequestResponseConsumerBase {
     function requestDataDirectPayment(
         uint32 callbackGasLimit
     ) public payable onlyOwner returns (uint256 requestId) {
-        bytes32 jobId = keccak256(abi.encodePacked("Uint256"));
-
+        bytes32 jobId = keccak256(abi.encodePacked("uint256"));
         Orakl.Request memory req = buildRequest(jobId);
         req.add(
             "get",
