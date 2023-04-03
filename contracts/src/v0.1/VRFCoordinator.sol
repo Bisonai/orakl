@@ -26,10 +26,7 @@ contract VRFCoordinator is
     mapping(address => bytes32) private sOracleToKeyHash;
     bytes32[] private sKeyHashes;
     mapping(bytes32 => address) private sKeyHashToOracle;
-
-    /* requestID */
-    /* commitment */
-    mapping(uint256 => bytes32) private sRequestCommitments;
+    mapping(uint256 => bytes32) private sRequestIdToCommitment;
 
     uint256 public sMinBalance;
 
@@ -277,7 +274,7 @@ contract VRFCoordinator is
      * @dev used to determine if a request is fulfilled or not
      */
     function getCommitment(uint256 requestId) external view returns (bytes32) {
-        return sRequestCommitments[requestId];
+        return sRequestIdToCommitment[requestId];
     }
 
     function setMinBalance(uint256 minBalance) public onlyOwner {
@@ -308,7 +305,7 @@ contract VRFCoordinator is
             randomWords[i] = uint256(keccak256(abi.encode(randomness, i)));
         }
 
-        delete sRequestCommitments[requestId];
+        delete sRequestIdToCommitment[requestId];
         VRFConsumerBase v;
         bytes memory resp = abi.encodeWithSelector(
             v.rawFulfillRandomWords.selector,
@@ -392,7 +389,7 @@ contract VRFCoordinator is
     ) public view returns (bool) {
         for (uint256 i = 0; i < sKeyHashes.length; i++) {
             (uint256 reqId, ) = computeRequestId(sKeyHashes[i], consumer, accId, nonce);
-            if (sRequestCommitments[reqId] != 0) {
+            if (sRequestIdToCommitment[reqId] != 0) {
                 return true;
             }
         }
@@ -443,7 +440,7 @@ contract VRFCoordinator is
         uint64 nonce = sPrepayment.increaseNonce(msg.sender, accId);
         (uint256 requestId, uint256 preSeed) = computeRequestId(keyHash, msg.sender, accId, nonce);
 
-        sRequestCommitments[requestId] = keccak256(
+        sRequestIdToCommitment[requestId] = keccak256(
             abi.encode(requestId, block.number, accId, callbackGasLimit, numWords, msg.sender)
         );
         emit RandomWordsRequested(
@@ -590,7 +587,7 @@ contract VRFCoordinator is
             revert NoSuchProvingKey(keyHash);
         }
         requestId = uint256(keccak256(abi.encode(keyHash, proof.seed)));
-        bytes32 commitment = sRequestCommitments[requestId];
+        bytes32 commitment = sRequestIdToCommitment[requestId];
         if (commitment == 0) {
             revert NoCorrespondingRequest();
         }
