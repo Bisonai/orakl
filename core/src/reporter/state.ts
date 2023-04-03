@@ -84,14 +84,14 @@ export class State {
 
     if (isAlreadyActive.length > 0) {
       const msg = `Reporter with ID=${id} was not added. It is already active.`
-      this.logger?.debug({ name: 'add', file: FILE_NAME }, msg)
+      this.logger.debug({ name: 'add', file: FILE_NAME }, msg)
       throw new OraklError(OraklErrorCode.ReporterNotAdded, msg)
     }
 
     const toAddReporter = await getReporter({ id, logger: this.logger })
     if (!toAddReporter) {
       const msg = `Reporter with ID=${id} cannot be found for service=${this.service} on chain=${this.chain}`
-      this.logger?.debug({ name: 'add', file: FILE_NAME }, msg)
+      this.logger.debug({ name: 'add', file: FILE_NAME }, msg)
       throw new OraklError(OraklErrorCode.ReporterNotAdded, msg)
     }
 
@@ -123,19 +123,25 @@ export class State {
     const numActiveReporters = activeReporters.length
 
     const index = activeReporters.findIndex((L) => L.id == id)
+    if (index === -1) {
+      const msg = `Reporter with ID=${id} was not found.`
+      this.logger.debug({ name: 'remove', file: FILE_NAME }, msg)
+      throw new OraklError(OraklErrorCode.ReporterNotFoundInState, msg)
+    }
+
     const removedReporter = activeReporters.splice(index, 1)[0]
 
     const numUpdatedActiveReporters = activeReporters.length
     if (numActiveReporters == numUpdatedActiveReporters) {
       const msg = `Reporter with ID=${id} was not removed. Reporter was not found.`
-      this.logger?.debug({ name: 'remove', file: FILE_NAME }, msg)
+      this.logger.debug({ name: 'remove', file: FILE_NAME }, msg)
       throw new OraklError(OraklErrorCode.ReporterNotRemoved, msg)
     }
 
     const oracleAddress = removedReporter.oracleAddress
     if (!this.wallets[oracleAddress]) {
       const msg = `Reporter with ID=${id} was not removed. Wallet associated with ${oracleAddress} oracle was not found.`
-      this.logger?.debug({ name: 'remove', file: FILE_NAME }, msg)
+      this.logger.debug({ name: 'remove', file: FILE_NAME }, msg)
       throw new OraklError(OraklErrorCode.ReporterNotRemoved, msg)
     }
 
