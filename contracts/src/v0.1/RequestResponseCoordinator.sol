@@ -673,7 +673,7 @@ contract RequestResponseCoordinator is
         return payment;
     }
 
-    function validateJobId(bytes32 jobId) internal returns (bool) {
+    function validateJobId(bytes32 jobId) internal pure returns (bool) {
         return (jobId == keccak256("uint256") ||
             jobId == keccak256("int256") ||
             jobId == keccak256("bool") ||
