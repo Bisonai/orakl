@@ -27,8 +27,6 @@ model Transaction {
   functionId  BigInt?   @map("function_id")
   contract    Contract? @relation(fields: [contractId], references: [id])
   contractId  BigInt?   @map("contract_id")
-  reporter    Reporter? @relation(fields: [reporterId], references: [id], onDelete: Cascade)
-  reporterId  BigInt?   @map("reporter_id")
 
   @@map("transactions")
 }
@@ -46,7 +44,6 @@ model Contract {
   id          BigInt        @id @default(autoincrement()) @map("contract_id")
   address     String        @unique @db.VarChar(42)
   Function    Function[]
-  Reporter    Reporter[]
   Transaction Transaction[]
 
   @@map("contracts")
@@ -64,13 +61,10 @@ model Function {
 }
 
 model Reporter {
-  id             BigInt        @id @default(autoincrement())
-  address        String        @unique @db.VarChar(42)
-  contract       Contract      @relation(fields: [contractId], references: [id])
-  contractId     BigInt        @map("contract_id")
-  organization   Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  organizationId BigInt        @map("organization_id")
-  Transaction    Transaction[]
+  id             BigInt       @id @default(autoincrement())
+  address        String       @unique @db.VarChar(42)
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  organizationId BigInt       @map("organization_id")
 
   @@map("reporters")
 }

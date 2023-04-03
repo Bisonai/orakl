@@ -10,7 +10,6 @@ export class ReporterService {
   async create(reporterDto: ReporterDto) {
     const data: Prisma.ReporterUncheckedCreateInput = {
       address: reporterDto.address,
-      contractId: reporterDto.contractId,
       organizationId: reporterDto.organizationId
     }
     return await this.prisma.reporter.create({ data })

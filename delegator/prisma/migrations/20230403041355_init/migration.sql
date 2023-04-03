@@ -17,7 +17,6 @@ CREATE TABLE "transactions" (
     "succeed" BOOLEAN,
     "function_id" BIGINT,
     "contract_id" BIGINT,
-    "reporter_id" BIGINT,
 
     CONSTRAINT "transactions_pkey" PRIMARY KEY ("transaction_id")
 );
@@ -52,7 +51,6 @@ CREATE TABLE "functions" (
 CREATE TABLE "reporters" (
     "id" BIGSERIAL NOT NULL,
     "address" VARCHAR(42) NOT NULL,
-    "contract_id" BIGINT NOT NULL,
     "organization_id" BIGINT NOT NULL,
 
     CONSTRAINT "reporters_pkey" PRIMARY KEY ("id")
@@ -77,13 +75,7 @@ ALTER TABLE "transactions" ADD CONSTRAINT "transactions_function_id_fkey" FOREIG
 ALTER TABLE "transactions" ADD CONSTRAINT "transactions_contract_id_fkey" FOREIGN KEY ("contract_id") REFERENCES "contracts"("contract_id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "transactions" ADD CONSTRAINT "transactions_reporter_id_fkey" FOREIGN KEY ("reporter_id") REFERENCES "reporters"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-
--- AddForeignKey
 ALTER TABLE "functions" ADD CONSTRAINT "functions_contract_id_fkey" FOREIGN KEY ("contract_id") REFERENCES "contracts"("contract_id") ON DELETE RESTRICT ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "reporters" ADD CONSTRAINT "reporters_contract_id_fkey" FOREIGN KEY ("contract_id") REFERENCES "contracts"("contract_id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "reporters" ADD CONSTRAINT "reporters_organization_id_fkey" FOREIGN KEY ("organization_id") REFERENCES "organizations"("organization_id") ON DELETE CASCADE ON UPDATE CASCADE;
