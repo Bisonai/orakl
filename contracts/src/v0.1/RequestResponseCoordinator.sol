@@ -34,7 +34,7 @@ contract RequestResponseCoordinator is
 
     uint256 public sMinBalance;
 
-    PrepaymentInterface sPrepayment;
+    PrepaymentInterface private sPrepayment;
 
     struct Config {
         uint32 maxGasLimit;
@@ -66,7 +66,7 @@ contract RequestResponseCoordinator is
         uint256 baseFee;
     }
 
-    DirectPaymentConfig sDirectPaymentConfig;
+    DirectPaymentConfig private sDirectPaymentConfig;
 
     error InvalidConsumer(uint64 accId, address consumer);
     error InvalidAccount();
