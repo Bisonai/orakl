@@ -65,14 +65,14 @@ contract VRFCoordinator is
     }
     FeeConfig private sFeeConfig;
 
-    PrepaymentInterface sPrepayment;
+    PrepaymentInterface private sPrepayment;
 
     struct DirectPaymentConfig {
         uint256 fulfillmentFee;
         uint256 baseFee;
     }
 
-    DirectPaymentConfig sDirectPaymentConfig;
+    DirectPaymentConfig private sDirectPaymentConfig;
 
     error InvalidKeyHash(bytes32 keyHash);
     error InvalidConsumer(uint64 accId, address consumer);
