@@ -26,7 +26,7 @@ contract RequestResponseCoordinator is
 
     /* requestID */
     /* commitment */
-    mapping(uint256 => bytes32) private sRequestCommitments;
+    mapping(uint256 => bytes32) private sRequestIdToCommitment;
 
     /* requestID */
     /* owner */
@@ -281,7 +281,7 @@ contract RequestResponseCoordinator is
         uint64 nonce = sPrepayment.increaseNonce(msg.sender, accId);
 
         uint256 requestId = computeRequestId(msg.sender, accId, nonce);
-        sRequestCommitments[requestId] = keccak256(
+        sRequestIdToCommitment[requestId] = keccak256(
             abi.encode(requestId, block.number, accId, callbackGasLimit, msg.sender)
         );
 
@@ -337,7 +337,7 @@ contract RequestResponseCoordinator is
         uint256 oraclesLength = sOracles.length;
         for (uint256 i; i < oraclesLength; ++i) {
             uint256 reqId = computeRequestId(consumer, accId, nonce);
-            if (sRequestCommitments[reqId] != 0) {
+            if (sRequestIdToCommitment[reqId] != 0) {
                 return true;
             }
         }
@@ -362,7 +362,7 @@ contract RequestResponseCoordinator is
             revert UnregisteredOracleFulfillment(msg.sender);
         }
 
-        bytes32 commitment = sRequestCommitments[requestId];
+        bytes32 commitment = sRequestIdToCommitment[requestId];
         if (commitment == 0) {
             revert NoCorrespondingRequest();
         }
@@ -374,7 +374,7 @@ contract RequestResponseCoordinator is
             revert IncorrectCommitment();
         }
 
-        delete sRequestCommitments[requestId];
+        delete sRequestIdToCommitment[requestId];
         RequestResponseConsumerBase rr;
         bytes memory resp = abi.encodeWithSelector(
             rr.rawFulfillDataRequest.selector,
@@ -422,7 +422,7 @@ contract RequestResponseCoordinator is
      * @inheritdoc RequestResponseCoordinatorInterface
      */
     function cancelRequest(uint256 requestId) external {
-        bytes32 commitment = sRequestCommitments[requestId];
+        bytes32 commitment = sRequestIdToCommitment[requestId];
         if (commitment == 0) {
             revert NoCorrespondingRequest();
         }
@@ -431,7 +431,7 @@ contract RequestResponseCoordinator is
             revert NotRequestOwner();
         }
 
-        delete sRequestCommitments[requestId];
+        delete sRequestIdToCommitment[requestId];
         delete sRequestOwner[requestId];
 
         emit DataRequestCancelled(requestId);
