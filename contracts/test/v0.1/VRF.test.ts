@@ -95,7 +95,7 @@ describe('VRF contract', function () {
       feeConfig
     } = vrfConfig()
 
-    await coordinatorContract.registerProvingKey(oracle, publicProvingKey)
+    await coordinatorContract.registerOracle(oracle, publicProvingKey)
 
     await coordinatorContract.setConfig(
       maxGasLimit,
