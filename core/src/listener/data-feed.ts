@@ -53,7 +53,6 @@ export async function buildListener(
 
   const watchmanServer = await watchman({ listenFn, state, logger })
 
-  // Graceful shutdown
   async function handleExit() {
     logger.info('Exiting. Wait for graceful shutdown.')
 
