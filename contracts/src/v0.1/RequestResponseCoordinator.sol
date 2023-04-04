@@ -21,9 +21,8 @@ contract RequestResponseCoordinator is
     // and some arithmetic operations.
     uint256 private constant GAS_FOR_CALL_EXACT_CHECK = 5_000;
 
-    /* oracle address */
-    /* registration status */
-    mapping(address => bool) private sOracles;
+    address[] public sOracles;
+    mapping(address => bool) private sIsOracleRegistered;
 
     /* requestID */
     /* commitment */
@@ -32,8 +31,6 @@ contract RequestResponseCoordinator is
     /* requestID */
     /* owner */
     mapping(uint256 => address) private sRequestOwner;
-
-    address[] private sRegisteredOracles;
 
     uint256 public sMinBalance;
 
@@ -125,11 +122,11 @@ contract RequestResponseCoordinator is
      * @param oracle address of the oracle
      */
     function registerOracle(address oracle) external onlyOwner {
-        if (sOracles[oracle]) {
+        if (sIsOracleRegistered[oracle]) {
             revert OracleAlreadyRegistered(oracle);
         }
-        sOracles[oracle] = true;
-        sRegisteredOracles.push(oracle);
+        sOracles.push(oracle);
+        sIsOracleRegistered[oracle] = true;
         emit OracleRegistered(oracle);
     }
 
@@ -138,18 +135,21 @@ contract RequestResponseCoordinator is
      * @param oracle address of the oracle
      */
     function deregisterOracle(address oracle) external onlyOwner {
-        if (!sOracles[oracle]) {
+        if (!sIsOracleRegistered[oracle]) {
             revert NoSuchOracle(oracle);
         }
-        delete sOracles[oracle];
-        for (uint256 i = 0; i < sRegisteredOracles.length; i++) {
-            if (sRegisteredOracles[i] == oracle) {
-                address last = sRegisteredOracles[sRegisteredOracles.length - 1];
-                sRegisteredOracles[i] = last;
-                sRegisteredOracles.pop();
+        delete sIsOracleRegistered[oracle];
+
+        uint256 oraclesLength = sOracles.length;
+        for (uint256 i; i < oraclesLength; ++i) {
+            if (sOracles[i] == oracle) {
+                address last = sOracles[oraclesLength - 1];
+                sOracles[i] = last;
+                sOracles.pop();
                 break;
             }
         }
+
         emit OracleDeregistered(oracle);
     }
 
@@ -334,7 +334,8 @@ contract RequestResponseCoordinator is
         uint64 accId,
         uint64 nonce
     ) public view returns (bool) {
-        for (uint256 i = 0; i < sRegisteredOracles.length; i++) {
+        uint256 oraclesLength = sOracles.length;
+        for (uint256 i; i < oraclesLength; ++i) {
             uint256 reqId = computeRequestId(consumer, accId, nonce);
             if (sRequestCommitments[reqId] != 0) {
                 return true;
@@ -357,7 +358,7 @@ contract RequestResponseCoordinator is
     ) external nonReentrant returns (uint256) {
         uint256 startGas = gasleft();
 
-        if (!sOracles[msg.sender]) {
+        if (!sIsOracleRegistered[msg.sender]) {
             revert UnregisteredOracleFulfillment(msg.sender);
         }
 
@@ -442,6 +443,14 @@ contract RequestResponseCoordinator is
      */
     function typeAndVersion() external pure virtual override returns (string memory) {
         return "RequestResponseCoordinator v0.1";
+    }
+
+    /**
+     * @notice Find out whether given oracle address was registered.
+     * @return true when oracle address registered, otherwise false
+     */
+    function isOracleRegistered(address oracle) external view returns (bool) {
+        return sIsOracleRegistered[oracle];
     }
 
     /*
