@@ -132,9 +132,8 @@ describe('VRF contract', function () {
     expect(txDeregisterReceipt.events.length).to.be.equal(1)
     const deregisterEvent = coordinatorContract.interface.parseLog(txDeregisterReceipt.events[0])
     expect(deregisterEvent.name).to.be.equal('OracleDeregistered')
-
-    expect(registerEvent.args['oracle']).to.be.equal(oracle)
-    expect(registerEvent.args['keyHash']).to.be.equal(kh)
+    expect(deregisterEvent.args['oracle']).to.be.equal(oracle)
+    expect(deregisterEvent.args['keyHash']).to.be.equal(kh)
   })
 
   it('requestRandomWords should revert on InvalidKeyHash', async function () {
