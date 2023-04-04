@@ -9,8 +9,8 @@ import {
   validateDirectPaymentConfig,
   validateMinBalanceConfig,
   validateSetConfig,
-  validateVrfDeregisterProvingKey,
-  validateVrfRegisterProvingKey
+  validateVrfDeregisterOracle,
+  validateVrfRegisterOracle
 } from '../../scripts/v0.1/utils'
 import { IVrfCoordinatorConfig } from '../../scripts/v0.1/types'
 
@@ -67,36 +67,36 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       ? vrfCoordinator
       : await ethers.getContractAt('VRFCoordinator', config.vrfCoordinatorAddress)
 
-    // Register proving key /////////////////////////////////////////////////////
-    if (config.registerProvingKey) {
-      console.log('registerProvingKey')
-      const registerProvingKeyConfig = config.registerProvingKey
-      if (!validateVrfRegisterProvingKey(registerProvingKeyConfig)) {
-        throw new Error('Invalid VRF registerProvingKey config')
+    // Register oracle //////////////////////////////////////////////////////////
+    if (config.registerOracle) {
+      console.log('registerOracle')
+      const registerOracleConfig = config.registerOracle
+      if (!validateVrfRegisterOracle(registerOracleConfig)) {
+        throw new Error('Invalid VRF registerOracle config')
       }
 
-      for (const oracle of registerProvingKeyConfig) {
+      for (const oracle of registerOracleConfig) {
         const tx = await (
-          await vrfCoordinator.registerProvingKey(oracle.address, oracle.publicProvingKey)
+          await vrfCoordinator.registerOracle(oracle.address, oracle.publicProvingKey)
         ).wait()
         console.log(
-          `Registered proving key with keyHash=${tx.events[0].args.keyHash} for address=${tx.events[0].args.oracle}`
+          `Registered oracle address=${tx.events[0].args.oracle} with keyHash=${tx.events[0].args.keyHash}`
         )
       }
     }
 
-    // Deregister proving key ///////////////////////////////////////////////////
-    if (config.deregisterProvingKey) {
-      console.log('deregisterProvingKey')
-      const deregisterProvingKeyConfig = config.deregisterProvingKey
-      if (!validateVrfDeregisterProvingKey(deregisterProvingKeyConfig)) {
-        throw new Error('Invalid VRF deregisterProvingKey config')
+    // Deregister oracle ////////////////////////////////////////////////////////
+    if (config.deregisterOracle) {
+      console.log('deregisterOracle')
+      const deregisterOracleConfig = config.deregisterOracle
+      if (!validateVrfDeregisterOracle(deregisterOracleConfig)) {
+        throw new Error('Invalid VRF deregisterOracle config')
       }
 
-      for (const oracle of deregisterProvingKeyConfig) {
-        const tx = await (await vrfCoordinator.deregisterProvingKey(oracle.publicProvingKey)).wait()
+      for (const oracle of deregisterOracleConfig) {
+        const tx = await (await vrfCoordinator.deregisterOracle(oracle.address)).wait()
         console.log(
-          `Deregistered proving key with keyHash=${tx.events[0].args.keyHash} for address=${tx.events[0].args.oracle}`
+          `Deregistered oracle address=${tx.events[0].args.oracle} with keyHash=${tx.events[0].args.keyHash}`
         )
       }
     }

@@ -78,20 +78,20 @@ export interface IRequestResponseCoordinatorConfig {
 }
 
 // VRFCoordinator
-export interface IRegisterProvingKey {
+export interface IRegisterOracle {
   address: string
   publicProvingKey: [string, string]
 }
 
-export interface IDeregisterProvingKey {
-  publicProvingKey: [string, string]
+export interface IDeregisterOracle {
+  address: string
 }
 
 export interface IVrfCoordinatorConfig {
   vrfCoordinatorAddress?: string
   deploy?: ICoordinatorDeploy
-  registerProvingKey?: IRegisterProvingKey[]
-  deregisterProvingKey?: IDeregisterProvingKey[]
+  registerOracle?: IRegisterOracle[]
+  deregisterOracle?: IDeregisterOracle[]
   setConfig?: ICoordinatorConfig
   setDirectPaymentConfig?: ICoordinatorDirectPaymentConfig
   setMinBalance?: ICoordinatorMinBalance
