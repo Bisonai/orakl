@@ -31,6 +31,7 @@ describe('RequestResponseCoordinator', function () {
     const { coordinatorContract } = await loadFixture(deployFixture)
     const { address: oracle1 } = ethers.Wallet.createRandom()
     const { address: oracle2 } = ethers.Wallet.createRandom()
+    expect(oracle1).to.not.be.equal(oracle2)
 
     // Register oracle 1
     const txReceipt = await (await coordinatorContract.registerOracle(oracle1)).wait()

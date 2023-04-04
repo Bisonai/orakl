@@ -87,6 +87,8 @@ describe('VRF contract', function () {
     const { address: oracle2 } = ethers.Wallet.createRandom()
     const publicProvingKey1 = [generateDummyPublicProvingKey(), generateDummyPublicProvingKey()]
     const publicProvingKey2 = [generateDummyPublicProvingKey(), generateDummyPublicProvingKey()]
+    expect(oracle1).to.not.be.equal(oracle2)
+    expect(publicProvingKey1).to.not.be.equal(publicProvingKey2)
 
     // Registration
     await (await coordinatorContract.registerOracle(oracle1, publicProvingKey1)).wait()
