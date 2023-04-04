@@ -163,7 +163,7 @@ contract VRFCoordinator is
      */
     function deregisterOracle(address oracle) external onlyOwner {
         bytes32 kh = sOracleToKeyHash[oracle];
-        if (kh == bytes32(0)) {
+        if (kh == bytes32(0) || sKeyHashToOracle[kh] == address(0)) {
             revert NoSuchOracle(oracle);
         }
         delete sOracleToKeyHash[oracle];
