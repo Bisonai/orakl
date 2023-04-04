@@ -2,9 +2,20 @@ import { loadFixture } from '@nomicfoundation/hardhat-network-helpers'
 import { expect } from 'chai'
 import hre from 'hardhat'
 import { ethers } from 'hardhat'
+import crypto from 'crypto'
 import { vrfConfig } from './VRF.config'
 import { parseKlay } from './utils'
 import { createAccount } from './Prepayment.utils'
+
+function generateDummyPublicProvingKey() {
+  const L = 77
+  return crypto
+    .getRandomValues(new Uint8Array(L))
+    .map((a) => {
+      return a % 10
+    })
+    .reduce((acc, v) => acc + v, '')
+}
 
 describe('VRF contract', function () {
   async function deployFixture() {
@@ -51,6 +62,51 @@ describe('VRF contract', function () {
       prepaymentContract
     }
   }
+
+  it('should register oracle', async function () {
+    const { coordinatorContract } = await loadFixture(deployFixture)
+    const { address: oracle } = ethers.Wallet.createRandom()
+    const publicProvingKey = [generateDummyPublicProvingKey(), generateDummyPublicProvingKey()]
+
+    // Registration
+    const txReceipt = await (
+      await coordinatorContract.registerOracle(oracle, publicProvingKey)
+    ).wait()
+
+    expect(txReceipt.events.length).to.be.equal(1)
+    const registerEvent = coordinatorContract.interface.parseLog(txReceipt.events[0])
+    expect(registerEvent.name).to.be.equal('OracleRegistered')
+
+    const eventArgs = ['oracle', 'keyHash']
+    for (const arg of eventArgs) {
+      expect(registerEvent.args[arg]).to.not.be.undefined
+    }
+  })
+
+  it('should not allow to register the same oracle or public provin key twice', async function () {
+    const { coordinatorContract } = await loadFixture(deployFixture)
+    const { address: oracle1 } = ethers.Wallet.createRandom()
+    const { address: oracle2 } = ethers.Wallet.createRandom()
+    const publicProvingKey1 = [generateDummyPublicProvingKey(), generateDummyPublicProvingKey()]
+    const publicProvingKey2 = [generateDummyPublicProvingKey(), generateDummyPublicProvingKey()]
+
+    // Registration
+    await (await coordinatorContract.registerOracle(oracle1, publicProvingKey1)).wait()
+    // Neither oracle or public proving key can be registered twice
+    await expect(
+      coordinatorContract.registerOracle(oracle1, publicProvingKey1)
+    ).to.be.revertedWithCustomError(coordinatorContract, 'OracleAlreadyRegistered')
+
+    // Oracle cannot be registered twice
+    await expect(
+      coordinatorContract.registerOracle(oracle1, publicProvingKey2)
+    ).to.be.revertedWithCustomError(coordinatorContract, 'OracleAlreadyRegistered')
+
+    // Public proving key cannot be registered twice
+    await expect(
+      coordinatorContract.registerOracle(oracle2, publicProvingKey1)
+    ).to.be.revertedWithCustomError(coordinatorContract, 'ProvingKeyAlreadyRegistered')
+  })
 
   it('requestRandomWords should revert on InvalidKeyHash', async function () {
     const { accId, coordinatorContract, consumerContract, dummyKeyHash } = await loadFixture(
