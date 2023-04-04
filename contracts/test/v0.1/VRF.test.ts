@@ -77,13 +77,11 @@ describe('VRF contract', function () {
     const registerEvent = coordinatorContract.interface.parseLog(txReceipt.events[0])
     expect(registerEvent.name).to.be.equal('OracleRegistered')
 
-    const eventArgs = ['oracle', 'keyHash']
-    for (const arg of eventArgs) {
-      expect(registerEvent.args[arg]).to.not.be.undefined
-    }
+    expect(registerEvent.args['oracle']).to.be.equal(oracle)
+    expect(registerEvent.args['keyHash']).to.not.be.undefined
   })
 
-  it('should not allow to register the same oracle or public provin key twice', async function () {
+  it('should not allow to register the same oracle or public proving key twice', async function () {
     const { coordinatorContract } = await loadFixture(deployFixture)
     const { address: oracle1 } = ethers.Wallet.createRandom()
     const { address: oracle2 } = ethers.Wallet.createRandom()
@@ -106,6 +104,37 @@ describe('VRF contract', function () {
     await expect(
       coordinatorContract.registerOracle(oracle2, publicProvingKey1)
     ).to.be.revertedWithCustomError(coordinatorContract, 'ProvingKeyAlreadyRegistered')
+  })
+
+  it('should allow to deregister registered oracle', async function () {
+    const { coordinatorContract } = await loadFixture(deployFixture)
+    const { address: oracle } = ethers.Wallet.createRandom()
+    const publicProvingKey = [generateDummyPublicProvingKey(), generateDummyPublicProvingKey()]
+
+    // Cannot deregister underegistered oracle
+    await expect(coordinatorContract.deregisterOracle(oracle)).to.be.revertedWithCustomError(
+      coordinatorContract,
+      'NoSuchOracle'
+    )
+
+    // Registration
+    const txRegisterReceipt = await (
+      await coordinatorContract.registerOracle(oracle, publicProvingKey)
+    ).wait()
+    expect(txRegisterReceipt.events.length).to.be.equal(1)
+    const registerEvent = coordinatorContract.interface.parseLog(txRegisterReceipt.events[0])
+    expect(registerEvent.name).to.be.equal('OracleRegistered')
+    const kh = registerEvent.args['keyHash']
+    expect(kh).to.not.be.undefined
+
+    // Deregistration
+    const txDeregisterReceipt = await (await coordinatorContract.deregisterOracle(oracle)).wait()
+    expect(txDeregisterReceipt.events.length).to.be.equal(1)
+    const deregisterEvent = coordinatorContract.interface.parseLog(txDeregisterReceipt.events[0])
+    expect(deregisterEvent.name).to.be.equal('OracleDeregistered')
+
+    expect(registerEvent.args['oracle']).to.be.equal(oracle)
+    expect(registerEvent.args['keyHash']).to.be.equal(kh)
   })
 
   it('requestRandomWords should revert on InvalidKeyHash', async function () {
