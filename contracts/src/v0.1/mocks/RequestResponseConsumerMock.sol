@@ -6,20 +6,20 @@ import "../interfaces/RequestResponseCoordinatorInterface.sol";
 
 contract RequestResponseConsumerMock is RequestResponseConsumerBase {
     using Orakl for Orakl.Request;
-    uint256 public s_response;
-    address private s_owner;
+    uint256 public sResponse;
+    address private sOwner;
 
     error OnlyOwner(address notOwner);
 
     modifier onlyOwner() {
-        if (msg.sender != s_owner) {
+        if (msg.sender != sOwner) {
             revert OnlyOwner(msg.sender);
         }
         _;
     }
 
     constructor(address coordinator) RequestResponseConsumerBase(coordinator) {
-        s_owner = msg.sender;
+        sOwner = msg.sender;
     }
 
     // Receive remaining payment from requestDataPayment
@@ -59,6 +59,6 @@ contract RequestResponseConsumerMock is RequestResponseConsumerBase {
     }
 
     function fulfillDataRequest(uint256 /*requestId*/, uint256 response) internal override {
-        s_response = response;
+        sResponse = response;
     }
 }
