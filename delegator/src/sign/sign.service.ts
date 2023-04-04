@@ -89,7 +89,8 @@ export class SignService {
         succeed,
         signedRawTx,
         functionId: functions.id,
-        contractId: contract.id
+        contractId: contract.id,
+        reporterId: reporter.id
       },
       where: { id }
     })
@@ -117,23 +118,30 @@ export class SignService {
   }
 
   async validateTransaction(tx) {
-    // const result = await this.prisma.contract.findMany({
-    //   where: {
-    //     address: tx.to,
-    //     Reporter: {
-    //       some: {
-    //         address: tx.from
-    //       }
-    //     },
-    //     Function: {
-    //       some: {
-    //         encodedName: tx.input.substring(0, 10)
-    //       }
-    //     }
-    //   }
-    // })
-    // if (result.length == 0) {
-    //   throw new DelegatorError(DelegatorErrorCode.NotApprovedTransaction)
-    // }
+    const result = await this.prisma.contract.findMany({
+      where: {
+        address: tx.to,
+        reporter: {
+          some: {
+            address: tx.from
+          }
+        },
+        function: {
+          some: {
+            encodedName: tx.input.substring(0, 10)
+          }
+        }
+      },
+      include: {
+        reporter: true,
+        function: true,
+        transaction: true
+      }
+    })
+
+    console.log('ValidateTransaction:', result)
+    if (result.length == 0) {
+      throw new DelegatorError(DelegatorErrorCode.NotApprovedTransaction)
+    }
   }
 }

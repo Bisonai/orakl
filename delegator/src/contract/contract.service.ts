@@ -8,7 +8,11 @@ export class ContractService {
   constructor(private prisma: PrismaService) {}
 
   async create(contractDto: ContractDto) {
-    return await this.prisma.contract.create({ data: contractDto })
+    return await this.prisma.contract.create({
+      data: {
+        address: contractDto.address
+      }
+    })
   }
 
   async findAll(params: {
@@ -24,7 +28,12 @@ export class ContractService {
       take,
       cursor,
       where,
-      orderBy
+      orderBy,
+      select: {
+        id: true,
+        address: true,
+        reporter: true
+      }
     })
   }
 
@@ -42,6 +51,21 @@ export class ContractService {
     })
   }
 
+  async connectToReporter(params: { contractId: bigint; reporterId: bigint }) {
+    const { contractId, reporterId } = params
+    await this.prisma.contract.update({
+      where: {
+        id: contractId
+      },
+      data: {
+        reporter: {
+          connect: {
+            id: reporterId
+          }
+        }
+      }
+    })
+  }
   async remove(where: Prisma.ContractWhereUniqueInput) {
     return await this.prisma.contract.delete({
       where

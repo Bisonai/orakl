@@ -28,7 +28,12 @@ export class ReporterService {
       take,
       cursor,
       where,
-      orderBy
+      orderBy,
+      select: {
+        id: true,
+        address: true,
+        contract: true
+      }
     })
   }
 
@@ -49,6 +54,22 @@ export class ReporterService {
   async remove(where: Prisma.ReporterWhereUniqueInput) {
     return await this.prisma.reporter.delete({
       where
+    })
+  }
+
+  async connectToContract(params: { contractId: bigint; reporterId: bigint }) {
+    const { contractId, reporterId } = params
+    await this.prisma.reporter.update({
+      where: {
+        id: reporterId
+      },
+      data: {
+        contract: {
+          connect: {
+            id: contractId
+          }
+        }
+      }
     })
   }
 }

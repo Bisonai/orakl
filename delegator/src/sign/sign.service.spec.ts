@@ -64,22 +64,10 @@ describe('SignService', () => {
       rawTx: tx.getRawTransaction()
     }
 
-    // // Setup Contract
-    // const con = await contractService.create({ address: tx.to })
-    // expect(con.address).toBe(tx.to)
-
     // Setup Organization
     const organizationName = 'BisonAI'
     const org = await organizationService.create({ name: organizationName })
     expect(org.name).toBe(organizationName)
-
-    // // Setup functionName
-    // const functionMethod = 'increment()'
-    // const fun = await functionService.create({
-    //   name: functionMethod,
-    //   contractId: con.id
-    // })
-    // expect(fun.name).toBe(functionMethod)
 
     // Setup reporter
     const rep = await reporterService.create({
@@ -88,18 +76,55 @@ describe('SignService', () => {
     })
     expect(rep.address).toBe(tx.from)
 
-    // const transaction = await service.create(data)
-    // expect(transaction.signedRawTx)
+    // Setup Contract
+    const con = await contractService.create({
+      address: tx.to
+    })
 
-    // const oldCounter = await contract.methods.COUNTER().call()
-    // await caver.rpc.klay.sendRawTransaction(transaction.signedRawTx)
-    // const newCounter = await contract.methods.COUNTER().call()
-    // expect(Number(oldCounter) + 1).toBe(Number(newCounter))
+    // Connect Contract to Reporter
+    await contractService.connectToReporter({
+      contractId: con.id,
+      reporterId: rep.id
+    })
+
+    // // Connect Reporter to Contract
+    // await reporterService.connectToContract({
+    //   contractId: con.id,
+    //   reporterId: rep.id
+    // })
+
+    expect(con.address).toBe(tx.to)
+    console.log('Rep:', rep)
+    console.log('Org:', org)
+    console.log('Con:', con)
+
+    // Setup functionName
+    const functionMethod = 'increment()'
+    const fun = await functionService.create({
+      name: functionMethod,
+      contractId: con.id
+    })
+    expect(fun.name).toBe(functionMethod)
+
+    const transaction = await service.create(data)
+    expect(transaction.signedRawTx)
+
+    const oldCounter = await contract.methods.COUNTER().call()
+    await caver.rpc.klay.sendRawTransaction(transaction.signedRawTx)
+    const newCounter = await contract.methods.COUNTER().call()
+    expect(Number(oldCounter) + 1).toBe(Number(newCounter))
+
+    const listOrganizations = await organizationService.findAll({})
+    const listReporters = await reporterService.findAll({})
+    const listContracts = await contractService.findAll({})
+    console.log('Organization: ', listOrganizations)
+    console.log('Reporters: ', listReporters)
+    console.log('Contracts: ', listContracts)
 
     // cleanup
+    await functionService.remove({ id: fun.id })
     await reporterService.remove({ id: rep.id })
     await organizationService.remove({ id: org.id })
-    // await functionService.remove({ id: fun.id })
-    // await contractService.remove({ id: con.id })
+    await contractService.remove({ id: con.id })
   })
 })
