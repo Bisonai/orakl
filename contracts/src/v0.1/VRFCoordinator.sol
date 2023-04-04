@@ -419,6 +419,22 @@ contract VRFCoordinator is
         return "VRFCoordinator v0.1";
     }
 
+    /**
+     * @notice Find key hash associated with given oracle address.
+     * @return keyhash
+     */
+    function oracleToKeyHash(address oracle) external view returns (bytes32) {
+        return sOracleToKeyHash[oracle];
+    }
+
+    /**
+     * @notice Find key oracle associated with given key hash.
+     * @return oracle address
+     */
+    function keyHashToOracle(bytes32 keyHash) external view returns (address) {
+        return sKeyHashToOracle[keyHash];
+    }
+
     /*
      * @notice Compute fee based on the request count
      * @param reqCount number of requests
