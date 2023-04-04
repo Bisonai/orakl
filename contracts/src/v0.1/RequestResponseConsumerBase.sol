@@ -8,12 +8,27 @@ abstract contract RequestResponseConsumerBase {
 
     error OnlyCoordinatorCanFulfill(address have, address want);
     RequestResponseCoordinatorInterface public immutable COORDINATOR;
+    mapping(bytes32 => bytes4) private sJobIdToFunctionSelector;
 
     /**
      * @param _requestResponseCoordinator address of RequestResponseCoordinator contract
      */
     constructor(address _requestResponseCoordinator) {
         COORDINATOR = RequestResponseCoordinatorInterface(_requestResponseCoordinator);
+        sJobIdToFunctionSelector[keccak256("uint256")] = COORDINATOR
+            .fulfillDataRequestUint256
+            .selector;
+        sJobIdToFunctionSelector[keccak256("int256")] = COORDINATOR
+            .fulfillDataRequestInt256
+            .selector;
+        sJobIdToFunctionSelector[keccak256("bool")] = COORDINATOR.fulfillDataRequestInt256.selector;
+        sJobIdToFunctionSelector[keccak256("string")] = COORDINATOR
+            .fulfillDataRequestString
+            .selector;
+        sJobIdToFunctionSelector[keccak256("bytes32")] = COORDINATOR
+            .fulfillDataRequestBytes32
+            .selector;
+        sJobIdToFunctionSelector[keccak256("bytes")] = COORDINATOR.fulfillDataRequestBytes.selector;
     }
 
     /**
@@ -22,24 +37,7 @@ abstract contract RequestResponseConsumerBase {
      * @return req request in memory
      */
     function buildRequest(bytes32 jobId) internal view returns (Orakl.Request memory req) {
-        bytes4 callbackFunc = detectCallbackFunc(jobId);
-        return req.initialize(jobId, address(COORDINATOR), callbackFunc);
-    }
-
-    function detectCallbackFunc(bytes32 jobId) internal view returns (bytes4 callbackFunc) {
-        if (jobId == keccak256("uint256")) {
-            return COORDINATOR.fulfillDataRequestUint256.selector;
-        } else if (jobId == keccak256("int256")) {
-            return COORDINATOR.fulfillDataRequestInt256.selector;
-        } else if (jobId == keccak256("bool")) {
-            return COORDINATOR.fulfillDataRequestBool.selector;
-        } else if (jobId == keccak256("string")) {
-            return COORDINATOR.fulfillDataRequestString.selector;
-        } else if (jobId == keccak256("bytes32")) {
-            return COORDINATOR.fulfillDataRequestBytes32.selector;
-        } else if (jobId == keccak256("bytes")) {
-            return COORDINATOR.fulfillDataRequestBytes.selector;
-        }
+        return req.initialize(jobId, address(COORDINATOR), sJobIdToFunctionSelector[jobId]);
     }
 
     function fulfillDataRequestUint256(uint256 requestId, uint256 response) internal virtual;

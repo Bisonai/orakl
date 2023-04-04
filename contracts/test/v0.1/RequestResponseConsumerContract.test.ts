@@ -140,10 +140,6 @@ describe('Request-Response user contract', function () {
     expect(prepaymentEvent.name).to.be.equal('AccountBalanceDecreased')
     expect(prepaymentEvent.args.accId).to.be.equal(accId)
 
-    // FIXME
-    // expect(prepaymentEvent.args.oldBalance).to.be.equal()
-    // expect(prepaymentEvent.args.newBalance).to.be.equal()
-
     // COORDINATOR EVENT
     const fulfillEvent = coordinatorContract.interface.parseLog(fulfillReceipt.events[1])
     expect(fulfillEvent.name).to.be.equal('DataRequestFulfilledUint256')
@@ -226,10 +222,6 @@ describe('Request-Response user contract', function () {
     const prepaymentEvent = prepaymentContract.interface.parseLog(fulfillReceipt.events[0])
     expect(prepaymentEvent.name).to.be.equal('AccountBalanceDecreased')
     expect(prepaymentEvent.args.accId).to.be.equal(accId)
-
-    // FIXME
-    // expect(prepaymentEvent.args.oldBalance).to.be.equal()
-    // expect(prepaymentEvent.args.newBalance).to.be.equal()
 
     // COORDINATOR EVENT
     const fulfillEvent = coordinatorContract.interface.parseLog(fulfillReceipt.events[1])
@@ -314,10 +306,6 @@ describe('Request-Response user contract', function () {
     expect(prepaymentEvent.name).to.be.equal('AccountBalanceDecreased')
     expect(prepaymentEvent.args.accId).to.be.equal(accId)
 
-    // FIXME
-    // expect(prepaymentEvent.args.oldBalance).to.be.equal()
-    // expect(prepaymentEvent.args.newBalance).to.be.equal()
-
     // COORDINATOR EVENT
     const fulfillEvent = coordinatorContract.interface.parseLog(fulfillReceipt.events[1])
     expect(fulfillEvent.name).to.be.equal('DataRequestFulfilledBool')
@@ -400,10 +388,6 @@ describe('Request-Response user contract', function () {
     const prepaymentEvent = prepaymentContract.interface.parseLog(fulfillReceipt.events[0])
     expect(prepaymentEvent.name).to.be.equal('AccountBalanceDecreased')
     expect(prepaymentEvent.args.accId).to.be.equal(accId)
-
-    // FIXME
-    // expect(prepaymentEvent.args.oldBalance).to.be.equal()
-    // expect(prepaymentEvent.args.newBalance).to.be.equal()
 
     // COORDINATOR EVENT
     const fulfillEvent = coordinatorContract.interface.parseLog(fulfillReceipt.events[1])
@@ -488,10 +472,6 @@ describe('Request-Response user contract', function () {
     expect(prepaymentEvent.name).to.be.equal('AccountBalanceDecreased')
     expect(prepaymentEvent.args.accId).to.be.equal(accId)
 
-    // FIXME
-    // expect(prepaymentEvent.args.oldBalance).to.be.equal()
-    // expect(prepaymentEvent.args.newBalance).to.be.equal()
-
     // COORDINATOR EVENT
     const fulfillEvent = coordinatorContract.interface.parseLog(fulfillReceipt.events[1])
     expect(fulfillEvent.name).to.be.equal('DataRequestFulfilledBytes32')
@@ -555,7 +535,7 @@ describe('Request-Response user contract', function () {
       coordinatorContract.address,
       rrOracle0
     )
-
+    console.log(maxGasLimit)
     const fulfillReceipt = await (
       await coordinatorContractOracleSigner.fulfillDataRequestBytes(
         requestId,
@@ -574,10 +554,6 @@ describe('Request-Response user contract', function () {
     const prepaymentEvent = prepaymentContract.interface.parseLog(fulfillReceipt.events[0])
     expect(prepaymentEvent.name).to.be.equal('AccountBalanceDecreased')
     expect(prepaymentEvent.args.accId).to.be.equal(accId)
-
-    // FIXME
-    // expect(prepaymentEvent.args.oldBalance).to.be.equal()
-    // expect(prepaymentEvent.args.newBalance).to.be.equal()
 
     // COORDINATOR EVENT
     const fulfillEvent = coordinatorContract.interface.parseLog(fulfillReceipt.events[1])

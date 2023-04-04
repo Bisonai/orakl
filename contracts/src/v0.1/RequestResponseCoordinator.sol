@@ -70,6 +70,7 @@ contract RequestResponseCoordinator is
     }
 
     DirectPaymentConfig s_directPaymentConfig;
+    mapping(bytes32 => string) private sJobIdToFunctionSelector;
 
     error InvalidConsumer(uint64 accId, address consumer);
     error InvalidAccount();
@@ -150,7 +151,12 @@ contract RequestResponseCoordinator is
 
     constructor(address prepayment) {
         s_prepayment = PrepaymentInterface(prepayment);
-        emit PrepaymentSet(prepayment);
+        sJobIdToFunctionSelector[keccak256("uint256")] = "uint256";
+        sJobIdToFunctionSelector[keccak256("int256")] = "int256";
+        sJobIdToFunctionSelector[keccak256("bool")] = "bool";
+        sJobIdToFunctionSelector[keccak256("string")] = "string";
+        sJobIdToFunctionSelector[keccak256("bytes32")] = "bytes32";
+        sJobIdToFunctionSelector[keccak256("bytes")] = "bytes";
     }
 
     /**
@@ -274,7 +280,7 @@ contract RequestResponseCoordinator is
         uint32 callbackGasLimit,
         uint64 accId
     ) external nonReentrant returns (uint256 requestId) {
-        if (!validateJobId(req.id)) {
+        if (bytes(sJobIdToFunctionSelector[req.id]).length == 0) {
             revert InvalidJobId();
         }
         bool isDirectPayment = false;
@@ -340,7 +346,7 @@ contract RequestResponseCoordinator is
         Orakl.Request memory req,
         uint32 callbackGasLimit
     ) external payable returns (uint256) {
-        if (!validateJobId(req.id)) {
+        if (bytes(sJobIdToFunctionSelector[req.id]).length == 0) {
             revert InvalidJobId();
         }
         uint256 fee = estimateDirectPaymentFee();
@@ -671,14 +677,5 @@ contract RequestResponseCoordinator is
         uint256 payment = pay(rc, isDirectPayment, startGas);
         emit DataRequestFulfilledBytes(requestId, response, payment, success);
         return payment;
-    }
-
-    function validateJobId(bytes32 jobId) internal pure returns (bool) {
-        return (jobId == keccak256("uint256") ||
-            jobId == keccak256("int256") ||
-            jobId == keccak256("bool") ||
-            jobId == keccak256("string") ||
-            jobId == keccak256("bytes32") ||
-            jobId == keccak256("bytes"));
     }
 }
