@@ -211,7 +211,7 @@ contract RequestResponseCoordinator is
 
     function setDirectPaymentConfig(
         DirectPaymentConfig memory directPaymentConfig
-    ) public onlyOwner {
+    ) external onlyOwner {
         sDirectPaymentConfig = directPaymentConfig;
         emit DirectPaymentConfigSet(
             directPaymentConfig.fulfillmentFee,
@@ -223,81 +223,8 @@ contract RequestResponseCoordinator is
         return (sDirectPaymentConfig.fulfillmentFee, sDirectPaymentConfig.baseFee);
     }
 
-    function estimateDirectPaymentFee() public view returns (uint256) {
-        return sDirectPaymentConfig.fulfillmentFee + sDirectPaymentConfig.baseFee;
-    }
-
-    function getPrepaymentAddress() public view returns (address) {
+    function getPrepaymentAddress() external view returns (address) {
         return address(sPrepayment);
-    }
-
-    function setMinBalance(uint256 minBalance) public onlyOwner {
-        sMinBalance = minBalance;
-        emit MinBalanceSet(minBalance);
-    }
-
-    function requestData(
-        Orakl.Request memory req,
-        uint32 callbackGasLimit,
-        uint64 accId
-    ) external nonReentrant returns (uint256 requestId) {
-        bool isDirectPayment = false;
-        (uint256 balance, , , ) = sPrepayment.getAccount(accId);
-        if (balance < sMinBalance) {
-            revert InsufficientPayment(balance, sMinBalance);
-        }
-        requestId = requestDataInternal(req, accId, callbackGasLimit, isDirectPayment);
-    }
-
-    function requestDataInternal(
-        Orakl.Request memory req,
-        uint64 accId,
-        uint32 callbackGasLimit,
-        bool isDirectPayment
-    ) internal returns (uint256) {
-        // Input validation using the account storage.
-        // call to prepayment contract
-        address owner = sPrepayment.getAccountOwner(accId);
-        if (owner == address(0)) {
-            revert InvalidAccount();
-        }
-
-        // Its important to ensure that the consumer is in fact who they say they
-        // are, otherwise they could use someone else's account balance.
-        // A nonce of 0 indicates consumer is not allocated to the acc.
-        uint64 currentNonce = sPrepayment.getNonce(msg.sender, accId);
-        if (currentNonce == 0) {
-            revert InvalidConsumer(accId, msg.sender);
-        }
-
-        // TODO update comment
-        // No lower bound on the requested gas limit. A user could request 0
-        // and they would simply be billed for the proof verification and wouldn't be
-        // able to do anything with the random value.
-        if (callbackGasLimit > sConfig.maxGasLimit) {
-            revert GasLimitTooBig(callbackGasLimit, sConfig.maxGasLimit);
-        }
-
-        uint64 nonce = sPrepayment.increaseNonce(msg.sender, accId);
-
-        uint256 requestId = computeRequestId(msg.sender, accId, nonce);
-        sRequestIdToCommitment[requestId] = keccak256(
-            abi.encode(requestId, block.number, accId, callbackGasLimit, msg.sender)
-        );
-
-        sRequestOwner[requestId] = msg.sender;
-
-        emit DataRequested(
-            requestId,
-            req.id,
-            accId,
-            callbackGasLimit,
-            msg.sender,
-            isDirectPayment,
-            req.buf.buf
-        );
-
-        return requestId;
     }
 
     function requestData(
@@ -326,22 +253,22 @@ contract RequestResponseCoordinator is
         return requestId;
     }
 
-    /**
-     * @inheritdoc CoordinatorBaseInterface
-     */
-    function pendingRequestExists(
-        address consumer,
-        uint64 accId,
-        uint64 nonce
-    ) public view returns (bool) {
-        uint256 oraclesLength = sOracles.length;
-        for (uint256 i; i < oraclesLength; ++i) {
-            uint256 reqId = computeRequestId(consumer, accId, nonce);
-            if (sRequestIdToCommitment[reqId] != 0) {
-                return true;
-            }
+    function setMinBalance(uint256 minBalance) external onlyOwner {
+        sMinBalance = minBalance;
+        emit MinBalanceSet(minBalance);
+    }
+
+    function requestData(
+        Orakl.Request memory req,
+        uint32 callbackGasLimit,
+        uint64 accId
+    ) external nonReentrant returns (uint256 requestId) {
+        bool isDirectPayment = false;
+        (uint256 balance, , , ) = sPrepayment.getAccount(accId);
+        if (balance < sMinBalance) {
+            revert InsufficientPayment(balance, sMinBalance);
         }
-        return false;
+        requestId = requestDataInternal(req, accId, callbackGasLimit, isDirectPayment);
     }
 
     /**
@@ -453,6 +380,89 @@ contract RequestResponseCoordinator is
         return sIsOracleRegistered[oracle];
     }
 
+    function estimateDirectPaymentFee() internal view returns (uint256) {
+        return sDirectPaymentConfig.fulfillmentFee + sDirectPaymentConfig.baseFee;
+    }
+
+    function requestDataInternal(
+        Orakl.Request memory req,
+        uint64 accId,
+        uint32 callbackGasLimit,
+        bool isDirectPayment
+    ) internal returns (uint256) {
+        // Input validation using the account storage.
+        // call to prepayment contract
+        address owner = sPrepayment.getAccountOwner(accId);
+        if (owner == address(0)) {
+            revert InvalidAccount();
+        }
+
+        // Its important to ensure that the consumer is in fact who they say they
+        // are, otherwise they could use someone else's account balance.
+        // A nonce of 0 indicates consumer is not allocated to the acc.
+        uint64 currentNonce = sPrepayment.getNonce(msg.sender, accId);
+        if (currentNonce == 0) {
+            revert InvalidConsumer(accId, msg.sender);
+        }
+
+        // TODO update comment
+        // No lower bound on the requested gas limit. A user could request 0
+        // and they would simply be billed for the proof verification and wouldn't be
+        // able to do anything with the random value.
+        if (callbackGasLimit > sConfig.maxGasLimit) {
+            revert GasLimitTooBig(callbackGasLimit, sConfig.maxGasLimit);
+        }
+
+        uint64 nonce = sPrepayment.increaseNonce(msg.sender, accId);
+
+        uint256 requestId = computeRequestId(msg.sender, accId, nonce);
+        sRequestIdToCommitment[requestId] = keccak256(
+            abi.encode(requestId, block.number, accId, callbackGasLimit, msg.sender)
+        );
+
+        sRequestOwner[requestId] = msg.sender;
+
+        emit DataRequested(
+            requestId,
+            req.id,
+            accId,
+            callbackGasLimit,
+            msg.sender,
+            isDirectPayment,
+            req.buf.buf
+        );
+
+        return requestId;
+    }
+
+    function calculatePaymentAmount(
+        uint256 startGas,
+        uint256 gasAfterPaymentCalculation,
+        uint32 fulfillmentFlatFeeKlayPPM
+    ) internal view returns (uint256) {
+        uint256 paymentNoFee = tx.gasprice * (gasAfterPaymentCalculation + startGas - gasleft());
+        uint256 fee = 1e12 * uint256(fulfillmentFlatFeeKlayPPM);
+        return paymentNoFee + fee;
+    }
+
+    /**
+     * @inheritdoc CoordinatorBaseInterface
+     */
+    function pendingRequestExists(
+        address consumer,
+        uint64 accId,
+        uint64 nonce
+    ) public view returns (bool) {
+        uint256 oraclesLength = sOracles.length;
+        for (uint256 i; i < oraclesLength; ++i) {
+            uint256 reqId = computeRequestId(consumer, accId, nonce);
+            if (sRequestIdToCommitment[reqId] != 0) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     /*
      * @notice Compute fee based on the request count
      * @param reqCount number of requests
@@ -473,16 +483,6 @@ contract RequestResponseCoordinator is
             return fc.fulfillmentFlatFeeKlayPPMTier4;
         }
         return fc.fulfillmentFlatFeeKlayPPMTier5;
-    }
-
-    function calculatePaymentAmount(
-        uint256 startGas,
-        uint256 gasAfterPaymentCalculation,
-        uint32 fulfillmentFlatFeeKlayPPM
-    ) internal view returns (uint256) {
-        uint256 paymentNoFee = tx.gasprice * (gasAfterPaymentCalculation + startGas - gasleft());
-        uint256 fee = 1e12 * uint256(fulfillmentFlatFeeKlayPPM);
-        return paymentNoFee + fee;
     }
 
     function computeRequestId(
