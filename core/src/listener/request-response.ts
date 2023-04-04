@@ -46,7 +46,20 @@ export async function buildListener(
     await state.update(listener.id, intervalId)
   }
 
-  await watchman({ listenFn, state, logger })
+  const watchmanServer = await watchman({ listenFn, state, logger })
+
+  // Graceful shutdown
+  async function handleExit() {
+    logger.info('Exiting. Wait for graceful shutdown.')
+
+    await state.clear()
+    await redisClient.quit()
+    await watchmanServer.close()
+  }
+  process.on('SIGINT', handleExit)
+  process.on('SIGTERM', handleExit)
+
+  logger.debug('Listener launched')
 }
 
 async function processEvent(iface: ethers.utils.Interface, queue: Queue, _logger: Logger) {
