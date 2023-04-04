@@ -465,7 +465,8 @@ contract VRFCoordinator is
         uint64 accId,
         uint64 nonce
     ) public view returns (bool) {
-        for (uint256 i = 0; i < sKeyHashes.length; i++) {
+        uint256 keyHashesLength = sKeyHashes.length;
+        for (uint256 i; i < keyHashesLength; ++i) {
             (uint256 reqId, ) = computeRequestId(sKeyHashes[i], consumer, accId, nonce);
             if (sRequestIdToCommitment[reqId] != 0) {
                 return true;
