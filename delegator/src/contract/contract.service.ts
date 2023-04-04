@@ -32,14 +32,29 @@ export class ContractService {
       select: {
         id: true,
         address: true,
-        reporter: true
+        reporter: {
+          select: {
+            id: true,
+            address: true
+          }
+        }
       }
     })
   }
 
   async findOne(contractWhereUniqueInput: Prisma.ContractWhereUniqueInput) {
     return await this.prisma.contract.findUnique({
-      where: contractWhereUniqueInput
+      where: contractWhereUniqueInput,
+      select: {
+        id: true,
+        address: true,
+        reporter: {
+          select: {
+            id: true,
+            address: true
+          }
+        }
+      }
     })
   }
 

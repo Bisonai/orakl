@@ -39,7 +39,12 @@ export class ReporterService {
 
   async findOne(reporterWhereUniqueInput: Prisma.ReporterWhereUniqueInput) {
     return await this.prisma.reporter.findUnique({
-      where: reporterWhereUniqueInput
+      where: reporterWhereUniqueInput,
+      select: {
+        id: true,
+        address: true,
+        contract: true
+      }
     })
   }
 
