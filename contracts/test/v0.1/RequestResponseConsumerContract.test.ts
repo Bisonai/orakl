@@ -148,7 +148,7 @@ describe('Request-Response user contract', function () {
     const fulfillEvent = coordinatorContract.interface.parseLog(fulfillReceipt.events[1])
     expect(fulfillEvent.name).to.be.equal('DataRequestFulfilled')
     expect(fulfillEvent.args.requestId).to.be.equal(requestId)
-    expect(Number(await consumerContract.s_response())).to.be.equal(response)
+    expect(Number(await consumerContract.sResponse())).to.be.equal(response)
   })
   it('requestData should revert with InsufficientPayment error', async function () {
     const { accId, maxGasLimit, consumerContract, coordinatorContract } = await loadFixture(
