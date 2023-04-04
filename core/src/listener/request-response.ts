@@ -58,8 +58,6 @@ export async function buildListener(
   }
   process.on('SIGINT', handleExit)
   process.on('SIGTERM', handleExit)
-
-  logger.debug('Listener launched')
 }
 
 async function processEvent(iface: ethers.utils.Interface, queue: Queue, _logger: Logger) {
