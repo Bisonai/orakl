@@ -22,9 +22,9 @@ contract VRFCoordinator is
     // and some arithmetic operations.
     uint256 private constant GAS_FOR_CALL_EXACT_CHECK = 5_000;
 
-    address[] private sOracles;
+    address[] public sOracles;
     mapping(address => bytes32) private sOracleToKeyHash;
-    bytes32[] private sKeyHashes;
+    bytes32[] public sKeyHashes;
     mapping(bytes32 => address) private sKeyHashToOracle;
     mapping(uint256 => bytes32) private sRequestIdToCommitment;
 
@@ -251,26 +251,8 @@ contract VRFCoordinator is
         return (sConfig.maxGasLimit, sKeyHashes);
     }
 
-    function setDirectPaymentConfig(
-        DirectPaymentConfig memory directPaymentConfig
-    ) public onlyOwner {
-        sDirectPaymentConfig = directPaymentConfig;
-        emit DirectPaymentConfigSet(
-            directPaymentConfig.fulfillmentFee,
-            directPaymentConfig.baseFee
-        );
-    }
-
     function getDirectPaymentConfig() external view returns (uint256, uint256) {
         return (sDirectPaymentConfig.fulfillmentFee, sDirectPaymentConfig.baseFee);
-    }
-
-    function estimateDirectPaymentFee() public view returns (uint256) {
-        return sDirectPaymentConfig.fulfillmentFee + sDirectPaymentConfig.baseFee;
-    }
-
-    function getPrepaymentAddress() public view returns (address) {
-        return address(sPrepayment);
     }
 
     /**
@@ -282,9 +264,84 @@ contract VRFCoordinator is
         return sRequestIdToCommitment[requestId];
     }
 
-    function setMinBalance(uint256 minBalance) public onlyOwner {
+    function setDirectPaymentConfig(
+        DirectPaymentConfig memory directPaymentConfig
+    ) external onlyOwner {
+        sDirectPaymentConfig = directPaymentConfig;
+        emit DirectPaymentConfigSet(
+            directPaymentConfig.fulfillmentFee,
+            directPaymentConfig.baseFee
+        );
+    }
+
+    function getPrepaymentAddress() external view returns (address) {
+        return address(sPrepayment);
+    }
+
+    function setMinBalance(uint256 minBalance) external onlyOwner {
         sMinBalance = minBalance;
         emit MinBalanceSet(minBalance);
+    }
+
+    /**
+     * @inheritdoc VRFCoordinatorInterface
+     */
+    function requestRandomWords(
+        bytes32 keyHash,
+        uint64 accId,
+        uint32 callbackGasLimit,
+        uint32 numWords
+    ) external nonReentrant onlyValidKeyHash(keyHash) returns (uint256 requestId) {
+        (uint256 balance, , , ) = sPrepayment.getAccount(accId);
+
+        if (balance < sMinBalance) {
+            revert InsufficientPayment(balance, sMinBalance);
+        }
+        bool isDirectPayment = false;
+
+        requestId = requestRandomWordsInternal(
+            keyHash,
+            accId,
+            callbackGasLimit,
+            numWords,
+            isDirectPayment
+        );
+    }
+
+    /**
+     * @inheritdoc VRFCoordinatorInterface
+     */
+    function requestRandomWordsPayment(
+        bytes32 keyHash,
+        uint32 callbackGasLimit,
+        uint32 numWords
+    ) external payable nonReentrant onlyValidKeyHash(keyHash) returns (uint256) {
+        uint256 vrfFee = estimateDirectPaymentFee();
+        if (msg.value < vrfFee) {
+            revert InsufficientPayment(msg.value, vrfFee);
+        }
+
+        uint64 accId = sPrepayment.createAccount();
+        sPrepayment.addConsumer(accId, msg.sender);
+        bool isDirectPayment = true;
+        uint256 requestId = requestRandomWordsInternal(
+            keyHash,
+            accId,
+            callbackGasLimit,
+            numWords,
+            isDirectPayment
+        );
+        sPrepayment.deposit{value: vrfFee}(accId);
+
+        uint256 remaining = msg.value - vrfFee;
+        if (remaining > 0) {
+            (bool sent, ) = msg.sender.call{value: remaining}("");
+            if (!sent) {
+                revert RefundFailure();
+            }
+        }
+
+        return requestId;
     }
 
     /*
@@ -462,65 +519,8 @@ contract VRFCoordinator is
         return requestId;
     }
 
-    /**
-     * @inheritdoc VRFCoordinatorInterface
-     */
-    function requestRandomWords(
-        bytes32 keyHash,
-        uint64 accId,
-        uint32 callbackGasLimit,
-        uint32 numWords
-    ) external nonReentrant onlyValidKeyHash(keyHash) returns (uint256 requestId) {
-        (uint256 balance, , , ) = sPrepayment.getAccount(accId);
-
-        if (balance < sMinBalance) {
-            revert InsufficientPayment(balance, sMinBalance);
-        }
-        bool isDirectPayment = false;
-
-        requestId = requestRandomWordsInternal(
-            keyHash,
-            accId,
-            callbackGasLimit,
-            numWords,
-            isDirectPayment
-        );
-    }
-
-    /**
-     * @inheritdoc VRFCoordinatorInterface
-     */
-    function requestRandomWordsPayment(
-        bytes32 keyHash,
-        uint32 callbackGasLimit,
-        uint32 numWords
-    ) external payable nonReentrant onlyValidKeyHash(keyHash) returns (uint256) {
-        uint256 vrfFee = estimateDirectPaymentFee();
-        if (msg.value < vrfFee) {
-            revert InsufficientPayment(msg.value, vrfFee);
-        }
-
-        uint64 accId = sPrepayment.createAccount();
-        sPrepayment.addConsumer(accId, msg.sender);
-        bool isDirectPayment = true;
-        uint256 requestId = requestRandomWordsInternal(
-            keyHash,
-            accId,
-            callbackGasLimit,
-            numWords,
-            isDirectPayment
-        );
-        sPrepayment.deposit{value: vrfFee}(accId);
-
-        uint256 remaining = msg.value - vrfFee;
-        if (remaining > 0) {
-            (bool sent, ) = msg.sender.call{value: remaining}("");
-            if (!sent) {
-                revert RefundFailure();
-            }
-        }
-
-        return requestId;
+    function estimateDirectPaymentFee() internal view returns (uint256) {
+        return sDirectPaymentConfig.fulfillmentFee + sDirectPaymentConfig.baseFee;
     }
 
     function calculatePaymentAmount(
