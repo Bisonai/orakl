@@ -80,6 +80,7 @@ contract VRFCoordinator is
     error GasLimitTooBig(uint32 have, uint32 want);
     error NumWordsTooBig(uint32 have, uint32 want);
     error OracleAlreadyRegistered(address oracle);
+    error ProvingKeyAlreadyRegistered(bytes32 keyHash);
     error NoSuchOracle(address oracle);
     error NoSuchProvingKey(bytes32 keyHash);
     error NoCorrespondingRequest();
@@ -144,6 +145,10 @@ contract VRFCoordinator is
         }
 
         bytes32 kh = hashOfKey(publicProvingKey);
+        if (sKeyHashToOracle[kh] != address(0)) {
+            revert ProvingKeyAlreadyRegistered(kh);
+        }
+
         sOracles.push(oracle);
         sKeyHashes.push(kh);
         sOracleToKeyHash[oracle] = kh;
