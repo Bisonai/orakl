@@ -53,4 +53,29 @@ describe('RequestResponseCoordinator', function () {
       'OracleAlreadyRegistered'
     )
   })
+
+  it('should allow to deregister registered oracle', async function () {
+    const { coordinatorContract } = await loadFixture(deployFixture)
+    const { address: oracle } = ethers.Wallet.createRandom()
+
+    // Cannot deregister underegistered oracle
+    await expect(coordinatorContract.deregisterOracle(oracle)).to.be.revertedWithCustomError(
+      coordinatorContract,
+      'NoSuchOracle'
+    )
+
+    // Registration
+    const txRegisterReceipt = await (await coordinatorContract.registerOracle(oracle)).wait()
+    expect(txRegisterReceipt.events.length).to.be.equal(1)
+    const registerEvent = coordinatorContract.interface.parseLog(txRegisterReceipt.events[0])
+    expect(registerEvent.name).to.be.equal('OracleRegistered')
+    expect(registerEvent.args['oracle']).to.be.equal(oracle)
+
+    // Deregistration
+    const txDeregisterReceipt = await (await coordinatorContract.deregisterOracle(oracle)).wait()
+    expect(txDeregisterReceipt.events.length).to.be.equal(1)
+    const deregisterEvent = coordinatorContract.interface.parseLog(txDeregisterReceipt.events[0])
+    expect(deregisterEvent.name).to.be.equal('OracleDeregistered')
+    expect(deregisterEvent.args['oracle']).to.be.equal(oracle)
+  })
 })
