@@ -80,7 +80,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
           await vrfCoordinator.registerOracle(oracle.address, oracle.publicProvingKey)
         ).wait()
         console.log(
-          `Registered oracle address=${tx.events[0].args.oracle} with keyHash=${tx.events[0].args.keyHash}`
+          `Oracle registered with address=${tx.events[0].args.oracle} and keyHash=${tx.events[0].args.keyHash}`
         )
       }
     }
@@ -96,7 +96,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       for (const oracle of deregisterOracleConfig) {
         const tx = await (await vrfCoordinator.deregisterOracle(oracle.address)).wait()
         console.log(
-          `Deregistered oracle address=${tx.events[0].args.oracle} with keyHash=${tx.events[0].args.keyHash}`
+          `Oracle deregistered with address=${tx.events[0].args.oracle} and keyHash=${tx.events[0].args.keyHash}`
         )
       }
     }
