@@ -61,8 +61,7 @@ export class ContractService {
     })
   }
 
-  async connectToReporter(params: { contractId: bigint; reporterId: bigint }) {
-    const { contractId, reporterId } = params
+  async connectToReporter(contractId: bigint, reporterId: bigint) {
     await this.prisma.contract.update({
       where: {
         id: contractId
