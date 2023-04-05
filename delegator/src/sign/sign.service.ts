@@ -45,7 +45,30 @@ export class SignService {
       take,
       cursor,
       where,
-      orderBy
+      orderBy,
+      select: {
+        id: true,
+        from: true,
+        to: true,
+        input: true,
+        gas: true,
+        value: true,
+        chainId: true,
+        gasPrice: true,
+        nonce: true,
+        v: true,
+        r: true,
+        s: true,
+        rawTx: true,
+        signedRawTx: true,
+        succeed: true,
+        function: true,
+        functionId: true,
+        contract: true,
+        contractId: true,
+        reporter: true,
+        reporterId: true
+      }
     })
   }
 
@@ -53,7 +76,30 @@ export class SignService {
     transactionWhereQuniqueInput: Prisma.TransactionWhereUniqueInput
   ): Promise<Transaction | null> {
     return this.prisma.transaction.findUnique({
-      where: transactionWhereQuniqueInput
+      where: transactionWhereQuniqueInput,
+      select: {
+        id: true,
+        from: true,
+        to: true,
+        input: true,
+        gas: true,
+        value: true,
+        chainId: true,
+        gasPrice: true,
+        nonce: true,
+        v: true,
+        r: true,
+        s: true,
+        rawTx: true,
+        signedRawTx: true,
+        succeed: true,
+        function: true,
+        functionId: true,
+        contract: true,
+        contractId: true,
+        reporter: true,
+        reporterId: true
+      }
     })
   }
 
@@ -66,17 +112,10 @@ export class SignService {
   }
 
   async updateTransaction(transaction: Transaction, signedRawTx: string) {
-    const id = transaction.id
     const succeed = true
     const contract = await this.prisma.contract.findUnique({
       where: {
         address: transaction.to
-      }
-    })
-    const encodedName = transaction.input.substring(0, 10)
-    const functions = await this.prisma.function.findUnique({
-      where: {
-        encodedName
       }
     })
     const reporter = await this.prisma.reporter.findUnique({
@@ -84,15 +123,24 @@ export class SignService {
         address: transaction.from
       }
     })
+
+    const encodedName = transaction.input.substring(0, 10)
+    const functions = await this.prisma.function.findUnique({
+      where: {
+        encodedName
+      }
+    })
+
+    const data: SignDto = { ...transaction }
+    data.succeed = succeed
+    data.signedRawTx = signedRawTx
+    data.reporterId = reporter.id
+    data.contractId = contract.id
+    data.functionId = functions ? functions.id : null
+
     return this.prisma.transaction.update({
-      data: {
-        succeed,
-        signedRawTx,
-        functionId: functions.id,
-        contractId: contract.id,
-        reporterId: reporter.id
-      },
-      where: { id }
+      data,
+      where: { id: transaction.id }
     })
   }
 
@@ -118,28 +166,53 @@ export class SignService {
   }
 
   async validateTransaction(tx) {
-    const result = await this.prisma.contract.findMany({
+    const contract = await this.prisma.contract.findUnique({
       where: {
-        address: tx.to,
-        reporter: {
-          some: {
-            address: tx.from
-          }
-        },
-        function: {
-          some: {
-            encodedName: tx.input.substring(0, 10)
-          }
-        }
-      },
-      include: {
-        reporter: true,
-        function: true,
-        transaction: true
+        address: tx.to
       }
     })
 
-    console.log('ValidateTransaction:', result)
+    let result
+
+    if (contract.allowAllFunctions) {
+      result = await this.prisma.contract.findMany({
+        where: {
+          address: contract.address,
+          reporter: {
+            some: {
+              address: tx.from
+            }
+          }
+        },
+        include: {
+          reporter: true,
+          function: true,
+          transaction: true
+        }
+      })
+    } else {
+      result = await this.prisma.contract.findMany({
+        where: {
+          address: contract.address,
+          reporter: {
+            some: {
+              address: tx.from
+            }
+          },
+          function: {
+            some: {
+              encodedName: tx.input.substring(0, 10)
+            }
+          }
+        },
+        include: {
+          reporter: true,
+          function: true,
+          transaction: true
+        }
+      })
+    }
+
     if (result.length == 0) {
       throw new DelegatorError(DelegatorErrorCode.NotApprovedTransaction)
     }

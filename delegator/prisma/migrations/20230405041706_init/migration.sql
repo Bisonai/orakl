@@ -19,6 +19,7 @@ CREATE TABLE "reporters" (
 CREATE TABLE "contracts" (
     "contract_id" BIGSERIAL NOT NULL,
     "address" VARCHAR(42) NOT NULL,
+    "allowAllFunctions" BOOLEAN DEFAULT false,
 
     CONSTRAINT "contracts_pkey" PRIMARY KEY ("contract_id")
 );
