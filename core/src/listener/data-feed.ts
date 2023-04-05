@@ -53,7 +53,6 @@ export async function buildListener(
 
   const watchmanServer = await watchman({ listenFn, state, logger })
 
-  // Graceful shutdown
   async function handleExit() {
     logger.info('Exiting. Wait for graceful shutdown.')
 
@@ -63,8 +62,6 @@ export async function buildListener(
   }
   process.on('SIGINT', handleExit)
   process.on('SIGTERM', handleExit)
-
-  logger.debug('Listener launched')
 }
 
 async function processEvent(iface: ethers.utils.Interface, queue: Queue, _logger: Logger) {

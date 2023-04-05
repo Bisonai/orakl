@@ -16,12 +16,21 @@ import { remove0x } from '../utils'
 const FILE_NAME = import.meta.url
 
 export async function worker(redisClient: RedisClientType, _logger: Logger) {
-  _logger.debug({ name: 'worker', file: FILE_NAME })
-  new Worker(
+  const logger = _logger.child({ name: 'worker', file: FILE_NAME })
+  const worker = new Worker(
     WORKER_VRF_QUEUE_NAME,
     await vrfJob(REPORTER_VRF_QUEUE_NAME, _logger),
     BULLMQ_CONNECTION
   )
+
+  async function handleExit() {
+    logger.info('Exiting. Wait for graceful shutdown.')
+
+    await redisClient.quit()
+    await worker.close()
+  }
+  process.on('SIGINT', handleExit)
+  process.on('SIGTERM', handleExit)
 }
 
 async function vrfJob(queueName: string, _logger: Logger) {
