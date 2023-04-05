@@ -24,6 +24,17 @@ export class ContractController {
     return this.contractService.findOne({ id: Number(id) })
   }
 
+  @Post('/connectReporter/:contractId:reporterId')
+  connectReporter(
+    @Param('contractId') contractId: string,
+    @Param('reporterId') reporterId: string
+  ) {
+    return this.contractService.connectToReporter({
+      contractId: BigInt(contractId),
+      reporterId: BigInt(reporterId)
+    })
+  }
+
   @Patch(':id')
   update(@Param('id') id: string, @Body() contractDto: ContractDto) {
     return this.contractService.update({ where: { id: Number(id) }, contractDto })
