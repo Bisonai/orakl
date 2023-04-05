@@ -284,7 +284,7 @@ export interface IAggregator {
 
 export interface IAggregate {
   id: bigint
-  timestamp: string | Date
+  timestamp: string
   value: bigint
   aggregatorId: bigint
 }

@@ -31,6 +31,9 @@ export const DATA_FEED_SERVICE_NAME = 'Aggregator'
 export const VRF_SERVICE_NAME = 'VRF'
 export const REQUEST_RESPONSE_SERVICE_NAME = 'RequestResponse'
 
+// Data Feed
+export const MAX_DATA_STALENESS = 5_000
+
 // BullMQ
 export const REMOVE_ON_COMPLETE = 500
 export const REMOVE_ON_FAIL = 1_000

@@ -25,7 +25,8 @@ import {
   SUBMIT_HEARTBEAT_QUEUE_SETTINGS,
   WORKER_AGGREGATOR_QUEUE_NAME,
   WORKER_CHECK_HEARTBEAT_QUEUE_NAME,
-  CHECK_HEARTBEAT_QUEUE_SETTINGS
+  CHECK_HEARTBEAT_QUEUE_SETTINGS,
+  MAX_DATA_STALENESS
 } from '../settings'
 import { buildSubmissionRoundJobId, buildHeartbeatJobId } from '../utils'
 import { oracleRoundStateCall } from './data-feed.utils'
@@ -171,7 +172,8 @@ function aggregatorJob(submitHeartbeatQueue: Queue, reporterQueue: Queue, _logge
         logger
       })
 
-      const { value: submission } = await fetchDataFeed({ aggregatorHash, logger })
+      const { timestamp, value: submission } = await fetchDataFeed({ aggregatorHash, logger })
+      logger.debug({ aggregatorHash, timestamp, submission }, 'Latest data aggregate')
 
       // Submit heartbeat
       const outDataSubmitHeartbeat: IAggregatorSubmitHeartbeatWorker = {
@@ -183,31 +185,41 @@ function aggregatorJob(submitHeartbeatQueue: Queue, reporterQueue: Queue, _logge
         ...SUBMIT_HEARTBEAT_QUEUE_SETTINGS
       })
 
-      // Report submission
-      const outDataReporter: IAggregatorWorkerReporter = {
-        oracleAddress,
-        submission,
-        roundId,
-        workerSource
-      }
-      logger.debug(outDataReporter, 'outDataReporter')
-      await reporterQueue.add(workerSource, outDataReporter, {
-        jobId: buildSubmissionRoundJobId({
+      // Check on data staleness
+      const now = Date.now()
+      const fetchedAt = Date.parse(timestamp)
+      const dataStaleness = Math.max(0, now - fetchedAt)
+      logger.debug(`Data staleness ${dataStaleness} ms`)
+
+      if (dataStaleness > MAX_DATA_STALENESS) {
+        logger.warn(`Data became stale (> ${MAX_DATA_STALENESS}). Not reporting.`)
+      } else {
+        // Report submission
+        const outDataReporter: IAggregatorWorkerReporter = {
           oracleAddress,
+          submission,
           roundId,
-          deploymentName: DEPLOYMENT_NAME
-        }),
-        removeOnComplete: REMOVE_ON_COMPLETE,
-        // Reporter job can fail, and should be either retried or
-        // removed. We need to remove the job after repeated failure
-        // to prevent deadlock when running with a single node operator.
-        // After removing the job on failure, we can resubmit the job
-        // with the same unique ID representing the submission for
-        // specific aggregator on specific round.
-        //
-        // FIXME Rethink!
-        removeOnFail: true
-      })
+          workerSource
+        }
+        logger.debug(outDataReporter, 'outDataReporter')
+        await reporterQueue.add(workerSource, outDataReporter, {
+          jobId: buildSubmissionRoundJobId({
+            oracleAddress,
+            roundId,
+            deploymentName: DEPLOYMENT_NAME
+          }),
+          removeOnComplete: REMOVE_ON_COMPLETE,
+          // Reporter job can fail, and should be either retried or
+          // removed. We need to remove the job after repeated failure
+          // to prevent deadlock when running with a single node operator.
+          // After removing the job on failure, we can resubmit the job
+          // with the same unique ID representing the submission for
+          // specific aggregator on specific round.
+          //
+          // FIXME Rethink!
+          removeOnFail: true
+        })
+      }
     } catch (e) {
       // `FailedToFetchFromDataFeed` exception can be raised from `prepareDataForReporter`.
       // `aggregatorJob` is being triggered by either `fixed` or `event` worker.
