@@ -5,7 +5,7 @@ async function main() {
   const userContract = await ethers.getContract('RequestResponseConsumerMock')
   console.log('RequestResponseConsumerMock', userContract.address)
 
-  const response = await userContract.s_response()
+  const response = await userContract.sResponse()
   console.log(`Response ${response}`)
   expect(response.toString()).to.not.equal('0')
 }

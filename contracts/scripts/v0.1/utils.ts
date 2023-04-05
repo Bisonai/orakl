@@ -5,8 +5,8 @@ import {
   ICoordinatorDeploy,
   IAggregatorDeployConfig,
   IAggregatorChangeOraclesConfig,
-  IRegisterProvingKey,
-  IDeregisterProvingKey,
+  IRegisterOracle,
+  IDeregisterOracle,
   ICoordinatorConfig,
   ICoordinatorDirectPaymentConfig
 } from './types'
@@ -173,7 +173,7 @@ export function validateDirectPaymentConfig(config: ICoordinatorDirectPaymentCon
   return true
 }
 
-export function validateVrfRegisterProvingKey(config: IRegisterProvingKey[]): boolean {
+export function validateVrfRegisterOracle(config: IRegisterOracle[]): boolean {
   const requiredProperties = ['address', 'publicProvingKey']
 
   for (const c of config) {
@@ -185,8 +185,8 @@ export function validateVrfRegisterProvingKey(config: IRegisterProvingKey[]): bo
   return true
 }
 
-export function validateVrfDeregisterProvingKey(config: IDeregisterProvingKey[]): boolean {
-  const requiredProperties = ['publicProvingKey']
+export function validateVrfDeregisterOracle(config: IDeregisterOracle[]): boolean {
+  const requiredProperties = ['address']
 
   for (const c of config) {
     if (!validateProperties(c, requiredProperties)) {
