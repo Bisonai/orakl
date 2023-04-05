@@ -15,7 +15,7 @@ export const AGGREGATOR_ENDPOINT = buildUrl(ORAKL_NETWORK_API_URL, 'aggregator')
  *
  * @param {string} aggregator hash
  * @param {Logger} logger
- * @return {number} the latest aggregated value
+ * @return {IAggregate} metadata about the latest aggregate
  * @exception {FailedToGetAggregate}
  */
 export async function fetchDataFeed({
@@ -27,8 +27,7 @@ export async function fetchDataFeed({
 }): Promise<IAggregate> {
   try {
     const url = buildUrl(AGGREGATE_ENDPOINT, `${aggregatorHash}/latest`)
-    const response = (await axios.get(url))?.data
-    return response
+    return (await axios.get(url))?.data
   } catch (e) {
     logger.error(e)
     throw new OraklError(OraklErrorCode.FailedToGetAggregate)
