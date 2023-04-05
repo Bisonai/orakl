@@ -10,7 +10,8 @@ export class ContractService {
   async create(contractDto: ContractDto) {
     return await this.prisma.contract.create({
       data: {
-        address: contractDto.address
+        address: contractDto.address,
+        allowAllFunctions: contractDto.allowAllFunctions
       }
     })
   }
@@ -32,6 +33,7 @@ export class ContractService {
       select: {
         id: true,
         address: true,
+        allowAllFunctions: true,
         reporter: {
           select: {
             id: true,
@@ -48,6 +50,7 @@ export class ContractService {
       select: {
         id: true,
         address: true,
+        allowAllFunctions: true,
         reporter: {
           select: {
             id: true,
