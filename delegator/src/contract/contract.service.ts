@@ -61,7 +61,7 @@ export class ContractService {
     })
   }
 
-  async connectToReporter(contractId: bigint, reporterId: bigint) {
+  async connectReporter(contractId: bigint, reporterId: bigint) {
     await this.prisma.contract.update({
       where: {
         id: contractId
@@ -75,6 +75,22 @@ export class ContractService {
       }
     })
   }
+
+  async disconnectReporter(contractId: bigint, reporterId: bigint) {
+    await this.prisma.contract.update({
+      where: {
+        id: contractId
+      },
+      data: {
+        reporter: {
+          disconnect: {
+            id: reporterId
+          }
+        }
+      }
+    })
+  }
+
   async remove(where: Prisma.ContractWhereUniqueInput) {
     return await this.prisma.contract.delete({
       where

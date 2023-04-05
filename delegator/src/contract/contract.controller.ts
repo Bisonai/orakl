@@ -27,7 +27,15 @@ export class ContractController {
 
   @Post('/connectReporter')
   connectReporter(@Body() contractConnectionDto: ContractConnectionDto) {
-    return this.contractService.connectToReporter(
+    return this.contractService.connectReporter(
+      contractConnectionDto.contractId,
+      contractConnectionDto.reporterId
+    )
+  }
+
+  @Post('/disconnectReporter')
+  disconnectReporter(@Body() contractConnectionDto: ContractConnectionDto) {
+    return this.contractService.disconnectReporter(
       contractConnectionDto.contractId,
       contractConnectionDto.reporterId
     )
