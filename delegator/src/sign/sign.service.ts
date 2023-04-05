@@ -67,17 +67,11 @@ export class SignService {
 
   async updateTransaction(transaction: Transaction, signedRawTx: string) {
     const succeed = true
-    const contract = await this.prisma.contract.findUnique({
-      where: { address: transaction.to }
-    })
-    const reporter = await this.prisma.reporter.findUnique({
-      where: { address: transaction.from }
-    })
+    const contract = await this.prisma.contract.findUnique({ where: { address: transaction.to } })
+    const reporter = await this.prisma.reporter.findUnique({ where: { address: transaction.from } })
 
     const encodedName = transaction.input.substring(0, 10)
-    const functions = await this.prisma.function.findUnique({
-      where: { encodedName }
-    })
+    const functions = await this.prisma.function.findUnique({ where: { encodedName } })
 
     const data: SignDto = { ...transaction }
     data.succeed = succeed
