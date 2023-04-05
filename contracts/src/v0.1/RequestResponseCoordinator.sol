@@ -7,6 +7,7 @@ import "./interfaces/RequestResponseCoordinatorInterface.sol";
 import "./interfaces/PrepaymentInterface.sol";
 import "./interfaces/TypeAndVersionInterface.sol";
 import "./RequestResponseConsumerBase.sol";
+import "./RequestResponseConsumerFulfill.sol";
 import "./libraries/Orakl.sol";
 
 contract RequestResponseCoordinator is
@@ -567,7 +568,7 @@ contract RequestResponseCoordinator is
     ) external nonReentrant returns (uint256) {
         uint256 startGas = gasleft();
         validateDataResponse(rc, requestId);
-        RequestResponseConsumerBase rr;
+        RequestResponseConsumerFulfillUint256 rr;
         bytes memory resp = abi.encodeWithSelector(
             rr.rawFulfillDataRequestUint256.selector,
             requestId,
@@ -587,7 +588,7 @@ contract RequestResponseCoordinator is
     ) external nonReentrant returns (uint256) {
         uint256 startGas = gasleft();
         validateDataResponse(rc, requestId);
-        RequestResponseConsumerBase rr;
+        RequestResponseConsumerFulfillInt256 rr;
         bytes memory resp = abi.encodeWithSelector(
             rr.rawFulfillDataRequestInt256.selector,
             requestId,
@@ -607,7 +608,7 @@ contract RequestResponseCoordinator is
     ) external nonReentrant returns (uint256) {
         uint256 startGas = gasleft();
         validateDataResponse(rc, requestId);
-        RequestResponseConsumerBase rr;
+        RequestResponseConsumerFulfillBool rr;
         bytes memory resp = abi.encodeWithSelector(
             rr.rawFulfillDataRequestBool.selector,
             requestId,
@@ -627,7 +628,7 @@ contract RequestResponseCoordinator is
     ) external nonReentrant returns (uint256) {
         uint256 startGas = gasleft();
         validateDataResponse(rc, requestId);
-        RequestResponseConsumerBase rr;
+        RequestResponseConsumerFulfillString rr;
         bytes memory resp = abi.encodeWithSelector(
             rr.rawFulfillDataRequestString.selector,
             requestId,
@@ -647,7 +648,7 @@ contract RequestResponseCoordinator is
     ) external nonReentrant returns (uint256) {
         uint256 startGas = gasleft();
         validateDataResponse(rc, requestId);
-        RequestResponseConsumerBase rr;
+        RequestResponseConsumerFulfillBytes32 rr;
         bytes memory resp = abi.encodeWithSelector(
             rr.rawFulfillDataRequestBytes32.selector,
             requestId,
@@ -667,7 +668,7 @@ contract RequestResponseCoordinator is
     ) external nonReentrant returns (uint256) {
         uint256 startGas = gasleft();
         validateDataResponse(rc, requestId);
-        RequestResponseConsumerBase rr;
+        RequestResponseConsumerFulfillBytes rr;
         bytes memory resp = abi.encodeWithSelector(
             rr.rawFulfillDataRequestBytes.selector,
             requestId,

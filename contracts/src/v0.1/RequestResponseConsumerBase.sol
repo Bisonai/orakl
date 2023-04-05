@@ -40,60 +40,6 @@ abstract contract RequestResponseConsumerBase {
         return req.initialize(jobId, address(COORDINATOR), sJobIdToFunctionSelector[jobId]);
     }
 
-    function fulfillDataRequestUint256(uint256 requestId, uint256 response) internal virtual;
-
-    function fulfillDataRequestInt256(uint256 requestId, int256 response) internal virtual;
-
-    function fulfillDataRequestBool(uint256 requestId, bool response) internal virtual;
-
-    function fulfillDataRequestString(uint256 requestId, string memory response) internal virtual;
-
-    function fulfillDataRequestBytes32(uint256 requestId, bytes32 response) internal virtual;
-
-    function fulfillDataRequestBytes(uint256 requestId, bytes memory response) internal virtual;
-
-    function rawFulfillDataRequestUint256(
-        uint256 requestId,
-        uint256 response
-    ) external verifyRawFulfillment {
-        fulfillDataRequestUint256(requestId, response);
-    }
-
-    function rawFulfillDataRequestInt256(
-        uint256 requestId,
-        int256 response
-    ) external verifyRawFulfillment {
-        fulfillDataRequestInt256(requestId, response);
-    }
-
-    function rawFulfillDataRequestBool(
-        uint256 requestId,
-        bool response
-    ) external verifyRawFulfillment {
-        fulfillDataRequestBool(requestId, response);
-    }
-
-    function rawFulfillDataRequestString(
-        uint256 requestId,
-        string memory response
-    ) external verifyRawFulfillment {
-        fulfillDataRequestString(requestId, response);
-    }
-
-    function rawFulfillDataRequestBytes32(
-        uint256 requestId,
-        bytes32 response
-    ) external verifyRawFulfillment {
-        fulfillDataRequestBytes32(requestId, response);
-    }
-
-    function rawFulfillDataRequestBytes(
-        uint256 requestId,
-        bytes memory response
-    ) external verifyRawFulfillment {
-        fulfillDataRequestBytes(requestId, response);
-    }
-
     modifier verifyRawFulfillment() {
         address coordinatorAddress = address(COORDINATOR);
         if (msg.sender != coordinatorAddress) {

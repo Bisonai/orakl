@@ -1,10 +1,17 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.16;
 
-import "../RequestResponseConsumerBase.sol";
+import "../RequestResponseConsumerFulfill.sol";
 import "../interfaces/RequestResponseCoordinatorInterface.sol";
 
-contract RequestResponseConsumerMock is RequestResponseConsumerBase {
+contract RequestResponseConsumerMock is
+    RequestResponseConsumerFulfillUint256,
+    RequestResponseConsumerFulfillInt256,
+    RequestResponseConsumerFulfillBool,
+    RequestResponseConsumerFulfillString,
+    RequestResponseConsumerFulfillBytes32,
+    RequestResponseConsumerFulfillBytes
+{
     using Orakl for Orakl.Request;
     uint256 public s_response;
     int256 public s_responseInt256;

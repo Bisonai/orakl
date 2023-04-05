@@ -543,7 +543,7 @@ describe('Request-Response user contract', function () {
         requestCommitment,
         isDirectPayment,
         {
-          gasLimit: maxGasLimit + 300_000
+          gasLimit: maxGasLimit + 100000
         }
       )
     ).wait()
