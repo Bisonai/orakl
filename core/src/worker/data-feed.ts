@@ -173,7 +173,7 @@ function aggregatorJob(submitHeartbeatQueue: Queue, reporterQueue: Queue, _logge
       })
 
       const { timestamp, value: submission } = await fetchDataFeed({ aggregatorHash, logger })
-      logger.debug({ aggregatorHash, timestamp, submission }, 'Latest data aggregate')
+      logger.debug({ aggregatorHash, fetchedAt: timestamp, submission }, 'Latest data aggregate')
 
       // Submit heartbeat
       const outDataSubmitHeartbeat: IAggregatorSubmitHeartbeatWorker = {
