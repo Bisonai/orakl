@@ -36,7 +36,6 @@ export class ContractService {
         allowAllFunctions: true,
         reporter: {
           select: {
-            id: true,
             address: true
           }
         }
@@ -53,7 +52,6 @@ export class ContractService {
         allowAllFunctions: true,
         reporter: {
           select: {
-            id: true,
             address: true
           }
         }

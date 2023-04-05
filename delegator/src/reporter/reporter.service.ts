@@ -32,7 +32,7 @@ export class ReporterService {
       select: {
         id: true,
         address: true,
-        contract: true
+        contract: { select: { address: true } }
       }
     })
   }
@@ -43,7 +43,7 @@ export class ReporterService {
       select: {
         id: true,
         address: true,
-        contract: true
+        contract: { select: { address: true } }
       }
     })
   }
