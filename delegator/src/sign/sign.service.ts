@@ -5,7 +5,6 @@ import { SignDto } from './dto/sign.dto'
 import Caver from 'caver-js'
 import { SignatureData } from 'caver-js'
 import { DelegatorError, DelegatorErrorCode } from './errors'
-import { ContractService } from 'src/contract/contract.service'
 
 @Injectable()
 export class SignService {
@@ -69,21 +68,15 @@ export class SignService {
   async updateTransaction(transaction: Transaction, signedRawTx: string) {
     const succeed = true
     const contract = await this.prisma.contract.findUnique({
-      where: {
-        address: transaction.to
-      }
+      where: { address: transaction.to }
     })
     const reporter = await this.prisma.reporter.findUnique({
-      where: {
-        address: transaction.from
-      }
+      where: { address: transaction.from }
     })
 
     const encodedName = transaction.input.substring(0, 10)
     const functions = await this.prisma.function.findUnique({
-      where: {
-        encodedName
-      }
+      where: { encodedName }
     })
 
     const data: SignDto = { ...transaction }
@@ -122,9 +115,7 @@ export class SignService {
 
   async validateTransaction(tx) {
     const contract = await this.prisma.contract.findUnique({
-      where: {
-        address: tx.to
-      },
+      where: { address: tx.to },
       include: {
         reporter: { select: { address: true } },
         function: { select: { encodedName: true } }
