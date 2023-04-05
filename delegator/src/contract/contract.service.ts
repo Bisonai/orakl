@@ -34,11 +34,8 @@ export class ContractService {
         id: true,
         address: true,
         allowAllFunctions: true,
-        reporter: {
-          select: {
-            address: true
-          }
-        }
+        reporter: { select: { address: true } },
+        function: { select: { encodedName: true } }
       }
     })
   }
@@ -50,11 +47,8 @@ export class ContractService {
         id: true,
         address: true,
         allowAllFunctions: true,
-        reporter: {
-          select: {
-            address: true
-          }
-        }
+        reporter: { select: { address: true } },
+        function: { select: { encodedName: true } }
       }
     })
   }

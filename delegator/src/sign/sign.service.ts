@@ -5,6 +5,7 @@ import { SignDto } from './dto/sign.dto'
 import Caver from 'caver-js'
 import { SignatureData } from 'caver-js'
 import { DelegatorError, DelegatorErrorCode } from './errors'
+import { ContractService } from 'src/contract/contract.service'
 
 @Injectable()
 export class SignService {
@@ -45,30 +46,7 @@ export class SignService {
       take,
       cursor,
       where,
-      orderBy,
-      select: {
-        id: true,
-        from: true,
-        to: true,
-        input: true,
-        gas: true,
-        value: true,
-        chainId: true,
-        gasPrice: true,
-        nonce: true,
-        v: true,
-        r: true,
-        s: true,
-        rawTx: true,
-        signedRawTx: true,
-        succeed: true,
-        function: true,
-        functionId: true,
-        contract: true,
-        contractId: true,
-        reporter: true,
-        reporterId: true
-      }
+      orderBy
     })
   }
 
@@ -76,30 +54,7 @@ export class SignService {
     transactionWhereQuniqueInput: Prisma.TransactionWhereUniqueInput
   ): Promise<Transaction | null> {
     return this.prisma.transaction.findUnique({
-      where: transactionWhereQuniqueInput,
-      select: {
-        id: true,
-        from: true,
-        to: true,
-        input: true,
-        gas: true,
-        value: true,
-        chainId: true,
-        gasPrice: true,
-        nonce: true,
-        v: true,
-        r: true,
-        s: true,
-        rawTx: true,
-        signedRawTx: true,
-        succeed: true,
-        function: true,
-        functionId: true,
-        contract: true,
-        contractId: true,
-        reporter: true,
-        reporterId: true
-      }
+      where: transactionWhereQuniqueInput
     })
   }
 
@@ -169,51 +124,29 @@ export class SignService {
     const contract = await this.prisma.contract.findUnique({
       where: {
         address: tx.to
+      },
+      include: {
+        reporter: { select: { address: true } },
+        function: { select: { encodedName: true } }
       }
     })
 
-    let result
+    // extract reporters address
+    const reporters = contract.reporter.map((i) => {
+      return i.address
+    })
+    // extract function encodedName address
+    const functions = contract.function.map((i) => {
+      return i.encodedName
+    })
 
-    if (contract.allowAllFunctions) {
-      result = await this.prisma.contract.findMany({
-        where: {
-          address: contract.address,
-          reporter: {
-            some: {
-              address: tx.from
-            }
-          }
-        },
-        include: {
-          reporter: true,
-          function: true,
-          transaction: true
-        }
-      })
+    if (
+      contract &&
+      reporters.includes(tx.from) &&
+      (contract.allowAllFunctions || functions.includes(tx.input.substring(0, 10)))
+    ) {
+      return
     } else {
-      result = await this.prisma.contract.findMany({
-        where: {
-          address: contract.address,
-          reporter: {
-            some: {
-              address: tx.from
-            }
-          },
-          function: {
-            some: {
-              encodedName: tx.input.substring(0, 10)
-            }
-          }
-        },
-        include: {
-          reporter: true,
-          function: true,
-          transaction: true
-        }
-      })
-    }
-
-    if (result.length == 0) {
       throw new DelegatorError(DelegatorErrorCode.NotApprovedTransaction)
     }
   }
