@@ -22,23 +22,20 @@ contract RequestResponseCoordinator is
     // and some arithmetic operations.
     uint256 private constant GAS_FOR_CALL_EXACT_CHECK = 5_000;
 
-    /* oracle address */
-    /* registration status */
-    mapping(address => bool) private s_oracles;
+    address[] public sOracles;
+    mapping(address => bool) private sIsOracleRegistered;
 
     /* requestID */
     /* commitment */
-    mapping(uint256 => bytes32) private s_requestCommitments;
+    mapping(uint256 => bytes32) private sRequestIdToCommitment;
 
     /* requestID */
     /* owner */
-    mapping(uint256 => address) private s_requestOwner;
+    mapping(uint256 => address) private sRequestOwner;
 
-    address[] private s_registeredOracles;
+    uint256 public sMinBalance;
 
-    uint256 public s_minBalance;
-
-    PrepaymentInterface s_prepayment;
+    PrepaymentInterface private sPrepayment;
 
     struct Config {
         uint32 maxGasLimit;
@@ -48,7 +45,7 @@ contract RequestResponseCoordinator is
         // We make it configurable in case those operations are repriced.
         uint32 gasAfterPaymentCalculation;
     }
-    Config private s_config;
+    Config private sConfig;
 
     struct FeeConfig {
         // Flat fee charged per fulfillment in millionths of KLAY
@@ -63,15 +60,15 @@ contract RequestResponseCoordinator is
         uint24 reqsForTier4;
         uint24 reqsForTier5;
     }
-    FeeConfig private s_feeConfig;
+    FeeConfig private sFeeConfig;
 
     struct DirectPaymentConfig {
         uint256 fulfillmentFee;
         uint256 baseFee;
     }
 
-    DirectPaymentConfig s_directPaymentConfig;
-    mapping(bytes32 => string) private sJobIdToFunctionSelector;
+    DirectPaymentConfig private sDirectPaymentConfig;
+    mapping(bytes32 => string) sJobIdToFunctionSelector;
 
     error InvalidConsumer(uint64 accId, address consumer);
     error InvalidAccount();
@@ -144,20 +141,21 @@ contract RequestResponseCoordinator is
     );
 
     modifier nonReentrant() {
-        if (s_config.reentrancyLock) {
+        if (sConfig.reentrancyLock) {
             revert Reentrant();
         }
         _;
     }
 
     constructor(address prepayment) {
-        s_prepayment = PrepaymentInterface(prepayment);
         sJobIdToFunctionSelector[keccak256("uint256")] = "uint256";
         sJobIdToFunctionSelector[keccak256("int256")] = "int256";
         sJobIdToFunctionSelector[keccak256("bool")] = "bool";
         sJobIdToFunctionSelector[keccak256("string")] = "string";
         sJobIdToFunctionSelector[keccak256("bytes32")] = "bytes32";
         sJobIdToFunctionSelector[keccak256("bytes")] = "bytes";
+        sPrepayment = PrepaymentInterface(prepayment);
+        emit PrepaymentSet(prepayment);
     }
 
     /**
@@ -165,11 +163,11 @@ contract RequestResponseCoordinator is
      * @param oracle address of the oracle
      */
     function registerOracle(address oracle) external onlyOwner {
-        if (s_oracles[oracle]) {
+        if (sIsOracleRegistered[oracle]) {
             revert OracleAlreadyRegistered(oracle);
         }
-        s_oracles[oracle] = true;
-        s_registeredOracles.push(oracle);
+        sOracles.push(oracle);
+        sIsOracleRegistered[oracle] = true;
         emit OracleRegistered(oracle);
     }
 
@@ -178,18 +176,21 @@ contract RequestResponseCoordinator is
      * @param oracle address of the oracle
      */
     function deregisterOracle(address oracle) external onlyOwner {
-        if (!s_oracles[oracle]) {
+        if (!sIsOracleRegistered[oracle]) {
             revert NoSuchOracle(oracle);
         }
-        delete s_oracles[oracle];
-        for (uint256 i = 0; i < s_registeredOracles.length; i++) {
-            if (s_registeredOracles[i] == oracle) {
-                address last = s_registeredOracles[s_registeredOracles.length - 1];
-                s_registeredOracles[i] = last;
-                s_registeredOracles.pop();
+        delete sIsOracleRegistered[oracle];
+
+        uint256 oraclesLength = sOracles.length;
+        for (uint256 i; i < oraclesLength; ++i) {
+            if (sOracles[i] == oracle) {
+                address last = sOracles[oraclesLength - 1];
+                sOracles[i] = last;
+                sOracles.pop();
                 break;
             }
         }
+
         emit OracleDeregistered(oracle);
     }
 
@@ -204,13 +205,13 @@ contract RequestResponseCoordinator is
         uint32 gasAfterPaymentCalculation,
         FeeConfig memory feeConfig
     ) external onlyOwner {
-        s_config = Config({
+        sConfig = Config({
             maxGasLimit: maxGasLimit,
             gasAfterPaymentCalculation: gasAfterPaymentCalculation,
             reentrancyLock: false
         });
-        s_feeConfig = feeConfig;
-        emit ConfigSet(maxGasLimit, gasAfterPaymentCalculation, s_feeConfig);
+        sFeeConfig = feeConfig;
+        emit ConfigSet(maxGasLimit, gasAfterPaymentCalculation, sFeeConfig);
     }
 
     function getConfig()
@@ -218,7 +219,7 @@ contract RequestResponseCoordinator is
         view
         returns (uint32 maxGasLimit, uint32 gasAfterPaymentCalculation)
     {
-        return (s_config.maxGasLimit, s_config.gasAfterPaymentCalculation);
+        return (sConfig.maxGasLimit, sConfig.gasAfterPaymentCalculation);
     }
 
     function getFeeConfig()
@@ -237,22 +238,22 @@ contract RequestResponseCoordinator is
         )
     {
         return (
-            s_feeConfig.fulfillmentFlatFeeKlayPPMTier1,
-            s_feeConfig.fulfillmentFlatFeeKlayPPMTier2,
-            s_feeConfig.fulfillmentFlatFeeKlayPPMTier3,
-            s_feeConfig.fulfillmentFlatFeeKlayPPMTier4,
-            s_feeConfig.fulfillmentFlatFeeKlayPPMTier5,
-            s_feeConfig.reqsForTier2,
-            s_feeConfig.reqsForTier3,
-            s_feeConfig.reqsForTier4,
-            s_feeConfig.reqsForTier5
+            sFeeConfig.fulfillmentFlatFeeKlayPPMTier1,
+            sFeeConfig.fulfillmentFlatFeeKlayPPMTier2,
+            sFeeConfig.fulfillmentFlatFeeKlayPPMTier3,
+            sFeeConfig.fulfillmentFlatFeeKlayPPMTier4,
+            sFeeConfig.fulfillmentFlatFeeKlayPPMTier5,
+            sFeeConfig.reqsForTier2,
+            sFeeConfig.reqsForTier3,
+            sFeeConfig.reqsForTier4,
+            sFeeConfig.reqsForTier5
         );
     }
 
     function setDirectPaymentConfig(
         DirectPaymentConfig memory directPaymentConfig
-    ) public onlyOwner {
-        s_directPaymentConfig = directPaymentConfig;
+    ) external onlyOwner {
+        sDirectPaymentConfig = directPaymentConfig;
         emit DirectPaymentConfigSet(
             directPaymentConfig.fulfillmentFee,
             directPaymentConfig.baseFee
@@ -260,19 +261,15 @@ contract RequestResponseCoordinator is
     }
 
     function getDirectPaymentConfig() external view returns (uint256, uint256) {
-        return (s_directPaymentConfig.fulfillmentFee, s_directPaymentConfig.baseFee);
-    }
-
-    function estimateDirectPaymentFee() public view returns (uint256) {
-        return s_directPaymentConfig.fulfillmentFee + s_directPaymentConfig.baseFee;
+        return (sDirectPaymentConfig.fulfillmentFee, sDirectPaymentConfig.baseFee);
     }
 
     function getPrepaymentAddress() public view returns (address) {
-        return address(s_prepayment);
+        return address(sPrepayment);
     }
 
     function setMinBalance(uint256 minBalance) public onlyOwner {
-        s_minBalance = minBalance;
+        sMinBalance = minBalance;
         emit MinBalanceSet(minBalance);
     }
 
@@ -285,9 +282,9 @@ contract RequestResponseCoordinator is
             revert InvalidJobId();
         }
         bool isDirectPayment = false;
-        (uint256 balance, , , ) = s_prepayment.getAccount(accId);
-        if (balance < s_minBalance) {
-            revert InsufficientPayment(balance, s_minBalance);
+        (uint256 balance, , , ) = sPrepayment.getAccount(accId);
+        if (balance < sMinBalance) {
+            revert InsufficientPayment(balance, sMinBalance);
         }
         requestId = requestDataInternal(req, accId, callbackGasLimit, isDirectPayment);
     }
@@ -300,7 +297,7 @@ contract RequestResponseCoordinator is
     ) internal returns (uint256) {
         // Input validation using the account storage.
         // call to prepayment contract
-        address owner = s_prepayment.getAccountOwner(accId);
+        address owner = sPrepayment.getAccountOwner(accId);
         if (owner == address(0)) {
             revert InvalidAccount();
         }
@@ -308,7 +305,7 @@ contract RequestResponseCoordinator is
         // Its important to ensure that the consumer is in fact who they say they
         // are, otherwise they could use someone else's account balance.
         // A nonce of 0 indicates consumer is not allocated to the acc.
-        uint64 currentNonce = s_prepayment.getNonce(msg.sender, accId);
+        uint64 currentNonce = sPrepayment.getNonce(msg.sender, accId);
         if (currentNonce == 0) {
             revert InvalidConsumer(accId, msg.sender);
         }
@@ -317,18 +314,18 @@ contract RequestResponseCoordinator is
         // No lower bound on the requested gas limit. A user could request 0
         // and they would simply be billed for the proof verification and wouldn't be
         // able to do anything with the random value.
-        if (callbackGasLimit > s_config.maxGasLimit) {
-            revert GasLimitTooBig(callbackGasLimit, s_config.maxGasLimit);
+        if (callbackGasLimit > sConfig.maxGasLimit) {
+            revert GasLimitTooBig(callbackGasLimit, sConfig.maxGasLimit);
         }
 
-        uint64 nonce = s_prepayment.increaseNonce(msg.sender, accId);
+        uint64 nonce = sPrepayment.increaseNonce(msg.sender, accId);
 
         uint256 requestId = computeRequestId(msg.sender, accId, nonce);
-        s_requestCommitments[requestId] = keccak256(
+        sRequestIdToCommitment[requestId] = keccak256(
             abi.encode(requestId, block.number, accId, callbackGasLimit, msg.sender)
         );
 
-        s_requestOwner[requestId] = msg.sender;
+        sRequestOwner[requestId] = msg.sender;
 
         emit DataRequested(
             requestId,
@@ -355,11 +352,11 @@ contract RequestResponseCoordinator is
             revert InsufficientPayment(msg.value, fee);
         }
 
-        uint64 accId = s_prepayment.createAccount();
-        s_prepayment.addConsumer(accId, msg.sender);
+        uint64 accId = sPrepayment.createAccount();
+        sPrepayment.addConsumer(accId, msg.sender);
         bool isDirectPayment = true;
         uint256 requestId = requestDataInternal(req, accId, callbackGasLimit, isDirectPayment);
-        s_prepayment.deposit{value: fee}(accId);
+        sPrepayment.deposit{value: fee}(accId);
 
         uint256 remaining = msg.value - fee;
         if (remaining > 0) {
@@ -373,37 +370,20 @@ contract RequestResponseCoordinator is
     }
 
     /**
-     * @inheritdoc CoordinatorBaseInterface
-     */
-    function pendingRequestExists(
-        address consumer,
-        uint64 accId,
-        uint64 nonce
-    ) public view returns (bool) {
-        for (uint256 i = 0; i < s_registeredOracles.length; i++) {
-            uint256 reqId = computeRequestId(consumer, accId, nonce);
-            if (s_requestCommitments[reqId] != 0) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    /**
      * @inheritdoc RequestResponseCoordinatorInterface
      */
     function cancelRequest(uint256 requestId) external {
-        bytes32 commitment = s_requestCommitments[requestId];
+        bytes32 commitment = sRequestIdToCommitment[requestId];
         if (commitment == 0) {
             revert NoCorrespondingRequest();
         }
 
-        if (s_requestOwner[requestId] != msg.sender) {
+        if (sRequestOwner[requestId] != msg.sender) {
             revert NotRequestOwner();
         }
 
-        delete s_requestCommitments[requestId];
-        delete s_requestOwner[requestId];
+        delete sRequestIdToCommitment[requestId];
+        delete sRequestOwner[requestId];
 
         emit DataRequestCancelled(requestId);
     }
@@ -416,13 +396,53 @@ contract RequestResponseCoordinator is
         return "RequestResponseCoordinator v0.1";
     }
 
+    /**
+     * @notice Find out whether given oracle address was registered.
+     * @return true when oracle address registered, otherwise false
+     */
+    function isOracleRegistered(address oracle) external view returns (bool) {
+        return sIsOracleRegistered[oracle];
+    }
+
+    function estimateDirectPaymentFee() internal view returns (uint256) {
+        return sDirectPaymentConfig.fulfillmentFee + sDirectPaymentConfig.baseFee;
+    }
+
+    function calculatePaymentAmount(
+        uint256 startGas,
+        uint256 gasAfterPaymentCalculation,
+        uint32 fulfillmentFlatFeeKlayPPM
+    ) internal view returns (uint256) {
+        uint256 paymentNoFee = tx.gasprice * (gasAfterPaymentCalculation + startGas - gasleft());
+        uint256 fee = 1e12 * uint256(fulfillmentFlatFeeKlayPPM);
+        return paymentNoFee + fee;
+    }
+
+    /**
+     * @inheritdoc CoordinatorBaseInterface
+     */
+    function pendingRequestExists(
+        address consumer,
+        uint64 accId,
+        uint64 nonce
+    ) public view returns (bool) {
+        uint256 oraclesLength = sOracles.length;
+        for (uint256 i; i < oraclesLength; ++i) {
+            uint256 reqId = computeRequestId(consumer, accId, nonce);
+            if (sRequestIdToCommitment[reqId] != 0) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     /*
      * @notice Compute fee based on the request count
      * @param reqCount number of requests
      * @return feePPM fee in KLAY PPM
      */
     function getFeeTier(uint64 reqCount) public view returns (uint32) {
-        FeeConfig memory fc = s_feeConfig;
+        FeeConfig memory fc = sFeeConfig;
         if (0 <= reqCount && reqCount <= fc.reqsForTier2) {
             return fc.fulfillmentFlatFeeKlayPPMTier1;
         }
@@ -436,16 +456,6 @@ contract RequestResponseCoordinator is
             return fc.fulfillmentFlatFeeKlayPPMTier4;
         }
         return fc.fulfillmentFlatFeeKlayPPMTier5;
-    }
-
-    function calculatePaymentAmount(
-        uint256 startGas,
-        uint256 gasAfterPaymentCalculation,
-        uint32 fulfillmentFlatFeeKlayPPM
-    ) internal view returns (uint256) {
-        uint256 paymentNoFee = tx.gasprice * (gasAfterPaymentCalculation + startGas - gasleft());
-        uint256 fee = 1e12 * uint256(fulfillmentFlatFeeKlayPPM);
-        return paymentNoFee + fee;
     }
 
     function computeRequestId(
@@ -498,11 +508,11 @@ contract RequestResponseCoordinator is
         RequestCommitment memory rc,
         uint256 requestId
     ) internal returns (bool) {
-        if (!s_oracles[msg.sender]) {
+        if (!sIsOracleRegistered[msg.sender]) {
             revert UnregisteredOracleFulfillment(msg.sender);
         }
 
-        bytes32 commitment = s_requestCommitments[requestId];
+        bytes32 commitment = sRequestIdToCommitment[requestId];
         if (commitment == 0) {
             revert NoCorrespondingRequest();
         }
@@ -514,7 +524,7 @@ contract RequestResponseCoordinator is
             revert IncorrectCommitment();
         }
 
-        delete s_requestCommitments[requestId];
+        delete sRequestIdToCommitment[requestId];
 
         return true;
     }
@@ -526,9 +536,9 @@ contract RequestResponseCoordinator is
         // during the consumers callback code via reentrancyLock.
         // Note that callWithExactGas will revert if we do not have sufficient gas
         // to give the callee their requested amount.
-        s_config.reentrancyLock = true;
+        sConfig.reentrancyLock = true;
         bool success = callWithExactGas(rc.callbackGasLimit, rc.sender, resp);
-        s_config.reentrancyLock = false;
+        sConfig.reentrancyLock = false;
         return success;
     }
 
@@ -541,21 +551,21 @@ contract RequestResponseCoordinator is
         // The gasAfterPaymentCalculation is meant to cover these additional operations where we
         // decrement the account balance and increment the oracles withdrawable balance.
         // We also add the flat KLAY fee to the payment amount.
-        // Its specified in millionths of KLAY, if s_config.fulfillmentFlatFeeKlayPPM = 1
+        // Its specified in millionths of KLAY, if sConfig.fulfillmentFlatFeeKlayPPM = 1
         // 1 KLAY / 1e6 = 1e18 pebs / 1e6 = 1e12 pebs.
-        (uint256 balance, uint64 reqCount, , ) = s_prepayment.getAccount(rc.accId);
+        (uint256 balance, uint64 reqCount, , ) = sPrepayment.getAccount(rc.accId);
 
         if (isDirectPayment) {
             payment = balance;
         } else {
             payment = calculatePaymentAmount(
                 startGas,
-                s_config.gasAfterPaymentCalculation,
+                sConfig.gasAfterPaymentCalculation,
                 getFeeTier(reqCount)
             );
         }
 
-        s_prepayment.chargeFee(rc.accId, payment, msg.sender);
+        sPrepayment.chargeFee(rc.accId, payment, msg.sender);
 
         return payment;
     }

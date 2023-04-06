@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common'
 import { Prisma } from '@prisma/client'
 import { PrismaService } from '../prisma.service'
 import { ReporterDto } from './dto/reporter.dto'
+import { flattenReporter } from './reporter.utils'
 
 @Injectable()
 export class ReporterService {
@@ -10,7 +11,6 @@ export class ReporterService {
   async create(reporterDto: ReporterDto) {
     const data: Prisma.ReporterUncheckedCreateInput = {
       address: reporterDto.address,
-      contractId: reporterDto.contractId,
       organizationId: reporterDto.organizationId
     }
     return await this.prisma.reporter.create({ data })
@@ -24,19 +24,35 @@ export class ReporterService {
     orderBy?: Prisma.ReporterOrderByWithRelationInput
   }) {
     const { skip, take, cursor, where, orderBy } = params
-    return await this.prisma.reporter.findMany({
+    const reporters = await this.prisma.reporter.findMany({
       skip,
       take,
       cursor,
       where,
-      orderBy
+      orderBy,
+      select: {
+        id: true,
+        address: true,
+        organization: true,
+        contract: { select: { address: true } }
+      }
+    })
+    return reporters.map((R) => {
+      return flattenReporter(R)
     })
   }
 
   async findOne(reporterWhereUniqueInput: Prisma.ReporterWhereUniqueInput) {
-    return await this.prisma.reporter.findUnique({
-      where: reporterWhereUniqueInput
+    const reporter = await this.prisma.reporter.findUnique({
+      where: reporterWhereUniqueInput,
+      select: {
+        id: true,
+        address: true,
+        organization: true,
+        contract: { select: { address: true } }
+      }
     })
+    return flattenReporter(reporter)
   }
 
   async update(params: { where: Prisma.ReporterWhereUniqueInput; reporterDto: ReporterDto }) {

@@ -27,6 +27,8 @@ async function main() {
 
   WORKERS[worker](redisClient, LOGGER)
 
+  LOGGER.info('Worker launched')
+
   // TODO later replace with watchman after it becomes utilized in every service
   launchHealthCheck()
 }

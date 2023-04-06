@@ -4,7 +4,7 @@ async function main() {
   const userContract = await ethers.getContract('VRFConsumerMock')
   console.log('VRFConsumerMock', userContract.address)
 
-  const randomWord = await userContract.s_randomWord()
+  const randomWord = await userContract.sRandomWord()
   console.log(`randomWord ${randomWord.toString()}`)
 }
 

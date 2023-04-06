@@ -22,17 +22,13 @@ contract VRFCoordinator is
     // and some arithmetic operations.
     uint256 private constant GAS_FOR_CALL_EXACT_CHECK = 5_000;
 
-    bytes32[] private s_provingKeyHashes;
+    address[] public sOracles;
+    mapping(address => bytes32) private sOracleToKeyHash;
+    bytes32[] public sKeyHashes;
+    mapping(bytes32 => address) private sKeyHashToOracle;
+    mapping(uint256 => bytes32) private sRequestIdToCommitment;
 
-    /* keyHash */
-    /* oracle */
-    mapping(bytes32 => address) private s_provingKeys;
-
-    /* requestID */
-    /* commitment */
-    mapping(uint256 => bytes32) private s_requestCommitments;
-
-    uint256 public s_minBalance;
+    uint256 public sMinBalance;
 
     // RequestCommitment holds information sent from off-chain oracle
     // describing details of request.
@@ -52,7 +48,7 @@ contract VRFCoordinator is
         // We make it configurable in case those operations are repriced.
         uint32 gasAfterPaymentCalculation;
     }
-    Config private s_config;
+    Config private sConfig;
 
     struct FeeConfig {
         // Flat fee charged per fulfillment in millionths of KLAY
@@ -67,23 +63,25 @@ contract VRFCoordinator is
         uint24 reqsForTier4;
         uint24 reqsForTier5;
     }
-    FeeConfig private s_feeConfig;
+    FeeConfig private sFeeConfig;
 
-    PrepaymentInterface s_prepayment;
+    PrepaymentInterface private sPrepayment;
 
     struct DirectPaymentConfig {
         uint256 fulfillmentFee;
         uint256 baseFee;
     }
 
-    DirectPaymentConfig s_directPaymentConfig;
+    DirectPaymentConfig private sDirectPaymentConfig;
 
     error InvalidKeyHash(bytes32 keyHash);
     error InvalidConsumer(uint64 accId, address consumer);
     error InvalidAccount();
     error GasLimitTooBig(uint32 have, uint32 want);
     error NumWordsTooBig(uint32 have, uint32 want);
+    error OracleAlreadyRegistered(address oracle);
     error ProvingKeyAlreadyRegistered(bytes32 keyHash);
+    error NoSuchOracle(address oracle);
     error NoSuchProvingKey(bytes32 keyHash);
     error NoCorrespondingRequest();
     error IncorrectCommitment();
@@ -91,8 +89,8 @@ contract VRFCoordinator is
     error InsufficientPayment(uint256 have, uint256 want);
     error RefundFailure();
 
-    event ProvingKeyRegistered(bytes32 keyHash, address indexed oracle);
-    event ProvingKeyDeregistered(bytes32 keyHash, address indexed oracle);
+    event OracleRegistered(address indexed oracle, bytes32 keyHash);
+    event OracleDeregistered(address indexed oracle, bytes32 keyHash);
     event RandomWordsRequested(
         bytes32 indexed keyHash,
         uint256 requestId,
@@ -115,64 +113,79 @@ contract VRFCoordinator is
     event PrepaymentSet(address prepayment);
 
     modifier nonReentrant() {
-        if (s_config.reentrancyLock) {
+        if (sConfig.reentrancyLock) {
             revert Reentrant();
         }
         _;
     }
 
     modifier onlyValidKeyHash(bytes32 keyHash) {
-        if (s_provingKeys[keyHash] == address(0)) {
+        if (sKeyHashToOracle[keyHash] == address(0)) {
             revert InvalidKeyHash(keyHash);
         }
         _;
     }
 
     constructor(address prepayment) {
-        s_prepayment = PrepaymentInterface(prepayment);
+        sPrepayment = PrepaymentInterface(prepayment);
         emit PrepaymentSet(prepayment);
     }
 
     /**
-     * @notice Registers a proving key to an oracle.
+     * @notice Registers an oracle and its proving key.
      * @param oracle address of the oracle
      * @param publicProvingKey key that oracle can use to submit VRF fulfillments
      */
-    function registerProvingKey(
+    function registerOracle(
         address oracle,
         uint256[2] calldata publicProvingKey
     ) external onlyOwner {
+        if (sOracleToKeyHash[oracle] != bytes32(0)) {
+            revert OracleAlreadyRegistered(oracle);
+        }
+
         bytes32 kh = hashOfKey(publicProvingKey);
-        if (s_provingKeys[kh] != address(0)) {
+        if (sKeyHashToOracle[kh] != address(0)) {
             revert ProvingKeyAlreadyRegistered(kh);
         }
-        s_provingKeys[kh] = oracle;
-        s_provingKeyHashes.push(kh);
-        emit ProvingKeyRegistered(kh, oracle);
+
+        sOracles.push(oracle);
+        sKeyHashes.push(kh);
+        sOracleToKeyHash[oracle] = kh;
+        sKeyHashToOracle[kh] = oracle;
+
+        emit OracleRegistered(oracle, kh);
     }
 
     /**
-     * @notice Deregisters a proving key to an oracle.
-     * @param publicProvingKey key that oracle can use to submit VRF fulfillments
+     * @notice Deregisters an oracle.
+     * @param oracle address representing oracle that can submit VRF fulfillments
      */
-    function deregisterProvingKey(uint256[2] calldata publicProvingKey) external onlyOwner {
-        bytes32 kh = hashOfKey(publicProvingKey);
-        address oracle = s_provingKeys[kh];
-        if (oracle == address(0)) {
-            revert NoSuchProvingKey(kh);
+    function deregisterOracle(address oracle) external onlyOwner {
+        bytes32 kh = sOracleToKeyHash[oracle];
+        if (kh == bytes32(0) || sKeyHashToOracle[kh] == address(0)) {
+            revert NoSuchOracle(oracle);
         }
-        delete s_provingKeys[kh];
-        uint256 provingKeyHashesLength = s_provingKeyHashes.length;
-        for (uint256 i; i < provingKeyHashesLength; i++) {
-            if (s_provingKeyHashes[i] == kh) {
-                bytes32 last = s_provingKeyHashes[provingKeyHashesLength - 1];
-                // Copy last element and overwrite kh to be deleted with it
-                s_provingKeyHashes[i] = last;
-                s_provingKeyHashes.pop();
+        delete sOracleToKeyHash[oracle];
+        delete sKeyHashToOracle[kh];
+
+        uint256 oraclesLength = sOracles.length;
+        for (uint256 i; i < oraclesLength; ++i) {
+            if (sOracles[i] == oracle) {
+                // oracles
+                address lastOracle = sOracles[oraclesLength - 1];
+                sOracles[i] = lastOracle;
+                sOracles.pop();
+
+                // key hashes
+                bytes32 lastKeyHash = sKeyHashes[oraclesLength - 1];
+                sKeyHashes[i] = lastKeyHash;
+                sKeyHashes.pop();
                 break;
             }
         }
-        emit ProvingKeyDeregistered(kh, oracle);
+
+        emit OracleDeregistered(oracle, kh);
     }
 
     /**
@@ -186,13 +199,13 @@ contract VRFCoordinator is
         uint32 gasAfterPaymentCalculation,
         FeeConfig memory feeConfig
     ) external onlyOwner {
-        s_config = Config({
+        sConfig = Config({
             maxGasLimit: maxGasLimit,
             gasAfterPaymentCalculation: gasAfterPaymentCalculation,
             reentrancyLock: false
         });
-        s_feeConfig = feeConfig;
-        emit ConfigSet(maxGasLimit, gasAfterPaymentCalculation, s_feeConfig);
+        sFeeConfig = feeConfig;
+        emit ConfigSet(maxGasLimit, gasAfterPaymentCalculation, sFeeConfig);
     }
 
     function getConfig()
@@ -200,7 +213,7 @@ contract VRFCoordinator is
         view
         returns (uint32 maxGasLimit, uint32 gasAfterPaymentCalculation)
     {
-        return (s_config.maxGasLimit, s_config.gasAfterPaymentCalculation);
+        return (sConfig.maxGasLimit, sConfig.gasAfterPaymentCalculation);
     }
 
     function getFeeConfig()
@@ -219,15 +232,15 @@ contract VRFCoordinator is
         )
     {
         return (
-            s_feeConfig.fulfillmentFlatFeeKlayPPMTier1,
-            s_feeConfig.fulfillmentFlatFeeKlayPPMTier2,
-            s_feeConfig.fulfillmentFlatFeeKlayPPMTier3,
-            s_feeConfig.fulfillmentFlatFeeKlayPPMTier4,
-            s_feeConfig.fulfillmentFlatFeeKlayPPMTier5,
-            s_feeConfig.reqsForTier2,
-            s_feeConfig.reqsForTier3,
-            s_feeConfig.reqsForTier4,
-            s_feeConfig.reqsForTier5
+            sFeeConfig.fulfillmentFlatFeeKlayPPMTier1,
+            sFeeConfig.fulfillmentFlatFeeKlayPPMTier2,
+            sFeeConfig.fulfillmentFlatFeeKlayPPMTier3,
+            sFeeConfig.fulfillmentFlatFeeKlayPPMTier4,
+            sFeeConfig.fulfillmentFlatFeeKlayPPMTier5,
+            sFeeConfig.reqsForTier2,
+            sFeeConfig.reqsForTier3,
+            sFeeConfig.reqsForTier4,
+            sFeeConfig.reqsForTier5
         );
     }
 
@@ -235,29 +248,11 @@ contract VRFCoordinator is
      * @inheritdoc VRFCoordinatorInterface
      */
     function getRequestConfig() external view returns (uint32, bytes32[] memory) {
-        return (s_config.maxGasLimit, s_provingKeyHashes);
-    }
-
-    function setDirectPaymentConfig(
-        DirectPaymentConfig memory directPaymentConfig
-    ) public onlyOwner {
-        s_directPaymentConfig = directPaymentConfig;
-        emit DirectPaymentConfigSet(
-            directPaymentConfig.fulfillmentFee,
-            directPaymentConfig.baseFee
-        );
+        return (sConfig.maxGasLimit, sKeyHashes);
     }
 
     function getDirectPaymentConfig() external view returns (uint256, uint256) {
-        return (s_directPaymentConfig.fulfillmentFee, s_directPaymentConfig.baseFee);
-    }
-
-    function estimateDirectPaymentFee() public view returns (uint256) {
-        return s_directPaymentConfig.fulfillmentFee + s_directPaymentConfig.baseFee;
-    }
-
-    function getPrepaymentAddress() public view returns (address) {
-        return address(s_prepayment);
+        return (sDirectPaymentConfig.fulfillmentFee, sDirectPaymentConfig.baseFee);
     }
 
     /**
@@ -266,190 +261,26 @@ contract VRFCoordinator is
      * @dev used to determine if a request is fulfilled or not
      */
     function getCommitment(uint256 requestId) external view returns (bytes32) {
-        return s_requestCommitments[requestId];
+        return sRequestIdToCommitment[requestId];
     }
 
-    function setMinBalance(uint256 minBalance) public onlyOwner {
-        s_minBalance = minBalance;
+    function setDirectPaymentConfig(
+        DirectPaymentConfig memory directPaymentConfig
+    ) external onlyOwner {
+        sDirectPaymentConfig = directPaymentConfig;
+        emit DirectPaymentConfigSet(
+            directPaymentConfig.fulfillmentFee,
+            directPaymentConfig.baseFee
+        );
+    }
+
+    function getPrepaymentAddress() external view returns (address) {
+        return address(sPrepayment);
+    }
+
+    function setMinBalance(uint256 minBalance) external onlyOwner {
+        sMinBalance = minBalance;
         emit MinBalanceSet(minBalance);
-    }
-
-    /*
-     * @notice Fulfill a randomness request
-     * @param proof contains the proof and randomness
-     * @param rc request commitment pre-image, committed to at request time
-     * @return payment amount billed to the account
-     * @dev simulated offchain to determine if sufficient balance is present to fulfill the request
-     */
-    function fulfillRandomWords(
-        VRF.Proof memory proof,
-        RequestCommitment memory rc,
-        bool isDirectPayment
-    ) external nonReentrant returns (uint256) {
-        uint256 startGas = gasleft();
-        (bytes32 keyHash, uint256 requestId, uint256 randomness) = getRandomnessFromProof(
-            proof,
-            rc
-        );
-
-        uint256[] memory randomWords = new uint256[](rc.numWords);
-        for (uint256 i = 0; i < rc.numWords; i++) {
-            randomWords[i] = uint256(keccak256(abi.encode(randomness, i)));
-        }
-
-        delete s_requestCommitments[requestId];
-        VRFConsumerBase v;
-        bytes memory resp = abi.encodeWithSelector(
-            v.rawFulfillRandomWords.selector,
-            requestId,
-            randomWords
-        );
-
-        // Call with explicitly the amount of callback gas requested
-        // Important to not let them exhaust the gas budget and avoid oracle payment.
-        // Do not allow any non-view/non-pure coordinator functions to be called
-        // during the consumers callback code via reentrancyLock.
-        // Note that callWithExactGas will revert if we do not have sufficient gas
-        // to give the callee their requested amount.
-        s_config.reentrancyLock = true;
-        bool success = callWithExactGas(rc.callbackGasLimit, rc.sender, resp);
-        s_config.reentrancyLock = false;
-
-        // We want to charge users exactly for how much gas they use in their callback.
-        // The gasAfterPaymentCalculation is meant to cover these additional operations where we
-        // decrement the account balance and increment the oracles withdrawable balance.
-        // We also add the flat KLAY fee to the payment amount.
-        // Its specified in millionths of KLAY, if s_config.fulfillmentFlatFeeKlayPPM = 1
-        // 1 KLAY / 1e6 = 1e18 pebs / 1e6 = 1e12 pebs.
-        (uint256 balance, uint64 reqCount, , ) = s_prepayment.getAccount(rc.accId);
-
-        uint256 payment;
-        if (isDirectPayment) {
-            payment = balance;
-        } else {
-            payment = calculatePaymentAmount(
-                startGas,
-                s_config.gasAfterPaymentCalculation,
-                getFeeTier(reqCount)
-            );
-        }
-
-        s_prepayment.chargeFee(rc.accId, payment, s_provingKeys[keyHash]);
-
-        // FIXME
-        //s_withdrawableTokens[s_provingKeys[rc.keyHash]] += payment;
-
-        // Include payment in the event for tracking costs.
-        emit RandomWordsFulfilled(requestId, randomness, payment, success);
-        return payment;
-    }
-
-    /**
-     * @notice The type and version of this contract
-     * @return Type and version string
-     */
-    function typeAndVersion() external pure virtual override returns (string memory) {
-        return "VRFCoordinator v0.1";
-    }
-
-    /*
-     * @notice Compute fee based on the request count
-     * @param reqCount number of requests
-     * @return feePPM fee in KLAY PPM
-     */
-    function getFeeTier(uint64 reqCount) public view returns (uint32) {
-        FeeConfig memory fc = s_feeConfig;
-        if (0 <= reqCount && reqCount <= fc.reqsForTier2) {
-            return fc.fulfillmentFlatFeeKlayPPMTier1;
-        }
-        if (fc.reqsForTier2 < reqCount && reqCount <= fc.reqsForTier3) {
-            return fc.fulfillmentFlatFeeKlayPPMTier2;
-        }
-        if (fc.reqsForTier3 < reqCount && reqCount <= fc.reqsForTier4) {
-            return fc.fulfillmentFlatFeeKlayPPMTier3;
-        }
-        if (fc.reqsForTier4 < reqCount && reqCount <= fc.reqsForTier5) {
-            return fc.fulfillmentFlatFeeKlayPPMTier4;
-        }
-        return fc.fulfillmentFlatFeeKlayPPMTier5;
-    }
-
-    /**
-     * @inheritdoc CoordinatorBaseInterface
-     */
-    function pendingRequestExists(
-        address consumer,
-        uint64 accId,
-        uint64 nonce
-    ) public view returns (bool) {
-        for (uint256 i = 0; i < s_provingKeyHashes.length; i++) {
-            (uint256 reqId, ) = computeRequestId(s_provingKeyHashes[i], consumer, accId, nonce);
-            if (s_requestCommitments[reqId] != 0) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    /**
-     * @notice Returns the proving key hash key associated with this public key
-     * @param publicKey the key to return the hash of
-     */
-    function hashOfKey(uint256[2] memory publicKey) public pure returns (bytes32) {
-        return keccak256(abi.encode(publicKey));
-    }
-
-    function requestRandomWordsInternal(
-        bytes32 keyHash,
-        uint64 accId,
-        uint32 callbackGasLimit,
-        uint32 numWords,
-        bool isDirectPayment
-    ) internal returns (uint256) {
-        // Input validation using the account storage.
-        // call to prepayment contract
-        address owner = s_prepayment.getAccountOwner(accId);
-        if (owner == address(0)) {
-            revert InvalidAccount();
-        }
-
-        // Its important to ensure that the consumer is in fact who they say they
-        // are, otherwise they could use someone else's account balance.
-        // A nonce of 0 indicates consumer is not allocated to the acc.
-        uint64 currentNonce = s_prepayment.getNonce(msg.sender, accId);
-        if (currentNonce == 0) {
-            revert InvalidConsumer(accId, msg.sender);
-        }
-
-        // No lower bound on the requested gas limit. A user could request 0
-        // and they would simply be billed for the proof verification and wouldn't be
-        // able to do anything with the random value.
-        if (callbackGasLimit > s_config.maxGasLimit) {
-            revert GasLimitTooBig(callbackGasLimit, s_config.maxGasLimit);
-        }
-
-        if (numWords > MAX_NUM_WORDS) {
-            revert NumWordsTooBig(numWords, MAX_NUM_WORDS);
-        }
-
-        uint64 nonce = s_prepayment.increaseNonce(msg.sender, accId);
-        (uint256 requestId, uint256 preSeed) = computeRequestId(keyHash, msg.sender, accId, nonce);
-
-        s_requestCommitments[requestId] = keccak256(
-            abi.encode(requestId, block.number, accId, callbackGasLimit, numWords, msg.sender)
-        );
-        emit RandomWordsRequested(
-            keyHash,
-            requestId,
-            preSeed,
-            accId,
-            callbackGasLimit,
-            numWords,
-            msg.sender,
-            isDirectPayment
-        );
-
-        return requestId;
     }
 
     /**
@@ -461,10 +292,10 @@ contract VRFCoordinator is
         uint32 callbackGasLimit,
         uint32 numWords
     ) external nonReentrant onlyValidKeyHash(keyHash) returns (uint256 requestId) {
-        (uint256 balance, , , ) = s_prepayment.getAccount(accId);
+        (uint256 balance, , , ) = sPrepayment.getAccount(accId);
 
-        if (balance < s_minBalance) {
-            revert InsufficientPayment(balance, s_minBalance);
+        if (balance < sMinBalance) {
+            revert InsufficientPayment(balance, sMinBalance);
         }
         bool isDirectPayment = false;
 
@@ -490,8 +321,8 @@ contract VRFCoordinator is
             revert InsufficientPayment(msg.value, vrfFee);
         }
 
-        uint64 accId = s_prepayment.createAccount();
-        s_prepayment.addConsumer(accId, msg.sender);
+        uint64 accId = sPrepayment.createAccount();
+        sPrepayment.addConsumer(accId, msg.sender);
         bool isDirectPayment = true;
         uint256 requestId = requestRandomWordsInternal(
             keyHash,
@@ -500,7 +331,7 @@ contract VRFCoordinator is
             numWords,
             isDirectPayment
         );
-        s_prepayment.deposit{value: vrfFee}(accId);
+        sPrepayment.deposit{value: vrfFee}(accId);
 
         uint256 remaining = msg.value - vrfFee;
         if (remaining > 0) {
@@ -511,6 +342,202 @@ contract VRFCoordinator is
         }
 
         return requestId;
+    }
+
+    /*
+     * @notice Fulfill a randomness request
+     * @param proof contains the proof and randomness
+     * @param rc request commitment pre-image, committed to at request time
+     * @return payment amount billed to the account
+     * @dev simulated offchain to determine if sufficient balance is present to fulfill the request
+     */
+    function fulfillRandomWords(
+        VRF.Proof memory proof,
+        RequestCommitment memory rc,
+        bool isDirectPayment
+    ) external nonReentrant returns (uint256) {
+        uint256 startGas = gasleft();
+        (bytes32 keyHash, uint256 requestId, uint256 randomness) = getRandomnessFromProof(
+            proof,
+            rc
+        );
+
+        uint256[] memory randomWords = new uint256[](rc.numWords);
+        for (uint256 i = 0; i < rc.numWords; i++) {
+            randomWords[i] = uint256(keccak256(abi.encode(randomness, i)));
+        }
+
+        delete sRequestIdToCommitment[requestId];
+        VRFConsumerBase v;
+        bytes memory resp = abi.encodeWithSelector(
+            v.rawFulfillRandomWords.selector,
+            requestId,
+            randomWords
+        );
+
+        // Call with explicitly the amount of callback gas requested
+        // Important to not let them exhaust the gas budget and avoid oracle payment.
+        // Do not allow any non-view/non-pure coordinator functions to be called
+        // during the consumers callback code via reentrancyLock.
+        // Note that callWithExactGas will revert if we do not have sufficient gas
+        // to give the callee their requested amount.
+        sConfig.reentrancyLock = true;
+        bool success = callWithExactGas(rc.callbackGasLimit, rc.sender, resp);
+        sConfig.reentrancyLock = false;
+
+        // We want to charge users exactly for how much gas they use in their callback.
+        // The gasAfterPaymentCalculation is meant to cover these additional operations where we
+        // decrement the account balance and increment the oracles withdrawable balance.
+        // We also add the flat KLAY fee to the payment amount.
+        // Its specified in millionths of KLAY, if sConfig.fulfillmentFlatFeeKlayPPM = 1
+        // 1 KLAY / 1e6 = 1e18 pebs / 1e6 = 1e12 pebs.
+        (uint256 balance, uint64 reqCount, , ) = sPrepayment.getAccount(rc.accId);
+
+        uint256 payment;
+        if (isDirectPayment) {
+            payment = balance;
+        } else {
+            payment = calculatePaymentAmount(
+                startGas,
+                sConfig.gasAfterPaymentCalculation,
+                getFeeTier(reqCount)
+            );
+        }
+
+        sPrepayment.chargeFee(rc.accId, payment, sKeyHashToOracle[keyHash]);
+
+        // Include payment in the event for tracking costs.
+        emit RandomWordsFulfilled(requestId, randomness, payment, success);
+        return payment;
+    }
+
+    /**
+     * @notice The type and version of this contract
+     * @return Type and version string
+     */
+    function typeAndVersion() external pure virtual override returns (string memory) {
+        return "VRFCoordinator v0.1";
+    }
+
+    /**
+     * @notice Find key hash associated with given oracle address.
+     * @return keyhash
+     */
+    function oracleToKeyHash(address oracle) external view returns (bytes32) {
+        return sOracleToKeyHash[oracle];
+    }
+
+    /**
+     * @notice Find key oracle associated with given key hash.
+     * @return oracle address
+     */
+    function keyHashToOracle(bytes32 keyHash) external view returns (address) {
+        return sKeyHashToOracle[keyHash];
+    }
+
+    /*
+     * @notice Compute fee based on the request count
+     * @param reqCount number of requests
+     * @return feePPM fee in KLAY PPM
+     */
+    function getFeeTier(uint64 reqCount) public view returns (uint32) {
+        FeeConfig memory fc = sFeeConfig;
+        if (0 <= reqCount && reqCount <= fc.reqsForTier2) {
+            return fc.fulfillmentFlatFeeKlayPPMTier1;
+        }
+        if (fc.reqsForTier2 < reqCount && reqCount <= fc.reqsForTier3) {
+            return fc.fulfillmentFlatFeeKlayPPMTier2;
+        }
+        if (fc.reqsForTier3 < reqCount && reqCount <= fc.reqsForTier4) {
+            return fc.fulfillmentFlatFeeKlayPPMTier3;
+        }
+        if (fc.reqsForTier4 < reqCount && reqCount <= fc.reqsForTier5) {
+            return fc.fulfillmentFlatFeeKlayPPMTier4;
+        }
+        return fc.fulfillmentFlatFeeKlayPPMTier5;
+    }
+
+    /**
+     * @inheritdoc CoordinatorBaseInterface
+     */
+    function pendingRequestExists(
+        address consumer,
+        uint64 accId,
+        uint64 nonce
+    ) public view returns (bool) {
+        uint256 keyHashesLength = sKeyHashes.length;
+        for (uint256 i; i < keyHashesLength; ++i) {
+            (uint256 reqId, ) = computeRequestId(sKeyHashes[i], consumer, accId, nonce);
+            if (sRequestIdToCommitment[reqId] != 0) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * @notice Returns the proving key hash key associated with this public key
+     * @param publicKey the key to return the hash of
+     */
+    function hashOfKey(uint256[2] memory publicKey) public pure returns (bytes32) {
+        return keccak256(abi.encode(publicKey));
+    }
+
+    function requestRandomWordsInternal(
+        bytes32 keyHash,
+        uint64 accId,
+        uint32 callbackGasLimit,
+        uint32 numWords,
+        bool isDirectPayment
+    ) internal returns (uint256) {
+        // Input validation using the account storage.
+        // call to prepayment contract
+        address owner = sPrepayment.getAccountOwner(accId);
+        if (owner == address(0)) {
+            revert InvalidAccount();
+        }
+
+        // Its important to ensure that the consumer is in fact who they say they
+        // are, otherwise they could use someone else's account balance.
+        // A nonce of 0 indicates consumer is not allocated to the acc.
+        uint64 currentNonce = sPrepayment.getNonce(msg.sender, accId);
+        if (currentNonce == 0) {
+            revert InvalidConsumer(accId, msg.sender);
+        }
+
+        // No lower bound on the requested gas limit. A user could request 0
+        // and they would simply be billed for the proof verification and wouldn't be
+        // able to do anything with the random value.
+        if (callbackGasLimit > sConfig.maxGasLimit) {
+            revert GasLimitTooBig(callbackGasLimit, sConfig.maxGasLimit);
+        }
+
+        if (numWords > MAX_NUM_WORDS) {
+            revert NumWordsTooBig(numWords, MAX_NUM_WORDS);
+        }
+
+        uint64 nonce = sPrepayment.increaseNonce(msg.sender, accId);
+        (uint256 requestId, uint256 preSeed) = computeRequestId(keyHash, msg.sender, accId, nonce);
+
+        sRequestIdToCommitment[requestId] = keccak256(
+            abi.encode(requestId, block.number, accId, callbackGasLimit, numWords, msg.sender)
+        );
+        emit RandomWordsRequested(
+            keyHash,
+            requestId,
+            preSeed,
+            accId,
+            callbackGasLimit,
+            numWords,
+            msg.sender,
+            isDirectPayment
+        );
+
+        return requestId;
+    }
+
+    function estimateDirectPaymentFee() internal view returns (uint256) {
+        return sDirectPaymentConfig.fulfillmentFee + sDirectPaymentConfig.baseFee;
     }
 
     function calculatePaymentAmount(
@@ -577,12 +604,12 @@ contract VRFCoordinator is
     ) private view returns (bytes32 keyHash, uint256 requestId, uint256 randomness) {
         keyHash = hashOfKey(proof.pk);
         // Only registered proving keys are permitted.
-        address oracle = s_provingKeys[keyHash];
+        address oracle = sKeyHashToOracle[keyHash];
         if (oracle == address(0)) {
             revert NoSuchProvingKey(keyHash);
         }
         requestId = uint256(keccak256(abi.encode(keyHash, proof.seed)));
-        bytes32 commitment = s_requestCommitments[requestId];
+        bytes32 commitment = sRequestIdToCommitment[requestId];
         if (commitment == 0) {
             revert NoCorrespondingRequest();
         }

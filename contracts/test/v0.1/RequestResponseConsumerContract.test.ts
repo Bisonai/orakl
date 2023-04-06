@@ -144,7 +144,7 @@ describe('Request-Response user contract', function () {
     const fulfillEvent = coordinatorContract.interface.parseLog(fulfillReceipt.events[1])
     expect(fulfillEvent.name).to.be.equal('DataRequestFulfilledUint256')
     expect(fulfillEvent.args.requestId).to.be.equal(requestId)
-    expect(Number(await consumerContract.s_response())).to.be.equal(response)
+    expect(Number(await consumerContract.sResponse())).to.be.equal(response)
   })
 
   it('Request & Fulfill Int256', async function () {
@@ -227,7 +227,7 @@ describe('Request-Response user contract', function () {
     const fulfillEvent = coordinatorContract.interface.parseLog(fulfillReceipt.events[1])
     expect(fulfillEvent.name).to.be.equal('DataRequestFulfilledInt256')
     expect(fulfillEvent.args.requestId).to.be.equal(requestId)
-    expect(Number(await consumerContract.s_responseInt256())).to.be.equal(response)
+    expect(Number(await consumerContract.sResponseInt256())).to.be.equal(response)
   })
 
   it('Request & Fulfill bool', async function () {
@@ -310,7 +310,7 @@ describe('Request-Response user contract', function () {
     const fulfillEvent = coordinatorContract.interface.parseLog(fulfillReceipt.events[1])
     expect(fulfillEvent.name).to.be.equal('DataRequestFulfilledBool')
     expect(fulfillEvent.args.requestId).to.be.equal(requestId)
-    expect(await consumerContract.s_responseBool()).to.be.equal(response)
+    expect(await consumerContract.sResponseBool()).to.be.equal(response)
   })
 
   it('Request & Fulfill string', async function () {
@@ -393,7 +393,7 @@ describe('Request-Response user contract', function () {
     const fulfillEvent = coordinatorContract.interface.parseLog(fulfillReceipt.events[1])
     expect(fulfillEvent.name).to.be.equal('DataRequestFulfilledString')
     expect(fulfillEvent.args.requestId).to.be.equal(requestId)
-    expect(await consumerContract.s_responseString()).to.be.equal(response)
+    expect(await consumerContract.sResponseString()).to.be.equal(response)
   })
 
   it('Request & Fulfill Bytes32', async function () {
@@ -476,7 +476,7 @@ describe('Request-Response user contract', function () {
     const fulfillEvent = coordinatorContract.interface.parseLog(fulfillReceipt.events[1])
     expect(fulfillEvent.name).to.be.equal('DataRequestFulfilledBytes32')
     expect(fulfillEvent.args.requestId).to.be.equal(requestId)
-    expect(await consumerContract.s_responseBytes32()).to.be.equal(response)
+    expect(await consumerContract.sResponseBytes32()).to.be.equal(response)
   })
 
   it('Request & Fulfill Bytes', async function () {
@@ -559,7 +559,7 @@ describe('Request-Response user contract', function () {
     const fulfillEvent = coordinatorContract.interface.parseLog(fulfillReceipt.events[1])
     expect(fulfillEvent.name).to.be.equal('DataRequestFulfilledBytes')
     expect(fulfillEvent.args.requestId).to.be.equal(requestId)
-    expect(await consumerContract.s_responseBytes()).to.be.equal(response)
+    expect(await consumerContract.sResponseBytes()).to.be.equal(response)
   })
 
   it('requestData should revert with InsufficientPayment error', async function () {

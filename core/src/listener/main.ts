@@ -43,6 +43,8 @@ async function main() {
   await redisClient.connect()
 
   LISTENERS[service](listenersConfig[service], redisClient, LOGGER)
+
+  LOGGER.info('Listener launched')
 }
 
 function loadArgs(): string {

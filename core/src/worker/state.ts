@@ -174,6 +174,12 @@ export class State {
     const numActiveAggregators = activeAggregators.length
 
     const index = activeAggregators.findIndex((L) => L.aggregatorHash == aggregatorHash)
+    if (index === -1) {
+      const msg = `Aggregator with aggregatorHash=${aggregatorHash} was not found.`
+      this.logger.debug({ name: 'remove', file: FILE_NAME }, msg)
+      throw new OraklError(OraklErrorCode.AggregatorNotFoundInState, msg)
+    }
+
     const removedAggregator = activeAggregators.splice(index, 1)[0]
 
     const numUpdatedActiveAggregators = activeAggregators.length

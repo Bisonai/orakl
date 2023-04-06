@@ -73,6 +73,12 @@ export class State {
     const activeListeners = await this.active()
 
     const index = activeListeners.findIndex((L) => L.id == id)
+    if (index === -1) {
+      const msg = `Listener with ID=${id} was not found.`
+      this.logger.debug({ name: 'update', file: FILE_NAME }, msg)
+      throw new OraklError(OraklErrorCode.ListenerNotFoundInState, msg)
+    }
+
     const updatedListener = activeListeners.splice(index, 1)[0]
 
     const updatedActiveListeners = [...activeListeners, { ...updatedListener, intervalId }]
@@ -94,7 +100,7 @@ export class State {
 
     if (isAlreadyActive.length > 0) {
       const msg = `Listener with ID=${id} was not added. It is already active.`
-      this.logger?.debug({ name: 'add', file: FILE_NAME }, msg)
+      this.logger.debug({ name: 'add', file: FILE_NAME }, msg)
       throw new OraklError(OraklErrorCode.ListenerNotAdded, msg)
     }
 
@@ -112,7 +118,7 @@ export class State {
 
     if (toAddListener.length != 1) {
       const msg = `Listener with ID=${id} cannot be found for service=${this.service} on chain=${this.chain}`
-      this.logger?.debug({ name: 'add', file: FILE_NAME }, msg)
+      this.logger.debug({ name: 'add', file: FILE_NAME }, msg)
       throw new OraklError(OraklErrorCode.ListenerNotAdded, msg)
     }
 
@@ -135,12 +141,18 @@ export class State {
     const numActiveListeners = activeListeners.length
 
     const index = activeListeners.findIndex((L) => L.id == id)
+    if (index === -1) {
+      const msg = `Listener with ID=${id} was not found.`
+      this.logger.debug({ name: 'remove', file: FILE_NAME }, msg)
+      throw new OraklError(OraklErrorCode.ListenerNotFoundInState, msg)
+    }
+
     const removedListener = activeListeners.splice(index, 1)[0]
 
     const numUpdatedActiveListeners = activeListeners.length
     if (numActiveListeners == numUpdatedActiveListeners) {
       const msg = `Listener with ID=${id} was not removed.`
-      this.logger?.debug({ name: 'remove', file: FILE_NAME }, msg)
+      this.logger.debug({ name: 'remove', file: FILE_NAME }, msg)
       throw new OraklError(OraklErrorCode.ListenerNotRemoved, msg)
     }
 

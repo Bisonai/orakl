@@ -13,26 +13,26 @@ contract RequestResponseConsumerMock is
     RequestResponseConsumerFulfillBytes
 {
     using Orakl for Orakl.Request;
-    uint256 public s_response;
-    int256 public s_responseInt256;
-    bool public s_responseBool;
-    string public s_responseString;
-    bytes32 public s_responseBytes32;
-    bytes public s_responseBytes;
+    uint256 public sResponse;
+    int256 public sResponseInt256;
+    bool public sResponseBool;
+    string public sResponseString;
+    bytes32 public sResponseBytes32;
+    bytes public sResponseBytes;
 
-    address private s_owner;
+    address private sOwner;
 
     error OnlyOwner(address notOwner);
 
     modifier onlyOwner() {
-        if (msg.sender != s_owner) {
+        if (msg.sender != sOwner) {
             revert OnlyOwner(msg.sender);
         }
         _;
     }
 
     constructor(address coordinator) RequestResponseConsumerBase(coordinator) {
-        s_owner = msg.sender;
+        sOwner = msg.sender;
     }
 
     // Receive remaining payment from requestDataPayment
@@ -70,32 +70,32 @@ contract RequestResponseConsumerMock is
     }
 
     function fulfillDataRequestUint256(uint256 /*requestId*/, uint256 response) internal override {
-        s_response = response;
+        sResponse = response;
     }
 
     function fulfillDataRequestInt256(uint256 /*requestId*/, int256 response) internal override {
-        s_responseInt256 = response;
+        sResponseInt256 = response;
     }
 
     function fulfillDataRequestBool(uint256 /*requestId*/, bool response) internal override {
-        s_responseBool = response;
+        sResponseBool = response;
     }
 
     function fulfillDataRequestString(
         uint256 /*requestId*/,
         string memory response
     ) internal override {
-        s_responseString = response;
+        sResponseString = response;
     }
 
     function fulfillDataRequestBytes32(uint256 /*requestId*/, bytes32 response) internal override {
-        s_responseBytes32 = response;
+        sResponseBytes32 = response;
     }
 
     function fulfillDataRequestBytes(
         uint256 /*requestId*/,
         bytes memory response
     ) internal override {
-        s_responseBytes = response;
+        sResponseBytes = response;
     }
 }

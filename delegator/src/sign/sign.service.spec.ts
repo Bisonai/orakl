@@ -19,6 +19,7 @@ describe('SignService', () => {
   let contractService: ContractService
   let functionService: FunctionService
   let reporterService: ReporterService
+  let transactionData: SignDto, contract
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -36,10 +37,8 @@ describe('SignService', () => {
     contractService = module.get<ContractService>(ContractService)
     functionService = module.get<FunctionService>(FunctionService)
     reporterService = module.get<ReporterService>(ReporterService)
-  })
 
-  it('SignedRawTx should not be empty/null', async () => {
-    const contract = new caver.contract(dummyFactory.abi as AbiItem[], dummyFactory.address)
+    contract = new caver.contract(dummyFactory.abi as AbiItem[], dummyFactory.address)
     const input = contract.methods.increment().encodeABI()
     const tx = caver.transaction.feeDelegatedSmartContractExecution.create({
       from: keyring.address,
@@ -49,7 +48,7 @@ describe('SignService', () => {
     })
 
     await caver.wallet.sign(keyring.address, tx)
-    const data: SignDto = {
+    transactionData = {
       from: tx.from,
       to: tx.to,
       input: tx.input,
@@ -63,33 +62,34 @@ describe('SignService', () => {
       s: tx.signatures[0].s,
       rawTx: tx.getRawTransaction()
     }
+  })
 
-    // Setup Contract
-    const con = await contractService.create({ address: tx.to })
-    expect(con.address).toBe(tx.to)
-
+  it('Should validateTransaction and execute transaction', async () => {
     // Setup Organization
     const organizationName = 'BisonAI'
     const org = await organizationService.create({ name: organizationName })
     expect(org.name).toBe(organizationName)
 
-    // Setup functionName
-    const functionMethod = 'increment()'
-    const fun = await functionService.create({
-      name: functionMethod,
-      contractId: con.id
-    })
-    expect(fun.name).toBe(functionMethod)
-
     // Setup reporter
     const rep = await reporterService.create({
-      address: tx.from,
-      contractId: con.id,
+      address: transactionData.from,
       organizationId: org.id
     })
-    expect(rep.address).toBe(tx.from)
+    expect(rep.address).toBe(transactionData.from)
 
-    const transaction = await service.create(data)
+    // Setup Contract
+    const con = await contractService.create({ address: transactionData.to })
+    expect(con.address).toBe(transactionData.to)
+
+    // Connect Contract to Reporter
+    await contractService.connectReporter({ contractId: con.id, reporterId: rep.id })
+
+    // Setup functionName
+    const functionMethod = 'increment()'
+    const fun = await functionService.create({ name: functionMethod, contractId: con.id })
+    expect(fun.name).toBe(functionMethod)
+
+    const transaction = await service.create(transactionData)
     expect(transaction.signedRawTx)
 
     const oldCounter = await contract.methods.COUNTER().call()
@@ -98,8 +98,94 @@ describe('SignService', () => {
     expect(Number(oldCounter) + 1).toBe(Number(newCounter))
 
     // cleanup
+    await functionService.remove({ id: fun.id })
+    await reporterService.remove({ id: rep.id })
+    await organizationService.remove({ id: org.id })
+    await contractService.remove({ id: con.id })
+  })
+
+  it('Should fail to validateTransaction, when reporter not connected to contract', async () => {
+    // Setup Organization
+    const organizationName = 'BisonAI'
+    const org = await organizationService.create({ name: organizationName })
+    expect(org.name).toBe(organizationName)
+
+    // Setup Contract
+    const con = await contractService.create({ address: transactionData.to })
+    expect(con.address).toBe(transactionData.to)
+
+    // Setup functionName
+    const functionMethod = 'increment()'
+    const fun = await functionService.create({ name: functionMethod, contractId: con.id })
+    expect(fun.name).toBe(functionMethod)
+
+    // expect to fail without no reporter
+    await expect(async () => {
+      await service.create(transactionData)
+    }).rejects.toThrow()
+
+    // Setup reporter
+    const rep = await reporterService.create({
+      address: transactionData.from,
+      organizationId: org.id
+    })
+
+    // expect to fail without reporter is connect to contract
+    await expect(async () => {
+      await service.create(transactionData)
+    }).rejects.toThrow()
+
+    // Connect Contract to Reporter
+    await contractService.connectReporter({ contractId: con.id, reporterId: rep.id })
+
+    // expect to transaction approved and signed
+    const transaction = await service.create(transactionData)
+    expect(transaction.signedRawTx)
+
+    // cleanup
     await reporterService.remove({ id: rep.id })
     await functionService.remove({ id: fun.id })
+    await organizationService.remove({ id: org.id })
+    await contractService.remove({ id: con.id })
+  })
+
+  it('Should fail to validateTransaction, when incorrect function method allowed', async () => {
+    // Setup Organization
+    const organizationName = 'BisonAI'
+    const org = await organizationService.create({ name: organizationName })
+    expect(org.name).toBe(organizationName)
+
+    // Setup reporter
+    const rep = await reporterService.create({
+      address: transactionData.from,
+      organizationId: org.id
+    })
+    expect(rep.address).toBe(transactionData.from)
+    // Setup Contract
+    const con = await contractService.create({ address: transactionData.to })
+    expect(con.address).toBe(transactionData.to)
+
+    // Connect Contract to Reporter
+    await contractService.connectReporter({ contractId: con.id, reporterId: rep.id })
+
+    // expect to fail without no function
+    await expect(async () => {
+      await service.create(transactionData)
+    }).rejects.toThrow()
+
+    // Setup wrong functionName
+    const incorrectFunction = 'decrement()'
+    const fun = await functionService.create({ name: incorrectFunction, contractId: con.id })
+    expect(fun.name).toBe(incorrectFunction)
+
+    // expect to fail with wrong function name
+    await expect(async () => {
+      await service.create(transactionData)
+    }).rejects.toThrow()
+
+    // // cleanup
+    await functionService.remove({ id: fun.id })
+    await reporterService.remove({ id: rep.id })
     await organizationService.remove({ id: org.id })
     await contractService.remove({ id: con.id })
   })
