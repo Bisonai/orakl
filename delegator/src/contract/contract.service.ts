@@ -2,18 +2,14 @@ import { Injectable } from '@nestjs/common'
 import { Prisma } from '@prisma/client'
 import { PrismaService } from '../prisma.service'
 import { ContractDto } from './dto/contract.dto'
+import { ContractConnectDto } from './dto/contract-connect.dto'
 
 @Injectable()
 export class ContractService {
   constructor(private prisma: PrismaService) {}
 
-  async create(contractDto: ContractDto) {
-    return await this.prisma.contract.create({
-      data: {
-        address: contractDto.address,
-        allowAllFunctions: contractDto.allowAllFunctions
-      }
-    })
+  async create(data: ContractDto) {
+    return await this.prisma.contract.create({ data })
   }
 
   async findAll(params: {
@@ -24,7 +20,7 @@ export class ContractService {
     orderBy?: Prisma.ContractOrderByWithRelationInput
   }) {
     const { skip, take, cursor, where, orderBy } = params
-    return await this.prisma.contract.findMany({
+    const contracts = await this.prisma.contract.findMany({
       skip,
       take,
       cursor,
@@ -38,6 +34,7 @@ export class ContractService {
         function: { select: { encodedName: true } }
       }
     })
+    return contracts
   }
 
   async findOne(contractWhereUniqueInput: Prisma.ContractWhereUniqueInput) {
@@ -61,30 +58,30 @@ export class ContractService {
     })
   }
 
-  async connectReporter(contractId: bigint, reporterId: bigint) {
+  async connectReporter(data: ContractConnectDto) {
     await this.prisma.contract.update({
       where: {
-        id: contractId
+        id: data.contractId
       },
       data: {
         reporter: {
           connect: {
-            id: reporterId
+            id: data.reporterId
           }
         }
       }
     })
   }
 
-  async disconnectReporter(contractId: bigint, reporterId: bigint) {
+  async disconnectReporter(data: ContractConnectDto) {
     await this.prisma.contract.update({
       where: {
-        id: contractId
+        id: data.contractId
       },
       data: {
         reporter: {
           disconnect: {
-            id: reporterId
+            id: data.reporterId
           }
         }
       }

@@ -1,6 +1,6 @@
 import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common'
 import { ContractService } from './contract.service'
-import { ContractConnectionDto } from './dto/contract-connection.dto'
+import { ContractConnectDto } from './dto/contract-connect.dto'
 import { ContractDto } from './dto/contract.dto'
 
 @Controller({
@@ -26,19 +26,13 @@ export class ContractController {
   }
 
   @Post('/connectReporter')
-  connectReporter(@Body() contractConnectionDto: ContractConnectionDto) {
-    return this.contractService.connectReporter(
-      contractConnectionDto.contractId,
-      contractConnectionDto.reporterId
-    )
+  connectReporter(@Body() contractConnectionDto: ContractConnectDto) {
+    return this.contractService.connectReporter(contractConnectionDto)
   }
 
   @Post('/disconnectReporter')
-  disconnectReporter(@Body() contractConnectionDto: ContractConnectionDto) {
-    return this.contractService.disconnectReporter(
-      contractConnectionDto.contractId,
-      contractConnectionDto.reporterId
-    )
+  disconnectReporter(@Body() contractConnectionDto: ContractConnectDto) {
+    return this.contractService.disconnectReporter(contractConnectionDto)
   }
 
   @Patch(':id')

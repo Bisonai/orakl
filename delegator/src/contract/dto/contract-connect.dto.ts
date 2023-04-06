@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger'
 
-export class ContractConnectionDto {
+export class ContractConnectDto {
   @ApiProperty()
   contractId: bigint
 
