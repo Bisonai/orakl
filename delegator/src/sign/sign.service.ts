@@ -1,4 +1,4 @@
-import { HttpException, HttpStatus, Injectable } from '@nestjs/common'
+import { HttpException, HttpStatus, Injectable, Logger } from '@nestjs/common'
 import { Transaction, Prisma } from '@prisma/client'
 import { PrismaService } from '../prisma.service'
 import { SignDto } from './dto/sign.dto'
@@ -10,6 +10,7 @@ import { DelegatorError, DelegatorErrorCode } from './errors'
 export class SignService {
   caver: any
   feePayerKeyring: any
+  private readonly logger = new Logger(SignService.name)
 
   constructor(private prisma: PrismaService) {
     this.caver = new Caver(process.env.PROVIDER_URL)
@@ -20,17 +21,22 @@ export class SignService {
   }
 
   async create(data: SignDto) {
-    const transaction = await this.prisma.transaction.create({ data })
-    let validatedQuery
     try {
-      validatedQuery = await this.validateTransaction(transaction)
+      const transaction = await this.prisma.transaction.create({ data })
+      const validatedQuery = await this.validateTransaction(transaction)
+      const signedRawTx = await this.signTxByFeePayer(transaction)
+      const signedTransaction = await this.updateTransaction(
+        transaction,
+        signedRawTx,
+        validatedQuery
+      )
+      return signedTransaction
     } catch (e) {
       const msg = `DelegatorError: ${e.name}`
+      this.logger.error(msg)
+      this.logger.error(e)
       throw new HttpException(msg, HttpStatus.BAD_REQUEST)
     }
-    const signedRawTx = await this.signTxByFeePayer(transaction)
-    const signedTransaction = await this.updateTransaction(transaction, signedRawTx, validatedQuery)
-    return signedTransaction
   }
 
   async findAll(params: {
@@ -110,7 +116,7 @@ export class SignService {
         function: { where: { encodedName } }
       }
     })
-
+    console.log('contract:', contract)
     if (contract && contract.reporter.length != 0 && contract.function.length != 0) {
       return contract
     } else {
