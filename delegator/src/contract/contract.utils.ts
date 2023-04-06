@@ -3,7 +3,11 @@ export function flattenContract(C) {
     id: C.id,
     address: C.address,
     allowAllFunctions: C.allowAllFunctions,
-    reporter: C.reporter.address,
-    encodedName: C.function.encodedName
+    reporter: C.reporter.map((obj) => {
+      return obj.address
+    }),
+    encodedName: C.function.map((obj) => {
+      return obj.encodedName
+    })
   }
 }

@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common'
 import { Prisma } from '@prisma/client'
 import { PrismaService } from '../prisma.service'
+import { flattenContract } from './contract.utils'
 import { ContractDto } from './dto/contract.dto'
 import { ContractConnectDto } from './dto/contract-connect.dto'
 
@@ -34,11 +35,13 @@ export class ContractService {
         function: { select: { encodedName: true } }
       }
     })
-    return contracts
+    return contracts.map((C) => {
+      return flattenContract(C)
+    })
   }
 
   async findOne(contractWhereUniqueInput: Prisma.ContractWhereUniqueInput) {
-    return await this.prisma.contract.findUnique({
+    const contract = await this.prisma.contract.findUnique({
       where: contractWhereUniqueInput,
       select: {
         id: true,
@@ -48,6 +51,7 @@ export class ContractService {
         function: { select: { encodedName: true } }
       }
     })
+    return flattenContract(contract)
   }
 
   async update(params: { where: Prisma.ContractWhereUniqueInput; contractDto: ContractDto }) {
