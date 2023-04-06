@@ -121,8 +121,6 @@ export class SignService {
       }
     })
 
-    console.log('relationQuery:', relationQuery)
-
     if (relationQuery.length != 0) {
       return relationQuery[0]
     } else {
