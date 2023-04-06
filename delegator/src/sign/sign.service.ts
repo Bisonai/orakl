@@ -21,14 +21,15 @@ export class SignService {
 
   async create(data: SignDto) {
     const transaction = await this.prisma.transaction.create({ data })
+    let validatedQuery
     try {
-      this.validateTransaction(transaction)
+      validatedQuery = await this.validateTransaction(transaction)
     } catch (e) {
       const msg = `DelegatorError: ${e.name}`
       throw new HttpException(msg, HttpStatus.BAD_REQUEST)
     }
     const signedRawTx = await this.signTxByFeePayer(transaction)
-    const signedTransaction = await this.updateTransaction(transaction, signedRawTx)
+    const signedTransaction = await this.updateTransaction(transaction, signedRawTx, validatedQuery)
     return signedTransaction
   }
 
@@ -65,20 +66,13 @@ export class SignService {
     })
   }
 
-  async updateTransaction(transaction: Transaction, signedRawTx: string) {
-    const succeed = true
-    const contract = await this.prisma.contract.findUnique({ where: { address: transaction.to } })
-    const reporter = await this.prisma.reporter.findUnique({ where: { address: transaction.from } })
-
-    const encodedName = transaction.input.substring(0, 10)
-    const functions = await this.prisma.function.findUnique({ where: { encodedName } })
-
+  async updateTransaction(transaction: Transaction, signedRawTx: string, validatedQuery) {
     const data: SignDto = { ...transaction }
-    data.succeed = succeed
+    data.succeed = true
     data.signedRawTx = signedRawTx
-    data.reporterId = reporter.id
-    data.contractId = contract.id
-    data.functionId = functions ? functions.id : null
+    data.reporterId = validatedQuery.reporter[0].id
+    data.contractId = validatedQuery.id
+    data.functionId = validatedQuery.function[0].id
 
     return this.prisma.transaction.update({
       data,
@@ -108,29 +102,17 @@ export class SignService {
   }
 
   async validateTransaction(tx) {
+    const encodedName = tx.input.substring(0, 10)
     const contract = await this.prisma.contract.findUnique({
       where: { address: tx.to },
       include: {
-        reporter: { select: { address: true } },
-        function: { select: { encodedName: true } }
+        reporter: { where: { address: tx.from } },
+        function: { where: { encodedName } }
       }
     })
 
-    // extract reporters address
-    const reporters = contract.reporter.map((i) => {
-      return i.address
-    })
-    // extract function encodedName address
-    const functions = contract.function.map((i) => {
-      return i.encodedName
-    })
-
-    if (
-      contract &&
-      reporters.includes(tx.from) &&
-      (contract.allowAllFunctions || functions.includes(tx.input.substring(0, 10)))
-    ) {
-      return
+    if (contract && contract.reporter.length != 0 && contract.function.length != 0) {
+      return contract
     } else {
       throw new DelegatorError(DelegatorErrorCode.NotApprovedTransaction)
     }
