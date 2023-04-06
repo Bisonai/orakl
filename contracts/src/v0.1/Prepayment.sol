@@ -36,6 +36,7 @@ contract Prepayment is Ownable, PrepaymentInterface, TypeAndVersionInterface {
         // There are only 1e9*1e18 = 1e27 juels in existence, so the balance can fit in uint256 (2^96 ~ 7e28)
         uint256 balance; // Common KLAY balance used for all consumer requests.
         uint64 reqCount; // For fee tiers
+        string accType;
     }
 
     struct AccountConfig {
@@ -65,7 +66,7 @@ contract Prepayment is Ownable, PrepaymentInterface, TypeAndVersionInterface {
     error BurnFeeFailed();
     error InvalidCoordinator();
 
-    event AccountCreated(uint64 indexed accId, address owner);
+    event AccountCreated(uint64 indexed accId, address owner, string accType);
     event AccountCanceled(uint64 indexed accId, address to, uint256 amount);
     event AccountBalanceIncreased(uint64 indexed accId, uint256 oldBalance, uint256 newBalance);
     event AccountBalanceDecreased(
@@ -150,14 +151,21 @@ contract Prepayment is Ownable, PrepaymentInterface, TypeAndVersionInterface {
         s_currentAccId++;
         uint64 currentAccId = s_currentAccId;
         address[] memory consumers = new address[](0);
-        s_accounts[currentAccId] = Account({balance: 0, reqCount: 0});
+        string memory accType = "regular";
+        for (uint256 i = 0; i < s_coordinators.length; i++) {
+            if (address(s_coordinators[i]) == msg.sender) {
+                accType = "temporary";
+                break;
+            }
+        }
+        s_accounts[currentAccId] = Account({balance: 0, reqCount: 0, accType: accType});
         s_accountConfigs[currentAccId] = AccountConfig({
             owner: msg.sender,
             requestedOwner: address(0),
             consumers: consumers
         });
 
-        emit AccountCreated(currentAccId, msg.sender);
+        emit AccountCreated(currentAccId, msg.sender, accType);
         return currentAccId;
     }
 
