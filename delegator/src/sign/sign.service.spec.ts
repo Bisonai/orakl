@@ -135,6 +135,13 @@ describe('SignService', () => {
       await service.create(transactionData)
     }).rejects.toThrow()
 
+    // Connect Contract to Reporter
+    await contractService.connectReporter({ contractId: con.id, reporterId: rep.id })
+
+    // expect to transaction approved and signed
+    const transaction = await service.create(transactionData)
+    expect(transaction.signedRawTx)
+
     // cleanup
     await reporterService.remove({ id: rep.id })
     await functionService.remove({ id: fun.id })
@@ -167,9 +174,9 @@ describe('SignService', () => {
     }).rejects.toThrow()
 
     // Setup wrong functionName
-    const functionMethod = 'decrement()'
-    const fun = await functionService.create({ name: functionMethod, contractId: con.id })
-    expect(fun.name).toBe(functionMethod)
+    const incorrectFunction = 'decrement()'
+    const fun = await functionService.create({ name: incorrectFunction, contractId: con.id })
+    expect(fun.name).toBe(incorrectFunction)
 
     // expect to fail with wrong function name
     await expect(async () => {
