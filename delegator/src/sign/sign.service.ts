@@ -109,16 +109,22 @@ export class SignService {
 
   async validateTransaction(tx) {
     const encodedName = tx.input.substring(0, 10)
-    const contract = await this.prisma.contract.findUnique({
-      where: { address: tx.to },
+    const relationQuery = await this.prisma.contract.findMany({
+      where: {
+        address: tx.to,
+        reporter: { some: { address: tx.from } },
+        function: { some: { encodedName } }
+      },
       include: {
         reporter: { where: { address: tx.from } },
         function: { where: { encodedName } }
       }
     })
-    console.log('contract:', contract)
-    if (contract && contract.reporter.length != 0 && contract.function.length != 0) {
-      return contract
+
+    console.log('relationQuery:', relationQuery)
+
+    if (relationQuery.length != 0) {
+      return relationQuery[0]
     } else {
       throw new DelegatorError(DelegatorErrorCode.NotApprovedTransaction)
     }
