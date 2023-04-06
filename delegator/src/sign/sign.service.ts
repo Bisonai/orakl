@@ -1,4 +1,4 @@
-import { HttpException, HttpStatus, Injectable } from '@nestjs/common'
+import { HttpException, HttpStatus, Injectable, Logger } from '@nestjs/common'
 import { Transaction, Prisma } from '@prisma/client'
 import { PrismaService } from '../prisma.service'
 import { SignDto } from './dto/sign.dto'
@@ -10,6 +10,7 @@ import { DelegatorError, DelegatorErrorCode } from './errors'
 export class SignService {
   caver: any
   feePayerKeyring: any
+  private readonly logger = new Logger(SignService.name)
 
   constructor(private prisma: PrismaService) {
     this.caver = new Caver(process.env.PROVIDER_URL)
@@ -20,16 +21,22 @@ export class SignService {
   }
 
   async create(data: SignDto) {
-    const transaction = await this.prisma.transaction.create({ data })
     try {
-      this.validateTransaction(transaction)
+      const transaction = await this.prisma.transaction.create({ data })
+      const validatedResult = await this.validateTransaction(transaction)
+      const signedRawTx = await this.signTxByFeePayer(transaction)
+      const signedTransaction = await this.updateTransaction(
+        transaction,
+        signedRawTx,
+        validatedResult
+      )
+      return signedTransaction
     } catch (e) {
       const msg = `DelegatorError: ${e.name}`
+      this.logger.error(msg)
+      this.logger.error(e)
       throw new HttpException(msg, HttpStatus.BAD_REQUEST)
     }
-    const signedRawTx = await this.signTxByFeePayer(transaction)
-    const signedTransaction = await this.updateTransaction(transaction, signedRawTx)
-    return signedTransaction
   }
 
   async findAll(params: {
@@ -65,34 +72,17 @@ export class SignService {
     })
   }
 
-  async updateTransaction(transaction: Transaction, signedRawTx: string) {
-    const id = transaction.id
-    const succeed = true
-    const contract = await this.prisma.contract.findUnique({
-      where: {
-        address: transaction.to
-      }
-    })
-    const encodedName = transaction.input.substring(0, 10)
-    const functions = await this.prisma.function.findUnique({
-      where: {
-        encodedName
-      }
-    })
-    const reporter = await this.prisma.reporter.findUnique({
-      where: {
-        address: transaction.from
-      }
-    })
+  async updateTransaction(transaction: Transaction, signedRawTx: string, validatedQuery) {
+    const data: SignDto = { ...transaction }
+    data.succeed = true
+    data.signedRawTx = signedRawTx
+    data.reporterId = validatedQuery.reporter[0].id
+    data.contractId = validatedQuery.id
+    data.functionId = validatedQuery.function[0].id
+
     return this.prisma.transaction.update({
-      data: {
-        succeed,
-        signedRawTx,
-        functionId: functions.id,
-        contractId: contract.id,
-        reporterId: reporter.id
-      },
-      where: { id }
+      data,
+      where: { id: transaction.id }
     })
   }
 
@@ -118,23 +108,26 @@ export class SignService {
   }
 
   async validateTransaction(tx) {
+    const encodedName = tx.input.substring(0, 10)
     const result = await this.prisma.contract.findMany({
       where: {
         address: tx.to,
-        Reporter: {
-          some: {
-            address: tx.from
-          }
-        },
-        Function: {
-          some: {
-            encodedName: tx.input.substring(0, 10)
-          }
-        }
+        reporter: { some: { address: tx.from } },
+        function: { some: { encodedName } }
+      },
+      include: {
+        reporter: { where: { address: tx.from } },
+        function: { where: { encodedName } }
       }
     })
+
+    if (result.length == 1) {
+      return result[0]
+    }
     if (result.length == 0) {
       throw new DelegatorError(DelegatorErrorCode.NotApprovedTransaction)
+    } else {
+      throw new DelegatorError(DelegatorErrorCode.UnexpectedResultLength)
     }
   }
 }

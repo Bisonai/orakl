@@ -7,6 +7,47 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model Organization {
+  id   BigInt @id @default(autoincrement()) @map("organization_id")
+  name String @unique @db.VarChar(50)
+
+  reporter Reporter[]
+
+  @@map("organizations")
+}
+
+model Reporter {
+  id             BigInt        @id @default(autoincrement())
+  address        String        @unique @db.VarChar(42)
+  organization   Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  organizationId BigInt        @map("organization_id")
+  contract       Contract[]    @relation()
+  transaction    Transaction[]
+
+  @@map("reporters")
+}
+
+model Contract {
+  id          BigInt        @id @default(autoincrement()) @map("contract_id")
+  address     String        @unique @db.VarChar(42)
+  function    Function[]
+  transaction Transaction[]
+  reporter    Reporter[]    @relation()
+
+  @@map("contracts")
+}
+
+model Function {
+  id          BigInt        @id @default(autoincrement())
+  name        String        @db.VarChar(100)
+  encodedName String        @unique @db.VarChar(10)
+  contract    Contract      @relation(fields: [contractId], references: [id])
+  contractId  BigInt        @map("contract_id")
+  transaction Transaction[]
+
+  @@map("functions")
+}
+
 model Transaction {
   id          BigInt    @id @default(autoincrement()) @map("transaction_id")
   from        String    @db.VarChar(42)
@@ -27,50 +68,8 @@ model Transaction {
   functionId  BigInt?   @map("function_id")
   contract    Contract? @relation(fields: [contractId], references: [id])
   contractId  BigInt?   @map("contract_id")
-  reporter    Reporter? @relation(fields: [reporterId], references: [id], onDelete: Cascade)
+  reporter    Reporter? @relation(fields: [reporterId], references: [id])
   reporterId  BigInt?   @map("reporter_id")
 
   @@map("transactions")
-}
-
-model Organization {
-  id   BigInt @id @default(autoincrement()) @map("organization_id")
-  name String @unique @db.VarChar(50)
-
-  Reporter Reporter[]
-
-  @@map("organizations")
-}
-
-model Contract {
-  id          BigInt        @id @default(autoincrement()) @map("contract_id")
-  address     String        @unique @db.VarChar(42)
-  Function    Function[]
-  Reporter    Reporter[]
-  Transaction Transaction[]
-
-  @@map("contracts")
-}
-
-model Function {
-  id          BigInt        @id @default(autoincrement())
-  name        String        @db.VarChar(100)
-  encodedName String        @unique @db.VarChar(10)
-  contract    Contract      @relation(fields: [contractId], references: [id])
-  contractId  BigInt        @map("contract_id")
-  Transaction Transaction[]
-
-  @@map("functions")
-}
-
-model Reporter {
-  id             BigInt        @id @default(autoincrement())
-  address        String        @unique @db.VarChar(42)
-  contract       Contract      @relation(fields: [contractId], references: [id])
-  contractId     BigInt        @map("contract_id")
-  organization   Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  organizationId BigInt        @map("organization_id")
-  Transaction    Transaction[]
-
-  @@map("reporters")
 }

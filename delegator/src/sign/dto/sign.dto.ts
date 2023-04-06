@@ -39,4 +39,16 @@ export class SignDto {
 
   @ApiProperty()
   signedRawTx?: string
+
+  @ApiProperty()
+  succeed?: boolean
+
+  @ApiProperty()
+  functionId?: bigint
+
+  @ApiProperty()
+  contractId?: bigint
+
+  @ApiProperty()
+  reporterId?: bigint
 }

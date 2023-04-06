@@ -1,9 +1,9 @@
 import { ApiProperty } from '@nestjs/swagger'
 
-export class ReporterDto {
+export class ContractConnectDto {
   @ApiProperty()
-  address: string
+  contractId: bigint
 
   @ApiProperty()
-  organizationId: bigint
+  reporterId: bigint
 }
