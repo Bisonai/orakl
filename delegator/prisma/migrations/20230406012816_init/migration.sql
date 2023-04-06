@@ -19,7 +19,7 @@ CREATE TABLE "reporters" (
 CREATE TABLE "contracts" (
     "contract_id" BIGSERIAL NOT NULL,
     "address" VARCHAR(42) NOT NULL,
-    "allowAllFunctions" BOOLEAN DEFAULT false,
+    "allowAllFunctions" BOOLEAN NOT NULL DEFAULT false,
 
     CONSTRAINT "contracts_pkey" PRIMARY KEY ("contract_id")
 );
@@ -53,13 +53,13 @@ CREATE TABLE "transactions" (
     "succeed" BOOLEAN,
     "function_id" BIGINT,
     "contract_id" BIGINT,
-    "reporterId" BIGINT,
+    "reporter_id" BIGINT,
 
     CONSTRAINT "transactions_pkey" PRIMARY KEY ("transaction_id")
 );
 
 -- CreateTable
-CREATE TABLE "_WhitelistTable" (
+CREATE TABLE "_ContractToReporter" (
     "A" BIGINT NOT NULL,
     "B" BIGINT NOT NULL
 );
@@ -77,10 +77,10 @@ CREATE UNIQUE INDEX "contracts_address_key" ON "contracts"("address");
 CREATE UNIQUE INDEX "functions_encodedName_key" ON "functions"("encodedName");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "_WhitelistTable_AB_unique" ON "_WhitelistTable"("A", "B");
+CREATE UNIQUE INDEX "_ContractToReporter_AB_unique" ON "_ContractToReporter"("A", "B");
 
 -- CreateIndex
-CREATE INDEX "_WhitelistTable_B_index" ON "_WhitelistTable"("B");
+CREATE INDEX "_ContractToReporter_B_index" ON "_ContractToReporter"("B");
 
 -- AddForeignKey
 ALTER TABLE "reporters" ADD CONSTRAINT "reporters_organization_id_fkey" FOREIGN KEY ("organization_id") REFERENCES "organizations"("organization_id") ON DELETE CASCADE ON UPDATE CASCADE;
@@ -95,10 +95,10 @@ ALTER TABLE "transactions" ADD CONSTRAINT "transactions_function_id_fkey" FOREIG
 ALTER TABLE "transactions" ADD CONSTRAINT "transactions_contract_id_fkey" FOREIGN KEY ("contract_id") REFERENCES "contracts"("contract_id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "transactions" ADD CONSTRAINT "transactions_reporterId_fkey" FOREIGN KEY ("reporterId") REFERENCES "reporters"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "transactions" ADD CONSTRAINT "transactions_reporter_id_fkey" FOREIGN KEY ("reporter_id") REFERENCES "reporters"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "_WhitelistTable" ADD CONSTRAINT "_WhitelistTable_A_fkey" FOREIGN KEY ("A") REFERENCES "contracts"("contract_id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "_ContractToReporter" ADD CONSTRAINT "_ContractToReporter_A_fkey" FOREIGN KEY ("A") REFERENCES "contracts"("contract_id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "_WhitelistTable" ADD CONSTRAINT "_WhitelistTable_B_fkey" FOREIGN KEY ("B") REFERENCES "reporters"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "_ContractToReporter" ADD CONSTRAINT "_ContractToReporter_B_fkey" FOREIGN KEY ("B") REFERENCES "reporters"("id") ON DELETE CASCADE ON UPDATE CASCADE;

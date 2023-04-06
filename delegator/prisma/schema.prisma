@@ -21,7 +21,7 @@ model Reporter {
   address        String        @unique @db.VarChar(42)
   organization   Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   organizationId BigInt        @map("organization_id")
-  contract       Contract[]    @relation(name: "WhitelistTable")
+  contract       Contract[]    @relation()
   transaction    Transaction[]
 
   @@map("reporters")
@@ -30,10 +30,10 @@ model Reporter {
 model Contract {
   id                BigInt        @id @default(autoincrement()) @map("contract_id")
   address           String        @unique @db.VarChar(42)
-  allowAllFunctions Boolean?      @default(false)
+  allowAllFunctions Boolean       @default(false)
   function          Function[]
   transaction       Transaction[]
-  reporter          Reporter[]    @relation(name: "WhitelistTable")
+  reporter          Reporter[]    @relation()
 
   @@map("contracts")
 }
@@ -70,7 +70,7 @@ model Transaction {
   contract    Contract? @relation(fields: [contractId], references: [id])
   contractId  BigInt?   @map("contract_id")
   reporter    Reporter? @relation(fields: [reporterId], references: [id])
-  reporterId  BigInt?   @map("reporterId")
+  reporterId  BigInt?   @map("reporter_id")
 
   @@map("transactions")
 }
