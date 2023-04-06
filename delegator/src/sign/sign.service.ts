@@ -23,12 +23,12 @@ export class SignService {
   async create(data: SignDto) {
     try {
       const transaction = await this.prisma.transaction.create({ data })
-      const validatedQuery = await this.validateTransaction(transaction)
+      const validatedResult = await this.validateTransaction(transaction)
       const signedRawTx = await this.signTxByFeePayer(transaction)
       const signedTransaction = await this.updateTransaction(
         transaction,
         signedRawTx,
-        validatedQuery
+        validatedResult
       )
       return signedTransaction
     } catch (e) {
@@ -109,7 +109,7 @@ export class SignService {
 
   async validateTransaction(tx) {
     const encodedName = tx.input.substring(0, 10)
-    const relationQuery = await this.prisma.contract.findMany({
+    const result = await this.prisma.contract.findMany({
       where: {
         address: tx.to,
         reporter: { some: { address: tx.from } },
@@ -121,12 +121,13 @@ export class SignService {
       }
     })
 
-    if (relationQuery.length == 1) {
-      return relationQuery[0]
-    } else if (relationQuery.length == 0) {
+    if (result.length == 1) {
+      return result[0]
+    }
+    if (result.length == 0) {
       throw new DelegatorError(DelegatorErrorCode.NotApprovedTransaction)
     } else {
-      throw new DelegatorError(DelegatorErrorCode.NotUniqueQuery)
+      throw new DelegatorError(DelegatorErrorCode.UnexpectedResultLength)
     }
   }
 }
