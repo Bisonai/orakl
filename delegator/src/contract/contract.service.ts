@@ -30,7 +30,6 @@ export class ContractService {
       select: {
         id: true,
         address: true,
-        allowAllFunctions: true,
         reporter: { select: { address: true } },
         function: { select: { encodedName: true } }
       }
@@ -46,7 +45,6 @@ export class ContractService {
       select: {
         id: true,
         address: true,
-        allowAllFunctions: true,
         reporter: { select: { address: true } },
         function: { select: { encodedName: true } }
       }

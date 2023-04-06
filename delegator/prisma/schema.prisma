@@ -28,12 +28,11 @@ model Reporter {
 }
 
 model Contract {
-  id                BigInt        @id @default(autoincrement()) @map("contract_id")
-  address           String        @unique @db.VarChar(42)
-  allowAllFunctions Boolean       @default(false)
-  function          Function[]
-  transaction       Transaction[]
-  reporter          Reporter[]    @relation()
+  id          BigInt        @id @default(autoincrement()) @map("contract_id")
+  address     String        @unique @db.VarChar(42)
+  function    Function[]
+  transaction Transaction[]
+  reporter    Reporter[]    @relation()
 
   @@map("contracts")
 }
