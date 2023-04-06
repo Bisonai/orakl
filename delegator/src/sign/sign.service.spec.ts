@@ -78,8 +78,7 @@ describe('SignService', () => {
 
     // Setup Contract
     const con = await contractService.create({
-      address: tx.to,
-      allowAllFunctions: false
+      address: tx.to
     })
 
     // Connect Contract to Reporter
