@@ -121,10 +121,12 @@ export class SignService {
       }
     })
 
-    if (relationQuery.length != 0) {
+    if (relationQuery.length == 1) {
       return relationQuery[0]
-    } else {
+    } else if (relationQuery.length == 0) {
       throw new DelegatorError(DelegatorErrorCode.NotApprovedTransaction)
+    } else {
+      throw new DelegatorError(DelegatorErrorCode.NotUniqueQuery)
     }
   }
 }
