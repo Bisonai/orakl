@@ -13,6 +13,7 @@ interface PrepaymentInterface {
      * @param accId - ID of the account
      * @return balance - KLAY balance of the account in juels.
      * @return reqCount - number of requests for this account, determines fee tier.
+     * @return accType - number of requests for this account, determines fee tier.
      * @return owner - owner of the account.
      * @return consumers - list of consumer address which are able to use this account.
      */
@@ -21,7 +22,13 @@ interface PrepaymentInterface {
     )
         external
         view
-        returns (uint256 balance, uint64 reqCount, address owner, address[] memory consumers);
+        returns (
+            uint256 balance,
+            uint64 reqCount,
+            string memory accType,
+            address owner,
+            address[] memory consumers
+        );
 
     /**
      * @notice Create an account.

@@ -52,6 +52,7 @@ contract Prepayment is Ownable, PrepaymentInterface, TypeAndVersionInterface {
     }
 
     CoordinatorBaseInterface[] public s_coordinators;
+    mapping(address => bool) private sIsCoordinators;
 
     error TooManyConsumers();
     error InsufficientBalance();
@@ -131,7 +132,13 @@ contract Prepayment is Ownable, PrepaymentInterface, TypeAndVersionInterface {
     )
         external
         view
-        returns (uint256 balance, uint64 reqCount, address owner, address[] memory consumers)
+        returns (
+            uint256 balance,
+            uint64 reqCount,
+            string memory accType,
+            address owner,
+            address[] memory consumers
+        )
     {
         if (s_accountConfigs[accId].owner == address(0)) {
             revert InvalidAccount();
@@ -139,6 +146,7 @@ contract Prepayment is Ownable, PrepaymentInterface, TypeAndVersionInterface {
         return (
             s_accounts[accId].balance,
             s_accounts[accId].reqCount,
+            s_accounts[accId].accType,
             s_accountConfigs[accId].owner,
             s_accountConfigs[accId].consumers
         );
@@ -151,12 +159,9 @@ contract Prepayment is Ownable, PrepaymentInterface, TypeAndVersionInterface {
         s_currentAccId++;
         uint64 currentAccId = s_currentAccId;
         address[] memory consumers = new address[](0);
-        string memory accType = "regular";
-        for (uint256 i = 0; i < s_coordinators.length; i++) {
-            if (address(s_coordinators[i]) == msg.sender) {
-                accType = "temporary";
-                break;
-            }
+        string memory accType = "reg";
+        if (sIsCoordinators[msg.sender]) {
+            accType = "tmp";
         }
         s_accounts[currentAccId] = Account({balance: 0, reqCount: 0, accType: accType});
         s_accountConfigs[currentAccId] = AccountConfig({
@@ -401,6 +406,7 @@ contract Prepayment is Ownable, PrepaymentInterface, TypeAndVersionInterface {
             }
         }
         s_coordinators.push(CoordinatorBaseInterface(coordinator));
+        sIsCoordinators[coordinator] = true;
     }
 
     /**
@@ -415,6 +421,7 @@ contract Prepayment is Ownable, PrepaymentInterface, TypeAndVersionInterface {
                 break;
             }
         }
+        delete sIsCoordinators[coordinator];
     }
 
     /*
