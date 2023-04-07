@@ -1,6 +1,6 @@
 {
   "name": "@bisonai/orakl-api",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "The Orakl Network API",
   "author": "Bisonai",
   "homepage": "https://github.com/Bisonai/orakl/tree/master/api#orakl-network-api",
