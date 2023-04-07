@@ -69,5 +69,5 @@ jobs:
 
       - name: Publish Image to ECR(orakl)
         run: |
-          docker tag orakl-api ${{ env.ecr_url }}:${{ needs.prepare.outputs.version }}.${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }}
-          docker push ${{ env.ecr_url }}:V${{ needs.prepare.outputs.version }}.${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }}
+          docker tag orakl-api ${{ env.ecr_url }}:v${{ needs.prepare.outputs.version }}.${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }}
+          docker push ${{ env.ecr_url }}:v${{ needs.prepare.outputs.version }}.${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }}
