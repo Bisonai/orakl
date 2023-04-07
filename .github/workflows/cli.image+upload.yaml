@@ -9,10 +9,6 @@ on:
     types:
       - closed
 
-  push:
-    branches:
-      - i-489/buid-image-tag-with-version
-
 env:
   ecr_url: public.ecr.aws/u6t6w0e4/orakl-cli
 
