@@ -11,8 +11,6 @@ on:
   push:
     branches:
       - i-489/buid-image-tag-with-version
-    paths:
-      - "api/**"
 
 env:
   ecr_url: public.ecr.aws/u6t6w0e4/orakl-api
@@ -38,7 +36,7 @@ jobs:
       - name: Get package version
         id: package
         run: |
-          echo "::set-output name=version::$(node -p -e "require('api/package.json').version")")"
+          echo "::set-output name=version::$(node -p -e "require('api/package.json').version")"
           
   build:
     name: Build
