@@ -1,4 +1,4 @@
-name: Deploy to Amazon ECR
+name: API Deploy to Amazon ECR
 
 on:
   pull_request:
@@ -20,6 +20,7 @@ jobs:
     outputs:
       tag_date: ${{ steps.tag.outputs.date }}
       tag_git_hash: ${{ steps.tag.outputs.git_hash }}
+      version: ${{ steps.package.outputs.version }}
 
     steps:
       - uses: actions/checkout@v3
@@ -29,6 +30,12 @@ jobs:
         run: |
           echo "date=$(date +'%Y%m%d.%H%M')" >> $GITHUB_OUTPUT
           echo "git_hash=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+
+      - name: Get package version
+        id: package
+        run: |
+          echo "::set-output name=version::$(node -p -e "require('./api/package.json').version")"
+          
   build:
     name: Build
     runs-on: ubuntu-latest
@@ -60,7 +67,7 @@ jobs:
         with:
           registry-type: public        
 
-      - name: Publish Image to ECR(orakl)
+      - name: Publish Image to ECR(api)
         run: |
-          docker tag orakl-api ${{ env.ecr_url }}:${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }}
-          docker push ${{ env.ecr_url }}:${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }}
+          docker tag orakl-api ${{ env.ecr_url }}:v${{ needs.prepare.outputs.version }}.${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }}
+          docker push ${{ env.ecr_url }}:v${{ needs.prepare.outputs.version }}.${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }}
