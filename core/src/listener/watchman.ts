@@ -3,15 +3,7 @@ import { Logger } from 'pino'
 import { State } from './state'
 import { LISTENER_PORT } from '../settings'
 
-export async function watchman({
-  listenFn,
-  state,
-  logger
-}: {
-  listenFn
-  state: State
-  logger?: Logger
-}) {
+export async function watchman({ state, logger }: { state: State; logger?: Logger }) {
   const app = express()
 
   /**
@@ -53,8 +45,6 @@ export async function watchman({
 
     try {
       const listener = await state.add(id)
-      const intervalId = await listenFn(listener)
-      await state.update(listener.id, intervalId)
 
       const message = `Listener with ID=${id} started`
       logger?.debug(message)
