@@ -402,7 +402,7 @@ contract Prepayment is Ownable, PrepaymentInterface, TypeAndVersionInterface {
     function addCoordinator(address coordinator) public onlyOwner {
         if (sIsCoordinators[coordinator]) {
             revert CoordinatorExists();
-            }
+        }
         s_coordinators.push(CoordinatorBaseInterface(coordinator));
         sIsCoordinators[coordinator] = true;
     }
