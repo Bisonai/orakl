@@ -136,3 +136,7 @@ export const CHECK_HEARTBEAT_QUEUE_SETTINGS = {
     every: 2_000
   }
 }
+
+export function getObservedBlockRedisKey(contractAddress: string) {
+  return `${contractAddress}-listener-${DEPLOYMENT_NAME}`
+}

@@ -4,7 +4,12 @@ import { Logger } from 'pino'
 import type { RedisClientType } from 'redis'
 import { State } from './state'
 import { IListenerConfig } from '../types'
-import { BULLMQ_CONNECTION, REMOVE_ON_COMPLETE, REMOVE_ON_FAIL } from '../settings'
+import {
+  BULLMQ_CONNECTION,
+  REMOVE_ON_COMPLETE,
+  REMOVE_ON_FAIL,
+  getObservedBlockRedisKey
+} from '../settings'
 import { IProcessEventListenerJob, IHistoryListenerJob, ILatestListenerJob } from './types'
 import { watchman } from './watchman'
 
@@ -122,11 +127,10 @@ function latestJob({
   redisClient: RedisClientType
   logger: Logger
 }) {
-  const listenerRedisKey = `listener` // FIXME add unique name
-
   async function wrapper(job: Job) {
     const inData: ILatestListenerJob = job.data
     const { contractAddress } = inData
+    const observedBlockRedisKey = getObservedBlockRedisKey(contractAddress)
 
     let latestBlock: number
     let observedBlock: number
@@ -134,27 +138,35 @@ function latestJob({
     try {
       latestBlock = await state.latestBlockNumber()
     } catch (e) {
-      logger.error('latest block number failure')
+      // The observed block number has not been updated, therefore
+      // we do not need to submit job to history queue. The next
+      // repeatable job will re-request the latest block number and
+      // continue from there.
+      logger.error('Failed to fetch the latest block number.')
       logger.error(e)
-      // TODO skip
-      // Pass to historical queue with higher priority
       throw e
     }
 
     try {
-      observedBlock = Number(await redisClient.get(listenerRedisKey))
+      // FIXME failure of missing the value inside of redis cache
+      observedBlock = Number(await redisClient.get(observedBlockRedisKey))
     } catch (e) {
-      // TODO skip
-      logger.error('observed block failure')
+      // Similarly to the failure during fetching the latest block
+      // number, this error doesn't require job resubmission. The next
+      // repeatable job will re-request the latest observed block number and
+      // continue from there.
+      logger.error('Failed to fetch the latest observed block from Redis.')
       logger.error(e)
       throw e
     }
 
     try {
-      logger.info(`latestWorker ${observedBlock}-${latestBlock}`)
+      logger.info(
+        `${contractAddress} ${observedBlock}-${latestBlock} (${latestBlock - observedBlock})`
+      )
 
-      if (latestBlock && latestBlock > observedBlock) {
-        await redisClient.set(listenerRedisKey, latestBlock)
+      if (latestBlock > observedBlock) {
+        await redisClient.set(observedBlockRedisKey, latestBlock)
 
         const events = await state.queryEvent(contractAddress, observedBlock + 1, latestBlock)
         for (const event of events) {
@@ -162,7 +174,7 @@ function latestJob({
             contractAddress,
             event
           }
-          // FIXME can we get the block number for jobId?
+          // TODO can we get the block number for jobId?
           await processEventQueue.add('latest', outData, {
             // removeOnComplete: REMOVE_ON_COMPLETE,
             // removeOnFail: REMOVE_ON_FAIL
@@ -170,16 +182,25 @@ function latestJob({
             // backoff: 1_000
           })
         }
+      } else {
+        logger.info(
+          `${contractAddress} ${observedBlock}-${latestBlock} (${latestBlock - observedBlock}) noop`
+        )
       }
     } catch (e) {
-      // await redisClient.set(LISTENER_REDIS_KEY, observedBlock)
-
+      logger.warn(
+        `${contractAddress} ${observedBlock}-${latestBlock} (${latestBlock - observedBlock}) failed`
+      )
+      // Querying the latest events or passing data to [process] queue
+      // failed. Repeateable [latest] job will continue listening for
+      // new blocks, and the blocks which failed to be scanned for
+      // events will be retried through [history] job.
       for (let blockNumber = observedBlock + 1; blockNumber <= latestBlock; ++blockNumber) {
         const outData: IHistoryListenerJob = { contractAddress, blockNumber }
-        await historyListenerQueue.add('rpc-failure', outData, {
-          jobId: `${blockNumber.toString()}-${contractAddress}`,
-          removeOnComplete: REMOVE_ON_COMPLETE,
-          removeOnFail: REMOVE_ON_FAIL
+        await historyListenerQueue.add('failure', outData, {
+          jobId: `${blockNumber.toString()}-${contractAddress}`
+          // removeOnComplete: REMOVE_ON_COMPLETE,
+          // removeOnFail: REMOVE_ON_FAIL
           // attempts: 10,
           // backoff: 1_000
         })

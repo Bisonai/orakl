@@ -7,7 +7,7 @@ import { postprocessListeners } from './utils'
 import { IListenerConfig } from '../types'
 import { IContracts, ILatestListenerJob, IHistoryListenerJob } from './types'
 import { OraklError, OraklErrorCode } from '../errors'
-import { PROVIDER_URL, LISTENER_DELAY } from '../settings'
+import { PROVIDER_URL, LISTENER_DELAY, getObservedBlockRedisKey } from '../settings'
 
 const FILE_NAME = import.meta.url
 
@@ -141,14 +141,17 @@ export class State {
     const updatedActiveListeners = [...activeListeners, toAddListener]
     await this.redisClient.set(this.stateName, JSON.stringify(updatedActiveListeners))
 
+    const contractAddress = toAddListener.address
+
     // FIXME determines what to do with historical jobs
     const listenerRedisKey = `listener` // FIXME add unique name
+    const observedBlockRedisKey = getObservedBlockRedisKey(contractAddress)
     const latestBlock = await this.latestBlockNumber()
-    await this.redisClient.set(listenerRedisKey, latestBlock)
+    await this.redisClient.set(observedBlockRedisKey, latestBlock)
 
     // Insert listener jobs
     const outData: ILatestListenerJob = {
-      contractAddress: toAddListener.address
+      contractAddress
     }
     await this.latestListenerQueue.add('latest-repeatable', outData, {
       repeat: {
@@ -159,7 +162,7 @@ export class State {
     const fromBlock = latestBlock - 10 // FIXME
     for (let blockNumber = fromBlock; blockNumber < latestBlock; ++blockNumber) {
       const historyOutData: IHistoryListenerJob = {
-        contractAddress: toAddListener.address,
+        contractAddress,
         blockNumber
       }
       await this.historyListenerQueue.add('history', historyOutData, {
