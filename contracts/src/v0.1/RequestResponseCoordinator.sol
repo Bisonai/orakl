@@ -264,7 +264,7 @@ contract RequestResponseCoordinator is
         uint64 accId
     ) external nonReentrant returns (uint256 requestId) {
         bool isDirectPayment = false;
-        (uint256 balance, , , ) = sPrepayment.getAccount(accId);
+        (uint256 balance, , , , ) = sPrepayment.getAccount(accId);
         if (balance < sMinBalance) {
             revert InsufficientPayment(balance, sMinBalance);
         }
@@ -325,7 +325,7 @@ contract RequestResponseCoordinator is
         // We also add the flat KLAY fee to the payment amount.
         // Its specified in millionths of KLAY, if sConfig.fulfillmentFlatFeeKlayPPM = 1
         // 1 KLAY / 1e6 = 1e18 pebs / 1e6 = 1e12 pebs.
-        (uint256 balance, uint64 reqCount, , ) = sPrepayment.getAccount(rc.accId);
+        (uint256 balance, uint64 reqCount, , , ) = sPrepayment.getAccount(rc.accId);
 
         uint256 payment;
         if (isDirectPayment) {
