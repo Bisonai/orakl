@@ -171,6 +171,9 @@ function latestJob({
             ...LISTENER_JOB_SETTINGS
           })
         }
+        logger.info(
+          `${contractAddress} ${observedBlock}-${latestBlock} (${latestBlock - observedBlock})`
+        )
       } else {
         logger.info(
           `${contractAddress} ${observedBlock}-${latestBlock} (${latestBlock - observedBlock}) noop`
@@ -192,10 +195,6 @@ function latestJob({
         })
       }
     }
-
-    logger.info(
-      `${contractAddress} ${observedBlock}-${latestBlock} (${latestBlock - observedBlock})`
-    )
   }
 
   return wrapper
