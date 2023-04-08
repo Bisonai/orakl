@@ -400,11 +400,9 @@ contract Prepayment is Ownable, PrepaymentInterface, TypeAndVersionInterface {
      * @inheritdoc PrepaymentInterface
      */
     function addCoordinator(address coordinator) public onlyOwner {
-        for (uint256 i = 0; i < s_coordinators.length; i++) {
-            if (s_coordinators[i] == CoordinatorBaseInterface(coordinator)) {
-                revert CoordinatorExists();
+        if (sIsCoordinators[coordinator]) {
+            revert CoordinatorExists();
             }
-        }
         s_coordinators.push(CoordinatorBaseInterface(coordinator));
         sIsCoordinators[coordinator] = true;
     }
