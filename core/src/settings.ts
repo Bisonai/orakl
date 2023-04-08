@@ -137,6 +137,13 @@ export const CHECK_HEARTBEAT_QUEUE_SETTINGS = {
   }
 }
 
+export const LISTENER_JOB_SETTINGS = {
+  removeOnComplete: REMOVE_ON_COMPLETE,
+  removeOnFail: REMOVE_ON_FAIL,
+  attempts: 10,
+  backoff: 1_000
+}
+
 export function getObservedBlockRedisKey(contractAddress: string) {
   return `${contractAddress}-listener-${DEPLOYMENT_NAME}`
 }

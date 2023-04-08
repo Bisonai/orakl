@@ -7,7 +7,12 @@ import { postprocessListeners } from './utils'
 import { IListenerConfig } from '../types'
 import { IContracts, ILatestListenerJob, IHistoryListenerJob } from './types'
 import { OraklError, OraklErrorCode } from '../errors'
-import { PROVIDER_URL, LISTENER_DELAY, getObservedBlockRedisKey } from '../settings'
+import {
+  PROVIDER_URL,
+  LISTENER_DELAY,
+  LISTENER_JOB_SETTINGS,
+  getObservedBlockRedisKey
+} from '../settings'
 
 const FILE_NAME = import.meta.url
 
@@ -154,6 +159,7 @@ export class State {
       contractAddress
     }
     await this.latestListenerQueue.add('latest-repeatable', outData, {
+      ...LISTENER_JOB_SETTINGS,
       repeat: {
         every: LISTENER_DELAY
       }
@@ -166,10 +172,7 @@ export class State {
         blockNumber
       }
       await this.historyListenerQueue.add('history', historyOutData, {
-        // removeOnComplete: REMOVE_ON_COMPLETE,
-        // removeOnFail: REMOVE_ON_FAIL
-        // attempts: 10,
-        // backoff: 1_000
+        ...LISTENER_JOB_SETTINGS
       })
     }
 

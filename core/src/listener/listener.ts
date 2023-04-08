@@ -4,12 +4,7 @@ import { Logger } from 'pino'
 import type { RedisClientType } from 'redis'
 import { State } from './state'
 import { IListenerConfig } from '../types'
-import {
-  BULLMQ_CONNECTION,
-  REMOVE_ON_COMPLETE,
-  REMOVE_ON_FAIL,
-  getObservedBlockRedisKey
-} from '../settings'
+import { BULLMQ_CONNECTION, LISTENER_JOB_SETTINGS, getObservedBlockRedisKey } from '../settings'
 import { IProcessEventListenerJob, IHistoryListenerJob, ILatestListenerJob } from './types'
 import { watchman } from './watchman'
 
@@ -161,25 +156,19 @@ function latestJob({
     }
 
     try {
-      logger.info(
-        `${contractAddress} ${observedBlock}-${latestBlock} (${latestBlock - observedBlock})`
-      )
-
       if (latestBlock > observedBlock) {
         await redisClient.set(observedBlockRedisKey, latestBlock)
 
         const events = await state.queryEvent(contractAddress, observedBlock + 1, latestBlock)
-        for (const event of events) {
+        for (const [index, event] of events.entries()) {
           const outData: IProcessEventListenerJob = {
             contractAddress,
             event
           }
-          // TODO can we get the block number for jobId?
+          const jobId = getUniqueEventIdentifier(event, index)
           await processEventQueue.add('latest', outData, {
-            // removeOnComplete: REMOVE_ON_COMPLETE,
-            // removeOnFail: REMOVE_ON_FAIL
-            // attempts: 10,
-            // backoff: 1_000
+            jobId,
+            ...LISTENER_JOB_SETTINGS
           })
         }
       } else {
@@ -198,14 +187,15 @@ function latestJob({
       for (let blockNumber = observedBlock + 1; blockNumber <= latestBlock; ++blockNumber) {
         const outData: IHistoryListenerJob = { contractAddress, blockNumber }
         await historyListenerQueue.add('failure', outData, {
-          jobId: `${blockNumber.toString()}-${contractAddress}`
-          // removeOnComplete: REMOVE_ON_COMPLETE,
-          // removeOnFail: REMOVE_ON_FAIL
-          // attempts: 10,
-          // backoff: 1_000
+          jobId: `${blockNumber.toString()}-${contractAddress}`,
+          ...LISTENER_JOB_SETTINGS
         })
       }
     }
+
+    logger.info(
+      `${contractAddress} ${observedBlock}-${latestBlock} (${latestBlock - observedBlock})`
+    )
   }
 
   return wrapper
@@ -228,19 +218,26 @@ function historyJob({
   async function wrapper(job: Job) {
     const inData: IHistoryListenerJob = job.data
     const { contractAddress, blockNumber } = inData
-    logger.info(`historyWorker ${blockNumber}`)
 
-    const events = await state.queryEvent(contractAddress, blockNumber, blockNumber)
-    for (const event of events) {
+    let events: ethers.Event[] = []
+    try {
+      events = await state.queryEvent(contractAddress, blockNumber, blockNumber)
+    } catch (e) {
+      logger.error(`${contractAddress} ${blockNumber}-${blockNumber} (0) hist failed`)
+      throw e
+    }
+
+    logger.info(`${contractAddress} ${blockNumber}-${blockNumber} (0) hist`)
+
+    for (const [index, event] of events.entries()) {
       const outData: IProcessEventListenerJob = {
         contractAddress,
         event
       }
+      const jobId = getUniqueEventIdentifier(event, index)
       await processEventQueue.add('history', outData, {
-        // removeOnComplete: REMOVE_ON_COMPLETE,
-        // removeOnFail: REMOVE_ON_FAIL
-        // attempts: 10,
-        // backoff: 1_000
+        jobId,
+        ...LISTENER_JOB_SETTINGS
       })
     }
   }
@@ -258,4 +255,8 @@ function processEventJob(processEventFn /* FIXME data type */) {
   }
 
   return wrapper
+}
+
+function getUniqueEventIdentifier(event, index: number) {
+  return `${event.blockNumber}-${event.transactionHash}-${index}`
 }
