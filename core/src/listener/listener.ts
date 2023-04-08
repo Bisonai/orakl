@@ -109,6 +109,28 @@ export async function listener({
   process.on('SIGTERM', handleExit)
 }
 
+/**
+ * The responsibility of the [latest] listener worker is to stay
+ * up-to-date with the most recent blocks and scan them for events
+ * emitted by smart contracts defined within Orakl Network permanent
+ * state. The [latest] listener worker operates on one or more blocks
+ * at the time. The [latest] job is launched as a repeatable job from
+ * within an ephemeral state's auxiliary function `add(id: string)`
+ * where `id` represents unique identifier of listener defined in the
+ * Orakl Network permanent state. Similarly, the [latest] job can be
+ * deactived through ephemeral's state function `remove(id: string)`.
+ *
+ * When the event query fails, the query job is sent to [history] listener
+ * worker through [history] queue where the event query is
+ * retried. Successfully queried events are send to [processEvent] listener
+ * worker through [processEvent] queue for further processing.
+ *
+ * @param {State} ephemeral state of listener
+ * @param {Queue} queue that accepts jobs to process caught events
+ * @param {Queue} queue that accepts jobs to retry failed event queries
+ * @param {RedisClientType} redist client
+ * @param {Logger} pino logger
+ */
 function latestJob({
   state,
   processEventQueue,
@@ -155,10 +177,14 @@ function latestJob({
       throw e
     }
 
+    const logPrefix = generateListenerLogPrefix(contractAddress, observedBlock, latestBlock)
     try {
       if (latestBlock > observedBlock) {
         await redisClient.set(observedBlockRedisKey, latestBlock)
 
+        // The `observedBlock` block number is already processed,
+        // therefore we do not need to re-query the same event in such
+        // block again.
         const events = await state.queryEvent(contractAddress, observedBlock + 1, latestBlock)
         for (const [index, event] of events.entries()) {
           const outData: IProcessEventListenerJob = {
@@ -171,22 +197,17 @@ function latestJob({
             ...LISTENER_JOB_SETTINGS
           })
         }
-        logger.info(
-          `${contractAddress} ${observedBlock}-${latestBlock} (${latestBlock - observedBlock})`
-        )
+        logger.info(logPrefix)
       } else {
-        logger.info(
-          `${contractAddress} ${observedBlock}-${latestBlock} (${latestBlock - observedBlock}) noop`
-        )
+        logger.info(`${logPrefix} noop`)
       }
     } catch (e) {
-      logger.warn(
-        `${contractAddress} ${observedBlock}-${latestBlock} (${latestBlock - observedBlock}) failed`
-      )
       // Querying the latest events or passing data to [process] queue
       // failed. Repeateable [latest] job will continue listening for
       // new blocks, and the blocks which failed to be scanned for
       // events will be retried through [history] job.
+      logger.warn(`${logPrefix} fail`)
+
       for (let blockNumber = observedBlock + 1; blockNumber <= latestBlock; ++blockNumber) {
         const outData: IHistoryListenerJob = { contractAddress, blockNumber }
         await historyListenerQueue.add('failure', outData, {
@@ -201,9 +222,19 @@ function latestJob({
 }
 
 /**
- * [history] worker processes all jobs from [history] queue. Jobs in
- * history queue are either inserted during launch of the listener
- * (all unobserved blocks) or from failed queries of the [latest] listener.
+ * The [history] listener worker processes all jobs from the [history]
+ * queue. Jobs in history queue are inserted either during the launch
+ * of the listener (all unobserved blocks), or when event query fails
+ * within the [latest] listener worker. Unlike the [latest] listener
+ * worker, the [history] listener worker operates always on single
+ * block at the time.
+ *
+ * Successfully queried events are send to [processEvent] listener
+ * worker through [processEvent] queue for further processing.
+ *
+ * @param {State} ephemeral state of listener
+ * @param {Queue} queue that accepts jobs to process caught events
+ * @param {Logger} pino logger
  */
 function historyJob({
   state,
@@ -217,16 +248,17 @@ function historyJob({
   async function wrapper(job: Job) {
     const inData: IHistoryListenerJob = job.data
     const { contractAddress, blockNumber } = inData
+    const logPrefix = generateListenerLogPrefix(contractAddress, blockNumber, blockNumber)
 
     let events: ethers.Event[] = []
     try {
       events = await state.queryEvent(contractAddress, blockNumber, blockNumber)
     } catch (e) {
-      logger.error(`${contractAddress} ${blockNumber}-${blockNumber} (0) hist failed`)
+      logger.error(`${logPrefix} hist fail`)
       throw e
     }
 
-    logger.info(`${contractAddress} ${blockNumber}-${blockNumber} (0) hist`)
+    logger.info(`${logPrefix} hist`)
 
     for (const [index, event] of events.entries()) {
       const outData: IProcessEventListenerJob = {
@@ -244,6 +276,13 @@ function historyJob({
   return wrapper
 }
 
+/**
+ * The [processEvent] listener worker accepts jobs from [processEvent]
+ * queue. The jobs are submitted either by the [latest] or [history]
+ * listener worker.
+ *
+ * @param {} function that processes event caught by listener
+ */
 function processEventJob(processEventFn /* FIXME data type */) {
   async function wrapper(job: Job) {
     const inData: IProcessEventListenerJob = job.data
@@ -256,6 +295,25 @@ function processEventJob(processEventFn /* FIXME data type */) {
   return wrapper
 }
 
-function getUniqueEventIdentifier(event, index: number) {
+/**
+ * Auxiliary function to create a unique identifier for a give `event`
+ * and `index` of the even within the transaction.
+ *
+ * @param {ethers.Event} event
+ * @param {number} index of event within a transaction
+ */
+function getUniqueEventIdentifier(event: ethers.Event, index: number) {
   return `${event.blockNumber}-${event.transactionHash}-${index}`
+}
+
+/**
+ * Auxiliary function that generate a consisten log prefix, that is
+ * used both by the [latest] and [history] listener worker.
+ *
+ * @param {string} contractAddress
+ * @param {number} start block number
+ * @param {number} end block number
+ */
+function generateListenerLogPrefix(contractAddress: string, fromBlock: number, toBlock: number) {
+  return `${contractAddress} ${fromBlock}-${toBlock} (${toBlock - fromBlock})`
 }
