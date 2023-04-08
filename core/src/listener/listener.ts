@@ -12,7 +12,7 @@ import { watchman } from './watchman'
  * Listener scans the latest, but also historical blocks to find out
  * if there is a event emitted from a set of smart contracts.
  */
-export async function listener({
+export async function listenerService({
   config,
   abi,
   stateName,
@@ -35,7 +35,7 @@ export async function listener({
   latestQueueName: string
   historyQueueName: string
   processEventQueueName: string
-  processFn // FIXME
+  processFn: Promise<(log: ethers.Event) => void>
   redisClient: RedisClientType
   logger: Logger
 }) {

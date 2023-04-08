@@ -149,7 +149,6 @@ export class State {
     const contractAddress = toAddListener.address
 
     // FIXME determines what to do with historical jobs
-    const listenerRedisKey = `listener` // FIXME add unique name
     const observedBlockRedisKey = getObservedBlockRedisKey(contractAddress)
     const latestBlock = await this.latestBlockNumber()
     await this.redisClient.set(observedBlockRedisKey, latestBlock)

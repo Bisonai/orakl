@@ -1,10 +1,9 @@
-import { Job, Worker, Queue } from 'bullmq'
+import { Queue } from 'bullmq'
 import { ethers } from 'ethers'
 import { Logger } from 'pino'
 import type { RedisClientType } from 'redis'
 import { RequestResponseCoordinator__factory } from '@bisonai/orakl-contracts'
-import { listener } from './listener'
-import { State } from './state'
+import { listenerService } from './listener'
 import { IListenerConfig, IDataRequested, IRequestResponseListenerWorker } from '../types'
 import {
   BULLMQ_CONNECTION,
@@ -16,7 +15,6 @@ import {
   REQUEST_RESPONSE_SERVICE_NAME,
   WORKER_REQUEST_RESPONSE_QUEUE_NAME
 } from '../settings'
-import { watchman } from './watchman'
 
 const FILE_NAME = import.meta.url
 
@@ -35,7 +33,7 @@ export async function buildListener(
   const abi = RequestResponseCoordinator__factory.abi
   const iface = new ethers.utils.Interface(abi)
 
-  listener({
+  listenerService({
     config,
     abi,
     stateName,

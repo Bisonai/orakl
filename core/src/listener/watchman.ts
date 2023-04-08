@@ -44,7 +44,7 @@ export async function watchman({ state, logger }: { state: State; logger?: Logge
     logger?.debug(`/activate/${id}`)
 
     try {
-      const listener = await state.add(id)
+      await state.add(id)
 
       const message = `Listener with ID=${id} started`
       logger?.debug(message)
