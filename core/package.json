@@ -9,9 +9,23 @@
   "engines": {
     "node": ">=18.12"
   },
+  "keywords": [
+    "Oracle",
+    "Orakl",
+    "Orakl Network",
+    "Blockchain",
+    "Web3",
+    "Data Feed",
+    "Price Feed",
+    "Request-Response",
+    "VRF",
+    "Verifiable Random Function",
+    "Listener",
+    "Reporter"
+  ],
   "author": "Bisonai",
   "homepage": "https://github.com/Bisonai/orakl/tree/master/core#orakl-network-core",
-  "license": "UNLICENSED",
+  "license": "MIT",
   "scripts": {
     "prepare": "cd .. && husky install core/.husky",
     "clean": "rm -rf dist",
