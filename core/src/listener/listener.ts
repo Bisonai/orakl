@@ -9,8 +9,29 @@ import { IProcessEventListenerJob, IHistoryListenerJob, ILatestListenerJob } fro
 import { watchman } from './watchman'
 
 /**
- * Listener scans the latest, but also historical blocks to find out
- * if there is a event emitted from a set of smart contracts.
+ * The listener service is used for tracking events emmitted by smart
+ * contracts. Tracked events are subsequently send to BullMQ queue to
+ * be processed by follow-up service. The listener service guarantees
+ * that no event is missed.
+ *
+ * The listener service can be controlled through changes to its
+ * ephemeral state. It keeps information about currently tracked
+ * events, and allows to activate/deactivate events while the listener
+ * service is running. The listener's ephemeral state is updated
+ * through Watchman REST API service.
+ *
+ * @param {IListenerConfig[]} listener definition
+ * @param {ethers.ContractInterface} event ABI
+ * @param {string} state name
+ * @param {string} service name
+ * @param {string} chain name
+ * @param {string} event name
+ * @param {string} name of [latest] queue
+ * @param {string} name of [history] queue
+ * @param {string} name of [processEvent] queue
+ * @param {Promise<(log: ethers.Event) => void>} event processing function
+ * @param {RedisClientType} redis client
+ * @param {Logger} pino logger
  */
 export async function listenerService({
   config,
