@@ -9,6 +9,10 @@ on:
     types:
       - closed
 
+  push:
+    branches:
+      - i-496/fix-git-actions-for-version
+
 env:
   ecr_url: public.ecr.aws/u6t6w0e4/orakl-api
 
