@@ -56,7 +56,7 @@ export async function listenerService({
   latestQueueName: string
   historyQueueName: string
   processEventQueueName: string
-  processFn: Promise<(log: ethers.Event) => void>
+  processFn: (log: ethers.Event) => Promise<void>
   redisClient: RedisClientType
   logger: Logger
 }) {
@@ -304,13 +304,13 @@ function historyJob({
  *
  * @param {} function that processes event caught by listener
  */
-function processEventJob(processEventFn /* FIXME data type */) {
+function processEventJob(processEventFn: (log: ethers.Event) => Promise<void>) {
   async function wrapper(job: Job) {
     const inData: IProcessEventListenerJob = job.data
     const { event } = inData
 
     // TODO return data and jobId and submit the job from here
-    processEventFn(event)
+    await processEventFn(event)
   }
 
   return wrapper

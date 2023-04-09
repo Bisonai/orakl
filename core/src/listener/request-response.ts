@@ -44,7 +44,7 @@ export async function buildListener(
     latestQueueName,
     historyQueueName,
     processEventQueueName,
-    processFn: processEvent({ iface, logger }),
+    processFn: await processEvent({ iface, logger }),
     redisClient,
     logger
   })
@@ -54,7 +54,7 @@ async function processEvent({ iface, logger }: { iface: ethers.utils.Interface; 
   const _logger = logger.child({ name: 'Request-Response processEvent', file: FILE_NAME })
   const workerQueue = new Queue(WORKER_REQUEST_RESPONSE_QUEUE_NAME, BULLMQ_CONNECTION)
 
-  async function wrapper(log) {
+  async function wrapper(log: ethers.Event) {
     const eventData = iface.parseLog(log).args as unknown as IDataRequested
     _logger.debug(eventData, 'eventData')
 

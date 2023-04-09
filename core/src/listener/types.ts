@@ -20,7 +20,7 @@ export interface IHistoryListenerJob {
 
 export interface IProcessEventListenerJob {
   contractAddress: string
-  event: { topics: Array<string>; data: string }
+  event: ethers.Event
 }
 
 export interface IContracts {
