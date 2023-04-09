@@ -8,6 +8,7 @@ import { IListenerConfig, IDataRequested, IRequestResponseListenerWorker } from 
 import {
   BULLMQ_CONNECTION,
   CHAIN,
+  LISTENER_JOB_SETTINGS,
   LISTENER_REQUEST_RESPONSE_HISTORY_QUEUE_NAME,
   LISTENER_REQUEST_RESPONSE_LATEST_QUEUE_NAME,
   LISTENER_REQUEST_RESPONSE_PROCESS_EVENT_QUEUE_NAME,
@@ -50,7 +51,7 @@ export async function buildListener(
 }
 
 async function processEvent({ iface, logger }: { iface: ethers.utils.Interface; logger: Logger }) {
-  const _logger = logger.child({ name: 'Request-Response listener job', file: FILE_NAME })
+  const _logger = logger.child({ name: 'Request-Response processEvent', file: FILE_NAME })
   const workerQueue = new Queue(WORKER_REQUEST_RESPONSE_QUEUE_NAME, BULLMQ_CONNECTION)
 
   async function wrapper(log) {
@@ -73,9 +74,7 @@ async function processEvent({ iface, logger }: { iface: ethers.utils.Interface; 
 
     await workerQueue.add('request-response', outData, {
       jobId: requestId,
-      removeOnComplete: {
-        age: 1_800 // FIXME use removeOnComple, removeOnFail
-      }
+      ...LISTENER_JOB_SETTINGS
     })
   }
 
