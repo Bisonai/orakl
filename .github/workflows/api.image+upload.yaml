@@ -38,7 +38,7 @@ jobs:
       - name: Get package version
         id: package
         run: |
-          echo "::set-output name=version::$(node -p -e "require('./api/package.json').version")"
+          echo "name=version::$(node -p -e "require('./api/package.json').version")" >> $GITHUB_OUTPUT
           
   build:
     name: Build
@@ -60,7 +60,7 @@ jobs:
         run:  docker-compose -f api/docker-compose.build.yaml build
 
       - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v2
+        uses: aws-actions/configure-aws-credentials@v3
         with:
           aws-region: us-east-1
           role-to-assume: ${{ secrets.ROLE_ARN }}
