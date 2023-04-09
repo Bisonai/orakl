@@ -4,7 +4,7 @@ import { Logger } from 'pino'
 import type { RedisClientType } from 'redis'
 import { getListeners } from './api'
 import { postprocessListeners } from './utils'
-import { IListenerConfig } from '../types'
+import { IListenerConfig, IListenerRawConfig } from '../types'
 import { IContracts, ILatestListenerJob, IHistoryListenerJob } from './types'
 import { OraklError, OraklErrorCode } from '../errors'
 import {
@@ -81,14 +81,14 @@ export class State {
     this.eventName = eventName
     this.logger = logger
 
-    this.contracts = {}
     this.provider = new ethers.providers.JsonRpcProvider(PROVIDER_URL)
+    this.contracts = {}
   }
 
   /**
    * Clear listener state.
    */
-  async clear() {
+  async clear(): Promise<void> {
     this.logger.debug('State.clear')
     const activeListeners = await this.active()
     for (const listener of activeListeners) {
@@ -108,14 +108,19 @@ export class State {
   /**
    * List all listeners given `service` and `chain`. The listeners can
    * be either active or inactive.
+   *
+   * @return {Promise<IListenerRawConfig[]>} list of all listeners from permanent state
+   * @exception {GetListenerRequestFailed}
    */
-  async all() {
+  async all(): Promise<IListenerRawConfig[]> {
     this.logger.debug('State.all')
     return await getListeners({ service: this.service, chain: this.chain, logger: this.logger })
   }
 
   /**
    * List all active listeners.
+   *
+   * @return {Promise<IListenerConfig[]>} list of active listeners from ephemeral state
    */
   async active(): Promise<IListenerConfig[]> {
     this.logger.debug('State.active')
@@ -124,8 +129,9 @@ export class State {
   }
 
   /**
-   * Add listener based given `id`. Listener can be added only if it
-   * corresponds to the `service` and `chain` state.
+   * Add listener identified by `id` parameter. `id` is a global
+   * listener identifier stored at permanent listener state. Listener
+   * can be added only if it is associated with the `service` and `chain`.
    *
    * @param {string} listener ID
    * @return {IListenerConfig}
@@ -140,7 +146,7 @@ export class State {
 
     if (isAlreadyActive.length > 0) {
       const msg = `Listener with ID=${id} was not added. It is already active.`
-      this.logger.debug({ name: 'add', file: FILE_NAME }, msg)
+      this.logger.warn({ name: 'add', file: FILE_NAME }, msg)
       throw new OraklError(OraklErrorCode.ListenerNotAdded, msg)
     }
 
@@ -154,11 +160,11 @@ export class State {
     })
 
     const allServiceListeners = allListeners[this.service] || []
-    const filteredListeners = allServiceListeners.filter((L) => L.id == id)
+    const filteredListeners = allServiceListeners.filter((L) => L.id === id)
 
     if (filteredListeners.length != 1) {
       const msg = `Listener with ID=${id} cannot be found for service=${this.service} on chain=${this.chain}`
-      this.logger.debug({ name: 'add', file: FILE_NAME }, msg)
+      this.logger.error({ name: 'add', file: FILE_NAME }, msg)
       throw new OraklError(OraklErrorCode.ListenerNotAdded, msg)
     }
 
@@ -169,6 +175,7 @@ export class State {
 
     const contractAddress = toAddListener.address
 
+    ///////////////////////
     // FIXME determines what to do with historical jobs
     const observedBlockRedisKey = getObservedBlockRedisKey(contractAddress)
     const latestBlock = await this.latestBlockNumber()
@@ -196,39 +203,39 @@ export class State {
       })
     }
 
-    // TODO launch history listener based on initial strategy
-
-    const contract = new ethers.Contract(toAddListener.address, this.abi, this.provider)
-    this.contracts = { ...this.contracts, [toAddListener.address]: contract }
+    const contract = new ethers.Contract(contractAddress, this.abi, this.provider)
+    this.contracts = { ...this.contracts, [contractAddress]: contract }
 
     return toAddListener
   }
 
   /**
-   * Remove listener given listener `id`. Listener can removed only if
-   * it was in an active state.
+   * Remove listener identified by `id` parameter. `id` is a global
+   * listener identifier stored at permanent listener state. Listener
+   * can be removed only if it is in an active state.
    *
    * @param {string} listener ID
    * @exception {OraklErrorCode.ListenerNotRemoved} raise when no listener was removed
    */
   async remove(id: string) {
     this.logger.debug('State.remove')
+
     const activeListeners = await this.active()
     const numActiveListeners = activeListeners.length
 
-    const index = activeListeners.findIndex((L) => L.id == id)
+    const index = activeListeners.findIndex((L) => L.id === id)
     if (index === -1) {
       const msg = `Listener with ID=${id} was not found.`
-      this.logger.debug({ name: 'remove', file: FILE_NAME }, msg)
+      this.logger.warn({ name: 'remove', file: FILE_NAME }, msg)
       throw new OraklError(OraklErrorCode.ListenerNotFoundInState, msg)
     }
 
     const removedListener = activeListeners.splice(index, 1)[0]
 
     const numUpdatedActiveListeners = activeListeners.length
-    if (numActiveListeners == numUpdatedActiveListeners) {
+    if (numActiveListeners === numUpdatedActiveListeners) {
       const msg = `Listener with ID=${id} was not removed.`
-      this.logger.debug({ name: 'remove', file: FILE_NAME }, msg)
+      this.logger.error({ name: 'remove', file: FILE_NAME }, msg)
       throw new OraklError(OraklErrorCode.ListenerNotRemoved, msg)
     }
 
@@ -241,6 +248,10 @@ export class State {
     return removedListener
   }
 
+  /**
+   * Query event on smart contract (specified by `contractAddress`) from
+   * blocks in between `fromBlockNumber` and `toBlockNumber`.
+   */
   async queryEvent(contractAddress: string, fromBlockNumber: number, toBlockNumber: number) {
     return await this.contracts[contractAddress].queryFilter(
       this.eventName,
@@ -249,6 +260,9 @@ export class State {
     )
   }
 
+  /**
+   * Fetch the latest block number.
+   */
   async latestBlockNumber() {
     return await this.provider.getBlockNumber()
   }
