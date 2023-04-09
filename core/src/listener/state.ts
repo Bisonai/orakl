@@ -16,6 +16,27 @@ import {
 
 const FILE_NAME = import.meta.url
 
+/**
+ * Listener's ephemeral state holds information about all tracked
+ * events, and allows to activate/deactive any event while the
+ * listener service is running.
+ *
+ * Listener's ephemeral state includes read & write state, but also
+ * auxiliary operational functions.
+ *
+ * Read functions:
+ * - all()
+ * - active()
+
+ * Write functions:
+ * - clear()
+ * - add(id: string)
+ * - remove(id: string)
+
+ * Operational functions:
+ * - queryEvent(contractAddress: string, fromBlockNumber: number, toBlockNumber: number)
+ * - latestBlockNumber()
+ */
 export class State {
   redisClient: RedisClientType
   latestListenerQueue: Queue
@@ -25,7 +46,7 @@ export class State {
   chain: string
   eventName: string
   logger: Logger
-  provider // TODO add type
+  provider: ethers.providers.JsonRpcProvider
   contracts: IContracts
   abi: ethers.ContractInterface
 
