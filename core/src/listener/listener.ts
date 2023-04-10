@@ -337,13 +337,18 @@ function processEventJob({
     const { event } = inData
     _logger.debug(event, 'event')
 
-    const { jobId, jobName, jobData } = await processFn(event)
-    if (jobData) {
-      await workerQueue.add(jobName, jobData, {
-        jobId,
-        ...LISTENER_JOB_SETTINGS
-      })
-      _logger.debug(`Listener submitted job [${jobId}] for [${jobName}]`)
+    try {
+      const { jobId, jobName, jobData, jobQueueSettings } = await processFn(event)
+      if (jobData) {
+        const queueSettings = jobQueueSettings ? jobQueueSettings : LISTENER_JOB_SETTINGS
+        await workerQueue.add(jobName, jobData, {
+          jobId,
+          ...queueSettings
+        })
+        _logger.debug(`Listener submitted job [${jobId}] for [${jobName}]`)
+      }
+    } catch (e) {
+      throw e
     }
   }
 

@@ -4,6 +4,7 @@ import type { RedisClientType } from 'redis'
 import { RequestResponseCoordinator__factory } from '@bisonai/orakl-contracts'
 import { listenerService } from './listener'
 import { IListenerConfig, IDataRequested, IRequestResponseListenerWorker } from '../types'
+import { ProcessEventOutputType } from './types'
 import {
   CHAIN,
   LISTENER_REQUEST_RESPONSE_HISTORY_QUEUE_NAME,
@@ -53,7 +54,7 @@ export async function buildListener(
 async function processEvent({ iface, logger }: { iface: ethers.utils.Interface; logger: Logger }) {
   const _logger = logger.child({ name: 'Request-Response processEvent', file: FILE_NAME })
 
-  async function wrapper(log: ethers.Event) {
+  async function wrapper(log: ethers.Event): Promise<ProcessEventOutputType> {
     const eventData = iface.parseLog(log).args as unknown as IDataRequested
     _logger.debug(eventData, 'eventData')
 

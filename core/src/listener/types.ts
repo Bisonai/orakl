@@ -32,10 +32,18 @@ export interface IListeners {
  */
 export type ListenerInitType = 'latest' | 'clear' | number
 
+interface IJobQueueSettings {
+  removeOnComplete?: number | boolean
+  removeOnFail?: number | boolean
+  attempts?: number
+  backoff?: number
+}
+
 export type ProcessEventOutputType = {
   jobData: IRequestResponseListenerWorker | IAggregatorWorker | IVrfListenerWorker | null
   jobId: string
   jobName: string
+  jobQueueSettings?: IJobQueueSettings
 }
 
 export interface ILatestListenerJob {
