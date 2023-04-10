@@ -27,6 +27,8 @@ async function main() {
 
   REPORTERS[reporter](redisClient, LOGGER)
   launchHealthCheck()
+
+  LOGGER.debug('Reporter launched')
 }
 
 function loadArgs(): string {

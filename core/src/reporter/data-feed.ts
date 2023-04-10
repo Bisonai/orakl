@@ -45,7 +45,6 @@ export async function reporter(redisClient: RedisClientType, _logger: Logger) {
 
   const watchmanServer = await watchman({ state, logger })
 
-  // Graceful shutdown
   async function handleExit() {
     logger.info('Exiting. Wait for graceful shutdown.')
 
@@ -55,8 +54,6 @@ export async function reporter(redisClient: RedisClientType, _logger: Logger) {
   }
   process.on('SIGINT', handleExit)
   process.on('SIGTERM', handleExit)
-
-  logger.debug('Reporter launched')
 }
 
 function job(state: State, logger: Logger) {
