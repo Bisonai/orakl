@@ -1,9 +1,7 @@
-import { Queue } from 'bullmq'
 import { ethers } from 'ethers'
 import { Logger } from 'pino'
 import type { RedisClientType } from 'redis'
 import { VRFCoordinator__factory } from '@bisonai/orakl-contracts'
-import { State } from './state'
 import { listenerService } from './listener'
 import { ProcessEventOutputType } from './types'
 import { IListenerConfig, IRandomWordsRequested, IVrfListenerWorker } from '../types'
@@ -17,7 +15,6 @@ import {
   LISTENER_VRF_PROCESS_EVENT_QUEUE_NAME
 } from '../settings'
 import { getVrfConfig } from '../api'
-import { watchman } from './watchman'
 
 const FILE_NAME = import.meta.url
 

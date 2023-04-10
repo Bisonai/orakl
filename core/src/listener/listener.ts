@@ -348,6 +348,7 @@ function processEventJob({
         _logger.debug(`Listener submitted job [${jobId}] for [${jobName}]`)
       }
     } catch (e) {
+      _logger.error(e, 'Error in user defined listener processing function')
       throw e
     }
   }

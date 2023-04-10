@@ -1,10 +1,8 @@
-import { Queue } from 'bullmq'
 import { ethers } from 'ethers'
 import { Logger } from 'pino'
 import type { RedisClientType } from 'redis'
 import { Aggregator__factory } from '@bisonai/orakl-contracts'
 import { listenerService } from './listener'
-import { State } from './state'
 import { ProcessEventOutputType } from './types'
 import { IListenerConfig, INewRound, IAggregatorWorker } from '../types'
 import { buildSubmissionRoundJobId } from '../utils'
@@ -12,7 +10,6 @@ import { getOperatorAddress } from '../api'
 import {
   WORKER_AGGREGATOR_QUEUE_NAME,
   DEPLOYMENT_NAME,
-  REMOVE_ON_COMPLETE,
   CHAIN,
   DATA_FEED_LISTENER_STATE_NAME,
   DATA_FEED_SERVICE_NAME,
@@ -21,7 +18,6 @@ import {
   LISTENER_REQUEST_RESPONSE_HISTORY_QUEUE_NAME,
   LISTENER_DATA_FEED_PROCESS_EVENT_QUEUE_NAME
 } from '../settings'
-import { watchman } from './watchman'
 
 const FILE_NAME = import.meta.url
 
