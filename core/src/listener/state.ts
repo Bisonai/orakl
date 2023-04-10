@@ -185,7 +185,7 @@ export class State {
       case 'clear':
         // Clear metadata about previously observed blocks for a specific
         // `contractAddress`.
-        await this.redisClient.set(observedBlockRedisKey, latestBlock)
+        await this.redisClient.set(observedBlockRedisKey, latestBlock - 1)
         break
 
       case 'latest':
