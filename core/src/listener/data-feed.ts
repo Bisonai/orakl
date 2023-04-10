@@ -15,7 +15,7 @@ import {
   DATA_FEED_SERVICE_NAME,
   AGGREGATOR_QUEUE_SETTINGS,
   LISTENER_DATA_FEED_LATEST_QUEUE_NAME,
-  LISTENER_REQUEST_RESPONSE_HISTORY_QUEUE_NAME,
+  LISTENER_DATA_FEED_HISTORY_QUEUE_NAME,
   LISTENER_DATA_FEED_PROCESS_EVENT_QUEUE_NAME
 } from '../settings'
 
@@ -31,7 +31,7 @@ export async function buildListener(
   const chain = CHAIN
   const eventName = 'NewRound'
   const latestQueueName = LISTENER_DATA_FEED_LATEST_QUEUE_NAME
-  const historyQueueName = LISTENER_REQUEST_RESPONSE_HISTORY_QUEUE_NAME
+  const historyQueueName = LISTENER_DATA_FEED_HISTORY_QUEUE_NAME
   const processEventQueueName = LISTENER_DATA_FEED_PROCESS_EVENT_QUEUE_NAME
   const workerQueueName = WORKER_AGGREGATOR_QUEUE_NAME
   const abi = Aggregator__factory.abi
