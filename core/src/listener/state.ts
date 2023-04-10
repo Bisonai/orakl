@@ -5,7 +5,7 @@ import type { RedisClientType } from 'redis'
 import { getListeners } from './api'
 import { postprocessListeners } from './utils'
 import { IListenerConfig, IListenerRawConfig } from '../types'
-import { IContracts, ILatestListenerJob, IHistoryListenerJob } from './types'
+import { IContracts, ILatestListenerJob, IHistoryListenerJob, ListenerInitType } from './types'
 import { OraklError, OraklErrorCode } from '../errors'
 import {
   PROVIDER_URL,
@@ -48,6 +48,7 @@ export class State {
   logger: Logger
   provider: ethers.providers.JsonRpcProvider
   contracts: IContracts
+  listenerInitType: ListenerInitType
   abi: ethers.ContractInterface
 
   constructor({
@@ -59,6 +60,7 @@ export class State {
     chain,
     eventName,
     abi,
+    listenerInitType,
     logger
   }: {
     redisClient: RedisClientType
@@ -69,6 +71,7 @@ export class State {
     chain: string
     eventName: string
     abi: ethers.ContractInterface
+    listenerInitType: ListenerInitType
     logger: Logger
   }) {
     this.redisClient = redisClient
@@ -79,6 +82,7 @@ export class State {
     this.abi = abi
     this.chain = chain
     this.eventName = eventName
+    this.listenerInitType = listenerInitType
     this.logger = logger
 
     this.provider = new ethers.providers.JsonRpcProvider(PROVIDER_URL)
@@ -174,12 +178,35 @@ export class State {
     await this.redisClient.set(this.stateName, JSON.stringify(updatedActiveListeners))
 
     const contractAddress = toAddListener.address
-
-    ///////////////////////
-    // FIXME determines what to do with historical jobs
     const observedBlockRedisKey = getObservedBlockRedisKey(contractAddress)
     const latestBlock = await this.latestBlockNumber()
-    await this.redisClient.set(observedBlockRedisKey, latestBlock)
+
+    switch (this.listenerInitType) {
+      case 'clear':
+        // Clear metadata about previously observed blocks for a specific
+        // `contractAddress`.
+        await this.redisClient.set(observedBlockRedisKey, latestBlock)
+        break
+
+      case 'latest':
+        await this.setObservedBlockNumberIfNotDefined(observedBlockRedisKey, latestBlock - 1)
+        break
+
+      default:
+        // [block number] initialization
+        await this.setObservedBlockNumberIfNotDefined(observedBlockRedisKey, latestBlock - 1)
+        const fromBlock = this.listenerInitType
+        for (let blockNumber = fromBlock; blockNumber < latestBlock; ++blockNumber) {
+          const historyOutData: IHistoryListenerJob = {
+            contractAddress,
+            blockNumber
+          }
+          await this.historyListenerQueue.add('history', historyOutData, {
+            ...LISTENER_JOB_SETTINGS
+          })
+        }
+        break
+    }
 
     // Insert listener jobs
     const outData: ILatestListenerJob = {
@@ -191,17 +218,6 @@ export class State {
         every: LISTENER_DELAY
       }
     })
-
-    const fromBlock = latestBlock - 10 // FIXME
-    for (let blockNumber = fromBlock; blockNumber < latestBlock; ++blockNumber) {
-      const historyOutData: IHistoryListenerJob = {
-        contractAddress,
-        blockNumber
-      }
-      await this.historyListenerQueue.add('history', historyOutData, {
-        ...LISTENER_JOB_SETTINGS
-      })
-    }
 
     const contract = new ethers.Contract(contractAddress, this.abi, this.provider)
     this.contracts = { ...this.contracts, [contractAddress]: contract }
@@ -265,5 +281,21 @@ export class State {
    */
   async latestBlockNumber() {
     return await this.provider.getBlockNumber()
+  }
+
+  /**
+   * Set the observed block number (`observedBlockNumber`) if it has
+   * not been defined yet.
+   *
+   * @param {string} redis key that points to informatation about the latest observed block
+   * @param {number} observed block number to use if none defined
+   */
+  async setObservedBlockNumberIfNotDefined(
+    observedBlockRedisKey: string,
+    observedBlockNumber: number
+  ) {
+    if ((await this.redisClient.get(observedBlockRedisKey)) === null) {
+      await this.redisClient.set(observedBlockRedisKey, observedBlockNumber)
+    }
   }
 }

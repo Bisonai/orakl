@@ -46,6 +46,7 @@ export async function buildListener(
     processEventQueueName,
     processFn: await processEvent({ iface, logger }),
     redisClient,
+    listenerInitType: 'latest',
     logger
   })
 }

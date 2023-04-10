@@ -5,7 +5,12 @@ import type { RedisClientType } from 'redis'
 import { State } from './state'
 import { IListenerConfig } from '../types'
 import { BULLMQ_CONNECTION, LISTENER_JOB_SETTINGS, getObservedBlockRedisKey } from '../settings'
-import { IProcessEventListenerJob, IHistoryListenerJob, ILatestListenerJob } from './types'
+import {
+  IProcessEventListenerJob,
+  IHistoryListenerJob,
+  ILatestListenerJob,
+  ListenerInitType
+} from './types'
 import { watchman } from './watchman'
 
 /**
@@ -31,6 +36,7 @@ import { watchman } from './watchman'
  * @param {string} name of [processEvent] queue
  * @param {Promise<(log: ethers.Event) => void>} event processing function
  * @param {RedisClientType} redis client
+ * @params {ListenerInitType} listener initialization type
  * @param {Logger} pino logger
  */
 export async function listenerService({
@@ -45,6 +51,7 @@ export async function listenerService({
   processEventQueueName,
   processFn,
   redisClient,
+  listenerInitType,
   logger
 }: {
   config: IListenerConfig[]
@@ -58,6 +65,7 @@ export async function listenerService({
   processEventQueueName: string
   processFn: (log: ethers.Event) => Promise<void>
   redisClient: RedisClientType
+  listenerInitType: ListenerInitType
   logger: Logger
 }) {
   const latestListenerQueue = new Queue(latestQueueName, BULLMQ_CONNECTION)
@@ -73,6 +81,7 @@ export async function listenerService({
     chain,
     eventName,
     abi,
+    listenerInitType,
     logger
   })
   await state.clear()
@@ -186,7 +195,8 @@ function latestJob({
     }
 
     try {
-      // FIXME failure of missing the value inside of redis cache
+      // We assume that redis cache has been initialized within
+      // `State.add` method call.
       observedBlock = Number(await redisClient.get(observedBlockRedisKey))
     } catch (e) {
       // Similarly to the failure during fetching the latest block
