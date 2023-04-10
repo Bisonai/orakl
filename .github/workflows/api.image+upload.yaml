@@ -34,7 +34,7 @@ jobs:
       - name: Get package version
         id: package
         run: |
-          echo "::set-output name=version::$(node -p -e "require('./api/package.json').version")"
+          echo "name=version::$(node -p -e "require('./api/package.json').version")" >> $GITHUB_OUTPUT
           
   build:
     name: Build
