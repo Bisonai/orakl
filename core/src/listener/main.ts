@@ -2,7 +2,7 @@ import { parseArgs } from 'node:util'
 import type { RedisClientType } from 'redis'
 import { buildLogger } from '../logger'
 // import { buildListener as buildDataFeedListener } from './data-feed'
-// import { buildListener as buildVrfListener } from './vrf'
+import { buildListener as buildVrfListener } from './vrf'
 import { buildListener as buildRequestResponseListener } from './request-response'
 import { postprocessListeners } from './utils'
 import { OraklError, OraklErrorCode } from '../errors'
@@ -14,7 +14,7 @@ import { createClient } from 'redis'
 
 const LISTENERS: IListeners = {
   // Aggregator: buildDataFeedListener,
-  // VRF: buildVrfListener,
+  VRF: buildVrfListener,
   RequestResponse: buildRequestResponseListener
 }
 

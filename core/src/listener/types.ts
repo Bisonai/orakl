@@ -33,7 +33,7 @@ export interface IListeners {
 export type ListenerInitType = 'latest' | 'clear' | number
 
 export type ProcessEventOutputType = {
-  jobData: IRequestResponseListenerWorker | IAggregatorWorker | IVrfListenerWorker
+  jobData: IRequestResponseListenerWorker | IAggregatorWorker | IVrfListenerWorker | null
   jobId: string
   jobName: string
 }
