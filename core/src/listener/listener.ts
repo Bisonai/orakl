@@ -324,7 +324,7 @@ function historyJob({
  * queue. The jobs are submitted either by the [latest] or [history]
  * listener worker.
  *
- * @param {} function that processes event caught by listener
+ * @param {(log: ethers.Event) => Promise<ProcessEventOutputType | undefined>} function that processes event caught by listener
  */
 function processEventJob({
   workerQueue,
