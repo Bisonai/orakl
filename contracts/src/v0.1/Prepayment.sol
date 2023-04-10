@@ -36,6 +36,7 @@ contract Prepayment is Ownable, PrepaymentInterface, TypeAndVersionInterface {
         // There are only 1e9*1e18 = 1e27 juels in existence, so the balance can fit in uint256 (2^96 ~ 7e28)
         uint256 balance; // Common KLAY balance used for all consumer requests.
         uint64 reqCount; // For fee tiers
+        string accType;
     }
 
     struct AccountConfig {
@@ -51,6 +52,7 @@ contract Prepayment is Ownable, PrepaymentInterface, TypeAndVersionInterface {
     }
 
     CoordinatorBaseInterface[] public s_coordinators;
+    mapping(address => bool) private sIsCoordinators;
 
     error TooManyConsumers();
     error InsufficientBalance();
@@ -65,7 +67,7 @@ contract Prepayment is Ownable, PrepaymentInterface, TypeAndVersionInterface {
     error BurnFeeFailed();
     error InvalidCoordinator();
 
-    event AccountCreated(uint64 indexed accId, address owner);
+    event AccountCreated(uint64 indexed accId, address owner, string accType);
     event AccountCanceled(uint64 indexed accId, address to, uint256 amount);
     event AccountBalanceIncreased(uint64 indexed accId, uint256 oldBalance, uint256 newBalance);
     event AccountBalanceDecreased(
@@ -130,7 +132,13 @@ contract Prepayment is Ownable, PrepaymentInterface, TypeAndVersionInterface {
     )
         external
         view
-        returns (uint256 balance, uint64 reqCount, address owner, address[] memory consumers)
+        returns (
+            uint256 balance,
+            uint64 reqCount,
+            string memory accType,
+            address owner,
+            address[] memory consumers
+        )
     {
         if (s_accountConfigs[accId].owner == address(0)) {
             revert InvalidAccount();
@@ -138,6 +146,7 @@ contract Prepayment is Ownable, PrepaymentInterface, TypeAndVersionInterface {
         return (
             s_accounts[accId].balance,
             s_accounts[accId].reqCount,
+            s_accounts[accId].accType,
             s_accountConfigs[accId].owner,
             s_accountConfigs[accId].consumers
         );
@@ -150,14 +159,18 @@ contract Prepayment is Ownable, PrepaymentInterface, TypeAndVersionInterface {
         s_currentAccId++;
         uint64 currentAccId = s_currentAccId;
         address[] memory consumers = new address[](0);
-        s_accounts[currentAccId] = Account({balance: 0, reqCount: 0});
+        string memory accType = "reg";
+        if (sIsCoordinators[msg.sender]) {
+            accType = "tmp";
+        }
+        s_accounts[currentAccId] = Account({balance: 0, reqCount: 0, accType: accType});
         s_accountConfigs[currentAccId] = AccountConfig({
             owner: msg.sender,
             requestedOwner: address(0),
             consumers: consumers
         });
 
-        emit AccountCreated(currentAccId, msg.sender);
+        emit AccountCreated(currentAccId, msg.sender, accType);
         return currentAccId;
     }
 
@@ -387,12 +400,11 @@ contract Prepayment is Ownable, PrepaymentInterface, TypeAndVersionInterface {
      * @inheritdoc PrepaymentInterface
      */
     function addCoordinator(address coordinator) public onlyOwner {
-        for (uint256 i = 0; i < s_coordinators.length; i++) {
-            if (s_coordinators[i] == CoordinatorBaseInterface(coordinator)) {
-                revert CoordinatorExists();
-            }
+        if (sIsCoordinators[coordinator]) {
+            revert CoordinatorExists();
         }
         s_coordinators.push(CoordinatorBaseInterface(coordinator));
+        sIsCoordinators[coordinator] = true;
     }
 
     /**
@@ -407,6 +419,7 @@ contract Prepayment is Ownable, PrepaymentInterface, TypeAndVersionInterface {
                 break;
             }
         }
+        delete sIsCoordinators[coordinator];
     }
 
     /*

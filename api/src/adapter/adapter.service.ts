@@ -87,7 +87,10 @@ export class AdapterService {
 
     const hash = ethers.utils.keccak256(ethers.utils.toUtf8Bytes(JSON.stringify(input)))
     if (verify && data.adapterHash != hash) {
-      throw `Hashes do not match!\nExpected ${hash}, received ${data.adapterHash}.`
+      throw new HttpException(
+        `Hashes do not match!\nExpected ${hash}, received ${data.adapterHash}.`,
+        HttpStatus.BAD_REQUEST
+      )
     } else {
       data.adapterHash = hash
       return data

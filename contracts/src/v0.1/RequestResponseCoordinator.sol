@@ -268,7 +268,33 @@ contract RequestResponseCoordinator is
         return address(sPrepayment);
     }
 
-    function setMinBalance(uint256 minBalance) public onlyOwner {
+    function requestData(
+        Orakl.Request memory req,
+        uint32 callbackGasLimit
+    ) external payable returns (uint256) {
+        uint256 fee = estimateDirectPaymentFee();
+        if (msg.value < fee) {
+            revert InsufficientPayment(msg.value, fee);
+        }
+
+        uint64 accId = sPrepayment.createAccount();
+        sPrepayment.addConsumer(accId, msg.sender);
+        bool isDirectPayment = true;
+        uint256 requestId = requestDataInternal(req, accId, callbackGasLimit, isDirectPayment);
+        sPrepayment.deposit{value: fee}(accId);
+
+        uint256 remaining = msg.value - fee;
+        if (remaining > 0) {
+            (bool sent, ) = msg.sender.call{value: remaining}("");
+            if (!sent) {
+                revert RefundFailure();
+            }
+        }
+
+        return requestId;
+    }
+
+    function setMinBalance(uint256 minBalance) external onlyOwner {
         sMinBalance = minBalance;
         emit MinBalanceSet(minBalance);
     }
@@ -282,11 +308,50 @@ contract RequestResponseCoordinator is
             revert InvalidJobId();
         }
         bool isDirectPayment = false;
-        (uint256 balance, , , ) = sPrepayment.getAccount(accId);
+        (uint256 balance, , , , ) = sPrepayment.getAccount(accId);
         if (balance < sMinBalance) {
             revert InsufficientPayment(balance, sMinBalance);
         }
         requestId = requestDataInternal(req, accId, callbackGasLimit, isDirectPayment);
+    }
+
+    /**
+     * @inheritdoc RequestResponseCoordinatorInterface
+     */
+    function cancelRequest(uint256 requestId) external {
+        bytes32 commitment = sRequestIdToCommitment[requestId];
+        if (commitment == 0) {
+            revert NoCorrespondingRequest();
+        }
+
+        if (sRequestOwner[requestId] != msg.sender) {
+            revert NotRequestOwner();
+        }
+
+        delete sRequestIdToCommitment[requestId];
+        delete sRequestOwner[requestId];
+
+        emit DataRequestCancelled(requestId);
+    }
+
+    /**
+     * @notice The type and version of this contract
+     * @return Type and version string
+     */
+    function typeAndVersion() external pure virtual override returns (string memory) {
+        return "RequestResponseCoordinator v0.1";
+    }
+
+    /**
+     * @notice Find out whether given oracle address was registered.
+     * @return true when oracle address registered, otherwise false
+     */
+    function isOracleRegistered(address oracle) external view returns (bool) {
+        return sIsOracleRegistered[oracle];
+    }
+
+    function estimateDirectPaymentFee() internal view returns (uint256) {
+        return sDirectPaymentConfig.fulfillmentFee + sDirectPaymentConfig.baseFee;
     }
 
     function requestDataInternal(
@@ -338,74 +403,6 @@ contract RequestResponseCoordinator is
         );
 
         return requestId;
-    }
-
-    function requestData(
-        Orakl.Request memory req,
-        uint32 callbackGasLimit
-    ) external payable returns (uint256) {
-        if (bytes(sJobIdToFunctionSelector[req.id]).length == 0) {
-            revert InvalidJobId();
-        }
-        uint256 fee = estimateDirectPaymentFee();
-        if (msg.value < fee) {
-            revert InsufficientPayment(msg.value, fee);
-        }
-
-        uint64 accId = sPrepayment.createAccount();
-        sPrepayment.addConsumer(accId, msg.sender);
-        bool isDirectPayment = true;
-        uint256 requestId = requestDataInternal(req, accId, callbackGasLimit, isDirectPayment);
-        sPrepayment.deposit{value: fee}(accId);
-
-        uint256 remaining = msg.value - fee;
-        if (remaining > 0) {
-            (bool sent, ) = msg.sender.call{value: remaining}("");
-            if (!sent) {
-                revert RefundFailure();
-            }
-        }
-
-        return requestId;
-    }
-
-    /**
-     * @inheritdoc RequestResponseCoordinatorInterface
-     */
-    function cancelRequest(uint256 requestId) external {
-        bytes32 commitment = sRequestIdToCommitment[requestId];
-        if (commitment == 0) {
-            revert NoCorrespondingRequest();
-        }
-
-        if (sRequestOwner[requestId] != msg.sender) {
-            revert NotRequestOwner();
-        }
-
-        delete sRequestIdToCommitment[requestId];
-        delete sRequestOwner[requestId];
-
-        emit DataRequestCancelled(requestId);
-    }
-
-    /**
-     * @notice The type and version of this contract
-     * @return Type and version string
-     */
-    function typeAndVersion() external pure virtual override returns (string memory) {
-        return "RequestResponseCoordinator v0.1";
-    }
-
-    /**
-     * @notice Find out whether given oracle address was registered.
-     * @return true when oracle address registered, otherwise false
-     */
-    function isOracleRegistered(address oracle) external view returns (bool) {
-        return sIsOracleRegistered[oracle];
-    }
-
-    function estimateDirectPaymentFee() internal view returns (uint256) {
-        return sDirectPaymentConfig.fulfillmentFee + sDirectPaymentConfig.baseFee;
     }
 
     function calculatePaymentAmount(
@@ -553,7 +550,7 @@ contract RequestResponseCoordinator is
         // We also add the flat KLAY fee to the payment amount.
         // Its specified in millionths of KLAY, if sConfig.fulfillmentFlatFeeKlayPPM = 1
         // 1 KLAY / 1e6 = 1e18 pebs / 1e6 = 1e12 pebs.
-        (uint256 balance, uint64 reqCount, , ) = sPrepayment.getAccount(rc.accId);
+        (uint256 balance, uint64 reqCount, , , ) = sPrepayment.getAccount(rc.accId);
 
         if (isDirectPayment) {
             payment = balance;
