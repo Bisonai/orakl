@@ -16,14 +16,18 @@ export function delegatorSub() {
   // delegator contractInsert --address {contractAddress}
   // delegator contractRemove --id {reporterId}
 
+  // delegator functionList
+  // delegator functionInsert --address {contractAddress} --organizationId {organizationId}
+  // delegator functionRemove --id {reporterId}
+
   const organizationList = command({
-    name: 'organization-list',
+    name: 'organizationList',
     args: {},
     handler: organizationListHandler()
   })
 
   const organizationInsert = command({
-    name: 'organization-insert',
+    name: 'organizationInsert',
     args: {
       name: option({
         type: cmdstring,
@@ -34,7 +38,7 @@ export function delegatorSub() {
   })
 
   const organizationRemove = command({
-    name: 'organization-insert',
+    name: 'organizationRemove',
     args: {
       id: idOption
     },
@@ -42,13 +46,13 @@ export function delegatorSub() {
   })
 
   const reporterList = command({
-    name: 'reporter-list',
+    name: 'reporterList',
     args: {},
     handler: reporterListHandler()
   })
 
   const reporterInsert = command({
-    name: 'reporter-insert',
+    name: 'reporterInsert',
     args: {
       address: option({
         type: cmdstring,
@@ -63,7 +67,7 @@ export function delegatorSub() {
   })
 
   const reporterRemove = command({
-    name: 'reporter-insert',
+    name: 'reporterRemove',
     args: {
       id: idOption
     },
@@ -71,13 +75,13 @@ export function delegatorSub() {
   })
 
   const contractList = command({
-    name: 'contract-list',
+    name: 'contractList',
     args: {},
     handler: contractListHandler()
   })
 
   const contractInsert = command({
-    name: 'contract-insert',
+    name: 'contractInsert',
     args: {
       address: option({
         type: cmdstring,
@@ -88,11 +92,44 @@ export function delegatorSub() {
   })
 
   const contractRemove = command({
-    name: 'contract-insert',
+    name: 'contractRemove',
     args: {
       id: idOption
     },
     handler: contractRemoveHandler()
+  })
+
+  const functionList = command({
+    name: 'functionList',
+    args: {},
+    handler: functionListHandler()
+  })
+
+  const functionInsert = command({
+    name: 'functionInsert',
+    args: {
+      name: option({
+        type: cmdstring,
+        long: 'name'
+      }),
+      contractId: option({
+        type: cmdnumber,
+        long: 'contractId'
+      }),
+      encodedName: option({
+        type: cmdstring,
+        long: 'encodedName'
+      })
+    },
+    handler: functionInsertHandler()
+  })
+
+  const functionRemove = command({
+    name: 'functionRemove',
+    args: {
+      id: idOption
+    },
+    handler: functionRemoveHandler()
   })
 
   return subcommands({
@@ -106,7 +143,10 @@ export function delegatorSub() {
       reporterRemove,
       contractList,
       contractInsert,
-      contractRemove
+      contractRemove,
+      functionList,
+      functionInsert,
+      functionRemove
     }
   })
 }
@@ -219,7 +259,7 @@ export function contractListHandler() {
       const result = await axios.get(endpoint)
       console.log(result?.data)
     } catch (e) {
-      console.error('Delegator Orgzanization was not listed. Reason:')
+      console.error('Delegator Contract was not listed. Reason:')
       console.error(e?.response?.data?.message)
     }
   }
@@ -235,7 +275,7 @@ export function contractInsertHandler() {
       const result = await axios.post(endpoint, { address })
       console.log(result?.data)
     } catch (e) {
-      console.error('Delegator Orgzanization was not inserted. Reason:')
+      console.error('Delegator Contract was not inserted. Reason:')
       console.error(e?.response?.data?.message)
     }
   }
@@ -251,7 +291,63 @@ export function contractRemoveHandler() {
       const result = await axios.delete(endpoint)
       console.log(result?.data)
     } catch (e) {
-      console.error('Delegator Orgzanization was not deleted. Reason:')
+      console.error('Delegator Contract was not deleted. Reason:')
+      console.error(e?.response?.data?.message)
+    }
+  }
+  return wrapper
+}
+
+export function functionListHandler() {
+  async function wrapper() {
+    if (!(await isOraklDelegatorHealthy())) return
+
+    try {
+      const endpoint = buildUrl(ORAKL_NETWORK_DELEGATOR_URL, `function`)
+      const result = await axios.get(endpoint)
+      console.log(result?.data)
+    } catch (e) {
+      console.error('Delegator Function was not listed. Reason:')
+      console.error(e?.response?.data?.message)
+    }
+  }
+  return wrapper
+}
+
+export function functionInsertHandler() {
+  async function wrapper({
+    name,
+    contractId,
+    encodedName
+  }: {
+    name: string
+    contractId: number
+    encodedName: string
+  }) {
+    if (!(await isOraklDelegatorHealthy())) return
+
+    try {
+      const endpoint = buildUrl(ORAKL_NETWORK_DELEGATOR_URL, `function`)
+      const result = await axios.post(endpoint, { name, contractId, encodedName })
+      console.log(result?.data)
+    } catch (e) {
+      console.error('Delegator Function was not inserted. Reason:')
+      console.error(e?.response?.data?.message)
+    }
+  }
+  return wrapper
+}
+
+export function functionRemoveHandler() {
+  async function wrapper({ id }: { id: number }) {
+    if (!(await isOraklDelegatorHealthy())) return
+
+    try {
+      const endpoint = buildUrl(buildUrl(ORAKL_NETWORK_DELEGATOR_URL, `function`), id.toString())
+      const result = await axios.delete(endpoint)
+      console.log(result?.data)
+    } catch (e) {
+      console.error('Delegator Function was not deleted. Reason:')
       console.error(e?.response?.data?.message)
     }
   }
