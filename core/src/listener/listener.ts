@@ -38,7 +38,7 @@ const FILE_NAME = import.meta.url
  * @param {string} name of [history] queue
  * @param {string} name of [processEvent] queue
  * @param {string} name of [worker] queue
- * @param {Promise<(log: ethers.Event) => void>} event processing function
+ * @param {(log: ethers.Event) => Promise<ProcessEventOutputType>} event processing function
  * @param {RedisClientType} redis client
  * @params {ListenerInitType} listener initialization type
  * @param {Logger} pino logger
