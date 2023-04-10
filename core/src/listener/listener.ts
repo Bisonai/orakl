@@ -215,6 +215,11 @@ function latestJob({
       throw e
     }
 
+    if (latestBlock < observedBlock) {
+      logger.warn('latestBlock < observedBlock. Updating observed block to revert the condition.')
+      observedBlock = Math.max(0, latestBlock - 1)
+    }
+
     const logPrefix = generateListenerLogPrefix(contractAddress, observedBlock, latestBlock)
     try {
       if (latestBlock > observedBlock) {
