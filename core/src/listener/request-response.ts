@@ -1,4 +1,3 @@
-import { Queue } from 'bullmq'
 import { ethers } from 'ethers'
 import { Logger } from 'pino'
 import type { RedisClientType } from 'redis'
@@ -6,9 +5,7 @@ import { RequestResponseCoordinator__factory } from '@bisonai/orakl-contracts'
 import { listenerService } from './listener'
 import { IListenerConfig, IDataRequested, IRequestResponseListenerWorker } from '../types'
 import {
-  BULLMQ_CONNECTION,
   CHAIN,
-  LISTENER_JOB_SETTINGS,
   LISTENER_REQUEST_RESPONSE_HISTORY_QUEUE_NAME,
   LISTENER_REQUEST_RESPONSE_LATEST_QUEUE_NAME,
   LISTENER_REQUEST_RESPONSE_PROCESS_EVENT_QUEUE_NAME,
@@ -31,6 +28,7 @@ export async function buildListener(
   const latestQueueName = LISTENER_REQUEST_RESPONSE_LATEST_QUEUE_NAME
   const historyQueueName = LISTENER_REQUEST_RESPONSE_HISTORY_QUEUE_NAME
   const processEventQueueName = LISTENER_REQUEST_RESPONSE_PROCESS_EVENT_QUEUE_NAME
+  const workerQueueName = WORKER_REQUEST_RESPONSE_QUEUE_NAME
   const abi = RequestResponseCoordinator__factory.abi
   const iface = new ethers.utils.Interface(abi)
 
@@ -44,6 +42,7 @@ export async function buildListener(
     latestQueueName,
     historyQueueName,
     processEventQueueName,
+    workerQueueName,
     processFn: await processEvent({ iface, logger }),
     redisClient,
     listenerInitType: 'latest',
@@ -53,14 +52,13 @@ export async function buildListener(
 
 async function processEvent({ iface, logger }: { iface: ethers.utils.Interface; logger: Logger }) {
   const _logger = logger.child({ name: 'Request-Response processEvent', file: FILE_NAME })
-  const workerQueue = new Queue(WORKER_REQUEST_RESPONSE_QUEUE_NAME, BULLMQ_CONNECTION)
 
   async function wrapper(log: ethers.Event) {
     const eventData = iface.parseLog(log).args as unknown as IDataRequested
     _logger.debug(eventData, 'eventData')
 
     const requestId = eventData.requestId.toString()
-    const outData: IRequestResponseListenerWorker = {
+    const jobData: IRequestResponseListenerWorker = {
       callbackAddress: log.address,
       blockNum: log.blockNumber,
       requestId,
@@ -71,12 +69,9 @@ async function processEvent({ iface, logger }: { iface: ethers.utils.Interface; 
       isDirectPayment: eventData.isDirectPayment,
       data: eventData.data.toString()
     }
-    _logger.debug(outData, 'outData')
+    _logger.debug(jobData, 'jobData')
 
-    await workerQueue.add('request-response', outData, {
-      jobId: requestId,
-      ...LISTENER_JOB_SETTINGS
-    })
+    return { jobName: 'request-response', jobId: requestId, jobData }
   }
 
   return wrapper

@@ -9,9 +9,12 @@ import {
   IProcessEventListenerJob,
   IHistoryListenerJob,
   ILatestListenerJob,
-  ListenerInitType
+  ListenerInitType,
+  ProcessEventOutputType
 } from './types'
 import { watchman } from './watchman'
+
+const FILE_NAME = import.meta.url
 
 /**
  * The listener service is used for tracking events emmitted by smart
@@ -34,6 +37,7 @@ import { watchman } from './watchman'
  * @param {string} name of [latest] queue
  * @param {string} name of [history] queue
  * @param {string} name of [processEvent] queue
+ * @param {string} name of [worker] queue
  * @param {Promise<(log: ethers.Event) => void>} event processing function
  * @param {RedisClientType} redis client
  * @params {ListenerInitType} listener initialization type
@@ -49,6 +53,7 @@ export async function listenerService({
   latestQueueName,
   historyQueueName,
   processEventQueueName,
+  workerQueueName,
   processFn,
   redisClient,
   listenerInitType,
@@ -63,7 +68,8 @@ export async function listenerService({
   latestQueueName: string
   historyQueueName: string
   processEventQueueName: string
-  processFn: (log: ethers.Event) => Promise<void>
+  workerQueueName: string
+  processFn: (log: ethers.Event) => Promise<ProcessEventOutputType>
   redisClient: RedisClientType
   listenerInitType: ListenerInitType
   logger: Logger
@@ -71,6 +77,7 @@ export async function listenerService({
   const latestListenerQueue = new Queue(latestQueueName, BULLMQ_CONNECTION)
   const historyListenerQueue = new Queue(historyQueueName, BULLMQ_CONNECTION)
   const processEventQueue = new Queue(processEventQueueName, BULLMQ_CONNECTION)
+  const workerQueue = new Queue(workerQueueName, BULLMQ_CONNECTION)
 
   const state = new State({
     redisClient,
@@ -112,7 +119,7 @@ export async function listenerService({
 
   const processEventWorker = new Worker(
     processEventQueueName,
-    processEventJob(processFn),
+    processEventJob({ workerQueue, processFn, logger }),
     BULLMQ_CONNECTION
   )
   processEventWorker.on('error', (e) => {
@@ -314,13 +321,30 @@ function historyJob({
  *
  * @param {} function that processes event caught by listener
  */
-function processEventJob(processEventFn: (log: ethers.Event) => Promise<void>) {
+function processEventJob({
+  workerQueue,
+  processFn,
+  logger
+}: {
+  workerQueue: Queue
+  processFn: (log: ethers.Event) => Promise<ProcessEventOutputType>
+  logger: Logger
+}) {
+  const _logger = logger.child({ name: 'processEventJob', file: FILE_NAME })
+
   async function wrapper(job: Job) {
     const inData: IProcessEventListenerJob = job.data
     const { event } = inData
+    _logger.debug(event, 'event')
 
-    // TODO return data and jobId and submit the job from here
-    await processEventFn(event)
+    const { jobId, jobName, jobData } = await processFn(event)
+    if (jobData) {
+      await workerQueue.add(jobName, jobData, {
+        jobId,
+        ...LISTENER_JOB_SETTINGS
+      })
+      _logger.debug(`Listener submitted job [${jobId}] for [${jobName}]`)
+    }
   }
 
   return wrapper

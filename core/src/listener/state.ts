@@ -195,8 +195,7 @@ export class State {
       default:
         // [block number] initialization
         await this.setObservedBlockNumberIfNotDefined(observedBlockRedisKey, latestBlock - 1)
-        const fromBlock = this.listenerInitType
-        for (let blockNumber = fromBlock; blockNumber < latestBlock; ++blockNumber) {
+        for (let blockNumber = this.listenerInitType; blockNumber < latestBlock; ++blockNumber) {
           const historyOutData: IHistoryListenerJob = {
             contractAddress,
             blockNumber

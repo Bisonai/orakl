@@ -1,7 +1,12 @@
 import { ethers } from 'ethers'
 import { Logger } from 'pino'
 import type { RedisClientType } from 'redis'
-import { IListenerConfig } from '../types'
+import {
+  IRequestResponseListenerWorker,
+  IAggregatorWorker,
+  IVrfListenerWorker,
+  IListenerConfig
+} from '../types'
 
 export interface IListeners {
   [index: string]: (config: IListenerConfig[], redisClient: RedisClientType, logger: Logger) => void
@@ -26,6 +31,12 @@ export interface IListeners {
  * block we want the listener to start event tracking.
  */
 export type ListenerInitType = 'latest' | 'clear' | number
+
+export type ProcessEventOutputType = {
+  jobData: IRequestResponseListenerWorker | IAggregatorWorker | IVrfListenerWorker
+  jobId: string
+  jobName: string
+}
 
 export interface ILatestListenerJob {
   contractAddress: string
