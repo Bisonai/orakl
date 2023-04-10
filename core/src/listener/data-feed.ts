@@ -58,7 +58,7 @@ export async function buildListener(
 async function processEvent({ iface, logger }: { iface: ethers.utils.Interface; logger: Logger }) {
   const _logger = logger.child({ name: 'processEvent', file: FILE_NAME })
 
-  async function wrapper(log): Promise<ProcessEventOutputType> {
+  async function wrapper(log): Promise<ProcessEventOutputType | undefined> {
     const eventData = iface.parseLog(log).args as unknown as INewRound
     _logger.debug(eventData, 'eventData')
 
@@ -66,22 +66,17 @@ async function processEvent({ iface, logger }: { iface: ethers.utils.Interface; 
     const roundId = eventData.roundId.toNumber()
     const operatorAddress = await getOperatorAddress({ oracleAddress, logger: _logger })
 
-    const jobName = 'event'
-    const jobId = buildSubmissionRoundJobId({
-      oracleAddress,
-      roundId,
-      deploymentName: DEPLOYMENT_NAME
-    })
-    const job = {
-      jobName,
-      jobId
-    }
-
     if (eventData.startedBy == operatorAddress) {
       _logger.debug(`Ignore event emitted by ${eventData.startedBy} for round ${roundId}`)
-      return { ...job, jobData: null }
     } else {
       // NewRound emitted by somebody else
+      const jobName = 'event'
+
+      const jobId = buildSubmissionRoundJobId({
+        oracleAddress,
+        roundId,
+        deploymentName: DEPLOYMENT_NAME
+      })
       const jobData: IAggregatorWorker = {
         oracleAddress,
         roundId,
@@ -89,7 +84,7 @@ async function processEvent({ iface, logger }: { iface: ethers.utils.Interface; 
       }
       _logger.debug(jobData, 'jobData')
 
-      return { ...job, jobQueueSettings: AGGREGATOR_QUEUE_SETTINGS, jobData }
+      return { jobName, jobId, jobData, jobQueueSettings: AGGREGATOR_QUEUE_SETTINGS }
     }
   }
 

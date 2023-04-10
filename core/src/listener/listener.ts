@@ -69,7 +69,7 @@ export async function listenerService({
   historyQueueName: string
   processEventQueueName: string
   workerQueueName: string
-  processFn: (log: ethers.Event) => Promise<ProcessEventOutputType>
+  processFn: (log: ethers.Event) => Promise<ProcessEventOutputType | undefined>
   redisClient: RedisClientType
   listenerInitType: ListenerInitType
   logger: Logger
@@ -332,7 +332,7 @@ function processEventJob({
   logger
 }: {
   workerQueue: Queue
-  processFn: (log: ethers.Event) => Promise<ProcessEventOutputType>
+  processFn: (log: ethers.Event) => Promise<ProcessEventOutputType | undefined>
   logger: Logger
 }) {
   const _logger = logger.child({ name: 'processEventJob', file: FILE_NAME })
@@ -343,8 +343,9 @@ function processEventJob({
     _logger.debug(event, 'event')
 
     try {
-      const { jobId, jobName, jobData, jobQueueSettings } = await processFn(event)
-      if (jobData) {
+      const jobMetadata = await processFn(event)
+      if (jobMetadata) {
+        const { jobId, jobName, jobData, jobQueueSettings } = jobMetadata
         const queueSettings = jobQueueSettings ? jobQueueSettings : LISTENER_JOB_SETTINGS
         await workerQueue.add(jobName, jobData, {
           jobId,

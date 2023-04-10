@@ -56,21 +56,15 @@ async function processEvent({ iface, logger }: { iface: ethers.utils.Interface; 
   const _logger = logger.child({ name: 'processEvent', file: FILE_NAME })
   const { keyHash } = await getVrfConfig({ chain: CHAIN })
 
-  async function wrapper(log): Promise<ProcessEventOutputType> {
+  async function wrapper(log): Promise<ProcessEventOutputType | undefined> {
     const eventData = iface.parseLog(log).args as unknown as IRandomWordsRequested
     _logger.debug(eventData, 'eventData')
 
-    const requestId = eventData.requestId.toString()
-    const jobName = 'vrf'
-    const job = {
-      jobName,
-      jobId: requestId
-    }
-
     if (eventData.keyHash != keyHash) {
       _logger.info(`Ignore event with keyhash [${eventData.keyHash}]`)
-      return { ...job, jobData: null }
     } else {
+      const jobName = 'vrf'
+      const requestId = eventData.requestId.toString()
       const jobData: IVrfListenerWorker = {
         callbackAddress: log.address,
         blockNum: log.blockNumber,
@@ -85,7 +79,7 @@ async function processEvent({ iface, logger }: { iface: ethers.utils.Interface; 
       }
       _logger.debug(jobData, 'jobData')
 
-      return { ...job, jobData }
+      return { jobName, jobId: requestId, jobData }
     }
   }
 

@@ -54,7 +54,7 @@ export async function buildListener(
 async function processEvent({ iface, logger }: { iface: ethers.utils.Interface; logger: Logger }) {
   const _logger = logger.child({ name: 'Request-Response processEvent', file: FILE_NAME })
 
-  async function wrapper(log: ethers.Event): Promise<ProcessEventOutputType> {
+  async function wrapper(log: ethers.Event): Promise<ProcessEventOutputType | undefined> {
     const eventData = iface.parseLog(log).args as unknown as IDataRequested
     _logger.debug(eventData, 'eventData')
 
