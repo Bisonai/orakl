@@ -15,20 +15,24 @@ abstract contract RequestResponseConsumerBase {
      */
     constructor(address _requestResponseCoordinator) {
         COORDINATOR = RequestResponseCoordinatorInterface(_requestResponseCoordinator);
-        sJobIdToFunctionSelector[keccak256("uint256")] = COORDINATOR
+        sJobIdToFunctionSelector[keccak256(abi.encodePacked("uint256"))] = COORDINATOR
             .fulfillDataRequestUint256
             .selector;
-        sJobIdToFunctionSelector[keccak256("int256")] = COORDINATOR
+        sJobIdToFunctionSelector[keccak256(abi.encodePacked("int256"))] = COORDINATOR
             .fulfillDataRequestInt256
             .selector;
-        sJobIdToFunctionSelector[keccak256("bool")] = COORDINATOR.fulfillDataRequestInt256.selector;
-        sJobIdToFunctionSelector[keccak256("string")] = COORDINATOR
+        sJobIdToFunctionSelector[keccak256(abi.encodePacked("bool"))] = COORDINATOR
+            .fulfillDataRequestInt256
+            .selector;
+        sJobIdToFunctionSelector[keccak256(abi.encodePacked("string"))] = COORDINATOR
             .fulfillDataRequestString
             .selector;
-        sJobIdToFunctionSelector[keccak256("bytes32")] = COORDINATOR
+        sJobIdToFunctionSelector[keccak256(abi.encodePacked("bytes32"))] = COORDINATOR
             .fulfillDataRequestBytes32
             .selector;
-        sJobIdToFunctionSelector[keccak256("bytes")] = COORDINATOR.fulfillDataRequestBytes.selector;
+        sJobIdToFunctionSelector[keccak256(abi.encodePacked("bytes"))] = COORDINATOR
+            .fulfillDataRequestBytes
+            .selector;
     }
 
     /**

@@ -68,7 +68,7 @@ contract RequestResponseCoordinator is
     }
 
     DirectPaymentConfig private sDirectPaymentConfig;
-    mapping(bytes32 => string) sJobIdToFunctionSelector;
+    mapping(bytes32 => bool) sJobId;
 
     error InvalidConsumer(uint64 accId, address consumer);
     error InvalidAccount();
@@ -148,12 +148,12 @@ contract RequestResponseCoordinator is
     }
 
     constructor(address prepayment) {
-        sJobIdToFunctionSelector[keccak256("uint256")] = "uint256";
-        sJobIdToFunctionSelector[keccak256("int256")] = "int256";
-        sJobIdToFunctionSelector[keccak256("bool")] = "bool";
-        sJobIdToFunctionSelector[keccak256("string")] = "string";
-        sJobIdToFunctionSelector[keccak256("bytes32")] = "bytes32";
-        sJobIdToFunctionSelector[keccak256("bytes")] = "bytes";
+        sJobId[keccak256(abi.encodePacked("uint256"))] = true;
+        sJobId[keccak256(abi.encodePacked("int256"))] = true;
+        sJobId[keccak256(abi.encodePacked("bool"))] = true;
+        sJobId[keccak256(abi.encodePacked("string"))] = true;
+        sJobId[keccak256(abi.encodePacked("bytes32"))] = true;
+        sJobId[keccak256(abi.encodePacked("bytes"))] = true;
         sPrepayment = PrepaymentInterface(prepayment);
         emit PrepaymentSet(prepayment);
     }
@@ -304,7 +304,7 @@ contract RequestResponseCoordinator is
         uint32 callbackGasLimit,
         uint64 accId
     ) external nonReentrant returns (uint256 requestId) {
-        if (bytes(sJobIdToFunctionSelector[req.id]).length == 0) {
+        if (!sJobId[req.id]) {
             revert InvalidJobId();
         }
         bool isDirectPayment = false;

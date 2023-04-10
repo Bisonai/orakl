@@ -51,7 +51,6 @@ describe('Request-Response user contract', function () {
       false,
       true
     )
-
     return {
       accId,
       maxGasLimit,
@@ -64,6 +63,27 @@ describe('Request-Response user contract', function () {
     }
   }
 
+  async function consumerDeposit(value: number) {
+    const { accId, prepaymentContract, consumer } = await loadFixture(deployFixture)
+    // consumer deposit
+    const prepaymentContractConsumerSigner = await ethers.getContractAt(
+      'Prepayment',
+      prepaymentContract.address,
+      consumer
+    )
+    value = parseKlay(value)
+    await prepaymentContractConsumerSigner.deposit(accId, { value })
+  }
+  const eventArgs = [
+    'requestId',
+    'jobId',
+    'accId',
+    'callbackGasLimit',
+    'sender',
+    'isDirectPayment',
+    'data'
+  ]
+
   it('Request & Fulfill Uint256', async function () {
     const {
       accId,
@@ -71,18 +91,11 @@ describe('Request-Response user contract', function () {
       consumerContract,
       coordinatorContract,
       prepaymentContract,
-      consumer,
       rrOracle0
     } = await loadFixture(deployFixture)
-    const prepaymentContractConsumerSigner = await ethers.getContractAt(
-      'Prepayment',
-      prepaymentContract.address,
-      consumer
-    )
-    const value = parseKlay(1)
-    await prepaymentContractConsumerSigner.deposit(accId, { value })
+    await consumerDeposit(1)
     const requestReceipt = await (
-      await consumerContract.requestData(accId, maxGasLimit, {
+      await consumerContract.requestDataUint256(accId, maxGasLimit, {
         gasLimit: 500_000
       })
     ).wait()
@@ -91,15 +104,6 @@ describe('Request-Response user contract', function () {
     const requestEvent = coordinatorContract.interface.parseLog(requestReceipt.events[0])
     expect(requestEvent.name).to.be.equal('DataRequested')
 
-    const eventArgs = [
-      'requestId',
-      'jobId',
-      'accId',
-      'callbackGasLimit',
-      'sender',
-      'isDirectPayment',
-      'data'
-    ]
     for (const arg of eventArgs) {
       expect(requestEvent.args[arg]).to.not.be.undefined
     }
@@ -154,18 +158,11 @@ describe('Request-Response user contract', function () {
       consumerContract,
       coordinatorContract,
       prepaymentContract,
-      consumer,
       rrOracle0
     } = await loadFixture(deployFixture)
-    const prepaymentContractConsumerSigner = await ethers.getContractAt(
-      'Prepayment',
-      prepaymentContract.address,
-      consumer
-    )
-    const value = parseKlay(1)
-    await prepaymentContractConsumerSigner.deposit(accId, { value })
+    await consumerDeposit(1)
     const requestReceipt = await (
-      await consumerContract.requestData(accId, maxGasLimit, {
+      await consumerContract.requestDataInt256(accId, maxGasLimit, {
         gasLimit: 500_000
       })
     ).wait()
@@ -174,15 +171,6 @@ describe('Request-Response user contract', function () {
     const requestEvent = coordinatorContract.interface.parseLog(requestReceipt.events[0])
     expect(requestEvent.name).to.be.equal('DataRequested')
 
-    const eventArgs = [
-      'requestId',
-      'jobId',
-      'accId',
-      'callbackGasLimit',
-      'sender',
-      'isDirectPayment',
-      'data'
-    ]
     for (const arg of eventArgs) {
       expect(requestEvent.args[arg]).to.not.be.undefined
     }
@@ -237,18 +225,11 @@ describe('Request-Response user contract', function () {
       consumerContract,
       coordinatorContract,
       prepaymentContract,
-      consumer,
       rrOracle0
     } = await loadFixture(deployFixture)
-    const prepaymentContractConsumerSigner = await ethers.getContractAt(
-      'Prepayment',
-      prepaymentContract.address,
-      consumer
-    )
-    const value = parseKlay(1)
-    await prepaymentContractConsumerSigner.deposit(accId, { value })
+    await consumerDeposit(1)
     const requestReceipt = await (
-      await consumerContract.requestData(accId, maxGasLimit, {
+      await consumerContract.requestDataBool(accId, maxGasLimit, {
         gasLimit: 500_000
       })
     ).wait()
@@ -257,15 +238,6 @@ describe('Request-Response user contract', function () {
     const requestEvent = coordinatorContract.interface.parseLog(requestReceipt.events[0])
     expect(requestEvent.name).to.be.equal('DataRequested')
 
-    const eventArgs = [
-      'requestId',
-      'jobId',
-      'accId',
-      'callbackGasLimit',
-      'sender',
-      'isDirectPayment',
-      'data'
-    ]
     for (const arg of eventArgs) {
       expect(requestEvent.args[arg]).to.not.be.undefined
     }
@@ -320,18 +292,11 @@ describe('Request-Response user contract', function () {
       consumerContract,
       coordinatorContract,
       prepaymentContract,
-      consumer,
       rrOracle0
     } = await loadFixture(deployFixture)
-    const prepaymentContractConsumerSigner = await ethers.getContractAt(
-      'Prepayment',
-      prepaymentContract.address,
-      consumer
-    )
-    const value = parseKlay(1)
-    await prepaymentContractConsumerSigner.deposit(accId, { value })
+    await consumerDeposit(1)
     const requestReceipt = await (
-      await consumerContract.requestData(accId, maxGasLimit, {
+      await consumerContract.requestDataString(accId, maxGasLimit, {
         gasLimit: 500_000
       })
     ).wait()
@@ -340,15 +305,6 @@ describe('Request-Response user contract', function () {
     const requestEvent = coordinatorContract.interface.parseLog(requestReceipt.events[0])
     expect(requestEvent.name).to.be.equal('DataRequested')
 
-    const eventArgs = [
-      'requestId',
-      'jobId',
-      'accId',
-      'callbackGasLimit',
-      'sender',
-      'isDirectPayment',
-      'data'
-    ]
     for (const arg of eventArgs) {
       expect(requestEvent.args[arg]).to.not.be.undefined
     }
@@ -403,18 +359,11 @@ describe('Request-Response user contract', function () {
       consumerContract,
       coordinatorContract,
       prepaymentContract,
-      consumer,
       rrOracle0
     } = await loadFixture(deployFixture)
-    const prepaymentContractConsumerSigner = await ethers.getContractAt(
-      'Prepayment',
-      prepaymentContract.address,
-      consumer
-    )
-    const value = parseKlay(1)
-    await prepaymentContractConsumerSigner.deposit(accId, { value })
+    await consumerDeposit(1)
     const requestReceipt = await (
-      await consumerContract.requestData(accId, maxGasLimit, {
+      await consumerContract.requestDataBytes32(accId, maxGasLimit, {
         gasLimit: 500_000
       })
     ).wait()
@@ -423,15 +372,6 @@ describe('Request-Response user contract', function () {
     const requestEvent = coordinatorContract.interface.parseLog(requestReceipt.events[0])
     expect(requestEvent.name).to.be.equal('DataRequested')
 
-    const eventArgs = [
-      'requestId',
-      'jobId',
-      'accId',
-      'callbackGasLimit',
-      'sender',
-      'isDirectPayment',
-      'data'
-    ]
     for (const arg of eventArgs) {
       expect(requestEvent.args[arg]).to.not.be.undefined
     }
@@ -497,7 +437,7 @@ describe('Request-Response user contract', function () {
     const value = parseKlay(1)
     await prepaymentContractConsumerSigner.deposit(accId, { value })
     const requestReceipt = await (
-      await consumerContract.requestData(accId, maxGasLimit, {
+      await consumerContract.requestDataBytes(accId, maxGasLimit, {
         gasLimit: 500_000
       })
     ).wait()
@@ -506,15 +446,6 @@ describe('Request-Response user contract', function () {
     const requestEvent = coordinatorContract.interface.parseLog(requestReceipt.events[0])
     expect(requestEvent.name).to.be.equal('DataRequested')
 
-    const eventArgs = [
-      'requestId',
-      'jobId',
-      'accId',
-      'callbackGasLimit',
-      'sender',
-      'isDirectPayment',
-      'data'
-    ]
     for (const arg of eventArgs) {
       expect(requestEvent.args[arg]).to.not.be.undefined
     }
@@ -568,7 +499,7 @@ describe('Request-Response user contract', function () {
     )
 
     await expect(
-      consumerContract.requestData(accId, maxGasLimit, {
+      consumerContract.requestDataUint256(accId, maxGasLimit, {
         gasLimit: 500_000
       })
     ).to.be.revertedWithCustomError(coordinatorContract, 'InsufficientPayment')
