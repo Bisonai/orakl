@@ -4,6 +4,8 @@ import { buildUrl, idOption, isOraklDelegatorHealthy } from './utils'
 import { ORAKL_NETWORK_DELEGATOR_URL } from './settings'
 
 export function delegatorSub() {
+  // delegator sign
+
   // delegator organizationList
   // delegator organizationInsert --name {organizationName}
   // delegator organizationRemove --id {organizationId}
@@ -15,11 +17,23 @@ export function delegatorSub() {
   // delegator contractList
   // delegator contractInsert --address {contractAddress}
   // delegator contractRemove --id {reporterId}
+  // delegator contractConnect --contractId {contractId} -- repoterId {reporterId}
 
   // delegator functionList
   // delegator functionInsert --address {contractAddress} --organizationId {organizationId}
   // delegator functionRemove --id {reporterId}
 
+  const sign = command({
+    name: 'sign',
+    args: {},
+    handler: signHandler()
+  })
+
+  const signList = command({
+    name: 'sign',
+    args: {},
+    handler: signListHandler()
+  })
   const organizationList = command({
     name: 'organizationList',
     args: {},
@@ -164,6 +178,8 @@ export function delegatorSub() {
   return subcommands({
     name: 'delegator',
     cmds: {
+      sign,
+      signList,
       organizationList,
       organizationInsert,
       organizationRemove,
@@ -180,6 +196,38 @@ export function delegatorSub() {
       functionRemove
     }
   })
+}
+
+export function signHandler() {
+  async function wrapper() {
+    if (!(await isOraklDelegatorHealthy())) return
+
+    try {
+      const endpoint = buildUrl(ORAKL_NETWORK_DELEGATOR_URL, `sign`)
+      const result = await axios.get(endpoint)
+      console.log(result?.data)
+    } catch (e) {
+      console.error('Delegator Orgzanization was not listed. Reason:')
+      console.error(e?.response?.data?.message)
+    }
+  }
+  return wrapper
+}
+
+export function signListHandler() {
+  async function wrapper() {
+    if (!(await isOraklDelegatorHealthy())) return
+
+    try {
+      const endpoint = buildUrl(ORAKL_NETWORK_DELEGATOR_URL, `sign`)
+      const result = await axios.get(endpoint)
+      console.log(result?.data)
+    } catch (e) {
+      console.error('Delegator Orgzanization was not listed. Reason:')
+      console.error(e?.response?.data?.message)
+    }
+  }
+  return wrapper
 }
 
 export function organizationListHandler() {
