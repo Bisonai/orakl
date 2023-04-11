@@ -164,10 +164,6 @@ export function delegatorSub() {
       contractId: option({
         type: cmdnumber,
         long: 'contractId'
-      }),
-      encodedName: option({
-        type: cmdstring,
-        long: 'encodedName'
       })
     },
     handler: functionInsertHandler()
@@ -207,7 +203,6 @@ export function delegatorSub() {
 export function signHandler() {
   async function wrapper({ txData }: { txData }) {
     if (!(await isOraklDelegatorHealthy())) return
-
     try {
       const endpoint = buildUrl(ORAKL_NETWORK_DELEGATOR_URL, `sign`)
       const result = (await axios.post(endpoint, { ...txData })).data
