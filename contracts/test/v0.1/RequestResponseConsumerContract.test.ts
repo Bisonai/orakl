@@ -130,10 +130,7 @@ describe('Request-Response user contract', function () {
         requestId,
         response,
         requestCommitment,
-        isDirectPayment,
-        {
-          gasLimit: maxGasLimit + 300_000
-        }
+        isDirectPayment
       )
     ).wait()
 
@@ -197,10 +194,7 @@ describe('Request-Response user contract', function () {
         requestId,
         response,
         requestCommitment,
-        isDirectPayment,
-        {
-          gasLimit: maxGasLimit + 300_000
-        }
+        isDirectPayment
       )
     ).wait()
 
@@ -264,10 +258,7 @@ describe('Request-Response user contract', function () {
         requestId,
         response,
         requestCommitment,
-        isDirectPayment,
-        {
-          gasLimit: maxGasLimit + 300_000
-        }
+        isDirectPayment
       )
     ).wait()
 
@@ -331,10 +322,7 @@ describe('Request-Response user contract', function () {
         requestId,
         response,
         requestCommitment,
-        isDirectPayment,
-        {
-          gasLimit: maxGasLimit + 300_000
-        }
+        isDirectPayment
       )
     ).wait()
 
@@ -398,10 +386,7 @@ describe('Request-Response user contract', function () {
         requestId,
         response,
         requestCommitment,
-        isDirectPayment,
-        {
-          gasLimit: maxGasLimit + 300_000
-        }
+        isDirectPayment
       )
     ).wait()
 
@@ -472,10 +457,7 @@ describe('Request-Response user contract', function () {
         requestId,
         response,
         requestCommitment,
-        isDirectPayment,
-        {
-          gasLimit: maxGasLimit + 100000
-        }
+        isDirectPayment
       )
     ).wait()
 
