@@ -223,7 +223,7 @@ describe('Prepayment contract', function () {
     const txReceipt = await (await prepaymentNodeSigner.chargeFee(accId, feeAmount, node)).wait()
     const txEvent = prepaymentContract.interface.parseLog(txReceipt.events[0])
     const { burnAmount } = txEvent.args
-    const balanceNode = await prepaymentContract.s_nodes(node)
+    const balanceNode = await prepaymentContract.sNodes(node)
     const amount = burnAmount.toNumber() + balanceNode.toNumber()
 
     expect(feeAmount).to.be.equal(amount)
