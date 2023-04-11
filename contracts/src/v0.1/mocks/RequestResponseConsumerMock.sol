@@ -38,12 +38,14 @@ contract RequestResponseConsumerMock is
     // Receive remaining payment from requestDataPayment
     receive() external payable {}
 
-    function requestDataInternal(
+    //request for uint256
+    function requestDataUint256(
         uint64 accId,
-        uint32 callbackGasLimit,
-        bytes32 jobId
-    ) private returns (uint256 requestId) {
+        uint32 callbackGasLimit
+    ) public onlyOwner returns (uint256 requestId) {
+        bytes32 jobId = keccak256(abi.encodePacked("uint256"));
         Orakl.Request memory req = buildRequest(jobId);
+        //change here for your expected data
         req.add(
             "get",
             "https://min-api.cryptocompare.com/data/pricemultifull?fsyms=KLAY&tsyms=USD"
@@ -54,12 +56,12 @@ contract RequestResponseConsumerMock is
         requestId = COORDINATOR.requestData(req, callbackGasLimit, accId);
     }
 
-    function requestDataDirectPaymentInternal(
-        uint32 callbackGasLimit,
-        bytes32 jobId
-    ) private returns (uint256 requestId) {
-        //bytes32 jobId = keccak256(abi.encodePacked("uint256"));
+    function requestDataDirectPaymentUint256(
+        uint32 callbackGasLimit
+    ) public payable onlyOwner returns (uint256 requestId) {
+        bytes32 jobId = keccak256(abi.encodePacked("uint256"));
         Orakl.Request memory req = buildRequest(jobId);
+        //change here for your expected data
         req.add(
             "get",
             "https://min-api.cryptocompare.com/data/pricemultifull?fsyms=KLAY&tsyms=USD"
@@ -70,36 +72,38 @@ contract RequestResponseConsumerMock is
         requestId = COORDINATOR.requestData{value: msg.value}(req, callbackGasLimit);
     }
 
-    //request for uint256
-    function requestDataUint256(
-        uint64 accId,
-        uint32 callbackGasLimit
-    ) public onlyOwner returns (uint256 requestId) {
-        bytes32 jobId = keccak256(abi.encodePacked("uint256"));
-        return requestDataInternal(accId, callbackGasLimit, jobId);
-    }
-
-    function requestDataDirectPaymentUint256(
-        uint32 callbackGasLimit
-    ) public payable onlyOwner returns (uint256 requestId) {
-        bytes32 jobId = keccak256(abi.encodePacked("uint256"));
-        return requestDataDirectPaymentInternal(callbackGasLimit, jobId);
-    }
-
     // request for int256
     function requestDataInt256(
         uint64 accId,
         uint32 callbackGasLimit
     ) public onlyOwner returns (uint256 requestId) {
         bytes32 jobId = keccak256(abi.encodePacked("int256"));
-        return requestDataInternal(accId, callbackGasLimit, jobId);
+        Orakl.Request memory req = buildRequest(jobId);
+        //change here for your expected data
+        req.add(
+            "get",
+            "https://min-api.cryptocompare.com/data/pricemultifull?fsyms=KLAY&tsyms=USD"
+        );
+        req.add("path", "RAW,KLAY,USD,PRICE");
+        req.add("pow10", "8");
+
+        requestId = COORDINATOR.requestData(req, callbackGasLimit, accId);
     }
 
     function requestDataDirectPaymentInt256(
         uint32 callbackGasLimit
     ) public payable onlyOwner returns (uint256 requestId) {
         bytes32 jobId = keccak256(abi.encodePacked("int256"));
-        return requestDataDirectPaymentInternal(callbackGasLimit, jobId);
+        Orakl.Request memory req = buildRequest(jobId);
+        //change here for your expected data
+        req.add(
+            "get",
+            "https://min-api.cryptocompare.com/data/pricemultifull?fsyms=KLAY&tsyms=USD"
+        );
+        req.add("path", "RAW,KLAY,USD,PRICE");
+        req.add("pow10", "8");
+
+        requestId = COORDINATOR.requestData{value: msg.value}(req, callbackGasLimit);
     }
 
     // request for bool
@@ -108,14 +112,32 @@ contract RequestResponseConsumerMock is
         uint32 callbackGasLimit
     ) public onlyOwner returns (uint256 requestId) {
         bytes32 jobId = keccak256(abi.encodePacked("bool"));
-        return requestDataInternal(accId, callbackGasLimit, jobId);
+        Orakl.Request memory req = buildRequest(jobId);
+        //change here for your expected data
+        req.add(
+            "get",
+            "https://min-api.cryptocompare.com/data/pricemultifull?fsyms=KLAY&tsyms=USD"
+        );
+        req.add("path", "RAW,KLAY,USD,PRICE");
+        req.add("pow10", "8");
+
+        requestId = COORDINATOR.requestData(req, callbackGasLimit, accId);
     }
 
     function requestDataDirectPaymentBool(
         uint32 callbackGasLimit
     ) public payable onlyOwner returns (uint256 requestId) {
         bytes32 jobId = keccak256(abi.encodePacked("bool"));
-        return requestDataDirectPaymentInternal(callbackGasLimit, jobId);
+        Orakl.Request memory req = buildRequest(jobId);
+        //change here for your expected data
+        req.add(
+            "get",
+            "https://min-api.cryptocompare.com/data/pricemultifull?fsyms=KLAY&tsyms=USD"
+        );
+        req.add("path", "RAW,KLAY,USD,PRICE");
+        req.add("pow10", "8");
+
+        requestId = COORDINATOR.requestData{value: msg.value}(req, callbackGasLimit);
     }
 
     // request for string
@@ -124,14 +146,32 @@ contract RequestResponseConsumerMock is
         uint32 callbackGasLimit
     ) public onlyOwner returns (uint256 requestId) {
         bytes32 jobId = keccak256(abi.encodePacked("string"));
-        return requestDataInternal(accId, callbackGasLimit, jobId);
+        Orakl.Request memory req = buildRequest(jobId);
+        //change here for your expected data
+        req.add(
+            "get",
+            "https://min-api.cryptocompare.com/data/pricemultifull?fsyms=KLAY&tsyms=USD"
+        );
+        req.add("path", "RAW,KLAY,USD,PRICE");
+        req.add("pow10", "8");
+
+        requestId = COORDINATOR.requestData(req, callbackGasLimit, accId);
     }
 
     function requestDataDirectPaymentString(
         uint32 callbackGasLimit
     ) public payable onlyOwner returns (uint256 requestId) {
         bytes32 jobId = keccak256(abi.encodePacked("string"));
-        return requestDataDirectPaymentInternal(callbackGasLimit, jobId);
+        Orakl.Request memory req = buildRequest(jobId);
+        //change here for your expected data
+        req.add(
+            "get",
+            "https://min-api.cryptocompare.com/data/pricemultifull?fsyms=KLAY&tsyms=USD"
+        );
+        req.add("path", "RAW,KLAY,USD,PRICE");
+        req.add("pow10", "8");
+
+        requestId = COORDINATOR.requestData{value: msg.value}(req, callbackGasLimit);
     }
 
     // request for bytes32
@@ -140,14 +180,32 @@ contract RequestResponseConsumerMock is
         uint32 callbackGasLimit
     ) public onlyOwner returns (uint256 requestId) {
         bytes32 jobId = keccak256(abi.encodePacked("bytes32"));
-        return requestDataInternal(accId, callbackGasLimit, jobId);
+        Orakl.Request memory req = buildRequest(jobId);
+        //change here for your expected data
+        req.add(
+            "get",
+            "https://min-api.cryptocompare.com/data/pricemultifull?fsyms=KLAY&tsyms=USD"
+        );
+        req.add("path", "RAW,KLAY,USD,PRICE");
+        req.add("pow10", "8");
+
+        requestId = COORDINATOR.requestData(req, callbackGasLimit, accId);
     }
 
     function requestDataDirectPaymentBytes32(
         uint32 callbackGasLimit
     ) public payable onlyOwner returns (uint256 requestId) {
         bytes32 jobId = keccak256(abi.encodePacked("bytes32"));
-        return requestDataDirectPaymentInternal(callbackGasLimit, jobId);
+        Orakl.Request memory req = buildRequest(jobId);
+        //change here for your expected data
+        req.add(
+            "get",
+            "https://min-api.cryptocompare.com/data/pricemultifull?fsyms=KLAY&tsyms=USD"
+        );
+        req.add("path", "RAW,KLAY,USD,PRICE");
+        req.add("pow10", "8");
+
+        requestId = COORDINATOR.requestData{value: msg.value}(req, callbackGasLimit);
     }
 
     // request for bytes
@@ -156,14 +214,32 @@ contract RequestResponseConsumerMock is
         uint32 callbackGasLimit
     ) public onlyOwner returns (uint256 requestId) {
         bytes32 jobId = keccak256(abi.encodePacked("bytes"));
-        return requestDataInternal(accId, callbackGasLimit, jobId);
+        Orakl.Request memory req = buildRequest(jobId);
+        //change here for your expected data
+        req.add(
+            "get",
+            "https://min-api.cryptocompare.com/data/pricemultifull?fsyms=KLAY&tsyms=USD"
+        );
+        req.add("path", "RAW,KLAY,USD,PRICE");
+        req.add("pow10", "8");
+
+        requestId = COORDINATOR.requestData(req, callbackGasLimit, accId);
     }
 
     function requestDataDirectPaymentBytes(
         uint32 callbackGasLimit
     ) public payable onlyOwner returns (uint256 requestId) {
         bytes32 jobId = keccak256(abi.encodePacked("bytes"));
-        return requestDataDirectPaymentInternal(callbackGasLimit, jobId);
+        Orakl.Request memory req = buildRequest(jobId);
+        //change here for your expected data
+        req.add(
+            "get",
+            "https://min-api.cryptocompare.com/data/pricemultifull?fsyms=KLAY&tsyms=USD"
+        );
+        req.add("path", "RAW,KLAY,USD,PRICE");
+        req.add("pow10", "8");
+
+        requestId = COORDINATOR.requestData{value: msg.value}(req, callbackGasLimit);
     }
 
     function fulfillDataRequestUint256(uint256 /*requestId*/, uint256 response) internal override {

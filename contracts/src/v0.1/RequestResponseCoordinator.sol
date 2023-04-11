@@ -264,7 +264,7 @@ contract RequestResponseCoordinator is
         return (sDirectPaymentConfig.fulfillmentFee, sDirectPaymentConfig.baseFee);
     }
 
-    function getPrepaymentAddress() public view returns (address) {
+    function getPrepaymentAddress() external view returns (address) {
         return address(sPrepayment);
     }
 
