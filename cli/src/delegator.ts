@@ -5,6 +5,7 @@ import { ORAKL_NETWORK_DELEGATOR_URL } from './settings'
 
 export function delegatorSub() {
   // delegator sign
+  // delegator signList
 
   // delegator organizationList
   // delegator organizationInsert --name {organizationName}
@@ -25,7 +26,12 @@ export function delegatorSub() {
 
   const sign = command({
     name: 'sign',
-    args: {},
+    args: {
+      txData: option({
+        type: cmdstring,
+        long: 'txData'
+      })
+    },
     handler: signHandler()
   })
 
@@ -199,16 +205,16 @@ export function delegatorSub() {
 }
 
 export function signHandler() {
-  async function wrapper() {
+  async function wrapper({ txData }: { txData }) {
     if (!(await isOraklDelegatorHealthy())) return
 
     try {
       const endpoint = buildUrl(ORAKL_NETWORK_DELEGATOR_URL, `sign`)
-      const result = (await axios.get(endpoint)).data
+      const result = (await axios.post(endpoint, { ...txData })).data
       console.log(result)
       return result
     } catch (e) {
-      console.error('Delegator Orgzanization was not listed. Reason:')
+      console.error('Delegator sign was not Signed. Reason:')
       console.error(e?.response?.data?.message)
     }
   }
@@ -225,7 +231,7 @@ export function signListHandler() {
       console.log(result)
       return result
     } catch (e) {
-      console.error('Delegator Orgzanization was not listed. Reason:')
+      console.error('Delegator Sign was not listed. Reason:')
       console.error(e?.response?.data?.message)
     }
   }
