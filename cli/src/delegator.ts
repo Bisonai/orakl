@@ -204,8 +204,9 @@ export function signHandler() {
 
     try {
       const endpoint = buildUrl(ORAKL_NETWORK_DELEGATOR_URL, `sign`)
-      const result = await axios.get(endpoint)
-      console.log(result?.data)
+      const result = (await axios.get(endpoint)).data
+      console.log(result)
+      return result
     } catch (e) {
       console.error('Delegator Orgzanization was not listed. Reason:')
       console.error(e?.response?.data?.message)
@@ -220,8 +221,9 @@ export function signListHandler() {
 
     try {
       const endpoint = buildUrl(ORAKL_NETWORK_DELEGATOR_URL, `sign`)
-      const result = await axios.get(endpoint)
-      console.log(result?.data)
+      const result = (await axios.get(endpoint)).data
+      console.log(result)
+      return result
     } catch (e) {
       console.error('Delegator Orgzanization was not listed. Reason:')
       console.error(e?.response?.data?.message)
@@ -236,8 +238,9 @@ export function organizationListHandler() {
 
     try {
       const endpoint = buildUrl(ORAKL_NETWORK_DELEGATOR_URL, `organization`)
-      const result = await axios.get(endpoint)
-      console.log(result?.data)
+      const result = (await axios.get(endpoint)).data
+      console.log(result)
+      return result
     } catch (e) {
       console.error('Delegator Orgzanization was not listed. Reason:')
       console.error(e?.response?.data?.message)
@@ -252,8 +255,9 @@ export function organizationInsertHandler() {
 
     try {
       const endpoint = buildUrl(ORAKL_NETWORK_DELEGATOR_URL, `organization`)
-      const result = await axios.post(endpoint, { name })
-      console.log(result?.data)
+      const result = (await axios.post(endpoint, { name })).data
+      console.log(result)
+      return result
     } catch (e) {
       console.error('Delegator Orgzanization was not inserted. Reason:')
       console.error(e?.response?.data?.message)
@@ -271,8 +275,9 @@ export function organizationRemoveHandler() {
         buildUrl(ORAKL_NETWORK_DELEGATOR_URL, `organization`),
         id.toString()
       )
-      const result = await axios.delete(endpoint)
-      console.log(result?.data)
+      const result = (await axios.delete(endpoint)).data
+      console.log(result)
+      return result
     } catch (e) {
       console.error('Delegator Orgzanization was not deleted. Reason:')
       console.error(e?.response?.data?.message)
@@ -287,8 +292,9 @@ export function reporterListHandler() {
 
     try {
       const endpoint = buildUrl(ORAKL_NETWORK_DELEGATOR_URL, `reporter`)
-      const result = await axios.get(endpoint)
-      console.log(result?.data)
+      const result = (await axios.get(endpoint)).data
+      console.log(result)
+      return result
     } catch (e) {
       console.error('Delegator Reporter was not listed. Reason:')
       console.error(e?.response?.data?.message)
@@ -303,8 +309,9 @@ export function reporterInsertHandler() {
 
     try {
       const endpoint = buildUrl(ORAKL_NETWORK_DELEGATOR_URL, `reporter`)
-      const result = await axios.post(endpoint, { address, organizationId })
-      console.log(result?.data)
+      const result = (await axios.post(endpoint, { address, organizationId })).data
+      console.log(result)
+      return result
     } catch (e) {
       console.error('Delegator Reporter was not inserted. Reason:')
       console.error(e?.response?.data?.message)
@@ -319,8 +326,9 @@ export function reporterRemoveHandler() {
 
     try {
       const endpoint = buildUrl(buildUrl(ORAKL_NETWORK_DELEGATOR_URL, `reporter`), id.toString())
-      const result = await axios.delete(endpoint)
-      console.log(result?.data)
+      const result = (await axios.delete(endpoint)).data
+      console.log(result)
+      return result
     } catch (e) {
       console.error('Delegator Reporter was not deleted. Reason:')
       console.error(e?.response?.data?.message)
@@ -335,8 +343,9 @@ export function contractListHandler() {
 
     try {
       const endpoint = buildUrl(ORAKL_NETWORK_DELEGATOR_URL, `contract`)
-      const result = await axios.get(endpoint)
-      console.log(result?.data)
+      const result = (await axios.get(endpoint)).data
+      console.log(result)
+      return result
     } catch (e) {
       console.error('Delegator Contract was not listed. Reason:')
       console.error(e?.response?.data?.message)
@@ -351,8 +360,9 @@ export function contractInsertHandler() {
 
     try {
       const endpoint = buildUrl(ORAKL_NETWORK_DELEGATOR_URL, `contract`)
-      const result = await axios.post(endpoint, { address })
-      console.log(result?.data)
+      const result = (await axios.post(endpoint, { address })).data
+      console.log(result)
+      return result
     } catch (e) {
       console.error('Delegator Contract was not inserted. Reason:')
       console.error(e?.response?.data?.message)
@@ -367,8 +377,9 @@ export function contractRemoveHandler() {
 
     try {
       const endpoint = buildUrl(buildUrl(ORAKL_NETWORK_DELEGATOR_URL, `contract`), id.toString())
-      const result = await axios.delete(endpoint)
-      console.log(result?.data)
+      const result = (await axios.delete(endpoint)).data
+      console.log(result)
+      return result
     } catch (e) {
       console.error('Delegator Contract was not deleted. Reason:')
       console.error(e?.response?.data?.message)
@@ -383,8 +394,9 @@ export function contractConnectHandler() {
 
     try {
       const endpoint = buildUrl(ORAKL_NETWORK_DELEGATOR_URL, `contract/connectReporter`)
-      const result = await axios.post(endpoint, { contractId, reporterId })
-      console.log(result?.data)
+      const result = (await axios.post(endpoint, { contractId, reporterId })).data
+      console.log(result)
+      return result
     } catch (e) {
       console.error('Delegator Orgzanization was not listed. Reason:')
       console.error(e?.response?.data?.message)
@@ -399,8 +411,9 @@ export function contractDisconnectHandler() {
 
     try {
       const endpoint = buildUrl(ORAKL_NETWORK_DELEGATOR_URL, `contract/disconnectReporter`)
-      const result = await axios.post(endpoint, { contractId, reporterId })
-      console.log(result?.data)
+      const result = (await axios.post(endpoint, { contractId, reporterId })).data
+      console.log(result)
+      return result
     } catch (e) {
       console.error('Delegator Orgzanization was not listed. Reason:')
       console.error(e?.response?.data?.message)
@@ -415,8 +428,9 @@ export function functionListHandler() {
 
     try {
       const endpoint = buildUrl(ORAKL_NETWORK_DELEGATOR_URL, `function`)
-      const result = await axios.get(endpoint)
-      console.log(result?.data)
+      const result = (await axios.get(endpoint)).data
+      console.log(result)
+      return result
     } catch (e) {
       console.error('Delegator Function was not listed. Reason:')
       console.error(e?.response?.data?.message)
@@ -426,21 +440,14 @@ export function functionListHandler() {
 }
 
 export function functionInsertHandler() {
-  async function wrapper({
-    name,
-    contractId,
-    encodedName
-  }: {
-    name: string
-    contractId: number
-    encodedName: string
-  }) {
+  async function wrapper({ name, contractId }: { name: string; contractId: number }) {
     if (!(await isOraklDelegatorHealthy())) return
 
     try {
       const endpoint = buildUrl(ORAKL_NETWORK_DELEGATOR_URL, `function`)
-      const result = await axios.post(endpoint, { name, contractId, encodedName })
-      console.log(result?.data)
+      const result = (await axios.post(endpoint, { name, contractId })).data
+      console.log(result)
+      return result
     } catch (e) {
       console.error('Delegator Function was not inserted. Reason:')
       console.error(e?.response?.data?.message)
@@ -455,8 +462,9 @@ export function functionRemoveHandler() {
 
     try {
       const endpoint = buildUrl(buildUrl(ORAKL_NETWORK_DELEGATOR_URL, `function`), id.toString())
-      const result = await axios.delete(endpoint)
-      console.log(result?.data)
+      const result = (await axios.delete(endpoint)).data
+      console.log(result)
+      return result
     } catch (e) {
       console.error('Delegator Function was not deleted. Reason:')
       console.error(e?.response?.data?.message)
