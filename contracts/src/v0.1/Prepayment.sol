@@ -2,6 +2,7 @@
 pragma solidity ^0.8.16;
 
 // https://github.com/smartcontractkit/chainlink/blob/develop/contracts/src/v0.8/VRFCoordinatorV2.sol
+
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "./interfaces/CoordinatorBaseInterface.sol";
 import "./interfaces/PrepaymentInterface.sol";
@@ -12,25 +13,25 @@ contract Prepayment is Ownable, PrepaymentInterface, TypeAndVersionInterface {
     uint8 public constant MIN_BURN_RATIO = 0;
     uint8 public constant MAX_BURN_RATIO = 100;
 
-    uint256 private s_totalBalance;
+    uint256 private sTotalBalance;
 
-    uint64 private s_currentAccId;
-    uint8 public s_BurnRatio = 20; //20%
+    uint64 private sCurrentAccId;
+    uint8 public sBurnRatio = 20; //20%
 
     /* consumer */
     /* accId */
     /* nonce */
-    mapping(address => mapping(uint64 => uint64)) private s_consumers;
+    mapping(address => mapping(uint64 => uint64)) private sConsumers;
 
     /* accId */
     /* AccountConfig */
-    mapping(uint64 => AccountConfig) private s_accountConfigs;
+    mapping(uint64 => AccountConfig) private sAccountConfigs;
 
     /* accId */
     /* account */
-    mapping(uint64 => Account) private s_accounts;
+    mapping(uint64 => Account) private sAccounts;
 
-    mapping(address => uint256) public s_nodes;
+    mapping(address => uint256) public sNodes;
 
     struct Account {
         // There are only 1e9*1e18 = 1e27 juels in existence, so the balance can fit in uint256 (2^96 ~ 7e28)
@@ -42,16 +43,16 @@ contract Prepayment is Ownable, PrepaymentInterface, TypeAndVersionInterface {
     struct AccountConfig {
         address owner; // Owner can fund/withdraw/cancel the acc.
         address requestedOwner; // For safely transferring acc ownership.
-        // Maintains the list of keys in s_consumers.
+        // Maintains the list of keys in sConsumers.
         // We do this for 2 reasons:
-        // 1. To be able to clean up all keys from s_consumers when canceling an account.
+        // 1. To be able to clean up all keys from sConsumers when canceling an account.
         // 2. To be able to return the list of all consumers in getAccount.
-        // Note that we need the s_consumers map to be able to directly check if a
+        // Note that we need the sConsumers map to be able to directly check if a
         // consumer is valid without reading all the consumers from storage.
         address[] consumers;
     }
 
-    CoordinatorBaseInterface[] public s_coordinators;
+    CoordinatorBaseInterface[] public sCoordinators;
     mapping(address => bool) private sIsCoordinators;
 
     error TooManyConsumers();
@@ -84,7 +85,7 @@ contract Prepayment is Ownable, PrepaymentInterface, TypeAndVersionInterface {
     event BurnRatioSet(uint16 ratio);
 
     modifier onlyAccOwner(uint64 accId) {
-        address owner = s_accountConfigs[accId].owner;
+        address owner = sAccountConfigs[accId].owner;
         if (owner == address(0)) {
             revert InvalidAccount();
         }
@@ -93,10 +94,11 @@ contract Prepayment is Ownable, PrepaymentInterface, TypeAndVersionInterface {
         }
         _;
     }
+
     modifier onlyCoordinator() {
         bool isCoordinator = false;
-        for (uint256 i = 0; i < s_coordinators.length; i++) {
-            if (s_coordinators[i] == CoordinatorBaseInterface(msg.sender)) {
+        for (uint256 i = 0; i < sCoordinators.length; i++) {
+            if (sCoordinators[i] == CoordinatorBaseInterface(msg.sender)) {
                 isCoordinator = true;
                 break;
             }
@@ -107,13 +109,15 @@ contract Prepayment is Ownable, PrepaymentInterface, TypeAndVersionInterface {
         _;
     }
 
-    constructor() {}
-
-    function setBurnRatio(uint8 ratio) public onlyOwner {
+    /**
+     * The function allows to update a "burn ratio" that represents a
+     * partial amount of payment for a service that will be burnt.
+     */
+    function setBurnRatio(uint8 ratio) external onlyOwner {
         if (ratio < MIN_BURN_RATIO || ratio > MAX_BURN_RATIO) {
             revert InvalidBurnRatio();
         }
-        s_BurnRatio = ratio;
+        sBurnRatio = ratio;
         emit BurnRatioSet(ratio);
     }
 
@@ -121,7 +125,7 @@ contract Prepayment is Ownable, PrepaymentInterface, TypeAndVersionInterface {
      * @inheritdoc PrepaymentInterface
      */
     function getTotalBalance() external view returns (uint256) {
-        return s_totalBalance;
+        return sTotalBalance;
     }
 
     /**
@@ -140,15 +144,15 @@ contract Prepayment is Ownable, PrepaymentInterface, TypeAndVersionInterface {
             address[] memory consumers
         )
     {
-        if (s_accountConfigs[accId].owner == address(0)) {
+        if (sAccountConfigs[accId].owner == address(0)) {
             revert InvalidAccount();
         }
         return (
-            s_accounts[accId].balance,
-            s_accounts[accId].reqCount,
-            s_accounts[accId].accType,
-            s_accountConfigs[accId].owner,
-            s_accountConfigs[accId].consumers
+            sAccounts[accId].balance,
+            sAccounts[accId].reqCount,
+            sAccounts[accId].accType,
+            sAccountConfigs[accId].owner,
+            sAccountConfigs[accId].consumers
         );
     }
 
@@ -156,15 +160,15 @@ contract Prepayment is Ownable, PrepaymentInterface, TypeAndVersionInterface {
      * @inheritdoc PrepaymentInterface
      */
     function createAccount() external returns (uint64) {
-        s_currentAccId++;
-        uint64 currentAccId = s_currentAccId;
+        sCurrentAccId++;
+        uint64 currentAccId = sCurrentAccId;
         address[] memory consumers = new address[](0);
         string memory accType = "reg";
         if (sIsCoordinators[msg.sender]) {
             accType = "tmp";
         }
-        s_accounts[currentAccId] = Account({balance: 0, reqCount: 0, accType: accType});
-        s_accountConfigs[currentAccId] = AccountConfig({
+        sAccounts[currentAccId] = Account({balance: 0, reqCount: 0, accType: accType});
+        sAccountConfigs[currentAccId] = AccountConfig({
             owner: msg.sender,
             requestedOwner: address(0),
             consumers: consumers
@@ -182,8 +186,8 @@ contract Prepayment is Ownable, PrepaymentInterface, TypeAndVersionInterface {
         address newOwner
     ) external onlyAccOwner(accId) {
         // Proposing to address(0) would never be claimable so don't need to check.
-        if (s_accountConfigs[accId].requestedOwner != newOwner) {
-            s_accountConfigs[accId].requestedOwner = newOwner;
+        if (sAccountConfigs[accId].requestedOwner != newOwner) {
+            sAccountConfigs[accId].requestedOwner = newOwner;
             emit AccountOwnerTransferRequested(accId, msg.sender, newOwner);
         }
     }
@@ -192,15 +196,15 @@ contract Prepayment is Ownable, PrepaymentInterface, TypeAndVersionInterface {
      * @inheritdoc PrepaymentInterface
      */
     function acceptAccountOwnerTransfer(uint64 accId) external {
-        if (s_accountConfigs[accId].owner == address(0)) {
+        if (sAccountConfigs[accId].owner == address(0)) {
             revert InvalidAccount();
         }
-        if (s_accountConfigs[accId].requestedOwner != msg.sender) {
-            revert MustBeRequestedOwner(s_accountConfigs[accId].requestedOwner);
+        if (sAccountConfigs[accId].requestedOwner != msg.sender) {
+            revert MustBeRequestedOwner(sAccountConfigs[accId].requestedOwner);
         }
-        address oldOwner = s_accountConfigs[accId].owner;
-        s_accountConfigs[accId].owner = msg.sender;
-        s_accountConfigs[accId].requestedOwner = address(0);
+        address oldOwner = sAccountConfigs[accId].owner;
+        sAccountConfigs[accId].owner = msg.sender;
+        sAccountConfigs[accId].requestedOwner = address(0);
         emit AccountOwnerTransferred(accId, oldOwner, msg.sender);
     }
 
@@ -208,23 +212,23 @@ contract Prepayment is Ownable, PrepaymentInterface, TypeAndVersionInterface {
      * @inheritdoc PrepaymentInterface
      */
     function removeConsumer(uint64 accId, address consumer) external onlyAccOwner(accId) {
-        if (s_consumers[consumer][accId] == 0) {
+        if (sConsumers[consumer][accId] == 0) {
             revert InvalidConsumer(accId, consumer);
         }
         // Note bounded by MAX_CONSUMERS
-        address[] memory consumers = s_accountConfigs[accId].consumers;
+        address[] memory consumers = sAccountConfigs[accId].consumers;
         uint256 lastConsumerIndex = consumers.length - 1;
         for (uint256 i = 0; i < consumers.length; i++) {
             if (consumers[i] == consumer) {
                 address last = consumers[lastConsumerIndex];
                 // Storage write to preserve last element
-                s_accountConfigs[accId].consumers[i] = last;
+                sAccountConfigs[accId].consumers[i] = last;
                 // Storage remove last element
-                s_accountConfigs[accId].consumers.pop();
+                sAccountConfigs[accId].consumers.pop();
                 break;
             }
         }
-        delete s_consumers[consumer][accId];
+        delete sConsumers[consumer][accId];
         emit AccountConsumerRemoved(accId, consumer);
     }
 
@@ -233,17 +237,17 @@ contract Prepayment is Ownable, PrepaymentInterface, TypeAndVersionInterface {
      */
     function addConsumer(uint64 accId, address consumer) external onlyAccOwner(accId) {
         // Already maxed, cannot add any more consumers.
-        if (s_accountConfigs[accId].consumers.length >= MAX_CONSUMERS) {
+        if (sAccountConfigs[accId].consumers.length >= MAX_CONSUMERS) {
             revert TooManyConsumers();
         }
-        if (s_consumers[consumer][accId] != 0) {
+        if (sConsumers[consumer][accId] != 0) {
             // Idempotence - do nothing if already added.
-            // Ensures uniqueness in s_accounts[accId].consumers.
+            // Ensures uniqueness in sAccounts[accId].consumers.
             return;
         }
         // Initialize the nonce to 1, indicating the consumer is allocated.
-        s_consumers[consumer][accId] = 1;
-        s_accountConfigs[accId].consumers.push(consumer);
+        sConsumers[consumer][accId] = 1;
+        sAccountConfigs[accId].consumers.push(consumer);
 
         emit AccountConsumerAdded(accId, consumer);
     }
@@ -263,9 +267,9 @@ contract Prepayment is Ownable, PrepaymentInterface, TypeAndVersionInterface {
      */
     function deposit(uint64 accId) external payable {
         uint256 amount = msg.value;
-        uint256 oldBalance = s_accounts[accId].balance;
-        s_accounts[accId].balance += amount;
-        s_totalBalance += amount;
+        uint256 oldBalance = sAccounts[accId].balance;
+        sAccounts[accId].balance += amount;
+        sTotalBalance += amount;
         emit AccountBalanceIncreased(accId, oldBalance, oldBalance + amount);
     }
 
@@ -277,12 +281,12 @@ contract Prepayment is Ownable, PrepaymentInterface, TypeAndVersionInterface {
             revert PendingRequestExists();
         }
 
-        uint256 oldBalance = s_accounts[accId].balance;
+        uint256 oldBalance = sAccounts[accId].balance;
         if ((oldBalance < amount) || (address(this).balance < amount)) {
             revert InsufficientBalance();
         }
 
-        s_accounts[accId].balance -= amount;
+        sAccounts[accId].balance -= amount;
 
         (bool sent, ) = msg.sender.call{value: amount}("");
         if (!sent) {
@@ -302,11 +306,11 @@ contract Prepayment is Ownable, PrepaymentInterface, TypeAndVersionInterface {
         if (address(this).balance < amount) {
             revert InsufficientBalance();
         }
-        uint256 withdrawable = s_nodes[msg.sender];
+        uint256 withdrawable = sNodes[msg.sender];
         if (withdrawable < amount) {
             revert InsufficientBalance();
         }
-        s_nodes[msg.sender] -= amount;
+        sNodes[msg.sender] -= amount;
         (bool sent, ) = msg.sender.call{value: amount}("");
         if (!sent) {
             revert InsufficientBalance();
@@ -319,15 +323,15 @@ contract Prepayment is Ownable, PrepaymentInterface, TypeAndVersionInterface {
      * @inheritdoc PrepaymentInterface
      */
     function chargeFee(uint64 accId, uint256 amount, address node) external onlyCoordinator {
-        uint256 oldBalance = s_accounts[accId].balance;
+        uint256 oldBalance = sAccounts[accId].balance;
         if (oldBalance < amount) {
             revert InsufficientBalance();
         }
 
-        s_accounts[accId].balance -= amount;
-        s_accounts[accId].reqCount += 1;
-        uint256 burnAmount = (amount * s_BurnRatio) / 100;
-        s_nodes[node] += amount - burnAmount;
+        sAccounts[accId].balance -= amount;
+        sAccounts[accId].reqCount += 1;
+        uint256 burnAmount = (amount * sBurnRatio) / 100;
+        sNodes[node] += amount - burnAmount;
         if (burnAmount > 0) {
             (bool sent, ) = address(0).call{value: burnAmount}("");
             if (!sent) {
@@ -342,7 +346,7 @@ contract Prepayment is Ownable, PrepaymentInterface, TypeAndVersionInterface {
      * @inheritdoc PrepaymentInterface
      */
     function getNonce(address consumer, uint64 accId) external view returns (uint64) {
-        return s_consumers[consumer][accId];
+        return sConsumers[consumer][accId];
     }
 
     /**
@@ -352,9 +356,9 @@ contract Prepayment is Ownable, PrepaymentInterface, TypeAndVersionInterface {
         address consumer,
         uint64 accId
     ) external onlyCoordinator returns (uint64) {
-        uint64 currentNonce = s_consumers[consumer][accId];
+        uint64 currentNonce = sConsumers[consumer][accId];
         uint64 nonce = currentNonce + 1;
-        s_consumers[consumer][accId] = nonce;
+        sConsumers[consumer][accId] = nonce;
         return nonce;
     }
 
@@ -362,7 +366,7 @@ contract Prepayment is Ownable, PrepaymentInterface, TypeAndVersionInterface {
      * @inheritdoc PrepaymentInterface
      */
     function getAccountOwner(uint64 accId) external view returns (address owner) {
-        return s_accountConfigs[accId].owner;
+        return sAccountConfigs[accId].owner;
     }
 
     /**
@@ -379,14 +383,14 @@ contract Prepayment is Ownable, PrepaymentInterface, TypeAndVersionInterface {
      * @dev Used to disable subscription canceling while outstanding request are present.
      */
     function pendingRequestExists(uint64 accId) public view returns (bool) {
-        AccountConfig memory accConfig = s_accountConfigs[accId];
+        AccountConfig memory accConfig = sAccountConfigs[accId];
         for (uint256 i = 0; i < accConfig.consumers.length; i++) {
-            for (uint256 j = 0; j < s_coordinators.length; j++) {
+            for (uint256 j = 0; j < sCoordinators.length; j++) {
                 if (
-                    s_coordinators[j].pendingRequestExists(
+                    sCoordinators[j].pendingRequestExists(
                         accConfig.consumers[i],
                         accId,
-                        s_consumers[accConfig.consumers[i]][accId]
+                        sConsumers[accConfig.consumers[i]][accId]
                     )
                 ) {
                     return true;
@@ -403,7 +407,7 @@ contract Prepayment is Ownable, PrepaymentInterface, TypeAndVersionInterface {
         if (sIsCoordinators[coordinator]) {
             revert CoordinatorExists();
         }
-        s_coordinators.push(CoordinatorBaseInterface(coordinator));
+        sCoordinators.push(CoordinatorBaseInterface(coordinator));
         sIsCoordinators[coordinator] = true;
     }
 
@@ -411,11 +415,11 @@ contract Prepayment is Ownable, PrepaymentInterface, TypeAndVersionInterface {
      * @inheritdoc PrepaymentInterface
      */
     function removeCoordinator(address coordinator) public onlyOwner {
-        for (uint256 i = 0; i < s_coordinators.length; i++) {
-            if (s_coordinators[i] == CoordinatorBaseInterface(coordinator)) {
-                CoordinatorBaseInterface last = s_coordinators[s_coordinators.length - 1];
-                s_coordinators[i] = last;
-                s_coordinators.pop();
+        for (uint256 i = 0; i < sCoordinators.length; i++) {
+            if (sCoordinators[i] == CoordinatorBaseInterface(coordinator)) {
+                CoordinatorBaseInterface last = sCoordinators[sCoordinators.length - 1];
+                sCoordinators[i] = last;
+                sCoordinators.pop();
                 break;
             }
         }
@@ -429,19 +433,19 @@ contract Prepayment is Ownable, PrepaymentInterface, TypeAndVersionInterface {
      * @param to - Where to send the remaining KLAY to
      */
     function cancelAccountHelper(uint64 accId, address to) private {
-        AccountConfig memory accConfig = s_accountConfigs[accId];
-        Account memory acc = s_accounts[accId];
+        AccountConfig memory accConfig = sAccountConfigs[accId];
+        Account memory acc = sAccounts[accId];
         uint256 balance = acc.balance;
 
         // Note bounded by MAX_CONSUMERS;
         // If no consumers, does nothing.
         for (uint256 i = 0; i < accConfig.consumers.length; i++) {
-            delete s_consumers[accConfig.consumers[i]][accId];
+            delete sConsumers[accConfig.consumers[i]][accId];
         }
 
-        delete s_accountConfigs[accId];
-        delete s_accounts[accId];
-        s_totalBalance -= balance;
+        delete sAccountConfigs[accId];
+        delete sAccounts[accId];
+        sTotalBalance -= balance;
 
         (bool sent, ) = to.call{value: balance}("");
         if (!sent) {
