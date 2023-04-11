@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.16;
 
-interface VRFCoordinatorInterface {
+interface IVRFCoordinator {
     /**
      * @notice Get configuration relevant for making requests
      * @return maxGasLimit global max for request gas limit

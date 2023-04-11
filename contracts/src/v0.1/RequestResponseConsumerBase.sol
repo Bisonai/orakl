@@ -1,14 +1,16 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.16;
 
-import "./interfaces/RequestResponseCoordinatorInterface.sol";
+import "./interfaces/IRequestResponseCoordinator.sol";
 
 abstract contract RequestResponseConsumerBase {
     using Orakl for Orakl.Request;
 
     error OnlyCoordinatorCanFulfill(address have, address want);
-    RequestResponseCoordinatorInterface public immutable COORDINATOR;
+
     mapping(bytes32 => bytes4) private sJobIdToFunctionSelector;
+    IRequestResponseCoordinator public immutable COORDINATOR;
+
 
     /**
      * @param _requestResponseCoordinator address of RequestResponseCoordinator contract

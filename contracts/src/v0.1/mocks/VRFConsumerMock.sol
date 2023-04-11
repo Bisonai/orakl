@@ -2,13 +2,13 @@
 pragma solidity ^0.8.16;
 
 import "../VRFConsumerBase.sol";
-import "../interfaces/VRFCoordinatorInterface.sol";
+import "../interfaces/IVRFCoordinator.sol";
 
 contract VRFConsumerMock is VRFConsumerBase {
     uint256 public sRandomWord;
     address private sOwner;
 
-    VRFCoordinatorInterface COORDINATOR;
+    IVRFCoordinator COORDINATOR;
 
     error OnlyOwner(address notOwner);
 
@@ -21,7 +21,7 @@ contract VRFConsumerMock is VRFConsumerBase {
 
     constructor(address coordinator) VRFConsumerBase(coordinator) {
         sOwner = msg.sender;
-        COORDINATOR = VRFCoordinatorInterface(coordinator);
+        COORDINATOR = IVRFCoordinator(coordinator);
     }
 
     // Receive remaining payment from requestRandomWordsPayment

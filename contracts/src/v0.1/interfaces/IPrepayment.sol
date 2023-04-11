@@ -1,34 +1,36 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.16;
 
-interface PrepaymentInterface {
+interface IPrepayment {
+    // Coordinator
+    // getAccount
+    // createAccount
+    // addConsumer
+    // deposit
+    // chargeFee
+    // getAccountOwner
+    // getNonce
+    // increaseNonce
+
     /**
      * @notice Return total amount of KLAY held in contract.
      * @return balance - A unique account id.
      */
-    function getTotalBalance() external returns (uint256);
+    /* function getTotalBalance() external returns (uint256); */
 
     /**
      * @notice Get an account.
      * @param accId - ID of the account
-     * @return balance - KLAY balance of the account in juels.
-     * @return reqCount - number of requests for this account, determines fee tier.
-     * @return accType - number of requests for this account, determines fee tier.
-     * @return owner - owner of the account.
-     * @return consumers - list of consumer address which are able to use this account.
      */
-    function getAccount(
-        uint64 accId
-    )
-        external
-        view
-        returns (
-            uint256 balance,
-            uint64 reqCount,
-            string memory accType,
-            address owner,
-            address[] memory consumers
-        );
+    function getAccount(uint64 accId) external view;
+
+    /* returns ( */
+    /*     uint256 balance, */
+    /*     uint64 reqCount, */
+    /*     string memory accType, */
+    /*     address owner, */
+    /*     address[] memory consumers */
+    /* ); */
 
     /**
      * @notice Create an account.
@@ -43,7 +45,7 @@ interface PrepaymentInterface {
      * @param accId - ID of the account
      * @param newOwner - proposed new owner of the account
      */
-    function requestAccountOwnerTransfer(uint64 accId, address newOwner) external;
+    /* function requestAccountOwnerTransfer(uint64 accId, address newOwner) external; */
 
     /**
      * @notice Request account owner transfer.
@@ -51,21 +53,21 @@ interface PrepaymentInterface {
      * @dev will revert if original owner of accId has
      * not requested that msg.sender become the new owner.
      */
-    function acceptAccountOwnerTransfer(uint64 accId) external;
+    /* function acceptAccountOwnerTransfer(uint64 accId) external; */
 
     /**
      * @notice Remove a consumer from a account.
      * @param accId - ID of the account
      * @param consumer - Consumer to remove from the account
      */
-    function removeConsumer(uint64 accId, address consumer) external;
+    /* function removeConsumer(uint64 accId, address consumer) external; */
 
     /**
      * @notice Add a consumer to an account.
      * @param accId - ID of the account
      * @param consumer - New consumer which can use the account
      */
-    function addConsumer(uint64 accId, address consumer) external;
+    /* function addConsumer(uint64 accId, address consumer) external; */
 
     /**
      * @notice Cancel account
@@ -79,7 +81,7 @@ interface PrepaymentInterface {
      * @notice Anybody can deposit KLAY, there are no restrictions.
      * @param accId - ID of the account
      */
-    function deposit(uint64 accId) external payable;
+    /* function deposit(uint64 accId) external payable; */
 
     /**
      * @notice Withdraw KLAY from account.
@@ -87,41 +89,40 @@ interface PrepaymentInterface {
      * @param accId - ID of the account
      * @param amount - KLAY amount to be withdrawn
      */
-    function withdraw(uint64 accId, uint256 amount) external;
+    /* function withdraw(uint64 accId, uint256 amount) external; */
 
     /**
-     * @notice Withdraw funds stored in contract.
-     * @notice Can be executed only by WITHDRAWER_ROLE.
+     * @notice Withdraw node operator funds stored in contract.
      * @param amount - KLAY amount to be withdrawn
      */
-    function nodeWithdraw(uint256 amount) external;
+    /* function operatorWithdraw(uint256 amount) external; */
 
     /**
      * @notice Charge fee from service connected to account.
      * @param accId - ID of the account
      * @param amount - KLAY amount to be charged
      */
-    function chargeFee(uint64 accId, uint256 amount, address node) external;
+    /* function chargeFee(uint64 accId, uint256 amount, address node) external; */
 
     /**
      * @notice Return nonce value.
      * @param consumer - Address of consumer registered under accId
      * @param accId - ID of the account
      */
-    function getNonce(address consumer, uint64 accId) external view returns (uint64);
+    /* function getNonce(address consumer, uint64 accId) external view returns (uint64); */
 
     /**
      * @notice Increase nonce for consumer registered under accId.
      * @param consumer - Address of consumer registered under accId
      * @param accId - ID of the account
      */
-    function increaseNonce(address consumer, uint64 accId) external returns (uint64);
+    /* function increaseNonce(address consumer, uint64 accId) external returns (uint64); */
 
     /**
      * @notice Get address of account owner.
      * @param accId - ID of the account
      */
-    function getAccountOwner(uint64 accId) external returns (address owner);
+    /* function getAccountOwner(uint64 accId) external returns (address owner); */
 
     /*
      * @notice Check to see if there exists a request commitment consumers
@@ -136,11 +137,11 @@ interface PrepaymentInterface {
      * @notice Add coordinator to be able to charge using Prepayment method.
      * @param coordinator - address of coordinator
      */
-    function addCoordinator(address coordinator) external;
+    /* function addCoordinator(address coordinator) external; */
 
     /*
      * @notice Block coordinator from using Prepayment method.
      * @param coordinator - address of coordinator
      */
-    function removeCoordinator(address coordinator) external;
+    /* function removeCoordinator(address coordinator) external; */
 }
