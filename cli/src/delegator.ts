@@ -99,6 +99,35 @@ export function delegatorSub() {
     handler: contractRemoveHandler()
   })
 
+  const contractConnect = command({
+    name: 'contractConnect',
+    args: {
+      contractId: option({
+        type: cmdnumber,
+        long: 'contractId'
+      }),
+      reporterId: option({
+        type: cmdnumber,
+        long: 'reporterId'
+      })
+    },
+    handler: contractConnectHandler()
+  })
+
+  const contractDisconnect = command({
+    name: 'contractConnect',
+    args: {
+      contractId: option({
+        type: cmdnumber,
+        long: 'contractId'
+      }),
+      reporterId: option({
+        type: cmdnumber,
+        long: 'reporterId'
+      })
+    },
+    handler: contractDisconnectHandler()
+  })
   const functionList = command({
     name: 'functionList',
     args: {},
@@ -144,6 +173,8 @@ export function delegatorSub() {
       contractList,
       contractInsert,
       contractRemove,
+      contractDisconnect,
+      contractConnect,
       functionList,
       functionInsert,
       functionRemove
@@ -292,6 +323,38 @@ export function contractRemoveHandler() {
       console.log(result?.data)
     } catch (e) {
       console.error('Delegator Contract was not deleted. Reason:')
+      console.error(e?.response?.data?.message)
+    }
+  }
+  return wrapper
+}
+
+export function contractConnectHandler() {
+  async function wrapper({ contractId, reporterId }: { contractId: number; reporterId: number }) {
+    if (!(await isOraklDelegatorHealthy())) return
+
+    try {
+      const endpoint = buildUrl(ORAKL_NETWORK_DELEGATOR_URL, `contract/connectReporter`)
+      const result = await axios.post(endpoint, { contractId, reporterId })
+      console.log(result?.data)
+    } catch (e) {
+      console.error('Delegator Orgzanization was not listed. Reason:')
+      console.error(e?.response?.data?.message)
+    }
+  }
+  return wrapper
+}
+
+export function contractDisconnectHandler() {
+  async function wrapper({ contractId, reporterId }: { contractId: number; reporterId: number }) {
+    if (!(await isOraklDelegatorHealthy())) return
+
+    try {
+      const endpoint = buildUrl(ORAKL_NETWORK_DELEGATOR_URL, `contract/disconnectReporter`)
+      const result = await axios.post(endpoint, { contractId, reporterId })
+      console.log(result?.data)
+    } catch (e) {
+      console.error('Delegator Orgzanization was not listed. Reason:')
       console.error(e?.response?.data?.message)
     }
   }
