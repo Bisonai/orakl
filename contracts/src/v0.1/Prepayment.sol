@@ -16,7 +16,7 @@ contract Prepayment is Ownable, PrepaymentInterface, TypeAndVersionInterface {
     uint256 private sTotalBalance;
 
     uint64 private sCurrentAccId;
-    uint8 public sBurnRatio = 20; //20%
+    uint8 public sBurnRatio = 20; // %
 
     /* consumer */
     /* accId */
@@ -53,7 +53,7 @@ contract Prepayment is Ownable, PrepaymentInterface, TypeAndVersionInterface {
     }
 
     CoordinatorBaseInterface[] public sCoordinators;
-    mapping(address => bool) private sIsCoordinators;
+    mapping(address => bool) private sIsCoordinator;
 
     error TooManyConsumers();
     error InsufficientBalance();
@@ -111,7 +111,10 @@ contract Prepayment is Ownable, PrepaymentInterface, TypeAndVersionInterface {
 
     /**
      * The function allows to update a "burn ratio" that represents a
-     * partial amount of payment for a service that will be burnt.
+     * partial amount of payment for the Orakl Network service that
+     * will be burnt.
+     *
+     * @param {uint8} ratio in a range 0 - 100 % of a fee to be burnt
      */
     function setBurnRatio(uint8 ratio) external onlyOwner {
         if (ratio < MIN_BURN_RATIO || ratio > MAX_BURN_RATIO) {
@@ -164,7 +167,7 @@ contract Prepayment is Ownable, PrepaymentInterface, TypeAndVersionInterface {
         uint64 currentAccId = sCurrentAccId;
         address[] memory consumers = new address[](0);
         string memory accType = "reg";
-        if (sIsCoordinators[msg.sender]) {
+        if (sIsCoordinator[msg.sender]) {
             accType = "tmp";
         }
         sAccounts[currentAccId] = Account({balance: 0, reqCount: 0, accType: accType});
@@ -404,11 +407,11 @@ contract Prepayment is Ownable, PrepaymentInterface, TypeAndVersionInterface {
      * @inheritdoc PrepaymentInterface
      */
     function addCoordinator(address coordinator) public onlyOwner {
-        if (sIsCoordinators[coordinator]) {
+        if (sIsCoordinator[coordinator]) {
             revert CoordinatorExists();
         }
         sCoordinators.push(CoordinatorBaseInterface(coordinator));
-        sIsCoordinators[coordinator] = true;
+        sIsCoordinator[coordinator] = true;
     }
 
     /**
@@ -423,7 +426,7 @@ contract Prepayment is Ownable, PrepaymentInterface, TypeAndVersionInterface {
                 break;
             }
         }
-        delete sIsCoordinators[coordinator];
+        delete sIsCoordinator[coordinator];
     }
 
     /*
