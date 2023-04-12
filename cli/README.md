@@ -56,10 +56,6 @@ List Organizations
  yarn cli delegator organizationList
 ```
 
-```json
-[{ "id": "1", "name": "BisonAI" }]
-```
-
 Insert New Reporter
 
 ```shell
