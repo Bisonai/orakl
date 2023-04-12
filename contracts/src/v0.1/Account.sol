@@ -37,7 +37,6 @@ contract Account is IAccount, ITypeAndVersion {
     event AccountTransferRequested(uint64 indexed accId, address from, address to);
     event AccountTransferred(uint64 indexed accId, address from, address to);
 
-
     modifier onlyAccountOwner() {
         if (msg.sender != sOwner) {
             revert MustBeAccountOwner(sOwner);

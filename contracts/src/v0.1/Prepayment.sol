@@ -12,9 +12,8 @@ contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
     uint8 public constant MIN_BURN_RATIO = 0;
     uint8 public constant MAX_BURN_RATIO = 100;
 
-    uint8 public sBurnRatio = 20; // %
+    uint8 private sBurnRatio = 20; // %
     uint64 private sCurrentAccId;
-
 
     ICoordinatorBase[] public sCoordinators;
 
@@ -34,18 +33,16 @@ contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
     event AccountCreated(uint64 indexed accId, address account, address owner);
     event AccountCanceled(uint64 indexed accId, address to, uint256 amount);
 
-/*     event AccountBalanceIncreased(uint64 indexed accId, uint256 oldBalance, uint256 newBalance); */
-/*     event AccountBalanceDecreased( */
-/*         uint64 indexed accId, */
-/*         uint256 oldBalance, */
-/*         uint256 newBalance, */
-/*         uint256 burnAmount */
-/*     ); */
+    /*     event AccountBalanceIncreased(uint64 indexed accId, uint256 oldBalance, uint256 newBalance); */
+    /*     event AccountBalanceDecreased( */
+    /*         uint64 indexed accId, */
+    /*         uint256 oldBalance, */
+    /*         uint256 newBalance, */
+    /*         uint256 burnAmount */
+    /*     ); */
     event AccountConsumerAdded(uint64 indexed accId, address consumer);
     event AccountConsumerRemoved(uint64 indexed accId, address consumer);
-/*     event AccountOwnerTransferRequested(uint64 indexed accId, address from, address to); */
-/*     event AccountOwnerTransferred(uint64 indexed accId, address from, address to); */
-/*     event NodeOperatorFundsWithdrawn(address to, uint256 amount); */
+    /*     event NodeOperatorFundsWithdrawn(address to, uint256 amount); */
     event BurnRatioSet(uint16 ratio);
 
     modifier onlyAccountOwner(uint64 accId) {
@@ -53,10 +50,6 @@ contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
         if (owner != msg.sender) {
             revert MustBeAccountOwner(owner);
         }
-        /* if (owner == address(0)) { */
-        /*     revert InvalidAccount(); */
-        /* } */
-
         _;
     }
 
@@ -112,6 +105,10 @@ contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
     function removeConsumer(uint64 accId, address consumer) external onlyAccountOwner(accId) {
         sAccIdToAccount[accId].removeConsumer(consumer);
         emit AccountConsumerRemoved(accId, consumer);
+    }
+
+    function getBurnRatio() external view returns (uint8) {
+        return sBurnRatio;
     }
 
     /**
