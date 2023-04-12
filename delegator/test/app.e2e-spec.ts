@@ -6,7 +6,6 @@ import { setAppSettings } from './../src/app.settings'
 
 describe('AppController (e2e)', () => {
   let app: INestApplication
-
   beforeEach(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [AppModule]
@@ -17,11 +16,7 @@ describe('AppController (e2e)', () => {
     await app.init()
   })
 
-  it('/health (GET)', () => {
-    return request(app.getHttpServer()).get('/health').expect(200).expect('OK')
-  })
-
-  it('/api (GET)', () => {
-    return request(app.getHttpServer()).get('/api').expect(200).expect('Orakl Network Delegator')
+  it('/api/v1 (GET)', () => {
+    return request(app.getHttpServer()).get('/api/v1').expect(200).expect('Orakl Network Delegator')
   })
 })

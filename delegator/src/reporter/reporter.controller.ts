@@ -2,7 +2,10 @@ import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/commo
 import { ReporterService } from './reporter.service'
 import { ReporterDto } from './dto/reporter.dto'
 
-@Controller('reporter')
+@Controller({
+  path: 'reporter',
+  version: '1'
+})
 export class ReporterController {
   constructor(private readonly reporterService: ReporterService) {}
 

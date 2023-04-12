@@ -9,7 +9,7 @@ import { adapterSub } from './adapter'
 import { aggregatorSub } from './aggregator'
 import { fetcherSub } from './fetcher'
 import { reporterSub } from './reporter'
-
+import { delegatorSub } from './delegator'
 import { binary, subcommands, run } from 'cmd-ts'
 
 async function main() {
@@ -21,6 +21,8 @@ async function main() {
   const aggregator = aggregatorSub()
   const fetcher = fetcherSub()
   const reporter = reporterSub()
+  const delegator = delegatorSub()
+
   const version = command({
     name: 'version',
     args: {},
@@ -31,7 +33,18 @@ async function main() {
 
   const cli = subcommands({
     name: 'operator',
-    cmds: { chain, service, listener, vrf, adapter, aggregator, fetcher, reporter, version }
+    cmds: {
+      chain,
+      service,
+      listener,
+      vrf,
+      adapter,
+      aggregator,
+      fetcher,
+      reporter,
+      version,
+      delegator
+    }
   })
 
   run(binary(cli), process.argv)

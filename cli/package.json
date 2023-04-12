@@ -1,6 +1,6 @@
 {
   "name": "@bisonai/orakl-cli",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "type": "module",
   "description": "The Orakl Network CLI",
   "files": [
