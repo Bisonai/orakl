@@ -10,7 +10,8 @@ on:
       - closed  
   
   push:
-    - i-519/delegator-git-actions-building-image
+    branches:
+      - i-519/delegator-git-actions-building-image
 
 env:
   ecr_url: public.ecr.aws/bisonai/orakl-delegator
