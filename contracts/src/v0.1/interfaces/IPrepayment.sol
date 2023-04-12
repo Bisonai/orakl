@@ -19,18 +19,19 @@ interface IPrepayment {
     /* function getTotalBalance() external returns (uint256); */
 
     /**
-     * @notice Get an account.
+     * @notice Get an account information.
      * @param accId - ID of the account
+     * @return balance - KLAY balance of the account in juels.
+     * @return reqCount - number of requests for this account, determines fee tier.
+     * @return owner - owner of the account.
+     * @return consumers - list of consumer address which are able to use this account.
      */
-    function getAccount(uint64 accId) external view returns (address);
-
-    /* returns ( */
-    /*     uint256 balance, */
-    /*     uint64 reqCount, */
-    /*     string memory accType, */
-    /*     address owner, */
-    /*     address[] memory consumers */
-    /* ); */
+    function getAccountInfo(
+        uint64 accId
+    )
+        external
+        view
+        returns (uint256 balance, uint64 reqCount, address owner, address[] memory consumers);
 
     /**
      * @notice Create an account.
@@ -60,14 +61,14 @@ interface IPrepayment {
      * @param accId - ID of the account
      * @param consumer - Consumer to remove from the account
      */
-    /* function removeConsumer(uint64 accId, address consumer) external; */
+    function removeConsumer(uint64 accId, address consumer) external;
 
     /**
      * @notice Add a consumer to an account.
      * @param accId - ID of the account
      * @param consumer - New consumer which can use the account
      */
-    /* function addConsumer(uint64 accId, address consumer) external; */
+    function addConsumer(uint64 accId, address consumer) external;
 
     /**
      * @notice Cancel account

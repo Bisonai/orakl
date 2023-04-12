@@ -60,6 +60,14 @@ contract Account is IAccount, ITypeAndVersion {
         sBalance += msg.value;
     }
 
+    function getAccountInfo()
+        external
+        view
+        returns (uint256 balance, uint64 reqCount, address owner, address[] memory consumers)
+    {
+        return (sBalance, sReqCount, sOwner, sConsumers);
+    }
+
     /**
      * @inheritdoc IAccount
      */

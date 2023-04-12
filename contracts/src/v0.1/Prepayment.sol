@@ -90,18 +90,32 @@ contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
     /**
      * @inheritdoc IPrepayment
      */
-    function getAccount(uint64 accId) external view returns (address account) {
-        account = address(sAccIdToAccount[accId]);
-        if (account == address(0)) {
+    function getAccountInfo(
+        uint64 accId
+    )
+        external
+        view
+        returns (uint256 balance, uint64 reqCount, address owner, address[] memory consumers)
+    {
+        Account account = sAccIdToAccount[accId];
+        if (address(account) == address(0)) {
             revert InvalidAccount();
         }
+
+        return account.getAccountInfo();
     }
 
+    /**
+     * @inheritdoc IPrepayment
+     */
     function addConsumer(uint64 accId, address consumer) external onlyAccountOwner(accId) {
         sAccIdToAccount[accId].addConsumer(consumer);
         emit AccountConsumerAdded(accId, consumer);
     }
 
+    /**
+     * @inheritdoc IPrepayment
+     */
     function removeConsumer(uint64 accId, address consumer) external onlyAccountOwner(accId) {
         sAccIdToAccount[accId].removeConsumer(consumer);
         emit AccountConsumerRemoved(accId, consumer);
