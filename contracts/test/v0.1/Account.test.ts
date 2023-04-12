@@ -78,12 +78,6 @@ describe('Account', function () {
 
     expect(owner).to.be.equal(consumer)
 
-    const prepaymentContract = await ethers.getContractAt(
-      'Prepayment',
-      prepaymentContractConsumerSigner.address,
-      consumer
-    )
-
     // Access account metadata directly through deployed contract
     const accountContract = await ethers.getContractAt('Account', account, consumer)
     const accountOwner = await accountContract.getOwner()
@@ -103,17 +97,66 @@ describe('Account', function () {
     )
 
     // Account has to be canceled through payment solution (e.g. Prepayment)
-    await prepaymentContract.cancelAccount(id, consumer1)
+    await prepaymentContractConsumerSigner.cancelAccount(id, consumer1)
 
     // Account was canceled, we cannot access it through account ID anymore
-    await expect(prepaymentContract.getAccount(id)).to.be.revertedWithCustomError(
-      prepaymentContract,
+    await expect(prepaymentContractConsumerSigner.getAccount(id)).to.be.revertedWithCustomError(
+      prepaymentContractConsumerSigner,
       'InvalidAccount'
     )
   })
 
-  // it('Transfer account ownership', async function () {
-  //   const { prepaymentContractConsumerSigner, consumer1 } = await loadFixture(deployPrepayment)
-  //   const txReceipt = await (await prepaymentContractConsumerSigner.createAccount()).wait()
-  // })
+  it('Transfer account ownership', async function () {
+    const {
+      prepaymentContractConsumerSigner,
+      consumer: fromConsumer,
+      consumer1: toConsumer
+    } = await loadFixture(deployPrepayment)
+    const txReceipt = await (await prepaymentContractConsumerSigner.createAccount()).wait()
+
+    const accountCreatedEvent = prepaymentContractConsumerSigner.interface.parseLog(
+      txReceipt.events[0]
+    )
+    const { account } = accountCreatedEvent.args
+    const accountContract = await ethers.getContractAt('Account', account, fromConsumer)
+
+    // 1. Request Account Transfer
+    const requestTxReceipt = await (await accountContract.requestAccountTransfer(toConsumer)).wait()
+    expect(requestTxReceipt.events.length).to.be.equal(1)
+
+    const accountTransferRequestedEvent = accountContract.interface.parseLog(
+      requestTxReceipt.events[0]
+    )
+    expect(accountTransferRequestedEvent.name).to.be.equal('AccountTransferRequested')
+    const { from: fromRequested, to: toRequested } = accountTransferRequestedEvent.args
+    expect(fromRequested).to.be.equal(fromConsumer)
+    expect(toRequested).to.be.equal(toConsumer)
+
+    expect(await accountContract.getOwner()).to.be.equal(fromConsumer)
+    expect(await accountContract.getRequestedOwner()).to.be.equal(toConsumer)
+
+    // 2.1 Cannot accept with wrong consumer
+    await expect(accountContract.acceptAccountTransfer()).to.be.revertedWithCustomError(
+      accountContract,
+      'MustBeRequestedOwner'
+    )
+
+    // 2. Accept Account Transfer
+    const accountContractToConsumer = await ethers.getContractAt('Account', account, toConsumer)
+    const acceptTxReceipt = await (await accountContractToConsumer.acceptAccountTransfer()).wait()
+    expect(acceptTxReceipt.events.length).to.be.equal(1)
+    const accountTransferredEvent = accountContractToConsumer.interface.parseLog(
+      acceptTxReceipt.events[0]
+    )
+    expect(accountTransferredEvent.name).to.be.equal('AccountTransferred')
+
+    const { from: fromTransferred, to: toTransferred } = accountTransferredEvent.args
+    expect(fromTransferred).to.be.equal(fromConsumer)
+    expect(toTransferred).to.be.equal(toConsumer)
+
+    expect(await accountContract.getOwner()).to.be.equal(toConsumer)
+    expect(await accountContract.getRequestedOwner()).to.be.equal(
+      '0x0000000000000000000000000000000000000000'
+    )
+  })
 })

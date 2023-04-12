@@ -37,7 +37,7 @@ contract Account is IAccount, ITypeAndVersion {
     event AccountCanceled(uint64 indexed accId, address to, uint256 amount);
 
     modifier onlyAccountOwner() {
-        if (msg.sender == sOwner) {
+        if (msg.sender != sOwner) {
             revert MustBeAccountOwner(sOwner);
         }
         _;

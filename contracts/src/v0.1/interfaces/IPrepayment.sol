@@ -22,7 +22,7 @@ interface IPrepayment {
      * @notice Get an account.
      * @param accId - ID of the account
      */
-    function getAccount(uint64 accId) external view returns(address);
+    function getAccount(uint64 accId) external view returns (address);
 
     /* returns ( */
     /*     uint256 balance, */

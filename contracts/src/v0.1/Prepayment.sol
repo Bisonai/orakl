@@ -14,7 +14,7 @@ contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
     /* consumer */
     /* accId */
     /* nonce */
-    mapping(address => mapping(uint64 => uint64)) private sConsumers;
+    /* mapping(address => mapping(uint64 => uint64)) private sConsumers; */
 
     ICoordinatorBase[] public sCoordinators;
 
@@ -22,23 +22,9 @@ contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
     /* Account */
     mapping(uint64 => Account) private sAccIdToAccount;
 
-    /* accId */
-    /* AccountConfig */
-    /* mapping(uint64 => AccountConfig) private sAccIdToAccConfig; */
-
+    /* coordinator address */
+    /* association */
     mapping(address => bool) private sIsCoordinator;
-
-    /* struct AccountConfig { */
-    /*     address owner; // Owner can fund/withdraw/cancel the acc. */
-    /*     address requestedOwner; // For safely transferring acc ownership. */
-    /*     // Maintains the list of keys in sConsumers. */
-    /*     // We do this for 2 reasons: */
-    /*     // 1. To be able to clean up all keys from sConsumers when canceling an account. */
-    /*     // 2. To be able to return the list of all consumers in getAccount. */
-    /*     // Note that we need the sConsumers map to be able to directly check if a */
-    /*     // consumer is valid without reading all the consumers from storage. */
-    /*     address[] consumers; */
-    /* } */
 
     error PendingRequestExists();
     error InvalidAccount();
@@ -65,11 +51,6 @@ contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
         uint64 currentAccId = sCurrentAccId;
         address[] memory consumers = new address[](0);
 
-        /* string memory accType = "reg"; */
-        /* if (sIsCoordinator[msg.sender]) { */
-        /*     accType = "tmp"; */
-        /* } */
-
         Account acc = new Account(currentAccId, msg.sender);
         sAccIdToAccount[currentAccId] = acc;
 
@@ -85,7 +66,7 @@ contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
             revert PendingRequestExists();
         }
 
-        // TODO cleanup
+        // TODO more cleanup
 
         sAccIdToAccount[accId].cancelAccount(to);
         delete sAccIdToAccount[accId];
@@ -94,20 +75,11 @@ contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
     /**
      * @inheritdoc IPrepayment
      */
-    function getAccount(uint64 accId) external view returns (address) {
-        Account acc = sAccIdToAccount[accId];
-        if (address(acc) == address(0)) {
+    function getAccount(uint64 accId) external view returns (address account) {
+        account = address(sAccIdToAccount[accId]);
+        if (account == address(0)) {
             revert InvalidAccount();
         }
-
-        return sAccIdToAccount[accId].getOwner();
-        /* return ( */
-        /*     sAccIdToAcc[accId].balance, */
-        /*     sAccIdToAcc[accId].reqCount, */
-        /*     sAccIdToAcc[accId].accType, */
-        /*     sAccIdToAccConfig[accId].owner, */
-        /*     sAccIdToAccConfig[accId].consumers */
-        /* ); */
     }
 
     /**
