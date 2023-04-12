@@ -78,6 +78,12 @@ describe('Account', function () {
 
     expect(owner).to.be.equal(consumer)
 
+    const prepaymentContract = await ethers.getContractAt(
+      'Prepayment',
+      prepaymentContractConsumerSigner.address,
+      consumer
+    )
+
     // Access account metadata directly through deployed contract
     const accountContract = await ethers.getContractAt('Account', account, consumer)
     const accountOwner = await accountContract.getOwner()
@@ -91,17 +97,23 @@ describe('Account', function () {
 
     // Cancel account ///////////////////////////////////////////////////////////
     // Account cannot be canceled directly
-    expect(accountContract.cancelAccount(consumer1)).to.be.rejectedWith('MustBePaymentSolution')
+    await expect(accountContract.cancelAccount(consumer1)).to.be.revertedWithCustomError(
+      accountContract,
+      'MustBePaymentSolution'
+    )
 
     // Account has to be canceled through payment solution (e.g. Prepayment)
-    prepaymentContractConsumerSigner.cancelAccount(id, consumer1)
+    await prepaymentContract.cancelAccount(id, consumer1)
 
-    // FIXME
-    prepaymentContractConsumerSigner.getAccount(id)
+    // Account was canceled, we cannot access it through account ID anymore
+    await expect(prepaymentContract.getAccount(id)).to.be.revertedWithCustomError(
+      prepaymentContract,
+      'InvalidAccount'
+    )
   })
 
-  it('Transfer account ownership', async function () {
-    const { prepaymentContractConsumerSigner, consumer1 } = await loadFixture(deployPrepayment)
-    const txReceipt = await (await prepaymentContractConsumerSigner.createAccount()).wait()
-  })
+  // it('Transfer account ownership', async function () {
+  //   const { prepaymentContractConsumerSigner, consumer1 } = await loadFixture(deployPrepayment)
+  //   const txReceipt = await (await prepaymentContractConsumerSigner.createAccount()).wait()
+  // })
 })
