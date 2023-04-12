@@ -165,9 +165,8 @@ contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
             revert FailedToWithdraw();
         }
 
-        emit AccountBalanceDecreased(accId, balance+amount, balance, 0);
+        emit AccountBalanceDecreased(accId, balance + amount, balance, 0);
     }
-
 
     /**
      * @notice The type and version of this contract
@@ -189,9 +188,9 @@ contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
         uint256 coordinatorsLength = sCoordinators.length;
 
         for (uint256 i = 0; i < consumersLength; i++) {
+            address consumer = consumers[i];
+            uint64 nonce = account.getNonce(consumer);
             for (uint256 j = 0; j < coordinatorsLength; j++) {
-                address consumer = consumers[i];
-                uint64 nonce = account.getNonce(consumer);
                 if (sCoordinators[j].pendingRequestExists(consumer, accId, nonce)) {
                     return true;
                 }
@@ -199,5 +198,4 @@ contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
         }
         return false;
     }
-
 }

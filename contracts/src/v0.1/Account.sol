@@ -182,7 +182,9 @@ contract Account is IAccount, ITypeAndVersion {
         delete sConsumerToNonce[consumer];
     }
 
-    function withdraw(uint256 amount) external onlyPaymentSolution returns (bool sent, uint256 balance) {
+    function withdraw(
+        uint256 amount
+    ) external onlyPaymentSolution returns (bool sent, uint256 balance) {
         balance = sBalance;
 
         if (balance < amount) {
