@@ -9,12 +9,12 @@ import "./interfaces/IPrepayment.sol";
 import "./interfaces/ITypeAndVersion.sol";
 
 contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
+    uint8 public constant MIN_BURN_RATIO = 0;
+    uint8 public constant MAX_BURN_RATIO = 100;
+
+    uint8 public sBurnRatio = 20; // %
     uint64 private sCurrentAccId;
 
-    /* consumer */
-    /* accId */
-    /* nonce */
-    /* mapping(address => mapping(uint64 => uint64)) private sConsumers; */
 
     ICoordinatorBase[] public sCoordinators;
 
@@ -29,17 +29,34 @@ contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
     error PendingRequestExists();
     error InvalidAccount();
     error MustBeAccountOwner(address owner);
+    error InvalidBurnRatio();
 
     event AccountCreated(uint64 indexed accId, address account, address owner);
+    event AccountCanceled(uint64 indexed accId, address to, uint256 amount);
 
-    modifier onlyAccOwner(uint64 accId) {
+/*     event AccountBalanceIncreased(uint64 indexed accId, uint256 oldBalance, uint256 newBalance); */
+/*     event AccountBalanceDecreased( */
+/*         uint64 indexed accId, */
+/*         uint256 oldBalance, */
+/*         uint256 newBalance, */
+/*         uint256 burnAmount */
+/*     ); */
+    event AccountConsumerAdded(uint64 indexed accId, address consumer);
+    event AccountConsumerRemoved(uint64 indexed accId, address consumer);
+/*     event AccountOwnerTransferRequested(uint64 indexed accId, address from, address to); */
+/*     event AccountOwnerTransferred(uint64 indexed accId, address from, address to); */
+/*     event NodeOperatorFundsWithdrawn(address to, uint256 amount); */
+    event BurnRatioSet(uint16 ratio);
+
+    modifier onlyAccountOwner(uint64 accId) {
         address owner = sAccIdToAccount[accId].getOwner();
-        if (owner == address(0)) {
-            revert InvalidAccount();
-        }
-        if (msg.sender != owner) {
+        if (owner != msg.sender) {
             revert MustBeAccountOwner(owner);
         }
+        /* if (owner == address(0)) { */
+        /*     revert InvalidAccount(); */
+        /* } */
+
         _;
     }
 
@@ -61,15 +78,20 @@ contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
     /**
      * @inheritdoc IPrepayment
      */
-    function cancelAccount(uint64 accId, address to) external onlyAccOwner(accId) {
+    function cancelAccount(uint64 accId, address to) external onlyAccountOwner(accId) {
         if (pendingRequestExists(accId)) {
             revert PendingRequestExists();
         }
 
-        // TODO more cleanup
+        // TODO more cleanup ?
 
-        sAccIdToAccount[accId].cancelAccount(to);
+        Account account = sAccIdToAccount[accId];
+        uint256 balance = account.getBalance();
+
+        account.cancelAccount(to);
         delete sAccIdToAccount[accId];
+
+        emit AccountCanceled(accId, to, balance);
     }
 
     /**
@@ -80,6 +102,31 @@ contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
         if (account == address(0)) {
             revert InvalidAccount();
         }
+    }
+
+    function addConsumer(uint64 accId, address consumer) external onlyAccountOwner(accId) {
+        sAccIdToAccount[accId].addConsumer(consumer);
+        emit AccountConsumerAdded(accId, consumer);
+    }
+
+    function removeConsumer(uint64 accId, address consumer) external onlyAccountOwner(accId) {
+        sAccIdToAccount[accId].removeConsumer(consumer);
+        emit AccountConsumerRemoved(accId, consumer);
+    }
+
+    /**
+     * @notice The function allows to update a "burn ratio" that represents a
+     * @notice partial amount of payment for the Orakl Network service that
+     * @notice will be burnt.
+     *
+     * @param ratio in a range 0 - 100 % of a fee to be burnt
+     */
+    function setBurnRatio(uint8 ratio) external onlyOwner {
+        if (ratio < MIN_BURN_RATIO || ratio > MAX_BURN_RATIO) {
+            revert InvalidBurnRatio();
+        }
+        sBurnRatio = ratio;
+        emit BurnRatioSet(ratio);
     }
 
     /**

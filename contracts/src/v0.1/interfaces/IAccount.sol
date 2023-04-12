@@ -68,17 +68,15 @@ interface IAccount {
 
     /**
      * @notice Add a consumer to an account.
-     * @param accId - ID of the account
      * @param consumer - New consumer which can use the account
      */
-    /* function addConsumer(uint64 accId, address consumer) external; */
+    function addConsumer(address consumer) external;
 
     /**
      * @notice Remove a consumer from a account.
-     * @param accId - ID of the account
      * @param consumer - Consumer to remove from the account
      */
-    /* function removeConsumer(uint64 accId, address consumer) external; */
+    function removeConsumer(address consumer) external;
 
     /**
      * @notice Deposit KLAY to account.

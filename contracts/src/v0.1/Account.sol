@@ -11,6 +11,9 @@ import "./interfaces/ITypeAndVersion.sol";
 /// TODO selfdestruct
 /// @dev
 contract Account is IAccount, ITypeAndVersion {
+    uint16 public constant MAX_CONSUMERS = 100;
+
+    address private sPaymentSolution;
     uint64 private sAccId;
 
     // Account information
@@ -20,20 +23,20 @@ contract Account is IAccount, ITypeAndVersion {
     uint64 private sReqCount; // For fee tiers
     address[] private sConsumers;
 
-    address private sPaymentSolution;
-
     /* consumer */
     /* nonce */
     mapping(address => uint64) private sConsumerToNonce;
 
+    error TooManyConsumers();
     error MustBeRequestedOwner(address requestedOwner);
     error MustBeAccountOwner(address owner);
     error MustBePaymentSolution(address paymentSolution);
     error InsufficientBalance();
+    error InvalidConsumer(address consumer);
 
     event AccountTransferRequested(uint64 indexed accId, address from, address to);
     event AccountTransferred(uint64 indexed accId, address from, address to);
-    event AccountCanceled(uint64 indexed accId, address to, uint256 amount);
+
 
     modifier onlyAccountOwner() {
         if (msg.sender != sOwner) {
@@ -132,6 +135,52 @@ contract Account is IAccount, ITypeAndVersion {
     }
 
     /**
+     * @inheritdoc IAccount
+     */
+    function addConsumer(address consumer) external onlyPaymentSolution {
+        // Already maxed, cannot add any more consumers.
+        if (sConsumers.length >= MAX_CONSUMERS) {
+            revert TooManyConsumers();
+        }
+        if (sConsumerToNonce[consumer] > 0) {
+            // Idempotence - do nothing if already added.
+            // Ensures uniqueness in sConsumers
+            return;
+        }
+
+        // Initialize the nonce to 1, indicating the consumer is allocated.
+        sConsumerToNonce[consumer] = 1;
+        sConsumers.push(consumer);
+    }
+
+    /**
+     * @inheritdoc IAccount
+     */
+    function removeConsumer(address consumer) external onlyPaymentSolution {
+        if (sConsumerToNonce[consumer] == 0) {
+            revert InvalidConsumer(consumer);
+        }
+
+        // Note bounded by MAX_CONSUMERS
+        address[] memory consumers = sConsumers;
+        uint256 consumersLength = consumers.length;
+        uint256 lastConsumerIndex = consumersLength - 1;
+
+        for (uint256 i; i < consumersLength; ++i) {
+            if (consumers[i] == consumer) {
+                address last = consumers[lastConsumerIndex];
+                // Storage write to preserve last element
+                sConsumers[i] = last;
+                // Storage remove last element
+                sConsumers.pop();
+                break;
+            }
+        }
+
+        delete sConsumerToNonce[consumer];
+    }
+
+    /**
      * @notice The type and version of this contract
      * @return Type and version string
      */
@@ -140,7 +189,6 @@ contract Account is IAccount, ITypeAndVersion {
     }
 
     function cancelAccount(address to) external onlyPaymentSolution {
-        emit AccountCanceled(sAccId, to, sBalance);
         selfdestruct(payable(to));
     }
 }

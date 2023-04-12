@@ -56,6 +56,9 @@ const config: HardhatUserConfig = {
     consumer1: {
       default: 6
     },
+    consumer2: {
+      default: 7
+    },
     feedOracle0: {
       default: 2,
       baobab: '0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC'

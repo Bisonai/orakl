@@ -159,4 +159,38 @@ describe('Account', function () {
       '0x0000000000000000000000000000000000000000'
     )
   })
+
+  it('Add and remove consumers', async function () {
+    const {
+      prepaymentContractConsumerSigner: prepaymentContract,
+      consumer: accountOwnerAddress,
+      consumer1: consumerAddress
+    } = await loadFixture(deployPrepayment)
+
+    const txReceipt = await (await prepaymentContract.createAccount()).wait()
+    const accountCreatedEvent = prepaymentContract.interface.parseLog(txReceipt.events[0])
+    const { account } = accountCreatedEvent.args
+    const accountContract = await ethers.getContractAt('Account', account, accountOwnerAddress)
+
+    expect((await accountContract.getConsumers()).length).to.be.equal(0)
+  })
+
+  // it('Get & increase nonce', async function () {
+  //   const {
+  //     prepaymentContractConsumerSigner,
+  //     consumer: accountOwnerAddress,
+  //     consumer1: consumerAddress
+  //   } = await loadFixture(deployPrepayment)
+  //
+  //   const txReceipt = await (await prepaymentContractConsumerSigner.createAccount()).wait()
+  //   const accountCreatedEvent = prepaymentContractConsumerSigner.interface.parseLog(
+  //     txReceipt.events[0]
+  //   )
+  //   const { account } = accountCreatedEvent.args
+  //   const accountContract = await ethers.getContractAt('Account', account, accountOwnerAddress)
+  //
+  //   // Querying nonce without registered consumer is possible but will always return 0
+  //   const nonce = (await accountContract.getNonce(consumerAddress)).toNumber()
+  //   expect(nonce).to.be.equal(0)
+  // })
 })
