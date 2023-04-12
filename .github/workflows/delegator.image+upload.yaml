@@ -57,7 +57,7 @@ jobs:
       - uses: actions/checkout@v3
 
       - name: Docker build orakl-core
-        run:  docker-compose -f core/docker-compose.build.yaml build
+        run:  docker-compose -f delegator/docker-compose.build.yaml build
 
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v2
@@ -73,5 +73,5 @@ jobs:
 
       - name: Publish Image to ECR(delegator)
         run: |
-          docker tag orakl-delegator ${{ env.ecr_url }}:v${{ needs.prepare.outputs.package_version }}.${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }}
-          docker push ${{ env.ecr_url }}:v${{ needs.prepare.outputs.package_version }}.${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }}
+          docker tag orakl-delegator ${{ env.ecr_url }}:v${{ needs.prepare.outputs.version }}.${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }}
+          docker push ${{ env.ecr_url }}:v${{ needs.prepare.outputs.version }}.${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }}
