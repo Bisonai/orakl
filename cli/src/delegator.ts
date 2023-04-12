@@ -19,6 +19,7 @@ export function delegatorSub() {
   // delegator contractInsert --address {contractAddress}
   // delegator contractRemove --id {reporterId}
   // delegator contractConnect --contractId {contractId} -- repoterId {reporterId}
+  // delegator contractDisconnect --contractId {contractId} -- repoterId {reporterId}
 
   // delegator functionList
   // delegator functionInsert --address {contractAddress} --organizationId {organizationId}
@@ -148,6 +149,7 @@ export function delegatorSub() {
     },
     handler: contractDisconnectHandler()
   })
+
   const functionList = command({
     name: 'functionList',
     args: {},
