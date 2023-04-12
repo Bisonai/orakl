@@ -1,18 +1,19 @@
-import { Queue } from 'bullmq'
 import { ethers } from 'ethers'
 import { Logger } from 'pino'
 import type { RedisClientType } from 'redis'
 import { RequestResponseCoordinator__factory } from '@bisonai/orakl-contracts'
-import { listen } from './listener'
-import { State } from './state'
+import { listenerService } from './listener'
 import { IListenerConfig, IDataRequested, IRequestResponseListenerWorker } from '../types'
+import { ProcessEventOutputType } from './types'
 import {
-  WORKER_REQUEST_RESPONSE_QUEUE_NAME,
   CHAIN,
+  LISTENER_REQUEST_RESPONSE_HISTORY_QUEUE_NAME,
+  LISTENER_REQUEST_RESPONSE_LATEST_QUEUE_NAME,
+  LISTENER_REQUEST_RESPONSE_PROCESS_EVENT_QUEUE_NAME,
   REQUEST_RESPONSE_LISTENER_STATE_NAME,
-  REQUEST_RESPONSE_SERVICE_NAME
+  REQUEST_RESPONSE_SERVICE_NAME,
+  WORKER_REQUEST_RESPONSE_QUEUE_NAME
 } from '../settings'
-import { watchman } from './watchman'
 
 const FILE_NAME = import.meta.url
 
@@ -21,55 +22,47 @@ export async function buildListener(
   redisClient: RedisClientType,
   logger: Logger
 ) {
-  const queueName = WORKER_REQUEST_RESPONSE_QUEUE_NAME
+  const stateName = REQUEST_RESPONSE_LISTENER_STATE_NAME
+  const service = REQUEST_RESPONSE_SERVICE_NAME
+  const chain = CHAIN
+  const eventName = 'DataRequested'
+  const latestQueueName = LISTENER_REQUEST_RESPONSE_LATEST_QUEUE_NAME
+  const historyQueueName = LISTENER_REQUEST_RESPONSE_HISTORY_QUEUE_NAME
+  const processEventQueueName = LISTENER_REQUEST_RESPONSE_PROCESS_EVENT_QUEUE_NAME
+  const workerQueueName = WORKER_REQUEST_RESPONSE_QUEUE_NAME
+  const abi = RequestResponseCoordinator__factory.abi
+  const iface = new ethers.utils.Interface(abi)
 
-  const state = new State({
+  listenerService({
+    config,
+    abi,
+    stateName,
+    service,
+    chain,
+    eventName,
+    latestQueueName,
+    historyQueueName,
+    processEventQueueName,
+    workerQueueName,
+    processFn: await processEvent({ iface, logger }),
     redisClient,
-    stateName: REQUEST_RESPONSE_LISTENER_STATE_NAME,
-    service: REQUEST_RESPONSE_SERVICE_NAME,
-    chain: CHAIN,
+    listenerInitType: 'latest',
     logger
   })
-  await state.clear()
-
-  const listenFn = listen({
-    queueName,
-    processEventFn: processEvent,
-    abi: RequestResponseCoordinator__factory.abi,
-    redisClient,
-    logger
-  })
-
-  for (const listener of config) {
-    await state.add(listener.id)
-    const intervalId = await listenFn(listener)
-    await state.update(listener.id, intervalId)
-  }
-
-  const watchmanServer = await watchman({ listenFn, state, logger })
-
-  async function handleExit() {
-    logger.info('Exiting. Wait for graceful shutdown.')
-
-    await state.clear()
-    await redisClient.quit()
-    await watchmanServer.close()
-  }
-  process.on('SIGINT', handleExit)
-  process.on('SIGTERM', handleExit)
 }
 
-async function processEvent(iface: ethers.utils.Interface, queue: Queue, _logger: Logger) {
-  const logger = _logger.child({ name: 'processEvent', file: FILE_NAME })
+async function processEvent({ iface, logger }: { iface: ethers.utils.Interface; logger: Logger }) {
+  const _logger = logger.child({ name: 'Request-Response processEvent', file: FILE_NAME })
 
-  async function wrapper(log) {
+  async function wrapper(log: ethers.Event): Promise<ProcessEventOutputType | undefined> {
     const eventData = iface.parseLog(log).args as unknown as IDataRequested
-    logger.debug(eventData, 'eventData')
+    _logger.debug(eventData, 'eventData')
 
-    const data: IRequestResponseListenerWorker = {
+    const requestId = eventData.requestId.toString()
+    const jobData: IRequestResponseListenerWorker = {
       callbackAddress: log.address,
       blockNum: log.blockNumber,
-      requestId: eventData.requestId.toString(),
+      requestId,
       jobId: eventData.jobId.toString(),
       accId: eventData.accId.toString(),
       callbackGasLimit: eventData.callbackGasLimit,
@@ -77,14 +70,9 @@ async function processEvent(iface: ethers.utils.Interface, queue: Queue, _logger
       isDirectPayment: eventData.isDirectPayment,
       data: eventData.data.toString()
     }
-    logger.debug(data, 'data')
+    _logger.debug(jobData, 'jobData')
 
-    await queue.add('request-response', data, {
-      jobId: data.requestId,
-      removeOnComplete: {
-        age: 1_800
-      }
-    })
+    return { jobName: 'request-response', jobId: requestId, jobData }
   }
 
   return wrapper

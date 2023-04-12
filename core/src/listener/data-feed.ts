@@ -1,23 +1,23 @@
-import { Queue } from 'bullmq'
 import { ethers } from 'ethers'
 import { Logger } from 'pino'
 import type { RedisClientType } from 'redis'
 import { Aggregator__factory } from '@bisonai/orakl-contracts'
-import { listen } from './listener'
-import { State } from './state'
+import { listenerService } from './listener'
+import { ProcessEventOutputType } from './types'
 import { IListenerConfig, INewRound, IAggregatorWorker } from '../types'
 import { buildSubmissionRoundJobId } from '../utils'
 import { getOperatorAddress } from '../api'
 import {
   WORKER_AGGREGATOR_QUEUE_NAME,
   DEPLOYMENT_NAME,
-  REMOVE_ON_COMPLETE,
   CHAIN,
   DATA_FEED_LISTENER_STATE_NAME,
   DATA_FEED_SERVICE_NAME,
-  AGGREGATOR_QUEUE_SETTINGS
+  AGGREGATOR_QUEUE_SETTINGS,
+  LISTENER_DATA_FEED_LATEST_QUEUE_NAME,
+  LISTENER_DATA_FEED_HISTORY_QUEUE_NAME,
+  LISTENER_DATA_FEED_PROCESS_EVENT_QUEUE_NAME
 } from '../settings'
-import { watchman } from './watchman'
 
 const FILE_NAME = import.meta.url
 
@@ -26,84 +26,65 @@ export async function buildListener(
   redisClient: RedisClientType,
   logger: Logger
 ) {
-  const queueName = WORKER_AGGREGATOR_QUEUE_NAME
+  const stateName = DATA_FEED_LISTENER_STATE_NAME
+  const service = DATA_FEED_SERVICE_NAME
+  const chain = CHAIN
+  const eventName = 'NewRound'
+  const latestQueueName = LISTENER_DATA_FEED_LATEST_QUEUE_NAME
+  const historyQueueName = LISTENER_DATA_FEED_HISTORY_QUEUE_NAME
+  const processEventQueueName = LISTENER_DATA_FEED_PROCESS_EVENT_QUEUE_NAME
+  const workerQueueName = WORKER_AGGREGATOR_QUEUE_NAME
+  const abi = Aggregator__factory.abi
+  const iface = new ethers.utils.Interface(abi)
 
-  const state = new State({
+  listenerService({
+    config,
+    abi,
+    stateName,
+    service,
+    chain,
+    eventName,
+    latestQueueName,
+    historyQueueName,
+    processEventQueueName,
+    workerQueueName,
+    processFn: await processEvent({ iface, logger }),
     redisClient,
-    stateName: DATA_FEED_LISTENER_STATE_NAME,
-    service: DATA_FEED_SERVICE_NAME,
-    chain: CHAIN,
+    listenerInitType: 'latest',
     logger
   })
-  await state.clear()
-
-  const listenFn = listen({
-    queueName,
-    processEventFn: processEvent,
-    abi: Aggregator__factory.abi,
-    redisClient,
-    logger
-  })
-
-  for (const listener of config) {
-    await state.add(listener.id)
-    const intervalId = await listenFn(listener)
-    await state.update(listener.id, intervalId)
-  }
-
-  const watchmanServer = await watchman({ listenFn, state, logger })
-
-  async function handleExit() {
-    logger.info('Exiting. Wait for graceful shutdown.')
-
-    await state.clear()
-    await redisClient.quit()
-    await watchmanServer.close()
-  }
-  process.on('SIGINT', handleExit)
-  process.on('SIGTERM', handleExit)
 }
 
-async function processEvent(iface: ethers.utils.Interface, queue: Queue, _logger: Logger) {
-  const logger = _logger.child({ name: 'processEvent', file: FILE_NAME })
-  const aggregatorQueue = queue
+async function processEvent({ iface, logger }: { iface: ethers.utils.Interface; logger: Logger }) {
+  const _logger = logger.child({ name: 'processEvent', file: FILE_NAME })
 
-  async function wrapper(log) {
+  async function wrapper(log): Promise<ProcessEventOutputType | undefined> {
     const eventData = iface.parseLog(log).args as unknown as INewRound
-    logger.debug(eventData, 'eventData')
+    _logger.debug(eventData, 'eventData')
 
-    try {
-      const oracleAddress = log.address
-      const roundId = eventData.roundId.toNumber()
-      const operatorAddress = await getOperatorAddress({ oracleAddress, logger })
+    const oracleAddress = log.address
+    const roundId = eventData.roundId.toNumber()
+    const operatorAddress = await getOperatorAddress({ oracleAddress, logger: _logger })
 
-      if (eventData.startedBy != operatorAddress) {
-        // NewRound emitted by somebody else
-        const data: IAggregatorWorker = {
-          oracleAddress,
-          roundId,
-          workerSource: 'event'
-        }
-        logger.debug(data, 'data')
+    if (eventData.startedBy == operatorAddress) {
+      _logger.debug(`Ignore event emitted by ${eventData.startedBy} for round ${roundId}`)
+    } else {
+      // NewRound emitted by somebody else
+      const jobName = 'event'
 
-        const jobId = buildSubmissionRoundJobId({
-          oracleAddress,
-          roundId,
-          deploymentName: DEPLOYMENT_NAME
-        })
-        await aggregatorQueue.add('event', data, {
-          jobId,
-          removeOnComplete: REMOVE_ON_COMPLETE,
-          ...AGGREGATOR_QUEUE_SETTINGS
-        })
-        logger.debug({ job: 'event-added' }, `Listener submitted job with ID=${jobId}`)
-      } else {
-        logger.debug(
-          `Ignore event. NewRound event emitted by ${eventData.startedBy} for round ${roundId}`
-        )
+      const jobId = buildSubmissionRoundJobId({
+        oracleAddress,
+        roundId,
+        deploymentName: DEPLOYMENT_NAME
+      })
+      const jobData: IAggregatorWorker = {
+        oracleAddress,
+        roundId,
+        workerSource: 'event'
       }
-    } catch (e) {
-      logger.error(e)
+      _logger.debug(jobData, 'jobData')
+
+      return { jobName, jobId, jobData, jobQueueSettings: AGGREGATOR_QUEUE_SETTINGS }
     }
   }
 
