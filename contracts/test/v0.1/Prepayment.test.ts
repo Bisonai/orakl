@@ -54,6 +54,72 @@ describe('Prepayment', function () {
     ).to.be.revertedWithCustomError(prepaymentContract, 'InvalidBurnRatio')
   })
 
+  it('Deposit & withdraw consumer', async function () {
+    const {
+      prepaymentContractConsumerSigner: prepaymentContract,
+      consumer: accountOwnerAddress,
+      consumer1: nonOwnerAddress
+    } = await loadFixture(deployPrepayment)
+
+    const txReceipt = await (await prepaymentContract.createAccount()).wait()
+    const accountCreatedEvent = prepaymentContract.interface.parseLog(txReceipt.events[0])
+    const { accId, account } = accountCreatedEvent.args
+
+    const accountContract = await ethers.getContractAt('Account', account, accountOwnerAddress)
+
+    // Get Balance
+    const balanceBefore = (await accountContract.getBalance()).toNumber()
+    expect(balanceBefore).to.be.equal(0)
+
+    // 1. Deposit $KLAY /////////////////////////////////////////////////////////
+    const amount = 10
+    const txDeposit = await (await prepaymentContract.deposit(accId, { value: amount })).wait()
+    const balanceAfterDeposit = (await accountContract.getBalance()).toNumber()
+    expect(balanceAfterDeposit).to.be.equal(amount)
+
+    // Check the event information
+    expect(txDeposit.events.length).to.be.equal(1)
+    const accountBalanceIncreasedEvent = prepaymentContract.interface.parseLog(txDeposit.events[0])
+    expect(accountBalanceIncreasedEvent.name).to.be.equal('AccountBalanceIncreased')
+    const { accId: accIdDeposit, oldBalance, newBalance } = accountBalanceIncreasedEvent.args
+    expect(accIdDeposit).to.be.equal(accId)
+    expect(balanceBefore).to.be.equal(oldBalance)
+    expect(balanceAfterDeposit).to.be.equal(newBalance)
+
+    // 2. Withdraw $KLAY ////////////////////////////////////////////////////////
+    // Only account owner can withdraw
+    const prepaymentContractNonOwnerSigner = await ethers.getContractAt(
+      'Prepayment',
+      prepaymentContract.address,
+      nonOwnerAddress
+    )
+    await expect(
+      prepaymentContractNonOwnerSigner.withdraw(accId, amount)
+    ).to.be.revertedWithCustomError(prepaymentContractNonOwnerSigner, 'MustBeAccountOwner')
+
+    // Withdrawing using the account owner
+    const txWithdraw = await (await prepaymentContract.withdraw(accId, amount)).wait()
+
+    // All previously deposited $KLAY was withdrawn. Nothin is left.
+    const balanceAfterWithdraw = (await accountContract.getBalance()).toNumber()
+    expect(balanceAfterWithdraw).to.be.equal(0)
+
+    // Check the event information
+    expect(txWithdraw.events.length).to.be.equal(1)
+    const accountBalanceDecreasedEvent = prepaymentContract.interface.parseLog(txWithdraw.events[0])
+    expect(accountBalanceDecreasedEvent.name).to.be.equal('AccountBalanceDecreased')
+    const {
+      accId: accIdWithdraw,
+      oldBalance: oldBalanceWithdraw,
+      newBalance: newBalanceWithdraw,
+      burnAmount
+    } = accountBalanceDecreasedEvent.args
+    expect(accIdWithdraw).to.be.equal(accId)
+    expect(balanceAfter).to.be.equal(oldBalanceWithdraw)
+    expect(balanceBefore).to.be.equal(newBalanceWithdraw)
+    expect(burnAmount).to.be.equal(0)
+  })
+
   it('Add & remove consumer', async function () {
     const {
       prepaymentContractConsumerSigner: prepaymentContract,

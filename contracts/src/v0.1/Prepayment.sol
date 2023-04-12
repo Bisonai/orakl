@@ -11,35 +11,37 @@ import "./interfaces/ITypeAndVersion.sol";
 contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
     uint8 public constant MIN_BURN_RATIO = 0;
     uint8 public constant MAX_BURN_RATIO = 100;
-
     uint8 private sBurnRatio = 20; // %
-    uint64 private sCurrentAccId;
 
+    // Coordinator
     ICoordinatorBase[] public sCoordinators;
-
-    /* accId */
-    /* Account */
-    mapping(uint64 => Account) private sAccIdToAccount;
-
     /* coordinator address */
     /* association */
     mapping(address => bool) private sIsCoordinator;
+
+    // Account
+    uint64 private sCurrentAccId;
+    /* accId */
+    /* Account */
+    mapping(uint64 => Account) private sAccIdToAccount;
 
     error PendingRequestExists();
     error InvalidAccount();
     error MustBeAccountOwner(address owner);
     error InvalidBurnRatio();
+    error FailedToDeposit();
+    error FailedToWithdraw();
 
     event AccountCreated(uint64 indexed accId, address account, address owner);
     event AccountCanceled(uint64 indexed accId, address to, uint256 amount);
 
-    /*     event AccountBalanceIncreased(uint64 indexed accId, uint256 oldBalance, uint256 newBalance); */
-    /*     event AccountBalanceDecreased( */
-    /*         uint64 indexed accId, */
-    /*         uint256 oldBalance, */
-    /*         uint256 newBalance, */
-    /*         uint256 burnAmount */
-    /*     ); */
+    event AccountBalanceIncreased(uint64 indexed accId, uint256 oldBalance, uint256 newBalance);
+    event AccountBalanceDecreased(
+        uint64 indexed accId,
+        uint256 oldBalance,
+        uint256 newBalance,
+        uint256 burnAmount
+    );
     event AccountConsumerAdded(uint64 indexed accId, address consumer);
     event AccountConsumerRemoved(uint64 indexed accId, address consumer);
     /*     event NodeOperatorFundsWithdrawn(address to, uint256 amount); */
@@ -76,8 +78,6 @@ contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
             revert PendingRequestExists();
         }
 
-        // TODO more cleanup ?
-
         Account account = sAccIdToAccount[accId];
         uint256 balance = account.getBalance();
 
@@ -107,6 +107,11 @@ contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
         emit AccountConsumerRemoved(accId, consumer);
     }
 
+    /**
+     * @notice Return the current burn ratio that represents the
+     * @notice percentage of $KLAY that is burnt during fulfillment
+     * @notice of every request.
+     */
     function getBurnRatio() external view returns (uint8) {
         return sBurnRatio;
     }
@@ -128,28 +133,41 @@ contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
 
     /**
      * @inheritdoc IPrepayment
-     * @dev Looping is bounded to MAX_CONSUMERS*(number of keyhashes).
-     * @dev Used to disable subscription canceling while outstanding request are present.
      */
-    function pendingRequestExists(uint64 accId) public view returns (bool) {
-        /* AccountConfig memory accConfig = sAccIdToAccConfig[accId]; */
-
-        Account acc = sAccIdToAccount[accId];
-        address[] memory consumers = acc.getConsumers();
-        uint256 consumersLength = consumers.length;
-        uint256 coordinatorsLength = sCoordinators.length;
-
-        for (uint256 i = 0; i < consumersLength; i++) {
-            for (uint256 j = 0; j < coordinatorsLength; j++) {
-                address consumer = consumers[i];
-                uint64 nonce = acc.getNonce(consumer);
-                if (sCoordinators[j].pendingRequestExists(consumer, accId, nonce)) {
-                    return true;
-                }
-            }
+    function deposit(uint64 accId) external payable {
+        Account account = sAccIdToAccount[accId];
+        if (address(account) == address(0)) {
+            revert InvalidAccount();
         }
-        return false;
+
+        uint256 amount = msg.value;
+        uint256 balance = account.getBalance();
+
+        (bool sent, ) = payable(account).call{value: msg.value}("");
+        if (!sent) {
+            revert FailedToDeposit();
+        }
+
+        emit AccountBalanceIncreased(accId, balance, balance + amount);
     }
+
+    /**
+     * @inheritdoc IPrepayment
+     */
+    function withdraw(uint64 accId, uint256 amount) external onlyAccountOwner(accId) {
+        if (pendingRequestExists(accId)) {
+            revert PendingRequestExists();
+        }
+
+        Account account = sAccIdToAccount[accId];
+        (bool sent, uint256 balance) = account.withdraw(amount);
+        if (!sent) {
+            revert FailedToWithdraw();
+        }
+
+        emit AccountBalanceDecreased(accId, balance+amount, balance, 0);
+    }
+
 
     /**
      * @notice The type and version of this contract
@@ -158,4 +176,28 @@ contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
     function typeAndVersion() external pure virtual override returns (string memory) {
         return "Prepayment v0.1";
     }
+
+    /**
+     * @inheritdoc IPrepayment
+     * @dev Looping is bounded to MAX_CONSUMERS*(number of keyhashes).
+     * @dev Use to reject account cancellation while outstanding request are present.
+     */
+    function pendingRequestExists(uint64 accId) public view returns (bool) {
+        Account account = sAccIdToAccount[accId];
+        address[] memory consumers = account.getConsumers();
+        uint256 consumersLength = consumers.length;
+        uint256 coordinatorsLength = sCoordinators.length;
+
+        for (uint256 i = 0; i < consumersLength; i++) {
+            for (uint256 j = 0; j < coordinatorsLength; j++) {
+                address consumer = consumers[i];
+                uint64 nonce = account.getNonce(consumer);
+                if (sCoordinators[j].pendingRequestExists(consumer, accId, nonce)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
 }

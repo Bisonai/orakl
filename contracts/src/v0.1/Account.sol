@@ -8,7 +8,6 @@ import "./interfaces/ITypeAndVersion.sol";
 /// @author Bisonai
 /// @notice Every consumer has to create an account in order to be able to setup
 /// @notice TODO
-/// TODO selfdestruct
 /// @dev
 contract Account is IAccount, ITypeAndVersion {
     uint16 public constant MAX_CONSUMERS = 100;
@@ -55,6 +54,10 @@ contract Account is IAccount, ITypeAndVersion {
         sAccId = accId;
         sOwner = owner;
         sPaymentSolution = msg.sender;
+    }
+
+    receive() external payable {
+        sBalance += msg.value;
     }
 
     /**
@@ -177,6 +180,19 @@ contract Account is IAccount, ITypeAndVersion {
         }
 
         delete sConsumerToNonce[consumer];
+    }
+
+    function withdraw(uint256 amount) external onlyPaymentSolution returns (bool sent, uint256 balance) {
+        balance = sBalance;
+
+        if (balance < amount) {
+            revert InsufficientBalance();
+        }
+
+        balance -= amount;
+        sBalance = balance;
+
+        (sent, ) = payable(sOwner).call{value: amount}("");
     }
 
     /**

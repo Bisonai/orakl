@@ -81,7 +81,7 @@ interface IPrepayment {
      * @notice Anybody can deposit KLAY, there are no restrictions.
      * @param accId - ID of the account
      */
-    /* function deposit(uint64 accId) external payable; */
+    function deposit(uint64 accId) external payable;
 
     /**
      * @notice Withdraw KLAY from account.
@@ -89,7 +89,7 @@ interface IPrepayment {
      * @param accId - ID of the account
      * @param amount - KLAY amount to be withdrawn
      */
-    /* function withdraw(uint64 accId, uint256 amount) external; */
+    function withdraw(uint64 accId, uint256 amount) external;
 
     /**
      * @notice Withdraw node operator funds stored in contract.
