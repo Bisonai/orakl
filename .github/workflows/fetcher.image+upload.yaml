@@ -10,7 +10,7 @@ on:
       - closed
 
 env:
-  ecr_url: public.ecr.aws/u6t6w0e4/orakl-fetcher
+  ecr_url: public.ecr.aws/bisonai/orakl-fetcher
 
 jobs:
   prepare:
@@ -34,7 +34,7 @@ jobs:
       - name: Get package version
         id: package
         run: |
-          echo "name=version::$(node -p -e "require('./fetcher/package.json').version")" >> $GITHUB_OUTPUT
+          echo "version=$(node -p -e "require('./fetcher/package.json').version")" >> $GITHUB_OUTPUT
 
   build:
     name: Build
