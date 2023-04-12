@@ -2,7 +2,7 @@
 pragma solidity ^0.8.16;
 
 interface IPrepayment {
-    // Coordinator
+    // Used by Coordinator
     // getAccount
     // createAccount
     // addConsumer
@@ -11,12 +11,6 @@ interface IPrepayment {
     // getAccountOwner
     // getNonce
     // increaseNonce
-
-    /**
-     * @notice Return total amount of KLAY held in contract.
-     * @return balance - A unique account id.
-     */
-    /* function getTotalBalance() external returns (uint256); */
 
     /**
      * @notice Get an account information.
@@ -138,11 +132,11 @@ interface IPrepayment {
      * @notice Add coordinator to be able to charge using Prepayment method.
      * @param coordinator - address of coordinator
      */
-    /* function addCoordinator(address coordinator) external; */
+    function addCoordinator(address coordinator) external;
 
     /*
      * @notice Block coordinator from using Prepayment method.
      * @param coordinator - address of coordinator
      */
-    /* function removeCoordinator(address coordinator) external; */
+    function removeCoordinator(address coordinator) external;
 }

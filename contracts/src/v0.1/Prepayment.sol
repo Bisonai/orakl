@@ -31,6 +31,7 @@ contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
     error InvalidBurnRatio();
     error FailedToDeposit();
     error FailedToWithdraw();
+    error CoordinatorExists();
 
     event AccountCreated(uint64 indexed accId, address account, address owner);
     event AccountCanceled(uint64 indexed accId, address to, uint256 amount);
@@ -180,6 +181,33 @@ contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
         }
 
         emit AccountBalanceDecreased(accId, balance + amount, balance, 0);
+    }
+
+    /**
+     * @inheritdoc IPrepayment
+     */
+    function addCoordinator(address coordinator) public onlyOwner {
+        if (sIsCoordinator[coordinator]) {
+            revert CoordinatorExists();
+        }
+        sCoordinators.push(ICoordinatorBase(coordinator));
+        sIsCoordinator[coordinator] = true;
+    }
+
+    /**
+     * @inheritdoc IPrepayment
+     */
+    function removeCoordinator(address coordinator) public onlyOwner {
+        uint256 coordinatorsLength = sCoordinators.length;
+        for (uint256 i; i < coordinatorsLength; ++i) {
+            if (sCoordinators[i] == ICoordinatorBase(coordinator)) {
+                ICoordinatorBase last = sCoordinators[coordinatorsLength - 1];
+                sCoordinators[i] = last;
+                sCoordinators.pop();
+                break;
+            }
+        }
+        delete sIsCoordinator[coordinator];
     }
 
     /**
