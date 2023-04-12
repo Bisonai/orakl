@@ -16,6 +16,10 @@ COPY tsconfig.json .
 
 COPY src src
 
+COPY prisma prisma
+
 RUN yarn install
 
-RUN npx tsc
+RUN yarn build
+
+CMD ["yarn start:prod"]
