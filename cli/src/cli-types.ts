@@ -18,6 +18,20 @@ export const ReadFile: Type<string, string> = {
   }
 }
 
+export interface ITransaction {
+  from: string
+  to: string
+  input: string
+  gas: string
+  value: string
+  chainId: string
+  gasPrice: string
+  nonce: string
+  v: string
+  r: string
+  s: string
+}
+
 interface IHeader {
   'Content-Type': string
 }

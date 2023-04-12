@@ -14,7 +14,7 @@ Orakl Delegator requires to set the following environment variables.
 - `PROVIDER_URL`
 - `APP_PORT`
 - `DELEGATOR_FEEPAYER_PK`
-- `DELEGATOR_REPORTER_PK`
+- `TEST_DELEGATOR_REPORTER_PK` (Only for to run test)
 
 You can copy them from `.env.example` to `.env` and fill the appropriate values.
 

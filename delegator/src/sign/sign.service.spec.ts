@@ -10,7 +10,7 @@ import { FunctionService } from '../function/function.service'
 import { ReporterService } from '../reporter/reporter.service'
 
 const caver = new Caver(process.env.PROVIDER_URL)
-const keyring = caver.wallet.keyring.createFromPrivateKey(process.env.DELEGATOR_REPORTER_PK)
+const keyring = caver.wallet.keyring.createFromPrivateKey(process.env.TEST_DELEGATOR_REPORTER_PK)
 caver.wallet.add(keyring)
 
 describe('SignService', () => {
