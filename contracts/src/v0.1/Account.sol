@@ -19,7 +19,6 @@ contract Account is IAccount, ITypeAndVersion {
     uint256 private sBalance; // Common KLAY balance used for all consumer requests
     uint64 private sReqCount; // For fee tiers
     address[] private sConsumers;
-    uint64 private sNonce;
 
     address private sPaymentSolution;
 
@@ -94,10 +93,13 @@ contract Account is IAccount, ITypeAndVersion {
     /**
      * @inheritdoc IAccount
      */
-    function getConsumerNonce(address consumer) external view returns (uint64) {
+    function getNonce(address consumer) external view returns (uint64) {
         return sConsumerToNonce[consumer];
     }
 
+    /**
+     * @inheritdoc IAccount
+     */
     function getPaymentSolution() external view returns (address) {
         return sPaymentSolution;
     }

@@ -36,16 +36,13 @@ interface IAccount {
      * @notice Return the current nonce of given consumer.
      * @return consumer nonce
      */
-    function getConsumerNonce(address consumer) external view returns (uint64);
-
-    function getPaymentSolution() external view returns (address);
+    function getNonce(address consumer) external view returns (uint64);
 
     /**
-     * @notice Return nonce value.
-     * @param consumer - Address of consumer registered under accId
-     * @param accId - ID of the account
+     * @notice Return the address of payment solution associated with account.
+     * @return address of payment solution
      */
-    /* function nonce(address consumer, uint64 accId) external view returns (uint64); */
+    function getPaymentSolution() external view returns (address);
 
     /// THE FOLLOWING FUNCTIONS CHANGE THE STATE OF ACCOUNT.
 

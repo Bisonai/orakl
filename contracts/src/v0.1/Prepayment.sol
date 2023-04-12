@@ -98,7 +98,7 @@ contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
         for (uint256 i = 0; i < consumersLength; i++) {
             for (uint256 j = 0; j < coordinatorsLength; j++) {
                 address consumer = consumers[i];
-                uint64 nonce = acc.getConsumerNonce(consumer);
+                uint64 nonce = acc.getNonce(consumer);
                 if (sCoordinators[j].pendingRequestExists(consumer, accId, nonce)) {
                     return true;
                 }
