@@ -115,7 +115,7 @@ describe('Prepayment', function () {
       burnAmount
     } = accountBalanceDecreasedEvent.args
     expect(accIdWithdraw).to.be.equal(accId)
-    expect(balanceAfter).to.be.equal(oldBalanceWithdraw)
+    expect(balanceAfterDeposit).to.be.equal(oldBalanceWithdraw)
     expect(balanceBefore).to.be.equal(newBalanceWithdraw)
     expect(burnAmount).to.be.equal(0)
   })
@@ -194,6 +194,38 @@ describe('Prepayment', function () {
 
     // After removing the consumer, there should no consumer anymore
     expect((await accountContract.getConsumers()).length).to.be.equal(0)
+  })
+
+  it('Add & remove coordinator', async function () {
+    const {
+      prepaymentContractConsumerSigner,
+      prepaymentContract,
+      consumer: accountOwnerAddress,
+      consumer1: coordinatorAddress
+      // consumer1: nonOwnerAddress,
+      // consumer2: unusedConsumer
+    } = await loadFixture(deployPrepayment)
+
+    // Add coordinator //////////////////////////////////////////////////////////
+    // Coordinator must be added by contract owner
+    await expect(prepaymentContractConsumerSigner.addCoordinator(coordinatorAddress)).to.be.rejected
+
+    const txAddCoordinator = await (
+      await prepaymentContract.addCoordinator(coordinatorAddress)
+    ).wait()
+
+    expect(txAddCoordinator.events.length).to.be.equal(1)
+    const addCoordinatorEvent = prepaymentContract.interface.parseLog(txAddCoordinator.events[0])
+    expect(addCoordinatorEvent.name).to.be.equal('CoordinatorAdded')
+    const { coordinator: addedCoordinatorAddress } = addCoordinatorEvent.args
+    expect(addedCoordinatorAddress).to.be.equal(coordinatorAddress)
+
+    // The same coordinator cannot be added more than once
+    await expect(prepaymentContract.addCoordinator(coordinatorAddress)).to.be.rejectedWith(
+      'CoordinatorExists'
+    )
+
+    // Remove coordinator ///////////////////////////////////////////////////////
   })
 
   // it('Should add consumer', async function () {

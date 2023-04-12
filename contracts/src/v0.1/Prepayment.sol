@@ -47,6 +47,8 @@ contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
     event AccountConsumerRemoved(uint64 indexed accId, address consumer);
     /*     event NodeOperatorFundsWithdrawn(address to, uint256 amount); */
     event BurnRatioSet(uint16 ratio);
+    event CoordinatorAdded(address coordinator);
+    event CoordinatorRemoved(address coordinator);
 
     modifier onlyAccountOwner(uint64 accId) {
         address owner = sAccIdToAccount[accId].getOwner();
@@ -192,6 +194,8 @@ contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
         }
         sCoordinators.push(ICoordinatorBase(coordinator));
         sIsCoordinator[coordinator] = true;
+
+        emit CoordinatorAdded(coordinator);
     }
 
     /**
@@ -208,6 +212,8 @@ contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
             }
         }
         delete sIsCoordinator[coordinator];
+
+        emit CoordinatorRemoved(coordinator);
     }
 
     /**
