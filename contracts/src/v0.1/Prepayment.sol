@@ -9,9 +9,10 @@ import "./interfaces/IPrepayment.sol";
 import "./interfaces/ITypeAndVersion.sol";
 
 contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
-    uint8 public constant MIN_BURN_RATIO = 0;
-    uint8 public constant MAX_BURN_RATIO = 100;
+    uint8 public constant MIN_RATIO = 0;
+    uint8 public constant MAX_RATIO = 100;
     uint8 private sBurnRatio = 20; // %
+    uint8 private sProtocolFeeRatio = 5; // %
 
     // Coordinator
     ICoordinatorBase[] public sCoordinators;
@@ -29,7 +30,7 @@ contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
     error InvalidCoordinator(address coordinator);
     error InvalidAccount();
     error MustBeAccountOwner(address owner);
-    error InvalidBurnRatio();
+    error RatioOutOfBounds();
     error FailedToDeposit();
     error FailedToWithdraw();
     error CoordinatorExists();
@@ -46,7 +47,8 @@ contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
     event AccountConsumerAdded(uint64 indexed accId, address consumer);
     event AccountConsumerRemoved(uint64 indexed accId, address consumer);
     /*     event NodeOperatorFundsWithdrawn(address to, uint256 amount); */
-    event BurnRatioSet(uint16 ratio);
+    event BurnRatioSet(uint8 ratio);
+    event ProtocolFeeRatioSet(uint8 ratio);
     event CoordinatorAdded(address coordinator);
     event CoordinatorRemoved(address coordinator);
     event AccountOwnerTransferRequested(uint64 indexed accId, address from, address to);
@@ -155,7 +157,7 @@ contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
 
     /**
      * @notice Return the current burn ratio that represents the
-     * @notice percentage of $KLAY that is burnt during fulfillment
+     * @notice percentage of $KLAY fee that is burnt during fulfillment
      * @notice of every request.
      */
     function getBurnRatio() external view returns (uint8) {
@@ -170,11 +172,33 @@ contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
      * @param ratio in a range 0 - 100 % of a fee to be burnt
      */
     function setBurnRatio(uint8 ratio) external onlyOwner {
-        if (ratio < MIN_BURN_RATIO || ratio > MAX_BURN_RATIO) {
-            revert InvalidBurnRatio();
+        if (ratio < MIN_RATIO || ratio > MAX_RATIO) {
+            revert RatioOutOfBounds();
         }
         sBurnRatio = ratio;
         emit BurnRatioSet(ratio);
+    }
+
+    /**
+     * @notice Return the current protocol fee ratio that represents
+     * @notice the percentage of $KLAY fee that is charged for every
+     * @notice finalizes fulfillment.
+     */
+    function getProtocolFeeRatio() external view returns (uint8) {
+        return sProtocolFeeRatio;
+    }
+
+    /**
+     * @notice The function allows to update a protocol fee.
+     *
+     * @param ratio in a range 0 - 100 % of a fee to be burnt
+     */
+    function setProtocolFeeRatio(uint8 ratio) external onlyOwner {
+        if (ratio < MIN_RATIO || ratio > MAX_RATIO) {
+            revert RatioOutOfBounds();
+        }
+        sProtocolFeeRatio = ratio;
+        emit ProtocolFeeRatioSet(ratio);
     }
 
     /**

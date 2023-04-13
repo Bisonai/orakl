@@ -3,6 +3,8 @@ import { ethers } from 'hardhat'
 import { loadFixture } from '@nomicfoundation/hardhat-network-helpers'
 
 const NULL_ADDRESS = '0x0000000000000000000000000000000000000000'
+const DEFAULT_BURN_RATIO = 20
+const DEFAULT_PROTOCOL_FEE_RATIO = 5
 
 describe('Prepayment', function () {
   async function deployPrepayment() {
@@ -35,7 +37,7 @@ describe('Prepayment', function () {
 
     // 1. Get initial burn ratio
     const burnRatio = await prepaymentContract.getBurnRatio()
-    expect(burnRatio).to.be.equal(20)
+    expect(burnRatio).to.be.equal(DEFAULT_BURN_RATIO)
 
     // 2. Set burn ratio
     const lowerThresholdRatio = 0
@@ -53,7 +55,33 @@ describe('Prepayment', function () {
     const ratioAboveThreshold = 101
     await expect(
       prepaymentContract.setBurnRatio(ratioAboveThreshold)
-    ).to.be.revertedWithCustomError(prepaymentContract, 'InvalidBurnRatio')
+    ).to.be.revertedWithCustomError(prepaymentContract, 'RatioOutOfBounds')
+  })
+
+  it('Protocol feer ratio setup', async function () {
+    const { prepaymentContract } = await loadFixture(deployPrepayment)
+
+    // 1. Get initial burn ratio
+    const protocolFeeRatio = await prepaymentContract.getProtocolFeeRatio()
+    expect(protocolFeeRatio).to.be.equal(DEFAULT_PROTOCOL_FEE_RATIO)
+
+    // 2. Set protocolFee ratio
+    const lowerThresholdRatio = 0
+    await prepaymentContract.setProtocolFeeRatio(lowerThresholdRatio)
+    expect(await prepaymentContract.getProtocolFeeRatio()).to.be.equal(lowerThresholdRatio)
+
+    const higherThresholdRatio = 100
+    await prepaymentContract.setProtocolFeeRatio(higherThresholdRatio)
+    expect(await prepaymentContract.getProtocolFeeRatio()).to.be.equal(higherThresholdRatio)
+
+    // 3. Set burn ratio with
+    const ratioBelowThreshold = -1
+    await expect(prepaymentContract.setBurnRatio(ratioBelowThreshold)).to.be.rejected
+
+    const ratioAboveThreshold = 101
+    await expect(
+      prepaymentContract.setBurnRatio(ratioAboveThreshold)
+    ).to.be.revertedWithCustomError(prepaymentContract, 'RatioOutOfBounds')
   })
 
   it('Deposit & withdraw', async function () {
