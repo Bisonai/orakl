@@ -16,6 +16,7 @@ abstract contract RequestResponseConsumerBase {
      */
     constructor(address _requestResponseCoordinator) {
         COORDINATOR = IRequestResponseCoordinator(_requestResponseCoordinator);
+
         sJobIdToFunctionSelector[keccak256(abi.encodePacked("uint256"))] = COORDINATOR
             .fulfillDataRequestUint256
             .selector;

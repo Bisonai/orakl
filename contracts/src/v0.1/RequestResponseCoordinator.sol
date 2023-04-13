@@ -154,6 +154,7 @@ contract RequestResponseCoordinator is
         sJobId[keccak256(abi.encodePacked("string"))] = true;
         sJobId[keccak256(abi.encodePacked("bytes32"))] = true;
         sJobId[keccak256(abi.encodePacked("bytes"))] = true;
+
         sPrepayment = IPrepayment(prepayment);
         emit PrepaymentSet(prepayment);
     }
@@ -268,20 +269,53 @@ contract RequestResponseCoordinator is
         return address(sPrepayment);
     }
 
+    function setMinBalance(uint256 minBalance) external onlyOwner {
+        sMinBalance = minBalance;
+        emit MinBalanceSet(minBalance);
+    }
+
+    // TODO description
+    function requestData(
+        Orakl.Request memory req,
+        uint32 callbackGasLimit,
+        uint64 accId
+    ) external nonReentrant returns (uint256) {
+        // TODO check if he is one of the consumers
+
+        if (!sJobId[req.id]) {
+            revert InvalidJobId();
+        }
+
+        uint256 balance = sPrepayment.getBalance(accId);
+        if (balance < sMinBalance) {
+            revert InsufficientPayment(balance, sMinBalance);
+        }
+
+        bool isDirectPayment = false;
+        uint256 requestId = requestDataInternal(req, accId, callbackGasLimit, isDirectPayment);
+
+        return requestId;
+    }
+
+    // TODO description
     function requestData(
         Orakl.Request memory req,
         uint32 callbackGasLimit
     ) external payable returns (uint256) {
+        // TODO check if he is one of the consumers
+
         uint256 fee = estimateDirectPaymentFee();
         if (msg.value < fee) {
             revert InsufficientPayment(msg.value, fee);
         }
 
-        uint64 accId = sPrepayment.createAccount();
-        sPrepayment.addConsumer(accId, msg.sender);
+        uint64 accId = sPrepayment.createTemporaryAccount();
+
+        // sPrepayment.addConsumer(accId, msg.sender); // TODO remove?
+
         bool isDirectPayment = true;
         uint256 requestId = requestDataInternal(req, accId, callbackGasLimit, isDirectPayment);
-        sPrepayment.deposit{value: fee}(accId);
+        sPrepayment.depositTemporary{value: fee}(accId);
 
         uint256 remaining = msg.value - fee;
         if (remaining > 0) {
@@ -292,27 +326,6 @@ contract RequestResponseCoordinator is
         }
 
         return requestId;
-    }
-
-    function setMinBalance(uint256 minBalance) external onlyOwner {
-        sMinBalance = minBalance;
-        emit MinBalanceSet(minBalance);
-    }
-
-    function requestData(
-        Orakl.Request memory req,
-        uint32 callbackGasLimit,
-        uint64 accId
-    ) external nonReentrant returns (uint256 requestId) {
-        if (!sJobId[req.id]) {
-            revert InvalidJobId();
-        }
-        bool isDirectPayment = false;
-        (uint256 balance, , , ) = sPrepayment.getAccount(accId);
-        if (balance < sMinBalance) {
-            revert InsufficientPayment(balance, sMinBalance);
-        }
-        requestId = requestDataInternal(req, accId, callbackGasLimit, isDirectPayment);
     }
 
     /**
@@ -360,12 +373,7 @@ contract RequestResponseCoordinator is
         uint32 callbackGasLimit,
         bool isDirectPayment
     ) internal returns (uint256) {
-        // Input validation using the account storage.
-        // call to prepayment contract
-        address owner = sPrepayment.getAccountOwner(accId);
-        if (owner == address(0)) {
-            revert InvalidAccount();
-        }
+        sPrepayment.isValidAccount(accId);
 
         // Its important to ensure that the consumer is in fact who they say they
         // are, otherwise they could use someone else's account balance.
@@ -544,27 +552,17 @@ contract RequestResponseCoordinator is
         bool isDirectPayment,
         uint256 startGas
     ) internal returns (uint256 payment) {
-        // We want to charge users exactly for how much gas they use in their callback.
-        // The gasAfterPaymentCalculation is meant to cover these additional operations where we
-        // decrement the account balance and increment the oracles withdrawable balance.
-        // We also add the flat KLAY fee to the payment amount.
-        // Its specified in millionths of KLAY, if sConfig.fulfillmentFlatFeeKlayPPM = 1
-        // 1 KLAY / 1e6 = 1e18 pebs / 1e6 = 1e12 pebs.
-        (uint256 balance, uint64 reqCount, , ) = sPrepayment.getAccount(rc.accId);
-
         if (isDirectPayment) {
-            payment = balance;
+            payment = sPrepayment.chargeFee(rc.accId, msg.sender);
         } else {
+            uint64 reqCount = sPrepayment.getReqCount(rc.accId);
             payment = calculatePaymentAmount(
                 startGas,
                 sConfig.gasAfterPaymentCalculation,
                 getFeeTier(reqCount)
             );
+            sPrepayment.chargeFee(rc.accId, payment, msg.sender);
         }
-
-        sPrepayment.chargeFee(rc.accId, payment, msg.sender);
-
-        return payment;
     }
 
     function fulfillDataRequestUint256(

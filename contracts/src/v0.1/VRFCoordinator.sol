@@ -288,8 +288,8 @@ contract VRFCoordinator is Ownable, ICoordinatorBase, ITypeAndVersion, IVRFCoord
         uint32 numWords
     ) external nonReentrant onlyValidKeyHash(keyHash) returns (uint256) {
         // TODO check if he is one of the consumers
-        uint256 balance = sPrepayment.getBalance(accId);
 
+        uint256 balance = sPrepayment.getBalance(accId);
         if (balance < sMinBalance) {
             revert InsufficientPayment(balance, sMinBalance);
         }
@@ -323,6 +323,7 @@ contract VRFCoordinator is Ownable, ICoordinatorBase, ITypeAndVersion, IVRFCoord
         uint64 accId = sPrepayment.createTemporaryAccount();
 
         // sPrepayment.addTemporaryConsumer(accId, msg.sender); // TODO remove?
+
         bool isDirectPayment = true;
         uint256 requestId = requestRandomWordsInternal(
             keyHash,
