@@ -4,12 +4,17 @@ import { loadFixture } from '@nomicfoundation/hardhat-network-helpers'
 
 describe('Account', function () {
   async function deployPrepayment() {
-    const { deployer, consumer, consumer1 } = await hre.getNamedAccounts()
+    const {
+      deployer,
+      consumer,
+      consumer1,
+      account8: protocolFeeRecipient
+    } = await hre.getNamedAccounts()
 
     let prepaymentContract = await ethers.getContractFactory('Prepayment', {
       signer: deployer
     })
-    prepaymentContract = await prepaymentContract.deploy()
+    prepaymentContract = await prepaymentContract.deploy(protocolFeeRecipient)
     await prepaymentContract.deployed()
 
     const prepaymentContractConsumerSigner = await ethers.getContractAt(
@@ -20,45 +25,6 @@ describe('Account', function () {
 
     return { deployer, consumer, consumer1, prepaymentContract, prepaymentContractConsumerSigner }
   }
-
-  // async function deployFixture() {
-  //   const { deployer, consumer } = await hre.getNamedAccounts()
-  //
-  //   let prepaymentContract = await ethers.getContractFactory('Prepayment', {
-  //     signer: deployer
-  //   })
-  //   prepaymentContract = await prepaymentContract.deploy()
-  //   await prepaymentContract.deployed()
-
-  // let coordinatorContract = await ethers.getContractFactory('VRFCoordinator', {
-  //   signer: deployer
-  // })
-  // coordinatorContract = await coordinatorContract.deploy(prepaymentContract.address)
-  //
-  // let consumerContract = await ethers.getContractFactory('VRFConsumerMock', {
-  //   signer: consumer
-  // })
-  // consumerContract = await consumerContract.deploy(coordinatorContract.address)
-  // await consumerContract.deployed()
-  //
-  // const accId = await createAccount(prepaymentContract.address, consumerContract.address)
-  //
-  // const prepaymentContractConsumerSigner = await ethers.getContractAt(
-  //   'Prepayment',
-  //   prepaymentContract.address,
-  //   consumer
-  // )
-  //
-  // return {
-  //   accId,
-  //   deployer,
-  //   consumer,
-  //   prepaymentContract,
-  //   prepaymentContractConsumerSigner,
-  //   coordinatorContract,
-  //   consumerContract
-  // }
-  // }
 
   it('Create & cancel account', async function () {
     const { prepaymentContractConsumerSigner, consumer, consumer1 } = await loadFixture(
@@ -105,23 +71,4 @@ describe('Account', function () {
       'InvalidAccount'
     )
   })
-
-  // it('Get & increase nonce', async function () {
-  //   const {
-  //     prepaymentContractConsumerSigner,
-  //     consumer: accountOwnerAddress,
-  //     consumer1: consumerAddress
-  //   } = await loadFixture(deployPrepayment)
-  //
-  //   const txReceipt = await (await prepaymentContractConsumerSigner.createAccount()).wait()
-  //   const accountCreatedEvent = prepaymentContractConsumerSigner.interface.parseLog(
-  //     txReceipt.events[0]
-  //   )
-  //   const { account } = accountCreatedEvent.args
-  //   const accountContract = await ethers.getContractAt('Account', account, accountOwnerAddress)
-  //
-  //   // Querying nonce without registered consumer is possible but will always return 0
-  //   const nonce = (await accountContract.getNonce(consumerAddress)).toNumber()
-  //   expect(nonce).to.be.equal(0)
-  // })
 })
