@@ -8,12 +8,31 @@ abstract contract RequestResponseConsumerBase {
 
     error OnlyCoordinatorCanFulfill(address have, address want);
     RequestResponseCoordinatorInterface public immutable COORDINATOR;
+    mapping(bytes32 => bytes4) private sJobIdToFunctionSelector;
 
     /**
      * @param _requestResponseCoordinator address of RequestResponseCoordinator contract
      */
     constructor(address _requestResponseCoordinator) {
         COORDINATOR = RequestResponseCoordinatorInterface(_requestResponseCoordinator);
+        sJobIdToFunctionSelector[keccak256(abi.encodePacked("uint256"))] = COORDINATOR
+            .fulfillDataRequestUint256
+            .selector;
+        sJobIdToFunctionSelector[keccak256(abi.encodePacked("int256"))] = COORDINATOR
+            .fulfillDataRequestInt256
+            .selector;
+        sJobIdToFunctionSelector[keccak256(abi.encodePacked("bool"))] = COORDINATOR
+            .fulfillDataRequestInt256
+            .selector;
+        sJobIdToFunctionSelector[keccak256(abi.encodePacked("string"))] = COORDINATOR
+            .fulfillDataRequestString
+            .selector;
+        sJobIdToFunctionSelector[keccak256(abi.encodePacked("bytes32"))] = COORDINATOR
+            .fulfillDataRequestBytes32
+            .selector;
+        sJobIdToFunctionSelector[keccak256(abi.encodePacked("bytes"))] = COORDINATOR
+            .fulfillDataRequestBytes
+            .selector;
     }
 
     /**
@@ -22,16 +41,14 @@ abstract contract RequestResponseConsumerBase {
      * @return req request in memory
      */
     function buildRequest(bytes32 jobId) internal view returns (Orakl.Request memory req) {
-        return req.initialize(jobId, address(COORDINATOR), COORDINATOR.fulfillDataRequest.selector);
+        return req.initialize(jobId, address(COORDINATOR), sJobIdToFunctionSelector[jobId]);
     }
 
-    function fulfillDataRequest(uint256 requestId, uint256 response) internal virtual;
-
-    function rawFulfillDataRequest(uint256 requestId, uint256 response) external {
+    modifier verifyRawFulfillment() {
         address coordinatorAddress = address(COORDINATOR);
         if (msg.sender != coordinatorAddress) {
             revert OnlyCoordinatorCanFulfill(msg.sender, coordinatorAddress);
         }
-        fulfillDataRequest(requestId, response);
+        _;
     }
 }

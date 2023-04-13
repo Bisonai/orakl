@@ -7,6 +7,7 @@ import "./interfaces/RequestResponseCoordinatorInterface.sol";
 import "./interfaces/PrepaymentInterface.sol";
 import "./interfaces/TypeAndVersionInterface.sol";
 import "./RequestResponseConsumerBase.sol";
+import "./RequestResponseConsumerFulfill.sol";
 import "./libraries/Orakl.sol";
 
 contract RequestResponseCoordinator is
@@ -67,6 +68,7 @@ contract RequestResponseCoordinator is
     }
 
     DirectPaymentConfig private sDirectPaymentConfig;
+    mapping(bytes32 => bool) sJobId;
 
     error InvalidConsumer(uint64 accId, address consumer);
     error InvalidAccount();
@@ -80,6 +82,7 @@ contract RequestResponseCoordinator is
     error GasLimitTooBig(uint32 have, uint32 want);
     error OracleAlreadyRegistered(address oracle);
     error NoSuchOracle(address oracle);
+    error InvalidJobId();
 
     event DataRequested(
         uint256 indexed requestId,
@@ -90,12 +93,7 @@ contract RequestResponseCoordinator is
         bool isDirectPayment,
         bytes data
     );
-    event DataRequestFulfilled(
-        uint256 indexed requestId,
-        uint256 response,
-        uint256 payment,
-        bool success
-    );
+
     event DataRequestCancelled(uint256 indexed requestId);
     event ConfigSet(uint32 maxGasLimit, uint32 gasAfterPaymentCalculation, FeeConfig feeConfig);
     event DirectPaymentConfigSet(uint256 fulfillmentFee, uint256 baseFee);
@@ -105,6 +103,43 @@ contract RequestResponseCoordinator is
     event MinBalanceSet(uint256 minBalance);
     event PrepaymentSet(address prepayment);
 
+    event DataRequestFulfilledUint256(
+        uint256 indexed requestId,
+        uint256 response,
+        uint256 payment,
+        bool success
+    );
+    event DataRequestFulfilledInt256(
+        uint256 indexed requestId,
+        int256 response,
+        uint256 payment,
+        bool success
+    );
+    event DataRequestFulfilledBool(
+        uint256 indexed requestId,
+        bool response,
+        uint256 payment,
+        bool success
+    );
+    event DataRequestFulfilledString(
+        uint256 indexed requestId,
+        string response,
+        uint256 payment,
+        bool success
+    );
+    event DataRequestFulfilledBytes32(
+        uint256 indexed requestId,
+        bytes32 response,
+        uint256 payment,
+        bool success
+    );
+    event DataRequestFulfilledBytes(
+        uint256 indexed requestId,
+        bytes response,
+        uint256 payment,
+        bool success
+    );
+
     modifier nonReentrant() {
         if (sConfig.reentrancyLock) {
             revert Reentrant();
@@ -113,6 +148,12 @@ contract RequestResponseCoordinator is
     }
 
     constructor(address prepayment) {
+        sJobId[keccak256(abi.encodePacked("uint256"))] = true;
+        sJobId[keccak256(abi.encodePacked("int256"))] = true;
+        sJobId[keccak256(abi.encodePacked("bool"))] = true;
+        sJobId[keccak256(abi.encodePacked("string"))] = true;
+        sJobId[keccak256(abi.encodePacked("bytes32"))] = true;
+        sJobId[keccak256(abi.encodePacked("bytes"))] = true;
         sPrepayment = PrepaymentInterface(prepayment);
         emit PrepaymentSet(prepayment);
     }
@@ -263,86 +304,15 @@ contract RequestResponseCoordinator is
         uint32 callbackGasLimit,
         uint64 accId
     ) external nonReentrant returns (uint256 requestId) {
+        if (!sJobId[req.id]) {
+            revert InvalidJobId();
+        }
         bool isDirectPayment = false;
         (uint256 balance, , , , ) = sPrepayment.getAccount(accId);
         if (balance < sMinBalance) {
             revert InsufficientPayment(balance, sMinBalance);
         }
         requestId = requestDataInternal(req, accId, callbackGasLimit, isDirectPayment);
-    }
-
-    /**
-     * @notice Fulfils oracle request
-     * @param requestId - ID of the Oracle Request
-     * @param response - Return data for fulfilment
-     * @param rc request commitment pre-image, committed to at request time
-     */
-    function fulfillDataRequest(
-        uint256 requestId,
-        uint256 response,
-        RequestCommitment memory rc,
-        bool isDirectPayment
-    ) external nonReentrant returns (uint256) {
-        uint256 startGas = gasleft();
-
-        if (!sIsOracleRegistered[msg.sender]) {
-            revert UnregisteredOracleFulfillment(msg.sender);
-        }
-
-        bytes32 commitment = sRequestIdToCommitment[requestId];
-        if (commitment == 0) {
-            revert NoCorrespondingRequest();
-        }
-
-        if (
-            commitment !=
-            keccak256(abi.encode(requestId, rc.blockNum, rc.accId, rc.callbackGasLimit, rc.sender))
-        ) {
-            revert IncorrectCommitment();
-        }
-
-        delete sRequestIdToCommitment[requestId];
-        RequestResponseConsumerBase rr;
-        bytes memory resp = abi.encodeWithSelector(
-            rr.rawFulfillDataRequest.selector,
-            requestId,
-            response
-        );
-
-        // Call with explicitly the amount of callback gas requested
-        // Important to not let them exhaust the gas budget and avoid oracle payment.
-        // Do not allow any non-view/non-pure coordinator functions to be called
-        // during the consumers callback code via reentrancyLock.
-        // Note that callWithExactGas will revert if we do not have sufficient gas
-        // to give the callee their requested amount.
-        sConfig.reentrancyLock = true;
-        bool success = callWithExactGas(rc.callbackGasLimit, rc.sender, resp);
-        sConfig.reentrancyLock = false;
-
-        // We want to charge users exactly for how much gas they use in their callback.
-        // The gasAfterPaymentCalculation is meant to cover these additional operations where we
-        // decrement the account balance and increment the oracles withdrawable balance.
-        // We also add the flat KLAY fee to the payment amount.
-        // Its specified in millionths of KLAY, if sConfig.fulfillmentFlatFeeKlayPPM = 1
-        // 1 KLAY / 1e6 = 1e18 pebs / 1e6 = 1e12 pebs.
-        (uint256 balance, uint64 reqCount, , , ) = sPrepayment.getAccount(rc.accId);
-
-        uint256 payment;
-        if (isDirectPayment) {
-            payment = balance;
-        } else {
-            payment = calculatePaymentAmount(
-                startGas,
-                sConfig.gasAfterPaymentCalculation,
-                getFeeTier(reqCount)
-            );
-        }
-
-        sPrepayment.chargeFee(rc.accId, payment, msg.sender);
-
-        // Include payment in the event for tracking costs.
-        emit DataRequestFulfilled(requestId, response, payment, success);
-        return payment;
     }
 
     /**
@@ -529,5 +499,191 @@ contract RequestResponseCoordinator is
             success := call(gasAmount, target, 0, add(data, 0x20), mload(data), 0, 0)
         }
         return success;
+    }
+
+    function validateDataResponse(
+        RequestCommitment memory rc,
+        uint256 requestId
+    ) internal returns (bool) {
+        if (!sIsOracleRegistered[msg.sender]) {
+            revert UnregisteredOracleFulfillment(msg.sender);
+        }
+
+        bytes32 commitment = sRequestIdToCommitment[requestId];
+        if (commitment == 0) {
+            revert NoCorrespondingRequest();
+        }
+
+        if (
+            commitment !=
+            keccak256(abi.encode(requestId, rc.blockNum, rc.accId, rc.callbackGasLimit, rc.sender))
+        ) {
+            revert IncorrectCommitment();
+        }
+
+        delete sRequestIdToCommitment[requestId];
+
+        return true;
+    }
+
+    function fulfill(bytes memory resp, RequestCommitment memory rc) internal returns (bool) {
+        // Call with explicitly the amount of callback gas requested
+        // Important to not let them exhaust the gas budget and avoid oracle payment.
+        // Do not allow any non-view/non-pure coordinator functions to be called
+        // during the consumers callback code via reentrancyLock.
+        // Note that callWithExactGas will revert if we do not have sufficient gas
+        // to give the callee their requested amount.
+        sConfig.reentrancyLock = true;
+        bool success = callWithExactGas(rc.callbackGasLimit, rc.sender, resp);
+        sConfig.reentrancyLock = false;
+        return success;
+    }
+
+    function pay(
+        RequestCommitment memory rc,
+        bool isDirectPayment,
+        uint256 startGas
+    ) internal returns (uint256 payment) {
+        // We want to charge users exactly for how much gas they use in their callback.
+        // The gasAfterPaymentCalculation is meant to cover these additional operations where we
+        // decrement the account balance and increment the oracles withdrawable balance.
+        // We also add the flat KLAY fee to the payment amount.
+        // Its specified in millionths of KLAY, if sConfig.fulfillmentFlatFeeKlayPPM = 1
+        // 1 KLAY / 1e6 = 1e18 pebs / 1e6 = 1e12 pebs.
+        (uint256 balance, uint64 reqCount, , , ) = sPrepayment.getAccount(rc.accId);
+
+        if (isDirectPayment) {
+            payment = balance;
+        } else {
+            payment = calculatePaymentAmount(
+                startGas,
+                sConfig.gasAfterPaymentCalculation,
+                getFeeTier(reqCount)
+            );
+        }
+
+        sPrepayment.chargeFee(rc.accId, payment, msg.sender);
+
+        return payment;
+    }
+
+    function fulfillDataRequestUint256(
+        uint256 requestId,
+        uint256 response,
+        RequestCommitment memory rc,
+        bool isDirectPayment
+    ) external nonReentrant returns (uint256) {
+        uint256 startGas = gasleft();
+        validateDataResponse(rc, requestId);
+        RequestResponseConsumerFulfillUint256 rr;
+        bytes memory resp = abi.encodeWithSelector(
+            rr.rawFulfillDataRequestUint256.selector,
+            requestId,
+            response
+        );
+        bool success = fulfill(resp, rc);
+        uint256 payment = pay(rc, isDirectPayment, startGas);
+        emit DataRequestFulfilledUint256(requestId, response, payment, success);
+        return payment;
+    }
+
+    function fulfillDataRequestInt256(
+        uint256 requestId,
+        int256 response,
+        RequestCommitment memory rc,
+        bool isDirectPayment
+    ) external nonReentrant returns (uint256) {
+        uint256 startGas = gasleft();
+        validateDataResponse(rc, requestId);
+        RequestResponseConsumerFulfillInt256 rr;
+        bytes memory resp = abi.encodeWithSelector(
+            rr.rawFulfillDataRequestInt256.selector,
+            requestId,
+            response
+        );
+        bool success = fulfill(resp, rc);
+        uint256 payment = pay(rc, isDirectPayment, startGas);
+        emit DataRequestFulfilledInt256(requestId, response, payment, success);
+        return payment;
+    }
+
+    function fulfillDataRequestBool(
+        uint256 requestId,
+        bool response,
+        RequestCommitment memory rc,
+        bool isDirectPayment
+    ) external nonReentrant returns (uint256) {
+        uint256 startGas = gasleft();
+        validateDataResponse(rc, requestId);
+        RequestResponseConsumerFulfillBool rr;
+        bytes memory resp = abi.encodeWithSelector(
+            rr.rawFulfillDataRequestBool.selector,
+            requestId,
+            response
+        );
+        bool success = fulfill(resp, rc);
+        uint256 payment = pay(rc, isDirectPayment, startGas);
+        emit DataRequestFulfilledBool(requestId, response, payment, success);
+        return payment;
+    }
+
+    function fulfillDataRequestString(
+        uint256 requestId,
+        string memory response,
+        RequestCommitment memory rc,
+        bool isDirectPayment
+    ) external nonReentrant returns (uint256) {
+        uint256 startGas = gasleft();
+        validateDataResponse(rc, requestId);
+        RequestResponseConsumerFulfillString rr;
+        bytes memory resp = abi.encodeWithSelector(
+            rr.rawFulfillDataRequestString.selector,
+            requestId,
+            response
+        );
+        bool success = fulfill(resp, rc);
+        uint256 payment = pay(rc, isDirectPayment, startGas);
+        emit DataRequestFulfilledString(requestId, response, payment, success);
+        return payment;
+    }
+
+    function fulfillDataRequestBytes32(
+        uint256 requestId,
+        bytes32 response,
+        RequestCommitment memory rc,
+        bool isDirectPayment
+    ) external nonReentrant returns (uint256) {
+        uint256 startGas = gasleft();
+        validateDataResponse(rc, requestId);
+        RequestResponseConsumerFulfillBytes32 rr;
+        bytes memory resp = abi.encodeWithSelector(
+            rr.rawFulfillDataRequestBytes32.selector,
+            requestId,
+            response
+        );
+        bool success = fulfill(resp, rc);
+        uint256 payment = pay(rc, isDirectPayment, startGas);
+        emit DataRequestFulfilledBytes32(requestId, response, payment, success);
+        return payment;
+    }
+
+    function fulfillDataRequestBytes(
+        uint256 requestId,
+        bytes memory response,
+        RequestCommitment memory rc,
+        bool isDirectPayment
+    ) external nonReentrant returns (uint256) {
+        uint256 startGas = gasleft();
+        validateDataResponse(rc, requestId);
+        RequestResponseConsumerFulfillBytes rr;
+        bytes memory resp = abi.encodeWithSelector(
+            rr.rawFulfillDataRequestBytes.selector,
+            requestId,
+            response
+        );
+        bool success = fulfill(resp, rc);
+        uint256 payment = pay(rc, isDirectPayment, startGas);
+        emit DataRequestFulfilledBytes(requestId, response, payment, success);
+        return payment;
     }
 }
