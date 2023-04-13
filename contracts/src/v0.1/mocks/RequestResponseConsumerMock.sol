@@ -3,7 +3,6 @@ pragma solidity ^0.8.16;
 
 import "../RequestResponseConsumerFulfill.sol";
 import "../RequestResponseConsumerBase.sol";
-import "../interfaces/RequestResponseCoordinatorInterface.sol";
 
 contract RequestResponseConsumerMock is
     RequestResponseConsumerFulfillUint256,

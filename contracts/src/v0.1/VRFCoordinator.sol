@@ -287,7 +287,7 @@ contract VRFCoordinator is Ownable, ICoordinatorBase, ITypeAndVersion, IVRFCoord
         uint32 callbackGasLimit,
         uint32 numWords
     ) external nonReentrant onlyValidKeyHash(keyHash) returns (uint256 requestId) {
-        (uint256 balance, , , , ) = sPrepayment.getAccount(accId);
+        (uint256 balance, , , ) = sPrepayment.getAccount(accId);
 
         if (balance < sMinBalance) {
             revert InsufficientPayment(balance, sMinBalance);
@@ -386,7 +386,7 @@ contract VRFCoordinator is Ownable, ICoordinatorBase, ITypeAndVersion, IVRFCoord
         // We also add the flat KLAY fee to the payment amount.
         // Its specified in millionths of KLAY, if sConfig.fulfillmentFlatFeeKlayPPM = 1
         // 1 KLAY / 1e6 = 1e18 pebs / 1e6 = 1e12 pebs.
-        (uint256 balance, uint64 reqCount, , , ) = sPrepayment.getAccount(rc.accId);
+        (uint256 balance, uint64 reqCount, , ) = sPrepayment.getAccount(rc.accId);
 
         uint256 payment;
         if (isDirectPayment) {
@@ -495,7 +495,7 @@ contract VRFCoordinator is Ownable, ICoordinatorBase, ITypeAndVersion, IVRFCoord
         // Its important to ensure that the consumer is in fact who they say they
         // are, otherwise they could use someone else's account balance.
         // A nonce of 0 indicates consumer is not allocated to the acc.
-        uint64 currentNonce = sPrepayment.getNonce(msg.sender, accId);
+        uint64 currentNonce = sPrepayment.getNonce(accId, msg.sender);
         if (currentNonce == 0) {
             revert InvalidConsumer(accId, msg.sender);
         }
@@ -511,7 +511,7 @@ contract VRFCoordinator is Ownable, ICoordinatorBase, ITypeAndVersion, IVRFCoord
             revert NumWordsTooBig(numWords, MAX_NUM_WORDS);
         }
 
-        uint64 nonce = sPrepayment.increaseNonce(msg.sender, accId);
+        uint64 nonce = sPrepayment.increaseNonce(accId, msg.sender);
         (uint256 requestId, uint256 preSeed) = computeRequestId(keyHash, msg.sender, accId, nonce);
 
         sRequestIdToCommitment[requestId] = keccak256(

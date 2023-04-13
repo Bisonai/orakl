@@ -2,19 +2,19 @@
 pragma solidity ^0.8.16;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "./interfaces/CoordinatorBaseInterface.sol";
-import "./interfaces/RequestResponseCoordinatorInterface.sol";
-import "./interfaces/PrepaymentInterface.sol";
-import "./interfaces/TypeAndVersionInterface.sol";
+import "./interfaces/ICoordinatorBase.sol";
+import "./interfaces/IRequestResponseCoordinator.sol";
+import "./interfaces/IPrepayment.sol";
+import "./interfaces/ITypeAndVersion.sol";
 import "./RequestResponseConsumerBase.sol";
 import "./RequestResponseConsumerFulfill.sol";
 import "./libraries/Orakl.sol";
 
 contract RequestResponseCoordinator is
-    CoordinatorBaseInterface,
     Ownable,
-    RequestResponseCoordinatorInterface,
-    TypeAndVersionInterface
+    ICoordinatorBase,
+    IRequestResponseCoordinator,
+    ITypeAndVersion
 {
     using Orakl for Orakl.Request;
 
@@ -35,7 +35,7 @@ contract RequestResponseCoordinator is
 
     uint256 public sMinBalance;
 
-    PrepaymentInterface private sPrepayment;
+    IPrepayment private sPrepayment;
 
     struct Config {
         uint32 maxGasLimit;
@@ -154,7 +154,7 @@ contract RequestResponseCoordinator is
         sJobId[keccak256(abi.encodePacked("string"))] = true;
         sJobId[keccak256(abi.encodePacked("bytes32"))] = true;
         sJobId[keccak256(abi.encodePacked("bytes"))] = true;
-        sPrepayment = PrepaymentInterface(prepayment);
+        sPrepayment = IPrepayment(prepayment);
         emit PrepaymentSet(prepayment);
     }
 
@@ -308,7 +308,7 @@ contract RequestResponseCoordinator is
             revert InvalidJobId();
         }
         bool isDirectPayment = false;
-        (uint256 balance, , , , ) = sPrepayment.getAccount(accId);
+        (uint256 balance, , , ) = sPrepayment.getAccount(accId);
         if (balance < sMinBalance) {
             revert InsufficientPayment(balance, sMinBalance);
         }
@@ -316,7 +316,7 @@ contract RequestResponseCoordinator is
     }
 
     /**
-     * @inheritdoc RequestResponseCoordinatorInterface
+     * @inheritdoc IRequestResponseCoordinator
      */
     function cancelRequest(uint256 requestId) external {
         bytes32 commitment = sRequestIdToCommitment[requestId];
@@ -370,7 +370,7 @@ contract RequestResponseCoordinator is
         // Its important to ensure that the consumer is in fact who they say they
         // are, otherwise they could use someone else's account balance.
         // A nonce of 0 indicates consumer is not allocated to the acc.
-        uint64 currentNonce = sPrepayment.getNonce(msg.sender, accId);
+        uint64 currentNonce = sPrepayment.getNonce(accId, msg.sender);
         if (currentNonce == 0) {
             revert InvalidConsumer(accId, msg.sender);
         }
@@ -383,7 +383,7 @@ contract RequestResponseCoordinator is
             revert GasLimitTooBig(callbackGasLimit, sConfig.maxGasLimit);
         }
 
-        uint64 nonce = sPrepayment.increaseNonce(msg.sender, accId);
+        uint64 nonce = sPrepayment.increaseNonce(accId, msg.sender);
 
         uint256 requestId = computeRequestId(msg.sender, accId, nonce);
         sRequestIdToCommitment[requestId] = keccak256(
@@ -416,7 +416,7 @@ contract RequestResponseCoordinator is
     }
 
     /**
-     * @inheritdoc CoordinatorBaseInterface
+     * @inheritdoc ICoordinatorBase
      */
     function pendingRequestExists(
         address consumer,
@@ -550,7 +550,7 @@ contract RequestResponseCoordinator is
         // We also add the flat KLAY fee to the payment amount.
         // Its specified in millionths of KLAY, if sConfig.fulfillmentFlatFeeKlayPPM = 1
         // 1 KLAY / 1e6 = 1e18 pebs / 1e6 = 1e12 pebs.
-        (uint256 balance, uint64 reqCount, , , ) = sPrepayment.getAccount(rc.accId);
+        (uint256 balance, uint64 reqCount, , ) = sPrepayment.getAccount(rc.accId);
 
         if (isDirectPayment) {
             payment = balance;

@@ -37,6 +37,13 @@ interface IPrepayment {
      */
     function getCoordinators() external view returns (ICoordinatorBase[] memory);
 
+    /**
+     * @notice Get nonce for specified `consumer` in account denoted by `accId`.
+     * @param accId - ID of the account
+     * @param consumer - consumer address
+     */
+    function getNonce(uint64 accId, address consumer) external view returns (uint64);
+
     /*
      * @notice Check to see if there exists a request commitment consumers
      * for all consumers and keyhashes for a given acc.

@@ -112,6 +112,13 @@ contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
     /**
      * @inheritdoc IPrepayment
      */
+    function getNonce(uint64 accId, address consumer) external view returns (uint64) {
+        return sAccIdToAccount[accId].getNonce(consumer);
+    }
+
+    /**
+     * @inheritdoc IPrepayment
+     */
     function getProtocolFeeRecipient() external view returns (address) {
         return sProtocolFeeRecipient;
     }

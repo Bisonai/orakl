@@ -11,12 +11,11 @@ abstract contract RequestResponseConsumerBase {
     mapping(bytes32 => bytes4) private sJobIdToFunctionSelector;
     IRequestResponseCoordinator public immutable COORDINATOR;
 
-
     /**
      * @param _requestResponseCoordinator address of RequestResponseCoordinator contract
      */
     constructor(address _requestResponseCoordinator) {
-        COORDINATOR = RequestResponseCoordinatorInterface(_requestResponseCoordinator);
+        COORDINATOR = IRequestResponseCoordinator(_requestResponseCoordinator);
         sJobIdToFunctionSelector[keccak256(abi.encodePacked("uint256"))] = COORDINATOR
             .fulfillDataRequestUint256
             .selector;
