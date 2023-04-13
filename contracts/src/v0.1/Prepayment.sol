@@ -35,7 +35,6 @@ contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
 
     event AccountCreated(uint64 indexed accId, address account, address owner);
     event AccountCanceled(uint64 indexed accId, address to, uint256 amount);
-
     event AccountBalanceIncreased(uint64 indexed accId, uint256 oldBalance, uint256 newBalance);
     event AccountBalanceDecreased(
         uint64 indexed accId,
@@ -49,6 +48,8 @@ contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
     event BurnRatioSet(uint16 ratio);
     event CoordinatorAdded(address coordinator);
     event CoordinatorRemoved(address coordinator);
+    event AccountOwnerTransferRequested(uint64 indexed accId, address from, address to);
+    event AccountOwnerTransferred(uint64 indexed accId, address from, address to);
 
     modifier onlyAccountOwner(uint64 accId) {
         address owner = sAccIdToAccount[accId].getOwner();
@@ -71,6 +72,29 @@ contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
 
         emit AccountCreated(currentAccId, address(acc), msg.sender);
         return currentAccId;
+    }
+
+    /**
+     * @inheritdoc IPrepayment
+     */
+    function requestAccountOwnerTransfer(
+        uint64 accId,
+        address requestedOwner
+    ) external onlyAccountOwner(accId) {
+        Account account = sAccIdToAccount[accId];
+        account.requestAccountOwnerTransfer(requestedOwner);
+        emit AccountOwnerTransferRequested(accId, msg.sender, requestedOwner);
+    }
+
+    /**
+     * @inheritdoc IPrepayment
+     */
+    function acceptAccountOwnerTransfer(uint64 accId) external {
+        Account account = sAccIdToAccount[accId];
+        address newOwner = msg.sender;
+        address oldOwner = account.getOwner();
+        account.acceptAccountOwnerTransfer(newOwner);
+        emit AccountOwnerTransferred(accId, oldOwner, newOwner);
     }
 
     /**

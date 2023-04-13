@@ -57,14 +57,15 @@ interface IAccount {
      * @notice Request account owner transfer.
      * @param newOwner - proposed new owner of the account
      */
-    function requestAccountTransfer(address newOwner) external;
+    function requestAccountOwnerTransfer(address newOwner) external;
 
     /**
      * @notice Request account owner transfer.
      * @dev will revert if original owner of accId has
      * not requested that msg.sender become the new owner.
+     * @param newOwner - proposed new owner of the account
      */
-    function acceptAccountTransfer() external;
+    function acceptAccountOwnerTransfer(address newOwner) external;
 
     /**
      * @notice Add a consumer to an account.

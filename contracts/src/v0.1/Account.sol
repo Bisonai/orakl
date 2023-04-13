@@ -33,9 +33,6 @@ contract Account is IAccount, ITypeAndVersion {
     error InsufficientBalance();
     error InvalidConsumer(address consumer);
 
-    event AccountTransferRequested(uint64 indexed accId, address from, address to);
-    event AccountTransferred(uint64 indexed accId, address from, address to);
-
     modifier onlyAccountOwner() {
         if (msg.sender != sOwner) {
             revert MustBeAccountOwner(sOwner);
@@ -120,28 +117,23 @@ contract Account is IAccount, ITypeAndVersion {
     /**
      * @inheritdoc IAccount
      */
-    function requestAccountTransfer(address requestedOwner) external onlyAccountOwner {
+    function requestAccountOwnerTransfer(address newOwner) external onlyPaymentSolution {
         // Proposing the address(0) would never be claimable so no
         // need to check.
-        if (sRequestedOwner != requestedOwner) {
-            sRequestedOwner = requestedOwner;
-            emit AccountTransferRequested(sAccId, msg.sender, requestedOwner);
+        if (sRequestedOwner != newOwner) {
+            sRequestedOwner = newOwner;
         }
     }
 
     /**
      * @inheritdoc IAccount
      */
-    function acceptAccountTransfer() external {
-        if (sRequestedOwner != msg.sender) {
+    function acceptAccountOwnerTransfer(address newOwner) external onlyPaymentSolution {
+        if (sRequestedOwner != newOwner) {
             revert MustBeRequestedOwner(sRequestedOwner);
         }
-
-        address oldOwner = sOwner;
-        sOwner = msg.sender;
+        sOwner = newOwner;
         sRequestedOwner = address(0);
-
-        emit AccountTransferred(sAccId, oldOwner, msg.sender);
     }
 
     /**

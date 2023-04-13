@@ -46,7 +46,7 @@ interface IPrepayment {
      * @param accId - ID of the account
      * @param newOwner - proposed new owner of the account
      */
-    /* function requestAccountOwnerTransfer(uint64 accId, address newOwner) external; */
+    function requestAccountOwnerTransfer(uint64 accId, address newOwner) external;
 
     /**
      * @notice Request account owner transfer.
@@ -54,7 +54,7 @@ interface IPrepayment {
      * @dev will revert if original owner of accId has
      * not requested that msg.sender become the new owner.
      */
-    /* function acceptAccountOwnerTransfer(uint64 accId) external; */
+    function acceptAccountOwnerTransfer(uint64 accId) external;
 
     /**
      * @notice Remove a consumer from a account.
