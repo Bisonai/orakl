@@ -47,11 +47,10 @@ interface IAccount {
     /// THE FOLLOWING FUNCTIONS CHANGE THE STATE OF ACCOUNT.
 
     /**
-     * @notice Increase nonce for consumer registered under accId.
-     * @param consumer - Address of consumer registered under accId
-     * @param accId - ID of the account
+     * @notice Increase nonce for given consumer.
+     * @param consumer - Address of consumer
      */
-    /* function increaseNonce(address consumer, uint64 accId) external returns (uint64); */
+    function increaseNonce(address consumer) external returns (uint64);
 
     /**
      * @notice Request account owner transfer.

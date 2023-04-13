@@ -117,6 +117,15 @@ contract Account is IAccount, ITypeAndVersion {
     /**
      * @inheritdoc IAccount
      */
+    function increaseNonce(address consumer) external onlyPaymentSolution returns (uint64) {
+        uint64 nonce = sConsumerToNonce[consumer] + 1;
+        sConsumerToNonce[consumer] = nonce;
+        return nonce;
+    }
+
+    /**
+     * @inheritdoc IAccount
+     */
     function requestAccountOwnerTransfer(address newOwner) external onlyPaymentSolution {
         // Proposing the address(0) would never be claimable so no
         // need to check.

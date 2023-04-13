@@ -106,18 +106,11 @@ interface IPrepayment {
     /* function chargeFee(uint64 accId, uint256 amount, address node) external; */
 
     /**
-     * @notice Return nonce value.
-     * @param consumer - Address of consumer registered under accId
+     * @notice Increase nonce for consumer registered under accId.
      * @param accId - ID of the account
+     * @param consumer - Address of consumer registered under accId
      */
-    /* function getNonce(address consumer, uint64 accId) external view returns (uint64); */
-
-    ///**
-    // * @notice Increase nonce for consumer registered under accId.
-    // * @param consumer - Address of consumer registered under accId
-    // * @param accId - ID of the account
-    // */
-    ///* function increaseNonce(address consumer, uint64 accId) external returns (uint64); */
+    function increaseNonce(uint64 accId, address consumer) external returns (uint64);
 
     /*
      * @notice Add coordinator to be able to charge using Prepayment method.

@@ -27,9 +27,9 @@ contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
     mapping(uint64 => Account) private sAccIdToAccount;
 
     error PendingRequestExists();
-    error InvalidCoordinator(address coordinator);
+    error InvalidCoordinator();
     error InvalidAccount();
-    error MustBeAccountOwner(address owner);
+    error MustBeAccountOwner();
     error RatioOutOfBounds();
     error FailedToDeposit();
     error FailedToWithdraw();
@@ -55,9 +55,15 @@ contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
     event AccountOwnerTransferred(uint64 indexed accId, address from, address to);
 
     modifier onlyAccountOwner(uint64 accId) {
-        address owner = sAccIdToAccount[accId].getOwner();
-        if (owner != msg.sender) {
-            revert MustBeAccountOwner(owner);
+        if (sAccIdToAccount[accId].getOwner() != msg.sender) {
+            revert MustBeAccountOwner();
+        }
+        _;
+    }
+
+    modifier onlyCoordinator() {
+        if (!sIsCoordinator[msg.sender]) {
+            revert InvalidCoordinator();
         }
         _;
     }
@@ -66,13 +72,17 @@ contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
         return sCoordinators;
     }
 
+    function getAccountOwner(uint64 accId) external view returns (address) {
+        Account account = sAccIdToAccount[accId];
+        return account.getOwner();
+    }
+
     /**
      * @inheritdoc IPrepayment
      */
     function createAccount() external returns (uint64) {
-        sCurrentAccId++;
-        uint64 currentAccId = sCurrentAccId;
-        address[] memory consumers = new address[](0);
+        uint64 currentAccId = sCurrentAccId + 1;
+        sCurrentAccId = currentAccId;
 
         Account acc = new Account(currentAccId, msg.sender);
         sAccIdToAccount[currentAccId] = acc;
@@ -238,9 +248,15 @@ contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
         emit AccountBalanceDecreased(accId, balance + amount, balance, 0);
     }
 
-    function getAccountOwner(uint64 accId) external returns (address) {
+    /**
+     * @inheritdoc IPrepayment
+     */
+    function increaseNonce(
+        uint64 accId,
+        address consumer
+    ) external onlyCoordinator returns (uint64) {
         Account account = sAccIdToAccount[accId];
-        return account.getOwner();
+        return account.increaseNonce(consumer);
     }
 
     /**
@@ -261,7 +277,7 @@ contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
      */
     function removeCoordinator(address coordinator) public onlyOwner {
         if (!sIsCoordinator[coordinator]) {
-            revert InvalidCoordinator(coordinator);
+            revert InvalidCoordinator();
         }
 
         uint256 coordinatorsLength = sCoordinators.length;
