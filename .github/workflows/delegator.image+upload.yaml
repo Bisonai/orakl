@@ -1,16 +1,20 @@
-name: CLI Deploy to Amazon ECR
+name: Delegator Deploy to Amazon ECR
 
 on:
   pull_request:
     branches:
       - master
     paths:
-      - "cli/**"
+      - "delegator/**"
     types:
-      - closed
+      - closed  
+  
+  push:
+    branches:
+      - i-519/delegator-git-actions-building-image
 
 env:
-  ecr_url: public.ecr.aws/bisonai/orakl-cli
+  ecr_url: public.ecr.aws/bisonai/orakl-delegator
 
 jobs:
   prepare:
@@ -34,7 +38,7 @@ jobs:
       - name: Get package version
         id: package
         run: |
-          echo "version=$(node -p -e "require('./cli/package.json').version")" >> $GITHUB_OUTPUT
+          echo "version=$(node -p -e "require('./delegator/package.json').version")" >> $GITHUB_OUTPUT
 
   build:
     name: Build
@@ -52,8 +56,8 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - name: Docker build orakl-cli
-        run:  docker-compose -f cli/docker-compose.build.yaml build
+      - name: Docker build orakl-core
+        run:  docker-compose -f delegator/docker-compose.build.yaml build
 
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v2
@@ -67,7 +71,7 @@ jobs:
         with:
           registry-type: public        
 
-      - name: Publish Image to ECR(cli)
+      - name: Publish Image to ECR(delegator)
         run: |
-          docker tag orakl-cli ${{ env.ecr_url }}:v${{ needs.prepare.outputs.version }}.${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }}
+          docker tag orakl-delegator ${{ env.ecr_url }}:v${{ needs.prepare.outputs.version }}.${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }}
           docker push ${{ env.ecr_url }}:v${{ needs.prepare.outputs.version }}.${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }}
