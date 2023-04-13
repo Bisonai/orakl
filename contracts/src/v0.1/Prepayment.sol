@@ -185,6 +185,11 @@ contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
         emit AccountBalanceDecreased(accId, balance + amount, balance, 0);
     }
 
+    function getAccountOwner(uint64 accId) external returns (address) {
+        Account account = sAccIdToAccount[accId];
+        return account.getOwner();
+    }
+
     /**
      * @inheritdoc IPrepayment
      */

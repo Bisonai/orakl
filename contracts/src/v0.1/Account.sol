@@ -153,12 +153,13 @@ contract Account is IAccount, ITypeAndVersion {
             revert TooManyConsumers();
         }
         if (sConsumerToNonce[consumer] > 0) {
-            // Idempotence - do nothing if already added.
-            // Ensures uniqueness in sConsumers
+            // Idempotence - do nothing if already added. Ensures
+            // uniqueness in sConsumers.
             return;
         }
 
-        // Initialize the nonce to 1, indicating the consumer is allocated.
+        // Initialize the nonce to 1, indicating the consumer is
+        // allocated.
         sConsumerToNonce[consumer] = 1;
         sConsumers.push(consumer);
     }

@@ -28,6 +28,12 @@ interface IPrepayment {
         returns (uint256 balance, uint64 reqCount, address owner, address[] memory consumers);
 
     /**
+     * @notice Get address of account owner.
+     * @param accId - ID of the account
+     */
+    function getAccountOwner(uint64 accId) external returns (address);
+
+    /**
      * @notice Create an account.
      * @return accId - A unique account id.
      * @dev You can manage the consumer set dynamically with addConsumer/removeConsumer.
@@ -106,27 +112,12 @@ interface IPrepayment {
      */
     /* function getNonce(address consumer, uint64 accId) external view returns (uint64); */
 
-    /**
-     * @notice Increase nonce for consumer registered under accId.
-     * @param consumer - Address of consumer registered under accId
-     * @param accId - ID of the account
-     */
-    /* function increaseNonce(address consumer, uint64 accId) external returns (uint64); */
-
-    /**
-     * @notice Get address of account owner.
-     * @param accId - ID of the account
-     */
-    /* function getAccountOwner(uint64 accId) external returns (address owner); */
-
-    /*
-     * @notice Check to see if there exists a request commitment consumers
-     * for all consumers and keyhashes for a given acc.
-     * @param accId - ID of the account
-     * @return true if there exists at least one unfulfilled request for the account, false
-     * otherwise.
-     */
-    function pendingRequestExists(uint64 accId) external view returns (bool);
+    ///**
+    // * @notice Increase nonce for consumer registered under accId.
+    // * @param consumer - Address of consumer registered under accId
+    // * @param accId - ID of the account
+    // */
+    ///* function increaseNonce(address consumer, uint64 accId) external returns (uint64); */
 
     /*
      * @notice Add coordinator to be able to charge using Prepayment method.
@@ -139,4 +130,13 @@ interface IPrepayment {
      * @param coordinator - address of coordinator
      */
     function removeCoordinator(address coordinator) external;
+
+    /*
+     * @notice Check to see if there exists a request commitment consumers
+     * for all consumers and keyhashes for a given acc.
+     * @param accId - ID of the account
+     * @return true if there exists at least one unfulfilled request for the account, false
+     * otherwise.
+     */
+    function pendingRequestExists(uint64 accId) external view returns (bool);
 }
