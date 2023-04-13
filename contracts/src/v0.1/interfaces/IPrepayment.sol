@@ -7,6 +7,26 @@ interface IPrepayment {
     /// READ-ONLY FUNCTIONS /////////////////////////////////////////////////////
 
     /**
+     * @notice Returns `true` when given `accId` is valid, otherwise reverts.
+     * @param accId - ID of the account
+     */
+    function isValidAccount(uint64 accId) external view returns (bool);
+
+    /**
+     * @notice Returns the balance of given account.
+     * @param accId - ID of the account
+     */
+    function getBalance(uint64 accId) external view returns (uint256);
+
+    /**
+     * @notice Return the number of requests created through the
+     * @notice account.
+     * @param accId - ID of the account
+     * @return number of requests
+     */
+    function getReqCount(uint64 accId) external view returns (uint64);
+
+    /**
      * @notice Get an account information.
      * @param accId - ID of the account
      * @return balance - KLAY balance of the account in juels.
@@ -71,6 +91,12 @@ interface IPrepayment {
     function createAccount() external returns (uint64);
 
     /**
+     * @notice Create a temporary account for a single direct payment.
+     * @return accId - A unique account id.
+     */
+    function createTemporaryAccount() external returns (uint64);
+
+    /**
      * @notice Request account owner transfer.
      * @param accId - ID of the account
      * @param newOwner - proposed new owner of the account
@@ -114,6 +140,13 @@ interface IPrepayment {
     function deposit(uint64 accId) external payable;
 
     /**
+     * @notice Deposit KLAY to temporary account.
+     * @notice Anybody can deposit KLAY, there are no restrictions.
+     * @param accId - ID of the account
+     */
+    function depositTemporary(uint64 accId) external payable;
+
+    /**
      * @notice Withdraw KLAY from account.
      * @notice Only account owner can withdraw KLAY.
      * @param accId - ID of the account
@@ -128,6 +161,13 @@ interface IPrepayment {
      * @param operatorFeeRecipient - address of operator that receives fee
      */
     function chargeFee(uint64 accId, uint256 amount, address operatorFeeRecipient) external;
+
+    /**
+     * @notice Charge fee from service connected to account.
+     * @param accId - ID of the account
+     * @param operatorFeeRecipient - address of operator that receives fee
+     */
+    function chargeFee(uint64 accId, address operatorFeeRecipient) external returns (uint256);
 
     /**
      * @notice Increase nonce for consumer registered under accId.

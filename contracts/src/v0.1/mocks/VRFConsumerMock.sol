@@ -41,7 +41,7 @@ contract VRFConsumerMock is VRFConsumerBase {
         uint32 callbackGasLimit,
         uint32 numWords
     ) public payable onlyOwner returns (uint256 requestId) {
-        requestId = COORDINATOR.requestRandomWordsPayment{value: msg.value}(
+        requestId = COORDINATOR.requestRandomWords{value: msg.value}(
             keyHash,
             callbackGasLimit,
             numWords

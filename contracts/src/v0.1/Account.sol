@@ -87,6 +87,13 @@ contract Account is IAccount, ITypeAndVersion {
     /**
      * @inheritdoc IAccount
      */
+    function getReqCount() external view returns (uint64) {
+        return sReqCount;
+    }
+
+    /**
+     * @inheritdoc IAccount
+     */
     function getOwner() external view returns (address) {
         return sOwner;
     }

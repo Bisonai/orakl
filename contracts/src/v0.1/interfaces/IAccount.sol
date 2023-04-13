@@ -29,6 +29,13 @@ interface IAccount {
     function getBalance() external returns (uint256);
 
     /**
+     * @notice Return the number of requests created through the
+     * @notice account.
+     * @return number of requests
+     */
+    function getReqCount() external returns (uint64);
+
+    /**
      * @notice Return the current owner of account.
      * @return owner address
      */

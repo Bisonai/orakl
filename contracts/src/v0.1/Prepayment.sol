@@ -23,11 +23,31 @@ contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
     /* association */
     mapping(address => bool) private sIsCoordinator;
 
+    /* temporary account ID */
+    /* nonce */
+    mapping(uint64 => uint64) private sTemporaryNonce;
+
     // Account
     uint64 private sCurrentAccId;
+    uint64 private sCurrentTmpAccId;
+
     /* accId */
     /* Account */
     mapping(uint64 => Account) private sAccIdToAccount;
+
+    mapping(uint64 => bool) sIsTemporaryAccount;
+
+    struct TemporaryAccountConfig {
+        uint256 balance;
+        uint64 reqCount;
+        address owner;
+        /* uint64 nonce; */
+        address[] consumer;
+    }
+
+    /* accID */
+    /* TemporaryAccountConfig */
+    mapping(uint64 => TemporaryAccountConfig) private sAccIdToTmpAccConfig;
 
     error PendingRequestExists();
     error InvalidCoordinator();
@@ -38,8 +58,12 @@ contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
     error FailedToWithdraw();
     error CoordinatorExists();
     error InsufficientBalance();
+    error BurnFeeFailed();
+    error OperatorFeeFailed();
+    error ProtocolFeeFailed();
 
     event AccountCreated(uint64 indexed accId, address account, address owner);
+    event TemporaryAccountCreated(uint64 indexed accId, address owner);
     event AccountCanceled(uint64 indexed accId, address to, uint256 amount);
     event AccountBalanceIncreased(uint64 indexed accId, uint256 oldBalance, uint256 newBalance);
     event AccountBalanceDecreased(
@@ -50,7 +74,6 @@ contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
     );
     event AccountConsumerAdded(uint64 indexed accId, address consumer);
     event AccountConsumerRemoved(uint64 indexed accId, address consumer);
-    /*     event NodeOperatorFundsWithdrawn(address to, uint256 amount); */
     event BurnRatioSet(uint8 ratio);
     event ProtocolFeeRatioSet(uint8 ratio);
     event CoordinatorAdded(address coordinator);
@@ -79,6 +102,33 @@ contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
     /**
      * @inheritdoc IPrepayment
      */
+    function isValidAccount(uint64 accId) external view returns (bool) {
+        Account account = sAccIdToAccount[accId];
+        if (address(account) != address(0) || sIsTemporaryAccount[accId]) {
+            return true;
+        } else {
+            revert InvalidAccount();
+        }
+    }
+
+    /**
+     * @inheritdoc IPrepayment
+     */
+    function getBalance(uint64 accId) external view returns (uint256 balance) {
+        Account account = sAccIdToAccount[accId];
+        return account.getBalance();
+    }
+
+    /**
+     * @inheritdoc IPrepayment
+     */
+    function getReqCount(uint64 accId) external view returns (uint64) {
+        return sAccIdToAccount[accId].getReqCount();
+    }
+
+    /**
+     * @inheritdoc IPrepayment
+     */
     function getAccount(
         uint64 accId
     )
@@ -87,11 +137,22 @@ contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
         returns (uint256 balance, uint64 reqCount, address owner, address[] memory consumers)
     {
         Account account = sAccIdToAccount[accId];
-        if (address(account) == address(0)) {
+
+        if (address(account) != address(0)) {
+            // regular account
+            return account.getAccount();
+        } else if (sIsTemporaryAccount[accId]) {
+            // temporary account
+            TemporaryAccountConfig memory tmpAccConfig = sAccIdToTmpAccConfig[accId];
+            return (
+                tmpAccConfig.balance,
+                tmpAccConfig.reqCount,
+                tmpAccConfig.owner,
+                tmpAccConfig.consumer
+            );
+        } else {
             revert InvalidAccount();
         }
-
-        return account.getAccount();
     }
 
     /**
@@ -113,7 +174,14 @@ contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
      * @inheritdoc IPrepayment
      */
     function getNonce(uint64 accId, address consumer) external view returns (uint64) {
-        return sAccIdToAccount[accId].getNonce(consumer);
+        Account account = sAccIdToAccount[accId];
+        if (address(account) != address(0)) {
+            return sAccIdToAccount[accId].getNonce(consumer);
+        } else {
+            // Temporary account has nonce always equal to 1
+            // FIXME should we define mapping for consumer?
+            return sTemporaryNonce[accId];
+        }
     }
 
     /**
@@ -141,6 +209,20 @@ contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
         sAccIdToAccount[currentAccId] = acc;
 
         emit AccountCreated(currentAccId, address(acc), msg.sender);
+        return currentAccId;
+    }
+
+    /**
+     * @inheritdoc IPrepayment
+     */
+    function createTemporaryAccount() external returns (uint64) {
+        uint64 currentAccId = sCurrentAccId + 1;
+        sCurrentAccId = currentAccId;
+
+        sIsTemporaryAccount[currentAccId] = true;
+        sTemporaryNonce[currentAccId] = 1;
+
+        emit TemporaryAccountCreated(currentAccId, msg.sender);
         return currentAccId;
     }
 
@@ -254,7 +336,6 @@ contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
         if (address(account) == address(0)) {
             revert InvalidAccount();
         }
-
         uint256 amount = msg.value;
         uint256 balance = account.getBalance();
 
@@ -264,6 +345,13 @@ contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
         }
 
         emit AccountBalanceIncreased(accId, balance, balance + amount);
+    }
+
+    /**
+     * @inheritdoc IPrepayment
+     */
+    function depositTemporary(uint64 accId) external payable {
+        emit AccountBalanceIncreased(accId, 0, msg.value);
     }
 
     /**
@@ -313,6 +401,44 @@ contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
         emit AccountBalanceDecreased(accId, balance, balance - amount, burnFee);
     }
 
+    function chargeFee(
+        uint64 accId,
+        address operatorFeeRecipient
+    ) external onlyCoordinator returns (uint256) {
+        TemporaryAccountConfig memory tmpAccConfig = sAccIdToTmpAccConfig[accId];
+        uint256 amount = tmpAccConfig.balance;
+        sAccIdToTmpAccConfig[accId].balance = 0;
+
+        uint256 burnFee = (amount * sBurnFeeRatio) / 100;
+        uint256 protocolFee = (amount * sProtocolFeeRatio) / 100;
+        uint256 operatorFee = amount - burnFee - protocolFee;
+
+        if (burnFee > 0) {
+            (bool sent, ) = address(0).call{value: burnFee}("");
+            if (!sent) {
+                revert BurnFeeFailed();
+            }
+        }
+
+        if (operatorFee > 0) {
+            (bool sent, ) = operatorFeeRecipient.call{value: operatorFee}("");
+            if (!sent) {
+                revert OperatorFeeFailed();
+            }
+        }
+
+        if (protocolFee > 0) {
+            (bool sent, ) = sProtocolFeeRecipient.call{value: protocolFee}("");
+            if (!sent) {
+                revert ProtocolFeeFailed();
+            }
+        }
+
+        emit AccountBalanceDecreased(accId, amount, 0, burnFee);
+
+        return amount;
+    }
+
     /**
      * @inheritdoc IPrepayment
      */
@@ -321,7 +447,14 @@ contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
         address consumer
     ) external onlyCoordinator returns (uint64) {
         Account account = sAccIdToAccount[accId];
-        return account.increaseNonce(consumer);
+        if (address(account) != address(0)) {
+            return account.increaseNonce(consumer);
+        } else {
+            // FIXME should we define mapping for consumer?
+            uint64 nonce = sTemporaryNonce[accId] + 1;
+            sTemporaryNonce[accId] = nonce;
+            return nonce;
+        }
     }
 
     /**

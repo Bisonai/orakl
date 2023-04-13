@@ -286,38 +286,43 @@ contract VRFCoordinator is Ownable, ICoordinatorBase, ITypeAndVersion, IVRFCoord
         uint64 accId,
         uint32 callbackGasLimit,
         uint32 numWords
-    ) external nonReentrant onlyValidKeyHash(keyHash) returns (uint256 requestId) {
-        (uint256 balance, , , ) = sPrepayment.getAccount(accId);
+    ) external nonReentrant onlyValidKeyHash(keyHash) returns (uint256) {
+        // TODO check if he is one of the consumers
+        uint256 balance = sPrepayment.getBalance(accId);
 
         if (balance < sMinBalance) {
             revert InsufficientPayment(balance, sMinBalance);
         }
-        bool isDirectPayment = false;
 
-        requestId = requestRandomWordsInternal(
+        bool isDirectPayment = false;
+        uint256 requestId = requestRandomWordsInternal(
             keyHash,
             accId,
             callbackGasLimit,
             numWords,
             isDirectPayment
         );
+
+        return requestId;
     }
 
     /**
      * @inheritdoc IVRFCoordinator
      */
-    function requestRandomWordsPayment(
+    function requestRandomWords(
         bytes32 keyHash,
         uint32 callbackGasLimit,
         uint32 numWords
     ) external payable nonReentrant onlyValidKeyHash(keyHash) returns (uint256) {
-        uint256 vrfFee = estimateDirectPaymentFee();
-        if (msg.value < vrfFee) {
-            revert InsufficientPayment(msg.value, vrfFee);
+        // TODO check if he is one of the consumers
+        uint256 fee = estimateDirectPaymentFee();
+        if (msg.value < fee) {
+            revert InsufficientPayment(msg.value, fee);
         }
 
-        uint64 accId = sPrepayment.createAccount();
-        sPrepayment.addConsumer(accId, msg.sender);
+        uint64 accId = sPrepayment.createTemporaryAccount();
+
+        // sPrepayment.addTemporaryConsumer(accId, msg.sender); // TODO remove?
         bool isDirectPayment = true;
         uint256 requestId = requestRandomWordsInternal(
             keyHash,
@@ -326,9 +331,9 @@ contract VRFCoordinator is Ownable, ICoordinatorBase, ITypeAndVersion, IVRFCoord
             numWords,
             isDirectPayment
         );
-        sPrepayment.deposit{value: vrfFee}(accId);
+        sPrepayment.depositTemporary{value: fee}(accId);
 
-        uint256 remaining = msg.value - vrfFee;
+        uint256 remaining = msg.value - fee;
         if (remaining > 0) {
             (bool sent, ) = msg.sender.call{value: remaining}("");
             if (!sent) {
@@ -380,26 +385,18 @@ contract VRFCoordinator is Ownable, ICoordinatorBase, ITypeAndVersion, IVRFCoord
         bool success = callWithExactGas(rc.callbackGasLimit, rc.sender, resp);
         sConfig.reentrancyLock = false;
 
-        // We want to charge users exactly for how much gas they use in their callback.
-        // The gasAfterPaymentCalculation is meant to cover these additional operations where we
-        // decrement the account balance and increment the oracles withdrawable balance.
-        // We also add the flat KLAY fee to the payment amount.
-        // Its specified in millionths of KLAY, if sConfig.fulfillmentFlatFeeKlayPPM = 1
-        // 1 KLAY / 1e6 = 1e18 pebs / 1e6 = 1e12 pebs.
-        (uint256 balance, uint64 reqCount, , ) = sPrepayment.getAccount(rc.accId);
-
         uint256 payment;
         if (isDirectPayment) {
-            payment = balance;
+            payment = sPrepayment.chargeFee(rc.accId, sKeyHashToOracle[keyHash]);
         } else {
+            uint64 reqCount = sPrepayment.getReqCount(rc.accId);
             payment = calculatePaymentAmount(
                 startGas,
                 sConfig.gasAfterPaymentCalculation,
                 getFeeTier(reqCount)
             );
+            sPrepayment.chargeFee(rc.accId, payment, sKeyHashToOracle[keyHash]);
         }
-
-        sPrepayment.chargeFee(rc.accId, payment, sKeyHashToOracle[keyHash]);
 
         // Include payment in the event for tracking costs.
         emit RandomWordsFulfilled(requestId, randomness, payment, success);
@@ -485,12 +482,7 @@ contract VRFCoordinator is Ownable, ICoordinatorBase, ITypeAndVersion, IVRFCoord
         uint32 numWords,
         bool isDirectPayment
     ) internal returns (uint256) {
-        // Input validation using the account storage.
-        // call to prepayment contract
-        address owner = sPrepayment.getAccountOwner(accId);
-        if (owner == address(0)) {
-            revert InvalidAccount();
-        }
+        sPrepayment.isValidAccount(accId);
 
         // Its important to ensure that the consumer is in fact who they say they
         // are, otherwise they could use someone else's account balance.
