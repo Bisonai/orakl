@@ -3,20 +3,15 @@ pragma solidity ^0.8.16;
 
 // https://github.com/smartcontractkit/chainlink/blob/develop/contracts/src/v0.8/VRFCoordinatorV2.sol
 
-import "./interfaces/CoordinatorBaseInterface.sol";
-import "./interfaces/PrepaymentInterface.sol";
-import "./interfaces/TypeAndVersionInterface.sol";
-import "./interfaces/VRFCoordinatorInterface.sol";
+import "./interfaces/ICoordinatorBase.sol";
+import "./interfaces/IPrepayment.sol";
+import "./interfaces/ITypeAndVersion.sol";
+import "./interfaces/IVRFCoordinator.sol";
 import "./libraries/VRF.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "./VRFConsumerBase.sol";
 
-contract VRFCoordinator is
-    CoordinatorBaseInterface,
-    Ownable,
-    TypeAndVersionInterface,
-    VRFCoordinatorInterface
-{
+contract VRFCoordinator is Ownable, ICoordinatorBase, ITypeAndVersion, IVRFCoordinator {
     uint32 public constant MAX_NUM_WORDS = 500;
     // 5k is plenty for an EXTCODESIZE call (2600) + warm CALL (100)
     // and some arithmetic operations.
@@ -65,7 +60,7 @@ contract VRFCoordinator is
     }
     FeeConfig private sFeeConfig;
 
-    PrepaymentInterface private sPrepayment;
+    IPrepayment private sPrepayment;
 
     struct DirectPaymentConfig {
         uint256 fulfillmentFee;
@@ -127,7 +122,7 @@ contract VRFCoordinator is
     }
 
     constructor(address prepayment) {
-        sPrepayment = PrepaymentInterface(prepayment);
+        sPrepayment = IPrepayment(prepayment);
         emit PrepaymentSet(prepayment);
     }
 
@@ -245,7 +240,7 @@ contract VRFCoordinator is
     }
 
     /**
-     * @inheritdoc VRFCoordinatorInterface
+     * @inheritdoc IVRFCoordinator
      */
     function getRequestConfig() external view returns (uint32, bytes32[] memory) {
         return (sConfig.maxGasLimit, sKeyHashes);
@@ -284,7 +279,7 @@ contract VRFCoordinator is
     }
 
     /**
-     * @inheritdoc VRFCoordinatorInterface
+     * @inheritdoc IVRFCoordinator
      */
     function requestRandomWords(
         bytes32 keyHash,
@@ -309,7 +304,7 @@ contract VRFCoordinator is
     }
 
     /**
-     * @inheritdoc VRFCoordinatorInterface
+     * @inheritdoc IVRFCoordinator
      */
     function requestRandomWordsPayment(
         bytes32 keyHash,
@@ -458,7 +453,7 @@ contract VRFCoordinator is
     }
 
     /**
-     * @inheritdoc CoordinatorBaseInterface
+     * @inheritdoc ICoordinatorBase
      */
     function pendingRequestExists(
         address consumer,
