@@ -60,6 +60,7 @@ function job(queueName: string, _logger: Logger) {
       await queue.add('request-response', outData)
     } catch (e) {
       logger.error(e)
+      throw e
     }
   }
 
