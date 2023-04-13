@@ -2,6 +2,20 @@
 pragma solidity ^0.8.16;
 
 interface IAccount {
+    /// READ-ONLY FUNCTIONS /////////////////////////////////////////////////////
+
+    /**
+     * @notice Get an account information.
+     * @return balance - KLAY balance of the account in juels.
+     * @return reqCount - number of requests for this account, determines fee tier.
+     * @return owner - owner of the account.
+     * @return consumers - list of consumer address which are able to use this account.
+     */
+    function getAccount()
+        external
+        view
+        returns (uint256 balance, uint64 reqCount, address owner, address[] memory consumers);
+
     /**
      * @notice Return an account ID that is associated with this account.
      * @return account ID
@@ -44,7 +58,7 @@ interface IAccount {
      */
     function getPaymentSolution() external view returns (address);
 
-    /// THE FOLLOWING FUNCTIONS CHANGE THE STATE OF ACCOUNT.
+    /// STATE-ALTERING FUNCTIONS ////////////////////////////////////////////////
 
     /**
      * @notice Increase nonce for given consumer.
@@ -79,15 +93,32 @@ interface IAccount {
     function removeConsumer(address consumer) external;
 
     /**
-     * @notice Deposit KLAY to account.
-     * @dev Anybody can deposit KLAY, there are no restrictions.
-     */
-    /* function deposit() external payable; */
-
-    /**
      * @notice Withdraw KLAY from account.
      * @dev Only account owner can withdraw KLAY.
      * @param amount - KLAY amount to be withdrawn
      */
-    /* function withdraw(uint256 amount) external; */
+    function withdraw(uint256 amount) external returns (bool, uint256);
+
+    /**
+     * @notice Charge fee from service connected to account.
+     * @param burnFee - $KLAY amount to be burnt
+     * @param operatorFee - $KLAY amount to be sent to operator fee recipient
+     * @param operatorFeeRecipient - address of operator
+     * @param protocolFee - $KLAY amount to be sent to protocol fee recipient
+     * @param protocolFeeRecipient - address of Orakl Network
+     */
+    function chargeFee(
+        uint256 burnFee,
+        uint256 operatorFee,
+        address operatorFeeRecipient,
+        uint256 protocolFee,
+        address protocolFeeRecipient
+    ) external;
+
+    /**
+     * @notice Destroy the smart contract and send the remaining $KLAY
+     * @notice to `to` address.
+     * @param to - Where to send the remaining KLAY to
+     */
+    function cancelAccount(address to) external;
 }

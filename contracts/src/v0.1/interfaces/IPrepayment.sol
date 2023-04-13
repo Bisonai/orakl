@@ -1,16 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.16;
 
+import "./ICoordinatorBase.sol";
+
 interface IPrepayment {
-    // Used by Coordinator
-    // getAccount
-    // createAccount
-    // addConsumer
-    // deposit
-    // chargeFee
-    // getAccountOwner
-    // getNonce
-    // increaseNonce
+    /// READ-ONLY FUNCTIONS /////////////////////////////////////////////////////
 
     /**
      * @notice Get an account information.
@@ -20,7 +14,7 @@ interface IPrepayment {
      * @return owner - owner of the account.
      * @return consumers - list of consumer address which are able to use this account.
      */
-    function getAccountInfo(
+    function getAccount(
         uint64 accId
     )
         external
@@ -32,6 +26,34 @@ interface IPrepayment {
      * @param accId - ID of the account
      */
     function getAccountOwner(uint64 accId) external returns (address);
+
+    /**
+     * @notice Get address of protocol fee recipient.
+     */
+    function getProtocolFeeRecipient() external view returns (address);
+
+    /**
+     * @notice Get addresses of all registered coordinators in Prepayment.
+     */
+    function getCoordinators() external view returns (ICoordinatorBase[] memory);
+
+    /*
+     * @notice Check to see if there exists a request commitment consumers
+     * for all consumers and keyhashes for a given acc.
+     * @param accId - ID of the account
+     * @return true if there exists at least one unfulfilled request for the account, false
+     * otherwise.
+     */
+    function pendingRequestExists(uint64 accId) external view returns (bool);
+
+    /// STATE-ALTERING FUNCTIONS ////////////////////////////////////////////////
+
+    /**
+     * @notice Update address of protocol fee recipient that will
+     * @notice receive protocol fees.
+     * @param protocolFeeRecipient - address of protocol fee recipient
+     */
+    function setProtocolFeeRecipient(address protocolFeeRecipient) external;
 
     /**
      * @notice Create an account.
@@ -93,12 +115,6 @@ interface IPrepayment {
     function withdraw(uint64 accId, uint256 amount) external;
 
     /**
-     * @notice Withdraw node operator funds stored in contract.
-     * @param amount - KLAY amount to be withdrawn
-     */
-    /* function operatorWithdraw(uint256 amount) external; */
-
-    /**
      * @notice Charge fee from service connected to account.
      * @param accId - ID of the account
      * @param amount - KLAY amount to be charged
@@ -124,13 +140,4 @@ interface IPrepayment {
      * @param coordinator - address of coordinator
      */
     function removeCoordinator(address coordinator) external;
-
-    /*
-     * @notice Check to see if there exists a request commitment consumers
-     * for all consumers and keyhashes for a given acc.
-     * @param accId - ID of the account
-     * @return true if there exists at least one unfulfilled request for the account, false
-     * otherwise.
-     */
-    function pendingRequestExists(uint64 accId) external view returns (bool);
 }

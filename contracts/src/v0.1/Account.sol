@@ -7,7 +7,6 @@ import "./interfaces/ITypeAndVersion.sol";
 /// @title Orakl Network Account
 /// @author Bisonai
 /// @notice Every consumer has to create an account in order to be able to setup
-/// @notice TODO
 /// @dev
 contract Account is IAccount, ITypeAndVersion {
     uint16 public constant MAX_CONSUMERS = 100;
@@ -60,7 +59,10 @@ contract Account is IAccount, ITypeAndVersion {
         sBalance += msg.value;
     }
 
-    function getAccountInfo()
+    /**
+     * @inheritdoc IAccount
+     */
+    function getAccount()
         external
         view
         returns (uint256 balance, uint64 reqCount, address owner, address[] memory consumers)
@@ -195,7 +197,9 @@ contract Account is IAccount, ITypeAndVersion {
         delete sConsumerToNonce[consumer];
     }
 
-    // TODO
+    /**
+     * @inheritdoc IAccount
+     */
     function withdraw(
         uint256 amount
     ) external onlyPaymentSolution returns (bool sent, uint256 balance) {
@@ -211,6 +215,9 @@ contract Account is IAccount, ITypeAndVersion {
         (sent, ) = payable(sOwner).call{value: amount}("");
     }
 
+    /**
+     * @inheritdoc IAccount
+     */
     function chargeFee(
         uint256 burnFee,
         uint256 operatorFee,
@@ -244,14 +251,17 @@ contract Account is IAccount, ITypeAndVersion {
     }
 
     /**
+     * @inheritdoc IAccount
+     */
+    function cancelAccount(address to) external onlyPaymentSolution {
+        selfdestruct(payable(to));
+    }
+
+    /**
      * @notice The type and version of this contract
      * @return Type and version string
      */
     function typeAndVersion() external pure virtual override returns (string memory) {
         return "Account v0.1";
-    }
-
-    function cancelAccount(address to) external onlyPaymentSolution {
-        selfdestruct(payable(to));
     }
 }

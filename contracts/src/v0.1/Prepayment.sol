@@ -76,20 +76,50 @@ contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
         sProtocolFeeRecipient = protocolFeeRecipient;
     }
 
-    function getProtocolFeeRecipient() external view returns (address) {
-        return sProtocolFeeRecipient;
+    /**
+     * @inheritdoc IPrepayment
+     */
+    function getAccount(
+        uint64 accId
+    )
+        external
+        view
+        returns (uint256 balance, uint64 reqCount, address owner, address[] memory consumers)
+    {
+        Account account = sAccIdToAccount[accId];
+        if (address(account) == address(0)) {
+            revert InvalidAccount();
+        }
+
+        return account.getAccount();
     }
 
-    function getCoordinators() external view returns (ICoordinatorBase[] memory) {
-        return sCoordinators;
-    }
-
+    /**
+     * @inheritdoc IPrepayment
+     */
     function getAccountOwner(uint64 accId) external view returns (address) {
         Account account = sAccIdToAccount[accId];
         return account.getOwner();
     }
 
-    function getProtocolFeeRecipient(address protocolFeeRecipient) external onlyOwner {
+    /**
+     * @inheritdoc IPrepayment
+     */
+    function getCoordinators() external view returns (ICoordinatorBase[] memory) {
+        return sCoordinators;
+    }
+
+    /**
+     * @inheritdoc IPrepayment
+     */
+    function getProtocolFeeRecipient() external view returns (address) {
+        return sProtocolFeeRecipient;
+    }
+
+    /**
+     * @inheritdoc IPrepayment
+     */
+    function setProtocolFeeRecipient(address protocolFeeRecipient) external onlyOwner {
         sProtocolFeeRecipient = protocolFeeRecipient;
     }
 
@@ -145,24 +175,6 @@ contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
         delete sAccIdToAccount[accId];
 
         emit AccountCanceled(accId, to, balance);
-    }
-
-    /**
-     * @inheritdoc IPrepayment
-     */
-    function getAccountInfo(
-        uint64 accId
-    )
-        external
-        view
-        returns (uint256 balance, uint64 reqCount, address owner, address[] memory consumers)
-    {
-        Account account = sAccIdToAccount[accId];
-        if (address(account) == address(0)) {
-            revert InvalidAccount();
-        }
-
-        return account.getAccountInfo();
     }
 
     /**
