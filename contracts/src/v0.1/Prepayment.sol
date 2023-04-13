@@ -26,6 +26,7 @@ contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
     mapping(uint64 => Account) private sAccIdToAccount;
 
     error PendingRequestExists();
+    error InvalidCoordinator(address coordinator);
     error InvalidAccount();
     error MustBeAccountOwner(address owner);
     error InvalidBurnRatio();
@@ -57,6 +58,10 @@ contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
             revert MustBeAccountOwner(owner);
         }
         _;
+    }
+
+    function getCoordinators() external view returns (ICoordinatorBase[] memory) {
+        return sCoordinators;
     }
 
     /**
@@ -231,6 +236,10 @@ contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
      * @inheritdoc IPrepayment
      */
     function removeCoordinator(address coordinator) public onlyOwner {
+        if (!sIsCoordinator[coordinator]) {
+            revert InvalidCoordinator(coordinator);
+        }
+
         uint256 coordinatorsLength = sCoordinators.length;
         for (uint256 i; i < coordinatorsLength; ++i) {
             if (sCoordinators[i] == ICoordinatorBase(coordinator)) {
@@ -240,8 +249,8 @@ contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
                 break;
             }
         }
-        delete sIsCoordinator[coordinator];
 
+        delete sIsCoordinator[coordinator];
         emit CoordinatorRemoved(coordinator);
     }
 

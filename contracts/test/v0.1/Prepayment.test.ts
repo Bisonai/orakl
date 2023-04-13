@@ -2,6 +2,8 @@ import { expect } from 'chai'
 import { ethers } from 'hardhat'
 import { loadFixture } from '@nomicfoundation/hardhat-network-helpers'
 
+const NULL_ADDRESS = '0x0000000000000000000000000000000000000000'
+
 describe('Prepayment', function () {
   async function deployPrepayment() {
     const { deployer, consumer, consumer1, consumer2 } = await hre.getNamedAccounts()
@@ -214,6 +216,7 @@ describe('Prepayment', function () {
       await prepaymentContract.addCoordinator(coordinatorAddress)
     ).wait()
 
+    // Check the event information
     expect(txAddCoordinator.events.length).to.be.equal(1)
     const addCoordinatorEvent = prepaymentContract.interface.parseLog(txAddCoordinator.events[0])
     expect(addCoordinatorEvent.name).to.be.equal('CoordinatorAdded')
@@ -226,7 +229,25 @@ describe('Prepayment', function () {
     )
 
     // Remove coordinator ///////////////////////////////////////////////////////
-    // TODO
+    // Non-existing coordinator cannot be removed
+    await expect(prepaymentContract.removeCoordinator(NULL_ADDRESS)).to.be.rejectedWith(
+      'InvalidCoordinator'
+    )
+
+    // We can remove coordinator that has been previously added
+    const txRemoveCoordinator = await (
+      await prepaymentContract.removeCoordinator(coordinatorAddress)
+    ).wait()
+    expect((await prepaymentContract.getCoordinators()).length).to.be.equal(0)
+
+    // Check the event information
+    expect(txRemoveCoordinator.events.length).to.be.equal(1)
+    const removeCoordinatorEvent = prepaymentContract.interface.parseLog(
+      txRemoveCoordinator.events[0]
+    )
+    expect(removeCoordinatorEvent.name).to.be.equal('CoordinatorRemoved')
+    const { coordinator: removeCoordinatorAddress } = removeCoordinatorEvent.args
+    expect(removeCoordinatorAddress).to.be.equal(coordinatorAddress)
   })
 
   it('Transfer account ownership', async function () {
@@ -285,8 +306,6 @@ describe('Prepayment', function () {
     expect(toTransferred).to.be.equal(toConsumer)
 
     expect(await accountContract.getOwner()).to.be.equal(toConsumer)
-    expect(await accountContract.getRequestedOwner()).to.be.equal(
-      '0x0000000000000000000000000000000000000000'
-    )
+    expect(await accountContract.getRequestedOwner()).to.be.equal(NULL_ADDRESS)
   })
 })
