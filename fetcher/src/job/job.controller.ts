@@ -3,7 +3,7 @@ import { InjectQueue } from '@nestjs/bullmq'
 import { Queue } from 'bullmq'
 import { extractFeeds } from './job.utils'
 import { loadAggregator, activateAggregator, deactivateAggregator } from './job.api'
-import { FETCHER_QUEUE_NAME } from '../settings'
+import { FETCHER_QUEUE_NAME, FETCH_FREQUENCY } from '../settings'
 
 @Controller({
   version: '1'
@@ -34,7 +34,7 @@ export class JobController {
     // Launch recurrent data collection
     await this.queue.add(aggregatorHash, feeds, {
       repeat: {
-        every: 2_000 // FIXME load env settings
+        every: FETCH_FREQUENCY
       },
       removeOnComplete: true,
       removeOnFail: true

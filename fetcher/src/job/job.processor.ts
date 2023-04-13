@@ -4,8 +4,9 @@ import { Job } from 'bullmq'
 import { FetcherError, FetcherErrorCode } from './job.errors'
 import { fetchData, aggregateData } from './job.utils'
 import { insertMultipleData, insertAggregateData } from './job.api'
+import { WORKER_OPTS } from '../settings'
 
-@Processor('orakl-fetcher-queue')
+@Processor('orakl-fetcher-queue', WORKER_OPTS)
 export class JobProcessor extends WorkerHost {
   private readonly logger = new Logger(JobProcessor.name)
 
