@@ -31,7 +31,8 @@ interface RequestResponseCoordinatorInterface {
     function requestData(
         Orakl.Request memory req,
         uint32 callbackGasLimit,
-        uint64 accId
+        uint64 accId,
+        uint16 submissionAmount
     ) external returns (uint256);
 
     function requestData(

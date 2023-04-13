@@ -9,6 +9,7 @@ import "./interfaces/TypeAndVersionInterface.sol";
 import "./RequestResponseConsumerBase.sol";
 import "./RequestResponseConsumerFulfill.sol";
 import "./libraries/Orakl.sol";
+import "./Median.sol";
 
 contract RequestResponseCoordinator is
     CoordinatorBaseInterface,
@@ -69,6 +70,11 @@ contract RequestResponseCoordinator is
 
     DirectPaymentConfig private sDirectPaymentConfig;
     mapping(bytes32 => bool) sJobId;
+
+    mapping(uint256 => uint16) private sSubmissionCount;
+
+    mapping(uint256 => address[]) private sResponseSender;
+    mapping(uint256 => int256[]) private sResponseSubmission;
 
     error InvalidConsumer(uint64 accId, address consumer);
     error InvalidAccount();
@@ -302,7 +308,8 @@ contract RequestResponseCoordinator is
     function requestData(
         Orakl.Request memory req,
         uint32 callbackGasLimit,
-        uint64 accId
+        uint64 accId,
+        uint16 submissionAmount
     ) external nonReentrant returns (uint256 requestId) {
         if (!sJobId[req.id]) {
             revert InvalidJobId();
@@ -312,6 +319,7 @@ contract RequestResponseCoordinator is
         if (balance < sMinBalance) {
             revert InsufficientPayment(balance, sMinBalance);
         }
+        sSubmissionCount[requestId] = submissionAmount;
         requestId = requestDataInternal(req, accId, callbackGasLimit, isDirectPayment);
     }
 
@@ -595,14 +603,27 @@ contract RequestResponseCoordinator is
     ) external nonReentrant returns (uint256) {
         uint256 startGas = gasleft();
         validateDataResponse(rc, requestId);
+        int256[] storage arrRes = sResponseSubmission[requestId];
+        sResponseSubmission[requestId].push(response);
+        sResponseSender[requestId].push(msg.sender);
+        if (arrRes.length < sSubmissionCount[requestId]) {
+            return 0;
+        }
+
+        //pick response
+        int256 pickedResponse = Median.calculateInplace(arrRes);
+
         RequestResponseConsumerFulfillInt256 rr;
         bytes memory resp = abi.encodeWithSelector(
             rr.rawFulfillDataRequestInt256.selector,
             requestId,
-            response
+            pickedResponse
         );
         bool success = fulfill(resp, rc);
         uint256 payment = pay(rc, isDirectPayment, startGas);
+        delete sResponseSubmission[requestId];
+        delete sResponseSender[requestId];
+        delete sSubmissionCount[requestId];
         emit DataRequestFulfilledInt256(requestId, response, payment, success);
         return payment;
     }

@@ -53,7 +53,7 @@ contract RequestResponseConsumerMock is
         req.add("path", "RAW,KLAY,USD,PRICE");
         req.add("pow10", "8");
 
-        requestId = COORDINATOR.requestData(req, callbackGasLimit, accId);
+        requestId = COORDINATOR.requestData(req, callbackGasLimit, accId, 3);
     }
 
     function requestDataDirectPaymentUint256(
@@ -87,7 +87,7 @@ contract RequestResponseConsumerMock is
         req.add("path", "RAW,KLAY,USD,PRICE");
         req.add("pow10", "8");
 
-        requestId = COORDINATOR.requestData(req, callbackGasLimit, accId);
+        requestId = COORDINATOR.requestData(req, callbackGasLimit, accId, 3);
     }
 
     function requestDataDirectPaymentInt256(
@@ -121,7 +121,7 @@ contract RequestResponseConsumerMock is
         req.add("path", "RAW,KLAY,USD,PRICE");
         req.add("pow10", "8");
 
-        requestId = COORDINATOR.requestData(req, callbackGasLimit, accId);
+        requestId = COORDINATOR.requestData(req, callbackGasLimit, accId, 3);
     }
 
     function requestDataDirectPaymentBool(
@@ -155,7 +155,7 @@ contract RequestResponseConsumerMock is
         req.add("path", "RAW,KLAY,USD,PRICE");
         req.add("pow10", "8");
 
-        requestId = COORDINATOR.requestData(req, callbackGasLimit, accId);
+        requestId = COORDINATOR.requestData(req, callbackGasLimit, accId, 3);
     }
 
     function requestDataDirectPaymentString(
@@ -189,7 +189,7 @@ contract RequestResponseConsumerMock is
         req.add("path", "RAW,KLAY,USD,PRICE");
         req.add("pow10", "8");
 
-        requestId = COORDINATOR.requestData(req, callbackGasLimit, accId);
+        requestId = COORDINATOR.requestData(req, callbackGasLimit, accId, 3);
     }
 
     function requestDataDirectPaymentBytes32(
@@ -223,7 +223,7 @@ contract RequestResponseConsumerMock is
         req.add("path", "RAW,KLAY,USD,PRICE");
         req.add("pow10", "8");
 
-        requestId = COORDINATOR.requestData(req, callbackGasLimit, accId);
+        requestId = COORDINATOR.requestData(req, callbackGasLimit, accId, 3);
     }
 
     function requestDataDirectPaymentBytes(
