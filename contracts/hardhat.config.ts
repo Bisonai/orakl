@@ -27,7 +27,6 @@ const config: HardhatUserConfig = {
 
   networks: {
     localhost: {
-      gas: 1_400_000,
       gasPrice: 250_000_000_000
     },
     baobab: {
