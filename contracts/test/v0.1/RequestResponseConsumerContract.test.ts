@@ -8,14 +8,19 @@ import { parseKlay } from './utils'
 
 describe('Request-Response user contract', function () {
   async function deployFixture() {
-    const { deployer, consumer, rrOracle0 } = await hre.getNamedAccounts()
+    const {
+      deployer,
+      consumer,
+      rrOracle0,
+      consumer1: sProtocolFeeRecipient
+    } = await hre.getNamedAccounts()
     const { maxGasLimit, gasAfterPaymentCalculation, feeConfig } = requestResponseConfig()
 
     // PREPAYMENT
     let prepaymentContract = await ethers.getContractFactory('Prepayment', {
       signer: deployer
     })
-    prepaymentContract = await prepaymentContract.deploy()
+    prepaymentContract = await prepaymentContract.deploy(sProtocolFeeRecipient)
     await prepaymentContract.deployed()
 
     // COORDINATOR
