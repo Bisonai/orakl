@@ -3,7 +3,7 @@ import { ethers } from 'hardhat'
 import { loadFixture } from '@nomicfoundation/hardhat-network-helpers'
 
 const NULL_ADDRESS = '0x0000000000000000000000000000000000000000'
-const DEFAULT_BURN_FEE_RATIO = 20
+const DEFAULT_BURN_FEE_RATIO = 50
 const DEFAULT_PROTOCOL_FEE_RATIO = 5
 
 describe('Prepayment', function () {

@@ -11,7 +11,7 @@ import "./interfaces/ITypeAndVersion.sol";
 contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
     uint8 public constant MIN_RATIO = 0;
     uint8 public constant MAX_RATIO = 100;
-    uint8 private sBurnFeeRatio = 20; // %
+    uint8 private sBurnFeeRatio = 50; // %
     uint8 private sProtocolFeeRatio = 5; // %
 
     address private sProtocolFeeRecipient;
