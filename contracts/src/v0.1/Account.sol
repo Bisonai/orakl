@@ -32,6 +32,9 @@ contract Account is IAccount, ITypeAndVersion {
     error MustBePaymentSolution(address paymentSolution);
     error InsufficientBalance();
     error InvalidConsumer(address consumer);
+    error BurnFeeFailed();
+    error OperatorFeeFailed();
+    error ProtocolFeeFailed();
 
     modifier onlyAccountOwner() {
         if (msg.sender != sOwner) {
@@ -192,6 +195,7 @@ contract Account is IAccount, ITypeAndVersion {
         delete sConsumerToNonce[consumer];
     }
 
+    // TODO
     function withdraw(
         uint256 amount
     ) external onlyPaymentSolution returns (bool sent, uint256 balance) {
@@ -205,6 +209,38 @@ contract Account is IAccount, ITypeAndVersion {
         sBalance = balance;
 
         (sent, ) = payable(sOwner).call{value: amount}("");
+    }
+
+    function chargeFee(
+        uint256 burnFee,
+        uint256 operatorFee,
+        address operatorFeeRecipient,
+        uint256 protocolFee,
+        address protocolFeeRecipient
+    ) external onlyPaymentSolution {
+        sReqCount += 1;
+        sBalance -= (burnFee + operatorFee + protocolFee);
+
+        if (burnFee > 0) {
+            (bool sent, ) = address(0).call{value: burnFee}("");
+            if (!sent) {
+                revert BurnFeeFailed();
+            }
+        }
+
+        if (operatorFee > 0) {
+            (bool sent, ) = operatorFeeRecipient.call{value: operatorFee}("");
+            if (!sent) {
+                revert OperatorFeeFailed();
+            }
+        }
+
+        if (protocolFee > 0) {
+            (bool sent, ) = protocolFeeRecipient.call{value: protocolFee}("");
+            if (!sent) {
+                revert ProtocolFeeFailed();
+            }
+        }
     }
 
     /**

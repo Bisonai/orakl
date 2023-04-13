@@ -3,17 +3,23 @@ import { ethers } from 'hardhat'
 import { loadFixture } from '@nomicfoundation/hardhat-network-helpers'
 
 const NULL_ADDRESS = '0x0000000000000000000000000000000000000000'
-const DEFAULT_BURN_RATIO = 20
+const DEFAULT_BURN_FEE_RATIO = 20
 const DEFAULT_PROTOCOL_FEE_RATIO = 5
 
 describe('Prepayment', function () {
   async function deployPrepayment() {
-    const { deployer, consumer, consumer1, consumer2 } = await hre.getNamedAccounts()
+    const {
+      deployer,
+      consumer,
+      consumer1,
+      consumer2,
+      account8: protocolFeeRecipient
+    } = await hre.getNamedAccounts()
 
     let prepaymentContract = await ethers.getContractFactory('Prepayment', {
       signer: deployer
     })
-    prepaymentContract = await prepaymentContract.deploy()
+    prepaymentContract = await prepaymentContract.deploy(protocolFeeRecipient)
     await prepaymentContract.deployed()
 
     const prepaymentContractConsumerSigner = await ethers.getContractAt(
@@ -36,25 +42,25 @@ describe('Prepayment', function () {
     const { prepaymentContract } = await loadFixture(deployPrepayment)
 
     // 1. Get initial burn ratio
-    const burnRatio = await prepaymentContract.getBurnRatio()
-    expect(burnRatio).to.be.equal(DEFAULT_BURN_RATIO)
+    const burnFeeRatio = await prepaymentContract.getBurnFeeRatio()
+    expect(burnFeeRatio).to.be.equal(DEFAULT_BURN_FEE_RATIO)
 
-    // 2. Set burn ratio
+    // 2. Set burnFee ratio
     const lowerThresholdRatio = 0
-    await prepaymentContract.setBurnRatio(lowerThresholdRatio)
-    expect(await prepaymentContract.getBurnRatio()).to.be.equal(lowerThresholdRatio)
+    await prepaymentContract.setBurnFeeRatio(lowerThresholdRatio)
+    expect(await prepaymentContract.getBurnFeeRatio()).to.be.equal(lowerThresholdRatio)
 
     const higherThresholdRatio = 100
-    await prepaymentContract.setBurnRatio(higherThresholdRatio)
-    expect(await prepaymentContract.getBurnRatio()).to.be.equal(higherThresholdRatio)
+    await prepaymentContract.setBurnFeeRatio(higherThresholdRatio)
+    expect(await prepaymentContract.getBurnFeeRatio()).to.be.equal(higherThresholdRatio)
 
-    // 3. Set burn ratio with
+    // 3. Set burnFee ratio with
     const ratioBelowThreshold = -1
-    await expect(prepaymentContract.setBurnRatio(ratioBelowThreshold)).to.be.rejected
+    await expect(prepaymentContract.setBurnFeeRatio(ratioBelowThreshold)).to.be.rejected
 
     const ratioAboveThreshold = 101
     await expect(
-      prepaymentContract.setBurnRatio(ratioAboveThreshold)
+      prepaymentContract.setBurnFeeRatio(ratioAboveThreshold)
     ).to.be.revertedWithCustomError(prepaymentContract, 'RatioOutOfBounds')
   })
 
@@ -76,11 +82,11 @@ describe('Prepayment', function () {
 
     // 3. Set burn ratio with
     const ratioBelowThreshold = -1
-    await expect(prepaymentContract.setBurnRatio(ratioBelowThreshold)).to.be.rejected
+    await expect(prepaymentContract.setProtocolFeeRatio(ratioBelowThreshold)).to.be.rejected
 
     const ratioAboveThreshold = 101
     await expect(
-      prepaymentContract.setBurnRatio(ratioAboveThreshold)
+      prepaymentContract.setProtocolFeeRatio(ratioAboveThreshold)
     ).to.be.revertedWithCustomError(prepaymentContract, 'RatioOutOfBounds')
   })
 

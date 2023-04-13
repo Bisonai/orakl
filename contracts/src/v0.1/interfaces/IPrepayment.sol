@@ -102,8 +102,9 @@ interface IPrepayment {
      * @notice Charge fee from service connected to account.
      * @param accId - ID of the account
      * @param amount - KLAY amount to be charged
+     * @param operatorFeeRecipient - address of operator that receives fee
      */
-    /* function chargeFee(uint64 accId, uint256 amount, address node) external; */
+    function chargeFee(uint64 accId, uint256 amount, address operatorFeeRecipient) external;
 
     /**
      * @notice Increase nonce for consumer registered under accId.
