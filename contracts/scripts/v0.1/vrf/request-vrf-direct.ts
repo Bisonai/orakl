@@ -15,7 +15,7 @@ async function main() {
   const callbackGasLimit = 500_000
   const numWords = 1
 
-  await vrfConsumerSigner.requestRandomWordsDirect(keyHash, callbackGasLimit, numWords, {
+  await vrfConsumerSigner.requestRandomWordsDirectPayment(keyHash, callbackGasLimit, numWords, {
     value: ethers.utils.parseEther('1.0')
   })
 }
