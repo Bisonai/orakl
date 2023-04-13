@@ -19,12 +19,12 @@ function generateDummyPublicProvingKey() {
 
 describe('VRF contract', function () {
   async function deployFixture() {
-    const { deployer, consumer } = await hre.getNamedAccounts()
+    const { deployer, consumer, consumer1: sProtocolFeeRecipient } = await hre.getNamedAccounts()
 
     let prepaymentContract = await ethers.getContractFactory('Prepayment', {
       signer: deployer
     })
-    prepaymentContract = await prepaymentContract.deploy()
+    prepaymentContract = await prepaymentContract.deploy(sProtocolFeeRecipient)
     await prepaymentContract.deployed()
 
     let coordinatorContract = await ethers.getContractFactory('VRFCoordinator', {
@@ -159,7 +159,9 @@ describe('VRF contract', function () {
     const value = parseKlay(1)
 
     await expect(
-      consumerContract.requestRandomWordsDirect(dummyKeyHash, maxGasLimit, numWords, { value })
+      consumerContract.requestRandomWordsDirectPayment(dummyKeyHash, maxGasLimit, numWords, {
+        value
+      })
     ).to.be.revertedWithCustomError(coordinatorContract, 'InvalidKeyHash')
   })
 
