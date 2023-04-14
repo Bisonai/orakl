@@ -155,7 +155,7 @@ interface IPrepayment {
     function withdraw(uint64 accId, uint256 amount) external;
 
     /**
-     * @notice Charge fee from service connected to account.
+     * @notice Charge fee from [regular]  account for a service.
      * @param accId - ID of the account
      * @param amount - KLAY amount to be charged
      * @param operatorFeeRecipient - address of operator that receives fee
@@ -163,7 +163,7 @@ interface IPrepayment {
     function chargeFee(uint64 accId, uint256 amount, address operatorFeeRecipient) external;
 
     /**
-     * @notice Charge fee from service connected to account.
+     * @notice Charge fee from [temporary] account for a service.
      * @param accId - ID of the account
      * @param operatorFeeRecipient - address of operator that receives fee
      */

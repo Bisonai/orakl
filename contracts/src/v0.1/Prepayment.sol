@@ -410,7 +410,9 @@ contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
         emit AccountBalanceDecreased(accId, balance, balance - amount, burnFee);
     }
 
-    // TODO add comment
+    /**
+     * @inheritdoc IPrepayment
+     */
     function chargeFee(
         uint64 accId,
         address operatorFeeRecipient
