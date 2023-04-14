@@ -40,10 +40,6 @@ contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
     /* association */
     mapping(address => bool) private sIsCoordinator;
 
-    /* temporary account ID */
-    /* nonce */
-    mapping(uint64 => uint64) private sTemporaryNonce;
-
     // Account
     uint64 private sCurrentAccId;
     uint64 private sCurrentTmpAccId;
@@ -133,8 +129,7 @@ contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
      * @inheritdoc IPrepayment
      */
     function getBalance(uint64 accId) external view returns (uint256 balance) {
-        Account account = sAccIdToAccount[accId];
-        return account.getBalance();
+        return sAccIdToAccount[accId].getBalance();
     }
 
     /**
@@ -177,8 +172,7 @@ contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
      * @inheritdoc IPrepayment
      */
     function getAccountOwner(uint64 accId) external view returns (address) {
-        Account account = sAccIdToAccount[accId];
-        return account.getOwner();
+        return sAccIdToAccount[accId].getOwner();
     }
 
     /**
@@ -196,9 +190,7 @@ contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
         if (address(account) != address(0)) {
             return sAccIdToAccount[accId].getNonce(consumer);
         } else {
-            // Temporary account has nonce always equal to 1
-            // FIXME should we define mapping for consumer?
-            return sTemporaryNonce[accId];
+            return 1;
         }
     }
 
@@ -236,10 +228,7 @@ contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
     function createTemporaryAccount() external returns (uint64) {
         uint64 currentAccId = sCurrentAccId + 1;
         sCurrentAccId = currentAccId;
-
         sIsTemporaryAccount[currentAccId] = true;
-        sTemporaryNonce[currentAccId] = 1;
-
         emit TemporaryAccountCreated(currentAccId, msg.sender);
         return currentAccId;
     }
@@ -477,12 +466,11 @@ contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
     ) external onlyCoordinator returns (uint64) {
         Account account = sAccIdToAccount[accId];
         if (address(account) != address(0)) {
+            // regular account
             return account.increaseNonce(consumer);
         } else {
-            // FIXME should we define mapping for consumer?
-            uint64 nonce = sTemporaryNonce[accId] + 1;
-            sTemporaryNonce[accId] = nonce;
-            return nonce;
+            // temporary account
+            return 1;
         }
     }
 

@@ -8,19 +8,27 @@ interface IPrepayment {
 
     /**
      * @notice Returns `true` when given `accId` is valid, otherwise reverts.
+     * @dev This function can be used for checking validity of both
+     * @dev [regular] and [temporary] account.
      * @param accId - ID of the account
      */
     function isValidAccount(uint64 accId) external view returns (bool);
 
     /**
      * @notice Returns the balance of given account.
+     * @dev This function is meant to be used only for [regular]
+     * @dev account. If invalid `accId` (ID not assigned to any
+     * @dev account) is passed, zero balance will be always returned.
      * @param accId - ID of the account
+     * @return balance of account
      */
     function getBalance(uint64 accId) external view returns (uint256);
 
     /**
      * @notice Return the number of requests created through the
      * @notice account.
+     * @dev This function is meant to be used only for [regular]
+     * @dev account.
      * @param accId - ID of the account
      * @return number of requests
      */
@@ -28,6 +36,8 @@ interface IPrepayment {
 
     /**
      * @notice Get an account information.
+     * @dev This function can be used for both [regular] and
+     * @dev [temporary] account.
      * @param accId - ID of the account
      * @return balance - KLAY balance of the account in juels.
      * @return reqCount - number of requests for this account, determines fee tier.
@@ -43,6 +53,8 @@ interface IPrepayment {
 
     /**
      * @notice Get address of account owner.
+     * @dev This function is meant to be used only for [regular]
+     * @dev account.
      * @param accId - ID of the account
      */
     function getAccountOwner(uint64 accId) external returns (address);
@@ -59,6 +71,13 @@ interface IPrepayment {
 
     /**
      * @notice Get nonce for specified `consumer` in account denoted by `accId`.
+     * @dev This function is meant to be used for both [regular] and
+     * @dev [temporary] account. In case of [regular] account, we keep
+     * @dev track of nonces for every consumer inside of the
+     * @dev account. [temporary] account is expected to be used only
+     * @dev once, therefore we do not keep track of nonce, and always return 1.
+     * @dev We do not check on validity of the `accId`, therefore when
+     * @dev a an invalid `accId` is passed, nonce equal to 1 is returned.
      * @param accId - ID of the account
      * @param consumer - consumer address
      */

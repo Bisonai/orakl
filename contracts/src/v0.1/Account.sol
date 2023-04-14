@@ -10,7 +10,7 @@ import "./interfaces/ITypeAndVersion.sol";
 /// @notice is connected to a Prepayment (Prepayment.sol) contract.
 /// @dev Account contract is deployed with a `Prepayment.addContract`
 /// @dev call. The functions that modify the account state are allowed
-/// @devto to be called only through Prepayment contract, other ones
+/// @dev to to be called only through Prepayment contract, other ones
 /// @dev are can be called on Account contract itself.
 contract Account is IAccount, ITypeAndVersion {
     uint16 public constant MAX_CONSUMERS = 100;
