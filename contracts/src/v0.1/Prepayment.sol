@@ -403,6 +403,13 @@ contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
     /**
      * @inheritdoc IPrepayment
      */
+    function increaseReqCountTemporary(uint64 accId) external onlyCoordinator {
+        sAccIdToTmpAccConfig[accId].reqCount += 1;
+    }
+
+    /**
+     * @inheritdoc IPrepayment
+     */
     function chargeFee(
         uint64 accId,
         uint256 amount,

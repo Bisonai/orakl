@@ -165,9 +165,18 @@ interface IPrepayment {
     function depositTemporary(uint64 accId) external payable;
 
     /**
-     * @notice Increase account request count by one.
+     * @notice Increase number of request trigerred by [regular]
+     * @notice account `accId`.
+     * @param accId - ID of the account
      */
     function increaseReqCount(uint64 accId) external;
+
+    /**
+     * @notice Increase number of request trigerred by [temporary]
+     * @notice account `accId`.
+     * @param accId - ID of the account
+     */
+    function increaseReqCountTemporary(uint64 accId) external;
 
     /**
      * @notice Withdraw $KLAY from [regular] account.

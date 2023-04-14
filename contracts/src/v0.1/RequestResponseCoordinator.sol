@@ -554,15 +554,16 @@ contract RequestResponseCoordinator is
     ) internal returns (uint256 payment) {
         if (isDirectPayment) {
             payment = sPrepayment.chargeFeeTemporary(rc.accId, msg.sender);
+            sPrepayment.increaseReqCountTemporary(rc.accId);
         } else {
             uint64 reqCount = sPrepayment.getReqCount(rc.accId);
-            sPrepayment.increaseReqCount(rc.accId);
             payment = calculatePaymentAmount(
                 startGas,
                 sConfig.gasAfterPaymentCalculation,
                 getFeeTier(reqCount)
             );
             sPrepayment.chargeFee(rc.accId, payment, msg.sender);
+            sPrepayment.increaseReqCount(rc.accId);
         }
     }
 

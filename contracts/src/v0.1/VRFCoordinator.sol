@@ -389,15 +389,16 @@ contract VRFCoordinator is Ownable, ICoordinatorBase, ITypeAndVersion, IVRFCoord
         uint256 payment;
         if (isDirectPayment) {
             payment = sPrepayment.chargeFeeTemporary(rc.accId, sKeyHashToOracle[keyHash]);
+            sPrepayment.increaseReqCountTemporary(rc.accId);
         } else {
             uint64 reqCount = sPrepayment.getReqCount(rc.accId);
-            sPrepayment.increaseReqCount(rc.accId);
             payment = calculatePaymentAmount(
                 startGas,
                 sConfig.gasAfterPaymentCalculation,
                 getFeeTier(reqCount)
             );
             sPrepayment.chargeFee(rc.accId, payment, sKeyHashToOracle[keyHash]);
+            sPrepayment.increaseReqCount(rc.accId);
         }
 
         // Include payment in the event for tracking costs.
