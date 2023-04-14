@@ -8,7 +8,7 @@ on:
       - "core/**"
     types:
       - closed  
-      
+
 env:
   ecr_url: public.ecr.aws/bisonai/orakl-core
 
