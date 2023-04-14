@@ -61,6 +61,7 @@ contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
     error BurnFeeFailed();
     error OperatorFeeFailed();
     error ProtocolFeeFailed();
+    error TooHighFeeRatio();
 
     event AccountCreated(uint64 indexed accId, address account, address owner);
     event TemporaryAccountCreated(uint64 indexed accId, address owner);
@@ -302,6 +303,11 @@ contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
         if (ratio < MIN_RATIO || ratio > MAX_RATIO) {
             revert RatioOutOfBounds();
         }
+
+        if ((ratio + sProtocolFeeRatio) > 100) {
+            revert TooHighFeeRatio();
+        }
+
         sBurnFeeRatio = ratio;
         emit BurnRatioSet(ratio);
     }
@@ -323,6 +329,9 @@ contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
     function setProtocolFeeRatio(uint8 ratio) external onlyOwner {
         if (ratio < MIN_RATIO || ratio > MAX_RATIO) {
             revert RatioOutOfBounds();
+        }
+        if ((ratio + sBurnFeeRatio) > 100) {
+            revert TooHighFeeRatio();
         }
         sProtocolFeeRatio = ratio;
         emit ProtocolFeeRatioSet(ratio);
