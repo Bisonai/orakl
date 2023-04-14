@@ -189,7 +189,10 @@ interface IPrepayment {
      * @param accId - ID of the account
      * @param operatorFeeRecipient - address of operator that receives fee
      */
-    function chargeFeeTemporary(uint64 accId, address operatorFeeRecipient) external returns (uint256);
+    function chargeFeeTemporary(
+        uint64 accId,
+        address operatorFeeRecipient
+    ) external returns (uint256);
 
     /**
      * @notice Increase nonce for consumer registered under accId.
