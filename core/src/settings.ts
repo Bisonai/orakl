@@ -37,6 +37,7 @@ export const MAX_DATA_STALENESS = 5_000
 // BullMQ
 export const REMOVE_ON_COMPLETE = 500
 export const REMOVE_ON_FAIL = 1_000
+export const CONCURRENCY = 5
 
 export const LISTENER_REQUEST_RESPONSE_LATEST_QUEUE_NAME = `${DEPLOYMENT_NAME}-listener-request-response-latest-queue`
 export const LISTENER_VRF_LATEST_QUEUE_NAME = `${DEPLOYMENT_NAME}-listener-vrf-latest-queue`
@@ -94,6 +95,7 @@ export const DATA_FEED_WORKER_STATE_NAME = `${DEPLOYMENT_NAME}-worker-data-feed-
 export const DATA_FEED_REPORTER_STATE_NAME = `${DEPLOYMENT_NAME}-reporter-data-feed-state`
 
 export const BULLMQ_CONNECTION = {
+  concurrency: CONCURRENCY,
   connection: {
     host: REDIS_HOST,
     port: REDIS_PORT
