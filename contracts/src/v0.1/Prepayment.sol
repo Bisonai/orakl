@@ -54,8 +54,6 @@ contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
         uint256 balance;
         uint64 reqCount;
         address owner;
-        /* uint64 nonce; */
-        address[] consumer;
     }
 
     /* accID */
@@ -240,12 +238,7 @@ contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
         } else if (sIsTemporaryAccount[accId]) {
             // temporary account
             TemporaryAccountConfig memory tmpAccConfig = sAccIdToTmpAccConfig[accId];
-            return (
-                tmpAccConfig.balance,
-                tmpAccConfig.reqCount,
-                tmpAccConfig.owner,
-                tmpAccConfig.consumer
-            );
+            return (tmpAccConfig.balance, tmpAccConfig.reqCount, tmpAccConfig.owner, consumers);
         } else {
             revert InvalidAccount();
         }
@@ -291,6 +284,11 @@ contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
         uint64 currentAccId = sCurrentAccId + 1;
         sCurrentAccId = currentAccId;
 
+        sAccIdToTmpAccConfig[currentAccId] = TemporaryAccountConfig({
+            balance: 0,
+            reqCount: 0,
+            owner: msg.sender
+        });
         sIsTemporaryAccount[currentAccId] = true;
 
         emit TemporaryAccountCreated(currentAccId, msg.sender);
