@@ -165,6 +165,11 @@ interface IPrepayment {
     function depositTemporary(uint64 accId) external payable;
 
     /**
+     * @notice Increase account request count by one.
+     */
+    function increaseReqCount(uint64 accId) external;
+
+    /**
      * @notice Withdraw $KLAY from [regular] account.
      * @dev Account owner can withdraw $KLAY only when there are no
      * @dev pending requests on any of associated consumers. If one

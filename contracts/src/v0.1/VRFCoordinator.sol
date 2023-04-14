@@ -391,6 +391,7 @@ contract VRFCoordinator is Ownable, ICoordinatorBase, ITypeAndVersion, IVRFCoord
             payment = sPrepayment.chargeFeeTemporary(rc.accId, sKeyHashToOracle[keyHash]);
         } else {
             uint64 reqCount = sPrepayment.getReqCount(rc.accId);
+            sPrepayment.increaseReqCount(rc.accId);
             payment = calculatePaymentAmount(
                 startGas,
                 sConfig.gasAfterPaymentCalculation,

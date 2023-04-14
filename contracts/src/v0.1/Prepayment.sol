@@ -396,6 +396,13 @@ contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
     /**
      * @inheritdoc IPrepayment
      */
+    function increaseReqCount(uint64 accId) external onlyCoordinator {
+        return sAccIdToAccount[accId].increaseReqCount();
+    }
+
+    /**
+     * @inheritdoc IPrepayment
+     */
     function chargeFee(
         uint64 accId,
         uint256 amount,

@@ -556,6 +556,7 @@ contract RequestResponseCoordinator is
             payment = sPrepayment.chargeFeeTemporary(rc.accId, msg.sender);
         } else {
             uint64 reqCount = sPrepayment.getReqCount(rc.accId);
+            sPrepayment.increaseReqCount(rc.accId);
             payment = calculatePaymentAmount(
                 startGas,
                 sConfig.gasAfterPaymentCalculation,
