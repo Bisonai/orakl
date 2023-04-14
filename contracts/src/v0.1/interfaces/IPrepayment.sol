@@ -39,7 +39,7 @@ interface IPrepayment {
      * @dev This function can be used for both [regular] and
      * @dev [temporary] account.
      * @param accId - ID of the account
-     * @return balance - KLAY balance of the account in juels.
+     * @return balance - $KLAY balance of the account in juels.
      * @return reqCount - number of requests for this account, determines fee tier.
      * @return owner - owner of the account.
      * @return consumers - list of consumer address which are able to use this account.
@@ -58,16 +58,6 @@ interface IPrepayment {
      * @param accId - ID of the account
      */
     function getAccountOwner(uint64 accId) external returns (address);
-
-    /**
-     * @notice Get address of protocol fee recipient.
-     */
-    function getProtocolFeeRecipient() external view returns (address);
-
-    /**
-     * @notice Get addresses of all registered coordinators in Prepayment.
-     */
-    function getCoordinators() external view returns (ICoordinatorBase[] memory);
 
     /**
      * @notice Get nonce for specified `consumer` in account denoted by `accId`.
@@ -95,88 +85,101 @@ interface IPrepayment {
     /// STATE-ALTERING FUNCTIONS ////////////////////////////////////////////////
 
     /**
-     * @notice Update address of protocol fee recipient that will
-     * @notice receive protocol fees.
-     * @param protocolFeeRecipient - address of protocol fee recipient
-     */
-    function setProtocolFeeRecipient(address protocolFeeRecipient) external;
-
-    /**
-     * @notice Create an account.
-     * @return accId - A unique account id.
-     * @dev You can manage the consumer set dynamically with addConsumer/removeConsumer.
-     * @dev Note to fund the account, use deposit function.
+     * @notice Create a [regular] account.
+     * @dev This function deploys a new `Account` contract (defined at
+     * @dev Account.sol) and connect it with the `Prepayment` contract.
+     * @dev You can add or remove the consumer dynamically with
+     * @dev `addConsumer` or `removeConsumer` functions,
+     * @dev respectively. To fund the account, use deposit function.
+     * @return accId - A unique account id
      */
     function createAccount() external returns (uint64);
 
     /**
-     * @notice Create a temporary account for a single direct payment.
-     * @return accId - A unique account id.
+     * @notice Create a temporary account to be used with a single
+     * @notice service request.
+     * @return accId - A unique account id
      */
     function createTemporaryAccount() external returns (uint64);
 
     /**
      * @notice Request account owner transfer.
+     * @dev Only [regular] account owner can be transferred.
      * @param accId - ID of the account
      * @param newOwner - proposed new owner of the account
      */
     function requestAccountOwnerTransfer(uint64 accId, address newOwner) external;
 
     /**
-     * @notice Request account owner transfer.
+     * @notice Accept account owner transfer.
+     * @dev The function will revert inside of the
+     * @dev `Account.acceptAccountOwnerTransfer` if original owner of
+     * @dev `accId` has not requested the `msg.sender` to become the
+     * @dev new owner.
      * @param accId - ID of the account
-     * @dev will revert if original owner of accId has
-     * not requested that msg.sender become the new owner.
      */
     function acceptAccountOwnerTransfer(uint64 accId) external;
 
     /**
-     * @notice Remove a consumer from a account.
+     * @notice Cancel account
+     * @dev This function is meant to be used only for [regular]
+     * @dev account. If there is any pending request, the account
+     * @dev cannot be canceled.
      * @param accId - ID of the account
-     * @param consumer - Consumer to remove from the account
+     * @param to - Where to send the remaining $KLAY to
      */
-    function removeConsumer(uint64 accId, address consumer) external;
+    function cancelAccount(uint64 accId, address to) external;
 
     /**
      * @notice Add a consumer to an account.
+     * @dev This function is meant to be used only for [regular]
+     * @dev account. If called with [temporary] account, the
+     * @dev transaction will be reverted.
      * @param accId - ID of the account
      * @param consumer - New consumer which can use the account
      */
     function addConsumer(uint64 accId, address consumer) external;
 
     /**
-     * @notice Cancel account
+     * @notice Remove a consumer from a account.
+     * @dev This function is meant to be used only for [regular]
+     * @dev account. If called with [temporary] account, the
+     * @dev transaction will be reverted.
      * @param accId - ID of the account
-     * @param to - Where to send the remaining KLAY to
+     * @param consumer - Consumer to remove from the account
      */
-    function cancelAccount(uint64 accId, address to) external;
+    function removeConsumer(uint64 accId, address consumer) external;
 
     /**
-     * @notice Deposit KLAY to account.
-     * @notice Anybody can deposit KLAY, there are no restrictions.
+     * @notice Deposit $KLAY to [regular] account.
+     * @notice Anybody can deposit $KLAY, there are no restrictions.
      * @param accId - ID of the account
      */
     function deposit(uint64 accId) external payable;
 
     /**
-     * @notice Deposit KLAY to temporary account.
-     * @notice Anybody can deposit KLAY, there are no restrictions.
+     * @notice Deposit $KLAY to [temporary] account.
+     * @notice Anybody can deposit $KLAY, there are no restrictions.
      * @param accId - ID of the account
      */
     function depositTemporary(uint64 accId) external payable;
 
     /**
-     * @notice Withdraw KLAY from account.
-     * @notice Only account owner can withdraw KLAY.
+     * @notice Withdraw $KLAY from [regular] account.
+     * @dev Account owner can withdraw $KLAY only when there are no
+     * @dev pending requests on any of associated consumers. If one
+     * @dev tries to withdraw $KLAY from [temporary] account,
+     * @dev transaction will revert. Transaction reverts also on
+     * @dev failure to withdraw tokens from account.
      * @param accId - ID of the account
-     * @param amount - KLAY amount to be withdrawn
+     * @param amount - $KLAY amount to be withdrawn
      */
     function withdraw(uint64 accId, uint256 amount) external;
 
     /**
      * @notice Charge fee from [regular]  account for a service.
      * @param accId - ID of the account
-     * @param amount - KLAY amount to be charged
+     * @param amount - $KLAY amount to be charged
      * @param operatorFeeRecipient - address of operator that receives fee
      */
     function chargeFee(uint64 accId, uint256 amount, address operatorFeeRecipient) external;
@@ -186,7 +189,7 @@ interface IPrepayment {
      * @param accId - ID of the account
      * @param operatorFeeRecipient - address of operator that receives fee
      */
-    function chargeFee(uint64 accId, address operatorFeeRecipient) external returns (uint256);
+    function chargeFeeTemporary(uint64 accId, address operatorFeeRecipient) external returns (uint256);
 
     /**
      * @notice Increase nonce for consumer registered under accId.
@@ -196,13 +199,15 @@ interface IPrepayment {
     function increaseNonce(uint64 accId, address consumer) external returns (uint64);
 
     /*
-     * @notice Add coordinator to be able to charge using Prepayment method.
+     * @notice Add coordinator that will be able to charge account for
+     * @notice the requested service.
      * @param coordinator - address of coordinator
      */
     function addCoordinator(address coordinator) external;
 
     /*
-     * @notice Block coordinator from using Prepayment method.
+     * @notice Disable the coordinator from being able to charge
+     * @notice accounts for its service.
      * @param coordinator - address of coordinator
      */
     function removeCoordinator(address coordinator) external;

@@ -388,7 +388,7 @@ contract VRFCoordinator is Ownable, ICoordinatorBase, ITypeAndVersion, IVRFCoord
 
         uint256 payment;
         if (isDirectPayment) {
-            payment = sPrepayment.chargeFee(rc.accId, sKeyHashToOracle[keyHash]);
+            payment = sPrepayment.chargeFeeTemporary(rc.accId, sKeyHashToOracle[keyHash]);
         } else {
             uint64 reqCount = sPrepayment.getReqCount(rc.accId);
             payment = calculatePaymentAmount(

@@ -553,7 +553,7 @@ contract RequestResponseCoordinator is
         uint256 startGas
     ) internal returns (uint256 payment) {
         if (isDirectPayment) {
-            payment = sPrepayment.chargeFee(rc.accId, msg.sender);
+            payment = sPrepayment.chargeFeeTemporary(rc.accId, msg.sender);
         } else {
             uint64 reqCount = sPrepayment.getReqCount(rc.accId);
             payment = calculatePaymentAmount(

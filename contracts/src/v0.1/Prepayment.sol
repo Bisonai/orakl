@@ -95,6 +95,12 @@ contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
     event AccountOwnerTransferRequested(uint64 indexed accId, address from, address to);
     event AccountOwnerTransferred(uint64 indexed accId, address from, address to);
 
+    /**
+     * @dev The modifier is only for [regular] account. If called with
+     * @dev account ID assigned to [temporary] account, then the
+     * @dev transaction will be reverted because there is no
+     * @dev associated `Account` contract.
+     */
     modifier onlyAccountOwner(uint64 accId) {
         if (sAccIdToAccount[accId].getOwner() != msg.sender) {
             revert MustBeAccountOwner();
@@ -111,6 +117,83 @@ contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
 
     constructor(address protocolFeeRecipient) {
         sProtocolFeeRecipient = protocolFeeRecipient;
+    }
+
+    /**
+     * @notice Return the current burn ratio that represents the
+     * @notice percentage of $KLAY fee that is burnt during fulfillment
+     * @notice of every request.
+     */
+    function getBurnFeeRatio() external view returns (uint8) {
+        return sBurnFeeRatio;
+    }
+
+    /**
+     * @notice The function allows to update a "burn ratio" that represents a
+     * @notice partial amount of payment for the Orakl Network service that
+     * @notice will be burnt.
+     *
+     * @param ratio in a range 0 - 100 % of a fee to be burnt
+     */
+    function setBurnFeeRatio(uint8 ratio) external onlyOwner {
+        if (ratio < MIN_RATIO || ratio > MAX_RATIO) {
+            revert RatioOutOfBounds();
+        }
+
+        if ((ratio + sProtocolFeeRatio) > 100) {
+            revert TooHighFeeRatio();
+        }
+
+        sBurnFeeRatio = ratio;
+        emit BurnRatioSet(ratio);
+    }
+
+    /**
+     * @notice Return the current protocol fee ratio that represents
+     * @notice the percentage of $KLAY fee that is charged for every
+     * @notice finalizes fulfillment.
+     */
+    function getProtocolFeeRatio() external view returns (uint8) {
+        return sProtocolFeeRatio;
+    }
+
+    /**
+     * @notice The function allows to update a protocol fee.
+     *
+     * @param ratio in a range 0 - 100 % of a fee to be burnt
+     */
+    function setProtocolFeeRatio(uint8 ratio) external onlyOwner {
+        if (ratio < MIN_RATIO || ratio > MAX_RATIO) {
+            revert RatioOutOfBounds();
+        }
+        if ((ratio + sBurnFeeRatio) > 100) {
+            revert TooHighFeeRatio();
+        }
+        sProtocolFeeRatio = ratio;
+        emit ProtocolFeeRatioSet(ratio);
+    }
+
+    /**
+     * @notice Get address of protocol fee recipient.
+     */
+    function getProtocolFeeRecipient() external view returns (address) {
+        return sProtocolFeeRecipient;
+    }
+
+    /**
+     * @notice Update address of protocol fee recipient that will
+     * @notice receive protocol fees.
+     * @param protocolFeeRecipient - address of protocol fee recipient
+     */
+    function setProtocolFeeRecipient(address protocolFeeRecipient) external onlyOwner {
+        sProtocolFeeRecipient = protocolFeeRecipient;
+    }
+
+    /**
+     * @notice Get addresses of all registered coordinators in Prepayment.
+     */
+    function getCoordinators() external view returns (ICoordinatorBase[] memory) {
+        return sCoordinators;
     }
 
     /**
@@ -178,13 +261,6 @@ contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
     /**
      * @inheritdoc IPrepayment
      */
-    function getCoordinators() external view returns (ICoordinatorBase[] memory) {
-        return sCoordinators;
-    }
-
-    /**
-     * @inheritdoc IPrepayment
-     */
     function getNonce(uint64 accId, address consumer) external view returns (uint64) {
         Account account = sAccIdToAccount[accId];
         if (address(account) != address(0)) {
@@ -192,20 +268,6 @@ contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
         } else {
             return 1;
         }
-    }
-
-    /**
-     * @inheritdoc IPrepayment
-     */
-    function getProtocolFeeRecipient() external view returns (address) {
-        return sProtocolFeeRecipient;
-    }
-
-    /**
-     * @inheritdoc IPrepayment
-     */
-    function setProtocolFeeRecipient(address protocolFeeRecipient) external onlyOwner {
-        sProtocolFeeRecipient = protocolFeeRecipient;
     }
 
     /**
@@ -228,7 +290,9 @@ contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
     function createTemporaryAccount() external returns (uint64) {
         uint64 currentAccId = sCurrentAccId + 1;
         sCurrentAccId = currentAccId;
+
         sIsTemporaryAccount[currentAccId] = true;
+
         emit TemporaryAccountCreated(currentAccId, msg.sender);
         return currentAccId;
     }
@@ -240,8 +304,7 @@ contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
         uint64 accId,
         address requestedOwner
     ) external onlyAccountOwner(accId) {
-        Account account = sAccIdToAccount[accId];
-        account.requestAccountOwnerTransfer(requestedOwner);
+        sAccIdToAccount[accId].requestAccountOwnerTransfer(requestedOwner);
         emit AccountOwnerTransferRequested(accId, msg.sender, requestedOwner);
     }
 
@@ -290,60 +353,6 @@ contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
     }
 
     /**
-     * @notice Return the current burn ratio that represents the
-     * @notice percentage of $KLAY fee that is burnt during fulfillment
-     * @notice of every request.
-     */
-    function getBurnFeeRatio() external view returns (uint8) {
-        return sBurnFeeRatio;
-    }
-
-    /**
-     * @notice The function allows to update a "burn ratio" that represents a
-     * @notice partial amount of payment for the Orakl Network service that
-     * @notice will be burnt.
-     *
-     * @param ratio in a range 0 - 100 % of a fee to be burnt
-     */
-    function setBurnFeeRatio(uint8 ratio) external onlyOwner {
-        if (ratio < MIN_RATIO || ratio > MAX_RATIO) {
-            revert RatioOutOfBounds();
-        }
-
-        if ((ratio + sProtocolFeeRatio) > 100) {
-            revert TooHighFeeRatio();
-        }
-
-        sBurnFeeRatio = ratio;
-        emit BurnRatioSet(ratio);
-    }
-
-    /**
-     * @notice Return the current protocol fee ratio that represents
-     * @notice the percentage of $KLAY fee that is charged for every
-     * @notice finalizes fulfillment.
-     */
-    function getProtocolFeeRatio() external view returns (uint8) {
-        return sProtocolFeeRatio;
-    }
-
-    /**
-     * @notice The function allows to update a protocol fee.
-     *
-     * @param ratio in a range 0 - 100 % of a fee to be burnt
-     */
-    function setProtocolFeeRatio(uint8 ratio) external onlyOwner {
-        if (ratio < MIN_RATIO || ratio > MAX_RATIO) {
-            revert RatioOutOfBounds();
-        }
-        if ((ratio + sBurnFeeRatio) > 100) {
-            revert TooHighFeeRatio();
-        }
-        sProtocolFeeRatio = ratio;
-        emit ProtocolFeeRatioSet(ratio);
-    }
-
-    /**
      * @inheritdoc IPrepayment
      */
     function deposit(uint64 accId) external payable {
@@ -366,6 +375,7 @@ contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
      * @inheritdoc IPrepayment
      */
     function depositTemporary(uint64 accId) external payable {
+        sAccIdToTmpAccConfig[accId].balance += msg.value;
         emit AccountBalanceIncreased(accId, 0, msg.value);
     }
 
@@ -377,8 +387,7 @@ contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
             revert PendingRequestExists();
         }
 
-        Account account = sAccIdToAccount[accId];
-        (bool sent, uint256 balance) = account.withdraw(amount);
+        (bool sent, uint256 balance) = sAccIdToAccount[accId].withdraw(amount);
         if (!sent) {
             revert FailedToWithdraw();
         }
@@ -419,12 +428,11 @@ contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
     /**
      * @inheritdoc IPrepayment
      */
-    function chargeFee(
+    function chargeFeeTemporary(
         uint64 accId,
         address operatorFeeRecipient
     ) external onlyCoordinator returns (uint256) {
-        TemporaryAccountConfig memory tmpAccConfig = sAccIdToTmpAccConfig[accId];
-        uint256 amount = tmpAccConfig.balance;
+        uint256 amount = sAccIdToTmpAccConfig[accId].balance;
         sAccIdToTmpAccConfig[accId].balance = 0;
 
         uint256 burnFee = (amount * sBurnFeeRatio) / 100;
@@ -481,6 +489,7 @@ contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
         if (sIsCoordinator[coordinator]) {
             revert CoordinatorExists();
         }
+
         sCoordinators.push(ICoordinatorBase(coordinator));
         sIsCoordinator[coordinator] = true;
 
@@ -537,6 +546,7 @@ contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
                 }
             }
         }
+
         return false;
     }
 }
