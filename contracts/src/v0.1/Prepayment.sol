@@ -8,6 +8,23 @@ import "./interfaces/ICoordinatorBase.sol";
 import "./interfaces/IPrepayment.sol";
 import "./interfaces/ITypeAndVersion.sol";
 
+/// @title Orakl Network Prepayment
+/// @author Bisonai
+/// @notice Prepayment is a type of prepaid payment solution which
+/// @notice allows to controls two types of accounts: regular and
+/// @notice temporary.
+/// @notice
+/// @notice [regular] account is a separate smart contract
+/// @notice (Account.sol) that is meant to be used long-term. User can
+/// @notice deposit $KLAY to account and use it to pay for Orakl Network
+/// @notice services. More details about [regular] account are
+/// @notice described at `Account` smart contract.
+/// @notice
+/// @notice [temporary] account is created for one-time-use of Orakl
+/// @notice Network services. Consumer can send $KLAY together with
+/// @notice request to Orakl Network to pay for the service. All
+/// @notice operations related to [temporary] account are implemented
+/// @notice in the Prepayment contract.
 contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
     uint8 public constant MIN_RATIO = 0;
     uint8 public constant MAX_RATIO = 100;
