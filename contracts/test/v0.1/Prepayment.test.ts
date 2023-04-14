@@ -51,8 +51,9 @@ describe('Prepayment', function () {
     expect(await prepaymentContract.getBurnFeeRatio()).to.be.equal(lowerThresholdRatio)
 
     const higherThresholdRatio = 100
-    await prepaymentContract.setBurnFeeRatio(higherThresholdRatio)
-    expect(await prepaymentContract.getBurnFeeRatio()).to.be.equal(higherThresholdRatio)
+    await expect(
+      prepaymentContract.setBurnFeeRatio(higherThresholdRatio)
+    ).to.be.revertedWithCustomError(prepaymentContract, 'TooHighFeeRatio')
 
     // 3. Set burnFee ratio with
     const ratioBelowThreshold = -1
@@ -77,8 +78,9 @@ describe('Prepayment', function () {
     expect(await prepaymentContract.getProtocolFeeRatio()).to.be.equal(lowerThresholdRatio)
 
     const higherThresholdRatio = 100
-    await prepaymentContract.setProtocolFeeRatio(higherThresholdRatio)
-    expect(await prepaymentContract.getProtocolFeeRatio()).to.be.equal(higherThresholdRatio)
+    await expect(
+      prepaymentContract.setProtocolFeeRatio(higherThresholdRatio)
+    ).to.be.revertedWithCustomError(prepaymentContract, 'TooHighFeeRatio')
 
     // 3. Set burn ratio with
     const ratioBelowThreshold = -1
