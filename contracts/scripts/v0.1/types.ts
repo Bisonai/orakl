@@ -47,6 +47,11 @@ export interface ICoordinatorConfig {
   feeConfig: IFeeConfig
 }
 
+// Prepayment
+export interface IPrepaymentDeploy {
+  protocolFeeRecipient: string
+}
+
 // Coordinator
 export interface ICoordinatorDeploy {
   version: string

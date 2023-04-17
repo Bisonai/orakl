@@ -1,14 +1,15 @@
 import { readdir, readFile, appendFile } from 'node:fs/promises'
 import * as path from 'node:path'
 import {
-  ICoordinatorMinBalance,
   ICoordinatorDeploy,
-  IAggregatorDeployConfig,
+  IPrepaymentDeploy,
   IAggregatorChangeOraclesConfig,
-  IRegisterOracle,
-  IDeregisterOracle,
+  IAggregatorDeployConfig,
   ICoordinatorConfig,
-  ICoordinatorDirectPaymentConfig
+  ICoordinatorDirectPaymentConfig,
+  ICoordinatorMinBalance,
+  IDeregisterOracle,
+  IRegisterOracle
 } from './types'
 
 const MIGRATION_LOCK_FILE_NAME = 'migration.lock'
@@ -195,4 +196,14 @@ export function validateVrfDeregisterOracle(config: IDeregisterOracle[]): boolea
   }
 
   return true
+}
+
+export function validatePrepaymentDeployConfig(config: IPrepaymentDeploy): boolean {
+  const requiredProperties = ['protocolFeeRecipient']
+
+  if (!validateProperties(config, requiredProperties)) {
+    return false
+  } else {
+    return true
+  }
 }

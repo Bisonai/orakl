@@ -6,84 +6,90 @@ import { createAccount } from './Prepayment.utils'
 import { requestResponseConfig } from './RequestResponse.config.ts'
 import { parseKlay } from './utils'
 
+const EVENT_ARGS = [
+  'requestId',
+  'jobId',
+  'accId',
+  'callbackGasLimit',
+  'sender',
+  'isDirectPayment',
+  'data'
+]
+
+async function deployFixture() {
+  const {
+    deployer,
+    consumer,
+    rrOracle0,
+    consumer1: sProtocolFeeRecipient
+  } = await hre.getNamedAccounts()
+  const { maxGasLimit, gasAfterPaymentCalculation, feeConfig } = requestResponseConfig()
+
+  // PREPAYMENT
+  let prepaymentContract = await ethers.getContractFactory('Prepayment', {
+    signer: deployer
+  })
+  prepaymentContract = await prepaymentContract.deploy(sProtocolFeeRecipient)
+  await prepaymentContract.deployed()
+
+  // COORDINATOR
+  let coordinatorContract = await ethers.getContractFactory('RequestResponseCoordinator', {
+    signer: deployer
+  })
+  coordinatorContract = await coordinatorContract.deploy(prepaymentContract.address)
+  await coordinatorContract.deployed()
+
+  // COORDINATOR SETTINGS
+  await (
+    await coordinatorContract.setConfig(maxGasLimit, gasAfterPaymentCalculation, feeConfig)
+  ).wait()
+
+  await (await coordinatorContract.registerOracle(rrOracle0)).wait()
+
+  const minBalance = ethers.utils.parseUnits('0.001')
+  await coordinatorContract.setMinBalance(minBalance)
+
+  // CONNECT COORDINATOR AND PREPAYMENT
+  await (await prepaymentContract.addCoordinator(coordinatorContract.address)).wait()
+
+  // CONSUMER
+  let consumerContract = await ethers.getContractFactory('RequestResponseConsumerMock', {
+    signer: consumer
+  })
+  consumerContract = await consumerContract.deploy(coordinatorContract.address)
+  await consumerContract.deployed()
+
+  const accId = await createAccount(
+    await coordinatorContract.getPrepaymentAddress(),
+    consumerContract.address,
+    false,
+    true
+  )
+  return {
+    accId,
+    maxGasLimit,
+    deployer,
+    consumer,
+    rrOracle0,
+    prepaymentContract,
+    coordinatorContract,
+    consumerContract
+  }
+}
+
+async function consumerDeposit(value: number) {
+  const { accId, prepaymentContract, consumer } = await loadFixture(deployFixture)
+  // consumer deposit
+  const prepaymentContractConsumerSigner = await ethers.getContractAt(
+    'Prepayment',
+    prepaymentContract.address,
+    consumer
+  )
+  value = parseKlay(value)
+  await prepaymentContractConsumerSigner.deposit(accId, { value })
+}
+
 describe('Request-Response user contract', function () {
-  async function deployFixture() {
-    const { deployer, consumer, rrOracle0 } = await hre.getNamedAccounts()
-    const { maxGasLimit, gasAfterPaymentCalculation, feeConfig } = requestResponseConfig()
-
-    // PREPAYMENT
-    let prepaymentContract = await ethers.getContractFactory('Prepayment', {
-      signer: deployer
-    })
-    prepaymentContract = await prepaymentContract.deploy()
-    await prepaymentContract.deployed()
-
-    // COORDINATOR
-    let coordinatorContract = await ethers.getContractFactory('RequestResponseCoordinator', {
-      signer: deployer
-    })
-    coordinatorContract = await coordinatorContract.deploy(prepaymentContract.address)
-    await coordinatorContract.deployed()
-
-    // COORDINATOR SETTINGS
-    await (
-      await coordinatorContract.setConfig(maxGasLimit, gasAfterPaymentCalculation, feeConfig)
-    ).wait()
-
-    await (await coordinatorContract.registerOracle(rrOracle0)).wait()
-
-    const minBalance = ethers.utils.parseUnits('0.001')
-    await coordinatorContract.setMinBalance(minBalance)
-
-    // CONNECT COORDINATOR AND PREPAYMENT
-    await (await prepaymentContract.addCoordinator(coordinatorContract.address)).wait()
-
-    // CONSUMER
-    let consumerContract = await ethers.getContractFactory('RequestResponseConsumerMock', {
-      signer: consumer
-    })
-    consumerContract = await consumerContract.deploy(coordinatorContract.address)
-    await consumerContract.deployed()
-
-    const accId = await createAccount(
-      await coordinatorContract.getPrepaymentAddress(),
-      consumerContract.address,
-      false,
-      true
-    )
-    return {
-      accId,
-      maxGasLimit,
-      deployer,
-      consumer,
-      rrOracle0,
-      prepaymentContract,
-      coordinatorContract,
-      consumerContract
-    }
-  }
-
-  async function consumerDeposit(value: number) {
-    const { accId, prepaymentContract, consumer } = await loadFixture(deployFixture)
-    // consumer deposit
-    const prepaymentContractConsumerSigner = await ethers.getContractAt(
-      'Prepayment',
-      prepaymentContract.address,
-      consumer
-    )
-    value = parseKlay(value)
-    await prepaymentContractConsumerSigner.deposit(accId, { value })
-  }
-  const eventArgs = [
-    'requestId',
-    'jobId',
-    'accId',
-    'callbackGasLimit',
-    'sender',
-    'isDirectPayment',
-    'data'
-  ]
-
   it('Request & Fulfill Uint256', async function () {
     const {
       accId,
@@ -104,7 +110,7 @@ describe('Request-Response user contract', function () {
     const requestEvent = coordinatorContract.interface.parseLog(requestReceipt.events[0])
     expect(requestEvent.name).to.be.equal('DataRequested')
 
-    for (const arg of eventArgs) {
+    for (const arg of EVENT_ARGS) {
       expect(requestEvent.args[arg]).to.not.be.undefined
     }
 
@@ -168,7 +174,7 @@ describe('Request-Response user contract', function () {
     const requestEvent = coordinatorContract.interface.parseLog(requestReceipt.events[0])
     expect(requestEvent.name).to.be.equal('DataRequested')
 
-    for (const arg of eventArgs) {
+    for (const arg of EVENT_ARGS) {
       expect(requestEvent.args[arg]).to.not.be.undefined
     }
 
@@ -232,7 +238,7 @@ describe('Request-Response user contract', function () {
     const requestEvent = coordinatorContract.interface.parseLog(requestReceipt.events[0])
     expect(requestEvent.name).to.be.equal('DataRequested')
 
-    for (const arg of eventArgs) {
+    for (const arg of EVENT_ARGS) {
       expect(requestEvent.args[arg]).to.not.be.undefined
     }
 
@@ -296,7 +302,7 @@ describe('Request-Response user contract', function () {
     const requestEvent = coordinatorContract.interface.parseLog(requestReceipt.events[0])
     expect(requestEvent.name).to.be.equal('DataRequested')
 
-    for (const arg of eventArgs) {
+    for (const arg of EVENT_ARGS) {
       expect(requestEvent.args[arg]).to.not.be.undefined
     }
 
@@ -360,7 +366,7 @@ describe('Request-Response user contract', function () {
     const requestEvent = coordinatorContract.interface.parseLog(requestReceipt.events[0])
     expect(requestEvent.name).to.be.equal('DataRequested')
 
-    for (const arg of eventArgs) {
+    for (const arg of EVENT_ARGS) {
       expect(requestEvent.args[arg]).to.not.be.undefined
     }
 
@@ -431,7 +437,7 @@ describe('Request-Response user contract', function () {
     const requestEvent = coordinatorContract.interface.parseLog(requestReceipt.events[0])
     expect(requestEvent.name).to.be.equal('DataRequested')
 
-    for (const arg of eventArgs) {
+    for (const arg of EVENT_ARGS) {
       expect(requestEvent.args[arg]).to.not.be.undefined
     }
 

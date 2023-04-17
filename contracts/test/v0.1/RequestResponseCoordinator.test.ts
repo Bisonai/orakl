@@ -3,31 +3,36 @@ import { expect } from 'chai'
 import hre from 'hardhat'
 import { ethers } from 'hardhat'
 
-describe('RequestResponseCoordinator', function () {
-  async function deployFixture() {
-    const { deployer, consumer, rrOracle0 } = await hre.getNamedAccounts()
+async function deployFixture() {
+  const {
+    deployer,
+    consumer,
+    rrOracle0,
+    consumer1: sProtocolFeeRecipient
+  } = await hre.getNamedAccounts()
 
-    // PREPAYMENT
-    let prepaymentContract = await ethers.getContractFactory('Prepayment', {
-      signer: deployer
-    })
-    prepaymentContract = await prepaymentContract.deploy()
-    await prepaymentContract.deployed()
+  // PREPAYMENT
+  let prepaymentContract = await ethers.getContractFactory('Prepayment', {
+    signer: deployer
+  })
+  prepaymentContract = await prepaymentContract.deploy(sProtocolFeeRecipient)
+  await prepaymentContract.deployed()
 
-    // COORDINATOR
-    let coordinatorContract = await ethers.getContractFactory('RequestResponseCoordinator', {
-      signer: deployer
-    })
-    coordinatorContract = await coordinatorContract.deploy(prepaymentContract.address)
-    await coordinatorContract.deployed()
+  // COORDINATOR
+  let coordinatorContract = await ethers.getContractFactory('RequestResponseCoordinator', {
+    signer: deployer
+  })
+  coordinatorContract = await coordinatorContract.deploy(prepaymentContract.address)
+  await coordinatorContract.deployed()
 
-    return {
-      deployer,
-      coordinatorContract
-    }
+  return {
+    deployer,
+    coordinatorContract
   }
+}
 
-  it('should register oracle', async function () {
+describe('RequestResponseCoordinator', function () {
+  it('Register oracle', async function () {
     const { coordinatorContract } = await loadFixture(deployFixture)
     const { address: oracle1 } = ethers.Wallet.createRandom()
     const { address: oracle2 } = ethers.Wallet.createRandom()
@@ -44,7 +49,7 @@ describe('RequestResponseCoordinator', function () {
     await (await coordinatorContract.registerOracle(oracle2)).wait()
   })
 
-  it('should not allow to register the same oracle twice', async function () {
+  it('Do not allow to register the same oracle twice', async function () {
     const { coordinatorContract } = await loadFixture(deployFixture)
     const { address: oracle } = ethers.Wallet.createRandom()
 
@@ -55,7 +60,7 @@ describe('RequestResponseCoordinator', function () {
     )
   })
 
-  it('should allow to deregister registered oracle', async function () {
+  it('Deregister registered oracle', async function () {
     const { coordinatorContract } = await loadFixture(deployFixture)
     const { address: oracle } = ethers.Wallet.createRandom()
 

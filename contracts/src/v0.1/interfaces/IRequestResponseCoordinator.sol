@@ -3,7 +3,7 @@ pragma solidity ^0.8.16;
 
 import "../libraries/Orakl.sol";
 
-interface RequestResponseCoordinatorInterface {
+interface IRequestResponseCoordinator {
     // RequestCommitment holds information sent from off-chain oracle
     // describing details of request.
     struct RequestCommitment {
