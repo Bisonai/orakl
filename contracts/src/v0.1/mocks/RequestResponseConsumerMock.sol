@@ -53,7 +53,7 @@ contract RequestResponseConsumerMock is
         req.add("path", "RAW,KLAY,USD,PRICE");
         req.add("pow10", "8");
 
-        requestId = COORDINATOR.requestData(req, callbackGasLimit, accId, 3);
+        requestId = COORDINATOR.requestData(req, callbackGasLimit, accId, 1);
     }
 
     function requestDataDirectPaymentUint256(
@@ -69,7 +69,7 @@ contract RequestResponseConsumerMock is
         req.add("path", "RAW,KLAY,USD,PRICE");
         req.add("pow10", "8");
 
-        requestId = COORDINATOR.requestData{value: msg.value}(req, callbackGasLimit);
+        requestId = COORDINATOR.requestData{value: msg.value}(req, callbackGasLimit, 1);
     }
 
     // request for int256
@@ -87,7 +87,7 @@ contract RequestResponseConsumerMock is
         req.add("path", "RAW,KLAY,USD,PRICE");
         req.add("pow10", "8");
 
-        requestId = COORDINATOR.requestData(req, callbackGasLimit, accId, 3);
+        requestId = COORDINATOR.requestData(req, callbackGasLimit, accId, 1);
     }
 
     function requestDataDirectPaymentInt256(
@@ -103,7 +103,7 @@ contract RequestResponseConsumerMock is
         req.add("path", "RAW,KLAY,USD,PRICE");
         req.add("pow10", "8");
 
-        requestId = COORDINATOR.requestData{value: msg.value}(req, callbackGasLimit);
+        requestId = COORDINATOR.requestData{value: msg.value}(req, callbackGasLimit, 1);
     }
 
     // request for bool
@@ -121,7 +121,7 @@ contract RequestResponseConsumerMock is
         req.add("path", "RAW,KLAY,USD,PRICE");
         req.add("pow10", "8");
 
-        requestId = COORDINATOR.requestData(req, callbackGasLimit, accId, 3);
+        requestId = COORDINATOR.requestData(req, callbackGasLimit, accId, 1);
     }
 
     function requestDataDirectPaymentBool(
@@ -137,7 +137,7 @@ contract RequestResponseConsumerMock is
         req.add("path", "RAW,KLAY,USD,PRICE");
         req.add("pow10", "8");
 
-        requestId = COORDINATOR.requestData{value: msg.value}(req, callbackGasLimit);
+        requestId = COORDINATOR.requestData{value: msg.value}(req, callbackGasLimit, 1);
     }
 
     // request for string
@@ -155,7 +155,7 @@ contract RequestResponseConsumerMock is
         req.add("path", "RAW,KLAY,USD,PRICE");
         req.add("pow10", "8");
 
-        requestId = COORDINATOR.requestData(req, callbackGasLimit, accId, 3);
+        requestId = COORDINATOR.requestData(req, callbackGasLimit, accId, 1);
     }
 
     function requestDataDirectPaymentString(
@@ -171,7 +171,7 @@ contract RequestResponseConsumerMock is
         req.add("path", "RAW,KLAY,USD,PRICE");
         req.add("pow10", "8");
 
-        requestId = COORDINATOR.requestData{value: msg.value}(req, callbackGasLimit);
+        requestId = COORDINATOR.requestData{value: msg.value}(req, callbackGasLimit, 1);
     }
 
     // request for bytes32
@@ -189,7 +189,7 @@ contract RequestResponseConsumerMock is
         req.add("path", "RAW,KLAY,USD,PRICE");
         req.add("pow10", "8");
 
-        requestId = COORDINATOR.requestData(req, callbackGasLimit, accId, 3);
+        requestId = COORDINATOR.requestData(req, callbackGasLimit, accId, 1);
     }
 
     function requestDataDirectPaymentBytes32(
@@ -205,7 +205,7 @@ contract RequestResponseConsumerMock is
         req.add("path", "RAW,KLAY,USD,PRICE");
         req.add("pow10", "8");
 
-        requestId = COORDINATOR.requestData{value: msg.value}(req, callbackGasLimit);
+        requestId = COORDINATOR.requestData{value: msg.value}(req, callbackGasLimit, 1);
     }
 
     // request for bytes
@@ -223,7 +223,7 @@ contract RequestResponseConsumerMock is
         req.add("path", "RAW,KLAY,USD,PRICE");
         req.add("pow10", "8");
 
-        requestId = COORDINATOR.requestData(req, callbackGasLimit, accId, 3);
+        requestId = COORDINATOR.requestData(req, callbackGasLimit, accId, 1);
     }
 
     function requestDataDirectPaymentBytes(
@@ -239,7 +239,7 @@ contract RequestResponseConsumerMock is
         req.add("path", "RAW,KLAY,USD,PRICE");
         req.add("pow10", "8");
 
-        requestId = COORDINATOR.requestData{value: msg.value}(req, callbackGasLimit);
+        requestId = COORDINATOR.requestData{value: msg.value}(req, callbackGasLimit, 1);
     }
 
     function fulfillDataRequestUint256(uint256 /*requestId*/, uint256 response) internal override {

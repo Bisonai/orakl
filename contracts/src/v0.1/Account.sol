@@ -239,7 +239,7 @@ contract Account is IAccount, ITypeAndVersion {
     function chargeFee(
         uint256 burnFee,
         uint256 operatorFee,
-        address operatorFeeRecipient,
+        //address operatorFeeRecipient,
         uint256 protocolFee,
         address protocolFeeRecipient
     ) external onlyPaymentSolution {
@@ -253,18 +253,28 @@ contract Account is IAccount, ITypeAndVersion {
             }
         }
 
-        if (operatorFee > 0) {
-            (bool sent, ) = operatorFeeRecipient.call{value: operatorFee}("");
-            if (!sent) {
-                revert OperatorFeeFailed();
-            }
-        }
+        // if (operatorFee > 0) {
+        //     (bool sent, ) = operatorFeeRecipient.call{value: operatorFee}("");
+        //     if (!sent) {
+        //         revert OperatorFeeFailed();
+        //     }
+        // }
 
         if (protocolFee > 0) {
             (bool sent, ) = protocolFeeRecipient.call{value: protocolFee}("");
             if (!sent) {
                 revert ProtocolFeeFailed();
             }
+        }
+    }
+
+    function payOperatorFee(
+        uint256 operatorFee,
+        address operatorFeeRecipient
+    ) external onlyPaymentSolution {
+        (bool sent, ) = operatorFeeRecipient.call{value: operatorFee}("");
+        if (!sent) {
+            revert OperatorFeeFailed();
         }
     }
 
