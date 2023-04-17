@@ -302,17 +302,12 @@ contract RequestResponseCoordinator is
         Orakl.Request memory req,
         uint32 callbackGasLimit
     ) external payable returns (uint256) {
-        // TODO check if he is one of the consumers
-
         uint256 fee = estimateDirectPaymentFee();
         if (msg.value < fee) {
             revert InsufficientPayment(msg.value, fee);
         }
 
         uint64 accId = sPrepayment.createTemporaryAccount();
-
-        // sPrepayment.addConsumer(accId, msg.sender); // TODO remove?
-
         bool isDirectPayment = true;
         uint256 requestId = requestDataInternal(req, accId, callbackGasLimit, isDirectPayment);
         sPrepayment.depositTemporary{value: fee}(accId);

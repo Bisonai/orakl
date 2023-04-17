@@ -314,15 +314,12 @@ contract VRFCoordinator is Ownable, ICoordinatorBase, ITypeAndVersion, IVRFCoord
         uint32 callbackGasLimit,
         uint32 numWords
     ) external payable nonReentrant onlyValidKeyHash(keyHash) returns (uint256) {
-        // TODO check if he is one of the consumers
         uint256 fee = estimateDirectPaymentFee();
         if (msg.value < fee) {
             revert InsufficientPayment(msg.value, fee);
         }
 
         uint64 accId = sPrepayment.createTemporaryAccount();
-
-        // sPrepayment.addTemporaryConsumer(accId, msg.sender); // TODO remove?
 
         bool isDirectPayment = true;
         uint256 requestId = requestRandomWordsInternal(
