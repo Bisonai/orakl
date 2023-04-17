@@ -42,7 +42,6 @@ contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
 
     // Account
     uint64 private sCurrentAccId;
-    uint64 private sCurrentTmpAccId;
 
     /* accId */
     /* Account */
@@ -50,15 +49,15 @@ contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
 
     mapping(uint64 => bool) sIsTemporaryAccount;
 
-    struct TemporaryAccountConfig {
+    struct TemporaryAccount {
         uint256 balance;
         uint64 reqCount;
         address owner;
     }
 
     /* accID */
-    /* TemporaryAccountConfig */
-    mapping(uint64 => TemporaryAccountConfig) private sAccIdToTmpAccConfig;
+    /* TemporaryAccount */
+    mapping(uint64 => TemporaryAccount) private sAccIdToTmpAcc;
 
     error PendingRequestExists();
     error InvalidCoordinator();
@@ -73,6 +72,7 @@ contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
     error OperatorFeeFailed();
     error ProtocolFeeFailed();
     error TooHighFeeRatio();
+    error FailedToWithdrawFromTemporaryAccount();
 
     event AccountCreated(uint64 indexed accId, address account, address owner);
     event TemporaryAccountCreated(uint64 indexed accId, address owner);
@@ -237,7 +237,7 @@ contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
             return account.getAccount();
         } else if (sIsTemporaryAccount[accId]) {
             // temporary account
-            TemporaryAccountConfig memory tmpAccConfig = sAccIdToTmpAccConfig[accId];
+            TemporaryAccount memory tmpAccConfig = sAccIdToTmpAcc[accId];
             return (tmpAccConfig.balance, tmpAccConfig.reqCount, tmpAccConfig.owner, consumers);
         } else {
             revert InvalidAccount();
@@ -284,7 +284,7 @@ contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
         uint64 currentAccId = sCurrentAccId + 1;
         sCurrentAccId = currentAccId;
 
-        sAccIdToTmpAccConfig[currentAccId] = TemporaryAccountConfig({
+        sAccIdToTmpAcc[currentAccId] = TemporaryAccount({
             balance: 0,
             reqCount: 0,
             owner: msg.sender
@@ -334,6 +334,20 @@ contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
         emit AccountCanceled(accId, to, balance);
     }
 
+    function cancelAccountTemporary(uint64 accId, address to) external onlyCoordinator {
+        TemporaryAccount memory tmpAccConfig = sAccIdToTmpAcc[accId];
+        uint256 balance = tmpAccConfig.balance;
+        if (balance > 0) {
+            (bool sent, ) = payable(to).call{value: balance}("");
+            if (!sent) {
+                revert FailedToWithdrawFromTemporaryAccount();
+            }
+        }
+
+        delete sAccIdToTmpAcc[accId];
+        emit AccountCanceled(accId, to, balance);
+    }
+
     /**
      * @inheritdoc IPrepayment
      */
@@ -373,7 +387,7 @@ contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
      * @inheritdoc IPrepayment
      */
     function depositTemporary(uint64 accId) external payable {
-        sAccIdToTmpAccConfig[accId].balance += msg.value;
+        sAccIdToTmpAcc[accId].balance += msg.value;
         emit AccountBalanceIncreased(accId, 0, msg.value);
     }
 
@@ -404,7 +418,7 @@ contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
      * @inheritdoc IPrepayment
      */
     function increaseReqCountTemporary(uint64 accId) external onlyCoordinator {
-        sAccIdToTmpAccConfig[accId].reqCount += 1;
+        sAccIdToTmpAcc[accId].reqCount += 1;
     }
 
     /**
@@ -444,8 +458,8 @@ contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
         uint64 accId,
         address operatorFeeRecipient
     ) external onlyCoordinator returns (uint256) {
-        uint256 amount = sAccIdToTmpAccConfig[accId].balance;
-        sAccIdToTmpAccConfig[accId].balance = 0;
+        uint256 amount = sAccIdToTmpAcc[accId].balance;
+        sAccIdToTmpAcc[accId].balance = 0;
 
         uint256 burnFee = (amount * sBurnFeeRatio) / 100;
         uint256 protocolFee = (amount * sProtocolFeeRatio) / 100;

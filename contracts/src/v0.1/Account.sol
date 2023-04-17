@@ -211,10 +211,8 @@ contract Account is IAccount, ITypeAndVersion {
     /**
      * @inheritdoc IAccount
      */
-    function withdraw(
-        uint256 amount
-    ) external onlyPaymentSolution returns (bool sent, uint256 balance) {
-        balance = sBalance;
+    function withdraw(uint256 amount) external onlyPaymentSolution returns (bool, uint256) {
+        uint256 balance = sBalance;
 
         if (balance < amount) {
             revert InsufficientBalance();
@@ -223,7 +221,9 @@ contract Account is IAccount, ITypeAndVersion {
         balance -= amount;
         sBalance = balance;
 
-        (sent, ) = payable(sOwner).call{value: amount}("");
+        (bool sent, ) = payable(sOwner).call{value: amount}("");
+
+        return (sent, balance);
     }
 
     /**
