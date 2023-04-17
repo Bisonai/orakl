@@ -1,73 +1,81 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.16;
 
-// https://github.com/smartcontractkit/chainlink/blob/develop/contracts/src/v0.8/VRFCoordinatorV2.sol
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "./interfaces/CoordinatorBaseInterface.sol";
-import "./interfaces/PrepaymentInterface.sol";
-import "./interfaces/TypeAndVersionInterface.sol";
+import "./Account.sol";
+import "./interfaces/IAccount.sol";
+import "./interfaces/ICoordinatorBase.sol";
+import "./interfaces/IPrepayment.sol";
+import "./interfaces/ITypeAndVersion.sol";
 
-contract Prepayment is Ownable, PrepaymentInterface, TypeAndVersionInterface {
-    uint16 public constant MAX_CONSUMERS = 100;
-    uint8 public constant MIN_BURN_RATIO = 0;
-    uint8 public constant MAX_BURN_RATIO = 100;
+/// @title Orakl Network Prepayment
+/// @author Bisonai
+/// @notice Prepayment is a type of prepaid payment solution which
+/// @notice allows to controls two types of accounts: regular and
+/// @notice temporary.
+/// @notice
+/// @notice [regular] account is a separate smart contract
+/// @notice (Account.sol) that is meant to be used long-term. User can
+/// @notice deposit $KLAY to account and use it to pay for Orakl Network
+/// @notice services. More details about [regular] account are
+/// @notice described at `Account` smart contract.
+/// @notice
+/// @notice [temporary] account is created for one-time-use of Orakl
+/// @notice Network services. Consumer can send $KLAY together with
+/// @notice request to Orakl Network to pay for the service. All
+/// @notice operations related to [temporary] account are implemented
+/// @notice in the Prepayment contract.
+contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
+    uint8 public constant MIN_RATIO = 0;
+    uint8 public constant MAX_RATIO = 100;
+    uint8 private sBurnFeeRatio = 50; // %
+    uint8 private sProtocolFeeRatio = 5; // %
 
-    uint256 private s_totalBalance;
+    address private sProtocolFeeRecipient;
 
-    uint64 private s_currentAccId;
-    uint8 public s_BurnRatio = 20; //20%
+    // Coordinator
+    ICoordinatorBase[] public sCoordinators;
 
-    /* consumer */
+    /* coordinator address */
+    /* association */
+    mapping(address => bool) private sIsCoordinator;
+
+    // Account
+    uint64 private sCurrentAccId;
+
     /* accId */
-    /* nonce */
-    mapping(address => mapping(uint64 => uint64)) private s_consumers;
+    /* Account */
+    mapping(uint64 => Account) private sAccIdToAccount;
 
-    /* accId */
-    /* AccountConfig */
-    mapping(uint64 => AccountConfig) private s_accountConfigs;
+    mapping(uint64 => bool) sIsTemporaryAccount;
 
-    /* accId */
-    /* account */
-    mapping(uint64 => Account) private s_accounts;
-
-    mapping(address => uint256) public s_nodes;
-
-    struct Account {
-        // There are only 1e9*1e18 = 1e27 juels in existence, so the balance can fit in uint256 (2^96 ~ 7e28)
-        uint256 balance; // Common KLAY balance used for all consumer requests.
-        uint64 reqCount; // For fee tiers
-        string accType;
+    struct TemporaryAccount {
+        uint256 balance;
+        uint64 reqCount;
+        address owner;
     }
 
-    struct AccountConfig {
-        address owner; // Owner can fund/withdraw/cancel the acc.
-        address requestedOwner; // For safely transferring acc ownership.
-        // Maintains the list of keys in s_consumers.
-        // We do this for 2 reasons:
-        // 1. To be able to clean up all keys from s_consumers when canceling an account.
-        // 2. To be able to return the list of all consumers in getAccount.
-        // Note that we need the s_consumers map to be able to directly check if a
-        // consumer is valid without reading all the consumers from storage.
-        address[] consumers;
-    }
+    /* accID */
+    /* TemporaryAccount */
+    mapping(uint64 => TemporaryAccount) private sAccIdToTmpAcc;
 
-    CoordinatorBaseInterface[] public s_coordinators;
-    mapping(address => bool) private sIsCoordinators;
-
-    error TooManyConsumers();
-    error InsufficientBalance();
-    error InvalidConsumer(uint64 accId, address consumer);
-    error InvalidAccount();
-    error MustBeAccountOwner(address owner);
     error PendingRequestExists();
-    error MustBeRequestedOwner(address proposedOwner);
-    error ZeroAmount();
-    error CoordinatorExists();
-    error InvalidBurnRatio();
-    error BurnFeeFailed();
     error InvalidCoordinator();
+    error InvalidAccount();
+    error MustBeAccountOwner();
+    error RatioOutOfBounds();
+    error FailedToDeposit();
+    error FailedToWithdraw();
+    error CoordinatorExists();
+    error InsufficientBalance();
+    error BurnFeeFailed();
+    error OperatorFeeFailed();
+    error ProtocolFeeFailed();
+    error TooHighFeeRatio();
+    error FailedToWithdrawFromTemporaryAccount();
 
-    event AccountCreated(uint64 indexed accId, address owner, string accType);
+    event AccountCreated(uint64 indexed accId, address account, address owner);
+    event TemporaryAccountCreated(uint64 indexed accId, address owner);
     event AccountCanceled(uint64 indexed accId, address to, uint256 amount);
     event AccountBalanceIncreased(uint64 indexed accId, uint256 oldBalance, uint256 newBalance);
     event AccountBalanceDecreased(
@@ -78,291 +86,462 @@ contract Prepayment is Ownable, PrepaymentInterface, TypeAndVersionInterface {
     );
     event AccountConsumerAdded(uint64 indexed accId, address consumer);
     event AccountConsumerRemoved(uint64 indexed accId, address consumer);
+    event BurnRatioSet(uint8 ratio);
+    event ProtocolFeeRatioSet(uint8 ratio);
+    event CoordinatorAdded(address coordinator);
+    event CoordinatorRemoved(address coordinator);
     event AccountOwnerTransferRequested(uint64 indexed accId, address from, address to);
     event AccountOwnerTransferred(uint64 indexed accId, address from, address to);
-    event FundsWithdrawn(address to, uint256 amount);
-    event BurnRatioSet(uint16 ratio);
 
-    modifier onlyAccOwner(uint64 accId) {
-        address owner = s_accountConfigs[accId].owner;
-        if (owner == address(0)) {
-            revert InvalidAccount();
-        }
-        if (msg.sender != owner) {
-            revert MustBeAccountOwner(owner);
+    /**
+     * @dev The modifier is only for [regular] account. If called with
+     * @dev account ID assigned to [temporary] account, then the
+     * @dev transaction will be reverted because there is no
+     * @dev associated `Account` contract.
+     */
+    modifier onlyAccountOwner(uint64 accId) {
+        if (sAccIdToAccount[accId].getOwner() != msg.sender) {
+            revert MustBeAccountOwner();
         }
         _;
     }
+
     modifier onlyCoordinator() {
-        bool isCoordinator = false;
-        for (uint256 i = 0; i < s_coordinators.length; i++) {
-            if (s_coordinators[i] == CoordinatorBaseInterface(msg.sender)) {
-                isCoordinator = true;
-                break;
-            }
-        }
-        if (isCoordinator == false) {
+        if (!sIsCoordinator[msg.sender]) {
             revert InvalidCoordinator();
         }
         _;
     }
 
-    constructor() {}
+    constructor(address protocolFeeRecipient) {
+        sProtocolFeeRecipient = protocolFeeRecipient;
+    }
 
-    function setBurnRatio(uint8 ratio) public onlyOwner {
-        if (ratio < MIN_BURN_RATIO || ratio > MAX_BURN_RATIO) {
-            revert InvalidBurnRatio();
+    /**
+     * @notice Return the current burn ratio that represents the
+     * @notice percentage of $KLAY fee that is burnt during fulfillment
+     * @notice of every request.
+     */
+    function getBurnFeeRatio() external view returns (uint8) {
+        return sBurnFeeRatio;
+    }
+
+    /**
+     * @notice The function allows to update a "burn ratio" that represents a
+     * @notice partial amount of payment for the Orakl Network service that
+     * @notice will be burnt.
+     *
+     * @param ratio in a range 0 - 100 % of a fee to be burnt
+     */
+    function setBurnFeeRatio(uint8 ratio) external onlyOwner {
+        if (ratio < MIN_RATIO || ratio > MAX_RATIO) {
+            revert RatioOutOfBounds();
         }
-        s_BurnRatio = ratio;
+
+        if ((ratio + sProtocolFeeRatio) > 100) {
+            revert TooHighFeeRatio();
+        }
+
+        sBurnFeeRatio = ratio;
         emit BurnRatioSet(ratio);
     }
 
     /**
-     * @inheritdoc PrepaymentInterface
+     * @notice Return the current protocol fee ratio that represents
+     * @notice the percentage of $KLAY fee that is charged for every
+     * @notice finalizes fulfillment.
      */
-    function getTotalBalance() external view returns (uint256) {
-        return s_totalBalance;
+    function getProtocolFeeRatio() external view returns (uint8) {
+        return sProtocolFeeRatio;
     }
 
     /**
-     * @inheritdoc PrepaymentInterface
+     * @notice The function allows to update a protocol fee.
+     *
+     * @param ratio in a range 0 - 100 % of a fee to be burnt
+     */
+    function setProtocolFeeRatio(uint8 ratio) external onlyOwner {
+        if (ratio < MIN_RATIO || ratio > MAX_RATIO) {
+            revert RatioOutOfBounds();
+        }
+        if ((ratio + sBurnFeeRatio) > 100) {
+            revert TooHighFeeRatio();
+        }
+        sProtocolFeeRatio = ratio;
+        emit ProtocolFeeRatioSet(ratio);
+    }
+
+    /**
+     * @notice Get address of protocol fee recipient.
+     */
+    function getProtocolFeeRecipient() external view returns (address) {
+        return sProtocolFeeRecipient;
+    }
+
+    /**
+     * @notice Update address of protocol fee recipient that will
+     * @notice receive protocol fees.
+     * @param protocolFeeRecipient - address of protocol fee recipient
+     */
+    function setProtocolFeeRecipient(address protocolFeeRecipient) external onlyOwner {
+        sProtocolFeeRecipient = protocolFeeRecipient;
+    }
+
+    /**
+     * @notice Get addresses of all registered coordinators in Prepayment.
+     */
+    function getCoordinators() external view returns (ICoordinatorBase[] memory) {
+        return sCoordinators;
+    }
+
+    /**
+     * @inheritdoc IPrepayment
+     */
+    function isValidAccount(uint64 accId) external view returns (bool) {
+        Account account = sAccIdToAccount[accId];
+        if (address(account) != address(0) || sIsTemporaryAccount[accId]) {
+            return true;
+        } else {
+            revert InvalidAccount();
+        }
+    }
+
+    /**
+     * @inheritdoc IPrepayment
+     */
+    function getBalance(uint64 accId) external view returns (uint256 balance) {
+        return sAccIdToAccount[accId].getBalance();
+    }
+
+    /**
+     * @inheritdoc IPrepayment
+     */
+    function getReqCount(uint64 accId) external view returns (uint64) {
+        return sAccIdToAccount[accId].getReqCount();
+    }
+
+    /**
+     * @inheritdoc IPrepayment
      */
     function getAccount(
         uint64 accId
     )
         external
         view
-        returns (
-            uint256 balance,
-            uint64 reqCount,
-            string memory accType,
-            address owner,
-            address[] memory consumers
-        )
+        returns (uint256 balance, uint64 reqCount, address owner, address[] memory consumers)
     {
-        if (s_accountConfigs[accId].owner == address(0)) {
+        Account account = sAccIdToAccount[accId];
+
+        if (address(account) != address(0)) {
+            // regular account
+            return account.getAccount();
+        } else if (sIsTemporaryAccount[accId]) {
+            // temporary account
+            TemporaryAccount memory tmpAccConfig = sAccIdToTmpAcc[accId];
+            return (tmpAccConfig.balance, tmpAccConfig.reqCount, tmpAccConfig.owner, consumers);
+        } else {
             revert InvalidAccount();
         }
-        return (
-            s_accounts[accId].balance,
-            s_accounts[accId].reqCount,
-            s_accounts[accId].accType,
-            s_accountConfigs[accId].owner,
-            s_accountConfigs[accId].consumers
-        );
     }
 
     /**
-     * @inheritdoc PrepaymentInterface
+     * @inheritdoc IPrepayment
+     */
+    function getAccountOwner(uint64 accId) external view returns (address) {
+        return sAccIdToAccount[accId].getOwner();
+    }
+
+    /**
+     * @inheritdoc IPrepayment
+     */
+    function getNonce(uint64 accId, address consumer) external view returns (uint64) {
+        Account account = sAccIdToAccount[accId];
+        if (address(account) != address(0)) {
+            return sAccIdToAccount[accId].getNonce(consumer);
+        } else {
+            return 1;
+        }
+    }
+
+    /**
+     * @inheritdoc IPrepayment
      */
     function createAccount() external returns (uint64) {
-        s_currentAccId++;
-        uint64 currentAccId = s_currentAccId;
-        address[] memory consumers = new address[](0);
-        string memory accType = "reg";
-        if (sIsCoordinators[msg.sender]) {
-            accType = "tmp";
-        }
-        s_accounts[currentAccId] = Account({balance: 0, reqCount: 0, accType: accType});
-        s_accountConfigs[currentAccId] = AccountConfig({
-            owner: msg.sender,
-            requestedOwner: address(0),
-            consumers: consumers
-        });
+        uint64 currentAccId = sCurrentAccId + 1;
+        sCurrentAccId = currentAccId;
 
-        emit AccountCreated(currentAccId, msg.sender, accType);
+        Account acc = new Account(currentAccId, msg.sender);
+        sAccIdToAccount[currentAccId] = acc;
+
+        emit AccountCreated(currentAccId, address(acc), msg.sender);
         return currentAccId;
     }
 
     /**
-     * @inheritdoc PrepaymentInterface
+     * @inheritdoc IPrepayment
+     */
+    function createTemporaryAccount() external returns (uint64) {
+        uint64 currentAccId = sCurrentAccId + 1;
+        sCurrentAccId = currentAccId;
+
+        sAccIdToTmpAcc[currentAccId] = TemporaryAccount({
+            balance: 0,
+            reqCount: 0,
+            owner: msg.sender
+        });
+        sIsTemporaryAccount[currentAccId] = true;
+
+        emit TemporaryAccountCreated(currentAccId, msg.sender);
+        return currentAccId;
+    }
+
+    /**
+     * @inheritdoc IPrepayment
      */
     function requestAccountOwnerTransfer(
         uint64 accId,
-        address newOwner
-    ) external onlyAccOwner(accId) {
-        // Proposing to address(0) would never be claimable so don't need to check.
-        if (s_accountConfigs[accId].requestedOwner != newOwner) {
-            s_accountConfigs[accId].requestedOwner = newOwner;
-            emit AccountOwnerTransferRequested(accId, msg.sender, newOwner);
-        }
+        address requestedOwner
+    ) external onlyAccountOwner(accId) {
+        sAccIdToAccount[accId].requestAccountOwnerTransfer(requestedOwner);
+        emit AccountOwnerTransferRequested(accId, msg.sender, requestedOwner);
     }
 
     /**
-     * @inheritdoc PrepaymentInterface
+     * @inheritdoc IPrepayment
      */
     function acceptAccountOwnerTransfer(uint64 accId) external {
-        if (s_accountConfigs[accId].owner == address(0)) {
-            revert InvalidAccount();
-        }
-        if (s_accountConfigs[accId].requestedOwner != msg.sender) {
-            revert MustBeRequestedOwner(s_accountConfigs[accId].requestedOwner);
-        }
-        address oldOwner = s_accountConfigs[accId].owner;
-        s_accountConfigs[accId].owner = msg.sender;
-        s_accountConfigs[accId].requestedOwner = address(0);
-        emit AccountOwnerTransferred(accId, oldOwner, msg.sender);
+        Account account = sAccIdToAccount[accId];
+        address newOwner = msg.sender;
+        address oldOwner = account.getOwner();
+        account.acceptAccountOwnerTransfer(newOwner);
+        emit AccountOwnerTransferred(accId, oldOwner, newOwner);
     }
 
     /**
-     * @inheritdoc PrepaymentInterface
+     * @inheritdoc IPrepayment
      */
-    function removeConsumer(uint64 accId, address consumer) external onlyAccOwner(accId) {
-        if (s_consumers[consumer][accId] == 0) {
-            revert InvalidConsumer(accId, consumer);
+    function cancelAccount(uint64 accId, address to) external onlyAccountOwner(accId) {
+        if (pendingRequestExists(accId)) {
+            revert PendingRequestExists();
         }
-        // Note bounded by MAX_CONSUMERS
-        address[] memory consumers = s_accountConfigs[accId].consumers;
-        uint256 lastConsumerIndex = consumers.length - 1;
-        for (uint256 i = 0; i < consumers.length; i++) {
-            if (consumers[i] == consumer) {
-                address last = consumers[lastConsumerIndex];
-                // Storage write to preserve last element
-                s_accountConfigs[accId].consumers[i] = last;
-                // Storage remove last element
-                s_accountConfigs[accId].consumers.pop();
-                break;
+
+        Account account = sAccIdToAccount[accId];
+        uint256 balance = account.getBalance();
+
+        account.cancelAccount(to);
+        delete sAccIdToAccount[accId];
+
+        emit AccountCanceled(accId, to, balance);
+    }
+
+    function cancelAccountTemporary(uint64 accId, address to) external onlyCoordinator {
+        TemporaryAccount memory tmpAccConfig = sAccIdToTmpAcc[accId];
+        uint256 balance = tmpAccConfig.balance;
+        if (balance > 0) {
+            (bool sent, ) = payable(to).call{value: balance}("");
+            if (!sent) {
+                revert FailedToWithdrawFromTemporaryAccount();
             }
         }
-        delete s_consumers[consumer][accId];
-        emit AccountConsumerRemoved(accId, consumer);
+
+        delete sAccIdToTmpAcc[accId];
+        emit AccountCanceled(accId, to, balance);
     }
 
     /**
-     * @inheritdoc PrepaymentInterface
+     * @inheritdoc IPrepayment
      */
-    function addConsumer(uint64 accId, address consumer) external onlyAccOwner(accId) {
-        // Already maxed, cannot add any more consumers.
-        if (s_accountConfigs[accId].consumers.length >= MAX_CONSUMERS) {
-            revert TooManyConsumers();
-        }
-        if (s_consumers[consumer][accId] != 0) {
-            // Idempotence - do nothing if already added.
-            // Ensures uniqueness in s_accounts[accId].consumers.
-            return;
-        }
-        // Initialize the nonce to 1, indicating the consumer is allocated.
-        s_consumers[consumer][accId] = 1;
-        s_accountConfigs[accId].consumers.push(consumer);
-
+    function addConsumer(uint64 accId, address consumer) external onlyAccountOwner(accId) {
+        sAccIdToAccount[accId].addConsumer(consumer);
         emit AccountConsumerAdded(accId, consumer);
     }
 
     /**
-     * @inheritdoc PrepaymentInterface
+     * @inheritdoc IPrepayment
      */
-    function cancelAccount(uint64 accId, address to) external onlyAccOwner(accId) {
-        if (pendingRequestExists(accId)) {
-            revert PendingRequestExists();
-        }
-        cancelAccountHelper(accId, to);
+    function removeConsumer(uint64 accId, address consumer) external onlyAccountOwner(accId) {
+        sAccIdToAccount[accId].removeConsumer(consumer);
+        emit AccountConsumerRemoved(accId, consumer);
     }
 
     /**
-     * @inheritdoc PrepaymentInterface
+     * @inheritdoc IPrepayment
      */
     function deposit(uint64 accId) external payable {
+        Account account = sAccIdToAccount[accId];
+        if (address(account) == address(0)) {
+            revert InvalidAccount();
+        }
         uint256 amount = msg.value;
-        uint256 oldBalance = s_accounts[accId].balance;
-        s_accounts[accId].balance += amount;
-        s_totalBalance += amount;
-        emit AccountBalanceIncreased(accId, oldBalance, oldBalance + amount);
+        uint256 balance = account.getBalance();
+
+        (bool sent, ) = payable(account).call{value: msg.value}("");
+        if (!sent) {
+            revert FailedToDeposit();
+        }
+
+        emit AccountBalanceIncreased(accId, balance, balance + amount);
     }
 
     /**
-     * @inheritdoc PrepaymentInterface
+     * @inheritdoc IPrepayment
      */
-    function withdraw(uint64 accId, uint256 amount) external onlyAccOwner(accId) {
+    function depositTemporary(uint64 accId) external payable {
+        sAccIdToTmpAcc[accId].balance += msg.value;
+        emit AccountBalanceIncreased(accId, 0, msg.value);
+    }
+
+    /**
+     * @inheritdoc IPrepayment
+     */
+    function withdraw(uint64 accId, uint256 amount) external onlyAccountOwner(accId) {
         if (pendingRequestExists(accId)) {
             revert PendingRequestExists();
         }
 
-        uint256 oldBalance = s_accounts[accId].balance;
-        if ((oldBalance < amount) || (address(this).balance < amount)) {
-            revert InsufficientBalance();
-        }
-
-        s_accounts[accId].balance -= amount;
-
-        (bool sent, ) = msg.sender.call{value: amount}("");
+        (bool sent, uint256 balance) = sAccIdToAccount[accId].withdraw(amount);
         if (!sent) {
-            revert InsufficientBalance();
+            revert FailedToWithdraw();
         }
 
-        emit AccountBalanceDecreased(accId, oldBalance, oldBalance - amount, 0);
+        emit AccountBalanceDecreased(accId, balance + amount, balance, 0);
     }
 
     /**
-     * @inheritdoc PrepaymentInterface
+     * @inheritdoc IPrepayment
      */
-    function nodeWithdraw(uint256 amount) external {
-        if (amount == 0) {
-            revert ZeroAmount();
-        }
-        if (address(this).balance < amount) {
-            revert InsufficientBalance();
-        }
-        uint256 withdrawable = s_nodes[msg.sender];
-        if (withdrawable < amount) {
-            revert InsufficientBalance();
-        }
-        s_nodes[msg.sender] -= amount;
-        (bool sent, ) = msg.sender.call{value: amount}("");
-        if (!sent) {
-            revert InsufficientBalance();
-        }
-
-        emit FundsWithdrawn(msg.sender, amount);
+    function increaseReqCount(uint64 accId) external onlyCoordinator {
+        return sAccIdToAccount[accId].increaseReqCount();
     }
 
     /**
-     * @inheritdoc PrepaymentInterface
+     * @inheritdoc IPrepayment
      */
-    function chargeFee(uint64 accId, uint256 amount, address node) external onlyCoordinator {
-        uint256 oldBalance = s_accounts[accId].balance;
-        if (oldBalance < amount) {
+    function increaseReqCountTemporary(uint64 accId) external onlyCoordinator {
+        sAccIdToTmpAcc[accId].reqCount += 1;
+    }
+
+    /**
+     * @inheritdoc IPrepayment
+     */
+    function chargeFee(
+        uint64 accId,
+        uint256 amount,
+        address operatorFeeRecipient
+    ) external onlyCoordinator {
+        Account account = sAccIdToAccount[accId];
+        uint256 balance = account.getBalance();
+
+        if (balance < amount) {
             revert InsufficientBalance();
         }
 
-        s_accounts[accId].balance -= amount;
-        s_accounts[accId].reqCount += 1;
-        uint256 burnAmount = (amount * s_BurnRatio) / 100;
-        s_nodes[node] += amount - burnAmount;
-        if (burnAmount > 0) {
-            (bool sent, ) = address(0).call{value: burnAmount}("");
+        uint256 burnFee = (amount * sBurnFeeRatio) / 100;
+        uint256 protocolFee = (amount * sProtocolFeeRatio) / 100;
+        uint256 operatorFee = amount - burnFee - protocolFee;
+
+        account.chargeFee(
+            burnFee,
+            operatorFee,
+            operatorFeeRecipient,
+            protocolFee,
+            sProtocolFeeRecipient
+        );
+
+        emit AccountBalanceDecreased(accId, balance, balance - amount, burnFee);
+    }
+
+    /**
+     * @inheritdoc IPrepayment
+     */
+    function chargeFeeTemporary(
+        uint64 accId,
+        address operatorFeeRecipient
+    ) external onlyCoordinator returns (uint256) {
+        uint256 amount = sAccIdToTmpAcc[accId].balance;
+        sAccIdToTmpAcc[accId].balance = 0;
+
+        uint256 burnFee = (amount * sBurnFeeRatio) / 100;
+        uint256 protocolFee = (amount * sProtocolFeeRatio) / 100;
+        uint256 operatorFee = amount - burnFee - protocolFee;
+
+        if (burnFee > 0) {
+            (bool sent, ) = address(0).call{value: burnFee}("");
             if (!sent) {
                 revert BurnFeeFailed();
             }
         }
 
-        emit AccountBalanceDecreased(accId, oldBalance, oldBalance - amount, burnAmount);
+        if (operatorFee > 0) {
+            (bool sent, ) = operatorFeeRecipient.call{value: operatorFee}("");
+            if (!sent) {
+                revert OperatorFeeFailed();
+            }
+        }
+
+        if (protocolFee > 0) {
+            (bool sent, ) = sProtocolFeeRecipient.call{value: protocolFee}("");
+            if (!sent) {
+                revert ProtocolFeeFailed();
+            }
+        }
+
+        emit AccountBalanceDecreased(accId, amount, 0, burnFee);
+
+        return amount;
     }
 
     /**
-     * @inheritdoc PrepaymentInterface
-     */
-    function getNonce(address consumer, uint64 accId) external view returns (uint64) {
-        return s_consumers[consumer][accId];
-    }
-
-    /**
-     * @inheritdoc PrepaymentInterface
+     * @inheritdoc IPrepayment
      */
     function increaseNonce(
-        address consumer,
-        uint64 accId
+        uint64 accId,
+        address consumer
     ) external onlyCoordinator returns (uint64) {
-        uint64 currentNonce = s_consumers[consumer][accId];
-        uint64 nonce = currentNonce + 1;
-        s_consumers[consumer][accId] = nonce;
-        return nonce;
+        Account account = sAccIdToAccount[accId];
+        if (address(account) != address(0)) {
+            // regular account
+            return account.increaseNonce(consumer);
+        } else {
+            // temporary account
+            return 1;
+        }
     }
 
     /**
-     * @inheritdoc PrepaymentInterface
+     * @inheritdoc IPrepayment
      */
-    function getAccountOwner(uint64 accId) external view returns (address owner) {
-        return s_accountConfigs[accId].owner;
+    function addCoordinator(address coordinator) public onlyOwner {
+        if (sIsCoordinator[coordinator]) {
+            revert CoordinatorExists();
+        }
+
+        sCoordinators.push(ICoordinatorBase(coordinator));
+        sIsCoordinator[coordinator] = true;
+
+        emit CoordinatorAdded(coordinator);
+    }
+
+    /**
+     * @inheritdoc IPrepayment
+     */
+    function removeCoordinator(address coordinator) public onlyOwner {
+        if (!sIsCoordinator[coordinator]) {
+            revert InvalidCoordinator();
+        }
+
+        uint256 coordinatorsLength = sCoordinators.length;
+        for (uint256 i; i < coordinatorsLength; ++i) {
+            if (sCoordinators[i] == ICoordinatorBase(coordinator)) {
+                ICoordinatorBase last = sCoordinators[coordinatorsLength - 1];
+                sCoordinators[i] = last;
+                sCoordinators.pop();
+                break;
+            }
+        }
+
+        delete sIsCoordinator[coordinator];
+        emit CoordinatorRemoved(coordinator);
     }
 
     /**
@@ -374,80 +553,26 @@ contract Prepayment is Ownable, PrepaymentInterface, TypeAndVersionInterface {
     }
 
     /**
-     * @inheritdoc PrepaymentInterface
+     * @inheritdoc IPrepayment
      * @dev Looping is bounded to MAX_CONSUMERS*(number of keyhashes).
-     * @dev Used to disable subscription canceling while outstanding request are present.
+     * @dev Use to reject account cancellation while outstanding request are present.
      */
     function pendingRequestExists(uint64 accId) public view returns (bool) {
-        AccountConfig memory accConfig = s_accountConfigs[accId];
-        for (uint256 i = 0; i < accConfig.consumers.length; i++) {
-            for (uint256 j = 0; j < s_coordinators.length; j++) {
-                if (
-                    s_coordinators[j].pendingRequestExists(
-                        accConfig.consumers[i],
-                        accId,
-                        s_consumers[accConfig.consumers[i]][accId]
-                    )
-                ) {
+        Account account = sAccIdToAccount[accId];
+        address[] memory consumers = account.getConsumers();
+        uint256 consumersLength = consumers.length;
+        uint256 coordinatorsLength = sCoordinators.length;
+
+        for (uint256 i = 0; i < consumersLength; i++) {
+            address consumer = consumers[i];
+            uint64 nonce = account.getNonce(consumer);
+            for (uint256 j = 0; j < coordinatorsLength; j++) {
+                if (sCoordinators[j].pendingRequestExists(consumer, accId, nonce)) {
                     return true;
                 }
             }
         }
+
         return false;
-    }
-
-    /**
-     * @inheritdoc PrepaymentInterface
-     */
-    function addCoordinator(address coordinator) public onlyOwner {
-        if (sIsCoordinators[coordinator]) {
-            revert CoordinatorExists();
-        }
-        s_coordinators.push(CoordinatorBaseInterface(coordinator));
-        sIsCoordinators[coordinator] = true;
-    }
-
-    /**
-     * @inheritdoc PrepaymentInterface
-     */
-    function removeCoordinator(address coordinator) public onlyOwner {
-        for (uint256 i = 0; i < s_coordinators.length; i++) {
-            if (s_coordinators[i] == CoordinatorBaseInterface(coordinator)) {
-                CoordinatorBaseInterface last = s_coordinators[s_coordinators.length - 1];
-                s_coordinators[i] = last;
-                s_coordinators.pop();
-                break;
-            }
-        }
-        delete sIsCoordinators[coordinator];
-    }
-
-    /*
-     * @notice Remove consumers and account related information.
-     * @notice Return remaining balance.
-     * @param accId - ID of the account
-     * @param to - Where to send the remaining KLAY to
-     */
-    function cancelAccountHelper(uint64 accId, address to) private {
-        AccountConfig memory accConfig = s_accountConfigs[accId];
-        Account memory acc = s_accounts[accId];
-        uint256 balance = acc.balance;
-
-        // Note bounded by MAX_CONSUMERS;
-        // If no consumers, does nothing.
-        for (uint256 i = 0; i < accConfig.consumers.length; i++) {
-            delete s_consumers[accConfig.consumers[i]][accId];
-        }
-
-        delete s_accountConfigs[accId];
-        delete s_accounts[accId];
-        s_totalBalance -= balance;
-
-        (bool sent, ) = to.call{value: balance}("");
-        if (!sent) {
-            revert InsufficientBalance();
-        }
-
-        emit AccountCanceled(accId, to, balance);
     }
 }

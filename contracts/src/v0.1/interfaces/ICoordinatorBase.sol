@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.16;
 
-interface CoordinatorBaseInterface {
+interface ICoordinatorBase {
     /**
      * @notice Check to see if there exists a request commitment consumers
      * for all consumers and keyhashes for a given acc.

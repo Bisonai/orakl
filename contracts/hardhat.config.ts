@@ -27,7 +27,6 @@ const config: HardhatUserConfig = {
 
   networks: {
     localhost: {
-      gas: 1_400_000,
       gasPrice: 250_000_000_000
     },
     baobab: {
@@ -52,6 +51,15 @@ const config: HardhatUserConfig = {
     consumer: {
       default: 1,
       baobab: '0x70997970C51812dc3A010C7d01b50e0d17dc79C8'
+    },
+    consumer1: {
+      default: 6
+    },
+    consumer2: {
+      default: 7
+    },
+    account8: {
+      default: 8
     },
     feedOracle0: {
       default: 2,

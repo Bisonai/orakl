@@ -3,20 +3,15 @@ pragma solidity ^0.8.16;
 
 // https://github.com/smartcontractkit/chainlink/blob/develop/contracts/src/v0.8/VRFCoordinatorV2.sol
 
-import "./interfaces/CoordinatorBaseInterface.sol";
-import "./interfaces/PrepaymentInterface.sol";
-import "./interfaces/TypeAndVersionInterface.sol";
-import "./interfaces/VRFCoordinatorInterface.sol";
+import "./interfaces/ICoordinatorBase.sol";
+import "./interfaces/IPrepayment.sol";
+import "./interfaces/ITypeAndVersion.sol";
+import "./interfaces/IVRFCoordinator.sol";
 import "./libraries/VRF.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "./VRFConsumerBase.sol";
 
-contract VRFCoordinator is
-    CoordinatorBaseInterface,
-    Ownable,
-    TypeAndVersionInterface,
-    VRFCoordinatorInterface
-{
+contract VRFCoordinator is Ownable, ICoordinatorBase, ITypeAndVersion, IVRFCoordinator {
     uint32 public constant MAX_NUM_WORDS = 500;
     // 5k is plenty for an EXTCODESIZE call (2600) + warm CALL (100)
     // and some arithmetic operations.
@@ -65,7 +60,7 @@ contract VRFCoordinator is
     }
     FeeConfig private sFeeConfig;
 
-    PrepaymentInterface private sPrepayment;
+    IPrepayment private sPrepayment;
 
     struct DirectPaymentConfig {
         uint256 fulfillmentFee;
@@ -127,7 +122,7 @@ contract VRFCoordinator is
     }
 
     constructor(address prepayment) {
-        sPrepayment = PrepaymentInterface(prepayment);
+        sPrepayment = IPrepayment(prepayment);
         emit PrepaymentSet(prepayment);
     }
 
@@ -245,7 +240,7 @@ contract VRFCoordinator is
     }
 
     /**
-     * @inheritdoc VRFCoordinatorInterface
+     * @inheritdoc IVRFCoordinator
      */
     function getRequestConfig() external view returns (uint32, bytes32[] memory) {
         return (sConfig.maxGasLimit, sKeyHashes);
@@ -284,45 +279,48 @@ contract VRFCoordinator is
     }
 
     /**
-     * @inheritdoc VRFCoordinatorInterface
+     * @inheritdoc IVRFCoordinator
      */
     function requestRandomWords(
         bytes32 keyHash,
         uint64 accId,
         uint32 callbackGasLimit,
         uint32 numWords
-    ) external nonReentrant onlyValidKeyHash(keyHash) returns (uint256 requestId) {
-        (uint256 balance, , , , ) = sPrepayment.getAccount(accId);
+    ) external nonReentrant onlyValidKeyHash(keyHash) returns (uint256) {
+        // TODO check if he is one of the consumers
 
+        uint256 balance = sPrepayment.getBalance(accId);
         if (balance < sMinBalance) {
             revert InsufficientPayment(balance, sMinBalance);
         }
-        bool isDirectPayment = false;
 
-        requestId = requestRandomWordsInternal(
+        bool isDirectPayment = false;
+        uint256 requestId = requestRandomWordsInternal(
             keyHash,
             accId,
             callbackGasLimit,
             numWords,
             isDirectPayment
         );
+
+        return requestId;
     }
 
     /**
-     * @inheritdoc VRFCoordinatorInterface
+     * @inheritdoc IVRFCoordinator
      */
-    function requestRandomWordsPayment(
+    function requestRandomWords(
         bytes32 keyHash,
         uint32 callbackGasLimit,
         uint32 numWords
     ) external payable nonReentrant onlyValidKeyHash(keyHash) returns (uint256) {
-        uint256 vrfFee = estimateDirectPaymentFee();
-        if (msg.value < vrfFee) {
-            revert InsufficientPayment(msg.value, vrfFee);
+        uint256 fee = estimateDirectPaymentFee();
+        if (msg.value < fee) {
+            revert InsufficientPayment(msg.value, fee);
         }
 
-        uint64 accId = sPrepayment.createAccount();
-        sPrepayment.addConsumer(accId, msg.sender);
+        uint64 accId = sPrepayment.createTemporaryAccount();
+
         bool isDirectPayment = true;
         uint256 requestId = requestRandomWordsInternal(
             keyHash,
@@ -331,9 +329,9 @@ contract VRFCoordinator is
             numWords,
             isDirectPayment
         );
-        sPrepayment.deposit{value: vrfFee}(accId);
+        sPrepayment.depositTemporary{value: fee}(accId);
 
-        uint256 remaining = msg.value - vrfFee;
+        uint256 remaining = msg.value - fee;
         if (remaining > 0) {
             (bool sent, ) = msg.sender.call{value: remaining}("");
             if (!sent) {
@@ -385,26 +383,20 @@ contract VRFCoordinator is
         bool success = callWithExactGas(rc.callbackGasLimit, rc.sender, resp);
         sConfig.reentrancyLock = false;
 
-        // We want to charge users exactly for how much gas they use in their callback.
-        // The gasAfterPaymentCalculation is meant to cover these additional operations where we
-        // decrement the account balance and increment the oracles withdrawable balance.
-        // We also add the flat KLAY fee to the payment amount.
-        // Its specified in millionths of KLAY, if sConfig.fulfillmentFlatFeeKlayPPM = 1
-        // 1 KLAY / 1e6 = 1e18 pebs / 1e6 = 1e12 pebs.
-        (uint256 balance, uint64 reqCount, , , ) = sPrepayment.getAccount(rc.accId);
-
         uint256 payment;
         if (isDirectPayment) {
-            payment = balance;
+            payment = sPrepayment.chargeFeeTemporary(rc.accId, sKeyHashToOracle[keyHash]);
+            sPrepayment.increaseReqCountTemporary(rc.accId);
         } else {
+            uint64 reqCount = sPrepayment.getReqCount(rc.accId);
             payment = calculatePaymentAmount(
                 startGas,
                 sConfig.gasAfterPaymentCalculation,
                 getFeeTier(reqCount)
             );
+            sPrepayment.chargeFee(rc.accId, payment, sKeyHashToOracle[keyHash]);
+            sPrepayment.increaseReqCount(rc.accId);
         }
-
-        sPrepayment.chargeFee(rc.accId, payment, sKeyHashToOracle[keyHash]);
 
         // Include payment in the event for tracking costs.
         emit RandomWordsFulfilled(requestId, randomness, payment, success);
@@ -458,7 +450,7 @@ contract VRFCoordinator is
     }
 
     /**
-     * @inheritdoc CoordinatorBaseInterface
+     * @inheritdoc ICoordinatorBase
      */
     function pendingRequestExists(
         address consumer,
@@ -490,17 +482,12 @@ contract VRFCoordinator is
         uint32 numWords,
         bool isDirectPayment
     ) internal returns (uint256) {
-        // Input validation using the account storage.
-        // call to prepayment contract
-        address owner = sPrepayment.getAccountOwner(accId);
-        if (owner == address(0)) {
-            revert InvalidAccount();
-        }
+        sPrepayment.isValidAccount(accId);
 
         // Its important to ensure that the consumer is in fact who they say they
         // are, otherwise they could use someone else's account balance.
         // A nonce of 0 indicates consumer is not allocated to the acc.
-        uint64 currentNonce = sPrepayment.getNonce(msg.sender, accId);
+        uint64 currentNonce = sPrepayment.getNonce(accId, msg.sender);
         if (currentNonce == 0) {
             revert InvalidConsumer(accId, msg.sender);
         }
@@ -516,7 +503,7 @@ contract VRFCoordinator is
             revert NumWordsTooBig(numWords, MAX_NUM_WORDS);
         }
 
-        uint64 nonce = sPrepayment.increaseNonce(msg.sender, accId);
+        uint64 nonce = sPrepayment.increaseNonce(accId, msg.sender);
         (uint256 requestId, uint256 preSeed) = computeRequestId(keyHash, msg.sender, accId, nonce);
 
         sRequestIdToCommitment[requestId] = keccak256(
