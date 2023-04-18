@@ -1,6 +1,6 @@
-import { expect } from 'chai'
-import { ethers } from 'hardhat'
-import { loadFixture } from '@nomicfoundation/hardhat-network-helpers'
+const { expect } = require('chai')
+const { ethers } = require('hardhat')
+const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers')
 
 describe('Account', function () {
   async function deployPrepayment() {

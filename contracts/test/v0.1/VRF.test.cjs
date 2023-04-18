@@ -1,12 +1,11 @@
-import { loadFixture } from '@nomicfoundation/hardhat-network-helpers'
-import { expect } from 'chai'
-import hre from 'hardhat'
-import { ethers } from 'hardhat'
-import crypto from 'crypto'
-import { vrfConfig } from './VRF.config'
-import { parseKlay } from './utils'
-import { Prepayment } from './Prepayment.utils'
-import { setMinBalance } from './Coordinator.utils'
+const { expect } = require('chai')
+const { ethers } = require('hardhat')
+const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers')
+const crypto = require('crypto')
+const { vrfConfig } = require('./VRF.config.cjs')
+const { parseKlay, remove0x } = require('./utils.cjs')
+const { Prepayment } = require('./Prepayment.utils.cjs')
+const { setMinBalance } = require('./Coordinator.utils.cjs')
 
 const DUMMY_KEY_HASH = '0x00000773ef09e40658e643fe79f8d1a27c0aa6eb7251749b268f829ea49f2024'
 const NUM_WORDS = 1
@@ -26,7 +25,8 @@ async function deployFixture() {
     deployer,
     consumer,
     consumer1: sProtocolFeeRecipient,
-    consumer2
+    consumer2,
+    vrfOracle0
   } = await hre.getNamedAccounts()
 
   // Prepayment
@@ -50,17 +50,18 @@ async function deployFixture() {
   consumerContract = await consumerContract.deploy(coordinatorContract.address)
   await consumerContract.deployed()
 
-  const prepayment = new Prepayment({
-    consumerAddress: consumer,
-    prepaymentContractAddress: prepaymentContract.address,
-    consumerContractAddress: consumerContract.address
-  })
+  const prepayment = new Prepayment(
+    consumer,
+    prepaymentContract.address,
+    consumerContract.address
+  )
   await prepayment.initialize()
 
   return {
     deployer,
     consumer,
     consumer2,
+    vrfOracle0,
     prepaymentContract,
     coordinatorContract,
     consumerContract,
@@ -198,19 +199,22 @@ describe('VRF contract', function () {
     // Prepayment smart contract. Every [regular] account has to have at
     // least `sMinBalance` in their account in order to succeed with
     // VRF request.
-    const { consumer, coordinatorContract, consumerContract, prepaymentContract, prepayment } =
+    const { consumer, vrfOracle0, coordinatorContract, consumerContract, prepaymentContract, prepayment } =
       await loadFixture(deployFixture)
 
     const {
-      oracle,
-      publicProvingKey,
-      keyHash,
       maxGasLimit,
       gasAfterPaymentCalculation,
-      feeConfig
+      feeConfig,
+      sk,
+      pk,
+      pkX,
+      pkY,
+      publicProvingKey,
+      keyHash
     } = vrfConfig()
 
-    await coordinatorContract.registerOracle(oracle, publicProvingKey)
+    await coordinatorContract.registerOracle(vrfOracle0, publicProvingKey)
     await coordinatorContract.setConfig(
       maxGasLimit,
       gasAfterPaymentCalculation,
@@ -237,6 +241,7 @@ describe('VRF contract', function () {
     const txRequestRandomWords = await (
       await consumerContract.requestRandomWords(keyHash, accId, maxGasLimit, NUM_WORDS)
     ).wait()
+    const blockHash = txRequestRandomWords.blockHash
 
     expect(txRequestRandomWords.events.length).to.be.equal(1)
     const requestedRandomWordsEvent = coordinatorContract.interface.parseLog(
@@ -247,7 +252,7 @@ describe('VRF contract', function () {
     const {
       keyHash: eKeyHash,
       requestId: eRequestId,
-      // preSeed: ePreSeed,
+      preSeed: ePreSeed,
       accId: eAccId,
       callbackGasLimit: eCallbackGasLimit,
       numWords: eNumWords,
@@ -260,13 +265,39 @@ describe('VRF contract', function () {
     expect(eNumWords).to.be.equal(NUM_WORDS)
     expect(eSender).to.be.equal(consumerContract.address)
     expect(eIsDirectPayment).to.be.equal(false)
-  })
 
-  // it('Request through [temporary] account & Fulfill', async function () {
-  // charge $KLAY to account
-  // generate random number through other script
-  // create reporter account
-  // submit
-  // check for returned value
-  // })
+    const alpha = remove0x(
+      ethers.utils.solidityKeccak256(['uint256', 'bytes32'], [ePreSeed, blockHash])
+    )
+
+    const { processVrfRequest } = await import('@bisonai/orakl-vrf')
+
+    const { proof, uPoint, vComponents } = processVrfRequest(alpha, {
+      sk,
+      pk,
+      pkX,
+      pkY,
+      keyHash
+    })
+    // console.log(proof, uPoint, vComponents)
+
+    // console.log(PKG)
+
+    // const aa = await import('@bisonai/orakl-vrf')
+
+    // const aa = require('@bisonai/orakl-vrf')
+    // .then((module) => {
+    //   chalk = module
+    //   console.log('hello')
+    //   console.log(chalk)
+    //   // console.log(chalk.green('app running'))
+    // })
+    // .catch((err) => console.log(err))
+    // console.log(processVrfRequest)
+
+
+    // generate random number
+    // submit
+    // check for returned value
+  })
 })

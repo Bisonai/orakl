@@ -1,19 +1,14 @@
-import { expect } from 'chai'
-import hre from 'hardhat'
+class Prepayment {
+  consumerAddress
+  prepaymentContractAddress
+  prepaymentContract
+  accId
 
-export class Prepayment {
-  consumerAddress: string
-  prepaymentContractAddress: string
-  prepaymentContract: ethers.Contract
-  accId: number
-
-  constructor({
+  constructor(
     consumerAddress,
     prepaymentContractAddress
-  }: {
-    consumerAddress: string
-    prepaymentContractAddress: ethers.Contract
-  }) {
+ )
+ {
     this.consumerAddress = consumerAddress
     this.prepaymentContractAddress = prepaymentContractAddress
   }
@@ -36,7 +31,7 @@ export class Prepayment {
     return this.accId
   }
 
-  async addConsumer(consumerAddress: string) {
+  async addConsumer(consumerAddress) {
     await this.prepaymentContract.addConsumer(this.accId, consumerAddress)
   }
 
@@ -44,10 +39,14 @@ export class Prepayment {
     await this.prepaymentContract.getBalance(this.accId)
   }
 
-  async deposit(amount: string) {
+  async deposit(amount) {
     // Deposit to [regular] account
     await this.prepaymentContract.deposit(this.accId, {
       value: ethers.utils.parseUnits(amount, 'ether')
     })
   }
+}
+
+module.exports = {
+  Prepayment
 }
