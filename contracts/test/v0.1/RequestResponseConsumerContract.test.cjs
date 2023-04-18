@@ -396,4 +396,14 @@ describe('Request-Response user contract', function () {
       true
     )
   })
+
+  // TODO deregister oracle
+  // TODO getters
+  // TODO set direct payment config
+  // TODO cancel request & pending request exist
+  // TODO invalid consumer
+  // TODO gas limit too big
+  // TODO UnregisteredOracleFulfillment
+  // TODO NoCorrespondingRequest
+  // TODO IncorrectCommitment
 })

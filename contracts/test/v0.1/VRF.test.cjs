@@ -410,4 +410,9 @@ describe('VRF contract', function () {
     )
     expect(requestedRandomWordsEvent.name).to.be.equal('RandomWordsRequested')
   })
+
+  // TODO send more $KLAY for direct payment
+  // TODO fulfill direct payment request
+  // TODO getters
+  // TODO cancel request
 })
