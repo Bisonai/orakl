@@ -1,6 +1,7 @@
 const { expect } = require('chai')
 const { ethers } = require('hardhat')
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers')
+const oraklVrf = import('@bisonai/orakl-vrf')
 const crypto = require('crypto')
 const { vrfConfig } = require('./VRF.config.cjs')
 const { parseKlay, remove0x } = require('./utils.cjs')
@@ -50,11 +51,7 @@ async function deployFixture() {
   consumerContract = await consumerContract.deploy(coordinatorContract.address)
   await consumerContract.deployed()
 
-  const prepayment = new Prepayment(
-    consumer,
-    prepaymentContract.address,
-    consumerContract.address
-  )
+  const prepayment = new Prepayment(consumer, prepaymentContract.address, consumerContract.address)
   await prepayment.initialize()
 
   return {
@@ -199,8 +196,14 @@ describe('VRF contract', function () {
     // Prepayment smart contract. Every [regular] account has to have at
     // least `sMinBalance` in their account in order to succeed with
     // VRF request.
-    const { consumer, vrfOracle0, coordinatorContract, consumerContract, prepaymentContract, prepayment } =
-      await loadFixture(deployFixture)
+    const {
+      consumer,
+      vrfOracle0,
+      coordinatorContract,
+      consumerContract,
+      prepaymentContract,
+      prepayment
+    } = await loadFixture(deployFixture)
 
     const {
       maxGasLimit,
@@ -242,6 +245,7 @@ describe('VRF contract', function () {
       await consumerContract.requestRandomWords(keyHash, accId, maxGasLimit, NUM_WORDS)
     ).wait()
     const blockHash = txRequestRandomWords.blockHash
+    const blockNumber = txRequestRandomWords.blockNumber
 
     expect(txRequestRandomWords.events.length).to.be.equal(1)
     const requestedRandomWordsEvent = coordinatorContract.interface.parseLog(
@@ -270,8 +274,8 @@ describe('VRF contract', function () {
       ethers.utils.solidityKeccak256(['uint256', 'bytes32'], [ePreSeed, blockHash])
     )
 
-    const { processVrfRequest } = await import('@bisonai/orakl-vrf')
-
+    // Simulate off-chain proof generation
+    const { processVrfRequest } = await oraklVrf
     const { proof, uPoint, vComponents } = processVrfRequest(alpha, {
       sk,
       pk,
@@ -279,25 +283,57 @@ describe('VRF contract', function () {
       pkY,
       keyHash
     })
-    // console.log(proof, uPoint, vComponents)
 
-    // console.log(PKG)
+    // Oracle submits data back to chain
+    const coordinatorContractOracleSigner = await ethers.getContractAt(
+      'VRFCoordinator',
+      coordinatorContract.address,
+      vrfOracle0
+    )
+    const isDirectPayment = false
+    const txFulfillRandomWords = await (
+      await coordinatorContractOracleSigner.fulfillRandomWords(
+        [publicProvingKey, proof, ePreSeed, uPoint, vComponents],
+        [blockNumber, eAccId, eCallbackGasLimit, NUM_WORDS, eSender],
+        isDirectPayment
+      )
+    ).wait()
 
-    // const aa = await import('@bisonai/orakl-vrf')
+    // Check the event information //////////////////////////////////////////////
+    expect(txFulfillRandomWords.events.length).to.be.equal(2)
 
-    // const aa = require('@bisonai/orakl-vrf')
-    // .then((module) => {
-    //   chalk = module
-    //   console.log('hello')
-    //   console.log(chalk)
-    //   // console.log(chalk.green('app running'))
-    // })
-    // .catch((err) => console.log(err))
-    // console.log(processVrfRequest)
+    // Event: AccountBalanceDecreased
+    const accountBalanceDecreasedEvent = prepaymentContract.interface.parseLog(
+      txFulfillRandomWords.events[0]
+    )
+    expect(accountBalanceDecreasedEvent.name).to.be.equal('AccountBalanceDecreased')
 
+    const {
+      accId: dAccId,
+      oldBalance: dOldBalance,
+      newBalance: dNewBalance,
+      burnAmount: dBurnAmount
+    } = accountBalanceDecreasedEvent.args
+    expect(dAccId).to.be.equal(eAccId)
+    expect(dOldBalance).to.be.above(dNewBalance)
+    expect(dNewBalance).to.be.above(0)
+    expect(dBurnAmount).to.be.above(0)
 
-    // generate random number
-    // submit
-    // check for returned value
+    // Event: RandomWordsFulfilled
+    const randomWordsFulfilledEvent = coordinatorContract.interface.parseLog(
+      txFulfillRandomWords.events[1]
+    )
+    expect(randomWordsFulfilledEvent.name).to.be.equal('RandomWordsFulfilled')
+
+    const {
+      requestId: fRequestId,
+      /* outputSeed: fOutputSeed, */
+      payment: fPayment,
+      success: fSuccess
+    } = randomWordsFulfilledEvent.args
+
+    expect(fRequestId).to.be.equal(eRequestId)
+    expect(fSuccess).to.be.equal(true)
+    expect(fPayment).to.be.above(0)
   })
 })
