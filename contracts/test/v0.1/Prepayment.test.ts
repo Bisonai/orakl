@@ -65,7 +65,7 @@ describe('Prepayment', function () {
     ).to.be.revertedWithCustomError(prepaymentContract, 'RatioOutOfBounds')
   })
 
-  it('Protocol feer ratio setup', async function () {
+  it('Protocol fee ratio setup', async function () {
     const { prepaymentContract } = await loadFixture(deployPrepayment)
 
     // 1. Get initial burn ratio
