@@ -29,6 +29,7 @@
     "clean": "npx hardhat clean && rm -rf dist",
     "compile": "npx hardhat compile",
     "test": "yarn compile && npx hardhat test",
+    "coverage": "npx hardhat coverage",
     "build": "tsc",
     "pub": "yarn publish --access public",
     "solhint": "./node_modules/.bin/solhint -f table src/**/*.sol",

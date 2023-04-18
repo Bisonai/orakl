@@ -1,12 +1,17 @@
 import { expect } from 'chai'
 import hre from 'hardhat'
 
-export async function createAccount(
+export async function createAccount({
   prepaymentContractAddress,
   consumerContractAddress,
-  deposit?: boolean,
+  deposit,
+  assignConsumer
+}: {
+  prepaymentContractAddress
+  consumerContractAddress
+  deposit?: boolean
   assignConsumer?: boolean
-) {
+}) {
   const { consumer } = await hre.getNamedAccounts()
   const prepaymentContract = await ethers.getContractAt(
     'Prepayment',

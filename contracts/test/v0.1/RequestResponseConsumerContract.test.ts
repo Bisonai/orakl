@@ -59,12 +59,12 @@ async function deployFixture() {
   consumerContract = await consumerContract.deploy(coordinatorContract.address)
   await consumerContract.deployed()
 
-  const accId = await createAccount(
-    await coordinatorContract.getPrepaymentAddress(),
-    consumerContract.address,
-    false,
-    true
-  )
+  const accId = await createAccount({
+    prepaymentContractAddress: await coordinatorContract.getPrepaymentAddress(),
+    consumerContractAddress: consumerContract.address,
+    deposit: false,
+    assignConsumer: true
+  })
   return {
     accId,
     maxGasLimit,

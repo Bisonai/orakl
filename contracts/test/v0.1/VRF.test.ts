@@ -17,53 +17,59 @@ function generateDummyPublicProvingKey() {
     .reduce((acc, v) => acc + v, '')
 }
 
-describe('VRF contract', function () {
-  async function deployFixture() {
-    const { deployer, consumer, consumer1: sProtocolFeeRecipient } = await hre.getNamedAccounts()
+async function deployFixture() {
+  const {
+    deployer,
+    consumer,
+    consumer1: sProtocolFeeRecipient,
+    consumer2
+  } = await hre.getNamedAccounts()
 
-    let prepaymentContract = await ethers.getContractFactory('Prepayment', {
-      signer: deployer
-    })
-    prepaymentContract = await prepaymentContract.deploy(sProtocolFeeRecipient)
-    await prepaymentContract.deployed()
+  let prepaymentContract = await ethers.getContractFactory('Prepayment', {
+    signer: deployer
+  })
+  prepaymentContract = await prepaymentContract.deploy(sProtocolFeeRecipient)
+  await prepaymentContract.deployed()
 
-    let coordinatorContract = await ethers.getContractFactory('VRFCoordinator', {
-      signer: deployer
-    })
-    coordinatorContract = await coordinatorContract.deploy(prepaymentContract.address)
-    await coordinatorContract.deployed()
+  let coordinatorContract = await ethers.getContractFactory('VRFCoordinator', {
+    signer: deployer
+  })
+  coordinatorContract = await coordinatorContract.deploy(prepaymentContract.address)
+  await coordinatorContract.deployed()
 
-    //coordinator contract settings
-    const minBalance = ethers.utils.parseUnits('0.001')
-    await coordinatorContract.setMinBalance(minBalance)
+  // Coordinator settings
+  const minBalance = ethers.utils.parseUnits('0.001')
+  await coordinatorContract.setMinBalance(minBalance)
 
-    let consumerContract = await ethers.getContractFactory('VRFConsumerMock', {
-      signer: consumer
-    })
-    consumerContract = await consumerContract.deploy(coordinatorContract.address)
-    await consumerContract.deployed()
+  let consumerContract = await ethers.getContractFactory('VRFConsumerMock', {
+    signer: consumer
+  })
+  consumerContract = await consumerContract.deploy(coordinatorContract.address)
+  await consumerContract.deployed()
 
-    const accId = await createAccount(
-      await coordinatorContract.getPrepaymentAddress(),
-      consumerContract.address,
-      false,
-      true
-    )
+  const accId = await createAccount({
+    prepaymentContractAddress: await coordinatorContract.getPrepaymentAddress(),
+    consumerContractAddress: consumerContract.address,
+    deposit: false,
+    assignConsumer: true
+  })
 
-    const dummyKeyHash = '0x00000773ef09e40658e643fe79f8d1a27c0aa6eb7251749b268f829ea49f2024'
+  const dummyKeyHash = '0x00000773ef09e40658e643fe79f8d1a27c0aa6eb7251749b268f829ea49f2024'
 
-    return {
-      accId,
-      deployer,
-      consumer,
-      coordinatorContract,
-      consumerContract,
-      dummyKeyHash,
-      prepaymentContract
-    }
+  return {
+    accId,
+    deployer,
+    consumer,
+    consumer2,
+    coordinatorContract,
+    consumerContract,
+    dummyKeyHash,
+    prepaymentContract
   }
+}
 
-  it('should register oracle', async function () {
+describe('VRF contract', function () {
+  it('Register oracle', async function () {
     const { coordinatorContract } = await loadFixture(deployFixture)
     const { address: oracle } = ethers.Wallet.createRandom()
     const publicProvingKey = [generateDummyPublicProvingKey(), generateDummyPublicProvingKey()]
@@ -81,7 +87,7 @@ describe('VRF contract', function () {
     expect(registerEvent.args['keyHash']).to.not.be.undefined
   })
 
-  it('should not allow to register the same oracle or public proving key twice', async function () {
+  it('Do not allow to register the same oracle or public proving key twice', async function () {
     const { coordinatorContract } = await loadFixture(deployFixture)
     const { address: oracle1 } = ethers.Wallet.createRandom()
     const { address: oracle2 } = ethers.Wallet.createRandom()
@@ -108,7 +114,7 @@ describe('VRF contract', function () {
     ).to.be.revertedWithCustomError(coordinatorContract, 'ProvingKeyAlreadyRegistered')
   })
 
-  it('should allow to deregister registered oracle', async function () {
+  it('Deregister registered oracle', async function () {
     const { coordinatorContract } = await loadFixture(deployFixture)
     const { address: oracle } = ethers.Wallet.createRandom()
     const publicProvingKey = [generateDummyPublicProvingKey(), generateDummyPublicProvingKey()]
@@ -138,7 +144,7 @@ describe('VRF contract', function () {
     expect(deregisterEvent.args['keyHash']).to.be.equal(kh)
   })
 
-  it('requestRandomWords should revert on InvalidKeyHash', async function () {
+  it('requestRandomWords revert on InvalidKeyHash', async function () {
     const { accId, coordinatorContract, consumerContract, dummyKeyHash } = await loadFixture(
       deployFixture
     )
@@ -149,6 +155,27 @@ describe('VRF contract', function () {
     await expect(
       consumerContract.requestRandomWords(dummyKeyHash, accId, maxGasLimit, numWords)
     ).to.be.revertedWithCustomError(coordinatorContract, 'InvalidKeyHash')
+  })
+
+  it('requestRandomWords can be called by onlyOwner', async function () {
+    const {
+      accId,
+      consumerContract,
+      dummyKeyHash,
+      consumer2: nonOwnerAddress
+    } = await loadFixture(deployFixture)
+
+    const consumerContractNonOwnerSigner = await ethers.getContractAt(
+      'VRFConsumerMock',
+      consumerContract.address,
+      nonOwnerAddress
+    )
+    const { maxGasLimit } = vrfConfig()
+    const numWords = 1
+
+    await expect(
+      consumerContractNonOwnerSigner.requestRandomWords(dummyKeyHash, accId, maxGasLimit, numWords)
+    ).to.be.revertedWithCustomError(consumerContractNonOwnerSigner, 'OnlyOwner')
   })
 
   it('requestRandomWordsDirect should revert on InvalidKeyHash', async function () {
