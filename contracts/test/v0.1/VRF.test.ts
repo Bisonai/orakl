@@ -193,7 +193,7 @@ describe('VRF contract', function () {
     ).to.be.revertedWithCustomError(consumerContractNonOwnerSigner, 'OnlyOwner')
   })
 
-  it('requestRandomWords should revert with InsufficientPayment error', async function () {
+  it('requestRandomWords with [regular] account', async function () {
     // VRF is a paid service that requires a payment through a
     // Prepayment smart contract. Every [regular] account has to have at
     // least `sMinBalance` in their account in order to succeed with
@@ -211,15 +211,16 @@ describe('VRF contract', function () {
     } = vrfConfig()
 
     await coordinatorContract.registerOracle(oracle, publicProvingKey)
-
     await coordinatorContract.setConfig(
       maxGasLimit,
       gasAfterPaymentCalculation,
       Object.values(feeConfig)
     )
+
     await prepaymentContract.addCoordinator(coordinatorContract.address)
 
-    await setMinBalance(coordinatorContract, '0.001')
+    const minBalance = '0.001'
+    await setMinBalance(coordinatorContract, minBalance)
 
     const accId = await prepayment.createAccount()
     prepayment.addConsumer(consumerContract.address)
@@ -227,6 +228,38 @@ describe('VRF contract', function () {
     await expect(
       consumerContract.requestRandomWords(keyHash, accId, maxGasLimit, NUM_WORDS)
     ).to.be.revertedWithCustomError(coordinatorContract, 'InsufficientPayment')
+
+    // Deposit minimum account amount
+    prepayment.deposit(minBalance)
+
+    // After depositing minimum account to account, we are able to
+    // request random words.
+    const txRequestRandomWords = await (
+      await consumerContract.requestRandomWords(keyHash, accId, maxGasLimit, NUM_WORDS)
+    ).wait()
+
+    expect(txRequestRandomWords.events.length).to.be.equal(1)
+    const requestedRandomWordsEvent = coordinatorContract.interface.parseLog(
+      txRequestRandomWords.events[0]
+    )
+    expect(requestedRandomWordsEvent.name).to.be.equal('RandomWordsRequested')
+
+    const {
+      keyHash: eKeyHash,
+      requestId: eRequestId,
+      // preSeed: ePreSeed,
+      accId: eAccId,
+      callbackGasLimit: eCallbackGasLimit,
+      numWords: eNumWords,
+      sender: eSender,
+      isDirectPayment: eIsDirectPayment
+    } = requestedRandomWordsEvent.args
+    expect(eKeyHash).to.be.equal(keyHash)
+    expect(eAccId).to.be.equal(accId)
+    expect(eCallbackGasLimit).to.be.equal(maxGasLimit)
+    expect(eNumWords).to.be.equal(NUM_WORDS)
+    expect(eSender).to.be.equal(consumerContract.address)
+    expect(eIsDirectPayment).to.be.equal(false)
   })
 
   // it('Request through [temporary] account & Fulfill', async function () {
