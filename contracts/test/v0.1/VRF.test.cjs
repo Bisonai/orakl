@@ -5,8 +5,7 @@ const oraklVrf = import('@bisonai/orakl-vrf')
 const crypto = require('crypto')
 const { vrfConfig } = require('./VRF.config.cjs')
 const { parseKlay, remove0x } = require('./utils.cjs')
-const { Prepayment } = require('./Prepayment.utils.cjs')
-const { setMinBalance } = require('./Coordinator.utils.cjs')
+const { State } = require('./State.utils.cjs')
 
 const DUMMY_KEY_HASH = '0x00000773ef09e40658e643fe79f8d1a27c0aa6eb7251749b268f829ea49f2024'
 const NUM_WORDS = 1
@@ -51,8 +50,21 @@ async function deployFixture() {
   consumerContract = await consumerContract.deploy(coordinatorContract.address)
   await consumerContract.deployed()
 
-  const prepayment = new Prepayment(consumer, prepaymentContract.address, consumerContract.address)
-  await prepayment.initialize()
+  const coordinatorContractOracleSigner = await ethers.getContractAt(
+    'VRFCoordinator',
+    coordinatorContract.address,
+    vrfOracle0
+  )
+
+  // State controller
+  const state = new State(
+    consumer,
+    prepaymentContract,
+    consumerContract,
+    coordinatorContract,
+    coordinatorContractOracleSigner
+  )
+  await state.initialize('VRFConsumerMock')
 
   return {
     deployer,
@@ -62,7 +74,8 @@ async function deployFixture() {
     prepaymentContract,
     coordinatorContract,
     consumerContract,
-    prepayment
+
+    state
   }
 }
 
@@ -143,10 +156,10 @@ describe('VRF contract', function () {
   })
 
   it('requestRandomWords revert on InvalidKeyHash', async function () {
-    const { coordinatorContract, consumerContract, prepayment } = await loadFixture(deployFixture)
+    const { coordinatorContract, consumerContract, state } = await loadFixture(deployFixture)
 
     const { maxGasLimit } = vrfConfig()
-    const accId = await prepayment.createAccount()
+    const accId = await state.createAccount()
 
     await expect(
       consumerContract.requestRandomWords(DUMMY_KEY_HASH, accId, maxGasLimit, NUM_WORDS)
@@ -167,11 +180,7 @@ describe('VRF contract', function () {
   })
 
   it('requestRandomWords can be called by onlyOwner', async function () {
-    const {
-      consumerContract,
-      consumer2: nonOwnerAddress,
-      prepayment
-    } = await loadFixture(deployFixture)
+    const { consumerContract, consumer2: nonOwnerAddress, state } = await loadFixture(deployFixture)
 
     const consumerContractNonOwnerSigner = await ethers.getContractAt(
       'VRFConsumerMock',
@@ -179,7 +188,7 @@ describe('VRF contract', function () {
       nonOwnerAddress
     )
     const { maxGasLimit } = vrfConfig()
-    const accId = await prepayment.createAccount()
+    const accId = await state.createAccount()
 
     await expect(
       consumerContractNonOwnerSigner.requestRandomWords(
@@ -202,7 +211,7 @@ describe('VRF contract', function () {
       coordinatorContract,
       consumerContract,
       prepaymentContract,
-      prepayment
+      state
     } = await loadFixture(deployFixture)
 
     const {
@@ -227,17 +236,16 @@ describe('VRF contract', function () {
     await prepaymentContract.addCoordinator(coordinatorContract.address)
 
     const minBalance = '0.001'
-    await setMinBalance(coordinatorContract, minBalance)
+    await state.setMinBalance(minBalance)
 
-    const accId = await prepayment.createAccount()
-    prepayment.addConsumer(consumerContract.address)
+    const accId = await state.createAccount()
+    state.addConsumer(consumerContract.address)
 
     await expect(
       consumerContract.requestRandomWords(keyHash, accId, maxGasLimit, NUM_WORDS)
     ).to.be.revertedWithCustomError(coordinatorContract, 'InsufficientPayment')
 
-    // Deposit minimum account amount
-    prepayment.deposit(minBalance)
+    state.deposit(minBalance)
 
     // After depositing minimum account to account, we are able to
     // request random words.

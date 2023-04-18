@@ -1,5 +1,5 @@
-import { expect } from 'chai'
-import { ethers } from 'hardhat'
+const { expect } = require('chai')
+const { ethers } = require('hardhat')
 
 function preprocessArray(a) {
   if (a.length % 2 == 0) {
