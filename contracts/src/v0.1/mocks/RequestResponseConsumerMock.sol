@@ -41,7 +41,8 @@ contract RequestResponseConsumerMock is
     //request for uint256
     function requestDataUint256(
         uint64 accId,
-        uint32 callbackGasLimit
+        uint32 callbackGasLimit,
+        uint16 submissionAmount
     ) public onlyOwner returns (uint256 requestId) {
         bytes32 jobId = keccak256(abi.encodePacked("uint256"));
         Orakl.Request memory req = buildRequest(jobId);
@@ -53,11 +54,12 @@ contract RequestResponseConsumerMock is
         req.add("path", "RAW,KLAY,USD,PRICE");
         req.add("pow10", "8");
 
-        requestId = COORDINATOR.requestData(req, callbackGasLimit, accId, 1);
+        requestId = COORDINATOR.requestData(req, callbackGasLimit, accId, submissionAmount);
     }
 
     function requestDataDirectPaymentUint256(
-        uint32 callbackGasLimit
+        uint32 callbackGasLimit,
+        uint16 submissionAmount
     ) public payable onlyOwner returns (uint256 requestId) {
         bytes32 jobId = keccak256(abi.encodePacked("uint256"));
         Orakl.Request memory req = buildRequest(jobId);
@@ -69,13 +71,18 @@ contract RequestResponseConsumerMock is
         req.add("path", "RAW,KLAY,USD,PRICE");
         req.add("pow10", "8");
 
-        requestId = COORDINATOR.requestData{value: msg.value}(req, callbackGasLimit, 1);
+        requestId = COORDINATOR.requestData{value: msg.value}(
+            req,
+            callbackGasLimit,
+            submissionAmount
+        );
     }
 
     // request for int256
     function requestDataInt256(
         uint64 accId,
-        uint32 callbackGasLimit
+        uint32 callbackGasLimit,
+        uint16 submissionAmount
     ) public onlyOwner returns (uint256 requestId) {
         bytes32 jobId = keccak256(abi.encodePacked("int256"));
         Orakl.Request memory req = buildRequest(jobId);
@@ -87,11 +94,12 @@ contract RequestResponseConsumerMock is
         req.add("path", "RAW,KLAY,USD,PRICE");
         req.add("pow10", "8");
 
-        requestId = COORDINATOR.requestData(req, callbackGasLimit, accId, 1);
+        requestId = COORDINATOR.requestData(req, callbackGasLimit, accId, submissionAmount);
     }
 
     function requestDataDirectPaymentInt256(
-        uint32 callbackGasLimit
+        uint32 callbackGasLimit,
+        uint16 submissionAmount
     ) public payable onlyOwner returns (uint256 requestId) {
         bytes32 jobId = keccak256(abi.encodePacked("int256"));
         Orakl.Request memory req = buildRequest(jobId);
@@ -103,13 +111,18 @@ contract RequestResponseConsumerMock is
         req.add("path", "RAW,KLAY,USD,PRICE");
         req.add("pow10", "8");
 
-        requestId = COORDINATOR.requestData{value: msg.value}(req, callbackGasLimit, 1);
+        requestId = COORDINATOR.requestData{value: msg.value}(
+            req,
+            callbackGasLimit,
+            submissionAmount
+        );
     }
 
     // request for bool
     function requestDataBool(
         uint64 accId,
-        uint32 callbackGasLimit
+        uint32 callbackGasLimit,
+        uint16 submissionAmount
     ) public onlyOwner returns (uint256 requestId) {
         bytes32 jobId = keccak256(abi.encodePacked("bool"));
         Orakl.Request memory req = buildRequest(jobId);
@@ -121,11 +134,12 @@ contract RequestResponseConsumerMock is
         req.add("path", "RAW,KLAY,USD,PRICE");
         req.add("pow10", "8");
 
-        requestId = COORDINATOR.requestData(req, callbackGasLimit, accId, 1);
+        requestId = COORDINATOR.requestData(req, callbackGasLimit, accId, submissionAmount);
     }
 
     function requestDataDirectPaymentBool(
-        uint32 callbackGasLimit
+        uint32 callbackGasLimit,
+        uint16 submissionAmount
     ) public payable onlyOwner returns (uint256 requestId) {
         bytes32 jobId = keccak256(abi.encodePacked("bool"));
         Orakl.Request memory req = buildRequest(jobId);
@@ -137,13 +151,18 @@ contract RequestResponseConsumerMock is
         req.add("path", "RAW,KLAY,USD,PRICE");
         req.add("pow10", "8");
 
-        requestId = COORDINATOR.requestData{value: msg.value}(req, callbackGasLimit, 1);
+        requestId = COORDINATOR.requestData{value: msg.value}(
+            req,
+            callbackGasLimit,
+            submissionAmount
+        );
     }
 
     // request for string
     function requestDataString(
         uint64 accId,
-        uint32 callbackGasLimit
+        uint32 callbackGasLimit,
+        uint16 submissionAmount
     ) public onlyOwner returns (uint256 requestId) {
         bytes32 jobId = keccak256(abi.encodePacked("string"));
         Orakl.Request memory req = buildRequest(jobId);
@@ -155,7 +174,7 @@ contract RequestResponseConsumerMock is
         req.add("path", "RAW,KLAY,USD,PRICE");
         req.add("pow10", "8");
 
-        requestId = COORDINATOR.requestData(req, callbackGasLimit, accId, 1);
+        requestId = COORDINATOR.requestData(req, callbackGasLimit, accId, submissionAmount);
     }
 
     function requestDataDirectPaymentString(
@@ -177,7 +196,8 @@ contract RequestResponseConsumerMock is
     // request for bytes32
     function requestDataBytes32(
         uint64 accId,
-        uint32 callbackGasLimit
+        uint32 callbackGasLimit,
+        uint16 submissionAmount
     ) public onlyOwner returns (uint256 requestId) {
         bytes32 jobId = keccak256(abi.encodePacked("bytes32"));
         Orakl.Request memory req = buildRequest(jobId);
@@ -189,11 +209,12 @@ contract RequestResponseConsumerMock is
         req.add("path", "RAW,KLAY,USD,PRICE");
         req.add("pow10", "8");
 
-        requestId = COORDINATOR.requestData(req, callbackGasLimit, accId, 1);
+        requestId = COORDINATOR.requestData(req, callbackGasLimit, accId, submissionAmount);
     }
 
     function requestDataDirectPaymentBytes32(
-        uint32 callbackGasLimit
+        uint32 callbackGasLimit,
+        uint16 submissionAmount
     ) public payable onlyOwner returns (uint256 requestId) {
         bytes32 jobId = keccak256(abi.encodePacked("bytes32"));
         Orakl.Request memory req = buildRequest(jobId);
@@ -205,13 +226,18 @@ contract RequestResponseConsumerMock is
         req.add("path", "RAW,KLAY,USD,PRICE");
         req.add("pow10", "8");
 
-        requestId = COORDINATOR.requestData{value: msg.value}(req, callbackGasLimit, 1);
+        requestId = COORDINATOR.requestData{value: msg.value}(
+            req,
+            callbackGasLimit,
+            submissionAmount
+        );
     }
 
     // request for bytes
     function requestDataBytes(
         uint64 accId,
-        uint32 callbackGasLimit
+        uint32 callbackGasLimit,
+        uint16 submissionAmount
     ) public onlyOwner returns (uint256 requestId) {
         bytes32 jobId = keccak256(abi.encodePacked("bytes"));
         Orakl.Request memory req = buildRequest(jobId);
@@ -223,11 +249,12 @@ contract RequestResponseConsumerMock is
         req.add("path", "RAW,KLAY,USD,PRICE");
         req.add("pow10", "8");
 
-        requestId = COORDINATOR.requestData(req, callbackGasLimit, accId, 1);
+        requestId = COORDINATOR.requestData(req, callbackGasLimit, accId, submissionAmount);
     }
 
     function requestDataDirectPaymentBytes(
-        uint32 callbackGasLimit
+        uint32 callbackGasLimit,
+        uint16 submissionAmount
     ) public payable onlyOwner returns (uint256 requestId) {
         bytes32 jobId = keccak256(abi.encodePacked("bytes"));
         Orakl.Request memory req = buildRequest(jobId);
@@ -239,7 +266,11 @@ contract RequestResponseConsumerMock is
         req.add("path", "RAW,KLAY,USD,PRICE");
         req.add("pow10", "8");
 
-        requestId = COORDINATOR.requestData{value: msg.value}(req, callbackGasLimit, 1);
+        requestId = COORDINATOR.requestData{value: msg.value}(
+            req,
+            callbackGasLimit,
+            submissionAmount
+        );
     }
 
     function fulfillDataRequestUint256(uint256 /*requestId*/, uint256 response) internal override {
