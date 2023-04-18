@@ -9,6 +9,7 @@ import { Prepayment } from './Prepayment.utils'
 import { setMinBalance } from './Coordinator.utils'
 
 const DUMMY_KEY_HASH = '0x00000773ef09e40658e643fe79f8d1a27c0aa6eb7251749b268f829ea49f2024'
+const NUM_WORDS = 1
 
 function generateDummyPublicProvingKey() {
   const L = 77
@@ -147,11 +148,10 @@ describe('VRF contract', function () {
     const { coordinatorContract, consumerContract, prepayment } = await loadFixture(deployFixture)
 
     const { maxGasLimit } = vrfConfig()
-    const numWords = 1
-
     const accId = await prepayment.createAccount()
+
     await expect(
-      consumerContract.requestRandomWords(DUMMY_KEY_HASH, accId, maxGasLimit, numWords)
+      consumerContract.requestRandomWords(DUMMY_KEY_HASH, accId, maxGasLimit, NUM_WORDS)
     ).to.be.revertedWithCustomError(coordinatorContract, 'InvalidKeyHash')
   })
 
@@ -159,11 +159,10 @@ describe('VRF contract', function () {
     const { coordinatorContract, consumerContract } = await loadFixture(deployFixture)
 
     const { maxGasLimit } = vrfConfig()
-    const numWords = 1
     const value = parseKlay(1)
 
     await expect(
-      consumerContract.requestRandomWordsDirectPayment(DUMMY_KEY_HASH, maxGasLimit, numWords, {
+      consumerContract.requestRandomWordsDirectPayment(DUMMY_KEY_HASH, maxGasLimit, NUM_WORDS, {
         value
       })
     ).to.be.revertedWithCustomError(coordinatorContract, 'InvalidKeyHash')
@@ -182,15 +181,14 @@ describe('VRF contract', function () {
       nonOwnerAddress
     )
     const { maxGasLimit } = vrfConfig()
-    const numWords = 1
-
     const accId = await prepayment.createAccount()
+
     await expect(
       consumerContractNonOwnerSigner.requestRandomWords(
         DUMMY_KEY_HASH,
         accId,
         maxGasLimit,
-        numWords
+        NUM_WORDS
       )
     ).to.be.revertedWithCustomError(consumerContractNonOwnerSigner, 'OnlyOwner')
   })
@@ -225,10 +223,9 @@ describe('VRF contract', function () {
 
     const accId = await prepayment.createAccount()
     prepayment.addConsumer(consumerContract.address)
-    const numWords = 1
 
     await expect(
-      consumerContract.requestRandomWords(keyHash, accId, maxGasLimit, numWords)
+      consumerContract.requestRandomWords(keyHash, accId, maxGasLimit, NUM_WORDS)
     ).to.be.revertedWithCustomError(coordinatorContract, 'InsufficientPayment')
   })
 
