@@ -1,20 +1,21 @@
 {
   "name": "@bisonai/orakl-contracts",
   "version": "0.5.0",
+  "type": "module",
   "description": "The Orakl Network Smart Contracts",
   "files": [
     "./dist",
     "./src"
   ],
   "keywords": [
-      "Oracle",
-      "Orakl",
-      "Orakl Network",
-      "Blockchain",
-      "Web3",
-      "VRF",
-      "Request-Response",
-      "Data Feed"
+    "Oracle",
+    "Orakl",
+    "Orakl Network",
+    "Blockchain",
+    "Web3",
+    "VRF",
+    "Request-Response",
+    "Data Feed"
   ],
   "engines": {
     "node": ">=18.12"
@@ -45,6 +46,7 @@
     "deploy:baobab:aggregator": "yarn deploy:baobab --deploy-scripts deploy/Aggregator"
   },
   "devDependencies": {
+    "@bisonai/orakl-vrf": "^0.1.1",
     "@ethersproject/abi": "^5.4.7",
     "@ethersproject/providers": "^5.4.7",
     "@nomicfoundation/hardhat-chai-matchers": "^1.0.0",
@@ -70,7 +72,7 @@
     "esm": "^3.2.25",
     "ethers": "^5.7.2",
     "got": "^12.5.3",
-    "hardhat": "^2.12.0-esm.1",
+    "hardhat": "2.14.0",
     "hardhat-deploy": "^0.11.22",
     "hardhat-gas-reporter": "^1.0.8",
     "husky": "^8.0.2",

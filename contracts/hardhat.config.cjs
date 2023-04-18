@@ -1,9 +1,16 @@
-import { HardhatUserConfig, task } from 'hardhat/config'
-import '@nomicfoundation/hardhat-toolbox'
-import '@nomiclabs/hardhat-web3'
-import '@nomiclabs/hardhat-ethers'
-import 'hardhat-deploy'
-import dotenv from 'dotenv'
+// import { HardhatUserConfig, task } from 'hardhat/config'
+// import '@nomicfoundation/hardhat-toolbox'
+// import '@nomiclabs/hardhat-web3'
+// import '@nomiclabs/hardhat-ethers'
+// import 'hardhat-deploy'
+// import dotenv from 'dotenv'
+
+const { task } = require('hardhat/config')
+require('@nomicfoundation/hardhat-toolbox')
+require('@nomiclabs/hardhat-web3')
+require('@nomiclabs/hardhat-ethers')
+require('hardhat-deploy')
+const dotenv = require('dotenv')
 
 dotenv.config()
 
@@ -14,7 +21,7 @@ const commonConfig = {
   }
 }
 
-const config: HardhatUserConfig = {
+const config = {
   solidity: {
     version: '0.8.16',
     settings: {
@@ -90,4 +97,7 @@ task('address', 'Convert mnemonic to address')
     console.log(wallet.address)
   })
 
-export default config
+// export default config
+// export config
+
+module.exports = config
