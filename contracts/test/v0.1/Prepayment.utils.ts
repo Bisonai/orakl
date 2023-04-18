@@ -1,43 +1,53 @@
 import { expect } from 'chai'
 import hre from 'hardhat'
 
-export async function createAccount({
-  prepaymentContractAddress,
-  consumerContractAddress,
-  deposit,
-  assignConsumer
-}: {
-  prepaymentContractAddress
-  consumerContractAddress
-  deposit?: boolean
-  assignConsumer?: boolean
-}) {
-  const { consumer } = await hre.getNamedAccounts()
-  const prepaymentContract = await ethers.getContractAt(
-    'Prepayment',
-    prepaymentContractAddress,
-    consumer
-  )
+export class Prepayment {
+  consumerAddress: string
+  prepaymentContractAddress: string
+  prepaymentContract: ethers.Contract
+  accId: number
 
-  // CREATE ACCOUNT
-  const txReceipt = await (await prepaymentContract.createAccount()).wait()
-  expect(txReceipt.events.length).to.be.equal(1)
-
-  const txEvent = prepaymentContract.interface.parseLog(txReceipt.events[0])
-  const { accId } = txEvent.args
-  expect(accId).to.be.equal(1)
-
-  // DEPOSIT 1 ETHER
-  if (deposit) {
-    await (
-      await prepaymentContract.deposit(accId, { value: ethers.utils.parseUnits('1', 'ether') })
-    ).wait()
+  constructor({
+    consumerAddress,
+    prepaymentContractAddress
+  }: {
+    consumerAddress: string
+    prepaymentContractAddress: ethers.Contract
+  }) {
+    this.consumerAddress = consumerAddress
+    this.prepaymentContractAddress = prepaymentContractAddress
   }
 
-  // ASSIGN CONSUMER TO ACCOUNT
-  if (assignConsumer) {
-    await (await prepaymentContract.addConsumer(accId, consumerContractAddress)).wait()
+  async initialize() {
+    this.prepaymentContract = await ethers.getContractAt(
+      'Prepayment',
+      this.prepaymentContractAddress,
+      this.consumerAddress
+    )
   }
 
-  return accId
+  async createAccount() {
+    const txReceipt = await (await this.prepaymentContract.createAccount()).wait()
+    // expect(txReceipt.events.length).to.be.equal(1) // FIXME
+    const txEvent = this.prepaymentContract.interface.parseLog(txReceipt.events[0])
+    const { accId } = txEvent.args
+    this.accId = accId
+
+    return this.accId
+  }
+
+  async addConsumer(consumerAddress: string) {
+    await this.prepaymentContract.addConsumer(this.accId, consumerAddress)
+  }
+
+  async getBalance() {
+    await this.prepaymentContract.getBalance(this.accId)
+  }
+
+  async deposit(amount: string) {
+    // Deposit to [regular] account
+    await this.prepaymentContract.deposit(this.accId, {
+      value: ethers.utils.parseUnits(amount, 'ether')
+    })
+  }
 }

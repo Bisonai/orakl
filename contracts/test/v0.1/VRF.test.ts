@@ -5,7 +5,10 @@ import { ethers } from 'hardhat'
 import crypto from 'crypto'
 import { vrfConfig } from './VRF.config'
 import { parseKlay } from './utils'
-import { createAccount } from './Prepayment.utils'
+import { Prepayment } from './Prepayment.utils'
+import { setMinBalance } from './Coordinator.utils'
+
+const DUMMY_KEY_HASH = '0x00000773ef09e40658e643fe79f8d1a27c0aa6eb7251749b268f829ea49f2024'
 
 function generateDummyPublicProvingKey() {
   const L = 77
@@ -25,46 +28,42 @@ async function deployFixture() {
     consumer2
   } = await hre.getNamedAccounts()
 
+  // Prepayment
   let prepaymentContract = await ethers.getContractFactory('Prepayment', {
     signer: deployer
   })
   prepaymentContract = await prepaymentContract.deploy(sProtocolFeeRecipient)
   await prepaymentContract.deployed()
 
+  // VRFCoordinator
   let coordinatorContract = await ethers.getContractFactory('VRFCoordinator', {
     signer: deployer
   })
   coordinatorContract = await coordinatorContract.deploy(prepaymentContract.address)
   await coordinatorContract.deployed()
 
-  // Coordinator settings
-  const minBalance = ethers.utils.parseUnits('0.001')
-  await coordinatorContract.setMinBalance(minBalance)
-
+  // VRFConsumerMock
   let consumerContract = await ethers.getContractFactory('VRFConsumerMock', {
     signer: consumer
   })
   consumerContract = await consumerContract.deploy(coordinatorContract.address)
   await consumerContract.deployed()
 
-  const accId = await createAccount({
-    prepaymentContractAddress: await coordinatorContract.getPrepaymentAddress(),
-    consumerContractAddress: consumerContract.address,
-    deposit: false,
-    assignConsumer: true
+  const prepayment = new Prepayment({
+    consumerAddress: consumer,
+    prepaymentContractAddress: prepaymentContract.address,
+    consumerContractAddress: consumerContract.address
   })
-
-  const dummyKeyHash = '0x00000773ef09e40658e643fe79f8d1a27c0aa6eb7251749b268f829ea49f2024'
+  await prepayment.initialize()
 
   return {
-    accId,
     deployer,
     consumer,
     consumer2,
+    prepaymentContract,
     coordinatorContract,
     consumerContract,
-    dummyKeyHash,
-    prepaymentContract
+    prepayment
   }
 }
 
@@ -145,24 +144,36 @@ describe('VRF contract', function () {
   })
 
   it('requestRandomWords revert on InvalidKeyHash', async function () {
-    const { accId, coordinatorContract, consumerContract, dummyKeyHash } = await loadFixture(
-      deployFixture
-    )
+    const { coordinatorContract, consumerContract, prepayment } = await loadFixture(deployFixture)
 
     const { maxGasLimit } = vrfConfig()
     const numWords = 1
 
+    const accId = await prepayment.createAccount()
     await expect(
-      consumerContract.requestRandomWords(dummyKeyHash, accId, maxGasLimit, numWords)
+      consumerContract.requestRandomWords(DUMMY_KEY_HASH, accId, maxGasLimit, numWords)
+    ).to.be.revertedWithCustomError(coordinatorContract, 'InvalidKeyHash')
+  })
+
+  it('requestRandomWordsDirect should revert on InvalidKeyHash', async function () {
+    const { coordinatorContract, consumerContract } = await loadFixture(deployFixture)
+
+    const { maxGasLimit } = vrfConfig()
+    const numWords = 1
+    const value = parseKlay(1)
+
+    await expect(
+      consumerContract.requestRandomWordsDirectPayment(DUMMY_KEY_HASH, maxGasLimit, numWords, {
+        value
+      })
     ).to.be.revertedWithCustomError(coordinatorContract, 'InvalidKeyHash')
   })
 
   it('requestRandomWords can be called by onlyOwner', async function () {
     const {
-      accId,
       consumerContract,
-      dummyKeyHash,
-      consumer2: nonOwnerAddress
+      consumer2: nonOwnerAddress,
+      prepayment
     } = await loadFixture(deployFixture)
 
     const consumerContractNonOwnerSigner = await ethers.getContractAt(
@@ -173,34 +184,25 @@ describe('VRF contract', function () {
     const { maxGasLimit } = vrfConfig()
     const numWords = 1
 
+    const accId = await prepayment.createAccount()
     await expect(
-      consumerContractNonOwnerSigner.requestRandomWords(dummyKeyHash, accId, maxGasLimit, numWords)
+      consumerContractNonOwnerSigner.requestRandomWords(
+        DUMMY_KEY_HASH,
+        accId,
+        maxGasLimit,
+        numWords
+      )
     ).to.be.revertedWithCustomError(consumerContractNonOwnerSigner, 'OnlyOwner')
   })
 
-  it('requestRandomWordsDirect should revert on InvalidKeyHash', async function () {
-    const { coordinatorContract, consumerContract, dummyKeyHash } = await loadFixture(deployFixture)
-
-    const { maxGasLimit } = vrfConfig()
-    const numWords = 1
-    const value = parseKlay(1)
-
-    await expect(
-      consumerContract.requestRandomWordsDirectPayment(dummyKeyHash, maxGasLimit, numWords, {
-        value
-      })
-    ).to.be.revertedWithCustomError(coordinatorContract, 'InvalidKeyHash')
-  })
-
   it('requestRandomWords should revert with InsufficientPayment error', async function () {
-    const {
-      accId,
-      consumer,
-      coordinatorContract,
-      consumerContract,
-      dummyKeyHash,
-      prepaymentContract
-    } = await loadFixture(deployFixture)
+    // VRF is a paid service that requires a payment through a
+    // Prepayment smart contract. Every [regular] account has to have at
+    // least `sMinBalance` in their account in order to succeed with
+    // VRF request.
+    const { consumer, coordinatorContract, consumerContract, prepaymentContract, prepayment } =
+      await loadFixture(deployFixture)
+
     const {
       oracle,
       publicProvingKey,
@@ -217,19 +219,24 @@ describe('VRF contract', function () {
       gasAfterPaymentCalculation,
       Object.values(feeConfig)
     )
-
-    const prepaymentContractConsumerSigner = await ethers.getContractAt(
-      'Prepayment',
-      prepaymentContract.address,
-      consumer
-    )
-
-    await prepaymentContractConsumerSigner.addConsumer(accId, consumerContract.address)
     await prepaymentContract.addCoordinator(coordinatorContract.address)
+
+    await setMinBalance(coordinatorContract, '0.001')
+
+    const accId = await prepayment.createAccount()
+    prepayment.addConsumer(consumerContract.address)
     const numWords = 1
 
     await expect(
       consumerContract.requestRandomWords(keyHash, accId, maxGasLimit, numWords)
     ).to.be.revertedWithCustomError(coordinatorContract, 'InsufficientPayment')
   })
+
+  // it('Request through [temporary] account & Fulfill', async function () {
+  // charge $KLAY to account
+  // generate random number through other script
+  // create reporter account
+  // submit
+  // check for returned value
+  // })
 })
