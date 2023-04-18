@@ -233,7 +233,7 @@ describe('VRF contract', function () {
       Object.values(feeConfig)
     )
 
-    await prepaymentContract.addCoordinator(coordinatorContract.address)
+    await state.addCoordinator(coordinatorContract.address)
 
     const minBalance = '0.001'
     await state.setMinBalance(minBalance)
@@ -343,5 +343,71 @@ describe('VRF contract', function () {
     expect(fRequestId).to.be.equal(eRequestId)
     expect(fSuccess).to.be.equal(true)
     expect(fPayment).to.be.above(0)
+  })
+
+  it('requestRandomWords with [temporary] account', async function () {
+    const {
+      consumer,
+      vrfOracle0,
+      coordinatorContract,
+      consumerContract,
+      prepaymentContract,
+      state
+    } = await loadFixture(deployFixture)
+
+    const {
+      maxGasLimit,
+      gasAfterPaymentCalculation,
+      feeConfig,
+      sk,
+      pk,
+      pkX,
+      pkY,
+      publicProvingKey,
+      keyHash
+    } = vrfConfig()
+
+    await coordinatorContract.registerOracle(vrfOracle0, publicProvingKey)
+    await coordinatorContract.setConfig(
+      maxGasLimit,
+      gasAfterPaymentCalculation,
+      Object.values(feeConfig)
+    )
+
+    await state.addCoordinator(coordinatorContract.address)
+
+    // Set a direct payment fee
+    const setFulfillmentFee = parseKlay(1)
+    const setBaseFee = parseKlay(0.25)
+    const setConfig = [setFulfillmentFee, setBaseFee]
+    const txSetDirectPaymentConfig = await (
+      await coordinatorContract.setDirectPaymentConfig(setConfig)
+    ).wait()
+
+    expect(txSetDirectPaymentConfig.events.length).to.be.equal(1)
+    const directPaymentConfigSetEvent = coordinatorContract.interface.parseLog(
+      txSetDirectPaymentConfig.events[0]
+    )
+    expect(directPaymentConfigSetEvent.name).to.be.equal('DirectPaymentConfigSet')
+
+    const { fulfillmentFee, baseFee } = directPaymentConfigSetEvent.args
+    expect(fulfillmentFee).to.be.equal(setFulfillmentFee)
+    expect(baseFee).to.be.equal(setBaseFee)
+
+    const [getFulfillmentFee, getBaseFee] = await coordinatorContract.getDirectPaymentConfig()
+    const value = ethers.BigNumber.from(fulfillmentFee).add(baseFee)
+
+    // Request random words through temporary account
+    const txRequestRandomWords = await (
+      await consumerContract.requestRandomWordsDirectPayment(keyHash, maxGasLimit, NUM_WORDS, {
+        value
+      })
+    ).wait()
+
+    expect(txRequestRandomWords.events.length).to.be.equal(3)
+    const requestedRandomWordsEvent = coordinatorContract.interface.parseLog(
+      txRequestRandomWords.events[1]
+    )
+    expect(requestedRandomWordsEvent.name).to.be.equal('RandomWordsRequested')
   })
 })

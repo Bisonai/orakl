@@ -166,11 +166,12 @@ async function requestAndFulfill(
   )
 
   // Request data /////////////////////////////////////////////////////////////
+  const gasLimit = 500_000
   let requestReceipt
   if (isDirectPayment) {
     requestReceipt = await (
       await requestFn(maxGasLimit, {
-        gasLimit: 500_000,
+        gasLimit,
         value: parseKlay(1)
       })
     ).wait()
@@ -180,7 +181,7 @@ async function requestAndFulfill(
     await state.addConsumer(state.consumerContract.address)
     requestReceipt = await (
       await requestFn(accId, maxGasLimit, {
-        gasLimit: 500_000
+        gasLimit
       })
     ).wait()
   }
