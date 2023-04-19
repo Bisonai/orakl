@@ -23,10 +23,10 @@
     chalk "^2.0.0"
     js-tokens "^4.0.0"
 
-"@bisonai/orakl-vrf@^0.1.1":
-  version "0.1.1"
-  resolved "https://registry.yarnpkg.com/@bisonai/orakl-vrf/-/orakl-vrf-0.1.1.tgz#61e90a44520a7d9abf1a20c2c863201742c0b2e2"
-  integrity sha512-mz1DhGQEgKXwk78ZAe9EG1C9tat/fqAch13K7muK2r1xCSAVMoFJU0II39HbH99cC2mz6/l6I3B0szeyrMw+Zw==
+"@bisonai/orakl-vrf@^0.2.0":
+  version "0.2.0"
+  resolved "https://registry.yarnpkg.com/@bisonai/orakl-vrf/-/orakl-vrf-0.2.0.tgz#691e30ef57c4d7b46dbc8c904491d37b058f2c64"
+  integrity sha512-P3yYOg0Yj+nENsIl0rjri8JJHc3A78pQPIVIFIiMdunu5lEGOFOZ8XBDJCPBocihHybekwsB8Y+sAAsJMNCS3w==
   dependencies:
     bn.js "^5.2.1"
     elliptic "^6.5.4"
