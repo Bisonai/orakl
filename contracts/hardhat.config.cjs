@@ -1,10 +1,3 @@
-// import { HardhatUserConfig, task } from 'hardhat/config'
-// import '@nomicfoundation/hardhat-toolbox'
-// import '@nomiclabs/hardhat-web3'
-// import '@nomiclabs/hardhat-ethers'
-// import 'hardhat-deploy'
-// import dotenv from 'dotenv'
-
 const { task } = require('hardhat/config')
 require('@nomicfoundation/hardhat-toolbox')
 require('@nomiclabs/hardhat-web3')
@@ -96,8 +89,5 @@ task('address', 'Convert mnemonic to address')
     const wallet = hre.ethers.Wallet.fromMnemonic(taskArgs.mnemonic)
     console.log(wallet.address)
   })
-
-// export default config
-// export config
 
 module.exports = config

@@ -198,7 +198,8 @@ contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
      * @inheritdoc IPrepayment
      */
     function isValid(uint64 accId, address consumer) external view returns (bool) {
-        bool isValidRegular = sAccIdToAccount[accId].getNonce(consumer) != 0;
+        Account account = sAccIdToAccount[accId];
+        bool isValidRegular = address(account) != address(0) && account.getNonce(consumer) != 0;
         bool isValidTemporary = sAccIdToTmpAcc[accId].owner == msg.sender;
 
         return isValidRegular || isValidTemporary;
