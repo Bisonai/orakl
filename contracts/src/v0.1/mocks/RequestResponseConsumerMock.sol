@@ -13,7 +13,7 @@ contract RequestResponseConsumerMock is
     RequestResponseConsumerFulfillBytes
 {
     using Orakl for Orakl.Request;
-    uint256 public sResponse;
+    uint256 public sResponseUint256;
     int256 public sResponseInt256;
     bool public sResponseBool;
     string public sResponseString;
@@ -243,7 +243,7 @@ contract RequestResponseConsumerMock is
     }
 
     function fulfillDataRequestUint256(uint256 /*requestId*/, uint256 response) internal override {
-        sResponse = response;
+        sResponseUint256 = response;
     }
 
     function fulfillDataRequestInt256(uint256 /*requestId*/, int256 response) internal override {

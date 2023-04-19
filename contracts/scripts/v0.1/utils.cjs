@@ -1,20 +1,24 @@
-import { readdir, readFile, appendFile } from 'node:fs/promises'
-import * as path from 'node:path'
-import {
-  ICoordinatorDeploy,
-  IPrepaymentDeploy,
-  IAggregatorChangeOraclesConfig,
-  IAggregatorDeployConfig,
-  ICoordinatorConfig,
-  ICoordinatorDirectPaymentConfig,
-  ICoordinatorMinBalance,
-  IDeregisterOracle,
-  IRegisterOracle
-} from './types'
+const { readdir, readFile, appendFile } = require('node:fs/promises')
+const path = require('node:path')
+
+/* import { readdir, readFile, appendFile } from 'node:fs/promises' */
+/* import * as path from 'node:path' */
+
+//import {
+//  ICoordinatorDeploy,
+//  IPrepaymentDeploy,
+//  IAggregatorChangeOraclesConfig,
+//  IAggregatorDeployConfig,
+//  ICoordinatorConfig,
+//  ICoordinatorDirectPaymentConfig,
+//  ICoordinatorMinBalance,
+//  IDeregisterOracle,
+//  IRegisterOracle
+//} from './types'
 
 const MIGRATION_LOCK_FILE_NAME = 'migration.lock'
 
-export async function loadJson(filepath: string) {
+async function loadJson(filepath) {
   try {
     const json = await readFile(filepath, 'utf8')
     return JSON.parse(json)
@@ -24,7 +28,7 @@ export async function loadJson(filepath: string) {
   }
 }
 
-async function readMigrationLockFile(filePath: string) {
+async function readMigrationLockFile(filePath) {
   return (await readFile(filePath, 'utf8')).toString().trim().split('\n')
 }
 
@@ -41,7 +45,7 @@ async function readMigrationLockFile(filePath: string) {
  * @return {Promise<string[]>} list of migration files names that has
  * not been applied yet
  */
-export async function loadMigration(dirPath: string): Promise<string[]> {
+async function loadMigration(dirPath) {
   const jsonFileRegex = /\.json$/
 
   let migrationLockFileExist = false
@@ -61,7 +65,7 @@ export async function loadMigration(dirPath: string): Promise<string[]> {
     console.error(err)
   }
 
-  let doneMigrations: string[] = []
+  let doneMigrations = []
   if (migrationLockFileExist) {
     const migrationLockFilePath = path.join(dirPath, MIGRATION_LOCK_FILE_NAME)
     doneMigrations = await readMigrationLockFile(migrationLockFilePath)
@@ -76,17 +80,16 @@ export async function loadMigration(dirPath: string): Promise<string[]> {
 /**
  * Update migration lock file located in `dirPath` with the `migrationFileName` migration.
  *
- * @params {dirPath} migration directory
- * @params {migrationFileName} name of executed migration file that should be included to migration lock file
+ * @params {string} migration directory
+ * @params {string} name of executed migration file that should be included to migration lock file
  * @return {Promise<void>}
  */
-export async function updateMigration(dirPath: string, migrationFileName: string) {
+async function updateMigration(dirPath, migrationFileName) {
   const migrationLockFilePath = path.join(dirPath, MIGRATION_LOCK_FILE_NAME)
   await appendFile(migrationLockFilePath, `${migrationFileName}\n`)
 }
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
-function validateProperties(config: any, requiredProperties: string[]) {
+function validateProperties(config, requiredProperties) {
   for (const rp of requiredProperties) {
     if (config[rp] === undefined) return false
   }
@@ -94,7 +97,11 @@ function validateProperties(config: any, requiredProperties: string[]) {
   return true
 }
 
-export function validateAggregatorDeployConfig(config: IAggregatorDeployConfig): boolean {
+/**
+ * @params {IAggregatorDeployConfig}
+ * @return {boolean}
+ */
+function validateAggregatorDeployConfig(config) {
   const requiredProperties = [
     'name',
     'paymentAmount',
@@ -113,9 +120,11 @@ export function validateAggregatorDeployConfig(config: IAggregatorDeployConfig):
   return true
 }
 
-export function validateAggregatorChangeOraclesConfig(
-  config: IAggregatorChangeOraclesConfig
-): boolean {
+/**
+ * @params {IAggregatorChangeOraclesConfig}
+ * @return {boolean}
+ */
+function validateAggregatorChangeOraclesConfig(config) {
   const requiredProperties = [
     'removed',
     'added',
@@ -132,7 +141,11 @@ export function validateAggregatorChangeOraclesConfig(
   }
 }
 
-export function validateCoordinatorDeployConfig(config: ICoordinatorDeploy): boolean {
+/**
+ * @params {ICoordinatorDeploy}
+ * @return {boolean}
+ */
+function validateCoordinatorDeployConfig(config) {
   const requiredProperties = ['version']
 
   if (!validateProperties(config, requiredProperties)) {
@@ -142,7 +155,11 @@ export function validateCoordinatorDeployConfig(config: ICoordinatorDeploy): boo
   }
 }
 
-export function validateMinBalanceConfig(config: ICoordinatorMinBalance): boolean {
+/**
+ * @params {ICoordinatorMinBalance}
+ * @return {boolean}
+ */
+function validateMinBalanceConfig(config) {
   const requiredProperties = ['minBalance']
 
   if (!validateProperties(config, requiredProperties)) {
@@ -152,7 +169,11 @@ export function validateMinBalanceConfig(config: ICoordinatorMinBalance): boolea
   }
 }
 
-export function validateSetConfig(config: ICoordinatorConfig): boolean {
+/**
+ * @params {ICoordinatorConfig}
+ * @return {boolean}
+ */
+function validateSetConfig(config) {
   const requiredProperties = ['maxGasLimit', 'gasAfterPaymentCalculation', 'feeConfig']
 
   if (!validateProperties(config, requiredProperties)) {
@@ -162,7 +183,11 @@ export function validateSetConfig(config: ICoordinatorConfig): boolean {
   }
 }
 
-export function validateDirectPaymentConfig(config: ICoordinatorDirectPaymentConfig): boolean {
+/**
+ * @params {ICoordinatorDirectPaymentConfig}
+ * @return {boolean}
+ */
+function validateDirectPaymentConfig(config) {
   if (!validateProperties(config, ['directPaymentConfig'])) {
     return false
   }
@@ -174,7 +199,11 @@ export function validateDirectPaymentConfig(config: ICoordinatorDirectPaymentCon
   return true
 }
 
-export function validateVrfRegisterOracle(config: IRegisterOracle[]): boolean {
+/**
+ * @params {IRegisterOracle[]}
+ * @return {boolean}
+ */
+function validateVrfRegisterOracle(config) {
   const requiredProperties = ['address', 'publicProvingKey']
 
   for (const c of config) {
@@ -186,7 +215,11 @@ export function validateVrfRegisterOracle(config: IRegisterOracle[]): boolean {
   return true
 }
 
-export function validateVrfDeregisterOracle(config: IDeregisterOracle[]): boolean {
+/**
+ * @params {IDeregisterOracle[]}
+ * @return {boolean}
+ */
+function validateVrfDeregisterOracle(config) {
   const requiredProperties = ['address']
 
   for (const c of config) {
@@ -198,7 +231,11 @@ export function validateVrfDeregisterOracle(config: IDeregisterOracle[]): boolea
   return true
 }
 
-export function validatePrepaymentDeployConfig(config: IPrepaymentDeploy): boolean {
+/**
+ * @params {IPrepaymentDeploy}
+ * @return {boolean}
+ */
+function validatePrepaymentDeployConfig(config) {
   const requiredProperties = ['protocolFeeRecipient']
 
   if (!validateProperties(config, requiredProperties)) {
@@ -206,4 +243,19 @@ export function validatePrepaymentDeployConfig(config: IPrepaymentDeploy): boole
   } else {
     return true
   }
+}
+
+module.exports = {
+  loadJson,
+  loadMigration,
+  updateMigration,
+  validateAggregatorDeployConfig,
+  validateAggregatorChangeOraclesConfig,
+  validateCoordinatorDeployConfig,
+  validateMinBalanceConfig,
+  validateSetConfig,
+  validateDirectPaymentConfig,
+  validateVrfRegisterOracle,
+  validateVrfDeregisterOracle,
+  validatePrepaymentDeployConfig
 }

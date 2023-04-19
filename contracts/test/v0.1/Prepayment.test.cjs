@@ -1,6 +1,6 @@
-import { expect } from 'chai'
-import { ethers } from 'hardhat'
-import { loadFixture } from '@nomicfoundation/hardhat-network-helpers'
+const { expect } = require('chai')
+const { ethers } = require('hardhat')
+const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers')
 
 const NULL_ADDRESS = '0x0000000000000000000000000000000000000000'
 const DEFAULT_BURN_FEE_RATIO = 50
@@ -65,7 +65,7 @@ describe('Prepayment', function () {
     ).to.be.revertedWithCustomError(prepaymentContract, 'RatioOutOfBounds')
   })
 
-  it('Protocol feer ratio setup', async function () {
+  it('Protocol fee ratio setup', async function () {
     const { prepaymentContract } = await loadFixture(deployPrepayment)
 
     // 1. Get initial burn ratio

@@ -1,7 +1,5 @@
-import { HardhatRuntimeEnvironment } from 'hardhat/types'
-import { DeployFunction } from 'hardhat-deploy/types'
-import * as path from 'node:path'
-import {
+const path = require('node:path')
+const {
   loadJson,
   loadMigration,
   updateMigration,
@@ -9,10 +7,9 @@ import {
   validateDirectPaymentConfig,
   validateMinBalanceConfig,
   validateSetConfig
-} from '../../scripts/v0.1/utils'
-import { IRequestResponseCoordinatorConfig } from '../../scripts/v0.1/types'
+} = require('../../scripts/v0.1/utils.cjs')
 
-const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
+const func = async function (hre) {
   const { deployments, getNamedAccounts, network } = hre
   const { deploy } = deployments
   const { deployer, consumer } = await getNamedAccounts()
@@ -23,12 +20,10 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const migrationFilesNames = await loadMigration(migrationDirPath)
 
   for (const migration of migrationFilesNames) {
-    const config: IRequestResponseCoordinatorConfig = await loadJson(
-      path.join(migrationDirPath, migration)
-    )
+    const config = await loadJson(path.join(migrationDirPath, migration))
 
     const prepayment = await ethers.getContract('Prepayment')
-    let requestResponseCoordinator: ethers.Contract = undefined
+    let requestResponseCoordinator = undefined
 
     // Deploy RequestResponseCoordinator ////////////////////////////////////////
     if (config.deploy) {
@@ -190,6 +185,7 @@ async function localhostDeployment(args) {
   ).wait()
 }
 
-export default func
 func.id = 'deploy-request-response'
 func.tags = ['request-response']
+
+module.exports = func

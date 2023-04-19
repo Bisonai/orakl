@@ -1,15 +1,12 @@
-import { HardhatRuntimeEnvironment } from 'hardhat/types'
-import { DeployFunction } from 'hardhat-deploy/types'
-import * as path from 'node:path'
-import {
+const path = require('node:path')
+const {
   loadJson,
   loadMigration,
   updateMigration,
   validatePrepaymentDeployConfig
-} from '../../scripts/v0.1/utils'
-import { IPrepaymentConfig } from '../../scripts/v0.1/types'
+} = require('../../scripts/v0.1/utils.cjs')
 
-const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
+const func = async function (hre) {
   const { deployments, getNamedAccounts, network } = hre
   const { deploy } = deployments
   const { deployer } = await getNamedAccounts()
@@ -20,7 +17,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const migrationFilesNames = await loadMigration(migrationDirPath)
 
   for (const migration of migrationFilesNames) {
-    const config: IPrepaymentConfig = await loadJson(path.join(migrationDirPath, migration))
+    const config = await loadJson(path.join(migrationDirPath, migration))
 
     // Deploy Prepayment ////////////////////////////////////////////////////////
     if (config.deploy) {
@@ -42,6 +39,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   }
 }
 
-export default func
 func.id = 'deploy-prepayment'
 func.tags = ['prepayment']
+
+module.exports = func

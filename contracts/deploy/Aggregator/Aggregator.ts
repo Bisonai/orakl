@@ -1,16 +1,13 @@
-import { HardhatRuntimeEnvironment } from 'hardhat/types'
-import { DeployFunction } from 'hardhat-deploy/types'
-import * as path from 'node:path'
-import {
+const path = require('node:path')
+const {
   loadJson,
   loadMigration,
   updateMigration,
   validateAggregatorDeployConfig,
   validateAggregatorChangeOraclesConfig
-} from '../../scripts/v0.1/utils'
-import { IAggregatorConfig } from '../../scripts/v0.1/types'
+} = require('../../scripts/v0.1/utils.cjs')
 
-const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
+const func = async function (hre) {
   const { deployments, getNamedAccounts } = hre
   const { deploy } = deployments
   const { deployer, consumer } = await getNamedAccounts()
@@ -21,9 +18,9 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const migrationFilesNames = await loadMigration(migrationDirPath)
 
   for (const migration of migrationFilesNames) {
-    const config: IAggregatorConfig = await loadJson(path.join(migrationDirPath, migration))
+    const config = await loadJson(path.join(migrationDirPath, migration))
 
-    let aggregator: ethers.Contract = undefined
+    let aggregator = undefined
 
     // Deploy Aggregator and AggregatorProxy ////////////////////////////////////
     if (config.deploy) {
@@ -115,6 +112,7 @@ async function localhostDeployment(args) {
   })
 }
 
-export default func
 func.id = 'deploy-aggregator'
 func.tags = ['aggregator']
+
+module.exports = func
