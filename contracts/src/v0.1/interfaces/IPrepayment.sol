@@ -7,12 +7,13 @@ interface IPrepayment {
     /// READ-ONLY FUNCTIONS /////////////////////////////////////////////////////
 
     /**
-     * @notice Returns `true` when given `accId` is valid, otherwise reverts.
+     * @notice Returns `true` when a `consumer` is registered under
+     * @notice `accId`, otherwise returns `false`.
      * @dev This function can be used for checking validity of both
      * @dev [regular] and [temporary] account.
      * @param accId - ID of the account
      */
-    function isValidAccount(uint64 accId) external view returns (bool);
+    function isValid(uint64 accId, address consumer) external view returns (bool);
 
     /**
      * @notice Returns the balance of given account.
@@ -61,13 +62,11 @@ interface IPrepayment {
 
     /**
      * @notice Get nonce for specified `consumer` in account denoted by `accId`.
-     * @dev This function is meant to be used for both [regular] and
-     * @dev [temporary] account. In case of [regular] account, we keep
-     * @dev track of nonces for every consumer inside of the
-     * @dev account. [temporary] account is expected to be used only
-     * @dev once, therefore we do not keep track of nonce, and always return 1.
-     * @dev We do not check on validity of the `accId`, therefore when
-     * @dev a an invalid `accId` is passed, nonce equal to 1 is returned.
+     * @dev This function is meant to be used only for [regular]
+     * @dev account. [temporary] account does not have a notion of a nonce.
+     * @dev When an invalid `accId` is passed, transaction is
+     * @dev reverted. When an invalid `consumer` is passed, 0 zero
+     * @dev nonce is returned that represents an unregistered consumer.
      * @param accId - ID of the account
      * @param consumer - consumer address
      */
