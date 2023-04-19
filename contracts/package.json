@@ -46,7 +46,7 @@
     "deploy:baobab:aggregator": "yarn deploy:baobab --deploy-scripts deploy/Aggregator"
   },
   "devDependencies": {
-    "@bisonai/orakl-vrf": "^0.1.1",
+    "@bisonai/orakl-vrf": "^0.2.0",
     "@ethersproject/abi": "^5.4.7",
     "@ethersproject/providers": "^5.4.7",
     "@nomicfoundation/hardhat-chai-matchers": "^1.0.0",
