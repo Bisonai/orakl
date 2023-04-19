@@ -1,21 +1,6 @@
 const { readdir, readFile, appendFile } = require('node:fs/promises')
 const path = require('node:path')
 
-/* import { readdir, readFile, appendFile } from 'node:fs/promises' */
-/* import * as path from 'node:path' */
-
-//import {
-//  ICoordinatorDeploy,
-//  IPrepaymentDeploy,
-//  IAggregatorChangeOraclesConfig,
-//  IAggregatorDeployConfig,
-//  ICoordinatorConfig,
-//  ICoordinatorDirectPaymentConfig,
-//  ICoordinatorMinBalance,
-//  IDeregisterOracle,
-//  IRegisterOracle
-//} from './types'
-
 const MIGRATION_LOCK_FILE_NAME = 'migration.lock'
 
 async function loadJson(filepath) {
