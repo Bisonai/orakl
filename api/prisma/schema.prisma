@@ -99,20 +99,20 @@ model Aggregator {
 }
 
 model Data {
-  id           BigInt      @id @default(autoincrement()) @map("data_id")
-  timestamp    DateTime    @db.Timestamptz
+  id           BigInt     @id @default(autoincrement()) @map("data_id")
+  timestamp    DateTime   @db.Timestamptz
   value        BigInt
   aggregator   Aggregator @relation(fields: [aggregatorId], references: [id], onDelete: Cascade)
   aggregatorId BigInt     @map("aggregator_id")
-  feed         Feed        @relation(fields: [feedId], references: [id])
-  feedId       BigInt      @map("feed_id")
+  feed         Feed       @relation(fields: [feedId], references: [id])
+  feedId       BigInt     @map("feed_id")
 
   @@map("data")
 }
 
 model Aggregate {
-  id           BigInt      @id @default(autoincrement()) @map("aggregate_id")
-  timestamp    DateTime    @db.Timestamptz
+  id           BigInt     @id @default(autoincrement()) @map("aggregate_id")
+  timestamp    DateTime   @db.Timestamptz
   value        BigInt
   aggregator   Aggregator @relation(fields: [aggregatorId], references: [id], onDelete: Cascade)
   aggregatorId BigInt     @map("aggregator_id")
@@ -131,6 +131,6 @@ model Reporter {
   service       Service @relation(fields: [serviceId], references: [id])
   serviceId     BigInt  @map("service_id")
 
-  @@unique([address, chainId, serviceId])
+  @@unique([address, chainId])
   @@map("reporters")
 }
