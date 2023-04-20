@@ -3,12 +3,12 @@ pragma solidity ^0.8.16;
 
 // https://github.com/smartcontractkit/chainlink/blob/develop/contracts/src/v0.8/VRFCoordinatorV2.sol
 
+import "@openzeppelin/contracts/access/Ownable.sol";
 import "./interfaces/ICoordinatorBase.sol";
 import "./interfaces/IPrepayment.sol";
 import "./interfaces/ITypeAndVersion.sol";
 import "./interfaces/IVRFCoordinator.sol";
 import "./libraries/VRF.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
 import "./VRFConsumerBase.sol";
 
 contract VRFCoordinator is Ownable, ICoordinatorBase, ITypeAndVersion, IVRFCoordinator {
