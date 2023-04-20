@@ -431,7 +431,6 @@ contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
         external
         // address operatorFeeRecipient
         onlyCoordinator
-        returns (uint256)
     {
         Account account = sAccIdToAccount[accId];
         uint256 balance = account.getBalance();
@@ -442,22 +441,21 @@ contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
 
         uint256 burnFee = (amount * sBurnFeeRatio) / 100;
         uint256 protocolFee = (amount * sProtocolFeeRatio) / 100;
-        uint256 operatorFee = amount - burnFee - protocolFee;
 
-        account.chargeFee(burnFee, operatorFee, protocolFee, sProtocolFeeRecipient);
-
-        emit AccountBalanceDecreased(accId, balance, balance - amount, burnFee);
-        return operatorFee;
+        account.chargeFee(burnFee, protocolFee, sProtocolFeeRecipient);
     }
 
     function payOperatorFee(
         uint64 accId,
         uint256 operatorFee,
-        address operatorFeeRecipient
+        address operatorFeeRecipient,
+        uint256 burnFee
     ) external onlyCoordinator {
         Account account = sAccIdToAccount[accId];
+        uint256 balance = account.getBalance();
 
         account.payOperatorFee(operatorFee, operatorFeeRecipient);
+        emit AccountBalanceDecreased(accId, balance, balance - operatorFee, burnFee);
     }
 
     /**

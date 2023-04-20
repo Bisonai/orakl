@@ -195,12 +195,13 @@ interface IPrepayment {
      * @param accId - ID of the account
      * @param amount - $KLAY amount to be charged
      */
-    function chargeFee(uint64 accId, uint256 amount) external returns (uint256);
+    function chargeFee(uint64 accId, uint256 amount) external;
 
     function payOperatorFee(
         uint64 accId,
         uint256 operatorFee,
-        address operatorFeeRecipient
+        address operatorFeeRecipient,
+        uint256 burnFee
     ) external;
 
     /**
@@ -236,4 +237,8 @@ interface IPrepayment {
      * @param coordinator - address of coordinator
      */
     function removeCoordinator(address coordinator) external;
+
+    function getBurnFeeRatio() external view returns (uint8);
+
+    function getProtocolFeeRatio() external view returns (uint8);
 }

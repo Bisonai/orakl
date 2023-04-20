@@ -114,16 +114,10 @@ interface IAccount {
     /**
      * @notice Charge fee from service connected to account.
      * @param burnFee - $KLAY amount to be burnt
-     * @param operatorFee - $KLAY amount to be sent to operator fee recipient
      * @param protocolFee - $KLAY amount to be sent to protocol fee recipient
      * @param protocolFeeRecipient - address of Orakl Network
      */
-    function chargeFee(
-        uint256 burnFee,
-        uint256 operatorFee,
-        uint256 protocolFee,
-        address protocolFeeRecipient
-    ) external;
+    function chargeFee(uint256 burnFee, uint256 protocolFee, address protocolFeeRecipient) external;
 
     function payOperatorFee(uint256 operatorFee, address operatorFeeRecipient) external;
 

@@ -32,13 +32,13 @@ interface IRequestResponseCoordinator {
         Orakl.Request memory req,
         uint32 callbackGasLimit,
         uint64 accId,
-        uint16 submissionAmount
+        uint8 numbSubmission
     ) external returns (uint256);
 
     function requestData(
         Orakl.Request memory req,
         uint32 callbackGasLimit,
-        uint16 submissionAmount
+        uint8 numbSubmission
     ) external payable returns (uint256);
 
     /**

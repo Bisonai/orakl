@@ -238,13 +238,13 @@ contract Account is IAccount, ITypeAndVersion {
      */
     function chargeFee(
         uint256 burnFee,
-        uint256 operatorFee,
+        //uint256 operatorFee,
         //address operatorFeeRecipient,
         uint256 protocolFee,
         address protocolFeeRecipient
     ) external onlyPaymentSolution {
         sReqCount += 1;
-        sBalance -= (burnFee + operatorFee + protocolFee);
+        sBalance -= (burnFee + protocolFee);
 
         if (burnFee > 0) {
             (bool sent, ) = address(0).call{value: burnFee}("");
@@ -272,6 +272,8 @@ contract Account is IAccount, ITypeAndVersion {
         uint256 operatorFee,
         address operatorFeeRecipient
     ) external onlyPaymentSolution {
+        sBalance -= operatorFee;
+
         (bool sent, ) = operatorFeeRecipient.call{value: operatorFee}("");
         if (!sent) {
             revert OperatorFeeFailed();

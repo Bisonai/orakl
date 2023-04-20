@@ -355,10 +355,7 @@ contract VRFCoordinator is Ownable, ICoordinatorBase, ITypeAndVersion, IVRFCoord
         bool isDirectPayment
     ) external nonReentrant returns (uint256) {
         uint256 startGas = gasleft();
-        (bytes32 keyHash, uint256 requestId, uint256 randomness) = getRandomnessFromProof(
-            proof,
-            rc
-        );
+        (, uint256 requestId, uint256 randomness) = getRandomnessFromProof(proof, rc);
 
         uint256[] memory randomWords = new uint256[](rc.numWords);
         for (uint256 i = 0; i < rc.numWords; i++) {
@@ -383,7 +380,21 @@ contract VRFCoordinator is Ownable, ICoordinatorBase, ITypeAndVersion, IVRFCoord
         bool success = callWithExactGas(rc.callbackGasLimit, rc.sender, resp);
         sConfig.reentrancyLock = false;
 
+        uint256 payment = pay(proof, rc, isDirectPayment, startGas);
+
+        // Include payment in the event for tracking costs.
+        emit RandomWordsFulfilled(requestId, randomness, payment, success);
+        return payment;
+    }
+
+    function pay(
+        VRF.Proof memory proof,
+        RequestCommitment memory rc,
+        bool isDirectPayment,
+        uint256 startGas
+    ) internal returns (uint256) {
         uint256 payment;
+        (bytes32 keyHash, , ) = getRandomnessFromProof(proof, rc);
         if (isDirectPayment) {
             (uint256 totalAmount, uint256 operatorAmount) = sPrepayment.chargeFeeTemporary(
                 rc.accId
@@ -398,13 +409,16 @@ contract VRFCoordinator is Ownable, ICoordinatorBase, ITypeAndVersion, IVRFCoord
                 sConfig.gasAfterPaymentCalculation,
                 getFeeTier(reqCount)
             );
-            uint256 operatorFee = sPrepayment.chargeFee(rc.accId, payment);
-            sPrepayment.payOperatorFee(rc.accId, operatorFee, sKeyHashToOracle[keyHash]);
+            sPrepayment.chargeFee(rc.accId, payment);
+            uint8 burnFeeRatio = sPrepayment.getBurnFeeRatio();
+            uint8 protocolFeeRatio = sPrepayment.getProtocolFeeRatio();
+            uint256 burnFee = (burnFeeRatio * payment) / 100;
+            uint256 protocolFee = (protocolFeeRatio * payment) / 100;
+
+            uint256 operatorFee = payment - burnFee - protocolFee;
+            sPrepayment.payOperatorFee(rc.accId, operatorFee, sKeyHashToOracle[keyHash], burnFee);
             sPrepayment.increaseReqCount(rc.accId);
         }
-
-        // Include payment in the event for tracking costs.
-        emit RandomWordsFulfilled(requestId, randomness, payment, success);
         return payment;
     }
 
