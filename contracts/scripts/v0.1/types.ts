@@ -36,9 +36,17 @@ export interface IAggregatorChangeOraclesConfig {
   aggregatorAddress?: string
 }
 
+export interface IAggregatorRedirectProxyConfig {
+  oldAggregatorAddress: string
+  newAggregatorAddress: string
+  proxyFileName: string
+  status: string
+}
+
 export interface IAggregatorConfig {
   deploy?: IAggregatorDeployConfig
   changeOracles?: IAggregatorChangeOraclesConfig
+  redirectProxy?: IAggregatorRedirectProxyConfig
 }
 
 export interface ICoordinatorConfig {
