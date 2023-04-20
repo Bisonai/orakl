@@ -62,4 +62,16 @@ describe('Median', function () {
     const res = (await contract.median(arr)).toNumber()
     expect(res).to.be.equal(floorMedian(arr))
   })
+
+  it('Large array of numbers', async function () {
+    // Median is computed different for arrays with lenght larger than 7
+    const { contract } = await loadFixture(deploy)
+    const arr = [
+      [1, 2, 3, 4, 5, 6, 7, 8], // 8
+      [1, 2, 3, 4, 5, 6, 7, 8, 1, 2, 3, 4, 5, 6, 7, 8] // 16
+    ]
+    for (const A of arr) {
+      expect((await contract.median(A)).toNumber()).to.be.equal(floorMedian(A))
+    }
+  })
 })

@@ -252,11 +252,16 @@ library Median {
         // We don't care about overflow of the addition, because it would require a list
         // larger than any feasible computer's memory.
         int256 pivot = list[(lo + hi) / 2];
-        lo -= 1; // this can underflow. that's intentional.
+        unchecked {
+            lo -= 1; // this can underflow. that's intentional.
+        }
         hi += 1;
+
         while (true) {
             do {
-                lo += 1;
+                unchecked {
+                    lo += 1;
+                }
             } while (list[lo] < pivot);
             do {
                 hi -= 1;
