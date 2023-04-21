@@ -26,7 +26,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     let aggregator: ethers.Contract = undefined
 
     // Deploy Aggregator ////////////////////////////////////
-    if (config.deploy && (!config.redirectProxy || config.redirectProxy.status == 'initial')) {
+    if (config.deploy) {
       const deployConfig = config.deploy
       if (!validateAggregatorDeployConfig(deployConfig)) {
         throw new Error('Invalid Aggregator deploy config')
@@ -92,7 +92,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
       if (redirectProxyConfig.status == 'initial') {
         // Propose new aggregator
-        expect(await proxy.aggregator()).to.be.eq(config.redirectProxy.oldAggregatorAddress)
+        expect(await proxy.aggregator()).to.be.eq(oldAggregatorAddress)
         await (await proxy.proposeAggregator(newAggregatorAddress)).wait()
 
         const proposedAggregator = await proxy.proposedAggregator()
@@ -113,7 +113,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
         )
       } else if (redirectProxyConfig.status == 'revert') {
         // Revert back to old Aggregator Address
-        expect(await proxy.aggregator()).to.be.eq(config.redirectProxy.newAggregatorAddress)
+        expect(await proxy.aggregator()).to.be.eq(newAggregatorAddress)
         await (await proxy.proposeAggregator(oldAggregatorAddress)).wait()
         await (await proxy.confirmAggregator(oldAggregatorAddress)).wait()
         const revertedAggregator = await proxy.aggregator()
