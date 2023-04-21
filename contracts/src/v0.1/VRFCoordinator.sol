@@ -355,7 +355,10 @@ contract VRFCoordinator is Ownable, ICoordinatorBase, ITypeAndVersion, IVRFCoord
         bool isDirectPayment
     ) external nonReentrant returns (uint256) {
         uint256 startGas = gasleft();
-        (, uint256 requestId, uint256 randomness) = getRandomnessFromProof(proof, rc);
+        (bytes32 keyHash, uint256 requestId, uint256 randomness) = getRandomnessFromProof(
+            proof,
+            rc
+        );
 
         uint256[] memory randomWords = new uint256[](rc.numWords);
         for (uint256 i = 0; i < rc.numWords; i++) {
@@ -380,7 +383,7 @@ contract VRFCoordinator is Ownable, ICoordinatorBase, ITypeAndVersion, IVRFCoord
         bool success = callWithExactGas(rc.callbackGasLimit, rc.sender, resp);
         sConfig.reentrancyLock = false;
 
-        uint256 payment = pay(proof, rc, isDirectPayment, startGas);
+        uint256 payment = pay(rc, isDirectPayment, startGas, keyHash);
 
         // Include payment in the event for tracking costs.
         emit RandomWordsFulfilled(requestId, randomness, payment, success);
@@ -388,13 +391,12 @@ contract VRFCoordinator is Ownable, ICoordinatorBase, ITypeAndVersion, IVRFCoord
     }
 
     function pay(
-        VRF.Proof memory proof,
         RequestCommitment memory rc,
         bool isDirectPayment,
-        uint256 startGas
+        uint256 startGas,
+        bytes32 keyHash
     ) internal returns (uint256) {
         uint256 payment;
-        (bytes32 keyHash, , ) = getRandomnessFromProof(proof, rc);
         if (isDirectPayment) {
             (uint256 totalAmount, uint256 operatorAmount) = sPrepayment.chargeFeeTemporary(
                 rc.accId

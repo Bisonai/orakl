@@ -4,6 +4,7 @@ const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers')
 const { State } = require('./State.utils.cjs')
 const { requestResponseConfig } = require('./RequestResponse.config.cjs')
 const { parseKlay } = require('./utils.cjs')
+const { median: medianFn } = require('mathjs')
 
 const EVENT_ARGS = [
   'requestId',
@@ -22,7 +23,8 @@ async function deployFixture() {
     rrOracle0,
     consumer1: sProtocolFeeRecipient
   } = await hre.getNamedAccounts()
-  const { maxGasLimit, gasAfterPaymentCalculation, feeConfig } = requestResponseConfig()
+  const { maxGasLimit, gasAfterPaymentCalculation, feeConfig, directFeeConfig } =
+    requestResponseConfig()
 
   // Prepayment
   let prepaymentContract = await ethers.getContractFactory('Prepayment', {
@@ -71,7 +73,7 @@ async function deployFixture() {
     maxGasLimit,
     gasAfterPaymentCalculation,
     feeConfig,
-
+    directFeeConfig,
     prepaymentContract,
     coordinatorContract,
     consumerContract,
@@ -138,7 +140,9 @@ async function verifyFulfillment(
   expect(prepaymentEvent.args.accId).to.be.equal(accId)
 
   // DataRequestFulfilled* //////////////////////////////////////////////////////
-  const fulfillEvent = state.coordinatorContract.interface.parseLog(txReceipt.events[1])
+  const fulfillEvent = state.coordinatorContract.interface.parseLog(
+    txReceipt.events[txReceipt.events.length - 1]
+  )
   expect(fulfillEvent.name).to.be.equal(fulfillEventName)
   expect(fulfillEvent.args.requestId).to.be.equal(requestId)
   expect(await responseFn()).to.be.equal(responseValue)
@@ -151,11 +155,12 @@ async function requestAndFulfill(
   fulfillValue,
   getFulfillValueFn,
   fulfillEventName,
-  isDirectPayment
+  isDirectPayment,
+  numSubmission,
+  type
 ) {
-  const { rrOracle0, maxGasLimit, gasAfterPaymentCalculation, feeConfig } = await loadFixture(
-    deployFixture
-  )
+  const { rrOracle0, maxGasLimit, gasAfterPaymentCalculation, feeConfig, directFeeConfig } =
+    await loadFixture(deployFixture)
 
   // Configure coordinator
   await state.coordinatorContract.registerOracle(rrOracle0)
@@ -164,13 +169,14 @@ async function requestAndFulfill(
     gasAfterPaymentCalculation,
     Object.values(feeConfig)
   )
+  await state.coordinatorContract.setDirectPaymentConfig(directFeeConfig);
 
   // Request data /////////////////////////////////////////////////////////////
   const gasLimit = 500_000
   let requestReceipt
   if (isDirectPayment) {
     requestReceipt = await (
-      await requestFn(maxGasLimit, {
+      await requestFn(maxGasLimit, numSubmission, {
         gasLimit,
         value: parseKlay(1)
       })
@@ -180,7 +186,7 @@ async function requestAndFulfill(
     await state.deposit('1')
     await state.addConsumer(state.consumerContract.address)
     requestReceipt = await (
-      await requestFn(accId, maxGasLimit, {
+      await requestFn(accId, maxGasLimit, numSubmission, {
         gasLimit
       })
     ).wait()
@@ -206,19 +212,40 @@ async function requestAndFulfill(
     sender: state.consumerContract.address
   }
 
-  const fulfillReceipt = await (
-    await fulfillFn(_requestId, fulfillValue, requestCommitment, isDirectPayment)
-  ).wait()
+  let fulfillReceipt
+  for (let i = 0; i < numSubmission; i++) {
+    fulfillReceipt = await (
+      await fulfillFn(_requestId, fulfillValue[i], requestCommitment, isDirectPayment)
+    ).wait()
+  }
+  let responseValue = fulfillValue[0]
+  if (type == 'Uint256' || type == 'int256') {
+    responseValue = median(fulfillValue)
+    console.log(type, responseValue)
+  }
+  if (type == 'bool') {
+    let falseCount = 0
+    let trueCount = 0
+    for (let i = 0; i < fulfillValue.length; i++) {
+      if (illValue[i]) trueCount++
+      else falseCount++
+    }
+    responseValue = trueCount >= falseCount
+  }
 
   await verifyFulfillment(
     state,
     fulfillReceipt,
     _accId,
     _requestId,
-    fulfillValue,
+    responseValue,
     getFulfillValueFn,
     fulfillEventName
   )
+}
+
+function median(arr) {
+  return Math.floor(medianFn(arr))
 }
 
 describe('Request-Response user contract', function () {
@@ -226,8 +253,9 @@ describe('Request-Response user contract', function () {
     const { state, maxGasLimit } = await loadFixture(deployFixture)
     const accId = await state.createAccount()
     await state.addConsumer(state.consumerContract.address)
+    const numSubmission = 1
     await expect(
-      state.consumerContract.requestDataUint256(accId, maxGasLimit, {
+      state.consumerContract.requestDataUint256(accId, maxGasLimit, numSubmission, {
         gasLimit: 500_000
       })
     ).to.be.revertedWithCustomError(state.coordinatorContract, 'InsufficientPayment')
@@ -235,165 +263,197 @@ describe('Request-Response user contract', function () {
 
   it('Request & Fulfill Uint256', async function () {
     const { state } = await loadFixture(deployFixture)
-
+    const numSubmission = 2
     await requestAndFulfill(
       state,
       state.consumerContract.requestDataUint256,
       state.coordinatorContractOracleSigner.fulfillDataRequestUint256,
-      123,
+      ['1', '2'],
       state.consumerContract.sResponseUint256,
       'DataRequestFulfilledUint256',
-      false
+      false,
+      numSubmission,
+      'Uint256'
     )
   })
 
   it('Request & Fulfill Uint256 Direct Payment', async function () {
     const { state } = await loadFixture(deployFixture)
+    const numSubmission = 2
+
     await requestAndFulfill(
       state,
       state.consumerContract.requestDataDirectPaymentUint256,
       state.coordinatorContractOracleSigner.fulfillDataRequestUint256,
-      123,
+      ['1', '2'],
       state.consumerContract.sResponseUint256,
       'DataRequestFulfilledUint256',
-      true
+      true,
+      numSubmission,
+      'Uint256'
     )
   })
 
   it('Request & Fulfill Int256', async function () {
     const { state } = await loadFixture(deployFixture)
+    const numSubmission = 2
+
     await requestAndFulfill(
       state,
       state.consumerContract.requestDataInt256,
       state.coordinatorContractOracleSigner.fulfillDataRequestInt256,
-      -123,
+      [10, 11],
       state.consumerContract.sResponseInt256,
       'DataRequestFulfilledInt256',
-      false
+      false,
+      numSubmission,
+      'Int256'
     )
   })
 
   it('Request & Fulfill Int256 Direct Payment', async function () {
     const { state } = await loadFixture(deployFixture)
+    const numSubmission = 2
+
     await requestAndFulfill(
       state,
       state.consumerContract.requestDataDirectPaymentInt256,
       state.coordinatorContractOracleSigner.fulfillDataRequestInt256,
-      -123,
+      [10, 11],
       state.consumerContract.sResponseInt256,
       'DataRequestFulfilledInt256',
-      true
+      true,
+      numSubmission,
+      'Int256'
     )
   })
 
   it('Request & Fulfill Bool', async function () {
-    const {
-      consumerContract,
-      coordinatorContract,
-      prepaymentContract,
-      coordinatorContractOracleSigner,
-      state
-    } = await loadFixture(deployFixture)
+    const { state } = await loadFixture(deployFixture)
+    const numSubmission = 3
 
     await requestAndFulfill(
       state,
       state.consumerContract.requestDataBool,
       state.coordinatorContractOracleSigner.fulfillDataRequestBool,
-      true,
+      [true, false, true],
       state.consumerContract.sResponseBool,
       'DataRequestFulfilledBool',
-      false
+      false,
+      numSubmission,
+      'Bool'
     )
   })
 
   it('Request & Fulfill Bool Direct Payment', async function () {
     const { state } = await loadFixture(deployFixture)
+    const numSubmission = 3
+
     await requestAndFulfill(
       state,
       state.consumerContract.requestDataDirectPaymentBool,
       state.coordinatorContractOracleSigner.fulfillDataRequestBool,
-      true,
+      [false, true, false],
       state.consumerContract.sResponseBool,
       'DataRequestFulfilledBool',
-      true
+      true,
+      numSubmission,
+      'Bool'
     )
   })
 
   it('Request & Fulfill String', async function () {
     const { state } = await loadFixture(deployFixture)
+    const numSubmission = 1
+
     await requestAndFulfill(
       state,
       state.consumerContract.requestDataString,
       state.coordinatorContractOracleSigner.fulfillDataRequestString,
-      'hello',
+      ['hello'],
       state.consumerContract.sResponseString,
       'DataRequestFulfilledString',
-      false
+      false,
+      numSubmission
     )
   })
 
   it('Request & Fulfill String Direct Payment', async function () {
     const { state } = await loadFixture(deployFixture)
+    const numSubmission = 1
+
     await requestAndFulfill(
       state,
       state.consumerContract.requestDataDirectPaymentString,
       state.coordinatorContractOracleSigner.fulfillDataRequestString,
-      'hello',
+      ['hello'],
       state.consumerContract.sResponseString,
       'DataRequestFulfilledString',
-      true
+      true,
+      numSubmission
     )
   })
 
   it('Request & Fulfill Bytes32', async function () {
     const { state } = await loadFixture(deployFixture)
+    const numSubmission = 1
+
     await requestAndFulfill(
       state,
       state.consumerContract.requestDataBytes32,
       state.coordinatorContractOracleSigner.fulfillDataRequestBytes32,
-      ethers.utils.formatBytes32String('hello'),
+      [ethers.utils.formatBytes32String('hello')],
       state.consumerContract.sResponseBytes32,
       'DataRequestFulfilledBytes32',
-      false
+      false,
+      numSubmission
     )
   })
 
   it('Request & Fulfill Bytes32 Direct Payment', async function () {
     const { state } = await loadFixture(deployFixture)
+    const numSubmission = 1
+
     await requestAndFulfill(
       state,
       state.consumerContract.requestDataDirectPaymentBytes32,
       state.coordinatorContractOracleSigner.fulfillDataRequestBytes32,
-      ethers.utils.formatBytes32String('hello'),
+      [ethers.utils.formatBytes32String('hello')],
       state.consumerContract.sResponseBytes32,
       'DataRequestFulfilledBytes32',
-      true
+      true,
+      numSubmission
     )
   })
 
   it('Request & Fulfill Bytes', async function () {
     const { state } = await loadFixture(deployFixture)
+    const numSubmission = 1
+
     await requestAndFulfill(
       state,
       state.consumerContract.requestDataBytes,
       state.coordinatorContractOracleSigner.fulfillDataRequestBytes,
-      '0x1234',
+      ['0x1234'],
       state.consumerContract.sResponseBytes,
       'DataRequestFulfilledBytes',
-      false
+      false,
+      numSubmission
     )
   })
 
   it('Request & Fulfill Bytes Direct Payment', async function () {
     const { state } = await loadFixture(deployFixture)
+    const numSubmission = 1
     await requestAndFulfill(
       state,
       state.consumerContract.requestDataDirectPaymentBytes,
       state.coordinatorContractOracleSigner.fulfillDataRequestBytes,
-      '0x1234',
+      ['0x1234'],
       state.consumerContract.sResponseBytes,
       'DataRequestFulfilledBytes',
-      true
+      true,
+      numSubmission
     )
   })
 

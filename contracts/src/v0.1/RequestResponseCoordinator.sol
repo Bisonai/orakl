@@ -9,7 +9,8 @@ import "./interfaces/ITypeAndVersion.sol";
 import "./RequestResponseConsumerBase.sol";
 import "./RequestResponseConsumerFulfill.sol";
 import "./libraries/Orakl.sol";
-import "./Median.sol";
+import "./libraries/Median.sol";
+import "./libraries/MajorityVoting.sol";
 
 contract RequestResponseCoordinator is
     Ownable,
@@ -612,17 +613,23 @@ contract RequestResponseCoordinator is
             );
 
             uint8 oraclesLength = uint8(oracles.length);
-            uint256 amountForEachOperator = (operatorFee - paymentNoFee) / oracles.length;
-            for (uint8 i; i < oraclesLength - 1; ++i) {
-                sPrepayment.payOperatorFeeTemporary(amountForEachOperator, oracles[i]);
+            uint256 amountForEachOperator = 0;
+            if (operatorFee > 0) {
+                amountForEachOperator = operatorFee;
+            }
+            if (operatorFee > paymentNoFee) {
+                amountForEachOperator = (operatorFee - paymentNoFee) / oraclesLength;
+            }
+            if (amountForEachOperator > 0) {
+                for (uint8 i = 0; i < oraclesLength - 1; ++i) {
+                    sPrepayment.payOperatorFeeTemporary(amountForEachOperator, oracles[i]);
+                }
             }
 
             sPrepayment.payOperatorFeeTemporary(
                 amountForEachOperator + paymentNoFee,
                 oracles[oraclesLength - 1]
             );
-            sPrepayment.increaseReqCount(rc.accId);
-
             sPrepayment.increaseReqCountTemporary(rc.accId);
             payment = totalAmount;
         } else {
@@ -643,7 +650,13 @@ contract RequestResponseCoordinator is
                 startGas,
                 sConfig.gasAfterPaymentCalculation
             );
-            uint256 amountForEachOperator = (operatorFee - paymentNoFee) / oracles.length;
+            uint256 amountForEachOperator = 0;
+            if (operatorFee > 0) {
+                amountForEachOperator = operatorFee;
+            }
+            if (operatorFee > paymentNoFee) {
+                amountForEachOperator = (operatorFee - paymentNoFee) / oracles.length;
+            }
             for (uint256 i = 0; i < oracles.length - 1; i++) {
                 sPrepayment.payOperatorFee(rc.accId, amountForEachOperator, oracles[i], burnFee);
             }
@@ -653,7 +666,29 @@ contract RequestResponseCoordinator is
                 oracles[oracles.length - 1],
                 burnFee
             );
+            sPrepayment.increaseNonce(rc.accId, msg.sender);
+            sPrepayment.increaseReqCount(rc.accId);
         }
+    }
+
+    function deleteMapping(uint256 requestId) internal {
+        delete sRequestToNumSubmission[requestId];
+        delete sRequestToOracles[requestId];
+        delete sRequestIdToCommitment[requestId];
+        delete sRequestToSubmissionUint256[requestId];
+        delete sRequestToSubmissionInt256[requestId];
+        delete sRequestToSubmissionBool[requestId];
+        delete sRequestToSubmissionString[requestId];
+        delete sRequestToSubmissionBytes32[requestId];
+        delete sRequestToSubmissionBytes[requestId];
+    }
+
+    function arrUintToInt(uint256[] memory arr) internal pure returns (int256[] memory) {
+        int256[] memory responses = new int256[](arr.length);
+        for (uint256 i = 0; i < arr.length; i++) {
+            responses[i] = int256(arr[i]);
+        }
+        return responses;
     }
 
     function fulfillDataRequestUint256(
@@ -674,7 +709,8 @@ contract RequestResponseCoordinator is
             return 0;
         }
         //pick response
-        uint256 aggregatedResponse = arrRes[arrRes.length - 1];
+        int256[] memory responses = arrUintToInt(arrRes);
+        uint256 aggregatedResponse = uint256(Median.calculate(responses));
         RequestResponseConsumerFulfillUint256 rr;
         bytes memory resp = abi.encodeWithSelector(
             rr.rawFulfillDataRequestUint256.selector,
@@ -684,6 +720,7 @@ contract RequestResponseCoordinator is
         bool success = fulfill(resp, rc);
         // change for uint256
         uint256 payment = pay(rc, isDirectPayment, startGas, oracles);
+        deleteMapping(requestId);
         emit DataRequestFulfilledUint256(requestId, response, payment, success);
         return payment;
     }
@@ -706,7 +743,7 @@ contract RequestResponseCoordinator is
             return 0;
         }
         //pick response
-        int256 aggregatedResponse = Median.calculateInplace(arrRes);
+        int256 aggregatedResponse = Median.calculate(arrRes);
 
         RequestResponseConsumerFulfillInt256 rr;
         bytes memory resp = abi.encodeWithSelector(
@@ -716,8 +753,7 @@ contract RequestResponseCoordinator is
         );
         bool success = fulfill(resp, rc);
         uint256 payment = pay(rc, isDirectPayment, startGas, oracles);
-        // delete sRequestToSubmissionInt256[requestId];
-        //delete sRequestIdToCommitment[requestId];
+        deleteMapping(requestId);
         emit DataRequestFulfilledInt256(requestId, response, payment, success);
         return payment;
     }
@@ -740,7 +776,7 @@ contract RequestResponseCoordinator is
             return 0;
         }
         //pick response
-        bool aggregatedResponse = pickBoolResponse(arrRes);
+        bool aggregatedResponse = MajorityVoting.voting(arrRes);
         RequestResponseConsumerFulfillBool rr;
         bytes memory resp = abi.encodeWithSelector(
             rr.rawFulfillDataRequestBool.selector,
@@ -748,8 +784,9 @@ contract RequestResponseCoordinator is
             aggregatedResponse
         );
         bool success = fulfill(resp, rc);
-        // change sResponseSender for bool
         uint256 payment = pay(rc, isDirectPayment, startGas, oracles);
+        deleteMapping(requestId);
+
         emit DataRequestFulfilledBool(requestId, response, payment, success);
         return payment;
     }
@@ -773,22 +810,9 @@ contract RequestResponseCoordinator is
         address[] memory oracles = new address[](1);
         oracles[0] = msg.sender;
         uint256 payment = pay(rc, isDirectPayment, startGas, oracles);
+        deleteMapping(requestId);
         emit DataRequestFulfilledString(requestId, response, payment, success);
         return payment;
-    }
-
-    function pickBoolResponse(bool[] memory arrRes) internal pure returns (bool) {
-        uint8 falseNum;
-        uint8 trueNum;
-        for (uint8 i = 0; i < arrRes.length; i++) {
-            if (arrRes[i]) {
-                trueNum += 1;
-            } else {
-                falseNum += 1;
-            }
-        }
-
-        return trueNum > falseNum;
     }
 
     function fulfillDataRequestBytes32(
@@ -810,6 +834,7 @@ contract RequestResponseCoordinator is
         address[] memory oracles = new address[](1);
         oracles[0] = msg.sender;
         uint256 payment = pay(rc, isDirectPayment, startGas, oracles);
+        deleteMapping(requestId);
         emit DataRequestFulfilledBytes32(requestId, response, payment, success);
         return payment;
     }
@@ -833,6 +858,7 @@ contract RequestResponseCoordinator is
         address[] memory oracles = new address[](1);
         oracles[0] = msg.sender;
         uint256 payment = pay(rc, isDirectPayment, startGas, oracles);
+        deleteMapping(requestId);
         emit DataRequestFulfilledBytes(requestId, response, payment, success);
         return payment;
     }

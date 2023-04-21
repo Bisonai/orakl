@@ -166,7 +166,8 @@ contract RequestResponseConsumerMock is
     }
 
     function requestDataDirectPaymentString(
-        uint32 callbackGasLimit
+        uint32 callbackGasLimit,
+        uint8 numSubmission
     ) public payable onlyOwner returns (uint256 requestId) {
         bytes32 jobId = keccak256(abi.encodePacked("string"));
         Orakl.Request memory req = buildRequest(jobId);
@@ -178,7 +179,7 @@ contract RequestResponseConsumerMock is
         req.add("path", "RAW,KLAY,USD,PRICE");
         req.add("pow10", "8");
 
-        requestId = COORDINATOR.requestData{value: msg.value}(req, callbackGasLimit, 1);
+        requestId = COORDINATOR.requestData{value: msg.value}(req, callbackGasLimit, numSubmission);
     }
 
     // request for bytes32
