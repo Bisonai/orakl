@@ -288,6 +288,19 @@ contract RequestResponseCoordinator is
         emit MinBalanceSet(minBalance);
     }
 
+    function maxNumSubmission(bytes32 jobId) internal view returns (uint8) {
+        if (
+            jobId == keccak256(abi.encodePacked("uint256")) ||
+            jobId == keccak256(abi.encodePacked("int256")) ||
+            jobId == keccak256(abi.encodePacked("bool"))
+        ) {
+            uint8 max = uint8(sOracles.length / 2);
+            return (max < 1 ? 1 : max);
+        } else {
+            return 1;
+        }
+    }
+
     // TODO description
     function requestData(
         Orakl.Request memory req,
@@ -296,8 +309,8 @@ contract RequestResponseCoordinator is
         uint8 numSubmission
     ) external nonReentrant returns (uint256) {
         // TODO check if he is one of the consumers
-        uint8 maxNumSubmission = uint8(sOracles.length) / 2;
-        if (numSubmission < 1 && numSubmission <= (maxNumSubmission < 1 ? 1 : maxNumSubmission)) {
+        uint8 maxNum = maxNumSubmission(req.id);
+        if (numSubmission < 1 && numSubmission <= maxNum) {
             revert InvalidSubmissionAmount();
         }
         if (!sJobId[req.id]) {
@@ -327,8 +340,8 @@ contract RequestResponseCoordinator is
         uint32 callbackGasLimit,
         uint8 numSubmission
     ) external payable returns (uint256) {
-        uint8 maxNumSubmission = uint8(sOracles.length) / 2;
-        if (numSubmission < 1 && numSubmission <= (maxNumSubmission < 1 ? 1 : maxNumSubmission)) {
+        uint8 maxNum = maxNumSubmission(req.id);
+        if (numSubmission < 1 && numSubmission <= maxNum) {
             revert InvalidSubmissionAmount();
         }
         uint256 fee = estimateDirectPaymentFee();
@@ -751,25 +764,16 @@ contract RequestResponseCoordinator is
     ) external nonReentrant returns (uint256) {
         uint256 startGas = gasleft();
         validateDataResponse(rc, requestId);
-        string[] storage arrRes = sRequestToSubmissionString[requestId];
-        address[] storage oracles = sRequestToOracles[requestId];
-        uint8 numSubmission = sRequestToNumSubmission[requestId];
-        arrRes.push(response);
-        oracles.push(msg.sender);
-        if (arrRes.length < numSubmission) {
-            emit Submitted(requestId, true);
-            return 0;
-        }
-        //pick response
-        string memory aggregatedResponse = arrRes[arrRes.length - 1];
         RequestResponseConsumerFulfillString rr;
         bytes memory resp = abi.encodeWithSelector(
             rr.rawFulfillDataRequestString.selector,
             requestId,
-            aggregatedResponse
+            response
         );
         bool success = fulfill(resp, rc);
         // change for String
+        address[] memory oracles = new address[](1);
+        oracles[0] = msg.sender;
         uint256 payment = pay(rc, isDirectPayment, startGas, oracles);
         emit DataRequestFulfilledString(requestId, response, payment, success);
         return payment;
@@ -783,25 +787,16 @@ contract RequestResponseCoordinator is
     ) external nonReentrant returns (uint256) {
         uint256 startGas = gasleft();
         validateDataResponse(rc, requestId);
-        bytes32[] storage arrRes = sRequestToSubmissionBytes32[requestId];
-        address[] storage oracles = sRequestToOracles[requestId];
-        uint8 numSubmission = sRequestToNumSubmission[requestId];
-        arrRes.push(response);
-        oracles.push(msg.sender);
-        if (arrRes.length < numSubmission) {
-            emit Submitted(requestId, true);
-            return 0;
-        }
         //pick response
-        bytes32 aggregatedResponse = arrRes[arrRes.length - 1];
         RequestResponseConsumerFulfillBytes32 rr;
         bytes memory resp = abi.encodeWithSelector(
             rr.rawFulfillDataRequestBytes32.selector,
             requestId,
-            aggregatedResponse
+            response
         );
         bool success = fulfill(resp, rc);
-        // change for Bytes32
+        address[] memory oracles = new address[](1);
+        oracles[0] = msg.sender;
         uint256 payment = pay(rc, isDirectPayment, startGas, oracles);
         emit DataRequestFulfilledBytes32(requestId, response, payment, success);
         return payment;
@@ -815,24 +810,16 @@ contract RequestResponseCoordinator is
     ) external nonReentrant returns (uint256) {
         uint256 startGas = gasleft();
         validateDataResponse(rc, requestId);
-        bytes[] storage arrRes = sRequestToSubmissionBytes[requestId];
-        address[] storage oracles = sRequestToOracles[requestId];
-        uint8 numSubmission = sRequestToNumSubmission[requestId];
-        arrRes.push(response);
-        oracles.push(msg.sender);
-        if (arrRes.length < numSubmission) {
-            emit Submitted(requestId, true);
-            return 0;
-        }
-        //pick response
-        bytes memory aggregatedResponse = arrRes[arrRes.length - 1];
+
         RequestResponseConsumerFulfillBytes rr;
         bytes memory resp = abi.encodeWithSelector(
             rr.rawFulfillDataRequestBytes.selector,
             requestId,
-            aggregatedResponse
+            response
         );
         bool success = fulfill(resp, rc);
+        address[] memory oracles = new address[](1);
+        oracles[0] = msg.sender;
         uint256 payment = pay(rc, isDirectPayment, startGas, oracles);
         emit DataRequestFulfilledBytes(requestId, response, payment, success);
         return payment;
