@@ -2,7 +2,12 @@
 pragma solidity ^0.8.16;
 
 library MajorityVoting {
-    function calculateBool(bool[] memory list) {
+    error EvenLengthList();
+
+    function voting(bool[] memory list) pure internal returns(bool) {
+        if (list.length % 2 == 0) {
+            revert EvenLengthList();
+        }
         uint256 trueCount = 0;
         uint256 falseCount = 0;
 
