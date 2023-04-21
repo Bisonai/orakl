@@ -100,11 +100,13 @@ describe('Request-Response user contract', function () {
       consumerContract,
       coordinatorContract,
       prepaymentContract,
-      rrOracle0
+      rrOracle0,
+      account8
     } = await loadFixture(deployFixture)
     await consumerDeposit(1)
+    const numSubmission = 1
     const requestReceipt = await (
-      await consumerContract.requestDataUint256(accId, maxGasLimit, 1, {
+      await consumerContract.requestDataUint256(accId, maxGasLimit, numSubmission, {
         gasLimit: 500_000
       })
     ).wait()
@@ -127,21 +129,26 @@ describe('Request-Response user contract', function () {
       sender: consumerContract.address
     }
     const isDirectPayment = false
-
-    const coordinatorContractOracleSigner = await ethers.getContractAt(
-      'RequestResponseCoordinator',
-      coordinatorContract.address,
-      rrOracle0
-    )
-
-    const fulfillReceipt = await (
-      await coordinatorContractOracleSigner.fulfillDataRequestUint256(
-        requestId,
-        response,
-        requestCommitment,
-        isDirectPayment
+    const accounts = [rrOracle0, account8]
+    let coordinatorContractOracleSigner: any
+    let fulfillReceipt: any
+    for (let i = 0; i < numSubmission; i++) {
+      const acc = accounts[i % 2]
+      coordinatorContractOracleSigner = await ethers.getContractAt(
+        'RequestResponseCoordinator',
+        coordinatorContract.address,
+        acc
       )
-    ).wait()
+
+      fulfillReceipt = await (
+        await coordinatorContractOracleSigner.fulfillDataRequestUint256(
+          requestId,
+          response,
+          requestCommitment,
+          isDirectPayment
+        )
+      ).wait()
+    }
 
     expect(fulfillReceipt.events.length).to.be.greaterThan(1)
     // PREPAYMENT EVENT
@@ -169,9 +176,9 @@ describe('Request-Response user contract', function () {
       account8
     } = await loadFixture(deployFixture)
     await consumerDeposit(1)
-    const submissionAmount = 2
+    const numSubmission = 2
     const requestReceipt = await (
-      await consumerContract.requestDataInt256(accId, maxGasLimit, submissionAmount, {
+      await consumerContract.requestDataInt256(accId, maxGasLimit, numSubmission, {
         gasLimit: 500_000
       })
     ).wait()
@@ -197,8 +204,8 @@ describe('Request-Response user contract', function () {
     const accounts = [rrOracle0, account8]
     let coordinatorContractOracleSigner: any
     let fulfillReceipt: any
-    for (let i = 0; i < submissionAmount; i++) {
-      const acc = accounts[i]
+    for (let i = 0; i < numSubmission; i++) {
+      const acc = accounts[i % 2]
       coordinatorContractOracleSigner = await ethers.getContractAt(
         'RequestResponseCoordinator',
         coordinatorContract.address,
@@ -238,11 +245,15 @@ describe('Request-Response user contract', function () {
       consumerContract,
       coordinatorContract,
       prepaymentContract,
-      rrOracle0
+      rrOracle0,
+      account8
     } = await loadFixture(deployFixture)
     await consumerDeposit(1)
+    const numSubmission = 3
+    const isDirectPayment = false
+
     const requestReceipt = await (
-      await consumerContract.requestDataBool(accId, maxGasLimit, 1, {
+      await consumerContract.requestDataBool(accId, maxGasLimit, numSubmission, {
         gasLimit: 500_000
       })
     ).wait()
@@ -257,29 +268,34 @@ describe('Request-Response user contract', function () {
 
     const { requestId } = requestEvent.args
 
-    const response = true
     const requestCommitment = {
       blockNum: requestReceipt.blockNumber,
       accId,
       callbackGasLimit: maxGasLimit,
       sender: consumerContract.address
     }
-    const isDirectPayment = false
-
-    const coordinatorContractOracleSigner = await ethers.getContractAt(
-      'RequestResponseCoordinator',
-      coordinatorContract.address,
-      rrOracle0
-    )
-
-    const fulfillReceipt = await (
-      await coordinatorContractOracleSigner.fulfillDataRequestBool(
-        requestId,
-        response,
-        requestCommitment,
-        isDirectPayment
+    const accounts = [rrOracle0, account8]
+    let coordinatorContractOracleSigner: any
+    let fulfillReceipt: any
+    let response = true
+    for (let i = 0; i < numSubmission; i++) {
+      response = i % 2 == 0
+      const acc = accounts[i % 2]
+      coordinatorContractOracleSigner = await ethers.getContractAt(
+        'RequestResponseCoordinator',
+        coordinatorContract.address,
+        acc
       )
-    ).wait()
+
+      fulfillReceipt = await (
+        await coordinatorContractOracleSigner.fulfillDataRequestBool(
+          requestId,
+          response,
+          requestCommitment,
+          isDirectPayment
+        )
+      ).wait()
+    }
 
     expect(fulfillReceipt.events.length).to.be.greaterThan(1)
 
@@ -294,7 +310,7 @@ describe('Request-Response user contract', function () {
     )
     expect(fulfillEvent.name).to.be.equal('DataRequestFulfilledBool')
     expect(fulfillEvent.args.requestId).to.be.equal(requestId)
-    expect(await consumerContract.sResponseBool()).to.be.equal(response)
+    expect(await consumerContract.sResponseBool()).to.be.equal(true)
   })
 
   it('Request & Fulfill string', async function () {

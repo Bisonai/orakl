@@ -313,6 +313,10 @@ contract RequestResponseCoordinator is
         if (numSubmission < 1 && numSubmission <= maxNum) {
             revert InvalidSubmissionAmount();
         }
+        // only allow odd number for bool type
+        if (req.id == keccak256(abi.encodePacked("bool")) && numSubmission % 2 == 0) {
+            revert InvalidSubmissionAmount();
+        }
         if (!sJobId[req.id]) {
             revert InvalidJobId();
         }
@@ -742,7 +746,7 @@ contract RequestResponseCoordinator is
             return 0;
         }
         //pick response
-        bool aggregatedResponse = arrRes[arrRes.length - 1];
+        bool aggregatedResponse = pickBoolResponse(arrRes);
         RequestResponseConsumerFulfillBool rr;
         bytes memory resp = abi.encodeWithSelector(
             rr.rawFulfillDataRequestBool.selector,
@@ -777,6 +781,20 @@ contract RequestResponseCoordinator is
         uint256 payment = pay(rc, isDirectPayment, startGas, oracles);
         emit DataRequestFulfilledString(requestId, response, payment, success);
         return payment;
+    }
+
+    function pickBoolResponse(bool[] memory arrRes) internal pure returns (bool) {
+        uint8 falseNum;
+        uint8 trueNum;
+        for (uint8 i = 0; i < arrRes.length; i++) {
+            if (arrRes[i]) {
+                trueNum += 1;
+            } else {
+                falseNum += 1;
+            }
+        }
+
+        return trueNum > falseNum;
     }
 
     function fulfillDataRequestBytes32(
