@@ -386,8 +386,7 @@ contract RequestResponseCoordinator is
      * @inheritdoc IRequestResponseCoordinator
      */
     function cancelRequest(uint256 requestId) external {
-        bytes32 commitment = sRequestIdToCommitment[requestId];
-        if (commitment == 0) {
+        if (!isValidRequestId(requestId)) {
             revert NoCorrespondingRequest();
         }
 
@@ -473,6 +472,14 @@ contract RequestResponseCoordinator is
         return tx.gasprice * (sConfig.gasAfterPaymentCalculation + startGas - gasleft());
     }
 
+    function isValidRequestId(uint256 requestId) internal view returns (bool) {
+        if (sRequestIdToCommitment[requestId] != 0) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+
     /**
      * @inheritdoc ICoordinatorBase
      */
@@ -483,8 +490,8 @@ contract RequestResponseCoordinator is
     ) public view returns (bool) {
         uint256 oraclesLength = sOracles.length;
         for (uint256 i; i < oraclesLength; ++i) {
-            uint256 reqId = computeRequestId(consumer, accId, nonce);
-            if (sRequestIdToCommitment[reqId] != 0) {
+            uint256 requestId = computeRequestId(consumer, accId, nonce);
+            if (isValidRequestId(requestId)) {
                 return true;
             }
         }
