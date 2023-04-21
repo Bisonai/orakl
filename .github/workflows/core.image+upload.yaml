@@ -8,9 +8,6 @@ on:
       - "core/**"
     types:
       - closed  
-  push:
-    branches:
-      - i-525/vrf-redis-setting
 
 env:
   ecr_url: public.ecr.aws/bisonai/orakl-core
