@@ -23,6 +23,10 @@ contract VRFCoordinator is Ownable, ICoordinatorBase, ITypeAndVersion, IVRFCoord
     mapping(bytes32 => address) private sKeyHashToOracle;
     mapping(uint256 => bytes32) private sRequestIdToCommitment;
 
+    /* requestID */
+    /* owner */
+    mapping(uint256 => address) private sRequestOwner;
+
     uint256 public sMinBalance;
 
     // RequestCommitment holds information sent from off-chain oracle
@@ -80,10 +84,12 @@ contract VRFCoordinator is Ownable, ICoordinatorBase, ITypeAndVersion, IVRFCoord
     error NoSuchProvingKey(bytes32 keyHash);
     error NoCorrespondingRequest();
     error IncorrectCommitment();
+    error NotRequestOwner();
     error Reentrant();
     error InsufficientPayment(uint256 have, uint256 want);
     error RefundFailure();
 
+    event RandomWordsRequestCancelled(uint256 indexed requestId);
     event OracleRegistered(address indexed oracle, bytes32 keyHash);
     event OracleDeregistered(address indexed oracle, bytes32 keyHash);
     event RandomWordsRequested(
@@ -366,6 +372,8 @@ contract VRFCoordinator is Ownable, ICoordinatorBase, ITypeAndVersion, IVRFCoord
         }
 
         delete sRequestIdToCommitment[requestId];
+        delete sRequestOwner[requestId];
+
         VRFConsumerBase v;
         bytes memory resp = abi.encodeWithSelector(
             v.rawFulfillRandomWords.selector,
@@ -417,6 +425,24 @@ contract VRFCoordinator is Ownable, ICoordinatorBase, ITypeAndVersion, IVRFCoord
     }
 
     /**
+     * @inheritdoc IVRFCoordinator
+     */
+    function cancelRequest(uint256 requestId) external {
+        if (!isValidRequestId(requestId)) {
+            revert NoCorrespondingRequest();
+        }
+
+        if (sRequestOwner[requestId] != msg.sender) {
+            revert NotRequestOwner();
+        }
+
+        delete sRequestIdToCommitment[requestId];
+        delete sRequestOwner[requestId];
+
+        emit RandomWordsRequestCancelled(requestId);
+    }
+
+    /**
      * @notice The type and version of this contract
      * @return Type and version string
      */
@@ -462,6 +488,14 @@ contract VRFCoordinator is Ownable, ICoordinatorBase, ITypeAndVersion, IVRFCoord
         return fc.fulfillmentFlatFeeKlayPPMTier5;
     }
 
+    function isValidRequestId(uint256 requestId) internal view returns (bool) {
+        if (sRequestIdToCommitment[requestId] != 0) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+
     /**
      * @inheritdoc ICoordinatorBase
      */
@@ -472,8 +506,8 @@ contract VRFCoordinator is Ownable, ICoordinatorBase, ITypeAndVersion, IVRFCoord
     ) public view returns (bool) {
         uint256 keyHashesLength = sKeyHashes.length;
         for (uint256 i; i < keyHashesLength; ++i) {
-            (uint256 reqId, ) = computeRequestId(sKeyHashes[i], consumer, accId, nonce);
-            if (sRequestIdToCommitment[reqId] != 0) {
+            (uint256 requestId, ) = computeRequestId(sKeyHashes[i], consumer, accId, nonce);
+            if (isValidRequestId(requestId)) {
                 return true;
             }
         }
@@ -517,6 +551,8 @@ contract VRFCoordinator is Ownable, ICoordinatorBase, ITypeAndVersion, IVRFCoord
         sRequestIdToCommitment[requestId] = keccak256(
             abi.encode(requestId, block.number, accId, callbackGasLimit, numWords, msg.sender)
         );
+        sRequestOwner[requestId] = msg.sender;
+
         emit RandomWordsRequested(
             keyHash,
             requestId,

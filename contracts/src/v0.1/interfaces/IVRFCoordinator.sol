@@ -58,4 +58,10 @@ interface IVRFCoordinator {
         uint32 callbackGasLimit,
         uint32 numWords
     ) external payable returns (uint256 requestId);
+
+    /**
+     * @notice Cancelling oracle request
+     * @param requestId - ID of the Oracle Request
+     */
+    function cancelRequest(uint256 requestId) external;
 }
