@@ -71,6 +71,7 @@
     "hardhat-deploy": "^0.11.22",
     "hardhat-gas-reporter": "^1.0.8",
     "husky": "^8.0.2",
+    "mathjs": "^11.8.0",
     "prettier": "^2.8.1",
     "prettier-plugin-solidity": "^1.1.2",
     "solhint": "^3.3.7",

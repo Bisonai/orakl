@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.16;
+
 import "./RequestResponseConsumerBase.sol";
 
 abstract contract RequestResponseConsumerFulfillUint256 is RequestResponseConsumerBase {
