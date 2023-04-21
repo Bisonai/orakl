@@ -1,4 +1,4 @@
-export function requestResponseConfig() {
+function requestResponseConfig() {
   const maxGasLimit = 2_500_000
   const gasAfterPaymentCalculation = 1_000
   const feeConfig = {
@@ -18,4 +18,8 @@ export function requestResponseConfig() {
     gasAfterPaymentCalculation,
     feeConfig
   }
+}
+
+module.exports = {
+  requestResponseConfig
 }

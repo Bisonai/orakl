@@ -13,6 +13,8 @@ const elliptic = ellipticPkg
 
 import { BN } from 'bn.js'
 import { createHmac, createHash } from 'crypto'
+import { IVrfConfig } from './types'
+import { VrfError, VrfErrorCode } from './errors.js'
 
 const EC = new elliptic.ec('secp256k1')
 const suite_string = [0xfe] //ECVRF-SECP256K1-SHA256-TAI
@@ -249,12 +251,32 @@ const getFastVerifyComponents = (Y, pi_string, alpha_string) => {
   }
 }
 
+const processVrfRequest = (alpha: string, config: IVrfConfig) => {
+  const proof = ECVRF_prove(config.sk, alpha)
+  const [Gamma, c, s] = ECVRF_decode_proof(proof)
+  const fast = getFastVerifyComponents(config.pk, proof, alpha)
+
+  if (fast == 'INVALID') {
+    throw new VrfError(VrfErrorCode.InvalidProofError)
+  }
+
+  return {
+    pk: [config.pkX, config.pkY],
+    proof: [Gamma.x.toString(), Gamma.y.toString(), c.toString(), s.toString()],
+    uPoint: [fast.uX, fast.uY],
+    vComponents: [fast.sHX, fast.sHY, fast.cGX, fast.cGY]
+  }
+}
+
 export {
   ECVRF_prove as prove,
   ECVRF_verify as verify,
   ECVRF_decode_proof as decode,
   ECVRF_keygen as keygen,
-  getFastVerifyComponents as getFastVerifyComponents,
+  getFastVerifyComponents,
   ECVRF_hash_to_curve,
-  point_to_string
+  point_to_string,
+  processVrfRequest,
+  VrfError,
+  VrfErrorCode
 }

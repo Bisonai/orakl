@@ -3,10 +3,10 @@ pragma solidity 0.8.16;
 
 // https://github.com/smartcontractkit/chainlink/blob/develop/contracts/src/v0.6/FluxAggregator.sol
 
-import "./Median.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "./interfaces/AggregatorInterface.sol";
 import "./interfaces/AggregatorValidatorInterface.sol";
+import "./libraries/Median.sol";
 
 /**
  * @title The Prepaid Aggregator contract

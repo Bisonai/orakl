@@ -1,26 +1,27 @@
 {
   "name": "@bisonai/orakl-contracts",
   "version": "0.5.0",
+  "type": "module",
   "description": "The Orakl Network Smart Contracts",
   "files": [
-    "./dist",
+    "./typechain-types",
     "./src"
   ],
   "keywords": [
-      "Oracle",
-      "Orakl",
-      "Orakl Network",
-      "Blockchain",
-      "Web3",
-      "VRF",
-      "Request-Response",
-      "Data Feed"
+    "Oracle",
+    "Orakl",
+    "Orakl Network",
+    "Blockchain",
+    "Web3",
+    "VRF",
+    "Request-Response",
+    "Data Feed"
   ],
   "engines": {
     "node": ">=18.12"
   },
-  "exports": "./dist/typechain-types/index.js",
-  "types": "./dist/typechain-types/index.js",
+  "exports": "./typechain-types/index.js",
+  "types": "./typechain-types/index.js",
   "author": "Bisonai",
   "homepage": "https://github.com/Bisonai/orakl/tree/master/contracts#orakl-network-contracts",
   "license": "MIT",
@@ -29,7 +30,7 @@
     "clean": "npx hardhat clean && rm -rf dist",
     "compile": "npx hardhat compile",
     "test": "yarn compile && npx hardhat test",
-    "build": "tsc",
+    "coverage": "npx hardhat coverage",
     "pub": "yarn publish --access public",
     "solhint": "./node_modules/.bin/solhint -f table src/**/*.sol",
     "prettier-solidity-write": "./node_modules/.bin/prettier --write src",
@@ -44,6 +45,7 @@
     "deploy:baobab:aggregator": "yarn deploy:baobab --deploy-scripts deploy/Aggregator"
   },
   "devDependencies": {
+    "@bisonai/orakl-vrf": "^0.2.0",
     "@ethersproject/abi": "^5.4.7",
     "@ethersproject/providers": "^5.4.7",
     "@nomicfoundation/hardhat-chai-matchers": "^1.0.0",
@@ -55,11 +57,7 @@
     "@openzeppelin/contracts": "^4.8.0",
     "@typechain/ethers-v5": "^10.1.0",
     "@typechain/hardhat": "^6.1.2",
-    "@types/chai": "^4.2.0",
     "@types/mocha": "^9.1.0",
-    "@types/node": ">=12.0.0",
-    "@typescript-eslint/eslint-plugin": "^5.47.0",
-    "@typescript-eslint/parser": "^5.47.0",
     "axios": "^1.2.0",
     "chai": "^4.2.0",
     "dotenv": "^16.0.1",
@@ -69,10 +67,11 @@
     "esm": "^3.2.25",
     "ethers": "^5.7.2",
     "got": "^12.5.3",
-    "hardhat": "^2.12.0-esm.1",
+    "hardhat": "2.14.0",
     "hardhat-deploy": "^0.11.22",
     "hardhat-gas-reporter": "^1.0.8",
     "husky": "^8.0.2",
+    "mathjs": "^11.8.0",
     "prettier": "^2.8.1",
     "prettier-plugin-solidity": "^1.1.2",
     "solhint": "^3.3.7",
@@ -80,6 +79,6 @@
     "solidity-coverage": "^0.7.21",
     "ts-node": ">=8.0.0",
     "typechain": "^8.1.0",
-    "typescript": "^4.9.3"
+    "typescript": ">=4.5.0"
   }
 }

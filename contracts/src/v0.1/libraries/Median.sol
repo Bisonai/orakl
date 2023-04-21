@@ -3,12 +3,7 @@ pragma solidity ^0.8.16;
 
 // https://github.com/smartcontractkit/chainlink/blob/develop/contracts/src/v0.6/Median.sol
 
-/* import "./vendor/SafeMathChainlink.sol"; */
-import "./SignedSafeMath.sol";
-
 library Median {
-    using SignedSafeMath for int256;
-
     int256 constant INT_MAX = 2 ** 255 - 1;
 
     /**
@@ -28,17 +23,33 @@ library Median {
      * @dev The list passed as an argument may be permuted.
      */
     function calculateInplace(int256[] memory list) internal pure returns (int256) {
-        require(0 < list.length, "list must not be empty");
+        require(list.length > 0, "list must not be empty");
         uint256 len = list.length;
         uint256 middleIndex = len / 2;
         if (len % 2 == 0) {
             int256 median1;
             int256 median2;
             (median1, median2) = quickselectTwo(list, 0, len - 1, middleIndex - 1, middleIndex);
-            return SignedSafeMath.avg(median1, median2);
+            return avg(median1, median2);
         } else {
             return quickselect(list, 0, len - 1, middleIndex);
         }
+    }
+
+    /**
+     * @notice Computes average of two signed integers.
+     * @dev If the result is not an integer, it is rounded towards
+     * @dev zero. For example, avg(-3, -4) = -3
+     * @dev Since Solidity v0.8.0 arithmetic operations revert on
+     * @dev underflow and overflow. We do not need to check for it
+     * @dev manually.
+     */
+    function avg(int256 _a, int256 _b) internal pure returns (int256) {
+        if ((_a < 0 && _b > 0) || (_a > 0 && _b < 0)) {
+            return (_a + _b) / 2;
+        }
+        int256 remainder = ((_a % 2) + (_b % 2)) / 2;
+        return (_a / 2) + (_b / 2) + remainder;
     }
 
     /**
@@ -241,11 +252,16 @@ library Median {
         // We don't care about overflow of the addition, because it would require a list
         // larger than any feasible computer's memory.
         int256 pivot = list[(lo + hi) / 2];
-        lo -= 1; // this can underflow. that's intentional.
+        unchecked {
+            lo -= 1; // this can underflow. that's intentional.
+        }
         hi += 1;
+
         while (true) {
             do {
-                lo += 1;
+                unchecked {
+                    lo += 1;
+                }
             } while (list[lo] < pivot);
             do {
                 hi -= 1;

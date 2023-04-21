@@ -1,19 +1,19 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.16;
-
-// https://github.com/smartcontractkit/chainlink/blob/develop/contracts/src/v0.8/vendor/BufferChainlink.sol
+pragma solidity ^0.8.0;
 
 /**
- * @dev Buffer library is a library that allows the ability to work with mutable byte buffers in solidity
+ * @dev A library for working with mutable byte buffers in Solidity.
  *
+ * Byte buffers are mutable and expandable, and provide a variety of primitives
+ * for writing to them. At any time you can fetch a bytes object containing the
+ * current contents of the buffer. The bytes object should not be stored between
+ * operations, as it may change due to resizing of the buffer.
  */
-
-import "./Math.sol";
-
 library Buffer {
     /**
-     * @dev Represents a mutable buffer. All buffers have a capacity and a current value stored in bytes.
-     * If the capacity is more than the buffer, than the buffer can be extended without allocating more memory
+     * @dev Represents a mutable buffer. Buffers have a current value (buf) and
+     *      a capacity. The capacity may be longer than the current value, in
+     *      which case it can be extended without the need to allocate more memory.
      */
     struct buffer {
         bytes buf;
@@ -21,18 +21,16 @@ library Buffer {
     }
 
     /**
-     * @dev Initializing a buffer with initial capacity
-     * @param buf the buffer to initialize
-     * @param capacity the number of bytes of space to allocate to the buffer
-     * @return the buffer
+     * @dev Initializes a buffer with an initial capacity.
+     * @param buf The buffer to initialize.
+     * @param capacity The number of bytes of space to allocate the buffer.
+     * @return The buffer, for chaining.
      */
     function init(buffer memory buf, uint256 capacity) internal pure returns (buffer memory) {
-        // If capacity is not 32 bytes allocate remaining capacity
         if (capacity % 32 != 0) {
             capacity += 32 - (capacity % 32);
         }
-
-        // allocating memory space for buffer
+        // Allocate space for the buffer data
         buf.capacity = capacity;
         assembly {
             let ptr := mload(0x40)
@@ -44,12 +42,52 @@ library Buffer {
     }
 
     /**
-     * @dev Writes a byte string to buffer, The buffer will resize if the capacity would be exceeded
-     * @param buf the buffer to append to
-     * @param off the start offset to write to
-     * @param data the data to append
-     * @param len the number of bytes to copy
-     * @return the original buffer, for chaining
+     * @dev Initializes a new buffer from an existing bytes object.
+     *      Changes to the buffer may mutate the original value.
+     * @param b The bytes object to initialize the buffer with.
+     * @return A new buffer.
+     */
+    function fromBytes(bytes memory b) internal pure returns (buffer memory) {
+        buffer memory buf;
+        buf.buf = b;
+        buf.capacity = b.length;
+        return buf;
+    }
+
+    function resize(buffer memory buf, uint256 capacity) private pure {
+        bytes memory oldbuf = buf.buf;
+        init(buf, capacity);
+        append(buf, oldbuf);
+    }
+
+    function max(uint256 a, uint256 b) private pure returns (uint256) {
+        if (a > b) {
+            return a;
+        }
+        return b;
+    }
+
+    /**
+     * @dev Sets buffer length to 0.
+     * @param buf The buffer to truncate.
+     * @return The original buffer, for chaining..
+     */
+    function truncate(buffer memory buf) internal pure returns (buffer memory) {
+        assembly {
+            let bufptr := mload(buf)
+            mstore(bufptr, 0)
+        }
+        return buf;
+    }
+
+    /**
+     * @dev Writes a byte string to a buffer. Resizes if doing so would exceed
+     *      the capacity of the buffer.
+     * @param buf The buffer to append to.
+     * @param off The start offset to write to.
+     * @param data The data to append.
+     * @param len The number of bytes to copy.
+     * @return The original buffer, for chaining.
      */
     function write(
         buffer memory buf,
@@ -57,33 +95,29 @@ library Buffer {
         bytes memory data,
         uint256 len
     ) internal pure returns (buffer memory) {
-        require(len <= data.length, "The length passed as parameter exceeds data size");
+        require(len <= data.length);
 
-        // check if buffer has capacity to allocate new data
         if (off + len > buf.capacity) {
-            resize(buf, Math.max(buf.capacity, len + off) * 2);
+            resize(buf, max(buf.capacity, len + off) * 2);
         }
 
         uint256 dest;
         uint256 src;
-
         assembly {
             // Memory address of the buffer data
             let bufptr := mload(buf)
-            // length of existing buffer data
+            // Length of existing buffer data
             let buflen := mload(bufptr)
-
-            // start address = buffer address + offset + buffer length
+            // Start address = buffer address + offset + sizeof(buffer length)
             dest := add(add(bufptr, 32), off)
-
-            // update buffer length if buffer is extending capacity
+            // Update buffer length if we're extending it
             if gt(add(len, off), buflen) {
                 mstore(bufptr, add(len, off))
             }
-
             src := add(data, 32)
         }
 
+        // Copy word-length chunks while possible
         for (; len >= 32; len -= 32) {
             assembly {
                 mstore(dest, mload(src))
@@ -92,6 +126,7 @@ library Buffer {
             src += 32;
         }
 
+        // Copy remaining bytes
         unchecked {
             uint256 mask = (256 ** (32 - len)) - 1;
             assembly {
@@ -100,41 +135,17 @@ library Buffer {
                 mstore(dest, or(destpart, srcpart))
             }
         }
-        return buf;
-    }
 
-    // HELPER FUNCTIONS
-    /**
-     * @dev fromBytes - Initializes a new buffer from an existing bytes object
-     * @param b The bytes object to initialize the buffer
-     * @return a new buffer
-     */
-    function fromBytes(bytes memory b) internal pure returns (buffer memory) {
-        buffer memory buf;
-        buf.buf = b;
-        buf.capacity - b.length;
         return buf;
     }
 
     /**
-     * @dev resizes a buffer to a new capacity that would append to existing buffer data
-     *
-     * @param buf the buffer to resize
-     * @param capacity the capacity to resize to
-     */
-    function resize(buffer memory buf, uint256 capacity) private pure {
-        bytes memory oldbuf = buf.buf;
-        init(buf, capacity);
-        append(buf, oldbuf);
-    }
-
-    /**
-     * @dev appends a byte string to a buffer, resizes the buffer if doing so would exceed capacity of buffer
-     *
-     * @param buf the buffer to append to
-     * @param data the data to append
-     * @param len the number of bytes to copy
-     * @return the original buffer
+     * @dev Appends a byte string to a buffer. Resizes if doing so would exceed
+     *      the capacity of the buffer.
+     * @param buf The buffer to append to.
+     * @param data The data to append.
+     * @param len The number of bytes to copy.
+     * @return The original buffer, for chaining.
      */
     function append(
         buffer memory buf,
@@ -156,11 +167,12 @@ library Buffer {
     }
 
     /**
-     * @dev Writes a byte to the buffer. Resizes if doing so would exceed the capacity
-     * @param buf the buffer to append to
-     * @param off the offset to write the byte at
-     * @param data the data to append
-     * @return the original buffer
+     * @dev Writes a byte to the buffer. Resizes if doing so would exceed the
+     *      capacity of the buffer.
+     * @param buf The buffer to append to.
+     * @param off The offset to write the byte at.
+     * @param data The data to append.
+     * @return The original buffer, for chaining.
      */
     function writeUint8(
         buffer memory buf,

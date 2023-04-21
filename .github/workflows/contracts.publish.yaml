@@ -27,8 +27,6 @@ jobs:
         working-directory: ./contracts
       - run: yarn compile
         working-directory: ./contracts
-      - run: yarn build
-        working-directory: ./contracts
       - run: yarn publish --new-version ${{ github.event.release.tag_name }} --access public
         working-directory: ./contracts
         env:

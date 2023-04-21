@@ -421,13 +421,7 @@ contract RequestResponseCoordinator is
         uint8 numSubmission,
         bool isDirectPayment
     ) internal returns (uint256) {
-        sPrepayment.isValidAccount(accId);
-
-        // Its important to ensure that the consumer is in fact who they say they
-        // are, otherwise they could use someone else's account balance.
-        // A nonce of 0 indicates consumer is not allocated to the acc.
-        uint64 currentNonce = sPrepayment.getNonce(accId, msg.sender);
-        if (currentNonce == 0) {
+        if (!sPrepayment.isValid(accId, msg.sender)) {
             revert InvalidConsumer(accId, msg.sender);
         }
 

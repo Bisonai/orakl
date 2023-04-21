@@ -3,6 +3,7 @@ import { Logger } from 'pino'
 import { OraklError, OraklErrorCode } from '../errors'
 import { PROVIDER_URL as PROVIDER_ENV, PRIVATE_KEY as PRIVATE_KEY_ENV } from '../settings'
 import { add0x } from '../utils'
+import { NonceManager } from '@ethersproject/experimental'
 
 const FILE_NAME = import.meta.url
 
@@ -16,7 +17,10 @@ export function buildWallet({
   const provider = new ethers.providers.JsonRpcProvider(providerUrl)
   const wallet = new ethers.Wallet(privateKey, provider)
 
-  return wallet
+  // Wrap the wallet with a nonce manager
+  const nonceManager = new NonceManager(wallet)
+
+  return nonceManager
 }
 
 export async function testConnection(wallet: ethers.Wallet) {

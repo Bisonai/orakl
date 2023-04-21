@@ -29,5 +29,3 @@ jobs:
         working-directory: ./contracts
       - run: yarn compile
         working-directory: ./contracts
-      - run: yarn build
-        working-directory: ./contracts

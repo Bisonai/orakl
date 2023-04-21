@@ -197,13 +197,12 @@ contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
     /**
      * @inheritdoc IPrepayment
      */
-    function isValidAccount(uint64 accId) external view returns (bool) {
+    function isValid(uint64 accId, address consumer) external view returns (bool) {
         Account account = sAccIdToAccount[accId];
-        if (address(account) != address(0) || sIsTemporaryAccount[accId]) {
-            return true;
-        } else {
-            revert InvalidAccount();
-        }
+        bool isValidRegular = address(account) != address(0) && account.getNonce(consumer) != 0;
+        bool isValidTemporary = sAccIdToTmpAcc[accId].owner == msg.sender;
+
+        return isValidRegular || isValidTemporary;
     }
 
     /**
@@ -255,12 +254,7 @@ contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
      * @inheritdoc IPrepayment
      */
     function getNonce(uint64 accId, address consumer) external view returns (uint64) {
-        Account account = sAccIdToAccount[accId];
-        if (address(account) != address(0)) {
-            return sAccIdToAccount[accId].getNonce(consumer);
-        } else {
-            return 1;
-        }
+        return sAccIdToAccount[accId].getNonce(consumer);
     }
 
     /**
