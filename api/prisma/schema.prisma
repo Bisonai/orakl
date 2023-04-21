@@ -131,6 +131,5 @@ model Reporter {
   service       Service @relation(fields: [serviceId], references: [id])
   serviceId     BigInt  @map("service_id")
 
-  @@unique([address, chainId])
   @@map("reporters")
 }
