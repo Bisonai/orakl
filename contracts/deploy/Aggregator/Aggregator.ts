@@ -7,7 +7,8 @@ import {
   loadMigration,
   updateMigration,
   validateAggregatorDeployConfig,
-  validateAggregatorChangeOraclesConfig
+  validateAggregatorChangeOraclesConfig,
+  validateAggregatorRedirectProxyConfig
 } from '../../scripts/v0.1/utils'
 import { IAggregatorConfig } from '../../scripts/v0.1/types'
 
@@ -83,45 +84,47 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     if (config.redirectProxy) {
       console.log('Redirect Proxy')
       const redirectProxyConfig = config.redirectProxy
+      if (!validateAggregatorRedirectProxyConfig(redirectProxyConfig)) {
+        throw new Error('Invalid Aggregator Redirect Proxy config')
+      }
+
       const proxyFile = redirectProxyConfig.proxyFileName
       const proxy = await ethers.getContract(proxyFile)
-      const oldAggregatorAddress = redirectProxyConfig.oldAggregatorAddress
-      const newAggregatorAddress = aggregator
+      const aggregatorAddress = redirectProxyConfig.aggregator
+      const proposedAggregator = aggregator
         ? aggregator.address
-        : redirectProxyConfig.newAggregatorAddress
+        : redirectProxyConfig.proposedAggregator
 
       if (redirectProxyConfig.status == 'initial') {
         // Propose new aggregator
-        expect(await proxy.aggregator()).to.be.eq(oldAggregatorAddress)
-        await (await proxy.proposeAggregator(newAggregatorAddress)).wait()
+        expect(await proxy.aggregator()).to.be.eq(aggregatorAddress)
+        await (await proxy.proposeAggregator(proposedAggregator)).wait()
 
-        const proposedAggregator = await proxy.proposedAggregator()
-        expect(proposedAggregator).to.be.eq(newAggregatorAddress)
+        const currentProposedAggregator = await proxy.proposedAggregator()
+        expect(currentProposedAggregator).to.be.eq(proposedAggregator)
 
         console.log(`Proposed proxy aggregator:${proposedAggregator}`)
       } else if (redirectProxyConfig.status == 'confirm') {
         // Confirm new aggregator from Proxy
-        expect(await proxy.aggregator()).to.be.eq(oldAggregatorAddress)
-        expect(await proxy.proposedAggregator()).to.be.eq(newAggregatorAddress)
-        await (await proxy.confirmAggregator(newAggregatorAddress)).wait()
+        expect(await proxy.aggregator()).to.be.eq(aggregatorAddress)
+        expect(await proxy.proposedAggregator()).to.be.eq(proposedAggregator)
+        await (await proxy.confirmAggregator(proposedAggregator)).wait()
 
         const confirmedAggregator = await proxy.aggregator()
-        expect(confirmedAggregator).to.be.eq(newAggregatorAddress)
+        expect(confirmedAggregator).to.be.eq(proposedAggregator)
 
         console.log(
-          `Proxy Aggregator redirected from ${oldAggregatorAddress} to new ${confirmedAggregator}`
+          `Proxy Aggregator redirected from ${aggregatorAddress} to new ${confirmedAggregator}`
         )
       } else if (redirectProxyConfig.status == 'revert') {
         // Revert back to old Aggregator Address
-        expect(await proxy.aggregator()).to.be.eq(newAggregatorAddress)
-        await (await proxy.proposeAggregator(oldAggregatorAddress)).wait()
-        await (await proxy.confirmAggregator(oldAggregatorAddress)).wait()
+        expect(await proxy.aggregator()).to.be.eq(proposedAggregator)
+        await (await proxy.proposeAggregator(aggregatorAddress)).wait()
+        await (await proxy.confirmAggregator(aggregatorAddress)).wait()
         const revertedAggregator = await proxy.aggregator()
-        expect(revertedAggregator).to.be.eq(oldAggregatorAddress)
+        expect(revertedAggregator).to.be.eq(aggregatorAddress)
 
-        console.log(
-          `Proxy Aggregator reverted from ${newAggregatorAddress} to ${revertedAggregator}`
-        )
+        console.log(`Proxy Aggregator reverted from ${proposedAggregator} to ${revertedAggregator}`)
       } else {
         console.log('Wrong proxyRedirect method')
       }

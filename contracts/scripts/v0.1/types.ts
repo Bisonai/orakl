@@ -37,10 +37,10 @@ export interface IAggregatorChangeOraclesConfig {
 }
 
 export interface IAggregatorRedirectProxyConfig {
-  oldAggregatorAddress: string
-  newAggregatorAddress: string
-  proxyFileName: string
   status: string
+  proxyFileName: string
+  aggregator: string
+  proposedAggregator?: string
 }
 
 export interface IAggregatorConfig {

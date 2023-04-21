@@ -8,7 +8,8 @@ import {
   IRegisterOracle,
   IDeregisterOracle,
   ICoordinatorConfig,
-  ICoordinatorDirectPaymentConfig
+  ICoordinatorDirectPaymentConfig,
+  IAggregatorRedirectProxyConfig
 } from './types'
 
 const MIGRATION_LOCK_FILE_NAME = 'migration.lock'
@@ -123,6 +124,18 @@ export function validateAggregatorChangeOraclesConfig(
     'maxSubmissionCount',
     'restartDelay'
   ]
+
+  if (!validateProperties(config, requiredProperties)) {
+    return false
+  } else {
+    return true
+  }
+}
+
+export function validateAggregatorRedirectProxyConfig(
+  config: IAggregatorRedirectProxyConfig
+): boolean {
+  const requiredProperties = ['status', 'proxyFileName', 'aggregator']
 
   if (!validateProperties(config, requiredProperties)) {
     return false
