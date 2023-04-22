@@ -306,26 +306,38 @@ async function requestAndFulfill(
   )
 }
 
-// async function fulfill(state, blockNumber, accId, callbackGasLimit) {
-//   // Fulfill data //////////////////////////////////////////////////////////////
+// async function fulfill(
+//   state,
+//   blockNumber,
+//   accId,
+//   callbackGasLimit,
+//   numSubmission,
+//   requestId,
+//   fulfillValue,
+//   isDirectPayment,
+//   getFulfillValueFn,
+//   fulfillEventName
+// ) {
 //   const requestCommitment = {
 //     blockNumber,
 //     accId,
-//     callbackGasLimit: maxGasLimit,
+//     callbackGasLimit,
 //     sender: state.consumerContract.address
 //   }
 //
-//   const fulfillReceipt = await (
-//     await fulfillFn(requestId, fulfillValue, requestCommitment, isDirectPayment)
-//   ).wait()
+//   let fulfillReceipt
+//   for (let i = 0; i < numSubmission; i++) {
+//     fulfillReceipt = await (
+//       await fulfillFn[i](requestId, fulfillValue[i], requestCommitment, isDirectPayment)
+//     ).wait()
+//   }
 //
-//   // Verify Fulfillment
 //   await verifyFulfillment(
 //     state,
 //     fulfillReceipt,
-//     _accId,
-//     _requestId,
-//     responseValue,
+//     accId,
+//     requestId,
+//     aggregateSubmissions(fulfillValue, dataType),
 //     getFulfillValueFn,
 //     fulfillEventName
 //   )
@@ -566,12 +578,56 @@ describe('Request-Response user contract', function () {
     )
   })
 
-  // it('cancel  request for [regular] account', async function () {})
+  it('cancel request for [regular] account', async function () {
+    const {
+      state,
+      rrOracle0,
+      maxGasLimit,
+      gasAfterPaymentCalculation,
+      feeConfig,
+      directFeeConfig
+    } = await loadFixture(deployFixture)
+
+    // Register Oracles ///////////////////////////////////////////////////////////
+    await state.coordinatorContract.registerOracle(rrOracle0)
+
+    // Configure coordinator //////////////////////////////////////////////////////
+    await state.coordinatorContract.setConfig(
+      maxGasLimit,
+      gasAfterPaymentCalculation,
+      Object.values(feeConfig)
+    )
+
+    // Request data /////////////////////////////////////////////////////////////
+    const gasLimit = 500_000
+    const numSubmission = 1
+    const accId = await state.createAccount()
+    await state.deposit('1')
+    await state.addConsumer(state.consumerContract.address)
+    const requestReceipt = await (
+      await state.consumerContract.requestDataInt256(accId, maxGasLimit, numSubmission, {
+        gasLimit
+      })
+    ).wait()
+
+    const { requestId } = verifyRequest(state, requestReceipt)
+
+    // Cancel Request ///////////////////////////////////////////////////////////
+    const txCancelRequest = await (await state.consumerContract.cancelRequest(requestId)).wait()
+
+    const dataRequestCancelledEvent = state.coordinatorContract.interface.parseLog(
+      txCancelRequest.events[0]
+    )
+    expect(dataRequestCancelledEvent.name).to.be.equal('DataRequestCancelled')
+
+    const { requestId: cRequestId } = dataRequestCancelledEvent.args
+    expect(requestId).to.be.equal(cRequestId)
+  })
 
   // TODO deregister oracle
   // TODO getters
   // TODO set direct payment config
-  // TODO cancel request & pending request exist
+  // TODO pending request exist
   // TODO invalid consumer
   // TODO gas limit too big
   // TODO UnregisteredOracleFulfillment
