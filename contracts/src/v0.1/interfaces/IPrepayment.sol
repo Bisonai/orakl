@@ -211,7 +211,7 @@ interface IPrepayment {
         uint64 accId
     ) external returns (uint256 totalAmount, uint256 operatorAmount);
 
-    function payOperatorFeeTemporary(
+    function chargeOperatorFeeTemporary(
         uint256 operatorFee,
         address operatorFeeRecipient
     ) external returns (uint256);

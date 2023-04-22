@@ -384,8 +384,6 @@ contract VRFCoordinator is Ownable, ICoordinatorBase, ITypeAndVersion, IVRFCoord
         sConfig.reentrancyLock = false;
 
         uint256 payment = pay(rc, isDirectPayment, startGas, keyHash);
-
-        // Include payment in the event for tracking costs.
         emit RandomWordsFulfilled(requestId, randomness, payment, success);
         return payment;
     }
@@ -398,12 +396,11 @@ contract VRFCoordinator is Ownable, ICoordinatorBase, ITypeAndVersion, IVRFCoord
     ) internal returns (uint256) {
         uint256 payment;
         if (isDirectPayment) {
-            (uint256 totalAmount, uint256 operatorAmount) = sPrepayment.chargeFeeTemporary(
-                rc.accId
-            );
-            sPrepayment.payOperatorFeeTemporary(operatorAmount, sKeyHashToOracle[keyHash]);
-            payment = totalAmount;
+            (uint256 totalFee, uint256 operatorFee) = sPrepayment.chargeFeeTemporary(rc.accId);
+            sPrepayment.chargeOperatorFeeTemporary(operatorFee, sKeyHashToOracle[keyHash]);
             sPrepayment.increaseReqCountTemporary(rc.accId);
+
+            return totalFee;
         } else {
             uint64 reqCount = sPrepayment.getReqCount(rc.accId);
             payment = calculatePaymentAmount(
@@ -420,8 +417,9 @@ contract VRFCoordinator is Ownable, ICoordinatorBase, ITypeAndVersion, IVRFCoord
             uint256 operatorFee = payment - burnFee - protocolFee;
             sPrepayment.payOperatorFee(rc.accId, operatorFee, sKeyHashToOracle[keyHash], burnFee);
             sPrepayment.increaseReqCount(rc.accId);
+
+            return payment;
         }
-        return payment;
     }
 
     /**

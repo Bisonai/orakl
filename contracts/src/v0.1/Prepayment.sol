@@ -418,14 +418,7 @@ contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
     /**
      * @inheritdoc IPrepayment
      */
-    function chargeFee(
-        uint64 accId,
-        uint256 amount
-    )
-        external
-        // address operatorFeeRecipient
-        onlyCoordinator
-    {
+    function chargeFee(uint64 accId, uint256 amount) external onlyCoordinator {
         Account account = sAccIdToAccount[accId];
         uint256 balance = account.getBalance();
 
@@ -472,13 +465,6 @@ contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
             }
         }
 
-        // if (operatorFee > 0) {
-        //     (bool sent, ) = operatorFeeRecipient.call{value: operatorFee}("");
-        //     if (!sent) {
-        //         revert OperatorFeeFailed();
-        //     }
-        // }
-
         if (protocolFee > 0) {
             (bool sent, ) = sProtocolFeeRecipient.call{value: protocolFee}("");
             if (!sent) {
@@ -491,7 +477,7 @@ contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
         return (amount, operatorFee);
     }
 
-    function payOperatorFeeTemporary(
+    function chargeOperatorFeeTemporary(
         uint256 operatorFee,
         address operatorFeeRecipient
     ) external onlyCoordinator returns (uint256) {

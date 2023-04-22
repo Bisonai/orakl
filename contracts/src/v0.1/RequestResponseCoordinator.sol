@@ -622,11 +622,11 @@ contract RequestResponseCoordinator is
             }
             if (amountForEachOperator > 0) {
                 for (uint8 i = 0; i < oraclesLength - 1; ++i) {
-                    sPrepayment.payOperatorFeeTemporary(amountForEachOperator, oracles[i]);
+                    sPrepayment.chargeOperatorFeeTemporary(amountForEachOperator, oracles[i]);
                 }
             }
 
-            sPrepayment.payOperatorFeeTemporary(
+            sPrepayment.chargeOperatorFeeTemporary(
                 amountForEachOperator + paymentNoFee,
                 oracles[oraclesLength - 1]
             );
