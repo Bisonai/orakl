@@ -15,17 +15,8 @@ function median(arr) {
 }
 
 function majorityVotingBool(arr) {
-  let falseCount = 0
-  let trueCount = 0
-
-  for (let i = 0; i < arr.length; i++) {
-    if (arr[i]) {
-      trueCount++
-    } else {
-      falseCount++
-    }
-  }
-
+  const trueCount = arr.reduce((acc, x) => acc + x, 0)
+  const falseCount = arr.length - trueCount
   return trueCount >= falseCount
 }
 

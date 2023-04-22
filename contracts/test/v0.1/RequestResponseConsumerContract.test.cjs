@@ -131,7 +131,6 @@ function aggregateSubmissions(arr, dataType) {
     case 'uint256':
     case 'int256':
       return median(arr)
-      break
     case 'bool':
       return majorityVotingBool(arr)
     default:

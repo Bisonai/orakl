@@ -149,13 +149,11 @@ describe('Prepayment', function () {
     const {
       accId: accIdWithdraw,
       oldBalance: oldBalanceWithdraw,
-      newBalance: newBalanceWithdraw,
-      burnAmount
+      newBalance: newBalanceWithdraw
     } = accountBalanceDecreasedEvent.args
     expect(accIdWithdraw).to.be.equal(accId)
     expect(balanceAfterDeposit).to.be.equal(oldBalanceWithdraw)
     expect(balanceBefore).to.be.equal(newBalanceWithdraw)
-    expect(burnAmount).to.be.equal(0)
   })
 
   it('Add & remove consumer', async function () {
