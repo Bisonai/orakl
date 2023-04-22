@@ -394,7 +394,6 @@ contract VRFCoordinator is Ownable, ICoordinatorBase, ITypeAndVersion, IVRFCoord
         uint256 startGas,
         bytes32 keyHash
     ) internal returns (uint256) {
-        uint256 payment;
         if (isDirectPayment) {
             (uint256 totalFee, uint256 operatorFee) = sPrepayment.chargeFeeTemporary(rc.accId);
             sPrepayment.chargeOperatorFeeTemporary(operatorFee, sKeyHashToOracle[keyHash]);
@@ -402,12 +401,7 @@ contract VRFCoordinator is Ownable, ICoordinatorBase, ITypeAndVersion, IVRFCoord
 
             return totalFee;
         } else {
-            uint64 reqCount = sPrepayment.getReqCount(rc.accId);
-            payment = calculatePaymentAmount(
-                startGas,
-                sConfig.gasAfterPaymentCalculation,
-                getFeeTier(reqCount)
-            );
+            uint256 payment = calculatePaymentAmount(rc.accId, startGas);
             sPrepayment.chargeFee(rc.accId, payment);
             uint8 burnFeeRatio = sPrepayment.getBurnFeeRatio();
             uint8 protocolFeeRatio = sPrepayment.getProtocolFeeRatio();
@@ -542,12 +536,16 @@ contract VRFCoordinator is Ownable, ICoordinatorBase, ITypeAndVersion, IVRFCoord
     }
 
     function calculatePaymentAmount(
-        uint256 startGas,
-        uint256 gasAfterPaymentCalculation,
-        uint32 fulfillmentFlatFeeKlayPPM
+        uint64 accId,
+        uint256 startGas
     ) internal view returns (uint256) {
-        uint256 paymentNoFee = tx.gasprice * (gasAfterPaymentCalculation + startGas - gasleft());
+        uint64 reqCount = sPrepayment.getReqCount(accId);
+        uint32 fulfillmentFlatFeeKlayPPM = getFeeTier(reqCount);
+
+        uint256 paymentNoFee = tx.gasprice *
+            (sConfig.gasAfterPaymentCalculation + startGas - gasleft());
         uint256 fee = 1e12 * uint256(fulfillmentFlatFeeKlayPPM);
+
         return paymentNoFee + fee;
     }
 
