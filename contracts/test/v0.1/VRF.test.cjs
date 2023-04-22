@@ -241,7 +241,7 @@ describe('VRF contract', function () {
       consumerContract.requestRandomWords(keyHash, accId, maxGasLimit, NUM_WORDS)
     ).to.be.revertedWithCustomError(coordinatorContract, 'InsufficientPayment')
 
-    state.deposit(minBalance)
+    state.deposit('2')
 
     // After depositing minimum account to account, we are able to
     // request random words.
@@ -304,7 +304,7 @@ describe('VRF contract', function () {
     ).wait()
 
     // Check the event information //////////////////////////////////////////////
-    expect(txFulfillRandomWords.events.length).to.be.equal(2)
+    expect(txFulfillRandomWords.events.length).to.be.equal(4)
 
     // Event: AccountBalanceDecreased
     const accountBalanceDecreasedEvent = prepaymentContract.interface.parseLog(
@@ -315,23 +315,28 @@ describe('VRF contract', function () {
     const {
       accId: dAccId,
       oldBalance: dOldBalance,
-      newBalance: dNewBalance,
-      burnAmount: dBurnAmount
+      newBalance: dNewBalance
     } = accountBalanceDecreasedEvent.args
     expect(dAccId).to.be.equal(eAccId)
     expect(dOldBalance).to.be.above(dNewBalance)
     expect(dNewBalance).to.be.above(0)
-    expect(dBurnAmount).to.be.above(0)
+
+    // Event: FeeBurned
+    const burnedFeeEvent = prepaymentContract.interface.parseLog(txFulfillRandomWords.events[1])
+    expect(burnedFeeEvent.name).to.be.equal('BurnedFee')
+    const { accId: bAccId, amount: bAmount } = burnedFeeEvent.args
+    expect(bAccId).to.be.equal(eAccId)
+    expect(bAmount).to.be.above(0)
 
     // Event: RandomWordsFulfilled
     const randomWordsFulfilledEvent = coordinatorContract.interface.parseLog(
-      txFulfillRandomWords.events[1]
+      txFulfillRandomWords.events[3]
     )
     expect(randomWordsFulfilledEvent.name).to.be.equal('RandomWordsFulfilled')
 
     const {
       requestId: fRequestId,
-      /* outputSeed: fOutputSeed, */
+      // outputSeed: fOutputSeed,
       payment: fPayment,
       success: fSuccess
     } = randomWordsFulfilledEvent.args

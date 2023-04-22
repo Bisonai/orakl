@@ -463,21 +463,13 @@ contract RequestResponseCoordinator is
         return requestId;
     }
 
-    function calculatePaymentAmount(
-        uint64 accId,
-        uint256 startGas
-    ) internal view returns (uint256) {
+    function calculateFee(uint64 accId) internal view returns (uint256) {
         uint64 reqCount = sPrepayment.getReqCount(accId);
         uint32 fulfillmentFlatFeeKlayPPM = getFeeTier(reqCount);
-
-        uint256 paymentNoFee = tx.gasprice *
-            (sConfig.gasAfterPaymentCalculation + startGas - gasleft());
-        uint256 fee = 1e12 * uint256(fulfillmentFlatFeeKlayPPM);
-
-        return paymentNoFee + fee;
+        return 1e12 * uint256(fulfillmentFlatFeeKlayPPM);
     }
 
-    function calculatePaymentNoFee(uint256 startGas) internal view returns (uint256) {
+    function calculateGasCost(uint256 startGas) internal view returns (uint256) {
         return tx.gasprice * (sConfig.gasAfterPaymentCalculation + startGas - gasleft());
     }
 
@@ -604,62 +596,54 @@ contract RequestResponseCoordinator is
         uint256 startGas,
         address[] memory oracles
     ) internal returns (uint256) {
+        uint8 oraclesLength = uint8(oracles.length);
+
         if (isDirectPayment) {
-            (uint256 totalAmount, uint256 operatorFee) = sPrepayment.chargeFeeTemporary(rc.accId);
+            (uint256 totalFee, uint256 operatorFee) = sPrepayment.chargeFeeTemporary(rc.accId);
+            //uint256 gasFee = calculateGasCost(startGas); // TODO
 
-            uint256 paymentNoFee = calculatePaymentNoFee(startGas);
-
-            uint8 oraclesLength = uint8(oracles.length);
-            uint256 amountForEachOperator = 0;
             if (operatorFee > 0) {
-                amountForEachOperator = operatorFee;
-            }
-            if (operatorFee > paymentNoFee) {
-                amountForEachOperator = (operatorFee - paymentNoFee) / oraclesLength;
-            }
-            if (amountForEachOperator > 0) {
-                for (uint8 i = 0; i < oraclesLength - 1; ++i) {
-                    sPrepayment.chargeOperatorFeeTemporary(amountForEachOperator, oracles[i]);
-                }
-            }
+                uint256 paid;
+                uint256 feePerOperator = operatorFee / oraclesLength;
 
-            sPrepayment.chargeOperatorFeeTemporary(
-                amountForEachOperator + paymentNoFee,
-                oracles[oraclesLength - 1]
-            );
+                for (uint8 i; i < oraclesLength - 1; ++i) {
+                    sPrepayment.chargeOperatorFeeTemporary(feePerOperator, oracles[i]);
+                    paid += feePerOperator;
+                }
+
+                sPrepayment.chargeOperatorFeeTemporary(
+                    operatorFee - paid,
+                    oracles[oraclesLength - 1]
+                );
+
+                // TODO return remaining $KLAY
+            }
             sPrepayment.increaseReqCountTemporary(rc.accId);
 
-            return totalAmount;
+            return totalFee;
         } else {
-            uint256 payment = calculatePaymentAmount(rc.accId, startGas);
-            sPrepayment.chargeFee(rc.accId, payment);
-            uint8 burnFeeRatio = sPrepayment.getBurnFeeRatio();
-            uint8 protocolFeeRatio = sPrepayment.getProtocolFeeRatio();
-            uint256 burnFee = (burnFeeRatio * payment) / 100;
-            uint256 protocolFee = (protocolFeeRatio * payment) / 100;
+            uint256 serviceFee = calculateFee(rc.accId);
+            uint256 gasFee = calculateGasCost(startGas);
+            uint256 operatorFee = sPrepayment.chargeFee(rc.accId, serviceFee);
 
-            uint256 operatorFee = payment - burnFee - protocolFee;
-            uint256 paymentNoFee = calculatePaymentNoFee(startGas);
-            uint256 amountForEachOperator = 0;
             if (operatorFee > 0) {
-                amountForEachOperator = operatorFee;
-            }
-            if (operatorFee > paymentNoFee) {
-                amountForEachOperator = (operatorFee - paymentNoFee) / oracles.length;
-            }
-            for (uint256 i = 0; i < oracles.length - 1; i++) {
-                sPrepayment.payOperatorFee(rc.accId, amountForEachOperator, oracles[i], burnFee);
-            }
-            sPrepayment.payOperatorFee(
-                rc.accId,
-                amountForEachOperator + paymentNoFee,
-                oracles[oracles.length - 1],
-                burnFee
-            );
-            sPrepayment.increaseNonce(rc.accId, msg.sender);
-            sPrepayment.increaseReqCount(rc.accId);
+                uint256 paid;
+                uint256 feePerOperator = operatorFee / oraclesLength;
 
-            return payment;
+                for (uint256 i; i < oraclesLength - 1; ++i) {
+                    sPrepayment.chargeOperatorFee(rc.accId, feePerOperator, oracles[i]);
+                    paid += feePerOperator;
+                }
+
+                sPrepayment.chargeOperatorFee(
+                    rc.accId,
+                    (operatorFee - paid) + gasFee,
+                    oracles[oraclesLength - 1]
+                );
+            }
+
+            sPrepayment.increaseReqCount(rc.accId);
+            return gasFee + serviceFee;
         }
     }
 
