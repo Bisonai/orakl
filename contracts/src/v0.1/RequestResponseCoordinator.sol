@@ -700,9 +700,8 @@ contract RequestResponseCoordinator is
         int256[] memory responses = arrUintToInt(arrRes);
         uint256 aggregatedResponse = uint256(Median.calculate(responses));
 
-        RequestResponseConsumerFulfillUint256 rr;
         bytes memory resp = abi.encodeWithSelector(
-            rr.rawFulfillDataRequestUint256.selector,
+            RequestResponseConsumerFulfillUint256.rawFulfillDataRequestUint256.selector,
             requestId,
             aggregatedResponse
         );
@@ -737,9 +736,8 @@ contract RequestResponseCoordinator is
 
         int256 aggregatedResponse = Median.calculate(arrRes);
 
-        RequestResponseConsumerFulfillInt256 rr;
         bytes memory resp = abi.encodeWithSelector(
-            rr.rawFulfillDataRequestInt256.selector,
+            RequestResponseConsumerFulfillInt256.rawFulfillDataRequestInt256.selector,
             requestId,
             aggregatedResponse
         );
@@ -773,9 +771,8 @@ contract RequestResponseCoordinator is
         }
 
         bool aggregatedResponse = MajorityVoting.voting(arrRes);
-        RequestResponseConsumerFulfillBool rr;
         bytes memory resp = abi.encodeWithSelector(
-            rr.rawFulfillDataRequestBool.selector,
+            RequestResponseConsumerFulfillBool.rawFulfillDataRequestBool.selector,
             requestId,
             aggregatedResponse
         );
@@ -798,17 +795,15 @@ contract RequestResponseCoordinator is
         uint256 startGas = gasleft();
         validateDataResponse(rc, requestId);
 
-        RequestResponseConsumerFulfillString rr;
         bytes memory resp = abi.encodeWithSelector(
-            rr.rawFulfillDataRequestString.selector,
+            RequestResponseConsumerFulfillString.rawFulfillDataRequestString.selector,
             requestId,
             response
         );
         bool success = fulfill(resp, rc);
 
-        // FIXME
-        address[] memory oracles = new address[](1);
-        oracles[0] = msg.sender;
+        address[] storage oracles = sRequestToOracles[requestId];
+        oracles.push(msg.sender);
         uint256 payment = pay(rc, isDirectPayment, startGas, oracles);
 
         cleanupAfterFulfillment(requestId);
@@ -826,17 +821,15 @@ contract RequestResponseCoordinator is
         uint256 startGas = gasleft();
         validateDataResponse(rc, requestId);
 
-        RequestResponseConsumerFulfillBytes32 rr;
         bytes memory resp = abi.encodeWithSelector(
-            rr.rawFulfillDataRequestBytes32.selector,
+            RequestResponseConsumerFulfillBytes32.rawFulfillDataRequestBytes32.selector,
             requestId,
             response
         );
         bool success = fulfill(resp, rc);
 
-        // FIXME
-        address[] memory oracles = new address[](1);
-        oracles[0] = msg.sender;
+        address[] storage oracles = sRequestToOracles[requestId];
+        oracles.push(msg.sender);
         uint256 payment = pay(rc, isDirectPayment, startGas, oracles);
 
         cleanupAfterFulfillment(requestId);
@@ -854,17 +847,15 @@ contract RequestResponseCoordinator is
         uint256 startGas = gasleft();
         validateDataResponse(rc, requestId);
 
-        RequestResponseConsumerFulfillBytes rr;
         bytes memory resp = abi.encodeWithSelector(
-            rr.rawFulfillDataRequestBytes.selector,
+            RequestResponseConsumerFulfillBytes.rawFulfillDataRequestBytes.selector,
             requestId,
             response
         );
         bool success = fulfill(resp, rc);
 
-        // FIXME
-        address[] memory oracles = new address[](1);
-        oracles[0] = msg.sender;
+        address[] storage oracles = sRequestToOracles[requestId];
+        oracles.push(msg.sender);
         uint256 payment = pay(rc, isDirectPayment, startGas, oracles);
 
         cleanupAfterFulfillment(requestId);
