@@ -412,8 +412,65 @@ describe('VRF contract', function () {
     expect(requestedRandomWordsEvent.name).to.be.equal('RandomWordsRequested')
   })
 
+  it('cancel random words request for [regular] account', async function () {
+    const {
+      consumer,
+      vrfOracle0,
+      coordinatorContract,
+      consumerContract,
+      prepaymentContract,
+      state
+    } = await loadFixture(deployFixture)
+
+    const {
+      maxGasLimit,
+      gasAfterPaymentCalculation,
+      feeConfig,
+      sk,
+      pk,
+      pkX,
+      pkY,
+      publicProvingKey,
+      keyHash
+    } = vrfConfig()
+
+    await coordinatorContract.registerOracle(vrfOracle0, publicProvingKey)
+    await coordinatorContract.setConfig(
+      maxGasLimit,
+      gasAfterPaymentCalculation,
+      Object.values(feeConfig)
+    )
+
+    await state.addCoordinator(coordinatorContract.address)
+
+    const accId = await state.createAccount()
+    state.addConsumer(consumerContract.address)
+
+    // Request Random Words
+    const txRequestRandomWords = await (
+      await consumerContract.requestRandomWords(keyHash, accId, maxGasLimit, NUM_WORDS)
+    ).wait()
+
+    const requestedRandomWordsEvent = coordinatorContract.interface.parseLog(
+      txRequestRandomWords.events[0]
+    )
+    expect(requestedRandomWordsEvent.name).to.be.equal('RandomWordsRequested')
+
+    const { requestId } = requestedRandomWordsEvent.args
+
+    // Cancel Request
+    const txCancelRequest = await (await consumerContract.cancelRequest(requestId)).wait()
+
+    const randomWordsRequestCancelledEvent = coordinatorContract.interface.parseLog(
+      txCancelRequest.events[0]
+    )
+    expect(randomWordsRequestCancelledEvent.name).to.be.equal('RandomWordsRequestCanceled')
+
+    const { requestId: cRequestId } = randomWordsRequestCancelledEvent.args
+    expect(requestId).to.be.equal(cRequestId)
+  })
+
   // TODO send more $KLAY for direct payment
   // TODO fulfill direct payment request
   // TODO getters
-  // TODO cancel request
 })

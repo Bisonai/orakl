@@ -112,7 +112,7 @@ contract RequestResponseCoordinator is
         bytes data
     );
 
-    event DataRequestCancelled(uint256 indexed requestId);
+    event DataRequestCanceled(uint256 indexed requestId);
     event ConfigSet(uint32 maxGasLimit, uint32 gasAfterPaymentCalculation, FeeConfig feeConfig);
     event DirectPaymentConfigSet(uint256 fulfillmentFee, uint256 baseFee);
 
@@ -386,8 +386,7 @@ contract RequestResponseCoordinator is
      * @inheritdoc IRequestResponseCoordinator
      */
     function cancelRequest(uint256 requestId) external {
-        bytes32 commitment = sRequestIdToCommitment[requestId];
-        if (commitment == 0) {
+        if (!isValidRequestId(requestId)) {
             revert NoCorrespondingRequest();
         }
 
@@ -398,7 +397,7 @@ contract RequestResponseCoordinator is
         delete sRequestIdToCommitment[requestId];
         delete sRequestOwner[requestId];
 
-        emit DataRequestCancelled(requestId);
+        emit DataRequestCanceled(requestId);
     }
 
     /**
@@ -473,6 +472,14 @@ contract RequestResponseCoordinator is
         return tx.gasprice * (sConfig.gasAfterPaymentCalculation + startGas - gasleft());
     }
 
+    function isValidRequestId(uint256 requestId) internal view returns (bool) {
+        if (sRequestIdToCommitment[requestId] != 0) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+
     /**
      * @inheritdoc ICoordinatorBase
      */
@@ -483,8 +490,8 @@ contract RequestResponseCoordinator is
     ) public view returns (bool) {
         uint256 oraclesLength = sOracles.length;
         for (uint256 i; i < oraclesLength; ++i) {
-            uint256 reqId = computeRequestId(consumer, accId, nonce);
-            if (sRequestIdToCommitment[reqId] != 0) {
+            uint256 requestId = computeRequestId(consumer, accId, nonce);
+            if (isValidRequestId(requestId)) {
                 return true;
             }
         }
@@ -559,7 +566,7 @@ contract RequestResponseCoordinator is
         return success;
     }
 
-    function validateDataResponse(RequestCommitment memory rc, uint256 requestId) internal view {
+    function validateDataResponse(RequestCommitment memory rc, uint256 requestId) internal {
         if (!sIsOracleRegistered[msg.sender]) {
             revert UnregisteredOracleFulfillment(msg.sender);
         }
@@ -651,6 +658,7 @@ contract RequestResponseCoordinator is
         delete sRequestToNumSubmission[requestId];
         delete sRequestToOracles[requestId];
         delete sRequestIdToCommitment[requestId];
+        delete sRequestOwner[requestId];
     }
 
     // FIXME wrong

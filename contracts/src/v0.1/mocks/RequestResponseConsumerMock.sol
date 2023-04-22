@@ -277,4 +277,8 @@ contract RequestResponseConsumerMock is
     function fulfillDataRequest(uint256 /*requestId*/, bytes memory response) internal override {
         sResponseBytes = response;
     }
+
+    function cancelRequest(uint256 requestId) external onlyOwner {
+        COORDINATOR.cancelRequest(requestId);
+    }
 }

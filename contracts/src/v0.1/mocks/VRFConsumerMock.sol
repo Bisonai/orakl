@@ -56,4 +56,8 @@ contract VRFConsumerMock is VRFConsumerBase {
         // Generate random value between 1 and 50.
         sRandomWord = (randomWords[0] % 50) + 1;
     }
+
+    function cancelRequest(uint256 requestId) external onlyOwner {
+        COORDINATOR.cancelRequest(requestId);
+    }
 }

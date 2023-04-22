@@ -42,7 +42,7 @@ interface IRequestResponseCoordinator {
     ) external payable returns (uint256);
 
     /**
-     * @notice Cancelling oracle request
+     * @notice Canceling oracle request
      * @param requestId - ID of the Oracle Request
      */
     function cancelRequest(uint256 requestId) external;

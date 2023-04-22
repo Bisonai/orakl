@@ -264,6 +264,7 @@ async function requestAndFulfill(
     ).wait()
   }
 
+  // Verify Request
   let _requestId
   let _accId
   if (isDirectPayment) {
@@ -292,6 +293,8 @@ async function requestAndFulfill(
   }
 
   const responseValue = aggregateSubmissions(fulfillValue, dataType)
+
+  // Verify Fulfillment
   await verifyFulfillment(
     state,
     fulfillReceipt,
@@ -538,10 +541,56 @@ describe('Request-Response user contract', function () {
     )
   })
 
+  it('cancel request for [regular] account', async function () {
+    const {
+      state,
+      rrOracle0,
+      maxGasLimit,
+      gasAfterPaymentCalculation,
+      feeConfig,
+      directFeeConfig
+    } = await loadFixture(deployFixture)
+
+    // Register Oracles ///////////////////////////////////////////////////////////
+    await state.coordinatorContract.registerOracle(rrOracle0)
+
+    // Configure coordinator //////////////////////////////////////////////////////
+    await state.coordinatorContract.setConfig(
+      maxGasLimit,
+      gasAfterPaymentCalculation,
+      Object.values(feeConfig)
+    )
+
+    // Request data /////////////////////////////////////////////////////////////
+    const gasLimit = 500_000
+    const numSubmission = 1
+    const accId = await state.createAccount()
+    await state.deposit('1')
+    await state.addConsumer(state.consumerContract.address)
+    const requestReceipt = await (
+      await state.consumerContract.requestDataInt256(accId, maxGasLimit, numSubmission, {
+        gasLimit
+      })
+    ).wait()
+
+    const { requestId } = verifyRequest(state, requestReceipt)
+
+    // Cancel Request ///////////////////////////////////////////////////////////
+    const txCancelRequest = await (await state.consumerContract.cancelRequest(requestId)).wait()
+
+    const dataRequestCancelledEvent = state.coordinatorContract.interface.parseLog(
+      txCancelRequest.events[0]
+    )
+    expect(dataRequestCancelledEvent.name).to.be.equal('DataRequestCanceled')
+
+    const { requestId: cRequestId } = dataRequestCancelledEvent.args
+    expect(requestId).to.be.equal(cRequestId)
+  })
+
   // TODO deregister oracle
   // TODO getters
   // TODO set direct payment config
-  // TODO cancel request & pending request exist
+  // TODO pending request exist
   // TODO invalid consumer
   // TODO gas limit too big
   // TODO UnregisteredOracleFulfillment
