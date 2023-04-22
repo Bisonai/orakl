@@ -60,7 +60,7 @@ interface IVRFCoordinator {
     ) external payable returns (uint256 requestId);
 
     /**
-     * @notice Cancelling oracle request
+     * @notice Canceling oracle request
      * @param requestId - ID of the Oracle Request
      */
     function cancelRequest(uint256 requestId) external;
