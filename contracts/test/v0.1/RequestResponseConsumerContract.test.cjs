@@ -23,6 +23,9 @@ async function deployFixture() {
     rrOracle0,
     rrOracle1,
     rrOracle2,
+    rrOracle3,
+    rrOracle4,
+    rrOracle5,
     consumer1: sProtocolFeeRecipient
   } = await hre.getNamedAccounts()
   const { maxGasLimit, gasAfterPaymentCalculation, feeConfig, directFeeConfig } =
@@ -68,11 +71,32 @@ async function deployFixture() {
     rrOracle2
   )
 
+  const coordinatorContractOracleSigner3 = await ethers.getContractAt(
+    'RequestResponseCoordinator',
+    coordinatorContract.address,
+    rrOracle3
+  )
+
+  const coordinatorContractOracleSigner4 = await ethers.getContractAt(
+    'RequestResponseCoordinator',
+    coordinatorContract.address,
+    rrOracle4
+  )
+
+  const coordinatorContractOracleSigner5 = await ethers.getContractAt(
+    'RequestResponseCoordinator',
+    coordinatorContract.address,
+    rrOracle5
+  )
+
   // State controller ///////////////////////////////////////////////////////////
   const state = new State(consumer, prepaymentContract, consumerContract, coordinatorContract, [
     coordinatorContractOracleSigner0,
     coordinatorContractOracleSigner1,
-    coordinatorContractOracleSigner2
+    coordinatorContractOracleSigner2,
+    coordinatorContractOracleSigner3,
+    coordinatorContractOracleSigner4,
+    coordinatorContractOracleSigner5
   ])
   await state.initialize('RequestResponseConsumerMock')
   await state.setMinBalance('0.001')
@@ -84,6 +108,9 @@ async function deployFixture() {
     rrOracle0,
     rrOracle1,
     rrOracle2,
+    rrOracle3,
+    rrOracle4,
+    rrOracle5,
 
     maxGasLimit,
     gasAfterPaymentCalculation,
@@ -192,6 +219,9 @@ async function requestAndFulfill(
     rrOracle0,
     rrOracle1,
     rrOracle2,
+    rrOracle3,
+    rrOracle4,
+    rrOracle5,
     maxGasLimit,
     gasAfterPaymentCalculation,
     feeConfig,
@@ -202,6 +232,9 @@ async function requestAndFulfill(
   await state.coordinatorContract.registerOracle(rrOracle0)
   await state.coordinatorContract.registerOracle(rrOracle1)
   await state.coordinatorContract.registerOracle(rrOracle2)
+  await state.coordinatorContract.registerOracle(rrOracle3)
+  await state.coordinatorContract.registerOracle(rrOracle4)
+  await state.coordinatorContract.registerOracle(rrOracle5)
 
   // Configure coordinator //////////////////////////////////////////////////////
   await state.coordinatorContract.setConfig(

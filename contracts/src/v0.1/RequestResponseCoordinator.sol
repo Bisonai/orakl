@@ -72,16 +72,17 @@ contract RequestResponseCoordinator is
     DirectPaymentConfig private sDirectPaymentConfig;
     mapping(bytes32 => bool) sJobId;
 
+    /* request ID */
+    /* number of requested submissions */
     mapping(uint256 => uint8) private sRequestToNumSubmission;
 
+    /* request ID */
+    /* oracle submission participants */
     mapping(uint256 => address[]) private sRequestToOracles;
 
     mapping(uint256 => int256[]) private sRequestToSubmissionInt256;
     mapping(uint256 => uint256[]) private sRequestToSubmissionUint256;
     mapping(uint256 => bool[]) private sRequestToSubmissionBool;
-    mapping(uint256 => string[]) private sRequestToSubmissionString;
-    mapping(uint256 => bytes32[]) private sRequestToSubmissionBytes32;
-    mapping(uint256 => bytes[]) private sRequestToSubmissionBytes;
 
     error InvalidConsumer(uint64 accId, address consumer);
     error InvalidAccount();
@@ -96,7 +97,7 @@ contract RequestResponseCoordinator is
     error OracleAlreadyRegistered(address oracle);
     error NoSuchOracle(address oracle);
     error InvalidJobId();
-    error InvalidSubmissionAmount();
+    error InvalidNumSubmission();
 
     event DataRequested(
         uint256 indexed requestId,
@@ -289,16 +290,20 @@ contract RequestResponseCoordinator is
         emit MinBalanceSet(minBalance);
     }
 
-    function maxNumSubmission(bytes32 jobId) internal view returns (uint8) {
-        if (
+    function validateNumSubmission(bytes32 jobId, uint8 numSubmission) internal view {
+        if (numSubmission == 0) {
+            revert InvalidNumSubmission();
+        } else if (jobId == keccak256(abi.encodePacked("bool")) && numSubmission % 2 == 0) {
+            revert InvalidNumSubmission();
+        } else if (
             jobId == keccak256(abi.encodePacked("uint256")) ||
             jobId == keccak256(abi.encodePacked("int256")) ||
             jobId == keccak256(abi.encodePacked("bool"))
         ) {
-            uint8 max = uint8(sOracles.length / 2);
-            return (max < 1 ? 1 : max);
-        } else {
-            return 1;
+            uint8 maxSubmission = uint8(sOracles.length / 2);
+            if (numSubmission != 1 && numSubmission > maxSubmission) {
+                revert InvalidNumSubmission();
+            }
         }
     }
 
@@ -309,18 +314,10 @@ contract RequestResponseCoordinator is
         uint64 accId,
         uint8 numSubmission
     ) external nonReentrant returns (uint256) {
-        // TODO check if he is one of the consumers
-        uint8 maxNum = maxNumSubmission(req.id);
-        if (numSubmission < 1 && numSubmission <= maxNum) {
-            revert InvalidSubmissionAmount();
-        }
-        // only allow odd number for bool type
-        if (req.id == keccak256(abi.encodePacked("bool")) && numSubmission % 2 == 0) {
-            revert InvalidSubmissionAmount();
-        }
         if (!sJobId[req.id]) {
             revert InvalidJobId();
         }
+        validateNumSubmission(req.id, numSubmission);
 
         uint256 balance = sPrepayment.getBalance(accId);
         if (balance < sMinBalance) {
@@ -345,10 +342,11 @@ contract RequestResponseCoordinator is
         uint32 callbackGasLimit,
         uint8 numSubmission
     ) external payable returns (uint256) {
-        uint8 maxNum = maxNumSubmission(req.id);
-        if (numSubmission < 1 && numSubmission <= maxNum) {
-            revert InvalidSubmissionAmount();
+        if (!sJobId[req.id]) {
+            revert InvalidJobId();
         }
+        validateNumSubmission(req.id, numSubmission);
+
         uint256 fee = estimateDirectPaymentFee();
         if (msg.value < fee) {
             revert InsufficientPayment(msg.value, fee);
@@ -365,6 +363,7 @@ contract RequestResponseCoordinator is
         );
         sPrepayment.depositTemporary{value: fee}(accId);
 
+        // Refund extra $KLAY
         uint256 remaining = msg.value - fee;
         if (remaining > 0) {
             (bool sent, ) = msg.sender.call{value: remaining}("");
@@ -675,12 +674,10 @@ contract RequestResponseCoordinator is
         delete sRequestToNumSubmission[requestId];
         delete sRequestToOracles[requestId];
         delete sRequestIdToCommitment[requestId];
+
         delete sRequestToSubmissionUint256[requestId];
         delete sRequestToSubmissionInt256[requestId];
         delete sRequestToSubmissionBool[requestId];
-        delete sRequestToSubmissionString[requestId];
-        delete sRequestToSubmissionBytes32[requestId];
-        delete sRequestToSubmissionBytes[requestId];
     }
 
     function arrUintToInt(uint256[] memory arr) internal pure returns (int256[] memory) {
