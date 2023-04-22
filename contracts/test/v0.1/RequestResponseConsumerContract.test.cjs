@@ -618,7 +618,7 @@ describe('Request-Response user contract', function () {
     const dataRequestCancelledEvent = state.coordinatorContract.interface.parseLog(
       txCancelRequest.events[0]
     )
-    expect(dataRequestCancelledEvent.name).to.be.equal('DataRequestCancelled')
+    expect(dataRequestCancelledEvent.name).to.be.equal('DataRequestCanceled')
 
     const { requestId: cRequestId } = dataRequestCancelledEvent.args
     expect(requestId).to.be.equal(cRequestId)

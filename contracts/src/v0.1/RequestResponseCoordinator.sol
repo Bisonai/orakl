@@ -112,7 +112,7 @@ contract RequestResponseCoordinator is
         bytes data
     );
 
-    event DataRequestCancelled(uint256 indexed requestId);
+    event DataRequestCanceled(uint256 indexed requestId);
     event ConfigSet(uint32 maxGasLimit, uint32 gasAfterPaymentCalculation, FeeConfig feeConfig);
     event DirectPaymentConfigSet(uint256 fulfillmentFee, uint256 baseFee);
 
@@ -397,7 +397,7 @@ contract RequestResponseCoordinator is
         delete sRequestIdToCommitment[requestId];
         delete sRequestOwner[requestId];
 
-        emit DataRequestCancelled(requestId);
+        emit DataRequestCanceled(requestId);
     }
 
     /**

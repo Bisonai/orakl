@@ -89,7 +89,7 @@ contract VRFCoordinator is Ownable, ICoordinatorBase, ITypeAndVersion, IVRFCoord
     error InsufficientPayment(uint256 have, uint256 want);
     error RefundFailure();
 
-    event RandomWordsRequestCancelled(uint256 indexed requestId);
+    event RandomWordsRequestCanceled(uint256 indexed requestId);
     event OracleRegistered(address indexed oracle, bytes32 keyHash);
     event OracleDeregistered(address indexed oracle, bytes32 keyHash);
     event RandomWordsRequested(
@@ -439,7 +439,7 @@ contract VRFCoordinator is Ownable, ICoordinatorBase, ITypeAndVersion, IVRFCoord
         delete sRequestIdToCommitment[requestId];
         delete sRequestOwner[requestId];
 
-        emit RandomWordsRequestCancelled(requestId);
+        emit RandomWordsRequestCanceled(requestId);
     }
 
     /**

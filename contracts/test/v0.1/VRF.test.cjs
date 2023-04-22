@@ -464,7 +464,7 @@ describe('VRF contract', function () {
     const randomWordsRequestCancelledEvent = coordinatorContract.interface.parseLog(
       txCancelRequest.events[0]
     )
-    expect(randomWordsRequestCancelledEvent.name).to.be.equal('RandomWordsRequestCancelled')
+    expect(randomWordsRequestCancelledEvent.name).to.be.equal('RandomWordsRequestCanceled')
 
     const { requestId: cRequestId } = randomWordsRequestCancelledEvent.args
     expect(requestId).to.be.equal(cRequestId)
