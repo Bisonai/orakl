@@ -306,43 +306,6 @@ async function requestAndFulfill(
   )
 }
 
-// async function fulfill(
-//   state,
-//   blockNumber,
-//   accId,
-//   callbackGasLimit,
-//   numSubmission,
-//   requestId,
-//   fulfillValue,
-//   isDirectPayment,
-//   getFulfillValueFn,
-//   fulfillEventName
-// ) {
-//   const requestCommitment = {
-//     blockNumber,
-//     accId,
-//     callbackGasLimit,
-//     sender: state.consumerContract.address
-//   }
-//
-//   let fulfillReceipt
-//   for (let i = 0; i < numSubmission; i++) {
-//     fulfillReceipt = await (
-//       await fulfillFn[i](requestId, fulfillValue[i], requestCommitment, isDirectPayment)
-//     ).wait()
-//   }
-//
-//   await verifyFulfillment(
-//     state,
-//     fulfillReceipt,
-//     accId,
-//     requestId,
-//     aggregateSubmissions(fulfillValue, dataType),
-//     getFulfillValueFn,
-//     fulfillEventName
-//   )
-// }
-
 describe('Request-Response user contract', function () {
   it('requestData should revert with InsufficientPayment error', async function () {
     const { state, maxGasLimit } = await loadFixture(deployFixture)
