@@ -4,9 +4,9 @@ const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers')
 const { State } = require('./State.utils.cjs')
 const { requestResponseConfig } = require('./RequestResponse.config.cjs')
 const { parseKlay } = require('./utils.cjs')
-const { median: medianFn } = require('mathjs')
+const { median, majorityVotingBool } = require('./utils.cjs')
 
-const EVENT_ARGS = [
+const DATA_REQUEST_EVENT_ARGS = [
   'requestId',
   'jobId',
   'accId',
@@ -21,6 +21,8 @@ async function deployFixture() {
     deployer,
     consumer,
     rrOracle0,
+    rrOracle1,
+    rrOracle2,
     consumer1: sProtocolFeeRecipient
   } = await hre.getNamedAccounts()
   const { maxGasLimit, gasAfterPaymentCalculation, feeConfig, directFeeConfig } =
@@ -47,20 +49,31 @@ async function deployFixture() {
   consumerContract = await consumerContract.deploy(coordinatorContract.address)
   await consumerContract.deployed()
 
-  const coordinatorContractOracleSigner = await ethers.getContractAt(
+  // Oracles ////////////////////////////////////////////////////////////////////
+  const coordinatorContractOracleSigner0 = await ethers.getContractAt(
     'RequestResponseCoordinator',
     coordinatorContract.address,
     rrOracle0
   )
 
-  // State controller
-  const state = new State(
-    consumer,
-    prepaymentContract,
-    consumerContract,
-    coordinatorContract,
-    coordinatorContractOracleSigner
+  const coordinatorContractOracleSigner1 = await ethers.getContractAt(
+    'RequestResponseCoordinator',
+    coordinatorContract.address,
+    rrOracle1
   )
+
+  const coordinatorContractOracleSigner2 = await ethers.getContractAt(
+    'RequestResponseCoordinator',
+    coordinatorContract.address,
+    rrOracle2
+  )
+
+  // State controller ///////////////////////////////////////////////////////////
+  const state = new State(consumer, prepaymentContract, consumerContract, coordinatorContract, [
+    coordinatorContractOracleSigner0,
+    coordinatorContractOracleSigner1,
+    coordinatorContractOracleSigner2
+  ])
   await state.initialize('RequestResponseConsumerMock')
   await state.setMinBalance('0.001')
   await state.addCoordinator(coordinatorContract.address)
@@ -69,6 +82,8 @@ async function deployFixture() {
     deployer,
     consumer,
     rrOracle0,
+    rrOracle1,
+    rrOracle2,
 
     maxGasLimit,
     gasAfterPaymentCalculation,
@@ -77,9 +92,23 @@ async function deployFixture() {
     prepaymentContract,
     coordinatorContract,
     consumerContract,
-    coordinatorContractOracleSigner,
 
     state
+  }
+}
+
+function aggregateSubmissions(arr, dataType) {
+  expect(arr.length).to.be.greaterThan(0)
+
+  switch (dataType.toLowerCase()) {
+    case 'uint256':
+    case 'int256':
+      return median(arr)
+      break
+    case 'bool':
+      return majorityVotingBool(arr)
+    default:
+      return arr[0]
   }
 }
 
@@ -88,7 +117,7 @@ function verifyRequest(state, txReceipt) {
   const requestEvent = state.coordinatorContract.interface.parseLog(txReceipt.events[0])
   expect(requestEvent.name).to.be.equal('DataRequested')
 
-  for (const arg of EVENT_ARGS) {
+  for (const arg of DATA_REQUEST_EVENT_ARGS) {
     expect(requestEvent.args[arg]).to.not.be.undefined
   }
 
@@ -115,7 +144,7 @@ function verifyRequestDirectPayment(state, txReceipt) {
   )
   expect(accountBalanceIncreasedEvent.name).to.be.equal('AccountBalanceIncreased')
 
-  for (const arg of EVENT_ARGS) {
+  for (const arg of DATA_REQUEST_EVENT_ARGS) {
     expect(requestEvent.args[arg]).to.not.be.undefined
   }
 
@@ -157,19 +186,30 @@ async function requestAndFulfill(
   fulfillEventName,
   isDirectPayment,
   numSubmission,
-  type
+  dataType
 ) {
-  const { rrOracle0, maxGasLimit, gasAfterPaymentCalculation, feeConfig, directFeeConfig } =
-    await loadFixture(deployFixture)
+  const {
+    rrOracle0,
+    rrOracle1,
+    rrOracle2,
+    maxGasLimit,
+    gasAfterPaymentCalculation,
+    feeConfig,
+    directFeeConfig
+  } = await loadFixture(deployFixture)
 
-  // Configure coordinator
+  // Register Oracles ///////////////////////////////////////////////////////////
   await state.coordinatorContract.registerOracle(rrOracle0)
+  await state.coordinatorContract.registerOracle(rrOracle1)
+  await state.coordinatorContract.registerOracle(rrOracle2)
+
+  // Configure coordinator //////////////////////////////////////////////////////
   await state.coordinatorContract.setConfig(
     maxGasLimit,
     gasAfterPaymentCalculation,
     Object.values(feeConfig)
   )
-  await state.coordinatorContract.setDirectPaymentConfig(directFeeConfig);
+  await state.coordinatorContract.setDirectPaymentConfig(directFeeConfig)
 
   // Request data /////////////////////////////////////////////////////////////
   const gasLimit = 500_000
@@ -215,24 +255,11 @@ async function requestAndFulfill(
   let fulfillReceipt
   for (let i = 0; i < numSubmission; i++) {
     fulfillReceipt = await (
-      await fulfillFn(_requestId, fulfillValue[i], requestCommitment, isDirectPayment)
+      await fulfillFn[i](_requestId, fulfillValue[i], requestCommitment, isDirectPayment)
     ).wait()
   }
-  let responseValue = fulfillValue[0]
-  if (type == 'Uint256' || type == 'int256') {
-    responseValue = median(fulfillValue)
-    console.log(type, responseValue)
-  }
-  if (type == 'bool') {
-    let falseCount = 0
-    let trueCount = 0
-    for (let i = 0; i < fulfillValue.length; i++) {
-      if (illValue[i]) trueCount++
-      else falseCount++
-    }
-    responseValue = trueCount >= falseCount
-  }
 
+  const responseValue = aggregateSubmissions(fulfillValue, dataType)
   await verifyFulfillment(
     state,
     fulfillReceipt,
@@ -242,10 +269,6 @@ async function requestAndFulfill(
     getFulfillValueFn,
     fulfillEventName
   )
-}
-
-function median(arr) {
-  return Math.floor(medianFn(arr))
 }
 
 describe('Request-Response user contract', function () {
@@ -267,8 +290,11 @@ describe('Request-Response user contract', function () {
     await requestAndFulfill(
       state,
       state.consumerContract.requestDataUint256,
-      state.coordinatorContractOracleSigner.fulfillDataRequestUint256,
-      ['1', '2'],
+      [
+        state.coordinatorContractOracleSigners[0].fulfillDataRequestUint256,
+        state.coordinatorContractOracleSigners[1].fulfillDataRequestUint256
+      ],
+      [1, 2],
       state.consumerContract.sResponseUint256,
       'DataRequestFulfilledUint256',
       false,
@@ -284,8 +310,11 @@ describe('Request-Response user contract', function () {
     await requestAndFulfill(
       state,
       state.consumerContract.requestDataDirectPaymentUint256,
-      state.coordinatorContractOracleSigner.fulfillDataRequestUint256,
-      ['1', '2'],
+      [
+        state.coordinatorContractOracleSigners[0].fulfillDataRequestUint256,
+        state.coordinatorContractOracleSigners[1].fulfillDataRequestUint256
+      ],
+      [1, 2],
       state.consumerContract.sResponseUint256,
       'DataRequestFulfilledUint256',
       true,
@@ -301,7 +330,10 @@ describe('Request-Response user contract', function () {
     await requestAndFulfill(
       state,
       state.consumerContract.requestDataInt256,
-      state.coordinatorContractOracleSigner.fulfillDataRequestInt256,
+      [
+        state.coordinatorContractOracleSigners[0].fulfillDataRequestInt256,
+        state.coordinatorContractOracleSigners[1].fulfillDataRequestInt256
+      ],
       [10, 11],
       state.consumerContract.sResponseInt256,
       'DataRequestFulfilledInt256',
@@ -318,7 +350,10 @@ describe('Request-Response user contract', function () {
     await requestAndFulfill(
       state,
       state.consumerContract.requestDataDirectPaymentInt256,
-      state.coordinatorContractOracleSigner.fulfillDataRequestInt256,
+      [
+        state.coordinatorContractOracleSigners[0].fulfillDataRequestInt256,
+        state.coordinatorContractOracleSigners[1].fulfillDataRequestInt256
+      ],
       [10, 11],
       state.consumerContract.sResponseInt256,
       'DataRequestFulfilledInt256',
@@ -335,7 +370,11 @@ describe('Request-Response user contract', function () {
     await requestAndFulfill(
       state,
       state.consumerContract.requestDataBool,
-      state.coordinatorContractOracleSigner.fulfillDataRequestBool,
+      [
+        state.coordinatorContractOracleSigners[0].fulfillDataRequestBool,
+        state.coordinatorContractOracleSigners[1].fulfillDataRequestBool,
+        state.coordinatorContractOracleSigners[2].fulfillDataRequestBool
+      ],
       [true, false, true],
       state.consumerContract.sResponseBool,
       'DataRequestFulfilledBool',
@@ -352,7 +391,11 @@ describe('Request-Response user contract', function () {
     await requestAndFulfill(
       state,
       state.consumerContract.requestDataDirectPaymentBool,
-      state.coordinatorContractOracleSigner.fulfillDataRequestBool,
+      [
+        state.coordinatorContractOracleSigners[0].fulfillDataRequestBool,
+        state.coordinatorContractOracleSigners[1].fulfillDataRequestBool,
+        state.coordinatorContractOracleSigners[2].fulfillDataRequestBool
+      ],
       [false, true, false],
       state.consumerContract.sResponseBool,
       'DataRequestFulfilledBool',
@@ -369,12 +412,13 @@ describe('Request-Response user contract', function () {
     await requestAndFulfill(
       state,
       state.consumerContract.requestDataString,
-      state.coordinatorContractOracleSigner.fulfillDataRequestString,
+      [state.coordinatorContractOracleSigners[0].fulfillDataRequestString],
       ['hello'],
       state.consumerContract.sResponseString,
       'DataRequestFulfilledString',
       false,
-      numSubmission
+      numSubmission,
+      'String'
     )
   })
 
@@ -385,12 +429,13 @@ describe('Request-Response user contract', function () {
     await requestAndFulfill(
       state,
       state.consumerContract.requestDataDirectPaymentString,
-      state.coordinatorContractOracleSigner.fulfillDataRequestString,
+      [state.coordinatorContractOracleSigners[0].fulfillDataRequestString],
       ['hello'],
       state.consumerContract.sResponseString,
       'DataRequestFulfilledString',
       true,
-      numSubmission
+      numSubmission,
+      'String'
     )
   })
 
@@ -401,12 +446,13 @@ describe('Request-Response user contract', function () {
     await requestAndFulfill(
       state,
       state.consumerContract.requestDataBytes32,
-      state.coordinatorContractOracleSigner.fulfillDataRequestBytes32,
+      [state.coordinatorContractOracleSigners[0].fulfillDataRequestBytes32],
       [ethers.utils.formatBytes32String('hello')],
       state.consumerContract.sResponseBytes32,
       'DataRequestFulfilledBytes32',
       false,
-      numSubmission
+      numSubmission,
+      'Bytes32'
     )
   })
 
@@ -417,12 +463,13 @@ describe('Request-Response user contract', function () {
     await requestAndFulfill(
       state,
       state.consumerContract.requestDataDirectPaymentBytes32,
-      state.coordinatorContractOracleSigner.fulfillDataRequestBytes32,
+      [state.coordinatorContractOracleSigners[0].fulfillDataRequestBytes32],
       [ethers.utils.formatBytes32String('hello')],
       state.consumerContract.sResponseBytes32,
       'DataRequestFulfilledBytes32',
       true,
-      numSubmission
+      numSubmission,
+      'Bytes32'
     )
   })
 
@@ -433,12 +480,13 @@ describe('Request-Response user contract', function () {
     await requestAndFulfill(
       state,
       state.consumerContract.requestDataBytes,
-      state.coordinatorContractOracleSigner.fulfillDataRequestBytes,
+      [state.coordinatorContractOracleSigners[0].fulfillDataRequestBytes],
       ['0x1234'],
       state.consumerContract.sResponseBytes,
       'DataRequestFulfilledBytes',
       false,
-      numSubmission
+      numSubmission,
+      'Bytes'
     )
   })
 
@@ -448,12 +496,13 @@ describe('Request-Response user contract', function () {
     await requestAndFulfill(
       state,
       state.consumerContract.requestDataDirectPaymentBytes,
-      state.coordinatorContractOracleSigner.fulfillDataRequestBytes,
+      [state.coordinatorContractOracleSigners[0].fulfillDataRequestBytes],
       ['0x1234'],
       state.consumerContract.sResponseBytes,
       'DataRequestFulfilledBytes',
       true,
-      numSubmission
+      numSubmission,
+      'Bytes'
     )
   })
 

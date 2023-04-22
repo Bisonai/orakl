@@ -76,6 +76,12 @@ const config = {
     rrOracle0: {
       default: 5
     },
+    rrOracle1: {
+      default: 6
+    },
+    rrOracle2: {
+      default: 7
+    },
     vrfOracle0: {
       default: 18,
       baobab: '0xdd2fd4581271e230360230f9337d5c0430bf44c0'

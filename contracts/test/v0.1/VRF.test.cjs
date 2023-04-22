@@ -57,13 +57,9 @@ async function deployFixture() {
   )
 
   // State controller
-  const state = new State(
-    consumer,
-    prepaymentContract,
-    consumerContract,
-    coordinatorContract,
+  const state = new State(consumer, prepaymentContract, consumerContract, coordinatorContract, [
     coordinatorContractOracleSigner
-  )
+  ])
   await state.initialize('VRFConsumerMock')
 
   return {
