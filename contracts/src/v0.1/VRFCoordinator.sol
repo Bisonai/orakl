@@ -383,24 +383,37 @@ contract VRFCoordinator is Ownable, ICoordinatorBase, ITypeAndVersion, IVRFCoord
         bool success = callWithExactGas(rc.callbackGasLimit, rc.sender, resp);
         sConfig.reentrancyLock = false;
 
-        uint256 payment;
-        if (isDirectPayment) {
-            payment = sPrepayment.chargeFeeTemporary(rc.accId, sKeyHashToOracle[keyHash]);
-            sPrepayment.increaseReqCountTemporary(rc.accId);
-        } else {
-            uint64 reqCount = sPrepayment.getReqCount(rc.accId);
-            payment = calculatePaymentAmount(
-                startGas,
-                sConfig.gasAfterPaymentCalculation,
-                getFeeTier(reqCount)
-            );
-            sPrepayment.chargeFee(rc.accId, payment, sKeyHashToOracle[keyHash]);
-            sPrepayment.increaseReqCount(rc.accId);
-        }
-
-        // Include payment in the event for tracking costs.
+        uint256 payment = pay(rc, isDirectPayment, startGas, keyHash);
         emit RandomWordsFulfilled(requestId, randomness, payment, success);
         return payment;
+    }
+
+    function pay(
+        RequestCommitment memory rc,
+        bool isDirectPayment,
+        uint256 startGas,
+        bytes32 keyHash
+    ) internal returns (uint256) {
+        if (isDirectPayment) {
+            (uint256 totalFee, uint256 operatorFee) = sPrepayment.chargeFeeTemporary(rc.accId);
+            if (operatorFee > 0) {
+                sPrepayment.chargeOperatorFeeTemporary(operatorFee, sKeyHashToOracle[keyHash]);
+            }
+
+            sPrepayment.increaseReqCountTemporary(rc.accId);
+            return totalFee;
+        } else {
+            uint256 serviceFee = calculateFee(rc.accId);
+            uint256 gasFee = calculateGasCost(startGas);
+            uint256 operatorFee = sPrepayment.chargeFee(rc.accId, serviceFee);
+
+            if (operatorFee > 0) {
+                sPrepayment.chargeOperatorFee(rc.accId, operatorFee, sKeyHashToOracle[keyHash]);
+            }
+
+            sPrepayment.increaseReqCount(rc.accId);
+            return gasFee + serviceFee;
+        }
     }
 
     /**
@@ -522,14 +535,14 @@ contract VRFCoordinator is Ownable, ICoordinatorBase, ITypeAndVersion, IVRFCoord
         return sDirectPaymentConfig.fulfillmentFee + sDirectPaymentConfig.baseFee;
     }
 
-    function calculatePaymentAmount(
-        uint256 startGas,
-        uint256 gasAfterPaymentCalculation,
-        uint32 fulfillmentFlatFeeKlayPPM
-    ) internal view returns (uint256) {
-        uint256 paymentNoFee = tx.gasprice * (gasAfterPaymentCalculation + startGas - gasleft());
-        uint256 fee = 1e12 * uint256(fulfillmentFlatFeeKlayPPM);
-        return paymentNoFee + fee;
+    function calculateFee(uint64 accId) internal view returns (uint256) {
+        uint64 reqCount = sPrepayment.getReqCount(accId);
+        uint32 fulfillmentFlatFeeKlayPPM = getFeeTier(reqCount);
+        return 1e12 * uint256(fulfillmentFlatFeeKlayPPM);
+    }
+
+    function calculateGasCost(uint256 startGas) internal view returns (uint256) {
+        return tx.gasprice * (sConfig.gasAfterPaymentCalculation + startGas - gasleft());
     }
 
     function computeRequestId(

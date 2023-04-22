@@ -1,11 +1,7 @@
 const { expect } = require('chai')
 const { ethers } = require('hardhat')
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers')
-const { median: medianFn } = require('mathjs')
-
-function median(arr) {
-  return Math.floor(medianFn(arr))
-}
+const { median } = require('./utils.cjs')
 
 function medianBN(arr) {
   const arrBN = arr.map((x) => ethers.BigNumber.from(x))
