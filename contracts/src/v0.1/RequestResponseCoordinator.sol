@@ -157,7 +157,7 @@ contract RequestResponseCoordinator is
         uint256 payment,
         bool success
     );
-    event DataSubmitted(address oracle, uint256 requestId, bool success);
+    event DataSubmitted(address oracle, uint256 requestId);
 
     modifier nonReentrant() {
         if (sConfig.reentrancyLock) {
@@ -693,7 +693,7 @@ contract RequestResponseCoordinator is
         oracles.push(msg.sender);
 
         if (arrRes.length < sRequestToNumSubmission[requestId]) {
-            emit DataSubmitted(msg.sender, requestId, true);
+            emit DataSubmitted(msg.sender, requestId);
             return 0;
         }
 
@@ -701,7 +701,7 @@ contract RequestResponseCoordinator is
         uint256 aggregatedResponse = uint256(Median.calculate(responses));
 
         bytes memory resp = abi.encodeWithSelector(
-            RequestResponseConsumerFulfillUint256.rawFulfillDataRequestUint256.selector,
+            RequestResponseConsumerFulfillUint256.rawFulfillDataRequest.selector,
             requestId,
             aggregatedResponse
         );
@@ -730,14 +730,14 @@ contract RequestResponseCoordinator is
         oracles.push(msg.sender);
 
         if (arrRes.length < sRequestToNumSubmission[requestId]) {
-            emit DataSubmitted(msg.sender, requestId, true);
+            emit DataSubmitted(msg.sender, requestId);
             return 0;
         }
 
         int256 aggregatedResponse = Median.calculate(arrRes);
 
         bytes memory resp = abi.encodeWithSelector(
-            RequestResponseConsumerFulfillInt256.rawFulfillDataRequestInt256.selector,
+            RequestResponseConsumerFulfillInt256.rawFulfillDataRequest.selector,
             requestId,
             aggregatedResponse
         );
@@ -766,13 +766,13 @@ contract RequestResponseCoordinator is
         oracles.push(msg.sender);
 
         if (arrRes.length < sRequestToNumSubmission[requestId]) {
-            emit DataSubmitted(msg.sender, requestId, true);
+            emit DataSubmitted(msg.sender, requestId);
             return 0;
         }
 
         bool aggregatedResponse = MajorityVoting.voting(arrRes);
         bytes memory resp = abi.encodeWithSelector(
-            RequestResponseConsumerFulfillBool.rawFulfillDataRequestBool.selector,
+            RequestResponseConsumerFulfillBool.rawFulfillDataRequest.selector,
             requestId,
             aggregatedResponse
         );
@@ -796,7 +796,7 @@ contract RequestResponseCoordinator is
         validateDataResponse(rc, requestId);
 
         bytes memory resp = abi.encodeWithSelector(
-            RequestResponseConsumerFulfillString.rawFulfillDataRequestString.selector,
+            RequestResponseConsumerFulfillString.rawFulfillDataRequest.selector,
             requestId,
             response
         );
@@ -822,7 +822,7 @@ contract RequestResponseCoordinator is
         validateDataResponse(rc, requestId);
 
         bytes memory resp = abi.encodeWithSelector(
-            RequestResponseConsumerFulfillBytes32.rawFulfillDataRequestBytes32.selector,
+            RequestResponseConsumerFulfillBytes32.rawFulfillDataRequest.selector,
             requestId,
             response
         );
@@ -848,7 +848,7 @@ contract RequestResponseCoordinator is
         validateDataResponse(rc, requestId);
 
         bytes memory resp = abi.encodeWithSelector(
-            RequestResponseConsumerFulfillBytes.rawFulfillDataRequestBytes.selector,
+            RequestResponseConsumerFulfillBytes.rawFulfillDataRequest.selector,
             requestId,
             response
         );
