@@ -582,8 +582,6 @@ contract RequestResponseCoordinator is
         ) {
             revert IncorrectCommitment();
         }
-
-        delete sRequestOwner[requestId];
     }
 
     function fulfill(bytes memory resp, RequestCommitment memory rc) internal returns (bool) {
@@ -660,6 +658,7 @@ contract RequestResponseCoordinator is
         delete sRequestToNumSubmission[requestId];
         delete sRequestToOracles[requestId];
         delete sRequestIdToCommitment[requestId];
+        delete sRequestOwner[requestId];
     }
 
     // FIXME wrong
