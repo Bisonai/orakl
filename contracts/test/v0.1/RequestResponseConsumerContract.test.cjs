@@ -264,6 +264,7 @@ async function requestAndFulfill(
     ).wait()
   }
 
+  // Verify Request
   let _requestId
   let _accId
   if (isDirectPayment) {
@@ -292,6 +293,8 @@ async function requestAndFulfill(
   }
 
   const responseValue = aggregateSubmissions(fulfillValue, dataType)
+
+  // Verify Fulfillment
   await verifyFulfillment(
     state,
     fulfillReceipt,
@@ -302,6 +305,31 @@ async function requestAndFulfill(
     fulfillEventName
   )
 }
+
+// async function fulfill(state, blockNumber, accId, callbackGasLimit) {
+//   // Fulfill data //////////////////////////////////////////////////////////////
+//   const requestCommitment = {
+//     blockNumber,
+//     accId,
+//     callbackGasLimit: maxGasLimit,
+//     sender: state.consumerContract.address
+//   }
+//
+//   const fulfillReceipt = await (
+//     await fulfillFn(requestId, fulfillValue, requestCommitment, isDirectPayment)
+//   ).wait()
+//
+//   // Verify Fulfillment
+//   await verifyFulfillment(
+//     state,
+//     fulfillReceipt,
+//     _accId,
+//     _requestId,
+//     responseValue,
+//     getFulfillValueFn,
+//     fulfillEventName
+//   )
+// }
 
 describe('Request-Response user contract', function () {
   it('requestData should revert with InsufficientPayment error', async function () {
@@ -537,6 +565,8 @@ describe('Request-Response user contract', function () {
       'Bytes'
     )
   })
+
+  // it('cancel  request for [regular] account', async function () {})
 
   // TODO deregister oracle
   // TODO getters

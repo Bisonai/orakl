@@ -566,7 +566,7 @@ contract RequestResponseCoordinator is
         return success;
     }
 
-    function validateDataResponse(RequestCommitment memory rc, uint256 requestId) internal view {
+    function validateDataResponse(RequestCommitment memory rc, uint256 requestId) internal {
         if (!sIsOracleRegistered[msg.sender]) {
             revert UnregisteredOracleFulfillment(msg.sender);
         }
@@ -583,7 +583,6 @@ contract RequestResponseCoordinator is
             revert IncorrectCommitment();
         }
 
-        delete sRequestIdToCommitment[requestId];
         delete sRequestOwner[requestId];
     }
 
