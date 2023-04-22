@@ -24,6 +24,8 @@ contract RequestResponseCoordinator is
     // and some arithmetic operations.
     uint256 private constant GAS_FOR_CALL_EXACT_CHECK = 5_000;
 
+    uint8 public constant MAX_ORACLES = 255;
+
     address[] public sOracles;
     mapping(address => bool) private sIsOracleRegistered;
 
@@ -72,17 +74,19 @@ contract RequestResponseCoordinator is
     DirectPaymentConfig private sDirectPaymentConfig;
     mapping(bytes32 => bool) sJobId;
 
+    /* request ID */
+    /* number of requested submissions */
     mapping(uint256 => uint8) private sRequestToNumSubmission;
 
+    /* request ID */
+    /* oracle submission participants */
     mapping(uint256 => address[]) private sRequestToOracles;
 
     mapping(uint256 => int256[]) private sRequestToSubmissionInt256;
     mapping(uint256 => uint256[]) private sRequestToSubmissionUint256;
     mapping(uint256 => bool[]) private sRequestToSubmissionBool;
-    mapping(uint256 => string[]) private sRequestToSubmissionString;
-    mapping(uint256 => bytes32[]) private sRequestToSubmissionBytes32;
-    mapping(uint256 => bytes[]) private sRequestToSubmissionBytes;
 
+    error TooManyOracles();
     error InvalidConsumer(uint64 accId, address consumer);
     error InvalidAccount();
     error UnregisteredOracleFulfillment(address oracle);
@@ -96,7 +100,7 @@ contract RequestResponseCoordinator is
     error OracleAlreadyRegistered(address oracle);
     error NoSuchOracle(address oracle);
     error InvalidJobId();
-    error InvalidSubmissionAmount();
+    error InvalidNumSubmission();
 
     event DataRequested(
         uint256 indexed requestId,
@@ -153,7 +157,7 @@ contract RequestResponseCoordinator is
         uint256 payment,
         bool success
     );
-    event Submitted(uint256 requestId, bool success);
+    event DataSubmitted(address oracle, uint256 requestId);
 
     modifier nonReentrant() {
         if (sConfig.reentrancyLock) {
@@ -179,6 +183,10 @@ contract RequestResponseCoordinator is
      * @param oracle address of the oracle
      */
     function registerOracle(address oracle) external onlyOwner {
+        if (sOracles.length >= MAX_ORACLES) {
+            revert TooManyOracles();
+        }
+
         if (sIsOracleRegistered[oracle]) {
             revert OracleAlreadyRegistered(oracle);
         }
@@ -289,16 +297,20 @@ contract RequestResponseCoordinator is
         emit MinBalanceSet(minBalance);
     }
 
-    function maxNumSubmission(bytes32 jobId) internal view returns (uint8) {
-        if (
+    function validateNumSubmission(bytes32 jobId, uint8 numSubmission) internal view {
+        if (numSubmission == 0) {
+            revert InvalidNumSubmission();
+        } else if (jobId == keccak256(abi.encodePacked("bool")) && numSubmission % 2 == 0) {
+            revert InvalidNumSubmission();
+        } else if (
             jobId == keccak256(abi.encodePacked("uint256")) ||
             jobId == keccak256(abi.encodePacked("int256")) ||
             jobId == keccak256(abi.encodePacked("bool"))
         ) {
-            uint8 max = uint8(sOracles.length / 2);
-            return (max < 1 ? 1 : max);
-        } else {
-            return 1;
+            uint8 maxSubmission = uint8(sOracles.length / 2);
+            if (numSubmission != 1 && numSubmission > maxSubmission) {
+                revert InvalidNumSubmission();
+            }
         }
     }
 
@@ -309,18 +321,10 @@ contract RequestResponseCoordinator is
         uint64 accId,
         uint8 numSubmission
     ) external nonReentrant returns (uint256) {
-        // TODO check if he is one of the consumers
-        uint8 maxNum = maxNumSubmission(req.id);
-        if (numSubmission < 1 && numSubmission <= maxNum) {
-            revert InvalidSubmissionAmount();
-        }
-        // only allow odd number for bool type
-        if (req.id == keccak256(abi.encodePacked("bool")) && numSubmission % 2 == 0) {
-            revert InvalidSubmissionAmount();
-        }
         if (!sJobId[req.id]) {
             revert InvalidJobId();
         }
+        validateNumSubmission(req.id, numSubmission);
 
         uint256 balance = sPrepayment.getBalance(accId);
         if (balance < sMinBalance) {
@@ -345,10 +349,11 @@ contract RequestResponseCoordinator is
         uint32 callbackGasLimit,
         uint8 numSubmission
     ) external payable returns (uint256) {
-        uint8 maxNum = maxNumSubmission(req.id);
-        if (numSubmission < 1 && numSubmission <= maxNum) {
-            revert InvalidSubmissionAmount();
+        if (!sJobId[req.id]) {
+            revert InvalidJobId();
         }
+        validateNumSubmission(req.id, numSubmission);
+
         uint256 fee = estimateDirectPaymentFee();
         if (msg.value < fee) {
             revert InsufficientPayment(msg.value, fee);
@@ -365,6 +370,7 @@ contract RequestResponseCoordinator is
         );
         sPrepayment.depositTemporary{value: fee}(accId);
 
+        // Refund extra $KLAY
         uint256 remaining = msg.value - fee;
         if (remaining > 0) {
             (bool sent, ) = msg.sender.call{value: remaining}("");
@@ -457,21 +463,14 @@ contract RequestResponseCoordinator is
         return requestId;
     }
 
-    function calculatePaymentAmount(
-        uint256 startGas,
-        uint256 gasAfterPaymentCalculation,
-        uint32 fulfillmentFlatFeeKlayPPM
-    ) internal view returns (uint256) {
-        uint256 paymentNoFee = tx.gasprice * (gasAfterPaymentCalculation + startGas - gasleft());
-        uint256 fee = 1e12 * uint256(fulfillmentFlatFeeKlayPPM);
-        return paymentNoFee + fee;
+    function calculateFee(uint64 accId) internal view returns (uint256) {
+        uint64 reqCount = sPrepayment.getReqCount(accId);
+        uint32 fulfillmentFlatFeeKlayPPM = getFeeTier(reqCount);
+        return 1e12 * uint256(fulfillmentFlatFeeKlayPPM);
     }
 
-    function calculatePaymentNoFee(
-        uint256 startGas,
-        uint256 gasAfterPaymentCalculation
-    ) internal view returns (uint256) {
-        return tx.gasprice * (gasAfterPaymentCalculation + startGas - gasleft());
+    function calculateGasCost(uint256 startGas) internal view returns (uint256) {
+        return tx.gasprice * (sConfig.gasAfterPaymentCalculation + startGas - gasleft());
     }
 
     /**
@@ -560,10 +559,7 @@ contract RequestResponseCoordinator is
         return success;
     }
 
-    function validateDataResponse(
-        RequestCommitment memory rc,
-        uint256 requestId
-    ) internal view returns (bool) {
+    function validateDataResponse(RequestCommitment memory rc, uint256 requestId) internal view {
         if (!sIsOracleRegistered[msg.sender]) {
             revert UnregisteredOracleFulfillment(msg.sender);
         }
@@ -579,10 +575,6 @@ contract RequestResponseCoordinator is
         ) {
             revert IncorrectCommitment();
         }
-
-        //delete sRequestIdToCommitment[requestId];
-
-        return true;
     }
 
     function fulfill(bytes memory resp, RequestCommitment memory rc) internal returns (bool) {
@@ -603,86 +595,65 @@ contract RequestResponseCoordinator is
         bool isDirectPayment,
         uint256 startGas,
         address[] memory oracles
-    ) internal returns (uint256 payment) {
+    ) internal returns (uint256) {
+        uint8 oraclesLength = uint8(oracles.length);
+
         if (isDirectPayment) {
-            (uint256 totalAmount, uint256 operatorFee) = sPrepayment.chargeFeeTemporary(rc.accId);
+            (uint256 totalFee, uint256 operatorFee) = sPrepayment.chargeFeeTemporary(rc.accId);
+            //uint256 gasFee = calculateGasCost(startGas); // TODO
 
-            uint256 paymentNoFee = calculatePaymentNoFee(
-                startGas,
-                sConfig.gasAfterPaymentCalculation
-            );
-
-            uint8 oraclesLength = uint8(oracles.length);
-            uint256 amountForEachOperator = 0;
             if (operatorFee > 0) {
-                amountForEachOperator = operatorFee;
-            }
-            if (operatorFee > paymentNoFee) {
-                amountForEachOperator = (operatorFee - paymentNoFee) / oraclesLength;
-            }
-            if (amountForEachOperator > 0) {
-                for (uint8 i = 0; i < oraclesLength - 1; ++i) {
-                    sPrepayment.payOperatorFeeTemporary(amountForEachOperator, oracles[i]);
+                uint256 paid;
+                uint256 feePerOperator = operatorFee / oraclesLength;
+
+                for (uint8 i; i < oraclesLength - 1; ++i) {
+                    sPrepayment.chargeOperatorFeeTemporary(feePerOperator, oracles[i]);
+                    paid += feePerOperator;
                 }
-            }
 
-            sPrepayment.payOperatorFeeTemporary(
-                amountForEachOperator + paymentNoFee,
-                oracles[oraclesLength - 1]
-            );
+                sPrepayment.chargeOperatorFeeTemporary(
+                    operatorFee - paid,
+                    oracles[oraclesLength - 1]
+                );
+
+                // TODO return remaining $KLAY
+            }
             sPrepayment.increaseReqCountTemporary(rc.accId);
-            payment = totalAmount;
-        } else {
-            uint64 reqCount = sPrepayment.getReqCount(rc.accId);
-            payment = calculatePaymentAmount(
-                startGas,
-                sConfig.gasAfterPaymentCalculation,
-                getFeeTier(reqCount)
-            );
-            sPrepayment.chargeFee(rc.accId, payment);
-            uint8 burnFeeRatio = sPrepayment.getBurnFeeRatio();
-            uint8 protocolFeeRatio = sPrepayment.getProtocolFeeRatio();
-            uint256 burnFee = (burnFeeRatio * payment) / 100;
-            uint256 protocolFee = (protocolFeeRatio * payment) / 100;
 
-            uint256 operatorFee = payment - burnFee - protocolFee;
-            uint256 paymentNoFee = calculatePaymentNoFee(
-                startGas,
-                sConfig.gasAfterPaymentCalculation
-            );
-            uint256 amountForEachOperator = 0;
+            return totalFee;
+        } else {
+            uint256 serviceFee = calculateFee(rc.accId);
+            uint256 gasFee = calculateGasCost(startGas);
+            uint256 operatorFee = sPrepayment.chargeFee(rc.accId, serviceFee);
+
             if (operatorFee > 0) {
-                amountForEachOperator = operatorFee;
+                uint256 paid;
+                uint256 feePerOperator = operatorFee / oraclesLength;
+
+                for (uint256 i; i < oraclesLength - 1; ++i) {
+                    sPrepayment.chargeOperatorFee(rc.accId, feePerOperator, oracles[i]);
+                    paid += feePerOperator;
+                }
+
+                sPrepayment.chargeOperatorFee(
+                    rc.accId,
+                    (operatorFee - paid) + gasFee,
+                    oracles[oraclesLength - 1]
+                );
             }
-            if (operatorFee > paymentNoFee) {
-                amountForEachOperator = (operatorFee - paymentNoFee) / oracles.length;
-            }
-            for (uint256 i = 0; i < oracles.length - 1; i++) {
-                sPrepayment.payOperatorFee(rc.accId, amountForEachOperator, oracles[i], burnFee);
-            }
-            sPrepayment.payOperatorFee(
-                rc.accId,
-                amountForEachOperator + paymentNoFee,
-                oracles[oracles.length - 1],
-                burnFee
-            );
-            sPrepayment.increaseNonce(rc.accId, msg.sender);
+
             sPrepayment.increaseReqCount(rc.accId);
+            return gasFee + serviceFee;
         }
     }
 
-    function deleteMapping(uint256 requestId) internal {
+    function cleanupAfterFulfillment(uint256 requestId) internal {
         delete sRequestToNumSubmission[requestId];
         delete sRequestToOracles[requestId];
         delete sRequestIdToCommitment[requestId];
-        delete sRequestToSubmissionUint256[requestId];
-        delete sRequestToSubmissionInt256[requestId];
-        delete sRequestToSubmissionBool[requestId];
-        delete sRequestToSubmissionString[requestId];
-        delete sRequestToSubmissionBytes32[requestId];
-        delete sRequestToSubmissionBytes[requestId];
     }
 
+    // FIXME wrong
     function arrUintToInt(uint256[] memory arr) internal pure returns (int256[] memory) {
         int256[] memory responses = new int256[](arr.length);
         for (uint256 i = 0; i < arr.length; i++) {
@@ -699,28 +670,31 @@ contract RequestResponseCoordinator is
     ) external nonReentrant returns (uint256) {
         uint256 startGas = gasleft();
         validateDataResponse(rc, requestId);
+
         uint256[] storage arrRes = sRequestToSubmissionUint256[requestId];
         address[] storage oracles = sRequestToOracles[requestId];
-        uint8 numSubmission = sRequestToNumSubmission[requestId];
         arrRes.push(response);
         oracles.push(msg.sender);
-        if (arrRes.length < numSubmission) {
-            emit Submitted(requestId, true);
+
+        if (arrRes.length < sRequestToNumSubmission[requestId]) {
+            emit DataSubmitted(msg.sender, requestId);
             return 0;
         }
-        //pick response
+
         int256[] memory responses = arrUintToInt(arrRes);
         uint256 aggregatedResponse = uint256(Median.calculate(responses));
-        RequestResponseConsumerFulfillUint256 rr;
+
         bytes memory resp = abi.encodeWithSelector(
-            rr.rawFulfillDataRequestUint256.selector,
+            RequestResponseConsumerFulfillUint256.rawFulfillDataRequest.selector,
             requestId,
             aggregatedResponse
         );
         bool success = fulfill(resp, rc);
-        // change for uint256
         uint256 payment = pay(rc, isDirectPayment, startGas, oracles);
-        deleteMapping(requestId);
+
+        cleanupAfterFulfillment(requestId);
+        delete sRequestToSubmissionUint256[requestId];
+
         emit DataRequestFulfilledUint256(requestId, response, payment, success);
         return payment;
     }
@@ -733,27 +707,30 @@ contract RequestResponseCoordinator is
     ) external nonReentrant returns (uint256) {
         uint256 startGas = gasleft();
         validateDataResponse(rc, requestId);
+
         int256[] storage arrRes = sRequestToSubmissionInt256[requestId];
         address[] storage oracles = sRequestToOracles[requestId];
-        uint8 numSubmission = sRequestToNumSubmission[requestId];
         arrRes.push(response);
         oracles.push(msg.sender);
-        if (arrRes.length < numSubmission) {
-            emit Submitted(requestId, true);
+
+        if (arrRes.length < sRequestToNumSubmission[requestId]) {
+            emit DataSubmitted(msg.sender, requestId);
             return 0;
         }
-        //pick response
+
         int256 aggregatedResponse = Median.calculate(arrRes);
 
-        RequestResponseConsumerFulfillInt256 rr;
         bytes memory resp = abi.encodeWithSelector(
-            rr.rawFulfillDataRequestInt256.selector,
+            RequestResponseConsumerFulfillInt256.rawFulfillDataRequest.selector,
             requestId,
             aggregatedResponse
         );
         bool success = fulfill(resp, rc);
         uint256 payment = pay(rc, isDirectPayment, startGas, oracles);
-        deleteMapping(requestId);
+
+        cleanupAfterFulfillment(requestId);
+        delete sRequestToSubmissionInt256[requestId];
+
         emit DataRequestFulfilledInt256(requestId, response, payment, success);
         return payment;
     }
@@ -766,26 +743,28 @@ contract RequestResponseCoordinator is
     ) external nonReentrant returns (uint256) {
         uint256 startGas = gasleft();
         validateDataResponse(rc, requestId);
+
         bool[] storage arrRes = sRequestToSubmissionBool[requestId];
         address[] storage oracles = sRequestToOracles[requestId];
-        uint8 numSubmission = sRequestToNumSubmission[requestId];
         arrRes.push(response);
         oracles.push(msg.sender);
-        if (arrRes.length < numSubmission) {
-            emit Submitted(requestId, true);
+
+        if (arrRes.length < sRequestToNumSubmission[requestId]) {
+            emit DataSubmitted(msg.sender, requestId);
             return 0;
         }
-        //pick response
+
         bool aggregatedResponse = MajorityVoting.voting(arrRes);
-        RequestResponseConsumerFulfillBool rr;
         bytes memory resp = abi.encodeWithSelector(
-            rr.rawFulfillDataRequestBool.selector,
+            RequestResponseConsumerFulfillBool.rawFulfillDataRequest.selector,
             requestId,
             aggregatedResponse
         );
         bool success = fulfill(resp, rc);
         uint256 payment = pay(rc, isDirectPayment, startGas, oracles);
-        deleteMapping(requestId);
+
+        cleanupAfterFulfillment(requestId);
+        delete sRequestToSubmissionBool[requestId];
 
         emit DataRequestFulfilledBool(requestId, response, payment, success);
         return payment;
@@ -799,18 +778,20 @@ contract RequestResponseCoordinator is
     ) external nonReentrant returns (uint256) {
         uint256 startGas = gasleft();
         validateDataResponse(rc, requestId);
-        RequestResponseConsumerFulfillString rr;
+
         bytes memory resp = abi.encodeWithSelector(
-            rr.rawFulfillDataRequestString.selector,
+            RequestResponseConsumerFulfillString.rawFulfillDataRequest.selector,
             requestId,
             response
         );
         bool success = fulfill(resp, rc);
-        // change for String
-        address[] memory oracles = new address[](1);
-        oracles[0] = msg.sender;
+
+        address[] storage oracles = sRequestToOracles[requestId];
+        oracles.push(msg.sender);
         uint256 payment = pay(rc, isDirectPayment, startGas, oracles);
-        deleteMapping(requestId);
+
+        cleanupAfterFulfillment(requestId);
+
         emit DataRequestFulfilledString(requestId, response, payment, success);
         return payment;
     }
@@ -823,18 +804,20 @@ contract RequestResponseCoordinator is
     ) external nonReentrant returns (uint256) {
         uint256 startGas = gasleft();
         validateDataResponse(rc, requestId);
-        //pick response
-        RequestResponseConsumerFulfillBytes32 rr;
+
         bytes memory resp = abi.encodeWithSelector(
-            rr.rawFulfillDataRequestBytes32.selector,
+            RequestResponseConsumerFulfillBytes32.rawFulfillDataRequest.selector,
             requestId,
             response
         );
         bool success = fulfill(resp, rc);
-        address[] memory oracles = new address[](1);
-        oracles[0] = msg.sender;
+
+        address[] storage oracles = sRequestToOracles[requestId];
+        oracles.push(msg.sender);
         uint256 payment = pay(rc, isDirectPayment, startGas, oracles);
-        deleteMapping(requestId);
+
+        cleanupAfterFulfillment(requestId);
+
         emit DataRequestFulfilledBytes32(requestId, response, payment, success);
         return payment;
     }
@@ -848,17 +831,19 @@ contract RequestResponseCoordinator is
         uint256 startGas = gasleft();
         validateDataResponse(rc, requestId);
 
-        RequestResponseConsumerFulfillBytes rr;
         bytes memory resp = abi.encodeWithSelector(
-            rr.rawFulfillDataRequestBytes.selector,
+            RequestResponseConsumerFulfillBytes.rawFulfillDataRequest.selector,
             requestId,
             response
         );
         bool success = fulfill(resp, rc);
-        address[] memory oracles = new address[](1);
-        oracles[0] = msg.sender;
+
+        address[] storage oracles = sRequestToOracles[requestId];
+        oracles.push(msg.sender);
         uint256 payment = pay(rc, isDirectPayment, startGas, oracles);
-        deleteMapping(requestId);
+
+        cleanupAfterFulfillment(requestId);
+
         emit DataRequestFulfilledBytes(requestId, response, payment, success);
         return payment;
     }

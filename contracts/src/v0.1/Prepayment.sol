@@ -78,12 +78,7 @@ contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
     event TemporaryAccountCreated(uint64 indexed accId, address owner);
     event AccountCanceled(uint64 indexed accId, address to, uint256 amount);
     event AccountBalanceIncreased(uint64 indexed accId, uint256 oldBalance, uint256 newBalance);
-    event AccountBalanceDecreased(
-        uint64 indexed accId,
-        uint256 oldBalance,
-        uint256 newBalance,
-        uint256 burnAmount
-    );
+    event AccountBalanceDecreased(uint64 indexed accId, uint256 oldBalance, uint256 newBalance);
     event AccountConsumerAdded(uint64 indexed accId, address consumer);
     event AccountConsumerRemoved(uint64 indexed accId, address consumer);
     event BurnRatioSet(uint8 ratio);
@@ -92,6 +87,7 @@ contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
     event CoordinatorRemoved(address coordinator);
     event AccountOwnerTransferRequested(uint64 indexed accId, address from, address to);
     event AccountOwnerTransferred(uint64 indexed accId, address from, address to);
+    event BurnedFee(uint64 indexed accId, uint256 amount);
 
     /**
      * @dev The modifier is only for [regular] account. If called with
@@ -398,7 +394,7 @@ contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
             revert FailedToWithdraw();
         }
 
-        emit AccountBalanceDecreased(accId, balance + amount, balance, 0);
+        emit AccountBalanceDecreased(accId, balance + amount, balance);
     }
 
     /**
@@ -418,14 +414,7 @@ contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
     /**
      * @inheritdoc IPrepayment
      */
-    function chargeFee(
-        uint64 accId,
-        uint256 amount
-    )
-        external
-        // address operatorFeeRecipient
-        onlyCoordinator
-    {
+    function chargeFee(uint64 accId, uint256 amount) external onlyCoordinator returns (uint256) {
         Account account = sAccIdToAccount[accId];
         uint256 balance = account.getBalance();
 
@@ -435,21 +424,28 @@ contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
 
         uint256 burnFee = (amount * sBurnFeeRatio) / 100;
         uint256 protocolFee = (amount * sProtocolFeeRatio) / 100;
-
         account.chargeFee(burnFee, protocolFee, sProtocolFeeRecipient);
+
+        emit AccountBalanceDecreased(accId, balance, balance - burnFee - protocolFee);
+        emit BurnedFee(accId, burnFee);
+
+        return amount - burnFee - protocolFee;
     }
 
-    function payOperatorFee(
+    function chargeOperatorFee(
         uint64 accId,
         uint256 operatorFee,
-        address operatorFeeRecipient,
-        uint256 burnFee
+        address operatorFeeRecipient
     ) external onlyCoordinator {
         Account account = sAccIdToAccount[accId];
         uint256 balance = account.getBalance();
 
+        if (balance < operatorFee) {
+            revert InsufficientBalance();
+        }
+
         account.payOperatorFee(operatorFee, operatorFeeRecipient);
-        emit AccountBalanceDecreased(accId, balance, balance - operatorFee, burnFee);
+        emit AccountBalanceDecreased(accId, balance, balance - operatorFee);
     }
 
     /**
@@ -472,13 +468,6 @@ contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
             }
         }
 
-        // if (operatorFee > 0) {
-        //     (bool sent, ) = operatorFeeRecipient.call{value: operatorFee}("");
-        //     if (!sent) {
-        //         revert OperatorFeeFailed();
-        //     }
-        // }
-
         if (protocolFee > 0) {
             (bool sent, ) = sProtocolFeeRecipient.call{value: protocolFee}("");
             if (!sent) {
@@ -486,12 +475,13 @@ contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
             }
         }
 
-        emit AccountBalanceDecreased(accId, amount, 0, burnFee);
+        emit AccountBalanceDecreased(accId, amount, 0);
+        emit BurnedFee(accId, burnFee);
 
         return (amount, operatorFee);
     }
 
-    function payOperatorFeeTemporary(
+    function chargeOperatorFeeTemporary(
         uint256 operatorFee,
         address operatorFeeRecipient
     ) external onlyCoordinator returns (uint256) {

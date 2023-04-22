@@ -254,33 +254,27 @@ contract RequestResponseConsumerMock is
         requestId = COORDINATOR.requestData{value: msg.value}(req, callbackGasLimit, numSubmission);
     }
 
-    function fulfillDataRequestUint256(uint256 /*requestId*/, uint256 response) internal override {
+    function fulfillDataRequest(uint256 /*requestId*/, uint256 response) internal override {
         sResponseUint256 = response;
     }
 
-    function fulfillDataRequestInt256(uint256 /*requestId*/, int256 response) internal override {
+    function fulfillDataRequest(uint256 /*requestId*/, int256 response) internal override {
         sResponseInt256 = response;
     }
 
-    function fulfillDataRequestBool(uint256 /*requestId*/, bool response) internal override {
+    function fulfillDataRequest(uint256 /*requestId*/, bool response) internal override {
         sResponseBool = response;
     }
 
-    function fulfillDataRequestString(
-        uint256 /*requestId*/,
-        string memory response
-    ) internal override {
+    function fulfillDataRequest(uint256 /*requestId*/, string memory response) internal override {
         sResponseString = response;
     }
 
-    function fulfillDataRequestBytes32(uint256 /*requestId*/, bytes32 response) internal override {
+    function fulfillDataRequest(uint256 /*requestId*/, bytes32 response) internal override {
         sResponseBytes32 = response;
     }
 
-    function fulfillDataRequestBytes(
-        uint256 /*requestId*/,
-        bytes memory response
-    ) internal override {
+    function fulfillDataRequest(uint256 /*requestId*/, bytes memory response) internal override {
         sResponseBytes = response;
     }
 }

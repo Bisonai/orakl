@@ -11,14 +11,14 @@ class State {
     prepaymentContract,
     consumerContract,
     coordinatorContract,
-    coordinatorContractOracleSigner
+    coordinatorContractOracleSigners
   ) {
     this.consumerAddress = consumerAddress
 
     this.prepaymentContract = prepaymentContract
     this.consumerContract = consumerContract
     this.coordinatorContract = coordinatorContract
-    this.coordinatorContractOracleSigner = coordinatorContractOracleSigner
+    this.coordinatorContractOracleSigners = coordinatorContractOracleSigners
   }
 
   async initialize(consumerContractName) {

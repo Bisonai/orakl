@@ -52,15 +52,6 @@ const config = {
       default: 1,
       baobab: '0x70997970C51812dc3A010C7d01b50e0d17dc79C8'
     },
-    consumer1: {
-      default: 6
-    },
-    consumer2: {
-      default: 7
-    },
-    account8: {
-      default: 8
-    },
     feedOracle0: {
       default: 2,
       baobab: '0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC'
@@ -73,8 +64,32 @@ const config = {
       default: 4,
       baobab: '0x15d34AAf54267DB7D7c367839AAf71A00a2C6A65'
     },
-    rrOracle0: {
+    consumer1: {
       default: 5
+    },
+    consumer2: {
+      default: 6
+    },
+    account8: {
+      default: 7
+    },
+    rrOracle0: {
+      default: 8
+    },
+    rrOracle1: {
+      default: 9
+    },
+    rrOracle2: {
+      default: 10
+    },
+    rrOracle3: {
+      default: 11
+    },
+    rrOracle4: {
+      default: 12
+    },
+    rrOracle5: {
+      default: 13
     },
     vrfOracle0: {
       default: 18,
