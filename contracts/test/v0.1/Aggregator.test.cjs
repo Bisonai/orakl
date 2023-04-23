@@ -127,9 +127,13 @@ describe('Aggregator', function () {
 
     expect(await aggregatorProxy.aggregator()).to.be.equal(aggregator.address)
 
-    // Read from DataFeedConsumerMock
+    // Read submission from DataFeedConsumerMock ////////////////////////////////
     await dataFeedConsumerMock.getLatestPrice()
     expect(await dataFeedConsumerMock.sPrice()).to.be.equal(11)
     expect(await dataFeedConsumerMock.sRoundID()).to.be.equal('18446744073709551617')
+
+    // Read decimals from DataFeedConsumerMock //////////////////////////////////
+    const { decimals } = aggregatorConfig()
+    expect(await dataFeedConsumerMock.decimals()).to.be.equal(decimals)
   })
 })
