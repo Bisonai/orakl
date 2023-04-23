@@ -70,6 +70,10 @@ async function deploy() {
   aggregatorProxy = await aggregatorProxy.deploy(aggregator.address)
   await aggregatorProxy.deployed()
 
+  // Read configuration of Aggregator & AggregatorProxy
+  expect(await aggregatorProxy.version()).to.be.equal(1)
+  expect(await aggregatorProxy.description()).to.be.equal(description)
+
   // DataFeedConsumerMock ///////////////////////////////////////////////////////
   let dataFeedConsumerMock = await ethers.getContractFactory('DataFeedConsumerMock', {
     signer: consumer.address

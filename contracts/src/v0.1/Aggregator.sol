@@ -66,7 +66,7 @@ contract Aggregator is IAggregator, Ownable {
     uint8 public override decimals;
     string public override description;
 
-    uint256 public constant override version = 3;
+    uint256 public constant override version = 1;
 
     /**
      * @notice To ensure owner isn't withdrawing required funds as oracles are
