@@ -193,9 +193,25 @@ describe('Aggregator', function () {
     await aggregator.connect(aggregatorOracle1).submit(1, 10)
 
     // Read after submitting at least `minSubmissionCount` to proposed aggregator
-    const { id, answer } = await aggregatorProxy.connect(consumer).proposedLatestRoundData()
+    const { id, answer, startedAt, updatedAt, answeredInRound } = await aggregatorProxy
+      .connect(consumer)
+      .proposedLatestRoundData()
     expect(id).to.be.equal(1)
     expect(answer).to.be.equal(10)
+
+    // Read from proposed aggregator by specifing `roundID`
+    const {
+      id: pId,
+      answer: pAnswer,
+      startedAt: pStartedAt,
+      updatedAt: pUpdatedAt,
+      answeredInRound: pAnsweredInRound
+    } = await aggregatorProxy.connect(consumer).proposedGetRoundData(id)
+    expect(id).to.be.equal(pId)
+    expect(answer).to.be.equal(pAnswer)
+    expect(startedAt).to.be.equal(pStartedAt)
+    expect(updatedAt).to.be.equal(pUpdatedAt)
+    expect(answeredInRound).to.be.equal(pAnsweredInRound)
 
     // confirmAggregator ////////////////////////////////////////////////////////
     // Aggregator can be confirmed only by owner
