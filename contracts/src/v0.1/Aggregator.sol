@@ -4,8 +4,8 @@ pragma solidity 0.8.16;
 // https://github.com/smartcontractkit/chainlink/blob/develop/contracts/src/v0.6/FluxAggregator.sol
 
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "./interfaces/AggregatorInterface.sol";
-import "./interfaces/AggregatorValidatorInterface.sol";
+import "./interfaces/IAggregator.sol";
+import "./interfaces/IAggregatorValidator.sol";
 import "./libraries/Median.sol";
 
 /**
@@ -16,7 +16,7 @@ import "./libraries/Median.sol";
  * single answer. The latest aggregated answer is exposed as well as historical
  * answers and their updated at timestamp.
  */
-contract Aggregator is AggregatorInterface, Ownable {
+contract Aggregator is IAggregator, Ownable {
     struct Round {
         int256 answer;
         uint64 startedAt;
@@ -55,7 +55,7 @@ contract Aggregator is AggregatorInterface, Ownable {
         uint256 allocated;
     }
 
-    AggregatorValidatorInterface public validator;
+    IAggregatorValidator public validator;
 
     // Round related params
     uint256 public paymentAmount;
@@ -528,7 +528,7 @@ contract Aggregator is AggregatorInterface, Ownable {
         address previous = address(validator);
 
         if (previous != _newValidator) {
-            validator = AggregatorValidatorInterface(_newValidator);
+            validator = IAggregatorValidator(_newValidator);
 
             emit ValidatorUpdated(previous, _newValidator);
         }
@@ -682,7 +682,7 @@ contract Aggregator is AggregatorInterface, Ownable {
     }
 
     function validateAnswer(uint32 _roundId, int256 _newAnswer) private {
-        AggregatorValidatorInterface av = validator;
+        IAggregatorValidator av = validator;
         if (address(av) == address(0)) return;
 
         uint32 prevRound = _roundId - 1;

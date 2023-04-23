@@ -1,15 +1,15 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.16;
 
-import "../interfaces/AggregatorInterface.sol";
+import "../interfaces/IAggregator.sol";
 
 contract DataFeedConsumerMock {
-    AggregatorInterface internal priceFeed;
+    IAggregator internal priceFeed;
     int256 public s_price;
     uint80 public s_roundID;
 
     constructor(address _aggregatorProxy) {
-        priceFeed = AggregatorInterface(_aggregatorProxy);
+        priceFeed = IAggregator(_aggregatorProxy);
     }
 
     function getLatestPrice() public {

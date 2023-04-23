@@ -4,7 +4,7 @@ pragma solidity ^0.8.16;
 // https://github.com/smartcontractkit/chainlink/blob/develop/contracts/src/v0.7/dev/AggregatorProxy.sol
 
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "./interfaces/AggregatorProxyInterface.sol";
+import "./interfaces/IAggregatorProxy.sol";
 
 /**
  * @title A trusted proxy for updating where current answers are read from
@@ -12,13 +12,13 @@ import "./interfaces/AggregatorProxyInterface.sol";
  * CurrentAnswerInterface but delegates where it reads from to the owner, who is
  * trusted to update it.
  */
-contract AggregatorProxy is AggregatorProxyInterface, Ownable {
+contract AggregatorProxy is IAggregatorProxy, Ownable {
     struct Phase {
         uint16 id;
-        AggregatorProxyInterface aggregator;
+        IAggregatorProxy aggregator;
     }
-    AggregatorProxyInterface private s_proposedAggregator;
-    mapping(uint16 => AggregatorProxyInterface) private s_phaseAggregators;
+    IAggregatorProxy private s_proposedAggregator;
+    mapping(uint16 => IAggregatorProxy) private s_phaseAggregators;
     Phase private s_currentPhase;
 
     uint256 private constant PHASE_OFFSET = 64;
@@ -243,7 +243,7 @@ contract AggregatorProxy is AggregatorProxyInterface, Ownable {
      * @param aggregatorAddress The new address for the aggregator contract
      */
     function proposeAggregator(address aggregatorAddress) external onlyOwner {
-        s_proposedAggregator = AggregatorProxyInterface(aggregatorAddress);
+        s_proposedAggregator = IAggregatorProxy(aggregatorAddress);
         emit AggregatorProposed(address(s_currentPhase.aggregator), aggregatorAddress);
     }
 
@@ -264,8 +264,8 @@ contract AggregatorProxy is AggregatorProxyInterface, Ownable {
 
     function setAggregator(address aggregatorAddress) internal {
         uint16 id = s_currentPhase.id + 1;
-        s_currentPhase = Phase(id, AggregatorProxyInterface(aggregatorAddress));
-        s_phaseAggregators[id] = AggregatorProxyInterface(aggregatorAddress);
+        s_currentPhase = Phase(id, IAggregatorProxy(aggregatorAddress));
+        s_phaseAggregators[id] = IAggregatorProxy(aggregatorAddress);
     }
 
     function addPhase(uint16 phase, uint64 originalId) internal pure returns (uint80) {
