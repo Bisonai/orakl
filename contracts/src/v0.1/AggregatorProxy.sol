@@ -17,9 +17,9 @@ contract AggregatorProxy is IAggregatorProxy, Ownable {
         uint16 id;
         IAggregatorProxy aggregator;
     }
-    IAggregatorProxy private s_proposedAggregator;
-    mapping(uint16 => IAggregatorProxy) private s_phaseAggregators;
-    Phase private s_currentPhase;
+    IAggregatorProxy private sProposedAggregator;
+    mapping(uint16 => IAggregatorProxy) private sPhaseAggregators;
+    Phase private sCurrentPhase;
 
     uint256 private constant PHASE_OFFSET = 64;
     uint256 private constant PHASE_SIZE = 16;
@@ -29,7 +29,7 @@ contract AggregatorProxy is IAggregatorProxy, Ownable {
     event AggregatorConfirmed(address indexed previous, address indexed latest);
 
     modifier hasProposal() {
-        require(address(s_proposedAggregator) != address(0), "No proposed aggregator present");
+        require(address(sProposedAggregator) != address(0), "No proposed aggregator present");
         _;
     }
 
@@ -79,7 +79,7 @@ contract AggregatorProxy is IAggregatorProxy, Ownable {
     {
         (uint16 _phaseId, uint64 aggregatorRoundId) = parseIds(roundId);
 
-        (id, answer, startedAt, updatedAt, answeredInRound) = s_phaseAggregators[_phaseId]
+        (id, answer, startedAt, updatedAt, answeredInRound) = sPhaseAggregators[_phaseId]
             .getRoundData(aggregatorRoundId);
 
         return addPhaseIds(id, answer, startedAt, updatedAt, answeredInRound, _phaseId);
@@ -120,7 +120,7 @@ contract AggregatorProxy is IAggregatorProxy, Ownable {
             uint80 answeredInRound
         )
     {
-        Phase memory current = s_currentPhase; // cache storage reads
+        Phase memory current = sCurrentPhase; // cache storage reads
 
         (id, answer, startedAt, updatedAt, answeredInRound) = current.aggregator.latestRoundData();
 
@@ -155,7 +155,7 @@ contract AggregatorProxy is IAggregatorProxy, Ownable {
             uint80 answeredInRound
         )
     {
-        return s_proposedAggregator.getRoundData(roundId);
+        return sProposedAggregator.getRoundData(roundId);
     }
 
     /**
@@ -183,28 +183,28 @@ contract AggregatorProxy is IAggregatorProxy, Ownable {
             uint80 answeredInRound
         )
     {
-        return s_proposedAggregator.latestRoundData();
+        return sProposedAggregator.latestRoundData();
     }
 
     /**
      * @notice returns the current phase's aggregator address.
      */
     function aggregator() external view override returns (address) {
-        return address(s_currentPhase.aggregator);
+        return address(sCurrentPhase.aggregator);
     }
 
     /**
      * @notice returns the current phase's ID.
      */
     function phaseId() external view override returns (uint16) {
-        return s_currentPhase.id;
+        return sCurrentPhase.id;
     }
 
     /**
      * @notice represents the number of decimals the aggregator responses represent.
      */
     function decimals() external view override returns (uint8) {
-        return s_currentPhase.aggregator.decimals();
+        return sCurrentPhase.aggregator.decimals();
     }
 
     /**
@@ -212,21 +212,21 @@ contract AggregatorProxy is IAggregatorProxy, Ownable {
      * points to.
      */
     function version() external view override returns (uint256) {
-        return s_currentPhase.aggregator.version();
+        return sCurrentPhase.aggregator.version();
     }
 
     /**
      * @notice returns the description of the aggregator the proxy points to.
      */
     function description() external view override returns (string memory) {
-        return s_currentPhase.aggregator.description();
+        return sCurrentPhase.aggregator.description();
     }
 
     /**
      * @notice returns the current proposed aggregator
      */
     function proposedAggregator() external view override returns (address) {
-        return address(s_proposedAggregator);
+        return address(sProposedAggregator);
     }
 
     /**
@@ -235,7 +235,7 @@ contract AggregatorProxy is IAggregatorProxy, Ownable {
      * @param phaseId_ uint16
      */
     function phaseAggregators(uint16 phaseId_) external view override returns (address) {
-        return address(s_phaseAggregators[phaseId_]);
+        return address(sPhaseAggregators[phaseId_]);
     }
 
     /**
@@ -243,8 +243,8 @@ contract AggregatorProxy is IAggregatorProxy, Ownable {
      * @param aggregatorAddress The new address for the aggregator contract
      */
     function proposeAggregator(address aggregatorAddress) external onlyOwner {
-        s_proposedAggregator = IAggregatorProxy(aggregatorAddress);
-        emit AggregatorProposed(address(s_currentPhase.aggregator), aggregatorAddress);
+        sProposedAggregator = IAggregatorProxy(aggregatorAddress);
+        emit AggregatorProposed(address(sCurrentPhase.aggregator), aggregatorAddress);
     }
 
     /**
@@ -255,17 +255,17 @@ contract AggregatorProxy is IAggregatorProxy, Ownable {
      * @param aggregatorAddress The new address for the aggregator contract
      */
     function confirmAggregator(address aggregatorAddress) external onlyOwner {
-        require(aggregatorAddress == address(s_proposedAggregator), "Invalid proposed aggregator");
-        address previousAggregator = address(s_currentPhase.aggregator);
-        delete s_proposedAggregator;
+        require(aggregatorAddress == address(sProposedAggregator), "Invalid proposed aggregator");
+        address previousAggregator = address(sCurrentPhase.aggregator);
+        delete sProposedAggregator;
         setAggregator(aggregatorAddress);
         emit AggregatorConfirmed(previousAggregator, aggregatorAddress);
     }
 
     function setAggregator(address aggregatorAddress) internal {
-        uint16 id = s_currentPhase.id + 1;
-        s_currentPhase = Phase(id, IAggregatorProxy(aggregatorAddress));
-        s_phaseAggregators[id] = IAggregatorProxy(aggregatorAddress);
+        uint16 id = sCurrentPhase.id + 1;
+        sCurrentPhase = Phase(id, IAggregatorProxy(aggregatorAddress));
+        sPhaseAggregators[id] = IAggregatorProxy(aggregatorAddress);
     }
 
     function addPhase(uint16 phase, uint64 originalId) internal pure returns (uint80) {
