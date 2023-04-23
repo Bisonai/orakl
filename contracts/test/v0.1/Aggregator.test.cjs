@@ -26,22 +26,26 @@ async function createSigners() {
   }
 }
 
-async function changeOracles(aggregator, oracles) {
-  const removed = []
-  const added = oracles.map((x) => x.address)
+async function changeOracles(aggregator, removeOracles, addOracles) {
+  const currentOracles = await aggregator.getOracles()
+
+  const removed = removeOracles.map((x) => x.address)
+  const added = addOracles.map((x) => x.address)
   const addedAdmins = added
-  const minSubmissionCount = 2
-  const maxSubmissionCount = oracles.length
+  const maxSubmissionCount = currentOracles.length + addOracles.length - removeOracles.length
+  const minSubmissionCount = Math.min(2, maxSubmissionCount)
   const restartDelay = 0
 
-  await aggregator.changeOracles(
-    removed,
-    added,
-    addedAdmins,
-    minSubmissionCount,
-    maxSubmissionCount,
-    restartDelay
-  )
+  return await (
+    await aggregator.changeOracles(
+      removed,
+      added,
+      addedAdmins,
+      minSubmissionCount,
+      maxSubmissionCount,
+      restartDelay
+    )
+  ).wait()
 }
 
 async function depositToAggregator(aggregator) {
@@ -81,12 +85,6 @@ async function deploy() {
   dataFeedConsumerMock = await dataFeedConsumerMock.deploy(aggregatorProxy.address)
   await dataFeedConsumerMock.deployed()
 
-  // Deposit KLAY to Aggregator /////////////////////////////////////////////////
-  await depositToAggregator(aggregator)
-
-  // Change oracles /////////////////////////////////////////////////////////////
-  await changeOracles(aggregator, [aggregatorOracle0, aggregatorOracle1, aggregatorOracle2])
-
   return { aggregator, aggregatorProxy, dataFeedConsumerMock }
 }
 
@@ -96,6 +94,12 @@ describe('Aggregator', function () {
     const { consumer, aggregatorOracle0, aggregatorOracle1, aggregatorOracle2 } =
       await createSigners()
     const { paymentAmount } = aggregatorConfig()
+
+    // Deposit KLAY to Aggregator /////////////////////////////////////////////////
+    await depositToAggregator(aggregator)
+
+    // Change oracles /////////////////////////////////////////////////////////////
+    await changeOracles(aggregator, [], [aggregatorOracle0, aggregatorOracle1, aggregatorOracle2])
 
     // First submission
     const txReceipt0 = await (await aggregator.connect(aggregatorOracle0).submit(1, 10)).wait()
@@ -162,6 +166,24 @@ describe('Aggregator', function () {
     expect(await dataFeedConsumerMock.decimals()).to.be.equal(decimals)
   })
 
+  it('Remove Oracle', async function () {
+    const { aggregator } = await loadFixture(deploy)
+    const { aggregatorOracle0, aggregatorOracle1 } = await createSigners()
+
+    // Deposit $KLAY to Aggregator contract /////////////////////////////////////
+    await depositToAggregator(aggregator)
+
+    // Add 2 Oracles ////////////////////////////////////////////////////////////
+    await changeOracles(aggregator, [], [aggregatorOracle0, aggregatorOracle1])
+
+    // Remove 1 Oracle //////////////////////////////////////////////////////////
+    await changeOracles(aggregator, [aggregatorOracle0], [])
+
+    const currentOracles = await aggregator.getOracles()
+    expect(currentOracles.length).to.be.equal(1)
+    expect(currentOracles[0]).to.be.equal(aggregatorOracle1.address)
+  })
+
   it('Propose & Confirm Aggregator Through AggregatorProxy', async function () {
     const {
       aggregator: currentAggregator,
@@ -186,7 +208,7 @@ describe('Aggregator', function () {
     await depositToAggregator(aggregator)
 
     // Change oracles /////////////////////////////////////////////////////////////
-    await changeOracles(aggregator, [aggregatorOracle0, aggregatorOracle1])
+    await changeOracles(aggregator, [], [aggregatorOracle0, aggregatorOracle1])
 
     // proposeAggregator ////////////////////////////////////////////////////////
     // Aggregator can be proposed only by owner
