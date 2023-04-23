@@ -47,7 +47,7 @@ contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
     /* Account */
     mapping(uint64 => Account) private sAccIdToAccount;
 
-    mapping(uint64 => bool) sIsTemporaryAccount;
+    mapping(uint64 => bool) private sIsTemporaryAccount;
 
     struct TemporaryAccount {
         uint256 balance;

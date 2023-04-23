@@ -72,7 +72,7 @@ contract RequestResponseCoordinator is
     }
 
     DirectPaymentConfig private sDirectPaymentConfig;
-    mapping(bytes32 => bool) sJobId;
+    mapping(bytes32 => bool) private sJobId;
 
     /* request ID */
     /* number of requested submissions */
