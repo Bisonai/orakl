@@ -5,8 +5,8 @@ import "../interfaces/IAggregator.sol";
 
 contract DataFeedConsumerMock {
     IAggregator internal priceFeed;
-    int256 public s_price;
-    uint80 public s_roundID;
+    int256 public sPrice;
+    uint80 public sRoundID;
 
     constructor(address _aggregatorProxy) {
         priceFeed = IAggregator(_aggregatorProxy);
@@ -20,8 +20,8 @@ contract DataFeedConsumerMock {
             ,
 
         ) = priceFeed.latestRoundData();
-        s_price = price;
-        s_roundID = roundID;
+        sPrice = price;
+        sRoundID = roundID;
     }
 
     function decimals() public view returns (uint8) {

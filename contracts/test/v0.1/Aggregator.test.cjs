@@ -8,16 +8,18 @@ async function contractBalance(contract) {
 }
 
 async function createSigners() {
-  let { deployer, aggregatorOracle0, aggregatorOracle1, aggregatorOracle2 } =
+  let { deployer, consumer, aggregatorOracle0, aggregatorOracle1, aggregatorOracle2 } =
     await hre.getNamedAccounts()
 
   deployer = await ethers.getSigner(deployer)
+  consumer = await ethers.getSigner(consumer)
   aggregatorOracle0 = await ethers.getSigner(aggregatorOracle0)
   aggregatorOracle1 = await ethers.getSigner(aggregatorOracle1)
   aggregatorOracle2 = await ethers.getSigner(aggregatorOracle2)
 
   return {
     deployer,
+    consumer,
     aggregatorOracle0,
     aggregatorOracle1,
     aggregatorOracle2
@@ -43,7 +45,7 @@ async function changeOracles(aggregator, oracles) {
 }
 
 async function deploy() {
-  const { deployer, aggregatorOracle0, aggregatorOracle1, aggregatorOracle2 } =
+  const { deployer, consumer, aggregatorOracle0, aggregatorOracle1, aggregatorOracle2 } =
     await createSigners()
   const { paymentAmount, timeout, validator, decimals, description } = aggregatorConfig()
 
@@ -59,6 +61,13 @@ async function deploy() {
   aggregatorProxy = await aggregatorProxy.deploy(aggregator.address)
   await aggregatorProxy.deployed()
 
+  // DataFeedConsumerMock ///////////////////////////////////////////////////////
+  let dataFeedConsumerMock = await ethers.getContractFactory('DataFeedConsumerMock', {
+    signer: consumer.address
+  })
+  dataFeedConsumerMock = await dataFeedConsumerMock.deploy(aggregatorProxy.address)
+  await dataFeedConsumerMock.deployed()
+
   // Deposit KLAY to Aggregator /////////////////////////////////////////////////
   const beforeBalance = await contractBalance(aggregator.address)
   expect(Number(beforeBalance)).to.be.equal(0)
@@ -70,12 +79,12 @@ async function deploy() {
   // Change oracles /////////////////////////////////////////////////////////////
   await changeOracles(aggregator, [aggregatorOracle0, aggregatorOracle1, aggregatorOracle2])
 
-  return { aggregator, aggregatorProxy }
+  return { aggregator, aggregatorProxy, dataFeedConsumerMock }
 }
 
 describe('Aggregator', function () {
-  it('Should accept submissions', async function () {
-    const { aggregator, aggregatorProxy } = await loadFixture(deploy)
+  it('Submit response', async function () {
+    const { aggregator, aggregatorProxy, dataFeedConsumerMock } = await loadFixture(deploy)
     const { aggregatorOracle0, aggregatorOracle1, aggregatorOracle2 } = await createSigners()
     const { paymentAmount } = aggregatorConfig()
 
@@ -91,7 +100,7 @@ describe('Aggregator', function () {
     expect(txReceipt1.events[0].event).to.be.equal('SubmissionReceived')
     expect(txReceipt1.events[1].event).to.be.equal('AnswerUpdated')
     const { current: current1 } = txReceipt1.events[1].args
-    expect(Number(current1)).to.be.equal(10)
+    expect(current1).to.be.equal(10)
     expect(txReceipt1.events[2].event).to.be.equal('AvailableFundsUpdated')
 
     // third submission
@@ -99,23 +108,28 @@ describe('Aggregator', function () {
     expect(txReceipt2.events[0].event).to.be.equal('SubmissionReceived')
     expect(txReceipt2.events[1].event).to.be.equal('AnswerUpdated')
     const { current: current2 } = txReceipt2.events[1].args
-    expect(Number(current2)).to.be.equal(11)
+    expect(current2).to.be.equal(11)
     expect(txReceipt2.events[2].event).to.be.equal('AvailableFundsUpdated')
 
     const withdrawablePayment0 = await aggregator.withdrawablePayment(aggregatorOracle0.address)
     const withdrawablePayment1 = await aggregator.withdrawablePayment(aggregatorOracle1.address)
     const withdrawablePayment2 = await aggregator.withdrawablePayment(aggregatorOracle2.address)
 
-    expect(Number(withdrawablePayment0)).to.be.equal(paymentAmount)
-    expect(Number(withdrawablePayment1)).to.be.equal(paymentAmount)
-    expect(Number(withdrawablePayment2)).to.be.equal(paymentAmount)
+    expect(withdrawablePayment0).to.be.equal(paymentAmount)
+    expect(withdrawablePayment1).to.be.equal(paymentAmount)
+    expect(withdrawablePayment2).to.be.equal(paymentAmount)
 
     const { answer } = await aggregatorProxy.latestRoundData()
-    expect(Number(answer)).to.be.equal(11)
+    expect(answer).to.be.equal(11)
 
     const proposedAggregator = await aggregatorProxy.proposedAggregator()
     expect(proposedAggregator).to.be.equal(ethers.constants.AddressZero)
 
     expect(await aggregatorProxy.aggregator()).to.be.equal(aggregator.address)
+
+    // Read from DataFeedConsumerMock
+    await dataFeedConsumerMock.getLatestPrice()
+    expect(await dataFeedConsumerMock.sPrice()).to.be.equal(11)
+    expect(await dataFeedConsumerMock.sRoundID()).to.be.equal('18446744073709551617')
   })
 })
