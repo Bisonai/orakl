@@ -74,6 +74,7 @@ contract Aggregator is IAggregator, Ownable {
     address[] private oracleAddresses;
 
     error OracleAlreadyEnabled();
+    error OffChainReadingOnly();
 
     event RoundDetailsUpdated(
         uint32 indexed minSubmissionCount,
@@ -335,7 +336,9 @@ contract Aggregator is IAggregator, Ownable {
             uint8 _oracleCount
         )
     {
-        require(msg.sender == tx.origin, "off-chain reading only");
+        if (msg.sender != tx.origin) {
+            revert OffChainReadingOnly();
+        }
 
         if (_queriedRoundId > 0) {
             Round storage round = rounds[_queriedRoundId];

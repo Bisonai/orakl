@@ -272,4 +272,36 @@ describe('Aggregator', function () {
     expect(await aggregatorProxy.phaseAggregators(1)).to.be.equal(current)
     expect(await aggregatorProxy.phaseAggregators(2)).to.be.equal(proposed)
   })
+
+  it('oracleRoundState', async function () {
+    const { aggregator } = await loadFixture(deploy)
+    const { aggregatorOracle0, aggregatorOracle1 } = await createSigners()
+
+    // Add Oracle ///////////////////////////////////////////////////////////////
+    await changeOracles(aggregator, [], [aggregatorOracle0])
+
+    // State of oracle before the first submission
+    const { _roundId, _latestSubmission, _startedAt, _timeout, _oracleCount } =
+      await aggregator.oracleRoundState(aggregatorOracle0.address, 0)
+    expect(_roundId).to.be.equal(1)
+    expect(_latestSubmission).to.be.equal(0)
+    expect(_startedAt).to.be.equal(0)
+    expect(_timeout).to.be.equal(0)
+    expect(_oracleCount).to.be.equal(1)
+
+    // Submit to aggregator
+    const roundId = 1
+    const submission = 10
+    await aggregator.connect(aggregatorOracle0).submit(roundId, submission)
+
+    // State of oracle after the first submission
+    const {
+      _roundId: fRoundId,
+      _latestSubmission: fLatestSubmission,
+      _oracleCount: fOracleCount
+    } = await aggregator.oracleRoundState(aggregatorOracle0.address, roundId)
+    expect(fRoundId).to.be.equal(roundId)
+    expect(fLatestSubmission).to.be.equal(submission)
+    expect(fOracleCount).to.be.equal(1)
+  })
 })
