@@ -5,23 +5,31 @@ import "../interfaces/IAggregator.sol";
 
 contract DataFeedConsumerMock {
     IAggregator internal priceFeed;
-    int256 public sPrice;
-    uint80 public sRoundID;
+
+    uint80 public sId;
+    int256 public sAnswer;
+    uint256 public sStartedAt;
+    uint256 public sUpdatedAt;
+    uint80 public sAnsweredInRound;
 
     constructor(address _aggregatorProxy) {
         priceFeed = IAggregator(_aggregatorProxy);
     }
 
-    function getLatestPrice() public {
+    function getLatestRoundData() public {
         (
-            uint80 roundID,
-            int256 price /*uint startedAt*/ /*uint timeStamp*/ /*uint80 answeredInRound*/,
-            ,
-            ,
-
+            uint80 id,
+            int256 answer,
+            uint256 startedAt,
+            uint256 updatedAt,
+            uint80 answeredInRound
         ) = priceFeed.latestRoundData();
-        sPrice = price;
-        sRoundID = roundID;
+
+        sId = id;
+        sAnswer = answer;
+        sStartedAt = startedAt;
+        sUpdatedAt = updatedAt;
+        sAnsweredInRound = answeredInRound;
     }
 
     function decimals() public view returns (uint8) {

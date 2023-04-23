@@ -89,7 +89,8 @@ async function deploy() {
 describe('Aggregator', function () {
   it('Submit response', async function () {
     const { aggregator, aggregatorProxy, dataFeedConsumerMock } = await loadFixture(deploy)
-    const { aggregatorOracle0, aggregatorOracle1, aggregatorOracle2 } = await createSigners()
+    const { consumer, aggregatorOracle0, aggregatorOracle1, aggregatorOracle2 } =
+      await createSigners()
     const { paymentAmount } = aggregatorConfig()
 
     // First submission
@@ -132,9 +133,25 @@ describe('Aggregator', function () {
     expect(await aggregatorProxy.aggregator()).to.be.equal(aggregator.address)
 
     // Read submission from DataFeedConsumerMock ////////////////////////////////
-    await dataFeedConsumerMock.getLatestPrice()
-    expect(await dataFeedConsumerMock.sPrice()).to.be.equal(11)
-    expect(await dataFeedConsumerMock.sRoundID()).to.be.equal('18446744073709551617')
+    await dataFeedConsumerMock.getLatestRoundData()
+    const sId = await dataFeedConsumerMock.sId()
+    const sAnswer = await dataFeedConsumerMock.sAnswer()
+    expect(sId).to.be.equal('18446744073709551617')
+    expect(sAnswer).to.be.equal(11)
+
+    // Read from aggregator proxy by specifying `roundID`
+    const {
+      id: pId,
+      answer: pAnswer,
+      startedAt: pStartedAt,
+      updatedAt: pUpdatedAt,
+      answeredInRound: pAnsweredInRound
+    } = await aggregatorProxy.connect(consumer).getRoundData(sId)
+    expect(pId).to.be.equal(sId)
+    expect(pAnswer).to.be.equal(sAnswer)
+    expect(pStartedAt).to.be.equal(await dataFeedConsumerMock.sStartedAt())
+    expect(pUpdatedAt).to.be.equal(await dataFeedConsumerMock.sUpdatedAt())
+    expect(pAnsweredInRound).to.be.equal(await dataFeedConsumerMock.sAnsweredInRound())
 
     // Read decimals from DataFeedConsumerMock //////////////////////////////////
     const { decimals } = aggregatorConfig()
