@@ -241,6 +241,10 @@ describe('Aggregator', function () {
       aggregatorProxy.confirmAggregator(invalidAggregator.address)
     ).to.be.revertedWithCustomError(aggregatorProxy, 'InvalidProposedAggregator')
 
+    // The initial `phaseId` is equal to 1
+    const currentPhaseId = 1
+    expect(await aggregatorProxy.phaseId()).to.be.equal(currentPhaseId)
+
     // Confirm aggregator with contract owner
     const confirmAggregatorTx = await (
       await aggregatorProxy.confirmAggregator(aggregator.address)
@@ -251,5 +255,8 @@ describe('Aggregator', function () {
     const { previous, latest } = confirmAggregatorEvent.args
     expect(previous).to.be.equal(currentAggregator.address)
     expect(latest).to.be.equal(aggregator.address)
+
+    // `phaseId` is increased by 1 after confirming the new aggregator
+    expect(await aggregatorProxy.phaseId()).to.be.equal(currentPhaseId + 1)
   })
 })
