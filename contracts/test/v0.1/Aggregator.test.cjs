@@ -136,4 +136,54 @@ describe('Aggregator', function () {
     const { decimals } = aggregatorConfig()
     expect(await dataFeedConsumerMock.decimals()).to.be.equal(decimals)
   })
+
+  it('Propose & Confirm Aggregator Through AggregatorProxy', async function () {
+    const { aggregator: currentAggregator, aggregatorProxy } = await loadFixture(deploy)
+    const { deployer, consumer, aggregatorOracle0: invalidAggregator } = await createSigners()
+
+    // Aggregator /////////////////////////////////////////////////////////////////
+    const { paymentAmount, timeout, validator, decimals, description } = aggregatorConfig()
+    let aggregator = await ethers.getContractFactory('Aggregator', { signer: deployer.address })
+    aggregator = await aggregator.deploy(paymentAmount, timeout, validator, decimals, description)
+    await aggregator.deployed()
+
+    // proposeAggregator ////////////////////////////////////////////////////////
+    // Aggregator can be proposed only by owner
+    await expect(
+      aggregatorProxy.connect(consumer).proposeAggregator(aggregator.address)
+    ).to.be.revertedWith('Ownable: caller is not the owner')
+
+    // Propose aggregator with contract owner
+    const proposeAggregatorTx = await (
+      await aggregatorProxy.proposeAggregator(aggregator.address)
+    ).wait()
+    expect(proposeAggregatorTx.events.length).to.be.equal(1)
+    const proposeAggregatorEvent = aggregatorProxy.interface.parseLog(proposeAggregatorTx.events[0])
+    expect(proposeAggregatorEvent.name).to.be.equal('AggregatorProposed')
+    const { current, proposed } = proposeAggregatorEvent.args
+    expect(current).to.be.equal(currentAggregator.address)
+    expect(proposed).to.be.equal(aggregator.address)
+
+    // confirmAggregator ////////////////////////////////////////////////////////
+    // Aggregator can be confirmed only by owner
+    expect(
+      aggregatorProxy.connect(consumer).confirmAggregator(aggregator.address)
+    ).to.be.revertedWith('Ownable: caller is not the owner')
+
+    // Owner must pass proposed aggregator address, otherwise reverts
+    await expect(
+      aggregatorProxy.confirmAggregator(invalidAggregator.address)
+    ).to.be.revertedWithCustomError(aggregatorProxy, 'InvalidProposedAggregator')
+
+    // Confirm aggregator with contract owner
+    const confirmAggregatorTx = await (
+      await aggregatorProxy.confirmAggregator(aggregator.address)
+    ).wait()
+    expect(confirmAggregatorTx.events.length).to.be.equal(1)
+    const confirmAggregatorEvent = aggregatorProxy.interface.parseLog(confirmAggregatorTx.events[0])
+    expect(confirmAggregatorEvent.name).to.be.equal('AggregatorConfirmed')
+    const { previous, latest } = confirmAggregatorEvent.args
+    expect(previous).to.be.equal(currentAggregator.address)
+    expect(latest).to.be.equal(aggregator.address)
+  })
 })

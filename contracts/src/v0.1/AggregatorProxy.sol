@@ -25,6 +25,8 @@ contract AggregatorProxy is IAggregatorProxy, Ownable {
     uint256 private constant PHASE_SIZE = 16;
     uint256 private constant MAX_ID = 2 ** (PHASE_OFFSET + PHASE_SIZE) - 1;
 
+    error InvalidProposedAggregator();
+
     event AggregatorProposed(address indexed current, address indexed proposed);
     event AggregatorConfirmed(address indexed previous, address indexed latest);
 
@@ -255,7 +257,9 @@ contract AggregatorProxy is IAggregatorProxy, Ownable {
      * @param aggregatorAddress The new address for the aggregator contract
      */
     function confirmAggregator(address aggregatorAddress) external onlyOwner {
-        require(aggregatorAddress == address(sProposedAggregator), "Invalid proposed aggregator");
+        if (aggregatorAddress != address(sProposedAggregator)) {
+            revert InvalidProposedAggregator();
+        }
         address previousAggregator = address(sCurrentPhase.aggregator);
         delete sProposedAggregator;
         setAggregator(aggregatorAddress);
