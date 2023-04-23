@@ -31,7 +31,6 @@ async function changeOracles(aggregator, removeOracles, addOracles) {
 
   const removed = removeOracles.map((x) => x.address)
   const added = addOracles.map((x) => x.address)
-  const addedAdmins = added
   const maxSubmissionCount = currentOracles.length + addOracles.length - removeOracles.length
   const minSubmissionCount = Math.min(2, maxSubmissionCount)
   const restartDelay = 0
@@ -40,7 +39,6 @@ async function changeOracles(aggregator, removeOracles, addOracles) {
     await aggregator.changeOracles(
       removed,
       added,
-      addedAdmins,
       minSubmissionCount,
       maxSubmissionCount,
       restartDelay
@@ -48,23 +46,14 @@ async function changeOracles(aggregator, removeOracles, addOracles) {
   ).wait()
 }
 
-async function depositToAggregator(aggregator) {
-  const beforeBalance = await contractBalance(aggregator.address)
-  expect(Number(beforeBalance)).to.be.equal(0)
-  const value = ethers.utils.parseEther('1.0')
-  await aggregator.deposit({ value })
-  const afterBalance = await await contractBalance(aggregator.address)
-  expect(afterBalance).to.be.equal(value)
-}
-
 async function deploy() {
   const { deployer, consumer, aggregatorOracle0, aggregatorOracle1, aggregatorOracle2 } =
     await createSigners()
-  const { paymentAmount, timeout, validator, decimals, description } = aggregatorConfig()
+  const { timeout, validator, decimals, description } = aggregatorConfig()
 
   // Aggregator /////////////////////////////////////////////////////////////////
   let aggregator = await ethers.getContractFactory('Aggregator', { signer: deployer.address })
-  aggregator = await aggregator.deploy(paymentAmount, timeout, validator, decimals, description)
+  aggregator = await aggregator.deploy(timeout, validator, decimals, description)
   await aggregator.deployed()
 
   // AggregatorProxy ////////////////////////////////////////////////////////////
@@ -93,20 +82,15 @@ describe('Aggregator', function () {
     const { aggregator, aggregatorProxy, dataFeedConsumerMock } = await loadFixture(deploy)
     const { consumer, aggregatorOracle0, aggregatorOracle1, aggregatorOracle2 } =
       await createSigners()
-    const { paymentAmount } = aggregatorConfig()
-
-    // Deposit KLAY to Aggregator /////////////////////////////////////////////////
-    await depositToAggregator(aggregator)
 
     // Change oracles /////////////////////////////////////////////////////////////
     await changeOracles(aggregator, [], [aggregatorOracle0, aggregatorOracle1, aggregatorOracle2])
 
     // First submission
     const txReceipt0 = await (await aggregator.connect(aggregatorOracle0).submit(1, 10)).wait()
-    expect(txReceipt0.events.length).to.be.equal(3)
+    expect(txReceipt0.events.length).to.be.equal(2)
     expect(txReceipt0.events[0].event).to.be.equal('NewRound')
     expect(txReceipt0.events[1].event).to.be.equal('SubmissionReceived')
-    expect(txReceipt0.events[2].event).to.be.equal('AvailableFundsUpdated')
 
     // second submission
     const txReceipt1 = await (await aggregator.connect(aggregatorOracle1).submit(1, 11)).wait()
@@ -114,7 +98,6 @@ describe('Aggregator', function () {
     expect(txReceipt1.events[1].event).to.be.equal('AnswerUpdated')
     const { current: current1 } = txReceipt1.events[1].args
     expect(current1).to.be.equal(10)
-    expect(txReceipt1.events[2].event).to.be.equal('AvailableFundsUpdated')
 
     // third submission
     const txReceipt2 = await (await aggregator.connect(aggregatorOracle2).submit(1, 12)).wait()
@@ -122,15 +105,6 @@ describe('Aggregator', function () {
     expect(txReceipt2.events[1].event).to.be.equal('AnswerUpdated')
     const { current: current2 } = txReceipt2.events[1].args
     expect(current2).to.be.equal(11)
-    expect(txReceipt2.events[2].event).to.be.equal('AvailableFundsUpdated')
-
-    const withdrawablePayment0 = await aggregator.withdrawablePayment(aggregatorOracle0.address)
-    const withdrawablePayment1 = await aggregator.withdrawablePayment(aggregatorOracle1.address)
-    const withdrawablePayment2 = await aggregator.withdrawablePayment(aggregatorOracle2.address)
-
-    expect(withdrawablePayment0).to.be.equal(paymentAmount)
-    expect(withdrawablePayment1).to.be.equal(paymentAmount)
-    expect(withdrawablePayment2).to.be.equal(paymentAmount)
 
     const { answer } = await aggregatorProxy.latestRoundData()
     expect(answer).to.be.equal(11)
@@ -170,9 +144,6 @@ describe('Aggregator', function () {
     const { aggregator } = await loadFixture(deploy)
     const { aggregatorOracle0, aggregatorOracle1 } = await createSigners()
 
-    // Deposit $KLAY to Aggregator contract /////////////////////////////////////
-    await depositToAggregator(aggregator)
-
     // Add 2 Oracles ////////////////////////////////////////////////////////////
     await changeOracles(aggregator, [], [aggregatorOracle0, aggregatorOracle1])
 
@@ -188,22 +159,12 @@ describe('Aggregator', function () {
     const { aggregator } = await loadFixture(deploy)
     const { aggregatorOracle0, aggregatorOracle1 } = await createSigners()
 
-    // Deposit $KLAY to Aggregator contract /////////////////////////////////////
-    await depositToAggregator(aggregator)
-
     // Add Oracle ///////////////////////////////////////////////////////////////
     await changeOracles(aggregator, [], [aggregatorOracle0])
 
     // Cannot add the same oracle twice
     await expect(
-      aggregator.changeOracles(
-        [],
-        [aggregatorOracle0.address],
-        [aggregatorOracle0.address],
-        1,
-        2,
-        0
-      )
+      aggregator.changeOracles([], [aggregatorOracle0.address], 1, 2, 0)
     ).to.be.revertedWithCustomError(aggregator, 'OracleAlreadyEnabled')
   })
 
@@ -222,13 +183,10 @@ describe('Aggregator', function () {
     } = await createSigners()
 
     // Aggregator /////////////////////////////////////////////////////////////////
-    const { paymentAmount, timeout, validator, decimals, description } = aggregatorConfig()
+    const { timeout, validator, decimals, description } = aggregatorConfig()
     let aggregator = await ethers.getContractFactory('Aggregator', { signer: deployer.address })
-    aggregator = await aggregator.deploy(paymentAmount, timeout, validator, decimals, description)
+    aggregator = await aggregator.deploy(timeout, validator, decimals, description)
     await aggregator.deployed()
-
-    // Deposit $KLAY to Aggregator contract /////////////////////////////////////
-    await depositToAggregator(aggregator)
 
     // Change oracles /////////////////////////////////////////////////////////////
     await changeOracles(aggregator, [], [aggregatorOracle0, aggregatorOracle1])
