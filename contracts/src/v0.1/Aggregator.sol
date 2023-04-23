@@ -93,6 +93,7 @@ contract Aggregator is IAggregator, Ownable {
     Funds private recordedFunds;
 
     error InsufficientBalance();
+    error OracleAlreadyEnabled();
 
     event AvailableFundsUpdated(uint256 indexed amount);
     event RoundDetailsUpdated(
@@ -753,8 +754,9 @@ contract Aggregator is IAggregator, Ownable {
     }
 
     function addOracle(address _oracle, address _admin) private {
-        require(!oracleEnabled(_oracle), "oracle already enabled");
-
+        if (oracleEnabled(_oracle)) {
+            revert OracleAlreadyEnabled();
+        }
         require(_admin != address(0), "cannot set admin to 0");
         require(
             oracles[_oracle].admin == address(0) || oracles[_oracle].admin == _admin,

@@ -184,6 +184,29 @@ describe('Aggregator', function () {
     expect(currentOracles[0]).to.be.equal(aggregatorOracle1.address)
   })
 
+  it('addOracle assertions', async function () {
+    const { aggregator } = await loadFixture(deploy)
+    const { aggregatorOracle0, aggregatorOracle1 } = await createSigners()
+
+    // Deposit $KLAY to Aggregator contract /////////////////////////////////////
+    await depositToAggregator(aggregator)
+
+    // Add Oracle ///////////////////////////////////////////////////////////////
+    await changeOracles(aggregator, [], [aggregatorOracle0])
+
+    // Cannot add the same oracle twice
+    await expect(
+      aggregator.changeOracles(
+        [],
+        [aggregatorOracle0.address],
+        [aggregatorOracle0.address],
+        1,
+        2,
+        0
+      )
+    ).to.be.revertedWithCustomError(aggregator, 'OracleAlreadyEnabled')
+  })
+
   it('Propose & Confirm Aggregator Through AggregatorProxy', async function () {
     const {
       aggregator: currentAggregator,
