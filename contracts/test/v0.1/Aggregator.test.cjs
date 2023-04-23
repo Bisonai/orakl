@@ -258,5 +258,11 @@ describe('Aggregator', function () {
 
     // `phaseId` is increased by 1 after confirming the new aggregator
     expect(await aggregatorProxy.phaseId()).to.be.equal(currentPhaseId + 1)
+
+    // Every Aggregator address that has been connected with
+    // AggregatorProxy is stored in mapping and can be accessed through
+    // `phaseAggregators` by specifing the `phaseId`.
+    expect(await aggregatorProxy.phaseAggregators(1)).to.be.equal(current)
+    expect(await aggregatorProxy.phaseAggregators(2)).to.be.equal(proposed)
   })
 })
