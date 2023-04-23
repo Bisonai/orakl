@@ -44,6 +44,15 @@ async function changeOracles(aggregator, oracles) {
   )
 }
 
+async function depositToAggregator(aggregator) {
+  const beforeBalance = await contractBalance(aggregator.address)
+  expect(Number(beforeBalance)).to.be.equal(0)
+  const value = ethers.utils.parseEther('1.0')
+  await aggregator.deposit({ value })
+  const afterBalance = await await contractBalance(aggregator.address)
+  expect(afterBalance).to.be.equal(value)
+}
+
 async function deploy() {
   const { deployer, consumer, aggregatorOracle0, aggregatorOracle1, aggregatorOracle2 } =
     await createSigners()
@@ -69,12 +78,7 @@ async function deploy() {
   await dataFeedConsumerMock.deployed()
 
   // Deposit KLAY to Aggregator /////////////////////////////////////////////////
-  const beforeBalance = await contractBalance(aggregator.address)
-  expect(Number(beforeBalance)).to.be.equal(0)
-  const value = ethers.utils.parseEther('1.0')
-  await aggregator.deposit({ value })
-  const afterBalance = await await contractBalance(aggregator.address)
-  expect(afterBalance).to.be.equal(value)
+  await depositToAggregator(aggregator)
 
   // Change oracles /////////////////////////////////////////////////////////////
   await changeOracles(aggregator, [aggregatorOracle0, aggregatorOracle1, aggregatorOracle2])
@@ -138,14 +142,30 @@ describe('Aggregator', function () {
   })
 
   it('Propose & Confirm Aggregator Through AggregatorProxy', async function () {
-    const { aggregator: currentAggregator, aggregatorProxy } = await loadFixture(deploy)
-    const { deployer, consumer, aggregatorOracle0: invalidAggregator } = await createSigners()
+    const {
+      aggregator: currentAggregator,
+      aggregatorProxy,
+      dataFeedConsumerMock
+    } = await loadFixture(deploy)
+    const {
+      deployer,
+      consumer,
+      aggregatorOracle0,
+      aggregatorOracle1,
+      aggregatorOracle2: invalidAggregator
+    } = await createSigners()
 
     // Aggregator /////////////////////////////////////////////////////////////////
     const { paymentAmount, timeout, validator, decimals, description } = aggregatorConfig()
     let aggregator = await ethers.getContractFactory('Aggregator', { signer: deployer.address })
     aggregator = await aggregator.deploy(paymentAmount, timeout, validator, decimals, description)
     await aggregator.deployed()
+
+    // Deposit $KLAY to Aggregator contract /////////////////////////////////////
+    await depositToAggregator(aggregator)
+
+    // Change oracles /////////////////////////////////////////////////////////////
+    await changeOracles(aggregator, [aggregatorOracle0, aggregatorOracle1])
 
     // proposeAggregator ////////////////////////////////////////////////////////
     // Aggregator can be proposed only by owner
@@ -163,6 +183,19 @@ describe('Aggregator', function () {
     const { current, proposed } = proposeAggregatorEvent.args
     expect(current).to.be.equal(currentAggregator.address)
     expect(proposed).to.be.equal(aggregator.address)
+
+    // proposedLatestRoundData //////////////////////////////////////////////////
+    // If no data has been submitted to proposed yet, reading from proxy reverts
+    await expect(aggregatorProxy.connect(consumer).proposedLatestRoundData()).to.be.revertedWith(
+      'No data present'
+    )
+    await aggregator.connect(aggregatorOracle0).submit(1, 10)
+    await aggregator.connect(aggregatorOracle1).submit(1, 10)
+
+    // Read after submitting at least `minSubmissionCount` to proposed aggregator
+    const { id, answer } = await aggregatorProxy.connect(consumer).proposedLatestRoundData()
+    expect(id).to.be.equal(1)
+    expect(answer).to.be.equal(10)
 
     // confirmAggregator ////////////////////////////////////////////////////////
     // Aggregator can be confirmed only by owner
