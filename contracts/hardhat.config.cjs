@@ -92,8 +92,16 @@ const config = {
       default: 13
     },
     vrfOracle0: {
-      default: 18,
-      baobab: '0xdd2fd4581271e230360230f9337d5c0430bf44c0'
+      default: 14
+    },
+    aggregatorOracle0: {
+      default: 15
+    },
+    aggregatorOracle1: {
+      default: 16
+    },
+    aggregatorOracle2: {
+      default: 17
     }
   }
 }

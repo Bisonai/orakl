@@ -1,80 +1,93 @@
 const { expect } = require('chai')
 const { ethers } = require('hardhat')
-
-let aggregator
-let aggregatorProxy
-const _paymentAmount = 1
-
-const _minSubmissionCount = 2
-const _maxSubmissionCount = 3
-
-let owner
-let account0
-let account1
-let account2
+const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers')
+const { aggregatorConfig } = require('./Aggregator.config.cjs')
 
 async function contractBalance(contract) {
   return await ethers.provider.getBalance(contract)
 }
 
-describe('Aggregator', function () {
-  beforeEach(async function () {
-    ;[owner, account0, account1, account2] = await ethers.getSigners()
+async function createSigners() {
+  let { deployer, aggregatorOracle0, aggregatorOracle1, aggregatorOracle2 } =
+    await hre.getNamedAccounts()
 
-    // Aggregator
-    aggregator = await ethers.getContractFactory('Aggregator')
+  deployer = await ethers.getSigner(deployer)
+  aggregatorOracle0 = await ethers.getSigner(aggregatorOracle0)
+  aggregatorOracle1 = await ethers.getSigner(aggregatorOracle1)
+  aggregatorOracle2 = await ethers.getSigner(aggregatorOracle2)
 
-    const _timeout = 10
-    const _validator = ethers.constants.AddressZero // no validator
-    const _decimals = 18
-    const _description = 'Test Aggregator'
+  return {
+    deployer,
+    aggregatorOracle0,
+    aggregatorOracle1,
+    aggregatorOracle2
+  }
+}
 
-    aggregator = await aggregator.deploy(
-      _paymentAmount,
-      _timeout,
-      _validator,
-      _decimals,
-      _description
-    )
-    await aggregator.deployed()
+async function changeOracles(aggregator, oracles) {
+  const removed = []
+  const added = oracles.map((x) => x.address)
+  const addedAdmins = added
+  const minSubmissionCount = 2
+  const maxSubmissionCount = oracles.length
+  const restartDelay = 0
 
-    // AggregatorProxy
-    aggregatorProxy = await ethers.getContractFactory('AggregatorProxy')
-    aggregatorProxy = await aggregatorProxy.deploy(aggregator.address)
+  await aggregator.changeOracles(
+    removed,
+    added,
+    addedAdmins,
+    minSubmissionCount,
+    maxSubmissionCount,
+    restartDelay
+  )
+}
 
-    // Deposit KLAY to Aggregator
-    const beforeBalance = await contractBalance(aggregator.address)
-    expect(Number(beforeBalance)).to.be.equal(0)
-    const value = ethers.utils.parseEther('1.0')
-    await aggregator.deposit({ value })
-    const afterBalance = await await contractBalance(aggregator.address)
-    expect(afterBalance).to.be.equal(value)
+async function deploy() {
+  const { deployer, aggregatorOracle0, aggregatorOracle1, aggregatorOracle2 } =
+    await createSigners()
+  const { paymentAmount, timeout, validator, decimals, description } = aggregatorConfig()
 
-    // Register oracles
-    const _removed = []
-    const _added = [account0.address, account1.address, account2.address]
-    const _addedAdmins = [account0.address, account1.address, account2.address]
-    const _restartDelay = 0
+  // Aggregator /////////////////////////////////////////////////////////////////
+  let aggregator = await ethers.getContractFactory('Aggregator', { signer: deployer.address })
+  aggregator = await aggregator.deploy(paymentAmount, timeout, validator, decimals, description)
+  await aggregator.deployed()
 
-    await aggregator.changeOracles(
-      _removed,
-      _added,
-      _addedAdmins,
-      _minSubmissionCount,
-      _maxSubmissionCount,
-      _restartDelay
-    )
+  // AggregatorProxy ////////////////////////////////////////////////////////////
+  let aggregatorProxy = await ethers.getContractFactory('AggregatorProxy', {
+    signer: deployer.address
   })
+  aggregatorProxy = await aggregatorProxy.deploy(aggregator.address)
+  await aggregatorProxy.deployed()
 
+  // Deposit KLAY to Aggregator /////////////////////////////////////////////////
+  const beforeBalance = await contractBalance(aggregator.address)
+  expect(Number(beforeBalance)).to.be.equal(0)
+  const value = ethers.utils.parseEther('1.0')
+  await aggregator.deposit({ value })
+  const afterBalance = await await contractBalance(aggregator.address)
+  expect(afterBalance).to.be.equal(value)
+
+  // Change oracles /////////////////////////////////////////////////////////////
+  await changeOracles(aggregator, [aggregatorOracle0, aggregatorOracle1, aggregatorOracle2])
+
+  return { aggregator, aggregatorProxy }
+}
+
+describe('Aggregator', function () {
   it('Should accept submissions', async function () {
-    // first submission
-    const txReceipt0 = await (await aggregator.connect(account0).submit(1, 10)).wait()
+    const { aggregator, aggregatorProxy } = await loadFixture(deploy)
+    const { aggregatorOracle0, aggregatorOracle1, aggregatorOracle2 } = await createSigners()
+    const { paymentAmount } = aggregatorConfig()
+
+    // First submission
+    const txReceipt0 = await (await aggregator.connect(aggregatorOracle0).submit(1, 10)).wait()
+    expect(txReceipt0.events.length).to.be.equal(3)
     expect(txReceipt0.events[0].event).to.be.equal('NewRound')
     expect(txReceipt0.events[1].event).to.be.equal('SubmissionReceived')
     expect(txReceipt0.events[2].event).to.be.equal('AvailableFundsUpdated')
 
     // second submission
-    const txReceipt1 = await (await aggregator.connect(account1).submit(1, 11)).wait()
+    const txReceipt1 = await (await aggregator.connect(aggregatorOracle1).submit(1, 11)).wait()
     expect(txReceipt1.events[0].event).to.be.equal('SubmissionReceived')
     expect(txReceipt1.events[1].event).to.be.equal('AnswerUpdated')
     const { current: current1 } = txReceipt1.events[1].args
@@ -82,20 +95,20 @@ describe('Aggregator', function () {
     expect(txReceipt1.events[2].event).to.be.equal('AvailableFundsUpdated')
 
     // third submission
-    const txReceipt2 = await (await aggregator.connect(account2).submit(1, 12)).wait()
+    const txReceipt2 = await (await aggregator.connect(aggregatorOracle2).submit(1, 12)).wait()
     expect(txReceipt2.events[0].event).to.be.equal('SubmissionReceived')
     expect(txReceipt2.events[1].event).to.be.equal('AnswerUpdated')
     const { current: current2 } = txReceipt2.events[1].args
     expect(Number(current2)).to.be.equal(11)
     expect(txReceipt2.events[2].event).to.be.equal('AvailableFundsUpdated')
 
-    const withdrawablePayment0 = await aggregator.withdrawablePayment(account0.address)
-    const withdrawablePayment1 = await aggregator.withdrawablePayment(account1.address)
-    const withdrawablePayment2 = await aggregator.withdrawablePayment(account2.address)
+    const withdrawablePayment0 = await aggregator.withdrawablePayment(aggregatorOracle0.address)
+    const withdrawablePayment1 = await aggregator.withdrawablePayment(aggregatorOracle1.address)
+    const withdrawablePayment2 = await aggregator.withdrawablePayment(aggregatorOracle2.address)
 
-    expect(Number(withdrawablePayment0)).to.be.equal(_paymentAmount)
-    expect(Number(withdrawablePayment1)).to.be.equal(_paymentAmount)
-    expect(Number(withdrawablePayment2)).to.be.equal(_paymentAmount)
+    expect(Number(withdrawablePayment0)).to.be.equal(paymentAmount)
+    expect(Number(withdrawablePayment1)).to.be.equal(paymentAmount)
+    expect(Number(withdrawablePayment2)).to.be.equal(paymentAmount)
 
     const { answer } = await aggregatorProxy.latestRoundData()
     expect(Number(answer)).to.be.equal(11)
