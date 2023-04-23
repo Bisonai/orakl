@@ -7,3 +7,5 @@ node_modules/
 typechain-types/
 deployments/localhost/
 deployments/*/solcInputs
+coverage/
+coverage.json
