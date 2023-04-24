@@ -1,10 +1,9 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.11;
+pragma solidity ^0.8.16;
 
-// https://github.com/KenshiTech/vrf-consumer/blob/master/contracts/lib/ecc/helpers/TestEllipticCurve.sol
+// https://github.com/witnet/elliptic-curve-solidity/blob/master/contracts/helpers/TestEllipticCurve.sol
 
 import "../EllipticCurve.sol";
-import "../FastEcMul.sol";
 
 /**
  * @title Test Helper for the EllipticCurve library
@@ -38,13 +37,7 @@ contract TestEllipticCurve {
         return EllipticCurve.deriveY(_prefix, _x, _aa, _bb, _pp);
     }
 
-    function isOnCurve(
-        uint256 _x,
-        uint256 _y,
-        uint256 _aa,
-        uint256 _bb,
-        uint256 _pp
-    ) public pure returns (bool) {
+    function isOnCurve(uint _x, uint _y, uint _aa, uint _bb, uint _pp) public pure returns (bool) {
         return EllipticCurve.isOnCurve(_x, _y, _aa, _bb, _pp);
     }
 
@@ -115,23 +108,5 @@ contract TestEllipticCurve {
         uint256 _pp
     ) public pure returns (uint256, uint256, uint256) {
         return EllipticCurve.jacMul(_d, _x, _y, _z, _aa, _pp);
-    }
-
-    function decomposeScalar(
-        uint256 _k,
-        uint256 _nn,
-        uint256 _lambda
-    ) public pure returns (int256, int256) {
-        return FastEcMul.decomposeScalar(_k, _nn, _lambda);
-    }
-
-    function ecSimMul(
-        int256[4] memory _scalars,
-        uint256[4] memory _points,
-        uint256 _aa,
-        uint256 _beta,
-        uint256 _pp
-    ) public pure returns (uint256, uint256) {
-        return FastEcMul.ecSimMul(_scalars, _points, _aa, _beta, _pp);
     }
 }

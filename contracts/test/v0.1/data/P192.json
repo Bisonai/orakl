@@ -1341,17 +1341,5 @@
       }
     ],
     "invalid": []
-  },
-  "mulAddMul": {
-    "valid": [],
-    "invalid": []
-  },
-  "decomposeScalar": {
-    "valid": [],
-    "invalid": []
-  },
-  "simMul": {
-    "valid": [],
-    "invalid": []
   }
 }
