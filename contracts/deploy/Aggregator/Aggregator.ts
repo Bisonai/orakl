@@ -34,7 +34,8 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       }
 
       // Aggregator
-      const aggregatorName = `Aggregator_${deployConfig.name}`
+      const now = new Date().getTime()
+      const aggregatorName = `Aggregator_${deployConfig.name}_${now}`
       const aggregatorDeployment = await deploy(aggregatorName, {
         contract: 'Aggregator',
         args: [
@@ -97,6 +98,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
       if (redirectProxyConfig.status == 'initial') {
         // Propose new aggregator
+        console.log('Initial Stage')
         expect(await proxy.aggregator()).to.be.eq(aggregatorAddress)
         await (await proxy.proposeAggregator(proposedAggregator)).wait()
 
@@ -106,6 +108,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
         console.log(`Proposed proxy aggregator:${proposedAggregator}`)
       } else if (redirectProxyConfig.status == 'confirm') {
         // Confirm new aggregator from Proxy
+        console.log('Confirming Proxy')
         expect(await proxy.aggregator()).to.be.eq(aggregatorAddress)
         expect(await proxy.proposedAggregator()).to.be.eq(proposedAggregator)
         await (await proxy.confirmAggregator(proposedAggregator)).wait()
@@ -118,6 +121,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
         )
       } else if (redirectProxyConfig.status == 'revert') {
         // Revert back to old Aggregator Address
+        console.log('Revert Proxy')
         expect(await proxy.aggregator()).to.be.eq(proposedAggregator)
         await (await proxy.proposeAggregator(aggregatorAddress)).wait()
         await (await proxy.confirmAggregator(aggregatorAddress)).wait()
