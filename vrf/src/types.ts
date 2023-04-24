@@ -3,5 +3,4 @@ export interface IVrfConfig {
   pk: string
   pkX: string
   pkY: string
-  keyHash: string
 }
