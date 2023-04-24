@@ -74,6 +74,7 @@ contract Aggregator is IAggregator, Ownable {
     address[] private oracleAddresses;
 
     error OracleAlreadyEnabled();
+    error OracleNotEnabled();
     error OffChainReadingOnly();
     error RequesterNotAuthorized();
     error PrevRoundNotSupersedable();
@@ -577,8 +578,9 @@ contract Aggregator is IAggregator, Ownable {
     }
 
     function removeOracle(address _oracle) private {
-        require(oracleEnabled(_oracle), "oracle not enabled");
-
+        if (!oracleEnabled(_oracle)) {
+            revert OracleNotEnabled();
+        }
         oracles[_oracle].endingRound = reportingRoundId + 1;
         address tail = oracleAddresses[uint256(oracleCount()) - 1];
         uint16 index = oracles[_oracle].index;

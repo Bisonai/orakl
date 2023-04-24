@@ -142,12 +142,18 @@ describe('Aggregator', function () {
 
   it('Remove Oracle', async function () {
     const { aggregator } = await loadFixture(deploy)
-    const { aggregatorOracle0, aggregatorOracle1 } = await createSigners()
+    const { aggregatorOracle0, aggregatorOracle1, aggregatorOracle2 } = await createSigners()
 
     // Add 2 Oracles ////////////////////////////////////////////////////////////
     await changeOracles(aggregator, [], [aggregatorOracle0, aggregatorOracle1])
 
-    // Remove 1 Oracle //////////////////////////////////////////////////////////
+    // Remove Oracle //////////////////////////////////////////////////////////
+    // Cannot remove oracle that has not been added
+    await expect(
+      aggregator.changeOracles([aggregatorOracle2.address], [], 1, 1, 0)
+    ).to.be.revertedWithCustomError(aggregator, 'OracleNotEnabled')
+
+    // Remove oracle that has been added before
     await changeOracles(aggregator, [aggregatorOracle0], [])
 
     const currentOracles = await aggregator.getOracles()
