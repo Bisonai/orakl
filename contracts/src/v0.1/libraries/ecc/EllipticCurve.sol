@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.11;
+pragma solidity ^0.8.16;
 
-// https://github.com/KenshiTech/vrf-consumer/blob/master/contracts/lib/ecc/EllipticCurve.sol
+// https://github.com/witnet/elliptic-curve-solidity/blob/master/contracts/EllipticCurve.sol
 
 /**
  * @title Elliptic Curve Library
