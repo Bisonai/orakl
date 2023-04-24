@@ -3,7 +3,7 @@ pragma solidity ^0.8.16;
 
 // https://github.com/witnet/elliptic-curve-solidity/blob/master/contracts/helpers/TestEllipticCurve.sol
 
-import "../EllipticCurve.sol";
+import "../libraries/ecc/EllipticCurve.sol";
 
 /**
  * @title Test Helper for the EllipticCurve library
