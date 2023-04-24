@@ -2,7 +2,19 @@
 const { expect } = require('chai')
 const { ethers } = require('hardhat')
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers')
-const { deployTestEllipticCurve: deploy } = require('./EllipticCurve.utils.cjs')
+
+async function deploy() {
+  let { deployer } = await hre.getNamedAccounts()
+  deployer = await ethers.getSigner(deployer)
+
+  let contract = await ethers.getContractFactory('TestEllipticCurve', {
+    signer: deployer.address
+  })
+  contract = await contract.deploy()
+  await contract.deployed()
+
+  return contract
+}
 
 // /////////////////////////////////////////// //
 // Check auxiliary operations for given curves //
