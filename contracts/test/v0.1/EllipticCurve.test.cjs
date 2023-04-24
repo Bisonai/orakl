@@ -2,7 +2,7 @@
 const { expect } = require('chai')
 const { ethers } = require('hardhat')
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers')
-const { deployTestEllipticCurve: deploy } = require('./EC.utils.cjs')
+const { deployTestEllipticCurve: deploy } = require('./EllipticCurve.utils.cjs')
 
 // /////////////////////////////////////////// //
 // Check auxiliary operations for given curves //
@@ -10,7 +10,7 @@ const { deployTestEllipticCurve: deploy } = require('./EC.utils.cjs')
 const auxCurves = ['secp256k1', 'P256']
 for (const curve of auxCurves) {
   describe(`Aux. operations - Curve ${curve}`, () => {
-    const curveData = require(`./data/${curve}-aux.json`)
+    const curveData = require(`./EC-test-data/${curve}-aux.json`)
 
     const pp = curveData.params.pp
     const aa = curveData.params.aa
@@ -98,7 +98,7 @@ for (const curve of auxCurves) {
 const curves = ['secp256k1', 'secp192k1', 'secp224k1', 'P256', 'P192', 'P224']
 for (const curve of curves) {
   describe(`Arithmetic operations - Curve ${curve}`, () => {
-    const curveData = require(`./data/${curve}.json`)
+    const curveData = require(`./EC-test-data/${curve}.json`)
 
     const pp = curveData.params.pp
     const aa = curveData.params.aa
