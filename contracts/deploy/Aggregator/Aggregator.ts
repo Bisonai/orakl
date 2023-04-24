@@ -89,8 +89,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
         throw new Error('Invalid Aggregator Redirect Proxy config')
       }
 
-      const proxyFile = redirectProxyConfig.proxyFileName
-      const proxy = await ethers.getContract(proxyFile)
+      const proxy = await ethers.getContractAt('AggregatorProxy', redirectProxyConfig.proxyAddress)
       const aggregatorAddress = redirectProxyConfig.aggregator
       const proposedAggregator = aggregator
         ? aggregator.address

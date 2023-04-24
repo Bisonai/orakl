@@ -135,7 +135,7 @@ export function validateAggregatorChangeOraclesConfig(
 export function validateAggregatorRedirectProxyConfig(
   config: IAggregatorRedirectProxyConfig
 ): boolean {
-  const requiredProperties = ['status', 'proxyFileName', 'aggregator']
+  const requiredProperties = ['status', 'proxyAddress', 'aggregator']
 
   if (!validateProperties(config, requiredProperties)) {
     return false
