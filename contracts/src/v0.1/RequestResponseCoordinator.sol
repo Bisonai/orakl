@@ -72,7 +72,7 @@ contract RequestResponseCoordinator is
     }
 
     DirectPaymentConfig private sDirectPaymentConfig;
-    mapping(bytes32 => bool) sJobId;
+    mapping(bytes32 => bool) private sJobId;
 
     /* request ID */
     /* number of requested submissions */
@@ -566,7 +566,7 @@ contract RequestResponseCoordinator is
         return success;
     }
 
-    function validateDataResponse(RequestCommitment memory rc, uint256 requestId) internal {
+    function validateDataResponse(RequestCommitment memory rc, uint256 requestId) internal view {
         if (!sIsOracleRegistered[msg.sender]) {
             revert UnregisteredOracleFulfillment(msg.sender);
         }

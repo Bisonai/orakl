@@ -4,7 +4,7 @@ pragma solidity ^0.8.16;
 // https://github.com/smartcontractkit/chainlink/blob/develop/contracts/src/v0.7/dev/AggregatorProxy.sol
 
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "./interfaces/AggregatorProxyInterface.sol";
+import "./interfaces/IAggregatorProxy.sol";
 
 /**
  * @title A trusted proxy for updating where current answers are read from
@@ -12,24 +12,26 @@ import "./interfaces/AggregatorProxyInterface.sol";
  * CurrentAnswerInterface but delegates where it reads from to the owner, who is
  * trusted to update it.
  */
-contract AggregatorProxy is AggregatorProxyInterface, Ownable {
+contract AggregatorProxy is IAggregatorProxy, Ownable {
     struct Phase {
         uint16 id;
-        AggregatorProxyInterface aggregator;
+        IAggregatorProxy aggregator;
     }
-    AggregatorProxyInterface private s_proposedAggregator;
-    mapping(uint16 => AggregatorProxyInterface) private s_phaseAggregators;
-    Phase private s_currentPhase;
+    IAggregatorProxy private sProposedAggregator;
+    mapping(uint16 => IAggregatorProxy) private sPhaseAggregators;
+    Phase private sCurrentPhase;
 
     uint256 private constant PHASE_OFFSET = 64;
     uint256 private constant PHASE_SIZE = 16;
     uint256 private constant MAX_ID = 2 ** (PHASE_OFFSET + PHASE_SIZE) - 1;
 
+    error InvalidProposedAggregator();
+
     event AggregatorProposed(address indexed current, address indexed proposed);
     event AggregatorConfirmed(address indexed previous, address indexed latest);
 
     modifier hasProposal() {
-        require(address(s_proposedAggregator) != address(0), "No proposed aggregator present");
+        require(address(sProposedAggregator) != address(0), "No proposed aggregator present");
         _;
     }
 
@@ -79,7 +81,7 @@ contract AggregatorProxy is AggregatorProxyInterface, Ownable {
     {
         (uint16 _phaseId, uint64 aggregatorRoundId) = parseIds(roundId);
 
-        (id, answer, startedAt, updatedAt, answeredInRound) = s_phaseAggregators[_phaseId]
+        (id, answer, startedAt, updatedAt, answeredInRound) = sPhaseAggregators[_phaseId]
             .getRoundData(aggregatorRoundId);
 
         return addPhaseIds(id, answer, startedAt, updatedAt, answeredInRound, _phaseId);
@@ -120,7 +122,7 @@ contract AggregatorProxy is AggregatorProxyInterface, Ownable {
             uint80 answeredInRound
         )
     {
-        Phase memory current = s_currentPhase; // cache storage reads
+        Phase memory current = sCurrentPhase; // cache storage reads
 
         (id, answer, startedAt, updatedAt, answeredInRound) = current.aggregator.latestRoundData();
 
@@ -155,7 +157,7 @@ contract AggregatorProxy is AggregatorProxyInterface, Ownable {
             uint80 answeredInRound
         )
     {
-        return s_proposedAggregator.getRoundData(roundId);
+        return sProposedAggregator.getRoundData(roundId);
     }
 
     /**
@@ -183,28 +185,28 @@ contract AggregatorProxy is AggregatorProxyInterface, Ownable {
             uint80 answeredInRound
         )
     {
-        return s_proposedAggregator.latestRoundData();
+        return sProposedAggregator.latestRoundData();
     }
 
     /**
      * @notice returns the current phase's aggregator address.
      */
     function aggregator() external view override returns (address) {
-        return address(s_currentPhase.aggregator);
+        return address(sCurrentPhase.aggregator);
     }
 
     /**
      * @notice returns the current phase's ID.
      */
     function phaseId() external view override returns (uint16) {
-        return s_currentPhase.id;
+        return sCurrentPhase.id;
     }
 
     /**
      * @notice represents the number of decimals the aggregator responses represent.
      */
     function decimals() external view override returns (uint8) {
-        return s_currentPhase.aggregator.decimals();
+        return sCurrentPhase.aggregator.decimals();
     }
 
     /**
@@ -212,21 +214,21 @@ contract AggregatorProxy is AggregatorProxyInterface, Ownable {
      * points to.
      */
     function version() external view override returns (uint256) {
-        return s_currentPhase.aggregator.version();
+        return sCurrentPhase.aggregator.version();
     }
 
     /**
      * @notice returns the description of the aggregator the proxy points to.
      */
     function description() external view override returns (string memory) {
-        return s_currentPhase.aggregator.description();
+        return sCurrentPhase.aggregator.description();
     }
 
     /**
      * @notice returns the current proposed aggregator
      */
     function proposedAggregator() external view override returns (address) {
-        return address(s_proposedAggregator);
+        return address(sProposedAggregator);
     }
 
     /**
@@ -235,7 +237,7 @@ contract AggregatorProxy is AggregatorProxyInterface, Ownable {
      * @param phaseId_ uint16
      */
     function phaseAggregators(uint16 phaseId_) external view override returns (address) {
-        return address(s_phaseAggregators[phaseId_]);
+        return address(sPhaseAggregators[phaseId_]);
     }
 
     /**
@@ -243,8 +245,8 @@ contract AggregatorProxy is AggregatorProxyInterface, Ownable {
      * @param aggregatorAddress The new address for the aggregator contract
      */
     function proposeAggregator(address aggregatorAddress) external onlyOwner {
-        s_proposedAggregator = AggregatorProxyInterface(aggregatorAddress);
-        emit AggregatorProposed(address(s_currentPhase.aggregator), aggregatorAddress);
+        sProposedAggregator = IAggregatorProxy(aggregatorAddress);
+        emit AggregatorProposed(address(sCurrentPhase.aggregator), aggregatorAddress);
     }
 
     /**
@@ -255,17 +257,19 @@ contract AggregatorProxy is AggregatorProxyInterface, Ownable {
      * @param aggregatorAddress The new address for the aggregator contract
      */
     function confirmAggregator(address aggregatorAddress) external onlyOwner {
-        require(aggregatorAddress == address(s_proposedAggregator), "Invalid proposed aggregator");
-        address previousAggregator = address(s_currentPhase.aggregator);
-        delete s_proposedAggregator;
+        if (aggregatorAddress != address(sProposedAggregator)) {
+            revert InvalidProposedAggregator();
+        }
+        address previousAggregator = address(sCurrentPhase.aggregator);
+        delete sProposedAggregator;
         setAggregator(aggregatorAddress);
         emit AggregatorConfirmed(previousAggregator, aggregatorAddress);
     }
 
     function setAggregator(address aggregatorAddress) internal {
-        uint16 id = s_currentPhase.id + 1;
-        s_currentPhase = Phase(id, AggregatorProxyInterface(aggregatorAddress));
-        s_phaseAggregators[id] = AggregatorProxyInterface(aggregatorAddress);
+        uint16 id = sCurrentPhase.id + 1;
+        sCurrentPhase = Phase(id, IAggregatorProxy(aggregatorAddress));
+        sPhaseAggregators[id] = IAggregatorProxy(aggregatorAddress);
     }
 
     function addPhase(uint16 phase, uint64 originalId) internal pure returns (uint80) {

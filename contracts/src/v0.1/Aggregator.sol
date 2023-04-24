@@ -4,8 +4,8 @@ pragma solidity 0.8.16;
 // https://github.com/smartcontractkit/chainlink/blob/develop/contracts/src/v0.6/FluxAggregator.sol
 
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "./interfaces/AggregatorInterface.sol";
-import "./interfaces/AggregatorValidatorInterface.sol";
+import "./interfaces/IAggregator.sol";
+import "./interfaces/IAggregatorValidator.sol";
 import "./libraries/Median.sol";
 
 /**
@@ -16,7 +16,7 @@ import "./libraries/Median.sol";
  * single answer. The latest aggregated answer is exposed as well as historical
  * answers and their updated at timestamp.
  */
-contract Aggregator is AggregatorInterface, Ownable {
+contract Aggregator is IAggregator, Ownable {
     struct Round {
         int256 answer;
         uint64 startedAt;
@@ -29,19 +29,15 @@ contract Aggregator is AggregatorInterface, Ownable {
         uint32 maxSubmissions;
         uint32 minSubmissions;
         uint32 timeout;
-        uint256 paymentAmount;
     }
 
     struct OracleStatus {
-        uint256 withdrawable;
         uint32 startingRound;
         uint32 endingRound;
         uint32 lastReportedRound;
         uint32 lastStartedRound;
         int256 latestSubmission;
         uint16 index;
-        address admin;
-        address pendingAdmin;
     }
 
     struct Requester {
@@ -50,15 +46,9 @@ contract Aggregator is AggregatorInterface, Ownable {
         uint32 lastStartedRound;
     }
 
-    struct Funds {
-        uint256 available;
-        uint256 allocated;
-    }
-
-    AggregatorValidatorInterface public validator;
+    IAggregatorValidator public validator;
 
     // Round related params
-    uint256 public paymentAmount;
     uint32 public maxSubmissionCount;
     uint32 public minSubmissionCount;
     uint32 public restartDelay;
@@ -66,16 +56,8 @@ contract Aggregator is AggregatorInterface, Ownable {
     uint8 public override decimals;
     string public override description;
 
-    uint256 public constant override version = 3;
+    uint256 public constant override version = 1;
 
-    /**
-     * @notice To ensure owner isn't withdrawing required funds as oracles are
-     * submitting updates, we enforce that the contract maintains a minimum
-     * reserve of RESERVE_ROUNDS * oracleCount() KLAY earmarked for payment to
-     * oracles. (Of course, this doesn't prevent the contract from running out of
-     * funds without the owner's intervention.)
-     */
-    uint256 private constant RESERVE_ROUNDS = 2;
     uint256 private constant MAX_ORACLE_COUNT = 77;
     uint32 private constant ROUND_MAX = 2 ** 32 - 1;
     uint256 private constant VALIDATOR_GAS_LIMIT = 100000;
@@ -90,21 +72,20 @@ contract Aggregator is AggregatorInterface, Ownable {
     mapping(uint32 => RoundDetails) internal details;
     mapping(address => Requester) internal requesters;
     address[] private oracleAddresses;
-    Funds private recordedFunds;
 
-    error InsufficientBalance();
+    error OracleAlreadyEnabled();
+    error OracleNotEnabled();
+    error OffChainReadingOnly();
+    error RequesterNotAuthorized();
+    error PrevRoundNotSupersedable();
 
-    event AvailableFundsUpdated(uint256 indexed amount);
     event RoundDetailsUpdated(
-        uint256 indexed paymentAmount,
         uint32 indexed minSubmissionCount,
         uint32 indexed maxSubmissionCount,
         uint32 restartDelay,
         uint32 timeout // measured in seconds
     );
     event OraclePermissionsUpdated(address indexed oracle, bool indexed whitelisted);
-    event OracleAdminUpdated(address indexed oracle, address indexed newAdmin);
-    event OracleAdminUpdateRequested(address indexed oracle, address admin, address newAdmin);
     event SubmissionReceived(
         int256 indexed submission,
         uint32 indexed round,
@@ -115,7 +96,6 @@ contract Aggregator is AggregatorInterface, Ownable {
 
     /**
      * @notice set up the aggregator with initial configuration
-     * @param _paymentAmount The amount paid of KLAY paid to each oracle per submission, in peb (units of 10⁻¹⁸ KLAY)
      * @param _timeout is the number of seconds after the previous round that are
      * allowed to lapse before allowing an oracle to skip an unfinished round
      * @param _validator is an optional contract address for validating
@@ -123,14 +103,8 @@ contract Aggregator is AggregatorInterface, Ownable {
      * @param _decimals represents the number of decimals to offset the answer by
      * @param _description a short description of what is being reported
      */
-    constructor(
-        uint256 _paymentAmount,
-        uint32 _timeout,
-        address _validator,
-        uint8 _decimals,
-        string memory _description
-    ) {
-        updateFutureRounds(_paymentAmount, 0, 0, 0, _timeout);
+    constructor(uint32 _timeout, address _validator, uint8 _decimals, string memory _description) {
+        updateFutureRounds(0, 0, 0, _timeout);
         setValidator(_validator);
         decimals = _decimals;
         description = _description;
@@ -150,7 +124,6 @@ contract Aggregator is AggregatorInterface, Ownable {
         oracleInitializeNewRound(uint32(_roundId));
         recordSubmission(_submission, uint32(_roundId));
         (bool updated, int256 newAnswer) = updateRoundAnswer(uint32(_roundId));
-        payOracle(uint32(_roundId));
         deleteRoundDetails(uint32(_roundId));
         if (updated) {
             validateAnswer(uint32(_roundId), newAnswer);
@@ -162,8 +135,6 @@ contract Aggregator is AggregatorInterface, Ownable {
      * update the round related parameters that pertain to total oracle count
      * @param _removed is the list of addresses for the new Oracles being removed
      * @param _added is the list of addresses for the new Oracles being added
-     * @param _addedAdmins is the admin addresses for the new respective _added
-     * list. Only this address is allowed to access the respective oracle's funds
      * @param _minSubmissionCount is the new minimum submission count for each round
      * @param _maxSubmissionCount is the new maximum submission count for each round
      * @param _restartDelay is the number of rounds an Oracle has to wait before
@@ -172,7 +143,6 @@ contract Aggregator is AggregatorInterface, Ownable {
     function changeOracles(
         address[] calldata _removed,
         address[] calldata _added,
-        address[] calldata _addedAdmins,
         uint32 _minSubmissionCount,
         uint32 _maxSubmissionCount,
         uint32 _restartDelay
@@ -181,33 +151,24 @@ contract Aggregator is AggregatorInterface, Ownable {
             removeOracle(_removed[i]);
         }
 
-        require(_added.length == _addedAdmins.length, "need same oracle and admin count");
         require(uint256(oracleCount()) + _added.length <= MAX_ORACLE_COUNT, "max oracles allowed");
 
         for (uint256 i = 0; i < _added.length; i++) {
-            addOracle(_added[i], _addedAdmins[i]);
+            addOracle(_added[i]);
         }
 
-        updateFutureRounds(
-            paymentAmount,
-            _minSubmissionCount,
-            _maxSubmissionCount,
-            _restartDelay,
-            timeout
-        );
+        updateFutureRounds(_minSubmissionCount, _maxSubmissionCount, _restartDelay, timeout);
     }
 
     /**
      * @notice update the round and payment related parameters for subsequent
      * rounds
-     * @param _paymentAmount is the payment amount for subsequent rounds
      * @param _minSubmissionCount is the new minimum submission count for each round
      * @param _maxSubmissionCount is the new maximum submission count for each round
      * @param _restartDelay is the number of rounds an Oracle has to wait before
      * they can initiate a round
      */
     function updateFutureRounds(
-        uint256 _paymentAmount,
         uint32 _minSubmissionCount,
         uint32 _maxSubmissionCount,
         uint32 _restartDelay,
@@ -217,55 +178,16 @@ contract Aggregator is AggregatorInterface, Ownable {
         require(_maxSubmissionCount >= _minSubmissionCount, "max must equal/exceed min");
         require(oracleNum >= _maxSubmissionCount, "max cannot exceed total");
         require(oracleNum == 0 || oracleNum > _restartDelay, "delay cannot exceed total");
-        require(
-            recordedFunds.available >= requiredReserve(_paymentAmount),
-            "insufficient funds for payment"
-        );
         if (oracleCount() > 0) {
             require(_minSubmissionCount > 0, "min must be greater than 0");
         }
 
-        paymentAmount = _paymentAmount;
         minSubmissionCount = _minSubmissionCount;
         maxSubmissionCount = _maxSubmissionCount;
         restartDelay = _restartDelay;
         timeout = _timeout;
 
-        emit RoundDetailsUpdated(
-            paymentAmount,
-            _minSubmissionCount,
-            _maxSubmissionCount,
-            _restartDelay,
-            _timeout
-        );
-    }
-
-    /**
-     * @notice the amount of payment yet to be withdrawn by oracles
-     */
-    function allocatedFunds() external view returns (uint256) {
-        return recordedFunds.allocated;
-    }
-
-    /**
-     * @notice the amount of future funding available to oracles
-     */
-    function availableFunds() external view returns (uint256) {
-        return recordedFunds.available;
-    }
-
-    /**
-     * @notice recalculate the amount of KLAY available for payouts
-     */
-    function updateAvailableFunds() public {
-        Funds memory funds = recordedFunds;
-
-        uint256 nowAvailable = address(this).balance - funds.allocated;
-
-        if (funds.available != nowAvailable) {
-            recordedFunds.available = nowAvailable;
-            emit AvailableFundsUpdated(nowAvailable);
-        }
+        emit RoundDetailsUpdated(_minSubmissionCount, _maxSubmissionCount, _restartDelay, _timeout);
     }
 
     /**
@@ -358,97 +280,17 @@ contract Aggregator is AggregatorInterface, Ownable {
     }
 
     /**
-     * @notice query the available amount of KLAY for an oracle to withdraw
-     */
-    function withdrawablePayment(address _oracle) external view returns (uint256) {
-        return oracles[_oracle].withdrawable;
-    }
-
-    /**
-     * @notice transfers the oracle's KLAY to another address. Can only be called
-     * by the oracle's admin.
-     * @param _oracle is the oracle whose KLAY is transferred
-     * @param _recipient is the address to send the KLAY to
-     * @param _amount is the amount of KLAY to send
-     */
-    function withdrawPayment(address _oracle, address _recipient, uint256 _amount) external {
-        require(oracles[_oracle].admin == msg.sender, "only callable by admin");
-
-        uint256 available = oracles[_oracle].withdrawable;
-        require(available >= _amount, "insufficient withdrawable funds");
-
-        oracles[_oracle].withdrawable = available - _amount;
-        recordedFunds.allocated = recordedFunds.allocated - _amount;
-
-        (bool sent, ) = _recipient.call{value: _amount}("");
-        if (!sent) {
-            revert InsufficientBalance();
-        }
-    }
-
-    /**
-     * @notice transfers the owner's KLAY to another address
-     * @param _recipient is the address to send the KLAY to
-     * @param _amount is the amount of KLAY to send
-     */
-    function withdrawFunds(address _recipient, uint256 _amount) external onlyOwner {
-        uint256 available = recordedFunds.available;
-        require(
-            available - requiredReserve(paymentAmount) >= _amount,
-            "insufficient reserve funds"
-        );
-
-        (bool sent, ) = _recipient.call{value: _amount}("");
-        if (!sent) {
-            revert InsufficientBalance();
-        }
-
-        updateAvailableFunds();
-    }
-
-    /**
-     * @notice get the admin address of an oracle
-     * @param _oracle is the address of the oracle whose admin is being queried
-     */
-    function getAdmin(address _oracle) external view returns (address) {
-        return oracles[_oracle].admin;
-    }
-
-    /**
-     * @notice transfer the admin address for an oracle
-     * @param _oracle is the address of the oracle whose admin is being transferred
-     * @param _newAdmin is the new admin address
-     */
-    function transferAdmin(address _oracle, address _newAdmin) external {
-        require(oracles[_oracle].admin == msg.sender, "only callable by admin");
-        oracles[_oracle].pendingAdmin = _newAdmin;
-
-        emit OracleAdminUpdateRequested(_oracle, msg.sender, _newAdmin);
-    }
-
-    /**
-     * @notice accept the admin address transfer for an oracle
-     * @param _oracle is the address of the oracle whose admin is being transferred
-     */
-    function acceptAdmin(address _oracle) external {
-        require(oracles[_oracle].pendingAdmin == msg.sender, "only callable by pending admin");
-        oracles[_oracle].pendingAdmin = address(0);
-        oracles[_oracle].admin = msg.sender;
-
-        emit OracleAdminUpdated(_oracle, msg.sender);
-    }
-
-    /**
      * @notice allows non-oracles to request a new round
      */
     function requestNewRound() external returns (uint80) {
-        require(requesters[msg.sender].authorized, "not authorized requester");
+        if (!requesters[msg.sender].authorized) {
+            revert RequesterNotAuthorized();
+        }
 
         uint32 current = reportingRoundId;
-        require(
-            rounds[current].updatedAt > 0 || timedOut(current),
-            "prev round must be supersedable"
-        );
+        if (rounds[current].updatedAt == 0 && !timedOut(current)) {
+            revert PrevRoundNotSupersedable();
+        }
 
         uint32 newRoundId = current + 1;
         requesterInitializeNewRound(newRoundId);
@@ -466,7 +308,9 @@ contract Aggregator is AggregatorInterface, Ownable {
         bool _authorized,
         uint32 _delay
     ) external onlyOwner {
-        if (requesters[_requester].authorized == _authorized) return;
+        if (requesters[_requester].authorized == _authorized) {
+            return;
+        }
 
         if (_authorized) {
             requesters[_requester].authorized = _authorized;
@@ -495,12 +339,12 @@ contract Aggregator is AggregatorInterface, Ownable {
             int256 _latestSubmission,
             uint64 _startedAt,
             uint64 _timeout,
-            uint256 _availableFunds,
-            uint8 _oracleCount,
-            uint256 _paymentAmount
+            uint8 _oracleCount
         )
     {
-        require(msg.sender == tx.origin, "off-chain reading only");
+        if (msg.sender != tx.origin) {
+            revert OffChainReadingOnly();
+        }
 
         if (_queriedRoundId > 0) {
             Round storage round = rounds[_queriedRoundId];
@@ -511,9 +355,7 @@ contract Aggregator is AggregatorInterface, Ownable {
                 oracles[_oracle].latestSubmission,
                 round.startedAt,
                 _details.timeout,
-                recordedFunds.available,
-                oracleCount(),
-                (round.startedAt > 0 ? _details.paymentAmount : paymentAmount)
+                oracleCount()
             );
         } else {
             return oracleRoundStateSuggestRound(_oracle);
@@ -528,17 +370,10 @@ contract Aggregator is AggregatorInterface, Ownable {
         address previous = address(validator);
 
         if (previous != _newValidator) {
-            validator = AggregatorValidatorInterface(_newValidator);
+            validator = IAggregatorValidator(_newValidator);
 
             emit ValidatorUpdated(previous, _newValidator);
         }
-    }
-
-    /**
-     * @notice method to accept KLAY inside of contract
-     */
-    function deposit() public payable {
-        updateAvailableFunds();
     }
 
     /**
@@ -553,8 +388,7 @@ contract Aggregator is AggregatorInterface, Ownable {
             new int256[](0),
             maxSubmissionCount,
             minSubmissionCount,
-            timeout,
-            paymentAmount
+            timeout
         );
         details[_roundId] = nextDetails;
         rounds[_roundId].startedAt = uint64(block.timestamp);
@@ -622,9 +456,7 @@ contract Aggregator is AggregatorInterface, Ownable {
             int256 _latestSubmission,
             uint64 _startedAt,
             uint64 _timeout,
-            uint256 _availableFunds,
-            uint8 _oracleCount,
-            uint256 _paymentAmount
+            uint8 _oracleCount
         )
     {
         Round storage round = rounds[0];
@@ -638,14 +470,11 @@ contract Aggregator is AggregatorInterface, Ownable {
         if (supersedable(reportingRoundId) && shouldSupersede) {
             _roundId = reportingRoundId + 1;
             round = rounds[_roundId];
-
-            _paymentAmount = paymentAmount;
             _eligibleToSubmit = delayed(_oracle, _roundId);
         } else {
             _roundId = reportingRoundId;
             round = rounds[_roundId];
 
-            _paymentAmount = details[_roundId].paymentAmount;
             _eligibleToSubmit = acceptingSubmissions(_roundId);
         }
 
@@ -659,9 +488,7 @@ contract Aggregator is AggregatorInterface, Ownable {
             oracle.latestSubmission,
             round.startedAt,
             details[_roundId].timeout,
-            recordedFunds.available,
-            oracleCount(),
-            _paymentAmount
+            oracleCount()
         );
     }
 
@@ -682,7 +509,7 @@ contract Aggregator is AggregatorInterface, Ownable {
     }
 
     function validateAnswer(uint32 _roundId, int256 _newAnswer) private {
-        AggregatorValidatorInterface av = validator;
+        IAggregatorValidator av = validator;
         if (address(av) == address(0)) return;
 
         uint32 prevRound = _roundId - 1;
@@ -698,17 +525,6 @@ contract Aggregator is AggregatorInterface, Ownable {
                 _newAnswer
             )
         {} catch {}
-    }
-
-    function payOracle(uint32 _roundId) private {
-        uint256 payment = details[_roundId].paymentAmount;
-        Funds memory funds = recordedFunds;
-        funds.available -= payment;
-        funds.allocated += payment;
-        recordedFunds = funds;
-        oracles[msg.sender].withdrawable += payment;
-
-        emit AvailableFundsUpdated(funds.available);
     }
 
     function recordSubmission(int256 _submission, uint32 _roundId) private {
@@ -748,32 +564,23 @@ contract Aggregator is AggregatorInterface, Ownable {
         return _roundId + 1 == _rrId && rounds[_rrId].updatedAt == 0;
     }
 
-    function requiredReserve(uint256 payment) private view returns (uint256) {
-        return payment * oracleCount() * RESERVE_ROUNDS;
-    }
-
-    function addOracle(address _oracle, address _admin) private {
-        require(!oracleEnabled(_oracle), "oracle already enabled");
-
-        require(_admin != address(0), "cannot set admin to 0");
-        require(
-            oracles[_oracle].admin == address(0) || oracles[_oracle].admin == _admin,
-            "owner cannot overwrite admin"
-        );
+    function addOracle(address _oracle) private {
+        if (oracleEnabled(_oracle)) {
+            revert OracleAlreadyEnabled();
+        }
 
         oracles[_oracle].startingRound = getStartingRound(_oracle);
         oracles[_oracle].endingRound = ROUND_MAX;
         oracles[_oracle].index = uint16(oracleAddresses.length);
         oracleAddresses.push(_oracle);
-        oracles[_oracle].admin = _admin;
 
         emit OraclePermissionsUpdated(_oracle, true);
-        emit OracleAdminUpdated(_oracle, _admin);
     }
 
     function removeOracle(address _oracle) private {
-        require(oracleEnabled(_oracle), "oracle not enabled");
-
+        if (!oracleEnabled(_oracle)) {
+            revert OracleNotEnabled();
+        }
         oracles[_oracle].endingRound = reportingRoundId + 1;
         address tail = oracleAddresses[uint256(oracleCount()) - 1];
         uint16 index = oracles[_oracle].index;

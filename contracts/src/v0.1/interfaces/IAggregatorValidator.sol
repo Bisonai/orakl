@@ -3,7 +3,7 @@ pragma solidity ^0.8.16;
 
 // https://github.com/smartcontractkit/chainlink/blob/develop/contracts/src/v0.6/interfaces/AggregatorValidatorInterface.sol
 
-interface AggregatorValidatorInterface {
+interface IAggregatorValidator {
     function validate(
         uint256 previousRoundId,
         int256 previousAnswer,
