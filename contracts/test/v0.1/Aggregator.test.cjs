@@ -304,4 +304,72 @@ describe('Aggregator', function () {
     expect(fLatestSubmission).to.be.equal(submission)
     expect(fOracleCount).to.be.equal(1)
   })
+
+  it('External Requester', async function () {
+    const { aggregator } = await loadFixture(deploy)
+    const { consumer: requester, aggregatorOracle0: unauthorizedRequester } = await createSigners()
+
+    // Add a new requester //////////////////////////////////////////////////////
+    const aiAuthorized = true
+    const aiDelay = 0
+    const addRequesterPermissionsTx = await (
+      await aggregator.setRequesterPermissions(requester.address, aiAuthorized, aiDelay)
+    ).wait()
+    expect(addRequesterPermissionsTx.events.length).to.be.equal(1)
+    expect(addRequesterPermissionsTx.events[0].event).to.be.equal('RequesterPermissionsSet')
+    const addRequesterPermissionsEvent = aggregator.interface.parseLog(
+      addRequesterPermissionsTx.events[0]
+    )
+    const {
+      requester: aRequester,
+      authorized: aAuthorized,
+      delay: aDelay
+    } = addRequesterPermissionsEvent.args
+    expect(aRequester).to.be.equal(requester.address)
+    expect(aAuthorized).to.be.equal(aiAuthorized)
+    expect(aDelay).to.be.equal(aiDelay)
+
+    // Test idempotency for adding a new requester
+    const addRequesterPermissionsTx2 = await (
+      await aggregator.setRequesterPermissions(requester.address, aiAuthorized, aiDelay)
+    ).wait()
+    expect(addRequesterPermissionsTx2.events.length).to.be.equal(0)
+
+    // Request NewRound /////////////////////////////////////////////////////////
+    // Only authorized requester can request new round, otherwise reverts
+    await expect(
+      aggregator.connect(unauthorizedRequester).requestNewRound()
+    ).to.be.revertedWithCustomError(aggregator, 'RequesterNotAuthorized')
+
+    // Request with authorized requester
+    const requestNewRoundTx = await (await aggregator.connect(requester).requestNewRound()).wait()
+    const blockTimestamp = (await ethers.provider.getBlock(requestNewRoundTx.blockNumber)).timestamp
+    expect(requestNewRoundTx.events.length).to.be.equal(1)
+    expect(requestNewRoundTx.events[0].event).to.be.equal('NewRound')
+    const requestNewRoundEvent = aggregator.interface.parseLog(requestNewRoundTx.events[0])
+    const { roundId, startedBy, startedAt } = requestNewRoundEvent.args
+    expect(roundId).to.be.equal(1)
+    expect(startedBy).to.be.equal(requester.address)
+    expect(startedAt).to.be.equal(blockTimestamp)
+
+    // Remove requester /////////////////////////////////////////////////////////
+    const riAuthorized = false
+    const riDelay = 0
+    const removeRequesterPermissionsTx = await (
+      await aggregator.setRequesterPermissions(requester.address, riAuthorized, riDelay)
+    ).wait()
+    expect(removeRequesterPermissionsTx.events.length).to.be.equal(1)
+    expect(removeRequesterPermissionsTx.events[0].event).to.be.equal('RequesterPermissionsSet')
+    const removeRequesterPermissionsEvent = aggregator.interface.parseLog(
+      removeRequesterPermissionsTx.events[0]
+    )
+    const {
+      requester: rRequester,
+      authorized: rAuthorized,
+      delay: rDelay
+    } = removeRequesterPermissionsEvent.args
+    expect(rRequester).to.be.equal(requester.address)
+    expect(rAuthorized).to.be.equal(riAuthorized)
+    expect(rDelay).to.be.equal(riDelay)
+  })
 })

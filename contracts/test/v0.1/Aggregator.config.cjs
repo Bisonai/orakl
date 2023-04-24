@@ -3,10 +3,8 @@ function aggregatorConfig() {
   const validator = ethers.constants.AddressZero // no validator
   const decimals = 18
   const description = 'Test Aggregator'
-  const paymentAmount = 1
 
   return {
-    paymentAmount,
     timeout,
     validator,
     decimals,

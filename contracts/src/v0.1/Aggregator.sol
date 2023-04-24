@@ -75,6 +75,8 @@ contract Aggregator is IAggregator, Ownable {
 
     error OracleAlreadyEnabled();
     error OffChainReadingOnly();
+    error RequesterNotAuthorized();
+    error PrevRoundNotSupersedable();
 
     event RoundDetailsUpdated(
         uint32 indexed minSubmissionCount,
@@ -280,13 +282,14 @@ contract Aggregator is IAggregator, Ownable {
      * @notice allows non-oracles to request a new round
      */
     function requestNewRound() external returns (uint80) {
-        require(requesters[msg.sender].authorized, "not authorized requester");
+        if (!requesters[msg.sender].authorized) {
+            revert RequesterNotAuthorized();
+        }
 
         uint32 current = reportingRoundId;
-        require(
-            rounds[current].updatedAt > 0 || timedOut(current),
-            "prev round must be supersedable"
-        );
+        if (rounds[current].updatedAt == 0 && !timedOut(current)) {
+            revert PrevRoundNotSupersedable();
+        }
 
         uint32 newRoundId = current + 1;
         requesterInitializeNewRound(newRoundId);
@@ -304,7 +307,9 @@ contract Aggregator is IAggregator, Ownable {
         bool _authorized,
         uint32 _delay
     ) external onlyOwner {
-        if (requesters[_requester].authorized == _authorized) return;
+        if (requesters[_requester].authorized == _authorized) {
+            return;
+        }
 
         if (_authorized) {
             requesters[_requester].authorized = _authorized;
