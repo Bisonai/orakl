@@ -248,13 +248,13 @@ describe('VRF contract', function () {
     await state.setMinBalance(minBalance)
 
     const accId = await state.createAccount()
-    state.addConsumer(consumerContract.address)
+    await state.addConsumer(consumerContract.address)
 
     await expect(
       consumerContract.requestRandomWords(keyHash, accId, maxGasLimit, NUM_WORDS)
     ).to.be.revertedWithCustomError(coordinatorContract, 'InsufficientPayment')
 
-    state.deposit('2')
+    await state.deposit('2')
 
     // After depositing minimum account to account, we are able to
     // request random words.
@@ -475,7 +475,7 @@ describe('VRF contract', function () {
     await state.addCoordinator(coordinatorContract.address)
 
     const accId = await state.createAccount()
-    state.addConsumer(consumerContract.address)
+    await state.addConsumer(consumerContract.address)
 
     // Request Random Words
     const txRequestRandomWords = await (
@@ -495,7 +495,7 @@ describe('VRF contract', function () {
     const randomWordsRequestCancelledEvent = coordinatorContract.interface.parseLog(
       txCancelRequest.events[0]
     )
-    expect(randomWordsRequestCancelledEvent.name).to.be.equal('RandomWordsRequestCanceled')
+    expect(randomWordsRequestCancelledEvent.name).to.be.equal('RequestCanceled')
 
     const { requestId: cRequestId } = randomWordsRequestCancelledEvent.args
     expect(requestId).to.be.equal(cRequestId)
