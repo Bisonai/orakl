@@ -206,7 +206,7 @@ contract RequestResponseCoordinator is
         delete sIsOracleRegistered[oracle];
 
         uint256 oraclesLength = sOracles.length;
-        for (uint256 i; i < oraclesLength; ++i) {
+        for (uint256 i = 0; i < oraclesLength; ++i) {
             if (sOracles[i] == oracle) {
                 address last = sOracles[oraclesLength - 1];
                 sOracles[i] = last;
@@ -489,7 +489,7 @@ contract RequestResponseCoordinator is
         uint64 nonce
     ) public view returns (bool) {
         uint256 oraclesLength = sOracles.length;
-        for (uint256 i; i < oraclesLength; ++i) {
+        for (uint256 i = 0; i < oraclesLength; ++i) {
             uint256 requestId = computeRequestId(consumer, accId, nonce);
             if (isValidRequestId(requestId)) {
                 return true;
@@ -613,7 +613,7 @@ contract RequestResponseCoordinator is
                 uint256 paid;
                 uint256 feePerOperator = operatorFee / oraclesLength;
 
-                for (uint8 i; i < oraclesLength - 1; ++i) {
+                for (uint8 i = 0; i < oraclesLength - 1; ++i) {
                     sPrepayment.chargeOperatorFeeTemporary(feePerOperator, oracles[i]);
                     paid += feePerOperator;
                 }
@@ -637,7 +637,7 @@ contract RequestResponseCoordinator is
                 uint256 paid;
                 uint256 feePerOperator = operatorFee / oraclesLength;
 
-                for (uint256 i; i < oraclesLength - 1; ++i) {
+                for (uint256 i = 0; i < oraclesLength - 1; ++i) {
                     sPrepayment.chargeOperatorFee(rc.accId, feePerOperator, oracles[i]);
                     paid += feePerOperator;
                 }
