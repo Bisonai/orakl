@@ -3,7 +3,6 @@ pragma solidity ^0.8.16;
 
 // https://github.com/smartcontractkit/chainlink/blob/develop/contracts/src/v0.8/VRFCoordinatorV2.sol
 
-import "@openzeppelin/contracts/access/Ownable.sol";
 import "./interfaces/IPrepayment.sol";
 import "./interfaces/ITypeAndVersion.sol";
 import "./interfaces/IVRFCoordinatorBase.sol";
@@ -20,7 +19,6 @@ import "./CoordinatorBase.sol";
 contract VRFCoordinator is IVRFCoordinatorBase, CoordinatorBase, ITypeAndVersion {
     uint32 public constant MAX_NUM_WORDS = 500;
 
-    address[] public sOracles;
     bytes32[] public sKeyHashes;
 
     /* oracle */
@@ -42,16 +40,9 @@ contract VRFCoordinator is IVRFCoordinatorBase, CoordinatorBase, ITypeAndVersion
     }
 
     error InvalidKeyHash(bytes32 keyHash);
-    error InvalidConsumer(uint64 accId, address consumer);
-    error GasLimitTooBig(uint32 have, uint32 want);
     error NumWordsTooBig(uint32 have, uint32 want);
-    error OracleAlreadyRegistered(address oracle);
     error ProvingKeyAlreadyRegistered(bytes32 keyHash);
-    error NoSuchOracle(address oracle);
     error NoSuchProvingKey(bytes32 keyHash);
-    error IncorrectCommitment();
-    error InsufficientPayment(uint256 have, uint256 want);
-    error RefundFailure();
 
     event OracleRegistered(address indexed oracle, bytes32 keyHash);
     event OracleDeregistered(address indexed oracle, bytes32 keyHash);
@@ -321,7 +312,7 @@ contract VRFCoordinator is IVRFCoordinatorBase, CoordinatorBase, ITypeAndVersion
     }
 
     /**
-     * TODO comment
+     * @inheritdoc ICoordinatorBase
      */
     function pendingRequestExists(
         address consumer,

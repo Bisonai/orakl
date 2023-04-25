@@ -22,7 +22,8 @@ interface ICoordinatorBase {
     /**
      * @notice Sets the configuration of the VRF coordinator
      * @param maxGasLimit global max for request gas limit
-     * @param gasAfterPaymentCalculation gas used in doing accounting after completing the gas measurement
+     * @param gasAfterPaymentCalculation gas used in doing accounting
+     * after completing the gas measurement
      * @param feeConfig fee tier configuration
      */
     function setConfig(
@@ -32,11 +33,11 @@ interface ICoordinatorBase {
     ) external;
 
     /**
-     * @notice Check to see if there exists a request commitment consumers
-     * for all consumers and keyhashes for a given acc.
+     * @notice Check to see if there exists a request commitment
+     * consumers for all consumers and keyhashes for a given acc.
      * @param accId - ID of the account
-     * @return true if there exists at least one unfulfilled request for the account, false
-     * otherwise.
+     * @return true if there exists at least one unfulfilled request
+     * for the account, false otherwise.
      */
     function pendingRequestExists(
         address consumer,
@@ -45,7 +46,7 @@ interface ICoordinatorBase {
     ) external view returns (bool);
 
     /**
-     * @notice Get request commitment
+     * @notice Get request commitment.
      * @param requestId id of request
      * @return commmitment value that can be used to determine whether
      * a request is fulfilled or not. If `requestId` is valid and

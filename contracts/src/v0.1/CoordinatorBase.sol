@@ -10,6 +10,8 @@ abstract contract CoordinatorBase is Ownable, ICoordinatorBase {
     // and some arithmetic operations.
     uint256 private constant GAS_FOR_CALL_EXACT_CHECK = 5_000;
 
+    address[] public sOracles;
+
     /* requestID */
     /* commitment */
     mapping(uint256 => bytes32) internal sRequestIdToCommitment;
@@ -44,6 +46,13 @@ abstract contract CoordinatorBase is Ownable, ICoordinatorBase {
     error Reentrant();
     error NoCorrespondingRequest();
     error NotRequestOwner();
+    error OracleAlreadyRegistered(address oracle);
+    error NoSuchOracle(address oracle);
+    error RefundFailure();
+    error InvalidConsumer(uint64 accId, address consumer);
+    error IncorrectCommitment();
+    error GasLimitTooBig(uint32 have, uint32 want);
+    error InsufficientPayment(uint256 have, uint256 want);
 
     event ConfigSet(uint32 maxGasLimit, uint32 gasAfterPaymentCalculation, FeeConfig feeConfig);
     event DirectPaymentConfigSet(uint256 fulfillmentFee, uint256 baseFee);
