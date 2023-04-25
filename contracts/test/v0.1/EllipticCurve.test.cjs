@@ -33,14 +33,13 @@ for (const curve of auxCurves) {
       it(`should convert a Jacobian point to affine (${index + 1})`, async () => {
         const ecLib = await loadFixture(deploy)
         const affine = await ecLib.toAffine(test.input.x, test.input.y, test.input.z, pp)
-        const expectedX = web3.utils.toBN(test.output.x)
+        const expectedX = test.output.x
         expect(affine[0]).to.be.equal(test.output.x)
         expect(affine[1]).to.be.equal(test.output.y)
       })
     }
 
     // invMod
-
     for (const [index, test] of curveData.invMod.valid.entries()) {
       it(`should invert a scalar (${index + 1}) - ${test.description}`, async () => {
         const ecLib = await loadFixture(deploy)
