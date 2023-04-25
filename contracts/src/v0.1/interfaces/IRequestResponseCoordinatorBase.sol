@@ -9,6 +9,7 @@ interface IRequestResponseCoordinatorBase {
     struct RequestCommitment {
         uint64 blockNum;
         uint64 accId;
+        uint8 numSubmission;
         uint32 callbackGasLimit;
         address sender;
     }
@@ -65,40 +66,40 @@ interface IRequestResponseCoordinatorBase {
         uint256 response,
         RequestCommitment memory rc,
         bool isDirectPayment
-    ) external returns (uint256);
+    ) external;
 
     function fulfillDataRequestInt256(
         uint256 requestId,
         int256 response,
         RequestCommitment memory rc,
         bool isDirectPayment
-    ) external returns (uint256);
+    ) external;
 
     function fulfillDataRequestBool(
         uint256 requestId,
         bool response,
         RequestCommitment memory rc,
         bool isDirectPayment
-    ) external returns (uint256);
+    ) external;
 
     function fulfillDataRequestString(
         uint256 requestId,
         string memory response,
         RequestCommitment memory rc,
         bool isDirectPayment
-    ) external returns (uint256);
+    ) external;
 
     function fulfillDataRequestBytes32(
         uint256 requestId,
         bytes32 response,
         RequestCommitment memory rc,
         bool isDirectPayment
-    ) external returns (uint256);
+    ) external;
 
     function fulfillDataRequestBytes(
         uint256 requestId,
         bytes memory response,
         RequestCommitment memory rc,
         bool isDirectPayment
-    ) external returns (uint256);
+    ) external;
 }

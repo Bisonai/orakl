@@ -28,8 +28,7 @@ async function deployFixture() {
     rrOracle5,
     consumer1: sProtocolFeeRecipient
   } = await hre.getNamedAccounts()
-  const { maxGasLimit, gasAfterPaymentCalculation, feeConfig, directFeeConfig } =
-    requestResponseConfig()
+  const { maxGasLimit, gasAfterPaymentCalculation, feeConfig } = requestResponseConfig()
 
   // Prepayment
   let prepaymentContract = await ethers.getContractFactory('Prepayment', {
@@ -99,7 +98,6 @@ async function deployFixture() {
     coordinatorContractOracleSigner5
   ])
   await state.initialize('RequestResponseConsumerMock')
-  await state.setMinBalance('0.001')
   await state.addCoordinator(coordinatorContract.address)
 
   return {
@@ -115,7 +113,6 @@ async function deployFixture() {
     maxGasLimit,
     gasAfterPaymentCalculation,
     feeConfig,
-    directFeeConfig,
     prepaymentContract,
     coordinatorContract,
     consumerContract,
@@ -223,8 +220,7 @@ async function requestAndFulfill(
     rrOracle5,
     maxGasLimit,
     gasAfterPaymentCalculation,
-    feeConfig,
-    directFeeConfig
+    feeConfig
   } = await loadFixture(deployFixture)
 
   // Register Oracles ///////////////////////////////////////////////////////////
@@ -241,7 +237,6 @@ async function requestAndFulfill(
     gasAfterPaymentCalculation,
     Object.values(feeConfig)
   )
-  await state.coordinatorContract.setDirectPaymentConfig(directFeeConfig)
 
   // Request data /////////////////////////////////////////////////////////////
   const gasLimit = 500_000
@@ -282,6 +277,7 @@ async function requestAndFulfill(
     blockNum: requestReceipt.blockNumber,
     accId: _accId,
     callbackGasLimit: maxGasLimit,
+    numSubmission,
     sender: state.consumerContract.address
   }
 
@@ -542,14 +538,8 @@ describe('Request-Response user contract', function () {
   })
 
   it('cancel request for [regular] account', async function () {
-    const {
-      state,
-      rrOracle0,
-      maxGasLimit,
-      gasAfterPaymentCalculation,
-      feeConfig,
-      directFeeConfig
-    } = await loadFixture(deployFixture)
+    const { state, rrOracle0, maxGasLimit, gasAfterPaymentCalculation, feeConfig } =
+      await loadFixture(deployFixture)
 
     // Register Oracles ///////////////////////////////////////////////////////////
     await state.coordinatorContract.registerOracle(rrOracle0)

@@ -244,9 +244,6 @@ describe('VRF contract', function () {
 
     await state.addCoordinator(coordinatorContract.address)
 
-    const minBalance = '0.001'
-    await state.setMinBalance(minBalance)
-
     const accId = await state.createAccount()
     await state.addConsumer(consumerContract.address)
 

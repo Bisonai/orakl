@@ -56,10 +56,6 @@ class State {
       value: ethers.utils.parseUnits(amount, 'ether')
     })
   }
-
-  async setMinBalance(minBalance) {
-    await this.coordinatorContract.setMinBalance(ethers.utils.parseUnits(minBalance, 'ether'))
-  }
 }
 
 module.exports = {

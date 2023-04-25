@@ -20,9 +20,6 @@ abstract contract CoordinatorBase is Ownable, ICoordinatorBase {
     /* owner */
     mapping(uint256 => address) internal sRequestOwner;
 
-    // TODO explain
-    uint256 public sMinBalance;
-
     IPrepayment internal sPrepayment;
 
     struct Config {
@@ -48,8 +45,6 @@ abstract contract CoordinatorBase is Ownable, ICoordinatorBase {
     error InsufficientPayment(uint256 have, uint256 want);
 
     event ConfigSet(uint32 maxGasLimit, uint32 gasAfterPaymentCalculation, FeeConfig feeConfig);
-    event DirectPaymentConfigSet(uint256 fulfillmentFee, uint256 baseFee);
-    event MinBalanceSet(uint256 minBalance);
     event RequestCanceled(uint256 indexed requestId);
 
     modifier nonReentrant() {
@@ -116,11 +111,6 @@ abstract contract CoordinatorBase is Ownable, ICoordinatorBase {
         return address(sPrepayment);
     }
 
-    function setMinBalance(uint256 minBalance) external onlyOwner {
-        sMinBalance = minBalance;
-        emit MinBalanceSet(minBalance);
-    }
-
     /**
      * @inheritdoc ICoordinatorBase
      */
@@ -148,10 +138,10 @@ abstract contract CoordinatorBase is Ownable, ICoordinatorBase {
 
     function estimateTotalFee(
         uint64 reqCount,
+        uint8 numSubmission,
         uint32 callbackGasLimit
     ) internal view returns (uint256) {
-        // VRF
-        uint256 serviceFee = calculateServiceFee(reqCount);
+        uint256 serviceFee = calculateServiceFee(reqCount) * numSubmission;
         uint256 maxGasCost = tx.gasprice * callbackGasLimit; // FIXME add 10% more?
         return serviceFee + maxGasCost;
     }

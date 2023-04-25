@@ -149,9 +149,9 @@ contract VRFCoordinator is IVRFCoordinatorBase, CoordinatorBase, ITypeAndVersion
         uint32 callbackGasLimit,
         uint32 numWords
     ) external nonReentrant onlyValidKeyHash(keyHash) returns (uint256) {
-        uint256 balance = sPrepayment.getBalance(accId);
-        uint64 reqCount = sPrepayment.getReqCount(accId); // TODO one call?
-        uint256 minBalance = estimateTotalFee(reqCount, callbackGasLimit);
+        (uint256 balance, uint64 reqCount, , ) = sPrepayment.getAccount(accId);
+        uint8 numSubmission = 1;
+        uint256 minBalance = estimateTotalFee(reqCount, numSubmission, callbackGasLimit);
         if (balance < minBalance) {
             revert InsufficientPayment(balance, minBalance);
         }
@@ -176,7 +176,9 @@ contract VRFCoordinator is IVRFCoordinatorBase, CoordinatorBase, ITypeAndVersion
         uint32 callbackGasLimit,
         uint32 numWords
     ) external payable nonReentrant onlyValidKeyHash(keyHash) returns (uint256) {
-        uint256 fee = estimateTotalFee(0, callbackGasLimit);
+        uint64 reqCount = 0;
+        uint8 numSubmission = 1;
+        uint256 fee = estimateTotalFee(reqCount, numSubmission, callbackGasLimit);
         if (msg.value < fee) {
             revert InsufficientPayment(msg.value, fee);
         }
@@ -192,6 +194,7 @@ contract VRFCoordinator is IVRFCoordinatorBase, CoordinatorBase, ITypeAndVersion
         );
         sPrepayment.depositTemporary{value: fee}(accId);
 
+        // Refund extra $KLAY
         uint256 remaining = msg.value - fee;
         if (remaining > 0) {
             (bool sent, ) = msg.sender.call{value: remaining}("");
@@ -266,15 +269,14 @@ contract VRFCoordinator is IVRFCoordinatorBase, CoordinatorBase, ITypeAndVersion
             // [regular] account
             uint64 reqCount = sPrepayment.getReqCount(rc.accId);
             uint256 serviceFee = calculateServiceFee(reqCount);
+            uint256 operatorFee = sPrepayment.chargeFee(rc.accId, serviceFee);
             uint256 gasFee = calculateGasCost(startGas);
-            uint256 totalFee = gasFee + serviceFee;
-
-            uint256 operatorFee = sPrepayment.chargeFee(rc.accId, totalFee);
-            if (operatorFee > 0) {
-                sPrepayment.chargeOperatorFee(rc.accId, operatorFee, sKeyHashToOracle[keyHash]);
+            uint256 fee = operatorFee + gasFee;
+            if (fee > 0) {
+                sPrepayment.chargeOperatorFee(rc.accId, fee, sKeyHashToOracle[keyHash]);
             }
 
-            return totalFee;
+            return serviceFee + gasFee;
         }
     }
 
