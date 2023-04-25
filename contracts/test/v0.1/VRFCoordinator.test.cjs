@@ -477,6 +477,8 @@ describe('VRF contract', function () {
     const accId = await state.createAccount()
     await state.addConsumer(consumerContract.address)
 
+    await state.deposit('2')
+
     // Request Random Words
     const txRequestRandomWords = await (
       await consumerContract.requestRandomWords(keyHash, accId, maxGasLimit, NUM_WORDS)
