@@ -37,7 +37,13 @@ contract TestEllipticCurve {
         return EllipticCurve.deriveY(_prefix, _x, _aa, _bb, _pp);
     }
 
-    function isOnCurve(uint _x, uint _y, uint _aa, uint _bb, uint _pp) public pure returns (bool) {
+    function isOnCurve(
+        uint256 _x,
+        uint256 _y,
+        uint256 _aa,
+        uint256 _bb,
+        uint256 _pp
+    ) public pure returns (bool) {
         return EllipticCurve.isOnCurve(_x, _y, _aa, _bb, _pp);
     }
 
