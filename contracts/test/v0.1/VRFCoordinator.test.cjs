@@ -10,6 +10,18 @@ const { State } = require('./State.utils.cjs')
 const DUMMY_KEY_HASH = '0x00000773ef09e40658e643fe79f8d1a27c0aa6eb7251749b268f829ea49f2024'
 const NUM_WORDS = 1
 
+async function createSigners() {
+  let { deployer, consumer } = await hre.getNamedAccounts()
+
+  const deployerSigner = await ethers.getSigner(deployer)
+  const consumerSigner = await ethers.getSigner(consumer)
+
+  return {
+    deployerSigner,
+    consumerSigner
+  }
+}
+
 function generateDummyPublicProvingKey() {
   const L = 77
   return crypto
@@ -209,6 +221,7 @@ describe('VRF contract', function () {
       prepaymentContract,
       state
     } = await loadFixture(deployFixture)
+    const { consumerSigner } = await createSigners()
 
     const {
       maxGasLimit,
@@ -274,6 +287,15 @@ describe('VRF contract', function () {
     expect(eSender).to.be.equal(consumerContract.address)
     expect(eIsDirectPayment).to.be.equal(false)
 
+    // Request has not been fulfilled yet, therewere we expect the
+    // commitment to be non-zero
+    const commitmentBeforeFulfillment = await coordinatorContract
+      .connect(consumerSigner)
+      .getCommitment(eRequestId)
+    expect(commitmentBeforeFulfillment).to.not.be.equal(
+      '0x0000000000000000000000000000000000000000000000000000000000000000'
+    )
+
     const alpha = remove0x(
       ethers.utils.solidityKeccak256(['uint256', 'bytes32'], [ePreSeed, blockHash])
     )
@@ -302,6 +324,15 @@ describe('VRF contract', function () {
         isDirectPayment
       )
     ).wait()
+
+    // Request has been fulfilled, therewere the requested
+    // commitment must be zero
+    const commitmentAfterFulfillment = await coordinatorContract
+      .connect(consumerSigner)
+      .getCommitment(eRequestId)
+    expect(commitmentAfterFulfillment).to.be.equal(
+      '0x0000000000000000000000000000000000000000000000000000000000000000'
+    )
 
     // Check the event information //////////////////////////////////////////////
     expect(txFulfillRandomWords.events.length).to.be.equal(4)
