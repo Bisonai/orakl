@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.11;
+pragma solidity ^0.8.16;
 
-// https://github.com/KenshiTech/vrf-consumer/blob/master/contracts/lib/VRF.sol
+// https://github.com/witnet/vrf-solidity/blob/master/contracts/VRF.sol
 
 import "./ecc/EllipticCurve.sol";
 
@@ -10,7 +10,7 @@ import "./ecc/EllipticCurve.sol";
  * @notice Library verifying VRF proofs using the `Secp256k1` curve and the `SHA256` hash function.
  * @dev This library follows the algorithms described in [VRF-draft-10](https://tools.ietf.org/pdf/draft-irtf-cfrg-vrf-10) and [RFC6979](https://tools.ietf.org/html/rfc6979).
  * It supports the _SECP256K1_SHA256_TAI_ cipher suite, i.e. the aforementioned algorithms using `SHA256` and the `Secp256k1` curve.
- * @author Witnet Foundation / Kenshi
+ * @author Witnet Foundation
  */
 library VRF {
     /**
@@ -187,8 +187,7 @@ library VRF {
         );
 
         // Step 6: Check validity c == c'
-        require(uint128(derivedC) == _proof[2], "invalid proof");
-        return true;
+        return uint128(derivedC) == _proof[2];
     }
 
     /// @dev Decode VRF proof from bytes
