@@ -153,12 +153,6 @@ contract RequestResponseCoordinator is
         uint64 accId,
         uint8 numSubmission
     ) external nonReentrant returns (uint256) {
-        if (!sJobId[req.id]) {
-            // move to internal
-            revert InvalidJobId();
-        }
-        validateNumSubmission(req.id, numSubmission);
-
         (uint256 balance, uint64 reqCount, , ) = sPrepayment.getAccount(accId);
         uint256 minBalance = estimateTotalFee(reqCount, numSubmission, callbackGasLimit);
         if (balance < minBalance) {
@@ -185,11 +179,6 @@ contract RequestResponseCoordinator is
         uint32 callbackGasLimit,
         uint8 numSubmission
     ) external payable returns (uint256) {
-        if (!sJobId[req.id]) {
-            revert InvalidJobId();
-        }
-        validateNumSubmission(req.id, numSubmission);
-
         uint64 reqCount = 0;
         uint256 fee = estimateTotalFee(reqCount, numSubmission, callbackGasLimit);
         if (msg.value < fee) {
@@ -448,6 +437,11 @@ contract RequestResponseCoordinator is
         uint8 numSubmission,
         bool isDirectPayment
     ) private returns (uint256) {
+        if (!sJobId[req.id]) {
+            revert InvalidJobId();
+        }
+        validateNumSubmission(req.id, numSubmission);
+
         if (!sPrepayment.isValidAccount(accId, msg.sender)) {
             revert InvalidConsumer(accId, msg.sender);
         }
