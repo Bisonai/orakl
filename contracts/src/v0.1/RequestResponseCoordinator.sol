@@ -4,7 +4,6 @@ pragma solidity ^0.8.16;
 import "./interfaces/IPrepayment.sol";
 import "./interfaces/ITypeAndVersion.sol";
 import "./interfaces/IRequestResponseCoordinatorBase.sol";
-import "./RequestResponseConsumerBase.sol";
 import "./RequestResponseConsumerFulfill.sol";
 import "./CoordinatorBase.sol";
 import "./libraries/Orakl.sol";
