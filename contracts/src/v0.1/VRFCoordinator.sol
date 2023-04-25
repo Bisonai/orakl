@@ -150,7 +150,8 @@ contract VRFCoordinator is IVRFCoordinatorBase, CoordinatorBase, ITypeAndVersion
         uint32 numWords
     ) external nonReentrant onlyValidKeyHash(keyHash) returns (uint256) {
         uint256 balance = sPrepayment.getBalance(accId);
-        uint256 minBalance = estimateTotalFee(accId, callbackGasLimit);
+        uint64 reqCount = sPrepayment.getReqCount(accId); // TODO one call?
+        uint256 minBalance = estimateTotalFee(reqCount, callbackGasLimit);
         if (balance < minBalance) {
             revert InsufficientPayment(balance, minBalance);
         }
@@ -175,13 +176,12 @@ contract VRFCoordinator is IVRFCoordinatorBase, CoordinatorBase, ITypeAndVersion
         uint32 callbackGasLimit,
         uint32 numWords
     ) external payable nonReentrant onlyValidKeyHash(keyHash) returns (uint256) {
-        uint256 fee = estimateDirectPaymentFee();
+        uint256 fee = estimateTotalFee(0, callbackGasLimit);
         if (msg.value < fee) {
             revert InsufficientPayment(msg.value, fee);
         }
 
         uint64 accId = sPrepayment.createTemporaryAccount();
-
         bool isDirectPayment = true;
         uint256 requestId = requestRandomWordsInternal(
             keyHash,
@@ -255,23 +255,26 @@ contract VRFCoordinator is IVRFCoordinatorBase, CoordinatorBase, ITypeAndVersion
         bytes32 keyHash
     ) internal returns (uint256) {
         if (isDirectPayment) {
+            // [temporary] account
             (uint256 totalFee, uint256 operatorFee) = sPrepayment.chargeFeeTemporary(rc.accId);
             if (operatorFee > 0) {
                 sPrepayment.chargeOperatorFeeTemporary(operatorFee, sKeyHashToOracle[keyHash]);
             }
 
-            sPrepayment.increaseReqCountTemporary(rc.accId);
             return totalFee;
         } else {
-            uint256 serviceFee = calculateServiceFee(rc.accId);
+            // [regular] account
+            uint64 reqCount = sPrepayment.getReqCount(rc.accId);
+            uint256 serviceFee = calculateServiceFee(reqCount);
             uint256 gasFee = calculateGasCost(startGas);
-            uint256 operatorFee = sPrepayment.chargeFee(rc.accId, serviceFee + gasFee);
+            uint256 totalFee = gasFee + serviceFee;
 
+            uint256 operatorFee = sPrepayment.chargeFee(rc.accId, totalFee);
             if (operatorFee > 0) {
                 sPrepayment.chargeOperatorFee(rc.accId, operatorFee, sKeyHashToOracle[keyHash]);
             }
 
-            return gasFee + serviceFee;
+            return totalFee;
         }
     }
 
@@ -332,7 +335,7 @@ contract VRFCoordinator is IVRFCoordinatorBase, CoordinatorBase, ITypeAndVersion
         uint32 numWords,
         bool isDirectPayment
     ) internal returns (uint256) {
-        if (!sPrepayment.isValid(accId, msg.sender)) {
+        if (!sPrepayment.isValidAccount(accId, msg.sender)) {
             revert InvalidConsumer(accId, msg.sender);
         }
 

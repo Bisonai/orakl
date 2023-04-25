@@ -51,7 +51,6 @@ contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
 
     struct TemporaryAccount {
         uint256 balance;
-        uint64 reqCount;
         address owner;
     }
 
@@ -193,7 +192,7 @@ contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
     /**
      * @inheritdoc IPrepayment
      */
-    function isValid(uint64 accId, address consumer) external view returns (bool) {
+    function isValidAccount(uint64 accId, address consumer) external view returns (bool) {
         Account account = sAccIdToAccount[accId];
         bool isValidRegular = address(account) != address(0) && account.getNonce(consumer) != 0;
         bool isValidTemporary = sAccIdToTmpAcc[accId].owner == msg.sender;
@@ -228,12 +227,12 @@ contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
         Account account = sAccIdToAccount[accId];
 
         if (address(account) != address(0)) {
-            // regular account
+            // [regular] account
             return account.getAccount();
         } else if (sIsTemporaryAccount[accId]) {
-            // temporary account
+            // [temporary] account
             TemporaryAccount memory tmpAccConfig = sAccIdToTmpAcc[accId];
-            return (tmpAccConfig.balance, tmpAccConfig.reqCount, tmpAccConfig.owner, consumers);
+            return (tmpAccConfig.balance, 0, tmpAccConfig.owner, consumers);
         } else {
             revert InvalidAccount();
         }
@@ -274,11 +273,7 @@ contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
         uint64 currentAccId = sCurrentAccId + 1;
         sCurrentAccId = currentAccId;
 
-        sAccIdToTmpAcc[currentAccId] = TemporaryAccount({
-            balance: 0,
-            reqCount: 0,
-            owner: msg.sender
-        });
+        sAccIdToTmpAcc[currentAccId] = TemporaryAccount({balance: 0, owner: msg.sender});
         sIsTemporaryAccount[currentAccId] = true;
 
         emit TemporaryAccountCreated(currentAccId, msg.sender);
@@ -400,13 +395,6 @@ contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
     /**
      * @inheritdoc IPrepayment
      */
-    function increaseReqCountTemporary(uint64 accId) external onlyCoordinator {
-        sAccIdToTmpAcc[accId].reqCount += 1;
-    }
-
-    /**
-     * @inheritdoc IPrepayment
-     */
     function chargeFee(uint64 accId, uint256 amount) external onlyCoordinator returns (uint256) {
         Account account = sAccIdToAccount[accId];
         uint256 balance = account.getBalance();
@@ -437,7 +425,7 @@ contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
             revert InsufficientBalance();
         }
 
-        account.payOperatorFee(operatorFee, operatorFeeRecipient);
+        account.chargeOperatorFee(operatorFee, operatorFeeRecipient);
         emit AccountBalanceDecreased(accId, balance, balance - operatorFee);
     }
 
@@ -477,12 +465,11 @@ contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
     function chargeOperatorFeeTemporary(
         uint256 operatorFee,
         address operatorFeeRecipient
-    ) external onlyCoordinator returns (uint256) {
+    ) external onlyCoordinator {
         (bool sent, ) = operatorFeeRecipient.call{value: operatorFee}("");
         if (!sent) {
             revert OperatorFeeFailed();
         }
-        return operatorFee;
     }
 
     /**

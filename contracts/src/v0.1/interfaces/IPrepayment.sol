@@ -11,7 +11,7 @@ interface IPrepayment {
      * @dev [regular] and [temporary] account.
      * @param accId - ID of the account
      */
-    function isValid(uint64 accId, address consumer) external view returns (bool);
+    function isValidAccount(uint64 accId, address consumer) external view returns (bool);
 
     /**
      * @notice Returns the balance of given account.
@@ -162,13 +162,6 @@ interface IPrepayment {
     function depositTemporary(uint64 accId) external payable;
 
     /**
-     * @notice Increase number of request trigerred by [temporary]
-     * @notice account `accId`.
-     * @param accId - ID of the account
-     */
-    function increaseReqCountTemporary(uint64 accId) external;
-
-    /**
      * @notice Withdraw $KLAY from [regular] account.
      * @dev Account owner can withdraw $KLAY only when there are no
      * @dev pending requests on any of associated consumers. If one
@@ -181,13 +174,21 @@ interface IPrepayment {
     function withdraw(uint64 accId, uint256 amount) external;
 
     /**
-     * @notice Charge burn and protocol fee from [regular] account for
-     * a service.
+     * @notice Burn part of fee and charge protocol fee from service
+     * connected to [regular] account.
      * @param accId - ID of the account
      * @param amount - $KLAY amount to be charged
      */
     function chargeFee(uint64 accId, uint256 amount) external returns (uint256);
 
+    /**
+     * @notice Charge operator fee for a service connected to
+     * [temporary] account.
+     * @param accId - ID of the account
+     * @param operatorFee - amount of fee to be paid to operator fee
+     * recipient
+     * @param operatorFeeRecipient - address of operator fee recipient
+     */
     function chargeOperatorFee(
         uint64 accId,
         uint256 operatorFee,
@@ -195,17 +196,22 @@ interface IPrepayment {
     ) external;
 
     /**
-     * @notice Charge fee from [temporary] account for a service.
+     * @notice Burn part of fee and charge protocol fee for a service
+     * connected to [temporary] account.
      * @param accId - ID of the account
      */
     function chargeFeeTemporary(
         uint64 accId
     ) external returns (uint256 totalAmount, uint256 operatorAmount);
 
-    function chargeOperatorFeeTemporary(
-        uint256 operatorFee,
-        address operatorFeeRecipient
-    ) external returns (uint256);
+    /**
+     * @notice Charge operator fee for a service connected to
+     * [temporary] account.
+     * @param operatorFee - amount of fee to be paid to operator fee
+     * recipient
+     * @param operatorFeeRecipient - address of operator fee recipient
+     */
+    function chargeOperatorFeeTemporary(uint256 operatorFee, address operatorFeeRecipient) external;
 
     /**
      * @notice Increase nonce for consumer registered under accId.

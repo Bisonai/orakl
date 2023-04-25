@@ -252,7 +252,7 @@ contract Account is IAccount, ITypeAndVersion {
         }
     }
 
-    function payOperatorFee(
+    function chargeOperatorFee(
         uint256 operatorFee,
         address operatorFeeRecipient
     ) external onlyPaymentSolution {

@@ -107,14 +107,21 @@ interface IAccount {
     function withdraw(uint256 amount) external returns (bool, uint256);
 
     /**
-     * @notice Charge fee from service connected to account.
+     * @notice Burn part of fee and charge protocol fee for a service
+     * connected to account.
      * @param burnFee - $KLAY amount to be burnt
      * @param protocolFee - $KLAY amount to be sent to protocol fee recipient
      * @param protocolFeeRecipient - address of Orakl Network
      */
     function chargeFee(uint256 burnFee, uint256 protocolFee, address protocolFeeRecipient) external;
 
-    function payOperatorFee(uint256 operatorFee, address operatorFeeRecipient) external;
+    /**
+     * @notice Charge operator fee for a service connected to account.
+     * @param operatorFee - $KLAY amount to be send to oracle operator
+     * fee recipient
+     * @param operatorFeeRecipient - address of Orakl Network
+     */
+    function chargeOperatorFee(uint256 operatorFee, address operatorFeeRecipient) external;
 
     /**
      * @notice Destroy the smart contract and send the remaining $KLAY

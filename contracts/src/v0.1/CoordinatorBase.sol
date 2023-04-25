@@ -34,13 +34,6 @@ abstract contract CoordinatorBase is Ownable, ICoordinatorBase {
     }
     Config internal sConfig;
 
-    // TODO move to interface as well
-    struct DirectPaymentConfig {
-        uint256 fulfillmentFee;
-        uint256 baseFee;
-    }
-    DirectPaymentConfig private sDirectPaymentConfig;
-
     FeeConfig private sFeeConfig;
 
     error Reentrant();
@@ -119,20 +112,6 @@ abstract contract CoordinatorBase is Ownable, ICoordinatorBase {
         );
     }
 
-    function setDirectPaymentConfig(
-        DirectPaymentConfig memory directPaymentConfig
-    ) external onlyOwner {
-        sDirectPaymentConfig = directPaymentConfig;
-        emit DirectPaymentConfigSet(
-            directPaymentConfig.fulfillmentFee,
-            directPaymentConfig.baseFee
-        );
-    }
-
-    function getDirectPaymentConfig() external view returns (uint256, uint256) {
-        return (sDirectPaymentConfig.fulfillmentFee, sDirectPaymentConfig.baseFee);
-    }
-
     function getPrepaymentAddress() external view returns (address) {
         return address(sPrepayment);
     }
@@ -168,27 +147,22 @@ abstract contract CoordinatorBase is Ownable, ICoordinatorBase {
     }
 
     function estimateTotalFee(
-        uint64 accId,
+        uint64 reqCount,
         uint32 callbackGasLimit
     ) internal view returns (uint256) {
         // VRF
-        uint256 serviceFee = calculateServiceFee(accId);
-        uint256 gasFee = tx.gasprice * callbackGasLimit; // FIXME add 10% more?
-        return serviceFee + gasFee;
+        uint256 serviceFee = calculateServiceFee(reqCount);
+        uint256 maxGasCost = tx.gasprice * callbackGasLimit; // FIXME add 10% more?
+        return serviceFee + maxGasCost;
     }
 
     /**
      * @notice Calculate service fee based on tier system of the
      * coordinator.
      */
-    function calculateServiceFee(uint64 accId) internal view returns (uint256) {
-        uint64 reqCount = sPrepayment.getReqCount(accId);
+    function calculateServiceFee(uint64 reqCount) internal view returns (uint256) {
         uint32 fulfillmentFlatFeeKlayPPM = getFeeTier(reqCount);
         return 1e12 * uint256(fulfillmentFlatFeeKlayPPM);
-    }
-
-    function estimateDirectPaymentFee() internal view returns (uint256) {
-        return sDirectPaymentConfig.fulfillmentFee + sDirectPaymentConfig.baseFee;
     }
 
     function calculateGasCost(uint256 startGas) internal view returns (uint256) {
