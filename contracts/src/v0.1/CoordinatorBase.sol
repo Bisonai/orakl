@@ -167,7 +167,21 @@ abstract contract CoordinatorBase is Ownable, ICoordinatorBase {
         emit RequestCanceled(requestId);
     }
 
-    function calculateFee(uint64 accId) internal view returns (uint256) {
+    function estimateTotalFee(
+        uint64 accId,
+        uint32 callbackGasLimit
+    ) internal view returns (uint256) {
+        // VRF
+        uint256 serviceFee = calculateServiceFee(accId);
+        uint256 gasFee = tx.gasprice * callbackGasLimit; // FIXME add 10% more?
+        return serviceFee + gasFee;
+    }
+
+    /**
+     * @notice Calculate service fee based on tier system of the
+     * coordinator.
+     */
+    function calculateServiceFee(uint64 accId) internal view returns (uint256) {
         uint64 reqCount = sPrepayment.getReqCount(accId);
         uint32 fulfillmentFlatFeeKlayPPM = getFeeTier(reqCount);
         return 1e12 * uint256(fulfillmentFlatFeeKlayPPM);
@@ -181,7 +195,7 @@ abstract contract CoordinatorBase is Ownable, ICoordinatorBase {
         return tx.gasprice * (sConfig.gasAfterPaymentCalculation + startGas - gasleft());
     }
 
-    /*
+    /**
      * @notice Compute fee based on the request count
      * @param reqCount number of requests
      * @return feePPM fee in KLAY PPM

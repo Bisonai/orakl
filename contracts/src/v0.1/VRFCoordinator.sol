@@ -32,7 +32,7 @@ contract VRFCoordinator is IVRFCoordinatorBase, CoordinatorBase, ITypeAndVersion
     // RequestCommitment holds information sent from off-chain oracle
     // describing details of request.
     struct RequestCommitment {
-        uint64 blockNum;
+        uint256 blockNum;
         uint64 accId;
         uint32 callbackGasLimit;
         uint32 numWords;
@@ -149,11 +149,10 @@ contract VRFCoordinator is IVRFCoordinatorBase, CoordinatorBase, ITypeAndVersion
         uint32 callbackGasLimit,
         uint32 numWords
     ) external nonReentrant onlyValidKeyHash(keyHash) returns (uint256) {
-        // TODO check if he is one of the consumers
-
         uint256 balance = sPrepayment.getBalance(accId);
-        if (balance < sMinBalance) {
-            revert InsufficientPayment(balance, sMinBalance);
+        uint256 minBalance = estimateTotalFee(accId, callbackGasLimit);
+        if (balance < minBalance) {
+            revert InsufficientPayment(balance, minBalance);
         }
 
         bool isDirectPayment = false;
@@ -230,9 +229,8 @@ contract VRFCoordinator is IVRFCoordinatorBase, CoordinatorBase, ITypeAndVersion
         delete sRequestIdToCommitment[requestId];
         delete sRequestOwner[requestId];
 
-        VRFConsumerBase v;
         bytes memory resp = abi.encodeWithSelector(
-            v.rawFulfillRandomWords.selector,
+            VRFConsumerBase.rawFulfillRandomWords.selector,
             requestId,
             randomWords
         );
@@ -267,7 +265,7 @@ contract VRFCoordinator is IVRFCoordinatorBase, CoordinatorBase, ITypeAndVersion
             sPrepayment.increaseReqCountTemporary(rc.accId);
             return totalFee;
         } else {
-            uint256 serviceFee = calculateFee(rc.accId);
+            uint256 serviceFee = calculateServiceFee(rc.accId);
             uint256 gasFee = calculateGasCost(startGas);
             uint256 operatorFee = sPrepayment.chargeFee(rc.accId, serviceFee);
 
@@ -279,13 +277,6 @@ contract VRFCoordinator is IVRFCoordinatorBase, CoordinatorBase, ITypeAndVersion
             return gasFee + serviceFee;
         }
     }
-
-    // TODO move to CoordinatorBase
-    /* function calculateFee(uint64 accId) internal view returns (uint256) { */
-    /*     uint64 reqCount = sPrepayment.getReqCount(accId); */
-    /*     uint32 fulfillmentFlatFeeKlayPPM = getFeeTier(reqCount); */
-    /*     return 1e12 * uint256(fulfillmentFlatFeeKlayPPM); */
-    /* } */
 
     /**
      * @notice The type and version of this contract
@@ -348,7 +339,6 @@ contract VRFCoordinator is IVRFCoordinatorBase, CoordinatorBase, ITypeAndVersion
             revert InvalidConsumer(accId, msg.sender);
         }
 
-        // TODO update comment
         // No lower bound on the requested gas limit. A user could request 0
         // and they would simply be billed for the proof verification and wouldn't be
         // able to do anything with the random value.
@@ -363,8 +353,13 @@ contract VRFCoordinator is IVRFCoordinatorBase, CoordinatorBase, ITypeAndVersion
         uint64 nonce = sPrepayment.increaseNonce(accId, msg.sender);
         (uint256 requestId, uint256 preSeed) = computeRequestId(keyHash, msg.sender, accId, nonce);
 
-        sRequestIdToCommitment[requestId] = keccak256(
-            abi.encode(requestId, block.number, accId, callbackGasLimit, numWords, msg.sender)
+        sRequestIdToCommitment[requestId] = computeCommitment(
+            requestId,
+            block.number,
+            accId,
+            callbackGasLimit,
+            numWords,
+            msg.sender
         );
         sRequestOwner[requestId] = msg.sender;
 
@@ -389,7 +384,22 @@ contract VRFCoordinator is IVRFCoordinatorBase, CoordinatorBase, ITypeAndVersion
         uint64 nonce
     ) private pure returns (uint256, uint256) {
         uint256 preSeed = uint256(keccak256(abi.encode(keyHash, sender, accId, nonce)));
-        return (uint256(keccak256(abi.encode(keyHash, preSeed))), preSeed);
+        uint256 requestId = uint256(keccak256(abi.encode(keyHash, preSeed)));
+        return (requestId, preSeed);
+    }
+
+    function computeCommitment(
+        uint256 requestId,
+        uint256 blockNumber,
+        uint64 accId,
+        uint32 callbackGasLimit,
+        uint32 numWords,
+        address sender
+    ) private pure returns (bytes32) {
+        return
+            keccak256(
+                abi.encode(requestId, blockNumber, accId, callbackGasLimit, numWords, sender)
+            );
     }
 
     function getRandomnessFromProof(
@@ -409,15 +419,13 @@ contract VRFCoordinator is IVRFCoordinatorBase, CoordinatorBase, ITypeAndVersion
         }
         if (
             commitment !=
-            keccak256(
-                abi.encode(
-                    requestId,
-                    rc.blockNum,
-                    rc.accId,
-                    rc.callbackGasLimit,
-                    rc.numWords,
-                    rc.sender
-                )
+            computeCommitment(
+                requestId,
+                rc.blockNum,
+                rc.accId,
+                rc.callbackGasLimit,
+                rc.numWords,
+                rc.sender
             )
         ) {
             revert IncorrectCommitment();

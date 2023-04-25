@@ -383,7 +383,7 @@ contract RequestResponseCoordinator is
 
             return totalFee;
         } else {
-            uint256 serviceFee = calculateFee(rc.accId);
+            uint256 serviceFee = calculateServiceFee(rc.accId);
             uint256 gasFee = calculateGasCost(startGas);
             uint256 operatorFee = sPrepayment.chargeFee(rc.accId, serviceFee);
 
