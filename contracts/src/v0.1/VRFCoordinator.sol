@@ -12,10 +12,6 @@ import "./CoordinatorBase.sol";
 
 /// @title Orakl Network VRFCoordinator
 /// @author Bisonai
-/// @notice
-// * oracle = reporter = EOA that can fulfill random word request
-// * every oracle has a key has assigned (representation of their private key that is used to generate random words)
-// * commitment (TODO explain)
 contract VRFCoordinator is IVRFCoordinatorBase, CoordinatorBase, ITypeAndVersion {
     uint32 public constant MAX_NUM_WORDS = 500;
 
