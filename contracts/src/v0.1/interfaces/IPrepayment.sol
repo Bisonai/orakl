@@ -174,7 +174,7 @@ interface IPrepayment {
     function withdraw(uint64 accId, uint256 amount) external;
 
     /**
-     * @notice Burn part of fee and charge protocol fee from service
+     * @notice Burn part of fee and charge protocol fee for a service
      * connected to [regular] account.
      * @param accId - ID of the account
      * @param amount - $KLAY amount to be charged
