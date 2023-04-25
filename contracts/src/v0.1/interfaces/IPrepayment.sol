@@ -162,13 +162,6 @@ interface IPrepayment {
     function depositTemporary(uint64 accId) external payable;
 
     /**
-     * @notice Increase number of request trigerred by [regular]
-     * @notice account `accId`.
-     * @param accId - ID of the account
-     */
-    function increaseReqCount(uint64 accId) external;
-
-    /**
      * @notice Increase number of request trigerred by [temporary]
      * @notice account `accId`.
      * @param accId - ID of the account
@@ -188,7 +181,8 @@ interface IPrepayment {
     function withdraw(uint64 accId, uint256 amount) external;
 
     /**
-     * @notice Charge fee from [regular]  account for a service.
+     * @notice Charge burn and protocol fee from [regular] account for
+     * a service.
      * @param accId - ID of the account
      * @param amount - $KLAY amount to be charged
      */

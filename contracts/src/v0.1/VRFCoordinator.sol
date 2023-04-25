@@ -207,14 +207,13 @@ contract VRFCoordinator is IVRFCoordinatorBase, CoordinatorBase, ITypeAndVersion
      * @notice Fulfill a randomness request
      * @param proof contains the proof and randomness
      * @param rc request commitment pre-image, committed to at request time
-     * @return payment amount billed to the account
      * @dev simulated offchain to determine if sufficient balance is present to fulfill the request
      */
     function fulfillRandomWords(
         VRF.Proof memory proof,
         RequestCommitment memory rc,
         bool isDirectPayment
-    ) external nonReentrant returns (uint256) {
+    ) external nonReentrant {
         uint256 startGas = gasleft();
         (bytes32 keyHash, uint256 requestId, uint256 randomness) = getRandomnessFromProof(
             proof,
@@ -247,7 +246,6 @@ contract VRFCoordinator is IVRFCoordinatorBase, CoordinatorBase, ITypeAndVersion
 
         uint256 payment = pay(rc, isDirectPayment, startGas, keyHash);
         emit RandomWordsFulfilled(requestId, randomness, payment, success);
-        return payment;
     }
 
     function pay(
@@ -267,13 +265,12 @@ contract VRFCoordinator is IVRFCoordinatorBase, CoordinatorBase, ITypeAndVersion
         } else {
             uint256 serviceFee = calculateServiceFee(rc.accId);
             uint256 gasFee = calculateGasCost(startGas);
-            uint256 operatorFee = sPrepayment.chargeFee(rc.accId, serviceFee);
+            uint256 operatorFee = sPrepayment.chargeFee(rc.accId, serviceFee + gasFee);
 
             if (operatorFee > 0) {
                 sPrepayment.chargeOperatorFee(rc.accId, operatorFee, sKeyHashToOracle[keyHash]);
             }
 
-            sPrepayment.increaseReqCount(rc.accId);
             return gasFee + serviceFee;
         }
     }

@@ -107,11 +107,6 @@ interface IAccount {
     function withdraw(uint256 amount) external returns (bool, uint256);
 
     /**
-     * @notice Increase account request count by one.
-     */
-    function increaseReqCount() external;
-
-    /**
      * @notice Charge fee from service connected to account.
      * @param burnFee - $KLAY amount to be burnt
      * @param protocolFee - $KLAY amount to be sent to protocol fee recipient

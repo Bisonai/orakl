@@ -403,7 +403,6 @@ contract RequestResponseCoordinator is
                 );
             }
 
-            sPrepayment.increaseReqCount(rc.accId);
             return gasFee + serviceFee;
         }
     }
