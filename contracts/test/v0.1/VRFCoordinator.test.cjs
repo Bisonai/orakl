@@ -11,14 +11,18 @@ const DUMMY_KEY_HASH = '0x00000773ef09e40658e643fe79f8d1a27c0aa6eb7251749b268f82
 const NUM_WORDS = 1
 
 async function createSigners() {
-  let { deployer, consumer } = await hre.getNamedAccounts()
+  let { deployer, consumer, consumer1, vrfOracle0 } = await hre.getNamedAccounts()
 
   const deployerSigner = await ethers.getSigner(deployer)
   const consumerSigner = await ethers.getSigner(consumer)
+  const consumer1Signer = await ethers.getSigner(consumer)
+  const vrfOracle0Signer = await ethers.getSigner(vrfOracle0)
 
   return {
     deployerSigner,
-    consumerSigner
+    consumerSigner,
+    consumer1Signer,
+    vrfOracle0Signer
   }
 }
 
@@ -244,7 +248,11 @@ describe('VRF contract', function () {
       prepaymentContract,
       state
     } = await loadFixture(deployFixture)
-    const { consumerSigner } = await createSigners()
+    const {
+      consumerSigner,
+      consumer1Signer: unregisteredOracle,
+      vrfOracle0Signer
+    } = await createSigners()
 
     const {
       maxGasLimit,
@@ -330,20 +338,26 @@ describe('VRF contract', function () {
       keyHash
     })
 
-    // Oracle submits data back to chain
-    const coordinatorContractOracleSigner = await ethers.getContractAt(
-      'VRFCoordinator',
-      coordinatorContract.address,
-      vrfOracle0
-    )
+    const pi = [publicProvingKey, proof, ePreSeed, uPoint, vComponents]
+    const rc = [blockNumber, eAccId, eCallbackGasLimit, NUM_WORDS, eSender]
     const isDirectPayment = false
+
+    // Random word request cannot be fulfilled by an unregistered oracle
+    await expect(
+      coordinatorContract.connect(unregisteredOracle).fulfillRandomWords(pi, rc, isDirectPayment)
+    ).to.be.revertedWithCustomError(coordinatorContract, 'NoSuchProvingKey')
+
+    // Registered oracle can submit data back to chain
     const txFulfillRandomWords = await (
-      await coordinatorContractOracleSigner.fulfillRandomWords(
-        [publicProvingKey, proof, ePreSeed, uPoint, vComponents],
-        [blockNumber, eAccId, eCallbackGasLimit, NUM_WORDS, eSender],
-        isDirectPayment
-      )
+      await coordinatorContract
+        .connect(vrfOracle0Signer)
+        .fulfillRandomWords(pi, rc, isDirectPayment)
     ).wait()
+
+    // However even registered oracle canno fulfill the request more than once
+    await expect(
+      coordinatorContract.connect(vrfOracle0Signer).fulfillRandomWords(pi, rc, isDirectPayment)
+    ).to.be.revertedWithCustomError(coordinatorContract, 'NoCorrespondingRequest')
 
     // Request has been fulfilled, therewere the requested
     // commitment must be zero
