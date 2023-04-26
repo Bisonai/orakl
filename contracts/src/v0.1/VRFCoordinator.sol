@@ -3,93 +3,43 @@ pragma solidity ^0.8.16;
 
 // https://github.com/smartcontractkit/chainlink/blob/develop/contracts/src/v0.8/VRFCoordinatorV2.sol
 
-import "@openzeppelin/contracts/access/Ownable.sol";
-import "./interfaces/ICoordinatorBase.sol";
 import "./interfaces/IPrepayment.sol";
 import "./interfaces/ITypeAndVersion.sol";
-import "./interfaces/IVRFCoordinator.sol";
+import "./interfaces/IVRFCoordinatorBase.sol";
 import "./libraries/VRF.sol";
 import "./VRFConsumerBase.sol";
+import "./CoordinatorBase.sol";
 
-contract VRFCoordinator is Ownable, ICoordinatorBase, ITypeAndVersion, IVRFCoordinator {
+/// @title Orakl Network VRFCoordinator
+/// @author Bisonai
+contract VRFCoordinator is IVRFCoordinatorBase, CoordinatorBase, ITypeAndVersion {
     uint32 public constant MAX_NUM_WORDS = 500;
-    // 5k is plenty for an EXTCODESIZE call (2600) + warm CALL (100)
-    // and some arithmetic operations.
-    uint256 private constant GAS_FOR_CALL_EXACT_CHECK = 5_000;
 
-    address[] public sOracles;
-    mapping(address => bytes32) private sOracleToKeyHash;
     bytes32[] public sKeyHashes;
+
+    /* oracle */
+    /* keyHash */
+    mapping(address => bytes32) private sOracleToKeyHash;
+
+    /* keyHash */
+    /* oracle */
     mapping(bytes32 => address) private sKeyHashToOracle;
-    mapping(uint256 => bytes32) private sRequestIdToCommitment;
-
-    /* requestID */
-    /* owner */
-    mapping(uint256 => address) private sRequestOwner;
-
-    uint256 public sMinBalance;
 
     // RequestCommitment holds information sent from off-chain oracle
     // describing details of request.
     struct RequestCommitment {
-        uint64 blockNum;
+        uint256 blockNum;
         uint64 accId;
         uint32 callbackGasLimit;
         uint32 numWords;
         address sender;
     }
 
-    struct Config {
-        uint32 maxGasLimit;
-        // Reentrancy protection.
-        bool reentrancyLock;
-        // Gas to cover oracle payment after we calculate the payment.
-        // We make it configurable in case those operations are repriced.
-        uint32 gasAfterPaymentCalculation;
-    }
-    Config private sConfig;
-
-    struct FeeConfig {
-        // Flat fee charged per fulfillment in millionths of KLAY
-        // So fee range is [0, 2^32/10^6].
-        uint32 fulfillmentFlatFeeKlayPPMTier1;
-        uint32 fulfillmentFlatFeeKlayPPMTier2;
-        uint32 fulfillmentFlatFeeKlayPPMTier3;
-        uint32 fulfillmentFlatFeeKlayPPMTier4;
-        uint32 fulfillmentFlatFeeKlayPPMTier5;
-        uint24 reqsForTier2;
-        uint24 reqsForTier3;
-        uint24 reqsForTier4;
-        uint24 reqsForTier5;
-    }
-    FeeConfig private sFeeConfig;
-
-    IPrepayment private sPrepayment;
-
-    struct DirectPaymentConfig {
-        uint256 fulfillmentFee;
-        uint256 baseFee;
-    }
-
-    DirectPaymentConfig private sDirectPaymentConfig;
-
     error InvalidKeyHash(bytes32 keyHash);
-    error InvalidConsumer(uint64 accId, address consumer);
-    error InvalidAccount();
-    error GasLimitTooBig(uint32 have, uint32 want);
     error NumWordsTooBig(uint32 have, uint32 want);
-    error OracleAlreadyRegistered(address oracle);
     error ProvingKeyAlreadyRegistered(bytes32 keyHash);
-    error NoSuchOracle(address oracle);
     error NoSuchProvingKey(bytes32 keyHash);
-    error NoCorrespondingRequest();
-    error IncorrectCommitment();
-    error NotRequestOwner();
-    error Reentrant();
-    error InsufficientPayment(uint256 have, uint256 want);
-    error RefundFailure();
 
-    event RandomWordsRequestCanceled(uint256 indexed requestId);
     event OracleRegistered(address indexed oracle, bytes32 keyHash);
     event OracleDeregistered(address indexed oracle, bytes32 keyHash);
     event RandomWordsRequested(
@@ -108,17 +58,7 @@ contract VRFCoordinator is Ownable, ICoordinatorBase, ITypeAndVersion, IVRFCoord
         uint256 payment,
         bool success
     );
-    event ConfigSet(uint32 maxGasLimit, uint32 gasAfterPaymentCalculation, FeeConfig feeConfig);
-    event DirectPaymentConfigSet(uint256 fulfillmentFee, uint256 baseFee);
-    event MinBalanceSet(uint256 minBalance);
     event PrepaymentSet(address prepayment);
-
-    modifier nonReentrant() {
-        if (sConfig.reentrancyLock) {
-            revert Reentrant();
-        }
-        _;
-    }
 
     modifier onlyValidKeyHash(bytes32 keyHash) {
         if (sKeyHashToOracle[keyHash] == address(0)) {
@@ -190,102 +130,14 @@ contract VRFCoordinator is Ownable, ICoordinatorBase, ITypeAndVersion, IVRFCoord
     }
 
     /**
-     * @notice Sets the configuration of the VRF coordinator
-     * @param maxGasLimit global max for request gas limit
-     * @param gasAfterPaymentCalculation gas used in doing accounting after completing the gas measurement
-     * @param feeConfig fee tier configuration
-     */
-    function setConfig(
-        uint32 maxGasLimit,
-        uint32 gasAfterPaymentCalculation,
-        FeeConfig memory feeConfig
-    ) external onlyOwner {
-        sConfig = Config({
-            maxGasLimit: maxGasLimit,
-            gasAfterPaymentCalculation: gasAfterPaymentCalculation,
-            reentrancyLock: false
-        });
-        sFeeConfig = feeConfig;
-        emit ConfigSet(maxGasLimit, gasAfterPaymentCalculation, sFeeConfig);
-    }
-
-    function getConfig()
-        external
-        view
-        returns (uint32 maxGasLimit, uint32 gasAfterPaymentCalculation)
-    {
-        return (sConfig.maxGasLimit, sConfig.gasAfterPaymentCalculation);
-    }
-
-    function getFeeConfig()
-        external
-        view
-        returns (
-            uint32 fulfillmentFlatFeeKlayPPMTier1,
-            uint32 fulfillmentFlatFeeKlayPPMTier2,
-            uint32 fulfillmentFlatFeeKlayPPMTier3,
-            uint32 fulfillmentFlatFeeKlayPPMTier4,
-            uint32 fulfillmentFlatFeeKlayPPMTier5,
-            uint24 reqsForTier2,
-            uint24 reqsForTier3,
-            uint24 reqsForTier4,
-            uint24 reqsForTier5
-        )
-    {
-        return (
-            sFeeConfig.fulfillmentFlatFeeKlayPPMTier1,
-            sFeeConfig.fulfillmentFlatFeeKlayPPMTier2,
-            sFeeConfig.fulfillmentFlatFeeKlayPPMTier3,
-            sFeeConfig.fulfillmentFlatFeeKlayPPMTier4,
-            sFeeConfig.fulfillmentFlatFeeKlayPPMTier5,
-            sFeeConfig.reqsForTier2,
-            sFeeConfig.reqsForTier3,
-            sFeeConfig.reqsForTier4,
-            sFeeConfig.reqsForTier5
-        );
-    }
-
-    /**
-     * @inheritdoc IVRFCoordinator
+     * @inheritdoc IVRFCoordinatorBase
      */
     function getRequestConfig() external view returns (uint32, bytes32[] memory) {
         return (sConfig.maxGasLimit, sKeyHashes);
     }
 
-    function getDirectPaymentConfig() external view returns (uint256, uint256) {
-        return (sDirectPaymentConfig.fulfillmentFee, sDirectPaymentConfig.baseFee);
-    }
-
     /**
-     * @notice Get request commitment
-     * @param requestId id of request
-     * @dev used to determine if a request is fulfilled or not
-     */
-    function getCommitment(uint256 requestId) external view returns (bytes32) {
-        return sRequestIdToCommitment[requestId];
-    }
-
-    function setDirectPaymentConfig(
-        DirectPaymentConfig memory directPaymentConfig
-    ) external onlyOwner {
-        sDirectPaymentConfig = directPaymentConfig;
-        emit DirectPaymentConfigSet(
-            directPaymentConfig.fulfillmentFee,
-            directPaymentConfig.baseFee
-        );
-    }
-
-    function getPrepaymentAddress() external view returns (address) {
-        return address(sPrepayment);
-    }
-
-    function setMinBalance(uint256 minBalance) external onlyOwner {
-        sMinBalance = minBalance;
-        emit MinBalanceSet(minBalance);
-    }
-
-    /**
-     * @inheritdoc IVRFCoordinator
+     * @inheritdoc IVRFCoordinatorBase
      */
     function requestRandomWords(
         bytes32 keyHash,
@@ -293,11 +145,11 @@ contract VRFCoordinator is Ownable, ICoordinatorBase, ITypeAndVersion, IVRFCoord
         uint32 callbackGasLimit,
         uint32 numWords
     ) external nonReentrant onlyValidKeyHash(keyHash) returns (uint256) {
-        // TODO check if he is one of the consumers
-
-        uint256 balance = sPrepayment.getBalance(accId);
-        if (balance < sMinBalance) {
-            revert InsufficientPayment(balance, sMinBalance);
+        (uint256 balance, uint64 reqCount, , ) = sPrepayment.getAccount(accId);
+        uint8 numSubmission = 1;
+        uint256 minBalance = estimateTotalFee(reqCount, numSubmission, callbackGasLimit);
+        if (balance < minBalance) {
+            revert InsufficientPayment(balance, minBalance);
         }
 
         bool isDirectPayment = false;
@@ -313,20 +165,21 @@ contract VRFCoordinator is Ownable, ICoordinatorBase, ITypeAndVersion, IVRFCoord
     }
 
     /**
-     * @inheritdoc IVRFCoordinator
+     * @inheritdoc IVRFCoordinatorBase
      */
     function requestRandomWords(
         bytes32 keyHash,
         uint32 callbackGasLimit,
         uint32 numWords
     ) external payable nonReentrant onlyValidKeyHash(keyHash) returns (uint256) {
-        uint256 fee = estimateDirectPaymentFee();
+        uint64 reqCount = 0;
+        uint8 numSubmission = 1;
+        uint256 fee = estimateTotalFee(reqCount, numSubmission, callbackGasLimit);
         if (msg.value < fee) {
             revert InsufficientPayment(msg.value, fee);
         }
 
         uint64 accId = sPrepayment.createTemporaryAccount();
-
         bool isDirectPayment = true;
         uint256 requestId = requestRandomWordsInternal(
             keyHash,
@@ -337,6 +190,7 @@ contract VRFCoordinator is Ownable, ICoordinatorBase, ITypeAndVersion, IVRFCoord
         );
         sPrepayment.depositTemporary{value: fee}(accId);
 
+        // Refund extra $KLAY
         uint256 remaining = msg.value - fee;
         if (remaining > 0) {
             (bool sent, ) = msg.sender.call{value: remaining}("");
@@ -352,14 +206,13 @@ contract VRFCoordinator is Ownable, ICoordinatorBase, ITypeAndVersion, IVRFCoord
      * @notice Fulfill a randomness request
      * @param proof contains the proof and randomness
      * @param rc request commitment pre-image, committed to at request time
-     * @return payment amount billed to the account
      * @dev simulated offchain to determine if sufficient balance is present to fulfill the request
      */
     function fulfillRandomWords(
         VRF.Proof memory proof,
         RequestCommitment memory rc,
         bool isDirectPayment
-    ) external nonReentrant returns (uint256) {
+    ) external nonReentrant {
         uint256 startGas = gasleft();
         (bytes32 keyHash, uint256 requestId, uint256 randomness) = getRandomnessFromProof(
             proof,
@@ -374,9 +227,8 @@ contract VRFCoordinator is Ownable, ICoordinatorBase, ITypeAndVersion, IVRFCoord
         delete sRequestIdToCommitment[requestId];
         delete sRequestOwner[requestId];
 
-        VRFConsumerBase v;
         bytes memory resp = abi.encodeWithSelector(
-            v.rawFulfillRandomWords.selector,
+            VRFConsumerBase.rawFulfillRandomWords.selector,
             requestId,
             randomWords
         );
@@ -393,7 +245,6 @@ contract VRFCoordinator is Ownable, ICoordinatorBase, ITypeAndVersion, IVRFCoord
 
         uint256 payment = pay(rc, isDirectPayment, startGas, keyHash);
         emit RandomWordsFulfilled(requestId, randomness, payment, success);
-        return payment;
     }
 
     function pay(
@@ -403,43 +254,26 @@ contract VRFCoordinator is Ownable, ICoordinatorBase, ITypeAndVersion, IVRFCoord
         bytes32 keyHash
     ) internal returns (uint256) {
         if (isDirectPayment) {
+            // [temporary] account
             (uint256 totalFee, uint256 operatorFee) = sPrepayment.chargeFeeTemporary(rc.accId);
             if (operatorFee > 0) {
                 sPrepayment.chargeOperatorFeeTemporary(operatorFee, sKeyHashToOracle[keyHash]);
             }
 
-            sPrepayment.increaseReqCountTemporary(rc.accId);
             return totalFee;
         } else {
-            uint256 serviceFee = calculateFee(rc.accId);
-            uint256 gasFee = calculateGasCost(startGas);
+            // [regular] account
+            uint64 reqCount = sPrepayment.getReqCount(rc.accId);
+            uint256 serviceFee = calculateServiceFee(reqCount);
             uint256 operatorFee = sPrepayment.chargeFee(rc.accId, serviceFee);
-
-            if (operatorFee > 0) {
-                sPrepayment.chargeOperatorFee(rc.accId, operatorFee, sKeyHashToOracle[keyHash]);
+            uint256 gasFee = calculateGasCost(startGas);
+            uint256 fee = operatorFee + gasFee;
+            if (fee > 0) {
+                sPrepayment.chargeOperatorFee(rc.accId, fee, sKeyHashToOracle[keyHash]);
             }
 
-            sPrepayment.increaseReqCount(rc.accId);
-            return gasFee + serviceFee;
+            return serviceFee + gasFee;
         }
-    }
-
-    /**
-     * @inheritdoc IVRFCoordinator
-     */
-    function cancelRequest(uint256 requestId) external {
-        if (!isValidRequestId(requestId)) {
-            revert NoCorrespondingRequest();
-        }
-
-        if (sRequestOwner[requestId] != msg.sender) {
-            revert NotRequestOwner();
-        }
-
-        delete sRequestIdToCommitment[requestId];
-        delete sRequestOwner[requestId];
-
-        emit RandomWordsRequestCanceled(requestId);
     }
 
     /**
@@ -464,36 +298,6 @@ contract VRFCoordinator is Ownable, ICoordinatorBase, ITypeAndVersion, IVRFCoord
      */
     function keyHashToOracle(bytes32 keyHash) external view returns (address) {
         return sKeyHashToOracle[keyHash];
-    }
-
-    /*
-     * @notice Compute fee based on the request count
-     * @param reqCount number of requests
-     * @return feePPM fee in KLAY PPM
-     */
-    function getFeeTier(uint64 reqCount) public view returns (uint32) {
-        FeeConfig memory fc = sFeeConfig;
-        if (0 <= reqCount && reqCount <= fc.reqsForTier2) {
-            return fc.fulfillmentFlatFeeKlayPPMTier1;
-        }
-        if (fc.reqsForTier2 < reqCount && reqCount <= fc.reqsForTier3) {
-            return fc.fulfillmentFlatFeeKlayPPMTier2;
-        }
-        if (fc.reqsForTier3 < reqCount && reqCount <= fc.reqsForTier4) {
-            return fc.fulfillmentFlatFeeKlayPPMTier3;
-        }
-        if (fc.reqsForTier4 < reqCount && reqCount <= fc.reqsForTier5) {
-            return fc.fulfillmentFlatFeeKlayPPMTier4;
-        }
-        return fc.fulfillmentFlatFeeKlayPPMTier5;
-    }
-
-    function isValidRequestId(uint256 requestId) internal view returns (bool) {
-        if (sRequestIdToCommitment[requestId] != 0) {
-            return true;
-        } else {
-            return false;
-        }
     }
 
     /**
@@ -529,11 +333,10 @@ contract VRFCoordinator is Ownable, ICoordinatorBase, ITypeAndVersion, IVRFCoord
         uint32 numWords,
         bool isDirectPayment
     ) internal returns (uint256) {
-        if (!sPrepayment.isValid(accId, msg.sender)) {
+        if (!sPrepayment.isValidAccount(accId, msg.sender)) {
             revert InvalidConsumer(accId, msg.sender);
         }
 
-        // TODO update comment
         // No lower bound on the requested gas limit. A user could request 0
         // and they would simply be billed for the proof verification and wouldn't be
         // able to do anything with the random value.
@@ -548,8 +351,13 @@ contract VRFCoordinator is Ownable, ICoordinatorBase, ITypeAndVersion, IVRFCoord
         uint64 nonce = sPrepayment.increaseNonce(accId, msg.sender);
         (uint256 requestId, uint256 preSeed) = computeRequestId(keyHash, msg.sender, accId, nonce);
 
-        sRequestIdToCommitment[requestId] = keccak256(
-            abi.encode(requestId, block.number, accId, callbackGasLimit, numWords, msg.sender)
+        sRequestIdToCommitment[requestId] = computeCommitment(
+            requestId,
+            block.number,
+            accId,
+            callbackGasLimit,
+            numWords,
+            msg.sender
         );
         sRequestOwner[requestId] = msg.sender;
 
@@ -567,20 +375,6 @@ contract VRFCoordinator is Ownable, ICoordinatorBase, ITypeAndVersion, IVRFCoord
         return requestId;
     }
 
-    function estimateDirectPaymentFee() internal view returns (uint256) {
-        return sDirectPaymentConfig.fulfillmentFee + sDirectPaymentConfig.baseFee;
-    }
-
-    function calculateFee(uint64 accId) internal view returns (uint256) {
-        uint64 reqCount = sPrepayment.getReqCount(accId);
-        uint32 fulfillmentFlatFeeKlayPPM = getFeeTier(reqCount);
-        return 1e12 * uint256(fulfillmentFlatFeeKlayPPM);
-    }
-
-    function calculateGasCost(uint256 startGas) internal view returns (uint256) {
-        return tx.gasprice * (sConfig.gasAfterPaymentCalculation + startGas - gasleft());
-    }
-
     function computeRequestId(
         bytes32 keyHash,
         address sender,
@@ -588,45 +382,22 @@ contract VRFCoordinator is Ownable, ICoordinatorBase, ITypeAndVersion, IVRFCoord
         uint64 nonce
     ) private pure returns (uint256, uint256) {
         uint256 preSeed = uint256(keccak256(abi.encode(keyHash, sender, accId, nonce)));
-        return (uint256(keccak256(abi.encode(keyHash, preSeed))), preSeed);
+        uint256 requestId = uint256(keccak256(abi.encode(keyHash, preSeed)));
+        return (requestId, preSeed);
     }
 
-    /**
-     * @dev calls target address with exactly gasAmount gas and data as calldata
-     * or reverts if at least gasAmount gas is not available.
-     */
-    function callWithExactGas(
-        uint256 gasAmount,
-        address target,
-        bytes memory data
-    ) private returns (bool success) {
-        // solhint-disable-next-line no-inline-assembly
-        assembly {
-            let g := gas()
-            // Compute g -= GAS_FOR_CALL_EXACT_CHECK and check for underflow
-            // The gas actually passed to the callee is min(gasAmount, 63//64*gas available).
-            // We want to ensure that we revert if gasAmount >  63//64*gas available
-            // as we do not want to provide them with less, however that check itself costs
-            // gas.  GAS_FOR_CALL_EXACT_CHECK ensures we have at least enough gas to be able
-            // to revert if gasAmount >  63//64*gas available.
-            if lt(g, GAS_FOR_CALL_EXACT_CHECK) {
-                revert(0, 0)
-            }
-            g := sub(g, GAS_FOR_CALL_EXACT_CHECK)
-            // if g - g//64 <= gasAmount, revert
-            // (we subtract g//64 because of EIP-150)
-            if iszero(gt(sub(g, div(g, 64)), gasAmount)) {
-                revert(0, 0)
-            }
-            // solidity calls check that a contract actually exists at the destination, so we do the same
-            if iszero(extcodesize(target)) {
-                revert(0, 0)
-            }
-            // call and return whether we succeeded. ignore return data
-            // call(gas,addr,value,argsOffset,argsLength,retOffset,retLength)
-            success := call(gasAmount, target, 0, add(data, 0x20), mload(data), 0, 0)
-        }
-        return success;
+    function computeCommitment(
+        uint256 requestId,
+        uint256 blockNumber,
+        uint64 accId,
+        uint32 callbackGasLimit,
+        uint32 numWords,
+        address sender
+    ) private pure returns (bytes32) {
+        return
+            keccak256(
+                abi.encode(requestId, blockNumber, accId, callbackGasLimit, numWords, sender)
+            );
     }
 
     function getRandomnessFromProof(
@@ -646,15 +417,13 @@ contract VRFCoordinator is Ownable, ICoordinatorBase, ITypeAndVersion, IVRFCoord
         }
         if (
             commitment !=
-            keccak256(
-                abi.encode(
-                    requestId,
-                    rc.blockNum,
-                    rc.accId,
-                    rc.callbackGasLimit,
-                    rc.numWords,
-                    rc.sender
-                )
+            computeCommitment(
+                requestId,
+                rc.blockNum,
+                rc.accId,
+                rc.callbackGasLimit,
+                rc.numWords,
+                rc.sender
             )
         ) {
             revert IncorrectCommitment();

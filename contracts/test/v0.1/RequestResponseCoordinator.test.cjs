@@ -1,7 +1,6 @@
-import { loadFixture } from '@nomicfoundation/hardhat-network-helpers'
-import { expect } from 'chai'
-import hre from 'hardhat'
-import { ethers } from 'hardhat'
+const { expect } = require('chai')
+const { ethers } = require('hardhat')
+const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers')
 
 async function deployFixture() {
   const {

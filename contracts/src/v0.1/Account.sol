@@ -229,13 +229,6 @@ contract Account is IAccount, ITypeAndVersion {
     /**
      * @inheritdoc IAccount
      */
-    function increaseReqCount() external onlyPaymentSolution {
-        sReqCount += 1;
-    }
-
-    /**
-     * @inheritdoc IAccount
-     */
     function chargeFee(
         uint256 burnFee,
         uint256 protocolFee,
@@ -259,7 +252,7 @@ contract Account is IAccount, ITypeAndVersion {
         }
     }
 
-    function payOperatorFee(
+    function chargeOperatorFee(
         uint256 operatorFee,
         address operatorFeeRecipient
     ) external onlyPaymentSolution {

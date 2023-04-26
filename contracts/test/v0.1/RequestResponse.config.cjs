@@ -12,16 +12,11 @@ function requestResponseConfig() {
     reqsForTier4: 0,
     reqsForTier5: 0
   }
-  const directFeeConfig = {
-    fulfillmentFee: 5_000_000_000_000_000,
-    baseFee: 5_000_000_000
-  }
 
   return {
     maxGasLimit,
     gasAfterPaymentCalculation,
-    feeConfig,
-    directFeeConfig
+    feeConfig
   }
 }
 

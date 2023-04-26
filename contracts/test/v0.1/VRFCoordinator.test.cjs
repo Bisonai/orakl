@@ -10,6 +10,18 @@ const { State } = require('./State.utils.cjs')
 const DUMMY_KEY_HASH = '0x00000773ef09e40658e643fe79f8d1a27c0aa6eb7251749b268f829ea49f2024'
 const NUM_WORDS = 1
 
+async function createSigners() {
+  let { deployer, consumer } = await hre.getNamedAccounts()
+
+  const deployerSigner = await ethers.getSigner(deployer)
+  const consumerSigner = await ethers.getSigner(consumer)
+
+  return {
+    deployerSigner,
+    consumerSigner
+  }
+}
+
 function generateDummyPublicProvingKey() {
   const L = 77
   return crypto
@@ -209,6 +221,7 @@ describe('VRF contract', function () {
       prepaymentContract,
       state
     } = await loadFixture(deployFixture)
+    const { consumerSigner } = await createSigners()
 
     const {
       maxGasLimit,
@@ -231,17 +244,14 @@ describe('VRF contract', function () {
 
     await state.addCoordinator(coordinatorContract.address)
 
-    const minBalance = '0.001'
-    await state.setMinBalance(minBalance)
-
     const accId = await state.createAccount()
-    state.addConsumer(consumerContract.address)
+    await state.addConsumer(consumerContract.address)
 
     await expect(
       consumerContract.requestRandomWords(keyHash, accId, maxGasLimit, NUM_WORDS)
     ).to.be.revertedWithCustomError(coordinatorContract, 'InsufficientPayment')
 
-    state.deposit('2')
+    await state.deposit('2')
 
     // After depositing minimum account to account, we are able to
     // request random words.
@@ -274,6 +284,15 @@ describe('VRF contract', function () {
     expect(eSender).to.be.equal(consumerContract.address)
     expect(eIsDirectPayment).to.be.equal(false)
 
+    // Request has not been fulfilled yet, therewere we expect the
+    // commitment to be non-zero
+    const commitmentBeforeFulfillment = await coordinatorContract
+      .connect(consumerSigner)
+      .getCommitment(eRequestId)
+    expect(commitmentBeforeFulfillment).to.not.be.equal(
+      '0x0000000000000000000000000000000000000000000000000000000000000000'
+    )
+
     const alpha = remove0x(
       ethers.utils.solidityKeccak256(['uint256', 'bytes32'], [ePreSeed, blockHash])
     )
@@ -302,6 +321,15 @@ describe('VRF contract', function () {
         isDirectPayment
       )
     ).wait()
+
+    // Request has been fulfilled, therewere the requested
+    // commitment must be zero
+    const commitmentAfterFulfillment = await coordinatorContract
+      .connect(consumerSigner)
+      .getCommitment(eRequestId)
+    expect(commitmentAfterFulfillment).to.be.equal(
+      '0x0000000000000000000000000000000000000000000000000000000000000000'
+    )
 
     // Check the event information //////////////////////////////////////////////
     expect(txFulfillRandomWords.events.length).to.be.equal(4)
@@ -377,28 +405,8 @@ describe('VRF contract', function () {
 
     await state.addCoordinator(coordinatorContract.address)
 
-    // Set a direct payment fee
-    const setFulfillmentFee = parseKlay(1)
-    const setBaseFee = parseKlay(0.25)
-    const setConfig = [setFulfillmentFee, setBaseFee]
-    const txSetDirectPaymentConfig = await (
-      await coordinatorContract.setDirectPaymentConfig(setConfig)
-    ).wait()
-
-    expect(txSetDirectPaymentConfig.events.length).to.be.equal(1)
-    const directPaymentConfigSetEvent = coordinatorContract.interface.parseLog(
-      txSetDirectPaymentConfig.events[0]
-    )
-    expect(directPaymentConfigSetEvent.name).to.be.equal('DirectPaymentConfigSet')
-
-    const { fulfillmentFee, baseFee } = directPaymentConfigSetEvent.args
-    expect(fulfillmentFee).to.be.equal(setFulfillmentFee)
-    expect(baseFee).to.be.equal(setBaseFee)
-
-    const [getFulfillmentFee, getBaseFee] = await coordinatorContract.getDirectPaymentConfig()
-    const value = ethers.BigNumber.from(fulfillmentFee).add(baseFee)
-
     // Request random words through temporary account
+    const value = parseKlay('1')
     const txRequestRandomWords = await (
       await consumerContract.requestRandomWordsDirectPayment(keyHash, maxGasLimit, NUM_WORDS, {
         value
@@ -444,7 +452,9 @@ describe('VRF contract', function () {
     await state.addCoordinator(coordinatorContract.address)
 
     const accId = await state.createAccount()
-    state.addConsumer(consumerContract.address)
+    await state.addConsumer(consumerContract.address)
+
+    await state.deposit('2')
 
     // Request Random Words
     const txRequestRandomWords = await (
@@ -464,7 +474,7 @@ describe('VRF contract', function () {
     const randomWordsRequestCancelledEvent = coordinatorContract.interface.parseLog(
       txCancelRequest.events[0]
     )
-    expect(randomWordsRequestCancelledEvent.name).to.be.equal('RandomWordsRequestCanceled')
+    expect(randomWordsRequestCancelledEvent.name).to.be.equal('RequestCanceled')
 
     const { requestId: cRequestId } = randomWordsRequestCancelledEvent.args
     expect(requestId).to.be.equal(cRequestId)
