@@ -512,7 +512,7 @@ contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
         }
 
         uint256 coordinatorsLength = sCoordinators.length;
-        for (uint256 i; i < coordinatorsLength; ++i) {
+        for (uint256 i = 0; i < coordinatorsLength; ++i) {
             if (sCoordinators[i] == ICoordinatorBase(coordinator)) {
                 ICoordinatorBase last = sCoordinators[coordinatorsLength - 1];
                 sCoordinators[i] = last;

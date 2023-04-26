@@ -194,7 +194,7 @@ contract Account is IAccount, ITypeAndVersion {
         uint256 consumersLength = consumers.length;
         uint256 lastConsumerIndex = consumersLength - 1;
 
-        for (uint256 i; i < consumersLength; ++i) {
+        for (uint256 i = 0; i < consumersLength; ++i) {
             if (consumers[i] == consumer) {
                 address last = consumers[lastConsumerIndex];
                 // Storage write to preserve last element
