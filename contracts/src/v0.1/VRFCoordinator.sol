@@ -17,13 +17,18 @@ contract VRFCoordinator is IVRFCoordinatorBase, CoordinatorBase, ITypeAndVersion
 
     bytes32[] public sKeyHashes;
 
+    struct Oracle {
+        bool registered;
+        address[] oracles;
+    }
+
+    /* keyHash */
+    /* Oracle */
+    mapping(bytes32 => Oracle) private sKeyHashToOracle;
+
     /* oracle */
     /* keyHash */
     mapping(address => bytes32) private sOracleToKeyHash;
-
-    /* keyHash */
-    /* oracle */
-    mapping(bytes32 => address) private sKeyHashToOracle;
 
     // RequestCommitment holds information sent from off-chain oracle
     // describing details of request.
@@ -37,7 +42,6 @@ contract VRFCoordinator is IVRFCoordinatorBase, CoordinatorBase, ITypeAndVersion
 
     error InvalidKeyHash(bytes32 keyHash);
     error NumWordsTooBig(uint32 have, uint32 want);
-    error ProvingKeyAlreadyRegistered(bytes32 keyHash);
     error NoSuchProvingKey(bytes32 keyHash);
 
     event OracleRegistered(address indexed oracle, bytes32 keyHash);
@@ -61,7 +65,7 @@ contract VRFCoordinator is IVRFCoordinatorBase, CoordinatorBase, ITypeAndVersion
     event PrepaymentSet(address prepayment);
 
     modifier onlyValidKeyHash(bytes32 keyHash) {
-        if (sKeyHashToOracle[keyHash] == address(0)) {
+        if (!sKeyHashToOracle[keyHash].registered) {
             revert InvalidKeyHash(keyHash);
         }
         _;
@@ -86,14 +90,13 @@ contract VRFCoordinator is IVRFCoordinatorBase, CoordinatorBase, ITypeAndVersion
         }
 
         bytes32 kh = hashOfKey(publicProvingKey);
-        if (sKeyHashToOracle[kh] != address(0)) {
-            revert ProvingKeyAlreadyRegistered(kh);
+        if (!sKeyHashToOracle[kh].registered) {
+            sKeyHashToOracle[kh].registered = true;
+            sKeyHashes.push(kh);
         }
 
-        sOracles.push(oracle);
-        sKeyHashes.push(kh);
+        sKeyHashToOracle[kh].oracles.push(oracle);
         sOracleToKeyHash[oracle] = kh;
-        sKeyHashToOracle[kh] = oracle;
 
         emit OracleRegistered(oracle, kh);
     }
@@ -104,24 +107,29 @@ contract VRFCoordinator is IVRFCoordinatorBase, CoordinatorBase, ITypeAndVersion
      */
     function deregisterOracle(address oracle) external onlyOwner {
         bytes32 kh = sOracleToKeyHash[oracle];
-        if (kh == bytes32(0) || sKeyHashToOracle[kh] == address(0)) {
+        if (kh == bytes32(0) || !sKeyHashToOracle[kh].registered) {
             revert NoSuchOracle(oracle);
         }
         delete sOracleToKeyHash[oracle];
-        delete sKeyHashToOracle[kh];
 
-        uint256 oraclesLength = sOracles.length;
-        for (uint256 i = 0; i < oraclesLength; ++i) {
-            if (sOracles[i] == oracle) {
+        address[] storage oracles = sKeyHashToOracle[kh].oracles;
+        uint256 oraclesLength = oracles.length;
+        for (uint256 i; i < oraclesLength; ++i) {
+            if (oracles[i] == oracle) {
                 // oracles
-                address lastOracle = sOracles[oraclesLength - 1];
-                sOracles[i] = lastOracle;
-                sOracles.pop();
+                address lastOracle = oracles[oraclesLength - 1];
+                oracles[i] = lastOracle;
+                oracles.pop();
 
                 // key hashes
-                bytes32 lastKeyHash = sKeyHashes[oraclesLength - 1];
-                sKeyHashes[i] = lastKeyHash;
-                sKeyHashes.pop();
+                if (oraclesLength == 1) {
+                    bytes32 lastKeyHash = sKeyHashes[oraclesLength - 1];
+                    sKeyHashes[i] = lastKeyHash;
+                    sKeyHashes.pop();
+
+                    delete sKeyHashToOracle[kh];
+                }
+
                 break;
             }
         }
@@ -214,10 +222,7 @@ contract VRFCoordinator is IVRFCoordinatorBase, CoordinatorBase, ITypeAndVersion
         bool isDirectPayment
     ) external nonReentrant {
         uint256 startGas = gasleft();
-        (bytes32 keyHash, uint256 requestId, uint256 randomness) = getRandomnessFromProof(
-            proof,
-            rc
-        );
+        (uint256 requestId, uint256 randomness) = getRandomnessFromProof(proof, rc);
 
         uint256[] memory randomWords = new uint256[](rc.numWords);
         for (uint256 i = 0; i < rc.numWords; i++) {
@@ -243,21 +248,20 @@ contract VRFCoordinator is IVRFCoordinatorBase, CoordinatorBase, ITypeAndVersion
         bool success = callWithExactGas(rc.callbackGasLimit, rc.sender, resp);
         sConfig.reentrancyLock = false;
 
-        uint256 payment = pay(rc, isDirectPayment, startGas, keyHash);
+        uint256 payment = pay(rc, isDirectPayment, startGas);
         emit RandomWordsFulfilled(requestId, randomness, payment, success);
     }
 
     function pay(
         RequestCommitment memory rc,
         bool isDirectPayment,
-        uint256 startGas,
-        bytes32 keyHash
+        uint256 startGas
     ) internal returns (uint256) {
         if (isDirectPayment) {
             // [temporary] account
             (uint256 totalFee, uint256 operatorFee) = sPrepayment.chargeFeeTemporary(rc.accId);
             if (operatorFee > 0) {
-                sPrepayment.chargeOperatorFeeTemporary(operatorFee, sKeyHashToOracle[keyHash]);
+                sPrepayment.chargeOperatorFeeTemporary(operatorFee, msg.sender);
             }
 
             return totalFee;
@@ -269,7 +273,7 @@ contract VRFCoordinator is IVRFCoordinatorBase, CoordinatorBase, ITypeAndVersion
             uint256 gasFee = calculateGasCost(startGas);
             uint256 fee = operatorFee + gasFee;
             if (fee > 0) {
-                sPrepayment.chargeOperatorFee(rc.accId, fee, sKeyHashToOracle[keyHash]);
+                sPrepayment.chargeOperatorFee(rc.accId, fee, msg.sender);
             }
 
             return serviceFee + gasFee;
@@ -293,11 +297,11 @@ contract VRFCoordinator is IVRFCoordinatorBase, CoordinatorBase, ITypeAndVersion
     }
 
     /**
-     * @notice Find key oracle associated with given key hash.
-     * @return oracle address
+     * @notice Find oracles associated with given key hash.
+     * @return oracle addresses
      */
-    function keyHashToOracle(bytes32 keyHash) external view returns (address) {
-        return sKeyHashToOracle[keyHash];
+    function keyHashToOracles(bytes32 keyHash) external view returns (address[] memory) {
+        return sKeyHashToOracle[keyHash].oracles;
     }
 
     /**
@@ -403,11 +407,9 @@ contract VRFCoordinator is IVRFCoordinatorBase, CoordinatorBase, ITypeAndVersion
     function getRandomnessFromProof(
         VRF.Proof memory proof,
         RequestCommitment memory rc
-    ) private view returns (bytes32 keyHash, uint256 requestId, uint256 randomness) {
-        keyHash = hashOfKey(proof.pk);
-        // Only registered proving keys are permitted.
-        address oracle = sKeyHashToOracle[keyHash];
-        if (oracle == address(0)) {
+    ) private view returns (uint256 requestId, uint256 randomness) {
+        bytes32 keyHash = hashOfKey(proof.pk);
+        if (sOracleToKeyHash[msg.sender] != keyHash) {
             revert NoSuchProvingKey(keyHash);
         }
         requestId = uint256(keccak256(abi.encode(keyHash, proof.seed)));

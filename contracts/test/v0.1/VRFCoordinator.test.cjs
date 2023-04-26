@@ -9,16 +9,21 @@ const { State } = require('./State.utils.cjs')
 
 const DUMMY_KEY_HASH = '0x00000773ef09e40658e643fe79f8d1a27c0aa6eb7251749b268f829ea49f2024'
 const NUM_WORDS = 1
+const EMPTY_COMMITMENT = '0x0000000000000000000000000000000000000000000000000000000000000000'
 
 async function createSigners() {
-  let { deployer, consumer } = await hre.getNamedAccounts()
+  let { deployer, consumer, consumer1, vrfOracle0 } = await hre.getNamedAccounts()
 
   const deployerSigner = await ethers.getSigner(deployer)
   const consumerSigner = await ethers.getSigner(consumer)
+  const consumer1Signer = await ethers.getSigner(consumer)
+  const vrfOracle0Signer = await ethers.getSigner(vrfOracle0)
 
   return {
     deployerSigner,
-    consumerSigner
+    consumerSigner,
+    consumer1Signer,
+    vrfOracle0Signer
   }
 }
 
@@ -30,6 +35,181 @@ function generateDummyPublicProvingKey() {
       return a % 10
     })
     .reduce((acc, v) => acc + v, '')
+}
+
+function validateRandomWordsRequestedEvent(
+  tx,
+  coordinatorContract,
+  keyHash,
+  accId,
+  maxGasLimit,
+  numWords,
+  sender,
+  isDirectPayment
+) {
+  let eventIndex
+  if (isDirectPayment) {
+    expect(tx.events.length).to.be.equal(3)
+    eventIndex = 1
+  } else {
+    expect(tx.events.length).to.be.equal(1)
+    eventIndex = 0
+  }
+
+  const event = coordinatorContract.interface.parseLog(tx.events[eventIndex])
+  expect(event.name).to.be.equal('RandomWordsRequested')
+  const {
+    keyHash: eKeyHash,
+    requestId,
+    preSeed,
+    accId: eAccId,
+    callbackGasLimit: eCallbackGasLimit,
+    numWords: eNumWords,
+    sender: eSender,
+    isDirectPayment: eIsDirectPayment
+  } = event.args
+  expect(eKeyHash).to.be.equal(keyHash)
+  if (!isDirectPayment) {
+    expect(eAccId).to.be.equal(accId)
+  }
+  expect(eCallbackGasLimit).to.be.equal(maxGasLimit)
+  expect(eNumWords).to.be.equal(numWords)
+  expect(eSender).to.be.equal(sender)
+  expect(eIsDirectPayment).to.be.equal(isDirectPayment)
+
+  return { requestId, preSeed, accId: eAccId }
+}
+
+async function testCommitmentBeforeFulfillment(coordinator, signer, requestId) {
+  // Request has not been fulfilled yet, therewere we expect the
+  // commitment to be non-zero
+  const commitment = await coordinator.connect(signer).getCommitment(requestId)
+  expect(commitment).to.not.be.equal(EMPTY_COMMITMENT)
+}
+
+async function testCommitmentAfterFulfillment(coordinator, signer, requestId) {
+  // Request has been fulfilled, therewere the requested
+  // commitment must be zero
+  const commitment = await coordinator.connect(signer).getCommitment(requestId)
+  expect(commitment).to.be.equal(EMPTY_COMMITMENT)
+}
+
+async function offChainVRF(
+  preSeed,
+  blockHash,
+  blockNumber,
+  accId,
+  callbackGasLimit,
+  numWords,
+  sender
+) {
+  const { sk, pk, pkX, pkY, publicProvingKey, keyHash } = vrfConfig()
+
+  const alpha = remove0x(
+    ethers.utils.solidityKeccak256(['uint256', 'bytes32'], [preSeed, blockHash])
+  )
+
+  // Simulate off-chain proof generation
+  const { processVrfRequest } = await oraklVrf
+  const { proof, uPoint, vComponents } = processVrfRequest(alpha, {
+    sk,
+    pk,
+    pkX,
+    pkY,
+    keyHash
+  })
+
+  const pi = [publicProvingKey, proof, preSeed, uPoint, vComponents]
+  const rc = [blockNumber, accId, callbackGasLimit, NUM_WORDS, sender]
+
+  return { pi, rc }
+}
+
+async function fulfillRandomWords(
+  coordinator,
+  registeredOracleSigner,
+  unregisteredOracleSigner,
+  pi,
+  rc,
+  isDirectPayment
+) {
+  // Random word request cannot be fulfilled by an unregistered oracle
+  await expect(
+    coordinator.connect(unregisteredOracleSigner).fulfillRandomWords(pi, rc, isDirectPayment)
+  ).to.be.revertedWithCustomError(coordinator, 'NoSuchProvingKey')
+
+  // Registered oracle can submit data back to chain
+  const tx = await (
+    await coordinator.connect(registeredOracleSigner).fulfillRandomWords(pi, rc, isDirectPayment)
+  ).wait()
+
+  // However even registered oracle cannot fulfill the request more than once
+  await expect(
+    coordinator.connect(registeredOracleSigner).fulfillRandomWords(pi, rc, isDirectPayment)
+  ).to.be.revertedWithCustomError(coordinator, 'NoCorrespondingRequest')
+
+  return tx
+}
+
+function validateRandomWordsFulfilledEvent(
+  tx,
+  coordinator,
+  prepayment,
+  requestId,
+  accId,
+  isDirectPayment
+) {
+  let burnedFeeEventIdx
+  let randomWordsFulfilledEventIdx
+  if (isDirectPayment) {
+    expect(tx.events.length).to.be.equal(3)
+    burnedFeeEventIdx = 1
+    randomWordsFulfilledEventIdx = 2
+  } else {
+    expect(tx.events.length).to.be.equal(4)
+    burnedFeeEventIdx = 1
+    randomWordsFulfilledEventIdx = 3
+  }
+
+  // Event: AccountBalanceDecreased
+  const accountBalanceDecreasedEvent = prepayment.interface.parseLog(tx.events[0])
+  expect(accountBalanceDecreasedEvent.name).to.be.equal('AccountBalanceDecreased')
+  const {
+    accId: dAccId,
+    oldBalance: dOldBalance,
+    newBalance: dNewBalance
+  } = accountBalanceDecreasedEvent.args
+  expect(dAccId).to.be.equal(accId)
+  expect(dOldBalance).to.be.above(dNewBalance)
+
+  if (isDirectPayment) {
+    expect(dNewBalance).to.be.equal(0)
+  } else {
+    expect(dNewBalance).to.be.above(0)
+  }
+
+  // Event: FeeBurned
+  const burnedFeeEvent = prepayment.interface.parseLog(tx.events[burnedFeeEventIdx])
+  expect(burnedFeeEvent.name).to.be.equal('BurnedFee')
+  const { accId: bAccId, amount: bAmount } = burnedFeeEvent.args
+  expect(bAccId).to.be.equal(accId)
+  expect(bAmount).to.be.above(0)
+
+  // Event: RandomWordsFulfilled
+  const randomWordsFulfilledEvent = coordinator.interface.parseLog(
+    tx.events[randomWordsFulfilledEventIdx]
+  )
+  expect(randomWordsFulfilledEvent.name).to.be.equal('RandomWordsFulfilled')
+  const {
+    requestId: fRequestId,
+    // outputSeed: fOutputSeed,
+    payment: fPayment,
+    success: fSuccess
+  } = randomWordsFulfilledEvent.args
+
+  expect(fRequestId).to.be.equal(requestId)
+  expect(fSuccess).to.be.equal(true)
+  expect(fPayment).to.be.above(0)
 }
 
 async function deployFixture() {
@@ -106,7 +286,7 @@ describe('VRF contract', function () {
     expect(registerEvent.args['keyHash']).to.not.be.undefined
   })
 
-  it('Do not allow to register the same oracle or public proving key twice', async function () {
+  it('Single oracle cannot be registered more than once, but keyhash can be registered multiple times', async function () {
     const { coordinatorContract } = await loadFixture(deployFixture)
     const { address: oracle1 } = ethers.Wallet.createRandom()
     const { address: oracle2 } = ethers.Wallet.createRandom()
@@ -127,10 +307,27 @@ describe('VRF contract', function () {
       coordinatorContract.registerOracle(oracle1, publicProvingKey2)
     ).to.be.revertedWithCustomError(coordinatorContract, 'OracleAlreadyRegistered')
 
-    // Public proving key cannot be registered twice
-    await expect(
-      coordinatorContract.registerOracle(oracle2, publicProvingKey1)
-    ).to.be.revertedWithCustomError(coordinatorContract, 'ProvingKeyAlreadyRegistered')
+    // Public proving key can be registered twice
+    await coordinatorContract.registerOracle(oracle2, publicProvingKey1)
+
+    // There should be single key hash even though we registered
+    // oracle twice with the same keyhash
+    const [, keyHashesBeforeDeregistration] = await coordinatorContract.getRequestConfig()
+    expect(keyHashesBeforeDeregistration.length).to.be.equal(1)
+
+    // Deregister the oracle1
+    await coordinatorContract.deregisterOracle(oracle1)
+
+    // There should still be the same single keyhash after the first deregistered oracle
+    const [, keyHashesAfterDeregistration] = await coordinatorContract.getRequestConfig()
+    expect(keyHashesAfterDeregistration.length).to.be.equal(1)
+
+    // Deregister the oracle2
+    await coordinatorContract.deregisterOracle(oracle2)
+
+    // Now, there is not registered oracle, therefore there should also be no keyHash
+    const [, keyHashesAfterDeregistration2] = await coordinatorContract.getRequestConfig()
+    expect(keyHashesAfterDeregistration2.length).to.be.equal(0)
   })
 
   it('Deregister registered oracle', async function () {
@@ -161,6 +358,12 @@ describe('VRF contract', function () {
     expect(deregisterEvent.name).to.be.equal('OracleDeregistered')
     expect(deregisterEvent.args['oracle']).to.be.equal(oracle)
     expect(deregisterEvent.args['keyHash']).to.be.equal(kh)
+
+    // Cannot deregister the same oracle twice
+    await expect(coordinatorContract.deregisterOracle(oracle)).to.be.revertedWithCustomError(
+      coordinatorContract,
+      'NoSuchOracle'
+    )
   })
 
   it('requestRandomWords revert on InvalidKeyHash', async function () {
@@ -221,7 +424,11 @@ describe('VRF contract', function () {
       prepaymentContract,
       state
     } = await loadFixture(deployFixture)
-    const { consumerSigner } = await createSigners()
+    const {
+      consumerSigner,
+      consumer1Signer: unregisteredOracle,
+      vrfOracle0Signer
+    } = await createSigners()
 
     const {
       maxGasLimit,
@@ -261,117 +468,51 @@ describe('VRF contract', function () {
     const blockHash = txRequestRandomWords.blockHash
     const blockNumber = txRequestRandomWords.blockNumber
 
-    expect(txRequestRandomWords.events.length).to.be.equal(1)
-    const requestedRandomWordsEvent = coordinatorContract.interface.parseLog(
-      txRequestRandomWords.events[0]
-    )
-    expect(requestedRandomWordsEvent.name).to.be.equal('RandomWordsRequested')
-
-    const {
-      keyHash: eKeyHash,
-      requestId: eRequestId,
-      preSeed: ePreSeed,
-      accId: eAccId,
-      callbackGasLimit: eCallbackGasLimit,
-      numWords: eNumWords,
-      sender: eSender,
-      isDirectPayment: eIsDirectPayment
-    } = requestedRandomWordsEvent.args
-    expect(eKeyHash).to.be.equal(keyHash)
-    expect(eAccId).to.be.equal(accId)
-    expect(eCallbackGasLimit).to.be.equal(maxGasLimit)
-    expect(eNumWords).to.be.equal(NUM_WORDS)
-    expect(eSender).to.be.equal(consumerContract.address)
-    expect(eIsDirectPayment).to.be.equal(false)
-
-    // Request has not been fulfilled yet, therewere we expect the
-    // commitment to be non-zero
-    const commitmentBeforeFulfillment = await coordinatorContract
-      .connect(consumerSigner)
-      .getCommitment(eRequestId)
-    expect(commitmentBeforeFulfillment).to.not.be.equal(
-      '0x0000000000000000000000000000000000000000000000000000000000000000'
-    )
-
-    const alpha = remove0x(
-      ethers.utils.solidityKeccak256(['uint256', 'bytes32'], [ePreSeed, blockHash])
-    )
-
-    // Simulate off-chain proof generation
-    const { processVrfRequest } = await oraklVrf
-    const { proof, uPoint, vComponents } = processVrfRequest(alpha, {
-      sk,
-      pk,
-      pkX,
-      pkY,
-      keyHash
-    })
-
-    // Oracle submits data back to chain
-    const coordinatorContractOracleSigner = await ethers.getContractAt(
-      'VRFCoordinator',
-      coordinatorContract.address,
-      vrfOracle0
-    )
     const isDirectPayment = false
-    const txFulfillRandomWords = await (
-      await coordinatorContractOracleSigner.fulfillRandomWords(
-        [publicProvingKey, proof, ePreSeed, uPoint, vComponents],
-        [blockNumber, eAccId, eCallbackGasLimit, NUM_WORDS, eSender],
-        isDirectPayment
-      )
-    ).wait()
-
-    // Request has been fulfilled, therewere the requested
-    // commitment must be zero
-    const commitmentAfterFulfillment = await coordinatorContract
-      .connect(consumerSigner)
-      .getCommitment(eRequestId)
-    expect(commitmentAfterFulfillment).to.be.equal(
-      '0x0000000000000000000000000000000000000000000000000000000000000000'
+    const callbackGasLimit = maxGasLimit
+    const numWords = NUM_WORDS
+    const sender = consumerContract.address
+    const { requestId, preSeed } = validateRandomWordsRequestedEvent(
+      txRequestRandomWords,
+      coordinatorContract,
+      keyHash,
+      accId,
+      callbackGasLimit,
+      numWords,
+      sender,
+      isDirectPayment
     )
 
-    // Check the event information //////////////////////////////////////////////
-    expect(txFulfillRandomWords.events.length).to.be.equal(4)
-
-    // Event: AccountBalanceDecreased
-    const accountBalanceDecreasedEvent = prepaymentContract.interface.parseLog(
-      txFulfillRandomWords.events[0]
+    await testCommitmentBeforeFulfillment(coordinatorContract, consumerSigner, requestId)
+    const { pi, rc } = await offChainVRF(
+      preSeed,
+      blockHash,
+      blockNumber,
+      accId,
+      callbackGasLimit,
+      numWords,
+      sender
     )
-    expect(accountBalanceDecreasedEvent.name).to.be.equal('AccountBalanceDecreased')
 
-    const {
-      accId: dAccId,
-      oldBalance: dOldBalance,
-      newBalance: dNewBalance
-    } = accountBalanceDecreasedEvent.args
-    expect(dAccId).to.be.equal(eAccId)
-    expect(dOldBalance).to.be.above(dNewBalance)
-    expect(dNewBalance).to.be.above(0)
-
-    // Event: FeeBurned
-    const burnedFeeEvent = prepaymentContract.interface.parseLog(txFulfillRandomWords.events[1])
-    expect(burnedFeeEvent.name).to.be.equal('BurnedFee')
-    const { accId: bAccId, amount: bAmount } = burnedFeeEvent.args
-    expect(bAccId).to.be.equal(eAccId)
-    expect(bAmount).to.be.above(0)
-
-    // Event: RandomWordsFulfilled
-    const randomWordsFulfilledEvent = coordinatorContract.interface.parseLog(
-      txFulfillRandomWords.events[3]
+    const txFulfillRandomWords = await fulfillRandomWords(
+      coordinatorContract,
+      vrfOracle0Signer,
+      unregisteredOracle,
+      pi,
+      rc,
+      isDirectPayment
     )
-    expect(randomWordsFulfilledEvent.name).to.be.equal('RandomWordsFulfilled')
 
-    const {
-      requestId: fRequestId,
-      // outputSeed: fOutputSeed,
-      payment: fPayment,
-      success: fSuccess
-    } = randomWordsFulfilledEvent.args
+    await testCommitmentAfterFulfillment(coordinatorContract, consumerSigner, requestId)
 
-    expect(fRequestId).to.be.equal(eRequestId)
-    expect(fSuccess).to.be.equal(true)
-    expect(fPayment).to.be.above(0)
+    validateRandomWordsFulfilledEvent(
+      txFulfillRandomWords,
+      coordinatorContract,
+      prepaymentContract,
+      requestId,
+      accId,
+      isDirectPayment
+    )
   })
 
   it('requestRandomWords with [temporary] account', async function () {
@@ -383,6 +524,11 @@ describe('VRF contract', function () {
       prepaymentContract,
       state
     } = await loadFixture(deployFixture)
+    const {
+      consumerSigner,
+      consumer1Signer: unregisteredOracle,
+      vrfOracle0Signer
+    } = await createSigners()
 
     const {
       maxGasLimit,
@@ -407,17 +553,59 @@ describe('VRF contract', function () {
 
     // Request random words through temporary account
     const value = parseKlay('1')
+    const callbackGasLimit = maxGasLimit
     const txRequestRandomWords = await (
-      await consumerContract.requestRandomWordsDirectPayment(keyHash, maxGasLimit, NUM_WORDS, {
+      await consumerContract.requestRandomWordsDirectPayment(keyHash, callbackGasLimit, NUM_WORDS, {
         value
       })
     ).wait()
+    const blockHash = txRequestRandomWords.blockHash
+    const blockNumber = txRequestRandomWords.blockNumber
 
-    expect(txRequestRandomWords.events.length).to.be.equal(3)
-    const requestedRandomWordsEvent = coordinatorContract.interface.parseLog(
-      txRequestRandomWords.events[1]
+    const isDirectPayment = true
+    const numWords = NUM_WORDS
+    const sender = consumerContract.address
+    const { requestId, preSeed, accId } = validateRandomWordsRequestedEvent(
+      txRequestRandomWords,
+      coordinatorContract,
+      keyHash,
+      0,
+      callbackGasLimit,
+      numWords,
+      sender,
+      isDirectPayment
     )
-    expect(requestedRandomWordsEvent.name).to.be.equal('RandomWordsRequested')
+
+    await testCommitmentBeforeFulfillment(coordinatorContract, consumerSigner, requestId)
+    const { pi, rc } = await offChainVRF(
+      preSeed,
+      blockHash,
+      blockNumber,
+      accId,
+      callbackGasLimit,
+      numWords,
+      sender
+    )
+
+    const txFulfillRandomWords = await fulfillRandomWords(
+      coordinatorContract,
+      vrfOracle0Signer,
+      unregisteredOracle,
+      pi,
+      rc,
+      isDirectPayment
+    )
+
+    await testCommitmentAfterFulfillment(coordinatorContract, consumerSigner, requestId)
+
+    validateRandomWordsFulfilledEvent(
+      txFulfillRandomWords,
+      coordinatorContract,
+      prepaymentContract,
+      requestId,
+      accId,
+      isDirectPayment
+    )
   })
 
   it('cancel random words request for [regular] account', async function () {
