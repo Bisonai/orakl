@@ -129,6 +129,25 @@ describe('VRF contract', function () {
 
     // Public proving key can be registered twice
     await coordinatorContract.registerOracle(oracle2, publicProvingKey1)
+
+    // There should be single key hash even though we registered
+    // oracle twice with the same keyhash
+    const [, keyHashesBeforeDeregistration] = await coordinatorContract.getRequestConfig()
+    expect(keyHashesBeforeDeregistration.length).to.be.equal(1)
+
+    // Deregister the oracle1
+    await coordinatorContract.deregisterOracle(oracle1)
+
+    // There should still be the same single keyhash after the first deregistered oracle
+    const [, keyHashesAfterDeregistration] = await coordinatorContract.getRequestConfig()
+    expect(keyHashesAfterDeregistration.length).to.be.equal(1)
+
+    // Deregister the oracle2
+    await coordinatorContract.deregisterOracle(oracle2)
+
+    // Now, there is not registered oracle, therefore there should also be no keyHash
+    const [, keyHashesAfterDeregistration2] = await coordinatorContract.getRequestConfig()
+    expect(keyHashesAfterDeregistration2.length).to.be.equal(0)
   })
 
   it('Deregister registered oracle', async function () {
@@ -159,6 +178,12 @@ describe('VRF contract', function () {
     expect(deregisterEvent.name).to.be.equal('OracleDeregistered')
     expect(deregisterEvent.args['oracle']).to.be.equal(oracle)
     expect(deregisterEvent.args['keyHash']).to.be.equal(kh)
+
+    // Cannot deregister the same oracle twice
+    await expect(coordinatorContract.deregisterOracle(oracle)).to.be.revertedWithCustomError(
+      coordinatorContract,
+      'NoSuchOracle'
+    )
   })
 
   it('requestRandomWords revert on InvalidKeyHash', async function () {
