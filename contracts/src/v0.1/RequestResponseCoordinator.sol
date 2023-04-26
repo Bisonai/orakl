@@ -37,7 +37,7 @@ contract RequestResponseCoordinator is
     mapping(bytes32 => bool) private sJobId;
 
     mapping(uint256 => int256[]) private sRequestToSubmissionInt256;
-    mapping(uint256 => uint256[]) private sRequestToSubmissionUint256;
+    mapping(uint256 => uint128[]) private sRequestToSubmissionUint128;
     mapping(uint256 => bool[]) private sRequestToSubmissionBool;
 
     error TooManyOracles();
@@ -59,7 +59,7 @@ contract RequestResponseCoordinator is
         uint8 numSubmission,
         bytes data
     );
-    event DataRequestFulfilledUint256(
+    event DataRequestFulfilledUint128(
         uint256 indexed requestId,
         uint256 response,
         uint256 payment,
@@ -98,7 +98,7 @@ contract RequestResponseCoordinator is
     event DataSubmitted(address oracle, uint256 requestId);
 
     constructor(address prepayment) {
-        sJobId[keccak256(abi.encodePacked("uint256"))] = true;
+        sJobId[keccak256(abi.encodePacked("uint128"))] = true;
         sJobId[keccak256(abi.encodePacked("int256"))] = true;
         sJobId[keccak256(abi.encodePacked("bool"))] = true;
         sJobId[keccak256(abi.encodePacked("string"))] = true;
@@ -213,16 +213,16 @@ contract RequestResponseCoordinator is
         return requestId;
     }
 
-    function fulfillDataRequestUint256(
+    function fulfillDataRequestUint128(
         uint256 requestId,
-        uint256 response,
+        uint128 response,
         RequestCommitment memory rc,
         bool isDirectPayment
     ) external nonReentrant {
         uint256 startGas = gasleft();
         validateDataResponse(rc, requestId);
 
-        uint256[] storage arrRes = sRequestToSubmissionUint256[requestId];
+        uint128[] storage arrRes = sRequestToSubmissionUint128[requestId];
         arrRes.push(response);
 
         sSubmission[requestId].submitted[msg.sender] = true;
@@ -234,11 +234,11 @@ contract RequestResponseCoordinator is
             return;
         }
 
-        int256[] memory responses = arrUintToInt(arrRes);
-        uint256 aggregatedResponse = uint256(Median.calculate(responses));
+        int256[] memory responses = uint128ToInt256(arrRes);
+        uint128 aggregatedResponse = uint128(uint256((Median.calculate(responses))));
 
         bytes memory resp = abi.encodeWithSelector(
-            RequestResponseConsumerFulfillUint256.rawFulfillDataRequest.selector,
+            RequestResponseConsumerFulfillUint128.rawFulfillDataRequest.selector,
             requestId,
             aggregatedResponse
         );
@@ -246,9 +246,9 @@ contract RequestResponseCoordinator is
         uint256 payment = pay(rc, isDirectPayment, startGas, oracles);
 
         cleanupAfterFulfillment(requestId);
-        delete sRequestToSubmissionUint256[requestId];
+        delete sRequestToSubmissionUint128[requestId];
 
-        emit DataRequestFulfilledUint256(requestId, response, payment, success);
+        emit DataRequestFulfilledUint128(requestId, response, payment, success);
     }
 
     function fulfillDataRequestInt256(
@@ -602,11 +602,17 @@ contract RequestResponseCoordinator is
         delete sRequestOwner[requestId];
     }
 
-    // FIXME wrong
-    function arrUintToInt(uint256[] memory arr) private pure returns (int256[] memory) {
+    /**
+     * @notice Loss-less conversion of array items from uint128 to int256.
+     * @dev uint128: 0     - 2^128-1
+     * @dev int256:  2^128 - 2^128-1
+     * @param arr - array of uint128 values
+     * @return array of int256 values
+     */
+    function uint128ToInt256(uint128[] memory arr) private pure returns (int256[] memory) {
         int256[] memory responses = new int256[](arr.length);
         for (uint256 i = 0; i < arr.length; i++) {
-            responses[i] = int256(arr[i]);
+            responses[i] = int256(uint256(arr[i]));
         }
         return responses;
     }

@@ -61,9 +61,9 @@ interface IRequestResponseCoordinatorBase {
         uint8 numbSubmission
     ) external payable returns (uint256);
 
-    function fulfillDataRequestUint256(
+    function fulfillDataRequestUint128(
         uint256 requestId,
-        uint256 response,
+        uint128 response,
         RequestCommitment memory rc,
         bool isDirectPayment
     ) external;
