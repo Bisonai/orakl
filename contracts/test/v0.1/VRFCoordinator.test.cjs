@@ -106,7 +106,7 @@ describe('VRF contract', function () {
     expect(registerEvent.args['keyHash']).to.not.be.undefined
   })
 
-  it('Do not allow to register the same oracle or public proving key twice', async function () {
+  it('Single oracle cannot be registered more than once, but keyhash can be registered multiple times', async function () {
     const { coordinatorContract } = await loadFixture(deployFixture)
     const { address: oracle1 } = ethers.Wallet.createRandom()
     const { address: oracle2 } = ethers.Wallet.createRandom()
@@ -127,10 +127,8 @@ describe('VRF contract', function () {
       coordinatorContract.registerOracle(oracle1, publicProvingKey2)
     ).to.be.revertedWithCustomError(coordinatorContract, 'OracleAlreadyRegistered')
 
-    // Public proving key cannot be registered twice
-    await expect(
-      coordinatorContract.registerOracle(oracle2, publicProvingKey1)
-    ).to.be.revertedWithCustomError(coordinatorContract, 'ProvingKeyAlreadyRegistered')
+    // Public proving key can be registered twice
+    await coordinatorContract.registerOracle(oracle2, publicProvingKey1)
   })
 
   it('Deregister registered oracle', async function () {
