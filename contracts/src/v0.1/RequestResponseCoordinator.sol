@@ -19,6 +19,15 @@ contract RequestResponseCoordinator is
 
     using Orakl for Orakl.Request;
 
+    struct Submission {
+        address[] oracles; // oracles that submitted response
+        mapping(address => bool) submitted;
+    }
+
+    /* request ID */
+    /* submission details */
+    mapping(uint256 => Submission) sSubmission;
+
     /* oracle */
     /* registration status */
     mapping(address => bool) private sIsOracleRegistered;
@@ -26,10 +35,6 @@ contract RequestResponseCoordinator is
     /* jobId */
     /* ability to request for the job */
     mapping(bytes32 => bool) private sJobId;
-
-    /* request ID */
-    /* oracle submission participants */
-    mapping(uint256 => address[]) private sRequestToOracles;
 
     mapping(uint256 => int256[]) private sRequestToSubmissionInt256;
     mapping(uint256 => uint256[]) private sRequestToSubmissionUint256;
@@ -39,6 +44,7 @@ contract RequestResponseCoordinator is
     error UnregisteredOracleFulfillment(address oracle);
     error InvalidJobId();
     error InvalidNumSubmission();
+    error OracleAlreadySubmitted();
 
     event OracleRegistered(address oracle);
     event OracleDeregistered(address oracle);
@@ -131,7 +137,7 @@ contract RequestResponseCoordinator is
         delete sIsOracleRegistered[oracle];
 
         uint256 oraclesLength = sOracles.length;
-        for (uint256 i; i < oraclesLength; ++i) {
+        for (uint256 i = 0; i < oraclesLength; ++i) {
             if (sOracles[i] == oracle) {
                 address last = sOracles[oraclesLength - 1];
                 sOracles[i] = last;
@@ -217,8 +223,10 @@ contract RequestResponseCoordinator is
         validateDataResponse(rc, requestId);
 
         uint256[] storage arrRes = sRequestToSubmissionUint256[requestId];
-        address[] storage oracles = sRequestToOracles[requestId];
         arrRes.push(response);
+
+        sSubmission[requestId].submitted[msg.sender] = true;
+        address[] storage oracles = sSubmission[requestId].oracles;
         oracles.push(msg.sender);
 
         if (arrRes.length < rc.numSubmission) {
@@ -252,9 +260,11 @@ contract RequestResponseCoordinator is
         uint256 startGas = gasleft();
         validateDataResponse(rc, requestId);
 
+        sSubmission[requestId].submitted[msg.sender] = true;
         int256[] storage arrRes = sRequestToSubmissionInt256[requestId];
-        address[] storage oracles = sRequestToOracles[requestId];
         arrRes.push(response);
+
+        address[] storage oracles = sSubmission[requestId].oracles;
         oracles.push(msg.sender);
 
         if (arrRes.length < rc.numSubmission) {
@@ -287,9 +297,11 @@ contract RequestResponseCoordinator is
         uint256 startGas = gasleft();
         validateDataResponse(rc, requestId);
 
+        sSubmission[requestId].submitted[msg.sender] = true;
         bool[] storage arrRes = sRequestToSubmissionBool[requestId];
-        address[] storage oracles = sRequestToOracles[requestId];
         arrRes.push(response);
+
+        address[] storage oracles = sSubmission[requestId].oracles;
         oracles.push(msg.sender);
 
         if (arrRes.length < rc.numSubmission) {
@@ -321,15 +333,16 @@ contract RequestResponseCoordinator is
         uint256 startGas = gasleft();
         validateDataResponse(rc, requestId);
 
+        sSubmission[requestId].submitted[msg.sender] = true;
+        address[] storage oracles = sSubmission[requestId].oracles;
+        oracles.push(msg.sender);
+
         bytes memory resp = abi.encodeWithSelector(
             RequestResponseConsumerFulfillString.rawFulfillDataRequest.selector,
             requestId,
             response
         );
         bool success = fulfill(resp, rc);
-
-        address[] storage oracles = sRequestToOracles[requestId];
-        oracles.push(msg.sender);
         uint256 payment = pay(rc, isDirectPayment, startGas, oracles);
 
         cleanupAfterFulfillment(requestId);
@@ -346,15 +359,16 @@ contract RequestResponseCoordinator is
         uint256 startGas = gasleft();
         validateDataResponse(rc, requestId);
 
+        sSubmission[requestId].submitted[msg.sender] = true;
+        address[] storage oracles = sSubmission[requestId].oracles;
+        oracles.push(msg.sender);
+
         bytes memory resp = abi.encodeWithSelector(
             RequestResponseConsumerFulfillBytes32.rawFulfillDataRequest.selector,
             requestId,
             response
         );
         bool success = fulfill(resp, rc);
-
-        address[] storage oracles = sRequestToOracles[requestId];
-        oracles.push(msg.sender);
         uint256 payment = pay(rc, isDirectPayment, startGas, oracles);
 
         cleanupAfterFulfillment(requestId);
@@ -371,15 +385,16 @@ contract RequestResponseCoordinator is
         uint256 startGas = gasleft();
         validateDataResponse(rc, requestId);
 
+        sSubmission[requestId].submitted[msg.sender] = true;
+        address[] storage oracles = sSubmission[requestId].oracles;
+        oracles.push(msg.sender);
+
         bytes memory resp = abi.encodeWithSelector(
             RequestResponseConsumerFulfillBytes.rawFulfillDataRequest.selector,
             requestId,
             response
         );
         bool success = fulfill(resp, rc);
-
-        address[] storage oracles = sRequestToOracles[requestId];
-        oracles.push(msg.sender);
         uint256 payment = pay(rc, isDirectPayment, startGas, oracles);
 
         cleanupAfterFulfillment(requestId);
@@ -420,7 +435,7 @@ contract RequestResponseCoordinator is
         uint64 nonce
     ) public view returns (bool) {
         uint256 oraclesLength = sOracles.length;
-        for (uint256 i; i < oraclesLength; ++i) {
+        for (uint256 i = 0; i < oraclesLength; ++i) {
             uint256 requestId = computeRequestId(consumer, accId, nonce);
             if (isValidRequestId(requestId)) {
                 return true;
@@ -486,6 +501,10 @@ contract RequestResponseCoordinator is
             revert UnregisteredOracleFulfillment(msg.sender);
         }
 
+        if (sSubmission[requestId].submitted[msg.sender]) {
+            revert OracleAlreadySubmitted();
+        }
+
         bytes32 commitment = sRequestIdToCommitment[requestId];
         if (commitment == 0) {
             revert NoCorrespondingRequest();
@@ -535,7 +554,7 @@ contract RequestResponseCoordinator is
                 uint256 paid;
                 uint256 feePerOperator = operatorFee / oraclesLength;
 
-                for (uint8 i; i < oraclesLength - 1; ++i) {
+                for (uint8 i = 0; i < oraclesLength - 1; ++i) {
                     sPrepayment.chargeOperatorFeeTemporary(feePerOperator, oracles[i]);
                     paid += feePerOperator;
                 }
@@ -555,7 +574,7 @@ contract RequestResponseCoordinator is
             uint256 feePerOperator = operatorFee / oraclesLength;
 
             uint256 paid;
-            for (uint256 i; i < oraclesLength - 1; ++i) {
+            for (uint256 i = 0; i < oraclesLength - 1; ++i) {
                 sPrepayment.chargeOperatorFee(rc.accId, feePerOperator, oracles[i]);
                 paid += feePerOperator;
             }
@@ -572,7 +591,13 @@ contract RequestResponseCoordinator is
     }
 
     function cleanupAfterFulfillment(uint256 requestId) private {
-        delete sRequestToOracles[requestId];
+        address[] memory oracles = sSubmission[requestId].oracles;
+
+        for (uint8 i = 0; i < oracles.length; ++i) {
+            delete sSubmission[requestId].submitted[oracles[i]];
+        }
+
+        delete sSubmission[requestId];
         delete sRequestIdToCommitment[requestId];
         delete sRequestOwner[requestId];
     }
