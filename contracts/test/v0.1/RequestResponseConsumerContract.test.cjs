@@ -286,6 +286,12 @@ async function requestAndFulfill(
     fulfillReceipt = await (
       await fulfillFn[i](_requestId, fulfillValue[i], requestCommitment, isDirectPayment)
     ).wait()
+
+    if (numSubmission > 1 && i < numSubmission - 1) {
+      await expect(
+        fulfillFn[i](_requestId, fulfillValue[i], requestCommitment, isDirectPayment)
+      ).to.be.revertedWithCustomError(state.coordinatorContract, 'OracleAlreadySubmitted')
+    }
   }
 
   const responseValue = aggregateSubmissions(fulfillValue, dataType)
@@ -577,9 +583,7 @@ describe('Request-Response user contract', function () {
     expect(requestId).to.be.equal(cRequestId)
   })
 
-  // TODO deregister oracle
   // TODO getters
-  // TODO set direct payment config
   // TODO pending request exist
   // TODO invalid consumer
   // TODO gas limit too big
