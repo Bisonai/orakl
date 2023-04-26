@@ -312,9 +312,9 @@ contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
 
         Account account = sAccIdToAccount[accId];
         uint256 balance = account.getBalance();
+        delete sAccIdToAccount[accId];
 
         account.cancelAccount(to);
-        delete sAccIdToAccount[accId];
 
         emit AccountCanceled(accId, to, balance);
     }
@@ -322,6 +322,7 @@ contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
     function cancelAccountTemporary(uint64 accId, address to) external onlyCoordinator {
         TemporaryAccount memory tmpAccConfig = sAccIdToTmpAcc[accId];
         uint256 balance = tmpAccConfig.balance;
+        delete sAccIdToTmpAcc[accId];
         if (balance > 0) {
             (bool sent, ) = payable(to).call{value: balance}("");
             if (!sent) {
@@ -329,7 +330,6 @@ contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
             }
         }
 
-        delete sAccIdToTmpAcc[accId];
         emit AccountCanceled(accId, to, balance);
     }
 
