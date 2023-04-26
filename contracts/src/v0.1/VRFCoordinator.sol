@@ -111,7 +111,7 @@ contract VRFCoordinator is IVRFCoordinatorBase, CoordinatorBase, ITypeAndVersion
         delete sKeyHashToOracle[kh];
 
         uint256 oraclesLength = sOracles.length;
-        for (uint256 i; i < oraclesLength; ++i) {
+        for (uint256 i = 0; i < oraclesLength; ++i) {
             if (sOracles[i] == oracle) {
                 // oracles
                 address lastOracle = sOracles[oraclesLength - 1];
@@ -309,7 +309,7 @@ contract VRFCoordinator is IVRFCoordinatorBase, CoordinatorBase, ITypeAndVersion
         uint64 nonce
     ) public view returns (bool) {
         uint256 keyHashesLength = sKeyHashes.length;
-        for (uint256 i; i < keyHashesLength; ++i) {
+        for (uint256 i = 0; i < keyHashesLength; ++i) {
             (uint256 requestId, ) = computeRequestId(sKeyHashes[i], consumer, accId, nonce);
             if (isValidRequestId(requestId)) {
                 return true;
