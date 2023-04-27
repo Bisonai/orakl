@@ -724,4 +724,5 @@ describe('VRF contract', function () {
 
   // TODO send more $KLAY for direct payment
   // TODO getters
+  // TODO pending request exist
 })
