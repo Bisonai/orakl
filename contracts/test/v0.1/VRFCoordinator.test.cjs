@@ -83,7 +83,10 @@ function validateRandomWordsRequestedEvent(
   expect(eSender).to.be.equal(sender)
   expect(eIsDirectPayment).to.be.equal(isDirectPayment)
 
-  return { requestId, preSeed, accId: eAccId }
+  const blockHash = tx.blockHash
+  const blockNumber = tx.blockNumber
+
+  return { requestId, preSeed, accId: eAccId, blockHash, blockNumber }
 }
 
 async function testCommitmentBeforeFulfillment(coordinator, signer, requestId) {
@@ -100,15 +103,7 @@ async function testCommitmentAfterFulfillment(coordinator, signer, requestId) {
   expect(commitment).to.be.equal(EMPTY_COMMITMENT)
 }
 
-async function offChainVRF(
-  preSeed,
-  blockHash,
-  blockNumber,
-  accId,
-  callbackGasLimit,
-  numWords,
-  sender
-) {
+async function offChainVRF(preSeed, blockHash, blockNumber, accId, callbackGasLimit, sender) {
   const { sk, pk, pkX, pkY, publicProvingKey, keyHash } = vrfConfig()
 
   const alpha = remove0x(
@@ -471,14 +466,12 @@ describe('VRF contract', function () {
     const txRequestRandomWords = await (
       await consumerContract.requestRandomWords(keyHash, accId, maxGasLimit, NUM_WORDS)
     ).wait()
-    const blockHash = txRequestRandomWords.blockHash
-    const blockNumber = txRequestRandomWords.blockNumber
 
     const isDirectPayment = false
     const callbackGasLimit = maxGasLimit
     const numWords = NUM_WORDS
     const sender = consumerContract.address
-    const { requestId, preSeed } = validateRandomWordsRequestedEvent(
+    const { requestId, preSeed, blockHash, blockNumber } = validateRandomWordsRequestedEvent(
       txRequestRandomWords,
       coordinatorContract,
       keyHash,
@@ -496,7 +489,6 @@ describe('VRF contract', function () {
       blockNumber,
       accId,
       callbackGasLimit,
-      numWords,
       sender
     )
 
@@ -565,13 +557,11 @@ describe('VRF contract', function () {
         value
       })
     ).wait()
-    const blockHash = txRequestRandomWords.blockHash
-    const blockNumber = txRequestRandomWords.blockNumber
 
     const isDirectPayment = true
     const numWords = NUM_WORDS
     const sender = consumerContract.address
-    const { requestId, preSeed, accId } = validateRandomWordsRequestedEvent(
+    const { requestId, preSeed, accId, blockHash, blockNumber } = validateRandomWordsRequestedEvent(
       txRequestRandomWords,
       coordinatorContract,
       keyHash,
@@ -589,7 +579,6 @@ describe('VRF contract', function () {
       blockNumber,
       accId,
       callbackGasLimit,
-      numWords,
       sender
     )
 
@@ -675,6 +664,62 @@ describe('VRF contract', function () {
     // After second request
     const nonce3 = await state.prepaymentContract.getNonce(accId, consumerContract.address)
     expect(nonce3).to.be.equal(3)
+  })
+
+  it('increase reqCount by every request with [regular] account', async function () {
+    const { vrfOracle0, coordinatorContract, consumerContract, state } = await loadFixture(
+      deployFixture
+    )
+    const { vrfOracle0Signer } = await createSigners()
+
+    const { keyHash, maxGasLimit: callbackGasLimit } = vrfConfig()
+    await setupOracle(coordinatorContract, vrfOracle0)
+    await state.addCoordinator(coordinatorContract.address)
+    const accId = await state.createAccount()
+    await state.addConsumer(consumerContract.address)
+    await state.deposit('1')
+
+    // Before first request, `reqCount` should be 0
+    const reqCountBeforeRequest = await state.prepaymentContract.getReqCount(accId)
+    expect(reqCountBeforeRequest).to.be.equal(0)
+
+    const txRequestRandomWords = await (
+      await consumerContract.requestRandomWords(keyHash, accId, callbackGasLimit, NUM_WORDS)
+    ).wait()
+
+    // The `reqCount` after the request does not change. It gets
+    // updated during `chargeFee` call inside of `Account` contract.
+    const reqCountAfterRequest = await state.prepaymentContract.getReqCount(accId)
+    expect(reqCountAfterRequest).to.be.equal(0)
+
+    const isDirectPayment = false
+    const numWords = NUM_WORDS
+    const sender = consumerContract.address
+    const { requestId, preSeed, blockHash, blockNumber } = validateRandomWordsRequestedEvent(
+      txRequestRandomWords,
+      coordinatorContract,
+      keyHash,
+      accId,
+      callbackGasLimit,
+      numWords,
+      sender,
+      isDirectPayment
+    )
+
+    const { pi, rc } = await offChainVRF(
+      preSeed,
+      blockHash,
+      blockNumber,
+      accId,
+      callbackGasLimit,
+      sender
+    )
+
+    await coordinatorContract.connect(vrfOracle0Signer).fulfillRandomWords(pi, rc, isDirectPayment)
+
+    // The value of `reqCount` should increase
+    const reqCountAfterFulfillment = await state.prepaymentContract.getReqCount(accId)
+    expect(reqCountAfterFulfillment).to.be.equal(1)
   })
 
   // TODO send more $KLAY for direct payment
