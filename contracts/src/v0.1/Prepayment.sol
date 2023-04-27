@@ -487,7 +487,7 @@ contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
             return account.increaseNonce(consumer);
         } else {
             // [temporary] account can create only a single request
-            // per its lifetime, therfore we do not keep track of
+            // per its lifetime, therefore we do not keep track of
             // nonce and always return 1.
             return 1;
         }
