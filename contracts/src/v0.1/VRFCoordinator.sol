@@ -161,7 +161,7 @@ contract VRFCoordinator is IVRFCoordinatorBase, CoordinatorBase, ITypeAndVersion
         }
 
         bool isDirectPayment = false;
-        uint256 requestId = requestRandomWordsInternal(
+        uint256 requestId = requestRandomWords(
             keyHash,
             accId,
             callbackGasLimit,
@@ -189,7 +189,7 @@ contract VRFCoordinator is IVRFCoordinatorBase, CoordinatorBase, ITypeAndVersion
 
         uint64 accId = sPrepayment.createTemporaryAccount();
         bool isDirectPayment = true;
-        uint256 requestId = requestRandomWordsInternal(
+        uint256 requestId = requestRandomWords(
             keyHash,
             accId,
             callbackGasLimit,
@@ -330,13 +330,13 @@ contract VRFCoordinator is IVRFCoordinatorBase, CoordinatorBase, ITypeAndVersion
         return keccak256(abi.encode(publicKey));
     }
 
-    function requestRandomWordsInternal(
+    function requestRandomWords(
         bytes32 keyHash,
         uint64 accId,
         uint32 callbackGasLimit,
         uint32 numWords,
         bool isDirectPayment
-    ) internal returns (uint256) {
+    ) private returns (uint256) {
         if (!sPrepayment.isValidAccount(accId, msg.sender)) {
             revert InvalidConsumer(accId, msg.sender);
         }

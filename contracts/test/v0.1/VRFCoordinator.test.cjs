@@ -37,6 +37,12 @@ function generateDummyPublicProvingKey() {
     .reduce((acc, v) => acc + v, '')
 }
 
+async function setupOracle(coordinator, oracle) {
+  const { maxGasLimit, gasAfterPaymentCalculation, feeConfig, publicProvingKey } = vrfConfig()
+  await coordinator.registerOracle(oracle, publicProvingKey)
+  await coordinator.setConfig(maxGasLimit, gasAfterPaymentCalculation, Object.values(feeConfig))
+}
+
 function validateRandomWordsRequestedEvent(
   tx,
   coordinatorContract,
@@ -609,44 +615,20 @@ describe('VRF contract', function () {
   })
 
   it('cancel random words request for [regular] account', async function () {
-    const {
-      consumer,
-      vrfOracle0,
-      coordinatorContract,
-      consumerContract,
-      prepaymentContract,
-      state
-    } = await loadFixture(deployFixture)
-
-    const {
-      maxGasLimit,
-      gasAfterPaymentCalculation,
-      feeConfig,
-      sk,
-      pk,
-      pkX,
-      pkY,
-      publicProvingKey,
-      keyHash
-    } = vrfConfig()
-
-    await coordinatorContract.registerOracle(vrfOracle0, publicProvingKey)
-    await coordinatorContract.setConfig(
-      maxGasLimit,
-      gasAfterPaymentCalculation,
-      Object.values(feeConfig)
+    const { vrfOracle0, coordinatorContract, consumerContract, state } = await loadFixture(
+      deployFixture
     )
 
+    const { keyHash, maxGasLimit: callbackGasLimit } = vrfConfig()
+    await setupOracle(coordinatorContract, vrfOracle0)
     await state.addCoordinator(coordinatorContract.address)
-
     const accId = await state.createAccount()
     await state.addConsumer(consumerContract.address)
-
     await state.deposit('2')
 
     // Request Random Words
     const txRequestRandomWords = await (
-      await consumerContract.requestRandomWords(keyHash, accId, maxGasLimit, NUM_WORDS)
+      await consumerContract.requestRandomWords(keyHash, accId, callbackGasLimit, NUM_WORDS)
     ).wait()
 
     const requestedRandomWordsEvent = coordinatorContract.interface.parseLog(
@@ -668,7 +650,30 @@ describe('VRF contract', function () {
     expect(requestId).to.be.equal(cRequestId)
   })
 
+  it('increase nonce by every request with [regular] account', async function () {
+    const { vrfOracle0, coordinatorContract, consumerContract, state } = await loadFixture(
+      deployFixture
+    )
+
+    const { keyHash, maxGasLimit: callbackGasLimit } = vrfConfig()
+    await setupOracle(coordinatorContract, vrfOracle0)
+    await state.addCoordinator(coordinatorContract.address)
+    const accId = await state.createAccount()
+    await state.addConsumer(consumerContract.address)
+    await state.deposit('1')
+
+    const nonce1 = await state.prepaymentContract.getNonce(accId, consumerContract.address)
+    expect(nonce1).to.be.equal(1)
+
+    await consumerContract.requestRandomWords(keyHash, accId, callbackGasLimit, NUM_WORDS)
+    const nonce2 = await state.prepaymentContract.getNonce(accId, consumerContract.address)
+    expect(nonce2).to.be.equal(2)
+
+    await consumerContract.requestRandomWords(keyHash, accId, callbackGasLimit, NUM_WORDS)
+    const nonce3 = await state.prepaymentContract.getNonce(accId, consumerContract.address)
+    expect(nonce3).to.be.equal(3)
+  })
+
   // TODO send more $KLAY for direct payment
-  // TODO fulfill direct payment request
   // TODO getters
 })

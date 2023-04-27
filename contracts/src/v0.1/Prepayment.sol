@@ -481,10 +481,14 @@ contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
     ) external onlyCoordinator returns (uint64) {
         Account account = sAccIdToAccount[accId];
         if (address(account) != address(0)) {
-            // regular account
+            // [regular] account keeps track of nonce per each
+            // consumer. Every consumer request should increase nonce
+            // by one.
             return account.increaseNonce(consumer);
         } else {
-            // temporary account
+            // [temporary] account can create only a single request
+            // per its lifetime, therfore we do not keep track of
+            // nonce and always return 1.
             return 1;
         }
     }
