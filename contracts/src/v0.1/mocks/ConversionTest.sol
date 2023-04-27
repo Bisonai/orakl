@@ -7,7 +7,6 @@ contract ConversionTest {
 
     function uint128ToInt256Test() external view {
         require(UINT128_MAX_IN_INT256 == int256(uint256(UINT128_MAX_IN_UINT128)));
-
     }
 
     function int256ToUint128Test() external view {
