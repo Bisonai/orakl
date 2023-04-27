@@ -25,6 +25,16 @@ async function setupOracle(coordinator, oracles) {
   await coordinator.setConfig(maxGasLimit, gasAfterPaymentCalculation, Object.values(feeConfig))
 }
 
+async function createSigners() {
+  let { rrOracle0 } = await hre.getNamedAccounts()
+
+  const rrOracle0Signer = await ethers.getSigner(rrOracle0)
+
+  return {
+    rrOracle0Signer
+  }
+}
+
 async function deployFixture() {
   const {
     deployer,
@@ -144,19 +154,6 @@ function aggregateSubmissions(arr, dataType) {
   }
 }
 
-function verifyRequest(state, txReceipt) {
-  expect(txReceipt.events.length).to.be.equal(1)
-  const requestEvent = state.coordinatorContract.interface.parseLog(txReceipt.events[0])
-  expect(requestEvent.name).to.be.equal('DataRequested')
-
-  for (const arg of DATA_REQUEST_EVENT_ARGS) {
-    expect(requestEvent.args[arg]).to.not.be.undefined
-  }
-
-  const { accId, requestId } = requestEvent.args
-  return { accId, requestId }
-}
-
 function verifyRequestDirectPayment(state, txReceipt) {
   expect(txReceipt.events.length).to.be.equal(3)
 
@@ -207,6 +204,31 @@ async function verifyFulfillment(
   expect(fulfillEvent.name).to.be.equal(fulfillEventName)
   expect(fulfillEvent.args.requestId).to.be.equal(requestId)
   expect(await responseFn()).to.be.equal(responseValue)
+}
+
+function verifyRequest(coordinator, tx) {
+  expect(tx.events.length).to.be.equal(1)
+  const event = coordinator.interface.parseLog(tx.events[0])
+  expect(event.name).to.be.equal('DataRequested')
+  const { requestId, jobId, accId, callbackGasLimit, sender, isDirectPayment, data } = event.args
+  const blockNumber = tx.blockNumber
+  const blockHash = tx.blockHash
+
+  for (const arg of DATA_REQUEST_EVENT_ARGS) {
+    expect(event.args[arg]).to.not.be.undefined
+  }
+
+  return {
+    requestId,
+    jobId,
+    accId,
+    callbackGasLimit,
+    sender,
+    isDirectPayment,
+    data,
+    blockNumber,
+    blockHash
+  }
 }
 
 async function requestAndFulfill(
@@ -270,7 +292,7 @@ async function requestAndFulfill(
     _requestId = requestId
     _accId = accId
   } else {
-    const { requestId, accId } = verifyRequest(state, requestReceipt)
+    const { requestId, accId } = verifyRequest(state.coordinatorContract, requestReceipt)
     _requestId = requestId
     _accId = accId
   }
@@ -562,7 +584,7 @@ describe('Request-Response user contract', function () {
     const requestReceipt = await (
       await state.consumerContract.requestDataInt256(accId, callbackGasLimit, numSubmission)
     ).wait()
-    const { requestId } = verifyRequest(state, requestReceipt)
+    const { requestId } = verifyRequest(state.coordinatorContract, requestReceipt)
 
     // Cancel Request ///////////////////////////////////////////////////////////
     const txCancelRequest = await (await state.consumerContract.cancelRequest(requestId)).wait()
@@ -602,6 +624,53 @@ describe('Request-Response user contract', function () {
     // After second request
     const nonce3 = await state.prepaymentContract.getNonce(accId, state.consumerContract.address)
     expect(nonce3).to.be.equal(3)
+  })
+
+  it('increase reqCount by every request with [regular] account', async function () {
+    const { state, rrOracle0, maxGasLimit: callbackGasLimit } = await loadFixture(deployFixture)
+    const { rrOracle0Signer } = await createSigners()
+    await setupOracle(state.coordinatorContract, [rrOracle0])
+
+    // Prepare account
+    const accId = await state.createAccount()
+    await state.deposit('1')
+    await state.addConsumer(state.consumerContract.address)
+
+    // Request configuration
+    const numSubmission = 1
+
+    // Before first request, `reqCount` should be 0
+    const reqCountBeforeRequest = await state.prepaymentContract.getReqCount(accId)
+    expect(reqCountBeforeRequest).to.be.equal(0)
+    const requestDataTx = await (
+      await state.consumerContract.requestDataInt256(accId, callbackGasLimit, numSubmission)
+    ).wait()
+
+    const { requestId, sender, blockNumber, isDirectPayment } = verifyRequest(
+      state.coordinatorContract,
+      requestDataTx
+    )
+
+    // The `reqCount` after the request does not change. It gets
+    // updated during `chargeFee` call inside of `Account` contract.
+    const reqCountAfterRequest = await state.prepaymentContract.getReqCount(accId)
+    expect(reqCountAfterRequest).to.be.equal(0)
+
+    const requestCommitment = {
+      blockNum: blockNumber,
+      accId,
+      callbackGasLimit,
+      numSubmission,
+      sender
+    }
+
+    await state.coordinatorContract
+      .connect(rrOracle0Signer)
+      .fulfillDataRequestInt256(requestId, 123, requestCommitment, isDirectPayment)
+
+    // The value of `reqCount` should increase
+    const reqCountAfterFulfillment = await state.prepaymentContract.getReqCount(accId)
+    expect(reqCountAfterFulfillment).to.be.equal(1)
   })
 
   // TODO getters
