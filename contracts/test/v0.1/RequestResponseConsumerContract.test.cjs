@@ -318,48 +318,48 @@ describe('Request-Response user contract', function () {
     await state.addConsumer(state.consumerContract.address)
     const numSubmission = 1
     await expect(
-      state.consumerContract.requestDataUint256(accId, maxGasLimit, numSubmission, {
+      state.consumerContract.requestDataUint128(accId, maxGasLimit, numSubmission, {
         gasLimit: 500_000
       })
     ).to.be.revertedWithCustomError(state.coordinatorContract, 'InsufficientPayment')
   })
 
-  it('Request & Fulfill Uint256', async function () {
+  it('Request & Fulfill Uint128', async function () {
     const { state } = await loadFixture(deployFixture)
     const numSubmission = 2
     await requestAndFulfill(
       state,
-      state.consumerContract.requestDataUint256,
+      state.consumerContract.requestDataUint128,
       [
-        state.coordinatorContractOracleSigners[0].fulfillDataRequestUint256,
-        state.coordinatorContractOracleSigners[1].fulfillDataRequestUint256
+        state.coordinatorContractOracleSigners[0].fulfillDataRequestUint128,
+        state.coordinatorContractOracleSigners[1].fulfillDataRequestUint128
       ],
       [1, 2],
-      state.consumerContract.sResponseUint256,
-      'DataRequestFulfilledUint256',
+      state.consumerContract.sResponseUint128,
+      'DataRequestFulfilledUint128',
       false,
       numSubmission,
-      'Uint256'
+      'Uint128'
     )
   })
 
-  it('Request & Fulfill Uint256 Direct Payment', async function () {
+  it('Request & Fulfill Uint128 Direct Payment', async function () {
     const { state } = await loadFixture(deployFixture)
     const numSubmission = 2
 
     await requestAndFulfill(
       state,
-      state.consumerContract.requestDataDirectPaymentUint256,
+      state.consumerContract.requestDataDirectPaymentUint128,
       [
-        state.coordinatorContractOracleSigners[0].fulfillDataRequestUint256,
-        state.coordinatorContractOracleSigners[1].fulfillDataRequestUint256
+        state.coordinatorContractOracleSigners[0].fulfillDataRequestUint128,
+        state.coordinatorContractOracleSigners[1].fulfillDataRequestUint128
       ],
       [1, 2],
-      state.consumerContract.sResponseUint256,
-      'DataRequestFulfilledUint256',
+      state.consumerContract.sResponseUint128,
+      'DataRequestFulfilledUint128',
       true,
       numSubmission,
-      'Uint256'
+      'Uint128'
     )
   })
 

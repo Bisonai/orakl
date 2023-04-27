@@ -5,7 +5,7 @@ import "../RequestResponseConsumerFulfill.sol";
 import "../RequestResponseConsumerBase.sol";
 
 contract RequestResponseConsumerMock is
-    RequestResponseConsumerFulfillUint256,
+    RequestResponseConsumerFulfillUint128,
     RequestResponseConsumerFulfillInt256,
     RequestResponseConsumerFulfillBool,
     RequestResponseConsumerFulfillString,
@@ -13,7 +13,7 @@ contract RequestResponseConsumerMock is
     RequestResponseConsumerFulfillBytes
 {
     using Orakl for Orakl.Request;
-    uint256 public sResponseUint256;
+    uint128 public sResponseUint128;
     int256 public sResponseInt256;
     bool public sResponseBool;
     string public sResponseString;
@@ -38,13 +38,13 @@ contract RequestResponseConsumerMock is
     // Receive remaining payment from requestDataPayment
     receive() external payable {}
 
-    //request for uint256
-    function requestDataUint256(
+    //request for uint128
+    function requestDataUint128(
         uint64 accId,
         uint32 callbackGasLimit,
         uint8 numSubmission
     ) public onlyOwner returns (uint256 requestId) {
-        bytes32 jobId = keccak256(abi.encodePacked("uint256"));
+        bytes32 jobId = keccak256(abi.encodePacked("uint128"));
         Orakl.Request memory req = buildRequest(jobId);
         //change here for your expected data
         req.add(
@@ -57,11 +57,11 @@ contract RequestResponseConsumerMock is
         requestId = COORDINATOR.requestData(req, callbackGasLimit, accId, numSubmission);
     }
 
-    function requestDataDirectPaymentUint256(
+    function requestDataDirectPaymentUint128(
         uint32 callbackGasLimit,
         uint8 numSubmission
     ) public payable onlyOwner returns (uint256 requestId) {
-        bytes32 jobId = keccak256(abi.encodePacked("uint256"));
+        bytes32 jobId = keccak256(abi.encodePacked("uint128"));
         Orakl.Request memory req = buildRequest(jobId);
         //change here for your expected data
         req.add(
@@ -254,8 +254,8 @@ contract RequestResponseConsumerMock is
         requestId = COORDINATOR.requestData{value: msg.value}(req, callbackGasLimit, numSubmission);
     }
 
-    function fulfillDataRequest(uint256 /*requestId*/, uint256 response) internal override {
-        sResponseUint256 = response;
+    function fulfillDataRequest(uint256 /*requestId*/, uint128 response) internal override {
+        sResponseUint128 = response;
     }
 
     function fulfillDataRequest(uint256 /*requestId*/, int256 response) internal override {

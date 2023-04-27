@@ -3,12 +3,12 @@ pragma solidity ^0.8.16;
 
 import "./RequestResponseConsumerBase.sol";
 
-abstract contract RequestResponseConsumerFulfillUint256 is RequestResponseConsumerBase {
-    function fulfillDataRequest(uint256 requestId, uint256 response) internal virtual;
+abstract contract RequestResponseConsumerFulfillUint128 is RequestResponseConsumerBase {
+    function fulfillDataRequest(uint256 requestId, uint128 response) internal virtual;
 
     function rawFulfillDataRequest(
         uint256 requestId,
-        uint256 response
+        uint128 response
     ) external verifyRawFulfillment {
         fulfillDataRequest(requestId, response);
     }
