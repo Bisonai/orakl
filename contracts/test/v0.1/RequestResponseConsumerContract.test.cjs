@@ -16,6 +16,15 @@ const DATA_REQUEST_EVENT_ARGS = [
   'data'
 ]
 
+async function setupOracle(coordinator, oracles) {
+  const { maxGasLimit, gasAfterPaymentCalculation, feeConfig } = requestResponseConfig()
+
+  for (const oracle of oracles) {
+    await coordinator.registerOracle(oracle)
+  }
+  await coordinator.setConfig(maxGasLimit, gasAfterPaymentCalculation, Object.values(feeConfig))
+}
+
 async function deployFixture() {
   const {
     deployer,
@@ -223,20 +232,14 @@ async function requestAndFulfill(
     feeConfig
   } = await loadFixture(deployFixture)
 
-  // Register Oracles ///////////////////////////////////////////////////////////
-  await state.coordinatorContract.registerOracle(rrOracle0)
-  await state.coordinatorContract.registerOracle(rrOracle1)
-  await state.coordinatorContract.registerOracle(rrOracle2)
-  await state.coordinatorContract.registerOracle(rrOracle3)
-  await state.coordinatorContract.registerOracle(rrOracle4)
-  await state.coordinatorContract.registerOracle(rrOracle5)
-
-  // Configure coordinator //////////////////////////////////////////////////////
-  await state.coordinatorContract.setConfig(
-    maxGasLimit,
-    gasAfterPaymentCalculation,
-    Object.values(feeConfig)
-  )
+  await setupOracle(state.coordinatorContract, [
+    rrOracle0,
+    rrOracle1,
+    rrOracle2,
+    rrOracle3,
+    rrOracle4,
+    rrOracle5
+  ])
 
   // Request data /////////////////////////////////////////////////////////////
   const gasLimit = 500_000
@@ -544,31 +547,21 @@ describe('Request-Response user contract', function () {
   })
 
   it('cancel request for [regular] account', async function () {
-    const { state, rrOracle0, maxGasLimit, gasAfterPaymentCalculation, feeConfig } =
-      await loadFixture(deployFixture)
+    const { state, rrOracle0, maxGasLimit: callbackGasLimit } = await loadFixture(deployFixture)
+    await setupOracle(state.coordinatorContract, [rrOracle0])
 
-    // Register Oracles ///////////////////////////////////////////////////////////
-    await state.coordinatorContract.registerOracle(rrOracle0)
-
-    // Configure coordinator //////////////////////////////////////////////////////
-    await state.coordinatorContract.setConfig(
-      maxGasLimit,
-      gasAfterPaymentCalculation,
-      Object.values(feeConfig)
-    )
-
-    // Request data /////////////////////////////////////////////////////////////
-    const gasLimit = 500_000
-    const numSubmission = 1
+    // Prepare account
     const accId = await state.createAccount()
     await state.deposit('1')
     await state.addConsumer(state.consumerContract.address)
-    const requestReceipt = await (
-      await state.consumerContract.requestDataInt256(accId, maxGasLimit, numSubmission, {
-        gasLimit
-      })
-    ).wait()
 
+    // Request configuration
+    const numSubmission = 1
+
+    // Request data /////////////////////////////////////////////////////////////
+    const requestReceipt = await (
+      await state.consumerContract.requestDataInt256(accId, callbackGasLimit, numSubmission)
+    ).wait()
     const { requestId } = verifyRequest(state, requestReceipt)
 
     // Cancel Request ///////////////////////////////////////////////////////////
@@ -581,6 +574,34 @@ describe('Request-Response user contract', function () {
 
     const { requestId: cRequestId } = dataRequestCancelledEvent.args
     expect(requestId).to.be.equal(cRequestId)
+  })
+
+  it('increase nonce by every request with [regular] account', async function () {
+    const { state, rrOracle0, maxGasLimit: callbackGasLimit } = await loadFixture(deployFixture)
+
+    await setupOracle(state.coordinatorContract, [rrOracle0])
+
+    // Prepare account
+    const accId = await state.createAccount()
+    await state.deposit('1')
+    await state.addConsumer(state.consumerContract.address)
+
+    // Request configuration
+    const numSubmission = 1
+
+    // Before first request
+    const nonce1 = await state.prepaymentContract.getNonce(accId, state.consumerContract.address)
+    expect(nonce1).to.be.equal(1)
+    await state.consumerContract.requestDataInt256(accId, callbackGasLimit, numSubmission)
+
+    // After first request
+    const nonce2 = await state.prepaymentContract.getNonce(accId, state.consumerContract.address)
+    expect(nonce2).to.be.equal(2)
+    await state.consumerContract.requestDataInt256(accId, callbackGasLimit, numSubmission)
+
+    // After second request
+    const nonce3 = await state.prepaymentContract.getNonce(accId, state.consumerContract.address)
+    expect(nonce3).to.be.equal(3)
   })
 
   // TODO getters

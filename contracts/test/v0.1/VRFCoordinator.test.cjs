@@ -662,14 +662,17 @@ describe('VRF contract', function () {
     await state.addConsumer(consumerContract.address)
     await state.deposit('1')
 
+    // Before first request
     const nonce1 = await state.prepaymentContract.getNonce(accId, consumerContract.address)
     expect(nonce1).to.be.equal(1)
-
     await consumerContract.requestRandomWords(keyHash, accId, callbackGasLimit, NUM_WORDS)
+
+    // After first request
     const nonce2 = await state.prepaymentContract.getNonce(accId, consumerContract.address)
     expect(nonce2).to.be.equal(2)
-
     await consumerContract.requestRandomWords(keyHash, accId, callbackGasLimit, NUM_WORDS)
+
+    // After second request
     const nonce3 = await state.prepaymentContract.getNonce(accId, consumerContract.address)
     expect(nonce3).to.be.equal(3)
   })
