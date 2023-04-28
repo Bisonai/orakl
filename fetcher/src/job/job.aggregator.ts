@@ -5,5 +5,5 @@ const AGGREGATOR_MAPPING = {
   MEDIAN: (i) => Math.round(median(i))
 }
 
-const LOCAL_AGGREGATOR = process.env.LOCAL_AGGREGATOR?.toUpperCase() || 'MEAN'
+const LOCAL_AGGREGATOR = process.env.LOCAL_AGGREGATOR?.toUpperCase() || 'MEDIAN'
 export const LOCAL_AGGREGATOR_FN = AGGREGATOR_MAPPING[LOCAL_AGGREGATOR]
