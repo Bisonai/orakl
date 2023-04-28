@@ -1,5 +1,9 @@
 const { median: medianFn } = require('mathjs')
 
+async function getBalance(address) {
+  return await ethers.provider.getBalance(address)
+}
+
 function parseKlay(amount) {
   return ethers.utils.parseUnits(amount.toString(), 18)
 }
@@ -21,6 +25,7 @@ function majorityVotingBool(arr) {
 }
 
 module.exports = {
+  getBalance,
   parseKlay,
   remove0x,
   median,

@@ -9,6 +9,7 @@ const {
 } = require('./VRFCoordinator.utils.cjs')
 const { createAccount, deposit } = require('./Prepayment.utils.cjs')
 const { vrfConfig } = require('./VRFCoordinator.config.cjs')
+const { getBalance } = require('./utils.cjs')
 const oraklVrf = import('@bisonai/orakl-vrf')
 
 async function createSigners() {
@@ -16,26 +17,22 @@ async function createSigners() {
 
   const deployerSigner = await ethers.getSigner(deployer)
   const consumerSigner = await ethers.getSigner(consumer)
-  const consumer1Signer = await ethers.getSigner(consumer1)
+  const protocolFeeRecipientSigner = await ethers.getSigner(consumer1)
   const vrfOracleSigner = await ethers.getSigner(vrfOracle0)
   const rrOracleSigner = await ethers.getSigner(rrOracle0)
 
   return {
     deployerSigner,
     consumerSigner,
-    consumer1Signer,
+    protocolFeeRecipientSigner,
     vrfOracleSigner,
     rrOracleSigner
   }
 }
 
 async function deploy() {
-  const {
-    deployerSigner,
-    consumerSigner,
-    consumer1Signer: protocolFeeRecipientSigner,
-    vrfOracleSigner
-  } = await createSigners()
+  const { deployerSigner, consumerSigner, protocolFeeRecipientSigner, vrfOracleSigner } =
+    await createSigners()
 
   // Prepayment
   let prepaymentContract = await ethers.getContractFactory('Prepayment', {
@@ -81,7 +78,7 @@ async function deploy() {
 describe('Revert Fulfillment Test', function () {
   it('Revert VRF', async function () {
     const { vrfCoordinatorContract, vrfConsumerContract, accId } = await loadFixture(deploy)
-    const { vrfOracleSigner } = await createSigners()
+    const { vrfOracleSigner, protocolFeeRecipientSigner } = await createSigners()
 
     const { keyHash, maxGasLimit: callbackGasLimit } = vrfConfig()
     const numWords = 1
@@ -91,6 +88,9 @@ describe('Revert Fulfillment Test', function () {
 
     const { preSeed, sender, isDirectPayment, blockHash, blockNumber } =
       parseRandomWordsRequestedTx(vrfCoordinatorContract, txRequest)
+
+    const protocolFeeRecipientBalanceBefore = await getBalance(protocolFeeRecipientSigner.address)
+    const oracleBalanceBefore = await getBalance(vrfOracleSigner.address)
 
     const txFulfill = await fulfillRandomWords(
       vrfCoordinatorContract,
@@ -109,6 +109,10 @@ describe('Revert Fulfillment Test', function () {
     expect(payment).to.be.above(0)
     expect(success).to.be.equal(false)
 
-    // TODO check balance before and after for oracle and protocol fee recipient
+    const protocolFeeRecipientBalanceAfter = await getBalance(protocolFeeRecipientSigner.address)
+    expect(protocolFeeRecipientBalanceAfter).to.be.gt(protocolFeeRecipientBalanceBefore)
+
+    const oracleBalanceAfter = await getBalance(vrfOracleSigner.address)
+    expect(oracleBalanceAfter).to.be.gt(oracleBalanceBefore)
   })
 })
