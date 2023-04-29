@@ -9,7 +9,8 @@ const {
 } = require('./VRFCoordinator.utils.cjs')
 
 const {
-  setupOracle: setupRequestResponseCoordinator
+  setupOracle: setupRequestResponseCoordinator,
+  parseDataRequestFulfilledTx
 } = require('./RequestResponseCoordinator.utils.cjs')
 const { createAccount, deposit } = require('./Prepayment.utils.cjs')
 const { vrfConfig } = require('./VRFCoordinator.config.cjs')
@@ -171,13 +172,19 @@ describe('Revert Fulfillment Test', function () {
       sender
     }
     const isDirectPayment = false
-    await rrCoordinatorContract
-      .connect(rrOracleSigner)
-      .fulfillDataRequestInt256(requestId, 123, requestCommitment, isDirectPayment)
+    const txFulfill = await (
+      await rrCoordinatorContract
+        .connect(rrOracleSigner)
+        .fulfillDataRequestInt256(requestId, 123, requestCommitment, isDirectPayment)
+    ).wait()
 
-    /* const { payment, success } = parseRandomWordsFulfilledTx(vrfCoordinatorContract, txFulfill)
-     * expect(payment).to.be.above(0)
-     * expect(success).to.be.equal(false)       */
+    const { payment, success } = parseDataRequestFulfilledTx(
+      rrCoordinatorContract,
+      txFulfill,
+      'DataRequestFulfilledInt256'
+    )
+    expect(payment).to.be.above(0)
+    expect(success).to.be.equal(false)
 
     const protocolFeeRecipientBalanceAfter = await getBalance(protocolFeeRecipientSigner.address)
     expect(protocolFeeRecipientBalanceAfter).to.be.gt(protocolFeeRecipientBalanceBefore)

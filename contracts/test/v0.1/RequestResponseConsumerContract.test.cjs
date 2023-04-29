@@ -5,7 +5,8 @@ const { State } = require('./State.utils.cjs')
 const { requestResponseConfig } = require('./RequestResponse.config.cjs')
 const {
   parseDataRequestedTx,
-  DATA_REQUEST_EVENT_ARGS
+  DATA_REQUEST_EVENT_ARGS,
+  parseDataRequestFulfilledTx
 } = require('./RequestResponseCoordinator.utils.cjs')
 const { parseKlay } = require('./utils.cjs')
 const { median, majorityVotingBool } = require('./utils.cjs')
@@ -192,11 +193,11 @@ async function verifyFulfillment(
   expect(prepaymentEvent.args.accId).to.be.equal(accId)
 
   // DataRequestFulfilled* //////////////////////////////////////////////////////
-  const fulfillEvent = state.coordinatorContract.interface.parseLog(
-    txReceipt.events[txReceipt.events.length - 1]
+  const { requestId: eventRequestId } = parseDataRequestFulfilledTx(
+    state.coordinatorContract,
+    txReceipt,
+    fulfillEventName
   )
-  expect(fulfillEvent.name).to.be.equal(fulfillEventName)
-  expect(fulfillEvent.args.requestId).to.be.equal(requestId)
   expect(await responseFn()).to.be.equal(responseValue)
 }
 

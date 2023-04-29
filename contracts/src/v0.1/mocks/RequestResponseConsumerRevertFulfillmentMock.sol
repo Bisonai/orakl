@@ -26,7 +26,10 @@ contract RequestResponseConsumerRevertFulfillmentMock is RequestResponseConsumer
         return COORDINATOR.requestData(req, callbackGasLimit, accId, numSubmission);
     }
 
-    function fulfillDataRequest(uint256 /*requestId*/, uint128 /*response*/) internal override {
+    function fulfillDataRequest(
+        uint256 /*requestId*/,
+        uint128 /*response*/
+    ) internal pure override {
         revert AnyError();
     }
 }

@@ -42,8 +42,19 @@ function parseDataRequestedTx(coordinator, tx) {
   }
 }
 
+function parseDataRequestFulfilledTx(coordinator, tx, eventName) {
+  const event = coordinator.interface.parseLog(tx.events[tx.events.length - 1])
+  expect(event.name).to.be.equal(eventName)
+  const blockHash = tx.blockHash
+  const blockNumber = tx.blockNumber
+
+  const { requestId, response, payment, success } = event.args
+  return { requestId, response, payment, success, blockHash, blockNumber }
+}
+
 module.exports = {
   setupOracle,
   parseDataRequestedTx,
-  DATA_REQUEST_EVENT_ARGS
+  DATA_REQUEST_EVENT_ARGS,
+  parseDataRequestFulfilledTx
 }
