@@ -136,13 +136,12 @@ describe('Prepayment', function () {
 
   it('Deposit & withdraw', async function () {
     const {
-      deployerSigner,
       prepaymentContract,
       consumerSigner: accountOwner,
       consumer1Signer: nonOwner
     } = await loadFixture(deploy)
 
-    const { accId, account } = await createAccount(prepaymentContract, deployerSigner)
+    const { accId, account } = await createAccount(prepaymentContract, accountOwner)
     const accountContract = await ethers.getContractAt('Account', account, accountOwner.address)
 
     // Get Balance
@@ -151,7 +150,9 @@ describe('Prepayment', function () {
 
     // 1. Deposit $KLAY /////////////////////////////////////////////////////////
     const amount = 10
-    const txDeposit = await (await prepaymentContract.deposit(accId, { value: amount })).wait()
+    const txDeposit = await (
+      await prepaymentContract.connect(accountOwner).deposit(accId, { value: amount })
+    ).wait()
     const balanceAfterDeposit = (await accountContract.getBalance()).toNumber()
     expect(balanceAfterDeposit).to.be.equal(amount)
 
@@ -171,7 +172,9 @@ describe('Prepayment', function () {
     ).to.be.revertedWithCustomError(prepaymentContract, 'MustBeAccountOwner')
 
     // Withdrawing using the account owner
-    const txWithdraw = await (await prepaymentContract.withdraw(accId, amount)).wait()
+    const txWithdraw = await (
+      await prepaymentContract.connect(accountOwner).withdraw(accId, amount)
+    ).wait()
 
     // All previously deposited $KLAY was withdrawn. Nothin is left.
     const balanceAfterWithdraw = (await accountContract.getBalance()).toNumber()
@@ -367,5 +370,20 @@ describe('Prepayment', function () {
 
     expect(await accountContract.getOwner()).to.be.equal(toConsumer.address)
     expect(await accountContract.getRequestedOwner()).to.be.equal(NULL_ADDRESS)
+  })
+
+  it('', async function () {
+    const {
+      deployerSigner,
+      consumerSigner,
+      consumer1Signer,
+      consumer2Signer,
+      account8Signer: protocolFeeRecipientSigner
+    } = await createSigners()
+
+    const prepaymentContract = await deployPrepayment(
+      protocolFeeRecipientSigner.address,
+      deployerSigner
+    )
   })
 })
