@@ -4,6 +4,7 @@ pragma solidity 0.8.16;
 // https://github.com/smartcontractkit/chainlink/blob/develop/contracts/src/v0.6/FluxAggregator.sol
 
 import "@openzeppelin/contracts/access/Ownable.sol";
+import "./interfaces/ITypeAndVersion.sol";
 import "./interfaces/IAggregator.sol";
 import "./interfaces/IAggregatorValidator.sol";
 import "./libraries/Median.sol";
@@ -16,7 +17,7 @@ import "./libraries/Median.sol";
  * single answer. The latest aggregated answer is exposed as well as historical
  * answers and their updated at timestamp.
  */
-contract Aggregator is IAggregator, Ownable {
+contract Aggregator is Ownable, IAggregator, ITypeAndVersion {
     struct Round {
         int256 answer;
         uint64 startedAt;
@@ -55,8 +56,6 @@ contract Aggregator is IAggregator, Ownable {
     uint32 public timeout;
     uint8 public override decimals;
     string public override description;
-
-    uint256 public constant override version = 1;
 
     uint256 private constant MAX_ORACLE_COUNT = 77;
     uint32 private constant ROUND_MAX = 2 ** 32 - 1;
@@ -374,6 +373,14 @@ contract Aggregator is IAggregator, Ownable {
 
             emit ValidatorUpdated(previous, _newValidator);
         }
+    }
+
+    /**
+     * @notice The type and version of this contract
+     * @return Type and version string
+     */
+    function typeAndVersion() external pure virtual override returns (string memory) {
+        return "Aggregator v0.1";
     }
 
     /**

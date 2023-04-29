@@ -37,4 +37,10 @@ interface IAggregatorProxy is IAggregator {
         );
 
     function aggregator() external view returns (address);
+
+    /**
+     * @notice the type and version of aggregator to which proxy
+     * points to.
+     */
+    function typeAndVersion() external view returns (string memory);
 }

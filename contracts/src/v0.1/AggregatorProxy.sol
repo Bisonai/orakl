@@ -12,7 +12,7 @@ import "./interfaces/IAggregatorProxy.sol";
  * CurrentAnswerInterface but delegates where it reads from to the owner, who is
  * trusted to update it.
  */
-contract AggregatorProxy is IAggregatorProxy, Ownable {
+contract AggregatorProxy is Ownable, IAggregatorProxy {
     struct Phase {
         uint16 id;
         IAggregatorProxy aggregator;
@@ -210,11 +210,10 @@ contract AggregatorProxy is IAggregatorProxy, Ownable {
     }
 
     /**
-     * @notice the version number representing the type of aggregator the proxy
-     * points to.
+     * @inheritdoc IAggregatorProxy
      */
-    function version() external view override returns (uint256) {
-        return sCurrentPhase.aggregator.version();
+    function typeAndVersion() external view returns (string memory) {
+        return sCurrentPhase.aggregator.typeAndVersion();
     }
 
     /**
