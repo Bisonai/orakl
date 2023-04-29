@@ -196,7 +196,6 @@ describe('Prepayment', function () {
 
   it('Add & remove consumer', async function () {
     const {
-      deployerSigner,
       prepaymentContract,
       consumerSigner: accountOwner,
       consumer1Signer: consumer,
@@ -204,7 +203,7 @@ describe('Prepayment', function () {
       consumer2Signer: unusedConsumer
     } = await loadFixture(deploy)
 
-    const { accId, account } = await createAccount(prepaymentContract, deployerSigner)
+    const { accId, account } = await createAccount(prepaymentContract, accountOwner)
 
     const accountContract = await ethers.getContractAt('Account', account, accountOwner.address)
     expect((await accountContract.getConsumers()).length).to.be.equal(0)
@@ -217,7 +216,7 @@ describe('Prepayment', function () {
 
     // Add consumer with correct signer and parameters
     const txReceiptAddConsumer = await (
-      await prepaymentContract.addConsumer(accId, consumer.address)
+      await prepaymentContract.connect(accountOwner).addConsumer(accId, consumer.address)
     ).wait()
     expect(txReceiptAddConsumer.events.length).to.be.equal(1)
 
@@ -232,7 +231,7 @@ describe('Prepayment', function () {
 
     // Idempotance - adding the same consumer does not do anything
     const consumersBefore = (await accountContract.getConsumers()).length
-    await prepaymentContract.addConsumer(accId, consumer.address)
+    await prepaymentContract.connect(accountOwner).addConsumer(accId, consumer.address)
     const consumersAfter = (await accountContract.getConsumers()).length
     expect(consumersBefore).to.be.equal(consumersAfter)
 
@@ -243,7 +242,7 @@ describe('Prepayment', function () {
     // 2. Remove consumer ///////////////////////////////////////////////////////
     // We cannot remove consumer which is not there
     await expect(
-      prepaymentContract.removeConsumer(accId, unusedConsumer.address)
+      prepaymentContract.connect(accountOwner).removeConsumer(accId, unusedConsumer.address)
     ).to.be.revertedWithCustomError(accountContract, 'InvalidConsumer')
 
     // Consumer can be removed only by the account owner
@@ -253,7 +252,7 @@ describe('Prepayment', function () {
 
     // Remove consumer with correct signer and paramters
     const txReceiptRemoveConsumer = await (
-      await prepaymentContract.removeConsumer(accId, consumer.address)
+      await prepaymentContract.connect(accountOwner).removeConsumer(accId, consumer.address)
     ).wait()
     expect(txReceiptRemoveConsumer.events.length).to.be.equal(1)
 
@@ -323,7 +322,6 @@ describe('Prepayment', function () {
 
   it('Transfer account ownership', async function () {
     const {
-      deployerSigner,
       consumerSigner: fromConsumer,
       consumer1Signer: toConsumer,
       prepaymentContract
