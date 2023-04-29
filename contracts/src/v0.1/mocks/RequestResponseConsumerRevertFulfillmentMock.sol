@@ -6,9 +6,9 @@ import "../RequestResponseConsumerBase.sol";
 
 /**
  * @notice RequestResponseConsumerRevertFulfillmentMock contract is
- * used only for testing payment whether oracle receives payment
- * fulfillment function fails. This contract is missing safety feature
- * that should otherwise be applied.
+ * used only for testing whether oracle receives payment when
+ * fulfillment function fails. This contract is missing safety
+ * features that should otherwise be applied.
  */
 contract RequestResponseConsumerRevertFulfillmentMock is RequestResponseConsumerFulfillUint128 {
     using Orakl for Orakl.Request;

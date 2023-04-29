@@ -6,8 +6,8 @@ import "../interfaces/IVRFCoordinator.sol";
 
 /**
  * @notice VRFConsumerRevertFulfillmentMock contract is used only for
- * testing payment whether oracle receives payment fulfillment
- * function fails. This contract is missing safety feature that should
+ * testing whether oracle receives payment when fulfillment function
+ * fails. This contract is missing safety features that should
  * otherwise be applied.
  */
 contract VRFConsumerRevertFulfillmentMock is VRFConsumerBase {
