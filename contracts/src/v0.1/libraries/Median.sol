@@ -282,6 +282,7 @@ library Median {
                 return hi;
             }
         }
+        revert();
     }
 
     /**
