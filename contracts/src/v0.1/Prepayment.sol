@@ -319,20 +319,6 @@ contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
         emit AccountCanceled(accId, to, balance);
     }
 
-    function cancelAccountTemporary(uint64 accId, address to) external onlyCoordinator {
-        TemporaryAccount memory tmpAccConfig = sAccIdToTmpAcc[accId];
-        uint256 balance = tmpAccConfig.balance;
-        delete sAccIdToTmpAcc[accId];
-        if (balance > 0) {
-            (bool sent, ) = payable(to).call{value: balance}("");
-            if (!sent) {
-                revert FailedToWithdrawFromTemporaryAccount();
-            }
-        }
-
-        emit AccountCanceled(accId, to, balance);
-    }
-
     /**
      * @inheritdoc IPrepayment
      */
