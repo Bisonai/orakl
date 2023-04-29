@@ -1,45 +1,41 @@
 const { expect } = require('chai')
 const { ethers } = require('hardhat')
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers')
+const { deploy: deployPrepayment } = require('./Prepayment.utils.cjs')
 
 const NULL_ADDRESS = '0x0000000000000000000000000000000000000000'
 const DEFAULT_BURN_FEE_RATIO = 50
 const DEFAULT_PROTOCOL_FEE_RATIO = 5
 
-describe('Prepayment', function () {
-  async function deployPrepayment() {
-    const {
-      deployer,
-      consumer,
-      consumer1,
-      consumer2,
-      account8: protocolFeeRecipient
-    } = await hre.getNamedAccounts()
+async function deploy() {
+  const {
+    deployer,
+    consumer,
+    consumer1,
+    consumer2,
+    account8: protocolFeeRecipient
+  } = await hre.getNamedAccounts()
 
-    let prepaymentContract = await ethers.getContractFactory('Prepayment', {
-      signer: deployer
-    })
-    prepaymentContract = await prepaymentContract.deploy(protocolFeeRecipient)
-    await prepaymentContract.deployed()
+  const prepaymentContract = await deployPrepayment(protocolFeeRecipient, deployer)
+  const prepaymentContractConsumerSigner = await ethers.getContractAt(
+    'Prepayment',
+    prepaymentContract.address,
+    consumer
+  )
 
-    const prepaymentContractConsumerSigner = await ethers.getContractAt(
-      'Prepayment',
-      prepaymentContract.address,
-      consumer
-    )
-
-    return {
-      deployer,
-      consumer,
-      consumer1,
-      consumer2,
-      prepaymentContract,
-      prepaymentContractConsumerSigner
-    }
+  return {
+    deployer,
+    consumer,
+    consumer1,
+    consumer2,
+    prepaymentContract,
+    prepaymentContractConsumerSigner
   }
+}
 
+describe('Prepayment', function () {
   it('Burn ratio setup', async function () {
-    const { prepaymentContract } = await loadFixture(deployPrepayment)
+    const { prepaymentContract } = await loadFixture(deploy)
 
     // 1. Get initial burn ratio
     const burnFeeRatio = await prepaymentContract.getBurnFeeRatio()
@@ -66,7 +62,7 @@ describe('Prepayment', function () {
   })
 
   it('Protocol fee ratio setup', async function () {
-    const { prepaymentContract } = await loadFixture(deployPrepayment)
+    const { prepaymentContract } = await loadFixture(deploy)
 
     // 1. Get initial burn ratio
     const protocolFeeRatio = await prepaymentContract.getProtocolFeeRatio()
@@ -97,7 +93,7 @@ describe('Prepayment', function () {
       prepaymentContractConsumerSigner: prepaymentContract,
       consumer: accountOwnerAddress,
       consumer1: nonOwnerAddress
-    } = await loadFixture(deployPrepayment)
+    } = await loadFixture(deploy)
 
     const txReceipt = await (await prepaymentContract.createAccount()).wait()
     const accountCreatedEvent = prepaymentContract.interface.parseLog(txReceipt.events[0])
@@ -163,7 +159,7 @@ describe('Prepayment', function () {
       consumer1: consumerAddress,
       consumer1: nonOwnerAddress,
       consumer2: unusedConsumer
-    } = await loadFixture(deployPrepayment)
+    } = await loadFixture(deploy)
 
     const txReceipt = await (await prepaymentContract.createAccount()).wait()
     const accountCreatedEvent = prepaymentContract.interface.parseLog(txReceipt.events[0])
@@ -246,7 +242,7 @@ describe('Prepayment', function () {
       consumer1: coordinatorAddress
       // consumer1: nonOwnerAddress,
       // consumer2: unusedConsumer
-    } = await loadFixture(deployPrepayment)
+    } = await loadFixture(deploy)
 
     // Add coordinator //////////////////////////////////////////////////////////
     // Coordinator must be added by contract owner
@@ -295,7 +291,7 @@ describe('Prepayment', function () {
       prepaymentContractConsumerSigner,
       consumer: fromConsumer,
       consumer1: toConsumer
-    } = await loadFixture(deployPrepayment)
+    } = await loadFixture(deploy)
     const txReceipt = await (await prepaymentContractConsumerSigner.createAccount()).wait()
 
     const accountCreatedEvent = prepaymentContractConsumerSigner.interface.parseLog(
