@@ -390,6 +390,4 @@ describe('Prepayment', function () {
       prepaymentContract.connect(consumerSigner).withdraw(accId, aboveBalance)
     ).to.be.revertedWithCustomError(accountContract, 'InsufficientBalance')
   })
-
-  it('Withdraw pending request exists', async function () {})
 })

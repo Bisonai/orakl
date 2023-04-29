@@ -46,10 +46,28 @@ async function withdraw(prepayment, signer, accId, amount) {
   return { accId, oldBalance, newBalance }
 }
 
+async function addCoordinator(prepayment, signer, coordinatorAddress) {
+  const tx = await (await prepayment.connect(signer).addCoordinator(coordinatorAddress)).wait()
+  return tx
+}
+
+async function cancelAccount(prepayment, signer, accId, to) {
+  const tx = await (await prepayment.connect(signer).cancelAccount(accId, to)).wait()
+  expect(tx.events.length).to.be.equal(1)
+  const event = prepayment.interface.parseLog(tx.events[0])
+  expect(event.name).to.be.equal('AccountCanceled')
+  const { accId: eAccId, to: eTo, balance } = event.args
+  expect(accId).to.be.equal(eAccId)
+  expect(to).to.be.equal(eTo)
+  return { accId, to, balance }
+}
+
 module.exports = {
   deploy,
   createAccount,
   addConsumer,
   deposit,
-  withdraw
+  withdraw,
+  addCoordinator,
+  cancelAccount
 }

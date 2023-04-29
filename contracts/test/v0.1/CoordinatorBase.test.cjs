@@ -11,6 +11,7 @@ const { createAccount, addConsumer, deposit } = require('./Prepayment.utils.cjs'
 const { vrfConfig } = require('./VRFCoordinator.config.cjs')
 const { parseRequestCanceled } = require('./CoordinatorBase.utils.cjs')
 const { deploy: deployPrepayment } = require('./Prepayment.utils.cjs')
+const { parseKlay } = require('./utils.cjs')
 
 async function createSigners() {
   let { deployer, consumer, consumer1, vrfOracle0 } = await hre.getNamedAccounts()
@@ -97,7 +98,8 @@ describe('CoordinatorBase', function () {
     // account setup
     const { accId } = await createAccount(prepaymentContract, consumerSigner)
     await addConsumer(prepaymentContract, consumerSigner, accId, consumerContract.address)
-    await deposit(prepaymentContract, consumerSigner, accId, '2')
+    const amount = parseKlay(1)
+    await deposit(prepaymentContract, consumerSigner, accId, amount)
 
     // request
     const { keyHash, maxGasLimit: callbackGasLimit } = vrfConfig()

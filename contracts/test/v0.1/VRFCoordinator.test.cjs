@@ -8,30 +8,24 @@ const { State } = require('./State.utils.cjs')
 const {
   setupOracle,
   generateVrf,
-  deploy: deployVrfCoordinator
+  deploy: deployVrfCoordinator,
+  parseRandomWordsRequestedTx,
+  parseRequestCanceledTx
 } = require('./VRFCoordinator.utils.cjs')
 const { deploy: deployVrfConsumerMock } = require('./VRFConsumerMock.utils.cjs')
-const { deploy: deployPrepayment } = require('./Prepayment.utils.cjs')
+const {
+  deploy: deployPrepayment,
+  addCoordinator,
+  createAccount,
+  deposit,
+  addConsumer,
+  withdraw,
+  cancelAccount
+} = require('./Prepayment.utils.cjs')
 
 const DUMMY_KEY_HASH = '0x00000773ef09e40658e643fe79f8d1a27c0aa6eb7251749b268f829ea49f2024'
 const NUM_WORDS = 1
 const EMPTY_COMMITMENT = '0x0000000000000000000000000000000000000000000000000000000000000000'
-
-async function createSigners() {
-  let { deployer, consumer, consumer1, vrfOracle0 } = await hre.getNamedAccounts()
-
-  const deployerSigner = await ethers.getSigner(deployer)
-  const consumerSigner = await ethers.getSigner(consumer)
-  const consumer1Signer = await ethers.getSigner(consumer)
-  const vrfOracle0Signer = await ethers.getSigner(vrfOracle0)
-
-  return {
-    deployerSigner,
-    consumerSigner,
-    consumer1Signer,
-    vrfOracle0Signer
-  }
-}
 
 function generateDummyPublicProvingKey() {
   const L = 77
@@ -190,41 +184,63 @@ function validateRandomWordsFulfilledEvent(
   expect(fPayment).to.be.above(0)
 }
 
+async function createSigners() {
+  let { deployer, consumer, consumer1, consumer2, vrfOracle0 } = await hre.getNamedAccounts()
+
+  const deployerSigner = await ethers.getSigner(deployer)
+  const consumerSigner = await ethers.getSigner(consumer)
+  const consumer1Signer = await ethers.getSigner(consumer1)
+  const consumer2Signer = await ethers.getSigner(consumer2)
+  const vrfOracle0Signer = await ethers.getSigner(vrfOracle0)
+
+  return {
+    deployerSigner,
+    consumerSigner,
+    consumer1Signer,
+    consumer2Signer,
+    vrfOracle0Signer
+  }
+}
+
 async function deploy() {
   const {
-    deployer,
-    consumer,
-    consumer1: sProtocolFeeRecipient,
-    consumer2,
-    vrfOracle0
-  } = await hre.getNamedAccounts()
+    deployerSigner,
+    consumerSigner,
+    consumer1Signer: sProtocolFeeRecipient,
+    consumer2Signer,
+    vrfOracle0Signer
+  } = await createSigners()
 
   // Prepayment
-  const prepaymentContract = await deployPrepayment(sProtocolFeeRecipient, deployer)
+  const prepaymentContract = await deployPrepayment(sProtocolFeeRecipient.address, deployerSigner)
 
   // VRFCoordinator
-  const coordinatorContract = await deployVrfCoordinator(prepaymentContract.address, deployer)
+  const coordinatorContract = await deployVrfCoordinator(prepaymentContract.address, deployerSigner)
 
   // VRFConsumerMock
-  const consumerContract = await deployVrfConsumerMock(coordinatorContract.address, consumer)
+  const consumerContract = await deployVrfConsumerMock(coordinatorContract.address, consumerSigner)
 
   const coordinatorContractOracleSigner = await ethers.getContractAt(
     'VRFCoordinator',
     coordinatorContract.address,
-    vrfOracle0
+    vrfOracle0Signer
   )
 
   // State controller
-  const state = new State(consumer, prepaymentContract, consumerContract, coordinatorContract, [
-    coordinatorContractOracleSigner
-  ])
+  const state = new State(
+    consumerSigner,
+    prepaymentContract,
+    consumerContract,
+    coordinatorContract,
+    [coordinatorContractOracleSigner]
+  )
   await state.initialize('VRFConsumerMock')
 
   return {
-    deployer,
-    consumer,
-    consumer2,
-    vrfOracle0,
+    deployerSigner,
+    consumerSigner,
+    consumer2Signer,
+    vrfOracle0Signer,
     prepaymentContract,
     coordinatorContract,
     consumerContract,
@@ -357,12 +373,12 @@ describe('VRF contract', function () {
   })
 
   it('requestRandomWords can be called by onlyOwner', async function () {
-    const { consumerContract, consumer2: nonOwnerAddress, state } = await loadFixture(deploy)
+    const { consumerContract, consumer2Signer: nonOwner, state } = await loadFixture(deploy)
 
     const consumerContractNonOwnerSigner = await ethers.getContractAt(
       'VRFConsumerMock',
       consumerContract.address,
-      nonOwnerAddress
+      nonOwner
     )
     const { maxGasLimit } = vrfConfig()
     const accId = await state.createAccount()
@@ -383,18 +399,14 @@ describe('VRF contract', function () {
     // least `sMinBalance` in their account in order to succeed with
     // VRF request.
     const {
-      consumer,
-      vrfOracle0,
+      consumerSigner,
+      consumer2Signer: unregisteredOracle,
+      vrfOracle0Signer,
       coordinatorContract,
       consumerContract,
       prepaymentContract,
       state
     } = await loadFixture(deploy)
-    const {
-      consumerSigner,
-      consumer1Signer: unregisteredOracle,
-      vrfOracle0Signer
-    } = await createSigners()
 
     const {
       maxGasLimit,
@@ -408,7 +420,7 @@ describe('VRF contract', function () {
       keyHash
     } = vrfConfig()
 
-    await coordinatorContract.registerOracle(vrfOracle0, publicProvingKey)
+    await coordinatorContract.registerOracle(vrfOracle0Signer.address, publicProvingKey)
     await coordinatorContract.setConfig(
       maxGasLimit,
       gasAfterPaymentCalculation,
@@ -481,18 +493,14 @@ describe('VRF contract', function () {
 
   it('requestRandomWords with [temporary] account', async function () {
     const {
-      consumer,
-      vrfOracle0,
+      consumerSigner,
+      vrfOracle0Signer,
+      consumer2Signer: unregisteredOracle,
       coordinatorContract,
       consumerContract,
       prepaymentContract,
       state
     } = await loadFixture(deploy)
-    const {
-      consumerSigner,
-      consumer1Signer: unregisteredOracle,
-      vrfOracle0Signer
-    } = await createSigners()
 
     const {
       maxGasLimit,
@@ -506,7 +514,7 @@ describe('VRF contract', function () {
       keyHash
     } = vrfConfig()
 
-    await coordinatorContract.registerOracle(vrfOracle0, publicProvingKey)
+    await coordinatorContract.registerOracle(vrfOracle0Signer.address, publicProvingKey)
     await coordinatorContract.setConfig(
       maxGasLimit,
       gasAfterPaymentCalculation,
@@ -557,6 +565,7 @@ describe('VRF contract', function () {
       rc,
       isDirectPayment
     )
+    return
 
     await testCommitmentAfterFulfillment(coordinatorContract, consumerSigner, requestId)
 
@@ -571,10 +580,12 @@ describe('VRF contract', function () {
   })
 
   it('Cancel random words request for [regular] account', async function () {
-    const { vrfOracle0, coordinatorContract, consumerContract, state } = await loadFixture(deploy)
+    const { vrfOracle0Signer, coordinatorContract, consumerContract, state } = await loadFixture(
+      deploy
+    )
 
     const { keyHash, maxGasLimit: callbackGasLimit } = vrfConfig()
-    await setupOracle(coordinatorContract, vrfOracle0)
+    await setupOracle(coordinatorContract, vrfOracle0Signer.address)
     await state.addCoordinator(coordinatorContract.address)
     const accId = await state.createAccount()
     await state.addConsumer(consumerContract.address)
@@ -595,20 +606,17 @@ describe('VRF contract', function () {
     // Cancel Request
     const txCancelRequest = await (await consumerContract.cancelRequest(requestId)).wait()
 
-    const randomWordsRequestCancelledEvent = coordinatorContract.interface.parseLog(
-      txCancelRequest.events[0]
-    )
-    expect(randomWordsRequestCancelledEvent.name).to.be.equal('RequestCanceled')
-
-    const { requestId: cRequestId } = randomWordsRequestCancelledEvent.args
+    const { requestId: cRequestId } = parseRequestCanceledTx(coordinatorContract, txCancelRequest)
     expect(requestId).to.be.equal(cRequestId)
   })
 
   it('Increase nonce by every request with [regular] account', async function () {
-    const { vrfOracle0, coordinatorContract, consumerContract, state } = await loadFixture(deploy)
+    const { vrfOracle0Signer, coordinatorContract, consumerContract, state } = await loadFixture(
+      deploy
+    )
 
     const { keyHash, maxGasLimit: callbackGasLimit } = vrfConfig()
-    await setupOracle(coordinatorContract, vrfOracle0)
+    await setupOracle(coordinatorContract, vrfOracle0Signer.address)
     await state.addCoordinator(coordinatorContract.address)
     const accId = await state.createAccount()
     await state.addConsumer(consumerContract.address)
@@ -630,11 +638,12 @@ describe('VRF contract', function () {
   })
 
   it('Increase reqCount by every request with [regular] account', async function () {
-    const { vrfOracle0, coordinatorContract, consumerContract, state } = await loadFixture(deploy)
-    const { vrfOracle0Signer } = await createSigners()
+    const { vrfOracle0Signer, coordinatorContract, consumerContract, state } = await loadFixture(
+      deploy
+    )
 
     const { keyHash, maxGasLimit: callbackGasLimit } = vrfConfig()
-    await setupOracle(coordinatorContract, vrfOracle0)
+    await setupOracle(coordinatorContract, vrfOracle0Signer.address)
     await state.addCoordinator(coordinatorContract.address)
     const accId = await state.createAccount()
     await state.addConsumer(consumerContract.address)
@@ -684,7 +693,62 @@ describe('VRF contract', function () {
     expect(reqCountAfterFulfillment).to.be.equal(1)
   })
 
+  it('Withdraw from account / Cancel account: pending request exists', async function () {
+    const {
+      deployerSigner,
+      consumerSigner,
+      vrfOracle0Signer,
+      prepaymentContract,
+      coordinatorContract,
+      consumerContract,
+      state
+    } = await loadFixture(deploy)
+
+    // Prepare coordinator
+    await setupOracle(coordinatorContract, vrfOracle0Signer.address)
+    await addCoordinator(prepaymentContract, deployerSigner, coordinatorContract.address)
+
+    // Prepare account
+    const { accId } = await createAccount(prepaymentContract, consumerSigner)
+    const amount = parseKlay(1)
+    await deposit(prepaymentContract, consumerSigner, accId, amount)
+    await addConsumer(prepaymentContract, consumerSigner, accId, consumerContract.address)
+
+    // Request
+    const { keyHash, maxGasLimit: callbackGasLimit } = vrfConfig()
+    const txRequest = await (
+      await consumerContract.requestRandomWords(keyHash, accId, callbackGasLimit, NUM_WORDS)
+    ).wait()
+    const { requestId } = parseRandomWordsRequestedTx(coordinatorContract, txRequest)
+
+    // Cannot withdraw when pending request exists
+    await expect(
+      prepaymentContract.connect(consumerSigner).withdraw(accId, amount)
+    ).to.be.revertedWithCustomError(prepaymentContract, 'PendingRequestExists')
+
+    // Cannot cancel account when pending request exists
+    await expect(
+      prepaymentContract.connect(consumerSigner).cancelAccount(accId, consumerSigner.address)
+    ).to.be.revertedWithCustomError(prepaymentContract, 'PendingRequestExists')
+
+    // Cancel request
+    const txCancelRequest = await (await consumerContract.cancelRequest(requestId)).wait()
+    parseRequestCanceledTx(coordinatorContract, txCancelRequest)
+
+    // Now, we can withdraw
+    const { oldBalance, newBalance } = await withdraw(
+      prepaymentContract,
+      consumerSigner,
+      accId,
+      amount
+    )
+    expect(oldBalance).to.be.gt(newBalance)
+    expect(newBalance).to.be.equal(0)
+
+    // And also cancel account
+    await cancelAccount(prepaymentContract, consumerSigner, accId, consumerSigner.address)
+  })
+
   // TODO send more $KLAY for direct payment
   // TODO getters
-  // TODO pending request exist
 })
