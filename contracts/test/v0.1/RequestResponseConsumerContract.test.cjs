@@ -3,18 +3,13 @@ const { ethers } = require('hardhat')
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers')
 const { State } = require('./State.utils.cjs')
 const { requestResponseConfig } = require('./RequestResponse.config.cjs')
+const {
+  parseDataRequestedTx,
+  DATA_REQUEST_EVENT_ARGS,
+  parseDataRequestFulfilledTx
+} = require('./RequestResponseCoordinator.utils.cjs')
 const { parseKlay } = require('./utils.cjs')
 const { median, majorityVotingBool } = require('./utils.cjs')
-
-const DATA_REQUEST_EVENT_ARGS = [
-  'requestId',
-  'jobId',
-  'accId',
-  'callbackGasLimit',
-  'sender',
-  'isDirectPayment',
-  'data'
-]
 
 async function setupOracle(coordinator, oracles) {
   const { maxGasLimit, gasAfterPaymentCalculation, feeConfig } = requestResponseConfig()
@@ -198,37 +193,12 @@ async function verifyFulfillment(
   expect(prepaymentEvent.args.accId).to.be.equal(accId)
 
   // DataRequestFulfilled* //////////////////////////////////////////////////////
-  const fulfillEvent = state.coordinatorContract.interface.parseLog(
-    txReceipt.events[txReceipt.events.length - 1]
+  const { requestId: eventRequestId } = parseDataRequestFulfilledTx(
+    state.coordinatorContract,
+    txReceipt,
+    fulfillEventName
   )
-  expect(fulfillEvent.name).to.be.equal(fulfillEventName)
-  expect(fulfillEvent.args.requestId).to.be.equal(requestId)
   expect(await responseFn()).to.be.equal(responseValue)
-}
-
-function verifyRequest(coordinator, tx) {
-  expect(tx.events.length).to.be.equal(1)
-  const event = coordinator.interface.parseLog(tx.events[0])
-  expect(event.name).to.be.equal('DataRequested')
-  const { requestId, jobId, accId, callbackGasLimit, sender, isDirectPayment, data } = event.args
-  const blockNumber = tx.blockNumber
-  const blockHash = tx.blockHash
-
-  for (const arg of DATA_REQUEST_EVENT_ARGS) {
-    expect(event.args[arg]).to.not.be.undefined
-  }
-
-  return {
-    requestId,
-    jobId,
-    accId,
-    callbackGasLimit,
-    sender,
-    isDirectPayment,
-    data,
-    blockNumber,
-    blockHash
-  }
 }
 
 async function requestAndFulfill(
@@ -292,7 +262,7 @@ async function requestAndFulfill(
     _requestId = requestId
     _accId = accId
   } else {
-    const { requestId, accId } = verifyRequest(state.coordinatorContract, requestReceipt)
+    const { requestId, accId } = parseDataRequestedTx(state.coordinatorContract, requestReceipt)
     _requestId = requestId
     _accId = accId
   }
@@ -584,7 +554,7 @@ describe('Request-Response user contract', function () {
     const requestReceipt = await (
       await state.consumerContract.requestDataInt256(accId, callbackGasLimit, numSubmission)
     ).wait()
-    const { requestId } = verifyRequest(state.coordinatorContract, requestReceipt)
+    const { requestId } = parseDataRequestedTx(state.coordinatorContract, requestReceipt)
 
     // Cancel Request ///////////////////////////////////////////////////////////
     const txCancelRequest = await (await state.consumerContract.cancelRequest(requestId)).wait()
@@ -646,7 +616,7 @@ describe('Request-Response user contract', function () {
       await state.consumerContract.requestDataInt256(accId, callbackGasLimit, numSubmission)
     ).wait()
 
-    const { requestId, sender, blockNumber, isDirectPayment } = verifyRequest(
+    const { requestId, sender, blockNumber, isDirectPayment } = parseDataRequestedTx(
       state.coordinatorContract,
       requestDataTx
     )

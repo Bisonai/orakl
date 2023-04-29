@@ -1,11 +1,11 @@
 const { expect } = require('chai')
 const { ethers } = require('hardhat')
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers')
-const oraklVrf = import('@bisonai/orakl-vrf')
 const crypto = require('crypto')
 const { vrfConfig } = require('./VRFCoordinator.config.cjs')
 const { parseKlay, remove0x } = require('./utils.cjs')
 const { State } = require('./State.utils.cjs')
+const { setupOracle, generateVrf } = require('./VRFCoordinator.utils.cjs')
 
 const DUMMY_KEY_HASH = '0x00000773ef09e40658e643fe79f8d1a27c0aa6eb7251749b268f829ea49f2024'
 const NUM_WORDS = 1
@@ -35,12 +35,6 @@ function generateDummyPublicProvingKey() {
       return a % 10
     })
     .reduce((acc, v) => acc + v, '')
-}
-
-async function setupOracle(coordinator, oracle) {
-  const { maxGasLimit, gasAfterPaymentCalculation, feeConfig, publicProvingKey } = vrfConfig()
-  await coordinator.registerOracle(oracle, publicProvingKey)
-  await coordinator.setConfig(maxGasLimit, gasAfterPaymentCalculation, Object.values(feeConfig))
 }
 
 function validateRandomWordsRequestedEvent(
@@ -101,29 +95,6 @@ async function testCommitmentAfterFulfillment(coordinator, signer, requestId) {
   // commitment must be zero
   const commitment = await coordinator.connect(signer).getCommitment(requestId)
   expect(commitment).to.be.equal(EMPTY_COMMITMENT)
-}
-
-async function offChainVRF(preSeed, blockHash, blockNumber, accId, callbackGasLimit, sender) {
-  const { sk, pk, pkX, pkY, publicProvingKey, keyHash } = vrfConfig()
-
-  const alpha = remove0x(
-    ethers.utils.solidityKeccak256(['uint256', 'bytes32'], [preSeed, blockHash])
-  )
-
-  // Simulate off-chain proof generation
-  const { processVrfRequest } = await oraklVrf
-  const { proof, uPoint, vComponents } = processVrfRequest(alpha, {
-    sk,
-    pk,
-    pkX,
-    pkY,
-    keyHash
-  })
-
-  const pi = [publicProvingKey, proof, preSeed, uPoint, vComponents]
-  const rc = [blockNumber, accId, callbackGasLimit, NUM_WORDS, sender]
-
-  return { pi, rc }
 }
 
 async function fulfillRandomWords(
@@ -483,13 +454,14 @@ describe('VRF contract', function () {
     )
 
     await testCommitmentBeforeFulfillment(coordinatorContract, consumerSigner, requestId)
-    const { pi, rc } = await offChainVRF(
+    const { pi, rc } = await generateVrf(
       preSeed,
       blockHash,
       blockNumber,
       accId,
       callbackGasLimit,
-      sender
+      sender,
+      numWords
     )
 
     const txFulfillRandomWords = await fulfillRandomWords(
@@ -573,13 +545,14 @@ describe('VRF contract', function () {
     )
 
     await testCommitmentBeforeFulfillment(coordinatorContract, consumerSigner, requestId)
-    const { pi, rc } = await offChainVRF(
+    const { pi, rc } = await generateVrf(
       preSeed,
       blockHash,
       blockNumber,
       accId,
       callbackGasLimit,
-      sender
+      sender,
+      numWords
     )
 
     const txFulfillRandomWords = await fulfillRandomWords(
@@ -706,13 +679,14 @@ describe('VRF contract', function () {
       isDirectPayment
     )
 
-    const { pi, rc } = await offChainVRF(
+    const { pi, rc } = await generateVrf(
       preSeed,
       blockHash,
       blockNumber,
       accId,
       callbackGasLimit,
-      sender
+      sender,
+      numWords
     )
 
     await coordinatorContract.connect(vrfOracle0Signer).fulfillRandomWords(pi, rc, isDirectPayment)
