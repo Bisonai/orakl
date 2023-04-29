@@ -5,7 +5,13 @@ const crypto = require('crypto')
 const { vrfConfig } = require('./VRFCoordinator.config.cjs')
 const { parseKlay, remove0x } = require('./utils.cjs')
 const { State } = require('./State.utils.cjs')
-const { setupOracle, generateVrf } = require('./VRFCoordinator.utils.cjs')
+const {
+  setupOracle,
+  generateVrf,
+  deploy: deployVrfCoordinator
+} = require('./VRFCoordinator.utils.cjs')
+const { deploy: deployVrfConsumerMock } = require('./VRFConsumerMock.utils.cjs')
+const { deploy: deployPrepayment } = require('./Prepayment.utils.cjs')
 
 const DUMMY_KEY_HASH = '0x00000773ef09e40658e643fe79f8d1a27c0aa6eb7251749b268f829ea49f2024'
 const NUM_WORDS = 1
@@ -184,7 +190,7 @@ function validateRandomWordsFulfilledEvent(
   expect(fPayment).to.be.above(0)
 }
 
-async function deployFixture() {
+async function deploy() {
   const {
     deployer,
     consumer,
@@ -194,25 +200,13 @@ async function deployFixture() {
   } = await hre.getNamedAccounts()
 
   // Prepayment
-  let prepaymentContract = await ethers.getContractFactory('Prepayment', {
-    signer: deployer
-  })
-  prepaymentContract = await prepaymentContract.deploy(sProtocolFeeRecipient)
-  await prepaymentContract.deployed()
+  const prepaymentContract = await deployPrepayment(sProtocolFeeRecipient, deployer)
 
   // VRFCoordinator
-  let coordinatorContract = await ethers.getContractFactory('VRFCoordinator', {
-    signer: deployer
-  })
-  coordinatorContract = await coordinatorContract.deploy(prepaymentContract.address)
-  await coordinatorContract.deployed()
+  const coordinatorContract = await deployVrfCoordinator(prepaymentContract.address, deployer)
 
   // VRFConsumerMock
-  let consumerContract = await ethers.getContractFactory('VRFConsumerMock', {
-    signer: consumer
-  })
-  consumerContract = await consumerContract.deploy(coordinatorContract.address)
-  await consumerContract.deployed()
+  const consumerContract = await deployVrfConsumerMock(coordinatorContract.address, consumer)
 
   const coordinatorContractOracleSigner = await ethers.getContractAt(
     'VRFCoordinator',
@@ -241,7 +235,7 @@ async function deployFixture() {
 
 describe('VRF contract', function () {
   it('Register oracle', async function () {
-    const { coordinatorContract } = await loadFixture(deployFixture)
+    const { coordinatorContract } = await loadFixture(deploy)
     const { address: oracle } = ethers.Wallet.createRandom()
     const publicProvingKey = [generateDummyPublicProvingKey(), generateDummyPublicProvingKey()]
 
@@ -259,7 +253,7 @@ describe('VRF contract', function () {
   })
 
   it('Single oracle cannot be registered more than once, but keyhash can be registered multiple times', async function () {
-    const { coordinatorContract } = await loadFixture(deployFixture)
+    const { coordinatorContract } = await loadFixture(deploy)
     const { address: oracle1 } = ethers.Wallet.createRandom()
     const { address: oracle2 } = ethers.Wallet.createRandom()
     const publicProvingKey1 = [generateDummyPublicProvingKey(), generateDummyPublicProvingKey()]
@@ -303,7 +297,7 @@ describe('VRF contract', function () {
   })
 
   it('Deregister registered oracle', async function () {
-    const { coordinatorContract } = await loadFixture(deployFixture)
+    const { coordinatorContract } = await loadFixture(deploy)
     const { address: oracle } = ethers.Wallet.createRandom()
     const publicProvingKey = [generateDummyPublicProvingKey(), generateDummyPublicProvingKey()]
 
@@ -339,7 +333,7 @@ describe('VRF contract', function () {
   })
 
   it('requestRandomWords revert on InvalidKeyHash', async function () {
-    const { coordinatorContract, consumerContract, state } = await loadFixture(deployFixture)
+    const { coordinatorContract, consumerContract, state } = await loadFixture(deploy)
 
     const { maxGasLimit } = vrfConfig()
     const accId = await state.createAccount()
@@ -350,7 +344,7 @@ describe('VRF contract', function () {
   })
 
   it('requestRandomWordsDirect should revert on InvalidKeyHash', async function () {
-    const { coordinatorContract, consumerContract } = await loadFixture(deployFixture)
+    const { coordinatorContract, consumerContract } = await loadFixture(deploy)
 
     const { maxGasLimit } = vrfConfig()
     const value = parseKlay(1)
@@ -363,7 +357,7 @@ describe('VRF contract', function () {
   })
 
   it('requestRandomWords can be called by onlyOwner', async function () {
-    const { consumerContract, consumer2: nonOwnerAddress, state } = await loadFixture(deployFixture)
+    const { consumerContract, consumer2: nonOwnerAddress, state } = await loadFixture(deploy)
 
     const consumerContractNonOwnerSigner = await ethers.getContractAt(
       'VRFConsumerMock',
@@ -395,7 +389,7 @@ describe('VRF contract', function () {
       consumerContract,
       prepaymentContract,
       state
-    } = await loadFixture(deployFixture)
+    } = await loadFixture(deploy)
     const {
       consumerSigner,
       consumer1Signer: unregisteredOracle,
@@ -493,7 +487,7 @@ describe('VRF contract', function () {
       consumerContract,
       prepaymentContract,
       state
-    } = await loadFixture(deployFixture)
+    } = await loadFixture(deploy)
     const {
       consumerSigner,
       consumer1Signer: unregisteredOracle,
@@ -576,10 +570,8 @@ describe('VRF contract', function () {
     )
   })
 
-  it('cancel random words request for [regular] account', async function () {
-    const { vrfOracle0, coordinatorContract, consumerContract, state } = await loadFixture(
-      deployFixture
-    )
+  it('Cancel random words request for [regular] account', async function () {
+    const { vrfOracle0, coordinatorContract, consumerContract, state } = await loadFixture(deploy)
 
     const { keyHash, maxGasLimit: callbackGasLimit } = vrfConfig()
     await setupOracle(coordinatorContract, vrfOracle0)
@@ -612,10 +604,8 @@ describe('VRF contract', function () {
     expect(requestId).to.be.equal(cRequestId)
   })
 
-  it('increase nonce by every request with [regular] account', async function () {
-    const { vrfOracle0, coordinatorContract, consumerContract, state } = await loadFixture(
-      deployFixture
-    )
+  it('Increase nonce by every request with [regular] account', async function () {
+    const { vrfOracle0, coordinatorContract, consumerContract, state } = await loadFixture(deploy)
 
     const { keyHash, maxGasLimit: callbackGasLimit } = vrfConfig()
     await setupOracle(coordinatorContract, vrfOracle0)
@@ -639,10 +629,8 @@ describe('VRF contract', function () {
     expect(nonce3).to.be.equal(3)
   })
 
-  it('increase reqCount by every request with [regular] account', async function () {
-    const { vrfOracle0, coordinatorContract, consumerContract, state } = await loadFixture(
-      deployFixture
-    )
+  it('Increase reqCount by every request with [regular] account', async function () {
+    const { vrfOracle0, coordinatorContract, consumerContract, state } = await loadFixture(deploy)
     const { vrfOracle0Signer } = await createSigners()
 
     const { keyHash, maxGasLimit: callbackGasLimit } = vrfConfig()
