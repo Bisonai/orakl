@@ -1,7 +1,12 @@
 const { expect } = require('chai')
 const { ethers } = require('hardhat')
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers')
-const { deploy: deployPrepayment, createAccount, deposit } = require('./Prepayment.utils.cjs')
+const {
+  deploy: deployPrepayment,
+  createAccount,
+  deposit,
+  withdraw
+} = require('./Prepayment.utils.cjs')
 const { parseKlay } = require('./utils.cjs')
 
 const NULL_ADDRESS = '0x0000000000000000000000000000000000000000'
@@ -51,6 +56,11 @@ async function deploy() {
 }
 
 describe('Prepayment', function () {
+  it('Type and version', async function () {
+    const { prepaymentContract } = await loadFixture(deploy)
+    expect(await prepaymentContract.typeAndVersion()).to.be.equal('Prepayment v0.1')
+  })
+
   it('Burn ratio setup', async function () {
     const { prepaymentContract } = await loadFixture(deploy)
 
@@ -146,20 +156,20 @@ describe('Prepayment', function () {
     const accountContract = await ethers.getContractAt('Account', account, accountOwner.address)
 
     // Get Balance
-    const balanceBefore = (await accountContract.getBalance()).toNumber()
-    expect(balanceBefore).to.be.equal(0)
+    const balanceBeforeDeposit = (await accountContract.getBalance()).toNumber()
+    expect(balanceBeforeDeposit).to.be.equal(0)
 
     // 1. Deposit $KLAY /////////////////////////////////////////////////////////
     const amount = parseKlay(10)
-    const { oldBalance, newBalance } = await deposit(
+    const { oldBalance: oldBalanceDeposit, newBalance: newBalanceDeposit } = await deposit(
       prepaymentContract,
       accountOwner,
       accId,
       amount
     )
     const balanceAfterDeposit = await accountContract.getBalance()
-    expect(balanceBefore).to.be.equal(oldBalance)
-    expect(balanceAfterDeposit).to.be.equal(newBalance)
+    expect(balanceBeforeDeposit).to.be.equal(oldBalanceDeposit)
+    expect(balanceAfterDeposit).to.be.equal(newBalanceDeposit)
 
     // 2. Withdraw $KLAY ////////////////////////////////////////////////////////
     // Only account owner can withdraw
@@ -168,26 +178,18 @@ describe('Prepayment', function () {
     ).to.be.revertedWithCustomError(prepaymentContract, 'MustBeAccountOwner')
 
     // Withdrawing using the account owner
-    const txWithdraw = await (
-      await prepaymentContract.connect(accountOwner).withdraw(accId, amount)
-    ).wait()
+    const { oldBalance: oldBalanceWithdraw, newBalance: newBalanceWithdraw } = await withdraw(
+      prepaymentContract,
+      accountOwner,
+      accId,
+      amount
+    )
+    expect(balanceAfterDeposit).to.be.equal(oldBalanceWithdraw)
+    expect(balanceBeforeDeposit).to.be.equal(newBalanceWithdraw)
 
     // All previously deposited $KLAY were withdrawn. Nothing is left.
     const balanceAfterWithdraw = (await accountContract.getBalance()).toNumber()
     expect(balanceAfterWithdraw).to.be.equal(0)
-
-    // Check the event information
-    expect(txWithdraw.events.length).to.be.equal(1)
-    const accountBalanceDecreasedEvent = prepaymentContract.interface.parseLog(txWithdraw.events[0])
-    expect(accountBalanceDecreasedEvent.name).to.be.equal('AccountBalanceDecreased')
-    const {
-      accId: accIdWithdraw,
-      oldBalance: oldBalanceWithdraw,
-      newBalance: newBalanceWithdraw
-    } = accountBalanceDecreasedEvent.args
-    expect(accIdWithdraw).to.be.equal(accId)
-    expect(balanceAfterDeposit).to.be.equal(oldBalanceWithdraw)
-    expect(balanceBefore).to.be.equal(newBalanceWithdraw)
   })
 
   it('Add & remove consumer', async function () {

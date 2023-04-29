@@ -36,11 +36,20 @@ async function deposit(prepayment, signer, accId, value) {
   return { accId, oldBalance, newBalance }
 }
 
-/* async function withdraw() */
+async function withdraw(prepayment, signer, accId, amount) {
+  const tx = await (await prepayment.connect(signer).withdraw(accId, amount)).wait()
+  expect(tx.events.length).to.be.equal(1)
+  const event = prepayment.interface.parseLog(tx.events[0])
+  expect(event.name).to.be.equal('AccountBalanceDecreased')
+  const { accId: eAccId, oldBalance, newBalance } = event.args
+  expect(accId).to.be.equal(eAccId)
+  return { accId, oldBalance, newBalance }
+}
 
 module.exports = {
   deploy,
   createAccount,
   addConsumer,
-  deposit
+  deposit,
+  withdraw
 }
