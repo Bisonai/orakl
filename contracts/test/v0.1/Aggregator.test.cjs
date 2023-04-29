@@ -64,7 +64,7 @@ async function deploy() {
   await aggregatorProxy.deployed()
 
   // Read configuration of Aggregator & AggregatorProxy
-  expect(await aggregatorProxy.version()).to.be.equal(1)
+  expect(await aggregatorProxy.typeAndVersion()).to.be.equal('Aggregator v0.1')
   expect(await aggregatorProxy.description()).to.be.equal(description)
 
   // DataFeedConsumerMock ///////////////////////////////////////////////////////

@@ -9,8 +9,6 @@ interface IAggregator {
 
     function description() external view returns (string memory);
 
-    function version() external view returns (uint256);
-
     function getRoundData(
         uint80 _roundId
     )
