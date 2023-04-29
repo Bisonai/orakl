@@ -39,13 +39,6 @@ contract Account is IAccount, ITypeAndVersion {
     error OperatorFeeFailed();
     error ProtocolFeeFailed();
 
-    modifier onlyAccountOwner() {
-        if (msg.sender != sOwner) {
-            revert MustBeAccountOwner(sOwner);
-        }
-        _;
-    }
-
     modifier onlyPaymentSolution() {
         if (msg.sender != sPaymentSolution) {
             revert MustBePaymentSolution(sPaymentSolution);
