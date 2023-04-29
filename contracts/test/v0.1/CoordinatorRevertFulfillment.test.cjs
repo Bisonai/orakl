@@ -91,7 +91,7 @@ async function deploy() {
   rrConsumerContract = await rrConsumerContract.deploy(rrCoordinatorContract.address)
   await rrConsumerContract.deployed()
 
-  const accId = await createAccount(prepaymentContract, consumerSigner)
+  const { accId } = await createAccount(prepaymentContract, consumerSigner)
   await deposit(prepaymentContract, consumerSigner, accId, '1')
   await prepaymentContract.connect(consumerSigner).addConsumer(accId, vrfConsumerContract.address)
   await prepaymentContract.connect(consumerSigner).addConsumer(accId, rrConsumerContract.address)

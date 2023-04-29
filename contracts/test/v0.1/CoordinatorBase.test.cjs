@@ -95,7 +95,7 @@ describe('CoordinatorBase', function () {
     await prepaymentContract.addCoordinator(vrfCoordinatorContract.address)
 
     // account setup
-    const accId = await createAccount(prepaymentContract, consumerSigner)
+    const { accId } = await createAccount(prepaymentContract, consumerSigner)
     await addConsumer(prepaymentContract, consumerSigner, accId, consumerContract.address)
     await deposit(prepaymentContract, consumerSigner, accId, '2')
 

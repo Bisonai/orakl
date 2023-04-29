@@ -1,7 +1,7 @@
 const { expect } = require('chai')
 const { ethers } = require('hardhat')
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers')
-const { deploy: deployPrepayment } = require('./Prepayment.utils.cjs')
+const { deploy: deployPrepayment, createAccount } = require('./Prepayment.utils.cjs')
 
 const NULL_ADDRESS = '0x0000000000000000000000000000000000000000'
 const DEFAULT_BURN_FEE_RATIO = 50
@@ -40,6 +40,7 @@ async function deploy() {
   )
 
   return {
+    deployerSigner,
     consumerSigner,
     consumer1Signer,
     consumer2Signer,
@@ -126,17 +127,22 @@ describe('Prepayment', function () {
     )
   })
 
+  it('Account owner', async function () {
+    const { prepaymentContract, consumerSigner: accountOwnerSigner } = await loadFixture(deploy)
+    const { accId, account } = await createAccount(prepaymentContract, accountOwnerSigner)
+    const accountOwner = await prepaymentContract.getAccountOwner(accId)
+    expect(accountOwner).to.be.equal(accountOwnerSigner.address)
+  })
+
   it('Deposit & withdraw', async function () {
     const {
+      deployerSigner,
       prepaymentContract,
       consumerSigner: accountOwner,
       consumer1Signer: nonOwner
     } = await loadFixture(deploy)
 
-    const txReceipt = await (await prepaymentContract.createAccount()).wait()
-    const accountCreatedEvent = prepaymentContract.interface.parseLog(txReceipt.events[0])
-    const { accId, account } = accountCreatedEvent.args
-
+    const { accId, account } = await createAccount(prepaymentContract, deployerSigner)
     const accountContract = await ethers.getContractAt('Account', account, accountOwner.address)
 
     // Get Balance
@@ -187,6 +193,7 @@ describe('Prepayment', function () {
 
   it('Add & remove consumer', async function () {
     const {
+      deployerSigner,
       prepaymentContract,
       consumerSigner: accountOwner,
       consumer1Signer: consumer,
@@ -194,9 +201,8 @@ describe('Prepayment', function () {
       consumer2Signer: unusedConsumer
     } = await loadFixture(deploy)
 
-    const txReceipt = await (await prepaymentContract.createAccount()).wait()
-    const accountCreatedEvent = prepaymentContract.interface.parseLog(txReceipt.events[0])
-    const { accId, account } = accountCreatedEvent.args
+    const { accId, account } = await createAccount(prepaymentContract, deployerSigner)
+
     const accountContract = await ethers.getContractAt('Account', account, accountOwner.address)
     expect((await accountContract.getConsumers()).length).to.be.equal(0)
 
@@ -314,14 +320,13 @@ describe('Prepayment', function () {
 
   it('Transfer account ownership', async function () {
     const {
+      deployerSigner,
       consumerSigner: fromConsumer,
       consumer1Signer: toConsumer,
       prepaymentContract
     } = await loadFixture(deploy)
-    const txReceipt = await (await prepaymentContract.connect(fromConsumer).createAccount()).wait()
 
-    const accountCreatedEvent = prepaymentContract.interface.parseLog(txReceipt.events[0])
-    const { accId, account } = accountCreatedEvent.args
+    const { accId, account } = await createAccount(prepaymentContract, fromConsumer)
     const accountContract = await ethers.getContractAt('Account', account, fromConsumer.address)
 
     // 1. Request Account Transfer
