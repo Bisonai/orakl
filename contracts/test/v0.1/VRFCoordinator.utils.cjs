@@ -2,6 +2,15 @@ const { vrfConfig } = require('./VRFCoordinator.config.cjs')
 const { remove0x } = require('./utils.cjs')
 const VRF = import('@bisonai/orakl-vrf')
 
+async function deploy(prepaymentAddress, signer) {
+  let contract = await ethers.getContractFactory('VRFCoordinator', {
+    signer
+  })
+  contract = await contract.deploy(prepaymentAddress)
+  await contract.deployed()
+  return contract
+}
+
 async function setupOracle(coordinator, oracleAddress) {
   const { maxGasLimit, gasAfterPaymentCalculation, feeConfig, publicProvingKey } = vrfConfig()
   await coordinator.registerOracle(oracleAddress, publicProvingKey)
@@ -108,6 +117,7 @@ async function fulfillRandomWords(
 }
 
 module.exports = {
+  deploy,
   setupOracle,
   fulfillRandomWords,
   generateVrf,

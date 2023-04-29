@@ -1,3 +1,12 @@
+async function deploy(protocolFeeRecipientAddress, signer) {
+  let contract = await ethers.getContractFactory('Prepayment', {
+    signer
+  })
+  contract = await contract.deploy(protocolFeeRecipientAddress)
+  await contract.deployed()
+  return contract
+}
+
 async function createAccount(prepayment, signer) {
   const tx = await (await prepayment.connect(signer).createAccount()).wait()
   const event = prepayment.interface.parseLog(tx.events[0])
@@ -16,6 +25,7 @@ async function deposit(prepayment, signer, accId, amount) {
 }
 
 module.exports = {
+  deploy,
   createAccount,
   addConsumer,
   deposit

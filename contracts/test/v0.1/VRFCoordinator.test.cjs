@@ -5,7 +5,13 @@ const crypto = require('crypto')
 const { vrfConfig } = require('./VRFCoordinator.config.cjs')
 const { parseKlay, remove0x } = require('./utils.cjs')
 const { State } = require('./State.utils.cjs')
-const { setupOracle, generateVrf } = require('./VRFCoordinator.utils.cjs')
+const {
+  setupOracle,
+  generateVrf,
+  deploy: deployVrfCoordinator
+} = require('./VRFCoordinator.utils.cjs')
+const { deploy: deployVrfConsumerMock } = require('./VRFConsumerMock.utils.cjs')
+const { deploy: deployPrepayment } = require('./Prepayment.utils.cjs')
 
 const DUMMY_KEY_HASH = '0x00000773ef09e40658e643fe79f8d1a27c0aa6eb7251749b268f829ea49f2024'
 const NUM_WORDS = 1
@@ -194,25 +200,13 @@ async function deploy() {
   } = await hre.getNamedAccounts()
 
   // Prepayment
-  let prepaymentContract = await ethers.getContractFactory('Prepayment', {
-    signer: deployer
-  })
-  prepaymentContract = await prepaymentContract.deploy(sProtocolFeeRecipient)
-  await prepaymentContract.deployed()
+  const prepaymentContract = await deployPrepayment(sProtocolFeeRecipient, deployer)
 
   // VRFCoordinator
-  let coordinatorContract = await ethers.getContractFactory('VRFCoordinator', {
-    signer: deployer
-  })
-  coordinatorContract = await coordinatorContract.deploy(prepaymentContract.address)
-  await coordinatorContract.deployed()
+  const coordinatorContract = await deployVrfCoordinator(prepaymentContract.address, deployer)
 
   // VRFConsumerMock
-  let consumerContract = await ethers.getContractFactory('VRFConsumerMock', {
-    signer: consumer
-  })
-  consumerContract = await consumerContract.deploy(coordinatorContract.address)
-  await consumerContract.deployed()
+  const consumerContract = await deployVrfConsumerMock(coordinatorContract.address, consumer)
 
   const coordinatorContractOracleSigner = await ethers.getContractAt(
     'VRFCoordinator',
