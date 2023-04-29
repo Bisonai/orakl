@@ -5,6 +5,10 @@ async function createAccount(prepayment, signer) {
   return accId
 }
 
+async function addConsumer(prepayment, signer, accId, consumerAddress) {
+  await prepayment.connect(signer).addConsumer(accId, consumerAddress)
+}
+
 async function deposit(prepayment, signer, accId, amount) {
   await prepayment.connect(signer).deposit(accId, {
     value: ethers.utils.parseUnits(amount, 'ether')
@@ -13,5 +17,6 @@ async function deposit(prepayment, signer, accId, amount) {
 
 module.exports = {
   createAccount,
+  addConsumer,
   deposit
 }
