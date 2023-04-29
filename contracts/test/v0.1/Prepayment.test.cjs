@@ -197,6 +197,12 @@ describe('Prepayment', function () {
     expect(consumerAddedAccId).to.be.equal(accId)
     expect(consumerAddedConsumer).to.be.equal(consumerAddress)
 
+    // Idempotance - adding the same consumer does not do anything
+    const consumersBefore = (await accountContract.getConsumers()).length
+    await prepaymentContract.addConsumer(accId, consumerAddress)
+    const consumersAfter = (await accountContract.getConsumers()).length
+    expect(consumersBefore).to.be.equal(consumersAfter)
+
     // Consumers can be access directly through `Account.getConsumers`.
     // Now, there should be single consumer.
     expect((await accountContract.getConsumers()).length).to.be.equal(1)
