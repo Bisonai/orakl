@@ -1,7 +1,8 @@
 const { expect } = require('chai')
 const { ethers } = require('hardhat')
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers')
-const { deploy: deployPrepayment, createAccount } = require('./Prepayment.utils.cjs')
+const { deploy: deployPrepayment, createAccount, deposit } = require('./Prepayment.utils.cjs')
+const { parseKlay } = require('./utils.cjs')
 
 const NULL_ADDRESS = '0x0000000000000000000000000000000000000000'
 const DEFAULT_BURN_FEE_RATIO = 50
@@ -149,19 +150,14 @@ describe('Prepayment', function () {
     expect(balanceBefore).to.be.equal(0)
 
     // 1. Deposit $KLAY /////////////////////////////////////////////////////////
-    const amount = 10
-    const txDeposit = await (
-      await prepaymentContract.connect(accountOwner).deposit(accId, { value: amount })
-    ).wait()
-    const balanceAfterDeposit = (await accountContract.getBalance()).toNumber()
-    expect(balanceAfterDeposit).to.be.equal(amount)
-
-    // Check the event information
-    expect(txDeposit.events.length).to.be.equal(1)
-    const accountBalanceIncreasedEvent = prepaymentContract.interface.parseLog(txDeposit.events[0])
-    expect(accountBalanceIncreasedEvent.name).to.be.equal('AccountBalanceIncreased')
-    const { accId: accIdDeposit, oldBalance, newBalance } = accountBalanceIncreasedEvent.args
-    expect(accIdDeposit).to.be.equal(accId)
+    const amount = parseKlay(10)
+    const { oldBalance, newBalance } = await deposit(
+      prepaymentContract,
+      accountOwner,
+      accId,
+      amount
+    )
+    const balanceAfterDeposit = await accountContract.getBalance()
     expect(balanceBefore).to.be.equal(oldBalance)
     expect(balanceAfterDeposit).to.be.equal(newBalance)
 
@@ -176,7 +172,7 @@ describe('Prepayment', function () {
       await prepaymentContract.connect(accountOwner).withdraw(accId, amount)
     ).wait()
 
-    // All previously deposited $KLAY was withdrawn. Nothin is left.
+    // All previously deposited $KLAY were withdrawn. Nothing is left.
     const balanceAfterWithdraw = (await accountContract.getBalance()).toNumber()
     expect(balanceAfterWithdraw).to.be.equal(0)
 
@@ -370,12 +366,10 @@ describe('Prepayment', function () {
     expect(await accountContract.getRequestedOwner()).to.be.equal(NULL_ADDRESS)
   })
 
-  it('', async function () {
+  it('Try to withdraw more than current balance', async function () {
     const {
       deployerSigner,
       consumerSigner,
-      consumer1Signer,
-      consumer2Signer,
       account8Signer: protocolFeeRecipientSigner
     } = await createSigners()
 
@@ -383,5 +377,17 @@ describe('Prepayment', function () {
       protocolFeeRecipientSigner.address,
       deployerSigner
     )
+
+    const { accId } = await createAccount(prepaymentContract, consumerSigner)
+    const initialAmount = parseKlay(1)
+    await deposit(prepaymentContract, consumerSigner, accId, initialAmount)
+
+    const aboveBalance = initialAmount + parseKlay(1)
+    const accountContract = await ethers.getContractFactory('Account')
+    await expect(
+      prepaymentContract.connect(consumerSigner).withdraw(accId, aboveBalance)
+    ).to.be.revertedWithCustomError(accountContract, 'InsufficientBalance')
   })
+
+  it('Withdraw pending request exists', async function () {})
 })
