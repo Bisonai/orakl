@@ -576,7 +576,7 @@ describe('VRF contract', function () {
     )
   })
 
-  it('cancel random words request for [regular] account', async function () {
+  it('Cancel random words request for [regular] account', async function () {
     const { vrfOracle0, coordinatorContract, consumerContract, state } = await loadFixture(
       deployFixture
     )
@@ -612,7 +612,22 @@ describe('VRF contract', function () {
     expect(requestId).to.be.equal(cRequestId)
   })
 
-  it('increase nonce by every request with [regular] account', async function () {
+  it('Cannot cancel an invalid request', async function () {
+    const { vrfOracle0, coordinatorContract, consumerContract, state } = await loadFixture(
+      deployFixture
+    )
+
+    await setupOracle(coordinatorContract, vrfOracle0)
+    await state.addCoordinator(coordinatorContract.address)
+
+    const invalidRequestId = 123
+    await expect(coordinatorContract.cancelRequest(invalidRequestId)).to.be.revertedWithCustomError(
+      coordinatorContract,
+      'NoCorrespondingRequest'
+    )
+  })
+
+  it('Increase nonce by every request with [regular] account', async function () {
     const { vrfOracle0, coordinatorContract, consumerContract, state } = await loadFixture(
       deployFixture
     )
@@ -639,7 +654,7 @@ describe('VRF contract', function () {
     expect(nonce3).to.be.equal(3)
   })
 
-  it('increase reqCount by every request with [regular] account', async function () {
+  it('Increase reqCount by every request with [regular] account', async function () {
     const { vrfOracle0, coordinatorContract, consumerContract, state } = await loadFixture(
       deployFixture
     )
