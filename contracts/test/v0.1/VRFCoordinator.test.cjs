@@ -4,7 +4,6 @@ const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers')
 const crypto = require('crypto')
 const { vrfConfig } = require('./VRFCoordinator.config.cjs')
 const { parseKlay, remove0x } = require('./utils.cjs')
-const { State } = require('./State.utils.cjs')
 const {
   setupOracle,
   generateVrf,
@@ -24,7 +23,7 @@ const {
 } = require('./Prepayment.utils.cjs')
 
 const DUMMY_KEY_HASH = '0x00000773ef09e40658e643fe79f8d1a27c0aa6eb7251749b268f829ea49f2024'
-const NUM_WORDS = 1
+const SINGLE_WORD = 1
 const EMPTY_COMMITMENT = '0x0000000000000000000000000000000000000000000000000000000000000000'
 
 function generateDummyPublicProvingKey() {
@@ -221,22 +220,6 @@ async function deploy() {
   // VRFConsumerMock
   const consumerContract = await deployVrfConsumerMock(coordinatorContract.address, consumerSigner)
 
-  const coordinatorContractOracleSigner = await ethers.getContractAt(
-    'VRFCoordinator',
-    coordinatorContract.address,
-    vrfOracle0Signer
-  )
-
-  // State controller
-  const state = new State(
-    consumerSigner,
-    prepaymentContract,
-    consumerContract,
-    coordinatorContract,
-    [coordinatorContractOracleSigner]
-  )
-  await state.initialize('VRFConsumerMock')
-
   return {
     deployerSigner,
     consumerSigner,
@@ -244,9 +227,7 @@ async function deploy() {
     vrfOracle0Signer,
     prepaymentContract,
     coordinatorContract,
-    consumerContract,
-
-    state
+    consumerContract
   }
 }
 
@@ -350,48 +331,49 @@ describe('VRF contract', function () {
   })
 
   it('requestRandomWords revert on InvalidKeyHash', async function () {
-    const { coordinatorContract, consumerContract, state } = await loadFixture(deploy)
+    const { prepaymentContract, consumerSigner, coordinatorContract, consumerContract } =
+      await loadFixture(deploy)
 
-    const { maxGasLimit } = vrfConfig()
-    const accId = await state.createAccount()
+    const { maxGasLimit: callbackGasLimit } = vrfConfig()
+    const { accId } = await createAccount(prepaymentContract, consumerSigner)
 
     await expect(
-      consumerContract.requestRandomWords(DUMMY_KEY_HASH, accId, maxGasLimit, NUM_WORDS)
+      consumerContract.requestRandomWords(DUMMY_KEY_HASH, accId, callbackGasLimit, SINGLE_WORD)
     ).to.be.revertedWithCustomError(coordinatorContract, 'InvalidKeyHash')
   })
 
   it('requestRandomWordsDirect should revert on InvalidKeyHash', async function () {
     const { coordinatorContract, consumerContract } = await loadFixture(deploy)
 
-    const { maxGasLimit } = vrfConfig()
-    const value = parseKlay(1)
-
+    const { maxGasLimit: callbackGasLimit } = vrfConfig()
     await expect(
-      consumerContract.requestRandomWordsDirectPayment(DUMMY_KEY_HASH, maxGasLimit, NUM_WORDS, {
-        value
-      })
+      consumerContract.requestRandomWordsDirectPayment(
+        DUMMY_KEY_HASH,
+        callbackGasLimit,
+        SINGLE_WORD,
+        {
+          value: parseKlay(1)
+        }
+      )
     ).to.be.revertedWithCustomError(coordinatorContract, 'InvalidKeyHash')
   })
 
   it('requestRandomWords can be called by onlyOwner', async function () {
-    const { consumerContract, consumer2Signer: nonOwner, state } = await loadFixture(deploy)
+    const {
+      prepaymentContract,
+      consumerContract,
+      consumerSigner,
+      consumer2Signer: nonOwner
+    } = await loadFixture(deploy)
 
-    const consumerContractNonOwnerSigner = await ethers.getContractAt(
-      'VRFConsumerMock',
-      consumerContract.address,
-      nonOwner
-    )
-    const { maxGasLimit } = vrfConfig()
-    const accId = await state.createAccount()
+    const { maxGasLimit: callbackGasLimit } = vrfConfig()
+    const { accId } = await createAccount(prepaymentContract, consumerSigner)
 
     await expect(
-      consumerContractNonOwnerSigner.requestRandomWords(
-        DUMMY_KEY_HASH,
-        accId,
-        maxGasLimit,
-        NUM_WORDS
-      )
-    ).to.be.revertedWithCustomError(consumerContractNonOwnerSigner, 'OnlyOwner')
+      consumerContract
+        .connect(nonOwner)
+        .requestRandomWords(DUMMY_KEY_HASH, accId, callbackGasLimit, SINGLE_WORD)
+    ).to.be.revertedWithCustomError(consumerContract, 'OnlyOwner')
   })
 
   it('requestRandomWords with [regular] account', async function () {
@@ -400,54 +382,39 @@ describe('VRF contract', function () {
     // least `sMinBalance` in their account in order to succeed with
     // VRF request.
     const {
+      deployerSigner,
       consumerSigner,
       consumer2Signer: unregisteredOracle,
       vrfOracle0Signer,
       coordinatorContract,
       consumerContract,
-      prepaymentContract,
-      state
+      prepaymentContract
     } = await loadFixture(deploy)
 
-    const {
-      maxGasLimit,
-      gasAfterPaymentCalculation,
-      feeConfig,
-      sk,
-      pk,
-      pkX,
-      pkY,
-      publicProvingKey,
-      keyHash
-    } = vrfConfig()
+    // Prepare cordinator
+    await setupOracle(coordinatorContract, vrfOracle0Signer.address)
+    await addCoordinator(prepaymentContract, deployerSigner, coordinatorContract.address)
 
-    await coordinatorContract.registerOracle(vrfOracle0Signer.address, publicProvingKey)
-    await coordinatorContract.setConfig(
-      maxGasLimit,
-      gasAfterPaymentCalculation,
-      Object.values(feeConfig)
-    )
+    // Prepare account
+    const { accId } = await createAccount(prepaymentContract, consumerSigner)
+    await addConsumer(prepaymentContract, consumerSigner, accId, consumerContract.address)
 
-    await state.addCoordinator(coordinatorContract.address)
-
-    const accId = await state.createAccount()
-    await state.addConsumer(consumerContract.address)
-
+    const { maxGasLimit: callbackGasLimit, keyHash } = vrfConfig()
     await expect(
-      consumerContract.requestRandomWords(keyHash, accId, maxGasLimit, NUM_WORDS)
+      consumerContract.requestRandomWords(keyHash, accId, callbackGasLimit, SINGLE_WORD)
     ).to.be.revertedWithCustomError(coordinatorContract, 'InsufficientPayment')
 
-    await state.deposit('2')
+    // Deposit 2 $KLAY to account with zero balance
+    await deposit(prepaymentContract, consumerSigner, accId, parseKlay(2))
 
     // After depositing minimum account to account, we are able to
     // request random words.
     const txRequestRandomWords = await (
-      await consumerContract.requestRandomWords(keyHash, accId, maxGasLimit, NUM_WORDS)
+      await consumerContract.requestRandomWords(keyHash, accId, callbackGasLimit, SINGLE_WORD)
     ).wait()
 
     const isDirectPayment = false
-    const callbackGasLimit = maxGasLimit
-    const numWords = NUM_WORDS
+    const numWords = SINGLE_WORD
     const sender = consumerContract.address
     const { requestId, preSeed, blockHash, blockNumber } = validateRandomWordsRequestedEvent(
       txRequestRandomWords,
@@ -494,13 +461,13 @@ describe('VRF contract', function () {
 
   it('requestRandomWords with [temporary] account', async function () {
     const {
+      deployerSigner,
       consumerSigner,
       vrfOracle0Signer,
       consumer2Signer: unregisteredOracle,
       coordinatorContract,
       consumerContract,
-      prepaymentContract,
-      state
+      prepaymentContract
     } = await loadFixture(deploy)
 
     const {
@@ -515,26 +482,25 @@ describe('VRF contract', function () {
       keyHash
     } = vrfConfig()
 
-    await coordinatorContract.registerOracle(vrfOracle0Signer.address, publicProvingKey)
-    await coordinatorContract.setConfig(
-      maxGasLimit,
-      gasAfterPaymentCalculation,
-      Object.values(feeConfig)
-    )
-
-    await state.addCoordinator(coordinatorContract.address)
+    // Prepare coordinator
+    await setupOracle(coordinatorContract, vrfOracle0Signer.address)
+    await addCoordinator(prepaymentContract, deployerSigner, coordinatorContract.address)
 
     // Request random words through temporary account
-    const value = parseKlay('1')
     const callbackGasLimit = maxGasLimit
     const txRequestRandomWords = await (
-      await consumerContract.requestRandomWordsDirectPayment(keyHash, callbackGasLimit, NUM_WORDS, {
-        value
-      })
+      await consumerContract.requestRandomWordsDirectPayment(
+        keyHash,
+        callbackGasLimit,
+        SINGLE_WORD,
+        {
+          value: parseKlay('1')
+        }
+      )
     ).wait()
 
     const isDirectPayment = true
-    const numWords = NUM_WORDS
+    const numWords = SINGLE_WORD
     const sender = consumerContract.address
     const { requestId, preSeed, accId, blockHash, blockNumber } = validateRandomWordsRequestedEvent(
       txRequestRandomWords,
@@ -581,20 +547,28 @@ describe('VRF contract', function () {
   })
 
   it('Cancel random words request for [regular] account', async function () {
-    const { vrfOracle0Signer, coordinatorContract, consumerContract, state } = await loadFixture(
-      deploy
-    )
+    const {
+      deployerSigner,
+      vrfOracle0Signer,
+      prepaymentContract,
+      consumerSigner,
+      coordinatorContract,
+      consumerContract
+    } = await loadFixture(deploy)
 
-    const { keyHash, maxGasLimit: callbackGasLimit } = vrfConfig()
+    // Prepare coordinator
     await setupOracle(coordinatorContract, vrfOracle0Signer.address)
-    await state.addCoordinator(coordinatorContract.address)
-    const accId = await state.createAccount()
-    await state.addConsumer(consumerContract.address)
-    await state.deposit('2')
+    await addCoordinator(prepaymentContract, deployerSigner, coordinatorContract.address)
+
+    // Prepare account
+    const { accId } = await createAccount(prepaymentContract, consumerSigner)
+    await deposit(prepaymentContract, consumerSigner, accId, parseKlay(1))
+    await addConsumer(prepaymentContract, consumerSigner, accId, consumerContract.address)
 
     // Request Random Words
+    const { keyHash, maxGasLimit: callbackGasLimit } = vrfConfig()
     const txRequestRandomWords = await (
-      await consumerContract.requestRandomWords(keyHash, accId, callbackGasLimit, NUM_WORDS)
+      await consumerContract.requestRandomWords(keyHash, accId, callbackGasLimit, SINGLE_WORD)
     ).wait()
 
     const requestedRandomWordsEvent = coordinatorContract.interface.parseLog(
@@ -605,66 +579,94 @@ describe('VRF contract', function () {
     const { requestId } = requestedRandomWordsEvent.args
 
     // Cancel Request
-    const txCancelRequest = await (await consumerContract.cancelRequest(requestId)).wait()
-
-    const { requestId: cRequestId } = parseRequestCanceledTx(coordinatorContract, txCancelRequest)
-    expect(requestId).to.be.equal(cRequestId)
+    {
+      const tx = await (await consumerContract.cancelRequest(requestId)).wait()
+      const { requestId: _requestId } = parseRequestCanceledTx(coordinatorContract, tx)
+      expect(requestId).to.be.equal(_requestId)
+    }
   })
 
   it('Increase nonce by every request with [regular] account', async function () {
-    const { vrfOracle0Signer, coordinatorContract, consumerContract, state } = await loadFixture(
-      deploy
-    )
+    const {
+      deployerSigner,
+      prepaymentContract,
+      consumerSigner,
+      vrfOracle0Signer,
+      coordinatorContract,
+      consumerContract
+    } = await loadFixture(deploy)
+
+    // Prepare coordinator
+    await setupOracle(coordinatorContract, vrfOracle0Signer.address)
+    await addCoordinator(prepaymentContract, deployerSigner, coordinatorContract.address)
+
+    // Prepare account
+    const { accId } = await createAccount(prepaymentContract, consumerSigner)
+    await deposit(prepaymentContract, consumerSigner, accId, parseKlay(1))
+    await addConsumer(prepaymentContract, consumerSigner, accId, consumerContract.address)
 
     const { keyHash, maxGasLimit: callbackGasLimit } = vrfConfig()
-    await setupOracle(coordinatorContract, vrfOracle0Signer.address)
-    await state.addCoordinator(coordinatorContract.address)
-    const accId = await state.createAccount()
-    await state.addConsumer(consumerContract.address)
-    await state.deposit('1')
 
     // Before first request
-    const nonce1 = await state.prepaymentContract.getNonce(accId, consumerContract.address)
-    expect(nonce1).to.be.equal(1)
-    await consumerContract.requestRandomWords(keyHash, accId, callbackGasLimit, NUM_WORDS)
+    {
+      const nonce = await prepaymentContract.getNonce(accId, consumerContract.address)
+      expect(nonce).to.be.equal(1)
+      await consumerContract.requestRandomWords(keyHash, accId, callbackGasLimit, SINGLE_WORD)
+    }
 
     // After first request
-    const nonce2 = await state.prepaymentContract.getNonce(accId, consumerContract.address)
-    expect(nonce2).to.be.equal(2)
-    await consumerContract.requestRandomWords(keyHash, accId, callbackGasLimit, NUM_WORDS)
+    {
+      const nonce = await prepaymentContract.getNonce(accId, consumerContract.address)
+      expect(nonce).to.be.equal(2)
+      await consumerContract.requestRandomWords(keyHash, accId, callbackGasLimit, SINGLE_WORD)
+    }
 
     // After second request
-    const nonce3 = await state.prepaymentContract.getNonce(accId, consumerContract.address)
-    expect(nonce3).to.be.equal(3)
+    {
+      const nonce = await prepaymentContract.getNonce(accId, consumerContract.address)
+      expect(nonce).to.be.equal(3)
+    }
   })
 
   it('Increase reqCount by every request with [regular] account', async function () {
-    const { vrfOracle0Signer, coordinatorContract, consumerContract, state } = await loadFixture(
-      deploy
-    )
+    const {
+      deployerSigner,
+      prepaymentContract,
+      consumerSigner,
+      vrfOracle0Signer,
+      coordinatorContract,
+      consumerContract
+    } = await loadFixture(deploy)
 
-    const { keyHash, maxGasLimit: callbackGasLimit } = vrfConfig()
+    // Prepare coordinator
     await setupOracle(coordinatorContract, vrfOracle0Signer.address)
-    await state.addCoordinator(coordinatorContract.address)
-    const accId = await state.createAccount()
-    await state.addConsumer(consumerContract.address)
-    await state.deposit('1')
+    await addCoordinator(prepaymentContract, deployerSigner, coordinatorContract.address)
+
+    // Prepare account
+    const { accId } = await createAccount(prepaymentContract, consumerSigner)
+    await deposit(prepaymentContract, consumerSigner, accId, parseKlay(1))
+    await addConsumer(prepaymentContract, consumerSigner, accId, consumerContract.address)
 
     // Before first request, `reqCount` should be 0
-    const reqCountBeforeRequest = await state.prepaymentContract.getReqCount(accId)
-    expect(reqCountBeforeRequest).to.be.equal(0)
+    {
+      const reqCount = await prepaymentContract.getReqCount(accId)
+      expect(reqCount).to.be.equal(0)
+    }
 
+    const { keyHash, maxGasLimit: callbackGasLimit } = vrfConfig()
     const txRequestRandomWords = await (
-      await consumerContract.requestRandomWords(keyHash, accId, callbackGasLimit, NUM_WORDS)
+      await consumerContract.requestRandomWords(keyHash, accId, callbackGasLimit, SINGLE_WORD)
     ).wait()
 
     // The `reqCount` after the request does not change. It gets
     // updated during `chargeFee` call inside of `Account` contract.
-    const reqCountAfterRequest = await state.prepaymentContract.getReqCount(accId)
-    expect(reqCountAfterRequest).to.be.equal(0)
+    {
+      const reqCount = await prepaymentContract.getReqCount(accId)
+      expect(reqCount).to.be.equal(0)
+    }
 
     const isDirectPayment = false
-    const numWords = NUM_WORDS
+    const numWords = SINGLE_WORD
     const sender = consumerContract.address
     const { requestId, preSeed, blockHash, blockNumber } = validateRandomWordsRequestedEvent(
       txRequestRandomWords,
@@ -690,7 +692,7 @@ describe('VRF contract', function () {
     await coordinatorContract.connect(vrfOracle0Signer).fulfillRandomWords(pi, rc, isDirectPayment)
 
     // The value of `reqCount` should increase
-    const reqCountAfterFulfillment = await state.prepaymentContract.getReqCount(accId)
+    const reqCountAfterFulfillment = await prepaymentContract.getReqCount(accId)
     expect(reqCountAfterFulfillment).to.be.equal(1)
   })
 
@@ -701,8 +703,7 @@ describe('VRF contract', function () {
       vrfOracle0Signer,
       prepaymentContract,
       coordinatorContract,
-      consumerContract,
-      state
+      consumerContract
     } = await loadFixture(deploy)
 
     // Prepare coordinator
@@ -718,7 +719,7 @@ describe('VRF contract', function () {
     // Request
     const { keyHash, maxGasLimit: callbackGasLimit } = vrfConfig()
     const txRequest = await (
-      await consumerContract.requestRandomWords(keyHash, accId, callbackGasLimit, NUM_WORDS)
+      await consumerContract.requestRandomWords(keyHash, accId, callbackGasLimit, SINGLE_WORD)
     ).wait()
     const { requestId } = parseRandomWordsRequestedTx(coordinatorContract, txRequest)
 
@@ -766,14 +767,13 @@ describe('VRF contract', function () {
 
     // Prepare account
     const { accId } = await createAccount(prepaymentContract, consumerSigner)
-    const amount = parseKlay(1)
-    await deposit(prepaymentContract, consumerSigner, accId, amount)
+    await deposit(prepaymentContract, consumerSigner, accId, parseKlay(1))
     await addConsumer(prepaymentContract, consumerSigner, accId, consumerContract.address)
 
     // Request
     const { keyHash, maxGasLimit: callbackGasLimit } = vrfConfig()
     const txRequest = await (
-      await consumerContract.requestRandomWords(keyHash, accId, callbackGasLimit, NUM_WORDS)
+      await consumerContract.requestRandomWords(keyHash, accId, callbackGasLimit, SINGLE_WORD)
     ).wait()
     const { preSeed, blockHash, blockNumber, sender, numWords } = parseRandomWordsRequestedTx(
       coordinatorContract,
@@ -820,7 +820,7 @@ describe('VRF contract', function () {
     // Request
     const { keyHash, maxGasLimit: callbackGasLimit } = vrfConfig()
     await expect(
-      consumerContract.requestRandomWords(keyHash, accId, callbackGasLimit, NUM_WORDS)
+      consumerContract.requestRandomWords(keyHash, accId, callbackGasLimit, SINGLE_WORD)
     ).to.be.revertedWithCustomError(coordinatorContract, 'InvalidConsumer')
   })
 
@@ -848,7 +848,7 @@ describe('VRF contract', function () {
     const { keyHash, maxGasLimit } = vrfConfig()
     const tooBigCallbackGasLimit = maxGasLimit + 1
     await expect(
-      consumerContract.requestRandomWords(keyHash, accId, tooBigCallbackGasLimit, NUM_WORDS)
+      consumerContract.requestRandomWords(keyHash, accId, tooBigCallbackGasLimit, SINGLE_WORD)
     ).to.be.revertedWithCustomError(coordinatorContract, 'GasLimitTooBig')
   })
 
