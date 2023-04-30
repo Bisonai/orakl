@@ -39,12 +39,14 @@ contract VRFConsumerMock is VRFConsumerBase {
     function requestRandomWordsDirectPayment(
         bytes32 keyHash,
         uint32 callbackGasLimit,
-        uint32 numWords
+        uint32 numWords,
+        address refundRecipient
     ) public payable onlyOwner returns (uint256 requestId) {
         requestId = COORDINATOR.requestRandomWords{value: msg.value}(
             keyHash,
             callbackGasLimit,
-            numWords
+            numWords,
+            refundRecipient
         );
     }
 

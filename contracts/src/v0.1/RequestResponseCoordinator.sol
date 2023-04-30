@@ -159,7 +159,7 @@ contract RequestResponseCoordinator is
         uint8 numSubmission
     ) external nonReentrant returns (uint256) {
         (uint256 balance, uint64 reqCount, , ) = sPrepayment.getAccount(accId);
-        uint256 minBalance = estimateTotalFee(reqCount, numSubmission, callbackGasLimit);
+        uint256 minBalance = estimateFee(reqCount, numSubmission, callbackGasLimit);
         if (balance < minBalance) {
             revert InsufficientPayment(balance, minBalance);
         }
@@ -185,7 +185,7 @@ contract RequestResponseCoordinator is
         uint8 numSubmission
     ) external payable returns (uint256) {
         uint64 reqCount = 0;
-        uint256 fee = estimateTotalFee(reqCount, numSubmission, callbackGasLimit);
+        uint256 fee = estimateFee(reqCount, numSubmission, callbackGasLimit);
         if (msg.value < fee) {
             revert InsufficientPayment(msg.value, fee);
         }

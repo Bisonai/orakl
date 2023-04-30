@@ -3,13 +3,14 @@ const { ethers } = require('hardhat')
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers')
 const crypto = require('crypto')
 const { vrfConfig } = require('./VRFCoordinator.config.cjs')
-const { parseKlay, remove0x } = require('./utils.cjs')
+const { parseKlay, remove0x, getBalance } = require('./utils.cjs')
 const {
   setupOracle,
   generateVrf,
   deploy: deployVrfCoordinator,
   parseRandomWordsRequestedTx,
-  parseRequestCanceledTx
+  parseRequestCanceledTx,
+  computeExactFee
 } = require('./VRFCoordinator.utils.cjs')
 const { deploy: deployVrfConsumerMock } = require('./VRFConsumerMock.utils.cjs')
 const {
@@ -357,6 +358,7 @@ describe('VRF contract', function () {
         DUMMY_KEY_HASH,
         callbackGasLimit,
         SINGLE_WORD,
+        consumer.signer.address,
         {
           value: parseKlay(1)
         }
@@ -477,6 +479,7 @@ describe('VRF contract', function () {
         keyHash,
         callbackGasLimit,
         SINGLE_WORD,
+        consumer.signer.address,
         {
           value: parseKlay('1')
         }
@@ -813,6 +816,100 @@ describe('VRF contract', function () {
     ).to.be.revertedWithCustomError(coordinator.contract, 'NumWordsTooBig')
   })
 
-  // TODO send more $KLAY for direct payment
+  it('Direct payment w/o refund', async function () {
+    const { coordinator, consumer, prepayment, account2: oracle } = await loadFixture(deploy)
+
+    // Prepare coordinator
+    await setupOracle(coordinator.contract, oracle.address)
+    await addCoordinator(prepayment.contract, prepayment.signer, coordinator.contract.address)
+
+    const { keyHash, maxGasLimit: callbackGasLimit } = vrfConfig()
+
+    const reqCount = 0
+    const numSubmission = 1
+    const value = await computeExactFee(
+      coordinator.contract,
+      consumer.signer,
+      reqCount,
+      numSubmission,
+      callbackGasLimit
+    )
+
+    {
+      const balance = await getBalance(consumer.contract.address)
+      expect(balance).to.be.equal(0)
+    }
+
+    // Request
+    await consumer.contract.requestRandomWordsDirectPayment(
+      keyHash,
+      callbackGasLimit,
+      SINGLE_WORD,
+      consumer.signer.address,
+      {
+        value
+      }
+    )
+
+    {
+      const balance = await getBalance(consumer.contract.address)
+      expect(balance).to.be.equal(0)
+    }
+  })
+
+  it('Direct payment w/ refund', async function () {
+    const { coordinator, consumer, prepayment, account2: oracle } = await loadFixture(deploy)
+
+    // Prepare coordinator
+    await setupOracle(coordinator.contract, oracle.address)
+    await addCoordinator(prepayment.contract, prepayment.signer, coordinator.contract.address)
+
+    const { keyHash, maxGasLimit: callbackGasLimit } = vrfConfig()
+
+    const reqCount = 0
+    const numSubmission = 1
+    const exactFee = await computeExactFee(
+      coordinator.contract,
+      consumer.signer,
+      reqCount,
+      numSubmission,
+      callbackGasLimit
+    )
+
+    const balanceBefore = await getBalance(consumer.signer.address)
+
+    // Request
+    const tx = await (
+      await consumer.contract
+        .connect(consumer.signer)
+        .requestRandomWordsDirectPayment(
+          keyHash,
+          callbackGasLimit,
+          SINGLE_WORD,
+          consumer.signer.address,
+          {
+            value: parseKlay(1)
+          }
+        )
+    ).wait()
+
+    {
+      const balance = await getBalance(consumer.contract.address)
+      expect(balance).to.be.equal(0)
+    }
+
+    {
+      const balance = await getBalance(prepayment.contract.address)
+      expect(balance).to.be.equal(exactFee)
+    }
+
+    {
+      const balance = await getBalance(consumer.signer.address)
+      expect(balanceBefore).to.be.equal(
+        tx.cumulativeGasUsed.mul(tx.effectiveGasPrice).add(exactFee.add(balance))
+      )
+    }
+  })
+
   // TODO getters
 })

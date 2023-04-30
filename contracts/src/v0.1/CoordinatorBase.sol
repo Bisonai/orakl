@@ -136,11 +136,11 @@ abstract contract CoordinatorBase is Ownable, ICoordinatorBase {
         emit RequestCanceled(requestId);
     }
 
-    function estimateTotalFee(
+    function estimateFee(
         uint64 reqCount,
         uint8 numSubmission,
         uint32 callbackGasLimit
-    ) internal view returns (uint256) {
+    ) public view returns (uint256) {
         uint256 serviceFee = calculateServiceFee(reqCount) * numSubmission;
         uint256 maxGasCost = tx.gasprice * callbackGasLimit; // FIXME add 10% more?
         return serviceFee + maxGasCost;

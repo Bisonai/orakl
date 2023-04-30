@@ -155,7 +155,7 @@ contract VRFCoordinator is IVRFCoordinatorBase, CoordinatorBase, ITypeAndVersion
     ) external nonReentrant onlyValidKeyHash(keyHash) returns (uint256) {
         (uint256 balance, uint64 reqCount, , ) = sPrepayment.getAccount(accId);
         uint8 numSubmission = 1;
-        uint256 minBalance = estimateTotalFee(reqCount, numSubmission, callbackGasLimit);
+        uint256 minBalance = estimateFee(reqCount, numSubmission, callbackGasLimit);
         if (balance < minBalance) {
             revert InsufficientPayment(balance, minBalance);
         }
@@ -178,11 +178,12 @@ contract VRFCoordinator is IVRFCoordinatorBase, CoordinatorBase, ITypeAndVersion
     function requestRandomWords(
         bytes32 keyHash,
         uint32 callbackGasLimit,
-        uint32 numWords
+        uint32 numWords,
+        address refundRecipient
     ) external payable nonReentrant onlyValidKeyHash(keyHash) returns (uint256) {
         uint64 reqCount = 0;
         uint8 numSubmission = 1;
-        uint256 fee = estimateTotalFee(reqCount, numSubmission, callbackGasLimit);
+        uint256 fee = estimateFee(reqCount, numSubmission, callbackGasLimit);
         if (msg.value < fee) {
             revert InsufficientPayment(msg.value, fee);
         }
@@ -201,7 +202,7 @@ contract VRFCoordinator is IVRFCoordinatorBase, CoordinatorBase, ITypeAndVersion
         // Refund extra $KLAY
         uint256 remaining = msg.value - fee;
         if (remaining > 0) {
-            (bool sent, ) = msg.sender.call{value: remaining}("");
+            (bool sent, ) = refundRecipient.call{value: remaining}("");
             if (!sent) {
                 revert RefundFailure();
             }

@@ -29,6 +29,9 @@ const config = {
     localhost: {
       gasPrice: 250_000_000_000
     },
+    hardhat: {
+      gasPrice: 250_000_000_000
+    },
     baobab: {
       url: 'https://api.baobab.klaytn.net:8651',
       chainId: 1001,
