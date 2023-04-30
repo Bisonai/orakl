@@ -2,7 +2,7 @@ const { expect } = require('chai')
 const { ethers } = require('hardhat')
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers')
 const { aggregatorConfig } = require('./Aggregator.config.cjs')
-const { parseSetRequesterPermissionsTx } = require('./Aggregator.utils.cjs')
+const { deployAggregator, parseSetRequesterPermissionsTx } = require('./Aggregator.utils.cjs')
 
 async function createSigners() {
   let { deployer, consumer, aggregatorOracle0, aggregatorOracle1, aggregatorOracle2 } =
@@ -46,12 +46,9 @@ async function changeOracles(aggregator, removeOracles, addOracles) {
 async function deploy() {
   const { deployer, consumer, aggregatorOracle0, aggregatorOracle1, aggregatorOracle2 } =
     await createSigners()
-  const { timeout, validator, decimals, description } = aggregatorConfig()
 
   // Aggregator /////////////////////////////////////////////////////////////////
-  let aggregator = await ethers.getContractFactory('Aggregator', { signer: deployer })
-  aggregator = await aggregator.deploy(timeout, validator, decimals, description)
-  await aggregator.deployed()
+  const aggregator = await deployAggregator(deployer)
 
   // AggregatorProxy ////////////////////////////////////////////////////////////
   let aggregatorProxy = await ethers.getContractFactory('AggregatorProxy', {
@@ -61,6 +58,7 @@ async function deploy() {
   await aggregatorProxy.deployed()
 
   // Read configuration of Aggregator & AggregatorProxy
+  const { description } = aggregatorConfig()
   expect(await aggregatorProxy.typeAndVersion()).to.be.equal('Aggregator v0.1')
   expect(await aggregatorProxy.description()).to.be.equal(description)
 
@@ -200,10 +198,7 @@ describe('Aggregator', function () {
     } = await loadFixture(deploy)
 
     // Aggregator /////////////////////////////////////////////////////////////////
-    const { timeout, validator, decimals, description } = aggregatorConfig()
-    let aggregator = await ethers.getContractFactory('Aggregator', { signer: deployer.address })
-    aggregator = await aggregator.deploy(timeout, validator, decimals, description)
-    await aggregator.deployed()
+    const aggregator = await deployAggregator(deployer)
 
     // Change oracles /////////////////////////////////////////////////////////////
     await changeOracles(aggregator, [], [aggregatorOracle0, aggregatorOracle1])
@@ -270,15 +265,15 @@ describe('Aggregator', function () {
     expect(await aggregatorProxy.phaseId()).to.be.equal(currentPhaseId)
 
     // Confirm aggregator with contract owner
-    const confirmAggregatorTx = await (
-      await aggregatorProxy.confirmAggregator(aggregator.address)
-    ).wait()
-    expect(confirmAggregatorTx.events.length).to.be.equal(1)
-    const confirmAggregatorEvent = aggregatorProxy.interface.parseLog(confirmAggregatorTx.events[0])
-    expect(confirmAggregatorEvent.name).to.be.equal('AggregatorConfirmed')
-    const { previous, latest } = confirmAggregatorEvent.args
-    expect(previous).to.be.equal(currentAggregator.address)
-    expect(latest).to.be.equal(aggregator.address)
+    {
+      const tx = await (await aggregatorProxy.confirmAggregator(aggregator.address)).wait()
+      expect(tx.events.length).to.be.equal(1)
+      const event = aggregatorProxy.interface.parseLog(tx.events[0])
+      expect(event.name).to.be.equal('AggregatorConfirmed')
+      const { previous, latest } = event.args
+      expect(previous).to.be.equal(currentAggregator.address)
+      expect(latest).to.be.equal(aggregator.address)
+    }
 
     // `phaseId` is increased by 1 after confirming the new aggregator
     expect(await aggregatorProxy.phaseId()).to.be.equal(currentPhaseId + 1)
@@ -312,8 +307,8 @@ describe('Aggregator', function () {
     const submission = 10
     await aggregator.connect(aggregatorOracle0).submit(roundId, submission)
 
+    // State of oracle after the first submission
     {
-      // State of oracle after the first submission
       const { _roundId, _latestSubmission, _oracleCount } = await aggregator.oracleRoundState(
         aggregatorOracle0.address,
         roundId
