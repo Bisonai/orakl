@@ -1,45 +1,68 @@
 const { expect } = require('chai')
 const { ethers } = require('hardhat')
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers')
+const {
+  deploy: deployPrepayment,
+  createAccount,
+  deposit,
+  withdraw
+} = require('./Prepayment.utils.cjs')
+const { parseKlay } = require('./utils.cjs')
 
 const NULL_ADDRESS = '0x0000000000000000000000000000000000000000'
 const DEFAULT_BURN_FEE_RATIO = 50
 const DEFAULT_PROTOCOL_FEE_RATIO = 5
 
-describe('Prepayment', function () {
-  async function deployPrepayment() {
-    const {
-      deployer,
-      consumer,
-      consumer1,
-      consumer2,
-      account8: protocolFeeRecipient
-    } = await hre.getNamedAccounts()
+async function createSigners() {
+  let { deployer, consumer, consumer1, consumer2, account8 } = await hre.getNamedAccounts()
 
-    let prepaymentContract = await ethers.getContractFactory('Prepayment', {
-      signer: deployer
-    })
-    prepaymentContract = await prepaymentContract.deploy(protocolFeeRecipient)
-    await prepaymentContract.deployed()
+  const deployerSigner = await ethers.getSigner(deployer)
+  const consumerSigner = await ethers.getSigner(consumer)
+  const consumer1Signer = await ethers.getSigner(consumer1)
+  const consumer2Signer = await ethers.getSigner(consumer2)
+  const account8Signer = await ethers.getSigner(account8)
 
-    const prepaymentContractConsumerSigner = await ethers.getContractAt(
-      'Prepayment',
-      prepaymentContract.address,
-      consumer
-    )
-
-    return {
-      deployer,
-      consumer,
-      consumer1,
-      consumer2,
-      prepaymentContract,
-      prepaymentContractConsumerSigner
-    }
+  return {
+    deployerSigner,
+    consumerSigner,
+    consumer1Signer,
+    consumer2Signer,
+    account8Signer
   }
+}
+
+async function deploy() {
+  const {
+    deployerSigner,
+    consumerSigner,
+    consumer1Signer,
+    consumer2Signer,
+    account8Signer: protocolFeeRecipientSigner
+  } = await createSigners()
+
+  const prepaymentContract = await deployPrepayment(
+    protocolFeeRecipientSigner.address,
+    deployerSigner
+  )
+
+  return {
+    deployerSigner,
+    consumerSigner,
+    consumer1Signer,
+    consumer2Signer,
+    prepaymentContract,
+    protocolFeeRecipientSigner
+  }
+}
+
+describe('Prepayment', function () {
+  it('Type and version', async function () {
+    const { prepaymentContract } = await loadFixture(deploy)
+    expect(await prepaymentContract.typeAndVersion()).to.be.equal('Prepayment v0.1')
+  })
 
   it('Burn ratio setup', async function () {
-    const { prepaymentContract } = await loadFixture(deployPrepayment)
+    const { prepaymentContract } = await loadFixture(deploy)
 
     // 1. Get initial burn ratio
     const burnFeeRatio = await prepaymentContract.getBurnFeeRatio()
@@ -66,7 +89,7 @@ describe('Prepayment', function () {
   })
 
   it('Protocol fee ratio setup', async function () {
-    const { prepaymentContract } = await loadFixture(deployPrepayment)
+    const { prepaymentContract } = await loadFixture(deploy)
 
     // 1. Get initial burn ratio
     const protocolFeeRatio = await prepaymentContract.getProtocolFeeRatio()
@@ -92,99 +115,106 @@ describe('Prepayment', function () {
     ).to.be.revertedWithCustomError(prepaymentContract, 'RatioOutOfBounds')
   })
 
+  it('Protocol fee recipient setup', async function () {
+    const {
+      prepaymentContract,
+      protocolFeeRecipientSigner,
+      consumer2Signer: newProtocolFeeRecipientSigner
+    } = await loadFixture(deploy)
+    const recipient = await prepaymentContract.getProtocolFeeRecipient()
+    expect(recipient).to.be.equal(protocolFeeRecipientSigner.address)
+
+    // onlyOwner can set protocol fee recipient
+    await expect(
+      prepaymentContract
+        .connect(newProtocolFeeRecipientSigner)
+        .setProtocolFeeRecipient(newProtocolFeeRecipientSigner.address)
+    ).to.be.rejected
+
+    // update protocol fee recipient
+    await prepaymentContract.setProtocolFeeRecipient(newProtocolFeeRecipientSigner.address)
+    expect(await prepaymentContract.getProtocolFeeRecipient()).to.be.equal(
+      newProtocolFeeRecipientSigner.address
+    )
+  })
+
+  it('Account owner', async function () {
+    const { prepaymentContract, consumerSigner: accountOwnerSigner } = await loadFixture(deploy)
+    const { accId, account } = await createAccount(prepaymentContract, accountOwnerSigner)
+    const accountOwner = await prepaymentContract.getAccountOwner(accId)
+    expect(accountOwner).to.be.equal(accountOwnerSigner.address)
+  })
+
   it('Deposit & withdraw', async function () {
     const {
-      prepaymentContractConsumerSigner: prepaymentContract,
-      consumer: accountOwnerAddress,
-      consumer1: nonOwnerAddress
-    } = await loadFixture(deployPrepayment)
+      prepaymentContract,
+      consumerSigner: accountOwner,
+      consumer1Signer: nonOwner
+    } = await loadFixture(deploy)
 
-    const txReceipt = await (await prepaymentContract.createAccount()).wait()
-    const accountCreatedEvent = prepaymentContract.interface.parseLog(txReceipt.events[0])
-    const { accId, account } = accountCreatedEvent.args
-
-    const accountContract = await ethers.getContractAt('Account', account, accountOwnerAddress)
+    const { accId, account } = await createAccount(prepaymentContract, accountOwner)
+    const accountContract = await ethers.getContractAt('Account', account, accountOwner.address)
 
     // Get Balance
-    const balanceBefore = (await accountContract.getBalance()).toNumber()
-    expect(balanceBefore).to.be.equal(0)
+    const balanceBeforeDeposit = (await accountContract.getBalance()).toNumber()
+    expect(balanceBeforeDeposit).to.be.equal(0)
 
     // 1. Deposit $KLAY /////////////////////////////////////////////////////////
-    const amount = 10
-    const txDeposit = await (await prepaymentContract.deposit(accId, { value: amount })).wait()
-    const balanceAfterDeposit = (await accountContract.getBalance()).toNumber()
-    expect(balanceAfterDeposit).to.be.equal(amount)
-
-    // Check the event information
-    expect(txDeposit.events.length).to.be.equal(1)
-    const accountBalanceIncreasedEvent = prepaymentContract.interface.parseLog(txDeposit.events[0])
-    expect(accountBalanceIncreasedEvent.name).to.be.equal('AccountBalanceIncreased')
-    const { accId: accIdDeposit, oldBalance, newBalance } = accountBalanceIncreasedEvent.args
-    expect(accIdDeposit).to.be.equal(accId)
-    expect(balanceBefore).to.be.equal(oldBalance)
-    expect(balanceAfterDeposit).to.be.equal(newBalance)
+    const amount = parseKlay(10)
+    const { oldBalance: oldBalanceDeposit, newBalance: newBalanceDeposit } = await deposit(
+      prepaymentContract,
+      accountOwner,
+      accId,
+      amount
+    )
+    const balanceAfterDeposit = await accountContract.getBalance()
+    expect(balanceBeforeDeposit).to.be.equal(oldBalanceDeposit)
+    expect(balanceAfterDeposit).to.be.equal(newBalanceDeposit)
 
     // 2. Withdraw $KLAY ////////////////////////////////////////////////////////
     // Only account owner can withdraw
-    const prepaymentContractNonOwnerSigner = await ethers.getContractAt(
-      'Prepayment',
-      prepaymentContract.address,
-      nonOwnerAddress
-    )
     await expect(
-      prepaymentContractNonOwnerSigner.withdraw(accId, amount)
-    ).to.be.revertedWithCustomError(prepaymentContractNonOwnerSigner, 'MustBeAccountOwner')
+      prepaymentContract.connect(nonOwner).withdraw(accId, amount)
+    ).to.be.revertedWithCustomError(prepaymentContract, 'MustBeAccountOwner')
 
     // Withdrawing using the account owner
-    const txWithdraw = await (await prepaymentContract.withdraw(accId, amount)).wait()
+    const { oldBalance: oldBalanceWithdraw, newBalance: newBalanceWithdraw } = await withdraw(
+      prepaymentContract,
+      accountOwner,
+      accId,
+      amount
+    )
+    expect(balanceAfterDeposit).to.be.equal(oldBalanceWithdraw)
+    expect(balanceBeforeDeposit).to.be.equal(newBalanceWithdraw)
 
-    // All previously deposited $KLAY was withdrawn. Nothin is left.
+    // All previously deposited $KLAY were withdrawn. Nothing is left.
     const balanceAfterWithdraw = (await accountContract.getBalance()).toNumber()
     expect(balanceAfterWithdraw).to.be.equal(0)
-
-    // Check the event information
-    expect(txWithdraw.events.length).to.be.equal(1)
-    const accountBalanceDecreasedEvent = prepaymentContract.interface.parseLog(txWithdraw.events[0])
-    expect(accountBalanceDecreasedEvent.name).to.be.equal('AccountBalanceDecreased')
-    const {
-      accId: accIdWithdraw,
-      oldBalance: oldBalanceWithdraw,
-      newBalance: newBalanceWithdraw
-    } = accountBalanceDecreasedEvent.args
-    expect(accIdWithdraw).to.be.equal(accId)
-    expect(balanceAfterDeposit).to.be.equal(oldBalanceWithdraw)
-    expect(balanceBefore).to.be.equal(newBalanceWithdraw)
   })
 
   it('Add & remove consumer', async function () {
     const {
-      prepaymentContractConsumerSigner: prepaymentContract,
-      consumer: accountOwnerAddress,
-      consumer1: consumerAddress,
-      consumer1: nonOwnerAddress,
-      consumer2: unusedConsumer
-    } = await loadFixture(deployPrepayment)
+      prepaymentContract,
+      consumerSigner: accountOwner,
+      consumer1Signer: consumer,
+      consumer1Signer: nonOwner,
+      consumer2Signer: unusedConsumer
+    } = await loadFixture(deploy)
 
-    const txReceipt = await (await prepaymentContract.createAccount()).wait()
-    const accountCreatedEvent = prepaymentContract.interface.parseLog(txReceipt.events[0])
-    const { accId, account } = accountCreatedEvent.args
-    const accountContract = await ethers.getContractAt('Account', account, accountOwnerAddress)
+    const { accId, account } = await createAccount(prepaymentContract, accountOwner)
+
+    const accountContract = await ethers.getContractAt('Account', account, accountOwner.address)
     expect((await accountContract.getConsumers()).length).to.be.equal(0)
 
     // 1. Add consumer //////////////////////////////////////////////////////////
     // Consumer can be added only by the account owner
-    const prepaymentContractNonOwnerSigner = await ethers.getContractAt(
-      'Prepayment',
-      prepaymentContract.address,
-      nonOwnerAddress
-    )
     await expect(
-      prepaymentContractNonOwnerSigner.addConsumer(accId, consumerAddress)
-    ).to.be.revertedWithCustomError(prepaymentContractNonOwnerSigner, 'MustBeAccountOwner')
+      prepaymentContract.connect(nonOwner).addConsumer(accId, consumer.address)
+    ).to.be.revertedWithCustomError(prepaymentContract, 'MustBeAccountOwner')
 
     // Add consumer with correct signer and parameters
     const txReceiptAddConsumer = await (
-      await prepaymentContract.addConsumer(accId, consumerAddress)
+      await prepaymentContract.connect(accountOwner).addConsumer(accId, consumer.address)
     ).wait()
     expect(txReceiptAddConsumer.events.length).to.be.equal(1)
 
@@ -195,7 +225,13 @@ describe('Prepayment', function () {
     const { accId: consumerAddedAccId, consumer: consumerAddedConsumer } =
       accountConsumerAddedEvent.args
     expect(consumerAddedAccId).to.be.equal(accId)
-    expect(consumerAddedConsumer).to.be.equal(consumerAddress)
+    expect(consumerAddedConsumer).to.be.equal(consumer.address)
+
+    // Idempotance - adding the same consumer does not do anything
+    const consumersBefore = (await accountContract.getConsumers()).length
+    await prepaymentContract.connect(accountOwner).addConsumer(accId, consumer.address)
+    const consumersAfter = (await accountContract.getConsumers()).length
+    expect(consumersBefore).to.be.equal(consumersAfter)
 
     // Consumers can be access directly through `Account.getConsumers`.
     // Now, there should be single consumer.
@@ -204,17 +240,17 @@ describe('Prepayment', function () {
     // 2. Remove consumer ///////////////////////////////////////////////////////
     // We cannot remove consumer which is not there
     await expect(
-      prepaymentContract.removeConsumer(accId, unusedConsumer)
+      prepaymentContract.connect(accountOwner).removeConsumer(accId, unusedConsumer.address)
     ).to.be.revertedWithCustomError(accountContract, 'InvalidConsumer')
 
     // Consumer can be removed only by the account owner
     await expect(
-      prepaymentContractNonOwnerSigner.removeConsumer(accId, consumerAddress)
-    ).to.be.revertedWithCustomError(prepaymentContractNonOwnerSigner, 'MustBeAccountOwner')
+      prepaymentContract.connect(nonOwner).removeConsumer(accId, consumer.address)
+    ).to.be.revertedWithCustomError(prepaymentContract, 'MustBeAccountOwner')
 
     // Remove consumer with correct signer and paramters
     const txReceiptRemoveConsumer = await (
-      await prepaymentContract.removeConsumer(accId, consumerAddress)
+      await prepaymentContract.connect(accountOwner).removeConsumer(accId, consumer.address)
     ).wait()
     expect(txReceiptRemoveConsumer.events.length).to.be.equal(1)
 
@@ -226,7 +262,7 @@ describe('Prepayment', function () {
       accountConsumerRemovedEvent.args
 
     expect(consumerRemovedAccId).to.be.equal(accId)
-    expect(consumerRemovedConsumer).to.be.equal(consumerAddress)
+    expect(consumerRemovedConsumer).to.be.equal(consumer.address)
 
     // After removing the consumer, there should no consumer anymore
     expect((await accountContract.getConsumers()).length).to.be.equal(0)
@@ -234,20 +270,18 @@ describe('Prepayment', function () {
 
   it('Add & remove coordinator', async function () {
     const {
-      prepaymentContractConsumerSigner,
+      consumerSigner,
       prepaymentContract,
-      consumer: accountOwnerAddress,
-      consumer1: coordinatorAddress
-      // consumer1: nonOwnerAddress,
-      // consumer2: unusedConsumer
-    } = await loadFixture(deployPrepayment)
+      consumer1Signer: coordinator
+    } = await loadFixture(deploy)
 
     // Add coordinator //////////////////////////////////////////////////////////
     // Coordinator must be added by contract owner
-    await expect(prepaymentContractConsumerSigner.addCoordinator(coordinatorAddress)).to.be.rejected
+    await expect(prepaymentContract.connect(consumerSigner).addCoordinator(coordinator.address)).to
+      .be.rejected
 
     const txAddCoordinator = await (
-      await prepaymentContract.addCoordinator(coordinatorAddress)
+      await prepaymentContract.addCoordinator(coordinator.address)
     ).wait()
 
     // Check the event information
@@ -255,10 +289,10 @@ describe('Prepayment', function () {
     const addCoordinatorEvent = prepaymentContract.interface.parseLog(txAddCoordinator.events[0])
     expect(addCoordinatorEvent.name).to.be.equal('CoordinatorAdded')
     const { coordinator: addedCoordinatorAddress } = addCoordinatorEvent.args
-    expect(addedCoordinatorAddress).to.be.equal(coordinatorAddress)
+    expect(addedCoordinatorAddress).to.be.equal(coordinator.address)
 
     // The same coordinator cannot be added more than once
-    await expect(prepaymentContract.addCoordinator(coordinatorAddress)).to.be.rejectedWith(
+    await expect(prepaymentContract.addCoordinator(coordinator.address)).to.be.rejectedWith(
       'CoordinatorExists'
     )
 
@@ -270,7 +304,7 @@ describe('Prepayment', function () {
 
     // We can remove coordinator that has been previously added
     const txRemoveCoordinator = await (
-      await prepaymentContract.removeCoordinator(coordinatorAddress)
+      await prepaymentContract.removeCoordinator(coordinator.address)
     ).wait()
     expect((await prepaymentContract.getCoordinators()).length).to.be.equal(0)
 
@@ -281,65 +315,79 @@ describe('Prepayment', function () {
     )
     expect(removeCoordinatorEvent.name).to.be.equal('CoordinatorRemoved')
     const { coordinator: removeCoordinatorAddress } = removeCoordinatorEvent.args
-    expect(removeCoordinatorAddress).to.be.equal(coordinatorAddress)
+    expect(removeCoordinatorAddress).to.be.equal(coordinator.address)
   })
 
   it('Transfer account ownership', async function () {
     const {
-      prepaymentContractConsumerSigner,
-      consumer: fromConsumer,
-      consumer1: toConsumer
-    } = await loadFixture(deployPrepayment)
-    const txReceipt = await (await prepaymentContractConsumerSigner.createAccount()).wait()
+      consumerSigner: fromConsumer,
+      consumer1Signer: toConsumer,
+      prepaymentContract
+    } = await loadFixture(deploy)
 
-    const accountCreatedEvent = prepaymentContractConsumerSigner.interface.parseLog(
-      txReceipt.events[0]
-    )
-    const { accId, account } = accountCreatedEvent.args
-    const accountContract = await ethers.getContractAt('Account', account, fromConsumer)
+    const { accId, account } = await createAccount(prepaymentContract, fromConsumer)
+    const accountContract = await ethers.getContractAt('Account', account, fromConsumer.address)
 
     // 1. Request Account Transfer
     const requestTxReceipt = await (
-      await prepaymentContractConsumerSigner.requestAccountOwnerTransfer(accId, toConsumer)
+      await prepaymentContract
+        .connect(fromConsumer)
+        .requestAccountOwnerTransfer(accId, toConsumer.address)
     ).wait()
     expect(requestTxReceipt.events.length).to.be.equal(1)
 
-    const accountTransferRequestedEvent = prepaymentContractConsumerSigner.interface.parseLog(
+    const accountTransferRequestedEvent = prepaymentContract.interface.parseLog(
       requestTxReceipt.events[0]
     )
     expect(accountTransferRequestedEvent.name).to.be.equal('AccountOwnerTransferRequested')
     const { from: fromRequested, to: toRequested } = accountTransferRequestedEvent.args
-    expect(fromRequested).to.be.equal(fromConsumer)
-    expect(toRequested).to.be.equal(toConsumer)
+    expect(fromRequested).to.be.equal(fromConsumer.address)
+    expect(toRequested).to.be.equal(toConsumer.address)
 
-    expect(await accountContract.getOwner()).to.be.equal(fromConsumer)
-    expect(await accountContract.getRequestedOwner()).to.be.equal(toConsumer)
+    expect(await accountContract.getOwner()).to.be.equal(fromConsumer.address)
+    expect(await accountContract.getRequestedOwner()).to.be.equal(toConsumer.address)
 
     // 2.1 Cannot accept with wrong consumer
     await expect(
-      prepaymentContractConsumerSigner.acceptAccountOwnerTransfer(accId)
+      prepaymentContract.connect(fromConsumer).acceptAccountOwnerTransfer(accId)
     ).to.be.revertedWithCustomError(accountContract, 'MustBeRequestedOwner')
 
     // 2. Accept Account Transfer
-    const prepaymentToConsumerSigner = await ethers.getContractAt(
-      'Prepayment',
-      prepaymentContractConsumerSigner.address,
-      toConsumer
-    )
     const acceptTxReceipt = await (
-      await prepaymentToConsumerSigner.acceptAccountOwnerTransfer(accId)
+      await prepaymentContract.connect(toConsumer).acceptAccountOwnerTransfer(accId)
     ).wait()
     expect(acceptTxReceipt.events.length).to.be.equal(1)
-    const accountTransferredEvent = prepaymentToConsumerSigner.interface.parseLog(
-      acceptTxReceipt.events[0]
-    )
+    const accountTransferredEvent = prepaymentContract.interface.parseLog(acceptTxReceipt.events[0])
     expect(accountTransferredEvent.name).to.be.equal('AccountOwnerTransferred')
 
     const { from: fromTransferred, to: toTransferred } = accountTransferredEvent.args
-    expect(fromTransferred).to.be.equal(fromConsumer)
-    expect(toTransferred).to.be.equal(toConsumer)
+    expect(fromTransferred).to.be.equal(fromConsumer.address)
+    expect(toTransferred).to.be.equal(toConsumer.address)
 
-    expect(await accountContract.getOwner()).to.be.equal(toConsumer)
+    expect(await accountContract.getOwner()).to.be.equal(toConsumer.address)
     expect(await accountContract.getRequestedOwner()).to.be.equal(NULL_ADDRESS)
+  })
+
+  it('Try to withdraw more than current balance', async function () {
+    const {
+      deployerSigner,
+      consumerSigner,
+      account8Signer: protocolFeeRecipientSigner
+    } = await createSigners()
+
+    const prepaymentContract = await deployPrepayment(
+      protocolFeeRecipientSigner.address,
+      deployerSigner
+    )
+
+    const { accId } = await createAccount(prepaymentContract, consumerSigner)
+    const initialAmount = parseKlay(1)
+    await deposit(prepaymentContract, consumerSigner, accId, initialAmount)
+
+    const aboveBalance = initialAmount + parseKlay(1)
+    const accountContract = await ethers.getContractFactory('Account')
+    await expect(
+      prepaymentContract.connect(consumerSigner).withdraw(accId, aboveBalance)
+    ).to.be.revertedWithCustomError(accountContract, 'InsufficientBalance')
   })
 })

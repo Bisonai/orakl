@@ -12,7 +12,7 @@ contract CoordinatorBaseMock is CoordinatorBase {
         address /*consumer*/,
         uint64 /*accId*/,
         uint64 /*nonce*/
-    ) external view returns (bool) {
+    ) external pure returns (bool) {
         return false;
     }
 }

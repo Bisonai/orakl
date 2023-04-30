@@ -1,3 +1,4 @@
+const { expect } = require('chai')
 const { vrfConfig } = require('./VRFCoordinator.config.cjs')
 const { remove0x } = require('./utils.cjs')
 const VRF = import('@bisonai/orakl-vrf')
@@ -116,11 +117,19 @@ async function fulfillRandomWords(
   return tx
 }
 
+function parseRequestCanceledTx(coordinator, tx) {
+  const event = coordinator.interface.parseLog(tx.events[0])
+  expect(event.name).to.be.equal('RequestCanceled')
+  const { requestId } = event.args
+  return { requestId }
+}
+
 module.exports = {
   deploy,
   setupOracle,
   fulfillRandomWords,
   generateVrf,
   parseRandomWordsRequestedTx,
-  parseRandomWordsFulfilledTx
+  parseRandomWordsFulfilledTx,
+  parseRequestCanceledTx
 }
