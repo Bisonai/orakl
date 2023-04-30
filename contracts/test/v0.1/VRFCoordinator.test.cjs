@@ -792,6 +792,27 @@ describe('VRF contract', function () {
     ).to.be.revertedWithCustomError(coordinator.contract, 'GasLimitTooBig')
   })
 
+  it('NumWordsTooBig', async function () {
+    const { coordinator, consumer, prepayment, account2: oracle } = await loadFixture(deploy)
+
+    // Prepare coordinator
+    await setupOracle(coordinator.contract, oracle.address)
+    await addCoordinator(prepayment.contract, prepayment.signer, coordinator.contract.address)
+
+    // Prepare account
+    const { accId } = await createAccount(prepayment.contract, consumer.signer)
+    const amount = parseKlay(1)
+    await deposit(prepayment.contract, consumer.signer, accId, amount)
+    await addConsumer(prepayment.contract, consumer.signer, accId, consumer.contract.address)
+
+    // Request
+    const { keyHash, maxGasLimit: callbackGasLimit } = vrfConfig()
+    const numWordsOverLimit = (await coordinator.contract.MAX_NUM_WORDS()) + 1
+    await expect(
+      consumer.contract.requestRandomWords(keyHash, accId, callbackGasLimit, numWordsOverLimit)
+    ).to.be.revertedWithCustomError(coordinator.contract, 'NumWordsTooBig')
+  })
+
   // TODO send more $KLAY for direct payment
   // TODO getters
 })
