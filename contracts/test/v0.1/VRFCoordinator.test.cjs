@@ -757,8 +757,7 @@ describe('VRF contract', function () {
       coordinatorContract,
       consumerContract,
       consumerSigner,
-      prepaymentContract,
-      state
+      prepaymentContract
     } = await loadFixture(deploy)
 
     // Prepare coordinator
@@ -795,6 +794,62 @@ describe('VRF contract', function () {
     await expect(
       coordinatorContract.connect(vrfOracle0Signer).fulfillRandomWords(pi, rc, isDirectPayment)
     ).to.be.revertedWithCustomError(coordinatorContract, 'IncorrectCommitment')
+  })
+
+  it('InvalidConsumer', async function () {
+    const {
+      deployerSigner,
+      vrfOracle0Signer,
+      coordinatorContract,
+      consumerContract,
+      consumerSigner,
+      consumer2Signer: consumerWithoutContract,
+      prepaymentContract
+    } = await loadFixture(deploy)
+
+    // Prepare coordinator
+    await setupOracle(coordinatorContract, vrfOracle0Signer.address)
+    await addCoordinator(prepaymentContract, deployerSigner, coordinatorContract.address)
+
+    // Prepare account
+    const { accId } = await createAccount(prepaymentContract, consumerSigner)
+    const amount = parseKlay(1)
+    await deposit(prepaymentContract, consumerSigner, accId, amount)
+    await addConsumer(prepaymentContract, consumerSigner, accId, consumerWithoutContract.address)
+
+    // Request
+    const { keyHash, maxGasLimit: callbackGasLimit } = vrfConfig()
+    await expect(
+      consumerContract.requestRandomWords(keyHash, accId, callbackGasLimit, NUM_WORDS)
+    ).to.be.revertedWithCustomError(coordinatorContract, 'InvalidConsumer')
+  })
+
+  it('GasLimitTooBig', async function () {
+    const {
+      deployerSigner,
+      vrfOracle0Signer,
+      coordinatorContract,
+      consumerContract,
+      consumerSigner,
+      prepaymentContract
+    } = await loadFixture(deploy)
+
+    // Prepare coordinator
+    await setupOracle(coordinatorContract, vrfOracle0Signer.address)
+    await addCoordinator(prepaymentContract, deployerSigner, coordinatorContract.address)
+
+    // Prepare account
+    const { accId } = await createAccount(prepaymentContract, consumerSigner)
+    const amount = parseKlay(1)
+    await deposit(prepaymentContract, consumerSigner, accId, amount)
+    await addConsumer(prepaymentContract, consumerSigner, accId, consumerContract.address)
+
+    // Request
+    const { keyHash, maxGasLimit } = vrfConfig()
+    const tooBigCallbackGasLimit = maxGasLimit + 1
+    await expect(
+      consumerContract.requestRandomWords(keyHash, accId, tooBigCallbackGasLimit, NUM_WORDS)
+    ).to.be.revertedWithCustomError(coordinatorContract, 'GasLimitTooBig')
   })
 
   // TODO send more $KLAY for direct payment
