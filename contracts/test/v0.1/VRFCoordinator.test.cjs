@@ -216,6 +216,7 @@ async function deploy() {
 
   // VRFCoordinator
   const coordinatorContract = await deployVrfCoordinator(prepaymentContract.address, deployerSigner)
+  expect(await coordinatorContract.typeAndVersion()).to.be.equal('VRFCoordinator v0.1')
 
   // VRFConsumerMock
   const consumerContract = await deployVrfConsumerMock(coordinatorContract.address, consumerSigner)
@@ -747,6 +748,53 @@ describe('VRF contract', function () {
 
     // And also cancel account
     await cancelAccount(prepaymentContract, consumerSigner, accId, consumerSigner.address)
+  })
+
+  it('IncorrectCommitment', async function () {
+    const {
+      deployerSigner,
+      vrfOracle0Signer,
+      coordinatorContract,
+      consumerContract,
+      consumerSigner,
+      prepaymentContract,
+      state
+    } = await loadFixture(deploy)
+
+    // Prepare coordinator
+    await setupOracle(coordinatorContract, vrfOracle0Signer.address)
+    await addCoordinator(prepaymentContract, deployerSigner, coordinatorContract.address)
+
+    // Prepare account
+    const { accId } = await createAccount(prepaymentContract, consumerSigner)
+    const amount = parseKlay(1)
+    await deposit(prepaymentContract, consumerSigner, accId, amount)
+    await addConsumer(prepaymentContract, consumerSigner, accId, consumerContract.address)
+
+    // Request
+    const { keyHash, maxGasLimit: callbackGasLimit } = vrfConfig()
+    const txRequest = await (
+      await consumerContract.requestRandomWords(keyHash, accId, callbackGasLimit, NUM_WORDS)
+    ).wait()
+    const { preSeed, blockHash, blockNumber, sender, numWords } = parseRandomWordsRequestedTx(
+      coordinatorContract,
+      txRequest
+    )
+
+    const { pi, rc } = await generateVrf(
+      preSeed,
+      blockHash,
+      blockNumber + 1, // Leads to IcorrectCommitment!
+      accId,
+      callbackGasLimit,
+      sender,
+      numWords
+    )
+
+    const isDirectPayment = false
+    await expect(
+      coordinatorContract.connect(vrfOracle0Signer).fulfillRandomWords(pi, rc, isDirectPayment)
+    ).to.be.revertedWithCustomError(coordinatorContract, 'IncorrectCommitment')
   })
 
   // TODO send more $KLAY for direct payment
