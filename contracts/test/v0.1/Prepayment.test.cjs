@@ -7,7 +7,7 @@ const {
   deposit,
   withdraw
 } = require('./Prepayment.utils.cjs')
-const { parseKlay } = require('./utils.cjs')
+const { parseKlay, getBalance } = require('./utils.cjs')
 
 const NULL_ADDRESS = '0x0000000000000000000000000000000000000000'
 const DEFAULT_BURN_FEE_RATIO = 50
@@ -167,9 +167,15 @@ describe('Prepayment', function () {
       accId,
       amount
     )
+
+    // Read balance directly from Account contract
     const balanceAfterDeposit = await accountContract.getBalance()
     expect(balanceBeforeDeposit).to.be.equal(oldBalanceDeposit)
     expect(balanceAfterDeposit).to.be.equal(newBalanceDeposit)
+
+    // Read balance indirectly through Prepayment contract
+    const prepaymentBalanceAfterDeposit = await prepaymentContract.getBalance(accId)
+    expect(prepaymentBalanceAfterDeposit).to.be.equal(balanceAfterDeposit)
 
     // 2. Withdraw $KLAY ////////////////////////////////////////////////////////
     // Only account owner can withdraw
@@ -190,6 +196,29 @@ describe('Prepayment', function () {
     // All previously deposited $KLAY were withdrawn. Nothing is left.
     const balanceAfterWithdraw = (await accountContract.getBalance()).toNumber()
     expect(balanceAfterWithdraw).to.be.equal(0)
+  })
+
+  it('Deposit to non-existant account', async function () {
+    // It is not possible to deposit to non-existant account, deposit
+    // transaction reverts in such case.
+    const { prepaymentContract, consumerSigner: accountOwner } = await loadFixture(deploy)
+    const accId = 123
+    const amount = parseKlay(10)
+    await expect(
+      deposit(prepaymentContract, accountOwner, accId, amount)
+    ).to.be.revertedWithCustomError(prepaymentContract, 'InvalidAccount')
+  })
+
+  it('Cannot deposit more than current balance', async function () {
+    const { prepaymentContract, consumerSigner: accountOwner } = await loadFixture(deploy)
+    const { accId } = await createAccount(prepaymentContract, accountOwner)
+    const amount = (await getBalance(accountOwner.address)) + parseKlay(1)
+    /* const amount = parseKlay(10_001) */
+    await expect(
+      prepaymentContract.connect(accountOwner).deposit(accId, {
+        value: amount
+      })
+    ).to.be.rejected
   })
 
   it('Add & remove consumer', async function () {
