@@ -244,21 +244,28 @@ async function deploy() {
 
 describe('VRF contract', function () {
   it('Register oracle', async function () {
-    const { coordinator } = await loadFixture(deploy)
+    const { coordinator, consumer } = await loadFixture(deploy)
     const { address: oracle } = ethers.Wallet.createRandom()
-    const publicProvingKey = [generateDummyPublicProvingKey(), generateDummyPublicProvingKey()]
+    const { publicProvingKey, keyHash } = vrfConfig()
+    const tx = await (await coordinator.contract.registerOracle(oracle, publicProvingKey)).wait()
 
-    // Registration
-    const txReceipt = await (
-      await coordinator.contract.registerOracle(oracle, publicProvingKey)
-    ).wait()
+    expect(tx.events.length).to.be.equal(1)
+    const event = coordinator.contract.interface.parseLog(tx.events[0])
+    expect(event.name).to.be.equal('OracleRegistered')
+    const { oracle: _oracle, keyHash: _keyHash } = event.args
+    expect(_oracle).to.be.equal(oracle)
+    expect(_keyHash).to.be.equal(keyHash)
 
-    expect(txReceipt.events.length).to.be.equal(1)
-    const registerEvent = coordinator.contract.interface.parseLog(txReceipt.events[0])
-    expect(registerEvent.name).to.be.equal('OracleRegistered')
+    {
+      const _keyHash = await coordinator.contract.connect(consumer.signer).oracleToKeyHash(oracle)
+      expect(_keyHash).to.be.equal(keyHash)
+    }
 
-    expect(registerEvent.args['oracle']).to.be.equal(oracle)
-    expect(registerEvent.args['keyHash']).to.not.be.undefined
+    {
+      const oracles = await coordinator.contract.connect(consumer.signer).keyHashToOracles(keyHash)
+      expect(oracles.length).to.be.equal(1)
+      expect(oracles[0]).to.be.equal(oracle)
+    }
   })
 
   it('Single oracle cannot be registered more than once, but keyhash can be registered multiple times', async function () {
