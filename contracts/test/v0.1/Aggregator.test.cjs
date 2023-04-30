@@ -2,10 +2,7 @@ const { expect } = require('chai')
 const { ethers } = require('hardhat')
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers')
 const { aggregatorConfig } = require('./Aggregator.config.cjs')
-
-async function contractBalance(contract) {
-  return await ethers.provider.getBalance(contract)
-}
+const { parseSetRequesterPermissionsTx } = require('./Aggregator.utils.cjs')
 
 async function createSigners() {
   let { deployer, consumer, aggregatorOracle0, aggregatorOracle1, aggregatorOracle2 } =
@@ -52,13 +49,13 @@ async function deploy() {
   const { timeout, validator, decimals, description } = aggregatorConfig()
 
   // Aggregator /////////////////////////////////////////////////////////////////
-  let aggregator = await ethers.getContractFactory('Aggregator', { signer: deployer.address })
+  let aggregator = await ethers.getContractFactory('Aggregator', { signer: deployer })
   aggregator = await aggregator.deploy(timeout, validator, decimals, description)
   await aggregator.deployed()
 
   // AggregatorProxy ////////////////////////////////////////////////////////////
   let aggregatorProxy = await ethers.getContractFactory('AggregatorProxy', {
-    signer: deployer.address
+    signer: deployer
   })
   aggregatorProxy = await aggregatorProxy.deploy(aggregator.address)
   await aggregatorProxy.deployed()
@@ -69,19 +66,55 @@ async function deploy() {
 
   // DataFeedConsumerMock ///////////////////////////////////////////////////////
   let dataFeedConsumerMock = await ethers.getContractFactory('DataFeedConsumerMock', {
-    signer: consumer.address
+    signer: consumer
   })
   dataFeedConsumerMock = await dataFeedConsumerMock.deploy(aggregatorProxy.address)
   await dataFeedConsumerMock.deployed()
 
-  return { aggregator, aggregatorProxy, dataFeedConsumerMock }
+  return {
+    aggregator,
+    aggregatorProxy,
+    dataFeedConsumerMock,
+    deployer,
+    consumer,
+    aggregatorOracle0,
+    aggregatorOracle1,
+    aggregatorOracle2
+  }
 }
 
 describe('Aggregator', function () {
-  it('Submit response', async function () {
-    const { aggregator, aggregatorProxy, dataFeedConsumerMock } = await loadFixture(deploy)
-    const { consumer, aggregatorOracle0, aggregatorOracle1, aggregatorOracle2 } =
-      await createSigners()
+  it('Add & Remove Oracle', async function () {
+    const { aggregator, aggregatorOracle0, aggregatorOracle1, aggregatorOracle2 } =
+      await loadFixture(deploy)
+
+    // Add 2 Oracles ////////////////////////////////////////////////////////////
+    await changeOracles(aggregator, [], [aggregatorOracle0, aggregatorOracle1])
+
+    // Remove Oracle //////////////////////////////////////////////////////////
+    // Cannot remove oracle that has not been added
+    await expect(
+      aggregator.changeOracles([aggregatorOracle2.address], [], 1, 1, 0)
+    ).to.be.revertedWithCustomError(aggregator, 'OracleNotEnabled')
+
+    // Remove oracle that has been added before
+    await changeOracles(aggregator, [aggregatorOracle0], [])
+
+    const currentOracles = await aggregator.getOracles()
+    expect(currentOracles.length).to.be.equal(1)
+    expect(currentOracles[0]).to.be.equal(aggregatorOracle1.address)
+  })
+
+  it('Submit & Read Response', async function () {
+    const {
+      aggregator,
+      aggregatorProxy,
+      dataFeedConsumerMock,
+      consumer,
+      aggregatorOracle0,
+      aggregatorOracle1,
+      aggregatorOracle2
+    } = await loadFixture(deploy)
 
     // Change oracles /////////////////////////////////////////////////////////////
     await changeOracles(aggregator, [], [aggregatorOracle0, aggregatorOracle1, aggregatorOracle2])
@@ -112,6 +145,8 @@ describe('Aggregator', function () {
     const proposedAggregator = await aggregatorProxy.proposedAggregator()
     expect(proposedAggregator).to.be.equal(ethers.constants.AddressZero)
 
+    // Address of current aggregator can be obtained through
+    // AggregatorProxy `aggregator` function.
     expect(await aggregatorProxy.aggregator()).to.be.equal(aggregator.address)
 
     // Read submission from DataFeedConsumerMock ////////////////////////////////
@@ -140,30 +175,8 @@ describe('Aggregator', function () {
     expect(await dataFeedConsumerMock.decimals()).to.be.equal(decimals)
   })
 
-  it('Remove Oracle', async function () {
-    const { aggregator } = await loadFixture(deploy)
-    const { aggregatorOracle0, aggregatorOracle1, aggregatorOracle2 } = await createSigners()
-
-    // Add 2 Oracles ////////////////////////////////////////////////////////////
-    await changeOracles(aggregator, [], [aggregatorOracle0, aggregatorOracle1])
-
-    // Remove Oracle //////////////////////////////////////////////////////////
-    // Cannot remove oracle that has not been added
-    await expect(
-      aggregator.changeOracles([aggregatorOracle2.address], [], 1, 1, 0)
-    ).to.be.revertedWithCustomError(aggregator, 'OracleNotEnabled')
-
-    // Remove oracle that has been added before
-    await changeOracles(aggregator, [aggregatorOracle0], [])
-
-    const currentOracles = await aggregator.getOracles()
-    expect(currentOracles.length).to.be.equal(1)
-    expect(currentOracles[0]).to.be.equal(aggregatorOracle1.address)
-  })
-
   it('addOracle assertions', async function () {
-    const { aggregator } = await loadFixture(deploy)
-    const { aggregatorOracle0, aggregatorOracle1 } = await createSigners()
+    const { aggregator, aggregatorOracle0, aggregatorOracle1 } = await loadFixture(deploy)
 
     // Add Oracle ///////////////////////////////////////////////////////////////
     await changeOracles(aggregator, [], [aggregatorOracle0])
@@ -178,15 +191,13 @@ describe('Aggregator', function () {
     const {
       aggregator: currentAggregator,
       aggregatorProxy,
-      dataFeedConsumerMock
-    } = await loadFixture(deploy)
-    const {
+      dataFeedConsumerMock,
       deployer,
       consumer,
       aggregatorOracle0,
       aggregatorOracle1,
       aggregatorOracle2: invalidAggregator
-    } = await createSigners()
+    } = await loadFixture(deploy)
 
     // Aggregator /////////////////////////////////////////////////////////////////
     const { timeout, validator, decimals, description } = aggregatorConfig()
@@ -216,9 +227,9 @@ describe('Aggregator', function () {
 
     // proposedLatestRoundData //////////////////////////////////////////////////
     // If no data has been submitted to proposed yet, reading from proxy reverts
-    await expect(aggregatorProxy.connect(consumer).proposedLatestRoundData()).to.be.revertedWith(
-      'No data present'
-    )
+    await expect(
+      aggregatorProxy.connect(consumer).proposedLatestRoundData()
+    ).to.be.revertedWithCustomError(aggregator, 'NoDataPresent')
     await aggregator.connect(aggregatorOracle0).submit(1, 10)
     await aggregator.connect(aggregatorOracle1).submit(1, 10)
 
@@ -280,66 +291,71 @@ describe('Aggregator', function () {
   })
 
   it('oracleRoundState', async function () {
-    const { aggregator } = await loadFixture(deploy)
-    const { aggregatorOracle0, aggregatorOracle1 } = await createSigners()
+    const { aggregator, aggregatorOracle0, aggregatorOracle1 } = await loadFixture(deploy)
 
     // Add Oracle ///////////////////////////////////////////////////////////////
     await changeOracles(aggregator, [], [aggregatorOracle0])
 
-    // State of oracle before the first submission
-    const { _roundId, _latestSubmission, _startedAt, _timeout, _oracleCount } =
-      await aggregator.oracleRoundState(aggregatorOracle0.address, 0)
-    expect(_roundId).to.be.equal(1)
-    expect(_latestSubmission).to.be.equal(0)
-    expect(_startedAt).to.be.equal(0)
-    expect(_timeout).to.be.equal(0)
-    expect(_oracleCount).to.be.equal(1)
+    {
+      // State of oracle before the first submission
+      const { _roundId, _latestSubmission, _startedAt, _timeout, _oracleCount } =
+        await aggregator.oracleRoundState(aggregatorOracle0.address, 0)
+      expect(_roundId).to.be.equal(1)
+      expect(_latestSubmission).to.be.equal(0)
+      expect(_startedAt).to.be.equal(0)
+      expect(_timeout).to.be.equal(0)
+      expect(_oracleCount).to.be.equal(1)
+    }
 
     // Submit to aggregator
     const roundId = 1
     const submission = 10
     await aggregator.connect(aggregatorOracle0).submit(roundId, submission)
 
-    // State of oracle after the first submission
-    const {
-      _roundId: fRoundId,
-      _latestSubmission: fLatestSubmission,
-      _oracleCount: fOracleCount
-    } = await aggregator.oracleRoundState(aggregatorOracle0.address, roundId)
-    expect(fRoundId).to.be.equal(roundId)
-    expect(fLatestSubmission).to.be.equal(submission)
-    expect(fOracleCount).to.be.equal(1)
+    {
+      // State of oracle after the first submission
+      const { _roundId, _latestSubmission, _oracleCount } = await aggregator.oracleRoundState(
+        aggregatorOracle0.address,
+        roundId
+      )
+      expect(_roundId).to.be.equal(roundId)
+      expect(_latestSubmission).to.be.equal(submission)
+      expect(_oracleCount).to.be.equal(1)
+    }
   })
 
   it('External Requester', async function () {
-    const { aggregator } = await loadFixture(deploy)
-    const { consumer: requester, aggregatorOracle0: unauthorizedRequester } = await createSigners()
+    const {
+      aggregator,
+      consumer: requesterSigner,
+      aggregatorOracle0: unauthorizedRequester
+    } = await loadFixture(deploy)
+
+    const requesterAddress = requesterSigner.address
 
     // Add a new requester //////////////////////////////////////////////////////
-    const aiAuthorized = true
-    const aiDelay = 0
-    const addRequesterPermissionsTx = await (
-      await aggregator.setRequesterPermissions(requester.address, aiAuthorized, aiDelay)
-    ).wait()
-    expect(addRequesterPermissionsTx.events.length).to.be.equal(1)
-    expect(addRequesterPermissionsTx.events[0].event).to.be.equal('RequesterPermissionsSet')
-    const addRequesterPermissionsEvent = aggregator.interface.parseLog(
-      addRequesterPermissionsTx.events[0]
-    )
-    const {
-      requester: aRequester,
-      authorized: aAuthorized,
-      delay: aDelay
-    } = addRequesterPermissionsEvent.args
-    expect(aRequester).to.be.equal(requester.address)
-    expect(aAuthorized).to.be.equal(aiAuthorized)
-    expect(aDelay).to.be.equal(aiDelay)
+    {
+      const _authorized = true
+      const _delay = 0
+      const tx = await (
+        await aggregator.setRequesterPermissions(requesterAddress, _authorized, _delay)
+      ).wait()
+      const { requester, authorized, delay } = parseSetRequesterPermissionsTx(aggregator, tx)
+      expect(requester).to.be.equal(requesterSigner.address)
+      expect(authorized).to.be.equal(_authorized)
+      expect(delay).to.be.equal(_delay)
+    }
 
-    // Test idempotency for adding a new requester
-    const addRequesterPermissionsTx2 = await (
-      await aggregator.setRequesterPermissions(requester.address, aiAuthorized, aiDelay)
-    ).wait()
-    expect(addRequesterPermissionsTx2.events.length).to.be.equal(0)
+    {
+      const _authorized = true
+      const _delay = 0
+      // Test idempotency for adding a new requester
+      const tx = await (
+        await aggregator.setRequesterPermissions(requesterAddress, _authorized, _delay)
+      ).wait()
+      // No new requester added -> no emmited event
+      expect(tx.events.length).to.be.equal(0)
+    }
 
     // Request NewRound /////////////////////////////////////////////////////////
     // Only authorized requester can request new round, otherwise reverts
@@ -348,34 +364,29 @@ describe('Aggregator', function () {
     ).to.be.revertedWithCustomError(aggregator, 'RequesterNotAuthorized')
 
     // Request with authorized requester
-    const requestNewRoundTx = await (await aggregator.connect(requester).requestNewRound()).wait()
-    const blockTimestamp = (await ethers.provider.getBlock(requestNewRoundTx.blockNumber)).timestamp
-    expect(requestNewRoundTx.events.length).to.be.equal(1)
-    expect(requestNewRoundTx.events[0].event).to.be.equal('NewRound')
-    const requestNewRoundEvent = aggregator.interface.parseLog(requestNewRoundTx.events[0])
-    const { roundId, startedBy, startedAt } = requestNewRoundEvent.args
-    expect(roundId).to.be.equal(1)
-    expect(startedBy).to.be.equal(requester.address)
-    expect(startedAt).to.be.equal(blockTimestamp)
+    {
+      const tx = await (await aggregator.connect(requesterSigner).requestNewRound()).wait()
+      const blockTimestamp = (await ethers.provider.getBlock(tx.blockNumber)).timestamp
+      expect(tx.events.length).to.be.equal(1)
+      expect(tx.events[0].event).to.be.equal('NewRound')
+      const event = aggregator.interface.parseLog(tx.events[0])
+      const { roundId, startedBy, startedAt } = event.args
+      expect(roundId).to.be.equal(1)
+      expect(startedBy).to.be.equal(requesterSigner.address)
+      expect(startedAt).to.be.equal(blockTimestamp)
+    }
 
     // Remove requester /////////////////////////////////////////////////////////
-    const riAuthorized = false
-    const riDelay = 0
-    const removeRequesterPermissionsTx = await (
-      await aggregator.setRequesterPermissions(requester.address, riAuthorized, riDelay)
-    ).wait()
-    expect(removeRequesterPermissionsTx.events.length).to.be.equal(1)
-    expect(removeRequesterPermissionsTx.events[0].event).to.be.equal('RequesterPermissionsSet')
-    const removeRequesterPermissionsEvent = aggregator.interface.parseLog(
-      removeRequesterPermissionsTx.events[0]
-    )
-    const {
-      requester: rRequester,
-      authorized: rAuthorized,
-      delay: rDelay
-    } = removeRequesterPermissionsEvent.args
-    expect(rRequester).to.be.equal(requester.address)
-    expect(rAuthorized).to.be.equal(riAuthorized)
-    expect(rDelay).to.be.equal(riDelay)
+    {
+      const _authorized = false
+      const _delay = 0
+      const tx = await (
+        await aggregator.setRequesterPermissions(requesterSigner.address, _authorized, _delay)
+      ).wait()
+      const { requester, authorized, delay } = parseSetRequesterPermissionsTx(aggregator, tx)
+      expect(requester).to.be.equal(requesterSigner.address)
+      expect(authorized).to.be.equal(_authorized)
+      expect(delay).to.be.equal(_delay)
+    }
   })
 })

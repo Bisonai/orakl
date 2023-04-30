@@ -10,12 +10,12 @@ import "./interfaces/IAggregatorValidator.sol";
 import "./libraries/Median.sol";
 
 /**
- * @title The Prepaid Aggregator contract
- * @notice Handles aggregating data pushed in from off-chain, and unlocks
- * payment for oracles as they report. Oracles' submissions are gathered in
- * rounds, with each round aggregating the submissions for each oracle into a
- * single answer. The latest aggregated answer is exposed as well as historical
- * answers and their updated at timestamp.
+ * @title Orakl Network Aggregator
+ * @notice Handles aggregating data pushed in from off-chain. Oracles'
+ * submissions are gathered in rounds, with each round aggregating the
+ * submissions for each oracle into a single answer. The latest
+ * aggregated answer is exposed as well as historical answers and
+ * their updated at timestamp.
  */
 contract Aggregator is Ownable, IAggregator, ITypeAndVersion {
     struct Round {
@@ -60,9 +60,6 @@ contract Aggregator is Ownable, IAggregator, ITypeAndVersion {
     uint256 private constant MAX_ORACLE_COUNT = 77;
     uint32 private constant ROUND_MAX = 2 ** 32 - 1;
     uint256 private constant VALIDATOR_GAS_LIMIT = 100000;
-    // An error specific to the Aggregator V3 Interface, to prevent possible
-    // confusion around accidentally reading unset values as reported values.
-    string private constant V3_NO_DATA_ERROR = "No data present";
 
     uint32 private reportingRoundId;
     uint32 internal latestRoundId;
@@ -77,6 +74,10 @@ contract Aggregator is Ownable, IAggregator, ITypeAndVersion {
     error OffChainReadingOnly();
     error RequesterNotAuthorized();
     error PrevRoundNotSupersedable();
+    error RoundNotAcceptingSubmission();
+    error TooManyOracles();
+    error NoDataPresent();
+    error NewRequestTooSoon();
 
     event RoundDetailsUpdated(
         uint32 indexed minSubmissionCount,
@@ -150,7 +151,9 @@ contract Aggregator is Ownable, IAggregator, ITypeAndVersion {
             removeOracle(_removed[i]);
         }
 
-        require(uint256(oracleCount()) + _added.length <= MAX_ORACLE_COUNT, "max oracles allowed");
+        if (uint256(oracleCount()) + _added.length >= MAX_ORACLE_COUNT) {
+            revert TooManyOracles();
+        }
 
         for (uint256 i = 0; i < _added.length; i++) {
             addOracle(_added[i]);
@@ -238,7 +241,9 @@ contract Aggregator is Ownable, IAggregator, ITypeAndVersion {
     {
         Round memory r = rounds[uint32(_roundId)];
 
-        require(r.answeredInRound > 0 && validRoundId(_roundId), V3_NO_DATA_ERROR);
+        if (r.answeredInRound == 0 || !validRoundId(_roundId)) {
+            revert NoDataPresent();
+        }
 
         return (_roundId, r.answer, r.startedAt, r.updatedAt, r.answeredInRound);
     }
@@ -406,28 +411,31 @@ contract Aggregator is Ownable, IAggregator, ITypeAndVersion {
     function oracleInitializeNewRound(uint32 _roundId) private {
         if (!newRound(_roundId)) return;
         uint256 lastStarted = oracles[msg.sender].lastStartedRound;
-        if (_roundId <= lastStarted + restartDelay && lastStarted != 0) return;
+        if (_roundId <= lastStarted + restartDelay && lastStarted != 0) {
+            return;
+        }
 
         initializeNewRound(_roundId);
-
         oracles[msg.sender].lastStartedRound = _roundId;
     }
 
     function requesterInitializeNewRound(uint32 _roundId) private {
-        if (!newRound(_roundId)) return;
+        if (!newRound(_roundId)) {
+            return;
+        }
         uint256 lastStarted = requesters[msg.sender].lastStartedRound;
-        require(
-            _roundId > lastStarted + requesters[msg.sender].delay || lastStarted == 0,
-            "must delay requests"
-        );
+        if (_roundId <= lastStarted + requesters[msg.sender].delay && lastStarted > 0) {
+            revert NewRequestTooSoon();
+        }
 
         initializeNewRound(_roundId);
-
         requesters[msg.sender].lastStartedRound = _roundId;
     }
 
     function updateTimedOutRoundInfo(uint32 _roundId) private {
-        if (!timedOut(_roundId)) return;
+        if (!timedOut(_roundId)) {
+            return;
+        }
 
         uint32 prevId = _roundId - 1;
         rounds[_roundId].answer = rounds[prevId].answer;
@@ -517,7 +525,9 @@ contract Aggregator is Ownable, IAggregator, ITypeAndVersion {
 
     function validateAnswer(uint32 _roundId, int256 _newAnswer) private {
         IAggregatorValidator av = validator;
-        if (address(av) == address(0)) return;
+        if (address(av) == address(0)) {
+            return;
+        }
 
         uint32 prevRound = _roundId - 1;
         uint32 prevAnswerRoundId = rounds[prevRound].answeredInRound;
@@ -535,7 +545,9 @@ contract Aggregator is Ownable, IAggregator, ITypeAndVersion {
     }
 
     function recordSubmission(int256 _submission, uint32 _roundId) private {
-        require(acceptingSubmissions(_roundId), "round not accepting submissions");
+        if (!acceptingSubmissions(_roundId)) {
+            revert RoundNotAcceptingSubmission();
+        }
 
         details[_roundId].submissions.push(_submission);
         oracles[msg.sender].lastReportedRound = _roundId;
@@ -545,8 +557,9 @@ contract Aggregator is Ownable, IAggregator, ITypeAndVersion {
     }
 
     function deleteRoundDetails(uint32 _roundId) private {
-        if (details[_roundId].submissions.length < details[_roundId].maxSubmissions) return;
-
+        if (details[_roundId].submissions.length < details[_roundId].maxSubmissions) {
+            return;
+        }
         delete details[_roundId];
     }
 
