@@ -2,12 +2,14 @@ const { expect } = require('chai')
 const { ethers } = require('hardhat')
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers')
 const {
+  deploy: deployVrfCoordinator,
   setupOracle: setupVrfCoordinator,
   parseRandomWordsRequestedTx,
   fulfillRandomWords,
   parseRandomWordsFulfilledTx
 } = require('./VRFCoordinator.utils.cjs')
 const { parseKlay } = require('./utils.cjs')
+const { deploy: deployPrepayment } = require('./Prepayment.utils.cjs')
 
 const {
   setupOracle: setupRequestResponseCoordinator,
@@ -47,18 +49,16 @@ async function deploy() {
   } = await createSigners()
 
   // Prepayment
-  let prepaymentContract = await ethers.getContractFactory('Prepayment', {
-    signer: deployerSigner
-  })
-  prepaymentContract = await prepaymentContract.deploy(protocolFeeRecipientSigner.address)
-  await prepaymentContract.deployed()
+  const prepaymentContract = await deployPrepayment(
+    protocolFeeRecipientSigner.address,
+    deployerSigner
+  )
 
   // VRFCoordinator
-  let vrfCoordinatorContract = await ethers.getContractFactory('VRFCoordinator', {
-    signer: deployerSigner
-  })
-  vrfCoordinatorContract = await vrfCoordinatorContract.deploy(prepaymentContract.address)
-  await vrfCoordinatorContract.deployed()
+  const vrfCoordinatorContract = await deployVrfCoordinator(
+    prepaymentContract.address,
+    deployerSigner
+  )
 
   // VRFCoordinator setup
   await setupVrfCoordinator(vrfCoordinatorContract, vrfOracleSigner.address)
@@ -103,14 +103,16 @@ async function deploy() {
     rrCoordinatorContract,
     vrfConsumerContract,
     rrConsumerContract,
-    accId
+    accId,
+    protocolFeeRecipientSigner
   }
 }
 
 describe('Revert Fulfillment Test', function () {
   it('Revert VRF', async function () {
-    const { vrfCoordinatorContract, vrfConsumerContract, accId } = await loadFixture(deploy)
-    const { vrfOracleSigner, protocolFeeRecipientSigner } = await createSigners()
+    const { vrfCoordinatorContract, vrfConsumerContract, accId, protocolFeeRecipientSigner } =
+      await loadFixture(deploy)
+    const { vrfOracleSigner } = await createSigners()
 
     const { keyHash, maxGasLimit: callbackGasLimit } = vrfConfig()
     const numWords = 1
@@ -145,7 +147,14 @@ describe('Revert Fulfillment Test', function () {
     expect(protocolFeeRecipientBalanceAfter).to.be.gt(protocolFeeRecipientBalanceBefore)
 
     const oracleBalanceAfter = await getBalance(vrfOracleSigner.address)
+    // VRF Oracle should receive service fee and gas fee rebate
+    // after fulfilling callback function even though it reverted.
     expect(oracleBalanceAfter).to.be.gt(oracleBalanceBefore)
+
+    const oracleRevenue = oracleBalanceAfter.sub(oracleBalanceBefore)
+    const oracleServiceFee = ethers.BigNumber.from('4500000000000000')
+    const extraGasRebate = oracleRevenue.sub(oracleServiceFee)
+    expect(extraGasRebate).to.be.gt(0)
   })
 
   it('Revert Fulfillment Test', async function () {
