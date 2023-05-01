@@ -47,9 +47,20 @@ function parseDataRequestFulfilledTx(coordinator, tx, eventName) {
   expect(event.name).to.be.equal(eventName)
   const blockHash = tx.blockHash
   const blockNumber = tx.blockNumber
+  const gasUsed = tx.gasUsed
+  const cumulativeGasUsed = tx.cumulativeGasUsed
 
   const { requestId, response, payment, success } = event.args
-  return { requestId, response, payment, success, blockHash, blockNumber }
+  return {
+    requestId,
+    response,
+    payment,
+    success,
+    blockHash,
+    blockNumber,
+    gasUsed,
+    cumulativeGasUsed
+  }
 }
 
 module.exports = {

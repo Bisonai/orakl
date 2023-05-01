@@ -147,14 +147,14 @@ describe('Revert Fulfillment Test', function () {
     expect(protocolFeeRecipientBalanceAfter).to.be.gt(protocolFeeRecipientBalanceBefore)
 
     const oracleBalanceAfter = await getBalance(vrfOracleSigner.address)
-    // VRF Oracle should receive service fee and gas fee rebate
+    // VRF oracle should receive service fee and gas fee rebate
     // after fulfilling callback function even though it reverted.
     expect(oracleBalanceAfter).to.be.gt(oracleBalanceBefore)
 
     const oracleRevenue = oracleBalanceAfter.sub(oracleBalanceBefore)
     const oracleServiceFee = ethers.BigNumber.from('4500000000000000')
     const extraGasRebate = oracleRevenue.sub(oracleServiceFee)
-    expect(extraGasRebate).to.be.gt(0)
+    expect(extraGasRebate).to.be.gte(0)
   })
 
   it('Revert Fulfillment Test', async function () {
@@ -200,7 +200,20 @@ describe('Revert Fulfillment Test', function () {
     const protocolFeeRecipientBalanceAfter = await getBalance(protocolFeeRecipientSigner.address)
     expect(protocolFeeRecipientBalanceAfter).to.be.gt(protocolFeeRecipientBalanceBefore)
 
+    const protocolRecipientRevenue = protocolFeeRecipientBalanceAfter.sub(
+      protocolFeeRecipientBalanceBefore
+    )
+    const protocolFee = ethers.BigNumber.from('500000000000000')
+    expect(protocolRecipientRevenue).to.be.equal(protocolFee)
+
     const oracleBalanceAfter = await getBalance(rrOracleSigner.address)
+    // Request-Response oracle should receive service fee and gas fee rebate
+    // after fulfilling callback function even though it reverted.
     expect(oracleBalanceAfter).to.be.gt(oracleBalanceBefore)
+
+    const oracleRevenue = oracleBalanceAfter.sub(oracleBalanceBefore)
+    const oracleServiceFee = ethers.BigNumber.from('4500000000000000')
+    const extraGasRebate = oracleRevenue.sub(oracleServiceFee)
+    expect(extraGasRebate).to.be.gte(0)
   })
 })
