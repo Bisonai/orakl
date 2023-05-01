@@ -280,10 +280,10 @@ contract RequestResponseCoordinator is
             aggregatedResponse
         );
         bool success = fulfill(resp, rc);
-        uint256 payment = pay(rc, isDirectPayment, startGas, oracles);
 
-        cleanupAfterFulfillment(requestId);
+        address[] memory oraclesToPay = cleanupAfterFulfillment(requestId);
         delete sRequestToSubmissionInt256[requestId];
+        uint256 payment = pay(rc, isDirectPayment, startGas, oraclesToPay);
 
         emit DataRequestFulfilledInt256(requestId, response, payment, success);
     }
@@ -316,10 +316,10 @@ contract RequestResponseCoordinator is
             aggregatedResponse
         );
         bool success = fulfill(resp, rc);
-        uint256 payment = pay(rc, isDirectPayment, startGas, oracles);
 
-        cleanupAfterFulfillment(requestId);
+        address[] memory oraclesToPay = cleanupAfterFulfillment(requestId);
         delete sRequestToSubmissionBool[requestId];
+        uint256 payment = pay(rc, isDirectPayment, startGas, oraclesToPay);
 
         emit DataRequestFulfilledBool(requestId, response, payment, success);
     }
@@ -343,9 +343,8 @@ contract RequestResponseCoordinator is
             response
         );
         bool success = fulfill(resp, rc);
-        uint256 payment = pay(rc, isDirectPayment, startGas, oracles);
-
-        cleanupAfterFulfillment(requestId);
+        address[] memory oraclesToPay = cleanupAfterFulfillment(requestId);
+        uint256 payment = pay(rc, isDirectPayment, startGas, oraclesToPay);
 
         emit DataRequestFulfilledString(requestId, response, payment, success);
     }
@@ -369,9 +368,8 @@ contract RequestResponseCoordinator is
             response
         );
         bool success = fulfill(resp, rc);
-        uint256 payment = pay(rc, isDirectPayment, startGas, oracles);
-
-        cleanupAfterFulfillment(requestId);
+        address[] memory oraclesToPay = cleanupAfterFulfillment(requestId);
+        uint256 payment = pay(rc, isDirectPayment, startGas, oraclesToPay);
 
         emit DataRequestFulfilledBytes32(requestId, response, payment, success);
     }
@@ -395,9 +393,8 @@ contract RequestResponseCoordinator is
             response
         );
         bool success = fulfill(resp, rc);
-        uint256 payment = pay(rc, isDirectPayment, startGas, oracles);
-
-        cleanupAfterFulfillment(requestId);
+        address[] memory oraclesToPay = cleanupAfterFulfillment(requestId);
+        uint256 payment = pay(rc, isDirectPayment, startGas, oraclesToPay);
 
         emit DataRequestFulfilledBytes(requestId, response, payment, success);
     }
@@ -590,7 +587,7 @@ contract RequestResponseCoordinator is
         }
     }
 
-    function cleanupAfterFulfillment(uint256 requestId) private {
+    function cleanupAfterFulfillment(uint256 requestId) private returns (address[] memory) {
         address[] memory oracles = sSubmission[requestId].oracles;
 
         for (uint8 i = 0; i < oracles.length; ++i) {
@@ -600,6 +597,8 @@ contract RequestResponseCoordinator is
         delete sSubmission[requestId];
         delete sRequestIdToCommitment[requestId];
         delete sRequestOwner[requestId];
+
+        return oracles;
     }
 
     /**

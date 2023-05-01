@@ -146,6 +146,12 @@ describe('Revert Fulfillment Test', function () {
     const protocolFeeRecipientBalanceAfter = await getBalance(protocolFeeRecipientSigner.address)
     expect(protocolFeeRecipientBalanceAfter).to.be.gt(protocolFeeRecipientBalanceBefore)
 
+    const protocolRecipientRevenue = protocolFeeRecipientBalanceAfter.sub(
+      protocolFeeRecipientBalanceBefore
+    )
+    const protocolFee = ethers.BigNumber.from('500000000000000')
+    expect(protocolRecipientRevenue).to.be.equal(protocolFee)
+
     const oracleBalanceAfter = await getBalance(vrfOracleSigner.address)
     // VRF oracle should receive service fee and gas fee rebate
     // after fulfilling callback function even though it reverted.
@@ -155,9 +161,13 @@ describe('Revert Fulfillment Test', function () {
     const oracleServiceFee = ethers.BigNumber.from('4500000000000000')
     const extraGasRebate = oracleRevenue.sub(oracleServiceFee)
     expect(extraGasRebate).to.be.gte(0)
+    console.log(
+      'extraGasRebate',
+      extraGasRebate.div(hre.network.config.gasPrice.toString()).toString()
+    )
   })
 
-  it('Revert Fulfillment Test', async function () {
+  it('Revert Request-Response', async function () {
     const { rrCoordinatorContract, rrConsumerContract, accId } = await loadFixture(deploy)
     const { rrOracleSigner, protocolFeeRecipientSigner } = await createSigners()
 
@@ -215,5 +225,9 @@ describe('Revert Fulfillment Test', function () {
     const oracleServiceFee = ethers.BigNumber.from('4500000000000000')
     const extraGasRebate = oracleRevenue.sub(oracleServiceFee)
     expect(extraGasRebate).to.be.gte(0)
+    console.log(
+      'extraGasRebate',
+      extraGasRebate.div(hre.network.config.gasPrice.toString()).toString()
+    )
   })
 })

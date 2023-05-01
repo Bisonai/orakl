@@ -1,6 +1,6 @@
 function requestResponseConfig() {
   const maxGasLimit = 2_500_000
-  const gasAfterPaymentCalculation = 38_157
+  const gasAfterPaymentCalculation = 0
   const feeConfig = {
     fulfillmentFlatFeeKlayPPMTier1: 10_000,
     fulfillmentFlatFeeKlayPPMTier2: 10_000,
