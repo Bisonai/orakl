@@ -419,4 +419,32 @@ describe('Prepayment', function () {
       prepaymentContract.connect(consumerSigner).withdraw(accId, aboveBalance)
     ).to.be.revertedWithCustomError(accountContract, 'InsufficientBalance')
   })
+
+  it('TooManyConsumers', async function () {
+    const {
+      deployerSigner,
+      consumerSigner,
+      account8Signer: protocolFeeRecipientSigner
+    } = await createSigners()
+
+    const prepaymentContract = await deployPrepayment(
+      protocolFeeRecipientSigner.address,
+      deployerSigner
+    )
+
+    const { accId, account } = await createAccount(prepaymentContract, consumerSigner)
+    const accountContract = await ethers.getContractAt('Account', account, consumerSigner.address)
+    const MAX_CONSUMERS = await accountContract.MAX_CONSUMERS()
+
+    for (let i = 0; i < MAX_CONSUMERS; ++i) {
+      const { address: consumer } = ethers.Wallet.createRandom()
+      await prepaymentContract.connect(consumerSigner).addConsumer(accId, consumer)
+    }
+
+    // There is a limit (MAX_CONSUMERS) on number of consumers that can be added
+    const { address: consumer } = ethers.Wallet.createRandom()
+    await expect(
+      prepaymentContract.connect(consumerSigner).addConsumer(accId, consumer)
+    ).to.be.revertedWithCustomError(accountContract, 'TooManyConsumers')
+  })
 })
