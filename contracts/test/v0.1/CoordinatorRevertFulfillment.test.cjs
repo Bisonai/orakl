@@ -9,13 +9,12 @@ const {
   parseRandomWordsFulfilledTx
 } = require('./VRFCoordinator.utils.cjs')
 const { parseKlay } = require('./utils.cjs')
-const { deploy: deployPrepayment } = require('./Prepayment.utils.cjs')
-
 const {
+  deploy: deployRrCoordinator,
   setupOracle: setupRequestResponseCoordinator,
   parseDataRequestFulfilledTx
 } = require('./RequestResponseCoordinator.utils.cjs')
-const { createAccount, deposit } = require('./Prepayment.utils.cjs')
+const { deploy: deployPrepayment, createAccount, deposit } = require('./Prepayment.utils.cjs')
 const { vrfConfig } = require('./VRFCoordinator.config.cjs')
 const { requestResponseConfig } = require('./RequestResponse.config.cjs')
 const { getBalance } = require('./utils.cjs')
@@ -24,28 +23,28 @@ const oraklVrf = import('@bisonai/orakl-vrf')
 async function createSigners() {
   let { deployer, consumer, consumer1, vrfOracle0, rrOracle0 } = await hre.getNamedAccounts()
 
-  const deployerSigner = await ethers.getSigner(deployer)
-  const consumerSigner = await ethers.getSigner(consumer)
-  const protocolFeeRecipientSigner = await ethers.getSigner(consumer1)
-  const vrfOracleSigner = await ethers.getSigner(vrfOracle0)
-  const rrOracleSigner = await ethers.getSigner(rrOracle0)
+  const account0 = await ethers.getSigner(deployer)
+  const account1 = await ethers.getSigner(consumer)
+  const account2 = await ethers.getSigner(consumer1)
+  const account3 = await ethers.getSigner(vrfOracle0)
+  const account4 = await ethers.getSigner(rrOracle0)
 
   return {
-    deployerSigner,
-    consumerSigner,
-    protocolFeeRecipientSigner,
-    vrfOracleSigner,
-    rrOracleSigner
+    account0,
+    account1,
+    account2,
+    account3,
+    account4
   }
 }
 
 async function deploy() {
   const {
-    deployerSigner,
-    consumerSigner,
-    protocolFeeRecipientSigner,
-    vrfOracleSigner,
-    rrOracleSigner
+    account0: deployerSigner,
+    account1: consumerSigner,
+    account2: vrfOracleSigner,
+    account3: rrOracleSigner,
+    account4: protocolFeeRecipientSigner
   } = await createSigners()
 
   // Prepayment
@@ -53,23 +52,34 @@ async function deploy() {
     protocolFeeRecipientSigner.address,
     deployerSigner
   )
+  const prepayment = {
+    contract: prepaymentContract,
+    signer: deployerSigner
+  }
 
   // VRFCoordinator
   const vrfCoordinatorContract = await deployVrfCoordinator(
     prepaymentContract.address,
     deployerSigner
   )
+  const vrfCoordinator = {
+    contract: vrfCoordinatorContract,
+    signer: deployerSigner
+  }
 
   // VRFCoordinator setup
   await setupVrfCoordinator(vrfCoordinatorContract, vrfOracleSigner.address)
   await prepaymentContract.addCoordinator(vrfCoordinatorContract.address)
 
   // RequestResponseCoordinator
-  let rrCoordinatorContract = await ethers.getContractFactory('RequestResponseCoordinator', {
+  const rrCoordinatorContract = await deployRrCoordinator(
+    prepaymentContract.address,
+    deployerSigner
+  )
+  const rrCoordinator = {
+    contract: rrCoordinatorContract,
     signer: deployerSigner
-  })
-  rrCoordinatorContract = await rrCoordinatorContract.deploy(prepaymentContract.address)
-  await rrCoordinatorContract.deployed()
+  }
 
   // RequestResponseCoordinator setup
   await setupRequestResponseCoordinator(rrCoordinatorContract, rrOracleSigner.address)
@@ -81,6 +91,10 @@ async function deploy() {
   })
   vrfConsumerContract = await vrfConsumerContract.deploy(vrfCoordinatorContract.address)
   await vrfConsumerContract.deployed()
+  const vrfConsumer = {
+    contract: vrfConsumerContract,
+    signer: consumerSigner
+  }
 
   // RequestResponseConsumerRevertFulfillmentMock
   let rrConsumerContract = await ethers.getContractFactory(
@@ -91,6 +105,10 @@ async function deploy() {
   )
   rrConsumerContract = await rrConsumerContract.deploy(rrCoordinatorContract.address)
   await rrConsumerContract.deployed()
+  const rrConsumer = {
+    contract: rrConsumerContract,
+    signer: consumerSigner
+  }
 
   const { accId } = await createAccount(prepaymentContract, consumerSigner)
   const amount = parseKlay(1)
@@ -99,35 +117,36 @@ async function deploy() {
   await prepaymentContract.connect(consumerSigner).addConsumer(accId, rrConsumerContract.address)
 
   return {
-    vrfCoordinatorContract,
-    rrCoordinatorContract,
-    vrfConsumerContract,
-    rrConsumerContract,
-    accId,
-    protocolFeeRecipientSigner
+    vrfOracleSigner,
+    rrOracleSigner,
+    protocolFeeRecipientSigner,
+    vrfCoordinator,
+    vrfConsumer,
+    rrCoordinator,
+    rrConsumer,
+    accId
   }
 }
 
 describe('Revert Fulfillment Test', function () {
   it('Revert VRF', async function () {
-    const { vrfCoordinatorContract, vrfConsumerContract, accId, protocolFeeRecipientSigner } =
+    const { vrfOracleSigner, protocolFeeRecipientSigner, vrfCoordinator, vrfConsumer, accId } =
       await loadFixture(deploy)
-    const { vrfOracleSigner } = await createSigners()
 
     const { keyHash, maxGasLimit: callbackGasLimit } = vrfConfig()
     const numWords = 1
     const txRequest = await (
-      await vrfConsumerContract.requestRandomWords(keyHash, accId, callbackGasLimit, numWords)
+      await vrfConsumer.contract.requestRandomWords(keyHash, accId, callbackGasLimit, numWords)
     ).wait()
 
     const { preSeed, sender, isDirectPayment, blockHash, blockNumber } =
-      parseRandomWordsRequestedTx(vrfCoordinatorContract, txRequest)
+      parseRandomWordsRequestedTx(vrfCoordinator.contract, txRequest)
 
     const protocolFeeRecipientBalanceBefore = await getBalance(protocolFeeRecipientSigner.address)
     const oracleBalanceBefore = await getBalance(vrfOracleSigner.address)
 
     const txFulfill = await fulfillRandomWords(
-      vrfCoordinatorContract,
+      vrfCoordinator.contract,
       vrfOracleSigner,
       preSeed,
       blockHash,
@@ -139,7 +158,7 @@ describe('Revert Fulfillment Test', function () {
       numWords
     )
 
-    const { payment, success } = parseRandomWordsFulfilledTx(vrfCoordinatorContract, txFulfill)
+    const { payment, success } = parseRandomWordsFulfilledTx(vrfCoordinator.contract, txFulfill)
     expect(payment).to.be.above(0)
     expect(success).to.be.equal(false)
 
@@ -168,17 +187,16 @@ describe('Revert Fulfillment Test', function () {
   })
 
   it('Revert Request-Response', async function () {
-    const { rrCoordinatorContract, rrConsumerContract, accId } = await loadFixture(deploy)
-    const { rrOracleSigner, protocolFeeRecipientSigner } = await createSigners()
-
+    const { rrOracleSigner, protocolFeeRecipientSigner, rrCoordinator, rrConsumer, accId } =
+      await loadFixture(deploy)
     const { maxGasLimit: callbackGasLimit } = requestResponseConfig()
     const numSubmission = 1
 
     const tx = await (
-      await rrConsumerContract.requestDataUint128(accId, callbackGasLimit, numSubmission)
+      await rrConsumer.contract.requestDataUint128(accId, callbackGasLimit, numSubmission)
     ).wait()
     const { requestId, sender, blockNumber } = parseRandomWordsRequestedTx(
-      rrCoordinatorContract,
+      rrCoordinator.contract,
       tx
     )
 
@@ -194,13 +212,13 @@ describe('Revert Fulfillment Test', function () {
     }
     const isDirectPayment = false
     const txFulfill = await (
-      await rrCoordinatorContract
+      await rrCoordinator.contract
         .connect(rrOracleSigner)
         .fulfillDataRequestInt256(requestId, 123, requestCommitment, isDirectPayment)
     ).wait()
 
     const { payment, success } = parseDataRequestFulfilledTx(
-      rrCoordinatorContract,
+      rrCoordinator.contract,
       txFulfill,
       'DataRequestFulfilledInt256'
     )

@@ -11,6 +11,15 @@ const DATA_REQUEST_EVENT_ARGS = [
   'data'
 ]
 
+async function deploy(prepaymentAddress, signer) {
+  let contract = await ethers.getContractFactory('RequestResponseCoordinator', {
+    signer
+  })
+  contract = await contract.deploy(prepaymentAddress)
+  await contract.deployed()
+  return contract
+}
+
 async function setupOracle(coordinator, oracle) {
   const { maxGasLimit, gasAfterPaymentCalculation, feeConfig } = requestResponseConfig()
   await coordinator.registerOracle(oracle)
@@ -64,6 +73,7 @@ function parseDataRequestFulfilledTx(coordinator, tx, eventName) {
 }
 
 module.exports = {
+  deploy,
   setupOracle,
   parseDataRequestedTx,
   DATA_REQUEST_EVENT_ARGS,
