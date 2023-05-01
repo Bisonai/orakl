@@ -72,10 +72,19 @@ function parseDataRequestFulfilledTx(coordinator, tx, eventName) {
   }
 }
 
+function parseOracleRegisterdTx(coordinator, tx) {
+  expect(tx.events.length).to.be.equal(1)
+  const event = coordinator.interface.parseLog(tx.events[0])
+  expect(event.name).to.be.equal('OracleRegistered')
+  const { oracle } = event.args
+  return { oracle }
+}
+
 module.exports = {
   deploy,
   setupOracle,
   parseDataRequestedTx,
   DATA_REQUEST_EVENT_ARGS,
-  parseDataRequestFulfilledTx
+  parseDataRequestFulfilledTx,
+  parseOracleRegisterdTx
 }

@@ -1,55 +1,82 @@
 const { expect } = require('chai')
 const { ethers } = require('hardhat')
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers')
+const { deploy: deployPrepayment } = require('./Prepayment.utils.cjs')
+const {
+  deploy: deployRrCoordinator,
+  parseOracleRegisterdTx
+} = require('./RequestResponseCoordinator.utils.cjs')
 
-async function deployFixture() {
-  const {
-    deployer,
-    consumer,
-    rrOracle0,
-    consumer1: sProtocolFeeRecipient
-  } = await hre.getNamedAccounts()
+async function createSigners() {
+  let { deployer, consumer, consumer1 } = await hre.getNamedAccounts()
 
-  // PREPAYMENT
-  let prepaymentContract = await ethers.getContractFactory('Prepayment', {
-    signer: deployer
-  })
-  prepaymentContract = await prepaymentContract.deploy(sProtocolFeeRecipient)
-  await prepaymentContract.deployed()
-
-  // COORDINATOR
-  let coordinatorContract = await ethers.getContractFactory('RequestResponseCoordinator', {
-    signer: deployer
-  })
-  coordinatorContract = await coordinatorContract.deploy(prepaymentContract.address)
-  await coordinatorContract.deployed()
+  const account0 = await ethers.getSigner(deployer)
+  const account1 = await ethers.getSigner(consumer)
+  const account2 = await ethers.getSigner(consumer1)
 
   return {
-    deployer,
-    coordinatorContract
+    account0,
+    account1,
+    account2
+  }
+}
+
+async function deploy() {
+  const {
+    account0: deployerSigner,
+    account1: protocolFeeRecipient,
+    account2: consumerSigner
+  } = await createSigners()
+
+  // PREPAYMENT
+  const prepaymentContract = await deployPrepayment(protocolFeeRecipient.address, deployerSigner)
+
+  // COORDINATOR
+  const coordinatorContract = await deployRrCoordinator(prepaymentContract.address, deployerSigner)
+  expect(await coordinatorContract.connect(consumerSigner).typeAndVersion()).to.be.equal(
+    'RequestResponseCoordinator v0.1'
+  )
+
+  return {
+    coordinatorContract,
+    consumerSigner
   }
 }
 
 describe('RequestResponseCoordinator', function () {
   it('Register oracle', async function () {
-    const { coordinatorContract } = await loadFixture(deployFixture)
+    const { coordinatorContract, consumerSigner } = await loadFixture(deploy)
     const { address: oracle1 } = ethers.Wallet.createRandom()
     const { address: oracle2 } = ethers.Wallet.createRandom()
     expect(oracle1).to.not.be.equal(oracle2)
 
+    // oracle 1 is not registered yet
+    expect(
+      await coordinatorContract.connect(consumerSigner).isOracleRegistered(oracle1)
+    ).to.be.equal(false)
+
     // Register oracle 1
-    const txReceipt = await (await coordinatorContract.registerOracle(oracle1)).wait()
-    expect(txReceipt.events.length).to.be.equal(1)
-    const registerEvent = coordinatorContract.interface.parseLog(txReceipt.events[0])
-    expect(registerEvent.name).to.be.equal('OracleRegistered')
-    expect(registerEvent.args['oracle']).to.be.equal(oracle1)
+    {
+      const tx = await (await coordinatorContract.registerOracle(oracle1)).wait()
+      const { oracle } = parseOracleRegisterdTx(coordinatorContract, tx)
+      expect(oracle).to.be.equal(oracle)
+    }
+
+    // oracle 1 is now registered
+    expect(
+      await coordinatorContract.connect(consumerSigner).isOracleRegistered(oracle1)
+    ).to.be.equal(true)
 
     // Register oracle 2
-    await (await coordinatorContract.registerOracle(oracle2)).wait()
+    {
+      const tx = await (await coordinatorContract.registerOracle(oracle2)).wait()
+      const { oracle } = parseOracleRegisterdTx(coordinatorContract, tx)
+      expect(oracle).to.be.equal(oracle2)
+    }
   })
 
   it('Do not allow to register the same oracle twice', async function () {
-    const { coordinatorContract } = await loadFixture(deployFixture)
+    const { coordinatorContract } = await loadFixture(deploy)
     const { address: oracle } = ethers.Wallet.createRandom()
 
     await (await coordinatorContract.registerOracle(oracle)).wait()
@@ -60,7 +87,7 @@ describe('RequestResponseCoordinator', function () {
   })
 
   it('Deregister registered oracle', async function () {
-    const { coordinatorContract } = await loadFixture(deployFixture)
+    const { coordinatorContract } = await loadFixture(deploy)
     const { address: oracle } = ethers.Wallet.createRandom()
 
     // Cannot deregister underegistered oracle
