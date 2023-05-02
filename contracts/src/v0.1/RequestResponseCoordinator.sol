@@ -182,7 +182,8 @@ contract RequestResponseCoordinator is
     function requestData(
         Orakl.Request memory req,
         uint32 callbackGasLimit,
-        uint8 numSubmission
+        uint8 numSubmission,
+        address refundRecipient
     ) external payable returns (uint256) {
         uint64 reqCount = 0;
         uint256 fee = estimateFee(reqCount, numSubmission, callbackGasLimit);
@@ -204,7 +205,7 @@ contract RequestResponseCoordinator is
         // Refund extra $KLAY
         uint256 remaining = msg.value - fee;
         if (remaining > 0) {
-            (bool sent, ) = msg.sender.call{value: remaining}("");
+            (bool sent, ) = refundRecipient.call{value: remaining}("");
             if (!sent) {
                 revert RefundFailure();
             }

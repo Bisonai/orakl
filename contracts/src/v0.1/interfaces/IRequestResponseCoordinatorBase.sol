@@ -29,6 +29,8 @@ interface IRequestResponseCoordinatorBase {
      * inside fulfillRequest. The acceptable range is [0, maxGasLimit]
      * @param accId - The ID of the account. Must be funded with the
      * minimum account balance.
+     * @param numSubmission number of requested submission to compute
+     * the final aggregate value
      @return requestId - A unique * identifier of the request. Can be
      used to match a request to a * response in fulfillRequest.
      */
@@ -36,7 +38,7 @@ interface IRequestResponseCoordinatorBase {
         Orakl.Request memory req,
         uint32 callbackGasLimit,
         uint64 accId,
-        uint8 numbSubmission
+        uint8 numSubmission
     ) external returns (uint256);
 
     /**
@@ -52,13 +54,18 @@ interface IRequestResponseCoordinatorBase {
      * gas used calling the function (argument decoding etc.), so you
      * may need to request slightly more than you expect to have
      * inside fulfillRequest. The acceptable range is [0, maxGasLimit]
+     * @param numSubmission number of requested submission to compute
+     * the final aggregate value
+     * @param refundRecipient recipient of an extra $KLAY amount that
+     * was sent together with service request
      * @return requestId - A unique identifier of the request. Can be
      * used to match a request to a response in fulfillRequest.
      */
     function requestData(
         Orakl.Request memory req,
         uint32 callbackGasLimit,
-        uint8 numbSubmission
+        uint8 numSubmission,
+        address refundRecipient
     ) external payable returns (uint256);
 
     function fulfillDataRequestUint128(
