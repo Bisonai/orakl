@@ -521,7 +521,7 @@ describe('Aggregator', function () {
     ).to.be.revertedWithCustomError(aggregator.contract, 'PrevRoundNotSupersedable')
   })
 
-  it.only('currentRoundStartedAt', async function () {
+  it('currentRoundStartedAt', async function () {
     const { aggregator, consumer, account2: oracle0 } = await loadFixture(deploy)
     await aggregator.contract.changeOracles([], [oracle0.address], 1, 1, 0)
 
@@ -530,6 +530,46 @@ describe('Aggregator', function () {
       const block = await ethers.provider.getBlock(tx.blockNumber)
       const startedAt = await aggregator.contract.connect(consumer.signer).currentRoundStartedAt()
       expect(startedAt).to.be.equal(block.timestamp)
+    }
+  })
+
+  it('validateOracleRound', async function () {
+    const { aggregator, consumer, account2: oracle0, account3: oracle1 } = await loadFixture(deploy)
+
+    {
+      const roundId = 1
+      await expect(aggregator.contract.connect(oracle0).submit(roundId, 123)).to.be.revertedWith(
+        'not enabled oracle'
+      )
+    }
+
+    await aggregator.contract.changeOracles([], [oracle0.address], 1, 1, 0)
+
+    {
+      const roundId = 2
+      await expect(aggregator.contract.connect(oracle0).submit(roundId, 123)).to.be.revertedWith(
+        'invalid round to report'
+      )
+    }
+
+    {
+      const roundId = 1
+      await aggregator.contract.connect(oracle0).submit(roundId, 123)
+      await expect(aggregator.contract.connect(oracle0).submit(roundId, 123)).to.be.revertedWith(
+        'cannot report on previous rounds'
+      )
+    }
+
+    {
+      await aggregator.contract.changeOracles([oracle0.address], [oracle1.address], 1, 1, 0)
+
+      const roundId = 2
+      await aggregator.contract.connect(oracle1).submit(roundId, 123)
+      await aggregator.contract.connect(oracle1).submit(roundId + 1, 123)
+
+      await expect(
+        aggregator.contract.connect(oracle0).submit(roundId + 1, 123)
+      ).to.be.revertedWith('no longer allowed oracle')
     }
   })
 })
