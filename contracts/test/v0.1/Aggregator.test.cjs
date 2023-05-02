@@ -1,6 +1,6 @@
 const { expect } = require('chai')
 const { ethers } = require('hardhat')
-const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers')
+const { time, loadFixture } = require('@nomicfoundation/hardhat-network-helpers')
 const { aggregatorConfig } = require('./Aggregator.config.cjs')
 const {
   deployAggregatorProxy,
@@ -535,10 +535,11 @@ describe('Aggregator', function () {
 
   it('validateOracleRound', async function () {
     const { aggregator, consumer, account2: oracle0, account3: oracle1 } = await loadFixture(deploy)
+    const answer = 123
 
     {
       const roundId = 1
-      await expect(aggregator.contract.connect(oracle0).submit(roundId, 123)).to.be.revertedWith(
+      await expect(aggregator.contract.connect(oracle0).submit(roundId, answer)).to.be.revertedWith(
         'not enabled oracle'
       )
     }
@@ -547,28 +548,38 @@ describe('Aggregator', function () {
 
     {
       const roundId = 2
-      await expect(aggregator.contract.connect(oracle0).submit(roundId, 123)).to.be.revertedWith(
+      await expect(aggregator.contract.connect(oracle0).submit(roundId, answer)).to.be.revertedWith(
         'invalid round to report'
       )
     }
 
     {
       const roundId = 1
-      await aggregator.contract.connect(oracle0).submit(roundId, 123)
-      await expect(aggregator.contract.connect(oracle0).submit(roundId, 123)).to.be.revertedWith(
+      await aggregator.contract.connect(oracle0).submit(roundId, answer)
+      await expect(aggregator.contract.connect(oracle0).submit(roundId, answer)).to.be.revertedWith(
         'cannot report on previous rounds'
       )
     }
 
+    await aggregator.contract.changeOracles([], [oracle1.address], 2, 2, 0)
+
     {
-      await aggregator.contract.changeOracles([oracle0.address], [oracle1.address], 1, 1, 0)
-
       const roundId = 2
-      await aggregator.contract.connect(oracle1).submit(roundId, 123)
-      await aggregator.contract.connect(oracle1).submit(roundId + 1, 123)
-
+      await aggregator.contract.connect(oracle0).submit(roundId, answer)
       await expect(
-        aggregator.contract.connect(oracle0).submit(roundId + 1, 123)
+        aggregator.contract.connect(oracle0).submit(roundId + 1, answer)
+      ).to.be.revertedWith('previous round not supersedable')
+    }
+
+    {
+      const { timeout } = aggregatorConfig()
+      time.increase(timeout)
+      await aggregator.contract.changeOracles([oracle1.address], [], 1, 1, 0)
+
+      const roundId = 3
+      await aggregator.contract.connect(oracle1).submit(roundId, answer)
+      await expect(
+        aggregator.contract.connect(oracle1).submit(roundId + 1, answer)
       ).to.be.revertedWith('no longer allowed oracle')
     }
   })
