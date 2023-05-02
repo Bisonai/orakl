@@ -642,6 +642,16 @@ contract Aggregator is Ownable, IAggregator, ITypeAndVersion {
         return oracles[_oracle].endingRound == ROUND_MAX;
     }
 
+    /**
+     * @dev `maxSubmissions` struct property is initialized within
+     * `initializeNewRound` function with uint32 storage variable
+     * `maxSubmissionsCount`. After Aggregator collects at least
+     * `maxSubmissions` submissions, `details` struct is deleted
+     * (`deleteRoundDetails`), making `maxSubmissions` effectively
+     * 0. This sequence of events is depended on in this
+     * `acceptingSubmissions` to find out whether aggregator still
+     * accepts submissions for `_roundId`.
+     */
     function acceptingSubmissions(uint32 _roundId) private view returns (bool) {
         return details[_roundId].maxSubmissions != 0;
     }
