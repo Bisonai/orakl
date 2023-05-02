@@ -443,4 +443,13 @@ describe('Aggregator', function () {
       aggregator.contract.changeOracles([], [], minSubmissionCount, maxSubmissionCount, 0)
     ).to.be.revertedWithCustomError(aggregator.contract, 'MinSubmissionGtMaxSubmission')
   })
+
+  it('MaxSubmissionGtOracleNum', async function () {
+    const { aggregator, consumer } = await loadFixture(deploy)
+    const minSubmissionCount = 0
+    const maxSubmissionCount = 1
+    await expect(
+      aggregator.contract.changeOracles([], [], minSubmissionCount, maxSubmissionCount, 0)
+    ).to.be.revertedWithCustomError(aggregator.contract, 'MaxSubmissionGtOracleNum')
+  })
 })
