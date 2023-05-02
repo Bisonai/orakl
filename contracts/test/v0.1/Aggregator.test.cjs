@@ -500,8 +500,6 @@ describe('Aggregator', function () {
       account4: oracle1,
       account5: oracle2
     } = await loadFixture(deploy)
-    const { timeout } = aggregatorConfig()
-
     const authorized = true
     const delay = 0
     await aggregator.contract.setRequesterPermissions(requester.address, authorized, delay)
@@ -521,5 +519,17 @@ describe('Aggregator', function () {
     await expect(
       aggregator.contract.connect(requester).requestNewRound()
     ).to.be.revertedWithCustomError(aggregator.contract, 'PrevRoundNotSupersedable')
+  })
+
+  it.only('currentRoundStartedAt', async function () {
+    const { aggregator, consumer, account2: oracle0 } = await loadFixture(deploy)
+    await aggregator.contract.changeOracles([], [oracle0.address], 1, 1, 0)
+
+    for (let i = 1; i <= 2; ++i) {
+      const tx = await (await aggregator.contract.connect(oracle0).submit(i, 123)).wait()
+      const block = await ethers.provider.getBlock(tx.blockNumber)
+      const startedAt = await aggregator.contract.connect(consumer.signer).currentRoundStartedAt()
+      expect(startedAt).to.be.equal(block.timestamp)
+    }
   })
 })
