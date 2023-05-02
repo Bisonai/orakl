@@ -381,6 +381,11 @@ contract Aggregator is Ownable, IAggregator, ITypeAndVersion {
         }
     }
 
+    function currentRoundStartedAt() external view returns (uint256) {
+        Round storage round = rounds[reportingRoundId];
+        return round.startedAt;
+    }
+
     /**
      * @notice method to update the address which does external data validation.
      * @param _newValidator designates the address of the new validation contract.
