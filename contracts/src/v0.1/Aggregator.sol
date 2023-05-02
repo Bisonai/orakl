@@ -78,6 +78,10 @@ contract Aggregator is Ownable, IAggregator, ITypeAndVersion {
     error TooManyOracles();
     error NoDataPresent();
     error NewRequestTooSoon();
+    error MinSubmissionGtMaxSubmission();
+    error RestartDelayExceedOracleNum();
+    error MinSubmissionZero();
+    error MaxSubmissionGtOracleNum();
 
     event RoundDetailsUpdated(
         uint32 indexed minSubmissionCount,
@@ -177,11 +181,22 @@ contract Aggregator is Ownable, IAggregator, ITypeAndVersion {
         uint32 _timeout
     ) public onlyOwner {
         uint32 oracleNum = oracleCount(); // Save on storage reads
-        require(_maxSubmissionCount >= _minSubmissionCount, "max must equal/exceed min");
-        require(oracleNum >= _maxSubmissionCount, "max cannot exceed total");
-        require(oracleNum == 0 || oracleNum > _restartDelay, "delay cannot exceed total");
-        if (oracleCount() > 0) {
-            require(_minSubmissionCount > 0, "min must be greater than 0");
+
+        if (_minSubmissionCount > _maxSubmissionCount) {
+            revert MinSubmissionGtMaxSubmission();
+        }
+
+        if (_maxSubmissionCount > oracleNum) {
+            revert MaxSubmissionGtOracleNum();
+        }
+
+        if (oracleNum > 0) {
+            if (oracleNum <= _restartDelay) {
+                revert RestartDelayExceedOracleNum();
+            }
+            if (_minSubmissionCount == 0) {
+                revert MinSubmissionZero();
+            }
         }
 
         minSubmissionCount = _minSubmissionCount;
@@ -392,6 +407,10 @@ contract Aggregator is Ownable, IAggregator, ITypeAndVersion {
      * Private
      */
 
+    /**
+     * @dev The function is executed fully with a specified parameter
+     * at most once.
+     */
     function initializeNewRound(uint32 _roundId) private {
         updateTimedOutRoundInfo(_roundId - 1);
 
@@ -408,10 +427,18 @@ contract Aggregator is Ownable, IAggregator, ITypeAndVersion {
         emit NewRound(_roundId, msg.sender, rounds[_roundId].startedAt);
     }
 
+    /**
+     * @dev The function is executed fully with a specified parameter
+     * at most once. Update of `reportingRoundId` is performed within
+     * `initializeNewRound` which is used in `newRound()` function to
+     * restrict access to this function.
+     */
     function oracleInitializeNewRound(uint32 _roundId) private {
-        if (!newRound(_roundId)) return;
+        if (!newRound(_roundId)) {
+            return;
+        }
         uint256 lastStarted = oracles[msg.sender].lastStartedRound;
-        if (_roundId <= lastStarted + restartDelay && lastStarted != 0) {
+        if (lastStarted > 0 && _roundId <= lastStarted + restartDelay) {
             return;
         }
 
@@ -424,7 +451,7 @@ contract Aggregator is Ownable, IAggregator, ITypeAndVersion {
             return;
         }
         uint256 lastStarted = requesters[msg.sender].lastStartedRound;
-        if (_roundId <= lastStarted + requesters[msg.sender].delay && lastStarted > 0) {
+        if (lastStarted > 0 && _roundId <= lastStarted + requesters[msg.sender].delay) {
             revert NewRequestTooSoon();
         }
 
@@ -450,10 +477,12 @@ contract Aggregator is Ownable, IAggregator, ITypeAndVersion {
         uint32 _queriedRoundId
     ) private view returns (bool _eligible) {
         if (rounds[_queriedRoundId].startedAt > 0) {
+            // past or current round
             return
                 acceptingSubmissions(_queriedRoundId) &&
                 validateOracleRound(_oracle, _queriedRoundId).length == 0;
         } else {
+            // future rounds
             return
                 delayed(_oracle, _queriedRoundId) &&
                 validateOracleRound(_oracle, _queriedRoundId).length == 0;
@@ -479,9 +508,10 @@ contract Aggregator is Ownable, IAggregator, ITypeAndVersion {
 
         bool shouldSupersede = oracle.lastReportedRound == reportingRoundId ||
             !acceptingSubmissions(reportingRoundId);
-        // Instead of nudging oracles to submit to the next round, the inclusion of
-        // the shouldSupersede bool in the if condition pushes them towards
-        // submitting in a currently open round.
+
+        // Instead of nudging oracles to submit to the next round, the
+        // inclusion of the shouldSupersede bool in the if condition
+        // pushes them towards submitting in a currently open round.
         if (supersedable(reportingRoundId) && shouldSupersede) {
             _roundId = reportingRoundId + 1;
             round = rounds[_roundId];
@@ -489,7 +519,6 @@ contract Aggregator is Ownable, IAggregator, ITypeAndVersion {
         } else {
             _roundId = reportingRoundId;
             round = rounds[_roundId];
-
             _eligibleToSubmit = acceptingSubmissions(_roundId);
         }
 
@@ -557,10 +586,9 @@ contract Aggregator is Ownable, IAggregator, ITypeAndVersion {
     }
 
     function deleteRoundDetails(uint32 _roundId) private {
-        if (details[_roundId].submissions.length < details[_roundId].maxSubmissions) {
-            return;
+        if (details[_roundId].submissions.length >= details[_roundId].maxSubmissions) {
+            delete details[_roundId];
         }
-        delete details[_roundId];
     }
 
     function timedOut(uint32 _roundId) private view returns (bool) {
@@ -577,6 +605,15 @@ contract Aggregator is Ownable, IAggregator, ITypeAndVersion {
         return currentRound + 1;
     }
 
+    /**
+     * @dev In general, oracles are supposed to submit to the current
+     * round that is denoted by `reportingRoundId` variable. In some
+     * cases, when the current round is `supersedable`, we allow them to
+     * submit to the next round.
+     * The only exception of submitting on previous round
+     * (`reportingRound - 1`) is when the current round has not
+     * received enough submissions to produce an aggregate value.
+     */
     function previousAndCurrentUnanswered(
         uint32 _roundId,
         uint32 _rrId
@@ -625,8 +662,12 @@ contract Aggregator is Ownable, IAggregator, ITypeAndVersion {
         if (oracles[_oracle].lastReportedRound >= _roundId)
             return "cannot report on previous rounds";
         if (
+            // Not reporting on current round.
             _roundId != rrId &&
+            // Not reporting on next round.
             _roundId != rrId + 1 &&
+            // Not reporting on the previous round while the current
+            // round has not finished yet.
             !previousAndCurrentUnanswered(_roundId, rrId)
         ) return "invalid round to report";
         if (_roundId != 1 && !supersedable(_roundId - 1)) return "previous round not supersedable";
@@ -634,10 +675,29 @@ contract Aggregator is Ownable, IAggregator, ITypeAndVersion {
         return "";
     }
 
+    /**
+     * @dev `updatedAt > 0` expression represents that aggregated
+     * submission can be accessed through `AggregatorProxy`. Accepting
+     * new submissions can still be allowed, but the aggregated value
+     * should be already a good approximate, therefore the `_roundId`
+     * is considered supersedable. The other possibility is that
+     * previous current round has not received enough submissions to
+     * compute aggregate value, however, the round has timed out,
+     * therefore `_roundId` is supersedable.
+     */
     function supersedable(uint32 _roundId) private view returns (bool) {
         return rounds[_roundId].updatedAt > 0 || timedOut(_roundId);
     }
 
+    /**
+     * @dev `endingRound` is set to `ROUND_MAX` when a new oracle is
+     * added (`addOracle`), therefore the `endingRound` equality to
+     * `ROUND_MAX` means that oracle has already been enabled.
+     * When oracle is removed (`removeOracle`), `endingRound` property
+     * is set to `reportingRoundId + 1`, indicating that the oracle
+     * is diabled. Submitting to the current `reportingRoundId` is
+     * still allowed.
+     */
     function oracleEnabled(address _oracle) private view returns (bool) {
         return oracles[_oracle].endingRound == ROUND_MAX;
     }
@@ -656,9 +716,20 @@ contract Aggregator is Ownable, IAggregator, ITypeAndVersion {
         return details[_roundId].maxSubmissions != 0;
     }
 
+    /**
+     * @dev oracles can be limited by how frequently they can initiate
+     * a new round. This frequency is defined with `restartDelay`
+     * variable that is same for all oracles. When a new oracle is
+     * added, it can initiate a new round without a
+     * limitation. However, for later submissions it is constrained by
+     * the frequency of new round initiation (`restartDelay`). Even
+     * though oracle cannot initiate a new round, it can still submit
+     * a new answer to aggregator. If `restartDelay` is 0, there are
+     * no frequency limitations on initiating a new round.
+     */
     function delayed(address _oracle, uint32 _roundId) private view returns (bool) {
         uint256 lastStarted = oracles[_oracle].lastStartedRound;
-        return _roundId > lastStarted + restartDelay || lastStarted == 0;
+        return lastStarted == 0 || _roundId > lastStarted + restartDelay;
     }
 
     function newRound(uint32 _roundId) private view returns (bool) {
