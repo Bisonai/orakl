@@ -10,7 +10,7 @@ const {
 } = require('./Aggregator.utils.cjs')
 
 async function createSigners() {
-  let { deployer, consumer, aggregatorOracle0, aggregatorOracle1, aggregatorOracle2 } =
+  let { deployer, consumer, aggregatorOracle0, aggregatorOracle1, aggregatorOracle2, account8 } =
     await hre.getNamedAccounts()
 
   const account0 = await ethers.getSigner(deployer)
@@ -18,13 +18,15 @@ async function createSigners() {
   const account2 = await ethers.getSigner(aggregatorOracle0)
   const account3 = await ethers.getSigner(aggregatorOracle1)
   const account4 = await ethers.getSigner(aggregatorOracle2)
+  const account5 = await ethers.getSigner(account8)
 
   return {
     account0,
     account1,
     account2,
     account3,
-    account4
+    account4,
+    account5
   }
 }
 
@@ -54,7 +56,8 @@ async function deploy() {
     account1: consumerSigner,
     account2,
     account3,
-    account4
+    account4,
+    account5
   } = await createSigners()
 
   // Aggregator /////////////////////////////////////////////////////////////////
@@ -95,7 +98,8 @@ async function deploy() {
     consumer,
     account2,
     account3,
-    account4
+    account4,
+    account5
   }
 }
 
@@ -485,5 +489,37 @@ describe('Aggregator', function () {
         restartDelay
       )
     ).to.be.revertedWithCustomError(aggregator.contract, 'MinSubmissionZero')
+  })
+
+  it('PrevRoundNotSupersedable', async function () {
+    const {
+      aggregator,
+      consumer,
+      account2: requester,
+      account3: oracle0,
+      account4: oracle1,
+      account5: oracle2
+    } = await loadFixture(deploy)
+    const { timeout } = aggregatorConfig()
+
+    const authorized = true
+    const delay = 0
+    await aggregator.contract.setRequesterPermissions(requester.address, authorized, delay)
+
+    await aggregator.contract.changeOracles(
+      [],
+      [oracle0.address, oracle1.address, oracle2.address],
+      2,
+      3,
+      0
+    )
+
+    // First round
+    await aggregator.contract.connect(oracle0).submit(1, 123)
+    // Only single oracle submitted, but did not compute answer (requires at least two submissions)
+
+    await expect(
+      aggregator.contract.connect(requester).requestNewRound()
+    ).to.be.revertedWithCustomError(aggregator.contract, 'PrevRoundNotSupersedable')
   })
 })
