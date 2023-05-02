@@ -593,6 +593,17 @@ contract Aggregator is Ownable, IAggregator, ITypeAndVersion {
 
     function timedOut(uint32 _roundId) private view returns (bool) {
         uint64 startedAt = rounds[_roundId].startedAt;
+        // `details` mapping for a specific round is supposed to be
+        // deleted after aggregator collects at least `maxSubmissions`
+        // answers for that specific round. If it does not collect
+        // such number of answers within the round, `details` mapping
+        // will be deleted during the initialization of the next
+        // round.  Depending on the validity of `_roundId` key,
+        // `roundTimeout` variable can be used to distinguish between
+        // successfully acomplished round and unsuccesful
+        // one. Assuming that `roundId` has been active (startedAt >
+        // 0), and a `roundTimeout` is over, a non-negative value of
+        // `roundTimeout` represents unsuccessfully finished round.
         uint32 roundTimeout = details[_roundId].timeout;
         return startedAt > 0 && roundTimeout > 0 && startedAt + roundTimeout < block.timestamp;
     }
