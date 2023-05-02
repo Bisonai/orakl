@@ -80,19 +80,19 @@ async function deploy() {
   expect(await aggregatorProxy.contract.description()).to.be.equal(description)
 
   // DataFeedConsumerMock ///////////////////////////////////////////////////////
-  const dataFeedConsumerMockContract = await deployDataFeedConsumerMock(
+  const consumerContract = await deployDataFeedConsumerMock(
     aggregatorProxy.contract.address,
     consumerSigner
   )
-  const dataFeedConsumerMock = {
-    contract: dataFeedConsumerMockContract,
+  const consumer = {
+    contract: consumerContract,
     signer: consumerSigner
   }
 
   return {
     aggregator,
     aggregatorProxy,
-    dataFeedConsumerMock,
+    consumer,
     account2,
     account3,
     account4
@@ -129,7 +129,7 @@ describe('Aggregator', function () {
     const {
       aggregator,
       aggregatorProxy,
-      dataFeedConsumerMock,
+      consumer,
       account2: oracle0,
       account3: oracle1,
       account4: oracle2
@@ -169,9 +169,9 @@ describe('Aggregator', function () {
     expect(await aggregatorProxy.contract.aggregator()).to.be.equal(aggregator.contract.address)
 
     // Read submission from DataFeedConsumerMock ////////////////////////////////
-    await dataFeedConsumerMock.contract.getLatestRoundData()
-    const sId = await dataFeedConsumerMock.contract.sId()
-    const sAnswer = await dataFeedConsumerMock.contract.sAnswer()
+    await consumer.contract.getLatestRoundData()
+    const sId = await consumer.contract.sId()
+    const sAnswer = await consumer.contract.sAnswer()
     expect(sId).to.be.equal('18446744073709551617')
     expect(sAnswer).to.be.equal(11)
 
@@ -182,16 +182,16 @@ describe('Aggregator', function () {
       startedAt: pStartedAt,
       updatedAt: pUpdatedAt,
       answeredInRound: pAnsweredInRound
-    } = await aggregatorProxy.contract.connect(dataFeedConsumerMock.signer).getRoundData(sId)
+    } = await aggregatorProxy.contract.connect(consumer.signer).getRoundData(sId)
     expect(pId).to.be.equal(sId)
     expect(pAnswer).to.be.equal(sAnswer)
-    expect(pStartedAt).to.be.equal(await dataFeedConsumerMock.contract.sStartedAt())
-    expect(pUpdatedAt).to.be.equal(await dataFeedConsumerMock.contract.sUpdatedAt())
-    expect(pAnsweredInRound).to.be.equal(await dataFeedConsumerMock.contract.sAnsweredInRound())
+    expect(pStartedAt).to.be.equal(await consumer.contract.sStartedAt())
+    expect(pUpdatedAt).to.be.equal(await consumer.contract.sUpdatedAt())
+    expect(pAnsweredInRound).to.be.equal(await consumer.contract.sAnsweredInRound())
 
     // Read decimals from DataFeedConsumerMock //////////////////////////////////
     const { decimals } = aggregatorConfig()
-    expect(await dataFeedConsumerMock.contract.decimals()).to.be.equal(decimals)
+    expect(await consumer.contract.decimals()).to.be.equal(decimals)
   })
 
   it('addOracle assertions', async function () {
@@ -210,7 +210,7 @@ describe('Aggregator', function () {
     const {
       aggregator: currentAggregator,
       aggregatorProxy,
-      dataFeedConsumerMock,
+      consumer,
       account2: oracle0,
       account3: oracle1,
       account4: invalidOracle
@@ -225,9 +225,7 @@ describe('Aggregator', function () {
     // proposeAggregator ////////////////////////////////////////////////////////
     // Aggregator can be proposed only by owner
     await expect(
-      aggregatorProxy.contract
-        .connect(dataFeedConsumerMock.signer)
-        .proposeAggregator(aggregator.address)
+      aggregatorProxy.contract.connect(consumer.signer).proposeAggregator(aggregator.address)
     ).to.be.revertedWith('Ownable: caller is not the owner')
 
     // Propose aggregator with contract owner
@@ -246,14 +244,14 @@ describe('Aggregator', function () {
     // proposedLatestRoundData //////////////////////////////////////////////////
     // If no data has been submitted to proposed yet, reading from proxy reverts
     await expect(
-      aggregatorProxy.contract.connect(dataFeedConsumerMock.signer).proposedLatestRoundData()
+      aggregatorProxy.contract.connect(consumer.signer).proposedLatestRoundData()
     ).to.be.revertedWithCustomError(aggregator, 'NoDataPresent')
     await aggregator.connect(oracle0).submit(1, 10)
     await aggregator.connect(oracle1).submit(1, 10)
 
     // Read after submitting at least `minSubmissionCount` to proposed aggregator
     const { id, answer, startedAt, updatedAt, answeredInRound } = await aggregatorProxy.contract
-      .connect(dataFeedConsumerMock.signer)
+      .connect(consumer.signer)
       .proposedLatestRoundData()
     expect(id).to.be.equal(1)
     expect(answer).to.be.equal(10)
@@ -265,7 +263,7 @@ describe('Aggregator', function () {
       startedAt: pStartedAt,
       updatedAt: pUpdatedAt,
       answeredInRound: pAnsweredInRound
-    } = await aggregatorProxy.contract.connect(dataFeedConsumerMock.signer).proposedGetRoundData(id)
+    } = await aggregatorProxy.contract.connect(consumer.signer).proposedGetRoundData(id)
     expect(id).to.be.equal(pId)
     expect(answer).to.be.equal(pAnswer)
     expect(startedAt).to.be.equal(pStartedAt)
@@ -275,9 +273,7 @@ describe('Aggregator', function () {
     // confirmAggregator ////////////////////////////////////////////////////////
     // Aggregator can be confirmed only by owner
     expect(
-      aggregatorProxy.contract
-        .connect(dataFeedConsumerMock.signer)
-        .confirmAggregator(aggregator.address)
+      aggregatorProxy.contract.connect(consumer.signer).confirmAggregator(aggregator.address)
     ).to.be.revertedWith('Ownable: caller is not the owner')
 
     // Owner must pass proposed aggregator address, otherwise reverts
@@ -418,5 +414,24 @@ describe('Aggregator', function () {
       expect(authorized).to.be.equal(_authorized)
       expect(delay).to.be.equal(_delay)
     }
+  })
+
+  it('TooManyOracles', async function () {
+    const { aggregator, consumer } = await loadFixture(deploy)
+
+    const MAX_ORACLE_COUNT = (
+      await aggregator.contract.connect(consumer.signer).MAX_ORACLE_COUNT()
+    ).toNumber()
+
+    let i = 1
+    for (; i < MAX_ORACLE_COUNT; ++i) {
+      const { address: oracle } = ethers.Wallet.createRandom()
+      await aggregator.contract.changeOracles([], [oracle], i, i, 0)
+    }
+
+    const { address: oracle } = ethers.Wallet.createRandom()
+    await expect(
+      aggregator.contract.changeOracles([], [oracle], i, i, 0)
+    ).to.be.revertedWithCustomError(aggregator.contract, 'TooManyOracles')
   })
 })

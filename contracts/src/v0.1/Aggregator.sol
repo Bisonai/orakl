@@ -57,7 +57,7 @@ contract Aggregator is Ownable, IAggregator, ITypeAndVersion {
     uint8 public override decimals;
     string public override description;
 
-    uint256 private constant MAX_ORACLE_COUNT = 77;
+    uint256 public constant MAX_ORACLE_COUNT = 77;
     uint32 private constant ROUND_MAX = 2 ** 32 - 1;
     uint256 private constant VALIDATOR_GAS_LIMIT = 100000;
 
