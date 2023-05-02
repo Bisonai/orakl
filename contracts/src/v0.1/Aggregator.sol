@@ -395,7 +395,6 @@ contract Aggregator is Ownable, IAggregator, ITypeAndVersion {
 
         if (previous != _newValidator) {
             validator = IAggregatorValidator(_newValidator);
-
             emit ValidatorUpdated(previous, _newValidator);
         }
     }
