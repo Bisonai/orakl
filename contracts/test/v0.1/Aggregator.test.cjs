@@ -452,4 +452,21 @@ describe('Aggregator', function () {
       aggregator.contract.changeOracles([], [], minSubmissionCount, maxSubmissionCount, 0)
     ).to.be.revertedWithCustomError(aggregator.contract, 'MaxSubmissionGtOracleNum')
   })
+
+  it('RestartDelayExceedOracleNum', async function () {
+    const { aggregator, consumer } = await loadFixture(deploy)
+    const minSubmissionCount = 0
+    const maxSubmissionCount = 1
+    const restartDelay = 1
+    const { address: oracle } = ethers.Wallet.createRandom()
+    await expect(
+      aggregator.contract.changeOracles(
+        [],
+        [oracle],
+        minSubmissionCount,
+        maxSubmissionCount,
+        restartDelay
+      )
+    ).to.be.revertedWithCustomError(aggregator.contract, 'RestartDelayExceedOracleNum')
+  })
 })
