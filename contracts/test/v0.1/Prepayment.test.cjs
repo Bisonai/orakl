@@ -7,37 +7,41 @@ const {
   deposit,
   withdraw
 } = require('./Prepayment.utils.cjs')
-const { parseKlay } = require('./utils.cjs')
+const { parseKlay, getBalance } = require('./utils.cjs')
 
 const NULL_ADDRESS = '0x0000000000000000000000000000000000000000'
 const DEFAULT_BURN_FEE_RATIO = 50
 const DEFAULT_PROTOCOL_FEE_RATIO = 5
 
 async function createSigners() {
-  let { deployer, consumer, consumer1, consumer2, account8 } = await hre.getNamedAccounts()
+  let { deployer, consumer, consumer1, consumer2, account8, vrfOracle0 } =
+    await hre.getNamedAccounts()
 
-  const deployerSigner = await ethers.getSigner(deployer)
-  const consumerSigner = await ethers.getSigner(consumer)
-  const consumer1Signer = await ethers.getSigner(consumer1)
-  const consumer2Signer = await ethers.getSigner(consumer2)
-  const account8Signer = await ethers.getSigner(account8)
+  const account0 = await ethers.getSigner(deployer)
+  const account1 = await ethers.getSigner(consumer)
+  const account2 = await ethers.getSigner(consumer1)
+  const account3 = await ethers.getSigner(consumer2)
+  const account4 = await ethers.getSigner(account8)
+  const account5 = await ethers.getSigner(vrfOracle0)
 
   return {
-    deployerSigner,
-    consumerSigner,
-    consumer1Signer,
-    consumer2Signer,
-    account8Signer
+    account0,
+    account1,
+    account2,
+    account3,
+    account4,
+    account5
   }
 }
 
 async function deploy() {
   const {
-    deployerSigner,
-    consumerSigner,
-    consumer1Signer,
-    consumer2Signer,
-    account8Signer: protocolFeeRecipientSigner
+    account0: deployerSigner,
+    account1: consumerSigner,
+    account2: protocolFeeRecipientSigner,
+    account3,
+    account4,
+    account5
   } = await createSigners()
 
   const prepaymentContract = await deployPrepayment(
@@ -48,10 +52,11 @@ async function deploy() {
   return {
     deployerSigner,
     consumerSigner,
-    consumer1Signer,
-    consumer2Signer,
-    prepaymentContract,
-    protocolFeeRecipientSigner
+    protocolFeeRecipientSigner,
+    account3,
+    account4,
+    account5,
+    prepaymentContract
   }
 }
 
@@ -119,7 +124,7 @@ describe('Prepayment', function () {
     const {
       prepaymentContract,
       protocolFeeRecipientSigner,
-      consumer2Signer: newProtocolFeeRecipientSigner
+      account4: newProtocolFeeRecipientSigner
     } = await loadFixture(deploy)
     const recipient = await prepaymentContract.getProtocolFeeRecipient()
     expect(recipient).to.be.equal(protocolFeeRecipientSigner.address)
@@ -149,7 +154,7 @@ describe('Prepayment', function () {
     const {
       prepaymentContract,
       consumerSigner: accountOwner,
-      consumer1Signer: nonOwner
+      account3: nonOwner
     } = await loadFixture(deploy)
 
     const { accId, account } = await createAccount(prepaymentContract, accountOwner)
@@ -167,9 +172,15 @@ describe('Prepayment', function () {
       accId,
       amount
     )
+
+    // Read balance directly from Account contract
     const balanceAfterDeposit = await accountContract.getBalance()
     expect(balanceBeforeDeposit).to.be.equal(oldBalanceDeposit)
     expect(balanceAfterDeposit).to.be.equal(newBalanceDeposit)
+
+    // Read balance indirectly through Prepayment contract
+    const prepaymentBalanceAfterDeposit = await prepaymentContract.getBalance(accId)
+    expect(prepaymentBalanceAfterDeposit).to.be.equal(balanceAfterDeposit)
 
     // 2. Withdraw $KLAY ////////////////////////////////////////////////////////
     // Only account owner can withdraw
@@ -192,13 +203,36 @@ describe('Prepayment', function () {
     expect(balanceAfterWithdraw).to.be.equal(0)
   })
 
+  it('Deposit to non-existant account', async function () {
+    // It is not possible to deposit to non-existant account, deposit
+    // transaction reverts in such case.
+    const { prepaymentContract, consumerSigner: accountOwner } = await loadFixture(deploy)
+    const accId = 123
+    const amount = parseKlay(10)
+    await expect(
+      deposit(prepaymentContract, accountOwner, accId, amount)
+    ).to.be.revertedWithCustomError(prepaymentContract, 'InvalidAccount')
+  })
+
+  it('Cannot deposit more than current balance', async function () {
+    const { prepaymentContract, consumerSigner: accountOwner } = await loadFixture(deploy)
+    const { accId } = await createAccount(prepaymentContract, accountOwner)
+    const amount = (await getBalance(accountOwner.address)) + parseKlay(1)
+    /* const amount = parseKlay(10_001) */
+    await expect(
+      prepaymentContract.connect(accountOwner).deposit(accId, {
+        value: amount
+      })
+    ).to.be.rejected
+  })
+
   it('Add & remove consumer', async function () {
     const {
       prepaymentContract,
       consumerSigner: accountOwner,
-      consumer1Signer: consumer,
-      consumer1Signer: nonOwner,
-      consumer2Signer: unusedConsumer
+      account3: consumer,
+      account4: nonOwner,
+      account5: unusedConsumer
     } = await loadFixture(deploy)
 
     const { accId, account } = await createAccount(prepaymentContract, accountOwner)
@@ -269,11 +303,7 @@ describe('Prepayment', function () {
   })
 
   it('Add & remove coordinator', async function () {
-    const {
-      consumerSigner,
-      prepaymentContract,
-      consumer1Signer: coordinator
-    } = await loadFixture(deploy)
+    const { consumerSigner, prepaymentContract, account3: coordinator } = await loadFixture(deploy)
 
     // Add coordinator //////////////////////////////////////////////////////////
     // Coordinator must be added by contract owner
@@ -321,7 +351,7 @@ describe('Prepayment', function () {
   it('Transfer account ownership', async function () {
     const {
       consumerSigner: fromConsumer,
-      consumer1Signer: toConsumer,
+      account3: toConsumer,
       prepaymentContract
     } = await loadFixture(deploy)
 
@@ -369,11 +399,7 @@ describe('Prepayment', function () {
   })
 
   it('Try to withdraw more than current balance', async function () {
-    const {
-      deployerSigner,
-      consumerSigner,
-      account8Signer: protocolFeeRecipientSigner
-    } = await createSigners()
+    const { deployerSigner, consumerSigner, protocolFeeRecipientSigner } = await loadFixture(deploy)
 
     const prepaymentContract = await deployPrepayment(
       protocolFeeRecipientSigner.address,
@@ -389,5 +415,73 @@ describe('Prepayment', function () {
     await expect(
       prepaymentContract.connect(consumerSigner).withdraw(accId, aboveBalance)
     ).to.be.revertedWithCustomError(accountContract, 'InsufficientBalance')
+  })
+
+  it('TooManyConsumers', async function () {
+    const { deployerSigner, consumerSigner, protocolFeeRecipientSigner } = await loadFixture(deploy)
+
+    const prepaymentContract = await deployPrepayment(
+      protocolFeeRecipientSigner.address,
+      deployerSigner
+    )
+
+    const { accId, account } = await createAccount(prepaymentContract, consumerSigner)
+    const accountContract = await ethers.getContractAt('Account', account, consumerSigner.address)
+    const MAX_CONSUMERS = await accountContract.MAX_CONSUMERS()
+
+    for (let i = 0; i < MAX_CONSUMERS; ++i) {
+      const { address: consumer } = ethers.Wallet.createRandom()
+      await prepaymentContract.connect(consumerSigner).addConsumer(accId, consumer)
+    }
+
+    // There is a limit (MAX_CONSUMERS) on number of consumers that can be added
+    const { address: consumer } = ethers.Wallet.createRandom()
+    await expect(
+      prepaymentContract.connect(consumerSigner).addConsumer(accId, consumer)
+    ).to.be.revertedWithCustomError(accountContract, 'TooManyConsumers')
+  })
+
+  it('OnlyOwner', async function () {
+    const { prepaymentContract, consumerSigner } = await loadFixture(deploy)
+
+    await expect(prepaymentContract.connect(consumerSigner).setBurnFeeRatio(5)).to.be.revertedWith(
+      'Ownable: caller is not the owner'
+    )
+
+    await expect(
+      prepaymentContract.connect(consumerSigner).setProtocolFeeRatio(5)
+    ).to.be.revertedWith('Ownable: caller is not the owner')
+
+    await expect(
+      prepaymentContract.connect(consumerSigner).setProtocolFeeRecipient(consumerSigner.address)
+    ).to.be.revertedWith('Ownable: caller is not the owner')
+
+    await expect(
+      prepaymentContract.connect(consumerSigner).addCoordinator(consumerSigner.address)
+    ).to.be.revertedWith('Ownable: caller is not the owner')
+
+    await expect(
+      prepaymentContract.connect(consumerSigner).removeCoordinator(consumerSigner.address)
+    ).to.be.revertedWith('Ownable: caller is not the owner')
+  })
+
+  it('OnlyCoordinator', async function () {
+    const { prepaymentContract, consumerSigner } = await loadFixture(deploy)
+
+    await expect(
+      prepaymentContract.connect(consumerSigner).chargeFee(1, 1_000)
+    ).to.be.revertedWithCustomError(prepaymentContract, 'InvalidCoordinator')
+
+    await expect(
+      prepaymentContract.connect(consumerSigner).chargeFeeTemporary(1)
+    ).to.be.revertedWithCustomError(prepaymentContract, 'InvalidCoordinator')
+
+    await expect(
+      prepaymentContract.connect(consumerSigner).chargeOperatorFee(1, 1_000, consumerSigner.address)
+    ).to.be.revertedWithCustomError(prepaymentContract, 'InvalidCoordinator')
+
+    await expect(
+      prepaymentContract.connect(consumerSigner).increaseNonce(1, consumerSigner.address)
+    ).to.be.revertedWithCustomError(prepaymentContract, 'InvalidCoordinator')
   })
 })

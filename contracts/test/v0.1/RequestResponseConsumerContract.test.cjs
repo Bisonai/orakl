@@ -30,7 +30,7 @@ async function createSigners() {
   }
 }
 
-async function deployFixture() {
+async function deploy() {
   const {
     deployer,
     consumer,
@@ -221,8 +221,9 @@ async function requestAndFulfill(
     rrOracle5,
     maxGasLimit,
     gasAfterPaymentCalculation,
-    feeConfig
-  } = await loadFixture(deployFixture)
+    feeConfig,
+    consumer
+  } = await loadFixture(deploy)
 
   await setupOracle(state.coordinatorContract, [
     rrOracle0,
@@ -238,7 +239,7 @@ async function requestAndFulfill(
   let requestReceipt
   if (isDirectPayment) {
     requestReceipt = await (
-      await requestFn(maxGasLimit, numSubmission, {
+      await requestFn(maxGasLimit, numSubmission, consumer, {
         gasLimit,
         value: parseKlay(1)
       })
@@ -305,7 +306,7 @@ async function requestAndFulfill(
 
 describe('Request-Response user contract', function () {
   it('requestData should revert with InsufficientPayment error', async function () {
-    const { state, maxGasLimit } = await loadFixture(deployFixture)
+    const { state, maxGasLimit } = await loadFixture(deploy)
     const accId = await state.createAccount()
     await state.addConsumer(state.consumerContract.address)
     const numSubmission = 1
@@ -317,7 +318,7 @@ describe('Request-Response user contract', function () {
   })
 
   it('Request & Fulfill Uint128', async function () {
-    const { state } = await loadFixture(deployFixture)
+    const { state } = await loadFixture(deploy)
     const numSubmission = 2
     await requestAndFulfill(
       state,
@@ -336,7 +337,7 @@ describe('Request-Response user contract', function () {
   })
 
   it('Request & Fulfill Uint128 Direct Payment', async function () {
-    const { state } = await loadFixture(deployFixture)
+    const { state } = await loadFixture(deploy)
     const numSubmission = 2
 
     await requestAndFulfill(
@@ -356,7 +357,7 @@ describe('Request-Response user contract', function () {
   })
 
   it('Request & Fulfill Int256', async function () {
-    const { state } = await loadFixture(deployFixture)
+    const { state } = await loadFixture(deploy)
     const numSubmission = 2
 
     await requestAndFulfill(
@@ -376,7 +377,7 @@ describe('Request-Response user contract', function () {
   })
 
   it('Request & Fulfill Int256 Direct Payment', async function () {
-    const { state } = await loadFixture(deployFixture)
+    const { state } = await loadFixture(deploy)
     const numSubmission = 2
 
     await requestAndFulfill(
@@ -396,7 +397,7 @@ describe('Request-Response user contract', function () {
   })
 
   it('Request & Fulfill Bool', async function () {
-    const { state } = await loadFixture(deployFixture)
+    const { state } = await loadFixture(deploy)
     const numSubmission = 3
 
     await requestAndFulfill(
@@ -417,7 +418,7 @@ describe('Request-Response user contract', function () {
   })
 
   it('Request & Fulfill Bool Direct Payment', async function () {
-    const { state } = await loadFixture(deployFixture)
+    const { state } = await loadFixture(deploy)
     const numSubmission = 3
 
     await requestAndFulfill(
@@ -438,7 +439,7 @@ describe('Request-Response user contract', function () {
   })
 
   it('Request & Fulfill String', async function () {
-    const { state } = await loadFixture(deployFixture)
+    const { state } = await loadFixture(deploy)
     const numSubmission = 1
 
     await requestAndFulfill(
@@ -455,7 +456,7 @@ describe('Request-Response user contract', function () {
   })
 
   it('Request & Fulfill String Direct Payment', async function () {
-    const { state } = await loadFixture(deployFixture)
+    const { state } = await loadFixture(deploy)
     const numSubmission = 1
 
     await requestAndFulfill(
@@ -472,7 +473,7 @@ describe('Request-Response user contract', function () {
   })
 
   it('Request & Fulfill Bytes32', async function () {
-    const { state } = await loadFixture(deployFixture)
+    const { state } = await loadFixture(deploy)
     const numSubmission = 1
 
     await requestAndFulfill(
@@ -489,7 +490,7 @@ describe('Request-Response user contract', function () {
   })
 
   it('Request & Fulfill Bytes32 Direct Payment', async function () {
-    const { state } = await loadFixture(deployFixture)
+    const { state } = await loadFixture(deploy)
     const numSubmission = 1
 
     await requestAndFulfill(
@@ -506,7 +507,7 @@ describe('Request-Response user contract', function () {
   })
 
   it('Request & Fulfill Bytes', async function () {
-    const { state } = await loadFixture(deployFixture)
+    const { state } = await loadFixture(deploy)
     const numSubmission = 1
 
     await requestAndFulfill(
@@ -523,7 +524,7 @@ describe('Request-Response user contract', function () {
   })
 
   it('Request & Fulfill Bytes Direct Payment', async function () {
-    const { state } = await loadFixture(deployFixture)
+    const { state } = await loadFixture(deploy)
     const numSubmission = 1
     await requestAndFulfill(
       state,
@@ -539,7 +540,7 @@ describe('Request-Response user contract', function () {
   })
 
   it('cancel request for [regular] account', async function () {
-    const { state, rrOracle0, maxGasLimit: callbackGasLimit } = await loadFixture(deployFixture)
+    const { state, rrOracle0, maxGasLimit: callbackGasLimit } = await loadFixture(deploy)
     await setupOracle(state.coordinatorContract, [rrOracle0])
 
     // Prepare account
@@ -569,7 +570,7 @@ describe('Request-Response user contract', function () {
   })
 
   it('increase nonce by every request with [regular] account', async function () {
-    const { state, rrOracle0, maxGasLimit: callbackGasLimit } = await loadFixture(deployFixture)
+    const { state, rrOracle0, maxGasLimit: callbackGasLimit } = await loadFixture(deploy)
 
     await setupOracle(state.coordinatorContract, [rrOracle0])
 
@@ -597,7 +598,7 @@ describe('Request-Response user contract', function () {
   })
 
   it('increase reqCount by every request with [regular] account', async function () {
-    const { state, rrOracle0, maxGasLimit: callbackGasLimit } = await loadFixture(deployFixture)
+    const { state, rrOracle0, maxGasLimit: callbackGasLimit } = await loadFixture(deploy)
     const { rrOracle0Signer } = await createSigners()
     await setupOracle(state.coordinatorContract, [rrOracle0])
 

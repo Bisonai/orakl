@@ -49,12 +49,15 @@ interface IVRFCoordinatorBase {
      * @param numWords - The number of uint256 random values you'd like to receive
      * in your fulfillRandomWords callback. Note these numbers are expanded in a
      * secure way by the VRFCoordinator from a single random value supplied by the oracle.
+     * @param refundRecipient recipient of an extra $KLAY amount that
+     * was sent together with service request
      * @return requestId - A unique identifier of the request. Can be used to match
      * a request to a response in fulfillRandomWords.
      */
     function requestRandomWords(
         bytes32 keyHash,
         uint32 callbackGasLimit,
-        uint32 numWords
+        uint32 numWords,
+        address refundRecipient
     ) external payable returns (uint256 requestId);
 }

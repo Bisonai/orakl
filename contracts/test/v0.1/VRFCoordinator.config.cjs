@@ -1,6 +1,6 @@
 function vrfConfig() {
   const maxGasLimit = 2_500_000
-  const gasAfterPaymentCalculation = 1_000
+  const gasAfterPaymentCalculation = 35_953
   const feeConfig = {
     fulfillmentFlatFeeKlayPPMTier1: 10_000,
     fulfillmentFlatFeeKlayPPMTier2: 10_000,

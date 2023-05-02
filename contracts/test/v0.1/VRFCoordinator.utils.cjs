@@ -1,4 +1,5 @@
 const { expect } = require('chai')
+const { ethers } = require('hardhat')
 const { vrfConfig } = require('./VRFCoordinator.config.cjs')
 const { remove0x } = require('./utils.cjs')
 const VRF = import('@bisonai/orakl-vrf')
@@ -124,6 +125,21 @@ function parseRequestCanceledTx(coordinator, tx) {
   return { requestId }
 }
 
+async function computeExactFee(
+  coordinatorContract,
+  signer,
+  reqCount,
+  numSubmission,
+  callbackGasLimit
+) {
+  const serviceFee = await coordinatorContract
+    .connect(signer)
+    .estimateFee(reqCount, numSubmission, callbackGasLimit)
+  const gasPrice = ethers.BigNumber.from(network.config.gasPrice)
+  const gasFee = gasPrice.mul(callbackGasLimit)
+  return serviceFee.add(gasFee)
+}
+
 module.exports = {
   deploy,
   setupOracle,
@@ -131,5 +147,6 @@ module.exports = {
   generateVrf,
   parseRandomWordsRequestedTx,
   parseRandomWordsFulfilledTx,
-  parseRequestCanceledTx
+  parseRequestCanceledTx,
+  computeExactFee
 }

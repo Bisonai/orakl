@@ -11,6 +11,15 @@ const DATA_REQUEST_EVENT_ARGS = [
   'data'
 ]
 
+async function deploy(prepaymentAddress, signer) {
+  let contract = await ethers.getContractFactory('RequestResponseCoordinator', {
+    signer
+  })
+  contract = await contract.deploy(prepaymentAddress)
+  await contract.deployed()
+  return contract
+}
+
 async function setupOracle(coordinator, oracle) {
   const { maxGasLimit, gasAfterPaymentCalculation, feeConfig } = requestResponseConfig()
   await coordinator.registerOracle(oracle)
@@ -47,14 +56,35 @@ function parseDataRequestFulfilledTx(coordinator, tx, eventName) {
   expect(event.name).to.be.equal(eventName)
   const blockHash = tx.blockHash
   const blockNumber = tx.blockNumber
+  const gasUsed = tx.gasUsed
+  const cumulativeGasUsed = tx.cumulativeGasUsed
 
   const { requestId, response, payment, success } = event.args
-  return { requestId, response, payment, success, blockHash, blockNumber }
+  return {
+    requestId,
+    response,
+    payment,
+    success,
+    blockHash,
+    blockNumber,
+    gasUsed,
+    cumulativeGasUsed
+  }
+}
+
+function parseOracleRegisterdTx(coordinator, tx) {
+  expect(tx.events.length).to.be.equal(1)
+  const event = coordinator.interface.parseLog(tx.events[0])
+  expect(event.name).to.be.equal('OracleRegistered')
+  const { oracle } = event.args
+  return { oracle }
 }
 
 module.exports = {
+  deploy,
   setupOracle,
   parseDataRequestedTx,
   DATA_REQUEST_EVENT_ARGS,
-  parseDataRequestFulfilledTx
+  parseDataRequestFulfilledTx,
+  parseOracleRegisterdTx
 }
