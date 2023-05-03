@@ -764,7 +764,44 @@ describe('Request-Response user contract', function () {
     ).to.be.revertedWithCustomError(coordinator.contract, 'OracleAlreadySubmitted')
   })
 
+  it('NoCorrespondingRequest', async function () {
+    const { prepayment, coordinator, consumer, rrOracle0 } = await loadFixture(deploy)
+    const { maxGasLimit: callbackGasLimit } = requestResponseConfig()
+    await setupOracle(coordinator.contract, [rrOracle0])
+
+    // Prepare account
+    const { accId } = await createAccount(prepayment.contract, consumer.signer)
+    await addConsumer(prepayment.contract, consumer.signer, accId, consumer.contract.address)
+    await deposit(prepayment.contract, consumer.signer, accId, parseKlay(1))
+
+    // Request configuration
+    const numSubmission = 1
+    const requestTx = await (
+      await consumer.contract.requestDataInt256(accId, callbackGasLimit, numSubmission)
+    ).wait()
+
+    const { sender, blockNumber, isDirectPayment } = parseDataRequestedTx(
+      coordinator.contract,
+      requestTx
+    )
+
+    const requestCommitment = {
+      blockNum: blockNumber,
+      accId,
+      callbackGasLimit,
+      numSubmission,
+      sender
+    }
+
+    const response = 123
+    const wrongRequestId = 111
+    await expect(
+      coordinator.contract
+        .connect(rrOracle0)
+        .fulfillDataRequestInt256(wrongRequestId, response, requestCommitment, isDirectPayment)
+    ).to.be.revertedWithCustomError(coordinator.contract, 'NoCorrespondingRequest')
+  })
+
   // TODO getters
-  // TODO NoCorrespondingRequest
   // TODO IncorrectCommitment
 })
