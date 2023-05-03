@@ -20,11 +20,10 @@ const {
 
 async function setupOracle(coordinator, oracles) {
   const { maxGasLimit, gasAfterPaymentCalculation, feeConfig } = requestResponseConfig()
-
+  await coordinator.setConfig(maxGasLimit, gasAfterPaymentCalculation, Object.values(feeConfig))
   for (const oracle of oracles) {
     await coordinator.registerOracle(oracle.address)
   }
-  await coordinator.setConfig(maxGasLimit, gasAfterPaymentCalculation, Object.values(feeConfig))
 }
 
 async function createSigners() {
@@ -681,8 +680,50 @@ describe('Request-Response user contract', function () {
     ).to.be.revertedWithCustomError(coordinator.contract, 'GasLimitTooBig')
   })
 
+  it('UnregisteredOracleFulfillment', async function () {
+    const { prepayment, coordinator, consumer, rrOracle0 } = await loadFixture(deploy)
+    const { maxGasLimit, gasAfterPaymentCalculation, feeConfig } = requestResponseConfig()
+    await coordinator.contract.setConfig(
+      maxGasLimit,
+      gasAfterPaymentCalculation,
+      Object.values(feeConfig)
+    )
+
+    // Prepare account
+    const { accId } = await createAccount(prepayment.contract, consumer.signer)
+    await addConsumer(prepayment.contract, consumer.signer, accId, consumer.contract.address)
+    await deposit(prepayment.contract, consumer.signer, accId, parseKlay(1))
+
+    // Request configuration
+    const numSubmission = 1
+
+    const callbackGasLimit = maxGasLimit
+    const requestTx = await (
+      await consumer.contract.requestDataInt256(accId, callbackGasLimit, numSubmission)
+    ).wait()
+
+    const { requestId, sender, blockNumber, isDirectPayment } = parseDataRequestedTx(
+      coordinator.contract,
+      requestTx
+    )
+
+    const requestCommitment = {
+      blockNum: blockNumber,
+      accId,
+      callbackGasLimit,
+      numSubmission,
+      sender
+    }
+
+    const response = 123
+    await expect(
+      coordinator.contract
+        .connect(rrOracle0)
+        .fulfillDataRequestInt256(requestId, response, requestCommitment, isDirectPayment)
+    ).to.be.revertedWithCustomError(coordinator.contract, 'UnregisteredOracleFulfillment')
+  })
+
   // TODO getters
-  // TODO gas limit too big
   // TODO UnregisteredOracleFulfillment
   // TODO NoCorrespondingRequest
   // TODO IncorrectCommitment
