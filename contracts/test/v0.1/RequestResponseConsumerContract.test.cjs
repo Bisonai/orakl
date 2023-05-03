@@ -696,7 +696,6 @@ describe('Request-Response user contract', function () {
 
     // Request configuration
     const numSubmission = 1
-
     const callbackGasLimit = maxGasLimit
     const requestTx = await (
       await consumer.contract.requestDataInt256(accId, callbackGasLimit, numSubmission)
@@ -723,8 +722,49 @@ describe('Request-Response user contract', function () {
     ).to.be.revertedWithCustomError(coordinator.contract, 'UnregisteredOracleFulfillment')
   })
 
+  it('OracleAlreadySubmitted', async function () {
+    const { prepayment, coordinator, consumer, rrOracle0, rrOracle1, rrOracle2, rrOracle3 } =
+      await loadFixture(deploy)
+    const { maxGasLimit: callbackGasLimit } = requestResponseConfig()
+    await setupOracle(coordinator.contract, [rrOracle0, rrOracle1, rrOracle2, rrOracle3])
+
+    // Prepare account
+    const { accId } = await createAccount(prepayment.contract, consumer.signer)
+    await addConsumer(prepayment.contract, consumer.signer, accId, consumer.contract.address)
+    await deposit(prepayment.contract, consumer.signer, accId, parseKlay(1))
+
+    // Request configuration
+    const numSubmission = 2
+    const requestTx = await (
+      await consumer.contract.requestDataInt256(accId, callbackGasLimit, numSubmission)
+    ).wait()
+
+    const { requestId, sender, blockNumber, isDirectPayment } = parseDataRequestedTx(
+      coordinator.contract,
+      requestTx
+    )
+
+    const requestCommitment = {
+      blockNum: blockNumber,
+      accId,
+      callbackGasLimit,
+      numSubmission,
+      sender
+    }
+
+    const response = 123
+    await coordinator.contract
+      .connect(rrOracle0)
+      .fulfillDataRequestInt256(requestId, response, requestCommitment, isDirectPayment)
+
+    await expect(
+      coordinator.contract
+        .connect(rrOracle0)
+        .fulfillDataRequestInt256(requestId, response, requestCommitment, isDirectPayment)
+    ).to.be.revertedWithCustomError(coordinator.contract, 'OracleAlreadySubmitted')
+  })
+
   // TODO getters
-  // TODO UnregisteredOracleFulfillment
   // TODO NoCorrespondingRequest
   // TODO IncorrectCommitment
 })
