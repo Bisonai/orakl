@@ -646,8 +646,24 @@ describe('Request-Response user contract', function () {
     ).to.be.revertedWithCustomError(coordinator.contract, 'InsufficientPayment')
   })
 
+  it('InvalidConsumer', async function () {
+    const { prepayment, coordinator, consumer, rrOracle0 } = await loadFixture(deploy)
+    const { maxGasLimit: callbackGasLimit } = requestResponseConfig()
+    await setupOracle(coordinator.contract, [rrOracle0])
+
+    // Prepare account
+    const { accId } = await createAccount(prepayment.contract, consumer.signer)
+    await deposit(prepayment.contract, consumer.signer, accId, parseKlay(1))
+    // Did not assign consumer to account!
+
+    // Request
+    const numSubmission = 1
+    await expect(
+      consumer.contract.requestDataInt256(accId, callbackGasLimit, numSubmission)
+    ).to.be.revertedWithCustomError(coordinator.contract, 'InvalidConsumer')
+  })
+
   // TODO getters
-  // TODO invalid consumer
   // TODO gas limit too big
   // TODO UnregisteredOracleFulfillment
   // TODO NoCorrespondingRequest
