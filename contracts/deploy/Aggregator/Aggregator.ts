@@ -8,7 +8,8 @@ import {
   updateMigration,
   validateAggregatorDeployConfig,
   validateAggregatorChangeOraclesConfig,
-  validateAggregatorRedirectProxyConfig
+  validateAggregatorRedirectProxyConfig,
+  getFormattedDate
 } from '../../scripts/v0.1/utils'
 import { IAggregatorConfig } from '../../scripts/v0.1/types'
 
@@ -34,8 +35,8 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       }
 
       // Aggregator
-      const now = new Date().getTime()
-      const aggregatorName = `Aggregator_${deployConfig.name}_${now}`
+      const date = getFormattedDate()
+      const aggregatorName = `Aggregator_${deployConfig.name}_${date}`
       const aggregatorDeployment = await deploy(aggregatorName, {
         contract: 'Aggregator',
         args: [

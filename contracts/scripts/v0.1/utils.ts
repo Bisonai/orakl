@@ -1,5 +1,6 @@
 import { readdir, readFile, appendFile } from 'node:fs/promises'
 import * as path from 'node:path'
+import moment from 'moment'
 import {
   ICoordinatorMinBalance,
   ICoordinatorDeploy,
@@ -208,4 +209,8 @@ export function validateVrfDeregisterOracle(config: IDeregisterOracle[]): boolea
   }
 
   return true
+}
+
+export function getFormattedDate() {
+  return moment().format('YYYYMMDDHHMMSS')
 }

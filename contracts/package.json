@@ -7,14 +7,14 @@
     "./src"
   ],
   "keywords": [
-      "Oracle",
-      "Orakl",
-      "Orakl Network",
-      "Blockchain",
-      "Web3",
-      "VRF",
-      "Request-Response",
-      "Data Feed"
+    "Oracle",
+    "Orakl",
+    "Orakl Network",
+    "Blockchain",
+    "Web3",
+    "VRF",
+    "Request-Response",
+    "Data Feed"
   ],
   "engines": {
     "node": ">=18.12"
@@ -73,6 +73,7 @@
     "hardhat-deploy": "^0.11.22",
     "hardhat-gas-reporter": "^1.0.8",
     "husky": "^8.0.2",
+    "moment": "^2.29.4",
     "prettier": "^2.8.1",
     "prettier-plugin-solidity": "^1.1.2",
     "solhint": "^3.3.7",
