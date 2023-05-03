@@ -458,10 +458,6 @@ contract RequestResponseCoordinator is
             revert InvalidConsumer(accId, msg.sender);
         }
 
-        // TODO update comment
-        // No lower bound on the requested gas limit. A user could request 0
-        // and they would simply be billed for the proof verification and wouldn't be
-        // able to do anything with the random value.
         if (callbackGasLimit > sConfig.maxGasLimit) {
             revert GasLimitTooBig(callbackGasLimit, sConfig.maxGasLimit);
         }

@@ -601,8 +601,33 @@ describe('Request-Response user contract', function () {
     )
   })
 
+  it('PendingRequestExists', async function () {
+    const { prepayment, coordinator, consumer, rrOracle0 } = await loadFixture(deploy)
+    const { maxGasLimit: callbackGasLimit } = requestResponseConfig()
+    await setupOracle(coordinator.contract, [rrOracle0])
+
+    // Prepare account
+    const { accId } = await createAccount(prepayment.contract, consumer.signer)
+    await addConsumer(prepayment.contract, consumer.signer, accId, consumer.contract.address)
+    await deposit(prepayment.contract, consumer.signer, accId, parseKlay(1))
+
+    // Request
+    const numSubmission = 1
+    const tx = await (
+      await consumer.contract.requestDataInt256(accId, callbackGasLimit, numSubmission)
+    ).wait()
+    const { requestId } = parseDataRequestedTx(coordinator.contract, tx)
+
+    // nonce 1 represents a valid account
+    // nonce 2 represents the first request
+    const nonce = 2
+    const pendingRequestExists = await coordinator.contract
+      .connect(consumer.signer)
+      .pendingRequestExists(consumer.contract.address, accId, nonce)
+    expect(pendingRequestExists).to.be.equal(true)
+  })
+
   // TODO getters
-  // TODO pending request exist
   // TODO invalid consumer
   // TODO gas limit too big
   // TODO UnregisteredOracleFulfillment
