@@ -861,4 +861,38 @@ describe('Request-Response user contract', function () {
         .fulfillDataRequestInt256(requestId, response, requestCommitment, isDirectPayment)
     ).to.be.revertedWithCustomError(coordinator.contract, 'IncorrectCommitment')
   })
+
+  it('ValidateNumSubmission', async function () {
+    const { coordinator, consumer, rrOracle0, rrOracle1, rrOracle2, rrOracle3 } = await loadFixture(
+      deploy
+    )
+    await setupOracle(coordinator.contract, [rrOracle0, rrOracle1, rrOracle2, rrOracle3])
+
+    {
+      // must be real job
+      const jobId = ethers.utils.id('nonexistant-job')
+      const numSubmission = 0
+      await expect(
+        coordinator.contract.connect(consumer.signer).validateNumSubmission(jobId, numSubmission)
+      ).to.be.revertedWithCustomError(coordinator.contract, 'InvalidJobId')
+    }
+
+    {
+      // must be even number of submissions for bool job
+      const jobId = ethers.utils.id('bool')
+      const numSubmission = 3
+      await expect(
+        coordinator.contract.connect(consumer.signer).validateNumSubmission(jobId, numSubmission)
+      ).to.be.revertedWithCustomError(coordinator.contract, 'InvalidNumSubmission')
+    }
+
+    {
+      // numSubmission must be at most half of available oracles
+      const jobId = ethers.utils.id('uint128')
+      const numSubmission = 4
+      await expect(
+        coordinator.contract.connect(consumer.signer).validateNumSubmission(jobId, numSubmission)
+      ).to.be.revertedWithCustomError(coordinator.contract, 'InvalidNumSubmission')
+    }
+  })
 })

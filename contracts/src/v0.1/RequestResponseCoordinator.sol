@@ -449,9 +449,6 @@ contract RequestResponseCoordinator is
         uint8 numSubmission,
         bool isDirectPayment
     ) private returns (uint256) {
-        if (!sJobId[req.id]) {
-            revert InvalidJobId();
-        }
         validateNumSubmission(req.id, numSubmission);
 
         if (!sPrepayment.isValidAccount(accId, msg.sender)) {
@@ -627,13 +624,17 @@ contract RequestResponseCoordinator is
             );
     }
 
-    function validateNumSubmission(bytes32 jobId, uint8 numSubmission) private view {
+    function validateNumSubmission(bytes32 jobId, uint8 numSubmission) public view {
+        if (!sJobId[jobId]) {
+            revert InvalidJobId();
+        }
+
         if (numSubmission == 0) {
             revert InvalidNumSubmission();
         } else if (jobId == keccak256(abi.encodePacked("bool")) && numSubmission % 2 == 0) {
             revert InvalidNumSubmission();
         } else if (
-            jobId == keccak256(abi.encodePacked("uint256")) ||
+            jobId == keccak256(abi.encodePacked("uint128")) ||
             jobId == keccak256(abi.encodePacked("int256")) ||
             jobId == keccak256(abi.encodePacked("bool"))
         ) {
