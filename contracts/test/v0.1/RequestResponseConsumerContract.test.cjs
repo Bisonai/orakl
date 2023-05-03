@@ -615,15 +615,38 @@ describe('Request-Response user contract', function () {
     const tx = await (
       await consumer.contract.requestDataInt256(accId, callbackGasLimit, numSubmission)
     ).wait()
-    const { requestId } = parseDataRequestedTx(coordinator.contract, tx)
+    const { requestId, sender, blockNumber, isDirectPayment } = parseDataRequestedTx(
+      coordinator.contract,
+      tx
+    )
 
     // nonce 1 represents a valid account
     // nonce 2 represents the first request
     const nonce = 2
-    const pendingRequestExists = await coordinator.contract
-      .connect(consumer.signer)
-      .pendingRequestExists(consumer.contract.address, accId, nonce)
-    expect(pendingRequestExists).to.be.equal(true)
+    expect(
+      await coordinator.contract
+        .connect(consumer.signer)
+        .pendingRequestExists(consumer.contract.address, accId, nonce)
+    ).to.be.equal(true)
+
+    // After fulfillment, there are no pending requests
+    const requestCommitment = {
+      blockNum: blockNumber,
+      accId,
+      callbackGasLimit,
+      numSubmission,
+      sender
+    }
+    const response = 123
+    coordinator.contract
+      .connect(rrOracle0)
+      .fulfillDataRequestInt256(requestId, response, requestCommitment, isDirectPayment)
+
+    expect(
+      await coordinator.contract
+        .connect(consumer.signer)
+        .pendingRequestExists(consumer.contract.address, accId, nonce)
+    ).to.be.equal(false)
   })
 
   it('InsufficientPayment', async function () {
