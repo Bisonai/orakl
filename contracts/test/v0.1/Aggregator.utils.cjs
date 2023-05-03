@@ -3,10 +3,28 @@ const { aggregatorConfig } = require('./Aggregator.config.cjs')
 
 async function deployAggregator(signer) {
   const { timeout, validator, decimals, description } = aggregatorConfig()
-  let aggregator = await ethers.getContractFactory('Aggregator', { signer })
-  aggregator = await aggregator.deploy(timeout, validator, decimals, description)
-  await aggregator.deployed()
-  return aggregator
+  let contract = await ethers.getContractFactory('Aggregator', { signer })
+  contract = await contract.deploy(timeout, validator, decimals, description)
+  await contract.deployed()
+  return contract
+}
+
+async function deployAggregatorProxy(aggregatorAddress, signer) {
+  let contract = await ethers.getContractFactory('AggregatorProxy', {
+    signer
+  })
+  contract = await contract.deploy(aggregatorAddress)
+  await contract.deployed()
+  return contract
+}
+
+async function deployDataFeedConsumerMock(aggregatorProxyAddress, signer) {
+  let contract = await ethers.getContractFactory('DataFeedConsumerMock', {
+    signer
+  })
+  contract = await contract.deploy(aggregatorProxyAddress)
+  await contract.deployed()
+  return contract
 }
 
 function parseSetRequesterPermissionsTx(aggregator, tx) {
@@ -20,5 +38,7 @@ function parseSetRequesterPermissionsTx(aggregator, tx) {
 
 module.exports = {
   deployAggregator,
-  parseSetRequesterPermissionsTx
+  parseSetRequesterPermissionsTx,
+  deployAggregatorProxy,
+  deployDataFeedConsumerMock
 }
