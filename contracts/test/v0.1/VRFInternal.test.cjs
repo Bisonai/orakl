@@ -6,7 +6,7 @@ const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers')
 const data = require('./VRF-test-data/data.json')
 
 async function deploy() {
-  let { deployer } = await hre.getNamedAccounts()
+  let { account0: deployer } = await hre.getNamedAccounts()
   deployer = await ethers.getSigner(deployer)
   let contract = await ethers.getContractFactory('TestHelperVRFInternals', {
     signer: deployer.address
