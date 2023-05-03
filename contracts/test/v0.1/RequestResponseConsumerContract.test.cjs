@@ -627,6 +627,25 @@ describe('Request-Response user contract', function () {
     expect(pendingRequestExists).to.be.equal(true)
   })
 
+  it('InsufficientPayment', async function () {
+    const { prepayment, coordinator, consumer, rrOracle0 } = await loadFixture(deploy)
+    const { maxGasLimit: callbackGasLimit } = requestResponseConfig()
+    await setupOracle(coordinator.contract, [rrOracle0])
+
+    // Request
+    const numSubmission = 1
+    await expect(
+      consumer.contract.requestDataDirectPaymentInt256(
+        callbackGasLimit,
+        numSubmission,
+        consumer.signer.address,
+        {
+          value: 0
+        }
+      )
+    ).to.be.revertedWithCustomError(coordinator.contract, 'InsufficientPayment')
+  })
+
   // TODO getters
   // TODO invalid consumer
   // TODO gas limit too big
