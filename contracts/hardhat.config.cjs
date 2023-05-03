@@ -48,63 +48,32 @@ const config = {
     sources: './src'
   },
   namedAccounts: {
-    deployer: {
+    account0: {
       default: 0
     },
-    consumer: {
-      default: 1,
-      baobab: '0x70997970C51812dc3A010C7d01b50e0d17dc79C8'
+    account1: {
+      default: 1
     },
-    feedOracle0: {
-      default: 2,
-      baobab: '0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC'
+    account2: {
+      default: 2
     },
-    feedOracle1: {
-      default: 3,
-      baobab: '0x90F79bf6EB2c4f870365E785982E1f101E93b906'
+    account3: {
+      default: 3
     },
-    feedOracle2: {
-      default: 4,
-      baobab: '0x15d34AAf54267DB7D7c367839AAf71A00a2C6A65'
+    account4: {
+      default: 4
     },
-    consumer1: {
+    account5: {
       default: 5
     },
-    consumer2: {
+    account6: {
       default: 6
     },
-    account8: {
+    account7: {
       default: 7
     },
-    rrOracle0: {
+    account8: {
       default: 8
-    },
-    rrOracle1: {
-      default: 9
-    },
-    rrOracle2: {
-      default: 10
-    },
-    rrOracle3: {
-      default: 11
-    },
-    rrOracle4: {
-      default: 12
-    },
-    rrOracle5: {
-      default: 13
-    },
-    vrfOracle0: {
-      default: 14
-    },
-    aggregatorOracle0: {
-      default: 15
-    },
-    aggregatorOracle1: {
-      default: 16
-    },
-    aggregatorOracle2: {
-      default: 17
     }
   }
 }

@@ -11,33 +11,15 @@ const { createAccount, addConsumer, deposit } = require('./Prepayment.utils.cjs'
 const { vrfConfig } = require('./VRFCoordinator.config.cjs')
 const { parseRequestCanceled } = require('./CoordinatorBase.utils.cjs')
 const { deploy: deployPrepayment } = require('./Prepayment.utils.cjs')
-const { parseKlay } = require('./utils.cjs')
-
-async function createSigners() {
-  let { deployer, consumer, consumer1, vrfOracle0 } = await hre.getNamedAccounts()
-
-  const deployerSigner = await ethers.getSigner(deployer)
-  const consumerSigner = await ethers.getSigner(consumer)
-  const invalidConsumerSigner = await ethers.getSigner(consumer1)
-  const vrfOracleSigner = await ethers.getSigner(vrfOracle0)
-  const protocolFeeRecipientSigner = await ethers.getSigner(consumer1)
-
-  return {
-    deployerSigner,
-    consumerSigner,
-    invalidConsumerSigner,
-    vrfOracleSigner,
-    protocolFeeRecipientSigner
-  }
-}
+const { parseKlay, createSigners } = require('./utils.cjs')
 
 async function deploy() {
   const {
-    deployerSigner,
-    consumerSigner,
-    vrfOracleSigner,
-    protocolFeeRecipientSigner,
-    invalidConsumerSigner
+    account0: deployerSigner,
+    account1: consumerSigner,
+    account2: vrfOracleSigner,
+    account3: protocolFeeRecipientSigner,
+    account4: invalidConsumerSigner
   } = await createSigners()
 
   // Prepayment

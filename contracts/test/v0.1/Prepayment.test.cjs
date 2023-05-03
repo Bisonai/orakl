@@ -7,32 +7,11 @@ const {
   deposit,
   withdraw
 } = require('./Prepayment.utils.cjs')
-const { parseKlay, getBalance } = require('./utils.cjs')
+const { parseKlay, getBalance, createSigners } = require('./utils.cjs')
 
 const NULL_ADDRESS = '0x0000000000000000000000000000000000000000'
 const DEFAULT_BURN_FEE_RATIO = 50
 const DEFAULT_PROTOCOL_FEE_RATIO = 5
-
-async function createSigners() {
-  let { deployer, consumer, consumer1, consumer2, account8, vrfOracle0 } =
-    await hre.getNamedAccounts()
-
-  const account0 = await ethers.getSigner(deployer)
-  const account1 = await ethers.getSigner(consumer)
-  const account2 = await ethers.getSigner(consumer1)
-  const account3 = await ethers.getSigner(consumer2)
-  const account4 = await ethers.getSigner(account8)
-  const account5 = await ethers.getSigner(vrfOracle0)
-
-  return {
-    account0,
-    account1,
-    account2,
-    account3,
-    account4,
-    account5
-  }
-}
 
 async function deploy() {
   const {

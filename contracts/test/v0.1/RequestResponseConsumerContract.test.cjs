@@ -9,7 +9,7 @@ const {
   parseDataRequestFulfilledTx
 } = require('./RequestResponseCoordinator.utils.cjs')
 const { parseKlay } = require('./utils.cjs')
-const { median, majorityVotingBool } = require('./utils.cjs')
+const { median, majorityVotingBool, createSigners } = require('./utils.cjs')
 const {
   deploy: deployPrepayment,
   createAccount,
@@ -23,42 +23,6 @@ async function setupOracle(coordinator, oracles) {
   await coordinator.setConfig(maxGasLimit, gasAfterPaymentCalculation, Object.values(feeConfig))
   for (const oracle of oracles) {
     await coordinator.registerOracle(oracle.address)
-  }
-}
-
-async function createSigners() {
-  let {
-    deployer,
-    consumer,
-    consumer1,
-    consumer2,
-    account8: account,
-    rrOracle0,
-    rrOracle1,
-    rrOracle2,
-    rrOracle3
-  } = await hre.getNamedAccounts()
-
-  const account0 = await ethers.getSigner(deployer)
-  const account1 = await ethers.getSigner(consumer)
-  const account2 = await ethers.getSigner(consumer1)
-  const account3 = await ethers.getSigner(consumer2)
-  const account4 = await ethers.getSigner(account)
-  const account5 = await ethers.getSigner(rrOracle0)
-  const account6 = await ethers.getSigner(rrOracle1)
-  const account7 = await ethers.getSigner(rrOracle2)
-  const account8 = await ethers.getSigner(rrOracle3)
-
-  return {
-    account0,
-    account1,
-    account2,
-    account3,
-    account4,
-    account5,
-    account6,
-    account7,
-    account8
   }
 }
 
@@ -270,10 +234,10 @@ describe('Request-Response user contract', function () {
   })
 
   it('Request & Fulfill Uint128', async function () {
-    const { consumer, rrOracle0, rrOracle1 } = await loadFixture(deploy)
+    const { consumer, rrOracle0, rrOracle1, rrOracle2, rrOracle3 } = await loadFixture(deploy)
     const numSubmission = 2
     await requestAndFulfill(
-      [rrOracle0, rrOracle1],
+      [rrOracle0, rrOracle1, rrOracle2, rrOracle3],
       consumer.contract.requestDataUint128,
       'fulfillDataRequestUint128',
       [1, 2],
@@ -286,11 +250,11 @@ describe('Request-Response user contract', function () {
   })
 
   it('Request & Fulfill Uint128 Direct Payment', async function () {
-    const { consumer, rrOracle0, rrOracle1 } = await loadFixture(deploy)
+    const { consumer, rrOracle0, rrOracle1, rrOracle2, rrOracle3 } = await loadFixture(deploy)
     const numSubmission = 2
 
     await requestAndFulfill(
-      [rrOracle0, rrOracle1],
+      [rrOracle0, rrOracle1, rrOracle2, rrOracle3],
       consumer.contract.requestDataDirectPaymentUint128,
       'fulfillDataRequestUint128',
       [1, 2],

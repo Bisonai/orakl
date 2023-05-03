@@ -6,20 +6,7 @@ const {
   deploy: deployRrCoordinator,
   parseOracleRegisterdTx
 } = require('./RequestResponseCoordinator.utils.cjs')
-
-async function createSigners() {
-  let { deployer, consumer, consumer1 } = await hre.getNamedAccounts()
-
-  const account0 = await ethers.getSigner(deployer)
-  const account1 = await ethers.getSigner(consumer)
-  const account2 = await ethers.getSigner(consumer1)
-
-  return {
-    account0,
-    account1,
-    account2
-  }
-}
+const { createSigners } = require('./utils.cjs')
 
 async function deploy() {
   const {

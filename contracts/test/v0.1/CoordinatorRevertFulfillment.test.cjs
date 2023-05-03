@@ -17,26 +17,8 @@ const {
 const { deploy: deployPrepayment, createAccount, deposit } = require('./Prepayment.utils.cjs')
 const { vrfConfig } = require('./VRFCoordinator.config.cjs')
 const { requestResponseConfig } = require('./RequestResponse.config.cjs')
-const { getBalance } = require('./utils.cjs')
+const { getBalance, createSigners } = require('./utils.cjs')
 const oraklVrf = import('@bisonai/orakl-vrf')
-
-async function createSigners() {
-  let { deployer, consumer, consumer1, vrfOracle0, rrOracle0 } = await hre.getNamedAccounts()
-
-  const account0 = await ethers.getSigner(deployer)
-  const account1 = await ethers.getSigner(consumer)
-  const account2 = await ethers.getSigner(consumer1)
-  const account3 = await ethers.getSigner(vrfOracle0)
-  const account4 = await ethers.getSigner(rrOracle0)
-
-  return {
-    account0,
-    account1,
-    account2,
-    account3,
-    account4
-  }
-}
 
 async function deploy() {
   const {
