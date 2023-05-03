@@ -585,6 +585,22 @@ describe('Request-Response user contract', function () {
     expect(reqCountAfterFulfillment).to.be.equal(1)
   })
 
+  it('TooManyOracles', async function () {
+    const { coordinator } = await loadFixture(deploy)
+    const MAX_ORACLES = await coordinator.contract.MAX_ORACLES()
+
+    for (let i = 0; i < MAX_ORACLES; ++i) {
+      const { address: oracle } = ethers.Wallet.createRandom()
+      await coordinator.contract.registerOracle(oracle)
+    }
+
+    const { address: oracle } = ethers.Wallet.createRandom()
+    await expect(coordinator.contract.registerOracle(oracle)).to.be.revertedWithCustomError(
+      coordinator.contract,
+      'TooManyOracles'
+    )
+  })
+
   // TODO getters
   // TODO pending request exist
   // TODO invalid consumer
