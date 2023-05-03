@@ -184,7 +184,7 @@ contract RequestResponseCoordinator is
         uint32 callbackGasLimit,
         uint8 numSubmission,
         address refundRecipient
-    ) external payable returns (uint256) {
+    ) external payable nonReentrant returns (uint256) {
         uint64 reqCount = 0;
         uint256 fee = estimateFee(reqCount, numSubmission, callbackGasLimit);
         if (msg.value < fee) {
