@@ -87,14 +87,7 @@ function validateProperties(config, requiredProperties) {
  * @return {boolean}
  */
 function validateAggregatorDeployConfig(config) {
-  const requiredProperties = [
-    'name',
-    'paymentAmount',
-    'timeout',
-    'validator',
-    'decimals',
-    'description'
-  ]
+  const requiredProperties = ['name', 'timeout', 'validator', 'decimals', 'description']
 
   if (!validateProperties(config, requiredProperties)) return false
 
@@ -113,7 +106,6 @@ function validateAggregatorChangeOraclesConfig(config) {
   const requiredProperties = [
     'removed',
     'added',
-    'addedAdmins',
     'minSubmissionCount',
     'maxSubmissionCount',
     'restartDelay'

@@ -48,32 +48,40 @@ const config = {
     sources: './src'
   },
   namedAccounts: {
-    account0: {
+    // migrations
+    deployer: {
       default: 0
     },
-    account1: {
+    consumer: {
       default: 1
     },
-    account2: {
+    // tests
+    account0: {
       default: 2
     },
-    account3: {
+    account1: {
       default: 3
     },
-    account4: {
+    account2: {
       default: 4
     },
-    account5: {
+    account3: {
       default: 5
     },
-    account6: {
+    account4: {
       default: 6
     },
-    account7: {
+    account5: {
       default: 7
     },
-    account8: {
+    account6: {
       default: 8
+    },
+    account7: {
+      default: 9
+    },
+    account8: {
+      default: 10
     }
   }
 }
