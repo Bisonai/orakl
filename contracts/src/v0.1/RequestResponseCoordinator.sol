@@ -24,7 +24,7 @@ contract RequestResponseCoordinator is
         mapping(address => bool) submitted;
     }
 
-    /* request ID */
+    /* requestId */
     /* submission details */
     mapping(uint256 => Submission) sSubmission;
 
@@ -416,6 +416,30 @@ contract RequestResponseCoordinator is
         return sIsOracleRegistered[oracle];
     }
 
+    /**
+     * @inheritdoc IRequestResponseCoordinatorBase
+     */
+    function validateNumSubmission(bytes32 jobId, uint8 numSubmission) public view {
+        if (!sJobId[jobId]) {
+            revert InvalidJobId();
+        }
+
+        if (numSubmission == 0) {
+            revert InvalidNumSubmission();
+        } else if (jobId == keccak256(abi.encodePacked("bool")) && numSubmission % 2 == 0) {
+            revert InvalidNumSubmission();
+        } else if (
+            jobId == keccak256(abi.encodePacked("uint128")) ||
+            jobId == keccak256(abi.encodePacked("int256")) ||
+            jobId == keccak256(abi.encodePacked("bool"))
+        ) {
+            uint8 maxSubmission = uint8(sOracles.length / 2);
+            if (numSubmission != 1 && numSubmission > maxSubmission) {
+                revert InvalidNumSubmission();
+            }
+        }
+    }
+
     function computeRequestId(
         address sender,
         uint64 accId,
@@ -622,26 +646,5 @@ contract RequestResponseCoordinator is
             keccak256(
                 abi.encode(requestId, blockNumber, accId, callbackGasLimit, numSubmission, sender)
             );
-    }
-
-    function validateNumSubmission(bytes32 jobId, uint8 numSubmission) public view {
-        if (!sJobId[jobId]) {
-            revert InvalidJobId();
-        }
-
-        if (numSubmission == 0) {
-            revert InvalidNumSubmission();
-        } else if (jobId == keccak256(abi.encodePacked("bool")) && numSubmission % 2 == 0) {
-            revert InvalidNumSubmission();
-        } else if (
-            jobId == keccak256(abi.encodePacked("uint128")) ||
-            jobId == keccak256(abi.encodePacked("int256")) ||
-            jobId == keccak256(abi.encodePacked("bool"))
-        ) {
-            uint8 maxSubmission = uint8(sOracles.length / 2);
-            if (numSubmission != 1 && numSubmission > maxSubmission) {
-                revert InvalidNumSubmission();
-            }
-        }
     }
 }
