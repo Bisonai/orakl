@@ -72,7 +72,7 @@ interface IPrepayment {
 
     /*
      * @notice Check to see if there exists a request commitment consumers
-     * for all consumers and keyhashes for a given acc.
+     * for all consumers and coordinators for a given account.
      * @param accId - ID of the account
      * @return true if there exists at least one unfulfilled request for the account, false
      * otherwise.
