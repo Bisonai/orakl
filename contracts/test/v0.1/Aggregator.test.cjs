@@ -8,27 +8,7 @@ const {
   parseSetRequesterPermissionsTx,
   deployDataFeedConsumerMock
 } = require('./Aggregator.utils.cjs')
-
-async function createSigners() {
-  let { deployer, consumer, aggregatorOracle0, aggregatorOracle1, aggregatorOracle2, account8 } =
-    await hre.getNamedAccounts()
-
-  const account0 = await ethers.getSigner(deployer)
-  const account1 = await ethers.getSigner(consumer)
-  const account2 = await ethers.getSigner(aggregatorOracle0)
-  const account3 = await ethers.getSigner(aggregatorOracle1)
-  const account4 = await ethers.getSigner(aggregatorOracle2)
-  const account5 = await ethers.getSigner(account8)
-
-  return {
-    account0,
-    account1,
-    account2,
-    account3,
-    account4,
-    account5
-  }
-}
+const { createSigners } = require('./utils.cjs')
 
 async function changeOracles(aggregator, removeOracles, addOracles) {
   const currentOracles = await aggregator.getOracles()

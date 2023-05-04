@@ -9,14 +9,12 @@ import "./interfaces/IAggregator.sol";
 import "./interfaces/IAggregatorValidator.sol";
 import "./libraries/Median.sol";
 
-/**
- * @title Orakl Network Aggregator
- * @notice Handles aggregating data pushed in from off-chain. Oracles'
- * submissions are gathered in rounds, with each round aggregating the
- * submissions for each oracle into a single answer. The latest
- * aggregated answer is exposed as well as historical answers and
- * their updated at timestamp.
- */
+/// @title Orakl Network Aggregator
+/// @notice Handles aggregating data pushed in from off-chain. Oracles'
+/// submissions are gathered in rounds, with each round aggregating the
+/// submissions for each oracle into a single answer. The latest
+/// aggregated answer is exposed as well as historical answers and
+/// their updated at timestamp.
 contract Aggregator is Ownable, IAggregator, ITypeAndVersion {
     struct Round {
         int256 answer;

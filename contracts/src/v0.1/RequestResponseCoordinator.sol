@@ -10,6 +10,25 @@ import "./libraries/Orakl.sol";
 import "./libraries/Median.sol";
 import "./libraries/MajorityVoting.sol";
 
+/// @title Orakl Network RequestResponseCoordinator
+/// @author Bisonai
+/// @notice Accepts requests for off-chain data either through
+/// [regular] or [temporary] account by calling `requestData`
+/// function. Consumers can choose what data type (`jobId`) they want
+/// to receive the requested data in, and how many oracles
+/// (`numSubmission`) they want to participate on an aggregated
+/// answer. Consumers can define the data source and postprocessing
+/// steps that should be applied on data received from API. The request is
+/// concluded by emitting `DataRequested` event which includes all
+/// necessary metadata to provide the requested off-chain
+/// data. Off-chain oracles that are registered within the
+/// `RequestResponseCoordinator` then compete for delivering the
+/// requested data back to on-chain because only a limited number of
+/// oracle can submit the requested answer. Answers from off-chain oracles
+/// are being collected in contract storage, and the last requested
+/// off-chain oracle that submits its answer will also execute
+/// consumer's fulfillment function, distributes reward to all
+/// participating oracles, and cleanup the storage.
 contract RequestResponseCoordinator is
     CoordinatorBase,
     IRequestResponseCoordinatorBase,
@@ -24,7 +43,7 @@ contract RequestResponseCoordinator is
         mapping(address => bool) submitted;
     }
 
-    /* request ID */
+    /* requestId */
     /* submission details */
     mapping(uint256 => Submission) sSubmission;
 
@@ -184,7 +203,7 @@ contract RequestResponseCoordinator is
         uint32 callbackGasLimit,
         uint8 numSubmission,
         address refundRecipient
-    ) external payable returns (uint256) {
+    ) external payable nonReentrant returns (uint256) {
         uint64 reqCount = 0;
         uint256 fee = estimateFee(reqCount, numSubmission, callbackGasLimit);
         if (msg.value < fee) {
@@ -416,6 +435,30 @@ contract RequestResponseCoordinator is
         return sIsOracleRegistered[oracle];
     }
 
+    /**
+     * @inheritdoc IRequestResponseCoordinatorBase
+     */
+    function validateNumSubmission(bytes32 jobId, uint8 numSubmission) public view {
+        if (!sJobId[jobId]) {
+            revert InvalidJobId();
+        }
+
+        if (numSubmission == 0) {
+            revert InvalidNumSubmission();
+        } else if (jobId == keccak256(abi.encodePacked("bool")) && numSubmission % 2 == 0) {
+            revert InvalidNumSubmission();
+        } else if (
+            jobId == keccak256(abi.encodePacked("uint128")) ||
+            jobId == keccak256(abi.encodePacked("int256")) ||
+            jobId == keccak256(abi.encodePacked("bool"))
+        ) {
+            uint8 maxSubmission = uint8(sOracles.length / 2);
+            if (numSubmission != 1 && numSubmission > maxSubmission) {
+                revert InvalidNumSubmission();
+            }
+        }
+    }
+
     function computeRequestId(
         address sender,
         uint64 accId,
@@ -449,19 +492,12 @@ contract RequestResponseCoordinator is
         uint8 numSubmission,
         bool isDirectPayment
     ) private returns (uint256) {
-        if (!sJobId[req.id]) {
-            revert InvalidJobId();
-        }
         validateNumSubmission(req.id, numSubmission);
 
         if (!sPrepayment.isValidAccount(accId, msg.sender)) {
             revert InvalidConsumer(accId, msg.sender);
         }
 
-        // TODO update comment
-        // No lower bound on the requested gas limit. A user could request 0
-        // and they would simply be billed for the proof verification and wouldn't be
-        // able to do anything with the random value.
         if (callbackGasLimit > sConfig.maxGasLimit) {
             revert GasLimitTooBig(callbackGasLimit, sConfig.maxGasLimit);
         }
@@ -629,22 +665,5 @@ contract RequestResponseCoordinator is
             keccak256(
                 abi.encode(requestId, blockNumber, accId, callbackGasLimit, numSubmission, sender)
             );
-    }
-
-    function validateNumSubmission(bytes32 jobId, uint8 numSubmission) private view {
-        if (numSubmission == 0) {
-            revert InvalidNumSubmission();
-        } else if (jobId == keccak256(abi.encodePacked("bool")) && numSubmission % 2 == 0) {
-            revert InvalidNumSubmission();
-        } else if (
-            jobId == keccak256(abi.encodePacked("uint256")) ||
-            jobId == keccak256(abi.encodePacked("int256")) ||
-            jobId == keccak256(abi.encodePacked("bool"))
-        ) {
-            uint8 maxSubmission = uint8(sOracles.length / 2);
-            if (numSubmission != 1 && numSubmission > maxSubmission) {
-                revert InvalidNumSubmission();
-            }
-        }
     }
 }

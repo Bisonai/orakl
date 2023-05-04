@@ -109,4 +109,11 @@ interface IRequestResponseCoordinatorBase {
         RequestCommitment memory rc,
         bool isDirectPayment
     ) external;
+
+    /**
+     * @notice Different jobs specified by jobId have allowed
+     * different number of of requests for submissions that depends on
+     * total number of registered oracles.
+     */
+    function validateNumSubmission(bytes32 jobId, uint8 numSubmission) external;
 }

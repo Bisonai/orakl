@@ -115,30 +115,6 @@ const func = async function (hre) {
       ).wait()
     }
 
-    // Configure payment for direct VRF request /////////////////////////////////
-    if (config.setDirectPaymentConfig) {
-      console.log('setDirectPaymentConfig')
-      const setDirectPaymentConfig = config.setDirectPaymentConfig
-      if (!validateDirectPaymentConfig(setDirectPaymentConfig)) {
-        throw new Error('Invalid VRF setDirectPaymentConfig config')
-      }
-
-      await (
-        await vrfCoordinator.setDirectPaymentConfig(setDirectPaymentConfig.directPaymentConfig)
-      ).wait()
-    }
-
-    // Configure minBalance
-    if (config.setMinBalance) {
-      console.log('setMinBalance')
-      const setMinBalanceConfig = config.setMinBalance
-      if (!validateMinBalanceConfig(setMinBalanceConfig)) {
-        throw new Error('Invalid RRC setMinBalance config')
-      }
-
-      await (await vrfCoordinator.setMinBalance(setMinBalanceConfig.minBalance)).wait()
-    }
-
     // Add VRFCoordinator to Prepayment /////////////////////////////////////////
     if (config.addCoordinator) {
       console.log('addCoordinator')

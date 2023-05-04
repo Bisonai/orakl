@@ -22,15 +22,6 @@
       "reqsForTier5": 0
     }
   },
-  "setDirectPaymentConfig": {
-    "directPaymentConfig": {
-      "fulfillmentFee": "250000000000000000",
-      "baseFee": "500000000000000000"
-    }
-  },
-  "setMinBalance": {
-    "minBalance": "100000000000000000"
-  },
   "addCoordinator": {
     "prepaymentAddress": "",
     "coordinatorAddress": ""

@@ -3,7 +3,7 @@ const { ethers } = require('hardhat')
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers')
 const crypto = require('crypto')
 const { vrfConfig } = require('./VRFCoordinator.config.cjs')
-const { parseKlay, remove0x, getBalance } = require('./utils.cjs')
+const { parseKlay, remove0x, getBalance, createSigners } = require('./utils.cjs')
 const {
   setupOracle,
   generateVrf,
@@ -182,24 +182,6 @@ function validateRandomWordsFulfilledEvent(
   expect(fRequestId).to.be.equal(requestId)
   expect(fSuccess).to.be.equal(true)
   expect(fPayment).to.be.above(0)
-}
-
-async function createSigners() {
-  let { deployer, consumer, consumer1, consumer2, vrfOracle0 } = await hre.getNamedAccounts()
-
-  const account0 = await ethers.getSigner(deployer)
-  const account1 = await ethers.getSigner(consumer)
-  const account2 = await ethers.getSigner(consumer1)
-  const account3 = await ethers.getSigner(consumer2)
-  const account4 = await ethers.getSigner(vrfOracle0)
-
-  return {
-    account0,
-    account1,
-    account2,
-    account3,
-    account4
-  }
 }
 
 async function deploy() {

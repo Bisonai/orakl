@@ -4,7 +4,7 @@ const { ethers } = require('hardhat')
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers')
 
 async function deploy() {
-  let { deployer } = await hre.getNamedAccounts()
+  let { account0: deployer } = await hre.getNamedAccounts()
   deployer = await ethers.getSigner(deployer)
 
   let contract = await ethers.getContractFactory('TestEllipticCurve', {

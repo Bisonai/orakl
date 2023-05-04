@@ -21,7 +21,7 @@ contract Account is IAccount, ITypeAndVersion {
     // Account information
     address private sOwner; // Owner can fund/withdraw/cancel the acc
     address private sRequestedOwner; // For safely transferring acc ownership
-    uint256 private sBalance; // Common KLAY balance used for all consumer requests
+    uint256 private sBalance; // Common $KLAY balance used for all consumer requests
     uint64 private sReqCount; // For fee tiers
     address[] private sConsumers;
 

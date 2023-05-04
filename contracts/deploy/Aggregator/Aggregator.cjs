@@ -10,7 +10,7 @@ const {
 const func = async function (hre) {
   const { deployments, getNamedAccounts } = hre
   const { deploy } = deployments
-  const { deployer, consumer } = await getNamedAccounts()
+  const { deployer } = await getNamedAccounts()
 
   console.log('Aggregator.ts')
 
@@ -34,7 +34,6 @@ const func = async function (hre) {
       const aggregatorDeployment = await deploy(aggregatorName, {
         contract: 'Aggregator',
         args: [
-          deployConfig.paymentAmount,
           deployConfig.timeout,
           deployConfig.validator,
           deployConfig.decimals,
@@ -43,28 +42,21 @@ const func = async function (hre) {
         from: deployer,
         log: true
       })
+      aggregator = await ethers.getContractAt('Aggregator', aggregatorDeployment.address)
 
       // AggregatorProxy
       const aggregatorProxyName = `AggregatorProxy_${deployConfig.name}`
       const aggregatorProxyDeployment = await deploy(aggregatorProxyName, {
         contract: 'AggregatorProxy',
-        args: [aggregatorDeployment.address],
+        args: [aggregator.address],
         from: deployer,
         log: true
       })
-
-      // Deposit KLAY to Aggregator (used for paying oracles)
-      aggregator = await ethers.getContractAt('Aggregator', aggregatorDeployment.address)
-      if (config.paymentAmount > 0) {
-        const value = ethers.utils.parseEther(deployConfig.depositAmount)
-        await (await aggregator.deposit({ value })).wait()
-      }
 
       // DataFeedConsumerMock
       if (['localhost', 'hardhat'].includes(network.name)) {
         await localhostDeployment({
           deploy,
-          consumer,
           aggregatorProxyDeployment,
           name: deployConfig.name
         })
@@ -73,6 +65,7 @@ const func = async function (hre) {
 
     // Update oracles that are allowed to submit to Aggregator /////////////////
     if (config.changeOracles) {
+      console.log('changeOracles')
       const changeOraclesConfig = config.changeOracles
 
       if (!validateAggregatorChangeOraclesConfig(changeOraclesConfig)) {
@@ -87,7 +80,6 @@ const func = async function (hre) {
         await aggregator.changeOracles(
           changeOraclesConfig.removed,
           changeOraclesConfig.added,
-          changeOraclesConfig.addedAdmins,
           changeOraclesConfig.minSubmissionCount,
           changeOraclesConfig.maxSubmissionCount,
           changeOraclesConfig.restartDelay
@@ -100,7 +92,8 @@ const func = async function (hre) {
 }
 
 async function localhostDeployment(args) {
-  const { deploy, consumer, aggregatorProxyDeployment, name } = args
+  const { deploy, aggregatorProxyDeployment, name } = args
+  const { consumer } = await getNamedAccounts()
   const dataFeedConsumerMockName = `DataFeedConsumerMock_${name}`
 
   // DataFeedConsumerMock

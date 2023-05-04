@@ -12,7 +12,7 @@ const {
 const func = async function (hre) {
   const { deployments, getNamedAccounts, network } = hre
   const { deploy } = deployments
-  const { deployer, consumer } = await getNamedAccounts()
+  const { deployer } = await getNamedAccounts()
 
   console.log('RequestResponseCoordinator.ts')
 
@@ -99,32 +99,6 @@ const func = async function (hre) {
           setConfig.feeConfig
         )
       ).wait()
-    }
-
-    // setDirectPaymentConfig ///////////////////////////////////////////////////
-    if (config.setDirectPaymentConfig) {
-      console.log('setDirectPaymentConfig')
-      const setDirectPaymentConfig = config.setDirectPaymentConfig
-      if (!validateDirectPaymentConfig(setDirectPaymentConfig)) {
-        throw new Error('Invalid RRC setDirectPaymentConfig config')
-      }
-
-      await (
-        await requestResponseCoordinator.setDirectPaymentConfig(
-          setDirectPaymentConfig.directPaymentConfig
-        )
-      ).wait()
-    }
-
-    // setMinBalance ////////////////////////////////////////////////////////////
-    if (config.setMinBalance) {
-      console.log('setMinBalance')
-      const setMinBalanceConfig = config.setMinBalance
-      if (!validateMinBalanceConfig(setMinBalanceConfig)) {
-        throw new Error('Invalid RRC setMinBalance config')
-      }
-
-      await (await requestResponseCoordinator.setMinBalance(setMinBalanceConfig.minBalance)).wait()
     }
 
     // Add RequestResponseCoordinator to Prepayment /////////////////////////////

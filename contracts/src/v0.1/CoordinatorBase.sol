@@ -142,7 +142,7 @@ abstract contract CoordinatorBase is Ownable, ICoordinatorBase {
         uint32 callbackGasLimit
     ) public view returns (uint256) {
         uint256 serviceFee = calculateServiceFee(reqCount) * numSubmission;
-        uint256 maxGasCost = tx.gasprice * callbackGasLimit; // FIXME add 10% more?
+        uint256 maxGasCost = tx.gasprice * callbackGasLimit;
         return serviceFee + maxGasCost;
     }
 

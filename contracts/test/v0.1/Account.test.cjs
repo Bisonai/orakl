@@ -3,22 +3,7 @@ const { ethers } = require('hardhat')
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers')
 const { cancelAccount, deploy: deployPrepayment } = require('./Prepayment.utils.cjs')
 const { parseAccountCreatedTx } = require('./Account.utils.cjs')
-
-async function createSigners() {
-  let { deployer, consumer, consumer1, account8 } = await hre.getNamedAccounts()
-
-  const account0 = await ethers.getSigner(deployer)
-  const account1 = await ethers.getSigner(consumer)
-  const account2 = await ethers.getSigner(consumer1)
-  const account3 = await ethers.getSigner(account8)
-
-  return {
-    account0,
-    account1,
-    account2,
-    account3
-  }
-}
+const { createSigners } = require('./utils.cjs')
 
 async function deploy() {
   const {
