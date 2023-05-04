@@ -10,6 +10,25 @@ import "./libraries/Orakl.sol";
 import "./libraries/Median.sol";
 import "./libraries/MajorityVoting.sol";
 
+/// @title Orakl Network RequestResponseCoordinator
+/// @author Bisonai
+/// @notice Accepts requests for off-chain data either through
+/// [regular] or [temporary] account by calling `requestData`
+/// function. Consumers can choose what data type (`jobId`) they want
+/// to receive the requested data in, and how many oracles
+/// (`numSubmission`) they want to participate on an aggregated
+/// answer. Consumers can define the data source and postprocessing
+/// steps that should be applied on data received from API. The request is
+/// concluded by emitting `DataRequested` event which includes all
+/// necessary metadata to provide the requested off-chain
+/// data. Off-chain oracles that are registered within the
+/// `RequestResponseCoordinator` then compete for delivering the
+/// requested data back to on-chain because only a limited number of
+/// oracle can submit the requested answer. Answers from off-chain oracles
+/// are being collected in contract storage, and the last requested
+/// off-chain oracle that submits its answer will also execute
+/// consumer's fulfillment function, distributes reward to all
+/// participating oracles, and cleanup the storage.
 contract RequestResponseCoordinator is
     CoordinatorBase,
     IRequestResponseCoordinatorBase,

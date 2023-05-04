@@ -18,8 +18,8 @@ import "./CoordinatorBase.sol";
 /// want to request random number from by specifying a keyHash that is
 /// associated with such provider. Random words are partially
 /// generated using unique seed created during request
-/// transaction. The request for random words is concluded by emitted
-/// event `RandomWordsRequested` which includes all necessary metadata
+/// transaction. The request for random words is concluded by emitting
+/// `RandomWordsRequested` event which includes all necessary metadata
 /// to provide requested random words. Off-chain oracle that was
 /// requested to provide random words generates a proof using seed and
 /// its private key, and submits it back to VRFCoordinator through
