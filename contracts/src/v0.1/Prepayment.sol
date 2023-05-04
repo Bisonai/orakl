@@ -54,7 +54,7 @@ contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
         address owner;
     }
 
-    /* accID */
+    /* accId */
     /* TemporaryAccount */
     mapping(uint64 => TemporaryAccount) private sAccIdToTmpAcc;
 
@@ -125,7 +125,6 @@ contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
      * @notice The function allows to update a "burn ratio" that represents a
      * @notice partial amount of payment for the Orakl Network service that
      * @notice will be burnt.
-     *
      * @param ratio in a range 0 - 100 % of a fee to be burnt
      */
     function setBurnFeeRatio(uint8 ratio) external onlyOwner {
@@ -152,7 +151,6 @@ contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
 
     /**
      * @notice The function allows to update a protocol fee.
-     *
      * @param ratio in a range 0 - 100 % of a fee to be burnt
      */
     function setProtocolFeeRatio(uint8 ratio) external onlyOwner {
@@ -399,6 +397,9 @@ contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
         return amount - burnFee - protocolFee;
     }
 
+    /**
+     * @inheritdoc IPrepayment
+     */
     function chargeOperatorFee(
         uint64 accId,
         uint256 operatorFee,
@@ -448,6 +449,9 @@ contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
         return (amount, operatorFee);
     }
 
+    /**
+     * @inheritdoc IPrepayment
+     */
     function chargeOperatorFeeTemporary(
         uint256 operatorFee,
         address operatorFeeRecipient
@@ -525,7 +529,6 @@ contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
 
     /**
      * @inheritdoc IPrepayment
-     * @dev Looping is bounded to MAX_CONSUMERS*(number of keyhashes).
      * @dev Use to reject account cancellation while outstanding request are present.
      */
     function pendingRequestExists(uint64 accId) public view returns (bool) {
