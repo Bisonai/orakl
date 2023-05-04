@@ -30,16 +30,6 @@ contract VRFCoordinator is IVRFCoordinatorBase, CoordinatorBase, ITypeAndVersion
     /* keyHash */
     mapping(address => bytes32) private sOracleToKeyHash;
 
-    // RequestCommitment holds information sent from off-chain oracle
-    // describing details of request.
-    struct RequestCommitment {
-        uint256 blockNum;
-        uint64 accId;
-        uint32 callbackGasLimit;
-        uint32 numWords;
-        address sender;
-    }
-
     error InvalidKeyHash(bytes32 keyHash);
     error NumWordsTooBig(uint32 have, uint32 want);
     error NoSuchProvingKey(bytes32 keyHash);

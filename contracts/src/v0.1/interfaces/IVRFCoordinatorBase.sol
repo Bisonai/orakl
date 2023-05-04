@@ -2,6 +2,16 @@
 pragma solidity ^0.8.16;
 
 interface IVRFCoordinatorBase {
+    // RequestCommitment holds information sent from off-chain oracle
+    // describing details of request.
+    struct RequestCommitment {
+        uint256 blockNum;
+        uint64 accId;
+        uint32 callbackGasLimit;
+        uint32 numWords;
+        address sender;
+    }
+
     /**
      * @notice Get configuration relevant for making requests
      * @return maxGasLimit global max for request gas limit
