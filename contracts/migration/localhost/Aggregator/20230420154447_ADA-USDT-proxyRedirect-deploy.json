@@ -1,12 +1,10 @@
 {
   "deploy": {
     "name": "ADA-USDT",
-    "paymentAmount": 0,
     "timeout": 10,
     "validator": "0x0000000000000000000000000000000000000000",
     "decimals": 8,
-    "description": "ADA-USDT",
-    "depositAmount": 1.0
+    "description": "ADA-USDT"
   },
   "redirectProxy": {
     "status": "initial",
@@ -16,7 +14,6 @@
   "changeOracles": {
     "removed": [],
     "added": ["0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC"],
-    "addedAdmins": ["0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC"],
     "minSubmissionCount": 1,
     "maxSubmissionCount": 1,
     "restartDelay": 0
