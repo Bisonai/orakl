@@ -47,6 +47,7 @@ const func = async function (hre) {
         log: true
       })
       aggregator = await ethers.getContractAt('Aggregator', aggregatorDeployment.address)
+
       // Update oracles that are allowed to submit to Aggregator /////////////////
       if (config.changeOracles) {
         console.log('changeOracles')
