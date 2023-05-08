@@ -1,0 +1,8 @@
+{
+  "redirectProxy": {
+    "status": "revert",
+    "proxyAddress": "0x59b670e9fA9D0A427751Af201D676719a970857b",
+    "aggregator": "0x3Aa5ebB10DC797CAC828524e59A333d0A371443c",
+    "proposedAggregator": "0xa85233C63b9Ee964Add6F2cffe00Fd84eb32338f"
+  }
+}

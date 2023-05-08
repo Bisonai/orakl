@@ -1,6 +1,6 @@
 const { readdir, readFile, appendFile } = require('node:fs/promises')
 const path = require('node:path')
-
+const moment = require('moment')
 const MIGRATION_LOCK_FILE_NAME = 'migration.lock'
 
 async function loadJson(filepath) {
@@ -222,6 +222,20 @@ function validatePrepaymentDeployConfig(config) {
   }
 }
 
+function validateAggregatorRedirectProxyConfig(config) {
+  const requiredProperties = ['status', 'proxyAddress', 'aggregator']
+
+  if (!validateProperties(config, requiredProperties)) {
+    return false
+  } else {
+    return true
+  }
+}
+
+function getFormattedDate() {
+  return moment().format('YYYYMMDDHHMMSS')
+}
+
 module.exports = {
   loadJson,
   loadMigration,
@@ -234,5 +248,7 @@ module.exports = {
   validateDirectPaymentConfig,
   validateVrfRegisterOracle,
   validateVrfDeregisterOracle,
-  validatePrepaymentDeployConfig
+  validatePrepaymentDeployConfig,
+  validateAggregatorRedirectProxyConfig,
+  getFormattedDate
 }

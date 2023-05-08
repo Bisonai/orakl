@@ -1,10 +1,10 @@
 {
   "deploy": {
-    "name": "ETH-USDT",
+    "name": "ADA-USDT",
     "timeout": 10,
     "validator": "0x0000000000000000000000000000000000000000",
     "decimals": 8,
-    "description": "ETH-USDT"
+    "description": "ADA-USDT"
   },
   "changeOracles": {
     "removed": [],

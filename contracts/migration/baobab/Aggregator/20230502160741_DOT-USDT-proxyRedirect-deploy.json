@@ -1,0 +1,24 @@
+{
+  "deploy": {
+    "name": "DOT-USDT",
+    "paymentAmount": 0,
+    "timeout": 10,
+    "validator": "0x0000000000000000000000000000000000000000",
+    "decimals": 8,
+    "description": "DOT-USDT",
+    "depositAmount": 1.0
+  },
+  "changeOracles": {
+    "removed": [],
+    "added": ["0x55DF43b75fbA3641829Cf07Fd3CC522aBEf92e27"],
+    "addedAdmins": ["0x55DF43b75fbA3641829Cf07Fd3CC522aBEf92e27"],
+    "minSubmissionCount": 1,
+    "maxSubmissionCount": 1,
+    "restartDelay": 0
+  },
+  "redirectProxy": {
+    "status": "initial",
+    "proxyAddress": "0xeD2c791eae84a9845f7832110c9Cd7E1D9670235",
+    "aggregator": "0x4a11035D511E8094E483761Db1b9c834d55b1894"
+  }
+}

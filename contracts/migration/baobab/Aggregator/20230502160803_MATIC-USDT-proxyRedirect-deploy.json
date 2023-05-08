@@ -1,0 +1,24 @@
+{
+  "deploy": {
+    "name": "MATIC-USDT",
+    "paymentAmount": 0,
+    "timeout": 10,
+    "validator": "0x0000000000000000000000000000000000000000",
+    "decimals": 8,
+    "description": "MATIC-USDT",
+    "depositAmount": 1.0
+  },
+  "changeOracles": {
+    "removed": [],
+    "added": ["0xbba981Bbe3f9590bc1A6E81a3AC62b93A47C94bc"],
+    "addedAdmins": ["0xbba981Bbe3f9590bc1A6E81a3AC62b93A47C94bc"],
+    "minSubmissionCount": 1,
+    "maxSubmissionCount": 1,
+    "restartDelay": 0
+  },
+  "redirectProxy": {
+    "status": "initial",
+    "proxyAddress": "0xCe0BBfA49C0b82B9768DFB8d1f1efC907a496842",
+    "aggregator": "0x99E9E1a78498575E78F46675b54847767C5787Fb"
+  }
+}

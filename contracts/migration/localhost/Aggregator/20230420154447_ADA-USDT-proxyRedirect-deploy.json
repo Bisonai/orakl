@@ -1,10 +1,15 @@
 {
   "deploy": {
-    "name": "ETH-USDT",
+    "name": "ADA-USDT",
     "timeout": 10,
     "validator": "0x0000000000000000000000000000000000000000",
     "decimals": 8,
-    "description": "ETH-USDT"
+    "description": "ADA-USDT"
+  },
+  "redirectProxy": {
+    "status": "initial",
+    "proxyAddress": "0x59b670e9fA9D0A427751Af201D676719a970857b",
+    "aggregator": "0x3Aa5ebB10DC797CAC828524e59A333d0A371443c"
   },
   "changeOracles": {
     "removed": [],

@@ -1,10 +1,13 @@
 const path = require('node:path')
+const { expect } = require('chai')
 const {
   loadJson,
   loadMigration,
   updateMigration,
   validateAggregatorDeployConfig,
-  validateAggregatorChangeOraclesConfig
+  validateAggregatorChangeOraclesConfig,
+  validateAggregatorRedirectProxyConfig,
+  getFormattedDate
 } = require('../../scripts/v0.1/utils.cjs')
 
 const func = async function (hre) {
@@ -22,7 +25,7 @@ const func = async function (hre) {
 
     let aggregator = undefined
 
-    // Deploy Aggregator and AggregatorProxy ////////////////////////////////////
+    // Deploy Aggregator ////////////////////////////////////
     if (config.deploy) {
       const deployConfig = config.deploy
       if (!validateAggregatorDeployConfig(deployConfig)) {
@@ -30,7 +33,8 @@ const func = async function (hre) {
       }
 
       // Aggregator
-      const aggregatorName = `Aggregator_${deployConfig.name}`
+      const date = getFormattedDate()
+      const aggregatorName = `Aggregator_${deployConfig.name}_${date}`
       const aggregatorDeployment = await deploy(aggregatorName, {
         contract: 'Aggregator',
         args: [
@@ -44,7 +48,84 @@ const func = async function (hre) {
       })
       aggregator = await ethers.getContractAt('Aggregator', aggregatorDeployment.address)
 
-      // AggregatorProxy
+      // Update oracles that are allowed to submit to Aggregator /////////////////
+      if (config.changeOracles) {
+        console.log('changeOracles')
+        const changeOraclesConfig = config.changeOracles
+
+        if (!validateAggregatorChangeOraclesConfig(changeOraclesConfig)) {
+          throw new Error('Invalid Aggregator changeOracles config')
+        }
+
+        aggregator = aggregator
+          ? aggregator
+          : await ethers.getContractAt('Aggregator', config.aggregatorAddress)
+
+        await (
+          await aggregator.changeOracles(
+            changeOraclesConfig.removed,
+            changeOraclesConfig.added,
+            changeOraclesConfig.minSubmissionCount,
+            changeOraclesConfig.maxSubmissionCount,
+            changeOraclesConfig.restartDelay
+          )
+        ).wait()
+      }
+    }
+
+    // redirect Proxy ////////////////////////////////////
+    if (config.redirectProxy) {
+      console.log('Redirect Proxy')
+      const redirectProxyConfig = config.redirectProxy
+      if (!validateAggregatorRedirectProxyConfig(redirectProxyConfig)) {
+        throw new Error('Invalid Aggregator Redirect Proxy config')
+      }
+
+      const proxy = await ethers.getContractAt('AggregatorProxy', redirectProxyConfig.proxyAddress)
+      const aggregatorAddress = redirectProxyConfig.aggregator
+      const proposedAggregator = aggregator
+        ? aggregator.address
+        : redirectProxyConfig.proposedAggregator
+
+      if (redirectProxyConfig.status == 'initial') {
+        // Propose new aggregator
+        console.log('Initial Stage')
+        expect(await proxy.aggregator()).to.be.eq(aggregatorAddress)
+        await (await proxy.proposeAggregator(proposedAggregator)).wait()
+
+        const currentProposedAggregator = await proxy.proposedAggregator()
+        expect(currentProposedAggregator).to.be.eq(proposedAggregator)
+
+        console.log(`Proposed proxy aggregator:${proposedAggregator}`)
+      } else if (redirectProxyConfig.status == 'confirm') {
+        // Confirm new aggregator from Proxy
+        console.log('Confirming Proxy')
+        expect(await proxy.aggregator()).to.be.eq(aggregatorAddress)
+        expect(await proxy.proposedAggregator()).to.be.eq(proposedAggregator)
+        await (await proxy.confirmAggregator(proposedAggregator)).wait()
+
+        const confirmedAggregator = await proxy.aggregator()
+        expect(confirmedAggregator).to.be.eq(proposedAggregator)
+
+        console.log(
+          `Proxy Aggregator redirected from ${aggregatorAddress} to new ${confirmedAggregator}`
+        )
+      } else if (redirectProxyConfig.status == 'revert') {
+        // Revert back to old Aggregator Address
+        console.log('Revert Proxy')
+        expect(await proxy.aggregator()).to.be.eq(proposedAggregator)
+        await (await proxy.proposeAggregator(aggregatorAddress)).wait()
+        await (await proxy.confirmAggregator(aggregatorAddress)).wait()
+        const revertedAggregator = await proxy.aggregator()
+        expect(revertedAggregator).to.be.eq(aggregatorAddress)
+
+        console.log(`Proxy Aggregator reverted from ${proposedAggregator} to ${revertedAggregator}`)
+      } else {
+        console.log('Wrong proxyRedirect method')
+      }
+    } else if (config.deploy) {
+      // Deploy AggregatorProxy ////////////////////////////////////
+      const deployConfig = config.deploy
       const aggregatorProxyName = `AggregatorProxy_${deployConfig.name}`
       const aggregatorProxyDeployment = await deploy(aggregatorProxyName, {
         contract: 'AggregatorProxy',
@@ -61,30 +142,6 @@ const func = async function (hre) {
           name: deployConfig.name
         })
       }
-    }
-
-    // Update oracles that are allowed to submit to Aggregator /////////////////
-    if (config.changeOracles) {
-      console.log('changeOracles')
-      const changeOraclesConfig = config.changeOracles
-
-      if (!validateAggregatorChangeOraclesConfig(changeOraclesConfig)) {
-        throw new Error('Invalid Aggregator changeOracles config')
-      }
-
-      aggregator = aggregator
-        ? aggregator
-        : await ethers.getContractAt('Aggregator', config.aggregatorAddress)
-
-      await (
-        await aggregator.changeOracles(
-          changeOraclesConfig.removed,
-          changeOraclesConfig.added,
-          changeOraclesConfig.minSubmissionCount,
-          changeOraclesConfig.maxSubmissionCount,
-          changeOraclesConfig.restartDelay
-        )
-      ).wait()
     }
 
     await updateMigration(migrationDirPath, migration)
