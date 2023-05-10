@@ -22,6 +22,9 @@ export const PUBLIC_KEY = String(process.env.PUBLIC_KEY)
 export const LOCAL_AGGREGATOR = process.env.LOCAL_AGGREGATOR || 'MEDIAN'
 export const LISTENER_DELAY = Number(process.env.LISTENER_DELAY) || 500
 
+// Gas mimimums
+export const VRF_FULFILL_GAS_MINIMUM = 400_000
+
 // Service ports are used for communication to watchman from the outside
 export const LISTENER_PORT = process.env.LISTENER_PORT || 4_000
 export const WORKER_PORT = process.env.WORKER_PORT || 5_001
@@ -141,6 +144,15 @@ export const CHECK_HEARTBEAT_QUEUE_SETTINGS = {
 
 export const LISTENER_JOB_SETTINGS = {
   removeOnComplete: REMOVE_ON_COMPLETE,
+  removeOnFail: REMOVE_ON_FAIL,
+  attempts: 10,
+  backoff: 1_000
+}
+
+export const WORKER_JOB_SETTINGS = {
+  removeOnComplete: REMOVE_ON_COMPLETE,
+  // FIXME Should not be removed until resolved, however, for now in
+  // testnet, we can safely keep this settings.
   removeOnFail: REMOVE_ON_FAIL,
   attempts: 10,
   backoff: 1_000

@@ -1,4 +1,5 @@
 import { BigNumber } from 'ethers'
+import { Queue } from 'bullmq'
 
 export interface RequestEventData {
   specId: string
@@ -287,3 +288,32 @@ export interface IAggregate {
   value: bigint
   aggregatorId: bigint
 }
+
+export interface ITransactionParameters {
+  payload: string
+  gasLimit: number | string
+  to: string
+}
+
+export interface IVrfTransactionParameters {
+  blockNum: string
+  seed: string
+  accId: string
+  callbackGasLimit: number
+  numWords: number
+  sender: string
+  isDirectPayment: boolean
+  pk: [string, string]
+  proof: [string, string, string, string]
+  preSeed: string
+  uPoint: [string, string]
+  vComponents: [string, string, string, string]
+}
+
+export interface MockQueue {
+  add: any
+  process: any
+  on: any
+}
+
+export type QueueType = Queue | MockQueue

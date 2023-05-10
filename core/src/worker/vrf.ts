@@ -2,13 +2,26 @@ import { ethers } from 'ethers'
 import { Worker, Queue } from 'bullmq'
 import { Logger } from 'pino'
 import type { RedisClientType } from 'redis'
+import { VRFCoordinator__factory } from '@bisonai/orakl-contracts'
 import { prove, decode, getFastVerifyComponents } from '@bisonai/orakl-vrf'
-import { IVrfResponse, IVrfListenerWorker, IVrfWorkerReporter, IVrfConfig } from '../types'
+import {
+  RequestCommitmentVRF,
+  Proof,
+  IVrfResponse,
+  IVrfListenerWorker,
+  IVrfWorkerReporter,
+  IVrfConfig,
+  ITransactionParameters,
+  IVrfTransactionParameters,
+  QueueType
+} from '../types'
 import {
   WORKER_VRF_QUEUE_NAME,
   REPORTER_VRF_QUEUE_NAME,
   BULLMQ_CONNECTION,
-  CHAIN
+  CHAIN,
+  VRF_FULFILL_GAS_MINIMUM,
+  WORKER_JOB_SETTINGS
 } from '../settings'
 import { getVrfConfig } from '../api'
 import { remove0x } from '../utils'
@@ -17,9 +30,12 @@ const FILE_NAME = import.meta.url
 
 export async function worker(redisClient: RedisClientType, _logger: Logger) {
   const logger = _logger.child({ name: 'worker', file: FILE_NAME })
+  const queue = new Queue(REPORTER_VRF_QUEUE_NAME, BULLMQ_CONNECTION)
+  //FIXME add checks if exists and if includes all information
+  const vrfConfig = await getVrfConfig({ chain: CHAIN, logger })
   const worker = new Worker(
     WORKER_VRF_QUEUE_NAME,
-    await vrfJob(REPORTER_VRF_QUEUE_NAME, _logger),
+    await vrfJob(queue, vrfConfig, _logger),
     BULLMQ_CONNECTION
   )
 
@@ -33,11 +49,10 @@ export async function worker(redisClient: RedisClientType, _logger: Logger) {
   process.on('SIGTERM', handleExit)
 }
 
-async function vrfJob(queueName: string, _logger: Logger) {
+export async function vrfJob(queue: QueueType, config: IVrfConfig, _logger: Logger) {
   const logger = _logger.child({ name: 'vrfJob', file: FILE_NAME })
-  const queue = new Queue(queueName, BULLMQ_CONNECTION)
-  // FIXME add checks if exists and if includes all information
-  const vrfConfig = await getVrfConfig({ chain: CHAIN, logger })
+
+  const iface = new ethers.utils.Interface(VRFCoordinator__factory.abi)
 
   async function wrapper(job) {
     const inData: IVrfListenerWorker = job.data
@@ -49,12 +64,10 @@ async function vrfJob(queueName: string, _logger: Logger) {
       )
 
       logger.debug({ alpha })
-      const { pk, proof, uPoint, vComponents } = processVrfRequest(alpha, vrfConfig, _logger)
+      const { pk, proof, uPoint, vComponents } = processVrfRequest(alpha, config, _logger)
 
-      const outData: IVrfWorkerReporter = {
-        callbackAddress: inData.callbackAddress,
+      const payloadParameters: IVrfTransactionParameters = {
         blockNum: inData.blockNum,
-        requestId: inData.requestId,
         seed: inData.seed,
         accId: inData.accId,
         callbackGasLimit: inData.callbackGasLimit,
@@ -67,20 +80,63 @@ async function vrfJob(queueName: string, _logger: Logger) {
         uPoint,
         vComponents
       }
-      logger.debug(outData, 'outData')
 
-      await queue.add('vrf', outData, {
-        jobId: outData.requestId,
-        removeOnComplete: {
-          age: 1800 // 30 min
-        }
+      const to = inData.callbackAddress
+      const tx = buildTransaction(payloadParameters, to, VRF_FULFILL_GAS_MINIMUM, iface, logger)
+
+      logger.debug(tx, 'tx')
+
+      await queue.add('vrf', tx, {
+        jobId: inData.requestId,
+        ...WORKER_JOB_SETTINGS
       })
+
+      return tx
     } catch (e) {
       logger.error(e)
     }
   }
 
   return wrapper
+}
+
+function buildTransaction(
+  payloadParameters: IVrfTransactionParameters,
+  to: string,
+  gasMinimum: number,
+  iface: ethers.utils.Interface,
+  _logger: Logger
+): ITransactionParameters {
+  const gasLimit = payloadParameters.callbackGasLimit + gasMinimum
+  const rc: RequestCommitmentVRF = [
+    payloadParameters.blockNum,
+    payloadParameters.accId,
+    payloadParameters.callbackGasLimit,
+    payloadParameters.numWords,
+    payloadParameters.sender
+  ]
+  _logger.debug(rc, 'rc')
+
+  const proof: Proof = [
+    payloadParameters.pk,
+    payloadParameters.proof,
+    payloadParameters.preSeed,
+    payloadParameters.uPoint,
+    payloadParameters.vComponents
+  ]
+  _logger.debug(proof, 'proof')
+
+  const payload = iface.encodeFunctionData('fulfillRandomWords', [
+    proof,
+    rc,
+    payloadParameters.isDirectPayment
+  ])
+
+  return {
+    payload,
+    gasLimit,
+    to
+  }
 }
 
 function processVrfRequest(alpha: string, config: IVrfConfig, _logger: Logger): IVrfResponse {
