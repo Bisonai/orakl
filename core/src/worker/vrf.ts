@@ -9,7 +9,6 @@ import {
   Proof,
   IVrfResponse,
   IVrfListenerWorker,
-  IVrfWorkerReporter,
   IVrfConfig,
   ITransactionParameters,
   IVrfTransactionParameters,

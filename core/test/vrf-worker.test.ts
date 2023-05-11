@@ -1,5 +1,4 @@
 import { jest } from '@jest/globals'
-import { Queue } from 'bullmq'
 import { vrfJob } from '../src/worker/vrf'
 import { MockQueue, IVrfConfig, IVrfListenerWorker } from '../src/types'
 import { buildMockLogger } from '../src/logger'
@@ -21,7 +20,7 @@ const vrfConfig: IVrfConfig = {
 
 describe('VRF Worker', function () {
   it('Composability test', async function () {
-    const logger = buildMockLogger('MOCK')
+    const logger = buildMockLogger()
     const wrapperFn = await vrfJob(QUEUE, vrfConfig, logger)
 
     const callbackAddress = '0xccf9a654c878848991e46ab23d2ad055ca827979' // random address

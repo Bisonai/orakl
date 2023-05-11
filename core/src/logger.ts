@@ -30,7 +30,7 @@ export function buildLogger(name: string) {
  * logger will be send to standard output, and formatted for a better
  * readability.
  */
-export function buildMockLogger(name: string) {
+export function buildMockLogger() {
   const transport = pino.transport({
     targets: [{ target: 'pino-pretty', level: LOG_LEVEL, options: { destination: 1 } }]
   })
