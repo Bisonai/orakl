@@ -1,10 +1,9 @@
 {
   "name": "@bisonai/orakl-contracts",
   "version": "0.5.0",
-  "type": "module",
   "description": "The Orakl Network Smart Contracts",
   "files": [
-    "./typechain-types",
+    "./dist",
     "./src"
   ],
   "keywords": [
@@ -20,8 +19,8 @@
   "engines": {
     "node": ">=18.12"
   },
-  "exports": "./typechain-types/index.js",
-  "types": "./typechain-types/index.js",
+  "exports": "./dist/index.js",
+  "types": "./dist/index.js",
   "author": "Bisonai",
   "homepage": "https://github.com/Bisonai/orakl/tree/master/contracts#orakl-network-contracts",
   "license": "MIT",
@@ -29,6 +28,7 @@
     "prepare": "cd .. && husky install contracts/.husky",
     "clean": "npx hardhat clean && rm -rf dist",
     "compile": "npx hardhat compile",
+    "build": "tsc",
     "test": "yarn compile && npx hardhat test --parallel",
     "coverage": "npx hardhat coverage",
     "pub": "yarn publish --access public",
