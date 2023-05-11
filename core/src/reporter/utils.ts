@@ -15,12 +15,9 @@ export function buildWallet({
   providerUrl: string
 }) {
   const provider = new ethers.providers.JsonRpcProvider(providerUrl)
-  const wallet = new ethers.Wallet(privateKey, provider)
-
-  // Wrap the wallet with a nonce manager
-  const nonceManager = new NonceManager(wallet)
-
-  return nonceManager
+  const basicWallet = new ethers.Wallet(privateKey, provider)
+  const wallet = new NonceManager(basicWallet)
+  return wallet
 }
 
 export async function testConnection(wallet: ethers.Wallet) {

@@ -2,10 +2,9 @@ import { Worker } from 'bullmq'
 import { ethers } from 'ethers'
 import { Logger } from 'pino'
 import type { RedisClientType } from 'redis'
-import { VRFCoordinator__factory } from '@bisonai/orakl-contracts'
 import { loadWalletParameters, sendTransaction, buildWallet } from './utils'
 import { REPORTER_VRF_QUEUE_NAME, BULLMQ_CONNECTION } from '../settings'
-import { IVrfWorkerReporter, RequestCommitmentVRF, Proof } from '../types'
+import { ITransactionParameters } from '../types'
 
 const FILE_NAME = import.meta.url
 
@@ -18,38 +17,15 @@ export async function reporter(redisClient: RedisClientType, _logger: Logger) {
 }
 
 function job(wallet, logger: Logger) {
-  const iface = new ethers.utils.Interface(VRFCoordinator__factory.abi)
-  const gasLimit = 3_000_000 // FIXME
-
   async function wrapper(job) {
-    const inData: IVrfWorkerReporter = job.data
+    const inData: ITransactionParameters = job.data
     logger.debug(inData, 'inData')
 
     try {
-      const rc: RequestCommitmentVRF = [
-        inData.blockNum,
-        inData.accId,
-        inData.callbackGasLimit,
-        inData.numWords,
-        inData.sender
-      ]
-      logger.debug(rc, 'rc')
-
-      const proof: Proof = [
-        inData.pk,
-        inData.proof,
-        inData.preSeed,
-        inData.uPoint,
-        inData.vComponents
-      ]
-      logger.debug(proof, 'proof')
-
-      const payload = iface.encodeFunctionData('fulfillRandomWords', [
-        proof,
-        rc,
-        inData.isDirectPayment
-      ])
-      await sendTransaction({ wallet, to: inData.callbackAddress, payload, gasLimit, logger })
+      const payload = inData.payload
+      const gasLimit = inData.gasLimit
+      const to = inData.to
+      await sendTransaction({ wallet, to, payload, gasLimit, logger })
     } catch (e) {
       logger.error(e)
     }
