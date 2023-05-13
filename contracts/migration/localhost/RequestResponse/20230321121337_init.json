@@ -3,8 +3,8 @@
   "deploy": {
     "version": "0.1.0"
   },
-  "registerOracle": [
-    "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC"
+    "registerOracle": [
+      "0xdD2FD4581271e230360230F9337D5c0430Bf44C0"
   ],
   "deregisterOracle": [],
   "setConfig": {
