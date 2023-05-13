@@ -34,7 +34,7 @@ export async function worker(redisClient: RedisClientType, _logger: Logger) {
   const vrfConfig = await getVrfConfig({ chain: CHAIN, logger })
   const worker = new Worker(
     WORKER_VRF_QUEUE_NAME,
-    await vrfJob(queue, vrfConfig, _logger),
+    await job(queue, vrfConfig, _logger),
     BULLMQ_CONNECTION
   )
 
@@ -48,9 +48,8 @@ export async function worker(redisClient: RedisClientType, _logger: Logger) {
   process.on('SIGTERM', handleExit)
 }
 
-export async function vrfJob(queue: QueueType, config: IVrfConfig, _logger: Logger) {
+export async function job(queue: QueueType, config: IVrfConfig, _logger: Logger) {
   const logger = _logger.child({ name: 'vrfJob', file: FILE_NAME })
-
   const iface = new ethers.utils.Interface(VRFCoordinator__factory.abi)
 
   async function wrapper(job) {
@@ -82,7 +81,6 @@ export async function vrfJob(queue: QueueType, config: IVrfConfig, _logger: Logg
 
       const to = inData.callbackAddress
       const tx = buildTransaction(payloadParameters, to, VRF_FULFILL_GAS_MINIMUM, iface, logger)
-
       logger.debug(tx, 'tx')
 
       await queue.add('vrf', tx, {
@@ -93,6 +91,7 @@ export async function vrfJob(queue: QueueType, config: IVrfConfig, _logger: Logg
       return tx
     } catch (e) {
       logger.error(e)
+      throw e
     }
   }
 

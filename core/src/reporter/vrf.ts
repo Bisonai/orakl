@@ -10,7 +10,6 @@ const FILE_NAME = import.meta.url
 
 export async function reporter(redisClient: RedisClientType, _logger: Logger) {
   const logger = _logger.child({ name: 'reporter', file: FILE_NAME })
-
   const { privateKey, providerUrl } = loadWalletParameters()
   const wallet = await buildWallet({ privateKey, providerUrl })
   new Worker(REPORTER_VRF_QUEUE_NAME, await job(wallet, logger), BULLMQ_CONNECTION)
