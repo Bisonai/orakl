@@ -1,5 +1,5 @@
-import { ethers } from 'hardhat'
-import hre from 'hardhat'
+const { ethers } = require('hardhat')
+const hre = require('hardhat')
 
 async function main() {
   const requestResponseConsumerMock = await ethers.getContract('RequestResponseConsumerMock')
@@ -13,7 +13,7 @@ async function main() {
 
   const accId = 1
   const callbackGasLimit = 500_000
-  await requestResponseConsumerSigner.requestData(accId, callbackGasLimit)
+  await requestResponseConsumerSigner.requestDataUint128(accId, callbackGasLimit)
 }
 
 main().catch((error) => {
