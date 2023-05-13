@@ -68,6 +68,7 @@ async function processEvent({ iface, logger }: { iface: ethers.utils.Interface; 
       callbackGasLimit: eventData.callbackGasLimit,
       sender: eventData.sender,
       isDirectPayment: eventData.isDirectPayment,
+      numSubmission: eventData.numSubmission,
       data: eventData.data.toString()
     }
     _logger.debug(jobData, 'jobData')

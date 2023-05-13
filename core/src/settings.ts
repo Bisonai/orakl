@@ -24,6 +24,7 @@ export const LISTENER_DELAY = Number(process.env.LISTENER_DELAY) || 500
 
 // Gas mimimums
 export const VRF_FULFILL_GAS_MINIMUM = 400_000
+export const REQUEST_RESPONSE_FULFILL_GAS_MINIMUM = 400_000
 
 // Service ports are used for communication to watchman from the outside
 export const LISTENER_PORT = process.env.LISTENER_PORT || 4_000

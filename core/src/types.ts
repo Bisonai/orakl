@@ -73,6 +73,7 @@ export interface IDataRequested {
   callbackGasLimit: number
   sender: string
   isDirectPayment: boolean
+  numSubmission: number
   data: string
 }
 
@@ -104,6 +105,7 @@ export interface IRequestResponseListenerWorker {
   callbackGasLimit: number
   sender: string
   isDirectPayment: boolean
+  numSubmission: number
   data: string
 }
 
@@ -195,6 +197,7 @@ export type RequestCommitmentVRF = [
 export type RequestCommitmentRequestResponse = [
   number /* blockNum */,
   string /* accId */,
+  number /* numSubmission */,
   number /* callbackGasLimit */,
   string /* sender */
 ]
@@ -308,6 +311,18 @@ export interface IVrfTransactionParameters {
   preSeed: string
   uPoint: [string, string]
   vComponents: [string, string, string, string]
+}
+
+export interface IRequestResponseTransactionParameters {
+  blockNum: number
+  accId: string
+  jobId: string
+  requestId: string
+  numSubmission: number
+  callbackGasLimit: number
+  sender: string
+  isDirectPayment: boolean
+  response: any
 }
 
 export interface MockQueue {
