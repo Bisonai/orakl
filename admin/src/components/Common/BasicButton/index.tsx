@@ -6,6 +6,8 @@ interface BasicButtonProps extends ButtonProps {
   disabled?: boolean;
   justifyContent?: string;
   width?: string;
+  margin?: string | number;
+  selected?: boolean;
 }
 
 export default function BasicButton({
@@ -16,14 +18,16 @@ export default function BasicButton({
   disabled = false,
   justifyContent = "flex-start",
   width = "100%",
+  margin,
+  selected = false,
   ...rest
 }: BasicButtonProps) {
   return (
     <Button
       onClick={onClick}
       variant={variant}
-      color={color}
-      style={{ width, justifyContent }}
+      color={selected ? "secondary" : "primary"}
+      style={{ width, justifyContent, margin }}
       disabled={disabled}
       {...rest}
     >
