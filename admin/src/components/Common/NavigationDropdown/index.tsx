@@ -7,8 +7,9 @@ import {
   AccordionItem,
   AccordionHeader,
   AccordionContent,
-  Icon,
 } from "./styled";
+import Link from "next/link";
+import BasicButton from "../BasicButton";
 
 export default function NavigationDropdown(): JSX.Element {
   const [isAccordionOpen, setIsAccordionOpen] = useState([true, true, true]);
@@ -23,7 +24,7 @@ export default function NavigationDropdown(): JSX.Element {
         <AccordionItem>
           <AccordionHeader onClick={() => handleAccordionToggle(0)}>
             Configuration
-            <Icon>{isAccordionOpen[0] ? "-" : "+"}</Icon>
+            <span>{isAccordionOpen[0] ? "-" : "+"}</span>
           </AccordionHeader>
           {isAccordionOpen[0] && (
             <AccordionContent>
@@ -42,22 +43,28 @@ export default function NavigationDropdown(): JSX.Element {
         <AccordionItem>
           <AccordionHeader onClick={() => handleAccordionToggle(1)}>
             Bull Monitor
-            <Icon>{isAccordionOpen[1] ? "-" : "+"}</Icon>
+            <span>{isAccordionOpen[1] ? "-" : "+"}</span>
           </AccordionHeader>
           {isAccordionOpen[1] && (
             <AccordionContent>
-              <Button text="VRF" />
-              <Button text="Request Response" />
-              <Button text="Aggregator" />
-              <Button text="Fetcher" />
-              <Button text="Setting" />
+              <Link href={`/bullmonitor/vrf`}>
+                <BasicButton text="VRF" />
+              </Link>
+              <Link href={`/bullmonitor/request-response`}>
+                <BasicButton text="Request Response" />
+              </Link>
+              <Link href={`/bullmonitor/aggregator`}>
+                <BasicButton text="Aggregator" />
+              </Link>
+              <BasicButton text="Fetcher" />
+              <BasicButton text="Setting" />
             </AccordionContent>
           )}
         </AccordionItem>
         <AccordionItem>
           <AccordionHeader onClick={() => handleAccordionToggle(2)}>
             Account Balance
-            <Icon>{isAccordionOpen[2] ? "-" : "+"}</Icon>
+            <span>{isAccordionOpen[2] ? "-" : "+"}</span>
           </AccordionHeader>
           {isAccordionOpen[2] && <AccordionContent />}
         </AccordionItem>
