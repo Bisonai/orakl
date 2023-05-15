@@ -1,0 +1,129 @@
+* {
+  box-sizing: border-box;
+  padding: 0;
+  margin: 0;
+}
+
+html,
+body {
+  width: 100%;
+  margin: 0px !important;
+  height: 100vh;
+  /* font-family: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, system-ui,
+      Roboto, "Helvetica Neue", "Segoe UI", "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic",
+      "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", sans-serif; */
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: #b0b0b0;
+  border-radius: 10px;
+  background-clip: padding-box;
+  border: 2px solid transparent;
+}
+
+::-webkit-scrollbar-track {
+  background-color: #e0e0e0;
+  border-radius: 10px;
+  box-shadow: inset 0px 0px 3px white;
+}
+::-webkit-media-controls {
+  display: none !important;
+}
+::-webkit-media-controls {
+  display: none !important;
+}
+::-webkit-media-controls-enclosure {
+  display: none !important;
+}
+::-webkit-media-controls-fullscreen-button {
+  display: none !important;
+}
+
+*::-webkit-media-controls-panel {
+  display: none !important;
+  -webkit-appearance: none;
+}
+
+*::--webkit-media-controls-play-button {
+  display: none !important;
+  -webkit-appearance: none;
+}
+
+*::-webkit-media-controls-start-playback-button {
+  display: none !important;
+  -webkit-appearance: none;
+}
+
+body {
+  background-color: #9ba4b5;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+  width: fit-content;
+}
+
+li {
+  list-style: none !important;
+}
+
+.noselect {
+  -webkit-user-select: none;
+  -khtml-user-select: none;
+  -moz-user-select: none;
+  -o-user-select: none;
+  user-select: none;
+  -webkit-user-drag: none;
+  -khtml-user-drag: none;
+  -moz-user-drag: none;
+  -o-user-drag: none;
+  user-drag: none;
+}
+
+.grecaptcha-badge {
+  visibility: hidden;
+}
+
+img {
+  -webkit-user-drag: none;
+  -khtml-user-drag: none;
+  -moz-user-drag: none;
+  -o-user-drag: none;
+  user-drag: none;
+  -webkit-user-select: none;
+  -khtml-user-select: none;
+  -moz-user-select: none;
+  -o-user-select: none;
+  user-select: none;
+}
+
+.html5-video-player.ytp-fullscreen > .ytp-chrome-top,
+.html5-video-player.ytp-fullscreen > .ytp-gradient-top,
+.html5-video-player.ytp-fullscreen > .ytp-gradient-bottom {
+  display: none !important;
+}
+.html5-video-player.ytp-fullscreen
+  > .ytp-caption-window-container
+  > .caption-window.ytp-caption-window-bottom {
+  margin-bottom: 0;
+}
+.html5-video-player.ytp-fullscreen > .ytp-chrome-bottom:hover {
+  opacity: 1 !important;
+}
+.html5-video-player.ytp-fullscreen > .ytp-chrome-bottom:not(:hover) {
+  opacity: 0 !important;
+}
+
+/* ::-webkit-scrollbar {
+  display: none;
+} */
+* {
+  -ms-overflow-style: none; /* Internet Explorer 10+ */
+  scrollbar-width: none; /* Firefox */
+}
