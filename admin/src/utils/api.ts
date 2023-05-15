@@ -29,7 +29,7 @@ export const api = {
 };
 
 export type IApi = typeof api;
-console.log(api, "api");
+
 export type IApiBase = {
   [target in keyof IApi]: { [method in Method]: any | undefined };
 };
