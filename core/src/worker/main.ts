@@ -11,7 +11,7 @@ import { hookConsoleError } from '../utils'
 import { REDIS_HOST, REDIS_PORT } from '../settings'
 
 const WORKERS: IWorkers = {
-  AGGREGATOR: dataFeedWorker,
+  DATA_FEED: dataFeedWorker,
   VRF: vrfWorker,
   REQUEST_RESPONSE: requestResponseWorker
 }

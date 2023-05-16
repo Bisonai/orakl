@@ -11,7 +11,7 @@ import { IReporters } from './types'
 import { REDIS_HOST, REDIS_PORT } from '../settings'
 
 const REPORTERS: IReporters = {
-  AGGREGATOR: dataFeedReporter,
+  DATA_FEED: dataFeedReporter,
   VRF: vrfReporter,
   REQUEST_RESPONSE: requestResponseReporter
 }
