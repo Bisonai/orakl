@@ -1,6 +1,6 @@
 {
   "name": "@bisonai/orakl-contracts",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "description": "The Orakl Network Smart Contracts",
   "files": [
     "./dist",
