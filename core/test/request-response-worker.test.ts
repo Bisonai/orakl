@@ -32,7 +32,6 @@ describe('Request-Response Worker', function () {
       numSubmission: 1,
       data: KlayPriceRequest()
     }
-
     const tx = await wrapperFn({
       data: listenerData
     })
