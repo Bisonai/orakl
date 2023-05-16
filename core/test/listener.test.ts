@@ -65,8 +65,7 @@ describe('Listener', function () {
         chain: 'localhost'
       }
     ]
-    /* eslint-disable @typescript-eslint/no-explicit-any */
-    const isValid = validateListenerConfig(config as any)
+    const isValid = validateListenerConfig(config as any) // eslint-disable-line @typescript-eslint/no-explicit-any
     expect(isValid).toBe(false)
   })
 })
