@@ -1,63 +1,62 @@
 import { IObject } from "./types";
 import { BREAKPOINTS } from "./constants";
+import { CSSProperties } from "react";
 
 export const noTypeCheck = (x: any) => x;
 
 export const camelToHypen = (camel: string) =>
   camel.replace(/[A-Z]/g, (m) => "-" + m.toLowerCase());
 
-//TODO
+export const reactCssToNormalCss = (css: CSSProperties) =>
+  Object.entries(css)
+    .map(([prop, value]) => `${camelToHypen(prop)}: ${value};`)
+    .join("\n");
 
-// export const reactCssToNormalCss = (css: CSSProperties) =>
-//   Object.entries(css)
-//     .map(([prop, value]) => `${camelToHypen(prop)}: ${value};`)
-//     .join("\n");
+export const parseFontThemeToReactCss = (
+  fontTheme: IObject<string | number>
+) => {
+  return Object.keys(fontTheme).reduce((result, key) => {
+    const value = fontTheme[key];
+    let newValue = value;
+    if (key === "fontWeight") {
+      if (typeof value === "string") {
+        newValue = fontWeightMap[value];
+      }
+    } else if (key === "fontFamily") {
+      newValue = (value as string).replace(
+        "Elice DigitalBaeum",
+        "__Elice_5c8c8b"
+      );
+    } else if (typeof value === "string" && !["animationName"].includes(key)) {
+      newValue = value.toLowerCase();
+    } else if (typeof value === "number") {
+      newValue = `${value}px`;
+    }
+    return { ...result, [key]: newValue };
+  }, {} as CSSProperties);
+};
 
-// export const parseFontThemeToReactCss = (
-//   fontTheme: IObject<string | number>
-// ) => {
-//   return Object.keys(fontTheme).reduce((result, key) => {
-//     const value = fontTheme[key];
-//     let newValue = value;
-//     if (key === "fontWeight") {
-//       if (typeof value === "string") {
-//         newValue = fontWeightMap[value];
-//       }
-//     } else if (key === "fontFamily") {
-//       newValue = (value as string).replace(
-//         "Elice DigitalBaeum",
-//         "__Elice_5c8c8b"
-//       );
-//     } else if (typeof value === "string" && !["animationName"].includes(key)) {
-//       newValue = value.toLowerCase();
-//     } else if (typeof value === "number") {
-//       newValue = `${value}px`;
-//     }
-//     return { ...result, [key]: newValue };
-//   }, {} as CSSProperties);
-// };
+export const fontThemeToCss = (fontTheme: IObject<string | number>) =>
+  reactCssToNormalCss(parseFontThemeToReactCss(fontTheme));
 
-// export const fontThemeToCss = (fontTheme: IObject<string | number>) =>
-//   reactCssToNormalCss(parseFontThemeToReactCss(fontTheme));
-
-// export const getResponsiveCss = (
-//   desktop: IObject<string | number>,
-//   tablet: IObject<string | number>,
-//   mobile: IObject<string | number>
-// ) =>
-//   `
-//     @media (min-width: ${BREAKPOINTS.DESKTOP + 1}px) {
-//         ${fontThemeToCss(desktop)}
-//     }
-//     @media (min-width: ${BREAKPOINTS.TABLET + 1}px) and (max-width: ${
-//     BREAKPOINTS.DESKTOP
-//   }px) {
-//         ${fontThemeToCss(tablet)}
-//     }
-//     @media (max-width: ${BREAKPOINTS.TABLET}px) {
-//         ${fontThemeToCss(mobile)}
-//     }
-//     `;
+export const getResponsiveCss = (
+  desktop: IObject<string | number>,
+  tablet: IObject<string | number>,
+  mobile: IObject<string | number>
+) =>
+  `
+    @media (min-width: ${BREAKPOINTS.DESKTOP + 1}px) {
+        ${fontThemeToCss(desktop)}
+    }
+    @media (min-width: ${BREAKPOINTS.TABLET + 1}px) and (max-width: ${
+    BREAKPOINTS.DESKTOP
+  }px) {
+        ${fontThemeToCss(tablet)}
+    }
+    @media (max-width: ${BREAKPOINTS.TABLET}px) {
+        ${fontThemeToCss(mobile)}
+    }
+    `;
 
 export const fontWeightMap: IObject<number> = {
   Black: 900,
