@@ -18,7 +18,7 @@ const jestConfig: JestConfigWithTsJest = {
   rootDir: '.',
   testMatch: ['<rootDir>/test/*.ts'],
   moduleDirectories: ['node_modules', 'dist/src/', '<rootDir>'],
-  testPathIgnorePatterns: [],
+  testPathIgnorePatterns: ['utils.ts'],
   transformIgnorePatterns: ['node_modules/(?!@bisonai)'],
   extensionsToTreatAsEsm: ['.ts'],
   collectCoverageFrom: ['**/*.(t|j)s'],
