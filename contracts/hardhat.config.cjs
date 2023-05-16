@@ -93,4 +93,40 @@ task('address', 'Convert mnemonic to address')
     console.log(wallet.address)
   })
 
+task('read-data-feed', 'Read latest data from DataFeedConsumerMock')
+  .addParam('pair', 'Price pair (e.g. KLAY-USDT)')
+  .setAction(async (taskArgs, hre) => {
+    let _consumer
+    if (network.name == 'localhost') {
+      const { consumer } = await hre.getNamedAccounts()
+      _consumer = consumer
+    } else {
+      const PROVIDER = process.env.PROVIDER
+      const MNEMONIC = process.env.MNEMONIC || ''
+      const provider = new ethers.providers.JsonRpcProvider(PROVIDER)
+      _consumer = ethers.Wallet.fromMnemonic(MNEMONIC).connect(provider)
+    }
+
+    const dataFeedConsumerMock = await ethers.getContract(`DataFeedConsumerMock_${taskArgs.pair}`)
+    const dataFeedConsumerSigner = await ethers.getContractAt(
+      'DataFeedConsumerMock',
+      dataFeedConsumerMock.address,
+      _consumer
+    )
+    console.log('DataFeedConsumerMock', dataFeedConsumerMock.address)
+
+    try {
+      await dataFeedConsumerSigner.getLatestRoundData()
+      const answer = await dataFeedConsumerSigner.sAnswer()
+      const decimals = await dataFeedConsumerSigner.decimals()
+      const round = await dataFeedConsumerSigner.sID()
+      console.log(`Answer\t\t${answer}`)
+      console.log(`Decimals\t${decimals}`)
+      console.log(`Round\t\t${round}`)
+    } catch (e) {
+      console.log(e)
+      console.error('Most likely no submission yet.')
+    }
+  })
+
 module.exports = config
