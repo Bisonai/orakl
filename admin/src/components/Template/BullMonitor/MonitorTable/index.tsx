@@ -38,7 +38,7 @@ const MonitorTable = ({ serviceId }: { serviceId: string }) => {
       </TableHeaderContainer>
       {serviceQuery.data?.map((queue: IQueueData) => (
         <Link
-          href={`/bullmonitor/${serviceId}/${queue.queue}`}
+          href={`/bullmonitor/${serviceId}?queue=${queue.queue}`}
           key={queue.queue}
         >
           <TableDataContainer>
