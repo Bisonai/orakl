@@ -15,6 +15,7 @@ import {
   ITransactionParameters
 } from '../types'
 import { pipe } from '../utils'
+import { buildTransaction } from './request-response.utils'
 import {
   WORKER_REQUEST_RESPONSE_QUEUE_NAME,
   REPORTER_REQUEST_RESPONSE_QUEUE_NAME,
@@ -22,15 +23,6 @@ import {
   WORKER_JOB_SETTINGS,
   REQUEST_RESPONSE_FULFILL_GAS_MINIMUM
 } from '../settings'
-import {
-  JOB_ID_MAPPING,
-  JOB_ID_UINT128,
-  JOB_ID_INT256,
-  JOB_ID_BOOL,
-  JOB_ID_STRING,
-  JOB_ID_BYTES32,
-  JOB_ID_BYTES
-} from './request-response.utils'
 
 const FILE_NAME = import.meta.url
 
@@ -53,7 +45,7 @@ export async function worker(redisClient: RedisClientType, _logger: Logger) {
   process.on('SIGTERM', handleExit)
 }
 
-export async function job(queue: QueueType, _logger: Logger) {
+export async function job(reporterQueue: QueueType, _logger: Logger) {
   const logger = _logger.child({ name: 'job', file: FILE_NAME })
   const iface = new ethers.utils.Interface(RequestResponseCoordinator__factory.abi)
 
@@ -86,7 +78,7 @@ export async function job(queue: QueueType, _logger: Logger) {
       )
       logger.debug(tx, 'tx')
 
-      await queue.add('request-response', tx, {
+      await reporterQueue.add('request-response', tx, {
         jobId: inData.requestId,
         ...WORKER_JOB_SETTINGS
       })
@@ -99,64 +91,6 @@ export async function job(queue: QueueType, _logger: Logger) {
   }
 
   return wrapper
-}
-
-function buildTransaction(
-  payloadParameters: IRequestResponseTransactionParameters,
-  to: string,
-  gasMinimum: number,
-  iface: ethers.utils.Interface,
-  _logger: Logger
-): ITransactionParameters {
-  const gasLimit = payloadParameters.callbackGasLimit + gasMinimum
-
-  const fulfillDataRequestFn = JOB_ID_MAPPING[payloadParameters.jobId]
-  if (fulfillDataRequestFn == undefined) {
-    throw new Error() // FIXME
-  }
-
-  let response
-  switch (payloadParameters.jobId) {
-    case JOB_ID_UINT128:
-    case JOB_ID_INT256:
-      response = Math.floor(payloadParameters.response)
-      break
-    case JOB_ID_BOOL:
-      if (payloadParameters.response.toLowerCase() == 'false') {
-        response = false
-      } else {
-        response = Boolean(payloadParameters.response)
-      }
-      break
-    case JOB_ID_STRING:
-      response = String(payloadParameters.response)
-      break
-    case JOB_ID_BYTES32:
-    case JOB_ID_BYTES:
-      response = payloadParameters.response
-      break
-  }
-
-  const rc: RequestCommitmentRequestResponse = [
-    payloadParameters.blockNum,
-    payloadParameters.accId,
-    payloadParameters.numSubmission,
-    payloadParameters.callbackGasLimit,
-    payloadParameters.sender
-  ]
-
-  const payload = iface.encodeFunctionData(fulfillDataRequestFn, [
-    payloadParameters.requestId,
-    response,
-    rc,
-    payloadParameters.isDirectPayment
-  ])
-
-  return {
-    payload,
-    gasLimit,
-    to
-  }
 }
 
 async function processRequest(reqEnc: string, _logger: Logger): Promise<string | number> {

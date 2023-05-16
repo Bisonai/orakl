@@ -1,4 +1,10 @@
 import { ethers } from 'ethers'
+import { Logger } from 'pino'
+import {
+  RequestCommitmentRequestResponse,
+  ITransactionParameters,
+  IRequestResponseTransactionParameters
+} from '../types'
 
 export const JOB_ID_UINT128 = ethers.utils.id('uint128')
 export const JOB_ID_INT256 = ethers.utils.id('int256')
@@ -14,4 +20,62 @@ export const JOB_ID_MAPPING = {
   [JOB_ID_STRING]: 'fulfillDataRequestString',
   [JOB_ID_BYTES32]: 'fulfillDataRequestBytes32',
   [JOB_ID_BYTES]: 'fulfillDataRequestBytes'
+}
+
+export function buildTransaction(
+  payloadParameters: IRequestResponseTransactionParameters,
+  to: string,
+  gasMinimum: number,
+  iface: ethers.utils.Interface,
+  logger: Logger
+): ITransactionParameters {
+  const gasLimit = payloadParameters.callbackGasLimit + gasMinimum
+
+  const fulfillDataRequestFn = JOB_ID_MAPPING[payloadParameters.jobId]
+  if (fulfillDataRequestFn == undefined) {
+    throw new Error() // FIXME
+  }
+
+  let response
+  switch (payloadParameters.jobId) {
+    case JOB_ID_UINT128:
+    case JOB_ID_INT256:
+      response = Math.floor(payloadParameters.response)
+      break
+    case JOB_ID_BOOL:
+      if (payloadParameters.response.toLowerCase() == 'false') {
+        response = false
+      } else {
+        response = Boolean(payloadParameters.response)
+      }
+      break
+    case JOB_ID_STRING:
+      response = String(payloadParameters.response)
+      break
+    case JOB_ID_BYTES32:
+    case JOB_ID_BYTES:
+      response = payloadParameters.response
+      break
+  }
+
+  const rc: RequestCommitmentRequestResponse = [
+    payloadParameters.blockNum,
+    payloadParameters.accId,
+    payloadParameters.numSubmission,
+    payloadParameters.callbackGasLimit,
+    payloadParameters.sender
+  ]
+
+  const payload = iface.encodeFunctionData(fulfillDataRequestFn, [
+    payloadParameters.requestId,
+    response,
+    rc,
+    payloadParameters.isDirectPayment
+  ])
+
+  return {
+    payload,
+    gasLimit,
+    to
+  }
 }

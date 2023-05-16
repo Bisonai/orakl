@@ -30,7 +30,7 @@ const FILE_NAME = import.meta.url
 export async function worker(redisClient: RedisClientType, _logger: Logger) {
   const logger = _logger.child({ name: 'worker', file: FILE_NAME })
   const queue = new Queue(REPORTER_VRF_QUEUE_NAME, BULLMQ_CONNECTION)
-  //FIXME add checks if exists and if includes all information
+  // FIXME add checks if exists and if includes all information
   const vrfConfig = await getVrfConfig({ chain: CHAIN, logger })
   const worker = new Worker(
     WORKER_VRF_QUEUE_NAME,
@@ -48,7 +48,7 @@ export async function worker(redisClient: RedisClientType, _logger: Logger) {
   process.on('SIGTERM', handleExit)
 }
 
-export async function job(queue: QueueType, config: IVrfConfig, _logger: Logger) {
+export async function job(reporterQueue: QueueType, config: IVrfConfig, _logger: Logger) {
   const logger = _logger.child({ name: 'vrfJob', file: FILE_NAME })
   const iface = new ethers.utils.Interface(VRFCoordinator__factory.abi)
 
@@ -83,7 +83,7 @@ export async function job(queue: QueueType, config: IVrfConfig, _logger: Logger)
       const tx = buildTransaction(payloadParameters, to, VRF_FULFILL_GAS_MINIMUM, iface, logger)
       logger.debug(tx, 'tx')
 
-      await queue.add('vrf', tx, {
+      await reporterQueue.add('vrf', tx, {
         jobId: inData.requestId,
         ...WORKER_JOB_SETTINGS
       })
@@ -103,7 +103,7 @@ function buildTransaction(
   to: string,
   gasMinimum: number,
   iface: ethers.utils.Interface,
-  _logger: Logger
+  logger: Logger
 ): ITransactionParameters {
   const gasLimit = payloadParameters.callbackGasLimit + gasMinimum
   const rc: RequestCommitmentVRF = [
@@ -113,7 +113,7 @@ function buildTransaction(
     payloadParameters.numWords,
     payloadParameters.sender
   ]
-  _logger.debug(rc, 'rc')
+  logger.debug(rc, 'rc')
 
   const proof: Proof = [
     payloadParameters.pk,
@@ -122,7 +122,7 @@ function buildTransaction(
     payloadParameters.uPoint,
     payloadParameters.vComponents
   ]
-  _logger.debug(proof, 'proof')
+  logger.debug(proof, 'proof')
 
   const payload = iface.encodeFunctionData('fulfillRandomWords', [
     proof,
