@@ -1,14 +1,16 @@
+import { ethers } from 'ethers'
 import { Worker, Queue, Job } from 'bullmq'
 import { Logger } from 'pino'
 import type { RedisClientType } from 'redis'
+import { Aggregator__factory } from '@bisonai/orakl-contracts'
 import { getAggregatorGivenAddress, getAggregators, fetchDataFeed } from './api'
 import { State } from './state'
 import { OraklError, OraklErrorCode } from '../errors'
 import {
-  IAggregatorWorker,
-  IAggregatorWorkerReporter,
+  IDataFeedListenerWorker,
   IAggregatorHeartbeatWorker,
-  IAggregatorSubmitHeartbeatWorker
+  IAggregatorSubmitHeartbeatWorker,
+  QueueType
 } from '../types'
 import {
   AGGREGATOR_QUEUE_SETTINGS,
@@ -26,10 +28,11 @@ import {
   WORKER_AGGREGATOR_QUEUE_NAME,
   WORKER_CHECK_HEARTBEAT_QUEUE_NAME,
   CHECK_HEARTBEAT_QUEUE_SETTINGS,
-  MAX_DATA_STALENESS
+  MAX_DATA_STALENESS,
+  DATA_FEED_FULFILL_GAS_MINIMUM
 } from '../settings'
 import { buildSubmissionRoundJobId, buildHeartbeatJobId } from '../utils'
-import { oracleRoundStateCall } from './data-feed.utils'
+import { oracleRoundStateCall, buildTransaction, isStale } from './data-feed.utils'
 import { watchman } from './watchman'
 import { getOperatorAddress } from '../api'
 
@@ -149,16 +152,21 @@ export async function worker(redisClient: RedisClientType, _logger: Logger) {
  * out the which round ID, it can submit the latest value. Then, it
  * create a new job and passes it to reporter worker.
  *
- * @param {Queue} submit heartbeat queue
- * @param {Queue} reporter queue
+ * @param {QueueType} submit heartbeat queue
+ * @param {QueueType} reporter queue
  * @param {Logger} pino logger
  * @return {} [aggregator] job processor
  */
-function aggregatorJob(submitHeartbeatQueue: Queue, reporterQueue: Queue, _logger: Logger) {
+export function aggregatorJob(
+  submitHeartbeatQueue: QueueType,
+  reporterQueue: QueueType,
+  _logger: Logger
+) {
   const logger = _logger.child({ name: 'aggregatorJob' })
+  const iface = new ethers.utils.Interface(Aggregator__factory.abi)
 
   async function wrapper(job: Job) {
-    const inData: IAggregatorWorker = job.data
+    const inData: IDataFeedListenerWorker = job.data
     logger.debug(inData, 'inData')
     const { oracleAddress, roundId, workerSource } = inData
 
@@ -182,24 +190,22 @@ function aggregatorJob(submitHeartbeatQueue: Queue, reporterQueue: Queue, _logge
         ...SUBMIT_HEARTBEAT_QUEUE_SETTINGS
       })
 
-      // Check on data staleness
-      const now = Date.now()
-      const fetchedAt = Date.parse(timestamp)
-      const dataStaleness = Math.max(0, now - fetchedAt)
-      logger.debug(`Data staleness ${dataStaleness} ms`)
-
-      if (dataStaleness > MAX_DATA_STALENESS) {
+      if (isStale({ timestamp, logger })) {
         logger.warn(`Data became stale (> ${MAX_DATA_STALENESS}). Not reporting.`)
       } else {
-        // Report submission
-        const outDataReporter: IAggregatorWorkerReporter = {
-          oracleAddress,
-          submission,
-          roundId,
-          workerSource
-        }
-        logger.debug(outDataReporter, 'outDataReporter')
-        await reporterQueue.add(workerSource, outDataReporter, {
+        const tx = buildTransaction({
+          payloadParameters: {
+            roundId,
+            submission
+          },
+          to: oracleAddress,
+          gasMinimum: DATA_FEED_FULFILL_GAS_MINIMUM,
+          iface,
+          logger
+        })
+        logger.debug(tx, 'tx')
+
+        await reporterQueue.add(workerSource, tx, {
           jobId: buildSubmissionRoundJobId({
             oracleAddress,
             roundId,
@@ -216,6 +222,8 @@ function aggregatorJob(submitHeartbeatQueue: Queue, reporterQueue: Queue, _logge
           // FIXME Rethink!
           removeOnFail: true
         })
+
+        return tx
       }
     } catch (e) {
       // `FailedToFetchFromDataFeed` exception can be raised from `prepareDataForReporter`.
@@ -287,7 +295,7 @@ function heartbeatJob(aggregatorQueue: Queue, state: State, _logger: Logger) {
       logger.debug(oracleRoundState, 'oracleRoundState')
 
       const { roundId, eligibleToSubmit } = oracleRoundState
-      const outData: IAggregatorWorker = {
+      const outData: IDataFeedListenerWorker = {
         oracleAddress,
         roundId,
         workerSource: 'heartbeat'
@@ -403,7 +411,7 @@ function submitHeartbeatJob(heartbeatQueue: Queue, state: State, _logger: Logger
 function checkHeartbeatJob(submitHeartbeatQueue: Queue, state: State, _logger: Logger) {
   const logger = _logger.child({ name: 'checkHeartbeatJob' })
 
-  async function wrapper(job: Job) {
+  async function wrapper(_job: Job) {
     const activeAggregators = await state.active()
     for (const aggregator of activeAggregators) {
       const timeBuffer = 2_000

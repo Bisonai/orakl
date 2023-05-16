@@ -10,9 +10,7 @@ import { requestResponseReducerMapping } from './reducer'
 import {
   IRequestResponseListenerWorker,
   IRequestResponseTransactionParameters,
-  RequestCommitmentRequestResponse,
-  QueueType,
-  ITransactionParameters
+  QueueType
 } from '../types'
 import { pipe } from '../utils'
 import { buildTransaction } from './request-response.utils'

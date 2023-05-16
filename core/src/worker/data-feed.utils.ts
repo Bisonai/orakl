@@ -1,7 +1,7 @@
 import { ethers } from 'ethers'
 import { Logger } from 'pino'
-import { IOracleRoundState, IRoundData } from '../types'
-import { PROVIDER } from '../settings'
+import { IOracleRoundState, IRoundData, IDataFeedTransactionParameters } from '../types'
+import { PROVIDER, MAX_DATA_STALENESS } from '../settings'
 import { Aggregator__factory } from '@bisonai/orakl-contracts'
 
 /**
@@ -92,4 +92,37 @@ export async function getRoundDataCall({
 }): Promise<IRoundData> {
   const aggregator = new ethers.Contract(oracleAddress, Aggregator__factory.abi, PROVIDER)
   return await aggregator.getRoundData(roundId)
+}
+
+export function isStale({ timestamp, logger }: { timestamp: string; logger: Logger }) {
+  const now = Date.now()
+  const fetchedAt = Date.parse(timestamp)
+  const dataStaleness = Math.max(0, now - fetchedAt)
+  logger.debug(`Data staleness ${dataStaleness} ms`)
+  return dataStaleness > MAX_DATA_STALENESS
+}
+
+export function buildTransaction({
+  payloadParameters,
+  to,
+  gasMinimum,
+  iface,
+  logger
+}: {
+  payloadParameters: IDataFeedTransactionParameters
+  to: string
+  gasMinimum: number
+  iface: ethers.utils.Interface
+  logger: Logger
+}) {
+  const { roundId, submission } = payloadParameters
+  const payload = iface.encodeFunctionData('submit', [roundId, submission])
+  const gasLimit = gasMinimum
+  const tx = {
+    payload,
+    gasLimit,
+    to
+  }
+  logger.debug(tx)
+  return tx
 }

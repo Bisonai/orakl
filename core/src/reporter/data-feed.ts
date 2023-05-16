@@ -1,8 +1,6 @@
 import { Job, Worker } from 'bullmq'
-import { ethers } from 'ethers'
 import { Logger } from 'pino'
 import type { RedisClientType } from 'redis'
-import { Aggregator__factory } from '@bisonai/orakl-contracts'
 import { State } from './state'
 import { sendTransaction } from './utils'
 import { watchman } from './watchman'
@@ -14,7 +12,7 @@ import {
   DATA_FEED_SERVICE_NAME,
   PROVIDER_URL
 } from '../settings'
-import { IAggregatorWorkerReporter } from '../types'
+import { ITransactionParameters } from '../types'
 import { OraklError, OraklErrorCode } from '../errors'
 
 const FILE_NAME = import.meta.url
@@ -57,27 +55,23 @@ export async function reporter(redisClient: RedisClientType, _logger: Logger) {
 }
 
 function job(state: State, logger: Logger) {
-  const iface = new ethers.utils.Interface(Aggregator__factory.abi)
-
   async function wrapper(job: Job) {
-    const inData: IAggregatorWorkerReporter = job.data
+    const inData: ITransactionParameters = job.data
     logger.debug(inData, 'inData')
-    const { roundId, submission, oracleAddress } = inData
 
-    const wallet = state.wallets[oracleAddress]
+    const { payload, gasLimit, to } = inData
+
+    const wallet = state.wallets[to]
     if (!wallet) {
-      const msg = `Wallet for oracle ${oracleAddress} is not active`
+      const msg = `Wallet for oracle ${to} is not active`
       logger.error(msg)
       throw new OraklError(OraklErrorCode.WalletNotActive, msg)
     }
 
-    const payload = iface.encodeFunctionData('submit', [roundId, submission])
-    const gasLimit = 300_000 // FIXME move to settings outside of code
-
     const NUM_TRANSACTION_TRIALS = 3
     for (let i = 0; i < NUM_TRANSACTION_TRIALS; ++i) {
       try {
-        await sendTransaction({ wallet, to: oracleAddress, payload, logger, gasLimit })
+        await sendTransaction({ wallet, to, payload, logger, gasLimit })
         break
       } catch (e) {
         if (

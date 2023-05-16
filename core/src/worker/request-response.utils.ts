@@ -65,6 +65,7 @@ export function buildTransaction(
     payloadParameters.callbackGasLimit,
     payloadParameters.sender
   ]
+  logger.debug(rc, 'rc')
 
   const payload = iface.encodeFunctionData(fulfillDataRequestFn, [
     payloadParameters.requestId,
@@ -73,9 +74,12 @@ export function buildTransaction(
     payloadParameters.isDirectPayment
   ])
 
-  return {
+  const tx = {
     payload,
     gasLimit,
     to
   }
+  logger.debug(tx, 'tx')
+
+  return tx
 }

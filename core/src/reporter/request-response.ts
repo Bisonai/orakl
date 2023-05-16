@@ -1,5 +1,4 @@
 import { Worker } from 'bullmq'
-import { ethers } from 'ethers'
 import { Logger } from 'pino'
 import type { RedisClientType } from 'redis'
 import { loadWalletParameters, sendTransaction, buildWallet } from './utils'

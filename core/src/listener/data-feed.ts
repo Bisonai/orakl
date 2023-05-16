@@ -4,7 +4,7 @@ import type { RedisClientType } from 'redis'
 import { Aggregator__factory } from '@bisonai/orakl-contracts'
 import { listenerService } from './listener'
 import { ProcessEventOutputType } from './types'
-import { IListenerConfig, INewRound, IAggregatorWorker } from '../types'
+import { IListenerConfig, INewRound, IDataFeedListenerWorker } from '../types'
 import { buildSubmissionRoundJobId } from '../utils'
 import { getOperatorAddress } from '../api'
 import {
@@ -77,7 +77,7 @@ async function processEvent({ iface, logger }: { iface: ethers.utils.Interface; 
         roundId,
         deploymentName: DEPLOYMENT_NAME
       })
-      const jobData: IAggregatorWorker = {
+      const jobData: IDataFeedListenerWorker = {
         oracleAddress,
         roundId,
         workerSource: 'event'

@@ -122,7 +122,7 @@ export interface IVrfListenerWorker {
   isDirectPayment: boolean
 }
 
-export interface IAggregatorWorker {
+export interface IDataFeedListenerWorker {
   oracleAddress: string
   roundId: number
   workerSource: string
@@ -168,13 +168,6 @@ export interface IVrfWorkerReporter {
   preSeed: string
   uPoint: [string, string]
   vComponents: [string, string, string, string]
-}
-
-export interface IAggregatorWorkerReporter {
-  oracleAddress: string
-  roundId: number
-  submission: bigint
-  workerSource: string
 }
 
 // VRF
@@ -322,13 +315,18 @@ export interface IRequestResponseTransactionParameters {
   callbackGasLimit: number
   sender: string
   isDirectPayment: boolean
-  response: any
+  response: any // eslint-disable-line @typescript-eslint/no-explicit-any
+}
+
+export interface IDataFeedTransactionParameters {
+  roundId: number
+  submission: bigint
 }
 
 export interface MockQueue {
-  add: any
-  process: any
-  on: any
+  add: any // eslint-disable-line @typescript-eslint/no-explicit-any
+  process: any // eslint-disable-line @typescript-eslint/no-explicit-any
+  on: any // eslint-disable-line @typescript-eslint/no-explicit-any
 }
 
 export type QueueType = Queue | MockQueue
