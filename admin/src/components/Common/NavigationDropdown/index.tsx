@@ -10,11 +10,17 @@ import {
 } from "./styled";
 import Link from "next/link";
 import BasicButton from "../BasicButton";
+import { routes } from "@/utils/route";
+import { IAccordionState } from "@/utils/types";
 
 export default function NavigationDropdown(): JSX.Element {
-  const [isAccordionOpen, setIsAccordionOpen] = useState([true, true, true]);
+  const [isAccordionOpen, setIsAccordionOpen] = useState<IAccordionState>({
+    configuration: true,
+    bull: true,
+    account: true,
+  });
 
-  function handleAccordionToggle(index: number) {
+  function handleAccordionToggle(index: keyof IAccordionState) {
     setIsAccordionOpen((isOpen) => ({ ...isOpen, [index]: !isOpen[index] }));
   }
 
@@ -22,11 +28,13 @@ export default function NavigationDropdown(): JSX.Element {
     <NavDropdownContainer>
       <AccordionContainer>
         <AccordionItem>
-          <AccordionHeader onClick={() => handleAccordionToggle(0)}>
+          <AccordionHeader
+            onClick={() => handleAccordionToggle("configuration")}
+          >
             Configuration
-            <span>{isAccordionOpen[0] ? "-" : "+"}</span>
+            <span>{isAccordionOpen.configuration ? "-" : "+"}</span>
           </AccordionHeader>
-          {isAccordionOpen[0] && (
+          {isAccordionOpen.configuration && (
             <AccordionContent>
               <Button text="Chain" />
               <Button text="Service" />
@@ -41,32 +49,36 @@ export default function NavigationDropdown(): JSX.Element {
           )}
         </AccordionItem>
         <AccordionItem>
-          <AccordionHeader onClick={() => handleAccordionToggle(1)}>
+          <AccordionHeader onClick={() => handleAccordionToggle("bull")}>
             Bull Monitor
-            <span>{isAccordionOpen[1] ? "-" : "+"}</span>
+            <span>{isAccordionOpen.bull ? "-" : "+"}</span>
           </AccordionHeader>
-          {isAccordionOpen[1] && (
+          {isAccordionOpen.bull && (
             <AccordionContent>
-              <Link href={`/bullmonitor/vrf`}>
+              <Link href={routes.vrf}>
                 <BasicButton text="VRF" />
               </Link>
-              <Link href={`/bullmonitor/request-response`}>
+              <Link href={routes["request-response"]}>
                 <BasicButton text="Request Response" />
               </Link>
-              <Link href={`/bullmonitor/aggregator`}>
+              <Link href={`${routes.aggregator}`}>
                 <BasicButton text="Aggregator" />
               </Link>
-              <BasicButton text="Fetcher" />
-              <BasicButton text="Setting" />
+              <Link href={routes.fetcher}>
+                <BasicButton text="Fetcher" />
+              </Link>
+              <Link href={routes.settings}>
+                <BasicButton text="Setting" />
+              </Link>
             </AccordionContent>
           )}
         </AccordionItem>
         <AccordionItem>
-          <AccordionHeader onClick={() => handleAccordionToggle(2)}>
+          <AccordionHeader onClick={() => handleAccordionToggle("account")}>
             Account Balance
-            <span>{isAccordionOpen[2] ? "-" : "+"}</span>
+            <span>{isAccordionOpen.account ? "-" : "+"}</span>
           </AccordionHeader>
-          {isAccordionOpen[2] && <AccordionContent />}
+          {isAccordionOpen.account && <AccordionContent />}
         </AccordionItem>
       </AccordionContainer>
     </NavDropdownContainer>
