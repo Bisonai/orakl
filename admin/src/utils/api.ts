@@ -17,7 +17,7 @@ export const api = {
     serviceName: string;
     queueName: string;
   }) => `http://localhost:8888/queues/${serviceName}/${queueName}`,
-  status: ({
+  queueStatus: ({
     serviceName,
     queueName,
     status,
@@ -37,13 +37,13 @@ export interface IApiParam {
   queues: { GET: any };
   service: { GET: any };
   queueName: { GET: any };
-  status: { GET: any };
+  queueStatus: { GET: any };
 }
 export interface IApiData {
   queues: { GET: any };
   service: { GET: any };
   queueName: { GET: any };
-  status: { GET: any };
+  queueStatus: { GET: any };
 }
 
 export const fetchInternalApi = async <
