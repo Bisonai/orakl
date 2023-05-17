@@ -7,9 +7,10 @@ import {
   TableHeaderContainer,
 } from "./styled";
 import { IQueueData } from "@/utils/types";
+import Link from "next/link";
 
 const MonitorTable = ({ serviceId }: { serviceId: string }) => {
-  const accountQuery = useQuery({
+  const serviceQuery = useQuery({
     queryKey: ["service", serviceId],
     queryFn: () =>
       fetchInternalApi(
@@ -23,7 +24,6 @@ const MonitorTable = ({ serviceId }: { serviceId: string }) => {
     select: (data) => data.data,
   });
 
-  console.log(accountQuery.data, accountQuery);
   return (
     <TableContainer>
       <TableHeaderContainer>
@@ -36,19 +36,24 @@ const MonitorTable = ({ serviceId }: { serviceId: string }) => {
         <div>DELAYED</div>
         <div>PAUSED</div>
       </TableHeaderContainer>
-      {accountQuery.data?.map((queue: IQueueData) => (
-        <TableDataContainer key={queue.queue}>
-          <QueueNameBase>{queue.queue}</QueueNameBase>
-          <div style={{ color: "white" }}>{accountQuery.status}</div>
-          <div>{queue.active}</div>
-          <div>{queue.waiting}</div>
-          <div>{queue.completed}</div>
-          <div style={{ color: queue.failed >= 1 ? "#ff5c5b" : "#49a7ff" }}>
-            {queue.failed}
-          </div>
-          <div>{queue.delayed}</div>
-          <div>{queue.paused}</div>
-        </TableDataContainer>
+      {serviceQuery.data?.map((queue: IQueueData) => (
+        <Link
+          href={`/bullmonitor/${serviceId}?queue=${queue.queue}`}
+          key={queue.queue}
+        >
+          <TableDataContainer>
+            <QueueNameBase>{queue.queue}</QueueNameBase>
+            <div style={{ color: "white" }}>{serviceQuery.status}</div>
+            <div>{queue.active}</div>
+            <div>{queue.waiting}</div>
+            <div>{queue.completed}</div>
+            <div style={{ color: queue.failed >= 1 ? "#ff5c5b" : "#49a7ff" }}>
+              {queue.failed}
+            </div>
+            <div>{queue.delayed}</div>
+            <div>{queue.paused}</div>
+          </TableDataContainer>
+        </Link>
       ))}
     </TableContainer>
   );

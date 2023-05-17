@@ -23,3 +23,9 @@ export interface IQueueData {
   waiting: number;
   "waiting-children": number;
 }
+
+export interface IAccordionState {
+  configuration: boolean;
+  bull: boolean;
+  account: boolean;
+}

@@ -1,5 +1,10 @@
+import Link from "next/link";
 import { HeaderContainer } from "./styled";
 
 export default function Header(): JSX.Element {
-  return <HeaderContainer>Orakl Admin</HeaderContainer>;
+  return (
+    <HeaderContainer>
+      <Link href={"/"}>Orakl Admin</Link>
+    </HeaderContainer>
+  );
 }

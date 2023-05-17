@@ -13,6 +13,8 @@ import { ITableHeaderProps } from "@/utils/types";
 import BasicButton from "@/components/Common/BasicButton";
 import RequestResponseTable from "../RequestResponseTable";
 import MonitorTable from "../MonitorTable";
+import Link from "next/link";
+import RefreshIcon from "@/components/Common/refreshIcon";
 
 const TableHeader = ({
   version,
@@ -21,34 +23,24 @@ const TableHeader = ({
   connectedClients,
   blockedClients,
   buttonText,
-  onRefresh,
+  onRefresh, // Add the onRefresh prop
 }: ITableHeaderProps & { onRefresh: () => void }) => {
-  const handleRefresh = () => {
-    onRefresh(); // 새로고침 이벤트를 부모 컴포넌트로 전달
+  const formatButtonText = (text: string) => {
+    return text.toLowerCase();
   };
+
   return (
     <>
       <TableHeaderContainer>
         <TableHeaderBase>
-          <BasicButton text={buttonText} width="auto" justifyContent="center" />
-          <div onClick={handleRefresh}>
-            <Icon
-              component={CachedIcon}
-              style={{ fontSize: "36px", cursor: "pointer" }}
-              onMouseEnter={(
-                e: React.MouseEvent<SVGSVGElement, MouseEvent>
-              ) => {
-                const target = e.currentTarget;
-                target.style.color = "#858585";
-              }}
-              onMouseLeave={(
-                e: React.MouseEvent<SVGSVGElement, MouseEvent>
-              ) => {
-                const target = e.currentTarget;
-                target.style.color = "white";
-              }}
+          <Link href={`/bullmonitor/${formatButtonText(buttonText)}`}>
+            <BasicButton
+              text={buttonText}
+              width="auto"
+              justifyContent="center"
             />
-          </div>
+          </Link>
+          <RefreshIcon onRefresh={onRefresh} />
         </TableHeaderBase>
         <TableHeaderContent>
           <TableColumnBase>

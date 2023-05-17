@@ -2,7 +2,7 @@ import { useState } from "react";
 import MonitorTable from "../MonitorTable";
 import TableHeader from "../TableHeader";
 
-const AggregatorTable = ({ serviceId }: { serviceId: string }) => {
+const AggregatorTable = ({ serviceId }: { serviceId: string }): JSX.Element => {
   const [refreshKey, setRefreshKey] = useState(0); // 새로고침 키 상태값
 
   const handleRefresh = () => {
@@ -18,10 +18,9 @@ const AggregatorTable = ({ serviceId }: { serviceId: string }) => {
         connectedClients={""}
         blockedClients={""}
         buttonText="Aggregator"
-        onRefresh={handleRefresh} // handleRefresh 함수를 onRefresh prop으로 전달
+        onRefresh={handleRefresh}
       />
-      <MonitorTable serviceId={serviceId} key={refreshKey} />{" "}
-      {/* key prop 추가 */}
+      <MonitorTable serviceId={serviceId} key={refreshKey} />
     </>
   );
 };

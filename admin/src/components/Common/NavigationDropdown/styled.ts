@@ -44,23 +44,15 @@ const slideDown = keyframes`
   }
 `;
 
-const slideUp = keyframes`
-  from {
-    opacity: 1;
-    transform: translateY(0);
-  }
-  to {
-    opacity: 0;
-    transform: translateY(-10px);
-  }
-`;
-
 export const AccordionContent = styled.div`
   display: flex;
   flex-direction: column;
 
   overflow: hidden;
   animation: slideDown 0.3s ease;
+  a {
+    width: 100%;
+  }
   Button {
     margin: 2px 0px;
     font-size: 12px;
@@ -68,7 +60,7 @@ export const AccordionContent = styled.div`
   }
 `;
 
-export const Icon = styled.span`
-  font-size: 1.2rem;
-  margin-right: 8px;
-`;
+// export const Icon = styled.span`
+//   font-size: 1.2rem;
+//   margin-right: 8px;
+// `;

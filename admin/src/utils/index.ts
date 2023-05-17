@@ -1,6 +1,6 @@
-import { CSSProperties } from "react";
 import { IObject } from "./types";
 import { BREAKPOINTS } from "./constants";
+import { CSSProperties } from "react";
 
 export const noTypeCheck = (x: any) => x;
 
@@ -45,7 +45,7 @@ export const getResponsiveCss = (
   mobile: IObject<string | number>
 ) =>
   `
-    @media (min-width: ${BREAKPOINTS.DESKTOP + 1}px) { 
+    @media (min-width: ${BREAKPOINTS.DESKTOP + 1}px) {
         ${fontThemeToCss(desktop)}
     }
     @media (min-width: ${BREAKPOINTS.TABLET + 1}px) and (max-width: ${
