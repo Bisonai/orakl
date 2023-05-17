@@ -3,6 +3,8 @@
 import { fetchInternalApi } from "@/utils/api";
 import { useQuery } from "react-query";
 import DetailHeader from "./DetailHeader";
+import DetailTab from "./DetailTab";
+import TabContextProvider from "@/components/Common/TabContextProvider";
 
 export default function BullMonitorDetailTemplate({
   serviceId,
@@ -25,7 +27,10 @@ export default function BullMonitorDetailTemplate({
 
   return (
     <>
-      <DetailHeader serviceId={serviceId} data={serviceQuery.data} />
+      <TabContextProvider initTab={"Active"}>
+        <DetailHeader serviceId={serviceId} data={serviceQuery?.data} />
+        <DetailTab />
+      </TabContextProvider>
     </>
   );
 }
