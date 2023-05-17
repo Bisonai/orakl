@@ -2,18 +2,18 @@ import { parseArgs } from 'node:util'
 import type { RedisClientType } from 'redis'
 import { createClient } from 'redis'
 import { buildLogger } from '../logger'
-import { reporter as dataFeedReporter } from './data-feed'
-import { reporter as vrfReporter } from './vrf'
-import { reporter as requestResponseReporter } from './request-response'
+import { buildReporter as buildDataFeedReporter } from './data-feed'
+import { buildReporter as buildVrfReporter } from './vrf'
+import { buildReporter as buildRequestResponseReporter } from './request-response'
 import { launchHealthCheck } from '../health-check'
 import { hookConsoleError } from '../utils'
 import { IReporters } from './types'
 import { REDIS_HOST, REDIS_PORT } from '../settings'
 
 const REPORTERS: IReporters = {
-  DATA_FEED: dataFeedReporter,
-  VRF: vrfReporter,
-  REQUEST_RESPONSE: requestResponseReporter
+  DATA_FEED: buildDataFeedReporter,
+  VRF: buildVrfReporter,
+  REQUEST_RESPONSE: buildRequestResponseReporter
 }
 
 const LOGGER = buildLogger('reporter')

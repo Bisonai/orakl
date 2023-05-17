@@ -1,15 +1,15 @@
-import { Worker } from 'bullmq'
 import { Logger } from 'pino'
 import type { RedisClientType } from 'redis'
-import { loadWalletParameters, buildWallet } from './utils'
-import { REPORTER_VRF_QUEUE_NAME, BULLMQ_CONNECTION } from '../settings'
-import { job } from './job'
+import { factory } from './factory'
+import { REPORTER_VRF_QUEUE_NAME, VRF_REPORTER_STATE_NAME, VRF_SERVICE_NAME } from '../settings'
 
-const FILE_NAME = import.meta.url
-
-export async function reporter(redisClient: RedisClientType, logger: Logger) {
-  const _logger = logger.child({ name: 'reporter', file: FILE_NAME })
-  const { privateKey, providerUrl } = loadWalletParameters()
-  const wallet = await buildWallet({ privateKey, providerUrl })
-  new Worker(REPORTER_VRF_QUEUE_NAME, await job(wallet, _logger), BULLMQ_CONNECTION)
+export async function buildReporter(redisClient: RedisClientType, logger: Logger) {
+  await factory({
+    redisClient,
+    stateName: VRF_REPORTER_STATE_NAME,
+    service: VRF_SERVICE_NAME,
+    reporterQueueName: REPORTER_VRF_QUEUE_NAME,
+    concurrency: 1,
+    _logger: logger
+  })
 }
