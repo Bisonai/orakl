@@ -5,6 +5,7 @@ import {
   ITransactionParameters,
   IRequestResponseTransactionParameters
 } from '../types'
+import { OraklError, OraklErrorCode } from '../errors'
 
 export const JOB_ID_UINT128 = ethers.utils.id('uint128')
 export const JOB_ID_INT256 = ethers.utils.id('int256')
@@ -33,7 +34,9 @@ export function buildTransaction(
 
   const fulfillDataRequestFn = JOB_ID_MAPPING[payloadParameters.jobId]
   if (fulfillDataRequestFn == undefined) {
-    throw new Error() // FIXME
+    const msg = `Unknown jobId ${payloadParameters.jobId}`
+    logger.error(msg)
+    throw new OraklError(OraklErrorCode.UnknownRequestResponseJob, msg)
   }
 
   let response
