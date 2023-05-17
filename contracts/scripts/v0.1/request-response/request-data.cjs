@@ -13,7 +13,8 @@ async function main() {
 
   const accId = 1
   const callbackGasLimit = 500_000
-  await requestResponseConsumerSigner.requestDataUint128(accId, callbackGasLimit)
+  const numSubmission = 1
+  await requestResponseConsumerSigner.requestDataUint128(accId, callbackGasLimit, numSubmission)
 }
 
 main().catch((error) => {
