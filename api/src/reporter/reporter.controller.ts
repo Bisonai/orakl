@@ -57,12 +57,4 @@ export class ReporterController {
   async remove(@Param('id') id: string) {
     return await this.reporterService.remove({ id: Number(id) })
   }
-  @Post('encrypt/:text')
-  async encrypt(@Param('text') text: string) {
-    return await this.reporterService.encrypt(text)
-  }
-  @Post('decrypt/:text')
-  async decrypt(@Param('text') text: string) {
-    return await this.reporterService.decrypt(text)
-  }
 }

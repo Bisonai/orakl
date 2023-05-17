@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common'
-import { Prisma, PrismaClient } from '@prisma/client'
+import { Prisma } from '@prisma/client'
 import { PrismaService } from '../prisma.service'
 import { CreateReporterDto } from './dto/create-reporter.dto'
 import { UpdateReporterDto } from './dto/update-reporter.dto'
