@@ -13,7 +13,7 @@ import { IListeners } from './types'
 import { createClient } from 'redis'
 
 const LISTENERS: IListeners = {
-  AGGREGATOR: buildDataFeedListener,
+  DATA_FEED: buildDataFeedListener,
   VRF: buildVrfListener,
   REQUEST_RESPONSE: buildRequestResponseListener
 }
