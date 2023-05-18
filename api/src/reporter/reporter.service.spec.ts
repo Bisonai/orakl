@@ -39,13 +39,17 @@ describe('ReporterService', () => {
     const serviceObj = await service.create({ name: 'reporter-test-service' })
 
     // Reporter
+    const prk = '0x137388d6b6896346b330b7becd87e0de69bd320ae052c54445e5acfd18e4ff0e'
     const reporterObj = await reporter.create({
       address: '0x',
-      privateKey: '0x',
+      privateKey: prk,
       oracleAddress: '0x',
       chain: chainObj.name,
       service: serviceObj.name
     })
+
+    const readReporter = await reporter.findOne({ id: reporterObj.id })
+    expect(readReporter.privateKey).toEqual(prk)
 
     // Cleanup
     await reporter.remove({ id: reporterObj.id })
