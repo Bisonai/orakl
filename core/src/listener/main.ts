@@ -13,9 +13,9 @@ import { IListeners } from './types'
 import { createClient } from 'redis'
 
 const LISTENERS: IListeners = {
-  Aggregator: buildDataFeedListener,
+  DATA_FEED: buildDataFeedListener,
   VRF: buildVrfListener,
-  RequestResponse: buildRequestResponseListener
+  REQUEST_RESPONSE: buildRequestResponseListener
 }
 
 const FILE_NAME = import.meta.url

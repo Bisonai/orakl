@@ -22,14 +22,19 @@ export const PUBLIC_KEY = String(process.env.PUBLIC_KEY)
 export const LOCAL_AGGREGATOR = process.env.LOCAL_AGGREGATOR || 'MEDIAN'
 export const LISTENER_DELAY = Number(process.env.LISTENER_DELAY) || 500
 
+// Gas mimimums
+export const VRF_FULFILL_GAS_MINIMUM = 400_000
+export const REQUEST_RESPONSE_FULFILL_GAS_MINIMUM = 400_000
+export const DATA_FEED_FULFILL_GAS_MINIMUM = 400_000
+
 // Service ports are used for communication to watchman from the outside
 export const LISTENER_PORT = process.env.LISTENER_PORT || 4_000
 export const WORKER_PORT = process.env.WORKER_PORT || 5_001
 export const REPORTER_PORT = process.env.REPORTER_PORT || 6_000
 
-export const DATA_FEED_SERVICE_NAME = 'Aggregator'
+export const DATA_FEED_SERVICE_NAME = 'DATA_FEED'
 export const VRF_SERVICE_NAME = 'VRF'
-export const REQUEST_RESPONSE_SERVICE_NAME = 'RequestResponse'
+export const REQUEST_RESPONSE_SERVICE_NAME = 'REQUEST_RESPONSE'
 
 // Data Feed
 export const MAX_DATA_STALENESS = 5_000
@@ -90,8 +95,8 @@ export const DATA_FEED_LISTENER_STATE_NAME = `${DEPLOYMENT_NAME}-listener-data-f
 // export const REQUEST_RESPONSE_WORKER_STATE_NAME = `${DEPLOYMENT_NAME}-worker-request-response-state`
 export const DATA_FEED_WORKER_STATE_NAME = `${DEPLOYMENT_NAME}-worker-data-feed-state`
 
-// export const VRF_REPORTER_STATE_NAME = `${DEPLOYMENT_NAME}-reporter-vrf-state`
-// export const REQUEST_RESPONSE_REPORTER_STATE_NAME = `${DEPLOYMENT_NAME}-reporter-request-response-state`
+export const VRF_REPORTER_STATE_NAME = `${DEPLOYMENT_NAME}-reporter-vrf-state`
+export const REQUEST_RESPONSE_REPORTER_STATE_NAME = `${DEPLOYMENT_NAME}-reporter-request-response-state`
 export const DATA_FEED_REPORTER_STATE_NAME = `${DEPLOYMENT_NAME}-reporter-data-feed-state`
 
 export const BULLMQ_CONNECTION = {
@@ -141,6 +146,15 @@ export const CHECK_HEARTBEAT_QUEUE_SETTINGS = {
 
 export const LISTENER_JOB_SETTINGS = {
   removeOnComplete: REMOVE_ON_COMPLETE,
+  removeOnFail: REMOVE_ON_FAIL,
+  attempts: 10,
+  backoff: 1_000
+}
+
+export const WORKER_JOB_SETTINGS = {
+  removeOnComplete: REMOVE_ON_COMPLETE,
+  // FIXME Should not be removed until resolved, however, for now in
+  // testnet, we can safely keep this settings.
   removeOnFail: REMOVE_ON_FAIL,
   attempts: 10,
   backoff: 1_000

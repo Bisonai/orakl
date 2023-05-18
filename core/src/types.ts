@@ -1,4 +1,5 @@
 import { BigNumber } from 'ethers'
+import { Queue } from 'bullmq'
 
 export interface RequestEventData {
   specId: string
@@ -72,6 +73,7 @@ export interface IDataRequested {
   callbackGasLimit: number
   sender: string
   isDirectPayment: boolean
+  numSubmission: number
   data: string
 }
 
@@ -103,6 +105,7 @@ export interface IRequestResponseListenerWorker {
   callbackGasLimit: number
   sender: string
   isDirectPayment: boolean
+  numSubmission: number
   data: string
 }
 
@@ -119,7 +122,7 @@ export interface IVrfListenerWorker {
   isDirectPayment: boolean
 }
 
-export interface IAggregatorWorker {
+export interface IDataFeedListenerWorker {
   oracleAddress: string
   roundId: number
   workerSource: string
@@ -167,13 +170,6 @@ export interface IVrfWorkerReporter {
   vComponents: [string, string, string, string]
 }
 
-export interface IAggregatorWorkerReporter {
-  oracleAddress: string
-  roundId: number
-  submission: bigint
-  workerSource: string
-}
-
 // VRF
 export type Proof = [
   [string, string] /* pk */,
@@ -194,6 +190,7 @@ export type RequestCommitmentVRF = [
 export type RequestCommitmentRequestResponse = [
   number /* blockNum */,
   string /* accId */,
+  number /* numSubmission */,
   number /* callbackGasLimit */,
   string /* sender */
 ]
@@ -287,3 +284,49 @@ export interface IAggregate {
   value: bigint
   aggregatorId: bigint
 }
+
+export interface ITransactionParameters {
+  payload: string
+  gasLimit: number | string
+  to: string
+}
+
+export interface IVrfTransactionParameters {
+  blockNum: string
+  seed: string
+  accId: string
+  callbackGasLimit: number
+  numWords: number
+  sender: string
+  isDirectPayment: boolean
+  pk: [string, string]
+  proof: [string, string, string, string]
+  preSeed: string
+  uPoint: [string, string]
+  vComponents: [string, string, string, string]
+}
+
+export interface IRequestResponseTransactionParameters {
+  blockNum: number
+  accId: string
+  jobId: string
+  requestId: string
+  numSubmission: number
+  callbackGasLimit: number
+  sender: string
+  isDirectPayment: boolean
+  response: any // eslint-disable-line @typescript-eslint/no-explicit-any
+}
+
+export interface IDataFeedTransactionParameters {
+  roundId: number
+  submission: bigint
+}
+
+export interface MockQueue {
+  add: any // eslint-disable-line @typescript-eslint/no-explicit-any
+  process: any // eslint-disable-line @typescript-eslint/no-explicit-any
+  on: any // eslint-disable-line @typescript-eslint/no-explicit-any
+}
+
+export type QueueType = Queue | MockQueue
