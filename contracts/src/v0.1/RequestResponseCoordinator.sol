@@ -236,8 +236,7 @@ contract RequestResponseCoordinator is
     function fulfillDataRequestUint128(
         uint256 requestId,
         uint128 response,
-        RequestCommitment memory rc,
-        bool isDirectPayment
+        RequestCommitment memory rc
     ) external nonReentrant {
         uint256 startGas = gasleft();
         validateDataResponse(rc, requestId);
@@ -263,10 +262,9 @@ contract RequestResponseCoordinator is
             aggregatedResponse
         );
         bool success = fulfill(resp, rc);
-
-        cleanupAfterFulfillment(requestId);
+        address[] memory oraclesToPay = cleanupAfterFulfillment(requestId);
         delete sRequestToSubmissionUint128[requestId];
-        uint256 payment = pay(rc, isDirectPayment, startGas, oracles);
+        uint256 payment = pay(rc, startGas, oraclesToPay);
 
         emit DataRequestFulfilledUint128(requestId, response, payment, success);
     }
@@ -274,8 +272,7 @@ contract RequestResponseCoordinator is
     function fulfillDataRequestInt256(
         uint256 requestId,
         int256 response,
-        RequestCommitment memory rc,
-        bool isDirectPayment
+        RequestCommitment memory rc
     ) external nonReentrant {
         uint256 startGas = gasleft();
         validateDataResponse(rc, requestId);
@@ -300,10 +297,9 @@ contract RequestResponseCoordinator is
             aggregatedResponse
         );
         bool success = fulfill(resp, rc);
-
         address[] memory oraclesToPay = cleanupAfterFulfillment(requestId);
         delete sRequestToSubmissionInt256[requestId];
-        uint256 payment = pay(rc, isDirectPayment, startGas, oraclesToPay);
+        uint256 payment = pay(rc, startGas, oraclesToPay);
 
         emit DataRequestFulfilledInt256(requestId, response, payment, success);
     }
@@ -311,8 +307,7 @@ contract RequestResponseCoordinator is
     function fulfillDataRequestBool(
         uint256 requestId,
         bool response,
-        RequestCommitment memory rc,
-        bool isDirectPayment
+        RequestCommitment memory rc
     ) external nonReentrant {
         uint256 startGas = gasleft();
         validateDataResponse(rc, requestId);
@@ -336,10 +331,9 @@ contract RequestResponseCoordinator is
             aggregatedResponse
         );
         bool success = fulfill(resp, rc);
-
         address[] memory oraclesToPay = cleanupAfterFulfillment(requestId);
         delete sRequestToSubmissionBool[requestId];
-        uint256 payment = pay(rc, isDirectPayment, startGas, oraclesToPay);
+        uint256 payment = pay(rc, startGas, oraclesToPay);
 
         emit DataRequestFulfilledBool(requestId, response, payment, success);
     }
@@ -347,8 +341,7 @@ contract RequestResponseCoordinator is
     function fulfillDataRequestString(
         uint256 requestId,
         string memory response,
-        RequestCommitment memory rc,
-        bool isDirectPayment
+        RequestCommitment memory rc
     ) external nonReentrant {
         uint256 startGas = gasleft();
         validateDataResponse(rc, requestId);
@@ -364,7 +357,7 @@ contract RequestResponseCoordinator is
         );
         bool success = fulfill(resp, rc);
         address[] memory oraclesToPay = cleanupAfterFulfillment(requestId);
-        uint256 payment = pay(rc, isDirectPayment, startGas, oraclesToPay);
+        uint256 payment = pay(rc, startGas, oraclesToPay);
 
         emit DataRequestFulfilledString(requestId, response, payment, success);
     }
@@ -372,8 +365,7 @@ contract RequestResponseCoordinator is
     function fulfillDataRequestBytes32(
         uint256 requestId,
         bytes32 response,
-        RequestCommitment memory rc,
-        bool isDirectPayment
+        RequestCommitment memory rc
     ) external nonReentrant {
         uint256 startGas = gasleft();
         validateDataResponse(rc, requestId);
@@ -389,7 +381,7 @@ contract RequestResponseCoordinator is
         );
         bool success = fulfill(resp, rc);
         address[] memory oraclesToPay = cleanupAfterFulfillment(requestId);
-        uint256 payment = pay(rc, isDirectPayment, startGas, oraclesToPay);
+        uint256 payment = pay(rc, startGas, oraclesToPay);
 
         emit DataRequestFulfilledBytes32(requestId, response, payment, success);
     }
@@ -397,8 +389,7 @@ contract RequestResponseCoordinator is
     function fulfillDataRequestBytes(
         uint256 requestId,
         bytes memory response,
-        RequestCommitment memory rc,
-        bool isDirectPayment
+        RequestCommitment memory rc
     ) external nonReentrant {
         uint256 startGas = gasleft();
         validateDataResponse(rc, requestId);
@@ -414,7 +405,7 @@ contract RequestResponseCoordinator is
         );
         bool success = fulfill(resp, rc);
         address[] memory oraclesToPay = cleanupAfterFulfillment(requestId);
-        uint256 payment = pay(rc, isDirectPayment, startGas, oraclesToPay);
+        uint256 payment = pay(rc, startGas, oraclesToPay);
 
         emit DataRequestFulfilledBytes(requestId, response, payment, success);
     }
@@ -509,9 +500,11 @@ contract RequestResponseCoordinator is
             requestId,
             block.number,
             accId,
-            callbackGasLimit,
             numSubmission,
-            msg.sender
+            callbackGasLimit,
+            msg.sender,
+            isDirectPayment,
+            req.id
         );
 
         sRequestOwner[requestId] = msg.sender;
@@ -550,9 +543,11 @@ contract RequestResponseCoordinator is
                 requestId,
                 rc.blockNum,
                 rc.accId,
-                rc.callbackGasLimit,
                 rc.numSubmission,
-                rc.sender
+                rc.callbackGasLimit,
+                rc.sender,
+                rc.isDirectPayment,
+                rc.jobId
             )
         ) {
             revert IncorrectCommitment();
@@ -574,13 +569,12 @@ contract RequestResponseCoordinator is
 
     function pay(
         RequestCommitment memory rc,
-        bool isDirectPayment,
         uint256 startGas,
         address[] memory oracles
     ) private returns (uint256) {
         uint256 oraclesLength = oracles.length;
 
-        if (isDirectPayment) {
+        if (rc.isDirectPayment) {
             // [temporary] account
             (uint256 totalFee, uint256 operatorFee) = sPrepayment.chargeFeeTemporary(rc.accId);
 
@@ -657,13 +651,24 @@ contract RequestResponseCoordinator is
         uint256 requestId,
         uint256 blockNumber,
         uint64 accId,
-        uint32 callbackGasLimit,
         uint8 numSubmission,
-        address sender
+        uint32 callbackGasLimit,
+        address sender,
+        bool isDirectPayment,
+        bytes32 jobId
     ) private pure returns (bytes32) {
         return
             keccak256(
-                abi.encode(requestId, blockNumber, accId, callbackGasLimit, numSubmission, sender)
+                abi.encode(
+                    requestId,
+                    blockNumber,
+                    accId,
+                    callbackGasLimit,
+                    numSubmission,
+                    sender,
+                    isDirectPayment,
+                    jobId
+                )
             );
     }
 }
