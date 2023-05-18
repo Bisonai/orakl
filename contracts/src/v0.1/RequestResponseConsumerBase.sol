@@ -24,7 +24,7 @@ abstract contract RequestResponseConsumerBase {
             .fulfillDataRequestInt256
             .selector;
         sJobIdToFunctionSelector[keccak256(abi.encodePacked("bool"))] = COORDINATOR
-            .fulfillDataRequestInt256
+            .fulfillDataRequestBool
             .selector;
         sJobIdToFunctionSelector[keccak256(abi.encodePacked("string"))] = COORDINATOR
             .fulfillDataRequestString
