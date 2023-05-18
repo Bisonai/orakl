@@ -263,10 +263,10 @@ contract RequestResponseCoordinator is
             aggregatedResponse
         );
         bool success = fulfill(resp, rc);
-        uint256 payment = pay(rc, isDirectPayment, startGas, oracles);
 
         cleanupAfterFulfillment(requestId);
         delete sRequestToSubmissionUint128[requestId];
+        uint256 payment = pay(rc, isDirectPayment, startGas, oracles);
 
         emit DataRequestFulfilledUint128(requestId, response, payment, success);
     }
