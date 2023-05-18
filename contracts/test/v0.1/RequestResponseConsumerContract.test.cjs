@@ -105,8 +105,8 @@ function verifyRequestDirectPayment(prepaymentContract, coordinatorContract, txR
     expect(requestEvent.args[arg]).to.not.be.undefined
   }
 
-  const { accId, requestId } = requestEvent.args
-  return { accId, requestId }
+  const { accId, requestId, jobId } = requestEvent.args
+  return { accId, requestId, jobId }
 }
 
 async function verifyFulfillment(
@@ -172,18 +172,21 @@ async function requestAndFulfill(
   // Verify Request
   let _requestId
   let _accId
+  let _jobId
   if (isDirectPayment) {
-    const { requestId, accId } = verifyRequestDirectPayment(
+    const { requestId, accId, jobId } = verifyRequestDirectPayment(
       prepayment.contract,
       coordinator.contract,
       requestReceipt
     )
     _requestId = requestId
     _accId = accId
+    _jobId = jobId
   } else {
-    const { requestId, accId } = parseDataRequestedTx(coordinator.contract, requestReceipt)
+    const { requestId, accId, jobId } = parseDataRequestedTx(coordinator.contract, requestReceipt)
     _requestId = requestId
     _accId = accId
+    _jobId = jobId
   }
 
   // Fulfill data //////////////////////////////////////////////////////////////
@@ -192,7 +195,9 @@ async function requestAndFulfill(
     accId: _accId,
     callbackGasLimit,
     numSubmission,
-    sender: consumer.contract.address
+    sender: consumer.contract.address,
+    isDirectPayment,
+    jobId: _jobId
   }
 
   let fulfillReceipt
@@ -200,7 +205,7 @@ async function requestAndFulfill(
     fulfillReceipt = await (
       await coordinator.contract
         .connect(oracles[i])
-        [fulfillFnName](_requestId, fulfillValue[i], requestCommitment, isDirectPayment)
+        [fulfillFnName](_requestId, fulfillValue[i], requestCommitment)
     ).wait()
   }
 
@@ -521,7 +526,7 @@ describe('Request-Response user contract', function () {
       await consumer.contract.requestDataInt256(accId, callbackGasLimit, numSubmission)
     ).wait()
 
-    const { requestId, sender, blockNumber, isDirectPayment } = parseDataRequestedTx(
+    const { requestId, sender, blockNumber, isDirectPayment, jobId } = parseDataRequestedTx(
       coordinator.contract,
       requestDataTx
     )
@@ -536,12 +541,14 @@ describe('Request-Response user contract', function () {
       accId,
       callbackGasLimit,
       numSubmission,
-      sender
+      sender,
+      isDirectPayment,
+      jobId
     }
 
     await coordinator.contract
       .connect(rrOracle0)
-      .fulfillDataRequestInt256(requestId, 123, requestCommitment, isDirectPayment)
+      .fulfillDataRequestInt256(requestId, 123, requestCommitment)
 
     // The value of `reqCount` should increase
     const reqCountAfterFulfillment = await prepayment.contract.getReqCount(accId)
@@ -579,7 +586,7 @@ describe('Request-Response user contract', function () {
     const tx = await (
       await consumer.contract.requestDataInt256(accId, callbackGasLimit, numSubmission)
     ).wait()
-    const { requestId, sender, blockNumber, isDirectPayment } = parseDataRequestedTx(
+    const { requestId, sender, blockNumber, isDirectPayment, jobId } = parseDataRequestedTx(
       coordinator.contract,
       tx
     )
@@ -599,12 +606,14 @@ describe('Request-Response user contract', function () {
       accId,
       callbackGasLimit,
       numSubmission,
-      sender
+      sender,
+      isDirectPayment,
+      jobId
     }
     const response = 123
     coordinator.contract
       .connect(rrOracle0)
-      .fulfillDataRequestInt256(requestId, response, requestCommitment, isDirectPayment)
+      .fulfillDataRequestInt256(requestId, response, requestCommitment)
 
     expect(
       await coordinator.contract
@@ -688,7 +697,7 @@ describe('Request-Response user contract', function () {
       await consumer.contract.requestDataInt256(accId, callbackGasLimit, numSubmission)
     ).wait()
 
-    const { requestId, sender, blockNumber, isDirectPayment } = parseDataRequestedTx(
+    const { requestId, sender, blockNumber, isDirectPayment, jobId } = parseDataRequestedTx(
       coordinator.contract,
       requestTx
     )
@@ -698,14 +707,16 @@ describe('Request-Response user contract', function () {
       accId,
       callbackGasLimit,
       numSubmission,
-      sender
+      sender,
+      isDirectPayment,
+      jobId
     }
 
     const response = 123
     await expect(
       coordinator.contract
         .connect(rrOracle0)
-        .fulfillDataRequestInt256(requestId, response, requestCommitment, isDirectPayment)
+        .fulfillDataRequestInt256(requestId, response, requestCommitment)
     ).to.be.revertedWithCustomError(coordinator.contract, 'UnregisteredOracleFulfillment')
   })
 
@@ -726,7 +737,7 @@ describe('Request-Response user contract', function () {
       await consumer.contract.requestDataInt256(accId, callbackGasLimit, numSubmission)
     ).wait()
 
-    const { requestId, sender, blockNumber, isDirectPayment } = parseDataRequestedTx(
+    const { requestId, sender, blockNumber, isDirectPayment, jobId } = parseDataRequestedTx(
       coordinator.contract,
       requestTx
     )
@@ -736,18 +747,20 @@ describe('Request-Response user contract', function () {
       accId,
       callbackGasLimit,
       numSubmission,
-      sender
+      sender,
+      isDirectPayment,
+      jobId
     }
 
     const response = 123
     await coordinator.contract
       .connect(rrOracle0)
-      .fulfillDataRequestInt256(requestId, response, requestCommitment, isDirectPayment)
+      .fulfillDataRequestInt256(requestId, response, requestCommitment)
 
     await expect(
       coordinator.contract
         .connect(rrOracle0)
-        .fulfillDataRequestInt256(requestId, response, requestCommitment, isDirectPayment)
+        .fulfillDataRequestInt256(requestId, response, requestCommitment)
     ).to.be.revertedWithCustomError(coordinator.contract, 'OracleAlreadySubmitted')
   })
 
@@ -767,7 +780,7 @@ describe('Request-Response user contract', function () {
       await consumer.contract.requestDataInt256(accId, callbackGasLimit, numSubmission)
     ).wait()
 
-    const { sender, blockNumber, isDirectPayment } = parseDataRequestedTx(
+    const { sender, blockNumber, isDirectPayment, jobId } = parseDataRequestedTx(
       coordinator.contract,
       requestTx
     )
@@ -777,7 +790,9 @@ describe('Request-Response user contract', function () {
       accId,
       callbackGasLimit,
       numSubmission,
-      sender
+      sender,
+      isDirectPayment,
+      jobId
     }
 
     const response = 123
@@ -785,7 +800,7 @@ describe('Request-Response user contract', function () {
     await expect(
       coordinator.contract
         .connect(rrOracle0)
-        .fulfillDataRequestInt256(wrongRequestId, response, requestCommitment, isDirectPayment)
+        .fulfillDataRequestInt256(wrongRequestId, response, requestCommitment)
     ).to.be.revertedWithCustomError(coordinator.contract, 'NoCorrespondingRequest')
   })
 
@@ -805,7 +820,7 @@ describe('Request-Response user contract', function () {
       await consumer.contract.requestDataInt256(accId, callbackGasLimit, numSubmission)
     ).wait()
 
-    const { requestId, sender, blockNumber, isDirectPayment } = parseDataRequestedTx(
+    const { requestId, sender, blockNumber, isDirectPayment, jobId } = parseDataRequestedTx(
       coordinator.contract,
       requestTx
     )
@@ -815,14 +830,16 @@ describe('Request-Response user contract', function () {
       accId,
       callbackGasLimit,
       numSubmission: numSubmission + 1, // any information modified in requestCommitment will be detected
-      sender
+      sender,
+      isDirectPayment,
+      jobId
     }
 
     const response = 123
     await expect(
       coordinator.contract
         .connect(rrOracle0)
-        .fulfillDataRequestInt256(requestId, response, requestCommitment, isDirectPayment)
+        .fulfillDataRequestInt256(requestId, response, requestCommitment)
     ).to.be.revertedWithCustomError(coordinator.contract, 'IncorrectCommitment')
   })
 
