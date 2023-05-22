@@ -12,6 +12,7 @@ const { parseKlay } = require('./utils.cjs')
 const {
   deploy: deployRrCoordinator,
   setupOracle: setupRequestResponseCoordinator,
+  parseDataRequestedTx,
   parseDataRequestFulfilledTx
 } = require('./RequestResponseCoordinator.utils.cjs')
 const { deploy: deployPrepayment, createAccount, deposit } = require('./Prepayment.utils.cjs')
@@ -177,7 +178,7 @@ describe('Revert Fulfillment Test', function () {
     const tx = await (
       await rrConsumer.contract.requestDataUint128(accId, callbackGasLimit, numSubmission)
     ).wait()
-    const { requestId, sender, blockNumber } = parseRandomWordsRequestedTx(
+    const { requestId, sender, blockNumber, jobId, isDirectPayment } = parseDataRequestedTx(
       rrCoordinator.contract,
       tx
     )
@@ -190,13 +191,15 @@ describe('Revert Fulfillment Test', function () {
       accId,
       callbackGasLimit,
       numSubmission,
-      sender
+      sender,
+      isDirectPayment,
+      jobId
     }
-    const isDirectPayment = false
+
     const txFulfill = await (
       await rrCoordinator.contract
         .connect(rrOracleSigner)
-        .fulfillDataRequestInt256(requestId, 123, requestCommitment, isDirectPayment)
+        .fulfillDataRequestInt256(requestId, 123, requestCommitment)
     ).wait()
 
     const { payment, success } = parseDataRequestFulfilledTx(

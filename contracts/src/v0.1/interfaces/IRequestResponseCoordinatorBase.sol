@@ -12,6 +12,8 @@ interface IRequestResponseCoordinatorBase {
         uint8 numSubmission;
         uint32 callbackGasLimit;
         address sender;
+        bool isDirectPayment;
+        bytes32 jobId;
     }
 
     /**
@@ -71,43 +73,37 @@ interface IRequestResponseCoordinatorBase {
     function fulfillDataRequestUint128(
         uint256 requestId,
         uint128 response,
-        RequestCommitment memory rc,
-        bool isDirectPayment
+        RequestCommitment memory rc
     ) external;
 
     function fulfillDataRequestInt256(
         uint256 requestId,
         int256 response,
-        RequestCommitment memory rc,
-        bool isDirectPayment
+        RequestCommitment memory rc
     ) external;
 
     function fulfillDataRequestBool(
         uint256 requestId,
         bool response,
-        RequestCommitment memory rc,
-        bool isDirectPayment
+        RequestCommitment memory rc
     ) external;
 
     function fulfillDataRequestString(
         uint256 requestId,
         string memory response,
-        RequestCommitment memory rc,
-        bool isDirectPayment
+        RequestCommitment memory rc
     ) external;
 
     function fulfillDataRequestBytes32(
         uint256 requestId,
         bytes32 response,
-        RequestCommitment memory rc,
-        bool isDirectPayment
+        RequestCommitment memory rc
     ) external;
 
     function fulfillDataRequestBytes(
         uint256 requestId,
         bytes memory response,
-        RequestCommitment memory rc,
-        bool isDirectPayment
+        RequestCommitment memory rc
     ) external;
 
     /**
