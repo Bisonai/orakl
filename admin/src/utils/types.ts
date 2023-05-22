@@ -68,10 +68,10 @@ export type StatusTab = {
 };
 
 export const statusTabs: StatusTab[] = [
-  { tabId: "Active", label: "Active" },
-  { tabId: "Waiting", label: "Waiting" },
-  { tabId: "Completed", label: "Completed" },
-  { tabId: "Failed", label: "Failed" },
-  { tabId: "Delayed", label: "Delayed" },
-  { tabId: "Paused", label: "Paused" },
+  { tabId: "active", label: "Active" },
+  { tabId: "waiting", label: "Waiting" },
+  { tabId: "completed", label: "Completed" },
+  { tabId: "failed", label: "Failed" },
+  { tabId: "delayed", label: "Delayed" },
+  { tabId: "paused", label: "Paused" },
 ];
