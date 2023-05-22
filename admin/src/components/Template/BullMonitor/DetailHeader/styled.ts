@@ -2,7 +2,7 @@ import { styled } from "styled-components";
 
 export const DetailHeaderContainer = styled.div`
   padding: 40px;
-  background: #d9e5ef;
+  background: #b6c39f;
   margin: 40px 40px 0px 40px;
 `;
 
