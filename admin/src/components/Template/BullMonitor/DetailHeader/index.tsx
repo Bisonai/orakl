@@ -1,9 +1,6 @@
 import { useState, useEffect } from "react";
 import BasicButton from "@/components/Common/BasicButton";
-import { fetchInternalApi } from "@/utils/api";
-import { useQuery } from "react-query";
 import { DetailHeaderBase, DetailHeaderContainer } from "./styled";
-import RefreshIcon from "@/components/Common/refreshIcon";
 import { IQueueData } from "@/utils/types";
 import Link from "next/link";
 
@@ -19,6 +16,12 @@ const DetailHeader = ({
   useEffect(() => {
     const url = new URL(window.location.href);
     const queue = url.searchParams.get("queue");
+    const activetab = url.searchParams.get("activetab");
+
+    if (!activetab) {
+      url.searchParams.set("activetab", "Active");
+      window.history.replaceState({}, "", url.toString());
+    }
     if (queue) {
       setSelectedQueue(queue);
     }
@@ -28,18 +31,16 @@ const DetailHeader = ({
     const url = new URL(window.location.href);
     const queue = url.searchParams.get("queue");
 
-    if (data && data?.length > 0 && !queue && selectedQueue === "") {
-      const newSelectedQueue = data?.sort((a, b) =>
+    if (data && data.length > 0 && !queue && selectedQueue === "") {
+      const newSelectedQueue = data.sort((a, b) =>
         a.queue.localeCompare(b.queue)
       )?.[0].queue;
-      const url = new URL(window.location.href);
       url.searchParams.set("queue", newSelectedQueue);
       window.history.replaceState({}, "", url.toString());
 
       setSelectedQueue(newSelectedQueue);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [data]);
+  }, [data, selectedQueue]);
 
   const handleQueueSelect = (queue: string) => {
     setSelectedQueue(queue);
