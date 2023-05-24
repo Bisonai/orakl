@@ -27,22 +27,3 @@ export const databaseConfig = registerAs("database", () => ({
     port: parseInt(process.env.GRAPH_POSTGRES_PORT, 10) || 5432,
   },
 }));
-
-export const redisConfig = registerAs("redis", () => ({
-  vrf: {
-    host: process.env.VRF_REDIS_HOST,
-    port: parseInt(process.env.VRF_REDIS_PORT, 10) || 6349,
-  },
-  reqeustResponse: {
-    host: process.env.REQUEST_RESPONSE_REDIS_HOST,
-    port: parseInt(process.env.REQUEST_RESPONSE_REDIS_PORT, 10) || 6349,
-  },
-  aggregator: {
-    host: process.env.AGGREGATOR_REDIS_HOST,
-    port: parseInt(process.env.AGGREGATOR_REDIS_PORT, 10) || 6349,
-  },
-  fetcher: {
-    host: process.env.FETCHER_REDIS_HOST,
-    port: parseInt(process.env.FETCHER_REDIS_PORT, 10) || 6349,
-  },
-}));
