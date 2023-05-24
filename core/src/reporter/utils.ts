@@ -101,42 +101,32 @@ export async function sendTransaction({
   } catch (e) {
     _logger.debug(e, 'e')
 
+    let msg
+    let error
     if (e.reason == 'invalid address') {
-      const msg = `TxInvalidAddress ${e.value}`
-      _logger.error(msg)
-
-      throw new OraklError(OraklErrorCode.TxInvalidAddress, 'TxInvalidAddress', e.value)
+      msg = `TxInvalidAddress ${e.value}`
+      error = new OraklError(OraklErrorCode.TxInvalidAddress, msg, e.value)
     } else if (e.reason == 'processing response error') {
-      const msg = `TxProcessingResponseError ${e.value}`
-      _logger.error(msg)
-
-      throw new OraklError(
-        OraklErrorCode.TxProcessingResponseError,
-        'TxProcessingResponseError',
-        e.value
-      )
+      msg = `TxProcessingResponseError ${e.value}`
+      error = new OraklError(OraklErrorCode.TxProcessingResponseError, msg, e.value)
     } else if (e.reason == 'missing response') {
-      const msg = 'TxMissingResponseError'
-      _logger.error(msg)
-
-      throw new OraklError(OraklErrorCode.TxMissingResponseError, 'TxMissingResponseError')
+      msg = 'TxMissingResponseError'
+      error = new OraklError(OraklErrorCode.TxMissingResponseError, msg)
     } else if (e.reason == 'transaction failed') {
-      const msg = 'TxTransactionFailed'
-      _logger.error(msg)
-
-      throw new OraklError(OraklErrorCode.TxTransactionFailed, 'TxTransactionFailed')
+      msg = 'TxTransactionFailed'
+      error = new OraklError(OraklErrorCode.TxTransactionFailed, msg)
+    } else if (e.reason == 'insufficient funds for intrinsic transaction cost') {
+      msg = 'TxInsufficientFunds'
+      error = new OraklError(OraklErrorCode.TxProcessingResponseError, msg)
     } else if (e.code == 'UNPREDICTABLE_GAS_LIMIT') {
-      const msg = 'TxCannotEstimateGasError'
-      _logger.error(msg)
-
-      throw new OraklError(
-        OraklErrorCode.TxCannotEstimateGasError,
-        'TxCannotEstimateGasError',
-        e.value
-      )
+      msg = 'TxCannotEstimateGasError'
+      error = new OraklError(OraklErrorCode.TxCannotEstimateGasError, msg, e.value)
     } else {
-      throw e
+      error = e
     }
+
+    _logger.error(msg)
+    throw error
   }
 }
 
@@ -189,10 +179,11 @@ export async function sendTransactionDelegatedFee({
         ...transactionData
       })
     )?.data
-
     if (result?.signedRawTx) {
       const txReceipt = await wallet.caver.rpc.klay.sendRawTransaction(result.signedRawTx)
       _logger.debug(txReceipt, 'txReceipt')
+
+      return txReceipt
     } else {
       throw new OraklError(OraklErrorCode.MissingSignedRawTx)
     }
