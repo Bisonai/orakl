@@ -10,6 +10,7 @@ export async function buildReporter(redisClient: RedisClientType, logger: Logger
     service: VRF_SERVICE_NAME,
     reporterQueueName: REPORTER_VRF_QUEUE_NAME,
     concurrency: 1,
+    delegatedFee: true,
     _logger: logger
   })
 }

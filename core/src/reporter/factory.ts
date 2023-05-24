@@ -14,6 +14,7 @@ export async function factory({
   service,
   reporterQueueName,
   concurrency,
+  delegatedFee,
   _logger
 }: {
   redisClient: RedisClientType
@@ -21,6 +22,7 @@ export async function factory({
   service: string
   reporterQueueName: string
   concurrency: number
+  delegatedFee: boolean
   _logger: Logger
 }) {
   const logger = _logger.child({ name: 'reporter', file: FILE_NAME })
@@ -31,6 +33,7 @@ export async function factory({
     stateName,
     service,
     chain: CHAIN,
+    delegatedFee,
     logger
   })
   await state.refresh()

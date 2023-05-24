@@ -56,5 +56,6 @@ export enum OraklErrorCode {
   AggregatorNotFoundInState,
   ListenerNotFoundInState,
   ReporterNotFoundInState,
-  UnknownRequestResponseJob
+  UnknownRequestResponseJob,
+  MissingSignedRawTx
 }
