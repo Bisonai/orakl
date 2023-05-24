@@ -6,11 +6,11 @@ export const TableHeaderContainer = styled.div`
   justify-content: space-between;
   align-items: center;
   padding: 1rem 2rem;
-  background-color: #212a3e;
+  background-color: #393e46;
   color: white;
   font-size: 1.2rem;
   font-weight: 600;
-  border-bottom: 1px solid #9ba4b5;
+  border-bottom: 1px solid #00adb5;
   margin: 40px 40px 0px 40px;
 `;
 
