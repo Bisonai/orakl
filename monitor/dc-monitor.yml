@@ -1,0 +1,12 @@
+version: '3'
+services:
+  orakl-monitor:
+    image: jolol/orakl-monitor:v.0.0.2
+    environment:
+      PROVIDER: https://api.baobab.klaytn.net:8651
+      POSTGRES_USER: graphnode
+      POSTGRES_PASSWORD: rmfkvmshemqlthskdl
+      POSTGRES_HOST: localhost
+      POSTGRES_PORT: 5432
+      POSTGRES_DATABASE: orakl_graph_node
+    restart: unless-stopped
