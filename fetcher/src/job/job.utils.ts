@@ -92,7 +92,13 @@ function validateAdapter(adapter): IAdapter {
   }
 }
 
-export function extractFeeds(adapter, aggregatorId: bigint, aggregatorHash: string) {
+export function extractFeeds(
+  adapter,
+  aggregatorId: bigint,
+  aggregatorHash: string,
+  threshold: number,
+  address: string
+) {
   const adapterHash = adapter.adapterHash
   const feeds = adapter.feeds.map((f) => {
     return {
@@ -111,6 +117,8 @@ export function extractFeeds(adapter, aggregatorId: bigint, aggregatorHash: stri
       aggregatorHash: aggregatorHash,
       name: adapter.name,
       decimals: adapter.decimals,
+      threshold,
+      address,
       feeds
     }
   }

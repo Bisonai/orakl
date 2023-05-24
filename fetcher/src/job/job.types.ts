@@ -59,3 +59,9 @@ export interface IFetchedData {
   id: string
   value: number
 }
+export interface IAggregate {
+  id: bigint
+  timestamp: string
+  value: bigint
+  aggregatorId: bigint
+}

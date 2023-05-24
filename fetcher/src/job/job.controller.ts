@@ -29,7 +29,13 @@ export class JobController {
       throw new HttpException(msg, HttpStatus.BAD_REQUEST)
     }
 
-    const feeds = extractFeeds(aggregator.adapter, aggregator.id, aggregator.aggregatorHash)
+    const feeds = extractFeeds(
+      aggregator.adapter,
+      aggregator.id,
+      aggregator.aggregatorHash,
+      aggregator.threshold,
+      aggregator.address
+    )
 
     // Launch recurrent data collection
     await this.queue.add(aggregatorHash, feeds, {
