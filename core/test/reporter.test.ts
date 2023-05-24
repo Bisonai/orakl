@@ -1,7 +1,11 @@
 import { describe, test, expect, beforeEach } from '@jest/globals'
-import pino from 'pino'
-import { Logger } from 'pino'
-import { buildWallet, sendTransaction } from '../src/reporter/utils'
+import pino, { Logger } from 'pino'
+import {
+  buildWallet,
+  buildCaverWallet,
+  sendTransaction,
+  sendTransactionDelegatedFee
+} from '../src/reporter/utils'
 import { ethers } from 'ethers'
 import { OraklErrorCode } from '../src/errors'
 
@@ -20,7 +24,8 @@ describe('Reporter', function () {
     logger = pino(transport)
   })
 
-  if (!process.env.GITHUB_ACTIONS) {
+  // Test only for local network. Test must be running, otherwise test fail!
+  if (!process.env.GITHUB_ACTIONS && PROVIDER_URL == 'http://127.0.0.1:8545') {
     test('Send payload to invalid address', async function () {
       try {
         const wallet = await buildWallet({
@@ -28,7 +33,6 @@ describe('Reporter', function () {
           providerUrl: PROVIDER_URL
         })
 
-        wallet.getBalance()
         const to = '0x000000000000000000000000000000000000000' // wrong address
         const payload = '0x'
 
@@ -58,7 +62,7 @@ describe('Reporter', function () {
 
         expect(async () => {
           await sendTransaction({ wallet, to, value, logger })
-        }).rejects.toThrow('TxProcessingResponseError')
+        }).rejects.toThrow('TxInsufficientFunds')
       } catch (e) {
         if (e.code == OraklErrorCode.ProviderNetworkError) {
           return 0
@@ -73,4 +77,39 @@ describe('Reporter', function () {
       expect(true).toBe(true)
     })
   }
+
+  // TODO set up for CI/CD with Orakl Network Delegator running in Bobab
+  test.skip('Test Delegated Transaction Sign', async function () {
+    const COUNTER = {
+      // Baobab
+      address: '0x26532aabc377ee02a8b35ff770ef5660881787db',
+      abi: [
+        {
+          inputs: [],
+          name: 'increment',
+          outputs: [],
+          stateMutability: 'nonpayable',
+          type: 'function'
+        }
+      ]
+    }
+
+    const wallet = buildCaverWallet({
+      // 0 $KLAY in Account
+      // address: '0x9bf123A486DD67d5B2B859c74BFa3035c99b9243'
+      privateKey: '0xaa8707622845b72c76b7b9f329b154140441eda385ca39e3cdc66d2bee5f98e0',
+      providerUrl: 'https://api.baobab.klaytn.net:8651'
+    })
+
+    const iface = new ethers.utils.Interface(COUNTER.abi)
+    const payload = iface.encodeFunctionData('increment')
+
+    await sendTransactionDelegatedFee({
+      wallet,
+      to: COUNTER.address,
+      payload,
+      logger,
+      gasLimit: 100_000
+    })
+  })
 })

@@ -2,7 +2,7 @@ import axios from 'axios'
 import { ethers } from 'ethers'
 import { Logger } from 'pino'
 import { NonceManager } from '@ethersproject/experimental'
-import Caver, { AbiItem } from 'caver-js'
+import Caver from 'caver-js'
 import { OraklError, OraklErrorCode } from '../errors'
 import { ORAKL_NETWORK_DELEGATOR_URL } from '../settings'
 import { add0x, buildUrl } from '../utils'
@@ -142,7 +142,7 @@ export async function sendTransactionDelegatedFee({
   to: string
   payload?: string
   gasLimit?: number | string
-  value?: number | string | ethers.BigNumber
+  value?: number | string
   logger: Logger
 }) {
   const _logger = logger.child({ name: 'sendTransactionDelegatedFee', file: FILE_NAME })
@@ -151,7 +151,8 @@ export async function sendTransactionDelegatedFee({
     from: wallet.address,
     to,
     input: payload,
-    gas: gasLimit
+    gas: gasLimit,
+    value: value || '0x00'
   })
   await wallet.caver.wallet.sign(wallet.address, tx)
 
