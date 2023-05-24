@@ -245,7 +245,7 @@ export function organizationListHandler() {
       console.log(result)
       return result
     } catch (e) {
-      console.error('Delegator Orgzanization was not listed. Reason:')
+      console.error('Delegator Organization was not listed. Reason:')
       console.error(e?.response?.data?.message)
     }
   }
@@ -262,7 +262,7 @@ export function organizationInsertHandler() {
       console.log(result)
       return result
     } catch (e) {
-      console.error('Delegator Orgzanization was not inserted. Reason:')
+      console.error('Delegator Organization was not inserted. Reason:')
       console.error(e?.response?.data?.message)
     }
   }
@@ -282,7 +282,7 @@ export function organizationRemoveHandler() {
       console.log(result)
       return result
     } catch (e) {
-      console.error('Delegator Orgzanization was not deleted. Reason:')
+      console.error('Delegator Organization was not deleted. Reason:')
       console.error(e?.response?.data?.message)
     }
   }
@@ -401,7 +401,7 @@ export function contractConnectHandler() {
       console.log(result)
       return result
     } catch (e) {
-      console.error('Delegator Orgzanization was not listed. Reason:')
+      console.error('Delegator Organization was not listed. Reason:')
       console.error(e?.response?.data?.message)
     }
   }
@@ -418,7 +418,7 @@ export function contractDisconnectHandler() {
       console.log(result)
       return result
     } catch (e) {
-      console.error('Delegator Orgzanization was not listed. Reason:')
+      console.error('Delegator Organization was not listed. Reason:')
       console.error(e?.response?.data?.message)
     }
   }
