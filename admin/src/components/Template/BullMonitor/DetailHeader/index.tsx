@@ -50,7 +50,12 @@ const DetailHeader = ({
     <>
       <DetailHeaderContainer>
         <DetailHeaderBase>
-          <BasicButton text={serviceId} width="auto" justifyContent="center" />
+          <BasicButton
+            text={serviceId}
+            width="auto"
+            background="#00ADB5"
+            justifyContent="center"
+          />
         </DetailHeaderBase>
         {data
           ?.sort((a, b) => a.queue.localeCompare(b.queue))
@@ -63,6 +68,9 @@ const DetailHeader = ({
               <BasicButton
                 text={item.queue}
                 width="auto"
+                background={
+                  selectedQueue === item.queue ? "#EEEEEE" : "#00ADB5"
+                }
                 margin="5px 10px 5px 0px"
                 selected={selectedQueue === item.queue}
                 onClick={() => handleQueueSelect(item.queue)}

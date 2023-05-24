@@ -37,6 +37,7 @@ const TableHeader = ({
             <BasicButton
               text={buttonText}
               width="auto"
+              style={{ background: "#00ADB5" }}
               justifyContent="center"
             />
           </Link>

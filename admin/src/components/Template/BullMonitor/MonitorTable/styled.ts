@@ -2,7 +2,7 @@ import { styled } from "styled-components";
 
 export const TableContainer = styled.div`
   margin: 0px 40px;
-  background-color: #212a3e;
+  background-color: #393e46;
   color: white;
   text-align: center;
   padding: 40px;
@@ -14,7 +14,7 @@ export const TableHeaderContainer = styled.div`
   gap: 10px;
   font-weight: 400;
   padding: 15px 10px;
-  border-bottom: 1px solid #9ba4b5;
+  border-bottom: 1px solid #00adb5;
 `;
 
 export const TableDataContainer = styled.div`
@@ -23,10 +23,10 @@ export const TableDataContainer = styled.div`
   gap: 5px;
   font-weight: 500;
   padding: 10px;
-  border-bottom: 1px solid #9ba4b5;
-  color: #49a7ff;
+  border-bottom: 1px solid #00adb5;
+  color: #00adb5;
   &:hover {
-    background-color: #394867;
+    background-color: #222831;
   }
 `;
 

@@ -47,7 +47,7 @@ const MonitorTable = ({ serviceId }: { serviceId: string }) => {
             <div>{queue.active}</div>
             <div>{queue.waiting}</div>
             <div>{queue.completed}</div>
-            <div style={{ color: queue.failed >= 1 ? "#ff5c5b" : "#49a7ff" }}>
+            <div style={{ color: queue.failed >= 1 ? "#ff5c5b" : "#00ADB5" }}>
               {queue.failed}
             </div>
             <div>{queue.delayed}</div>

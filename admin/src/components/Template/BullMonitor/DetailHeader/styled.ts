@@ -1,9 +1,9 @@
 import { styled } from "styled-components";
 
 export const DetailHeaderContainer = styled.div`
-  padding: 40px;
-  background: #b6c39f;
-  margin: 40px 40px 0px 40px;
+  padding: 20px 40px 40px 40px;
+  background: #393e46;
+  margin: 0px 40px;
 `;
 
 export const DetailHeaderBase = styled.div`

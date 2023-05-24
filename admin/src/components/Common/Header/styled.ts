@@ -1,7 +1,7 @@
 import styled from "styled-components";
 
 export const HeaderContainer = styled.header`
-  background-color: #212a3e;
+  background-color: #222831;
   min-height: 10vh;
   display: flex;
   font-size: 22px;
