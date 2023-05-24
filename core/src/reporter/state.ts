@@ -3,7 +3,7 @@ import type { RedisClientType } from 'redis'
 import { getReporters, getReporter } from '../api'
 import { IReporterConfig } from '../types'
 import { OraklError, OraklErrorCode } from '../errors'
-import { buildWallet } from './utils'
+import { buildWallet, buildCaverWallet } from './utils'
 
 const FILE_NAME = import.meta.url
 
@@ -13,6 +13,7 @@ export class State {
   stateName: string
   service: string
   chain: string
+  delegatedFee: boolean
   logger: Logger
   wallets
 
@@ -22,6 +23,7 @@ export class State {
     stateName,
     service,
     chain,
+    delegatedFee,
     logger
   }: {
     redisClient: RedisClientType
@@ -29,6 +31,7 @@ export class State {
     stateName: string
     service: string
     chain: string
+    delegatedFee: boolean
     logger: Logger
   }) {
     this.redisClient = redisClient
@@ -36,6 +39,7 @@ export class State {
     this.stateName = stateName
     this.service = service
     this.chain = chain
+    this.delegatedFee = delegatedFee
     this.logger = logger.child({ name: 'State', file: FILE_NAME })
     this.logger.debug('Reporter state initialized')
   }
@@ -100,10 +104,18 @@ export class State {
     await this.redisClient.set(this.stateName, JSON.stringify(updatedActiveReporters))
 
     // Update wallets
-    const wallet = await buildWallet({
-      privateKey: toAddReporter.privateKey,
-      providerUrl: this.providerUrl
-    })
+    let wallet
+    if (this.delegatedFee) {
+      wallet = await buildCaverWallet({
+        privateKey: toAddReporter.privateKey,
+        providerUrl: this.providerUrl
+      })
+    } else {
+      wallet = await buildWallet({
+        privateKey: toAddReporter.privateKey,
+        providerUrl: this.providerUrl
+      })
+    }
     this.wallets = { ...this.wallets, [toAddReporter.oracleAddress]: wallet }
 
     return toAddReporter
@@ -164,11 +176,20 @@ export class State {
     // Fetch
     const reporters = await this.all()
     const wallets = reporters.map((R) => {
-      const W = buildWallet({
-        privateKey: R.privateKey,
-        providerUrl: this.providerUrl
-      })
-      return { [R.oracleAddress]: W }
+      let wallet
+      if (this.delegatedFee) {
+        wallet = buildCaverWallet({
+          privateKey: R.privateKey,
+          providerUrl: this.providerUrl
+        })
+      } else {
+        wallet = buildWallet({
+          privateKey: R.privateKey,
+          providerUrl: this.providerUrl
+        })
+      }
+
+      return { [R.oracleAddress]: wallet }
     })
 
     // Update
