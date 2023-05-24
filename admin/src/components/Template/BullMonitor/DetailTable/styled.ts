@@ -1,4 +1,11 @@
-import styled from "styled-components";
+import styled, { keyframes } from "styled-components";
+
+export const DetailTableHeaderBase = styled.div`
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 30px;
+  margin-right: 50px;
+`;
 
 export const TablePagination = styled.div`
   color: white;
@@ -70,6 +77,11 @@ export const CodeSnippetBase = styled.div`
   }
 `;
 
+const blinkAnimation = keyframes`
+  0% { opacity: 1; }
+  50% { opacity: 0.5; }
+  100% { opacity: 1; }
+`;
 export const IsLoadingBase = styled.div`
   width: 100%;
   height: 300px;
@@ -78,6 +90,7 @@ export const IsLoadingBase = styled.div`
   justify-content: center;
   color: white;
   font-size: 20px;
+  animation: ${blinkAnimation} 2s linear infinite;
 `;
 
 export const NoDataAvailableBase = styled.div`
