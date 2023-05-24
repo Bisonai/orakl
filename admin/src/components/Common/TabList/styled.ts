@@ -4,10 +4,9 @@ import styled from "styled-components";
 
 export const TabListBase = styled.ul`
   display: flex;
-  justify-content: space-around;
   margin: 0px 40px;
-  background: #b6c39f;
-  padding: 40px;
+  background: #222831;
+  padding: 10px 40px;
 `;
 
 export const TabBase = styled.li`
@@ -18,6 +17,7 @@ export const TabBase = styled.li`
   transition: 0.2s;
   word-break: keep-all;
   white-space: nowrap;
+  color: #eeeeee;
   svg {
     transition: 0.2s;
   }
@@ -25,9 +25,9 @@ export const TabBase = styled.li`
     cursor: pointer;
   }
   &.selected {
-    color: #212a3e;
+    color: #00adb5;
     font-weight: 600;
-    border-bottom: 4px solid #212a3e;
+    border-bottom: 4px solid #00adb5;
   }
 `;
 

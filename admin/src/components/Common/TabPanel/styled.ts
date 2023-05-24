@@ -1,6 +1,6 @@
 import styled from "styled-components";
 
 export const TabPanelBase = styled.div`
-  width: fit-content;
-  display: inline-block;
+  background: #393e46;
+  margin: 0px 40px;
 `;
