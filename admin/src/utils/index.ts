@@ -160,3 +160,13 @@ export function getCleanedTransactionHash(transactionHash: string): string {
     index === -1 ? transactionHash : transactionHash.slice(0, index);
   return cleanedHash;
 }
+export function formatLongString(s: any, maxLineLength: number) {
+  let result = "";
+  for (let i = 0, line = 0; i < s.length; i += maxLineLength, line++) {
+    if (line > 0) {
+      result += "   ";
+    }
+    result += s.substring(i, i + maxLineLength) + "\n";
+  }
+  return result;
+}
