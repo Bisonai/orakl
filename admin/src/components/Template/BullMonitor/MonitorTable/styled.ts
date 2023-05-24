@@ -26,7 +26,7 @@ export const TableDataContainer = styled.div`
   border-bottom: 1px solid #00adb5;
   color: #00adb5;
   &:hover {
-    background-color: #394867;
+    background-color: #222831;
   }
 `;
 
