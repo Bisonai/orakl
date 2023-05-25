@@ -513,7 +513,7 @@ export function deviationJob(reporterQueue: QueueType, _logger: Logger) {
 
     const { roundId } = oracleRoundState
     try {
-      const { aggregatorHash, heartbeat: delay } = await getAggregatorGivenAddress({
+      const { aggregatorHash } = await getAggregatorGivenAddress({
         oracleAddress,
         logger
       })
