@@ -12,7 +12,7 @@ export async function flattenReporter(L) {
   }
 }
 export async function encryptText(textToEncrypt: string) {
-  const password = process.env.ENCRYPT_PASSWORD || 'bisonai@123'
+  const password = process.env.ENCRYPT_PASSWORD
   const iv = randomBytes(16).toString('hex')
   // The key length is dependent on the algorithm.
   // In this case for aes256, it is 32 bytes.
