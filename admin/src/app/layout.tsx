@@ -9,6 +9,7 @@ import RootStyleRegistry from "@/lib/RootStyleRegistry";
 import Header from "@/components/Common/Header";
 import NavigationDropdown from "@/components/Common/NavigationDropdown";
 import { MainContainer, Container } from "./styled";
+import ToastContextProvider from "@/components/Common/ToastProvider";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -24,11 +25,13 @@ export default function RootLayout({
         <QueryClientProviders>
           <ThemeProvider theme={theme}>
             <body className={inter.className}>
-              <Header />
-              <MainContainer>
-                <NavigationDropdown />
-                <Container> {children}</Container>
-              </MainContainer>
+              <ToastContextProvider>
+                <Header />
+                <MainContainer>
+                  <NavigationDropdown />
+                  <Container> {children}</Container>
+                </MainContainer>
+              </ToastContextProvider>
             </body>
           </ThemeProvider>
         </QueryClientProviders>

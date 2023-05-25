@@ -33,6 +33,8 @@ export interface IAccordionState {
   account: boolean;
 }
 
+/** Tab */
+
 export interface ITabContextProps {
   activeTab: string;
   setActiveTab: (activeTab: string) => void;
@@ -75,3 +77,25 @@ export const statusTabs: StatusTab[] = [
   { tabId: "delayed", label: "Delayed" },
   { tabId: "paused", label: "Paused" },
 ];
+
+/** Toast */
+
+export interface IToast {
+  id?: string | number;
+  title: React.ReactNode;
+  content: React.ReactNode;
+  type: ToastType;
+}
+
+export enum ToastType {
+  SUCCESS = "SUCCESS",
+  ERROR = "ERROR",
+}
+
+export interface IToastContextProps {
+  toasts: IToast[];
+  addToast: (toast: IToast) => void;
+  removeToast: (id: string | number) => void;
+  updateToast: (toast: IToast) => void;
+  clearToast: () => void;
+}

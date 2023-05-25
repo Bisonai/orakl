@@ -1,5 +1,5 @@
 import { fetchInternalApi } from "@/utils/api";
-import { IQueueData } from "@/utils/types";
+import { IQueueData, ToastType } from "@/utils/types";
 import { useQuery } from "react-query";
 import {
   DetailTableContainer,
@@ -14,11 +14,15 @@ import {
   JobIdBase,
   NoDataAvailableBase,
   IsLoadingBase,
+  DetailTableHeaderBase,
 } from "./styled";
 import BasicButton from "@/components/Common/BasicButton";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import React from "react";
 import { TablePagination } from "@mui/material";
+import RefreshIcon from "@/components/Common/refreshIcon";
+import { useToastContext } from "@/hook/useToastContext";
+import { StyledButton } from "@/theme/theme";
 
 const DetailTable = ({
   serviceName,
@@ -32,6 +36,7 @@ const DetailTable = ({
   const [selectedTab, setSelectedTab] = useState("Data");
   const [page, setPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = React.useState(10);
+  const { addToast } = useToastContext();
   const handleButtonClick = (text: any) => {
     setSelectedTab(text);
   };
@@ -60,6 +65,15 @@ const DetailTable = ({
     refetchOnWindowFocus: false,
     select: (statusData) => statusData.data,
   });
+  console.log(selectedTab, "selectedTab");
+  const handleRefresh = () => {
+    statusQuery.refetch();
+    addToast({
+      type: ToastType.SUCCESS,
+      title: "Refetched",
+      content: `Successfully refetched ${serviceName} data`,
+    });
+  };
 
   const handleChangePage = (
     event: React.MouseEvent<HTMLButtonElement> | null,
@@ -77,11 +91,17 @@ const DetailTable = ({
     page * rowsPerPage,
     page * rowsPerPage + rowsPerPage
   );
+
   console.log("dataToDisplay", dataToDisplay, statusQuery);
+  console.log("refreshing", statusQuery.isFetching);
+  useEffect(() => {
+    console.log(`Is fetching: ${statusQuery.isFetching}`);
+  }, [statusQuery.isFetching]);
+
   return (
     <>
       {dataToDisplay?.length > 1 && (
-        <div>
+        <DetailTableHeaderBase>
           <TablePagination
             component="div"
             count={statusQuery.data?.length || 0}
@@ -101,7 +121,16 @@ const DetailTable = ({
               button: { color: "#02c7d1" },
             }}
           />
-        </div>
+          <StyledButton
+            onClick={handleRefresh}
+            size="large"
+            color="secondary"
+            variant="contained"
+            style={{ height: "40px", width: "100px", marginTop: "6px" }}
+          >
+            Refetch
+          </StyledButton>
+        </DetailTableHeaderBase>
       )}
       {statusQuery.isLoading ? (
         <IsLoadingBase>Loading... Please wait a moment</IsLoadingBase>

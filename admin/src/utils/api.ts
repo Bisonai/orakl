@@ -7,9 +7,9 @@ import type { Method } from "axios";
 const isDevelopment = process.env.NODE_ENV === "development";
 
 export const api = {
-  queues: () => "https://monitor-api.orakl.bisonai.net/queues",
+  queues: () => `${process.env.NEXT_PUBLIC_API_BASE_URL}/queues`,
   service: (serviceName: string) =>
-    `https://monitor-api.orakl.bisonai.net/queues/${serviceName}`,
+    `${process.env.NEXT_PUBLIC_API_BASE_URL}/queues/${serviceName}`,
   queueName: ({
     serviceName,
     queueName,
@@ -17,7 +17,7 @@ export const api = {
     serviceName: string;
     queueName: string;
   }) =>
-    `https://monitor-api.orakl.bisonai.net/queues/${serviceName}/${queueName}`,
+    `${process.env.NEXT_PUBLIC_API_BASE_URL}/queues/${serviceName}/${queueName}`,
   queueStatus: ({
     serviceName,
     queueName,
@@ -27,9 +27,9 @@ export const api = {
     queueName: string;
     status: string;
   }) =>
-    `https://monitor-api.orakl.bisonai.net/queues/${serviceName}/${queueName}/${status}`,
+    `${process.env.NEXT_PUBLIC_API_BASE_URL}/queues/${serviceName}/${queueName}/${status}`,
 };
-
+console.log("aaa", `${process.env.NEXT_PUBLIC_API_BASE_URL}/queues}/queues}`);
 export type IApi = typeof api;
 
 export type IApiBase = {
