@@ -57,7 +57,7 @@ jobs:
       - uses: actions/checkout@v3
 
       - name: Docker build orakl-monitor
-        run:  docker build -t orakl-general .
+        run:  docker build -t orakl-general monitor/.
 
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v2
