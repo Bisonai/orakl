@@ -41,7 +41,7 @@ export class BullsService implements OnApplicationBootstrap {
     await this.onTriggerJobCompleted(SERVICE.AGGREGATOR);
     await this.onTriggerJobFailed(SERVICE.VRF);
     await this.onTriggerJobFailed(SERVICE.AGGREGATOR);
-    // await this.onTriggerJobFailed(SERVICE.REQUEST_RESPONSE);
+    await this.onTriggerJobFailed(SERVICE.REQUEST_RESPONSE);
   }
 
   async getQueueCounts() {
@@ -345,7 +345,9 @@ export class BullsService implements OnApplicationBootstrap {
       },
       id: string
     ) => {
+      console.log("There is a failed event:", args);
       const data = await queue.getJob(args.jobId);
+      console.log("data:", data);
       const totalListener = Object.entries(this.queueEvents)
         .filter(([queueName, queueEvents]) => {
           return queueEvents.listeners.length > 0;
@@ -356,7 +358,8 @@ export class BullsService implements OnApplicationBootstrap {
           // );
           return acc + queueEvents.listeners.length;
         }, 0);
-      // console.log(`Total listeners: ${totalListener}`);
+      console.log("serviceName:", service);
+      console.log(`Total listeners: ${totalListener}`);
       if (service == SERVICE.AGGREGATOR) {
         const dataSet: AggregatorJobFailed = {
           error: data?.stacktrace,
@@ -374,6 +377,7 @@ export class BullsService implements OnApplicationBootstrap {
           process_at: data?.processedOn,
           completed_at: data?.finishedOn,
         };
+        console.log("Aggregator Failed Job", dataSet);
         // send slack message
         this.sendToSlackFailedJob(dataSet);
         await this.bullsRepository.createJobLog(
@@ -413,7 +417,12 @@ export class BullsService implements OnApplicationBootstrap {
           completed_at: data?.finishedOn,
         };
         // send slack message
-        this.sendToSlackFailedJob(dataSet);
+        console.log("VRF or RequestResponse Failed Job", dataSet);
+        try {
+          await this.sendToSlackFailedJob(dataSet);
+        } catch (e) {
+          console.log(e);
+        }
         await this.bullsRepository.createJobLog(
           dataSet,
           service,
@@ -458,6 +467,7 @@ export class BullsService implements OnApplicationBootstrap {
       service,
       true
     );
+    console.log("trggered Failed Job:", service);
     queues.map((d) => {
       const queueEvents = new QueueEvents(d.name, {
         connection,
