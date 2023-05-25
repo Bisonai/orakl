@@ -1,6 +1,7 @@
 import { fetchInternalApi } from "@/utils/api";
 import { QueryFunctionContext, useQuery } from "react-query";
 import {
+  HeaderItem,
   QueueNameBase,
   TableContainer,
   TableDataContainer,
@@ -27,36 +28,61 @@ const MonitorTable = ({ serviceId }: { serviceId: string }) => {
   return (
     <TableContainer>
       <TableHeaderContainer>
-        <div style={{ minWidth: "300px", textAlign: "left" }}>QUEUE NAME</div>
-        <div>STATUS</div>
-        <div>ACTIVE</div>
-        <div>WAITING</div>
-        <div>COMPLETED</div>
-        <div>FAILED</div>
-        <div>DELAYED</div>
-        <div>PAUSED</div>
+        <QueueNameBase>QUEUE NAME</QueueNameBase>
+        <HeaderItem>STATUS</HeaderItem>
+        <HeaderItem>ACTIVE</HeaderItem>
+        <HeaderItem>WAITING</HeaderItem>
+        <HeaderItem>COMPLETED</HeaderItem>
+        <HeaderItem>FAILED</HeaderItem>
+        <HeaderItem>DELAYED</HeaderItem>
+        <HeaderItem>PAUSED</HeaderItem>
       </TableHeaderContainer>
       {serviceQuery.data?.map((queue: IQueueData) => (
-        <Link
-          href={`/bullmonitor/${serviceId}?queue=${queue.queue}`}
-          key={queue.queue}
-        >
-          <TableDataContainer>
+        <TableDataContainer key={queue.queue}>
+          <Link href={`/bullmonitor/${serviceId}?queue=${queue.queue}`}>
             <QueueNameBase>{queue.queue}</QueueNameBase>
-            <div style={{ color: "white" }}>
+          </Link>
+          <Link href={`/bullmonitor/${serviceId}?queue=${queue.queue}`}>
+            <HeaderItem style={{ color: "white" }}>
               {queue.status ? "True" : "False"}
-            </div>
+            </HeaderItem>
+          </Link>
 
-            <div>{queue.active}</div>
-            <div>{queue.waiting}</div>
-            <div>{queue.completed}</div>
-            <div style={{ color: queue.failed >= 1 ? "#ff5c5b" : "#00ADB5" }}>
+          <Link
+            href={`/bullmonitor/${serviceId}?queue=${queue.queue}&activetab=active`}
+          >
+            <HeaderItem>{queue.active}</HeaderItem>
+          </Link>
+          <Link
+            href={`/bullmonitor/${serviceId}?queue=${queue.queue}&activetab=waiting`}
+          >
+            <HeaderItem>{queue.waiting}</HeaderItem>
+          </Link>
+          <Link
+            href={`/bullmonitor/${serviceId}?queue=${queue.queue}&activetab=completed`}
+          >
+            <HeaderItem>{queue.completed}</HeaderItem>
+          </Link>
+          <Link
+            href={`/bullmonitor/${serviceId}?queue=${queue.queue}&activetab=failed`}
+          >
+            <HeaderItem
+              style={{ color: queue.failed >= 1 ? "#ff5c5b" : "#00ADB5" }}
+            >
               {queue.failed}
-            </div>
-            <div>{queue.delayed}</div>
-            <div>{queue.paused}</div>
-          </TableDataContainer>
-        </Link>
+            </HeaderItem>
+          </Link>
+          <Link
+            href={`/bullmonitor/${serviceId}?queue=${queue.queue}&activetab=delayed`}
+          >
+            <HeaderItem>{queue.delayed}</HeaderItem>
+          </Link>
+          <Link
+            href={`/bullmonitor/${serviceId}?queue=${queue.queue}&activetab=paused`}
+          >
+            <HeaderItem>{queue.paused}</HeaderItem>
+          </Link>
+        </TableDataContainer>
       ))}
     </TableContainer>
   );

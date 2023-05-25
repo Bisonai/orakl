@@ -10,6 +10,7 @@ import Header from "@/components/Common/Header";
 import NavigationDropdown from "@/components/Common/NavigationDropdown";
 import { MainContainer, Container } from "./styled";
 import ToastContextProvider from "@/components/Common/ToastProvider";
+import TabContextProvider from "@/components/Common/TabContextProvider";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -26,11 +27,13 @@ export default function RootLayout({
           <ThemeProvider theme={theme}>
             <body className={inter.className}>
               <ToastContextProvider>
-                <Header />
-                <MainContainer>
-                  <NavigationDropdown />
-                  <Container> {children}</Container>
-                </MainContainer>
+                <TabContextProvider initTab={"active"}>
+                  <Header />
+                  <MainContainer>
+                    <NavigationDropdown />
+                    <Container> {children}</Container>
+                  </MainContainer>
+                </TabContextProvider>
               </ToastContextProvider>
             </body>
           </ThemeProvider>

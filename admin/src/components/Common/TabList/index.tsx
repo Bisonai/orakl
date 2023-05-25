@@ -1,5 +1,5 @@
 import { ITabListProps, ITabProps } from "@/utils/types";
-import React, { useCallback } from "react";
+import React, { useCallback, useEffect } from "react";
 import { LabelWithIconBase, TabBase, TabListBase } from "./styled";
 import { useTabContext } from "@/hook/useTabContext";
 
@@ -18,6 +18,16 @@ const TabList = ({ tabs, ...props }: ITabListProps): JSX.Element => {
     },
     [setActiveTab]
   );
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    const activetab = url.searchParams.get("activetab");
+
+    const validTabIds = tabs.map((tab) => tab.tabId);
+    if (activetab && validTabIds.includes(activetab)) {
+      setActiveTab(activetab);
+    }
+  }, [setActiveTab, tabs]);
+
   return (
     <TabListBase {...props}>
       {tabs.map((tab) => (
