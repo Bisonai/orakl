@@ -9,10 +9,6 @@ on:
     types:
       - closed
 
-  push:
-    branches:
-      - 641-orakl-admin-cicd
-
 env:
   ecr_url: public.ecr.aws/bisonai/orakl-general
 
