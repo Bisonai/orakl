@@ -6,17 +6,26 @@ export interface IObject<T> {
 }
 
 export interface ITableHeaderProps {
-  version: string;
-  memoryUsage: string;
-  fragmentationRatio: string;
-  connectedClients: string;
-  blockedClients: string;
-  buttonText: string;
   onRefresh: () => void;
+  serviceData: IQueueInfoData;
+}
+
+export interface IQueueInfoData {
+  blockedClients: number;
+  commandsProcessed?: number;
+  connectedClients: number;
+  cpuUsage: number;
+  expiredKeys?: number;
+  fragmentationRatio: number;
+  redisVersion: string;
+  serviceName: string;
+  uptimeInDays?: number;
+  usedMemoryHuman?: number;
 }
 
 export interface IQueueData {
   service: string;
+  status: boolean;
   queue: string;
   active: number;
   completed: number;
