@@ -65,7 +65,7 @@ const DetailTable = ({
     refetchOnWindowFocus: false,
     select: (statusData) => statusData.data,
   });
-  console.log(selectedTab, "selectedTab");
+
   const handleRefresh = () => {
     statusQuery.refetch();
     addToast({
@@ -91,12 +91,6 @@ const DetailTable = ({
     page * rowsPerPage,
     page * rowsPerPage + rowsPerPage
   );
-  console.log("statusQuery", statusQuery);
-  console.log("dataToDisplay", dataToDisplay, statusQuery);
-  console.log("refreshing", statusQuery.isFetching);
-  useEffect(() => {
-    console.log(`Is fetching: ${statusQuery.isFetching}`);
-  }, [statusQuery.isFetching]);
 
   return (
     <>

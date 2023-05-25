@@ -30,7 +30,7 @@ export const api = {
   }) =>
     `${process.env.NEXT_PUBLIC_API_BASE_URL}/queues/${serviceName}/${queueName}/${status}`,
 };
-console.log("aaa", `${process.env.NEXT_PUBLIC_API_BASE_URL}/queues}/queues}`);
+
 export type IApi = typeof api;
 
 export type IApiBase = {

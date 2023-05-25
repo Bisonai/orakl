@@ -14,7 +14,6 @@ const TabList = ({ tabs, ...props }: ITabListProps): JSX.Element => {
       searchParams.set("activetab", tabId);
       url.search = searchParams.toString();
       const newUrl = url.toString();
-      console.log(newUrl, "newUrl");
       window.history.replaceState({}, "", newUrl);
     },
     [setActiveTab]

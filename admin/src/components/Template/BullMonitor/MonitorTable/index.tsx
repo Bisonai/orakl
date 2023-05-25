@@ -24,7 +24,6 @@ const MonitorTable = ({ serviceId }: { serviceId: string }) => {
     select: (data) => data.data,
   });
 
-  console.log(serviceQuery.data, "serviceQuery.data");
   return (
     <TableContainer>
       <TableHeaderContainer>
