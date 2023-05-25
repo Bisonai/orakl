@@ -24,6 +24,7 @@ const MonitorTable = ({ serviceId }: { serviceId: string }) => {
     select: (data) => data.data,
   });
 
+  console.log(serviceQuery.data, "serviceQuery.data");
   return (
     <TableContainer>
       <TableHeaderContainer>
@@ -43,7 +44,10 @@ const MonitorTable = ({ serviceId }: { serviceId: string }) => {
         >
           <TableDataContainer>
             <QueueNameBase>{queue.queue}</QueueNameBase>
-            <div style={{ color: "white" }}>{serviceQuery.status}</div>
+            <div style={{ color: "white" }}>
+              {queue.status ? "True" : "False"}
+            </div>
+
             <div>{queue.active}</div>
             <div>{queue.waiting}</div>
             <div>{queue.completed}</div>
