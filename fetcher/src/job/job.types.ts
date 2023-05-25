@@ -65,3 +65,8 @@ export interface IAggregate {
   value: bigint
   aggregatorId: bigint
 }
+export interface IDeviationData {
+  timestamp: string
+  submission: number
+  oracleAddress: string
+}

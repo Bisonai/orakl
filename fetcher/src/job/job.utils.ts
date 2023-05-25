@@ -97,6 +97,7 @@ export function extractFeeds(
   aggregatorId: bigint,
   aggregatorHash: string,
   threshold: number,
+  absoluteThreshold: number,
   address: string
 ) {
   const adapterHash = adapter.adapterHash
@@ -118,6 +119,7 @@ export function extractFeeds(
       name: adapter.name,
       decimals: adapter.decimals,
       threshold,
+      absoluteThreshold,
       address,
       feeds
     }

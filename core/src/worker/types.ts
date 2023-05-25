@@ -16,3 +16,8 @@ export interface IAggregatorConfig {
   chain: string
   timestamp: number
 }
+export interface IDeviationData {
+  timestamp: string
+  submission: bigint
+  oracleAddress: string
+}

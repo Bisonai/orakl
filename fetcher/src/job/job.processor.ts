@@ -2,12 +2,12 @@ import { InjectQueue, Processor, WorkerHost } from '@nestjs/bullmq'
 import { Logger } from '@nestjs/common'
 import { Job, Queue } from 'bullmq'
 import { FetcherError, FetcherErrorCode } from './job.errors'
-import { fetchData, aggregateData } from './job.utils'
+import { fetchData, aggregateData, shouldReport } from './job.utils'
 import { insertMultipleData, insertAggregateData, fetchDataFeed } from './job.api'
-import { DEVIATION_QUEUE_NAME, WORKER_OPTS } from '../settings'
-import { abs, round } from 'mathjs'
+import { DEVIATION_QUEUE_NAME, FETCHER_QUEUE_NAME, WORKER_OPTS } from '../settings'
+import { IDeviationData } from './job.types'
 
-@Processor('orakl-fetcher-queue', WORKER_OPTS)
+@Processor(FETCHER_QUEUE_NAME, WORKER_OPTS)
 export class JobProcessor extends WorkerHost {
   constructor(@InjectQueue(DEVIATION_QUEUE_NAME) private deviationQueue: Queue) {
     super()
@@ -28,6 +28,8 @@ export class JobProcessor extends WorkerHost {
       const data = await fetchData(feeds, this.logger)
       const aggregate = aggregateData(data)
       const threshold = inData[adapterHash].threshold
+      const absoluteThreshold = inData[adapterHash].absoluteThreshold
+
       const oracleAddress = inData[adapterHash].address
       const aggregatorHash = inData[adapterHash].aggregatorHash
 
@@ -44,12 +46,16 @@ export class JobProcessor extends WorkerHost {
           value: aggregate
         })
         this.logger.debug(response)
-        if (abs(aggregate - Number(lastSubmission)) >= lastSubmission * threshold) {
-          this.deviationQueue.add(
-            'fetcher-submission',
-            { oracleAddress },
-            { removeOnFail: true, removeOnComplete: true }
-          )
+        const outData: IDeviationData = {
+          timestamp: timestamp,
+          submission: aggregate,
+          oracleAddress
+        }
+        if (shouldReport(Number(lastSubmission), aggregate, 8, threshold, absoluteThreshold)) {
+          this.deviationQueue.add('fetcher-submission', outData, {
+            removeOnFail: true,
+            removeOnComplete: true
+          })
           this.logger.debug('added deviation queue', oracleAddress)
         }
       } catch (e) {

@@ -32,10 +32,11 @@ import {
   DATA_FEED_FULFILL_GAS_MINIMUM,
   WORKER_DEVIATION_QUEUE_NAME
 } from '../settings'
-import { buildSubmissionRoundJobId, buildHeartbeatJobId, hookConsoleError } from '../utils'
+import { buildSubmissionRoundJobId, buildHeartbeatJobId } from '../utils'
 import { oracleRoundStateCall, buildTransaction, isStale } from './data-feed.utils'
 import { watchman } from './watchman'
 import { getOperatorAddress } from '../api'
+import { IDeviationData } from './types'
 
 const FILE_NAME = import.meta.url
 
@@ -500,9 +501,9 @@ export function deviationJob(reporterQueue: QueueType, _logger: Logger) {
   const iface = new ethers.utils.Interface(Aggregator__factory.abi)
 
   async function wrapper(job: Job) {
-    const inData = job.data
+    const inData: IDeviationData = job.data
     logger.debug(inData, 'inData')
-    const oracleAddress: string = inData.oracleAddress
+    const { timestamp, submission, oracleAddress } = inData
     const operatorAddress = await getOperatorAddress({ oracleAddress, logger })
     const oracleRoundState = await oracleRoundStateCall({
       oracleAddress,
@@ -517,8 +518,6 @@ export function deviationJob(reporterQueue: QueueType, _logger: Logger) {
         oracleAddress,
         logger
       })
-
-      const { timestamp, value: submission } = await fetchDataFeed({ aggregatorHash, logger })
       logger.debug({ aggregatorHash, fetchedAt: timestamp, submission }, 'Latest data aggregate')
       if (isStale({ timestamp, logger })) {
         logger.warn(`Data became stale (> ${MAX_DATA_STALENESS}). Not reporting.`)

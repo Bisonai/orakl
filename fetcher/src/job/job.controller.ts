@@ -34,6 +34,7 @@ export class JobController {
       aggregator.id,
       aggregator.aggregatorHash,
       aggregator.threshold,
+      aggregator.absoluteThreshold,
       aggregator.address
     )
 
