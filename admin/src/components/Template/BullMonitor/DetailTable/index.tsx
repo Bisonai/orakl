@@ -188,13 +188,11 @@ const DetailTable = ({
                     </CodeSnippetBase>
                   )}
 
-                  {selectedTab === "Logs" &&
-                    item.stacktrace &&
-                    item.stacktrace.map((log: string, index: number) => (
-                      <CodeSnippetBase key={index}>
-                        <pre>{JSON.stringify(log, null, 2)}</pre>
-                      </CodeSnippetBase>
-                    ))}
+                  {selectedTab === "Logs" && item.stacktrace && (
+                    <CodeSnippetBase>
+                      <pre>{item.stacktrace.join("\n")}</pre>
+                    </CodeSnippetBase>
+                  )}
                 </DetailRightBase>
               </DetailTableBase>
             </DetailTableContainer>
