@@ -9,6 +9,10 @@ on:
     types:
       - closed
 
+  push:
+    branches:
+      - i-632/migration-monitor-api-to-orakl-under-monitor
+
 env:
   ecr_url: public.ecr.aws/bisonai/orakl-general
 
