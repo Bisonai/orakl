@@ -2,7 +2,13 @@ import { Injectable } from "@nestjs/common";
 import { ServiceQueueCountInfo } from "./types";
 import { BullsRepository } from "./bulls.repository";
 
-import { Queue, QueueEvents, QueueEventsListener, RedisOptions } from "bullmq";
+import {
+  Queue,
+  QueueEvents,
+  QueueEventsListener,
+  RedisConnection,
+  RedisOptions,
+} from "bullmq";
 import { QUEUE_ACTIVE_STATUS, QUEUE_STATUS, SERVICE } from "src/common/types";
 import { RedisService } from "src/redis/redis.service";
 import { OnApplicationBootstrap } from "@nestjs/common";
@@ -14,11 +20,11 @@ import {
   AggregatorJobFailed,
 } from "./entities/aggregator.job.data.entity";
 import { QueueDto, QueueUpdateDto } from "./entities/queue.entity";
+import { Redis } from "ioredis";
 
 @Injectable()
 export class BullsService implements OnApplicationBootstrap {
   private queueEvents: { [index: string]: QueueEvents } = {};
-  f;
   private availableQueueStatus: QUEUE_STATUS[] = [
     QUEUE_STATUS.COMPLETED,
     QUEUE_STATUS.FAILED,
@@ -48,18 +54,97 @@ export class BullsService implements OnApplicationBootstrap {
   async getQueueCountsByService(serviceName: SERVICE) {
     let countsInfo = [];
     const queues = await this.findQueueList(serviceName);
+    console.log(queues);
     await Promise.all(
       queues.map(async (d) => {
         const data: any = await this.getQueueCountsByQueue(serviceName, d.name);
+        const status = await this.getQueueStatus(serviceName, d.name);
         const queueData: ServiceQueueCountInfo = {
           service: serviceName,
           queue: d.name,
+          status,
           ...data,
         };
         countsInfo.push(queueData);
       })
     );
     return countsInfo;
+  }
+
+  async getQueueStatus(
+    serviceName: SERVICE,
+    queueName: string
+  ): Promise<boolean> {
+    return await this.bullsRepository.findStatusListByServiceAndQueue(
+      serviceName,
+      queueName
+    );
+  }
+
+  async getRedisInfo() {
+    let data = [];
+    data.push(await this.getRedisInfoByService(SERVICE.VRF));
+    data.push(await this.getRedisInfoByService(SERVICE.REQUEST_RESPONSE));
+    data.push(await this.getRedisInfoByService(SERVICE.AGGREGATOR));
+    return data;
+  }
+
+  async getRedisInfoByService(serviceName: SERVICE) {
+    const conn = await this.getRedisOptions(serviceName);
+    const redis = new Redis(conn);
+    const redisInfo = await redis.info();
+    const usedMemoryHuman = parseInt(
+      redisInfo.match(/used_memory_human:(\d+)/)[1],
+      10
+    );
+
+    const versionInfo = redisInfo.match(/redis_version:(\d+\.\d+\.\d+)/);
+    const redisVersion = versionInfo ? versionInfo[1] : "Unknown";
+    const connectedClientsInfo = redisInfo.match(/connected_clients:(\d+)/);
+    const connectedClients = connectedClientsInfo
+      ? parseInt(connectedClientsInfo[1])
+      : 0;
+
+    const blockedClientsInfo = redisInfo.match(/blocked_clients:(\d+)/);
+    const blockedClients = blockedClientsInfo
+      ? parseInt(blockedClientsInfo[1])
+      : 0;
+
+    const fragmentationRatioInfo = redisInfo.match(
+      /mem_fragmentation_ratio:(\d+\.\d+)/
+    );
+    const fragmentationRatio = fragmentationRatioInfo
+      ? parseFloat(fragmentationRatioInfo[1])
+      : 0;
+
+    const commandsProcessedInfo = redisInfo.match(
+      /total_commands_processed:(\d+)/
+    );
+    const commandsProcessed = commandsProcessedInfo
+      ? parseInt(commandsProcessedInfo[1])
+      : 0;
+
+    const expiredKeysInfo = redisInfo.match(/expired_keys:(\d+)/);
+    const expiredKeys = expiredKeysInfo ? parseInt(expiredKeysInfo[1]) : 0;
+
+    const cpuUsageInfo = redisInfo.match(/used_cpu_sys:(\d+\.\d+)/);
+    const cpuUsage = cpuUsageInfo ? parseFloat(cpuUsageInfo[1]) : 0;
+
+    const uptimeInfo = redisInfo.match(/uptime_in_days:(\d+)/);
+    const uptimeInDays = uptimeInfo ? parseInt(uptimeInfo[1]) : 0;
+
+    return {
+      serviceName,
+      usedMemoryHuman,
+      redisVersion,
+      fragmentationRatio,
+      connectedClients,
+      blockedClients,
+      commandsProcessed,
+      expiredKeys,
+      cpuUsage,
+      uptimeInDays,
+    };
   }
 
   async getQueueCountsByQueue(
@@ -135,9 +220,10 @@ export class BullsService implements OnApplicationBootstrap {
     status: QUEUE_ACTIVE_STATUS
   ) {
     if (status == QUEUE_ACTIVE_STATUS.STOP) {
-      console.log("stop trigger:", service);
+      // console.log("stop trigger:", service);
       this.availableQueueStatus.map((status) => {
-        const listeners = this.queueEvents?.[queueName]?.listeners(status) || []
+        const listeners =
+          this.queueEvents?.[queueName]?.listeners(status) || [];
         listeners.map((listener) => {
           this.queueEvents[queueName].off(
             status,
@@ -147,7 +233,7 @@ export class BullsService implements OnApplicationBootstrap {
         this.queueEvents = { ...this.queueEvents, [queueName]: undefined };
       });
     } else {
-      console.log("start trigger:", service);
+      // console.log("start trigger:", service);
       if (!Boolean(this.queueEvents?.[queueName])) {
         this.queueEvents = {
           ...this.queueEvents,
@@ -183,18 +269,16 @@ export class BullsService implements OnApplicationBootstrap {
         id: string
       ) => {
         const data = await queue.getJob(args.jobId);
-        console.log("------------------");
         const totalListener = Object.entries(this.queueEvents)
           .filter(([queueName, queueEvents]) => {
             return queueEvents?.listeners?.length > 0;
           })
           .reduce((acc, [queueName, queueEvents]) => {
-            console.log(
-              `The queue ${queueName} has ${queueEvents?.listeners?.length} listeners.`
-            );
+            // console.log(
+            //   `The queue ${queueName} has ${queueEvents?.listeners?.length} listeners.`
+            // );
             return acc + queueEvents?.listeners?.length;
           }, 0);
-        console.log(`Total listeners: ${totalListener}`);
         if (service == SERVICE.AGGREGATOR) {
           const dataSet: AggregatorJobCompleted = {
             service: service,
@@ -262,18 +346,17 @@ export class BullsService implements OnApplicationBootstrap {
       id: string
     ) => {
       const data = await queue.getJob(args.jobId);
-      console.log("------------------");
       const totalListener = Object.entries(this.queueEvents)
         .filter(([queueName, queueEvents]) => {
           return queueEvents.listeners.length > 0;
         })
         .reduce((acc, [queueName, queueEvents]) => {
-          console.log(
-            `The queue ${queueName} has ${queueEvents.listeners.length} listeners.`
-          );
+          // console.log(
+          //   `The queue ${queueName} has ${queueEvents.listeners.length} listeners.`
+          // );
           return acc + queueEvents.listeners.length;
         }, 0);
-      console.log(`Total listeners: ${totalListener}`);
+      // console.log(`Total listeners: ${totalListener}`);
       if (service == SERVICE.AGGREGATOR) {
         const dataSet: AggregatorJobFailed = {
           error: data?.stacktrace,
@@ -350,7 +433,7 @@ export class BullsService implements OnApplicationBootstrap {
   }
 
   async onTriggerJobCompleted(service: SERVICE) {
-    console.log("completed job triggered:", service);
+    // console.log("completed job triggered:", service);
     const connection = await this.getRedisOptions(service);
     const queues = await this.bullsRepository.findQueueListByService(
       service,

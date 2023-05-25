@@ -23,6 +23,12 @@ export class BullsController {
     return await this.bullsService.getQueueCounts();
   }
 
+  @Get("/info")
+  @ApiOperation({ operationId: "getInfo" })
+  async getRedisInfo() {
+    return await this.bullsService.getRedisInfo();
+  }
+
   @Get("/:service_name")
   @ApiOperation({ operationId: "getQueueCounts" })
   async getCountsByService(@Param("service_name") serviceName: SERVICE) {
@@ -73,7 +79,7 @@ export class BullsController {
       queueName,
       active_status
     );
-  } 
+  }
   @Post("/register/:service_name/:queue_name")
   @ApiOperation({ operationId: "registerQueue" })
   @HttpCode(HttpStatus.OK)

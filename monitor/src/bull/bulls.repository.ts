@@ -58,8 +58,11 @@ export class BullsRepository implements OnModuleInit, OnModuleDestroy {
     );
     return result.rows;
   }
-    
-  async findQueueListByService(service: SERVICE, status: boolean): Promise<QueueDto[]> {
+
+  async findQueueListByService(
+    service: SERVICE,
+    status: boolean
+  ): Promise<QueueDto[]> {
     const query = `
         SELECT *
         FROM queue Where service = $1 and status = $2
@@ -69,6 +72,18 @@ export class BullsRepository implements OnModuleInit, OnModuleDestroy {
       [service, status]
     );
     return result.rows;
+  }
+
+  async findStatusListByServiceAndQueue(
+    service: SERVICE,
+    queueName: string
+  ): Promise<boolean> {
+    const query = `
+        SELECT status
+        FROM queue Where service = $1 and name = $2
+        `;
+    const result = await this.monitorClient.query(query, [service, queueName]);
+    return result.rows[0].status;
   }
 
   async findOne(idx: number): Promise<QueueDto> {
@@ -171,7 +186,11 @@ export class BullsRepository implements OnModuleInit, OnModuleDestroy {
   }
 
   async createJobLog(
-    jobData: JobCompleted | JobFailed | AggregatorJobCompleted | AggregatorJobFailed,
+    jobData:
+      | JobCompleted
+      | JobFailed
+      | AggregatorJobCompleted
+      | AggregatorJobFailed,
     service: SERVICE,
     status: QUEUE_STATUS
   ): Promise<void> {
@@ -190,12 +209,12 @@ export class BullsRepository implements OnModuleInit, OnModuleDestroy {
     } else if (status == QUEUE_STATUS.FAILED) {
       tablePostfix = "failed";
     }
-    console.log("service:", service);
-    console.log("status:", status);
+    // console.log("service:", service);
+    // console.log("status:", status);
     const tableName = "redis_" + tableMid + "_" + tablePostfix;
-    console.log("table name:", tableName);
-    console.log("queue name:", name);
-      
+    // console.log("table name:", tableName);
+    // console.log("queue name:", name);
+
     if (status == QUEUE_STATUS.COMPLETED) {
       if (service == SERVICE.AGGREGATOR) {
         await this.monitorClient.query(
