@@ -34,7 +34,7 @@ const DetailTable = ({
   status: string;
 }) => {
   const [selectedTab, setSelectedTab] = useState("Data");
-  const [page, setPage] = useState(1);
+  const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = React.useState(10);
   const { addToast } = useToastContext();
   const handleButtonClick = (text: any) => {
@@ -91,7 +91,7 @@ const DetailTable = ({
     page * rowsPerPage,
     page * rowsPerPage + rowsPerPage
   );
-
+  console.log("statusQuery", statusQuery);
   console.log("dataToDisplay", dataToDisplay, statusQuery);
   console.log("refreshing", statusQuery.isFetching);
   useEffect(() => {
@@ -100,7 +100,7 @@ const DetailTable = ({
 
   return (
     <>
-      {dataToDisplay?.length > 1 && (
+      {statusQuery?.data?.length >= 1 && (
         <DetailTableHeaderBase>
           <TablePagination
             component="div"
@@ -134,7 +134,7 @@ const DetailTable = ({
       )}
       {statusQuery.isLoading ? (
         <IsLoadingBase>Loading... Please wait a moment</IsLoadingBase>
-      ) : dataToDisplay && dataToDisplay.length > 0 ? (
+      ) : statusQuery?.data && statusQuery?.data?.length >= 1 ? (
         dataToDisplay.map((item: any, index: number) => (
           <div style={{ width: "100%" }} key={index}>
             <DetailTableContainer>
