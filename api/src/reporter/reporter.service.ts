@@ -4,7 +4,7 @@ import { PrismaService } from '../prisma.service'
 import { CreateReporterDto } from './dto/create-reporter.dto'
 import { UpdateReporterDto } from './dto/update-reporter.dto'
 import { getChain, getService } from '../common/utils'
-import { flattenReporter } from './reporter.utils'
+import { decryptText, encryptText, flattenReporter } from './reporter.utils'
 
 @Injectable()
 export class ReporterService {
@@ -28,7 +28,7 @@ export class ReporterService {
     // reporter
     const data: Prisma.ReporterUncheckedCreateInput = {
       address: createReporterDto.address,
-      privateKey: createReporterDto.privateKey,
+      privateKey: await encryptText(createReporterDto.privateKey),
       oracleAddress: createReporterDto.oracleAddress,
       chainId: chain.id,
       serviceId: service.id
@@ -61,9 +61,11 @@ export class ReporterService {
       }
     })
 
-    return reporters.map((L) => {
-      return flattenReporter(L)
-    })
+    return await Promise.all(
+      reporters.map(async (L) => {
+        return await flattenReporter(L)
+      })
+    )
   }
 
   async findOne(reporterWhereUniqueInput: Prisma.ReporterWhereUniqueInput) {
@@ -79,7 +81,7 @@ export class ReporterService {
       }
     })
 
-    return flattenReporter(reporter)
+    return await flattenReporter(reporter)
   }
 
   async update(params: {
@@ -97,5 +99,11 @@ export class ReporterService {
     return await this.prisma.reporter.delete({
       where
     })
+  }
+  async encrypt(text: string) {
+    return await encryptText(text)
+  }
+  async decrypt(text: string) {
+    return await decryptText(text)
   }
 }

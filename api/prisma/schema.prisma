@@ -124,7 +124,7 @@ model Aggregate {
 model Reporter {
   id            BigInt  @id @default(autoincrement()) @map("reporter_id")
   address       String  @db.VarChar(42)
-  privateKey    String  @db.VarChar(66)
+  privateKey    String  @db.VarChar(164)
   oracleAddress String  @db.VarChar(42)
   chain         Chain   @relation(fields: [chainId], references: [id])
   chainId       BigInt  @map("chain_id")
