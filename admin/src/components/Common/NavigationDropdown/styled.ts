@@ -4,6 +4,7 @@ export const NavDropdownContainer = styled.div`
   display: flex;
   flex-direction: column;
   height: 100%;
+
   width: 200px;
   font-size: 16px;
   background: #222831;
@@ -14,6 +15,7 @@ export const AccordionContainer = styled.div`
   display: flex;
   flex-direction: column;
   height: 100%;
+  min-width: 180px;
 `;
 
 export const AccordionItem = styled.div`

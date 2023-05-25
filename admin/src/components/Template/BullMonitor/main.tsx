@@ -34,12 +34,17 @@ export default function BullMonitorTemplate() {
 
   return (
     <>
-      <VrfTable serviceData={vrfData} serviceId={"vrf"} />
-      <RequestResponseTable
-        serviceData={requestResponseData}
-        serviceId={"request-response"}
-      />
-      <AggregatorTable serviceData={aggregatorData} serviceId={"aggregator"} />
+      <div style={{ maxWidth: "1400px" }}>
+        <VrfTable serviceData={vrfData} serviceId={"vrf"} />
+        <RequestResponseTable
+          serviceData={requestResponseData}
+          serviceId={"request-response"}
+        />
+        <AggregatorTable
+          serviceData={aggregatorData}
+          serviceId={"aggregator"}
+        />
+      </div>
     </>
   );
 }

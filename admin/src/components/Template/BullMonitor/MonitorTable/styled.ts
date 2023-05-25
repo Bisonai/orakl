@@ -9,18 +9,14 @@ export const TableContainer = styled.div`
 `;
 
 export const TableHeaderContainer = styled.div`
-  display: grid;
-  grid-template-columns: repeat(8, 1fr);
-  gap: 10px;
+  display: flex;
   font-weight: 400;
   padding: 15px 10px;
   border-bottom: 1px solid #00adb5;
 `;
 
 export const TableDataContainer = styled.div`
-  display: grid;
-  grid-template-columns: repeat(8, 1fr);
-  gap: 5px;
+  display: flex;
   font-weight: 500;
   padding: 10px;
   border-bottom: 1px solid #00adb5;
@@ -31,10 +27,14 @@ export const TableDataContainer = styled.div`
 `;
 
 export const QueueNameBase = styled.div`
-  min-width: 300px;
+  width: 350px;
   text-align: left;
   color: white;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+`;
+
+export const HeaderItem = styled.div`
+  width: 120px;
 `;
