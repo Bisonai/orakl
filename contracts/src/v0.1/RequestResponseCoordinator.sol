@@ -239,7 +239,7 @@ contract RequestResponseCoordinator is
         RequestCommitment memory rc
     ) external nonReentrant {
         uint256 startGas = gasleft();
-        validateDataResponse(rc, requestId);
+        validateDataResponse(rc, requestId, keccak256(abi.encodePacked("uint128")));
 
         uint128[] storage arrRes = sRequestToSubmissionUint128[requestId];
         arrRes.push(response);
@@ -275,7 +275,7 @@ contract RequestResponseCoordinator is
         RequestCommitment memory rc
     ) external nonReentrant {
         uint256 startGas = gasleft();
-        validateDataResponse(rc, requestId);
+        validateDataResponse(rc, requestId, keccak256(abi.encodePacked("int256")));
 
         sSubmission[requestId].submitted[msg.sender] = true;
         int256[] storage arrRes = sRequestToSubmissionInt256[requestId];
@@ -310,7 +310,7 @@ contract RequestResponseCoordinator is
         RequestCommitment memory rc
     ) external nonReentrant {
         uint256 startGas = gasleft();
-        validateDataResponse(rc, requestId);
+        validateDataResponse(rc, requestId, keccak256(abi.encodePacked("bool")));
 
         sSubmission[requestId].submitted[msg.sender] = true;
         bool[] storage arrRes = sRequestToSubmissionBool[requestId];
@@ -344,7 +344,7 @@ contract RequestResponseCoordinator is
         RequestCommitment memory rc
     ) external nonReentrant {
         uint256 startGas = gasleft();
-        validateDataResponse(rc, requestId);
+        validateDataResponse(rc, requestId, keccak256(abi.encodePacked("string")));
 
         sSubmission[requestId].submitted[msg.sender] = true;
         address[] storage oracles = sSubmission[requestId].oracles;
@@ -368,7 +368,7 @@ contract RequestResponseCoordinator is
         RequestCommitment memory rc
     ) external nonReentrant {
         uint256 startGas = gasleft();
-        validateDataResponse(rc, requestId);
+        validateDataResponse(rc, requestId, keccak256(abi.encodePacked("bytes32")));
 
         sSubmission[requestId].submitted[msg.sender] = true;
         address[] storage oracles = sSubmission[requestId].oracles;
@@ -392,7 +392,7 @@ contract RequestResponseCoordinator is
         RequestCommitment memory rc
     ) external nonReentrant {
         uint256 startGas = gasleft();
-        validateDataResponse(rc, requestId);
+        validateDataResponse(rc, requestId, keccak256(abi.encodePacked("bytes")));
 
         sSubmission[requestId].submitted[msg.sender] = true;
         address[] storage oracles = sSubmission[requestId].oracles;
@@ -523,7 +523,11 @@ contract RequestResponseCoordinator is
         return requestId;
     }
 
-    function validateDataResponse(RequestCommitment memory rc, uint256 requestId) private view {
+    function validateDataResponse(
+        RequestCommitment memory rc,
+        uint256 requestId,
+        bytes32 jobId
+    ) private view {
         if (!sIsOracleRegistered[msg.sender]) {
             revert UnregisteredOracleFulfillment(msg.sender);
         }
@@ -547,7 +551,7 @@ contract RequestResponseCoordinator is
                 rc.callbackGasLimit,
                 rc.sender,
                 rc.isDirectPayment,
-                rc.jobId
+                jobId
             )
         ) {
             revert IncorrectCommitment();
