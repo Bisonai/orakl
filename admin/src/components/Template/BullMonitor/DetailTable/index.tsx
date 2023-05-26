@@ -34,7 +34,7 @@ const DetailTable = ({
   status: string;
 }) => {
   const [selectedTab, setSelectedTab] = useState("Data");
-  const [page, setPage] = useState(1);
+  const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = React.useState(10);
   const { addToast } = useToastContext();
   const handleButtonClick = (text: any) => {
@@ -65,7 +65,7 @@ const DetailTable = ({
     refetchOnWindowFocus: false,
     select: (statusData) => statusData.data,
   });
-  console.log(selectedTab, "selectedTab");
+
   const handleRefresh = () => {
     statusQuery.refetch();
     addToast({
@@ -92,15 +92,9 @@ const DetailTable = ({
     page * rowsPerPage + rowsPerPage
   );
 
-  console.log("dataToDisplay", dataToDisplay, statusQuery);
-  console.log("refreshing", statusQuery.isFetching);
-  useEffect(() => {
-    console.log(`Is fetching: ${statusQuery.isFetching}`);
-  }, [statusQuery.isFetching]);
-
   return (
     <>
-      {dataToDisplay?.length > 1 && (
+      {statusQuery?.data?.length >= 1 && (
         <DetailTableHeaderBase>
           <TablePagination
             component="div"
@@ -134,7 +128,7 @@ const DetailTable = ({
       )}
       {statusQuery.isLoading ? (
         <IsLoadingBase>Loading... Please wait a moment</IsLoadingBase>
-      ) : dataToDisplay && dataToDisplay.length > 0 ? (
+      ) : statusQuery?.data && statusQuery?.data?.length >= 1 ? (
         dataToDisplay.map((item: any, index: number) => (
           <div style={{ width: "100%" }} key={index}>
             <DetailTableContainer>
@@ -194,13 +188,11 @@ const DetailTable = ({
                     </CodeSnippetBase>
                   )}
 
-                  {selectedTab === "Logs" &&
-                    item.stacktrace &&
-                    item.stacktrace.map((log: string, index: number) => (
-                      <CodeSnippetBase key={index}>
-                        <pre>{JSON.stringify(log, null, 2)}</pre>
-                      </CodeSnippetBase>
-                    ))}
+                  {selectedTab === "Logs" && item.stacktrace && (
+                    <CodeSnippetBase>
+                      <pre>{item.stacktrace.join("\n")}</pre>
+                    </CodeSnippetBase>
+                  )}
                 </DetailRightBase>
               </DetailTableBase>
             </DetailTableContainer>

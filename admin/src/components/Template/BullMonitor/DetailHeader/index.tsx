@@ -19,7 +19,7 @@ const DetailHeader = ({
     const activetab = url.searchParams.get("activetab");
 
     if (!activetab) {
-      url.searchParams.set("activetab", "Active");
+      url.searchParams.set("activetab", "active");
       window.history.replaceState({}, "", url.toString());
     }
     if (queue) {

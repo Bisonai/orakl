@@ -2,9 +2,15 @@ import { useState } from "react";
 import MonitorTable from "../MonitorTable";
 import TableHeader from "../TableHeader";
 import { useToastContext } from "@/hook/useToastContext";
-import { ToastType } from "@/utils/types";
+import { IQueueInfoData, ToastType } from "@/utils/types";
 
-const AggregatorTable = ({ serviceId }: { serviceId: string }): JSX.Element => {
+const AggregatorTable = ({
+  serviceId,
+  serviceData,
+}: {
+  serviceId: string;
+  serviceData: IQueueInfoData;
+}): JSX.Element => {
   const [refreshKey, setRefreshKey] = useState(0);
   const { addToast } = useToastContext();
   const handleRefresh = () => {
@@ -18,15 +24,7 @@ const AggregatorTable = ({ serviceId }: { serviceId: string }): JSX.Element => {
 
   return (
     <>
-      <TableHeader
-        version={""}
-        memoryUsage={""}
-        fragmentationRatio={""}
-        connectedClients={""}
-        blockedClients={""}
-        buttonText="Aggregator"
-        onRefresh={handleRefresh}
-      />
+      <TableHeader serviceData={serviceData} onRefresh={handleRefresh} />
       <MonitorTable serviceId={serviceId} key={refreshKey} />
     </>
   );

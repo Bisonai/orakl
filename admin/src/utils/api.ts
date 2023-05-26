@@ -8,6 +8,7 @@ const isDevelopment = process.env.NODE_ENV === "development";
 
 export const api = {
   queues: () => `${process.env.NEXT_PUBLIC_API_BASE_URL}/queues`,
+  queuesInfo: () => `${process.env.NEXT_PUBLIC_API_BASE_URL}/queues/info`,
   service: (serviceName: string) =>
     `${process.env.NEXT_PUBLIC_API_BASE_URL}/queues/${serviceName}`,
   queueName: ({
@@ -29,7 +30,7 @@ export const api = {
   }) =>
     `${process.env.NEXT_PUBLIC_API_BASE_URL}/queues/${serviceName}/${queueName}/${status}`,
 };
-console.log("aaa", `${process.env.NEXT_PUBLIC_API_BASE_URL}/queues}/queues}`);
+
 export type IApi = typeof api;
 
 export type IApiBase = {
@@ -37,12 +38,14 @@ export type IApiBase = {
 };
 export interface IApiParam {
   queues: { GET: any };
+  queuesInfo: { GET: any };
   service: { GET: any };
   queueName: { GET: any };
   queueStatus: { GET: any };
 }
 export interface IApiData {
   queues: { GET: any };
+  queuesInfo: { GET: any };
   service: { GET: any };
   queueName: { GET: any };
   queueStatus: { GET: any };

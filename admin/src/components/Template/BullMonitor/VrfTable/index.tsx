@@ -2,9 +2,15 @@ import { useState } from "react";
 import MonitorTable from "../MonitorTable";
 import TableHeader from "../TableHeader";
 import { useToastContext } from "@/hook/useToastContext";
-import { ToastType } from "@/utils/types";
+import { IQueueInfoData, ToastType } from "@/utils/types";
 
-const VrfTable = ({ serviceId }: { serviceId: string }) => {
+const VrfTable = ({
+  serviceData,
+  serviceId,
+}: {
+  serviceData: IQueueInfoData;
+  serviceId: string;
+}) => {
   const [refreshKey, setRefreshKey] = useState(0);
   const { addToast } = useToastContext();
   const handleRefresh = () => {
@@ -18,15 +24,7 @@ const VrfTable = ({ serviceId }: { serviceId: string }) => {
 
   return (
     <>
-      <TableHeader
-        version={""}
-        memoryUsage={""}
-        fragmentationRatio={""}
-        connectedClients={""}
-        blockedClients={""}
-        buttonText="VRF"
-        onRefresh={handleRefresh}
-      />
+      <TableHeader serviceData={serviceData} onRefresh={handleRefresh} />
       <MonitorTable serviceId={serviceId} key={refreshKey} />
     </>
   );
