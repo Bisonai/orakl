@@ -64,6 +64,7 @@ contract RequestResponseCoordinator is
     error InvalidJobId();
     error InvalidNumSubmission();
     error OracleAlreadySubmitted();
+    error IncompatibleJobId();
 
     event OracleRegistered(address oracle);
     event OracleDeregistered(address oracle);
@@ -239,6 +240,9 @@ contract RequestResponseCoordinator is
         RequestCommitment memory rc
     ) external nonReentrant {
         uint256 startGas = gasleft();
+        if (rc.jobId != keccak256(abi.encodePacked("uint128"))) {
+            revert IncompatibleJobId();
+        }
         validateDataResponse(rc, requestId);
 
         uint128[] storage arrRes = sRequestToSubmissionUint128[requestId];
@@ -275,6 +279,9 @@ contract RequestResponseCoordinator is
         RequestCommitment memory rc
     ) external nonReentrant {
         uint256 startGas = gasleft();
+        if (rc.jobId != keccak256(abi.encodePacked("int256"))) {
+            revert IncompatibleJobId();
+        }
         validateDataResponse(rc, requestId);
 
         sSubmission[requestId].submitted[msg.sender] = true;
@@ -310,6 +317,9 @@ contract RequestResponseCoordinator is
         RequestCommitment memory rc
     ) external nonReentrant {
         uint256 startGas = gasleft();
+        if (rc.jobId != keccak256(abi.encodePacked("bool"))) {
+            revert IncompatibleJobId();
+        }
         validateDataResponse(rc, requestId);
 
         sSubmission[requestId].submitted[msg.sender] = true;
@@ -344,6 +354,9 @@ contract RequestResponseCoordinator is
         RequestCommitment memory rc
     ) external nonReentrant {
         uint256 startGas = gasleft();
+        if (rc.jobId != keccak256(abi.encodePacked("string"))) {
+            revert IncompatibleJobId();
+        }
         validateDataResponse(rc, requestId);
 
         sSubmission[requestId].submitted[msg.sender] = true;
@@ -368,6 +381,9 @@ contract RequestResponseCoordinator is
         RequestCommitment memory rc
     ) external nonReentrant {
         uint256 startGas = gasleft();
+        if (rc.jobId != keccak256(abi.encodePacked("bytes32"))) {
+            revert IncompatibleJobId();
+        }
         validateDataResponse(rc, requestId);
 
         sSubmission[requestId].submitted[msg.sender] = true;
@@ -392,6 +408,9 @@ contract RequestResponseCoordinator is
         RequestCommitment memory rc
     ) external nonReentrant {
         uint256 startGas = gasleft();
+        if (rc.jobId != keccak256(abi.encodePacked("bytes"))) {
+            revert IncompatibleJobId();
+        }
         validateDataResponse(rc, requestId);
 
         sSubmission[requestId].submitted[msg.sender] = true;

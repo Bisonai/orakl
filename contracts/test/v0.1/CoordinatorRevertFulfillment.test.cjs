@@ -199,13 +199,13 @@ describe('Revert Fulfillment Test', function () {
     const txFulfill = await (
       await rrCoordinator.contract
         .connect(rrOracleSigner)
-        .fulfillDataRequestInt256(requestId, 123, requestCommitment)
+        .fulfillDataRequestUint128(requestId, 123, requestCommitment)
     ).wait()
 
     const { payment, success } = parseDataRequestFulfilledTx(
       rrCoordinator.contract,
       txFulfill,
-      'DataRequestFulfilledInt256'
+      'DataRequestFulfilledUint128'
     )
     expect(payment).to.be.above(0)
     expect(success).to.be.equal(false)
