@@ -1,7 +1,7 @@
 import axios from 'axios'
 import { HttpStatus, HttpException, Logger } from '@nestjs/common'
 import { buildUrl } from './job.utils'
-import { IRawData, IData, IAggregator } from './job.types'
+import { IRawData, IData, IAggregator, IAggregate } from './job.types'
 
 export async function loadAggregator({
   aggregatorHash,
@@ -80,4 +80,19 @@ export async function activateAggregator(aggregatorHash: string, chain: string) 
 
 export async function deactivateAggregator(aggregatorHash: string, chain: string) {
   return await updateAggregator(aggregatorHash, chain, false)
+}
+
+export async function fetchDataFeed({
+  aggregatorHash,
+  logger
+}: {
+  aggregatorHash: string
+  logger: Logger
+}): Promise<IAggregate> {
+  try {
+    const url = buildUrl(process.env.ORAKL_NETWORK_API_URL, `aggregate/${aggregatorHash}/latest`)
+    return (await axios.get(url))?.data
+  } catch (e) {
+    logger.error(e)
+  }
 }

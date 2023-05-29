@@ -29,12 +29,14 @@ import {
   WORKER_CHECK_HEARTBEAT_QUEUE_NAME,
   CHECK_HEARTBEAT_QUEUE_SETTINGS,
   MAX_DATA_STALENESS,
-  DATA_FEED_FULFILL_GAS_MINIMUM
+  DATA_FEED_FULFILL_GAS_MINIMUM,
+  WORKER_DEVIATION_QUEUE_NAME
 } from '../settings'
 import { buildSubmissionRoundJobId, buildHeartbeatJobId } from '../utils'
 import { oracleRoundStateCall, buildTransaction, isStale } from './data-feed.utils'
 import { watchman } from './watchman'
 import { getOperatorAddress } from '../api'
+import { IDeviationData } from './types'
 
 const FILE_NAME = import.meta.url
 
@@ -125,6 +127,16 @@ export async function worker(redisClient: RedisClientType, _logger: Logger) {
   })
   checkHeartbeatQueue.add('livecheck', {}, CHECK_HEARTBEAT_QUEUE_SETTINGS)
 
+  //[deviation] worker
+  const deviationWorker = new Worker(
+    WORKER_DEVIATION_QUEUE_NAME,
+    deviationJob(reporterQueue, _logger),
+    BULLMQ_CONNECTION
+  )
+  deviationWorker.on('error', (e) => {
+    logger.error(e, 'deviation error')
+  })
+
   const watchmanServer = await watchman({ state, logger })
 
   async function handleExit() {
@@ -136,6 +148,7 @@ export async function worker(redisClient: RedisClientType, _logger: Logger) {
     await submitHeartbeatWorker.close()
     await checkHeartbeatWorker.close()
     await watchmanServer.close()
+    await deviationWorker.close()
   }
   process.on('SIGINT', handleExit)
   process.on('SIGTERM', handleExit)
@@ -469,4 +482,75 @@ async function removeAggregatorDeadlock(aggregatorQueue: Queue, jobId: string, l
       `Found ${blockingJob.length} blocking jobs. Expected 1 at most.`
     )
   }
+}
+
+/**
+ * [deviation] worker receives [fetcher] job
+ *
+ * Worker accepts job, parses the request and communicated with Aggregator smart contract to find
+ * out the which round ID, it can submit the latest value. Then, it
+ * create a new job and passes it to reporter worker.
+ *
+ * @param {QueueType} submit heartbeat queue
+ * @param {QueueType} reporter queue
+ * @param {Logger} pino logger
+ * @return {} [deviation] job processor
+ */
+export function deviationJob(reporterQueue: QueueType, _logger: Logger) {
+  const logger = _logger.child({ name: 'deviationJob' })
+  const iface = new ethers.utils.Interface(Aggregator__factory.abi)
+
+  async function wrapper(job: Job) {
+    const inData: IDeviationData = job.data
+    logger.debug(inData, 'inData')
+    const { timestamp, submission, oracleAddress } = inData
+    const operatorAddress = await getOperatorAddress({ oracleAddress, logger })
+    const oracleRoundState = await oracleRoundStateCall({
+      oracleAddress,
+      operatorAddress,
+      logger
+    })
+    logger.debug(oracleRoundState, 'oracleRoundState')
+
+    const { roundId } = oracleRoundState
+    try {
+      const { aggregatorHash } = await getAggregatorGivenAddress({
+        oracleAddress,
+        logger
+      })
+      logger.debug({ aggregatorHash, fetchedAt: timestamp, submission }, 'Latest data aggregate')
+      if (isStale({ timestamp, logger })) {
+        logger.warn(`Data became stale (> ${MAX_DATA_STALENESS}). Not reporting.`)
+      } else {
+        const tx = buildTransaction({
+          payloadParameters: {
+            roundId,
+            submission
+          },
+          to: oracleAddress,
+          gasMinimum: DATA_FEED_FULFILL_GAS_MINIMUM,
+          iface,
+          logger
+        })
+        logger.debug(tx, 'tx')
+
+        await reporterQueue.add('deviation', tx, {
+          jobId: buildSubmissionRoundJobId({
+            oracleAddress,
+            roundId,
+            deploymentName: DEPLOYMENT_NAME
+          }),
+          removeOnComplete: REMOVE_ON_COMPLETE,
+          removeOnFail: true
+        })
+
+        return tx
+      }
+    } catch (e) {
+      logger.error(e)
+      throw e
+    }
+  }
+
+  return wrapper
 }
