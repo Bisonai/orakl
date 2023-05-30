@@ -1,6 +1,6 @@
 generator client {
-  provider = "prisma-client-js"
-  engineType = "binary"  
+  provider   = "prisma-client-js"
+  engineType = "binary"
 }
 
 datasource db {
@@ -22,7 +22,7 @@ model Reporter {
   address        String        @unique @db.VarChar(42)
   organization   Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   organizationId BigInt        @map("organization_id")
-  contract       Contract[]    @relation()
+  contract       Contract[]
   transaction    Transaction[]
 
   @@map("reporters")
@@ -33,7 +33,7 @@ model Contract {
   address     String        @unique @db.VarChar(42)
   function    Function[]
   transaction Transaction[]
-  reporter    Reporter[]    @relation()
+  reporter    Reporter[]
 
   @@map("contracts")
 }

@@ -47,7 +47,7 @@ MIT
 Insert New Organization
 
 ```shell
- yarn cli delegator organizationInsert --name BisonAI
+yarn cli delegator organizationInsert --name bisonai
 ```
 
 List Organizations

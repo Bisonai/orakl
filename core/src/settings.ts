@@ -4,6 +4,8 @@ dotenv.config()
 
 export const ORAKL_NETWORK_API_URL =
   process.env.ORAKL_NETWORK_API_URL || 'http://localhost:3000/api/v1'
+export const ORAKL_NETWORK_DELEGATOR_URL =
+  process.env.ORAKL_NETWORK_DELEGATOR_URL || 'http://localhost:3002/api/v1'
 
 export const DEPLOYMENT_NAME = process.env.DEPLOYMENT_NAME || 'orakl'
 export const NODE_ENV = process.env.NODE_ENV

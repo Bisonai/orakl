@@ -1,11 +1,27 @@
+import axios from 'axios'
 import { ethers } from 'ethers'
 import { Logger } from 'pino'
-import { OraklError, OraklErrorCode } from '../errors'
-import { PROVIDER_URL as PROVIDER_ENV, PRIVATE_KEY as PRIVATE_KEY_ENV } from '../settings'
-import { add0x } from '../utils'
 import { NonceManager } from '@ethersproject/experimental'
+import Caver from 'caver-js'
+import { OraklError, OraklErrorCode } from '../errors'
+import { ORAKL_NETWORK_DELEGATOR_URL } from '../settings'
+import { add0x, buildUrl } from '../utils'
+import { ITransactionData } from '../types'
 
 const FILE_NAME = import.meta.url
+
+export class CaverWallet {
+  caver: Caver
+  address: string
+
+  constructor(privateKey: string, providerUrl: string) {
+    this.caver = new Caver(providerUrl)
+    const keyring = this.caver.wallet.keyring.createFromPrivateKey(privateKey)
+    this.caver.wallet.add(keyring)
+    this.address = keyring.address
+    // FIXME utilize nonce manager
+  }
+}
 
 export function buildWallet({
   privateKey,
@@ -20,6 +36,17 @@ export function buildWallet({
   return wallet
 }
 
+export function buildCaverWallet({
+  privateKey,
+  providerUrl
+}: {
+  privateKey: string
+  providerUrl: string
+}) {
+  const caverWallet = new CaverWallet(privateKey, providerUrl)
+  return caverWallet
+}
+
 export async function testConnection(wallet: ethers.Wallet) {
   try {
     await wallet.getTransactionCount()
@@ -30,18 +57,6 @@ export async function testConnection(wallet: ethers.Wallet) {
       throw e
     }
   }
-}
-
-export function loadWalletParameters() {
-  if (!PRIVATE_KEY_ENV) {
-    throw new OraklError(OraklErrorCode.MissingMnemonic)
-  }
-
-  if (!PROVIDER_ENV) {
-    throw new OraklError(OraklErrorCode.MissingJsonRpcProvider)
-  }
-
-  return { privateKey: PRIVATE_KEY_ENV, providerUrl: PROVIDER_ENV }
 }
 
 export async function sendTransaction({
@@ -86,41 +101,95 @@ export async function sendTransaction({
   } catch (e) {
     _logger.debug(e, 'e')
 
+    let msg
+    let error
     if (e.reason == 'invalid address') {
-      const msg = `TxInvalidAddress ${e.value}`
-      _logger.error(msg)
-
-      throw new OraklError(OraklErrorCode.TxInvalidAddress, 'TxInvalidAddress', e.value)
+      msg = `TxInvalidAddress ${e.value}`
+      error = new OraklError(OraklErrorCode.TxInvalidAddress, msg, e.value)
     } else if (e.reason == 'processing response error') {
-      const msg = `TxProcessingResponseError ${e.value}`
-      _logger.error(msg)
-
-      throw new OraklError(
-        OraklErrorCode.TxProcessingResponseError,
-        'TxProcessingResponseError',
-        e.value
-      )
+      msg = `TxProcessingResponseError ${e.value}`
+      error = new OraklError(OraklErrorCode.TxProcessingResponseError, msg, e.value)
     } else if (e.reason == 'missing response') {
-      const msg = 'TxMissingResponseError'
-      _logger.error(msg)
-
-      throw new OraklError(OraklErrorCode.TxMissingResponseError, 'TxMissingResponseError')
+      msg = 'TxMissingResponseError'
+      error = new OraklError(OraklErrorCode.TxMissingResponseError, msg)
     } else if (e.reason == 'transaction failed') {
-      const msg = 'TxTransactionFailed'
-      _logger.error(msg)
-
-      throw new OraklError(OraklErrorCode.TxTransactionFailed, 'TxTransactionFailed')
+      msg = 'TxTransactionFailed'
+      error = new OraklError(OraklErrorCode.TxTransactionFailed, msg)
+    } else if (e.reason == 'insufficient funds for intrinsic transaction cost') {
+      msg = 'TxInsufficientFunds'
+      error = new OraklError(OraklErrorCode.TxProcessingResponseError, msg)
     } else if (e.code == 'UNPREDICTABLE_GAS_LIMIT') {
-      const msg = 'TxCannotEstimateGasError'
-      _logger.error(msg)
-
-      throw new OraklError(
-        OraklErrorCode.TxCannotEstimateGasError,
-        'TxCannotEstimateGasError',
-        e.value
-      )
+      msg = 'TxCannotEstimateGasError'
+      error = new OraklError(OraklErrorCode.TxCannotEstimateGasError, msg, e.value)
     } else {
-      throw e
+      error = e
     }
+
+    _logger.error(msg)
+    throw error
+  }
+}
+
+export async function sendTransactionDelegatedFee({
+  wallet,
+  to,
+  payload,
+  gasLimit,
+  value,
+  logger
+}: {
+  wallet: CaverWallet
+  to: string
+  payload?: string
+  gasLimit?: number | string
+  value?: number | string
+  logger: Logger
+}) {
+  const _logger = logger.child({ name: 'sendTransactionDelegatedFee', file: FILE_NAME })
+
+  const tx = wallet.caver.transaction.feeDelegatedSmartContractExecution.create({
+    from: wallet.address,
+    to,
+    input: payload,
+    gas: gasLimit,
+    value: value || '0x00'
+  })
+  await wallet.caver.wallet.sign(wallet.address, tx)
+
+  const transactionData: ITransactionData = {
+    from: tx.from,
+    to: tx.to,
+    input: tx.input,
+    gas: tx.gas,
+    value: tx.value,
+    chainId: tx.chainId,
+    gasPrice: tx.gasPrice,
+    nonce: tx.nonce,
+    v: tx.signatures[0].v,
+    r: tx.signatures[0].r,
+    s: tx.signatures[0].s,
+    rawTx: tx.getRawTransaction()
+  }
+  _logger.debug(transactionData)
+
+  const endpoint = buildUrl(ORAKL_NETWORK_DELEGATOR_URL, `sign`)
+
+  try {
+    const result = (
+      await axios.post(endpoint, {
+        ...transactionData
+      })
+    )?.data
+    if (result?.signedRawTx) {
+      const txReceipt = await wallet.caver.rpc.klay.sendRawTransaction(result.signedRawTx)
+      _logger.debug(txReceipt, 'txReceipt')
+
+      return txReceipt
+    } else {
+      throw new OraklError(OraklErrorCode.MissingSignedRawTx)
+    }
+  } catch (e) {
+    _logger.error(e, 'e')
+    throw e
   }
 }

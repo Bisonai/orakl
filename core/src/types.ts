@@ -330,3 +330,19 @@ export interface MockQueue {
 }
 
 export type QueueType = Queue | MockQueue
+
+// Delegated Fee
+export interface ITransactionData {
+  from: string
+  to: string
+  input: string
+  gas: string
+  value: string
+  chainId: string
+  gasPrice: string
+  nonce: string
+  v: string
+  r: string
+  s: string
+  rawTx: string
+}

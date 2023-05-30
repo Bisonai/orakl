@@ -14,6 +14,7 @@ export async function buildReporter(redisClient: RedisClientType, logger: Logger
     service: DATA_FEED_SERVICE_NAME,
     reporterQueueName: REPORTER_AGGREGATOR_QUEUE_NAME,
     concurrency: 5,
+    delegatedFee: true,
     _logger: logger
   })
 }

@@ -1,6 +1,6 @@
 import { Job } from 'bullmq'
 import { Logger } from 'pino'
-import { sendTransaction } from './utils'
+import { sendTransaction, sendTransactionDelegatedFee } from './utils'
 import { State } from './state'
 import { ITransactionParameters } from '../types'
 import { OraklError, OraklErrorCode } from '../errors'
@@ -22,7 +22,12 @@ export function reporter(state: State, logger: Logger) {
     const NUM_TRANSACTION_TRIALS = 3
     for (let i = 0; i < NUM_TRANSACTION_TRIALS; ++i) {
       try {
-        await sendTransaction({ wallet, to, payload, logger, gasLimit })
+        if (state.delegatedFee) {
+          await sendTransactionDelegatedFee({ wallet, to, payload, logger, gasLimit })
+        } else {
+          await sendTransaction({ wallet, to, payload, logger, gasLimit })
+        }
+
         break
       } catch (e) {
         if (

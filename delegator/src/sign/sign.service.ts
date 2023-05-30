@@ -115,10 +115,7 @@ export class SignService {
         reporter: { some: { address: tx.from } },
         function: { some: { encodedName } }
       },
-      include: {
-        reporter: { where: { address: tx.from } },
-        function: { where: { encodedName } }
-      }
+      include: { function: true, reporter: true }
     })
 
     if (result.length == 1) {
