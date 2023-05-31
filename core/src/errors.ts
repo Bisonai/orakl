@@ -12,6 +12,7 @@ export enum OraklErrorCode {
   AggregatorJobCanTakeMoreBreak,
   FailedToGetAggregate,
   FailedToGetAggregator,
+  FailedToStoreErrorMsg,
   GetListenerRequestFailed,
   GetReporterRequestFailed,
   GetVrfConfigRequestFailed,

@@ -346,3 +346,9 @@ export interface ITransactionData {
   s: string
   rawTx: string
 }
+
+export interface IErrorMsgData {
+  requestId: string
+  timestamp: Date
+  errorMsg: string
+}
