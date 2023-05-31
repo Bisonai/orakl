@@ -5,7 +5,7 @@ export class ErrorDto {
   requestId: string
 
   @ApiProperty()
-  timestamp: string
+  timestamp: string | Date
 
   @ApiProperty()
   errorMsg: string

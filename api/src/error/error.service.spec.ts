@@ -39,7 +39,7 @@ describe('ErrorService', () => {
     "name": "MissingKeyInJson"`
     const errorObj = {
       requestId: '66649924661314489704239946349158829048302840686075232939396730072454733114998',
-      timestamp: '123421841',
+      timestamp: new Date(Date.now()),
       errorMsg: errorMsg
     }
     const errorIns = await service.create(errorObj)
