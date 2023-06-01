@@ -900,5 +900,66 @@ describe('VRF contract', function () {
     }
   })
 
+  it('Withdraw deposited balance from [temporary] account', async function () {
+    const {
+      consumer,
+      coordinator,
+      prepayment,
+      account2: oracle,
+      account3: unregisteredOracle
+    } = await loadFixture(deploy)
+
+    const { maxGasLimit: callbackGasLimit, keyHash } = vrfConfig()
+
+    // Prepare coordinator
+    await setupOracle(coordinator.contract, oracle.address)
+    await addCoordinator(prepayment.contract, prepayment.signer, coordinator.contract.address)
+
+    // Request random words through temporary account
+    const txRequestRandomWords = await (
+      await consumer.contract.requestRandomWordsDirectPayment(
+        keyHash,
+        callbackGasLimit,
+        SINGLE_WORD,
+        consumer.signer.address,
+        {
+          value: parseKlay('1')
+        }
+      )
+    ).wait()
+
+    {
+      // Prepayment contract holds $KLAY deposited by consumer when
+      // requesting for service.
+      const balance = await getBalance(prepayment.contract.address)
+      expect(balance).to.be.above(0)
+    }
+
+    const { requestId, accId } = validateRandomWordsRequestedEvent(
+      txRequestRandomWords,
+      coordinator.contract,
+      keyHash,
+      0,
+      callbackGasLimit,
+      SINGLE_WORD, // numWords
+      consumer.contract.address, // sender
+      true // isDirectPayment
+    )
+
+    // Cancel request
+    await consumer.contract.cancelRequest(requestId)
+
+    // Withdrawal from temporary account
+    await consumer.contract.withdrawTemporary(accId)
+
+    {
+      // Consumer canceled request and withdrew deposited $KLAY
+      // from temporary account. There is now $KLAY inside of
+      // Prepayment contract.
+      const balance = await getBalance(prepayment.contract.address)
+      expect(balance).to.be.equal(0)
+    }
+  })
+
   // TODO getters
 })
