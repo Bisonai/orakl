@@ -29,6 +29,8 @@ export const api = {
     status: string;
   }) =>
     `${process.env.NEXT_PUBLIC_API_BASE_URL}/queues/${serviceName}/${queueName}/${status}`,
+  getConfigChain: () => `http://localhost:8888/api/v1/chain/`,
+  configChain: (id: string) => `http://localhost:8888/api/v1/chain/${id}`,
 };
 
 export type IApi = typeof api;
@@ -42,6 +44,8 @@ export interface IApiParam {
   service: { GET: any };
   queueName: { GET: any };
   queueStatus: { GET: any };
+  getConfigChain: { GET: any };
+  configChain: { PATCH: any; DELETE: any };
 }
 export interface IApiData {
   queues: { GET: any };
@@ -49,6 +53,8 @@ export interface IApiData {
   service: { GET: any };
   queueName: { GET: any };
   queueStatus: { GET: any };
+  getConfigChain: { GET: any };
+  configChain: { PATCH: any; DELETE: any };
 }
 
 export const fetchInternalApi = async <
