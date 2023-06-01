@@ -137,8 +137,8 @@ export async function getAggregator({
 }
 
 /**
- * Fetch aggregate data from `Orakl Network API` data feed endpoint
- * given aggregator ID.
+ * Store catched RR worker error log to
+ * `Orakl Network API` `error` endpoint
  *
  * @param {data} IErrorMsgData
  * @param {Logger} logger
