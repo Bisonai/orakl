@@ -110,9 +110,10 @@ interface IPrepayment {
     /**
      * @notice Create a temporary account to be used with a single
      * @notice service request.
+     * @param - account owner
      * @return accId - A unique account id
      */
-    function createTemporaryAccount() external returns (uint64);
+    function createTemporaryAccount(address owner) external returns (uint64);
 
     /**
      * @notice Request account owner transfer.
@@ -195,8 +196,9 @@ interface IPrepayment {
      * @dev successful withdrawal. Transaction reverts also on failure to
      * @dev withdraw tokens from account.
      * @param accId - ID of the account
+     * @param to - recipient address
      */
-    function withdrawTemporary(uint64 accId) external;
+    function withdrawTemporary(uint64 accId, address payable to) external;
 
     /**
      * @notice Burn part of fee and charge protocol fee for a service

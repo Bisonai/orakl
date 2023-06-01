@@ -194,7 +194,7 @@ contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
     function isValidAccount(uint64 accId, address consumer) external view returns (bool) {
         Account account = sAccIdToAccount[accId];
         bool isValidRegular = address(account) != address(0) && account.getNonce(consumer) != 0;
-        bool isValidTemporary = sAccIdToTmpAcc[accId].owner == msg.sender;
+        bool isValidTemporary = sAccIdToTmpAcc[accId].owner == consumer;
 
         return isValidRegular || isValidTemporary;
     }
@@ -268,14 +268,14 @@ contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
     /**
      * @inheritdoc IPrepayment
      */
-    function createTemporaryAccount() external returns (uint64) {
+    function createTemporaryAccount(address owner) external returns (uint64) {
         uint64 currentAccId = sCurrentAccId + 1;
         sCurrentAccId = currentAccId;
 
-        sAccIdToTmpAcc[currentAccId] = TemporaryAccount({balance: 0, owner: msg.sender});
+        sAccIdToTmpAcc[currentAccId] = TemporaryAccount({balance: 0, owner: owner});
         sIsTemporaryAccount[currentAccId] = true;
 
-        emit TemporaryAccountCreated(currentAccId, msg.sender);
+        emit TemporaryAccountCreated(currentAccId, owner);
         return currentAccId;
     }
 
@@ -382,7 +382,7 @@ contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
     /**
      * @inheritdoc IPrepayment
      */
-    function withdrawTemporary(uint64 accId) external {
+    function withdrawTemporary(uint64 accId, address payable to) external {
         if (pendingRequestExistsTemporary(accId)) {
             revert PendingRequestExists();
         }
@@ -399,7 +399,7 @@ contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
 
         delete sAccIdToTmpAcc[accId];
 
-        (bool sent, ) = payable(msg.sender).call{value: balance}("");
+        (bool sent, ) = to.call{value: balance}("");
         if (!sent) {
             revert FailedToWithdrawFromTemporaryAccount(accId);
         }

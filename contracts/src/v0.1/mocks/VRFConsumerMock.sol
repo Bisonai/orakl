@@ -3,6 +3,7 @@ pragma solidity ^0.8.16;
 
 import "../VRFConsumerBase.sol";
 import "../interfaces/IVRFCoordinator.sol";
+import "../interfaces/IPrepayment.sol";
 
 contract VRFConsumerMock is VRFConsumerBase {
     uint256 public sRandomWord;
@@ -61,5 +62,10 @@ contract VRFConsumerMock is VRFConsumerBase {
 
     function cancelRequest(uint256 requestId) external onlyOwner {
         COORDINATOR.cancelRequest(requestId);
+    }
+
+    function withdrawTemporary(uint64 accId) external onlyOwner {
+        address prepaymentAddress = COORDINATOR.getPrepaymentAddress();
+        IPrepayment(prepaymentAddress).withdrawTemporary(accId, payable(msg.sender));
     }
 }

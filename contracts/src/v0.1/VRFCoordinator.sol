@@ -193,7 +193,7 @@ contract VRFCoordinator is IVRFCoordinatorBase, CoordinatorBase, ITypeAndVersion
             revert InsufficientPayment(msg.value, fee);
         }
 
-        uint64 accId = sPrepayment.createTemporaryAccount();
+        uint64 accId = sPrepayment.createTemporaryAccount(msg.sender);
         bool isDirectPayment = true;
         uint256 requestId = requestRandomWords(
             keyHash,
