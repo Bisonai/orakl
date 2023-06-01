@@ -26,6 +26,7 @@ import "./interfaces/ITypeAndVersion.sol";
 /// @notice operations related to [temporary] account are implemented
 /// @notice in the Prepayment contract.
 contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
+    uint64 constant TEMPORARY_ACCOUNT_NONCE = 1;
     uint8 public constant MIN_RATIO = 0;
     uint8 public constant MAX_RATIO = 100;
     uint8 private sBurnFeeRatio = 50; // %
@@ -64,14 +65,14 @@ contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
     error MustBeAccountOwner();
     error RatioOutOfBounds();
     error FailedToDeposit();
-    error FailedToWithdraw();
+    error FailedToWithdraw(uint64 accId);
     error CoordinatorExists();
     error InsufficientBalance();
     error BurnFeeFailed();
     error OperatorFeeFailed();
     error ProtocolFeeFailed();
     error TooHighFeeRatio();
-    error FailedToWithdrawFromTemporaryAccount();
+    error FailedToWithdrawFromTemporaryAccount(uint64 accId);
 
     event AccountCreated(uint64 indexed accId, address account, address owner);
     event TemporaryAccountCreated(uint64 indexed accId, address owner);
@@ -356,8 +357,10 @@ contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
      * @inheritdoc IPrepayment
      */
     function depositTemporary(uint64 accId) external payable {
-        sAccIdToTmpAcc[accId].balance += msg.value;
-        emit AccountBalanceIncreased(accId, 0, msg.value);
+        uint256 balance = sAccIdToTmpAcc[accId].balance;
+        uint256 updatedBalance = balance + msg.value;
+        sAccIdToTmpAcc[accId].balance = updatedBalance;
+        emit AccountBalanceIncreased(accId, balance, updatedBalance);
     }
 
     /**
@@ -370,10 +373,38 @@ contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
 
         (bool sent, uint256 balance) = sAccIdToAccount[accId].withdraw(amount);
         if (!sent) {
-            revert FailedToWithdraw();
+            revert FailedToWithdraw(accId);
         }
 
         emit AccountBalanceDecreased(accId, balance + amount, balance);
+    }
+
+    /**
+     * @inheritdoc IPrepayment
+     */
+    function withdrawTemporary(uint64 accId) external {
+        if (pendingRequestExistsTemporary(accId)) {
+            revert PendingRequestExists();
+        }
+
+        TemporaryAccount memory tmpAcc = sAccIdToTmpAcc[accId];
+        if (tmpAcc.owner != msg.sender) {
+            revert MustBeAccountOwner();
+        }
+
+        uint256 balance = tmpAcc.balance;
+        if (balance == 0) {
+            revert InsufficientBalance();
+        }
+
+        delete sAccIdToTmpAcc[accId];
+
+        (bool sent, ) = payable(msg.sender).call{value: balance}("");
+        if (!sent) {
+            revert FailedToWithdrawFromTemporaryAccount(accId);
+        }
+
+        emit AccountBalanceDecreased(accId, balance, 0);
     }
 
     /**
@@ -423,7 +454,7 @@ contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
         uint64 accId
     ) external onlyCoordinator returns (uint256 totalAmount, uint256 operatorAmount) {
         uint256 amount = sAccIdToTmpAcc[accId].balance;
-        sAccIdToTmpAcc[accId].balance = 0;
+        delete sAccIdToTmpAcc[accId];
 
         uint256 burnFee = (amount * sBurnFeeRatio) / 100;
         uint256 protocolFee = (amount * sProtocolFeeRatio) / 100;
@@ -479,7 +510,7 @@ contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
             // [temporary] account can create only a single request
             // per its lifetime, therefore we do not keep track of
             // nonce and always return 1.
-            return 1;
+            return TEMPORARY_ACCOUNT_NONCE;
         }
     }
 
@@ -529,7 +560,6 @@ contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
 
     /**
      * @inheritdoc IPrepayment
-     * @dev Use to reject account cancellation while outstanding request are present.
      */
     function pendingRequestExists(uint64 accId) public view returns (bool) {
         Account account = sAccIdToAccount[accId];
@@ -544,6 +574,21 @@ contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
                 if (sCoordinators[j].pendingRequestExists(consumer, accId, nonce)) {
                     return true;
                 }
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * @inheritdoc IPrepayment
+     */
+    function pendingRequestExistsTemporary(uint64 accId) public view returns (bool) {
+        address consumer = sAccIdToTmpAcc[accId].owner;
+        uint256 coordinatorsLength = sCoordinators.length;
+        for (uint256 j = 0; j < coordinatorsLength; j++) {
+            if (sCoordinators[j].pendingRequestExists(consumer, accId, TEMPORARY_ACCOUNT_NONCE)) {
+                return true;
             }
         }
 

@@ -71,13 +71,28 @@ interface IPrepayment {
     function getNonce(uint64 accId, address consumer) external view returns (uint64);
 
     /*
-     * @notice Check to see if there exists a request commitment consumers
-     * for all consumers and coordinators for a given account.
+     * @notice Check to see if there exists a request commitment
+     * @notice for all consumers and coordinators for a given
+     * @notice [permanent] account.
+     * @dev Use to reject account cancelation while outstanding
+     * @dev request are present.
      * @param accId - ID of the account
      * @return true if there exists at least one unfulfilled request for the account, false
      * otherwise.
      */
     function pendingRequestExists(uint64 accId) external view returns (bool);
+
+    /*
+     * @notice Check to see if there exists a request commitment
+     * @notice for an account owner of [permanent] account across
+     * @notice all coordinators.
+     * @dev Use to reject balance withdrawal while outstanding
+     * @dev request are present.
+     * @param accId - ID of the account
+     * @return true if there exists at least one unfulfilled request for the account, false
+     * otherwise.
+     */
+    function pendingRequestExistsTemporary(uint64 accId) external view returns (bool);
 
     /// STATE-ALTERING FUNCTIONS ////////////////////////////////////////////////
 
@@ -164,14 +179,24 @@ interface IPrepayment {
     /**
      * @notice Withdraw $KLAY from [regular] account.
      * @dev Account owner can withdraw $KLAY only when there are no
-     * @dev pending requests on any of associated consumers. If one
-     * @dev tries to withdraw $KLAY from [temporary] account,
-     * @dev transaction will revert. Transaction reverts also on
-     * @dev failure to withdraw tokens from account.
+     * @dev pending requests on any of associated consumers. If one tries
+     * @dev to use it to withdraw $KLAY from [temporary] account,
+     * @dev transaction will revert. Transaction reverts also on failure to
+     * @dev withdraw tokens from account.
      * @param accId - ID of the account
      * @param amount - $KLAY amount to be withdrawn
      */
     function withdraw(uint64 accId, uint256 amount) external;
+
+    /**
+     * @notice Withdraw $KLAY from [temporary] account.
+     * @dev Account owner can withdraw $KLAY only when there are no
+     * @dev pending requests. Temporary account will be deleted upon
+     * @dev successful withdrawal. Transaction reverts also on failure to
+     * @dev withdraw tokens from account.
+     * @param accId - ID of the account
+     */
+    function withdrawTemporary(uint64 accId) external;
 
     /**
      * @notice Burn part of fee and charge protocol fee for a service
@@ -198,6 +223,7 @@ interface IPrepayment {
     /**
      * @notice Burn part of fee and charge protocol fee for a service
      * connected to [temporary] account.
+     * @dev Temporary account is deleted because we do not expect to use it again.
      * @param accId - ID of the account
      */
     function chargeFeeTemporary(
