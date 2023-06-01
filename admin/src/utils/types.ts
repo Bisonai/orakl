@@ -108,3 +108,35 @@ export interface IToastContextProps {
   updateToast: (toast: IToast) => void;
   clearToast: () => void;
 }
+
+/** Configuration */
+
+export interface IConfigurationProps {
+  chain: string;
+  service: string;
+  listener: string;
+  vrfKeys: string;
+  adapter: string;
+  aggregator: string;
+  reporter: string;
+  fetcher: string;
+  delegator: string;
+}
+export interface IDimmedPopupProps {
+  title: string;
+  confirmText?: string;
+  cancelText?: string;
+  onConfirm: (inputValue?: string) => void;
+  onCancel: () => void;
+  buttonTwo: boolean;
+  form: boolean;
+  size?: "small" | "medium" | "large";
+}
+
+export interface IDimmedPopupContext {
+  isOpen: boolean;
+  openDimmedPopup: (props: IDimmedPopupProps) => void;
+  closeDimmedPopup: () => void;
+  inputValue: string;
+  setInputValue: React.Dispatch<React.SetStateAction<string>>;
+}
