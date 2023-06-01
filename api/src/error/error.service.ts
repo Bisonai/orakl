@@ -10,9 +10,7 @@ export class ErrorService {
   async create(errorDto: ErrorDto) {
     // Error data
     const data: Prisma.ErrorUncheckedCreateInput = {
-      requestId: errorDto.requestId,
-      timestamp: errorDto.timestamp,
-      errorMsg: errorDto.errorMsg
+      ...errorDto
     }
     return await this.prisma.error.create({ data })
   }

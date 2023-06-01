@@ -87,18 +87,12 @@ export async function job(reporterQueue: QueueType, _logger: Logger) {
     } catch (e) {
       logger.error(e)
 
-      const errorMsg = {
-        type: e.type,
-        message: e.message,
-        stack: e.stack,
-        code: e.code,
-        name: e.name
-      }
-
       const errorData: IErrorMsgData = {
         requestId: inData.requestId,
         timestamp: new Date(Date.now()),
-        errorMsg: JSON.stringify(errorMsg)
+        code: e.code,
+        name: e.name,
+        stack: e.stack
       }
 
       await storeErrorMsg({ data: errorData, logger: _logger })

@@ -350,5 +350,7 @@ export interface ITransactionData {
 export interface IErrorMsgData {
   requestId: string
   timestamp: Date
-  errorMsg: string
+  code: number
+  name: string
+  stack: string
 }

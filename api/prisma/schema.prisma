@@ -136,9 +136,11 @@ model Reporter {
 
 model Error {
   id        BigInt   @id @default(autoincrement()) @map("error_id")
-  requestId String   @map("request_id") @db.VarChar(77)
+  requestId String   @map("request_id")
   timestamp DateTime @db.Timestamptz()
-  errorMsg  String
+  code      BigInt
+  name      String
+  stack     String
 
   @@map("error")
 }

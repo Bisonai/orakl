@@ -22,9 +22,11 @@ describe('ErrorService', () => {
   })
 
   it('should create new Error', async () => {
-    const errorMsg = `"type": "OraklError",
-    "message": "",
-    "stack":
+    const code = 10020
+    const name = 'MissingKeyInJson'
+    const requestId =
+      '66649924661314489704239946349158829048302840686075232939396730072454733114998'
+    const stack = `
         MissingKeyInJson
             at wrapper (file:///app/dist/worker/reducer.js:19:23)
             at file:///app/dist/utils.js:11:61
@@ -34,14 +36,14 @@ describe('ErrorService', () => {
             at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
             at async Worker.wrapper [as processFn] (file:///app/dist/worker/request-response.js:27:25)
             at async Worker.processJob (/app/node_modules/bullmq/dist/cjs/classes/worker.js:339:28)
-            at async Worker.retryIfFailed (/app/node_modules/bullmq/dist/cjs/classes/worker.js:513:24)
-    "code": 10020,
-    "name": "MissingKeyInJson"`
+            at async Worker.retryIfFailed (/app/node_modules/bullmq/dist/cjs/classes/worker.js:513:24)`
 
     const errorData = {
-      requestId: '66649924661314489704239946349158829048302840686075232939396730072454733114998',
+      requestId,
       timestamp: new Date(Date.now()),
-      errorMsg: errorMsg
+      code,
+      name,
+      stack
     }
     const errorObj = await service.create(errorData)
     expect(errorObj).toBeDefined()
