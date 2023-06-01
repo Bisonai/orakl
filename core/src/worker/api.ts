@@ -140,14 +140,13 @@ export async function getAggregator({
  * Fetch aggregate data from `Orakl Network API` data feed endpoint
  * given aggregator ID.
  *
- * @param {data}
+ * @param {data} IErrorMsgData
  * @param {Logger} logger
- * @return {IAggregate} metadata about the latest aggregate
  * @exception {FailedToGetAggregate}
  */
 export async function storeErrorMsg({ data, logger }: { data: IErrorMsgData; logger: Logger }) {
   try {
-    const error = (await axios.post(ERROR_ENDPOINT, data)).data
+    const error = (await axios.post(ERROR_ENDPOINT, data))?.data
     console.dir(error, { depth: null })
   } catch (e) {
     logger.error(e)

@@ -86,6 +86,7 @@ export async function job(reporterQueue: QueueType, _logger: Logger) {
       return tx
     } catch (e) {
       logger.error(e)
+
       const errorMsg = {
         type: e.type,
         message: e.message,
@@ -101,7 +102,6 @@ export async function job(reporterQueue: QueueType, _logger: Logger) {
       }
 
       await storeErrorMsg({ data: errorData, logger: _logger })
-
       throw e
     }
   }

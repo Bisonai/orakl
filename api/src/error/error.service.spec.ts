@@ -37,12 +37,13 @@ describe('ErrorService', () => {
             at async Worker.retryIfFailed (/app/node_modules/bullmq/dist/cjs/classes/worker.js:513:24)
     "code": 10020,
     "name": "MissingKeyInJson"`
-    const errorObj = {
+
+    const errorData = {
       requestId: '66649924661314489704239946349158829048302840686075232939396730072454733114998',
       timestamp: new Date(Date.now()),
       errorMsg: errorMsg
     }
-    const errorIns = await service.create(errorObj)
-    expect(errorIns).toBeDefined()
+    const errorObj = await service.create(errorData)
+    expect(errorObj).toBeDefined()
   })
 })

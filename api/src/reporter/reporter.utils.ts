@@ -11,6 +11,7 @@ export async function flattenReporter(L) {
     chain: L?.chain?.name
   }
 }
+
 export async function encryptText(textToEncrypt: string) {
   const password = process.env.ENCRYPT_PASSWORD
   const iv = randomBytes(16).toString('hex')
