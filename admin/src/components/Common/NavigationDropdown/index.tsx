@@ -10,7 +10,7 @@ import {
 } from "./styled";
 import Link from "next/link";
 import BasicButton from "../BasicButton";
-import { routes } from "@/utils/route";
+import { configRoutes, routes } from "@/utils/route";
 import { IAccordionState } from "@/utils/types";
 
 export default function NavigationDropdown(): JSX.Element {
@@ -36,15 +36,33 @@ export default function NavigationDropdown(): JSX.Element {
           </AccordionHeader>
           {isAccordionOpen.configuration && (
             <AccordionContent>
-              <Button text="Chain" />
-              <Button text="Service" />
-              <Button text="Listener" />
-              <Button text="VRF Keys" />
-              <Button text="Adapter" />
-              <Button text="Aggregator" />
-              <Button text="Reporter" />
-              <Button text="Fetcher" />
-              <Button text="Delegator" />
+              <Link href={configRoutes.chain}>
+                <Button text="Chain" />
+              </Link>
+              <Link href={configRoutes.service}>
+                <Button text="Service" />
+              </Link>
+              <Link href={configRoutes.listener}>
+                <Button text="Listener" />
+              </Link>
+              <Link href={configRoutes.vrfKeys}>
+                <Button text="VRF Keys" />
+              </Link>
+              <Link href={configRoutes.adapter}>
+                <Button text="Adapter" />
+              </Link>
+              <Link href={configRoutes.aggregator}>
+                <Button text="Aggregator" />
+              </Link>
+              <Link href={configRoutes.reporter}>
+                <Button text="Reporter" />
+              </Link>
+              <Link href={configRoutes.fetcher}>
+                <Button text="Fetcher" />
+              </Link>
+              <Link href={configRoutes.delegator}>
+                <Button text="Delegator" />
+              </Link>
             </AccordionContent>
           )}
         </AccordionItem>
