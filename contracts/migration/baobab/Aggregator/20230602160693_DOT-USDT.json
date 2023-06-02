@@ -1,0 +1,19 @@
+{
+  "deploy": {
+    "name": "DOT-USDT",
+    "paymentAmount": 0,
+    "timeout": 10,
+    "validator": "0x0000000000000000000000000000000000000000",
+    "decimals": 8,
+    "description": "DOT-USDT",
+    "depositAmount": 1.0
+  },
+  "changeOracles": {
+    "removed": [],
+    "added": ["0x53bFb4024D31c1651d833035fed25Afae01Ae8D2"],
+    "addedAdmins": ["0x53bFb4024D31c1651d833035fed25Afae01Ae8D2"],
+    "minSubmissionCount": 1,
+    "maxSubmissionCount": 1,
+    "restartDelay": 0
+  }
+}

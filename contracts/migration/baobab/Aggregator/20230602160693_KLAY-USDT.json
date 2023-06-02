@@ -1,0 +1,19 @@
+{
+  "deploy": {
+    "name": "KLAY-USDT",
+    "paymentAmount": 0,
+    "timeout": 10,
+    "validator": "0x0000000000000000000000000000000000000000",
+    "decimals": 8,
+    "description": "KLAY-USDT",
+    "depositAmount": 1.0
+  },
+  "changeOracles": {
+    "removed": [],
+    "added": ["0x9466afD9E0407680Af6990fD2e6bC9d228aeBC9C"],
+    "addedAdmins": ["0x9466afD9E0407680Af6990fD2e6bC9d228aeBC9C"],
+    "minSubmissionCount": 1,
+    "maxSubmissionCount": 1,
+    "restartDelay": 0
+  }
+}

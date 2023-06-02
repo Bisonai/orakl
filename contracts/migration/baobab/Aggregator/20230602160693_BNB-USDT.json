@@ -1,0 +1,19 @@
+{
+  "deploy": {
+    "name": "BNB-USDT",
+    "paymentAmount": 0,
+    "timeout": 10,
+    "validator": "0x0000000000000000000000000000000000000000",
+    "decimals": 8,
+    "description": "BNB-USDT",
+    "depositAmount": 1.0
+  },
+  "changeOracles": {
+    "removed": [],
+    "added": ["0x5Ed7a78e75E0a850B80D1625E7d23E9d44Ca4fE4"],
+    "addedAdmins": ["0x5Ed7a78e75E0a850B80D1625E7d23E9d44Ca4fE4"],
+    "minSubmissionCount": 1,
+    "maxSubmissionCount": 1,
+    "restartDelay": 0
+  }
+}

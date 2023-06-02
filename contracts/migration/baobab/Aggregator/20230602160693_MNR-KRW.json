@@ -1,0 +1,19 @@
+{
+  "deploy": {
+    "name": "MNR-KRW",
+    "paymentAmount": 0,
+    "timeout": 10,
+    "validator": "0x0000000000000000000000000000000000000000",
+    "decimals": 8,
+    "description": "MNR-KRW",
+    "depositAmount": 1.0
+  },
+  "changeOracles": {
+    "removed": [],
+    "added": ["0x467Abb4f3e10968231D8b1f440795A6917eB6c08"],
+    "addedAdmins": ["0x467Abb4f3e10968231D8b1f440795A6917eB6c08"],
+    "minSubmissionCount": 1,
+    "maxSubmissionCount": 1,
+    "restartDelay": 0
+  }
+}

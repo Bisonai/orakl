@@ -1,0 +1,19 @@
+{
+  "deploy": {
+    "name": "SOL-USDT",
+    "paymentAmount": 0,
+    "timeout": 10,
+    "validator": "0x0000000000000000000000000000000000000000",
+    "decimals": 8,
+    "description": "SOL-USDT",
+    "depositAmount": 1.0
+  },
+  "changeOracles": {
+    "removed": [],
+    "added": ["0x7247401E7C2Eb4594002EA87b9c4c8691dCBCd79"],
+    "addedAdmins": ["0x7247401E7C2Eb4594002EA87b9c4c8691dCBCd79"],
+    "minSubmissionCount": 1,
+    "maxSubmissionCount": 1,
+    "restartDelay": 0
+  }
+}

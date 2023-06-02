@@ -1,0 +1,19 @@
+{
+  "deploy": {
+    "name": "USDC-USDT",
+    "paymentAmount": 0,
+    "timeout": 10,
+    "validator": "0x0000000000000000000000000000000000000000",
+    "decimals": 8,
+    "description": "USDC-USDT",
+    "depositAmount": 1.0
+  },
+  "changeOracles": {
+    "removed": [],
+    "added": ["0xC3767a4c09f4c08d5B80797cE1534c0B99580509"],
+    "addedAdmins": ["0xC3767a4c09f4c08d5B80797cE1534c0B99580509"],
+    "minSubmissionCount": 1,
+    "maxSubmissionCount": 1,
+    "restartDelay": 0
+  }
+}
