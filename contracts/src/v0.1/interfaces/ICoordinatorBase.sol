@@ -59,4 +59,11 @@ interface ICoordinatorBase {
      * @param requestId - ID of the Oracle Request
      */
     function cancelRequest(uint256 requestId) external;
+
+    /**
+     * @notice Access address for prepayment associated with
+     * @notice coordinator.
+     * @return prepayment address
+     */
+    function getPrepaymentAddress() external returns (address);
 }
