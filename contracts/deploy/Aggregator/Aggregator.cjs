@@ -19,6 +19,7 @@ const func = async function (hre) {
 
   const migrationDirPath = `./migration/${network.name}/Aggregator`
   const migrationFilesNames = await loadMigration(migrationDirPath)
+  const date = getFormattedDate()
 
   for (const migration of migrationFilesNames) {
     const config = await loadJson(path.join(migrationDirPath, migration))
@@ -33,7 +34,6 @@ const func = async function (hre) {
       }
 
       // Aggregator
-      const date = getFormattedDate()
       const aggregatorName = `Aggregator_${deployConfig.name}_${date}`
       const aggregatorDeployment = await deploy(aggregatorName, {
         contract: 'Aggregator',
@@ -126,7 +126,7 @@ const func = async function (hre) {
     } else if (config.deploy) {
       // Deploy AggregatorProxy ////////////////////////////////////
       const deployConfig = config.deploy
-      const aggregatorProxyName = `AggregatorProxy_${deployConfig.name}`
+      const aggregatorProxyName = `AggregatorProxy_${deployConfig.name}_${date}`
       const aggregatorProxyDeployment = await deploy(aggregatorProxyName, {
         contract: 'AggregatorProxy',
         args: [aggregator.address],
