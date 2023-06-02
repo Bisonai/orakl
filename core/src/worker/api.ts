@@ -147,7 +147,6 @@ export async function getAggregator({
 export async function storeErrorMsg({ data, logger }: { data: IErrorMsgData; logger: Logger }) {
   try {
     const error = (await axios.post(ERROR_ENDPOINT, data))?.data
-    console.dir(error, { depth: null })
   } catch (e) {
     logger.error(e)
     throw new OraklError(OraklErrorCode.FailedToStoreErrorMsg)
