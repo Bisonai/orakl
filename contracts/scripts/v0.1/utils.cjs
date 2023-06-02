@@ -1,4 +1,4 @@
-const { readdir, readFile, appendFile } = require('node:fs/promises')
+const { readdir, readFile, appendFile, writeFile } = require('node:fs/promises')
 const path = require('node:path')
 const moment = require('moment')
 const MIGRATION_LOCK_FILE_NAME = 'migration.lock'
@@ -7,6 +7,15 @@ async function loadJson(filepath) {
   try {
     const json = await readFile(filepath, 'utf8')
     return JSON.parse(json)
+  } catch (e) {
+    console.error(e)
+    throw e
+  }
+}
+
+async function storeJson(filepath, data) {
+  try {
+    await writeFile(filepath, data)
   } catch (e) {
     console.error(e)
     throw e
@@ -238,6 +247,7 @@ function getFormattedDate() {
 
 module.exports = {
   loadJson,
+  storeJson,
   loadMigration,
   updateMigration,
   validateAggregatorDeployConfig,
