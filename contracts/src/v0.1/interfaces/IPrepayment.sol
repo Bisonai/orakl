@@ -84,7 +84,7 @@ interface IPrepayment {
 
     /*
      * @notice Check to see if there exists a request commitment
-     * @notice for an account owner of [permanent] account across
+     * @notice for an account owner of [temporary] account across
      * @notice all coordinators.
      * @dev Use to reject balance withdrawal while outstanding
      * @dev request are present.
