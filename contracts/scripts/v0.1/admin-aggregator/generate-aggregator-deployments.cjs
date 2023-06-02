@@ -21,13 +21,6 @@ async function generateWallet() {
   return wallet
 }
 
-// interface Account {
-//   dataFeed: string
-//   address: string
-//   privateKey: string
-//   mnemonic: string
-// }
-
 async function main() {
   const baseSource = './migration/baobab/Aggregator/'
   const aggregatorSource = './migration/baobab/Aggregator/20230325094038_BNB-USDT.json'
@@ -51,14 +44,15 @@ async function main() {
 
     data.deploy.name = priceFeed
     data.deploy.description = priceFeed
-
     data.changeOracles.added = [wallet.address]
     data.changeOracles.addedAdmins = [wallet.address]
 
     console.log(data)
+
     const storeFilePath = `${baseSource}${date}_${priceFeed}.json`
     storeJson(storeFilePath, JSON.stringify(data))
   }
+
   // store Wallets
   console.log(walletList)
   const storeFilePath = `${baseSource}accountList.json`
