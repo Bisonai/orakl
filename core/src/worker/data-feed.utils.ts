@@ -7,8 +7,6 @@ import { Aggregator__factory } from '@bisonai/orakl-contracts'
 /**
  * Compute the number of seconds until the next round.
  *
- * FIXME modify aggregator to use single contract call
- *
  * @param {string} aggregator address
  * @param {number} heartbeat
  * @param {Logger}
@@ -27,27 +25,29 @@ export async function getSynchronizedDelay({
 }): Promise<number> {
   logger.debug('getSynchronizedDelay')
 
-  const { startedAt, roundId } = await oracleRoundStateCall({
+  const { startedAt } = await currentRoundStartedAtCall({
     oracleAddress,
-    operatorAddress,
     logger
   })
 
-  let startTime = startedAt.toNumber()
-
-  if (startTime == 0) {
-    const { startedAt } = await oracleRoundStateCall({
-      oracleAddress,
-      operatorAddress,
-      roundId: Math.max(0, roundId - 1)
-    })
-    startTime = startedAt.toNumber()
-  }
-
-  const delay = heartbeat - (startTime % heartbeat)
-  logger.debug({ heartbeat, delay, startTime })
+  const delay = heartbeat - (startedAt % heartbeat)
+  logger.debug({ heartbeat, delay, startedAt })
 
   return delay
+}
+
+async function currentRoundStartedAtCall({
+  oracleAddress,
+  logger
+}: {
+  oracleAddress: string
+  logger?: Logger
+}) {
+  logger?.debug({ oracleAddress }, 'currentRoundStartedAtCall')
+  const aggregator = new ethers.Contract(oracleAddress, Aggregator__factory.abi, PROVIDER)
+  const startedAt = await aggregator.currentRoundStartedAt()
+  logger?.debug({ startedAt }, 'startedAt')
+  return startedAt
 }
 
 export async function oracleRoundStateCall({
