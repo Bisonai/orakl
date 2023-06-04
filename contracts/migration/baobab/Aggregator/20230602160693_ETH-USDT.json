@@ -1,0 +1,19 @@
+{
+  "deploy": {
+    "name": "ETH-USDT",
+    "paymentAmount": 0,
+    "timeout": 10,
+    "validator": "0x0000000000000000000000000000000000000000",
+    "decimals": 8,
+    "description": "ETH-USDT",
+    "depositAmount": 1.0
+  },
+  "changeOracles": {
+    "removed": [],
+    "added": ["0xEeB87b3787027B8A0Eb967EDdd8504D60B809E77"],
+    "addedAdmins": ["0xEeB87b3787027B8A0Eb967EDdd8504D60B809E77"],
+    "minSubmissionCount": 1,
+    "maxSubmissionCount": 1,
+    "restartDelay": 0
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "deploy": {
+    "name": "BTC-USDT",
+    "paymentAmount": 0,
+    "timeout": 10,
+    "validator": "0x0000000000000000000000000000000000000000",
+    "decimals": 8,
+    "description": "BTC-USDT",
+    "depositAmount": 1.0
+  },
+  "changeOracles": {
+    "removed": [],
+    "added": ["0x3C8b7951161444bbF137db0921c6Fb6c2A4f6bB9"],
+    "addedAdmins": ["0x3C8b7951161444bbF137db0921c6Fb6c2A4f6bB9"],
+    "minSubmissionCount": 1,
+    "maxSubmissionCount": 1,
+    "restartDelay": 0
+  }
+}

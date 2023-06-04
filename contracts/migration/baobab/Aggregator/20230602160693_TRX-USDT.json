@@ -1,0 +1,19 @@
+{
+  "deploy": {
+    "name": "TRX-USDT",
+    "paymentAmount": 0,
+    "timeout": 10,
+    "validator": "0x0000000000000000000000000000000000000000",
+    "decimals": 8,
+    "description": "TRX-USDT",
+    "depositAmount": 1.0
+  },
+  "changeOracles": {
+    "removed": [],
+    "added": ["0x3f11c55A870f87AD2Aaf9862534f04b2fBfA1A08"],
+    "addedAdmins": ["0x3f11c55A870f87AD2Aaf9862534f04b2fBfA1A08"],
+    "minSubmissionCount": 1,
+    "maxSubmissionCount": 1,
+    "restartDelay": 0
+  }
+}

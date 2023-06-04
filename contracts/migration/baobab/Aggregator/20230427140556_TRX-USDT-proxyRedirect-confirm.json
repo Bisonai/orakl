@@ -1,8 +1,0 @@
-{
-  "redirectProxy": {
-    "status": "confirm",
-    "proxyAddress": "0x9ED2D63D6af73b416E0a47B56899ddE8435d89a6",
-    "aggregator": "0x50365C346BAd261a29ADd3Be7bA18B6c49E4f4Cf",
-    "proposedAggregator": "0x70eF30152a6d37032831DcA7A78890584b4919f5"
-  }
-}

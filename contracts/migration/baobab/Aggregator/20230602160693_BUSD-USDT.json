@@ -1,0 +1,19 @@
+{
+  "deploy": {
+    "name": "BUSD-USDT",
+    "paymentAmount": 0,
+    "timeout": 10,
+    "validator": "0x0000000000000000000000000000000000000000",
+    "decimals": 8,
+    "description": "BUSD-USDT",
+    "depositAmount": 1.0
+  },
+  "changeOracles": {
+    "removed": [],
+    "added": ["0x12f9ECbAf9f8aA3B3661608df8E449313056600F"],
+    "addedAdmins": ["0x12f9ECbAf9f8aA3B3661608df8E449313056600F"],
+    "minSubmissionCount": 1,
+    "maxSubmissionCount": 1,
+    "restartDelay": 0
+  }
+}
