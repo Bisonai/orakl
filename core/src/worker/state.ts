@@ -6,6 +6,7 @@ import { getAggregator, getAggregators } from './api'
 import { OraklError, OraklErrorCode } from '../errors'
 import { SUBMIT_HEARTBEAT_QUEUE_SETTINGS } from '../settings'
 import { IAggregatorConfig } from './types'
+import { getSynchronizedDelay } from './data-feed.utils'
 
 const FILE_NAME = import.meta.url
 
@@ -150,7 +151,11 @@ export class State {
 
     const outDataSubmitHeartbeat: IAggregatorSubmitHeartbeatWorker = {
       oracleAddress: toAddAggregator.address,
-      delay: toAddAggregator.heartbeat
+      delay: await getSynchronizedDelay({
+        oracleAddress: toAddAggregator.address,
+        heartbeat: toAddAggregator.heartbeat,
+        logger: this.logger
+      })
     }
     this.logger.debug(outDataSubmitHeartbeat, 'outDataSubmitHeartbeat')
     await this.submitHeartbeatQueue.add('state-submission', outDataSubmitHeartbeat, {

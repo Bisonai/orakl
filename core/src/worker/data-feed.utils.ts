@@ -7,19 +7,17 @@ import { Aggregator__factory } from '@bisonai/orakl-contracts'
 /**
  * Compute the number of seconds until the next round.
  *
- * @param {string} aggregator address
+ * @param {string} oracle address
  * @param {number} heartbeat
  * @param {Logger}
  * @return {number} delay in seconds until the next round
  */
 export async function getSynchronizedDelay({
   oracleAddress,
-  operatorAddress,
   heartbeat,
   logger
 }: {
   oracleAddress: string
-  operatorAddress: string
   heartbeat: number
   logger: Logger
 }): Promise<number> {
