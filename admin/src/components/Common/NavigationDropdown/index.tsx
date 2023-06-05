@@ -49,6 +49,7 @@ const AccordionHeader: React.FC<AccordionHeaderProps> = ({
                 borderRadius: "16px",
                 marginTop: "3px",
                 color: "#00adb5",
+                boxShadow: "0px 3px 6px rgba(0,0,0,0.3)",
               }}
             />
           ) : (
@@ -58,6 +59,7 @@ const AccordionHeader: React.FC<AccordionHeaderProps> = ({
                 borderRadius: "16px",
                 marginTop: "3px",
                 color: "#00adb5",
+                boxShadow: "0px 3px 5px rgba(0,0,0,0.3)",
               }}
             />
           )}

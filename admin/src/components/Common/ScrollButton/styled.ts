@@ -9,5 +9,6 @@ export const ScrollButton = styled.button<{ show: boolean }>`
   height: 50px;
   cursor: pointer;
   border: 3px solid #02c7d1;
+  box-shadow: 0px 0px 10px 3px rgba(0, 0, 0, 0.55);
   display: ${(props) => (props.show ? "block" : "none")};
 `;

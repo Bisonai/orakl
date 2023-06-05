@@ -25,7 +25,7 @@ const MonitorTable = ({ serviceId }: { serviceId: string }) => {
     select: (data) =>
       data.data.sort((a: any, b: any) => a.queue.localeCompare(b.queue)),
   });
-  console.log(serviceQuery.data, "data");
+
   return (
     <TableContainer>
       <TableHeaderContainer>
