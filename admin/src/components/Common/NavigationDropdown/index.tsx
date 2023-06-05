@@ -1,17 +1,77 @@
-import React, { useState } from "react";
-import styled from "styled-components";
-import Button from "../BasicButton";
+import React, { ReactNode, useState } from "react";
+import ExpandMoreIcon from "@material-ui/icons/ExpandMore";
+import ExpandLessIcon from "@material-ui/icons/ExpandLess";
 import {
   NavDropdownContainer,
   AccordionContainer,
   AccordionItem,
-  AccordionHeader,
+  AccordionHeader as StyledAccordionHeader,
   AccordionContent,
 } from "./styled";
 import Link from "next/link";
-import BasicButton from "../BasicButton";
 import { configRoutes, routes } from "@/utils/route";
 import { IAccordionState } from "@/utils/types";
+import BasicButton from "../BasicButton";
+
+type AccordionHeaderProps = {
+  isOpen: boolean;
+  onClick: () => void;
+  children: ReactNode;
+  href: string;
+};
+
+type NavButtonProps = {
+  href: string;
+  text: string;
+};
+
+const AccordionHeader: React.FC<AccordionHeaderProps> = ({
+  isOpen,
+  onClick,
+  children,
+  href,
+}) => {
+  const handleIconClick = (e: React.MouseEvent<HTMLSpanElement>) => {
+    e.stopPropagation();
+    e.preventDefault();
+    onClick();
+  };
+
+  return (
+    <Link href={href} style={{ width: "100%" }}>
+      <StyledAccordionHeader>
+        {children}
+        <span onClick={handleIconClick}>
+          {isOpen ? (
+            <ExpandLessIcon
+              style={{
+                background: "#eeeeee",
+                borderRadius: "16px",
+                marginTop: "3px",
+                color: "#00adb5",
+              }}
+            />
+          ) : (
+            <ExpandMoreIcon
+              style={{
+                background: "#eeeeee",
+                borderRadius: "16px",
+                marginTop: "3px",
+                color: "#00adb5",
+              }}
+            />
+          )}
+        </span>
+      </StyledAccordionHeader>
+    </Link>
+  );
+};
+
+const NavButton: React.FC<NavButtonProps> = ({ href, text }) => (
+  <Link href={href}>
+    <BasicButton text={text} />
+  </Link>
+);
 
 export default function NavigationDropdown(): JSX.Element {
   const [isAccordionOpen, setIsAccordionOpen] = useState<IAccordionState>({
@@ -29,72 +89,43 @@ export default function NavigationDropdown(): JSX.Element {
       <AccordionContainer>
         <AccordionItem>
           <AccordionHeader
+            href="/configuration"
+            isOpen={isAccordionOpen.configuration}
             onClick={() => handleAccordionToggle("configuration")}
           >
             Configuration
-            <span>{isAccordionOpen.configuration ? "-" : "+"}</span>
           </AccordionHeader>
           {isAccordionOpen.configuration && (
             <AccordionContent>
-              <Link href={configRoutes.chain}>
-                <Button text="Chain" />
-              </Link>
-              <Link href={configRoutes.service}>
-                <Button text="Service" />
-              </Link>
-              <Link href={configRoutes.listener}>
-                <Button text="Listener" />
-              </Link>
-              <Link href={configRoutes.vrfKeys}>
-                <Button text="VRF Keys" />
-              </Link>
-              <Link href={configRoutes.adapter}>
-                <Button text="Adapter" />
-              </Link>
-              <Link href={configRoutes.aggregator}>
-                <Button text="Aggregator" />
-              </Link>
-              <Link href={configRoutes.reporter}>
-                <Button text="Reporter" />
-              </Link>
-              <Link href={configRoutes.fetcher}>
-                <Button text="Fetcher" />
-              </Link>
-              <Link href={configRoutes.delegator}>
-                <Button text="Delegator" />
-              </Link>
+              {Object.entries(configRoutes).map(([key, href]) => (
+                <NavButton key={key} href={href} text={key} />
+              ))}
             </AccordionContent>
           )}
         </AccordionItem>
         <AccordionItem>
-          <AccordionHeader onClick={() => handleAccordionToggle("bull")}>
+          <AccordionHeader
+            href="/bullmonitor"
+            isOpen={isAccordionOpen.bull}
+            onClick={() => handleAccordionToggle("bull")}
+          >
             Bull Monitor
-            <span>{isAccordionOpen.bull ? "-" : "+"}</span>
           </AccordionHeader>
           {isAccordionOpen.bull && (
             <AccordionContent>
-              <Link href={routes.vrf}>
-                <BasicButton text="VRF" />
-              </Link>
-              <Link href={routes["request-response"]}>
-                <BasicButton text="Request Response" />
-              </Link>
-              <Link href={`${routes.aggregator}`}>
-                <BasicButton text="Aggregator" />
-              </Link>
-              <Link href={routes.fetcher}>
-                <BasicButton text="Fetcher" />
-              </Link>
-              <Link href={routes.settings}>
-                <BasicButton text="Setting" />
-              </Link>
+              {Object.entries(routes).map(([key, href]) => (
+                <NavButton key={key} href={href} text={key} />
+              ))}
             </AccordionContent>
           )}
         </AccordionItem>
         <AccordionItem>
-          <AccordionHeader onClick={() => handleAccordionToggle("account")}>
+          <AccordionHeader
+            href="/account"
+            isOpen={isAccordionOpen.account}
+            onClick={() => handleAccordionToggle("account")}
+          >
             Account Balance
-            <span>{isAccordionOpen.account ? "-" : "+"}</span>
           </AccordionHeader>
           {isAccordionOpen.account && <AccordionContent />}
         </AccordionItem>
