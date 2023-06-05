@@ -89,7 +89,7 @@ export default function NavigationDropdown(): JSX.Element {
       <AccordionContainer>
         <AccordionItem>
           <AccordionHeader
-            href="/configuration"
+            href="/"
             isOpen={isAccordionOpen.configuration}
             onClick={() => handleAccordionToggle("configuration")}
           >
@@ -121,7 +121,7 @@ export default function NavigationDropdown(): JSX.Element {
         </AccordionItem>
         <AccordionItem>
           <AccordionHeader
-            href="/account"
+            href="/"
             isOpen={isAccordionOpen.account}
             onClick={() => handleAccordionToggle("account")}
           >
