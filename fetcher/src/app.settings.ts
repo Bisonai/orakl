@@ -5,4 +5,5 @@ export function setAppSettings(app) {
   app.enableVersioning({
     type: VersioningType.URI
   })
+  app.enableCors()
 }
