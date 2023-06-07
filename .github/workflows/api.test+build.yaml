@@ -43,6 +43,7 @@ jobs:
           yarn test
         env:
           DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/orakl-test?schema=public"
+          ENCRYPT_PASSWORD: "abc123"
         working-directory: ./api
       - name: Run e2e2 test
         run: yarn test:e2e --forceExit
