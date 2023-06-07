@@ -30,8 +30,8 @@ brew services start postgresql@14
 ```
 
 ```shell
-createdb orakl-delegator
-#dropdb orakl-delegator
+createdb orakl_delegator
+#dropdb orakl_delegator
 ```
 
 ## Prisma

@@ -8,6 +8,7 @@ import { OrganizationService } from '../organization/organization.service'
 import { ContractService } from '../contract/contract.service'
 import { FunctionService } from '../function/function.service'
 import { ReporterService } from '../reporter/reporter.service'
+import { PrismaClient } from '@prisma/client'
 
 const caver = new Caver(process.env.PROVIDER_URL)
 const keyring = caver.wallet.keyring.createFromPrivateKey(process.env.TEST_DELEGATOR_REPORTER_PK)
@@ -20,6 +21,7 @@ describe('SignService', () => {
   let functionService: FunctionService
   let reporterService: ReporterService
   let transactionData: SignDto, contract
+  let prisma
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -37,6 +39,7 @@ describe('SignService', () => {
     contractService = module.get<ContractService>(ContractService)
     functionService = module.get<FunctionService>(FunctionService)
     reporterService = module.get<ReporterService>(ReporterService)
+    prisma = module.get<PrismaClient>(PrismaService)
 
     contract = new caver.contract(dummyFactory.abi as AbiItem[], dummyFactory.address)
     const input = contract.methods.increment().encodeABI()
@@ -62,6 +65,11 @@ describe('SignService', () => {
       s: tx.signatures[0].s,
       rawTx: tx.getRawTransaction()
     }
+  })
+
+  afterEach(async () => {
+    jest.resetModules()
+    await prisma.$disconnect()
   })
 
   it('Should validateTransaction and execute transaction', async () => {
