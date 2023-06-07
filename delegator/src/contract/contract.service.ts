@@ -10,6 +10,7 @@ export class ContractService {
   constructor(private prisma: PrismaService) {}
 
   async create(data: ContractDto) {
+    data.address = data.address.toLocaleLowerCase()
     return await this.prisma.contract.create({ data })
   }
 
