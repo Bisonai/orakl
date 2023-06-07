@@ -147,13 +147,14 @@ export async function sendTransactionDelegatedFee({
 }) {
   const _logger = logger.child({ name: 'sendTransactionDelegatedFee', file: FILE_NAME })
 
-  const tx = wallet.caver.transaction.feeDelegatedSmartContractExecution.create({
+  const txParams = {
     from: wallet.address,
     to,
     input: payload,
     gas: gasLimit,
     value: value || '0x00'
-  })
+  }
+  const tx = wallet.caver.transaction.feeDelegatedSmartContractExecution.create(txParams)
   await wallet.caver.wallet.sign(wallet.address, tx)
 
   const transactionData: ITransactionData = {
@@ -174,16 +175,21 @@ export async function sendTransactionDelegatedFee({
 
   const endpoint = buildUrl(ORAKL_NETWORK_DELEGATOR_URL, `sign`)
 
+  let response
   try {
-    const result = (
+    response = (
       await axios.post(endpoint, {
         ...transactionData
       })
     )?.data
-    if (result?.signedRawTx) {
-      const txReceipt = await wallet.caver.rpc.klay.sendRawTransaction(result.signedRawTx)
-      _logger.debug(txReceipt, 'txReceipt')
+  } catch (e) {
+    throw new OraklError(OraklErrorCode.DelegatorServerIssue)
+  }
 
+  try {
+    if (response?.signedRawTx) {
+      const txReceipt = await wallet.caver.rpc.klay.sendRawTransaction(response.signedRawTx)
+      _logger.debug(txReceipt, 'txReceipt')
       return txReceipt
     } else {
       throw new OraklError(OraklErrorCode.MissingSignedRawTx)
@@ -191,5 +197,37 @@ export async function sendTransactionDelegatedFee({
   } catch (e) {
     _logger.error(e, 'e')
     throw e
+  }
+}
+
+export async function sendTransactionCaver({
+  wallet,
+  to,
+  payload,
+  gasLimit,
+  logger,
+  value
+}: {
+  wallet: CaverWallet
+  to: string
+  payload: string
+  gasLimit: number | string
+  logger: Logger
+  value?: number | string
+}) {
+  const txParams = {
+    from: wallet.address,
+    to,
+    input: payload,
+    gasLimit,
+    value: value || '0x00'
+  }
+
+  try {
+    const tx = wallet.caver.transaction.smartContractExecution.create(txParams)
+    await wallet.caver.wallet.sign(wallet.address, tx)
+    const txReceipt = await wallet.caver.rpc.klay.sendRawTransaction(tx.getRawTransaction())
+  } catch (e) {
+    throw new OraklError(OraklErrorCode.CaverTxTransactionFailed)
   }
 }
