@@ -9,6 +9,7 @@ export class ReporterService {
   constructor(private prisma: PrismaService) {}
 
   async create(reporterDto: ReporterDto) {
+    reporterDto.address = reporterDto.address.toLocaleLowerCase()
     const data: Prisma.ReporterUncheckedCreateInput = {
       address: reporterDto.address,
       organizationId: reporterDto.organizationId

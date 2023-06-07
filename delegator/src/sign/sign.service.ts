@@ -22,6 +22,8 @@ export class SignService {
 
   async create(data: SignDto) {
     try {
+      data.from = data.from.toLocaleLowerCase()
+      data.to = data.to.toLocaleLowerCase()
       const transaction = await this.prisma.transaction.create({ data })
       const validatedResult = await this.validateTransaction(transaction)
       const signedRawTx = await this.signTxByFeePayer(transaction)
