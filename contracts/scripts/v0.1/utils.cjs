@@ -142,20 +142,6 @@ function validateCoordinatorDeployConfig(config) {
 }
 
 /**
- * @params {ICoordinatorMinBalance}
- * @return {boolean}
- */
-function validateMinBalanceConfig(config) {
-  const requiredProperties = ['minBalance']
-
-  if (!validateProperties(config, requiredProperties)) {
-    return false
-  } else {
-    return true
-  }
-}
-
-/**
  * @params {ICoordinatorConfig}
  * @return {boolean}
  */
@@ -167,22 +153,6 @@ function validateSetConfig(config) {
   } else {
     return true
   }
-}
-
-/**
- * @params {ICoordinatorDirectPaymentConfig}
- * @return {boolean}
- */
-function validateDirectPaymentConfig(config) {
-  if (!validateProperties(config, ['directPaymentConfig'])) {
-    return false
-  }
-
-  if (!validateProperties(config.directPaymentConfig, ['fulfillmentFee', 'baseFee'])) {
-    return false
-  }
-
-  return true
 }
 
 /**
@@ -253,9 +223,7 @@ module.exports = {
   validateAggregatorDeployConfig,
   validateAggregatorChangeOraclesConfig,
   validateCoordinatorDeployConfig,
-  validateMinBalanceConfig,
   validateSetConfig,
-  validateDirectPaymentConfig,
   validateVrfRegisterOracle,
   validateVrfDeregisterOracle,
   validatePrepaymentDeployConfig,

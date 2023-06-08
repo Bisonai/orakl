@@ -4,8 +4,6 @@ const {
   loadMigration,
   updateMigration,
   validateCoordinatorDeployConfig,
-  validateDirectPaymentConfig,
-  validateMinBalanceConfig,
   validateSetConfig
 } = require('../../scripts/v0.1/utils.cjs')
 
