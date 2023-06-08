@@ -42,7 +42,10 @@
     "deploy:localhost:rr": "yarn deploy:localhost --deploy-scripts deploy/RequestResponse",
     "deploy:localhost:vrf": "yarn deploy:localhost --deploy-scripts deploy/VRF",
     "deploy:localhost:aggregator": "yarn deploy:localhost --deploy-scripts deploy/Aggregator",
-    "deploy:baobab:aggregator": "yarn deploy:baobab --deploy-scripts deploy/Aggregator"
+    "deploy:baobab:aggregator": "yarn deploy:baobab --deploy-scripts deploy/Aggregator",
+    "deploy:baobab:prepayment": "yarn deploy:baobab --deploy-scripts deploy/Prepayment",
+    "deploy:baobab:rr": "yarn deploy:baobab --deploy-scripts deploy/RequestResponse",
+    "deploy:baobab:vrf": "yarn deploy:baobab --deploy-scripts deploy/VRF"
   },
   "devDependencies": {
     "@bisonai/orakl-vrf": "^0.2.0",
