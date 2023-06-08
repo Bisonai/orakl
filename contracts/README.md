@@ -37,7 +37,7 @@ We recommend to use the following script to generate a new migration file.
 
 ```shell
 MIGRATION_NAME=
-touch `date +%Y%m%d%H%M%S_${MIGRATION_NAME}`
+touch `date +%Y%m%d%H%M%S_${MIGRATION_NAME}.json`
 ```
 
 ### Local Deployment
