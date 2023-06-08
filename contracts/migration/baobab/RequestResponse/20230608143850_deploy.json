@@ -1,7 +1,7 @@
 {
   "requestResponseCoordinatorAddress": "",
   "deploy": {
-    "version": "1.0.0"
+    "version": "v0.1"
   },
   "registerOracle": ["0x62380b220CcB8355C1b1F3cf1b309fc289d17A8f"],
   "deregisterOracle": [],
