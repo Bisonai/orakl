@@ -1,0 +1,18 @@
+{
+  "requestResponseCoordinatorAddress": "0x9c73342afD279Cb3106a8F45788973F512d9e40a",
+  "setConfig": {
+    "maxGasLimit": 2500000,
+    "gasAfterPaymentCalculation": 90692,
+    "feeConfig": {
+      "fulfillmentFlatFeeKlayPPMTier1": 400000,
+      "fulfillmentFlatFeeKlayPPMTier2": 400000,
+      "fulfillmentFlatFeeKlayPPMTier3": 400000,
+      "fulfillmentFlatFeeKlayPPMTier4": 400000,
+      "fulfillmentFlatFeeKlayPPMTier5": 400000,
+      "reqsForTier2": 0,
+      "reqsForTier3": 0,
+      "reqsForTier4": 0,
+      "reqsForTier5": 0
+    }
+  }
+}
