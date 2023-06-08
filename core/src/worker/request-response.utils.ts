@@ -66,15 +66,16 @@ export function buildTransaction(
     payloadParameters.accId,
     payloadParameters.numSubmission,
     payloadParameters.callbackGasLimit,
-    payloadParameters.sender
+    payloadParameters.sender,
+    payloadParameters.isDirectPayment,
+    payloadParameters.jobId
   ]
   logger.debug(rc, 'rc')
 
   const payload = iface.encodeFunctionData(fulfillDataRequestFn, [
     payloadParameters.requestId,
     response,
-    rc,
-    payloadParameters.isDirectPayment
+    rc
   ])
 
   const tx = {

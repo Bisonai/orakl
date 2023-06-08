@@ -192,7 +192,9 @@ export type RequestCommitmentRequestResponse = [
   string /* accId */,
   number /* numSubmission */,
   number /* callbackGasLimit */,
-  string /* sender */
+  string /* sender */,
+  boolean /* isDirectPayment */,
+  string /* jobId */
 ]
 
 export interface IVrfConfig {
