@@ -1,0 +1,18 @@
+{
+  "vrfCoordinatorAddress": "0x6B4c0b11bd7fE1E9e9a69297347cFDccA416dF5F",
+  "setConfig": {
+    "maxGasLimit": 2500000,
+    "gasAfterPaymentCalculation": 90692,
+    "feeConfig": {
+      "fulfillmentFlatFeeKlayPPMTier1": 200000,
+      "fulfillmentFlatFeeKlayPPMTier2": 200000,
+      "fulfillmentFlatFeeKlayPPMTier3": 200000,
+      "fulfillmentFlatFeeKlayPPMTier4": 200000,
+      "fulfillmentFlatFeeKlayPPMTier5": 200000,
+      "reqsForTier2": 0,
+      "reqsForTier3": 0,
+      "reqsForTier4": 0,
+      "reqsForTier5": 0
+    }
+  }
+}
