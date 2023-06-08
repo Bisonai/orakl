@@ -4,8 +4,6 @@ const {
   loadMigration,
   updateMigration,
   validateCoordinatorDeployConfig,
-  validateDirectPaymentConfig,
-  validateMinBalanceConfig,
   validateSetConfig,
   validateVrfDeregisterOracle,
   validateVrfRegisterOracle
