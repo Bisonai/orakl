@@ -7,18 +7,17 @@ import type { Method } from "axios";
 const isDevelopment = process.env.NODE_ENV === "development";
 
 export const api = {
-  queues: () => `${process.env.NEXT_PUBLIC_API_BASE_URL}/queues`,
-  queuesInfo: () => `${process.env.NEXT_PUBLIC_API_BASE_URL}/queues/info`,
+  queues: () => `http://localhost:8888/queues`,
+  queuesInfo: () => `http://localhost:8888/queues/info`,
   service: (serviceName: string) =>
-    `${process.env.NEXT_PUBLIC_API_BASE_URL}/queues/${serviceName}`,
+    `http://localhost:8888/queues/${serviceName}`,
   queueName: ({
     serviceName,
     queueName,
   }: {
     serviceName: string;
     queueName: string;
-  }) =>
-    `${process.env.NEXT_PUBLIC_API_BASE_URL}/queues/${serviceName}/${queueName}`,
+  }) => `http://localhost:8888/queues/${serviceName}/${queueName}`,
   queueStatus: ({
     serviceName,
     queueName,
@@ -27,10 +26,10 @@ export const api = {
     serviceName: string;
     queueName: string;
     status: string;
-  }) =>
-    `${process.env.NEXT_PUBLIC_API_BASE_URL}/queues/${serviceName}/${queueName}/${status}`,
-  getConfigChain: () => `http://localhost:8888/api/v1/chain/`,
-  configChain: (id: string) => `http://localhost:8888/api/v1/chain/${id}`,
+  }) => `http://localhost:8888/queues/${serviceName}/${queueName}/${status}`,
+  getConfigChain: () => `http://localhost:3030/api/v1/chain/`,
+  getConfigService: () => `http://localhost:3030/api/v1/service/`,
+  configChain: (id: string) => `http://localhost:3030/api/v1/chain/${id}`,
 };
 
 export type IApi = typeof api;
@@ -45,6 +44,7 @@ export interface IApiParam {
   queueName: { GET: any };
   queueStatus: { GET: any };
   getConfigChain: { GET: any };
+  getConfigService: { GET: any };
   configChain: { PATCH: any; DELETE: any };
 }
 export interface IApiData {
@@ -54,6 +54,7 @@ export interface IApiData {
   queueName: { GET: any };
   queueStatus: { GET: any };
   getConfigChain: { GET: any };
+  getConfigService: { GET: any };
   configChain: { PATCH: any; DELETE: any };
 }
 
