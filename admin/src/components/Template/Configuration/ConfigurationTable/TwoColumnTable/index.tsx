@@ -1,4 +1,3 @@
-import { StringLiteral } from "typescript";
 import {
   TwoColumnTableContainer,
   IDTitleBase,
@@ -23,6 +22,8 @@ const TwoColumnTable = ({
   deleteTitle,
   addConfirmText,
   deleteConfrimText,
+  onAdd,
+  onDelete,
 }: {
   title: string;
   data: any;
@@ -31,9 +32,12 @@ const TwoColumnTable = ({
   deleteTitle: string;
   addConfirmText: string;
   deleteConfrimText: string;
+  onAdd?: (newData: any) => void;
+  onDelete?: (id: string | number) => void;
 }) => {
   const { openDimmedPopup, closeDimmedPopup } = useDimmedPopupContext();
-  const [localData, setLocalData] = useState<any[]>(data);
+  const [localData, setLocalData] = useState<any[]>(data || []);
+
   useEffect(() => {
     setLocalData(data);
   }, [data]);
@@ -47,10 +51,10 @@ const TwoColumnTable = ({
       buttonTwo: true,
       onConfirm: (inputValue?: string) => {
         if (inputValue) {
-          setLocalData((prevData) => [
-            ...prevData,
-            { id: prevData.length + 1, name: inputValue },
-          ]);
+          const newData = { id: localData.length + 1, name: inputValue };
+
+          setLocalData((prevData) => [...prevData, newData]);
+          onAdd && onAdd(newData.name);
         }
         closeDimmedPopup();
       },
@@ -66,9 +70,11 @@ const TwoColumnTable = ({
       size: "small",
       buttonTwo: true,
       onConfirm: () => {
+        const deletedItem = localData[index];
         setLocalData((prevData) =>
           prevData.filter((item, itemIndex) => itemIndex !== index)
         );
+        onDelete && onDelete(deletedItem.id);
         closeDimmedPopup();
       },
       onCancel: closeDimmedPopup,
@@ -88,21 +94,22 @@ const TwoColumnTable = ({
             <IDTitleBase>ID</IDTitleBase>
             <NameTitleBase>Name</NameTitleBase>
           </HeaderBase>
-          {localData.map((item: any, index: number) => (
-            <TableBase key={index}>
-              <IDDataBase>{item.id}</IDDataBase>
-              <NameDataBase>{item.name}</NameDataBase>
-              <BasicButton
-                text={"Remove"}
-                width="80px"
-                justifyContent="center"
-                height="40px"
-                margin="0 30px 0 auto"
-                onClick={() => handleDeleteBtn(index)}
-                background="gray"
-              />
-            </TableBase>
-          ))}
+          {localData &&
+            localData.map((item: any, index: number) => (
+              <TableBase key={index}>
+                <IDDataBase>{item.id}</IDDataBase>
+                <NameDataBase>{item.name}</NameDataBase>
+                <BasicButton
+                  text={"Remove"}
+                  width="80px"
+                  justifyContent="center"
+                  height="40px"
+                  margin="0 30px 0 auto"
+                  onClick={() => handleDeleteBtn(index)}
+                  background="gray"
+                />
+              </TableBase>
+            ))}
         </TableContainer>
       </TwoColumnTableContainer>
     </>
