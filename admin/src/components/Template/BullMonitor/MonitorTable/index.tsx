@@ -22,7 +22,8 @@ const MonitorTable = ({ serviceId }: { serviceId: string }) => {
         [serviceId]
       ),
     refetchOnWindowFocus: false,
-    select: (data) => data.data,
+    select: (data) =>
+      data.data.sort((a: any, b: any) => a.queue.localeCompare(b.queue)),
   });
 
   return (

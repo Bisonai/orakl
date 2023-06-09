@@ -11,6 +11,7 @@ import NavigationDropdown from "@/components/Common/NavigationDropdown";
 import { MainContainer, Container } from "./styled";
 import ToastContextProvider from "@/components/Common/ToastProvider";
 import TabContextProvider from "@/components/Common/TabContextProvider";
+import ScrollToTopButton from "@/components/Common/ScrollButton";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -32,6 +33,7 @@ export default function RootLayout({
                   <MainContainer>
                     <NavigationDropdown />
                     <Container> {children}</Container>
+                    <ScrollToTopButton />
                   </MainContainer>
                 </TabContextProvider>
               </ToastContextProvider>
