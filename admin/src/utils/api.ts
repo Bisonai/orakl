@@ -5,19 +5,21 @@ import type { Method } from "axios";
  **********************************************/
 
 const isDevelopment = process.env.NODE_ENV === "development";
+const NEXT_PUBLIC_API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
+const NEXT_PUBLIC_API_QUEUES_URL = process.env.NEXT_PUBLIC_API_QUEUES_URL;
 
 export const api = {
-  queues: () => `http://localhost:8888/queues`,
-  queuesInfo: () => `http://localhost:8888/queues/info`,
+  queues: () => `${NEXT_PUBLIC_API_QUEUES_URL}/queues`,
+  queuesInfo: () => `${NEXT_PUBLIC_API_QUEUES_URL}/queues/info`,
   service: (serviceName: string) =>
-    `http://localhost:8888/queues/${serviceName}`,
+    `${NEXT_PUBLIC_API_QUEUES_URL}/queues/${serviceName}`,
   queueName: ({
     serviceName,
     queueName,
   }: {
     serviceName: string;
     queueName: string;
-  }) => `http://localhost:8888/queues/${serviceName}/${queueName}`,
+  }) => `${NEXT_PUBLIC_API_QUEUES_URL}/queues/${serviceName}/${queueName}`,
   queueStatus: ({
     serviceName,
     queueName,
@@ -26,10 +28,11 @@ export const api = {
     serviceName: string;
     queueName: string;
     status: string;
-  }) => `http://localhost:8888/queues/${serviceName}/${queueName}/${status}`,
-  getConfigChain: () => `http://localhost:3030/api/v1/chain/`,
-  getConfigService: () => `http://localhost:3030/api/v1/service/`,
-  configChain: (id: string) => `http://localhost:3030/api/v1/chain/${id}`,
+  }) =>
+    `${NEXT_PUBLIC_API_QUEUES_URL}/queues/${serviceName}/${queueName}/${status}`,
+  getConfigChain: () => `${NEXT_PUBLIC_API_BASE_URL}/api/v1/chain/`,
+  getConfigService: () => `${NEXT_PUBLIC_API_BASE_URL}/api/v1/service/`,
+  configChain: (id: string) => `${NEXT_PUBLIC_API_BASE_URL}/api/v1/chain/${id}`,
 };
 
 export type IApi = typeof api;
