@@ -1,13 +1,14 @@
 import axios from 'axios'
 import { URL } from 'node:url'
 import { Logger } from 'pino'
-import { IAggregator, IAggregate } from '../types'
+import { IAggregator, IAggregate, IErrorMsgData } from '../types'
 import { OraklError, OraklErrorCode } from '../errors'
 import { ORAKL_NETWORK_API_URL } from '../settings'
 import { buildUrl } from '../utils'
 
 export const AGGREGATE_ENDPOINT = buildUrl(ORAKL_NETWORK_API_URL, 'aggregate')
 export const AGGREGATOR_ENDPOINT = buildUrl(ORAKL_NETWORK_API_URL, 'aggregator')
+export const ERROR_ENDPOINT = buildUrl(ORAKL_NETWORK_API_URL, 'error')
 
 /**
  * Fetch aggregate data from `Orakl Network API` data feed endpoint
@@ -132,5 +133,22 @@ export async function getAggregator({
   } catch (e) {
     logger.error(e)
     throw new OraklError(OraklErrorCode.FailedToGetAggregator)
+  }
+}
+
+/**
+ * Store catched RR worker error log to
+ * `Orakl Network API` `error` endpoint
+ *
+ * @param {data} IErrorMsgData
+ * @param {Logger} logger
+ * @exception {FailedToGetAggregate}
+ */
+export async function storeErrorMsg({ data, logger }: { data: IErrorMsgData; logger: Logger }) {
+  try {
+    const error = (await axios.post(ERROR_ENDPOINT, data))?.data
+  } catch (e) {
+    logger.error(e)
+    throw new OraklError(OraklErrorCode.FailedToStoreErrorMsg)
   }
 }

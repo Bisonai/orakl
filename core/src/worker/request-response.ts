@@ -8,6 +8,7 @@ import { buildReducer } from './utils'
 import { decodeRequest } from './decoding'
 import { requestResponseReducerMapping } from './reducer'
 import {
+  IErrorMsgData,
   IRequestResponseListenerWorker,
   IRequestResponseTransactionParameters,
   QueueType
@@ -21,6 +22,7 @@ import {
   WORKER_JOB_SETTINGS,
   REQUEST_RESPONSE_FULFILL_GAS_MINIMUM
 } from '../settings'
+import { storeErrorMsg } from './api'
 
 const FILE_NAME = import.meta.url
 
@@ -84,6 +86,16 @@ export async function job(reporterQueue: QueueType, _logger: Logger) {
       return tx
     } catch (e) {
       logger.error(e)
+
+      const errorData: IErrorMsgData = {
+        requestId: inData.requestId,
+        timestamp: new Date(Date.now()),
+        code: e.code,
+        name: e.name,
+        stack: e.stack
+      }
+
+      await storeErrorMsg({ data: errorData, logger: _logger })
       throw e
     }
   }

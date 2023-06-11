@@ -11,6 +11,7 @@ export async function flattenReporter(L) {
     chain: L?.chain?.name
   }
 }
+
 export async function encryptText(textToEncrypt: string) {
   const password = process.env.ENCRYPT_PASSWORD
   const iv = randomBytes(16).toString('hex')
@@ -23,7 +24,7 @@ export async function encryptText(textToEncrypt: string) {
 }
 
 export async function decryptText(encryptedText: string) {
-  const password = process.env.ENCRYPT_PASSWORD || 'bisonai@123'
+  const password = process.env.ENCRYPT_PASSWORD
   const iv = encryptedText.substring(0, 32)
   const textToDecrypt = encryptedText.substring(32, encryptedText.length)
   const key = (await promisify(scrypt)(password, 'salt', 32)) as Buffer

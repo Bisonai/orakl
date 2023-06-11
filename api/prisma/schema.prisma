@@ -133,3 +133,14 @@ model Reporter {
 
   @@map("reporters")
 }
+
+model Error {
+  id        BigInt   @id @default(autoincrement()) @map("error_id")
+  requestId String   @map("request_id")
+  timestamp DateTime @db.Timestamptz()
+  code      BigInt
+  name      String
+  stack     String
+
+  @@map("error")
+}
