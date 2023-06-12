@@ -21,10 +21,12 @@ export function reporter(state: State, logger: Logger) {
 
     let delegatorOkay = true
     const NUM_TRANSACTION_TRIALS = 3
+    let txParams = { wallet, to, payload, gasLimit, logger }
+
     for (let i = 0; i < NUM_TRANSACTION_TRIALS; ++i) {
       if (state.delegatedFee && delegatorOkay) {
         try {
-          await sendTransactionDelegatedFee({ wallet, to, payload, gasLimit, logger })
+          await sendTransactionDelegatedFee(txParams)
           break
         } catch (e) {
           if (e.code == OraklErrorCode.DelegatorServerIssue) {
@@ -33,7 +35,7 @@ export function reporter(state: State, logger: Logger) {
         }
       } else if (state.delegatedFee) {
         try {
-          await sendTransactionCaver({ wallet, to, payload, gasLimit, logger })
+          await sendTransactionCaver(txParams)
           break
         } catch (e) {
           if (![OraklErrorCode.CaverTxTransactionFailed].includes(e.code)) {
@@ -42,7 +44,7 @@ export function reporter(state: State, logger: Logger) {
         }
       } else {
         try {
-          await sendTransaction({ wallet, to, payload, gasLimit, logger })
+          await sendTransaction(txParams)
           break
         } catch (e) {
           if (

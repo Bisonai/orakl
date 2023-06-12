@@ -195,7 +195,7 @@ export async function sendTransactionDelegatedFee({
       throw new OraklError(OraklErrorCode.MissingSignedRawTx)
     }
   } catch (e) {
-    _logger.error(e, 'e')
+    _logger.error(e)
     throw e
   }
 }
@@ -215,19 +215,24 @@ export async function sendTransactionCaver({
   logger: Logger
   value?: number | string
 }) {
+  const _logger = logger.child({ name: 'sendTransactionCaver', file: FILE_NAME })
+
   const txParams = {
     from: wallet.address,
     to,
     input: payload,
-    gasLimit,
+    gas: gasLimit,
     value: value || '0x00'
   }
 
   try {
     const tx = wallet.caver.transaction.smartContractExecution.create(txParams)
+    await tx.fillTransaction()
     await wallet.caver.wallet.sign(wallet.address, tx)
     const txReceipt = await wallet.caver.rpc.klay.sendRawTransaction(tx.getRawTransaction())
+    _logger.debug(txReceipt, 'txReceipt')
   } catch (e) {
+    _logger.error(e)
     throw new OraklError(OraklErrorCode.CaverTxTransactionFailed)
   }
 }
