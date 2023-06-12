@@ -21,7 +21,7 @@ export function reporter(state: State, logger: Logger) {
 
     let delegatorOkay = true
     const NUM_TRANSACTION_TRIALS = 3
-    let txParams = { wallet, to, payload, gasLimit, logger }
+    const txParams = { wallet, to, payload, gasLimit, logger }
 
     for (let i = 0; i < NUM_TRANSACTION_TRIALS; ++i) {
       if (state.delegatedFee && delegatorOkay) {
