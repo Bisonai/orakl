@@ -12,7 +12,7 @@ import React from "react";
 import { IQueueInfoData } from "@/utils/types";
 import BasicButton from "@/components/Common/BasicButton";
 import Link from "next/link";
-import RefreshIcon from "@/components/Common/refreshIcon";
+import RefreshIcon from "@/components/Common/RefreshIcon";
 
 const TableHeader = ({
   serviceData,
