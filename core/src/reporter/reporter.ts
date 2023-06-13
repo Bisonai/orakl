@@ -1,6 +1,6 @@
 import { Job } from 'bullmq'
 import { Logger } from 'pino'
-import { sendTransaction, sendTransactionDelegatedFee } from './utils'
+import { sendTransaction, sendTransactionDelegatedFee, sendTransactionCaver } from './utils'
 import { State } from './state'
 import { ITransactionParameters } from '../types'
 import { OraklError, OraklErrorCode } from '../errors'
@@ -19,28 +19,46 @@ export function reporter(state: State, logger: Logger) {
       throw new OraklError(OraklErrorCode.WalletNotActive, msg)
     }
 
+    let delegatorOkay = true
     const NUM_TRANSACTION_TRIALS = 3
+    const txParams = { wallet, to, payload, gasLimit, logger }
+
     for (let i = 0; i < NUM_TRANSACTION_TRIALS; ++i) {
-      try {
-        if (state.delegatedFee) {
-          await sendTransactionDelegatedFee({ wallet, to, payload, logger, gasLimit })
-        } else {
-          await sendTransaction({ wallet, to, payload, logger, gasLimit })
+      if (state.delegatedFee && delegatorOkay) {
+        try {
+          await sendTransactionDelegatedFee(txParams)
+          break
+        } catch (e) {
+          if (e.code == OraklErrorCode.DelegatorServerIssue) {
+            delegatorOkay = false
+          }
         }
-
-        break
-      } catch (e) {
-        if (
-          ![
-            OraklErrorCode.TxNotMined,
-            OraklErrorCode.TxProcessingResponseError,
-            OraklErrorCode.TxMissingResponseError
-          ].includes(e.code)
-        ) {
-          throw e
+      } else if (state.delegatedFee) {
+        try {
+          await sendTransactionCaver(txParams)
+          break
+        } catch (e) {
+          if (![OraklErrorCode.CaverTxTransactionFailed].includes(e.code)) {
+            throw e
+          }
         }
+      } else {
+        try {
+          await sendTransaction(txParams)
+          break
+        } catch (e) {
+          if (
+            ![
+              OraklErrorCode.TxNotMined,
+              OraklErrorCode.TxProcessingResponseError,
+              OraklErrorCode.TxMissingResponseError
+            ].includes(e.code)
+          ) {
+            throw e
+          }
 
-        logger.info(`Retrying transaction. Trial number: ${i}`)
+          logger.info(`Retrying transaction. Trial number: ${i}`)
+        }
       }
     }
   }

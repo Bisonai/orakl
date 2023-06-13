@@ -58,5 +58,7 @@ export enum OraklErrorCode {
   ListenerNotFoundInState,
   ReporterNotFoundInState,
   UnknownRequestResponseJob,
-  MissingSignedRawTx
+  MissingSignedRawTx,
+  CaverTxTransactionFailed,
+  DelegatorServerIssue
 }
