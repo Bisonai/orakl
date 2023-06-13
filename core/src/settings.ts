@@ -19,8 +19,6 @@ export const PROVIDER_URL = process.env.PROVIDER_URL || 'http://127.0.0.1:8545'
 export const REDIS_HOST = process.env.REDIS_HOST || 'localhost'
 export const REDIS_PORT = process.env.REDIS_PORT ? Number(process.env.REDIS_PORT) : 6379
 export const SLACK_WEBHOOK_URL = process.env.SLACK_WEBHOOK_URL || ''
-export const PRIVATE_KEY = String(process.env.PRIVATE_KEY)
-export const PUBLIC_KEY = String(process.env.PUBLIC_KEY)
 export const LOCAL_AGGREGATOR = process.env.LOCAL_AGGREGATOR || 'MEDIAN'
 export const LISTENER_DELAY = Number(process.env.LISTENER_DELAY) || 500
 
