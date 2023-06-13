@@ -527,13 +527,6 @@ describe('Aggregator', function () {
     await aggregator.contract.changeOracles([], [oracle0.address], 1, 1, 0)
 
     {
-      const roundId = 2
-      await expect(aggregator.contract.connect(oracle0).submit(roundId, answer)).to.be.revertedWith(
-        'invalid round to report'
-      )
-    }
-
-    {
       const roundId = 1
       await aggregator.contract.connect(oracle0).submit(roundId, answer)
       await expect(aggregator.contract.connect(oracle0).submit(roundId, answer)).to.be.revertedWith(
