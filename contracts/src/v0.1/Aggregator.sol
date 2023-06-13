@@ -618,22 +618,6 @@ contract Aggregator is Ownable, IAggregator, ITypeAndVersion {
         return currentRound + 1;
     }
 
-    /**
-     * @dev In general, oracles are supposed to submit to the current
-     * round that is denoted by `reportingRoundId` variable. In some
-     * cases, when the current round is `supersedable`, we allow them to
-     * submit to the next round.
-     * The only exception of submitting on previous round
-     * (`reportingRound - 1`) is when the current round has not
-     * received enough submissions to produce an aggregate value.
-     */
-    function previousAndCurrentUnanswered(
-        uint32 _roundId,
-        uint32 _rrId
-    ) private view returns (bool) {
-        return _roundId + 1 == _rrId && rounds[_rrId].updatedAt == 0;
-    }
-
     function addOracle(address _oracle) private {
         if (oracleEnabled(_oracle)) {
             revert OracleAlreadyEnabled();
@@ -679,9 +663,8 @@ contract Aggregator is Ownable, IAggregator, ITypeAndVersion {
             _roundId != rrId &&
             // Not reporting on next round.
             _roundId != rrId + 1 &&
-            // Not reporting on the previous round while the current
-            // round has not finished yet.
-            !previousAndCurrentUnanswered(_roundId, rrId)
+            // Not reporting on previous round
+            _roundId != rrId - 1
         ) return "invalid round to report";
         if (_roundId != 1 && !supersedable(_roundId - 1)) return "previous round not supersedable";
 

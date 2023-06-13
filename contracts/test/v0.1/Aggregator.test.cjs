@@ -563,4 +563,31 @@ describe('Aggregator', function () {
       ).to.be.revertedWith('no longer allowed oracle')
     }
   })
+
+  it('Submission to previous round', async function () {
+    const { aggregator, account2: oracle0, account3: oracle1 } = await loadFixture(deploy)
+
+    await aggregator.contract.changeOracles([], [oracle0.address, oracle1.address], 1, 2, 0)
+
+    {
+      const round = 1
+      await aggregator.contract.connect(oracle0).submit(round, 123)
+      await aggregator.contract.connect(oracle1).submit(round, 123)
+    }
+
+    {
+      const round = 2
+      await aggregator.contract.connect(oracle0).submit(round, 123)
+    }
+
+    {
+      const round = 3
+      await aggregator.contract.connect(oracle0).submit(round, 123)
+    }
+
+    {
+      const round = 2
+      await aggregator.contract.connect(oracle1).submit(round, 123)
+    }
+  })
 })
