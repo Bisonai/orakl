@@ -45,7 +45,11 @@
     "deploy:baobab:aggregator": "yarn deploy:baobab --deploy-scripts deploy/Aggregator",
     "deploy:baobab:prepayment": "yarn deploy:baobab --deploy-scripts deploy/Prepayment",
     "deploy:baobab:rr": "yarn deploy:baobab --deploy-scripts deploy/RequestResponse",
-    "deploy:baobab:vrf": "yarn deploy:baobab --deploy-scripts deploy/VRF"
+    "deploy:baobab:vrf": "yarn deploy:baobab --deploy-scripts deploy/VRF",
+    "deploy:cypress:aggregator": "npx hardhat deploy --network cypress --deploy-scripts deploy/Aggregator",
+    "deploy:cypress:prepayment": "npx hardhat deploy --network cypress --deploy-scripts deploy/Prepayment",
+    "deploy:cypress:rr": "npx hardhat deploy --network cypress --deploy-scripts deploy/RequestResponse",
+    "deploy:cypress:vrf": "npx hardhat deploy --network cypress --deploy-scripts deploy/VRF"
   },
   "devDependencies": {
     "@bisonai/orakl-vrf": "^0.2.0",
