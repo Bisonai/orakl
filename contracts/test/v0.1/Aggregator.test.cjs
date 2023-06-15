@@ -563,4 +563,51 @@ describe('Aggregator', function () {
       ).to.be.revertedWith('no longer allowed oracle')
     }
   })
+
+  it('Skipping rounds', async function () {
+    const { aggregator, account2: oracle0, account3: oracle1 } = await loadFixture(deploy)
+
+    const timeout = 0
+    await aggregator.contract.changeOracles([], [oracle0.address, oracle1.address], 1, 2, timeout)
+
+    {
+      // oracle 0, 1
+      // round 1
+      const round = 1
+      await aggregator.contract.connect(oracle0).submit(round, 123)
+      await aggregator.contract.connect(oracle1).submit(round, 123)
+    }
+
+    {
+      // oracle 0
+      // round 2
+      const { _eligibleToSubmit, _roundId } = await aggregator.contract.oracleRoundState(
+        oracle0.address,
+        0
+      )
+      expect(_roundId).to.be.equal(2)
+      await aggregator.contract.connect(oracle0).submit(_roundId, 123)
+    }
+
+    {
+      // oracle 0
+      // round 3
+      const { _eligibleToSubmit, _roundId } = await aggregator.contract.oracleRoundState(
+        oracle0.address,
+        0
+      )
+      expect(_roundId).to.be.equal(3)
+      await aggregator.contract.connect(oracle0).submit(_roundId, 123)
+    }
+
+    {
+      // oracle 1
+      // skipping round 2, should submit to round 3
+      const { _eligibleToSubmit, _roundId } = await aggregator.contract.oracleRoundState(
+        oracle1.address,
+        0
+      )
+      expect(_roundId).to.be.equal(3)
+    }
+  })
 })
