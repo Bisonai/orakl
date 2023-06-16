@@ -1,0 +1,16 @@
+{
+  "deploy": {
+    "name": "SOL-USDT",
+    "timeout": 0,
+    "validator": "0x0000000000000000000000000000000000000000",
+    "decimals": 8,
+    "description": "SOL-USDT"
+  },
+  "changeOracles": {
+    "removed": [],
+    "added": ["0x87D5c7ca089559e60b36c59Cf6Cb5137856f9CCc"],
+    "minSubmissionCount": 1,
+    "maxSubmissionCount": 1,
+    "restartDelay": 0
+  }
+}

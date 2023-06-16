@@ -1,0 +1,16 @@
+{
+  "deploy": {
+    "name": "TRX-USDT",
+    "timeout": 0,
+    "validator": "0x0000000000000000000000000000000000000000",
+    "decimals": 8,
+    "description": "TRX-USDT"
+  },
+  "changeOracles": {
+    "removed": [],
+    "added": ["0x4172fD98660B9E38c105C61Cd25f1D3f9b4c7ABf"],
+    "minSubmissionCount": 1,
+    "maxSubmissionCount": 1,
+    "restartDelay": 0
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "deploy": {
+    "name": "USDC-USDT",
+    "timeout": 0,
+    "validator": "0x0000000000000000000000000000000000000000",
+    "decimals": 8,
+    "description": "USDC-USDT"
+  },
+  "changeOracles": {
+    "removed": [],
+    "added": ["0x5b3ec4cC4349c30c86747De6bC092B28F477884b"],
+    "minSubmissionCount": 1,
+    "maxSubmissionCount": 1,
+    "restartDelay": 0
+  }
+}

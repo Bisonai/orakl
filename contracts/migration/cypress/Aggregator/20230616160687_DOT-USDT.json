@@ -1,0 +1,16 @@
+{
+  "deploy": {
+    "name": "DOT-USDT",
+    "timeout": 0,
+    "validator": "0x0000000000000000000000000000000000000000",
+    "decimals": 8,
+    "description": "DOT-USDT"
+  },
+  "changeOracles": {
+    "removed": [],
+    "added": ["0x73d0b337630194947FbeFC2F80B6AAE5B1c90c00"],
+    "minSubmissionCount": 1,
+    "maxSubmissionCount": 1,
+    "restartDelay": 0
+  }
+}

@@ -23,7 +23,7 @@ async function generateWallet() {
 
 async function main() {
   const baseSource = './migration/baobab/Aggregator/'
-  const aggregatorSource = './migration/baobab/Aggregator/20230325094038_BNB-USDT.json'
+  const aggregatorSource = './migration/baobab/Aggregator/20230616160687_BNB-USDT.json'
   const data = await loadJson(aggregatorSource)
   const date = getFormattedDate()
 
@@ -45,7 +45,6 @@ async function main() {
     data.deploy.name = priceFeed
     data.deploy.description = priceFeed
     data.changeOracles.added = [wallet.address]
-    data.changeOracles.addedAdmins = [wallet.address]
 
     console.log(data)
 

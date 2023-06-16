@@ -1,0 +1,16 @@
+{
+  "deploy": {
+    "name": "BNB-USDT",
+    "timeout": 0,
+    "validator": "0x0000000000000000000000000000000000000000",
+    "decimals": 8,
+    "description": "BNB-USDT"
+  },
+  "changeOracles": {
+    "removed": [],
+    "added": ["0x98233260a80520fd9309c16555F6fcE878AF0dc6"],
+    "minSubmissionCount": 1,
+    "maxSubmissionCount": 1,
+    "restartDelay": 0
+  }
+}

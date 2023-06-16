@@ -1,0 +1,16 @@
+{
+  "deploy": {
+    "name": "ETH-USDT",
+    "timeout": 0,
+    "validator": "0x0000000000000000000000000000000000000000",
+    "decimals": 8,
+    "description": "ETH-USDT"
+  },
+  "changeOracles": {
+    "removed": [],
+    "added": ["0xd1D9610C7fb0340f57d2fF1c0a8C4b57aA79C178"],
+    "minSubmissionCount": 1,
+    "maxSubmissionCount": 1,
+    "restartDelay": 0
+  }
+}

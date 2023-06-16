@@ -1,0 +1,16 @@
+{
+  "deploy": {
+    "name": "BTC-USDT",
+    "timeout": 0,
+    "validator": "0x0000000000000000000000000000000000000000",
+    "decimals": 8,
+    "description": "BTC-USDT"
+  },
+  "changeOracles": {
+    "removed": [],
+    "added": ["0x0cf8D8501b70F982aE8369750ac9ec63A2EF2B1b"],
+    "minSubmissionCount": 1,
+    "maxSubmissionCount": 1,
+    "restartDelay": 0
+  }
+}

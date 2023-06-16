@@ -1,0 +1,16 @@
+{
+  "deploy": {
+    "name": "BUSD-USDT",
+    "timeout": 0,
+    "validator": "0x0000000000000000000000000000000000000000",
+    "decimals": 8,
+    "description": "BUSD-USDT"
+  },
+  "changeOracles": {
+    "removed": [],
+    "added": ["0x9806dBBfACa4Acb6736eaC8AC5e05026335401B1"],
+    "minSubmissionCount": 1,
+    "maxSubmissionCount": 1,
+    "restartDelay": 0
+  }
+}
