@@ -33,7 +33,6 @@ export class JobProcessor extends WorkerHost {
 
       const oracleAddress = inData[adapterHash].address
       const aggregatorHash = inData[adapterHash].aggregatorHash
-      console.log(decimals, 'decimals')
 
       try {
         const { value: lastSubmission } = await fetchDataFeed({
