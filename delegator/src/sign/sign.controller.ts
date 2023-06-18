@@ -20,7 +20,7 @@ export class SignController {
 
   @Get('initialize')
   initialize() {
-    return this.signService.initialize()
+    return this.signService.initialize({})
   }
 
   @Get()

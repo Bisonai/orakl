@@ -16,16 +16,16 @@ export class SignService {
     this.caver = new Caver(process.env.PROVIDER_URL)
   }
 
-  async initialize() {
-    let feePayerPrivateKey = undefined
-
-    const feePayers: any[] = await this.prisma.$queryRaw`SELECT * FROM fee_payers`
-    if (feePayers.length == 0) {
-      throw new DelegatorError(DelegatorErrorCode.NoFeePayer)
-    } else if (feePayers.length == 1) {
-      feePayerPrivateKey = feePayers[0]?.privateKey
-    } else {
-      throw new DelegatorError(DelegatorErrorCode.TooManyFeePayers)
+  async initialize({ feePayerPrivateKey }: { feePayerPrivateKey?: string }) {
+    if (!feePayerPrivateKey) {
+      const feePayers: any[] = await this.prisma.$queryRaw`SELECT * FROM fee_payers`
+      if (feePayers.length == 0) {
+        throw new DelegatorError(DelegatorErrorCode.NoFeePayer)
+      } else if (feePayers.length == 1) {
+        feePayerPrivateKey = feePayers[0]?.privateKey
+      } else {
+        throw new DelegatorError(DelegatorErrorCode.TooManyFeePayers)
+      }
     }
 
     this.feePayerKeyring = this.caver.wallet.keyring.createFromPrivateKey(feePayerPrivateKey)
