@@ -75,3 +75,9 @@ model Transaction {
 
   @@map("transactions")
 }
+
+model FeePayer {
+  privateKey String @unique @db.VarChar(66)
+
+  @@map("fee_payers")
+}

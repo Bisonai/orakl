@@ -14,10 +14,24 @@ export class SignService {
 
   constructor(private prisma: PrismaService) {
     this.caver = new Caver(process.env.PROVIDER_URL)
-    this.feePayerKeyring = this.caver.wallet.keyring.createFromPrivateKey(
-      process.env.DELEGATOR_FEEPAYER_PK
-    )
+  }
+
+  async initialize() {
+    let feePayerPrivateKey = undefined
+
+    const feePayers: any[] = await this.prisma.$queryRaw`SELECT * FROM fee_payers`
+    if (feePayers.length == 0) {
+      throw new DelegatorError(DelegatorErrorCode.NoFeePayer)
+    } else if (feePayers.length == 1) {
+      feePayerPrivateKey = feePayers[0]?.privateKey
+    } else {
+      throw new DelegatorError(DelegatorErrorCode.TooManyFeePayers)
+    }
+
+    this.feePayerKeyring = this.caver.wallet.keyring.createFromPrivateKey(feePayerPrivateKey)
     this.caver.wallet.add(this.feePayerKeyring)
+
+    this.logger.log('Orakl Network Delegator: Private key initialized successfully')
   }
 
   async create(data: SignDto) {
