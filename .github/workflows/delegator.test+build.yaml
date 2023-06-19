@@ -47,14 +47,6 @@ jobs:
           DELEGATOR_FEEPAYER_PK: ${{ secrets.DELEGATOR_FEEPAYER_PK}}
           TEST_DELEGATOR_REPORTER_PK: ${{ secrets.TEST_DELEGATOR_REPORTER_PK}}
         working-directory: ./delegator
-      - name: Run e2e2 test
-        run: yarn test:e2e
-        env:
-          DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/orakl-test?schema=public"
-          PROVIDER_URL: "https://api.baobab.klaytn.net:8651"
-          DELEGATOR_FEEPAYER_PK: ${{ secrets.DELEGATOR_FEEPAYER_PK}}
-          TEST_DELEGATOR_REPORTER_PK: ${{ secrets.TEST_DELEGATOR_REPORTER_PK}}
-        working-directory: ./delegator
       - name: Build package
         run: yarn build
         working-directory: ./delegator

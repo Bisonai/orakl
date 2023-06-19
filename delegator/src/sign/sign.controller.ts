@@ -18,6 +18,11 @@ export class SignController {
     }
   }
 
+  @Get('initialize')
+  initialize() {
+    return this.signService.initialize({})
+  }
+
   @Get()
   findAll() {
     return this.signService.findAll({})
