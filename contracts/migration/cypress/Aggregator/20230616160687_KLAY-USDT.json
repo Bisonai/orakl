@@ -1,0 +1,16 @@
+{
+  "deploy": {
+    "name": "KLAY-USDT",
+    "timeout": 0,
+    "validator": "0x0000000000000000000000000000000000000000",
+    "decimals": 8,
+    "description": "KLAY-USDT"
+  },
+  "changeOracles": {
+    "removed": [],
+    "added": ["0x953903bC4036E1C803804e58813165C54Aa9c3F7"],
+    "minSubmissionCount": 1,
+    "maxSubmissionCount": 1,
+    "restartDelay": 0
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "deploy": {
+    "name": "MNR-KRW",
+    "timeout": 0,
+    "validator": "0x0000000000000000000000000000000000000000",
+    "decimals": 8,
+    "description": "MNR-KRW"
+  },
+  "changeOracles": {
+    "removed": [],
+    "added": ["0x09793d33081c1ec26f3cBCB9896E19E592637930"],
+    "minSubmissionCount": 1,
+    "maxSubmissionCount": 1,
+    "restartDelay": 0
+  }
+}

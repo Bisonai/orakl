@@ -1,0 +1,16 @@
+{
+  "deploy": {
+    "name": "DAI-USDT",
+    "timeout": 0,
+    "validator": "0x0000000000000000000000000000000000000000",
+    "decimals": 8,
+    "description": "DAI-USDT"
+  },
+  "changeOracles": {
+    "removed": [],
+    "added": ["0x1530dA629a8da3e7b0C9ca3BE90030d5A75Cf19F"],
+    "minSubmissionCount": 1,
+    "maxSubmissionCount": 1,
+    "restartDelay": 0
+  }
+}
