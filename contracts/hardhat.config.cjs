@@ -137,7 +137,6 @@ task('set-burn-fee-ratio', 'Change the burn fee ratio')
     if (network.name == 'localhost') {
       const { deployer } = await hre.getNamedAccounts()
       _deployer = await ethers.getSigner(deployer)
-      console.log('Deployer:', _deployer)
     } else {
       const PROVIDER = process.env.PROVIDER
       const MNEMONIC = process.env.MNEMONIC || ''
@@ -151,7 +150,7 @@ task('set-burn-fee-ratio', 'Change the burn fee ratio')
     console.log('Tx:', tx)
 
     const newBurnFeeRatio = await prepayment.connect(_deployer).getBurnFeeRatio()
-    console.log(`burn Fee Ratio Changed from:${curBurnFeeRatio} to new ${newBurnFeeRatio}`)
+    console.log(`Burn Fee Ratio changed from:${curBurnFeeRatio} to ${newBurnFeeRatio}`)
   })
 
 module.exports = config
