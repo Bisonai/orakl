@@ -47,30 +47,30 @@ const func = async function (hre) {
         log: true
       })
       aggregator = await ethers.getContractAt('Aggregator', aggregatorDeployment.address)
+    }
 
-      // Update oracles that are allowed to submit to Aggregator /////////////////
-      if (config.changeOracles) {
-        console.log('changeOracles')
-        const changeOraclesConfig = config.changeOracles
+    // Update oracles that are allowed to submit to Aggregator /////////////////
+    if (config.changeOracles) {
+      console.log('changeOracles')
+      const changeOraclesConfig = config.changeOracles
 
-        if (!validateAggregatorChangeOraclesConfig(changeOraclesConfig)) {
-          throw new Error('Invalid Aggregator changeOracles config')
-        }
-
-        aggregator = aggregator
-          ? aggregator
-          : await ethers.getContractAt('Aggregator', config.aggregatorAddress)
-
-        await (
-          await aggregator.changeOracles(
-            changeOraclesConfig.removed,
-            changeOraclesConfig.added,
-            changeOraclesConfig.minSubmissionCount,
-            changeOraclesConfig.maxSubmissionCount,
-            changeOraclesConfig.restartDelay
-          )
-        ).wait()
+      if (!validateAggregatorChangeOraclesConfig(changeOraclesConfig)) {
+        throw new Error('Invalid Aggregator changeOracles config')
       }
+
+      aggregator = aggregator
+        ? aggregator
+        : await ethers.getContractAt('Aggregator', config.aggregatorAddress)
+
+      await (
+        await aggregator.changeOracles(
+          changeOraclesConfig.removed,
+          changeOraclesConfig.added,
+          changeOraclesConfig.minSubmissionCount,
+          changeOraclesConfig.maxSubmissionCount,
+          changeOraclesConfig.restartDelay
+        )
+      ).wait()
     }
 
     // redirect Proxy ////////////////////////////////////
