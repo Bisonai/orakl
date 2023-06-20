@@ -129,4 +129,28 @@ task('read-data-feed', 'Read latest data from DataFeedConsumerMock')
     }
   })
 
+task('set-burn-fee-ratio', 'Change the burn fee ratio')
+  .addParam('ratio', 'New burn fee ratio')
+  .addParam('address', 'Prepayment contract address')
+  .setAction(async (taskArgs, hre) => {
+    let _deployer
+    if (network.name == 'localhost') {
+      const { deployer } = await hre.getNamedAccounts()
+      _deployer = await ethers.getSigner(deployer)
+    } else {
+      const PROVIDER = process.env.PROVIDER
+      const MNEMONIC = process.env.MNEMONIC || ''
+      const provider = new ethers.providers.JsonRpcProvider(PROVIDER)
+      _deployer = ethers.Wallet.fromMnemonic(MNEMONIC).connect(provider)
+    }
+
+    const prepayment = await ethers.getContractAt('Prepayment', taskArgs.address)
+    const curBurnFeeRatio = await prepayment.connect(_deployer).getBurnFeeRatio()
+    const tx = await (await prepayment.connect(_deployer).setBurnFeeRatio(taskArgs.ratio)).wait()
+    console.log('Tx:', tx)
+
+    const newBurnFeeRatio = await prepayment.connect(_deployer).getBurnFeeRatio()
+    console.log(`Burn Fee Ratio changed from:${curBurnFeeRatio} to ${newBurnFeeRatio}`)
+  })
+
 module.exports = config
