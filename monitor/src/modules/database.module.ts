@@ -16,7 +16,16 @@ import { DatabaseConfigService } from "src/common/database.config";
       },
       inject: [DatabaseConfigService],
     },
+    {
+      provide: "ORAKL_DATABASE",
+      useFactory: async (configService: DatabaseConfigService) => {
+        const pool = new Pool(configService.oraklDatabase);
+        await pool.connect();
+        return pool;
+      },
+      inject: [DatabaseConfigService],
+    },    
   ],
-  exports: ["MONITOR_DATABASE"],
+  exports: ["MONITOR_DATABASE", "ORAKL_DATABASE"],
 })
 export class DatabaseModule {}
