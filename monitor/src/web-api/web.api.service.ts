@@ -11,15 +11,20 @@ import { ErrorResultDto } from "./dto/error.dto";
 
 @Injectable()
 export class WebApiService {
-    private webApiClient: PoolClient;
+  private webApiClient: PoolClient;
 
-    constructor(
-        private readonly webApiRepository: OraklServiceRepository,
-        private readonly commonConfigService: CommonConfigService
-    ) { }
+  constructor(
+    private readonly webApiRepository: OraklServiceRepository,
+    private readonly commonConfigService: CommonConfigService
+  ) {}
 
-    async getErrorResult(chain :string, requestId: string): Promise<ErrorResultDto | null> {
-        return await this.webApiRepository.getErrorResoutByRequestId(chain, requestId)
-    }
-
+  async getErrorResult(
+    chain: string,
+    requestIds
+  ): Promise<ErrorResultDto | null> {
+    return await this.webApiRepository.getErrorResoutByRequestId(
+      chain,
+      requestIds
+    );
+  }
 }

@@ -5,26 +5,31 @@ import { ErrorResultDto } from './dto/error.dto';
 
 @Injectable()
 export class OraklServiceRepository implements OnModuleInit, OnModuleDestroy {
-    private oraklServiceClient: any;
+  private oraklServiceClient: any;
 
-    constructor(
-        @Inject('ORAKL_DATABASE') private readonly oraklDatabasePool: Pool,
-    ) {}
+  constructor(
+    @Inject("ORAKL_DATABASE") private readonly oraklDatabasePool: Pool
+  ) {}
 
-    async onModuleInit() {
-        this.oraklServiceClient = await this.oraklDatabasePool.connect();
-    }
+  async onModuleInit() {
+    this.oraklServiceClient = await this.oraklDatabasePool.connect();
+  }
 
-    async onModuleDestroy() {
-        await this.oraklServiceClient.release();
-    }
+  async onModuleDestroy() {
+    await this.oraklServiceClient.release();
+  }
 
-    async getErrorResoutByRequestId(chain: string, requestId: string): Promise<ErrorResultDto | null> {
-        const query = {
-            text: 'SELECT * FROM error where request_id = $1',
-            values: [requestId]
-        }
-        const result = await this.oraklServiceClient.query(query);
-        return result.rows || null;
-    }
+  async getErrorResoutByRequestId(
+    chain: string,
+    requestIds: any
+  ): Promise<ErrorResultDto | null> {
+    const parsedRequestIds = requestIds.slice(1, -1).split(",");
+    console.log(parsedRequestIds);
+    const query = {
+      text: "SELECT * FROM error where request_id = ANY ($1::text[])",
+      values: [parsedRequestIds.map((id) => id.toString())],
+    };
+    const result = await this.oraklServiceClient.query(query);
+    return result.rows || null;
+  }
 }
