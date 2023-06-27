@@ -36,6 +36,7 @@ export class SignService {
 
   async create(data: SignDto) {
     try {
+      data.timestamp = new Date()
       data.from = data.from.toLocaleLowerCase()
       data.to = data.to.toLocaleLowerCase()
       const transaction = await this.prisma.transaction.create({ data })
