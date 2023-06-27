@@ -131,13 +131,12 @@ export class SignService {
         reporter: { some: { address: tx.from } },
         function: { some: { encodedName } }
       },
-      include: { function: true, reporter: true }
+      include: { reporter: { where: { address: tx.from } }, function: { where: { encodedName } } }
     })
 
-    if (result.length == 1) {
+    if (result.length == 1 && result[0].function.length == 1 && result[0].reporter.length == 1) {
       return result[0]
-    }
-    if (result.length == 0) {
+    } else if (result.length == 0) {
       throw new DelegatorError(DelegatorErrorCode.NotApprovedTransaction)
     } else {
       throw new DelegatorError(DelegatorErrorCode.UnexpectedResultLength)
