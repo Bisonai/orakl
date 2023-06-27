@@ -103,6 +103,8 @@ describe('SignService', () => {
 
     const oldCounter = await contract.methods.COUNTER().call()
     await caver.rpc.klay.sendRawTransaction(transaction.signedRawTx)
+
+    await new Promise((resolve) => setTimeout(resolve, 1000))
     const newCounter = await contract.methods.COUNTER().call()
     expect(Number(oldCounter) + 1).toBe(Number(newCounter))
 
@@ -113,7 +115,7 @@ describe('SignService', () => {
     await contractService.remove({ id: con.id })
   })
 
-  it('Should validateTransaction and execute transaction', async () => {
+  it('Should validateTransaction and check if correct Id are selected', async () => {
     // Setup Organization & Reporter 1
     const organizationName1 = 'Company'
     const org1 = await organizationService.create({ name: organizationName1 })
@@ -162,6 +164,8 @@ describe('SignService', () => {
 
     const oldCounter = await contract.methods.COUNTER().call()
     await caver.rpc.klay.sendRawTransaction(transaction.signedRawTx)
+
+    await new Promise((resolve) => setTimeout(resolve, 1000))
     const newCounter = await contract.methods.COUNTER().call()
     expect(Number(oldCounter) + 1).toBe(Number(newCounter))
 
