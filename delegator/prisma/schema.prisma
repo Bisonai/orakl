@@ -52,6 +52,7 @@ model Function {
 
 model Transaction {
   id          BigInt    @id @default(autoincrement()) @map("transaction_id")
+  timestamp   DateTime?  @db.Timestamptz
   from        String    @db.VarChar(42)
   to          String    @db.VarChar(42)
   input       String    @db.VarChar(1024)
