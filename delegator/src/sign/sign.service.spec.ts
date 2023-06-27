@@ -103,6 +103,8 @@ describe('SignService', () => {
 
     const oldCounter = await contract.methods.COUNTER().call()
     await caver.rpc.klay.sendRawTransaction(transaction.signedRawTx)
+
+    await new Promise((resolve) => setTimeout(resolve, 1000))
     const newCounter = await contract.methods.COUNTER().call()
     expect(Number(oldCounter) + 1).toBe(Number(newCounter))
 
@@ -110,6 +112,70 @@ describe('SignService', () => {
     await functionService.remove({ id: fun.id })
     await reporterService.remove({ id: rep.id })
     await organizationService.remove({ id: org.id })
+    await contractService.remove({ id: con.id })
+  })
+
+  it('Should validateTransaction and check if correct Id are selected', async () => {
+    // Setup Organization & Reporter 1
+    const organizationName1 = 'Company'
+    const org1 = await organizationService.create({ name: organizationName1 })
+    expect(org1.name).toBe(organizationName1)
+
+    const dummyAddress = '0x000000000000000'
+    const rep1 = await reporterService.create({
+      address: dummyAddress,
+      organizationId: org1.id
+    })
+    expect(rep1.address).toBe(dummyAddress)
+
+    // Setup Organization & Reporter 2
+    const organizationName2 = 'Bisonai'
+    const org2 = await organizationService.create({ name: organizationName2 })
+    expect(org2.name).toBe(organizationName2)
+
+    const rep2 = await reporterService.create({
+      address: transactionData.from,
+      organizationId: org2.id
+    })
+    expect(rep2.address).toBe(transactionData.from)
+
+    // Setup Contract
+    const con = await contractService.create({ address: transactionData.to })
+    expect(con.address).toBe(transactionData.to)
+
+    // Connect Contract to Reporters
+    await contractService.connectReporter({ contractId: con.id, reporterId: rep1.id })
+    await contractService.connectReporter({ contractId: con.id, reporterId: rep2.id })
+
+    // Setup 2 functionName
+    const functionMethod1 = 'dummy()'
+    const fun1 = await functionService.create({ name: functionMethod1, contractId: con.id })
+    expect(fun1.name).toBe(functionMethod1)
+
+    const functionMethod2 = 'increment()'
+    const fun2 = await functionService.create({ name: functionMethod2, contractId: con.id })
+    expect(fun2.name).toBe(functionMethod2)
+
+    const transaction = await service.create(transactionData)
+
+    expect(transaction.signedRawTx)
+    expect(transaction.reporterId).toBe(rep2.id)
+    expect(transaction.functionId).toBe(fun2.id)
+
+    const oldCounter = await contract.methods.COUNTER().call()
+    await caver.rpc.klay.sendRawTransaction(transaction.signedRawTx)
+
+    await new Promise((resolve) => setTimeout(resolve, 1000))
+    const newCounter = await contract.methods.COUNTER().call()
+    expect(Number(oldCounter) + 1).toBe(Number(newCounter))
+
+    // cleanup
+    await functionService.remove({ id: fun1.id })
+    await functionService.remove({ id: fun2.id })
+    await reporterService.remove({ id: rep1.id })
+    await reporterService.remove({ id: rep2.id })
+    await organizationService.remove({ id: org1.id })
+    await organizationService.remove({ id: org2.id })
     await contractService.remove({ id: con.id })
   })
 

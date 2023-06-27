@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "transactions" ADD COLUMN     "timestamp" TIMESTAMPTZ NOT NULL DEFAULT '2000-01-01 00:00:00 +00:00';

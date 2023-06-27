@@ -2,6 +2,9 @@ import { ApiProperty } from '@nestjs/swagger'
 
 export class SignDto {
   @ApiProperty()
+  timestamp?: string | Date
+
+  @ApiProperty()
   from: string
 
   @ApiProperty()
