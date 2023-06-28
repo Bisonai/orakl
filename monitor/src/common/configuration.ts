@@ -1,5 +1,10 @@
 import { registerAs } from '@nestjs/config';
 
+export const jwtConstants = {
+  secret: process.env.JWT_SECRET,
+};
+export const PASSWORD = process.env.PASSWORD;
+
 export const commonConfig = registerAs("common", () => ({
   provider: process.env.PROVIDER,
 }));

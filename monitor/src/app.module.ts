@@ -15,6 +15,10 @@ import { CommonConfigService } from "./common/common.config";
 import { MonitorConfigModule } from "./monitor.config/monitor.config.module";
 import { MonitorConfigService } from "./monitor.config/monitor.config.service";
 import { MonitorConfigRepository } from "./monitor.config/monitor.config.repository";
+import { AuthModule } from './auth/auth.module';
+import { WebApiModule } from './web-api/web.api.module';
+import { OraklServiceRepository } from './web-api/orakl.service.repository';
+
 
 @Module({
   imports: [
@@ -27,6 +31,8 @@ import { MonitorConfigRepository } from "./monitor.config/monitor.config.reposit
     AccountsModule,
     BullsModule,
     DatabaseModule,
+    AuthModule,
+    WebApiModule
   ],
   controllers: [AppController],
   providers: [
@@ -36,6 +42,7 @@ import { MonitorConfigRepository } from "./monitor.config/monitor.config.reposit
     CommonConfigService,
     MonitorConfigService,
     MonitorConfigRepository,
+    OraklServiceRepository
   ],
 })
 export class AppModule {}
