@@ -9,8 +9,6 @@ export class AuthService {
   ) {}
 
   async signIn(pass) {
-    console.log(PASSWORD)
-    console.log(pass);
     if (PASSWORD !== pass) {
       throw new UnauthorizedException();
     }
