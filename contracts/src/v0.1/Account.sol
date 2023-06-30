@@ -231,7 +231,9 @@ contract Account is IAccount, ITypeAndVersion {
         sBalance -= (burnFee + protocolFee);
 
         if (burnFee > 0) {
-            (bool sent, ) = address(0).call{value: burnFee}("");
+            (bool sent, ) = address(0x000000000000000000000000000000000000dEaD).call{
+                value: burnFee
+            }("");
             if (!sent) {
                 revert BurnFeeFailed();
             }
