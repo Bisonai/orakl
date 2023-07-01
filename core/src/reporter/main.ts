@@ -26,7 +26,6 @@ async function main() {
   await redisClient.connect()
 
   REPORTERS[reporter](redisClient, LOGGER)
-
   launchHealthCheck()
 
   LOGGER.debug('Reporter launched')
