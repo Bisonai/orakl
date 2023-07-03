@@ -11,6 +11,7 @@ import { getListeners } from './api'
 import { hookConsoleError } from '../utils'
 import { IListeners } from './types'
 import { createClient } from 'redis'
+import { launchHealthCheck } from '../health-check'
 
 const LISTENERS: IListeners = {
   DATA_FEED: buildDataFeedListener,
@@ -43,7 +44,7 @@ async function main() {
   await redisClient.connect()
 
   LISTENERS[service](listenersConfig[service], redisClient, LOGGER)
-
+  launchHealthCheck()
   LOGGER.info('Listener launched')
 }
 
