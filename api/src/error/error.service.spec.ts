@@ -22,7 +22,7 @@ describe('ErrorService', () => {
   })
 
   it('should create new Error', async () => {
-    const code = 10020
+    const code = '10020'
     const name = 'MissingKeyInJson'
     const requestId =
       '66649924661314489704239946349158829048302840686075232939396730072454733114998'
