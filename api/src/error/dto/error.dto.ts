@@ -8,7 +8,7 @@ export class ErrorDto {
   timestamp: string | Date
 
   @ApiProperty()
-  code: number
+  code: string
 
   @ApiProperty()
   name: string
