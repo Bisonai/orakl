@@ -138,7 +138,7 @@ model Error {
   id        BigInt   @id @default(autoincrement()) @map("error_id")
   requestId String   @map("request_id")
   timestamp DateTime @db.Timestamptz()
-  code      BigInt
+  code      String
   name      String
   stack     String
 
