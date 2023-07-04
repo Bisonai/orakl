@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from "react";
-import styled from "styled-components";
 import { ScrollButton } from "./styled";
 
 function ScrollToTopButton() {
@@ -32,11 +31,7 @@ function ScrollToTopButton() {
     return () => window.removeEventListener("scroll", checkScrollTopAndPercent);
   });
 
-  return (
-    <ScrollButton onClick={scrollToTop} show={isVisible}>
-      {scrollPercent}%
-    </ScrollButton>
-  );
+  return <ScrollButton onClick={scrollToTop}>{scrollPercent}%</ScrollButton>;
 }
 
 export default ScrollToTopButton;
