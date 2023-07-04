@@ -1,5 +1,5 @@
 import type { Method } from "axios";
-
+import authenticatedAxios from "@/lib/authenticatedAxios";
 /**********************************************
  * API
  **********************************************/
@@ -81,5 +81,5 @@ export const fetchInternalApi = async <
   // @ts-ignore
   const url = route ? api[target](...route) : api[target]();
   const axios = await import("axios").then((m) => m.default);
-  return await axios.request({ method, url: url, params, data });
+  return await authenticatedAxios.request({ method, url: url, params, data });
 };
