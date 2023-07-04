@@ -1,11 +1,19 @@
-import React from "react";
-import BullMonitor from "../BullMonitor/main";
+import React, { useEffect, useState } from "react";
 import BullMonitorTemplate from "../BullMonitor/main";
+import { LoginPage } from "./Login";
+import { getCookie } from "@/lib/cookies";
 
 export default function HomeTemplate() {
-  return (
-    <>
-      <BullMonitorTemplate />
-    </>
-  );
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+  useEffect(() => {
+    const token = getCookie("token");
+    setIsLoggedIn(!!token);
+  }, []);
+
+  if (isLoggedIn === false) {
+    return <LoginPage onLogin={() => setIsLoggedIn(true)} />;
+  }
+
+  return <BullMonitorTemplate />;
 }
