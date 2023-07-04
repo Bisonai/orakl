@@ -27,7 +27,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
   const handleLogin = async () => {
     try {
       const response = await authenticatedAxios.post(
-        "http://localhost:8888/auth/login",
+        `${process.env.NEXT_PUBLIC_API_QUEUES_URL}/auth/login`,
         {
           password: password,
         }
@@ -36,7 +36,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
       if (response.status === 200 && response.data.access_token) {
         setCookie("token", response.data.access_token);
         onLogin();
-        setError(""); // Reset error state on successful login
+        setError("");
       } else {
         setError("Invalid password. Please try again.");
         setPassword("");
@@ -47,16 +47,16 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
         if (axiosError.response) {
           console.log("Error data:", axiosError.response.data);
           setError("Invalid password. Please try again.");
-          setPassword(""); // Clear the password field
+          setPassword("");
         } else {
           console.log("Error:", axiosError.message);
           setError("An error occurred. Please try again.");
-          setPassword(""); // Clear the password field
+          setPassword("");
         }
       } else {
         console.log("Unknown error:", error);
         setError("An unknown error occurred. Please try again.");
-        setPassword(""); // Clear the password field
+        setPassword("");
       }
     }
   };
