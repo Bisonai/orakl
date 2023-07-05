@@ -21,7 +21,7 @@ const TwoColumnTable = ({
   addTitle,
   deleteTitle,
   addConfirmText,
-  deleteConfrimText,
+  deleteConfirmText,
   onAdd,
   onDelete,
 }: {
@@ -31,7 +31,7 @@ const TwoColumnTable = ({
   addTitle: string;
   deleteTitle: string;
   addConfirmText: string;
-  deleteConfrimText: string;
+  deleteConfirmText: string;
   onAdd?: (newData: any) => void;
   onDelete?: (id: string | number) => void;
 }) => {
@@ -65,7 +65,7 @@ const TwoColumnTable = ({
   const handleDeleteBtn = (index: number) => {
     openDimmedPopup({
       title: deleteTitle,
-      confirmText: deleteConfrimText,
+      confirmText: deleteConfirmText,
       cancelText: "Cancel",
       size: "small",
       buttonTwo: true,
