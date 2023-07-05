@@ -30,9 +30,12 @@ export const api = {
     status: string;
   }) =>
     `${NEXT_PUBLIC_API_QUEUES_URL}/queues/${serviceName}/${queueName}/${status}`,
-  getConfigChain: () => `${NEXT_PUBLIC_API_BASE_URL}/api/v1/chain/`,
-  getConfigService: () => `${NEXT_PUBLIC_API_BASE_URL}/api/v1/service/`,
-  configChain: (id: string) => `${NEXT_PUBLIC_API_BASE_URL}/api/v1/chain/${id}`,
+  getChainConfig: () => `${NEXT_PUBLIC_API_BASE_URL}/api/v1/chain/`,
+  getServiceConfig: () => `${NEXT_PUBLIC_API_BASE_URL}/api/v1/service/`,
+  modifyChainConfig: (id: string) =>
+    `${NEXT_PUBLIC_API_BASE_URL}/api/v1/chain/${id}`,
+  modifyServiceConfig: (id: string) =>
+    `${NEXT_PUBLIC_API_BASE_URL}/api/v1/service/${id}`,
 };
 
 export type IApi = typeof api;
@@ -46,9 +49,10 @@ export interface IApiParam {
   service: { GET: any };
   queueName: { GET: any };
   queueStatus: { GET: any };
-  getConfigChain: { GET: any };
-  getConfigService: { GET: any };
-  configChain: { PATCH: any; DELETE: any };
+  getChainConfig: { GET: any; POST: any };
+  getServiceConfig: { GET: any; POST: any };
+  modifyChainConfig: { PATCH: any; DELETE: any };
+  modifyServiceConfig: { PATCH: any; DELETE: any };
 }
 export interface IApiData {
   queues: { GET: any };
@@ -56,9 +60,10 @@ export interface IApiData {
   service: { GET: any };
   queueName: { GET: any };
   queueStatus: { GET: any };
-  getConfigChain: { GET: any };
-  getConfigService: { GET: any };
-  configChain: { PATCH: any; DELETE: any };
+  getChainConfig: { GET: any; POST: any };
+  getServiceConfig: { GET: any; POST: any };
+  modifyChainConfig: { PATCH: any; DELETE: any };
+  modifyServiceConfig: { PATCH: any; DELETE: any };
 }
 
 export const fetchInternalApi = async <
@@ -76,7 +81,7 @@ export const fetchInternalApi = async <
     params?: IApiParam[T][M];
     data?: IApiData[T][M];
   },
-  route: Parameters<IApi[T]>
+  route?: Parameters<IApi[T]>
 ) => {
   // @ts-ignore
   const url = route ? api[target](...route) : api[target]();
