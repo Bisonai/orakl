@@ -49,6 +49,7 @@ export const PopupTitle = styled.h2<{ size?: string }>`
   height: 76%;
   display: flex;
   align-items: center;
+  justify-content: center;
   color: #333333;
   font-size: ${(props) => {
     switch (props.size) {

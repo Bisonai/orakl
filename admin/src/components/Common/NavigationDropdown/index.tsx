@@ -38,7 +38,7 @@ const AccordionHeader: React.FC<AccordionHeaderProps> = ({
   };
 
   return (
-    <Link href={href} style={{ width: "100%" }}>
+    <Link href={href} style={{ width: "90%" }}>
       <StyledAccordionHeader>
         {children}
         <span onClick={handleIconClick}>

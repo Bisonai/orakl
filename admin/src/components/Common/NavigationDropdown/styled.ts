@@ -4,7 +4,7 @@ export const NavDropdownContainer = styled.div`
   display: flex;
   flex-direction: column;
   height: 100%;
-  width: 200px;
+  width: 250px;
   font-size: 16px;
   background: #222831;
   padding: 40px 0px 40px 20px;
@@ -54,7 +54,7 @@ export const AccordionContent = styled.div`
   overflow: hidden;
   animation: slideDown 0.3s ease;
   a {
-    width: 100%;
+    width: 90%;
   }
   Button {
     margin: 2px 0px;
