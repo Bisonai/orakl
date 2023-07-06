@@ -11,7 +11,6 @@ import {
   TwoColumnTableHeaderBase,
 } from "./styled";
 import BasicButton from "@/components/Common/BasicButton";
-import { IsLoadingBase } from "@/components/Template/BullMonitor/DetailTable/styled";
 import { useDimmedPopupContext } from "@/hook/useDimmedPopupContext";
 import { useEffect, useState } from "react";
 
@@ -50,17 +49,17 @@ const TwoColumnTable = ({
       cancelText: "Cancel",
       size: "medium",
       buttonTwo: true,
-      onConfirm: (inputValue?: string) => {
-        if (inputValue) {
-          const newData = { id: localData.length + 1, name: inputValue };
-
+      placeholder: "Name",
+      onConfirm: (inputJsonValue?: Record<string, string>) => {
+        if (inputJsonValue) {
+          const newData = { ...inputJsonValue, id: localData.length + 1 };
           setLocalData((prevData) => [...prevData, newData]);
-          onAdd && onAdd(newData.name);
+          onAdd && onAdd(newData);
         }
         closeDimmedPopup();
       },
       onCancel: closeDimmedPopup,
-      form: true,
+      jsonForm: { name: "" },
     });
   };
   const handleDeleteBtn = (index: number) => {
@@ -70,6 +69,7 @@ const TwoColumnTable = ({
       cancelText: "Cancel",
       size: "small",
       buttonTwo: true,
+
       onConfirm: () => {
         const deletedItem = localData[index];
         setLocalData((prevData) =>
@@ -79,7 +79,6 @@ const TwoColumnTable = ({
         closeDimmedPopup();
       },
       onCancel: closeDimmedPopup,
-      form: false,
     });
   };
 
@@ -95,10 +94,7 @@ const TwoColumnTable = ({
             <IDTitleBase>ID</IDTitleBase>
             <NameTitleBase>Name</NameTitleBase>
           </HeaderBase>
-          {localData?.length === 0 ? (
-            <IsLoadingBase>Loading... Please wait a moment</IsLoadingBase>
-          ) : (
-            localData &&
+          {localData &&
             localData.map((item: any, index: number) => (
               <TableBase key={index}>
                 <IDDataBase>{item.id}</IDDataBase>
@@ -113,8 +109,7 @@ const TwoColumnTable = ({
                   background="gray"
                 />
               </TableBase>
-            ))
-          )}
+            ))}
         </TableContainer>
       </TwoColumnTableContainer>
     </>
