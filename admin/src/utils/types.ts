@@ -1,5 +1,5 @@
 import { StyledComponentProps } from "@mui/material";
-import { ReactNode } from "react";
+import { ChangeEvent, ReactNode } from "react";
 
 export interface IObject<T> {
   [key: string]: T;
@@ -169,14 +169,20 @@ export interface IReporterProps {
 }
 
 /** Popup */
+export interface IFormField {
+  name: string;
+  type: string;
+}
+
 export interface IDimmedPopupProps {
   title: string;
   confirmText?: string;
   cancelText?: string;
-  onConfirm: (inputValue?: string) => void;
+  onConfirm: (inputJsonValue?: any) => void;
   onCancel: () => void;
   buttonTwo: boolean;
-  form: boolean;
+  jsonForm?: any;
+  placeholder?: string;
   size?: "small" | "medium" | "large";
 }
 
@@ -184,6 +190,6 @@ export interface IDimmedPopupContext {
   isOpen: boolean;
   openDimmedPopup: (props: IDimmedPopupProps) => void;
   closeDimmedPopup: () => void;
-  inputValue: string;
-  setInputValue: React.Dispatch<React.SetStateAction<string>>;
+  inputJsonValue: {};
+  setInputJsonValue: React.Dispatch<React.SetStateAction<{}>>;
 }
