@@ -2,14 +2,14 @@ import { useQuery, useMutation } from "react-query";
 import { fetchInternalApi } from "@/utils/api";
 
 export const useApi = (config: any) => {
-  const { name, name2, key } = config;
+  const { fetchEndpoint, deleteEndpoint, key } = config;
 
   const configQuery = useQuery({
     queryKey: [key],
     queryFn: () =>
       fetchInternalApi(
         {
-          target: name,
+          target: fetchEndpoint,
           method: "GET",
         },
         []
@@ -23,7 +23,7 @@ export const useApi = (config: any) => {
   const addEntity = async (newEntityName: string) => {
     const response = await fetchInternalApi(
       {
-        target: name,
+        target: fetchEndpoint,
         method: "POST",
         data: { name: newEntityName },
       },
@@ -40,7 +40,7 @@ export const useApi = (config: any) => {
   const deleteEntity = async (id: any) => {
     const response = await fetchInternalApi(
       {
-        target: name2,
+        target: deleteEndpoint,
         method: "DELETE",
       },
       [id]
