@@ -10,8 +10,8 @@ export const DimmedPopupContext = createContext<IDimmedPopupContext>({
   isOpen: false,
   openDimmedPopup: () => {},
   closeDimmedPopup: () => {},
-  inputValue: "",
-  setInputValue: () => {},
+  inputJsonValue: {},
+  setInputJsonValue: () => {},
 });
 
 export default function DimmedPopupProvider({
@@ -20,7 +20,7 @@ export default function DimmedPopupProvider({
   const [isOpen, setIsOpen] = useState(false);
   const [DimmedPopupProps, setDimmedPopupProps] =
     useState<IDimmedPopupProps | null>(null);
-  const [inputValue, setInputValue] = useState("");
+  const [inputJsonValue, setInputJsonValue] = useState({});
 
   const openDimmedPopup = (props: IDimmedPopupProps) => {
     setDimmedPopupProps(props);
@@ -35,8 +35,8 @@ export default function DimmedPopupProvider({
     isOpen,
     openDimmedPopup,
     closeDimmedPopup,
-    inputValue,
-    setInputValue,
+    inputJsonValue,
+    setInputJsonValue,
   };
 
   return (
