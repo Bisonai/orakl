@@ -35,7 +35,6 @@ describe('SignService', () => {
       ]
     }).compile()
     service = module.get<SignService>(SignService)
-    await service.initialize({ feePayerPrivateKey: process.env.DELEGATOR_FEEPAYER_PK })
     organizationService = module.get<OrganizationService>(OrganizationService)
     contractService = module.get<ContractService>(ContractService)
     functionService = module.get<FunctionService>(FunctionService)
