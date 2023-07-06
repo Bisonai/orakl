@@ -14,6 +14,7 @@ export class SignService {
 
   constructor(private prisma: PrismaService) {
     this.caver = new Caver(process.env.PROVIDER_URL)
+    this.initialize({})
   }
 
   async initialize({ feePayerPrivateKey }: { feePayerPrivateKey?: string }) {
@@ -29,9 +30,16 @@ export class SignService {
     }
 
     this.feePayerKeyring = this.caver.wallet.keyring.createFromPrivateKey(feePayerPrivateKey)
-    this.caver.wallet.add(this.feePayerKeyring)
 
-    this.logger.log('Orakl Network Delegator: Private key initialized successfully')
+    if (this.caver.wallet.isExisted(this.feePayerKeyring.address)) {
+      this.caver.wallet.updateKeyring(this.feePayerKeyring)
+    } else {
+      this.caver.wallet.add(this.feePayerKeyring)
+    }
+
+    this.logger.log(
+      `Orakl Network Delegator Fee Payer: initialized successfully with address ${this.feePayerKeyring.address}`
+    )
   }
 
   async create(data: SignDto) {
