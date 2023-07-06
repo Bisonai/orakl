@@ -7,7 +7,7 @@ import authenticatedAxios from "@/lib/authenticatedAxios";
 const isDevelopment = process.env.NODE_ENV === "development";
 const NEXT_PUBLIC_API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 const NEXT_PUBLIC_API_QUEUES_URL = process.env.NEXT_PUBLIC_API_QUEUES_URL;
-
+const NEXT_PUBLIC_API_DELEGATOR_URL = process.env.NEXT_PUBLIC_API_DELEGATOR_URL;
 export const api = {
   queues: () => `${NEXT_PUBLIC_API_QUEUES_URL}/queues`,
   queuesInfo: () => `${NEXT_PUBLIC_API_QUEUES_URL}/queues/info`,
@@ -37,6 +37,10 @@ export const api = {
   getAdapterConfig: () => `${NEXT_PUBLIC_API_BASE_URL}/api/v1/adapter`,
   getAggregatorConfig: () => `${NEXT_PUBLIC_API_BASE_URL}/api/v1/aggregator`,
   getReporterConfig: () => `${NEXT_PUBLIC_API_BASE_URL}/api/v1/reporter`,
+  getOrganization: () => `${NEXT_PUBLIC_API_DELEGATOR_URL}/api/v1/organization`,
+  getContract: () => `${NEXT_PUBLIC_API_DELEGATOR_URL}/api/v1/contract`,
+  getFunction: () => `${NEXT_PUBLIC_API_DELEGATOR_URL}/api/v1/function`,
+  getReporter: () => `${NEXT_PUBLIC_API_DELEGATOR_URL}/api/v1/reporter`,
   modifyChainConfig: (id: string) =>
     `${NEXT_PUBLIC_API_BASE_URL}/api/v1/chain/${id}`,
   modifyServiceConfig: (id: string) =>
@@ -71,6 +75,10 @@ export interface IApiParam {
   getAdapterConfig: { GET: any; POST: any };
   getAggregatorConfig: { GET: any; POST: any };
   getReporterConfig: { GET: any; POST: any };
+  getOrganization: { GET: any };
+  getContract: { GET: any };
+  getFunction: { GET: any };
+  getReporter: { GET: any };
   modifyChainConfig: { PATCH: any; DELETE: any };
   modifyServiceConfig: { PATCH: any; DELETE: any };
   modifyListenerConfig: { PATCH: any; DELETE: any };
@@ -92,6 +100,10 @@ export interface IApiData {
   getAdapterConfig: { GET: any; POST: any };
   getAggregatorConfig: { GET: any; POST: any };
   getReporterConfig: { GET: any; POST: any };
+  getOrganization: { GET: any };
+  getContract: { GET: any };
+  getFunction: { GET: any };
+  getReporter: { GET: any };
   modifyChainConfig: { PATCH: any; DELETE: any };
   modifyServiceConfig: { PATCH: any; DELETE: any };
   modifyListenerConfig: { PATCH: any; DELETE: any };
