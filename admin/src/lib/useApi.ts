@@ -19,13 +19,12 @@ export const useApi = (config: any) => {
       return data.data;
     },
   });
-
-  const addEntity = async (newEntityName: string) => {
+  const addEntity = async (newData: { [key: string]: any }): Promise<any> => {
     const response = await fetchInternalApi(
       {
         target: fetchEndpoint,
         method: "POST",
-        data: { name: newEntityName },
+        data: newData,
       },
       []
     );
