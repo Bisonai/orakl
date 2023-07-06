@@ -5,8 +5,8 @@ import { useApi } from "@/lib/useApi";
 
 const Chain = () => {
   const { configQuery, addMutation, deleteMutation } = useApi({
-    name: "getChainConfig",
-    name2: "modifyChainConfig",
+    fetchEndpoint: "getChainConfig",
+    deleteEndpoint: "modifyChainConfig",
     key: "chainConfig",
   });
   return (

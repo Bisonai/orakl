@@ -11,6 +11,7 @@ import {
   TwoColumnTableHeaderBase,
 } from "./styled";
 import BasicButton from "@/components/Common/BasicButton";
+import { IsLoadingBase } from "@/components/Template/BullMonitor/DetailTable/styled";
 import { useDimmedPopupContext } from "@/hook/useDimmedPopupContext";
 import { useEffect, useState } from "react";
 
@@ -94,7 +95,10 @@ const TwoColumnTable = ({
             <IDTitleBase>ID</IDTitleBase>
             <NameTitleBase>Name</NameTitleBase>
           </HeaderBase>
-          {localData &&
+          {localData?.length === 0 ? (
+            <IsLoadingBase>Loading... Please wait a moment</IsLoadingBase>
+          ) : (
+            localData &&
             localData.map((item: any, index: number) => (
               <TableBase key={index}>
                 <IDDataBase>{item.id}</IDDataBase>
@@ -109,7 +113,8 @@ const TwoColumnTable = ({
                   background="gray"
                 />
               </TableBase>
-            ))}
+            ))
+          )}
         </TableContainer>
       </TwoColumnTableContainer>
     </>

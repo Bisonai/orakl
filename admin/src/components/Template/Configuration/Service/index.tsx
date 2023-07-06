@@ -5,8 +5,8 @@ import { useApi } from "@/lib/useApi";
 
 const Service = () => {
   const { configQuery, addMutation, deleteMutation } = useApi({
-    name: "getServiceConfig",
-    name2: "modifyServiceConfig",
+    fetchEndpoint: "getServiceConfig",
+    DeleteEndpoint: "modifyServiceConfig",
     key: "serviceConfig",
   });
   return (
