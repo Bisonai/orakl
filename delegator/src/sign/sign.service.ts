@@ -112,7 +112,6 @@ export class SignService {
   }
 
   async signTxByFeePayer(input: Transaction) {
-    // initialize caver wallet if it is not initialized
     if (!this.feePayerKeyring) {
       await this.initialize({})
     }
