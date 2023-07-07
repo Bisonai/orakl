@@ -16,21 +16,26 @@ const DimmedPopup: React.FC<IDimmedPopupProps> = ({
   onConfirm,
   onCancel,
   buttonTwo,
-  form,
+  jsonForm,
   size,
+  placeholder,
 }) => {
   const [isOpen, setIsOpen] = useState(true);
-  const [inputValue, setInputValue] = useState("");
+  const [inputJsonValue, setInputJsonValue] = useState<Record<string, string>>(
+    {}
+  );
+
   const handleConfirm = () => {
     setIsOpen(false);
-    onConfirm(inputValue);
+    onConfirm(inputJsonValue);
   };
   const handleCancel = () => {
     setIsOpen(false);
     onCancel();
   };
-  const handleInputChange = (e: any) => {
-    setInputValue(e.target.value);
+
+  const handleJsonInputChange = (key: string) => (e: any) => {
+    setInputJsonValue({ ...inputJsonValue, [key]: e.target.value });
   };
   const handleContainerClick = (e: any) => {
     if (e.target === e.currentTarget) {
@@ -69,14 +74,18 @@ const DimmedPopup: React.FC<IDimmedPopupProps> = ({
         <PopupContainer onClick={handleContainerClick}>
           <PopupContent size={size}>
             <PopupTitle size={size}>{title} </PopupTitle>
-            {form && (
+            {jsonForm && (
               <PopupForm>
-                <FormInputBase
-                  autoFocus
-                  type="text"
-                  value={inputValue}
-                  onChange={handleInputChange}
-                />
+                {Object.keys(jsonForm).map((key) => (
+                  <FormInputBase
+                    autoFocus
+                    type="text"
+                    key={key}
+                    value={inputJsonValue[key] || ""}
+                    onChange={handleJsonInputChange(key)}
+                    placeholder={key}
+                  />
+                ))}
               </PopupForm>
             )}
             <PopupButton>{buttons}</PopupButton>

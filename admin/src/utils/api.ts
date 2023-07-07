@@ -7,7 +7,7 @@ import authenticatedAxios from "@/lib/authenticatedAxios";
 const isDevelopment = process.env.NODE_ENV === "development";
 const NEXT_PUBLIC_API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 const NEXT_PUBLIC_API_QUEUES_URL = process.env.NEXT_PUBLIC_API_QUEUES_URL;
-
+const NEXT_PUBLIC_API_DELEGATOR_URL = process.env.NEXT_PUBLIC_API_DELEGATOR_URL;
 export const api = {
   queues: () => `${NEXT_PUBLIC_API_QUEUES_URL}/queues`,
   queuesInfo: () => `${NEXT_PUBLIC_API_QUEUES_URL}/queues/info`,
@@ -30,9 +30,31 @@ export const api = {
     status: string;
   }) =>
     `${NEXT_PUBLIC_API_QUEUES_URL}/queues/${serviceName}/${queueName}/${status}`,
-  getConfigChain: () => `${NEXT_PUBLIC_API_BASE_URL}/api/v1/chain/`,
-  getConfigService: () => `${NEXT_PUBLIC_API_BASE_URL}/api/v1/service/`,
-  configChain: (id: string) => `${NEXT_PUBLIC_API_BASE_URL}/api/v1/chain/${id}`,
+  getChainConfig: () => `${NEXT_PUBLIC_API_BASE_URL}/api/v1/chain`,
+  getServiceConfig: () => `${NEXT_PUBLIC_API_BASE_URL}/api/v1/service`,
+  getListenerConfig: () => `${NEXT_PUBLIC_API_BASE_URL}/api/v1/listener`,
+  getVrfKeysConfig: () => `${NEXT_PUBLIC_API_BASE_URL}/api/v1/vrf`,
+  getAdapterConfig: () => `${NEXT_PUBLIC_API_BASE_URL}/api/v1/adapter`,
+  getAggregatorConfig: () => `${NEXT_PUBLIC_API_BASE_URL}/api/v1/aggregator`,
+  getReporterConfig: () => `${NEXT_PUBLIC_API_BASE_URL}/api/v1/reporter`,
+  getOrganization: () => `${NEXT_PUBLIC_API_DELEGATOR_URL}/api/v1/organization`,
+  getContract: () => `${NEXT_PUBLIC_API_DELEGATOR_URL}/api/v1/contract`,
+  getFunction: () => `${NEXT_PUBLIC_API_DELEGATOR_URL}/api/v1/function`,
+  getReporter: () => `${NEXT_PUBLIC_API_DELEGATOR_URL}/api/v1/reporter`,
+  modifyChainConfig: (id: string) =>
+    `${NEXT_PUBLIC_API_BASE_URL}/api/v1/chain/${id}`,
+  modifyServiceConfig: (id: string) =>
+    `${NEXT_PUBLIC_API_BASE_URL}/api/v1/service/${id}`,
+  modifyListenerConfig: (id: string) =>
+    `${NEXT_PUBLIC_API_BASE_URL}/api/v1/listener/${id}`,
+  modifyVrfKeysConfig: (id: string) =>
+    `${NEXT_PUBLIC_API_BASE_URL}/api/v1/vrf/${id}`,
+  modifyAdapterConfig: (id: string) =>
+    `${NEXT_PUBLIC_API_BASE_URL}/api/v1/adapter/${id}`,
+  modifyAggregatorConfig: (id: string) =>
+    `${NEXT_PUBLIC_API_BASE_URL}/api/v1/aggregator/${id}`,
+  modifyReporterConfig: (id: string) =>
+    `${NEXT_PUBLIC_API_BASE_URL}/api/v1/reporter/${id}`,
 };
 
 export type IApi = typeof api;
@@ -46,9 +68,24 @@ export interface IApiParam {
   service: { GET: any };
   queueName: { GET: any };
   queueStatus: { GET: any };
-  getConfigChain: { GET: any };
-  getConfigService: { GET: any };
-  configChain: { PATCH: any; DELETE: any };
+  getChainConfig: { GET: any; POST: any };
+  getServiceConfig: { GET: any; POST: any };
+  getListenerConfig: { GET: any; POST: any };
+  getVrfKeysConfig: { GET: any; POST: any };
+  getAdapterConfig: { GET: any; POST: any };
+  getAggregatorConfig: { GET: any; POST: any };
+  getReporterConfig: { GET: any; POST: any };
+  getOrganization: { GET: any };
+  getContract: { GET: any };
+  getFunction: { GET: any };
+  getReporter: { GET: any };
+  modifyChainConfig: { PATCH: any; DELETE: any };
+  modifyServiceConfig: { PATCH: any; DELETE: any };
+  modifyListenerConfig: { PATCH: any; DELETE: any };
+  modifyVrfKeysConfig: { PATCH: any; DELETE: any };
+  modifyAdapterConfig: { PATCH: any; DELETE: any };
+  modifyAggregatorConfig: { PATCH: any; DELETE: any };
+  modifyReporterConfig: { PATCH: any; DELETE: any };
 }
 export interface IApiData {
   queues: { GET: any };
@@ -56,9 +93,24 @@ export interface IApiData {
   service: { GET: any };
   queueName: { GET: any };
   queueStatus: { GET: any };
-  getConfigChain: { GET: any };
-  getConfigService: { GET: any };
-  configChain: { PATCH: any; DELETE: any };
+  getChainConfig: { GET: any; POST: any };
+  getServiceConfig: { GET: any; POST: any };
+  getListenerConfig: { GET: any; POST: any };
+  getVrfKeysConfig: { GET: any; POST: any };
+  getAdapterConfig: { GET: any; POST: any };
+  getAggregatorConfig: { GET: any; POST: any };
+  getReporterConfig: { GET: any; POST: any };
+  getOrganization: { GET: any };
+  getContract: { GET: any };
+  getFunction: { GET: any };
+  getReporter: { GET: any };
+  modifyChainConfig: { PATCH: any; DELETE: any };
+  modifyServiceConfig: { PATCH: any; DELETE: any };
+  modifyListenerConfig: { PATCH: any; DELETE: any };
+  modifyVrfKeysConfig: { PATCH: any; DELETE: any };
+  modifyAdapterConfig: { PATCH: any; DELETE: any };
+  modifyAggregatorConfig: { PATCH: any; DELETE: any };
+  modifyReporterConfig: { PATCH: any; DELETE: any };
 }
 
 export const fetchInternalApi = async <
@@ -76,7 +128,7 @@ export const fetchInternalApi = async <
     params?: IApiParam[T][M];
     data?: IApiData[T][M];
   },
-  route: Parameters<IApi[T]>
+  route?: Parameters<IApi[T]>
 ) => {
   // @ts-ignore
   const url = route ? api[target](...route) : api[target]();

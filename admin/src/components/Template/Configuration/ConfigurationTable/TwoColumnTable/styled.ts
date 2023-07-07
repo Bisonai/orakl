@@ -1,8 +1,8 @@
 import styled from "styled-components";
 
 export const TwoColumnTableContainer = styled.div`
-  margin: 20px 180px;
-  width: 1100px;
+  width: 80%;
+  margin: 0 auto;
 `;
 
 export const TwoColumnTableHeaderBase = styled.div`
@@ -13,12 +13,12 @@ export const TwoColumnTableHeaderBase = styled.div`
 export const ConfigTitleBase = styled.div`
   color: #fff;
   font-size: 48px;
-  padding: 60px 30px 10px 30px;
+  padding-top: 60px;
   font-weight: bold;
 `;
 
 export const TableContainer = styled.div`
-  padding: 0px 30px 30px 30px;
+  min-width: 500px;
 `;
 export const HeaderBase = styled.div`
   display: flex;
@@ -27,12 +27,13 @@ export const HeaderBase = styled.div`
 `;
 
 export const IDTitleBase = styled.div`
-  width: 350px;
+  width: 30%;
   text-align: left;
 `;
 
 export const NameTitleBase = styled.div`
   text-align: left;
+  width: 60%;
 `;
 
 export const TableBase = styled.div`
@@ -46,10 +47,11 @@ export const TableBase = styled.div`
   margin: 15px 0px;
 `;
 export const IDDataBase = styled.div`
-  width: 350px;
+  width: 30%;
   text-align: left;
 `;
 
 export const NameDataBase = styled.div`
   text-align: left;
+  width: 60%;
 `;

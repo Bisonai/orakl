@@ -21,7 +21,7 @@ const TwoColumnTable = ({
   addTitle,
   deleteTitle,
   addConfirmText,
-  deleteConfrimText,
+  deleteConfirmText,
   onAdd,
   onDelete,
 }: {
@@ -31,7 +31,7 @@ const TwoColumnTable = ({
   addTitle: string;
   deleteTitle: string;
   addConfirmText: string;
-  deleteConfrimText: string;
+  deleteConfirmText: string;
   onAdd?: (newData: any) => void;
   onDelete?: (id: string | number) => void;
 }) => {
@@ -49,26 +49,27 @@ const TwoColumnTable = ({
       cancelText: "Cancel",
       size: "medium",
       buttonTwo: true,
-      onConfirm: (inputValue?: string) => {
-        if (inputValue) {
-          const newData = { id: localData.length + 1, name: inputValue };
-
+      placeholder: "Name",
+      onConfirm: (inputJsonValue?: Record<string, string>) => {
+        if (inputJsonValue) {
+          const newData = { ...inputJsonValue, id: localData.length + 1 };
           setLocalData((prevData) => [...prevData, newData]);
-          onAdd && onAdd(newData.name);
+          onAdd && onAdd(newData);
         }
         closeDimmedPopup();
       },
       onCancel: closeDimmedPopup,
-      form: true,
+      jsonForm: { name: "" },
     });
   };
   const handleDeleteBtn = (index: number) => {
     openDimmedPopup({
       title: deleteTitle,
-      confirmText: deleteConfrimText,
+      confirmText: deleteConfirmText,
       cancelText: "Cancel",
       size: "small",
       buttonTwo: true,
+
       onConfirm: () => {
         const deletedItem = localData[index];
         setLocalData((prevData) =>
@@ -78,7 +79,6 @@ const TwoColumnTable = ({
         closeDimmedPopup();
       },
       onCancel: closeDimmedPopup,
-      form: false,
     });
   };
 

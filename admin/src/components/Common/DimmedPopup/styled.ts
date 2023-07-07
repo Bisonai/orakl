@@ -33,7 +33,7 @@ export const PopupContent = styled.div<{ size?: string }>`
       case "medium":
         return "220px";
       case "large":
-        return "300px";
+        return "auto";
       default:
         return "350px";
     }
@@ -41,14 +41,19 @@ export const PopupContent = styled.div<{ size?: string }>`
   border-radius: 16px;
   text-align: center;
   background: #b7c0bb;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
 `;
 
 export const PopupTitle = styled.h2<{ size?: string }>`
   padding: 24px 40px;
   letter-spacing: -0.02em;
-  height: 76%;
+  /* height: 50px; */
+  /* margin-top: 20px; */
   display: flex;
   align-items: center;
+  justify-content: center;
   color: #333333;
   font-size: ${(props) => {
     switch (props.size) {
@@ -67,7 +72,8 @@ export const PopupTitle = styled.h2<{ size?: string }>`
 export const PopupButton = styled.button`
   display: flex;
   width: 100%;
-  height: 24%;
+  height: 60px;
+  margin-top: 20px;
   justify-content: space-between;
   align-items: center;
   border: none;
@@ -80,8 +86,9 @@ export const PopupButton = styled.button`
     height: 100%;
     cursor: pointer;
     font-size: 16px;
-    background: #a1a1a1;
-    border-bottom-left-radius: 16px;
+    background: #282828;
+    color: #ffffff;
+    border-bottom-left-radius: 12px;
   }
 
   .btn-confirm {
@@ -90,8 +97,8 @@ export const PopupButton = styled.button`
     width: 50%;
     height: 100%;
     font-size: 16px;
-    background: aquamarine;
-    border-bottom-right-radius: 16px;
+    background: #71ebff;
+    border-bottom-right-radius: 12px;
     &::before {
       content: "";
       position: absolute;
@@ -114,13 +121,16 @@ export const PopupButton = styled.button`
 
 export const PopupForm = styled.form`
   background: #b7c0bb;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 `;
 export const FormInputBase = styled.input`
   width: 90%;
-  height: 60px;
+  height: 40px;
 
   padding: 10px 15px;
-  margin-bottom: 30px;
+  margin-bottom: 10px;
   box-sizing: border-box;
   border: 1px solid #cccccc;
   border-radius: 12px;
