@@ -28,7 +28,7 @@ export class SignService {
       }
     }
 
-    this.feePayerKeyring = await this.caver.wallet.keyring.createFromPrivateKey(feePayerPrivateKey)
+    this.feePayerKeyring = this.caver.wallet.keyring.createFromPrivateKey(feePayerPrivateKey)
     this.caver.wallet.add(this.feePayerKeyring)
 
     this.logger.log(
