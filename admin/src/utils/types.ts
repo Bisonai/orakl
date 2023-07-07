@@ -87,6 +87,13 @@ export const statusTabs: StatusTab[] = [
   { tabId: "paused", label: "Paused" },
 ];
 
+export const delegatorTabs: StatusTab[] = [
+  { tabId: "organization", label: "Organization" },
+  { tabId: "contract", label: "Contract" },
+  { tabId: "function", label: "Function" },
+  { tabId: "reporter", label: "Reporter" },
+];
+
 /** Toast */
 
 export interface IToast {
