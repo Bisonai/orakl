@@ -6,7 +6,7 @@ const Adapter = () => {
       fetchEndpoint="getAdapterConfig"
       deleteEndpoint="modifyAdapterConfig"
       apiKey="adapterConfig"
-      title="Adapters"
+      title="Adapter"
       dataLabels={["id", "adapterHash", "name", "decimals"]}
       jsonData={{
         adapterHash: "string",

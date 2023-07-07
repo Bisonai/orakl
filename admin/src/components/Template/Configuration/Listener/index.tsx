@@ -6,7 +6,7 @@ const Listener = () => {
       fetchEndpoint="getListenerConfig"
       deleteEndpoint="modifyListenerConfig"
       apiKey="listenerConfig"
-      title="Listeners"
+      title="Listener"
       dataLabels={["id", "address", "eventName", "service", "chain"]}
       jsonData={{
         address: "string",

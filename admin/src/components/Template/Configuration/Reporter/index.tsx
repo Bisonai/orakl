@@ -6,7 +6,7 @@ const Reporter = () => {
       fetchEndpoint="getReporterConfig"
       deleteEndpoint="modifyReporterConfig"
       apiKey="reporterConfig"
-      title="Reporters"
+      title="Reporter"
       dataLabels={[
         "id",
         "address",

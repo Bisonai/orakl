@@ -6,7 +6,7 @@ const Aggregator = () => {
       fetchEndpoint="getAggregatorConfig"
       deleteEndpoint="modifyAggregatorConfig"
       apiKey="aggregatorConfig"
-      title="Aggregators"
+      title="Aggregator"
       dataLabels={[
         "aggregatorHash",
         "name",
