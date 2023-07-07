@@ -31,7 +31,9 @@ export class SignService {
     this.feePayerKeyring = this.caver.wallet.keyring.createFromPrivateKey(feePayerPrivateKey)
     this.caver.wallet.add(this.feePayerKeyring)
 
-    this.logger.log('Orakl Network Delegator: Private key initialized successfully')
+    this.logger.log(
+      `Orakl Network Delegator Fee Payer: initialized successfully with address ${this.feePayerKeyring.address}`
+    )
   }
 
   async create(data: SignDto) {
@@ -110,6 +112,10 @@ export class SignService {
   }
 
   async signTxByFeePayer(input: Transaction) {
+    if (!this.feePayerKeyring) {
+      await this.initialize({})
+    }
+
     const signature: SignatureData = new this.caver.wallet.keyring.signatureData([
       input.v,
       input.r,
