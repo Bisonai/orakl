@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useApi } from "@/lib/useApi";
 import {
   TableBase,
@@ -37,12 +38,13 @@ const DataTable = ({
 
   const { openDimmedPopup, closeDimmedPopup } = useDimmedPopupContext();
 
-  const data = configQuery.data || [];
+  const [data, setData] = useState<any[]>(configQuery.data || []);
 
   const handleAdd = async (newData: any) => {
     console.log("Sending data:", newData);
     try {
       await addMutation.mutateAsync(newData);
+      setData((prevData) => [...prevData, newData]);
     } catch (error) {
       console.error("Error when adding:", error);
     }
@@ -50,14 +52,18 @@ const DataTable = ({
 
   const handleDelete = async (id: string | number) => {
     await deleteMutation.mutateAsync(id);
+    setData((prevData) => prevData.filter((item) => item.id !== id));
   };
+
   const displayData = (data: any, label: string) => {
     if (label === "active") {
       return data ? "Active" : "Inactive";
     }
     return data;
   };
+
   console.log(data, "data");
+
   return (
     <Container>
       <HeaderBase>
