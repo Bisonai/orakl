@@ -12,12 +12,12 @@ contract Registry is Ownable {
     event ProposeFeeSet(uint fee);
 
     uint public ProposeFee;
-    uint public StartRound;
 
 	struct L2Endpoint {
 		string jsonRpc;
 		address endpoint;
 		address owner;
+        uint startRound; // for datafeeds
 	}
 	// chainId => L2 Endpoint
 	mapping(uint256 => L2Endpoint) public chainRegistry;
