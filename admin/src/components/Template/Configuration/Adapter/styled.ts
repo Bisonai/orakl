@@ -3,18 +3,38 @@ import styled from "styled-components";
 export const Container = styled.div`
   width: 80%;
   margin: 0 auto;
-  padding-bottom: 100px;
+  display: flex;
+  flex-direction: column;
 `;
 
 export const HeaderBase = styled.div`
   display: flex;
   flex-direction: column;
   justify-content: space-between;
+`;
+export const AddDataBase = styled.div`
+  display: flex;
+  width: 100%;
+  flex-direction: column;
   button {
     color: black;
   }
 `;
 
+export const AddDataFormBase = styled.div`
+  font-family: inherit;
+  width: 100%;
+`;
+
+export const AddDataForm = styled.textarea`
+  width: 100%;
+  font-family: inherit;
+  padding: 20px;
+  height: 300px;
+  border-radius: 12px;
+  background: azure;
+  margin-bottom: 12px;
+`;
 export const TitleBase = styled.h2`
   color: #fff;
   font-size: 48px;
