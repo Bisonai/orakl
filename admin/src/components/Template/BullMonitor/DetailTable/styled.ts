@@ -57,6 +57,7 @@ export const TimeTableTextBase = styled.div`
 `;
 
 export const DetailRightBase = styled.div`
+  width: 100%;
   padding: 20px;
   background: #222831;
 `;

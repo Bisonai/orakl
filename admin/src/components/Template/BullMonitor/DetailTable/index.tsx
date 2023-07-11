@@ -88,13 +88,28 @@ const DetailTable = ({
   const handleTabChange = (newTab: string) => setSelectedTab(newTab);
 
   const renderTabContent = (item: any, tab: string) => {
+    console.log(item?.stacktrace, "item.stacktrace");
+    console.log(item?.data, "item.data");
+    console.log(item?.opts, "item.opts");
+
+    const getContent = (data: any) =>
+      data ? (
+        <pre>{JSON.stringify(data, null, 2)}</pre>
+      ) : (
+        <NoDataAvailableBase>No data found</NoDataAvailableBase>
+      );
+
     switch (tab) {
       case "Data":
-        return <pre>{JSON.stringify(item.data, null, 2)}</pre>;
+        return getContent(item.data);
       case "Option":
-        return <pre>{JSON.stringify(item.opts, null, 2)}</pre>;
+        return getContent(item.opts);
       case "Logs":
-        return item.stacktrace && <pre>{item.stacktrace.join("\n")}</pre>;
+        return item.stacktrace && item.stacktrace.length > 0 ? (
+          <pre>{item.stacktrace.join("\n")}</pre>
+        ) : (
+          <NoDataAvailableBase>No data found</NoDataAvailableBase>
+        );
       default:
         return null;
     }
