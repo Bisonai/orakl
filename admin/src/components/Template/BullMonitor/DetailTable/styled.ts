@@ -57,6 +57,7 @@ export const TimeTableTextBase = styled.div`
 `;
 
 export const DetailRightBase = styled.div`
+  width: 100%;
   padding: 20px;
   background: #222831;
 `;
@@ -91,6 +92,16 @@ export const IsLoadingBase = styled.div`
   color: white;
   font-size: 20px;
   animation: ${blinkAnimation} 2s linear infinite;
+`;
+
+export const ErrorMessageBase = styled.div`
+  width: 100%;
+  height: 300px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 20px;
 `;
 
 export const NoDataAvailableBase = styled.div`

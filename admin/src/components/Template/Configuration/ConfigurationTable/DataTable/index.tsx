@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useApi } from "@/lib/useApi";
 import {
   TableBase,
@@ -10,7 +11,10 @@ import {
 } from "./styled";
 import BasicButton from "@/components/Common/BasicButton";
 import { useDimmedPopupContext } from "@/hook/useDimmedPopupContext";
-import { IsLoadingBase } from "@/components/Template/BullMonitor/DetailTable/styled";
+import {
+  IsLoadingBase,
+  NoDataAvailableBase,
+} from "@/components/Template/BullMonitor/DetailTable/styled";
 
 interface TableConfigProps {
   fetchEndpoint: string;
@@ -37,12 +41,12 @@ const DataTable = ({
 
   const { openDimmedPopup, closeDimmedPopup } = useDimmedPopupContext();
 
-  const data = configQuery.data || [];
+  const [data, setData] = useState<any[]>(configQuery.data || []);
 
   const handleAdd = async (newData: any) => {
-    console.log("Sending data:", newData);
     try {
       await addMutation.mutateAsync(newData);
+      setData((prevData) => [...prevData, newData]);
     } catch (error) {
       console.error("Error when adding:", error);
     }
@@ -50,14 +54,18 @@ const DataTable = ({
 
   const handleDelete = async (id: string | number) => {
     await deleteMutation.mutateAsync(id);
+    setData((prevData) => prevData.filter((item) => item.id !== id));
   };
+
   const displayData = (data: any, label: string) => {
     if (label === "active") {
       return data ? "Active" : "Inactive";
     }
     return data;
   };
+
   console.log(data, "data");
+
   return (
     <Container>
       <HeaderBase>
@@ -88,7 +96,7 @@ const DataTable = ({
       </HeaderBase>
       {configQuery.isLoading ? (
         <IsLoadingBase>Loading... Please wait a moment</IsLoadingBase>
-      ) : (
+      ) : data.length > 0 ? (
         data.map((item: any) => (
           <TableBase key={item.id}>
             <BasicButton
@@ -119,6 +127,8 @@ const DataTable = ({
             ))}
           </TableBase>
         ))
+      ) : (
+        <NoDataAvailableBase>No data found</NoDataAvailableBase>
       )}
     </Container>
   );

@@ -7,9 +7,7 @@ import {
   LoginInputBase,
   LoginTitleBase,
 } from "./styled";
-import axios, { AxiosError } from "axios";
-import { ToastType } from "@/utils/types";
-import { useToastContext } from "@/hook/useToastContext";
+import { AxiosError } from "axios";
 
 interface LoginPageProps {
   onLogin: () => void;

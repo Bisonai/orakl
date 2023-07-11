@@ -1,6 +1,16 @@
 import { fetchInternalApi } from "@/utils/api";
 import React from "react";
 import { useQuery } from "react-query";
+import TabContextProvider from "@/components/Common/TabContextProvider";
+import TabList from "@/components/Common/TabList";
+import TabPanel from "@/components/Common/TabPanel";
+import { StatusTab, delegatorTabs } from "@/utils/types";
+import { DataListBase, DelegatorContainer, TitleBase } from "./styled";
+import {
+  IsLoadingBase,
+  ErrorMessageBase,
+  NoDataAvailableBase,
+} from "@/components/Template/BullMonitor/DetailTable/styled";
 
 const Delegator = () => {
   const organizationQuery = useQuery({
@@ -46,18 +56,52 @@ const Delegator = () => {
     refetchOnWindowFocus: false,
     select: (data) => data.data,
   });
-  console.log(
-    organizationQuery.data,
-    contractQuery.data,
-    functionQuery.data,
-    reporterQuery.data,
-    "data"
-  );
 
   return (
-    <div>
-      <h2 style={{ color: "white" }}>Delegator</h2>
-    </div>
+    <DelegatorContainer>
+      <TitleBase>Delegator</TitleBase>
+      <TabContextProvider initTab={"organization"}>
+        <TabList tabs={delegatorTabs} />
+        {delegatorTabs.map(({ tabId, label }) => (
+          <TabPanel tabId={tabId} key={tabId}>
+            {(() => {
+              const query =
+                tabId === "organization"
+                  ? organizationQuery
+                  : tabId === "contract"
+                  ? contractQuery
+                  : tabId === "function"
+                  ? functionQuery
+                  : tabId === "reporter"
+                  ? reporterQuery
+                  : null;
+
+              if (query?.isLoading) {
+                return (
+                  <IsLoadingBase>Loading... Please wait a moment</IsLoadingBase>
+                );
+              }
+
+              if (query?.isError) {
+                return (
+                  <ErrorMessageBase>
+                    Error occurred while fetching data
+                  </ErrorMessageBase>
+                );
+              }
+              if (query?.data?.length === 0) {
+                return <NoDataAvailableBase>No data found</NoDataAvailableBase>;
+              }
+              return query?.data?.map((item: any) => (
+                <DataListBase key={item.id}>
+                  {JSON.stringify(item, null, 2)}
+                </DataListBase>
+              ));
+            })()}
+          </TabPanel>
+        ))}
+      </TabContextProvider>
+    </DelegatorContainer>
   );
 };
 

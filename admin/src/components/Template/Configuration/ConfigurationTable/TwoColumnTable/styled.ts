@@ -3,6 +3,7 @@ import styled from "styled-components";
 export const TwoColumnTableContainer = styled.div`
   width: 80%;
   margin: 0 auto;
+  padding-bottom: 100px;
 `;
 
 export const TwoColumnTableHeaderBase = styled.div`

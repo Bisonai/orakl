@@ -4,6 +4,7 @@ const RefreshIcon = ({ onRefresh }: { onRefresh: () => void }) => {
   const handleRefresh = () => {
     onRefresh();
   };
+
   return (
     <div onClick={handleRefresh}>
       <Icon

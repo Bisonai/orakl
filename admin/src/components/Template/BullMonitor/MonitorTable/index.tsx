@@ -40,7 +40,10 @@ const MonitorTable = ({ serviceId }: { serviceId: string }) => {
       </TableHeaderContainer>
       {serviceQuery.data?.map((queue: IQueueData) => (
         <TableDataContainer key={queue.queue}>
-          <Link href={`/bullmonitor/${serviceId}?queue=${queue.queue}`}>
+          <Link
+            style={{ width: "350px" }}
+            href={`/bullmonitor/${serviceId}?queue=${queue.queue}`}
+          >
             <QueueNameBase>{queue.queue}</QueueNameBase>
           </Link>
           <Link href={`/bullmonitor/${serviceId}?queue=${queue.queue}`}>
@@ -48,7 +51,6 @@ const MonitorTable = ({ serviceId }: { serviceId: string }) => {
               {queue.status ? "True" : "False"}
             </HeaderItem>
           </Link>
-
           <Link
             href={`/bullmonitor/${serviceId}?queue=${queue.queue}&activetab=active`}
           >

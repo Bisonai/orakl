@@ -1,5 +1,4 @@
-"use client";
-
+import { useState, useEffect } from "react";
 import Adapter from "./Adapter";
 import Aggregator from "./Aggregator";
 import Chain from "./Chain";
@@ -9,11 +8,31 @@ import Reporter from "./Reporter";
 import Service from "./Service";
 import VrfKeys from "./VrfKeys";
 
+import { getCookie } from "@/lib/cookies";
+import { LoginPage } from "../Home/Login";
+import { IsLoadingBase } from "../BullMonitor/DetailTable/styled";
+
 export default function ConfigurationDetailTemplate({
   configType,
 }: {
   configType: string;
 }) {
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [tokenChecked, setTokenChecked] = useState(false);
+
+  useEffect(() => {
+    const token = getCookie("token");
+    setIsLoggedIn(!!token);
+    setTokenChecked(true);
+  }, []);
+
+  if (!tokenChecked) {
+    return <IsLoadingBase>Loading...</IsLoadingBase>;
+  }
+  if (isLoggedIn === false) {
+    return <LoginPage onLogin={() => setIsLoggedIn(true)} />;
+  }
+
   return (
     <>
       {configType === "chain" && <Chain />}
