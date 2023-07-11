@@ -6,7 +6,11 @@ import TabList from "@/components/Common/TabList";
 import TabPanel from "@/components/Common/TabPanel";
 import { StatusTab, delegatorTabs } from "@/utils/types";
 import { DataListBase, DelegatorContainer, TitleBase } from "./styled";
-import { IsLoadingBase } from "@/components/Template/BullMonitor/DetailTable/styled";
+import {
+  IsLoadingBase,
+  ErrorMessageBase,
+  NoDataAvailableBase,
+} from "@/components/Template/BullMonitor/DetailTable/styled";
 
 const Delegator = () => {
   const organizationQuery = useQuery({
@@ -61,58 +65,38 @@ const Delegator = () => {
         {delegatorTabs.map(({ tabId, label }) => (
           <TabPanel tabId={tabId} key={tabId}>
             {(() => {
-              switch (tabId) {
-                case "organization":
-                  return organizationQuery.isLoading ? (
-                    <IsLoadingBase>
-                      Loading... Please wait a moment
-                    </IsLoadingBase>
-                  ) : (
-                    organizationQuery.data.map((item: any) => (
-                      <DataListBase key={item.id}>
-                        {JSON.stringify(item, null, 2)}
-                      </DataListBase>
-                    ))
-                  );
-                case "contract":
-                  return contractQuery.isLoading ? (
-                    <IsLoadingBase>
-                      Loading... Please wait a moment
-                    </IsLoadingBase>
-                  ) : (
-                    contractQuery.data.map((item: any) => (
-                      <DataListBase key={item.id}>
-                        {JSON.stringify(item, null, 2)}
-                      </DataListBase>
-                    ))
-                  );
-                case "function":
-                  return functionQuery.isLoading ? (
-                    <IsLoadingBase>
-                      Loading... Please wait a moment
-                    </IsLoadingBase>
-                  ) : (
-                    functionQuery.data.map((item: any) => (
-                      <DataListBase key={item.id}>
-                        {JSON.stringify(item, null, 2)}
-                      </DataListBase>
-                    ))
-                  );
-                case "reporter":
-                  return reporterQuery.isLoading ? (
-                    <IsLoadingBase>
-                      Loading... Please wait a moment
-                    </IsLoadingBase>
-                  ) : (
-                    reporterQuery.data.map((item: any) => (
-                      <DataListBase key={item.id}>
-                        {JSON.stringify(item, null, 2)}
-                      </DataListBase>
-                    ))
-                  );
-                default:
-                  return null;
+              const query =
+                tabId === "organization"
+                  ? organizationQuery
+                  : tabId === "contract"
+                  ? contractQuery
+                  : tabId === "function"
+                  ? functionQuery
+                  : tabId === "reporter"
+                  ? reporterQuery
+                  : null;
+
+              if (query?.isLoading) {
+                return (
+                  <IsLoadingBase>Loading... Please wait a moment</IsLoadingBase>
+                );
               }
+
+              if (query?.isError) {
+                return (
+                  <ErrorMessageBase>
+                    Error occurred while fetching data
+                  </ErrorMessageBase>
+                );
+              }
+              if (query?.data?.length === 0) {
+                return <NoDataAvailableBase>No data found</NoDataAvailableBase>;
+              }
+              return query?.data?.map((item: any) => (
+                <DataListBase key={item.id}>
+                  {JSON.stringify(item, null, 2)}
+                </DataListBase>
+              ));
             })()}
           </TabPanel>
         ))}
