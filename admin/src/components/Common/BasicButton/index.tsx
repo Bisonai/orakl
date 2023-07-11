@@ -26,12 +26,34 @@ export default function BasicButton({
   selected = false,
   ...rest
 }: BasicButtonProps) {
+  const handleClick = (
+    event: React.MouseEvent<HTMLButtonElement, MouseEvent>
+  ) => {
+    if (!disabled && onClick) {
+      onClick(event);
+      selected = true;
+    }
+  };
+
+  const buttonBackground = disabled
+    ? "rgb(22 22 22)"
+    : selected === true
+    ? "#c0ff41"
+    : background;
+
   return (
     <Button
-      onClick={onClick}
+      onClick={handleClick}
       variant={variant}
       color={selected ? "secondary" : "primary"}
-      style={{ width, justifyContent, margin, background, height, color }}
+      style={{
+        width,
+        justifyContent,
+        margin,
+        background: buttonBackground,
+        height,
+        color,
+      }}
       disabled={disabled}
       {...rest}
     >

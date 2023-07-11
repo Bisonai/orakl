@@ -1,4 +1,4 @@
-import React, { ReactNode, useState } from "react";
+import React, { ReactNode, useEffect, useState } from "react";
 import ExpandMoreIcon from "@material-ui/icons/ExpandMore";
 import ExpandLessIcon from "@material-ui/icons/ExpandLess";
 import {
@@ -23,6 +23,9 @@ type AccordionHeaderProps = {
 type NavButtonProps = {
   href: string;
   text: string;
+  disabled?: boolean;
+  selected?: boolean;
+  onClick?: () => void;
 };
 
 const AccordionHeader: React.FC<AccordionHeaderProps> = ({
@@ -69,9 +72,20 @@ const AccordionHeader: React.FC<AccordionHeaderProps> = ({
   );
 };
 
-const NavButton: React.FC<NavButtonProps> = ({ href, text }) => (
+const NavButton: React.FC<NavButtonProps> = ({
+  href,
+  text,
+  disabled,
+  selected,
+  onClick,
+}) => (
   <Link href={href}>
-    <BasicButton text={text} />
+    <BasicButton
+      text={text}
+      disabled={disabled}
+      selected={selected}
+      onClick={onClick}
+    />
   </Link>
 );
 
@@ -82,9 +96,14 @@ export default function NavigationDropdown(): JSX.Element {
     account: true,
   });
 
+  const [currentPath, setCurrentPath] = useState("");
+
   function handleAccordionToggle(index: keyof IAccordionState) {
     setIsAccordionOpen((isOpen) => ({ ...isOpen, [index]: !isOpen[index] }));
   }
+  const handleNavButtonClick = (selectedPath: string) => {
+    setCurrentPath(selectedPath);
+  };
 
   return (
     <NavDropdownContainer>
@@ -100,7 +119,17 @@ export default function NavigationDropdown(): JSX.Element {
           {isAccordionOpen.configuration && (
             <AccordionContent>
               {Object.entries(configRoutes).map(([key, href]) => (
-                <NavButton key={key} href={href} text={key} />
+                <NavButton
+                  key={key}
+                  href={href}
+                  text={key}
+                  disabled={key === "fetcher"}
+                  selected={
+                    configRoutes[key as keyof typeof configRoutes] ===
+                    currentPath
+                  }
+                  onClick={() => handleNavButtonClick(href)}
+                />
               ))}
             </AccordionContent>
           )}
@@ -115,9 +144,20 @@ export default function NavigationDropdown(): JSX.Element {
           </AccordionHeader>
           {isAccordionOpen.bull && (
             <AccordionContent>
-              {Object.entries(routes).map(([key, href]) => (
-                <NavButton key={key} href={href} text={key} />
-              ))}
+              {Object.entries(routes).map(([key, href]) => {
+                return (
+                  <NavButton
+                    key={key}
+                    href={href}
+                    text={key}
+                    disabled={key === "fetcher" || key === "settings"}
+                    selected={
+                      routes[key as keyof typeof routes] === currentPath
+                    }
+                    onClick={() => handleNavButtonClick(href)}
+                  />
+                );
+              })}
             </AccordionContent>
           )}
         </AccordionItem>
