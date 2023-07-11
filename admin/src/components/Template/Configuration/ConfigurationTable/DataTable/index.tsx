@@ -44,7 +44,6 @@ const DataTable = ({
   const [data, setData] = useState<any[]>(configQuery.data || []);
 
   const handleAdd = async (newData: any) => {
-    console.log("Sending data:", newData);
     try {
       await addMutation.mutateAsync(newData);
       setData((prevData) => [...prevData, newData]);

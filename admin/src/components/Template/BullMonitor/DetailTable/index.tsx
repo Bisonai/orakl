@@ -88,10 +88,6 @@ const DetailTable = ({
   const handleTabChange = (newTab: string) => setSelectedTab(newTab);
 
   const renderTabContent = (item: any, tab: string) => {
-    console.log(item?.stacktrace, "item.stacktrace");
-    console.log(item?.data, "item.data");
-    console.log(item?.opts, "item.opts");
-
     const getContent = (data: any) =>
       data ? (
         <pre>{JSON.stringify(data, null, 2)}</pre>
