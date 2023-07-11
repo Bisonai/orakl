@@ -24,17 +24,23 @@ export const TableDataContainer = styled.div`
   &:hover {
     background-color: #222831;
   }
+  a {
+    width: 10%;
+    min-width: 100px;
+  }
 `;
 
 export const QueueNameBase = styled.div`
-  width: 350px;
+  flex-grow: 1;
   text-align: left;
   color: white;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  max-width: 90%;
 `;
 
 export const HeaderItem = styled.div`
-  width: 120px;
+  width: 10%;
+  min-width: 100px;
 `;

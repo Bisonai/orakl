@@ -34,7 +34,7 @@ export default function BullMonitorTemplate() {
 
   return (
     <>
-      <div style={{ maxWidth: "1400px" }}>
+      <div style={{ width: "90%", paddingBottom: "100px" }}>
         <VrfTable serviceData={vrfData} serviceId={"vrf"} />
         <RequestResponseTable
           serviceData={requestResponseData}
