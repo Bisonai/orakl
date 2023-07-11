@@ -29,6 +29,7 @@ export default function BullMonitorDetailTemplate({
       <div
         style={{
           background: "#222831",
+          padding: "40px 0px",
           margin: "0px 40px",
           maxWidth: "1400px",
         }}

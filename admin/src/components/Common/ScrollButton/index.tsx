@@ -29,9 +29,16 @@ function ScrollToTopButton() {
   useEffect(() => {
     window.addEventListener("scroll", checkScrollTopAndPercent);
     return () => window.removeEventListener("scroll", checkScrollTopAndPercent);
-  });
+  }, []);
 
-  return <ScrollButton onClick={scrollToTop}>{scrollPercent}%</ScrollButton>;
+  return (
+    <ScrollButton
+      onClick={scrollToTop}
+      style={{ display: isVisible ? "block" : "none" }}
+    >
+      {scrollPercent}%
+    </ScrollButton>
+  );
 }
 
 export default ScrollToTopButton;
