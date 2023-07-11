@@ -67,36 +67,6 @@ const Adapter = () => {
         feed.definition = feed.definition || {};
       }
     } catch (error) {
-      // parsedValue = {
-      //   adapterHash: "",
-      //   name: "",
-      //   decimals: 0,
-      //   feeds: [
-      //     {
-      //       name: "",
-      //       definition: {
-      //         url: "",
-      //         headers: {
-      //           "Content-Type": "application/json",
-      //         },
-      //         method: "GET",
-      //         reducers: [
-      //           {
-      //             function: "PARSE",
-      //             args: ["price"],
-      //           },
-      //           {
-      //             function: "POW10",
-      //             args: 8,
-      //           },
-      //           {
-      //             function: "ROUND",
-      //           },
-      //         ],
-      //       },
-      //     },
-      //   ],
-      // };
       console.error("Error parsing JSON:", error);
     }
 
