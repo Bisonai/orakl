@@ -11,7 +11,10 @@ import {
 } from "./styled";
 import BasicButton from "@/components/Common/BasicButton";
 import { useDimmedPopupContext } from "@/hook/useDimmedPopupContext";
-import { IsLoadingBase } from "@/components/Template/BullMonitor/DetailTable/styled";
+import {
+  IsLoadingBase,
+  NoDataAvailableBase,
+} from "@/components/Template/BullMonitor/DetailTable/styled";
 
 interface TableConfigProps {
   fetchEndpoint: string;
@@ -94,7 +97,7 @@ const DataTable = ({
       </HeaderBase>
       {configQuery.isLoading ? (
         <IsLoadingBase>Loading... Please wait a moment</IsLoadingBase>
-      ) : (
+      ) : data.length > 0 ? (
         data.map((item: any) => (
           <TableBase key={item.id}>
             <BasicButton
@@ -125,6 +128,8 @@ const DataTable = ({
             ))}
           </TableBase>
         ))
+      ) : (
+        <NoDataAvailableBase>No data found</NoDataAvailableBase>
       )}
     </Container>
   );
