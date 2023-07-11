@@ -5,6 +5,7 @@ export const Container = styled.div`
   margin: 0 auto;
   display: flex;
   flex-direction: column;
+  padding-bottom: 100px;
 `;
 
 export const HeaderBase = styled.div`
@@ -24,6 +25,12 @@ export const AddDataBase = styled.div`
 export const AddDataFormBase = styled.div`
   font-family: inherit;
   width: 100%;
+  justify-content: center;
+  display: flex;
+  flex-direction: column;
+  button {
+    margin: 0 0 0 auto;
+  }
 `;
 
 export const AddDataForm = styled.textarea`

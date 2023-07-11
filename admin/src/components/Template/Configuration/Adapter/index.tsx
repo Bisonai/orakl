@@ -165,7 +165,7 @@ const Adapter = () => {
               height="50px"
               background="rgb(114, 250, 147)"
               justifyContent="center"
-              margin="0 auto"
+              margin="0 0 0 auto"
               width="150px"
               text="Submit"
               onClick={handleAddClick}
