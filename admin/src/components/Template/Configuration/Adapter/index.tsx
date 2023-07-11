@@ -15,6 +15,11 @@ import {
   AddDataForm,
 } from "./styled";
 import { useDimmedPopupContext } from "@/hook/useDimmedPopupContext";
+import {
+  ErrorMessageBase,
+  IsLoadingBase,
+  NoDataAvailableBase,
+} from "../../BullMonitor/DetailTable/styled";
 
 const Adapter = () => {
   const { openDimmedPopup, closeDimmedPopup } = useDimmedPopupContext();
@@ -144,7 +149,11 @@ const Adapter = () => {
         )}
       </AddDataBase>
       {configQuery.isLoading ? (
-        <div>Loading... Please wait a moment</div>
+        <IsLoadingBase>Loading... Please wait a moment</IsLoadingBase>
+      ) : configQuery.isError ? (
+        <ErrorMessageBase>Error occurred while fetching data</ErrorMessageBase>
+      ) : data.length === 0 ? (
+        <NoDataAvailableBase>No data found</NoDataAvailableBase>
       ) : (
         data.map((item: any) => (
           <TableBase key={item.id}>
