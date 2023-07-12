@@ -258,10 +258,10 @@ export class State {
         `Number of jobs ${jobs.length}`
       )
     } else {
-      const deleyedJob = jobs[0]
-      await this.latestListenerQueue.removeRepeatableByKey(deleyedJob.key)
+      const delayedJob = jobs[0]
+      await this.latestListenerQueue.removeRepeatableByKey(delayedJob.key)
 
-      this.logger.debug({ job: 'deleted' }, `Listener deleyed job with KEY=${deleyedJob.key}`)
+      this.logger.debug({ job: 'deleted' }, `Listener delayed job with KEY=${delayedJob.key}`)
     }
 
     const numUpdatedActiveListeners = activeListeners.length
