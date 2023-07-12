@@ -61,20 +61,21 @@ export class AccountsService {
 
   async cronAlarmLowBalance() {
     const accountLists: [Account] = await this.getAccountList();
-    const { value } = await this.monitorConfigService.getValueByName(MONITOR_CONFIG.BALANCE_ALARM_AMOUNT)
-    if (value) {
-      if (accountLists.length > 0) {
-        for (const accountInfo of accountLists) {
-          try {
-            const balance = await this.accountBalanceRepository.getBalance(accountInfo.address);
-            if (balance) {
-              if (Math.floor(balance) < parseInt(value)) {
-                this.sendToSlackLowBalance(accountInfo, balance, value);
-                }
+    
+    if (accountLists.length > 0) {
+      for (const accountInfo of accountLists) {
+        try {
+          const balance = await this.accountBalanceRepository.getBalance(accountInfo.address);
+          const balance_alarm_amount = await this.accountBalanceRepository.getBalanceAlarmAmount(accountInfo.address);
+          if (balance && balance_alarm_amount) {
+            // if balance_alarm_amount is '0' mean disable alarm
+            // if balance_alarm_amount is '1'~'n' mean number of balance_balance_alarm_amount
+            if (Math.floor(balance) < balance_alarm_amount && balance_alarm_amount !== 0) {
+              this.sendToSlackLowBalance(accountInfo, balance, balance_alarm_amount);
             }
-          } catch (e) {
-            console.log(e);
           }
+        } catch (e) {
+          console.log(e);
         }
       }
     }
