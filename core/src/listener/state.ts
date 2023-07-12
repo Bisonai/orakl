@@ -213,6 +213,7 @@ export class State {
     }
     await this.latestListenerQueue.add('latest-repeatable', outData, {
       ...LISTENER_JOB_SETTINGS,
+      jobId: contractAddress,
       repeat: {
         every: LISTENER_DELAY
       }
