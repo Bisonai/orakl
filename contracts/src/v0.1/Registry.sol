@@ -11,12 +11,17 @@ contract Registry is Ownable {
     event ProposeFeeSet(uint fee);
 
     uint256 public proposeFee;
+    struct AggregatorPair {
+        address l1Aggregator;
+        address l2Aggregator;
+    }
 
     struct L2Endpoint {
         string jsonRpc;
         address endpoint;
         address owner;
         uint256 startRound; // for datafeeds
+        AggregatorPair[] aggregatorPair;
     }
     // chainId => L2 Endpoint
     mapping(uint256 => L2Endpoint) public chainRegistry;
@@ -31,7 +36,9 @@ contract Registry is Ownable {
         uint _chainID,
         string memory _jsonRpc,
         address _endpoint,
-        uint256 _startRound
+        uint256 _startRound,
+        address _l1Aggregator,
+        address _l2Aggregator
     ) external payable {
         if (msg.value < proposeFee) {
             revert NotEnoughFee();
@@ -40,7 +47,11 @@ contract Registry is Ownable {
         pendingProposal[_chainID].endpoint = _endpoint;
         pendingProposal[_chainID].owner = msg.sender;
         pendingProposal[_chainID].startRound = _startRound;
-
+        AggregatorPair memory pair = AggregatorPair({
+            l1Aggregator: _l1Aggregator,
+            l2Aggregator: _l2Aggregator
+        });
+        pendingProposal[_chainID].aggregatorPair.push(pair);
         emit ChainProposed(msg.sender, _chainID);
     }
 
@@ -59,4 +70,9 @@ contract Registry is Ownable {
     }
 
     receive() external payable {}
+
+    function withdraw(uint256 _amount) external onlyOwner returns (bool) {
+        (bool sent, ) = payable(msg.sender).call{value: _amount}("");
+        return sent;
+    }
 }
