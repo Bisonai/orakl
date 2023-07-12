@@ -52,6 +52,13 @@ export class AccountBalanceRepository implements OnModuleInit, OnModuleDestroy {
         return result.rows[0] ? result.rows[0].balance : null;
     }
 
+    async getBalanceAlarmAmount(address: string): Promise<number | null> {
+        const query = 'SELECT * FROM balance WHERE address = $1';
+        const values = [address];
+        const result = await this.monitorClient.query(query, values);
+        return result.rows[0] ? result.rows[0].alarm_amount : null;
+    }
+
     async upsertBalance(balance: BalanceDTO): Promise<void> {
         const query = `
         INSERT INTO balance(address, balance)
