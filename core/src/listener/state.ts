@@ -248,6 +248,22 @@ export class State {
 
     const removedListener = activeListeners.splice(index, 1)[0]
 
+    const jobs = (await this.latestListenerQueue.getRepeatableJobs()).filter(
+      (job) => job.id == removedListener.address
+    )
+
+    if (jobs.length != 1) {
+      throw new OraklError(
+        OraklErrorCode.UnexpectedNumberOfJobsInQueue,
+        `Number of jobs ${jobs.length}`
+      )
+    } else {
+      const deleyedJob = jobs[0]
+      await this.latestListenerQueue.removeRepeatableByKey(deleyedJob.key)
+
+      this.logger.debug({ job: 'deleted' }, `Listener deleyed job with KEY=${deleyedJob.key}`)
+    }
+
     const numUpdatedActiveListeners = activeListeners.length
     if (numActiveListeners === numUpdatedActiveListeners) {
       const msg = `Listener with ID=${id} was not removed.`
