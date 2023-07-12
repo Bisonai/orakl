@@ -213,6 +213,7 @@ export class State {
     }
     await this.latestListenerQueue.add('latest-repeatable', outData, {
       ...LISTENER_JOB_SETTINGS,
+      jobId: contractAddress,
       repeat: {
         every: LISTENER_DELAY
       }
@@ -246,6 +247,22 @@ export class State {
     }
 
     const removedListener = activeListeners.splice(index, 1)[0]
+
+    const jobs = (await this.latestListenerQueue.getRepeatableJobs()).filter(
+      (job) => job.id == removedListener.address
+    )
+
+    if (jobs.length != 1) {
+      throw new OraklError(
+        OraklErrorCode.UnexpectedNumberOfJobsInQueue,
+        `Number of jobs ${jobs.length}`
+      )
+    } else {
+      const delayedJob = jobs[0]
+      await this.latestListenerQueue.removeRepeatableByKey(delayedJob.key)
+
+      this.logger.debug({ job: 'deleted' }, `Listener delayed job with KEY=${delayedJob.key}`)
+    }
 
     const numUpdatedActiveListeners = activeListeners.length
     if (numActiveListeners === numUpdatedActiveListeners) {
