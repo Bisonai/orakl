@@ -67,7 +67,7 @@ export const DetailTabBase = styled.div`
   padding: 20px;
 `;
 export const CodeSnippetBase = styled.div`
-  color: #00adb5;
+  color: #54fbff;
   pre {
     font-size: 14px;
     line-height: 18px;
