@@ -55,6 +55,7 @@ export interface ITabContextProviderProps {
 
 export interface ITabListProps {
   tabs: ITabProps[];
+  numberOfData: any;
 }
 
 export interface ITabProps extends StyledComponentProps<"li"> {
@@ -80,11 +81,11 @@ export type StatusTab = {
 
 export const statusTabs: StatusTab[] = [
   { tabId: "active", label: "Active" },
-  { tabId: "waiting", label: "Waiting" },
   { tabId: "completed", label: "Completed" },
-  { tabId: "failed", label: "Failed" },
   { tabId: "delayed", label: "Delayed" },
+  { tabId: "failed", label: "Failed" },
   { tabId: "paused", label: "Paused" },
+  { tabId: "waiting", label: "Waiting" },
 ];
 
 export const delegatorTabs: StatusTab[] = [
