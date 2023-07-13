@@ -13,7 +13,7 @@ export const TabBase = styled.li`
   display: inline-block;
   box-sizing: border-box;
   min-width: 70px;
-  padding: 10px 20px;
+  padding: 10px;
   transition: 0.2s;
   word-break: keep-all;
   white-space: nowrap;
@@ -37,4 +37,18 @@ export const LabelWithIconBase = styled.span`
   svg {
     margin-right: 8px;
   }
+`;
+export const TabContainer = styled.div`
+  display: flex;
+`;
+
+export const NumberOfDataBase = styled.div<{ hasData: boolean }>`
+  width: 40px;
+  font-size: 14px;
+  height: 20px;
+  border-radius: 30px;
+  font-weight: ${({ hasData }) => (hasData ? "600" : "400")};
+  color: ${({ hasData }) => (hasData ? "#252525" : "#eeeeee")};
+  background: ${({ hasData }) => (hasData ? "rgb(192, 255, 65)" : "#252525")};
+  text-align: center;
 `;
