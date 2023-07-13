@@ -70,7 +70,7 @@ export class AccountsService {
           if (balance && balance_alarm_amount) {
             // if balance_alarm_amount is '0' mean disable alarm
             // if balance_alarm_amount is '1'~'n' mean number of balance_balance_alarm_amount
-            if (Math.floor(balance) < balance_alarm_amount && balance_alarm_amount !== 0) {
+            if (balance < balance_alarm_amount && balance_alarm_amount !== 0) {
               this.sendToSlackLowBalance(accountInfo, balance, balance_alarm_amount);
             }
           }
