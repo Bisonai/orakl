@@ -1,9 +1,19 @@
 import { ITabListProps, ITabProps } from "@/utils/types";
 import React, { useCallback, useEffect } from "react";
-import { LabelWithIconBase, TabBase, TabListBase } from "./styled";
+import {
+  LabelWithIconBase,
+  NumberOfDataBase,
+  TabBase,
+  TabContainer,
+  TabListBase,
+} from "./styled";
 import { useTabContext } from "@/hook/useTabContext";
 
-const TabList = ({ tabs, ...props }: ITabListProps): JSX.Element => {
+const TabList = ({
+  tabs,
+  numberOfData,
+  ...props
+}: ITabListProps): JSX.Element => {
   const { activeTab, setActiveTab } = useTabContext();
 
   const handleClickTab = useCallback(
@@ -30,14 +40,20 @@ const TabList = ({ tabs, ...props }: ITabListProps): JSX.Element => {
 
   return (
     <TabListBase {...props}>
-      {tabs.map((tab) => (
-        <Tab
-          {...tab}
-          key={tab.tabId}
-          onClick={handleClickTab}
-          className={activeTab === tab.tabId ? "selected" : undefined}
-          selected={activeTab === tab.tabId}
-        />
+      {tabs.map((tab, index) => (
+        <TabContainer key={tab.tabId}>
+          <Tab
+            {...tab}
+            onClick={handleClickTab}
+            className={activeTab === tab.tabId ? "selected" : undefined}
+            selected={activeTab === tab.tabId}
+          />
+          {numberOfData !== undefined && numberOfData[index] !== undefined && (
+            <NumberOfDataBase hasData={numberOfData[index] !== 0}>
+              {numberOfData[index]}
+            </NumberOfDataBase>
+          )}
+        </TabContainer>
       ))}
     </TabListBase>
   );
