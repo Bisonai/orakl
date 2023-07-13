@@ -31,7 +31,6 @@ export default function BasicButton({
   ) => {
     if (!disabled && onClick) {
       onClick(event);
-      selected = true;
     }
   };
 
