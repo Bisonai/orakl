@@ -5,10 +5,11 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 contract Registry is Ownable {
     error NotEnoughFee();
     error InvalidChainID();
+    error InsufficientBalance();
 
     event ChainProposed(address sender, uint chainID);
-    event ChainConfirmed(uint chainID);
-    event ProposeFeeSet(uint fee);
+    event ChainConfirmed(uint256 chainID);
+    event ProposeFeeSet(uint256 fee);
 
     uint256 public proposeFee;
     struct AggregatorPair {
@@ -33,7 +34,7 @@ contract Registry is Ownable {
     // mapping(address => address) accountRegistry;
 
     function proposeChain(
-        uint _chainID,
+        uint256 _chainID,
         string memory _jsonRpc,
         address _endpoint,
         uint256 _startRound,
@@ -55,12 +56,12 @@ contract Registry is Ownable {
         emit ChainProposed(msg.sender, _chainID);
     }
 
-    function setProposeFee(uint _fee) public onlyOwner {
+    function setProposeFee(uint256 _fee) public onlyOwner {
         proposeFee = _fee;
         emit ProposeFeeSet(_fee);
     }
 
-    function confirmChain(uint _chainId) public onlyOwner {
+    function confirmChain(uint256 _chainId) public onlyOwner {
         if (pendingProposal[_chainId].owner == address(0)) {
             revert InvalidChainID();
         }
@@ -72,6 +73,10 @@ contract Registry is Ownable {
     receive() external payable {}
 
     function withdraw(uint256 _amount) external onlyOwner returns (bool) {
+        uint256 balance = address(this).balance;
+        if (balance < _amount) {
+            revert InsufficientBalance();
+        }
         (bool sent, ) = payable(msg.sender).call{value: _amount}("");
         return sent;
     }
