@@ -16,7 +16,12 @@ exports.up = pgm => {
       type: {
         type: 'text',
         notNull: true
-      }             
+      },
+      balance_alarm_amount: {
+        type: 'int',
+        notNull: true,
+        default: 0
+      }
     })
     pgm.createIndex('account', 'address')
     pgm.createTable('balance', {
