@@ -12,6 +12,7 @@ import Link from "next/link";
 import { configRoutes, routes } from "@/utils/route";
 import { IAccordionState } from "@/utils/types";
 import BasicButton from "../BasicButton";
+import { usePathname } from "next/navigation";
 
 type AccordionHeaderProps = {
   isOpen: boolean;
@@ -25,7 +26,7 @@ type NavButtonProps = {
   text: string;
   disabled?: boolean;
   selected?: boolean;
-  onClick?: () => void;
+  onClick?: (event: React.MouseEvent<HTMLButtonElement, MouseEvent>) => void;
 };
 
 const AccordionHeader: React.FC<AccordionHeaderProps> = ({
@@ -71,39 +72,58 @@ const AccordionHeader: React.FC<AccordionHeaderProps> = ({
     </Link>
   );
 };
-
 const NavButton: React.FC<NavButtonProps> = ({
   href,
   text,
   disabled,
   selected,
   onClick,
-}) => (
-  <Link href={href}>
-    <BasicButton
-      text={text}
-      disabled={disabled}
-      selected={selected}
-      onClick={onClick}
-    />
-  </Link>
-);
+}) => {
+  const handleClick = (
+    event: React.MouseEvent<HTMLButtonElement, MouseEvent>
+  ) => {
+    if (!disabled && onClick) {
+      onClick(event);
+    }
+  };
+
+  return (
+    <Link href={href}>
+      <BasicButton
+        text={text}
+        disabled={disabled}
+        selected={selected}
+        onClick={handleClick}
+      />
+    </Link>
+  );
+};
 
 export default function NavigationDropdown(): JSX.Element {
+  const pathname = usePathname();
   const [isAccordionOpen, setIsAccordionOpen] = useState<IAccordionState>({
     configuration: true,
     bull: true,
     account: true,
   });
 
-  const [currentPath, setCurrentPath] = useState("");
-
+  const [currentPath, setCurrentPath] = useState(pathname);
+  const [selectedPath, setSelectedPath] = useState("");
   function handleAccordionToggle(index: keyof IAccordionState) {
     setIsAccordionOpen((isOpen) => ({ ...isOpen, [index]: !isOpen[index] }));
   }
+
   const handleNavButtonClick = (selectedPath: string) => {
-    setCurrentPath(selectedPath);
+    setSelectedPath(selectedPath);
   };
+
+  useEffect(() => {
+    setCurrentPath(pathname);
+  }, [pathname]);
+
+  useEffect(() => {
+    setSelectedPath(currentPath);
+  }, [currentPath]);
 
   return (
     <NavDropdownContainer>
@@ -124,10 +144,7 @@ export default function NavigationDropdown(): JSX.Element {
                   href={href}
                   text={key}
                   disabled={key === "fetcher"}
-                  selected={
-                    configRoutes[key as keyof typeof configRoutes] ===
-                    currentPath
-                  }
+                  selected={selectedPath === href}
                   onClick={() => handleNavButtonClick(href)}
                 />
               ))}
@@ -151,9 +168,7 @@ export default function NavigationDropdown(): JSX.Element {
                     href={href}
                     text={key}
                     disabled={key === "fetcher" || key === "settings"}
-                    selected={
-                      routes[key as keyof typeof routes] === currentPath
-                    }
+                    selected={selectedPath === href}
                     onClick={() => handleNavButtonClick(href)}
                   />
                 );
