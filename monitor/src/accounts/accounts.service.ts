@@ -8,6 +8,7 @@ import { BalanceDTO } from "./dto/balance.dto";
 import { MonitorConfigService } from "src/monitor.config/monitor.config.service";
 import { MONITOR_CONFIG } from "src/common/types";
 import { IncomingWebhook } from "@slack/webhook";
+import { P } from "pino";
 
 @Injectable()
 export class AccountsService {
@@ -67,10 +68,11 @@ export class AccountsService {
         try {
           const balance = await this.accountBalanceRepository.getBalance(accountInfo.address);
           const balance_alarm_amount = await this.accountBalanceRepository.getBalanceAlarmAmount(accountInfo.address);
+          
           if (balance && balance_alarm_amount) {
-            // if balance_alarm_amount is '0' mean disable alarm
-            // if balance_alarm_amount is '1'~'n' mean number of balance_balance_alarm_amount
-            if (balance < balance_alarm_amount && balance_alarm_amount !== 0) {
+            const isEnabled = (balance_alarm_amount !== 0);
+
+            if (isEnabled && balance < balance_alarm_amount) {
               this.sendToSlackLowBalance(accountInfo, balance, balance_alarm_amount);
             }
           }
