@@ -77,7 +77,7 @@ export class AccountsService {
             }
           }
         } catch (e) {
-          console.log(e);
+          console.error(e);
         }
       }
     }
@@ -95,69 +95,81 @@ export class AccountsService {
     const minute = date.getMinutes();
 
     
+    const deployedEnv = process.env.NODE_ENV;
+    const isValidDeployedEnv = !(['CYPRESS', 'BAOBAB', 'DEV'].includes(deployedEnv));
+    const prefix = isValidDeployedEnv ? `[${deployedEnv}]` : '';
+    if (isValidDeployedEnv) {
+      console.error(`
+      Invalid deployed environment. The NODE_ENV must be set like CYPRESS, BAOBAB or DEV.
+      Currently, the NODE_ENV value is ${deployedEnv}
+      `);
+    }
 
-    const headerText = `:coin:  Low Account Balance in ${account.name}`;
+    const headerText = `${prefix}  :coin:  Low Account Balance in ${account.name}`;
     const dateText = `${month} ${day}, ${year} ${hour}:${minute}   |   Balance Report`;
     const queueNameText = `:herb: account: *${account.address}*`;
     const context = `\`${account.name}\` has *${balance}* Klay. \nMinimum balance is ${minBalance} Klay.`;
 
-    await webhook.send(
-      {
-        blocks: [
+
+    if (isValidDeployedEnv) {
+      await webhook.send(
         {
-          "type": "header",
-          "text": {
-            "type": "plain_text",
-            "text": headerText,
-          }
-        },
-        {
-          "type": "context",
-          "elements": [
-            {
-              "text": dateText,
-              "type": "mrkdwn"
+          blocks: [
+          {
+            "type": "header",
+            "text": {
+              "type": "plain_text",
+              "text": headerText,
             }
-          ]
-        },        
-        {
-          "type": "divider"
-        },        
-        {
-          "type": "section",
-          "text": {
-            "type": "mrkdwn",
-            "text": queueNameText,
-          }
-        },        
-        {
-          "type": "section",
-          "text": {
-            "type": "mrkdwn",
-            "text": context,
-          }
-        },
-        {
-          "type": "divider"
-          },    
+          },
           {
             "type": "context",
             "elements": [
               {
-                "type": "image",
-                "image_url": "https://www.orakl.network/favicon.ico",
-                "alt_text": "orakl network"
-              },
-              {
-                "type": "mrkdwn",
-                "text": " Developed by Bisonai Infra Team"
-              },
+                "text": dateText,
+                "type": "mrkdwn"
+              }
             ]
-          },     
+          },        
           {
             "type": "divider"
-          },       
-      ]
-    })
+          },        
+          {
+            "type": "section",
+            "text": {
+              "type": "mrkdwn",
+              "text": queueNameText,
+            }
+          },        
+          {
+            "type": "section",
+            "text": {
+              "type": "mrkdwn",
+              "text": context,
+            }
+          },
+          {
+            "type": "divider"
+            },    
+            {
+              "type": "context",
+              "elements": [
+                {
+                  "type": "image",
+                  "image_url": "https://www.orakl.network/favicon.ico",
+                  "alt_text": "orakl network"
+                },
+                {
+                  "type": "mrkdwn",
+                  "text": " Developed by Bisonai Infra Team"
+                },
+              ]
+            },     
+            {
+              "type": "divider"
+            },       
+        ]
+      })
+    }
   }    
 }
