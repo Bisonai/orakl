@@ -67,12 +67,8 @@ export class AccountsService {
           const balance = await this.accountBalanceRepository.getBalance(accountInfo.address);
           const balance_alarm_amount = await this.accountBalanceRepository.getBalanceAlarmAmount(accountInfo.address);
           
-          if (balance && balance_alarm_amount) {
-            const isEnabled = (balance_alarm_amount !== 0);
-
-            if (isEnabled && balance < balance_alarm_amount) {
-              this.sendToSlackLowBalance(accountInfo, balance, balance_alarm_amount);
-            }
+          if (balance_alarm_amount && balance <= balance_alarm_amount) {
+            this.sendToSlackLowBalance(accountInfo, balance, balance_alarm_amount);
           }
         } catch (e) {
           console.error(e);
