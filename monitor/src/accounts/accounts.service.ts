@@ -6,9 +6,7 @@ import { ethers } from "ethers";
 import { CommonConfigService } from "src/common/common.config";
 import { BalanceDTO } from "./dto/balance.dto";
 import { MonitorConfigService } from "src/monitor.config/monitor.config.service";
-import { MONITOR_CONFIG } from "src/common/types";
 import { IncomingWebhook } from "@slack/webhook";
-import { P } from "pino";
 
 @Injectable()
 export class AccountsService {
