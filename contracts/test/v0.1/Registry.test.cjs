@@ -49,7 +49,6 @@ describe('Registry', function () {
     const pChainID = '100001'
     const jsonRpc = 'https://123'
     const endpoint = account1.address
-    const startRound = 0
     const l1Aggregator = account2.address
     const l2Aggregator = account3.address
     const { chainID } = await propose(
@@ -58,7 +57,6 @@ describe('Registry', function () {
       pChainID,
       jsonRpc,
       endpoint,
-      startRound,
       l1Aggregator,
       l2Aggregator,
       fee
@@ -77,7 +75,6 @@ describe('Registry', function () {
     const pChainID = '100001'
     const jsonRpc = 'https://123'
     const endpoint = account1.address
-    const startRound = 0
     const l1Aggregator = account2.address
     const l2Aggregator = account3.address
     const { chainID } = await propose(
@@ -86,7 +83,6 @@ describe('Registry', function () {
       pChainID,
       jsonRpc,
       endpoint,
-      startRound,
       l1Aggregator,
       l2Aggregator,
       fee

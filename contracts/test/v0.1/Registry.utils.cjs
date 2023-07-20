@@ -15,7 +15,6 @@ async function propose(
   pChainID,
   jsonRpc,
   endpoint,
-  startRound,
   l1Aggregator,
   l2Aggregator,
   value
@@ -23,7 +22,7 @@ async function propose(
   const tx = await (
     await registry
       .connect(signer)
-      .proposeChain(pChainID, jsonRpc, endpoint, startRound, l1Aggregator, l2Aggregator, {
+      .proposeChain(pChainID, jsonRpc, endpoint, l1Aggregator, l2Aggregator, {
         value
       })
   ).wait()
