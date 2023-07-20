@@ -16,7 +16,7 @@ exports.up = pgm => {
       type: {
         type: 'text',
         notNull: true
-      }             
+      }
     })
     pgm.createIndex('account', 'address')
     pgm.createTable('balance', {

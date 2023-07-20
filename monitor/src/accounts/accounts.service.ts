@@ -6,7 +6,6 @@ import { ethers } from "ethers";
 import { CommonConfigService } from "src/common/common.config";
 import { BalanceDTO } from "./dto/balance.dto";
 import { MonitorConfigService } from "src/monitor.config/monitor.config.service";
-import { MONITOR_CONFIG } from "src/common/types";
 import { IncomingWebhook } from "@slack/webhook";
 
 @Injectable()
@@ -61,20 +60,18 @@ export class AccountsService {
 
   async cronAlarmLowBalance() {
     const accountLists: [Account] = await this.getAccountList();
-    const { value } = await this.monitorConfigService.getValueByName(MONITOR_CONFIG.BALANCE_ALARM_AMOUNT)
-    if (value) {
-      if (accountLists.length > 0) {
-        for (const accountInfo of accountLists) {
-          try {
-            const balance = await this.accountBalanceRepository.getBalance(accountInfo.address);
-            if (balance) {
-              if (Math.floor(balance) < parseInt(value)) {
-                this.sendToSlackLowBalance(accountInfo, balance, value);
-                }
-            }
-          } catch (e) {
-            console.log(e);
+    
+    if (accountLists.length > 0) {
+      for (const accountInfo of accountLists) {
+        try {
+          const balance = await this.accountBalanceRepository.getBalance(accountInfo.address);
+          const balance_alarm_amount = await this.accountBalanceRepository.getBalanceAlarmAmount(accountInfo.address);
+          
+          if (balance_alarm_amount && balance <= balance_alarm_amount) {
+            this.sendToSlackLowBalance(accountInfo, balance, balance_alarm_amount);
           }
+        } catch (e) {
+          console.error(e);
         }
       }
     }
@@ -92,69 +89,81 @@ export class AccountsService {
     const minute = date.getMinutes();
 
     
+    const deployedEnv = process.env.NODE_ENV;
+    const isValidDeployedEnv = !(['CYPRESS', 'BAOBAB', 'DEV'].includes(deployedEnv));
+    const prefix = isValidDeployedEnv ? `[${deployedEnv}]` : '';
+    if (isValidDeployedEnv) {
+      console.error(`
+      Invalid deployed environment. The NODE_ENV must be set like CYPRESS, BAOBAB or DEV.
+      Currently, the NODE_ENV value is ${deployedEnv}
+      `);
+    }
 
-    const headerText = `:coin:  Low Account Balance in ${account.name}`;
+    const headerText = `${prefix}  :coin:  Low Account Balance in ${account.name}`;
     const dateText = `${month} ${day}, ${year} ${hour}:${minute}   |   Balance Report`;
     const queueNameText = `:herb: account: *${account.address}*`;
     const context = `\`${account.name}\` has *${balance}* Klay. \nMinimum balance is ${minBalance} Klay.`;
 
-    await webhook.send(
-      {
-        blocks: [
+
+    if (isValidDeployedEnv) {
+      await webhook.send(
         {
-          "type": "header",
-          "text": {
-            "type": "plain_text",
-            "text": headerText,
-          }
-        },
-        {
-          "type": "context",
-          "elements": [
-            {
-              "text": dateText,
-              "type": "mrkdwn"
+          blocks: [
+          {
+            "type": "header",
+            "text": {
+              "type": "plain_text",
+              "text": headerText,
             }
-          ]
-        },        
-        {
-          "type": "divider"
-        },        
-        {
-          "type": "section",
-          "text": {
-            "type": "mrkdwn",
-            "text": queueNameText,
-          }
-        },        
-        {
-          "type": "section",
-          "text": {
-            "type": "mrkdwn",
-            "text": context,
-          }
-        },
-        {
-          "type": "divider"
-          },    
+          },
           {
             "type": "context",
             "elements": [
               {
-                "type": "image",
-                "image_url": "https://www.orakl.network/favicon.ico",
-                "alt_text": "orakl network"
-              },
-              {
-                "type": "mrkdwn",
-                "text": " Developed by Bisonai Infra Team"
-              },
+                "text": dateText,
+                "type": "mrkdwn"
+              }
             ]
-          },     
+          },        
           {
             "type": "divider"
-          },       
-      ]
-    })
+          },        
+          {
+            "type": "section",
+            "text": {
+              "type": "mrkdwn",
+              "text": queueNameText,
+            }
+          },        
+          {
+            "type": "section",
+            "text": {
+              "type": "mrkdwn",
+              "text": context,
+            }
+          },
+          {
+            "type": "divider"
+            },    
+            {
+              "type": "context",
+              "elements": [
+                {
+                  "type": "image",
+                  "image_url": "https://www.orakl.network/favicon.ico",
+                  "alt_text": "orakl network"
+                },
+                {
+                  "type": "mrkdwn",
+                  "text": " Developed by Bisonai Infra Team"
+                },
+              ]
+            },     
+            {
+              "type": "divider"
+            },       
+        ]
+      })
+    }
   }    
 }

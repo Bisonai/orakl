@@ -1,5 +1,5 @@
 export class BalanceDTO {
-    address: string;
-    balance: string;
-    time?: Date;
+  address: string;
+  balance: string;
+  time?: Date;
   }
