@@ -21,7 +21,6 @@ contract Registry is Ownable {
         string jsonRpc;
         address endpoint;
         address owner;
-        uint256 startRound; // for datafeeds
         AggregatorPair[] aggregatorPair;
     }
     // chainId => L2 Endpoint
@@ -37,7 +36,6 @@ contract Registry is Ownable {
         uint256 _chainID,
         string memory _jsonRpc,
         address _endpoint,
-        uint256 _startRound,
         address _l1Aggregator,
         address _l2Aggregator
     ) external payable {
@@ -47,7 +45,6 @@ contract Registry is Ownable {
         pendingProposal[_chainID].jsonRpc = _jsonRpc;
         pendingProposal[_chainID].endpoint = _endpoint;
         pendingProposal[_chainID].owner = msg.sender;
-        pendingProposal[_chainID].startRound = _startRound;
         AggregatorPair memory pair = AggregatorPair({
             l1Aggregator: _l1Aggregator,
             l2Aggregator: _l2Aggregator
