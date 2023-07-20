@@ -11,6 +11,8 @@ COPY tsconfig.json .
 
 COPY src src
 
+COPY migrations migrations
+
 RUN yarn install && yarn build
 
 CMD ["yarn", "start"]
