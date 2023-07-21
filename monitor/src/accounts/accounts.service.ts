@@ -90,9 +90,9 @@ export class AccountsService {
 
     
     const deployedEnv = process.env.NODE_ENV;
-    const isValidDeployedEnv = !(['CYPRESS', 'BAOBAB', 'DEV'].includes(deployedEnv));
+    const isValidDeployedEnv = ['CYPRESS', 'BAOBAB', 'DEV'].includes(deployedEnv);
     const prefix = isValidDeployedEnv ? `[${deployedEnv}]` : '';
-    if (isValidDeployedEnv) {
+    if (!isValidDeployedEnv) {
       console.error(`
       Invalid deployed environment. The NODE_ENV must be set like CYPRESS, BAOBAB or DEV.
       Currently, the NODE_ENV value is ${deployedEnv}
