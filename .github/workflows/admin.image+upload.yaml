@@ -1,13 +1,19 @@
 name: ADMIN Deploy to Amazon ECR
 
+# on:
+#   pull_request:
+#     branches:
+#       - master
+#     paths:
+#       - "admin/**"
+#     types:
+#       - closed
 on:
-  pull_request:
+  push:
     branches:
-      - master
+      - i-756/feat/integrate-env-admin
     paths:
       - "admin/**"
-    types:
-      - closed
 
 env:
   ecr_url: public.ecr.aws/bisonai/orakl-general
@@ -52,8 +58,17 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - name: Docker build orakl-admin
-        run:  docker build -t orakl-general-admin admin/.
+      - name: Docker build orakl-admin-baobab
+        run: |
+          docker build -t orakl-general-admin-baobab admin/. \
+          --build-arg MONITOR_EXTERNAL_URL=http://35.240.192.58:8888 \
+          --build-arg DELEGATOR_EXTERNAL_URL=http://34.87.152.175:5050
+      
+      - name: Docker build orakl-admin-cypress
+        run: |
+          docker build -t orakl-general-admin-baobab admin/. \
+          --build-arg MONITOR_EXTERNAL_URL=http://35.240.192.58:8888 \
+          --build-arg DELEGATOR_EXTERNAL_URL=http://34.87.152.175:5050
 
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v2
@@ -69,5 +84,7 @@ jobs:
 
       - name: Publish Image to ECR(admin)
         run: |
-          docker tag orakl-general-admin ${{ env.ecr_url }}:admin.v${{ needs.prepare.outputs.version }}.${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }}
-          docker push ${{ env.ecr_url }}:admin.v${{ needs.prepare.outputs.version }}.${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }}
+          docker tag orakl-general-admin-baobab ${{ env.ecr_url }}:admin-baobab.v${{ needs.prepare.outputs.version }}.${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }}
+          docker push ${{ env.ecr_url }}:admin-baobab.v${{ needs.prepare.outputs.version }}.${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }}
+          docker tag orakl-general-admin-cypress ${{ env.ecr_url }}:admin-cypress.v${{ needs.prepare.outputs.version }}.${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }}
+          docker push ${{ env.ecr_url }}:admin-cypress.v${{ needs.prepare.outputs.version }}.${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }}
