@@ -1,17 +1,17 @@
 name: ADMIN Deploy to Amazon ECR
 
-# on:
-#   pull_request:
-#     branches:
-#       - master
-#     paths:
-#       - "admin/**"
-#     types:
-#       - closed
 on:
-  push:
+  pull_request:
     branches:
-      - i-756/feat/integrate-env-admin
+      - master
+    paths:
+      - "admin/**"
+    types:
+      - closed
+# on:
+#   push:
+#     branches:
+#       - i-756/feat/integrate-env-admin
 
 env:
   ecr_url: public.ecr.aws/bisonai/orakl-general
