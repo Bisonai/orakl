@@ -12,8 +12,6 @@ on:
   push:
     branches:
       - i-756/feat/integrate-env-admin
-    paths:
-      - "admin/**"
 
 env:
   ecr_url: public.ecr.aws/bisonai/orakl-general
