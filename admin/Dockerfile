@@ -28,6 +28,15 @@ RUN yarn install --production
 
 ENV NODE_ENV production
 
+ARG MONITOR_EXTERNAL_URL
+ARG DELEGATOR_EXTERNAL_URL
+
+# This value must be external ip of the pods
+# Because the nextjs app is running in the browser, it needs to be able to access the api from client side
+ENV NEXT_PUBLIC_API_BASE_URL=${MONITOR_EXTERNAL_URL} 
+ENV NEXT_PUBLIC_API_QUEUES_URL=${MONITOR_EXTERNAL_URL}
+ENV NEXT_PUBLIC_API_DELEGATOR_URL=${DELEGATOR_EXTERNAL_URL}
+
 RUN yarn build
 
-CMD [ "yarn", "start" ]
+CMD yarn start
