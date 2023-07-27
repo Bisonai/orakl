@@ -64,8 +64,6 @@ const DataTable = ({
     return data;
   };
 
-  console.log(data, "data");
-
   return (
     <Container>
       <HeaderBase>
@@ -96,8 +94,8 @@ const DataTable = ({
       </HeaderBase>
       {configQuery.isLoading ? (
         <IsLoadingBase>Loading... Please wait a moment</IsLoadingBase>
-      ) : data.length > 0 ? (
-        data.map((item: any) => (
+      ) : configQuery.data.length > 0 ? (
+        configQuery.data.map((item: any) => (
           <TableBase key={item.id}>
             <BasicButton
               justifyContent="center"
