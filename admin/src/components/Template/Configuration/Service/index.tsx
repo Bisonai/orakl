@@ -1,12 +1,10 @@
-import { fetchInternalApi } from "@/utils/api";
-import { useQuery, useMutation } from "react-query";
 import TwoColumnTable from "../ConfigurationTable/TwoColumnTable";
 import { useApi } from "@/lib/useApi";
 
 const Service = () => {
   const { configQuery, addMutation, deleteMutation } = useApi({
     fetchEndpoint: "getServiceConfig",
-    DeleteEndpoint: "modifyServiceConfig",
+    deleteEndpoint: "modifyServiceConfig",
     key: "serviceConfig",
   });
   return (

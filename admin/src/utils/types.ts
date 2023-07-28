@@ -55,7 +55,7 @@ export interface ITabContextProviderProps {
 
 export interface ITabListProps {
   tabs: ITabProps[];
-  numberOfData: any;
+  numberOfData?: any;
 }
 
 export interface ITabProps extends StyledComponentProps<"li"> {
