@@ -52,7 +52,7 @@ const TwoColumnTable = ({
       placeholder: "Name",
       onConfirm: (inputJsonValue?: Record<string, string>) => {
         if (inputJsonValue) {
-          const newData = { ...inputJsonValue, id: localData.length + 1 };
+          const newData = { ...inputJsonValue };
           setLocalData((prevData) => [...prevData, newData]);
           onAdd && onAdd(newData);
         }

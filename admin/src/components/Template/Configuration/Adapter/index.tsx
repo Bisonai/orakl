@@ -20,10 +20,12 @@ import {
   IsLoadingBase,
   NoDataAvailableBase,
 } from "../../BullMonitor/DetailTable/styled";
+import { useToastContext } from "@/hook/useToastContext";
+import { ToastType } from "@/utils/types";
 
 const Adapter = () => {
   const { openDimmedPopup, closeDimmedPopup } = useDimmedPopupContext();
-
+  const { addToast } = useToastContext();
   const { configQuery, addMutation, deleteMutation } = useApi({
     fetchEndpoint: "getAdapterConfig",
     deleteEndpoint: "modifyAdapterConfig",
@@ -92,7 +94,14 @@ const Adapter = () => {
     })
       .then((response) => response.json())
       .then((data) => {
-        console.log("Success:", data);
+        if (data.status === 400) {
+          console.log("error:", data.message);
+          addToast({
+            type: ToastType.ERROR,
+            title: "ERROR",
+            content: "ERROR",
+          });
+        }
       })
       .catch((error) => {
         console.error("Error:", error);
