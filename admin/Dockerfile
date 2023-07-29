@@ -39,4 +39,4 @@ ENV NEXT_PUBLIC_API_DELEGATOR_URL=${DELEGATOR_EXTERNAL_URL}
 
 RUN yarn build
 
-CMD yarn start
+CMD ["yarn", "start"]
