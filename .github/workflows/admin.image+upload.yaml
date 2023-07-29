@@ -14,7 +14,7 @@ env:
 
 jobs:
   prepare:
-    name: Prepare Build Baobab
+    name: Prepare Build
     runs-on: ubuntu-latest
 
     outputs:
