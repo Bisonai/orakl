@@ -8,10 +8,6 @@ on:
       - "admin/**"
     types:
       - closed
-# on:
-#   push:
-#     branches:
-#       - i-756/feat/integrate-env-admin
 
 env:
   ecr_url: public.ecr.aws/bisonai/orakl-general
