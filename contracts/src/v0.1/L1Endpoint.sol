@@ -14,6 +14,7 @@ contract L1Endpoint is Ownable, VRFConsumerBase {
     error InsufficientBalance();
     error OnlyOracle();
 
+    event FeeUpdated(uint256 oldFee, uint256 newFee);
     event OracleAdded(address oracle);
     event OracleRemoved(address oracle);
 
@@ -26,6 +27,12 @@ contract L1Endpoint is Ownable, VRFConsumerBase {
 
     receive() external payable {
         _balance[msg.sender] += msg.value;
+    }
+
+    function setFee(uint256 newFee) public onlyOwner {
+        uint256 cFee = _fee;
+        _fee = newFee;
+        emit FeeUpdated(cFee, newFee);
     }
 
     function addOracle(address oracle) public onlyOwner {
@@ -57,7 +64,7 @@ contract L1Endpoint is Ownable, VRFConsumerBase {
             keyHash,
             callbackGasLimit,
             numWords,
-            payer
+            msg.sender
         );
         _requestIdRequester[id] = requester;
         emit RandomWordRequested(id, requester);
