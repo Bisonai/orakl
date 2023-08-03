@@ -9,3 +9,15 @@ datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
+
+model Chain {
+  id   BigInt @id @default(autoincrement()) @map("chain_id")
+  name String
+
+  @@map("chains")
+}
+
+model Service {
+  id   BigInt @id @default(autoincrement()) @map("service_id")
+  name String @unique
+}
