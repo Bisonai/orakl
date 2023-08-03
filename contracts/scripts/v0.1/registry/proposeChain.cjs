@@ -21,9 +21,9 @@ async function main() {
   const fee = ethers.utils.parseEther('1.0')
   const pChainID = '100001'
   const jsonRpc = 'https://123'
-  const endpoint = _consumer
-  const l1Aggregator = _consumer
-  const l2Aggregator = _consumer
+  const endpoint = _consumer.address
+  const l1Aggregator = _consumer.address
+  const l2Aggregator = _consumer.address
 
   console.log('Propose chain: ', pChainID, jsonRpc, endpoint, l1Aggregator, l2Aggregator)
 
