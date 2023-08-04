@@ -30,6 +30,7 @@ CREATE TABLE "l2_endpoints" (
     "l2_endpoint_id" BIGSERIAL NOT NULL,
     "owner" VARCHAR(42) NOT NULL,
     "jsonRpc" VARCHAR(255) NOT NULL,
+    "address" VARCHAR(42) NOT NULL,
     "l1_aggregator_id" BIGINT NOT NULL,
     "l2Aggregator" VARCHAR(42) NOT NULL,
 
@@ -41,7 +42,6 @@ CREATE TABLE "reporters" (
     "reporter_id" BIGSERIAL NOT NULL,
     "address" VARCHAR(42) NOT NULL,
     "privateKey" VARCHAR(164) NOT NULL,
-    "aggregatorAddress" VARCHAR(42) NOT NULL,
     "chain_id" BIGINT NOT NULL,
     "service_id" BIGINT NOT NULL,
     "l2_endpoint_id" BIGINT NOT NULL,
@@ -67,6 +67,9 @@ CREATE UNIQUE INDEX "services_name_key" ON "services"("name");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "l1_aggregators_address_key" ON "l1_aggregators"("address");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "l2_endpoints_owner_key" ON "l2_endpoints"("owner");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "l2_endpoints_l2Aggregator_key" ON "l2_endpoints"("l2Aggregator");
