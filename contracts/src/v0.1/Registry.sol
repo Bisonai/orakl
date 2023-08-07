@@ -10,18 +10,29 @@ contract Registry is Ownable {
     event ChainProposed(address sender, uint chainID);
     event ChainConfirmed(uint256 chainID);
     event ProposeFeeSet(uint256 fee);
+    event AggregatorAdded(uint256 chainID, uint256 aggregatorID);
+    event AggregatorRemoved(uint256 chainID, uint256 aggregatorID);
+    event FeePayerAdded(uint256 chainID, address feePayer);
+    event FeePayerRemoved(uint256 chainID, address feePayer);
+    event feeConsumerAdded(uint256 chaiID, address feePayer, address feeConsumer);
 
     uint256 public proposeFee;
     struct AggregatorPair {
+        uint256 aggregatorID;
         address l1Aggregator;
         address l2Aggregator;
     }
+ 
+    mapping(uint256 => AggregatorPair[]) public aggregators ; // chain ID to aggregator pairs
+    mapping(uint256 => uint256) public aggregatorCount; // count aggregator IDs
+    mapping(uint256 => address[]) public feePayers; 
+    mapping(address => address[]) public feeConsumers; // fee payer address on L1, consumer on L2
 
     struct L2Endpoint {
+        uint256 _chainID;
         string jsonRpc;
         address endpoint;
         address owner;
-        AggregatorPair[] aggregatorPair;
     }
     // chainId => L2 Endpoint
     mapping(uint256 => L2Endpoint) public chainRegistry;
@@ -31,13 +42,88 @@ contract Registry is Ownable {
     // L2 consumer => L1 payer
     // Can be updated only by Orakl Network through call from L2
     // mapping(address => address) accountRegistry;
+    modifier onlyFeePayer(uint256 ChainID) {
+        _;
+    }
+    modifier onlyConfirmedChainOwner(uint256 chainID){
+        _;
+    }
+    modifier onlyConfirmedChain(){
+        _;
+    }
+    function isFeepayer(uint256 chainID, address feePayer) internal view returns (bool) {
+        for (uint256 i = 0; i < feePayers[chainID].length; i++) {
+            if (feePayers[chainID][i] == feePayer) {
+                return true;
+            }
+        }
+        return false;
+    }
+    function isFeeConsumer(uint256 chainID, address feePayer, address feeConsumer) internal view returns (bool) {
+        require(isFeepayer(chainID, feePayer), "not a fee payer");
+        for (uint256 i = 0; i < feeConsumers[feePayer].length; i++) {
+            if (feeConsumers[feePayer][i] == feeConsumer) {
+                return true;
+            }
+        }
+        return false;
+    }
+    function addFeeConsumer(uint256 chainID, address feePayer, address feeConsumer) external onlyConfirmedChainOwner(chainID){
+        require(isFeepayer(chainID, feePayer), "not a fee payer");
+        feeConsumers[feePayer].push(feeConsumer);
+        emit feeConsumerAdded(chainID, feePayer, feeConsumer);
+
+    }
+    function removeFeeConsumer(uint256 chainID, address feePayer, address feeConsumer) external onlyConfirmedChainOwner(chainID){
+
+    }
+    function addFeePayer(uint256 chainID, address feePayer) external onlyConfirmedChainOwner(chainID){
+        feePayers[chainID].push(feePayer);
+        emit FeePayerAdded(chainID, feePayer);
+    }
+     function removeFeePayer(uint256 chainID, address feePayer) external onlyConfirmedChainOwner(chainID){
+        for (uint256 i = 0; i <  feePayers[chainID].length; i++) {
+            if (feePayers[chainID][i] == feePayer) {
+                // Move the last address to the current index to be removed
+                feePayers[chainID][i] = feePayers[chainID][feePayers[chainID].length - 1];
+
+                // Remove the last address from the list
+                feePayers[chainID].pop();
+                emit FeePayerRemoved(chainID, feePayer);
+                break; // Exit the loop once address is found and removed
+            }
+        }
+    }
+    function addAggregator(uint256 chainID, address l1Aggregator, address l2Aggregator) external onlyConfirmedChainOwner(chainID){
+        AggregatorPair memory newAggregatorPair = AggregatorPair({
+            aggregatorID: aggregatorCount[chainID] ++,
+            l1Aggregator: l1Aggregator,
+            l2Aggregator: l2Aggregator
+        });
+        aggregators[chainID].push(newAggregatorPair);
+        emit AggregatorAdded(chainID, newAggregatorPair.aggregatorID);
+    }
+    function removeAggregator(uint256 chainID, uint256 aggregatorID) external onlyConfirmedChainOwner(chainID){
+        AggregatorPair[] storage aggregatorInfo = aggregators[aggregatorID];
+        for (uint256 i = 0; i < aggregatorInfo.length; i++) {
+            if (aggregatorInfo[i].aggregatorID == aggregatorID) {
+                // Move the last item to the current index to be removed
+                aggregatorInfo[i] = aggregatorInfo[aggregatorInfo.length - 1];
+
+                // Remove the last item from the list
+                aggregatorInfo.pop();
+                
+                emit AggregatorRemoved(chainID, aggregatorID);
+                break; // Exit the loop once item is found and removed
+            }
+        }
+
+    }
 
     function proposeChain(
         uint256 _chainID,
         string memory _jsonRpc,
-        address _endpoint,
-        address _l1Aggregator,
-        address _l2Aggregator
+        address _endpoint
     ) external payable {
         if (msg.value < proposeFee) {
             revert NotEnoughFee();
@@ -45,11 +131,6 @@ contract Registry is Ownable {
         pendingProposal[_chainID].jsonRpc = _jsonRpc;
         pendingProposal[_chainID].endpoint = _endpoint;
         pendingProposal[_chainID].owner = msg.sender;
-        AggregatorPair memory pair = AggregatorPair({
-            l1Aggregator: _l1Aggregator,
-            l2Aggregator: _l2Aggregator
-        });
-        pendingProposal[_chainID].aggregatorPair.push(pair);
         emit ChainProposed(msg.sender, _chainID);
     }
 
