@@ -6,6 +6,7 @@ contract Registry is Ownable {
     error NotEnoughFee();
     error InvalidChainID();
     error InsufficientBalance();
+    error NotFeePayerOwner();
 
     event ChainProposed(address sender, uint chainID);
     event ChainConfirmed(uint256 chainID);
@@ -22,11 +23,12 @@ contract Registry is Ownable {
         address l1Aggregator;
         address l2Aggregator;
     }
- 
-    mapping(uint256 => AggregatorPair[]) public aggregators ; // chain ID to aggregator pairs
+
+    mapping(uint256 => AggregatorPair[]) public aggregators; // chain ID to aggregator pairs
     mapping(uint256 => uint256) public aggregatorCount; // count aggregator IDs
-    mapping(uint256 => address[]) public feePayers; 
-    mapping(address => address[]) public feeConsumers; // fee payer address on L1, consumer on L2
+    mapping(address => address) feePayerOwner;
+    mapping(uint256 => mapping (address => bool)) public feePayer;
+    mapping(uint256 => mapping(address => mapping (address => bool))) public consumer;
 
     struct L2Endpoint {
         uint256 _chainID;
@@ -45,65 +47,74 @@ contract Registry is Ownable {
     modifier onlyFeePayer(uint256 ChainID) {
         _;
     }
+    modifier onlyConfirmedChain(uint256 chainID) {
+        _;
+    }
     modifier onlyConfirmedChainOwner(uint256 chainID){
         _;
     }
-    modifier onlyConfirmedChain(){
-        _;
-    }
-    function isFeepayer(uint256 chainID, address feePayer) internal view returns (bool) {
-        for (uint256 i = 0; i < feePayers[chainID].length; i++) {
-            if (feePayers[chainID][i] == feePayer) {
-                return true;
-            }
-        }
-        return false;
-    }
-    function isFeeConsumer(uint256 chainID, address feePayer, address feeConsumer) internal view returns (bool) {
-        require(isFeepayer(chainID, feePayer), "not a fee payer");
-        for (uint256 i = 0; i < feeConsumers[feePayer].length; i++) {
-            if (feeConsumers[feePayer][i] == feeConsumer) {
-                return true;
-            }
-        }
-        return false;
-    }
-    function addFeeConsumer(uint256 chainID, address feePayer, address feeConsumer) external onlyConfirmedChainOwner(chainID){
-        require(isFeepayer(chainID, feePayer), "not a fee payer");
-        feeConsumers[feePayer].push(feeConsumer);
-        emit feeConsumerAdded(chainID, feePayer, feeConsumer);
 
-    }
-    function removeFeeConsumer(uint256 chainID, address feePayer, address feeConsumer) external onlyConfirmedChainOwner(chainID){
-
-    }
-    function addFeePayer(uint256 chainID, address feePayer) external onlyConfirmedChainOwner(chainID){
-        feePayers[chainID].push(feePayer);
-        emit FeePayerAdded(chainID, feePayer);
-    }
-     function removeFeePayer(uint256 chainID, address feePayer) external onlyConfirmedChainOwner(chainID){
-        for (uint256 i = 0; i <  feePayers[chainID].length; i++) {
-            if (feePayers[chainID][i] == feePayer) {
-                // Move the last address to the current index to be removed
-                feePayers[chainID][i] = feePayers[chainID][feePayers[chainID].length - 1];
-
-                // Remove the last address from the list
-                feePayers[chainID].pop();
-                emit FeePayerRemoved(chainID, feePayer);
-                break; // Exit the loop once address is found and removed
-            }
+    function addFeeConsumer(
+        uint256 chainID,
+        address _feePayer,
+        address _feeConsumer
+    ) external onlyConfirmedChain(chainID) {
+        if (feePayerOwner[_feePayer] != msg.sender) {
+            revert NotFeePayerOwner();
         }
+        consumer[chainID][_feePayer][_feeConsumer] = true;
+        emit feeConsumerAdded(chainID, _feePayer, _feeConsumer);
     }
-    function addAggregator(uint256 chainID, address l1Aggregator, address l2Aggregator) external onlyConfirmedChainOwner(chainID){
+
+    function removeFeeConsumer(
+        uint256 chainID,
+        address _feePayer,
+        address _feeConsumer
+    ) external onlyConfirmedChain(chainID) {
+        if (feePayerOwner[_feePayer] != msg.sender) {
+            revert NotFeePayerOwner();
+        }
+        delete consumer[chainID][_feePayer][_feeConsumer];
+    }
+
+    function addFeePayer(
+        uint256 chainID,
+        address _feePayer
+    ) external onlyConfirmedChain(chainID) {
+        feePayer[chainID][_feePayer] = true;
+        feePayerOwner[_feePayer] = msg.sender;
+        emit FeePayerAdded(chainID, _feePayer);
+    }
+
+    function removeFeePayer(
+        uint256 chainID,
+        address _feePayer
+    ) external onlyConfirmedChain(chainID) {
+        if (feePayerOwner[_feePayer] != msg.sender) {
+            revert NotFeePayerOwner();
+        }
+        feePayer[chainID][_feePayer] = false;
+        emit FeePayerRemoved(chainID, _feePayer);
+    }
+
+    function addAggregator(
+        uint256 chainID,
+        address l1Aggregator,
+        address l2Aggregator
+    ) external onlyConfirmedChainOwner(chainID) {
         AggregatorPair memory newAggregatorPair = AggregatorPair({
-            aggregatorID: aggregatorCount[chainID] ++,
+            aggregatorID: aggregatorCount[chainID]++,
             l1Aggregator: l1Aggregator,
             l2Aggregator: l2Aggregator
         });
         aggregators[chainID].push(newAggregatorPair);
         emit AggregatorAdded(chainID, newAggregatorPair.aggregatorID);
     }
-    function removeAggregator(uint256 chainID, uint256 aggregatorID) external onlyConfirmedChainOwner(chainID){
+
+    function removeAggregator(
+        uint256 chainID,
+        uint256 aggregatorID
+    ) external onlyConfirmedChainOwner(chainID) {
         AggregatorPair[] storage aggregatorInfo = aggregators[aggregatorID];
         for (uint256 i = 0; i < aggregatorInfo.length; i++) {
             if (aggregatorInfo[i].aggregatorID == aggregatorID) {
@@ -112,12 +123,11 @@ contract Registry is Ownable {
 
                 // Remove the last item from the list
                 aggregatorInfo.pop();
-                
+
                 emit AggregatorRemoved(chainID, aggregatorID);
                 break; // Exit the loop once item is found and removed
             }
         }
-
     }
 
     function proposeChain(
