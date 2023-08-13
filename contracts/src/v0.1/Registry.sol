@@ -7,6 +7,7 @@ contract Registry is Ownable {
     error InvalidChainID();
     error InsufficientBalance();
     error NotFeePayerOwner();
+    error NotChainOwner();
 
     event ChainProposed(address sender, uint chainID);
     event ChainConfirmed(uint256 chainID);
@@ -27,8 +28,8 @@ contract Registry is Ownable {
     mapping(uint256 => AggregatorPair[]) public aggregators; // chain ID to aggregator pairs
     mapping(uint256 => uint256) public aggregatorCount; // count aggregator IDs
     mapping(address => address) feePayerOwner;
-    mapping(uint256 => mapping (address => bool)) public feePayer;
-    mapping(uint256 => mapping(address => mapping (address => bool))) public consumer;
+    mapping(uint256 => mapping(address => bool)) public feePayer;
+    mapping(uint256 => mapping(address => mapping(address => bool))) public consumer;
 
     struct L2Endpoint {
         uint256 _chainID;
@@ -41,16 +42,20 @@ contract Registry is Ownable {
     // pending proposal
     mapping(uint256 => L2Endpoint) pendingProposal;
 
-    // L2 consumer => L1 payer
-    // Can be updated only by Orakl Network through call from L2
-    // mapping(address => address) accountRegistry;
-    modifier onlyFeePayer(uint256 ChainID) {
+
+    modifier onlyConfirmedChain(uint256 chainId) {
+        if (chainRegistry[chainId].owner == address(0)) {
+            revert InvalidChainID();
+        }
         _;
     }
-    modifier onlyConfirmedChain(uint256 chainID) {
-        _;
-    }
-    modifier onlyConfirmedChainOwner(uint256 chainID){
+    modifier onlyConfirmedChainOwner(uint256 chainId) {
+        if (chainRegistry[chainId].owner == address(0)) {
+            revert InvalidChainID();
+        }
+        if (chainRegistry[chainId].owner != msg.sender) {
+            revert NotChainOwner();
+        }
         _;
     }
 
@@ -77,10 +82,7 @@ contract Registry is Ownable {
         delete consumer[chainID][_feePayer][_feeConsumer];
     }
 
-    function addFeePayer(
-        uint256 chainID,
-        address _feePayer
-    ) external onlyConfirmedChain(chainID) {
+    function addFeePayer(uint256 chainID, address _feePayer) external onlyConfirmedChain(chainID) {
         feePayer[chainID][_feePayer] = true;
         feePayerOwner[_feePayer] = msg.sender;
         emit FeePayerAdded(chainID, _feePayer);
