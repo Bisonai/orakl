@@ -233,4 +233,47 @@ contract Registry is Ownable {
         (bool sent, ) = payable(msg.sender).call{value: _amount}("");
         return sent;
     }
+
+    function getAccount(uint256 _accId) external view returns (Account memory) {
+        require(_accId > 0 && _accId < nextAccountId, "Account does not exist");
+        return accounts[_accId];
+    }
+    function getAccountsByChain(uint256 _chainId) external view returns (Account[] memory) {
+        uint256 count = 0;
+        for (uint256 i = 1; i < nextAccountId; i++) {
+            if (accounts[i].chainId == _chainId) {
+                count++;
+            }
+        }
+
+        Account[] memory result = new Account[](count);
+        uint256 index = 0;
+        for (uint256 i = 1; i < nextAccountId; i++) {
+            if (accounts[i].chainId == _chainId) {
+                result[index] = accounts[i];
+                index++;
+            }
+        }
+        
+        return result;
+    }
+    function getAccountsByOwner(address _owner) external view returns (Account[] memory) {
+        uint256 count = 0;
+        for (uint256 i = 1; i < nextAccountId; i++) {
+            if (accounts[i].owner == _owner) {
+                count++;
+            }
+        }
+
+        Account[] memory result = new Account[](count);
+        uint256 index = 0;
+        for (uint256 i = 1; i < nextAccountId; i++) {
+            if (accounts[i].owner == _owner) {
+                result[index] = accounts[i];
+                index++;
+            }
+        }
+        
+        return result;
+    }
 }
