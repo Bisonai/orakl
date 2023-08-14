@@ -1,0 +1,10 @@
+{
+  "aggregatorAddress": "0x2b062807C6B3F8Ca5C366545d50aA19c114E9d7b",
+  "changeOracles": {
+    "removed": [],
+    "added": ["0x8E1Fc528a6bd494991fB5BdbAcc8E4A9779113bf"],
+    "minSubmissionCount": 1,
+    "maxSubmissionCount": 3,
+    "restartDelay": 0
+  }
+}
