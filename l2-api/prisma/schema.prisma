@@ -1,0 +1,81 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider   = "prisma-client-js"
+  engineType = "binary"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Chain {
+  id           BigInt         @id @default(autoincrement()) @map("chain_id")
+  name         String         @unique
+  L1Aggregator L1Aggregator[]
+  Reporter     Reporter[]
+
+  @@map("chains")
+}
+
+model Service {
+  id           BigInt         @id @default(autoincrement()) @map("service_id")
+  name         String         @unique
+  L1Aggregator L1Aggregator[]
+  Reporter     Reporter[]
+
+  @@map("services")
+}
+
+model L1Aggregator {
+  id         BigInt       @id @default(autoincrement()) @map("l1_aggregator_id")
+  address    String       @unique @db.VarChar(42)
+  eventName  String       @map("event_name") @db.VarChar(255)
+  chain      Chain        @relation(fields: [chainId], references: [id])
+  chainId    BigInt       @map("chain_id")
+  service    Service      @relation(fields: [serviceId], references: [id])
+  serviceId  BigInt       @map("service_id")
+  L2Endpoint L2Endpoint[]
+
+  @@map("l1_aggregators")
+}
+
+model L2Endpoint {
+  id             BigInt       @id @default(autoincrement()) @map("l2_endpoint_id")
+  owner          String       @unique @db.VarChar(42)
+  jsonRpc        String       @db.VarChar(255)
+  address        String       @db.VarChar(42)
+  l1Aggregator   L1Aggregator @relation(fields: [l1AggregatorId], references: [id])
+  l1AggregatorId BigInt       @map("l1_aggregator_id")
+  l2Aggregator   String       @unique @db.VarChar(42)
+  Reporter       Reporter[]
+
+  @@map("l2_endpoints")
+}
+
+model Reporter {
+  id           BigInt     @id @default(autoincrement()) @map("reporter_id")
+  address      String     @db.VarChar(42)
+  privateKey   String     @db.VarChar(164)
+  chain        Chain      @relation(fields: [chainId], references: [id])
+  chainId      BigInt     @map("chain_id")
+  service      Service    @relation(fields: [serviceId], references: [id])
+  serviceId    BigInt     @map("service_id")
+  l2Endpoint   L2Endpoint @relation(fields: [l2EndpointId], references: [id])
+  l2EndpointId BigInt     @map("l2_endpoint_id")
+  Report       Report[]
+
+  @@map("reporters")
+}
+
+model Report {
+  id         BigInt   @id @default(autoincrement()) @map("report_id")
+  value      BigInt
+  roundId    BigInt
+  reporter   Reporter @relation(fields: [reporterId], references: [id])
+  reporterId BigInt   @map("reporter_id")
+
+  @@map("reports")
+}
