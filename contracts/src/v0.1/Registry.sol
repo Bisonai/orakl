@@ -91,7 +91,6 @@ contract Registry is Ownable {
         l1Endpoint = _l1Endpoint;
     }
 
-
     function createAccount(uint256 _chainId, address _owner, address _feePayer) external {
         if (chainRegistry[_chainId].owner == address(0)) {
             revert InvalidChainID();
@@ -101,16 +100,17 @@ contract Registry is Ownable {
         newAccount.chainId = _chainId;
         newAccount.owner = _owner;
         newAccount.feePayer = _feePayer;
-        newAccount.balance = 0; 
+        newAccount.balance = 0;
 
         emit AccountCreated(nextAccountId, _chainId, _owner);
         nextAccountId++;
     }
 
-    function increaseBalance(uint256 _accId, uint256 _amount) external onlyL1Endpoint {
+    function increaseBalance(uint256 _accId, uint256 _amount) public onlyL1Endpoint {
         accounts[_accId].balance += _amount;
         emit BalanceIncreased(_accId, _amount);
     }
+
     function decreaseBalance(uint256 _accId, uint256 _amount) external onlyL1Endpoint {
         require(accounts[_accId].balance >= _amount, "Insufficient balance");
         accounts[_accId].balance -= _amount;
@@ -271,6 +271,26 @@ contract Registry is Ownable {
         return result;
     }
 
+    function getAccountsByFeePayer(address _feePayer) external view returns (Account[] memory) {
+        uint256 count = 0;
+        for (uint256 i = 1; i < nextAccountId; i++) {
+            if (accounts[i].feePayer == _feePayer) {
+                count++;
+            }
+        }
+
+        Account[] memory result = new Account[](count);
+        uint256 index = 0;
+        for (uint256 i = 1; i < nextAccountId; i++) {
+            if (accounts[i].feePayer == _feePayer) {
+                result[index] = accounts[i];
+                index++;
+            }
+        }
+        
+        return result;
+    }
+
     function getAccountsByOwner(address _owner) external view returns (Account[] memory) {
         uint256 count = 0;
         for (uint256 i = 1; i < nextAccountId; i++) {
@@ -289,5 +309,14 @@ contract Registry is Ownable {
         }
 
         return result;
+    }
+    function isValidConsumer(uint256 _accId, address _consumer) public view returns (bool) {
+        Account memory account = accounts[_accId];
+        for (uint8 i = 0; i < account.consumerCount; i++) {
+            if (account.consumers[i] == _consumer) {
+                return true;
+            }
+        }
+            return false;
     }
 }
