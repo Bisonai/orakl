@@ -20,6 +20,8 @@ contract Registry is Ownable {
     event AccountDeleted(uint256 accId);
     event ConsumerAdded(uint256 accId, address consumerAddress);
     event ConsumerRemoved(uint256 accId, address consumerAddress);
+    event BalanceIncreased(uint256 _accId, uint256 _amount);
+    event BalanceDecreased(uint256 _accId, uint256 _amount);
 
     uint256 public proposeFee;
     struct AggregatorPair {
@@ -36,6 +38,7 @@ contract Registry is Ownable {
     // mapping(uint => address) accountConsmers;
 
     mapping(uint256 => Account) private accounts;
+    address public l1Endpoint;
     uint256 private nextAccountId = 1;
     struct Account {
         uint256 accId;
@@ -44,6 +47,7 @@ contract Registry is Ownable {
         address feePayer;
         address[100] consumers;
         uint8 consumerCount;
+        uint256 balance;
     }
 
     struct L2Endpoint {
@@ -78,6 +82,16 @@ contract Registry is Ownable {
         _;
     }
 
+    modifier onlyL1Endpoint() {
+        require(msg.sender == l1Endpoint, "Only L1Endpoint contract can call this");
+        _;
+    }
+
+    constructor(address _l1Endpoint) {
+        l1Endpoint = _l1Endpoint;
+    }
+
+
     function createAccount(uint256 _chainId, address _owner, address _feePayer) external {
         if (chainRegistry[_chainId].owner == address(0)) {
             revert InvalidChainID();
@@ -87,27 +101,25 @@ contract Registry is Ownable {
         newAccount.chainId = _chainId;
         newAccount.owner = _owner;
         newAccount.feePayer = _feePayer;
+        newAccount.balance = 0; 
 
         emit AccountCreated(nextAccountId, _chainId, _owner);
         nextAccountId++;
     }
 
+    function increaseBalance(uint256 _accId, uint256 _amount) external onlyL1Endpoint {
+        accounts[_accId].balance += _amount;
+        emit BalanceIncreased(_accId, _amount);
+    }
+    function decreaseBalance(uint256 _accId, uint256 _amount) external onlyL1Endpoint {
+        require(accounts[_accId].balance >= _amount, "Insufficient balance");
+        accounts[_accId].balance -= _amount;
+        emit BalanceDecreased(_accId, _amount);
+    }
+
     function deleteAccount(uint256 _accId) external onlyAccountOwner(_accId) {
         delete accounts[_accId];
         emit AccountDeleted(_accId);
-    }
-
-    function editAccount(
-        uint256 _accId,
-        uint256 _chainId,
-        address _owner,
-        address _feePayer
-    ) external onlyAccountOwner(_accId) {
-        Account storage account = accounts[_accId];
-        account.chainId = _chainId;
-        account.owner = _owner;
-        account.feePayer = _feePayer;
-        emit AccountUpdated(_accId, _chainId, _owner);
     }
 
     function addConsumer(
@@ -238,6 +250,7 @@ contract Registry is Ownable {
         require(_accId > 0 && _accId < nextAccountId, "Account does not exist");
         return accounts[_accId];
     }
+
     function getAccountsByChain(uint256 _chainId) external view returns (Account[] memory) {
         uint256 count = 0;
         for (uint256 i = 1; i < nextAccountId; i++) {
@@ -254,9 +267,10 @@ contract Registry is Ownable {
                 index++;
             }
         }
-        
+
         return result;
     }
+
     function getAccountsByOwner(address _owner) external view returns (Account[] memory) {
         uint256 count = 0;
         for (uint256 i = 1; i < nextAccountId; i++) {
@@ -273,7 +287,7 @@ contract Registry is Ownable {
                 index++;
             }
         }
-        
+
         return result;
     }
 }
