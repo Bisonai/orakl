@@ -5,6 +5,7 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 contract Registry is Ownable {
     error NotEnoughFee();
     error InvalidChainID();
+    error InvalidAccId();
     error InsufficientBalance();
     error NotFeePayerOwner();
     error NotChainOwner();
@@ -115,10 +116,10 @@ contract Registry is Ownable {
         emit BalanceDecreased(_accId, _amount);
     }
 
-    function deleteAccount(uint256 _accId) external onlyAccountOwner(_accId) {
-        delete accounts[_accId];
-        emit AccountDeleted(_accId);
-    }
+    // function deleteAccount(uint256 _accId) external onlyAccountOwner(_accId) {
+    //     delete accounts[_accId];
+    //     emit AccountDeleted(_accId);
+    // }
 
     function addConsumer(
         uint256 _accId,
@@ -267,6 +268,15 @@ contract Registry is Ownable {
         }
 
         return result;
+    }
+    function getLatestAccountIdByChain(uint256 _chainId) internal view returns (uint256) {
+        uint256 latestAccId = 0;
+        for (uint256 accId = 1; accId < nextAccountId; accId++) {
+            if (accounts[accId].chainId == _chainId && accounts[accId].accId > latestAccId) {
+                latestAccId = accounts[accId].accId;
+            }
+        }
+        return latestAccId;
     }
 
     function getAccountsByOwner(address _owner) external view returns (Account[] memory) {

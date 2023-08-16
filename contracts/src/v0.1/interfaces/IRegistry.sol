@@ -18,4 +18,5 @@ interface IRegistry {
     function getAccount(uint256 _accId) external view returns (Account memory);
 
     function isValidConsumer(uint256 _accId, address _consumer) external view returns (bool);
+
 }

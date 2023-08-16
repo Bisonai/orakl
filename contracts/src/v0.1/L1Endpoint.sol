@@ -15,6 +15,7 @@ contract L1Endpoint is Ownable, VRFConsumerBase, IRegistry {
 
     error InsufficientBalance();
     error OnlyOracle();
+    error FailedToDeposit();
 
     event FeeUpdated(uint256 oldFee, uint256 newFee);
     event OracleAdded(address oracle);
@@ -31,12 +32,16 @@ contract L1Endpoint is Ownable, VRFConsumerBase, IRegistry {
     receive() external payable {
         _balance[msg.sender] += msg.value;
     }
-    function deposit(uint256 _accId, uint256 _amount) external payable  {
-        require(isValidOwnerAndConsumer(_accId, msg.sender, msg.sender), "Not a valid fee payer or consumer");
-        require(msg.value == _amount, "Invalid deposit amount");
-        payable(address(this)).transfer(_amount);
+
+    function deposit(uint256 _accId) external payable {
+        uint256 _amount = msg.value;
+        (bool sent, ) = payable(address(this)).call{value: msg.value}("");
+        if (!sent) {
+            revert FailedToDeposit();
+        }
         registry.increaseBalance(_accId, _amount);
     }
+
     function increaseBalance(uint256 _accId, uint256 _amount) external override {
         registry.increaseBalance(_accId, _amount);
     }
@@ -44,6 +49,7 @@ contract L1Endpoint is Ownable, VRFConsumerBase, IRegistry {
     function decreaseBalance(uint256 _accId, uint256 _amount) external override {
         registry.decreaseBalance(_accId, _amount);
     }
+
 
     function isValidConsumer(
         uint256 _accId,
@@ -82,7 +88,7 @@ contract L1Endpoint is Ownable, VRFConsumerBase, IRegistry {
         IRegistry.Account memory account = registry.getAccount(_accId);
         return (account.owner == _owner) && registry.isValidConsumer(_accId, _consumer);
     }
-
+  
     function requestRandomWordsDirectPayment(
         bytes32 keyHash,
         uint32 callbackGasLimit,
@@ -120,5 +126,4 @@ contract L1Endpoint is Ownable, VRFConsumerBase, IRegistry {
     }
 
     function getAccount(uint256 _accId) external view override returns (Account memory) {}
-
 }
