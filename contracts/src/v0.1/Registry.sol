@@ -44,7 +44,6 @@ contract Registry is Ownable {
         uint256 accId;
         uint256 chainId;
         address owner;
-        address feePayer;
         address[100] consumers;
         uint8 consumerCount;
         uint256 balance;
@@ -91,18 +90,17 @@ contract Registry is Ownable {
         l1Endpoint = _l1Endpoint;
     }
 
-    function createAccount(uint256 _chainId, address _owner, address _feePayer) external {
+    function createAccount(uint256 _chainId) external {
         if (chainRegistry[_chainId].owner == address(0)) {
             revert InvalidChainID();
         }
         Account storage newAccount = accounts[nextAccountId];
         newAccount.accId = nextAccountId;
         newAccount.chainId = _chainId;
-        newAccount.owner = _owner;
-        newAccount.feePayer = _feePayer;
+        newAccount.owner = msg.sender;
         newAccount.balance = 0;
 
-        emit AccountCreated(nextAccountId, _chainId, _owner);
+        emit AccountCreated(nextAccountId, _chainId, msg.sender);
         nextAccountId++;
     }
 
@@ -271,26 +269,6 @@ contract Registry is Ownable {
         return result;
     }
 
-    function getAccountsByFeePayer(address _feePayer) external view returns (Account[] memory) {
-        uint256 count = 0;
-        for (uint256 i = 1; i < nextAccountId; i++) {
-            if (accounts[i].feePayer == _feePayer) {
-                count++;
-            }
-        }
-
-        Account[] memory result = new Account[](count);
-        uint256 index = 0;
-        for (uint256 i = 1; i < nextAccountId; i++) {
-            if (accounts[i].feePayer == _feePayer) {
-                result[index] = accounts[i];
-                index++;
-            }
-        }
-        
-        return result;
-    }
-
     function getAccountsByOwner(address _owner) external view returns (Account[] memory) {
         uint256 count = 0;
         for (uint256 i = 1; i < nextAccountId; i++) {
@@ -310,6 +288,7 @@ contract Registry is Ownable {
 
         return result;
     }
+
     function isValidConsumer(uint256 _accId, address _consumer) public view returns (bool) {
         Account memory account = accounts[_accId];
         for (uint8 i = 0; i < account.consumerCount; i++) {
@@ -317,6 +296,6 @@ contract Registry is Ownable {
                 return true;
             }
         }
-            return false;
+        return false;
     }
 }

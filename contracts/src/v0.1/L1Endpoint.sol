@@ -31,7 +31,12 @@ contract L1Endpoint is Ownable, VRFConsumerBase, IRegistry {
     receive() external payable {
         _balance[msg.sender] += msg.value;
     }
-
+    function deposit(uint256 _accId, uint256 _amount) external payable  {
+        require(isValidOwnerAndConsumer(_accId, msg.sender, msg.sender), "Not a valid fee payer or consumer");
+        require(msg.value == _amount, "Invalid deposit amount");
+        payable(address(this)).transfer(_amount);
+        registry.increaseBalance(_accId, _amount);
+    }
     function increaseBalance(uint256 _accId, uint256 _amount) external override {
         registry.increaseBalance(_accId, _amount);
     }
@@ -40,7 +45,10 @@ contract L1Endpoint is Ownable, VRFConsumerBase, IRegistry {
         registry.decreaseBalance(_accId, _amount);
     }
 
-    function isValidConsumer(uint256 _accId, address _consumer) public view override returns (bool) {
+    function isValidConsumer(
+        uint256 _accId,
+        address _consumer
+    ) public view override returns (bool) {
         IRegistry.Account memory account = registry.getAccount(_accId);
         for (uint8 i = 0; i < account.consumerCount; i++) {
             if (account.consumers[i] == _consumer) {
@@ -49,7 +57,6 @@ contract L1Endpoint is Ownable, VRFConsumerBase, IRegistry {
         }
         return false;
     }
-
 
     function setFee(uint256 newFee) public onlyOwner {
         uint256 cFee = _fee;
@@ -67,10 +74,14 @@ contract L1Endpoint is Ownable, VRFConsumerBase, IRegistry {
         emit OracleRemoved(oracle);
     }
 
-    function isValidFeePayerAndConsumer(uint256 _accId, address _feePayer, address _consumer) public view returns (bool) {
+    function isValidOwnerAndConsumer(
+        uint256 _accId,
+        address _owner,
+        address _consumer
+    ) public view returns (bool) {
         IRegistry.Account memory account = registry.getAccount(_accId);
-        return (account.feePayer == _feePayer) && registry.isValidConsumer(_accId, _consumer);
-    }   
+        return (account.owner == _owner) && registry.isValidConsumer(_accId, _consumer);
+    }
 
     function requestRandomWordsDirectPayment(
         bytes32 keyHash,
@@ -80,8 +91,7 @@ contract L1Endpoint is Ownable, VRFConsumerBase, IRegistry {
         address payer,
         address consumer
     ) public returns (uint256 requestId) {
-        
-        require(isValidFeePayerAndConsumer(accId,payer,consumer), "Invalid feePayer or consumer");
+        require(isValidOwnerAndConsumer(accId, payer, consumer), "Invalid Owner or consumer");
         if (!_oracles[msg.sender]) {
             revert OnlyOracle();
         }
@@ -111,9 +121,4 @@ contract L1Endpoint is Ownable, VRFConsumerBase, IRegistry {
 
     function getAccount(uint256 _accId) external view override returns (Account memory) {}
 
-    function getAccountsByChain(
-        uint256 _chainId
-    ) external view override returns (Account[] memory) {}
-
-    function getAccountsByOwner(address _owner) external view override returns (Account[] memory) {}
 }
