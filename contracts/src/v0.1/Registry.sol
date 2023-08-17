@@ -26,9 +26,10 @@ contract Registry is Ownable, IRegistry {
     event AccountDeleted(uint256 accId);
     event ConsumerAdded(uint256 accId, address consumerAddress);
     event ConsumerRemoved(uint256 accId, address consumerAddress);
-    event BalanceIncreased(uint256 _accId, uint256 _amount);
-    event BalanceDecreased(uint256 _accId, uint256 _amount);
-    event L1EndpointSet(address _oldEndpoint, address _newEndpoint);
+    event BalanceIncreased(uint256 accId, uint256 amount);
+    event BalanceDecreased(uint256 accId, uint256 amount);
+    event L1EndpointSet(address oldEndpoint, address newEndpoint);
+    event ChainEdited(string rpc, address endpoint);
 
     struct AggregatorPair {
         uint256 aggregatorID;
@@ -242,7 +243,7 @@ contract Registry is Ownable, IRegistry {
         uint256 chainID,
         uint256 aggregatorID
     ) external onlyConfirmedChainOwner(chainID) {
-        AggregatorPair[] storage aggregatorInfo = aggregators[aggregatorID];
+        AggregatorPair[] storage aggregatorInfo = aggregators[chainID];
         for (uint256 i = 0; i < aggregatorInfo.length; i++) {
             if (aggregatorInfo[i].aggregatorID == aggregatorID) {
                 // Move the last item to the current index to be removed
@@ -285,7 +286,7 @@ contract Registry is Ownable, IRegistry {
 
         chainRegistry[_chainID].jsonRpc = _jsonRpc;
         chainRegistry[_chainID].endpoint = _endpoint;
-        emit ChainConfirmed(_chainID);
+        emit ChainEdited(_jsonRpc, _endpoint);
     }
 
     function confirmChain(uint256 _chainId) public onlyOwner {
