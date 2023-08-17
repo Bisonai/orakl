@@ -1,15 +1,20 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.16;
 import "@openzeppelin/contracts/access/Ownable.sol";
+import "./interfaces/IRegistry.sol";
 
-contract Registry is Ownable {
+contract Registry is Ownable, IRegistry {
+    uint256 public constant MAX_CONSUMER = 100;
     error NotEnoughFee();
     error InvalidChainID();
     error InvalidAccId();
+    error AccountExisted();
+
     error InsufficientBalance();
     error NotFeePayerOwner();
     error NotChainOwner();
     error ChainExisted();
+    error DecreaseBalanceFailed();
 
     event ChainProposed(address sender, uint chainID);
     event ChainConfirmed(uint256 chainID);
@@ -23,39 +28,27 @@ contract Registry is Ownable {
     event ConsumerRemoved(uint256 accId, address consumerAddress);
     event BalanceIncreased(uint256 _accId, uint256 _amount);
     event BalanceDecreased(uint256 _accId, uint256 _amount);
+    event L1EndpointSet(address _oldEndpoint, address _newEndpoint);
 
-    uint256 public proposeFee;
     struct AggregatorPair {
         uint256 aggregatorID;
         address l1Aggregator;
         address l2Aggregator;
     }
-
-    mapping(uint256 => AggregatorPair[]) public aggregators; // chain ID to aggregator pairs
-    mapping(uint256 => uint256) public aggregatorCount; // count aggregator IDs
-    // mapping(uint256 => mapping(address => address)) public feePayer; // chainID -> owner -> feepayer
-
-    // mapping(uint256 => mapping(address => mapping(address => bool))) public consumer; // chainID -> owner -> payer -> consumer
-    // mapping(uint => address) accountConsmers;
-
-    mapping(uint256 => Account) private accounts;
-    address public l1Endpoint;
-    uint256 private nextAccountId = 1;
-    struct Account {
-        uint256 accId;
-        uint256 chainId;
-        address owner;
-        address[100] consumers;
-        uint8 consumerCount;
-        uint256 balance;
-    }
-
     struct L2Endpoint {
         uint256 _chainID;
         string jsonRpc;
         address endpoint;
         address owner;
     }
+
+    address public l1Endpoint;
+    uint256 public proposeFee;
+    uint256 private nextAccountId = 1;
+
+    mapping(uint256 => AggregatorPair[]) public aggregators; // chain ID to aggregator pairs
+    mapping(uint256 => uint256) public aggregatorCount; // count aggregator IDs
+    mapping(uint256 => Account) private accounts;
     // chainId => L2 Endpoint
     mapping(uint256 => L2Endpoint) public chainRegistry;
     // pending proposal
@@ -87,48 +80,126 @@ contract Registry is Ownable {
         _;
     }
 
-    constructor(address _l1Endpoint) {
-        l1Endpoint = _l1Endpoint;
+    constructor() {}
+
+    receive() external payable {}
+
+    function setL1Endpoint(address _newAddress) public onlyOwner {
+        address old = l1Endpoint;
+        l1Endpoint = _newAddress;
+        emit L1EndpointSet(old, l1Endpoint);
     }
 
-    function createAccount(uint256 _chainId) external {
-        if (chainRegistry[_chainId].owner == address(0)) {
-            revert InvalidChainID();
-        }
+    function setProposeFee(uint256 _fee) public onlyOwner {
+        proposeFee = _fee;
+        emit ProposeFeeSet(_fee);
+    }
+
+    function createAccount(uint256 _chainId) external onlyConfirmedChain(_chainId) {
         Account storage newAccount = accounts[nextAccountId];
         newAccount.accId = nextAccountId;
         newAccount.chainId = _chainId;
         newAccount.owner = msg.sender;
         newAccount.balance = 0;
-
         emit AccountCreated(nextAccountId, _chainId, msg.sender);
         nextAccountId++;
     }
 
-    function increaseBalance(uint256 _accId, uint256 _amount) public onlyL1Endpoint {
-        accounts[_accId].balance += _amount;
-        emit BalanceIncreased(_accId, _amount);
+    function deposit(uint256 _accId) public payable {
+        accounts[_accId].balance += msg.value;
+        emit BalanceIncreased(_accId, msg.value);
     }
 
     function decreaseBalance(uint256 _accId, uint256 _amount) external onlyL1Endpoint {
-        require(accounts[_accId].balance >= _amount, "Insufficient balance");
+        if (accounts[_accId].balance < _amount) {
+            revert InsufficientBalance();
+        }
         accounts[_accId].balance -= _amount;
+        (bool sent, ) = payable(msg.sender).call{value: _amount}("");
+        if (!sent) {
+            revert DecreaseBalanceFailed();
+        }
         emit BalanceDecreased(_accId, _amount);
     }
 
-    // function deleteAccount(uint256 _accId) external onlyAccountOwner(_accId) {
-    //     delete accounts[_accId];
-    //     emit AccountDeleted(_accId);
-    // }
+    function getBalance(uint256 _accId) external view returns (uint256 balance) {
+        balance = accounts[_accId].balance;
+    }
+
+    function getConsumer(uint256 _accId) external view returns (address[] memory consumers) {
+        consumers = accounts[_accId].consumers;
+    }
+
+    function accountInfo(uint256 _accId) external view returns (uint256 balance, address owner) {
+        return (accounts[_accId].balance, accounts[_accId].owner);
+    }
+
+    // thinking about needed or not
+    function getAccount(uint256 _accId) external view returns (Account memory) {
+        require(_accId > 0 && _accId < nextAccountId, "Account does not exist");
+        return accounts[_accId];
+    }
+
+    function getAccountsByChain(uint256 _chainId) external view returns (Account[] memory) {
+        uint256 count = 0;
+        for (uint256 i = 1; i < nextAccountId; i++) {
+            if (accounts[i].chainId == _chainId) {
+                count++;
+            }
+        }
+
+        Account[] memory result = new Account[](count);
+        uint256 index = 0;
+        for (uint256 i = 1; i < nextAccountId; i++) {
+            if (accounts[i].chainId == _chainId) {
+                result[index] = accounts[i];
+                index++;
+            }
+        }
+
+        return result;
+    }
+
+    function getAccountsByOwner(address _owner) external view returns (Account[] memory) {
+        uint256 count = 0;
+        for (uint256 i = 1; i < nextAccountId; i++) {
+            if (accounts[i].owner == _owner) {
+                count++;
+            }
+        }
+
+        Account[] memory result = new Account[](count);
+        uint256 index = 0;
+        for (uint256 i = 1; i < nextAccountId; i++) {
+            if (accounts[i].owner == _owner) {
+                result[index] = accounts[i];
+                index++;
+            }
+        }
+
+        return result;
+    }
+
+    function getLatestAccountIdByChain(uint256 _chainId) internal view returns (uint256) {
+        uint256 latestAccId = 0;
+        for (uint256 accId = 1; accId < nextAccountId; accId++) {
+            if (accounts[accId].chainId == _chainId && accounts[accId].accId > latestAccId) {
+                latestAccId = accounts[accId].accId;
+            }
+        }
+        return latestAccId;
+    }
+
+    //
 
     function addConsumer(
         uint256 _accId,
         address _consumerAddress
     ) external onlyAccountOwner(_accId) {
         Account storage account = accounts[_accId];
-        require(account.consumerCount < 100, "Max consumers reached");
+        require(account.consumerCount < MAX_CONSUMER, "Max consumers reached");
 
-        account.consumers[account.consumerCount] = _consumerAddress;
+        account.consumers.push(_consumerAddress);
         account.consumerCount++;
 
         emit ConsumerAdded(_accId, _consumerAddress);
@@ -142,11 +213,11 @@ contract Registry is Ownable {
         Account storage account = accounts[_accId];
 
         for (uint8 i = 0; i < account.consumerCount; i++) {
-            if (account.consumers[i] == _consumerAddress) {
+            address[] storage consumers = account.consumers;
+            if (consumers[i] == _consumerAddress) {
                 account.consumerCount--;
-                account.consumers[i] = account.consumers[account.consumerCount];
-                account.consumers[account.consumerCount] = address(0);
-
+                consumers[i] = consumers[account.consumerCount];
+                consumers.pop();
                 emit ConsumerRemoved(_accId, _consumerAddress);
                 return;
             }
@@ -207,22 +278,14 @@ contract Registry is Ownable {
         uint256 _chainID,
         string memory _jsonRpc,
         address _endpoint
-    ) external payable {
+    ) external payable onlyConfirmedChainOwner(_chainID) {
         if (msg.value < proposeFee) {
             revert NotEnoughFee();
         }
-        if (chainRegistry[_chainID].owner != msg.sender) {
-            revert NotChainOwner();
-        }
+
         chainRegistry[_chainID].jsonRpc = _jsonRpc;
         chainRegistry[_chainID].endpoint = _endpoint;
-        chainRegistry[_chainID].owner = msg.sender;
         emit ChainConfirmed(_chainID);
-    }
-
-    function setProposeFee(uint256 _fee) public onlyOwner {
-        proposeFee = _fee;
-        emit ProposeFeeSet(_fee);
     }
 
     function confirmChain(uint256 _chainId) public onlyOwner {
@@ -234,71 +297,6 @@ contract Registry is Ownable {
         emit ChainConfirmed(_chainId);
     }
 
-    receive() external payable {}
-
-    function withdraw(uint256 _amount) external onlyOwner returns (bool) {
-        uint256 balance = address(this).balance;
-        if (balance < _amount) {
-            revert InsufficientBalance();
-        }
-        (bool sent, ) = payable(msg.sender).call{value: _amount}("");
-        return sent;
-    }
-
-    function getAccount(uint256 _accId) external view returns (Account memory) {
-        require(_accId > 0 && _accId < nextAccountId, "Account does not exist");
-        return accounts[_accId];
-    }
-
-    function getAccountsByChain(uint256 _chainId) external view returns (Account[] memory) {
-        uint256 count = 0;
-        for (uint256 i = 1; i < nextAccountId; i++) {
-            if (accounts[i].chainId == _chainId) {
-                count++;
-            }
-        }
-
-        Account[] memory result = new Account[](count);
-        uint256 index = 0;
-        for (uint256 i = 1; i < nextAccountId; i++) {
-            if (accounts[i].chainId == _chainId) {
-                result[index] = accounts[i];
-                index++;
-            }
-        }
-
-        return result;
-    }
-    function getLatestAccountIdByChain(uint256 _chainId) internal view returns (uint256) {
-        uint256 latestAccId = 0;
-        for (uint256 accId = 1; accId < nextAccountId; accId++) {
-            if (accounts[accId].chainId == _chainId && accounts[accId].accId > latestAccId) {
-                latestAccId = accounts[accId].accId;
-            }
-        }
-        return latestAccId;
-    }
-
-    function getAccountsByOwner(address _owner) external view returns (Account[] memory) {
-        uint256 count = 0;
-        for (uint256 i = 1; i < nextAccountId; i++) {
-            if (accounts[i].owner == _owner) {
-                count++;
-            }
-        }
-
-        Account[] memory result = new Account[](count);
-        uint256 index = 0;
-        for (uint256 i = 1; i < nextAccountId; i++) {
-            if (accounts[i].owner == _owner) {
-                result[index] = accounts[i];
-                index++;
-            }
-        }
-
-        return result;
-    }
-
     function isValidConsumer(uint256 _accId, address _consumer) public view returns (bool) {
         Account memory account = accounts[_accId];
         for (uint8 i = 0; i < account.consumerCount; i++) {
@@ -307,5 +305,14 @@ contract Registry is Ownable {
             }
         }
         return false;
+    }
+
+    function withdraw(uint256 _amount) external onlyOwner returns (bool) {
+        uint256 balance = address(this).balance;
+        if (balance < _amount) {
+            revert InsufficientBalance();
+        }
+        (bool sent, ) = payable(msg.sender).call{value: _amount}("");
+        return sent;
     }
 }
