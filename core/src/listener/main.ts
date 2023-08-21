@@ -20,7 +20,7 @@ const LISTENERS: IListeners = {
 }
 
 const FILE_NAME = import.meta.url
-const LOGGER = buildLogger('listener')
+const LOGGER = buildLogger()
 
 async function main() {
   hookConsoleError(LOGGER)

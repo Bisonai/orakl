@@ -16,7 +16,7 @@ const WORKERS: IWorkers = {
   REQUEST_RESPONSE: requestResponseWorker
 }
 
-const LOGGER = buildLogger('worker')
+const LOGGER = buildLogger()
 
 async function main() {
   hookConsoleError(LOGGER)
