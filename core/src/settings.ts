@@ -12,7 +12,6 @@ export const NODE_ENV = process.env.NODE_ENV
 export const HEALTH_CHECK_PORT = process.env.HEALTH_CHECK_PORT
 export const CHAIN = process.env.CHAIN || 'localhost'
 export const LOG_LEVEL = process.env.LOG_LEVEL || 'info'
-export const LOG_DIR = process.env.LOG_DIR || './'
 export const STORE_ADAPTER_FETCH_RESULT = process.env.STORE_ADAPTER_FETCH_RESULT || false
 
 export const PROVIDER_URL = process.env.PROVIDER_URL || 'http://127.0.0.1:8545'
