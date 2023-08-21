@@ -9,6 +9,20 @@ const {
   deploy: deployVrfCoordinator
 } = require('./VRFCoordinator.utils.cjs')
 const { deploy: deployPrepayment, addCoordinator } = require('./Prepayment.utils.cjs')
+
+const {
+  deploy: deployRegistry,
+  propose,
+  confirm,
+  setProposeFee,
+  withdraw,
+  editChainInfor,
+  addAggregator,
+  removeAggregator,
+  createAccount,
+  addConsumer,
+  removeConsumer
+} = require('./Registry.utils.cjs')
 const SINGLE_WORD = 1
 async function fulfillRandomWords(
   coordinator,
@@ -46,8 +60,8 @@ function validateRandomWordsRequestedEvent(
   sender,
   isDirectPayment
 ) {
-  let eventIndex = expect(tx.events.length).to.be.equal(4)
-  eventIndex = 1
+  let eventIndex = expect(tx.events.length).to.be.equal(5)
+  eventIndex = 2
 
   const event = coordinatorContract.interface.parseLog(tx.events[eventIndex])
   expect(event.name).to.be.equal('RandomWordsRequested')
@@ -92,6 +106,7 @@ async function deploy() {
   }
 
   // VRFCoordinator
+
   const coordinatorContract = await deployVrfCoordinator(prepaymentContract.address, deployerSigner)
   expect(await coordinatorContract.typeAndVersion()).to.be.equal('VRFCoordinator v0.1')
   const coordinator = {
@@ -99,25 +114,64 @@ async function deploy() {
     signer: deployerSigner
   }
 
-  // L1Endpoint
+  // registry
+
+  let registryContract = await ethers.getContractFactory('Registry', {
+    signer: deployerSigner
+  })
+  registryContract = await registryContract.deploy()
+  await registryContract.deployed()
+  //setup registry
+
+  const fee = parseKlay(1)
+  const pChainID = '100001'
+  const jsonRpc = 'https://123'
+  const L2Endpoint = account2.address
+  const { chainID } = await propose(
+    registryContract,
+    deployerSigner,
+    pChainID,
+    jsonRpc,
+    L2Endpoint,
+    fee
+  )
+  await confirm(registryContract, deployerSigner, chainID)
+  const { accId: rAccId } = await createAccount(registryContract, deployerSigner, chainID)
+  //add consumer
+  await addConsumer(registryContract, deployerSigner, rAccId, deployerSigner.address)
+
   let endpointContract = await ethers.getContractFactory('L1Endpoint', {
     signer: deployerSigner
   })
-  endpointContract = await endpointContract.deploy(coordinatorContract.address)
+  endpointContract = await endpointContract.deploy(
+    coordinatorContract.address,
+    registryContract.address
+  )
   await endpointContract.deployed()
 
   await endpointContract.addOracle(deployerSigner.address)
+
+  //add endpoint for registry
+  await registryContract.setL1Endpoint(endpointContract.address)
 
   const endpoint = {
     contract: endpointContract,
     signer: deployerSigner
   }
+
+  const registry = {
+    contract: registryContract,
+    signer: deployerSigner
+  }
+
   return {
     prepayment,
     coordinator,
     endpoint,
+    registry,
     account2,
-    account3
+    account3,
+    registrAccount: rAccId
   }
 }
 
@@ -136,13 +190,15 @@ describe('VRF contract', function () {
     expect(eventRemove.name).to.be.equal('OracleRemoved')
   })
 
-  it('requestRandomWords ', async function () {
+  it('requestRandomWords', async function () {
     const {
       endpoint,
       coordinator,
       prepayment,
+      registry,
       account2: oracle,
-      account3: unregisteredOracle
+      account3: unregisteredOracle,
+      registrAccount
     } = await loadFixture(deploy)
 
     const { maxGasLimit: callbackGasLimit, keyHash } = vrfConfig()
@@ -156,9 +212,11 @@ describe('VRF contract', function () {
     await (await endpoint.contract.setFee(fee)).wait()
 
     //send balance for endpoint contract
-    await endpoint.signer.sendTransaction({ value: parseKlay('1'), to: endpoint.contract.address })
-    const contractBalance = await getBalance(endpoint.contract.address)
-    expect(contractBalance).to.be.equal(parseKlay('1'))
+    //deposit
+
+    await registry.contract.deposit(registrAccount, { value: parseKlay('1') })
+    const accBalance = await registry.contract.getBalance(registrAccount)
+    expect(accBalance).to.be.equal(parseKlay('1'))
 
     // Request random words
     const txRequestRandomWords = await (
@@ -166,13 +224,12 @@ describe('VRF contract', function () {
         keyHash,
         callbackGasLimit,
         SINGLE_WORD,
-        endpoint.signer.address,
-        endpoint.signer.address
+        registrAccount,
+        endpoint.signer.address // consumer
       )
     ).wait()
-    expect(txRequestRandomWords.events.length).to.be.equal(4)
-
-    const requestEvent = endpoint.contract.interface.parseLog(txRequestRandomWords.events[3])
+    expect(txRequestRandomWords.events.length).to.be.equal(5)
+    const requestEvent = endpoint.contract.interface.parseLog(txRequestRandomWords.events[4])
     expect(requestEvent.name).to.be.equal('RandomWordRequested')
     const numWords = SINGLE_WORD
     const sender = endpoint.contract.address
