@@ -16,7 +16,7 @@ const REPORTERS: IReporters = {
   REQUEST_RESPONSE: buildRequestResponseReporter
 }
 
-const LOGGER = buildLogger('reporter')
+const LOGGER = buildLogger()
 
 async function main() {
   hookConsoleError(LOGGER)

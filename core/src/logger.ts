@@ -1,20 +1,9 @@
-import path from 'node:path'
-import os from 'node:os'
 import pino from 'pino'
-import { LOG_LEVEL, LOG_DIR } from './settings'
+import { LOG_LEVEL } from './settings'
 
-export function buildLogger(name: string) {
+export function buildLogger() {
   const transport = pino.transport({
-    targets: [
-      { target: 'pino-pretty', level: LOG_LEVEL, options: { destination: 1 } },
-      {
-        target: 'pino/file',
-        level: LOG_LEVEL,
-        options: {
-          destination: path.join(LOG_DIR, `orakl-${os.hostname()}-${name}.log`)
-        }
-      }
-    ]
+    targets: [{ target: 'pino-pretty', level: LOG_LEVEL, options: { destination: 1 } }]
   })
 
   const logger = pino(transport)
