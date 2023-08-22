@@ -3,16 +3,19 @@ pragma solidity ^0.8.16;
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "./VRFConsumerBase.sol";
 import "./interfaces/IVRFCoordinator.sol";
+import "./interfaces/IRegistry.sol";
 
 contract L1Endpoint is Ownable, VRFConsumerBase {
     IVRFCoordinator COORDINATOR;
-    mapping(address => uint256) private _balance;
+    IRegistry public registry; // Reference to the Registry contract
     mapping(address => bool) private _oracles;
     mapping(uint256 => address) private _requestIdRequester;
     uint256 private _fee;
 
     error InsufficientBalance();
     error OnlyOracle();
+    error FailedToDeposit();
+    error ConsumerValid();
 
     event FeeUpdated(uint256 oldFee, uint256 newFee);
     event OracleAdded(address oracle);
@@ -21,13 +24,12 @@ contract L1Endpoint is Ownable, VRFConsumerBase {
     event RandomWordRequested(uint256 requestId, address requester);
     event RandomWordFulfilled(uint256 requestId, address requester, uint256[] randomWords);
 
-    constructor(address coordinator) VRFConsumerBase(coordinator) {
+    constructor(address coordinator, address registryAddress) VRFConsumerBase(coordinator) {
         COORDINATOR = IVRFCoordinator(coordinator);
+        registry = IRegistry(registryAddress);
     }
 
-    receive() external payable {
-        _balance[msg.sender] += msg.value;
-    }
+    receive() external payable {}
 
     function setFee(uint256 newFee) public onlyOwner {
         uint256 cFee = _fee;
@@ -49,26 +51,32 @@ contract L1Endpoint is Ownable, VRFConsumerBase {
         bytes32 keyHash,
         uint32 callbackGasLimit,
         uint32 numWords,
-        address payer,
-        address requester
-    ) public returns (uint256 requestId) {
+        uint256 accId,
+        address consumer
+    ) public returns (uint256) {
         if (!_oracles[msg.sender]) {
             revert OnlyOracle();
         }
-        if (_balance[payer] < _fee) {
+        //check consumer and balance
+        bool isValidConsumer = registry.isValidConsumer(accId, consumer);
+        if (!isValidConsumer) {
+            revert ConsumerValid();
+        }
+        uint256 balance = registry.getBalance(accId);
+        if (balance < _fee) {
             revert InsufficientBalance();
         }
-        _balance[payer] = _balance[payer] - _fee;
-
-        uint256 id = COORDINATOR.requestRandomWords{value: _fee}(
+        //decrease balance
+        registry.decreaseBalance(accId, _fee);
+        uint256 requestId = COORDINATOR.requestRandomWords{value: _fee}(
             keyHash,
             callbackGasLimit,
             numWords,
-            msg.sender
+            address(this)
         );
-        _requestIdRequester[id] = requester;
-        emit RandomWordRequested(id, requester);
-        return id;
+        _requestIdRequester[requestId] = consumer;
+        emit RandomWordRequested(requestId, consumer);
+        return requestId;
     }
 
     function fulfillRandomWords(
