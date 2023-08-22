@@ -16,6 +16,7 @@ Orakl Network Fetcher requires to set the following environment variables.
 - `REDIS_PORT`
 - `ORAKL_NETWORK_API_URL`
 - `APP_PORT`
+- `CHAIN`
 
 You can copy them from `.env.example` to `.env` and fill the appropriate values.
 
@@ -60,7 +61,6 @@ yarn run test:cov
 
 - [Learn about how the Orakl Network Fetcher can be controlled](https://orakl-network.gitbook.io/docs/orakl-network-cli/fetcher) by the [Orakl Network CLI](https://orakl-network.gitbook.io/docs/orakl-network-cli/introduction)
 - [Documentation for the Orakl Network Operators](https://orakl-network.gitbook.io/docs/node-operators-guide/orakl-network-fetcher)
-
 
 ## License
 
