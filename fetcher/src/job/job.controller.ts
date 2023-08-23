@@ -2,7 +2,12 @@ import { Controller, Get, Body, Param, HttpStatus, HttpException, Logger } from 
 import { InjectQueue } from '@nestjs/bullmq'
 import { Queue } from 'bullmq'
 import { extractFeeds } from './job.utils'
-import { loadAggregator, activateAggregator, deactivateAggregator } from './job.api'
+import {
+  loadAggregator,
+  activateAggregator,
+  deactivateAggregator,
+  loadActiveAggregators
+} from './job.api'
 import { FETCHER_QUEUE_NAME, FETCH_FREQUENCY } from '../settings'
 
 @Controller({
@@ -13,8 +18,34 @@ export class JobController {
 
   constructor(@InjectQueue(FETCHER_QUEUE_NAME) private queue: Queue) {}
 
+  async onModuleInit() {
+    const chain = process.env.CHAIN
+    const aggregators = await loadActiveAggregators({ chain, logger: this.logger })
+
+    for (const aggregator of aggregators) {
+      await this.startFetcher({ aggregatorHash: aggregator.aggregatorHash, chain, isInitial: true })
+    }
+  }
+
   @Get('start/:aggregator')
   async start(@Param('aggregator') aggregatorHash: string, @Body('chain') chain) {
+    return await this.startFetcher({ aggregatorHash, chain })
+  }
+
+  @Get('stop/:aggregator')
+  async stop(@Param('aggregator') aggregatorHash: string, @Body('chain') chain) {
+    return await this.stopFetcher({ aggregatorHash, chain })
+  }
+
+  private async startFetcher({
+    aggregatorHash,
+    chain,
+    isInitial
+  }: {
+    aggregatorHash: string
+    chain: string
+    isInitial?: boolean
+  }) {
     const aggregator = await loadAggregator({ aggregatorHash, chain, logger: this.logger })
 
     if (Object.keys(aggregator).length == 0) {
@@ -23,7 +54,7 @@ export class JobController {
       throw new HttpException(msg, HttpStatus.NOT_FOUND)
     }
 
-    if (aggregator.active) {
+    if (aggregator.active && !isInitial) {
       const msg = `Aggregator [${aggregatorHash}] is already active`
       this.logger.error(msg)
       throw new HttpException(msg, HttpStatus.BAD_REQUEST)
@@ -60,8 +91,7 @@ export class JobController {
     return msg
   }
 
-  @Get('stop/:aggregator')
-  async stop(@Param('aggregator') aggregatorHash: string, @Body('chain') chain) {
+  private async stopFetcher({ aggregatorHash, chain }: { aggregatorHash: string; chain: string }) {
     const repeatable = await this.queue.getRepeatableJobs()
     const filtered = repeatable.filter((job) => job.name == aggregatorHash)
 
