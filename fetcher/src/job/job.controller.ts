@@ -22,8 +22,8 @@ export class JobController {
     const chain = process.env.CHAIN
     const aggregators = await loadActiveAggregators({ chain, logger: this.logger })
 
-    for (let aggregator of aggregators) {
-      this.startFetcher({ aggregatorHash: aggregator.aggregatorHash, chain, isInitial: true })
+    for (const aggregator of aggregators) {
+      await this.startFetcher({ aggregatorHash: aggregator.aggregatorHash, chain, isInitial: true })
     }
   }
 
