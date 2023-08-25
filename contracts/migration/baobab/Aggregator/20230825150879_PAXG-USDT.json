@@ -1,0 +1,17 @@
+{
+  "deploy": {
+    "name": "PAXG-USDT",
+    "timeout": 0,
+    "validator": "0x0000000000000000000000000000000000000000",
+    "decimals": 8,
+    "description": "PAXG-USDT",
+    "depositAmount": 1
+  },
+  "changeOracles": {
+    "removed": [],
+    "added": ["0xC2d90223967e879781b6329Cd262b4BEEbB512B4"],
+    "minSubmissionCount": 1,
+    "maxSubmissionCount": 1,
+    "restartDelay": 0
+  }
+}
