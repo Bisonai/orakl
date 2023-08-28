@@ -222,7 +222,13 @@ contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
     )
         external
         view
-        returns (uint256 balance, uint64 reqCount, address owner, address[] memory consumers, uint8 accType)
+        returns (
+            uint256 balance,
+            uint64 reqCount,
+            address owner,
+            address[] memory consumers,
+            uint8 accType
+        )
     {
         Account account = sAccIdToAccount[accId];
 

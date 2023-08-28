@@ -64,7 +64,13 @@ contract Account is IAccount, ITypeAndVersion {
     function getAccount()
         external
         view
-        returns (uint256 balance, uint64 reqCount, address owner, address[] memory consumers, uint8 accType)
+        returns (
+            uint256 balance,
+            uint64 reqCount,
+            address owner,
+            address[] memory consumers,
+            uint8 accType
+        )
     {
         return (sBalance, sReqCount, sOwner, sConsumers, sAccountType);
     }
