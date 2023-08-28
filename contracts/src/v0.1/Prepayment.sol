@@ -53,6 +53,7 @@ contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
     struct TemporaryAccount {
         uint256 balance;
         address owner;
+        uint8 accType;
     }
 
     /* accId */
@@ -74,7 +75,7 @@ contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
     error TooHighFeeRatio();
     error FailedToWithdrawFromTemporaryAccount(uint64 accId);
 
-    event AccountCreated(uint64 indexed accId, address account, address owner);
+    event AccountCreated(uint64 indexed accId, address account, address owner, uint8 accType);
     event TemporaryAccountCreated(uint64 indexed accId, address owner);
     event AccountCanceled(uint64 indexed accId, address to, uint256 amount);
     event AccountBalanceIncreased(uint64 indexed accId, uint256 oldBalance, uint256 newBalance);
@@ -221,7 +222,7 @@ contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
     )
         external
         view
-        returns (uint256 balance, uint64 reqCount, address owner, address[] memory consumers)
+        returns (uint256 balance, uint64 reqCount, address owner, address[] memory consumers, uint8 accType)
     {
         Account account = sAccIdToAccount[accId];
 
@@ -231,7 +232,7 @@ contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
         } else if (sIsTemporaryAccount[accId]) {
             // [temporary] account
             TemporaryAccount memory tmpAccConfig = sAccIdToTmpAcc[accId];
-            return (tmpAccConfig.balance, 0, tmpAccConfig.owner, consumers);
+            return (tmpAccConfig.balance, 0, tmpAccConfig.owner, consumers, 0);
         } else {
             revert InvalidAccount();
         }
@@ -254,14 +255,14 @@ contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
     /**
      * @inheritdoc IPrepayment
      */
-    function createAccount() external returns (uint64) {
+    function createAccount(uint8 accType) external returns (uint64) {
         uint64 currentAccId = sCurrentAccId + 1;
         sCurrentAccId = currentAccId;
 
-        Account acc = new Account(currentAccId, msg.sender);
+        Account acc = new Account(currentAccId, msg.sender, accType);
         sAccIdToAccount[currentAccId] = acc;
 
-        emit AccountCreated(currentAccId, address(acc), msg.sender);
+        emit AccountCreated(currentAccId, address(acc), msg.sender, accType);
         return currentAccId;
     }
 
@@ -272,7 +273,7 @@ contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
         uint64 currentAccId = sCurrentAccId + 1;
         sCurrentAccId = currentAccId;
 
-        sAccIdToTmpAcc[currentAccId] = TemporaryAccount({balance: 0, owner: owner});
+        sAccIdToTmpAcc[currentAccId] = TemporaryAccount({balance: 0, owner: owner, accType: 0});
         sIsTemporaryAccount[currentAccId] = true;
 
         emit TemporaryAccountCreated(currentAccId, owner);

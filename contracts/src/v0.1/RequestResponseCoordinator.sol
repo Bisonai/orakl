@@ -178,7 +178,7 @@ contract RequestResponseCoordinator is
         uint64 accId,
         uint8 numSubmission
     ) external nonReentrant returns (uint256) {
-        (uint256 balance, uint64 reqCount, , ) = sPrepayment.getAccount(accId);
+        (uint256 balance, uint64 reqCount, , , ) = sPrepayment.getAccount(accId);
         uint256 minBalance = estimateFee(reqCount, numSubmission, callbackGasLimit);
         if (balance < minBalance) {
             revert InsufficientPayment(balance, minBalance);

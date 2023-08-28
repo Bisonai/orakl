@@ -23,6 +23,7 @@ contract Account is IAccount, ITypeAndVersion {
     address private sRequestedOwner; // For safely transferring acc ownership
     uint256 private sBalance; // Common $KLAY balance used for all consumer requests
     uint64 private sReqCount; // For fee tiers
+    uint8 private sAccountType; // 1,2,3,4,5 for 5 types of prepayment account
     address[] private sConsumers;
 
     /* consumer */
@@ -46,10 +47,11 @@ contract Account is IAccount, ITypeAndVersion {
         _;
     }
 
-    constructor(uint64 accId, address owner) {
+    constructor(uint64 accId, address owner, uint8 accType) {
         sAccId = accId;
         sOwner = owner;
         sPaymentSolution = msg.sender;
+        sAccountType = accType;
     }
 
     receive() external payable {
@@ -62,9 +64,9 @@ contract Account is IAccount, ITypeAndVersion {
     function getAccount()
         external
         view
-        returns (uint256 balance, uint64 reqCount, address owner, address[] memory consumers)
+        returns (uint256 balance, uint64 reqCount, address owner, address[] memory consumers, uint8 accType)
     {
-        return (sBalance, sReqCount, sOwner, sConsumers);
+        return (sBalance, sReqCount, sOwner, sConsumers, sAccountType);
     }
 
     /**

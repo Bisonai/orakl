@@ -10,11 +10,12 @@ interface IAccount {
      * @return reqCount - number of requests for this account, determines fee tier.
      * @return owner - owner of the account.
      * @return consumers - list of consumer address which are able to use this account.
+     * @return accType - 1,2,3,4,5 for different account types. 0 for temporary account
      */
     function getAccount()
         external
         view
-        returns (uint256 balance, uint64 reqCount, address owner, address[] memory consumers);
+        returns (uint256 balance, uint64 reqCount, address owner, address[] memory consumers, uint8 accType);
 
     /**
      * @notice Return an account ID that is associated with this account.

@@ -158,7 +158,7 @@ contract VRFCoordinator is IVRFCoordinatorBase, CoordinatorBase, ITypeAndVersion
         uint32 callbackGasLimit,
         uint32 numWords
     ) external nonReentrant onlyValidKeyHash(keyHash) returns (uint256) {
-        (uint256 balance, uint64 reqCount, , ) = sPrepayment.getAccount(accId);
+        (uint256 balance, uint64 reqCount, , , ) = sPrepayment.getAccount(accId);
         uint8 numSubmission = 1;
         uint256 minBalance = estimateFee(reqCount, numSubmission, callbackGasLimit);
         if (balance < minBalance) {

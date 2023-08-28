@@ -48,7 +48,7 @@ interface IPrepayment {
     )
         external
         view
-        returns (uint256 balance, uint64 reqCount, address owner, address[] memory consumers);
+        returns (uint256 balance, uint64 reqCount, address owner, address[] memory consumers, uint8 accType);
 
     /**
      * @notice Get address of account owner.
@@ -105,7 +105,7 @@ interface IPrepayment {
      * @dev respectively. To fund the account, use deposit function.
      * @return accId - A unique account id
      */
-    function createAccount() external returns (uint64);
+    function createAccount(uint8 accType) external returns (uint64);
 
     /**
      * @notice Create a temporary account to be used with a single
