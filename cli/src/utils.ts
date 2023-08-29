@@ -1,11 +1,7 @@
 import { open as openFile, readFile } from 'node:fs/promises'
 import axios from 'axios'
 import { optional, number as cmdnumber, string as cmdstring, option } from 'cmd-ts'
-import {
-  ORAKL_NETWORK_API_URL,
-  ORAKL_NETWORK_FETCHER_URL,
-  ORAKL_NETWORK_DELEGATOR_URL
-} from './settings'
+import { ORAKL_NETWORK_API_URL, ORAKL_NETWORK_DELEGATOR_URL } from './settings'
 
 export const chainOptionalOption = option({
   type: optional(cmdstring),
@@ -54,11 +50,11 @@ export async function isOraklNetworkApiHealthy() {
   }
 }
 
-export async function isOraklFetcherHealthy() {
+export async function isOraklFetcherHealthy(url: string) {
   try {
-    return 200 === (await axios.get(ORAKL_NETWORK_FETCHER_URL))?.status
+    return 200 === (await axios.get(url))?.status
   } catch (e) {
-    console.error(`Orakl Network Fetcher [${ORAKL_NETWORK_FETCHER_URL}] is down`)
+    console.error(`Orakl Network Fetcher [${url}] is down`)
     return false
   }
 }
