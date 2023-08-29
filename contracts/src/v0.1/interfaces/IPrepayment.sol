@@ -271,4 +271,18 @@ interface IPrepayment {
     function getBurnFeeRatio() external view returns (uint8);
 
     function getProtocolFeeRatio() external view returns (uint8);
+
+    function getAccountDetail(
+        uint64 accId
+    ) external view returns (uint256, uint256, uint256, uint256);
+
+    function isValidReq(uint64 accId) external view returns (bool);
+
+    function updateAccountDetail(
+        uint64 accId,
+        uint256 startTime,
+        uint256 endTime,
+        uint256 maxReq,
+        uint256 periodReqCount
+    ) external;
 }

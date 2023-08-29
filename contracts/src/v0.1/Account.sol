@@ -24,6 +24,11 @@ contract Account is IAccount, ITypeAndVersion {
     uint256 private sBalance; // Common $KLAY balance used for all consumer requests
     uint64 private sReqCount; // For fee tiers
     uint8 private sAccountType; // 1,2,3,4,5 for 5 types of prepayment account
+    uint256 private sStartTime; // activated date
+    uint256 private sEndTime; // end date
+    uint256 private sPeriodMaxReq; // max number of request in start date and end date
+    uint256 private sPeriodReqCount; // number of request in start date and end date
+
     address[] private sConsumers;
 
     /* consumer */
@@ -134,6 +139,45 @@ contract Account is IAccount, ITypeAndVersion {
     /**
      * @inheritdoc IAccount
      */
+    function getAccountDetail() external view returns (uint256, uint256, uint256, uint256) {
+        return (sStartTime, sEndTime, sPeriodMaxReq, sPeriodReqCount);
+    }
+
+    /**
+     * @inheritdoc IAccount
+     */
+    function updateAccountDetail(
+        uint256 startDate,
+        uint256 endDate,
+        uint256 maxReq,
+        uint256 reqPeriodCount
+    ) external onlyPaymentSolution {
+        sStartTime = startDate;
+        sEndTime = endDate;
+        sPeriodMaxReq = maxReq;
+        sPeriodReqCount = reqPeriodCount;
+    }
+
+    /**
+     * @inheritdoc IAccount
+     */
+    function isValidReq() external view returns (bool) {
+        uint256 currentTime = block.timestamp;
+        if (sAccountType == 1 || sAccountType == 2 || sAccountType == 3) {
+            if (
+                currentTime >= sStartTime &&
+                currentTime <= sEndTime &&
+                sPeriodReqCount < sPeriodMaxReq
+            ) {
+                return true;
+            } else return false;
+        }
+        return true;
+    }
+
+    /**
+     * @inheritdoc IAccount
+     */
     function increaseNonce(address consumer) external onlyPaymentSolution returns (uint64) {
         uint64 nonce = sConsumerToNonce[consumer] + 1;
         sConsumerToNonce[consumer] = nonce;
@@ -236,6 +280,7 @@ contract Account is IAccount, ITypeAndVersion {
         address protocolFeeRecipient
     ) external onlyPaymentSolution {
         sReqCount += 1;
+        sPeriodReqCount += 1;
         sBalance -= (burnFee + protocolFee);
 
         if (burnFee > 0) {

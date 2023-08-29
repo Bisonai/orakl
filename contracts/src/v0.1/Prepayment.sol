@@ -261,6 +261,41 @@ contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
     /**
      * @inheritdoc IPrepayment
      */
+    function getAccountDetail(
+        uint64 accId
+    ) external view returns (uint256, uint256, uint256, uint256) {
+        Account account = sAccIdToAccount[accId];
+        if (address(account) == address(0)) revert InvalidAccount();
+        return account.getAccountDetail();
+    }
+
+    /**
+     * @inheritdoc IPrepayment
+     */
+    function isValidReq(uint64 accId) external view returns (bool) {
+        Account account = sAccIdToAccount[accId];
+        if (address(account) == address(0)) revert InvalidAccount();
+        return account.isValidReq();
+    }
+
+    /**
+     * @inheritdoc IPrepayment
+     */
+    function updateAccountDetail(
+        uint64 accId,
+        uint256 startTime,
+        uint256 endTime,
+        uint256 maxReq,
+        uint256 periodReqCount
+    ) external onlyOwner {
+        Account account = sAccIdToAccount[accId];
+        if (address(account) == address(0)) revert InvalidAccount();
+        account.updateAccountDetail(startTime, endTime, maxReq, periodReqCount);
+    }
+
+    /**
+     * @inheritdoc IPrepayment
+     */
     function createAccount(uint8 accType) external returns (uint64) {
         uint64 currentAccId = sCurrentAccId + 1;
         sCurrentAccId = currentAccId;

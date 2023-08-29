@@ -136,4 +136,15 @@ interface IAccount {
      * @param to - Where to send the remaining KLAY to
      */
     function cancelAccount(address to) external;
+
+    function getAccountDetail() external view returns (uint256, uint256, uint256, uint256);
+
+    function updateAccountDetail(
+        uint256 startDate,
+        uint256 endDate,
+        uint256 maxReq,
+        uint256 reqPeriodCount
+    ) external;
+
+    function isValidReq() external view returns (bool);
 }
