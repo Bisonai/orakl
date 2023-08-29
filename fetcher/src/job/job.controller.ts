@@ -27,6 +27,11 @@ export class JobController {
     }
   }
 
+  @Get('active')
+  async active() {
+    return await this.activeFetcher()
+  }
+
   @Get('start/:aggregator')
   async start(@Param('aggregator') aggregatorHash: string, @Body('chain') chain) {
     return await this.startFetcher({ aggregatorHash, chain })
@@ -35,6 +40,12 @@ export class JobController {
   @Get('stop/:aggregator')
   async stop(@Param('aggregator') aggregatorHash: string, @Body('chain') chain) {
     return await this.stopFetcher({ aggregatorHash, chain })
+  }
+
+  private async activeFetcher() {
+    const chain = process.env.CHAIN
+    const activeAggregators = await loadActiveAggregators({ chain, logger: this.logger })
+    return activeAggregators
   }
 
   private async startFetcher({
