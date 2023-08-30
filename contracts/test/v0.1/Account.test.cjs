@@ -30,7 +30,7 @@ describe('Account', function () {
     const { prepayment, consumerSigner, accountBalanceRecipientSigner } = await loadFixture(deploy)
 
     // Create account ///////////////////////////////////////////////////////////
-    const tx = await (await prepayment.contract.connect(consumerSigner).createAccount()).wait()
+    const tx = await (await prepayment.contract.connect(consumerSigner).createAccount(5)).wait()
     const { accId, account, owner } = parseAccountCreatedTx(prepayment, tx)
     expect(owner).to.be.equal(consumerSigner.address)
 

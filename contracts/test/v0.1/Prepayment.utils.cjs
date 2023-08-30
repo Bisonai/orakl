@@ -10,7 +10,7 @@ async function deploy(protocolFeeRecipientAddress, signer) {
 }
 
 async function createAccount(prepayment, signer) {
-  const tx = await (await prepayment.connect(signer).createAccount()).wait()
+  const tx = await (await prepayment.connect(signer).createAccount(5)).wait()
   expect(tx.events.length).to.be.equal(1)
   const event = prepayment.interface.parseLog(tx.events[0])
   expect(event.name).to.be.equal('AccountCreated')
