@@ -93,7 +93,7 @@ model Aggregator {
   chain             Chain       @relation(fields: [chainId], references: [id])
   chainId           BigInt      @map("chain_id")
   Aggregate         Aggregate[]
-  fetcherType       BigInt      @default(1) @map("fetcher_type")
+  fetcherType       Int         @default(0) @map("fetcher_type")
 
   @@unique([aggregatorHash, chainId])
   @@map("aggregators")

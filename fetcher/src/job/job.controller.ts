@@ -69,7 +69,7 @@ export class JobController {
       throw new HttpException(msg, HttpStatus.NOT_FOUND)
     }
 
-    if (aggregator.fetcherType != BigInt(FETCHER_TYPE)) {
+    if (aggregator.fetcherType != FETCHER_TYPE) {
       const msg = `Aggregator [${aggregatorHash}] has different fetcher type than [${FETCHER_TYPE}]`
       this.logger.error(msg)
       throw new HttpException(msg, HttpStatus.BAD_REQUEST)
