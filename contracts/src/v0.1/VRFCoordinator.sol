@@ -291,10 +291,15 @@ contract VRFCoordinator is IVRFCoordinatorBase, CoordinatorBase, ITypeAndVersion
             (, uint64 reqCount, , , uint8 accType) = sPrepayment.getAccount(rc.accId);
             //uint64 reqCount = sPrepayment.getReqCount(rc.accId);
             if (accType == 1 || accType == 2) {
-                //Negotiated
+                //decrease period request number
+                sPrepayment.decreasePeriodReq(rc.accId);
                 return 0;
             } else {
+                if (accType == 3) {
+                    sPrepayment.decreasePeriodReq(rc.accId);
+                }
                 uint256 serviceFee = calculateServiceFee(reqCount);
+
                 if (accType == 3 || accType == 4) {
                     uint256 feeRatio = sPrepayment.getFeeRatio(rc.accId);
                     serviceFee = (serviceFee * feeRatio) / 100;
