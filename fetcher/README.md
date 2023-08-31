@@ -17,6 +17,7 @@ Orakl Network Fetcher requires to set the following environment variables.
 - `ORAKL_NETWORK_API_URL`
 - `APP_PORT`
 - `CHAIN`
+- `FETCHER_TYPE`
 
 You can copy them from `.env.example` to `.env` and fill the appropriate values.
 

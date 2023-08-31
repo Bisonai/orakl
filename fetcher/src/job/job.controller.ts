@@ -8,7 +8,7 @@ import {
   deactivateAggregator,
   loadActiveAggregators
 } from './job.api'
-import { FETCHER_QUEUE_NAME, FETCH_FREQUENCY } from '../settings'
+import { FETCHER_QUEUE_NAME, FETCH_FREQUENCY, FETCHER_TYPE } from '../settings'
 
 @Controller({
   version: '1'
@@ -20,11 +20,15 @@ export class JobController {
 
   async onModuleInit() {
     const chain = process.env.CHAIN
-    const aggregators = await loadActiveAggregators({ chain, logger: this.logger })
-
-    for (const aggregator of aggregators) {
+    const activeAggregators = await this.activeAggregators()
+    for (const aggregator of activeAggregators) {
       await this.startFetcher({ aggregatorHash: aggregator.aggregatorHash, chain, isInitial: true })
     }
+  }
+
+  @Get('active')
+  async active() {
+    return await this.activeAggregators()
   }
 
   @Get('start/:aggregator')
@@ -35,6 +39,17 @@ export class JobController {
   @Get('stop/:aggregator')
   async stop(@Param('aggregator') aggregatorHash: string, @Body('chain') chain) {
     return await this.stopFetcher({ aggregatorHash, chain })
+  }
+
+  private async activeAggregators() {
+    const activeAggregators = await loadActiveAggregators({
+      chain: process.env.CHAIN,
+      logger: this.logger
+    })
+    const filteredActiveAggregators = activeAggregators.filter(
+      (aggregator) => aggregator.fetcherType == FETCHER_TYPE
+    )
+    return filteredActiveAggregators
   }
 
   private async startFetcher({
@@ -52,6 +67,12 @@ export class JobController {
       const msg = `Aggregator [${aggregatorHash}] not found`
       this.logger.error(msg)
       throw new HttpException(msg, HttpStatus.NOT_FOUND)
+    }
+
+    if (aggregator.fetcherType != FETCHER_TYPE) {
+      const msg = `Aggregator [${aggregatorHash}] has different fetcher type than [${FETCHER_TYPE}]`
+      this.logger.error(msg)
+      throw new HttpException(msg, HttpStatus.BAD_REQUEST)
     }
 
     if (aggregator.active && !isInitial) {

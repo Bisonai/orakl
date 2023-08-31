@@ -12,7 +12,8 @@ import {
   idOption,
   buildUrl,
   isOraklNetworkApiHealthy,
-  isServiceHealthy
+  isServiceHealthy,
+  fetcherTypeOptionalOption
 } from './utils'
 import { ReadFile, IAggregator } from './cli-types'
 import { ORAKL_NETWORK_API_URL, WORKER_SERVICE_HOST, WORKER_SERVICE_PORT } from './settings'
@@ -49,7 +50,8 @@ export function aggregatorSub() {
       chain: option({
         type: cmdstring,
         long: 'chain'
-      })
+      }),
+      fetcherType: fetcherTypeOptionalOption
     },
     handler: insertHandler()
   })
@@ -176,11 +178,19 @@ export function listHandler(print?: boolean) {
 }
 
 export function insertHandler() {
-  async function wrapper({ data, chain }: { data; chain: string }) {
+  async function wrapper({
+    data,
+    chain,
+    fetcherType
+  }: {
+    data
+    chain: string
+    fetcherType: number
+  }) {
     if (!(await isOraklNetworkApiHealthy())) return
 
     try {
-      const result = (await axios.post(AGGREGATOR_ENDPOINT, { ...data, chain })).data
+      const result = (await axios.post(AGGREGATOR_ENDPOINT, { ...data, chain, fetcherType })).data
       console.dir(result, { depth: null })
     } catch (e) {
       console.error('Aggregator was not inserted. Reason:')

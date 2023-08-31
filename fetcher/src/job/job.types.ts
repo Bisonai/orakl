@@ -53,6 +53,7 @@ export interface IAggregator {
   adapterId: bigint
   chainId: bigint
   adapter: IAdapter
+  fetcherType: number
 }
 
 export interface IFetchedData {

@@ -29,7 +29,6 @@ The services are expected to be launched before using the Orakl Network CLI.
 The Orakl Network CLI tries to connect to the required services with URL environment variables.
 
 - `ORAKL_NETWORK_API_URL`
-- `ORAKL_NETWORK_FETCHER_URL`
 - `ORAKL_NETWORK_DELEGATOR_URL`
 - `LISTENER_SERVICE_HOST`
 - `LISTENER_SERVICE_PORT`

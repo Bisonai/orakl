@@ -27,4 +27,7 @@ export class AggregatorDto {
 
   @ApiProperty()
   chain: string
+
+  @ApiProperty()
+  fetcherType?: number
 }

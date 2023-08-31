@@ -1,11 +1,7 @@
 import { open as openFile, readFile } from 'node:fs/promises'
 import axios from 'axios'
 import { optional, number as cmdnumber, string as cmdstring, option } from 'cmd-ts'
-import {
-  ORAKL_NETWORK_API_URL,
-  ORAKL_NETWORK_FETCHER_URL,
-  ORAKL_NETWORK_DELEGATOR_URL
-} from './settings'
+import { ORAKL_NETWORK_API_URL, ORAKL_NETWORK_DELEGATOR_URL } from './settings'
 
 export const chainOptionalOption = option({
   type: optional(cmdstring),
@@ -15,6 +11,11 @@ export const chainOptionalOption = option({
 export const serviceOptionalOption = option({
   type: optional(cmdstring),
   long: 'service'
+})
+
+export const fetcherTypeOptionalOption = option({
+  type: optional(cmdnumber),
+  long: 'fetcherType'
 })
 
 export const idOption = option({
@@ -45,6 +46,10 @@ export function buildUrl(host: string, path: string) {
   return url.replace(/([^:]\/)\/+/g, '$1')
 }
 
+export function buildFetcherUrl(host: string, port: string, apiVersion: string) {
+  return `${host}:${port}${apiVersion}`
+}
+
 export async function isOraklNetworkApiHealthy() {
   try {
     return 200 === (await axios.get(ORAKL_NETWORK_API_URL))?.status
@@ -54,11 +59,11 @@ export async function isOraklNetworkApiHealthy() {
   }
 }
 
-export async function isOraklFetcherHealthy() {
+export async function isOraklFetcherHealthy(url: string) {
   try {
-    return 200 === (await axios.get(ORAKL_NETWORK_FETCHER_URL))?.status
+    return 200 === (await axios.get(url))?.status
   } catch (e) {
-    console.error(`Orakl Network Fetcher [${ORAKL_NETWORK_FETCHER_URL}] is down`)
+    console.error(`Orakl Network Fetcher [${url}] is down`)
     return false
   }
 }
