@@ -20,9 +20,8 @@ export class JobController {
 
   async onModuleInit() {
     const chain = process.env.CHAIN
-    const aggregators = await loadActiveAggregators({ chain, logger: this.logger })
-
-    for (const aggregator of aggregators) {
+    const activeAggregators = await this.activeFetcher()
+    for (const aggregator of activeAggregators) {
       await this.startFetcher({ aggregatorHash: aggregator.aggregatorHash, chain, isInitial: true })
     }
   }
@@ -44,7 +43,12 @@ export class JobController {
 
   private async activeFetcher() {
     const chain = process.env.CHAIN
-    const activeAggregators = await loadActiveAggregators({ chain, logger: this.logger })
+    const fetcherType = process.env.FETCHER_TYPE
+    const activeAggregators = await loadActiveAggregators({
+      chain,
+      fetcherType,
+      logger: this.logger
+    })
     return activeAggregators
   }
 
