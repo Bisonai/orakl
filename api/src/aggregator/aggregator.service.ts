@@ -61,7 +61,8 @@ export class AggregatorService {
       threshold: aggregatorDto.threshold,
       absoluteThreshold: aggregatorDto.absoluteThreshold,
       adapterId: adapter.id,
-      chainId: chain.id
+      chainId: chain.id,
+      fetcherType: aggregatorDto.fetcherType
     }
 
     try {
