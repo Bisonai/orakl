@@ -129,7 +129,6 @@ export function stopHandler() {
     port: string
   }) {
     const fetcherEndpoint = `${host}:${port}/api/v1`
-    console.log('fetcherEndPoint:', fetcherEndpoint)
     if (!(await isOraklFetcherHealthy(fetcherEndpoint))) return
 
     try {
