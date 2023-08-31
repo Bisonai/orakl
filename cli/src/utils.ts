@@ -46,6 +46,10 @@ export function buildUrl(host: string, path: string) {
   return url.replace(/([^:]\/)\/+/g, '$1')
 }
 
+export function buildFetcherUrl(host: string, port: string, apiVersion: string) {
+  return `${host}:${port}${apiVersion}`
+}
+
 export async function isOraklNetworkApiHealthy() {
   try {
     return 200 === (await axios.get(ORAKL_NETWORK_API_URL))?.status

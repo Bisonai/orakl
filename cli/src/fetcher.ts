@@ -1,7 +1,7 @@
 import axios from 'axios'
 import { command, subcommands, option, string as cmdstring } from 'cmd-ts'
-import { buildUrl, isOraklFetcherHealthy } from './utils'
-import { FETCHER_HOST, FETCHER_PORT } from './settings'
+import { buildFetcherUrl, buildUrl, isOraklFetcherHealthy } from './utils'
+import { FETCHER_API_VERSION, FETCHER_HOST, FETCHER_PORT } from './settings'
 
 export function fetcherSub() {
   // fetcher active --host ${host} --port ${port}
@@ -83,11 +83,11 @@ export function fetcherSub() {
 
 export function activeHandler() {
   async function wrapper({ host, port }: { host: string; port: string }) {
-    const FetcherEndpoint = `${host}:${port}/api/v1`
-    if (!(await isOraklFetcherHealthy(FetcherEndpoint))) return
+    const fetcherEndpoint = buildFetcherUrl(host, port, FETCHER_API_VERSION)
+    if (!(await isOraklFetcherHealthy(fetcherEndpoint))) return
 
     try {
-      const activeFetcherEndpoint = buildUrl(FetcherEndpoint, 'active')
+      const activeFetcherEndpoint = buildUrl(fetcherEndpoint, 'active')
       const result = (await axios.get(activeFetcherEndpoint)).data
       console.log(result)
     } catch (e) {
@@ -109,7 +109,7 @@ export function startHandler() {
     host: string
     port: string
   }) {
-    const fetcherEndpoint = `${host}:${port}/api/v1`
+    const fetcherEndpoint = buildFetcherUrl(host, port, FETCHER_API_VERSION)
     if (!(await isOraklFetcherHealthy(fetcherEndpoint))) return
 
     try {
@@ -135,7 +135,7 @@ export function stopHandler() {
     host: string
     port: string
   }) {
-    const fetcherEndpoint = `${host}:${port}/api/v1`
+    const fetcherEndpoint = buildFetcherUrl(host, port, FETCHER_API_VERSION)
     if (!(await isOraklFetcherHealthy(fetcherEndpoint))) return
 
     try {
