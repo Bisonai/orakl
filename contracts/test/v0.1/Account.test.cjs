@@ -41,6 +41,18 @@ describe('Account', function () {
     expect(await accountContract.getBalance()).to.be.equal(0)
     expect(await accountContract.typeAndVersion()).to.be.equal('Account v0.1')
     expect(await accountContract.getPaymentSolution()).to.be.equal(prepayment.contract.address)
+    //Account can't set fee ratio, update account detail
+
+    await expect(accountContract.setFeeRatio(50)).to.be.revertedWithCustomError(
+      accountContract,
+      'MustBePaymentSolution'
+    )
+    const startTime = new Date().getTime()
+    const endTime = startTime + 1000 * 60 * 60 * 24 * 7
+    const requestNumber = 100
+    await expect(
+      accountContract.updateAccountDetail(startTime, endTime, requestNumber)
+    ).to.be.revertedWithCustomError(accountContract, 'MustBePaymentSolution')
 
     // Cancel account ///////////////////////////////////////////////////////////
     // Account cannot be canceled directly

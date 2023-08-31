@@ -12,6 +12,7 @@ const { parseKlay, getBalance, createSigners } = require('./utils.cjs')
 const NULL_ADDRESS = '0x0000000000000000000000000000000000000000'
 const DEFAULT_BURN_FEE_RATIO = 50
 const DEFAULT_PROTOCOL_FEE_RATIO = 5
+const DEFAULT_ACCOUNT_FEE_RATIO = 0
 
 async function deploy() {
   const {
@@ -97,6 +98,23 @@ describe('Prepayment', function () {
     await expect(
       prepaymentContract.setProtocolFeeRatio(ratioAboveThreshold)
     ).to.be.revertedWithCustomError(prepaymentContract, 'RatioOutOfBounds')
+  })
+
+  it('Account fee ratio setup', async function () {
+    const { prepaymentContract, consumerSigner: accountOwner } = await loadFixture(deploy)
+    const { accId } = await createAccount(prepaymentContract, accountOwner)
+    // 1. Get initial fee ratio
+    const accountFeeRatio = await prepaymentContract.getFeeRatio(accId)
+    expect(accountFeeRatio).to.be.equal(DEFAULT_ACCOUNT_FEE_RATIO)
+
+    // 2. Set fee ratio
+    const lowerThresholdRatio = 0
+    await prepaymentContract.setFeeRatio(accId, lowerThresholdRatio)
+    expect(await prepaymentContract.getFeeRatio(accId)).to.be.equal(lowerThresholdRatio)
+
+    // 3. Set fee ratio with
+    const ratioBelowThreshold = -1
+    await expect(prepaymentContract.setFeeRatio(accId, ratioBelowThreshold)).to.be.rejected
   })
 
   it('Protocol fee recipient setup', async function () {
@@ -441,6 +459,23 @@ describe('Prepayment', function () {
 
     await expect(
       prepaymentContract.connect(consumerSigner).removeCoordinator(consumerSigner.address)
+    ).to.be.revertedWith('Ownable: caller is not the owner')
+
+    const { accId } = await createAccount(prepaymentContract, consumerSigner)
+    //set fee ratio for account
+    await expect(
+      prepaymentContract.connect(consumerSigner).setFeeRatio(accId, 50)
+    ).to.be.revertedWith('Ownable: caller is not the owner')
+
+    //update account detail
+    const startTime = new Date().getTime()
+    const endTime = startTime + 1000 * 60 * 60 * 24 * 7
+    const requestNumber = 100
+
+    await expect(
+      prepaymentContract
+        .connect(consumerSigner)
+        .updateAccountDetail(accId, startTime, endTime, requestNumber)
     ).to.be.revertedWith('Ownable: caller is not the owner')
   })
 

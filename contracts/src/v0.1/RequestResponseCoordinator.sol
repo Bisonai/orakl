@@ -65,6 +65,7 @@ contract RequestResponseCoordinator is
     error InvalidNumSubmission();
     error OracleAlreadySubmitted();
     error IncompatibleJobId();
+    error InvalidAccReqCount();
 
     event OracleRegistered(address oracle);
     event OracleDeregistered(address oracle);
@@ -178,8 +179,22 @@ contract RequestResponseCoordinator is
         uint64 accId,
         uint8 numSubmission
     ) external nonReentrant returns (uint256) {
-        (uint256 balance, uint64 reqCount, , , ) = sPrepayment.getAccount(accId);
-        uint256 minBalance = estimateFee(reqCount, numSubmission, callbackGasLimit);
+        (uint256 balance, uint64 reqCount, , , uint8 accType) = sPrepayment.getAccount(accId);
+        bool isValidReqCount = sPrepayment.isValidReq(accId);
+        if (!isValidReqCount) {
+            revert InvalidAccReqCount();
+        }
+        uint256 minBalance = 0;
+
+        if (accType == 5) // normal account
+        {
+            minBalance = estimateFee(reqCount, numSubmission, callbackGasLimit);
+        } else if (accType == 4 || accType == 3) //discount
+        {
+            uint256 feeRatio = sPrepayment.getFeeRatio(accId);
+            uint256 baseFee = estimateFee(reqCount, numSubmission, callbackGasLimit);
+            minBalance = (baseFee * feeRatio) / 100;
+        }
         if (balance < minBalance) {
             revert InsufficientPayment(balance, minBalance);
         }
@@ -615,25 +630,39 @@ contract RequestResponseCoordinator is
             return totalFee;
         } else {
             // [regular] account
-            uint64 reqCount = sPrepayment.getReqCount(rc.accId);
-            uint256 serviceFee = calculateServiceFee(reqCount) * rc.numSubmission;
-            uint256 operatorFee = sPrepayment.chargeFee(rc.accId, serviceFee);
-            uint256 feePerOperator = operatorFee / oraclesLength;
+            (, uint64 reqCount, , , uint8 accType) = sPrepayment.getAccount(rc.accId);
+            if (accType == 1 || accType == 2) {
+                //decrease period request number
+                sPrepayment.decreasePeriodReq(rc.accId);
+                return 0;
+            } else {
+                if (accType == 3) {
+                    sPrepayment.decreasePeriodReq(rc.accId);
+                }
+                uint256 serviceFee = calculateServiceFee(reqCount) * rc.numSubmission;
+                if (accType == 3 || accType == 4) {
+                    uint256 feeRatio = sPrepayment.getFeeRatio(rc.accId);
+                    serviceFee = (serviceFee * feeRatio) / 100;
+                }
 
-            uint256 paid;
-            for (uint256 i = 0; i < oraclesLength - 1; ++i) {
-                sPrepayment.chargeOperatorFee(rc.accId, feePerOperator, oracles[i]);
-                paid += feePerOperator;
+                uint256 operatorFee = sPrepayment.chargeFee(rc.accId, serviceFee);
+                uint256 feePerOperator = operatorFee / oraclesLength;
+
+                uint256 paid;
+                for (uint256 i = 0; i < oraclesLength - 1; ++i) {
+                    sPrepayment.chargeOperatorFee(rc.accId, feePerOperator, oracles[i]);
+                    paid += feePerOperator;
+                }
+
+                uint256 gasFee = calculateGasCost(startGas);
+                sPrepayment.chargeOperatorFee(
+                    rc.accId,
+                    (operatorFee - paid) + gasFee,
+                    oracles[oraclesLength - 1]
+                );
+
+                return gasFee + serviceFee;
             }
-
-            uint256 gasFee = calculateGasCost(startGas);
-            sPrepayment.chargeOperatorFee(
-                rc.accId,
-                (operatorFee - paid) + gasFee,
-                oracles[oraclesLength - 1]
-            );
-
-            return gasFee + serviceFee;
         }
     }
 

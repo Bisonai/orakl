@@ -289,7 +289,6 @@ contract VRFCoordinator is IVRFCoordinatorBase, CoordinatorBase, ITypeAndVersion
         } else {
             // [regular] account
             (, uint64 reqCount, , , uint8 accType) = sPrepayment.getAccount(rc.accId);
-            //uint64 reqCount = sPrepayment.getReqCount(rc.accId);
             if (accType == 1 || accType == 2) {
                 //decrease period request number
                 sPrepayment.decreasePeriodReq(rc.accId);
