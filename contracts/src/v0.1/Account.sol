@@ -26,8 +26,8 @@ contract Account is IAccount, ITypeAndVersion {
     uint8 private sAccountType; // 1,2,3,4,5 for 5 types of prepayment account
     uint256 private sStartTime; // activated date
     uint256 private sEndTime; // end date
-    uint256 private sPeriodMaxReq; // max number of request in start date and end date
     uint256 private sPeriodReqCount; // number of request in start date and end date
+    uint256 private sServiceFeeRatio; // ratio of service fee
 
     address[] private sConsumers;
 
@@ -139,8 +139,8 @@ contract Account is IAccount, ITypeAndVersion {
     /**
      * @inheritdoc IAccount
      */
-    function getAccountDetail() external view returns (uint256, uint256, uint256, uint256) {
-        return (sStartTime, sEndTime, sPeriodMaxReq, sPeriodReqCount);
+    function getAccountDetail() external view returns (uint256, uint256, uint256) {
+        return (sStartTime, sEndTime, sPeriodReqCount);
     }
 
     /**
@@ -149,13 +149,25 @@ contract Account is IAccount, ITypeAndVersion {
     function updateAccountDetail(
         uint256 startDate,
         uint256 endDate,
-        uint256 maxReq,
         uint256 reqPeriodCount
     ) external onlyPaymentSolution {
         sStartTime = startDate;
         sEndTime = endDate;
-        sPeriodMaxReq = maxReq;
         sPeriodReqCount = reqPeriodCount;
+    }
+
+    /**
+     * @inheritdoc IAccount
+     */
+    function getFeeRatio() external view returns (uint256) {
+        return sServiceFeeRatio;
+    }
+
+    /**
+     * @inheritdoc IAccount
+     */
+    function setFeeRatio(uint256 feeRatio) external onlyPaymentSolution {
+        sServiceFeeRatio = feeRatio;
     }
 
     /**
@@ -164,11 +176,7 @@ contract Account is IAccount, ITypeAndVersion {
     function isValidReq() external view returns (bool) {
         uint256 currentTime = block.timestamp;
         if (sAccountType == 1 || sAccountType == 2 || sAccountType == 3) {
-            if (
-                currentTime >= sStartTime &&
-                currentTime <= sEndTime &&
-                sPeriodReqCount < sPeriodMaxReq
-            ) {
+            if (currentTime >= sStartTime && currentTime <= sEndTime && sPeriodReqCount <= 0) {
                 return true;
             } else return false;
         }
@@ -280,7 +288,6 @@ contract Account is IAccount, ITypeAndVersion {
         address protocolFeeRecipient
     ) external onlyPaymentSolution {
         sReqCount += 1;
-        sPeriodReqCount += 1;
         sBalance -= (burnFee + protocolFee);
 
         if (burnFee > 0) {
@@ -310,6 +317,13 @@ contract Account is IAccount, ITypeAndVersion {
         if (!sent) {
             revert OperatorFeeFailed();
         }
+    }
+
+    /**
+     * @inheritdoc IAccount
+     */
+    function decreasePeriodReqCount() external onlyPaymentSolution {
+        sPeriodReqCount -= 1;
     }
 
     /**

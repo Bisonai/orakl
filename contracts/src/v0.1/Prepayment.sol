@@ -89,6 +89,14 @@ contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
     event AccountOwnerTransferRequested(uint64 indexed accId, address from, address to);
     event AccountOwnerTransferred(uint64 indexed accId, address from, address to);
     event BurnedFee(uint64 indexed accId, uint256 amount);
+    event AccountDetailUpdated(
+        uint64 indexed accId,
+        uint256 startDate,
+        uint256 endDate,
+        uint256 reqPeriodCount
+    );
+    event AccountFeeRatioSet(uint64 indexed accId, uint256 disCount);
+    event AccountPeriodReqDecreased(uint64 indexed accId);
 
     /**
      * @dev The modifier is only for [regular] account. If called with
@@ -261,9 +269,7 @@ contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
     /**
      * @inheritdoc IPrepayment
      */
-    function getAccountDetail(
-        uint64 accId
-    ) external view returns (uint256, uint256, uint256, uint256) {
+    function getAccountDetail(uint64 accId) external view returns (uint256, uint256, uint256) {
         Account account = sAccIdToAccount[accId];
         if (address(account) == address(0)) revert InvalidAccount();
         return account.getAccountDetail();
@@ -281,16 +287,10 @@ contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
     /**
      * @inheritdoc IPrepayment
      */
-    function updateAccountDetail(
-        uint64 accId,
-        uint256 startTime,
-        uint256 endTime,
-        uint256 maxReq,
-        uint256 periodReqCount
-    ) external onlyOwner {
+    function getFeeRatio(uint64 accId) external view returns (uint256) {
         Account account = sAccIdToAccount[accId];
         if (address(account) == address(0)) revert InvalidAccount();
-        account.updateAccountDetail(startTime, endTime, maxReq, periodReqCount);
+        return account.getFeeRatio();
     }
 
     /**
@@ -305,6 +305,41 @@ contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
 
         emit AccountCreated(currentAccId, address(acc), msg.sender, accType);
         return currentAccId;
+    }
+
+    /**
+     * @inheritdoc IPrepayment
+     */
+    function updateAccountDetail(
+        uint64 accId,
+        uint256 startTime,
+        uint256 endTime,
+        uint256 periodReqCount
+    ) external onlyOwner {
+        Account account = sAccIdToAccount[accId];
+        if (address(account) == address(0)) revert InvalidAccount();
+        account.updateAccountDetail(startTime, endTime, periodReqCount);
+        emit AccountDetailUpdated(accId, startTime, endTime, periodReqCount);
+    }
+
+    /**
+     * @inheritdoc IPrepayment
+     */
+    function setFeeRatio(uint64 accId, uint256 disCount) external onlyOwner {
+        Account account = sAccIdToAccount[accId];
+        if (address(account) == address(0)) revert InvalidAccount();
+        account.setFeeRatio(disCount);
+        emit AccountFeeRatioSet(accId, disCount);
+    }
+
+    /**
+     * @inheritdoc IPrepayment
+     */
+    function decreasePeriodReq(uint64 accId) external onlyOwner {
+        Account account = sAccIdToAccount[accId];
+        if (address(account) == address(0)) revert InvalidAccount();
+        account.decreasePeriodReqCount();
+        emit AccountPeriodReqDecreased(accId);
     }
 
     /**

@@ -137,14 +137,19 @@ interface IAccount {
      */
     function cancelAccount(address to) external;
 
-    function getAccountDetail() external view returns (uint256, uint256, uint256, uint256);
+    function getAccountDetail() external view returns (uint256, uint256, uint256);
 
     function updateAccountDetail(
         uint256 startDate,
         uint256 endDate,
-        uint256 maxReq,
         uint256 reqPeriodCount
     ) external;
 
     function isValidReq() external view returns (bool);
+
+    function getFeeRatio() external view returns (uint256);
+
+    function setFeeRatio(uint256 disCount) external;
+
+    function decreasePeriodReqCount() external;
 }
