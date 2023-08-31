@@ -8,7 +8,7 @@ import {
   deactivateAggregator,
   loadActiveAggregators
 } from './job.api'
-import { FETCHER_QUEUE_NAME, FETCH_FREQUENCY } from '../settings'
+import { FETCHER_QUEUE_NAME, FETCH_FREQUENCY, FETCHER_TYPE } from '../settings'
 
 @Controller({
   version: '1'
@@ -20,7 +20,7 @@ export class JobController {
 
   async onModuleInit() {
     const chain = process.env.CHAIN
-    const activeAggregators = await this.activeFetcher()
+    const activeAggregators = await this.activeFetchers()
     for (const aggregator of activeAggregators) {
       await this.startFetcher({ aggregatorHash: aggregator.aggregatorHash, chain, isInitial: true })
     }
@@ -28,7 +28,7 @@ export class JobController {
 
   @Get('active')
   async active() {
-    return await this.activeFetcher()
+    return await this.activeFetchers()
   }
 
   @Get('start/:aggregator')
@@ -41,15 +41,15 @@ export class JobController {
     return await this.stopFetcher({ aggregatorHash, chain })
   }
 
-  private async activeFetcher() {
-    const chain = process.env.CHAIN
-    const fetcherType = process.env.FETCHER_TYPE
+  private async activeFetchers() {
     const activeAggregators = await loadActiveAggregators({
-      chain,
-      fetcherType,
+      chain: process.env.CHAIN,
       logger: this.logger
     })
-    return activeAggregators
+    const filteredActiveAggregators = activeAggregators.filter(
+      (aggregator) => aggregator.fetcherType == FETCHER_TYPE
+    )
+    return filteredActiveAggregators
   }
 
   private async startFetcher({
@@ -67,6 +67,12 @@ export class JobController {
       const msg = `Aggregator [${aggregatorHash}] not found`
       this.logger.error(msg)
       throw new HttpException(msg, HttpStatus.NOT_FOUND)
+    }
+
+    if (aggregator.fetcherType != BigInt(FETCHER_TYPE)) {
+      const msg = `Aggregator [${aggregatorHash}] has different fetcher type than [${FETCHER_TYPE}]`
+      this.logger.error(msg)
+      throw new HttpException(msg, HttpStatus.BAD_REQUEST)
     }
 
     if (aggregator.active && !isInitial) {

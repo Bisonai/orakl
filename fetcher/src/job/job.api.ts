@@ -3,21 +3,12 @@ import { HttpStatus, HttpException, Logger } from '@nestjs/common'
 import { buildUrl } from './job.utils'
 import { IRawData, IData, IAggregator, IAggregate } from './job.types'
 
-export async function loadActiveAggregators({
-  chain,
-  fetcherType,
-  logger
-}: {
-  chain: string
-  fetcherType: string
-  logger: Logger
-}) {
+export async function loadActiveAggregators({ chain, logger }: { chain: string; logger: Logger }) {
   const AGGREGATOR_ENDPOINT = buildUrl(process.env.ORAKL_NETWORK_API_URL, 'aggregator')
   try {
     const url = new URL(AGGREGATOR_ENDPOINT)
     url.searchParams.append('active', 'true')
     url.searchParams.append('chain', chain)
-    url.searchParams.append('fetcherType', fetcherType)
 
     const result = (await axios.get(url.toString())).data
     return result
