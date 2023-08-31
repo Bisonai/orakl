@@ -12,7 +12,4 @@ export class AggregatorQueryDto {
 
   @ApiProperty()
   address: string
-
-  @ApiProperty()
-  fetcherType?: number
 }

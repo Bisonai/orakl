@@ -60,14 +60,13 @@ export class AggregatorController {
    */
   @Get()
   async findAll(@Query() query: AggregatorQueryDto) {
-    const { chain, active, address, fetcherType } = query
+    const { chain, active, address } = query
 
     return await this.aggregatorService.findAll({
       where: {
         chain: { name: chain },
         active,
-        address,
-        fetcherType: BigInt(fetcherType)
+        address
       }
     })
   }
