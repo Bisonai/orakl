@@ -13,6 +13,11 @@ export const serviceOptionalOption = option({
   long: 'service'
 })
 
+export const fetcherTypeOptionalOption = option({
+  type: optional(cmdnumber),
+  long: 'fetcherType'
+})
+
 export const idOption = option({
   type: cmdnumber,
   long: 'id'
