@@ -3,6 +3,9 @@ export const ORAKL_NETWORK_API_URL =
 export const ORAKL_NETWORK_DELEGATOR_URL =
   process.env.ORAKL_NETWORK_DELEGATOR_URL || 'http://localhost:3002/api/v1'
 
+export const FETCHER_HOST = 'http://localhost'
+export const FETCHER_PORT = 3001
+
 export const LISTENER_SERVICE_HOST = process.env.LISTENER_SERVICE_HOST || 'http://localhost'
 export const LISTENER_SERVICE_PORT = process.env.LISTENER_SERVICE_PORT || 4000
 

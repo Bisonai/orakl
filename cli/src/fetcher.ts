@@ -1,6 +1,7 @@
 import axios from 'axios'
 import { command, subcommands, option, string as cmdstring } from 'cmd-ts'
 import { buildUrl, isOraklFetcherHealthy } from './utils'
+import { FETCHER_HOST, FETCHER_PORT } from './settings'
 
 export function fetcherSub() {
   // fetcher active --host ${host} --port ${port}
@@ -12,11 +13,13 @@ export function fetcherSub() {
     args: {
       host: option({
         type: cmdstring,
-        long: 'host'
+        long: 'host',
+        defaultValue: () => FETCHER_HOST
       }),
       port: option({
         type: cmdstring,
-        long: 'port'
+        long: 'port',
+        defaultValue: () => String(FETCHER_PORT)
       })
     },
     handler: activeHandler()
@@ -35,11 +38,13 @@ export function fetcherSub() {
       }),
       host: option({
         type: cmdstring,
-        long: 'host'
+        long: 'host',
+        defaultValue: () => FETCHER_HOST
       }),
       port: option({
         type: cmdstring,
-        long: 'port'
+        long: 'port',
+        defaultValue: () => String(FETCHER_PORT)
       })
     },
     handler: startHandler()
@@ -58,11 +63,13 @@ export function fetcherSub() {
       }),
       host: option({
         type: cmdstring,
-        long: 'host'
+        long: 'host',
+        defaultValue: () => FETCHER_HOST
       }),
       port: option({
         type: cmdstring,
-        long: 'port'
+        long: 'port',
+        defaultValue: () => String(FETCHER_PORT)
       })
     },
     handler: stopHandler()
