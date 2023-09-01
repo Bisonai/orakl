@@ -22,7 +22,7 @@ export const LOCAL_AGGREGATOR = process.env.LOCAL_AGGREGATOR || 'MEDIAN'
 export const LISTENER_DELAY = Number(process.env.LISTENER_DELAY) || 500
 
 // Gas mimimums
-export const VRF_FULFILL_GAS_MINIMUM = 400_000
+export const VRF_FULFILL_GAS_MINIMUM = 450_000
 export const REQUEST_RESPONSE_FULFILL_GAS_MINIMUM = 400_000
 export const DATA_FEED_FULFILL_GAS_MINIMUM = 400_000
 
