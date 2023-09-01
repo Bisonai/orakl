@@ -98,7 +98,7 @@ const func = async function (hre) {
 
         console.log(`Proposed proxy aggregator:${proposedAggregator}`)
       } else if (redirectProxyConfig.status == 'confirm') {
-        // Confirm new POR Contract address from Proxy
+        // Confirm new POR contract address
         console.log('Confirming Proxy')
         expect(await proxy.aggregator()).to.be.eq(aggregatorAddress)
         expect(await proxy.proposedAggregator()).to.be.eq(proposedAggregator)
@@ -111,7 +111,7 @@ const func = async function (hre) {
           `Proxy POR address redirected from ${aggregatorAddress} to new ${confirmedAggregator}`
         )
       } else if (redirectProxyConfig.status == 'revert') {
-        // Revert back to old Aggregator Address
+        // Revert back to old POR contract address
         console.log('Revert Proxy')
         expect(await proxy.aggregator()).to.be.eq(proposedAggregator)
         await (await proxy.proposeAggregator(aggregatorAddress)).wait()
