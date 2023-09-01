@@ -80,7 +80,13 @@ export async function job(reporterQueue: QueueType, config: IVrfConfig, _logger:
       }
 
       const to = inData.callbackAddress
-      const tx = buildTransaction(payloadParameters, to, VRF_FULFILL_GAS_MINIMUM, iface, logger)
+      const tx = buildTransaction(
+        payloadParameters,
+        to,
+        VRF_FULFILL_GAS_MINIMUM + 10_000 * inData.numWords,
+        iface,
+        logger
+      )
       logger.debug(tx, 'tx')
 
       await reporterQueue.add('vrf', tx, {
