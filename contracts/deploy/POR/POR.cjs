@@ -164,7 +164,7 @@ async function localhostDeployment(args) {
   })
 }
 
-func.id = 'deploy-aggregator'
-func.tags = ['aggregator']
+func.id = 'deploy-POR'
+func.tags = ['POR']
 
 module.exports = func
