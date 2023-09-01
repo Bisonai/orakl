@@ -1,0 +1,17 @@
+{
+  "deploy": {
+    "name": "e-Gold",
+    "timeout": 0,
+    "validator": "0x0000000000000000000000000000000000000000",
+    "decimals": 8,
+    "description": "POR Contract",
+    "depositAmount": 1
+  },
+  "changeOracles": {
+    "removed": [],
+    "added": ["0x0000000000000000000000000000000000000000"],
+    "minSubmissionCount": 1,
+    "maxSubmissionCount": 1,
+    "restartDelay": 0
+  }
+}
