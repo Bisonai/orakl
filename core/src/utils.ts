@@ -2,9 +2,10 @@ import * as Fs from 'node:fs/promises'
 import os from 'node:os'
 import { createClient } from 'redis'
 import type { RedisClientType } from 'redis'
-import { IncomingWebhook } from '@slack/webhook'
 import Hook from 'console-hook'
-import { SLACK_WEBHOOK_URL } from './settings'
+import { MESSENGER_ENDPOINT, NODE_ENV } from './settings'
+import { IMessageTransfer } from './types'
+import axios from 'axios'
 
 export async function loadJson(filepath) {
   const json = await Fs.readFile(filepath, 'utf8')
@@ -43,25 +44,46 @@ export function pad32Bytes(data) {
 let slackSentTime = new Date().getTime()
 let errMsg = null
 
-async function sendToSlack(error) {
-  if (SLACK_WEBHOOK_URL) {
+async function sendToSlack(method, error) {
+  if (MESSENGER_ENDPOINT) {
     const e = error[1]
-    const webhook = new IncomingWebhook(SLACK_WEBHOOK_URL)
     const text = ` :fire: _An error has occurred at_ \`${os.hostname()}\`\n \`\`\`${JSON.stringify(
       e
     )} \`\`\`\n>*System information*\n>*memory*: ${os.freemem()}/${os.totalmem()}\n>*machine*: ${os.machine()}\n>*platform*: ${os.platform()}\n>*upTime*: ${os.uptime()}\n>*version*: ${os.version()}
    `
+
+    const methodMap = {
+      error: 'error-report',
+      warn: 'warning-report'
+    }
+    const networkMap = {
+      cypress: 'prod',
+      baobab: 'prod',
+      CYPRESS: 'prod',
+      BAOBAB: 'prod'
+    }
+    const payload: IMessageTransfer = {
+      company: 'bisonai',
+      operator: 'bisonai',
+      messageKind: methodMap[method],
+      system: 'k8s',
+      nodeEnv: networkMap[NODE_ENV || ''] || 'local',
+      network: NODE_ENV || '',
+      serviceName: 'monitor-api',
+      message: text
+    }
+
     try {
-      if (errMsg == e.message) {
+      if (errMsg === e.message) {
         const currentDate = new Date()
         const oneMinuteAgo = new Date(currentDate.getTime() - 60000)
         if (slackSentTime < oneMinuteAgo.getTime()) {
-          await webhook.send({ text })
+          axios.post(MESSENGER_ENDPOINT, payload, { timeout: 5000 })
           errMsg = error[1].message
           slackSentTime = new Date().getTime()
         }
       } else {
-        await webhook.send({ text })
+        axios.post(MESSENGER_ENDPOINT, payload, { timeout: 5000 })
         errMsg = e.message
         slackSentTime = new Date().getTime()
       }
@@ -74,7 +96,7 @@ async function sendToSlack(error) {
 export function hookConsoleError(logger) {
   const consoleHook = Hook(logger).attach((method, args) => {
     if (method == 'error') {
-      sendToSlack(args)
+      sendToSlack(method, args)
     }
   })
   consoleHook.detach

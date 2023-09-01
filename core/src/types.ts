@@ -356,3 +356,18 @@ export interface IErrorMsgData {
   name: string
   stack: string
 }
+
+// Bisontry Interface
+export interface IMessageTransfer {
+  company: string
+  operator: string
+  messageKind: string
+  system: string
+  nodeEnv: string
+  network: string
+  serviceName: string
+  message: string
+  errorCode?: string
+  errorMsg?: string
+  stackTrace?: string
+}
