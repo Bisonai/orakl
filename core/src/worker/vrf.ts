@@ -20,6 +20,7 @@ import {
   BULLMQ_CONNECTION,
   CHAIN,
   VRF_FULFILL_GAS_MINIMUM,
+  VRF_FULLFILL_GAS_PER_WORD,
   WORKER_JOB_SETTINGS
 } from '../settings'
 import { getVrfConfig } from '../api'
@@ -83,7 +84,7 @@ export async function job(reporterQueue: QueueType, config: IVrfConfig, _logger:
       const tx = buildTransaction(
         payloadParameters,
         to,
-        VRF_FULFILL_GAS_MINIMUM + 10_000 * inData.numWords,
+        VRF_FULFILL_GAS_MINIMUM + VRF_FULLFILL_GAS_PER_WORD * inData.numWords,
         iface,
         logger
       )
