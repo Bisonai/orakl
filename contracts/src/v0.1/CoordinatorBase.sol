@@ -4,6 +4,7 @@ pragma solidity ^0.8.16;
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "./interfaces/ICoordinatorBase.sol";
 import "./interfaces/IPrepayment.sol";
+import "./interfaces/IAccount.sol";
 
 abstract contract CoordinatorBase is Ownable, ICoordinatorBase {
     // 5k is plenty for an EXTCODESIZE call (2600) + warm CALL (100)

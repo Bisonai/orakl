@@ -3,6 +3,13 @@ pragma solidity ^0.8.16;
 
 interface IAccount {
     /// READ-ONLY FUNCTIONS /////////////////////////////////////////////////////
+    enum AccountType {
+        TEMPORARY,
+        FIAT_SUBSCRIPTION,
+        KLAY_SUBSCRIPTION,
+        KLAY_DISCOUNT,
+        KLAY_REGULAR
+    }
 
     /**
      * @notice Get an account information.
@@ -20,7 +27,7 @@ interface IAccount {
             uint64 reqCount,
             address owner,
             address[] memory consumers,
-            uint8 accType
+            AccountType accType
         );
 
     /**
@@ -151,5 +158,5 @@ interface IAccount {
 
     function setFeeRatio(uint256 disCount) external;
 
-    function decreasePeriodReqCount() external;
+    function increaseReqCount() external;
 }

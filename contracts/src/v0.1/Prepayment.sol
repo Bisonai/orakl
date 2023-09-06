@@ -75,7 +75,12 @@ contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
     error TooHighFeeRatio();
     error FailedToWithdrawFromTemporaryAccount(uint64 accId);
 
-    event AccountCreated(uint64 indexed accId, address account, address owner, uint8 accType);
+    event AccountCreated(
+        uint64 indexed accId,
+        address account,
+        address owner,
+        IAccount.AccountType accType
+    );
     event TemporaryAccountCreated(uint64 indexed accId, address owner);
     event AccountCanceled(uint64 indexed accId, address to, uint256 amount);
     event AccountBalanceIncreased(uint64 indexed accId, uint256 oldBalance, uint256 newBalance);
@@ -96,7 +101,7 @@ contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
         uint256 reqPeriodCount
     );
     event AccountFeeRatioSet(uint64 indexed accId, uint256 disCount);
-    event AccountPeriodReqDecreased(uint64 indexed accId);
+    event AccountPeriodReqIncrease(uint64 indexed accId);
 
     /**
      * @dev The modifier is only for [regular] account. If called with
@@ -235,7 +240,7 @@ contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
             uint64 reqCount,
             address owner,
             address[] memory consumers,
-            uint8 accType
+            IAccount.AccountType accType
         )
     {
         Account account = sAccIdToAccount[accId];
@@ -246,7 +251,13 @@ contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
         } else if (sIsTemporaryAccount[accId]) {
             // [temporary] account
             TemporaryAccount memory tmpAccConfig = sAccIdToTmpAcc[accId];
-            return (tmpAccConfig.balance, 0, tmpAccConfig.owner, consumers, 0);
+            return (
+                tmpAccConfig.balance,
+                0,
+                tmpAccConfig.owner,
+                consumers,
+                IAccount.AccountType.TEMPORARY
+            );
         } else {
             revert InvalidAccount();
         }
@@ -296,7 +307,7 @@ contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
     /**
      * @inheritdoc IPrepayment
      */
-    function createAccount(uint8 accType) external returns (uint64) {
+    function createAccount(IAccount.AccountType accType) external returns (uint64) {
         uint64 currentAccId = sCurrentAccId + 1;
         sCurrentAccId = currentAccId;
 
@@ -335,11 +346,11 @@ contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
     /**
      * @inheritdoc IPrepayment
      */
-    function decreasePeriodReq(uint64 accId) external onlyOwner {
+    function increaseReqCount(uint64 accId) external onlyCoordinator {
         Account account = sAccIdToAccount[accId];
         if (address(account) == address(0)) revert InvalidAccount();
-        account.decreasePeriodReqCount();
-        emit AccountPeriodReqDecreased(accId);
+        account.increaseReqCount();
+        emit AccountPeriodReqIncrease(accId);
     }
 
     /**

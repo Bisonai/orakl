@@ -23,10 +23,10 @@ contract Account is IAccount, ITypeAndVersion {
     address private sRequestedOwner; // For safely transferring acc ownership
     uint256 private sBalance; // Common $KLAY balance used for all consumer requests
     uint64 private sReqCount; // For fee tiers
-    uint8 private sAccountType; // 1,2,3,4,5 for 5 types of prepayment account
-    uint256 private sStartTime; // activated date
-    uint256 private sEndTime; // end date
-    uint256 private sPeriodReqCount; // number of request in start date and end date
+    AccountType private sAccountType; // 1,2,3,4,5 for 5 types of prepayment account
+    uint256 private sStartTime; // activated time
+    uint256 private sPeriod; // period time
+    uint256 private sPeriodReqCount; // number of request in start time and period
     uint256 private sServiceFeeRatio; // ratio of service fee
 
     address[] private sConsumers;
@@ -34,6 +34,8 @@ contract Account is IAccount, ITypeAndVersion {
     /* consumer */
     /* nonce */
     mapping(address => uint64) private sConsumerToNonce;
+    // period => request count
+    mapping(uint256 => uint256) sReqCountHistory;
 
     error TooManyConsumers();
     error MustBeRequestedOwner(address requestedOwner);
@@ -52,7 +54,7 @@ contract Account is IAccount, ITypeAndVersion {
         _;
     }
 
-    constructor(uint64 accId, address owner, uint8 accType) {
+    constructor(uint64 accId, address owner, AccountType accType) {
         sAccId = accId;
         sOwner = owner;
         sPaymentSolution = msg.sender;
@@ -74,7 +76,7 @@ contract Account is IAccount, ITypeAndVersion {
             uint64 reqCount,
             address owner,
             address[] memory consumers,
-            uint8 accType
+            AccountType accType
         )
     {
         return (sBalance, sReqCount, sOwner, sConsumers, sAccountType);
@@ -140,19 +142,19 @@ contract Account is IAccount, ITypeAndVersion {
      * @inheritdoc IAccount
      */
     function getAccountDetail() external view returns (uint256, uint256, uint256) {
-        return (sStartTime, sEndTime, sPeriodReqCount);
+        return (sStartTime, sPeriod, sPeriodReqCount);
     }
 
     /**
      * @inheritdoc IAccount
      */
     function updateAccountDetail(
-        uint256 startDate,
-        uint256 endDate,
+        uint256 startTime,
+        uint256 period,
         uint256 reqPeriodCount
     ) external onlyPaymentSolution {
-        sStartTime = startDate;
-        sEndTime = endDate;
+        sStartTime = startTime;
+        sPeriod = period;
         sPeriodReqCount = reqPeriodCount;
     }
 
@@ -174,11 +176,16 @@ contract Account is IAccount, ITypeAndVersion {
      * @inheritdoc IAccount
      */
     function isValidReq() external view returns (bool) {
-        uint256 currentTime = block.timestamp;
-        if (sAccountType == 1 || sAccountType == 2 || sAccountType == 3) {
-            if (currentTime >= sStartTime && currentTime <= sEndTime && sPeriodReqCount <= 0) {
+        uint256 current = block.timestamp;
+        if (
+            sAccountType == AccountType.FIAT_SUBSCRIPTION ||
+            sAccountType == AccountType.KLAY_SUBSCRIPTION
+        ) {
+            if (sReqCountHistory[(current - sStartTime) / sPeriod] <= sPeriodReqCount) {
                 return true;
-            } else return false;
+            } else {
+                return false;
+            }
         }
         return true;
     }
@@ -322,8 +329,8 @@ contract Account is IAccount, ITypeAndVersion {
     /**
      * @inheritdoc IAccount
      */
-    function decreasePeriodReqCount() external onlyPaymentSolution {
-        sPeriodReqCount -= 1;
+    function increaseReqCount() external onlyPaymentSolution {
+        sReqCountHistory[(block.timestamp - sStartTime) / sPeriod] += 1;
     }
 
     /**

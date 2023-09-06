@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.16;
+import "./IAccount.sol";
 
 interface IPrepayment {
     /// READ-ONLY FUNCTIONS /////////////////////////////////////////////////////
@@ -53,7 +54,7 @@ interface IPrepayment {
             uint64 reqCount,
             address owner,
             address[] memory consumers,
-            uint8 accType
+            IAccount.AccountType accType
         );
 
     /**
@@ -111,7 +112,7 @@ interface IPrepayment {
      * @dev respectively. To fund the account, use deposit function.
      * @return accId - A unique account id
      */
-    function createAccount(uint8 accType) external returns (uint64);
+    function createAccount(IAccount.AccountType accType) external returns (uint64);
 
     /**
      * @notice Create a temporary account to be used with a single
@@ -287,5 +288,5 @@ interface IPrepayment {
 
     function setFeeRatio(uint64 accId, uint256 disCount) external;
 
-    function decreasePeriodReq(uint64 accId) external;
+    function increaseReqCount(uint64 accId) external;
 }

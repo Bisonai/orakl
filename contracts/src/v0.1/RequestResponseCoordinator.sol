@@ -179,17 +179,21 @@ contract RequestResponseCoordinator is
         uint64 accId,
         uint8 numSubmission
     ) external nonReentrant returns (uint256) {
-        (uint256 balance, uint64 reqCount, , , uint8 accType) = sPrepayment.getAccount(accId);
+        (uint256 balance, uint64 reqCount, , , IAccount.AccountType accType) = sPrepayment
+            .getAccount(accId);
         bool isValidReqCount = sPrepayment.isValidReq(accId);
         if (!isValidReqCount) {
             revert InvalidAccReqCount();
         }
         uint256 minBalance = 0;
 
-        if (accType == 5) // normal account
+        if (accType == IAccount.AccountType.KLAY_REGULAR) // normal account
         {
             minBalance = estimateFee(reqCount, numSubmission, callbackGasLimit);
-        } else if (accType == 4 || accType == 3) //discount
+        } else if (
+            accType == IAccount.AccountType.KLAY_SUBSCRIPTION ||
+            accType == IAccount.AccountType.KLAY_DISCOUNT
+        ) //discount
         {
             uint256 feeRatio = sPrepayment.getFeeRatio(accId);
             uint256 baseFee = estimateFee(reqCount, numSubmission, callbackGasLimit);
@@ -630,17 +634,22 @@ contract RequestResponseCoordinator is
             return totalFee;
         } else {
             // [regular] account
-            (, uint64 reqCount, , , uint8 accType) = sPrepayment.getAccount(rc.accId);
-            if (accType == 1 || accType == 2) {
+            (, uint64 reqCount, , , IAccount.AccountType accType) = sPrepayment.getAccount(
+                rc.accId
+            );
+            if (accType == IAccount.AccountType.FIAT_SUBSCRIPTION) {
                 //decrease period request number
-                sPrepayment.decreasePeriodReq(rc.accId);
+                sPrepayment.increaseReqCount(rc.accId);
                 return 0;
             } else {
-                if (accType == 3) {
-                    sPrepayment.decreasePeriodReq(rc.accId);
+                if (accType == IAccount.AccountType.KLAY_SUBSCRIPTION) {
+                    sPrepayment.increaseReqCount(rc.accId);
                 }
                 uint256 serviceFee = calculateServiceFee(reqCount) * rc.numSubmission;
-                if (accType == 3 || accType == 4) {
+                if (
+                    accType == IAccount.AccountType.KLAY_SUBSCRIPTION ||
+                    accType == IAccount.AccountType.KLAY_DISCOUNT
+                ) {
                     uint256 feeRatio = sPrepayment.getFeeRatio(rc.accId);
                     serviceFee = (serviceFee * feeRatio) / 100;
                 }
