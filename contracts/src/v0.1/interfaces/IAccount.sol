@@ -144,13 +144,18 @@ interface IAccount {
      */
     function cancelAccount(address to) external;
 
-    function getAccountDetail() external view returns (uint256, uint256, uint256);
+    function getAccountDetail() external view returns (uint256, uint256, uint256, uint256);
+
+    function getSubscriptionPaid(uint256 index) external view returns (bool);
 
     function updateAccountDetail(
         uint256 startDate,
         uint256 endDate,
-        uint256 reqPeriodCount
+        uint256 reqPeriodCount,
+        uint256 subscriptionPrice
     ) external;
+
+    function updateSubscriptionPaid(uint256 index, bool value) external;
 
     function isValidReq() external view returns (bool);
 

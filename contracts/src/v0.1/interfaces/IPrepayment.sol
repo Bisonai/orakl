@@ -273,7 +273,11 @@ interface IPrepayment {
 
     function getProtocolFeeRatio() external view returns (uint8);
 
-    function getAccountDetail(uint64 accId) external view returns (uint256, uint256, uint256);
+    function getAccountDetail(
+        uint64 accId
+    ) external view returns (uint256, uint256, uint256, uint256);
+
+    function getSubscriptionPaid(uint64 accId, uint256 index) external view returns (bool);
 
     function isValidReq(uint64 accId) external view returns (bool);
 
@@ -283,8 +287,11 @@ interface IPrepayment {
         uint64 accId,
         uint256 startTime,
         uint256 endTime,
-        uint256 periodReqCount
+        uint256 periodReqCount,
+        uint256 subscriptionPrice
     ) external;
+
+    function updateSubscriptionPaid(uint64 accId, uint256 index, bool value) external;
 
     function setFeeRatio(uint64 accId, uint256 disCount) external;
 

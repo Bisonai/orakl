@@ -28,6 +28,7 @@ contract Account is IAccount, ITypeAndVersion {
     uint256 private sPeriod; // period time
     uint256 private sPeriodReqCount; // number of request in start time and period
     uint256 private sServiceFeeRatio; // ratio of service fee
+    uint256 sSubscriptionPrice; // for KLAY_SUBSCRIPTION
 
     address[] private sConsumers;
 
@@ -36,6 +37,7 @@ contract Account is IAccount, ITypeAndVersion {
     mapping(address => uint64) private sConsumerToNonce;
     // period => request count
     mapping(uint256 => uint256) sReqCountHistory;
+    mapping(uint256 => bool) sSubscriptionPaid; //  to track whether the payment has been already paid
 
     error TooManyConsumers();
     error MustBeRequestedOwner(address requestedOwner);
@@ -141,8 +143,15 @@ contract Account is IAccount, ITypeAndVersion {
     /**
      * @inheritdoc IAccount
      */
-    function getAccountDetail() external view returns (uint256, uint256, uint256) {
-        return (sStartTime, sPeriod, sPeriodReqCount);
+    function getAccountDetail() external view returns (uint256, uint256, uint256, uint256) {
+        return (sStartTime, sPeriod, sPeriodReqCount, sSubscriptionPrice);
+    }
+
+    /**
+     * @inheritdoc IAccount
+     */
+    function getSubscriptionPaid(uint256 index) external view returns (bool) {
+        return sSubscriptionPaid[index];
     }
 
     /**
@@ -151,11 +160,20 @@ contract Account is IAccount, ITypeAndVersion {
     function updateAccountDetail(
         uint256 startTime,
         uint256 period,
-        uint256 reqPeriodCount
+        uint256 reqPeriodCount,
+        uint256 subscriptionPrice
     ) external onlyPaymentSolution {
         sStartTime = startTime;
         sPeriod = period;
         sPeriodReqCount = reqPeriodCount;
+        sSubscriptionPrice = subscriptionPrice;
+    }
+
+    /**
+     * @inheritdoc IAccount
+     */
+    function updateSubscriptionPaid(uint256 index, bool value) external onlyPaymentSolution {
+        sSubscriptionPaid[index] = value;
     }
 
     /**

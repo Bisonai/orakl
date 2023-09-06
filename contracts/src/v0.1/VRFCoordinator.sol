@@ -166,20 +166,14 @@ contract VRFCoordinator is IVRFCoordinatorBase, CoordinatorBase, ITypeAndVersion
             revert InvalidAccReqCount();
         }
         uint8 numSubmission = 1;
-        uint256 minBalance = 0;
+        uint256 minBalance = estimateFeeByAcc(
+            reqCount,
+            numSubmission,
+            callbackGasLimit,
+            accId,
+            accType
+        );
 
-        if (accType == IAccount.AccountType.KLAY_REGULAR) // normal account
-        {
-            minBalance = estimateFee(reqCount, numSubmission, callbackGasLimit);
-        } else if (
-            accType == IAccount.AccountType.KLAY_DISCOUNT ||
-            accType == IAccount.AccountType.KLAY_SUBSCRIPTION
-        ) //discount
-        {
-            uint256 feeRatio = sPrepayment.getFeeRatio(accId);
-            uint256 baseFee = estimateFee(reqCount, numSubmission, callbackGasLimit);
-            minBalance = (baseFee * feeRatio) / 100;
-        }
         if (balance < minBalance) {
             revert InsufficientPayment(balance, minBalance);
         }
@@ -288,39 +282,19 @@ contract VRFCoordinator is IVRFCoordinatorBase, CoordinatorBase, ITypeAndVersion
             if (operatorFee > 0) {
                 sPrepayment.chargeOperatorFeeTemporary(operatorFee, msg.sender);
             }
-
             return totalFee;
         } else {
             // [regular] account
-            (, uint64 reqCount, , , IAccount.AccountType accType) = sPrepayment.getAccount(
-                rc.accId
-            );
-            if (accType == IAccount.AccountType.FIAT_SUBSCRIPTION) {
-                //decrease period request number
-                sPrepayment.increaseReqCount(rc.accId);
-                return 0;
-            } else {
-                if (accType == IAccount.AccountType.KLAY_SUBSCRIPTION) {
-                    sPrepayment.increaseReqCount(rc.accId);
-                }
-                uint256 serviceFee = calculateServiceFee(reqCount);
-
-                if (
-                    accType == IAccount.AccountType.KLAY_SUBSCRIPTION ||
-                    accType == IAccount.AccountType.KLAY_DISCOUNT
-                ) {
-                    uint256 feeRatio = sPrepayment.getFeeRatio(rc.accId);
-                    serviceFee = (serviceFee * feeRatio) / 100;
-                }
+            uint256 serviceFee = serviceFeeByAcc(rc.accId, rc.numWords);
+            if (serviceFee > 0) {
                 uint256 operatorFee = sPrepayment.chargeFee(rc.accId, serviceFee);
                 uint256 gasFee = calculateGasCost(startGas);
                 uint256 fee = operatorFee + gasFee;
                 if (fee > 0) {
                     sPrepayment.chargeOperatorFee(rc.accId, fee, msg.sender);
                 }
-
                 return serviceFee + gasFee;
-            }
+            } else return 0;
         }
     }
 

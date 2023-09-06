@@ -102,6 +102,7 @@ contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
     );
     event AccountFeeRatioSet(uint64 indexed accId, uint256 disCount);
     event AccountPeriodReqIncrease(uint64 indexed accId);
+    event AccountSubscriptionPaidUpdated(uint256 accId, uint256 index, bool value);
 
     /**
      * @dev The modifier is only for [regular] account. If called with
@@ -280,10 +281,21 @@ contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
     /**
      * @inheritdoc IPrepayment
      */
-    function getAccountDetail(uint64 accId) external view returns (uint256, uint256, uint256) {
+    function getAccountDetail(
+        uint64 accId
+    ) external view returns (uint256, uint256, uint256, uint256) {
         Account account = sAccIdToAccount[accId];
         if (address(account) == address(0)) revert InvalidAccount();
         return account.getAccountDetail();
+    }
+
+    /**
+     * @inheritdoc IPrepayment
+     */
+    function getSubscriptionPaid(uint64 accId, uint256 index) external view returns (bool) {
+        Account account = sAccIdToAccount[accId];
+        if (address(account) == address(0)) revert InvalidAccount();
+        return account.getSubscriptionPaid(index);
     }
 
     /**
@@ -324,13 +336,28 @@ contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
     function updateAccountDetail(
         uint64 accId,
         uint256 startTime,
-        uint256 endTime,
-        uint256 periodReqCount
+        uint256 period,
+        uint256 periodReqCount,
+        uint256 subscriptionPrice
     ) external onlyOwner {
         Account account = sAccIdToAccount[accId];
         if (address(account) == address(0)) revert InvalidAccount();
-        account.updateAccountDetail(startTime, endTime, periodReqCount);
-        emit AccountDetailUpdated(accId, startTime, endTime, periodReqCount);
+        account.updateAccountDetail(startTime, period, periodReqCount, subscriptionPrice);
+        emit AccountDetailUpdated(accId, startTime, period, periodReqCount);
+    }
+
+    /**
+     * @inheritdoc IPrepayment
+     */
+    function updateSubscriptionPaid(
+        uint64 accId,
+        uint256 index,
+        bool value
+    ) external onlyCoordinator {
+        Account account = sAccIdToAccount[accId];
+        if (address(account) == address(0)) revert InvalidAccount();
+        account.updateSubscriptionPaid(index, value);
+        emit AccountSubscriptionPaidUpdated(accId, index, value);
     }
 
     /**
