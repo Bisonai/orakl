@@ -1,0 +1,16 @@
+{
+  "deploy": {
+    "name": "DOGE-USDT",
+    "timeout": 0,
+    "validator": "0x0000000000000000000000000000000000000000",
+    "decimals": 8,
+    "description": "DOGE-USDT"
+  },
+  "changeOracles": {
+    "removed": [],
+    "added": ["0x7BDf5ba3Aa7Dc484a00Dc91E0b5c450D7532F861"],
+    "minSubmissionCount": 1,
+    "maxSubmissionCount": 1,
+    "restartDelay": 0
+  }
+}

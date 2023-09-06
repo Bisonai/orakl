@@ -1,0 +1,16 @@
+{
+  "deploy": {
+    "name": "SHIB- USDT",
+    "timeout": 0,
+    "validator": "0x0000000000000000000000000000000000000000",
+    "decimals": 8,
+    "description": "SHIB- USDT"
+  },
+  "changeOracles": {
+    "removed": [],
+    "added": ["0x4DD5Fa43054709155D5e68faDd3AEb3f853f34b0"],
+    "minSubmissionCount": 1,
+    "maxSubmissionCount": 1,
+    "restartDelay": 0
+  }
+}

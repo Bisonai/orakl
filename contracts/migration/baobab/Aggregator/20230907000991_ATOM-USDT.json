@@ -1,0 +1,16 @@
+{
+  "deploy": {
+    "name": "ATOM-USDT",
+    "timeout": 0,
+    "validator": "0x0000000000000000000000000000000000000000",
+    "decimals": 8,
+    "description": "ATOM-USDT"
+  },
+  "changeOracles": {
+    "removed": [],
+    "added": ["0x06f6Be9e791fF596e1dC34a20ec11a0467B83582"],
+    "minSubmissionCount": 1,
+    "maxSubmissionCount": 1,
+    "restartDelay": 0
+  }
+}
