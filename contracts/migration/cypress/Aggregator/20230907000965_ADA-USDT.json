@@ -1,0 +1,16 @@
+{
+  "deploy": {
+    "name": "ADA-USDT",
+    "timeout": 0,
+    "validator": "0x0000000000000000000000000000000000000000",
+    "decimals": 8,
+    "description": "ADA-USDT"
+  },
+  "changeOracles": {
+    "removed": [],
+    "added": ["0x7B65245c4E2F72A8A01b7f1128e45B389F38af52"],
+    "minSubmissionCount": 1,
+    "maxSubmissionCount": 1,
+    "restartDelay": 0
+  }
+}

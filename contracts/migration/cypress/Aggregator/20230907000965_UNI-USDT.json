@@ -1,0 +1,16 @@
+{
+  "deploy": {
+    "name": "UNI-USDT",
+    "timeout": 0,
+    "validator": "0x0000000000000000000000000000000000000000",
+    "decimals": 8,
+    "description": "UNI-USDT"
+  },
+  "changeOracles": {
+    "removed": [],
+    "added": ["0x356D5E3744446B7d6261F5eBF8AB04A7bAf82435"],
+    "minSubmissionCount": 1,
+    "maxSubmissionCount": 1,
+    "restartDelay": 0
+  }
+}
