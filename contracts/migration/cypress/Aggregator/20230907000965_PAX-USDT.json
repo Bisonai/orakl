@@ -1,0 +1,16 @@
+{
+  "deploy": {
+    "name": "PAX-USDT",
+    "timeout": 0,
+    "validator": "0x0000000000000000000000000000000000000000",
+    "decimals": 8,
+    "description": "PAX-USDT"
+  },
+  "changeOracles": {
+    "removed": [],
+    "added": ["0xda6b2Ad9B782a6A10F17a403d396980c880d103e"],
+    "minSubmissionCount": 1,
+    "maxSubmissionCount": 1,
+    "restartDelay": 0
+  }
+}

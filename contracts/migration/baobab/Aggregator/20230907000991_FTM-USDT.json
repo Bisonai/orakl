@@ -1,0 +1,16 @@
+{
+  "deploy": {
+    "name": "FTM-USDT",
+    "timeout": 0,
+    "validator": "0x0000000000000000000000000000000000000000",
+    "decimals": 8,
+    "description": "FTM-USDT"
+  },
+  "changeOracles": {
+    "removed": [],
+    "added": ["0xc059BE886047a0DD41dc1D9475768Bb9047Fd633"],
+    "minSubmissionCount": 1,
+    "maxSubmissionCount": 1,
+    "restartDelay": 0
+  }
+}

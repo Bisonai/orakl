@@ -1,0 +1,16 @@
+{
+  "deploy": {
+    "name": "LTC-USDT",
+    "timeout": 0,
+    "validator": "0x0000000000000000000000000000000000000000",
+    "decimals": 8,
+    "description": "LTC-USDT"
+  },
+  "changeOracles": {
+    "removed": [],
+    "added": ["0xb9C12ED356419fc655441CE60c0d3DFD0807c16a"],
+    "minSubmissionCount": 1,
+    "maxSubmissionCount": 1,
+    "restartDelay": 0
+  }
+}

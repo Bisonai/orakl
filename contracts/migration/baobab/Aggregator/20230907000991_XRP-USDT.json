@@ -1,0 +1,16 @@
+{
+  "deploy": {
+    "name": "XRP-USDT",
+    "timeout": 0,
+    "validator": "0x0000000000000000000000000000000000000000",
+    "decimals": 8,
+    "description": "XRP-USDT"
+  },
+  "changeOracles": {
+    "removed": [],
+    "added": ["0xb024cC4bd8fF6c7CaB9F16fB45ED330740B055e8"],
+    "minSubmissionCount": 1,
+    "maxSubmissionCount": 1,
+    "restartDelay": 0
+  }
+}

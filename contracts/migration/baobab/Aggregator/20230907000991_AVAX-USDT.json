@@ -1,0 +1,16 @@
+{
+  "deploy": {
+    "name": "AVAX-USDT",
+    "timeout": 0,
+    "validator": "0x0000000000000000000000000000000000000000",
+    "decimals": 8,
+    "description": "AVAX-USDT"
+  },
+  "changeOracles": {
+    "removed": [],
+    "added": ["0x18811A5C8600747fCE0E3d87C5D6299e126FF53c"],
+    "minSubmissionCount": 1,
+    "maxSubmissionCount": 1,
+    "restartDelay": 0
+  }
+}
