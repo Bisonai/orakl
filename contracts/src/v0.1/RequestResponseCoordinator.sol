@@ -193,19 +193,6 @@ contract RequestResponseCoordinator is
             accType
         );
 
-        // if (accType == IAccount.AccountType.KLAY_REGULAR) // normal account
-        // {
-        //     minBalance = estimateFee(reqCount, numSubmission, callbackGasLimit);
-        // } else if (
-        //     accType == IAccount.AccountType.KLAY_SUBSCRIPTION ||
-        //     accType == IAccount.AccountType.KLAY_DISCOUNT
-        // ) //discount
-        // {
-        //     uint256 feeRatio = sPrepayment.getFeeRatio(accId);
-        //     uint256 baseFee = estimateFee(reqCount, numSubmission, callbackGasLimit);
-        //     minBalance = (baseFee * feeRatio) / 100;
-        // }
-
         if (balance < minBalance) {
             revert InsufficientPayment(balance, minBalance);
         }

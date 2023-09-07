@@ -277,7 +277,7 @@ interface IPrepayment {
         uint64 accId
     ) external view returns (uint256, uint256, uint256, uint256);
 
-    function getSubscriptionPaid(uint64 accId, uint256 index) external view returns (bool);
+    function getSubscriptionPaid(uint64 accId) external view returns (bool);
 
     function isValidReq(uint64 accId) external view returns (bool);
 
@@ -291,7 +291,7 @@ interface IPrepayment {
         uint256 subscriptionPrice
     ) external;
 
-    function updateSubscriptionPaid(uint64 accId, uint256 index, bool value) external;
+    function setSubscriptionPaid(uint64 accId) external;
 
     function setFeeRatio(uint64 accId, uint256 disCount) external;
 

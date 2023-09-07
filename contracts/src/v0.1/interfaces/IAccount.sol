@@ -146,7 +146,7 @@ interface IAccount {
 
     function getAccountDetail() external view returns (uint256, uint256, uint256, uint256);
 
-    function getSubscriptionPaid(uint256 index) external view returns (bool);
+    function getSubscriptionPaid() external view returns (bool);
 
     function updateAccountDetail(
         uint256 startDate,
@@ -155,7 +155,7 @@ interface IAccount {
         uint256 subscriptionPrice
     ) external;
 
-    function updateSubscriptionPaid(uint256 index, bool value) external;
+    function setSubscriptionPaid() external;
 
     function isValidReq() external view returns (bool);
 

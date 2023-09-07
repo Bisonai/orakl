@@ -469,13 +469,14 @@ describe('Prepayment', function () {
 
     //update account detail
     const startTime = new Date().getTime()
-    const endTime = startTime + 1000 * 60 * 60 * 24 * 7
+    const period = 1000 * 60 * 60 * 24 * 7
     const requestNumber = 100
+    const subscriptionPrice = 0
 
     await expect(
       prepaymentContract
         .connect(consumerSigner)
-        .updateAccountDetail(accId, startTime, endTime, requestNumber)
+        .updateAccountDetail(accId, startTime, period, requestNumber, subscriptionPrice)
     ).to.be.revertedWith('Ownable: caller is not the owner')
   })
 

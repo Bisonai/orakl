@@ -23,11 +23,11 @@ contract Account is IAccount, ITypeAndVersion {
     address private sRequestedOwner; // For safely transferring acc ownership
     uint256 private sBalance; // Common $KLAY balance used for all consumer requests
     uint64 private sReqCount; // For fee tiers
-    AccountType private sAccountType; // 1,2,3,4,5 for 5 types of prepayment account
-    uint256 private sStartTime; // activated time
+    AccountType private sAccountType;
+    uint256 private sStartTime; // activated time use for
     uint256 private sPeriod; // period time
     uint256 private sPeriodReqCount; // number of request in start time and period
-    uint256 private sServiceFeeRatio; // ratio of service fee
+    uint256 private sServiceFeeRatio; // ratio of service fee: basis point 10,000
     uint256 sSubscriptionPrice; // for KLAY_SUBSCRIPTION
 
     address[] private sConsumers;
@@ -150,8 +150,8 @@ contract Account is IAccount, ITypeAndVersion {
     /**
      * @inheritdoc IAccount
      */
-    function getSubscriptionPaid(uint256 index) external view returns (bool) {
-        return sSubscriptionPaid[index];
+    function getSubscriptionPaid() external view returns (bool) {
+        return sSubscriptionPaid[(block.timestamp - sStartTime) / sPeriod];
     }
 
     /**
@@ -172,8 +172,8 @@ contract Account is IAccount, ITypeAndVersion {
     /**
      * @inheritdoc IAccount
      */
-    function updateSubscriptionPaid(uint256 index, bool value) external onlyPaymentSolution {
-        sSubscriptionPaid[index] = value;
+    function setSubscriptionPaid() external onlyPaymentSolution {
+        sSubscriptionPaid[(block.timestamp - sStartTime) / sPeriod] = true;
     }
 
     /**

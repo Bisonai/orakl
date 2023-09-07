@@ -154,17 +154,15 @@ abstract contract CoordinatorBase is Ownable, ICoordinatorBase {
         uint64 accId,
         IAccount.AccountType accType
     ) public view returns (uint256) {
-        (uint256 sStartTime, uint256 sPeriod, , uint256 sSubscriptionPrice) = sPrepayment
-            .getAccountDetail(accId);
+        (, , , uint256 subscriptionPrice) = sPrepayment.getAccountDetail(accId);
         uint256 minBalance;
         if (accType == IAccount.AccountType.KLAY_DISCOUNT) {
             uint256 feeRatio = sPrepayment.getFeeRatio(accId);
             uint256 baseFee = estimateFee(reqCount, numSubmission, callbackGasLimit);
             minBalance = (baseFee * feeRatio) / 10_000;
         } else if (accType == IAccount.AccountType.KLAY_SUBSCRIPTION) {
-            uint256 index = (block.timestamp - sStartTime) / sPeriod;
-            if (!sPrepayment.getSubscriptionPaid(accId, index)) {
-                minBalance = sSubscriptionPrice;
+            if (!sPrepayment.getSubscriptionPaid(accId)) {
+                minBalance = subscriptionPrice;
             }
         } else if (accType == IAccount.AccountType.KLAY_REGULAR) {
             minBalance = estimateFee(reqCount, numSubmission, callbackGasLimit);
@@ -255,8 +253,7 @@ abstract contract CoordinatorBase is Ownable, ICoordinatorBase {
 
     function serviceFeeByAcc(uint64 accId, uint32 numSubmission) internal returns (uint256) {
         (, uint64 reqCount, , , IAccount.AccountType accType) = sPrepayment.getAccount(accId);
-        (uint256 sStartTime, uint256 sPeriod, , uint256 sSubscriptionPrice) = sPrepayment
-            .getAccountDetail(accId);
+        (, , , uint256 subscriptionPrice) = sPrepayment.getAccountDetail(accId);
 
         if (accType == IAccount.AccountType.FIAT_SUBSCRIPTION) {
             sPrepayment.increaseReqCount(accId);
@@ -265,19 +262,16 @@ abstract contract CoordinatorBase is Ownable, ICoordinatorBase {
             if (accType == IAccount.AccountType.KLAY_SUBSCRIPTION) {
                 sPrepayment.increaseReqCount(accId);
             }
-            uint256 serviceFee;
+            uint256 serviceFee = calculateServiceFee(reqCount) * numSubmission;
             if (accType == IAccount.AccountType.KLAY_SUBSCRIPTION) {
-                uint256 index = (block.timestamp - sStartTime) / sPeriod;
-                if (!sPrepayment.getSubscriptionPaid(accId, index)) {
-                    serviceFee = sSubscriptionPrice;
-                    sPrepayment.updateSubscriptionPaid(accId, index, true);
+                if (!sPrepayment.getSubscriptionPaid(accId)) {
+                    serviceFee = subscriptionPrice;
+                    sPrepayment.setSubscriptionPaid(accId);
                 } else {
                     return 0;
                 }
             } else if (accType == IAccount.AccountType.KLAY_DISCOUNT) {
                 serviceFee = (serviceFee * sPrepayment.getFeeRatio(accId)) / 10_000;
-            } else if (accType == IAccount.AccountType.KLAY_REGULAR) {
-                serviceFee = calculateServiceFee(reqCount) * numSubmission;
             }
             return serviceFee;
         }

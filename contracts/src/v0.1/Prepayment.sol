@@ -53,7 +53,7 @@ contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
     struct TemporaryAccount {
         uint256 balance;
         address owner;
-        uint8 accType;
+        IAccount.AccountType accType;
     }
 
     /* accId */
@@ -97,12 +97,12 @@ contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
     event AccountDetailUpdated(
         uint64 indexed accId,
         uint256 startDate,
-        uint256 endDate,
+        uint256 period,
         uint256 reqPeriodCount
     );
     event AccountFeeRatioSet(uint64 indexed accId, uint256 disCount);
     event AccountPeriodReqIncrease(uint64 indexed accId);
-    event AccountSubscriptionPaidUpdated(uint256 accId, uint256 index, bool value);
+    event AccountSubscriptionPaidSet(uint256 accId);
 
     /**
      * @dev The modifier is only for [regular] account. If called with
@@ -292,10 +292,10 @@ contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
     /**
      * @inheritdoc IPrepayment
      */
-    function getSubscriptionPaid(uint64 accId, uint256 index) external view returns (bool) {
+    function getSubscriptionPaid(uint64 accId) external view returns (bool) {
         Account account = sAccIdToAccount[accId];
         if (address(account) == address(0)) revert InvalidAccount();
-        return account.getSubscriptionPaid(index);
+        return account.getSubscriptionPaid();
     }
 
     /**
@@ -349,15 +349,11 @@ contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
     /**
      * @inheritdoc IPrepayment
      */
-    function updateSubscriptionPaid(
-        uint64 accId,
-        uint256 index,
-        bool value
-    ) external onlyCoordinator {
+    function setSubscriptionPaid(uint64 accId) external onlyCoordinator {
         Account account = sAccIdToAccount[accId];
         if (address(account) == address(0)) revert InvalidAccount();
-        account.updateSubscriptionPaid(index, value);
-        emit AccountSubscriptionPaidUpdated(accId, index, value);
+        account.setSubscriptionPaid();
+        emit AccountSubscriptionPaidSet(accId);
     }
 
     /**
@@ -386,8 +382,11 @@ contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
     function createTemporaryAccount(address owner) external returns (uint64) {
         uint64 currentAccId = sCurrentAccId + 1;
         sCurrentAccId = currentAccId;
-
-        sAccIdToTmpAcc[currentAccId] = TemporaryAccount({balance: 0, owner: owner, accType: 0});
+        sAccIdToTmpAcc[currentAccId] = TemporaryAccount({
+            balance: 0,
+            owner: owner,
+            accType: IAccount.AccountType.TEMPORARY
+        });
         sIsTemporaryAccount[currentAccId] = true;
 
         emit TemporaryAccountCreated(currentAccId, owner);
