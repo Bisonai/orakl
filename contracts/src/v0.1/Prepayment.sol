@@ -101,7 +101,7 @@ contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
         uint256 reqPeriodCount
     );
     event AccountFeeRatioSet(uint64 indexed accId, uint256 disCount);
-    event AccountPeriodReqIncrease(uint64 indexed accId);
+    event AccountPeriodReqIncreased(uint64 indexed accId);
     event AccountSubscriptionPaidSet(uint256 accId);
 
     /**
@@ -340,7 +340,7 @@ contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
      */
     function createFiatSubscriptionAccount(
         uint256 startDate,
-        uint256 endDate,
+        uint256 period,
         uint256 reqPeriodCount
     ) external onlyOwner returns (uint64) {
         uint64 currentAccId = sCurrentAccId + 1;
@@ -350,7 +350,7 @@ contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
         sAccIdToAccount[currentAccId] = acc;
 
         //update account detail
-        acc.updateAccountDetail(startDate, endDate, reqPeriodCount, 0);
+        acc.updateAccountDetail(startDate, period, reqPeriodCount, 0);
 
         emit AccountCreated(
             currentAccId,
@@ -366,7 +366,7 @@ contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
      */
     function createKlaySubscriptionAccount(
         uint256 startDate,
-        uint256 endDate,
+        uint256 period,
         uint256 reqPeriodCount,
         uint256 subscriptionPrice
     ) external onlyOwner returns (uint64) {
@@ -377,7 +377,7 @@ contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
         sAccIdToAccount[currentAccId] = acc;
 
         //update account detail
-        acc.updateAccountDetail(startDate, endDate, reqPeriodCount, subscriptionPrice);
+        acc.updateAccountDetail(startDate, period, reqPeriodCount, subscriptionPrice);
 
         emit AccountCreated(
             currentAccId,
@@ -395,7 +395,7 @@ contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
         uint64 currentAccId = sCurrentAccId + 1;
         sCurrentAccId = currentAccId;
 
-        Account acc = new Account(currentAccId, msg.sender, IAccount.AccountType.KLAY_SUBSCRIPTION);
+        Account acc = new Account(currentAccId, msg.sender, IAccount.AccountType.KLAY_DISCOUNT);
         sAccIdToAccount[currentAccId] = acc;
 
         //update account detail
@@ -405,7 +405,7 @@ contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
             currentAccId,
             address(acc),
             msg.sender,
-            IAccount.AccountType.KLAY_SUBSCRIPTION
+            IAccount.AccountType.KLAY_DISCOUNT
         );
         return currentAccId;
     }
@@ -453,7 +453,7 @@ contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
         Account account = sAccIdToAccount[accId];
         if (address(account) == address(0)) revert InvalidAccount();
         account.increaseReqCount();
-        emit AccountPeriodReqIncrease(accId);
+        emit AccountPeriodReqIncreased(accId);
     }
 
     /**

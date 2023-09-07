@@ -116,13 +116,13 @@ interface IPrepayment {
 
     function createFiatSubscriptionAccount(
         uint256 startDate,
-        uint256 endDate,
+        uint256 period,
         uint256 reqPeriodCount
     ) external returns (uint64);
 
     function createKlaySubscriptionAccount(
         uint256 startDate,
-        uint256 endDate,
+        uint256 period,
         uint256 reqPeriodCount,
         uint256 subscriptionPrice
     ) external returns (uint64);

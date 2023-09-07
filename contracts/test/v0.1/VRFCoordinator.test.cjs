@@ -20,8 +20,12 @@ const {
   deposit,
   addConsumer,
   withdraw,
-  cancelAccount
+  cancelAccount,
+  createFiatSubscriptionAccount,
+  createKlaySubscriptionAccount,
+  createKlayDiscountAccount
 } = require('./Prepayment.utils.cjs')
+const { AccountType } = require('./Account.utils.cjs')
 
 const DUMMY_KEY_HASH = '0x00000773ef09e40658e643fe79f8d1a27c0aa6eb7251749b268f829ea49f2024'
 const SINGLE_WORD = 1
@@ -129,7 +133,8 @@ function validateRandomWordsFulfilledEvent(
   prepayment,
   requestId,
   accId,
-  isDirectPayment
+  isDirectPayment,
+  accType = AccountType.KLAY_REGULAR
 ) {
   let burnedFeeEventIdx
   let randomWordsFulfilledEventIdx
@@ -137,6 +142,9 @@ function validateRandomWordsFulfilledEvent(
     expect(tx.events.length).to.be.equal(3)
     burnedFeeEventIdx = 1
     randomWordsFulfilledEventIdx = 2
+  } else if (accType == AccountType.FIAT_SUBSCRIPTION) {
+    expect(tx.events.length).to.be.equal(2)
+    randomWordsFulfilledEventIdx = 1
   } else {
     expect(tx.events.length).to.be.equal(4)
     burnedFeeEventIdx = 1
@@ -144,7 +152,70 @@ function validateRandomWordsFulfilledEvent(
   }
 
   // Event: AccountBalanceDecreased
-  const accountBalanceDecreasedEvent = prepayment.interface.parseLog(tx.events[0])
+
+  if (accType == AccountType.FIAT_SUBSCRIPTION) {
+    const accountBalanceDecreasedEvent = prepayment.interface.parseLog(tx.events[0])
+    expect(accountBalanceDecreasedEvent.name).to.be.equal('AccountPeriodReqIncreased')
+  } else {
+    const accountBalanceDecreasedEvent = prepayment.interface.parseLog(tx.events[0])
+    expect(accountBalanceDecreasedEvent.name).to.be.equal('AccountBalanceDecreased')
+    const {
+      accId: dAccId,
+      oldBalance: dOldBalance,
+      newBalance: dNewBalance
+    } = accountBalanceDecreasedEvent.args
+    expect(dAccId).to.be.equal(accId)
+    expect(dOldBalance).to.be.above(dNewBalance)
+
+    if (isDirectPayment) {
+      expect(dNewBalance).to.be.equal(0)
+    } else {
+      expect(dNewBalance).to.be.above(0)
+    }
+
+    // Event: FeeBurned
+    const burnedFeeEvent = prepayment.interface.parseLog(tx.events[burnedFeeEventIdx])
+    expect(burnedFeeEvent.name).to.be.equal('BurnedFee')
+    const { accId: bAccId, amount: bAmount } = burnedFeeEvent.args
+    expect(bAccId).to.be.equal(accId)
+    expect(bAmount).to.be.above(0)
+  }
+
+  // Event: RandomWordsFulfilled
+  const randomWordsFulfilledEvent = coordinator.interface.parseLog(
+    tx.events[randomWordsFulfilledEventIdx]
+  )
+  expect(randomWordsFulfilledEvent.name).to.be.equal('RandomWordsFulfilled')
+  const {
+    requestId: fRequestId,
+    // outputSeed: fOutputSeed,
+    payment: fPayment,
+    success: fSuccess
+  } = randomWordsFulfilledEvent.args
+
+  expect(fRequestId).to.be.equal(requestId)
+  expect(fSuccess).to.be.equal(true)
+  if (accType == AccountType.FIAT_SUBSCRIPTION) expect(fPayment).to.be.equal(0)
+  else expect(fPayment).to.be.above(0)
+}
+
+function validateRandomWordsFulfilledKlaySubEvent(tx, coordinator, prepayment, requestId, accId) {
+  let burnedFeeEventIdx
+  let randomWordsFulfilledEventIdx
+  expect(tx.events.length).to.be.equal(6)
+  burnedFeeEventIdx = 3
+  randomWordsFulfilledEventIdx = 5
+
+  // Event: AccountBalanceDecreased
+
+  const AccountPeriodReqIncreasedEvent = prepayment.interface.parseLog(tx.events[0])
+  expect(AccountPeriodReqIncreasedEvent.name).to.be.equal('AccountPeriodReqIncreased')
+
+  const AccountSubscriptionPaidSetEvent = prepayment.interface.parseLog(tx.events[1])
+  expect(AccountSubscriptionPaidSetEvent.name).to.be.equal('AccountSubscriptionPaidSet')
+
+  const accountBalanceDecreasedEvent = prepayment.interface.parseLog(tx.events[2])
+
   expect(accountBalanceDecreasedEvent.name).to.be.equal('AccountBalanceDecreased')
   const {
     accId: dAccId,
@@ -154,11 +225,7 @@ function validateRandomWordsFulfilledEvent(
   expect(dAccId).to.be.equal(accId)
   expect(dOldBalance).to.be.above(dNewBalance)
 
-  if (isDirectPayment) {
-    expect(dNewBalance).to.be.equal(0)
-  } else {
-    expect(dNewBalance).to.be.above(0)
-  }
+  expect(dNewBalance).to.be.above(0)
 
   // Event: FeeBurned
   const burnedFeeEvent = prepayment.interface.parseLog(tx.events[burnedFeeEventIdx])
@@ -512,6 +579,267 @@ describe('VRF contract', function () {
 
     await testCommitmentAfterFulfillment(coordinator.contract, consumer.signer, requestId)
 
+    validateRandomWordsFulfilledEvent(
+      txFulfillRandomWords,
+      coordinator.contract,
+      prepayment.contract,
+      requestId,
+      accId,
+      isDirectPayment
+    )
+  })
+
+  it('requestRandomWords with [fiat subscription] account', async function () {
+    // VRF is a paid service that requires a payment through a
+    // Prepayment smart contract. Every [regular] account has to have at
+    // least `sMinBalance` in their account in order to succeed with
+    // VRF request.
+    const {
+      consumer,
+      account2: oracle,
+      account3: unregisteredOracle,
+      coordinator,
+      prepayment
+    } = await loadFixture(deploy)
+
+    // Prepare cordinator
+    await setupOracle(coordinator.contract, oracle.address)
+    await addCoordinator(prepayment.contract, prepayment.signer, coordinator.contract.address)
+
+    // Prepare account
+    const startTime = Math.round(new Date().getTime() / 1000)
+    const period = 1000 * 60 * 60 * 24 * 7
+    const requestNumber = 100
+    const { accId, accType } = await createFiatSubscriptionAccount(
+      prepayment.contract,
+      startTime,
+      period,
+      requestNumber,
+      prepayment.signer,
+      consumer.signer
+    )
+
+    await addConsumer(prepayment.contract, consumer.signer, accId, consumer.contract.address)
+    const { maxGasLimit: callbackGasLimit, keyHash } = vrfConfig()
+
+    // After depositing minimum account to account, we are able to
+    // request random words.
+
+    const txRequestRandomWords = await (
+      await consumer.contract.requestRandomWords(keyHash, accId, callbackGasLimit, SINGLE_WORD)
+    ).wait()
+    const isDirectPayment = false
+    const numWords = SINGLE_WORD
+    const sender = consumer.contract.address
+    const { requestId, preSeed, blockHash, blockNumber } = validateRandomWordsRequestedEvent(
+      txRequestRandomWords,
+      coordinator.contract,
+      keyHash,
+      accId,
+      callbackGasLimit,
+      numWords,
+      sender,
+      isDirectPayment
+    )
+
+    await testCommitmentBeforeFulfillment(coordinator.contract, consumer.signer, requestId)
+    const { pi, rc } = await generateVrf(
+      preSeed,
+      blockHash,
+      blockNumber,
+      accId,
+      callbackGasLimit,
+      sender,
+      numWords
+    )
+
+    const txFulfillRandomWords = await fulfillRandomWords(
+      coordinator.contract,
+      oracle,
+      unregisteredOracle,
+      pi,
+      rc,
+      isDirectPayment
+    )
+
+    await testCommitmentAfterFulfillment(coordinator.contract, consumer.signer, requestId)
+
+    validateRandomWordsFulfilledEvent(
+      txFulfillRandomWords,
+      coordinator.contract,
+      prepayment.contract,
+      requestId,
+      accId,
+      isDirectPayment,
+      accType
+    )
+  })
+
+  it('requestRandomWords with [Klay subscription] account', async function () {
+    // VRF is a paid service that requires a payment through a
+    // Prepayment smart contract. Every [regular] account has to have at
+    // least `sMinBalance` in their account in order to succeed with
+    // VRF request.
+    const {
+      consumer,
+      account2: oracle,
+      account3: unregisteredOracle,
+      coordinator,
+      prepayment
+    } = await loadFixture(deploy)
+
+    // Prepare cordinator
+    await setupOracle(coordinator.contract, oracle.address)
+    await addCoordinator(prepayment.contract, prepayment.signer, coordinator.contract.address)
+
+    // Prepare account
+    const startTime = Math.round(new Date().getTime() / 1000)
+    const period = 1000 * 60 * 60 * 24 * 7
+    const requestNumber = 100
+    const subscriptionPrice = parseKlay(10)
+    const { accId, accType } = await createKlaySubscriptionAccount(
+      prepayment.contract,
+      startTime,
+      period,
+      requestNumber,
+      subscriptionPrice,
+      prepayment.signer,
+      consumer.signer
+    )
+
+    await addConsumer(prepayment.contract, consumer.signer, accId, consumer.contract.address)
+    const { maxGasLimit: callbackGasLimit, keyHash } = vrfConfig()
+    await expect(
+      consumer.contract.requestRandomWords(keyHash, accId, callbackGasLimit, SINGLE_WORD)
+    ).to.be.revertedWithCustomError(coordinator.contract, 'InsufficientPayment')
+
+    // Deposit 11 $KLAY to account with zero balance
+    await deposit(prepayment.contract, consumer.signer, accId, parseKlay(11))
+    // After depositing minimum account to account, we are able to
+    // request random words.
+
+    const txRequestRandomWords = await (
+      await consumer.contract.requestRandomWords(keyHash, accId, callbackGasLimit, SINGLE_WORD)
+    ).wait()
+    const isDirectPayment = false
+    const numWords = SINGLE_WORD
+    const sender = consumer.contract.address
+    const { requestId, preSeed, blockHash, blockNumber } = validateRandomWordsRequestedEvent(
+      txRequestRandomWords,
+      coordinator.contract,
+      keyHash,
+      accId,
+      callbackGasLimit,
+      numWords,
+      sender,
+      isDirectPayment
+    )
+
+    await testCommitmentBeforeFulfillment(coordinator.contract, consumer.signer, requestId)
+    const { pi, rc } = await generateVrf(
+      preSeed,
+      blockHash,
+      blockNumber,
+      accId,
+      callbackGasLimit,
+      sender,
+      numWords
+    )
+
+    const txFulfillRandomWords = await fulfillRandomWords(
+      coordinator.contract,
+      oracle,
+      unregisteredOracle,
+      pi,
+      rc,
+      isDirectPayment
+    )
+
+    await testCommitmentAfterFulfillment(coordinator.contract, consumer.signer, requestId)
+    validateRandomWordsFulfilledKlaySubEvent(
+      txFulfillRandomWords,
+      coordinator.contract,
+      prepayment.contract,
+      requestId,
+      accId
+    )
+  })
+
+  it('requestRandomWords with [Klay discount] account', async function () {
+    // VRF is a paid service that requires a payment through a
+    // Prepayment smart contract. Every [regular] account has to have at
+    // least `sMinBalance` in their account in order to succeed with
+    // VRF request.
+    const {
+      consumer,
+      account2: oracle,
+      account3: unregisteredOracle,
+      coordinator,
+      prepayment
+    } = await loadFixture(deploy)
+
+    // Prepare cordinator
+    await setupOracle(coordinator.contract, oracle.address)
+    await addCoordinator(prepayment.contract, prepayment.signer, coordinator.contract.address)
+
+    // Prepare account
+    const feeRatio = 8000 //80%
+    const { accId } = await createKlayDiscountAccount(
+      prepayment.contract,
+      feeRatio,
+      prepayment.signer,
+      consumer.signer
+    )
+
+    await addConsumer(prepayment.contract, consumer.signer, accId, consumer.contract.address)
+    const { maxGasLimit: callbackGasLimit, keyHash } = vrfConfig()
+    await expect(
+      consumer.contract.requestRandomWords(keyHash, accId, callbackGasLimit, SINGLE_WORD)
+    ).to.be.revertedWithCustomError(coordinator.contract, 'InsufficientPayment')
+
+    // Deposit 11 $KLAY to account with zero balance
+    await deposit(prepayment.contract, consumer.signer, accId, parseKlay(11))
+    // After depositing minimum account to account, we are able to
+    // request random words.
+
+    const txRequestRandomWords = await (
+      await consumer.contract.requestRandomWords(keyHash, accId, callbackGasLimit, SINGLE_WORD)
+    ).wait()
+    const isDirectPayment = false
+    const numWords = SINGLE_WORD
+    const sender = consumer.contract.address
+    const { requestId, preSeed, blockHash, blockNumber } = validateRandomWordsRequestedEvent(
+      txRequestRandomWords,
+      coordinator.contract,
+      keyHash,
+      accId,
+      callbackGasLimit,
+      numWords,
+      sender,
+      isDirectPayment
+    )
+
+    await testCommitmentBeforeFulfillment(coordinator.contract, consumer.signer, requestId)
+    const { pi, rc } = await generateVrf(
+      preSeed,
+      blockHash,
+      blockNumber,
+      accId,
+      callbackGasLimit,
+      sender,
+      numWords
+    )
+
+    const txFulfillRandomWords = await fulfillRandomWords(
+      coordinator.contract,
+      oracle,
+      unregisteredOracle,
+      pi,
+      rc,
+      isDirectPayment
+    )
+
+    await testCommitmentAfterFulfillment(coordinator.contract, consumer.signer, requestId)
     validateRandomWordsFulfilledEvent(
       txFulfillRandomWords,
       coordinator.contract,

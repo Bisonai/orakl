@@ -15,8 +15,12 @@ const {
   createAccount,
   addConsumer,
   deposit,
-  addCoordinator
+  addCoordinator,
+  createFiatSubscriptionAccount,
+  createKlaySubscriptionAccount,
+  createKlayDiscountAccount
 } = require('./Prepayment.utils.cjs')
+const { AccountType } = require('./Account.utils.cjs')
 
 async function setupOracle(coordinator, oracles) {
   const { maxGasLimit, gasAfterPaymentCalculation, feeConfig } = requestResponseConfig()
@@ -133,6 +137,30 @@ async function verifyFulfillment(
   expect(await responseFn()).to.be.equal(responseValue)
 }
 
+async function verifyFulfillmentSubscriptionAccount(
+  prepayment,
+  coordinator,
+  txReceipt,
+  accId,
+  requestId,
+  responseValue,
+  responseFn,
+  fulfillEventName
+) {
+  // AccountPeriodReqIncreased ////////////////////////////////////////////////////
+  const prepaymentEvent = prepayment.contract.interface.parseLog(txReceipt.events[0])
+  expect(prepaymentEvent.name).to.be.equal('AccountPeriodReqIncreased')
+  expect(prepaymentEvent.args.accId).to.be.equal(accId)
+
+  // DataRequestFulfilled* //////////////////////////////////////////////////////
+  const { requestId: eventRequestId } = parseDataRequestFulfilledTx(
+    coordinator.contract,
+    txReceipt,
+    fulfillEventName
+  )
+  expect(await responseFn()).to.be.equal(responseValue)
+}
+
 async function requestAndFulfill(
   oracles,
   requestFn,
@@ -142,7 +170,8 @@ async function requestAndFulfill(
   fulfillEventName,
   isDirectPayment,
   numSubmission,
-  dataType
+  dataType,
+  accType = AccountType.KLAY_REGULAR
 ) {
   const { prepayment, coordinator, consumer } = await loadFixture(deploy)
   const { maxGasLimit: callbackGasLimit } = requestResponseConfig()
@@ -159,7 +188,46 @@ async function requestAndFulfill(
       })
     ).wait()
   } else {
-    const { accId } = await createAccount(prepayment.contract, consumer.signer)
+    let accId
+    const startTime = Math.round(new Date().getTime() / 1000)
+    const period = 1000 * 60 * 60 * 24 * 7
+    const requestNumber = 100
+    const subscriptionPrice = parseKlay(0.5)
+    if (accType == AccountType.FIAT_SUBSCRIPTION) {
+      const { accId: accountId } = await createFiatSubscriptionAccount(
+        prepayment.contract,
+        startTime,
+        period,
+        requestNumber,
+        prepayment.signer,
+        consumer.signer
+      )
+      accId = accountId
+    } else if (accType == AccountType.KLAY_SUBSCRIPTION) {
+      const { accId: accountId } = await createKlaySubscriptionAccount(
+        prepayment.contract,
+        startTime,
+        period,
+        requestNumber,
+        subscriptionPrice,
+        prepayment.signer,
+        consumer.signer
+      )
+      accId = accountId
+    } else if (accType == AccountType.KLAY_DISCOUNT) {
+      const feeRatio = 8000 //80%
+      const { accId: accountId } = await createKlayDiscountAccount(
+        prepayment.contract,
+        feeRatio,
+        prepayment.signer,
+        consumer.signer
+      )
+      accId = accountId
+    } else {
+      const { accId: accountId } = await createAccount(prepayment.contract, consumer.signer)
+      accId = accountId
+    }
+
     await addConsumer(prepayment.contract, consumer.signer, accId, consumer.contract.address)
     await deposit(prepayment.contract, consumer.signer, accId, parseKlay(1))
     requestReceipt = await (
@@ -212,16 +280,29 @@ async function requestAndFulfill(
   const responseValue = aggregateSubmissions(fulfillValue, dataType)
 
   // Verify Fulfillment
-  await verifyFulfillment(
-    prepayment,
-    coordinator,
-    fulfillReceipt,
-    _accId,
-    _requestId,
-    responseValue,
-    getFulfillValueFn,
-    fulfillEventName
-  )
+  if (accType == AccountType.FIAT_SUBSCRIPTION || accType == AccountType.KLAY_SUBSCRIPTION) {
+    await verifyFulfillmentSubscriptionAccount(
+      prepayment,
+      coordinator,
+      fulfillReceipt,
+      _accId,
+      _requestId,
+      responseValue,
+      getFulfillValueFn,
+      fulfillEventName
+    )
+  } else {
+    await verifyFulfillment(
+      prepayment,
+      coordinator,
+      fulfillReceipt,
+      _accId,
+      _requestId,
+      responseValue,
+      getFulfillValueFn,
+      fulfillEventName
+    )
+  }
 }
 
 describe('Request-Response user contract', function () {
@@ -251,6 +332,45 @@ describe('Request-Response user contract', function () {
       false,
       numSubmission,
       'Uint128'
+    )
+    //fiat subscription account
+    await requestAndFulfill(
+      [rrOracle0, rrOracle1, rrOracle2, rrOracle3],
+      consumer.contract.requestDataUint128,
+      'fulfillDataRequestUint128',
+      [1, 2],
+      consumer.contract.sResponseUint128,
+      'DataRequestFulfilledUint128',
+      false,
+      numSubmission,
+      'Uint128',
+      AccountType.FIAT_SUBSCRIPTION
+    )
+    //klay subscription account
+    await requestAndFulfill(
+      [rrOracle0, rrOracle1, rrOracle2, rrOracle3],
+      consumer.contract.requestDataUint128,
+      'fulfillDataRequestUint128',
+      [1, 2],
+      consumer.contract.sResponseUint128,
+      'DataRequestFulfilledUint128',
+      false,
+      numSubmission,
+      'Uint128',
+      AccountType.KLAY_SUBSCRIPTION
+    )
+    //klay discount account
+    await requestAndFulfill(
+      [rrOracle0, rrOracle1, rrOracle2, rrOracle3],
+      consumer.contract.requestDataUint128,
+      'fulfillDataRequestUint128',
+      [1, 2],
+      consumer.contract.sResponseUint128,
+      'DataRequestFulfilledUint128',
+      false,
+      numSubmission,
+      'Uint128',
+      AccountType.KLAY_DISCOUNT
     )
   })
 
@@ -287,6 +407,45 @@ describe('Request-Response user contract', function () {
       false,
       numSubmission,
       'Int256'
+    )
+    //fiat subscription account
+    await requestAndFulfill(
+      [rrOracle0, rrOracle1, rrOracle2, rrOracle3],
+      consumer.contract.requestDataUint128,
+      'fulfillDataRequestUint128',
+      [1, 2],
+      consumer.contract.sResponseUint128,
+      'DataRequestFulfilledUint128',
+      false,
+      numSubmission,
+      'Uint128',
+      AccountType.FIAT_SUBSCRIPTION
+    )
+    //klay subscription account
+    await requestAndFulfill(
+      [rrOracle0, rrOracle1, rrOracle2, rrOracle3],
+      consumer.contract.requestDataUint128,
+      'fulfillDataRequestUint128',
+      [1, 2],
+      consumer.contract.sResponseUint128,
+      'DataRequestFulfilledUint128',
+      false,
+      numSubmission,
+      'Uint128',
+      AccountType.KLAY_SUBSCRIPTION
+    )
+    //klay discount account
+    await requestAndFulfill(
+      [rrOracle0, rrOracle1, rrOracle2, rrOracle3],
+      consumer.contract.requestDataUint128,
+      'fulfillDataRequestUint128',
+      [1, 2],
+      consumer.contract.sResponseUint128,
+      'DataRequestFulfilledUint128',
+      false,
+      numSubmission,
+      'Uint128',
+      AccountType.KLAY_DISCOUNT
     )
   })
 
@@ -325,6 +484,46 @@ describe('Request-Response user contract', function () {
       numSubmission,
       'Bool'
     )
+
+    //fiat subscription account
+    await requestAndFulfill(
+      [rrOracle0, rrOracle1, rrOracle2, rrOracle3, rrOracle4, rrOracle5],
+      consumer.contract.requestDataBool,
+      'fulfillDataRequestBool',
+      [true, false, true],
+      consumer.contract.sResponseBool,
+      'DataRequestFulfilledBool',
+      false,
+      numSubmission,
+      'Bool',
+      AccountType.FIAT_SUBSCRIPTION
+    )
+    //klay subscription account
+    await requestAndFulfill(
+      [rrOracle0, rrOracle1, rrOracle2, rrOracle3, rrOracle4, rrOracle5],
+      consumer.contract.requestDataBool,
+      'fulfillDataRequestBool',
+      [true, false, true],
+      consumer.contract.sResponseBool,
+      'DataRequestFulfilledBool',
+      false,
+      numSubmission,
+      'Bool',
+      AccountType.KLAY_SUBSCRIPTION
+    )
+    //klay discount account
+    await requestAndFulfill(
+      [rrOracle0, rrOracle1, rrOracle2, rrOracle3, rrOracle4, rrOracle5],
+      consumer.contract.requestDataBool,
+      'fulfillDataRequestBool',
+      [true, false, true],
+      consumer.contract.sResponseBool,
+      'DataRequestFulfilledBool',
+      false,
+      numSubmission,
+      'Bool',
+      AccountType.KLAY_DISCOUNT
+    )
   })
 
   it('Request & Fulfill Bool Direct Payment', async function () {
@@ -360,6 +559,46 @@ describe('Request-Response user contract', function () {
       numSubmission,
       'String'
     )
+
+    //fiat subscription account
+    await requestAndFulfill(
+      [rrOracle0],
+      consumer.contract.requestDataString,
+      'fulfillDataRequestString',
+      ['hello'],
+      consumer.contract.sResponseString,
+      'DataRequestFulfilledString',
+      false,
+      numSubmission,
+      'String',
+      AccountType.FIAT_SUBSCRIPTION
+    )
+    //klay subscription account
+    await requestAndFulfill(
+      [rrOracle0],
+      consumer.contract.requestDataString,
+      'fulfillDataRequestString',
+      ['hello'],
+      consumer.contract.sResponseString,
+      'DataRequestFulfilledString',
+      false,
+      numSubmission,
+      'String',
+      AccountType.KLAY_SUBSCRIPTION
+    )
+    //klay discount account
+    await requestAndFulfill(
+      [rrOracle0],
+      consumer.contract.requestDataString,
+      'fulfillDataRequestString',
+      ['hello'],
+      consumer.contract.sResponseString,
+      'DataRequestFulfilledString',
+      false,
+      numSubmission,
+      'String',
+      AccountType.KLAY_DISCOUNT
+    )
   })
 
   it('Request & Fulfill String Direct Payment', async function () {
@@ -394,6 +633,46 @@ describe('Request-Response user contract', function () {
       numSubmission,
       'Bytes32'
     )
+
+    //fiat subscription account
+    await requestAndFulfill(
+      [rrOracle0],
+      consumer.contract.requestDataBytes32,
+      'fulfillDataRequestBytes32',
+      [ethers.utils.formatBytes32String('hello')],
+      consumer.contract.sResponseBytes32,
+      'DataRequestFulfilledBytes32',
+      false,
+      numSubmission,
+      'Bytes32',
+      AccountType.FIAT_SUBSCRIPTION
+    )
+    //klay subscription account
+    await requestAndFulfill(
+      [rrOracle0],
+      consumer.contract.requestDataBytes32,
+      'fulfillDataRequestBytes32',
+      [ethers.utils.formatBytes32String('hello')],
+      consumer.contract.sResponseBytes32,
+      'DataRequestFulfilledBytes32',
+      false,
+      numSubmission,
+      'Bytes32',
+      AccountType.KLAY_SUBSCRIPTION
+    )
+    //klay discount account
+    await requestAndFulfill(
+      [rrOracle0],
+      consumer.contract.requestDataBytes32,
+      'fulfillDataRequestBytes32',
+      [ethers.utils.formatBytes32String('hello')],
+      consumer.contract.sResponseBytes32,
+      'DataRequestFulfilledBytes32',
+      false,
+      numSubmission,
+      'Bytes32',
+      AccountType.KLAY_DISCOUNT
+    )
   })
 
   it('Request & Fulfill Bytes32 Direct Payment', async function () {
@@ -427,6 +706,46 @@ describe('Request-Response user contract', function () {
       false,
       numSubmission,
       'Bytes'
+    )
+
+    //fiat subscription account
+    await requestAndFulfill(
+      [rrOracle0],
+      consumer.contract.requestDataBytes,
+      'fulfillDataRequestBytes',
+      ['0x1234'],
+      consumer.contract.sResponseBytes,
+      'DataRequestFulfilledBytes',
+      false,
+      numSubmission,
+      'Bytes',
+      AccountType.FIAT_SUBSCRIPTION
+    )
+    //klay subscription account
+    await requestAndFulfill(
+      [rrOracle0],
+      consumer.contract.requestDataBytes,
+      'fulfillDataRequestBytes',
+      ['0x1234'],
+      consumer.contract.sResponseBytes,
+      'DataRequestFulfilledBytes',
+      false,
+      numSubmission,
+      'Bytes',
+      AccountType.KLAY_SUBSCRIPTION
+    )
+    //klay discount account
+    await requestAndFulfill(
+      [rrOracle0],
+      consumer.contract.requestDataBytes,
+      'fulfillDataRequestBytes',
+      ['0x1234'],
+      consumer.contract.sResponseBytes,
+      'DataRequestFulfilledBytes',
+      false,
+      numSubmission,
+      'Bytes',
+      AccountType.KLAY_DISCOUNT
     )
   })
 

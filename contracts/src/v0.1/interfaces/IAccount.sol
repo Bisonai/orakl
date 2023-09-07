@@ -150,7 +150,7 @@ interface IAccount {
 
     function updateAccountDetail(
         uint256 startDate,
-        uint256 endDate,
+        uint256 period,
         uint256 reqPeriodCount,
         uint256 subscriptionPrice
     ) external;
