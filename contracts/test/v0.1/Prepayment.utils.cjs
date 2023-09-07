@@ -1,6 +1,4 @@
 const { expect } = require('chai')
-const { AccountType } = require('./Account.utils.cjs')
-
 async function deploy(protocolFeeRecipientAddress, signer) {
   let contract = await ethers.getContractFactory('Prepayment', {
     signer
@@ -10,8 +8,8 @@ async function deploy(protocolFeeRecipientAddress, signer) {
   return contract
 }
 
-async function createAccount(prepayment, signer, accType = AccountType.KLAY_REGULAR) {
-  const tx = await (await prepayment.connect(signer).createAccount(accType)).wait()
+async function createAccount(prepayment, signer) {
+  const tx = await (await prepayment.connect(signer).createAccount()).wait()
   expect(tx.events.length).to.be.equal(1)
   const event = prepayment.interface.parseLog(tx.events[0])
   expect(event.name).to.be.equal('AccountCreated')

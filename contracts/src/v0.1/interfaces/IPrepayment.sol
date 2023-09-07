@@ -112,7 +112,22 @@ interface IPrepayment {
      * @dev respectively. To fund the account, use deposit function.
      * @return accId - A unique account id
      */
-    function createAccount(IAccount.AccountType accType) external returns (uint64);
+    function createAccount() external returns (uint64);
+
+    function createFiatSubscriptionAccount(
+        uint256 startDate,
+        uint256 endDate,
+        uint256 reqPeriodCount
+    ) external returns (uint64);
+
+    function createKlaySubscriptionAccount(
+        uint256 startDate,
+        uint256 endDate,
+        uint256 reqPeriodCount,
+        uint256 subscriptionPrice
+    ) external returns (uint64);
+
+    function createKlayDiscountAccount(uint256 feeRatio) external returns (uint64);
 
     /**
      * @notice Create a temporary account to be used with a single

@@ -319,14 +319,94 @@ contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
     /**
      * @inheritdoc IPrepayment
      */
-    function createAccount(IAccount.AccountType accType) external returns (uint64) {
+    function createAccount() external returns (uint64) {
         uint64 currentAccId = sCurrentAccId + 1;
         sCurrentAccId = currentAccId;
 
-        Account acc = new Account(currentAccId, msg.sender, accType);
+        Account acc = new Account(currentAccId, msg.sender, IAccount.AccountType.KLAY_REGULAR);
         sAccIdToAccount[currentAccId] = acc;
 
-        emit AccountCreated(currentAccId, address(acc), msg.sender, accType);
+        emit AccountCreated(
+            currentAccId,
+            address(acc),
+            msg.sender,
+            IAccount.AccountType.KLAY_REGULAR
+        );
+        return currentAccId;
+    }
+
+    /**
+     * @inheritdoc IPrepayment
+     */
+    function createFiatSubscriptionAccount(
+        uint256 startDate,
+        uint256 endDate,
+        uint256 reqPeriodCount
+    ) external onlyOwner returns (uint64) {
+        uint64 currentAccId = sCurrentAccId + 1;
+        sCurrentAccId = currentAccId;
+
+        Account acc = new Account(currentAccId, msg.sender, IAccount.AccountType.FIAT_SUBSCRIPTION);
+        sAccIdToAccount[currentAccId] = acc;
+
+        //update account detail
+        acc.updateAccountDetail(startDate, endDate, reqPeriodCount, 0);
+
+        emit AccountCreated(
+            currentAccId,
+            address(acc),
+            msg.sender,
+            IAccount.AccountType.FIAT_SUBSCRIPTION
+        );
+        return currentAccId;
+    }
+
+    /**
+     * @inheritdoc IPrepayment
+     */
+    function createKlaySubscriptionAccount(
+        uint256 startDate,
+        uint256 endDate,
+        uint256 reqPeriodCount,
+        uint256 subscriptionPrice
+    ) external onlyOwner returns (uint64) {
+        uint64 currentAccId = sCurrentAccId + 1;
+        sCurrentAccId = currentAccId;
+
+        Account acc = new Account(currentAccId, msg.sender, IAccount.AccountType.KLAY_SUBSCRIPTION);
+        sAccIdToAccount[currentAccId] = acc;
+
+        //update account detail
+        acc.updateAccountDetail(startDate, endDate, reqPeriodCount, subscriptionPrice);
+
+        emit AccountCreated(
+            currentAccId,
+            address(acc),
+            msg.sender,
+            IAccount.AccountType.KLAY_SUBSCRIPTION
+        );
+        return currentAccId;
+    }
+
+    /**
+     * @inheritdoc IPrepayment
+     */
+    function createKlayDiscountAccount(uint256 feeRatio) external onlyOwner returns (uint64) {
+        uint64 currentAccId = sCurrentAccId + 1;
+        sCurrentAccId = currentAccId;
+
+        Account acc = new Account(currentAccId, msg.sender, IAccount.AccountType.KLAY_SUBSCRIPTION);
+        sAccIdToAccount[currentAccId] = acc;
+
+        //update account detail
+        acc.setFeeRatio(feeRatio);
+
+        emit AccountCreated(
+            currentAccId,
+            address(acc),
+            msg.sender,
+            IAccount.AccountType.KLAY_SUBSCRIPTION
+        );
         return currentAccId;
     }
 
