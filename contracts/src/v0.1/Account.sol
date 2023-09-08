@@ -194,12 +194,11 @@ contract Account is IAccount, ITypeAndVersion {
      * @inheritdoc IAccount
      */
     function isValidReq() external view returns (bool) {
-        uint256 current = block.timestamp;
         if (
             sAccountType == AccountType.FIAT_SUBSCRIPTION ||
             sAccountType == AccountType.KLAY_SUBSCRIPTION
         ) {
-            if (sSubReqCountHistory[(current - sStartTime) / sPeriod] <= sPeriodReqCount) {
+            if (sSubReqCountHistory[(block.timestamp - sStartTime) / sPeriod] <= sPeriodReqCount) {
                 return true;
             } else {
                 return false;
