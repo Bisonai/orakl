@@ -256,11 +256,11 @@ abstract contract CoordinatorBase is Ownable, ICoordinatorBase {
         (, , , uint256 subscriptionPrice) = sPrepayment.getAccountDetail(accId);
 
         if (accType == IAccount.AccountType.FIAT_SUBSCRIPTION) {
-            sPrepayment.increaseReqCount(accId);
+            sPrepayment.increaseSubReqCount(accId);
             return 0;
         } else {
             if (accType == IAccount.AccountType.KLAY_SUBSCRIPTION) {
-                sPrepayment.increaseReqCount(accId);
+                sPrepayment.increaseSubReqCount(accId);
             }
             uint256 serviceFee = calculateServiceFee(reqCount) * numSubmission;
             if (accType == IAccount.AccountType.KLAY_SUBSCRIPTION) {

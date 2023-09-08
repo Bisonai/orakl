@@ -32,17 +32,13 @@ async function createFiatSubscriptionAccount(
   const tx = await (
     await prepayment
       .connect(signer)
-      .createFiatSubscriptionAccount(startDate, period, reqPeriodCount)
+      .createFiatSubscriptionAccount(startDate, period, reqPeriodCount, accountOwner.address)
   ).wait()
   expect(tx.events.length).to.be.equal(1)
   const event = prepayment.interface.parseLog(tx.events[0])
   expect(event.name).to.be.equal('AccountCreated')
   const { accId, account, owner, accType } = event.args
   expect(accType).to.be.equal(AccountType.FIAT_SUBSCRIPTION)
-  //transfer to consumer
-  await (await prepayment.requestAccountOwnerTransfer(accId, accountOwner.address)).wait()
-  await (await prepayment.connect(accountOwner).acceptAccountOwnerTransfer(accId)).wait()
-
   return { accId, account, owner, accType }
 }
 
@@ -58,28 +54,30 @@ async function createKlaySubscriptionAccount(
   const tx = await (
     await prepayment
       .connect(signer)
-      .createKlaySubscriptionAccount(startDate, period, reqPeriodCount, subscriptionPrice)
+      .createKlaySubscriptionAccount(
+        startDate,
+        period,
+        reqPeriodCount,
+        subscriptionPrice,
+        accountOwner.address
+      )
   ).wait()
   expect(tx.events.length).to.be.equal(1)
   const event = prepayment.interface.parseLog(tx.events[0])
   expect(event.name).to.be.equal('AccountCreated')
   const { accId, account, owner, accType } = event.args
   expect(accType).to.be.equal(AccountType.KLAY_SUBSCRIPTION)
-  //transfer to consumer
-  await (await prepayment.requestAccountOwnerTransfer(accId, accountOwner.address)).wait()
-  await (await prepayment.connect(accountOwner).acceptAccountOwnerTransfer(accId)).wait()
   return { accId, account, owner, accType }
 }
 async function createKlayDiscountAccount(prepayment, feeRatio, signer, accountOwner) {
-  const tx = await (await prepayment.connect(signer).createKlayDiscountAccount(feeRatio)).wait()
+  const tx = await (
+    await prepayment.connect(signer).createKlayDiscountAccount(feeRatio, accountOwner.address)
+  ).wait()
   expect(tx.events.length).to.be.equal(1)
   const event = prepayment.interface.parseLog(tx.events[0])
   expect(event.name).to.be.equal('AccountCreated')
   const { accId, account, owner, accType } = event.args
   expect(accType).to.be.equal(AccountType.KLAY_DISCOUNT)
-  //transfer to consumer
-  await (await prepayment.requestAccountOwnerTransfer(accId, accountOwner.address)).wait()
-  await (await prepayment.connect(accountOwner).acceptAccountOwnerTransfer(accId)).wait()
 
   return { accId, account, owner, accType }
 }
@@ -127,6 +125,11 @@ async function cancelAccount(prepayment, signer, accId, to) {
   return { accId, to, balance }
 }
 
+async function getAccount(prepayment, accId) {
+  const { balance, reqCount, owner, consumers, accType } = await prepayment.getAccount(accId)
+  return { balance, reqCount, owner, consumers, accType }
+}
+
 module.exports = {
   deploy,
   createAccount,
@@ -137,5 +140,6 @@ module.exports = {
   cancelAccount,
   createFiatSubscriptionAccount,
   createKlaySubscriptionAccount,
-  createKlayDiscountAccount
+  createKlayDiscountAccount,
+  getAccount
 }

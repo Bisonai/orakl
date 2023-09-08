@@ -24,11 +24,11 @@ contract Account is IAccount, ITypeAndVersion {
     uint256 private sBalance; // Common $KLAY balance used for all consumer requests
     uint64 private sReqCount; // For fee tiers
     AccountType private sAccountType;
-    uint256 private sStartTime; // activated time use for
-    uint256 private sPeriod; // period time
-    uint256 private sPeriodReqCount; // number of request in start time and period
-    uint256 private sServiceFeeRatio; // ratio of service fee: basis point 10,000
-    uint256 sSubscriptionPrice; // for KLAY_SUBSCRIPTION
+    uint256 private sStartTime; // subscription activation time
+    uint256 private sPeriod; // subscription period
+    uint256 private sPeriodReqCount; // number of allowed requests within a subscription period
+    uint256 private sServiceFeeRatio; // discounted service fee denominated in basis points (e.g. 9500 -> 5 % discount)
+    uint256 sSubscriptionPrice; // only for KLAY_SUBSCRIPTION
 
     address[] private sConsumers;
 
@@ -36,7 +36,7 @@ contract Account is IAccount, ITypeAndVersion {
     /* nonce */
     mapping(address => uint64) private sConsumerToNonce;
     // period => request count
-    mapping(uint256 => uint256) sReqCountHistory;
+    mapping(uint256 => uint256) sSubReqCountHistory;
     mapping(uint256 => bool) sSubscriptionPaid; //  to track whether the payment has been already paid
 
     error TooManyConsumers();
@@ -199,7 +199,7 @@ contract Account is IAccount, ITypeAndVersion {
             sAccountType == AccountType.FIAT_SUBSCRIPTION ||
             sAccountType == AccountType.KLAY_SUBSCRIPTION
         ) {
-            if (sReqCountHistory[(current - sStartTime) / sPeriod] <= sPeriodReqCount) {
+            if (sSubReqCountHistory[(current - sStartTime) / sPeriod] <= sPeriodReqCount) {
                 return true;
             } else {
                 return false;
@@ -347,8 +347,8 @@ contract Account is IAccount, ITypeAndVersion {
     /**
      * @inheritdoc IAccount
      */
-    function increaseReqCount() external onlyPaymentSolution {
-        sReqCountHistory[(block.timestamp - sStartTime) / sPeriod] += 1;
+    function increaseSubReqCount() external onlyPaymentSolution {
+        sSubReqCountHistory[(block.timestamp - sStartTime) / sPeriod] += 1;
     }
 
     /**

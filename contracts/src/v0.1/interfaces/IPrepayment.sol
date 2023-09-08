@@ -117,17 +117,22 @@ interface IPrepayment {
     function createFiatSubscriptionAccount(
         uint256 startDate,
         uint256 period,
-        uint256 reqPeriodCount
+        uint256 reqPeriodCount,
+        address accOwner
     ) external returns (uint64);
 
     function createKlaySubscriptionAccount(
         uint256 startDate,
         uint256 period,
         uint256 reqPeriodCount,
-        uint256 subscriptionPrice
+        uint256 subscriptionPrice,
+        address accOwner
     ) external returns (uint64);
 
-    function createKlayDiscountAccount(uint256 feeRatio) external returns (uint64);
+    function createKlayDiscountAccount(
+        uint256 feeRatio,
+        address accOwner
+    ) external returns (uint64);
 
     /**
      * @notice Create a temporary account to be used with a single
@@ -310,5 +315,5 @@ interface IPrepayment {
 
     function setFeeRatio(uint64 accId, uint256 disCount) external;
 
-    function increaseReqCount(uint64 accId) external;
+    function increaseSubReqCount(uint64 accId) external;
 }

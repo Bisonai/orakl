@@ -48,7 +48,7 @@ contract VRFCoordinator is IVRFCoordinatorBase, CoordinatorBase, ITypeAndVersion
     error InvalidKeyHash(bytes32 keyHash);
     error NumWordsTooBig(uint32 have, uint32 want);
     error NoSuchProvingKey(bytes32 keyHash);
-    error InvalidAccReqCount();
+    error InvalidAccRequest();
 
     event OracleRegistered(address indexed oracle, bytes32 keyHash);
     event OracleDeregistered(address indexed oracle, bytes32 keyHash);
@@ -161,9 +161,9 @@ contract VRFCoordinator is IVRFCoordinatorBase, CoordinatorBase, ITypeAndVersion
     ) external nonReentrant onlyValidKeyHash(keyHash) returns (uint256) {
         (uint256 balance, uint64 reqCount, , , IAccount.AccountType accType) = sPrepayment
             .getAccount(accId);
-        bool isValidReqCount = sPrepayment.isValidReq(accId);
-        if (!isValidReqCount) {
-            revert InvalidAccReqCount();
+        bool isValidReq = sPrepayment.isValidReq(accId);
+        if (!isValidReq) {
+            revert InvalidAccRequest();
         }
         uint8 numSubmission = 1;
         uint256 minBalance = estimateFeeByAcc(

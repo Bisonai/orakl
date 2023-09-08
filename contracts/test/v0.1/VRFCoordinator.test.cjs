@@ -23,7 +23,8 @@ const {
   cancelAccount,
   createFiatSubscriptionAccount,
   createKlaySubscriptionAccount,
-  createKlayDiscountAccount
+  createKlayDiscountAccount,
+  getAccount
 } = require('./Prepayment.utils.cjs')
 const { AccountType } = require('./Account.utils.cjs')
 
@@ -134,7 +135,8 @@ function validateRandomWordsFulfilledEvent(
   requestId,
   accId,
   isDirectPayment,
-  accType = AccountType.KLAY_REGULAR
+  accType = AccountType.KLAY_REGULAR,
+  serviceFee = 0
 ) {
   let burnedFeeEventIdx
   let randomWordsFulfilledEventIdx
@@ -195,11 +197,20 @@ function validateRandomWordsFulfilledEvent(
 
   expect(fRequestId).to.be.equal(requestId)
   expect(fSuccess).to.be.equal(true)
-  if (accType == AccountType.FIAT_SUBSCRIPTION) expect(fPayment).to.be.equal(0)
-  else expect(fPayment).to.be.above(0)
+  if (accType == AccountType.FIAT_SUBSCRIPTION) expect(fPayment).to.be.equal(serviceFee)
+  else {
+    expect(fPayment.sub(tx.gasUsed.mul(tx.effectiveGasPrice))).to.be.above(serviceFee)
+  }
 }
 
-function validateRandomWordsFulfilledKlaySubEvent(tx, coordinator, prepayment, requestId, accId) {
+function validateRandomWordsFulfilledKlaySubEvent(
+  tx,
+  coordinator,
+  prepayment,
+  requestId,
+  accId,
+  subPrice
+) {
   let burnedFeeEventIdx
   let randomWordsFulfilledEventIdx
   expect(tx.events.length).to.be.equal(6)
@@ -241,14 +252,13 @@ function validateRandomWordsFulfilledKlaySubEvent(tx, coordinator, prepayment, r
   expect(randomWordsFulfilledEvent.name).to.be.equal('RandomWordsFulfilled')
   const {
     requestId: fRequestId,
-    // outputSeed: fOutputSeed,
     payment: fPayment,
     success: fSuccess
   } = randomWordsFulfilledEvent.args
 
   expect(fRequestId).to.be.equal(requestId)
   expect(fSuccess).to.be.equal(true)
-  expect(fPayment).to.be.above(0)
+  expect(fPayment.sub(tx.gasUsed.mul(tx.effectiveGasPrice))).to.be.above(subPrice)
 }
 
 async function deploy() {
@@ -461,6 +471,16 @@ describe('VRF contract', function () {
 
     // Deposit 2 $KLAY to account with zero balance
     await deposit(prepayment.contract, consumer.signer, accId, parseKlay(2))
+    // get service fee
+
+    const { reqCount, accType } = await getAccount(prepayment.contract, accId)
+    const serviceFee = await coordinator.contract.estimateFeeByAcc(
+      reqCount,
+      SINGLE_WORD,
+      callbackGasLimit,
+      accId,
+      accType
+    )
 
     // After depositing minimum account to account, we are able to
     // request random words.
@@ -510,7 +530,9 @@ describe('VRF contract', function () {
       prepayment.contract,
       requestId,
       accId,
-      isDirectPayment
+      isDirectPayment,
+      AccountType.KLAY_REGULAR,
+      serviceFee
     )
   })
 
@@ -608,7 +630,7 @@ describe('VRF contract', function () {
 
     // Prepare account
     const startTime = Math.round(new Date().getTime() / 1000)
-    const period = 1000 * 60 * 60 * 24 * 7
+    const period = 60 * 60 * 24 * 7
     const requestNumber = 100
     const { accId, accType } = await createFiatSubscriptionAccount(
       prepayment.contract,
@@ -621,6 +643,16 @@ describe('VRF contract', function () {
 
     await addConsumer(prepayment.contract, consumer.signer, accId, consumer.contract.address)
     const { maxGasLimit: callbackGasLimit, keyHash } = vrfConfig()
+    // get service fee
+
+    const { reqCount } = await getAccount(prepayment.contract, accId)
+    const serviceFee = await coordinator.contract.estimateFeeByAcc(
+      reqCount,
+      SINGLE_WORD,
+      callbackGasLimit,
+      accId,
+      accType
+    )
 
     // After depositing minimum account to account, we are able to
     // request random words.
@@ -671,7 +703,8 @@ describe('VRF contract', function () {
       requestId,
       accId,
       isDirectPayment,
-      accType
+      accType,
+      serviceFee
     )
   })
 
@@ -709,6 +742,16 @@ describe('VRF contract', function () {
 
     await addConsumer(prepayment.contract, consumer.signer, accId, consumer.contract.address)
     const { maxGasLimit: callbackGasLimit, keyHash } = vrfConfig()
+    // get service fee
+
+    const { reqCount } = await getAccount(prepayment.contract, accId)
+    const serviceFee = await coordinator.contract.estimateFeeByAcc(
+      reqCount,
+      SINGLE_WORD,
+      callbackGasLimit,
+      accId,
+      accType
+    )
     await expect(
       consumer.contract.requestRandomWords(keyHash, accId, callbackGasLimit, SINGLE_WORD)
     ).to.be.revertedWithCustomError(coordinator.contract, 'InsufficientPayment')
@@ -761,7 +804,8 @@ describe('VRF contract', function () {
       coordinator.contract,
       prepayment.contract,
       requestId,
-      accId
+      accId,
+      serviceFee
     )
   })
 

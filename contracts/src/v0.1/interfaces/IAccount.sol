@@ -17,7 +17,7 @@ interface IAccount {
      * @return reqCount - number of requests for this account, determines fee tier.
      * @return owner - owner of the account.
      * @return consumers - list of consumer address which are able to use this account.
-     * @return accType - 1,2,3,4,5 for different account types. 0 for temporary account
+     * @return accType
      */
     function getAccount()
         external
@@ -163,5 +163,5 @@ interface IAccount {
 
     function setFeeRatio(uint256 disCount) external;
 
-    function increaseReqCount() external;
+    function increaseSubReqCount() external;
 }

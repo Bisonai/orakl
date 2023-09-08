@@ -65,7 +65,7 @@ contract RequestResponseCoordinator is
     error InvalidNumSubmission();
     error OracleAlreadySubmitted();
     error IncompatibleJobId();
-    error InvalidAccReqCount();
+    error InvalidAccRequest();
 
     event OracleRegistered(address oracle);
     event OracleDeregistered(address oracle);
@@ -181,9 +181,9 @@ contract RequestResponseCoordinator is
     ) external nonReentrant returns (uint256) {
         (uint256 balance, uint64 reqCount, , , IAccount.AccountType accType) = sPrepayment
             .getAccount(accId);
-        bool isValidReqCount = sPrepayment.isValidReq(accId);
-        if (!isValidReqCount) {
-            revert InvalidAccReqCount();
+        bool isValidReq = sPrepayment.isValidReq(accId);
+        if (!isValidReq) {
+            revert InvalidAccRequest();
         }
         uint256 minBalance = estimateFeeByAcc(
             reqCount,
