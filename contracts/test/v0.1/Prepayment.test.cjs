@@ -484,17 +484,25 @@ describe('Prepayment', function () {
     await expect(
       prepaymentContract
         .connect(consumerSigner)
-        .createFiatSubscriptionAccount(startTime, period, requestNumber)
+        .createFiatSubscriptionAccount(startTime, period, requestNumber, consumerSigner.address)
     ).to.be.revertedWith('Ownable: caller is not the owner')
 
     await expect(
       prepaymentContract
         .connect(consumerSigner)
-        .createKlaySubscriptionAccount(startTime, period, requestNumber, subscriptionPrice)
+        .createKlaySubscriptionAccount(
+          startTime,
+          period,
+          requestNumber,
+          subscriptionPrice,
+          consumerSigner.address
+        )
     ).to.be.revertedWith('Ownable: caller is not the owner')
 
     await expect(
-      prepaymentContract.connect(consumerSigner).createKlayDiscountAccount(feeRatio)
+      prepaymentContract
+        .connect(consumerSigner)
+        .createKlayDiscountAccount(feeRatio, consumerSigner.address)
     ).to.be.revertedWith('Ownable: caller is not the owner')
   })
 
@@ -518,7 +526,7 @@ describe('Prepayment', function () {
     ).to.be.revertedWithCustomError(prepaymentContract, 'InvalidCoordinator')
 
     await expect(
-      prepaymentContract.connect(consumerSigner).increaseReqCount(1)
+      prepaymentContract.connect(consumerSigner).increaseSubReqCount(1)
     ).to.be.revertedWithCustomError(prepaymentContract, 'InvalidCoordinator')
 
     await expect(
