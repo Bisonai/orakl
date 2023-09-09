@@ -468,8 +468,8 @@ describe('Prepayment', function () {
     ).to.be.revertedWith('Ownable: caller is not the owner')
 
     //update account detail
-    const startTime = new Date().getTime()
-    const period = 1000 * 60 * 60 * 24 * 7
+    const startTime = Math.round(new Date().getTime() / 1000) - 60 * 60
+    const period = 60 * 60 * 24 * 7
     const requestNumber = 100
     const subscriptionPrice = 0
     const feeRatio = 10000 // 100%

@@ -629,7 +629,7 @@ describe('VRF contract', function () {
     await addCoordinator(prepayment.contract, prepayment.signer, coordinator.contract.address)
 
     // Prepare account
-    const startTime = Math.round(new Date().getTime() / 1000)
+    const startTime = Math.round(new Date().getTime() / 1000) - 60 * 60
     const period = 60 * 60 * 24 * 7
     const requestNumber = 100
     const { accId, accType } = await createFiatSubscriptionAccount(
@@ -726,7 +726,7 @@ describe('VRF contract', function () {
     await addCoordinator(prepayment.contract, prepayment.signer, coordinator.contract.address)
 
     // Prepare account
-    const startTime = Math.round(new Date().getTime() / 1000)
+    const startTime = Math.round(new Date().getTime() / 1000) - 60 * 60
     const period = 60 * 60 * 24 * 7
     const requestNumber = 100
     const subscriptionPrice = parseKlay(10)

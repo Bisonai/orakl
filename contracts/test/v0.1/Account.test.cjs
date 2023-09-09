@@ -49,7 +49,7 @@ describe('Account', function () {
       accountContract,
       'MustBePaymentSolution'
     )
-    const startTime = new Date().getTime()
+    const startTime = Math.round(new Date().getTime() / 1000) - 60 * 60
     const period = 60 * 60 * 24 * 7
     const requestNumber = 100
     const subscriptionPrice = parseKlay(100)
