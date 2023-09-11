@@ -3,6 +3,13 @@ pragma solidity ^0.8.16;
 
 interface IAccount {
     /// READ-ONLY FUNCTIONS /////////////////////////////////////////////////////
+    enum AccountType {
+        TEMPORARY,
+        FIAT_SUBSCRIPTION,
+        KLAY_SUBSCRIPTION,
+        KLAY_DISCOUNT,
+        KLAY_REGULAR
+    }
 
     /**
      * @notice Get an account information.
@@ -10,11 +17,18 @@ interface IAccount {
      * @return reqCount - number of requests for this account, determines fee tier.
      * @return owner - owner of the account.
      * @return consumers - list of consumer address which are able to use this account.
+     * @return accType
      */
     function getAccount()
         external
         view
-        returns (uint256 balance, uint64 reqCount, address owner, address[] memory consumers);
+        returns (
+            uint256 balance,
+            uint64 reqCount,
+            address owner,
+            address[] memory consumers,
+            AccountType accType
+        );
 
     /**
      * @notice Return an account ID that is associated with this account.
@@ -129,4 +143,25 @@ interface IAccount {
      * @param to - Where to send the remaining KLAY to
      */
     function cancelAccount(address to) external;
+
+    function getAccountDetail() external view returns (uint256, uint256, uint256, uint256);
+
+    function getSubscriptionPaid() external view returns (bool);
+
+    function updateAccountDetail(
+        uint256 startDate,
+        uint256 period,
+        uint256 reqPeriodCount,
+        uint256 subscriptionPrice
+    ) external;
+
+    function setSubscriptionPaid() external;
+
+    function isValidReq() external view returns (bool);
+
+    function getFeeRatio() external view returns (uint256);
+
+    function setFeeRatio(uint256 disCount) external;
+
+    function increaseSubReqCount() external;
 }

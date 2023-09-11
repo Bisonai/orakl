@@ -23,11 +23,21 @@ contract Account is IAccount, ITypeAndVersion {
     address private sRequestedOwner; // For safely transferring acc ownership
     uint256 private sBalance; // Common $KLAY balance used for all consumer requests
     uint64 private sReqCount; // For fee tiers
+    AccountType private sAccountType;
+    uint256 private sStartTime; // subscription activation time
+    uint256 private sPeriod; // subscription period
+    uint256 private sPeriodReqCount; // number of allowed requests within a subscription period
+    uint256 private sServiceFeeRatio; // discounted service fee denominated in basis points (e.g. 9500 -> 5 % discount)
+    uint256 sSubscriptionPrice; // only for KLAY_SUBSCRIPTION
+
     address[] private sConsumers;
 
     /* consumer */
     /* nonce */
     mapping(address => uint64) private sConsumerToNonce;
+    // period => request count
+    mapping(uint256 => uint256) sSubReqCountHistory;
+    mapping(uint256 => bool) sSubscriptionPaid; //  to track whether the payment has been already paid
 
     error TooManyConsumers();
     error MustBeRequestedOwner(address requestedOwner);
@@ -46,10 +56,11 @@ contract Account is IAccount, ITypeAndVersion {
         _;
     }
 
-    constructor(uint64 accId, address owner) {
+    constructor(uint64 accId, address owner, AccountType accType) {
         sAccId = accId;
         sOwner = owner;
         sPaymentSolution = msg.sender;
+        sAccountType = accType;
     }
 
     receive() external payable {
@@ -62,9 +73,15 @@ contract Account is IAccount, ITypeAndVersion {
     function getAccount()
         external
         view
-        returns (uint256 balance, uint64 reqCount, address owner, address[] memory consumers)
+        returns (
+            uint256 balance,
+            uint64 reqCount,
+            address owner,
+            address[] memory consumers,
+            AccountType accType
+        )
     {
-        return (sBalance, sReqCount, sOwner, sConsumers);
+        return (sBalance, sReqCount, sOwner, sConsumers, sAccountType);
     }
 
     /**
@@ -121,6 +138,73 @@ contract Account is IAccount, ITypeAndVersion {
      */
     function getPaymentSolution() external view returns (address) {
         return sPaymentSolution;
+    }
+
+    /**
+     * @inheritdoc IAccount
+     */
+    function getAccountDetail() external view returns (uint256, uint256, uint256, uint256) {
+        return (sStartTime, sPeriod, sPeriodReqCount, sSubscriptionPrice);
+    }
+
+    /**
+     * @inheritdoc IAccount
+     */
+    function getSubscriptionPaid() external view returns (bool) {
+        return sSubscriptionPaid[(block.timestamp - sStartTime) / sPeriod];
+    }
+
+    /**
+     * @inheritdoc IAccount
+     */
+    function updateAccountDetail(
+        uint256 startTime,
+        uint256 period,
+        uint256 reqPeriodCount,
+        uint256 subscriptionPrice
+    ) external onlyPaymentSolution {
+        sStartTime = startTime;
+        sPeriod = period;
+        sPeriodReqCount = reqPeriodCount;
+        sSubscriptionPrice = subscriptionPrice;
+    }
+
+    /**
+     * @inheritdoc IAccount
+     */
+    function setSubscriptionPaid() external onlyPaymentSolution {
+        sSubscriptionPaid[(block.timestamp - sStartTime) / sPeriod] = true;
+    }
+
+    /**
+     * @inheritdoc IAccount
+     */
+    function getFeeRatio() external view returns (uint256) {
+        return sServiceFeeRatio;
+    }
+
+    /**
+     * @inheritdoc IAccount
+     */
+    function setFeeRatio(uint256 feeRatio) external onlyPaymentSolution {
+        sServiceFeeRatio = feeRatio;
+    }
+
+    /**
+     * @inheritdoc IAccount
+     */
+    function isValidReq() external view returns (bool) {
+        if (
+            sAccountType == AccountType.FIAT_SUBSCRIPTION ||
+            sAccountType == AccountType.KLAY_SUBSCRIPTION
+        ) {
+            if (sSubReqCountHistory[(block.timestamp - sStartTime) / sPeriod] <= sPeriodReqCount) {
+                return true;
+            } else {
+                return false;
+            }
+        }
+        return true;
     }
 
     /**
@@ -257,6 +341,13 @@ contract Account is IAccount, ITypeAndVersion {
         if (!sent) {
             revert OperatorFeeFailed();
         }
+    }
+
+    /**
+     * @inheritdoc IAccount
+     */
+    function increaseSubReqCount() external onlyPaymentSolution {
+        sSubReqCountHistory[(block.timestamp - sStartTime) / sPeriod] += 1;
     }
 
     /**

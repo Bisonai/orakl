@@ -65,6 +65,7 @@ contract RequestResponseCoordinator is
     error InvalidNumSubmission();
     error OracleAlreadySubmitted();
     error IncompatibleJobId();
+    error InvalidAccRequest();
 
     event OracleRegistered(address oracle);
     event OracleDeregistered(address oracle);
@@ -178,8 +179,20 @@ contract RequestResponseCoordinator is
         uint64 accId,
         uint8 numSubmission
     ) external nonReentrant returns (uint256) {
-        (uint256 balance, uint64 reqCount, , ) = sPrepayment.getAccount(accId);
-        uint256 minBalance = estimateFee(reqCount, numSubmission, callbackGasLimit);
+        (uint256 balance, uint64 reqCount, , , IAccount.AccountType accType) = sPrepayment
+            .getAccount(accId);
+        bool isValidReq = sPrepayment.isValidReq(accId);
+        if (!isValidReq) {
+            revert InvalidAccRequest();
+        }
+        uint256 minBalance = estimateFeeByAcc(
+            reqCount,
+            numSubmission,
+            callbackGasLimit,
+            accId,
+            accType
+        );
+
         if (balance < minBalance) {
             revert InsufficientPayment(balance, minBalance);
         }
@@ -615,25 +628,24 @@ contract RequestResponseCoordinator is
             return totalFee;
         } else {
             // [regular] account
-            uint64 reqCount = sPrepayment.getReqCount(rc.accId);
-            uint256 serviceFee = calculateServiceFee(reqCount) * rc.numSubmission;
-            uint256 operatorFee = sPrepayment.chargeFee(rc.accId, serviceFee);
-            uint256 feePerOperator = operatorFee / oraclesLength;
 
-            uint256 paid;
-            for (uint256 i = 0; i < oraclesLength - 1; ++i) {
-                sPrepayment.chargeOperatorFee(rc.accId, feePerOperator, oracles[i]);
-                paid += feePerOperator;
-            }
-
-            uint256 gasFee = calculateGasCost(startGas);
-            sPrepayment.chargeOperatorFee(
-                rc.accId,
-                (operatorFee - paid) + gasFee,
-                oracles[oraclesLength - 1]
-            );
-
-            return gasFee + serviceFee;
+            uint256 serviceFee = serviceFeeByAcc(rc.accId, rc.numSubmission);
+            if (serviceFee > 0) {
+                uint256 operatorFee = sPrepayment.chargeFee(rc.accId, serviceFee);
+                uint256 feePerOperator = operatorFee / oraclesLength;
+                uint256 paid;
+                for (uint256 i = 0; i < oraclesLength - 1; ++i) {
+                    sPrepayment.chargeOperatorFee(rc.accId, feePerOperator, oracles[i]);
+                    paid += feePerOperator;
+                }
+                uint256 gasFee = calculateGasCost(startGas);
+                sPrepayment.chargeOperatorFee(
+                    rc.accId,
+                    (operatorFee - paid) + gasFee,
+                    oracles[oraclesLength - 1]
+                );
+                return gasFee + serviceFee;
+            } else return 0;
         }
     }
 

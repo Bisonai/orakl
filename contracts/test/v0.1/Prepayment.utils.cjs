@@ -1,5 +1,5 @@
 const { expect } = require('chai')
-
+const { AccountType } = require('./Account.utils.cjs')
 async function deploy(protocolFeeRecipientAddress, signer) {
   let contract = await ethers.getContractFactory('Prepayment', {
     signer
@@ -14,10 +14,73 @@ async function createAccount(prepayment, signer) {
   expect(tx.events.length).to.be.equal(1)
   const event = prepayment.interface.parseLog(tx.events[0])
   expect(event.name).to.be.equal('AccountCreated')
-  const { accId, account, owner } = event.args
-  return { accId, account, owner }
+
+  const { accId, account, owner, accType } = event.args
+  expect(accType).to.be.equal(AccountType.KLAY_REGULAR)
+
+  return { accId, account, owner, accType }
 }
 
+async function createFiatSubscriptionAccount(
+  prepayment,
+  startDate,
+  period,
+  reqPeriodCount,
+  signer,
+  accountOwner
+) {
+  const tx = await (
+    await prepayment
+      .connect(signer)
+      .createFiatSubscriptionAccount(startDate, period, reqPeriodCount, accountOwner.address)
+  ).wait()
+  expect(tx.events.length).to.be.equal(1)
+  const event = prepayment.interface.parseLog(tx.events[0])
+  expect(event.name).to.be.equal('AccountCreated')
+  const { accId, account, owner, accType } = event.args
+  expect(accType).to.be.equal(AccountType.FIAT_SUBSCRIPTION)
+  return { accId, account, owner, accType }
+}
+
+async function createKlaySubscriptionAccount(
+  prepayment,
+  startDate,
+  period,
+  reqPeriodCount,
+  subscriptionPrice,
+  signer,
+  accountOwner
+) {
+  const tx = await (
+    await prepayment
+      .connect(signer)
+      .createKlaySubscriptionAccount(
+        startDate,
+        period,
+        reqPeriodCount,
+        subscriptionPrice,
+        accountOwner.address
+      )
+  ).wait()
+  expect(tx.events.length).to.be.equal(1)
+  const event = prepayment.interface.parseLog(tx.events[0])
+  expect(event.name).to.be.equal('AccountCreated')
+  const { accId, account, owner, accType } = event.args
+  expect(accType).to.be.equal(AccountType.KLAY_SUBSCRIPTION)
+  return { accId, account, owner, accType }
+}
+async function createKlayDiscountAccount(prepayment, feeRatio, signer, accountOwner) {
+  const tx = await (
+    await prepayment.connect(signer).createKlayDiscountAccount(feeRatio, accountOwner.address)
+  ).wait()
+  expect(tx.events.length).to.be.equal(1)
+  const event = prepayment.interface.parseLog(tx.events[0])
+  expect(event.name).to.be.equal('AccountCreated')
+  const { accId, account, owner, accType } = event.args
+  expect(accType).to.be.equal(AccountType.KLAY_DISCOUNT)
+
+  return { accId, account, owner, accType }
+}
 async function addConsumer(prepayment, signer, accId, consumerAddress) {
   await prepayment.connect(signer).addConsumer(accId, consumerAddress)
 }
@@ -62,6 +125,11 @@ async function cancelAccount(prepayment, signer, accId, to) {
   return { accId, to, balance }
 }
 
+async function getAccount(prepayment, accId) {
+  const { balance, reqCount, owner, consumers, accType } = await prepayment.getAccount(accId)
+  return { balance, reqCount, owner, consumers, accType }
+}
+
 module.exports = {
   deploy,
   createAccount,
@@ -69,5 +137,9 @@ module.exports = {
   deposit,
   withdraw,
   addCoordinator,
-  cancelAccount
+  cancelAccount,
+  createFiatSubscriptionAccount,
+  createKlaySubscriptionAccount,
+  createKlayDiscountAccount,
+  getAccount
 }

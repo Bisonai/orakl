@@ -4,6 +4,7 @@ pragma solidity ^0.8.16;
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "./interfaces/ICoordinatorBase.sol";
 import "./interfaces/IPrepayment.sol";
+import "./interfaces/IAccount.sol";
 
 abstract contract CoordinatorBase is Ownable, ICoordinatorBase {
     // 5k is plenty for an EXTCODESIZE call (2600) + warm CALL (100)
@@ -146,6 +147,29 @@ abstract contract CoordinatorBase is Ownable, ICoordinatorBase {
         return serviceFee + maxGasCost;
     }
 
+    function estimateFeeByAcc(
+        uint64 reqCount,
+        uint8 numSubmission,
+        uint32 callbackGasLimit,
+        uint64 accId,
+        IAccount.AccountType accType
+    ) public view returns (uint256) {
+        (, , , uint256 subscriptionPrice) = sPrepayment.getAccountDetail(accId);
+        uint256 minBalance;
+        if (accType == IAccount.AccountType.KLAY_DISCOUNT) {
+            uint256 feeRatio = sPrepayment.getFeeRatio(accId);
+            uint256 baseFee = estimateFee(reqCount, numSubmission, callbackGasLimit);
+            minBalance = (baseFee * feeRatio) / 10_000;
+        } else if (accType == IAccount.AccountType.KLAY_SUBSCRIPTION) {
+            if (!sPrepayment.getSubscriptionPaid(accId)) {
+                minBalance = subscriptionPrice;
+            }
+        } else if (accType == IAccount.AccountType.KLAY_REGULAR) {
+            minBalance = estimateFee(reqCount, numSubmission, callbackGasLimit);
+        }
+        return minBalance;
+    }
+
     /**
      * @notice Calculate service fee based on tier system of the
      * coordinator.
@@ -224,6 +248,32 @@ abstract contract CoordinatorBase is Ownable, ICoordinatorBase {
             return true;
         } else {
             return false;
+        }
+    }
+
+    function serviceFeeByAcc(uint64 accId, uint32 numSubmission) internal returns (uint256) {
+        (, uint64 reqCount, , , IAccount.AccountType accType) = sPrepayment.getAccount(accId);
+        (, , , uint256 subscriptionPrice) = sPrepayment.getAccountDetail(accId);
+
+        if (accType == IAccount.AccountType.FIAT_SUBSCRIPTION) {
+            sPrepayment.increaseSubReqCount(accId);
+            return 0;
+        } else {
+            if (accType == IAccount.AccountType.KLAY_SUBSCRIPTION) {
+                sPrepayment.increaseSubReqCount(accId);
+            }
+            uint256 serviceFee = calculateServiceFee(reqCount) * numSubmission;
+            if (accType == IAccount.AccountType.KLAY_SUBSCRIPTION) {
+                if (!sPrepayment.getSubscriptionPaid(accId)) {
+                    serviceFee = subscriptionPrice;
+                    sPrepayment.setSubscriptionPaid(accId);
+                } else {
+                    return 0;
+                }
+            } else if (accType == IAccount.AccountType.KLAY_DISCOUNT) {
+                serviceFee = (serviceFee * sPrepayment.getFeeRatio(accId)) / 10_000;
+            }
+            return serviceFee;
         }
     }
 }

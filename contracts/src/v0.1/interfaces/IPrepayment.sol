@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.16;
+import "./IAccount.sol";
 
 interface IPrepayment {
     /// READ-ONLY FUNCTIONS /////////////////////////////////////////////////////
@@ -48,7 +49,13 @@ interface IPrepayment {
     )
         external
         view
-        returns (uint256 balance, uint64 reqCount, address owner, address[] memory consumers);
+        returns (
+            uint256 balance,
+            uint64 reqCount,
+            address owner,
+            address[] memory consumers,
+            IAccount.AccountType accType
+        );
 
     /**
      * @notice Get address of account owner.
@@ -106,6 +113,26 @@ interface IPrepayment {
      * @return accId - A unique account id
      */
     function createAccount() external returns (uint64);
+
+    function createFiatSubscriptionAccount(
+        uint256 startDate,
+        uint256 period,
+        uint256 reqPeriodCount,
+        address accOwner
+    ) external returns (uint64);
+
+    function createKlaySubscriptionAccount(
+        uint256 startDate,
+        uint256 period,
+        uint256 reqPeriodCount,
+        uint256 subscriptionPrice,
+        address accOwner
+    ) external returns (uint64);
+
+    function createKlayDiscountAccount(
+        uint256 feeRatio,
+        address accOwner
+    ) external returns (uint64);
 
     /**
      * @notice Create a temporary account to be used with a single
@@ -265,4 +292,28 @@ interface IPrepayment {
     function getBurnFeeRatio() external view returns (uint8);
 
     function getProtocolFeeRatio() external view returns (uint8);
+
+    function getAccountDetail(
+        uint64 accId
+    ) external view returns (uint256, uint256, uint256, uint256);
+
+    function getSubscriptionPaid(uint64 accId) external view returns (bool);
+
+    function isValidReq(uint64 accId) external view returns (bool);
+
+    function getFeeRatio(uint64 accId) external view returns (uint256);
+
+    function updateAccountDetail(
+        uint64 accId,
+        uint256 startTime,
+        uint256 endTime,
+        uint256 periodReqCount,
+        uint256 subscriptionPrice
+    ) external;
+
+    function setSubscriptionPaid(uint64 accId) external;
+
+    function setFeeRatio(uint64 accId, uint256 disCount) external;
+
+    function increaseSubReqCount(uint64 accId) external;
 }

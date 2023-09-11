@@ -53,6 +53,7 @@ contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
     struct TemporaryAccount {
         uint256 balance;
         address owner;
+        IAccount.AccountType accType;
     }
 
     /* accId */
@@ -74,7 +75,12 @@ contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
     error TooHighFeeRatio();
     error FailedToWithdrawFromTemporaryAccount(uint64 accId);
 
-    event AccountCreated(uint64 indexed accId, address account, address owner);
+    event AccountCreated(
+        uint64 indexed accId,
+        address account,
+        address owner,
+        IAccount.AccountType accType
+    );
     event TemporaryAccountCreated(uint64 indexed accId, address owner);
     event AccountCanceled(uint64 indexed accId, address to, uint256 amount);
     event AccountBalanceIncreased(uint64 indexed accId, uint256 oldBalance, uint256 newBalance);
@@ -88,6 +94,15 @@ contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
     event AccountOwnerTransferRequested(uint64 indexed accId, address from, address to);
     event AccountOwnerTransferred(uint64 indexed accId, address from, address to);
     event BurnedFee(uint64 indexed accId, uint256 amount);
+    event AccountDetailUpdated(
+        uint64 indexed accId,
+        uint256 startDate,
+        uint256 period,
+        uint256 reqPeriodCount
+    );
+    event AccountFeeRatioSet(uint64 indexed accId, uint256 disCount);
+    event AccountPeriodReqIncreased(uint64 indexed accId);
+    event AccountSubscriptionPaidSet(uint256 accId);
 
     /**
      * @dev The modifier is only for [regular] account. If called with
@@ -221,7 +236,13 @@ contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
     )
         external
         view
-        returns (uint256 balance, uint64 reqCount, address owner, address[] memory consumers)
+        returns (
+            uint256 balance,
+            uint64 reqCount,
+            address owner,
+            address[] memory consumers,
+            IAccount.AccountType accType
+        )
     {
         Account account = sAccIdToAccount[accId];
 
@@ -231,7 +252,13 @@ contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
         } else if (sIsTemporaryAccount[accId]) {
             // [temporary] account
             TemporaryAccount memory tmpAccConfig = sAccIdToTmpAcc[accId];
-            return (tmpAccConfig.balance, 0, tmpAccConfig.owner, consumers);
+            return (
+                tmpAccConfig.balance,
+                0,
+                tmpAccConfig.owner,
+                consumers,
+                IAccount.AccountType.TEMPORARY
+            );
         } else {
             revert InvalidAccount();
         }
@@ -254,15 +281,177 @@ contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
     /**
      * @inheritdoc IPrepayment
      */
+    function getAccountDetail(
+        uint64 accId
+    ) external view returns (uint256, uint256, uint256, uint256) {
+        Account account = sAccIdToAccount[accId];
+        if (address(account) == address(0)) revert InvalidAccount();
+        return account.getAccountDetail();
+    }
+
+    /**
+     * @inheritdoc IPrepayment
+     */
+    function getSubscriptionPaid(uint64 accId) external view returns (bool) {
+        Account account = sAccIdToAccount[accId];
+        if (address(account) == address(0)) revert InvalidAccount();
+        return account.getSubscriptionPaid();
+    }
+
+    /**
+     * @inheritdoc IPrepayment
+     */
+    function isValidReq(uint64 accId) external view returns (bool) {
+        Account account = sAccIdToAccount[accId];
+        if (address(account) == address(0)) revert InvalidAccount();
+        return account.isValidReq();
+    }
+
+    /**
+     * @inheritdoc IPrepayment
+     */
+    function getFeeRatio(uint64 accId) external view returns (uint256) {
+        Account account = sAccIdToAccount[accId];
+        if (address(account) == address(0)) revert InvalidAccount();
+        return account.getFeeRatio();
+    }
+
+    /**
+     * @inheritdoc IPrepayment
+     */
     function createAccount() external returns (uint64) {
         uint64 currentAccId = sCurrentAccId + 1;
         sCurrentAccId = currentAccId;
 
-        Account acc = new Account(currentAccId, msg.sender);
+        Account acc = new Account(currentAccId, msg.sender, IAccount.AccountType.KLAY_REGULAR);
         sAccIdToAccount[currentAccId] = acc;
 
-        emit AccountCreated(currentAccId, address(acc), msg.sender);
+        emit AccountCreated(
+            currentAccId,
+            address(acc),
+            msg.sender,
+            IAccount.AccountType.KLAY_REGULAR
+        );
         return currentAccId;
+    }
+
+    /**
+     * @inheritdoc IPrepayment
+     */
+    function createFiatSubscriptionAccount(
+        uint256 startDate,
+        uint256 period,
+        uint256 reqPeriodCount,
+        address accOwner
+    ) external onlyOwner returns (uint64) {
+        uint64 currentAccId = sCurrentAccId + 1;
+        sCurrentAccId = currentAccId;
+
+        Account acc = new Account(currentAccId, accOwner, IAccount.AccountType.FIAT_SUBSCRIPTION);
+        sAccIdToAccount[currentAccId] = acc;
+
+        acc.updateAccountDetail(startDate, period, reqPeriodCount, 0);
+
+        emit AccountCreated(
+            currentAccId,
+            address(acc),
+            accOwner,
+            IAccount.AccountType.FIAT_SUBSCRIPTION
+        );
+        return currentAccId;
+    }
+
+    /**
+     * @inheritdoc IPrepayment
+     */
+    function createKlaySubscriptionAccount(
+        uint256 startDate,
+        uint256 period,
+        uint256 reqPeriodCount,
+        uint256 subscriptionPrice,
+        address accOwner
+    ) external onlyOwner returns (uint64) {
+        uint64 currentAccId = sCurrentAccId + 1;
+        sCurrentAccId = currentAccId;
+
+        Account acc = new Account(currentAccId, accOwner, IAccount.AccountType.KLAY_SUBSCRIPTION);
+        sAccIdToAccount[currentAccId] = acc;
+        acc.updateAccountDetail(startDate, period, reqPeriodCount, subscriptionPrice);
+        emit AccountCreated(
+            currentAccId,
+            address(acc),
+            accOwner,
+            IAccount.AccountType.KLAY_SUBSCRIPTION
+        );
+        return currentAccId;
+    }
+
+    /**
+     * @inheritdoc IPrepayment
+     */
+
+    function createKlayDiscountAccount(
+        uint256 feeRatio,
+        address accOwner
+    ) external onlyOwner returns (uint64) {
+        uint64 currentAccId = sCurrentAccId + 1;
+        sCurrentAccId = currentAccId;
+        Account acc = new Account(currentAccId, accOwner, IAccount.AccountType.KLAY_DISCOUNT);
+        sAccIdToAccount[currentAccId] = acc;
+        acc.setFeeRatio(feeRatio);
+        emit AccountCreated(
+            currentAccId,
+            address(acc),
+            accOwner,
+            IAccount.AccountType.KLAY_DISCOUNT
+        );
+        return currentAccId;
+    }
+
+    /**
+     * @inheritdoc IPrepayment
+     */
+    function updateAccountDetail(
+        uint64 accId,
+        uint256 startTime,
+        uint256 period,
+        uint256 periodReqCount,
+        uint256 subscriptionPrice
+    ) external onlyOwner {
+        Account account = sAccIdToAccount[accId];
+        if (address(account) == address(0)) revert InvalidAccount();
+        account.updateAccountDetail(startTime, period, periodReqCount, subscriptionPrice);
+        emit AccountDetailUpdated(accId, startTime, period, periodReqCount);
+    }
+
+    /**
+     * @inheritdoc IPrepayment
+     */
+    function setSubscriptionPaid(uint64 accId) external onlyCoordinator {
+        Account account = sAccIdToAccount[accId];
+        if (address(account) == address(0)) revert InvalidAccount();
+        account.setSubscriptionPaid();
+        emit AccountSubscriptionPaidSet(accId);
+    }
+
+    /**
+     * @inheritdoc IPrepayment
+     */
+    function setFeeRatio(uint64 accId, uint256 disCount) external onlyOwner {
+        Account account = sAccIdToAccount[accId];
+        if (address(account) == address(0)) revert InvalidAccount();
+        account.setFeeRatio(disCount);
+        emit AccountFeeRatioSet(accId, disCount);
+    }
+
+    /**
+     * @inheritdoc IPrepayment
+     */
+    function increaseSubReqCount(uint64 accId) external onlyCoordinator {
+        Account account = sAccIdToAccount[accId];
+        if (address(account) == address(0)) revert InvalidAccount();
+        account.increaseSubReqCount();
+        emit AccountPeriodReqIncreased(accId);
     }
 
     /**
@@ -271,8 +460,11 @@ contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
     function createTemporaryAccount(address owner) external returns (uint64) {
         uint64 currentAccId = sCurrentAccId + 1;
         sCurrentAccId = currentAccId;
-
-        sAccIdToTmpAcc[currentAccId] = TemporaryAccount({balance: 0, owner: owner});
+        sAccIdToTmpAcc[currentAccId] = TemporaryAccount({
+            balance: 0,
+            owner: owner,
+            accType: IAccount.AccountType.TEMPORARY
+        });
         sIsTemporaryAccount[currentAccId] = true;
 
         emit TemporaryAccountCreated(currentAccId, owner);

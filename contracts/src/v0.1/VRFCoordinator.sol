@@ -48,6 +48,7 @@ contract VRFCoordinator is IVRFCoordinatorBase, CoordinatorBase, ITypeAndVersion
     error InvalidKeyHash(bytes32 keyHash);
     error NumWordsTooBig(uint32 have, uint32 want);
     error NoSuchProvingKey(bytes32 keyHash);
+    error InvalidAccRequest();
 
     event OracleRegistered(address indexed oracle, bytes32 keyHash);
     event OracleDeregistered(address indexed oracle, bytes32 keyHash);
@@ -158,9 +159,21 @@ contract VRFCoordinator is IVRFCoordinatorBase, CoordinatorBase, ITypeAndVersion
         uint32 callbackGasLimit,
         uint32 numWords
     ) external nonReentrant onlyValidKeyHash(keyHash) returns (uint256) {
-        (uint256 balance, uint64 reqCount, , ) = sPrepayment.getAccount(accId);
+        (uint256 balance, uint64 reqCount, , , IAccount.AccountType accType) = sPrepayment
+            .getAccount(accId);
+        bool isValidReq = sPrepayment.isValidReq(accId);
+        if (!isValidReq) {
+            revert InvalidAccRequest();
+        }
         uint8 numSubmission = 1;
-        uint256 minBalance = estimateFee(reqCount, numSubmission, callbackGasLimit);
+        uint256 minBalance = estimateFeeByAcc(
+            reqCount,
+            numSubmission,
+            callbackGasLimit,
+            accId,
+            accType
+        );
+
         if (balance < minBalance) {
             revert InsufficientPayment(balance, minBalance);
         }
@@ -269,20 +282,19 @@ contract VRFCoordinator is IVRFCoordinatorBase, CoordinatorBase, ITypeAndVersion
             if (operatorFee > 0) {
                 sPrepayment.chargeOperatorFeeTemporary(operatorFee, msg.sender);
             }
-
             return totalFee;
         } else {
             // [regular] account
-            uint64 reqCount = sPrepayment.getReqCount(rc.accId);
-            uint256 serviceFee = calculateServiceFee(reqCount);
-            uint256 operatorFee = sPrepayment.chargeFee(rc.accId, serviceFee);
-            uint256 gasFee = calculateGasCost(startGas);
-            uint256 fee = operatorFee + gasFee;
-            if (fee > 0) {
-                sPrepayment.chargeOperatorFee(rc.accId, fee, msg.sender);
-            }
-
-            return serviceFee + gasFee;
+            uint256 serviceFee = serviceFeeByAcc(rc.accId, rc.numWords);
+            if (serviceFee > 0) {
+                uint256 operatorFee = sPrepayment.chargeFee(rc.accId, serviceFee);
+                uint256 gasFee = calculateGasCost(startGas);
+                uint256 fee = operatorFee + gasFee;
+                if (fee > 0) {
+                    sPrepayment.chargeOperatorFee(rc.accId, fee, msg.sender);
+                }
+                return serviceFee + gasFee;
+            } else return 0;
         }
     }
 

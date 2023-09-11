@@ -2,8 +2,8 @@ const { expect } = require('chai')
 const { ethers } = require('hardhat')
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers')
 const { cancelAccount, deploy: deployPrepayment } = require('./Prepayment.utils.cjs')
-const { parseAccountCreatedTx } = require('./Account.utils.cjs')
-const { createSigners } = require('./utils.cjs')
+const { parseAccountCreatedTx, AccountType } = require('./Account.utils.cjs')
+const { createSigners, parseKlay } = require('./utils.cjs')
 
 async function deploy() {
   const {
@@ -31,8 +31,9 @@ describe('Account', function () {
 
     // Create account ///////////////////////////////////////////////////////////
     const tx = await (await prepayment.contract.connect(consumerSigner).createAccount()).wait()
-    const { accId, account, owner } = parseAccountCreatedTx(prepayment, tx)
+    const { accId, account, owner, accType } = parseAccountCreatedTx(prepayment, tx)
     expect(owner).to.be.equal(consumerSigner.address)
+    expect(accType).to.be.equal(AccountType.KLAY_REGULAR)
 
     // Access account metadata directly through deployed contract
     const accountContract = await ethers.getContractAt('Account', account, consumerSigner.address)
@@ -41,6 +42,21 @@ describe('Account', function () {
     expect(await accountContract.getBalance()).to.be.equal(0)
     expect(await accountContract.typeAndVersion()).to.be.equal('Account v0.1')
     expect(await accountContract.getPaymentSolution()).to.be.equal(prepayment.contract.address)
+
+    //Account can't set fee ratio, update account detail
+
+    await expect(accountContract.setFeeRatio(50)).to.be.revertedWithCustomError(
+      accountContract,
+      'MustBePaymentSolution'
+    )
+    const startTime = Math.round(new Date().getTime() / 1000) - 60 * 60
+    const period = 60 * 60 * 24 * 7
+    const requestNumber = 100
+    const subscriptionPrice = parseKlay(100)
+
+    await expect(
+      accountContract.updateAccountDetail(startTime, period, requestNumber, subscriptionPrice)
+    ).to.be.revertedWithCustomError(accountContract, 'MustBePaymentSolution')
 
     // Cancel account ///////////////////////////////////////////////////////////
     // Account cannot be canceled directly
