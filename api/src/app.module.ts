@@ -13,6 +13,7 @@ import { ListenerModule } from './listener/listener.module'
 import { VrfModule } from './vrf/vrf.module'
 import { ReporterModule } from './reporter/reporter.module'
 import { ErrorModule } from './error/error.module'
+import { ProxyModule } from './proxy/proxy.module'
 
 @Module({
   imports: [
@@ -26,7 +27,8 @@ import { ErrorModule } from './error/error.module'
     ListenerModule,
     VrfModule,
     ReporterModule,
-    ErrorModule
+    ErrorModule,
+    ProxyModule
   ],
   controllers: [AppController],
   providers: [AppService, ConfigService]
