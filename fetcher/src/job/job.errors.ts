@@ -15,5 +15,7 @@ export enum FetcherErrorCode {
   InvalidDataFeedFormat,
   InvalidReducer,
   MissingKeyInJson,
-  UnexpectedNumberOfJobs
+  UnexpectedNumberOfJobs,
+  UnexpectedNumberOfProxies,
+  InvalidUrl
 }

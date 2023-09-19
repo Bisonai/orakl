@@ -145,10 +145,19 @@ export function extractFeeds(
   threshold: number,
   absoluteThreshold: number,
   address: string,
-  proxies
+  proxies,
+  logger
 ) {
   const adapterHash = adapter.adapterHash
   const feeds = adapter.feeds.map((f) => {
+    let proxy = {}
+    try {
+      proxy = selectProxy(f.definition.url, proxies)
+    } catch (e) {
+      logger.error(`Assigning proxy has failed`)
+      logger.error(e)
+    }
+
     return {
       id: f.id,
       name: f.name,
@@ -156,7 +165,7 @@ export function extractFeeds(
       headers: f.definition.headers,
       method: f.definition.method,
       reducers: f.definition.reducers,
-      proxy: selectProxy(f.definition.url, proxies)
+      proxy
     }
   })
 
