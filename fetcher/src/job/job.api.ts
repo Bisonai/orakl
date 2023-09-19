@@ -112,3 +112,15 @@ export async function fetchDataFeed({
     logger.error(e)
   }
 }
+
+export async function loadProxies({ logger }: { logger: Logger }) {
+  try {
+    const url = buildUrl(process.env.ORAKL_NETWORK_API_URL, `proxy`)
+    const proxies = (await axios.get(url))?.data
+    return proxies
+  } catch (e) {
+    const msg = `Loading proxies failed.`
+    logger.error(msg)
+    throw new HttpException(msg, HttpStatus.BAD_REQUEST)
+  }
+}
