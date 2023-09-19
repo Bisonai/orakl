@@ -4,6 +4,9 @@ import { LOCAL_AGGREGATOR_FN } from './job.aggregator'
 import { FetcherError, FetcherErrorCode } from './job.errors'
 import { IAdapter, IFetchedData } from './job.types'
 
+let latestId = 0
+let proxySourceMap = {}
+
 export function buildUrl(host: string, path: string) {
   const url = [host, path].join('/')
   return url.replace(/([^:]\/)\/+/g, '$1')
@@ -19,9 +22,15 @@ export function buildUrl(host: string, path: string) {
 export async function fetchData(adapter, logger) {
   const data = await Promise.allSettled(
     adapter.map(async (a) => {
+      // Make request options with Proxy
       const options = {
         method: a.method,
-        headers: a.headers
+        headers: a.header,
+        proxy: {
+          protocol: a.proxy.protocol,
+          host: a.proxy.host,
+          port: a.proxy.port
+        }
       }
 
       try {
@@ -35,9 +44,25 @@ export async function fetchData(adapter, logger) {
         checkDataFormat(datum)
         return { id: a.id, value: datum }
       } catch (e) {
-        logger.error(`Error in ${a.name}`)
+        logger.error(`Fetching with proxy ${a.proxy.host} failed in ${a.name}`)
         logger.error(e)
-        throw e
+
+        // Make request options without Proxy
+        const options = {
+          method: a.method,
+          headers: a.headers
+        }
+        try {
+          const rawDatum = (await axios.get(a.url, options)).data
+          const reducers = buildReducer(DATA_FEED_REDUCER_MAPPING, a.reducers)
+          const datum = pipe(...reducers)(rawDatum)
+          checkDataFormat(datum)
+          return { id: a.id, value: datum }
+        } catch {
+          logger.error(`Error in ${a.name}`)
+          logger.error(e)
+          throw e
+        }
       }
     })
   )
@@ -92,13 +117,35 @@ function validateAdapter(adapter): IAdapter {
   }
 }
 
+function selectProxy(url: string, proxies) {
+  const source = url.split('/')[2]
+  const proxySize = proxies.length
+
+  if (!source) {
+    throw new FetcherError(FetcherErrorCode.InvalidUrl)
+  }
+  if (proxySize == 0) {
+    throw new FetcherError(FetcherErrorCode.UnexpectedNumberOfProxies)
+  }
+
+  if (source in proxySourceMap) {
+    proxySourceMap[source] = (proxySourceMap[source] + 1) % proxySize
+  } else {
+    proxySourceMap[source] = latestId
+    latestId = (latestId + 1) % proxySize
+  }
+
+  return proxies[proxySourceMap[source]]
+}
+
 export function extractFeeds(
   adapter,
   aggregatorId: bigint,
   aggregatorHash: string,
   threshold: number,
   absoluteThreshold: number,
-  address: string
+  address: string,
+  proxies
 ) {
   const adapterHash = adapter.adapterHash
   const feeds = adapter.feeds.map((f) => {
@@ -108,7 +155,8 @@ export function extractFeeds(
       url: f.definition.url,
       headers: f.definition.headers,
       method: f.definition.method,
-      reducers: f.definition.reducers
+      reducers: f.definition.reducers,
+      proxy: selectProxy(f.definition.url, proxies)
     }
   })
 

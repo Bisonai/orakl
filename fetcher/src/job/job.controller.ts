@@ -6,7 +6,8 @@ import {
   loadAggregator,
   activateAggregator,
   deactivateAggregator,
-  loadActiveAggregators
+  loadActiveAggregators,
+  loadProxies
 } from './job.api'
 import { FETCHER_QUEUE_NAME, FETCH_FREQUENCY, FETCHER_TYPE } from '../settings'
 
@@ -15,10 +16,11 @@ import { FETCHER_QUEUE_NAME, FETCH_FREQUENCY, FETCHER_TYPE } from '../settings'
 })
 export class JobController {
   private readonly logger = new Logger(JobController.name)
-
+  private proxyList = []
   constructor(@InjectQueue(FETCHER_QUEUE_NAME) private queue: Queue) {}
 
   async onModuleInit() {
+    this.proxyList = await loadProxies({ logger: this.logger })
     const chain = process.env.CHAIN
     const activeAggregators = await this.activeAggregators()
     for (const aggregator of activeAggregators) {
@@ -87,7 +89,8 @@ export class JobController {
       aggregator.aggregatorHash,
       aggregator.threshold,
       aggregator.absoluteThreshold,
-      aggregator.address
+      aggregator.address,
+      this.proxyList
     )
 
     // Launch recurrent data collection
