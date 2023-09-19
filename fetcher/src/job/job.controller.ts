@@ -90,7 +90,8 @@ export class JobController {
       aggregator.threshold,
       aggregator.absoluteThreshold,
       aggregator.address,
-      this.proxyList
+      this.proxyList,
+      this.logger
     )
 
     // Launch recurrent data collection
