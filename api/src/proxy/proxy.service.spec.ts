@@ -1,58 +1,47 @@
-// import { Test, TestingModule } from '@nestjs/testing'
-// import { ProxyService } from './proxy.service'
-// import { PrismaService } from '../prisma.service'
-// import { PrismaClient } from '@prisma/client'
+import { Test, TestingModule } from '@nestjs/testing'
+import { ProxyService } from './proxy.service'
+import { PrismaService } from '../prisma.service'
+import { PrismaClient } from '@prisma/client'
 
-// describe('ProxyService', () => {
-//   let proxy: ProxyService
-//   let prisma
+describe('ProxyService', () => {
+  let proxy: ProxyService
+  let prisma
 
-//   beforeEach(async () => {
-//     const module: TestingModule = await Test.createTestingModule({
-//       providers: [ProxyService, PrismaService]
-//     }).compile()
+  beforeEach(async () => {
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [ProxyService, PrismaService]
+    }).compile()
 
-//     proxy = module.get<ProxyService>(ProxyService)
-//     prisma = module.get<PrismaClient>(PrismaService)
-//   })
+    proxy = module.get<ProxyService>(ProxyService)
+    prisma = module.get<PrismaClient>(PrismaService)
+  })
 
-//   afterEach(async () => {
-//     jest.resetModules()
-//     await prisma.$disconnect()
-//   })
+  afterEach(async () => {
+    jest.resetModules()
+    await prisma.$disconnect()
+  })
 
-//   it('should be defined', () => {
-//     expect(proxy).toBeDefined()
-//   })
+  it('should be defined', () => {
+    expect(proxy).toBeDefined()
+  })
 
-//   it('should insert new proxy', async () => {
-//     const name = 'baobab'
-//     const ch = await proxy.create({ name })
-//     expect(ch.name).toBe(name)
+  it('should insert new proxy', async () => {
+    const proxyData = {
+      protocol: 'http',
+      host: '127.0.0.1',
+      port: '80'
+    }
+    const proxyObj = await proxy.create(proxyData)
+    expect(proxyObj.protocol).toBe(proxyData.protocol)
+    expect(proxyObj.host).toBe(proxyData.host)
+    expect(proxyObj.port).toBe(proxyData.port)
 
-//     // The same proxy cannot be defined twice
-//     await expect(async () => {
-//       await proxy.create({ name })
-//     }).rejects.toThrow()
+    // The same proxy cannot be defined twice
+    await expect(async () => {
+      await proxy.create(proxyData)
+    }).rejects.toThrow()
 
-//     // Cleanup
-//     await proxy.remove({ id: ch.id })
-//   })
-
-//   it('should update the name of proxy', async () => {
-//     const wrongName = 'cipress'
-//     const wrongProxy = await proxy.create({ name: wrongName })
-
-//     const name = 'cypress'
-//     const id = wrongProxy.id
-
-//     const ch = await proxy.update({
-//       where: { id },
-//       proxyDto: { name }
-//     })
-//     expect(ch.name).toBe(name)
-
-//     // Cleanup
-//     await proxy.remove({ id })
-//   })
-// })
+    // Cleanup
+    await proxy.remove({ id: proxyObj.id })
+  })
+})
