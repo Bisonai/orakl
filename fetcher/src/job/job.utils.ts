@@ -22,7 +22,6 @@ function isProxyDefined(adapter) {
 const INVALID_DATA = -1
 async function fetchCall(url: string, options, logger) {
   try {
-    // const result = (await axios.get('https://httpbin.org/ip', options)).data
     return (await axios.get(url, options)).data
   } catch (e) {
     logger.error(`Error in fetching data from ${url}: ${e.message}`)
