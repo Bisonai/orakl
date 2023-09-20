@@ -119,9 +119,16 @@ GET http://localhost:3000/api/v1/aggregator
 GET http://localhost:3000/api/v1/error
 ```
 
+### List all proxies
+
+```shell
+GET http://localhost:3000/api/v1/proxy
+```
+
 ## How to use?
 
 1. Insert `Chain`s (should be done only once, can be included in migration file)
 2. Insert `Adapter` (initial settings)
 3. Insert `Aggregator` (initial settings)
-4. Insert `Data` (during regular data fetching with Orakl Network Fetcher)
+4. Insert `Proxy` (during fetching data with Orakl Network Fetcher)
+5. Insert `Data` (during regular data fetching with Orakl Network Fetcher)

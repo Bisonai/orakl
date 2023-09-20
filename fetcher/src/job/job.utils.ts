@@ -2,11 +2,59 @@ import axios from 'axios'
 import { DATA_FEED_REDUCER_MAPPING } from './job.reducer'
 import { LOCAL_AGGREGATOR_FN } from './job.aggregator'
 import { FetcherError, FetcherErrorCode } from './job.errors'
-import { IAdapter, IFetchedData } from './job.types'
+import { IAdapter, IFetchedData, IProxy } from './job.types'
+import { Logger } from '@nestjs/common'
 
 export function buildUrl(host: string, path: string) {
   const url = [host, path].join('/')
   return url.replace(/([^:]\/)\/+/g, '$1')
+}
+
+function isProxyDefined(adapter) {
+  return (
+    adapter.proxy !== undefined &&
+    adapter.proxy.protocol !== undefined &&
+    adapter.proxy.host !== undefined &&
+    adapter.proxy.port !== undefined
+  )
+}
+
+const INVALID_DATA = -1
+async function fetchCall(url: string, options, logger) {
+  try {
+    return (await axios.get(url, options)).data
+  } catch (e) {
+    logger.error(`Error in fetching data from ${url}: ${e.message}`)
+    logger.error(e)
+    return INVALID_DATA
+  }
+}
+
+async function fetchRawDataWithProxy(adapter, logger) {
+  return fetchCall(
+    adapter.url,
+    {
+      method: adapter.method,
+      headers: adapter.headers,
+      proxy: {
+        protocol: adapter.proxy.protocol,
+        host: adapter.proxy.host,
+        port: adapter.proxy.port
+      }
+    },
+    logger
+  )
+}
+
+async function fetchRawDataWithoutProxy(adapter, logger) {
+  return fetchCall(
+    adapter.url,
+    {
+      method: adapter.method,
+      headers: adapter.headers
+    },
+    logger
+  )
 }
 
 /**
@@ -16,26 +64,29 @@ export function buildUrl(host: string, path: string) {
  * @param {} NestJs logger
  * @return {number} aggregatedresults
  */
-export async function fetchData(adapter, logger) {
+export async function fetchData(adapterList, logger) {
   const data = await Promise.allSettled(
-    adapter.map(async (a) => {
-      const options = {
-        method: a.method,
-        headers: a.headers
+    adapterList.map(async (adapter) => {
+      let rawDatum = INVALID_DATA
+      if (isProxyDefined(adapter)) {
+        rawDatum = await fetchRawDataWithProxy(adapter, logger)
       }
-
+      if (rawDatum === INVALID_DATA) {
+        rawDatum = await fetchRawDataWithoutProxy(adapter, logger)
+        if (rawDatum === INVALID_DATA) {
+          throw new Error(`Error in fetching data`)
+        }
+      }
       try {
-        const rawDatum = (await axios.get(a.url, options)).data
-
         // FIXME Build reducers just once and use. Currently, can't
         // be passed to queue, therefore has to be recreated before
         // every fetch.
-        const reducers = buildReducer(DATA_FEED_REDUCER_MAPPING, a.reducers)
+        const reducers = buildReducer(DATA_FEED_REDUCER_MAPPING, adapter.reducers)
         const datum = pipe(...reducers)(rawDatum)
         checkDataFormat(datum)
-        return { id: a.id, value: datum }
+        return { id: adapter.id, value: datum }
       } catch (e) {
-        logger.error(`Error in ${a.name}`)
+        logger.error(`Fetching with proxy ${adapter.proxy.host} failed in ${adapter.name}`)
         logger.error(e)
         throw e
       }
@@ -92,23 +143,57 @@ function validateAdapter(adapter): IAdapter {
   }
 }
 
+function selectProxyFn(proxies: IProxy[]) {
+  let latestId = 0
+  let proxySourceMap: { [host: string]: number } = {}
+
+  function wrapper(url: string): IProxy {
+    const source = new URL(url).host
+    const proxySize = proxies.length
+    if (proxySize == 0) {
+      return { protocol: undefined, host: undefined, port: undefined }
+    }
+
+    if (source in proxySourceMap) {
+      proxySourceMap[source] = (proxySourceMap[source] + 1) % proxySize
+    } else {
+      proxySourceMap[source] = latestId
+      latestId = (latestId + 1) % proxySize
+    }
+    return proxies[proxySourceMap[source]]
+  }
+  return wrapper
+}
+
 export function extractFeeds(
   adapter,
   aggregatorId: bigint,
   aggregatorHash: string,
   threshold: number,
   absoluteThreshold: number,
-  address: string
+  address: string,
+  proxies: IProxy[],
+  logger: Logger
 ) {
   const adapterHash = adapter.adapterHash
+  const proxySelector = selectProxyFn(proxies)
   const feeds = adapter.feeds.map((f) => {
+    let proxy: IProxy
+    try {
+      proxy = proxySelector(f.definition.url)
+    } catch (e) {
+      logger.error('Assigning proxy has failed')
+      logger.error(e)
+    }
+
     return {
       id: f.id,
       name: f.name,
       url: f.definition.url,
       headers: f.definition.headers,
       method: f.definition.method,
-      reducers: f.definition.reducers
+      reducers: f.definition.reducers,
+      proxy
     }
   })
 

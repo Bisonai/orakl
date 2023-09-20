@@ -10,6 +10,7 @@ import { aggregatorSub } from './aggregator'
 import { fetcherSub } from './fetcher'
 import { reporterSub } from './reporter'
 import { delegatorSub } from './delegator'
+import { proxySub } from './proxy'
 import { binary, subcommands, run } from 'cmd-ts'
 
 async function main() {
@@ -22,6 +23,7 @@ async function main() {
   const fetcher = fetcherSub()
   const reporter = reporterSub()
   const delegator = delegatorSub()
+  const proxy = proxySub()
 
   const version = command({
     name: 'version',
@@ -43,7 +45,8 @@ async function main() {
       fetcher,
       reporter,
       version,
-      delegator
+      delegator,
+      proxy
     }
   })
 

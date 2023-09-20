@@ -1,7 +1,7 @@
 import axios from 'axios'
 import { HttpStatus, HttpException, Logger } from '@nestjs/common'
 import { buildUrl } from './job.utils'
-import { IRawData, IData, IAggregator, IAggregate } from './job.types'
+import { IRawData, IData, IAggregator, IAggregate, IProxy } from './job.types'
 
 export async function loadActiveAggregators({ chain, logger }: { chain: string; logger: Logger }) {
   const AGGREGATOR_ENDPOINT = buildUrl(process.env.ORAKL_NETWORK_API_URL, 'aggregator')
@@ -110,5 +110,17 @@ export async function fetchDataFeed({
     return (await axios.get(url))?.data
   } catch (e) {
     logger.error(e)
+  }
+}
+
+export async function loadProxies({ logger }: { logger: Logger }): Promise<IProxy[]> {
+  try {
+    const url = buildUrl(process.env.ORAKL_NETWORK_API_URL, 'proxy')
+    const proxies: IProxy[] = (await axios.get(url))?.data
+    return proxies
+  } catch (e) {
+    const msg = 'Loading proxies failed.'
+    logger.error(msg)
+    throw new HttpException(msg, HttpStatus.BAD_REQUEST)
   }
 }
