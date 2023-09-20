@@ -29,7 +29,7 @@ describe('ProxyService', () => {
     const proxyData = {
       protocol: 'http',
       host: '127.0.0.1',
-      port: '80'
+      port: 80
     }
     const proxyObj = await proxy.create(proxyData)
     expect(proxyObj.protocol).toBe(proxyData.protocol)

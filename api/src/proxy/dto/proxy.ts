@@ -8,5 +8,5 @@ export class ProxyDto {
   host: string
 
   @ApiProperty()
-  port: string
+  port: number
 }

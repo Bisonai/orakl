@@ -1,5 +1,5 @@
 import axios from 'axios'
-import { command, subcommands, option, string as cmdstring } from 'cmd-ts'
+import { command, subcommands, option, string as cmdstring, number } from 'cmd-ts'
 import { idOption, buildUrl, isOraklNetworkApiHealthy } from './utils'
 import { ORAKL_NETWORK_API_URL } from './settings'
 
@@ -28,7 +28,7 @@ export function proxySub() {
         long: 'host'
       }),
       port: option({
-        type: cmdstring,
+        type: number,
         long: 'port'
       })
     },
@@ -74,7 +74,7 @@ export function insertHandler() {
   }: {
     protocol: string
     host: string
-    port: string
+    port: number
   }) {
     if (!(await isOraklNetworkApiHealthy())) return
 
