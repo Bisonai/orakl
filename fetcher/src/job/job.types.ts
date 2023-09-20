@@ -73,3 +73,9 @@ export interface IDeviationData {
   submission: number
   oracleAddress: string
 }
+
+export interface IProxy {
+  protocol: string | undefined
+  host: string | undefined
+  port: number | undefined
+}

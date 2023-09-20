@@ -10,13 +10,14 @@ import {
   loadProxies
 } from './job.api'
 import { FETCHER_QUEUE_NAME, FETCH_FREQUENCY, FETCHER_TYPE } from '../settings'
+import { IProxy } from './job.types'
 
 @Controller({
   version: '1'
 })
 export class JobController {
   private readonly logger = new Logger(JobController.name)
-  private proxyList = []
+  private proxyList: IProxy[] = []
   constructor(@InjectQueue(FETCHER_QUEUE_NAME) private queue: Queue) {}
 
   async onModuleInit() {
