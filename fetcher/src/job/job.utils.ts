@@ -67,18 +67,17 @@ async function fetchRawDataWithoutProxy(adapter, logger) {
 export async function fetchData(adapterList, logger) {
   const data = await Promise.allSettled(
     adapterList.map(async (adapter) => {
-      try {
-        let rawDatum = INVALID_DATA
-        if (isProxyDefined(adapter)) {
-          rawDatum = await fetchRawDataWithProxy(adapter, logger)
-        }
+      let rawDatum = INVALID_DATA
+      if (isProxyDefined(adapter)) {
+        rawDatum = await fetchRawDataWithProxy(adapter, logger)
+      }
+      if (rawDatum === INVALID_DATA) {
+        rawDatum = await fetchRawDataWithoutProxy(adapter, logger)
         if (rawDatum === INVALID_DATA) {
-          rawDatum = await fetchRawDataWithoutProxy(adapter, logger)
-          if (rawDatum === INVALID_DATA) {
-            throw new Error('Error in fetching data')
-          }
+          throw new Error(`Error in fetching data`)
         }
-
+      }
+      try {
         // FIXME Build reducers just once and use. Currently, can't
         // be passed to queue, therefore has to be recreated before
         // every fetch.
