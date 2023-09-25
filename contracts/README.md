@@ -41,6 +41,7 @@ touch `date +%Y%m%d%H%M%S_${MIGRATION_NAME}.json`
 ```
 
 ### Local Deployment
+
 For local testing, it is best to both launch node and deploy with a single command.
 The command below can be used for launching local test network.
 
