@@ -188,4 +188,5 @@ task('send-klay', 'Send $KLAY from faucet')
     console.log(`After balance of account ${to}: ${balanceKlay} Klay`)
     console.log(txReceipt)
   })
+
 module.exports = config
