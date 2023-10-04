@@ -153,4 +153,40 @@ task('set-burn-fee-ratio', 'Change the burn fee ratio')
     console.log(`Burn Fee Ratio changed from:${curBurnFeeRatio} to ${newBurnFeeRatio}`)
   })
 
+task('send-klay', 'Send $KLAY from faucet')
+  .addParam('address', 'The receiving address')
+  .addParam('amount', 'The amount of $KLAY to be send')
+  .setAction(async (taskArgs, hre) => {
+    let wallet
+    const PROVIDER = process.env.PROVIDER
+    const provider = new ethers.providers.JsonRpcProvider(PROVIDER)
+
+    if (process.env.PRIVATE_KEY) {
+      const PRIVATE_KEY = process.env.PRIVATE_KEY
+      wallet = await new ethers.Wallet(PRIVATE_KEY, provider)
+    } else {
+      const MNEMONIC = process.env.MNEMONIC
+      wallet = ethers.Wallet.fromMnemonic(MNEMONIC).connect(provider)
+    }
+
+    const to = taskArgs.address
+    const amount = taskArgs.amount
+    const value = ethers.utils.parseUnits(amount, 'ether')
+
+    console.log(`Transfer ${amount} Klay from ${wallet.address} to ${to}`)
+
+    const tx = {
+      from: wallet.address,
+      to: taskArgs.address,
+      value
+    }
+    const txReceipt = await (await wallet.sendTransaction(tx)).wait()
+
+    const balance = await provider.getBalance(to)
+    const balanceKlay = hre.web3.utils.fromWei(balance.toString(), 'ether')
+
+    console.log(`After balance of account ${to}: ${balanceKlay} Klay`)
+    console.log(txReceipt)
+  })
+
 module.exports = config
