@@ -158,19 +158,19 @@ task('send-klay', 'Send $KLAY from faucet')
   .addParam('amount', 'The amount of $KLAY to be send')
   .setAction(async (taskArgs, hre) => {
     let wallet
-    const PROVIDER = process.env.PROVIDER || ''
+    const PROVIDER = process.env.PROVIDER
     const provider = new ethers.providers.JsonRpcProvider(PROVIDER)
 
     if (process.env.PRIVATE_KEY) {
-      const PRIVATE_KEY = process.env.PRIVATE_KEY || ''
+      const PRIVATE_KEY = process.env.PRIVATE_KEY
       wallet = await new ethers.Wallet(PRIVATE_KEY, provider)
     } else {
-      const MNEMONIC = process.env.MNEMONIC || ''
+      const MNEMONIC = process.env.MNEMONIC
       wallet = ethers.Wallet.fromMnemonic(MNEMONIC).connect(provider)
     }
 
-    const to = taskArgs.address || ''
-    const amount = taskArgs.amount || '0'
+    const to = taskArgs.address
+    const amount = taskArgs.amount
     const value = ethers.utils.parseUnits(amount, 'ether')
 
     console.log(`Transfer ${amount} Klay from ${wallet.address} to ${to}`)
