@@ -23,10 +23,10 @@ async function main() {
   const startTime = Math.round(new Date().getTime() / 1000) - 60 * 60 // Start time in seconds
   const period = 60 * 60 * 24 * 7 // Duration in seconds
   const requestNumber = 10 // Number of requests
-  const accountOwner = '0x30E30C3B6313FF232E93593b883fC8A8AF8BB627'
+  const ownerAddress = '0x30E30C3B6313FF232E93593b883fC8A8AF8BB627'
 
   const txReceipt = await (
-    await prepayment.createFiatSubscriptionAccount(startTime, period, requestNumber, accountOwner)
+    await prepayment.createFiatSubscriptionAccount(startTime, period, requestNumber, ownerAddress)
   ).wait()
 
   const accId = txReceipt.events[0].args.accId.toString()
