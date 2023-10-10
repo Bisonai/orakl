@@ -1,5 +1,13 @@
+const {
+  ACC_ID,
+  PERIOD,
+  REQUEST_NUMBER,
+  START_TIME,
+  SUBSCRIPTION_PRICE,
+  PROVIDER_URL,
+  MNEMONIC
+} = require('./config.ts')
 const { ethers } = require('hardhat')
-const hre = require('hardhat')
 
 async function main() {
   const { network } = hre
@@ -9,22 +17,27 @@ async function main() {
     const { deployer } = await hre.getNamedAccounts()
     _deployerSigner = deployer
   } else {
-    const PROVIDER = process.env.PROVIDER
-    const MNEMONIC = process.env.MNEMONIC || ''
-    const provider = new ethers.providers.JsonRpcProvider(PROVIDER)
+    const provider = new ethers.providers.JsonRpcProvider(PROVIDER_URL)
     _deployerSigner = ethers.Wallet.fromMnemonic(MNEMONIC).connect(provider)
   }
 
-  // Get the Prepayment contract instance
+  // Get the Prepayment contract
   let prepayment = await ethers.getContract('Prepayment')
   prepayment = await ethers.getContractAt('Prepayment', prepayment.address, _deployerSigner)
 
-  // Input configuration to create Fiat Account
-  const accId = 1
-  const startTime = Math.round(new Date().getTime() / 1000) - 60 * 60 // Start time in seconds
-  const period = 60 * 60 * 24 * 7 // Duration in seconds
-  const requestNumber = 20 // Number of requests
-  const subscriptionPrice = ethers.utils.parseEther('1') // SubscriptionPrice in Klay
+  // Input configuration to update account details
+  const accId = ACC_ID
+  const startTime = START_TIME
+  const period = PERIOD
+  const requestNumber = REQUEST_NUMBER
+  const subscriptionPrice = SUBSCRIPTION_PRICE
+
+  console.log(`Input Params:`)
+  console.log(`Account Id:\t${accId}`)
+  console.log(`Start time:\t${startTime}`)
+  console.log(`Period:\t${period}`)
+  console.log(`Request number:\t${requestNumber}`)
+  console.log(`Subscription price:\t${subscriptionPrice}\n\n`)
 
   const txReceipt = await (
     await prepayment.updateAccountDetail(accId, startTime, period, requestNumber, subscriptionPrice)

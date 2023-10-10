@@ -1,29 +1,40 @@
+const {
+  START_TIME,
+  PERIOD,
+  REQUEST_NUMBER,
+  OWNER_ADDRESS,
+  PROVIDER_URL,
+  MNEMONIC
+} = require('./config.ts')
 const { ethers } = require('hardhat')
-const hre = require('hardhat')
 
 async function main() {
-  const { network } = hre
+  const { network, getNamedAccounts } = hre
   let _deployerSigner
 
   if (network.name == 'localhost') {
     const { deployer } = await hre.getNamedAccounts()
     _deployerSigner = deployer
   } else {
-    const PROVIDER = process.env.PROVIDER
-    const MNEMONIC = process.env.MNEMONIC || ''
-    const provider = new ethers.providers.JsonRpcProvider(PROVIDER)
+    const provider = new ethers.providers.JsonRpcProvider(PROVIDER_URL)
     _deployerSigner = ethers.Wallet.fromMnemonic(MNEMONIC).connect(provider)
   }
 
-  // Get the Prepayment contract instance
+  // Get the Prepayment contract
   let prepayment = await ethers.getContract('Prepayment')
   prepayment = await ethers.getContractAt('Prepayment', prepayment.address, _deployerSigner)
 
   // Input configuration to create Fiat Account
-  const startTime = Math.round(new Date().getTime() / 1000) - 60 * 60 // Start time in seconds
-  const period = 60 * 60 * 24 * 7 // Duration in seconds
-  const requestNumber = 10 // Number of requests
-  const ownerAddress = '0x30E30C3B6313FF232E93593b883fC8A8AF8BB627'
+  const startTime = START_TIME
+  const period = PERIOD
+  const requestNumber = REQUEST_NUMBER
+  const ownerAddress = OWNER_ADDRESS
+
+  console.log(`Input Params:`)
+  console.log(`Start time:\t${startTime}`)
+  console.log(`Period:\t${period}`)
+  console.log(`Request number:\t${requestNumber}`)
+  console.log(`Owner address:\t${ownerAddress} \n\n`)
 
   const txReceipt = await (
     await prepayment.createFiatSubscriptionAccount(startTime, period, requestNumber, ownerAddress)

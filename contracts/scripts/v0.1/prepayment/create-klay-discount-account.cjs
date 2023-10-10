@@ -1,5 +1,5 @@
+const { FEE_RATIO, OWNER_ADDRESS, PROVIDER_URL, MNEMONIC } = require('./config.ts')
 const { ethers } = require('hardhat')
-const hre = require('hardhat')
 
 async function main() {
   const { network } = hre
@@ -9,22 +9,20 @@ async function main() {
     const { deployer } = await hre.getNamedAccounts()
     _deployerSigner = deployer
   } else {
-    const PROVIDER = process.env.PROVIDER
-    const MNEMONIC = process.env.MNEMONIC || ''
-    const provider = new ethers.providers.JsonRpcProvider(PROVIDER)
+    const provider = new ethers.providers.JsonRpcProvider(PROVIDER_URL)
     _deployerSigner = ethers.Wallet.fromMnemonic(MNEMONIC).connect(provider)
   }
 
-  // Get the Prepayment contract instance
+  // Get the Prepayment contract
   let prepayment = await ethers.getContract('Prepayment')
   prepayment = await ethers.getContractAt('Prepayment', prepayment.address, _deployerSigner)
 
   // Input configuration to create Fiat Account
-  const feeRatio = 10000 // 100%
-  const ownerAddress = '0x30E30C3B6313FF232E93593b883fC8A8AF8BB627'
+  const feeRatio = FEE_RATIO
+  const ownerAddress = OWNER_ADDRESS
   console.log(`Input Params:`)
-  console.log(`fee ratio:\t${feeRatio}`)
-  console.log(`Owner Address:\t${ownerAddress}\n\n`)
+  console.log(`Fee ratio:\t${feeRatio}`)
+  console.log(`Owner address:\t${ownerAddress}\n\n`)
 
   const txReceipt = await (
     await prepayment.createKlayDiscountAccount(feeRatio, ownerAddress)

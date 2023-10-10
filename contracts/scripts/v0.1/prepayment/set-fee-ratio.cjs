@@ -1,5 +1,5 @@
+const { FEE_RATIO, ACC_ID, PROVIDER_URL, MNEMONIC } = require('./config.ts')
 const { ethers } = require('hardhat')
-const hre = require('hardhat')
 
 async function main() {
   const { network } = hre
@@ -9,22 +9,21 @@ async function main() {
     const { deployer } = await hre.getNamedAccounts()
     _deployerSigner = deployer
   } else {
-    const PROVIDER = process.env.PROVIDER
-    const MNEMONIC = process.env.MNEMONIC || ''
-    const provider = new ethers.providers.JsonRpcProvider(PROVIDER)
+    const provider = new ethers.providers.JsonRpcProvider(PROVIDER_URL)
     _deployerSigner = ethers.Wallet.fromMnemonic(MNEMONIC).connect(provider)
   }
 
-  // Get the Prepayment contract instance
+  // Get the Prepayment contract
   let prepayment = await ethers.getContract('Prepayment')
   prepayment = await ethers.getContractAt('Prepayment', prepayment.address, _deployerSigner)
 
   // Input configuration to create Fiat Account
-  const accId = 1
-  const feeRatio = 9500 // 95%
+  const accId = ACC_ID
+  const feeRatio = FEE_RATIO
+
   console.log(`Input Params:`)
   console.log(`Account Id:\t${accId}`)
-  console.log(`Fee ratio:\t${feeRatio}`)
+  console.log(`Fee ratio:\t${feeRatio}\n\n`)
 
   const txReceipt = await (await prepayment.setFeeRatio(accId, feeRatio)).wait()
 
