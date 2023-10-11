@@ -93,7 +93,6 @@ export async function sendTransaction({
   _logger.debug(tx, 'tx')
 
   try {
-    // Evaluate transaction against current blockchain state. Throws an exception when transaction fails.
     await wallet.call(tx)
     const txReceipt = await (await wallet.sendTransaction(tx)).wait(1)
     _logger.debug(txReceipt, 'txReceipt')
@@ -190,7 +189,6 @@ export async function sendTransactionDelegatedFee({
 
   try {
     if (response?.signedRawTx) {
-      // Evaluate transaction against current blockchain state. Throws an exception when transaction fails.
       await wallet.caver.rpc.klay.call(response.signedRawTx)
       const txReceipt = await wallet.caver.rpc.klay.sendRawTransaction(response.signedRawTx)
       _logger.debug(txReceipt, 'txReceipt')
@@ -233,8 +231,6 @@ export async function sendTransactionCaver({
     const tx = wallet.caver.transaction.smartContractExecution.create(txParams)
     await tx.fillTransaction()
     await wallet.caver.wallet.sign(wallet.address, tx)
-
-    // Evaluate transaction against current blockchain state. Throws an exception when transaction fails.
     await wallet.caver.rpc.klay.call(tx)
     const txReceipt = await wallet.caver.rpc.klay.sendRawTransaction(tx.getRawTransaction())
     _logger.debug(txReceipt, 'txReceipt')
