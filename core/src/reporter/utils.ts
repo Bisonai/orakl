@@ -93,6 +93,7 @@ export async function sendTransaction({
   _logger.debug(tx, 'tx')
 
   try {
+    await wallet.call(tx)
     const txReceipt = await (await wallet.sendTransaction(tx)).wait(1)
     _logger.debug(txReceipt, 'txReceipt')
     if (txReceipt === null) {
@@ -188,6 +189,7 @@ export async function sendTransactionDelegatedFee({
 
   try {
     if (response?.signedRawTx) {
+      await wallet.caver.rpc.klay.call(response.signedRawTx)
       const txReceipt = await wallet.caver.rpc.klay.sendRawTransaction(response.signedRawTx)
       _logger.debug(txReceipt, 'txReceipt')
       return txReceipt
@@ -229,6 +231,7 @@ export async function sendTransactionCaver({
     const tx = wallet.caver.transaction.smartContractExecution.create(txParams)
     await tx.fillTransaction()
     await wallet.caver.wallet.sign(wallet.address, tx)
+    await wallet.caver.rpc.klay.call(tx)
     const txReceipt = await wallet.caver.rpc.klay.sendRawTransaction(tx.getRawTransaction())
     _logger.debug(txReceipt, 'txReceipt')
   } catch (e) {
