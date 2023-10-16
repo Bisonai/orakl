@@ -115,6 +115,41 @@ describe('L2Endpoint', function () {
     expect(submitterCount).to.be.equal(0)
   })
 
+  it('Add and remove invalid aggregator,submitter ', async function () {
+    const { aggregator, endpoint } = await loadFixture(deploy)
+    await endpoint.contract.addAggregator(aggregator.contract.address)
+    await expect(
+      endpoint.contract.addAggregator(aggregator.contract.address)
+    ).to.be.revertedWithCustomError(endpoint.contract, 'InvalidAggregator')
+
+    await endpoint.contract.addSubmitter(endpoint.signer.address)
+    await expect(
+      endpoint.contract.addSubmitter(endpoint.signer.address)
+    ).to.be.revertedWithCustomError(endpoint.contract, 'InvalidSubmitter')
+
+    let aggreatorCount = await endpoint.contract.aggregatorCount()
+    expect(aggreatorCount).to.be.equal(1)
+
+    let submitterCount = await endpoint.contract.submitterCount()
+    expect(submitterCount).to.be.equal(1)
+
+    await endpoint.contract.removeAggregator(aggregator.contract.address)
+    await expect(
+      endpoint.contract.removeAggregator(aggregator.contract.address)
+    ).to.be.revertedWithCustomError(endpoint.contract, 'InvalidAggregator')
+
+    await endpoint.contract.removeSubmitter(endpoint.signer.address)
+    await expect(
+      endpoint.contract.removeSubmitter(endpoint.signer.address)
+    ).to.be.revertedWithCustomError(endpoint.contract, 'InvalidSubmitter')
+
+    aggreatorCount = await endpoint.contract.aggregatorCount()
+    expect(aggreatorCount).to.be.equal(0)
+
+    submitterCount = await endpoint.contract.submitterCount()
+    expect(submitterCount).to.be.equal(0)
+  })
+
   it('Submit & Read Response', async function () {
     const { aggregator, aggregatorProxy, endpoint, consumer } = await loadFixture(deploy)
     await changeOracles(aggregator.contract, [], [endpoint.contract])
