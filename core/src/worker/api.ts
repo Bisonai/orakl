@@ -153,3 +153,18 @@ export async function storeErrorMsg({ data, logger }: { data: IErrorMsgData; log
     throw new OraklError(OraklErrorCode.FailedToStoreErrorMsg)
   }
 }
+
+/**
+ * Get l2 oracle address by l2 address
+ * @param {string} l1 oracle address
+ * @returns
+ */
+export async function getL2AddressGivenL1Address({
+  oracleAddress,
+  logger
+}: {
+  oracleAddress: string
+  logger: Logger
+}) {
+  return { l2OracleAddress: '' }
+}
