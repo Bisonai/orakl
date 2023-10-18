@@ -79,21 +79,22 @@ model Adapter {
 }
 
 model Aggregator {
-  id                BigInt      @id @default(autoincrement()) @map("aggregator_id")
-  aggregatorHash    String      @map("aggregator_hash")
-  active            Boolean     @default(false)
+  id                BigInt           @id @default(autoincrement()) @map("aggregator_id")
+  aggregatorHash    String           @map("aggregator_hash")
+  active            Boolean          @default(false)
   name              String
-  address           String      @unique
+  address           String           @unique
   heartbeat         Int
   threshold         Float
-  absoluteThreshold Float       @map("absolute_threshold")
+  absoluteThreshold Float            @map("absolute_threshold")
   Data              Data[]
-  adapter           Adapter     @relation(fields: [adapterId], references: [id])
-  adapterId         BigInt      @map("adapter_id")
-  chain             Chain       @relation(fields: [chainId], references: [id])
-  chainId           BigInt      @map("chain_id")
+  adapter           Adapter          @relation(fields: [adapterId], references: [id])
+  adapterId         BigInt           @map("adapter_id")
+  chain             Chain            @relation(fields: [chainId], references: [id])
+  chainId           BigInt           @map("chain_id")
   Aggregate         Aggregate[]
-  fetcherType       Int         @default(0) @map("fetcher_type")
+  fetcherType       Int              @default(0) @map("fetcher_type")
+  LatestSubmission  LastSubmission[]
 
   @@unique([aggregatorHash, chainId])
   @@map("aggregators")
@@ -120,6 +121,16 @@ model Aggregate {
 
   @@index([aggregatorId, timestamp(sort: Desc)])
   @@map("aggregates")
+}
+
+model LastSubmission {
+  id           BigInt     @id @default(autoincrement()) @map("submission_id")
+  timestamp    DateTime   @db.Timestamptz
+  value        BigInt
+  aggregator   Aggregator @relation(fields: [aggregatorId], references: [id], onDelete: Cascade)
+  aggregatorId BigInt     @unique() @map("aggregator_id")
+
+  @@map("last_submission")
 }
 
 model Reporter {
