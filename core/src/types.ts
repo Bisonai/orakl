@@ -356,3 +356,11 @@ export interface IErrorMsgData {
   name: string
   stack: string
 }
+
+export interface IL2AggregatorPair {
+  id: bigint
+  l1AggregatorAddress: string
+  l2AggregatorAddress: string
+  chainId: bigint
+  active: Boolean
+}

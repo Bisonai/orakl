@@ -35,6 +35,7 @@ export const REPORTER_PORT = process.env.REPORTER_PORT || 6_000
 export const DATA_FEED_SERVICE_NAME = 'DATA_FEED'
 export const VRF_SERVICE_NAME = 'VRF'
 export const REQUEST_RESPONSE_SERVICE_NAME = 'REQUEST_RESPONSE'
+export const DATA_FEED_L2_SERVICE_NAME = 'DATA_FEED_L2'
 
 // Data Feed
 export const MAX_DATA_STALENESS = 5_000
@@ -71,8 +72,12 @@ export const REPORTER_REQUEST_RESPONSE_QUEUE_NAME = `${DEPLOYMENT_NAME}-reporter
 export const REPORTER_VRF_QUEUE_NAME = `${DEPLOYMENT_NAME}-reporter-vrf-queue`
 export const REPORTER_AGGREGATOR_QUEUE_NAME = `${DEPLOYMENT_NAME}-reporter-aggregator-queue`
 export const WORKER_DEVIATION_QUEUE_NAME = `orakl-deviation-queue`
+export const REPORTER_AGGREGATOR_L2_QUEUE_NAME = `${DEPLOYMENT_NAME}-reporter-aggregator-l2-queue`
 
 export const HEARTBEAT_JOB_NAME = `${DEPLOYMENT_NAME}-heartbeat-job`
+
+export const L2_CHAIN = process.env.L2_CHAIN || 'localhost'
+export const L2_PROVIDER_URL = process.env.L2_PROVIDER_URL || 'http://127.0.0.1:8545'
 
 export const ALL_QUEUES = [
   LISTENER_REQUEST_RESPONSE_LATEST_QUEUE_NAME,
@@ -92,7 +97,8 @@ export const ALL_QUEUES = [
   WORKER_CHECK_HEARTBEAT_QUEUE_NAME,
   REPORTER_REQUEST_RESPONSE_QUEUE_NAME,
   REPORTER_VRF_QUEUE_NAME,
-  REPORTER_AGGREGATOR_QUEUE_NAME
+  REPORTER_AGGREGATOR_QUEUE_NAME,
+  WORKER_AGGREGATOR_L2_QUEUE_NAME
 ]
 
 export const VRF_LISTENER_STATE_NAME = `${DEPLOYMENT_NAME}-listener-vrf-state`
@@ -103,10 +109,12 @@ export const DATA_FEED_LISTENER_L2_STATE_NAME = `${DEPLOYMENT_NAME}-listener-dat
 // export const VRF_WORKER_STATE_NAME = `${DEPLOYMENT_NAME}-worker-vrf-state`
 // export const REQUEST_RESPONSE_WORKER_STATE_NAME = `${DEPLOYMENT_NAME}-worker-request-response-state`
 export const DATA_FEED_WORKER_STATE_NAME = `${DEPLOYMENT_NAME}-worker-data-feed-state`
+export const DATA_FEED_WORKER_L2_STATE_NAME = `${DEPLOYMENT_NAME}-worker-data-feed-l2-state`
 
 export const VRF_REPORTER_STATE_NAME = `${DEPLOYMENT_NAME}-reporter-vrf-state`
 export const REQUEST_RESPONSE_REPORTER_STATE_NAME = `${DEPLOYMENT_NAME}-reporter-request-response-state`
 export const DATA_FEED_REPORTER_STATE_NAME = `${DEPLOYMENT_NAME}-reporter-data-feed-state`
+export const DATA_FEED_REPORTER_L2_STATE_NAME = `${DEPLOYMENT_NAME}-reporter-data-feed-l2-state`
 
 export const BULLMQ_CONNECTION = {
   concurrency: CONCURRENCY,

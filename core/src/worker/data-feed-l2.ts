@@ -3,45 +3,27 @@ import { Worker, Queue, Job } from 'bullmq'
 import { Logger } from 'pino'
 import type { RedisClientType } from 'redis'
 import { Aggregator__factory } from '@bisonai/orakl-contracts'
-import {
-  getAggregatorGivenAddress,
-  getAggregators,
-  fetchDataFeed,
-  getL2AddressGivenL1Address
-} from './api'
+import { getAggregators, getL2AddressGivenL1Address } from './api'
 import { State } from './state'
-import { OraklError, OraklErrorCode } from '../errors'
-import {
-  IDataFeedListenerWorker,
-  IAggregatorHeartbeatWorker,
-  IAggregatorSubmitHeartbeatWorker,
-  QueueType
-} from '../types'
+import { IDataFeedListenerWorker, QueueType } from '../types'
 import {
   BULLMQ_CONNECTION,
-  CHAIN,
-  DATA_FEED_WORKER_STATE_NAME,
   DEPLOYMENT_NAME,
   HEARTBEAT_QUEUE_NAME,
   REMOVE_ON_COMPLETE,
-  REPORTER_AGGREGATOR_QUEUE_NAME,
   SUBMIT_HEARTBEAT_QUEUE_NAME,
-  SUBMIT_HEARTBEAT_QUEUE_SETTINGS,
-  WORKER_AGGREGATOR_QUEUE_NAME,
-  WORKER_CHECK_HEARTBEAT_QUEUE_NAME,
-  MAX_DATA_STALENESS,
-  DATA_FEED_FULFILL_GAS_MINIMUM
+  DATA_FEED_FULFILL_GAS_MINIMUM,
+  L2_CHAIN,
+  REPORTER_AGGREGATOR_L2_QUEUE_NAME,
+  WORKER_AGGREGATOR_L2_QUEUE_NAME,
+  DATA_FEED_WORKER_L2_STATE_NAME
 } from '../settings'
-import { buildSubmissionRoundJobId, buildHeartbeatJobId } from '../utils'
-import {
-  oracleRoundStateCall,
-  buildTransaction,
-  isStale,
-  getRoundDataCall
-} from './data-feed.utils'
+import { buildSubmissionRoundJobId } from '../utils'
+import { buildTransaction, getRoundDataCall } from './data-feed.utils'
 import { watchman } from './watchman'
-import { getOperatorAddress } from '../api'
-import { IDeviationData } from './types'
+import { OraklError, OraklErrorCode } from '../errors'
+import { getOperatorAddress, getOperatorAddressL2 } from '../api'
+import { oracleRoundStateCallL2 } from './data-feed-l2.utils'
 
 const FILE_NAME = import.meta.url
 
@@ -59,30 +41,32 @@ export async function worker(redisClient: RedisClientType, _logger: Logger) {
   // Queues
   const heartbeatQueue = new Queue(HEARTBEAT_QUEUE_NAME, BULLMQ_CONNECTION)
   const submitHeartbeatQueue = new Queue(SUBMIT_HEARTBEAT_QUEUE_NAME, BULLMQ_CONNECTION)
-  const reporterQueue = new Queue(REPORTER_AGGREGATOR_QUEUE_NAME, BULLMQ_CONNECTION)
+  const reporterQueue = new Queue(REPORTER_AGGREGATOR_L2_QUEUE_NAME, BULLMQ_CONNECTION)
   const state = new State({
     redisClient,
-    stateName: DATA_FEED_WORKER_STATE_NAME,
+    stateName: DATA_FEED_WORKER_L2_STATE_NAME,
     heartbeatQueue,
     submitHeartbeatQueue,
-    chain: CHAIN,
+    chain: L2_CHAIN,
     logger
   })
   await state.clear()
 
-  const activeAggregators = await getAggregators({ chain: CHAIN, active: true, logger })
+  const activeAggregators = await getAggregators({ chain: L2_CHAIN, active: true, logger })
   if (activeAggregators.length == 0) {
     logger.warn('No active aggregators')
   }
 
   // Launch all active aggregators
   for (const aggregator of activeAggregators) {
+    logger.info('active aggregators')
+
     await state.add(aggregator.aggregatorHash)
   }
 
   // [aggregator] worker
   const aggregatorWorker = new Worker(
-    WORKER_AGGREGATOR_QUEUE_NAME,
+    WORKER_AGGREGATOR_L2_QUEUE_NAME,
     aggregatorJob(reporterQueue, _logger),
     {
       ...BULLMQ_CONNECTION
@@ -90,13 +74,13 @@ export async function worker(redisClient: RedisClientType, _logger: Logger) {
   )
   aggregatorWorker.on('error', (e) => {
     logger.error(e)
+    console.log(e)
   })
 
   const watchmanServer = await watchman({ state, logger })
 
   async function handleExit() {
     logger.info('Exiting. Wait for graceful shutdown.')
-
     await redisClient.quit()
     await aggregatorWorker.close()
     await watchmanServer.close()
@@ -127,55 +111,69 @@ export function aggregatorJob(reporterQueue: QueueType, _logger: Logger) {
 
   async function wrapper(job: Job) {
     const inData: IDataFeedListenerWorker = job.data
-    logger.debug(inData, 'inData')
-    const { oracleAddress, roundId, workerSource } = inData
+    logger.info(inData, 'inData')
+    console.log(inData, 'inData')
 
+    const { oracleAddress, roundId: l1RoundId, workerSource } = inData
     try {
       // TODO store in ephemeral state
-      const { aggregatorHash, heartbeat: delay } = await getAggregatorGivenAddress({
+      const { l2AggregatorAddress } = await getL2AddressGivenL1Address({
         oracleAddress,
+        chain: L2_CHAIN,
         logger
       })
 
-      const { l2OracleAddress } = await getL2AddressGivenL1Address({
-        oracleAddress,
+      const { answer } = await getRoundDataCall({ oracleAddress, roundId: l1RoundId })
+
+      logger.debug({ oracleAddress, fetchedData: answer }, 'Latest data')
+      const operatorAddress = await getOperatorAddressL2({
+        oracleAddress: l2AggregatorAddress,
         logger
       })
-
-      const { answer } = await getRoundDataCall({ oracleAddress, roundId })
-      logger.debug({ aggregatorHash, fetchedData: answer }, 'Latest data')
-
-      const tx = buildTransaction({
-        payloadParameters: {
-          roundId,
-          submission: answer.toBigInt()
-        },
-        to: l2OracleAddress,
-        gasMinimum: DATA_FEED_FULFILL_GAS_MINIMUM,
-        iface,
+      const oracleRoundState = await oracleRoundStateCallL2({
+        oracleAddress: l2AggregatorAddress,
+        operatorAddress,
         logger
       })
-      logger.debug(tx, 'tx')
+      logger.debug(oracleRoundState, 'oracleRoundState')
 
-      await reporterQueue.add(workerSource, tx, {
-        jobId: buildSubmissionRoundJobId({
-          oracleAddress,
-          roundId,
-          deploymentName: DEPLOYMENT_NAME
-        }),
-        removeOnComplete: REMOVE_ON_COMPLETE,
-        // Reporter job can fail, and should be either retried or
-        // removed. We need to remove the job after repeated failure
-        // to prevent deadlock when running with a single node operator.
-        // After removing the job on failure, we can resubmit the job
-        // with the same unique ID representing the submission for
-        // specific aggregator on specific round.
-        //
-        // FIXME Rethink!
-        removeOnFail: true
-      })
+      const { roundId, eligibleToSubmit } = oracleRoundState
 
-      return tx
+      if (eligibleToSubmit) {
+        const tx = buildTransaction({
+          payloadParameters: {
+            roundId,
+            submission: answer.toBigInt()
+          },
+          to: l2AggregatorAddress,
+          gasMinimum: DATA_FEED_FULFILL_GAS_MINIMUM,
+          iface,
+          logger
+        })
+        logger.debug(tx, 'tx')
+
+        await reporterQueue.add(workerSource, tx, {
+          jobId: buildSubmissionRoundJobId({
+            oracleAddress,
+            roundId,
+            deploymentName: DEPLOYMENT_NAME
+          }),
+          removeOnComplete: REMOVE_ON_COMPLETE,
+          // Reporter job can fail, and should be either retried or
+          // removed. We need to remove the job after repeated failure
+          // to prevent deadlock when running with a single node operator.
+          // After removing the job on failure, we can resubmit the job
+          // with the same unique ID representing the submission for
+          // specific aggregator on specific round.
+          //
+          // FIXME Rethink!
+          removeOnFail: true
+        })
+        return tx
+      } else {
+        const msg = `Non-eligible to submit for oracle ${oracleAddress} with operator ${operatorAddress}`
+        throw new OraklError(OraklErrorCode.NonEligibleToSubmit, msg)
+      }
     } catch (e) {
       // `FailedToFetchFromDataFeed` exception can be raised from `prepareDataForReporter`.
       // `aggregatorJob` is being triggered by either `fixed` or `event` worker.

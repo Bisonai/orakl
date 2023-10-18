@@ -1,7 +1,13 @@
 import axios from 'axios'
 import { Logger } from 'pino'
 import { IVrfConfig, IReporterConfig } from './types'
-import { ORAKL_NETWORK_API_URL, DATA_FEED_SERVICE_NAME, CHAIN } from './settings'
+import {
+  ORAKL_NETWORK_API_URL,
+  DATA_FEED_SERVICE_NAME,
+  CHAIN,
+  DATA_FEED_L2_SERVICE_NAME,
+  L2_CHAIN
+} from './settings'
 import { buildUrl } from './utils'
 import { OraklError, OraklErrorCode } from './errors'
 
@@ -150,6 +156,25 @@ export async function getOperatorAddress({
     await getReporterByOracleAddress({
       service: DATA_FEED_SERVICE_NAME,
       chain: CHAIN,
+      oracleAddress,
+      logger
+    })
+  ).address
+}
+
+export async function getOperatorAddressL2({
+  oracleAddress,
+  logger
+}: {
+  oracleAddress: string
+  logger: Logger
+}) {
+  logger.debug('getOperatorAddress')
+
+  return await (
+    await getReporterByOracleAddress({
+      service: DATA_FEED_L2_SERVICE_NAME,
+      chain: L2_CHAIN,
       oracleAddress,
       logger
     })

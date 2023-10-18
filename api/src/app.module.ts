@@ -14,6 +14,7 @@ import { VrfModule } from './vrf/vrf.module'
 import { ReporterModule } from './reporter/reporter.module'
 import { ErrorModule } from './error/error.module'
 import { ProxyModule } from './proxy/proxy.module'
+import { L2aggregatorModule } from './l2aggregator/l2aggregator.module';
 
 @Module({
   imports: [
@@ -28,7 +29,8 @@ import { ProxyModule } from './proxy/proxy.module'
     VrfModule,
     ReporterModule,
     ErrorModule,
-    ProxyModule
+    ProxyModule,
+    L2aggregatorModule
   ],
   controllers: [AppController],
   providers: [AppService, ConfigService]

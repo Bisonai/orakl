@@ -1,7 +1,7 @@
 import axios from 'axios'
 import { URL } from 'node:url'
 import { Logger } from 'pino'
-import { IAggregator, IAggregate, IErrorMsgData } from '../types'
+import { IAggregator, IAggregate, IErrorMsgData, IL2AggregatorPair } from '../types'
 import { OraklError, OraklErrorCode } from '../errors'
 import { ORAKL_NETWORK_API_URL } from '../settings'
 import { buildUrl } from '../utils'
@@ -9,6 +9,7 @@ import { buildUrl } from '../utils'
 export const AGGREGATE_ENDPOINT = buildUrl(ORAKL_NETWORK_API_URL, 'aggregate')
 export const AGGREGATOR_ENDPOINT = buildUrl(ORAKL_NETWORK_API_URL, 'aggregator')
 export const ERROR_ENDPOINT = buildUrl(ORAKL_NETWORK_API_URL, 'error')
+export const L2AGGREGATOR_ENDPOINT = buildUrl(ORAKL_NETWORK_API_URL, 'l2aggregator')
 
 /**
  * Fetch aggregate data from `Orakl Network API` data feed endpoint
@@ -161,10 +162,19 @@ export async function storeErrorMsg({ data, logger }: { data: IErrorMsgData; log
  */
 export async function getL2AddressGivenL1Address({
   oracleAddress,
+  chain,
   logger
 }: {
   oracleAddress: string
+  chain: string
   logger: Logger
-}) {
-  return { l2OracleAddress: '' }
+}): Promise<IL2AggregatorPair> {
+  try {
+    const url = buildUrl(L2AGGREGATOR_ENDPOINT, `${oracleAddress}/${chain}`)
+    const response = (await axios.get(url))?.data
+    return response
+  } catch (e) {
+    logger.error(e)
+    throw new OraklError(OraklErrorCode.FailedToGetAggregator)
+  }
 }

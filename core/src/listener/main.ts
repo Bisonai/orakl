@@ -12,11 +12,13 @@ import { hookConsoleError } from '../utils'
 import { IListeners } from './types'
 import { createClient } from 'redis'
 import { launchHealthCheck } from '../health-check'
+import { buildListener as buildDataFeedListenerL2 } from './data-feed-l2'
 
 const LISTENERS: IListeners = {
   DATA_FEED: buildDataFeedListener,
   VRF: buildVrfListener,
-  REQUEST_RESPONSE: buildRequestResponseListener
+  REQUEST_RESPONSE: buildRequestResponseListener,
+  DATA_FEED_L2: buildDataFeedListenerL2
 }
 
 const FILE_NAME = import.meta.url

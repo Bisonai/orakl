@@ -9,11 +9,13 @@ import { buildLogger } from '../logger'
 import { launchHealthCheck } from '../health-check'
 import { hookConsoleError } from '../utils'
 import { REDIS_HOST, REDIS_PORT } from '../settings'
+import { worker as dataFeedWorkerL2 } from './data-feed-l2'
 
 const WORKERS: IWorkers = {
   DATA_FEED: dataFeedWorker,
   VRF: vrfWorker,
-  REQUEST_RESPONSE: requestResponseWorker
+  REQUEST_RESPONSE: requestResponseWorker,
+  DATA_FEED_L2: dataFeedWorkerL2
 }
 
 const LOGGER = buildLogger()
