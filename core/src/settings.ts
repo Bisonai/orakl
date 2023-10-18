@@ -47,12 +47,17 @@ export const CONCURRENCY = 12
 export const LISTENER_REQUEST_RESPONSE_LATEST_QUEUE_NAME = `${DEPLOYMENT_NAME}-listener-request-response-latest-queue`
 export const LISTENER_VRF_LATEST_QUEUE_NAME = `${DEPLOYMENT_NAME}-listener-vrf-latest-queue`
 export const LISTENER_DATA_FEED_LATEST_QUEUE_NAME = `${DEPLOYMENT_NAME}-listener-data-feed-latest-queue`
+export const LISTENER_DATA_FEED_L2_LATEST_QUEUE_NAME = `${DEPLOYMENT_NAME}-listener-data-feed-l2-latest-queue`
+
 export const LISTENER_REQUEST_RESPONSE_HISTORY_QUEUE_NAME = `${DEPLOYMENT_NAME}-listener-request-response-history-queue`
 export const LISTENER_VRF_HISTORY_QUEUE_NAME = `${DEPLOYMENT_NAME}-listener-vrf-history-queue`
 export const LISTENER_DATA_FEED_HISTORY_QUEUE_NAME = `${DEPLOYMENT_NAME}-listener-data-feed-history-queue`
+export const LISTENER_DATA_FEED_L2_HISTORY_QUEUE_NAME = `${DEPLOYMENT_NAME}-listener-data-feed-l2-history-queue`
+
 export const LISTENER_REQUEST_RESPONSE_PROCESS_EVENT_QUEUE_NAME = `${DEPLOYMENT_NAME}-listener-request-response-process-event-queue`
 export const LISTENER_VRF_PROCESS_EVENT_QUEUE_NAME = `${DEPLOYMENT_NAME}-listener-vrf-process-event-queue`
 export const LISTENER_DATA_FEED_PROCESS_EVENT_QUEUE_NAME = `${DEPLOYMENT_NAME}-listener-data-feed-process-event-queue`
+export const LISTENER_DATA_FEED_L2_PROCESS_EVENT_QUEUE_NAME = `${DEPLOYMENT_NAME}-listener-data-feed-l2-process-event-queue`
 
 export const SUBMIT_HEARTBEAT_QUEUE_NAME = `${DEPLOYMENT_NAME}-submitheartbeat-queue`
 export const HEARTBEAT_QUEUE_NAME = `${DEPLOYMENT_NAME}-heartbeat-queue`
@@ -60,6 +65,8 @@ export const WORKER_REQUEST_RESPONSE_QUEUE_NAME = `${DEPLOYMENT_NAME}-worker-req
 export const WORKER_VRF_QUEUE_NAME = `${DEPLOYMENT_NAME}-worker-vrf-queue`
 export const WORKER_AGGREGATOR_QUEUE_NAME = `${DEPLOYMENT_NAME}-worker-aggregator-queue`
 export const WORKER_CHECK_HEARTBEAT_QUEUE_NAME = `${DEPLOYMENT_NAME}-worker-checkheartbeat-queue`
+export const WORKER_AGGREGATOR_L2_QUEUE_NAME = `${DEPLOYMENT_NAME}-worker-aggregator-l2-queue`
+
 export const REPORTER_REQUEST_RESPONSE_QUEUE_NAME = `${DEPLOYMENT_NAME}-reporter-request-response-queue`
 export const REPORTER_VRF_QUEUE_NAME = `${DEPLOYMENT_NAME}-reporter-vrf-queue`
 export const REPORTER_AGGREGATOR_QUEUE_NAME = `${DEPLOYMENT_NAME}-reporter-aggregator-queue`
@@ -91,6 +98,7 @@ export const ALL_QUEUES = [
 export const VRF_LISTENER_STATE_NAME = `${DEPLOYMENT_NAME}-listener-vrf-state`
 export const REQUEST_RESPONSE_LISTENER_STATE_NAME = `${DEPLOYMENT_NAME}-listener-request-response-state`
 export const DATA_FEED_LISTENER_STATE_NAME = `${DEPLOYMENT_NAME}-listener-data-feed-state`
+export const DATA_FEED_LISTENER_L2_STATE_NAME = `${DEPLOYMENT_NAME}-listener-data-feed-state`
 
 // export const VRF_WORKER_STATE_NAME = `${DEPLOYMENT_NAME}-worker-vrf-state`
 // export const REQUEST_RESPONSE_WORKER_STATE_NAME = `${DEPLOYMENT_NAME}-worker-request-response-state`
