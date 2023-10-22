@@ -14,7 +14,7 @@ import { VrfModule } from './vrf/vrf.module'
 import { ReporterModule } from './reporter/reporter.module'
 import { ErrorModule } from './error/error.module'
 import { ProxyModule } from './proxy/proxy.module'
-import { LastSumbissionModule } from './last-sumbission/last-sumbission.module';
+import { LastSubmissionModule } from './last-submission/last-submission.module'
 
 @Module({
   imports: [
@@ -30,7 +30,7 @@ import { LastSumbissionModule } from './last-sumbission/last-sumbission.module';
     ReporterModule,
     ErrorModule,
     ProxyModule,
-    LastSumbissionModule
+    LastSubmissionModule
   ],
   controllers: [AppController],
   providers: [AppService, ConfigService]

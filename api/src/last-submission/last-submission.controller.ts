@@ -10,7 +10,7 @@ export class LastSubmissionController {
   constructor(private readonly lastSubmissionService: LastSubmissionService) {}
 
   @Post()
-  async create(@Body('data') lastSubmissionDto: LastSubmissionDto) {
+  async create(@Body() lastSubmissionDto: LastSubmissionDto) {
     return this.lastSubmissionService.create(lastSubmissionDto)
   }
 

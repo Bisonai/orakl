@@ -2,7 +2,6 @@ import { Injectable } from '@nestjs/common'
 import { LastSubmissionDto } from './dto/last-submission.dto'
 import { Prisma } from '@prisma/client'
 import { PrismaService } from '../prisma.service'
-import { LatestSubmittionDto } from './dto/latest-submission.dto'
 
 @Injectable()
 export class LastSubmissionService {
@@ -26,7 +25,7 @@ export class LastSubmissionService {
     orderBy?: Prisma.LastSubmissionOrderByWithRelationInput
   }) {
     const { skip, take, cursor, where, orderBy } = params
-    return await this.prisma.LastSubmission.findMany({
+    return await this.prisma.lastSubmission.findMany({
       skip,
       take,
       cursor,
