@@ -1,0 +1,16 @@
+{
+  "deploy": {
+    "name": "JOY-USDT",
+    "timeout": 0,
+    "validator": "0x0000000000000000000000000000000000000000",
+    "decimals": 8,
+    "description": "JOY-USDT"
+  },
+  "changeOracles": {
+    "removed": [],
+    "added": ["0x9FE3754926224a917c527506c8C256a0ef9c5103"],
+    "minSubmissionCount": 1,
+    "maxSubmissionCount": 1,
+    "restartDelay": 0
+  }
+}
