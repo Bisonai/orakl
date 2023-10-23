@@ -94,6 +94,12 @@ export interface INewRound {
   startedAt: BigNumber
 }
 
+export interface IAnswerUpdated {
+  current: BigNumber
+  roundId: BigNumber
+  updatedAt: BigNumber
+}
+
 // Listener -> Worker
 
 export interface IRequestResponseListenerWorker {
@@ -125,6 +131,13 @@ export interface IVrfListenerWorker {
 export interface IDataFeedListenerWorker {
   oracleAddress: string
   roundId: number
+  workerSource: string
+}
+
+export interface IDataFeedListenerWorkerL2 {
+  oracleAddress: string
+  roundId: number
+  answer: number
   workerSource: string
 }
 

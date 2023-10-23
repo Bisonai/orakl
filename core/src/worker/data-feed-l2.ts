@@ -5,7 +5,7 @@ import type { RedisClientType } from 'redis'
 import { Aggregator__factory } from '@bisonai/orakl-contracts'
 import { getAggregators, getL2AddressGivenL1Address } from './api'
 import { State } from './state'
-import { IDataFeedListenerWorker, QueueType } from '../types'
+import { IDataFeedListenerWorker, IDataFeedListenerWorkerL2, QueueType } from '../types'
 import {
   BULLMQ_CONNECTION,
   DEPLOYMENT_NAME,
@@ -110,9 +110,8 @@ export function aggregatorJob(reporterQueue: QueueType, _logger: Logger) {
   const iface = new ethers.utils.Interface(Aggregator__factory.abi)
 
   async function wrapper(job: Job) {
-    const inData: IDataFeedListenerWorker = job.data
+    const inData: IDataFeedListenerWorkerL2 = job.data
     logger.info(inData, 'inData')
-    console.log(inData, 'inData')
 
     const { oracleAddress, roundId: l1RoundId, workerSource } = inData
     try {
@@ -123,13 +122,14 @@ export function aggregatorJob(reporterQueue: QueueType, _logger: Logger) {
         logger
       })
 
-      const { answer } = await getRoundDataCall({ oracleAddress, roundId: l1RoundId })
-
+      const answer = inData.answer
+      console.log('answer', answer.toString())
       logger.debug({ oracleAddress, fetchedData: answer }, 'Latest data')
       const operatorAddress = await getOperatorAddressL2({
         oracleAddress: l2AggregatorAddress,
         logger
       })
+
       const oracleRoundState = await oracleRoundStateCallL2({
         oracleAddress: l2AggregatorAddress,
         operatorAddress,
@@ -143,7 +143,7 @@ export function aggregatorJob(reporterQueue: QueueType, _logger: Logger) {
         const tx = buildTransaction({
           payloadParameters: {
             roundId,
-            submission: answer.toBigInt()
+            submission: BigInt(answer)
           },
           to: l2AggregatorAddress,
           gasMinimum: DATA_FEED_FULFILL_GAS_MINIMUM,

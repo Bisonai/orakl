@@ -4,9 +4,13 @@ import type { RedisClientType } from 'redis'
 import { Aggregator__factory } from '@bisonai/orakl-contracts'
 import { listenerService } from './listener'
 import { ProcessEventOutputType } from './types'
-import { IListenerConfig, INewRound, IDataFeedListenerWorker } from '../types'
+import {
+  IListenerConfig,
+  IDataFeedListenerWorker,
+  IAnswerUpdated,
+  IDataFeedListenerWorkerL2
+} from '../types'
 import { buildSubmissionRoundJobId } from '../utils'
-import { getOperatorAddress } from '../api'
 import {
   DEPLOYMENT_NAME,
   CHAIN,
@@ -29,7 +33,7 @@ export async function buildListener(
   const stateName = DATA_FEED_LISTENER_L2_STATE_NAME
   const service = DATA_FEED_L2_SERVICE_NAME
   const chain = CHAIN
-  const eventName = 'NewRound'
+  const eventName = 'AnswerUpdated'
   const latestQueueName = LISTENER_DATA_FEED_L2_LATEST_QUEUE_NAME
   const historyQueueName = LISTENER_DATA_FEED_L2_HISTORY_QUEUE_NAME
   const processEventQueueName = LISTENER_DATA_FEED_L2_PROCESS_EVENT_QUEUE_NAME
@@ -59,7 +63,7 @@ async function processEvent({ iface, logger }: { iface: ethers.utils.Interface; 
   const _logger = logger.child({ name: 'processEvent', file: FILE_NAME })
 
   async function wrapper(log): Promise<ProcessEventOutputType | undefined> {
-    const eventData = iface.parseLog(log).args as unknown as INewRound
+    const eventData = iface.parseLog(log).args as unknown as IAnswerUpdated
     _logger.debug(eventData, 'eventData')
 
     const oracleAddress = log.address
@@ -71,9 +75,10 @@ async function processEvent({ iface, logger }: { iface: ethers.utils.Interface; 
       roundId,
       deploymentName: DEPLOYMENT_NAME
     })
-    const jobData: IDataFeedListenerWorker = {
+    const jobData: IDataFeedListenerWorkerL2 = {
       oracleAddress,
       roundId,
+      answer: eventData.current.toNumber(),
       workerSource: 'event'
     }
     _logger.debug(jobData, 'jobData')

@@ -5,7 +5,8 @@ import {
   IRequestResponseListenerWorker,
   IDataFeedListenerWorker,
   IVrfListenerWorker,
-  IListenerConfig
+  IListenerConfig,
+  IDataFeedListenerWorkerL2
 } from '../types'
 
 export interface IListeners {
@@ -40,7 +41,12 @@ interface IJobQueueSettings {
 }
 
 export type ProcessEventOutputType = {
-  jobData: IRequestResponseListenerWorker | IDataFeedListenerWorker | IVrfListenerWorker | null
+  jobData:
+    | IRequestResponseListenerWorker
+    | IDataFeedListenerWorker
+    | IVrfListenerWorker
+    | IDataFeedListenerWorkerL2
+    | null
   jobId: string
   jobName: string
   jobQueueSettings?: IJobQueueSettings
