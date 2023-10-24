@@ -8,5 +8,5 @@ export class LastSubmissionDto {
   timestamp: string | Date
 
   @ApiProperty()
-  value: number
+  value: bigint
 }

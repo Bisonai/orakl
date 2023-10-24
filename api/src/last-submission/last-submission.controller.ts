@@ -32,6 +32,11 @@ export class LastSubmissionController {
     })
   }
 
+  @Post('upsert')
+  async upsert(@Body() lastSubmissionDto: LastSubmissionDto) {
+    return this.lastSubmissionService.upsert(lastSubmissionDto)
+  }
+
   @Delete(':id')
   async remove(@Param('id') id: string) {
     return this.lastSubmissionService.remove({ id: Number(id) })

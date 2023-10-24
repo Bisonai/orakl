@@ -11,7 +11,7 @@ export class LastSubmissionService {
     const data: Prisma.LastSubmissionUncheckedCreateInput = {
       timestamp: new Date(lastSubmissionDto.timestamp),
       value: lastSubmissionDto.value,
-      aggregatorId: BigInt(lastSubmissionDto.aggregatorId)
+      aggregatorId: lastSubmissionDto.aggregatorId
     }
 
     return await this.prisma.lastSubmission.create({ data })
@@ -51,31 +51,16 @@ export class LastSubmissionService {
     })
   }
 
-  async upsert(data: LastSubmissionDto) {
-    const id = 1
-    Object.assign(data, { id })
-    return await this.prisma.lastSubmission.upsert({
-      where: { id },
-      create: data,
-      update: data
-    })
+  async upsert(lastSubmissionDto: LastSubmissionDto) {
+    const data: Prisma.LastSubmissionUpsertArgs = {
+      where: {
+        aggregatorId: BigInt(lastSubmissionDto.aggregatorId)
+      },
+      create: lastSubmissionDto,
+      update: lastSubmissionDto
+    }
+    return await this.prisma.lastSubmission.upsert(data)
   }
-
-  // /*
-  //  * `findLatest` is used by Aggregator heartbeat process that
-  //  * periodically requests the latest aggregated data.
-  //  */
-  // async findLatest(data: LatestSubmittionDto) {
-  //   const { aggregatorHash } = data
-  //   return await this.prisma.lastSubmission.findFirst({
-  //     where: { aggregator: { aggregatorHash } },
-  //     orderBy: [
-  //       {
-  //         timestamp: 'desc'
-  //       }
-  //     ]
-  //   })
-  // }
 
   async remove(where: Prisma.AggregateWhereUniqueInput) {
     return await this.prisma.lastSubmission.delete({
