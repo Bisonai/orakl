@@ -15,7 +15,6 @@ describe('LastSubmissionService', () => {
 
     submissionData = {
       aggregatorId: BigInt(1),
-      timestamp: new Date(Date.now()),
       value: BigInt(1000)
     }
     service = module.get<LastSubmissionService>(LastSubmissionService)
@@ -59,7 +58,6 @@ describe('LastSubmissionService', () => {
     })
     expect(submissionUpdateObj.value).toBe(submissionData.value)
     expect(submissionUpdateObj.aggregatorId).toBe(submissionData.aggregatorId)
-    expect(submissionUpdateObj.timestamp.toString()).toBe(submissionData.timestamp.toString())
 
     // Cleanup
     await service.remove({ id: submissionUpdateObj.id })
@@ -69,7 +67,6 @@ describe('LastSubmissionService', () => {
     const submissionUpsertObj = await service.upsert(submissionData)
     expect(submissionUpsertObj.value).toBe(submissionData.value)
     expect(submissionUpsertObj.aggregatorId).toBe(submissionData.aggregatorId)
-    expect(submissionUpsertObj.timestamp.toString()).toBe(submissionData.timestamp.toString())
     // Cleanup
     await service.remove({ id: submissionUpsertObj.id })
   })
@@ -79,10 +76,9 @@ describe('LastSubmissionService', () => {
     expect(submissionCreateObj.value).toBe(submissionData.value)
     expect(submissionCreateObj.aggregatorId).toBe(submissionData.aggregatorId)
 
-    // Upsert with updated value & timestamp
+    // Upsert with updated value
     const submissionUpsertData: LastSubmissionDto = {
       aggregatorId: submissionData.aggregatorId,
-      timestamp: new Date(Date.now()),
       value: BigInt(2000)
     }
 
@@ -92,7 +88,6 @@ describe('LastSubmissionService', () => {
 
     expect(submissionUpsertObj.aggregatorId).toBe(submissionUpsertData.aggregatorId)
     expect(submissionUpsertObj.value).toEqual(submissionUpsertData.value)
-    expect(submissionUpsertObj.timestamp.toString()).toBe(submissionUpsertData.timestamp.toString())
 
     // Cleanup
     await service.remove({ id: submissionUpsertObj.id })
@@ -103,13 +98,11 @@ describe('LastSubmissionService', () => {
 
     expect(submissionCreateObj.value).toBe(submissionData.value)
     expect(submissionCreateObj.aggregatorId).toBe(submissionData.aggregatorId)
-    expect(submissionCreateObj.timestamp.toString()).toBe(submissionData.timestamp.toString())
 
     // Find with Aggregator Id
     const findObj = await service.findOne({ aggregatorId: submissionData.aggregatorId })
     expect(findObj.aggregatorId).toBe(submissionData.aggregatorId)
     expect(findObj.value).toBe(submissionData.value)
-    expect(findObj.timestamp.toString()).toBe(submissionData.timestamp.toString())
     // Cleanup
     await service.remove({ id: submissionCreateObj.id })
   })

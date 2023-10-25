@@ -9,7 +9,7 @@ export class LastSubmissionService {
 
   async create(lastSubmissionDto: LastSubmissionDto) {
     const data: Prisma.LastSubmissionUncheckedCreateInput = {
-      timestamp: new Date(lastSubmissionDto.timestamp),
+      timestamp: new Date(),
       value: lastSubmissionDto.value,
       aggregatorId: lastSubmissionDto.aggregatorId
     }
@@ -45,20 +45,33 @@ export class LastSubmissionService {
     lastSubmissionDto: LastSubmissionDto
   }) {
     const { where, lastSubmissionDto } = params
+    const data = {
+      timestamp: new Date(),
+      value: lastSubmissionDto.value,
+      aggregatorId: lastSubmissionDto.aggregatorId
+    }
+
     return await this.prisma.lastSubmission.update({
-      data: lastSubmissionDto,
+      data,
       where
     })
   }
 
   async upsert(lastSubmissionDto: LastSubmissionDto) {
+    const submissionData: Prisma.LastSubmissionUncheckedCreateInput = {
+      timestamp: new Date(),
+      value: lastSubmissionDto.value,
+      aggregatorId: lastSubmissionDto.aggregatorId
+    }
+
     const data: Prisma.LastSubmissionUpsertArgs = {
       where: {
-        aggregatorId: BigInt(lastSubmissionDto.aggregatorId)
+        aggregatorId: BigInt(submissionData.aggregatorId)
       },
-      create: lastSubmissionDto,
-      update: lastSubmissionDto
+      create: submissionData,
+      update: submissionData
     }
+
     return await this.prisma.lastSubmission.upsert(data)
   }
 

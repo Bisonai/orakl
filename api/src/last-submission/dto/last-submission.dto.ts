@@ -5,8 +5,5 @@ export class LastSubmissionDto {
   aggregatorId: bigint
 
   @ApiProperty()
-  timestamp: string | Date
-
-  @ApiProperty()
   value: bigint
 }
