@@ -71,6 +71,15 @@ export class AggregatorController {
     })
   }
 
+  @Get(':address')
+  async findByAddress(@Param('address') address: string) {
+    return await this.aggregatorService.findAll({
+      where: {
+        address
+      }
+    })
+  }
+
   /**
    * Find unique `Aggregator` given `aggregatorHash` and `chain`.
    * Used by `Orakl Network Aggregator` to receive metadata about
