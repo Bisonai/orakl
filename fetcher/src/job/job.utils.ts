@@ -218,7 +218,6 @@ export function extractFeeds(
  *
  * @param {number} latestSubmission submission value
  * @param {number} submission submission value
- * @param {number} decimal configuration
  * @param {number} threshold configuration
  * @param {number} absoluteThreshold threshold configuration
  * @return {boolean}
@@ -226,11 +225,9 @@ export function extractFeeds(
 export function shouldReport(
   latestSubmission: number,
   submission: number,
-  decimals: number,
   threshold: number,
   absoluteThreshold: number
 ): boolean {
-  console.log('ShouldReport:', latestSubmission, submission, decimals, threshold, absoluteThreshold)
   if (latestSubmission && submission) {
     const range = latestSubmission * threshold
     const l = latestSubmission - range

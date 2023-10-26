@@ -29,7 +29,6 @@ export class JobProcessor extends WorkerHost {
       const aggregate = aggregateData(data)
       const threshold = inData[adapterHash].threshold
       const absoluteThreshold = inData[adapterHash].absoluteThreshold
-      const decimals = inData[adapterHash].decimals
 
       const oracleAddress = inData[adapterHash].address
       const aggregatorHash = inData[adapterHash].aggregatorHash
@@ -52,9 +51,7 @@ export class JobProcessor extends WorkerHost {
           submission: aggregate,
           oracleAddress
         }
-        if (
-          shouldReport(Number(lastSubmission), aggregate, decimals, threshold, absoluteThreshold)
-        ) {
+        if (shouldReport(Number(lastSubmission), aggregate, threshold, absoluteThreshold)) {
           this.deviationQueue.add('fetcher-submission', outData, {
             removeOnFail: true,
             removeOnComplete: true
