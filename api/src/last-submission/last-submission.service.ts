@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common'
 import { LastSubmissionDto } from './dto/last-submission.dto'
 import { Prisma } from '@prisma/client'
 import { PrismaService } from '../prisma.service'
+import { LastestSubmissionDto } from './dto/latest-submission.dto'
 
 @Injectable()
 export class LastSubmissionService {
@@ -37,6 +38,18 @@ export class LastSubmissionService {
   async findOne(lastSubmissionWhereUniqueInput: Prisma.LastSubmissionWhereUniqueInput) {
     return await this.prisma.lastSubmission.findUnique({
       where: lastSubmissionWhereUniqueInput
+    })
+  }
+
+  async findByhash(lastestSubmissionDto: LastestSubmissionDto) {
+    const { aggregatorHash } = lastestSubmissionDto
+    return await this.prisma.lastSubmission.findFirst({
+      where: { aggregator: { aggregatorHash } },
+      orderBy: [
+        {
+          timestamp: 'desc'
+        }
+      ]
     })
   }
 

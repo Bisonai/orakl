@@ -24,6 +24,11 @@ export class LastSubmissionController {
     return this.lastSubmissionService.findOne({ id: Number(id) })
   }
 
+  @Get(':hash/latest')
+  async findByhash(@Param('hash') aggregatorHash: string) {
+    return await this.lastSubmissionService.findByhash({ aggregatorHash })
+  }
+
   @Patch(':id')
   async update(@Param('id') id: string, @Body() lastSubmissionDto: LastSubmissionDto) {
     return this.lastSubmissionService.update({
