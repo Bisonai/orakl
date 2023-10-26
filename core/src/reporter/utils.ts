@@ -7,6 +7,9 @@ import { OraklError, OraklErrorCode } from '../errors'
 import { ORAKL_NETWORK_DELEGATOR_URL } from '../settings'
 import { add0x, buildUrl } from '../utils'
 import { ITransactionData } from '../types'
+import { ISubmissionData } from './types'
+import { Aggregator__factory } from '@bisonai/orakl-contracts'
+import { loadAggregatorByAddress } from './api'
 
 const FILE_NAME = import.meta.url
 
@@ -250,4 +253,34 @@ export async function sendTransactionCaver({
     _logger.error(e)
     throw new OraklError(OraklErrorCode.CaverTxTransactionFailed)
   }
+}
+
+async function extractSubmissionData(input: string) {
+  const iface = new ethers.utils.Interface(Aggregator__factory.abi)
+  console.log('Iface')
+
+  const [roundId, submission] = iface.decodeFunctionData('submit', input)
+  console.log('Aggregator Submission:', submission)
+  console.log('RoundId:', roundId)
+  return Number(submission)
+}
+
+export async function makeSubmissionData({
+  to,
+  payload,
+  logger
+}: {
+  to: string
+  payload: string
+  logger?: Logger
+}) {
+  const aggregator = await loadAggregatorByAddress({ address: to, logger })
+  const aggregatorId = Number(aggregator.id)
+
+  const submission = await extractSubmissionData(payload)
+  const lastSubmission: ISubmissionData = {
+    aggregatorId,
+    value: submission
+  }
+  return lastSubmission
 }

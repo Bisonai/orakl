@@ -1,9 +1,16 @@
 import { Job } from 'bullmq'
 import { Logger } from 'pino'
-import { sendTransaction, sendTransactionDelegatedFee, sendTransactionCaver } from './utils'
+import {
+  sendTransaction,
+  sendTransactionDelegatedFee,
+  sendTransactionCaver,
+  makeSubmissionData
+} from './utils'
 import { State } from './state'
 import { ITransactionParameters } from '../types'
 import { OraklError, OraklErrorCode } from '../errors'
+import { storeSubmission } from '../reporter/api'
+import { ISubmissionData } from './types'
 
 export function reporter(state: State, logger: Logger) {
   async function wrapper(job: Job) {
@@ -60,6 +67,20 @@ export function reporter(state: State, logger: Logger) {
           logger.info(`Retrying transaction. Trial number: ${i}`)
         }
       }
+    }
+
+    const submissionData: ISubmissionData = await makeSubmissionData({
+      to,
+      payload,
+      logger
+    })
+    try {
+      const response = await storeSubmission({ submissionData, logger })
+      logger.info(`Submission is stored.`, response.data)
+    } catch (e) {
+      logger.error('Storing Submission data failed.')
+      logger.error('submissionData:', submissionData)
+      throw e
     }
   }
 
