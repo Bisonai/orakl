@@ -3,7 +3,7 @@ import { Logger } from '@nestjs/common'
 import { Job, Queue } from 'bullmq'
 import { FetcherError, FetcherErrorCode } from './job.errors'
 import { fetchData, aggregateData, shouldReport } from './job.utils'
-import { insertMultipleData, insertAggregateData, fetchDataFeed } from './job.api'
+import { insertMultipleData, insertAggregateData, loadLastSubmissionData } from './job.api'
 import { DEVIATION_QUEUE_NAME, FETCHER_QUEUE_NAME, WORKER_OPTS } from '../settings'
 import { IDeviationData } from './job.types'
 
@@ -35,7 +35,7 @@ export class JobProcessor extends WorkerHost {
       const aggregatorHash = inData[adapterHash].aggregatorHash
 
       try {
-        const { value: lastSubmission } = await fetchDataFeed({
+        const { value: lastSubmission } = await loadLastSubmissionData({
           aggregatorHash,
           logger: this.logger
         })

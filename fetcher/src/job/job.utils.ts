@@ -216,10 +216,11 @@ export function extractFeeds(
  * submission more than given threshold or absolute threshold. If yes,
  * return `true`, otherwise `false`.
  *
- * @param {number} latest submission value
- * @param {number} current submission value
+ * @param {number} latestSubmission submission value
+ * @param {number} submission submission value
+ * @param {number} decimal configuration
  * @param {number} threshold configuration
- * @param {number} absolute threshold configuration
+ * @param {number} absoluteThreshold threshold configuration
  * @return {boolean}
  */
 export function shouldReport(
@@ -229,20 +230,18 @@ export function shouldReport(
   threshold: number,
   absoluteThreshold: number
 ): boolean {
+  console.log('ShouldReport:', latestSubmission, submission, decimals, threshold, absoluteThreshold)
   if (latestSubmission && submission) {
-    const denominator = Math.pow(10, decimals)
-    const latestSubmissionReal = latestSubmission / denominator
-    const submissionReal = submission / denominator
+    const range = latestSubmission * threshold
+    const l = latestSubmission - range
+    const r = latestSubmission + range
 
-    const range = latestSubmissionReal * threshold
-    const l = latestSubmissionReal - range
-    const r = latestSubmissionReal + range
-    return submissionReal < l || submissionReal > r
-  } else if (!latestSubmission && submission) {
+    return submission < l || submission > r
+  } else if (latestSubmission == 0 && submission) {
     // latestSubmission hit zero
     return submission > absoluteThreshold
   } else {
-    // Something strange happened, don't report!
+    // latestSubmmission or submission is not defined
     return false
   }
 }

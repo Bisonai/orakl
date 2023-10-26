@@ -98,7 +98,7 @@ export async function deactivateAggregator(aggregatorHash: string, chain: string
   return await updateAggregator(aggregatorHash, chain, false)
 }
 
-export async function fetchDataFeed({
+export async function loadLastSubmissionData({
   aggregatorHash,
   logger
 }: {
@@ -106,10 +106,15 @@ export async function fetchDataFeed({
   logger: Logger
 }): Promise<IAggregate> {
   try {
-    const url = buildUrl(process.env.ORAKL_NETWORK_API_URL, `aggregate/${aggregatorHash}/latest`)
+    const url = buildUrl(
+      process.env.ORAKL_NETWORK_API_URL,
+      `last-submission/${aggregatorHash}/latest`
+    )
     return (await axios.get(url))?.data
   } catch (e) {
-    logger.error(e)
+    const msg = 'Loading last submitted data failed.'
+    logger.error(msg)
+    throw new HttpException(msg, HttpStatus.BAD_REQUEST)
   }
 }
 
