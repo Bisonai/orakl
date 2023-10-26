@@ -72,7 +72,7 @@ async function deploy() {
   }
 
   // L2 endpoint
-  let l2EndpointContract = await ethers.getContractFactory('Endpoint', { deployerSigner })
+  let l2EndpointContract = await ethers.getContractFactory('L2Endpoint', { deployerSigner })
   l2EndpointContract = await l2EndpointContract.deploy()
   await l2EndpointContract.deployed()
 

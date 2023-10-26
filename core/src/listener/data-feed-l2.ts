@@ -4,12 +4,7 @@ import type { RedisClientType } from 'redis'
 import { Aggregator__factory } from '@bisonai/orakl-contracts'
 import { listenerService } from './listener'
 import { ProcessEventOutputType } from './types'
-import {
-  IListenerConfig,
-  IDataFeedListenerWorker,
-  IAnswerUpdated,
-  IDataFeedListenerWorkerL2
-} from '../types'
+import { IListenerConfig, IAnswerUpdated, IDataFeedListenerWorkerL2 } from '../types'
 import { buildSubmissionRoundJobId } from '../utils'
 import {
   DEPLOYMENT_NAME,

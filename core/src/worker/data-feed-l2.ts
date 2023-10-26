@@ -5,7 +5,7 @@ import type { RedisClientType } from 'redis'
 import { Aggregator__factory } from '@bisonai/orakl-contracts'
 import { getAggregators, getL2AddressGivenL1Address } from './api'
 import { State } from './state'
-import { IDataFeedListenerWorker, IDataFeedListenerWorkerL2, QueueType } from '../types'
+import { IDataFeedListenerWorkerL2, QueueType } from '../types'
 import {
   BULLMQ_CONNECTION,
   DEPLOYMENT_NAME,
@@ -19,10 +19,10 @@ import {
   DATA_FEED_WORKER_L2_STATE_NAME
 } from '../settings'
 import { buildSubmissionRoundJobId } from '../utils'
-import { buildTransaction, getRoundDataCall } from './data-feed.utils'
+import { buildTransaction } from './data-feed.utils'
 import { watchman } from './watchman'
 import { OraklError, OraklErrorCode } from '../errors'
-import { getOperatorAddress, getOperatorAddressL2 } from '../api'
+import { getOperatorAddressL2 } from '../api'
 import { oracleRoundStateCallL2 } from './data-feed-l2.utils'
 
 const FILE_NAME = import.meta.url
@@ -113,7 +113,7 @@ export function aggregatorJob(reporterQueue: QueueType, _logger: Logger) {
     const inData: IDataFeedListenerWorkerL2 = job.data
     logger.info(inData, 'inData')
 
-    const { oracleAddress, roundId: l1RoundId, workerSource } = inData
+    const { oracleAddress, workerSource } = inData
     try {
       // TODO store in ephemeral state
       const { l2AggregatorAddress } = await getL2AddressGivenL1Address({

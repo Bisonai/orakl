@@ -375,5 +375,5 @@ export interface IL2AggregatorPair {
   l1AggregatorAddress: string
   l2AggregatorAddress: string
   chainId: bigint
-  active: Boolean
+  active: boolean
 }
