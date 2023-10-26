@@ -257,11 +257,8 @@ export async function sendTransactionCaver({
 
 async function extractSubmissionData(input: string) {
   const iface = new ethers.utils.Interface(Aggregator__factory.abi)
-  console.log('Iface')
 
-  const [roundId, submission] = iface.decodeFunctionData('submit', input)
-  console.log('Aggregator Submission:', submission)
-  console.log('RoundId:', roundId)
+  const [, submission] = iface.decodeFunctionData('submit', input)
   return Number(submission)
 }
 
