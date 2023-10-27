@@ -255,6 +255,14 @@ export async function sendTransactionCaver({
   }
 }
 
+export function isSubmitMethod(wallet: CaverWallet, payload: string) {
+  const methodSignature = payload.slice(0, 10)
+
+  const submitMethod = 'submit(uint256,int256)'
+  const submitMethodSigniture = wallet.caver.klay.abi.encodeFunctionSignature(submitMethod)
+  return submitMethodSigniture == methodSignature
+}
+
 async function extractSubmissionData(input: string) {
   const iface = new ethers.utils.Interface(Aggregator__factory.abi)
 

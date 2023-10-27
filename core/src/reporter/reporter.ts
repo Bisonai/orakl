@@ -4,7 +4,8 @@ import {
   sendTransaction,
   sendTransactionDelegatedFee,
   sendTransactionCaver,
-  makeSubmissionData
+  makeSubmissionData,
+  isSubmitMethod
 } from './utils'
 import { State } from './state'
 import { ITransactionParameters } from '../types'
@@ -69,18 +70,22 @@ export function reporter(state: State, logger: Logger) {
       }
     }
 
-    const submissionData: ISubmissionData = await makeSubmissionData({
-      to,
-      payload,
-      logger
-    })
-    try {
-      const response = await storeSubmission({ submissionData, logger })
-      logger.info(`Submission is stored.`, response.data)
-    } catch (e) {
-      logger.error('Storing Submission data failed.')
-      logger.error('submissionData:', submissionData)
-      throw e
+    // check if payload uses Submit method, which indicates submission if for Aggregator Price Feeds
+    // Needs to store all the aggregator submissions on db.
+    if (isSubmitMethod(wallet, payload)) {
+      const submissionData: ISubmissionData = await makeSubmissionData({
+        to,
+        payload,
+        logger
+      })
+      try {
+        const response = await storeSubmission({ submissionData, logger })
+        logger.info(`Submission is stored.`, response.data)
+      } catch (e) {
+        logger.error('Storing Submission data failed.')
+        logger.error('submissionData:', submissionData)
+        throw e
+      }
     }
   }
 
