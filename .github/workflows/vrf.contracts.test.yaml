@@ -7,6 +7,7 @@ on:
     paths:
       - "contracts/**/VRFCoordinator.sol"
       - "contracts/**/VRFConsumerBase.sol"
+      - "contracts/**/vrf/**"
 jobs:
   build:
     runs-on: ubuntu-latest
