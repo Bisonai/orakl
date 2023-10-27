@@ -28,7 +28,6 @@ import "./CoordinatorBase.sol";
 /// random words are populated from it. Eventually, the random words
 /// are passed to consumer smart contract.
 
-//test git action
 contract VRFCoordinator is IVRFCoordinatorBase, CoordinatorBase, ITypeAndVersion {
     uint32 public constant MAX_NUM_WORDS = 500;
 
