@@ -7,7 +7,7 @@ const {
   deployAggregator,
   deployDataFeedConsumerMock
 } = require('./Aggregator.utils.cjs')
-const { createSigners } = require('./utils.cjs')
+const { createSigners } = require('../utils.cjs')
 
 async function changeOracles(aggregator, removeOracles, addOracles) {
   const currentOracles = await aggregator.getOracles()

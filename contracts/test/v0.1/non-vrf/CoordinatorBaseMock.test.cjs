@@ -1,7 +1,7 @@
 const { expect } = require('chai')
 const { ethers } = require('hardhat')
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers')
-const { parseKlay, createSigners } = require('./utils.cjs')
+const { parseKlay, createSigners } = require('../utils.cjs')
 
 const MAX_GAS_LIMIT = 0 // not testing for this parameter
 const GAS_AFTER_PAYMENT_CALCULATION = 0 // not testing for this parameter

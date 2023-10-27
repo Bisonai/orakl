@@ -3,7 +3,7 @@ const { ethers } = require('hardhat')
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers')
 const { cancelAccount, deploy: deployPrepayment } = require('./Prepayment.utils.cjs')
 const { parseAccountCreatedTx, AccountType } = require('./Account.utils.cjs')
-const { createSigners, parseKlay } = require('./utils.cjs')
+const { createSigners, parseKlay } = require('../utils.cjs')
 
 async function deploy() {
   const {

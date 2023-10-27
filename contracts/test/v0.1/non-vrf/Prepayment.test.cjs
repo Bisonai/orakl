@@ -7,7 +7,7 @@ const {
   deposit,
   withdraw
 } = require('./Prepayment.utils.cjs')
-const { parseKlay, getBalance, createSigners } = require('./utils.cjs')
+const { parseKlay, getBalance, createSigners } = require('../utils.cjs')
 
 const NULL_ADDRESS = '0x0000000000000000000000000000000000000000'
 const DEFAULT_BURN_FEE_RATIO = 50

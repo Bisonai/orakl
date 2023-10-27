@@ -1,7 +1,7 @@
 const { expect } = require('chai')
 const { ethers } = require('hardhat')
 const { vrfConfig } = require('./VRFCoordinator.config.cjs')
-const { remove0x } = require('./utils.cjs')
+const { remove0x } = require('../utils.cjs')
 const VRF = import('@bisonai/orakl-vrf')
 
 async function deploy(prepaymentAddress, signer) {
