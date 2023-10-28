@@ -1,12 +1,16 @@
-import { ethers } from 'ethers'
-import { Worker, Queue } from 'bullmq'
+import { RequestResponseCoordinator__factory } from '@bisonai/orakl-contracts'
 import axios from 'axios'
+import { Queue, Worker } from 'bullmq'
+import { ethers } from 'ethers'
 import { Logger } from 'pino'
 import type { RedisClientType } from 'redis'
-import { RequestResponseCoordinator__factory } from '@bisonai/orakl-contracts'
-import { buildReducer } from './utils'
-import { decodeRequest } from './decoding'
-import { requestResponseReducerMapping } from './reducer'
+import {
+  BULLMQ_CONNECTION,
+  REPORTER_REQUEST_RESPONSE_QUEUE_NAME,
+  REQUEST_RESPONSE_FULFILL_GAS_MINIMUM,
+  WORKER_JOB_SETTINGS,
+  WORKER_REQUEST_RESPONSE_QUEUE_NAME
+} from '../settings'
 import {
   IErrorMsgData,
   IRequestResponseListenerWorker,
@@ -14,15 +18,11 @@ import {
   QueueType
 } from '../types'
 import { pipe } from '../utils'
-import { buildTransaction } from './request-response.utils'
-import {
-  WORKER_REQUEST_RESPONSE_QUEUE_NAME,
-  REPORTER_REQUEST_RESPONSE_QUEUE_NAME,
-  BULLMQ_CONNECTION,
-  WORKER_JOB_SETTINGS,
-  REQUEST_RESPONSE_FULFILL_GAS_MINIMUM
-} from '../settings'
 import { storeErrorMsg } from './api'
+import { decodeRequest } from './decoding'
+import { requestResponseReducerMapping } from './reducer'
+import { buildTransaction } from './request-response.utils'
+import { buildReducer } from './utils'
 
 const FILE_NAME = import.meta.url
 

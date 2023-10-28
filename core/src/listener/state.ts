@@ -2,17 +2,17 @@ import { Queue } from 'bullmq'
 import ethers from 'ethers'
 import { Logger } from 'pino'
 import type { RedisClientType } from 'redis'
-import { getListeners } from './api'
-import { postprocessListeners } from './utils'
-import { IListenerConfig, IListenerRawConfig } from '../types'
-import { IContracts, ILatestListenerJob, IHistoryListenerJob, ListenerInitType } from './types'
 import { OraklError, OraklErrorCode } from '../errors'
 import {
-  PROVIDER_URL,
+  getObservedBlockRedisKey,
   LISTENER_DELAY,
   LISTENER_JOB_SETTINGS,
-  getObservedBlockRedisKey
+  PROVIDER_URL
 } from '../settings'
+import { IListenerConfig, IListenerRawConfig } from '../types'
+import { getListeners } from './api'
+import { IContracts, IHistoryListenerJob, ILatestListenerJob, ListenerInitType } from './types'
+import { postprocessListeners } from './utils'
 
 const FILE_NAME = import.meta.url
 

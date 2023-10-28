@@ -1,9 +1,9 @@
-import * as Fs from 'node:fs/promises'
-import os from 'node:os'
-import { createClient } from 'redis'
-import type { RedisClientType } from 'redis'
 import { IncomingWebhook } from '@slack/webhook'
 import Hook from 'console-hook'
+import * as Fs from 'node:fs/promises'
+import os from 'node:os'
+import type { RedisClientType } from 'redis'
+import { createClient } from 'redis'
 import { SLACK_WEBHOOK_URL } from './settings'
 
 export async function loadJson(filepath) {

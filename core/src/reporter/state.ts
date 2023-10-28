@@ -1,9 +1,9 @@
 import { Logger } from 'pino'
 import type { RedisClientType } from 'redis'
-import { getReporters, getReporter } from '../api'
-import { IReporterConfig } from '../types'
+import { getReporter, getReporters } from '../api'
 import { OraklError, OraklErrorCode } from '../errors'
-import { buildWallet, buildCaverWallet } from './utils'
+import { IReporterConfig } from '../types'
+import { buildCaverWallet, buildWallet } from './utils'
 
 const FILE_NAME = import.meta.url
 

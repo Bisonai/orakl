@@ -1,11 +1,11 @@
 import { Logger } from 'pino'
 import type { RedisClientType } from 'redis'
-import { factory } from './factory'
 import {
   REPORTER_REQUEST_RESPONSE_QUEUE_NAME,
   REQUEST_RESPONSE_REPORTER_STATE_NAME,
   REQUEST_RESPONSE_SERVICE_NAME
 } from '../settings'
+import { factory } from './factory'
 
 export async function buildReporter(redisClient: RedisClientType, logger: Logger) {
   await factory({

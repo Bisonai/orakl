@@ -1,20 +1,20 @@
+import { VRFCoordinator__factory } from '@bisonai/orakl-contracts'
 import { ethers } from 'ethers'
 import { Logger } from 'pino'
 import type { RedisClientType } from 'redis'
-import { VRFCoordinator__factory } from '@bisonai/orakl-contracts'
+import { getVrfConfig } from '../api'
+import {
+  CHAIN,
+  LISTENER_VRF_HISTORY_QUEUE_NAME,
+  LISTENER_VRF_LATEST_QUEUE_NAME,
+  LISTENER_VRF_PROCESS_EVENT_QUEUE_NAME,
+  VRF_LISTENER_STATE_NAME,
+  VRF_SERVICE_NAME,
+  WORKER_VRF_QUEUE_NAME
+} from '../settings'
+import { IListenerConfig, IRandomWordsRequested, IVrfListenerWorker } from '../types'
 import { listenerService } from './listener'
 import { ProcessEventOutputType } from './types'
-import { IListenerConfig, IRandomWordsRequested, IVrfListenerWorker } from '../types'
-import {
-  WORKER_VRF_QUEUE_NAME,
-  CHAIN,
-  VRF_SERVICE_NAME,
-  VRF_LISTENER_STATE_NAME,
-  LISTENER_VRF_LATEST_QUEUE_NAME,
-  LISTENER_VRF_HISTORY_QUEUE_NAME,
-  LISTENER_VRF_PROCESS_EVENT_QUEUE_NAME
-} from '../settings'
-import { getVrfConfig } from '../api'
 
 const FILE_NAME = import.meta.url
 

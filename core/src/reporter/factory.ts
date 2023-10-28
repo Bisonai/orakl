@@ -1,10 +1,10 @@
 import { Worker } from 'bullmq'
 import { Logger } from 'pino'
 import type { RedisClientType } from 'redis'
-import { State } from './state'
-import { watchman } from './watchman'
 import { BULLMQ_CONNECTION, CHAIN, PROVIDER_URL } from '../settings'
 import { reporter } from './reporter'
+import { State } from './state'
+import { watchman } from './watchman'
 
 const FILE_NAME = import.meta.url
 

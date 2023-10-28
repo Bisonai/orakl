@@ -2,10 +2,10 @@ import { ethers } from 'ethers'
 import { Logger } from 'pino'
 import type { RedisClientType } from 'redis'
 import {
-  IRequestResponseListenerWorker,
   IDataFeedListenerWorker,
-  IVrfListenerWorker,
-  IListenerConfig
+  IListenerConfig,
+  IRequestResponseListenerWorker,
+  IVrfListenerWorker
 } from '../types'
 
 export interface IListeners {

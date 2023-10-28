@@ -1,9 +1,9 @@
 import axios from 'axios'
 import { Logger } from 'pino'
-import { IVrfConfig, IReporterConfig } from './types'
-import { ORAKL_NETWORK_API_URL, DATA_FEED_SERVICE_NAME, CHAIN } from './settings'
-import { buildUrl } from './utils'
 import { OraklError, OraklErrorCode } from './errors'
+import { CHAIN, DATA_FEED_SERVICE_NAME, ORAKL_NETWORK_API_URL } from './settings'
+import { IReporterConfig, IVrfConfig } from './types'
+import { buildUrl } from './utils'
 
 const FILE_NAME = import.meta.url
 
