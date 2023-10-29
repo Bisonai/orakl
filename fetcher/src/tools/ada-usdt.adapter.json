@@ -1,0 +1,117 @@
+{
+  "adapterHash": "0xf15e595e641f1447b5ad1c128007574b329e00937e6db3857aff1487345ed5f6",
+  "name": "ADA-USDT",
+  "decimals": 8,
+  "feeds": [
+    {
+      "name": "Bybit-ADA-USDT",
+      "definition": {
+        "url": "https://api.bybit.com/derivatives/v3/public/tickers?symbol=ADAUSDT",
+        "headers": { "Content-Type": "application/json" },
+        "method": "GET",
+        "reducers": [
+          { "function": "PARSE", "args": ["result", "list"] },
+          { "function": "INDEX", "args": 0 },
+          { "function": "PARSE", "args": ["lastPrice"] },
+          { "function": "POW10", "args": 8 },
+          { "function": "ROUND" }
+        ]
+      }
+    },
+    {
+      "name": "Binance-ADA-USDT",
+      "definition": {
+        "url": "https://api.binance.com/api/v3/avgPrice?symbol=ADAUSDT",
+        "headers": { "Content-Type": "application/json" },
+        "method": "GET",
+        "reducers": [
+          { "function": "PARSE", "args": ["price"] },
+          { "function": "POW10", "args": 8 },
+          { "function": "ROUND" }
+        ]
+      }
+    },
+    {
+      "name": "Kucoin-ADA-USDT",
+      "definition": {
+        "url": "https://api.kucoin.com/api/v1/market/orderbook/level1?symbol=ADA-USDT",
+        "headers": { "Content-Type": "application/json" },
+        "method": "GET",
+        "reducers": [
+          { "function": "PARSE", "args": ["data", "price"] },
+          { "function": "POW10", "args": 8 },
+          { "function": "ROUND" }
+        ]
+      }
+    },
+    {
+      "name": "Crypto-ADA-USDT",
+      "definition": {
+        "url": "https://api.crypto.com/v2/public/get-ticker?instrument_name=ADA_USDT",
+        "headers": { "Content-Type": "application/json" },
+        "method": "GET",
+        "reducers": [
+          { "function": "PARSE", "args": ["result", "data"] },
+          { "function": "INDEX", "args": 0 },
+          { "function": "PARSE", "args": ["a"] },
+          { "function": "POW10", "args": 8 },
+          { "function": "ROUND" }
+        ]
+      }
+    },
+    {
+      "name": "Btse-ADA-USDT",
+      "definition": {
+        "url": "https://api.btse.com/spot/api/v3.2/price?symbol=ADA-USDT",
+        "headers": { "Content-Type": "application/json" },
+        "method": "GET",
+        "reducers": [
+          { "function": "INDEX", "args": 0 },
+          { "function": "PARSE", "args": ["indexPrice"] },
+          { "function": "POW10", "args": 8 },
+          { "function": "ROUND" }
+        ]
+      }
+    },
+    {
+      "name": "Coinbase-ADA-USDT",
+      "definition": {
+        "url": "https://api.coinbase.com/v2/exchange-rates?currency=ADA",
+        "headers": { "Content-Type": "application/json" },
+        "method": "GET",
+        "reducers": [
+          { "function": "PARSE", "args": ["data", "rates", "USDT"] },
+          { "function": "POW10", "args": 8 },
+          { "function": "ROUND" }
+        ]
+      }
+    },
+    {
+      "name": "Gateio-ADA-USDT",
+      "definition": {
+        "url": "https://api.gateio.ws/api/v4/spot/tickers?currency_pair=ADA_USDT",
+        "headers": { "Content-Type": "application/json" },
+        "method": "GET",
+        "reducers": [
+          { "function": "INDEX", "args": 0 },
+          { "function": "PARSE", "args": ["last"] },
+          { "function": "POW10", "args": 8 },
+          { "function": "ROUND" }
+        ]
+      }
+    },
+    {
+      "name": "Coinex-ADA-USDT",
+      "definition": {
+        "url": "https://api.coinex.com/v1/market/ticker?market=ADAUSDT",
+        "headers": { "Content-Type": "application/json" },
+        "method": "GET",
+        "reducers": [
+          { "function": "PARSE", "args": ["data", "ticker", "last"] },
+          { "function": "POW10", "args": 8 },
+          { "function": "ROUND" }
+        ]
+      }
+    }
+  ]
+}
