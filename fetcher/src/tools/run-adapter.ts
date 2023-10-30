@@ -1,7 +1,7 @@
 import { fetchData, aggregateData } from '../job/job.utils';
 import { IAdapter } from '../job/job.types';
 
-
+// runs job through local adapter json file
 // example: npx ts-node ./src/tools/sample-run-adapter.ts ./ada-usdt.adapter.json
 
 const main = async () => {
@@ -13,8 +13,9 @@ const main = async () => {
     })
    
     const data = await fetchData(adapterDefintions, console);
-    const aggregate = aggregateData(data);
+    console.log(data);
 
+    const aggregate = aggregateData(data);
     console.log(aggregate);
 }
 
