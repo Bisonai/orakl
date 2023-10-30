@@ -16,14 +16,14 @@ import {
   L2_CHAIN,
   REPORTER_AGGREGATOR_L2_QUEUE_NAME,
   WORKER_AGGREGATOR_L2_QUEUE_NAME,
-  DATA_FEED_WORKER_L2_STATE_NAME
+  DATA_FEED_WORKER_L2_STATE_NAME,
+  L2_PROVIDER
 } from '../settings'
 import { buildSubmissionRoundJobId } from '../utils'
-import { buildTransaction } from './data-feed.utils'
+import { buildTransaction, oracleRoundStateCall } from './data-feed.utils'
 import { watchman } from './watchman'
 import { OraklError, OraklErrorCode } from '../errors'
 import { getOperatorAddressL2 } from '../api'
-import { oracleRoundStateCallL2 } from './data-feed-l2.utils'
 
 const FILE_NAME = import.meta.url
 
@@ -130,10 +130,11 @@ export function aggregatorJob(reporterQueue: QueueType, _logger: Logger) {
         logger
       })
 
-      const oracleRoundState = await oracleRoundStateCallL2({
+      const oracleRoundState = await oracleRoundStateCall({
         oracleAddress: l2AggregatorAddress,
         operatorAddress,
-        logger
+        logger,
+        provider: L2_PROVIDER
       })
       logger.debug(oracleRoundState, 'oracleRoundState')
 

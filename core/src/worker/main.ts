@@ -5,11 +5,11 @@ import { IWorkers } from './types'
 import { worker as dataFeedWorker } from './data-feed'
 import { worker as requestResponseWorker } from './request-response'
 import { worker as vrfWorker } from './vrf'
+import { worker as dataFeedWorkerL2 } from './data-feed-l2'
 import { buildLogger } from '../logger'
 import { launchHealthCheck } from '../health-check'
 import { hookConsoleError } from '../utils'
 import { REDIS_HOST, REDIS_PORT } from '../settings'
-import { worker as dataFeedWorkerL2 } from './data-feed-l2'
 
 const WORKERS: IWorkers = {
   DATA_FEED: dataFeedWorker,

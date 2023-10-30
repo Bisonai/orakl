@@ -44,7 +44,7 @@ const config = {
       gasPrice: 250_000_000_000
     },
     l2node: {
-      url: 'http://10.148.2.23:8551',
+      url: process.env.L2_PROVIDER,
       ...commonConfig,
       gasPrice: 250_000_000_000
     }

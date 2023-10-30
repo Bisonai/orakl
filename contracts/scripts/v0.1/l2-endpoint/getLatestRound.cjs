@@ -17,8 +17,8 @@ async function main() {
   let aggregator = await ethers.getContract('Aggregator_BNB-USDT_20231018141007')
   aggregator = await ethers.getContractAt('Aggregator', aggregator.address, _consumer)
 
-  const roundData = await aggregator.latestRoundData()
-  console.log('Tx', Number(roundData[0]), 'answer', Number(roundData[1]))
+  const [roundId, answer] = await aggregator.latestRoundData()
+  console.log('Tx', Number(roundId), 'answer', Number(answer))
 }
 
 main().catch((error) => {

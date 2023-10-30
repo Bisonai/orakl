@@ -11,8 +11,8 @@ export class L2aggregatorController {
     private readonly l2AggregatorService: L2aggregatorService,
     private readonly chainService: ChainService
   ) {}
-  @Get(':l1Address/:chain')
-  async getL2Address(@Param('l1Address') l1Address: string, @Param('chain') chain: string) {
+  @Get(':chain/:l1Address')
+  async getL2Address(@Param('chain') chain: string, @Param('l1Address') l1Address: string) {
     // chain
     const chainRecord = await this.chainService.findOne({ name: chain })
     if (chainRecord == null) {

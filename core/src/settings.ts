@@ -124,11 +124,12 @@ export const BULLMQ_CONNECTION = {
   }
 }
 
-function createJsonRpcProvider() {
-  return new ethers.providers.JsonRpcProvider(PROVIDER_URL)
+function createJsonRpcProvider(providerUrl: string = PROVIDER_URL) {
+  return new ethers.providers.JsonRpcProvider(providerUrl)
 }
 
 export const PROVIDER = createJsonRpcProvider()
+export const L2_PROVIDER = createJsonRpcProvider(L2_PROVIDER_URL)
 
 export const HEARTBEAT_QUEUE_SETTINGS = {
   removeOnComplete: true,

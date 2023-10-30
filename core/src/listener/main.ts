@@ -4,6 +4,7 @@ import { buildLogger } from '../logger'
 import { buildListener as buildDataFeedListener } from './data-feed'
 import { buildListener as buildVrfListener } from './vrf'
 import { buildListener as buildRequestResponseListener } from './request-response'
+import { buildListener as buildDataFeedListenerL2 } from './data-feed-l2'
 import { postprocessListeners } from './utils'
 import { OraklError, OraklErrorCode } from '../errors'
 import { CHAIN, REDIS_HOST, REDIS_PORT } from '../settings'
@@ -12,7 +13,6 @@ import { hookConsoleError } from '../utils'
 import { IListeners } from './types'
 import { createClient } from 'redis'
 import { launchHealthCheck } from '../health-check'
-import { buildListener as buildDataFeedListenerL2 } from './data-feed-l2'
 
 const LISTENERS: IListeners = {
   DATA_FEED: buildDataFeedListener,

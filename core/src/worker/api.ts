@@ -9,7 +9,7 @@ import { buildUrl } from '../utils'
 export const AGGREGATE_ENDPOINT = buildUrl(ORAKL_NETWORK_API_URL, 'aggregate')
 export const AGGREGATOR_ENDPOINT = buildUrl(ORAKL_NETWORK_API_URL, 'aggregator')
 export const ERROR_ENDPOINT = buildUrl(ORAKL_NETWORK_API_URL, 'error')
-export const L2AGGREGATOR_ENDPOINT = buildUrl(ORAKL_NETWORK_API_URL, 'l2aggregator')
+export const L2_AGGREGATOR_ENDPOINT = buildUrl(ORAKL_NETWORK_API_URL, 'l2aggregator')
 
 /**
  * Fetch aggregate data from `Orakl Network API` data feed endpoint
@@ -170,7 +170,7 @@ export async function getL2AddressGivenL1Address({
   logger: Logger
 }): Promise<IL2AggregatorPair> {
   try {
-    const url = buildUrl(L2AGGREGATOR_ENDPOINT, `${oracleAddress}/${chain}`)
+    const url = buildUrl(L2_AGGREGATOR_ENDPOINT, `${chain}/${oracleAddress}`)
     const response = (await axios.get(url))?.data
     return response
   } catch (e) {

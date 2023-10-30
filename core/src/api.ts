@@ -169,7 +169,7 @@ export async function getOperatorAddressL2({
   oracleAddress: string
   logger: Logger
 }) {
-  logger.debug('getOperatorAddress')
+  logger.debug('getOperatorAddressL2')
 
   return await (
     await getReporterByOracleAddress({
