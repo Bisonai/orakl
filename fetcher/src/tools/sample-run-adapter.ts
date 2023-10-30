@@ -1,9 +1,8 @@
 import axios, { AxiosRequestConfig } from 'axios';
+import { pipe } from '../job/job.utils';
 import { IAdapter } from '../job/job.types';
 import { DATA_FEED_REDUCER_MAPPING } from '../job/job.reducer'
 import { FetcherError, FetcherErrorCode } from '../job/job.errors'
-
-
 
 function buildReducer(reducerMapping, reducers) {
     return reducers.map((r) => {
@@ -15,12 +14,6 @@ function buildReducer(reducerMapping, reducers) {
     })
   }
   
-  // https://medium.com/javascript-scene/reduce-composing-software-fe22f0c39a1d
-export const pipe =
-    (...fns) =>
-    (x) =>
-      fns.reduce((v, f) => f(v), x)
-
 function checkDataFormat(data) {
     if (!data) {
         // check if priceFeed is null, undefined, NaN, "", 0, false
@@ -31,34 +24,35 @@ function checkDataFormat(data) {
     }
 }
 
-
-const fetchCallTest = async () => {
-    const adapterList: IAdapter = require("./ada-usdt.adapter.json");
-    const adapterListFeeds = adapterList.feeds;
+const main = async () => {
+    const adapter: IAdapter = require("./ada-usdt.adapter.json");
+    const adapterFeeds = adapter.feeds;
     const data = await Promise.allSettled(
-        adapterListFeeds.map(async (adapter) => {
+        adapterFeeds.map(async (adapter) => {
             const url = adapter.definition.url;
             const method = adapter.definition.method;
             const headers = adapter.definition.headers;
+            const _reducers = adapter.definition.reducers;
       
             const requestConfig: AxiosRequestConfig = {};
             requestConfig.method = method;
             requestConfig.headers = {...headers};
     
             const rawDatum = (await (axios.get(url, requestConfig))).data;
+
+            // console.log(rawDatum);
     
             try {
                 // FIXME Build reducers just once and use. Currently, can't
                 // be passed to queue, therefore has to be recreated before
                 // every fetch.
-                const reducers = buildReducer(DATA_FEED_REDUCER_MAPPING, adapter.definition.reducers)
+                const reducers = buildReducer(DATA_FEED_REDUCER_MAPPING, _reducers)
                 const datum = pipe(...reducers)(rawDatum)
                 checkDataFormat(datum)
                 return {value: datum}
                 // console.log({value: datum});
                 // return { id: adapter.id, value: datum }
               } catch (e) {
-    
                 throw e
               }
         })
@@ -66,4 +60,7 @@ const fetchCallTest = async () => {
     console.log(data.flatMap((D) => (D.status == 'fulfilled' ? [D.value] : [])));
 }
 
-fetchCallTest();
+main().catch((error) => {
+  console.error(error)
+  process.exitCode = 1
+})
