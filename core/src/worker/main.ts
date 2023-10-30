@@ -1,14 +1,14 @@
 import { parseArgs } from 'node:util'
 import type { RedisClientType } from 'redis'
 import { createClient } from 'redis'
-import { IWorkers } from './types'
+import { launchHealthCheck } from '../health-check'
+import { buildLogger } from '../logger'
+import { REDIS_HOST, REDIS_PORT } from '../settings'
+import { hookConsoleError } from '../utils'
 import { worker as dataFeedWorker } from './data-feed'
 import { worker as requestResponseWorker } from './request-response'
+import { IWorkers } from './types'
 import { worker as vrfWorker } from './vrf'
-import { buildLogger } from '../logger'
-import { launchHealthCheck } from '../health-check'
-import { hookConsoleError } from '../utils'
-import { REDIS_HOST, REDIS_PORT } from '../settings'
 
 const WORKERS: IWorkers = {
   DATA_FEED: dataFeedWorker,

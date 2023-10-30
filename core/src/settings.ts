@@ -1,5 +1,5 @@
-import { ethers } from 'ethers'
 import * as dotenv from 'dotenv'
+import { ethers } from 'ethers'
 dotenv.config()
 
 export const ORAKL_NETWORK_API_URL =

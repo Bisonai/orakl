@@ -1,7 +1,7 @@
 import express, { Request, Response } from 'express'
 import { Logger } from 'pino'
-import { State } from './state'
 import { REPORTER_PORT } from '../settings'
+import { State } from './state'
 
 export async function watchman({ state, logger }: { state: State; logger: Logger }) {
   const app = express()
