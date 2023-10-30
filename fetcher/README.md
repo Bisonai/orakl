@@ -69,9 +69,10 @@ yarn run test:cov
 
 ## Test adapter.json with script
 
-you can check out if the adapter json file is working properly with script added in `src/tools/run-adapter.ts`
-put the json file inside `tools` folder and run the script with following command
+Check if adapter json file is working properly with script added in `src/tools/run-adapter.ts`.
+Place the json file inside `tools` folder and run the script with following command.
 
 ```
+// example
 npx ts-node ./src/tools/run-adapter.ts ./ada-usdt.adapter.json
 ```
