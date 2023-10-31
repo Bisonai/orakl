@@ -1,29 +1,29 @@
+import { Aggregator__factory } from '@bisonai/orakl-contracts'
+import { Job, Queue, Worker } from 'bullmq'
 import { ethers } from 'ethers'
-import { Worker, Queue, Job } from 'bullmq'
 import { Logger } from 'pino'
 import type { RedisClientType } from 'redis'
-import { Aggregator__factory } from '@bisonai/orakl-contracts'
-import { getAggregators, getL2AddressGivenL1Address } from './api'
-import { State } from './state'
-import { IDataFeedListenerWorkerL2, QueueType } from '../types'
+import { getOperatorAddressL2 } from '../api'
+import { OraklError, OraklErrorCode } from '../errors'
 import {
   BULLMQ_CONNECTION,
+  DATA_FEED_FULFILL_GAS_MINIMUM,
+  DATA_FEED_WORKER_L2_STATE_NAME,
   DEPLOYMENT_NAME,
   HEARTBEAT_QUEUE_NAME,
-  REMOVE_ON_COMPLETE,
-  SUBMIT_HEARTBEAT_QUEUE_NAME,
-  DATA_FEED_FULFILL_GAS_MINIMUM,
   L2_CHAIN,
+  L2_PROVIDER,
+  REMOVE_ON_COMPLETE,
   REPORTER_AGGREGATOR_L2_QUEUE_NAME,
-  WORKER_AGGREGATOR_L2_QUEUE_NAME,
-  DATA_FEED_WORKER_L2_STATE_NAME,
-  L2_PROVIDER
+  SUBMIT_HEARTBEAT_QUEUE_NAME,
+  WORKER_AGGREGATOR_L2_QUEUE_NAME
 } from '../settings'
+import { IDataFeedListenerWorkerL2, QueueType } from '../types'
 import { buildSubmissionRoundJobId } from '../utils'
+import { getAggregators, getL2AddressGivenL1Address } from './api'
 import { buildTransaction, oracleRoundStateCall } from './data-feed.utils'
+import { State } from './state'
 import { watchman } from './watchman'
-import { OraklError, OraklErrorCode } from '../errors'
-import { getOperatorAddressL2 } from '../api'
 
 const FILE_NAME = import.meta.url
 
