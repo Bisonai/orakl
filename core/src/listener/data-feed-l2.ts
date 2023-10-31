@@ -19,7 +19,6 @@ import {
 } from '../settings'
 
 const FILE_NAME = import.meta.url
-
 export async function buildListener(
   config: IListenerConfig[],
   redisClient: RedisClientType,
