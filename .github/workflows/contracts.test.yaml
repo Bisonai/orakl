@@ -30,6 +30,8 @@ jobs:
         working-directory: ./contracts
       - run: npx hardhat test
         working-directory: ./contracts
+        env:
+          L2_PROVIDER: ${{ secrets.L2_PROVIDER }}
       - run: yarn compile
         working-directory: ./contracts
       - run: yarn build
