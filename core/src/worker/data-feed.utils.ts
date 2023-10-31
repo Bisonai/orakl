@@ -1,8 +1,8 @@
+import { Aggregator__factory } from '@bisonai/orakl-contracts'
 import { ethers } from 'ethers'
 import { Logger } from 'pino'
-import { IOracleRoundState, IRoundData, IDataFeedTransactionParameters } from '../types'
-import { PROVIDER, MAX_DATA_STALENESS } from '../settings'
-import { Aggregator__factory } from '@bisonai/orakl-contracts'
+import { MAX_DATA_STALENESS, PROVIDER } from '../settings'
+import { IDataFeedTransactionParameters, IOracleRoundState, IRoundData } from '../types'
 
 /**
  * Compute the number of seconds until the next round.

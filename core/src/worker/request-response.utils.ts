@@ -1,11 +1,11 @@
 import { ethers } from 'ethers'
 import { Logger } from 'pino'
-import {
-  RequestCommitmentRequestResponse,
-  ITransactionParameters,
-  IRequestResponseTransactionParameters
-} from '../types'
 import { OraklError, OraklErrorCode } from '../errors'
+import {
+  IRequestResponseTransactionParameters,
+  ITransactionParameters,
+  RequestCommitmentRequestResponse
+} from '../types'
 
 export const JOB_ID_UINT128 = ethers.utils.id('uint128')
 export const JOB_ID_INT256 = ethers.utils.id('int256')

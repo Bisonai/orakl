@@ -1,15 +1,15 @@
 import { parseArgs } from 'node:util'
 import type { RedisClientType } from 'redis'
 import { createClient } from 'redis'
+import { launchHealthCheck } from '../health-check'
 import { buildLogger } from '../logger'
+import { REDIS_HOST, REDIS_PORT } from '../settings'
+import { hookConsoleError } from '../utils'
 import { buildReporter as buildDataFeedReporter } from './data-feed'
-import { buildReporter as buildVrfReporter } from './vrf'
 import { buildReporter as buildRequestResponseReporter } from './request-response'
 import { buildReporter as buildDataFeedReporterL2 } from './data-feed-l2'
-import { launchHealthCheck } from '../health-check'
-import { hookConsoleError } from '../utils'
 import { IReporters } from './types'
-import { REDIS_HOST, REDIS_PORT } from '../settings'
+import { buildReporter as buildVrfReporter } from './vrf'
 
 const REPORTERS: IReporters = {
   DATA_FEED: buildDataFeedReporter,

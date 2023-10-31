@@ -1,5 +1,5 @@
-import { BigNumber } from 'ethers'
 import { Queue } from 'bullmq'
+import { BigNumber } from 'ethers'
 
 export interface RequestEventData {
   specId: string

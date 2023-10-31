@@ -1,7 +1,7 @@
 import { describe, expect, test } from '@jest/globals'
-import { decodeRequest } from '../src/worker/decoding'
-import { add0x } from '../src/utils'
 import cbor from 'cbor'
+import { add0x } from '../src/utils'
+import { decodeRequest } from '../src/worker/decoding'
 
 describe('Decode incoming request', function () {
   test('test getAndPath with CBOR', async function () {

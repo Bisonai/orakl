@@ -1,9 +1,9 @@
 import axios from 'axios'
 import { URL } from 'node:url'
 import { Logger } from 'pino'
-import { IAggregator, IAggregate, IErrorMsgData, IL2AggregatorPair } from '../types'
 import { OraklError, OraklErrorCode } from '../errors'
 import { ORAKL_NETWORK_API_URL } from '../settings'
+import { IAggregate, IAggregator, IErrorMsgData, IL2AggregatorPair } from '../types'
 import { buildUrl } from '../utils'
 
 export const AGGREGATE_ENDPOINT = buildUrl(ORAKL_NETWORK_API_URL, 'aggregate')

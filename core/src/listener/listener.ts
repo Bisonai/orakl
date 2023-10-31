@@ -1,14 +1,14 @@
-import { Job, Worker, Queue } from 'bullmq'
+import { Job, Queue, Worker } from 'bullmq'
 import { ethers } from 'ethers'
 import { Logger } from 'pino'
 import type { RedisClientType } from 'redis'
-import { State } from './state'
+import { BULLMQ_CONNECTION, getObservedBlockRedisKey, LISTENER_JOB_SETTINGS } from '../settings'
 import { IListenerConfig } from '../types'
-import { BULLMQ_CONNECTION, LISTENER_JOB_SETTINGS, getObservedBlockRedisKey } from '../settings'
+import { State } from './state'
 import {
-  IProcessEventListenerJob,
   IHistoryListenerJob,
   ILatestListenerJob,
+  IProcessEventListenerJob,
   ListenerInitType,
   ProcessEventOutputType
 } from './types'
