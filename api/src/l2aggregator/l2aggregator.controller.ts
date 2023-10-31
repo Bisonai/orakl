@@ -1,6 +1,6 @@
 import { Controller, Get, HttpException, HttpStatus, Param } from '@nestjs/common'
 import { L2aggregatorService } from './l2aggregator.service'
-import { ChainService } from 'src/chain/chain.service'
+import { ChainService } from '../chain/chain.service'
 
 @Controller({
   path: 'l2aggregator',
