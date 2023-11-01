@@ -175,7 +175,7 @@ async function deploy() {
   }
 }
 
-describe('VRF contract', function () {
+describe('L1Endpoint', function () {
   it('add and remove oracle', async function () {
     const { endpoint, account2: oracle } = await loadFixture(deploy)
 

@@ -1,16 +1,16 @@
 const { expect } = require('chai')
 const { ethers } = require('hardhat')
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers')
-const { deploy: deployVrfConsumerMock } = require('../vrf/VRFConsumerMock.utils.cjs')
+const { deploy: deployVrfConsumerMock } = require('./VRFConsumerMock.utils.cjs')
 const {
   deploy: deployVrfCoordinator,
   setupOracle: setupVrfOracle,
   parseRandomWordsRequestedTx
-} = require('../vrf/VRFCoordinator.utils.cjs')
-const { createAccount, addConsumer, deposit } = require('./Prepayment.utils.cjs')
-const { vrfConfig } = require('../vrf/VRFCoordinator.config.cjs')
+} = require('./VRFCoordinator.utils.cjs')
+const { createAccount, addConsumer, deposit } = require('../non-vrf/Prepayment.utils.cjs')
+const { vrfConfig } = require('./VRFCoordinator.config.cjs')
 const { parseRequestCanceled } = require('./CoordinatorBase.utils.cjs')
-const { deploy: deployPrepayment } = require('./Prepayment.utils.cjs')
+const { deploy: deployPrepayment } = require('../non-vrf/Prepayment.utils.cjs')
 const { parseKlay, createSigners } = require('../utils.cjs')
 
 async function deploy() {
