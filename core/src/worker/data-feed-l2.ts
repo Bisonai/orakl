@@ -37,33 +37,12 @@ const FILE_NAME = import.meta.url
  */
 export async function worker(redisClient: RedisClientType, _logger: Logger) {
   const logger = _logger.child({ name: 'worker', file: FILE_NAME })
-
   // Queues
-  const heartbeatQueue = new Queue(HEARTBEAT_QUEUE_NAME, BULLMQ_CONNECTION)
-  const submitHeartbeatQueue = new Queue(SUBMIT_HEARTBEAT_QUEUE_NAME, BULLMQ_CONNECTION)
   const reporterQueue = new Queue(REPORTER_AGGREGATOR_L2_QUEUE_NAME, BULLMQ_CONNECTION)
-  const state = new State({
-    redisClient,
-    stateName: DATA_FEED_WORKER_L2_STATE_NAME,
-    heartbeatQueue,
-    submitHeartbeatQueue,
-    chain: L2_CHAIN,
-    logger
-  })
-  await state.clear()
-
   const activeAggregators = await getAggregators({ chain: L2_CHAIN, active: true, logger })
   if (activeAggregators.length == 0) {
     logger.warn('No active aggregators')
   }
-
-  // Launch all active aggregators
-  for (const aggregator of activeAggregators) {
-    logger.info('active aggregators')
-
-    await state.add(aggregator.aggregatorHash)
-  }
-
   // [aggregator] worker
   const aggregatorWorker = new Worker(
     WORKER_AGGREGATOR_L2_QUEUE_NAME,
@@ -77,13 +56,10 @@ export async function worker(redisClient: RedisClientType, _logger: Logger) {
     console.log(e)
   })
 
-  const watchmanServer = await watchman({ state, logger })
-
   async function handleExit() {
     logger.info('Exiting. Wait for graceful shutdown.')
     await redisClient.quit()
     await aggregatorWorker.close()
-    await watchmanServer.close()
   }
   process.on('SIGINT', handleExit)
   process.on('SIGTERM', handleExit)

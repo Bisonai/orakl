@@ -59,10 +59,9 @@ export async function oracleRoundStateCall({
   operatorAddress: string
   roundId?: number
   logger?: Logger
-  provider?: ethers.providers.JsonRpcProvider
+  provider: ethers.providers.JsonRpcProvider
 }): Promise<IOracleRoundState> {
   logger?.debug({ oracleAddress, operatorAddress }, 'oracleRoundStateCall')
-  if (!provider) provider = PROVIDER
   const aggregator = new ethers.Contract(oracleAddress, Aggregator__factory.abi, provider)
 
   let queriedRoundId = 0

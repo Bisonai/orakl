@@ -156,9 +156,9 @@ export async function storeErrorMsg({ data, logger }: { data: IErrorMsgData; log
 }
 
 /**
- * Get l2 oracle address by l2 address
- * @param {string} l1 oracle address
- * @returns
+ * Get L2 oracle address associated with L1 oracle address
+ * @param {string} L1 oracle address
+ * @returns {string} L2 oracle address
  */
 export async function getL2AddressGivenL1Address({
   oracleAddress,

@@ -17,6 +17,7 @@ import {
   HEARTBEAT_QUEUE_NAME,
   HEARTBEAT_QUEUE_SETTINGS,
   MAX_DATA_STALENESS,
+  PROVIDER,
   REMOVE_ON_COMPLETE,
   REPORTER_AGGREGATOR_QUEUE_NAME,
   SUBMIT_HEARTBEAT_QUEUE_NAME,
@@ -303,7 +304,8 @@ function heartbeatJob(aggregatorQueue: Queue, state: State, _logger: Logger) {
       const oracleRoundState = await oracleRoundStateCall({
         oracleAddress,
         operatorAddress,
-        logger
+        logger,
+        provider: PROVIDER
       })
       logger.debug(oracleRoundState, 'oracleRoundState')
 
@@ -508,7 +510,8 @@ export function deviationJob(reporterQueue: QueueType, _logger: Logger) {
     const oracleRoundState = await oracleRoundStateCall({
       oracleAddress,
       operatorAddress,
-      logger
+      logger,
+      provider: PROVIDER
     })
     logger.debug(oracleRoundState, 'oracleRoundState')
 
