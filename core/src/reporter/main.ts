@@ -6,7 +6,7 @@ import { buildLogger } from '../logger'
 import { REDIS_HOST, REDIS_PORT } from '../settings'
 import { hookConsoleError } from '../utils'
 import { buildReporter as buildDataFeedReporter } from './data-feed'
-import { buildReporter as buildDataFeedReporterL2 } from './data-feed-l2'
+import { buildReporter as buildL2DataFeedReporter } from './data-feed-l2'
 import { buildReporter as buildRequestResponseReporter } from './request-response'
 import { IReporters } from './types'
 import { buildReporter as buildVrfReporter } from './vrf'
@@ -15,7 +15,7 @@ const REPORTERS: IReporters = {
   DATA_FEED: buildDataFeedReporter,
   VRF: buildVrfReporter,
   REQUEST_RESPONSE: buildRequestResponseReporter,
-  DATA_FEED_L2: buildDataFeedReporterL2
+  DATA_FEED_L2: buildL2DataFeedReporter
 }
 
 const LOGGER = buildLogger()

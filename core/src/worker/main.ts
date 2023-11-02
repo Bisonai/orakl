@@ -6,7 +6,7 @@ import { buildLogger } from '../logger'
 import { REDIS_HOST, REDIS_PORT } from '../settings'
 import { hookConsoleError } from '../utils'
 import { worker as dataFeedWorker } from './data-feed'
-import { worker as dataFeedWorkerL2 } from './data-feed-l2'
+import { worker as l2DataFeedWorker } from './data-feed-l2'
 import { worker as requestResponseWorker } from './request-response'
 import { IWorkers } from './types'
 import { worker as vrfWorker } from './vrf'
@@ -15,7 +15,7 @@ const WORKERS: IWorkers = {
   DATA_FEED: dataFeedWorker,
   VRF: vrfWorker,
   REQUEST_RESPONSE: requestResponseWorker,
-  DATA_FEED_L2: dataFeedWorkerL2
+  DATA_FEED_L2: l2DataFeedWorker
 }
 
 const LOGGER = buildLogger()

@@ -8,7 +8,7 @@ import { CHAIN, REDIS_HOST, REDIS_PORT } from '../settings'
 import { hookConsoleError } from '../utils'
 import { getListeners } from './api'
 import { buildListener as buildDataFeedListener } from './data-feed'
-import { buildListener as buildDataFeedListenerL2 } from './data-feed-l2'
+import { buildListener as buildL2DataFeedListener } from './data-feed-l2'
 import { buildListener as buildRequestResponseListener } from './request-response'
 import { IListeners } from './types'
 import { postprocessListeners } from './utils'
@@ -18,7 +18,7 @@ const LISTENERS: IListeners = {
   DATA_FEED: buildDataFeedListener,
   VRF: buildVrfListener,
   REQUEST_RESPONSE: buildRequestResponseListener,
-  DATA_FEED_L2: buildDataFeedListenerL2
+  DATA_FEED_L2: buildL2DataFeedListener
 }
 
 const FILE_NAME = import.meta.url

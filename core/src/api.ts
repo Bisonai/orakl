@@ -3,7 +3,7 @@ import { Logger } from 'pino'
 import { OraklError, OraklErrorCode } from './errors'
 import {
   CHAIN,
-  DATA_FEED_L2_SERVICE_NAME,
+  L2_DATA_FEED_SERVICE_NAME,
   DATA_FEED_SERVICE_NAME,
   L2_CHAIN,
   ORAKL_NETWORK_API_URL
@@ -173,7 +173,7 @@ export async function getOperatorAddressL2({
 
   return await (
     await getReporterByOracleAddress({
-      service: DATA_FEED_L2_SERVICE_NAME,
+      service: L2_DATA_FEED_SERVICE_NAME,
       chain: L2_CHAIN,
       oracleAddress,
       logger

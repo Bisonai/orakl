@@ -35,7 +35,7 @@ export const REPORTER_PORT = process.env.REPORTER_PORT || 6_000
 export const DATA_FEED_SERVICE_NAME = 'DATA_FEED'
 export const VRF_SERVICE_NAME = 'VRF'
 export const REQUEST_RESPONSE_SERVICE_NAME = 'REQUEST_RESPONSE'
-export const DATA_FEED_L2_SERVICE_NAME = 'DATA_FEED_L2'
+export const L2_DATA_FEED_SERVICE_NAME = 'DATA_FEED_L2'
 
 // Data Feed
 export const MAX_DATA_STALENESS = 5_000
@@ -48,17 +48,17 @@ export const CONCURRENCY = 12
 export const LISTENER_REQUEST_RESPONSE_LATEST_QUEUE_NAME = `${DEPLOYMENT_NAME}-listener-request-response-latest-queue`
 export const LISTENER_VRF_LATEST_QUEUE_NAME = `${DEPLOYMENT_NAME}-listener-vrf-latest-queue`
 export const LISTENER_DATA_FEED_LATEST_QUEUE_NAME = `${DEPLOYMENT_NAME}-listener-data-feed-latest-queue`
-export const LISTENER_DATA_FEED_L2_LATEST_QUEUE_NAME = `${DEPLOYMENT_NAME}-listener-data-feed-l2-latest-queue`
+export const L2_LISTENER_DATA_FEED_LATEST_QUEUE_NAME = `${DEPLOYMENT_NAME}-listener-data-feed-l2-latest-queue`
 
 export const LISTENER_REQUEST_RESPONSE_HISTORY_QUEUE_NAME = `${DEPLOYMENT_NAME}-listener-request-response-history-queue`
 export const LISTENER_VRF_HISTORY_QUEUE_NAME = `${DEPLOYMENT_NAME}-listener-vrf-history-queue`
 export const LISTENER_DATA_FEED_HISTORY_QUEUE_NAME = `${DEPLOYMENT_NAME}-listener-data-feed-history-queue`
-export const LISTENER_DATA_FEED_L2_HISTORY_QUEUE_NAME = `${DEPLOYMENT_NAME}-listener-data-feed-l2-history-queue`
+export const L2_LISTENER_DATA_FEED_HISTORY_QUEUE_NAME = `${DEPLOYMENT_NAME}-listener-data-feed-l2-history-queue`
 
 export const LISTENER_REQUEST_RESPONSE_PROCESS_EVENT_QUEUE_NAME = `${DEPLOYMENT_NAME}-listener-request-response-process-event-queue`
 export const LISTENER_VRF_PROCESS_EVENT_QUEUE_NAME = `${DEPLOYMENT_NAME}-listener-vrf-process-event-queue`
 export const LISTENER_DATA_FEED_PROCESS_EVENT_QUEUE_NAME = `${DEPLOYMENT_NAME}-listener-data-feed-process-event-queue`
-export const LISTENER_DATA_FEED_L2_PROCESS_EVENT_QUEUE_NAME = `${DEPLOYMENT_NAME}-listener-data-feed-l2-process-event-queue`
+export const L2_LISTENER_DATA_FEED_PROCESS_EVENT_QUEUE_NAME = `${DEPLOYMENT_NAME}-listener-data-feed-l2-process-event-queue`
 
 export const SUBMIT_HEARTBEAT_QUEUE_NAME = `${DEPLOYMENT_NAME}-submitheartbeat-queue`
 export const HEARTBEAT_QUEUE_NAME = `${DEPLOYMENT_NAME}-heartbeat-queue`
@@ -66,13 +66,13 @@ export const WORKER_REQUEST_RESPONSE_QUEUE_NAME = `${DEPLOYMENT_NAME}-worker-req
 export const WORKER_VRF_QUEUE_NAME = `${DEPLOYMENT_NAME}-worker-vrf-queue`
 export const WORKER_AGGREGATOR_QUEUE_NAME = `${DEPLOYMENT_NAME}-worker-aggregator-queue`
 export const WORKER_CHECK_HEARTBEAT_QUEUE_NAME = `${DEPLOYMENT_NAME}-worker-checkheartbeat-queue`
-export const WORKER_AGGREGATOR_L2_QUEUE_NAME = `${DEPLOYMENT_NAME}-worker-aggregator-l2-queue`
+export const L2_WORKER_AGGREGATOR_QUEUE_NAME = `${DEPLOYMENT_NAME}-worker-aggregator-l2-queue`
 
 export const REPORTER_REQUEST_RESPONSE_QUEUE_NAME = `${DEPLOYMENT_NAME}-reporter-request-response-queue`
 export const REPORTER_VRF_QUEUE_NAME = `${DEPLOYMENT_NAME}-reporter-vrf-queue`
 export const REPORTER_AGGREGATOR_QUEUE_NAME = `${DEPLOYMENT_NAME}-reporter-aggregator-queue`
 export const WORKER_DEVIATION_QUEUE_NAME = `orakl-deviation-queue`
-export const REPORTER_AGGREGATOR_L2_QUEUE_NAME = `${DEPLOYMENT_NAME}-reporter-aggregator-l2-queue`
+export const L2_REPORTER_AGGREGATOR_QUEUE_NAME = `${DEPLOYMENT_NAME}-reporter-aggregator-l2-queue`
 
 export const HEARTBEAT_JOB_NAME = `${DEPLOYMENT_NAME}-heartbeat-job`
 
@@ -98,23 +98,23 @@ export const ALL_QUEUES = [
   REPORTER_REQUEST_RESPONSE_QUEUE_NAME,
   REPORTER_VRF_QUEUE_NAME,
   REPORTER_AGGREGATOR_QUEUE_NAME,
-  WORKER_AGGREGATOR_L2_QUEUE_NAME
+  L2_WORKER_AGGREGATOR_QUEUE_NAME
 ]
 
 export const VRF_LISTENER_STATE_NAME = `${DEPLOYMENT_NAME}-listener-vrf-state`
 export const REQUEST_RESPONSE_LISTENER_STATE_NAME = `${DEPLOYMENT_NAME}-listener-request-response-state`
 export const DATA_FEED_LISTENER_STATE_NAME = `${DEPLOYMENT_NAME}-listener-data-feed-state`
-export const DATA_FEED_LISTENER_L2_STATE_NAME = `${DEPLOYMENT_NAME}-listener-data-feed-state`
+export const L2_DATA_FEED_LISTENER_STATE_NAME = `${DEPLOYMENT_NAME}-listener-data-feed-state`
 
 // export const VRF_WORKER_STATE_NAME = `${DEPLOYMENT_NAME}-worker-vrf-state`
 // export const REQUEST_RESPONSE_WORKER_STATE_NAME = `${DEPLOYMENT_NAME}-worker-request-response-state`
 export const DATA_FEED_WORKER_STATE_NAME = `${DEPLOYMENT_NAME}-worker-data-feed-state`
-export const DATA_FEED_WORKER_L2_STATE_NAME = `${DEPLOYMENT_NAME}-worker-data-feed-l2-state`
+export const L2_DATA_FEED_WORKER_STATE_NAME = `${DEPLOYMENT_NAME}-worker-data-feed-l2-state`
 
 export const VRF_REPORTER_STATE_NAME = `${DEPLOYMENT_NAME}-reporter-vrf-state`
 export const REQUEST_RESPONSE_REPORTER_STATE_NAME = `${DEPLOYMENT_NAME}-reporter-request-response-state`
 export const DATA_FEED_REPORTER_STATE_NAME = `${DEPLOYMENT_NAME}-reporter-data-feed-state`
-export const DATA_FEED_REPORTER_L2_STATE_NAME = `${DEPLOYMENT_NAME}-reporter-data-feed-l2-state`
+export const L2_DATA_FEED_REPORTER_STATE_NAME = `${DEPLOYMENT_NAME}-reporter-data-feed-l2-state`
 
 export const BULLMQ_CONNECTION = {
   concurrency: CONCURRENCY,

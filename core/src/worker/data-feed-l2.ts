@@ -12,8 +12,8 @@ import {
   L2_CHAIN,
   L2_PROVIDER,
   REMOVE_ON_COMPLETE,
-  REPORTER_AGGREGATOR_L2_QUEUE_NAME,
-  WORKER_AGGREGATOR_L2_QUEUE_NAME
+  L2_REPORTER_AGGREGATOR_QUEUE_NAME,
+  L2_WORKER_AGGREGATOR_QUEUE_NAME
 } from '../settings'
 import { IDataFeedListenerWorkerL2, QueueType } from '../types'
 import { buildSubmissionRoundJobId } from '../utils'
@@ -32,14 +32,14 @@ const FILE_NAME = import.meta.url
 export async function worker(redisClient: RedisClientType, _logger: Logger) {
   const logger = _logger.child({ name: 'worker', file: FILE_NAME })
   // Queues
-  const reporterQueue = new Queue(REPORTER_AGGREGATOR_L2_QUEUE_NAME, BULLMQ_CONNECTION)
+  const reporterQueue = new Queue(L2_REPORTER_AGGREGATOR_QUEUE_NAME, BULLMQ_CONNECTION)
   const activeAggregators = await getAggregators({ chain: L2_CHAIN, active: true, logger })
   if (activeAggregators.length == 0) {
     logger.warn('No active aggregators')
   }
   // [aggregator] worker
   const aggregatorWorker = new Worker(
-    WORKER_AGGREGATOR_L2_QUEUE_NAME,
+    L2_WORKER_AGGREGATOR_QUEUE_NAME,
     aggregatorJob(reporterQueue, _logger),
     {
       ...BULLMQ_CONNECTION
