@@ -11,9 +11,9 @@ import {
   DEPLOYMENT_NAME,
   L2_CHAIN,
   L2_PROVIDER,
-  REMOVE_ON_COMPLETE,
   L2_REPORTER_AGGREGATOR_QUEUE_NAME,
-  L2_WORKER_AGGREGATOR_QUEUE_NAME
+  L2_WORKER_AGGREGATOR_QUEUE_NAME,
+  REMOVE_ON_COMPLETE
 } from '../settings'
 import { IDataFeedListenerWorkerL2, QueueType } from '../types'
 import { buildSubmissionRoundJobId } from '../utils'

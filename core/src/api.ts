@@ -3,9 +3,9 @@ import { Logger } from 'pino'
 import { OraklError, OraklErrorCode } from './errors'
 import {
   CHAIN,
-  L2_DATA_FEED_SERVICE_NAME,
   DATA_FEED_SERVICE_NAME,
   L2_CHAIN,
+  L2_DATA_FEED_SERVICE_NAME,
   ORAKL_NETWORK_API_URL
 } from './settings'
 import { IReporterConfig, IVrfConfig } from './types'

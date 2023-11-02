@@ -1,9 +1,9 @@
 import { Logger } from 'pino'
 import type { RedisClientType } from 'redis'
 import {
-  L2_DATA_FEED_SERVICE_NAME,
-  L2_DATA_FEED_REPORTER_STATE_NAME,
   L2_CHAIN,
+  L2_DATA_FEED_REPORTER_STATE_NAME,
+  L2_DATA_FEED_SERVICE_NAME,
   L2_PROVIDER_URL,
   L2_REPORTER_AGGREGATOR_QUEUE_NAME
 } from '../settings'
