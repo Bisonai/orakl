@@ -1,0 +1,35 @@
+{
+  "vrfCoordinatorAddress": "",
+  "deploy": {
+    "version": "v0.1"
+  },
+  "registerOracle": [
+    {
+      "address": "0x469AeDBd53be58C9BBE47911d0e4E3A0dC12d1A9",
+      "publicProvingKey": [
+        "51031311550157667026221313873711041023282120909450762044422055886147825566290",
+        "22244443879084995533317783397050404375035794217818250122276426629522642686788"
+      ]
+    }
+  ],
+  "deregisterOracle": [],
+  "setConfig": {
+    "maxGasLimit": 2500000,
+    "gasAfterPaymentCalculation": 90692,
+    "feeConfig": {
+      "fulfillmentFlatFeeKlayPPMTier1": 2000000,
+      "fulfillmentFlatFeeKlayPPMTier2": 2000000,
+      "fulfillmentFlatFeeKlayPPMTier3": 2000000,
+      "fulfillmentFlatFeeKlayPPMTier4": 2000000,
+      "fulfillmentFlatFeeKlayPPMTier5": 2000000,
+      "reqsForTier2": 0,
+      "reqsForTier3": 0,
+      "reqsForTier4": 0,
+      "reqsForTier5": 0
+    }
+  },
+  "addCoordinator": {
+    "prepaymentAddress": "0xc2C88492Cf7e5240C3EB49353539E75336960600",
+    "coordinatorAddress": ""
+  }
+}
