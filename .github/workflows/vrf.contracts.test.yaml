@@ -31,25 +31,7 @@ jobs:
         working-directory: ./contracts
       - run: npx hardhat test test/v0.1/vrf/*.cjs
         working-directory: ./contracts
-        env:
-          L2_PROVIDER: ${{ secrets.L2_PROVIDER }}
       - run: yarn compile
         working-directory: ./contracts
-        env:
-          L2_PROVIDER: ${{ secrets.L2_PROVIDER }}
       - run: yarn build
         working-directory: ./contracts
-      - name: Extract version from package.json
-        uses: sergeysova/jq-action@v2
-        id: packageJsonVersion
-        with:
-          cmd: "jq .version ./contracts/package.json -r"
-      - name: Extract version from the latest published package
-        id: npmPackageVersion
-        run: echo "VERSION=`npm view @bisonai/orakl-contracts version`" >> $GITHUB_OUTPUT
-      - name: Publish package
-        if: steps.packageJsonVersion.outputs.value != steps.npmPackageVersion.outputs.VERSION
-        run: yarn publish --new-version ${{ steps.packageJsonVersion.outputs.value }} --access public
-        working-directory: ./contracts
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
