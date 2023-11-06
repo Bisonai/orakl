@@ -1,5 +1,5 @@
 import { Controller, Get, HttpException, HttpStatus, Param } from '@nestjs/common'
-import { L2aggregatorService } from './l2aggregator.service'
+import { L2aggregatorService } from './L2aggregator.service'
 import { ChainService } from '../chain/chain.service'
 
 @Controller({

@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common'
-import { L2aggregatorController } from './l2aggregator.controller'
-import { L2aggregatorService } from './l2aggregator.service'
+import { L2aggregatorController } from './L2aggregator.controller'
+import { L2aggregatorService } from './L2aggregator.service'
 import { ChainService } from '../chain/chain.service'
 import { PrismaService } from '../prisma.service'
 
