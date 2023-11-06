@@ -1,8 +1,8 @@
+import { Aggregator__factory } from '@bisonai/orakl-contracts'
 import { ethers } from 'ethers'
 import { Logger } from 'pino'
-import { IOracleRoundState, IRoundData, IDataFeedTransactionParameters } from '../types'
-import { PROVIDER, MAX_DATA_STALENESS } from '../settings'
-import { Aggregator__factory } from '@bisonai/orakl-contracts'
+import { MAX_DATA_STALENESS, PROVIDER } from '../settings'
+import { IDataFeedTransactionParameters, IOracleRoundState, IRoundData } from '../types'
 
 /**
  * Compute the number of seconds until the next round.
@@ -52,16 +52,17 @@ export async function oracleRoundStateCall({
   oracleAddress,
   operatorAddress,
   logger,
-  roundId
+  roundId,
+  provider
 }: {
   oracleAddress: string
   operatorAddress: string
   roundId?: number
   logger?: Logger
+  provider: ethers.providers.JsonRpcProvider
 }): Promise<IOracleRoundState> {
   logger?.debug({ oracleAddress, operatorAddress }, 'oracleRoundStateCall')
-
-  const aggregator = new ethers.Contract(oracleAddress, Aggregator__factory.abi, PROVIDER)
+  const aggregator = new ethers.Contract(oracleAddress, Aggregator__factory.abi, provider)
 
   let queriedRoundId = 0
   if (roundId) {

@@ -1,6 +1,6 @@
 import { Logger } from 'pino'
 import { OraklError, OraklErrorCode } from '../errors'
-import { IListenerRawConfig, IListenerConfig, IListenerGroupConfig } from '../types'
+import { IListenerConfig, IListenerGroupConfig, IListenerRawConfig } from '../types'
 
 const FILE_NAME = import.meta.url
 

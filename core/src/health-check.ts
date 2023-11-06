@@ -1,5 +1,5 @@
 import * as http from 'http'
-import { NODE_ENV, HEALTH_CHECK_PORT } from './settings'
+import { HEALTH_CHECK_PORT, NODE_ENV } from './settings'
 
 export function launchHealthCheck() {
   if (NODE_ENV == 'production') {

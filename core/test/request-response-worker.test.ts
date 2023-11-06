@@ -1,9 +1,9 @@
-import { job } from '../src/worker/request-response'
-import { IRequestResponseListenerWorker } from '../src/types'
 import { buildMockLogger } from '../src/logger'
 import { REQUEST_RESPONSE_FULFILL_GAS_MINIMUM } from '../src/settings'
-import { QUEUE } from './utils'
+import { IRequestResponseListenerWorker } from '../src/types'
+import { job } from '../src/worker/request-response'
 import { JOB_ID_UINT128 } from './../src/worker/request-response.utils'
+import { QUEUE } from './utils'
 
 function KlayPriceRequest() {
   // "get": "https://min-api.cryptocompare.com/data/pricemultifull?fsyms=KLAY&tsyms=USD"

@@ -1,9 +1,9 @@
 import { Job } from 'bullmq'
 import { Logger } from 'pino'
-import { sendTransaction, sendTransactionDelegatedFee, sendTransactionCaver } from './utils'
-import { State } from './state'
-import { ITransactionParameters } from '../types'
 import { OraklError, OraklErrorCode } from '../errors'
+import { ITransactionParameters } from '../types'
+import { State } from './state'
+import { sendTransaction, sendTransactionCaver, sendTransactionDelegatedFee } from './utils'
 
 export function reporter(state: State, logger: Logger) {
   async function wrapper(job: Job) {

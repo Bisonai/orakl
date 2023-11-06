@@ -1,6 +1,6 @@
 {
   "name": "@bisonai/orakl-core",
-  "version": "0.3.1",
+  "version": "0.4.0",
   "type": "module",
   "description": "The Orakl Network Core",
   "files": [
@@ -34,14 +34,17 @@
     "start:listener:vrf": "yarn start:listener --service VRF",
     "start:listener:request_response": "yarn start:listener --service REQUEST_RESPONSE",
     "start:listener:data_feed": "yarn start:listener --service DATA_FEED",
+    "start:listener:data_feed_l2": "yarn start:listener --service DATA_FEED_L2",
     "start:worker": "node --no-warnings --experimental-specifier-resolution=node --experimental-json-modules dist/worker/main.js",
     "start:worker:data_feed": "yarn start:worker --worker DATA_FEED",
+    "start:worker:data_feed_l2": "yarn start:worker --worker DATA_FEED_L2",
     "start:worker:vrf": "yarn start:worker --worker VRF",
     "start:worker:request_response": "yarn start:worker --worker REQUEST_RESPONSE",
     "start:reporter": "node --no-warnings --experimental-specifier-resolution=node --experimental-json-modules dist/reporter/main.js",
     "start:reporter:vrf": "yarn start:reporter --reporter VRF",
     "start:reporter:request_response": "yarn start:reporter --reporter REQUEST_RESPONSE",
     "start:reporter:data_feed": "yarn start:reporter --reporter DATA_FEED",
+    "start:reporter:data_feed_l2": "yarn start:reporter --reporter DATA_FEED_L2",
     "keygen": "node --no-warnings --experimental-specifier-resolution=node --experimental-json-modules dist/cli/vrf-keygen.js",
     "adapter-hash": "node --no-warnings --experimental-specifier-resolution=node --experimental-json-modules dist/cli/generate-adapter-hash.js",
     "aggregator-hash": "node --no-warnings --experimental-specifier-resolution=node --experimental-json-modules dist/cli/generate-aggregator-hash.js",
@@ -83,6 +86,7 @@
     "husky": "^8.0.2",
     "jest": "^29.3.1",
     "prettier": "^2.8.1",
+    "prettier-plugin-organize-imports": "^3.2.3",
     "ts-jest": "^29.0.3",
     "ts-node": "^10.9.1",
     "typescript": "^4.9.3"

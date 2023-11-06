@@ -1,7 +1,7 @@
-import { job } from '../src/worker/vrf'
-import { IVrfConfig, IVrfListenerWorker } from '../src/types'
 import { buildMockLogger } from '../src/logger'
 import { VRF_FULFILL_GAS_MINIMUM, VRF_FULLFILL_GAS_PER_WORD } from '../src/settings'
+import { IVrfConfig, IVrfListenerWorker } from '../src/types'
+import { job } from '../src/worker/vrf'
 import { QUEUE } from './utils'
 
 const vrfConfig: IVrfConfig = {

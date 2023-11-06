@@ -286,7 +286,7 @@ contract VRFCoordinator is IVRFCoordinatorBase, CoordinatorBase, ITypeAndVersion
             return totalFee;
         } else {
             // [regular] account
-            uint256 serviceFee = serviceFeeByAcc(rc.accId, rc.numWords);
+            uint256 serviceFee = serviceFeeByAcc(rc.accId, 1);
             if (serviceFee > 0) {
                 uint256 operatorFee = sPrepayment.chargeFee(rc.accId, serviceFee);
                 uint256 gasFee = calculateGasCost(startGas);
