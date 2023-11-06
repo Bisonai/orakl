@@ -3,6 +3,7 @@ import { Logger } from 'pino'
 import type { RedisClientType } from 'redis'
 import {
   IDataFeedListenerWorker,
+  IDataFeedListenerWorkerL2,
   IListenerConfig,
   IRequestResponseListenerWorker,
   IVrfListenerWorker
@@ -40,7 +41,12 @@ interface IJobQueueSettings {
 }
 
 export type ProcessEventOutputType = {
-  jobData: IRequestResponseListenerWorker | IDataFeedListenerWorker | IVrfListenerWorker | null
+  jobData:
+    | IRequestResponseListenerWorker
+    | IDataFeedListenerWorker
+    | IVrfListenerWorker
+    | IDataFeedListenerWorkerL2
+    | null
   jobId: string
   jobName: string
   jobQueueSettings?: IJobQueueSettings

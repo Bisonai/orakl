@@ -3,7 +3,7 @@ pragma solidity ^0.8.16;
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "./interfaces/IL2Aggregator.sol";
 
-contract Endpoint is Ownable {
+contract L2Endpoint is Ownable {
     uint256 public aggregatorCount;
     uint256 public submitterCount;
 

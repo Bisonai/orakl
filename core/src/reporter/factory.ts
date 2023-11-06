@@ -15,7 +15,9 @@ export async function factory({
   reporterQueueName,
   concurrency,
   delegatedFee,
-  _logger
+  _logger,
+  providerUrl = PROVIDER_URL,
+  chain = CHAIN
 }: {
   redisClient: RedisClientType
   stateName: string
@@ -23,16 +25,18 @@ export async function factory({
   reporterQueueName: string
   concurrency: number
   delegatedFee: boolean
+  providerUrl?: string
+  chain?: string
   _logger: Logger
 }) {
   const logger = _logger.child({ name: 'reporter', file: FILE_NAME })
 
   const state = new State({
     redisClient,
-    providerUrl: PROVIDER_URL,
+    providerUrl,
     stateName,
     service,
-    chain: CHAIN,
+    chain,
     delegatedFee,
     logger
   })

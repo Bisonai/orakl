@@ -319,13 +319,14 @@ describe('Prepayment', function () {
     expect(addedCoordinatorAddress).to.be.equal(coordinator.address)
 
     // The same coordinator cannot be added more than once
-    await expect(prepaymentContract.addCoordinator(coordinator.address)).to.be.rejectedWith(
-      'CoordinatorExists'
-    )
+    await expect(
+      prepaymentContract.addCoordinator(coordinator.address)
+    ).to.be.revertedWithCustomError(prepaymentContract, 'CoordinatorExists')
 
     // Remove coordinator ///////////////////////////////////////////////////////
     // Non-existing coordinator cannot be removed
-    await expect(prepaymentContract.removeCoordinator(NULL_ADDRESS)).to.be.rejectedWith(
+    await expect(prepaymentContract.removeCoordinator(NULL_ADDRESS)).to.be.revertedWithCustomError(
+      prepaymentContract,
       'InvalidCoordinator'
     )
 
