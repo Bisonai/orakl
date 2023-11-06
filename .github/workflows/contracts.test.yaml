@@ -6,7 +6,9 @@ on:
       - "master"
     paths:
       - "contracts/**"
-
+      - "!contracts/**/VRFCoordinator.sol"
+      - "!contracts/**/VRFConsumerBase.sol"
+      - "!contracts/**/vrf/**"
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -28,7 +30,7 @@ jobs:
         working-directory: ./contracts
       - run: yarn eslint
         working-directory: ./contracts
-      - run: npx hardhat test
+      - run: npx hardhat test test/v0.1/non-vrf/*.cjs
         working-directory: ./contracts
         env:
           L2_PROVIDER: ${{ secrets.L2_PROVIDER }}

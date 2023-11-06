@@ -6,7 +6,7 @@ const {
   deploy: deployRrCoordinator,
   parseOracleRegisterdTx
 } = require('./RequestResponseCoordinator.utils.cjs')
-const { createSigners } = require('./utils.cjs')
+const { createSigners } = require('../utils.cjs')
 
 async function deploy() {
   const {

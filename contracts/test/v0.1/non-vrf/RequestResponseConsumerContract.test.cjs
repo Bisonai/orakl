@@ -8,8 +8,8 @@ const {
   DATA_REQUEST_EVENT_ARGS,
   parseDataRequestFulfilledTx
 } = require('./RequestResponseCoordinator.utils.cjs')
-const { parseKlay } = require('./utils.cjs')
-const { median, majorityVotingBool, createSigners } = require('./utils.cjs')
+const { parseKlay } = require('../utils.cjs')
+const { median, majorityVotingBool, createSigners } = require('../utils.cjs')
 const {
   deploy: deployPrepayment,
   createAccount,

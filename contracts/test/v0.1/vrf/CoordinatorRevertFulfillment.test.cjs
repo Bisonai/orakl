@@ -8,17 +8,21 @@ const {
   fulfillRandomWords,
   parseRandomWordsFulfilledTx
 } = require('./VRFCoordinator.utils.cjs')
-const { parseKlay } = require('./utils.cjs')
+const { parseKlay } = require('../utils.cjs')
 const {
   deploy: deployRrCoordinator,
   setupOracle: setupRequestResponseCoordinator,
   parseDataRequestedTx,
   parseDataRequestFulfilledTx
-} = require('./RequestResponseCoordinator.utils.cjs')
-const { deploy: deployPrepayment, createAccount, deposit } = require('./Prepayment.utils.cjs')
+} = require('../non-vrf/RequestResponseCoordinator.utils.cjs')
+const {
+  deploy: deployPrepayment,
+  createAccount,
+  deposit
+} = require('../non-vrf/Prepayment.utils.cjs')
 const { vrfConfig } = require('./VRFCoordinator.config.cjs')
-const { requestResponseConfig } = require('./RequestResponse.config.cjs')
-const { getBalance, createSigners } = require('./utils.cjs')
+const { requestResponseConfig } = require('../non-vrf/RequestResponse.config.cjs')
+const { getBalance, createSigners } = require('../utils.cjs')
 const oraklVrf = import('@bisonai/orakl-vrf')
 
 async function deploy() {

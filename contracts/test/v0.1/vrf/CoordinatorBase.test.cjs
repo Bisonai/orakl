@@ -7,11 +7,11 @@ const {
   setupOracle: setupVrfOracle,
   parseRandomWordsRequestedTx
 } = require('./VRFCoordinator.utils.cjs')
-const { createAccount, addConsumer, deposit } = require('./Prepayment.utils.cjs')
+const { createAccount, addConsumer, deposit } = require('../non-vrf/Prepayment.utils.cjs')
 const { vrfConfig } = require('./VRFCoordinator.config.cjs')
 const { parseRequestCanceled } = require('./CoordinatorBase.utils.cjs')
-const { deploy: deployPrepayment } = require('./Prepayment.utils.cjs')
-const { parseKlay, createSigners } = require('./utils.cjs')
+const { deploy: deployPrepayment } = require('../non-vrf/Prepayment.utils.cjs')
+const { parseKlay, createSigners } = require('../utils.cjs')
 
 async function deploy() {
   const {

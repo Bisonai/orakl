@@ -14,7 +14,7 @@ const {
   addConsumer,
   removeConsumer
 } = require('./Registry.utils.cjs')
-const { parseKlay, getBalance, createSigners } = require('./utils.cjs')
+const { parseKlay, getBalance, createSigners } = require('../utils.cjs')
 const { exp } = require('mathjs')
 
 async function deploy() {

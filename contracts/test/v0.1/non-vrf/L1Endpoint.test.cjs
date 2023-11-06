@@ -1,13 +1,13 @@
 const { expect } = require('chai')
 const { ethers } = require('hardhat')
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers')
-const { vrfConfig } = require('./VRFCoordinator.config.cjs')
-const { parseKlay, getBalance, createSigners } = require('./utils.cjs')
+const { vrfConfig } = require('../vrf/VRFCoordinator.config.cjs')
+const { parseKlay, getBalance, createSigners } = require('../utils.cjs')
 const {
   setupOracle,
   generateVrf,
   deploy: deployVrfCoordinator
-} = require('./VRFCoordinator.utils.cjs')
+} = require('../vrf/VRFCoordinator.utils.cjs')
 const { deploy: deployPrepayment, addCoordinator } = require('./Prepayment.utils.cjs')
 
 const {
@@ -175,7 +175,7 @@ async function deploy() {
   }
 }
 
-describe('VRF contract', function () {
+describe('L1Endpoint', function () {
   it('add and remove oracle', async function () {
     const { endpoint, account2: oracle } = await loadFixture(deploy)
 

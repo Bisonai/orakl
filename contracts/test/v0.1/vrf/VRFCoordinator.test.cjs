@@ -3,7 +3,7 @@ const { ethers } = require('hardhat')
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers')
 const crypto = require('crypto')
 const { vrfConfig } = require('./VRFCoordinator.config.cjs')
-const { parseKlay, remove0x, getBalance, createSigners } = require('./utils.cjs')
+const { parseKlay, remove0x, getBalance, createSigners } = require('../utils.cjs')
 const {
   setupOracle,
   generateVrf,
@@ -25,8 +25,8 @@ const {
   createKlaySubscriptionAccount,
   createKlayDiscountAccount,
   getAccount
-} = require('./Prepayment.utils.cjs')
-const { AccountType } = require('./Account.utils.cjs')
+} = require('../non-vrf/Prepayment.utils.cjs')
+const { AccountType } = require('../non-vrf/Account.utils.cjs')
 
 const DUMMY_KEY_HASH = '0x00000773ef09e40658e643fe79f8d1a27c0aa6eb7251749b268f829ea49f2024'
 const SINGLE_WORD = 1
