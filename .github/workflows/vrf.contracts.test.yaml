@@ -1,4 +1,4 @@
-name: "contracts: test+publish"
+name: "vrf contracts: test"
 
 on:
   push:
