@@ -23,7 +23,7 @@ export async function getSynchronizedDelay({
 }): Promise<number> {
   logger.debug('getSynchronizedDelay')
 
-  const { startedAt } = await currentRoundStartedAtCall({
+  const startedAt = await currentRoundStartedAtCall({
     oracleAddress,
     logger
   })
