@@ -183,6 +183,7 @@ export async function sendTransactionDelegatedFee({
         ...transactionData
       })
     )?.data
+    _logger.debug(response)
   } catch (e) {
     throw new OraklError(OraklErrorCode.DelegatorServerIssue)
   }
