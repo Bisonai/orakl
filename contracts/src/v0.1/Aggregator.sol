@@ -638,7 +638,6 @@ contract Aggregator is Ownable, IAggregator, ITypeAndVersion {
         if (oracleEnabled(_oracle)) {
             revert OracleAlreadyEnabled();
         }
-
         oracles[_oracle].startingRound = getStartingRound(_oracle);
         oracles[_oracle].endingRound = ROUND_MAX;
         oracles[_oracle].index = uint16(oracleAddresses.length);

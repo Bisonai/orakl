@@ -1,29 +1,29 @@
+import { VRFCoordinator__factory } from '@bisonai/orakl-contracts'
+import { decode, getFastVerifyComponents, prove } from '@bisonai/orakl-vrf'
+import { Queue, Worker } from 'bullmq'
 import { ethers } from 'ethers'
-import { Worker, Queue } from 'bullmq'
 import { Logger } from 'pino'
 import type { RedisClientType } from 'redis'
-import { VRFCoordinator__factory } from '@bisonai/orakl-contracts'
-import { prove, decode, getFastVerifyComponents } from '@bisonai/orakl-vrf'
+import { getVrfConfig } from '../api'
 import {
-  RequestCommitmentVRF,
-  Proof,
-  IVrfResponse,
-  IVrfListenerWorker,
-  IVrfConfig,
-  ITransactionParameters,
-  IVrfTransactionParameters,
-  QueueType
-} from '../types'
-import {
-  WORKER_VRF_QUEUE_NAME,
-  REPORTER_VRF_QUEUE_NAME,
   BULLMQ_CONNECTION,
   CHAIN,
+  REPORTER_VRF_QUEUE_NAME,
   VRF_FULFILL_GAS_MINIMUM,
   VRF_FULLFILL_GAS_PER_WORD,
-  WORKER_JOB_SETTINGS
+  WORKER_JOB_SETTINGS,
+  WORKER_VRF_QUEUE_NAME
 } from '../settings'
-import { getVrfConfig } from '../api'
+import {
+  ITransactionParameters,
+  IVrfConfig,
+  IVrfListenerWorker,
+  IVrfResponse,
+  IVrfTransactionParameters,
+  Proof,
+  QueueType,
+  RequestCommitmentVRF
+} from '../types'
 import { remove0x } from '../utils'
 
 const FILE_NAME = import.meta.url

@@ -1,15 +1,15 @@
-import { describe, test, expect } from '@jest/globals'
+import { describe, expect, test } from '@jest/globals'
+import { pipe } from '../src/utils'
 import {
-  parseFn,
-  mulFn,
   divFn,
-  pow10Fn,
-  roundFn,
   indexFn,
-  requestResponseReducerMapping
+  mulFn,
+  parseFn,
+  pow10Fn,
+  requestResponseReducerMapping,
+  roundFn
 } from '../src/worker/reducer'
 import { buildReducer } from '../src/worker/utils'
-import { pipe } from '../src/utils'
 
 describe('Reducers', function () {
   test('parseFn with array input', function () {

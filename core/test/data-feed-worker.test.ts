@@ -1,8 +1,8 @@
-import { ethers } from 'ethers'
 import { Aggregator__factory } from '@bisonai/orakl-contracts'
-import { buildTransaction } from '../src/worker/data-feed.utils'
+import { ethers } from 'ethers'
 import { buildMockLogger } from '../src/logger'
 import { DATA_FEED_FULFILL_GAS_MINIMUM } from '../src/settings'
+import { buildTransaction } from '../src/worker/data-feed.utils'
 
 describe('Data Feed Worker', function () {
   it('Data Feed Build Transaction', async function () {

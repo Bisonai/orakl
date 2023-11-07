@@ -1,22 +1,24 @@
 import { parseArgs } from 'node:util'
 import type { RedisClientType } from 'redis'
-import { buildLogger } from '../logger'
-import { buildListener as buildDataFeedListener } from './data-feed'
-import { buildListener as buildVrfListener } from './vrf'
-import { buildListener as buildRequestResponseListener } from './request-response'
-import { postprocessListeners } from './utils'
-import { OraklError, OraklErrorCode } from '../errors'
-import { CHAIN, REDIS_HOST, REDIS_PORT } from '../settings'
-import { getListeners } from './api'
-import { hookConsoleError } from '../utils'
-import { IListeners } from './types'
 import { createClient } from 'redis'
+import { OraklError, OraklErrorCode } from '../errors'
 import { launchHealthCheck } from '../health-check'
+import { buildLogger } from '../logger'
+import { CHAIN, REDIS_HOST, REDIS_PORT } from '../settings'
+import { hookConsoleError } from '../utils'
+import { getListeners } from './api'
+import { buildListener as buildDataFeedListener } from './data-feed'
+import { buildListener as buildL2DataFeedListener } from './data-feed-L2'
+import { buildListener as buildRequestResponseListener } from './request-response'
+import { IListeners } from './types'
+import { postprocessListeners } from './utils'
+import { buildListener as buildVrfListener } from './vrf'
 
 const LISTENERS: IListeners = {
   DATA_FEED: buildDataFeedListener,
   VRF: buildVrfListener,
-  REQUEST_RESPONSE: buildRequestResponseListener
+  REQUEST_RESPONSE: buildRequestResponseListener,
+  DATA_FEED_L2: buildL2DataFeedListener
 }
 
 const FILE_NAME = import.meta.url

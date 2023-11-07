@@ -12,12 +12,13 @@ datasource db {
 }
 
 model Chain {
-  id         BigInt       @id @default(autoincrement()) @map("chain_id")
-  name       String       @unique
-  Aggregator Aggregator[]
-  Listener   Listener[]
-  VrfKey     VrfKey[]
-  Reporter   Reporter[]
+  id               BigInt             @id @default(autoincrement()) @map("chain_id")
+  name             String             @unique
+  Aggregator       Aggregator[]
+  Listener         Listener[]
+  VrfKey           VrfKey[]
+  Reporter         Reporter[]
+  L2AggregatorPair L2AggregatorPair[]
 
   @@map("chains")
 }
@@ -154,4 +155,13 @@ model Proxy {
 
   @@unique([protocol, host, port])
   @@map("proxies")
+}
+
+model L2AggregatorPair {
+  id                  BigInt  @id @default(autoincrement())
+  l1AggregatorAddress String  @map("l1_aggregator_addresss")
+  l2AggregatorAddress String  @map("l2_aggregator_addresss")
+  active              Boolean @default(false)
+  chainId             BigInt  @map("chain_id")
+  chain               Chain   @relation(fields: [chainId], references: [id])
 }

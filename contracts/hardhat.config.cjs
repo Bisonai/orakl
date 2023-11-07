@@ -42,6 +42,11 @@ const config = {
       url: 'https://public-en-cypress.klaytn.net',
       ...commonConfig,
       gasPrice: 250_000_000_000
+    },
+    l2node: {
+      url: process.env.L2_PROVIDER || '',
+      ...commonConfig,
+      gasPrice: 250_000_000_000
     }
   },
   paths: {
