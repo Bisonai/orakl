@@ -52,7 +52,6 @@ export function buildFetcherUrl(host: string, port: string, apiVersion: string) 
 
 export async function isOraklNetworkApiHealthy() {
   try {
-    
     return 200 === (await axios.get(ORAKL_NETWORK_API_URL))?.status
   } catch (e) {
     console.error(`Orakl Network API [${ORAKL_NETWORK_API_URL}] is down`)
@@ -63,7 +62,6 @@ export async function isOraklNetworkApiHealthy() {
 export async function isOraklFetcherHealthy(url: string) {
   try {
     if (!(await isValidUrl(url))) throw new Error('invalid url')
-
     return 200 === (await axios.get(url))?.status
   } catch (e) {
     console.error(`Orakl Network Fetcher [${url}] is down`)
@@ -84,7 +82,7 @@ export async function isServiceHealthy(url: string) {
   const healthEndpoint = buildUrl(url, 'health')
   try {
     if (!(await isValidUrl(url))) throw new Error('invalid url')
-    
+
     return 200 === (await axios.get(healthEndpoint))?.status
   } catch (e) {
     console.log(e)
