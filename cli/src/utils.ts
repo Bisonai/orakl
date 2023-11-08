@@ -74,9 +74,9 @@ export async function isOraklFetcherHealthy(url: string) {
       return false
     }
   } catch (error) {
-      console.error(
-        `An error occurred while checking the Orakl Network Fetcher [${url}]: ${error.message}`
-      )
+    console.error(
+      `An error occurred while checking the Orakl Network Fetcher [${url}]: ${error.message}`
+    )
     return false
   }
 }
