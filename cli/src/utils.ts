@@ -96,8 +96,6 @@ export async function isOraklDelegatorHealthy() {
 export async function isServiceHealthy(url: string) {
   const healthEndpoint = buildUrl(url, 'health')
   try {
-    if (!(await isValidUrl(url))) throw new Error('invalid url')
-
     return 200 === (await axios.get(healthEndpoint))?.status
   } catch (e) {
     console.log(e)
