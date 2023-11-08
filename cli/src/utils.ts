@@ -61,10 +61,25 @@ export async function isOraklNetworkApiHealthy() {
 
 export async function isOraklFetcherHealthy(url: string) {
   try {
-    if (!(await isValidUrl(url))) throw new Error('invalid url')
-    return 200 === (await axios.get(url))?.status
-  } catch (e) {
-    console.error(`Orakl Network Fetcher [${url}] is down`)
+    if (!(await isValidUrl(url))) {
+      throw new Error('Invalid URL')
+    }
+
+    const response = await axios.get(url)
+    if (response.status === 200) {
+      return true
+    } else {
+      console.error(`Orakl Network Fetcher [${url}] is down. HTTP Status: ${response.status}`)
+      return false
+    }
+  } catch (error) {
+    if (error.message === 'Invalid URL') {
+      console.error(error.message)
+    } else {
+      console.error(
+        `An error occurred while checking the Orakl Network Fetcher [${url}]: ${error.message}`
+      )
+    }
     return false
   }
 }
