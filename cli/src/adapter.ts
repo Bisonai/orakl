@@ -115,8 +115,10 @@ export function hashHandler() {
         .data
       console.dir(adapterWithCorrectHash, { depth: null })
     } catch (e) {
-      console.error('Adapter hash could not be computed. Reason:')
-      console.error(e.message)
+      console.error('Adapter hash could not be computed. Reason:');
+      const errMsg = e?.response?.data?.message ? e.response.data.message : e.message;
+
+      console.error(errMsg);
     }
   }
   return wrapper
