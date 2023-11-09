@@ -166,7 +166,10 @@ contract L2Endpoint is Ownable {
         return requestId;
     }
 
-    function fulfillRandomWords(uint256 requestId, uint256[] memory randomWords) external {
+    function fulfillRandomWords(
+        uint256 requestId,
+        uint256[] memory randomWords
+    ) external onlyOwner {
         RequestInfo memory detail = sRequestDetail[requestId];
         bytes memory resp = abi.encodeWithSelector(
             VRFConsumerBase.rawFulfillRandomWords.selector,
