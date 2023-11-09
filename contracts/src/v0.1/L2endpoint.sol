@@ -2,14 +2,21 @@
 pragma solidity ^0.8.16;
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "./interfaces/IL2Aggregator.sol";
+import "./VRFConsumerBase.sol";
 
 contract L2Endpoint is Ownable {
+    uint256 private constant GAS_FOR_CALL_EXACT_CHECK = 5_000;
     uint256 public aggregatorCount;
     uint256 public submitterCount;
     uint64 sNonce;
-
+    struct RequestInfo {
+        address owner;
+        uint32 callbackGasLimit;
+    }
     mapping(address => bool) submitters;
     mapping(address => bool) aggregators;
+
+    mapping(uint256 => RequestInfo) internal sRequestDetail;
 
     error InvalidSubmitter(address submitter);
     error InvalidAggregator(address aggregator);
@@ -29,6 +36,7 @@ contract L2Endpoint is Ownable {
         address indexed sender,
         bool isDirectPayment
     );
+    event RandomWordsFulfilled(uint256 indexed requestId, uint256[] randomWords, bool success);
 
     function addAggregator(address _newAggregator) external onlyOwner {
         if (aggregators[_newAggregator]) revert InvalidAggregator(_newAggregator);
@@ -85,6 +93,10 @@ contract L2Endpoint is Ownable {
     ) private returns (uint256) {
         sNonce++;
         (uint256 requestId, uint256 preSeed) = computeRequestId(keyHash, msg.sender, accId, sNonce);
+        sRequestDetail[requestId] = RequestInfo({
+            owner: msg.sender,
+            callbackGasLimit: callbackGasLimit
+        });
         emit RandomWordsRequested(
             keyHash,
             requestId,
@@ -97,6 +109,44 @@ contract L2Endpoint is Ownable {
         );
 
         return requestId;
+    }
+
+    /**
+     * @dev calls target address with exactly gasAmount gas and data as calldata
+     * or reverts if at least gasAmount gas is not available.
+     */
+    function callWithExactGas(
+        uint256 gasAmount,
+        address target,
+        bytes memory data
+    ) internal returns (bool success) {
+        // solhint-disable-next-line no-inline-assembly
+        assembly {
+            let g := gas()
+            // Compute g -= GAS_FOR_CALL_EXACT_CHECK and check for underflow
+            // The gas actually passed to the callee is min(gasAmount, 63//64*gas available).
+            // We want to ensure that we revert if gasAmount >  63//64*gas available
+            // as we do not want to provide them with less, however that check itself costs
+            // gas.  GAS_FOR_CALL_EXACT_CHECK ensures we have at least enough gas to be able
+            // to revert if gasAmount >  63//64*gas available.
+            if lt(g, GAS_FOR_CALL_EXACT_CHECK) {
+                revert(0, 0)
+            }
+            g := sub(g, GAS_FOR_CALL_EXACT_CHECK)
+            // if g - g//64 <= gasAmount, revert
+            // (we subtract g//64 because of EIP-150)
+            if iszero(gt(sub(g, div(g, 64)), gasAmount)) {
+                revert(0, 0)
+            }
+            // solidity calls check that a contract actually exists at the destination, so we do the same
+            if iszero(extcodesize(target)) {
+                revert(0, 0)
+            }
+            // call and return whether we succeeded. ignore return data
+            // call(gas,addr,value,argsOffset,argsLength,retOffset,retLength)
+            success := call(gasAmount, target, 0, add(data, 0x20), mload(data), 0, 0)
+        }
+        return success;
     }
 
     function requestRandomWords(
@@ -113,7 +163,17 @@ contract L2Endpoint is Ownable {
             numWords,
             isDirectPayment
         );
-
         return requestId;
+    }
+
+    function fulfillRandomWords(uint256 requestId, uint256[] memory randomWords) external {
+        RequestInfo memory detail = sRequestDetail[requestId];
+        bytes memory resp = abi.encodeWithSelector(
+            VRFConsumerBase.rawFulfillRandomWords.selector,
+            requestId,
+            randomWords
+        );
+        bool success = callWithExactGas(detail.callbackGasLimit, detail.owner, resp);
+        emit RandomWordsFulfilled(requestId, randomWords, success);
     }
 }
