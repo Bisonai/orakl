@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common'
 import { LastSubmissionDto } from './dto/last-submission.dto'
 import { Prisma } from '@prisma/client'
 import { PrismaService } from '../prisma.service'
-import { LastestSubmissionDto } from './dto/latest-submission.dto'
+import { AggregatorDto } from './dto/aggregator.dto'
 
 @Injectable()
 export class LastSubmissionService {
@@ -41,8 +41,8 @@ export class LastSubmissionService {
     })
   }
 
-  async findByhash(lastestSubmissionDto: LastestSubmissionDto) {
-    const { aggregatorHash } = lastestSubmissionDto
+  async findByhash(aggregator: AggregatorDto) {
+    const { aggregatorHash } = aggregator
     return await this.prisma.lastSubmission.findFirst({
       where: { aggregator: { aggregatorHash } },
       orderBy: [

@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger'
 
-export class LastestSubmissionDto {
+export class AggregatorDto {
   @ApiProperty()
   aggregatorHash: string
 }
