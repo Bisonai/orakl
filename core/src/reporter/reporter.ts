@@ -80,7 +80,7 @@ export function reporter(state: State, logger: Logger) {
       })
       try {
         const response = await storeSubmission({ submissionData, logger })
-        logger.info(`Submission is stored.`, response.data)
+        logger.info('Submission is stored.', response.data)
       } catch (e) {
         logger.error('Storing Submission data failed.')
         logger.error('submissionData:', submissionData)
