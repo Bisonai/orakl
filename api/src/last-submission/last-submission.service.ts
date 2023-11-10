@@ -31,10 +31,4 @@ export class LastSubmissionService {
       orderBy: [{ timestamp: 'desc' }]
     })
   }
-
-  async remove(where: Prisma.AggregateWhereUniqueInput) {
-    return await this.prisma.lastSubmission.delete({
-      where
-    })
-  }
 }

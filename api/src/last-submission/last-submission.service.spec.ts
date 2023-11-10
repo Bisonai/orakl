@@ -7,7 +7,7 @@ import { AggregatorService } from './../aggregator/aggregator.service'
 import { ChainService } from './../chain/chain.service'
 
 describe('LastSubmissionService', () => {
-  let lastsubmision: LastSubmissionService
+  let lastSubmission: LastSubmissionService
   let adapter: AdapterService
   let aggregator: AggregatorService
   let chain: ChainService
@@ -25,7 +25,7 @@ describe('LastSubmissionService', () => {
       ]
     }).compile()
     prisma = module.get<PrismaClient>(PrismaService)
-    lastsubmision = module.get<LastSubmissionService>(LastSubmissionService)
+    lastSubmission = module.get<LastSubmissionService>(LastSubmissionService)
 
     adapter = module.get<AdapterService>(AdapterService)
     chain = module.get<ChainService>(ChainService)
@@ -95,29 +95,29 @@ describe('LastSubmissionService', () => {
   })
 
   it('should be defined', () => {
-    expect(lastsubmision).toBeDefined()
+    expect(lastSubmission).toBeDefined()
   })
 
-  it('should upsert', async () => {
-    const submissionUpsertObj = await lastsubmision.upsert(submissionData)
+  it.only('should upsert', async () => {
+    const submissionUpsertObj = await lastSubmission.upsert(submissionData)
     expect(submissionUpsertObj.value).toBe(submissionData.value)
     expect(submissionUpsertObj.aggregatorId).toBe(submissionData.aggregatorId)
 
     // Cleanup
-    await lastsubmision.remove({ id: submissionUpsertObj.id })
+    await prisma.lastSubmission.delete({ where: { id: submissionUpsertObj.id } })
   })
 
   it('should find entity with AggregatorHash', async () => {
-    const submissionUpsertObj = await lastsubmision.upsert(submissionData)
+    const submissionUpsertObj = await lastSubmission.upsert(submissionData)
     expect(submissionUpsertObj.value).toBe(submissionData.value)
     expect(submissionUpsertObj.aggregatorId).toBe(submissionData.aggregatorId)
 
     // Find with Aggregator Hash
-    const findObj = await lastsubmision.findByhash({ aggregatorHash: aggregatorObj.hash })
+    const findObj = await lastSubmission.findByhash({ aggregatorHash: aggregatorObj.hash })
     expect(findObj.aggregatorId).toBe(submissionData.aggregatorId)
     expect(findObj.value).toBe(submissionData.value)
 
     // Cleanup
-    await lastsubmision.remove({ id: submissionUpsertObj.id })
+    await prisma.lastSubmission.delete({ where: { id: submissionUpsertObj.id } })
   })
 })
