@@ -6,6 +6,6 @@ export interface IReporters {
 }
 
 export interface ISubmissionData {
-  aggregatorId: number
-  value: number
+  aggregatorId: BigInt
+  value: BigInt
 }

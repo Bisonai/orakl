@@ -267,7 +267,7 @@ async function extractSubmissionData(input: string) {
   const iface = new ethers.utils.Interface(Aggregator__factory.abi)
 
   const [, submission] = iface.decodeFunctionData('submit', input)
-  return Number(submission)
+  return BigInt(submission)
 }
 
 export async function makeSubmissionData({
@@ -280,7 +280,7 @@ export async function makeSubmissionData({
   logger?: Logger
 }) {
   const aggregator = await loadAggregatorByAddress({ address: to, logger })
-  const aggregatorId = Number(aggregator.id)
+  const aggregatorId = BigInt(aggregator.id)
 
   const submission = await extractSubmissionData(payload)
   const lastSubmission: ISubmissionData = {
