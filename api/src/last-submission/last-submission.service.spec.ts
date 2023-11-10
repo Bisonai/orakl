@@ -98,7 +98,7 @@ describe('LastSubmissionService', () => {
     expect(lastSubmission).toBeDefined()
   })
 
-  it.only('should upsert', async () => {
+  it('should upsert', async () => {
     const submissionUpsertObj = await lastSubmission.upsert(submissionData)
     expect(submissionUpsertObj.value).toBe(submissionData.value)
     expect(submissionUpsertObj.aggregatorId).toBe(submissionData.aggregatorId)
