@@ -71,7 +71,7 @@ export function reporter(state: State, logger: Logger) {
     }
 
     // check if payload uses Submit method, which indicates submission if for Aggregator Price Feeds
-    // Needs to store all the aggregator submissions on db.
+    // needs to store all the aggregator submissions on db.
     if (isSubmitMethod(wallet, payload)) {
       const submissionData: ISubmissionData = await makeSubmissionData({
         to,

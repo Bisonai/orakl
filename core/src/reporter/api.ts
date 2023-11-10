@@ -33,7 +33,7 @@ export async function loadAggregatorByAddress({
   try {
     const endpoint = buildUrl(ORAKL_NETWORK_API_URL, `aggregator/${address}`)
     const response = await axios.get(endpoint)
-    return response.data[0]
+    return response.data
   } catch (e) {
     logger?.error(e.msg)
     throw new OraklError(OraklErrorCode.FailedToLoadAggregator)

@@ -73,10 +73,8 @@ export class AggregatorController {
 
   @Get(':address')
   async findByAddress(@Param('address') address: string) {
-    return await this.aggregatorService.findAll({
-      where: {
-        address
-      }
+    return await this.aggregatorService.findUnique({
+      address
     })
   }
 
