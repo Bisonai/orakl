@@ -9,7 +9,7 @@ import { LastSubmissionDto } from './dto/last-submission.dto'
 export class LastSubmissionController {
   constructor(private readonly lastSubmissionService: LastSubmissionService) {}
 
-  @Get(':hash/latest')
+  @Get(':hash')
   async findByhash(@Param('hash') aggregatorHash: string) {
     return await this.lastSubmissionService.findByhash({ aggregatorHash })
   }
