@@ -216,29 +216,29 @@ export function extractFeeds(
  * submission more than given threshold or absolute threshold. If yes,
  * return `true`, otherwise `false`.
  *
- * @param {number} latestSubmission - Submission value
+ * @param {number} lastSubmission - Submission value
  * @param {number} submission - Submission value
  * @param {number} threshold - Configuration
  * @param {number} absoluteThreshold - Threshold configuration
  * @return {boolean} Result in boolean, True or False
  */
 export function shouldReport(
-  latestSubmission: number,
+  lastSubmission: number,
   submission: number,
   threshold: number,
   absoluteThreshold: number
 ): boolean {
-  if (latestSubmission && submission) {
-    const range = latestSubmission * threshold
-    const l = latestSubmission - range
-    const r = latestSubmission + range
+  if (lastSubmission && submission) {
+    const range = lastSubmission * threshold
+    const l = lastSubmission - range
+    const r = lastSubmission + range
 
     return submission < l || submission > r
-  } else if (latestSubmission == 0 && submission) {
-    // latestSubmission hit zero
+  } else if (lastSubmission == 0 && submission) {
+    // lastSubmission hit zero
     return submission > absoluteThreshold
   } else {
-    // latestSubmmission or submission is not defined
+    // lastSubmission or submission is not defined
     return false
   }
 }
