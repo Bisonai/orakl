@@ -2,7 +2,6 @@ import { Test, TestingModule } from '@nestjs/testing'
 import { LastSubmissionService } from './last-submission.service'
 import { PrismaClient } from '@prisma/client'
 import { PrismaService } from '../prisma.service'
-import { LastSubmissionDto } from './dto/last-submission.dto'
 import { AdapterService } from './../adapter/adapter.service'
 import { AggregatorService } from './../aggregator/aggregator.service'
 import { ChainService } from './../chain/chain.service'
@@ -13,8 +12,7 @@ describe('LastSubmissionService', () => {
   let aggregator: AggregatorService
   let chain: ChainService
   let prisma
-
-  let submissionData, submissionObj, adapterObj, aggregatorObj, chainObj
+  let submissionData, adapterObj, aggregatorObj, chainObj
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -84,8 +82,6 @@ describe('LastSubmissionService', () => {
       aggregatorId: BigInt(aggregatorObj.id),
       value: BigInt(1000)
     }
-
-    submissionObj = await lastsubmision.create(submissionData)
   })
 
   afterEach(async () => {
@@ -102,37 +98,6 @@ describe('LastSubmissionService', () => {
     expect(lastsubmision).toBeDefined()
   })
 
-  it('should insert new sumbission record', async () => {
-    expect(submissionObj.value).toBe(submissionData.value)
-    expect(submissionObj.aggregatorId).toBe(submissionData.aggregatorId)
-
-    // The same sumbission cannot be defined twice
-    await expect(async () => {
-      await lastsubmision.create(submissionData)
-    }).rejects.toThrow()
-
-    // Cleanup
-    await lastsubmision.remove({ id: submissionObj.id })
-  })
-
-  it('should update entity', async () => {
-    expect(submissionObj.value).toBe(submissionData.value)
-    expect(submissionObj.aggregatorId).toBe(submissionData.aggregatorId)
-
-    // Update Object
-    submissionData.value = BigInt(2000)
-    const id = submissionObj.id
-    const submissionUpdateObj = await lastsubmision.update({
-      where: { id },
-      lastSubmissionDto: { ...submissionData }
-    })
-    expect(submissionUpdateObj.value).toBe(submissionData.value)
-    expect(submissionUpdateObj.aggregatorId).toBe(submissionData.aggregatorId)
-
-    // Cleanup
-    await lastsubmision.remove({ id: submissionUpdateObj.id })
-  })
-
   it('should upsert', async () => {
     const submissionUpsertObj = await lastsubmision.upsert(submissionData)
     expect(submissionUpsertObj.value).toBe(submissionData.value)
@@ -142,43 +107,10 @@ describe('LastSubmissionService', () => {
     await lastsubmision.remove({ id: submissionUpsertObj.id })
   })
 
-  it('should create & upsert entity', async () => {
-    expect(submissionObj.value).toBe(submissionData.value)
-    expect(submissionObj.aggregatorId).toBe(submissionData.aggregatorId)
-
-    // Upsert with updated value
-    const submissionUpsertData: LastSubmissionDto = {
-      aggregatorId: submissionData.aggregatorId,
-      value: BigInt(2000)
-    }
-
-    const submissionUpsertObj = await lastsubmision.upsert(submissionUpsertData)
-    expect(submissionUpsertObj.aggregatorId).toBe(submissionData.aggregatorId)
-    expect(submissionUpsertObj.value).not.toEqual(submissionData.value)
-
-    expect(submissionUpsertObj.aggregatorId).toBe(submissionUpsertData.aggregatorId)
-    expect(submissionUpsertObj.value).toEqual(submissionUpsertData.value)
-
-    // Cleanup
-    await lastsubmision.remove({ id: submissionUpsertObj.id })
-  })
-
-  it('should find entity with AggregatorId', async () => {
-    expect(submissionObj.value).toBe(submissionData.value)
-    expect(submissionObj.aggregatorId).toBe(submissionData.aggregatorId)
-
-    // Find with Aggregator Id
-    const findObj = await lastsubmision.findOne({ aggregatorId: submissionData.aggregatorId })
-    expect(findObj.aggregatorId).toBe(submissionData.aggregatorId)
-    expect(findObj.value).toBe(submissionData.value)
-
-    // Cleanup
-    await lastsubmision.remove({ id: submissionObj.id })
-  })
-
   it('should find entity with AggregatorHash', async () => {
-    expect(submissionObj.value).toBe(submissionData.value)
-    expect(submissionObj.aggregatorId).toBe(submissionData.aggregatorId)
+    const submissionUpsertObj = await lastsubmision.upsert(submissionData)
+    expect(submissionUpsertObj.value).toBe(submissionData.value)
+    expect(submissionUpsertObj.aggregatorId).toBe(submissionData.aggregatorId)
 
     // Find with Aggregator Hash
     const findObj = await lastsubmision.findByhash({ aggregatorHash: aggregatorObj.hash })
@@ -186,6 +118,6 @@ describe('LastSubmissionService', () => {
     expect(findObj.value).toBe(submissionData.value)
 
     // Cleanup
-    await lastsubmision.remove({ id: submissionObj.id })
+    await lastsubmision.remove({ id: submissionUpsertObj.id })
   })
 })

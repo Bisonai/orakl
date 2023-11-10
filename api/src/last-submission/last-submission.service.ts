@@ -8,68 +8,6 @@ import { AggregatorDto } from './dto/aggregator.dto'
 export class LastSubmissionService {
   constructor(private prisma: PrismaService) {}
 
-  async create(lastSubmissionDto: LastSubmissionDto) {
-    const data: Prisma.LastSubmissionUncheckedCreateInput = {
-      timestamp: new Date(),
-      value: lastSubmissionDto.value,
-      aggregatorId: lastSubmissionDto.aggregatorId
-    }
-
-    return await this.prisma.lastSubmission.create({ data })
-  }
-
-  async findAll(params: {
-    skip?: number
-    take?: number
-    cursor?: Prisma.LastSubmissionWhereUniqueInput
-    where?: Prisma.LastSubmissionWhereInput
-    orderBy?: Prisma.LastSubmissionOrderByWithRelationInput
-  }) {
-    const { skip, take, cursor, where, orderBy } = params
-    return await this.prisma.lastSubmission.findMany({
-      skip,
-      take,
-      cursor,
-      where,
-      orderBy
-    })
-  }
-
-  async findOne(lastSubmissionWhereUniqueInput: Prisma.LastSubmissionWhereUniqueInput) {
-    return await this.prisma.lastSubmission.findUnique({
-      where: lastSubmissionWhereUniqueInput
-    })
-  }
-
-  async findByhash(aggregator: AggregatorDto) {
-    const { aggregatorHash } = aggregator
-    return await this.prisma.lastSubmission.findFirst({
-      where: { aggregator: { aggregatorHash } },
-      orderBy: [
-        {
-          timestamp: 'desc'
-        }
-      ]
-    })
-  }
-
-  async update(params: {
-    where: Prisma.LastSubmissionWhereUniqueInput
-    lastSubmissionDto: LastSubmissionDto
-  }) {
-    const { where, lastSubmissionDto } = params
-    const data = {
-      timestamp: new Date(),
-      value: lastSubmissionDto.value,
-      aggregatorId: lastSubmissionDto.aggregatorId
-    }
-
-    return await this.prisma.lastSubmission.update({
-      data,
-      where
-    })
-  }
-
   async upsert(lastSubmissionDto: LastSubmissionDto) {
     const submissionData: Prisma.LastSubmissionUncheckedCreateInput = {
       timestamp: new Date(),
@@ -78,14 +16,20 @@ export class LastSubmissionService {
     }
 
     const data: Prisma.LastSubmissionUpsertArgs = {
-      where: {
-        aggregatorId: BigInt(submissionData.aggregatorId)
-      },
+      where: { aggregatorId: BigInt(submissionData.aggregatorId) },
       create: submissionData,
       update: submissionData
     }
 
     return await this.prisma.lastSubmission.upsert(data)
+  }
+
+  async findByhash(aggregator: AggregatorDto) {
+    const { aggregatorHash } = aggregator
+    return await this.prisma.lastSubmission.findFirst({
+      where: { aggregator: { aggregatorHash } },
+      orderBy: [{ timestamp: 'desc' }]
+    })
   }
 
   async remove(where: Prisma.AggregateWhereUniqueInput) {
