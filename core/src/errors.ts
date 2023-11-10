@@ -62,5 +62,5 @@ export enum OraklErrorCode {
   CaverTxTransactionFailed,
   DelegatorServerIssue,
   FailedToUpsertSubmission,
-  FailedToLoadAggregator
+  FailedToLoadAggregator,
 }
