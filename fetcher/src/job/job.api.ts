@@ -98,7 +98,7 @@ export async function deactivateAggregator(aggregatorHash: string, chain: string
   return await updateAggregator(aggregatorHash, chain, false)
 }
 
-export async function loadLastSubmissionData({
+export async function loadLastSubmissionValue({
   aggregatorHash,
   logger
 }: {
