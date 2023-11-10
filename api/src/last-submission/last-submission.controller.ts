@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common'
+import { Controller, Get, Body, Param, Put } from '@nestjs/common'
 import { LastSubmissionService } from './last-submission.service'
 import { LastSubmissionDto } from './dto/last-submission.dto'
 
@@ -14,7 +14,7 @@ export class LastSubmissionController {
     return await this.lastSubmissionService.findByhash({ aggregatorHash })
   }
 
-  @Post('upsert')
+  @Put()
   async upsert(@Body() lastSubmissionDto: LastSubmissionDto) {
     return this.lastSubmissionService.upsert(lastSubmissionDto)
   }

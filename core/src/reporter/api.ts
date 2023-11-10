@@ -13,8 +13,8 @@ export async function storeSubmission({
   logger?: Logger
 }) {
   try {
-    const endpoint = buildUrl(ORAKL_NETWORK_API_URL, `last-submission/upsert`)
-    const response = await axios.post(endpoint, { ...submissionData })
+    const endpoint = buildUrl(ORAKL_NETWORK_API_URL, `last-submission`)
+    const response = await axios.put(endpoint, { ...submissionData })
     logger?.info('Reporter submission upserted', response.data)
     return response.data
   } catch (e) {
