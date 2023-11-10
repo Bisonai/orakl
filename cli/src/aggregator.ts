@@ -185,7 +185,7 @@ export function insertHandler() {
   }: {
     data
     chain: string
-    fetcherType: number
+    fetcherType?: number
   }) {
     if (!(await isOraklNetworkApiHealthy())) return
 

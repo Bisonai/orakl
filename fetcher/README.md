@@ -66,3 +66,13 @@ yarn run test:cov
 ## License
 
 [MIT License](LICENSE)
+
+## Test adapter.json with script
+
+Check if adapter json file is working properly with script added in `src/tools/run-adapter.ts`.
+Place the json file inside `tools` folder and run the script with following command.
+
+```
+// example
+npx ts-node ./src/tools/run-adapter.ts ./ada-usdt.adapter.json
+```
