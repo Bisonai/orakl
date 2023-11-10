@@ -109,7 +109,7 @@ export async function loadLastSubmissionValue({
     const url = buildUrl(process.env.ORAKL_NETWORK_API_URL, `last-submission/${aggregatorHash}`)
     return (await axios.get(url))?.data
   } catch (e) {
-    const msg = 'Loading last submitted data failed.'
+    const msg = 'Loading last submitted value failed.'
     logger.error(msg)
     throw new HttpException(msg, HttpStatus.BAD_REQUEST)
   }

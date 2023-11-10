@@ -60,8 +60,8 @@ async function fetchRawDataWithoutProxy(adapter, logger) {
 /**
  * Fetch data from data sources defined in `adapter`.
  *
- * @param {} adapter Single data adapter to define which data to fetch.
- * @param {} NestJs logger
+ * @param {} adapter - Single data adapter to define which data to fetch.
+ * @param {} NestJs - Logger
  * @return {number} aggregatedresults
  */
 export async function fetchData(adapterList, logger) {
@@ -216,11 +216,11 @@ export function extractFeeds(
  * submission more than given threshold or absolute threshold. If yes,
  * return `true`, otherwise `false`.
  *
- * @param {number} latestSubmission submission value
- * @param {number} submission submission value
- * @param {number} threshold configuration
- * @param {number} absoluteThreshold threshold configuration
- * @return {boolean}
+ * @param {number} latestSubmission - Submission value
+ * @param {number} submission - Submission value
+ * @param {number} threshold - Configuration
+ * @param {number} absoluteThreshold - Threshold configuration
+ * @return {boolean} Result in boolean, True or False
  */
 export function shouldReport(
   latestSubmission: number,
