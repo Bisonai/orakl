@@ -16,7 +16,6 @@ export enum OraklErrorCode {
   GetListenerRequestFailed,
   GetReporterRequestFailed,
   GetVrfConfigRequestFailed,
-  IncompleteDataFeed,
   IndexOutOfBoundaries,
   InvalidAdapter,
   InvalidAggregator,
