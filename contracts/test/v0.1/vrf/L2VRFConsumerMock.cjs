@@ -16,7 +16,7 @@ async function deploy() {
   } = await createSigners()
 
   // L2 endpoint
-  let l2EndpointContract = await ethers.getContractFactory('L2Endpoint', { deployerSigner })
+  let l2EndpointContract = await ethers.getContractFactory('L2Endpoint', { signer: deployerSigner })
   l2EndpointContract = await l2EndpointContract.deploy()
   await l2EndpointContract.deployed()
 
@@ -26,7 +26,9 @@ async function deploy() {
   }
 
   // L2 consumer
-  let l2VRFConsumerMock = await ethers.getContractFactory('L2VRFConsumerMock', { deployerSigner })
+  let l2VRFConsumerMock = await ethers.getContractFactory('L2VRFConsumerMock', {
+    signer: deployerSigner
+  })
   l2VRFConsumerMock = await l2VRFConsumerMock.deploy(l2EndpointContract.address)
   await l2VRFConsumerMock.deployed()
 
@@ -57,7 +59,13 @@ describe('Consumer', function () {
     const event = endpoint.contract.interface.parseLog(txRequestRandomWords.events[0])
     expect(event.name).to.be.equal('RandomWordsRequested')
     const { requestId } = event.args
+
     const randomWords = [1]
+    await expect(
+      endpoint.contract.fulfillRandomWords(requestId, randomWords)
+    ).revertedWithCustomError(endpoint.contract, 'InvalidSubmitter')
+
+    await (await endpoint.contract.addSubmitter(endpoint.signer.address)).wait()
     await (await endpoint.contract.fulfillRandomWords(requestId, randomWords)).wait()
     const result = await consumer.contract.sRandomWord()
     expect(result).to.be.equal((randomWords % 50) + 1)
