@@ -8,12 +8,10 @@ export class PorError extends Error {
 }
 
 export enum PorErrorCode {
-  IncompleteDataFeed,
   IndexOutOfBoundaries,
   InvalidAdapter,
   InvalidDataFeed,
   InvalidDataFeedFormat,
   InvalidReducer,
-  MissingKeyInJson,
-  UnexpectedNumberOfJobs
+  MissingKeyInJson
 }
