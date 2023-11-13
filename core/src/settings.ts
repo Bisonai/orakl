@@ -79,6 +79,9 @@ export const HEARTBEAT_JOB_NAME = `${DEPLOYMENT_NAME}-heartbeat-job`
 export const L2_CHAIN = process.env.L2_CHAIN || 'localhost'
 export const L2_PROVIDER_URL = process.env.L2_PROVIDER_URL || 'http://127.0.0.1:8545'
 
+export const BAOBAB_CHAIN_ID = 1001
+export const CYPRESS_CHAIN_ID = 8217
+
 export const ALL_QUEUES = [
   LISTENER_REQUEST_RESPONSE_LATEST_QUEUE_NAME,
   LISTENER_VRF_LATEST_QUEUE_NAME,
