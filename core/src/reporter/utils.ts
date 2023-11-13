@@ -1,3 +1,4 @@
+import { Aggregator__factory } from '@bisonai/orakl-contracts'
 import { NonceManager } from '@ethersproject/experimental'
 import axios from 'axios'
 import Caver from 'caver-js'
@@ -6,10 +7,9 @@ import { Logger } from 'pino'
 import { OraklError, OraklErrorCode } from '../errors'
 import { ORAKL_NETWORK_DELEGATOR_URL } from '../settings'
 import { ITransactionData } from '../types'
-import { ISubmissionData } from './types'
-import { Aggregator__factory } from '@bisonai/orakl-contracts'
-import { loadAggregatorByAddress } from './api'
 import { add0x, buildUrl } from '../utils'
+import { loadAggregatorByAddress } from './api'
+import { ISubmissionData } from './types'
 
 const FILE_NAME = import.meta.url
 
@@ -268,7 +268,7 @@ async function extractSubmissionData(input: string) {
   const iface = new ethers.utils.Interface(Aggregator__factory.abi)
 
   const [, submission] = iface.decodeFunctionData('submit', input)
-  return BigInt(submission)
+  return Number(submission)
 }
 
 export async function makeSubmissionData({
@@ -281,11 +281,10 @@ export async function makeSubmissionData({
   logger?: Logger
 }) {
   const aggregator = await loadAggregatorByAddress({ address: to, logger })
-  const aggregatorId = BigInt(aggregator.id)
 
   const submission = await extractSubmissionData(payload)
   const lastSubmission: ISubmissionData = {
-    aggregatorId,
+    aggregatorId: aggregator.id,
     value: submission
   }
   return lastSubmission

@@ -1,9 +1,11 @@
 import axios from 'axios'
 import { Logger } from 'pino'
+import { OraklError, OraklErrorCode } from '../errors'
 import { ORAKL_NETWORK_API_URL } from '../settings'
 import { buildUrl } from '../utils'
-import { OraklError, OraklErrorCode } from '../errors'
 import { ISubmissionData } from './types'
+
+const LAST_SUBMISSION_ENDPOINT = buildUrl(ORAKL_NETWORK_API_URL, `last-submission`)
 
 export async function storeSubmission({
   submissionData,
@@ -13,8 +15,7 @@ export async function storeSubmission({
   logger?: Logger
 }) {
   try {
-    const endpoint = buildUrl(ORAKL_NETWORK_API_URL, `last-submission`)
-    const response = await axios.put(endpoint, { ...submissionData })
+    const response = await axios.put(LAST_SUBMISSION_ENDPOINT, submissionData)
     logger?.info('Reporter submission upserted', response.data)
     return response.data
   } catch (e) {

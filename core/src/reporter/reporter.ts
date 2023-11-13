@@ -1,17 +1,17 @@
 import { Job } from 'bullmq'
 import { Logger } from 'pino'
-import {
-  sendTransaction,
-  sendTransactionDelegatedFee,
-  sendTransactionCaver,
-  makeSubmissionData,
-  isSubmitMethod
-} from './utils'
-import { State } from './state'
-import { ITransactionParameters } from '../types'
 import { OraklError, OraklErrorCode } from '../errors'
 import { storeSubmission } from '../reporter/api'
+import { ITransactionParameters } from '../types'
+import { State } from './state'
 import { ISubmissionData } from './types'
+import {
+  isSubmitMethod,
+  makeSubmissionData,
+  sendTransaction,
+  sendTransactionCaver,
+  sendTransactionDelegatedFee
+} from './utils'
 
 export function reporter(state: State, logger: Logger) {
   async function wrapper(job: Job) {
@@ -72,7 +72,7 @@ export function reporter(state: State, logger: Logger) {
 
     // check if payload uses Submit method, which indicates submission if for Aggregator Price Feeds
     // needs to store all the aggregator submissions on db.
-    if (isSubmitMethod(wallet, payload)) {
+    if (await isSubmitMethod(wallet, payload)) {
       const submissionData: ISubmissionData = await makeSubmissionData({
         to,
         payload,
