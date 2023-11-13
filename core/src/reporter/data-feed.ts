@@ -3,18 +3,23 @@ import type { RedisClientType } from 'redis'
 import {
   DATA_FEED_REPORTER_STATE_NAME,
   DATA_FEED_SERVICE_NAME,
-  REPORTER_AGGREGATOR_QUEUE_NAME
+  REPORTER_AGGREGATOR_QUEUE_NAME,
+  PROVIDER_URL
 } from '../settings'
 import { factory } from './factory'
+import ethers from 'ethers'
 
 export async function buildReporter(redisClient: RedisClientType, logger: Logger) {
+  const provider = new ethers.providers.JsonRpcProvider(PROVIDER_URL)
+  const chainId = (await provider.getNetwork()).chainId;
+
   await factory({
     redisClient,
     stateName: DATA_FEED_REPORTER_STATE_NAME,
     service: DATA_FEED_SERVICE_NAME,
     reporterQueueName: REPORTER_AGGREGATOR_QUEUE_NAME,
     concurrency: 10,
-    delegatedFee: true,
+    delegatedFee: [1001, 8217].includes(chainId) ? true : false,
     _logger: logger
   })
 }
