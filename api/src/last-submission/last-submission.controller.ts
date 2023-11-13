@@ -15,7 +15,7 @@ export class LastSubmissionController {
   }
 
   @Put()
-  async upsert(@Body() lastSubmissionDto: LastSubmissionDto) {
-    return this.lastSubmissionService.upsert(lastSubmissionDto)
+  async upsert(@Body() data: LastSubmissionDto) {
+    return await this.lastSubmissionService.upsert(data)
   }
 }

@@ -79,8 +79,8 @@ describe('LastSubmissionService', () => {
 
     aggregatorObj = await aggregator.create(aggregatorData)
     submissionData = {
-      aggregatorId: BigInt(aggregatorObj.id),
-      value: BigInt(1000)
+      aggregatorId: Number(aggregatorObj.id),
+      value: Number(1000)
     }
   })
 
@@ -100,8 +100,8 @@ describe('LastSubmissionService', () => {
 
   it('should upsert', async () => {
     const submissionUpsertObj = await lastSubmission.upsert(submissionData)
-    expect(submissionUpsertObj.value).toBe(submissionData.value)
-    expect(submissionUpsertObj.aggregatorId).toBe(submissionData.aggregatorId)
+    expect(submissionUpsertObj.value).toBe(BigInt(submissionData.value))
+    expect(submissionUpsertObj.aggregatorId).toBe(BigInt(submissionData.aggregatorId))
 
     // Cleanup
     await prisma.lastSubmission.delete({ where: { id: submissionUpsertObj.id } })
@@ -109,13 +109,13 @@ describe('LastSubmissionService', () => {
 
   it('should find entity with AggregatorHash', async () => {
     const submissionUpsertObj = await lastSubmission.upsert(submissionData)
-    expect(submissionUpsertObj.value).toBe(submissionData.value)
-    expect(submissionUpsertObj.aggregatorId).toBe(submissionData.aggregatorId)
+    expect(submissionUpsertObj.value).toBe(BigInt(submissionData.value))
+    expect(submissionUpsertObj.aggregatorId).toBe(BigInt(submissionData.aggregatorId))
 
     // Find with Aggregator Hash
     const findObj = await lastSubmission.findByhash({ aggregatorHash: aggregatorObj.hash })
-    expect(findObj.aggregatorId).toBe(submissionData.aggregatorId)
-    expect(findObj.value).toBe(submissionData.value)
+    expect(findObj.aggregatorId).toBe(BigInt(submissionUpsertObj.aggregatorId))
+    expect(findObj.value).toBe(submissionUpsertObj.value)
 
     // Cleanup
     await prisma.lastSubmission.delete({ where: { id: submissionUpsertObj.id } })

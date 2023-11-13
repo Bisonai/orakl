@@ -2,8 +2,8 @@ import { ApiProperty } from '@nestjs/swagger'
 
 export class LastSubmissionDto {
   @ApiProperty()
-  aggregatorId: bigint
+  aggregatorId: number
 
   @ApiProperty()
-  value: bigint
+  value: number
 }

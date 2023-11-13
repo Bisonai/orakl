@@ -11,16 +11,15 @@ export class LastSubmissionService {
   async upsert(lastSubmissionDto: LastSubmissionDto) {
     const submissionData: Prisma.LastSubmissionUncheckedCreateInput = {
       timestamp: new Date(),
-      value: lastSubmissionDto.value,
-      aggregatorId: lastSubmissionDto.aggregatorId
+      value: BigInt(lastSubmissionDto.value),
+      aggregatorId: BigInt(lastSubmissionDto.aggregatorId)
     }
 
     const data: Prisma.LastSubmissionUpsertArgs = {
-      where: { aggregatorId: BigInt(submissionData.aggregatorId) },
+      where: { aggregatorId: submissionData.aggregatorId },
       create: submissionData,
       update: submissionData
     }
-
     return await this.prisma.lastSubmission.upsert(data)
   }
 
