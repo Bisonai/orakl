@@ -181,6 +181,8 @@ export async function sendTransactionDelegatedFee({
     response = (
       await axios.post(endpoint, {
         ...transactionData
+      },{
+        timeout: 3000
       })
     )?.data
     _logger.debug(response)
