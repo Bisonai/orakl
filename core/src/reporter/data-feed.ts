@@ -1,17 +1,17 @@
+import ethers from 'ethers'
 import { Logger } from 'pino'
 import type { RedisClientType } from 'redis'
 import {
   DATA_FEED_REPORTER_STATE_NAME,
   DATA_FEED_SERVICE_NAME,
-  REPORTER_AGGREGATOR_QUEUE_NAME,
-  PROVIDER_URL
+  PROVIDER_URL,
+  REPORTER_AGGREGATOR_QUEUE_NAME
 } from '../settings'
 import { factory } from './factory'
-import ethers from 'ethers'
 
 export async function buildReporter(redisClient: RedisClientType, logger: Logger) {
   const provider = new ethers.providers.JsonRpcProvider(PROVIDER_URL)
-  const chainId = (await provider.getNetwork()).chainId;
+  const chainId = (await provider.getNetwork()).chainId
 
   await factory({
     redisClient,
