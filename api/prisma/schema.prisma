@@ -95,7 +95,7 @@ model Aggregator {
   chainId           BigInt           @map("chain_id")
   Aggregate         Aggregate[]
   fetcherType       Int              @default(0) @map("fetcher_type")
-  LatestSubmission  LastSubmission[]
+  LatestSubmission  LastSubmission?
 
   @@unique([aggregatorHash, chainId])
   @@map("aggregators")
@@ -128,7 +128,7 @@ model LastSubmission {
   id           BigInt     @id @default(autoincrement()) @map("submission_id")
   timestamp    DateTime   @db.Timestamptz
   value        BigInt
-  aggregator   Aggregator @relation(fields: [aggregatorId], references: [id], onDelete: Cascade)
+  aggregator   Aggregator @relation(fields: [aggregatorId], references: [id])
   aggregatorId BigInt     @unique() @map("aggregator_id")
 
   @@map("last_submission")
