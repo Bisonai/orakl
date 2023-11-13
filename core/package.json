@@ -42,6 +42,7 @@
     "start:reporter:vrf": "yarn start:reporter --reporter VRF",
     "start:reporter:request_response": "yarn start:reporter --reporter REQUEST_RESPONSE",
     "start:reporter:data_feed": "yarn start:reporter --reporter DATA_FEED",
+    "start:por": "node --no-warnings --experimental-specifier-resolution=node --experimental-json-modules dist/por/main.js",
     "keygen": "node --no-warnings --experimental-specifier-resolution=node --experimental-json-modules dist/cli/vrf-keygen.js",
     "adapter-hash": "node --no-warnings --experimental-specifier-resolution=node --experimental-json-modules dist/cli/generate-adapter-hash.js",
     "aggregator-hash": "node --no-warnings --experimental-specifier-resolution=node --experimental-json-modules dist/cli/generate-aggregator-hash.js",
