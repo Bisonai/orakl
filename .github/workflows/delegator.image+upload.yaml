@@ -1,14 +1,12 @@
 name: Delegator Deploy to Amazon ECR
 
 on:
-  pull_request:
+  push:
     branches:
       - master
     paths:
       - "delegator/**"
-    types:
-      - closed  
-  
+
   push:
     branches:
       - i-519/delegator-git-actions-building-image
@@ -47,7 +45,7 @@ jobs:
 
     permissions:
       id-token: write
-      contents: read 
+      contents: read
 
     outputs:
       tag_date: ${{ steps.tag.outputs.date }}
@@ -69,7 +67,7 @@ jobs:
         id: login-ecr-public
         uses: aws-actions/amazon-ecr-login@v1
         with:
-          registry-type: public        
+          registry-type: public
 
       - name: Publish Image to ECR(delegator)
         run: |
