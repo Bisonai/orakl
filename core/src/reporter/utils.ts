@@ -179,11 +179,15 @@ export async function sendTransactionDelegatedFee({
   let response
   try {
     response = (
-      await axios.post(endpoint, {
-        ...transactionData
-      },{
-        timeout: 3000
-      })
+      await axios.post(
+        endpoint,
+        {
+          ...transactionData
+        },
+        {
+          timeout: 3000
+        }
+      )
     )?.data
     _logger.debug(response)
   } catch (e) {
