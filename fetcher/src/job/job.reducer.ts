@@ -44,6 +44,9 @@ export function mulFn(args: number) {
 
 export function divFromFn(args: number) {
   function wrapper(value: number) {
+    if (value == 0) {
+      throw new FetcherError(FetcherErrorCode.DivisionByZero)
+    }
     return args / value
   }
   return wrapper
