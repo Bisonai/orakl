@@ -1,20 +1,7 @@
 const { getFormattedDate, loadJson, storeJson } = require('../utils.cjs')
 const { ethers } = require('hardhat')
 
-const priceFeeds = [
-  'BNB-USDT',
-  'BTC-USDT',
-  'BUSD-USDT',
-  'DAI-USDT',
-  'DOT-USDT',
-  'ETH-USDT',
-  'KLAY-USDT',
-  'MATIC-USDT',
-  'SOL-USDT',
-  'TRX-USDT',
-  'USDC-USDT',
-  'MNR-KRW'
-]
+const priceFeeds = ['CHF-USD', 'EUR-USD', 'GBP-USD', 'JPY-USD', 'KRW-USD']
 
 async function generateWallet() {
   const wallet = ethers.Wallet.createRandom()
@@ -22,8 +9,8 @@ async function generateWallet() {
 }
 
 async function main() {
-  const baseSource = './migration/baobab/Aggregator/'
-  const aggregatorSource = './migration/baobab/Aggregator/20230616160687_BNB-USDT.json'
+  const baseSource = './migration/cypress/Aggregator/'
+  const aggregatorSource = './migration/cypress/Aggregator/20231022211021_JOY-USDT.json'
   const data = await loadJson(aggregatorSource)
   const date = getFormattedDate()
 
@@ -49,13 +36,13 @@ async function main() {
     console.log(data)
 
     const storeFilePath = `${baseSource}${date}_${priceFeed}.json`
-    storeJson(storeFilePath, JSON.stringify(data))
+    storeJson(storeFilePath, JSON.stringify(data, null, '\t'))
   }
 
   // store Wallets
   console.log(walletList)
   const storeFilePath = `${baseSource}accountList.json`
-  storeJson(storeFilePath, JSON.stringify(walletList))
+  storeJson(storeFilePath, JSON.stringify(walletList, null, '\t'))
 }
 
 main().catch((error) => {
