@@ -1,13 +1,12 @@
-import ethers from 'ethers'
 import { Logger } from 'pino'
 import type { RedisClientType } from 'redis'
 import {
+  BAOBAB_CHAIN_ID,
+  CYPRESS_CHAIN_ID,
   DATA_FEED_REPORTER_STATE_NAME,
   DATA_FEED_SERVICE_NAME,
-  REPORTER_AGGREGATOR_QUEUE_NAME,
   PROVIDER,
-  BAOBAB_CHAIN_ID,
-  CYPRESS_CHAIN_ID
+  REPORTER_AGGREGATOR_QUEUE_NAME
 } from '../settings'
 import { factory } from './factory'
 
