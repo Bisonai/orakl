@@ -99,19 +99,19 @@ describe('L2Endpoint', function () {
     await endpoint.contract.addAggregator(aggregator.contract.address)
     await endpoint.contract.addSubmitter(endpoint.signer.address)
 
-    let aggreatorCount = await endpoint.contract.aggregatorCount()
+    let aggreatorCount = await endpoint.contract.sAggregatorCount()
     expect(aggreatorCount).to.be.equal(1)
 
-    let submitterCount = await endpoint.contract.submitterCount()
+    let submitterCount = await endpoint.contract.sSubmitterCount()
     expect(submitterCount).to.be.equal(1)
 
     await endpoint.contract.removeAggregator(aggregator.contract.address)
     await endpoint.contract.removeSubmitter(endpoint.signer.address)
 
-    aggreatorCount = await endpoint.contract.aggregatorCount()
+    aggreatorCount = await endpoint.contract.sAggregatorCount()
     expect(aggreatorCount).to.be.equal(0)
 
-    submitterCount = await endpoint.contract.submitterCount()
+    submitterCount = await endpoint.contract.sSubmitterCount()
     expect(submitterCount).to.be.equal(0)
   })
 
@@ -127,10 +127,10 @@ describe('L2Endpoint', function () {
       endpoint.contract.addSubmitter(endpoint.signer.address)
     ).to.be.revertedWithCustomError(endpoint.contract, 'InvalidSubmitter')
 
-    let aggreatorCount = await endpoint.contract.aggregatorCount()
+    let aggreatorCount = await endpoint.contract.sAggregatorCount()
     expect(aggreatorCount).to.be.equal(1)
 
-    let submitterCount = await endpoint.contract.submitterCount()
+    let submitterCount = await endpoint.contract.sSubmitterCount()
     expect(submitterCount).to.be.equal(1)
 
     await endpoint.contract.removeAggregator(aggregator.contract.address)
@@ -143,10 +143,10 @@ describe('L2Endpoint', function () {
       endpoint.contract.removeSubmitter(endpoint.signer.address)
     ).to.be.revertedWithCustomError(endpoint.contract, 'InvalidSubmitter')
 
-    aggreatorCount = await endpoint.contract.aggregatorCount()
+    aggreatorCount = await endpoint.contract.sAggregatorCount()
     expect(aggreatorCount).to.be.equal(0)
 
-    submitterCount = await endpoint.contract.submitterCount()
+    submitterCount = await endpoint.contract.sSubmitterCount()
     expect(submitterCount).to.be.equal(0)
   })
 
