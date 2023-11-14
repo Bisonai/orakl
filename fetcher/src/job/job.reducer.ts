@@ -5,7 +5,8 @@ export const DATA_FEED_REDUCER_MAPPING = {
   MUL: mulFn,
   POW10: pow10Fn,
   ROUND: roundFn,
-  INDEX: indexFn
+  INDEX: indexFn,
+  DIVFROM: divFromFn
 }
 
 /**
@@ -37,6 +38,13 @@ export function parseFn(args: string | string[]) {
 export function mulFn(args: number) {
   function wrapper(value: number) {
     return value * args
+  }
+  return wrapper
+}
+
+export function divFromFn(args: number) {
+  function wrapper(value: number) {
+    return args / value
   }
   return wrapper
 }
