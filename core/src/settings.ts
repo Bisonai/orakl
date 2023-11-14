@@ -44,6 +44,7 @@ export const MAX_DATA_STALENESS = 5_000
 export const REMOVE_ON_COMPLETE = 500
 export const REMOVE_ON_FAIL = 1_000
 export const CONCURRENCY = 12
+export const DATA_FEED_REPORTER_CONCURRENCY = process.env.DATA_FEED_REPORTER_CONCURRENCY || 15
 
 export const LISTENER_REQUEST_RESPONSE_LATEST_QUEUE_NAME = `${DEPLOYMENT_NAME}-listener-request-response-latest-queue`
 export const LISTENER_VRF_LATEST_QUEUE_NAME = `${DEPLOYMENT_NAME}-listener-vrf-latest-queue`
