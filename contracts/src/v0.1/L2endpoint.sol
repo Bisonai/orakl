@@ -6,20 +6,22 @@ import "./VRFConsumerBase.sol";
 
 contract L2Endpoint is Ownable {
     uint256 private constant GAS_FOR_CALL_EXACT_CHECK = 5_000;
-    uint256 public aggregatorCount;
-    uint256 public submitterCount;
+    uint256 public sAggregatorCount;
+    uint256 public sSubmitterCount;
     uint64 sNonce;
+    bool private sReentrancyLock;
     struct RequestInfo {
         address owner;
         uint32 callbackGasLimit;
     }
-    mapping(address => bool) submitters;
-    mapping(address => bool) aggregators;
+    mapping(address => bool) sSubmitters;
+    mapping(address => bool) sAggregators;
 
     mapping(uint256 => RequestInfo) internal sRequestDetail;
 
     error InvalidSubmitter(address submitter);
     error InvalidAggregator(address aggregator);
+    error Reentrant();
 
     event SubmitterAdded(address newSubmitter);
     event SubmitterRemoved(address newSubmitter);
@@ -33,42 +35,48 @@ contract L2Endpoint is Ownable {
         uint64 indexed accId,
         uint32 callbackGasLimit,
         uint32 numWords,
-        address indexed sender,
-        bool isDirectPayment
+        address indexed sender
     );
     event RandomWordsFulfilled(uint256 indexed requestId, uint256[] randomWords, bool success);
 
+    modifier nonReentrant() {
+        if (sReentrancyLock) {
+            revert Reentrant();
+        }
+        _;
+    }
+
     function addAggregator(address _newAggregator) external onlyOwner {
-        if (aggregators[_newAggregator]) revert InvalidAggregator(_newAggregator);
-        aggregators[_newAggregator] = true;
-        aggregatorCount += 1;
+        if (sAggregators[_newAggregator]) revert InvalidAggregator(_newAggregator);
+        sAggregators[_newAggregator] = true;
+        sAggregatorCount += 1;
         emit AggregatorAdded(_newAggregator);
     }
 
     function removeAggregator(address _aggregator) external onlyOwner {
-        if (!aggregators[_aggregator]) revert InvalidAggregator(_aggregator);
-        delete aggregators[_aggregator];
-        aggregatorCount -= 1;
+        if (!sAggregators[_aggregator]) revert InvalidAggregator(_aggregator);
+        delete sAggregators[_aggregator];
+        sAggregatorCount -= 1;
         emit AggregatorRemoved(_aggregator);
     }
 
     function addSubmitter(address _newSubmitter) external onlyOwner {
-        if (submitters[_newSubmitter]) revert InvalidSubmitter(_newSubmitter);
-        submitters[_newSubmitter] = true;
-        submitterCount += 1;
+        if (sSubmitters[_newSubmitter]) revert InvalidSubmitter(_newSubmitter);
+        sSubmitters[_newSubmitter] = true;
+        sSubmitterCount += 1;
         emit SubmitterAdded(_newSubmitter);
     }
 
     function removeSubmitter(address _submitter) external onlyOwner {
-        if (!submitters[_submitter]) revert InvalidSubmitter(_submitter);
-        delete submitters[_submitter];
-        submitterCount -= 1;
+        if (!sSubmitters[_submitter]) revert InvalidSubmitter(_submitter);
+        delete sSubmitters[_submitter];
+        sSubmitterCount -= 1;
         emit SubmitterRemoved(_submitter);
     }
 
     function submit(uint256 _roundId, int256 _submission, address _aggregator) external {
-        if (!submitters[msg.sender]) revert InvalidSubmitter(msg.sender);
-        if (!aggregators[_aggregator]) revert InvalidAggregator(_aggregator);
+        if (!sSubmitters[msg.sender]) revert InvalidSubmitter(msg.sender);
+        if (!sAggregators[_aggregator]) revert InvalidAggregator(_aggregator);
         IL2Aggregator(_aggregator).submit(_roundId, _submission);
         emit Submitted(_roundId, _submission);
     }
@@ -82,33 +90,6 @@ contract L2Endpoint is Ownable {
         uint256 preSeed = uint256(keccak256(abi.encode(keyHash, sender, accId, nonce)));
         uint256 requestId = uint256(keccak256(abi.encode(keyHash, preSeed)));
         return (requestId, preSeed);
-    }
-
-    function requestRandomWords(
-        bytes32 keyHash,
-        uint64 accId,
-        uint32 callbackGasLimit,
-        uint32 numWords,
-        bool isDirectPayment
-    ) private returns (uint256) {
-        sNonce++;
-        (uint256 requestId, uint256 preSeed) = computeRequestId(keyHash, msg.sender, accId, sNonce);
-        sRequestDetail[requestId] = RequestInfo({
-            owner: msg.sender,
-            callbackGasLimit: callbackGasLimit
-        });
-        emit RandomWordsRequested(
-            keyHash,
-            requestId,
-            preSeed,
-            accId,
-            callbackGasLimit,
-            numWords,
-            msg.sender,
-            isDirectPayment
-        );
-
-        return requestId;
     }
 
     /**
@@ -154,27 +135,40 @@ contract L2Endpoint is Ownable {
         uint64 accId,
         uint32 callbackGasLimit,
         uint32 numWords
-    ) external returns (uint256) {
-        bool isDirectPayment = false;
-        uint256 requestId = requestRandomWords(
+    ) external nonReentrant returns (uint256) {
+        sNonce++;
+        (uint256 requestId, uint256 preSeed) = computeRequestId(keyHash, msg.sender, accId, sNonce);
+        sRequestDetail[requestId] = RequestInfo({
+            owner: msg.sender,
+            callbackGasLimit: callbackGasLimit
+        });
+        emit RandomWordsRequested(
             keyHash,
+            requestId,
+            preSeed,
             accId,
             callbackGasLimit,
             numWords,
-            isDirectPayment
+            msg.sender
         );
+
         return requestId;
     }
 
-    function fulfillRandomWords(uint256 requestId, uint256[] memory randomWords) external {
-        if (!submitters[msg.sender]) revert InvalidSubmitter(msg.sender);
+    function fulfillRandomWords(
+        uint256 requestId,
+        uint256[] memory randomWords
+    ) external nonReentrant {
+        if (!sSubmitters[msg.sender]) revert InvalidSubmitter(msg.sender);
         RequestInfo memory detail = sRequestDetail[requestId];
         bytes memory resp = abi.encodeWithSelector(
             VRFConsumerBase.rawFulfillRandomWords.selector,
             requestId,
             randomWords
         );
+        sReentrancyLock = true;
         bool success = callWithExactGas(detail.callbackGasLimit, detail.owner, resp);
+        sReentrancyLock = false;
         emit RandomWordsFulfilled(requestId, randomWords, success);
     }
 }
