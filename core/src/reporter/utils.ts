@@ -191,7 +191,11 @@ export async function sendTransactionDelegatedFee({
     )?.data
     _logger.debug(response)
   } catch (e) {
-    throw new OraklError(OraklErrorCode.DelegatorServerIssue)
+    if (e.code == 'ECONNABORTED') {
+      throw new OraklError(OraklErrorCode.DelegatorTimeoutError)
+    } else {
+      throw new OraklError(OraklErrorCode.DelegatorServerIssue)
+    }
   }
 
   try {
