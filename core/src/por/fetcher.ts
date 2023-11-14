@@ -49,15 +49,11 @@ async function fetchData(feed) {
 }
 
 export async function fetchWithAggregator(aggregatorHash: string) {
-  try {
-    const aggregator = await loadAggregator({ aggregatorHash })
-    const adapter = aggregator.adapter
-    const feed = await extractFeed(adapter)
-    const value = await fetchData(feed)
+  const aggregator = await loadAggregator({ aggregatorHash })
+  const adapter = aggregator.adapter
+  const feed = await extractFeed(adapter)
+  const value = await fetchData(feed)
 
-    await insertData({ aggregatorId: aggregator.id, feedId: feed.id, value })
-    return { value: BigInt(value), oracleAddress: aggregator.address }
-  } catch (e) {
-    throw e
-  }
+  await insertData({ aggregatorId: aggregator.id, feedId: feed.id, value })
+  return { value: BigInt(value), oracleAddress: aggregator.address }
 }
