@@ -36,7 +36,7 @@ async function main() {
     console.log(data)
 
     const storeFilePath = `${baseSource}${date}_${priceFeed}.json`
-    storeJson(storeFilePath, JSON.stringify(data, null, 2)
+    storeJson(storeFilePath, JSON.stringify(data, null, 2))
   }
 
   // store Wallets
