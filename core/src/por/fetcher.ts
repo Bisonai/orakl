@@ -1,4 +1,5 @@
 import axios from 'axios'
+import { IAggregator } from '../types'
 import { pipe } from '../utils'
 import { insertData, loadAggregator } from './api'
 import { PorError, PorErrorCode } from './errors'
@@ -39,7 +40,7 @@ function buildReducer(reducerMapping, reducers) {
 async function fetchData(feed) {
   try {
     const rawDatum = await (await axios.get(feed.url)).data
-    const reducers = buildReducer(DATA_FEED_REDUCER_MAPPING, feed.reducers)
+    const reducers = await buildReducer(DATA_FEED_REDUCER_MAPPING, feed.reducers)
     const datum = pipe(...reducers)(rawDatum)
     checkDataFormat(datum)
     return datum
@@ -49,11 +50,14 @@ async function fetchData(feed) {
 }
 
 export async function fetchWithAggregator(aggregatorHash: string) {
-  const aggregator = await loadAggregator({ aggregatorHash })
+  const aggregator: IAggregator = await loadAggregator({ aggregatorHash })
   const adapter = aggregator.adapter
   const feed = await extractFeed(adapter)
   const value = await fetchData(feed)
 
   await insertData({ aggregatorId: aggregator.id, feedId: feed.id, value })
-  return { value: BigInt(value), oracleAddress: aggregator.address }
+  return {
+    value: BigInt(value),
+    aggregator
+  }
 }

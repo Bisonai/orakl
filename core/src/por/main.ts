@@ -9,8 +9,8 @@ const LOGGER = buildLogger()
 const main = async () => {
   hookConsoleError(LOGGER)
 
-  const { value, oracleAddress } = await fetchWithAggregator(aggregatorHash)
-  await reportData({ value, oracleAddress, logger: LOGGER })
+  const { value, aggregator } = await fetchWithAggregator(aggregatorHash)
+  await reportData({ value, aggregator, logger: LOGGER })
 }
 
 main().catch((error) => {
