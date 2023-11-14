@@ -56,7 +56,7 @@ export async function fetchWithAggregator(aggregatorHash: string) {
     const value = await fetchData(feed)
 
     await insertData({ aggregatorId: aggregator.id, feedId: feed.id, value })
-    return value
+    return { value: BigInt(value), oracleAddress: aggregator.address }
   } catch (e) {
     throw e
   }

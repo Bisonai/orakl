@@ -59,5 +59,6 @@ export enum OraklErrorCode {
   UnknownRequestResponseJob,
   MissingSignedRawTx,
   CaverTxTransactionFailed,
-  DelegatorServerIssue
+  DelegatorServerIssue,
+  FailedInsertData
 }

@@ -12,7 +12,7 @@ export async function loadAggregator({ aggregatorHash }: { aggregatorHash: strin
     const aggregator: IAggregator = (await axios.get(url))?.data
     return aggregator
   } catch (e) {
-    throw new OraklError(OraklErrorCode.GetListenerRequestFailed)
+    throw new OraklError(OraklErrorCode.FailedToGetAggregator)
   }
 }
 
@@ -35,12 +35,16 @@ export async function insertData({
     }
   ]
 
-  const url = buildUrl(ORAKL_NETWORK_API_URL, 'data')
-  const response = await axios.post(url, { data })
+  try {
+    const url = buildUrl(ORAKL_NETWORK_API_URL, 'data')
+    const response = await axios.post(url, { data })
 
-  return {
-    status: response?.status,
-    statusText: response?.statusText,
-    data: response?.data
+    return {
+      status: response?.status,
+      statusText: response?.statusText,
+      data: response?.data
+    }
+  } catch (e) {
+    throw new OraklError(OraklErrorCode.FailedInsertData)
   }
 }
