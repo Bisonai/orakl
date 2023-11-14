@@ -4,7 +4,7 @@ import Caver from 'caver-js'
 import { ethers } from 'ethers'
 import { Logger } from 'pino'
 import { OraklError, OraklErrorCode } from '../errors'
-import { ORAKL_NETWORK_DELEGATOR_URL } from '../settings'
+import { DELEGATOR_TIMEOUT, ORAKL_NETWORK_DELEGATOR_URL } from '../settings'
 import { ITransactionData } from '../types'
 import { add0x, buildUrl } from '../utils'
 
@@ -185,7 +185,7 @@ export async function sendTransactionDelegatedFee({
           ...transactionData
         },
         {
-          timeout: 3000
+          timeout: Number(DELEGATOR_TIMEOUT)
         }
       )
     )?.data

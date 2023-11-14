@@ -31,8 +31,7 @@ export function reporter(state: State, logger: Logger) {
         } catch (e) {
           if (e.code == OraklErrorCode.DelegatorServerIssue) {
             delegatorOkay = false
-          }
-          if (e.code == 'ECONNABORTED') {
+          } else if (e.code == OraklErrorCode.DelegatorTimeoutError) {
             console.error('delegator post request timeout')
           }
         }
