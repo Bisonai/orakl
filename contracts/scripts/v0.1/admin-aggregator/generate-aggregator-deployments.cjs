@@ -1,7 +1,7 @@
 const { getFormattedDate, loadJson, storeJson } = require('../utils.cjs')
 const { ethers } = require('hardhat')
 
-const priceFeeds = ['CHF-USD', 'EUR-USD', 'GBP-USD', 'JPY-USD', 'KRW-USD']
+const priceFeeds = []
 
 async function generateWallet() {
   const wallet = ethers.Wallet.createRandom()
@@ -36,13 +36,13 @@ async function main() {
     console.log(data)
 
     const storeFilePath = `${baseSource}${date}_${priceFeed}.json`
-    storeJson(storeFilePath, JSON.stringify(data, null, '\t'))
+    storeJson(storeFilePath, JSON.stringify(data, null, 2)
   }
 
   // store Wallets
   console.log(walletList)
   const storeFilePath = `${baseSource}accountList.json`
-  storeJson(storeFilePath, JSON.stringify(walletList, null, '\t'))
+  storeJson(storeFilePath, JSON.stringify(walletList, null, 2))
 }
 
 main().catch((error) => {
