@@ -1,10 +1,10 @@
 import axios from 'axios'
 import { pipe } from '../utils'
-import { loadAggregator } from './api'
+import { insertData, loadAggregator } from './api'
 import { PorError, PorErrorCode } from './errors'
 import { DATA_FEED_REDUCER_MAPPING } from './reducer'
 
-async function extractFeeds(adapter) {
+async function extractFeed(adapter) {
   const feeds = adapter.feeds.map((f) => {
     return {
       id: f.id,
@@ -15,7 +15,7 @@ async function extractFeeds(adapter) {
       reducers: f.definition.reducers
     }
   })
-  return feeds
+  return feeds[0]
 }
 
 function checkDataFormat(data) {
@@ -52,8 +52,11 @@ export async function fetchWithAggregator(aggregatorHash: string) {
   try {
     const aggregator = await loadAggregator({ aggregatorHash })
     const adapter = aggregator.adapter
-    const feeds = await extractFeeds(adapter)
-    return await fetchData(feeds[0])
+    const feed = await extractFeed(adapter)
+    const value = await fetchData(feed)
+
+    await insertData({ aggregatorId: aggregator.id, feedId: feed.id, value })
+    return value
   } catch (e) {
     throw e
   }
