@@ -6,9 +6,8 @@ import { buildUrl } from '../utils'
 import { IData } from './types'
 
 export async function loadAggregator({ aggregatorHash }: { aggregatorHash: string }) {
-  const chain = CHAIN
   try {
-    const url = buildUrl(ORAKL_NETWORK_API_URL, `aggregator/${aggregatorHash}/${chain}`)
+    const url = buildUrl(ORAKL_NETWORK_API_URL, `aggregator/${aggregatorHash}/${CHAIN}`)
     const aggregator: IAggregator = (await axios.get(url))?.data
     return aggregator
   } catch (e) {
