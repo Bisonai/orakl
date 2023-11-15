@@ -13,7 +13,15 @@ import {
 import { IAggregator, IReporterConfig } from '../types'
 import { buildTransaction } from '../worker/data-feed.utils'
 
-async function shouldReport({ aggregator, value }: { aggregator: IAggregator; value: bigint }) {
+async function shouldReport({
+  aggregator,
+  value,
+  logger
+}: {
+  aggregator: IAggregator
+  value: bigint
+  logger: Logger
+}) {
   const contract = new ethers.Contract(aggregator.address, Aggregator__factory.abi, PROVIDER)
   const latestRoundData = await contract.latestRoundData()
 
@@ -23,21 +31,30 @@ async function shouldReport({ aggregator, value }: { aggregator: IAggregator; va
   const heartbeat = aggregator.heartbeat
 
   if (updatedAt + heartbeat < timestamp) {
+    logger.info('Should report by heartbeat check')
+    logger.info(`Last submission time:${updatedAt}, heartbeat:${heartbeat}`)
     return true
-  } else if (aggregator.threshold && latestRoundData.answer) {
-    // Check Deviation  Threashold
+  }
+
+  // Check deviation threashold
+  if (aggregator.threshold && latestRoundData.answer) {
     const latestSubmission = Number(latestRoundData.answer)
     const currentSubmission = Number(value)
 
     const range = latestSubmission * aggregator.threshold
     const l = currentSubmission - range
     const r = currentSubmission + range
-    return currentSubmission < l || currentSubmission > r
+
+    if (currentSubmission < l || currentSubmission > r) {
+      logger.info('Should report by deviation check')
+      logger.info(`Latest submission:${latestSubmission}, currentSubmission:${currentSubmission}`)
+      return true
+    }
   }
   return false
 }
 
-async function report({
+async function submit({
   value,
   oracleAddress,
   logger
@@ -53,17 +70,11 @@ async function report({
     logger: logger
   })
 
-  console.log('Reporter:', reporter)
   const iface = new ethers.utils.Interface(Aggregator__factory.abi)
   const contract = new ethers.Contract(oracleAddress, Aggregator__factory.abi, PROVIDER)
-  let queriedRoundId = 0
+  const queriedRoundId = 0
   const state = await contract.oracleRoundState(reporter.address, queriedRoundId)
   const roundId = state._roundId
-  const getLastestRoundData = await contract.getRoundData(roundId - 1)
-
-  console.log('GetLastestRoundData from report:', getLastestRoundData)
-  console.log('RoundId: ', roundId)
-  console.log('Sumbission: ', value)
 
   const tx = buildTransaction({
     payloadParameters: {
@@ -78,7 +89,17 @@ async function report({
 
   const wallet = await buildWallet({ privateKey: reporter.privateKey, providerUrl: PROVIDER_URL })
   const txParams = { wallet, ...tx, logger }
-  await sendTransaction(txParams)
+
+  const NUM_TRANSACTION_TRIALS = 3
+  for (let i = 0; i < NUM_TRANSACTION_TRIALS; ++i) {
+    logger.info(`Reporting to round:${roundId} with value:${value}`)
+    try {
+      await sendTransaction(txParams)
+      break
+    } catch (e) {
+      throw e
+    }
+  }
 }
 
 export async function reportData({
@@ -90,7 +111,7 @@ export async function reportData({
   aggregator: IAggregator
   logger: Logger
 }) {
-  if (await shouldReport({ aggregator, value })) {
-    await report({ value, oracleAddress: aggregator.address, logger })
+  if (await shouldReport({ aggregator, value, logger })) {
+    await submit({ value, oracleAddress: aggregator.address, logger })
   }
 }
