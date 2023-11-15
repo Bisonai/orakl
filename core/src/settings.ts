@@ -39,6 +39,7 @@ export const DATA_FEED_SERVICE_NAME = 'DATA_FEED'
 export const VRF_SERVICE_NAME = 'VRF'
 export const REQUEST_RESPONSE_SERVICE_NAME = 'REQUEST_RESPONSE'
 export const L2_DATA_FEED_SERVICE_NAME = 'DATA_FEED_L2'
+export const POR_SERVICE_NAME = 'POR'
 
 // Data Feed
 export const MAX_DATA_STALENESS = 5_000

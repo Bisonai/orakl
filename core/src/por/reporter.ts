@@ -6,7 +6,7 @@ import { buildWallet, sendTransaction } from '../reporter/utils'
 import {
   CHAIN,
   DATA_FEED_FULFILL_GAS_MINIMUM,
-  DATA_FEED_SERVICE_NAME,
+  POR_SERVICE_NAME,
   PROVIDER,
   PROVIDER_URL
 } from '../settings'
@@ -64,7 +64,7 @@ async function submit({
   logger: Logger
 }) {
   const reporter: IReporterConfig = await getReporterByOracleAddress({
-    service: DATA_FEED_SERVICE_NAME,
+    service: POR_SERVICE_NAME,
     chain: CHAIN,
     oracleAddress,
     logger: logger
