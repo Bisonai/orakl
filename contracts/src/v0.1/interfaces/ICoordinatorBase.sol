@@ -66,4 +66,10 @@ interface ICoordinatorBase {
      * @return prepayment address
      */
     function getPrepaymentAddress() external returns (address);
+
+    function estimateFee(
+        uint64 reqCount,
+        uint8 numSubmission,
+        uint32 callbackGasLimit
+    ) external returns (uint256);
 }

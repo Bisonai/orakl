@@ -10,14 +10,12 @@ contract L1Endpoint is Ownable, VRFConsumerBase {
     IRegistry public registry; // Reference to the Registry contract
     mapping(address => bool) private _oracles;
     mapping(uint256 => address) private _requestIdRequester;
-    uint256 private _fee;
 
     error InsufficientBalance();
     error OnlyOracle();
     error FailedToDeposit();
     error ConsumerValid();
 
-    event FeeUpdated(uint256 oldFee, uint256 newFee);
     event OracleAdded(address oracle);
     event OracleRemoved(address oracle);
 
@@ -30,12 +28,6 @@ contract L1Endpoint is Ownable, VRFConsumerBase {
     }
 
     receive() external payable {}
-
-    function setFee(uint256 newFee) public onlyOwner {
-        uint256 cFee = _fee;
-        _fee = newFee;
-        emit FeeUpdated(cFee, newFee);
-    }
 
     function addOracle(address oracle) public onlyOwner {
         _oracles[oracle] = true;
@@ -63,12 +55,16 @@ contract L1Endpoint is Ownable, VRFConsumerBase {
             revert ConsumerValid();
         }
         uint256 balance = registry.getBalance(accId);
-        if (balance < _fee) {
+        uint64 reqCount = 0;
+        uint8 numSubmission = 1;
+        uint256 fee = COORDINATOR.estimateFee(reqCount, numSubmission, callbackGasLimit);
+        if (balance < fee) {
             revert InsufficientBalance();
         }
+
         //decrease balance
-        registry.decreaseBalance(accId, _fee);
-        uint256 requestId = COORDINATOR.requestRandomWords{value: _fee}(
+        registry.decreaseBalance(accId, fee);
+        uint256 requestId = COORDINATOR.requestRandomWords{value: fee}(
             keyHash,
             callbackGasLimit,
             numWords,

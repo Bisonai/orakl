@@ -207,10 +207,6 @@ describe('L1Endpoint', function () {
     await setupOracle(coordinator.contract, oracle.address)
     await addCoordinator(prepayment.contract, prepayment.signer, coordinator.contract.address)
 
-    //set fee
-    const fee = parseKlay('0.7')
-    await (await endpoint.contract.setFee(fee)).wait()
-
     //send balance for endpoint contract
     //deposit
 
