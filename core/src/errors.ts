@@ -16,7 +16,6 @@ export enum OraklErrorCode {
   GetListenerRequestFailed,
   GetReporterRequestFailed,
   GetVrfConfigRequestFailed,
-  IncompleteDataFeed,
   IndexOutOfBoundaries,
   InvalidAdapter,
   InvalidAggregator,
@@ -60,5 +59,6 @@ export enum OraklErrorCode {
   UnknownRequestResponseJob,
   MissingSignedRawTx,
   CaverTxTransactionFailed,
-  DelegatorServerIssue
+  DelegatorServerIssue,
+  FailedInsertData
 }

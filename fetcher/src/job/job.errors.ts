@@ -8,7 +8,6 @@ export class FetcherError extends Error {
 }
 
 export enum FetcherErrorCode {
-  IncompleteDataFeed,
   IndexOutOfBoundaries,
   InvalidAdapter,
   InvalidDataFeed,
