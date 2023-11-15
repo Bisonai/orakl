@@ -1,12 +1,12 @@
 import { Queue } from 'bullmq'
 import { Logger } from 'pino'
 import type { RedisClientType } from 'redis'
-import { IAggregatorSubmitHeartbeatWorker } from '../types'
-import { getAggregator, getAggregators } from './api'
 import { OraklError, OraklErrorCode } from '../errors'
 import { SUBMIT_HEARTBEAT_QUEUE_SETTINGS } from '../settings'
-import { IAggregatorConfig } from './types'
+import { IAggregatorSubmitHeartbeatWorker } from '../types'
+import { getAggregator, getAggregators } from './api'
 import { getSynchronizedDelay } from './data-feed.utils'
+import { IAggregatorConfig } from './types'
 
 const FILE_NAME = import.meta.url
 

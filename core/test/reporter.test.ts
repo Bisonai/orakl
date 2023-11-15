@@ -1,13 +1,13 @@
-import { describe, test, expect, beforeEach } from '@jest/globals'
+import { beforeEach, describe, expect, test } from '@jest/globals'
+import { ethers } from 'ethers'
 import pino, { Logger } from 'pino'
+import { OraklErrorCode } from '../src/errors'
 import {
-  buildWallet,
   buildCaverWallet,
+  buildWallet,
   sendTransaction,
   sendTransactionDelegatedFee
 } from '../src/reporter/utils'
-import { ethers } from 'ethers'
-import { OraklErrorCode } from '../src/errors'
 
 // The following tests have to be run with hardhat network launched.
 // If the hardhat cannot be detected tests are skipped.

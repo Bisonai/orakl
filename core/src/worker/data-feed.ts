@@ -1,42 +1,43 @@
+import { Aggregator__factory } from '@bisonai/orakl-contracts'
+import { Job, Queue, Worker } from 'bullmq'
 import { ethers } from 'ethers'
-import { Worker, Queue, Job } from 'bullmq'
 import { Logger } from 'pino'
 import type { RedisClientType } from 'redis'
-import { Aggregator__factory } from '@bisonai/orakl-contracts'
-import { getAggregatorGivenAddress, getAggregators, fetchDataFeed } from './api'
-import { State } from './state'
+import { getOperatorAddress } from '../api'
 import { OraklError, OraklErrorCode } from '../errors'
-import {
-  IDataFeedListenerWorker,
-  IAggregatorHeartbeatWorker,
-  IAggregatorSubmitHeartbeatWorker,
-  QueueType
-} from '../types'
 import {
   AGGREGATOR_QUEUE_SETTINGS,
   BULLMQ_CONNECTION,
   CHAIN,
+  CHECK_HEARTBEAT_QUEUE_SETTINGS,
+  DATA_FEED_FULFILL_GAS_MINIMUM,
   DATA_FEED_WORKER_STATE_NAME,
   DEPLOYMENT_NAME,
   HEARTBEAT_JOB_NAME,
   HEARTBEAT_QUEUE_NAME,
   HEARTBEAT_QUEUE_SETTINGS,
+  MAX_DATA_STALENESS,
+  PROVIDER,
   REMOVE_ON_COMPLETE,
   REPORTER_AGGREGATOR_QUEUE_NAME,
   SUBMIT_HEARTBEAT_QUEUE_NAME,
   SUBMIT_HEARTBEAT_QUEUE_SETTINGS,
   WORKER_AGGREGATOR_QUEUE_NAME,
   WORKER_CHECK_HEARTBEAT_QUEUE_NAME,
-  CHECK_HEARTBEAT_QUEUE_SETTINGS,
-  MAX_DATA_STALENESS,
-  DATA_FEED_FULFILL_GAS_MINIMUM,
   WORKER_DEVIATION_QUEUE_NAME
 } from '../settings'
-import { buildSubmissionRoundJobId, buildHeartbeatJobId } from '../utils'
-import { oracleRoundStateCall, buildTransaction, isStale } from './data-feed.utils'
-import { watchman } from './watchman'
-import { getOperatorAddress } from '../api'
+import {
+  IAggregatorHeartbeatWorker,
+  IAggregatorSubmitHeartbeatWorker,
+  IDataFeedListenerWorker,
+  QueueType
+} from '../types'
+import { buildHeartbeatJobId, buildSubmissionRoundJobId } from '../utils'
+import { fetchDataFeed, getAggregatorGivenAddress, getAggregators } from './api'
+import { buildTransaction, isStale, oracleRoundStateCall } from './data-feed.utils'
+import { State } from './state'
 import { IDeviationData } from './types'
+import { watchman } from './watchman'
 
 const FILE_NAME = import.meta.url
 
@@ -303,7 +304,8 @@ function heartbeatJob(aggregatorQueue: Queue, state: State, _logger: Logger) {
       const oracleRoundState = await oracleRoundStateCall({
         oracleAddress,
         operatorAddress,
-        logger
+        logger,
+        provider: PROVIDER
       })
       logger.debug(oracleRoundState, 'oracleRoundState')
 
@@ -508,7 +510,8 @@ export function deviationJob(reporterQueue: QueueType, _logger: Logger) {
     const oracleRoundState = await oracleRoundStateCall({
       oracleAddress,
       operatorAddress,
-      logger
+      logger,
+      provider: PROVIDER
     })
     logger.debug(oracleRoundState, 'oracleRoundState')
 

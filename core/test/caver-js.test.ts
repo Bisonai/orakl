@@ -1,6 +1,6 @@
-import { describe, test, expect, jest } from '@jest/globals'
-import { BigNumber, ethers } from 'ethers'
+import { describe, expect, jest, test } from '@jest/globals'
 import Caver from 'caver-js'
+import { BigNumber, ethers } from 'ethers'
 
 describe('Test Caver-js', function () {
   jest.setTimeout(10000)

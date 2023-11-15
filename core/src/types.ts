@@ -1,5 +1,5 @@
-import { BigNumber } from 'ethers'
 import { Queue } from 'bullmq'
+import { BigNumber } from 'ethers'
 
 export interface RequestEventData {
   specId: string
@@ -94,6 +94,12 @@ export interface INewRound {
   startedAt: BigNumber
 }
 
+export interface IAnswerUpdated {
+  current: BigNumber
+  roundId: BigNumber
+  updatedAt: BigNumber
+}
+
 // Listener -> Worker
 
 export interface IRequestResponseListenerWorker {
@@ -125,6 +131,13 @@ export interface IVrfListenerWorker {
 export interface IDataFeedListenerWorker {
   oracleAddress: string
   roundId: number
+  workerSource: string
+}
+
+export interface IDataFeedListenerWorkerL2 {
+  oracleAddress: string
+  roundId: number
+  answer: number
   workerSource: string
 }
 
@@ -355,4 +368,12 @@ export interface IErrorMsgData {
   code: string
   name: string
   stack: string
+}
+
+export interface IL2AggregatorPair {
+  id: bigint
+  l1AggregatorAddress: string
+  l2AggregatorAddress: string
+  chainId: bigint
+  active: boolean
 }

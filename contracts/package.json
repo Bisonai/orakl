@@ -1,6 +1,6 @@
 {
   "name": "@bisonai/orakl-contracts",
-  "version": "1.2.0",
+  "version": "1.3.1",
   "description": "The Orakl Network Smart Contracts",
   "files": [
     "./dist",
@@ -50,12 +50,15 @@
     "deploy:baobab:vrf": "yarn deploy:baobab --deploy-scripts deploy/VRF",
     "deploy:baobab:registry": "yarn deploy:baobab --deploy-scripts deploy/Registry",
     "deploy:baobab:por": "yarn deploy:baobab --deploy-scripts deploy/POR",
-    "deploy:cypress:aggregator": "npx hardhat deploy --network cypress --deploy-scripts deploy/Aggregator",
-    "deploy:cypress:prepayment": "npx hardhat deploy --network cypress --deploy-scripts deploy/Prepayment",
-    "deploy:cypress:rr": "npx hardhat deploy --network cypress --deploy-scripts deploy/RequestResponse",
-    "deploy:cypress:vrf": "npx hardhat deploy --network cypress --deploy-scripts deploy/VRF",
+    "deploy:cypress": "npx hardhat deploy --network cypress",
+    "deploy:cypress:aggregator": "yarn deploy:cypress --deploy-scripts deploy/Aggregator",
+    "deploy:cypress:prepayment": "yarn deploy:cypress --deploy-scripts deploy/Prepayment",
+    "deploy:cypress:rr": "yarn deploy:cypress --deploy-scripts deploy/RequestResponse",
+    "deploy:cypress:vrf": "yarn deploy:cypress --deploy-scripts deploy/VRF",
     "deploy:cypress:registry": "yarn deploy:cypress --deploy-scripts deploy/Registry",
-    "deploy:cypress:por": "yarn deploy:cypress --deploy-scripts deploy/POR"
+    "deploy:cypress:por": "yarn deploy:cypress --deploy-scripts deploy/POR",
+    "deploy:l2Node": "npx hardhat deploy --network l2node",
+    "deploy:l2Node:aggregator": "yarn deploy:l2Node --deploy-scripts deploy/Aggregator"
   },
   "devDependencies": {
     "@bisonai/orakl-vrf": "^0.2.0",

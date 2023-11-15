@@ -1,7 +1,7 @@
+import cbor from 'cbor'
+import { OraklError, OraklErrorCode } from '../errors'
 import { IRequestOperation } from '../types'
 import { remove0x } from '../utils'
-import { OraklError, OraklErrorCode } from '../errors'
-import cbor from 'cbor'
 
 export async function decodeRequest(anyApiRequest: string): Promise<IRequestOperation[]> {
   anyApiRequest = remove0x(anyApiRequest)
