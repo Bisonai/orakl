@@ -27,10 +27,10 @@ async function shouldReport({
 
   // Check Submission Hearbeat
   const updatedAt = Number(latestRoundData.updatedAt) * 1000 // convert to milliseconds
-  const timestamp = Date.now()
+  const now = Date.now()
   const heartbeat = aggregator.heartbeat
 
-  if (updatedAt + heartbeat < timestamp) {
+  if (updatedAt + heartbeat < now) {
     logger.info('Should report by heartbeat check')
     logger.info(`Last submission time:${updatedAt}, heartbeat:${heartbeat}`)
     return true
