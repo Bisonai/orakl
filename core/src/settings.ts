@@ -21,6 +21,10 @@ export const SLACK_WEBHOOK_URL = process.env.SLACK_WEBHOOK_URL || ''
 export const LOCAL_AGGREGATOR = process.env.LOCAL_AGGREGATOR || 'MEDIAN'
 export const LISTENER_DELAY = Number(process.env.LISTENER_DELAY) || 500
 
+// POR Aggregator
+export const POR_AGGREGATOR_HASH = (process.env.POR_AGGREGATOR_HASH =
+  '0x952f883b8d2fd47a790307cb569118a215ea45eb861cefd4ed3b83ae7550f8e8' || '')
+
 // Gas mimimums
 export const VRF_FULFILL_GAS_MINIMUM = 650_000
 export const REQUEST_RESPONSE_FULFILL_GAS_MINIMUM = 400_000
