@@ -97,6 +97,7 @@ async function submit({
       await sendTransaction(txParams)
       break
     } catch (e) {
+      logger.error('Failed to send transaction')
       throw e
     }
   }

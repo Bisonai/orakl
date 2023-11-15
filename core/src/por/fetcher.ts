@@ -38,15 +38,11 @@ function buildReducer(reducerMapping, reducers) {
 }
 
 async function fetchData(feed) {
-  try {
-    const rawDatum = await (await axios.get(feed.url)).data
-    const reducers = await buildReducer(DATA_FEED_REDUCER_MAPPING, feed.reducers)
-    const datum = pipe(...reducers)(rawDatum)
-    checkDataFormat(datum)
-    return datum
-  } catch (e) {
-    throw e
-  }
+  const rawDatum = await (await axios.get(feed.url)).data
+  const reducers = await buildReducer(DATA_FEED_REDUCER_MAPPING, feed.reducers)
+  const datum = pipe(...reducers)(rawDatum)
+  checkDataFormat(datum)
+  return datum
 }
 
 export async function fetchWithAggregator(aggregatorHash: string) {
