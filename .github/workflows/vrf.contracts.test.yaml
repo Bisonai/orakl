@@ -1,0 +1,37 @@
+name: "vrf contracts: test"
+
+on:
+  push:
+    branches-ignore:
+      - "master"
+    paths:
+      - "contracts/**/VRFCoordinator.sol"
+      - "contracts/**/VRFConsumerBase.sol"
+      - "contracts/**/vrf/**"
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: "18.12"
+          registry-url: "https://registry.npmjs.org"
+          scope: "@bisonai"
+          always-auth: true
+      - run: yarn
+        working-directory: ./contracts
+      - run: yarn prettier-solidity-check
+        working-directory: ./contracts
+      - run: yarn solhint
+        working-directory: ./contracts
+      - run: yarn eslint
+        working-directory: ./contracts
+      - run: npx hardhat test test/v0.1/vrf/*.cjs
+        working-directory: ./contracts
+      - run: yarn compile
+        working-directory: ./contracts
+      - run: yarn build
+        working-directory: ./contracts

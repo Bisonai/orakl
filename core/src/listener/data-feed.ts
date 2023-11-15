@@ -1,23 +1,23 @@
+import { Aggregator__factory } from '@bisonai/orakl-contracts'
 import { ethers } from 'ethers'
 import { Logger } from 'pino'
 import type { RedisClientType } from 'redis'
-import { Aggregator__factory } from '@bisonai/orakl-contracts'
-import { listenerService } from './listener'
-import { ProcessEventOutputType } from './types'
-import { IListenerConfig, INewRound, IDataFeedListenerWorker } from '../types'
-import { buildSubmissionRoundJobId } from '../utils'
 import { getOperatorAddress } from '../api'
 import {
-  WORKER_AGGREGATOR_QUEUE_NAME,
-  DEPLOYMENT_NAME,
+  AGGREGATOR_QUEUE_SETTINGS,
   CHAIN,
   DATA_FEED_LISTENER_STATE_NAME,
   DATA_FEED_SERVICE_NAME,
-  AGGREGATOR_QUEUE_SETTINGS,
-  LISTENER_DATA_FEED_LATEST_QUEUE_NAME,
+  DEPLOYMENT_NAME,
   LISTENER_DATA_FEED_HISTORY_QUEUE_NAME,
-  LISTENER_DATA_FEED_PROCESS_EVENT_QUEUE_NAME
+  LISTENER_DATA_FEED_LATEST_QUEUE_NAME,
+  LISTENER_DATA_FEED_PROCESS_EVENT_QUEUE_NAME,
+  WORKER_AGGREGATOR_QUEUE_NAME
 } from '../settings'
+import { IDataFeedListenerWorker, IListenerConfig, INewRound } from '../types'
+import { buildSubmissionRoundJobId } from '../utils'
+import { listenerService } from './listener'
+import { ProcessEventOutputType } from './types'
 
 const FILE_NAME = import.meta.url
 

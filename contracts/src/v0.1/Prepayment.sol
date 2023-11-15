@@ -100,7 +100,7 @@ contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
         uint256 period,
         uint256 reqPeriodCount
     );
-    event AccountFeeRatioSet(uint64 indexed accId, uint256 disCount);
+    event AccountFeeRatioSet(uint64 indexed accId, uint256 discount);
     event AccountPeriodReqIncreased(uint64 indexed accId);
     event AccountSubscriptionPaidSet(uint256 accId);
 
@@ -437,11 +437,11 @@ contract Prepayment is Ownable, IPrepayment, ITypeAndVersion {
     /**
      * @inheritdoc IPrepayment
      */
-    function setFeeRatio(uint64 accId, uint256 disCount) external onlyOwner {
+    function setFeeRatio(uint64 accId, uint256 discount) external onlyOwner {
         Account account = sAccIdToAccount[accId];
         if (address(account) == address(0)) revert InvalidAccount();
-        account.setFeeRatio(disCount);
-        emit AccountFeeRatioSet(accId, disCount);
+        account.setFeeRatio(discount);
+        emit AccountFeeRatioSet(accId, discount);
     }
 
     /**

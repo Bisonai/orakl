@@ -1,12 +1,12 @@
+import { NonceManager } from '@ethersproject/experimental'
 import axios from 'axios'
+import Caver from 'caver-js'
 import { ethers } from 'ethers'
 import { Logger } from 'pino'
-import { NonceManager } from '@ethersproject/experimental'
-import Caver from 'caver-js'
 import { OraklError, OraklErrorCode } from '../errors'
 import { ORAKL_NETWORK_DELEGATOR_URL } from '../settings'
-import { add0x, buildUrl } from '../utils'
 import { ITransactionData } from '../types'
+import { add0x, buildUrl } from '../utils'
 
 const FILE_NAME = import.meta.url
 
@@ -183,6 +183,7 @@ export async function sendTransactionDelegatedFee({
         ...transactionData
       })
     )?.data
+    _logger.debug(response)
   } catch (e) {
     throw new OraklError(OraklErrorCode.DelegatorServerIssue)
   }

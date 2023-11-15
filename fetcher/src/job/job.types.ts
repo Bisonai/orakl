@@ -11,7 +11,7 @@ export interface IData {
 }
 
 interface IHeader {
-  'Content-Type': string
+  [key: string]: string
 }
 
 interface IReducer {
@@ -22,7 +22,7 @@ interface IReducer {
 interface IDefinition {
   url: string
   method: string
-  headers: IHeader[]
+  headers: IHeader
   reducers: IReducer[]
 }
 

@@ -1,10 +1,7 @@
+import { RequestResponseCoordinator__factory } from '@bisonai/orakl-contracts'
 import { ethers } from 'ethers'
 import { Logger } from 'pino'
 import type { RedisClientType } from 'redis'
-import { RequestResponseCoordinator__factory } from '@bisonai/orakl-contracts'
-import { listenerService } from './listener'
-import { IListenerConfig, IDataRequested, IRequestResponseListenerWorker } from '../types'
-import { ProcessEventOutputType } from './types'
 import {
   CHAIN,
   LISTENER_REQUEST_RESPONSE_HISTORY_QUEUE_NAME,
@@ -14,6 +11,9 @@ import {
   REQUEST_RESPONSE_SERVICE_NAME,
   WORKER_REQUEST_RESPONSE_QUEUE_NAME
 } from '../settings'
+import { IDataRequested, IListenerConfig, IRequestResponseListenerWorker } from '../types'
+import { listenerService } from './listener'
+import { ProcessEventOutputType } from './types'
 
 const FILE_NAME = import.meta.url
 
