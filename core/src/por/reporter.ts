@@ -42,8 +42,8 @@ async function shouldReport({
     const currentSubmission = Number(value)
 
     const range = latestSubmission * aggregator.threshold
-    const l = currentSubmission - range
-    const r = currentSubmission + range
+    const l = latestSubmission - range
+    const r = latestSubmission + range
 
     if (currentSubmission < l || currentSubmission > r) {
       logger.info('Should report by deviation check')
