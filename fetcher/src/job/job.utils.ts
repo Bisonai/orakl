@@ -183,7 +183,9 @@ export function extractFeeds(
       if (!f.definition.location) {
         proxy = proxySelector(f.definition.url)
       } else {
-        const availableProxies = proxies.filter((item) => item.location === f.definition.location)
+        const availableProxies = proxies.filter(
+          (item) => item.location && item.location === f.definition.location
+        )
         if (availableProxies.length == 0) {
           throw `no proxies available for location:${f.definition.location}`
         }
