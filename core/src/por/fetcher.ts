@@ -2,7 +2,7 @@ import axios from 'axios'
 import { Logger } from 'pino/pino'
 import { IAggregator } from '../types'
 import { pipe } from '../utils'
-import { insertData, loadAggregator } from './api'
+import { insertAggregateData, insertData, loadAggregator } from './api'
 import { PorError, PorErrorCode } from './errors'
 import { DATA_FEED_REDUCER_MAPPING } from './reducer'
 
@@ -65,6 +65,7 @@ export async function fetchWithAggregator({
   const value = await fetchData(feed, logger)
 
   await insertData({ aggregatorId: aggregator.id, feedId: feed.id, value, logger })
+  await insertAggregateData({ aggregatorId: aggregator.id, value, logger })
 
   return { value: BigInt(value), aggregator }
 }

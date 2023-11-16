@@ -35,6 +35,7 @@ export async function insertData({
   logger: Logger
 }) {
   const timestamp = new Date(Date.now()).toString()
+  // fixme: remove comments
   const data: IData[] = [
     {
       aggregatorId: aggregatorId.toString(),
@@ -43,6 +44,7 @@ export async function insertData({
       value
     }
   ]
+  console.log('Insert Data:', data)
 
   try {
     const url = buildUrl(ORAKL_NETWORK_API_URL, 'data')
@@ -56,5 +58,38 @@ export async function insertData({
   } catch (e) {
     logger.error(`Failed to insert Data. API-URL:${ORAKL_NETWORK_API_URL}, Data: ${data}`)
     throw new OraklError(OraklErrorCode.FailedInsertData)
+  }
+}
+
+export async function insertAggregateData({
+  aggregatorId,
+  value,
+  logger
+}: {
+  aggregatorId: bigint
+  value: number
+  logger: Logger
+}) {
+  const timestamp = new Date(Date.now()).toString()
+  const data = {
+    // fixme
+    aggregatorId: aggregatorId.toString(),
+    timestamp,
+    value
+  }
+  console.log('Insert Aggregate:', data)
+
+  try {
+    const timestamp = new Date(Date.now()).toString()
+    const url = buildUrl(ORAKL_NETWORK_API_URL, 'aggregate')
+    const response = await axios.post(url, { data })
+    return {
+      status: response?.status,
+      statusText: response?.statusText,
+      data: response?.data
+    }
+  } catch (e) {
+    logger.error(`Failed to insert Aggregated Data API-URL:${ORAKL_NETWORK_API_URL}, Data: ${data}`)
+    throw new OraklError(OraklErrorCode.FailedInsertAggregatedData)
   }
 }
