@@ -4,7 +4,7 @@ import { OraklError, OraklErrorCode } from '../errors'
 import { CHAIN, ORAKL_NETWORK_API_URL } from '../settings'
 import { IAggregator } from '../types'
 import { buildUrl } from '../utils'
-import { IData } from './types'
+import { IData } from './job.types'
 
 export async function loadAggregator({
   aggregatorHash,
@@ -35,7 +35,6 @@ export async function insertData({
   logger: Logger
 }) {
   const timestamp = new Date(Date.now()).toString()
-  // fixme: remove comments
   const data: IData[] = [
     {
       aggregatorId: aggregatorId.toString(),
@@ -71,14 +70,12 @@ export async function insertAggregateData({
 }) {
   const timestamp = new Date(Date.now()).toString()
   const data = {
-    // fixme
-    aggregatorId: aggregatorId.toString(),
+    aggregatorId,
     timestamp,
     value
   }
 
   try {
-    const timestamp = new Date(Date.now()).toString()
     const url = buildUrl(ORAKL_NETWORK_API_URL, 'aggregate')
     const response = await axios.post(url, { data })
     return {
