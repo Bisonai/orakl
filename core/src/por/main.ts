@@ -5,13 +5,15 @@ import { hookConsoleError } from '../utils'
 import { fetchWithAggregator } from './fetcher'
 import { reportData } from './reporter'
 
-const aggregatorHash = POR_AGGREGATOR_HASH
 const LOGGER = buildLogger()
 
 const main = async () => {
   hookConsoleError(LOGGER)
 
-  const { value, aggregator } = await fetchWithAggregator({ aggregatorHash, logger: LOGGER })
+  const { value, aggregator } = await fetchWithAggregator({
+    aggregatorHash: POR_AGGREGATOR_HASH,
+    logger: LOGGER
+  })
 
   logger.info(`Fetched data:${value}`)
 

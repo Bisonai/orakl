@@ -1,9 +1,9 @@
 import axios from 'axios'
 import { Logger } from 'pino/pino'
+import { OraklError, OraklErrorCode } from '../errors'
 import { IAggregator } from '../types'
 import { pipe } from '../utils'
 import { insertAggregateData, insertData, loadAggregator } from './api'
-import { PorError, PorErrorCode } from './errors'
 import { DATA_FEED_REDUCER_MAPPING } from './reducer'
 
 async function extractFeed(adapter) {
@@ -22,9 +22,9 @@ async function extractFeed(adapter) {
 
 function checkDataFormat(data) {
   if (!data) {
-    throw new PorError(PorErrorCode.InvalidDataFeed)
+    throw new OraklError(OraklErrorCode.InvalidDataFeed)
   } else if (!Number.isInteger(data)) {
-    throw new PorError(PorErrorCode.InvalidDataFeedFormat)
+    throw new OraklError(OraklErrorCode.InvalidDataFeedFormat)
   }
 }
 
@@ -32,7 +32,7 @@ function buildReducer(reducerMapping, reducers) {
   return reducers.map((r) => {
     const reducer = reducerMapping[r.function]
     if (!reducer) {
-      throw new PorError(PorErrorCode.InvalidReducer)
+      throw new OraklError(OraklErrorCode.InvalidReducer)
     }
     return reducer(r?.args)
   })
