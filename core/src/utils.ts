@@ -126,8 +126,6 @@ export function buildUrl(host: string, path: string) {
   return url.replace(/([^:]\/)\/+/g, '$1')
 }
 
-const axiosWithTimeOut = axios.create({ timeout: Number(DELEGATOR_TIMEOUT) })
-
 // axios errors defined in official repo (https://github.com/axios/axios#error-types)
 const handleAxiosError = (e) => {
   if (e.code == 'ERR_BAD_OPTION_VALUE') {
@@ -157,31 +155,30 @@ const handleAxiosError = (e) => {
   }
 }
 
-export const axiosWrapper = {
+export const axiosTimeout = {
   makeRequest: async (method, url, data = null) => {
     try {
-      const response = await axiosWithTimeOut({
+      const response = await axios({
         method,
         url,
-        data
+        data,
+        timeout: Number(DELEGATOR_TIMEOUT)
       })
-
-      console.log(`Request successful. Response:`, response.data)
-      return response.data
+      return response
     } catch (e) {
       handleAxiosError(e)
     }
   },
-  get: (url, data) => {
-    return axiosWrapper.makeRequest('get', url, data)
+  get: (url, data: any = null) => {
+    return axiosTimeout.makeRequest('get', url, data)
   },
-  post: (url, data) => {
-    return axiosWrapper.makeRequest('post', url, data)
+  post: (url, data: any = null) => {
+    return axiosTimeout.makeRequest('post', url, data)
   },
-  delete: (url, data) => {
-    return axiosWrapper.makeRequest('delete', url, data)
+  delete: (url, data: any = null) => {
+    return axiosTimeout.makeRequest('delete', url, data)
   },
-  patch: (url, data) => {
-    return axiosWrapper.makeRequest('patch', url, data)
+  patch: (url, data: any = null) => {
+    return axiosTimeout.makeRequest('patch', url, data)
   }
 }
