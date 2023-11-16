@@ -5,7 +5,7 @@ import { OraklErrorCode } from '../src/errors'
 import { axiosTimeout } from '../src/utils'
 
 describe('Utils', function () {
-  test('axiosWrapper should return proper value on reqeusts', async function () {
+  test('axiosTimeout should return proper value on reqeusts', async function () {
     const fakeUrl = `https://fake-api.com`
     const mockEndpoint = new MockAdapter(axios)
 
@@ -27,7 +27,7 @@ describe('Utils', function () {
     expect(r?.data.message).toEqual('fake patch data')
   })
 
-  test('axiosWrapper should handle timeout error', async function () {
+  test('axiosTimeout should handle timeout error', async function () {
     const fakeUrl = `https://fake-api.com`
     const mockEndpoint = new MockAdapter(axios)
 
