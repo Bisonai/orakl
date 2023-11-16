@@ -9,4 +9,7 @@ export class ProxyDto {
 
   @ApiProperty()
   port: number
+
+  @ApiProperty()
+  location: string
 }
