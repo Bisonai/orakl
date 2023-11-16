@@ -1,10 +1,12 @@
 import { IncomingWebhook } from '@slack/webhook'
+import axios from 'axios'
 import Hook from 'console-hook'
 import * as Fs from 'node:fs/promises'
 import os from 'node:os'
 import type { RedisClientType } from 'redis'
 import { createClient } from 'redis'
-import { SLACK_WEBHOOK_URL } from './settings'
+import { OraklError, OraklErrorCode } from './errors'
+import { DELEGATOR_TIMEOUT, SLACK_WEBHOOK_URL } from './settings'
 
 export async function loadJson(filepath) {
   const json = await Fs.readFile(filepath, 'utf8')
@@ -122,4 +124,64 @@ export function buildHeartbeatJobId({
 export function buildUrl(host: string, path: string) {
   const url = [host, path].join('/')
   return url.replace(/([^:]\/)\/+/g, '$1')
+}
+
+const axiosWithTimeOut = axios.create({ timeout: Number(DELEGATOR_TIMEOUT) })
+
+// axios errors defined in official repo (https://github.com/axios/axios#error-types)
+const handleAxiosError = (e) => {
+  if (e.code == 'ERR_BAD_OPTION_VALUE') {
+    throw new OraklError(OraklErrorCode.AxiosBadOptionValue)
+  } else if (e.code == 'ERR_BAD_OPTION') {
+    throw new OraklError(OraklErrorCode.AxiosBadOption)
+  } else if (e.code == 'ECONNABORTED' || e.code == 'ETIMEDOUT') {
+    throw new OraklError(OraklErrorCode.AxiosTimeOut)
+  } else if (e.code == 'ERR_NETWORK') {
+    throw new OraklError(OraklErrorCode.AxiosNetworkError)
+  } else if (e.code == 'ERR_FR_TOO_MANY_REDIRECTS') {
+    throw new OraklError(OraklErrorCode.AxiosTooManyRedirects)
+  } else if (e.code == 'ERR_DEPRECATED') {
+    throw new OraklError(OraklErrorCode.AxiosDeprecated)
+  } else if (e.code == 'ERR_BAD_RESPONSE') {
+    throw new OraklError(OraklErrorCode.AxiosBadResponse)
+  } else if (e.code == 'ERR_BAD_REQUEST') {
+    throw new OraklError(OraklErrorCode.AxiosBadRequest)
+  } else if (e.code == 'ERR_CANCELED') {
+    throw new OraklError(OraklErrorCode.AxiosCanceledByUser)
+  } else if (e.code == 'ERR_NOT_SUPPORT') {
+    throw new OraklError(OraklErrorCode.AxiosNotSupported)
+  } else if (e.code == 'ERR_INVALID_URL') {
+    throw new OraklError(OraklErrorCode.AxiosInvalidUrl)
+  } else {
+    throw e
+  }
+}
+
+export const axiosWrapper = {
+  makeRequest: async (method, url, data = null) => {
+    try {
+      const response = await axiosWithTimeOut({
+        method,
+        url,
+        data
+      })
+
+      console.log(`Request successful. Response:`, response.data)
+      return response.data
+    } catch (e) {
+      handleAxiosError(e)
+    }
+  },
+  get: (url, data) => {
+    return axiosWrapper.makeRequest('get', url, data)
+  },
+  post: (url, data) => {
+    return axiosWrapper.makeRequest('post', url, data)
+  },
+  delete: (url, data) => {
+    return axiosWrapper.makeRequest('delete', url, data)
+  },
+  patch: (url, data) => {
+    return axiosWrapper.makeRequest('patch', url, data)
+  }
 }

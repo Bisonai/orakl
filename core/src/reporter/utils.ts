@@ -1,12 +1,11 @@
 import { NonceManager } from '@ethersproject/experimental'
-import axios from 'axios'
 import Caver from 'caver-js'
 import { ethers } from 'ethers'
 import { Logger } from 'pino'
 import { OraklError, OraklErrorCode } from '../errors'
-import { DELEGATOR_TIMEOUT, ORAKL_NETWORK_DELEGATOR_URL } from '../settings'
+import { ORAKL_NETWORK_DELEGATOR_URL } from '../settings'
 import { ITransactionData } from '../types'
-import { add0x, buildUrl } from '../utils'
+import { add0x, axiosWrapper, buildUrl } from '../utils'
 
 const FILE_NAME = import.meta.url
 
@@ -177,25 +176,13 @@ export async function sendTransactionDelegatedFee({
   const endpoint = buildUrl(ORAKL_NETWORK_DELEGATOR_URL, `sign`)
 
   let response
+
   try {
-    response = (
-      await axios.post(
-        endpoint,
-        {
-          ...transactionData
-        },
-        {
-          timeout: Number(DELEGATOR_TIMEOUT)
-        }
-      )
-    )?.data
+    response = (await axiosWrapper.post(endpoint, { ...transactionData }))?.data
     _logger.debug(response)
   } catch (e) {
-    if (e.code == 'ECONNABORTED') {
-      throw new OraklError(OraklErrorCode.DelegatorTimeoutError)
-    } else {
-      throw new OraklError(OraklErrorCode.DelegatorServerIssue)
-    }
+    _logger.error(e)
+    throw new OraklError(OraklErrorCode.DelegatorServerIssue)
   }
 
   try {
