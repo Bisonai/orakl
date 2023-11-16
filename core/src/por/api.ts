@@ -44,7 +44,6 @@ export async function insertData({
       value
     }
   ]
-  console.log('Insert Data:', data)
 
   try {
     const url = buildUrl(ORAKL_NETWORK_API_URL, 'data')
@@ -77,7 +76,6 @@ export async function insertAggregateData({
     timestamp,
     value
   }
-  console.log('Insert Aggregate:', data)
 
   try {
     const timestamp = new Date(Date.now()).toString()
