@@ -1,4 +1,5 @@
 import axios from 'axios'
+import { Logger } from 'pino/pino'
 import { IAggregator } from '../types'
 import { pipe } from '../utils'
 import { insertData, loadAggregator } from './api'
@@ -37,21 +38,33 @@ function buildReducer(reducerMapping, reducers) {
   })
 }
 
-async function fetchData(feed) {
-  const rawDatum = await (await axios.get(feed.url)).data
-  const reducers = await buildReducer(DATA_FEED_REDUCER_MAPPING, feed.reducers)
-  const datum = pipe(...reducers)(rawDatum)
-  checkDataFormat(datum)
-  return datum
+async function fetchData(feed, logger) {
+  try {
+    const rawDatum = await (await axios.get(feed.url)).data
+    const reducers = buildReducer(DATA_FEED_REDUCER_MAPPING, feed.reducers)
+    const datum = pipe(...reducers)(rawDatum)
+    checkDataFormat(datum)
+    return datum
+  } catch (e) {
+    logger.error(`Fetching data failed for url:${feed.url}`)
+    logger.error(e)
+    throw e
+  }
 }
 
-export async function fetchWithAggregator(aggregatorHash: string) {
-  const aggregator: IAggregator = await loadAggregator({ aggregatorHash })
+export async function fetchWithAggregator({
+  aggregatorHash,
+  logger
+}: {
+  aggregatorHash: string
+  logger: Logger
+}) {
+  const aggregator: IAggregator = await loadAggregator({ aggregatorHash, logger })
   const adapter = aggregator.adapter
   const feed = await extractFeed(adapter)
-  const value = await fetchData(feed)
+  const value = await fetchData(feed, logger)
 
-  await insertData({ aggregatorId: aggregator.id, feedId: feed.id, value })
+  await insertData({ aggregatorId: aggregator.id, feedId: feed.id, value, logger })
 
   return { value: BigInt(value), aggregator }
 }

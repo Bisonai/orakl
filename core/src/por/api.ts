@@ -1,16 +1,24 @@
 import axios from 'axios'
+import { Logger } from 'pino/pino'
 import { OraklError, OraklErrorCode } from '../errors'
 import { CHAIN, ORAKL_NETWORK_API_URL } from '../settings'
 import { IAggregator } from '../types'
 import { buildUrl } from '../utils'
 import { IData } from './types'
 
-export async function loadAggregator({ aggregatorHash }: { aggregatorHash: string }) {
+export async function loadAggregator({
+  aggregatorHash,
+  logger
+}: {
+  aggregatorHash: string
+  logger: Logger
+}) {
   try {
     const url = buildUrl(ORAKL_NETWORK_API_URL, `aggregator/${aggregatorHash}/${CHAIN}`)
     const aggregator: IAggregator = (await axios.get(url))?.data
     return aggregator
   } catch (e) {
+    logger.error(`Failed to load aggregator with :${aggregatorHash}`)
     throw new OraklError(OraklErrorCode.FailedToGetAggregator)
   }
 }
@@ -18,11 +26,13 @@ export async function loadAggregator({ aggregatorHash }: { aggregatorHash: strin
 export async function insertData({
   aggregatorId,
   feedId,
-  value
+  value,
+  logger
 }: {
   aggregatorId: bigint
   feedId: bigint
   value: number
+  logger: Logger
 }) {
   const timestamp = new Date(Date.now()).toString()
   const data: IData[] = [
@@ -44,6 +54,7 @@ export async function insertData({
       data: response?.data
     }
   } catch (e) {
+    logger.error(`Failed to insert Data. API-URL:${ORAKL_NETWORK_API_URL}, Data: ${data}`)
     throw new OraklError(OraklErrorCode.FailedInsertData)
   }
 }

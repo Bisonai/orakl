@@ -11,7 +11,7 @@ const LOGGER = buildLogger()
 const main = async () => {
   hookConsoleError(LOGGER)
 
-  const { value, aggregator } = await fetchWithAggregator(aggregatorHash)
+  const { value, aggregator } = await fetchWithAggregator({ aggregatorHash, logger: LOGGER })
 
   logger.info(`Fetched data:${value}`)
 
