@@ -1,4 +1,4 @@
-import { ApiProperty } from '@nestjs/swagger'
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
 
 export class ProxyDto {
   @ApiProperty()
@@ -11,5 +11,5 @@ export class ProxyDto {
   port: number
 
   @ApiProperty()
-  location: string
+  location?: string
 }
