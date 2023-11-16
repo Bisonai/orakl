@@ -12,13 +12,11 @@ export const NODE_ENV = process.env.NODE_ENV
 export const HEALTH_CHECK_PORT = process.env.HEALTH_CHECK_PORT
 export const CHAIN = process.env.CHAIN || 'localhost'
 export const LOG_LEVEL = process.env.LOG_LEVEL || 'info'
-export const STORE_ADAPTER_FETCH_RESULT = process.env.STORE_ADAPTER_FETCH_RESULT || false
 
 export const PROVIDER_URL = process.env.PROVIDER_URL || 'http://127.0.0.1:8545'
 export const REDIS_HOST = process.env.REDIS_HOST || 'localhost'
 export const REDIS_PORT = process.env.REDIS_PORT ? Number(process.env.REDIS_PORT) : 6379
 export const SLACK_WEBHOOK_URL = process.env.SLACK_WEBHOOK_URL || ''
-export const LOCAL_AGGREGATOR = process.env.LOCAL_AGGREGATOR || 'MEDIAN'
 export const LISTENER_DELAY = Number(process.env.LISTENER_DELAY) || 500
 
 // POR
