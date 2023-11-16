@@ -152,6 +152,7 @@ model Proxy {
   protocol String
   host     String
   port     Int
+  location String
 
   @@unique([protocol, host, port])
   @@map("proxies")
