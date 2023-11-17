@@ -21,7 +21,8 @@ export class ListenerController {
       where: {
         chain: { name: chain },
         service: { name: service }
-      }
+      },
+      orderBy: { id: 'desc' }
     })
   }
 

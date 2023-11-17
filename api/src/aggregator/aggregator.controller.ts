@@ -67,6 +67,9 @@ export class AggregatorController {
         chain: { name: chain },
         active,
         address
+      },
+      orderBy: {
+        id: 'desc'
       }
     })
   }
