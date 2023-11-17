@@ -1,7 +1,6 @@
 import { Controller, Get, Post, Body, Param, Delete, Query } from '@nestjs/common'
 import { AdapterService } from './adapter.service'
 import { AdapterDto } from './dto/adapter.dto'
-import { Prisma } from '@prisma/client'
 
 @Controller({
   path: 'adapter',
