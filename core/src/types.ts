@@ -88,6 +88,14 @@ export interface IRandomWordsRequested {
   isDirectPayment: boolean
 }
 
+export interface IRandomWordsFulfilled {
+  requestId: BigNumber
+  l2RequestId: BigNumber
+  randomWords: BigNumber[]
+  sender: string
+  callbackGasLimit: number
+}
+
 export interface INewRound {
   roundId: BigNumber
   startedBy: string
@@ -128,6 +136,19 @@ export interface IVrfListenerWorker {
   isDirectPayment: boolean
 }
 
+export interface IL2EndpointListenerWorker {
+  keyHash: string
+  callbackAddress: string
+  blockNum: string
+  blockHash: string
+  requestId: string
+  seed: string
+  accId: string
+  callbackGasLimit: number
+  numWords: number
+  sender: string
+}
+
 export interface IDataFeedListenerWorker {
   oracleAddress: string
   roundId: number
@@ -139,6 +160,17 @@ export interface IDataFeedListenerWorkerL2 {
   roundId: number
   answer: number
   workerSource: string
+}
+
+export interface IL2VrfFulfillListenerWorker {
+  callbackAddress: string
+  callbackGasLimit: number
+  blockNum: string
+  blockHash: string
+  requestId: string
+  l2RequestId: string
+  sender: string
+  randomwords: string[]
 }
 
 // Worker -> Worker
@@ -319,6 +351,23 @@ export interface IVrfTransactionParameters {
   preSeed: string
   uPoint: [string, string]
   vComponents: [string, string, string, string]
+}
+
+export interface IL2VrfRequestTransactionParameters {
+  keyHash: string
+  blockNum: string
+  seed: string
+  accId: string
+  callbackGasLimit: number
+  numWords: number
+  sender: string
+  l2RequestId: string
+}
+
+export interface IL2VrfFulfillTransactionParameters {
+  requestId: string
+  callbackGasLimit: number
+  randomwords: string[]
 }
 
 export interface IRequestResponseTransactionParameters {
