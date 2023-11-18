@@ -1,12 +1,10 @@
-import { Endpoint__factory } from '@bisonai/orakl-contracts'
+import { L2Endpoint__factory } from '@bisonai/orakl-contracts'
 import { Queue, Worker } from 'bullmq'
 import { ethers } from 'ethers'
 import { Logger } from 'pino'
 import type { RedisClientType } from 'redis'
-import { getVrfConfig } from '../api'
 import {
   BULLMQ_CONNECTION,
-  L2_CHAIN,
   L2_REPORTER_VRF_FULFILL_QUEUE_NAME,
   L2_WORKER_VRF_FULFILL_QUEUE_NAME,
   VRF_FULFILL_GAS_MINIMUM,
@@ -17,7 +15,6 @@ import {
   IL2VrfFulfillListenerWorker,
   IL2VrfFulfillTransactionParameters,
   ITransactionParameters,
-  IVrfConfig,
   QueueType
 } from '../types'
 
@@ -26,11 +23,9 @@ const FILE_NAME = import.meta.url
 export async function worker(redisClient: RedisClientType, _logger: Logger) {
   const logger = _logger.child({ name: 'worker', file: FILE_NAME })
   const queue = new Queue(L2_REPORTER_VRF_FULFILL_QUEUE_NAME, BULLMQ_CONNECTION)
-  // FIXME add checks if exists and if includes all information
-  const vrfConfig = await getVrfConfig({ chain: L2_CHAIN, logger })
   const worker = new Worker(
     L2_WORKER_VRF_FULFILL_QUEUE_NAME,
-    await job(queue, vrfConfig, _logger),
+    await job(queue, _logger),
     BULLMQ_CONNECTION
   )
 
@@ -44,9 +39,9 @@ export async function worker(redisClient: RedisClientType, _logger: Logger) {
   process.on('SIGTERM', handleExit)
 }
 
-export async function job(reporterQueue: QueueType, config: IVrfConfig, _logger: Logger) {
+export async function job(reporterQueue: QueueType, _logger: Logger) {
   const logger = _logger.child({ name: 'vrfJob', file: FILE_NAME })
-  const iface = new ethers.utils.Interface(Endpoint__factory.abi)
+  const iface = new ethers.utils.Interface(L2Endpoint__factory.abi)
 
   async function wrapper(job) {
     const inData: IL2VrfFulfillListenerWorker = job.data
