@@ -4,6 +4,7 @@ import { Logger } from 'pino'
 import type { RedisClientType } from 'redis'
 import {
   CHAIN,
+  L2_ENDPOINT,
   L2_LISTENER_VRF_FULFILL_HISTORY_QUEUE_NAME,
   L2_LISTENER_VRF_FULFILL_LATEST_QUEUE_NAME,
   L2_LISTENER_VRF_FULFILL_PROCESS_EVENT_QUEUE_NAME,
@@ -57,11 +58,10 @@ async function processEvent({ iface, logger }: { iface: ethers.utils.Interface; 
   async function wrapper(log): Promise<ProcessEventOutputType | undefined> {
     const eventData = iface.parseLog(log).args as unknown as IRandomWordsFulfilled
     _logger.debug(eventData, 'eventData')
-
     const jobName = 'vrf-l2-fulfill'
     const requestId = eventData.requestId.toString()
     const jobData: IL2VrfFulfillListenerWorker = {
-      callbackAddress: log.address,
+      callbackAddress: L2_ENDPOINT,
       blockNum: log.blockNumber,
       blockHash: log.blockHash,
       requestId: eventData.requestId.toString(),

@@ -4,7 +4,7 @@ import { Logger } from 'pino'
 import type { RedisClientType } from 'redis'
 import { getVrfConfig } from '../api'
 import {
-  CHAIN,
+  L1_ENDPOINT,
   L2_CHAIN,
   L2_LISTENER_VRF_REQUEST_HISTORY_QUEUE_NAME,
   L2_LISTENER_VRF_REQUEST_LATEST_QUEUE_NAME,
@@ -55,7 +55,7 @@ export async function buildListener(
 
 async function processEvent({ iface, logger }: { iface: ethers.utils.Interface; logger: Logger }) {
   const _logger = logger.child({ name: 'processEvent', file: FILE_NAME })
-  const { keyHash } = await getVrfConfig({ chain: CHAIN })
+  const { keyHash } = await getVrfConfig({ chain: L2_CHAIN })
 
   async function wrapper(log): Promise<ProcessEventOutputType | undefined> {
     const eventData = iface.parseLog(log).args as unknown as IRandomWordsRequested
@@ -67,7 +67,7 @@ async function processEvent({ iface, logger }: { iface: ethers.utils.Interface; 
       const jobName = 'vrf-l2-request'
       const requestId = eventData.requestId.toString()
       const jobData: IL2EndpointListenerWorker = {
-        callbackAddress: log.address,
+        callbackAddress: L1_ENDPOINT,
         blockNum: log.blockNumber,
         blockHash: log.blockHash,
         requestId,

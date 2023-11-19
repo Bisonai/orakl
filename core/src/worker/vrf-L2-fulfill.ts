@@ -1,6 +1,6 @@
 import { L2Endpoint__factory } from '@bisonai/orakl-contracts'
 import { Queue, Worker } from 'bullmq'
-import { ethers } from 'ethers'
+import { BigNumber, ethers } from 'ethers'
 import { Logger } from 'pino'
 import type { RedisClientType } from 'redis'
 import {
@@ -51,9 +51,8 @@ export async function job(reporterQueue: QueueType, _logger: Logger) {
       const payloadParameters: IL2VrfFulfillTransactionParameters = {
         requestId: inData.l2RequestId,
         randomwords: inData.randomwords,
-        callbackGasLimit: inData.callbackGasLimit
+        callbackGasLimit: BigNumber.from(inData.callbackGasLimit).toNumber()
       }
-
       const to = inData.callbackAddress
       const tx = buildTransaction(
         payloadParameters,

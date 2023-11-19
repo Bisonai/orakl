@@ -1,0 +1,6 @@
+{
+  "deploy": {
+    "vrfCoordinator": "0xDA8c0A00A372503aa6EC80f9b29Cc97C454bE499",
+    "registry": "0xAbA141f04F4D0a8a3824f524122FB6423ebE2421"
+  }
+}

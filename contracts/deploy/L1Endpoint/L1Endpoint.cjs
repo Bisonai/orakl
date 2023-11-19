@@ -12,11 +12,9 @@ const func = async function (hre) {
     // Deploy L1Endpoint ////////////////////////////////////////////////////////
     if (config.deploy) {
       console.log('deploy')
+      const deployConfig = config.deploy
       const l1EndpointDeployment = await deploy('L1Endpoint', {
-        args: [
-          '0xDA8c0A00A372503aa6EC80f9b29Cc97C454bE499',
-          '0x89c589256AcaC342c641Cd472Fd8d07550d347a8'
-        ],
+        args: [deployConfig.vrfCoordinator, deployConfig.registry],
         from: deployer,
         log: true
       })
