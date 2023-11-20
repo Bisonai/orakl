@@ -125,8 +125,8 @@ export function buildUrl(host: string, path: string) {
   return url.replace(/([^:]\/)\/+/g, '$1')
 }
 
-// axios errors defined in official repo (https://github.com/axios/axios#error-types)
-export const getAxiosErrorCode = (e, defaultErrorCode) => {
+// axios errors are defined in official repo (https://github.com/axios/axios#error-types)
+export const getOraklErrorCode = (e, defaultErrorCode) => {
   if (e.code == 'ERR_BAD_OPTION_VALUE') {
     return OraklErrorCode.AxiosBadOptionValue
   } else if (e.code == 'ERR_BAD_OPTION') {
