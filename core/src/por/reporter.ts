@@ -3,7 +3,14 @@ import { ethers } from 'ethers'
 import { Logger } from 'pino'
 import { getReporterByOracleAddress } from '../api'
 import { buildWallet, sendTransaction } from '../reporter/utils'
-import { CHAIN, POR_GAS_MINIMUM, POR_SERVICE_NAME, PROVIDER, PROVIDER_URL } from '../settings'
+import {
+  CHAIN,
+  POR_GAS_MINIMUM,
+  POR_LATENCY_BUFFER,
+  POR_SERVICE_NAME,
+  PROVIDER,
+  PROVIDER_URL
+} from '../settings'
 import { IAggregator, IReporterConfig } from '../types'
 import { buildTransaction } from '../worker/data-feed.utils'
 
@@ -22,10 +29,9 @@ async function shouldReport({
   // Check Submission Hearbeat
   const updatedAt = Number(latestRoundData.updatedAt) * 1000 // convert to milliseconds
   const now = Date.now()
-  const latancyBuffer = 60000 // submission latancy buffer 1 min
   const heartbeat = aggregator.heartbeat
 
-  if (updatedAt + heartbeat - latancyBuffer < now) {
+  if (heartbeat >= POR_LATENCY_BUFFER && updatedAt + heartbeat - POR_LATENCY_BUFFER < now) {
     logger.info('Should report by heartbeat check')
     logger.info(`Last submission time:${updatedAt}, heartbeat:${heartbeat}`)
     return true

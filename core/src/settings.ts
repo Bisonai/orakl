@@ -21,6 +21,7 @@ export const LISTENER_DELAY = Number(process.env.LISTENER_DELAY) || 500
 
 // POR
 export const POR_AGGREGATOR_HASH = process.env.POR_AGGREGATOR_HASH || ''
+export const POR_LATENCY_BUFFER = 60000 // submission latancy buffer for POR in millisecs
 
 // Gas mimimums
 export const VRF_FULFILL_GAS_MINIMUM = 1_000_000
