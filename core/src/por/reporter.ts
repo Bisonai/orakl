@@ -3,13 +3,7 @@ import { ethers } from 'ethers'
 import { Logger } from 'pino'
 import { getReporterByOracleAddress } from '../api'
 import { buildWallet, sendTransaction } from '../reporter/utils'
-import {
-  CHAIN,
-  DATA_FEED_FULFILL_GAS_MINIMUM,
-  POR_SERVICE_NAME,
-  PROVIDER,
-  PROVIDER_URL
-} from '../settings'
+import { CHAIN, POR_GAS_MINIMUM, POR_SERVICE_NAME, PROVIDER, PROVIDER_URL } from '../settings'
 import { IAggregator, IReporterConfig } from '../types'
 import { buildTransaction } from '../worker/data-feed.utils'
 
@@ -85,7 +79,7 @@ export async function reportData({
         submission: value
       },
       to: oracleAddress,
-      gasMinimum: DATA_FEED_FULFILL_GAS_MINIMUM,
+      gasMinimum: POR_GAS_MINIMUM,
       iface,
       logger
     })

@@ -26,6 +26,7 @@ export const POR_AGGREGATOR_HASH = process.env.POR_AGGREGATOR_HASH || ''
 export const VRF_FULFILL_GAS_MINIMUM = 1_000_000
 export const REQUEST_RESPONSE_FULFILL_GAS_MINIMUM = 400_000
 export const DATA_FEED_FULFILL_GAS_MINIMUM = 400_000
+export const POR_GAS_MINIMUM = 400_000
 export const VRF_FULLFILL_GAS_PER_WORD = 1_000
 
 // Service ports are used for communication to watchman from the outside
