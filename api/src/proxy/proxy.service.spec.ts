@@ -29,13 +29,26 @@ describe('ProxyService', () => {
     const proxyData = {
       protocol: 'http',
       host: '127.0.0.1',
-      port: 80
+      port: 80,
+      location: 'kr'
     }
     const proxyObj = await proxy.create(proxyData)
     expect(proxyObj.protocol).toBe(proxyData.protocol)
     expect(proxyObj.host).toBe(proxyData.host)
     expect(proxyObj.port).toBe(proxyData.port)
+    expect(proxyObj.location).toBe(proxyData.location)
 
+    const proxyDataWithoutLocation = {
+      protocol: 'http',
+      host: '127.0.0.2',
+      port: 80
+    }
+
+    const proxyObjWithoutLocation = await proxy.create(proxyDataWithoutLocation)
+    expect(proxyObjWithoutLocation.protocol).toBe(proxyDataWithoutLocation.protocol)
+    expect(proxyObjWithoutLocation.host).toBe(proxyDataWithoutLocation.host)
+    expect(proxyObjWithoutLocation.port).toBe(proxyDataWithoutLocation.port)
+    expect(proxyObjWithoutLocation.location).toBe(null)
     // The same proxy cannot be defined twice
     await expect(async () => {
       await proxy.create(proxyData)

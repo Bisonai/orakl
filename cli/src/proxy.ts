@@ -1,6 +1,6 @@
 import axios from 'axios'
 import { command, subcommands, option, string as cmdstring, number } from 'cmd-ts'
-import { idOption, buildUrl, isOraklNetworkApiHealthy } from './utils'
+import { idOption, buildUrl, isOraklNetworkApiHealthy, proxyOptionalOption } from './utils'
 import { ORAKL_NETWORK_API_URL } from './settings'
 
 const PROXY_ENDPOINT = buildUrl(ORAKL_NETWORK_API_URL, 'proxy')
@@ -30,7 +30,8 @@ export function proxySub() {
       port: option({
         type: number,
         long: 'port'
-      })
+      }),
+      location: proxyOptionalOption
     },
     handler: insertHandler()
   })
@@ -70,16 +71,18 @@ export function insertHandler() {
   async function wrapper({
     protocol,
     host,
-    port
+    port,
+    location
   }: {
     protocol: string
     host: string
     port: number
+    location?: string
   }) {
     if (!(await isOraklNetworkApiHealthy())) return
 
     try {
-      const response = (await axios.post(PROXY_ENDPOINT, { protocol, host, port }))?.data
+      const response = (await axios.post(PROXY_ENDPOINT, { protocol, host, port, location }))?.data
       console.dir(response, { depth: null })
     } catch (e) {
       console.error('Proxy was not inserted. Reason:')

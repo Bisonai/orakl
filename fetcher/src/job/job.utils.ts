@@ -180,7 +180,18 @@ export function extractFeeds(
   const feeds = adapter.feeds.map((f) => {
     let proxy: IProxy
     try {
-      proxy = proxySelector(f.definition.url)
+      if (!f.definition.location) {
+        proxy = proxySelector(f.definition.url)
+      } else {
+        const availableProxies = proxies.filter(
+          (item) => item.location && item.location === f.definition.location
+        )
+        if (availableProxies.length == 0) {
+          throw `no proxies available for location:${f.definition.location}`
+        }
+        const randomIndex = Math.floor(Math.random() * availableProxies.length)
+        proxy = availableProxies[randomIndex]
+      }
     } catch (e) {
       logger.error('Assigning proxy has failed')
       logger.error(e)

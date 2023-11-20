@@ -132,3 +132,10 @@ GET http://localhost:3000/api/v1/proxy
 3. Insert `Aggregator` (initial settings)
 4. Insert `Proxy` (during fetching data with Orakl Network Fetcher)
 5. Insert `Data` (during regular data fetching with Orakl Network Fetcher)
+
+## Proxy Location codes
+
+| location  | code |
+| --------- | ---- |
+| Korea     | kr   |
+| Singapore | sg   |
