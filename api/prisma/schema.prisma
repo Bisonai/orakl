@@ -148,10 +148,11 @@ model Error {
 }
 
 model Proxy {
-  id       BigInt @id @default(autoincrement())
+  id       BigInt  @id @default(autoincrement())
   protocol String
   host     String
   port     Int
+  location String?
 
   @@unique([protocol, host, port])
   @@map("proxies")

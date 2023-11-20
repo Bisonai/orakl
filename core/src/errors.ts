@@ -61,5 +61,16 @@ export enum OraklErrorCode {
   CaverTxTransactionFailed,
   DelegatorServerIssue,
   FailedInsertData,
-  FailedInsertAggregatedData
+  FailedInsertAggregatedData,
+  AxiosBadOptionValue,
+  AxiosBadOption,
+  AxiosTimeOut,
+  AxiosNetworkError,
+  AxiosTooManyRedirects,
+  AxiosDeprecated,
+  AxiosBadResponse,
+  AxiosBadRequest,
+  AxiosCanceledByUser,
+  AxiosNotSupported,
+  AxiosInvalidUrl
 }

@@ -18,6 +18,11 @@ export const fetcherTypeOptionalOption = option({
   long: 'fetcherType'
 })
 
+export const proxyOptionalOption = option({
+  type: optional(cmdstring),
+  long: 'location'
+})
+
 export const idOption = option({
   type: cmdnumber,
   long: 'id'

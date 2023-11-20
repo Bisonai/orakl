@@ -61,13 +61,16 @@ export class AggregateService {
    */
   async findLatest(latestAggregateDto: LatestAggregateDto) {
     const { aggregatorHash } = latestAggregateDto
-    return await this.prisma.aggregate.findFirst({
-      where: { aggregator: { aggregatorHash } },
-      orderBy: [
-        {
-          timestamp: 'desc'
-        }
-      ]
-    })
+    const query = Prisma.sql`SELECT aggregate_id as id, timestamp, value, aggregator_id as "aggregatorId"
+      FROM aggregates
+      WHERE aggregator_id = (SELECT aggregator_id FROM aggregators WHERE aggregator_hash = ${aggregatorHash})
+      ORDER BY timestamp DESC
+      LIMIT 1;`
+    const result: Prisma.AggregateScalarFieldEnum[] = await this.prisma.$queryRaw(query)
+    if (result.length == 1) {
+      return result[0]
+    } else {
+      throw Error(`Expected one row. Received ${result.length}`)
+    }
   }
 }

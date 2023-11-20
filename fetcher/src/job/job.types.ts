@@ -78,4 +78,5 @@ export interface IProxy {
   protocol: string | undefined
   host: string | undefined
   port: number | undefined
+  location?: string | undefined
 }
