@@ -4,9 +4,9 @@ import Caver from 'caver-js'
 import { ethers } from 'ethers'
 import { Logger } from 'pino'
 import { OraklError, OraklErrorCode } from '../errors'
-import { ORAKL_NETWORK_DELEGATOR_URL } from '../settings'
+import { DELEGATOR_TIMEOUT, ORAKL_NETWORK_DELEGATOR_URL } from '../settings'
 import { ITransactionData } from '../types'
-import { add0x, buildUrl } from '../utils'
+import { add0x, buildUrl, getOraklErrorCode } from '../utils'
 
 const FILE_NAME = import.meta.url
 
@@ -177,15 +177,14 @@ export async function sendTransactionDelegatedFee({
   const endpoint = buildUrl(ORAKL_NETWORK_DELEGATOR_URL, `sign`)
 
   let response
+
   try {
-    response = (
-      await axios.post(endpoint, {
-        ...transactionData
-      })
-    )?.data
+    response = (await axios.post(endpoint, { ...transactionData }, { timeout: DELEGATOR_TIMEOUT }))
+      ?.data
     _logger.debug(response)
   } catch (e) {
-    throw new OraklError(OraklErrorCode.DelegatorServerIssue)
+    const errorCode = getOraklErrorCode(e, OraklErrorCode.DelegatorServerIssue)
+    throw new OraklError(errorCode)
   }
 
   try {

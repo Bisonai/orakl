@@ -4,6 +4,7 @@ import * as Fs from 'node:fs/promises'
 import os from 'node:os'
 import type { RedisClientType } from 'redis'
 import { createClient } from 'redis'
+import { OraklErrorCode } from './errors'
 import { SLACK_WEBHOOK_URL } from './settings'
 
 export async function loadJson(filepath) {
@@ -122,4 +123,33 @@ export function buildHeartbeatJobId({
 export function buildUrl(host: string, path: string) {
   const url = [host, path].join('/')
   return url.replace(/([^:]\/)\/+/g, '$1')
+}
+
+// axios errors are defined in official repo (https://github.com/axios/axios#error-types)
+export const getOraklErrorCode = (e, defaultErrorCode) => {
+  if (e.code == 'ERR_BAD_OPTION_VALUE') {
+    return OraklErrorCode.AxiosBadOptionValue
+  } else if (e.code == 'ERR_BAD_OPTION') {
+    return OraklErrorCode.AxiosBadOption
+  } else if (e.code == 'ECONNABORTED' || e.code == 'ETIMEDOUT') {
+    return OraklErrorCode.AxiosTimeOut
+  } else if (e.code == 'ERR_NETWORK') {
+    return OraklErrorCode.AxiosNetworkError
+  } else if (e.code == 'ERR_FR_TOO_MANY_REDIRECTS') {
+    return OraklErrorCode.AxiosTooManyRedirects
+  } else if (e.code == 'ERR_DEPRECATED') {
+    return OraklErrorCode.AxiosDeprecated
+  } else if (e.code == 'ERR_BAD_RESPONSE') {
+    return OraklErrorCode.AxiosBadResponse
+  } else if (e.code == 'ERR_BAD_REQUEST') {
+    return OraklErrorCode.AxiosBadRequest
+  } else if (e.code == 'ERR_CANCELED') {
+    return OraklErrorCode.AxiosCanceledByUser
+  } else if (e.code == 'ERR_NOT_SUPPORT') {
+    return OraklErrorCode.AxiosNotSupported
+  } else if (e.code == 'ERR_INVALID_URL') {
+    return OraklErrorCode.AxiosInvalidUrl
+  } else {
+    return defaultErrorCode
+  }
 }
