@@ -53,10 +53,10 @@ jobs:
 
       - name: Replace symlink with real files
         run: |
-         rm -f ./core/por/job.errors.ts ./core/por/job.types.ts ./core/por/reducer.ts
-         cp ./fetcher/src/job/job.errors.ts ./core/por/job.errors.ts
-         cp ./fetcher/src/job/job.types.ts ./core/por/job.types.ts
-         cp ./fetcher/src/job/job.reducer.ts ./core/por/reducer.ts
+         rm -f ./core/src/por/job.errors.ts ./core/src/por/job.types.ts ./core/src/por/reducer.ts
+         cp ./fetcher/src/job/job.errors.ts ./core/src/por/job.errors.ts
+         cp ./fetcher/src/job/job.types.ts ./core/src/por/job.types.ts
+         cp ./fetcher/src/job/job.reducer.ts ./core/src/por/reducer.ts
 
       - name: Docker build orakl-core
         run:  docker-compose -f core/docker-compose.build.yaml build
