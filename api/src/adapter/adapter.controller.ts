@@ -21,7 +21,7 @@ export class AdapterController {
 
   @Get()
   async findAll() {
-    return await this.adapterService.findAll({ orderBy: { id: 'desc' } })
+    return await this.adapterService.findAll({ orderBy: { id: 'asc' } })
   }
 
   @Get(':id')

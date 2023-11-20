@@ -69,7 +69,7 @@ export class AggregatorController {
         address
       },
       orderBy: {
-        id: 'desc'
+        id: 'asc'
       }
     })
   }

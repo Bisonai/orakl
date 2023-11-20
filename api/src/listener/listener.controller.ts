@@ -22,7 +22,7 @@ export class ListenerController {
         chain: { name: chain },
         service: { name: service }
       },
-      orderBy: { id: 'desc' }
+      orderBy: { id: 'asc' }
     })
   }
 

@@ -16,7 +16,7 @@ export class ProxyController {
 
   @Get()
   async findAll() {
-    return await this.proxyService.findAll({ orderBy: { id: 'desc' } })
+    return await this.proxyService.findAll({ orderBy: { id: 'asc' } })
   }
 
   @Get(':id')

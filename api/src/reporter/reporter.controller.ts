@@ -23,7 +23,7 @@ export class ReporterController {
         service: { name: service }
       },
       orderBy: {
-        id: 'desc'
+        id: 'asc'
       }
     })
   }
