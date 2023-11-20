@@ -5,8 +5,9 @@ import { getReporterByOracleAddress } from '../api'
 import { buildWallet, sendTransaction } from '../reporter/utils'
 import {
   CHAIN,
-  DATA_FEED_FULFILL_GAS_MINIMUM,
-  DATA_FEED_SERVICE_NAME,
+  POR_GAS_MINIMUM,
+  POR_LATENCY_BUFFER,
+  POR_SERVICE_NAME,
   PROVIDER,
   PROVIDER_URL
 } from '../settings'
@@ -27,10 +28,14 @@ async function shouldReport({
 
   // Check Submission Hearbeat
   const updatedAt = Number(latestRoundData.updatedAt) * 1000 // convert to milliseconds
-  const timestamp = Date.now()
+  const now = Date.now()
   const heartbeat = aggregator.heartbeat
 
-  if (updatedAt + heartbeat < timestamp) {
+  if (heartbeat < POR_LATENCY_BUFFER) {
+    throw Error('Heartbeat cannot be smaller then latency buffer.')
+  }
+
+  if (updatedAt + heartbeat - POR_LATENCY_BUFFER < now) {
     logger.info('Should report by heartbeat check')
     logger.info(`Last submission time:${updatedAt}, heartbeat:${heartbeat}`)
     return true
@@ -54,17 +59,18 @@ async function shouldReport({
   return false
 }
 
-async function submit({
+export async function reportData({
   value,
-  oracleAddress,
+  aggregator,
   logger
 }: {
   value: bigint
-  oracleAddress: string
+  aggregator: IAggregator
   logger: Logger
 }) {
+  const oracleAddress = aggregator.address
   const reporter: IReporterConfig = await getReporterByOracleAddress({
-    service: DATA_FEED_SERVICE_NAME,
+    service: POR_SERVICE_NAME,
     chain: CHAIN,
     oracleAddress,
     logger: logger
@@ -76,43 +82,31 @@ async function submit({
   const state = await contract.oracleRoundState(reporter.address, queriedRoundId)
   const roundId = state._roundId
 
-  const tx = buildTransaction({
-    payloadParameters: {
-      roundId,
-      submission: value
-    },
-    to: oracleAddress,
-    gasMinimum: DATA_FEED_FULFILL_GAS_MINIMUM,
-    iface,
-    logger
-  })
+  if (roundId == 1 || (await shouldReport({ aggregator, value, logger }))) {
+    const tx = buildTransaction({
+      payloadParameters: {
+        roundId,
+        submission: value
+      },
+      to: oracleAddress,
+      gasMinimum: POR_GAS_MINIMUM,
+      iface,
+      logger
+    })
 
-  const wallet = await buildWallet({ privateKey: reporter.privateKey, providerUrl: PROVIDER_URL })
-  const txParams = { wallet, ...tx, logger }
+    const wallet = await buildWallet({ privateKey: reporter.privateKey, providerUrl: PROVIDER_URL })
+    const txParams = { wallet, ...tx, logger }
 
-  const NUM_TRANSACTION_TRIALS = 3
-  for (let i = 0; i < NUM_TRANSACTION_TRIALS; ++i) {
-    logger.info(`Reporting to round:${roundId} with value:${value}`)
-    try {
-      await sendTransaction(txParams)
-      break
-    } catch (e) {
-      logger.error('Failed to send transaction')
-      throw e
+    const NUM_TRANSACTION_TRIALS = 3
+    for (let i = 0; i < NUM_TRANSACTION_TRIALS; ++i) {
+      logger.info(`Reporting to round:${roundId} with value:${value}`)
+      try {
+        await sendTransaction(txParams)
+        break
+      } catch (e) {
+        logger.error('Failed to send transaction')
+        throw e
+      }
     }
-  }
-}
-
-export async function reportData({
-  value,
-  aggregator,
-  logger
-}: {
-  value: bigint
-  aggregator: IAggregator
-  logger: Logger
-}) {
-  if (await shouldReport({ aggregator, value, logger })) {
-    await submit({ value, oracleAddress: aggregator.address, logger })
   }
 }
