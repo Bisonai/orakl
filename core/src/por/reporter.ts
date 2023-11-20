@@ -31,7 +31,11 @@ async function shouldReport({
   const now = Date.now()
   const heartbeat = aggregator.heartbeat
 
-  if (heartbeat >= POR_LATENCY_BUFFER && updatedAt + heartbeat - POR_LATENCY_BUFFER < now) {
+  if (heartbeat < POR_LATENCY_BUFFER) {
+    throw Error('Heartbeat cannot be smaller then latency buffer.')
+  }
+
+  if (updatedAt + heartbeat - POR_LATENCY_BUFFER < now) {
     logger.info('Should report by heartbeat check')
     logger.info(`Last submission time:${updatedAt}, heartbeat:${heartbeat}`)
     return true
