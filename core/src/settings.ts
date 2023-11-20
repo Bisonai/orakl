@@ -7,7 +7,7 @@ export const ORAKL_NETWORK_API_URL =
 export const ORAKL_NETWORK_DELEGATOR_URL =
   process.env.ORAKL_NETWORK_DELEGATOR_URL || 'http://localhost:3002/api/v1'
 
-export const DELEGATOR_TIMEOUT = process.env.DELEGATOR_TIMEOUT || 3000
+export const DELEGATOR_TIMEOUT = Number(process.env.DELEGATOR_TIMEOUT) || 3000
 
 export const DEPLOYMENT_NAME = process.env.DEPLOYMENT_NAME || 'orakl'
 export const NODE_ENV = process.env.NODE_ENV

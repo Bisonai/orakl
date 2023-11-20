@@ -179,9 +179,8 @@ export async function sendTransactionDelegatedFee({
   let response
 
   try {
-    response = (
-      await axios.post(endpoint, { ...transactionData }, { timeout: Number(DELEGATOR_TIMEOUT) })
-    )?.data
+    response = (await axios.post(endpoint, { ...transactionData }, { timeout: DELEGATOR_TIMEOUT }))
+      ?.data
     _logger.debug(response)
   } catch (e) {
     const errorCode = getAxiosErrorCode(e, OraklErrorCode.DelegatorServerIssue)
