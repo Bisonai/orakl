@@ -21,6 +21,9 @@ export class ReporterController {
       where: {
         chain: { name: chain },
         service: { name: service }
+      },
+      orderBy: {
+        id: 'asc'
       }
     })
   }

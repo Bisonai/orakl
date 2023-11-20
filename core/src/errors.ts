@@ -60,5 +60,6 @@ export enum OraklErrorCode {
   MissingSignedRawTx,
   CaverTxTransactionFailed,
   DelegatorServerIssue,
-  FailedInsertData
+  FailedInsertData,
+  FailedInsertAggregatedData
 }

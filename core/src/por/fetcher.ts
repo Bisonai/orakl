@@ -1,8 +1,9 @@
 import axios from 'axios'
+import { Logger } from 'pino/pino'
+import { OraklError, OraklErrorCode } from '../errors'
 import { IAggregator } from '../types'
 import { pipe } from '../utils'
-import { insertData, loadAggregator } from './api'
-import { PorError, PorErrorCode } from './errors'
+import { insertAggregateData, insertData, loadAggregator } from './api'
 import { DATA_FEED_REDUCER_MAPPING } from './reducer'
 
 async function extractFeed(adapter) {
@@ -21,9 +22,9 @@ async function extractFeed(adapter) {
 
 function checkDataFormat(data) {
   if (!data) {
-    throw new PorError(PorErrorCode.InvalidDataFeed)
+    throw new OraklError(OraklErrorCode.InvalidDataFeed)
   } else if (!Number.isInteger(data)) {
-    throw new PorError(PorErrorCode.InvalidDataFeedFormat)
+    throw new OraklError(OraklErrorCode.InvalidDataFeedFormat)
   }
 }
 
@@ -31,27 +32,40 @@ function buildReducer(reducerMapping, reducers) {
   return reducers.map((r) => {
     const reducer = reducerMapping[r.function]
     if (!reducer) {
-      throw new PorError(PorErrorCode.InvalidReducer)
+      throw new OraklError(OraklErrorCode.InvalidReducer)
     }
     return reducer(r?.args)
   })
 }
 
-async function fetchData(feed) {
-  const rawDatum = await (await axios.get(feed.url)).data
-  const reducers = await buildReducer(DATA_FEED_REDUCER_MAPPING, feed.reducers)
-  const datum = pipe(...reducers)(rawDatum)
-  checkDataFormat(datum)
-  return datum
+async function fetchData(feed, logger) {
+  try {
+    const rawDatum = await (await axios.get(feed.url)).data
+    const reducers = buildReducer(DATA_FEED_REDUCER_MAPPING, feed.reducers)
+    const datum = pipe(...reducers)(rawDatum)
+    checkDataFormat(datum)
+    return datum
+  } catch (e) {
+    logger.error(`Fetching data failed for url:${feed.url}`)
+    logger.error(e)
+    throw e
+  }
 }
 
-export async function fetchWithAggregator(aggregatorHash: string) {
-  const aggregator: IAggregator = await loadAggregator({ aggregatorHash })
+export async function fetchWithAggregator({
+  aggregatorHash,
+  logger
+}: {
+  aggregatorHash: string
+  logger: Logger
+}) {
+  const aggregator: IAggregator = await loadAggregator({ aggregatorHash, logger })
   const adapter = aggregator.adapter
   const feed = await extractFeed(adapter)
-  const value = await fetchData(feed)
+  const value = await fetchData(feed, logger)
 
-  await insertData({ aggregatorId: aggregator.id, feedId: feed.id, value })
+  await insertData({ aggregatorId: aggregator.id, feedId: feed.id, value, logger })
+  await insertAggregateData({ aggregatorId: aggregator.id, value, logger })
 
   return { value: BigInt(value), aggregator }
 }
