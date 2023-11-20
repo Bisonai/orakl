@@ -10,7 +10,7 @@ export class FeedController {
 
   @Get()
   async findAll() {
-    return await this.feedService.findAll({})
+    return await this.feedService.findAll({ orderBy: { id: 'asc' } })
   }
 
   @Get(':id')
