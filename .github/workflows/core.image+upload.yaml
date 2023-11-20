@@ -50,7 +50,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      -name: Replace symlink with real files
+      - name: Replace symlink with real files
        run: |
          rm -f ./core/por/job.errors.ts ./core/por/job.types.ts ./core/por/reducer.ts
          cp ./fetcher/src/job/job.errors.ts ./core/por/job.errors.ts
