@@ -7,7 +7,7 @@ import "./interfaces/IRegistry.sol";
 
 contract L1Endpoint is Ownable, VRFConsumerBase {
     IVRFCoordinator COORDINATOR;
-    IRegistry public REGISTRY; // Reference to the Registry contract
+    IRegistry public REGISTRY;
 
     struct RequestDetail {
         uint256 l2RequestId;

@@ -170,7 +170,7 @@ export interface IL2VrfFulfillListenerWorker {
   requestId: string
   l2RequestId: string
   sender: string
-  randomwords: string[]
+  randomWords: string[]
 }
 
 // Worker -> Worker
@@ -367,7 +367,7 @@ export interface IL2VrfRequestTransactionParameters {
 export interface IL2VrfFulfillTransactionParameters {
   requestId: string
   callbackGasLimit: number
-  randomwords: string[]
+  randomWords: string[]
 }
 
 export interface IRequestResponseTransactionParameters {

@@ -13,20 +13,20 @@ const func = async function (hre) {
     if (config.deploy) {
       console.log('deploy')
       const deployConfig = config.deploy
-      const l1EndpointDeployment = await deploy('L1Endpoint', {
+      const l1Endpoint = await deploy('L1Endpoint', {
         args: [deployConfig.vrfCoordinator, deployConfig.registry],
         from: deployer,
         log: true
       })
 
-      console.log('l1EndpointDeployment:', l1EndpointDeployment)
+      console.log('L1Endpoint:', l1Endpoint)
     }
 
     await updateMigration(migrationDirPath, migration)
   }
 }
 
-func.id = 'deploy-l1Endpoint'
-func.tags = ['l1Endpoint']
+func.id = 'deploy-L1Endpoint'
+func.tags = ['L1Endpoint']
 
 module.exports = func

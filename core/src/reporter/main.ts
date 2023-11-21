@@ -10,16 +10,16 @@ import { buildReporter as buildL2DataFeedReporter } from './data-feed-L2'
 import { buildReporter as buildRequestResponseReporter } from './request-response'
 import { IReporters } from './types'
 import { buildReporter as buildVrfReporter } from './vrf'
-import { buildReporter as buildVrfL2FulfillReporter } from './vrf-L2-fulfill'
-import { buildReporter as buildVrfL2RequestReporter } from './vrf-L2-request'
+import { buildReporter as buildL2VrfFulfillReporter } from './vrf-L2-fulfill'
+import { buildReporter as buildL2VrfRequestReporter } from './vrf-L2-request'
 
 const REPORTERS: IReporters = {
   DATA_FEED: buildDataFeedReporter,
   VRF: buildVrfReporter,
   REQUEST_RESPONSE: buildRequestResponseReporter,
   DATA_FEED_L2: buildL2DataFeedReporter,
-  VRF_L2_REQUEST: buildVrfL2RequestReporter,
-  VRF_L2_FULFILL: buildVrfL2FulfillReporter
+  VRF_L2_REQUEST: buildL2VrfRequestReporter,
+  VRF_L2_FULFILL: buildL2VrfFulfillReporter
 }
 
 const LOGGER = buildLogger()

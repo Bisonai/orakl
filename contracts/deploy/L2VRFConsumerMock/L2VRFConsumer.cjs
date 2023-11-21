@@ -2,14 +2,25 @@ const func = async function (hre) {
   const { deployments, getNamedAccounts, network } = hre
   const { deploy } = deployments
   const { deployer } = await getNamedAccounts()
+  const migrationDirPath = `./migration/${network.name}/L2ConsumerMock`
+  const migrationFilesNames = await loadMigration(migrationDirPath)
+  for (const migration of migrationFilesNames) {
+    const config = await loadJson(path.join(migrationDirPath, migration))
+    // Deploy L2 Consumer ////////////////////////////////////////////////////////
+    if (config.deploy) {
+      console.log('deploy')
+      const deployConfig = config.deploy
+      const l2VRFConsumerMock = await deploy('L2VRFConsumerMock', {
+        args: [deployConfig.l2EndpointAddress],
+        from: deployer,
+        log: true
+      })
 
-  const registryDeployment = await deploy('L2VRFConsumerMock', {
-    args: ['0xccD917Bb5312d42260CD77c8DFc105293a37F9B5'],
-    from: deployer,
-    log: true
-  })
+      console.log('L2VRFConsumerMock:', l2VRFConsumerMock)
+    }
 
-  console.log('l2VrfConsumerDeployment:', registryDeployment)
+    await updateMigration(migrationDirPath, migration)
+  }
 }
 
 func.id = 'deploy-consumer'

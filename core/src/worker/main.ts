@@ -10,16 +10,16 @@ import { worker as l2DataFeedWorker } from './data-feed-L2'
 import { worker as requestResponseWorker } from './request-response'
 import { IWorkers } from './types'
 import { worker as vrfWorker } from './vrf'
-import { worker as vrfL2FulfillWorker } from './vrf-L2-fulfill'
-import { worker as vrfL2RequestWorker } from './vrf-L2-request'
+import { worker as l2VrfFulfillWorker } from './vrf-L2-fulfill'
+import { worker as l2VrfRequestWorker } from './vrf-L2-request'
 
 const WORKERS: IWorkers = {
   DATA_FEED: dataFeedWorker,
   VRF: vrfWorker,
   REQUEST_RESPONSE: requestResponseWorker,
   DATA_FEED_L2: l2DataFeedWorker,
-  VRF_L2_REQUEST: vrfL2RequestWorker,
-  VRF_L2_FULFILL: vrfL2FulfillWorker
+  VRF_L2_REQUEST: l2VrfRequestWorker,
+  VRF_L2_FULFILL: l2VrfFulfillWorker
 }
 
 const LOGGER = buildLogger()

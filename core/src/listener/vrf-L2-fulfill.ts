@@ -67,7 +67,7 @@ async function processEvent({ iface, logger }: { iface: ethers.utils.Interface; 
       requestId: eventData.requestId.toString(),
       sender: eventData.sender,
       l2RequestId: eventData.l2RequestId.toString(),
-      randomwords: eventData.randomWords.map((m) => m.toString()),
+      randomWords: eventData.randomWords.map((m) => m.toString()),
       callbackGasLimit: eventData.callbackGasLimit
     }
 

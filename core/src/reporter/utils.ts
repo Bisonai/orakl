@@ -86,6 +86,7 @@ export async function sendTransaction({
     data: payload || '0x00',
     value: value || '0x00'
   }
+
   if (gasLimit) {
     tx['gasLimit'] = gasLimit
   }

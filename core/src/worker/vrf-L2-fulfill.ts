@@ -50,14 +50,14 @@ export async function job(reporterQueue: QueueType, _logger: Logger) {
     try {
       const payloadParameters: IL2VrfFulfillTransactionParameters = {
         requestId: inData.l2RequestId,
-        randomwords: inData.randomwords,
+        randomWords: inData.randomWords,
         callbackGasLimit: BigNumber.from(inData.callbackGasLimit).toNumber()
       }
       const to = inData.callbackAddress
       const tx = buildTransaction(
         payloadParameters,
         to,
-        VRF_FULFILL_GAS_MINIMUM + VRF_FULLFILL_GAS_PER_WORD * inData.randomwords.length,
+        VRF_FULFILL_GAS_MINIMUM + VRF_FULLFILL_GAS_PER_WORD * inData.randomWords.length,
         iface,
         logger
       )
@@ -85,9 +85,9 @@ function buildTransaction(
   iface: ethers.utils.Interface,
   logger: Logger
 ): ITransactionParameters {
-  const { requestId, randomwords, callbackGasLimit } = payloadParameters
+  const { requestId, randomWords, callbackGasLimit } = payloadParameters
   const gasLimit = callbackGasLimit + gasMinimum
-  const payload = iface.encodeFunctionData('fulfillRandomWords', [requestId, randomwords])
+  const payload = iface.encodeFunctionData('fulfillRandomWords', [requestId, randomWords])
   logger.debug(payload, 'payload')
   return {
     payload,
