@@ -88,7 +88,7 @@ export async function worker(redisClient: RedisClientType, _logger: Logger) {
   // [aggregator] worker
   const aggregatorWorker = new Worker(
     WORKER_AGGREGATOR_QUEUE_NAME,
-    aggregatorJob(submitHeartbeatQueue, reporterQueue, _logger),
+    aggregatorJob(submitHeartbeatQueue, reporterQueue, state, _logger),
     {
       ...BULLMQ_CONNECTION
     }
@@ -174,6 +174,7 @@ export async function worker(redisClient: RedisClientType, _logger: Logger) {
 export function aggregatorJob(
   submitHeartbeatQueue: QueueType,
   reporterQueue: QueueType,
+  state: State,
   _logger: Logger
 ) {
   const logger = _logger.child({ name: 'aggregatorJob' })
@@ -183,6 +184,12 @@ export function aggregatorJob(
     const inData: IDataFeedListenerWorker = job.data
     logger.debug(inData, 'inData')
     const { oracleAddress, roundId, workerSource } = inData
+
+    if (!state.isActive({ oracleAddress })) {
+      logger.warn(`Heartbeat job for oracle ${oracleAddress} is no longer active. Exiting.`)
+      job.remove()
+      return 0
+    }
 
     try {
       // TODO store in ephemeral state
