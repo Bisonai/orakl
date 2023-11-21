@@ -186,7 +186,7 @@ export function aggregatorJob(
     const { oracleAddress, roundId, workerSource } = inData
 
     if (!state.isActive({ oracleAddress })) {
-      logger.warn(`Heartbeat job for oracle ${oracleAddress} is no longer active. Exiting.`)
+      logger.warn(`aggregator job for oracle ${oracleAddress} is no longer active. Exiting.`)
       job.remove()
       return 0
     }
