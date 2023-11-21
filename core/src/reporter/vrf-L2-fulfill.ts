@@ -1,8 +1,6 @@
 import { Logger } from 'pino'
 import type { RedisClientType } from 'redis'
 import {
-  L2_CHAIN,
-  L2_PROVIDER_URL,
   L2_REPORTER_VRF_FULFILL_QUEUE_NAME,
   L2_VRF_FULFILL_REPORTER_STATE_NAME,
   L2_VRF_FULFILL_SERVICE_NAME
@@ -17,8 +15,6 @@ export async function buildReporter(redisClient: RedisClientType, logger: Logger
     reporterQueueName: L2_REPORTER_VRF_FULFILL_QUEUE_NAME,
     concurrency: 1,
     delegatedFee: false,
-    _logger: logger,
-    chain: L2_CHAIN,
-    providerUrl: L2_PROVIDER_URL
+    _logger: logger
   })
 }

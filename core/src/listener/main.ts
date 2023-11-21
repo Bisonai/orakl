@@ -4,7 +4,7 @@ import { createClient } from 'redis'
 import { OraklError, OraklErrorCode } from '../errors'
 import { launchHealthCheck } from '../health-check'
 import { buildLogger } from '../logger'
-import { CHAIN, L2_CHAIN, REDIS_HOST, REDIS_PORT } from '../settings'
+import { CHAIN, REDIS_HOST, REDIS_PORT } from '../settings'
 import { hookConsoleError } from '../utils'
 import { getListeners } from './api'
 import { buildListener as buildDataFeedListener } from './data-feed'
@@ -31,12 +31,11 @@ const LOGGER = buildLogger()
 async function main() {
   hookConsoleError(LOGGER)
   const service = loadArgs()
-  const chain = service == 'VRF_L2_REQUEST' ? L2_CHAIN : CHAIN
-  const listenersRawConfig = await getListeners({ service, chain })
+  const listenersRawConfig = await getListeners({ service, chain: CHAIN })
   const listenersConfig = postprocessListeners({
     listenersRawConfig,
     service,
-    chain: chain,
+    chain: CHAIN,
     logger: LOGGER
   })
 

@@ -5,8 +5,6 @@ import type { RedisClientType } from 'redis'
 import { OraklError, OraklErrorCode } from '../errors'
 import {
   getObservedBlockRedisKey,
-  L2_CHAIN,
-  L2_PROVIDER_URL,
   LISTENER_DELAY,
   LISTENER_JOB_SETTINGS,
   PROVIDER_URL
@@ -86,8 +84,7 @@ export class State {
     this.eventName = eventName
     this.listenerInitType = listenerInitType
     this.logger = logger
-    const provider_url = chain == L2_CHAIN ? L2_PROVIDER_URL : PROVIDER_URL
-    this.provider = new ethers.providers.JsonRpcProvider(provider_url)
+    this.provider = new ethers.providers.JsonRpcProvider(PROVIDER_URL)
     this.contracts = {}
   }
 

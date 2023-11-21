@@ -4,8 +4,8 @@ import { Logger } from 'pino'
 import type { RedisClientType } from 'redis'
 import { getVrfConfig } from '../api'
 import {
+  CHAIN,
   L1_ENDPOINT,
-  L2_CHAIN,
   L2_LISTENER_VRF_REQUEST_HISTORY_QUEUE_NAME,
   L2_LISTENER_VRF_REQUEST_LATEST_QUEUE_NAME,
   L2_LISTENER_VRF_REQUEST_PROCESS_EVENT_QUEUE_NAME,
@@ -26,7 +26,7 @@ export async function buildListener(
 ) {
   const stateName = L2_VRF_REQUEST_LISTENER_STATE_NAME
   const service = L2_VRF_REQUEST_SERVICE_NAME
-  const l2Chain = L2_CHAIN
+  const chain = CHAIN
   const eventName = 'RandomWordsRequested'
   const latestQueueName = L2_LISTENER_VRF_REQUEST_LATEST_QUEUE_NAME
   const historyQueueName = L2_LISTENER_VRF_REQUEST_HISTORY_QUEUE_NAME
@@ -40,7 +40,7 @@ export async function buildListener(
     abi,
     stateName,
     service,
-    chain: l2Chain,
+    chain,
     eventName,
     latestQueueName,
     historyQueueName,
@@ -55,7 +55,7 @@ export async function buildListener(
 
 async function processEvent({ iface, logger }: { iface: ethers.utils.Interface; logger: Logger }) {
   const _logger = logger.child({ name: 'processEvent', file: FILE_NAME })
-  const { keyHash } = await getVrfConfig({ chain: L2_CHAIN })
+  const { keyHash } = await getVrfConfig({ chain: CHAIN })
 
   async function wrapper(log): Promise<ProcessEventOutputType | undefined> {
     const eventData = iface.parseLog(log).args as unknown as IRandomWordsRequested
