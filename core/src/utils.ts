@@ -46,28 +46,28 @@ let errMsg = null
 
 async function sendToSlack(error) {
   if (SLACK_WEBHOOK_URL) {
-    const e = error[1]
+    const e = error[0]
     const webhook = new IncomingWebhook(SLACK_WEBHOOK_URL)
     const text = ` :fire: _An error has occurred at_ \`${os.hostname()}\`\n \`\`\`${JSON.stringify(
       e
     )} \`\`\`\n>*System information*\n>*memory*: ${os.freemem()}/${os.totalmem()}\n>*machine*: ${os.machine()}\n>*platform*: ${os.platform()}\n>*upTime*: ${os.uptime()}\n>*version*: ${os.version()}
    `
+
     try {
-      if (errMsg == e.message) {
-        const currentDate = new Date()
-        const oneMinuteAgo = new Date(currentDate.getTime() - 60000)
-        if (slackSentTime < oneMinuteAgo.getTime()) {
+      if (e && e.message && errMsg === e.message) {
+        const now = new Date().getTime()
+        if (slackSentTime + 60_000 < now) {
           await webhook.send({ text })
-          errMsg = error[1].message
-          slackSentTime = new Date().getTime()
+          slackSentTime = now
+          errMsg = e.message
         }
       } else {
         await webhook.send({ text })
-        errMsg = e.message
+        if (e && e.message) errMsg = e.message
         slackSentTime = new Date().getTime()
       }
     } catch (e) {
-      console.log('utils:sendToSlack', `${e}`)
+      console.log('utils:sendToSlack', e)
     }
   }
 }

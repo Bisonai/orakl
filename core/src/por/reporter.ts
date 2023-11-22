@@ -105,6 +105,7 @@ export async function reportData({
         break
       } catch (e) {
         logger.error('Failed to send transaction')
+        logger.error(e)
         throw e
       }
     }
