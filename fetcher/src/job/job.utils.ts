@@ -145,7 +145,7 @@ function validateAdapter(adapter): IAdapter {
 
 function selectProxyFn(proxies: IProxy[]) {
   let latestId = 0
-  let proxySourceMap: { [host: string]: number } = {}
+  const proxySourceMap: { [host: string]: number } = {}
 
   function wrapper(url: string): IProxy {
     const source = new URL(url).host
