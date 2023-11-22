@@ -186,7 +186,7 @@ export function aggregatorJob(
     const { oracleAddress, roundId, workerSource } = inData
 
     if (!state.isActive({ oracleAddress })) {
-      logger.warn(`aggregator job for oracle ${oracleAddress} is no longer active. Exiting.`)
+      logger.warn(`aggregatorJob for oracle ${oracleAddress} is no longer active. Removing job.`)
       job.remove()
       return 0
     }
@@ -391,6 +391,14 @@ function submitHeartbeatJob(heartbeatQueue: Queue, state: State, _logger: Logger
     const allDelayed = (await heartbeatQueue.getJobs(['delayed'])).filter(
       (job) => job.opts.jobId == jobId
     )
+
+    if (!state.isActive({ oracleAddress })) {
+      logger.warn(
+        `submitHeartbeatJob for oracle ${oracleAddress} is no longer active. Removing job.`
+      )
+      job.remove()
+      return 0
+    }
 
     if (allDelayed.length > 1) {
       throw new OraklError(
