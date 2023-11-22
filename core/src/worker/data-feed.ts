@@ -187,8 +187,7 @@ export function aggregatorJob(
 
     if (!state.isActive({ oracleAddress })) {
       logger.warn(`aggregatorJob for oracle ${oracleAddress} is no longer active. Removing job.`)
-      job.remove()
-      return 0
+      return
     }
 
     try {
@@ -396,8 +395,7 @@ function submitHeartbeatJob(heartbeatQueue: Queue, state: State, _logger: Logger
       logger.warn(
         `submitHeartbeatJob for oracle ${oracleAddress} is no longer active. Removing job.`
       )
-      job.remove()
-      return 0
+      return
     }
 
     if (allDelayed.length > 1) {
