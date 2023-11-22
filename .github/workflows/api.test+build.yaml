@@ -5,7 +5,7 @@ on:
     branches-ignore:
       - "master"
     paths:
-      - "api/**"
+      - "packages/api/**"
 
 jobs:
   core-build:
@@ -30,26 +30,21 @@ jobs:
       - uses: actions/checkout@v3
       - uses: actions/setup-node@v3
         with:
-          node-version: "18.12"
+          node-version: "18.16"
       - name: Install dependencies
-        run: yarn install
-        working-directory: ./api
+        run: yarn workspace @bisonai/orakl-api install
       - name: Run eslint
-        run: yarn lint
-        working-directory: ./api
+        run: yarn workspace @bisonai/orakl-api lint
       - name: Run test
         run: |
           npx prisma migrate dev --name init
-          yarn test
+          yarn workspace @bisonai/orakl-api test
         env:
           DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/orakl-test?schema=public"
           ENCRYPT_PASSWORD: "abc123"
-        working-directory: ./api
       - name: Run e2e2 test
-        run: yarn test:e2e --forceExit
+        run: yarn workspace @bisonai/orakl-api test:e2e --forceExit
         env:
           DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/orakl-test?schema=public"
-        working-directory: ./api
       - name: Build package
-        run: yarn build
-        working-directory: ./api
+        run: yarn workspace @bisonai/orakl-api build

@@ -5,7 +5,7 @@ on:
     branches:
       - master
     paths:
-      - "admin/**"
+      - "packages/admin/**"
 
 env:
   ecr_url: public.ecr.aws/bisonai/orakl-general
@@ -32,7 +32,7 @@ jobs:
       - name: Get package version
         id: package
         run: |
-          echo "version=$(node -p -e "require('./api/package.json').version")" >> $GITHUB_OUTPUT
+          echo "version=$(node -p -e "require('.packages/api/package.json').version")" >> $GITHUB_OUTPUT
 
   build:
     name: Build
@@ -52,7 +52,7 @@ jobs:
 
       - name: Docker build orakl-admin
         run: |
-          docker build -t orakl-general-admin admin/. \
+          docker build -t orakl-general-admin packages/admin/. \
           --build-arg ORAKL_URL=http://localhost:3030 \
           --build-arg MONITOR_URL=http://localhost:8888 \
           --build-arg DELEGATOR_URL=http://localhost:5050 \

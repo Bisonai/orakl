@@ -5,7 +5,7 @@ on:
     branches:
       - master
     paths:
-      - "core/**"
+      - "packages/core/**"
   workflow_dispatch:
 
 env:
@@ -33,7 +33,7 @@ jobs:
       - name: Get package version
         id: package
         run: |
-          echo "version=$(node -p -e "require('./core/package.json').version")" >> $GITHUB_OUTPUT
+          echo "version=$(node -p -e "require('./packages/core/package.json').version")" >> $GITHUB_OUTPUT
 
   build:
     name: Build
@@ -53,13 +53,13 @@ jobs:
 
       - name: Replace symlink with real files
         run: |
-         rm -f ./core/src/por/job.errors.ts ./core/src/por/job.types.ts ./core/src/por/reducer.ts
-         cp ./fetcher/src/job/job.errors.ts ./core/src/por/job.errors.ts
-         cp ./fetcher/src/job/job.types.ts ./core/src/por/job.types.ts
-         cp ./fetcher/src/job/job.reducer.ts ./core/src/por/reducer.ts
+         rm -f ./packages/core/src/por/job.errors.ts ./packages/core/src/por/job.types.ts ./packages/core/src/por/reducer.ts
+         cp ./packages/fetcher/src/job/job.errors.ts ./packages/core/src/por/job.errors.ts
+         cp ./packages/fetcher/src/job/job.types.ts ./packages/core/src/por/job.types.ts
+         cp ./packages/fetcher/src/job/job.reducer.ts ./packages/core/src/por/reducer.ts
 
       - name: Docker build orakl-core
-        run:  docker-compose -f core/docker-compose.build.yaml build
+        run:  docker-compose -f packages/core/docker-compose.build.yaml build
 
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v2

@@ -5,7 +5,7 @@ on:
     branches:
       - master
     paths:
-      - "cli/**"
+      - "packages/cli/**"
 
 env:
   ecr_url: public.ecr.aws/bisonai/orakl-cli
@@ -32,7 +32,7 @@ jobs:
       - name: Get package version
         id: package
         run: |
-          echo "version=$(node -p -e "require('./cli/package.json').version")" >> $GITHUB_OUTPUT
+          echo "version=$(node -p -e "require('./packages/cli/package.json').version")" >> $GITHUB_OUTPUT
 
   build:
     name: Build
@@ -51,7 +51,7 @@ jobs:
       - uses: actions/checkout@v3
 
       - name: Docker build orakl-cli
-        run:  docker-compose -f cli/docker-compose.build.yaml build
+        run:  docker-compose -f packages/cli/docker-compose.build.yaml build
 
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v2

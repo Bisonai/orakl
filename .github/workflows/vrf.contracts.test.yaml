@@ -5,9 +5,9 @@ on:
     branches-ignore:
       - "master"
     paths:
-      - "contracts/**/VRFCoordinator.sol"
-      - "contracts/**/VRFConsumerBase.sol"
-      - "contracts/**/vrf/**"
+      - "packages/contracts/**/VRFCoordinator.sol"
+      - "packages/contracts/**/VRFConsumerBase.sol"
+      - "packages/contracts/**/vrf/**"
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -17,21 +17,14 @@ jobs:
       - uses: actions/checkout@v3
       - uses: actions/setup-node@v3
         with:
-          node-version: "18.12"
+          node-version: "18.16"
           registry-url: "https://registry.npmjs.org"
           scope: "@bisonai"
           always-auth: true
-      - run: yarn
-        working-directory: ./contracts
-      - run: yarn prettier-solidity-check
-        working-directory: ./contracts
-      - run: yarn solhint
-        working-directory: ./contracts
-      - run: yarn eslint
-        working-directory: ./contracts
-      - run: npx hardhat test test/v0.1/vrf/*.cjs
-        working-directory: ./contracts
-      - run: yarn compile
-        working-directory: ./contracts
-      - run: yarn build
-        working-directory: ./contracts
+      - run: yarn workspace @bisonai/orakl-contracts install
+      - run: yarn workspace @bisonai/orakl-contracts prettier-solidity-check
+      - run: yarn workspace @bisonai/orakl-contracts solhint
+      - run: yarn workspace @bisonai/orakl-contracts eslint
+      - run: yarn workspace @bisonai/orakl-contracts test-vrf
+      - run: yarn workspace @bisonai/orakl-contracts compile
+      - run: yarn workspace @bisonai/orakl-contracts build

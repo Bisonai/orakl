@@ -14,23 +14,19 @@ jobs:
       - uses: actions/checkout@v3
       - uses: actions/setup-node@v3
         with:
-          node-version: "18.12"
+          node-version: "18.16"
 
       - name: Install
-        run: yarn
-        working-directory: ./contracts
+        run: yarn workspace @bisonai/orakl-contracts install
 
       - name: Compile
-        run: yarn compile
-        working-directory: ./contracts
+        run: yarn workspace @bisonai/orakl-contracts compile
 
       - name: Build
-        run: yarn build
-        working-directory: ./contracts
+        run: yarn workspace @bisonai/orakl-contracts build
 
       - name: Run node and deploy
-        run: npx hardhat node & npx hardhat deploy
-        working-directory: ./contracts
+        run: yarn workspace @bisonai/orakl-contracts setup-local-node
 
       - name: Redis Server in GitHub Actions
         uses: supercharge/redis-github-action@1.5.0
@@ -38,32 +34,25 @@ jobs:
           redis-version: 6
 
       - name: Core - install
-        run: yarn
-        working-directory: ./core
+        run: yarn workspace @bisonai/orakl-core install
 
       - name: Core - build
-        run: yarn build
-        working-directory: ./core
+        run: yarn workspace @bisonai/orakl-core build
 
       - name: Core - start listener
-        run: yarn start:listener:vrf &
-        working-directory: ./core
+        run: yarn workspace @bisonai/orakl-core start:listener:vrf &
 
       - name: Request random words
-        run: npx hardhat run scripts/v0.1/vrf/integration/request-vrf.ts --network localhost
-        working-directory: ./contracts
+        run: yarn workspace @bisonai/orakl-contracts request-random-words --network localhost
 
       - name: Core - start worker
-        run: yarn start:worker:vrf &
-        working-directory: ./core
+        run: yarn workspace @bisonai/orakl-core start:worker:vrf &
 
       - name: Core - start reporter
-        run: yarn start:reporter:vrf &
-        working-directory: ./core
+        run: yarn workspace @bisonai/orakl-core start:reporter:vrf &
         env:
           PRIVATE_KEY: ${{ secrets.INTEGRATION_PRIVATE_KEY }}
           PUBLIC_KEY: ${{ secrets.INTEGRATION_PUBLIC_KEY }}
 
       - name: Get random words
-        run: npx hardhat run scripts/v0.1/vrf/integration/read-vrf.ts --network localhost
-        working-directory: ./contracts
+        run: yarn workspace @bisonai/orakl-contracts get-random-words --network localhost

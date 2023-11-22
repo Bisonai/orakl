@@ -5,7 +5,7 @@ on:
     branches:
       - master
     paths:
-      - "fetcher/**"
+      - "packages/fetcher/**"
 
 env:
   ecr_url: public.ecr.aws/bisonai/orakl-fetcher
@@ -32,7 +32,7 @@ jobs:
       - name: Get package version
         id: package
         run: |
-          echo "version=$(node -p -e "require('./fetcher/package.json').version")" >> $GITHUB_OUTPUT
+          echo "version=$(node -p -e "require('./packages/fetcher/package.json').version")" >> $GITHUB_OUTPUT
 
   build:
     name: Build
@@ -51,7 +51,7 @@ jobs:
       - uses: actions/checkout@v3
 
       - name: Docker build orakl-fetcher
-        run:  docker-compose -f fetcher/docker-compose.build.yaml build
+        run:  docker-compose -f packages/fetcher/docker-compose.build.yaml build
 
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v2
