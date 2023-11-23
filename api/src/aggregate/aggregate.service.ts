@@ -67,10 +67,10 @@ export class AggregateService {
       ORDER BY timestamp DESC
       LIMIT 1;`
     const result: Prisma.AggregateScalarFieldEnum[] = await this.prisma.$queryRaw(query)
-    if (result.length == 1) {
+    if (result && result.length == 1) {
       return result[0]
     } else {
-      throw Error(`Expected one row. Received ${result.length}`)
+      return null
     }
   }
 }
