@@ -1,0 +1,482 @@
+{
+  "address": "0xC2ed2EAE0b82af771c06f9Ecd6ffADDD9560e155",
+  "abi": [
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "coordinator",
+          "type": "address"
+        },
+        {
+          "internalType": "address",
+          "name": "registryAddress",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "nonpayable",
+      "type": "constructor"
+    },
+    {
+      "inputs": [],
+      "name": "ConsumerValid",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "FailedToDeposit",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "InsufficientBalance",
+      "type": "error"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "have",
+          "type": "address"
+        },
+        {
+          "internalType": "address",
+          "name": "want",
+          "type": "address"
+        }
+      ],
+      "name": "OnlyCoordinatorCanFulfill",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "OnlyOracle",
+      "type": "error"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": false,
+          "internalType": "address",
+          "name": "oracle",
+          "type": "address"
+        }
+      ],
+      "name": "OracleAdded",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": false,
+          "internalType": "address",
+          "name": "oracle",
+          "type": "address"
+        }
+      ],
+      "name": "OracleRemoved",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "previousOwner",
+          "type": "address"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "newOwner",
+          "type": "address"
+        }
+      ],
+      "name": "OwnershipTransferred",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "requestId",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "l2RequestId",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "address",
+          "name": "sender",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "callbackGasLimit",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256[]",
+          "name": "randomWords",
+          "type": "uint256[]"
+        }
+      ],
+      "name": "RandomWordFulfilled",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "requestId",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "address",
+          "name": "sender",
+          "type": "address"
+        }
+      ],
+      "name": "RandomWordRequested",
+      "type": "event"
+    },
+    {
+      "inputs": [],
+      "name": "REGISTRY",
+      "outputs": [
+        {
+          "internalType": "contract IRegistry",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "oracle",
+          "type": "address"
+        }
+      ],
+      "name": "addOracle",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "owner",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "requestId",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256[]",
+          "name": "randomWords",
+          "type": "uint256[]"
+        }
+      ],
+      "name": "rawFulfillRandomWords",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "oracle",
+          "type": "address"
+        }
+      ],
+      "name": "removeOracle",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "renounceOwnership",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bytes32",
+          "name": "keyHash",
+          "type": "bytes32"
+        },
+        {
+          "internalType": "uint32",
+          "name": "callbackGasLimit",
+          "type": "uint32"
+        },
+        {
+          "internalType": "uint32",
+          "name": "numWords",
+          "type": "uint32"
+        },
+        {
+          "internalType": "uint256",
+          "name": "accId",
+          "type": "uint256"
+        },
+        {
+          "internalType": "address",
+          "name": "sender",
+          "type": "address"
+        },
+        {
+          "internalType": "uint256",
+          "name": "l2RequestId",
+          "type": "uint256"
+        }
+      ],
+      "name": "requestRandomWords",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "newOwner",
+          "type": "address"
+        }
+      ],
+      "name": "transferOwnership",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "stateMutability": "payable",
+      "type": "receive"
+    }
+  ],
+  "transactionHash": "0xfb17829fd807062f69dc535f1e38890f020669ce3fb5d4f82bd7a15305f4e52d",
+  "receipt": {
+    "to": null,
+    "from": "0xa195bE68Bd37EBFfB056279Dc3d236fAa6F23670",
+    "contractAddress": "0xC2ed2EAE0b82af771c06f9Ecd6ffADDD9560e155",
+    "transactionIndex": 1,
+    "gasUsed": "1084766",
+    "logsBloom": "0x00000000000000000000000000000000000000000000000000800000000000000000000000000000000000000000000000000000000000000000000000000000000000000000820000000000000000000001100000000000000000000000000000000000020000000000000000000800000000000000000000001000000000400000000400000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000000",
+    "blockHash": "0xc4f2b28515f71ee5762a964c9a34d28362a49fdbea830ddf5d878b82b217fc65",
+    "transactionHash": "0xfb17829fd807062f69dc535f1e38890f020669ce3fb5d4f82bd7a15305f4e52d",
+    "logs": [
+      {
+        "transactionIndex": 1,
+        "blockNumber": 138782359,
+        "transactionHash": "0xfb17829fd807062f69dc535f1e38890f020669ce3fb5d4f82bd7a15305f4e52d",
+        "address": "0xC2ed2EAE0b82af771c06f9Ecd6ffADDD9560e155",
+        "topics": [
+          "0x8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e0",
+          "0x0000000000000000000000000000000000000000000000000000000000000000",
+          "0x000000000000000000000000a195be68bd37ebffb056279dc3d236faa6f23670"
+        ],
+        "data": "0x",
+        "logIndex": 3,
+        "blockHash": "0xc4f2b28515f71ee5762a964c9a34d28362a49fdbea830ddf5d878b82b217fc65"
+      }
+    ],
+    "blockNumber": 138782359,
+    "cumulativeGasUsed": "1231052",
+    "status": 1,
+    "byzantium": true
+  },
+  "args": [
+    "0xDA8c0A00A372503aa6EC80f9b29Cc97C454bE499",
+    "0xAbA141f04F4D0a8a3824f524122FB6423ebE2421"
+  ],
+  "numDeployments": 2,
+  "solcInputHash": "e3d132ae052628c542e62dc774d18f3d",
+  "metadata": "{\"compiler\":{\"version\":\"0.8.16+commit.07a7930e\"},\"language\":\"Solidity\",\"output\":{\"abi\":[{\"inputs\":[{\"internalType\":\"address\",\"name\":\"coordinator\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"registryAddress\",\"type\":\"address\"}],\"stateMutability\":\"nonpayable\",\"type\":\"constructor\"},{\"inputs\":[],\"name\":\"ConsumerValid\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"FailedToDeposit\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"InsufficientBalance\",\"type\":\"error\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"have\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"want\",\"type\":\"address\"}],\"name\":\"OnlyCoordinatorCanFulfill\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"OnlyOracle\",\"type\":\"error\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"address\",\"name\":\"oracle\",\"type\":\"address\"}],\"name\":\"OracleAdded\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"address\",\"name\":\"oracle\",\"type\":\"address\"}],\"name\":\"OracleRemoved\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"previousOwner\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"newOwner\",\"type\":\"address\"}],\"name\":\"OwnershipTransferred\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"requestId\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"l2RequestId\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"address\",\"name\":\"sender\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"callbackGasLimit\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"uint256[]\",\"name\":\"randomWords\",\"type\":\"uint256[]\"}],\"name\":\"RandomWordFulfilled\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"requestId\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"address\",\"name\":\"sender\",\"type\":\"address\"}],\"name\":\"RandomWordRequested\",\"type\":\"event\"},{\"inputs\":[],\"name\":\"REGISTRY\",\"outputs\":[{\"internalType\":\"contract IRegistry\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"oracle\",\"type\":\"address\"}],\"name\":\"addOracle\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"owner\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"requestId\",\"type\":\"uint256\"},{\"internalType\":\"uint256[]\",\"name\":\"randomWords\",\"type\":\"uint256[]\"}],\"name\":\"rawFulfillRandomWords\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"oracle\",\"type\":\"address\"}],\"name\":\"removeOracle\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"renounceOwnership\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"bytes32\",\"name\":\"keyHash\",\"type\":\"bytes32\"},{\"internalType\":\"uint32\",\"name\":\"callbackGasLimit\",\"type\":\"uint32\"},{\"internalType\":\"uint32\",\"name\":\"numWords\",\"type\":\"uint32\"},{\"internalType\":\"uint256\",\"name\":\"accId\",\"type\":\"uint256\"},{\"internalType\":\"address\",\"name\":\"sender\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"l2RequestId\",\"type\":\"uint256\"}],\"name\":\"requestRandomWords\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"newOwner\",\"type\":\"address\"}],\"name\":\"transferOwnership\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"stateMutability\":\"payable\",\"type\":\"receive\"}],\"devdoc\":{\"kind\":\"dev\",\"methods\":{\"owner()\":{\"details\":\"Returns the address of the current owner.\"},\"rawFulfillRandomWords(uint256,uint256[])\":{\"params\":{\"randomWords\":\"the VRF output expanded to the requested number of words\",\"requestId\":\"The Id initially returned by requestRandomWords\"}},\"renounceOwnership()\":{\"details\":\"Leaves the contract without owner. It will not be possible to call `onlyOwner` functions anymore. Can only be called by the current owner. NOTE: Renouncing ownership will leave the contract without an owner, thereby removing any functionality that is only available to the owner.\"},\"transferOwnership(address)\":{\"details\":\"Transfers ownership of the contract to a new account (`newOwner`). Can only be called by the current owner.\"}},\"version\":1},\"userdoc\":{\"kind\":\"user\",\"methods\":{\"rawFulfillRandomWords(uint256,uint256[])\":{\"notice\":\"rawFulfillRandomWords is called by VRFCoordinator when itreceives a valid VRF proof. rawFulfillRandomWords then callsfulfillRandomWords, after validating the origin of the call\"}},\"version\":1}},\"settings\":{\"compilationTarget\":{\"src/v0.1/L1Endpoint.sol\":\"L1Endpoint\"},\"evmVersion\":\"london\",\"libraries\":{},\"metadata\":{\"bytecodeHash\":\"ipfs\",\"useLiteralContent\":true},\"optimizer\":{\"enabled\":true,\"runs\":1000},\"remappings\":[]},\"sources\":{\"@openzeppelin/contracts/access/Ownable.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\n// OpenZeppelin Contracts (last updated v4.7.0) (access/Ownable.sol)\\n\\npragma solidity ^0.8.0;\\n\\nimport \\\"../utils/Context.sol\\\";\\n\\n/**\\n * @dev Contract module which provides a basic access control mechanism, where\\n * there is an account (an owner) that can be granted exclusive access to\\n * specific functions.\\n *\\n * By default, the owner account will be the one that deploys the contract. This\\n * can later be changed with {transferOwnership}.\\n *\\n * This module is used through inheritance. It will make available the modifier\\n * `onlyOwner`, which can be applied to your functions to restrict their use to\\n * the owner.\\n */\\nabstract contract Ownable is Context {\\n    address private _owner;\\n\\n    event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);\\n\\n    /**\\n     * @dev Initializes the contract setting the deployer as the initial owner.\\n     */\\n    constructor() {\\n        _transferOwnership(_msgSender());\\n    }\\n\\n    /**\\n     * @dev Throws if called by any account other than the owner.\\n     */\\n    modifier onlyOwner() {\\n        _checkOwner();\\n        _;\\n    }\\n\\n    /**\\n     * @dev Returns the address of the current owner.\\n     */\\n    function owner() public view virtual returns (address) {\\n        return _owner;\\n    }\\n\\n    /**\\n     * @dev Throws if the sender is not the owner.\\n     */\\n    function _checkOwner() internal view virtual {\\n        require(owner() == _msgSender(), \\\"Ownable: caller is not the owner\\\");\\n    }\\n\\n    /**\\n     * @dev Leaves the contract without owner. It will not be possible to call\\n     * `onlyOwner` functions anymore. Can only be called by the current owner.\\n     *\\n     * NOTE: Renouncing ownership will leave the contract without an owner,\\n     * thereby removing any functionality that is only available to the owner.\\n     */\\n    function renounceOwnership() public virtual onlyOwner {\\n        _transferOwnership(address(0));\\n    }\\n\\n    /**\\n     * @dev Transfers ownership of the contract to a new account (`newOwner`).\\n     * Can only be called by the current owner.\\n     */\\n    function transferOwnership(address newOwner) public virtual onlyOwner {\\n        require(newOwner != address(0), \\\"Ownable: new owner is the zero address\\\");\\n        _transferOwnership(newOwner);\\n    }\\n\\n    /**\\n     * @dev Transfers ownership of the contract to a new account (`newOwner`).\\n     * Internal function without access restriction.\\n     */\\n    function _transferOwnership(address newOwner) internal virtual {\\n        address oldOwner = _owner;\\n        _owner = newOwner;\\n        emit OwnershipTransferred(oldOwner, newOwner);\\n    }\\n}\\n\",\"keccak256\":\"0xa94b34880e3c1b0b931662cb1c09e5dfa6662f31cba80e07c5ee71cd135c9673\",\"license\":\"MIT\"},\"@openzeppelin/contracts/utils/Context.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\n// OpenZeppelin Contracts v4.4.1 (utils/Context.sol)\\n\\npragma solidity ^0.8.0;\\n\\n/**\\n * @dev Provides information about the current execution context, including the\\n * sender of the transaction and its data. While these are generally available\\n * via msg.sender and msg.data, they should not be accessed in such a direct\\n * manner, since when dealing with meta-transactions the account sending and\\n * paying for execution may not be the actual sender (as far as an application\\n * is concerned).\\n *\\n * This contract is only required for intermediate, library-like contracts.\\n */\\nabstract contract Context {\\n    function _msgSender() internal view virtual returns (address) {\\n        return msg.sender;\\n    }\\n\\n    function _msgData() internal view virtual returns (bytes calldata) {\\n        return msg.data;\\n    }\\n}\\n\",\"keccak256\":\"0xe2e337e6dde9ef6b680e07338c493ebea1b5fd09b43424112868e9cc1706bca7\",\"license\":\"MIT\"},\"src/v0.1/L1Endpoint.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\npragma solidity ^0.8.16;\\nimport \\\"@openzeppelin/contracts/access/Ownable.sol\\\";\\nimport \\\"./VRFConsumerBase.sol\\\";\\nimport \\\"./interfaces/IVRFCoordinator.sol\\\";\\nimport \\\"./interfaces/IRegistry.sol\\\";\\n\\ncontract L1Endpoint is Ownable, VRFConsumerBase {\\n    IVRFCoordinator COORDINATOR;\\n    IRegistry public REGISTRY; // Reference to the Registry contract\\n\\n    struct RequestDetail {\\n        uint256 l2RequestId;\\n        address sender;\\n        uint256 callbackGasLimit;\\n    }\\n    mapping(address => bool) private sOracles;\\n    mapping(uint256 => RequestDetail) private sRequest;\\n\\n    error InsufficientBalance();\\n    error OnlyOracle();\\n    error FailedToDeposit();\\n    error ConsumerValid();\\n\\n    event OracleAdded(address oracle);\\n    event OracleRemoved(address oracle);\\n\\n    event RandomWordRequested(uint256 requestId, address sender);\\n    event RandomWordFulfilled(\\n        uint256 requestId,\\n        uint256 l2RequestId,\\n        address sender,\\n        uint256 callbackGasLimit,\\n        uint256[] randomWords\\n    );\\n\\n    constructor(address coordinator, address registryAddress) VRFConsumerBase(coordinator) {\\n        COORDINATOR = IVRFCoordinator(coordinator);\\n        REGISTRY = IRegistry(registryAddress);\\n    }\\n\\n    receive() external payable {}\\n\\n    function addOracle(address oracle) public onlyOwner {\\n        sOracles[oracle] = true;\\n        emit OracleAdded(oracle);\\n    }\\n\\n    function removeOracle(address oracle) public onlyOwner {\\n        delete sOracles[oracle];\\n        emit OracleRemoved(oracle);\\n    }\\n\\n    function requestRandomWords(\\n        bytes32 keyHash,\\n        uint32 callbackGasLimit,\\n        uint32 numWords,\\n        uint256 accId,\\n        address sender,\\n        uint256 l2RequestId\\n    ) public returns (uint256) {\\n        if (!sOracles[msg.sender]) {\\n            revert OnlyOracle();\\n        }\\n        //check consumer and balance\\n        bool isValidConsumer = REGISTRY.isValidConsumer(accId, sender);\\n        if (!isValidConsumer) {\\n            revert ConsumerValid();\\n        }\\n        uint256 balance = REGISTRY.getBalance(accId);\\n        uint64 reqCount = 0;\\n        uint8 numSubmission = 1;\\n        uint256 fee = COORDINATOR.estimateFee(reqCount, numSubmission, callbackGasLimit);\\n        if (balance < fee) {\\n            revert InsufficientBalance();\\n        }\\n\\n        //decrease balance\\n        REGISTRY.decreaseBalance(accId, fee);\\n        uint256 requestId = COORDINATOR.requestRandomWords{value: fee}(\\n            keyHash,\\n            callbackGasLimit,\\n            numWords,\\n            address(this)\\n        );\\n        sRequest[requestId] = RequestDetail(l2RequestId, sender, callbackGasLimit);\\n        emit RandomWordRequested(requestId, sender);\\n        return requestId;\\n    }\\n\\n    function fulfillRandomWords(\\n        uint256 requestId,\\n        uint256[] memory randomWords\\n    ) internal virtual override {\\n        emit RandomWordFulfilled(\\n            requestId,\\n            sRequest[requestId].l2RequestId,\\n            sRequest[requestId].sender,\\n            sRequest[requestId].callbackGasLimit,\\n            randomWords\\n        );\\n        delete sRequest[requestId];\\n    }\\n}\\n\",\"keccak256\":\"0xc95886d6c57a82c3d39c94a7af13342b67c5929d79c999fcdcebb75d6f8adcdb\",\"license\":\"MIT\"},\"src/v0.1/VRFConsumerBase.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\npragma solidity ^0.8.16;\\n\\n// https://github.com/smartcontractkit/chainlink/blob/develop/contracts/src/v0.8/VRFConsumerBaseV2.sol\\n\\n/** ****************************************************************************\\n * @notice Interface for contracts using VRF randomness\\n * *****************************************************************************\\n * @dev PURPOSE\\n *\\n * @dev Reggie the Random Oracle (not his real job) wants to provide randomness\\n * @dev to Vera the verifier in such a way that Vera can be sure he's not\\n * @dev making his output up to suit himself. Reggie provides Vera a public key\\n * @dev to which he knows the secret key. Each time Vera provides a seed to\\n * @dev Reggie, he gives back a value which is computed completely\\n * @dev deterministically from the seed and the secret key.\\n *\\n * @dev Reggie provides a proof by which Vera can verify that the output was\\n * @dev correctly computed once Reggie tells it to her, but without that proof,\\n * @dev the output is indistinguishable to her from a uniform random sample\\n * @dev from the output space.\\n *\\n * @dev The purpose of this contract is to make it easy for unrelated contracts\\n * @dev to talk to Vera the verifier about the work Reggie is doing, to provide\\n * @dev simple access to a verifiable source of randomness. It ensures 2 things:\\n * @dev 1. The fulfillment came from the VRFCoordinator\\n * @dev 2. The consumer contract implements fulfillRandomWords.\\n * *****************************************************************************\\n * @dev USAGE\\n *\\n * @dev Calling contracts must inherit from VRFConsumerBase, and can\\n * @dev initialize VRFConsumerBase's attributes in their constructor as\\n * @dev shown:\\n *\\n * @dev   contract VRFConsumer {\\n * @dev     constructor(<other arguments>, address _vrfCoordinator)\\n * @dev       VRFConsumerBase(_vrfCoordinator) public {\\n * @dev         <initialization with other arguments goes here>\\n * @dev       }\\n * @dev   }\\n *\\n * @dev The oracle will have given you an ID for the VRF keypair they have\\n * @dev committed to (let's call it keyHash). Create account, fund it\\n * @dev and your consumer contract as a consumer of it (see VRFCoordinatorInterface\\n * @dev account management functions).\\n * @dev Call requestRandomWords(keyHash, accId,\\n * @dev callbackGasLimit, numWords),\\n * @dev see (VRFCoordinatorInterface for a description of the arguments).\\n *\\n * @dev Once the VRFCoordinator has received and validated the oracle's response\\n * @dev to your request, it will call your contract's fulfillRandomWords method.\\n *\\n * @dev The randomness argument to fulfillRandomWords is a set of random words\\n * @dev generated from your requestId and the blockHash of the request.\\n *\\n * @dev If your contract could have concurrent requests open, you can use the\\n * @dev requestId returned from requestRandomWords to track which response is associated\\n * @dev with which randomness request.\\n * @dev See \\\"SECURITY CONSIDERATIONS\\\" for principles to keep in mind,\\n * @dev if your contract could have multiple requests in flight simultaneously.\\n *\\n * @dev Colliding `requestId`s are cryptographically impossible as long as seeds\\n * @dev differ.\\n *\\n * *****************************************************************************\\n * @dev SECURITY CONSIDERATIONS\\n *\\n * @dev A method with the ability to call your fulfillRandomWords method directly\\n * @dev could spoof a VRF response with any random value, so it's critical that\\n * @dev it cannot be directly called by anything other than this base contract\\n * @dev (specifically, by the VRFConsumerBase.rawFulfillRandomWords method).\\n *\\n * @dev For your users to trust that your contract's random behavior is free\\n * @dev from malicious interference, it's best if you can write it so that all\\n * @dev behaviors implied by a VRF response are executed *during* your\\n * @dev fulfillRandomWords method. If your contract must store the response (or\\n * @dev anything derived from it) and use it later, you must ensure that any\\n * @dev user-significant behavior which depends on that stored value cannot be\\n * @dev manipulated by a subsequent VRF request.\\n *\\n * @dev Similarly, both miners and the VRF oracle itself have some influence\\n * @dev over the order in which VRF responses appear on the blockchain, so if\\n * @dev your contract could have multiple VRF requests in flight simultaneously,\\n * @dev you must ensure that the order in which the VRF responses arrive cannot\\n * @dev be used to manipulate your contract's user-significant behavior.\\n *\\n * @dev Since the block hash of the block which contains the requestRandomWords\\n * @dev call is mixed into the input to the VRF *last*, a sufficiently powerful\\n * @dev miner could, in principle, fork the blockchain to evict the block\\n * @dev containing the request, forcing the request to be included in a\\n * @dev different block with a different hash, and therefore a different input\\n * @dev to the VRF. However, such an attack would incur a substantial economic\\n * @dev cost. This cost scales with the number of blocks the VRF oracle waits\\n * @dev until it calls responds to a request. It is for this reason that\\n * @dev you can signal to an oracle you'd like them to wait longer before\\n * @dev responding to the request (however this is not enforced in the contract\\n * @dev and so remains effective only in the case of unmodified oracle software).\\n */\\nabstract contract VRFConsumerBase {\\n    error OnlyCoordinatorCanFulfill(address have, address want);\\n    address private immutable vrfCoordinator;\\n\\n    /**\\n     * @param _vrfCoordinator address of VRFCoordinator contract\\n     */\\n    constructor(address _vrfCoordinator) {\\n        vrfCoordinator = _vrfCoordinator;\\n    }\\n\\n    /**\\n     * @notice fulfillRandomWords handles the VRF response. Your contract must\\n     * @notice implement it. See \\\"SECURITY CONSIDERATIONS\\\" above for important\\n     * @notice principles to keep in mind when implementing your fulfillRandomWords\\n     * @notice method.\\n     *\\n     * @dev VRFConsumerBase expects its subcontracts to have a method with this\\n     * @dev signature, and will call it once it has verified the proof\\n     * @dev associated with the randomness. (It is triggered via a call to\\n     * @dev rawFulfillRandomWords, below.)\\n     *\\n     * @param requestId The Id initially returned by requestRandomWords\\n     * @param randomWords the VRF output expanded to the requested number of words\\n     */\\n    function fulfillRandomWords(uint256 requestId, uint256[] memory randomWords) internal virtual;\\n\\n    /**\\n     * @notice rawFulfillRandomWords is called by VRFCoordinator when it\\n     * @notice receives a valid VRF proof. rawFulfillRandomWords then calls\\n     * @notice fulfillRandomWords, after validating the origin of the call\\n     *\\n     * @param requestId The Id initially returned by requestRandomWords\\n     * @param randomWords the VRF output expanded to the requested number of words\\n     */\\n    function rawFulfillRandomWords(uint256 requestId, uint256[] memory randomWords) external {\\n        if (msg.sender != vrfCoordinator) {\\n            revert OnlyCoordinatorCanFulfill(msg.sender, vrfCoordinator);\\n        }\\n        fulfillRandomWords(requestId, randomWords);\\n    }\\n}\\n\",\"keccak256\":\"0x8f25cf557237f53059663038b409a6a09210710ebc86bed6f416d418c02f6425\",\"license\":\"MIT\"},\"src/v0.1/interfaces/ICoordinatorBase.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\npragma solidity ^0.8.16;\\n\\ninterface ICoordinatorBase {\\n    // Fee configuration that separates fees based on the number of\\n    // requests created per account. This applies only to [regular]\\n    // account.\\n    struct FeeConfig {\\n        // Flat fee charged per fulfillment in millionths of KLAY\\n        // So fee range is [0, 2^32/10^6].\\n        uint32 fulfillmentFlatFeeKlayPPMTier1;\\n        uint32 fulfillmentFlatFeeKlayPPMTier2;\\n        uint32 fulfillmentFlatFeeKlayPPMTier3;\\n        uint32 fulfillmentFlatFeeKlayPPMTier4;\\n        uint32 fulfillmentFlatFeeKlayPPMTier5;\\n        uint24 reqsForTier2;\\n        uint24 reqsForTier3;\\n        uint24 reqsForTier4;\\n        uint24 reqsForTier5;\\n    }\\n\\n    /**\\n     * @notice Sets the configuration of the VRF coordinator\\n     * @param maxGasLimit global max for request gas limit\\n     * @param gasAfterPaymentCalculation gas used in doing accounting\\n     * after completing the gas measurement\\n     * @param feeConfig fee tier configuration\\n     */\\n    function setConfig(\\n        uint32 maxGasLimit,\\n        uint32 gasAfterPaymentCalculation,\\n        FeeConfig memory feeConfig\\n    ) external;\\n\\n    /**\\n     * @notice Check to see if there exists a request commitment\\n     * consumers for all consumers and keyhashes for a given acc.\\n     * @param accId - ID of the account\\n     * @return true if there exists at least one unfulfilled request\\n     * for the account, false otherwise.\\n     */\\n    function pendingRequestExists(\\n        address consumer,\\n        uint64 accId,\\n        uint64 nonce\\n    ) external view returns (bool);\\n\\n    /**\\n     * @notice Get request commitment.\\n     * @param requestId id of request\\n     * @return commmitment value that can be used to determine whether\\n     * a request is fulfilled or not. If `requestId` is valid and\\n     * commitment equals to bytes32(0), the request was fulfilled.\\n     */\\n    function getCommitment(uint256 requestId) external view returns (bytes32);\\n\\n    /**\\n     * @notice Canceling oracle request\\n     * @param requestId - ID of the Oracle Request\\n     */\\n    function cancelRequest(uint256 requestId) external;\\n\\n    /**\\n     * @notice Access address for prepayment associated with\\n     * @notice coordinator.\\n     * @return prepayment address\\n     */\\n    function getPrepaymentAddress() external returns (address);\\n\\n    function estimateFee(\\n        uint64 reqCount,\\n        uint8 numSubmission,\\n        uint32 callbackGasLimit\\n    ) external returns (uint256);\\n}\\n\",\"keccak256\":\"0x6de51eefb1bee236f7a8144f87c06b804f11375672f41543926a960b9d50f8b5\",\"license\":\"MIT\"},\"src/v0.1/interfaces/IRegistry.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\npragma solidity ^0.8.16;\\n\\ninterface IRegistry {\\n    struct Account {\\n        uint256 accId;\\n        uint256 chainId;\\n        address owner;\\n        address[] consumers;\\n        uint8 consumerCount;\\n        uint256 balance;\\n    }\\n\\n    function deposit(uint256 _accId) external payable;\\n\\n    function decreaseBalance(uint256 _accId, uint256 _amount) external;\\n\\n    function getBalance(uint256 _accId) external view returns (uint256 balance);\\n\\n    function accountInfo(uint256 _accId) external view returns (uint256 balance, address owner);\\n\\n    function getConsumer(uint256 _accId) external view returns (address[] memory consumers);\\n\\n    function getAccount(uint256 _accId) external view returns (Account memory);\\n\\n    function isValidConsumer(uint256 _accId, address _consumer) external view returns (bool);\\n}\\n\",\"keccak256\":\"0x1258b1ca872152e7c8a421c1676baad7e47e1d86f8bc3de77289080206dbf568\",\"license\":\"MIT\"},\"src/v0.1/interfaces/IVRFCoordinator.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\npragma solidity ^0.8.16;\\n\\nimport \\\"./IVRFCoordinatorBase.sol\\\";\\nimport \\\"./ICoordinatorBase.sol\\\";\\n\\ninterface IVRFCoordinator is IVRFCoordinatorBase, ICoordinatorBase {}\\n\",\"keccak256\":\"0x6b0474d5d4482ff306990782da936d88f2ed1d251f9105c2f3f988699a4d42f5\",\"license\":\"MIT\"},\"src/v0.1/interfaces/IVRFCoordinatorBase.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\npragma solidity ^0.8.16;\\n\\ninterface IVRFCoordinatorBase {\\n    // RequestCommitment holds information sent from off-chain oracle\\n    // describing details of request.\\n    struct RequestCommitment {\\n        uint256 blockNum;\\n        uint64 accId;\\n        uint32 callbackGasLimit;\\n        uint32 numWords;\\n        address sender;\\n    }\\n\\n    /**\\n     * @notice Get configuration relevant for making requests\\n     * @return maxGasLimit global max for request gas limit\\n     * @return sKeyHashes list of registered key hashes\\n     */\\n    function getRequestConfig() external view returns (uint32, bytes32[] memory);\\n\\n    /**\\n     * @notice Request a set of random words using a [regular] account.\\n     * @param keyHash - Corresponds to a particular oracle job which uses\\n     * that key for generating the VRF proof. Different keyHash's have different gas price\\n     * ceilings, so you can select a specific one to bound your maximum per request cost.\\n     * @param accId - The ID of the account. Must be funded\\n     * with the minimum account balance required for the selected keyHash.\\n     * @param callbackGasLimit - How much gas you'd like to receive in your\\n     * fulfillRandomWords callback. Note that gasleft() inside fulfillRandomWords\\n     * may be slightly less than this amount because of gas used calling the function\\n     * (argument decoding etc.), so you may need to request slightly more than you expect\\n     * to have inside fulfillRandomWords. The acceptable range is\\n     * [0, maxGasLimit]\\n     * @param numWords - The number of uint256 random values you'd like to receive\\n     * in your fulfillRandomWords callback. Note these numbers are expanded in a\\n     * secure way by the VRFCoordinator from a single random value supplied by the oracle.\\n     * @return requestId - A unique identifier of the request. Can be used to match\\n     * a request to a response in fulfillRandomWords.\\n     */\\n    function requestRandomWords(\\n        bytes32 keyHash,\\n        uint64 accId,\\n        uint32 callbackGasLimit,\\n        uint32 numWords\\n    ) external returns (uint256 requestId);\\n\\n    /**\\n     * @notice Request a set of random words using a [temporary] account.\\n     * @param keyHash - Corresponds to a particular oracle job which uses\\n     * that key for generating the VRF proof. Different keyHash's have different gas price\\n     * ceilings, so you can select a specific one to bound your maximum per request cost.\\n     * @param callbackGasLimit - How much gas you'd like to receive in your\\n     * fulfillRandomWords callback. Note that gasleft() inside fulfillRandomWords\\n     * may be slightly less than this amount because of gas used calling the function\\n     * (argument decoding etc.), so you may need to request slightly more than you expect\\n     * to have inside fulfillRandomWords. The acceptable range is\\n     * [0, maxGasLimit]\\n     * @param numWords - The number of uint256 random values you'd like to receive\\n     * in your fulfillRandomWords callback. Note these numbers are expanded in a\\n     * secure way by the VRFCoordinator from a single random value supplied by the oracle.\\n     * @param refundRecipient recipient of an extra $KLAY amount that\\n     * was sent together with service request\\n     * @return requestId - A unique identifier of the request. Can be used to match\\n     * a request to a response in fulfillRandomWords.\\n     */\\n    function requestRandomWords(\\n        bytes32 keyHash,\\n        uint32 callbackGasLimit,\\n        uint32 numWords,\\n        address refundRecipient\\n    ) external payable returns (uint256 requestId);\\n}\\n\",\"keccak256\":\"0x0d8bd0618a35c5cb1424df6f2abbb19c820560a829f5c80997cd7b9e086cbbc1\",\"license\":\"MIT\"}},\"version\":1}",
+  "bytecode": "0x60a060405234801561001057600080fd5b50604051610d3f380380610d3f83398101604081905261002f916100dd565b8161003933610071565b6001600160a01b03908116608052600180549382166001600160a01b0319948516179055600280549290911691909216179055610110565b600080546001600160a01b038381166001600160a01b0319831681178455604051919092169283917f8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e09190a35050565b80516001600160a01b03811681146100d857600080fd5b919050565b600080604083850312156100f057600080fd5b6100f9836100c1565b9150610107602084016100c1565b90509250929050565b608051610c0d610132600039600081816101b601526102110152610c0d6000f3fe60806040526004361061007f5760003560e01c8063d69d79261161004e578063d69d79261461011d578063df5dd1a51461014b578063f2fde38b1461016b578063fdc85fc41461018b57600080fd5b806306433b1b1461008b5780631fe543e3146100c8578063715018a6146100ea5780638da5cb5b146100ff57600080fd5b3661008657005b600080fd5b34801561009757600080fd5b506002546100ab906001600160a01b031681565b6040516001600160a01b0390911681526020015b60405180910390f35b3480156100d457600080fd5b506100e86100e33660046109b5565b6101ab565b005b3480156100f657600080fd5b506100e8610251565b34801561010b57600080fd5b506000546001600160a01b03166100ab565b34801561012957600080fd5b5061013d610138366004610aaf565b610265565b6040519081526020016100bf565b34801561015757600080fd5b506100e8610166366004610b0e565b6106e9565b34801561017757600080fd5b506100e8610186366004610b0e565b61074b565b34801561019757600080fd5b506100e86101a6366004610b0e565b6107db565b336001600160a01b037f00000000000000000000000000000000000000000000000000000000000000001614610243576040517f1cf993f40000000000000000000000000000000000000000000000000000000081523360048201526001600160a01b037f00000000000000000000000000000000000000000000000000000000000000001660248201526044015b60405180910390fd5b61024d8282610834565b5050565b6102596108cf565b6102636000610929565b565b3360009081526003602052604081205460ff166102ae576040517f80fee10500000000000000000000000000000000000000000000000000000000815260040160405180910390fd5b6002546040517fef887f01000000000000000000000000000000000000000000000000000000008152600481018690526001600160a01b038581166024830152600092169063ef887f0190604401602060405180830381865afa158015610319573d6000803e3d6000fd5b505050506040513d601f19601f8201168201806040525081019061033d9190610b30565b905080610376576040517f2c34ebbf00000000000000000000000000000000000000000000000000000000815260040160405180910390fd5b6002546040517f1e010439000000000000000000000000000000000000000000000000000000008152600481018790526000916001600160a01b031690631e01043990602401602060405180830381865afa1580156103d9573d6000803e3d6000fd5b505050506040513d601f19601f820116820180604052508101906103fd9190610b52565b600180546040517f9ad6c3470000000000000000000000000000000000000000000000000000000081526000600482018190526024820184905263ffffffff8d16604483015293945083916001600160a01b031690639ad6c347906064016020604051808303816000875af115801561047a573d6000803e3d6000fd5b505050506040513d601f19601f8201168201806040525081019061049e9190610b52565b9050808410156104da576040517ff4d678b800000000000000000000000000000000000000000000000000000000815260040160405180910390fd5b6002546040517f885aad9b000000000000000000000000000000000000000000000000000000008152600481018b9052602481018390526001600160a01b039091169063885aad9b90604401600060405180830381600087803b15801561054057600080fd5b505af1158015610554573d6000803e3d6000fd5b505050506000600160009054906101000a90046001600160a01b03166001600160a01b0316630f52ffc6838f8f8f306040518663ffffffff1660e01b81526004016105c8949392919093845263ffffffff9283166020850152911660408301526001600160a01b0316606082015260800190565b60206040518083038185885af11580156105e6573d6000803e3d6000fd5b50505050506040513d601f19601f8201168201806040525081019061060b9190610b52565b905060405180606001604052808981526020018a6001600160a01b031681526020018d63ffffffff16815250600460008381526020019081526020016000206000820151816000015560208201518160010160006101000a8154816001600160a01b0302191690836001600160a01b03160217905550604082015181600201559050507f4a08eb62ab4e0211a35c0ef1702475c22c43065ee5b5160c8c0393265c16c7d3818a6040516106d19291909182526001600160a01b0316602082015260400190565b60405180910390a19c9b505050505050505050505050565b6106f16108cf565b6001600160a01b038116600081815260036020908152604091829020805460ff1916600117905590519182527e47706786c922d17b39285dc59d696bafea72c0b003d3841ae1202076f4c2e491015b60405180910390a150565b6107536108cf565b6001600160a01b0381166107cf5760405162461bcd60e51b815260206004820152602660248201527f4f776e61626c653a206e6577206f776e657220697320746865207a65726f206160448201527f6464726573730000000000000000000000000000000000000000000000000000606482015260840161023a565b6107d881610929565b50565b6107e36108cf565b6001600160a01b038116600081815260036020908152604091829020805460ff1916905590519182527f9c8e7d83025bef8a04c664b2f753f64b8814bdb7e27291d7e50935f18cc3c7129101610740565b600082815260046020526040908190208054600182015460029092015492517fe67b08545206221512d5d4fd5a7d194949e03dd7e28b7f384de9da76b86999cb93610890938793926001600160a01b0390911691908790610b6b565b60405180910390a150600090815260046020526040812081815560018101805473ffffffffffffffffffffffffffffffffffffffff1916905560020155565b6000546001600160a01b031633146102635760405162461bcd60e51b815260206004820181905260248201527f4f776e61626c653a2063616c6c6572206973206e6f7420746865206f776e6572604482015260640161023a565b600080546001600160a01b0383811673ffffffffffffffffffffffffffffffffffffffff19831681178455604051919092169283917f8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e09190a35050565b7f4e487b7100000000000000000000000000000000000000000000000000000000600052604160045260246000fd5b600080604083850312156109c857600080fd5b8235915060208084013567ffffffffffffffff808211156109e857600080fd5b818601915086601f8301126109fc57600080fd5b813581811115610a0e57610a0e610986565b8060051b604051601f19603f83011681018181108582111715610a3357610a33610986565b604052918252848201925083810185019189831115610a5157600080fd5b938501935b82851015610a6f57843584529385019392850192610a56565b8096505050505050509250929050565b803563ffffffff81168114610a9357600080fd5b919050565b80356001600160a01b0381168114610a9357600080fd5b60008060008060008060c08789031215610ac857600080fd5b86359550610ad860208801610a7f565b9450610ae660408801610a7f565b935060608701359250610afb60808801610a98565b915060a087013590509295509295509295565b600060208284031215610b2057600080fd5b610b2982610a98565b9392505050565b600060208284031215610b4257600080fd5b81518015158114610b2957600080fd5b600060208284031215610b6457600080fd5b5051919050565b600060a08201878352602087818501526001600160a01b038716604085015285606085015260a0608085015281855180845260c086019150828701935060005b81811015610bc757845183529383019391830191600101610bab565b50909a995050505050505050505056fea26469706673582212202e83a3a1a0f5684df218218b1ab1c1ac256cf0f29ebb7e6368f9ddb738dd563b64736f6c63430008100033",
+  "deployedBytecode": "0x60806040526004361061007f5760003560e01c8063d69d79261161004e578063d69d79261461011d578063df5dd1a51461014b578063f2fde38b1461016b578063fdc85fc41461018b57600080fd5b806306433b1b1461008b5780631fe543e3146100c8578063715018a6146100ea5780638da5cb5b146100ff57600080fd5b3661008657005b600080fd5b34801561009757600080fd5b506002546100ab906001600160a01b031681565b6040516001600160a01b0390911681526020015b60405180910390f35b3480156100d457600080fd5b506100e86100e33660046109b5565b6101ab565b005b3480156100f657600080fd5b506100e8610251565b34801561010b57600080fd5b506000546001600160a01b03166100ab565b34801561012957600080fd5b5061013d610138366004610aaf565b610265565b6040519081526020016100bf565b34801561015757600080fd5b506100e8610166366004610b0e565b6106e9565b34801561017757600080fd5b506100e8610186366004610b0e565b61074b565b34801561019757600080fd5b506100e86101a6366004610b0e565b6107db565b336001600160a01b037f00000000000000000000000000000000000000000000000000000000000000001614610243576040517f1cf993f40000000000000000000000000000000000000000000000000000000081523360048201526001600160a01b037f00000000000000000000000000000000000000000000000000000000000000001660248201526044015b60405180910390fd5b61024d8282610834565b5050565b6102596108cf565b6102636000610929565b565b3360009081526003602052604081205460ff166102ae576040517f80fee10500000000000000000000000000000000000000000000000000000000815260040160405180910390fd5b6002546040517fef887f01000000000000000000000000000000000000000000000000000000008152600481018690526001600160a01b038581166024830152600092169063ef887f0190604401602060405180830381865afa158015610319573d6000803e3d6000fd5b505050506040513d601f19601f8201168201806040525081019061033d9190610b30565b905080610376576040517f2c34ebbf00000000000000000000000000000000000000000000000000000000815260040160405180910390fd5b6002546040517f1e010439000000000000000000000000000000000000000000000000000000008152600481018790526000916001600160a01b031690631e01043990602401602060405180830381865afa1580156103d9573d6000803e3d6000fd5b505050506040513d601f19601f820116820180604052508101906103fd9190610b52565b600180546040517f9ad6c3470000000000000000000000000000000000000000000000000000000081526000600482018190526024820184905263ffffffff8d16604483015293945083916001600160a01b031690639ad6c347906064016020604051808303816000875af115801561047a573d6000803e3d6000fd5b505050506040513d601f19601f8201168201806040525081019061049e9190610b52565b9050808410156104da576040517ff4d678b800000000000000000000000000000000000000000000000000000000815260040160405180910390fd5b6002546040517f885aad9b000000000000000000000000000000000000000000000000000000008152600481018b9052602481018390526001600160a01b039091169063885aad9b90604401600060405180830381600087803b15801561054057600080fd5b505af1158015610554573d6000803e3d6000fd5b505050506000600160009054906101000a90046001600160a01b03166001600160a01b0316630f52ffc6838f8f8f306040518663ffffffff1660e01b81526004016105c8949392919093845263ffffffff9283166020850152911660408301526001600160a01b0316606082015260800190565b60206040518083038185885af11580156105e6573d6000803e3d6000fd5b50505050506040513d601f19601f8201168201806040525081019061060b9190610b52565b905060405180606001604052808981526020018a6001600160a01b031681526020018d63ffffffff16815250600460008381526020019081526020016000206000820151816000015560208201518160010160006101000a8154816001600160a01b0302191690836001600160a01b03160217905550604082015181600201559050507f4a08eb62ab4e0211a35c0ef1702475c22c43065ee5b5160c8c0393265c16c7d3818a6040516106d19291909182526001600160a01b0316602082015260400190565b60405180910390a19c9b505050505050505050505050565b6106f16108cf565b6001600160a01b038116600081815260036020908152604091829020805460ff1916600117905590519182527e47706786c922d17b39285dc59d696bafea72c0b003d3841ae1202076f4c2e491015b60405180910390a150565b6107536108cf565b6001600160a01b0381166107cf5760405162461bcd60e51b815260206004820152602660248201527f4f776e61626c653a206e6577206f776e657220697320746865207a65726f206160448201527f6464726573730000000000000000000000000000000000000000000000000000606482015260840161023a565b6107d881610929565b50565b6107e36108cf565b6001600160a01b038116600081815260036020908152604091829020805460ff1916905590519182527f9c8e7d83025bef8a04c664b2f753f64b8814bdb7e27291d7e50935f18cc3c7129101610740565b600082815260046020526040908190208054600182015460029092015492517fe67b08545206221512d5d4fd5a7d194949e03dd7e28b7f384de9da76b86999cb93610890938793926001600160a01b0390911691908790610b6b565b60405180910390a150600090815260046020526040812081815560018101805473ffffffffffffffffffffffffffffffffffffffff1916905560020155565b6000546001600160a01b031633146102635760405162461bcd60e51b815260206004820181905260248201527f4f776e61626c653a2063616c6c6572206973206e6f7420746865206f776e6572604482015260640161023a565b600080546001600160a01b0383811673ffffffffffffffffffffffffffffffffffffffff19831681178455604051919092169283917f8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e09190a35050565b7f4e487b7100000000000000000000000000000000000000000000000000000000600052604160045260246000fd5b600080604083850312156109c857600080fd5b8235915060208084013567ffffffffffffffff808211156109e857600080fd5b818601915086601f8301126109fc57600080fd5b813581811115610a0e57610a0e610986565b8060051b604051601f19603f83011681018181108582111715610a3357610a33610986565b604052918252848201925083810185019189831115610a5157600080fd5b938501935b82851015610a6f57843584529385019392850192610a56565b8096505050505050509250929050565b803563ffffffff81168114610a9357600080fd5b919050565b80356001600160a01b0381168114610a9357600080fd5b60008060008060008060c08789031215610ac857600080fd5b86359550610ad860208801610a7f565b9450610ae660408801610a7f565b935060608701359250610afb60808801610a98565b915060a087013590509295509295509295565b600060208284031215610b2057600080fd5b610b2982610a98565b9392505050565b600060208284031215610b4257600080fd5b81518015158114610b2957600080fd5b600060208284031215610b6457600080fd5b5051919050565b600060a08201878352602087818501526001600160a01b038716604085015285606085015260a0608085015281855180845260c086019150828701935060005b81811015610bc757845183529383019391830191600101610bab565b50909a995050505050505050505056fea26469706673582212202e83a3a1a0f5684df218218b1ab1c1ac256cf0f29ebb7e6368f9ddb738dd563b64736f6c63430008100033",
+  "devdoc": {
+    "kind": "dev",
+    "methods": {
+      "owner()": {
+        "details": "Returns the address of the current owner."
+      },
+      "rawFulfillRandomWords(uint256,uint256[])": {
+        "params": {
+          "randomWords": "the VRF output expanded to the requested number of words",
+          "requestId": "The Id initially returned by requestRandomWords"
+        }
+      },
+      "renounceOwnership()": {
+        "details": "Leaves the contract without owner. It will not be possible to call `onlyOwner` functions anymore. Can only be called by the current owner. NOTE: Renouncing ownership will leave the contract without an owner, thereby removing any functionality that is only available to the owner."
+      },
+      "transferOwnership(address)": {
+        "details": "Transfers ownership of the contract to a new account (`newOwner`). Can only be called by the current owner."
+      }
+    },
+    "version": 1
+  },
+  "userdoc": {
+    "kind": "user",
+    "methods": {
+      "rawFulfillRandomWords(uint256,uint256[])": {
+        "notice": "rawFulfillRandomWords is called by VRFCoordinator when itreceives a valid VRF proof. rawFulfillRandomWords then callsfulfillRandomWords, after validating the origin of the call"
+      }
+    },
+    "version": 1
+  },
+  "storageLayout": {
+    "storage": [
+      {
+        "astId": 7,
+        "contract": "src/v0.1/L1Endpoint.sol:L1Endpoint",
+        "label": "_owner",
+        "offset": 0,
+        "slot": "0",
+        "type": "t_address"
+      },
+      {
+        "astId": 3820,
+        "contract": "src/v0.1/L1Endpoint.sol:L1Endpoint",
+        "label": "COORDINATOR",
+        "offset": 0,
+        "slot": "1",
+        "type": "t_contract(IVRFCoordinator)12391"
+      },
+      {
+        "astId": 3823,
+        "contract": "src/v0.1/L1Endpoint.sol:L1Endpoint",
+        "label": "REGISTRY",
+        "offset": 0,
+        "slot": "2",
+        "type": "t_contract(IRegistry)12248"
+      },
+      {
+        "astId": 3834,
+        "contract": "src/v0.1/L1Endpoint.sol:L1Endpoint",
+        "label": "sOracles",
+        "offset": 0,
+        "slot": "3",
+        "type": "t_mapping(t_address,t_bool)"
+      },
+      {
+        "astId": 3839,
+        "contract": "src/v0.1/L1Endpoint.sol:L1Endpoint",
+        "label": "sRequest",
+        "offset": 0,
+        "slot": "4",
+        "type": "t_mapping(t_uint256,t_struct(RequestDetail)3830_storage)"
+      }
+    ],
+    "types": {
+      "t_address": {
+        "encoding": "inplace",
+        "label": "address",
+        "numberOfBytes": "20"
+      },
+      "t_bool": {
+        "encoding": "inplace",
+        "label": "bool",
+        "numberOfBytes": "1"
+      },
+      "t_contract(IRegistry)12248": {
+        "encoding": "inplace",
+        "label": "contract IRegistry",
+        "numberOfBytes": "20"
+      },
+      "t_contract(IVRFCoordinator)12391": {
+        "encoding": "inplace",
+        "label": "contract IVRFCoordinator",
+        "numberOfBytes": "20"
+      },
+      "t_mapping(t_address,t_bool)": {
+        "encoding": "mapping",
+        "key": "t_address",
+        "label": "mapping(address => bool)",
+        "numberOfBytes": "32",
+        "value": "t_bool"
+      },
+      "t_mapping(t_uint256,t_struct(RequestDetail)3830_storage)": {
+        "encoding": "mapping",
+        "key": "t_uint256",
+        "label": "mapping(uint256 => struct L1Endpoint.RequestDetail)",
+        "numberOfBytes": "32",
+        "value": "t_struct(RequestDetail)3830_storage"
+      },
+      "t_struct(RequestDetail)3830_storage": {
+        "encoding": "inplace",
+        "label": "struct L1Endpoint.RequestDetail",
+        "members": [
+          {
+            "astId": 3825,
+            "contract": "src/v0.1/L1Endpoint.sol:L1Endpoint",
+            "label": "l2RequestId",
+            "offset": 0,
+            "slot": "0",
+            "type": "t_uint256"
+          },
+          {
+            "astId": 3827,
+            "contract": "src/v0.1/L1Endpoint.sol:L1Endpoint",
+            "label": "sender",
+            "offset": 0,
+            "slot": "1",
+            "type": "t_address"
+          },
+          {
+            "astId": 3829,
+            "contract": "src/v0.1/L1Endpoint.sol:L1Endpoint",
+            "label": "callbackGasLimit",
+            "offset": 0,
+            "slot": "2",
+            "type": "t_uint256"
+          }
+        ],
+        "numberOfBytes": "96"
+      },
+      "t_uint256": {
+        "encoding": "inplace",
+        "label": "uint256",
+        "numberOfBytes": "32"
+      }
+    }
+  }
+}

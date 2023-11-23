@@ -7,9 +7,15 @@ import "./interfaces/IRegistry.sol";
 
 contract L1Endpoint is Ownable, VRFConsumerBase {
     IVRFCoordinator COORDINATOR;
-    IRegistry public registry; // Reference to the Registry contract
-    mapping(address => bool) private _oracles;
-    mapping(uint256 => address) private _requestIdRequester;
+    IRegistry public REGISTRY;
+
+    struct RequestDetail {
+        uint256 l2RequestId;
+        address sender;
+        uint256 callbackGasLimit;
+    }
+    mapping(address => bool) private sOracles;
+    mapping(uint256 => RequestDetail) private sRequest;
 
     error InsufficientBalance();
     error OnlyOracle();
@@ -19,42 +25,49 @@ contract L1Endpoint is Ownable, VRFConsumerBase {
     event OracleAdded(address oracle);
     event OracleRemoved(address oracle);
 
-    event RandomWordRequested(uint256 requestId, address requester);
-    event RandomWordFulfilled(uint256 requestId, address requester, uint256[] randomWords);
+    event RandomWordRequested(uint256 requestId, address sender);
+    event RandomWordFulfilled(
+        uint256 requestId,
+        uint256 l2RequestId,
+        address sender,
+        uint256 callbackGasLimit,
+        uint256[] randomWords
+    );
 
     constructor(address coordinator, address registryAddress) VRFConsumerBase(coordinator) {
         COORDINATOR = IVRFCoordinator(coordinator);
-        registry = IRegistry(registryAddress);
+        REGISTRY = IRegistry(registryAddress);
     }
 
     receive() external payable {}
 
     function addOracle(address oracle) public onlyOwner {
-        _oracles[oracle] = true;
+        sOracles[oracle] = true;
         emit OracleAdded(oracle);
     }
 
     function removeOracle(address oracle) public onlyOwner {
-        delete _oracles[oracle];
+        delete sOracles[oracle];
         emit OracleRemoved(oracle);
     }
 
-    function requestRandomWordsDirectPayment(
+    function requestRandomWords(
         bytes32 keyHash,
         uint32 callbackGasLimit,
         uint32 numWords,
         uint256 accId,
-        address consumer
+        address sender,
+        uint256 l2RequestId
     ) public returns (uint256) {
-        if (!_oracles[msg.sender]) {
+        if (!sOracles[msg.sender]) {
             revert OnlyOracle();
         }
         //check consumer and balance
-        bool isValidConsumer = registry.isValidConsumer(accId, consumer);
+        bool isValidConsumer = REGISTRY.isValidConsumer(accId, sender);
         if (!isValidConsumer) {
             revert ConsumerValid();
         }
-        uint256 balance = registry.getBalance(accId);
+        uint256 balance = REGISTRY.getBalance(accId);
         uint64 reqCount = 0;
         uint8 numSubmission = 1;
         uint256 fee = COORDINATOR.estimateFee(reqCount, numSubmission, callbackGasLimit);
@@ -63,15 +76,15 @@ contract L1Endpoint is Ownable, VRFConsumerBase {
         }
 
         //decrease balance
-        registry.decreaseBalance(accId, fee);
+        REGISTRY.decreaseBalance(accId, fee);
         uint256 requestId = COORDINATOR.requestRandomWords{value: fee}(
             keyHash,
             callbackGasLimit,
             numWords,
             address(this)
         );
-        _requestIdRequester[requestId] = consumer;
-        emit RandomWordRequested(requestId, consumer);
+        sRequest[requestId] = RequestDetail(l2RequestId, sender, callbackGasLimit);
+        emit RandomWordRequested(requestId, sender);
         return requestId;
     }
 
@@ -79,7 +92,13 @@ contract L1Endpoint is Ownable, VRFConsumerBase {
         uint256 requestId,
         uint256[] memory randomWords
     ) internal virtual override {
-        emit RandomWordFulfilled(requestId, _requestIdRequester[requestId], randomWords);
-        delete _requestIdRequester[requestId];
+        emit RandomWordFulfilled(
+            requestId,
+            sRequest[requestId].l2RequestId,
+            sRequest[requestId].sender,
+            sRequest[requestId].callbackGasLimit,
+            randomWords
+        );
+        delete sRequest[requestId];
     }
 }

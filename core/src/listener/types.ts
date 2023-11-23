@@ -4,6 +4,8 @@ import type { RedisClientType } from 'redis'
 import {
   IDataFeedListenerWorker,
   IDataFeedListenerWorkerL2,
+  IL2EndpointListenerWorker,
+  IL2VrfFulfillListenerWorker,
   IListenerConfig,
   IRequestResponseListenerWorker,
   IVrfListenerWorker
@@ -46,6 +48,8 @@ export type ProcessEventOutputType = {
     | IDataFeedListenerWorker
     | IVrfListenerWorker
     | IDataFeedListenerWorkerL2
+    | IL2VrfFulfillListenerWorker
+    | IL2EndpointListenerWorker
     | null
   jobId: string
   jobName: string

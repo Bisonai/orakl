@@ -215,13 +215,15 @@ describe('L1Endpoint', function () {
     expect(accBalance).to.be.equal(parseKlay('1'))
 
     // Request random words
+    const l2RequestId = 1
     const txRequestRandomWords = await (
-      await endpoint.contract.requestRandomWordsDirectPayment(
+      await endpoint.contract.requestRandomWords(
         keyHash,
         callbackGasLimit,
         SINGLE_WORD,
         registrAccount,
-        endpoint.signer.address // consumer
+        endpoint.signer.address, // consumer
+        l2RequestId
       )
     ).wait()
     expect(txRequestRandomWords.events.length).to.be.equal(5)
@@ -261,7 +263,6 @@ describe('L1Endpoint', function () {
 
     const fulfillEvent = endpoint.contract.interface.parseLog(txFulfillRandomWords.events[0])
     expect(fulfillEvent.name).to.be.equal('RandomWordFulfilled')
-    const { requester, randomWords } = fulfillEvent.args
-    expect(requester).to.be.equal(endpoint.signer.address)
+    expect(fulfillEvent.args.sender).to.be.equal(endpoint.signer.address)
   })
 })

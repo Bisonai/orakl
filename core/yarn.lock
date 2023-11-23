@@ -313,12 +313,12 @@
   resolved "https://registry.yarnpkg.com/@bcoe/v8-coverage/-/v8-coverage-0.2.3.tgz#75a2e8b51cb758a7553d6804a5932d7aace75c39"
   integrity sha512-0hYQ8SB4Db5zvZB4axdMHGwEaQjkZzFjQiN9LVYvIFB2nSUHW9tYpxWriPrWDASIxiaXax83REcLxuSdnGPZtw==
 
-"@bisonai/orakl-contracts@^1.3.1":
-  version "1.3.1"
-  resolved "https://registry.yarnpkg.com/@bisonai/orakl-contracts/-/orakl-contracts-1.3.1.tgz#4d309d6d94327f42168574cbffa033fdcfc12a1d"
-  integrity sha512-HCIwvIkjlGA+izRtmVPT0ZlP7WFpkAwbvxeMBqq3tAtxSG/+EcsM7K4T1e/8QpmHzUmLDgvGDrqE8CTtp5bJRA==
+"@bisonai/orakl-contracts@^1.3.2":
+  version "1.3.2"
+  resolved "https://registry.yarnpkg.com/@bisonai/orakl-contracts/-/orakl-contracts-1.3.2.tgz#3321abde27db8d6caf16cfab391147225a8ffb74"
+  integrity sha512-ImnAKAAy981DGJOWaOoABs7f4UI0PSMxEH91xReOeCgYQ++ZgxE45OO+wwORHcbbSuXP5JHBKOUQzVtvL8fJpQ==
 
-"@bisonai/orakl-vrf@^0.1.1":
+"@bisonai/orakl-vrf@0.1.1":
   version "0.1.1"
   resolved "https://registry.yarnpkg.com/@bisonai/orakl-vrf/-/orakl-vrf-0.1.1.tgz#61e90a44520a7d9abf1a20c2c863201742c0b2e2"
   integrity sha512-mz1DhGQEgKXwk78ZAe9EG1C9tat/fqAch13K7muK2r1xCSAVMoFJU0II39HbH99cC2mz6/l6I3B0szeyrMw+Zw==

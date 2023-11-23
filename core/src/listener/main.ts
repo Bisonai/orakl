@@ -13,12 +13,16 @@ import { buildListener as buildRequestResponseListener } from './request-respons
 import { IListeners } from './types'
 import { postprocessListeners } from './utils'
 import { buildListener as buildVrfListener } from './vrf'
+import { buildListener as buildVrfL2FulfillListener } from './vrf-L2-fulfill'
+import { buildListener as buildVrfL2RequestListener } from './vrf-L2-request'
 
 const LISTENERS: IListeners = {
   DATA_FEED: buildDataFeedListener,
   VRF: buildVrfListener,
   REQUEST_RESPONSE: buildRequestResponseListener,
-  DATA_FEED_L2: buildL2DataFeedListener
+  DATA_FEED_L2: buildL2DataFeedListener,
+  VRF_L2_REQUEST: buildVrfL2RequestListener,
+  VRF_L2_FULFILL: buildVrfL2FulfillListener
 }
 
 const FILE_NAME = import.meta.url
@@ -27,7 +31,6 @@ const LOGGER = buildLogger()
 async function main() {
   hookConsoleError(LOGGER)
   const service = loadArgs()
-
   const listenersRawConfig = await getListeners({ service, chain: CHAIN })
   const listenersConfig = postprocessListeners({
     listenersRawConfig,
