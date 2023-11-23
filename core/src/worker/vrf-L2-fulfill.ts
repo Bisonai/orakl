@@ -1,8 +1,8 @@
-import { L2Endpoint__factory } from '@bisonai/orakl-contracts'
 import { Queue, Worker } from 'bullmq'
 import { BigNumber, ethers } from 'ethers'
 import { Logger } from 'pino'
 import type { RedisClientType } from 'redis'
+import { L2EndpointAbis } from '../abis/L2Endpoint'
 import {
   BULLMQ_CONNECTION,
   L2_REPORTER_VRF_FULFILL_QUEUE_NAME,
@@ -41,7 +41,7 @@ export async function worker(redisClient: RedisClientType, _logger: Logger) {
 
 export async function job(reporterQueue: QueueType, _logger: Logger) {
   const logger = _logger.child({ name: 'vrfJob', file: FILE_NAME })
-  const iface = new ethers.utils.Interface(L2Endpoint__factory.abi)
+  const iface = new ethers.utils.Interface(L2EndpointAbis)
 
   async function wrapper(job) {
     const inData: IL2VrfFulfillListenerWorker = job.data

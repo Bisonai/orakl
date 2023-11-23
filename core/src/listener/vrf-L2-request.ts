@@ -1,7 +1,7 @@
-import { L2Endpoint__factory } from '@bisonai/orakl-contracts'
 import { ethers } from 'ethers'
 import { Logger } from 'pino'
 import type { RedisClientType } from 'redis'
+import { L2EndpointAbis } from '../abis/L2Endpoint'
 import { getVrfConfig } from '../api'
 import {
   CHAIN,
@@ -32,7 +32,7 @@ export async function buildListener(
   const historyQueueName = L2_LISTENER_VRF_REQUEST_HISTORY_QUEUE_NAME
   const processEventQueueName = L2_LISTENER_VRF_REQUEST_PROCESS_EVENT_QUEUE_NAME
   const workerQueueName = L2_WORKER_VRF_REQUEST_QUEUE_NAME
-  const abi = L2Endpoint__factory.abi
+  const abi = L2EndpointAbis
   const iface = new ethers.utils.Interface(abi)
 
   listenerService({
