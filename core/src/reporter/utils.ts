@@ -251,3 +251,11 @@ export async function sendTransactionCaver({
     throw new OraklError(OraklErrorCode.CaverTxTransactionFailed)
   }
 }
+
+export function isPrivateKeyAddressPairValid(sk: string, addr: string): boolean {
+  try {
+    return ethers.utils.computeAddress(sk) == addr
+  } catch {
+    return false
+  }
+}
