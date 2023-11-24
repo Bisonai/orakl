@@ -37,7 +37,7 @@ jobs:
         run: yarn workspace @bisonai/orakl-api lint
       - name: Run test
         run: |
-          npx prisma migrate dev --name init
+          npx prisma migrate dev --name init --schema=./packages/api/prisma/schema.prisma
           yarn workspace @bisonai/orakl-api test
         env:
           DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/orakl-test?schema=public"
