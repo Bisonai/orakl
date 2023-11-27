@@ -30,13 +30,6 @@ export interface IRequestOperation {
   args: string
 }
 
-export interface IVrfResponse {
-  pk: [string, string]
-  proof: [string, string, string, string]
-  uPoint: [string, string]
-  vComponents: [string, string, string, string]
-}
-
 export interface ILatestRoundData {
   roundId: BigNumber
   answer: BigNumber

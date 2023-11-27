@@ -1,5 +1,5 @@
 import { VRFCoordinator__factory } from '@bisonai/orakl-contracts'
-import { decode, getFastVerifyComponents, prove } from '@bisonai/orakl-vrf'
+import { processVrfRequest } from '@bisonai/orakl-vrf'
 import { Queue, Worker } from 'bullmq'
 import { ethers } from 'ethers'
 import { Logger } from 'pino'
@@ -18,7 +18,6 @@ import {
   ITransactionParameters,
   IVrfConfig,
   IVrfListenerWorker,
-  IVrfResponse,
   IVrfTransactionParameters,
   Proof,
   QueueType,
@@ -63,7 +62,7 @@ export async function job(reporterQueue: QueueType, config: IVrfConfig, _logger:
       )
 
       logger.debug({ alpha })
-      const { pk, proof, uPoint, vComponents } = processVrfRequest(alpha, config, _logger)
+      const { pk, proof, uPoint, vComponents } = processVrfRequest(alpha, config)
 
       const payloadParameters: IVrfTransactionParameters = {
         blockNum: inData.blockNum,
@@ -141,26 +140,5 @@ function buildTransaction(
     payload,
     gasLimit,
     to
-  }
-}
-
-function processVrfRequest(alpha: string, config: IVrfConfig, _logger: Logger): IVrfResponse {
-  const logger = _logger.child({ name: 'processVrfRequest', file: FILE_NAME })
-
-  const proof = prove(config.sk, alpha)
-  const [Gamma, c, s] = decode(proof)
-  const fast = getFastVerifyComponents(config.pk, proof, alpha)
-
-  if (fast == 'INVALID') {
-    logger.error('INVALID')
-    // TODO throw more specific error
-    throw Error()
-  }
-
-  return {
-    pk: [config.pkX, config.pkY],
-    proof: [Gamma.x.toString(), Gamma.y.toString(), c.toString(), s.toString()],
-    uPoint: [fast.uX, fast.uY],
-    vComponents: [fast.sHX, fast.sHY, fast.cGX, fast.cGY]
   }
 }

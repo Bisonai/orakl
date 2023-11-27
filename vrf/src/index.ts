@@ -13,7 +13,7 @@ const elliptic = ellipticPkg
 
 import { BN } from 'bn.js'
 import { createHmac, createHash } from 'crypto'
-import { IVrfConfig } from './types'
+import { IVrfConfig, IVrfResponse } from './types'
 import { VrfError, VrfErrorCode } from './errors.js'
 
 const EC = new elliptic.ec('secp256k1')
@@ -251,7 +251,7 @@ const getFastVerifyComponents = (Y, pi_string, alpha_string) => {
   }
 }
 
-const processVrfRequest = (alpha: string, config: IVrfConfig) => {
+const processVrfRequest = (alpha: string, config: IVrfConfig): IVrfResponse => {
   const proof = ECVRF_prove(config.sk, alpha)
   const [Gamma, c, s] = ECVRF_decode_proof(proof)
   const fast = getFastVerifyComponents(config.pk, proof, alpha)
