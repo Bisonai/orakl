@@ -28,9 +28,16 @@ export async function getSynchronizedDelay({
     logger
   })
 
-  const delay = heartbeat - (startedAt % heartbeat)
-  logger.debug({ heartbeat, delay, startedAt })
+  let delay: number
 
+  if (startedAt != 0) {
+    const blockTimestamp = (await PROVIDER.getBlock('latest')).timestamp
+    delay = heartbeat - Math.max(0, (blockTimestamp - startedAt) % heartbeat)
+  } else {
+    delay = 0 // The first round -> No need to wait.
+  }
+
+  logger.debug({ heartbeat, delay, startedAt })
   return delay
 }
 
