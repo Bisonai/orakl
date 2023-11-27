@@ -1,7 +1,11 @@
-import { beforeEach, describe, expect, test } from '@jest/globals'
+import { beforeEach, describe, expect, jest, test } from '@jest/globals'
 import { ethers } from 'ethers'
 import pino, { Logger } from 'pino'
+import type { RedisClientType } from 'redis'
+import { createClient } from 'redis'
 import { OraklErrorCode } from '../src/errors'
+import { buildMockLogger } from '../src/logger'
+import { State } from '../src/reporter/state'
 import {
   buildCaverWallet,
   buildWallet,
@@ -111,5 +115,97 @@ describe('Reporter', function () {
       logger,
       gasLimit: 100_000
     })
+  })
+})
+
+describe('Filter invalid reporters inside of State', function () {
+  const PROVIDER_URL = process.env.GITHUB_ACTIONS
+    ? 'https://public-en-cypress.klaytn.net'
+    : 'http://127.0.0.1:8545'
+  const redisClient: RedisClientType = createClient({ url: '' })
+  const VALID_REPORTER = {
+    id: '2',
+    address: '0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266',
+    privateKey: '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80',
+    oracleAddress: '',
+    chain: '',
+    service: ''
+  }
+  const INVALID_REPORTER = {
+    id: '1',
+    address: '0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266',
+    privateKey: 'INVALID KEY',
+    oracleAddress: '',
+    chain: '',
+    service: ''
+  }
+
+  test('Via refresh()', async function () {
+    jest.spyOn(redisClient, 'set').mockImplementation(async () => {
+      return null
+    })
+    jest
+      .spyOn(State.prototype, 'all')
+      .mockImplementation(async () => [VALID_REPORTER, INVALID_REPORTER])
+
+    for (const delegatedFee of [true, false]) {
+      const state = new State({
+        redisClient,
+        providerUrl: PROVIDER_URL,
+        stateName: '',
+        service: '',
+        chain: '',
+        delegatedFee,
+        logger: buildMockLogger()
+      })
+
+      const reporters = await state.refresh()
+      expect(reporters).toHaveLength(1)
+    }
+  })
+
+  test('Valid reporter via add()', async function () {
+    jest.spyOn(redisClient, 'set').mockImplementation(async () => {
+      return null
+    })
+    jest.spyOn(State.prototype, 'active').mockImplementation(async () => [])
+    jest.spyOn(State.prototype, 'get').mockImplementation(async () => VALID_REPORTER)
+
+    for (const delegatedFee of [true, false]) {
+      const state = new State({
+        redisClient,
+        providerUrl: PROVIDER_URL,
+        stateName: '',
+        service: '',
+        chain: '',
+        delegatedFee,
+        logger: buildMockLogger()
+      })
+
+      const reporter = await state.add(VALID_REPORTER.id)
+      expect(reporter).toEqual(VALID_REPORTER)
+    }
+  })
+
+  test('Invalid reporter via add()', async function () {
+    jest.spyOn(redisClient, 'set').mockImplementation(async () => {
+      return null
+    })
+    jest.spyOn(State.prototype, 'active').mockImplementation(async () => [])
+    jest.spyOn(State.prototype, 'get').mockImplementation(async () => INVALID_REPORTER)
+
+    for (const delegatedFee of [true, false]) {
+      const state = new State({
+        redisClient,
+        providerUrl: PROVIDER_URL,
+        stateName: '',
+        service: '',
+        chain: '',
+        delegatedFee,
+        logger: buildMockLogger()
+      })
+
+      await expect(state.add(INVALID_REPORTER.id)).rejects.toThrow()
+    }
   })
 })

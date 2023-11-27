@@ -3,7 +3,7 @@ import type { RedisClientType } from 'redis'
 import { getReporter, getReporters } from '../api'
 import { OraklError, OraklErrorCode } from '../errors'
 import { IReporterConfig } from '../types'
-import { buildCaverWallet, buildWallet } from './utils'
+import { buildCaverWallet, buildWallet, isPrivateKeyAddressPairValid } from './utils'
 
 const FILE_NAME = import.meta.url
 
@@ -63,6 +63,14 @@ export class State {
   }
 
   /**
+   * Get reporter by id.
+   */
+  async get(id: string) {
+    this.logger.debug(`get(${id})`)
+    return await getReporter({ id, logger: this.logger })
+  }
+
+  /**
    * List all active reporters.
    */
   async active() {
@@ -92,9 +100,15 @@ export class State {
       throw new OraklError(OraklErrorCode.ReporterNotAdded, msg)
     }
 
-    const toAddReporter = await getReporter({ id, logger: this.logger })
+    const toAddReporter = await this.get(id)
     if (!toAddReporter) {
       const msg = `Reporter with ID=${id} cannot be found for service=${this.service} on chain=${this.chain}`
+      this.logger.debug({ name: 'add', file: FILE_NAME }, msg)
+      throw new OraklError(OraklErrorCode.ReporterNotAdded, msg)
+    }
+
+    if (!isPrivateKeyAddressPairValid(toAddReporter.privateKey, toAddReporter.address)) {
+      const msg = `Reporter with ID=${id} has invalid private key.`
       this.logger.debug({ name: 'add', file: FILE_NAME }, msg)
       throw new OraklError(OraklErrorCode.ReporterNotAdded, msg)
     }
@@ -174,7 +188,11 @@ export class State {
     this.logger.debug('refresh')
 
     // Fetch
-    const reporters = await this.all()
+    const allReporters = await this.all()
+    const reporters = allReporters.filter((R) =>
+      isPrivateKeyAddressPairValid(R.privateKey, R.address)
+    )
+
     const wallets = reporters.map((R) => {
       let wallet
       if (this.delegatedFee) {
