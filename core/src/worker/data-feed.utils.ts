@@ -27,8 +27,8 @@ export async function getSynchronizedDelay({
     oracleAddress,
     logger
   })
-
-  const delay = heartbeat - (startedAt % heartbeat)
+  const blockTimestamp = (await PROVIDER.getBlock('latest')).timestamp
+  const delay = heartbeat - Math.max(0, blockTimestamp - startedAt)
   logger.debug({ heartbeat, delay, startedAt })
 
   return delay
