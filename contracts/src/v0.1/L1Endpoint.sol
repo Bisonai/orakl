@@ -4,27 +4,16 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "./VRFConsumerBase.sol";
 import "./interfaces/IVRFCoordinator.sol";
 import "./interfaces/IRegistry.sol";
+import "./L1EndpointBase.sol";
+import "./L1EndpointRequestResponse.sol";
 
-contract L1Endpoint is Ownable, VRFConsumerBase {
-    IVRFCoordinator COORDINATOR;
-    IRegistry public REGISTRY;
+contract L1Endpoint is Ownable, VRFConsumerBase, L1EndpointBase, L1EndpointRequestResponse {
+    IVRFCoordinator VRFCOORDINATOR;
 
-    struct RequestDetail {
-        uint256 l2RequestId;
-        address sender;
-        uint256 callbackGasLimit;
-    }
-    mapping(address => bool) private sOracles;
-    mapping(uint256 => RequestDetail) private sRequest;
-
-    error InsufficientBalance();
-    error OnlyOracle();
     error FailedToDeposit();
-    error ConsumerValid();
 
     event OracleAdded(address oracle);
     event OracleRemoved(address oracle);
-
     event RandomWordRequested(uint256 requestId, address sender);
     event RandomWordFulfilled(
         uint256 requestId,
@@ -34,9 +23,16 @@ contract L1Endpoint is Ownable, VRFConsumerBase {
         uint256[] randomWords
     );
 
-    constructor(address coordinator, address registryAddress) VRFConsumerBase(coordinator) {
-        COORDINATOR = IVRFCoordinator(coordinator);
-        REGISTRY = IRegistry(registryAddress);
+    constructor(
+        address coordinator,
+        address registryAddress,
+        address requestResponseCoordinator
+    )
+        VRFConsumerBase(coordinator)
+        L1EndpointBase(registryAddress)
+        L1EndpointRequestResponse(requestResponseCoordinator)
+    {
+        VRFCOORDINATOR = IVRFCoordinator(coordinator);
     }
 
     receive() external payable {}
@@ -70,14 +66,14 @@ contract L1Endpoint is Ownable, VRFConsumerBase {
         uint256 balance = REGISTRY.getBalance(accId);
         uint64 reqCount = 0;
         uint8 numSubmission = 1;
-        uint256 fee = COORDINATOR.estimateFee(reqCount, numSubmission, callbackGasLimit);
+        uint256 fee = VRFCOORDINATOR.estimateFee(reqCount, numSubmission, callbackGasLimit);
         if (balance < fee) {
             revert InsufficientBalance();
         }
 
         //decrease balance
         REGISTRY.decreaseBalance(accId, fee);
-        uint256 requestId = COORDINATOR.requestRandomWords{value: fee}(
+        uint256 requestId = VRFCOORDINATOR.requestRandomWords{value: fee}(
             keyHash,
             callbackGasLimit,
             numWords,
