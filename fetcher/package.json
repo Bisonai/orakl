@@ -21,6 +21,7 @@
     "flush": "node --no-warnings --experimental-specifier-resolution=node --experimental-json-modules dist/tools/flush-queues.js"
   },
   "dependencies": {
+    "@bisonai/orakl-contracts": "^1.3.2",
     "@nestjs/bullmq": "^1.1.0",
     "@nestjs/common": "^9.0.0",
     "@nestjs/config": "^2.3.1",
@@ -30,6 +31,7 @@
     "@nestjs/swagger": "^6.2.1",
     "axios": "^1.3.4",
     "bullmq": "^3.10.0",
+    "ethers": "^6.8.1",
     "mathjs": "^11.6.0",
     "reflect-metadata": "^0.1.13",
     "rxjs": "^7.2.0"

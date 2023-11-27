@@ -19,8 +19,9 @@ Orakl Network Fetcher requires to set the following environment variables.
 - `CHAIN`
 - `FETCHER_TYPE`
 - `CONCURRENCY`
+- `PROVIDER_URL`
 
-You can copy them from `.env.example` to `.env` and fill the appropriate values.
+  You can copy them from `.env.example` to `.env` and fill the appropriate values.
 
 ```shell
 cp .env.example .env
