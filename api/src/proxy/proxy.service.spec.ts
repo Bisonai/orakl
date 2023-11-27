@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing'
-import { ProxyService } from './proxy.service'
-import { PrismaService } from '../prisma.service'
 import { PrismaClient } from '@prisma/client'
+import { PrismaService } from '../prisma.service'
+import { ProxyService } from './proxy.service'
 
 describe('ProxyService', () => {
   let proxy: ProxyService
@@ -56,5 +56,6 @@ describe('ProxyService', () => {
 
     // Cleanup
     await proxy.remove({ id: proxyObj.id })
+    await proxy.remove({ id: proxyObjWithoutLocation.id })
   })
 })
