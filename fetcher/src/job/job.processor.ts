@@ -6,6 +6,9 @@ import { fetchData, aggregateData, shouldReport } from './job.utils'
 import { insertMultipleData, insertAggregateData, fetchDataFeed } from './job.api'
 import { DEVIATION_QUEUE_NAME, FETCHER_QUEUE_NAME, WORKER_OPTS } from '../settings'
 import { IDeviationData } from './job.types'
+import { Aggregator__factory } from '@bisonai/orakl-contracts'
+import { ethers } from 'ethers'
+import { PROVIDER } from 'src/settings'
 
 @Processor(FETCHER_QUEUE_NAME, WORKER_OPTS)
 export class JobProcessor extends WorkerHost {
@@ -29,16 +32,11 @@ export class JobProcessor extends WorkerHost {
       const aggregate = aggregateData(data)
       const threshold = inData[adapterHash].threshold
       const absoluteThreshold = inData[adapterHash].absoluteThreshold
-      const decimals = inData[adapterHash].decimals
 
       const oracleAddress = inData[adapterHash].address
       const aggregatorHash = inData[adapterHash].aggregatorHash
 
       try {
-        const { value: lastSubmission } = await fetchDataFeed({
-          aggregatorHash,
-          logger: this.logger
-        })
         let response = await insertMultipleData({ aggregatorId, timestamp, data })
         this.logger.debug(response)
         response = await insertAggregateData({
@@ -47,14 +45,18 @@ export class JobProcessor extends WorkerHost {
           value: aggregate
         })
         this.logger.debug(response)
-        const outData: IDeviationData = {
-          timestamp: timestamp,
-          submission: aggregate,
-          oracleAddress
-        }
-        if (
-          shouldReport(Number(lastSubmission), aggregate, decimals, threshold, absoluteThreshold)
-        ) {
+
+        const contract = new ethers.Contract(oracleAddress, Aggregator__factory.abi, PROVIDER)
+        const queriedRoundId = 0
+        const state = await contract.oracleRoundState(oracleAddress, queriedRoundId)
+        const roundId = state._roundId
+
+        if (roundId > 1 && shouldReport(oracleAddress, aggregate, threshold, absoluteThreshold)) {
+          const outData: IDeviationData = {
+            timestamp: timestamp,
+            submission: aggregate,
+            oracleAddress
+          }
           this.deviationQueue.add('fetcher-submission', outData, {
             removeOnFail: true,
             removeOnComplete: true
