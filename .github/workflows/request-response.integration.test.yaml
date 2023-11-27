@@ -14,23 +14,19 @@ jobs:
       - uses: actions/checkout@v3
       - uses: actions/setup-node@v3
         with:
-          node-version: "18.12"
+          node-version: "18.16"
 
       - name: Install
-        run: yarn
-        working-directory: ./contracts
+        run: yarn contracts install
 
       - name: Compile
-        run: yarn compile
-        working-directory: ./contracts
+        run: yarn contracts compile
 
       - name: Build
-        run: yarn build
-        working-directory: ./contracts
+        run: yarn contracts build
 
       - name: Run node and deploy
-        run: npx hardhat node & npx hardhat deploy
-        working-directory: ./contracts
+        run: npx hardhat node & yarn contracts deploy:localhost
 
       - name: Redis Server in GitHub Actions
         uses: supercharge/redis-github-action@1.5.0
@@ -38,32 +34,25 @@ jobs:
           redis-version: 6
 
       - name: Core - install
-        run: yarn
-        working-directory: ./core
+        run: yarn core install
 
       - name: Core - build
-        run: yarn build
-        working-directory: ./core
+        run: yarn core build
 
       - name: Core - start listener
-        run: yarn start:listener:request_response &
-        working-directory: ./core
+        run: yarn core start:listener:request_response &
 
       - name: Request data
-        run: npx hardhat run scripts/v0.1/request-response/integration/request-data.ts --network localhost
-        working-directory: ./contracts
+        run: yarn contracts request-rr --network localhost
 
       - name: Core - start worker
-        run: yarn start:worker:request_response &
-        working-directory: ./core
+        run: yarn core start:worker:request_response &
 
       - name: Core - start reporter
-        run: yarn start:reporter:request_response &
-        working-directory: ./core
+        run: yarn core start:reporter:request_response &
         env:
           PRIVATE_KEY: ${{ secrets.INTEGRATION_PRIVATE_KEY }}
           PUBLIC_KEY: ${{ secrets.INTEGRATION_PUBLIC_KEY }}
 
       - name: Get data
-        run: npx hardhat run scripts/v0.1/request-response/integration/read-data.ts --network localhost
-        working-directory: ./contracts
+        run: yarn contracts get-rr --network localhost

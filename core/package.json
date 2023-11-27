@@ -61,8 +61,8 @@
     "bull-dashboard": "docker-compose -f docker-compose.bull-monitor.yaml up"
   },
   "dependencies": {
-    "@bisonai/orakl-contracts": "^1.3.2",
-    "@bisonai/orakl-vrf": "^0.2.1",
+    "@bisonai/orakl-contracts": "*",
+    "@bisonai/orakl-vrf": "*",
     "@ethersproject/experimental": "^5.7.0",
     "@slack/webhook": "^6.1.0",
     "axios": "^1.2.2",

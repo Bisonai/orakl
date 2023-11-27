@@ -30,23 +30,19 @@ jobs:
       - uses: actions/checkout@v3
       - uses: actions/setup-node@v3
         with:
-          node-version: "18.12"
+          node-version: "18.16"
       - name: Install dependencies
-        run: yarn install
-        working-directory: ./delegator
+        run: yarn delegator install
       - name: Run eslint
-        run: yarn lint
-        working-directory: ./delegator
+        run: yarn delegator lint
       - name: Run test
         run: |
-          npx prisma migrate dev --name init
-          yarn test
+          yarn delegator prisma-migrate dev --name init
+          yarn delegator test
         env:
           DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/orakl-test?schema=public"
           PROVIDER_URL: "https://api.baobab.klaytn.net:8651"
           DELEGATOR_FEEPAYER_PK: ${{ secrets.DELEGATOR_FEEPAYER_PK}}
           TEST_DELEGATOR_REPORTER_PK: ${{ secrets.TEST_DELEGATOR_REPORTER_PK}}
-        working-directory: ./delegator
       - name: Build package
-        run: yarn build
-        working-directory: ./delegator
+        run: yarn delegator build

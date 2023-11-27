@@ -16,19 +16,18 @@ jobs:
       - uses: actions/checkout@v3
       - uses: actions/setup-node@v3
         with:
-          node-version: "18.12"
+          node-version: "18.16"
           registry-url: "https://registry.npmjs.org"
           scope: "@bisonai"
           always-auth: true
       - name: Install dependencies
-        run: yarn --cwd . install
-        working-directory: ./cli
+        run: yarn cli install
       - name: Run lint
-        run: yarn --cwd . lint
-        working-directory: ./cli
+        run: yarn cli lint
+      - name: Build workspace dependency
+        run: yarn vrf build
       - name: Build package
-        run: yarn --cwd . build
-        working-directory: ./cli
+        run: yarn cli build
       - name: Extract version from package.json
         uses: sergeysova/jq-action@v2
         id: packageJsonVersion
@@ -39,7 +38,6 @@ jobs:
         run: echo "VERSION=`npm view @bisonai/orakl-cli version`" >> $GITHUB_OUTPUT
       - name: Publish package
         if: steps.packageJsonVersion.outputs.value != steps.npmPackageVersion.outputs.VERSION
-        run: yarn publish --new-version ${{ steps.packageJsonVersion.outputs.value }} --access public
-        working-directory: ./cli
+        run: yarn cli publish --new-version ${{ steps.packageJsonVersion.outputs.value }} --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
