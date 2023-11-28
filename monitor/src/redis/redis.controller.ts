@@ -1,4 +1,12 @@
-import { Controller, HttpCode, HttpStatus, Param, Post, Put, UseGuards } from "@nestjs/common";
+import {
+  Controller,
+  HttpCode,
+  HttpStatus,
+  Param,
+  Post,
+  Put,
+  UseGuards,
+} from "@nestjs/common";
 import { ApiOperation, ApiTags } from "@nestjs/swagger";
 import { RedisService } from "./redis.service";
 import { SERVICE } from "src/common/types";

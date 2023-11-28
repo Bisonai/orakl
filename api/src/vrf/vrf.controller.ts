@@ -1,7 +1,7 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common'
-import { VrfService } from './vrf.service'
+import { Body, Controller, Delete, Get, Param, Patch, Post } from '@nestjs/common'
 import { CreateVrfKeyDto } from './dto/create-vrf-key.dto'
 import { UpdateVrfKeyDto } from './dto/update-vrf-key.dto'
+import { VrfService } from './vrf.service'
 
 @Controller({
   path: 'vrf',

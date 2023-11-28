@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing'
-import { L2aggregatorService } from './L2aggregator.service'
 import { PrismaService } from '../prisma.service'
+import { L2aggregatorService } from './L2aggregator.service'
 
 describe('L2aggregatorService', () => {
   let service: L2aggregatorService

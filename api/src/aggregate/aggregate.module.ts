@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common'
-import { AggregateService } from './aggregate.service'
-import { AggregateController } from './aggregate.controller'
 import { PrismaService } from '../prisma.service'
+import { AggregateController } from './aggregate.controller'
+import { AggregateService } from './aggregate.service'
 
 @Module({
   controllers: [AggregateController],

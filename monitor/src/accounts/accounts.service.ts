@@ -5,7 +5,7 @@ import { Account } from "./entities/account.entity";
 @Injectable()
 export class AccountsService {
   constructor(
-    private readonly accountBalanceRepository: AccountBalanceRepository,
+    private readonly accountBalanceRepository: AccountBalanceRepository
   ) {}
 
   async getAccountList(): Promise<[Account] | null> {

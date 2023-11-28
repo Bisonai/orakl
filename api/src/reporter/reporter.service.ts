@@ -1,9 +1,9 @@
 import { Injectable, Logger } from '@nestjs/common'
 import { Prisma } from '@prisma/client'
+import { getChain, getService } from '../common/utils'
 import { PrismaService } from '../prisma.service'
 import { CreateReporterDto } from './dto/create-reporter.dto'
 import { UpdateReporterDto } from './dto/update-reporter.dto'
-import { getChain, getService } from '../common/utils'
 import { decryptText, encryptText, flattenReporter } from './reporter.utils'
 
 @Injectable()

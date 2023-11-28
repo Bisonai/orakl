@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common'
-import { FunctionService } from './function.service'
-import { FunctionController } from './function.controller'
 import { PrismaService } from '../prisma.service'
+import { FunctionController } from './function.controller'
+import { FunctionService } from './function.service'
 
 @Module({
   controllers: [FunctionController],

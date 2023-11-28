@@ -24,7 +24,7 @@ import { DatabaseConfigService } from "src/common/database.config";
         return pool;
       },
       inject: [DatabaseConfigService],
-    },    
+    },
   ],
   exports: ["MONITOR_DATABASE", "ORAKL_DATABASE"],
 })

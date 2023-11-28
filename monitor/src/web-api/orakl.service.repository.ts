@@ -1,7 +1,11 @@
-import { Injectable, OnModuleInit, OnModuleDestroy, Inject } from '@nestjs/common';
-import { Pool } from 'pg';
-import { ErrorResultDto } from './dto/error.dto';
-
+import {
+  Injectable,
+  OnModuleInit,
+  OnModuleDestroy,
+  Inject,
+} from "@nestjs/common";
+import { Pool } from "pg";
+import { ErrorResultDto } from "./dto/error.dto";
 
 @Injectable()
 export class OraklServiceRepository implements OnModuleInit, OnModuleDestroy {

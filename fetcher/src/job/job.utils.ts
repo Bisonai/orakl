@@ -1,9 +1,9 @@
+import { Logger } from '@nestjs/common'
 import axios from 'axios'
-import { DATA_FEED_REDUCER_MAPPING } from './job.reducer'
 import { LOCAL_AGGREGATOR_FN } from './job.aggregator'
 import { FetcherError, FetcherErrorCode } from './job.errors'
+import { DATA_FEED_REDUCER_MAPPING } from './job.reducer'
 import { IAdapter, IFetchedData, IProxy } from './job.types'
-import { Logger } from '@nestjs/common'
 
 export function buildUrl(host: string, path: string) {
   const url = [host, path].join('/')

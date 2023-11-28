@@ -1,7 +1,7 @@
+import { HttpException, HttpStatus, Logger } from '@nestjs/common'
 import axios from 'axios'
-import { HttpStatus, HttpException, Logger } from '@nestjs/common'
+import { IAggregate, IAggregator, IData, IProxy, IRawData } from './job.types'
 import { buildUrl } from './job.utils'
-import { IRawData, IData, IAggregator, IAggregate, IProxy } from './job.types'
 
 export async function loadActiveAggregators({ chain, logger }: { chain: string; logger: Logger }) {
   const AGGREGATOR_ENDPOINT = buildUrl(process.env.ORAKL_NETWORK_API_URL, 'aggregator')

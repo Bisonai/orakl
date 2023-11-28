@@ -1,9 +1,17 @@
-import { Injectable, Inject, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
-import { Pool, QueryResult } from 'pg';
-import { QueueDto, QueueUpdateDto } from './entities/queue.entity';
+import {
+  Injectable,
+  Inject,
+  OnModuleInit,
+  OnModuleDestroy,
+} from "@nestjs/common";
+import { Pool, QueryResult } from "pg";
+import { QueueDto, QueueUpdateDto } from "./entities/queue.entity";
 import { JobCompleted, JobFailed } from "./entities/job.data.entity";
 import { QUEUE_STATUS, SERVICE } from "src/common/types";
-import { AggregatorJobCompleted, AggregatorJobFailed } from './entities/aggregator.job.data.entity';
+import {
+  AggregatorJobCompleted,
+  AggregatorJobFailed,
+} from "./entities/aggregator.job.data.entity";
 
 @Injectable()
 export class BullsRepository implements OnModuleInit, OnModuleDestroy {
@@ -242,4 +250,4 @@ export class BullsRepository implements OnModuleInit, OnModuleDestroy {
       }
     }
   }
-} 
+}

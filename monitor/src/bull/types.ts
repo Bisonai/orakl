@@ -5,7 +5,7 @@ export interface QueueCountInfo {
   failed: number;
   delayed: number;
 }
-  
+
 export interface ServiceQueueCountInfo extends QueueCountInfo {
   service: string;
   queue: string;

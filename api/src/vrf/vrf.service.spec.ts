@@ -1,8 +1,8 @@
 import { Test, TestingModule } from '@nestjs/testing'
-import { VrfService } from './vrf.service'
+import { PrismaClient } from '@prisma/client'
 import { ChainService } from '../chain/chain.service'
 import { PrismaService } from '../prisma.service'
-import { PrismaClient } from '@prisma/client'
+import { VrfService } from './vrf.service'
 
 describe('VrfService', () => {
   let vrf: VrfService

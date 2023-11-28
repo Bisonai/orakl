@@ -1,9 +1,9 @@
-import { Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
-import { AppService } from './app.service';
-import { AppController } from './app.controller';
-import { AccountsModule } from './accounts/accounts.module';
-import { AccountBalanceRepository } from './accounts/accounts.repository';
+import { Module } from "@nestjs/common";
+import { ConfigModule } from "@nestjs/config";
+import { AppService } from "./app.service";
+import { AppController } from "./app.controller";
+import { AccountsModule } from "./accounts/accounts.module";
+import { AccountBalanceRepository } from "./accounts/accounts.repository";
 import { DatabaseModule } from "./modules/database.module";
 import { commonConfig, databaseConfig } from "./common/configuration";
 import { BullsModule } from "./bull/bulls.module";
@@ -13,10 +13,9 @@ import { AccountsService } from "./accounts/accounts.service";
 import { CommonConfigService } from "./common/common.config";
 import { MonitorConfigService } from "./monitor.config/monitor.config.service";
 import { MonitorConfigRepository } from "./monitor.config/monitor.config.repository";
-import { AuthModule } from './auth/auth.module';
-import { WebApiModule } from './web-api/web.api.module';
-import { OraklServiceRepository } from './web-api/orakl.service.repository';
-
+import { AuthModule } from "./auth/auth.module";
+import { WebApiModule } from "./web-api/web.api.module";
+import { OraklServiceRepository } from "./web-api/orakl.service.repository";
 
 @Module({
   imports: [
@@ -30,7 +29,7 @@ import { OraklServiceRepository } from './web-api/orakl.service.repository';
     BullsModule,
     DatabaseModule,
     AuthModule,
-    WebApiModule
+    WebApiModule,
   ],
   controllers: [AppController],
   providers: [
@@ -40,7 +39,7 @@ import { OraklServiceRepository } from './web-api/orakl.service.repository';
     CommonConfigService,
     MonitorConfigService,
     MonitorConfigRepository,
-    OraklServiceRepository
+    OraklServiceRepository,
   ],
 })
 export class AppModule {}

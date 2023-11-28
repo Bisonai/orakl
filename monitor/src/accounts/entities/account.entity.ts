@@ -1,5 +1,5 @@
 export interface Account {
-    address: string;
-    name: string;
-    type: string;
-  }
+  address: string;
+  name: string;
+  type: string;
+}

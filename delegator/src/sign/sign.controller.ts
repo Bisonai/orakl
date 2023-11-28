@@ -1,6 +1,6 @@
-import { Controller, Get, Post, Body, HttpException, HttpStatus, Param } from '@nestjs/common'
-import { SignService } from './sign.service'
+import { Body, Controller, Get, HttpException, HttpStatus, Param, Post } from '@nestjs/common'
 import { SignDto } from './dto/sign.dto'
+import { SignService } from './sign.service'
 
 @Controller({
   path: 'sign',

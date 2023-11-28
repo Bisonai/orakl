@@ -24,14 +24,14 @@ export class AccountsController {
   }
 
   @Get(":account")
-  @UseGuards(AuthGuard)    
+  @UseGuards(AuthGuard)
   @ApiOperation({ operationId: "getAccount" })
   async findOne(@Param("account") account: string) {
     return this.accountsService.getAccountList();
   }
 
   @Put(":address/:name/:type")
-  @UseGuards(AuthGuard)    
+  @UseGuards(AuthGuard)
   @ApiOperation({ operationId: "registerRedis" })
   @HttpCode(HttpStatus.OK)
   async insertAccount(

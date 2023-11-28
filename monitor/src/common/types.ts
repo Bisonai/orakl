@@ -20,5 +20,5 @@ export enum QUEUE_ACTIVE_STATUS {
 
 export enum MONITOR_CONFIG {
   SLACK_URL = "slack_url",
-  BALANCE_ALARM_AMOUNT = "balance_alarm_amount"
+  BALANCE_ALARM_AMOUNT = "balance_alarm_amount",
 }

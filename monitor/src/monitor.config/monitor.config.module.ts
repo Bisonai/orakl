@@ -6,7 +6,6 @@ import { MonitorConfigController } from "./monitor.config.controller";
 import { AuthModule } from "src/auth/auth.module";
 import { JwtService } from "@nestjs/jwt";
 
-
 @Module({
   imports: [DatabaseModule, AuthModule],
   controllers: [MonitorConfigController],

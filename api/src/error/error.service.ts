@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common'
-import { ErrorDto } from './dto/error.dto'
 import { Prisma } from '@prisma/client'
 import { PrismaService } from '../prisma.service'
+import { ErrorDto } from './dto/error.dto'
 
 @Injectable()
 export class ErrorService {

@@ -1,9 +1,9 @@
 import { Test, TestingModule } from '@nestjs/testing'
-import { ListenerService } from './listener.service'
-import { ChainService } from '../chain/chain.service'
-import { ServiceService } from '../service/service.service'
-import { PrismaService } from '../prisma.service'
 import { PrismaClient } from '@prisma/client'
+import { ChainService } from '../chain/chain.service'
+import { PrismaService } from '../prisma.service'
+import { ServiceService } from '../service/service.service'
+import { ListenerService } from './listener.service'
 
 describe('ListenerService', () => {
   let chain: ChainService

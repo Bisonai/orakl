@@ -1,4 +1,4 @@
-import { VersioningType, RequestMethod } from '@nestjs/common'
+import { RequestMethod, VersioningType } from '@nestjs/common'
 
 export function setAppSettings(app) {
   app.setGlobalPrefix('api', {

@@ -45,14 +45,14 @@ export class BullsService implements OnApplicationBootstrap {
   }
 
   async getQueueCounts() {
-    let data = await this.getQueueCountsByService(SERVICE.VRF);
+    const data = await this.getQueueCountsByService(SERVICE.VRF);
     data.push(await this.getQueueCountsByService(SERVICE.REQUEST_RESPONSE));
     data.push(await this.getQueueCountsByService(SERVICE.AGGREGATOR));
     return data;
   }
 
   async getQueueCountsByService(serviceName: SERVICE) {
-    let countsInfo = [];
+    const countsInfo = [];
     const queues = await this.findQueueList(serviceName);
     console.log(queues);
     await Promise.all(
@@ -82,7 +82,7 @@ export class BullsService implements OnApplicationBootstrap {
   }
 
   async getRedisInfo() {
-    let data = [];
+    const data = [];
     data.push(await this.getRedisInfoByService(SERVICE.VRF));
     data.push(await this.getRedisInfoByService(SERVICE.REQUEST_RESPONSE));
     data.push(await this.getRedisInfoByService(SERVICE.AGGREGATOR));
@@ -234,7 +234,7 @@ export class BullsService implements OnApplicationBootstrap {
       });
     } else {
       // console.log("start trigger:", service);
-      if (!Boolean(this.queueEvents?.[queueName])) {
+      if (!this.queueEvents?.[queueName]) {
         this.queueEvents = {
           ...this.queueEvents,
           [queueName]: new QueueEvents(queueName, {
@@ -510,7 +510,7 @@ export class BullsService implements OnApplicationBootstrap {
     }
     const dataSetText = `>>> ${dataSet}`;
 
-    let stackTrace = data?.error;
+    const stackTrace = data?.error;
     let stackTraceText: string;
     if (stackTrace) {
       stackTraceText = JSON.stringify(stackTrace[0]);
