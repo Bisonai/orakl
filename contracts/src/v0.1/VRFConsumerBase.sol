@@ -97,7 +97,7 @@ pragma solidity ^0.8.16;
  * @dev and so remains effective only in the case of unmodified oracle software).
  */
 abstract contract VRFConsumerBase {
-    error OnlyVRFCoordinatorCanFulfill(address have, address want);
+    error OnlyCoordinatorCanFulfill(address have, address want);
     address private immutable vrfCoordinator;
 
     /**
@@ -133,7 +133,7 @@ abstract contract VRFConsumerBase {
      */
     function rawFulfillRandomWords(uint256 requestId, uint256[] memory randomWords) external {
         if (msg.sender != vrfCoordinator) {
-            revert OnlyVRFCoordinatorCanFulfill(msg.sender, vrfCoordinator);
+            revert OnlyCoordinatorCanFulfill(msg.sender, vrfCoordinator);
         }
         fulfillRandomWords(requestId, randomWords);
     }
