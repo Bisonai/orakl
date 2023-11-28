@@ -32,9 +32,7 @@ export class JobProcessor extends WorkerHost {
       const aggregate = aggregateData(data)
       const threshold = inData[adapterHash].threshold
       const absoluteThreshold = inData[adapterHash].absoluteThreshold
-
       const oracleAddress = inData[adapterHash].address
-      const aggregatorHash = inData[adapterHash].aggregatorHash
 
       try {
         let response = await insertMultipleData({ aggregatorId, timestamp, data })
