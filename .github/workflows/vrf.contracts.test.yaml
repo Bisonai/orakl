@@ -27,7 +27,7 @@ jobs:
         working-directory: ./contracts
       - run: yarn solhint
         working-directory: ./contracts
-      - run: yarn eslint
+      - run: yarn lint
         working-directory: ./contracts
       - run: npx hardhat test test/v0.1/vrf/*.cjs
         working-directory: ./contracts
