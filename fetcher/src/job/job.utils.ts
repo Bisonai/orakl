@@ -244,7 +244,7 @@ export async function shouldReport(
   absoluteThreshold: number
 ): Promise<boolean> {
   const contract = new ethers.Contract(aggregatorAddress, Aggregator__factory.abi, PROVIDER)
-  const latestSubmission = await contract.latestRoundData()
+  const latestSubmission = Number((await contract.latestRoundData()).answer)
 
   if (latestSubmission && currentSubmission && threshold) {
     // Check deviation threashold
