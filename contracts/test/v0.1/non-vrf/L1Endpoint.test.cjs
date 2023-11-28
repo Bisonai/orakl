@@ -2,7 +2,7 @@ const { expect } = require('chai')
 const { ethers } = require('hardhat')
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers')
 const { vrfConfig } = require('../vrf/VRFCoordinator.config.cjs')
-const { parseKlay, getBalance, createSigners } = require('../utils.cjs')
+const { parseKlay, createSigners, median, majorityVotingBool } = require('../utils.cjs')
 const {
   setupOracle,
   generateVrf,
@@ -14,15 +14,16 @@ const {
   deploy: deployRegistry,
   propose,
   confirm,
-  setProposeFee,
-  withdraw,
-  editChainInfor,
-  addAggregator,
-  removeAggregator,
   createAccount,
-  addConsumer,
-  removeConsumer
+  addConsumer
 } = require('./Registry.utils.cjs')
+
+const { requestResponseConfig } = require('./RequestResponse.config.cjs')
+const {
+  deploy: deployCoordinator,
+  setupOracle: setupRROracle
+} = require('./RequestResponseCoordinator.utils.cjs')
+
 const SINGLE_WORD = 1
 async function fulfillRandomWords(
   coordinator,
@@ -90,6 +91,138 @@ function validateRandomWordsRequestedEvent(
   return { requestId, preSeed, accId: eAccId, blockHash, blockNumber }
 }
 
+function aggregateSubmissions(arr, dataType) {
+  expect(arr.length).to.be.greaterThan(0)
+
+  switch (dataType.toLowerCase()) {
+    case 'uint128':
+    case 'int256':
+      return median(arr)
+    case 'bool':
+      return majorityVotingBool(arr)
+    default:
+      return arr[0]
+  }
+}
+
+async function verifyFulfillment(prepayment, endpoint, txReceipt, accId, responseValue) {
+  // AccountBalanceDecreased ////////////////////////////////////////////////////
+  const prepaymentEvent = prepayment.contract.interface.parseLog(txReceipt.events[1])
+  expect(prepaymentEvent.name).to.be.equal('AccountBalanceDecreased')
+  expect(prepaymentEvent.args.accId).to.be.equal(accId)
+
+  // DataRequestFulfilled * //////////////////////////////////////////////////////
+  const endpointEvent = endpoint.contract.interface.parseLog(txReceipt.events[0])
+  const {
+    requestId,
+    l2RequestId,
+    sender,
+    callbackGasLimit,
+    jobId,
+    responseUint128,
+    responseInt256,
+    responseBool,
+    responseString,
+    responseBytes32,
+    responseBytes
+  } = endpointEvent.args
+  switch (jobId) {
+    case ethers.utils.keccak256(ethers.utils.toUtf8Bytes('uint128')):
+      expect(responseUint128).to.be.equal(responseValue)
+      break
+    case ethers.utils.keccak256(ethers.utils.toUtf8Bytes('int256')):
+      expect(responseInt256).to.be.equal(responseValue)
+      break
+    case ethers.utils.keccak256(ethers.utils.toUtf8Bytes('bool')):
+      expect(responseBool).to.be.equal(responseValue)
+      break
+    case ethers.utils.keccak256(ethers.utils.toUtf8Bytes('string')):
+      expect(responseString).to.be.equal(responseValue)
+      break
+    case ethers.utils.keccak256(ethers.utils.toUtf8Bytes('bytes32')):
+      expect(responseBytes32).to.be.equal(responseValue)
+      break
+    case ethers.utils.keccak256(ethers.utils.toUtf8Bytes('bytes')):
+      expect(responseBytes).to.be.equal(responseValue)
+      break
+  }
+}
+
+async function requestAndFulfill(
+  requestFnName,
+  fulfillFnName,
+  fulfillValue,
+  fulfillEventName,
+  dataType,
+  numSubmission
+) {
+  const {
+    endpoint,
+    rRCoordinator,
+    prepayment,
+    registry,
+    registrAccount,
+    account2: rrOracle1,
+    account3: rrOracle2
+  } = await loadFixture(deploy)
+  const oracles = [rrOracle1, rrOracle2]
+  const { maxGasLimit: callbackGasLimit } = requestResponseConfig()
+  // Prepare coordinator
+  for (let i = 0; i < oracles.length; i++) {
+    await setupRROracle(rRCoordinator.contract, oracles[i].address)
+  }
+
+  //send balance for endpoint contract
+  //deposit
+  await registry.contract.deposit(registrAccount, { value: parseKlay('1') })
+  const accBalance = await registry.contract.getBalance(registrAccount)
+  expect(accBalance).to.be.equal(parseKlay('1'))
+
+  // Request random words
+  const l2RequestId = 1
+  const txRequestData = await (
+    await endpoint.contract[requestFnName](
+      registrAccount,
+      callbackGasLimit,
+      numSubmission,
+      endpoint.signer.address,
+      l2RequestId
+    )
+  ).wait()
+
+  expect(txRequestData.events.length).to.be.equal(5)
+  const requestEvent = endpoint.contract.interface.parseLog(txRequestData.events[4])
+  expect(requestEvent.name).to.be.equal('DataRequested')
+
+  // Fulfill data //////////////////////////////////////////////////////////////
+  const requestEventData = rRCoordinator.contract.interface.parseLog(txRequestData.events[2])
+  const { jobId, accId, sender, requestId } = requestEventData.args
+  const isDirectPayment = true
+  const requestCommitment = {
+    blockNum: txRequestData.blockNumber,
+    accId,
+    callbackGasLimit,
+    numSubmission,
+    sender,
+    isDirectPayment,
+    jobId
+  }
+
+  let fulfillReceipt
+  for (let i = 0; i < numSubmission; i++) {
+    fulfillReceipt = await (
+      await rRCoordinator.contract
+        .connect(oracles[i])
+        [fulfillFnName](requestId, fulfillValue[i], requestCommitment)
+    ).wait()
+  }
+
+  const responseValue = aggregateSubmissions(fulfillValue, dataType)
+
+  // Verify Fulfillment
+  await verifyFulfillment(prepayment, endpoint, fulfillReceipt, accId, responseValue)
+}
+
 async function deploy() {
   const {
     account0: deployerSigner,
@@ -113,6 +246,11 @@ async function deploy() {
     contract: coordinatorContract,
     signer: deployerSigner
   }
+  await addCoordinator(prepayment.contract, prepayment.signer, coordinator.contract.address)
+
+  const rRCoordinatorContract = await deployCoordinator(prepayment.contract.address, deployerSigner)
+  const rRCoordinator = { contract: rRCoordinatorContract, signer: deployerSigner }
+  await addCoordinator(prepayment.contract, prepayment.signer, rRCoordinator.contract.address)
 
   // registry
 
@@ -145,10 +283,10 @@ async function deploy() {
   })
   endpointContract = await endpointContract.deploy(
     coordinatorContract.address,
-    registryContract.address
+    registryContract.address,
+    rRCoordinatorContract.address
   )
   await endpointContract.deployed()
-
   await endpointContract.addOracle(deployerSigner.address)
 
   //add endpoint for registry
@@ -167,6 +305,7 @@ async function deploy() {
   return {
     prepayment,
     coordinator,
+    rRCoordinator,
     endpoint,
     registry,
     account2,
@@ -194,7 +333,6 @@ describe('L1Endpoint', function () {
     const {
       endpoint,
       coordinator,
-      prepayment,
       registry,
       account2: oracle,
       account3: unregisteredOracle,
@@ -205,7 +343,6 @@ describe('L1Endpoint', function () {
 
     // Prepare coordinator
     await setupOracle(coordinator.contract, oracle.address)
-    await addCoordinator(prepayment.contract, prepayment.signer, coordinator.contract.address)
 
     //send balance for endpoint contract
     //deposit
@@ -264,5 +401,107 @@ describe('L1Endpoint', function () {
     const fulfillEvent = endpoint.contract.interface.parseLog(txFulfillRandomWords.events[0])
     expect(fulfillEvent.name).to.be.equal('RandomWordFulfilled')
     expect(fulfillEvent.args.sender).to.be.equal(endpoint.signer.address)
+  })
+
+  it('Request & Fulfill Uint128', async function () {
+    const requestFnName = 'requestDataUint128'
+    const fulfillFnName = 'fulfillDataRequestUint128'
+    const fulfillValue = [1]
+    const fulfillEventName = 'DataRequestFulfilledUint128'
+    const dataType = 'uint128'
+    const numSubmission = 1
+    await requestAndFulfill(
+      requestFnName,
+      fulfillFnName,
+      fulfillValue,
+      fulfillEventName,
+      dataType,
+      numSubmission
+    )
+  })
+
+  it('Request & Fulfill Int256', async function () {
+    const requestFnName = 'requestDataInt256'
+    const fulfillFnName = 'fulfillDataRequestInt256'
+    const fulfillValue = [1]
+    const fulfillEventName = 'DataRequestFulfilledInt256'
+    const dataType = 'int256'
+    const numSubmission = 1
+    await requestAndFulfill(
+      requestFnName,
+      fulfillFnName,
+      fulfillValue,
+      fulfillEventName,
+      dataType,
+      numSubmission
+    )
+  })
+
+  it('Request & Fulfill Bool', async function () {
+    const requestFnName = 'requestDataBool'
+    const fulfillFnName = 'fulfillDataRequestBool'
+    const fulfillValue = [true]
+    const fulfillEventName = 'DataRequestFulfilledBool'
+    const dataType = 'bool'
+    const numSubmission = 1
+    await requestAndFulfill(
+      requestFnName,
+      fulfillFnName,
+      fulfillValue,
+      fulfillEventName,
+      dataType,
+      numSubmission
+    )
+  })
+
+  it('Request & Fulfill String', async function () {
+    const requestFnName = 'requestDataString'
+    const fulfillFnName = 'fulfillDataRequestString'
+    const fulfillValue = ['hello']
+    const fulfillEventName = 'DataRequestFulfilledString'
+    const dataType = 'string'
+    const numSubmission = 1
+    await requestAndFulfill(
+      requestFnName,
+      fulfillFnName,
+      fulfillValue,
+      fulfillEventName,
+      dataType,
+      numSubmission
+    )
+  })
+
+  it('Request & Fulfill Bytes32', async function () {
+    const requestFnName = 'requestDataBytes32'
+    const fulfillFnName = 'fulfillDataRequestBytes32'
+    const fulfillValue = [ethers.utils.formatBytes32String('hello')]
+    const fulfillEventName = 'DataRequestFulfilledBytes32'
+    const dataType = 'bytes32'
+    const numSubmission = 1
+    await requestAndFulfill(
+      requestFnName,
+      fulfillFnName,
+      fulfillValue,
+      fulfillEventName,
+      dataType,
+      numSubmission
+    )
+  })
+
+  it('Request & Fulfill Bytes', async function () {
+    const requestFnName = 'requestDataBytes'
+    const fulfillFnName = 'fulfillDataRequestBytes'
+    const fulfillValue = ['0x1234']
+    const fulfillEventName = 'DataRequestFulfilledBytes'
+    const dataType = 'bytes'
+    const numSubmission = 1
+    await requestAndFulfill(
+      requestFnName,
+      fulfillFnName,
+      fulfillValue,
+      fulfillEventName,
+      dataType,
+      numSubmission
+    )
   })
 })
