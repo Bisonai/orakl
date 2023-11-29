@@ -1,7 +1,7 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common'
-import { ReporterService } from './reporter.service'
+import { Body, Controller, Delete, Get, Param, Patch, Post } from '@nestjs/common'
 import { CreateReporterDto } from './dto/create-reporter.dto'
 import { UpdateReporterDto } from './dto/update-reporter.dto'
+import { ReporterService } from './reporter.service'
 
 @Controller({
   path: 'reporter',

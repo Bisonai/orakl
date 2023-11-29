@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common'
-import { ReporterService } from './reporter.service'
-import { ReporterController } from './reporter.controller'
 import { PrismaService } from '../prisma.service'
+import { ReporterController } from './reporter.controller'
+import { ReporterService } from './reporter.service'
 
 @Module({
   controllers: [ReporterController],

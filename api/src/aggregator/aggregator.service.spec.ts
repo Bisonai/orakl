@@ -1,9 +1,9 @@
 import { Test, TestingModule } from '@nestjs/testing'
-import { AggregatorService } from './aggregator.service'
-import { ChainService } from '../chain/chain.service'
-import { AdapterService } from '../adapter/adapter.service'
-import { PrismaService } from '../prisma.service'
 import { PrismaClient } from '@prisma/client'
+import { AdapterService } from '../adapter/adapter.service'
+import { ChainService } from '../chain/chain.service'
+import { PrismaService } from '../prisma.service'
+import { AggregatorService } from './aggregator.service'
 
 describe('AggregatorService', () => {
   let aggregator: AggregatorService

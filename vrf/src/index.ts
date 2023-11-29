@@ -12,9 +12,9 @@ if (pkg == undefined) {
 const elliptic = ellipticPkg
 
 import { BN } from 'bn.js'
-import { createHmac, createHash } from 'crypto'
-import { IVrfConfig, IVrfResponse } from './types'
+import { createHash, createHmac } from 'crypto'
 import { VrfError, VrfErrorCode } from './errors.js'
+import { IVrfConfig, IVrfResponse } from './types'
 
 const EC = new elliptic.ec('secp256k1')
 const suite_string = [0xfe] //ECVRF-SECP256K1-SHA256-TAI

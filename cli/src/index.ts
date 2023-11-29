@@ -1,17 +1,16 @@
 #!/usr/bin/env node --no-warnings --experimental-specifier-resolution=node
 
-import { command } from 'cmd-ts'
-import { chainSub } from './chain'
-import { serviceSub } from './service'
-import { listenerSub } from './listener'
-import { vrfSub } from './vrf'
+import { binary, command, run, subcommands } from 'cmd-ts'
 import { adapterSub } from './adapter'
 import { aggregatorSub } from './aggregator'
-import { fetcherSub } from './fetcher'
-import { reporterSub } from './reporter'
+import { chainSub } from './chain'
 import { delegatorSub } from './delegator'
+import { fetcherSub } from './fetcher'
+import { listenerSub } from './listener'
 import { proxySub } from './proxy'
-import { binary, subcommands, run } from 'cmd-ts'
+import { reporterSub } from './reporter'
+import { serviceSub } from './service'
+import { vrfSub } from './vrf'
 
 async function main() {
   const chain = chainSub()

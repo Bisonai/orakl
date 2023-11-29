@@ -1,12 +1,12 @@
 import axios from 'axios'
-import { command, subcommands, option, string as cmdstring } from 'cmd-ts'
+import { command, option, string as cmdstring, subcommands } from 'cmd-ts'
 import {
-  idOption,
-  chainOptionalOption,
-  serviceOptionalOption,
   buildUrl,
+  chainOptionalOption,
+  idOption,
   isOraklNetworkApiHealthy,
-  isServiceHealthy
+  isServiceHealthy,
+  serviceOptionalOption
 } from './utils'
 
 import { ORAKL_NETWORK_API_URL, REPORTER_SERVICE_HOST, REPORTER_SERVICE_PORT } from './settings'

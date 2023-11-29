@@ -1,4 +1,4 @@
-import { Injectable, HttpStatus, HttpException, Logger } from '@nestjs/common'
+import { HttpException, HttpStatus, Injectable, Logger } from '@nestjs/common'
 import { Prisma } from '@prisma/client'
 import { PrismaService } from '../prisma.service'
 import { CreateVrfKeyDto } from './dto/create-vrf-key.dto'

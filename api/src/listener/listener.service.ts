@@ -1,10 +1,10 @@
 import { Injectable, Logger } from '@nestjs/common'
 import { Prisma } from '@prisma/client'
+import { getChain, getService } from '../common/utils'
 import { PrismaService } from '../prisma.service'
 import { CreateListenerDto } from './dto/create-listener.dto'
 import { UpdateListenerDto } from './dto/update-listener.dto'
 import { flattenListener } from './listener.utils'
-import { getChain, getService } from '../common/utils'
 
 @Injectable()
 export class ListenerService {

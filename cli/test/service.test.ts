@@ -1,5 +1,5 @@
 import { describe, expect, test } from '@jest/globals'
-import { listHandler, insertHandler, removeHandler } from '../src/service'
+import { insertHandler, listHandler, removeHandler } from '../src/service'
 
 describe('CLI Service', function () {
   test.skip('Should list service', async function () {

@@ -1,22 +1,22 @@
 import {
-  Query,
-  Logger,
-  Controller,
-  Get,
-  Post,
-  Patch,
   Body,
+  Controller,
   Delete,
-  Param,
+  Get,
+  HttpException,
   HttpStatus,
-  HttpException
+  Logger,
+  Param,
+  Patch,
+  Post,
+  Query
 } from '@nestjs/common'
-import { AggregatorService } from './aggregator.service'
 import { ChainService } from '../chain/chain.service'
-import { AggregatorDto } from './dto/aggregator.dto'
+import { AggregatorService } from './aggregator.service'
+import { IAggregator } from './aggregator.types'
 import { AggregatorQueryDto } from './dto/aggregator-query.dto'
 import { AggregatorUpdateDto } from './dto/aggregator-update.dto'
-import { IAggregator } from './aggregator.types'
+import { AggregatorDto } from './dto/aggregator.dto'
 
 @Controller({
   path: 'aggregator',

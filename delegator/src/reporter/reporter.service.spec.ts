@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing'
-import { ReporterService } from './reporter.service'
-import { PrismaService } from '../prisma.service'
 import { PrismaClient } from '@prisma/client'
+import { PrismaService } from '../prisma.service'
+import { ReporterService } from './reporter.service'
 
 describe('ReporterService', () => {
   let reporter: ReporterService

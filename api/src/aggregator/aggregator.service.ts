@@ -1,10 +1,10 @@
-import { Injectable, HttpStatus, HttpException, Logger } from '@nestjs/common'
+import { HttpException, HttpStatus, Injectable, Logger } from '@nestjs/common'
 import { Prisma } from '@prisma/client'
 import { ethers } from 'ethers'
-import { PrismaService } from '../prisma.service'
-import { AggregatorDto } from './dto/aggregator.dto'
-import { IAggregator } from './aggregator.types'
 import { PRISMA_ERRORS } from '../errors'
+import { PrismaService } from '../prisma.service'
+import { IAggregator } from './aggregator.types'
+import { AggregatorDto } from './dto/aggregator.dto'
 
 @Injectable()
 export class AggregatorService {

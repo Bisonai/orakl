@@ -1,5 +1,5 @@
 import { describe, expect, test } from '@jest/globals'
-import { listHandler, insertHandler, removeHandler } from '../src/adapter'
+import { insertHandler, listHandler, removeHandler } from '../src/adapter'
 
 describe('CLI Adapter', function () {
   const ADAPTER = {

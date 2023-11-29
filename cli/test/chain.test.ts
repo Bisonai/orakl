@@ -1,5 +1,5 @@
 import { describe, expect, test } from '@jest/globals'
-import { listHandler, insertHandler, removeHandler } from '../src/chain'
+import { insertHandler, listHandler, removeHandler } from '../src/chain'
 
 describe('CLI Chain', function () {
   test.skip('Should list chain', async function () {

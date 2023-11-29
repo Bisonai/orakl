@@ -1,6 +1,6 @@
-import { Controller, Get, Post, Body, Param } from '@nestjs/common'
-import { ErrorService } from './error.service'
+import { Body, Controller, Get, Param, Post } from '@nestjs/common'
 import { ErrorDto } from './dto/error.dto'
+import { ErrorService } from './error.service'
 
 @Controller({
   path: 'error',

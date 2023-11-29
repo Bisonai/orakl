@@ -1,7 +1,7 @@
 import axios from 'axios'
-import { command, option, subcommands, string as cmdstring, number as cmdnumber } from 'cmd-ts'
-import { buildUrl, idOption, isOraklDelegatorHealthy } from './utils'
+import { command, number as cmdnumber, option, string as cmdstring, subcommands } from 'cmd-ts'
 import { ORAKL_NETWORK_DELEGATOR_URL } from './settings'
+import { buildUrl, idOption, isOraklDelegatorHealthy } from './utils'
 
 export function delegatorSub() {
   // delegator sign

@@ -1,8 +1,8 @@
-import { Module } from '@nestjs/common'
 import { BullModule } from '@nestjs/bullmq'
-import { JobProcessor } from './job.processor'
-import { JobController } from './job.controller'
+import { Module } from '@nestjs/common'
 import { DEVIATION_QUEUE_NAME, FETCHER_QUEUE_NAME } from 'src/settings'
+import { JobController } from './job.controller'
+import { JobProcessor } from './job.processor'
 
 @Module({
   imports: [

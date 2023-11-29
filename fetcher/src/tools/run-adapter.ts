@@ -1,5 +1,5 @@
-import { fetchData, aggregateData } from '../job/job.utils'
 import { IAdapter } from '../job/job.types'
+import { aggregateData, fetchData } from '../job/job.utils'
 
 // runs job through local adapter json file
 // example: npx ts-node ./src/tools/run-adapter.ts ./ada-usdt.adapter.json
