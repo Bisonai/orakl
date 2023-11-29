@@ -247,7 +247,7 @@ export async function shouldReport(
   const latestSubmission = Number((await contract.latestRoundData()).answer)
 
   if (latestSubmission && currentSubmission && threshold) {
-    // Check deviation threashold
+    // Check deviation threshold
     const range = latestSubmission * threshold
     const l = latestSubmission - range
     const r = latestSubmission + range
