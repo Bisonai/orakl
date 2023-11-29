@@ -1,6 +1,6 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common'
-import { ProxyService } from './proxy.service'
+import { Body, Controller, Delete, Get, Param, Patch, Post } from '@nestjs/common'
 import { ProxyDto } from './dto/proxy'
+import { ProxyService } from './proxy.service'
 
 @Controller({
   path: 'proxy',

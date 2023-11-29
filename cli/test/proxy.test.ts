@@ -1,5 +1,5 @@
 import { describe, expect, test } from '@jest/globals'
-import { listHandler, insertHandler, removeHandler } from '../src/proxy'
+import { insertHandler, listHandler, removeHandler } from '../src/proxy'
 
 const proxyData = {
   protocol: 'http',

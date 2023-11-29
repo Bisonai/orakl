@@ -1,22 +1,22 @@
 import axios from 'axios'
 import {
-  flag,
+  boolean as cmdboolean,
   command,
-  subcommands,
+  flag,
   option,
   string as cmdstring,
-  boolean as cmdboolean
+  subcommands
 } from 'cmd-ts'
-import {
-  chainOptionalOption,
-  idOption,
-  buildUrl,
-  isOraklNetworkApiHealthy,
-  isServiceHealthy,
-  fetcherTypeOptionalOption
-} from './utils'
-import { ReadFile, IAggregator } from './cli-types'
+import { IAggregator, ReadFile } from './cli-types'
 import { ORAKL_NETWORK_API_URL, WORKER_SERVICE_HOST, WORKER_SERVICE_PORT } from './settings'
+import {
+  buildUrl,
+  chainOptionalOption,
+  fetcherTypeOptionalOption,
+  idOption,
+  isOraklNetworkApiHealthy,
+  isServiceHealthy
+} from './utils'
 
 const AGGREGATOR_ENDPOINT = buildUrl(ORAKL_NETWORK_API_URL, 'aggregator')
 

@@ -1,5 +1,5 @@
-import { describe, expect, beforeEach, test } from '@jest/globals'
-import { prove, verify, getFastVerifyComponents } from '../src/index'
+import { beforeEach, describe, expect, test } from '@jest/globals'
+import { getFastVerifyComponents, prove, verify } from '../src/index'
 
 // The following tests are used to make sure that the original
 // implementation was not affected during refactoring.

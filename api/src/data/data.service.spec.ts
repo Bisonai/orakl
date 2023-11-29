@@ -1,10 +1,10 @@
 import { Test, TestingModule } from '@nestjs/testing'
+import { PrismaClient } from '@prisma/client'
+import { AdapterService } from '../adapter/adapter.service'
 import { AggregatorService } from '../aggregator/aggregator.service'
 import { ChainService } from '../chain/chain.service'
-import { AdapterService } from '../adapter/adapter.service'
-import { DataService } from './data.service'
 import { PrismaService } from '../prisma.service'
-import { PrismaClient } from '@prisma/client'
+import { DataService } from './data.service'
 
 describe('DataService', () => {
   let aggregator: AggregatorService

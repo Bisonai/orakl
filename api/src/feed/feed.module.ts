@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common'
-import { FeedService } from './feed.service'
-import { FeedController } from './feed.controller'
 import { PrismaService } from '../prisma.service'
+import { FeedController } from './feed.controller'
+import { FeedService } from './feed.service'
 
 @Module({
   controllers: [FeedController],

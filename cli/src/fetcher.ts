@@ -1,7 +1,7 @@
 import axios from 'axios'
-import { command, subcommands, option, string as cmdstring } from 'cmd-ts'
-import { buildFetcherUrl, buildUrl, isOraklFetcherHealthy } from './utils'
+import { command, option, string as cmdstring, subcommands } from 'cmd-ts'
 import { FETCHER_API_VERSION, FETCHER_HOST, FETCHER_PORT } from './settings'
+import { buildFetcherUrl, buildUrl, isOraklFetcherHealthy } from './utils'
 
 export function fetcherSub() {
   // fetcher active --host ${host} --port ${port}

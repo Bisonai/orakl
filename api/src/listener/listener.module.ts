@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common'
-import { ListenerService } from './listener.service'
-import { ListenerController } from './listener.controller'
 import { PrismaService } from '../prisma.service'
+import { ListenerController } from './listener.controller'
+import { ListenerService } from './listener.service'
 
 @Module({
   controllers: [ListenerController],

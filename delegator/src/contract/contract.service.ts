@@ -2,8 +2,8 @@ import { Injectable } from '@nestjs/common'
 import { Prisma } from '@prisma/client'
 import { PrismaService } from '../prisma.service'
 import { flattenContract } from './contract.utils'
-import { ContractDto } from './dto/contract.dto'
 import { ContractConnectDto } from './dto/contract-connect.dto'
+import { ContractDto } from './dto/contract.dto'
 
 @Injectable()
 export class ContractService {

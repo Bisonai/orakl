@@ -1,11 +1,11 @@
 import { InjectQueue, Processor, WorkerHost } from '@nestjs/bullmq'
 import { Logger } from '@nestjs/common'
 import { Job, Queue } from 'bullmq'
-import { FetcherError, FetcherErrorCode } from './job.errors'
-import { fetchData, aggregateData, shouldReport } from './job.utils'
-import { insertMultipleData, insertAggregateData, fetchDataFeed } from './job.api'
 import { DEVIATION_QUEUE_NAME, FETCHER_QUEUE_NAME, WORKER_OPTS } from '../settings'
+import { fetchDataFeed, insertAggregateData, insertMultipleData } from './job.api'
+import { FetcherError, FetcherErrorCode } from './job.errors'
 import { IDeviationData } from './job.types'
+import { aggregateData, fetchData, shouldReport } from './job.utils'
 
 @Processor(FETCHER_QUEUE_NAME, WORKER_OPTS)
 export class JobProcessor extends WorkerHost {

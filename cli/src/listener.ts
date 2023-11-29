@@ -1,14 +1,14 @@
 import axios from 'axios'
-import { command, subcommands, option, string as cmdstring } from 'cmd-ts'
+import { command, option, string as cmdstring, subcommands } from 'cmd-ts'
+import { LISTENER_SERVICE_HOST, LISTENER_SERVICE_PORT, ORAKL_NETWORK_API_URL } from './settings'
 import {
-  idOption,
-  chainOptionalOption,
-  serviceOptionalOption,
   buildUrl,
+  chainOptionalOption,
+  idOption,
   isOraklNetworkApiHealthy,
-  isServiceHealthy
+  isServiceHealthy,
+  serviceOptionalOption
 } from './utils'
-import { ORAKL_NETWORK_API_URL, LISTENER_SERVICE_HOST, LISTENER_SERVICE_PORT } from './settings'
 
 const LISTENER_ENDPOINT = buildUrl(ORAKL_NETWORK_API_URL, 'listener')
 

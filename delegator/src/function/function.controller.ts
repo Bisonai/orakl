@@ -1,6 +1,6 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common'
-import { FunctionService } from './function.service'
+import { Body, Controller, Delete, Get, Param, Patch, Post } from '@nestjs/common'
 import { FunctionDto } from './dto/function.dto'
+import { FunctionService } from './function.service'
 
 @Controller({ path: 'function', version: '1' })
 export class FunctionController {

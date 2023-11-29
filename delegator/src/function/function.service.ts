@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common'
 import { Prisma } from '@prisma/client'
+import Caver from 'caver-js'
 import { PrismaService } from '../prisma.service'
 import { FunctionDto } from './dto/function.dto'
-import Caver from 'caver-js'
 import { flattenFunction } from './functions.utils'
 
 @Injectable()

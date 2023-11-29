@@ -1,9 +1,9 @@
-import { Injectable, HttpException, HttpStatus, Logger } from '@nestjs/common'
+import { HttpException, HttpStatus, Injectable, Logger } from '@nestjs/common'
 import { Prisma } from '@prisma/client'
+import { ethers } from 'ethers'
+import { PRISMA_ERRORS } from '../errors'
 import { PrismaService } from '../prisma.service'
 import { AdapterDto } from './dto/adapter.dto'
-import { PRISMA_ERRORS } from '../errors'
-import { ethers } from 'ethers'
 @Injectable()
 export class AdapterService {
   private readonly logger = new Logger(AdapterService.name)

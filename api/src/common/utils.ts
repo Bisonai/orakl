@@ -1,4 +1,4 @@
-import { HttpStatus, HttpException, Logger } from '@nestjs/common'
+import { HttpException, HttpStatus, Logger } from '@nestjs/common'
 
 /**
  * Find chain given `chainName`.

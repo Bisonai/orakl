@@ -1,5 +1,5 @@
 import { describe, expect, test } from '@jest/globals'
-import { listHandler, insertHandler, removeHandler } from '../src/vrf'
+import { insertHandler, listHandler, removeHandler } from '../src/vrf'
 
 describe('CLI Vrf', function () {
   const VRF = {

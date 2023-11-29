@@ -1,5 +1,4 @@
-import { ethers } from 'hardhat'
-import hre from 'hardhat'
+import hre, { ethers } from 'hardhat'
 
 async function main() {
   const { network } = hre

@@ -1,5 +1,5 @@
 import { describe, expect, test } from '@jest/globals'
-import { listHandler, insertHandler, removeHandler } from '../src/aggregator'
+import { insertHandler, listHandler, removeHandler } from '../src/aggregator'
 
 describe('CLI Aggregator', function () {
   const AGGREGATOR = {

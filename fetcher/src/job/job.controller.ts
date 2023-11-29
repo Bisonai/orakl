@@ -1,16 +1,16 @@
-import { Controller, Get, Body, Param, HttpStatus, HttpException, Logger } from '@nestjs/common'
 import { InjectQueue } from '@nestjs/bullmq'
+import { Body, Controller, Get, HttpException, HttpStatus, Logger, Param } from '@nestjs/common'
 import { Queue } from 'bullmq'
-import { extractFeeds } from './job.utils'
+import { FETCHER_QUEUE_NAME, FETCHER_TYPE, FETCH_FREQUENCY } from '../settings'
 import {
-  loadAggregator,
   activateAggregator,
   deactivateAggregator,
   loadActiveAggregators,
+  loadAggregator,
   loadProxies
 } from './job.api'
-import { FETCHER_QUEUE_NAME, FETCH_FREQUENCY, FETCHER_TYPE } from '../settings'
 import { IProxy } from './job.types'
+import { extractFeeds } from './job.utils'
 
 @Controller({
   version: '1'
