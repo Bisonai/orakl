@@ -91,6 +91,7 @@
     "moment": "^2.29.4",
     "prettier": "^2.8.1",
     "prettier-plugin-solidity": "^1.1.2",
+    "prettier-plugin-organize-imports": "^3.2.3",
     "solhint": "^3.3.7",
     "solhint-plugin-prettier": "^0.0.5",
     "solidity-coverage": "^0.7.21",
