@@ -282,8 +282,8 @@ async function deploy() {
     signer: deployerSigner
   })
   endpointContract = await endpointContract.deploy(
-    coordinatorContract.address,
     registryContract.address,
+    coordinatorContract.address,
     rRCoordinatorContract.address
   )
   await endpointContract.deployed()
