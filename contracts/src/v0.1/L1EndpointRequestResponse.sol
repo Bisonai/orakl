@@ -41,7 +41,7 @@ abstract contract L1EndpointRequestResponse is
         address sender,
         uint256 l2RequestId,
         Orakl.Request memory req
-    ) internal returns (uint256) {
+    ) public returns (uint256) {
         uint64 reqCount = 0;
         uint256 fee = COORDINATOR.estimateFee(reqCount, 1, callbackGasLimit);
         pay(accId, sender, fee);
@@ -54,128 +54,6 @@ abstract contract L1EndpointRequestResponse is
         sRequest[id] = RequestDetail(l2RequestId, sender, callbackGasLimit);
         emit DataRequested(id, sender);
         return id;
-    }
-
-    //request data
-    function requestDataUint128(
-        uint64 accId,
-        uint32 callbackGasLimit,
-        uint8 numSubmission,
-        address sender,
-        uint256 l2RequestId
-    ) public returns (uint256 requestId) {
-        bytes32 jobId = keccak256(abi.encodePacked("uint128"));
-        Orakl.Request memory req = buildRequest(jobId);
-        //change here for your expected data
-        req.add(
-            "get",
-            "https://min-api.cryptocompare.com/data/pricemultifull?fsyms=KLAY&tsyms=USD"
-        );
-        req.add("path", "RAW,KLAY,USD,PRICE");
-        req.add("pow10", "8");
-
-        requestId = requestData(accId, callbackGasLimit, numSubmission, sender, l2RequestId, req);
-    }
-
-    // request for int256
-    function requestDataInt256(
-        uint64 accId,
-        uint32 callbackGasLimit,
-        uint8 numSubmission,
-        address sender,
-        uint256 l2RequestId
-    ) public returns (uint256 requestId) {
-        bytes32 jobId = keccak256(abi.encodePacked("int256"));
-        Orakl.Request memory req = buildRequest(jobId);
-        //change here for your expected data
-        req.add(
-            "get",
-            "https://min-api.cryptocompare.com/data/pricemultifull?fsyms=KLAY&tsyms=USD"
-        );
-        req.add("path", "RAW,KLAY,USD,PRICE");
-        req.add("pow10", "8");
-
-        requestId = requestData(accId, callbackGasLimit, numSubmission, sender, l2RequestId, req);
-    }
-
-    // request for bool
-    function requestDataBool(
-        uint64 accId,
-        uint32 callbackGasLimit,
-        uint8 numSubmission,
-        address sender,
-        uint256 l2RequestId
-    ) public returns (uint256 requestId) {
-        bytes32 jobId = keccak256(abi.encodePacked("bool"));
-        Orakl.Request memory req = buildRequest(jobId);
-        req.add(
-            "get",
-            "https://min-api.cryptocompare.com/data/pricemultifull?fsyms=KLAY&tsyms=USD"
-        );
-        req.add("path", "RAW,KLAY,USD,PRICE");
-        req.add("pow10", "8");
-
-        requestId = requestData(accId, callbackGasLimit, numSubmission, sender, l2RequestId, req);
-    }
-
-    // request for string
-    function requestDataString(
-        uint64 accId,
-        uint32 callbackGasLimit,
-        uint8 numSubmission,
-        address sender,
-        uint256 l2RequestId
-    ) public returns (uint256 requestId) {
-        bytes32 jobId = keccak256(abi.encodePacked("string"));
-        Orakl.Request memory req = buildRequest(jobId);
-        req.add(
-            "get",
-            "https://min-api.cryptocompare.com/data/pricemultifull?fsyms=KLAY&tsyms=USD"
-        );
-        req.add("path", "RAW,KLAY,USD,PRICE");
-        req.add("pow10", "8");
-
-        requestId = requestData(accId, callbackGasLimit, numSubmission, sender, l2RequestId, req);
-    }
-
-    // request for bytes32
-    function requestDataBytes32(
-        uint64 accId,
-        uint32 callbackGasLimit,
-        uint8 numSubmission,
-        address sender,
-        uint256 l2RequestId
-    ) public returns (uint256 requestId) {
-        bytes32 jobId = keccak256(abi.encodePacked("bytes32"));
-        Orakl.Request memory req = buildRequest(jobId);
-        req.add(
-            "get",
-            "https://min-api.cryptocompare.com/data/pricemultifull?fsyms=KLAY&tsyms=USD"
-        );
-        req.add("path", "RAW,KLAY,USD,PRICE");
-        req.add("pow10", "8");
-
-        requestId = requestData(accId, callbackGasLimit, numSubmission, sender, l2RequestId, req);
-    }
-
-    // request for bytes
-    function requestDataBytes(
-        uint64 accId,
-        uint32 callbackGasLimit,
-        uint8 numSubmission,
-        address sender,
-        uint256 l2RequestId
-    ) public returns (uint256 requestId) {
-        bytes32 jobId = keccak256(abi.encodePacked("bytes"));
-        Orakl.Request memory req = buildRequest(jobId);
-        req.add(
-            "get",
-            "https://min-api.cryptocompare.com/data/pricemultifull?fsyms=KLAY&tsyms=USD"
-        );
-        req.add("path", "RAW,KLAY,USD,PRICE");
-        req.add("pow10", "8");
-
-        requestId = requestData(accId, callbackGasLimit, numSubmission, sender, l2RequestId, req);
     }
 
     function fulfillDataRequest(uint256 requestId, uint128 response) internal override {
