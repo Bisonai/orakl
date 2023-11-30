@@ -8,6 +8,8 @@ import { ethers } from 'ethers'
 import { Aggregator__factory } from '@bisonai/orakl-contracts'
 import { PROVIDER } from 'src/settings'
 
+let contractMap = new Map<string, ethers.Contract>()
+
 export function buildUrl(host: string, path: string) {
   const url = [host, path].join('/')
   return url.replace(/([^:]\/)\/+/g, '$1')
@@ -238,13 +240,14 @@ export function extractFeeds(
  */
 
 export async function shouldReport(
-  aggregatorAddress: string,
+  oracleAddress: string,
   currentSubmission: number,
   threshold: number,
   absoluteThreshold: number
 ): Promise<boolean> {
-  const contract = new ethers.Contract(aggregatorAddress, Aggregator__factory.abi, PROVIDER)
-  const latestSubmission = Number((await contract.latestRoundData()).answer)
+  const contract = await getContractFromMap(oracleAddress)
+  const latestRoundData = await contract.latestRoundData()
+  const latestSubmission = Number(latestRoundData.answer)
 
   if (latestSubmission && currentSubmission && threshold) {
     // Check deviation threshold
@@ -258,5 +261,21 @@ export async function shouldReport(
   } else {
     // Something strange happened, don't report!
     return false
+  }
+}
+
+export async function addContractToMap(address: string) {
+  if (!contractMap.has(address)) {
+    const contract = new ethers.Contract(address, Aggregator__factory.abi, PROVIDER)
+    contractMap.set(address, contract)
+  }
+}
+
+export async function getContractFromMap(address: string) {
+  if (contractMap.has(address)) {
+    return contractMap.get(address)
+  } else {
+    await addContractToMap(address)
+    return contractMap.get(address)
   }
 }

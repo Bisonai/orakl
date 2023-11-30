@@ -2,13 +2,10 @@ import { InjectQueue, Processor, WorkerHost } from '@nestjs/bullmq'
 import { Logger } from '@nestjs/common'
 import { Job, Queue } from 'bullmq'
 import { FetcherError, FetcherErrorCode } from './job.errors'
-import { fetchData, aggregateData, shouldReport } from './job.utils'
+import { fetchData, aggregateData, shouldReport, getContractFromMap } from './job.utils'
 import { insertMultipleData, insertAggregateData, fetchDataFeed } from './job.api'
 import { DEVIATION_QUEUE_NAME, FETCHER_QUEUE_NAME, WORKER_OPTS } from '../settings'
 import { IDeviationData } from './job.types'
-import { Aggregator__factory } from '@bisonai/orakl-contracts'
-import { ethers } from 'ethers'
-import { PROVIDER } from 'src/settings'
 
 @Processor(FETCHER_QUEUE_NAME, WORKER_OPTS)
 export class JobProcessor extends WorkerHost {
@@ -44,12 +41,16 @@ export class JobProcessor extends WorkerHost {
         })
         this.logger.debug(response)
 
-        const contract = new ethers.Contract(oracleAddress, Aggregator__factory.abi, PROVIDER)
+        const contract = await getContractFromMap(oracleAddress)
         const queriedRoundId = 0
         const state = await contract.oracleRoundState(oracleAddress, queriedRoundId)
-        const roundId = state._roundId
+        const roundId = Number(state._roundId)
 
-        if (roundId > 1 && shouldReport(oracleAddress, aggregate, threshold, absoluteThreshold)) {
+        if (
+          roundId > 1 &&
+          (await shouldReport(oracleAddress, aggregate, threshold, absoluteThreshold))
+        ) {
+          console.log('Should report from JobProcessor')
           const outData: IDeviationData = {
             timestamp: timestamp,
             submission: aggregate,

@@ -1,7 +1,7 @@
 import { Controller, Get, Body, Param, HttpStatus, HttpException, Logger } from '@nestjs/common'
 import { InjectQueue } from '@nestjs/bullmq'
 import { Queue } from 'bullmq'
-import { extractFeeds } from './job.utils'
+import { addContractToMap, extractFeeds } from './job.utils'
 import {
   loadAggregator,
   activateAggregator,
@@ -25,6 +25,10 @@ export class JobController {
     const chain = process.env.CHAIN
     const activeAggregators = await this.activeAggregators()
     for (const aggregator of activeAggregators) {
+      console.log('Aggregator: ', aggregator)
+      // Add contract to Aggregators Contract Map
+      await addContractToMap(aggregator.address)
+
       await this.startFetcher({ aggregatorHash: aggregator.aggregatorHash, chain, isInitial: true })
     }
   }
@@ -83,6 +87,8 @@ export class JobController {
       this.logger.error(msg)
       throw new HttpException(msg, HttpStatus.BAD_REQUEST)
     }
+
+    await addContractToMap(aggregator.address)
 
     const feeds = extractFeeds(
       aggregator.adapter,
