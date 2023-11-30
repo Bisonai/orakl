@@ -32,28 +32,14 @@ abstract contract L1EndpointVRF is L1EndpointBase {
         bytes32 keyHash,
         uint32 callbackGasLimit,
         uint32 numWords,
-        uint256 accId,
+        uint64 accId,
         address sender,
         uint256 l2RequestId
     ) public returns (uint256) {
-        if (!sOracles[msg.sender]) {
-            revert OnlyOracle();
-        }
-        //check consumer and balance
-        bool isValidConsumer = REGISTRY.isValidConsumer(accId, sender);
-        if (!isValidConsumer) {
-            revert ConsumerValid();
-        }
-        uint256 balance = REGISTRY.getBalance(accId);
         uint64 reqCount = 0;
         uint8 numSubmission = 1;
         uint256 fee = VRFCOORDINATOR.estimateFee(reqCount, numSubmission, callbackGasLimit);
-        if (balance < fee) {
-            revert InsufficientBalance();
-        }
-
-        //decrease balance
-        REGISTRY.decreaseBalance(accId, fee);
+        pay(accId, sender, fee);
         uint256 requestId = VRFCOORDINATOR.requestRandomWords{value: fee}(
             keyHash,
             callbackGasLimit,

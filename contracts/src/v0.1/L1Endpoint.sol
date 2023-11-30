@@ -13,12 +13,12 @@ contract L1Endpoint is Ownable, L1EndpointBase, L1EndpointVRF, L1EndpointRequest
     event OracleRemoved(address oracle);
 
     constructor(
-        address vrfCoordinator,
         address registryAddress,
+        address vrfCoordinator,
         address requestResponseCoordinator
     )
-        L1EndpointVRF(vrfCoordinator)
         L1EndpointBase(registryAddress)
+        L1EndpointVRF(vrfCoordinator)
         L1EndpointRequestResponse(requestResponseCoordinator)
     {}
 

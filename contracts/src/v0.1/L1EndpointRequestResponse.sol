@@ -5,7 +5,6 @@ import "./L1EndpointBase.sol";
 import "./RequestResponseConsumerFulfill.sol";
 
 abstract contract L1EndpointRequestResponse is
-    RequestResponseConsumerBase,
     L1EndpointBase,
     RequestResponseConsumerFulfillUint128,
     RequestResponseConsumerFulfillInt256,
@@ -43,21 +42,9 @@ abstract contract L1EndpointRequestResponse is
         uint256 l2RequestId,
         Orakl.Request memory req
     ) internal returns (uint256) {
-        if (!sOracles[msg.sender]) {
-            revert OnlyOracle();
-        }
-        //check consumer and balance
-        bool isValidConsumer = REGISTRY.isValidConsumer(accId, sender);
-        if (!isValidConsumer) {
-            revert ConsumerValid();
-        }
-        uint256 balance = REGISTRY.getBalance(accId);
         uint64 reqCount = 0;
         uint256 fee = COORDINATOR.estimateFee(reqCount, 1, callbackGasLimit);
-        REGISTRY.decreaseBalance(accId, fee);
-        if (balance < fee) {
-            revert InsufficientBalance();
-        }
+        pay(accId, sender, fee);
         uint256 id = COORDINATOR.requestData{value: fee}(
             req,
             callbackGasLimit,
@@ -193,11 +180,12 @@ abstract contract L1EndpointRequestResponse is
 
     function fulfillDataRequest(uint256 requestId, uint128 response) internal override {
         bytes32 jobId = keccak256(abi.encodePacked("uint128"));
+        RequestDetail memory r = sRequest[requestId];
         emit DataRequestFulfilled(
             requestId,
-            sRequest[requestId].l2RequestId,
-            sRequest[requestId].sender,
-            sRequest[requestId].callbackGasLimit,
+            r.l2RequestId,
+            r.sender,
+            r.callbackGasLimit,
             jobId,
             response,
             0,
@@ -211,11 +199,12 @@ abstract contract L1EndpointRequestResponse is
 
     function fulfillDataRequest(uint256 requestId, int256 response) internal override {
         bytes32 jobId = keccak256(abi.encodePacked("int256"));
+        RequestDetail memory r = sRequest[requestId];
         emit DataRequestFulfilled(
             requestId,
-            sRequest[requestId].l2RequestId,
-            sRequest[requestId].sender,
-            sRequest[requestId].callbackGasLimit,
+            r.l2RequestId,
+            r.sender,
+            r.callbackGasLimit,
             jobId,
             0,
             response,
@@ -229,11 +218,12 @@ abstract contract L1EndpointRequestResponse is
 
     function fulfillDataRequest(uint256 requestId, bool response) internal override {
         bytes32 jobId = keccak256(abi.encodePacked("bool"));
+        RequestDetail memory r = sRequest[requestId];
         emit DataRequestFulfilled(
             requestId,
-            sRequest[requestId].l2RequestId,
-            sRequest[requestId].sender,
-            sRequest[requestId].callbackGasLimit,
+            r.l2RequestId,
+            r.sender,
+            r.callbackGasLimit,
             jobId,
             0,
             0,
@@ -247,11 +237,12 @@ abstract contract L1EndpointRequestResponse is
 
     function fulfillDataRequest(uint256 requestId, string memory response) internal override {
         bytes32 jobId = keccak256(abi.encodePacked("string"));
+        RequestDetail memory r = sRequest[requestId];
         emit DataRequestFulfilled(
             requestId,
-            sRequest[requestId].l2RequestId,
-            sRequest[requestId].sender,
-            sRequest[requestId].callbackGasLimit,
+            r.l2RequestId,
+            r.sender,
+            r.callbackGasLimit,
             jobId,
             0,
             0,
@@ -265,11 +256,12 @@ abstract contract L1EndpointRequestResponse is
 
     function fulfillDataRequest(uint256 requestId, bytes32 response) internal override {
         bytes32 jobId = keccak256(abi.encodePacked("bytes32"));
+        RequestDetail memory r = sRequest[requestId];
         emit DataRequestFulfilled(
             requestId,
-            sRequest[requestId].l2RequestId,
-            sRequest[requestId].sender,
-            sRequest[requestId].callbackGasLimit,
+            r.l2RequestId,
+            r.sender,
+            r.callbackGasLimit,
             jobId,
             0,
             0,
@@ -283,11 +275,12 @@ abstract contract L1EndpointRequestResponse is
 
     function fulfillDataRequest(uint256 requestId, bytes memory response) internal override {
         bytes32 jobId = keccak256(abi.encodePacked("bytes"));
+        RequestDetail memory r = sRequest[requestId];
         emit DataRequestFulfilled(
             requestId,
-            sRequest[requestId].l2RequestId,
-            sRequest[requestId].sender,
-            sRequest[requestId].callbackGasLimit,
+            r.l2RequestId,
+            r.sender,
+            r.callbackGasLimit,
             jobId,
             0,
             0,
