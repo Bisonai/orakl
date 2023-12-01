@@ -51,15 +51,8 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - name: Replace symlink with real files
-        run: |
-         rm -f ./core/src/por/job.errors.ts ./core/src/por/job.types.ts ./core/src/por/reducer.ts
-         cp ./fetcher/src/job/job.errors.ts ./core/src/por/job.errors.ts
-         cp ./fetcher/src/job/job.types.ts ./core/src/por/job.types.ts
-         cp ./fetcher/src/job/job.reducer.ts ./core/src/por/reducer.ts
-
       - name: Docker build orakl-core
-        run:  docker-compose -f core/docker-compose.build.yaml build
+        run: SERVICE_NAME=orakl-core docker-compose -f docker-compose.build.yaml build
 
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v2

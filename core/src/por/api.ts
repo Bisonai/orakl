@@ -1,10 +1,10 @@
+import { IData } from '@bisonai/orakl-fetcher/src/job/job.types'
 import axios from 'axios'
 import { Logger } from 'pino/pino'
 import { OraklError, OraklErrorCode } from '../errors'
 import { CHAIN, ORAKL_NETWORK_API_URL } from '../settings'
 import { IAggregator } from '../types'
 import { buildUrl } from '../utils'
-import { IData } from './job.types'
 
 export async function loadAggregator({
   aggregatorHash,

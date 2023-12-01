@@ -7,12 +7,10 @@ WORKDIR /app
 
 COPY package.json .
 
-COPY tsconfig.json .
+COPY yarn.lock .
 
-COPY src src
+COPY cli cli
 
-RUN yarn install
+RUN yarn cli install
 
-RUN yarn build
-
-CMD ["yarn start:prod"]
+RUN yarn cli build

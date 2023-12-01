@@ -1,6 +1,3 @@
-# node:18.12.1-alpine3.17
-#FROM node@sha256:b375b98d1dcd56f5783efdd80a4d6ff5a0d6f3ce7921ec99c17851db6cba2a93
-
 # node:18.12.1-slim
 FROM node@sha256:0c3ea57b6c560f83120801e222691d9bd187c605605185810752a19225b5e4d9
 
@@ -10,10 +7,12 @@ WORKDIR /app
 
 COPY package.json .
 
-COPY tsconfig.json .
+COPY yarn.lock .
 
-COPY src src
+COPY fetcher fetcher
 
-RUN yarn install
+COPY core core
 
-RUN npx tsc
+RUN yarn core install
+
+RUN yarn core build

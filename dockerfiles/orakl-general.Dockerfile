@@ -7,12 +7,12 @@ WORKDIR /app
 
 COPY package.json .
 
-COPY tsconfig.json .
+COPY yarn.lock .
 
-COPY src src
+COPY monitor monitor
 
-COPY migrations migrations
+RUN yarn monitor install
 
-RUN yarn install && yarn build
+RUN yarn monitor build
 
-CMD ["yarn", "start"]
+CMD ["yarn", "monitor", "start"]

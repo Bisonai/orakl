@@ -1,8 +1,0 @@
-version: '3.7'
-
-services:
-  orakl-core:
-    build:
-      context: .
-      dockerfile: src/Dockerfile
-    image: orakl-core
