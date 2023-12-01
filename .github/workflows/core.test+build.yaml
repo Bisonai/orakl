@@ -10,7 +10,7 @@ on:
 jobs:
   core-build:
     runs-on: ubuntu-latest
-    timeout-minutes: 3
+    timeout-minutes: 10
 
     steps:
       - uses: actions/checkout@v3
@@ -18,22 +18,22 @@ jobs:
         with:
           node-version: "18.12"
       - name: Install dependencies
-        run: yarn install
-        working-directory: ./core
+        run: yarn core install
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+      - name: Build workspace dependency (vrf)
+        run: yarn vrf build
+      - name: Build workspace dependency (contracts)
+        run: yarn contracts clean && yarn contracts compile && yarn contracts build
       - name: Run lint
-        run: yarn lint
-        working-directory: ./core
+        run: yarn core lint
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
       - name: Run test
-        run: yarn test
-        working-directory: ./core
+        run: yarn core test
         env:
           ORAKL_DIR: "./"
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
           CAVER_PRIVATE_KEY: ${{ secrets.CAVER_PRIVATE_KEY}}
       - name: Build package
-        run: yarn build
-        working-directory: ./core
+        run: yarn core build

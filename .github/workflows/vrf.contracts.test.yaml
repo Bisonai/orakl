@@ -21,17 +21,11 @@ jobs:
           registry-url: "https://registry.npmjs.org"
           scope: "@bisonai"
           always-auth: true
-      - run: yarn
-        working-directory: ./contracts
-      - run: yarn prettier-solidity-check
-        working-directory: ./contracts
-      - run: yarn solhint
-        working-directory: ./contracts
-      - run: yarn lint
-        working-directory: ./contracts
-      - run: npx hardhat test test/v0.1/vrf/*.cjs
-        working-directory: ./contracts
-      - run: yarn compile
-        working-directory: ./contracts
-      - run: yarn build
-        working-directory: ./contracts
+      - run: yarn contracts install
+      - run: yarn vrf build
+      - run: yarn contracts prettier-solidity-check
+      - run: yarn contracts solhint
+      - run: yarn contracts lint
+      - run: yarn contracts test-vrf
+      - run: yarn contracts compile
+      - run: yarn contracts build

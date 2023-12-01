@@ -22,24 +22,15 @@ jobs:
           registry-url: "https://registry.npmjs.org"
           scope: "@bisonai"
           always-auth: true
-      - run: yarn
-        working-directory: ./contracts
-      - run: yarn prettier-solidity-check
-        working-directory: ./contracts
-      - run: yarn solhint
-        working-directory: ./contracts
-      - run: yarn lint
-        working-directory: ./contracts
-      - run: npx hardhat test test/v0.1/non-vrf/*.cjs
-        working-directory: ./contracts
+      - run: yarn contracts install
+      - run: yarn contracts prettier-solidity-check
+      - run: yarn contracts solhint
+      - run: yarn contracts lint
+      - run: yarn vrf build
+      - run: yarn contracts clean && yarn contracts compile && yarn contracts build
+      - run: yarn contracts test-non-vrf
         env:
           L2_PROVIDER: ${{ secrets.L2_PROVIDER }}
-      - run: yarn compile
-        working-directory: ./contracts
-        env:
-          L2_PROVIDER: ${{ secrets.L2_PROVIDER }}
-      - run: yarn build
-        working-directory: ./contracts
       - name: Extract version from package.json
         uses: sergeysova/jq-action@v2
         id: packageJsonVersion
@@ -50,7 +41,6 @@ jobs:
         run: echo "VERSION=`npm view @bisonai/orakl-contracts version`" >> $GITHUB_OUTPUT
       - name: Publish package
         if: steps.packageJsonVersion.outputs.value != steps.npmPackageVersion.outputs.VERSION
-        run: yarn publish --new-version ${{ steps.packageJsonVersion.outputs.value }} --access public
-        working-directory: ./contracts
+        run: yarn contracts publish --new-version ${{ steps.packageJsonVersion.outputs.value }} --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

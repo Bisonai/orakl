@@ -68,3 +68,9 @@ yarn deploy:localhost:rr
 ```shell
 yarn deploy:localhost:aggregator
 ```
+
+### hardhat library confliction issue
+
+- Followed following example to avoid package conflict https://ethereum.stackexchange.com/questions/143246/conflict-peer-dependencies-nomicfoundation-hardhat-deploy-ethers
+- `"@nomiclabs/hardhat-ethers": "npm:hardhat-deploy-ethers@^0.3.0-beta.13"`
+- Without setting 0.3.0-beta.13 it requires to install @nomiclabs/hardhat-ethers, after setting this dependency, it fails to compile proper types.

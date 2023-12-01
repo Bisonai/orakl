@@ -26,10 +26,12 @@
   "license": "MIT",
   "scripts": {
     "prepare": "cd .. && husky install contracts/.husky",
-    "clean": "npx hardhat clean && rm -rf dist",
-    "compile": "npx hardhat compile",
+    "clean": "yarn hardhat clean && rm -rf dist",
+    "compile": "yarn hardhat compile",
     "build": "tsc",
     "test": "yarn compile && npx hardhat test --parallel",
+    "test-vrf": "yarn hardhat test test/v0.1/vrf/*.cjs --parallel",
+    "test-non-vrf": "yarn hardhat test test/v0.1/non-vrf/*.cjs --parallel",
     "coverage": "npx hardhat coverage",
     "pub": "yarn publish --access public",
     "solhint": "./node_modules/.bin/solhint -f table src/**/*.sol",
@@ -58,10 +60,14 @@
     "deploy:cypress:registry": "yarn deploy:cypress --deploy-scripts deploy/Registry",
     "deploy:cypress:por": "yarn deploy:cypress --deploy-scripts deploy/POR",
     "deploy:l2Node": "npx hardhat deploy --network l2node",
-    "deploy:l2Node:aggregator": "yarn deploy:l2Node --deploy-scripts deploy/Aggregator"
+    "deploy:l2Node:aggregator": "yarn deploy:l2Node --deploy-scripts deploy/Aggregator",
+    "request-vrf": "yarn hardhat run scripts/v0.1/vrf/integration/request-vrf.ts",
+    "get-vrf": "yarn hardhat run scripts/v0.1/vrf/integration/read-vrf.ts",
+    "request-rr": "yarn hardhat run scripts/v0.1/request-response/integration/request-data.ts",
+    "get-rr": "yarn hardhat run scripts/v0.1/request-response/integration/read-data.ts"
   },
   "devDependencies": {
-    "@bisonai/orakl-vrf": "^0.2.0",
+    "@bisonai/orakl-vrf": "*",
     "@ethersproject/abi": "^5.4.7",
     "@ethersproject/providers": "^5.4.7",
     "@nomicfoundation/hardhat-chai-matchers": "^1.0.0",
@@ -98,8 +104,5 @@
     "ts-node": ">=8.0.0",
     "typechain": "^8.1.0",
     "typescript": ">=4.5.0"
-  },
-  "resolutions": {
-    "@truffle/interface-adapter": "0.5.24"
-}
+  }
 }

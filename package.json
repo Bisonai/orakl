@@ -1,0 +1,33 @@
+{
+  "name": "root",
+  "private": true,
+  "workspaces": {
+    "packages": [
+      "api",
+      "cli",
+      "contracts",
+      "core",
+      "delegator",
+      "fetcher",
+      "l2-api",
+      "monitor",
+      "vrf"
+    ]
+  },
+  "dependencies": {},
+  "devDependencies": {},
+  "resolutions": {
+    "@truffle/interface-adapter": "0.5.24"
+  },
+  "scripts": {
+    "api": "yarn workspace @bisonai/orakl-api",
+    "cli": "yarn workspace @bisonai/orakl-cli",
+    "contracts": "yarn workspace @bisonai/orakl-contracts",
+    "core": "yarn workspace @bisonai/orakl-core",
+    "delegator": "yarn workspace @bisonai/orakl-delegator",
+    "fetcher": "yarn workspace @bisonai/orakl-fetcher",
+    "l2-api": "yarn workspace @bisonai/orakl-l2-api",
+    "monitor": "yarn workspace @bisonai/orakl-monitor",
+    "vrf": "yarn workspace @bisonai/orakl-vrf"
+  }
+}

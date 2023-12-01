@@ -10,8 +10,6 @@ WORKDIR /app
 
 COPY package.json .
 
-COPY yarn.lock .
-
 COPY tsconfig.json .
 
 COPY src src

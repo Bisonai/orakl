@@ -32,24 +32,19 @@ jobs:
         with:
           node-version: "18.12"
       - name: Install dependencies
-        run: yarn install
-        working-directory: ./api
+        run: yarn api install
       - name: Run eslint
-        run: yarn lint
-        working-directory: ./api
+        run: yarn api lint
       - name: Run test
         run: |
-          npx prisma migrate dev --name init
-          yarn test
+          yarn api prisma-migrate dev --name init
+          yarn api test
         env:
           DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/orakl-test?schema=public"
           ENCRYPT_PASSWORD: "abc123"
-        working-directory: ./api
       - name: Run e2e2 test
-        run: yarn test:e2e --forceExit
+        run: yarn api test:e2e --forceExit
         env:
           DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/orakl-test?schema=public"
-        working-directory: ./api
       - name: Build package
-        run: yarn build
-        working-directory: ./api
+        run: yarn api build
