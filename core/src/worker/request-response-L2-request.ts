@@ -7,6 +7,7 @@ import { getVrfConfig } from '../api'
 import {
   BULLMQ_CONNECTION,
   CHAIN,
+  L1_ENDPOINT,
   L2_REPORTER_REQUEST_RESPONSE_REQUEST_QUEUE_NAME,
   L2_WORKER_REQUEST_RESPONSE_REQUEST_QUEUE_NAME,
   REQUEST_RESPONSE_FULFILL_GAS_MINIMUM,
@@ -62,7 +63,7 @@ export async function job(reporterQueue: QueueType, config: IVrfConfig, _logger:
         req: inData.req
       }
 
-      const to = inData.callbackAddress
+      const to = L1_ENDPOINT
       const tx = buildTransaction(
         payloadParameters,
         to,

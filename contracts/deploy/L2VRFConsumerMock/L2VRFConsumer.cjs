@@ -1,3 +1,6 @@
+const path = require('node:path')
+const { loadJson, loadMigration, updateMigration } = require('../../scripts/v0.1/utils.cjs')
+
 const func = async function (hre) {
   const { deployments, getNamedAccounts, network } = hre
   const { deploy } = deployments

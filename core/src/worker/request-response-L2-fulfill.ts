@@ -5,6 +5,7 @@ import { Logger } from 'pino'
 import type { RedisClientType } from 'redis'
 import {
   BULLMQ_CONNECTION,
+  L2_ENDPOINT,
   L2_REPORTER_REQUEST_RESPONSE_FULFILL_QUEUE_NAME,
   L2_WORKER_REQUEST_RESPONSE_FULFILL_QUEUE_NAME,
   REQUEST_RESPONSE_FULFILL_GAS_MINIMUM,
@@ -54,7 +55,7 @@ export async function job(reporterQueue: QueueType, _logger: Logger) {
         callbackGasLimit: BigNumber.from(inData.callbackGasLimit).toNumber(),
         jobId: inData.jobId
       }
-      const to = inData.callbackAddress
+      const to = L2_ENDPOINT
       const tx = buildTransaction(
         payloadParameters,
         to,
