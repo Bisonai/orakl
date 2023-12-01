@@ -9,8 +9,10 @@ COPY package.json .
 
 COPY yarn.lock .
 
-COPY cli cli
+COPY monitor monitor
 
-RUN yarn cli install --focus
+RUN yarn monitor install --focus
 
-RUN yarn cli build
+RUN yarn monitor build
+
+CMD ["yarn", "monitor", "start"]

@@ -9,8 +9,10 @@ COPY package.json .
 
 COPY yarn.lock .
 
-COPY cli cli
+COPY fetcher fetcher
 
-RUN yarn cli install --focus
+RUN yarn fetcher install --focus
 
-RUN yarn cli build
+RUN yarn fetcher build
+
+CMD ["yarn", "fetcher", "start:prod"]
