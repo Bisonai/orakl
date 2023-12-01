@@ -1,94 +1,19 @@
 const { expect } = require('chai')
 const { ethers } = require('hardhat')
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers')
-const { vrfConfig } = require('../vrf/VRFCoordinator.config.cjs')
-const { parseKlay, getBalance, createSigners } = require('../utils.cjs')
-const {
-  setupOracle,
-  generateVrf,
-  deploy: deployVrfCoordinator
-} = require('../vrf/VRFCoordinator.utils.cjs')
+const { parseKlay, createSigners } = require('../utils.cjs')
+const { deploy: deployVrfCoordinator } = require('../vrf/VRFCoordinator.utils.cjs')
 const { deploy: deployPrepayment, addCoordinator } = require('./Prepayment.utils.cjs')
 
 const {
   deploy: deployRegistry,
   propose,
   confirm,
-  setProposeFee,
-  withdraw,
-  editChainInfor,
-  addAggregator,
-  removeAggregator,
   createAccount,
-  addConsumer,
-  removeConsumer
+  addConsumer
 } = require('./Registry.utils.cjs')
-const SINGLE_WORD = 1
-async function fulfillRandomWords(
-  coordinator,
-  registeredOracleSigner,
-  notRegisteredOracleSigner,
-  pi,
-  rc,
-  isDirectPayment
-) {
-  // Random word request cannot be fulfilled by an unregistered oracle
-  await expect(
-    coordinator.connect(notRegisteredOracleSigner).fulfillRandomWords(pi, rc, isDirectPayment)
-  ).to.be.revertedWithCustomError(coordinator, 'NoSuchProvingKey')
 
-  // Registered oracle can submit data back to chain
-  const tx = await (
-    await coordinator.connect(registeredOracleSigner).fulfillRandomWords(pi, rc, isDirectPayment)
-  ).wait()
-
-  // However even registered oracle cannot fulfill the request more than once
-  await expect(
-    coordinator.connect(registeredOracleSigner).fulfillRandomWords(pi, rc, isDirectPayment)
-  ).to.be.revertedWithCustomError(coordinator, 'NoCorrespondingRequest')
-
-  return tx
-}
-
-function validateRandomWordsRequestedEvent(
-  tx,
-  coordinatorContract,
-  keyHash,
-  accId,
-  maxGasLimit,
-  numWords,
-  sender,
-  isDirectPayment
-) {
-  let eventIndex = expect(tx.events.length).to.be.equal(5)
-  eventIndex = 2
-
-  const event = coordinatorContract.interface.parseLog(tx.events[eventIndex])
-  expect(event.name).to.be.equal('RandomWordsRequested')
-  const {
-    keyHash: eKeyHash,
-    requestId,
-    preSeed,
-    accId: eAccId,
-    callbackGasLimit: eCallbackGasLimit,
-    numWords: eNumWords,
-    sender: eSender,
-    isDirectPayment: eIsDirectPayment
-  } = event.args
-  expect(eKeyHash).to.be.equal(keyHash)
-  if (!isDirectPayment) {
-    expect(eAccId).to.be.equal(accId)
-  }
-  expect(eCallbackGasLimit).to.be.equal(maxGasLimit)
-  expect(eNumWords).to.be.equal(numWords)
-  expect(eSender).to.be.equal(sender)
-  expect(eIsDirectPayment).to.be.equal(isDirectPayment)
-
-  const blockHash = tx.blockHash
-  const blockNumber = tx.blockNumber
-
-  return { requestId, preSeed, accId: eAccId, blockHash, blockNumber }
-}
+const { deploy: deployCoordinator } = require('./RequestResponseCoordinator.utils.cjs')
 
 async function deploy() {
   const {
@@ -113,6 +38,11 @@ async function deploy() {
     contract: coordinatorContract,
     signer: deployerSigner
   }
+  await addCoordinator(prepayment.contract, prepayment.signer, coordinator.contract.address)
+
+  const rRCoordinatorContract = await deployCoordinator(prepayment.contract.address, deployerSigner)
+  const rRCoordinator = { contract: rRCoordinatorContract, signer: deployerSigner }
+  await addCoordinator(prepayment.contract, prepayment.signer, rRCoordinator.contract.address)
 
   // registry
 
@@ -144,11 +74,11 @@ async function deploy() {
     signer: deployerSigner
   })
   endpointContract = await endpointContract.deploy(
+    registryContract.address,
     coordinatorContract.address,
-    registryContract.address
+    rRCoordinatorContract.address
   )
   await endpointContract.deployed()
-
   await endpointContract.addOracle(deployerSigner.address)
 
   //add endpoint for registry
@@ -167,6 +97,7 @@ async function deploy() {
   return {
     prepayment,
     coordinator,
+    rRCoordinator,
     endpoint,
     registry,
     account2,
@@ -188,81 +119,5 @@ describe('L1Endpoint', function () {
     expect(txRemove.events.length).to.be.equal(1)
     const eventRemove = endpoint.contract.interface.parseLog(txRemove.events[0])
     expect(eventRemove.name).to.be.equal('OracleRemoved')
-  })
-
-  it('requestRandomWords', async function () {
-    const {
-      endpoint,
-      coordinator,
-      prepayment,
-      registry,
-      account2: oracle,
-      account3: unregisteredOracle,
-      registrAccount
-    } = await loadFixture(deploy)
-
-    const { maxGasLimit: callbackGasLimit, keyHash } = vrfConfig()
-
-    // Prepare coordinator
-    await setupOracle(coordinator.contract, oracle.address)
-    await addCoordinator(prepayment.contract, prepayment.signer, coordinator.contract.address)
-
-    //send balance for endpoint contract
-    //deposit
-
-    await registry.contract.deposit(registrAccount, { value: parseKlay('1') })
-    const accBalance = await registry.contract.getBalance(registrAccount)
-    expect(accBalance).to.be.equal(parseKlay('1'))
-
-    // Request random words
-    const l2RequestId = 1
-    const txRequestRandomWords = await (
-      await endpoint.contract.requestRandomWords(
-        keyHash,
-        callbackGasLimit,
-        SINGLE_WORD,
-        registrAccount,
-        endpoint.signer.address, // consumer
-        l2RequestId
-      )
-    ).wait()
-    expect(txRequestRandomWords.events.length).to.be.equal(5)
-    const requestEvent = endpoint.contract.interface.parseLog(txRequestRandomWords.events[4])
-    expect(requestEvent.name).to.be.equal('RandomWordRequested')
-    const numWords = SINGLE_WORD
-    const sender = endpoint.contract.address
-    const isDirectPayment = true
-    const { preSeed, accId, blockHash, blockNumber } = validateRandomWordsRequestedEvent(
-      txRequestRandomWords,
-      coordinator.contract,
-      keyHash,
-      0,
-      callbackGasLimit,
-      numWords,
-      sender,
-      isDirectPayment
-    )
-    const { pi, rc } = await generateVrf(
-      preSeed,
-      blockHash,
-      blockNumber,
-      accId,
-      callbackGasLimit,
-      sender,
-      numWords
-    )
-
-    const txFulfillRandomWords = await fulfillRandomWords(
-      coordinator.contract,
-      oracle,
-      unregisteredOracle,
-      pi,
-      rc,
-      isDirectPayment
-    )
-
-    const fulfillEvent = endpoint.contract.interface.parseLog(txFulfillRandomWords.events[0])
-    expect(fulfillEvent.name).to.be.equal('RandomWordFulfilled')
-    expect(fulfillEvent.args.sender).to.be.equal(endpoint.signer.address)
   })
 })
