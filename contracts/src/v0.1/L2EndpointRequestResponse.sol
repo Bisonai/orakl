@@ -15,7 +15,7 @@ abstract contract L2EndpointRequestResponse is L2EndpointBase {
         uint32 callbackGasLimit,
         address indexed sender,
         uint8 numSubmission,
-        bytes data
+        Orakl.Request req
     );
 
     event DataRequestFulfilledUint128(uint256 indexed requestId, uint256 response, bool success);
@@ -52,7 +52,7 @@ abstract contract L2EndpointRequestResponse is L2EndpointBase {
             callbackGasLimit,
             msg.sender,
             numSubmission,
-            req.buf.buf
+            req
         );
 
         return requestId;

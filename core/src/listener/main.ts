@@ -15,6 +15,8 @@ import { postprocessListeners } from './utils'
 import { buildListener as buildVrfListener } from './vrf'
 import { buildListener as buildVrfL2FulfillListener } from './vrf-L2-fulfill'
 import { buildListener as buildVrfL2RequestListener } from './vrf-L2-request'
+import { buildListener as buildRequestResponseL2RequestListener } from './requestResponnse-L2-request'
+import { buildListener as buildRequestResponseL2FulfillListener } from './requestResponnse-L2-fulfill'
 
 const LISTENERS: IListeners = {
   DATA_FEED: buildDataFeedListener,
@@ -22,7 +24,9 @@ const LISTENERS: IListeners = {
   REQUEST_RESPONSE: buildRequestResponseListener,
   DATA_FEED_L2: buildL2DataFeedListener,
   VRF_L2_REQUEST: buildVrfL2RequestListener,
-  VRF_L2_FULFILL: buildVrfL2FulfillListener
+  VRF_L2_FULFILL: buildVrfL2FulfillListener,
+  REQUEST_RESPONSE_L2_REQUEST: buildRequestResponseL2RequestListener,
+  REQUEST_RESPONSE_L2_FULFILL: buildRequestResponseL2FulfillListener
 }
 
 const FILE_NAME = import.meta.url

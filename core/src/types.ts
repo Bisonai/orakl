@@ -101,6 +101,30 @@ export interface IAnswerUpdated {
   updatedAt: BigNumber
 }
 
+export interface IL2DataRequested {
+  requestId: BigNumber
+  jobId: string
+  accId: BigNumber
+  callbackGasLimit: number
+  sender: string
+  numSubmission: number
+  req: any
+}
+
+export interface IL2DataRequestFulfilled {
+  requestId: BigNumber
+  l2RequestId: BigNumber
+  sender: string
+  callbackGasLimit: number
+  jobId: string
+  responseUint128: BigNumber
+  responseInt256: BigNumber
+  responseBool: boolean
+  responseString: string
+  responseBytes32: string
+  responseBytes: string
+}
+
 // Listener -> Worker
 
 export interface IRequestResponseListenerWorker {
@@ -164,6 +188,29 @@ export interface IL2VrfFulfillListenerWorker {
   l2RequestId: string
   sender: string
   randomWords: string[]
+}
+
+export interface IL2RequestResponseListenerWorker {
+  callbackAddress: string
+  blockNum: string
+  requestId: string
+  jobId: string
+  accId: string
+  callbackGasLimit: number
+  sender: string
+  numSubmission: number
+  req: any
+}
+
+export interface IL2RequestResponseFulfillListenerWorker {
+  callbackAddress: string
+  blockNum: number
+  requestId: string
+  jobId: string
+  callbackGasLimit: number
+  sender: string
+  l2RequestId: string
+  response: any
 }
 
 // Worker -> Worker
@@ -361,6 +408,23 @@ export interface IL2VrfFulfillTransactionParameters {
   requestId: string
   callbackGasLimit: number
   randomWords: string[]
+}
+
+export interface IL2RequestResponseRequestTransactionParameters {
+  blockNum: string
+  accId: string
+  callbackGasLimit: number
+  numSubmission: number
+  sender: string
+  l2RequestId: string
+  req: any
+}
+
+export interface IL2RequestResponseFulfillTransactionParameters {
+  requestId: string
+  jobId: string
+  callbackGasLimit: number
+  response: string | number | boolean
 }
 
 export interface IRequestResponseTransactionParameters {

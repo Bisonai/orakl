@@ -12,6 +12,8 @@ import { IWorkers } from './types'
 import { worker as vrfWorker } from './vrf'
 import { worker as l2VrfFulfillWorker } from './vrf-L2-fulfill'
 import { worker as l2VrfRequestWorker } from './vrf-L2-request'
+import { worker as l2RequestResponseRequestWorker } from './request-response-L2-request'
+import { worker as l2RequestResponseFulfillWorker } from './request-response-L2-fulfill'
 
 const WORKERS: IWorkers = {
   DATA_FEED: dataFeedWorker,
@@ -19,7 +21,9 @@ const WORKERS: IWorkers = {
   REQUEST_RESPONSE: requestResponseWorker,
   DATA_FEED_L2: l2DataFeedWorker,
   VRF_L2_REQUEST: l2VrfRequestWorker,
-  VRF_L2_FULFILL: l2VrfFulfillWorker
+  VRF_L2_FULFILL: l2VrfFulfillWorker,
+  REQUEST_RESPONSE_L2_REQUEST: l2RequestResponseRequestWorker,
+  REQUEST_RESPONSE_L2_FULFILL: l2RequestResponseFulfillWorker
 }
 
 const LOGGER = buildLogger()

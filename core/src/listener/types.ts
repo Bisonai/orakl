@@ -5,6 +5,8 @@ import {
   IDataFeedListenerWorker,
   IDataFeedListenerWorkerL2,
   IL2EndpointListenerWorker,
+  IL2RequestResponseFulfillListenerWorker,
+  IL2RequestResponseListenerWorker,
   IL2VrfFulfillListenerWorker,
   IListenerConfig,
   IRequestResponseListenerWorker,
@@ -50,6 +52,8 @@ export type ProcessEventOutputType = {
     | IDataFeedListenerWorkerL2
     | IL2VrfFulfillListenerWorker
     | IL2EndpointListenerWorker
+    | IL2RequestResponseListenerWorker
+    | IL2RequestResponseFulfillListenerWorker
     | null
   jobId: string
   jobName: string
