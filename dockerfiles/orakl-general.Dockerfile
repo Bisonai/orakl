@@ -11,7 +11,7 @@ COPY yarn.lock .
 
 COPY monitor monitor
 
-RUN yarn monitor install --focus
+RUN yarn monitor install
 
 RUN yarn monitor build
 

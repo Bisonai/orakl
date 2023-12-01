@@ -11,7 +11,7 @@ COPY yarn.lock .
 
 COPY api api
 
-RUN yarn api install --focus
+RUN yarn api install
 
 RUN yarn api build
 

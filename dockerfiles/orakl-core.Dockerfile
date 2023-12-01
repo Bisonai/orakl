@@ -9,8 +9,10 @@ COPY package.json .
 
 COPY yarn.lock .
 
+COPY fetcher fetcher
+
 COPY core core
 
-RUN yarn core install --focus
+RUN yarn core install
 
 RUN yarn core build

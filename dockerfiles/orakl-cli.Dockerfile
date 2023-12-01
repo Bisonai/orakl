@@ -11,6 +11,6 @@ COPY yarn.lock .
 
 COPY cli cli
 
-RUN yarn cli install --focus
+RUN yarn cli install
 
 RUN yarn cli build

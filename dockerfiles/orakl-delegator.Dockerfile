@@ -11,7 +11,7 @@ COPY yarn.lock .
 
 COPY delegator delegator
 
-RUN yarn delegator install --focus
+RUN yarn delegator install
 
 RUN yarn delegator build
 

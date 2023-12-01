@@ -11,7 +11,7 @@ COPY yarn.lock .
 
 COPY fetcher fetcher
 
-RUN yarn fetcher install --focus
+RUN yarn fetcher install
 
 RUN yarn fetcher build
 

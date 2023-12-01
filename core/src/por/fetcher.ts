@@ -1,10 +1,10 @@
+import { DATA_FEED_REDUCER_MAPPING } from '@bisonai/orakl-fetcher/src/job/job.reducer'
 import axios from 'axios'
 import { Logger } from 'pino/pino'
 import { OraklError, OraklErrorCode } from '../errors'
 import { IAggregator } from '../types'
 import { pipe } from '../utils'
 import { insertAggregateData, insertData, loadAggregator } from './api'
-import { DATA_FEED_REDUCER_MAPPING } from './reducer'
 
 async function extractFeed(adapter) {
   const feeds = adapter.feeds.map((f) => {

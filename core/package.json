@@ -61,6 +61,7 @@
     "bull-dashboard": "docker-compose -f docker-compose.bull-monitor.yaml up"
   },
   "dependencies": {
+    "@bisonai/orakl-fetcher": "*",
     "@bisonai/orakl-contracts": "*",
     "@bisonai/orakl-vrf": "*",
     "@ethersproject/experimental": "^5.7.0",
