@@ -21,10 +21,6 @@ jobs:
         run: yarn core install
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-      - name: Build workspace dependency (vrf)
-        run: yarn vrf build
-      - name: Build workspace dependency (contracts)
-        run: yarn contracts clean && yarn contracts compile && yarn contracts build
       - name: Run lint
         run: yarn core lint
         env:

@@ -19,6 +19,7 @@
   "license": "MIT",
   "scripts": {
     "clean": "rm -rf dist",
+    "prebuild": "yarn --cwd='../..' vrf build",
     "build": "yarn clean && tsc",
     "cli": "node --no-warnings --experimental-specifier-resolution=node --experimental-json-modules dist/index.js",
     "lint": "eslint \"{src,apps,libs,test}/**/*.ts\"",

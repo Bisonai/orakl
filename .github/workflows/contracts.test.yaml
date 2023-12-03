@@ -26,8 +26,7 @@ jobs:
       - run: yarn contracts prettier-solidity-check
       - run: yarn contracts solhint
       - run: yarn contracts lint
-      - run: yarn vrf build
-      - run: yarn contracts clean && yarn contracts compile && yarn contracts build
+      - run: yarn contracts clean && yarn contracts build
       - run: yarn contracts test-non-vrf
         env:
           L2_PROVIDER: ${{ secrets.L2_PROVIDER }}
