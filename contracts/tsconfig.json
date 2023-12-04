@@ -10,5 +10,5 @@
     "outDir": "dist",
     "declaration": true,
   },
-  "include": ["./typechain-types", "./deployments/**/*.json", "./utils"]
+  "include": ["./typechain-types", "./typechain-types/**/*.json"]
 }
