@@ -24,8 +24,6 @@ jobs:
         run: yarn cli install
       - name: Run lint
         run: yarn cli lint
-      - name: Build workspace dependency
-        run: yarn vrf build
       - name: Build package
         run: yarn cli build
       - name: Extract version from package.json

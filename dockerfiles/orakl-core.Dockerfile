@@ -9,6 +9,10 @@ COPY package.json .
 
 COPY yarn.lock .
 
+COPY contracts contracts
+
+COPY vrf vrf
+
 COPY fetcher fetcher
 
 COPY core core

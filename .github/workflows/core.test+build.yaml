@@ -21,19 +21,15 @@ jobs:
         run: yarn core install
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-      - name: Build workspace dependency (vrf)
-        run: yarn vrf build
-      - name: Build workspace dependency (contracts)
-        run: yarn contracts clean && yarn contracts compile && yarn contracts build
       - name: Run lint
         run: yarn core lint
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+      - name: Build package
+        run: yarn core build
       - name: Run test
         run: yarn core test
         env:
           ORAKL_DIR: "./"
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
           CAVER_PRIVATE_KEY: ${{ secrets.CAVER_PRIVATE_KEY}}
-      - name: Build package
-        run: yarn core build

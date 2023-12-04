@@ -28,6 +28,7 @@
     "prepare": "cd .. && husky install contracts/.husky",
     "clean": "yarn hardhat clean && rm -rf dist",
     "compile": "yarn hardhat compile",
+    "prebuild": "yarn compile && yarn --cwd='../..' vrf build",
     "build": "tsc",
     "test": "yarn compile && npx hardhat test --parallel",
     "test-vrf": "yarn hardhat test test/v0.1/vrf/*.cjs --parallel",

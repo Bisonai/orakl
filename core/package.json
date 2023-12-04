@@ -29,6 +29,7 @@
   "scripts": {
     "prepare": "cd .. && husky install core/.husky",
     "clean": "rm -rf dist",
+    "prebuild": "yarn --cwd='../..' vrf build && yarn --cwd='../..' contracts build && yarn --cwd='../..' fetcher build",
     "build": "yarn clean && tsc",
     "start:listener": "node --no-warnings --experimental-specifier-resolution=node --experimental-json-modules dist/listener/main.js",
     "start:listener:vrf": "yarn start:listener --service VRF",
