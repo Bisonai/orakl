@@ -1,5 +1,6 @@
 {
   "compilerOptions": {
+    "resolveJsonModule": true,
     "skipLibCheck": true,
     "module": "commonjs",
     "moduleResolution": "node",
@@ -7,7 +8,7 @@
     "strict": true,
     "esModuleInterop": true,
     "outDir": "dist",
-    "declaration": true
+    "declaration": true,
   },
-  "include": ["./typechain-types"]
+  "include": ["./typechain-types", "./deployments/**/*.json", "./utils"]
 }
