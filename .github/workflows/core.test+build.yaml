@@ -25,11 +25,11 @@ jobs:
         run: yarn core lint
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+      - name: Build package
+        run: yarn core build
       - name: Run test
         run: yarn core test
         env:
           ORAKL_DIR: "./"
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
           CAVER_PRIVATE_KEY: ${{ secrets.CAVER_PRIVATE_KEY}}
-      - name: Build package
-        run: yarn core build
