@@ -1,45 +1,40 @@
 import * as fs from 'fs'
 import * as path from 'path'
 
+interface deployments {
+  [network: string]: {
+    [contractName: string]: string
+  }
+}
+
 const deploymentsPath = path.resolve(__dirname, '..') + '/deployments/'
 
 const isValidPath = (_path: string): boolean => {
+  //checks if json file depth is 2, which stands for /{network}/{contract}.json
   const splitted = _path.replace(deploymentsPath, '').split('/')
   return splitted.length == 2
 }
 
-const readJsonFilesRecursively = async (
-  folderPath: string
-): Promise<{
-  [network: string]: {
-    [contractName: string]: string
-  }
-}> => {
-  const result: {
-    [network: string]: {
-      [contractName: string]: string
-    }
-  } = {}
+const readDeployments = async (folderPath: string): Promise<deployments> => {
+  const result: deployments = {}
 
-  const readFolder = async (currentFolderPath: string): Promise<void> => {
-    const files = await fs.promises.readdir(currentFolderPath)
+  const readFolder = async (_folderPath: string): Promise<void> => {
+    const files = await fs.promises.readdir(_folderPath)
 
     await Promise.all(
       files.map(async (file) => {
-        const filePath = path.join(currentFolderPath, file)
-        // console.log(filePath)
+        const filePath = path.join(_folderPath, file)
         const stats = await fs.promises.stat(filePath)
 
         if (stats.isDirectory()) {
-          // If it's a directory, recursively read its content
           await readFolder(filePath)
         } else if (path.extname(file) === '.json' && isValidPath(filePath)) {
           const network = filePath.replace(deploymentsPath, '').split('/')[0]
-
-          // If it's a JSON file, read and parse it
           const fileContent = await fs.promises.readFile(filePath, 'utf-8')
+
           let contractName = path.basename(file, '.json')
           if (contractName.split('_').length > 1) {
+            // remove last part which normally holds version name
             const splitted = contractName.split('_')
             splitted.pop()
             contractName = splitted.join('_')
@@ -66,21 +61,21 @@ const readJsonFilesRecursively = async (
 }
 
 export const getContractAddressExact = async (network: string, contractName: string) => {
-  const contractAddressObject = await readJsonFilesRecursively(deploymentsPath)
+  const contractAddressObject = await readDeployments(deploymentsPath)
   const contracts = contractAddressObject[network]
   return contracts[contractName] || ''
 }
 
-export const getAggregatorAddress = async (network: string, pair_0: string, pair_1: string) => {
-  const contractAddressObject = await readJsonFilesRecursively(deploymentsPath)
+export const getAggregatorAddress = async (network: string, token_0: string, token_1: string) => {
+  const contractAddressObject = await readDeployments(deploymentsPath)
   const contracts = contractAddressObject[network]
 
   let result = ''
   Object.keys(contracts).forEach((contractName) => {
     if (
       contractName.toLowerCase().startsWith('aggregator_') &&
-      contractName.toLowerCase().includes(pair_0.toLowerCase()) &&
-      contractName.toLowerCase().includes(pair_1.toLowerCase())
+      contractName.toLowerCase().includes(token_0.toLowerCase()) &&
+      contractName.toLowerCase().includes(token_1.toLowerCase())
     ) {
       result = contracts[contractName]
       return
@@ -91,17 +86,17 @@ export const getAggregatorAddress = async (network: string, pair_0: string, pair
 
 export const getAggregatorProxyAddress = async (
   network: string,
-  pair_0: string,
-  pair_1: string
+  token_0: string,
+  token_1: string
 ) => {
-  const contractAddressObject = await readJsonFilesRecursively(deploymentsPath)
+  const contractAddressObject = await readDeployments(deploymentsPath)
   const contracts = contractAddressObject[network]
   let result = ''
   Object.keys(contracts).forEach((contractName) => {
     if (
       contractName.toLowerCase().startsWith('aggregatorproxy_') &&
-      contractName.toLowerCase().includes(pair_0.toLowerCase()) &&
-      contractName.toLowerCase().includes(pair_1.toLowerCase())
+      contractName.toLowerCase().includes(token_0.toLowerCase()) &&
+      contractName.toLowerCase().includes(token_1.toLowerCase())
     ) {
       result = contracts[contractName]
       return
