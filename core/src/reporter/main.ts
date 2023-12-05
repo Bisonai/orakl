@@ -8,12 +8,12 @@ import { hookConsoleError } from '../utils'
 import { buildReporter as buildDataFeedReporter } from './data-feed'
 import { buildReporter as buildL2DataFeedReporter } from './data-feed-L2'
 import { buildReporter as buildRequestResponseReporter } from './request-response'
+import { buildReporter as buildL2RequestResponseFulfillReporter } from './request-response-L2-fulfill'
+import { buildReporter as buildL2RequestResponseRequestReporter } from './request-response-L2-request'
 import { IReporters } from './types'
 import { buildReporter as buildVrfReporter } from './vrf'
 import { buildReporter as buildL2VrfFulfillReporter } from './vrf-L2-fulfill'
 import { buildReporter as buildL2VrfRequestReporter } from './vrf-L2-request'
-import { buildReporter as buildL2RequestResponseRequestReporter } from './request-response-L2-request'
-import { buildReporter as buildL2RequestResponseFulfillReporter } from './request-response-L2-fulfill'
 
 const REPORTERS: IReporters = {
   DATA_FEED: buildDataFeedReporter,

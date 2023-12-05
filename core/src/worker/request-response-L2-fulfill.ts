@@ -17,7 +17,7 @@ import {
   ITransactionParameters,
   QueueType
 } from '../types'
-import { JOB_ID_MAPPING, JOB_ID_UINT128 } from './request-response.utils'
+import { JOB_ID_MAPPING } from './request-response.utils'
 
 const FILE_NAME = import.meta.url
 

@@ -10,13 +10,13 @@ import { getListeners } from './api'
 import { buildListener as buildDataFeedListener } from './data-feed'
 import { buildListener as buildL2DataFeedListener } from './data-feed-L2'
 import { buildListener as buildRequestResponseListener } from './request-response'
+import { buildListener as buildRequestResponseL2FulfillListener } from './requestResponnse-L2-fulfill'
+import { buildListener as buildRequestResponseL2RequestListener } from './requestResponnse-L2-request'
 import { IListeners } from './types'
 import { postprocessListeners } from './utils'
 import { buildListener as buildVrfListener } from './vrf'
 import { buildListener as buildVrfL2FulfillListener } from './vrf-L2-fulfill'
 import { buildListener as buildVrfL2RequestListener } from './vrf-L2-request'
-import { buildListener as buildRequestResponseL2RequestListener } from './requestResponnse-L2-request'
-import { buildListener as buildRequestResponseL2FulfillListener } from './requestResponnse-L2-fulfill'
 
 const LISTENERS: IListeners = {
   DATA_FEED: buildDataFeedListener,
