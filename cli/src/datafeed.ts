@@ -9,10 +9,12 @@ import {
   reporterInsertHandler as delegatorReporterInsertHandler
 } from './delegator'
 import {
+  activateHandler as activateListenerHandler,
   insertHandler as listenerInsertHandler,
   listHandler as listenerListHandler
 } from './listener'
 import {
+  activateHandler as activateReporterHandler,
   insertHandler as reporterInsertHandler,
   listHandler as reporterListHandler
 } from './reporter'
@@ -121,20 +123,36 @@ export function bulkActivateHandler() {
   async function wrapper({ data, chain }: { data; chain: string }) {
     const listeners = await listenerListHandler(false)({ chain, service: 'DATA_FEED' })
     const reporters = await reporterListHandler(false)({ chain, service: 'DATA_FEED' })
+
     for (const insertElement of data) {
-      const adapterData = await loadJsonFromUrl(insertElement.adapterSource)
       const aggregatorData = await loadJsonFromUrl(insertElement.aggregatorSource)
 
-      startFetcherHandler()({
+      const reporterId = reporters.find(
+        (item) => item.oracleAddress == aggregatorData.contractAddress
+      )
+      const listenerId = listeners.find((item) => item.address == aggregatorData.address)
+
+      await startFetcherHandler()({
         id: aggregatorData.aggregatorHash,
         chain,
         host: 'http://fetcher.orakl.svc.cluster.local',
         port: '4040'
       })
-      activateAggregatorHandler()({
+      await activateAggregatorHandler()({
         aggregatorHash: aggregatorData.aggregatorHash,
         host: 'http://worker.orakl.svc.cluster.local',
         port: '5000'
+      })
+
+      await activateReporterHandler()({
+        id: reporterId,
+        host: 'http://reporter.orakl.svc.cluster.local',
+        port: REPORTER_PORT.toString()
+      })
+      await activateListenerHandler()({
+        id: listenerId,
+        host: 'http://listener.orakl.svc.cluster.local',
+        port: LISTENER_PORT.toString()
       })
     }
   }
