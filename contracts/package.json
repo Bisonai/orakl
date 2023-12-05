@@ -1,6 +1,6 @@
 {
   "name": "@bisonai/orakl-contracts",
-  "version": "1.3.2",
+  "version": "1.3.4",
   "description": "The Orakl Network Smart Contracts",
   "files": [
     "./dist",
@@ -28,7 +28,7 @@
     "prepare": "cd .. && husky install contracts/.husky",
     "clean": "yarn hardhat clean && rm -rf dist",
     "compile": "yarn hardhat compile",
-    "prebuild": "yarn compile && yarn --cwd='../..' vrf build",
+    "prebuild": "yarn compile && yarn --cwd='../..' vrf build && cp -r ./deployments ./typechain-types/deployments && cp -r ./utils ./typechain-types/utils",
     "build": "tsc",
     "test": "yarn compile && npx hardhat test --parallel",
     "test-vrf": "yarn hardhat test test/v0.1/vrf/*.cjs --parallel",
