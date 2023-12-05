@@ -35,9 +35,9 @@ const readDeployments = async (folderPath: string): Promise<deployments> => {
           let contractName = path.basename(file, '.json')
           if (contractName.split('_').length > 1) {
             // remove last part which normally holds version name
-            const splitted = contractName.split('_')
+            const splitted = contractName.replace(' ', '').split('_')
             splitted.pop()
-            contractName = splitted.join('_').replace(' ', '')
+            contractName = splitted.join('_')
           }
 
           try {
