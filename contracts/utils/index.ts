@@ -12,7 +12,7 @@ const deploymentsPath = path.resolve(__dirname, '..') + '/deployments/'
 const isValidPath = (_path: string): boolean => {
   //checks if json file depth is 2, which stands for /{network}/{contract}.json
   const splitted = _path.replace(deploymentsPath, '').split('/')
-  return splitted.length == 2
+  return splitted.length == 2 && path.extname(_path) === '.json'
 }
 
 const readDeployments = async (folderPath: string): Promise<deployments> => {
@@ -28,7 +28,7 @@ const readDeployments = async (folderPath: string): Promise<deployments> => {
 
         if (stats.isDirectory()) {
           await readFolder(filePath)
-        } else if (path.extname(file) === '.json' && isValidPath(filePath)) {
+        } else if (isValidPath(filePath)) {
           const network = filePath.replace(deploymentsPath, '').split('/')[0]
           const fileContent = await fs.promises.readFile(filePath, 'utf-8')
 
@@ -37,7 +37,7 @@ const readDeployments = async (folderPath: string): Promise<deployments> => {
             // remove last part which normally holds version name
             const splitted = contractName.split('_')
             splitted.pop()
-            contractName = splitted.join('_')
+            contractName = splitted.join('_').replace(' ', '')
           }
 
           try {
@@ -60,28 +60,24 @@ const readDeployments = async (folderPath: string): Promise<deployments> => {
   return result
 }
 
-export const getContractAddressExact = async (network: string, contractName: string) => {
+export const getContractAddress = async (network: string, contractName: string) => {
   const contractAddressObject = await readDeployments(deploymentsPath)
   const contracts = contractAddressObject[network]
   return contracts[contractName] || ''
 }
 
-export const getAggregatorAddress = async (network: string, token_0: string, token_1: string) => {
-  const contractAddressObject = await readDeployments(deploymentsPath)
-  const contracts = contractAddressObject[network]
+const _getContractAddressWithTokenPairs = async (
+  network: string,
+  contractName: string,
+  token_0: string,
+  token_1: string
+) => {
+  const name = `${contractName}_${token_0.toUpperCase()}-${token_1.toUpperCase()}`
+  return await getContractAddress(network, name)
+}
 
-  let result = ''
-  Object.keys(contracts).forEach((contractName) => {
-    if (
-      contractName.toLowerCase().startsWith('aggregator_') &&
-      contractName.toLowerCase().includes(token_0.toLowerCase()) &&
-      contractName.toLowerCase().includes(token_1.toLowerCase())
-    ) {
-      result = contracts[contractName]
-      return
-    }
-  })
-  return result
+export const getAggregatorAddress = async (network: string, token_0: string, token_1: string) => {
+  return await _getContractAddressWithTokenPairs(network, 'Aggregator', token_0, token_1)
 }
 
 export const getAggregatorProxyAddress = async (
@@ -89,18 +85,13 @@ export const getAggregatorProxyAddress = async (
   token_0: string,
   token_1: string
 ) => {
-  const contractAddressObject = await readDeployments(deploymentsPath)
-  const contracts = contractAddressObject[network]
-  let result = ''
-  Object.keys(contracts).forEach((contractName) => {
-    if (
-      contractName.toLowerCase().startsWith('aggregatorproxy_') &&
-      contractName.toLowerCase().includes(token_0.toLowerCase()) &&
-      contractName.toLowerCase().includes(token_1.toLowerCase())
-    ) {
-      result = contracts[contractName]
-      return
-    }
-  })
-  return result
+  return await _getContractAddressWithTokenPairs(network, 'AggregatorProxy', token_0, token_1)
+}
+
+export const getPorAddress = async (network: string, token_0: string, token_1: string) => {
+  return _getContractAddressWithTokenPairs(network, 'POR', token_0, token_1)
+}
+
+export const getPorProxyAddress = async (network: string, token_0: string, token_1: string) => {
+  return _getContractAddressWithTokenPairs(network, 'PORProxy', token_0, token_1)
 }
