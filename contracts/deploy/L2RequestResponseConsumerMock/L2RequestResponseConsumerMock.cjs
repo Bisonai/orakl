@@ -12,20 +12,20 @@ const func = async function (hre) {
     if (config.deploy) {
       console.log('deploy')
       const deployConfig = config.deploy
-      const l2VRFConsumerMock = await deploy('L2RequestResponseConsumerMock', {
+      const l2RequestResponseConsumerMock = await deploy('L2RequestResponseConsumerMock', {
         args: [deployConfig.l2EndpointAddress],
         from: deployer,
         log: true
       })
 
-      console.log('L2RequestResponseConsumerMock:', l2VRFConsumerMock)
+      console.log('L2RequestResponseConsumerMock:', l2RequestResponseConsumerMock)
     }
 
     await updateMigration(migrationDirPath, migration)
   }
 }
 
-func.id = 'deploy-consumer'
-func.tags = ['consumer']
+func.id = 'deploy-L2RequestResponseConsumerMock'
+func.tags = ['L2RequestResponseConsumerMock']
 
 module.exports = func

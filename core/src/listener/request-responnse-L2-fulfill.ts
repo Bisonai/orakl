@@ -19,6 +19,7 @@ import {
 } from '../types'
 import { listenerService } from './listener'
 import { ProcessEventOutputType } from './types'
+import { parseResponse } from './request-response-L2.utils'
 
 const FILE_NAME = import.meta.url
 
@@ -67,29 +68,7 @@ async function processEvent({ iface, logger }: { iface: ethers.utils.Interface; 
     _logger.debug(eventData, 'eventData')
 
     const requestId = eventData.requestId.toString()
-    let response: number | string | boolean = 0
-    switch (eventData.jobId) {
-      case ethers.utils.id('uint128'):
-        response = Number(eventData.responseUint128)
-        break
-      case ethers.utils.id('int256'):
-        response = Number(eventData.responseInt256)
-        break
-      case ethers.utils.id('bool'):
-        response = eventData.responseBool
-        break
-      case ethers.utils.id('string'):
-        response = eventData.responseString
-        break
-      case ethers.utils.id('bytes32'):
-        response = eventData.responseBytes32
-        break
-      case ethers.utils.id('bytes'):
-        response = eventData.responseBytes
-        break
-      default:
-        break
-    }
+    const response = parseResponse[eventData.jobId](eventData)
     const jobData: IL2RequestResponseFulfillListenerWorker = {
       callbackAddress: L1_ENDPOINT,
       blockNum: log.blockNumber,
@@ -98,7 +77,7 @@ async function processEvent({ iface, logger }: { iface: ethers.utils.Interface; 
       jobId: eventData.jobId.toString(),
       callbackGasLimit: eventData.callbackGasLimit,
       sender: eventData.sender,
-      response: response
+      response
     }
     _logger.debug(jobData, 'jobData')
 

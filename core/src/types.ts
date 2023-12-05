@@ -108,6 +108,7 @@ export interface IL2DataRequested {
   callbackGasLimit: number
   sender: string
   numSubmission: number
+  /* eslint-disable  @typescript-eslint/no-explicit-any */
   req: any
 }
 
@@ -199,6 +200,7 @@ export interface IL2RequestResponseListenerWorker {
   callbackGasLimit: number
   sender: string
   numSubmission: number
+  /* eslint-disable  @typescript-eslint/no-explicit-any */
   req: any
 }
 
@@ -210,6 +212,7 @@ export interface IL2RequestResponseFulfillListenerWorker {
   callbackGasLimit: number
   sender: string
   l2RequestId: string
+  /* eslint-disable  @typescript-eslint/no-explicit-any */
   response: any
 }
 
@@ -417,6 +420,7 @@ export interface IL2RequestResponseRequestTransactionParameters {
   numSubmission: number
   sender: string
   l2RequestId: string
+  /* eslint-disable  @typescript-eslint/no-explicit-any */
   req: any
 }
 

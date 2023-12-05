@@ -3,10 +3,8 @@ import { Queue, Worker } from 'bullmq'
 import { ethers } from 'ethers'
 import { Logger } from 'pino'
 import type { RedisClientType } from 'redis'
-import { getVrfConfig } from '../api'
 import {
   BULLMQ_CONNECTION,
-  CHAIN,
   L1_ENDPOINT,
   L2_REPORTER_REQUEST_RESPONSE_REQUEST_QUEUE_NAME,
   L2_WORKER_REQUEST_RESPONSE_REQUEST_QUEUE_NAME,
@@ -17,7 +15,6 @@ import {
   IL2RequestResponseListenerWorker,
   IL2RequestResponseRequestTransactionParameters,
   ITransactionParameters,
-  IVrfConfig,
   QueueType
 } from '../types'
 
@@ -26,11 +23,9 @@ const FILE_NAME = import.meta.url
 export async function worker(redisClient: RedisClientType, _logger: Logger) {
   const logger = _logger.child({ name: 'worker', file: FILE_NAME })
   const queue = new Queue(L2_REPORTER_REQUEST_RESPONSE_REQUEST_QUEUE_NAME, BULLMQ_CONNECTION)
-  // FIXME add checks if exists and if includes all information
-  const vrfConfig = await getVrfConfig({ chain: CHAIN, logger })
   const worker = new Worker(
     L2_WORKER_REQUEST_RESPONSE_REQUEST_QUEUE_NAME,
-    await job(queue, vrfConfig, _logger),
+    await job(queue, _logger),
     BULLMQ_CONNECTION
   )
 
@@ -44,7 +39,7 @@ export async function worker(redisClient: RedisClientType, _logger: Logger) {
   process.on('SIGTERM', handleExit)
 }
 
-export async function job(reporterQueue: QueueType, config: IVrfConfig, _logger: Logger) {
+export async function job(reporterQueue: QueueType, _logger: Logger) {
   const logger = _logger.child({ name: 'l2RequestResponseRequestJob', file: FILE_NAME })
   const iface = new ethers.utils.Interface(L1Endpoint__factory.abi)
 

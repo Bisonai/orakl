@@ -26,7 +26,7 @@ const func = async function (hre) {
   }
 }
 
-func.id = 'deploy-consumer'
-func.tags = ['consumer']
+func.id = 'deploy-L2VRFConsumerMock'
+func.tags = ['L2VRFConsumerMock']
 
 module.exports = func
