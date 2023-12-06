@@ -11,6 +11,8 @@ COPY yarn.lock .
 
 COPY cli cli
 
+COPY vrf vrf
+
 RUN yarn cli install
 
 RUN yarn cli build
