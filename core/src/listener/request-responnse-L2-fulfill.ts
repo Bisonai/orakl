@@ -18,8 +18,8 @@ import {
   IListenerConfig
 } from '../types'
 import { listenerService } from './listener'
-import { ProcessEventOutputType } from './types'
 import { parseResponse } from './request-response-L2.utils'
+import { ProcessEventOutputType } from './types'
 
 const FILE_NAME = import.meta.url
 
