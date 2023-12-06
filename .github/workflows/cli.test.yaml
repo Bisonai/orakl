@@ -1,0 +1,66 @@
+name: "cli: test"
+
+on:
+  push:
+    branches:
+      i-985/test/add-cli-test-yaml
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+
+    services:
+      postgres:
+        image: postgres
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: orakl-test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: actions/setup-node@v3
+        with:
+          node-version: "18.12"
+
+      - name: Install dependencies
+        run: yarn install
+
+      - name: Delegator db migrate
+        run: yarn delegator prisma-migrate dev --name init-delegator
+        env:
+          DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/delegator?schema=public"
+
+      - name: Api db migrate
+        run: yarn api prisma-migrate dev --name init-api
+        env:
+          DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/orakl?schema=public"
+      
+      - name: Run delegator
+        run: yarn delegator build && yarn delegator start &
+        env:
+          DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/delegator?schema=public"
+          PROVIDER_URL: "https://api.baobab.klaytn.net:8651"
+          APP_PORT: "3002"
+
+      - name: Run api
+        run: yarn api build && yarn api start &
+        env:
+          DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/orakl?schema=public"
+          ENCRYPT_PASSWORD: "abc123"
+          APP_PORT: "3000"
+
+      - name: Run tests
+        run: yarn cli build && yarn cli test ./cli/test/chain.test.ts ./cli/test/delegator.ts
+        env:
+          ORAKL_NETWORK_API_URL: "http://127.0.0.1:3000/api/v1"
+          ORAKL_NETWORK_DELEGATOR_URL: "http://127.0.0.1:3002/api/v1"
