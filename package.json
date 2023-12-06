@@ -12,6 +12,9 @@
       "l2-api",
       "monitor",
       "vrf"
+    ],
+    "nohoist": [
+      "**/prisma", "**/prisma/**", "**/@prisma/client", "@prisma/client"
     ]
   },
   "dependencies": {},
