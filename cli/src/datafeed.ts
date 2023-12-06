@@ -1,4 +1,4 @@
-import { command, option, string as cmdstring } from 'cmd-ts'
+import { command, option, string as cmdstring, subcommands } from 'cmd-ts'
 import { insertHandler as adapterInsertHandler } from './adapter'
 import { insertHandler as aggregatorInsertHandler } from './aggregator'
 import { ReadFile } from './cli-types'
@@ -36,7 +36,7 @@ export function datafeedSub() {
   // datafeed bulk-insert --source ${source}
   // datafeed bulk-activate --source ${source}
 
-  const bulkInsert = command({
+  const insert = command({
     name: 'bulk-insert',
     args: {
       data: option({
@@ -51,7 +51,7 @@ export function datafeedSub() {
     handler: bulkInsertHandler()
   })
 
-  const bulkActivate = command({
+  const activate = command({
     name: 'bulk-activate',
     args: {
       data: option({
@@ -64,6 +64,11 @@ export function datafeedSub() {
       })
     },
     handler: bulkActivateHandler()
+  })
+
+  return subcommands({
+    name: 'adapter',
+    cmds: { insert, activate }
   })
 }
 

@@ -4,6 +4,7 @@ import { binary, command, run, subcommands } from 'cmd-ts'
 import { adapterSub } from './adapter'
 import { aggregatorSub } from './aggregator'
 import { chainSub } from './chain'
+import { datafeedSub } from './datafeed'
 import { delegatorSub } from './delegator'
 import { fetcherSub } from './fetcher'
 import { listenerSub } from './listener'
@@ -23,6 +24,7 @@ async function main() {
   const reporter = reporterSub()
   const delegator = delegatorSub()
   const proxy = proxySub()
+  const datafeed = datafeedSub()
 
   const version = command({
     name: 'version',
@@ -45,7 +47,8 @@ async function main() {
       reporter,
       version,
       delegator,
-      proxy
+      proxy,
+      datafeed
     }
   })
 
