@@ -1,11 +1,11 @@
 import { describe, expect, test } from '@jest/globals'
-import { insertHandler, listHandler, removeHandler } from '../src/adapter'
+import { hashHandler, insertHandler, listHandler, removeHandler } from '../src/adapter'
 
 describe('CLI Adapter', function () {
   const ADAPTER = {
     active: true,
     name: 'X-Y',
-    decimals: '8',
+    decimals: 8,
     feeds: [
       {
         name: 'data-X-Y',
@@ -23,28 +23,48 @@ describe('CLI Adapter', function () {
     ]
   }
 
-  test.skip('Should list Adapters', async function () {
+  let initalAdapterId
+  beforeAll(async () => {
+    // setup hash
+    const initAdapter = { ...ADAPTER, name: 'Z-X' }
+    initAdapter['adapterHash'] = (
+      await hashHandler()({ data: initAdapter, verify: false })
+    ).adapterHash
+    ADAPTER['adapterHash'] = (await hashHandler()({ data: ADAPTER, verify: false })).adapterHash
+
+    // insert default adapter
+    const insertResult = await insertHandler()({ data: initAdapter })
+    initalAdapterId = insertResult.id
+  })
+
+  afterAll(async () => {
+    const adapters = await listHandler()()
+    for (const adapter of adapters) {
+      await removeHandler()({ id: adapter.id })
+    }
+  })
+
+  test('Should list Adapters', async function () {
     const adapter = await listHandler()()
     expect(adapter.length).toBeGreaterThan(0)
   })
 
-  test.skip('Should insert new adapter', async function () {
+  test('Should insert new adapter', async function () {
     const adapterBefore = await listHandler()()
     await insertHandler()({ data: ADAPTER })
     const adapterAfter = await listHandler()()
     expect(adapterAfter.length).toEqual(adapterBefore.length + 1)
   })
 
-  test.skip('Should not allow to insert the same adapter more than once', async function () {
+  test('Should not allow to insert the same adapter more than once', async function () {
     await insertHandler()({ data: ADAPTER })
-    await expect(async () => {
-      await insertHandler()({ data: ADAPTER })
-    }).rejects.toThrow()
+    const msg = await insertHandler()({ data: ADAPTER })
+    expect(msg).toEqual('Unique constraint failed on the adapter_hash')
   })
 
-  test.skip('Should delete adapter based on id', async function () {
+  test('Should delete adapter based on id', async function () {
     const adapterBefore = await listHandler()()
-    await removeHandler()({ id: 1 })
+    await removeHandler()({ id: initalAdapterId })
     const adapterAfter = await listHandler()()
     expect(adapterAfter.length).toEqual(adapterBefore.length - 1)
   })

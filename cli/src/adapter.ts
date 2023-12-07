@@ -82,9 +82,11 @@ export function insertHandler() {
     try {
       const response = (await axios.post(ADAPTER_ENDPOINT, data)).data
       console.dir(response, { depth: null })
+      return response
     } catch (e) {
       console.error('Adapter was not inserted. Reason:')
       console.error(e?.response?.data?.message)
+      return e?.response?.data?.message
     }
   }
   return wrapper
@@ -114,11 +116,13 @@ export function hashHandler() {
       const adapterWithCorrectHash = (await axios.post(endpoint, adapter, { params: { verify } }))
         .data
       console.dir(adapterWithCorrectHash, { depth: null })
+      return adapterWithCorrectHash
     } catch (e) {
       console.error('Adapter hash could not be computed. Reason:')
       const errMsg = e?.response?.data?.message ? e.response.data.message : e.message
 
       console.error(errMsg)
+      return errMsg
     }
   }
   return wrapper
