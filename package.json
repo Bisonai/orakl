@@ -19,9 +19,6 @@
   },
   "dependencies": {},
   "devDependencies": {},
-  "resolutions": {
-    "@truffle/interface-adapter": "0.5.24"
-  },
   "scripts": {
     "api": "yarn workspace @bisonai/orakl-api",
     "cli": "yarn workspace @bisonai/orakl-cli",
