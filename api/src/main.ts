@@ -27,6 +27,7 @@ async function bootstrap() {
 
   const configService = app.get(ConfigService)
   const port = configService.get('APP_PORT')
+  app.enableShutdownHooks()
   await app.listen(port)
 }
 bootstrap()
