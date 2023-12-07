@@ -66,7 +66,6 @@ async function processEvent({ iface, logger }: { iface: ethers.utils.Interface; 
   async function wrapper(log: ethers.Event): Promise<ProcessEventOutputType | undefined> {
     const eventData = iface.parseLog(log).args as unknown as IL2DataRequestFulfilled
     _logger.debug(eventData, 'eventData')
-
     const requestId = eventData.requestId.toString()
     const response = parseResponse[eventData.jobId](eventData)
     const jobData: IL2RequestResponseFulfillListenerWorker = {

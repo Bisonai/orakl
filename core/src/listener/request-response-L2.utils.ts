@@ -1,12 +1,12 @@
 import { ethers } from 'ethers'
 import { IL2DataRequestFulfilled } from '../types'
 
-export const UINT128 = ethers.utils.id('uint128')
-export const INT256 = ethers.utils.id('uint128')
-export const BOOL = ethers.utils.id('bool')
-export const STRING = ethers.utils.id('string')
-export const BYTES32 = ethers.utils.id('bytes32')
-export const BYTES = ethers.utils.id('bytes')
+const UINT128 = ethers.utils.id('uint128')
+const INT256 = ethers.utils.id('int256')
+const BOOL = ethers.utils.id('bool')
+const STRING = ethers.utils.id('string')
+const BYTES32 = ethers.utils.id('bytes32')
+const BYTES = ethers.utils.id('bytes')
 
 export const parseResponse = {
   [UINT128]: function (x: IL2DataRequestFulfilled) {

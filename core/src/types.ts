@@ -212,8 +212,7 @@ export interface IL2RequestResponseFulfillListenerWorker {
   callbackGasLimit: number
   sender: string
   l2RequestId: string
-  /* eslint-disable  @typescript-eslint/no-explicit-any */
-  response: any
+  response: number | string | boolean
 }
 
 // Worker -> Worker
