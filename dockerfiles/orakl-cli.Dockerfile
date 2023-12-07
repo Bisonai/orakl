@@ -16,3 +16,5 @@ COPY vrf vrf
 RUN yarn cli install
 
 RUN yarn cli build
+
+WORKDIR /app/cli

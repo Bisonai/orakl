@@ -15,4 +15,6 @@ RUN yarn fetcher install
 
 RUN yarn fetcher build
 
-CMD ["yarn", "fetcher", "start:prod"]
+WORKDIR /app/fetcher
+
+CMD ["yarn", "start:prod"]

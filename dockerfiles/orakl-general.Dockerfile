@@ -15,4 +15,6 @@ RUN yarn monitor install
 
 RUN yarn monitor build
 
-CMD ["yarn", "monitor", "start"]
+WORKDIR /app/monitor
+
+CMD ["yarn", "start"]

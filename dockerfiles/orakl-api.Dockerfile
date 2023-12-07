@@ -27,4 +27,6 @@ COPY --from=build /app/node_modules /app/node_modules
 
 COPY --from=build /app/api /app/api
 
-CMD ["yarn", "api", "start:prod"]
+WORKDIR /app/api
+
+CMD ["yarn", "start:prod"]

@@ -27,4 +27,6 @@ COPY --from=build /app/node_modules /app/node_modules
 
 COPY --from=build /app/delegator /app/delegator
 
-CMD ["yarn", "delegator", "start:prod"]
+WORKDIR /app/delegator
+
+CMD ["yarn", "start:prod"]
