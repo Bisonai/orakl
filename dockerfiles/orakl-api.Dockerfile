@@ -1,5 +1,5 @@
-# node:18.12.1-slim
-FROM node@sha256:0c3ea57b6c560f83120801e222691d9bd187c605605185810752a19225b5e4d9
+# node:20.10.0-slim
+FROM node@sha256:d480d6a3c334226e11064b2f34ac1a8846137e26a4f76e81ba7c63398759c384
 
 RUN apt-get update && apt-get install -y curl
 
