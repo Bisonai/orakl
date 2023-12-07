@@ -1,9 +1,9 @@
-import { NestFactory } from '@nestjs/core'
-import { AppModule } from './app.module'
-import { ConfigService } from '@nestjs/config'
 import { ValidationPipe } from '@nestjs/common'
+import { ConfigService } from '@nestjs/config'
+import { NestFactory } from '@nestjs/core'
+import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger'
+import { AppModule } from './app.module'
 import { setAppSettings } from './app.settings'
-import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger'
 
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unreachable code error
@@ -27,6 +27,7 @@ async function bootstrap() {
 
   const configService = app.get(ConfigService)
   const port = configService.get('APP_PORT')
+  app.enableShutdownHooks()
   await app.listen(port)
 }
 bootstrap()
