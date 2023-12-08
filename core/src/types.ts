@@ -1,6 +1,14 @@
 import { Queue } from 'bullmq'
 import { BigNumber } from 'ethers'
 
+interface IOraklRequest {
+  id: string
+  callbackAddr: string
+  callbackFunc: string
+  nonce: number
+  buf: Buffer
+}
+
 export interface RequestEventData {
   specId: string
   requester: string
@@ -108,8 +116,7 @@ export interface IL2DataRequested {
   callbackGasLimit: number
   sender: string
   numSubmission: number
-  /* eslint-disable  @typescript-eslint/no-explicit-any */
-  req: any
+  req: IOraklRequest
 }
 
 export interface IL2DataRequestFulfilled {
@@ -200,8 +207,7 @@ export interface IL2RequestResponseListenerWorker {
   callbackGasLimit: number
   sender: string
   numSubmission: number
-  /* eslint-disable  @typescript-eslint/no-explicit-any */
-  req: any
+  req: IOraklRequest
 }
 
 export interface IL2RequestResponseFulfillListenerWorker {
@@ -419,8 +425,7 @@ export interface IL2RequestResponseRequestTransactionParameters {
   numSubmission: number
   sender: string
   l2RequestId: string
-  /* eslint-disable  @typescript-eslint/no-explicit-any */
-  req: any
+  req: IOraklRequest
 }
 
 export interface IL2RequestResponseFulfillTransactionParameters {
