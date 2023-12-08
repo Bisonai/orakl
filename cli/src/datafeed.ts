@@ -1,7 +1,7 @@
 import { command, option, subcommands } from 'cmd-ts'
 import { insertHandler as adapterInsertHandler } from './adapter'
 import { insertHandler as aggregatorInsertHandler } from './aggregator'
-import { IDatafeedBulk, ReadFile } from './cli-types'
+import { IDatafeedBulk, IDatafeedBulkInsertElement, ReadFile } from './cli-types'
 import {
   contractConnectHandler,
   contractInsertHandler,
@@ -12,15 +12,6 @@ import {
 import { insertHandler as listenerInsertHandler } from './listener'
 import { insertHandler as reporterInsertHandler } from './reporter'
 import { isValidUrl, loadJsonFromUrl } from './utils'
-
-interface InsertElement {
-  adapterSource: string
-  aggregatorSource: string
-  reporter: {
-    walletAddress: string
-    walletPrivateKey: string
-  }
-}
 
 export function datafeedSub() {
   // datafeed bulk-insert --source ${source}
@@ -105,7 +96,7 @@ export function bulkInsertHandler() {
   return wrapper
 }
 
-function checkBulkSource(bulkData: InsertElement[]) {
+function checkBulkSource(bulkData: IDatafeedBulkInsertElement[]) {
   if (!bulkData || bulkData.length == 0) {
     return false
   }
