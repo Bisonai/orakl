@@ -10,10 +10,10 @@ const BYTES = ethers.utils.id('bytes')
 
 export const parseResponse = {
   [UINT128]: function (x: IL2DataRequestFulfilled) {
-    return Number(x.responseUint128)
+    return x.responseUint128.toString()
   },
   [INT256]: function (x: IL2DataRequestFulfilled) {
-    return Number(x.responseInt256)
+    return x.responseInt256.toString()
   },
   [BOOL]: function (x: IL2DataRequestFulfilled) {
     return x.responseBool

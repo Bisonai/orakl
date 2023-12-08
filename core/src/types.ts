@@ -218,7 +218,7 @@ export interface IL2RequestResponseFulfillListenerWorker {
   callbackGasLimit: number
   sender: string
   l2RequestId: string
-  response: number | string | boolean
+  response: string | boolean
 }
 
 // Worker -> Worker
@@ -432,7 +432,7 @@ export interface IL2RequestResponseFulfillTransactionParameters {
   requestId: string
   jobId: string
   callbackGasLimit: number
-  response: string | number | boolean
+  response: string | boolean
 }
 
 export interface IRequestResponseTransactionParameters {
