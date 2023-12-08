@@ -2,7 +2,6 @@ import { describe, expect, test } from '@jest/globals'
 import { insertHandler, listHandler, removeHandler } from '../src/chain'
 
 describe('CLI Chain', function () {
-  
   let initalChainId
   beforeAll(async () => {
     const insertResult = await insertHandler()({ name: 'boabab' })
