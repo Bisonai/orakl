@@ -1,11 +1,14 @@
 {
   "name": "@bisonai/orakl-cli",
   "version": "0.6.0",
-  "type": "module",
+  "type": "commonjs",
   "description": "The Orakl Network CLI",
   "files": [
     "dist"
   ],
+  "engines": {
+    "node": ">=20.10"
+  },
   "keywords": [
     "Oracle",
     "Orakl",

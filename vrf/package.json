@@ -1,13 +1,13 @@
 {
   "name": "@bisonai/orakl-vrf",
   "version": "0.2.1",
-  "type": "module",
+  "type": "commonjs",
   "description": "The Orakl Network VRF",
   "files": [
     "dist"
   ],
   "engines": {
-    "node": ">=18.12"
+    "node": ">=20.10"
   },
   "exports": "./dist/index.js",
   "types": "./dist/index.d.ts",
