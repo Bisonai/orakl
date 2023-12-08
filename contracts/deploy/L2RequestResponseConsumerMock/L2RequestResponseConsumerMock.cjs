@@ -1,36 +1,31 @@
 const path = require('node:path')
 const { loadJson, loadMigration, updateMigration } = require('../../scripts/v0.1/utils.cjs')
-
 const func = async function (hre) {
   const { deployments, getNamedAccounts, network } = hre
   const { deploy } = deployments
   const { deployer } = await getNamedAccounts()
-  const migrationDirPath = `./migration/${network.name}/L1Endpoint`
+  const migrationDirPath = `./migration/${network.name}/L2RequestResponseConsumerMock`
   const migrationFilesNames = await loadMigration(migrationDirPath)
   for (const migration of migrationFilesNames) {
     const config = await loadJson(path.join(migrationDirPath, migration))
-    // Deploy L1Endpoint ////////////////////////////////////////////////////////
+    // Deploy L2 Consumer ////////////////////////////////////////////////////////
     if (config.deploy) {
       console.log('deploy')
       const deployConfig = config.deploy
-      const l1Endpoint = await deploy('L1Endpoint', {
-        args: [
-          deployConfig.registry,
-          deployConfig.vrfCoordinator,
-          deployConfig.requestResponseCoordinator
-        ],
+      const l2RequestResponseConsumerMock = await deploy('L2RequestResponseConsumerMock', {
+        args: [deployConfig.l2EndpointAddress],
         from: deployer,
         log: true
       })
 
-      console.log('L1Endpoint:', l1Endpoint)
+      console.log('L2RequestResponseConsumerMock:', l2RequestResponseConsumerMock)
     }
 
     await updateMigration(migrationDirPath, migration)
   }
 }
 
-func.id = 'deploy-L1Endpoint'
-func.tags = ['L1Endpoint']
+func.id = 'deploy-L2RequestResponseConsumerMock'
+func.tags = ['L2RequestResponseConsumerMock']
 
 module.exports = func

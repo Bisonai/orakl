@@ -8,6 +8,8 @@ import { hookConsoleError } from '../utils'
 import { worker as dataFeedWorker } from './data-feed'
 import { worker as l2DataFeedWorker } from './data-feed-L2'
 import { worker as requestResponseWorker } from './request-response'
+import { worker as l2RequestResponseFulfillWorker } from './request-response-L2-fulfill'
+import { worker as l2RequestResponseRequestWorker } from './request-response-L2-request'
 import { IWorkers } from './types'
 import { worker as vrfWorker } from './vrf'
 import { worker as l2VrfFulfillWorker } from './vrf-L2-fulfill'
@@ -19,7 +21,9 @@ const WORKERS: IWorkers = {
   REQUEST_RESPONSE: requestResponseWorker,
   DATA_FEED_L2: l2DataFeedWorker,
   VRF_L2_REQUEST: l2VrfRequestWorker,
-  VRF_L2_FULFILL: l2VrfFulfillWorker
+  VRF_L2_FULFILL: l2VrfFulfillWorker,
+  REQUEST_RESPONSE_L2_REQUEST: l2RequestResponseRequestWorker,
+  REQUEST_RESPONSE_L2_FULFILL: l2RequestResponseFulfillWorker
 }
 
 const LOGGER = buildLogger()
