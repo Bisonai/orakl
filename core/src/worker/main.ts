@@ -29,7 +29,7 @@ const WORKERS: IWorkers = {
 const LOGGER = buildLogger()
 
 async function main() {
-  hookConsoleError(LOGGER)
+  // hookConsoleError(LOGGER)
   const worker = loadArgs()
 
   const redisClient: RedisClientType = createClient({ url: `redis://${REDIS_HOST}:${REDIS_PORT}` })

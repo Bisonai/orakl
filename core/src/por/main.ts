@@ -8,7 +8,7 @@ import { reportData } from './reporter'
 const LOGGER = buildLogger()
 
 const main = async () => {
-  hookConsoleError(LOGGER)
+  // hookConsoleError(LOGGER)
 
   const { value, aggregator } = await fetchWithAggregator({
     aggregatorHash: POR_AGGREGATOR_HASH,
