@@ -79,11 +79,9 @@ describe('CLI datafeed', function () {
     for (const aggregator of afterAggregatorList) {
       await aggregatorRemoveHandler()({ id: aggregator.id })
     }
-
     for (const adapter of afterAdapterList) {
       await adapterRemoveHandler()({ id: adapter.id })
     }
-
     for (const delegatorReporter of afterDelegatorReporterList) {
       await delegatorReporterRemoveHandler()({ id: delegatorReporter.id })
     }
