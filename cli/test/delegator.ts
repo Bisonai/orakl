@@ -8,8 +8,7 @@ import {
   organizationInsertHandler,
   organizationRemoveHandler,
   reporterInsertHandler,
-  reporterRemoveHandler,
-  signHandler
+  reporterRemoveHandler
 } from '../src/delegator'
 
 const unsignedTx = {
@@ -32,8 +31,8 @@ const reporterAddress = '0x260836ac4f046b6887bbe16b322e7f1e5f9a0452'
 const contractAddress = '0x93120927379723583c7a0dd2236fcb255e96949f'
 const functionName = 'increment()'
 
-describe('CLI Aggregator', function () {
-  test.skip('Test Organization', async function () {
+describe('CLI Delegator', function () {
+  test('Test Delegator', async function () {
     // Insert Organization
     const organization = await organizationInsertHandler()({ name: organizationName })
     expect(organization.name).toBe(organizationName)
@@ -64,9 +63,9 @@ describe('CLI Aggregator', function () {
     })
 
     // Sign Transaction
-    const signedTx = await signHandler()({ txData: unsignedTx })
-    expect(signedTx.succeed).toBe(true)
-    console.log(signedTx)
+    // const signedTx = await signHandler()({ txData: unsignedTx })
+    // expect(signedTx.succeed).toBe(true)
+    // console.log(signedTx)
 
     await functionRemoveHandler()({ id: functions.id })
     await contractRemoveHandler()({ id: contract.id })

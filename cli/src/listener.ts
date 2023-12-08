@@ -154,9 +154,11 @@ export function insertHandler() {
       const result = (await axios.post(LISTENER_ENDPOINT, { chain, service, address, eventName }))
         .data
       console.dir(result, { depth: null })
+      return result
     } catch (e) {
       console.error('Listener was not inserted. Reason:')
       console.error(e?.response?.data?.message)
+      return e?.response?.data?.message
     }
   }
   return wrapper

@@ -1,36 +1,53 @@
 import { describe, expect, test } from '@jest/globals'
 import { insertHandler, listHandler, removeHandler } from '../src/proxy'
 
-const proxyData = {
-  protocol: 'http',
-  host: '127.0.0.1',
-  port: 80
-}
-
 describe('CLI Proxy', function () {
-  test.skip('Should insert new proxy', async function () {
-    const proxyBefore = await listHandler()()
-    await insertHandler()(proxyData)
-    const proxyAfter = await listHandler()()
-    expect(proxyAfter.length).toEqual(proxyBefore.length + 1)
+  const proxyData_0 = {
+    protocol: 'http',
+    host: '127.0.0.1',
+    port: 80
+  }
+
+  const proxyData_1 = {
+    protocol: 'http',
+    host: '127.0.0.2',
+    port: 80
+  }
+
+  let initialProxyId
+  beforeAll(async () => {
+    const insertResult = await insertHandler()(proxyData_0)
+    initialProxyId = insertResult.id
+  })
+  afterAll(async () => {
+    const proxies = await listHandler()()
+    for (const proxy of proxies) {
+      await removeHandler()({ id: proxy.id })
+    }
   })
 
-  test.skip('Should not allow to insert the same proxy more than once', async function () {
-    await insertHandler()(proxyData)
-    await expect(async () => {
-      await insertHandler()(proxyData)
-    }).rejects.toThrow()
-  })
-
-  test.skip('Should list proxies', async function () {
+  test('Should list proxies', async function () {
     const proxy = await listHandler()()
     expect(proxy.length).toBeGreaterThan(0)
   })
 
-  test.skip('Should delete proxy based on id', async function () {
+  test('Should insert new proxy', async function () {
     const proxyBefore = await listHandler()()
-    const lastInstance = proxyBefore[proxyBefore.length - 1]
-    await removeHandler()({ id: Number(lastInstance.id) })
+    const result = await insertHandler()(proxyData_1)
+    const proxyAfter = await listHandler()()
+    expect(proxyAfter.length).toEqual(proxyBefore.length + 1)
+    await removeHandler()({ id: result.id })
+  })
+
+  test('Should not allow to insert the same proxy more than once', async function () {
+    await insertHandler()(proxyData_1)
+    const msg = await insertHandler()(proxyData_1)
+    expect(msg).toEqual('Internal server error')
+  })
+
+  test('Should delete proxy based on id', async function () {
+    const proxyBefore = await listHandler()()
+    await removeHandler()({ id: initialProxyId })
     const proxyAfter = await listHandler()()
     expect(proxyAfter.length).toEqual(proxyBefore.length - 1)
   })

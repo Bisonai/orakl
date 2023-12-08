@@ -110,9 +110,11 @@ export function insertHandler() {
     try {
       const result = (await axios.post(VRF_ENDPOINT, { chain, pk, sk, pkX, pkY, keyHash })).data
       console.dir(result, { depth: null })
+      return result
     } catch (e) {
       console.error('VRF key was not inserted. Reason:')
       console.error(e?.response?.data?.message)
+      return e?.response?.data?.message
     }
   }
   return wrapper

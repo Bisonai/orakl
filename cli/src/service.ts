@@ -65,9 +65,11 @@ export function insertHandler() {
     try {
       const response = (await axios.post(SERVICE_ENDPOINT, { name }))?.data
       console.dir(response, { depth: null })
+      return response
     } catch (e) {
       console.error('Service was not inserted. Reason:')
       console.error(e?.response?.data?.message)
+      return e?.response?.data?.message
     }
   }
   return wrapper

@@ -192,9 +192,11 @@ export function insertHandler() {
     try {
       const result = (await axios.post(AGGREGATOR_ENDPOINT, { ...data, chain, fetcherType })).data
       console.dir(result, { depth: null })
+      return result
     } catch (e) {
       console.error('Aggregator was not inserted. Reason:')
       console.error(e?.response?.data?.message)
+      return e?.response?.data?.message
     }
   }
   return wrapper
@@ -227,9 +229,12 @@ export function hashHandler() {
         })
       ).data
       console.dir(aggregatorWithCorrectHash, { depth: null })
+      return aggregatorWithCorrectHash
     } catch (e) {
       console.error('Aggregator hash could not be computed. Reason:')
-      console.error(e.message)
+      const errMsg = e?.response?.data?.message ? e.response.data.message : e.message
+      console.error(errMsg)
+      return errMsg
     }
   }
   return wrapper

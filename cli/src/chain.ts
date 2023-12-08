@@ -65,9 +65,11 @@ export function insertHandler() {
     try {
       const response = (await axios.post(CHAIN_ENDPOINT, { name }))?.data
       console.dir(response, { depth: null })
+      return response
     } catch (e) {
       console.error('Chain was not inserted. Reason:')
       console.error(e?.response?.data?.message)
+      return e?.response?.data?.message
     }
   }
   return wrapper
