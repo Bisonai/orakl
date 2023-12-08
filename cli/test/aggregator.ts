@@ -108,9 +108,10 @@ describe('CLI Aggregator', function () {
 
   test('Should insert new aggregator', async function () {
     const aggregatorBefore = await listHandler()({})
-    await insertHandler()({ data: AGGREGATOR_1, chain: 'localhost' })
+    const result = await insertHandler()({ data: AGGREGATOR_1, chain: 'localhost' })
     const aggregatorAfter = await listHandler()({})
     expect(aggregatorAfter.length).toEqual(aggregatorBefore.length + 1)
+    await removeHandler()({ id: result.id })
   })
 
   test('Should not allow to insert the same aggregator more than once', async function () {

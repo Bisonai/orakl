@@ -67,9 +67,10 @@ describe('CLI Adapter', function () {
 
   test('Should insert new adapter', async function () {
     const adapterBefore = await listHandler()()
-    await insertHandler()({ data: ADAPTER_1 })
+    const result = await insertHandler()({ data: ADAPTER_1 })
     const adapterAfter = await listHandler()()
     expect(adapterAfter.length).toEqual(adapterBefore.length + 1)
+    await removeHandler()({ id: result.id })
   })
 
   test('Should not allow to insert the same adapter more than once', async function () {

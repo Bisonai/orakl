@@ -2,28 +2,40 @@ import { describe, expect, test } from '@jest/globals'
 import { insertHandler, listHandler, removeHandler } from '../src/service'
 
 describe('CLI Service', function () {
-  test.skip('Should list service', async function () {
+  let initialServiceId
+  beforeAll(async () => {
+    const result = await insertHandler()({ name: 'VRF' })
+    initialServiceId = result.id
+  })
+  afterAll(async () => {
+    const services = await listHandler()()
+    for (const service of services) {
+      await removeHandler()({ id: service.id })
+    }
+  })
+
+  test('Should list service', async function () {
     const service = await listHandler()()
     expect(service.length).toBeGreaterThan(0)
   })
 
-  test.skip('Should insert new service', async function () {
+  test('Should insert new service', async function () {
     const serviceBefore = await listHandler()()
-    await insertHandler()({ name: 'Automation' })
+    const result = await insertHandler()({ name: 'Automation' })
     const serviceAfter = await listHandler()()
     expect(serviceAfter.length).toEqual(serviceBefore.length + 1)
+    await removeHandler()({ id: result.id })
   })
 
-  test.skip('Should not allow to insert the same service more than once', async function () {
+  test('Should not allow to insert the same service more than once', async function () {
     await insertHandler()({ name: 'Automation' })
-    await expect(async () => {
-      await insertHandler()({ name: 'Automation' })
-    }).rejects.toThrow()
+    const msg = await insertHandler()({ name: 'Automation' })
+    expect(msg).toEqual('Internal server error')
   })
 
-  test.skip('Should delete service based on id', async function () {
+  test('Should delete service based on id', async function () {
     const serviceBefore = await listHandler()()
-    await removeHandler()({ id: 1 })
+    await removeHandler()({ id: initialServiceId })
     const serviceAfter = await listHandler()()
     expect(serviceAfter.length).toEqual(serviceBefore.length - 1)
   })

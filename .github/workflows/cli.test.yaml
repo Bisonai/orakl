@@ -2,8 +2,7 @@ name: "cli: test"
 
 on:
   push:
-    branches:
-      i-985/test/add-cli-test-yaml
+    branches: i-985/test/add-cli-test-yaml
   workflow_dispatch:
 
 jobs:
@@ -44,7 +43,7 @@ jobs:
         run: yarn api prisma-migrate dev --name init-api
         env:
           DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/orakl?schema=public"
-      
+
       - name: Run delegator
         run: yarn delegator build && yarn delegator start &
         env:
@@ -60,7 +59,7 @@ jobs:
           APP_PORT: "3000"
 
       - name: Run tests
-        run: yarn cli build && yarn cli test ./cli/test/chain.test.ts ./cli/test/delegator.ts
+        run: yarn cli build && yarn cli test
         env:
           ORAKL_NETWORK_API_URL: "http://127.0.0.1:3000/api/v1"
           ORAKL_NETWORK_DELEGATOR_URL: "http://127.0.0.1:3002/api/v1"
