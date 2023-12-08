@@ -10,72 +10,9 @@ import {
   listHandler as chainListHandler,
   removeHandler as chainRemoveHandler
 } from '../src/chain'
+import { ADAPTER_0, ADAPTER_1, AGGREGATOR_0, AGGREGATOR_1 } from './mockData'
 
 describe('CLI Aggregator', function () {
-  const ADAPTER_0 = {
-    active: true,
-    name: 'X-Y',
-    decimals: 8,
-    adapterHash: '0x020e150749af3bffaec9ae337da0b9b00c3cfe0b46b854a8e2f5922f6ba2c5db',
-    feeds: [
-      {
-        name: 'data-X-Y',
-        definition: {
-          url: 'https://data.com',
-          headers: { 'Content-Type': 'application/json' },
-          method: 'GET',
-          reducers: [
-            { function: 'PARSE', args: ['PRICE'] },
-            { function: 'POW10', args: '8' },
-            { function: 'ROUND' }
-          ]
-        }
-      }
-    ]
-  }
-
-  const ADAPTER_1 = {
-    active: true,
-    name: 'Z-X',
-    decimals: 8,
-    adapterHash: '0x12da2f5119ba624ed025303b424d637349c0d120d02bd66a9cfff57e98463a81',
-    feeds: [
-      {
-        name: 'data-Z-X',
-        definition: {
-          url: 'https://data.com',
-          headers: { 'Content-Type': 'application/json' },
-          method: 'GET',
-          reducers: [
-            { function: 'PARSE', args: ['PRICE'] },
-            { function: 'POW10', args: '8' },
-            { function: 'ROUND' }
-          ]
-        }
-      }
-    ]
-  }
-
-  const AGGREGATOR_0 = {
-    name: 'X-Y',
-    aggregatorHash: '0x5bcc6c18d584dc54a666f9212229226f02f65b8dcda3ed72836b6c901f2d18e1',
-    address: '0x0000000000000000000000000000000000000000',
-    heartbeat: 15000,
-    threshold: 0.05,
-    absoluteThreshold: 0.1,
-    adapterHash: '0x020e150749af3bffaec9ae337da0b9b00c3cfe0b46b854a8e2f5922f6ba2c5db'
-  }
-
-  const AGGREGATOR_1 = {
-    name: 'Z-X',
-    aggregatorHash: '0x11ca65b539221125a64b38653f65dbbf961ed2ea16bcaf54408a5d2ebdc13a0b',
-    address: '0x0000000000000000000000000000000000000001',
-    heartbeat: 15000,
-    threshold: 0.05,
-    absoluteThreshold: 0.1,
-    adapterHash: '0x12da2f5119ba624ed025303b424d637349c0d120d02bd66a9cfff57e98463a81'
-  }
-
   let initialAggregatorId
   beforeAll(async () => {
     await chainInsertHandler()({ name: 'localhost' })

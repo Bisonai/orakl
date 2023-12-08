@@ -1,7 +1,7 @@
 import { command, option, subcommands } from 'cmd-ts'
 import { insertHandler as adapterInsertHandler } from './adapter'
 import { insertHandler as aggregatorInsertHandler } from './aggregator'
-import { ReadFile } from './cli-types'
+import { IDatafeedBulk, ReadFile } from './cli-types'
 import {
   contractConnectHandler,
   contractInsertHandler,
@@ -24,7 +24,11 @@ interface InsertElement {
 
 export function datafeedSub() {
   // datafeed bulk-insert --source ${source}
+
+  // TODOs
+  // datafeed bulk-remove --source ${source}
   // datafeed bulk-activate --source ${source}
+  // datafeed bulk-deactivate --source ${source}
 
   const insert = command({
     name: 'bulk-insert',
@@ -45,11 +49,13 @@ export function datafeedSub() {
 
 export function bulkInsertHandler() {
   async function wrapper({ data }: { data }) {
-    const chain = data?.chain || 'baobab'
-    const service = data?.service || 'DATA_FEED'
-    const organization = data?.orgainzation || 'bisonai'
-    const functionName = data?.functionName || 'submit(uint256, int256)'
-    const eventName = data?.eventName || 'NewRound'
+    const bulkData = data as IDatafeedBulk
+
+    const chain = bulkData?.chain || 'localhost'
+    const service = bulkData?.service || 'DATA_FEED'
+    const organization = bulkData?.organization || 'bisonai'
+    const functionName = bulkData?.functionName || 'submit(uint256, int256)'
+    const eventName = bulkData?.eventName || 'NewRound'
     const organizationId = (await organizationListHandler()()).find(
       (_organization) => _organization.name == organization
     ).id
@@ -58,7 +64,7 @@ export function bulkInsertHandler() {
       console.error('invalid json src format')
       return
     }
-    for (const insertElement of data.bulk) {
+    for (const insertElement of bulkData.bulk) {
       const adapterData = await loadJsonFromUrl(insertElement.adapterSource)
       const aggregatorData = await loadJsonFromUrl(insertElement.aggregatorSource)
 
@@ -67,18 +73,18 @@ export function bulkInsertHandler() {
 
       const reporterInsertResult = await delegatorReporterInsertHandler()({
         address: insertElement.reporter.walletAddress,
-        organizationId
+        organizationId: Number(organizationId)
       })
       const contractInsertResult = await contractInsertHandler()({
         address: aggregatorData.address
       })
       await functionInsertHandler()({
         name: functionName,
-        contractId: contractInsertResult.id
+        contractId: Number(contractInsertResult.id)
       })
       await contractConnectHandler()({
-        contractId: contractInsertResult.id,
-        reporterId: reporterInsertResult.id
+        contractId: Number(contractInsertResult.id),
+        reporterId: Number(reporterInsertResult.id)
       })
 
       await reporterInsertHandler()({
