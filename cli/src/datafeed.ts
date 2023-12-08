@@ -1,4 +1,4 @@
-import { command, option, string as cmdstring, subcommands } from 'cmd-ts'
+import { command, option, subcommands } from 'cmd-ts'
 import { insertHandler as adapterInsertHandler } from './adapter'
 import { insertHandler as aggregatorInsertHandler } from './aggregator'
 import { ReadFile } from './cli-types'
@@ -6,22 +6,12 @@ import {
   contractConnectHandler,
   contractInsertHandler,
   functionInsertHandler,
+  organizationListHandler,
   reporterInsertHandler as delegatorReporterInsertHandler
 } from './delegator'
-import {
-  activateHandler as activateListenerHandler,
-  insertHandler as listenerInsertHandler,
-  listHandler as listenerListHandler
-} from './listener'
-import {
-  activateHandler as activateReporterHandler,
-  insertHandler as reporterInsertHandler,
-  listHandler as reporterListHandler
-} from './reporter'
+import { insertHandler as listenerInsertHandler } from './listener'
+import { insertHandler as reporterInsertHandler } from './reporter'
 import { isValidUrl, loadJsonFromUrl } from './utils'
-
-import { activateHandler as activateAggregatorHandler } from './aggregator'
-import { startHandler as startFetcherHandler } from './fetcher'
 
 interface InsertElement {
   adapterSource: string
@@ -42,43 +32,33 @@ export function datafeedSub() {
       data: option({
         type: ReadFile,
         long: 'source'
-      }),
-      chain: option({
-        type: cmdstring,
-        long: 'chain'
       })
     },
     handler: bulkInsertHandler()
   })
 
-  const activate = command({
-    name: 'bulk-activate',
-    args: {
-      data: option({
-        type: ReadFile,
-        long: 'source'
-      }),
-      chain: option({
-        type: cmdstring,
-        long: 'chain'
-      })
-    },
-    handler: bulkActivateHandler()
-  })
-
   return subcommands({
-    name: 'adapter',
-    cmds: { insert, activate }
+    name: 'datafeed',
+    cmds: { insert }
   })
 }
 
 export function bulkInsertHandler() {
-  async function wrapper({ data, chain }: { data; chain: string }) {
-    if (!checkBulkSource(data)) {
+  async function wrapper({ data }: { data }) {
+    const chain = data?.chain || 'baobab'
+    const service = data?.service || 'DATA_FEED'
+    const organization = data?.orgainzation || 'bisonai'
+    const functionName = data?.functionName || 'submit(uint256, int256)'
+    const eventName = data?.eventName || 'NewRound'
+    const organizationId = (await organizationListHandler()()).find(
+      (_organization) => _organization.name == organization
+    ).id
+
+    if (!checkBulkSource(data?.bulk)) {
       console.error('invalid json src format')
       return
     }
-    for (const insertElement of data) {
+    for (const insertElement of data.bulk) {
       const adapterData = await loadJsonFromUrl(insertElement.adapterSource)
       const aggregatorData = await loadJsonFromUrl(insertElement.aggregatorSource)
 
@@ -87,13 +67,13 @@ export function bulkInsertHandler() {
 
       const reporterInsertResult = await delegatorReporterInsertHandler()({
         address: insertElement.reporter.walletAddress,
-        organizationId: 1 // bisonai fixed to 1
+        organizationId
       })
       const contractInsertResult = await contractInsertHandler()({
         address: aggregatorData.address
       })
       await functionInsertHandler()({
-        name: 'submit(uint256, int256)',
+        name: functionName,
         contractId: contractInsertResult.id
       })
       await contractConnectHandler()({
@@ -103,7 +83,7 @@ export function bulkInsertHandler() {
 
       await reporterInsertHandler()({
         chain,
-        service: 'DATA_FEED',
+        service: service,
         privateKey: insertElement.reporter.walletPrivateKey,
         address: insertElement.reporter.walletAddress,
         oracleAddress: aggregatorData.address
@@ -111,64 +91,20 @@ export function bulkInsertHandler() {
 
       await listenerInsertHandler()({
         chain,
-        service: 'DATA_FEED',
+        service: service,
         address: aggregatorData.address,
-        eventName: 'NewRound'
+        eventName
       })
     }
   }
   return wrapper
 }
 
-export function bulkActivateHandler() {
-  const FETCHER_PORT = 4040
-  const WORKER_PORT = 5000
-  const LISTENER_PORT = 4000
-  const REPORTER_PORT = 6000
-  async function wrapper({ data, chain }: { data; chain: string }) {
-    const listeners = await listenerListHandler(false)({ chain, service: 'DATA_FEED' })
-    const reporters = await reporterListHandler(false)({ chain, service: 'DATA_FEED' })
-
-    for (const insertElement of data) {
-      const aggregatorData = await loadJsonFromUrl(insertElement.aggregatorSource)
-
-      const reporterId = reporters.find(
-        (item) => item.oracleAddress == aggregatorData.contractAddress
-      )
-      const listenerId = listeners.find((item) => item.address == aggregatorData.address)
-
-      await startFetcherHandler()({
-        id: aggregatorData.aggregatorHash,
-        chain,
-        host: 'http://fetcher.orakl.svc.cluster.local',
-        port: '4040'
-      })
-      await activateAggregatorHandler()({
-        aggregatorHash: aggregatorData.aggregatorHash,
-        host: 'http://worker.orakl.svc.cluster.local',
-        port: '5000'
-      })
-
-      await activateReporterHandler()({
-        id: reporterId,
-        host: 'http://reporter.orakl.svc.cluster.local',
-        port: REPORTER_PORT.toString()
-      })
-      await activateListenerHandler()({
-        id: listenerId,
-        host: 'http://listener.orakl.svc.cluster.local',
-        port: LISTENER_PORT.toString()
-      })
-    }
-  }
-  return wrapper
-}
-
-function checkBulkSource(data: InsertElement[]) {
-  if (!data || data.length == 0) {
+function checkBulkSource(bulkData: InsertElement[]) {
+  if (!bulkData || bulkData.length == 0) {
     return false
   }
-  for (const insertElement of data) {
+  for (const insertElement of bulkData) {
     if (!isValidUrl(insertElement.adapterSource) || !isValidUrl(insertElement.aggregatorSource)) {
       return false
     }
