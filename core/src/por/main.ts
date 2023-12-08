@@ -1,7 +1,6 @@
 import { logger } from 'ethers'
 import { buildLogger } from '../logger'
 import { POR_AGGREGATOR_HASH } from '../settings'
-import { hookConsoleError } from '../utils'
 import { fetchWithAggregator } from './fetcher'
 import { reportData } from './reporter'
 
