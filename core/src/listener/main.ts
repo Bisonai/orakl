@@ -29,11 +29,11 @@ const LISTENERS: IListeners = {
   REQUEST_RESPONSE_L2_FULFILL: buildRequestResponseL2FulfillListener
 }
 
-const FILE_NAME = import.meta.url
+const FILE_NAME = __filename
 const LOGGER = buildLogger()
 
 async function main() {
-  hookConsoleError(LOGGER)
+  // hookConsoleError(LOGGER)
   const service = loadArgs()
   const listenersRawConfig = await getListeners({ service, chain: CHAIN })
   const listenersConfig = postprocessListeners({

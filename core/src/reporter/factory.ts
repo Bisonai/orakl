@@ -6,7 +6,7 @@ import { reporter } from './reporter'
 import { State } from './state'
 import { watchman } from './watchman'
 
-const FILE_NAME = import.meta.url
+const FILE_NAME = __filename
 
 export async function factory({
   redisClient,

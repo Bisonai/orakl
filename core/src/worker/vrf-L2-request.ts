@@ -20,7 +20,7 @@ import {
   QueueType
 } from '../types'
 
-const FILE_NAME = import.meta.url
+const FILE_NAME = __filename
 
 export async function worker(redisClient: RedisClientType, _logger: Logger) {
   const logger = _logger.child({ name: 'worker', file: FILE_NAME })

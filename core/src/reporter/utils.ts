@@ -8,7 +8,7 @@ import { DELEGATOR_TIMEOUT, ORAKL_NETWORK_DELEGATOR_URL } from '../settings'
 import { ITransactionData } from '../types'
 import { add0x, buildUrl, getOraklErrorCode } from '../utils'
 
-const FILE_NAME = import.meta.url
+const FILE_NAME = __filename
 
 export class CaverWallet {
   caver: Caver

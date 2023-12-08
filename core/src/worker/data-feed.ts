@@ -39,7 +39,7 @@ import { State } from './state'
 import { IDeviationData } from './types'
 import { watchman } from './watchman'
 
-const FILE_NAME = import.meta.url
+const FILE_NAME = __filename
 
 /**
  * Get all active aggregators, create their initial jobs, and submit

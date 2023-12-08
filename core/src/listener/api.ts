@@ -5,7 +5,7 @@ import { ORAKL_NETWORK_API_URL } from '../settings'
 import { IListenerRawConfig } from '../types'
 import { buildUrl } from '../utils'
 
-const FILE_NAME = import.meta.url
+const FILE_NAME = __filename
 
 /**
  * Fetch listeners from the Orakl Network API that are associated with

@@ -14,7 +14,7 @@ import { getListeners } from './api'
 import { IContracts, IHistoryListenerJob, ILatestListenerJob, ListenerInitType } from './types'
 import { postprocessListeners } from './utils'
 
-const FILE_NAME = import.meta.url
+const FILE_NAME = __filename
 
 /**
  * Listener's ephemeral state holds information about all tracked

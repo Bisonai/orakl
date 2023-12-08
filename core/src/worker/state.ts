@@ -8,7 +8,7 @@ import { getAggregator, getAggregators } from './api'
 import { getSynchronizedDelay } from './data-feed.utils'
 import { IAggregatorConfig } from './types'
 
-const FILE_NAME = import.meta.url
+const FILE_NAME = __filename
 
 export class State {
   redisClient: RedisClientType

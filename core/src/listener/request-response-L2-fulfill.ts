@@ -21,7 +21,7 @@ import { listenerService } from './listener'
 import { parseResponse } from './request-response-L2.utils'
 import { ProcessEventOutputType } from './types'
 
-const FILE_NAME = import.meta.url
+const FILE_NAME = __filename
 
 export async function buildListener(
   config: IListenerConfig[],

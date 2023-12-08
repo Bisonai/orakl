@@ -5,7 +5,7 @@ import { OraklError, OraklErrorCode } from '../errors'
 import { IReporterConfig } from '../types'
 import { buildCaverWallet, buildWallet, isPrivateKeyAddressPairValid } from './utils'
 
-const FILE_NAME = import.meta.url
+const FILE_NAME = __filename
 
 export class State {
   redisClient: RedisClientType

@@ -2,7 +2,7 @@ import { Logger } from 'pino'
 import { OraklError, OraklErrorCode } from '../errors'
 import { IListenerConfig, IListenerGroupConfig, IListenerRawConfig } from '../types'
 
-const FILE_NAME = import.meta.url
+const FILE_NAME = __filename
 
 /**
  * Group listener raw configurations based on `service` property.

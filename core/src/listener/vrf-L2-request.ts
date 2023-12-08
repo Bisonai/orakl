@@ -17,7 +17,7 @@ import { IL2EndpointListenerWorker, IListenerConfig, IRandomWordsRequested } fro
 import { listenerService } from './listener'
 import { ProcessEventOutputType } from './types'
 
-const FILE_NAME = import.meta.url
+const FILE_NAME = __filename
 
 export async function buildListener(
   config: IListenerConfig[],

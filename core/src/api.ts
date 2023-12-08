@@ -11,7 +11,7 @@ import {
 import { IReporterConfig, IVrfConfig } from './types'
 import { buildUrl } from './utils'
 
-const FILE_NAME = import.meta.url
+const FILE_NAME = __filename
 
 /**
  * Fetch all VRF keys from Orakl Network API given a `chain` name.

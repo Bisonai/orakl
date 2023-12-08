@@ -19,7 +19,7 @@ import { IDataFeedListenerWorkerL2, QueueType } from '../types'
 import { buildSubmissionRoundJobId } from '../utils'
 import { getAggregators, getL2AddressGivenL1Address } from './api'
 import { buildTransaction, oracleRoundStateCall } from './data-feed.utils'
-const FILE_NAME = import.meta.url
+const FILE_NAME = __filename
 
 /**
  * Get all active aggregators, create their initial jobs, and submit

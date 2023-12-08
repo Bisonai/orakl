@@ -14,7 +14,7 @@ import {
 } from './types'
 import { watchman } from './watchman'
 
-const FILE_NAME = import.meta.url
+const FILE_NAME = __filename
 
 /**
  * The listener service is used for tracking events emmitted by smart

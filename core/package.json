@@ -1,13 +1,13 @@
 {
   "name": "@bisonai/orakl-core",
   "version": "0.5.1",
-  "type": "module",
+  "type": "commonjs",
   "description": "The Orakl Network Core",
   "files": [
     "dist"
   ],
   "engines": {
-    "node": ">=18.12"
+    "node": ">=20.10"
   },
   "keywords": [
     "Oracle",

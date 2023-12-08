@@ -16,7 +16,7 @@ import { IListenerConfig, IRandomWordsRequested, IVrfListenerWorker } from '../t
 import { listenerService } from './listener'
 import { ProcessEventOutputType } from './types'
 
-const FILE_NAME = import.meta.url
+const FILE_NAME = __filename
 
 export async function buildListener(
   config: IListenerConfig[],
