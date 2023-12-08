@@ -78,6 +78,7 @@ export function bulkInsertHandler() {
       const contractInsertResult = await contractInsertHandler()({
         address: aggregatorData.address
       })
+
       await functionInsertHandler()({
         name: functionName,
         contractId: Number(contractInsertResult.id)
@@ -86,7 +87,6 @@ export function bulkInsertHandler() {
         contractId: Number(contractInsertResult.id),
         reporterId: Number(reporterInsertResult.id)
       })
-
       await reporterInsertHandler()({
         chain,
         service: service,
@@ -94,7 +94,6 @@ export function bulkInsertHandler() {
         address: insertElement.reporter.walletAddress,
         oracleAddress: aggregatorData.address
       })
-
       await listenerInsertHandler()({
         chain,
         service: service,
