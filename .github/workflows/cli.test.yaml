@@ -2,7 +2,10 @@ name: "cli: test"
 
 on:
   push:
-    branches: i-985/test/add-cli-test-yaml
+    branches-ignore:
+      - "master"
+    paths:
+      - "cli/**"
   workflow_dispatch:
 
 jobs:
