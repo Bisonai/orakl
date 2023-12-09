@@ -18,7 +18,7 @@
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
-    "flush": "node --no-warnings --experimental-specifier-resolution=node --experimental-json-modules dist/tools/flush-queues.js"
+    "flush": "node --no-warnings --import=specifier-resolution-node/register --experimental-json-modules dist/tools/flush-queues.js"
   },
   "dependencies": {
     "@nestjs/bullmq": "^1.1.0",
@@ -32,7 +32,8 @@
     "bullmq": "^3.10.0",
     "mathjs": "^11.6.0",
     "reflect-metadata": "^0.1.13",
-    "rxjs": "^7.2.0"
+    "rxjs": "^7.2.0",
+    "specifier-resolution-node": "^1.1.1"
   },
   "devDependencies": {
     "@nestjs/cli": "^9.0.0",

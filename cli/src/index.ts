@@ -1,4 +1,4 @@
-#!/usr/bin/env node --no-warnings --experimental-specifier-resolution=node
+#!/usr/bin/env node --no-warnings
 
 import { binary, command, run, subcommands } from 'cmd-ts'
 import { adapterSub } from './adapter'
