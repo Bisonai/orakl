@@ -65,3 +65,21 @@ export interface IAggregator {
   absoluteThreshold: number
   adapterHash: string
 }
+
+export interface IDatafeedBulkInsertElement {
+  adapterSource: string
+  aggregatorSource: string
+  reporter: {
+    walletAddress: string
+    walletPrivateKey: string
+  }
+}
+
+export interface IDatafeedBulk {
+  chain?: string
+  service?: string
+  organization?: string
+  functionName?: string
+  eventName?: string
+  bulk: IDatafeedBulkInsertElement[]
+}

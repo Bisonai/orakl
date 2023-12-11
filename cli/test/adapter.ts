@@ -1,51 +1,8 @@
 import { describe, expect, test } from '@jest/globals'
 import { insertHandler, listHandler, removeHandler } from '../src/adapter'
+import { ADAPTER_0, ADAPTER_1 } from './mockData'
 
 describe('CLI Adapter', function () {
-  const ADAPTER_0 = {
-    active: true,
-    name: 'X-Y',
-    decimals: 8,
-    adapterHash: '0x020e150749af3bffaec9ae337da0b9b00c3cfe0b46b854a8e2f5922f6ba2c5db',
-    feeds: [
-      {
-        name: 'data-X-Y',
-        definition: {
-          url: 'https://data.com',
-          headers: { 'Content-Type': 'application/json' },
-          method: 'GET',
-          reducers: [
-            { function: 'PARSE', args: ['PRICE'] },
-            { function: 'POW10', args: '8' },
-            { function: 'ROUND' }
-          ]
-        }
-      }
-    ]
-  }
-
-  const ADAPTER_1 = {
-    active: true,
-    name: 'Z-X',
-    decimals: 8,
-    adapterHash: '0x12da2f5119ba624ed025303b424d637349c0d120d02bd66a9cfff57e98463a81',
-    feeds: [
-      {
-        name: 'data-Z-X',
-        definition: {
-          url: 'https://data.com',
-          headers: { 'Content-Type': 'application/json' },
-          method: 'GET',
-          reducers: [
-            { function: 'PARSE', args: ['PRICE'] },
-            { function: 'POW10', args: '8' },
-            { function: 'ROUND' }
-          ]
-        }
-      }
-    ]
-  }
-
   let initalAdapterId
   beforeAll(async () => {
     // insert default adapter
