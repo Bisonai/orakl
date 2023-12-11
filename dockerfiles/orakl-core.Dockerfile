@@ -31,13 +31,13 @@ COPY --from=build /app/package.json /app/package.json
 
 COPY --from=build /app/node_modules /app/node_modules
 
-COPY --from=build /app/contracts/dist /app/contracts/dist
+COPY --from=build /app/core/node_modules /app/core/node_modules
 
-COPY --from=build /app/vrf/dist /app/vrf/dist
+COPY --from=build /app/contracts /app/contracts
 
-COPY --from=build /app/fetcher/dist /app/fetcher/dist
+COPY --from=build /app/vrf /app/vrf
 
-COPY --from=build /app/fetcher/src/job /app/fetcher/src/job
+COPY --from=build /app/fetcher /app/fetcher
 
 COPY --from=build /app/core /app/core
 
