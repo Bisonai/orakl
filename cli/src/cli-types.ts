@@ -81,5 +81,13 @@ export interface IDatafeedBulk {
   organization?: string
   functionName?: string
   eventName?: string
+  fetcherHost?: string
+  workerHost?: string
+  listenerHost?: string
+  reporterHost?: string
+  fetcherPort?: string
+  workerPort?: string
+  listenerPort?: string
+  reporterPort?: string
   bulk: IDatafeedBulkInsertElement[]
 }

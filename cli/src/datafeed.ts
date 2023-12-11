@@ -5,6 +5,8 @@ import {
   removeHandler as adapterRemoveHandler
 } from './adapter'
 import {
+  activateHandler as aggregatorActivateHandler,
+  deactivateHandler as aggregatorDeactivateHandler,
   insertHandler as aggregatorInsertHandler,
   listHandler as aggregatorListHandler,
   removeHandler as aggregatorRemoveHandler
@@ -29,12 +31,17 @@ import {
   reporterListHandler as delegatorReporterListHandler,
   reporterRemoveHandler as delegatorReporterRemoveHandler
 } from './delegator'
+import { startHandler as fetcherStartHandler, stopHandler as fetcherStopHandler } from './fetcher'
 import {
+  activateHandler as listenerActivateHandler,
+  deactivateHandler as listenerDeactivateHandler,
   insertHandler as listenerInsertHandler,
   listHandler as listenerListHandler,
   removeHandler as listenerRemoveHandler
 } from './listener'
 import {
+  activateHandler as reporterActivateHandler,
+  deactivateHandler as reporterDeactivateHandler,
   insertHandler as reporterInsertHandler,
   listHandler as reporterListHandler,
   removeHandler as reporterRemoveHandler
@@ -44,8 +51,6 @@ import { isValidUrl, loadJsonFromUrl } from './utils'
 export function datafeedSub() {
   // datafeed bulk-insert --source ${source}
   // datafeed bulk-remove --source ${source}
-
-  // TODOs
   // datafeed bulk-activate --source ${source}
   // datafeed bulk-deactivate --source ${source}
 
@@ -71,9 +76,31 @@ export function datafeedSub() {
     handler: bulkRemoveHandler()
   })
 
+  const activate = command({
+    name: 'bulk-activate',
+    args: {
+      data: option({
+        type: ReadFile,
+        long: 'source'
+      })
+    },
+    handler: bulkActivateHandler()
+  })
+
+  const deactivate = command({
+    name: 'bulk-deactivate',
+    args: {
+      data: option({
+        type: ReadFile,
+        long: 'source'
+      })
+    },
+    handler: bulkDeactivateHandler()
+  })
+
   return subcommands({
     name: 'datafeed',
-    cmds: { insert, remove }
+    cmds: { insert, remove, activate, deactivate }
   })
 }
 
@@ -198,6 +225,164 @@ export function bulkRemoveHandler() {
 
       // not removing adapter and aggregator since it's impossible to remove those without wiping out related rows from data table
       // and leaving out adapter and aggregator in the table won't have that much impact on db so it'll be as it is
+    }
+  }
+  return wrapper
+}
+
+export function bulkActivateHandler() {
+  async function wrapper({ data }: { data }) {
+    const bulkData = data as IDatafeedBulk
+
+    const chain = bulkData?.chain || 'localhost'
+    const service = bulkData?.service || 'DATA_FEED'
+
+    const fetcherHost = bulkData?.fetcherHost || 'http://fetcher.svc.cluster.local'
+    const workerHost = bulkData?.workerHost || 'http://aggregator-worker.svc.cluster.local'
+    const listenerHost = bulkData?.listenerHost || 'http://aggregator-listener.svc.cluster.local'
+    const reporterHost = bulkData?.reporterHost || 'http://aggregator-reporter.svc.cluster.local'
+
+    const fetcherPort = bulkData?.fetcherPort || '4040'
+    const workerPort = bulkData?.workerPort || '5000'
+    const listenerPort = bulkData?.listenerPort || '4000'
+    const reporterPort = bulkData?.reporterPort || '6000'
+
+    const listeners = await listenerListHandler()({ chain, service })
+    const reporters = await reporterListHandler()({ chain, service })
+
+    if (!checkBulkSource(data?.bulk)) {
+      console.error(`invalid json src format`)
+      return
+    }
+
+    for (const activateElement of data.bulk) {
+      const aggregatorData = await loadJsonFromUrl(activateElement.aggregatorSource)
+      if (!checkAggregatorSource(aggregatorData)) {
+        console.error(`invalid aggregatorData: ${aggregatorData}, skipping activation`)
+        continue
+      }
+
+      const reporterId = reporters.find(
+        (reporter) =>
+          reporter.address.toLowerCase() == activateElement.reporter.walletAddress.toLowerCase()
+      )?.id
+      if (!reporterId) {
+        console.error(
+          `reporterId not found for ${activateElement.reporter.walletAddress}, skipping activation`
+        )
+        continue
+      }
+
+      const listenerId = listeners.find(
+        (listener) => listener.address == aggregatorData.address
+      )?.id
+      if (!listenerId) {
+        console.error(`listenerId not found for ${aggregatorData.address}, skipping activation`)
+        continue
+      }
+
+      await fetcherStartHandler()({
+        id: aggregatorData.aggregatorHash,
+        chain,
+        host: fetcherHost,
+        port: fetcherPort
+      })
+      await aggregatorActivateHandler()({
+        aggregatorHash: aggregatorData.aggregatorHash,
+        host: workerHost,
+        port: workerPort
+      })
+
+      await reporterActivateHandler()({
+        id: Number(reporterId),
+        host: reporterHost,
+        port: reporterPort
+      })
+      await listenerActivateHandler()({
+        id: Number(listenerId),
+        host: listenerHost,
+        port: listenerPort
+      })
+    }
+  }
+  return wrapper
+}
+
+export function bulkDeactivateHandler() {
+  async function wrapper({ data }: { data }) {
+    const bulkData = data as IDatafeedBulk
+
+    const chain = bulkData?.chain || 'localhost'
+    const service = bulkData?.service || 'DATA_FEED'
+
+    const fetcherHost = bulkData?.fetcherHost || 'http://fetcher.svc.cluster.local'
+    const workerHost = bulkData?.workerHost || 'http://aggregator-worker.svc.cluster.local'
+    const listenerHost = bulkData?.listenerHost || 'http://aggregator-listener.svc.cluster.local'
+    const reporterHost = bulkData?.reporterHost || 'http://aggregator-reporter.svc.cluster.local'
+
+    const fetcherPort = bulkData?.fetcherPort || '4040'
+    const workerPort = bulkData?.workerPort || '5000'
+    const listenerPort = bulkData?.listenerPort || '4000'
+    const reporterPort = bulkData?.reporterPort || '6000'
+
+    const listeners = await listenerListHandler()({ chain, service })
+    const reporters = await reporterListHandler()({ chain, service })
+
+    if (!checkBulkSource(data?.bulk)) {
+      console.error(`invalid json src format`)
+      return
+    }
+
+    for (const deactivateElement of data.bulk) {
+      const aggregatorData = await loadJsonFromUrl(deactivateElement.aggregatorSource)
+      if (!checkAggregatorSource(aggregatorData)) {
+        console.error(`invalid aggregatorData: ${aggregatorData}, skipping activation`)
+        continue
+      }
+
+      const reporterId = reporters.find(
+        (reporter) =>
+          reporter.address.toLowerCase() == deactivateElement.reporter.walletAddress.toLowerCase()
+      )?.id
+      if (!reporterId) {
+        console.error(
+          `reporterId not found for ${deactivateElement.reporter.walletAddress}, skipping activation`
+        )
+        continue
+      }
+
+      const listenerId = listeners.find(
+        (listener) => listener.address == aggregatorData.address
+      )?.id
+      if (!listenerId) {
+        console.error(`listenerId not found for ${aggregatorData.address}, skipping activation`)
+        continue
+      }
+
+      await listenerDeactivateHandler()({
+        id: Number(listenerId),
+        host: listenerHost,
+        port: listenerPort
+      })
+
+      await reporterDeactivateHandler()({
+        id: Number(reporterId),
+        host: reporterHost,
+        port: reporterPort
+      })
+
+      await aggregatorDeactivateHandler()({
+        aggregatorHash: aggregatorData.aggregatorHash,
+        host: workerHost,
+        port: workerPort
+      })
+
+      await fetcherStopHandler()({
+        id: aggregatorData.aggregatorHash,
+        chain,
+        host: fetcherHost,
+        port: fetcherPort
+      })
     }
   }
   return wrapper
