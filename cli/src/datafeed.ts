@@ -43,9 +43,9 @@ import { isValidUrl, loadJsonFromUrl } from './utils'
 
 export function datafeedSub() {
   // datafeed bulk-insert --source ${source}
+  // datafeed bulk-remove --source ${source}
 
   // TODOs
-  // datafeed bulk-remove --source ${source}
   // datafeed bulk-activate --source ${source}
   // datafeed bulk-deactivate --source ${source}
 
@@ -73,7 +73,7 @@ export function datafeedSub() {
 
   return subcommands({
     name: 'datafeed',
-    cmds: { insert }
+    cmds: { insert, remove }
   })
 }
 
