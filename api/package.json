@@ -32,6 +32,7 @@
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.0",
     "ethers": "^5.7.2",
+    "prisma": "5.5.2",
     "reflect-metadata": "^0.1.13",
     "rxjs": "^7.2.0"
   },
