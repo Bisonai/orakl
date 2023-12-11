@@ -113,7 +113,7 @@ export const DATAFEED_BULK_1 = {
   chain: 'baobab',
   service: 'DATA_FEED_V2',
   organization: 'kf',
-  functionName: 'submitV2(uint256, int256)',
+  functionName: 'submitV2(uint256,int256)',
   eventName: 'NewRoundV2',
   bulk: [
     {
