@@ -12,7 +12,7 @@ import {
   listHandler as chainListHandler,
   removeHandler as chainRemoveHandler
 } from '../src/chain'
-import { bulkInsertHandler } from '../src/datafeed'
+import { bulkInsertHandler, bulkRemoveHandler } from '../src/datafeed'
 import {
   contractListHandler,
   contractRemoveHandler,
@@ -158,5 +158,55 @@ describe('CLI datafeed', function () {
     expect(afterListenerList.length).toEqual(beforeListenerList.length + bulkLength)
     expect(afterReporterList.length).toEqual(beforeReporterList.length + bulkLength)
     expect(afterFunctionList.length).toEqual(beforeFunctionList.length + bulkLength)
+  })
+
+  test('datafeed bulk removal', async function () {
+    const beforeAdapterList = await adapterListHandler()()
+    const beforeAggregatorList = await aggregatorListHandler()({})
+    const beforeDelegatorReporterList = await delegatorReporterListHandler()()
+    const beforeContractList = await contractListHandler()()
+    const beforeListenerList = await listenerListHandler()({})
+    const beforeReporterList = await reporterListHandler()({})
+    const beforeFunctionList = await functionListHandler()()
+
+    await bulkInsertHandler()({ data: DATAFEED_BULK_0 })
+
+    const bulkLength = DATAFEED_BULK_0.bulk.length
+
+    const afterAdapterList = await adapterListHandler()()
+    const afterAggregatorList = await aggregatorListHandler()({})
+    const afterDelegatorReporterList = await delegatorReporterListHandler()()
+    const afterContractList = await contractListHandler()()
+    const afterListenerList = await listenerListHandler()({})
+    const afterReporterList = await reporterListHandler()({})
+    const afterFunctionList = await functionListHandler()()
+
+    expect(afterAdapterList.length).toEqual(beforeAdapterList.length + bulkLength)
+    expect(afterAggregatorList.length).toEqual(beforeAggregatorList.length + bulkLength)
+    expect(afterDelegatorReporterList.length).toEqual(
+      beforeDelegatorReporterList.length + bulkLength
+    )
+    expect(afterContractList.length).toEqual(beforeContractList.length + bulkLength)
+    expect(afterListenerList.length).toEqual(beforeListenerList.length + bulkLength)
+    expect(afterReporterList.length).toEqual(beforeReporterList.length + bulkLength)
+    expect(afterFunctionList.length).toEqual(beforeFunctionList.length + bulkLength)
+
+    await bulkRemoveHandler()({ data: DATAFEED_BULK_0 })
+
+    const afterDeleteAdapterList = await adapterListHandler()()
+    const afterDeleteAggregatorList = await aggregatorListHandler()({})
+    const afterDeleteDelegatorReporterList = await delegatorReporterListHandler()()
+    const afterDeleteContractList = await contractListHandler()()
+    const afterDeleteListenerList = await listenerListHandler()({})
+    const afterDeleteReporterList = await reporterListHandler()({})
+    const afterDeleteFunctionList = await functionListHandler()()
+
+    expect(afterDeleteAdapterList.length).toEqual(0)
+    expect(afterDeleteAggregatorList.length).toEqual(0)
+    expect(afterDeleteDelegatorReporterList.length).toEqual(0)
+    expect(afterDeleteContractList.length).toEqual(0)
+    expect(afterDeleteListenerList.length).toEqual(0)
+    expect(afterDeleteReporterList.length).toEqual(0)
+    expect(afterDeleteFunctionList.length).toEqual(0)
   })
 })

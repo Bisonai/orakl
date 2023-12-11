@@ -1,6 +1,14 @@
 import { command, option, subcommands } from 'cmd-ts'
-import { insertHandler as adapterInsertHandler } from './adapter'
-import { insertHandler as aggregatorInsertHandler } from './aggregator'
+import {
+  insertHandler as adapterInsertHandler,
+  listHandler as adapterListHandler,
+  removeHandler as adapterRemoveHandler
+} from './adapter'
+import {
+  insertHandler as aggregatorInsertHandler,
+  listHandler as aggregatorListHandler,
+  removeHandler as aggregatorRemoveHandler
+} from './aggregator'
 import {
   IAdapter,
   IAggregator,
@@ -11,12 +19,26 @@ import {
 import {
   contractConnectHandler,
   contractInsertHandler,
+  contractListHandler,
+  contractRemoveHandler,
   functionInsertHandler,
+  functionListHandler,
+  functionRemoveHandler,
   organizationListHandler,
-  reporterInsertHandler as delegatorReporterInsertHandler
+  reporterInsertHandler as delegatorReporterInsertHandler,
+  reporterListHandler as delegatorReporterListHandler,
+  reporterRemoveHandler as delegatorReporterRemoveHandler
 } from './delegator'
-import { insertHandler as listenerInsertHandler } from './listener'
-import { insertHandler as reporterInsertHandler } from './reporter'
+import {
+  insertHandler as listenerInsertHandler,
+  listHandler as listenerListHandler,
+  removeHandler as listenerRemoveHandler
+} from './listener'
+import {
+  insertHandler as reporterInsertHandler,
+  listHandler as reporterListHandler,
+  removeHandler as reporterRemoveHandler
+} from './reporter'
 import { isValidUrl, loadJsonFromUrl } from './utils'
 
 export function datafeedSub() {
@@ -36,6 +58,17 @@ export function datafeedSub() {
       })
     },
     handler: bulkInsertHandler()
+  })
+
+  const remove = command({
+    name: 'bulk-remove',
+    args: {
+      data: option({
+        type: ReadFile,
+        long: 'source'
+      })
+    },
+    handler: bulkRemoveHandler()
   })
 
   return subcommands({
@@ -107,6 +140,72 @@ export function bulkInsertHandler() {
         address: aggregatorData.address,
         eventName
       })
+    }
+  }
+  return wrapper
+}
+
+export function bulkRemoveHandler() {
+  async function wrapper({ data }: { data }) {
+    const bulkData = data as IDatafeedBulk
+
+    if (!checkBulkSource(data?.bulk)) {
+      console.error('invalid json src format')
+      return
+    }
+
+    const adapters = await adapterListHandler()()
+    const aggregators = await aggregatorListHandler()({})
+    const listeners = await listenerListHandler()({})
+    const reporters = await reporterListHandler()({})
+    const delegatorReporters = await delegatorReporterListHandler()()
+    const delegatorContracts = await contractListHandler()()
+    const delegatorFunctions = await functionListHandler()()
+
+    for (const removeElement of bulkData.bulk) {
+      console.log(`removing ${removeElement}`)
+      const adapterData = await loadJsonFromUrl(removeElement.adapterSource)
+      if (!checkAdapterSource(adapterData)) {
+        console.error(`invalid adapterData: ${adapterData}, skipping insert`)
+        continue
+      }
+      const aggregatorData = await loadJsonFromUrl(removeElement.aggregatorSource)
+      if (!checkAggregatorSource(aggregatorData)) {
+        console.error(`invalid aggregatorData: ${aggregatorData}, skipping insert`)
+        continue
+      }
+
+      const adapterId = adapters.find(
+        (adapter) => adapter.adapterHash == adapterData.adapterHash
+      ).id
+      const aggregatorId = aggregators.find(
+        (aggregator) => aggregator.aggregatorHash == aggregatorData.aggregatorHash
+      ).id
+
+      const listenerId = listeners.find((listener) => listener.address == aggregatorData.address).id
+      const reporterId = reporters.find(
+        (reporter) => reporter.address == removeElement.reporter.walletAddress
+      ).id
+
+      const delegatorReporterId = delegatorReporters.find(
+        (reporter) => reporter.address == removeElement.reporter.walletAddress
+      ).id
+      const delegatorContractId = delegatorContracts.find(
+        (contract) => contract.address == aggregatorData.address
+      ).id
+      const functionId = delegatorFunctions.find(
+        (_function) => _function.address == aggregatorData.address
+      ).id
+
+      await listenerRemoveHandler()({ id: listenerId })
+      await reporterRemoveHandler()({ id: reporterId })
+
+      await functionRemoveHandler()({ id: functionId })
+      await contractRemoveHandler()({ id: delegatorContractId })
+      await delegatorReporterRemoveHandler()({ id: delegatorReporterId })
+
+      await aggregatorRemoveHandler()({ id: aggregatorId })
+      await adapterRemoveHandler()({ id: adapterId })
     }
   }
   return wrapper
