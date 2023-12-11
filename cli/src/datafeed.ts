@@ -1,7 +1,13 @@
 import { command, option, subcommands } from 'cmd-ts'
 import { insertHandler as adapterInsertHandler } from './adapter'
 import { insertHandler as aggregatorInsertHandler } from './aggregator'
-import { IDatafeedBulk, IDatafeedBulkInsertElement, ReadFile } from './cli-types'
+import {
+  IAdapter,
+  IAggregator,
+  IDatafeedBulk,
+  IDatafeedBulkInsertElement,
+  ReadFile
+} from './cli-types'
 import {
   contractConnectHandler,
   contractInsertHandler,
@@ -59,7 +65,15 @@ export function bulkInsertHandler() {
     for (const insertElement of bulkData.bulk) {
       console.log(`inserting ${insertElement}`)
       const adapterData = await loadJsonFromUrl(insertElement.adapterSource)
+      if (!checkAdapterSource(adapterData)) {
+        console.error(`invalid adapterData: ${adapterData}, skipping insert`)
+        continue
+      }
       const aggregatorData = await loadJsonFromUrl(insertElement.aggregatorSource)
+      if (!checkAggregatorSource(aggregatorData)) {
+        console.error(`invalid aggregatorData: ${aggregatorData}, skipping insert`)
+        continue
+      }
 
       await adapterInsertHandler()({ data: adapterData })
       await aggregatorInsertHandler()({ data: aggregatorData, chain })
@@ -119,6 +133,62 @@ function checkBulkSource(bulkData: IDatafeedBulkInsertElement[]) {
       console.error(`${insertElement.reporter} is missing values`)
       return false
     }
+  }
+  return true
+}
+
+function checkAdapterSource(adapterData: IAdapter) {
+  if (!adapterData.adapterHash) {
+    console.error(`adapterHash is empty`)
+    return false
+  }
+  if (!adapterData.name) {
+    console.error(`adapter name is empty`)
+    return false
+  }
+  if (!adapterData.decimals) {
+    console.error(`adapter decimals is empty`)
+    return false
+  }
+  if (!adapterData.feeds) {
+    console.error(`adapter feeds is empty`)
+    return false
+  }
+  return true
+}
+
+function checkAggregatorSource(aggregatorData: IAggregator) {
+  if (!aggregatorData.aggregatorHash) {
+    console.error(`aggregatorHash is empty`)
+    return false
+  }
+  if (aggregatorData.active) {
+    console.error(`can't insert active aggregator`)
+    return false
+  }
+  if (!aggregatorData.name) {
+    console.error(`aggregatorData name is empty`)
+    return false
+  }
+  if (!aggregatorData.address) {
+    console.error(`aggregator address is empty`)
+    return false
+  }
+  if (!aggregatorData.heartbeat) {
+    console.error(`aggregator heartbeat is empty`)
+    return false
+  }
+  if (!aggregatorData.threshold) {
+    console.error(`aggregator threshold is empty`)
+    return false
+  }
+  if (!aggregatorData.absoluteThreshold) {
+    console.error(`aggregator absoluteThreshold is empty`)
+    return false
+  }
+  if (!aggregatorData.adapterHash) {
+    console.error(`aggregator adapterHash is empty`)
+    return false
   }
   return true
 }
