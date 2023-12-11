@@ -10,35 +10,35 @@ async function generateWallet() {
 }
 
 const readArgs = async () => {
-  const requiredArgs = ["--pairs", "--chain"]
-  const args = process.argv.slice(2);
-  
-  if(args.length != 4) {
-    throw "wrong argument numbers, pairs and chain required"
+  const requiredArgs = ['--pairs', '--chain']
+  const args = process.argv.slice(2)
+
+  if (args.length != 4) {
+    throw 'wrong argument numbers, pairs and chain required'
   }
 
   const result = {}
 
-  for(let i = 0; i<args.length; i+=2){
+  for (let i = 0; i < args.length; i += 2) {
     const paramName = args[i]
-    const param = args[i+1]
-    if (!requiredArgs.includes(paramName)){
+    const param = args[i + 1]
+    if (!requiredArgs.includes(paramName)) {
       throw `wrong argument: ${paramName}, pairs and chain required`
     }
 
-    if(paramName == "--pairs"){
-      result["pairs"] = JSON.parse(param)
+    if (paramName == '--pairs') {
+      result['pairs'] = JSON.parse(param)
     }
 
-    if(paramName == "--chain"){
-      result["chain"] = param
+    if (paramName == '--chain') {
+      result['chain'] = param
     }
   }
   return result
 }
 
 async function main() {
-  const {pairs, chain} = await readArgs()
+  const { pairs, chain } = await readArgs()
 
   const baseSource = `./migration/${chain}/Aggregator/`
   const aggregatorSource = './scripts/v0.1/admin-aggregator/dataFeedSample.json'
@@ -47,8 +47,8 @@ async function main() {
 
   let walletList = []
   const bulkData = {}
-  bulkData["chain"] = chain
-  bulkData["bulk"] = []
+  bulkData['chain'] = chain
+  bulkData['bulk'] = []
 
   for (const priceFeed of pairs) {
     // setup new wallet
@@ -72,7 +72,7 @@ async function main() {
     storeJson(storeFilePath, JSON.stringify(data, null, 2))
 
     // Bulk .json File
-    bulkData["bulk"].push({
+    bulkData['bulk'].push({
       adapterSource: `https://config.orakl.network/adapter/${priceFeed}.adapter.json`,
       aggregatorSource: `https://config.orakl.network/aggregator/${chain}/${priceFeed}.aggregator.json`,
       reporter: {
