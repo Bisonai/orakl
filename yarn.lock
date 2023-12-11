@@ -6995,6 +6995,11 @@ import-local@^3.0.2:
     pkg-dir "^4.2.0"
     resolve-cwd "^3.0.0"
 
+import-meta-resolve@^4.0.0:
+  version "4.0.0"
+  resolved "https://registry.yarnpkg.com/import-meta-resolve/-/import-meta-resolve-4.0.0.tgz#0b1195915689f60ab00f830af0f15cc841e8919e"
+  integrity sha512-okYUR7ZQPH+efeuMJGlq4f8ubUgO50kByRPyt/Cy1Io4PSRsPjxME+YlVaCOx+NIToW7hCsZNFJyTPFFKepRSA==
+
 imul@^1.0.0:
   version "1.0.1"
   resolved "https://registry.npmjs.org/imul/-/imul-1.0.1.tgz#9d5867161e8b3de96c2c38d5dc7cb102f35e2ac9"
@@ -11196,6 +11201,13 @@ source-map@~0.2.0:
   integrity sha512-CBdZ2oa/BHhS4xj5DlhjWNHcan57/5YuvfdLf17iVmIpd9KRm+DFLmC6nBNj+6Ua7Kt3TmOjDpQT1aTYOQtoUA==
   dependencies:
     amdefine ">=0.0.4"
+
+specifier-resolution-node@^1.1.1:
+  version "1.1.1"
+  resolved "https://registry.yarnpkg.com/specifier-resolution-node/-/specifier-resolution-node-1.1.1.tgz#450ebe0da8a2309be968a7dcee70dcb15cf47765"
+  integrity sha512-LcJnmIPda9WqEDvRIh/UPnKO7O5Cd9x8hbDDIMIDd6MzP55s8XQ9lHzuSgOXDPxTeIDhx2vqpF2FMDB5nsfRzA==
+  dependencies:
+    import-meta-resolve "^4.0.0"
 
 split2@^4.0.0, split2@^4.1.0:
   version "4.2.0"
