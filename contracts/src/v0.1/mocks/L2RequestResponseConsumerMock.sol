@@ -86,12 +86,8 @@ contract L2RequestResponseConsumerMock is
     ) public onlyOwner returns (uint256 requestId) {
         bytes32 jobId = keccak256(abi.encodePacked("bool"));
         Orakl.Request memory req = buildRequest(jobId);
-        req.add(
-            "get",
-            "https://min-api.cryptocompare.com/data/pricemultifull?fsyms=KLAY&tsyms=USD"
-        );
-        req.add("path", "RAW,KLAY,USD,PRICE");
-        req.add("pow10", "8");
+        req.add("get", "https://mockapi.impetus.fun/true");
+        req.add("path", "data");
 
         requestId = L2ENDPOINT.requestData(req, callbackGasLimit, accId, numSubmission);
     }
@@ -124,11 +120,9 @@ contract L2RequestResponseConsumerMock is
         Orakl.Request memory req = buildRequest(jobId);
         req.add(
             "get",
-            "https://min-api.cryptocompare.com/data/pricemultifull?fsyms=KLAY&tsyms=USD"
+            "https://mockapi.impetus.fun/0x68656c6c6f000000000000000000000000000000000000000000000000000000"
         );
-        req.add("path", "RAW,KLAY,USD,PRICE");
-        req.add("pow10", "8");
-
+        req.add("path", "data");
         requestId = L2ENDPOINT.requestData(req, callbackGasLimit, accId, numSubmission);
     }
 
@@ -140,12 +134,8 @@ contract L2RequestResponseConsumerMock is
     ) public onlyOwner returns (uint256 requestId) {
         bytes32 jobId = keccak256(abi.encodePacked("bytes"));
         Orakl.Request memory req = buildRequest(jobId);
-        req.add(
-            "get",
-            "https://min-api.cryptocompare.com/data/pricemultifull?fsyms=KLAY&tsyms=USD"
-        );
-        req.add("path", "RAW,KLAY,USD,PRICE");
-        req.add("pow10", "8");
+        req.add("get", "https://mockapi.impetus.fun/0x68656c6c6f");
+        req.add("path", "data");
 
         requestId = L2ENDPOINT.requestData(req, callbackGasLimit, accId, numSubmission);
     }
