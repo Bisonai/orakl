@@ -107,6 +107,8 @@ describe('CLI datafeed', function () {
 
     await bulkInsertHandler()({ data: DATAFEED_BULK_0 })
 
+    const bulkLength = DATAFEED_BULK_0.bulk.length
+
     const afterAdapterList = await adapterListHandler()()
     const afterAggregatorList = await aggregatorListHandler()({})
     const afterDelegatorReporterList = await delegatorReporterListHandler()()
@@ -115,13 +117,15 @@ describe('CLI datafeed', function () {
     const afterReporterList = await reporterListHandler()({})
     const afterFunctionList = await functionListHandler()()
 
-    expect(afterAdapterList.length).toEqual(beforeAdapterList.length + 3)
-    expect(afterAggregatorList.length).toEqual(beforeAggregatorList.length + 3)
-    expect(afterDelegatorReporterList.length).toEqual(beforeDelegatorReporterList.length + 3)
-    expect(afterContractList.length).toEqual(beforeContractList.length + 3)
-    expect(afterListenerList.length).toEqual(beforeListenerList.length + 3)
-    expect(afterReporterList.length).toEqual(beforeReporterList.length + 3)
-    expect(afterFunctionList.length).toEqual(beforeFunctionList.length + 3)
+    expect(afterAdapterList.length).toEqual(beforeAdapterList.length + bulkLength)
+    expect(afterAggregatorList.length).toEqual(beforeAggregatorList.length + bulkLength)
+    expect(afterDelegatorReporterList.length).toEqual(
+      beforeDelegatorReporterList.length + bulkLength
+    )
+    expect(afterContractList.length).toEqual(beforeContractList.length + bulkLength)
+    expect(afterListenerList.length).toEqual(beforeListenerList.length + bulkLength)
+    expect(afterReporterList.length).toEqual(beforeReporterList.length + bulkLength)
+    expect(afterFunctionList.length).toEqual(beforeFunctionList.length + bulkLength)
   })
 
   test('datafeed bulk insert', async function () {
@@ -135,6 +139,8 @@ describe('CLI datafeed', function () {
 
     await bulkInsertHandler()({ data: DATAFEED_BULK_1 })
 
+    const bulkLength = DATAFEED_BULK_1.bulk.length
+
     const afterAdapterList = await adapterListHandler()()
     const afterAggregatorList = await aggregatorListHandler()({})
     const afterDelegatorReporterList = await delegatorReporterListHandler()()
@@ -143,12 +149,14 @@ describe('CLI datafeed', function () {
     const afterReporterList = await reporterListHandler()({})
     const afterFunctionList = await functionListHandler()()
 
-    expect(afterAdapterList.length).toEqual(beforeAdapterList.length + 3)
-    expect(afterAggregatorList.length).toEqual(beforeAggregatorList.length + 3)
-    expect(afterDelegatorReporterList.length).toEqual(beforeDelegatorReporterList.length + 3)
-    expect(afterContractList.length).toEqual(beforeContractList.length + 3)
-    expect(afterListenerList.length).toEqual(beforeListenerList.length + 3)
-    expect(afterReporterList.length).toEqual(beforeReporterList.length + 3)
-    expect(afterFunctionList.length).toEqual(beforeFunctionList.length + 3)
+    expect(afterAdapterList.length).toEqual(beforeAdapterList.length + bulkLength)
+    expect(afterAggregatorList.length).toEqual(beforeAggregatorList.length + bulkLength)
+    expect(afterDelegatorReporterList.length).toEqual(
+      beforeDelegatorReporterList.length + bulkLength
+    )
+    expect(afterContractList.length).toEqual(beforeContractList.length + bulkLength)
+    expect(afterListenerList.length).toEqual(beforeListenerList.length + bulkLength)
+    expect(afterReporterList.length).toEqual(beforeReporterList.length + bulkLength)
+    expect(afterFunctionList.length).toEqual(beforeFunctionList.length + bulkLength)
   })
 })

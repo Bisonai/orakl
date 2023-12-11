@@ -45,7 +45,7 @@ export function bulkInsertHandler() {
     const chain = bulkData?.chain || 'localhost'
     const service = bulkData?.service || 'DATA_FEED'
     const organization = bulkData?.organization || 'bisonai'
-    const functionName = bulkData?.functionName || 'submit(uint256, int256)'
+    const functionName = bulkData?.functionName || 'submit(uint256,int256)'
     const eventName = bulkData?.eventName || 'NewRound'
     const organizationId = (await organizationListHandler()()).find(
       (_organization) => _organization.name == organization
@@ -55,7 +55,9 @@ export function bulkInsertHandler() {
       console.error('invalid json src format')
       return
     }
+
     for (const insertElement of bulkData.bulk) {
+      console.log(`inserting ${insertElement}`)
       const adapterData = await loadJsonFromUrl(insertElement.adapterSource)
       const aggregatorData = await loadJsonFromUrl(insertElement.aggregatorSource)
 
@@ -98,17 +100,23 @@ export function bulkInsertHandler() {
 
 function checkBulkSource(bulkData: IDatafeedBulkInsertElement[]) {
   if (!bulkData || bulkData.length == 0) {
+    console.error('empty bulk insert data')
     return false
   }
   for (const insertElement of bulkData) {
-    if (!isValidUrl(insertElement.adapterSource) || !isValidUrl(insertElement.aggregatorSource)) {
+    if (!isValidUrl(insertElement.adapterSource)) {
+      console.error(`${insertElement.adapterSource} is invalid url`)
       return false
+    }
+    if (!isValidUrl(insertElement.aggregatorSource)) {
+      console.error(`${insertElement.aggregatorSource} is invalid url`)
     }
     if (
       !insertElement.reporter ||
       !insertElement.reporter.walletAddress ||
       !insertElement.reporter.walletPrivateKey
     ) {
+      console.error(`${insertElement.reporter} is missing values`)
       return false
     }
   }
