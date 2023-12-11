@@ -188,13 +188,14 @@ export function bulkRemoveHandler() {
       ).id
 
       const delegatorReporterId = delegatorReporters.find(
-        (reporter) => reporter.address == removeElement.reporter.walletAddress
+        (reporter) =>
+          reporter.address.toLowerCase() == removeElement.reporter.walletAddress.toLowerCase()
       ).id
       const delegatorContractId = delegatorContracts.find(
-        (contract) => contract.address == aggregatorData.address
+        (contract) => contract.address.toLowerCase() == aggregatorData.address.toLowerCase()
       ).id
       const functionId = delegatorFunctions.find(
-        (_function) => _function.address == aggregatorData.address
+        (_function) => _function.address.toLowerCase() == aggregatorData.address.toLowerCase()
       ).id
 
       await listenerRemoveHandler()({ id: listenerId })
