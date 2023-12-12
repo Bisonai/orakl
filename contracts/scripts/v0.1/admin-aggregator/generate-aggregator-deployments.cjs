@@ -1,8 +1,8 @@
 const { getFormattedDate, loadJson, storeJson } = require('../utils.cjs')
 const { ethers } = require('hardhat')
+const path = require('path')
 
-// call from contracts workspace
-// node ./scripts/v0.1/admin-aggregator/generate-aggregator-deployments.cjs --pairs '["usd-krw", "jpy-usd", "joy-usdc"]' --chain baobab
+// ex. node ./scripts/v0.1/admin-aggregator/generate-aggregator-deployments.cjs --pairs '["usd-krw", "jpy-usd", "joy-usdc"]' --chain baobab
 
 async function generateWallet() {
   const wallet = ethers.Wallet.createRandom()
@@ -12,12 +12,11 @@ async function generateWallet() {
 const readArgs = async () => {
   const requiredArgs = ['--pairs', '--chain']
   const args = process.argv.slice(2)
+  const result = {}
 
   if (args.length != 4) {
     throw 'wrong argument numbers, pairs and chain required'
   }
-
-  const result = {}
 
   for (let i = 0; i < args.length; i += 2) {
     const paramName = args[i]
@@ -28,20 +27,18 @@ const readArgs = async () => {
 
     if (paramName == '--pairs') {
       result['pairs'] = JSON.parse(param)
-    }
-
-    if (paramName == '--chain') {
+    } else if (paramName == '--chain') {
       result['chain'] = param
     }
   }
+
   return result
 }
 
 async function main() {
   const { pairs, chain } = await readArgs()
-
-  const baseSource = `./migration/${chain}/Aggregator/`
-  const aggregatorSource = './scripts/v0.1/admin-aggregator/dataFeedSample.json'
+  const baseSource = path.join(__filename, `../../../../migration/${chain}/Aggregator/`)
+  const aggregatorSource = path.join(__filename, '../dataFeedSample.json')
   const data = await loadJson(aggregatorSource)
   const date = getFormattedDate()
 
@@ -89,7 +86,7 @@ async function main() {
 
   // store Bulk
   console.log(bulkData)
-  const storeBulkJsonFilePath = `${baseSource}${date}_bulk.json`
+  const storeBulkJsonFilePath = `${baseSource}bulk.json`
   storeJson(storeBulkJsonFilePath, JSON.stringify(bulkData, null, 2))
 }
 
