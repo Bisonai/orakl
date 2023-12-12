@@ -69,8 +69,13 @@ yarn deploy:localhost:rr
 yarn deploy:localhost:aggregator
 ```
 
-### hardhat library confliction issue
+### Hardhat library confliction issue
 
 - Followed following example to avoid package conflict https://ethereum.stackexchange.com/questions/143246/conflict-peer-dependencies-nomicfoundation-hardhat-deploy-ethers
 - `"@nomiclabs/hardhat-ethers": "npm:hardhat-deploy-ethers@^0.3.0-beta.13"`
 - Without setting 0.3.0-beta.13 it requires to install @nomiclabs/hardhat-ethers, after setting this dependency, it fails to compile proper types.
+
+### Script
+
+- run `scripts/v0.1/generate-aggregator-deployments.cjs` to create wallets and bulk json files
+- call example `node ./scripts/v0.1/admin-aggregator/generate-aggregator-deployments.cjs --pairs '["usd-krw", "jpy-usd", "joy-usdc"]' --chain baobab`

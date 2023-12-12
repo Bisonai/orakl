@@ -1,9 +1,8 @@
+const path = require('path')
+const fs = require('fs')
 const { getFormattedDate, loadJson, storeJson } = require('../utils.cjs')
 const { ethers } = require('hardhat')
-const path = require('path')
 const { parseArgs } = require('node:util')
-
-// ex. node ./scripts/v0.1/admin-aggregator/generate-aggregator-deployments.cjs --pairs '["usd-krw", "jpy-usd", "joy-usdc"]' --chain baobab
 
 async function generateWallet() {
   const wallet = ethers.Wallet.createRandom()
@@ -31,11 +30,16 @@ async function main() {
 
   const baseSource = path.join(__filename, `../../../../migration/${chain}/Aggregator/`)
   const aggregatorSource = path.join(__filename, '../dataFeedSample.json')
+  const tempFolderPath = path.join(__filename, '../../tmp/')
   const data = await loadJson(aggregatorSource)
   const date = getFormattedDate()
-
-  let walletList = []
+  const walletList = []
   const bulkData = {}
+
+  if (!fs.existsSync(tempFolderPath)) {
+    fs.mkdirSync(tempFolderPath, { recursive: true })
+  }
+
   bulkData['chain'] = chain
   bulkData['bulk'] = []
 
@@ -73,12 +77,12 @@ async function main() {
 
   // store Wallets
   console.log(walletList)
-  const storeFilePath = `${baseSource}accountList.json`
+  const storeFilePath = `${tempFolderPath}accountList.json`
   storeJson(storeFilePath, JSON.stringify(walletList, null, 2))
 
   // store Bulk
   console.log(bulkData)
-  const storeBulkJsonFilePath = `${baseSource}bulk.json`
+  const storeBulkJsonFilePath = `${tempFolderPath}bulk.json`
   storeJson(storeBulkJsonFilePath, JSON.stringify(bulkData, null, 2))
 }
 
