@@ -1,6 +1,7 @@
 const { getFormattedDate, loadJson, storeJson } = require('../utils.cjs')
 const { ethers } = require('hardhat')
 const path = require('path')
+const { parseArgs } = require('node:util')
 
 // ex. node ./scripts/v0.1/admin-aggregator/generate-aggregator-deployments.cjs --pairs '["usd-krw", "jpy-usd", "joy-usdc"]' --chain baobab
 
@@ -11,32 +12,23 @@ async function generateWallet() {
 
 const readArgs = async () => {
   const requiredArgs = ['--pairs', '--chain']
-  const args = process.argv.slice(2)
-  const result = {}
-
-  if (args.length != 4) {
-    throw 'wrong argument numbers, pairs and chain required'
-  }
-
-  for (let i = 0; i < args.length; i += 2) {
-    const paramName = args[i]
-    const param = args[i + 1]
-    if (!requiredArgs.includes(paramName)) {
-      throw `wrong argument: ${paramName}, pairs and chain required`
-    }
-
-    if (paramName == '--pairs') {
-      result['pairs'] = JSON.parse(param)
-    } else if (paramName == '--chain') {
-      result['chain'] = param
+  const options = {
+    pairs: {
+      type: 'string'
+    },
+    chain: {
+      type: 'string'
     }
   }
+  const { values } = parseArgs({ requiredArgs, options })
+  values['pairs'] = JSON.parse(values['pairs'])
 
-  return result
+  return values
 }
 
 async function main() {
   const { pairs, chain } = await readArgs()
+
   const baseSource = path.join(__filename, `../../../../migration/${chain}/Aggregator/`)
   const aggregatorSource = path.join(__filename, '../dataFeedSample.json')
   const data = await loadJson(aggregatorSource)
