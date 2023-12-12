@@ -311,10 +311,12 @@ export function bulkDeactivateHandler() {
     const chain = bulkData?.chain || 'localhost'
     const service = bulkData?.service || 'DATA_FEED'
 
-    const fetcherHost = bulkData?.fetcherHost || 'http://fetcher.svc.cluster.local'
-    const workerHost = bulkData?.workerHost || 'http://aggregator-worker.svc.cluster.local'
-    const listenerHost = bulkData?.listenerHost || 'http://aggregator-listener.svc.cluster.local'
-    const reporterHost = bulkData?.reporterHost || 'http://aggregator-reporter.svc.cluster.local'
+    const fetcherHost = bulkData?.fetcherHost || 'http://fetcher.orakl.svc.cluster.local'
+    const workerHost = bulkData?.workerHost || 'http://aggregator-worker.orakl.svc.cluster.local'
+    const listenerHost =
+      bulkData?.listenerHost || 'http://aggregator-listener.orakl.svc.cluster.local'
+    const reporterHost =
+      bulkData?.reporterHost || 'http://aggregator-reporter.orakl.svc.cluster.local'
 
     const fetcherPort = bulkData?.fetcherPort || '4040'
     const workerPort = bulkData?.workerPort || '5000'
