@@ -332,7 +332,7 @@ export function bulkDeactivateHandler() {
     for (const deactivateElement of data.bulk) {
       const aggregatorData = await loadJsonFromUrl(deactivateElement.aggregatorSource)
       if (!checkAggregatorSource(aggregatorData)) {
-        console.error(`invalid aggregatorData: ${aggregatorData}, skipping activation`)
+        console.error(`invalid aggregatorData: ${aggregatorData}, skipping deactivation`)
         continue
       }
 
@@ -342,7 +342,7 @@ export function bulkDeactivateHandler() {
       )?.id
       if (!reporterId) {
         console.error(
-          `reporterId not found for ${deactivateElement.reporter.walletAddress}, skipping activation`
+          `reporterId not found for ${deactivateElement.reporter.walletAddress}, skipping deactivation`
         )
         continue
       }
@@ -351,7 +351,7 @@ export function bulkDeactivateHandler() {
         (listener) => listener.address == aggregatorData.address
       )?.id
       if (!listenerId) {
-        console.error(`listenerId not found for ${aggregatorData.address}, skipping activation`)
+        console.error(`listenerId not found for ${aggregatorData.address}, skipping deactivation`)
         continue
       }
 
