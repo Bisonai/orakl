@@ -1,13 +1,8 @@
 import { command, option, subcommands } from 'cmd-ts'
-import {
-  insertHandler as adapterInsertHandler,
-  listHandler as adapterListHandler,
-  removeHandler as adapterRemoveHandler
-} from './adapter'
+import { insertHandler as adapterInsertHandler, listHandler as adapterListHandler } from './adapter'
 import {
   insertHandler as aggregatorInsertHandler,
-  listHandler as aggregatorListHandler,
-  removeHandler as aggregatorRemoveHandler
+  listHandler as aggregatorListHandler
 } from './aggregator'
 import {
   IAdapter,
@@ -166,12 +161,12 @@ export function bulkRemoveHandler() {
       console.log(`removing ${removeElement}`)
       const adapterData = await loadJsonFromUrl(removeElement.adapterSource)
       if (!checkAdapterSource(adapterData)) {
-        console.error(`invalid adapterData: ${adapterData}, skipping insert`)
+        console.error(`invalid adapterData: ${adapterData}, skipping removal`)
         continue
       }
       const aggregatorData = await loadJsonFromUrl(removeElement.aggregatorSource)
       if (!checkAggregatorSource(aggregatorData)) {
-        console.error(`invalid aggregatorData: ${aggregatorData}, skipping insert`)
+        console.error(`invalid aggregatorData: ${aggregatorData}, skipping removal`)
         continue
       }
 
@@ -204,9 +199,6 @@ export function bulkRemoveHandler() {
       await functionRemoveHandler()({ id: functionId })
       await contractRemoveHandler()({ id: delegatorContractId })
       await delegatorReporterRemoveHandler()({ id: delegatorReporterId })
-
-      await aggregatorRemoveHandler()({ id: aggregatorId })
-      await adapterRemoveHandler()({ id: adapterId })
     }
   }
   return wrapper

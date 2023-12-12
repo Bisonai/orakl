@@ -193,16 +193,12 @@ describe('CLI datafeed', function () {
 
     await bulkRemoveHandler()({ data: DATAFEED_BULK_0 })
 
-    const afterDeleteAdapterList = await adapterListHandler()()
-    const afterDeleteAggregatorList = await aggregatorListHandler()({})
     const afterDeleteDelegatorReporterList = await delegatorReporterListHandler()()
     const afterDeleteContractList = await contractListHandler()()
     const afterDeleteListenerList = await listenerListHandler()({})
     const afterDeleteReporterList = await reporterListHandler()({})
     const afterDeleteFunctionList = await functionListHandler()()
 
-    expect(afterDeleteAdapterList.length).toEqual(0)
-    expect(afterDeleteAggregatorList.length).toEqual(0)
     expect(afterDeleteDelegatorReporterList.length).toEqual(0)
     expect(afterDeleteContractList.length).toEqual(0)
     expect(afterDeleteListenerList.length).toEqual(0)
