@@ -1,28 +1,28 @@
-import { Inject, Injectable } from '@nestjs/common'
+import { Injectable } from '@nestjs/common'
 import { Prisma } from '@prisma/client'
-import type { RedisClientType } from 'redis'
 import { PrismaService } from '../prisma.service'
+import { RedisService } from '../redis.service'
 import { AggregateDto } from './dto/aggregate.dto'
-import { LatestAggregateDto } from './dto/latest-aggregate.dto'
+import { LatestAggregateDto, LatestAggregateByIdDto } from './dto/latest-aggregate.dto'
 
 @Injectable()
 export class AggregateService {
   constructor(
-    @Inject('REDIS_CLIENT')
     private prisma: PrismaService,
-    private readonly redis: RedisClientType
+    private readonly redis: RedisService
   ) {}
 
   async create(aggregateDto: AggregateDto) {
+    const _timestamp = new Date(aggregateDto.timestamp)
     const data: Prisma.AggregateUncheckedCreateInput = {
-      timestamp: new Date(aggregateDto.timestamp),
+      timestamp: _timestamp,
       value: aggregateDto.value,
       aggregatorId: BigInt(aggregateDto.aggregatorId)
     }
 
-    this.redis.set(
+    await this.redis.set(
       `latestAggregate:${BigInt(aggregateDto.aggregatorId).toString()}`,
-      aggregateDto.value.toString()
+      `${_timestamp.toISOString()}|${aggregateDto.value.toString()}`
     )
 
     return await this.prisma.aggregate.create({ data })
@@ -83,5 +83,28 @@ export class AggregateService {
     } else {
       return null
     }
+  }
+
+  async findLatestByAggregatorId(latestAggregateByIdDto: LatestAggregateByIdDto) {
+    const { aggregatorId } = latestAggregateByIdDto
+
+    const redisKey = `latestAggregate:${aggregatorId.toString()}`
+    const result = await this.redis.get(redisKey)
+
+    if (!result) {
+      return await this.findLatestByAggregatorIdFromPrisma(aggregatorId)
+    }
+    const [timestamp, value] = result.split('|')
+    return { timestamp, value: BigInt(value) }
+  }
+
+  async findLatestByAggregatorIdFromPrisma(aggregatorId) {
+    const prismaResult = await this.prisma.aggregate.findFirst({
+      where: { aggregatorId },
+      orderBy: { timestamp: 'desc' }
+    })
+
+    const { timestamp, value } = prismaResult
+    return { timestamp, value }
   }
 }
