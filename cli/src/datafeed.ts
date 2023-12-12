@@ -1,9 +1,6 @@
 import { command, option, subcommands } from 'cmd-ts'
-import { insertHandler as adapterInsertHandler, listHandler as adapterListHandler } from './adapter'
-import {
-  insertHandler as aggregatorInsertHandler,
-  listHandler as aggregatorListHandler
-} from './aggregator'
+import { insertHandler as adapterInsertHandler } from './adapter'
+import { insertHandler as aggregatorInsertHandler } from './aggregator'
 import {
   IAdapter,
   IAggregator,
@@ -149,8 +146,6 @@ export function bulkRemoveHandler() {
       return
     }
 
-    const adapters = await adapterListHandler()()
-    const aggregators = await aggregatorListHandler()({})
     const listeners = await listenerListHandler()({})
     const reporters = await reporterListHandler()({})
     const delegatorReporters = await delegatorReporterListHandler()()
