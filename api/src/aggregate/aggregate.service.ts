@@ -3,14 +3,11 @@ import { Prisma } from '@prisma/client'
 import { PrismaService } from '../prisma.service'
 import { RedisService } from '../redis.service'
 import { AggregateDto } from './dto/aggregate.dto'
-import { LatestAggregateDto, LatestAggregateByIdDto } from './dto/latest-aggregate.dto'
+import { LatestAggregateByIdDto, LatestAggregateDto } from './dto/latest-aggregate.dto'
 
 @Injectable()
 export class AggregateService {
-  constructor(
-    private prisma: PrismaService,
-    private readonly redis: RedisService
-  ) {}
+  constructor(private prisma: PrismaService, private readonly redis: RedisService) {}
 
   async create(aggregateDto: AggregateDto) {
     const _timestamp = new Date(aggregateDto.timestamp)
