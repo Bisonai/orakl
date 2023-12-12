@@ -11,19 +11,33 @@ import {
 import {
   contractConnectHandler,
   contractInsertHandler,
+  contractListHandler,
+  contractRemoveHandler,
   functionInsertHandler,
+  functionListHandler,
+  functionRemoveHandler,
   organizationListHandler,
-  reporterInsertHandler as delegatorReporterInsertHandler
+  reporterInsertHandler as delegatorReporterInsertHandler,
+  reporterListHandler as delegatorReporterListHandler,
+  reporterRemoveHandler as delegatorReporterRemoveHandler
 } from './delegator'
-import { insertHandler as listenerInsertHandler } from './listener'
-import { insertHandler as reporterInsertHandler } from './reporter'
+import {
+  insertHandler as listenerInsertHandler,
+  listHandler as listenerListHandler,
+  removeHandler as listenerRemoveHandler
+} from './listener'
+import {
+  insertHandler as reporterInsertHandler,
+  listHandler as reporterListHandler,
+  removeHandler as reporterRemoveHandler
+} from './reporter'
 import { isValidUrl, loadJsonFromUrl } from './utils'
 
 export function datafeedSub() {
   // datafeed bulk-insert --source ${source}
+  // datafeed bulk-remove --source ${source}
 
   // TODOs
-  // datafeed bulk-remove --source ${source}
   // datafeed bulk-activate --source ${source}
   // datafeed bulk-deactivate --source ${source}
 
@@ -38,9 +52,20 @@ export function datafeedSub() {
     handler: bulkInsertHandler()
   })
 
+  const remove = command({
+    name: 'bulk-remove',
+    args: {
+      data: option({
+        type: ReadFile,
+        long: 'source'
+      })
+    },
+    handler: bulkRemoveHandler()
+  })
+
   return subcommands({
     name: 'datafeed',
-    cmds: { insert }
+    cmds: { insert, remove }
   })
 }
 
@@ -107,6 +132,64 @@ export function bulkInsertHandler() {
         address: aggregatorData.address,
         eventName
       })
+    }
+  }
+  return wrapper
+}
+
+export function bulkRemoveHandler() {
+  async function wrapper({ data }: { data }) {
+    const bulkData = data as IDatafeedBulk
+
+    if (!checkBulkSource(data?.bulk)) {
+      console.error('invalid json src format')
+      return
+    }
+
+    const listeners = await listenerListHandler()({})
+    const reporters = await reporterListHandler()({})
+    const delegatorReporters = await delegatorReporterListHandler()()
+    const delegatorContracts = await contractListHandler()()
+    const delegatorFunctions = await functionListHandler()()
+
+    for (const removeElement of bulkData.bulk) {
+      console.log(`removing ${removeElement}`)
+      const adapterData = await loadJsonFromUrl(removeElement.adapterSource)
+      if (!checkAdapterSource(adapterData)) {
+        console.error(`invalid adapterData: ${adapterData}, skipping removal`)
+        continue
+      }
+      const aggregatorData = await loadJsonFromUrl(removeElement.aggregatorSource)
+      if (!checkAggregatorSource(aggregatorData)) {
+        console.error(`invalid aggregatorData: ${aggregatorData}, skipping removal`)
+        continue
+      }
+
+      const listenerId = listeners.find((listener) => listener.address == aggregatorData.address).id
+      const reporterId = reporters.find(
+        (reporter) => reporter.address == removeElement.reporter.walletAddress
+      ).id
+
+      const delegatorReporterId = delegatorReporters.find(
+        (reporter) =>
+          reporter.address.toLowerCase() == removeElement.reporter.walletAddress.toLowerCase()
+      ).id
+      const delegatorContractId = delegatorContracts.find(
+        (contract) => contract.address.toLowerCase() == aggregatorData.address.toLowerCase()
+      ).id
+      const functionId = delegatorFunctions.find(
+        (_function) => _function.address.toLowerCase() == aggregatorData.address.toLowerCase()
+      ).id
+
+      await listenerRemoveHandler()({ id: listenerId })
+      await reporterRemoveHandler()({ id: reporterId })
+
+      await functionRemoveHandler()({ id: functionId })
+      await contractRemoveHandler()({ id: delegatorContractId })
+      await delegatorReporterRemoveHandler()({ id: delegatorReporterId })
+
+      // not removing adapter and aggregator since it's impossible to remove those without wiping out related rows from data table
+      // and leaving out adapter and aggregator in the table won't have that much impact on db so it'll be as it is
     }
   }
   return wrapper
