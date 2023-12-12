@@ -170,13 +170,6 @@ export function bulkRemoveHandler() {
         continue
       }
 
-      const adapterId = adapters.find(
-        (adapter) => adapter.adapterHash == adapterData.adapterHash
-      ).id
-      const aggregatorId = aggregators.find(
-        (aggregator) => aggregator.aggregatorHash == aggregatorData.aggregatorHash
-      ).id
-
       const listenerId = listeners.find((listener) => listener.address == aggregatorData.address).id
       const reporterId = reporters.find(
         (reporter) => reporter.address == removeElement.reporter.walletAddress
@@ -199,6 +192,9 @@ export function bulkRemoveHandler() {
       await functionRemoveHandler()({ id: functionId })
       await contractRemoveHandler()({ id: delegatorContractId })
       await delegatorReporterRemoveHandler()({ id: delegatorReporterId })
+
+      // not removing adapter and aggregator since it's impossible to remove those without wiping out related rows from data table
+      // and leaving out adapter and aggregator in the table won't have that much impact on db so it'll be as it is
     }
   }
   return wrapper
