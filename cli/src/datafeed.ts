@@ -40,6 +40,16 @@ import {
   listHandler as reporterListHandler,
   removeHandler as reporterRemoveHandler
 } from './reporter'
+import {
+  FETCHER_HOST,
+  FETCHER_PORT,
+  LISTENER_SERVICE_HOST,
+  LISTENER_SERVICE_PORT,
+  REPORTER_SERVICE_HOST,
+  REPORTER_SERVICE_PORT,
+  WORKER_SERVICE_HOST,
+  WORKER_SERVICE_PORT
+} from './settings'
 import { isValidUrl, loadJsonFromUrl } from './utils'
 
 export function datafeedSub() {
@@ -231,17 +241,15 @@ export function bulkActivateHandler() {
     const chain = bulkData?.chain || 'localhost'
     const service = bulkData?.service || 'DATA_FEED'
 
-    const fetcherHost = bulkData?.fetcherHost || 'http://fetcher.orakl.svc.cluster.local'
-    const workerHost = bulkData?.workerHost || 'http://aggregator-worker.orakl.svc.cluster.local'
-    const listenerHost =
-      bulkData?.listenerHost || 'http://aggregator-listener.orakl.svc.cluster.local'
-    const reporterHost =
-      bulkData?.reporterHost || 'http://aggregator-reporter.orakl.svc.cluster.local'
+    const fetcherHost = bulkData?.fetcherHost || FETCHER_HOST
+    const workerHost = bulkData?.workerHost || WORKER_SERVICE_HOST
+    const listenerHost = bulkData?.listenerHost || LISTENER_SERVICE_HOST
+    const reporterHost = bulkData?.reporterHost || REPORTER_SERVICE_HOST
 
-    const fetcherPort = bulkData?.fetcherPort || '4040'
-    const workerPort = bulkData?.workerPort || '5000'
-    const listenerPort = bulkData?.listenerPort || '4000'
-    const reporterPort = bulkData?.reporterPort || '6000'
+    const fetcherPort = bulkData?.fetcherPort || FETCHER_PORT
+    const workerPort = bulkData?.workerPort || WORKER_SERVICE_PORT
+    const listenerPort = bulkData?.listenerPort || LISTENER_SERVICE_PORT
+    const reporterPort = bulkData?.reporterPort || REPORTER_SERVICE_PORT
 
     const listeners = await listenerListHandler()({ chain, service })
     const reporters = await reporterListHandler()({ chain, service })
@@ -311,17 +319,15 @@ export function bulkDeactivateHandler() {
     const chain = bulkData?.chain || 'localhost'
     const service = bulkData?.service || 'DATA_FEED'
 
-    const fetcherHost = bulkData?.fetcherHost || 'http://fetcher.orakl.svc.cluster.local'
-    const workerHost = bulkData?.workerHost || 'http://aggregator-worker.orakl.svc.cluster.local'
-    const listenerHost =
-      bulkData?.listenerHost || 'http://aggregator-listener.orakl.svc.cluster.local'
-    const reporterHost =
-      bulkData?.reporterHost || 'http://aggregator-reporter.orakl.svc.cluster.local'
+    const fetcherHost = bulkData?.fetcherHost || FETCHER_HOST
+    const workerHost = bulkData?.workerHost || WORKER_SERVICE_HOST
+    const listenerHost = bulkData?.listenerHost || LISTENER_SERVICE_HOST
+    const reporterHost = bulkData?.reporterHost || REPORTER_SERVICE_HOST
 
-    const fetcherPort = bulkData?.fetcherPort || '4040'
-    const workerPort = bulkData?.workerPort || '5000'
-    const listenerPort = bulkData?.listenerPort || '4000'
-    const reporterPort = bulkData?.reporterPort || '6000'
+    const fetcherPort = bulkData?.fetcherPort || FETCHER_PORT
+    const workerPort = bulkData?.workerPort || WORKER_SERVICE_PORT
+    const listenerPort = bulkData?.listenerPort || LISTENER_SERVICE_PORT
+    const reporterPort = bulkData?.reporterPort || REPORTER_SERVICE_PORT
 
     const listeners = await listenerListHandler()({ chain, service })
     const reporters = await reporterListHandler()({ chain, service })
