@@ -1,12 +1,17 @@
-import { Injectable } from '@nestjs/common'
+import { Inject, Injectable } from '@nestjs/common'
 import { Prisma } from '@prisma/client'
+import type { RedisClientType } from 'redis'
 import { PrismaService } from '../prisma.service'
 import { AggregateDto } from './dto/aggregate.dto'
 import { LatestAggregateDto } from './dto/latest-aggregate.dto'
 
 @Injectable()
 export class AggregateService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    @Inject('REDIS_CLIENT')
+    private prisma: PrismaService,
+    private readonly redis: RedisClientType
+  ) {}
 
   async create(aggregateDto: AggregateDto) {
     const data: Prisma.AggregateUncheckedCreateInput = {
@@ -14,6 +19,11 @@ export class AggregateService {
       value: aggregateDto.value,
       aggregatorId: BigInt(aggregateDto.aggregatorId)
     }
+
+    this.redis.set(
+      `latestAggregate:${BigInt(aggregateDto.aggregatorId).toString()}`,
+      aggregateDto.value.toString()
+    )
 
     return await this.prisma.aggregate.create({ data })
   }
@@ -61,6 +71,7 @@ export class AggregateService {
    */
   async findLatest(latestAggregateDto: LatestAggregateDto) {
     const { aggregatorHash } = latestAggregateDto
+
     const query = Prisma.sql`SELECT aggregate_id as id, timestamp, value, aggregator_id as "aggregatorId"
       FROM aggregates
       WHERE aggregator_id = (SELECT aggregator_id FROM aggregators WHERE aggregator_hash = ${aggregatorHash})
