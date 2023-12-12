@@ -1,15 +1,9 @@
 import { command, option, subcommands } from 'cmd-ts'
-import {
-  insertHandler as adapterInsertHandler,
-  listHandler as adapterListHandler,
-  removeHandler as adapterRemoveHandler
-} from './adapter'
+import { insertHandler as adapterInsertHandler } from './adapter'
 import {
   activateHandler as aggregatorActivateHandler,
   deactivateHandler as aggregatorDeactivateHandler,
-  insertHandler as aggregatorInsertHandler,
-  listHandler as aggregatorListHandler,
-  removeHandler as aggregatorRemoveHandler
+  insertHandler as aggregatorInsertHandler
 } from './aggregator'
 import {
   IAdapter,
