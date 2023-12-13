@@ -9,8 +9,17 @@ export class RedisService implements OnModuleInit, OnApplicationShutdown {
   private readonly redisClient: RedisClientType
 
   constructor() {
+    const isProduction = process.env.NODE_ENV == 'production'
+    const envRedisHost = process.env.REDIS_HOST
+    const envRedisPort = process.env.REDIS_PORT
+
+    const redisHost =
+      envRedisHost ||
+      (isProduction ? 'redis-data-feed-master.redis.svc.cluster.local' : 'localhost')
+    const redisPort = envRedisPort || '6369'
+
     this.redisClient = createClient({
-      url: `redis://${process.env.REDIS_HOST}:${process.env.REDIS_PORT}`
+      url: `redis://${redisHost}:${redisPort}`
     })
   }
   async onModuleInit() {
