@@ -29,7 +29,7 @@ export class AggregateController {
     return await this.aggregateService.findLatest({ aggregatorHash })
   }
 
-  @Get(':id/latest')
+  @Get(':id/latest-by-id')
   async findLatestById(@Param('id') id: string) {
     return await this.aggregateService.findLatestByAggregatorId({ aggregatorId: BigInt(id) })
   }

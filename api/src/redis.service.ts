@@ -13,7 +13,6 @@ export class RedisService implements OnModuleInit, OnApplicationShutdown {
       url: `redis://${process.env.REDIS_HOST}:${process.env.REDIS_PORT}`
     })
   }
-
   async onModuleInit() {
     await this.redisClient.connect()
   }
@@ -23,12 +22,10 @@ export class RedisService implements OnModuleInit, OnApplicationShutdown {
   }
 
   async set(key: string, value: string): Promise<void> {
-    // Set a value in Redis
     await this.redisClient.set(key, value)
   }
 
   async get(key: string): Promise<string | null> {
-    // Get a value from Redis
     return this.redisClient.get(key)
   }
 }

@@ -100,6 +100,9 @@ export class AggregateService {
       where: { aggregatorId },
       orderBy: { timestamp: 'desc' }
     })
+    if (!prismaResult) {
+      return null
+    }
 
     const { timestamp, value } = prismaResult
     return { timestamp, value }
