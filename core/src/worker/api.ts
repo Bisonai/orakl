@@ -3,7 +3,7 @@ import { URL } from 'node:url'
 import { Logger } from 'pino'
 import { OraklError, OraklErrorCode } from '../errors'
 import { ORAKL_NETWORK_API_URL } from '../settings'
-import { IAggregate, IAggregator, IErrorMsgData, IL2AggregatorPair } from '../types'
+import { IAggregate, IAggregateById, IAggregator, IErrorMsgData, IL2AggregatorPair } from '../types'
 import { buildUrl } from '../utils'
 
 export const AGGREGATE_ENDPOINT = buildUrl(ORAKL_NETWORK_API_URL, 'aggregate')
@@ -42,7 +42,7 @@ export async function fetchDataFeedByAggregatorId({
 }: {
   aggregatorId: bigint
   logger: Logger
-}): Promise<{ timestamp: string; value: bigint }> {
+}): Promise<IAggregateById> {
   try {
     const url = buildUrl(AGGREGATE_ENDPOINT, `id/${aggregatorId}/latest`)
     return (await axios.get(url))?.data

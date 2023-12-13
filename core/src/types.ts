@@ -380,6 +380,11 @@ export interface IAggregate {
   aggregatorId: bigint
 }
 
+export interface IAggregateById {
+  timestamp: string
+  value: bigint
+}
+
 export interface ITransactionParameters {
   payload: string
   gasLimit: number | string
