@@ -1,5 +1,3 @@
-// redis.service.ts
-
 import { Injectable, OnApplicationShutdown, OnModuleInit } from '@nestjs/common'
 import type { RedisClientType } from 'redis'
 import { createClient } from 'redis'
