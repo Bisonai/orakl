@@ -1,19 +1,29 @@
 import { Injectable } from '@nestjs/common'
 import { Prisma } from '@prisma/client'
 import { PrismaService } from '../prisma.service'
+import { RedisService } from '../redis.service'
 import { AggregateDto } from './dto/aggregate.dto'
-import { LatestAggregateDto } from './dto/latest-aggregate.dto'
+import { LatestAggregateByIdDto, LatestAggregateDto } from './dto/latest-aggregate.dto'
 
 @Injectable()
 export class AggregateService {
-  constructor(private prisma: PrismaService) {}
+  constructor(private prisma: PrismaService, private readonly redis: RedisService) {}
 
   async create(aggregateDto: AggregateDto) {
+    const _timestamp = new Date(aggregateDto.timestamp)
     const data: Prisma.AggregateUncheckedCreateInput = {
-      timestamp: new Date(aggregateDto.timestamp),
+      timestamp: _timestamp,
       value: aggregateDto.value,
       aggregatorId: BigInt(aggregateDto.aggregatorId)
     }
+
+    await this.redis.set(
+      `latestAggregate:${BigInt(aggregateDto.aggregatorId).toString()}`,
+      JSON.stringify({
+        timestamp: _timestamp.toISOString(),
+        value: aggregateDto.value.toString()
+      })
+    )
 
     return await this.prisma.aggregate.create({ data })
   }
@@ -72,5 +82,31 @@ export class AggregateService {
     } else {
       return null
     }
+  }
+
+  async findLatestByAggregatorId(latestAggregateByIdDto: LatestAggregateByIdDto) {
+    const { aggregatorId } = latestAggregateByIdDto
+
+    const redisKey = `latestAggregate:${aggregatorId.toString()}`
+    const rawResult = await this.redis.get(redisKey)
+
+    if (!rawResult) {
+      return await this.findLatestByAggregatorIdFromPrisma(aggregatorId)
+    }
+    const { timestamp, value } = JSON.parse(rawResult)
+    return { timestamp, value: BigInt(value) }
+  }
+
+  async findLatestByAggregatorIdFromPrisma(aggregatorId) {
+    const prismaResult = await this.prisma.aggregate.findFirst({
+      where: { aggregatorId },
+      orderBy: { timestamp: 'desc' }
+    })
+    if (!prismaResult) {
+      return { timestamp: '', value: null }
+    }
+
+    const { timestamp, value } = prismaResult
+    return { timestamp, value }
   }
 }

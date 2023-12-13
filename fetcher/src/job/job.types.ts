@@ -68,6 +68,11 @@ export interface IAggregate {
   aggregatorId: bigint
 }
 
+export interface IAggregateById {
+  timestamp: string
+  value: bigint
+}
+
 export interface IDeviationData {
   timestamp: string
   submission: number

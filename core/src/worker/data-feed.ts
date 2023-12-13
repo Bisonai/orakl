@@ -33,7 +33,7 @@ import {
   QueueType
 } from '../types'
 import { buildHeartbeatJobId, buildSubmissionRoundJobId } from '../utils'
-import { fetchDataFeed, getAggregatorGivenAddress, getAggregators } from './api'
+import { fetchDataFeedByAggregatorId, getAggregatorGivenAddress, getAggregators } from './api'
 import { buildTransaction, isStale, oracleRoundStateCall } from './data-feed.utils'
 import { State } from './state'
 import { IDeviationData } from './types'
@@ -192,13 +192,19 @@ export function aggregatorJob(
 
     try {
       // TODO store in ephemeral state
-      const { aggregatorHash, heartbeat: delay } = await getAggregatorGivenAddress({
+      const { id: aggregatorId, heartbeat: delay } = await getAggregatorGivenAddress({
         oracleAddress,
         logger
       })
 
-      const { timestamp, value: submission } = await fetchDataFeed({ aggregatorHash, logger })
-      logger.debug({ aggregatorHash, fetchedAt: timestamp, submission }, 'Latest data aggregate')
+      const { timestamp, value: submission } = await fetchDataFeedByAggregatorId({
+        aggregatorId,
+        logger
+      })
+      logger.debug(
+        { aggregatorId, fetchedAt: timestamp, submission },
+        `Latest data aggregate by aggregatorId`
+      )
 
       // Submit heartbeat
       const outDataSubmitHeartbeat: IAggregatorSubmitHeartbeatWorker = {
@@ -210,7 +216,7 @@ export function aggregatorJob(
         ...SUBMIT_HEARTBEAT_QUEUE_SETTINGS
       })
 
-      if (isStale({ timestamp, logger })) {
+      if (!submission || isStale({ timestamp, logger })) {
         logger.warn(`Data became stale (> ${MAX_DATA_STALENESS}). Not reporting.`)
       } else {
         const tx = buildTransaction({
