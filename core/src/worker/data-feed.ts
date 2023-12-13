@@ -216,7 +216,7 @@ export function aggregatorJob(
         ...SUBMIT_HEARTBEAT_QUEUE_SETTINGS
       })
 
-      if (isStale({ timestamp, logger })) {
+      if (!submission || isStale({ timestamp, logger })) {
         logger.warn(`Data became stale (> ${MAX_DATA_STALENESS}). Not reporting.`)
       } else {
         const tx = buildTransaction({

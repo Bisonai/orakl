@@ -103,7 +103,7 @@ export class AggregateService {
       orderBy: { timestamp: 'desc' }
     })
     if (!prismaResult) {
-      return null
+      return { timestamp: '', value: null }
     }
 
     const { timestamp, value } = prismaResult
