@@ -25,6 +25,7 @@ export class AggregateController {
   }
 
   @Get('hash/:hash/latest')
+  @Get(':hash/latest')
   async findLatest(@Param('hash') aggregatorHash: string) {
     return await this.aggregateService.findLatest({ aggregatorHash })
   }
