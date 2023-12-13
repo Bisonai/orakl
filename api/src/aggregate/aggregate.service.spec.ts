@@ -34,6 +34,8 @@ describe('AggregateService', () => {
     chain = module.get<ChainService>(ChainService)
     prisma = module.get<PrismaClient>(PrismaService)
     redis = module.get<RedisClientType>(RedisService)
+
+    await module.init()
   })
 
   afterEach(async () => {
@@ -96,13 +98,17 @@ describe('AggregateService', () => {
     }
     const aggregatorObj = await aggregator.create(aggregatorData)
 
-    // Aggregate
+    // Aggregate write
     const aggregateData = {
       aggregatorId: aggregatorObj.id,
       timestamp: new Date().toISOString(),
       value: 10
     }
     const aggregateObj = await aggregate.create(aggregateData)
+
+    // Aggregate read
+    const result = await aggregate.findLatestByAggregatorId({ aggregatorId: aggregatorObj.id })
+    expect(result.value).toBe(10)
 
     // Cleanup
     await aggregator.remove({ id: aggregatorObj.id })
