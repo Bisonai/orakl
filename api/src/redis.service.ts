@@ -16,7 +16,7 @@ export class RedisService implements OnModuleInit, OnApplicationShutdown {
     const redisHost =
       envRedisHost ||
       (isProduction ? 'redis-data-feed-master.redis.svc.cluster.local' : 'localhost')
-    const redisPort = envRedisPort || '6369'
+    const redisPort = envRedisPort || '6379'
 
     this.redisClient = createClient({
       url: `redis://${redisHost}:${redisPort}`

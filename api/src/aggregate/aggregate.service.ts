@@ -71,7 +71,6 @@ export class AggregateService {
    */
   async findLatest(latestAggregateDto: LatestAggregateDto) {
     const { aggregatorHash } = latestAggregateDto
-
     const query = Prisma.sql`SELECT aggregate_id as id, timestamp, value, aggregator_id as "aggregatorId"
       FROM aggregates
       WHERE aggregator_id = (SELECT aggregator_id FROM aggregators WHERE aggregator_hash = ${aggregatorHash})
