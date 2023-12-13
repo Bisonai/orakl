@@ -36,6 +36,22 @@ export async function fetchDataFeed({
   }
 }
 
+export async function fetchDataFeedByAggregatorId({
+  aggregatorId,
+  logger
+}: {
+  aggregatorId: bigint
+  logger: Logger
+}): Promise<{ timestamp: string; value: bigint }> {
+  try {
+    const url = buildUrl(AGGREGATE_ENDPOINT, `${aggregatorId}/latest-by-id`)
+    return (await axios.get(url))?.data
+  } catch (e) {
+    logger.error(e)
+    throw new OraklError(OraklErrorCode.FailedToGetAggregate)
+  }
+}
+
 /**
  * Get single `Aggregator` given aggregator address.
  *

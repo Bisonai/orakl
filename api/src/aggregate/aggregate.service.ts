@@ -19,7 +19,10 @@ export class AggregateService {
 
     await this.redis.set(
       `latestAggregate:${BigInt(aggregateDto.aggregatorId).toString()}`,
-      `${_timestamp.toISOString()}|${aggregateDto.value.toString()}`
+      JSON.stringify({
+        timestamp: _timestamp.toISOString(),
+        value: aggregateDto.value.toString()
+      })
     )
 
     return await this.prisma.aggregate.create({ data })
@@ -86,12 +89,12 @@ export class AggregateService {
     const { aggregatorId } = latestAggregateByIdDto
 
     const redisKey = `latestAggregate:${aggregatorId.toString()}`
-    const result = await this.redis.get(redisKey)
+    const rawResult = await this.redis.get(redisKey)
 
-    if (!result) {
+    if (!rawResult) {
       return await this.findLatestByAggregatorIdFromPrisma(aggregatorId)
     }
-    const [timestamp, value] = result.split('|')
+    const { timestamp, value } = JSON.parse(rawResult)
     return { timestamp, value: BigInt(value) }
   }
 

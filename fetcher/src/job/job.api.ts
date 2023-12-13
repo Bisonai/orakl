@@ -113,6 +113,24 @@ export async function fetchDataFeed({
   }
 }
 
+export async function fetchDataFeedByAggregatorId({
+  aggregatorId,
+  logger
+}: {
+  aggregatorId: bigint
+  logger: Logger
+}): Promise<{ timestamp: string; value: bigint }> {
+  try {
+    const url = buildUrl(
+      process.env.ORAKL_NETWORK_API_URL,
+      `aggregate/${aggregatorId}/latest-by-id`
+    )
+    return (await axios.get(url))?.data
+  } catch (e) {
+    logger.error(e)
+  }
+}
+
 export async function loadProxies({ logger }: { logger: Logger }): Promise<IProxy[]> {
   try {
     const url = buildUrl(process.env.ORAKL_NETWORK_API_URL, 'proxy')

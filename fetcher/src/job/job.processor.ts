@@ -2,7 +2,7 @@ import { InjectQueue, Processor, WorkerHost } from '@nestjs/bullmq'
 import { Logger } from '@nestjs/common'
 import { Job, Queue } from 'bullmq'
 import { DEVIATION_QUEUE_NAME, FETCHER_QUEUE_NAME, WORKER_OPTS } from '../settings'
-import { fetchDataFeed, insertAggregateData, insertMultipleData } from './job.api'
+import { fetchDataFeedByAggregatorId, insertAggregateData, insertMultipleData } from './job.api'
 import { FetcherError, FetcherErrorCode } from './job.errors'
 import { IDeviationData } from './job.types'
 import { aggregateData, fetchData, shouldReport } from './job.utils'
@@ -32,11 +32,10 @@ export class JobProcessor extends WorkerHost {
       const decimals = inData[adapterHash].decimals
 
       const oracleAddress = inData[adapterHash].address
-      const aggregatorHash = inData[adapterHash].aggregatorHash
 
       try {
-        const { value: lastSubmission } = await fetchDataFeed({
-          aggregatorHash,
+        const { value: lastSubmission } = await fetchDataFeedByAggregatorId({
+          aggregatorId,
           logger: this.logger
         })
         let response = await insertMultipleData({ aggregatorId, timestamp, data })
