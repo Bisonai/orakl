@@ -41,6 +41,7 @@ describe('AggregateService', () => {
   afterEach(async () => {
     jest.resetModules()
     await prisma.$disconnect()
+    await redis.onApplicationShutdown()
   })
 
   it('should be defined', () => {
@@ -99,7 +100,6 @@ describe('AggregateService', () => {
     const aggregatorObj = await aggregator.create(aggregatorData)
 
     // Aggregate write
-    console.log('aggregate write')
     const aggregateData = {
       aggregatorId: aggregatorObj.id,
       timestamp: new Date().toISOString(),
@@ -107,7 +107,6 @@ describe('AggregateService', () => {
     }
     const aggregateObj = await aggregate.create(aggregateData)
 
-    console.log('aggregate read')
     // Aggregate read
     const result = await aggregate.findLatestByAggregatorId({ aggregatorId: aggregatorObj.id })
     await expect(result.value).toBe(BigInt(10))

@@ -17,8 +17,6 @@ export class AggregateService {
       aggregatorId: BigInt(aggregateDto.aggregatorId)
     }
 
-    console.log('redis serialize insert')
-
     await this.redis.set(
       `latestAggregate:${BigInt(aggregateDto.aggregatorId).toString()}`,
       JSON.stringify({
@@ -26,8 +24,6 @@ export class AggregateService {
         value: aggregateDto.value.toString()
       })
     )
-
-    console.log('redis serialize insert done')
 
     return await this.prisma.aggregate.create({ data })
   }
@@ -97,9 +93,7 @@ export class AggregateService {
     if (!rawResult) {
       return await this.findLatestByAggregatorIdFromPrisma(aggregatorId)
     }
-    console.log('redis deserialize read')
     const { timestamp, value } = JSON.parse(rawResult)
-    console.log('redis deserialize read done')
     return { timestamp, value: BigInt(value) }
   }
 
