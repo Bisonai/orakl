@@ -121,10 +121,7 @@ export async function fetchDataFeedByAggregatorId({
   logger: Logger
 }): Promise<{ timestamp: string; value: bigint }> {
   try {
-    const url = buildUrl(
-      process.env.ORAKL_NETWORK_API_URL,
-      `aggregate/${aggregatorId}/latest-by-id`
-    )
+    const url = buildUrl(process.env.ORAKL_NETWORK_API_URL, `aggregate/id/${aggregatorId}/latest`)
     return (await axios.get(url))?.data
   } catch (e) {
     logger.error(e)

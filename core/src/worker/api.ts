@@ -44,7 +44,7 @@ export async function fetchDataFeedByAggregatorId({
   logger: Logger
 }): Promise<{ timestamp: string; value: bigint }> {
   try {
-    const url = buildUrl(AGGREGATE_ENDPOINT, `${aggregatorId}/latest-by-id`)
+    const url = buildUrl(AGGREGATE_ENDPOINT, `id/${aggregatorId}/latest`)
     return (await axios.get(url))?.data
   } catch (e) {
     logger.error(e)

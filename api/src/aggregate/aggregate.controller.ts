@@ -24,12 +24,12 @@ export class AggregateController {
     return await this.aggregateService.findOne({ id: Number(id) })
   }
 
-  @Get(':hash/latest')
+  @Get('hash/:hash/latest')
   async findLatest(@Param('hash') aggregatorHash: string) {
     return await this.aggregateService.findLatest({ aggregatorHash })
   }
 
-  @Get(':id/latest-by-id')
+  @Get('id/:id/latest')
   async findLatestById(@Param('id') id: string) {
     return await this.aggregateService.findLatestByAggregatorId({ aggregatorId: BigInt(id) })
   }

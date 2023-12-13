@@ -29,7 +29,7 @@ export class RedisService implements OnModuleInit, OnApplicationShutdown {
   }
 
   async set(key: string, value: string): Promise<void> {
-    await this.redisClient.set(key, value)
+    this.redisClient.set(key, value)
   }
 
   async get(key: string): Promise<string | null> {
