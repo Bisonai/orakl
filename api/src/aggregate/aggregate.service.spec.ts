@@ -99,6 +99,7 @@ describe('AggregateService', () => {
     const aggregatorObj = await aggregator.create(aggregatorData)
 
     // Aggregate write
+    console.log('aggregate write')
     const aggregateData = {
       aggregatorId: aggregatorObj.id,
       timestamp: new Date().toISOString(),
@@ -106,14 +107,15 @@ describe('AggregateService', () => {
     }
     const aggregateObj = await aggregate.create(aggregateData)
 
+    console.log('aggregate read')
     // Aggregate read
     const result = await aggregate.findLatestByAggregatorId({ aggregatorId: aggregatorObj.id })
-    expect(result.value).toBe(10)
+    await expect(result.value).toBe(BigInt(10))
 
     // Cleanup
+    await aggregate.remove({ id: aggregateObj.id })
     await aggregator.remove({ id: aggregatorObj.id })
     await adapter.remove({ id: adapterObj.id })
     await chain.remove({ id: chainObj.id })
-    await aggregate.remove({ id: aggregateObj.id })
   }, 10000)
 })
