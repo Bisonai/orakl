@@ -4,6 +4,7 @@
   "description": "shared codes over workspaces",
   "main": "dist/index.js",
   "scripts": {
+    "lint": "DEBUG=eslint:cli-engine eslint 'src/**.ts'",
     "prepare": "cd .. && husky install core/.husky",
     "clean": "rm -rf dist",
     "test": "jest",
