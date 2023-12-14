@@ -61,6 +61,11 @@ jobs:
           ENCRYPT_PASSWORD: "abc123"
           APP_PORT: "3000"
 
+      - name: Sleep for 10 seconds
+        uses: jakejarvis/wait-action@master
+        with:
+          time: "10s"
+
       - name: Run tests
         run: yarn cli build && yarn cli test
         env:
