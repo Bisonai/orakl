@@ -9,6 +9,8 @@ COPY package.json .
 
 COPY yarn.lock .
 
+COPY util util
+
 COPY fetcher fetcher
 
 RUN yarn fetcher install
