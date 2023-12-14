@@ -1,6 +1,6 @@
 {
   "name": "@bisonai/orakl-util",
-  "version": "1.0.0",
+  "version": "0.1.0",
   "description": "shared codes over workspaces",
   "main": "dist/index.js",
   "scripts": {
