@@ -24,6 +24,7 @@ export class AggregateController {
     return await this.aggregateService.findOne({ id: Number(id) })
   }
 
+  // ':hash/latest' will be deprecated
   @Get(['hash/:hash/latest', ':hash/latest'])
   async findLatest(@Param('hash') aggregatorHash: string) {
     return await this.aggregateService.findLatest({ aggregatorHash })
