@@ -1,6 +1,7 @@
+import { IData } from '@bisonai/orakl-util'
 import { HttpException, HttpStatus, Logger } from '@nestjs/common'
 import axios from 'axios'
-import { IAggregate, IAggregateById, IAggregator, IData, IProxy, IRawData } from './job.types'
+import { IAggregate, IAggregateById, IAggregator, IProxy, IRawData } from './job.types'
 import { buildUrl } from './job.utils'
 
 export async function loadActiveAggregators({ chain, logger }: { chain: string; logger: Logger }) {
