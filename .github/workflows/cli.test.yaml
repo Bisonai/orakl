@@ -72,11 +72,6 @@ jobs:
           REDIS_HOST: "localhost"
           REDIS_PORT: "6379"
 
-      - name: Sleep for 10 seconds
-        uses: jakejarvis/wait-action@master
-        with:
-          time: "10s"
-
       - name: Run tests
         run: yarn cli build && yarn cli test
         env:
