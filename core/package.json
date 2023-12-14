@@ -29,7 +29,7 @@
   "scripts": {
     "prepare": "cd .. && husky install core/.husky",
     "clean": "rm -rf dist",
-    "prebuild": "yarn --cwd='../..' vrf build && yarn --cwd='../..' contracts build && yarn --cwd='../..' fetcher build",
+    "prebuild": "yarn --cwd='../..' vrf build && yarn --cwd='../..' contracts build && yarn --cwd='../..' fetcher build && yarn --cwd='../..' util build",
     "build": "yarn clean && tsc",
     "start:listener": "node --no-warnings --import=specifier-resolution-node/register --experimental-json-modules dist/listener/main.js",
     "start:listener:vrf": "yarn start:listener --service VRF",
@@ -68,9 +68,9 @@
     "bull-dashboard": "docker-compose -f docker-compose.bull-monitor.yaml up"
   },
   "dependencies": {
-    "@bisonai/orakl-fetcher": "*",
     "@bisonai/orakl-contracts": "*",
     "@bisonai/orakl-vrf": "*",
+    "@bisonai/orakl-util": "*",
     "@ethersproject/experimental": "^5.7.0",
     "@slack/webhook": "^6.1.0",
     "axios": "^1.2.2",

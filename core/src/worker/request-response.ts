@@ -17,12 +17,11 @@ import {
   IRequestResponseTransactionParameters,
   QueueType
 } from '../types'
-import { pipe } from '../utils'
+
+import { buildReducer, pipe, REDUCER_MAPPING } from '@bisonai/orakl-util'
 import { storeErrorMsg } from './api'
 import { decodeRequest } from './decoding'
-import { requestResponseReducerMapping } from './reducer'
 import { buildTransaction } from './request-response.utils'
-import { buildReducer } from './utils'
 
 const FILE_NAME = import.meta.url
 
@@ -112,7 +111,7 @@ async function processRequest(reqEnc: string, _logger: Logger): Promise<string |
     method: 'GET'
   }
   const rawData = (await axios.get(req[0].args, options)).data
-  const reducers = buildReducer(requestResponseReducerMapping, req.slice(1))
+  const reducers = buildReducer(REDUCER_MAPPING, req.slice(1))
   const res = pipe(...reducers)(rawData)
 
   logger.debug(res, 'res')

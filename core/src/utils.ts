@@ -12,12 +12,6 @@ export async function loadJson(filepath) {
   return JSON.parse(json)
 }
 
-// https://medium.com/javascript-scene/reduce-composing-software-fe22f0c39a1d
-export const pipe =
-  (...fns) =>
-  (x) =>
-    fns.reduce((v, f) => f(v), x)
-
 export function remove0x(s) {
   if (s.substring(0, 2) == '0x') {
     return s.substring(2)

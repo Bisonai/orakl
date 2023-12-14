@@ -1,4 +1,4 @@
-import { IData } from '@bisonai/orakl-fetcher/src/job/job.types'
+import { IData } from '@bisonai/orakl-util'
 import axios from 'axios'
 import { Logger } from 'pino/pino'
 import { OraklError, OraklErrorCode } from '../errors'

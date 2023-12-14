@@ -7,6 +7,7 @@
   "private": true,
   "license": "MIT",
   "scripts": {
+    "prebuild": "yarn --cwd='../..' util build",
     "build": "nest build",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "start": "nest start",
@@ -21,6 +22,7 @@
     "flush": "node --no-warnings --import=specifier-resolution-node/register --experimental-json-modules dist/tools/flush-queues.js"
   },
   "dependencies": {
+    "@bisonai/orakl-util": "*",
     "@nestjs/bullmq": "^1.1.0",
     "@nestjs/common": "^9.0.0",
     "@nestjs/config": "^2.3.1",

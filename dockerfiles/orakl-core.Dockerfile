@@ -13,7 +13,7 @@ COPY contracts contracts
 
 COPY vrf vrf
 
-COPY fetcher fetcher
+COPY util util
 
 COPY core core
 
@@ -37,7 +37,7 @@ COPY --from=build /app/contracts /app/contracts
 
 COPY --from=build /app/vrf /app/vrf
 
-COPY --from=build /app/fetcher /app/fetcher
+COPY --from=build /app/util /app/util
 
 COPY --from=build /app/core /app/core
 

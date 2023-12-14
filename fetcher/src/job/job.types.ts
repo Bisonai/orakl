@@ -3,13 +3,6 @@ export interface IRawData {
   value: number
 }
 
-export interface IData {
-  aggregatorId: string
-  feedId: bigint
-  timestamp: string
-  value: number
-}
-
 interface IHeader {
   [key: string]: string
 }
