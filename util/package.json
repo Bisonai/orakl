@@ -1,8 +1,8 @@
 {
   "name": "@bisonai/orakl-util",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "shared codes over workspaces",
+  "main": "dist/index.js",
   "scripts": {
     "prepare": "cd .. && husky install core/.husky",
     "clean": "rm -rf dist",

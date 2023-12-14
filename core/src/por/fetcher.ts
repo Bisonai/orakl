@@ -1,9 +1,8 @@
-import { DATA_FEED_REDUCER_MAPPING } from '@bisonai/orakl-fetcher/src/job/job.reducer'
+import { buildReducer, checkDataFormat, pipe, REDUCER_MAPPING } from '@bisonai/orakl-util'
 import axios from 'axios'
 import { Logger } from 'pino/pino'
-import { OraklError, OraklErrorCode } from '../errors'
 import { IAggregator } from '../types'
-import { pipe } from '../utils'
+
 import { insertAggregateData, insertData, loadAggregator } from './api'
 
 async function extractFeed(adapter) {
@@ -20,28 +19,10 @@ async function extractFeed(adapter) {
   return feeds[0]
 }
 
-function checkDataFormat(data) {
-  if (!data) {
-    throw new OraklError(OraklErrorCode.InvalidDataFeed)
-  } else if (!Number.isInteger(data)) {
-    throw new OraklError(OraklErrorCode.InvalidDataFeedFormat)
-  }
-}
-
-function buildReducer(reducerMapping, reducers) {
-  return reducers.map((r) => {
-    const reducer = reducerMapping[r.function]
-    if (!reducer) {
-      throw new OraklError(OraklErrorCode.InvalidReducer)
-    }
-    return reducer(r?.args)
-  })
-}
-
 async function fetchData(feed, logger) {
   try {
     const rawDatum = await (await axios.get(feed.url)).data
-    const reducers = buildReducer(DATA_FEED_REDUCER_MAPPING, feed.reducers)
+    const reducers = buildReducer(REDUCER_MAPPING, feed.reducers)
     const datum = pipe(...reducers)(rawDatum)
     checkDataFormat(datum)
     return datum

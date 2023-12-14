@@ -1,8 +1,8 @@
+import { buildReducer, checkDataFormat, pipe, REDUCER_MAPPING } from '@bisonai/orakl-util'
 import { Logger } from '@nestjs/common'
 import axios from 'axios'
 import { LOCAL_AGGREGATOR_FN } from './job.aggregator'
 import { FetcherError, FetcherErrorCode } from './job.errors'
-import { DATA_FEED_REDUCER_MAPPING } from './job.reducer'
 import { IAdapter, IFetchedData, IProxy } from './job.types'
 
 export function buildUrl(host: string, path: string) {
@@ -81,7 +81,7 @@ export async function fetchData(adapterList, logger) {
         // FIXME Build reducers just once and use. Currently, can't
         // be passed to queue, therefore has to be recreated before
         // every fetch.
-        const reducers = buildReducer(DATA_FEED_REDUCER_MAPPING, adapter.reducers)
+        const reducers = buildReducer(REDUCER_MAPPING, adapter.reducers)
         const datum = pipe(...reducers)(rawDatum)
         checkDataFormat(datum)
         return { id: adapter.id, value: datum }
@@ -99,32 +99,6 @@ export async function fetchData(adapterList, logger) {
 export function aggregateData(data: IFetchedData[]): number {
   const aggregate = LOCAL_AGGREGATOR_FN(data.map((d) => d.value))
   return aggregate
-}
-
-function buildReducer(reducerMapping, reducers) {
-  return reducers.map((r) => {
-    const reducer = reducerMapping[r.function]
-    if (!reducer) {
-      throw new FetcherError(FetcherErrorCode.InvalidReducer)
-    }
-    return reducer(r?.args)
-  })
-}
-
-// https://medium.com/javascript-scene/reduce-composing-software-fe22f0c39a1d
-export const pipe =
-  (...fns) =>
-  (x) =>
-    fns.reduce((v, f) => f(v), x)
-
-function checkDataFormat(data) {
-  if (!data) {
-    // check if priceFeed is null, undefined, NaN, "", 0, false
-    throw new FetcherError(FetcherErrorCode.InvalidDataFeed)
-  } else if (!Number.isInteger(data)) {
-    // check if priceFeed is not Integer
-    throw new FetcherError(FetcherErrorCode.InvalidDataFeedFormat)
-  }
 }
 
 function validateAdapter(adapter): IAdapter {
