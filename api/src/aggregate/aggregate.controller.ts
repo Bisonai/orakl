@@ -24,8 +24,7 @@ export class AggregateController {
     return await this.aggregateService.findOne({ id: Number(id) })
   }
 
-  @Get('hash/:hash/latest')
-  @Get(':hash/latest')
+  @Get(['hash/:hash/latest', ':hash/latest'])
   async findLatest(@Param('hash') aggregatorHash: string) {
     return await this.aggregateService.findLatest({ aggregatorHash })
   }
