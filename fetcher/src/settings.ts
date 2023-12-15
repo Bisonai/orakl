@@ -7,6 +7,8 @@ export const WORKER_OPTS = { concurrency: Number(process.env.CONCURRENCY) || 20 
 
 export const FETCH_FREQUENCY = 2_000
 
+export const FETCH_TIMEOUT = 1_000
+
 export const DEVIATION_QUEUE_NAME = 'orakl-deviation-queue'
 
 export const FETCHER_TYPE = process.env.FETCHER_TYPE || 0
