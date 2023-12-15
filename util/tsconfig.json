@@ -2,7 +2,7 @@
     "exclude": ["node_modules", "test"],
     "include": ["src"],
     "compilerOptions": {
-      "module": "CommonJS",
+      "module": "es2022",
       "moduleResolution": "node",
       "target": "es2022",
       "declaration": true,
