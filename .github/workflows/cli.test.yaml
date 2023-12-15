@@ -26,6 +26,15 @@ jobs:
           --health-retries 5
         ports:
           - 5432:5432
+      redis:
+        image: redis
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
 
     steps:
       - uses: actions/checkout@v3
@@ -60,6 +69,8 @@ jobs:
           DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/orakl?schema=public"
           ENCRYPT_PASSWORD: "abc123"
           APP_PORT: "3000"
+          REDIS_HOST: "localhost"
+          REDIS_PORT: "6379"
 
       - name: Run tests
         run: yarn cli build && yarn cli test
