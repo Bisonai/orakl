@@ -18,9 +18,6 @@
     ],
     "@typescript-eslint/ban-ts-comment": "off"
   },
-  "ignorePatterns": [
-    "src/cli/orakl-cli/dist/**"
-  ],
   "parserOptions": {
     "sourceType": "module",
     "ecmaVersion": 2022,
