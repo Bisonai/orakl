@@ -6,6 +6,7 @@ on:
       - master
     paths:
       - "cli/**"
+  workflow_dispatch:
 
 env:
   ecr_url: public.ecr.aws/bisonai/orakl-cli
