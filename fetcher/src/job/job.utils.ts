@@ -1,6 +1,7 @@
 import { buildReducer, checkDataFormat, pipe, REDUCER_MAPPING } from '@bisonai/orakl-util'
 import { Logger } from '@nestjs/common'
 import axios from 'axios'
+import { FETCH_TIMEOUT } from '../settings'
 import { LOCAL_AGGREGATOR_FN } from './job.aggregator'
 import { FetcherError, FetcherErrorCode } from './job.errors'
 import { IAdapter, IFetchedData, IProxy } from './job.types'
@@ -36,6 +37,7 @@ async function fetchRawDataWithProxy(adapter, logger) {
     {
       method: adapter.method,
       headers: adapter.headers,
+      timeout: FETCH_TIMEOUT,
       proxy: {
         protocol: adapter.proxy.protocol,
         host: adapter.proxy.host,
@@ -51,7 +53,8 @@ async function fetchRawDataWithoutProxy(adapter, logger) {
     adapter.url,
     {
       method: adapter.method,
-      headers: adapter.headers
+      headers: adapter.headers,
+      timeout: FETCH_TIMEOUT
     },
     logger
   )
