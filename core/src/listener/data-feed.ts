@@ -1,10 +1,12 @@
 import { Aggregator__factory } from '@bisonai/orakl-contracts'
+import { Queue } from 'bullmq'
 import { ethers } from 'ethers'
 import { Logger } from 'pino'
 import type { RedisClientType } from 'redis'
 import { getOperatorAddress } from '../api'
 import {
   AGGREGATOR_QUEUE_SETTINGS,
+  BULLMQ_CONNECTION,
   CHAIN,
   DATA_FEED_LISTENER_STATE_NAME,
   DATA_FEED_SERVICE_NAME,
@@ -36,6 +38,14 @@ export async function buildListener(
   const workerQueueName = WORKER_AGGREGATOR_QUEUE_NAME
   const abi = Aggregator__factory.abi
   const iface = new ethers.utils.Interface(abi)
+
+  const latestListenerQueue = new Queue(latestQueueName, BULLMQ_CONNECTION)
+  const historyListenerQueue = new Queue(historyQueueName, BULLMQ_CONNECTION)
+  const processEventQueue = new Queue(processEventQueueName, BULLMQ_CONNECTION)
+
+  await latestListenerQueue.obliterate()
+  await historyListenerQueue.obliterate()
+  await processEventQueue.obliterate()
 
   listenerService({
     config,
