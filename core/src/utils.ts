@@ -1,4 +1,5 @@
 import { IncomingWebhook } from '@slack/webhook'
+import { Job } from 'bullmq'
 import Hook from 'console-hook'
 import * as Fs from 'node:fs/promises'
 import os from 'node:os'
@@ -6,6 +7,7 @@ import type { RedisClientType } from 'redis'
 import { createClient } from 'redis'
 import { OraklErrorCode } from './errors'
 import { SLACK_WEBHOOK_URL } from './settings'
+import { QueueType } from './types'
 
 export async function loadJson(filepath) {
   const json = await Fs.readFile(filepath, 'utf8')
@@ -94,6 +96,38 @@ export function buildSubmissionRoundJobId({
   deploymentName: string
 }) {
   return `${roundId}-${oracleAddress}-${deploymentName}`
+}
+
+export function decomposeSubmissionRoundJobId(jobId: string) {
+  const [roundId, oracleAddress, deploymentName] = jobId.split('-')
+  return { roundId: Number(roundId), oracleAddress, deploymentName }
+}
+
+const getSortedJobsByOracleAddress = async (
+  queue: QueueType,
+  oracleAddress: string
+): Promise<Job[]> => {
+  const jobs = await queue.getJobs()
+  return jobs
+    .filter(
+      (_job) => decomposeSubmissionRoundJobId(String(_job.id)).oracleAddress === oracleAddress
+    )
+    .sort(
+      (a, b) =>
+        decomposeSubmissionRoundJobId(String(a.id)).roundId -
+        decomposeSubmissionRoundJobId(String(b.id)).roundId
+    )
+}
+
+export async function removeOldRoundJobsAndGetLastJob(queue: QueueType, oracleAddress: string) {
+  const jobs = await getSortedJobsByOracleAddress(queue, oracleAddress)
+  const lastJob = jobs.pop()
+  if (jobs.length > 0) {
+    for (const _job of jobs) {
+      await _job.remove()
+    }
+  }
+  return lastJob
 }
 
 export function buildHeartbeatJobId({

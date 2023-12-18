@@ -32,7 +32,12 @@ import {
   IDataFeedListenerWorker,
   QueueType
 } from '../types'
-import { buildHeartbeatJobId, buildSubmissionRoundJobId } from '../utils'
+import {
+  buildHeartbeatJobId,
+  buildSubmissionRoundJobId,
+  decomposeSubmissionRoundJobId,
+  removeOldRoundJobsAndGetLastJob
+} from '../utils'
 import { fetchDataFeedByAggregatorId, getAggregatorGivenAddress, getAggregators } from './api'
 import { buildTransaction, isStale, oracleRoundStateCall } from './data-feed.utils'
 import { State } from './state'
@@ -230,6 +235,16 @@ export function aggregatorJob(
           logger
         })
         logger.debug(tx, 'tx')
+
+        const lastJob = await removeOldRoundJobsAndGetLastJob(reporterQueue, oracleAddress)
+        if (lastJob) {
+          const lastJobRoundId = decomposeSubmissionRoundJobId(String(lastJob.id)).roundId
+          if (lastJobRoundId > roundId) {
+            throw new Error(`no need to add old roundId:${roundId}`)
+          } else {
+            await lastJob.remove()
+          }
+        }
 
         await reporterQueue.add(workerSource, tx, {
           jobId: buildSubmissionRoundJobId({
@@ -555,6 +570,16 @@ export function deviationJob(reporterQueue: QueueType, _logger: Logger) {
           logger
         })
         logger.debug(tx, 'tx')
+
+        const lastJob = await removeOldRoundJobsAndGetLastJob(reporterQueue, oracleAddress)
+        if (lastJob) {
+          const lastJobRoundId = decomposeSubmissionRoundJobId(String(lastJob.id)).roundId
+          if (lastJobRoundId > roundId) {
+            throw new Error(`no need to add old roundId:${roundId}`)
+          } else {
+            await lastJob.remove()
+          }
+        }
 
         await reporterQueue.add('deviation', tx, {
           jobId: buildSubmissionRoundJobId({

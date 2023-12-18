@@ -1,10 +1,12 @@
 import { Aggregator__factory } from '@bisonai/orakl-contracts'
+import { Queue } from 'bullmq'
 import { ethers } from 'ethers'
 import { Logger } from 'pino'
 import type { RedisClientType } from 'redis'
 import { getOperatorAddress } from '../api'
 import {
   AGGREGATOR_QUEUE_SETTINGS,
+  BULLMQ_CONNECTION,
   CHAIN,
   DATA_FEED_LISTENER_STATE_NAME,
   DATA_FEED_SERVICE_NAME,
@@ -15,7 +17,11 @@ import {
   WORKER_AGGREGATOR_QUEUE_NAME
 } from '../settings'
 import { IDataFeedListenerWorker, IListenerConfig, INewRound } from '../types'
-import { buildSubmissionRoundJobId } from '../utils'
+import {
+  buildSubmissionRoundJobId,
+  decomposeSubmissionRoundJobId,
+  removeOldRoundJobsAndGetLastJob
+} from '../utils'
 import { listenerService } from './listener'
 import { ProcessEventOutputType } from './types'
 
@@ -71,6 +77,18 @@ async function processEvent({ iface, logger }: { iface: ethers.utils.Interface; 
     } else {
       // NewRound emitted by somebody else
       const jobName = 'event'
+
+      const workerQueue = new Queue(this.workerQueueName, BULLMQ_CONNECTION)
+
+      const lastJob = await removeOldRoundJobsAndGetLastJob(workerQueue, oracleAddress)
+      if (lastJob) {
+        const lastJobRoundId = decomposeSubmissionRoundJobId(String(lastJob.id)).roundId
+        if (lastJobRoundId > roundId) {
+          throw new Error(`no need to add old roundId:${roundId}`)
+        } else {
+          await lastJob.remove()
+        }
+      }
 
       const jobId = buildSubmissionRoundJobId({
         oracleAddress,
