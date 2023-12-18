@@ -234,10 +234,8 @@ export async function checkRpcUrl(url: string) {
   try {
     const provider = new ethers.providers.JsonRpcProvider(url)
     const blockNumberPromise = provider.getBlockNumber()
-    const timeoutPromise = new Promise((_, reject) => {
-      setTimeout(() => reject(new Error('Timeout')), RPC_URL_TIMEOUT)
-    })
-    const result = await Promise.race([blockNumberPromise, timeoutPromise])
+    const result = await callWithTimeout(blockNumberPromise, RPC_URL_TIMEOUT)
+
     if (result instanceof Error && result.message === 'Timeout') {
       console.error(`failed to connect rpc url due to timeout: ${url}`)
       return false
@@ -250,3 +248,9 @@ export async function checkRpcUrl(url: string) {
     return false
   }
 }
+
+export const callWithTimeout = (promise, timeout) =>
+  Promise.race([
+    promise,
+    new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), timeout))
+  ])
