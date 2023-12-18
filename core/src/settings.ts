@@ -8,6 +8,8 @@ export const ORAKL_NETWORK_DELEGATOR_URL =
   process.env.ORAKL_NETWORK_DELEGATOR_URL || 'http://localhost:3002/api/v1'
 
 export const DELEGATOR_TIMEOUT = Number(process.env.DELEGATOR_TIMEOUT) || 3000
+export const RPC_URL_TIMEOUT = Number(process.env.RPC_URL_TIMEOUT) || 3000
+export const POR_TIMEOUT = Number(process.env.POR_TIMEOUT) || 5000
 
 export const DEPLOYMENT_NAME = process.env.DEPLOYMENT_NAME || 'orakl'
 export const NODE_ENV = process.env.NODE_ENV
@@ -16,6 +18,7 @@ export const CHAIN = process.env.CHAIN || 'localhost'
 export const LOG_LEVEL = process.env.LOG_LEVEL || 'info'
 
 export const PROVIDER_URL = process.env.PROVIDER_URL || 'http://127.0.0.1:8545'
+export const FALLBACK_PROVIDER_URL = process.env.FALLBACK_PROVIDER_URL
 export const REDIS_HOST = process.env.REDIS_HOST || 'localhost'
 export const REDIS_PORT = process.env.REDIS_PORT ? Number(process.env.REDIS_PORT) : 6379
 export const SLACK_WEBHOOK_URL = process.env.SLACK_WEBHOOK_URL || ''

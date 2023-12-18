@@ -1,13 +1,14 @@
 import { logger } from 'ethers'
 import { buildLogger } from '../logger'
-import { POR_AGGREGATOR_HASH } from '../settings'
+import { POR_AGGREGATOR_HASH, POR_TIMEOUT } from '../settings'
 import { hookConsoleError } from '../utils'
 import { fetchWithAggregator } from './fetcher'
 import { reportData } from './reporter'
+import { callWithTimeout } from './utils'
 
 const LOGGER = buildLogger()
 
-const main = async () => {
+const _main = async () => {
   hookConsoleError(LOGGER)
 
   const { value, aggregator } = await fetchWithAggregator({
@@ -18,6 +19,18 @@ const main = async () => {
   logger.info(`Fetched data:${value}`)
 
   await reportData({ value, aggregator, logger: LOGGER })
+}
+
+const main = async () => {
+  try {
+    await callWithTimeout(_main(), POR_TIMEOUT)
+  } catch (error) {
+    if (error instanceof Error && error.message === 'Timeout') {
+      throw new Error(`Main function timed out`)
+    } else {
+      throw error
+    }
+  }
 }
 
 main().catch((error) => {
