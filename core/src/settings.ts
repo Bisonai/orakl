@@ -170,8 +170,7 @@ export const BULLMQ_CONNECTION = {
 }
 
 function createJsonRpcProvider(providerUrl: string = PROVIDER_URL) {
-  let provider = new ethers.providers.JsonRpcProvider(providerUrl)
-  return provider
+  return new ethers.providers.JsonRpcProvider(providerUrl)
 }
 
 export const PROVIDER = createJsonRpcProvider()
