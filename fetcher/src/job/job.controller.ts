@@ -1,7 +1,12 @@
 import { InjectQueue } from '@nestjs/bullmq'
 import { Body, Controller, Get, HttpException, HttpStatus, Logger, Param } from '@nestjs/common'
 import { Queue } from 'bullmq'
-import { FETCHER_QUEUE_NAME, FETCHER_TYPE, FETCH_FREQUENCY } from '../settings'
+import {
+  DEVIATION_QUEUE_NAME,
+  FETCHER_QUEUE_NAME,
+  FETCHER_TYPE,
+  FETCH_FREQUENCY
+} from '../settings'
 import {
   activateAggregator,
   deactivateAggregator,
@@ -18,12 +23,17 @@ import { extractFeeds } from './job.utils'
 export class JobController {
   private readonly logger = new Logger(JobController.name)
   private proxyList: IProxy[] = []
-  constructor(@InjectQueue(FETCHER_QUEUE_NAME) private queue: Queue) {}
+  constructor(
+    @InjectQueue(FETCHER_QUEUE_NAME) private queue: Queue,
+    @InjectQueue(DEVIATION_QUEUE_NAME) private deviationQueue: Queue
+  ) {}
 
   async onModuleInit() {
     this.proxyList = await loadProxies({ logger: this.logger })
     const chain = process.env.CHAIN
     const activeAggregators = await this.activeAggregators()
+    await this.queue.obliterate()
+    await this.deviationQueue.obliterate()
     for (const aggregator of activeAggregators) {
       await this.startFetcher({ aggregatorHash: aggregator.aggregatorHash, chain, isInitial: true })
     }
