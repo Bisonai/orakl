@@ -8,6 +8,7 @@ export const ORAKL_NETWORK_DELEGATOR_URL =
   process.env.ORAKL_NETWORK_DELEGATOR_URL || 'http://localhost:3002/api/v1'
 
 export const DELEGATOR_TIMEOUT = Number(process.env.DELEGATOR_TIMEOUT) || 3000
+export const RPC_URL_TIMEOUT = Number(process.env.RPC_URL_TIMEOUT) || 3000
 
 export const DEPLOYMENT_NAME = process.env.DEPLOYMENT_NAME || 'orakl'
 export const NODE_ENV = process.env.NODE_ENV
@@ -16,6 +17,7 @@ export const CHAIN = process.env.CHAIN || 'localhost'
 export const LOG_LEVEL = process.env.LOG_LEVEL || 'info'
 
 export const PROVIDER_URL = process.env.PROVIDER_URL || 'http://127.0.0.1:8545'
+export const FALLBACK_PROVIDER_URL = process.env.FALLBACK_PROVIDER_URL
 export const REDIS_HOST = process.env.REDIS_HOST || 'localhost'
 export const REDIS_PORT = process.env.REDIS_PORT ? Number(process.env.REDIS_PORT) : 6379
 export const SLACK_WEBHOOK_URL = process.env.SLACK_WEBHOOK_URL || ''
@@ -168,11 +170,13 @@ export const BULLMQ_CONNECTION = {
 }
 
 function createJsonRpcProvider(providerUrl: string = PROVIDER_URL) {
-  return new ethers.providers.JsonRpcProvider(providerUrl)
+  let provider = new ethers.providers.JsonRpcProvider(providerUrl)
+  return provider
 }
 
 export const PROVIDER = createJsonRpcProvider()
 export const L2_PROVIDER = createJsonRpcProvider(L2_PROVIDER_URL)
+
 export const L1_ENDPOINT = process.env.L1_ENDPOINT || ''
 export const L2_ENDPOINT = process.env.L2_ENDPOINT || ''
 
@@ -225,4 +229,25 @@ export const WORKER_JOB_SETTINGS = {
 
 export function getObservedBlockRedisKey(contractAddress: string) {
   return `${contractAddress}-listener-${DEPLOYMENT_NAME}`
+}
+
+export async function checkRpcUrl(url: string) {
+  try {
+    const provider = new ethers.providers.JsonRpcProvider(url)
+    const blockNumberPromise = provider.getBlockNumber()
+    const timeoutPromise = new Promise((_, reject) => {
+      setTimeout(() => reject(new Error('Timeout')), RPC_URL_TIMEOUT)
+    })
+    const result = await Promise.race([blockNumberPromise, timeoutPromise])
+    if (result instanceof Error) {
+      console.error(`failed to connect rpc url due to timeout: ${url}`)
+      return false
+    } else {
+      console.info(`json rpc alive: ${url}`)
+      return true
+    }
+  } catch (error) {
+    console.error(`Error connecting to URL ${url}: ${error.message}`)
+    return false
+  }
 }

@@ -18,6 +18,10 @@ const main = async () => {
   logger.info(`Fetched data:${value}`)
 
   await reportData({ value, aggregator, logger: LOGGER })
+
+  return new Promise((_, reject) => {
+    setTimeout(() => reject(new Error('Timeout')), 15000) // 15 seconds in milliseconds
+  })
 }
 
 main().catch((error) => {
