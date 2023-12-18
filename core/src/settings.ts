@@ -176,7 +176,6 @@ function createJsonRpcProvider(providerUrl: string = PROVIDER_URL) {
 
 export const PROVIDER = createJsonRpcProvider()
 export const L2_PROVIDER = createJsonRpcProvider(L2_PROVIDER_URL)
-
 export const L1_ENDPOINT = process.env.L1_ENDPOINT || ''
 export const L2_ENDPOINT = process.env.L2_ENDPOINT || ''
 
