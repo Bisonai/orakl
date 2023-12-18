@@ -237,7 +237,7 @@ export async function checkRpcUrl(url: string) {
       setTimeout(() => reject(new Error('Timeout')), RPC_URL_TIMEOUT)
     })
     const result = await Promise.race([blockNumberPromise, timeoutPromise])
-    if (result instanceof Error) {
+    if (result instanceof Error && result.message === 'Timeout') {
       console.error(`failed to connect rpc url due to timeout: ${url}`)
       return false
     } else {

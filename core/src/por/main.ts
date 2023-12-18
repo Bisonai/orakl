@@ -6,8 +6,9 @@ import { fetchWithAggregator } from './fetcher'
 import { reportData } from './reporter'
 
 const LOGGER = buildLogger()
+const TIMEOUT = 10000
 
-const main = async () => {
+const _main = async () => {
   hookConsoleError(LOGGER)
 
   const { value, aggregator } = await fetchWithAggregator({
@@ -18,10 +19,21 @@ const main = async () => {
   logger.info(`Fetched data:${value}`)
 
   await reportData({ value, aggregator, logger: LOGGER })
+}
 
-  return new Promise((_, reject) => {
-    setTimeout(() => reject(new Error('Timeout')), 15000) // 15 seconds in milliseconds
-  })
+const main = async () => {
+  const timeoutPromise = new Promise((_, reject) =>
+    setTimeout(() => reject(new Error('Timeout')), TIMEOUT)
+  )
+  try {
+    await Promise.race([timeoutPromise, _main()])
+  } catch (error) {
+    if (error instanceof Error && error.message === 'Timeout') {
+      throw new Error(`Main function timed out`)
+    } else {
+      throw error
+    }
+  }
 }
 
 main().catch((error) => {
