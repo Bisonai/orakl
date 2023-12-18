@@ -9,6 +9,7 @@ export const ORAKL_NETWORK_DELEGATOR_URL =
 
 export const DELEGATOR_TIMEOUT = Number(process.env.DELEGATOR_TIMEOUT) || 3000
 export const RPC_URL_TIMEOUT = Number(process.env.RPC_URL_TIMEOUT) || 3000
+export const POR_TIMEOUT = Number(process.env.POR_TIMEOUT) || 5000
 
 export const DEPLOYMENT_NAME = process.env.DEPLOYMENT_NAME || 'orakl'
 export const NODE_ENV = process.env.NODE_ENV
@@ -241,7 +242,7 @@ export async function checkRpcUrl(url: string) {
       console.error(`failed to connect rpc url due to timeout: ${url}`)
       return false
     } else {
-      console.info(`json rpc alive: ${url}`)
+      console.info(`json rpc is alive: ${url}`)
       return true
     }
   } catch (error) {
