@@ -1,9 +1,10 @@
 import { logger } from 'ethers'
 import { buildLogger } from '../logger'
-import { callWithTimeout, POR_AGGREGATOR_HASH, POR_TIMEOUT } from '../settings'
+import { POR_AGGREGATOR_HASH, POR_TIMEOUT } from '../settings'
 import { hookConsoleError } from '../utils'
 import { fetchWithAggregator } from './fetcher'
 import { reportData } from './reporter'
+import { callWithTimeout } from './utils'
 
 const LOGGER = buildLogger()
 

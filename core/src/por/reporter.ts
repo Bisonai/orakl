@@ -5,7 +5,6 @@ import { getReporterByOracleAddress } from '../api'
 import { buildWallet, sendTransaction } from '../reporter/utils'
 import {
   CHAIN,
-  checkRpcUrl,
   FALLBACK_PROVIDER_URL,
   POR_GAS_MINIMUM,
   POR_LATENCY_BUFFER,
@@ -15,6 +14,7 @@ import {
 } from '../settings'
 import { IAggregator, IReporterConfig } from '../types'
 import { buildTransaction } from '../worker/data-feed.utils'
+import { checkRpcUrl } from './utils'
 
 async function shouldReport({
   aggregator,
@@ -81,7 +81,7 @@ export async function reportData({
       )
     }
     provider = new ethers.providers.JsonRpcProvider(FALLBACK_PROVIDER_URL)
-    providerUrl = String(FALLBACK_PROVIDER_URL)
+    providerUrl = FALLBACK_PROVIDER_URL
   }
 
   const oracleAddress = aggregator.address
