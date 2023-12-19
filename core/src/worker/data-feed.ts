@@ -60,10 +60,10 @@ export async function worker(redisClient: RedisClientType, _logger: Logger) {
   const checkHeartbeatQueue = new Queue(WORKER_CHECK_HEARTBEAT_QUEUE_NAME, BULLMQ_CONNECTION)
 
   // Clear queues
-  await aggregatorQueue.obliterate()
-  await heartbeatQueue.obliterate()
-  await submitHeartbeatQueue.obliterate()
-  await checkHeartbeatQueue.obliterate()
+  await aggregatorQueue.obliterate({ force: true })
+  await heartbeatQueue.obliterate({ force: true })
+  await submitHeartbeatQueue.obliterate({ force: true })
+  await checkHeartbeatQueue.obliterate({ force: true })
 
   // Clear previous jobs from repeatable [checkHeartbeat] queue
   const repeatableJobs = await checkHeartbeatQueue.getRepeatableJobs()
