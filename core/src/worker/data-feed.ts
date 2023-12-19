@@ -32,7 +32,7 @@ import {
   IDataFeedListenerWorker,
   QueueType
 } from '../types'
-import { buildHeartbeatJobId, buildSubmissionRoundJobId, shouldAddJobWithRoundId } from '../utils'
+import { buildHeartbeatJobId, buildSubmissionRoundJobId, isRoundIdValid } from '../utils'
 import { fetchDataFeedByAggregatorId, getAggregatorGivenAddress, getAggregators } from './api'
 import { buildTransaction, isStale, oracleRoundStateCall } from './data-feed.utils'
 import { State } from './state'
@@ -224,7 +224,7 @@ export function aggregatorJob(
 
       if (!submission || isStale({ timestamp, logger })) {
         logger.warn(`Data became stale (> ${MAX_DATA_STALENESS}). Not reporting.`)
-      } else if (!(await shouldAddJobWithRoundId(reporterQueue, oracleAddress, roundId))) {
+      } else if (!(await isRoundIdValid(reporterQueue, oracleAddress, roundId))) {
         logger.warn(`Data having low roundId:${roundId}. Not reporting`)
       } else {
         const tx = buildTransaction({
@@ -340,7 +340,7 @@ function heartbeatJob(aggregatorQueue: Queue, state: State, _logger: Logger) {
       if (!eligibleToSubmit) {
         const msg = `Non-eligible to submit for oracle ${oracleAddress} with operator ${operatorAddress}`
         throw new OraklError(OraklErrorCode.NonEligibleToSubmit, msg)
-      } else if (!(await shouldAddJobWithRoundId(aggregatorQueue, oracleAddress, roundId))) {
+      } else if (!(await isRoundIdValid(aggregatorQueue, oracleAddress, roundId))) {
         const msg = `low roundId to submit for oracle ${oracleAddress} with roundId: ${roundId}`
         throw new OraklError(OraklErrorCode.NonEligibleToSubmit, msg)
       } else {
@@ -554,7 +554,7 @@ export function deviationJob(reporterQueue: QueueType, _logger: Logger) {
       logger.debug({ aggregatorHash, fetchedAt: timestamp, submission }, 'Latest data aggregate')
       if (isStale({ timestamp, logger })) {
         logger.warn(`Data became stale (> ${MAX_DATA_STALENESS}). Not reporting.`)
-      } else if (!(await shouldAddJobWithRoundId(reporterQueue, oracleAddress, roundId))) {
+      } else if (!(await isRoundIdValid(reporterQueue, oracleAddress, roundId))) {
         logger.warn(`Data having low roundId:${roundId}. Not reporting`)
       } else {
         const tx = buildTransaction({
