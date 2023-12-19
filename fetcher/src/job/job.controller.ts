@@ -32,8 +32,8 @@ export class JobController {
     this.proxyList = await loadProxies({ logger: this.logger })
     const chain = process.env.CHAIN
     const activeAggregators = await this.activeAggregators()
-    await this.queue.obliterate()
-    await this.deviationQueue.obliterate()
+    // await this.queue.obliterate()
+    // await this.deviationQueue.obliterate()
     for (const aggregator of activeAggregators) {
       await this.startFetcher({ aggregatorHash: aggregator.aggregatorHash, chain, isInitial: true })
     }
