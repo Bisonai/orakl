@@ -43,9 +43,9 @@ export async function buildListener(
   const historyListenerQueue = new Queue(historyQueueName, BULLMQ_CONNECTION)
   const processEventQueue = new Queue(processEventQueueName, BULLMQ_CONNECTION)
 
-  await latestListenerQueue.obliterate()
-  await historyListenerQueue.obliterate()
-  await processEventQueue.obliterate()
+  await latestListenerQueue.obliterate({ force: true })
+  await historyListenerQueue.obliterate({ force: true })
+  await processEventQueue.obliterate({ force: true })
 
   listenerService({
     config,

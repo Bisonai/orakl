@@ -17,7 +17,7 @@ export async function buildReporter(redisClient: RedisClientType, logger: Logger
   const chainId = (await PROVIDER.getNetwork()).chainId
 
   const reporterAggregateQueue = new Queue(REPORTER_AGGREGATOR_QUEUE_NAME, BULLMQ_CONNECTION)
-  await reporterAggregateQueue.obliterate()
+  await reporterAggregateQueue.obliterate({ force: true })
 
   await factory({
     redisClient,
