@@ -17,7 +17,7 @@ import {
   WORKER_AGGREGATOR_QUEUE_NAME
 } from '../settings'
 import { IDataFeedListenerWorker, IListenerConfig, INewRound } from '../types'
-import { buildSubmissionRoundJobId } from '../utils'
+import { buildSubmissionRoundJobId, shouldAddJobWithRoundId } from '../utils'
 import { listenerService } from './listener'
 import { ProcessEventOutputType } from './types'
 
@@ -78,6 +78,10 @@ async function processEvent({ iface, logger }: { iface: ethers.utils.Interface; 
 
     if (eventData.startedBy == operatorAddress) {
       _logger.debug(`Ignore event emitted by ${eventData.startedBy} for round ${roundId}`)
+    } else if (!(await shouldAddJobWithRoundId(this.workerQueue, oracleAddress, roundId))) {
+      _logger.debug(
+        `Low roundId, Ignore event emitted by ${eventData.startedBy} for round ${roundId}`
+      )
     } else {
       // NewRound emitted by somebody else
       const jobName = 'event'

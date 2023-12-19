@@ -32,7 +32,7 @@ import {
   IDataFeedListenerWorker,
   QueueType
 } from '../types'
-import { buildHeartbeatJobId, buildSubmissionRoundJobId } from '../utils'
+import { buildHeartbeatJobId, buildSubmissionRoundJobId, shouldAddJobWithRoundId } from '../utils'
 import { fetchDataFeedByAggregatorId, getAggregatorGivenAddress, getAggregators } from './api'
 import { buildTransaction, isStale, oracleRoundStateCall } from './data-feed.utils'
 import { State } from './state'
@@ -224,6 +224,8 @@ export function aggregatorJob(
 
       if (!submission || isStale({ timestamp, logger })) {
         logger.warn(`Data became stale (> ${MAX_DATA_STALENESS}). Not reporting.`)
+      } else if (!(await shouldAddJobWithRoundId(reporterQueue, oracleAddress, roundId))) {
+        logger.warn(`Data having low roundId:${roundId}. Not reporting`)
       } else {
         const tx = buildTransaction({
           payloadParameters: {
@@ -335,7 +337,13 @@ function heartbeatJob(aggregatorQueue: Queue, state: State, _logger: Logger) {
       }
       logger.debug(outData, 'outData')
 
-      if (eligibleToSubmit) {
+      if (!eligibleToSubmit) {
+        const msg = `Non-eligible to submit for oracle ${oracleAddress} with operator ${operatorAddress}`
+        throw new OraklError(OraklErrorCode.NonEligibleToSubmit, msg)
+      } else if (!(await shouldAddJobWithRoundId(aggregatorQueue, oracleAddress, roundId))) {
+        const msg = `low roundId to submit for oracle ${oracleAddress} with roundId: ${roundId}`
+        throw new OraklError(OraklErrorCode.NonEligibleToSubmit, msg)
+      } else {
         logger.debug({ job: 'added', eligible: true, roundId }, 'before-eligible-fixed')
 
         const jobId = buildSubmissionRoundJobId({
@@ -363,9 +371,6 @@ function heartbeatJob(aggregatorQueue: Queue, state: State, _logger: Logger) {
           ...AGGREGATOR_QUEUE_SETTINGS
         })
         logger.debug({ job: 'added', eligible: true, roundId }, 'eligible-fixed')
-      } else {
-        const msg = `Non-eligible to submit for oracle ${oracleAddress} with operator ${operatorAddress}`
-        throw new OraklError(OraklErrorCode.NonEligibleToSubmit, msg)
       }
     } catch (e) {
       const msg = `Heartbeat job for oracle ${oracleAddress} died.`
@@ -549,6 +554,8 @@ export function deviationJob(reporterQueue: QueueType, _logger: Logger) {
       logger.debug({ aggregatorHash, fetchedAt: timestamp, submission }, 'Latest data aggregate')
       if (isStale({ timestamp, logger })) {
         logger.warn(`Data became stale (> ${MAX_DATA_STALENESS}). Not reporting.`)
+      } else if (!(await shouldAddJobWithRoundId(reporterQueue, oracleAddress, roundId))) {
+        logger.warn(`Data having low roundId:${roundId}. Not reporting`)
       } else {
         const tx = buildTransaction({
           payloadParameters: {
