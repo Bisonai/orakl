@@ -74,7 +74,7 @@ export function dataFeedReporter(state: State, logger: Logger) {
   const reporterAggregateQueue = new Queue(REPORTER_AGGREGATOR_QUEUE_NAME, BULLMQ_CONNECTION)
   async function wrapper(job: Job) {
     const tmp = job.id?.split('-')
-    if (!tmp) {
+    if (!tmp || tmp.length < 3) {
       throw new OraklError(
         OraklErrorCode.UnexpectedJobId,
         `unexpected jobId from dataFeedReporter: ${job.id}`
@@ -83,9 +83,8 @@ export function dataFeedReporter(state: State, logger: Logger) {
     const [roundId, oracleAddress, _] = tmp
 
     if (!isRoundIdFresh(reporterAggregateQueue, oracleAddress, Number(roundId))) {
-      const msg = `not reporting for stake roundId: ${roundId}`
-      logger.error(msg)
-      throw new OraklError(OraklErrorCode.StaleRoundId, msg)
+      logger.error(`not reporting for stale roundId: ${roundId}`)
+      return
     }
     await reporter(state, logger)(job)
   }
