@@ -3,7 +3,7 @@ import { Logger } from 'pino'
 import { OraklError, OraklErrorCode } from '../errors'
 import { BULLMQ_CONNECTION, REPORTER_AGGREGATOR_QUEUE_NAME } from '../settings'
 import { ITransactionParameters } from '../types'
-import { isRoundIdValid } from '../utils'
+import { isRoundIdFresh } from '../utils'
 import { State } from './state'
 import { wrapperType } from './types'
 import { sendTransaction, sendTransactionCaver, sendTransactionDelegatedFee } from './utils'
@@ -82,7 +82,7 @@ export function dataFeedReporter(state: State, logger: Logger) {
     }
     const [roundId, oracleAddress, _] = tmp
 
-    if (!isRoundIdValid(reporterAggregateQueue, oracleAddress, Number(roundId))) {
+    if (!isRoundIdFresh(reporterAggregateQueue, oracleAddress, Number(roundId))) {
       const msg = `not reporting for stake roundId: ${roundId}`
       logger.error(msg)
       throw new OraklError(OraklErrorCode.StaleRoundId, msg)

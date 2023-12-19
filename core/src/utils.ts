@@ -107,7 +107,7 @@ export function buildHeartbeatJobId({
   return `${oracleAddress}-${deploymentName}`
 }
 
-export async function isRoundIdValid(queue: QueueType, oracleAddress: string, roundId: number) {
+export async function isRoundIdFresh(queue: QueueType, oracleAddress: string, roundId: number) {
   const jobs = await queue.getJobs()
   const jobsWithSameOracleAddress = jobs.filter((_job) => _job.id?.split('-')[1] === oracleAddress)
 
