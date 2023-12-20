@@ -4,7 +4,6 @@ import type { RedisClientType } from 'redis'
 import { BULLMQ_CONNECTION, CHAIN, PROVIDER_URL } from '../settings'
 import { reporter } from './reporter'
 import { State } from './state'
-import { workerType } from './types'
 import { watchman } from './watchman'
 
 const FILE_NAME = import.meta.url
@@ -18,8 +17,7 @@ export async function factory({
   delegatedFee,
   _logger,
   providerUrl = PROVIDER_URL,
-  chain = CHAIN,
-  _worker = reporter
+  chain = CHAIN
 }: {
   redisClient: RedisClientType
   stateName: string
@@ -30,7 +28,6 @@ export async function factory({
   providerUrl?: string
   chain?: string
   _logger: Logger
-  _worker?: workerType
 }) {
   const logger = _logger.child({ name: 'reporter', file: FILE_NAME })
 
@@ -47,7 +44,7 @@ export async function factory({
 
   logger.debug(await state.active(), 'Active reporters')
 
-  const reporterWorker = new Worker(reporterQueueName, await _worker(state, logger), {
+  const reporterWorker = new Worker(reporterQueueName, await reporter(state, logger), {
     ...BULLMQ_CONNECTION,
     concurrency
   })
