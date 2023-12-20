@@ -1,5 +1,5 @@
 import { Aggregator__factory } from '@bisonai/orakl-contracts'
-import { Queue } from 'bullmq'
+import { Queue, UnrecoverableError } from 'bullmq'
 import { ethers } from 'ethers'
 import { Logger } from 'pino'
 import type { RedisClientType } from 'redis'
@@ -78,8 +78,9 @@ async function processEvent({ iface, logger }: { iface: ethers.utils.Interface; 
 
     if (eventData.startedBy == operatorAddress) {
       _logger.debug(`Ignore event emitted by ${eventData.startedBy} for round ${roundId}`)
+      return
     } else if (!(await isRoundIdFresh(this.workerQueue, oracleAddress, roundId))) {
-      _logger.debug(
+      throw new UnrecoverableError(
         `Low roundId, Ignore event emitted by ${eventData.startedBy} for round ${roundId}`
       )
     } else {

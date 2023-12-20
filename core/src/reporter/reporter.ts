@@ -1,4 +1,4 @@
-import { Job, Queue } from 'bullmq'
+import { Job, Queue, UnrecoverableError } from 'bullmq'
 import { Logger } from 'pino'
 import { OraklError, OraklErrorCode } from '../errors'
 import { BULLMQ_CONNECTION, REPORTER_AGGREGATOR_QUEUE_NAME } from '../settings'
@@ -70,6 +70,7 @@ export function reporter(state: State, logger: Logger): wrapperType {
   return wrapper
 }
 
+// basically does the same job as reporter but checks if roundId is valid before reporting
 export function dataFeedReporter(state: State, logger: Logger) {
   const reporterAggregateQueue = new Queue(REPORTER_AGGREGATOR_QUEUE_NAME, BULLMQ_CONNECTION)
   async function wrapper(job: Job) {
@@ -83,8 +84,7 @@ export function dataFeedReporter(state: State, logger: Logger) {
     const [roundId, oracleAddress, _] = splittedJobId
 
     if (!isRoundIdFresh(reporterAggregateQueue, oracleAddress, Number(roundId))) {
-      logger.error(`not reporting for stale roundId: ${roundId}`)
-      return
+      throw new UnrecoverableError(`not reporting for low roundId: ${roundId}`)
     }
     await reporter(state, logger)(job)
   }
