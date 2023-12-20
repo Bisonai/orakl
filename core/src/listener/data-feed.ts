@@ -43,6 +43,7 @@ export async function buildListener(
   const historyListenerQueue = new Queue(historyQueueName, BULLMQ_CONNECTION)
   const processEventQueue = new Queue(processEventQueueName, BULLMQ_CONNECTION)
 
+  await redisClient.set(stateName, JSON.stringify([]))
   await latestListenerQueue.obliterate({ force: true })
   await historyListenerQueue.obliterate({ force: true })
   await processEventQueue.obliterate({ force: true })
