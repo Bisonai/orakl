@@ -6,6 +6,7 @@ import type { RedisClientType } from 'redis'
 import { createClient } from 'redis'
 import { OraklErrorCode } from './errors'
 import { SLACK_WEBHOOK_URL } from './settings'
+import { QueueType } from './types'
 
 export async function loadJson(filepath) {
   const json = await Fs.readFile(filepath, 'utf8')
@@ -104,6 +105,23 @@ export function buildHeartbeatJobId({
   deploymentName: string
 }) {
   return `${oracleAddress}-${deploymentName}`
+}
+
+export async function isRoundIdFresh(queue: QueueType, oracleAddress: string, roundId: number) {
+  const jobs = await queue.getJobs()
+  const jobsWithSameOracleAddress = jobs.filter((_job) => _job.id?.split('-')[1] === oracleAddress)
+
+  if (!jobsWithSameOracleAddress) {
+    return true
+  }
+
+  let maxRoundId = 0
+  for (const _job of jobsWithSameOracleAddress) {
+    const _roundId = Number(_job.id?.split('-')[0]) || 0
+    maxRoundId = Math.max(maxRoundId, _roundId)
+  }
+
+  return maxRoundId < roundId
 }
 
 /*

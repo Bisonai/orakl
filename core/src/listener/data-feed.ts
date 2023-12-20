@@ -1,5 +1,5 @@
 import { Aggregator__factory } from '@bisonai/orakl-contracts'
-import { Queue } from 'bullmq'
+import { Queue, UnrecoverableError } from 'bullmq'
 import { ethers } from 'ethers'
 import { Logger } from 'pino'
 import type { RedisClientType } from 'redis'
@@ -17,7 +17,7 @@ import {
   WORKER_AGGREGATOR_QUEUE_NAME
 } from '../settings'
 import { IDataFeedListenerWorker, IListenerConfig, INewRound } from '../types'
-import { buildSubmissionRoundJobId } from '../utils'
+import { buildSubmissionRoundJobId, isRoundIdFresh } from '../utils'
 import { listenerService } from './listener'
 import { ProcessEventOutputType } from './types'
 
@@ -78,6 +78,11 @@ async function processEvent({ iface, logger }: { iface: ethers.utils.Interface; 
 
     if (eventData.startedBy == operatorAddress) {
       _logger.debug(`Ignore event emitted by ${eventData.startedBy} for round ${roundId}`)
+      return
+    } else if (!(await isRoundIdFresh(this.workerQueue, oracleAddress, roundId))) {
+      throw new UnrecoverableError(
+        `Low roundId, Ignore event emitted by ${eventData.startedBy} for round ${roundId}`
+      )
     } else {
       // NewRound emitted by somebody else
       const jobName = 'event'

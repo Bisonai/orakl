@@ -72,5 +72,6 @@ export enum OraklErrorCode {
   AxiosBadRequest,
   AxiosCanceledByUser,
   AxiosNotSupported,
-  AxiosInvalidUrl
+  AxiosInvalidUrl,
+  UnexpectedJobId
 }
