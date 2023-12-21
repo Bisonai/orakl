@@ -12,7 +12,6 @@ import {
   REPORTER_AGGREGATOR_QUEUE_NAME
 } from '../settings'
 import { factory } from './factory'
-import { dataFeedReporter } from './reporter'
 
 export async function buildReporter(redisClient: RedisClientType, logger: Logger) {
   const chainId = (await PROVIDER.getNetwork()).chainId
@@ -27,7 +26,6 @@ export async function buildReporter(redisClient: RedisClientType, logger: Logger
     reporterQueueName: REPORTER_AGGREGATOR_QUEUE_NAME,
     concurrency: DATA_FEED_REPORTER_CONCURRENCY,
     delegatedFee: [BAOBAB_CHAIN_ID, CYPRESS_CHAIN_ID].includes(chainId) ? true : false,
-    _logger: logger,
-    _worker: dataFeedReporter
+    _logger: logger
   })
 }

@@ -461,7 +461,6 @@ export interface MockQueue {
   add: any // eslint-disable-line @typescript-eslint/no-explicit-any
   process: any // eslint-disable-line @typescript-eslint/no-explicit-any
   on: any // eslint-disable-line @typescript-eslint/no-explicit-any
-  getJobs: any // eslint-disable-line @typescript-eslint/no-explicit-any
 }
 
 export type QueueType = Queue | MockQueue

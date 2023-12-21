@@ -1,14 +1,11 @@
-import { Job, Queue, UnrecoverableError } from 'bullmq'
+import { Job } from 'bullmq'
 import { Logger } from 'pino'
 import { OraklError, OraklErrorCode } from '../errors'
-import { BULLMQ_CONNECTION, REPORTER_AGGREGATOR_QUEUE_NAME } from '../settings'
 import { ITransactionParameters } from '../types'
-import { isRoundIdFresh } from '../utils'
 import { State } from './state'
-import { wrapperType } from './types'
 import { sendTransaction, sendTransactionCaver, sendTransactionDelegatedFee } from './utils'
 
-export function reporter(state: State, logger: Logger): wrapperType {
+export function reporter(state: State, logger: Logger) {
   async function wrapper(job: Job) {
     const inData: ITransactionParameters = job.data
     logger.debug(inData, 'inData')
@@ -67,26 +64,5 @@ export function reporter(state: State, logger: Logger): wrapperType {
   }
 
   logger.debug('Reporter job built')
-  return wrapper
-}
-
-// basically does the same job as reporter but checks if roundId is valid before reporting
-export function dataFeedReporter(state: State, logger: Logger) {
-  const reporterAggregateQueue = new Queue(REPORTER_AGGREGATOR_QUEUE_NAME, BULLMQ_CONNECTION)
-  async function wrapper(job: Job) {
-    const splittedJobId = job.id?.split('-')
-    if (!splittedJobId || splittedJobId.length < 3) {
-      throw new OraklError(
-        OraklErrorCode.UnexpectedJobId,
-        `unexpected jobId from dataFeedReporter: ${job.id}`
-      )
-    }
-    const [roundId, oracleAddress, _] = splittedJobId
-
-    if (!isRoundIdFresh(reporterAggregateQueue, oracleAddress, Number(roundId))) {
-      throw new UnrecoverableError(`not reporting for low roundId: ${roundId}`)
-    }
-    await reporter(state, logger)(job)
-  }
   return wrapper
 }

@@ -1,5 +1,5 @@
 import { Aggregator__factory } from '@bisonai/orakl-contracts'
-import { Job, Queue, UnrecoverableError, Worker } from 'bullmq'
+import { Job, Queue, Worker } from 'bullmq'
 import { ethers } from 'ethers'
 import { Logger } from 'pino'
 import type { RedisClientType } from 'redis'
@@ -32,7 +32,7 @@ import {
   IDataFeedListenerWorker,
   QueueType
 } from '../types'
-import { buildHeartbeatJobId, buildSubmissionRoundJobId, isRoundIdFresh } from '../utils'
+import { buildHeartbeatJobId, buildSubmissionRoundJobId } from '../utils'
 import { fetchDataFeedByAggregatorId, getAggregatorGivenAddress, getAggregators } from './api'
 import { buildTransaction, isStale, oracleRoundStateCall } from './data-feed.utils'
 import { State } from './state'
@@ -223,9 +223,7 @@ export function aggregatorJob(
       })
 
       if (!submission || isStale({ timestamp, logger })) {
-        throw new UnrecoverableError(`Data became stale (> ${MAX_DATA_STALENESS}). Not reporting.`)
-      } else if (!(await isRoundIdFresh(reporterQueue, oracleAddress, roundId))) {
-        throw new UnrecoverableError(`Data having low roundId:${roundId}. Not reporting`)
+        logger.warn(`Data became stale (> ${MAX_DATA_STALENESS}). Not reporting.`)
       } else {
         const tx = buildTransaction({
           payloadParameters: {
@@ -337,13 +335,7 @@ function heartbeatJob(aggregatorQueue: Queue, state: State, _logger: Logger) {
       }
       logger.debug(outData, 'outData')
 
-      if (!eligibleToSubmit) {
-        throw new UnrecoverableError(
-          `Non-eligible to submit for oracle ${oracleAddress} with operator ${operatorAddress}`
-        )
-      } else if (!(await isRoundIdFresh(aggregatorQueue, oracleAddress, roundId))) {
-        throw new UnrecoverableError(`Data having low roundId:${roundId}. Not reporting`)
-      } else {
+      if (eligibleToSubmit) {
         logger.debug({ job: 'added', eligible: true, roundId }, 'before-eligible-fixed')
 
         const jobId = buildSubmissionRoundJobId({
@@ -371,6 +363,9 @@ function heartbeatJob(aggregatorQueue: Queue, state: State, _logger: Logger) {
           ...AGGREGATOR_QUEUE_SETTINGS
         })
         logger.debug({ job: 'added', eligible: true, roundId }, 'eligible-fixed')
+      } else {
+        const msg = `Non-eligible to submit for oracle ${oracleAddress} with operator ${operatorAddress}`
+        throw new OraklError(OraklErrorCode.NonEligibleToSubmit, msg)
       }
     } catch (e) {
       const msg = `Heartbeat job for oracle ${oracleAddress} died.`
@@ -553,9 +548,7 @@ export function deviationJob(reporterQueue: QueueType, _logger: Logger) {
       })
       logger.debug({ aggregatorHash, fetchedAt: timestamp, submission }, 'Latest data aggregate')
       if (isStale({ timestamp, logger })) {
-        throw new UnrecoverableError(`Data became stale (> ${MAX_DATA_STALENESS}). Not reporting.`)
-      } else if (!(await isRoundIdFresh(reporterQueue, oracleAddress, roundId))) {
-        throw new UnrecoverableError(`Data having low roundId:${roundId}. Not reporting`)
+        logger.warn(`Data became stale (> ${MAX_DATA_STALENESS}). Not reporting.`)
       } else {
         const tx = buildTransaction({
           payloadParameters: {
