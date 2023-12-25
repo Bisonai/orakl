@@ -61,7 +61,7 @@ services:
   api:
     build:
       context: .
-      dockerfile: dockerfiles/orakl-api.Dockerfile
+      dockerfile: dockerfiles/orakl-goapi.Dockerfile
     image: orakl-api
     expose:
       - "3000"
