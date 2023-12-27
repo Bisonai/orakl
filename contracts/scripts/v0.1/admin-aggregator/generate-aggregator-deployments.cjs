@@ -36,6 +36,10 @@ async function main() {
   const walletList = []
   const bulkData = {}
 
+  if (!fs.existsSync(baseSource)) {
+    fs.mkdirSync(baseSource, { recursive: true })
+  }
+
   if (!fs.existsSync(tempFolderPath)) {
     fs.mkdirSync(tempFolderPath, { recursive: true })
   }
@@ -66,8 +70,8 @@ async function main() {
 
     // Bulk .json File
     bulkData['bulk'].push({
-      adapterSource: `https://config.orakl.network/adapter/${priceFeed}.adapter.json`,
-      aggregatorSource: `https://config.orakl.network/aggregator/${chain}/${priceFeed}.aggregator.json`,
+      adapterSource: `https://config.orakl.network/adapter/${priceFeed.toLowerCase()}.adapter.json`,
+      aggregatorSource: `https://config.orakl.network/aggregator/${chain}/${priceFeed.toLowerCase()}.aggregator.json`,
       reporter: {
         walletAddress: wallet.address,
         walletPrivateKey: wallet.privateKey

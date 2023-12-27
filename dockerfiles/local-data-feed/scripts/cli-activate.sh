@@ -1,0 +1,1 @@
+yarn cli datafeed activate --source /app/tmp/updated_bulk.json

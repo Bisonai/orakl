@@ -38,7 +38,7 @@
     "solhint": "./node_modules/.bin/solhint -f table src/**/*.sol",
     "prettier-solidity-write": "./node_modules/.bin/prettier --write src",
     "prettier-solidity-check": "./node_modules/.bin/prettier --check src",
-    "lint": "DEBUG=eslint:cli-engine npx eslint 'scripts/**' --ignore-pattern '*.json'",
+    "lint": "DEBUG=eslint:cli-engine npx eslint 'scripts/**' --ignore-pattern '*.json' --ignore-pattern '*.sh'",
     "deploy:localhost": "npx hardhat deploy --network localhost",
     "deploy:localhost:prepayment": "yarn deploy:localhost --deploy-scripts deploy/Prepayment",
     "deploy:localhost:rr": "yarn deploy:localhost --deploy-scripts deploy/RequestResponse",

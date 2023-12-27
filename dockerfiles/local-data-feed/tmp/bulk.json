@@ -1,0 +1,13 @@
+{
+  "chain": "baobab_test",
+  "bulk": [
+    {
+      "adapterSource": "https://config.orakl.network/adapter/btc-usdt.adapter.json",
+      "aggregatorSource": "https://config.orakl.network/aggregator/baobab_test/btc-usdt.aggregator.json",
+      "reporter": {
+        "walletAddress": "0x3fF876E10479F1e0a721613Bb133fb8b87aB2c8E",
+        "walletPrivateKey": "0xc9ce8ec21669b665a3245064313b3bcbc5a9533a860adb34e894bdab67799bb8"
+      }
+    }
+  ]
+}

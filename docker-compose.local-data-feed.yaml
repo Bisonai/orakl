@@ -1,0 +1,162 @@
+version: "3"
+
+volumes:
+  pgsql_volume: # <- Rename "volume_name"
+    name: pgsql_volume
+
+  # assuming using BTC-USDT pair
+
+services:
+  #   deploy_contract:
+  #     build:
+  #       context: .
+  #       dockerfile: dockerfiles/local-data-feed/contracts.Dockerfile
+  #     image: onchain-setup
+  #     volumes:
+  #       - ./contracts/deployments:/app/contracts/deployments
+  #       - ./contracts/migration:/app/contracts/migration
+  #       - ./dockerfiles/local-data-feed/tmp:/app/contracts/scripts/v0.1/tmp
+  #       - ./dockerfiles/local-data-feed/samples:/app/samples
+  #       - ./dockerfiles/local-data-feed/scripts/contracts.sh:/deploy.sh
+  #     command: /deploy.sh
+  #     env_file:
+  #       - ./dockerfiles/local-data-feed/envs/.contracts.env
+
+  postgres:
+    image: postgres:latest
+    restart: always
+    container_name: postgres
+    env_file:
+      - ./dockerfiles/local-data-feed/envs/.postgres.env
+    expose:
+      - "5432"
+    volumes:
+      - pgsql_volume:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -d $$POSTGRES_DB -U $$POSTGRES_USER"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    command:
+      [
+        "bash",
+        "-c",
+        "rm -rf /var/lib/postgresql/data/* && docker-entrypoint.sh postgres",
+      ]
+    # depends_on:
+    #   - deploy-contract
+
+  redis:
+    image: redis:latest
+    container_name: redis
+    expose:
+      - "6379"
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    # depends_on:
+    #   - deploy-contract
+
+  api:
+    build:
+      context: .
+      dockerfile: dockerfiles/orakl-api.Dockerfile
+    image: orakl-api
+    expose:
+      - "3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    env_file:
+      - ./dockerfiles/local-data-feed/envs/.api.env
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "bash",
+          "-c",
+          "curl -s http://api:3000/api/v1 | grep -q 'Orakl Network API'",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+
+  delegator:
+    build:
+      context: .
+      dockerfile: dockerfiles/orakl-delegator.Dockerfile
+    image: orakl-delegator
+    volumes:
+      - ./dockerfiles/local-data-feed/scripts/delegator.sh:/entrypoint.sh
+    expose:
+      - "3002"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    env_file:
+      - ./dockerfiles/local-data-feed/envs/.delegator.env
+    entrypoint: ["/entrypoint.sh"]
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "bash",
+          "-c",
+          "curl -s http://delegator:3002/api/v1 | grep -q 'Orakl Network Delegator'",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+
+  cli-insert:
+    build:
+      context: .
+      dockerfile: dockerfiles/local-data-feed/cli.Dockerfile
+    image: cli-insert
+    volumes:
+      - ./dockerfiles/local-data-feed/samples:/app/samples
+      - ./dockerfiles/local-data-feed/tmp:/app/tmp
+      - ./dockerfiles/local-data-feed/scripts/cli-insert.sh:/insert.sh
+    depends_on:
+      api:
+        condition: service_healthy
+      delegator:
+        condition: service_healthy
+    command: /insert.sh
+    env_file: ./dockerfiles/local-data-feed/envs/.cli.env
+
+  listener:
+    build:
+      context: .
+      dockerfile: dockerfiles/orakl-core.Dockerfile
+    image: listener
+    depends_on:
+      - cli-insert
+    command: ["yarn", "start:listener:data_feed"]
+    env_file: ./dockerfiles/local-data-feed/envs/.core.env
+
+  worker:
+    build:
+      context: .
+      dockerfile: dockerfiles/orakl-core.Dockerfile
+    image: listener
+    depends_on:
+      - cli-insert
+    command: ["yarn", "start:worker:data_feed"]
+    env_file: ./dockerfiles/local-data-feed/envs/.core.env
+
+  reporter:
+    build:
+      context: .
+      dockerfile: dockerfiles/orakl-core.Dockerfile
+    image: listener
+    depends_on:
+      - cli-insert
+    command: ["yarn", "start:reporter:data_feed"]
+    env_file: ./dockerfiles/local-data-feed/envs/.core.env

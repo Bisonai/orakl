@@ -1,3 +1,5 @@
 node_modules/
 contracts/scripts/**/tmp
 yarn-error.log
+dockerfiles/local-data-feed/samples/updated-btc-usdt.aggregator.json
+dockerfiles/local-data-feed/tmp/*
