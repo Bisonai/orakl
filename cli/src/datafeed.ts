@@ -10,7 +10,8 @@ import {
   IAggregator,
   IDatafeedBulk,
   IDatafeedBulkInsertElement,
-  ReadFile
+  ReadFile,
+  readFileFromSource
 } from './cli-types'
 import {
   contractConnectHandler,
@@ -50,7 +51,7 @@ import {
   WORKER_SERVICE_HOST,
   WORKER_SERVICE_PORT
 } from './settings'
-import { isValidUrl, loadJsonFromUrl } from './utils'
+import { isValidUrl } from './utils'
 
 export function datafeedSub() {
   // datafeed bulk-insert --source ${source}
@@ -128,12 +129,12 @@ export function bulkInsertHandler() {
 
     for (const insertElement of bulkData.bulk) {
       console.log(`inserting ${insertElement}`)
-      const adapterData = await loadJsonFromUrl(insertElement.adapterSource)
+      const adapterData = await readFileFromSource(insertElement.adapterSource)
       if (!checkAdapterSource(adapterData)) {
         console.error(`invalid adapterData: ${adapterData}, skipping insert`)
         continue
       }
-      const aggregatorData = await loadJsonFromUrl(insertElement.aggregatorSource)
+      const aggregatorData = await readFileFromSource(insertElement.aggregatorSource)
       if (!checkAggregatorSource(aggregatorData)) {
         console.error(`invalid aggregatorData: ${aggregatorData}, skipping insert`)
         continue
@@ -193,12 +194,12 @@ export function bulkRemoveHandler() {
 
     for (const removeElement of bulkData.bulk) {
       console.log(`removing ${removeElement}`)
-      const adapterData = await loadJsonFromUrl(removeElement.adapterSource)
+      const adapterData = await readFileFromSource(removeElement.adapterSource)
       if (!checkAdapterSource(adapterData)) {
         console.error(`invalid adapterData: ${adapterData}, skipping removal`)
         continue
       }
-      const aggregatorData = await loadJsonFromUrl(removeElement.aggregatorSource)
+      const aggregatorData = await readFileFromSource(removeElement.aggregatorSource)
       if (!checkAggregatorSource(aggregatorData)) {
         console.error(`invalid aggregatorData: ${aggregatorData}, skipping removal`)
         continue
@@ -260,7 +261,7 @@ export function bulkActivateHandler() {
     }
 
     for (const activateElement of data.bulk) {
-      const aggregatorData = await loadJsonFromUrl(activateElement.aggregatorSource)
+      const aggregatorData = await readFileFromSource(activateElement.aggregatorSource)
       if (!checkAggregatorSource(aggregatorData)) {
         console.error(`invalid aggregatorData: ${aggregatorData}, skipping activation`)
         continue
@@ -338,7 +339,7 @@ export function bulkDeactivateHandler() {
     }
 
     for (const deactivateElement of data.bulk) {
-      const aggregatorData = await loadJsonFromUrl(deactivateElement.aggregatorSource)
+      const aggregatorData = await readFileFromSource(deactivateElement.aggregatorSource)
       if (!checkAggregatorSource(aggregatorData)) {
         console.error(`invalid aggregatorData: ${aggregatorData}, skipping deactivation`)
         continue
