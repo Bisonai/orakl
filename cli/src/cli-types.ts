@@ -3,7 +3,7 @@ import { existsSync } from 'node:fs'
 import { CliError, CliErrorCode } from './errors'
 import { isValidUrl, loadFile, loadJsonFromUrl } from './utils'
 
-export async function readFileFromSource(source: string): Promise<any> {
+export async function readFileFromSource(source: string) {
   if (await isValidUrl(source)) {
     return await loadJsonFromUrl(source)
   } else {
