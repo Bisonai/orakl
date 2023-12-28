@@ -41,6 +41,18 @@ export function delegatorSub() {
     args: {},
     handler: signListHandler()
   })
+
+  const signerInitialize = command({
+    name: 'signerInitialize',
+    args: {
+      pk: option({
+        type: cmdstring,
+        long: 'pk'
+      })
+    },
+    handler: signerInitializeHandler()
+  })
+
   const organizationList = command({
     name: 'organizationList',
     args: {},
@@ -197,7 +209,8 @@ export function delegatorSub() {
       contractConnect,
       functionList,
       functionInsert,
-      functionRemove
+      functionRemove,
+      signerInitialize
     }
   })
 }
@@ -229,6 +242,23 @@ export function signListHandler() {
       return result
     } catch (e) {
       console.error('Delegator Sign was not listed. Reason:')
+      console.error(e?.response?.data?.message)
+    }
+  }
+  return wrapper
+}
+
+export function signerInitializeHandler() {
+  async function wrapper({ pk }: { pk: string }) {
+    if (!(await isOraklDelegatorHealthy())) return
+
+    try {
+      const endpoint = buildUrl(ORAKL_NETWORK_DELEGATOR_URL, `sign/initialize/${pk}`)
+      const result = (await axios.get(endpoint)).data
+      console.log(result)
+      return result
+    } catch (e) {
+      console.error(`Delegator signer not initialized`)
       console.error(e?.response?.data?.message)
     }
   }
