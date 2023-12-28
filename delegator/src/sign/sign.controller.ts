@@ -23,6 +23,11 @@ export class SignController {
     return this.signService.initialize({})
   }
 
+  @Get('initialize/:pk')
+  initializeWithKey(@Param('pk') pk: string) {
+    return this.signService.initialize({ feePayerPrivateKey: pk })
+  }
+
   @Get()
   findAll() {
     return this.signService.findAll({})
