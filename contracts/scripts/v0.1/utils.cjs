@@ -215,6 +215,38 @@ function getFormattedDate() {
   return moment().format('YYYYMMDDHHMMSS')
 }
 
+// returns object with {key(contractName):value(address)} inside dirPath
+async function loadDeployments(dirPath) {
+  const jsonFileRegex = /\.json$/
+  const result = {}
+  try {
+    const files = await readdir(dirPath)
+
+    for (const file of files) {
+      if (jsonFileRegex.test(file.toLowerCase())) {
+        let contractName = path.basename(file, '.json')
+        if (contractName.split('_').length > 1) {
+          // remove last part which normally holds version name
+          const splitted = contractName.replace(' ', '').split('_')
+          splitted.pop()
+          contractName = splitted.join('_')
+        }
+        const filePath = path.join(dirPath, file)
+        const deploymentDetail = await loadJson(filePath)
+        const address = deploymentDetail.address
+        if (!address) {
+          continue
+        }
+        result[contractName] = address
+      }
+    }
+  } catch (err) {
+    console.error(err)
+  }
+
+  return result
+}
+
 module.exports = {
   loadJson,
   storeJson,
@@ -228,5 +260,6 @@ module.exports = {
   validateVrfDeregisterOracle,
   validatePrepaymentDeployConfig,
   validateAggregatorRedirectProxyConfig,
-  getFormattedDate
+  getFormattedDate,
+  loadDeployments
 }
