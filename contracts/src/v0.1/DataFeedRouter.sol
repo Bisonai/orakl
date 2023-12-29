@@ -20,10 +20,13 @@ contract DataFeedRouter is Ownable {
         emit RouterProxyAddressUpdated(feedName, proxyAddress);
     }
 
-    function updateProxyBulk(string[] calldata feedNames, address[] calldata proxyAddresses) external onlyOwner {
+    function updateProxyBulk(
+        string[] calldata feedNames,
+        address[] calldata proxyAddresses
+    ) external onlyOwner {
         require(feedNames.length > 0 && feedNames.length == proxyAddresses.length, "invalid input");
 
-        for (uint i=0; i<feedNames.length; i++){
+        for (uint i = 0; i < feedNames.length; i++) {
             aggregatorProxies[feedNames[i]] = proxyAddresses[i];
         }
 
