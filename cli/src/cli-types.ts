@@ -3,18 +3,22 @@ import { existsSync } from 'node:fs'
 import { CliError, CliErrorCode } from './errors'
 import { isValidUrl, loadFile, loadJsonFromUrl } from './utils'
 
+export async function readFileFromSource(source: string) {
+  if (await isValidUrl(source)) {
+    return await loadJsonFromUrl(source)
+  } else {
+    if (!existsSync(source)) {
+      throw new CliError(CliErrorCode.FileNotFound)
+    }
+    return JSON.parse((await loadFile(source)).toString())
+  }
+}
+
 // ReadFile function is to load json file from
 // url-link, or from local file directory
 export const ReadFile: Type<string, string> = {
   async from(source) {
-    if (await isValidUrl(source)) {
-      return await loadJsonFromUrl(source)
-    } else {
-      if (!existsSync(source)) {
-        throw new CliError(CliErrorCode.FileNotFound)
-      }
-      return JSON.parse((await loadFile(source)).toString())
-    }
+    return await readFileFromSource(source)
   }
 }
 
