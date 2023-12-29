@@ -1,26 +1,24 @@
 version: "3"
 
 volumes:
-  pgsql_volume: # <- Rename "volume_name"
+  pgsql_volume:
     name: pgsql_volume
 
-  # assuming using BTC-USDT pair
-
 services:
-  #   deploy_contract:
-  #     build:
-  #       context: .
-  #       dockerfile: dockerfiles/local-data-feed/contracts.Dockerfile
-  #     image: onchain-setup
-  #     volumes:
-  #       - ./contracts/deployments:/app/contracts/deployments
-  #       - ./contracts/migration:/app/contracts/migration
-  #       - ./dockerfiles/local-data-feed/tmp:/app/contracts/scripts/v0.1/tmp
-  #       - ./dockerfiles/local-data-feed/samples:/app/samples
-  #       - ./dockerfiles/local-data-feed/scripts/contracts.sh:/deploy.sh
-  #     command: /deploy.sh
-  #     env_file:
-  #       - ./dockerfiles/local-data-feed/envs/.contracts.env
+  deploy-contract:
+    build:
+      context: .
+      dockerfile: dockerfiles/local-data-feed/contracts.Dockerfile
+    image: deploy-contract
+    volumes:
+      - ./contracts/deployments:/app/contracts/deployments
+      - ./contracts/migration:/app/contracts/migration
+      - ./dockerfiles/local-data-feed/tmp:/app/contracts/scripts/v0.1/tmp
+      - ./dockerfiles/local-data-feed/samples:/app/samples
+      - ./dockerfiles/local-data-feed/scripts/deploy-contracts.sh:/deploy.sh
+    command: /deploy.sh
+    env_file:
+      - ./dockerfiles/local-data-feed/envs/.contracts.env
 
   postgres:
     image: postgres:latest
@@ -43,8 +41,9 @@ services:
         "-c",
         "rm -rf /var/lib/postgresql/data/* && docker-entrypoint.sh postgres",
       ]
-    # depends_on:
-    #   - deploy-contract
+    depends_on:
+      deploy-contract:
+        condition: service_completed_successfully
 
   redis:
     image: redis:latest
@@ -56,8 +55,9 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-    # depends_on:
-    #   - deploy-contract
+    depends_on:
+      deploy-contract:
+        condition: service_completed_successfully
 
   api:
     build:
@@ -79,7 +79,7 @@ services:
           "CMD",
           "bash",
           "-c",
-          "curl -s http://api:3000/api/v1 | grep -q 'Orakl Network API'",
+          "curl -s http://api:$${APP_PORT}/api/v1 | grep -q 'Orakl Network API'",
         ]
       interval: 10s
       timeout: 5s
@@ -91,8 +91,6 @@ services:
       context: .
       dockerfile: dockerfiles/orakl-delegator.Dockerfile
     image: orakl-delegator
-    volumes:
-      - ./dockerfiles/local-data-feed/scripts/delegator.sh:/entrypoint.sh
     expose:
       - "3002"
     depends_on:
@@ -100,14 +98,13 @@ services:
         condition: service_healthy
     env_file:
       - ./dockerfiles/local-data-feed/envs/.delegator.env
-    entrypoint: ["/entrypoint.sh"]
     healthcheck:
       test:
         [
           "CMD",
           "bash",
           "-c",
-          "curl -s http://delegator:3002/api/v1 | grep -q 'Orakl Network Delegator'",
+          "curl -s http://delegator:$${APP_PORT}/api/v1 | grep -q 'Orakl Network Delegator'",
         ]
       interval: 10s
       timeout: 5s
@@ -137,26 +134,112 @@ services:
       dockerfile: dockerfiles/orakl-core.Dockerfile
     image: listener
     depends_on:
-      - cli-insert
+      cli-insert:
+        condition: service_completed_successfully
     command: ["yarn", "start:listener:data_feed"]
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "bash",
+          "-c",
+          "curl -s http://listener:$${HEALTH_CHECK_PORT} | grep -q 'ok'",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    expose:
+      - "4000"
     env_file: ./dockerfiles/local-data-feed/envs/.core.env
 
   worker:
     build:
       context: .
       dockerfile: dockerfiles/orakl-core.Dockerfile
-    image: listener
+    image: worker
     depends_on:
-      - cli-insert
+      cli-insert:
+        condition: service_completed_successfully
     command: ["yarn", "start:worker:data_feed"]
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "bash",
+          "-c",
+          "curl -s http://worker:$${HEALTH_CHECK_PORT} | grep -q 'ok'",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    expose:
+      - "5001"
     env_file: ./dockerfiles/local-data-feed/envs/.core.env
 
   reporter:
     build:
       context: .
       dockerfile: dockerfiles/orakl-core.Dockerfile
-    image: listener
+    image: reporter
     depends_on:
-      - cli-insert
+      cli-insert:
+        condition: service_completed_successfully
     command: ["yarn", "start:reporter:data_feed"]
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "bash",
+          "-c",
+          "curl -s http://reporter:$${HEALTH_CHECK_PORT} | grep -q 'ok'",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    expose:
+      - "6000"
     env_file: ./dockerfiles/local-data-feed/envs/.core.env
+
+  fetcher:
+    build:
+      context: .
+      dockerfile: dockerfiles/orakl-fetcher.Dockerfile
+    image: fetcher
+    depends_on:
+      cli-insert:
+        condition: service_completed_successfully
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "bash",
+          "-c",
+          "curl -s http://fetcher:$${APP_PORT}/api/v1 | grep -q 'Orakl Network Fetcher'",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    expose:
+      - "3001"
+    env_file: ./dockerfiles/local-data-feed/envs/.fetcher.env
+
+  cli-activate:
+    build:
+      context: .
+      dockerfile: dockerfiles/local-data-feed/cli.Dockerfile
+    image: cli-activate
+    volumes:
+      - ./dockerfiles/local-data-feed/samples:/app/samples
+      - ./dockerfiles/local-data-feed/tmp:/app/tmp
+      - ./dockerfiles/local-data-feed/scripts/cli-activate.sh:/activate.sh
+    depends_on:
+      listener:
+        condition: service_healthy
+      worker:
+        condition: service_healthy
+      reporter:
+        condition: service_healthy
+      fetcher:
+        condition: service_healthy
+    command: /activate.sh
+    env_file: ./dockerfiles/local-data-feed/envs/.cli.env
