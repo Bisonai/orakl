@@ -46,15 +46,23 @@ contract DataFeedRouter is Ownable {
      * (Only some AggregatorV3Interface implementations return meaningful values)
      * @dev Note that answer and updatedAt may change between queries.
      */
-    function getRountData(string calldata feedName, uint80 roundId) external view validFeed(feedName) returns (
+    function getRountData(
+        string calldata feedName,
+        uint80 roundId
+    )
+        external
+        view
+        validFeed(feedName)
+        returns (
             uint80 id,
             int256 answer,
             uint256 startedAt,
             uint256 updatedAt,
             uint80 answeredInRound
-        ) {
-            return IAggregatorProxy(aggregatorProxies[feedName]).getRoundData(roundId);
-        }
+        )
+    {
+        return IAggregatorProxy(aggregatorProxies[feedName]).getRoundData(roundId);
+    }
 
     /**
      * @notice get data about the latest round. Consumers are encouraged to check
@@ -79,15 +87,22 @@ contract DataFeedRouter is Ownable {
      * (Only some AggregatorV3Interface implementations return meaningful values)
      * @dev Note that answer and updatedAt may change between queries.
      */
-    function latestRoundData(string calldata feedName) external view validFeed(feedName) returns (
+    function latestRoundData(
+        string calldata feedName
+    )
+        external
+        view
+        validFeed(feedName)
+        returns (
             uint80 id,
             int256 answer,
             uint256 startedAt,
             uint256 updatedAt,
             uint80 answeredInRound
-        ) {
-            return IAggregatorProxy(aggregatorProxies[feedName]).latestRoundData();
-        }
+        )
+    {
+        return IAggregatorProxy(aggregatorProxies[feedName]).latestRoundData();
+    }
 
     /**
      * @notice Used if an aggregator contract has been proposed.
@@ -102,15 +117,23 @@ contract DataFeedRouter is Ownable {
      * @return answeredInRound is the round ID of the round in which the answer
      * was computed.
      */
-    function proposedGetRoundData(string calldata feedName, uint80 roundId) external view validFeed(feedName) returns (
+    function proposedGetRoundData(
+        string calldata feedName,
+        uint80 roundId
+    )
+        external
+        view
+        validFeed(feedName)
+        returns (
             uint80 id,
             int256 answer,
             uint256 startedAt,
             uint256 updatedAt,
             uint80 answeredInRound
-        ) {
-            return IAggregatorProxy(aggregatorProxies[feedName]).proposedGetRoundData(roundId);
-        }
+        )
+    {
+        return IAggregatorProxy(aggregatorProxies[feedName]).proposedGetRoundData(roundId);
+    }
 
     /**
      * @notice Used if an aggregator contract has been proposed.
@@ -124,20 +147,29 @@ contract DataFeedRouter is Ownable {
      * @return answeredInRound is the round ID of the round in which the answer
      * was computed.
      */
-    function proposedLatestRoundData(string calldata feedName) external view validFeed(feedName) returns (
+    function proposedLatestRoundData(
+        string calldata feedName
+    )
+        external
+        view
+        validFeed(feedName)
+        returns (
             uint80 id,
             int256 answer,
             uint256 startedAt,
             uint256 updatedAt,
             uint80 answeredInRound
-        ) {
-            return IAggregatorProxy(aggregatorProxies[feedName]).proposedLatestRoundData();
-        }
+        )
+    {
+        return IAggregatorProxy(aggregatorProxies[feedName]).proposedLatestRoundData();
+    }
 
     /**
      * @notice returns the current phase's aggregator address.
      */
-    function aggregator(string calldata feedName) external view validFeed(feedName) returns (address) {
+    function aggregator(
+        string calldata feedName
+    ) external view validFeed(feedName) returns (address) {
         return IAggregatorProxy(aggregatorProxies[feedName]).aggregator();
     }
 
@@ -159,21 +191,27 @@ contract DataFeedRouter is Ownable {
      * @notice the type and version of aggregator to which proxy
      * points to.
      */
-    function typeAndVersion(string calldata feedName) external view validFeed(feedName) returns (string memory) {
+    function typeAndVersion(
+        string calldata feedName
+    ) external view validFeed(feedName) returns (string memory) {
         return IAggregatorProxy(aggregatorProxies[feedName]).typeAndVersion();
     }
 
     /**
      * @notice returns the description of the aggregator the proxy points to.
      */
-    function description(string calldata feedName) external view validFeed(feedName) returns (string memory) {
+    function description(
+        string calldata feedName
+    ) external view validFeed(feedName) returns (string memory) {
         return IAggregatorProxy(aggregatorProxies[feedName]).description();
     }
 
     /**
      * @notice returns the current proposed aggregator
      */
-    function proposedAggregator(string calldata feedName) external view validFeed(feedName) returns (address) {
+    function proposedAggregator(
+        string calldata feedName
+    ) external view validFeed(feedName) returns (address) {
         return IAggregatorProxy(aggregatorProxies[feedName]).proposedAggregator();
     }
 
@@ -182,7 +220,10 @@ contract DataFeedRouter is Ownable {
      *
      * @param phaseId_ uint16
      */
-    function phaseAggregators(string calldata feedName, uint16 phaseId_) external view validFeed(feedName) returns (address) {
+    function phaseAggregators(
+        string calldata feedName,
+        uint16 phaseId_
+    ) external view validFeed(feedName) returns (address) {
         return IAggregatorProxy(aggregatorProxies[feedName]).phaseAggregators(phaseId_);
     }
 }
