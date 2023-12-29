@@ -48,28 +48,35 @@ const func = async function (hre) {
       if (updateProxiesConfig.updateAll) {
         const deployments = await loadDeployments(`./deployments/${network.name}`)
 
+        const feedNames = []
+        const addresses = []
         for (const key in deployments) {
           if (key.includes('AggregatorProxy')) {
             const feedName = key.split('_')[1]
             const address = deployments[key]
-            const tx = await (await dataFeedRouter.updateProxy(feedName, address)).wait()
-            console.log(
-              `Proxy Registered {feedName: ${tx.events[0].args.feedName}, address: ${tx.events[0].args.proxyAddress}}`
-            )
+            feedNames.push(feedName)
+            addresses.push(address)
           }
         }
+        const tx = await (await dataFeedRouter.updateProxyBulk(feedNames, addresses)).wait()
+        console.log(`bulk inserted feeds: ${tx.events[0].args[0]}`)
+        console.log(`bulk inserted addresses:${tx.events[0].args[1]}`)
       } else {
         if (!updateProxiesConfig.proxyList) {
           throw new Error('proxy list is empty')
         }
+
+        const feedNames = []
+        const addresses = []
         for (const proxyObject of proxyList) {
           const feedName = proxyObject.feedName
           const address = proxyObject.name
-          const tx = await (await dataFeedRouter.updateProxy(feedName, address)).wait()
-          console.log(
-            `Proxy Registered {feedName: ${tx.events[0].args.feedName}, address: ${tx.events[0].args.proxyAddress}}`
-          )
+          feedNames.push(feedName)
+          addresses.push(address)
         }
+        const tx = await (await dataFeedRouter.updateProxyBulk(feedNames, addresses)).wait()
+        console.log(`bulk inserted feeds: ${tx.events[0].args[0]}`)
+        console.log(`bulk inserted addresses:${tx.events[0].args[1]}`)
       }
     }
 

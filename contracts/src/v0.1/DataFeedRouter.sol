@@ -8,16 +8,26 @@ contract DataFeedRouter is Ownable {
     mapping(string => address) public aggregatorProxies;
 
     event RouterProxyAddressUpdated(string feedName, address indexed proxyAddress);
+    event RouterProxyAddressBulkUpdated(string[] feedNames, address[] proxyAddresses);
 
     modifier validFeed(string calldata feedName) {
         require(aggregatorProxies[feedName] != address(0), "feed not set in router");
         _;
     }
 
-    function updateProxy(string memory feedName, address proxyAddress) external onlyOwner {
-        require(proxyAddress != address(0), "null address given");
+    function updateProxy(string calldata feedName, address proxyAddress) external onlyOwner {
         aggregatorProxies[feedName] = proxyAddress;
         emit RouterProxyAddressUpdated(feedName, proxyAddress);
+    }
+
+    function updateProxyBulk(string[] calldata feedNames, address[] calldata proxyAddresses) external onlyOwner {
+        require(feedNames.length > 0 && feedNames.length == proxyAddresses.length, "invalid input");
+
+        for (uint i=0; i<feedNames.length; i++){
+            aggregatorProxies[feedNames[i]] = proxyAddresses[i];
+        }
+
+        emit RouterProxyAddressBulkUpdated(feedNames, proxyAddresses);
     }
 
     /**
