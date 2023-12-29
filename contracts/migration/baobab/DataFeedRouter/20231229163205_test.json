@@ -1,7 +1,0 @@
-{
-  "deploy": false,
-  "dataFeedRouterAddress": "0x13Ff09Ab02d5aAEe8eBD9d6526158FDEaa184a52",
-  "updateProxies": {
-    "updateAll": true
-  }
-}
