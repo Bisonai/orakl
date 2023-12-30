@@ -14,7 +14,6 @@ services:
       - ./contracts/deployments:/app/contracts/deployments
       - ./contracts/migration:/app/contracts/migration
       - ./dockerfiles/local-data-feed/tmp:/app/contracts/scripts/v0.1/tmp
-      - ./dockerfiles/local-data-feed/samples:/app/samples
       - ./dockerfiles/local-data-feed/scripts/deploy-contracts.sh:/deploy.sh
     command: /deploy.sh
     env_file:
@@ -117,7 +116,6 @@ services:
       dockerfile: dockerfiles/local-data-feed/cli.Dockerfile
     image: cli-insert
     volumes:
-      - ./dockerfiles/local-data-feed/samples:/app/samples
       - ./dockerfiles/local-data-feed/tmp:/app/tmp
       - ./dockerfiles/local-data-feed/scripts/cli-insert.sh:/insert.sh
     depends_on:
@@ -229,7 +227,6 @@ services:
       dockerfile: dockerfiles/local-data-feed/cli.Dockerfile
     image: cli-activate
     volumes:
-      - ./dockerfiles/local-data-feed/samples:/app/samples
       - ./dockerfiles/local-data-feed/tmp:/app/tmp
       - ./dockerfiles/local-data-feed/scripts/cli-activate.sh:/activate.sh
     depends_on:

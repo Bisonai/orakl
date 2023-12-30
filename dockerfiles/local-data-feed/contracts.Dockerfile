@@ -17,6 +17,6 @@ RUN yarn contracts install
 
 RUN yarn contracts compile
 
-RUN mkdir samples
+RUN mkdir -p /app/contracts/scripts/v0.1/tmp
 
 WORKDIR /app/contracts

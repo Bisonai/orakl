@@ -22,7 +22,7 @@ const func = async function (hre) {
   const date = getFormattedDate()
 
   // used for jq parsing after deployment is complete
-  const deploymentResult = {}
+  const deployedContracts = {}
 
   for (const migration of migrationFilesNames) {
     const config = await loadJson(path.join(migrationDirPath, migration))
@@ -50,7 +50,7 @@ const func = async function (hre) {
         log: true
       })
       aggregator = await ethers.getContractAt('Aggregator', aggregatorDeployment.address)
-      deploymentResult[`Aggregator_${deployConfig.name}`] = aggregatorDeployment.address
+      deployedContracts[`Aggregator_${deployConfig.name}`] = aggregatorDeployment.address
     }
 
     // Update oracles that are allowed to submit to Aggregator /////////////////
@@ -150,7 +150,7 @@ const func = async function (hre) {
 
     await updateMigration(migrationDirPath, migration)
     console.log('\n')
-    console.log(JSON.stringify(deploymentResult))
+    console.log(JSON.stringify(deployedContracts))
   }
 }
 

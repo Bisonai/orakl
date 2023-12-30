@@ -1,4 +1,4 @@
-psql -h postgres -U df -d test <<EOF
+psql -h postgres -U ${POSTGRES_USER} -d ${POSTGRES_DB} <<EOF
 SET search_path TO delegator;
 INSERT INTO fee_payers ("privateKey") VALUES ('${DELEGATOR_REPORTER_PK}')
 ON CONFLICT ("privateKey")

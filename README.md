@@ -4,18 +4,18 @@ This repository is split to [on-chain](contracts) and [off-chain](core) oracle i
 
 You can learn more about the Orakl Network from [documentation](https://orakl-network.gitbook.io).
 
-# Test Datafeed Locally Using Docker
+# Test Data Feed Locally Using Docker
 
-Run local datafeed connected to testnet.
+Run local data feed connected to testnet.
 
 ## Steps run through docker compose
 
 - Deploy contracts in testnet(baobab)
 - Run postgres & redis
 - Run orakl-api & orakl-delegator
-- Insert deployed datafeed & set delegator fee payer
+- Insert deployed data feed & set delegator fee payer
 - Run listener, worker, reporter, and fetcher
-- Activate inserted datafeed
+- Activate inserted data feed
 
 ## Prerequisites
 
@@ -28,7 +28,7 @@ brew install docker-compose
 
 2. Env setup
 
-Nearly everything is already setup, but there are two variables that should be set manually
+Nearly everything is already setup, but there are two variables that should be set manually in following env files:
 
 - `dockerfiles/local-data-feed/envs/.contracts.env`
 

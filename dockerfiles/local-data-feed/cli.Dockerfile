@@ -17,6 +17,6 @@ RUN yarn cli install
 
 RUN yarn cli build
 
-RUN mkdir tmp && mkdir samples
+RUN mkdir tmp
 
 WORKDIR /app/cli
