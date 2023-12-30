@@ -5,10 +5,10 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "./interfaces/IAggregatorRouter.sol";
 import "./interfaces/IAggregatorProxy.sol";
 
- /** 
-  * @title Orakl Network Aggregator Router
-  * @notice Router for Aggregator Proxies
-  */ 
+/**
+ * @title Orakl Network Aggregator Router
+ * @notice Router for Aggregator Proxies
+ */
 contract AggregatorRouter is Ownable, IAggregatorRouter {
     mapping(string => address) public aggregatorProxies;
 
