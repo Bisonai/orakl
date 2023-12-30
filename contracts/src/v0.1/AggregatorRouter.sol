@@ -2,9 +2,14 @@
 pragma solidity ^0.8.16;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
+import "./interfaces/IAggregatorRouter.sol";
 import "./interfaces/IAggregatorProxy.sol";
 
-contract DataFeedRouter is Ownable {
+ /** 
+  * @title Orakl Network Aggregator Router
+  * @notice Router for Aggregator Proxies
+  */ 
+contract AggregatorRouter is Ownable, IAggregatorRouter {
     mapping(string => address) public aggregatorProxies;
 
     event RouterProxyAddressUpdated(string feedName, address indexed proxyAddress);
@@ -42,7 +47,7 @@ contract DataFeedRouter is Ownable {
      * should determine what implementations they expect to receive
      * data from and validate that they can properly handle return data from all
      * of them.
-     * @param feedName the name of the datafeed (ex. btc-usdt)
+     * @param feedName the name of the datafeed (ex. BTC-USDT)
      * @param roundId the requested round ID as presented through the proxy, this
      * is made up of the aggregator's round ID with the phase ID encoded in the
      * two highest order bytes
@@ -59,7 +64,7 @@ contract DataFeedRouter is Ownable {
      * (Only some AggregatorV3Interface implementations return meaningful values)
      * @dev Note that answer and updatedAt may change between queries.
      */
-    function getRountData(
+    function getRoundData(
         string calldata feedName,
         uint80 roundId
     )
@@ -86,7 +91,7 @@ contract DataFeedRouter is Ownable {
      * should determine what implementations they expect to receive
      * data from and validate that they can properly handle return data from all
      * of them.
-     * @param feedName the name of the datafeed (ex. btc-usdt)
+     * @param feedName the name of the datafeed (ex. BTC-USDT)
      * @return id is the round ID from the aggregator for which the data was
      * retrieved combined with an phase to ensure that round IDs get larger as
      * time moves forward.
@@ -119,7 +124,7 @@ contract DataFeedRouter is Ownable {
 
     /**
      * @notice Used if an aggregator contract has been proposed.
-     * @param feedName the name of the datafeed (ex. btc-usdt)
+     * @param feedName the name of the datafeed (ex. BTC-USDT)
      * @param roundId the round ID to retrieve the round data for
      * @return id is the round ID for which data was retrieved
      * @return answer is the answer for the given round
@@ -150,7 +155,7 @@ contract DataFeedRouter is Ownable {
 
     /**
      * @notice Used if an aggregator contract has been proposed.
-     * @param feedName the name of the datafeed (ex. btc-usdt)
+     * @param feedName the name of the datafeed (ex. BTC-USDT)
      * @return id is the round ID for which data was retrieved
      * @return answer is the answer for the given round
      * @return startedAt is the timestamp when the round was started.
