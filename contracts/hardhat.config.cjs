@@ -14,6 +14,13 @@ const commonConfig = {
   }
 }
 
+const _baobab = {
+  url: 'https://api.baobab.klaytn.net:8651',
+  chainId: 1001,
+  ...commonConfig,
+  gasPrice: 250_000_000_000
+}
+
 const config = {
   solidity: {
     version: '0.8.16',
@@ -33,10 +40,11 @@ const config = {
       gasPrice: 250_000_000_000
     },
     baobab: {
-      url: 'https://api.baobab.klaytn.net:8651',
-      chainId: 1001,
-      ...commonConfig,
-      gasPrice: 250_000_000_000
+      ..._baobab
+    },
+    baobab_test: {
+      //same baobab network but used for test purposes
+      ..._baobab
     },
     cypress: {
       url: 'https://public-en-cypress.klaytn.net',

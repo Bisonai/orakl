@@ -19,7 +19,7 @@ FROM node@sha256:18aacc7993a16f1d766c21e3bff922e830bcdc7b549bbb789ceb7374a613848
 
 WORKDIR /app
 
-RUN apt-get update -y && apt-get install -y openssl
+RUN apt-get update -y && apt-get install -y openssl curl
 
 COPY --from=build /app/package.json /app/package.json
 

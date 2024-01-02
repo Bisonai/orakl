@@ -6,6 +6,9 @@ cache/
 node_modules/
 typechain-types/
 deployments/localhost/
+deployments/baobab_test
+migration/baobab_test
 deployments/*/solcInputs
 coverage/
 coverage.json
+scripts/v0.1/tmp/
