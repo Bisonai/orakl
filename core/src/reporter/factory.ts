@@ -42,7 +42,13 @@ export async function factory({
   })
   await state.refresh()
 
-  logger.debug(await state.active(), 'Active reporters')
+  const activeReporters = await state.active()
+  logger.debug(
+    activeReporters.map((x) => {
+      return { address: x.address, oracleAddress: x.oracleAddress }
+    }),
+    'Active reporters'
+  )
 
   const reporterWorker = new Worker(reporterQueueName, await reporter(state, logger), {
     ...BULLMQ_CONNECTION,
