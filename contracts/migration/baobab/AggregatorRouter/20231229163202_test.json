@@ -1,0 +1,6 @@
+{
+  "deploy": true,
+  "updateProxies": {
+    "updateAll": true
+  }
+}
