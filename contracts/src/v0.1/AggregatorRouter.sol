@@ -7,7 +7,12 @@ import "./interfaces/IAggregatorProxy.sol";
 
 /**
  * @title Orakl Network Aggregator Router
- * @notice Router for Aggregator Proxies
+ * @notice The `AggregatorRouter` is the main contract needed to read Orakl
+ * Network Data Feeds. The interface is similar to the `AggregatorProxy`
+ * contract but requires an extra string parameter called `feedName`. The
+ * supported `feedName` parameters are a combination of base and quote
+ * currencies (e.g. BTC-USDT for Bitcoin's price in USDT stablecoin). You
+ * can find all supported tokens at https://config.orakl.network.
  */
 contract AggregatorRouter is Ownable, IAggregatorRouter {
     mapping(string => address) public aggregatorProxies;
