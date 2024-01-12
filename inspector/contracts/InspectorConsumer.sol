@@ -1,24 +1,20 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.16;
 
+import {InspectorConsumerBase} from "./InspectorConsumerBase.sol";
 import {IAggregatorRouter} from "@bisonai/orakl-contracts/src/v0.1/interfaces/IAggregatorRouter.sol";
-import {RequestResponseConsumerFulfillUint128} from "@bisonai/orakl-contracts/src/v0.1/RequestResponseConsumerFulfill.sol";
-import {RequestResponseConsumerBase} from "@bisonai/orakl-contracts/src/v0.1/RequestResponseConsumerBase.sol";
 import {Orakl} from "@bisonai/orakl-contracts/src/v0.1/libraries/Orakl.sol";
-import {IPrepayment} from "@bisonai/orakl-contracts/src/v0.1/interfaces/IPrepayment.sol";
-import {VRFConsumerBase} from "@bisonai/orakl-contracts/src/v0.1/VRFConsumerBase.sol";
 import {IVRFCoordinator} from "@bisonai/orakl-contracts/src/v0.1/interfaces/IVRFCoordinator.sol";
 
-contract InspectorConsumer is RequestResponseConsumerFulfillUint128, VRFConsumerBase{
+contract InspectorConsumer is InspectorConsumerBase{
     using Orakl for Orakl.Request;
+
     uint256 public sRandomWord;
     uint128 public sResponse;
     address private sOwner;
 
     IVRFCoordinator vrfCoordinator;
     IAggregatorRouter internal router;
-    int256 public dataFeedAnswer;
-    uint80 public dataFeedRoundId;
 
     error OnlyOwner(address notOwner);
 
@@ -29,7 +25,7 @@ contract InspectorConsumer is RequestResponseConsumerFulfillUint128, VRFConsumer
         _;
     }
 
-    constructor(address aggregatorRouter, address rrCoordinator, address _vrfCoordinator) RequestResponseConsumerBase(rrCoordinator) VRFConsumerBase(_vrfCoordinator){
+    constructor(address aggregatorRouter, address _rrCoordinator, address _vrfCoordinator)InspectorConsumerBase(_vrfCoordinator, _rrCoordinator){
         sOwner = msg.sender;
         router = IAggregatorRouter(aggregatorRouter);
         vrfCoordinator = IVRFCoordinator(_vrfCoordinator);
@@ -38,8 +34,7 @@ contract InspectorConsumer is RequestResponseConsumerFulfillUint128, VRFConsumer
     // Receive remaining payment from requestDataPayment
     receive() external payable {}
 
-
-    function requestDataFeed(string calldata pair) public {
+    function requestDataFeed(string calldata pair) public view returns (uint80 roundId, int256 answer){
         (
             uint80 roundId_,
             int256 answer_
@@ -47,9 +42,7 @@ contract InspectorConsumer is RequestResponseConsumerFulfillUint128, VRFConsumer
             , /* uint updatedAt */
             , /* uint80 answeredInRound */
         ) = router.latestRoundData(pair);
-
-        dataFeedAnswer = answer_;
-        dataFeedRoundId = roundId_;
+        return (roundId_, answer_);
     }
 
     function decimals(string calldata pair) public view returns (uint8) {
@@ -68,7 +61,7 @@ contract InspectorConsumer is RequestResponseConsumerFulfillUint128, VRFConsumer
         req.add("path", "data,rates,USDT");
         req.add("pow10", "8");
 
-        requestId = COORDINATOR.requestData(req, callbackGasLimit, accId, numSubmission);
+        requestId = rrCoordinator.requestData(req, callbackGasLimit, accId, numSubmission);
     }
 
     function requestRRDirect(
@@ -82,7 +75,7 @@ contract InspectorConsumer is RequestResponseConsumerFulfillUint128, VRFConsumer
         req.add("path", "data,rates,USDT");
         req.add("pow10", "8");
 
-        requestId = COORDINATOR.requestData{value: msg.value}(
+        requestId = rrCoordinator.requestData{value: msg.value}(
             req,
             callbackGasLimit,
             numSubmission,
@@ -127,7 +120,7 @@ contract InspectorConsumer is RequestResponseConsumerFulfillUint128, VRFConsumer
     }
 
     function cancelRequest(uint256 requestId) external onlyOwner {
-        COORDINATOR.cancelRequest(requestId);
+        rrCoordinator.cancelRequest(requestId);
     }
 
 
