@@ -2,8 +2,17 @@ import hre from "hardhat";
 import { ethers } from "hardhat";
 import { CoordinatorBase__factory } from "@bisonai/orakl-contracts";
 import dotenv from "dotenv";
+import axios from "axios";
+import { JSDOM } from "jsdom";
 
 dotenv.config();
+
+export type priceFeeds = {
+  [key: string]: {
+    roundId: bigint;
+    answer: bigint;
+  };
+};
 
 export function getKeyHash() {
   const networkName = hre.network.name;
@@ -33,7 +42,7 @@ export async function estimateVRFServiceFee() {
   );
   const amountKlay = ethers.formatUnits(estimatedServiceFee, "ether");
 
-  console.log(`Estimated Price for 1 Request is: ${amountKlay} Klay`);
+  console.log(`Estimated Price for 1 VRF Request is: ${amountKlay} Klay`);
   return amountKlay;
 }
 
@@ -54,6 +63,39 @@ export async function estimateRRServiceFee() {
   );
   const amountKlay = ethers.formatUnits(estimatedServiceFee, "ether");
 
-  console.log(`Estimated Price for 1 Request is '${amountKlay}' Klay`);
+  console.log(`Estimated Price for 1 RR Request is '${amountKlay}' Klay`);
   return amountKlay;
+}
+
+export async function getAggregatorPairs() {
+  const url = "https://config.orakl.network/";
+  const response = await axios.get(url);
+  const dom = new JSDOM(response.data);
+  const rows = dom.window.document.querySelectorAll(
+    "table:nth-child(5) tbody tr"
+  );
+  const result: Set<string> = new Set();
+  for (const row of rows) {
+    const cell = row.querySelector("td:nth-child(1) a");
+    const pairData = cell?.textContent?.trim();
+    if (!pairData || ["PEG-POR", "MNR-KRW"].includes(pairData)) {
+      continue;
+    }
+    result.add(pairData);
+  }
+
+  return Array.from(result);
+}
+
+export function findPairsWithSameRoundId(
+  feeds0: priceFeeds,
+  feeds1: priceFeeds
+) {
+  const results = [];
+  for (const pair in feeds0) {
+    if (feeds0[pair].roundId === feeds1[pair].roundId) {
+      results.push(pair);
+    }
+  }
+  return results;
 }
