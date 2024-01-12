@@ -14,14 +14,17 @@ async function main() {
     sRandomWord: vrfResponseBefore,
     priceFeedResults: priceFeedsBefore,
   } = await read();
-  console.log(priceFeedsBefore);
+
   await request();
+
+  // wait 30 seconds for fulfillment and submission
   await new Promise((resolve) => setTimeout(resolve, 30000));
   const {
     sResponse: rrResponseAfter,
     sRandomWord: vrfResponseAfter,
     priceFeedResults: priceFeedsAfter,
   } = await read();
+
   if (rrResponseBefore == rrResponseAfter) {
     throw "check if request response is alive";
   }
