@@ -12,6 +12,8 @@ abstract contract InspectorConsumerBase {
 
     IVRFCoordinator public immutable vrfCoordinator;
     IRequestResponseCoordinator public immutable rrCoordinator;
+    uint256 public vrfRequestId;
+    uint256 public rrRequestId;
     mapping(bytes32 => bytes4) private sJobIdToFunctionSelector;
 
     constructor(address _vrfCoordinator, address _rrCoordinator) {
@@ -40,6 +42,7 @@ abstract contract InspectorConsumerBase {
     function fulfillRandomWords(uint256 requestId, uint256[] memory randomWords) internal virtual;
 
     function rawFulfillRandomWords(uint256 requestId, uint256[] memory randomWords) external {
+        vrfRequestId = requestId;
         address coordinatorAddress = address(vrfCoordinator);
         if (msg.sender != coordinatorAddress) {
             revert OnlyCoordinatorCanFulfill(msg.sender, coordinatorAddress);
@@ -57,6 +60,7 @@ abstract contract InspectorConsumerBase {
         uint256 requestId,
         uint128 response
     ) external {
+        rrRequestId = requestId;
         address coordinatorAddress = address(rrCoordinator);
         if (msg.sender != coordinatorAddress) {
             revert OnlyCoordinatorCanFulfill(msg.sender, coordinatorAddress);
