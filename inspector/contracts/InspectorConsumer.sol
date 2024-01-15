@@ -56,8 +56,6 @@ contract InspectorConsumer is InspectorConsumerBase{
         uint256 /* requestId */,
         uint256[] memory randomWords
     ) internal override {
-        // requestId should be checked if it matches the expected request
-        // Generate random value between 1 and 50.
         sRandomWord = randomWords[0];
     }
 

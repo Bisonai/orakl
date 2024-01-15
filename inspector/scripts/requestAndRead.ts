@@ -4,20 +4,34 @@ import { getKeyHash } from "./utils";
 const ACC_ID = process.env.ACC_ID;
 
 async function main() {
-  const { sResponse: rrResponseBefore, sRandomWord: vrfResponseBefore } =
-    await read();
+  const {
+    sResponse: rrResponseBefore,
+    sRandomWord: vrfResponseBefore,
+    rrRequestId: rrRequestIdBefore,
+    vrfRequestId: vrfRequestIdBefore,
+  } = await read();
 
   await request();
 
   // wait 5 seconds for fulfillment and submission
   await new Promise((resolve) => setTimeout(resolve, 5000));
-  const { sResponse: rrResponseAfter, sRandomWord: vrfResponseAfter } =
-    await read();
+  const {
+    sResponse: rrResponseAfter,
+    sRandomWord: vrfResponseAfter,
+    rrRequestId: rrRequestIdAfter,
+    vrfRequestId: vrfRequestIdAfter,
+  } = await read();
 
-  if (rrResponseBefore == rrResponseAfter) {
+  if (
+    rrResponseBefore == rrResponseAfter ||
+    rrRequestIdBefore == rrRequestIdAfter
+  ) {
     throw "check if request response is alive";
   }
-  if (vrfResponseBefore == vrfResponseAfter) {
+  if (
+    vrfResponseBefore == vrfResponseAfter ||
+    vrfRequestIdBefore == vrfRequestIdAfter
+  ) {
     throw "check if vrf is alive";
   }
 
@@ -34,7 +48,10 @@ async function read() {
   const sResponse = await inspectorConsumer.sResponse();
   const sRandomWord = await inspectorConsumer.sRandomWord();
 
-  return { sResponse, sRandomWord };
+  const rrRequestId = await inspectorConsumer.rrRequestId();
+  const vrfRequestId = await inspectorConsumer.vrfRequestId();
+
+  return { sResponse, sRandomWord, rrRequestId, vrfRequestId };
 }
 
 async function request() {
