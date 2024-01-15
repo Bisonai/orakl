@@ -1,9 +1,5 @@
 import hre from "hardhat";
-import { ethers } from "hardhat";
-import { CoordinatorBase__factory } from "@bisonai/orakl-contracts";
 import dotenv from "dotenv";
-import axios from "axios";
-import { JSDOM } from "jsdom";
 
 dotenv.config();
 
