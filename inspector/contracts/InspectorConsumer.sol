@@ -58,7 +58,7 @@ contract InspectorConsumer is InspectorConsumerBase{
     ) internal override {
         // requestId should be checked if it matches the expected request
         // Generate random value between 1 and 50.
-        sRandomWord = (randomWords[0] % 50) + 1;
+        sRandomWord = randomWords[0];
     }
 
     function fulfillDataRequest(uint256 /*requestId*/, uint128 response) internal override {

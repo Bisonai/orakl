@@ -3,13 +3,6 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
-export type priceFeeds = {
-  [key: string]: {
-    roundId: bigint;
-    answer: bigint;
-  };
-};
-
 export function getKeyHash() {
   const networkName = hre.network.name;
   if (networkName == "baobab") {
