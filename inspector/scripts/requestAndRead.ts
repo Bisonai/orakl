@@ -32,7 +32,7 @@ async function read() {
   );
 
   const sResponse = await inspectorConsumer.sResponse();
-  const sRandomWord = await inspectorConsumer.sResponse();
+  const sRandomWord = await inspectorConsumer.sRandomWord();
 
   return { sResponse, sRandomWord };
 }
