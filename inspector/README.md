@@ -24,6 +24,8 @@
 - Funds 5 klay to orakl account
 - `ACC_ID` which stands for account id should be set as environment variable
 
+`npx hardhat run scripts/fundAccount.ts --network baobab`
+
 ### requestAndRead
 
 - Reads values before and after requesting rr & vrf
