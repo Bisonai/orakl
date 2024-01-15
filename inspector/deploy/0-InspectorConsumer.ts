@@ -1,5 +1,5 @@
-import { HardhatRuntimeEnvironment } from 'hardhat/types'
-import { DeployFunction } from 'hardhat-deploy/types'
+import { HardhatRuntimeEnvironment } from "hardhat/types";
+import { DeployFunction } from "hardhat-deploy/types";
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployments, getNamedAccounts } = hre;
@@ -8,23 +8,17 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     deployer,
     vrfCoordinator: vrfCoordinatorAddress,
     rrCoordinator: rrCoordinatorAddress,
-    aggregatorRouter: aggregatorRouterAddress,
   } = await getNamedAccounts();
 
   console.log("0-InspectorConsumer.ts");
 
   await deploy("InspectorConsumer", {
-    args: [
-      aggregatorRouterAddress,
-      rrCoordinatorAddress,
-      vrfCoordinatorAddress,
-    ],
+    args: [rrCoordinatorAddress, vrfCoordinatorAddress],
     from: deployer,
     log: true,
   });
-}
+};
 
-
-export default func
-func.id = 'deploy-inspector-consumer'
-func.tags = ['inspector-consumer']
+export default func;
+func.id = "deploy-inspector-consumer";
+func.tags = ["inspector-consumer"];

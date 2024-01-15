@@ -1,6 +1,8 @@
 {
   "name": "@bisonai/orakl-inspector",
   "version": "1.0.0",
+  "description": "The Orakl Network Inspector",
+  "author": "Bisonai",
   "main": "index.js",
   "license": "MIT",
   "devDependencies": {

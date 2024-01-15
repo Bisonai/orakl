@@ -3,19 +3,19 @@ pragma solidity ^0.8.16;
 
 import {Orakl} from "@bisonai/orakl-contracts/src/v0.1/libraries/Orakl.sol";
 import {IRequestResponseCoordinator} from "@bisonai/orakl-contracts/src/v0.1/interfaces/IRequestResponseCoordinator.sol";
-
+import {IVRFCoordinator} from "@bisonai/orakl-contracts/src/v0.1/interfaces/IVRFCoordinator.sol";
 
 abstract contract InspectorConsumerBase {
     using Orakl for Orakl.Request;
 
     error OnlyCoordinatorCanFulfill(address have, address want);
 
-    address private immutable vrfCoordinator;
+    IVRFCoordinator public immutable vrfCoordinator;
     IRequestResponseCoordinator public immutable rrCoordinator;
     mapping(bytes32 => bytes4) private sJobIdToFunctionSelector;
 
     constructor(address _vrfCoordinator, address _rrCoordinator) {
-        vrfCoordinator = _vrfCoordinator;
+        vrfCoordinator = IVRFCoordinator(_vrfCoordinator);
         rrCoordinator = IRequestResponseCoordinator(_rrCoordinator);
         sJobIdToFunctionSelector[keccak256(abi.encodePacked("uint128"))] = rrCoordinator
             .fulfillDataRequestUint128
@@ -40,8 +40,9 @@ abstract contract InspectorConsumerBase {
     function fulfillRandomWords(uint256 requestId, uint256[] memory randomWords) internal virtual;
 
     function rawFulfillRandomWords(uint256 requestId, uint256[] memory randomWords) external {
-        if (msg.sender != vrfCoordinator) {
-            revert OnlyCoordinatorCanFulfill(msg.sender, vrfCoordinator);
+        address coordinatorAddress = address(vrfCoordinator);
+        if (msg.sender != coordinatorAddress) {
+            revert OnlyCoordinatorCanFulfill(msg.sender, coordinatorAddress);
         }
         fulfillRandomWords(requestId, randomWords);
     }
@@ -55,15 +56,12 @@ abstract contract InspectorConsumerBase {
     function rawFulfillDataRequest(
         uint256 requestId,
         uint128 response
-    ) external verifyRawFulfillment {
-        fulfillDataRequest(requestId, response);
-    }
-
-    modifier verifyRawFulfillment() {
+    ) external {
         address coordinatorAddress = address(rrCoordinator);
         if (msg.sender != coordinatorAddress) {
             revert OnlyCoordinatorCanFulfill(msg.sender, coordinatorAddress);
         }
-        _;
+
+        fulfillDataRequest(requestId, response);
     }
 }

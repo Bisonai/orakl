@@ -1,39 +1,24 @@
 import { deployments, ethers, getNamedAccounts } from "hardhat";
-import {
-  getKeyHash,
-  estimateVRFServiceFee,
-  estimateRRServiceFee,
-  getAggregatorPairs,
-  priceFeeds,
-  findPairsWithSameRoundId,
-} from "./utils";
+import { getKeyHash } from "./utils";
+
+const ACC_ID = process.env.ACC_ID;
 
 async function main() {
-  const {
-    sResponse: rrResponseBefore,
-    sRandomWord: vrfResponseBefore,
-    priceFeedResults: priceFeedsBefore,
-  } = await read();
+  const { sResponse: rrResponseBefore, sRandomWord: vrfResponseBefore } =
+    await read();
 
   await request();
 
-  // wait 30 seconds for fulfillment and submission
-  await new Promise((resolve) => setTimeout(resolve, 30000));
-  const {
-    sResponse: rrResponseAfter,
-    sRandomWord: vrfResponseAfter,
-    priceFeedResults: priceFeedsAfter,
-  } = await read();
+  // wait 5 seconds for fulfillment and submission
+  await new Promise((resolve) => setTimeout(resolve, 5000));
+  const { sResponse: rrResponseAfter, sRandomWord: vrfResponseAfter } =
+    await read();
 
   if (rrResponseBefore == rrResponseAfter) {
     throw "check if request response is alive";
   }
   if (vrfResponseBefore == vrfResponseAfter) {
     throw "check if vrf is alive";
-  }
-  const result = findPairsWithSameRoundId(priceFeedsBefore, priceFeedsAfter);
-  if (result.length > 0) {
-    throw `check following pairs:${result}`;
   }
 
   console.log("successful");
@@ -49,16 +34,7 @@ async function read() {
   const sResponse = await inspectorConsumer.sResponse();
   const sRandomWord = await inspectorConsumer.sResponse();
 
-  const priceFeedResults: priceFeeds = {};
-  const pairs = await getAggregatorPairs();
-  for (const pair of pairs) {
-    const priceFeedResult = await inspectorConsumer.requestDataFeed(pair);
-    priceFeedResults[pair] = {
-      roundId: priceFeedResult[0],
-      answer: priceFeedResult[1],
-    };
-  }
-  return { sResponse, sRandomWord, priceFeedResults };
+  return { sResponse, sRandomWord };
 }
 
 async function request() {
@@ -72,31 +48,20 @@ async function request() {
   const callbackGasLimit = 500_000;
   const numWords = 1;
 
-  const { deployer } = await getNamedAccounts();
-  const estimatedVRFServiceFee = await estimateVRFServiceFee();
-
-  let txReceipt = await (
-    await inspectorConsumer.requestVRFDirect(
+  await (
+    await inspectorConsumer.requestVRF(
       keyHash,
+      ACC_ID,
       callbackGasLimit,
-      numWords,
-      deployer,
-      {
-        value: ethers.parseEther(estimatedVRFServiceFee.toString()),
-      }
+      numWords
     )
   ).wait();
 
-  console.log("Requested random words using direct payment");
+  console.log("Requested random words");
 
-  const estimatedRRServiceFee = await estimateRRServiceFee();
-  txReceipt = await (
-    await inspectorConsumer.requestRRDirect(callbackGasLimit, {
-      value: ethers.parseEther(estimatedRRServiceFee.toString()),
-    })
-  ).wait();
+  await (await inspectorConsumer.requestRR(ACC_ID, callbackGasLimit)).wait();
 
-  console.log("Requested data using direct payment");
+  console.log("Requested data");
 }
 
 main().catch((error) => {
