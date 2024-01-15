@@ -1,7 +1,5 @@
-import { deployments, ethers, getNamedAccounts } from "hardhat";
+import { deployments, ethers, getNamedAccounts, network } from "hardhat";
 import { getKeyHash } from "./utils";
-
-const ACC_ID = process.env.ACC_ID;
 
 async function main() {
   const {
@@ -55,6 +53,13 @@ async function read() {
 }
 
 async function request() {
+  let ACC_ID;
+  if (network.name == "baobab") {
+    ACC_ID = process.env.BAOBAB_ACC_ID;
+  } else {
+    ACC_ID = process.env.CYPRESS_ACC_ID;
+  }
+
   const _inspectorConsumer = await deployments.get("InspectorConsumer");
   const inspectorConsumer = await ethers.getContractAt(
     _inspectorConsumer.abi,
