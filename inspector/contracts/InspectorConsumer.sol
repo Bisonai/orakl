@@ -66,7 +66,7 @@ contract InspectorConsumer is InspectorConsumerBase{
 
     function requestRRDirect(
         uint32 callbackGasLimit
-    ) public payable onlyOwner returns (uint256 requestId) {
+    ) public payable returns (uint256 requestId) {
         bytes32 jobId = keccak256(abi.encodePacked("uint128"));
         uint8 numSubmission = 1;
 
@@ -97,7 +97,7 @@ contract InspectorConsumer is InspectorConsumerBase{
         uint32 callbackGasLimit,
         uint32 numWords,
         address refundRecipient
-    ) public payable onlyOwner returns (uint256 requestId) {
+    ) public payable returns (uint256 requestId) {
         requestId = vrfCoordinator.requestRandomWords{value: msg.value}(
             keyHash,
             callbackGasLimit,

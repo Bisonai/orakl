@@ -42,7 +42,7 @@ export async function estimateVRFServiceFee() {
   );
   const amountKlay = ethers.formatUnits(estimatedServiceFee, "ether");
 
-  console.log(`Estimated Price for 1 VRF Request is: ${amountKlay} Klay`);
+  //console.log(`Estimated Price for 1 VRF Request is: ${amountKlay} Klay`);
   return amountKlay;
 }
 
@@ -63,7 +63,7 @@ export async function estimateRRServiceFee() {
   );
   const amountKlay = ethers.formatUnits(estimatedServiceFee, "ether");
 
-  console.log(`Estimated Price for 1 RR Request is '${amountKlay}' Klay`);
+  //console.log(`Estimated Price for 1 RR Request is '${amountKlay}' Klay`);
   return amountKlay;
 }
 

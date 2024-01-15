@@ -1,13 +1,14 @@
-# Sample Hardhat Project
+# Insepctor
 
-This project demonstrates a basic Hardhat use case. It comes with a sample contract, a test for that contract, and a script that deploys that contract.
+## Deploy contract
 
-Try running some of the following tasks:
+`npx hardhat deploy --network baobab`
 
-```shell
-npx hardhat help
-npx hardhat test
-REPORT_GAS=true npx hardhat test
-npx hardhat node
-npx hardhat run scripts/deploy.ts
-```
+## Run Script
+
+### requestAndRead
+
+- Reads values before and after requesting rr & vrf
+- Checks rr,vrf, and df for value changes (roundId for df)
+
+`npx hardhat run scripts/requestAndRead.ts --network baobab`
