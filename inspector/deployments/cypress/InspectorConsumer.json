@@ -1,0 +1,358 @@
+{
+  "address": "0xb76a7B28dEDcF082859026FB7493b8A51535B544",
+  "abi": [
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "_rrCoordinator",
+          "type": "address"
+        },
+        {
+          "internalType": "address",
+          "name": "_vrfCoordinator",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "nonpayable",
+      "type": "constructor"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "have",
+          "type": "address"
+        },
+        {
+          "internalType": "address",
+          "name": "want",
+          "type": "address"
+        }
+      ],
+      "name": "OnlyCoordinatorCanFulfill",
+      "type": "error"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "notOwner",
+          "type": "address"
+        }
+      ],
+      "name": "OnlyOwner",
+      "type": "error"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "requestId",
+          "type": "uint256"
+        }
+      ],
+      "name": "cancelRequest",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "requestId",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint128",
+          "name": "response",
+          "type": "uint128"
+        }
+      ],
+      "name": "rawFulfillDataRequest",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "requestId",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256[]",
+          "name": "randomWords",
+          "type": "uint256[]"
+        }
+      ],
+      "name": "rawFulfillRandomWords",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint64",
+          "name": "accId",
+          "type": "uint64"
+        },
+        {
+          "internalType": "uint32",
+          "name": "callbackGasLimit",
+          "type": "uint32"
+        }
+      ],
+      "name": "requestRR",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "requestId",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bytes32",
+          "name": "keyHash",
+          "type": "bytes32"
+        },
+        {
+          "internalType": "uint64",
+          "name": "accId",
+          "type": "uint64"
+        },
+        {
+          "internalType": "uint32",
+          "name": "callbackGasLimit",
+          "type": "uint32"
+        },
+        {
+          "internalType": "uint32",
+          "name": "numWords",
+          "type": "uint32"
+        }
+      ],
+      "name": "requestVRF",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "requestId",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "rrCoordinator",
+      "outputs": [
+        {
+          "internalType": "contract IRequestResponseCoordinator",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "rrRequestId",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "sRandomWord",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "sResponse",
+      "outputs": [
+        {
+          "internalType": "uint128",
+          "name": "",
+          "type": "uint128"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "vrfCoordinator",
+      "outputs": [
+        {
+          "internalType": "contract IVRFCoordinator",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "vrfRequestId",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "stateMutability": "payable",
+      "type": "receive"
+    }
+  ],
+  "transactionHash": "0xf37857985f4be192e75e87efbb19a1bddbd9f00cdf794d40dc765100f12c6080",
+  "receipt": {
+    "to": null,
+    "from": "0x0026De34522627c5DA2B6A5618147A9153c1243A",
+    "contractAddress": "0xb76a7B28dEDcF082859026FB7493b8A51535B544",
+    "transactionIndex": 4,
+    "gasUsed": "1680060",
+    "logsBloom": "0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+    "blockHash": "0xa7e8c0b5376706be559b0e4e100cfe217998e408765d635ef4cab5cbfd2704f9",
+    "transactionHash": "0xf37857985f4be192e75e87efbb19a1bddbd9f00cdf794d40dc765100f12c6080",
+    "logs": [],
+    "blockNumber": 143337941,
+    "cumulativeGasUsed": "2577123",
+    "status": 1,
+    "byzantium": true
+  },
+  "args": [
+    "0x159F3BB6609B4C709F15823F3544032942106042",
+    "0x3F247f70DC083A2907B8E76635986fd09AA80EFb"
+  ],
+  "numDeployments": 3,
+  "solcInputHash": "57d66d6c20b0d6621833b789dcb0503d",
+  "metadata": "{\"compiler\":{\"version\":\"0.8.16+commit.07a7930e\"},\"language\":\"Solidity\",\"output\":{\"abi\":[{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_rrCoordinator\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"_vrfCoordinator\",\"type\":\"address\"}],\"stateMutability\":\"nonpayable\",\"type\":\"constructor\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"have\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"want\",\"type\":\"address\"}],\"name\":\"OnlyCoordinatorCanFulfill\",\"type\":\"error\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"notOwner\",\"type\":\"address\"}],\"name\":\"OnlyOwner\",\"type\":\"error\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"requestId\",\"type\":\"uint256\"}],\"name\":\"cancelRequest\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"requestId\",\"type\":\"uint256\"},{\"internalType\":\"uint128\",\"name\":\"response\",\"type\":\"uint128\"}],\"name\":\"rawFulfillDataRequest\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"requestId\",\"type\":\"uint256\"},{\"internalType\":\"uint256[]\",\"name\":\"randomWords\",\"type\":\"uint256[]\"}],\"name\":\"rawFulfillRandomWords\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint64\",\"name\":\"accId\",\"type\":\"uint64\"},{\"internalType\":\"uint32\",\"name\":\"callbackGasLimit\",\"type\":\"uint32\"}],\"name\":\"requestRR\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"requestId\",\"type\":\"uint256\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"bytes32\",\"name\":\"keyHash\",\"type\":\"bytes32\"},{\"internalType\":\"uint64\",\"name\":\"accId\",\"type\":\"uint64\"},{\"internalType\":\"uint32\",\"name\":\"callbackGasLimit\",\"type\":\"uint32\"},{\"internalType\":\"uint32\",\"name\":\"numWords\",\"type\":\"uint32\"}],\"name\":\"requestVRF\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"requestId\",\"type\":\"uint256\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"rrCoordinator\",\"outputs\":[{\"internalType\":\"contract IRequestResponseCoordinator\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"rrRequestId\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"sRandomWord\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"sResponse\",\"outputs\":[{\"internalType\":\"uint128\",\"name\":\"\",\"type\":\"uint128\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"vrfCoordinator\",\"outputs\":[{\"internalType\":\"contract IVRFCoordinator\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"vrfRequestId\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"stateMutability\":\"payable\",\"type\":\"receive\"}],\"devdoc\":{\"kind\":\"dev\",\"methods\":{},\"version\":1},\"userdoc\":{\"kind\":\"user\",\"methods\":{},\"version\":1}},\"settings\":{\"compilationTarget\":{\"contracts/InspectorConsumer.sol\":\"InspectorConsumer\"},\"evmVersion\":\"london\",\"libraries\":{},\"metadata\":{\"bytecodeHash\":\"ipfs\",\"useLiteralContent\":true},\"optimizer\":{\"enabled\":true,\"runs\":1000},\"remappings\":[]},\"sources\":{\"@bisonai/orakl-contracts/src/v0.1/interfaces/ICoordinatorBase.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\npragma solidity ^0.8.16;\\n\\ninterface ICoordinatorBase {\\n    // Fee configuration that separates fees based on the number of\\n    // requests created per account. This applies only to [regular]\\n    // account.\\n    struct FeeConfig {\\n        // Flat fee charged per fulfillment in millionths of KLAY\\n        // So fee range is [0, 2^32/10^6].\\n        uint32 fulfillmentFlatFeeKlayPPMTier1;\\n        uint32 fulfillmentFlatFeeKlayPPMTier2;\\n        uint32 fulfillmentFlatFeeKlayPPMTier3;\\n        uint32 fulfillmentFlatFeeKlayPPMTier4;\\n        uint32 fulfillmentFlatFeeKlayPPMTier5;\\n        uint24 reqsForTier2;\\n        uint24 reqsForTier3;\\n        uint24 reqsForTier4;\\n        uint24 reqsForTier5;\\n    }\\n\\n    /**\\n     * @notice Sets the configuration of the VRF coordinator\\n     * @param maxGasLimit global max for request gas limit\\n     * @param gasAfterPaymentCalculation gas used in doing accounting\\n     * after completing the gas measurement\\n     * @param feeConfig fee tier configuration\\n     */\\n    function setConfig(\\n        uint32 maxGasLimit,\\n        uint32 gasAfterPaymentCalculation,\\n        FeeConfig memory feeConfig\\n    ) external;\\n\\n    /**\\n     * @notice Check to see if there exists a request commitment\\n     * consumers for all consumers and keyhashes for a given acc.\\n     * @param accId - ID of the account\\n     * @return true if there exists at least one unfulfilled request\\n     * for the account, false otherwise.\\n     */\\n    function pendingRequestExists(\\n        address consumer,\\n        uint64 accId,\\n        uint64 nonce\\n    ) external view returns (bool);\\n\\n    /**\\n     * @notice Get request commitment.\\n     * @param requestId id of request\\n     * @return commmitment value that can be used to determine whether\\n     * a request is fulfilled or not. If `requestId` is valid and\\n     * commitment equals to bytes32(0), the request was fulfilled.\\n     */\\n    function getCommitment(uint256 requestId) external view returns (bytes32);\\n\\n    /**\\n     * @notice Canceling oracle request\\n     * @param requestId - ID of the Oracle Request\\n     */\\n    function cancelRequest(uint256 requestId) external;\\n\\n    /**\\n     * @notice Access address for prepayment associated with\\n     * @notice coordinator.\\n     * @return prepayment address\\n     */\\n    function getPrepaymentAddress() external returns (address);\\n\\n    function estimateFee(\\n        uint64 reqCount,\\n        uint8 numSubmission,\\n        uint32 callbackGasLimit\\n    ) external returns (uint256);\\n}\\n\",\"keccak256\":\"0x6de51eefb1bee236f7a8144f87c06b804f11375672f41543926a960b9d50f8b5\",\"license\":\"MIT\"},\"@bisonai/orakl-contracts/src/v0.1/interfaces/IRequestResponseCoordinator.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\npragma solidity ^0.8.16;\\n\\nimport \\\"./IRequestResponseCoordinatorBase.sol\\\";\\nimport \\\"./ICoordinatorBase.sol\\\";\\n\\ninterface IRequestResponseCoordinator is IRequestResponseCoordinatorBase, ICoordinatorBase {}\\n\",\"keccak256\":\"0x7d924dc529b73fd5c60f0a4d972a12377f15c17fc331a82aa5218897f173d46a\",\"license\":\"MIT\"},\"@bisonai/orakl-contracts/src/v0.1/interfaces/IRequestResponseCoordinatorBase.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\npragma solidity ^0.8.16;\\n\\nimport \\\"../libraries/Orakl.sol\\\";\\n\\ninterface IRequestResponseCoordinatorBase {\\n    // RequestCommitment holds information sent from off-chain oracle\\n    // describing details of request.\\n    struct RequestCommitment {\\n        uint64 blockNum;\\n        uint64 accId;\\n        uint8 numSubmission;\\n        uint32 callbackGasLimit;\\n        address sender;\\n        bool isDirectPayment;\\n        bytes32 jobId;\\n    }\\n\\n    /**\\n     * @notice Creates a request to RequestResponse oracle using a\\n     * [regular] account.\\n     * @dev Generates and stores a request ID, increments the local\\n     * nonce, creates a request on the target oracle contract.\\n     * @dev Emits Requested event.\\n     * @param req The initialized Request\\n     * @param callbackGasLimit - How much gas you'd like to receive in\\n     * your fulfillRequest callback. Note that gasleft() inside\\n     * fulfillRequest may be slightly less than this amount because of\\n     * gas used calling the function (argument decoding etc.), so you\\n     * may need to request slightly more than you expect to have\\n     * inside fulfillRequest. The acceptable range is [0, maxGasLimit]\\n     * @param accId - The ID of the account. Must be funded with the\\n     * minimum account balance.\\n     * @param numSubmission number of requested submission to compute\\n     * the final aggregate value\\n     @return requestId - A unique * identifier of the request. Can be\\n     used to match a request to a * response in fulfillRequest.\\n     */\\n    function requestData(\\n        Orakl.Request memory req,\\n        uint32 callbackGasLimit,\\n        uint64 accId,\\n        uint8 numSubmission\\n    ) external returns (uint256);\\n\\n    /**\\n     * @notice Creates a request to RequestResponse oracle using a\\n     * [temporary] account.\\n     * @dev Generates and stores a request ID, increments the local\\n     * nonce, creates a request on the target oracle contract.\\n     * @dev Emits Requested event.\\n     * @param req The initialized Request\\n     * @param callbackGasLimit - How much gas you'd like to receive in\\n     * your fulfillRequest callback. Note that gasleft() inside\\n     * fulfillRequest may be slightly less than this amount because of\\n     * gas used calling the function (argument decoding etc.), so you\\n     * may need to request slightly more than you expect to have\\n     * inside fulfillRequest. The acceptable range is [0, maxGasLimit]\\n     * @param numSubmission number of requested submission to compute\\n     * the final aggregate value\\n     * @param refundRecipient recipient of an extra $KLAY amount that\\n     * was sent together with service request\\n     * @return requestId - A unique identifier of the request. Can be\\n     * used to match a request to a response in fulfillRequest.\\n     */\\n    function requestData(\\n        Orakl.Request memory req,\\n        uint32 callbackGasLimit,\\n        uint8 numSubmission,\\n        address refundRecipient\\n    ) external payable returns (uint256);\\n\\n    function fulfillDataRequestUint128(\\n        uint256 requestId,\\n        uint128 response,\\n        RequestCommitment memory rc\\n    ) external;\\n\\n    function fulfillDataRequestInt256(\\n        uint256 requestId,\\n        int256 response,\\n        RequestCommitment memory rc\\n    ) external;\\n\\n    function fulfillDataRequestBool(\\n        uint256 requestId,\\n        bool response,\\n        RequestCommitment memory rc\\n    ) external;\\n\\n    function fulfillDataRequestString(\\n        uint256 requestId,\\n        string memory response,\\n        RequestCommitment memory rc\\n    ) external;\\n\\n    function fulfillDataRequestBytes32(\\n        uint256 requestId,\\n        bytes32 response,\\n        RequestCommitment memory rc\\n    ) external;\\n\\n    function fulfillDataRequestBytes(\\n        uint256 requestId,\\n        bytes memory response,\\n        RequestCommitment memory rc\\n    ) external;\\n\\n    /**\\n     * @notice Different jobs specified by jobId have allowed\\n     * different number of of requests for submissions that depends on\\n     * total number of registered oracles.\\n     */\\n    function validateNumSubmission(bytes32 jobId, uint8 numSubmission) external;\\n}\\n\",\"keccak256\":\"0xfa11f2677b8f2ea43e09077e1c18c22c4430c7630604a3ad4213955710b72a03\",\"license\":\"MIT\"},\"@bisonai/orakl-contracts/src/v0.1/interfaces/IVRFCoordinator.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\npragma solidity ^0.8.16;\\n\\nimport \\\"./IVRFCoordinatorBase.sol\\\";\\nimport \\\"./ICoordinatorBase.sol\\\";\\n\\ninterface IVRFCoordinator is IVRFCoordinatorBase, ICoordinatorBase {}\\n\",\"keccak256\":\"0x6b0474d5d4482ff306990782da936d88f2ed1d251f9105c2f3f988699a4d42f5\",\"license\":\"MIT\"},\"@bisonai/orakl-contracts/src/v0.1/interfaces/IVRFCoordinatorBase.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\npragma solidity ^0.8.16;\\n\\ninterface IVRFCoordinatorBase {\\n    // RequestCommitment holds information sent from off-chain oracle\\n    // describing details of request.\\n    struct RequestCommitment {\\n        uint256 blockNum;\\n        uint64 accId;\\n        uint32 callbackGasLimit;\\n        uint32 numWords;\\n        address sender;\\n    }\\n\\n    /**\\n     * @notice Get configuration relevant for making requests\\n     * @return maxGasLimit global max for request gas limit\\n     * @return sKeyHashes list of registered key hashes\\n     */\\n    function getRequestConfig() external view returns (uint32, bytes32[] memory);\\n\\n    /**\\n     * @notice Request a set of random words using a [regular] account.\\n     * @param keyHash - Corresponds to a particular oracle job which uses\\n     * that key for generating the VRF proof. Different keyHash's have different gas price\\n     * ceilings, so you can select a specific one to bound your maximum per request cost.\\n     * @param accId - The ID of the account. Must be funded\\n     * with the minimum account balance required for the selected keyHash.\\n     * @param callbackGasLimit - How much gas you'd like to receive in your\\n     * fulfillRandomWords callback. Note that gasleft() inside fulfillRandomWords\\n     * may be slightly less than this amount because of gas used calling the function\\n     * (argument decoding etc.), so you may need to request slightly more than you expect\\n     * to have inside fulfillRandomWords. The acceptable range is\\n     * [0, maxGasLimit]\\n     * @param numWords - The number of uint256 random values you'd like to receive\\n     * in your fulfillRandomWords callback. Note these numbers are expanded in a\\n     * secure way by the VRFCoordinator from a single random value supplied by the oracle.\\n     * @return requestId - A unique identifier of the request. Can be used to match\\n     * a request to a response in fulfillRandomWords.\\n     */\\n    function requestRandomWords(\\n        bytes32 keyHash,\\n        uint64 accId,\\n        uint32 callbackGasLimit,\\n        uint32 numWords\\n    ) external returns (uint256 requestId);\\n\\n    /**\\n     * @notice Request a set of random words using a [temporary] account.\\n     * @param keyHash - Corresponds to a particular oracle job which uses\\n     * that key for generating the VRF proof. Different keyHash's have different gas price\\n     * ceilings, so you can select a specific one to bound your maximum per request cost.\\n     * @param callbackGasLimit - How much gas you'd like to receive in your\\n     * fulfillRandomWords callback. Note that gasleft() inside fulfillRandomWords\\n     * may be slightly less than this amount because of gas used calling the function\\n     * (argument decoding etc.), so you may need to request slightly more than you expect\\n     * to have inside fulfillRandomWords. The acceptable range is\\n     * [0, maxGasLimit]\\n     * @param numWords - The number of uint256 random values you'd like to receive\\n     * in your fulfillRandomWords callback. Note these numbers are expanded in a\\n     * secure way by the VRFCoordinator from a single random value supplied by the oracle.\\n     * @param refundRecipient recipient of an extra $KLAY amount that\\n     * was sent together with service request\\n     * @return requestId - A unique identifier of the request. Can be used to match\\n     * a request to a response in fulfillRandomWords.\\n     */\\n    function requestRandomWords(\\n        bytes32 keyHash,\\n        uint32 callbackGasLimit,\\n        uint32 numWords,\\n        address refundRecipient\\n    ) external payable returns (uint256 requestId);\\n}\\n\",\"keccak256\":\"0x0d8bd0618a35c5cb1424df6f2abbb19c820560a829f5c80997cd7b9e086cbbc1\",\"license\":\"MIT\"},\"@bisonai/orakl-contracts/src/v0.1/libraries/Buffer.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\npragma solidity ^0.8.0;\\n\\n/**\\n * @dev A library for working with mutable byte buffers in Solidity.\\n *\\n * Byte buffers are mutable and expandable, and provide a variety of primitives\\n * for writing to them. At any time you can fetch a bytes object containing the\\n * current contents of the buffer. The bytes object should not be stored between\\n * operations, as it may change due to resizing of the buffer.\\n */\\nlibrary Buffer {\\n    /**\\n     * @dev Represents a mutable buffer. Buffers have a current value (buf) and\\n     *      a capacity. The capacity may be longer than the current value, in\\n     *      which case it can be extended without the need to allocate more memory.\\n     */\\n    struct buffer {\\n        bytes buf;\\n        uint256 capacity;\\n    }\\n\\n    /**\\n     * @dev Initializes a buffer with an initial capacity.\\n     * @param buf The buffer to initialize.\\n     * @param capacity The number of bytes of space to allocate the buffer.\\n     * @return The buffer, for chaining.\\n     */\\n    function init(buffer memory buf, uint256 capacity) internal pure returns (buffer memory) {\\n        if (capacity % 32 != 0) {\\n            capacity += 32 - (capacity % 32);\\n        }\\n        // Allocate space for the buffer data\\n        buf.capacity = capacity;\\n        assembly {\\n            let ptr := mload(0x40)\\n            mstore(buf, ptr)\\n            mstore(ptr, 0)\\n            mstore(0x40, add(32, add(ptr, capacity)))\\n        }\\n        return buf;\\n    }\\n\\n    /**\\n     * @dev Initializes a new buffer from an existing bytes object.\\n     *      Changes to the buffer may mutate the original value.\\n     * @param b The bytes object to initialize the buffer with.\\n     * @return A new buffer.\\n     */\\n    function fromBytes(bytes memory b) internal pure returns (buffer memory) {\\n        buffer memory buf;\\n        buf.buf = b;\\n        buf.capacity = b.length;\\n        return buf;\\n    }\\n\\n    function resize(buffer memory buf, uint256 capacity) private pure {\\n        bytes memory oldbuf = buf.buf;\\n        init(buf, capacity);\\n        append(buf, oldbuf);\\n    }\\n\\n    function max(uint256 a, uint256 b) private pure returns (uint256) {\\n        if (a > b) {\\n            return a;\\n        }\\n        return b;\\n    }\\n\\n    /**\\n     * @dev Sets buffer length to 0.\\n     * @param buf The buffer to truncate.\\n     * @return The original buffer, for chaining..\\n     */\\n    function truncate(buffer memory buf) internal pure returns (buffer memory) {\\n        assembly {\\n            let bufptr := mload(buf)\\n            mstore(bufptr, 0)\\n        }\\n        return buf;\\n    }\\n\\n    /**\\n     * @dev Writes a byte string to a buffer. Resizes if doing so would exceed\\n     *      the capacity of the buffer.\\n     * @param buf The buffer to append to.\\n     * @param off The start offset to write to.\\n     * @param data The data to append.\\n     * @param len The number of bytes to copy.\\n     * @return The original buffer, for chaining.\\n     */\\n    function write(\\n        buffer memory buf,\\n        uint256 off,\\n        bytes memory data,\\n        uint256 len\\n    ) internal pure returns (buffer memory) {\\n        require(len <= data.length);\\n\\n        if (off + len > buf.capacity) {\\n            resize(buf, max(buf.capacity, len + off) * 2);\\n        }\\n\\n        uint256 dest;\\n        uint256 src;\\n        assembly {\\n            // Memory address of the buffer data\\n            let bufptr := mload(buf)\\n            // Length of existing buffer data\\n            let buflen := mload(bufptr)\\n            // Start address = buffer address + offset + sizeof(buffer length)\\n            dest := add(add(bufptr, 32), off)\\n            // Update buffer length if we're extending it\\n            if gt(add(len, off), buflen) {\\n                mstore(bufptr, add(len, off))\\n            }\\n            src := add(data, 32)\\n        }\\n\\n        // Copy word-length chunks while possible\\n        for (; len >= 32; len -= 32) {\\n            assembly {\\n                mstore(dest, mload(src))\\n            }\\n            dest += 32;\\n            src += 32;\\n        }\\n\\n        // Copy remaining bytes\\n        unchecked {\\n            uint256 mask = (256 ** (32 - len)) - 1;\\n            assembly {\\n                let srcpart := and(mload(src), not(mask))\\n                let destpart := and(mload(dest), mask)\\n                mstore(dest, or(destpart, srcpart))\\n            }\\n        }\\n\\n        return buf;\\n    }\\n\\n    /**\\n     * @dev Appends a byte string to a buffer. Resizes if doing so would exceed\\n     *      the capacity of the buffer.\\n     * @param buf The buffer to append to.\\n     * @param data The data to append.\\n     * @param len The number of bytes to copy.\\n     * @return The original buffer, for chaining.\\n     */\\n    function append(\\n        buffer memory buf,\\n        bytes memory data,\\n        uint256 len\\n    ) internal pure returns (buffer memory) {\\n        return write(buf, buf.buf.length, data, len);\\n    }\\n\\n    /**\\n     * @dev Appends a byte string to a buffer. Resizes if doing so would exceed\\n     *      the capacity of the buffer.\\n     * @param buf The buffer to append to.\\n     * @param data The data to append.\\n     * @return The original buffer, for chaining.\\n     */\\n    function append(buffer memory buf, bytes memory data) internal pure returns (buffer memory) {\\n        return write(buf, buf.buf.length, data, data.length);\\n    }\\n\\n    /**\\n     * @dev Writes a byte to the buffer. Resizes if doing so would exceed the\\n     *      capacity of the buffer.\\n     * @param buf The buffer to append to.\\n     * @param off The offset to write the byte at.\\n     * @param data The data to append.\\n     * @return The original buffer, for chaining.\\n     */\\n    function writeUint8(\\n        buffer memory buf,\\n        uint256 off,\\n        uint8 data\\n    ) internal pure returns (buffer memory) {\\n        if (off >= buf.capacity) {\\n            resize(buf, buf.capacity * 2);\\n        }\\n\\n        assembly {\\n            // Memory address of the buffer data\\n            let bufptr := mload(buf)\\n            // Length of existing buffer data\\n            let buflen := mload(bufptr)\\n            // Address = buffer address + sizeof(buffer length) + off\\n            let dest := add(add(bufptr, off), 32)\\n            mstore8(dest, data)\\n            // Update buffer length if we extended it\\n            if eq(off, buflen) {\\n                mstore(bufptr, add(buflen, 1))\\n            }\\n        }\\n        return buf;\\n    }\\n\\n    /**\\n     * @dev Appends a byte to the buffer. Resizes if doing so would exceed the\\n     *      capacity of the buffer.\\n     * @param buf The buffer to append to.\\n     * @param data The data to append.\\n     * @return The original buffer, for chaining.\\n     */\\n    function appendUint8(buffer memory buf, uint8 data) internal pure returns (buffer memory) {\\n        return writeUint8(buf, buf.buf.length, data);\\n    }\\n\\n    /**\\n     * @dev Writes up to 32 bytes to the buffer. Resizes if doing so would\\n     *      exceed the capacity of the buffer.\\n     * @param buf The buffer to append to.\\n     * @param off The offset to write at.\\n     * @param data The data to append.\\n     * @param len The number of bytes to write (left-aligned).\\n     * @return The original buffer, for chaining.\\n     */\\n    function write(\\n        buffer memory buf,\\n        uint256 off,\\n        bytes32 data,\\n        uint256 len\\n    ) private pure returns (buffer memory) {\\n        if (len + off > buf.capacity) {\\n            resize(buf, (len + off) * 2);\\n        }\\n\\n        unchecked {\\n            uint256 mask = (256 ** len) - 1;\\n            // Right-align data\\n            data = data >> (8 * (32 - len));\\n            assembly {\\n                // Memory address of the buffer data\\n                let bufptr := mload(buf)\\n                // Address = buffer address + sizeof(buffer length) + off + len\\n                let dest := add(add(bufptr, off), len)\\n                mstore(dest, or(and(mload(dest), not(mask)), data))\\n                // Update buffer length if we extended it\\n                if gt(add(off, len), mload(bufptr)) {\\n                    mstore(bufptr, add(off, len))\\n                }\\n            }\\n        }\\n        return buf;\\n    }\\n\\n    /**\\n     * @dev Writes a bytes20 to the buffer. Resizes if doing so would exceed the\\n     *      capacity of the buffer.\\n     * @param buf The buffer to append to.\\n     * @param off The offset to write at.\\n     * @param data The data to append.\\n     * @return The original buffer, for chaining.\\n     */\\n    function writeBytes20(\\n        buffer memory buf,\\n        uint256 off,\\n        bytes20 data\\n    ) internal pure returns (buffer memory) {\\n        return write(buf, off, bytes32(data), 20);\\n    }\\n\\n    /**\\n     * @dev Appends a bytes20 to the buffer. Resizes if doing so would exceed\\n     *      the capacity of the buffer.\\n     * @param buf The buffer to append to.\\n     * @param data The data to append.\\n     * @return The original buffer, for chhaining.\\n     */\\n    function appendBytes20(buffer memory buf, bytes20 data) internal pure returns (buffer memory) {\\n        return write(buf, buf.buf.length, bytes32(data), 20);\\n    }\\n\\n    /**\\n     * @dev Appends a bytes32 to the buffer. Resizes if doing so would exceed\\n     *      the capacity of the buffer.\\n     * @param buf The buffer to append to.\\n     * @param data The data to append.\\n     * @return The original buffer, for chaining.\\n     */\\n    function appendBytes32(buffer memory buf, bytes32 data) internal pure returns (buffer memory) {\\n        return write(buf, buf.buf.length, data, 32);\\n    }\\n\\n    /**\\n     * @dev Writes an integer to the buffer. Resizes if doing so would exceed\\n     *      the capacity of the buffer.\\n     * @param buf The buffer to append to.\\n     * @param off The offset to write at.\\n     * @param data The data to append.\\n     * @param len The number of bytes to write (right-aligned).\\n     * @return The original buffer, for chaining.\\n     */\\n    function writeInt(\\n        buffer memory buf,\\n        uint256 off,\\n        uint256 data,\\n        uint256 len\\n    ) private pure returns (buffer memory) {\\n        if (len + off > buf.capacity) {\\n            resize(buf, (len + off) * 2);\\n        }\\n\\n        uint256 mask = (256 ** len) - 1;\\n        assembly {\\n            // Memory address of the buffer data\\n            let bufptr := mload(buf)\\n            // Address = buffer address + off + sizeof(buffer length) + len\\n            let dest := add(add(bufptr, off), len)\\n            mstore(dest, or(and(mload(dest), not(mask)), data))\\n            // Update buffer length if we extended it\\n            if gt(add(off, len), mload(bufptr)) {\\n                mstore(bufptr, add(off, len))\\n            }\\n        }\\n        return buf;\\n    }\\n\\n    /**\\n     * @dev Appends a byte to the end of the buffer. Resizes if doing so would\\n     * exceed the capacity of the buffer.\\n     * @param buf The buffer to append to.\\n     * @param data The data to append.\\n     * @return The original buffer.\\n     */\\n    function appendInt(\\n        buffer memory buf,\\n        uint256 data,\\n        uint256 len\\n    ) internal pure returns (buffer memory) {\\n        return writeInt(buf, buf.buf.length, data, len);\\n    }\\n}\\n\",\"keccak256\":\"0x974280a1114bec25110c9c608e1c6c4dd7666c00e30f831f68b6d8a5b3bde420\",\"license\":\"MIT\"},\"@bisonai/orakl-contracts/src/v0.1/libraries/CBOR.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\npragma solidity ^0.8.16;\\n\\n// https://github.com/smartcontractkit/chainlink/blob/develop/contracts/src/v0.8/vendor/CBORChainlink.sol\\n\\nimport {Buffer} from \\\"./Buffer.sol\\\";\\n\\n// Encoding library for Binary Object Representation\\nlibrary CBOR {\\n    using Buffer for Buffer.buffer;\\n\\n    // DECLARE TYPES FOR EASIER REFERENCE OF VARIABLE TYPE\\n    uint8 private constant MAJOR_TYPE_INT = 0;\\n    uint8 private constant MAJOR_TYPE_NEGATIVE_INT = 1;\\n    uint8 private constant MAJOR_TYPE_BYTES = 2;\\n    uint8 private constant MAJOR_TYPE_STRING = 3;\\n    uint8 private constant MAJOR_TYPE_ARRAY = 4;\\n    uint8 private constant MAJOR_TYPE_MAP = 5;\\n    uint8 private constant MAJOR_TYPE_TAG = 6;\\n    uint8 private constant MAJOR_TYPE_CONTENT_FREE = 7;\\n\\n    uint8 private constant TAG_TYPE_BIGNUM = 2;\\n    uint8 private constant TAG_TYPE_NEGATIVE_BIGNUM = 3;\\n\\n    function encodeFixedNumeric(Buffer.buffer memory buf, uint8 major, uint64 value) private pure {\\n        if (value <= 23) {\\n            buf.appendUint8(uint8((major << 5) | value));\\n        } else if (value <= 0xFF) {\\n            buf.appendUint8(uint8((major << 5) | 24));\\n            buf.appendInt(value, 1);\\n        } else if (value <= 0xFFFF) {\\n            buf.appendUint8(uint8((major << 5) | 25));\\n            buf.appendInt(value, 2);\\n        } else if (value <= 0xFFFFFFFF) {\\n            buf.appendUint8(uint8((major << 5) | 26));\\n            buf.appendInt(value, 4);\\n        } else {\\n            buf.appendUint8(uint8((major << 5) | 27));\\n            buf.appendInt(value, 8);\\n        }\\n    }\\n\\n    function encodeIndefiniteLengthType(Buffer.buffer memory buf, uint8 major) private pure {\\n        buf.appendUint8(uint8((major << 5) | 31));\\n    }\\n\\n    function encodeUInt(Buffer.buffer memory buf, uint value) internal pure {\\n        if (value > 0xFFFFFFFFFFFFFFFF) {\\n            encodeBigNum(buf, value);\\n        } else {\\n            encodeFixedNumeric(buf, MAJOR_TYPE_INT, uint64(value));\\n        }\\n    }\\n\\n    function encodeInt(Buffer.buffer memory buf, int value) internal pure {\\n        if (value < -0x10000000000000000) {\\n            encodeSignedBigNum(buf, value);\\n        } else if (value > 0xFFFFFFFFFFFFFFFF) {\\n            encodeBigNum(buf, uint(value));\\n        } else if (value >= 0) {\\n            encodeFixedNumeric(buf, MAJOR_TYPE_INT, uint64(uint256(value)));\\n        } else {\\n            encodeFixedNumeric(buf, MAJOR_TYPE_NEGATIVE_INT, uint64(uint256(-1 - value)));\\n        }\\n    }\\n\\n    function encodeBytes(Buffer.buffer memory buf, bytes memory value) internal pure {\\n        encodeFixedNumeric(buf, MAJOR_TYPE_BYTES, uint64(value.length));\\n        buf.append(value);\\n    }\\n\\n    function encodeBigNum(Buffer.buffer memory buf, uint value) internal pure {\\n        buf.appendUint8(uint8((MAJOR_TYPE_TAG << 5) | TAG_TYPE_BIGNUM));\\n        encodeBytes(buf, abi.encode(value));\\n    }\\n\\n    function encodeSignedBigNum(Buffer.buffer memory buf, int input) internal pure {\\n        buf.appendUint8(uint8((MAJOR_TYPE_TAG << 5) | TAG_TYPE_NEGATIVE_BIGNUM));\\n        encodeBytes(buf, abi.encode(uint256(-1 - input)));\\n    }\\n\\n    function encodeString(Buffer.buffer memory buf, string memory value) internal pure {\\n        encodeFixedNumeric(buf, MAJOR_TYPE_STRING, uint64(bytes(value).length));\\n        buf.append(bytes(value));\\n    }\\n\\n    function startArray(Buffer.buffer memory buf) internal pure {\\n        encodeIndefiniteLengthType(buf, MAJOR_TYPE_ARRAY);\\n    }\\n\\n    function startMap(Buffer.buffer memory buf) internal pure {\\n        encodeIndefiniteLengthType(buf, MAJOR_TYPE_MAP);\\n    }\\n\\n    function endSequence(Buffer.buffer memory buf) internal pure {\\n        encodeIndefiniteLengthType(buf, MAJOR_TYPE_CONTENT_FREE);\\n    }\\n}\\n\",\"keccak256\":\"0x0712ea9c6408a41611eaa5ca843880d7d39c21cfe1dc3efea034bcedf244eae5\",\"license\":\"MIT\"},\"@bisonai/orakl-contracts/src/v0.1/libraries/Orakl.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\npragma solidity ^0.8.16;\\n\\n// https://github.com/smartcontractkit/chainlink/blob/develop/contracts/src/v0.8/Chainlink.sol\\n\\nimport {Buffer} from \\\"./Buffer.sol\\\";\\nimport {CBOR} from \\\"./CBOR.sol\\\";\\n\\nlibrary Orakl {\\n    uint256 internal constant defaultBufferSize = 256;\\n\\n    using CBOR for Buffer.buffer;\\n\\n    // structure for storing requests done off-chain\\n    struct Request {\\n        bytes32 id;\\n        address callbackAddr;\\n        bytes4 callbackFunc;\\n        uint256 nonce;\\n        Buffer.buffer buf;\\n    }\\n\\n    /**\\n     * @notice Initializes a request\\n     * @dev Sets ID, callback address, and callback function\\n     * @param self The uninitialized request\\n     * @param jobId The Job Specification ID\\n     * @param callbackAddr The callback address\\n     * @param callbackFunc The callback function signature\\n     * @return The initialized request\\n     */\\n    function initialize(\\n        Request memory self,\\n        bytes32 jobId,\\n        address callbackAddr,\\n        bytes4 callbackFunc\\n    ) internal pure returns (Orakl.Request memory) {\\n        Buffer.init(self.buf, defaultBufferSize);\\n        self.id = jobId;\\n        self.callbackAddr = callbackAddr;\\n        self.callbackFunc = callbackFunc;\\n        return self;\\n    }\\n\\n    /**\\n     * @notice sets the data for buffer\\n     * @param _request the initialized request\\n     * @param _data the CBOR data\\n     */\\n    function setBuffer(Request memory _request, bytes memory _data) internal pure {\\n        Buffer.init(_request.buf, _data.length);\\n        Buffer.append(_request.buf, _data);\\n    }\\n\\n    /**\\n     * @notice Adds a string value to the request in a key - value pair format\\n     * @param self - the initalized request\\n     * @param key - the name of the key\\n     * @param value - the string value to add\\n     */\\n    function add(Request memory self, string memory key, string memory value) internal pure {\\n        self.buf.encodeString(key);\\n        self.buf.encodeString(value);\\n    }\\n\\n    /**\\n     * @notice Adds a byte value to the request in a key - value pair format\\n     * @param _request - the initalized request\\n     * @param _key - the name of the key\\n     * @param _value - the bytes value to add\\n     */\\n    function addBytes(\\n        Request memory _request,\\n        string memory _key,\\n        bytes memory _value\\n    ) internal pure {\\n        _request.buf.encodeString(_key);\\n        _request.buf.encodeBytes(_value);\\n    }\\n\\n    /**\\n     * @notice Adds a Int256 value to the request in a key - value pair format\\n     * @param _request - the initalized request\\n     * @param _key - the name of the key\\n     * @param _value - the int256 value to add\\n     */\\n    function addInt(Request memory _request, string memory _key, int256 _value) internal pure {\\n        _request.buf.encodeString(_key);\\n        _request.buf.encodeInt(_value);\\n    }\\n\\n    /**\\n     * @notice Adds a UInt256 value to the request in a key - value pair format\\n     * @param _request - the initalized request\\n     * @param _key - the name of the key\\n     * @param _value - the uint256 value to add\\n     */\\n    function addUInt(Request memory _request, string memory _key, uint256 _value) internal pure {\\n        _request.buf.encodeString(_key);\\n        _request.buf.encodeUInt(_value);\\n    }\\n\\n    /**\\n     * @notice Adds an array of string value to the request in a key - value pair format\\n     * @param _request - the initalized request\\n     * @param _key - the name of the key\\n     * @param _values - the array of string value to add\\n     */\\n    function addStringArray(\\n        Request memory _request,\\n        string memory _key,\\n        string[] memory _values\\n    ) internal pure {\\n        _request.buf.encodeString(_key);\\n        _request.buf.startArray();\\n        for (uint256 i; i < _values.length; i++) {\\n            _request.buf.encodeString(_values[i]);\\n        }\\n        _request.buf.endSequence();\\n    }\\n}\\n\",\"keccak256\":\"0xd03570ddd458085535e258f75d684f76b2adbac7fccb718d11977562d4f3101a\",\"license\":\"MIT\"},\"contracts/InspectorConsumer.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\npragma solidity ^0.8.16;\\n\\nimport {InspectorConsumerBase} from \\\"./InspectorConsumerBase.sol\\\";\\nimport {Orakl} from \\\"@bisonai/orakl-contracts/src/v0.1/libraries/Orakl.sol\\\";\\n\\ncontract InspectorConsumer is InspectorConsumerBase{\\n    using Orakl for Orakl.Request;\\n\\n    uint256 public sRandomWord;\\n    uint128 public sResponse;\\n    address private sOwner;\\n\\n\\n    error OnlyOwner(address notOwner);\\n\\n    modifier onlyOwner() {\\n        if (msg.sender != sOwner) {\\n            revert OnlyOwner(msg.sender);\\n        }\\n        _;\\n    }\\n\\n    constructor(address _rrCoordinator, address _vrfCoordinator)InspectorConsumerBase(_vrfCoordinator, _rrCoordinator){\\n        sOwner = msg.sender;\\n    }\\n\\n    // Receive remaining payment from requestDataPayment\\n    receive() external payable {}\\n\\n    function requestRR(\\n        uint64 accId,\\n        uint32 callbackGasLimit\\n    ) public onlyOwner returns (uint256 requestId) {\\n        bytes32 jobId = keccak256(abi.encodePacked(\\\"uint128\\\"));\\n        uint8 numSubmission = 1;\\n\\n        Orakl.Request memory req = buildRequest(jobId);\\n        req.add(\\\"get\\\", \\\"https://api.coinbase.com/v2/exchange-rates?currency=BTC\\\");\\n        req.add(\\\"path\\\", \\\"data,rates,USDT\\\");\\n        req.add(\\\"pow10\\\", \\\"8\\\");\\n\\n        requestId = rrCoordinator.requestData(req, callbackGasLimit, accId, numSubmission);\\n    }\\n\\n    function requestVRF(\\n        bytes32 keyHash,\\n        uint64 accId,\\n        uint32 callbackGasLimit,\\n        uint32 numWords\\n    ) public onlyOwner returns (uint256 requestId) {\\n        requestId = vrfCoordinator.requestRandomWords(keyHash, accId, callbackGasLimit, numWords);\\n    }\\n\\n    function fulfillRandomWords(\\n        uint256 /* requestId */,\\n        uint256[] memory randomWords\\n    ) internal override {\\n        sRandomWord = randomWords[0];\\n    }\\n\\n    function fulfillDataRequest(uint256 /*requestId*/, uint128 response) internal override {\\n        sResponse = response;\\n    }\\n\\n    function cancelRequest(uint256 requestId) external onlyOwner {\\n        rrCoordinator.cancelRequest(requestId);\\n    }\\n}\\n\",\"keccak256\":\"0x01a93c0648de600de7e09b5d55e0389ffafe98777fd6494543cdadb3b44729ab\",\"license\":\"MIT\"},\"contracts/InspectorConsumerBase.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\npragma solidity ^0.8.16;\\n\\nimport {Orakl} from \\\"@bisonai/orakl-contracts/src/v0.1/libraries/Orakl.sol\\\";\\nimport {IRequestResponseCoordinator} from \\\"@bisonai/orakl-contracts/src/v0.1/interfaces/IRequestResponseCoordinator.sol\\\";\\nimport {IVRFCoordinator} from \\\"@bisonai/orakl-contracts/src/v0.1/interfaces/IVRFCoordinator.sol\\\";\\n\\nabstract contract InspectorConsumerBase {\\n    using Orakl for Orakl.Request;\\n\\n    error OnlyCoordinatorCanFulfill(address have, address want);\\n\\n    IVRFCoordinator public immutable vrfCoordinator;\\n    IRequestResponseCoordinator public immutable rrCoordinator;\\n    uint256 public vrfRequestId;\\n    uint256 public rrRequestId;\\n    mapping(bytes32 => bytes4) private sJobIdToFunctionSelector;\\n\\n    constructor(address _vrfCoordinator, address _rrCoordinator) {\\n        vrfCoordinator = IVRFCoordinator(_vrfCoordinator);\\n        rrCoordinator = IRequestResponseCoordinator(_rrCoordinator);\\n        sJobIdToFunctionSelector[keccak256(abi.encodePacked(\\\"uint128\\\"))] = rrCoordinator\\n            .fulfillDataRequestUint128\\n            .selector;\\n        sJobIdToFunctionSelector[keccak256(abi.encodePacked(\\\"int256\\\"))] = rrCoordinator\\n            .fulfillDataRequestInt256\\n            .selector;\\n        sJobIdToFunctionSelector[keccak256(abi.encodePacked(\\\"bool\\\"))] = rrCoordinator\\n            .fulfillDataRequestBool\\n            .selector;\\n        sJobIdToFunctionSelector[keccak256(abi.encodePacked(\\\"string\\\"))] = rrCoordinator\\n            .fulfillDataRequestString\\n            .selector;\\n        sJobIdToFunctionSelector[keccak256(abi.encodePacked(\\\"bytes32\\\"))] = rrCoordinator\\n            .fulfillDataRequestBytes32\\n            .selector;\\n        sJobIdToFunctionSelector[keccak256(abi.encodePacked(\\\"bytes\\\"))] = rrCoordinator\\n            .fulfillDataRequestBytes\\n            .selector;\\n    }\\n\\n    function fulfillRandomWords(uint256 requestId, uint256[] memory randomWords) internal virtual;\\n\\n    function rawFulfillRandomWords(uint256 requestId, uint256[] memory randomWords) external {\\n        vrfRequestId = requestId;\\n        address coordinatorAddress = address(vrfCoordinator);\\n        if (msg.sender != coordinatorAddress) {\\n            revert OnlyCoordinatorCanFulfill(msg.sender, coordinatorAddress);\\n        }\\n        fulfillRandomWords(requestId, randomWords);\\n    }\\n\\n    function buildRequest(bytes32 jobId) internal view returns (Orakl.Request memory req) {\\n        return req.initialize(jobId, address(rrCoordinator), sJobIdToFunctionSelector[jobId]);\\n    }\\n\\n    function fulfillDataRequest(uint256 requestId, uint128 response) internal virtual;\\n\\n    function rawFulfillDataRequest(\\n        uint256 requestId,\\n        uint128 response\\n    ) external {\\n        rrRequestId = requestId;\\n        address coordinatorAddress = address(rrCoordinator);\\n        if (msg.sender != coordinatorAddress) {\\n            revert OnlyCoordinatorCanFulfill(msg.sender, coordinatorAddress);\\n        }\\n\\n        fulfillDataRequest(requestId, response);\\n    }\\n}\\n\",\"keccak256\":\"0x6f1ab9acf413d7943ce96e04ec810bc3b641bfa74696676b734e155692e9d6b7\",\"license\":\"MIT\"}},\"version\":1}",
+  "bytecode": "0x60c060405234801561001057600080fd5b506040516114a73803806114a783398101604081905261002f916101e6565b6001600160a01b039081166080521660a05260408051660ead2dce86264760cb1b6020808301919091528251808303600701815260278301845280519082012060009081526002808352848220805463ffffffff1990811663a185c35f179091556534b73a191a9b60d11b60478601528551808603602d018152604d8601875280519085012083528184528583208054821663d1bf555c17905563189bdbdb60e21b606d86015285518086036051018152607186018752805190850120835281845285832080548216637961841717905565737472696e6760d01b60918601528551808603607701815260978601875280519085012083528184528583208054821663f30be55117905566313cba32b9999960c91b60b78601528551808603609e01815260be8601875280519085012083528184528583208054821663bf8542a917905564627974657360d81b60de860152855180860360c301815260e39095018652845194840194909420825290915291909120805463c6f340139216919091179055600580546001600160a01b03191633179055610219565b80516001600160a01b03811681146101e157600080fd5b919050565b600080604083850312156101f957600080fd5b610202836101ca565b9150610210602084016101ca565b90509250929050565b60805160a05161123f6102686000396000818161024b0152818161035d015281816103cb01528181610776015261087a0152600081816101ff0152818161029401526104e8015261123f6000f3fe6080604052600436106100c05760003560e01c806345b9b6fb11610074578063a3e56fa81161004e578063a3e56fa8146101ed578063a56d1c7314610239578063af8764b31461026d57600080fd5b806345b9b6fb146101635780634d04f5fd146101835780636d797371146101a357600080fd5b806318a7ea5f116100a557806318a7ea5f1461010b5780631fe543e3146101215780633015394c1461014357600080fd5b8063022f4594146100cc5780630e5ff996146100f557600080fd5b366100c757005b600080fd5b3480156100d857600080fd5b506100e260015481565b6040519081526020015b60405180910390f35b34801561010157600080fd5b506100e260035481565b34801561011757600080fd5b506100e260005481565b34801561012d57600080fd5b5061014161013c366004610d6d565b61028d565b005b34801561014f57600080fd5b5061014161015e366004610e37565b610301565b34801561016f57600080fd5b5061014161017e366004610e50565b6103c4565b34801561018f57600080fd5b506100e261019e366004610ec6565b610465565b3480156101af57600080fd5b506004546101cc906fffffffffffffffffffffffffffffffff1681565b6040516fffffffffffffffffffffffffffffffff90911681526020016100ec565b3480156101f957600080fd5b506102217f000000000000000000000000000000000000000000000000000000000000000081565b6040516001600160a01b0390911681526020016100ec565b34801561024557600080fd5b506102217f000000000000000000000000000000000000000000000000000000000000000081565b34801561027957600080fd5b506100e2610288366004610f13565b610566565b60008290557f0000000000000000000000000000000000000000000000000000000000000000336001600160a01b038216146102f25760405163073e64fd60e21b81523360048201526001600160a01b03821660248201526044015b60405180910390fd5b6102fc83836107fe565b505050565b6005546001600160a01b0316331461032e57604051630543601560e11b81523360048201526024016102e9565b6040517f3015394c000000000000000000000000000000000000000000000000000000008152600481018290527f00000000000000000000000000000000000000000000000000000000000000006001600160a01b031690633015394c90602401600060405180830381600087803b1580156103a957600080fd5b505af11580156103bd573d6000803e3d6000fd5b5050505050565b60018290557f0000000000000000000000000000000000000000000000000000000000000000336001600160a01b038216146104245760405163073e64fd60e21b81523360048201526001600160a01b03821660248201526044016102e9565b600480547fffffffffffffffffffffffffffffffff00000000000000000000000000000000166fffffffffffffffffffffffffffffffff8416179055505050565b6005546000906001600160a01b0316331461049557604051630543601560e11b81523360048201526024016102e9565b6040517f2f34077b0000000000000000000000000000000000000000000000000000000081526004810186905267ffffffffffffffff8516602482015263ffffffff8085166044830152831660648201527f00000000000000000000000000000000000000000000000000000000000000006001600160a01b031690632f34077b906084016020604051808303816000875af1158015610539573d6000803e3d6000fd5b505050506040513d601f19601f8201168201806040525081019061055d9190610f46565b95945050505050565b6005546000906001600160a01b0316331461059657604051630543601560e11b81523360048201526024016102e9565b6040517f75696e7431323800000000000000000000000000000000000000000000000000602082015260009060270160408051601f1981840301815291905280516020909101209050600160006105ec83610823565b90506106486040518060400160405280600381526020017f67657400000000000000000000000000000000000000000000000000000000008152506040518060600160405280603781526020016111d3603791398391906108a8565b6106c76040518060400160405280600481526020017f70617468000000000000000000000000000000000000000000000000000000008152506040518060400160405280600f81526020017f646174612c72617465732c555344540000000000000000000000000000000000815250836108a89092919063ffffffff16565b6107466040518060400160405280600581526020017f706f7731300000000000000000000000000000000000000000000000000000008152506040518060400160405280600181526020017f3800000000000000000000000000000000000000000000000000000000000000815250836108a89092919063ffffffff16565b6040517f752f8c140000000000000000000000000000000000000000000000000000000081526001600160a01b037f0000000000000000000000000000000000000000000000000000000000000000169063752f8c14906107b190849089908b908890600401610f5f565b6020604051808303816000875af11580156107d0573d6000803e3d6000fd5b505050506040513d601f19601f820116820180604052508101906107f49190610f46565b9695505050505050565b806000815181106108115761081161104f565b60200260200101516003819055505050565b6108616040805160a0810182526000808252602080830182905282840182905260608084018390528451808601909552845283015290608082015290565b6000828152600260205260409020546108a290829084907f00000000000000000000000000000000000000000000000000000000000000009060e01b6108c6565b92915050565b60808301516108b79083610951565b60808301516102fc9082610951565b6109046040805160a0810182526000808252602080830182905282840182905260608084018390528451808601909552845283015290608082015290565b6109148560800151610100610968565b50509183526001600160a01b031660208301527fffffffff0000000000000000000000000000000000000000000000000000000016604082015290565b61095e82600383516109cd565b6102fc8282610ae2565b604080518082019091526060815260006020820152610988602083611065565b156109b057610998602083611065565b6109a390602061109d565b6109ad90836110b0565b91505b506020828101829052604080518085526000815290920101905290565b60178167ffffffffffffffff16116109f8576109f28360e0600585901b168317610b10565b50505050565b60ff8167ffffffffffffffff1611610a3657610a1f836018611fe0600586901b1617610b10565b506109f28367ffffffffffffffff83166001610b35565b61ffff8167ffffffffffffffff1611610a7557610a5e836019611fe0600586901b1617610b10565b506109f28367ffffffffffffffff83166002610b35565b63ffffffff8167ffffffffffffffff1611610ab657610a9f83601a611fe0600586901b1617610b10565b506109f28367ffffffffffffffff83166004610b35565b610acb83601b611fe0600586901b1617610b10565b506109f28367ffffffffffffffff83166008610b35565b604080518082019091526060815260006020820152610b0983846000015151848551610b63565b9392505050565b604080518082019091526060815260006020820152610b098384600001515184610c4d565b604080518082019091526060815260006020820152610b5b848560000151518585610ca8565b949350505050565b6040805180820190915260608152600060208201528251821115610b8657600080fd5b6020850151610b9583866110b0565b1115610bc857610bc885610bb887602001518786610bb391906110b0565b610d29565b610bc39060026110c3565b610d40565b600080865180518760208301019350808887011115610be75787860182525b505050602084015b60208410610c275780518252610c066020836110b0565b9150610c136020826110b0565b9050610c2060208561109d565b9350610bef565b51815160001960208690036101000a019081169019919091161790525083949350505050565b60408051808201909152606081526000602082015283602001518310610c8257610c828485602001516002610bc391906110c3565b8351805160208583010184815350808503610c9e576001810182525b5093949350505050565b6040805180820190915260608152600060208201526020850151610ccc85846110b0565b1115610ce057610ce085610bb886856110b0565b60006001610cf0846101006111c6565b610cfa919061109d565b9050855183868201018583198251161781525080518487011115610d1e5783860181525b509495945050505050565b600081831115610d3a5750816108a2565b50919050565b8151610d4c8383610968565b506109f28382610ae2565b634e487b7160e01b600052604160045260246000fd5b60008060408385031215610d8057600080fd5b8235915060208084013567ffffffffffffffff80821115610da057600080fd5b818601915086601f830112610db457600080fd5b813581811115610dc657610dc6610d57565b8060051b604051601f19603f83011681018181108582111715610deb57610deb610d57565b604052918252848201925083810185019189831115610e0957600080fd5b938501935b82851015610e2757843584529385019392850192610e0e565b8096505050505050509250929050565b600060208284031215610e4957600080fd5b5035919050565b60008060408385031215610e6357600080fd5b8235915060208301356fffffffffffffffffffffffffffffffff81168114610e8a57600080fd5b809150509250929050565b803567ffffffffffffffff81168114610ead57600080fd5b919050565b803563ffffffff81168114610ead57600080fd5b60008060008060808587031215610edc57600080fd5b84359350610eec60208601610e95565b9250610efa60408601610eb2565b9150610f0860608601610eb2565b905092959194509250565b60008060408385031215610f2657600080fd5b610f2f83610e95565b9150610f3d60208401610eb2565b90509250929050565b600060208284031215610f5857600080fd5b5051919050565b6080815284516080820152600060206001600160a01b03818801511660a08401527fffffffff0000000000000000000000000000000000000000000000000000000060408801511660c0840152606087015160e0840152608087015160a06101008501528051604061012086015280518061016087015260005b81811015610ff65782810185015187820161018001528401610fd9565b506000868201610180908101919091529284015161014087015263ffffffff891684870152601f01601f1916850190910192506110309050565b5067ffffffffffffffff8416604083015260ff8316606083015261055d565b634e487b7160e01b600052603260045260246000fd5b60008261108257634e487b7160e01b600052601260045260246000fd5b500690565b634e487b7160e01b600052601160045260246000fd5b818103818111156108a2576108a2611087565b808201808211156108a2576108a2611087565b60008160001904831182151516156110dd576110dd611087565b500290565b600181815b8085111561111d57816000190482111561110357611103611087565b8085161561111057918102915b93841c93908002906110e7565b509250929050565b600082611134575060016108a2565b81611141575060006108a2565b816001811461115757600281146111615761117d565b60019150506108a2565b60ff84111561117257611172611087565b50506001821b6108a2565b5060208310610133831016604e8410600b84101617156111a0575081810a6108a2565b6111aa83836110e2565b80600019048211156111be576111be611087565b029392505050565b6000610b09838361112556fe68747470733a2f2f6170692e636f696e626173652e636f6d2f76322f65786368616e67652d72617465733f63757272656e63793d425443a2646970667358221220347ea5a62d173b90fe148553ca2d2611fd4b61eefd33d9bc753e8fde8b0fbe1064736f6c63430008100033",
+  "deployedBytecode": "0x6080604052600436106100c05760003560e01c806345b9b6fb11610074578063a3e56fa81161004e578063a3e56fa8146101ed578063a56d1c7314610239578063af8764b31461026d57600080fd5b806345b9b6fb146101635780634d04f5fd146101835780636d797371146101a357600080fd5b806318a7ea5f116100a557806318a7ea5f1461010b5780631fe543e3146101215780633015394c1461014357600080fd5b8063022f4594146100cc5780630e5ff996146100f557600080fd5b366100c757005b600080fd5b3480156100d857600080fd5b506100e260015481565b6040519081526020015b60405180910390f35b34801561010157600080fd5b506100e260035481565b34801561011757600080fd5b506100e260005481565b34801561012d57600080fd5b5061014161013c366004610d6d565b61028d565b005b34801561014f57600080fd5b5061014161015e366004610e37565b610301565b34801561016f57600080fd5b5061014161017e366004610e50565b6103c4565b34801561018f57600080fd5b506100e261019e366004610ec6565b610465565b3480156101af57600080fd5b506004546101cc906fffffffffffffffffffffffffffffffff1681565b6040516fffffffffffffffffffffffffffffffff90911681526020016100ec565b3480156101f957600080fd5b506102217f000000000000000000000000000000000000000000000000000000000000000081565b6040516001600160a01b0390911681526020016100ec565b34801561024557600080fd5b506102217f000000000000000000000000000000000000000000000000000000000000000081565b34801561027957600080fd5b506100e2610288366004610f13565b610566565b60008290557f0000000000000000000000000000000000000000000000000000000000000000336001600160a01b038216146102f25760405163073e64fd60e21b81523360048201526001600160a01b03821660248201526044015b60405180910390fd5b6102fc83836107fe565b505050565b6005546001600160a01b0316331461032e57604051630543601560e11b81523360048201526024016102e9565b6040517f3015394c000000000000000000000000000000000000000000000000000000008152600481018290527f00000000000000000000000000000000000000000000000000000000000000006001600160a01b031690633015394c90602401600060405180830381600087803b1580156103a957600080fd5b505af11580156103bd573d6000803e3d6000fd5b5050505050565b60018290557f0000000000000000000000000000000000000000000000000000000000000000336001600160a01b038216146104245760405163073e64fd60e21b81523360048201526001600160a01b03821660248201526044016102e9565b600480547fffffffffffffffffffffffffffffffff00000000000000000000000000000000166fffffffffffffffffffffffffffffffff8416179055505050565b6005546000906001600160a01b0316331461049557604051630543601560e11b81523360048201526024016102e9565b6040517f2f34077b0000000000000000000000000000000000000000000000000000000081526004810186905267ffffffffffffffff8516602482015263ffffffff8085166044830152831660648201527f00000000000000000000000000000000000000000000000000000000000000006001600160a01b031690632f34077b906084016020604051808303816000875af1158015610539573d6000803e3d6000fd5b505050506040513d601f19601f8201168201806040525081019061055d9190610f46565b95945050505050565b6005546000906001600160a01b0316331461059657604051630543601560e11b81523360048201526024016102e9565b6040517f75696e7431323800000000000000000000000000000000000000000000000000602082015260009060270160408051601f1981840301815291905280516020909101209050600160006105ec83610823565b90506106486040518060400160405280600381526020017f67657400000000000000000000000000000000000000000000000000000000008152506040518060600160405280603781526020016111d3603791398391906108a8565b6106c76040518060400160405280600481526020017f70617468000000000000000000000000000000000000000000000000000000008152506040518060400160405280600f81526020017f646174612c72617465732c555344540000000000000000000000000000000000815250836108a89092919063ffffffff16565b6107466040518060400160405280600581526020017f706f7731300000000000000000000000000000000000000000000000000000008152506040518060400160405280600181526020017f3800000000000000000000000000000000000000000000000000000000000000815250836108a89092919063ffffffff16565b6040517f752f8c140000000000000000000000000000000000000000000000000000000081526001600160a01b037f0000000000000000000000000000000000000000000000000000000000000000169063752f8c14906107b190849089908b908890600401610f5f565b6020604051808303816000875af11580156107d0573d6000803e3d6000fd5b505050506040513d601f19601f820116820180604052508101906107f49190610f46565b9695505050505050565b806000815181106108115761081161104f565b60200260200101516003819055505050565b6108616040805160a0810182526000808252602080830182905282840182905260608084018390528451808601909552845283015290608082015290565b6000828152600260205260409020546108a290829084907f00000000000000000000000000000000000000000000000000000000000000009060e01b6108c6565b92915050565b60808301516108b79083610951565b60808301516102fc9082610951565b6109046040805160a0810182526000808252602080830182905282840182905260608084018390528451808601909552845283015290608082015290565b6109148560800151610100610968565b50509183526001600160a01b031660208301527fffffffff0000000000000000000000000000000000000000000000000000000016604082015290565b61095e82600383516109cd565b6102fc8282610ae2565b604080518082019091526060815260006020820152610988602083611065565b156109b057610998602083611065565b6109a390602061109d565b6109ad90836110b0565b91505b506020828101829052604080518085526000815290920101905290565b60178167ffffffffffffffff16116109f8576109f28360e0600585901b168317610b10565b50505050565b60ff8167ffffffffffffffff1611610a3657610a1f836018611fe0600586901b1617610b10565b506109f28367ffffffffffffffff83166001610b35565b61ffff8167ffffffffffffffff1611610a7557610a5e836019611fe0600586901b1617610b10565b506109f28367ffffffffffffffff83166002610b35565b63ffffffff8167ffffffffffffffff1611610ab657610a9f83601a611fe0600586901b1617610b10565b506109f28367ffffffffffffffff83166004610b35565b610acb83601b611fe0600586901b1617610b10565b506109f28367ffffffffffffffff83166008610b35565b604080518082019091526060815260006020820152610b0983846000015151848551610b63565b9392505050565b604080518082019091526060815260006020820152610b098384600001515184610c4d565b604080518082019091526060815260006020820152610b5b848560000151518585610ca8565b949350505050565b6040805180820190915260608152600060208201528251821115610b8657600080fd5b6020850151610b9583866110b0565b1115610bc857610bc885610bb887602001518786610bb391906110b0565b610d29565b610bc39060026110c3565b610d40565b600080865180518760208301019350808887011115610be75787860182525b505050602084015b60208410610c275780518252610c066020836110b0565b9150610c136020826110b0565b9050610c2060208561109d565b9350610bef565b51815160001960208690036101000a019081169019919091161790525083949350505050565b60408051808201909152606081526000602082015283602001518310610c8257610c828485602001516002610bc391906110c3565b8351805160208583010184815350808503610c9e576001810182525b5093949350505050565b6040805180820190915260608152600060208201526020850151610ccc85846110b0565b1115610ce057610ce085610bb886856110b0565b60006001610cf0846101006111c6565b610cfa919061109d565b9050855183868201018583198251161781525080518487011115610d1e5783860181525b509495945050505050565b600081831115610d3a5750816108a2565b50919050565b8151610d4c8383610968565b506109f28382610ae2565b634e487b7160e01b600052604160045260246000fd5b60008060408385031215610d8057600080fd5b8235915060208084013567ffffffffffffffff80821115610da057600080fd5b818601915086601f830112610db457600080fd5b813581811115610dc657610dc6610d57565b8060051b604051601f19603f83011681018181108582111715610deb57610deb610d57565b604052918252848201925083810185019189831115610e0957600080fd5b938501935b82851015610e2757843584529385019392850192610e0e565b8096505050505050509250929050565b600060208284031215610e4957600080fd5b5035919050565b60008060408385031215610e6357600080fd5b8235915060208301356fffffffffffffffffffffffffffffffff81168114610e8a57600080fd5b809150509250929050565b803567ffffffffffffffff81168114610ead57600080fd5b919050565b803563ffffffff81168114610ead57600080fd5b60008060008060808587031215610edc57600080fd5b84359350610eec60208601610e95565b9250610efa60408601610eb2565b9150610f0860608601610eb2565b905092959194509250565b60008060408385031215610f2657600080fd5b610f2f83610e95565b9150610f3d60208401610eb2565b90509250929050565b600060208284031215610f5857600080fd5b5051919050565b6080815284516080820152600060206001600160a01b03818801511660a08401527fffffffff0000000000000000000000000000000000000000000000000000000060408801511660c0840152606087015160e0840152608087015160a06101008501528051604061012086015280518061016087015260005b81811015610ff65782810185015187820161018001528401610fd9565b506000868201610180908101919091529284015161014087015263ffffffff891684870152601f01601f1916850190910192506110309050565b5067ffffffffffffffff8416604083015260ff8316606083015261055d565b634e487b7160e01b600052603260045260246000fd5b60008261108257634e487b7160e01b600052601260045260246000fd5b500690565b634e487b7160e01b600052601160045260246000fd5b818103818111156108a2576108a2611087565b808201808211156108a2576108a2611087565b60008160001904831182151516156110dd576110dd611087565b500290565b600181815b8085111561111d57816000190482111561110357611103611087565b8085161561111057918102915b93841c93908002906110e7565b509250929050565b600082611134575060016108a2565b81611141575060006108a2565b816001811461115757600281146111615761117d565b60019150506108a2565b60ff84111561117257611172611087565b50506001821b6108a2565b5060208310610133831016604e8410600b84101617156111a0575081810a6108a2565b6111aa83836110e2565b80600019048211156111be576111be611087565b029392505050565b6000610b09838361112556fe68747470733a2f2f6170692e636f696e626173652e636f6d2f76322f65786368616e67652d72617465733f63757272656e63793d425443a2646970667358221220347ea5a62d173b90fe148553ca2d2611fd4b61eefd33d9bc753e8fde8b0fbe1064736f6c63430008100033",
+  "devdoc": {
+    "kind": "dev",
+    "methods": {},
+    "version": 1
+  },
+  "userdoc": {
+    "kind": "user",
+    "methods": {},
+    "version": 1
+  },
+  "storageLayout": {
+    "storage": [
+      {
+        "astId": 1716,
+        "contract": "contracts/InspectorConsumer.sol:InspectorConsumer",
+        "label": "vrfRequestId",
+        "offset": 0,
+        "slot": "0",
+        "type": "t_uint256"
+      },
+      {
+        "astId": 1718,
+        "contract": "contracts/InspectorConsumer.sol:InspectorConsumer",
+        "label": "rrRequestId",
+        "offset": 0,
+        "slot": "1",
+        "type": "t_uint256"
+      },
+      {
+        "astId": 1722,
+        "contract": "contracts/InspectorConsumer.sol:InspectorConsumer",
+        "label": "sJobIdToFunctionSelector",
+        "offset": 0,
+        "slot": "2",
+        "type": "t_mapping(t_bytes32,t_bytes4)"
+      },
+      {
+        "astId": 1511,
+        "contract": "contracts/InspectorConsumer.sol:InspectorConsumer",
+        "label": "sRandomWord",
+        "offset": 0,
+        "slot": "3",
+        "type": "t_uint256"
+      },
+      {
+        "astId": 1513,
+        "contract": "contracts/InspectorConsumer.sol:InspectorConsumer",
+        "label": "sResponse",
+        "offset": 0,
+        "slot": "4",
+        "type": "t_uint128"
+      },
+      {
+        "astId": 1515,
+        "contract": "contracts/InspectorConsumer.sol:InspectorConsumer",
+        "label": "sOwner",
+        "offset": 0,
+        "slot": "5",
+        "type": "t_address"
+      }
+    ],
+    "types": {
+      "t_address": {
+        "encoding": "inplace",
+        "label": "address",
+        "numberOfBytes": "20"
+      },
+      "t_bytes32": {
+        "encoding": "inplace",
+        "label": "bytes32",
+        "numberOfBytes": "32"
+      },
+      "t_bytes4": {
+        "encoding": "inplace",
+        "label": "bytes4",
+        "numberOfBytes": "4"
+      },
+      "t_mapping(t_bytes32,t_bytes4)": {
+        "encoding": "mapping",
+        "key": "t_bytes32",
+        "label": "mapping(bytes32 => bytes4)",
+        "numberOfBytes": "32",
+        "value": "t_bytes4"
+      },
+      "t_uint128": {
+        "encoding": "inplace",
+        "label": "uint128",
+        "numberOfBytes": "16"
+      },
+      "t_uint256": {
+        "encoding": "inplace",
+        "label": "uint256",
+        "numberOfBytes": "32"
+      }
+    }
+  }
+}
