@@ -88,7 +88,7 @@ export async function job(reporterQueue: QueueType, _logger: Logger) {
 
       const errorData: IErrorMsgData = {
         requestId: inData.requestId,
-        timestamp: new Date(Date.now()),
+        timestamp: new Date(Date.now()).toISOString(),
         code: e.code.toString(),
         name: e.name.toString(),
         stack: JSON.stringify(e)

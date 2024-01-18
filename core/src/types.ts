@@ -483,7 +483,7 @@ export interface ITransactionData {
 
 export interface IErrorMsgData {
   requestId: string
-  timestamp: Date
+  timestamp: Date | string
   code: string
   name: string
   stack: string
