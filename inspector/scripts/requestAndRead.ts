@@ -95,7 +95,8 @@ async function request() {
   const rrTx = await (
     await inspectorConsumer.requestRR(ACC_ID, callbackGasLimit)
   ).wait();
-  if (vrfTx.status == 1) {
+
+  if (rrTx.status == 1) {
     console.log("RR request: SUCCESS");
     console.log(`${explorerBaseUrl}/${rrTx.hash}`);
   } else {
