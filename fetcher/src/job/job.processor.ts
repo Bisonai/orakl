@@ -16,7 +16,7 @@ export class JobProcessor extends WorkerHost {
 
   async process(job: Job<any, any, string>): Promise<any> {
     const inData = job.data
-    const timestamp = new Date(Date.now()).toString()
+    const timestamp = new Date(Date.now()).toISOString();
 
     const keys = Object.keys(inData)
     if (keys.length == 0 || keys.length > 1) {

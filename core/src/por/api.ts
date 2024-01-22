@@ -34,7 +34,8 @@ export async function insertData({
   value: number
   logger: Logger
 }) {
-  const timestamp = new Date(Date.now()).toString()
+  const timestamp = new Date(Date.now()).toISOString()
+
   const data: IData[] = [
     {
       aggregatorId: aggregatorId.toString(),
@@ -68,7 +69,7 @@ export async function insertAggregateData({
   value: number
   logger: Logger
 }) {
-  const timestamp = new Date(Date.now()).toString()
+  const timestamp = new Date(Date.now()).toISOString()
   const data = {
     aggregatorId,
     timestamp,
