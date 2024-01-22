@@ -1,34 +1,47 @@
 # Inspector
 
-## Deploy contract
+## Deploy `InspectorConsumer` Contract
 
-`npx hardhat deploy --network baobab`
+```shell
+npx hardhat deploy --network baobab
+```
 
-## Run Script
+## Scripts
 
-### Create Account
+### Create Orakl Network Account
 
-- Creates orakl account
-
-`npx hardhat run scripts/createAccount.ts --network baobab`
+```shell
+npx hardhat run scripts/createAccount.ts --network baobab
+```
 
 ### Add Consumer
 
-- Adds deployed InspectorConsumerContract to the account consumer
-- `ACC_ID` which stands for account id should be set as environment variable
+- Add deployed `InspectorConsumer` contract to the consumer account.
+- Environment variable `ACC_ID` must be set before running the script below.
 
-`npx hardhat run scripts/addConsumer.ts --network baobab`
+```shell
+npx hardhat run scripts/addConsumer.ts --network baobab
+```
 
 ### Fund Account
 
-- Funds 5 klay to orakl account
-- `ACC_ID` which stands for account id should be set as environment variable
+- Fund 5 $KLAY to Orakl Network account.
+- Environment variable `ACC_ID` must be set before running the script below.
 
-`npx hardhat run scripts/fundAccount.ts --network baobab`
+```shell
+npx hardhat run scripts/fundAccount.ts --network baobab
+```
 
-### requestAndRead
+### Request And Read
 
-- Reads values before and after requesting rr & vrf
-- Checks rr,vrf for value changes
+1. Read the last fulfilled values for VRF & RR.
+2. Create a new requests for VRF & RR.
+3. After a short while, read the last fulfilled values again.
+4. Compare old and new fulfilled values, and see whether they changed.
+5. If there are no changes in values, fulfillment has not been performed or there is a delay in the system.
 
-`npx hardhat run scripts/requestAndRead.ts --network baobab`
+- Environment variable `ACC_ID` must be set before running the script below.
+
+```shell
+npx hardhat run scripts/requestAndRead.ts --network baobab
+```

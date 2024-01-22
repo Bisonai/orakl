@@ -24,16 +24,19 @@ async function main() {
     rrResponseBefore == rrResponseAfter ||
     rrRequestIdBefore == rrRequestIdAfter
   ) {
-    throw "check if request response is alive";
+    console.error("RR fulfillment: FAILURE");
+  } else {
+    console.log("RR fulfillment: SUCCESS");
   }
+
   if (
     vrfResponseBefore == vrfResponseAfter ||
     vrfRequestIdBefore == vrfRequestIdAfter
   ) {
-    throw "check if vrf is alive";
+    console.error("VRF fulfillment: FAILURE");
+  } else {
+    console.log("VRF fulfillment: SUCCESS");
   }
-
-  console.log("successful");
 }
 
 async function read() {
@@ -54,10 +57,13 @@ async function read() {
 
 async function request() {
   let ACC_ID;
+  let explorerBaseUrl;
   if (network.name == "baobab") {
     ACC_ID = process.env.BAOBAB_ACC_ID;
+    explorerBaseUrl = "https://baobab.klaytnfinder.io/tx";
   } else {
     ACC_ID = process.env.CYPRESS_ACC_ID;
+    explorerBaseUrl = "https://klaytnfinder.io/tx";
   }
 
   const _inspectorConsumer = await deployments.get("InspectorConsumer");
@@ -70,7 +76,7 @@ async function request() {
   const callbackGasLimit = 500_000;
   const numWords = 1;
 
-  await (
+  const vrfTx = await (
     await inspectorConsumer.requestVRF(
       keyHash,
       ACC_ID,
@@ -79,11 +85,23 @@ async function request() {
     )
   ).wait();
 
-  console.log("Requested random words");
+  if (vrfTx.status == 1) {
+    console.log("VRF request: SUCCESS");
+    console.log(`${explorerBaseUrl}/${vrfTx.hash}`);
+  } else {
+    console.error("VRF request: FAILURE");
+  }
 
-  await (await inspectorConsumer.requestRR(ACC_ID, callbackGasLimit)).wait();
+  const rrTx = await (
+    await inspectorConsumer.requestRR(ACC_ID, callbackGasLimit)
+  ).wait();
 
-  console.log("Requested data");
+  if (rrTx.status == 1) {
+    console.log("RR request: SUCCESS");
+    console.log(`${explorerBaseUrl}/${rrTx.hash}`);
+  } else {
+    console.error("RR request: FAILURE");
+  }
 }
 
 main().catch((error) => {
