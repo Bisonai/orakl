@@ -29,9 +29,7 @@ export function reporter(state: State, logger: Logger) {
           await sendTransactionDelegatedFee(txParams)
           break
         } catch (e) {
-          if (e.code == OraklErrorCode.DelegatorServerIssue) {
-            delegatorOkay = false
-          }
+          delegatorOkay = false
         }
       } else if (state.delegatedFee) {
         try {

@@ -7,7 +7,7 @@ describe('Test Caver-js', function () {
 
   if (process.env.GITHUB_ACTIONS) {
     test('Send signed tx with is caver-js on Baobab', async function () {
-      const PROVIDER_URL = 'https://api.baobab.klaytn.net:8651'
+      const PROVIDER_URL = 'https://klaytn-baobab-rpc.allthatnode.com:8551'
       const caver = new Caver(PROVIDER_URL)
       const privateKey = process.env.CAVER_PRIVATE_KEY || ''
       const account = caver.klay.accounts.wallet.add(privateKey)
