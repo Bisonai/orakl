@@ -42,9 +42,9 @@ check_used_tags() {
             worker_tag=$(echo "${helm_chart}" | yq eval '.global.image.workerTag')
             reporter_tag=$(echo "${helm_chart}" | yq eval '.global.image.reporterTag')
 
-            check_tag ${listener_tag}
-            check_tag ${worker_tag}
-            check_tag ${reporter_tag}
+            check_tag ${listener_tag} "listener"
+            check_tag ${worker_tag} "worker"
+            check_tag ${reporter_tag} "reporter"
 
             continue
         fi
@@ -55,6 +55,12 @@ check_used_tags() {
 
 check_tag() {
     tag="${1}"
+    tag_name="${2}"
+    if [ -z "${tag_name}" ]; then
+        tag_name=""
+    else
+        tag_name=", ${tag_name}"
+    fi
 
     found_tag=false
     for i in $(seq 0 $((tag_count - 1))); do
@@ -65,9 +71,9 @@ check_tag() {
     done
 
     if [ "${found_tag}" = false ]; then
-        echo "(${chain}) ${repository_name}: ${service_name} FAIL ($tag)"
+        echo "(${chain}) ${repository_name}: ${service_name} FAIL (${tag}${tag_name})"
     else
-        echo "(${chain}) ${repository_name}: ${service_name} OK ($tag)"
+        echo "(${chain}) ${repository_name}: ${service_name} OK (${tag}${tag_name})"
     fi
 }
 
