@@ -4,8 +4,8 @@
 
 # Check the number of tags for a repository
 check_repository_tags() {
-    repository_name="$1"
-    max_tag_count="$2"
+    repository_name="${1}"
+    max_tag_count="${2}"
     service_names="${@:3}"
 
     # Make the API call
@@ -30,14 +30,14 @@ check_repository_tags() {
 }
 
 check_used_tags() {
-    chain="$1"
+    chain="${1}"
 
     for service_name in ${service_names}; do
         helm_chart=$(curl -s --raw https://raw.githubusercontent.com/Bisonai/orakl-helm-charts/gcp-${chain}-prod/${service_name}/values.yaml)
         tag=$(echo "${helm_chart}" | yq eval '.global.image.tag')
 
         # Sometimes we split tags into listener, worker, and reporter.
-        if [ "$tag" = "null" ]; then
+        if [ "${tag}" = "null" ]; then
             listener_tag=$(echo "${helm_chart}" | yq eval '.global.image.listenerTag')
             worker_tag=$(echo "${helm_chart}" | yq eval '.global.image.workerTag')
             reporter_tag=$(echo "${helm_chart}" | yq eval '.global.image.reporterTag')
@@ -49,35 +49,22 @@ check_used_tags() {
             continue
         fi
 
-        # Sometimes, there is just single tag.
-        found_tag=false
-        for i in $(seq 0 $((tag_count - 1))); do
-            cur_image_tag=$(echo "$available_tags" | jq -r ".imageTagDetails[$i].imageTag")
-            if [ "$cur_image_tag" = "$tag" ]; then
-                found_tag=true
-            fi
-        done
-
-        if [ "$found_tag" = false ]; then
-            echo "(${chain}) ${repository_name}: ${service_name} FAIL ($tag)"
-        else
-            echo "(${chain}) ${repository_name}: ${service_name} OK ($tag)"
-        fi
+        check_tag ${tag}
     done
 }
 
 check_tag() {
-    tag="$1"
+    tag="${1}"
 
     found_tag=false
     for i in $(seq 0 $((tag_count - 1))); do
-        cur_image_tag=$(echo "$available_tags" | jq -r ".imageTagDetails[$i].imageTag")
-        if [ "$cur_image_tag" = "$tag" ]; then
+        cur_image_tag=$(echo "${available_tags}" | jq -r ".imageTagDetails[$i].imageTag")
+        if [ "${cur_image_tag}" = "${tag}" ]; then
             found_tag=true
         fi
     done
 
-    if [ "$found_tag" = false ]; then
+    if [ "${found_tag}" = false ]; then
         echo "(${chain}) ${repository_name}: ${service_name} FAIL ($tag)"
     else
         echo "(${chain}) ${repository_name}: ${service_name} OK ($tag)"
