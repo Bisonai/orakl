@@ -287,6 +287,16 @@ func (n *Node) getSubscribers() []peer.ID {
 	return n.Ps.ListPeers(n.Topic.String())
 }
 
+func (n *Node) PrintInfo() {
+	fmt.Printf("Node ID: %s\n", n.Host.ID().String())
+	fmt.Printf("Topic: %s\n", n.Topic.String())
+	fmt.Printf("Number of Subscribers: %d\n", n.getSubscribersCount())
+}
+
+func (n *Node) String() string {
+	return fmt.Sprintf("Node ID: %s, Topic: %s, Number of Subscribers: %d", n.Host.ID().String(), n.Topic.String(), n.getSubscribersCount())
+}
+
 func executeAtEndOfInterval(start time.Time, interval time.Duration, function func()) {
 	elapsed := time.Since(start)
 	remaining := interval - elapsed
