@@ -6,28 +6,40 @@ import "./interfaces/IAggregatorSubmit.sol";
 
 contract BatchSubmission is Ownable {
     uint256 maxSubmission = 50;
-    mapping(address => bool) public oracleAddresses;
+    address[] public oracleAddresses;
 
     error OnlyOracle();
     error InvalidOracle();
-    error InvalidLength();
+    error InvalidSubmissionLength();
 
     event OracleAdded(address oracle);
     event OracleRemoved(address oracle);
     event MaxSubmissionSet(uint256 maxSubmission);
-    event Submited(uint256 aggreagtorAmount);
 
     constructor() {}
 
+    function getOracles() public view returns (address[] memory) {
+        return oracleAddresses;
+    }
+
     function addOracle(address _oracle) public onlyOwner {
-        oracleAddresses[_oracle] = true;
+        oracleAddresses.push(_oracle);
         emit OracleAdded(_oracle);
     }
 
     function removeOracle(address _oracle) public onlyOwner {
-        if (!oracleAddresses[_oracle]) revert InvalidOracle();
-        delete oracleAddresses[_oracle];
-        emit OracleRemoved(_oracle);
+        bool isOracleRemoved = false;
+        for (uint256 i = 0; i < oracleAddresses.length; ++i) {
+            if (oracleAddresses[i] == _oracle) {
+                address last = oracleAddresses[oracleAddresses.length - 1];
+                oracleAddresses[i] = last;
+                oracleAddresses.pop();
+                isOracleRemoved = true;
+                break;
+            }
+        }
+        if (isOracleRemoved) emit OracleRemoved(_oracle);
+        else revert InvalidOracle();
     }
 
     function setMaxSubmission(uint256 _maxSubmission) public onlyOwner {
@@ -35,7 +47,14 @@ contract BatchSubmission is Ownable {
     }
 
     modifier onlyOracle() {
-        if (oracleAddresses[msg.sender] == false) revert OnlyOracle();
+        bool isOracle = false;
+        for (uint256 i = 0; i < oracleAddresses.length; ++i) {
+            if (oracleAddresses[i] == msg.sender) {
+                isOracle = true;
+                break;
+            }
+        }
+        if (!isOracle) revert OnlyOracle();
         _;
     }
 
@@ -46,10 +65,9 @@ contract BatchSubmission is Ownable {
     ) public onlyOracle {
         if (
             !(_aggregators.length == _roundIds.length && _aggregators.length == _submissions.length)
-        ) revert InvalidLength();
+        ) revert InvalidSubmissionLength();
         for (uint i = 0; i < _aggregators.length; i++) {
             IAggregator(_aggregators[i]).submit(_roundIds[i], _submissions[i]);
         }
-        emit Submited(_aggregators.length);
     }
 }

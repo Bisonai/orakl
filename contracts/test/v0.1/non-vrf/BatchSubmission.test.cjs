@@ -76,13 +76,14 @@ describe('Batch submision', function () {
     await expect(
       batchSubmission.contract.removeOracle(oracle1.address)
     ).to.be.revertedWithCustomError(batchSubmission.contract, 'InvalidOracle')
-    const isOracleBeforeRemove = await batchSubmission.contract.oracleAddresses(oracle0.address)
-    expect(isOracleBeforeRemove).to.be.equal(true)
+    let oracles = await batchSubmission.contract.getOracles()
+    console.log(oracles)
+    expect(oracles.length).to.be.equal(1)
     // Remove oracle that has been added before
     await batchSubmission.contract.removeOracle(oracle0.address)
 
-    const isOracleAfterRemove = await batchSubmission.contract.oracleAddresses(oracle0.address)
-    expect(isOracleAfterRemove).to.be.equal(false)
+    oracles = await batchSubmission.contract.getOracles()
+    expect(oracles.length).to.be.equal(0)
   })
 
   it('batch submit & read data', async function () {
@@ -114,9 +115,7 @@ describe('Batch submision', function () {
       else return { ...batchSubmisionIface.parseLog(txReceipt0.events[i]) }
     })
 
-    expect(events.length).to.be.equal(7)
-    expect(events[6].name).to.be.equal('Submited')
-    expect(events[6].args[0]).to.be.equal(2)
+    expect(events.length).to.be.equal(6)
 
     expect(events[0].name).to.be.equal('NewRound')
     expect(events[1].name).to.be.equal('SubmissionReceived')
