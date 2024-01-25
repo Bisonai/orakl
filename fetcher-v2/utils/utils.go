@@ -16,3 +16,13 @@ func GetIDFromTimestamp(rangeSize int64, t time.Time) string {
 
 	return fmt.Sprintf("%d", rangeID)
 }
+
+func executeAtEndOfInterval(start time.Time, interval time.Duration, function func()) {
+	elapsed := time.Since(start)
+	remaining := interval - elapsed
+
+	if remaining > 0 {
+		<-time.After(remaining)
+		function()
+	}
+}
