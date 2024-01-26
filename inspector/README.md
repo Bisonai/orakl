@@ -45,3 +45,22 @@ npx hardhat run scripts/fundAccount.ts --network baobab
 ```shell
 npx hardhat run scripts/requestAndRead.ts --network baobab
 ```
+
+### Request And Read (Hardhat Task)
+
+```shell
+# baobab vrf
+npx hardhat inspect --network baobab --service vrf
+# baobab rr
+npx hardhat inspect --network baobab --service rr
+# baobab all
+npx harhdat inspect --network baobab
+
+# cypress vrf
+npx hardhat inspect --network cypress --service vrf
+# cypress rr
+npx hardhat inspect --network cypress --service rr
+# cypress all
+npx hardhat inspect --network cypress
+
+```
