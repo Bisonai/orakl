@@ -24,6 +24,7 @@ export async function readVrf(inspectorConsumer: Contract) {
   const vrfRequestId = await inspectorConsumer.vrfRequestId();
   return { sRandomWord, vrfRequestId };
 }
+
 export async function readRr(inspectorConsumer: Contract) {
   const sResponse = await inspectorConsumer.sResponse();
   const rrRequestId = await inspectorConsumer.rrRequestId();
@@ -31,17 +32,17 @@ export async function readRr(inspectorConsumer: Contract) {
 }
 
 export async function requestAll(
-  ACC_ID: string,
+  accId: string,
   explorerBaseUrl: string,
   inspectorConsumer: Contract,
   networkName: string
 ) {
-  await requestVrf(ACC_ID, explorerBaseUrl, inspectorConsumer, networkName);
-  await requestRr(ACC_ID, explorerBaseUrl, inspectorConsumer);
+  await requestVrf(accId, explorerBaseUrl, inspectorConsumer, networkName);
+  await requestRr(accId, explorerBaseUrl, inspectorConsumer);
 }
 
 export async function requestVrf(
-  ACC_ID: string,
+  accId: string,
   explorerBaseUrl: string,
   inspectorConsumer: Contract,
   networkName: string
@@ -53,7 +54,7 @@ export async function requestVrf(
   const vrfTx = await (
     await inspectorConsumer.requestVRF(
       keyHash,
-      ACC_ID,
+      accId,
       callbackGasLimit,
       numWords
     )
@@ -61,21 +62,21 @@ export async function requestVrf(
 
   if (vrfTx.status == 1) {
     console.log("VRF request: SUCCESS");
-    console.log(`${explorerBaseUrl}/${vrfTx.hash}`);
   } else {
     console.error("VRF request: FAILURE");
   }
+  console.log(`${explorerBaseUrl}/${vrfTx.hash}`);
 }
 
 export async function requestRr(
-  ACC_ID: string,
+  accId: string,
   explorerBaseUrl: string,
   inspectorConsumer: Contract
 ) {
   const callbackGasLimit = 500_000;
 
   const rrTx = await (
-    await inspectorConsumer.requestRR(ACC_ID, callbackGasLimit)
+    await inspectorConsumer.requestRR(accId, callbackGasLimit)
   ).wait();
 
   if (rrTx.status == 1) {
