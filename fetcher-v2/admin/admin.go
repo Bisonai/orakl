@@ -15,7 +15,7 @@ import (
 type AppContext struct {
 	DiscoverString string
 	Host           *host.Host
-	Nodes          map[string]*utils.Node
+	Nodes          map[string]*utils.FetcherNode
 	Peers          map[peer.ID]peer.AddrInfo
 }
 
@@ -50,8 +50,15 @@ func Run(port string, appContext AppContext) {
 
 	v1.Get("/connected-peers", func(c *fiber.Ctx) error {
 		h := c.Locals("host").(*host.Host)
-		return c.JSON((*h).Network().Peers())
+		conns := (*h).Network().Conns()
+		peers := make([]string, 0, len(conns))
+		for _, conn := range conns {
+			peers = append(peers, conn.RemotePeer().String())
+		}
+		return c.JSON(peers)
 	})
+
+	v1.Get("/discovered-peers", getAllDiscoveredPeers)
 
 	v1.Get("/node", getAllNodesInfo)
 	v1.Get("/node/:topic", getNodeInfo)
@@ -65,5 +72,9 @@ func Run(port string, appContext AppContext) {
 	v1.Post("/node/:topic/start", startNode)
 	v1.Post("/node/:topic/stop", stopNode)
 
-	log.Fatal(app.Listen(fmt.Sprintf(":%s", port)))
+	err := app.Listen(fmt.Sprintf(":%s", port))
+	if err != nil {
+		log.Printf("Failed to start server: %v", err)
+		return
+	}
 }

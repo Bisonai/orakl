@@ -24,15 +24,15 @@ func GetHost(c *fiber.Ctx) (*host.Host, error) {
 	return h, nil
 }
 
-func GetNodes(c *fiber.Ctx) (map[string]*Node, error) {
-	nodes, ok := c.Locals("nodes").(map[string]*Node)
+func GetNodes(c *fiber.Ctx) (map[string]*FetcherNode, error) {
+	nodes, ok := c.Locals("nodes").(map[string]*FetcherNode)
 	if !ok {
 		return nodes, errors.New("failed to load nodes")
 	}
 	return nodes, nil
 }
 
-func GetNode(c *fiber.Ctx, topic string) (*Node, error) {
+func GetNode(c *fiber.Ctx, topic string) (*FetcherNode, error) {
 	nodes, err := GetNodes(c)
 	if err != nil {
 		return nil, err
@@ -44,7 +44,7 @@ func GetNode(c *fiber.Ctx, topic string) (*Node, error) {
 	return node, nil
 }
 
-func SetNode(c *fiber.Ctx, topic string, node *Node) error {
+func SetNode(c *fiber.Ctx, topic string, node *FetcherNode) error {
 	nodes, err := GetNodes(c)
 	if err != nil {
 		return err

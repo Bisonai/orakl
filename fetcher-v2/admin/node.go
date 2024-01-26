@@ -20,9 +20,28 @@ func discover(c *fiber.Ctx) error {
 		log.Panicf("failed to load discover string: %s", err)
 	}
 
-	go utils.DiscoverPeers(c.Context(), *h, s)
+	discoveredPeers, err := utils.GetPeers(c)
+	if err != nil {
+		log.Panicf("failed to load discovered peers: %s", err)
+	}
+
+	go utils.DiscoverPeers(c.Context(), *h, s, discoveredPeers)
 
 	return c.SendString("triggered peer discovery")
+}
+
+func getAllDiscoveredPeers(c *fiber.Ctx) error {
+	peers, err := utils.GetPeers(c)
+	if err != nil {
+		log.Panicf("failed to load peers: %s", err)
+	}
+
+	peerList := make([]string, 0, len(peers))
+	for _, peer := range peers {
+		peerList = append(peerList, peer.String())
+	}
+
+	return c.JSON(peerList)
 }
 
 func getAllNodesInfo(c *fiber.Ctx) error {
@@ -52,13 +71,15 @@ func getNodeInfo(c *fiber.Ctx) error {
 }
 
 func addNode(c *fiber.Ctx) error {
+
 	h, err := utils.GetHost(c)
 	if err != nil {
 		log.Panicf("failed to load host: %s", err)
 	}
 
 	topicString := c.Params("topic")
-	node, err := utils.NewNode(c.Context(), *h, topicString)
+
+	node, err := utils.NewNode(*h, topicString)
 	if err != nil {
 		log.Panicf("failed to create node: %s", err)
 	}
@@ -89,7 +110,8 @@ func startNode(c *fiber.Ctx) error {
 	if err != nil {
 		log.Panicf("failed to load node: %s", err)
 	}
-	node.Start(c.Context(), time.Second*2)
+
+	node.Start(time.Second * 2)
 	return c.SendString("node(" + topicString + ") started")
 }
 
@@ -111,7 +133,7 @@ func addMultipleDummyNodes(c *fiber.Ctx) error {
 			log.Panicf("failed to load host: %s", err)
 		}
 
-		node, err := utils.NewNode(c.Context(), *h, topicString)
+		node, err := utils.NewNode(*h, topicString)
 		if err != nil {
 			log.Panicf("failed to create node: %s", err)
 		}
@@ -146,7 +168,7 @@ func startAll(c *fiber.Ctx) error {
 		if node.Cancel != nil {
 			continue
 		}
-		node.Start(c.Context(), time.Second*5)
+		node.Start(time.Second * 5)
 	}
 
 	return c.SendString("all nodes started")

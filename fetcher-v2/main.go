@@ -14,23 +14,30 @@ import (
 )
 
 func main() {
+
 	discoverString := "orakl-test-discover-2024"
 	port := flag.Int("p", 0, "app port")
+	discoveredPeers := make(map[peer.ID]peer.AddrInfo)
 	flag.Parse()
 	if *port == 0 {
 		log.Fatal("app port is required")
 	}
 
-	h, err := utils.MakeHost(*port + 7000)
+	h, err := utils.MakeHost(*port + 6999)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	go utils.DiscoverPeers(context.Background(), h, discoverString)
+	log.Println("trying to establish initial connection")
+	go utils.DiscoverPeers(context.Background(), h, discoverString, discoveredPeers)
+	// healthCheckNode, err := utils.NewHealthCheckerNode(context.Background(), h, "orakl-nodes-syncer-2024")
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
+	// healthCheckNode.Start(context.Background(), 10*time.Second)
 
-	nodes := make(map[string]*utils.Node)
+	nodes := make(map[string]*utils.FetcherNode)
 	// will be tracked to track connected peers
-	discoveredPeers := make(map[peer.ID]peer.AddrInfo)
 
 	appContext := admin.AppContext{
 		DiscoverString: discoverString,
@@ -38,6 +45,7 @@ func main() {
 		Nodes:          nodes,
 		Peers:          discoveredPeers,
 	}
+
 	var wg sync.WaitGroup
 	wg.Add(1)
 	go func() {
@@ -45,4 +53,5 @@ func main() {
 		admin.Run(strconv.Itoa(*port), appContext)
 	}()
 	wg.Wait()
+
 }

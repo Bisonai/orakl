@@ -21,7 +21,7 @@ import (
 func MakeHost(listenPort int) (host.Host, error) {
 	r := rand.Reader
 
-	priv, _, err := crypto.GenerateKeyPairWithReader(crypto.RSA, 2048, r)
+	priv, _, err := crypto.GenerateKeyPairWithReader(crypto.Ed25519, 2048, r)
 	if err != nil {
 		return nil, err
 	}
@@ -64,7 +64,7 @@ func initDHT(ctx context.Context, h host.Host) *dht.IpfsDHT {
 		go func() {
 			defer wg.Done()
 			if err := h.Connect(ctx, *peerinfo); err != nil {
-				// log.Println("Bootstrap warning:", err)
+				log.Println("Bootstrap warning:", err)
 			}
 		}()
 	}
@@ -73,7 +73,7 @@ func initDHT(ctx context.Context, h host.Host) *dht.IpfsDHT {
 	return kademliaDHT
 }
 
-func DiscoverPeers(ctx context.Context, h host.Host, topicName string) {
+func DiscoverPeers(ctx context.Context, h host.Host, topicName string, discoveredPeers map[peer.ID]peer.AddrInfo) {
 	kademliaDHT := initDHT(ctx, h)
 	routingDiscovery := drouting.NewRoutingDiscovery(kademliaDHT)
 	dutil.Advertise(ctx, routingDiscovery, topicName)
@@ -81,7 +81,7 @@ func DiscoverPeers(ctx context.Context, h host.Host, topicName string) {
 	// Look for others who have announced and attempt to connect to them
 	anyConnected := false
 	for !anyConnected {
-		// log.Println("Searching for peers...")
+		log.Println("Searching for peers...")
 		peerChan, err := routingDiscovery.FindPeers(ctx, topicName)
 		if err != nil {
 			panic(err)
@@ -97,8 +97,28 @@ func DiscoverPeers(ctx context.Context, h host.Host, topicName string) {
 			} else {
 				// log.Println("Connected to:", peer.ID)
 				anyConnected = true
+				discoveredPeers[peer.ID] = peer
 			}
 		}
 	}
 	log.Println("Peer discovery complete")
+}
+
+func ConnectToPeer(ctx context.Context, h host.Host, peerID peer.ID) error {
+	// Assume you have a DHT instance in dht
+	kademliaDHT := initDHT(ctx, h)
+
+	// Find the peer's AddrInfo
+	peerInfo, err := kademliaDHT.FindPeer(ctx, peerID)
+	if err != nil {
+		return fmt.Errorf("failed to find peer: %w", err)
+	}
+
+	// Connect to the peer
+	if err := h.Connect(ctx, peerInfo); err != nil {
+		return fmt.Errorf("failed to connect to peer: %w", err)
+	}
+	log.Println("connected directly to peer:", peerID)
+
+	return nil
 }
