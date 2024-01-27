@@ -54,7 +54,7 @@ npx hardhat inspect --network baobab --service vrf
 # baobab rr
 npx hardhat inspect --network baobab --service rr
 # baobab all
-npx harhdat inspect --network baobab
+npx hardhat inspect --network baobab
 
 # cypress vrf
 npx hardhat inspect --network cypress --service vrf
@@ -62,5 +62,4 @@ npx hardhat inspect --network cypress --service vrf
 npx hardhat inspect --network cypress --service rr
 # cypress all
 npx hardhat inspect --network cypress
-
 ```
