@@ -1,4 +1,6 @@
 import { HardhatUserConfig, task } from "hardhat/config";
+import "./inspector-task";
+
 import "@nomicfoundation/hardhat-toolbox";
 import "hardhat-deploy";
 import dotenv from "dotenv";
