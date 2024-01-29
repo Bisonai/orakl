@@ -1,4 +1,4 @@
-module bisonai.com/fetcher/v2
+module bisonai.com/orakl/node
 
 go 1.21.5
 

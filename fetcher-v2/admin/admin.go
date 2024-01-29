@@ -4,10 +4,11 @@ import (
 	"fmt"
 	"log"
 
-	"bisonai.com/fetcher/v2/utils"
+	"bisonai.com/orakl/node/utils"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/gofiber/fiber/v2/middleware/recover"
+	pubsub "github.com/libp2p/go-libp2p-pubsub"
 	"github.com/libp2p/go-libp2p/core/host"
 	"github.com/libp2p/go-libp2p/core/peer"
 )
@@ -15,6 +16,7 @@ import (
 type AppContext struct {
 	DiscoverString string
 	Host           *host.Host
+	Pubsub         *pubsub.PubSub
 	Nodes          map[string]*utils.FetcherNode
 	Peers          map[peer.ID]peer.AddrInfo
 }
@@ -29,6 +31,7 @@ func Run(port string, appContext AppContext) {
 		c.Locals("nodes", appContext.Nodes)
 		c.Locals("peers", appContext.Peers)
 		c.Locals("discoverString", appContext.DiscoverString)
+		c.Locals("pubsub", appContext.Pubsub)
 		return c.Next()
 	})
 
@@ -64,7 +67,7 @@ func Run(port string, appContext AppContext) {
 	v1.Get("/node/:topic", getNodeInfo)
 
 	v1.Post("/node/discover", discover)
-	v1.Post("/node/dummy", addMultipleDummyNodes)
+
 	v1.Post("/node/start", startAll)
 	v1.Post("/node/stop", stopAll)
 

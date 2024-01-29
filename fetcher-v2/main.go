@@ -9,14 +9,15 @@ import (
 
 	"github.com/libp2p/go-libp2p/core/peer"
 
-	"bisonai.com/fetcher/v2/admin"
-	"bisonai.com/fetcher/v2/utils"
+	"bisonai.com/orakl/node/admin"
+	"bisonai.com/orakl/node/utils"
 )
 
 func main() {
-
 	discoverString := "orakl-test-discover-2024"
 	port := flag.Int("p", 0, "app port")
+	bootstrap := flag.String("bootstrap", "", "bootstrap node multiaddress")
+
 	discoveredPeers := make(map[peer.ID]peer.AddrInfo)
 	flag.Parse()
 	if *port == 0 {
@@ -28,22 +29,26 @@ func main() {
 		log.Fatal(err)
 	}
 
+	ps, err := utils.MakePubsub(context.Background(), h)
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	log.Println("trying to establish initial connection")
-	go utils.DiscoverPeers(context.Background(), h, discoverString, discoveredPeers)
-	// healthCheckNode, err := utils.NewHealthCheckerNode(context.Background(), h, "orakl-nodes-syncer-2024")
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
-	// healthCheckNode.Start(context.Background(), 10*time.Second)
+	if *bootstrap != "" {
+		log.Println("bootstrap:" + *bootstrap)
+	}
+
+	go utils.DiscoverPeers(context.Background(), h, discoverString, *bootstrap, discoveredPeers)
 
 	nodes := make(map[string]*utils.FetcherNode)
-	// will be tracked to track connected peers
 
 	appContext := admin.AppContext{
 		DiscoverString: discoverString,
 		Host:           &h,
 		Nodes:          nodes,
 		Peers:          discoveredPeers,
+		Pubsub:         ps,
 	}
 
 	var wg sync.WaitGroup

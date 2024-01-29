@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"strings"
 	"sync"
 	"time"
 
@@ -30,24 +29,12 @@ type SampleData struct {
 	ID     string `json:"id"`
 }
 
-func NewNode(host host.Host, topicString string) (*FetcherNode, error) {
+func NewNode(host host.Host, ps *pubsub.PubSub, topicString string) (*FetcherNode, error) {
 	var fetcherSubParams = pubsub.DefaultGossipSubParams()
 
 	fetcherSubParams.D = 2
 	fetcherSubParams.Dlo = 1
 	fetcherSubParams.Dhi = 3
-
-	var fetcherNodeFilter pubsub.PeerFilter = func(pid peer.ID, topic string) bool {
-		return topic == topicString && strings.HasPrefix(pid.String(), "12D")
-	}
-
-	ctx := context.Background()
-	fmt.Println("subscribing to topic:", topicString)
-
-	ps, err := pubsub.NewGossipSub(ctx, host, pubsub.WithPeerFilter(fetcherNodeFilter), pubsub.WithGossipSubParams(fetcherSubParams))
-	if err != nil {
-		return nil, err
-	}
 
 	topic, err := ps.Join(topicString)
 	if err != nil {
@@ -127,7 +114,10 @@ func (n *FetcherNode) publish(ctx context.Context, interval time.Duration) {
 			log.Printf("(%s) published %s:%d\n", hostId[len(hostId)-4:], data.ID, data.Number)
 
 			executeAtEndOfInterval(start, interval, func() {
-				n.calculateAverage(id)
+				err := n.calculateAverage(id)
+				if err != nil {
+					log.Println(err.Error())
+				}
 			})
 		case <-ctx.Done():
 			log.Println("stoppping publish")
@@ -171,11 +161,11 @@ func (n *FetcherNode) subscribe(ctx context.Context) {
 	}
 }
 
-func (n *FetcherNode) calculateAverage(id string) int {
+func (n *FetcherNode) calculateAverage(id string) error {
 	n.NodeMutex.Lock()
 	defer n.NodeMutex.Unlock()
 	if len(n.Data) == 0 {
-		return 0
+		return fmt.Errorf("no data to calculate average")
 	}
 
 	sum := 0
@@ -183,13 +173,13 @@ func (n *FetcherNode) calculateAverage(id string) int {
 		sum += num
 	}
 
+	result := sum / len(n.Data[id])
 	if len(n.Data[id]) > 1 {
-		fmt.Printf("topic: %s, id: %s, average:%d\n", n.Topic.String(), id, sum/len(n.Data[id]))
+		fmt.Printf("topic: %s, id: %s, average:%d\n", n.Topic.String(), id, result)
 	}
 
-	result := sum / len(n.Data)
 	delete(n.Data, id)
-	return result
+	return nil
 }
 
 func (n *FetcherNode) getSubscribersCount() int {

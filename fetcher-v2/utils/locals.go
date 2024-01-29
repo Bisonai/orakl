@@ -4,6 +4,7 @@ import (
 	"errors"
 
 	"github.com/gofiber/fiber/v2"
+	pubsub "github.com/libp2p/go-libp2p-pubsub"
 	"github.com/libp2p/go-libp2p/core/host"
 	"github.com/libp2p/go-libp2p/core/peer"
 )
@@ -22,6 +23,14 @@ func GetHost(c *fiber.Ctx) (*host.Host, error) {
 		return h, errors.New("failed to load host")
 	}
 	return h, nil
+}
+
+func GetPubsub(c *fiber.Ctx) (*pubsub.PubSub, error) {
+	ps, ok := c.Locals("pubsub").(*pubsub.PubSub)
+	if !ok {
+		return ps, errors.New("failed to load pubsub")
+	}
+	return ps, nil
 }
 
 func GetNodes(c *fiber.Ctx) (map[string]*FetcherNode, error) {
