@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.20;
 
-import "@openzeppelin/contracts/access/Ownable.sol";
-import "./interfaces/IAggregatorSubmit.sol";
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {IAggregator} from "./interfaces/IAggregatorSubmit.sol";
 
-contract BatchSubmission is Ownable {
+contract SubmissionProxy is Ownable {
     uint256 maxSubmission = 50;
     address[] public oracleAddresses;
     mapping(address => bool) oracles;
@@ -30,19 +30,19 @@ contract BatchSubmission is Ownable {
     }
 
     function removeOracle(address _oracle) public onlyOwner {
-        bool isOracleRemoved = false;
+        if (!oracles[_oracle]) {
+            revert InvalidOracle();
+        }
         for (uint256 i = 0; i < oracleAddresses.length; ++i) {
             if (oracleAddresses[i] == _oracle) {
                 address last = oracleAddresses[oracleAddresses.length - 1];
                 oracleAddresses[i] = last;
                 oracleAddresses.pop();
-                isOracleRemoved = true;
                 delete oracles[_oracle];
+                emit OracleRemoved(_oracle);
                 break;
             }
         }
-        if (isOracleRemoved) emit OracleRemoved(_oracle);
-        else revert InvalidOracle();
     }
 
     function setMaxSubmission(uint256 _maxSubmission) public onlyOwner {
@@ -63,7 +63,7 @@ contract BatchSubmission is Ownable {
             !(_aggregators.length == _roundIds.length &&
                 _aggregators.length == _submissions.length)
         ) revert InvalidSubmissionLength();
-        for (uint i = 0; i < _aggregators.length; i++) {
+        for (uint256 i = 0; i < _aggregators.length; i++) {
             IAggregator(_aggregators[i]).submit(_roundIds[i], _submissions[i]);
         }
     }

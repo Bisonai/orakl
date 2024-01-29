@@ -2,11 +2,11 @@
 pragma solidity ^0.8.13;
 
 import {Test, console2, console} from "forge-std/Test.sol";
-import {BatchSubmission} from "../src/BatchSubmission.sol";
+import {SubmissionProxy} from "../src/SubmissionProxy.sol";
 import {Aggregator} from "../src/Aggregator.sol";
 
-contract BatchSubmissionTest is Test {
-    BatchSubmission batchSubmission;
+contract SubmissionProxyTest is Test {
+    SubmissionProxy batchSubmission;
     uint32 timeout = 10;
     address validator = address(0);
     uint8 decimals = 18;
@@ -19,7 +19,7 @@ contract BatchSubmissionTest is Test {
 
     function setUp() public {
         vm.warp(timestamp);
-        batchSubmission = new BatchSubmission();
+        batchSubmission = new SubmissionProxy();
     }
 
     function test_AddAndRemoveOracle() public {
