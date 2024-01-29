@@ -18,7 +18,6 @@ import (
 	dutil "github.com/libp2p/go-libp2p/p2p/discovery/util"
 
 	"github.com/multiformats/go-multiaddr"
-	ma "github.com/multiformats/go-multiaddr"
 )
 
 func MakeHost(listenPort int) (host.Host, error) {
@@ -51,7 +50,7 @@ func MakePubsub(ctx context.Context, host host.Host) (*pubsub.PubSub, error) {
 }
 
 func GetHostAddress(host host.Host) (string, error) {
-	hostAddr, err := ma.NewMultiaddr(fmt.Sprintf("/p2p/%s", host.ID()))
+	hostAddr, err := multiaddr.NewMultiaddr(fmt.Sprintf("/p2p/%s", host.ID()))
 	if err != nil {
 		return "", err
 	}
@@ -109,27 +108,34 @@ func DiscoverPeers(ctx context.Context, h host.Host, topicName string, bootstrap
 
 	// Look for others who have announced and attempt to connect to them
 	anyConnected := false
+	var wg sync.WaitGroup
 	for !anyConnected {
 		log.Println("Searching for peers...")
 		peerChan, err := routingDiscovery.FindPeers(ctx, topicName)
 		if err != nil {
 			panic(err)
 		}
-		for peer := range peerChan {
-			if peer.ID == h.ID() {
+		for p := range peerChan {
+			if p.ID == h.ID() {
 				continue // No self connection
 			}
-			err := h.Connect(ctx, peer)
-			if err != nil {
-				// log.Printf("Failed connecting to %s, error: %s\n", peer.ID, err)
+			wg.Add(1)
+			go func(p peer.AddrInfo) {
+				defer wg.Done()
+				err := h.Connect(ctx, p)
+				if err != nil {
+					// log.Printf("Failed connecting to %s, error: %s\n", peer.ID, err)
 
-			} else {
-				// log.Println("Connected to:", peer.ID)
-				anyConnected = true
-				discoveredPeers[peer.ID] = peer
-			}
+				} else {
+					// log.Println("Connected to:", peer.ID)
+					anyConnected = true
+					discoveredPeers[p.ID] = p
+				}
+			}(p)
+
 		}
 	}
+	wg.Wait()
 	log.Println("Peer discovery complete")
 }
 
