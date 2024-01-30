@@ -1,4 +1,4 @@
-import { Body, Controller, Get, HttpException, HttpStatus, Param, Post } from '@nestjs/common'
+import { Body, Controller, Get, HttpException, HttpStatus, Post } from '@nestjs/common'
 import { SignDto } from './dto/sign.dto'
 import { SignService } from './sign.service'
 
@@ -21,15 +21,5 @@ export class SignController {
   @Get('initialize')
   initialize() {
     return this.signService.initialize({})
-  }
-
-  @Get()
-  findAll() {
-    return this.signService.findAll({})
-  }
-
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.signService.findOne({ id: Number(id) })
   }
 }

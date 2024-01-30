@@ -1,9 +1,29 @@
 import { HttpException, HttpStatus, Injectable, Logger } from '@nestjs/common'
-import { Prisma, Transaction } from '@prisma/client'
 import Caver, { SignatureData } from 'caver-js'
 import { PrismaService } from '../prisma.service'
 import { SignDto } from './dto/sign.dto'
 import { DelegatorError, DelegatorErrorCode } from './errors'
+
+interface TransactionType {
+  timestamp: Date
+  from: string
+  to: string
+  input: string
+  gas: string
+  value: string
+  chainId: string
+  gasPrice: string
+  nonce: string
+  v: string
+  r: string
+  s: string
+  rawTx: string
+  signedRawTx: string
+  succeed: boolean
+  functionId: bigint
+  contractId: bigint
+  reporterId: bigint
+}
 
 @Injectable()
 export class SignService {
@@ -37,10 +57,7 @@ export class SignService {
 
   async create(data: SignDto) {
     try {
-      data.timestamp = new Date()
-      data.from = data.from.toLocaleLowerCase()
-      data.to = data.to.toLocaleLowerCase()
-      const transaction = await this.prisma.transaction.create({ data })
+      const transaction = getTransactionType(data)
       const validatedResult = await this.validateTransaction(transaction)
       const signedRawTx = await this.signTxByFeePayer(transaction)
       const signedTransaction = await this.updateTransaction(
@@ -57,40 +74,7 @@ export class SignService {
     }
   }
 
-  async findAll(params: {
-    skip?: number
-    take?: number
-    cursor?: Prisma.TransactionWhereUniqueInput
-    where?: Prisma.TransactionWhereInput
-    orderBy?: Prisma.TransactionOrderByWithRelationInput
-  }): Promise<Transaction[]> {
-    const { skip, take, cursor, where, orderBy } = params
-    return this.prisma.transaction.findMany({
-      skip,
-      take,
-      cursor,
-      where,
-      orderBy
-    })
-  }
-
-  async findOne(
-    transactionWhereQuniqueInput: Prisma.TransactionWhereUniqueInput
-  ): Promise<Transaction | null> {
-    return this.prisma.transaction.findUnique({
-      where: transactionWhereQuniqueInput
-    })
-  }
-
-  async update(params: { where: Prisma.TransactionWhereUniqueInput; signDto: SignDto }) {
-    const { where, signDto } = params
-    return this.prisma.transaction.update({
-      data: signDto,
-      where
-    })
-  }
-
-  async updateTransaction(transaction: Transaction, signedRawTx: string, validatedQuery) {
+  async updateTransaction(transaction: TransactionType, signedRawTx: string, validatedQuery) {
     const data: SignDto = { ...transaction }
     data.succeed = true
     data.signedRawTx = signedRawTx
@@ -98,19 +82,10 @@ export class SignService {
     data.contractId = validatedQuery.id
     data.functionId = validatedQuery.function[0].id
 
-    return this.prisma.transaction.update({
-      data,
-      where: { id: transaction.id }
-    })
+    return data
   }
 
-  async remove(where: Prisma.TransactionWhereUniqueInput) {
-    return this.prisma.transaction.delete({
-      where
-    })
-  }
-
-  async signTxByFeePayer(input: Transaction) {
+  async signTxByFeePayer(input: TransactionType) {
     if (!this.feePayerKeyring) {
       await this.initialize({})
     }
@@ -147,5 +122,28 @@ export class SignService {
     } else {
       throw new DelegatorError(DelegatorErrorCode.UnexpectedResultLength)
     }
+  }
+}
+
+function getTransactionType(data: SignDto): TransactionType {
+  return {
+    timestamp: new Date(data.timestamp),
+    from: data.from.toLocaleLowerCase(),
+    to: data.to.toLocaleLowerCase(),
+    input: data.input,
+    gas: data.gas,
+    value: data.value,
+    chainId: data.chainId,
+    gasPrice: data.gasPrice,
+    nonce: data.nonce,
+    v: data.v,
+    r: data.r,
+    s: data.s,
+    rawTx: data.rawTx,
+    signedRawTx: data.signedRawTx,
+    succeed: data.succeed,
+    functionId: data.functionId,
+    contractId: data.contractId,
+    reporterId: data.reporterId
   }
 }
