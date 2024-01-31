@@ -25,7 +25,7 @@
   "homepage": "https://github.com/Bisonai/orakl/tree/master/contracts#orakl-network-contracts",
   "license": "MIT",
   "scripts": {
-    "prepare": "cd .. && husky install contracts/.husky",
+    "prepare": "cd .. && husky install contracts-v0.1/.husky",
     "clean": "yarn hardhat clean && rm -rf dist",
     "compile": "yarn hardhat compile",
     "prebuild": "yarn compile && yarn --cwd='../' vrf build && cp -r ./deployments ./typechain-types/deployments && cp -r ./utils ./typechain-types/utils",
@@ -100,8 +100,8 @@
     "mathjs": "^11.8.0",
     "moment": "^2.29.4",
     "prettier": "^2.8.1",
-    "prettier-plugin-solidity": "^1.1.2",
     "prettier-plugin-organize-imports": "^3.2.3",
+    "prettier-plugin-solidity": "^1.1.2",
     "solhint": "^3.3.7",
     "solhint-plugin-prettier": "^0.0.5",
     "solidity-coverage": "^0.7.21",

@@ -80,3 +80,5 @@ yarn deploy:localhost:aggregator
 - run `scripts/v0.1/generate-aggregator-deployments.cjs` to creates migration, wallets, and bulk json files
 - migration files are saved in migration folder while wallets and bulk files are saved in scripts/\*\*/tmp/ folder
 - call example `node ./scripts/v0.1/admin-aggregator/generate-aggregator-deployments.cjs --pairs '["usd-krw", "jpy-usd", "joy-usdc"]' --chain baobab`
+
+###

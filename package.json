@@ -5,7 +5,7 @@
     "packages": [
       "api",
       "cli",
-      "contracts",
+      "contracts-v0.1",
       "core",
       "delegator",
       "fetcher",
