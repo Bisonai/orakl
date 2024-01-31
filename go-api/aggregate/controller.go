@@ -111,8 +111,6 @@ func getLatestById(c *fiber.Ctx) error {
 	rawResult, err := utils.GetRedis(c, key)
 
 	if err != nil {
-		// query pgsql if not found in redis
-		log.Info("querying from pgsql")
 		pgsqlResult, err := utils.QueryRow[AggregateModel](c, GetLatestAggregateById, map[string]any{"aggregator_id": id})
 		if err != nil {
 			log.Panic(err)
