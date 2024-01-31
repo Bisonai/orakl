@@ -1,6 +1,11 @@
-name: test
+name: "contracts-v0.2: test"
 
-on: workflow_dispatch
+on:
+  push:
+    branches-ignore:
+      - "master"
+    paths:
+      - "contracts-v0.2/**"
 
 env:
   FOUNDRY_PROFILE: ci
@@ -10,7 +15,7 @@ jobs:
     strategy:
       fail-fast: true
 
-    name: Foundry project
+    name: Contracts v0.2
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -27,8 +32,10 @@ jobs:
           forge --version
           forge build --sizes
         id: build
+        working-directory: ./contracts-v0.2
 
       - name: Run Forge tests
         run: |
           forge test -vvv
         id: test
+        working-directory: ./contracts-v0.2
