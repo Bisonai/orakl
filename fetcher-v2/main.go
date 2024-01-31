@@ -41,6 +41,12 @@ func main() {
 
 	go utils.DiscoverPeers(context.Background(), h, discoverString, *bootstrap, discoveredPeers)
 
+	electorNode, err := utils.NewElectorNode(h, ps, "orakl-nodes-elector-2024")
+	if err != nil {
+		log.Fatal(err)
+	}
+	electorNode.Start()
+
 	nodes := make(map[string]*utils.FetcherNode)
 
 	appContext := admin.AppContext{
