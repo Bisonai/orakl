@@ -46,7 +46,13 @@ func MakePubsub(ctx context.Context, host host.Host) (*pubsub.PubSub, error) {
 	var basePeerFilter pubsub.PeerFilter = func(pid peer.ID, topic string) bool {
 		return strings.HasPrefix(pid.String(), "12D")
 	}
-	return pubsub.NewGossipSub(ctx, host, pubsub.WithPeerFilter(basePeerFilter))
+	var fetcherSubParams = pubsub.DefaultGossipSubParams()
+
+	fetcherSubParams.D = 2
+	fetcherSubParams.Dlo = 1
+	fetcherSubParams.Dhi = 3
+
+	return pubsub.NewGossipSub(ctx, host, pubsub.WithPeerFilter(basePeerFilter), pubsub.WithGossipSubParams(fetcherSubParams))
 }
 
 func GetHostAddress(host host.Host) (string, error) {

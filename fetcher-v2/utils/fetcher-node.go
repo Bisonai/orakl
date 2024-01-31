@@ -30,12 +30,6 @@ type SampleData struct {
 }
 
 func NewNode(host host.Host, ps *pubsub.PubSub, topicString string) (*FetcherNode, error) {
-	var fetcherSubParams = pubsub.DefaultGossipSubParams()
-
-	fetcherSubParams.D = 2
-	fetcherSubParams.Dlo = 1
-	fetcherSubParams.Dhi = 3
-
 	topic, err := ps.Join(topicString)
 	if err != nil {
 		return nil, err
