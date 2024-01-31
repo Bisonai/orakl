@@ -4,3 +4,6 @@
 [submodule "contracts-v0.2/lib/openzeppelin-contracts"]
 	path = contracts-v0.2/lib/openzeppelin-contracts
 	url = https://github.com/OpenZeppelin/openzeppelin-contracts
+[submodule "contracts-v0.2/lib/solidity-stringutils"]
+	path = contracts-v0.2/lib/solidity-stringutils
+	url = https://github.com/Arachnid/solidity-stringutils
