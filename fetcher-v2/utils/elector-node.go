@@ -64,7 +64,7 @@ func (n *ElectorNode) subscribe(ctx context.Context) {
 	for {
 		select {
 		case <-ctx.Done():
-			//log.Println("Stopping health checker node")
+			log.Println("Stopping elector node")
 			return
 		default:
 
@@ -77,8 +77,6 @@ func (n *ElectorNode) subscribe(ctx context.Context) {
 			if m.ReceivedFrom == n.Host.ID() {
 				continue
 			}
-
-			//log.Println("Received ping from:", m.ReceivedFrom)
 
 			n.NodeMutex.Lock()
 			n.Data = append(n.Data, string(m.Message.Data))
@@ -95,7 +93,6 @@ func (n *ElectorNode) publish(ctx context.Context) {
 		select {
 		case <-ticker.C:
 			start := time.Now()
-			//log.Println("Publishing ping")
 			err := n.Topic.Publish(ctx, []byte(hostId), pubsub.WithReadiness(n.nodeReadiness))
 			if err != nil {
 				log.Println(err)
@@ -103,13 +100,13 @@ func (n *ElectorNode) publish(ctx context.Context) {
 
 			executeAtEndOfInterval(start, INTERVAL, func() {
 				timestampId := GetIDFromTimestamp(int64(INTERVAL.Seconds()), start)
-				isMayer, err := n.amIMayer(timestampId)
+				isMayer, err := n.amIMayor(timestampId)
 				if err != nil {
 					log.Println(err)
 				}
 				if isMayer {
 
-					log.Printf("(%s:%s) I am the mayer", timestampId[len(timestampId)-4:], hostId[len(hostId)-4:])
+					log.Printf("(%s:%s) I am the mayor", timestampId[len(timestampId)-4:], hostId[len(hostId)-4:])
 				}
 			})
 		case <-ctx.Done():
@@ -118,7 +115,7 @@ func (n *ElectorNode) publish(ctx context.Context) {
 	}
 }
 
-func (n *ElectorNode) amIMayer(id string) (bool, error) {
+func (n *ElectorNode) amIMayor(id string) (bool, error) {
 	n.NodeMutex.Lock()
 	defer n.NodeMutex.Unlock()
 	defer func() {
