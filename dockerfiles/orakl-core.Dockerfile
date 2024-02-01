@@ -9,7 +9,7 @@ COPY package.json .
 
 COPY yarn.lock .
 
-COPY contracts contracts
+COPY contracts-v0.1 contracts-v0.1
 
 COPY vrf vrf
 
@@ -33,7 +33,7 @@ COPY --from=build /app/node_modules /app/node_modules
 
 COPY --from=build /app/core/node_modules /app/core/node_modules
 
-COPY --from=build /app/contracts /app/contracts
+COPY --from=build /app/contracts-v0.1 /app/contracts-v0.1
 
 COPY --from=build /app/vrf /app/vrf
 
