@@ -1,14 +1,14 @@
-// SPDX-License-Identifier: UNLICENSED
+// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.13;
 
 import {Test, console2, console, Vm} from "forge-std/Test.sol";
-import {Utils} from "../deploy/Utils.sol";
+import {UtilsScript} from "../deploy/Utils.s.sol";
 
 contract UtilsTest is Test {
-    Utils config;
+    UtilsScript config;
 
     function setUp() public {
-        config = new Utils();
+        config = new UtilsScript();
     }
 
     function test_getAggregators() public {

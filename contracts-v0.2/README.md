@@ -56,9 +56,9 @@ cp .env.example .env
 2. deploy
 
 ```shell
-$ forge script deploy/SubmissionProxy.s.sol:SubmissionProxyS --rpc-url [RPC] --broadcast -gas-estimate-multiplier 200
+$ forge script deploy/SubmissionProxy.s.sol:SubmissionProxyScript --rpc-url [RPC] --broadcast -gas-estimate-multiplier 200
 
-$ forge script deploy/Aggregator.s.sol:AggregatorS --rpc-url [RPC] --broadcast --gas-estimate-multiplier 200
+$ forge script deploy/Aggregator.s.sol:AggregatorScript --rpc-url [RPC] --broadcast --gas-estimate-multiplier 200
 ```
 
 ### Cast

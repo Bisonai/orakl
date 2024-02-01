@@ -3,7 +3,7 @@ pragma solidity ^0.8.13;
 import {Script, stdJson, VmSafe, console} from "forge-std/Script.sol";
 import {strings} from "solidity-stringutils/strings.sol";
 
-contract Utils is Script {
+contract UtilsScript is Script {
     using stdJson for string;
     using strings for *;
     string MIGRATION_LOCK_FILE_NAME = "migration.lock";

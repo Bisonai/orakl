@@ -1,16 +1,16 @@
-// SPDX-License-Identifier: UNLICENSED
-pragma solidity ^0.8.13;
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.20;
 
 import {Script, console} from "forge-std/Script.sol";
 import {Aggregator} from "../src/Aggregator.sol";
-import {Utils} from "./Utils.sol";
+import {UtilsScript} from "./Utils.s.sol";
 
-contract AggregatorS is Script {
+contract AggregatorScript is Script {
     function setUp() public {}
 
     function run() public {
         uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
-        Utils config = new Utils();
+        UtilsScript config = new UtilsScript();
         string memory dirPath = string.concat("/migration/", config.chainName(), "/Aggregator");
         string[] memory migrationFiles = config.loadMigration(dirPath);
         console.log("deploying...", migrationFiles.length, "contract");
@@ -20,7 +20,7 @@ contract AggregatorS is Script {
             Aggregator aggregator;
             string memory migrationFilePath = migrationFiles[i];
             bytes memory deployData = config.readJson(migrationFilePath, ".deploy");
-            Utils.Deploy memory deployConfig = abi.decode(deployData, (Utils.Deploy));
+            UtilsScript.Deploy memory deployConfig = abi.decode(deployData, (UtilsScript.Deploy));
             if (bytes(deployConfig.name).length > 0) {
                 uint32 timeout = uint32(deployConfig.timeout);
                 address validator = deployConfig.validator;
@@ -30,9 +30,9 @@ contract AggregatorS is Script {
             }
 
             bytes memory changeOracleData = config.readJson(migrationFiles[i], ".changeOracles");
-            Utils.ChangeOracles memory changeOracleConfig = abi.decode(
+            UtilsScript.ChangeOracles memory changeOracleConfig = abi.decode(
                 changeOracleData,
-                (Utils.ChangeOracles)
+                (UtilsScript.ChangeOracles)
             );
             if (changeOracleConfig.minSubmissionCount > 0) {
                 aggregator.changeOracles(
