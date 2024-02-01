@@ -15,7 +15,6 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
-	"github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/gofiber/fiber/v2/middleware/recover"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -158,7 +157,6 @@ func Setup(options ...string) (AppConfig, error) {
 	})
 
 	app.Use(recover.New())
-	app.Use(logger.New())
 	app.Use(cors.New())
 	app.Use(func(c *fiber.Ctx) error {
 		c.Locals("rdb", *rdb)
