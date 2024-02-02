@@ -43,6 +43,9 @@ jobs:
         with:
           node-version: "20.10.0"
 
+      - name: Install yarn dependencies
+        run: yarn install
+
       - name: Setup Go
         uses: actions/setup-go@v4
         with:
@@ -55,9 +58,6 @@ jobs:
         run: |
           curl -L https://github.com/golang-migrate/migrate/releases/download/v4.17.0/migrate.linux-amd64.tar.gz | tar xvz
           sudo mv ./migrate /usr/bin
-
-      - name: Install yarn dependencies
-        run: yarn install
 
       - name: Install goapi dependencies
         run: |
