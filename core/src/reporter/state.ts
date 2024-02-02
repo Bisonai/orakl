@@ -185,13 +185,22 @@ export class State {
    * activate them. Previously active reporters are deactivated.
    */
   async refresh() {
+    const reporters: IReporterConfig[] = []
     this.logger.debug('refresh')
 
     // Fetch
     const allReporters = await this.all()
-    const reporters = allReporters.filter((R) =>
-      isPrivateKeyAddressPairValid(R.privateKey, R.address)
-    )
+
+    allReporters.forEach((reporter) => {
+      if (!isPrivateKeyAddressPairValid(reporter.privateKey, reporter.address)) {
+        this.logger.warn(
+          { name: 'refresh', file: FILE_NAME },
+          `Reporter with ID=${reporter.id} has invalid private key.`
+        )
+      } else {
+        reporters.push(reporter)
+      }
+    })
 
     const wallets = reporters.map((R) => {
       let wallet
