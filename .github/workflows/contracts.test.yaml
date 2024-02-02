@@ -4,11 +4,12 @@ on:
   push:
     branches-ignore:
       - "master"
+    paths-ignore:
+      - "contracts-v0.1/**/VRFCoordinator.sol"
+      - "contracts-v0.1/**/VRFConsumerBase.sol"
+      - "contracts-v0.1/**/vrf/**"
     paths:
       - "contracts-v0.1/**"
-      - "!contracts-v0.1/**/VRFCoordinator.sol"
-      - "!contracts-v0.1/**/VRFConsumerBase.sol"
-      - "!contracts-v0.1/**/vrf/**"
 jobs:
   build:
     runs-on: ubuntu-latest
