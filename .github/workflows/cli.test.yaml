@@ -43,8 +43,26 @@ jobs:
         with:
           node-version: "20.10.0"
 
-      - name: Install dependencies
+      - name: Setup Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: "1.21.5"
+          check-latest: true
+          cache-dependency-path: |
+            ./go-api/go.sum
+
+      - name: Install golang-migrate
+        run: |
+          curl -L https://github.com/golang-migrate/migrate/releases/download/v4.17.0/migrate.linux-amd64.tar.gz | tar xvz
+          sudo mv ./migrate /usr/bin
+
+      - name: Install yarn dependencies
         run: yarn install
+
+      - name: Install goapi dependencies
+        run: |
+          cd ./go-api
+          go mod tidy
 
       - name: Delegator db migrate
         run: yarn delegator prisma-migrate dev --name init-delegator
@@ -52,9 +70,9 @@ jobs:
           DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/delegator?schema=public"
 
       - name: Api db migrate
-        run: yarn api prisma-migrate dev --name init-api
-        env:
-          DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/orakl?schema=public"
+        run: |
+          cd ./go-api
+          migrate -database "postgresql://postgres:postgres@localhost:5432/orakl-test?search_path=public&sslmode=disable" -verbose -path ./migrations up
 
       - name: Run delegator
         run: yarn delegator build && yarn delegator start &
@@ -64,7 +82,9 @@ jobs:
           APP_PORT: "3002"
 
       - name: Run api
-        run: yarn api build && yarn api start &
+        run: |
+          cd ./go-api
+          go run main.go &
         env:
           DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/orakl?schema=public"
           ENCRYPT_PASSWORD: "abc123"
