@@ -157,8 +157,8 @@ export function listHandler(print?: boolean) {
           const url = new URL(AGGREGATOR_ENDPOINT)
           url.searchParams.append('address', reporter.oracleAddress)
           const aggregatorResult = (await axios.get(url.toString())).data
-          if (aggregatorResult && aggregatorResult[0].name) {
-            reporter.name = aggregatorResult[0].name
+          if (aggregatorResult && aggregatorResult.name) {
+            reporter.name = aggregatorResult.name
           }
         }
 

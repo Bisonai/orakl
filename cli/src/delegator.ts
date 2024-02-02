@@ -306,8 +306,9 @@ export function reporterListHandler() {
         const url = new URL(AGGREGATOR_ENDPOINT)
         url.searchParams.append('address', reporter.contract[0])
         const aggregatorResult = (await axios.get(url.toString())).data
-        if (aggregatorResult && aggregatorResult[0].name) {
-          reporter.name = aggregatorResult[0].name
+        console.log(aggregatorResult)
+        if (aggregatorResult && aggregatorResult.name) {
+          reporter.name = aggregatorResult.name
         }
       }
 
