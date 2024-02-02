@@ -11,6 +11,7 @@ import {
 } from './utils'
 
 const LISTENER_ENDPOINT = buildUrl(ORAKL_NETWORK_API_URL, 'listener')
+const AGGREGATOR_ENDPOINT = buildUrl(ORAKL_NETWORK_API_URL, 'aggregator')
 
 export function listenerSub() {
   // listener list   [--chain ${chain}] [--service ${service}]
@@ -126,6 +127,18 @@ export function listHandler(print?: boolean) {
     try {
       const result = (await axios.get(LISTENER_ENDPOINT, { data: { chain, service } }))?.data
       if (print) {
+        for (const listener of result) {
+          if (listener.service != 'DATA_FEED') {
+            continue
+          }
+          const url = new URL(AGGREGATOR_ENDPOINT)
+          url.searchParams.append('address', listener.address)
+          const aggregatorResult = (await axios.get(url.toString())).data
+          if (aggregatorResult && aggregatorResult[0].name) {
+            listener.name = aggregatorResult[0].name
+          }
+        }
+
         console.dir(result, { depth: null })
       }
       return result
