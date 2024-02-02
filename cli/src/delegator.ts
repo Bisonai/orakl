@@ -1,7 +1,9 @@
 import axios from 'axios'
 import { command, number as cmdnumber, option, string as cmdstring, subcommands } from 'cmd-ts'
-import { ORAKL_NETWORK_DELEGATOR_URL } from './settings'
+import { ORAKL_NETWORK_API_URL, ORAKL_NETWORK_DELEGATOR_URL } from './settings'
 import { buildUrl, idOption, isOraklDelegatorHealthy } from './utils'
+
+const AGGREGATOR_ENDPOINT = buildUrl(ORAKL_NETWORK_API_URL, 'aggregator')
 
 export function delegatorSub() {
   // delegator sign
@@ -296,6 +298,19 @@ export function reporterListHandler() {
     try {
       const endpoint = buildUrl(ORAKL_NETWORK_DELEGATOR_URL, `reporter`)
       const result = (await axios.get(endpoint)).data
+
+      for (const reporter of result) {
+        if (!reporter.contract) {
+          continue
+        }
+        const url = new URL(AGGREGATOR_ENDPOINT)
+        url.searchParams.append('address', reporter.contract[0])
+        const aggregatorResult = (await axios.get(url.toString())).data
+        if (aggregatorResult && aggregatorResult.name) {
+          reporter.name = aggregatorResult.name
+        }
+      }
+
       console.log(result)
       return result
     } catch (e) {
