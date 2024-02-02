@@ -5,7 +5,6 @@ import (
 
 	"github.com/go-playground/validator/v10"
 	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/fiber/v2/log"
 )
 
 type ServiceModel struct {
@@ -20,17 +19,17 @@ type ServiceInsertModel struct {
 func insert(c *fiber.Ctx) error {
 	payload := new(ServiceInsertModel)
 	if err := c.BodyParser(payload); err != nil {
-		log.Panic(err)
+		panic(err)
 	}
 
 	validate := validator.New()
 	if err := validate.Struct(payload); err != nil {
-		log.Panic(err)
+		panic(err)
 	}
 
 	result, err := utils.QueryRow[ServiceModel](c, InsertService, map[string]any{"name": payload.Name})
 	if err != nil {
-		log.Panic(err)
+		panic(err)
 	}
 
 	return c.JSON(result)
@@ -39,7 +38,7 @@ func insert(c *fiber.Ctx) error {
 func get(c *fiber.Ctx) error {
 	results, err := utils.QueryRows[ServiceModel](c, GetService, nil)
 	if err != nil {
-		log.Panic(err)
+		panic(err)
 	}
 	return c.JSON(results)
 }
@@ -48,7 +47,7 @@ func getById(c *fiber.Ctx) error {
 	id := c.Params("id")
 	result, err := utils.QueryRow[ServiceModel](c, GetServiceById, map[string]any{"id": id})
 	if err != nil {
-		log.Panic(err)
+		panic(err)
 	}
 	return c.JSON(result)
 }
@@ -57,12 +56,12 @@ func updateById(c *fiber.Ctx) error {
 	id := c.Params("id")
 	payload := new(ServiceInsertModel)
 	if err := c.BodyParser(payload); err != nil {
-		log.Panic(err)
+		panic(err)
 	}
 
 	result, err := utils.QueryRow[ServiceModel](c, UpdateServiceById, map[string]any{"id": id, "name": payload.Name})
 	if err != nil {
-		log.Panic(err)
+		panic(err)
 	}
 
 	return c.JSON(result)
@@ -72,7 +71,7 @@ func deleteById(c *fiber.Ctx) error {
 	id := c.Params("id")
 	result, err := utils.QueryRow[ServiceModel](c, DeleteServiceById, map[string]any{"id": id})
 	if err != nil {
-		log.Panic(err)
+		panic(err)
 	}
 
 	return c.JSON(result)

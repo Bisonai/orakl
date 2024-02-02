@@ -7,6 +7,8 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"errors"
+	"log"
+	"time"
 
 	"os"
 	"strconv"
@@ -154,11 +156,13 @@ func Setup(options ...string) (AppConfig, error) {
 	app := fiber.New(fiber.Config{
 		AppName:           "go-api " + version,
 		EnablePrintRoutes: true,
+		ErrorHandler:      CustomErrorHandler,
 	})
-
 	app.Use(recover.New())
+
 	app.Use(cors.New())
 	app.Use(func(c *fiber.Ctx) error {
+		c.Locals("startTime", time.Now())
 		c.Locals("rdb", *rdb)
 		c.Locals("pgxConn", pgxPool)
 		c.Locals("testing", testing)
@@ -248,4 +252,31 @@ func LoadEnvVars() map[string]interface{} {
 		"TEST_MODE":        os.Getenv("TEST_MODE"),
 		"ENCRYPT_PASSWORD": os.Getenv("ENCRYPT_PASSWORD"),
 	}
+}
+
+func CustomErrorHandler(c *fiber.Ctx, err error) error {
+	// Status code defaults to 500
+	code := fiber.StatusInternalServerError
+
+	// Retrieve the custom status code if it's a *fiber.Error
+	var e *fiber.Error
+	if errors.As(err, &e) {
+		code = e.Code
+	}
+
+	// Set Content-Type: text/plain; charset=utf-8
+	c.Set(fiber.HeaderContentType, fiber.MIMETextPlainCharsetUTF8)
+
+	// Calculate latency
+	start, ok := c.Locals("startTime").(time.Time)
+	if !ok {
+		log.Printf("| %d | %s | %s | %s | %s\n", code, c.IP(), c.Method(), c.Path(), err.Error())
+		return c.Status(code).SendString(err.Error())
+	}
+	latency := time.Since(start)
+
+	// Return status code with error message
+	// | ${status} | ${ip} | ${method} | ${path} | ${error}",
+	log.Printf("| %d | %s | %s | %s | %s | %s\n", code, latency, c.IP(), c.Method(), c.Path(), err.Error())
+	return c.Status(code).SendString(err.Error())
 }

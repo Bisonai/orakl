@@ -7,7 +7,6 @@ import (
 	"encoding/json"
 
 	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/fiber/v2/log"
 )
 
 type FeedWithoutAdapterIdModel struct {
@@ -31,7 +30,7 @@ type FeedModel struct {
 func get(c *fiber.Ctx) error {
 	results, err := utils.QueryRows[FeedModel](c, GetFeed, nil)
 	if err != nil {
-		log.Panic(err)
+		panic(err)
 	}
 
 	return c.JSON(results)
@@ -41,7 +40,7 @@ func getById(c *fiber.Ctx) error {
 	id := c.Params("id")
 	result, err := utils.QueryRow[FeedModel](c, GetFeedById, map[string]any{"id": id})
 	if err != nil {
-		log.Panic(err)
+		panic(err)
 	}
 
 	return c.JSON(result)
@@ -49,24 +48,24 @@ func getById(c *fiber.Ctx) error {
 
 func getByAdpaterId(c *fiber.Ctx) error {
 	if !utils.IsTesting(c) {
-		log.Panic(fmt.Errorf("not allowed"))
+		panic(fmt.Errorf("not allowed"))
 	}
 	id := c.Params("id")
 	results, err := utils.QueryRows[FeedModel](c, GetFeedsByAdapterId, map[string]any{"id": id})
 	if err != nil {
-		log.Panic(err)
+		panic(err)
 	}
 	return c.JSON(results)
 }
 
 func removeById(c *fiber.Ctx) error {
 	if !utils.IsTesting(c) {
-		log.Panic(fmt.Errorf("not allowed"))
+		panic(fmt.Errorf("not allowed"))
 	}
 	id := c.Params("id")
 	result, err := utils.QueryRow[FeedModel](c, DeleteFeedById, map[string]any{"id": id})
 	if err != nil {
-		log.Panic(err)
+		panic(err)
 	}
 
 	return c.JSON(result)

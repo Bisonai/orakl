@@ -5,7 +5,6 @@ import (
 	"go-api/utils"
 
 	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/fiber/v2/log"
 )
 
 type l2agregatorPairModel struct {
@@ -22,12 +21,12 @@ func get(c *fiber.Ctx) error {
 
 	chain_result, err := utils.QueryRow[chain.ChainModel](c, chain.GetChainByName, map[string]any{"name": _chain})
 	if err != nil {
-		log.Panic(err)
+		panic(err)
 	}
 
 	result, err := utils.QueryRow[l2agregatorPairModel](c, GetL2AggregatorPair, map[string]any{"l1_aggregator_address": l1Address, "chain_id": chain_result.ChainId})
 	if err != nil {
-		log.Panic(err)
+		panic(err)
 	}
 
 	return c.JSON(result)

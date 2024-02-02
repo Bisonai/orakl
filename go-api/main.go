@@ -1,6 +1,7 @@
 package main
 
 import (
+	_ "embed"
 	"go-api/adapter"
 	"go-api/aggregate"
 	"go-api/aggregator"
@@ -13,16 +14,12 @@ import (
 	"go-api/proxy"
 	"go-api/reporter"
 	"go-api/service"
+	"go-api/utils"
 	"go-api/vrf"
-
-	_ "embed"
-	"os"
+	"log"
 
 	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/fiber/v2/log"
 	"github.com/joho/godotenv"
-
-	"go-api/utils"
 )
 
 //go:embed .version
@@ -31,14 +28,13 @@ var version string
 func main() {
 	err := godotenv.Load()
 	if err != nil {
-		log.Info("env file is not found, continueing without .env file")
+		log.Println("env file is not found, continueing without .env file")
 	}
 	config := utils.LoadEnvVars()
 
 	appConfig, err := utils.Setup(version)
 	if err != nil {
-		log.Panic(err)
-		os.Exit(1)
+		panic(err)
 	}
 
 	postgres := appConfig.Postgres
@@ -60,7 +56,7 @@ func main() {
 
 	err = app.Listen(":" + port)
 	if err != nil {
-		log.Panic(err)
+		panic(err)
 	}
 }
 
