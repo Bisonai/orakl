@@ -7,11 +7,12 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"errors"
+	"fmt"
 	"log"
-	"time"
-
 	"os"
+	"runtime/debug"
 	"strconv"
+	"strings"
 
 	"golang.org/x/crypto/scrypt"
 
@@ -158,11 +159,15 @@ func Setup(options ...string) (AppConfig, error) {
 		EnablePrintRoutes: true,
 		ErrorHandler:      CustomErrorHandler,
 	})
-	app.Use(recover.New())
-
+	app.Use(recover.New(
+		recover.Config{
+			EnableStackTrace:  true,
+			StackTraceHandler: CustomStackTraceHandler,
+		},
+	))
 	app.Use(cors.New())
+
 	app.Use(func(c *fiber.Ctx) error {
-		c.Locals("startTime", time.Now())
 		c.Locals("rdb", *rdb)
 		c.Locals("pgxConn", pgxPool)
 		c.Locals("testing", testing)
@@ -267,16 +272,25 @@ func CustomErrorHandler(c *fiber.Ctx, err error) error {
 	// Set Content-Type: text/plain; charset=utf-8
 	c.Set(fiber.HeaderContentType, fiber.MIMETextPlainCharsetUTF8)
 
-	// Calculate latency
-	start, ok := c.Locals("startTime").(time.Time)
-	if !ok {
-		log.Printf("| %d | %s | %s | %s | %s\n", code, c.IP(), c.Method(), c.Path(), err.Error())
-		return c.Status(code).SendString(err.Error())
-	}
-	latency := time.Since(start)
-
 	// Return status code with error message
 	// | ${status} | ${ip} | ${method} | ${path} | ${error}",
-	log.Printf("| %d | %s | %s | %s | %s | %s\n", code, latency, c.IP(), c.Method(), c.Path(), err.Error())
+	log.Printf("| %d | %s | %s | %s | %s\n", code, c.IP(), c.Method(), c.Path(), err.Error())
 	return c.Status(code).SendString(err.Error())
+}
+
+func CustomStackTraceHandler(_ *fiber.Ctx, e interface{}) {
+	stackTrace := strings.Split(string(debug.Stack()), "\n")
+	var failPoint string
+
+	for _, line := range stackTrace {
+		if strings.Contains(line, "controller.go") {
+			path := strings.Split(strings.TrimSpace(line), " ")[0]
+			splitted := strings.Split(path, "/")
+			failPoint = splitted[len(splitted)-2] + "/" + splitted[len(splitted)-1]
+
+			break
+		}
+	}
+	log.Printf("| (%s) panic: %v \n", failPoint, e)
+	_, _ = os.Stderr.WriteString(fmt.Sprintf("%s\n", debug.Stack())) //nolint:errcheck // This will never fail
 }
