@@ -8,6 +8,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/beevik/ntp"
 	"github.com/libp2p/go-libp2p/core/peer"
 
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
@@ -81,7 +82,21 @@ func (n *FetcherNode) Start(interval time.Duration) {
 	n.Cancel = cancel
 
 	go n.subscribe(ctx)
-	go n.publish(ctx, interval)
+
+	var baseTime time.Time
+	ntpTime, err := ntp.Time("pool.ntp.org")
+	if err != nil {
+		log.Println("ntp time failed:" + err.Error())
+		baseTime = time.Now()
+	} else {
+		baseTime = ntpTime
+	}
+	startTime := baseTime.Truncate(interval).Add(interval)
+	durationUntilStart := time.Until(startTime)
+	// synchronized start for message publish
+	time.AfterFunc(durationUntilStart, func() {
+		go n.publish(ctx, interval)
+	})
 }
 
 func (n *FetcherNode) Stop() {
