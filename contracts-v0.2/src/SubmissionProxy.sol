@@ -3,8 +3,11 @@ pragma solidity 0.8.20;
 
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {IAggregator} from "./interfaces/IAggregatorSubmit.sol";
+import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
+import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 
 contract SubmissionProxy is Ownable {
+    using ECDSA for bytes32;
     uint256 maxSubmission = 50;
     address[] public oracleAddresses;
     mapping(address => bool) oracles;
@@ -56,11 +59,21 @@ contract SubmissionProxy is Ownable {
 
     function batchSubmit(
         address[] memory _aggregators,
-        int256[] memory _submissions
-    ) public onlyOracle {
+        int256[] memory _submissions,
+        bytes memory _signature
+    ) public {
+        bytes32 hashData = keccak256(abi.encodePacked(_aggregators, _submissions));
+        verify(hashData, _signature);
         if (_aggregators.length != _submissions.length) revert InvalidSubmissionLength();
         for (uint256 i = 0; i < _aggregators.length; i++) {
             IAggregator(_aggregators[i]).submit(_submissions[i]);
         }
+    }
+
+    function verify(bytes32 hashData, bytes memory signature) internal view {
+        address oracleAddress = MessageHashUtils.toEthSignedMessageHash(hashData).recover(
+            signature
+        );
+        if (!oracles[oracleAddress]) revert OnlyOracle();
     }
 }
