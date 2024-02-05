@@ -15,9 +15,17 @@ contract AggregatorTest is Test {
     address[] oracleAdd;
 
     uint256 timestamp = 1706170779;
-    event AnswerUpdated(int256 indexed current, uint256 indexed roundId, uint256 updatedAt);
+    event AnswerUpdated(
+        int256 indexed current,
+        uint256 indexed roundId,
+        uint256 updatedAt
+    );
 
-    event NewRound(uint256 indexed roundId, address indexed startedBy, uint256 startedAt);
+    event NewRound(
+        uint256 indexed roundId,
+        address indexed startedBy,
+        uint256 startedAt
+    );
 
     function clear() internal {
         for (uint i = 0; i < oracleRemove.length; i++) {
@@ -34,7 +42,13 @@ contract AggregatorTest is Test {
             oracleRemove.length;
         uint32 minSubmission = 1;
         if (maxSubmission > 2) minSubmission = 2;
-        aggregator.changeOracles(oracleRemove, oracleAdd, minSubmission, uint32(maxSubmission), 0);
+        aggregator.changeOracles(
+            oracleRemove,
+            oracleAdd,
+            minSubmission,
+            uint32(maxSubmission),
+            0
+        );
     }
 
     function setUp() public {
@@ -86,6 +100,8 @@ contract AggregatorTest is Test {
         vm.expectEmit(true, true, false, true);
         emit NewRound(1, address(0), timestamp);
         aggregator.submit(10);
+        (, int256 answer, , , ) = aggregator.latestRoundData();
+        assertEq(answer, 10);
     }
 
     function test_RevertWith_TooManyOracles() public {
@@ -98,7 +114,13 @@ contract AggregatorTest is Test {
         }
         vm.expectRevert(Aggregator.TooManyOracles.selector);
         oracleAdd.push(address(0));
-        aggregator.changeOracles(oracleRemove, oracleAdd, uint32(maxOracle), uint32(maxOracle), 0);
+        aggregator.changeOracles(
+            oracleRemove,
+            oracleAdd,
+            uint32(maxOracle),
+            uint32(maxOracle),
+            0
+        );
     }
 
     function test_RevertWith_MinSubmissionGtMaxSubmission() public {
@@ -165,6 +187,8 @@ contract AggregatorTest is Test {
             aggregator.submit(321);
             uint256 startedAt = aggregator.currentRoundStartedAt();
             assertEq(startedAt, timestamp + i);
+            (uint80 roundId, , , , ) = aggregator.latestRoundData();
+            assertEq(roundId, i);
         }
     }
 
