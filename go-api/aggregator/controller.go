@@ -12,7 +12,6 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/go-playground/validator/v10"
 	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/fiber/v2/log"
 )
 
 type WrappedUpdateModel struct {
@@ -89,22 +88,22 @@ type AggregatorIdModel struct {
 func insert(c *fiber.Ctx) error {
 	payload := new(AggregatorInsertModel)
 	if err := c.BodyParser(payload); err != nil {
-		log.Panic(err)
+		panic(err)
 	}
 
 	validate := validator.New()
 	if err := validate.Struct(payload); err != nil {
-		log.Panic(err)
+		panic(err)
 	}
 
 	chain_result, err := utils.QueryRow[chain.ChainModel](c, chain.GetChainByName, map[string]any{"name": payload.Chain})
 	if err != nil {
-		log.Panic(err)
+		panic(err)
 	}
 
 	adapter_result, err := utils.QueryRow[adapter.AdapterModel](c, adapter.GetAdapterByHash, map[string]any{"adapter_hash": payload.AdapterHash})
 	if err != nil {
-		log.Panic(err)
+		panic(err)
 	}
 
 	hashComputeParam := AggregatorHashComputeInputModel{
@@ -119,7 +118,7 @@ func insert(c *fiber.Ctx) error {
 	}
 	err = computeAggregatorHash(&hashComputeParam, true)
 	if err != nil {
-		log.Panic(err)
+		panic(err)
 	}
 
 	insertParam := _AggregatorInsertModel{
@@ -158,7 +157,7 @@ func insert(c *fiber.Ctx) error {
 		"fetcher_type":       insertParam.FetcherType,
 	})
 	if err != nil {
-		log.Panic(err)
+		panic(err)
 	}
 
 	result := AggregatorResultModel{
@@ -182,17 +181,17 @@ func hash(c *fiber.Ctx) error {
 	verifyRaw := c.Query("verify")
 	verify, err := strconv.ParseBool(verifyRaw)
 	if err != nil {
-		log.Panic(err)
+		panic(err)
 	}
 
 	payload := new(AggregatorInsertModel)
 	if err := c.BodyParser(payload); err != nil {
-		log.Panic(err)
+		panic(err)
 	}
 
 	validate := validator.New()
 	if err := validate.Struct(payload); err != nil {
-		log.Panic(err)
+		panic(err)
 	}
 
 	hashComputeParam := AggregatorHashComputeInputModel{
@@ -208,7 +207,7 @@ func hash(c *fiber.Ctx) error {
 
 	err = computeAggregatorHash(&hashComputeParam, verify)
 	if err != nil {
-		log.Panic(err)
+		panic(err)
 	}
 
 	return c.JSON(hashComputeParam)
@@ -223,12 +222,12 @@ func get(c *fiber.Ctx) error {
 	}
 	queryString, err := GenerateGetAggregatorQuery(queryParam)
 	if err != nil {
-		log.Panic(err)
+		panic(err)
 	}
 
 	results, err := utils.QueryRows[AggregatorResultModel](c, queryString, nil)
 	if err != nil {
-		log.Panic(err)
+		panic(err)
 	}
 
 	return c.JSON(results)
@@ -241,7 +240,7 @@ func getByHashAndChain(c *fiber.Ctx) error {
 
 	chain_result, err := utils.QueryRow[chain.ChainModel](c, chain.GetChainByName, map[string]any{"name": _chain})
 	if err != nil {
-		log.Panic(err)
+		panic(err)
 	}
 
 	result.AggregatorResultModel, err = utils.QueryRow[AggregatorResultModel](c, GetAggregatorByChainAndHash, map[string]any{
@@ -249,17 +248,17 @@ func getByHashAndChain(c *fiber.Ctx) error {
 		"chain_id":        chain_result.ChainId,
 	})
 	if err != nil {
-		log.Panic(err)
+		panic(err)
 	}
 
 	result.Adapter.AdapterModel, err = utils.QueryRow[adapter.AdapterModel](c, adapter.GetAdpaterById, map[string]any{"id": result.AggregatorResultModel.AdapterId})
 	if err != nil {
-		log.Panic(err)
+		panic(err)
 	}
 
 	result.Adapter.Feeds, err = utils.QueryRows[feed.FeedModel](c, feed.GetFeedsByAdapterId, map[string]any{"id": result.AggregatorResultModel.AdapterId})
 	if err != nil {
-		log.Panic(err)
+		panic(err)
 	}
 	return c.JSON(result)
 }
@@ -268,7 +267,7 @@ func deleteById(c *fiber.Ctx) error {
 	id := c.Params("id")
 	result, err := utils.QueryRow[AggregatorResultModel](c, RemoveAggregator, map[string]any{"id": id})
 	if err != nil {
-		log.Panic(err)
+		panic(err)
 	}
 
 	return c.JSON(result)
@@ -278,14 +277,14 @@ func updateByHash(c *fiber.Ctx) error {
 	hash := c.Params("hash")
 	_payload := new(WrappedUpdateModel)
 	if err := c.BodyParser(_payload); err != nil {
-		log.Panic(err)
+		panic(err)
 	}
 
 	payload := _payload.Data
 
 	validate := validator.New()
 	if err := validate.Struct(payload); err != nil {
-		log.Panic(err)
+		panic(err)
 	}
 
 	if payload.Active == nil {
@@ -295,7 +294,7 @@ func updateByHash(c *fiber.Ctx) error {
 
 	chain_result, err := utils.QueryRow[chain.ChainModel](c, chain.GetChainByName, map[string]any{"name": payload.Chain})
 	if err != nil {
-		log.Panic(err)
+		panic(err)
 	}
 
 	result, err := utils.QueryRow[AggregatorResultModel](c, UpdateAggregatorByHash, map[string]any{
@@ -303,7 +302,7 @@ func updateByHash(c *fiber.Ctx) error {
 		"hash":     hash,
 		"chain_id": chain_result.ChainId})
 	if err != nil {
-		log.Panic(err)
+		panic(err)
 	}
 
 	return c.JSON(result)
@@ -314,13 +313,13 @@ func computeAggregatorHash(data *AggregatorHashComputeInputModel, verify bool) e
 	processData := input.AggregatorHashComputeProcessModel
 	out, err := json.Marshal(processData)
 	if err != nil {
-		log.Panic(err)
+		panic(err)
 	}
 
 	hash := crypto.Keccak256Hash([]byte(out))
 	hashString := fmt.Sprintf("0x%x", hash)
 	if verify && data.AggregatorHash != hashString {
-		log.Panic(err)
+		panic(err)
 	}
 
 	data.AggregatorHash = hashString

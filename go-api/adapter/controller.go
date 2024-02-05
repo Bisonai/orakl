@@ -10,7 +10,6 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/go-playground/validator/v10"
 	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/fiber/v2/log"
 )
 
 type AdapterHashModel struct {
@@ -49,17 +48,17 @@ type FeedIdModel struct {
 func insert(c *fiber.Ctx) error {
 	payload := new(AdapterInsertModel)
 	if err := c.BodyParser(payload); err != nil {
-		log.Panic(err)
+		panic(err)
 	}
 
 	validate := validator.New()
 	if err := validate.Struct(payload); err != nil {
-		log.Panic(err)
+		panic(err)
 	}
 
 	err := computeAdapterHash(payload, true)
 	if err != nil {
-		log.Panic(err)
+		panic(err)
 	}
 
 	row, err := utils.QueryRow[AdapterIdModel](c, InsertAdapter, map[string]any{
@@ -67,7 +66,7 @@ func insert(c *fiber.Ctx) error {
 		"name":         payload.Name,
 		"decimals":     payload.Decimals})
 	if err != nil {
-		log.Panic(err)
+		panic(err)
 	}
 
 	for _, item := range payload.Feeds {
@@ -77,7 +76,7 @@ func insert(c *fiber.Ctx) error {
 			"definition": item.Definition,
 			"adapter_id": item.AdapterId})
 		if err != nil {
-			log.Panic(err)
+			panic(err)
 		}
 	}
 
@@ -90,23 +89,23 @@ func hash(c *fiber.Ctx) error {
 	verifyRaw := c.Query("verify")
 	verify, err := strconv.ParseBool(verifyRaw)
 	if err != nil {
-		log.Panic(err)
+		panic(err)
 	}
 
 	var payload AdapterInsertModel
 
 	if err := c.BodyParser(&payload); err != nil {
-		log.Panic(err)
+		panic(err)
 	}
 
 	validate := validator.New()
 	if err := validate.Struct(payload); err != nil {
-		log.Panic(err)
+		panic(err)
 	}
 
 	err = computeAdapterHash(&payload, verify)
 	if err != nil {
-		log.Panic(err)
+		panic(err)
 	}
 	return c.JSON(payload)
 }
@@ -114,7 +113,7 @@ func hash(c *fiber.Ctx) error {
 func get(c *fiber.Ctx) error {
 	results, err := utils.QueryRows[AdapterModel](c, GetAdapter, nil)
 	if err != nil {
-		log.Panic(err)
+		panic(err)
 	}
 
 	return c.JSON(results)
@@ -124,7 +123,7 @@ func getById(c *fiber.Ctx) error {
 	id := c.Params("id")
 	result, err := utils.QueryRow[AdapterModel](c, GetAdpaterById, map[string]any{"id": id})
 	if err != nil {
-		log.Panic(err)
+		panic(err)
 	}
 
 	return c.JSON(result)
@@ -135,7 +134,7 @@ func deleteById(c *fiber.Ctx) error {
 
 	result, err := utils.QueryRow[AdapterModel](c, RemoveAdapter, map[string]any{"id": id})
 	if err != nil {
-		log.Panic(err)
+		panic(err)
 	}
 
 	return c.JSON(result)
@@ -154,7 +153,7 @@ func computeAdapterHash(data *AdapterInsertModel, verify bool) error {
 
 	out, err := json.Marshal(input)
 	if err != nil {
-		log.Panic(err)
+		panic(err)
 	}
 
 	hash := crypto.Keccak256Hash([]byte(out))

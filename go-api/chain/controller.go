@@ -5,7 +5,6 @@ import (
 
 	"github.com/go-playground/validator/v10"
 	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/fiber/v2/log"
 )
 
 type ChainInsertModel struct {
@@ -21,17 +20,17 @@ func insert(c *fiber.Ctx) error {
 	payload := new(ChainInsertModel)
 
 	if err := c.BodyParser(payload); err != nil {
-		log.Panic(err)
+		panic(err)
 	}
 
 	validate := validator.New()
 	if err := validate.Struct(payload); err != nil {
-		log.Panic(err)
+		panic(err)
 	}
 
 	result, err := utils.QueryRow[ChainModel](c, InsertChain, map[string]any{"name": payload.Name})
 	if err != nil {
-		log.Panic(err)
+		panic(err)
 	}
 
 	return c.JSON(result)
@@ -40,7 +39,7 @@ func insert(c *fiber.Ctx) error {
 func get(c *fiber.Ctx) error {
 	results, err := utils.QueryRows[ChainModel](c, GetChain, nil)
 	if err != nil {
-		log.Panic(err)
+		panic(err)
 	}
 
 	return c.JSON(results)
@@ -50,7 +49,7 @@ func getById(c *fiber.Ctx) error {
 	id := c.Params("id")
 	result, err := utils.QueryRow[ChainModel](c, GetChainByID, map[string]any{"id": id})
 	if err != nil {
-		log.Panic(err)
+		panic(err)
 	}
 
 	return c.JSON(result)
@@ -61,12 +60,12 @@ func patchById(c *fiber.Ctx) error {
 	payload := new(ChainInsertModel)
 
 	if err := c.BodyParser(payload); err != nil {
-		log.Panic(err)
+		panic(err)
 	}
 
 	result, err := utils.QueryRow[ChainModel](c, UpdateChain, map[string]any{"name": payload.Name, "id": id})
 	if err != nil {
-		log.Panic(err)
+		panic(err)
 	}
 
 	return c.JSON(result)
@@ -77,7 +76,7 @@ func deleteById(c *fiber.Ctx) error {
 
 	result, err := utils.QueryRow[ChainModel](c, RemoveChain, map[string]any{"id": id})
 	if err != nil {
-		log.Panic(err)
+		panic(err)
 	}
 
 	return c.JSON(result)
