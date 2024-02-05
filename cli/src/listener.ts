@@ -134,8 +134,8 @@ export function listHandler(print?: boolean) {
           const url = new URL(AGGREGATOR_ENDPOINT)
           url.searchParams.append('address', listener.address)
           const aggregatorResult = (await axios.get(url.toString())).data
-          if (aggregatorResult && aggregatorResult.name) {
-            listener.name = aggregatorResult.name
+          if (aggregatorResult && aggregatorResult[0].name) {
+            listener.name = aggregatorResult[0].name
           }
         }
 
