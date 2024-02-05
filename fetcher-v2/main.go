@@ -48,11 +48,11 @@ func main() {
 	// }
 	// electorNode.Start()
 
-	raftNode, err := node.NewRaftNode(h, ps, "orakl-node-raft-2024-gazua!")
+	submitter, err := node.NewSubmitter(h, ps, "orakl-node-submitter-2024-gazua!")
 	if err != nil {
 		log.Fatal(err)
 	}
-	raftNode.Run()
+	submitter.Run()
 
 	nodes := make(map[string]*utils.FetcherNode)
 
