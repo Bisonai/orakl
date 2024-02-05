@@ -28,7 +28,7 @@ var version string
 func main() {
 	err := godotenv.Load()
 	if err != nil {
-		log.Println("env file is not found, continueing without .env file")
+		log.Println("env file is not found, continuing without .env file")
 	}
 	config := utils.LoadEnvVars()
 
