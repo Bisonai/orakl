@@ -23,10 +23,9 @@ contract AggregatorScript is Script {
             UtilsScript.Deploy memory deployConfig = abi.decode(deployData, (UtilsScript.Deploy));
             if (bytes(deployConfig.name).length > 0) {
                 uint32 timeout = uint32(deployConfig.timeout);
-                address validator = deployConfig.validator;
                 uint8 decimals = uint8(deployConfig.decimals);
                 string memory description = deployConfig.description;
-                aggregator = new Aggregator(timeout, validator, decimals, description);
+                aggregator = new Aggregator(timeout, decimals, description);
             }
 
             bytes memory changeOracleData = config.readJson(migrationFiles[i], ".changeOracles");

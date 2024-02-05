@@ -34,13 +34,12 @@ contract AggregatorTest is Test {
             oracleRemove.length;
         uint32 minSubmission = 1;
         if (maxSubmission > 2) minSubmission = 2;
-
         aggregator.changeOracles(oracleRemove, oracleAdd, minSubmission, uint32(maxSubmission), 0);
     }
 
     function setUp() public {
         vm.warp(timestamp);
-        aggregator = new Aggregator(timeout, validator, decimals, description);
+        aggregator = new Aggregator(timeout, decimals, description);
     }
 
     function test_AddAndRemoveOracle() public {
@@ -81,28 +80,14 @@ contract AggregatorTest is Test {
     function test_SubmitAndReadResponse() public {
         clear();
         oracleAdd.push(address(0));
-        oracleAdd.push(address(1));
-        oracleAdd.push(address(2));
 
         changeOracles();
-
         vm.prank(address(0));
         vm.expectEmit(true, true, false, true);
         emit NewRound(1, address(0), timestamp);
-        aggregator.submit(1, 10);
-
-        vm.prank(address(1));
-        vm.expectEmit(true, true, false, true);
-        emit AnswerUpdated(10, 1, timestamp);
-        aggregator.submit(1, 11);
-
-        vm.prank(address(2));
-        vm.expectEmit(true, true, false, true);
-        emit AnswerUpdated(11, 1, timestamp);
-        aggregator.submit(1, 12);
-
+        aggregator.submit(10);
         (, int256 answer, , , ) = aggregator.latestRoundData();
-        assertEq(answer, 11);
+        assertEq(answer, 10);
     }
 
     function test_RevertWith_TooManyOracles() public {
@@ -167,7 +152,7 @@ contract AggregatorTest is Test {
         oracleAdd.push(address(3));
         aggregator.changeOracles(oracleRemove, oracleAdd, 2, 3, 0);
         vm.prank(address(1));
-        aggregator.submit(1, 321);
+        aggregator.submit(321);
         vm.expectRevert(Aggregator.PrevRoundNotSupersedable.selector);
         vm.prank(address(0));
         aggregator.requestNewRound();
@@ -179,39 +164,18 @@ contract AggregatorTest is Test {
         for (uint i = 1; i <= 2; i++) {
             vm.warp(timestamp + i);
             vm.prank(address(0));
-            aggregator.submit(i, 321);
+            aggregator.submit(321);
             uint256 startedAt = aggregator.currentRoundStartedAt();
             assertEq(startedAt, timestamp + i);
+            (uint80 roundId, , , , ) = aggregator.latestRoundData();
+            assertEq(roundId, i);
         }
     }
 
     function test_validateOracleRound() public {
         vm.expectRevert("not enabled oracle");
-        uint256 roundId = 1;
-        aggregator.submit(roundId, 321);
+        aggregator.submit(321);
         oracleAdd.push(address(0));
         changeOracles();
-
-        roundId = 2;
-        vm.expectRevert("invalid round to report");
-        vm.prank(address(0));
-        aggregator.submit(roundId, 321);
-
-        roundId = 1;
-        vm.prank(address(0));
-        aggregator.submit(roundId, 321);
-        vm.expectRevert("cannot report on previous rounds");
-        vm.prank(address(0));
-        aggregator.submit(roundId, 321);
-
-        roundId = 2;
-        oracleAdd.pop();
-        oracleAdd.push(address(1));
-        aggregator.changeOracles(oracleRemove, oracleAdd, 2, 2, 0);
-        vm.prank(address(0));
-        aggregator.submit(roundId, 321);
-        vm.expectRevert("previous round not supersedable");
-        vm.prank(address(0));
-        aggregator.submit(roundId + 1, 321);
     }
 }

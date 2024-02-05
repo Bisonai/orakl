@@ -39,35 +39,24 @@ contract SubmissionProxyTest is Test {
         uint256 submitGas;
         uint256 batchSubmitGas;
         address[] memory aggregatorForBathSubmit = new address[](50);
-        uint256[] memory roundIds = new uint256[](50);
         int256[] memory submissions = new int256[](50);
         uint256 startGas;
 
         for (uint i = 0; i < 50; i++) {
-            Aggregator aggregator = new Aggregator(
-                timeout,
-                validator,
-                decimals,
-                description
-            );
+            Aggregator aggregator = new Aggregator(timeout, decimals, description);
             oracleAdd[0] = address(batchSubmission);
             oracleAdd[1] = address(0);
             aggregator.changeOracles(oracleRemove, oracleAdd, 1, 1, 0);
             aggregatorForBathSubmit[i] = address(aggregator);
-            roundIds[i] = 2;
             submissions[i] = 10;
             startGas = gasleft();
             vm.prank(address(0));
-            aggregator.submit(1, 10);
+            aggregator.submit(10);
             submitGas += estimateGasCost(startGas);
         }
         startGas = gasleft();
         vm.prank(address(0));
-        batchSubmission.batchSubmit(
-            aggregatorForBathSubmit,
-            roundIds,
-            submissions
-        );
+        batchSubmission.batchSubmit(aggregatorForBathSubmit, submissions);
         batchSubmitGas = estimateGasCost(startGas);
 
         console.log("submit", submitGas, "batch submit", batchSubmitGas);
