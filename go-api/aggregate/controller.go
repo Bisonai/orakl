@@ -3,7 +3,7 @@ package aggregate
 import (
 	"encoding/json"
 	"go-api/utils"
-	"time"
+	"strings"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/gofiber/fiber/v2"
@@ -100,10 +100,6 @@ func getLatestByHash(c *fiber.Ctx) error {
 
 func getLatestById(c *fiber.Ctx) error {
 	var result AggregateRedisValueModel
-	returnVal := utils.CustomInt64(0)
-
-	result.Value = &returnVal
-	result.Timestamp = &utils.CustomDateTime{Time: time.Now()}
 
 	id := c.Params("id")
 	key := "latestAggregate:" + id
@@ -112,6 +108,9 @@ func getLatestById(c *fiber.Ctx) error {
 	if err != nil {
 		pgsqlResult, err := utils.QueryRow[AggregateModel](c, GetLatestAggregateById, map[string]any{"aggregator_id": id})
 		if err != nil {
+			if strings.Contains(err.Error(), "no rows in result set") {
+				return c.JSON(result)
+			}
 			panic(err)
 		}
 		return c.JSON(pgsqlResult)
