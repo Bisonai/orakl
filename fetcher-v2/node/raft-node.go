@@ -138,6 +138,13 @@ func (n *RaftNode) unmarshalMessageData(data json.RawMessage, messageType string
 			return HeartbeatMessage{}, err
 		}
 		return entry, nil
+	case MessageTypes.RequestVote:
+		var vote RequestVoteMessage
+		err := json.Unmarshal(data, &vote)
+		if err != nil {
+			return RequestVoteMessage{}, err
+		}
+		return vote, nil
 	case MessageTypes.ReplyVote:
 		var replyVote ReplyRequestVoteMessage
 		err := json.Unmarshal(data, &replyVote)
@@ -217,15 +224,15 @@ func (n *RaftNode) handleHeartbeat(msg Message) {
 	n.stopHeartbeatTicker()
 	n.startElectionTimer()
 
-	if heartbeatMsg.Term > n.Data.Term {
-		n.Data.Term = heartbeatMsg.Term
-	}
-
 	if n.Data.Role == RoleTypes.Candidate {
 		n.Data.Role = RoleTypes.Follower
 	}
 	if n.Data.Role == RoleTypes.Leader && n.Data.Term < heartbeatMsg.Term {
 		n.Data.Role = RoleTypes.Follower
+	}
+
+	if heartbeatMsg.Term > n.Data.Term {
+		n.updateTerm(heartbeatMsg.Term)
 	}
 
 	if n.Data.LeaderID != heartbeatMsg.LeaderID {
@@ -246,7 +253,7 @@ func (n *RaftNode) handleRequestVote(msg Message) {
 	}
 	requestVoteMsg := requestVote.(RequestVoteMessage)
 	if requestVoteMsg.Term < n.Data.Term {
-		n.Data.Term = requestVoteMsg.Term
+		n.updateTerm(requestVoteMsg.Term)
 	}
 	// should reject vote request if term is lower, but for now just ignore it
 
@@ -295,7 +302,7 @@ func (n *RaftNode) startElectionTimer() {
 }
 
 func (n *RaftNode) startElection() {
-	n.Data.Term++
+	n.updateTerm(n.Data.Term + 1)
 	log.Println("start election")
 	// Transition to candidate state
 	n.Data.Role = RoleTypes.Candidate
@@ -399,7 +406,7 @@ func (n *RaftNode) becomeLeader() {
 			case <-n.HeartbeatTicker.C:
 				n.sendHeartbeat()
 			case <-submitTicker.C:
-				log.Println("submit!")
+				n.submit()
 			case <-n.Resign:
 				log.Println("I resign leader")
 				return
@@ -426,4 +433,18 @@ func (n *RaftNode) getSubscribersCount() int {
 
 func (n *RaftNode) subscribers() []peer.ID {
 	return n.PubSub.Ps.ListPeers(n.PubSub.Topic.String())
+}
+
+func (n *RaftNode) updateTerm(newTerm int) error {
+	if newTerm < n.Data.Term {
+		return fmt.Errorf("invalid term")
+	}
+	n.Data.Term = newTerm
+	n.Data.VotedFor = ""
+	return nil
+}
+
+func (n *RaftNode) submit() {
+	n.updateTerm(n.Data.Term + 1)
+	log.Println("submit!")
 }

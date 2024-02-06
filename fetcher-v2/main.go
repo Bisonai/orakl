@@ -10,6 +10,7 @@ import (
 	"github.com/libp2p/go-libp2p/core/peer"
 
 	"bisonai.com/orakl/node/admin"
+	"bisonai.com/orakl/node/node"
 	"bisonai.com/orakl/node/utils"
 )
 
@@ -41,11 +42,17 @@ func main() {
 
 	go utils.DiscoverPeers(context.Background(), h, discoverString, *bootstrap, discoveredPeers)
 
-	electorNode, err := utils.NewElectorNode(h, ps, "orakl-nodes-elector-2024")
+	// electorNode, err := utils.NewElectorNode(h, ps, "orakl-nodes-elector-2024")
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
+	// electorNode.Start()
+
+	raftNode, err := node.NewRaftNode(h, ps, "orakl-node-raft-2024-gazua!")
 	if err != nil {
 		log.Fatal(err)
 	}
-	electorNode.Start()
+	raftNode.Run()
 
 	nodes := make(map[string]*utils.FetcherNode)
 
