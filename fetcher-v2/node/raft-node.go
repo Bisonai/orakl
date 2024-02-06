@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"math/rand"
+	"sync"
 	"time"
 
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
@@ -56,6 +57,7 @@ type RaftState struct {
 	LeaderID      string
 	VotesReceived int
 	Term          int
+	Mutex         sync.Mutex
 }
 
 type PubSubComponents struct {
@@ -223,26 +225,33 @@ func (n *RaftNode) handleHeartbeat(msg Message) {
 
 	n.stopHeartbeatTicker()
 	n.startElectionTimer()
+	currentRole := n.getCurrentRole()
+	currentTerm := n.getCurrentTerm()
+	currentLeader := n.getCurrentLeader()
 
-	if n.Data.Role == RoleTypes.Candidate {
-		n.Data.Role = RoleTypes.Follower
+	if currentRole == RoleTypes.Candidate {
+		n.updateRole(RoleTypes.Follower)
 	}
-	if n.Data.Role == RoleTypes.Leader && n.Data.Term < heartbeatMsg.Term {
-		n.Data.Role = RoleTypes.Follower
+	if currentRole == RoleTypes.Leader && currentTerm < heartbeatMsg.Term {
+		n.updateRole(RoleTypes.Follower)
 	}
 
-	if heartbeatMsg.Term > n.Data.Term {
+	if heartbeatMsg.Term > currentTerm {
 		n.updateTerm(heartbeatMsg.Term)
 	}
 
-	if n.Data.LeaderID != heartbeatMsg.LeaderID {
-		n.Data.LeaderID = heartbeatMsg.LeaderID
+	if currentLeader != heartbeatMsg.LeaderID && currentTerm < heartbeatMsg.Term {
+		n.updateLeader(heartbeatMsg.LeaderID)
 	}
 }
 
 func (n *RaftNode) handleRequestVote(msg Message) {
 	log.Println("receive vote request")
-	if n.Data.Role == RoleTypes.Leader {
+
+	currentRole := n.getCurrentRole()
+	votedFor := n.getCurrentVotedFor()
+
+	if currentRole == RoleTypes.Leader {
 		// ignore vote request from other nodes
 		return
 	}
@@ -252,19 +261,19 @@ func (n *RaftNode) handleRequestVote(msg Message) {
 		log.Println("failed to unmarshal vote request message:" + err.Error())
 	}
 	requestVoteMsg := requestVote.(RequestVoteMessage)
-	if requestVoteMsg.Term < n.Data.Term {
+	if requestVoteMsg.Term < n.getCurrentTerm() {
 		n.updateTerm(requestVoteMsg.Term)
 	}
 	// should reject vote request if term is lower, but for now just ignore it
 
-	if n.Data.Role == RoleTypes.Candidate {
+	if currentRole == RoleTypes.Candidate {
 		n.startElectionTimer()
 	}
 
 	voteGranted := false
-	if n.Data.VotedFor == "" {
+	if votedFor == "" {
 		voteGranted = true
-		n.Data.VotedFor = msg.SentFrom
+		n.updateVotedFor(msg.SentFrom)
 	}
 
 	n.sendReplyVote(msg.SentFrom, voteGranted)
@@ -272,7 +281,7 @@ func (n *RaftNode) handleRequestVote(msg Message) {
 
 func (n *RaftNode) handleReplyVote(msg Message) {
 	log.Println("receive vote reply")
-	if n.Data.Role != RoleTypes.Candidate {
+	if n.getCurrentRole() != RoleTypes.Candidate {
 		// ignore vote reply from other nodes
 		return
 	}
@@ -286,8 +295,9 @@ func (n *RaftNode) handleReplyVote(msg Message) {
 
 	if replyVoteMsg.VoteGranted && replyVoteMsg.LeaderID == n.Host.ID().String() {
 		log.Println("vote granted")
-		n.Data.VotesReceived++
-		if n.Data.VotesReceived > n.getSubscribersCount()/2 {
+		newVotes := n.getCurrentVotes() + 1
+		n.updateVoteReceived(newVotes)
+		if newVotes > n.getSubscribersCount()/2 {
 			n.becomeLeader()
 		}
 	}
@@ -302,10 +312,11 @@ func (n *RaftNode) startElectionTimer() {
 }
 
 func (n *RaftNode) startElection() {
-	n.updateTerm(n.Data.Term + 1)
+	n.updateTerm(n.getCurrentTerm() + 1)
+	n.updateVoteReceived(0)
 	log.Println("start election")
 	// Transition to candidate state
-	n.Data.Role = RoleTypes.Candidate
+	n.updateRole(RoleTypes.Candidate)
 	// Reset election timer
 	n.startElectionTimer()
 	// Send RequestVote RPCs to all other servers
@@ -326,7 +337,7 @@ func (n *RaftNode) publish(message Message) error {
 
 func (n *RaftNode) sendRequestVote() error {
 	RequestVoteMessage := RequestVoteMessage{
-		Term: n.Data.Term,
+		Term: n.getCurrentTerm(),
 	}
 	marshalledRequestVoteMsg, err := json.Marshal(RequestVoteMessage)
 	if err != nil {
@@ -396,7 +407,7 @@ func (n *RaftNode) becomeLeader() {
 	log.Printf("(%s) I am leader", n.Host.ID().String())
 	n.Resign = make(chan interface{})
 	n.ElectionTimer.Stop()
-	n.Data.Role = RoleTypes.Leader
+	n.updateRole(RoleTypes.Leader)
 	n.HeartbeatTicker = time.NewTicker(HEARTBEAT_TIMEOUT)
 	submitTicker := time.NewTicker(SUBMIT_TIMEOUT)
 
@@ -439,9 +450,70 @@ func (n *RaftNode) updateTerm(newTerm int) error {
 	if newTerm < n.Data.Term {
 		return fmt.Errorf("invalid term")
 	}
+	n.Data.Mutex.Lock()
 	n.Data.Term = newTerm
 	n.Data.VotedFor = ""
+	n.Data.Mutex.Unlock()
 	return nil
+}
+
+func (n *RaftNode) updateLeader(leader string) {
+	n.Data.Mutex.Lock()
+	n.Data.LeaderID = leader
+	n.Data.Mutex.Unlock()
+}
+
+func (n *RaftNode) updateVoteReceived(votes int) {
+	n.Data.Mutex.Lock()
+	n.Data.VotesReceived = votes
+	n.Data.Mutex.Unlock()
+}
+
+func (n *RaftNode) updateRole(role string) {
+	n.Data.Mutex.Lock()
+	n.Data.Role = role
+	n.Data.Mutex.Unlock()
+}
+
+func (n *RaftNode) updateVotedFor(votedFor string) {
+	n.Data.Mutex.Lock()
+	n.Data.VotedFor = votedFor
+	n.Data.Mutex.Unlock()
+}
+
+func (n *RaftNode) getCurrentRole() string {
+	n.Data.Mutex.Lock()
+	role := n.Data.Role
+	n.Data.Mutex.Unlock()
+	return role
+}
+
+func (n *RaftNode) getCurrentTerm() int {
+	n.Data.Mutex.Lock()
+	term := n.Data.Term
+	n.Data.Mutex.Unlock()
+	return term
+}
+
+func (n *RaftNode) getCurrentVotes() int {
+	n.Data.Mutex.Lock()
+	votes := n.Data.VotesReceived
+	n.Data.Mutex.Unlock()
+	return votes
+}
+
+func (n *RaftNode) getCurrentVotedFor() string {
+	n.Data.Mutex.Lock()
+	votedFor := n.Data.VotedFor
+	n.Data.Mutex.Unlock()
+	return votedFor
+}
+
+func (n *RaftNode) getCurrentLeader() string {
+	n.Data.Mutex.Lock()
+	leader := n.Data.LeaderID
+	n.Data.Mutex.Unlock()
+	return leader
 }
 
 func (n *RaftNode) submit() {
