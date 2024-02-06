@@ -410,6 +410,7 @@ func (n *RaftNode) becomeLeader() {
 	n.updateRole(RoleTypes.Leader)
 	n.HeartbeatTicker = time.NewTicker(HEARTBEAT_TIMEOUT)
 	submitTicker := time.NewTicker(SUBMIT_TIMEOUT)
+	n.submit()
 
 	go func() {
 		for {
