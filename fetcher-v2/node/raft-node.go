@@ -55,6 +55,7 @@ type RaftState struct {
 	VotedFor      string
 	LeaderID      string
 	VotesReceived int
+	Term          int
 }
 
 type PubSubComponents struct {
@@ -81,6 +82,11 @@ type Message struct {
 
 type HeartbeatMessage struct {
 	LeaderID string `json:"leaderID"`
+	Term     int    `json:"term"`
+}
+
+type RequestVoteMessage struct {
+	Term int `json:"term"`
 }
 
 type ReplyRequestVoteMessage struct {
@@ -107,6 +113,7 @@ func NewRaftNode(host host.Host, ps *pubsub.PubSub, topicString string) (*RaftNo
 			Role:          RoleTypes.Follower,
 			LeaderID:      "",
 			VotesReceived: 0,
+			Term:          0,
 		},
 		Msg:    make(chan Message, 15),
 		Resign: make(chan interface{}),
@@ -203,13 +210,21 @@ func (n *RaftNode) handleHeartbeat(msg Message) {
 	heartbeatMsg := heartbeat.(HeartbeatMessage)
 
 	if heartbeatMsg.LeaderID != msg.SentFrom {
+		// invalid message
 		return
 	}
 
 	n.stopHeartbeatTicker()
 	n.startElectionTimer()
 
-	if n.Data.Role != RoleTypes.Follower {
+	if heartbeatMsg.Term > n.Data.Term {
+		n.Data.Term = heartbeatMsg.Term
+	}
+
+	if n.Data.Role == RoleTypes.Candidate {
+		n.Data.Role = RoleTypes.Follower
+	}
+	if n.Data.Role == RoleTypes.Leader && n.Data.Term < heartbeatMsg.Term {
 		n.Data.Role = RoleTypes.Follower
 	}
 
@@ -224,6 +239,16 @@ func (n *RaftNode) handleRequestVote(msg Message) {
 		// ignore vote request from other nodes
 		return
 	}
+
+	requestVote, err := n.unmarshalMessageData(msg.Data, msg.Type)
+	if err != nil {
+		log.Println("failed to unmarshal vote request message:" + err.Error())
+	}
+	requestVoteMsg := requestVote.(RequestVoteMessage)
+	if requestVoteMsg.Term < n.Data.Term {
+		n.Data.Term = requestVoteMsg.Term
+	}
+	// should reject vote request if term is lower, but for now just ignore it
 
 	if n.Data.Role == RoleTypes.Candidate {
 		n.startElectionTimer()
@@ -270,6 +295,7 @@ func (n *RaftNode) startElectionTimer() {
 }
 
 func (n *RaftNode) startElection() {
+	n.Data.Term++
 	log.Println("start election")
 	// Transition to candidate state
 	n.Data.Role = RoleTypes.Candidate
@@ -292,14 +318,22 @@ func (n *RaftNode) publish(message Message) error {
 }
 
 func (n *RaftNode) sendRequestVote() error {
+	RequestVoteMessage := RequestVoteMessage{
+		Term: n.Data.Term,
+	}
+	marshalledRequestVoteMsg, err := json.Marshal(RequestVoteMessage)
+	if err != nil {
+		return err
+	}
+
 	// Construct RequestVote message
 	message := Message{
 		Type:     MessageTypes.RequestVote,
 		SentFrom: n.Host.ID().String(),
-		Data:     nil,
+		Data:     json.RawMessage(marshalledRequestVoteMsg),
 	}
 	// Publish message
-	err := n.publish(message)
+	err = n.publish(message)
 	if err != nil {
 		return err
 	}
