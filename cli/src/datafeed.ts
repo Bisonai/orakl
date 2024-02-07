@@ -188,7 +188,7 @@ export function bulkRemoveHandler() {
 
     const listeners = await listenerListHandler()({})
     const reporters = await reporterListHandler()({})
-    const delegatorReporters = await delegatorReporterListHandler()({})
+    const delegatorReporters = await delegatorReporterListHandler()()
     const delegatorContracts = await contractListHandler()()
     const delegatorFunctions = await functionListHandler()()
 

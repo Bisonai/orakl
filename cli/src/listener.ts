@@ -4,7 +4,6 @@ import { LISTENER_SERVICE_HOST, LISTENER_SERVICE_PORT, ORAKL_NETWORK_API_URL } f
 import {
   buildUrl,
   chainOptionalOption,
-  detailOptionalOption,
   idOption,
   isOraklNetworkApiHealthy,
   isServiceHealthy,
@@ -26,8 +25,7 @@ export function listenerSub() {
     name: 'list',
     args: {
       chain: chainOptionalOption,
-      service: serviceOptionalOption,
-      detail: detailOptionalOption
+      service: serviceOptionalOption
     },
     handler: listHandler(true)
   })
@@ -123,45 +121,33 @@ export function listenerSub() {
 }
 
 export function listHandler(print?: boolean) {
-  async function wrapper({
-    chain,
-    service,
-    detail
-  }: {
-    chain?: string
-    service?: string
-    detail?: string
-  }) {
+  async function wrapper({ chain, service }: { chain?: string; service?: string }) {
     if (!(await isOraklNetworkApiHealthy())) return
 
     try {
       const result = (await axios.get(LISTENER_ENDPOINT, { data: { chain, service } }))?.data
 
+      const printResult: any[] = []
+      const aggregatorUrl = new URL(AGGREGATOR_ENDPOINT)
+      const aggregatorResult = (await axios.get(aggregatorUrl.toString())).data
       if (print) {
-        if (detail && detail?.toLowerCase() === 'true') {
-          const printResult: any[] = []
-          const aggregatorUrl = new URL(AGGREGATOR_ENDPOINT)
-          const aggregatorResult = (await axios.get(aggregatorUrl.toString())).data
-          for (const listener of result) {
-            if (listener.service != 'DATA_FEED') {
-              printResult.push({ ...listener })
-              continue
-            }
-
-            const aggregator = aggregatorResult.find(
-              (aggregator) => aggregator.address === listener.address
-            )
-            if (aggregator) {
-              printResult.push({ ...listener, name: aggregator.name })
-            } else {
-              printResult.push({ ...listener })
-            }
+        for (const listener of result) {
+          if (listener.service != 'DATA_FEED') {
+            printResult.push({ ...listener })
+            continue
           }
 
-          console.dir(printResult, { depth: null })
-        } else {
-          console.dir(result, { depth: null })
+          const aggregator = aggregatorResult.find(
+            (aggregator) => aggregator.address === listener.address
+          )
+          if (aggregator) {
+            printResult.push({ ...listener, name: aggregator.name })
+          } else {
+            printResult.push({ ...listener })
+          }
         }
+
+        console.dir(printResult, { depth: null })
       }
       return result
     } catch (e) {
