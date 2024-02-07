@@ -195,8 +195,8 @@ export function insertHandler() {
       return result
     } catch (e) {
       console.error('Aggregator was not inserted. Reason:')
-      console.error(e?.response?.data?.message)
-      return e?.response?.data?.message
+      console.error(e?.response?.data)
+      return e?.response?.data
     }
   }
   return wrapper

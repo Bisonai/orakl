@@ -2,7 +2,7 @@ export const ADAPTER_0 = {
   active: true,
   name: 'X-Y',
   decimals: 8,
-  adapterHash: '0x020e150749af3bffaec9ae337da0b9b00c3cfe0b46b854a8e2f5922f6ba2c5db',
+  adapterHash: '0x78514506aa9d275a66ad8c2480ca60769ba2c597dcd28742e80c50bae56f59ca',
   feeds: [
     {
       name: 'data-X-Y',
@@ -24,7 +24,7 @@ export const ADAPTER_1 = {
   active: true,
   name: 'Z-X',
   decimals: 8,
-  adapterHash: '0x12da2f5119ba624ed025303b424d637349c0d120d02bd66a9cfff57e98463a81',
+  adapterHash: '0xfdcd2236964e2d7b7e308ff3f0631e4a0e12df3c1f6eae896279c5c10d4a90c7',
   feeds: [
     {
       name: 'data-Z-X',
@@ -44,22 +44,22 @@ export const ADAPTER_1 = {
 
 export const AGGREGATOR_0 = {
   name: 'X-Y',
-  aggregatorHash: '0x5bcc6c18d584dc54a666f9212229226f02f65b8dcda3ed72836b6c901f2d18e1',
+  aggregatorHash: '0xf49b12c34c575369168e0ca822653186546343f7abcbd6ae6fc6c8325bec1f52',
   address: '0x0000000000000000000000000000000000000000',
   heartbeat: 15000,
   threshold: 0.05,
   absoluteThreshold: 0.1,
-  adapterHash: '0x020e150749af3bffaec9ae337da0b9b00c3cfe0b46b854a8e2f5922f6ba2c5db'
+  adapterHash: '0x78514506aa9d275a66ad8c2480ca60769ba2c597dcd28742e80c50bae56f59ca'
 }
 
 export const AGGREGATOR_1 = {
   name: 'Z-X',
-  aggregatorHash: '0x11ca65b539221125a64b38653f65dbbf961ed2ea16bcaf54408a5d2ebdc13a0b',
+  aggregatorHash: '0x3cd7a87af54adcced76d090d975212f0974fd531b1c982b10db4ca22323da30b',
   address: '0x0000000000000000000000000000000000000001',
   heartbeat: 15000,
   threshold: 0.05,
   absoluteThreshold: 0.1,
-  adapterHash: '0x12da2f5119ba624ed025303b424d637349c0d120d02bd66a9cfff57e98463a81'
+  adapterHash: '0xfdcd2236964e2d7b7e308ff3f0631e4a0e12df3c1f6eae896279c5c10d4a90c7'
 }
 
 export const VRF_0 = {

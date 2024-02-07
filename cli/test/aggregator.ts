@@ -55,7 +55,9 @@ describe('CLI Aggregator', function () {
     await insertHandler()({ data: AGGREGATOR_1, chain: 'localhost' })
 
     const msg = await insertHandler()({ data: AGGREGATOR_1, chain: 'localhost' })
-    expect(msg).toEqual('Unique constraint failed on the address')
+    expect(msg).toEqual(
+      'ERROR: duplicate key value violates unique constraint "aggregators_address_key" (SQLSTATE 23505)'
+    )
   })
 
   test('Should delete aggregator based on id', async function () {
