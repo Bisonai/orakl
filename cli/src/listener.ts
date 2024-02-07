@@ -147,8 +147,6 @@ export function listHandler(print?: boolean) {
         //   }
         // }
 
-        //test
-
         console.dir(result, { depth: null })
       }
       return result
