@@ -2,12 +2,10 @@ package aggregate
 
 import (
 	"encoding/json"
-	"errors"
 	"go-api/utils"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/gofiber/fiber/v2"
-	"github.com/jackc/pgx/v5"
 )
 
 type AggregateRedisValueModel struct {
@@ -109,9 +107,6 @@ func getLatestById(c *fiber.Ctx) error {
 	if err != nil {
 		pgsqlResult, err := utils.QueryRow[AggregateModel](c, GetLatestAggregateById, map[string]any{"aggregator_id": id})
 		if err != nil {
-			if errors.Is(err, pgx.ErrNoRows) {
-				return c.JSON(result)
-			}
 			panic(err)
 		}
 		return c.JSON(pgsqlResult)
