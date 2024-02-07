@@ -132,7 +132,7 @@ func getById(c *fiber.Ctx) error {
 func deleteById(c *fiber.Ctx) error {
 	id := c.Params("id")
 
-	err := utils.RawQueryWithoutReturn(c, feed.DeleteFeedById, map[string]any{"id": id})
+	err := utils.RawQueryWithoutReturn(c, feed.DeleteFeedByAdapterId, map[string]any{"id": id})
 	if err != nil {
 		panic(err)
 	}
