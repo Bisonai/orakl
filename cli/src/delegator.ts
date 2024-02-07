@@ -300,17 +300,22 @@ export function reporterListHandler() {
       const result = (await axios.get(endpoint)).data
       const printResult: any[] = []
 
+      const aggregatorUrl = new URL(AGGREGATOR_ENDPOINT)
+      const aggregatorResult = (await axios.get(aggregatorUrl.toString())).data
+
       for (const reporter of result) {
         if (!reporter.contract) {
-          printResult.push(reporter)
+          printResult.push({ ...reporter })
           continue
         }
-        const url = new URL(AGGREGATOR_ENDPOINT)
-        url.searchParams.append('address', reporter.contract[0])
-        const aggregatorResult = (await axios.get(url.toString())).data
-        if (aggregatorResult && aggregatorResult[0].name) {
-          reporter.name = aggregatorResult[0].name
-          printResult.push(reporter)
+
+        const aggregator = aggregatorResult.find(
+          (aggregator) => aggregator.address === reporter.contract[0]
+        )
+        if (aggregator) {
+          printResult.push({ ...reporter, name: aggregator.name })
+        } else {
+          printResult.push({ ...reporter })
         }
       }
 

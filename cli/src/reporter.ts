@@ -150,18 +150,23 @@ export function listHandler(print?: boolean) {
     try {
       const result = (await axios.get(REPORTER_ENDPOINT, { data: { chain, service } }))?.data
       const printResult: any[] = []
+
+      const aggregatorUrl = new URL(AGGREGATOR_ENDPOINT)
+      const aggregatorResult = (await axios.get(aggregatorUrl.toString())).data
       if (print) {
         for (const reporter of result) {
           if (reporter.service != 'DATA_FEED') {
-            printResult.push(reporter)
+            printResult.push({ ...reporter })
             continue
           }
-          const url = new URL(AGGREGATOR_ENDPOINT)
-          url.searchParams.append('address', reporter.oracleAddress)
-          const aggregatorResult = (await axios.get(url.toString())).data
-          if (aggregatorResult && aggregatorResult[0].name) {
-            reporter.name = aggregatorResult[0].name
-            printResult.push(reporter)
+
+          const aggregator = aggregatorResult.find(
+            (aggregator) => aggregator.address === reporter.oracleAddress
+          )
+          if (aggregator) {
+            printResult.push({ ...reporter, name: aggregator.name })
+          } else {
+            printResult.push({ ...reporter })
           }
         }
 
