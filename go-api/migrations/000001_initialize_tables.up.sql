@@ -95,7 +95,7 @@ CREATE TABLE IF NOT EXISTS "proxies" (
     location TEXT,
     port INTEGER NOT NULL,
     protocol TEXT NOT NULL,
-    CONSTRAINT "proxies_portocol_host_port_key" UNIQUE ("protocol", "host", "port"),
+    CONSTRAINT "proxies_protocol_host_port_key" UNIQUE ("protocol", "host", "port"),
     CONSTRAINT "proxies_pkey" PRIMARY KEY ("id")
 );
 
