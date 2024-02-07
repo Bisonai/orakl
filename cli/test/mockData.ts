@@ -86,7 +86,7 @@ export const DATAFEED_BULK_0 = {
       adapterSource: 'https://config.orakl.network/adapter/ada-usdt.adapter.json',
       aggregatorSource: 'https://config.orakl.network/aggregator/baobab/ada-usdt.aggregator.json',
       reporter: {
-        walletAddress: '0xab',
+        walletAddress: '0xa',
         walletPrivateKey: '0xb'
       }
     },
@@ -94,7 +94,7 @@ export const DATAFEED_BULK_0 = {
       adapterSource: 'https://config.orakl.network/adapter/atom-usdt.adapter.json',
       aggregatorSource: 'https://config.orakl.network/aggregator/baobab/atom-usdt.aggregator.json',
       reporter: {
-        walletAddress: '0xcd',
+        walletAddress: '0xc',
         walletPrivateKey: '0xd'
       }
     },
@@ -102,7 +102,7 @@ export const DATAFEED_BULK_0 = {
       adapterSource: 'https://config.orakl.network/adapter/avax-usdt.adapter.json',
       aggregatorSource: 'https://config.orakl.network/aggregator/baobab/avax-usdt.aggregator.json',
       reporter: {
-        walletAddress: '0xef',
+        walletAddress: '0xe',
         walletPrivateKey: '0xf'
       }
     }
@@ -120,7 +120,7 @@ export const DATAFEED_BULK_1 = {
       adapterSource: 'https://config.orakl.network/adapter/bnb-usdt.adapter.json',
       aggregatorSource: 'https://config.orakl.network/aggregator/baobab/bnb-usdt.aggregator.json',
       reporter: {
-        walletAddress: '0x01',
+        walletAddress: '0x0',
         walletPrivateKey: '0x1'
       }
     },
@@ -128,7 +128,7 @@ export const DATAFEED_BULK_1 = {
       adapterSource: 'https://config.orakl.network/adapter/bora-krw.adapter.json',
       aggregatorSource: 'https://config.orakl.network/aggregator/baobab/bora-krw.aggregator.json',
       reporter: {
-        walletAddress: '0x23',
+        walletAddress: '0x2',
         walletPrivateKey: '0x3'
       }
     },
@@ -136,7 +136,7 @@ export const DATAFEED_BULK_1 = {
       adapterSource: 'https://config.orakl.network/adapter/eth-usdt.adapter.json',
       aggregatorSource: 'https://config.orakl.network/aggregator/baobab/eth-usdt.aggregator.json',
       reporter: {
-        walletAddress: '0x45',
+        walletAddress: '0x4',
         walletPrivateKey: '0x5'
       }
     }
