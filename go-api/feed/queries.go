@@ -8,4 +8,6 @@ const (
 	DeleteFeedById = `DELETE FROM feeds WHERE feed_id = @id RETURNING *`
 
 	GetFeedsByAdapterId = `SELECT * FROM feeds WHERE adapter_id = @id;`
+
+	DeleteFeedByAdapterId = `DELETE FROM feeds WHERE adapter_id = @id RETURNING *`
 )
