@@ -40,7 +40,7 @@ CREATE TABLE IF NOT EXISTS "aggregates" (
     aggregator_id BIGINT NOT NULL,
     timestamp TIMESTAMP WITH TIME ZONE NOT NULL,
     value BIGINT NOT NULL,
-    CONSTRAINT "aggregates_aggregator_id_fkey" FOREIGN KEY ("aggregator_id") REFERENCES "public"."aggregators" ("aggregator_id"),
+    CONSTRAINT "aggregates_aggregator_id_fkey" FOREIGN KEY ("aggregator_id") REFERENCES "public"."aggregators" ("aggregator_id") ON DELETE CASCADE,
     CONSTRAINT "aggregates_pkey" PRIMARY KEY ("aggregate_id")
 );
 
@@ -49,7 +49,7 @@ CREATE TABLE IF NOT EXISTS "feeds" (
     definition JSONB NOT NULL,
     feed_id BIGSERIAL NOT NULL,
     name TEXT NOT NULL,
-    CONSTRAINT "feeds_adapter_id_fkey" FOREIGN KEY ("adapter_id") REFERENCES "public"."adapters" ("adapter_id"),
+    CONSTRAINT "feeds_adapter_id_fkey" FOREIGN KEY ("adapter_id") REFERENCES "public"."adapters" ("adapter_id") ON DELETE CASCADE,
     CONSTRAINT "feeds_pkey" PRIMARY KEY ("feed_id")
 );
 
@@ -59,7 +59,7 @@ CREATE TABLE IF NOT EXISTS "data" (
     feed_id BIGINT NOT NULL,
     timestamp TIMESTAMP WITH TIME ZONE NOT NULL,
     value BIGINT NOT NULL,
-    CONSTRAINT "data_aggregator_id_fkey" FOREIGN KEY ("aggregator_id") REFERENCES "public"."aggregators" ("aggregator_id"),
+    CONSTRAINT "data_aggregator_id_fkey" FOREIGN KEY ("aggregator_id") REFERENCES "public"."aggregators" ("aggregator_id") ON DELETE CASCADE,
     CONSTRAINT "data_pkey" PRIMARY KEY ("data_id"),
     CONSTRAINT "data_feed_id_fkey" FOREIGN KEY ("feed_id") REFERENCES "public"."feeds" ("feed_id")
 );
