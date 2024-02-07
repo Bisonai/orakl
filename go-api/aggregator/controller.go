@@ -190,7 +190,7 @@ func hash(c *fiber.Ctx) error {
 	}
 
 	validate := validator.New()
-	if err := validate.Struct(payload); err != nil {
+	if err := validate.StructExcept(payload, "Chain"); err != nil {
 		panic(err)
 	}
 
