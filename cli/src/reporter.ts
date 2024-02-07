@@ -149,9 +149,11 @@ export function listHandler(print?: boolean) {
 
     try {
       const result = (await axios.get(REPORTER_ENDPOINT, { data: { chain, service } }))?.data
+      const printResult: any[] = []
       if (print) {
         for (const reporter of result) {
           if (reporter.service != 'DATA_FEED') {
+            printResult.push(reporter)
             continue
           }
           const url = new URL(AGGREGATOR_ENDPOINT)
@@ -159,10 +161,11 @@ export function listHandler(print?: boolean) {
           const aggregatorResult = (await axios.get(url.toString())).data
           if (aggregatorResult && aggregatorResult[0].name) {
             reporter.name = aggregatorResult[0].name
+            printResult.push(reporter)
           }
         }
 
-        console.dir(result, { depth: null })
+        console.dir(printResult, { depth: null })
       }
       return result
     } catch (e) {

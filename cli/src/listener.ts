@@ -126,20 +126,25 @@ export function listHandler(print?: boolean) {
 
     try {
       const result = (await axios.get(LISTENER_ENDPOINT, { data: { chain, service } }))?.data
+
+      const printResult: any[] = []
       if (print) {
         for (const listener of result) {
           if (listener.service != 'DATA_FEED') {
+            printResult.push(listener)
             continue
           }
+
           const url = new URL(AGGREGATOR_ENDPOINT)
           url.searchParams.append('address', listener.address)
           const aggregatorResult = (await axios.get(url.toString())).data
           if (aggregatorResult && aggregatorResult[0].name) {
             listener.name = aggregatorResult[0].name
+            printResult.push(listener)
           }
         }
 
-        console.dir(result, { depth: null })
+        console.dir(printResult, { depth: null })
       }
       return result
     } catch (e) {

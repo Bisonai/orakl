@@ -298,9 +298,11 @@ export function reporterListHandler() {
     try {
       const endpoint = buildUrl(ORAKL_NETWORK_DELEGATOR_URL, `reporter`)
       const result = (await axios.get(endpoint)).data
+      const printResult: any[] = []
 
       for (const reporter of result) {
         if (!reporter.contract) {
+          printResult.push(reporter)
           continue
         }
         const url = new URL(AGGREGATOR_ENDPOINT)
@@ -308,10 +310,11 @@ export function reporterListHandler() {
         const aggregatorResult = (await axios.get(url.toString())).data
         if (aggregatorResult && aggregatorResult[0].name) {
           reporter.name = aggregatorResult[0].name
+          printResult.push(reporter)
         }
       }
 
-      console.log(result)
+      console.log(printResult)
       return result
     } catch (e) {
       console.error('Delegator Reporter was not listed. Reason:')
