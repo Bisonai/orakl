@@ -298,28 +298,28 @@ export function reporterListHandler() {
     try {
       const endpoint = buildUrl(ORAKL_NETWORK_DELEGATOR_URL, `reporter`)
       const result = (await axios.get(endpoint)).data
+      // const printResult: any[] = []
 
-      const printResult: any[] = []
-      const aggregatorUrl = new URL(AGGREGATOR_ENDPOINT)
-      const aggregatorResult = (await axios.get(aggregatorUrl.toString())).data
+      // const aggregatorUrl = new URL(AGGREGATOR_ENDPOINT)
+      // const aggregatorResult = (await axios.get(aggregatorUrl.toString())).data
 
-      for (const reporter of result) {
-        if (!reporter.contract) {
-          printResult.push({ ...reporter })
-          continue
-        }
+      // for (const reporter of result) {
+      //   if (!reporter.contract) {
+      //     printResult.push({ ...reporter })
+      //     continue
+      //   }
 
-        const aggregator = aggregatorResult.find(
-          (aggregator) => aggregator.address === reporter.contract[0]
-        )
-        if (aggregator) {
-          printResult.push({ ...reporter, name: aggregator.name })
-        } else {
-          printResult.push({ ...reporter })
-        }
-      }
+      //   const aggregator = aggregatorResult.find(
+      //     (aggregator) => aggregator.address === reporter.contract[0]
+      //   )
+      //   if (aggregator) {
+      //     printResult.push({ ...reporter, name: aggregator.name })
+      //   } else {
+      //     printResult.push({ ...reporter })
+      //   }
+      // }
 
-      console.log(printResult)
+      console.log(result)
       return result
     } catch (e) {
       console.error('Delegator Reporter was not listed. Reason:')

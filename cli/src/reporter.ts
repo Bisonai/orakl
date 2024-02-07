@@ -149,28 +149,28 @@ export function listHandler(print?: boolean) {
 
     try {
       const result = (await axios.get(REPORTER_ENDPOINT, { data: { chain, service } }))?.data
+      // const printResult: any[] = []
 
-      const printResult: any[] = []
-      const aggregatorUrl = new URL(AGGREGATOR_ENDPOINT)
-      const aggregatorResult = (await axios.get(aggregatorUrl.toString())).data
+      // const aggregatorUrl = new URL(AGGREGATOR_ENDPOINT)
+      // const aggregatorResult = (await axios.get(aggregatorUrl.toString())).data
       if (print) {
-        for (const reporter of result) {
-          if (reporter.service != 'DATA_FEED') {
-            printResult.push({ ...reporter })
-            continue
-          }
+        // for (const reporter of result) {
+        //   if (reporter.service != 'DATA_FEED') {
+        //     printResult.push({ ...reporter })
+        //     continue
+        //   }
 
-          const aggregator = aggregatorResult.find(
-            (aggregator) => aggregator.address === reporter.oracleAddress
-          )
-          if (aggregator) {
-            printResult.push({ ...reporter, name: aggregator.name })
-          } else {
-            printResult.push({ ...reporter })
-          }
-        }
+        //   const aggregator = aggregatorResult.find(
+        //     (aggregator) => aggregator.address === reporter.oracleAddress
+        //   )
+        //   if (aggregator) {
+        //     printResult.push({ ...reporter, name: aggregator.name })
+        //   } else {
+        //     printResult.push({ ...reporter })
+        //   }
+        // }
 
-        console.dir(printResult, { depth: null })
+        console.dir(result, { depth: null })
       }
       return result
     } catch (e) {
