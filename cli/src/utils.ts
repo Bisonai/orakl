@@ -3,6 +3,11 @@ import { number as cmdnumber, option, optional, string as cmdstring } from 'cmd-
 import { open as openFile, readFile } from 'node:fs/promises'
 import { ORAKL_NETWORK_API_URL, ORAKL_NETWORK_DELEGATOR_URL } from './settings'
 
+export const detailOptionalOption = option({
+  type: optional(cmdstring),
+  long: 'detail'
+})
+
 export const chainOptionalOption = option({
   type: optional(cmdstring),
   long: 'chain'

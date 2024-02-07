@@ -1,7 +1,7 @@
 import axios from 'axios'
 import { command, number as cmdnumber, option, string as cmdstring, subcommands } from 'cmd-ts'
 import { ORAKL_NETWORK_API_URL, ORAKL_NETWORK_DELEGATOR_URL } from './settings'
-import { buildUrl, idOption, isOraklDelegatorHealthy } from './utils'
+import { buildUrl, detailOptionalOption, idOption, isOraklDelegatorHealthy } from './utils'
 
 const AGGREGATOR_ENDPOINT = buildUrl(ORAKL_NETWORK_API_URL, 'aggregator')
 
@@ -70,7 +70,7 @@ export function delegatorSub() {
 
   const reporterList = command({
     name: 'reporterList',
-    args: {},
+    args: { detail: detailOptionalOption },
     handler: reporterListHandler()
   })
 
@@ -292,34 +292,38 @@ export function organizationRemoveHandler() {
 }
 
 export function reporterListHandler() {
-  async function wrapper() {
+  async function wrapper({ detail }: { detail?: string }) {
     if (!(await isOraklDelegatorHealthy())) return
 
     try {
       const endpoint = buildUrl(ORAKL_NETWORK_DELEGATOR_URL, `reporter`)
       const result = (await axios.get(endpoint)).data
 
-      const printResult: any[] = []
-      const aggregatorUrl = new URL(AGGREGATOR_ENDPOINT)
-      const aggregatorResult = (await axios.get(aggregatorUrl.toString())).data
+      if (detail && detail?.toLowerCase() === 'true') {
+        const printResult: any[] = []
+        const aggregatorUrl = new URL(AGGREGATOR_ENDPOINT)
+        const aggregatorResult = (await axios.get(aggregatorUrl.toString())).data
+        for (const reporter of result) {
+          if (!reporter.contract) {
+            printResult.push({ ...reporter })
+            continue
+          }
 
-      for (const reporter of result) {
-        if (!reporter.contract) {
-          printResult.push({ ...reporter })
-          continue
+          const aggregator = aggregatorResult.find(
+            (aggregator) => aggregator.address === reporter.contract[0]
+          )
+          if (aggregator) {
+            printResult.push({ ...reporter, name: aggregator.name })
+          } else {
+            printResult.push({ ...reporter })
+          }
         }
 
-        const aggregator = aggregatorResult.find(
-          (aggregator) => aggregator.address === reporter.contract[0]
-        )
-        if (aggregator) {
-          printResult.push({ ...reporter, name: aggregator.name })
-        } else {
-          printResult.push({ ...reporter })
-        }
+        console.log(printResult)
+      } else {
+        console.log(result)
       }
 
-      console.log(printResult)
       return result
     } catch (e) {
       console.error('Delegator Reporter was not listed. Reason:')

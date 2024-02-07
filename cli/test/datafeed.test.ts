@@ -67,7 +67,7 @@ describe('CLI datafeed', function () {
   afterEach(async () => {
     const afterAdapterList = await adapterListHandler()()
     const afterAggregatorList = await aggregatorListHandler()({})
-    const afterDelegatorReporterList = await delegatorReporterListHandler()()
+    const afterDelegatorReporterList = await delegatorReporterListHandler()({})
     const afterContractList = await contractListHandler()()
     const afterListenerList = await listenerListHandler()({})
     const afterReporterList = await reporterListHandler()({})
@@ -99,7 +99,7 @@ describe('CLI datafeed', function () {
   test('datafeed bulk insert with default values', async function () {
     const beforeAdapterList = await adapterListHandler()()
     const beforeAggregatorList = await aggregatorListHandler()({})
-    const beforeDelegatorReporterList = await delegatorReporterListHandler()()
+    const beforeDelegatorReporterList = await delegatorReporterListHandler()({})
     const beforeContractList = await contractListHandler()()
     const beforeListenerList = await listenerListHandler()({})
     const beforeReporterList = await reporterListHandler()({})
@@ -111,7 +111,7 @@ describe('CLI datafeed', function () {
 
     const afterAdapterList = await adapterListHandler()()
     const afterAggregatorList = await aggregatorListHandler()({})
-    const afterDelegatorReporterList = await delegatorReporterListHandler()()
+    const afterDelegatorReporterList = await delegatorReporterListHandler()({})
     const afterContractList = await contractListHandler()()
     const afterListenerList = await listenerListHandler()({})
     const afterReporterList = await reporterListHandler()({})
@@ -131,7 +131,7 @@ describe('CLI datafeed', function () {
   test('datafeed bulk insert', async function () {
     const beforeAdapterList = await adapterListHandler()()
     const beforeAggregatorList = await aggregatorListHandler()({})
-    const beforeDelegatorReporterList = await delegatorReporterListHandler()()
+    const beforeDelegatorReporterList = await delegatorReporterListHandler()({})
     const beforeContractList = await contractListHandler()()
     const beforeListenerList = await listenerListHandler()({})
     const beforeReporterList = await reporterListHandler()({})
@@ -143,7 +143,7 @@ describe('CLI datafeed', function () {
 
     const afterAdapterList = await adapterListHandler()()
     const afterAggregatorList = await aggregatorListHandler()({})
-    const afterDelegatorReporterList = await delegatorReporterListHandler()()
+    const afterDelegatorReporterList = await delegatorReporterListHandler()({})
     const afterContractList = await contractListHandler()()
     const afterListenerList = await listenerListHandler()({})
     const afterReporterList = await reporterListHandler()({})
@@ -163,7 +163,7 @@ describe('CLI datafeed', function () {
   test('datafeed bulk removal', async function () {
     const beforeAdapterList = await adapterListHandler()()
     const beforeAggregatorList = await aggregatorListHandler()({})
-    const beforeDelegatorReporterList = await delegatorReporterListHandler()()
+    const beforeDelegatorReporterList = await delegatorReporterListHandler()({})
     const beforeContractList = await contractListHandler()()
     const beforeListenerList = await listenerListHandler()({})
     const beforeReporterList = await reporterListHandler()({})
@@ -175,7 +175,7 @@ describe('CLI datafeed', function () {
 
     const afterAdapterList = await adapterListHandler()()
     const afterAggregatorList = await aggregatorListHandler()({})
-    const afterDelegatorReporterList = await delegatorReporterListHandler()()
+    const afterDelegatorReporterList = await delegatorReporterListHandler()({})
     const afterContractList = await contractListHandler()()
     const afterListenerList = await listenerListHandler()({})
     const afterReporterList = await reporterListHandler()({})
@@ -193,7 +193,7 @@ describe('CLI datafeed', function () {
 
     await bulkRemoveHandler()({ data: DATAFEED_BULK_0 })
 
-    const afterDeleteDelegatorReporterList = await delegatorReporterListHandler()()
+    const afterDeleteDelegatorReporterList = await delegatorReporterListHandler()({})
     const afterDeleteContractList = await contractListHandler()()
     const afterDeleteListenerList = await listenerListHandler()({})
     const afterDeleteReporterList = await reporterListHandler()({})
