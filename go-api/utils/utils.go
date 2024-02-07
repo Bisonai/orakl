@@ -103,7 +103,7 @@ func QueryRow[T any](c *fiber.Ctx, query string, args map[string]any) (T, error)
 		return result, err
 	}
 
-	result, err = pgx.CollectExactlyOneRow(rows, pgx.RowToStructByName[T])
+	result, err = pgx.CollectOneRow(rows, pgx.RowToStructByName[T])
 	if errors.Is(err, pgx.ErrNoRows) {
 		return result, nil
 	}
