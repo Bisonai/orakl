@@ -3,18 +3,21 @@ CREATE TABLE IF NOT EXISTS "adapters" (
     adapter_id BIGSERIAL NOT NULL,
     decimals INTEGER NOT NULL,
     name TEXT NOT NULL,
+    CONSTRAINT "adapters_adapter_hash_key" UNIQUE ("adapter_hash"),
     CONSTRAINT "adapters_pkey" PRIMARY KEY ("adapter_id")
 );
 
 CREATE TABLE IF NOT EXISTS "chains" (
     chain_id BIGSERIAL NOT NULL,
     name TEXT NOT NULL,
+    CONSTRAINT "chains_name_key" UNIQUE ("name"),
     CONSTRAINT "chains_pkey" PRIMARY KEY ("chain_id")
 );
 
 CREATE TABLE IF NOT EXISTS "services" (
     name TEXT NOT NULL,
     service_id BIGSERIAL NOT NULL,
+    CONSTRAINT "services_name_key" UNIQUE ("name"),
     CONSTRAINT "services_pkey" PRIMARY KEY ("service_id")
 );
 
@@ -30,6 +33,7 @@ CREATE TABLE IF NOT EXISTS "aggregators" (
     heartbeat INTEGER NOT NULL,
     name TEXT NOT NULL,
     threshold DOUBLE PRECISION NOT NULL,
+    CONSTRAINT "aggregators_address_key" UNIQUE ("address"),
     CONSTRAINT "aggregators_adapter_id_fkey" FOREIGN KEY ("adapter_id") REFERENCES "public"."adapters" ("adapter_id"),
     CONSTRAINT "aggregators_chain_id_fkey" FOREIGN KEY ("chain_id") REFERENCES "public"."chains" ("chain_id"),
     CONSTRAINT "aggregators_pkey" PRIMARY KEY ("aggregator_id")
@@ -91,6 +95,7 @@ CREATE TABLE IF NOT EXISTS "proxies" (
     location TEXT,
     port INTEGER NOT NULL,
     protocol TEXT NOT NULL,
+    CONSTRAINT "proxies_protocol_host_port_key" UNIQUE ("protocol", "host", "port"),
     CONSTRAINT "proxies_pkey" PRIMARY KEY ("id")
 );
 

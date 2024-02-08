@@ -42,7 +42,9 @@ describe('CLI Proxy', function () {
   test('Should not allow to insert the same proxy more than once', async function () {
     await insertHandler()(proxyData_1)
     const msg = await insertHandler()(proxyData_1)
-    expect(msg).toEqual('Internal server error')
+    expect(msg).toEqual(
+      'ERROR: duplicate key value violates unique constraint "proxies_protocol_host_port_key" (SQLSTATE 23505)'
+    )
   })
 
   test('Should delete proxy based on id', async function () {

@@ -299,19 +299,27 @@ export function reporterListHandler() {
       const endpoint = buildUrl(ORAKL_NETWORK_DELEGATOR_URL, `reporter`)
       const result = (await axios.get(endpoint)).data
 
+      const printResult: any[] = []
+      const aggregatorUrl = new URL(AGGREGATOR_ENDPOINT)
+      const aggregatorResult = (await axios.get(aggregatorUrl.toString())).data
+
       for (const reporter of result) {
         if (!reporter.contract) {
+          printResult.push({ ...reporter })
           continue
         }
-        const url = new URL(AGGREGATOR_ENDPOINT)
-        url.searchParams.append('address', reporter.contract[0])
-        const aggregatorResult = (await axios.get(url.toString())).data
-        if (aggregatorResult && aggregatorResult.name) {
-          reporter.name = aggregatorResult.name
+
+        const aggregator = aggregatorResult.find(
+          (aggregator) => aggregator.address === reporter.contract[0]
+        )
+        if (aggregator) {
+          printResult.push({ ...reporter, name: aggregator.name })
+        } else {
+          printResult.push({ ...reporter })
         }
       }
 
-      console.log(result)
+      console.log(printResult)
       return result
     } catch (e) {
       console.error('Delegator Reporter was not listed. Reason:')

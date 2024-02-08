@@ -87,8 +87,8 @@ export function insertHandler() {
       return response
     } catch (e) {
       console.error('Proxy was not inserted. Reason:')
-      console.error(e?.response?.data?.message)
-      return e?.response?.data?.message
+      console.error(e?.response?.data)
+      return e?.response?.data
     }
   }
   return wrapper

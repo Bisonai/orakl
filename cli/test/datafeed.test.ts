@@ -73,6 +73,12 @@ describe('CLI datafeed', function () {
     const afterReporterList = await reporterListHandler()({})
     const afterFunctionList = await functionListHandler()()
 
+    for (const reporter of afterReporterList) {
+      await reporterRemoveHandler()({ id: reporter.id })
+    }
+    for (const listener of afterListenerList) {
+      await listenerRemoveHandler()({ id: listener.id })
+    }
     for (const _function of afterFunctionList) {
       await functionRemoveHandler()({ id: Number(_function.id) })
     }
@@ -87,12 +93,6 @@ describe('CLI datafeed', function () {
     }
     for (const contract of afterContractList) {
       await contractRemoveHandler()({ id: contract.id })
-    }
-    for (const listener of afterListenerList) {
-      await listenerRemoveHandler()({ id: listener.id })
-    }
-    for (const reporter of afterReporterList) {
-      await reporterRemoveHandler()({ id: reporter.id })
     }
   })
 

@@ -33,7 +33,9 @@ describe('CLI Adapter', function () {
   test('Should not allow to insert the same adapter more than once', async function () {
     await insertHandler()({ data: ADAPTER_1 })
     const msg = await insertHandler()({ data: ADAPTER_1 })
-    expect(msg).toEqual('Unique constraint failed on the adapter_hash')
+    expect(msg).toEqual(
+      'ERROR: duplicate key value violates unique constraint "adapters_adapter_hash_key" (SQLSTATE 23505)'
+    )
   })
 
   test('Should delete adapter based on id', async function () {

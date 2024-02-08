@@ -86,7 +86,7 @@ jobs:
           cd ./go-api
           go run main.go &
         env:
-          DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/orakl?schema=public"
+          DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/orakl-test?search_path=public"
           ENCRYPT_PASSWORD: "abc123"
           APP_PORT: "3000"
           REDIS_HOST: "localhost"
