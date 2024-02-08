@@ -78,7 +78,7 @@ export function listHandler(print?: boolean) {
 
     try {
       if (!chain) {
-        const result = (await axios.get(VRF_ENDPOINT)).data
+        const result = (await axios.get(VRF_ENDPOINT))?.data
         if (print) {
           console.dir(result, { depth: null })
         }
