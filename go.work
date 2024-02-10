@@ -1,6 +1,7 @@
 go 1.21.5
 
 use (
-	./node
+	./fetcher-v2
 	./api
+	./go-delegator
 )
