@@ -1,4 +1,4 @@
-package utils
+package nodes
 
 import (
 	"context"
