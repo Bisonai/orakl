@@ -1,6 +1,7 @@
 package aggregator
 
 import (
+	"context"
 	"encoding/json"
 	"log"
 	"strconv"
@@ -59,6 +60,7 @@ func NewAggregator(h host.Host, ps *pubsub.PubSub, topicString string) (*Aggrega
 	leaderTimeout := 5 * time.Second
 
 	_aggregator := Aggregator{
+		Raft:  raft.NewRaftNode(),
 		Host:  h,
 		Ps:    ps,
 		Topic: topic,
@@ -71,24 +73,7 @@ func NewAggregator(h host.Host, ps *pubsub.PubSub, topicString string) (*Aggrega
 		AggregatorMutex: sync.Mutex{},
 	}
 
-	_aggregator.Raft = raft.NewRaftNode(&_aggregator)
 	return &_aggregator, nil
-}
-
-func (a *Aggregator) Run() {
-	go a.Raft.Run()
-}
-
-func (a *Aggregator) GetHost() host.Host {
-	return a.Host
-}
-
-func (a *Aggregator) GetSub() *pubsub.Subscription {
-	return a.Sub
-}
-
-func (a *Aggregator) GetPubSub() *pubsub.PubSub {
-	return a.Ps
 }
 
 func (a *Aggregator) GetTopic() *pubsub.Topic {
@@ -151,8 +136,12 @@ func (a *Aggregator) LeaderJob() error {
 		SentFrom: a.Host.ID().String(),
 		Data:     json.RawMessage(marshalledRoundMessage),
 	}
-	a.Raft.PublishMessage(message)
-	return nil
+	data, err := json.Marshal(message)
+	if err != nil {
+		return err
+	}
+
+	return a.Topic.Publish(context.Background(), data)
 }
 
 func (a *Aggregator) HandleCustomMessage(message raft.Message) error {
@@ -189,12 +178,14 @@ func (a *Aggregator) HandleRoundSyncMessage(msg raft.Message) error {
 		SentFrom: a.Host.ID().String(),
 		Data:     json.RawMessage(marshalledPriceDataMessage),
 	}
+
 	log.Println("publishing price data message: ", latestAggregate)
-	err = a.Raft.PublishMessage(message)
+	data, err := json.Marshal(message)
 	if err != nil {
 		return err
 	}
-	return nil
+
+	return a.Topic.Publish(context.Background(), data)
 }
 
 func (a *Aggregator) HandlePriceDataMessage(msg raft.Message) error {
@@ -209,7 +200,7 @@ func (a *Aggregator) HandlePriceDataMessage(msg raft.Message) error {
 		a.CollectedPrices[priceDataMessage.RoundID] = []int{}
 	}
 	a.CollectedPrices[priceDataMessage.RoundID] = append(a.CollectedPrices[priceDataMessage.RoundID], priceDataMessage.PriceData)
-	if len(a.CollectedPrices[priceDataMessage.RoundID]) >= a.Raft.SubscribersCount()+1 {
+	if len(a.CollectedPrices[priceDataMessage.RoundID]) >= len(a.Ps.ListPeers(a.Topic.String()))+1 {
 		// handle aggregation here once all the data have been collected
 		median := utils.FindMedian(a.CollectedPrices[priceDataMessage.RoundID])
 		roundID := strconv.Itoa(priceDataMessage.RoundID)

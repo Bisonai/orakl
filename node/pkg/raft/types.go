@@ -46,8 +46,6 @@ type ReplyRequestVoteMessage struct {
 }
 
 type Raft struct {
-	Node Node
-
 	Role          RoleType
 	VotedFor      string
 	LeaderID      string

@@ -74,14 +74,14 @@ func (r *Raft) UpdateVotedFor(votedFor string) {
 	r.VotedFor = votedFor
 }
 
-func (r *Raft) SubscribersCount() int {
-	return len(r.Subscribers())
+func (r *Raft) SubscribersCount(node Node) int {
+	return len(r.Subscribers(node))
 }
 
-func (r *Raft) Subscribers() []peer.ID {
-	return r.Node.GetPubSub().ListPeers(r.Node.GetTopic().String())
+func (r *Raft) Subscribers(node Node) []peer.ID {
+	return node.GetPubSub().ListPeers(node.GetTopic().String())
 }
 
-func (r *Raft) GetHostId() string {
-	return r.Node.GetHost().ID().String()
+func (r *Raft) GetHostId(node Node) string {
+	return node.GetHost().ID().String()
 }
