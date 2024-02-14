@@ -76,6 +76,22 @@ func NewAggregator(h host.Host, ps *pubsub.PubSub, topicString string) (*Aggrega
 	return &_aggregator, nil
 }
 
+func (a *Aggregator) Run() {
+	a.Raft.Run(a)
+}
+
+func (a *Aggregator) GetSub() *pubsub.Subscription {
+	return a.Sub
+}
+
+func (a *Aggregator) GetPubSub() *pubsub.PubSub {
+	return a.Ps
+}
+
+func (a *Aggregator) GetHost() host.Host {
+	return a.Host
+}
+
 func (a *Aggregator) GetTopic() *pubsub.Topic {
 	return a.Topic
 }
