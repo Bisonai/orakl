@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"time"
 )
 
 func GetRequest[T any](urlEndpoint string, requestBody interface{}, headers map[string]string) (T, error) {
@@ -46,13 +47,17 @@ func UrlRequestRaw(urlEndpoint string, method string, requestBody interface{}, h
 	}
 
 	req.Header.Set("Content-Type", "application/json")
-	if headers != nil {
+	if len(headers) > 0 {
 		for key, value := range headers {
 			req.Header.Set(key, value)
 		}
 	}
 
-	return http.DefaultClient.Do(req)
+	client := &http.Client{
+		Timeout: time.Second, // Set the timeout to 1 second
+	}
+
+	return client.Do(req)
 }
 
 func UrlRequest[T any](urlEndpoint string, method string, requestBody interface{}, headers map[string]string) (T, error) {
