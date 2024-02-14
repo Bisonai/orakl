@@ -13,9 +13,9 @@ import (
 const MESSAGE_BUFFER = 100
 const HEARTBEAT_TIMEOUT = 100 * time.Millisecond
 
-func NewRaftNode(node Node) *RaftNode {
+func NewRaftNode(node Node) *Raft {
 
-	r := &RaftNode{
+	r := &Raft{
 		Node:             node,
 		Role:             "follower",
 		VotedFor:         "",
@@ -28,14 +28,17 @@ func NewRaftNode(node Node) *RaftNode {
 		HeartbeatTimeout: HEARTBEAT_TIMEOUT,
 	}
 	r.getTerm()
-	go r.run()
+	// go r.run()
 	return r
 }
 
-func (r *RaftNode) run() {
+func (r *Raft) Run() {
 	go r.subscribe(context.Background())
 	r.startElectionTimer()
-	r.Node.SetJobTicker(r.Node.GetJobTimeout())
+	var jobTicker <-chan time.Time
+	if r.Node.GetJobTimeout() != nil {
+		r.Node.SetJobTicker(r.Node.GetJobTimeout())
+	}
 
 	for {
 		select {
@@ -46,27 +49,28 @@ func (r *RaftNode) run() {
 			}
 		case <-r.ElectionTimer.C:
 			r.startElection()
-		case <-r.Node.GetJobTicker().C:
-			r.Node.Job()
+		case <-jobTicker:
+			if jobTicker != nil {
+				r.Node.Job()
+			}
 		}
 	}
 }
 
-func (r *RaftNode) getTerm() error {
+func (r *Raft) getTerm() error {
 	// load term from db
 	loadedTerm := 0
 	r.UpdateTerm(loadedTerm)
 	return nil
 }
 
-func (r *RaftNode) saveTerm() error {
+func (r *Raft) saveTerm() error {
 	// save term to db
 	// term := r.GetCurrentTerm()
 	return nil
-
 }
 
-func (r *RaftNode) subscribe(ctx context.Context) {
+func (r *Raft) subscribe(ctx context.Context) {
 	sub, err := r.Node.GetTopic().Subscribe()
 	if err != nil {
 		log.Println("failed to subscribe to topic")
@@ -86,7 +90,7 @@ func (r *RaftNode) subscribe(ctx context.Context) {
 
 // handler for incoming messages
 
-func (r *RaftNode) handleMessage(msg Message) error {
+func (r *Raft) handleMessage(msg Message) error {
 	switch msg.Type {
 	case Heartbeat:
 		return r.handleHeartbeat(msg)
@@ -99,7 +103,7 @@ func (r *RaftNode) handleMessage(msg Message) error {
 	}
 }
 
-func (r *RaftNode) handleHeartbeat(msg Message) error {
+func (r *Raft) handleHeartbeat(msg Message) error {
 	if msg.SentFrom == r.GetHostId() {
 		return nil
 	}
@@ -114,7 +118,7 @@ func (r *RaftNode) handleHeartbeat(msg Message) error {
 		return fmt.Errorf("leader id mismatch")
 	}
 
-	r.stopHeartbeatTicker()
+	r.StopHeartbeatTicker()
 	r.startElectionTimer()
 
 	currentRole := r.GetRole()
@@ -141,7 +145,8 @@ func (r *RaftNode) handleHeartbeat(msg Message) error {
 	return nil
 }
 
-func (r *RaftNode) handleRequestVote(msg Message) error {
+func (r *Raft) handleRequestVote(msg Message) error {
+	log.Println("received request vote message")
 	if r.GetRole() == Leader {
 		return nil
 	}
@@ -176,7 +181,8 @@ func (r *RaftNode) handleRequestVote(msg Message) error {
 	return nil
 }
 
-func (r *RaftNode) handleReplyVote(msg Message) error {
+func (r *Raft) handleReplyVote(msg Message) error {
+	log.Println("received reply vote message")
 	if r.GetRole() != Candidate {
 		return nil
 	}
@@ -188,8 +194,10 @@ func (r *RaftNode) handleReplyVote(msg Message) error {
 	}
 
 	if replyVoteMessage.VoteGranted && replyVoteMessage.LeaderID == r.GetHostId() {
-		r.UpdateVoteReceived(r.GetVoteReceived() + 1)
-		if r.GetVoteReceived() > r.SubscribersCount()/2 {
+		r.IncreaseVote()
+		log.Println("vote received:", r.GetVoteReceived())
+		log.Println("subscribers count:", r.SubscribersCount())
+		if r.GetVoteReceived() >= (r.SubscribersCount()+1)/2 {
 			r.becomeLeader()
 		}
 	}
@@ -198,7 +206,7 @@ func (r *RaftNode) handleReplyVote(msg Message) error {
 
 // publishing messages
 
-func (r *RaftNode) publishMessage(msg Message) error {
+func (r *Raft) PublishMessage(msg Message) error {
 	data, err := json.Marshal(msg)
 	if err != nil {
 		return err
@@ -206,22 +214,34 @@ func (r *RaftNode) publishMessage(msg Message) error {
 	return r.Node.GetTopic().Publish(context.Background(), data)
 }
 
-func (r *RaftNode) sendHeartbeat() {
+func (r *Raft) sendHeartbeat() error {
+	_heartbeatMessage := HeartbeatMessage{
+		LeaderID: r.GetHostId(),
+		Term:     r.GetCurrentTerm(),
+	}
+	marshalledHeartbeatMsg, err := json.Marshal(_heartbeatMessage)
+	if err != nil {
+		log.Println("failed to marshal heartbeat message")
+		return err
+	}
+
 	heartbeatMessage := Message{
 		Type:     Heartbeat,
 		SentFrom: r.GetHostId(),
-		Data:     nil,
+		Data:     json.RawMessage(marshalledHeartbeatMsg),
 	}
-	err := r.publishMessage(heartbeatMessage)
+	err = r.PublishMessage(heartbeatMessage)
 	if err != nil {
 		log.Println("failed to send heartbeat")
+		return err
 	}
+	return nil
 }
 
-func (r *RaftNode) sendReplyVote(to string, voteGranted bool) error {
+func (r *Raft) sendReplyVote(to string, voteGranted bool) error {
 	replyVoteMessage := ReplyRequestVoteMessage{
 		VoteGranted: voteGranted,
-		LeaderID:    r.LeaderID,
+		LeaderID:    to,
 	}
 	marshalledReplyVoteMsg, err := json.Marshal(replyVoteMessage)
 	if err != nil {
@@ -232,14 +252,14 @@ func (r *RaftNode) sendReplyVote(to string, voteGranted bool) error {
 		SentFrom: r.GetHostId(),
 		Data:     json.RawMessage(marshalledReplyVoteMsg),
 	}
-	err = r.publishMessage(message)
+	err = r.PublishMessage(message)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func (r *RaftNode) sendRequestVote() error {
+func (r *Raft) sendRequestVote() error {
 	RequestVoteMessage := RequestVoteMessage{
 		Term: r.GetCurrentTerm(),
 	}
@@ -250,10 +270,10 @@ func (r *RaftNode) sendRequestVote() error {
 
 	message := Message{
 		Type:     RequestVote,
-		SentFrom: r.Node.GetHost().ID().String(),
+		SentFrom: r.GetHostId(),
 		Data:     json.RawMessage(marshalledRequestVoteMsg),
 	}
-	err = r.publishMessage(message)
+	err = r.PublishMessage(message)
 	if err != nil {
 		return err
 	}
@@ -262,7 +282,8 @@ func (r *RaftNode) sendRequestVote() error {
 
 // utility functions
 
-func (r *RaftNode) stopHeartbeatTicker() {
+func (r *Raft) StopHeartbeatTicker() {
+	// should be called on leader job failure to resign and handover leadership
 	if r.HeartbeatTicker != nil {
 		r.HeartbeatTicker.Stop()
 		r.HeartbeatTicker = nil
@@ -278,12 +299,15 @@ func (r *RaftNode) stopHeartbeatTicker() {
 	}
 }
 
-func (r *RaftNode) becomeLeader() {
+func (r *Raft) becomeLeader() {
+	log.Println("Im now becoming leader")
 	r.Resign = make(chan interface{})
 	r.ElectionTimer.Stop()
 	r.UpdateRole(Leader)
 	r.HeartbeatTicker = time.NewTicker(r.HeartbeatTimeout)
-	r.Node.SetLeaderJobTicker(r.Node.GetLeaderJobTimeout())
+	if r.Node.GetLeaderJobTimeout() != nil {
+		r.Node.SetLeaderJobTicker(r.Node.GetLeaderJobTimeout())
+	}
 
 	go func() {
 		for {
@@ -301,20 +325,20 @@ func (r *RaftNode) becomeLeader() {
 	}()
 }
 
-func (r *RaftNode) getRandomElectionTimeout() time.Duration {
+func (r *Raft) getRandomElectionTimeout() time.Duration {
 	minTimeout := int(r.HeartbeatTimeout) * 3
 	maxTimeout := int(r.HeartbeatTimeout) * 6
 	return time.Duration(minTimeout + rand.Intn(maxTimeout-minTimeout))
 }
 
-func (r *RaftNode) startElectionTimer() {
+func (r *Raft) startElectionTimer() {
 	if r.ElectionTimer != nil {
 		r.ElectionTimer.Stop()
 	}
 	r.ElectionTimer = time.NewTimer(r.getRandomElectionTimeout())
 }
 
-func (r *RaftNode) startElection() {
+func (r *Raft) startElection() {
 	r.IncreaseTerm()
 	r.saveTerm()
 	r.UpdateVoteReceived(0)
@@ -330,7 +354,7 @@ func (r *RaftNode) startElection() {
 	}
 }
 
-func (r *RaftNode) unmarshalMessage(data []byte) (Message, error) {
+func (r *Raft) unmarshalMessage(data []byte) (Message, error) {
 	var m Message
 	err := json.Unmarshal(data, &m)
 	if err != nil {

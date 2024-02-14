@@ -45,7 +45,7 @@ type ReplyRequestVoteMessage struct {
 	LeaderID    string `json:"leaderID"`
 }
 
-type RaftNode struct {
+type Raft struct {
 	Node Node
 
 	Role          RoleType

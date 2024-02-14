@@ -2,80 +2,86 @@ package raft
 
 import "github.com/libp2p/go-libp2p/core/peer"
 
-func (r *RaftNode) IncreaseTerm() {
+func (r *Raft) IncreaseTerm() {
 	r.Mutex.Lock()
 	defer r.Mutex.Unlock()
 	r.Term++
 }
 
-func (r *RaftNode) UpdateTerm(newTerm int) {
+func (r *Raft) UpdateTerm(newTerm int) {
 	r.Mutex.Lock()
 	defer r.Mutex.Unlock()
 	r.Term = newTerm
 }
 
-func (r *RaftNode) GetCurrentTerm() int {
+func (r *Raft) GetCurrentTerm() int {
 	r.Mutex.Lock()
 	defer r.Mutex.Unlock()
 	return r.Term
 }
 
-func (r *RaftNode) UpdateVoteReceived(votes int) {
+func (r *Raft) IncreaseVote() {
+	r.Mutex.Lock()
+	defer r.Mutex.Unlock()
+	r.VotesReceived++
+}
+
+func (r *Raft) UpdateVoteReceived(votes int) {
 	r.Mutex.Lock()
 	defer r.Mutex.Unlock()
 	r.VotesReceived = votes
 }
 
-func (r *RaftNode) GetVoteReceived() int {
+func (r *Raft) GetVoteReceived() int {
 	r.Mutex.Lock()
 	defer r.Mutex.Unlock()
 	return r.VotesReceived
 }
 
-func (r *RaftNode) UpdateRole(role RoleType) {
+func (r *Raft) UpdateRole(role RoleType) {
 	r.Mutex.Lock()
 	defer r.Mutex.Unlock()
 	r.Role = role
 }
 
-func (r *RaftNode) GetRole() RoleType {
+func (r *Raft) GetRole() RoleType {
 	r.Mutex.Lock()
 	defer r.Mutex.Unlock()
 	return r.Role
 }
 
-func (r *RaftNode) GetVotedFor() string {
+func (r *Raft) GetVotedFor() string {
 	r.Mutex.Lock()
 	defer r.Mutex.Unlock()
 	return r.VotedFor
 }
 
-func (r *RaftNode) GetLeader() string {
+func (r *Raft) GetLeader() string {
 	r.Mutex.Lock()
 	defer r.Mutex.Unlock()
 	return r.LeaderID
 }
 
-func (r *RaftNode) UpdateLeader(leader string) {
+func (r *Raft) UpdateLeader(leader string) {
 	r.Mutex.Lock()
 	defer r.Mutex.Unlock()
 	r.LeaderID = leader
 }
 
-func (r *RaftNode) UpdateVotedFor(votedFor string) {
+func (r *Raft) UpdateVotedFor(votedFor string) {
 	r.Mutex.Lock()
 	defer r.Mutex.Unlock()
 	r.VotedFor = votedFor
 }
 
-func (r *RaftNode) SubscribersCount() int {
+func (r *Raft) SubscribersCount() int {
 	return len(r.Subscribers())
 }
 
-func (r *RaftNode) Subscribers() []peer.ID {
+func (r *Raft) Subscribers() []peer.ID {
 	return r.Node.GetPubSub().ListPeers(r.Node.GetTopic().String())
 }
 
-func (r *RaftNode) GetHostId() string {
+func (r *Raft) GetHostId() string {
 	return r.Node.GetHost().ID().String()
 }

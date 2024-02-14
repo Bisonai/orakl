@@ -107,7 +107,7 @@ func InitDHT(ctx context.Context, h host.Host, bootstrap string) *dht.IpfsDHT {
 	return kademliaDHT
 }
 
-func DiscoverPeers(ctx context.Context, h host.Host, topicName string, bootstrap string, discoveredPeers map[peer.ID]peer.AddrInfo) {
+func DiscoverPeers(ctx context.Context, h host.Host, topicName string, bootstrap string) {
 	kademliaDHT := InitDHT(ctx, h, bootstrap)
 	routingDiscovery := drouting.NewRoutingDiscovery(kademliaDHT)
 	dutil.Advertise(ctx, routingDiscovery, topicName)
@@ -135,7 +135,6 @@ func DiscoverPeers(ctx context.Context, h host.Host, topicName string, bootstrap
 				} else {
 					// log.Println("Connected to:", peer.ID)
 					anyConnected = true
-					discoveredPeers[p.ID] = p
 				}
 			}(p)
 
