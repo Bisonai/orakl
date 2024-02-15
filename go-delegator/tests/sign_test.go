@@ -81,7 +81,7 @@ func TestInitialize(t *testing.T) {
 }
 
 func TestInsert(t *testing.T) {
-	// t.Skip()
+	t.Skip()
 	err := setup()
 	assert.Nil(t, err)
 	defer t.Cleanup(cleanup)

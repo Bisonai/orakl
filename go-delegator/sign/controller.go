@@ -4,7 +4,6 @@ import (
 	"encoding/hex"
 	"fmt"
 	"math/big"
-	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -13,7 +12,6 @@ import (
 
 	"github.com/go-playground/validator"
 	"github.com/gofiber/fiber/v2"
-	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/klaytn/klaytn/blockchain/types"
 	"github.com/klaytn/klaytn/common"
 	"github.com/klaytn/klaytn/crypto"
@@ -89,24 +87,15 @@ type ContractModel struct {
 func initialize(c *fiber.Ctx) error {
 	pk := c.Query("feePayerPrivateKey", "")
 	if pk == "" {
-		var err error
-		if os.Getenv("USE_GOOGLE_SECRET_MANAGER") == "true" {
-			pk, err = utils.LoadFeePayerFromGSM(c.Context())
-			if err != nil {
-				return c.Status(fiber.StatusInternalServerError).SendString(err.Error())
-			}
-		} else {
-			var pgx *pgxpool.Pool
-			pgx, err = utils.GetPgx(c)
-			if err != nil {
-				return c.Status(fiber.StatusInternalServerError).SendString(err.Error())
-			}
-
-			pk, err = utils.LoadFeePayer(pgx)
-			if err != nil {
-				return c.Status(fiber.StatusInternalServerError).SendString(err.Error())
-			}
+		pgx, err := utils.GetPgx(c)
+		if err != nil {
+			panic(err)
 		}
+		err = utils.InitFeePayerPK(pgx)
+		if err != nil {
+			panic(err)
+		}
+		return c.SendString("Initialized")
 	}
 
 	utils.UpdateFeePayer(pk)

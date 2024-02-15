@@ -45,7 +45,6 @@ func LoadEnvVars() map[string]interface{} {
 func Setup(options ...string) (AppConfig, error) {
 	var version string
 	var appConfig AppConfig
-	var err error
 
 	if len(options) > 0 {
 		version = options[0]
@@ -60,24 +59,7 @@ func Setup(options ...string) (AppConfig, error) {
 		return appConfig, pgxError
 	}
 
-	_useGoogleSecretManager := config["USE_GOOGLE_SECRET_MANAGER"].(string)
-	useGoogleSecretManager, err := strconv.ParseBool(_useGoogleSecretManager)
-	if err != nil {
-		log.Println("failed to parse USE_GOOGLE_SECRET_MANAGER, continuing without google secret manager")
-		useGoogleSecretManager = false
-	}
-
-	if useGoogleSecretManager {
-		feePayer, err = LoadFeePayerFromGSM(context.Background())
-		if err != nil {
-			fmt.Println(err)
-		}
-	} else {
-		feePayer, err = LoadFeePayer(pgxPool)
-		if err != nil {
-			fmt.Println(err)
-		}
-	}
+	InitFeePayerPK(pgxPool)
 
 	app := fiber.New(fiber.Config{
 		AppName:           "go-delegator " + version,
@@ -104,6 +86,28 @@ func Setup(options ...string) (AppConfig, error) {
 		App:      app,
 	}
 	return appConfig, nil
+}
+
+func InitFeePayerPK(pgxPool *pgxpool.Pool) error {
+	var err error
+	if feePayer = os.Getenv("DELEGATOR_FEEPAYER_PK"); feePayer != "" {
+		return nil
+	}
+
+	useGoogleSecretManager, _ := strconv.ParseBool(os.Getenv("USE_GOOGLE_SECRET_MANAGER"))
+
+	if useGoogleSecretManager {
+		feePayer, err = LoadFeePayerFromGSM(context.Background())
+		if err != nil {
+			return err
+		}
+	} else {
+		feePayer, err = LoadFeePayer(pgxPool)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func CustomErrorHandler(c *fiber.Ctx, err error) error {

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"math/big"
+	"os"
 	"strings"
 	"time"
 
@@ -83,9 +84,13 @@ func makeMockTransaction() (*types.Transaction, error) {
 		return nil, pgxError
 	}
 
-	feePayerPk, err := utils.LoadFeePayer(pgxPool)
-	if err != nil {
-		return nil, err
+	var feePayerPk string
+
+	if feePayerPk = os.Getenv("DELEGATOR_FEEPAYER_PK"); feePayerPk == "" {
+		feePayerPk, err = utils.LoadFeePayer(pgxPool)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	feePayerPublicKey, err := utils.GetPublicKey(feePayerPk)

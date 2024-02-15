@@ -49,17 +49,6 @@ jobs:
         run: |
           cd ./go-delegator
           go build
-      - name: Insert test fee payer pk
-        run: |
-          psql -h localhost -U postgres -d orakl-test <<EOF
-          SET search_path TO delegator;
-          INSERT INTO fee_payers ("privateKey") VALUES ('${{ secrets.DELEGATOR_FEEPAYER_PK}}')
-          ON CONFLICT ("privateKey")
-          DO NOTHING
-          RETURNING *;
-          EOF
-        env:
-          PGPASSWORD: postgres
       - name: Run test
         run: |
           cd ./go-delegator
@@ -68,3 +57,4 @@ jobs:
           DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/orakl-test?search_path=public"
           PROVIDER_URL: "https://api.baobab.klaytn.net:8651"
           TEST_DELEGATOR_REPORTER_PK: ${{ secrets.TEST_DELEGATOR_REPORTER_PK}}
+          DELEGATOR_FEEPAYER_PK: ${{ secrets.DELEGATOR_FEEPAYER_PK}}
