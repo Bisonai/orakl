@@ -1,4 +1,4 @@
-# orakl-api migration
+# Orakl Network API
 
 ## To Dos
 
