@@ -58,6 +58,8 @@ jobs:
           DO NOTHING
           RETURNING *;
           EOF
+        env:
+          PGPASSWORD: postgres
       - name: Run test
         run: |
           cd ./go-delegator
