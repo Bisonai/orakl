@@ -43,6 +43,20 @@ func loadPgsqlConnectionString() string {
 	return os.Getenv("DATABASE_URL")
 }
 
+func QueryWithoutResult(ctx context.Context, queryString string, args map[string]any) error {
+	pool, err := GetPool(ctx)
+	if err != nil {
+		return err
+	}
+	rows, err := query(pool, queryString, args)
+	if err != nil {
+		return err
+	}
+	rows.Close()
+	return nil
+}
+
+// Using this raw function is highly unrecommended since rows should be manually closed
 func Query(ctx context.Context, queryString string, args map[string]any) (pgx.Rows, error) {
 	_pool, err := GetPool(ctx)
 	if err != nil {
@@ -86,6 +100,7 @@ func queryRow[T any](pool *pgxpool.Pool, _query string, args map[string]any) (T,
 	if errors.Is(err, pgx.ErrNoRows) {
 		return result, nil
 	}
+	defer rows.Close()
 	return result, err
 }
 
@@ -101,6 +116,7 @@ func queryRows[T any](pool *pgxpool.Pool, _query string, args map[string]any) ([
 	if errors.Is(err, pgx.ErrNoRows) {
 		return results, nil
 	}
+	defer rows.Close()
 	return results, err
 }
 
