@@ -9,7 +9,7 @@ COPY package.json .
 
 COPY yarn.lock .
 
-COPY contracts contracts
+COPY contracts-v0.1 contracts-v0.1
 
 COPY vrf vrf
 

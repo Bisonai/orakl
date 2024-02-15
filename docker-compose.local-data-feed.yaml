@@ -11,8 +11,8 @@ services:
       dockerfile: dockerfiles/local-data-feed/contracts.Dockerfile
     image: deploy-contract
     volumes:
-      - ./contracts/deployments:/app/contracts/deployments
-      - ./contracts/migration:/app/contracts/migration
+      - ./contracts-v0.1/deployments:/app/contracts/deployments
+      - ./contracts-v0.1/migration:/app/contracts/migration
       - ./dockerfiles/local-data-feed/tmp:/app/contracts/scripts/v0.1/tmp
       - ./dockerfiles/local-data-feed/scripts/deploy-contracts.sh:/deploy.sh
     command: /deploy.sh
