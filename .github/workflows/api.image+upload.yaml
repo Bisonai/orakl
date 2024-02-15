@@ -2,7 +2,7 @@ name: GO API Deploy to Amazon ECR
 
 on:
   push:
-    braches:
+    branches:
       - master
     paths:
       - "api/**"
