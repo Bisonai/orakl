@@ -3,7 +3,6 @@
   "private": true,
   "workspaces": {
     "packages": [
-      "api",
       "cli",
       "contracts-v0.1",
       "core",
@@ -24,7 +23,6 @@
   "dependencies": {},
   "devDependencies": {},
   "scripts": {
-    "api": "yarn workspace @bisonai/orakl-api",
     "cli": "yarn workspace @bisonai/orakl-cli",
     "contracts": "yarn workspace @bisonai/orakl-contracts",
     "core": "yarn workspace @bisonai/orakl-core",
