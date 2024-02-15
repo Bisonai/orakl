@@ -264,7 +264,7 @@ func LoadFeePayer(postgres *pgxpool.Pool) (string, error) {
 	}
 
 	results, err := pgx.CollectRows(rows, pgx.RowToStructByName[FeePayer])
-	if errors.Is(err, pgx.ErrNoRows) {
+	if errors.Is(err, pgx.ErrNoRows) || len(results) == 0 {
 		return "", fmt.Errorf("no fee payer found")
 	}
 
