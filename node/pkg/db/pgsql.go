@@ -18,7 +18,7 @@ var (
 	pool        *pgxpool.Pool
 )
 
-func GetPool() (*pgxpool.Pool, error) {
+func GetPool(ctx context.Context) (*pgxpool.Pool, error) {
 	var err error
 	initPgxOnce.Do(func() {
 		connectionString := loadPgsqlConnectionString()
@@ -26,37 +26,38 @@ func GetPool() (*pgxpool.Pool, error) {
 			err = errors.New("DATABASE_URL is not set")
 			return
 		}
-		pool, err = connectToPgsql(connectionString)
+		pool, err = connectToPgsql(ctx, connectionString)
 	})
 	return pool, err
 }
 
-func connectToPgsql(connectionString string) (*pgxpool.Pool, error) {
-	return pgxpool.New(context.Background(), connectionString)
+func connectToPgsql(ctx context.Context, connectionString string) (*pgxpool.Pool, error) {
+	return pgxpool.New(ctx, connectionString)
 }
 
 func loadPgsqlConnectionString() string {
 	return os.Getenv("DATABASE_URL")
 }
 
-func Query(queryString string, args map[string]any) (pgx.Rows, error) {
-	pool, err := GetPool()
+func Query(ctx context.Context, queryString string, args map[string]any) (pgx.Rows, error) {
+	pool, err := GetPool(ctx)
 	if err != nil {
 		return nil, err
 	}
 	return query(pool, queryString, args)
 }
 
-func QueryRow[T any](queryString string, args map[string]any) (T, error) {
-	pool, err := GetPool()
+func QueryRow[T any](ctx context.Context, queryString string, args map[string]any) (T, error) {
+	var t T
+	pool, err := GetPool(ctx)
 	if err != nil {
-		return *new(T), err
+		return t, err
 	}
 	return queryRow[T](pool, queryString, args)
 }
 
-func QueryRows[T any](queryString string, args map[string]any) ([]T, error) {
-	pool, err := GetPool()
+func QueryRows[T any](ctx context.Context, queryString string, args map[string]any) ([]T, error) {
+	pool, err := GetPool(ctx)
 	if err != nil {
 		return nil, err
 	}

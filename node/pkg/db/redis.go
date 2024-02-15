@@ -23,38 +23,40 @@ var (
 	rdb         *redis.Conn
 )
 
-func GetRedisConn() (*redis.Conn, error) {
+func GetRedisConn(ctx context.Context) (*redis.Conn, error) {
 	var err error
+
 	initRdbOnce.Do(func() {
-		connectionInfo, err := loadRedisConnectionString()
-		if err != nil {
+		connectionInfo, initErr := loadRedisConnectionString()
+		if initErr != nil {
+			err = initErr
 			return
 		}
-		rdb, err = connectToRedis(connectionInfo)
+		rdb, err = connectToRedis(ctx, connectionInfo)
 	})
 	return rdb, err
 }
 
-func Set(key string, value string, exp time.Duration) error {
-	rdb, err := GetRedisConn()
+func Set(ctx context.Context, key string, value string, exp time.Duration) error {
+	rdb, err := GetRedisConn(ctx)
 	if err != nil {
 		return err
 	}
 	return setRedis(rdb, key, value, exp)
 }
 
-func Get(key string) (string, error) {
-	rdb, err := GetRedisConn()
+func Get(ctx context.Context, key string) (string, error) {
+	rdb, err := GetRedisConn(ctx)
 	if err != nil {
 		return "", err
 	}
 	return getRedis(rdb, key)
 }
 
-func connectToRedis(connectionInfo RedisConnectionInfo) (*redis.Conn, error) {
+func connectToRedis(ctx context.Context, connectionInfo RedisConnectionInfo) (*redis.Conn, error) {
 	rdb := redis.NewClient(&redis.Options{
 		Addr: connectionInfo.Host + ":" + connectionInfo.Port}).Conn()
-	_, rdbErr := rdb.Ping(context.Background()).Result()
+	_, rdbErr := rdb.Ping(ctx).Result()
 	if rdbErr != nil {
 		return nil, rdbErr
 	}
