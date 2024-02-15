@@ -122,7 +122,3 @@ CREATE TABLE IF NOT EXISTS "vrf_keys" (
     CONSTRAINT "vrf_keys_chain_id_fkey" FOREIGN KEY ("chain_id") REFERENCES "public"."chains" ("chain_id"),
     CONSTRAINT "vrf_keys_pkey" PRIMARY KEY ("vrf_key_id")
 );
-
-CREATE TABLE IF NOT EXISTS "fee_payers" (
-    "privateKey" VARCHAR(66) NOT NULL
-);

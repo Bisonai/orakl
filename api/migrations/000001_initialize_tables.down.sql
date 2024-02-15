@@ -23,4 +23,3 @@ DROP TABLE IF EXISTS "chains";
 DROP TABLE IF EXISTS "aggregators";
 DROP TABLE IF EXISTS "aggregates";
 DROP TABLE IF EXISTS "adapters";
-DROP TABLE IF EXISTS "fee_payers";
