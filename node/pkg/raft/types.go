@@ -46,6 +46,11 @@ type ReplyRequestVoteMessage struct {
 }
 
 type Raft struct {
+	Host  host.Host
+	Ps    *pubsub.PubSub
+	Topic *pubsub.Topic
+	Sub   *pubsub.Subscription
+
 	Role          RoleType
 	VotedFor      string
 	LeaderID      string
@@ -61,14 +66,9 @@ type Raft struct {
 }
 
 type Node interface {
-	GetHost() host.Host
-	GetPubSub() *pubsub.PubSub
-	GetTopic() *pubsub.Topic
-	GetSub() *pubsub.Subscription
-
 	HandleCustomMessage(Message) error
 
-	// define regular job run by leader
+	// define job run by leader
 	GetLeaderJobTimeout() *time.Duration
 	GetLeaderJobTicker() *time.Ticker
 	SetLeaderJobTicker(*time.Duration) error

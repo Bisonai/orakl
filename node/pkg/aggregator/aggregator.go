@@ -1,7 +1,6 @@
 package aggregator
 
 import (
-	"context"
 	"encoding/json"
 	"log"
 	"strconv"
@@ -60,7 +59,7 @@ func NewAggregator(h host.Host, ps *pubsub.PubSub, topicString string) (*Aggrega
 	leaderTimeout := 5 * time.Second
 
 	aggregator := Aggregator{
-		Raft:  raft.NewRaftNode(100), // consider updating after testing
+		Raft:  raft.NewRaftNode(h, ps, topic, sub, 100), // consider updating after testing
 		Host:  h,
 		Ps:    ps,
 		Topic: topic,
@@ -78,22 +77,6 @@ func NewAggregator(h host.Host, ps *pubsub.PubSub, topicString string) (*Aggrega
 
 func (a *Aggregator) Run() {
 	a.Raft.Run(a)
-}
-
-func (a *Aggregator) GetSub() *pubsub.Subscription {
-	return a.Sub
-}
-
-func (a *Aggregator) GetPubSub() *pubsub.PubSub {
-	return a.Ps
-}
-
-func (a *Aggregator) GetHost() host.Host {
-	return a.Host
-}
-
-func (a *Aggregator) GetTopic() *pubsub.Topic {
-	return a.Topic
 }
 
 func (a *Aggregator) GetLeaderJobTimeout() *time.Duration {
@@ -152,12 +135,8 @@ func (a *Aggregator) LeaderJob() error {
 		SentFrom: a.Host.ID().String(),
 		Data:     json.RawMessage(marshalledRoundMessage),
 	}
-	data, err := json.Marshal(message)
-	if err != nil {
-		return err
-	}
 
-	return a.Topic.Publish(context.Background(), data)
+	return a.Raft.PublishMessage(message)
 }
 
 func (a *Aggregator) HandleCustomMessage(message raft.Message) error {
@@ -171,6 +150,14 @@ func (a *Aggregator) HandleCustomMessage(message raft.Message) error {
 	return nil
 }
 
+/*
+should be updated further later to handle various edge cases
+1. leader's roundSync message could be lower than follower's roundId
+-> might need to add another phase where all the peers agree on the roundId to use
+
+2. roundId should be stored and loaded from db on node restarts
+-> should carefully handle when it should be stored and loaded
+*/
 func (a *Aggregator) HandleRoundSyncMessage(msg raft.Message) error {
 	var roundSyncMessage RoundSyncMessage
 	err := json.Unmarshal(msg.Data, &roundSyncMessage)
@@ -195,13 +182,7 @@ func (a *Aggregator) HandleRoundSyncMessage(msg raft.Message) error {
 		Data:     json.RawMessage(marshalledPriceDataMessage),
 	}
 
-	log.Println("publishing price data message: ", latestAggregate)
-	data, err := json.Marshal(message)
-	if err != nil {
-		return err
-	}
-
-	return a.Topic.Publish(context.Background(), data)
+	return a.Raft.PublishMessage(message)
 }
 
 func (a *Aggregator) HandlePriceDataMessage(msg raft.Message) error {
