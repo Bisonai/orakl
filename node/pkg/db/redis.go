@@ -42,7 +42,7 @@ func Set(ctx context.Context, key string, value string, exp time.Duration) error
 	if err != nil {
 		return err
 	}
-	return setRedis(rdb, key, value, exp)
+	return setRedis(ctx, rdb, key, value, exp)
 }
 
 func Get(ctx context.Context, key string) (string, error) {
@@ -50,7 +50,7 @@ func Get(ctx context.Context, key string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return getRedis(rdb, key)
+	return getRedis(ctx, rdb, key)
 }
 
 func connectToRedis(ctx context.Context, connectionInfo RedisConnectionInfo) (*redis.Conn, error) {
@@ -77,10 +77,10 @@ func loadRedisConnectionString() (RedisConnectionInfo, error) {
 	return RedisConnectionInfo{Host: host, Port: port}, nil
 }
 
-func setRedis(rdb *redis.Conn, key string, value string, exp time.Duration) error {
-	return rdb.Set(context.Background(), key, value, exp).Err()
+func setRedis(ctx context.Context, rdb *redis.Conn, key string, value string, exp time.Duration) error {
+	return rdb.Set(ctx, key, value, exp).Err()
 }
 
-func getRedis(rdb *redis.Conn, key string) (string, error) {
-	return rdb.Get(context.Background(), key).Result()
+func getRedis(ctx context.Context, rdb *redis.Conn, key string) (string, error) {
+	return rdb.Get(ctx, key).Result()
 }
