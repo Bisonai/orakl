@@ -2,6 +2,7 @@ package db
 
 import (
 	"context"
+	"errors"
 	"os"
 	"sync"
 	"time"
@@ -25,7 +26,10 @@ var (
 func GetRedisConn() (*redis.Conn, error) {
 	var err error
 	initRdbOnce.Do(func() {
-		connectionInfo := loadRedisConnectionString()
+		connectionInfo, err := loadRedisConnectionString()
+		if err != nil {
+			return
+		}
 		rdb, err = connectToRedis(connectionInfo)
 	})
 	return rdb, err
@@ -57,11 +61,18 @@ func connectToRedis(connectionInfo RedisConnectionInfo) (*redis.Conn, error) {
 	return rdb, nil
 }
 
-func loadRedisConnectionString() RedisConnectionInfo {
-	return RedisConnectionInfo{
-		Host: os.Getenv("REDIS_HOST"),
-		Port: os.Getenv("REDIS_PORT"),
+func loadRedisConnectionString() (RedisConnectionInfo, error) {
+	host := os.Getenv("REDIS_HOST")
+	if host == "" {
+		return RedisConnectionInfo{}, errors.New("REDIS_HOST not set")
 	}
+
+	port := os.Getenv("REDIS_PORT")
+	if port == "" {
+		return RedisConnectionInfo{}, errors.New("REDIS_PORT not set")
+	}
+
+	return RedisConnectionInfo{Host: host, Port: port}, nil
 }
 
 func setRedis(rdb *redis.Conn, key string, value string, exp time.Duration) error {
