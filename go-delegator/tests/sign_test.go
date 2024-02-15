@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/hex"
-	"fmt"
 	"net/url"
 	"strconv"
 	"testing"
@@ -112,17 +111,6 @@ func TestInsert(t *testing.T) {
 
 	assert.Greaterf(t, len(readResultAfter), len(readResultBefore), "expected to have more transactions after insertion")
 
-	// vrs, _ := rlp.EncodeToBytes(_mockTx.RawSignatureValues()[0])
-	// fmt.Println("vrs: " + hex.EncodeToString(vrs))
-
-	// _recoveredPub, err := crypto.SigToPub(hexutil.MustDecode(*insertResult.SignedRawTx), vrs)
-	// if err == nil {
-	// 	_recoveredAddr := crypto.PubkeyToAddress(*_recoveredPub)
-	// 	fmt.Println("recovered public address: " + _recoveredAddr.String())
-	// } else {
-	// 	fmt.Println("failed to recover public key: " + err.Error())
-	// }
-
 	// phase 1: test tx execution
 	callName := "COUNTER()"
 	encodedCallName := "0x" + hex.EncodeToString(crypto.Keccak256([]byte(callName))[:4])
@@ -152,7 +140,6 @@ func TestInsert(t *testing.T) {
 
 	var signedRawTx = new(types.Transaction)
 	rlp.Decode(bytes.NewReader(signedRawTxBytes), signedRawTx)
-	fmt.Println(signedRawTx.String())
 
 	err = client.SendTransaction(context.Background(), signedRawTx)
 	// _, err = client.SendRawTransaction(context.Background(), signedRawTx)

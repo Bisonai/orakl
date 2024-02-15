@@ -117,8 +117,7 @@ func makeMockTransaction() (*types.Transaction, error) {
 	}
 
 	err = transaction.Sign(types.LatestSignerForChainID(loadedChainId), reporterPk)
-	// transaction, err = types.SignTx(transaction, types.LatestSigner(&params.ChainConfig{ChainID: loadedChainId}), reporterPk)
-	fmt.Println(transaction.String())
+
 	if err != nil {
 		return nil, err
 	}
@@ -137,10 +136,6 @@ func MakeMockTxPayload(mockTx *types.Transaction) (sign.SignInsertPayload, error
 	gasPrice := "0x" + mockTx.GasPrice().String()
 	nonce := fmt.Sprintf("0x%x", mockTx.Nonce())
 
-	if mockTx.GetTxInternalData().ValidateSignature() == false {
-		fmt.Println("sig validation failed")
-	}
-
 	_sig := mockTx.RawSignatureValues()
 	r := "0x" + _sig[0].R.Text(16)
 	s := "0x" + _sig[0].S.Text(16)
@@ -152,7 +147,6 @@ func MakeMockTxPayload(mockTx *types.Transaction) (sign.SignInsertPayload, error
 	}
 
 	rawTx := "0x" + hex.EncodeToString(_rawTxBytes)
-	fmt.Println(rawTx)
 
 	return sign.SignInsertPayload{
 		From:     strings.ToLower(from),
@@ -261,120 +255,3 @@ func cleanup() {
 	utils.QueryRowsWithoutFiberCtx[organization.OrganizationModel](appConfig.Postgres, organization.DeleteOrganization, map[string]any{"id": insertedMockOrganization.OrganizationId.String()})
 	utils.QueryRowsWithoutFiberCtx[sign.SignModel](appConfig.Postgres, sign.DeleteTransactionById, map[string]any{"id": insertedMockTx.Id.String()})
 }
-
-/*
-*types.Transaction {
-	data: github.com/klaytn/klaytn/blockchain/types.TxInternalData(*github.com/klaytn/klaytn/blockchain/types.TxInternalDataFeeDelegatedSmartContractExecution) *{
-		AccountNonce: 0,
-		Price: *(*"math/big.Int")(0x140003ac000),
-		GasLimit: 90000,
-		Recipient: github.com/klaytn/klaytn/common.Address [147,18,9,39,55,151,35,88,60,122,13,210,35,111,203,37,94,150,148,159],
-		Amount: *(*"math/big.Int")(0x140003ac020),
-		From: github.com/klaytn/klaytn/common.Address [157,218,105,208,204,219,6,18,90,102,32,112,19,136,0,212,206,79,83,185],
-		Payload: []uint8 len: 4, cap: 4, [208,157,224,138],
-		TxSignatures: github.com/klaytn/klaytn/blockchain/types.TxSignatures len: 1, cap: 4, [*(*"github.com/klaytn/klaytn/blockchain/types.TxSignature")(0x1400098a030)],
-		FeePayer: github.com/klaytn/klaytn/common.Address [0,38,222,52,82,38,39,197,218,43,106,86,24,20,122,145,83,193,36,58],
-		FeePayerSignatures: github.com/klaytn/klaytn/blockchain/types.TxSignatures len: 1, cap: 4, [*(*"github.com/klaytn/klaytn/blockchain/types.TxSignature")(0x1400098a078)],
-		Hash: *github.com/klaytn/klaytn/common.Hash [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
-	},
-	time: time.Time(2024-02-12T19:39:58+09:00, +135892860293){
-		wall: 13937122694850669760,
-		ext: 135892860293,
-		loc: *(*time.Location)(0x103552280)
-	},
-	hash: sync/atomic.Value {v: interface {} nil},
-	size: sync/atomic.Value {v: interface {}(github.com/klaytn/klaytn/common.StorageSize) *(*interface {})(0x14000984038)},
-	from: sync/atomic.Value {v: interface {} nil},
-	feePayer: sync/atomic.Value {v: interface {} nil},
-	senderTxHash: sync/atomic.Value {v: interface {} nil},
-	validatedSender: github.com/klaytn/klaytn/common.Address [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-	validatedFeePayer: github.com/klaytn/klaytn/common.Address [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-	validatedIntrinsicGas: 0,
-	checkNonce: false,
-	markedUnexecutable: 0,
-	mu: sync.RWMutex {
-		w: (*sync.Mutex)(0x140009840b0),
-		writerSem: 0,
-		readerSem: 0,
-		readerCount: (*"sync/atomic.Int32")(0x140009840c0),
-		readerWait: (*"sync/atomic.Int32")(0x140009840c4)
-	}
-}
--- after fee payer signed
-types.Transaction {
-	data: github.com/klaytn/klaytn/blockchain/types.TxInternalData(*github.com/klaytn/klaytn/blockchain/types.TxInternalDataFeeDelegatedSmartContractExecution) *{
-		AccountNonce: 0,
-		Price: *(*"math/big.Int")(0x140000bb220),
-		GasLimit: 90000,
-		Recipient: github.com/klaytn/klaytn/common.Address [147,18,9,39,55,151,35,88,60,122,13,210,35,111,203,37,94,150,148,159],
-		Amount: *(*"math/big.Int")(0x140000bb240),
-		From: github.com/klaytn/klaytn/common.Address [157,218,105,208,204,219,6,18,90,102,32,112,19,136,0,212,206,79,83,185],
-		Payload: []uint8 len: 4, cap: 8, [208,157,224,138],
-		TxSignatures: github.com/klaytn/klaytn/blockchain/types.TxSignatures len: 1, cap: 1, [*(*"github.com/klaytn/klaytn/blockchain/types.TxSignature")(0x1400000f1b8)],
-		FeePayer: github.com/klaytn/klaytn/common.Address [0,38,222,52,82,38,39,197,218,43,106,86,24,20,122,145,83,193,36,58],
-		FeePayerSignatures: github.com/klaytn/klaytn/blockchain/types.TxSignatures len: 1, cap: 1, [*(*"github.com/klaytn/klaytn/blockchain/types.TxSignature")(0x1400000f218)],
-		Hash: *github.com/klaytn/klaytn/common.Hash [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
-	},
-	time: time.Time(2024-02-12T19:44:09+09:00, +16021792418){
-		wall: 13937122964243807584,
-		ext: 16021792418,
-		loc: *(*time.Location)(0x10479e280)
-	},
-	hash: sync/atomic.Value {v: interface {} nil},
-	size: sync/atomic.Value {v: interface {} nil},
-	from: sync/atomic.Value {v: interface {} nil},
-	feePayer: sync/atomic.Value {v: interface {} nil},
-	senderTxHash: sync/atomic.Value {v: interface {} nil},
-	validatedSender: github.com/klaytn/klaytn/common.Address [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-	validatedFeePayer: github.com/klaytn/klaytn/common.Address [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-	validatedIntrinsicGas: 0,
-	checkNonce: false,
-	markedUnexecutable: 0,
-	mu: sync.RWMutex {
-		w: (*sync.Mutex)(0x1400046d430),
-		writerSem: 0,
-		readerSem: 0,
-		readerCount: (*"sync/atomic.Int32")(0x1400046d440),
-		readerWait: (*"sync/atomic.Int32")(0x1400046d444)
-	}
-}
-
--- after raw tx decoding
-types.Transaction {
-	data: github.com/klaytn/klaytn/blockchain/types.TxInternalData(*github.com/klaytn/klaytn/blockchain/types.TxInternalDataFeeDelegatedSmartContractExecution) *{
-		AccountNonce: 0,
-		Price: *(*"math/big.Int")(0x140003ac520),
-		GasLimit: 90000,
-		Recipient: github.com/klaytn/klaytn/common.Address [147,18,9,39,55,151,35,88,60,122,13,210,35,111,203,37,94,150,148,159],
-		Amount: *(*"math/big.Int")(0x140003ac540),
-		From: github.com/klaytn/klaytn/common.Address [157,218,105,208,204,219,6,18,90,102,32,112,19,136,0,212,206,79,83,185],
-		Payload: []uint8 len: 4, cap: 4, [208,157,224,138],
-		TxSignatures: github.com/klaytn/klaytn/blockchain/types.TxSignatures len: 1, cap: 4, [*(*"github.com/klaytn/klaytn/blockchain/types.TxSignature")(0x1400000e378)],
-		FeePayer: github.com/klaytn/klaytn/common.Address [0,38,222,52,82,38,39,197,218,43,106,86,24,20,122,145,83,193,36,58],
-		FeePayerSignatures: github.com/klaytn/klaytn/blockchain/types.TxSignatures len: 1, cap: 4, [*(*"github.com/klaytn/klaytn/blockchain/types.TxSignature")(0x1400000e3d8)],
-		Hash: *github.com/klaytn/klaytn/common.Hash [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
-	},
-	time: time.Time(2024-02-12T19:48:20+09:00, +266511206668) {
-		wall: 13937123233243769408,
-		ext: 266511206668,
-		loc: *(*time.Location)(0x10479e280)
-	},
-	hash: sync/atomic.Value {v: interface {} nil},
-	size: sync/atomic.Value {v: interface {}(github.com/klaytn/klaytn/common.StorageSize) *(*interface {})(0x140007ca378)},
-	from: sync/atomic.Value {v: interface {} nil},
-	feePayer: sync/atomic.Value {v: interface {} nil},
-	senderTxHash: sync/atomic.Value {v: interface {} nil},
-	validatedSender: github.com/klaytn/klaytn/common.Address [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-	validatedFeePayer: github.com/klaytn/klaytn/common.Address [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-	validatedIntrinsicGas: 0,
-	checkNonce: false,
-	markedUnexecutable: 0,
-	mu: sync.RWMutex {
-		w: (*sync.Mutex)(0x140007ca3f0),
-		writerSem: 0,
-		readerSem: 0,
-		readerCount: (*"sync/atomic.Int32")(0x140007ca400),
-		readerWait: (*"sync/atomic.Int32")(0x140007ca404)
-	}
-}
-*/
