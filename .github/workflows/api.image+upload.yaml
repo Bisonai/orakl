@@ -1,4 +1,4 @@
-name: GO API Deploy to Amazon ECR
+name: API Deploy to Amazon ECR
 
 on:
   push:
