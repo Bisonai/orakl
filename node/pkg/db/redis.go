@@ -2,59 +2,85 @@ package db
 
 import (
 	"context"
+	"errors"
 	"os"
+	"sync"
 	"time"
 
 	"github.com/redis/go-redis/v9"
 )
+
+// singleton pattern
+// make sure env is loaded from main before calling this
 
 type RedisConnectionInfo struct {
 	Host string
 	Port string
 }
 
-type RedisHelper struct {
-	*redis.Conn
+var (
+	initRdbOnce sync.Once
+	rdb         *redis.Conn
+)
+
+func GetRedisConn(ctx context.Context) (*redis.Conn, error) {
+	var err error
+
+	initRdbOnce.Do(func() {
+		connectionInfo, initErr := loadRedisConnectionString()
+		if initErr != nil {
+			err = initErr
+			return
+		}
+		rdb, err = connectToRedis(ctx, connectionInfo)
+	})
+	return rdb, err
 }
 
-func NewRedisHelper() (*RedisHelper, error) {
-	connectionInfo := LoadRedisConnectionString()
-	rdb, err := ConnectToRedis(connectionInfo)
+func Set(ctx context.Context, key string, value string, exp time.Duration) error {
+	rdb, err := GetRedisConn(ctx)
 	if err != nil {
-		return nil, err
+		return err
 	}
-	return &RedisHelper{rdb}, nil
+	return setRedis(ctx, rdb, key, value, exp)
 }
 
-func (r *RedisHelper) Set(key string, value string, exp time.Duration) error {
-	return SetRedis(r.Conn, key, value, exp)
+func Get(ctx context.Context, key string) (string, error) {
+	rdb, err := GetRedisConn(ctx)
+	if err != nil {
+		return "", err
+	}
+	return getRedis(ctx, rdb, key)
 }
 
-func (r *RedisHelper) Get(key string) (string, error) {
-	return GetRedis(r.Conn, key)
-}
-
-func ConnectToRedis(connectionInfo RedisConnectionInfo) (*redis.Conn, error) {
+func connectToRedis(ctx context.Context, connectionInfo RedisConnectionInfo) (*redis.Conn, error) {
 	rdb := redis.NewClient(&redis.Options{
 		Addr: connectionInfo.Host + ":" + connectionInfo.Port}).Conn()
-	_, rdbErr := rdb.Ping(context.Background()).Result()
+	_, rdbErr := rdb.Ping(ctx).Result()
 	if rdbErr != nil {
 		return nil, rdbErr
 	}
 	return rdb, nil
 }
 
-func LoadRedisConnectionString() RedisConnectionInfo {
-	return RedisConnectionInfo{
-		Host: os.Getenv("REDIS_HOST"),
-		Port: os.Getenv("REDIS_PORT"),
+func loadRedisConnectionString() (RedisConnectionInfo, error) {
+	host := os.Getenv("REDIS_HOST")
+	if host == "" {
+		return RedisConnectionInfo{}, errors.New("REDIS_HOST not set")
 	}
+
+	port := os.Getenv("REDIS_PORT")
+	if port == "" {
+		return RedisConnectionInfo{}, errors.New("REDIS_PORT not set")
+	}
+
+	return RedisConnectionInfo{Host: host, Port: port}, nil
 }
 
-func SetRedis(rdb *redis.Conn, key string, value string, exp time.Duration) error {
-	return rdb.Set(context.Background(), key, value, exp).Err()
+func setRedis(ctx context.Context, rdb *redis.Conn, key string, value string, exp time.Duration) error {
+	return rdb.Set(ctx, key, value, exp).Err()
 }
 
-func GetRedis(rdb *redis.Conn, key string) (string, error) {
-	return rdb.Get(context.Background(), key).Result()
+func getRedis(ctx context.Context, rdb *redis.Conn, key string) (string, error) {
+	return rdb.Get(ctx, key).Result()
 }

@@ -4,45 +4,64 @@ import (
 	"context"
 	"errors"
 	"os"
+	"sync"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-type PgsqlHelper struct {
-	Pool *pgxpool.Pool
+// singleton pattern
+// make sure env is loaded from main before calling this
+
+var (
+	initPgxOnce sync.Once
+	pool        *pgxpool.Pool
+)
+
+func GetPool(ctx context.Context) (*pgxpool.Pool, error) {
+	var err error
+	initPgxOnce.Do(func() {
+		connectionString := loadPgsqlConnectionString()
+		if connectionString == "" {
+			err = errors.New("DATABASE_URL is not set")
+			return
+		}
+		pool, err = connectToPgsql(ctx, connectionString)
+	})
+	return pool, err
 }
 
-func NewPgsqlHelper() (*PgsqlHelper, error) {
-	connectionString := LoadPgsqlConnectionString()
-	pool, err := ConnectToPgsql(connectionString)
+func connectToPgsql(ctx context.Context, connectionString string) (*pgxpool.Pool, error) {
+	return pgxpool.New(ctx, connectionString)
+}
+
+func loadPgsqlConnectionString() string {
+	return os.Getenv("DATABASE_URL")
+}
+
+func Query(ctx context.Context, queryString string, args map[string]any) (pgx.Rows, error) {
+	pool, err := GetPool(ctx)
 	if err != nil {
 		return nil, err
 	}
-
-	return &PgsqlHelper{Pool: pool}, nil
+	return query(pool, queryString, args)
 }
 
-func (p *PgsqlHelper) Query(_query string, args map[string]any) (pgx.Rows, error) {
-	return query(p.Pool, _query, args)
+func QueryRow[T any](ctx context.Context, queryString string, args map[string]any) (T, error) {
+	var t T
+	pool, err := GetPool(ctx)
+	if err != nil {
+		return t, err
+	}
+	return queryRow[T](pool, queryString, args)
 }
 
-// go methods doesn't allow type parameters
-func (p *PgsqlHelper) QueryRow(query string, args map[string]any) (interface{}, error) {
-	return queryRow[interface{}](p.Pool, query, args)
-}
-
-func (p *PgsqlHelper) QueryRows(query string, args map[string]any) ([]interface{}, error) {
-	return queryRows[interface{}](p.Pool, query, args)
-
-}
-
-func ConnectToPgsql(connectionString string) (*pgxpool.Pool, error) {
-	return pgxpool.New(context.Background(), connectionString)
-}
-
-func LoadPgsqlConnectionString() string {
-	return os.Getenv("DATABASE_URL")
+func QueryRows[T any](ctx context.Context, queryString string, args map[string]any) ([]T, error) {
+	pool, err := GetPool(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return queryRows[T](pool, queryString, args)
 }
 
 func query(pool *pgxpool.Pool, query string, args map[string]any) (pgx.Rows, error) {
