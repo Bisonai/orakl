@@ -18,8 +18,8 @@ func NewMessageBus() *MessageBus {
 	}
 }
 
-func (mb *MessageBus) Subscribe(id string) <-chan Message {
-	ch := make(chan Message, 100)
+func (mb *MessageBus) Subscribe(id string, buffer int) <-chan Message {
+	ch := make(chan Message, buffer)
 	mb.channels[id] = ch
 	return ch
 }

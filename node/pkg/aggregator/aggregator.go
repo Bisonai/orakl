@@ -59,8 +59,8 @@ func NewAggregator(h host.Host, ps *pubsub.PubSub, topicString string) (*Aggrega
 
 	leaderTimeout := 5 * time.Second
 
-	_aggregator := Aggregator{
-		Raft:  raft.NewRaftNode(),
+	aggregator := Aggregator{
+		Raft:  raft.NewRaftNode(100), // consider updating after testing
 		Host:  h,
 		Ps:    ps,
 		Topic: topic,
@@ -73,7 +73,7 @@ func NewAggregator(h host.Host, ps *pubsub.PubSub, topicString string) (*Aggrega
 		AggregatorMutex: sync.Mutex{},
 	}
 
-	return &_aggregator, nil
+	return &aggregator, nil
 }
 
 func (a *Aggregator) Run() {

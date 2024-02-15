@@ -10,10 +10,9 @@ import (
 	"time"
 )
 
-const MESSAGE_BUFFER = 100
 const HEARTBEAT_TIMEOUT = 100 * time.Millisecond
 
-func NewRaftNode() *Raft {
+func NewRaftNode(messageBuffer int) *Raft {
 	r := &Raft{
 		Role:             "follower",
 		VotedFor:         "",
@@ -21,7 +20,7 @@ func NewRaftNode() *Raft {
 		VotesReceived:    0,
 		Term:             0,
 		Mutex:            sync.Mutex{},
-		MessageBuffer:    make(chan Message, MESSAGE_BUFFER),
+		MessageBuffer:    make(chan Message, messageBuffer),
 		Resign:           make(chan interface{}),
 		HeartbeatTimeout: HEARTBEAT_TIMEOUT,
 	}
@@ -34,6 +33,7 @@ func (r *Raft) Run(node Node) {
 	var jobTicker <-chan time.Time
 	if node.GetJobTimeout() != nil {
 		node.SetJobTicker(node.GetJobTimeout())
+		jobTicker = node.GetJobTicker().C
 	}
 
 	for {
@@ -46,9 +46,7 @@ func (r *Raft) Run(node Node) {
 		case <-r.ElectionTimer.C:
 			r.startElection(node)
 		case <-jobTicker:
-			if jobTicker != nil {
-				node.Job()
-			}
+			node.Job()
 		}
 	}
 }
@@ -287,8 +285,11 @@ func (r *Raft) becomeLeader(node Node) {
 	r.ElectionTimer.Stop()
 	r.UpdateRole(Leader)
 	r.HeartbeatTicker = time.NewTicker(r.HeartbeatTimeout)
+
+	var leaderJobTicker <-chan time.Time
 	if node.GetLeaderJobTimeout() != nil {
 		node.SetLeaderJobTicker(node.GetLeaderJobTimeout())
+		leaderJobTicker = node.GetLeaderJobTicker().C
 	}
 
 	go func() {
@@ -296,8 +297,7 @@ func (r *Raft) becomeLeader(node Node) {
 			select {
 			case <-r.HeartbeatTicker.C:
 				r.sendHeartbeat(node)
-			case <-node.GetLeaderJobTicker().C:
-				// leader start its regular job
+			case <-leaderJobTicker:
 				node.LeaderJob()
 			case <-r.Resign:
 				log.Println("resigning as leader")
