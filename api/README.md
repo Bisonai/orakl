@@ -1,141 +1,172 @@
-# Orakl Network API
+# orakl-api migration
 
-## Installation
+## To Dos
 
-```shell
-yarn install
+- [ ] swagger
+
+## Structure
+
+- `main.go` : entrypoint to run api server
+- `/utils/utils.go`: package containing utility functions
+- `/{service}/route.go`: contains routes each calling its function in controller
+- `/{service}/controller.go`: contains model and function referenced from endpoint
+- `/{service}/queries.go`: contains query or query generator to call db
+- `/tests/{service}_test.go`: contains test for each service
+
+## Naming convention
+
+### PascalCase
+
+- exported(called outside package) function or variable
+- struct
+
+```go
+type FeedInsertModel struct {...}
+func GenerateGetListenerQuery(params map[string]string) string {...}
+const (GetProxy = `SELECT * FROM proxies ORDER BY id asc;`)
 ```
 
-## Settings
+### camelCase
 
-Orakl Network API requires to set the following environment variables.
+- function and variables which is used within package
 
-- `DATABASE_URL`
-- `APP_PORT`
+### CamelCase starting with Capital letter
 
-You can copy them from `.env.example` to `.env` and fill the appropriate values.
+- elements inside struct
 
-```shell
+```go
+type ProxyInsertModel struct {
+	Protocol int    `db:"protocol" json:"protocol" validate:"required"`
+	Host     string `db:"host" json:"host" validate:"required"`
+	Port     int    `db:"port" json:"port" validate:"required"`
+	Location string `db:"location" json:"location"`
+}
+```
+
+### Other rules
+
+- some model starts with \_(underbar), it means that it's used within controller. Otherwise it means that its structure for request payload
+
+```go
+type ReporterInsertModel struct {} // struct taken from request body parameters
+type _ReporterInsertModel struct {} // struct used when calling insert query
+```
+
+## Used libraries
+
+### Api
+
+- go-fiber (api framework)
+- pgx (postgres client)
+- gp-redis (redis client)
+
+### DB migration tool
+
+- go-migrate (db migration)
+
+# How to run
+
+## Prerequisites
+
+### Install go
+
+```bash
+brew install go
+```
+
+### Install db
+
+- Just as orakl-api, it requires postgres and redis
+
+```bash
+brew install postgresql
+brew install redis
+```
+
+### Set .env
+
+```bash
 cp .env.example .env
 ```
 
-## Local development
+- One thing that is different from orakl-api is when setting postgresql url, `?schema={schema}` should be `?search_path={schema}`.
+- If port is not defined, api port will be 3000. Other environment variables are required.
+- If `TEST_MODE` is true, some routes which aren't used in production will be accessable.
 
-```shell
-brew install postgresql@14
-brew services start postgresql@14
+## Run
+
+```bash
+go run main.go
 ```
 
-```shell
-createdb orakl
-#dropdb orakl
+# How to run test
+
+From root path run following command
+
+```
+go test ./tests -v
 ```
 
-## Prisma
+- `-v` is verbose option
 
-```shell
-npx prisma format
-npx prisma migrate dev --name init
+## Run docker-compose from local environment
+
+- Change api service's docker image into bisonai.com/orakl/apis
+- And if there's `schema={}` in DB connection url in .api.env file update it into keyword `search_path={}`
+
+# How to use DB migration tool
+
+- This is meant for future development (ex. adding new column or table), don't run it on existing dbs
+
+## Install golang-migrate
+
+```bash
+brew install golang-migrate
 ```
 
-## New endpoint
+## Migrate commands
 
-```shell
-nest g resource name
+- Run commands from bisonai.com/orakl/api folder
+- Write appropriate db connection url for each usecases
+- Be careful on adding `sslmode=disbale`, if it has other option such as `?schema=public` add `&sslmode=disable` else add `?sslmode=disable`
+
+### `migrate create`
+
+create empty migration files with a pair of .up file and .down file
+
+```bash
+migrate create -ext sql -dir ./migrations -seq {migration_file_name}
 ```
 
-## Testing
+### `migrate up`
 
-```shell
-createdb orakl-test
-DATABASE_URL="postgresql://${USER}@localhost:5432/orakl-test?schema=public" npx prisma migrate dev --name init
-DATABASE_URL="postgresql://${USER}@localhost:5432/orakl-test?schema=public" yarn test
-dropdb orakl-test
+```bash
+migrate -database "postgres://{USER}@localhost:5432/orakl?sslmode=disable" -path ./migrations up
 ```
 
-## Running the app
+### `migrate down`
 
-```shell
-# development
-yarn run start
-
-# watch mode
-yarn run start:dev
-
-# production mode
-yarn run start:prod
+```bash
+migrate -database "postgres://{USER}@localhost:5432/orakl?sslmode=disable" -path ./migrations down
 ```
 
-Go to http://localhost:3000/api
+### `migrate force`
 
-## Tests
+Reference: https://github.com/golang-migrate/migrate/blob/0815e2d770003b4945a4bf86850fb92ca4b7cc5e/GETTING_STARTED.md#forcing-your-database-version
 
-```shell
-# unit tests
-yarn test
+- If migration file contained an error, migrate will not let you run other migrations on the same database
+- Once you know, you should force your database to a version reflecting its real state
 
-# e2e tests
-yarn test:e2e
-
-# test coverage
-yarn test:cov
+```bash
+migrate -database "postgres://{USER}@localhost:5432/orakl?sslmode=disable" -path ./migrations force ${VERSION}
 ```
 
-## Endpoints
+## References
 
-## Health
-
-```shell
-GET http://localhost:3000/health
-```
-
-### Open API (Swagger)
-
-```shell
-GET http://localhost:3000/docs
-```
-
-### List data feeds
-
-```shell
-GET http://localhost:3000/api/v1/feed
-```
-
-### List all adapters
-
-```shell
-GET http://localhost:3000/api/v1/adapter
-```
-
-### List all aggregators
-
-```shell
-GET http://localhost:3000/api/v1/aggregator
-```
-
-### List all errors
-
-```shell
-GET http://localhost:3000/api/v1/error
-```
-
-### List all proxies
-
-```shell
-GET http://localhost:3000/api/v1/proxy
-```
-
-## How to use?
-
-1. Insert `Chain`s (should be done only once, can be included in migration file)
-2. Insert `Adapter` (initial settings)
-3. Insert `Aggregator` (initial settings)
-4. Insert `Proxy` (during fetching data with Orakl Network Fetcher)
-5. Insert `Data` (during regular data fetching with Orakl Network Fetcher)
-
-## Proxy Location codes
-
-| location  | code |
-| --------- | ---- |
-| Korea     | kr   |
-| Singapore | sg   |
+- https://gofiber.io/: go fiber
+- https://github.com/jackc/pgx: pgx (postgres driver)
+- https://github.com/redis/go-redis: go-redis
+- https://github.com/golang/go/issues/27179: golang map doesn't preserve json key order, use json.rawMessage instead
+- https://stackoverflow.com/questions/69762108/implementing-ethereum-personal-sign-eip-191-from-go-ethereum-gives-different-s: Keccak256Hash in golang
+- https://github.com/golang-migrate/migrate: go-migrate
+- https://github.com/golang-migrate/migrate/blob/master/database/postgres/TUTORIAL.md: Postgres migration tutorial

@@ -1,8 +1,8 @@
-name: API Deploy to Amazon ECR
+name: GO API Deploy to Amazon ECR
 
 on:
   push:
-    branches:
+    braches:
       - master
     paths:
       - "api/**"
@@ -33,7 +33,8 @@ jobs:
       - name: Get package version
         id: package
         run: |
-          echo "version=$(node -p -e "require('./api/package.json').version")" >> $GITHUB_OUTPUT
+          version=$(cat "./api/.version")
+          echo "version=${version}" >> $GITHUB_OUTPUT
 
   build:
     name: Build
@@ -50,6 +51,30 @@ jobs:
 
     steps:
       - uses: actions/checkout@v3
+
+      - name: Setup Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: "1.21.5"
+          check-latest: true
+          cache-dependency-path: |
+            ./api/go.sum
+
+      - name: Run lint
+        uses: golangci/golangci-lint-action@v3
+        with:
+          version: v1.54
+          working-directory: api
+          skip-pkg-cache: true
+          skip-build-cache: true
+          args: --timeout=10m
+
+      - name: Run Vet
+        run: |
+          cd ./api
+          go install golang.org/x/tools/go/analysis/passes/shadow/cmd/shadow@latest
+          go vet
+          go vet -vettool=$(which shadow)
 
       - name: Docker build orakl-api
         run: SERVICE_NAME=orakl-api docker-compose -f docker-compose.build.yaml build
