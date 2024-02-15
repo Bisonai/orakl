@@ -4,6 +4,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"math/big"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -12,6 +13,7 @@ import (
 
 	"github.com/go-playground/validator"
 	"github.com/gofiber/fiber/v2"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/klaytn/klaytn/blockchain/types"
 	"github.com/klaytn/klaytn/common"
 	"github.com/klaytn/klaytn/crypto"
@@ -87,24 +89,34 @@ type ContractModel struct {
 func initialize(c *fiber.Ctx) error {
 	pk := c.Query("feePayerPrivateKey", "")
 	if pk == "" {
-		feePayers, err := utils.QueryRows[FeePayer](c, GetFeePayers, nil)
-		if err != nil {
-			panic(err)
-		}
-
-		if len(feePayers) == 0 {
-			panic("No fee payer found")
-		} else if len(feePayers) == 1 {
-			utils.UpdateFeePayer(feePayers[0].PrivateKey)
+		var err error
+		if os.Getenv("USE_GOOGLE_SECRET_MANAGER") == "true" {
+			pk, err = utils.LoadFeePayerFromGSM(c.Context())
+			if err != nil {
+				return c.Status(fiber.StatusInternalServerError).SendString(err.Error())
+			}
 		} else {
-			panic("Too many fee payers")
-		}
-	} else {
-		utils.UpdateFeePayer(pk)
+			var pgx *pgxpool.Pool
+			pgx, err = utils.GetPgx(c)
+			if err != nil {
+				return c.Status(fiber.StatusInternalServerError).SendString(err.Error())
+			}
 
+			pk, err = utils.LoadFeePayer(pgx)
+			if err != nil {
+				return c.Status(fiber.StatusInternalServerError).SendString(err.Error())
+			}
+		}
 	}
 
-	return c.SendString("Initialized")
+	publicKey, err := utils.GetPublicKey(pk)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).SendString(err.Error())
+	}
+
+	utils.UpdateFeePayer(pk)
+
+	return c.SendString("Initialized: " + publicKey)
 }
 
 func insert(c *fiber.Ctx) error {

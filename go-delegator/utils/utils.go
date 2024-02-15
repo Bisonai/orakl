@@ -68,7 +68,7 @@ func Setup(options ...string) (AppConfig, error) {
 	}
 
 	if useGoogleSecretManager {
-		feePayer, err = LoadFeePayerFromGSM()
+		feePayer, err = LoadFeePayerFromGSM(context.Background())
 		if err != nil {
 			fmt.Println(err)
 		}
@@ -275,7 +275,7 @@ func LoadFeePayer(postgres *pgxpool.Pool) (string, error) {
 	return results[0].PrivateKey, nil
 }
 
-func LoadFeePayerFromGSM() (string, error) {
+func LoadFeePayerFromGSM(ctx context.Context) (string, error) {
 	/*
 		When you're running your application on Google Kubernetes Engine (GKE),
 		you typically don't need to manually set the GOOGLE_APPLICATION_CREDENTIALS environment variable.
@@ -294,13 +294,12 @@ func LoadFeePayerFromGSM() (string, error) {
 		so you don't need to manually set GOOGLE_APPLICATION_CREDENTIALS.
 		The client libraries can also automatically refresh the credentials when they expire.
 	*/
-	ctx := context.Background()
 	client, err := secretmanager.NewClient(ctx)
 	if err != nil {
 		return "", err
 	}
 	accessRequest := &secretmanagerpb.AccessSecretVersionRequest{
-		Name: "projects/my-project/secrets/fee-payer/versions/latest",
+		Name: os.Getenv("GOOGLE_SECRET_PATH"),
 	}
 
 	result, err := client.AccessSecretVersion(ctx, accessRequest)
