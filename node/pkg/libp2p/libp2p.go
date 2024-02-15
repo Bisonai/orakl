@@ -1,4 +1,4 @@
-package utils
+package libp2p
 
 import (
 	"context"
@@ -65,7 +65,7 @@ func GetHostAddress(host host.Host) (string, error) {
 	return addr.Encapsulate(hostAddr).String(), nil
 }
 
-func initDHT(ctx context.Context, h host.Host, bootstrap string) *dht.IpfsDHT {
+func InitDHT(ctx context.Context, h host.Host, bootstrap string) *dht.IpfsDHT {
 	// Start a DHT, for use in peer discovery. We can't just make a new DHT
 	// client because we want each peer to maintain its own local copy of the
 	// DHT, so that the bootstrapping node of the DHT can go down without
@@ -107,8 +107,8 @@ func initDHT(ctx context.Context, h host.Host, bootstrap string) *dht.IpfsDHT {
 	return kademliaDHT
 }
 
-func DiscoverPeers(ctx context.Context, h host.Host, topicName string, bootstrap string, discoveredPeers map[peer.ID]peer.AddrInfo) {
-	kademliaDHT := initDHT(ctx, h, bootstrap)
+func DiscoverPeers(ctx context.Context, h host.Host, topicName string, bootstrap string) {
+	kademliaDHT := InitDHT(ctx, h, bootstrap)
 	routingDiscovery := drouting.NewRoutingDiscovery(kademliaDHT)
 	dutil.Advertise(ctx, routingDiscovery, topicName)
 
@@ -135,7 +135,6 @@ func DiscoverPeers(ctx context.Context, h host.Host, topicName string, bootstrap
 				} else {
 					// log.Println("Connected to:", peer.ID)
 					anyConnected = true
-					discoveredPeers[p.ID] = p
 				}
 			}(p)
 
@@ -147,7 +146,7 @@ func DiscoverPeers(ctx context.Context, h host.Host, topicName string, bootstrap
 
 func ConnectToPeer(ctx context.Context, h host.Host, peerID peer.ID) error {
 	// Assume you have a DHT instance in dht
-	kademliaDHT := initDHT(ctx, h, "")
+	kademliaDHT := InitDHT(ctx, h, "")
 
 	// Find the peer's AddrInfo
 	peerInfo, err := kademliaDHT.FindPeer(ctx, peerID)

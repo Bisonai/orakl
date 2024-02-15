@@ -14,18 +14,31 @@ import (
 	"github.com/libp2p/go-libp2p/core/peer"
 )
 
+const HEARTBEAT_TIMEOUT = 50 * time.Millisecond
+const SUBMIT_TIMEOUT = 10 * time.Second
+
+func ElectionTimeout() time.Duration {
+	minTimeout := int(HEARTBEAT_TIMEOUT) * 3
+	maxTimeout := int(HEARTBEAT_TIMEOUT) * 6
+	return time.Duration(minTimeout + rand.Intn(maxTimeout-minTimeout))
+}
+
 type MessageType struct {
-	Heartbeat      string
-	RequestVote    string
-	ReplyHeartbeat string
-	ReplyVote      string
+	Heartbeat          string
+	RequestVote        string
+	ReplyHeartbeat     string
+	ReplyVote          string
+	AppendEntries      string
+	ReplyAppendEntries string
 }
 
 var MessageTypes = MessageType{
-	Heartbeat:      "heartbeat",
-	RequestVote:    "requestVote",
-	ReplyHeartbeat: "replyHeartbeat",
-	ReplyVote:      "replyVote",
+	Heartbeat:          "heartbeat",
+	RequestVote:        "requestVote",
+	ReplyHeartbeat:     "replyHeartbeat",
+	ReplyVote:          "replyVote",
+	AppendEntries:      "appendEntries",
+	ReplyAppendEntries: "replyAppendEntries",
 }
 
 type RoleType struct {
@@ -39,17 +52,6 @@ var RoleTypes = RoleType{
 	Candidate: "candidate",
 	Follower:  "follower",
 }
-
-const HEARTBEAT_TIMEOUT = 150 * time.Millisecond
-const SUBMIT_TIMEOUT = 10 * time.Second
-
-func ElectionTimeout() time.Duration {
-	minTimeout := int(HEARTBEAT_TIMEOUT) * 10
-	maxTimeout := int(HEARTBEAT_TIMEOUT) * 15
-	return time.Duration(minTimeout + rand.Intn(maxTimeout-minTimeout))
-}
-
-// only taking leader election from raft for now
 
 type RaftState struct {
 	Role          string
@@ -66,10 +68,10 @@ type PubSubComponents struct {
 	Sub   *pubsub.Subscription
 }
 
-type RaftNode struct {
+type Submitter struct {
 	Host            host.Host
 	PubSub          PubSubComponents
-	Data            RaftState
+	State           RaftState
 	Msg             chan Message
 	HeartbeatTicker *time.Ticker
 	ElectionTimer   *time.Timer
@@ -96,7 +98,7 @@ type ReplyRequestVoteMessage struct {
 	LeaderID    string `json:"leaderID"`
 }
 
-func NewRaftNode(host host.Host, ps *pubsub.PubSub, topicString string) (*RaftNode, error) {
+func NewSubmitter(host host.Host, ps *pubsub.PubSub, topicString string) (*Submitter, error) {
 	topic, err := ps.Join(topicString)
 	if err != nil {
 		return nil, err
@@ -107,22 +109,23 @@ func NewRaftNode(host host.Host, ps *pubsub.PubSub, topicString string) (*RaftNo
 		return nil, err
 	}
 
-	return &RaftNode{
+	return &Submitter{
 		Host:   host,
 		PubSub: PubSubComponents{Ps: ps, Topic: topic, Sub: sub},
-		Data: RaftState{
+		State: RaftState{
 			VotedFor:      "",
 			Role:          RoleTypes.Follower,
 			LeaderID:      "",
 			VotesReceived: 0,
 			Term:          0,
+			Mutex:         sync.Mutex{},
 		},
 		Msg:    make(chan Message, 15),
 		Resign: make(chan interface{}),
 	}, nil
 }
 
-func (n *RaftNode) unmarshalMessage(data []byte) (Message, error) {
+func (n *Submitter) unmarshalMessage(data []byte) (Message, error) {
 	var message Message
 	err := json.Unmarshal(data, &message)
 	if err != nil {
@@ -131,7 +134,7 @@ func (n *RaftNode) unmarshalMessage(data []byte) (Message, error) {
 	return message, nil
 }
 
-func (n *RaftNode) unmarshalMessageData(data json.RawMessage, messageType string) (interface{}, error) {
+func (n *Submitter) unmarshalMessageData(data json.RawMessage, messageType string) (interface{}, error) {
 	switch messageType {
 	case MessageTypes.Heartbeat:
 		var entry HeartbeatMessage
@@ -159,7 +162,7 @@ func (n *RaftNode) unmarshalMessageData(data json.RawMessage, messageType string
 	}
 }
 
-func (n *RaftNode) subscribe(ctx context.Context) {
+func (n *Submitter) subscribe(ctx context.Context) {
 	for {
 		select {
 		case <-ctx.Done():
@@ -182,7 +185,7 @@ func (n *RaftNode) subscribe(ctx context.Context) {
 	}
 }
 
-func (n *RaftNode) Run() {
+func (n *Submitter) Run() {
 	go n.subscribe(context.Background())
 	n.startElectionTimer()
 
@@ -206,7 +209,7 @@ func (n *RaftNode) Run() {
 	}
 }
 
-func (n *RaftNode) handleHeartbeat(msg Message) {
+func (n *Submitter) handleHeartbeat(msg Message) {
 	if msg.SentFrom == n.Host.ID().String() {
 		return
 	}
@@ -232,6 +235,7 @@ func (n *RaftNode) handleHeartbeat(msg Message) {
 	if currentRole == RoleTypes.Candidate {
 		n.updateRole(RoleTypes.Follower)
 	}
+
 	if currentRole == RoleTypes.Leader && currentTerm < heartbeatMsg.Term {
 		n.updateRole(RoleTypes.Follower)
 	}
@@ -245,14 +249,13 @@ func (n *RaftNode) handleHeartbeat(msg Message) {
 	}
 }
 
-func (n *RaftNode) handleRequestVote(msg Message) {
+func (n *Submitter) handleRequestVote(msg Message) {
 	log.Println("receive vote request")
 
 	currentRole := n.getCurrentRole()
 	votedFor := n.getCurrentVotedFor()
 
 	if currentRole == RoleTypes.Leader {
-		// ignore vote request from other nodes
 		return
 	}
 
@@ -279,10 +282,9 @@ func (n *RaftNode) handleRequestVote(msg Message) {
 	n.sendReplyVote(msg.SentFrom, voteGranted)
 }
 
-func (n *RaftNode) handleReplyVote(msg Message) {
+func (n *Submitter) handleReplyVote(msg Message) {
 	log.Println("receive vote reply")
 	if n.getCurrentRole() != RoleTypes.Candidate {
-		// ignore vote reply from other nodes
 		return
 	}
 
@@ -303,7 +305,7 @@ func (n *RaftNode) handleReplyVote(msg Message) {
 	}
 }
 
-func (n *RaftNode) startElectionTimer() {
+func (n *Submitter) startElectionTimer() {
 	if n.ElectionTimer != nil {
 		n.ElectionTimer.Stop()
 	}
@@ -311,15 +313,15 @@ func (n *RaftNode) startElectionTimer() {
 	n.ElectionTimer = time.NewTimer(ElectionTimeout())
 }
 
-func (n *RaftNode) startElection() {
+func (n *Submitter) startElection() {
 	n.updateTerm(n.getCurrentTerm() + 1)
 	n.updateVoteReceived(0)
 	log.Println("start election")
-	// Transition to candidate state
+
 	n.updateRole(RoleTypes.Candidate)
-	// Reset election timer
+
 	n.startElectionTimer()
-	// Send RequestVote RPCs to all other servers
+
 	log.Println("sent request vote")
 	err := n.sendRequestVote()
 	if err != nil {
@@ -327,7 +329,7 @@ func (n *RaftNode) startElection() {
 	}
 }
 
-func (n *RaftNode) publish(message Message) error {
+func (n *Submitter) publish(message Message) error {
 	data, err := json.Marshal(message)
 	if err != nil {
 		return err
@@ -335,7 +337,7 @@ func (n *RaftNode) publish(message Message) error {
 	return n.PubSub.Topic.Publish(context.Background(), data)
 }
 
-func (n *RaftNode) sendRequestVote() error {
+func (n *Submitter) sendRequestVote() error {
 	RequestVoteMessage := RequestVoteMessage{
 		Term: n.getCurrentTerm(),
 	}
@@ -344,13 +346,11 @@ func (n *RaftNode) sendRequestVote() error {
 		return err
 	}
 
-	// Construct RequestVote message
 	message := Message{
 		Type:     MessageTypes.RequestVote,
 		SentFrom: n.Host.ID().String(),
 		Data:     json.RawMessage(marshalledRequestVoteMsg),
 	}
-	// Publish message
 	err = n.publish(message)
 	if err != nil {
 		return err
@@ -358,7 +358,7 @@ func (n *RaftNode) sendRequestVote() error {
 	return nil
 }
 
-func (n *RaftNode) sendReplyVote(to string, voteGranted bool) error {
+func (n *Submitter) sendReplyVote(to string, voteGranted bool) error {
 	replyVoteMessage := ReplyRequestVoteMessage{
 		VoteGranted: voteGranted,
 		LeaderID:    to,
@@ -367,13 +367,11 @@ func (n *RaftNode) sendReplyVote(to string, voteGranted bool) error {
 	if err != nil {
 		return err
 	}
-	// Construct ReplyVote message
 	message := Message{
 		Type:     MessageTypes.ReplyVote,
 		SentFrom: n.Host.ID().String(),
 		Data:     json.RawMessage(marshalledReplyVoteMsg),
 	}
-	// Publish message
 	err = n.publish(message)
 	if err != nil {
 		return err
@@ -381,7 +379,7 @@ func (n *RaftNode) sendReplyVote(to string, voteGranted bool) error {
 	return nil
 }
 
-func (n *RaftNode) sendHeartbeat() error {
+func (n *Submitter) sendHeartbeat() error {
 	heartbeatMessage := HeartbeatMessage{
 		LeaderID: n.Host.ID().String(),
 	}
@@ -389,13 +387,11 @@ func (n *RaftNode) sendHeartbeat() error {
 	if err != nil {
 		return err
 	}
-	// Construct heartbeat message
 	message := Message{
 		Type:     MessageTypes.Heartbeat,
 		SentFrom: n.Host.ID().String(),
 		Data:     json.RawMessage(marshalledHeartbeatMsg),
 	}
-	// Publish message
 	err = n.publish(message)
 	if err != nil {
 		return err
@@ -403,7 +399,7 @@ func (n *RaftNode) sendHeartbeat() error {
 	return nil
 }
 
-func (n *RaftNode) becomeLeader() {
+func (n *Submitter) becomeLeader() {
 	log.Printf("(%s) I am leader", n.Host.ID().String())
 	n.Resign = make(chan interface{})
 	n.ElectionTimer.Stop()
@@ -427,7 +423,7 @@ func (n *RaftNode) becomeLeader() {
 	}()
 }
 
-func (n *RaftNode) stopHeartbeatTicker() {
+func (n *Submitter) stopHeartbeatTicker() {
 	if n.HeartbeatTicker != nil {
 		n.HeartbeatTicker.Stop()
 		n.HeartbeatTicker = nil
@@ -438,86 +434,100 @@ func (n *RaftNode) stopHeartbeatTicker() {
 	}
 }
 
-func (n *RaftNode) getSubscribersCount() int {
+func (n *Submitter) getSubscribersCount() int {
 	peers := n.subscribers()
 	return len(peers)
 }
 
-func (n *RaftNode) subscribers() []peer.ID {
+func (n *Submitter) subscribers() []peer.ID {
 	return n.PubSub.Ps.ListPeers(n.PubSub.Topic.String())
 }
 
-func (n *RaftNode) updateTerm(newTerm int) error {
-	if newTerm < n.Data.Term {
+func (n *Submitter) updateTerm(newTerm int) error {
+	if newTerm < n.State.Term {
 		return fmt.Errorf("invalid term")
 	}
-	n.Data.Mutex.Lock()
-	n.Data.Term = newTerm
-	n.Data.VotedFor = ""
-	n.Data.Mutex.Unlock()
+	n.State.Mutex.Lock()
+	n.State.Term = newTerm
+	n.State.VotedFor = ""
+	n.State.Mutex.Unlock()
 	return nil
 }
 
-func (n *RaftNode) updateLeader(leader string) {
-	n.Data.Mutex.Lock()
-	n.Data.LeaderID = leader
-	n.Data.Mutex.Unlock()
+func (n *Submitter) updateLeader(leader string) {
+	n.State.Mutex.Lock()
+	n.State.LeaderID = leader
+	n.State.Mutex.Unlock()
 }
 
-func (n *RaftNode) updateVoteReceived(votes int) {
-	n.Data.Mutex.Lock()
-	n.Data.VotesReceived = votes
-	n.Data.Mutex.Unlock()
+func (n *Submitter) updateVoteReceived(votes int) {
+	n.State.Mutex.Lock()
+	n.State.VotesReceived = votes
+	n.State.Mutex.Unlock()
 }
 
-func (n *RaftNode) updateRole(role string) {
-	n.Data.Mutex.Lock()
-	n.Data.Role = role
-	n.Data.Mutex.Unlock()
+func (n *Submitter) updateRole(role string) {
+	n.State.Mutex.Lock()
+	n.State.Role = role
+	n.State.Mutex.Unlock()
 }
 
-func (n *RaftNode) updateVotedFor(votedFor string) {
-	n.Data.Mutex.Lock()
-	n.Data.VotedFor = votedFor
-	n.Data.Mutex.Unlock()
+func (n *Submitter) updateVotedFor(votedFor string) {
+	n.State.Mutex.Lock()
+	n.State.VotedFor = votedFor
+	n.State.Mutex.Unlock()
 }
 
-func (n *RaftNode) getCurrentRole() string {
-	n.Data.Mutex.Lock()
-	role := n.Data.Role
-	n.Data.Mutex.Unlock()
+func (n *Submitter) getCurrentRole() string {
+	n.State.Mutex.Lock()
+	role := n.State.Role
+	n.State.Mutex.Unlock()
 	return role
 }
 
-func (n *RaftNode) getCurrentTerm() int {
-	n.Data.Mutex.Lock()
-	term := n.Data.Term
-	n.Data.Mutex.Unlock()
+func (n *Submitter) getCurrentTerm() int {
+	n.State.Mutex.Lock()
+	term := n.State.Term
+	n.State.Mutex.Unlock()
 	return term
 }
 
-func (n *RaftNode) getCurrentVotes() int {
-	n.Data.Mutex.Lock()
-	votes := n.Data.VotesReceived
-	n.Data.Mutex.Unlock()
+func (n *Submitter) getCurrentVotes() int {
+	n.State.Mutex.Lock()
+	votes := n.State.VotesReceived
+	n.State.Mutex.Unlock()
 	return votes
 }
 
-func (n *RaftNode) getCurrentVotedFor() string {
-	n.Data.Mutex.Lock()
-	votedFor := n.Data.VotedFor
-	n.Data.Mutex.Unlock()
+func (n *Submitter) getCurrentVotedFor() string {
+	n.State.Mutex.Lock()
+	votedFor := n.State.VotedFor
+	n.State.Mutex.Unlock()
 	return votedFor
 }
 
-func (n *RaftNode) getCurrentLeader() string {
-	n.Data.Mutex.Lock()
-	leader := n.Data.LeaderID
-	n.Data.Mutex.Unlock()
+func (n *Submitter) getCurrentLeader() string {
+	n.State.Mutex.Lock()
+	leader := n.State.LeaderID
+	n.State.Mutex.Unlock()
 	return leader
 }
 
-func (n *RaftNode) submit() {
-	n.updateTerm(n.Data.Term + 1)
+func (n *Submitter) submit() {
+	if n.getCurrentRole() != RoleTypes.Leader {
+		// only leader should be submitting
+		return
+	}
+	n.updateTerm(n.State.Term + 1)
 	log.Println("submit!")
+}
+
+func (n *Submitter) SubmitSingle() {
+	// assumption that this will be called externally on deviation check
+	if n.getCurrentRole() != RoleTypes.Leader {
+		// only leader should be submitting
+		return
+	}
+	n.updateTerm(n.State.Term + 1)
+	log.Println("submit single!")
 }
