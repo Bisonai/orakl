@@ -123,7 +123,6 @@ CREATE TABLE IF NOT EXISTS "vrf_keys" (
     CONSTRAINT "vrf_keys_pkey" PRIMARY KEY ("vrf_key_id")
 );
 
-CREATE TABLE IF NOT EXISTS "fee_payers" {
-    "privateKey" VARCHAR(66) NOT NULL,
-    CONSTRAINT "fee_payers_privateKey_key" UNIQUE ("privateKey")
-};
+CREATE TABLE IF NOT EXISTS "fee_payers" (
+    "privateKey" VARCHAR(66) NOT NULL
+);
