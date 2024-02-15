@@ -109,14 +109,9 @@ func initialize(c *fiber.Ctx) error {
 		}
 	}
 
-	publicKey, err := utils.GetPublicKey(pk)
-	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).SendString(err.Error())
-	}
-
 	utils.UpdateFeePayer(pk)
 
-	return c.SendString("Initialized: " + publicKey)
+	return c.SendString("Initialized")
 }
 
 func insert(c *fiber.Ctx) error {
