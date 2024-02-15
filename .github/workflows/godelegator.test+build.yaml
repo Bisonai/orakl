@@ -51,7 +51,7 @@ jobs:
           go build
       - name: Insert test fee payer pk
         run: |
-          psql -h postgres -U postgres -d orakl-test <<EOF
+          psql -h localhost -U postgres -d orakl-test <<EOF
           SET search_path TO delegator;
           INSERT INTO fee_payers ("privateKey") VALUES ('${{ secrets.DELEGATOR_FEEPAYER_PK}}')
           ON CONFLICT ("privateKey")
