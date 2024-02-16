@@ -91,7 +91,7 @@ func initialize(c *fiber.Ctx) error {
 		if err != nil {
 			panic(err)
 		}
-		err = utils.InitFeePayerPK(pgx)
+		err = utils.InitFeePayerPK(c.Context(), pgx)
 		if err != nil {
 			panic(err)
 		}

@@ -47,7 +47,7 @@ func Setup(options ...string) (AppConfig, error) {
 		return appConfig, pgxError
 	}
 
-	InitFeePayerPK(pgxPool)
+	InitFeePayerPK(context.Background(), pgxPool)
 
 	app := fiber.New(fiber.Config{
 		AppName:           "go-delegator " + version,
@@ -76,7 +76,7 @@ func Setup(options ...string) (AppConfig, error) {
 	return appConfig, nil
 }
 
-func InitFeePayerPK(pgxPool *pgxpool.Pool) error {
+func InitFeePayerPK(ctx context.Context, pgxPool *pgxpool.Pool) error {
 	var err error
 	if feePayer = os.Getenv("DELEGATOR_FEEPAYER_PK"); feePayer != "" {
 		return nil
@@ -85,7 +85,7 @@ func InitFeePayerPK(pgxPool *pgxpool.Pool) error {
 	useGoogleSecretManager, _ := strconv.ParseBool(os.Getenv("USE_GOOGLE_SECRET_MANAGER"))
 
 	if useGoogleSecretManager {
-		feePayer, err = LoadFeePayerFromGSM(context.Background())
+		feePayer, err = LoadFeePayerFromGSM(ctx)
 		if err != nil {
 			return err
 		}
