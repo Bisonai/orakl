@@ -1,0 +1,4 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+cd contracts/v0.1 && yarn prettier-solidity-write && yarn lint --fix
