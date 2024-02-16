@@ -39,7 +39,7 @@ func main() {
 	SetRouter(v1)
 
 	var port string
-	port = os.Getenv("PORT")
+	port = os.Getenv("APP_PORT")
 	if port == "" {
 		port = "3000"
 	}
