@@ -45,12 +45,12 @@ func insert(c *fiber.Ctx) error {
 	}
 
 	hash := crypto.Keccak256([]byte(payload.Name))
-	_encodedName := "0x" + hex.EncodeToString(hash[:4])
+	encodedName := "0x" + hex.EncodeToString(hash[:4])
 
 	result, err := utils.QueryRow[FunctionModel](c, InsertFunction, map[string]any{
 		"name":        payload.Name,
 		"contract_id": payload.ContractId,
-		"encodedName": _encodedName,
+		"encodedName": encodedName,
 	})
 	if err != nil {
 		panic(err)
@@ -115,9 +115,9 @@ func updateById(c *fiber.Ctx) error {
 	}
 
 	hash := crypto.Keccak256([]byte(payload.Name))
-	_encodedName := "0x" + hex.EncodeToString(hash[:4])
+	encodedName := "0x" + hex.EncodeToString(hash[:4])
 
-	result, err := utils.QueryRow[FunctionModel](c, UpdateFunctionById, map[string]any{"id": id, "name": payload.Name, "contract_id": payload.ContractId, "encodedName": _encodedName})
+	result, err := utils.QueryRow[FunctionModel](c, UpdateFunctionById, map[string]any{"id": id, "name": payload.Name, "contract_id": payload.ContractId, "encodedName": encodedName})
 	if err != nil {
 		panic(err)
 	}

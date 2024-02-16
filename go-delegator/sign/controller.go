@@ -241,60 +241,60 @@ func signTxByFeePayer(c *fiber.Ctx, tx *SignModel) error {
 		return err
 	}
 
-	_chainId, ok := new(big.Int).SetString(tx.ChainId[2:], 16)
+	chainId, ok := new(big.Int).SetString(tx.ChainId[2:], 16)
 	if !ok {
 		return fmt.Errorf("failed to convert chainId to big.Int")
 	}
 
-	signedWithTxFeepayer, err := types.SignTxAsFeePayer(transaction, types.LatestSigner(&params.ChainConfig{ChainID: _chainId}), feePayerKey)
+	signedWithTxFeepayer, err := types.SignTxAsFeePayer(transaction, types.LatestSigner(&params.ChainConfig{ChainID: chainId}), feePayerKey)
 	if err != nil {
 		return err
 	}
 
-	_succeed := true
+	succeed := true
 	rawTxBytes, _ := rlp.EncodeToBytes(signedWithTxFeepayer)
-	_rawTxHash := "0x" + hex.EncodeToString(rawTxBytes)
+	rawTxHash := "0x" + hex.EncodeToString(rawTxBytes)
 
-	tx.Succeed = &_succeed
-	tx.SignedRawTx = &_rawTxHash
+	tx.Succeed = &succeed
+	tx.SignedRawTx = &rawTxHash
 
 	return nil
 }
 
 func CreateUnsignedTx(tx *SignModel, feePayerPublicKey string) (*types.Transaction, error) {
-	_nonce, err := strconv.ParseUint(tx.Nonce[2:], 16, 64)
+	nonce, err := strconv.ParseUint(tx.Nonce[2:], 16, 64)
 	if err != nil {
 		return nil, err
 	}
-	_to := common.HexToAddress(tx.To)
-	_value, success := new(big.Int).SetString(tx.Value, 0)
+	to := common.HexToAddress(tx.To)
+	value, success := new(big.Int).SetString(tx.Value, 0)
 	if !success {
 		return nil, fmt.Errorf("failed to convert value to big.Int")
 	}
-	_gas, err := strconv.ParseUint(tx.Gas[2:], 16, 64)
+	gas, err := strconv.ParseUint(tx.Gas[2:], 16, 64)
 	if err != nil {
 		return nil, err
 	}
-	_gasPrice, success := new(big.Int).SetString(tx.GasPrice, 0)
+	gasPrice, success := new(big.Int).SetString(tx.GasPrice, 0)
 	if !success {
 		return nil, fmt.Errorf("failed to convert gas price to big.Int")
 	}
-	_data, err := hex.DecodeString(tx.Input[2:])
+	data, err := hex.DecodeString(tx.Input[2:])
 	if err != nil {
 		return nil, err
 	}
-	_from := common.HexToAddress(tx.From)
-	_feePayer := common.HexToAddress(feePayerPublicKey)
+	from := common.HexToAddress(tx.From)
+	feePayer := common.HexToAddress(feePayerPublicKey)
 
 	_map := map[types.TxValueKeyType]interface{}{
-		types.TxValueKeyNonce:    _nonce,
-		types.TxValueKeyTo:       _to,
-		types.TxValueKeyAmount:   _value,
-		types.TxValueKeyGasLimit: _gas,
-		types.TxValueKeyGasPrice: _gasPrice,
-		types.TxValueKeyFrom:     _from,
-		types.TxValueKeyData:     _data,
-		types.TxValueKeyFeePayer: _feePayer,
+		types.TxValueKeyNonce:    nonce,
+		types.TxValueKeyTo:       to,
+		types.TxValueKeyAmount:   value,
+		types.TxValueKeyGasLimit: gas,
+		types.TxValueKeyGasPrice: gasPrice,
+		types.TxValueKeyFrom:     from,
+		types.TxValueKeyData:     data,
+		types.TxValueKeyFeePayer: feePayer,
 	}
 
 	transaction, err := types.NewTransactionWithMap(types.TxTypeFeeDelegatedSmartContractExecution, _map)
@@ -302,15 +302,15 @@ func CreateUnsignedTx(tx *SignModel, feePayerPublicKey string) (*types.Transacti
 		return nil, err
 	}
 
-	_r, _ := new(big.Int).SetString(tx.R, 0)
-	_s, _ := new(big.Int).SetString(tx.S, 0)
-	_v, _ := new(big.Int).SetString(tx.V, 0)
+	r, _ := new(big.Int).SetString(tx.R, 0)
+	s, _ := new(big.Int).SetString(tx.S, 0)
+	v, _ := new(big.Int).SetString(tx.V, 0)
 
 	transaction.SetSignature(types.TxSignatures([]*types.TxSignature{
 		{
-			R: _r,
-			S: _s,
-			V: _v,
+			R: r,
+			S: s,
+			V: v,
 		},
 	}))
 
