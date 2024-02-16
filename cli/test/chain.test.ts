@@ -30,7 +30,9 @@ describe('CLI Chain', function () {
   test('Should not allow to insert the same chain more than once', async function () {
     await insertHandler()({ name: 'ethereum' })
     const msg = await insertHandler()({ name: 'ethereum' })
-    expect(msg).toEqual('Internal server error')
+    expect(msg).toEqual(
+      'ERROR: duplicate key value violates unique constraint "chains_name_key" (SQLSTATE 23505)'
+    )
   })
 
   test('Should delete chain based on id', async function () {

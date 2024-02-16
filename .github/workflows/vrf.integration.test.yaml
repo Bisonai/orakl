@@ -1,8 +1,13 @@
 name: "vrf: integration-test"
 
 on:
-  issue_comment:
-    types: [created, edited, deleted]
+  push:
+    branches-ignore:
+      - "master"
+    paths:
+      - "contracts-v0.1/**/VRFCoordinator.sol"
+      - "contracts-v0.1/**/VRFConsumerBase.sol"
+      - "contracts-v0.1/**/vrf/**"
 
 jobs:
   build:

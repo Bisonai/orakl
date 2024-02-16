@@ -30,7 +30,9 @@ describe('CLI Service', function () {
   test('Should not allow to insert the same service more than once', async function () {
     await insertHandler()({ name: 'Automation' })
     const msg = await insertHandler()({ name: 'Automation' })
-    expect(msg).toEqual('Internal server error')
+    expect(msg).toEqual(
+      'ERROR: duplicate key value violates unique constraint "services_name_key" (SQLSTATE 23505)'
+    )
   })
 
   test('Should delete service based on id', async function () {

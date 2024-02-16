@@ -1,4 +1,5 @@
 node_modules/
 contracts/scripts/**/tmp
 yarn-error.log
+.DS_Store
 dockerfiles/local-data-feed/tmp/**

@@ -77,6 +77,13 @@ export function listHandler(print?: boolean) {
     if (!(await isOraklNetworkApiHealthy())) return
 
     try {
+      if (!chain) {
+        const result = (await axios.get(VRF_ENDPOINT))?.data
+        if (print) {
+          console.dir(result, { depth: null })
+        }
+        return result
+      }
       const result = (await axios.get(VRF_ENDPOINT, { data: { chain } }))?.data
       if (print) {
         console.dir(result, { depth: null })

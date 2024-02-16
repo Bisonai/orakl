@@ -12,6 +12,7 @@ import {
 import { ORAKL_NETWORK_API_URL, REPORTER_SERVICE_HOST, REPORTER_SERVICE_PORT } from './settings'
 
 const REPORTER_ENDPOINT = buildUrl(ORAKL_NETWORK_API_URL, 'reporter')
+const AGGREGATOR_ENDPOINT = buildUrl(ORAKL_NETWORK_API_URL, 'aggregator')
 
 export function reporterSub() {
   // reporter list   [--chain ${chain}] [--service ${service}]
@@ -148,8 +149,28 @@ export function listHandler(print?: boolean) {
 
     try {
       const result = (await axios.get(REPORTER_ENDPOINT, { data: { chain, service } }))?.data
+
+      const printResult: any[] = []
+      const aggregatorUrl = new URL(AGGREGATOR_ENDPOINT)
+      const aggregatorResult = (await axios.get(aggregatorUrl.toString())).data
       if (print) {
-        console.dir(result, { depth: null })
+        for (const reporter of result) {
+          if (reporter.service != 'DATA_FEED') {
+            printResult.push({ ...reporter })
+            continue
+          }
+
+          const aggregator = aggregatorResult.find(
+            (aggregator) => aggregator.address === reporter.oracleAddress
+          )
+          if (aggregator) {
+            printResult.push({ ...reporter, name: aggregator.name })
+          } else {
+            printResult.push({ ...reporter })
+          }
+        }
+
+        console.dir(printResult, { depth: null })
       }
       return result
     } catch (e) {
