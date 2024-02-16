@@ -18,7 +18,9 @@ https://book.getfoundry.sh/
 ### Build
 
 ```shell
+
 $ forge build
+
 ```
 
 ### Test
@@ -64,7 +66,9 @@ $ forge script deploy/Aggregator.s.sol:AggregatorScript --rpc-url [RPC] --broadc
 ### Cast
 
 ```shell
+
 $ cast <subcommand>
+
 ```
 
 ### Help
