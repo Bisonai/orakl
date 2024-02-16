@@ -48,17 +48,15 @@ var insertedMockTx sign.SignModel
 var appConfig utils.AppConfig
 
 func makeMockTransaction() (*types.Transaction, error) {
-	reporterPkString := utils.LoadEnvVars()["TEST_DELEGATOR_REPORTER_PK"].(string)
-	if len(reporterPkString) != 64 {
-		return nil, fmt.Errorf("private key must be a 64-character hexadecimal string")
-	}
+	reporterPkString := os.Getenv("TEST_DELEGATOR_REPORTER_PK")
+	reporterPkString = strings.TrimPrefix(reporterPkString, "0x")
 
 	reporterPk, err := crypto.HexToECDSA(reporterPkString)
 	if err != nil {
 		return nil, err
 	}
 
-	_nonce, err := utils.GetNonce()
+	_nonce, err := utils.GetNonce(common.HexToAddress(testReporterPublicKey))
 	if err != nil {
 		return nil, err
 	}
@@ -79,7 +77,7 @@ func makeMockTransaction() (*types.Transaction, error) {
 		return nil, err
 	}
 
-	pgxPool, pgxError := pgxpool.New(context.Background(), utils.LoadEnvVars()["DATABASE_URL"].(string))
+	pgxPool, pgxError := pgxpool.New(context.Background(), os.Getenv("DATABASE_URL"))
 	if pgxError != nil {
 		return nil, pgxError
 	}

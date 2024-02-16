@@ -15,7 +15,8 @@ func TestMain(m *testing.M) {
 		log.Println("env file is not found, continuing without .env file")
 	}
 
-	rpk := utils.LoadEnvVars()["TEST_DELEGATOR_REPORTER_PK"].(string)
+	rpk := os.Getenv("TEST_DELEGATOR_REPORTER_PK")
+
 	_testReporterPublicKey, err := utils.GetPublicKey(rpk)
 	if err != nil {
 		panic(err)

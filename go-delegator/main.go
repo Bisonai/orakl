@@ -3,6 +3,7 @@ package main
 import (
 	_ "embed"
 	"log"
+	"os"
 
 	"bisonai.com/orakl/go-delegator/contract"
 	"bisonai.com/orakl/go-delegator/function_"
@@ -23,7 +24,7 @@ func main() {
 	if err != nil {
 		log.Println("env file is not found, continuing without .env file")
 	}
-	config := utils.LoadEnvVars()
+
 	appConfig, err := utils.Setup(version)
 	if err != nil {
 		panic(err)
@@ -38,9 +39,8 @@ func main() {
 	SetRouter(v1)
 
 	var port string
-	if val, ok := config["APP_PORT"].(string); ok {
-		port = val
-	} else {
+	port = os.Getenv("PORT")
+	if port == "" {
 		port = "3000"
 	}
 

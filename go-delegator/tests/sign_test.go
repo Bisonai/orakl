@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/hex"
 	"net/url"
+	"os"
 	"strconv"
 	"testing"
 
@@ -86,8 +87,6 @@ func TestInsert(t *testing.T) {
 	defer t.Cleanup(cleanup)
 	defer appConfig.App.Shutdown()
 
-	config := utils.LoadEnvVars()
-
 	// phase 0: test insert
 
 	_mockTx, err := makeMockTransaction()
@@ -114,7 +113,7 @@ func TestInsert(t *testing.T) {
 	// phase 1: test tx execution
 	callName := "COUNTER()"
 	encodedCallName := "0x" + hex.EncodeToString(crypto.Keccak256([]byte(callName))[:4])
-	providerUrl := config["PROVIDER_URL"].(string)
+	providerUrl := os.Getenv("PROVIDER_URL")
 	client, err := client.Dial(providerUrl)
 	if err != nil {
 		t.Fatal(err)

@@ -9,6 +9,7 @@ import (
 	"math/big"
 	"net/http"
 	"net/url"
+	"os"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/klaytn/klaytn"
@@ -179,13 +180,13 @@ func DeepCopyMap(src map[string]interface{}) (map[string]interface{}, error) {
 	return dst, nil
 }
 
-func GetNonce() (uint64, error) {
-	client, err := client.Dial(LoadEnvVars()["PROVIDER_URL"].(string))
+func GetNonce(pk common.Address) (uint64, error) {
+	client, err := client.Dial(os.Getenv("PROVIDER_URL"))
 	if err != nil {
 		return 0, err
 	}
 
-	nonce, err := client.PendingNonceAt(context.Background(), common.HexToAddress(LoadEnvVars()["TEST_DELEGATOR_REPORTER_PK"].(string)))
+	nonce, err := client.PendingNonceAt(context.Background(), pk)
 	if err != nil {
 		return 0, err
 	}
@@ -194,7 +195,7 @@ func GetNonce() (uint64, error) {
 }
 
 func GetGasPrice() (*big.Int, error) {
-	client, err := client.Dial(LoadEnvVars()["PROVIDER_URL"].(string))
+	client, err := client.Dial(os.Getenv("PROVIDER_URL"))
 	if err != nil {
 		return nil, err
 	}
@@ -208,7 +209,7 @@ func GetGasPrice() (*big.Int, error) {
 }
 
 func GetGasLimit(msg klaytn.CallMsg) (uint64, error) {
-	client, err := client.Dial(LoadEnvVars()["PROVIDER_URL"].(string))
+	client, err := client.Dial(os.Getenv("PROVIDER_URL"))
 	if err != nil {
 		return 0, err
 	}
@@ -222,7 +223,7 @@ func GetGasLimit(msg klaytn.CallMsg) (uint64, error) {
 }
 
 func GetChainId() (*big.Int, error) {
-	client, err := client.Dial(LoadEnvVars()["PROVIDER_URL"].(string))
+	client, err := client.Dial(os.Getenv("PROVIDER_URL"))
 	if err != nil {
 		return nil, err
 	}
@@ -236,7 +237,7 @@ func GetChainId() (*big.Int, error) {
 }
 
 func SendTx(signedTx *types.Transaction) error {
-	c, err := client.Dial(LoadEnvVars()["PROVIDER_URL"].(string))
+	c, err := client.Dial(os.Getenv("PROVIDER_URL"))
 	if err != nil {
 		return err
 	}

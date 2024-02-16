@@ -32,16 +32,6 @@ type AppConfig struct {
 
 var feePayer string
 
-func LoadEnvVars() map[string]interface{} {
-	return map[string]interface{}{
-		"DATABASE_URL":               os.Getenv("DATABASE_URL"),
-		"PROVIDER_URL":               os.Getenv("PROVIDER_URL"),
-		"APP_PORT":                   os.Getenv("APP_PORT"),
-		"TEST_DELEGATOR_REPORTER_PK": os.Getenv("TEST_DELEGATOR_REPORTER_PK"),
-		"USE_GOOGLE_SECRET_MANAGER":  os.Getenv("USE_GOOGLE_SECRET_MANAGER"),
-	}
-}
-
 func Setup(options ...string) (AppConfig, error) {
 	var version string
 	var appConfig AppConfig
@@ -52,9 +42,7 @@ func Setup(options ...string) (AppConfig, error) {
 		version = "test"
 	}
 
-	config := LoadEnvVars()
-
-	pgxPool, pgxError := pgxpool.New(context.Background(), config["DATABASE_URL"].(string))
+	pgxPool, pgxError := pgxpool.New(context.Background(), os.Getenv("DATABASE_URL"))
 	if pgxError != nil {
 		return appConfig, pgxError
 	}
@@ -77,7 +65,7 @@ func Setup(options ...string) (AppConfig, error) {
 	app.Use(func(c *fiber.Ctx) error {
 		c.Locals("feePayer", feePayer)
 		c.Locals("pgxConn", pgxPool)
-		c.Locals("providerUrl", config["PROVIDER_URL"].(string))
+		c.Locals("providerUrl", os.Getenv("PROVIDER_URL"))
 		return c.Next()
 	})
 
