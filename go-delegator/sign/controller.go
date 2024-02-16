@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"bisonai.com/orakl/go-delegator/utils"
+	"bisonai.com/orakl/delegator/utils"
 
 	"github.com/go-playground/validator"
 	"github.com/gofiber/fiber/v2"

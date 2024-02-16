@@ -1,4 +1,4 @@
-package function_
+package function
 
 const (
 	InsertFunction = `INSERT INTO functions (name, "encodedName", contract_id) VALUES (@name, @encodedName, @contract_id) RETURNING *;`

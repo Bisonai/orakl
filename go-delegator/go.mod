@@ -1,4 +1,4 @@
-module bisonai.com/orakl/go-delegator
+module bisonai.com/orakl/delegator
 
 go 1.21.5
 

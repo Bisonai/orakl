@@ -9,8 +9,8 @@ import (
 	"strconv"
 	"testing"
 
-	"bisonai.com/orakl/go-delegator/sign"
-	"bisonai.com/orakl/go-delegator/utils"
+	"bisonai.com/orakl/delegator/sign"
+	"bisonai.com/orakl/delegator/utils"
 
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/gofiber/fiber/v2"

@@ -5,12 +5,12 @@ import (
 	"log"
 	"os"
 
-	"bisonai.com/orakl/go-delegator/contract"
-	"bisonai.com/orakl/go-delegator/function_"
-	"bisonai.com/orakl/go-delegator/organization"
-	"bisonai.com/orakl/go-delegator/reporter"
-	"bisonai.com/orakl/go-delegator/sign"
-	"bisonai.com/orakl/go-delegator/utils"
+	"bisonai.com/orakl/delegator/contract"
+	"bisonai.com/orakl/delegator/function"
+	"bisonai.com/orakl/delegator/organization"
+	"bisonai.com/orakl/delegator/reporter"
+	"bisonai.com/orakl/delegator/sign"
+	"bisonai.com/orakl/delegator/utils"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/joho/godotenv"
@@ -51,15 +51,15 @@ func main() {
 
 }
 
-func SetRouter(_router fiber.Router) {
-	_router.Get("", func(c *fiber.Ctx) error {
+func SetRouter(router fiber.Router) {
+	router.Get("", func(c *fiber.Ctx) error {
 		return c.SendString("Orakl Network Delegator")
 	})
 
-	contract.Routes(_router)
-	sign.Routes(_router)
-	function_.Routes(_router)
-	organization.Routes(_router)
-	reporter.Routes(_router)
+	contract.Routes(router)
+	sign.Routes(router)
+	function.Routes(router)
+	organization.Routes(router)
+	reporter.Routes(router)
 
 }

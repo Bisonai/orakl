@@ -3,8 +3,8 @@ package tests
 import (
 	"testing"
 
-	"bisonai.com/orakl/go-delegator/reporter"
-	"bisonai.com/orakl/go-delegator/utils"
+	"bisonai.com/orakl/delegator/reporter"
+	"bisonai.com/orakl/delegator/utils"
 
 	"github.com/stretchr/testify/assert"
 )

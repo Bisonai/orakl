@@ -5,7 +5,7 @@ import (
 	"os"
 	"testing"
 
-	"bisonai.com/orakl/go-delegator/utils"
+	"bisonai.com/orakl/delegator/utils"
 	"github.com/joho/godotenv"
 )
 

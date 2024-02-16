@@ -50,7 +50,7 @@ func Setup(options ...string) (AppConfig, error) {
 	InitFeePayerPK(context.Background(), pgxPool)
 
 	app := fiber.New(fiber.Config{
-		AppName:           "go-delegator " + version,
+		AppName:           "delegator " + version,
 		EnablePrintRoutes: true,
 		ErrorHandler:      CustomErrorHandler,
 	})

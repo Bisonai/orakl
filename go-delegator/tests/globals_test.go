@@ -10,12 +10,12 @@ import (
 	"strings"
 	"time"
 
-	"bisonai.com/orakl/go-delegator/contract"
-	"bisonai.com/orakl/go-delegator/function_"
-	"bisonai.com/orakl/go-delegator/organization"
-	"bisonai.com/orakl/go-delegator/reporter"
-	"bisonai.com/orakl/go-delegator/sign"
-	"bisonai.com/orakl/go-delegator/utils"
+	"bisonai.com/orakl/delegator/contract"
+	"bisonai.com/orakl/delegator/function"
+	"bisonai.com/orakl/delegator/organization"
+	"bisonai.com/orakl/delegator/reporter"
+	"bisonai.com/orakl/delegator/sign"
+	"bisonai.com/orakl/delegator/utils"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/joho/godotenv"
@@ -35,14 +35,14 @@ var testContractAddr = "0x93120927379723583c7a0dd2236fcb255e96949f"
 var mockOrganization = organization.OrganizationInsertModel{
 	Name: "test",
 }
-var mockFunction = function_.FunctionInsertModel{
+var mockFunction = function.FunctionInsertModel{
 	Name: "increment()",
 }
 
 var insertedMockContract contract.ContractModel
 var insertedMockOrganization organization.OrganizationModel
 var insertedMockReporter reporter.ReporterModel
-var insertedMockFunction function_.FunctionModel
+var insertedMockFunction function.FunctionModel
 var insertedMockTx sign.SignModel
 
 var appConfig utils.AppConfig
@@ -204,7 +204,7 @@ func setup() error {
 
 	hash := crypto.Keccak256([]byte(mockFunction.Name))
 	_encodedName := "0x" + hex.EncodeToString(hash[:4])
-	tmp_func, err := utils.QueryRowWithoutFiberCtx[function_.FunctionModel](appConfig.Postgres, function_.InsertFunction, map[string]any{"name": mockFunction.Name, "contract_id": insertedMockContract.ContractId.String(), "encodedName": _encodedName})
+	tmp_func, err := utils.QueryRowWithoutFiberCtx[function.FunctionModel](appConfig.Postgres, function.InsertFunction, map[string]any{"name": mockFunction.Name, "contract_id": insertedMockContract.ContractId.String(), "encodedName": _encodedName})
 	if err != nil {
 		return err
 	}
@@ -238,7 +238,7 @@ func setup() error {
 
 	v1 := appConfig.App.Group("/api/v1")
 	contract.Routes(v1)
-	function_.Routes(v1)
+	function.Routes(v1)
 	reporter.Routes(v1)
 	sign.Routes(v1)
 	organization.Routes(v1)
@@ -247,7 +247,7 @@ func setup() error {
 }
 
 func cleanup() {
-	utils.QueryRowsWithoutFiberCtx[function_.FunctionModel](appConfig.Postgres, function_.DeleteFunctionById, map[string]any{"id": insertedMockFunction.FunctionId.String()})
+	utils.QueryRowsWithoutFiberCtx[function.FunctionModel](appConfig.Postgres, function.DeleteFunctionById, map[string]any{"id": insertedMockFunction.FunctionId.String()})
 	utils.QueryRowsWithoutFiberCtx[contract.ContractConnectModel](appConfig.Postgres, contract.DeleteContract, map[string]any{"id": insertedMockContract.ContractId.String()})
 	utils.QueryRowsWithoutFiberCtx[reporter.ReporterModel](appConfig.Postgres, reporter.DeleteReporterById, map[string]any{"id": insertedMockReporter.ReporterId.String()})
 	utils.QueryRowsWithoutFiberCtx[organization.OrganizationModel](appConfig.Postgres, organization.DeleteOrganization, map[string]any{"id": insertedMockOrganization.OrganizationId.String()})

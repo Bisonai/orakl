@@ -1,7 +1,7 @@
 package organization
 
 import (
-	"bisonai.com/orakl/go-delegator/utils"
+	"bisonai.com/orakl/delegator/utils"
 	"github.com/go-playground/validator/v10"
 	"github.com/gofiber/fiber/v2"
 )
