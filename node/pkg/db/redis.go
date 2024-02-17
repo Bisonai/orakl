@@ -53,6 +53,14 @@ func Get(ctx context.Context, key string) (string, error) {
 	return getRedis(ctx, rdb, key)
 }
 
+func Del(ctx context.Context, key string) error {
+	rdb, err := GetRedisConn(ctx)
+	if err != nil {
+		return err
+	}
+	return rdb.Del(ctx, key).Err()
+}
+
 func connectToRedis(ctx context.Context, connectionInfo RedisConnectionInfo) (*redis.Conn, error) {
 	rdb := redis.NewClient(&redis.Options{
 		Addr: connectionInfo.Host + ":" + connectionInfo.Port}).Conn()
