@@ -14,20 +14,20 @@ import (
 // make sure env is loaded from main before calling this
 
 var (
-	initPgxOnce sync.Once
-	pool        *pgxpool.Pool
+	pgsqlMutex sync.Mutex
+	pool       *pgxpool.Pool
 )
 
 func GetPool(ctx context.Context) (*pgxpool.Pool, error) {
-	var err error
-	initPgxOnce.Do(func() {
-		pool, err = connectPgsql(ctx)
-	})
+	pgsqlMutex.Lock()
+	defer pgsqlMutex.Unlock()
 
-	if pool == nil && err == nil {
-		pool, err = connectPgsql(ctx)
+	if pool != nil {
+		return pool, nil
 	}
 
+	var err error
+	pool, err = connectPgsql(ctx)
 	return pool, err
 }
 

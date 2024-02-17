@@ -19,21 +19,20 @@ type RedisConnectionInfo struct {
 }
 
 var (
-	initRdbOnce sync.Once
-	rdb         *redis.Conn
+	redisMutex sync.Mutex
+	rdb        *redis.Conn
 )
 
 func GetRedisConn(ctx context.Context) (*redis.Conn, error) {
-	var err error
+	redisMutex.Lock()
+	defer redisMutex.Unlock()
 
-	initRdbOnce.Do(func() {
-		rdb, err = connectRdb(ctx)
-	})
-
-	if rdb == nil && err == nil {
-		rdb, err = connectRdb(ctx)
+	if rdb != nil {
+		return rdb, nil
 	}
 
+	var err error
+	rdb, err = connectRdb(ctx)
 	return rdb, err
 }
 
