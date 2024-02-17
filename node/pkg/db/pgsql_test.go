@@ -7,7 +7,7 @@ import (
 	"bisonai.com/orakl/node/pkg/utils"
 )
 
-func TestGetPoolSingleton(t *testing.T) {
+func TestPGSGetPoolSingleton(t *testing.T) {
 	utils.LoadEnv()
 
 	ctx := context.Background()
@@ -17,6 +17,7 @@ func TestGetPoolSingleton(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GetPool failed: %v", err)
 	}
+	defer ClosePool()
 
 	pool2, err := GetPool(ctx)
 	if err != nil {
@@ -27,9 +28,10 @@ func TestGetPoolSingleton(t *testing.T) {
 	if pool1 != pool2 {
 		t.Errorf("GetPool did not return the same instance")
 	}
+
 }
 
-func TestQuery(t *testing.T) {
+func TestPGSQuery(t *testing.T) {
 	utils.LoadEnv()
 
 	ctx := context.Background()
@@ -39,6 +41,7 @@ func TestQuery(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GetPool failed: %v", err)
 	}
+	defer ClosePool()
 
 	// Create a temporary table
 	_, err = pool.Exec(ctx, `CREATE TEMPORARY TABLE test (id SERIAL PRIMARY KEY, name TEXT)`)

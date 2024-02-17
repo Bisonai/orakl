@@ -18,6 +18,7 @@ func TestGetRedisConnSingleton(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GetRedisConn failed: %v", err)
 	}
+	defer CloseRedis()
 
 	rdb2, err := GetRedisConn(ctx)
 	if err != nil {
@@ -30,7 +31,7 @@ func TestGetRedisConnSingleton(t *testing.T) {
 	}
 }
 
-func TestSetAndGet(t *testing.T) {
+func TestRedisSetAndGet(t *testing.T) {
 	utils.LoadEnv()
 
 	ctx := context.Background()
@@ -58,4 +59,6 @@ func TestSetAndGet(t *testing.T) {
 	if err != nil {
 		t.Errorf("Error deleting key: %v", err)
 	}
+
+	defer CloseRedis()
 }
