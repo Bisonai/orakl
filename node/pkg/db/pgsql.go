@@ -45,7 +45,7 @@ func Query(ctx context.Context, queryString string, args map[string]any) (pgx.Ro
 	if err != nil {
 		return nil, err
 	}
-	return query(pool, queryString, args)
+	return query(ctx, pool, queryString, args)
 }
 
 func QueryRow[T any](ctx context.Context, queryString string, args map[string]any) (T, error) {
@@ -54,7 +54,7 @@ func QueryRow[T any](ctx context.Context, queryString string, args map[string]an
 	if err != nil {
 		return t, err
 	}
-	return queryRow[T](pool, queryString, args)
+	return queryRow[T](ctx, pool, queryString, args)
 }
 
 func QueryRows[T any](ctx context.Context, queryString string, args map[string]any) ([]T, error) {
@@ -62,16 +62,16 @@ func QueryRows[T any](ctx context.Context, queryString string, args map[string]a
 	if err != nil {
 		return nil, err
 	}
-	return queryRows[T](pool, queryString, args)
+	return queryRows[T](ctx, pool, queryString, args)
 }
 
-func query(pool *pgxpool.Pool, query string, args map[string]any) (pgx.Rows, error) {
-	return pool.Query(context.Background(), query, pgx.NamedArgs(args))
+func query(ctx context.Context, pool *pgxpool.Pool, query string, args map[string]any) (pgx.Rows, error) {
+	return pool.Query(ctx, query, pgx.NamedArgs(args))
 }
 
-func queryRow[T any](pool *pgxpool.Pool, _query string, args map[string]any) (T, error) {
+func queryRow[T any](ctx context.Context, pool *pgxpool.Pool, _query string, args map[string]any) (T, error) {
 	var result T
-	rows, err := query(pool, _query, args)
+	rows, err := query(ctx, pool, _query, args)
 	if err != nil {
 		return result, err
 	}
@@ -83,10 +83,10 @@ func queryRow[T any](pool *pgxpool.Pool, _query string, args map[string]any) (T,
 	return result, err
 }
 
-func queryRows[T any](pool *pgxpool.Pool, _query string, args map[string]any) ([]T, error) {
+func queryRows[T any](ctx context.Context, pool *pgxpool.Pool, _query string, args map[string]any) ([]T, error) {
 	results := []T{}
 
-	rows, err := query(pool, _query, args)
+	rows, err := query(ctx, pool, _query, args)
 	if err != nil {
 		return results, err
 	}
