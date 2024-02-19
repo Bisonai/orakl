@@ -65,7 +65,7 @@ func GetHostAddress(host host.Host) (string, error) {
 	return addr.Encapsulate(hostAddr).String(), nil
 }
 
-func InitDHT(ctx context.Context, h host.Host, bootstrap string) *dht.IpfsDHT {
+func initDHT(ctx context.Context, h host.Host, bootstrap string) *dht.IpfsDHT {
 	// Start a DHT, for use in peer discovery. We can't just make a new DHT
 	// client because we want each peer to maintain its own local copy of the
 	// DHT, so that the bootstrapping node of the DHT can go down without
@@ -108,7 +108,7 @@ func InitDHT(ctx context.Context, h host.Host, bootstrap string) *dht.IpfsDHT {
 }
 
 func DiscoverPeers(ctx context.Context, h host.Host, topicName string, bootstrap string) {
-	kademliaDHT := InitDHT(ctx, h, bootstrap)
+	kademliaDHT := initDHT(ctx, h, bootstrap)
 	routingDiscovery := drouting.NewRoutingDiscovery(kademliaDHT)
 	dutil.Advertise(ctx, routingDiscovery, topicName)
 
@@ -142,23 +142,4 @@ func DiscoverPeers(ctx context.Context, h host.Host, topicName string, bootstrap
 	}
 	wg.Wait()
 	log.Println("Peer discovery complete")
-}
-
-func ConnectToPeer(ctx context.Context, h host.Host, peerID peer.ID) error {
-	// Assume you have a DHT instance in dht
-	kademliaDHT := InitDHT(ctx, h, "")
-
-	// Find the peer's AddrInfo
-	peerInfo, err := kademliaDHT.FindPeer(ctx, peerID)
-	if err != nil {
-		return fmt.Errorf("failed to find peer: %w", err)
-	}
-
-	// Connect to the peer
-	if err := h.Connect(ctx, peerInfo); err != nil {
-		return fmt.Errorf("failed to connect to peer: %w", err)
-	}
-	log.Println("connected directly to peer:", peerID)
-
-	return nil
 }

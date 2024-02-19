@@ -19,8 +19,12 @@ var (
 )
 
 func GetPool(ctx context.Context) (*pgxpool.Pool, error) {
+	return getPool(ctx, &initPgxOnce)
+}
+
+func getPool(ctx context.Context, once *sync.Once) (*pgxpool.Pool, error) {
 	var err error
-	initPgxOnce.Do(func() {
+	once.Do(func() {
 		connectionString := loadPgsqlConnectionString()
 		if connectionString == "" {
 			err = errors.New("DATABASE_URL is not set")
@@ -95,4 +99,11 @@ func queryRows[T any](pool *pgxpool.Pool, _query string, args map[string]any) ([
 		return results, nil
 	}
 	return results, err
+}
+
+func ClosePool() {
+	if pool != nil {
+		pool.Close()
+		pool = nil
+	}
 }
