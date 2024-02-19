@@ -19,21 +19,28 @@ var (
 )
 
 func GetPool(ctx context.Context) (*pgxpool.Pool, error) {
-	var err error
-	initPgxOnce.Do(func() {
-		pool, err = connectPgsql(ctx)
-	})
+	return getPool(ctx, &initPgxOnce)
+}
 
+func getPool(ctx context.Context, once *sync.Once) (*pgxpool.Pool, error) {
+	var err error
+	once.Do(func() {
+		connectionString := loadPgsqlConnectionString()
+		if connectionString == "" {
+			err = errors.New("DATABASE_URL is not set")
+			return
+		}
+		pool, err = connectToPgsql(ctx, connectionString)
+	})
 	return pool, err
 }
 
-func connectPgsql(ctx context.Context) (*pgxpool.Pool, error) {
-	connectionString := os.Getenv("DATABASE_URL")
-	if connectionString == "" {
-		err := errors.New("DATABASE_URL is not set")
-		return nil, err
-	}
+func connectToPgsql(ctx context.Context, connectionString string) (*pgxpool.Pool, error) {
 	return pgxpool.New(ctx, connectionString)
+}
+
+func loadPgsqlConnectionString() string {
+	return os.Getenv("DATABASE_URL")
 }
 
 func Query(ctx context.Context, queryString string, args map[string]any) (pgx.Rows, error) {
@@ -41,7 +48,7 @@ func Query(ctx context.Context, queryString string, args map[string]any) (pgx.Ro
 	if err != nil {
 		return nil, err
 	}
-	return query(ctx, pool, queryString, args)
+	return query(pool, queryString, args)
 }
 
 func QueryRow[T any](ctx context.Context, queryString string, args map[string]any) (T, error) {
@@ -50,7 +57,7 @@ func QueryRow[T any](ctx context.Context, queryString string, args map[string]an
 	if err != nil {
 		return t, err
 	}
-	return queryRow[T](ctx, pool, queryString, args)
+	return queryRow[T](pool, queryString, args)
 }
 
 func QueryRows[T any](ctx context.Context, queryString string, args map[string]any) ([]T, error) {
@@ -58,16 +65,16 @@ func QueryRows[T any](ctx context.Context, queryString string, args map[string]a
 	if err != nil {
 		return nil, err
 	}
-	return queryRows[T](ctx, pool, queryString, args)
+	return queryRows[T](pool, queryString, args)
 }
 
-func query(ctx context.Context, pool *pgxpool.Pool, query string, args map[string]any) (pgx.Rows, error) {
-	return pool.Query(ctx, query, pgx.NamedArgs(args))
+func query(pool *pgxpool.Pool, query string, args map[string]any) (pgx.Rows, error) {
+	return pool.Query(context.Background(), query, pgx.NamedArgs(args))
 }
 
-func queryRow[T any](ctx context.Context, pool *pgxpool.Pool, _query string, args map[string]any) (T, error) {
+func queryRow[T any](pool *pgxpool.Pool, _query string, args map[string]any) (T, error) {
 	var result T
-	rows, err := query(ctx, pool, _query, args)
+	rows, err := query(pool, _query, args)
 	if err != nil {
 		return result, err
 	}
@@ -79,10 +86,10 @@ func queryRow[T any](ctx context.Context, pool *pgxpool.Pool, _query string, arg
 	return result, err
 }
 
-func queryRows[T any](ctx context.Context, pool *pgxpool.Pool, _query string, args map[string]any) ([]T, error) {
+func queryRows[T any](pool *pgxpool.Pool, _query string, args map[string]any) ([]T, error) {
 	results := []T{}
 
-	rows, err := query(ctx, pool, _query, args)
+	rows, err := query(pool, _query, args)
 	if err != nil {
 		return results, err
 	}

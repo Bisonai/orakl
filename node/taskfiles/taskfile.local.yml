@@ -4,4 +4,4 @@ tasks:
   test-db:
     dotenv: [".env"]
     cmds:
-      - go test ./pkg/db/tests -v
+      - go test ./pkg/db -v
