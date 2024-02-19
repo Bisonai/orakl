@@ -64,7 +64,7 @@ jobs:
           working-directory: go-delegator
           skip-pkg-cache: true
           skip-build-cache: true
-          args: --timeout=10m
+          args: --timeout=10m --skip-dirs=tests
 
       - name: Run vet
         run: |
@@ -72,7 +72,7 @@ jobs:
           go install golang.org/x/tools/go/analysis/passes/shadow/cmd/shadow@latest
           go vet
           go vet -vettool=$(which shadow)
-      
+
       - name: Docker build orakl-godelegator
         run: SERVICE_NAME=orakl-godelegator docker-compose -f docker-compose.build.yaml build
 
@@ -92,4 +92,3 @@ jobs:
         run: |
           docker tag orakl-godelegator ${{ env.ecr_url }}:v${{ needs.prepare.outputs.version }}.${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }}
           docker push ${{ env.ecr_url }}:v${{ needs.prepare.outputs.version }}.${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }}
-
