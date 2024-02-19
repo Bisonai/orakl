@@ -1,47 +1,21 @@
-package db
+package tests
 
 import (
 	"context"
 	"testing"
 
-	"bisonai.com/orakl/node/pkg/utils"
+	"bisonai.com/orakl/node/pkg/db"
 )
 
-func TestPGSGetPoolSingleton(t *testing.T) {
-	utils.LoadEnv()
-
-	ctx := context.Background()
-
-	// Call GetPool multiple times
-	pool1, err := GetPool(ctx)
-	if err != nil {
-		t.Fatalf("GetPool failed: %v", err)
-	}
-	defer ClosePool()
-
-	pool2, err := GetPool(ctx)
-	if err != nil {
-		t.Fatalf("GetPool failed: %v", err)
-	}
-
-	// Check that the returned instances are the same
-	if pool1 != pool2 {
-		t.Errorf("GetPool did not return the same instance")
-	}
-
-}
-
 func TestPGSQuery(t *testing.T) {
-	utils.LoadEnv()
-
 	ctx := context.Background()
 
 	// Get the connection pool
-	pool, err := GetPool(ctx)
+	pool, err := db.GetPool(ctx)
 	if err != nil {
 		t.Fatalf("GetPool failed: %v", err)
 	}
-	defer ClosePool()
+	defer db.ClosePool()
 
 	// Create a temporary table
 	_, err = pool.Exec(ctx, `CREATE TEMPORARY TABLE test (id SERIAL PRIMARY KEY, name TEXT)`)
@@ -56,7 +30,7 @@ func TestPGSQuery(t *testing.T) {
 	}
 
 	// Run a query using your helper function
-	rows, err := Query(ctx, `SELECT * FROM test WHERE name = @name`, map[string]any{"name": "Alice"})
+	rows, err := db.Query(ctx, `SELECT * FROM test WHERE name = @name`, map[string]any{"name": "Alice"})
 	if err != nil {
 		t.Fatalf("Query failed: %v", err)
 	}

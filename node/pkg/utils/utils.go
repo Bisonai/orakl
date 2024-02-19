@@ -1,20 +1,9 @@
 package utils
 
 import (
-	"log"
 	"math/rand"
 	"sort"
-
-	"github.com/joho/godotenv"
 )
-
-// load env file from root
-func LoadEnv() {
-	err := godotenv.Load("../../.env")
-	if err != nil {
-		log.Print("failed loading .env file, proceeding without .env file")
-	}
-}
 
 func RandomNumberGenerator() int {
 	return rand.Intn(20) + 1
