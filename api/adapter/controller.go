@@ -1,11 +1,12 @@
 package adapter
 
 import (
-	"bisonai.com/orakl/api/feed"
-	"bisonai.com/orakl/api/utils"
 	"encoding/json"
 	"fmt"
 	"strconv"
+
+	"bisonai.com/orakl/api/feed"
+	"bisonai.com/orakl/api/utils"
 
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/go-playground/validator/v10"
@@ -74,7 +75,8 @@ func insert(c *fiber.Ctx) error {
 		_, err := utils.QueryRow[FeedIdModel](c, InsertFeed, map[string]any{
 			"name":       item.Name,
 			"definition": item.Definition,
-			"adapter_id": item.AdapterId})
+			"adapter_id": item.AdapterId,
+			"pool":item.Pool})
 		if err != nil {
 			panic(err)
 		}

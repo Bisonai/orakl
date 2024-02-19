@@ -1,8 +1,9 @@
 package feed
 
 import (
-	"bisonai.com/orakl/api/utils"
 	"fmt"
+
+	"bisonai.com/orakl/api/utils"
 
 	"encoding/json"
 
@@ -18,6 +19,7 @@ type FeedInsertModel struct {
 	Name       string             `db:"name" json:"name"`
 	Definition json.RawMessage    `db:"definition" json:"definition"`
 	AdapterId  *utils.CustomInt64 `db:"adapter_id" json:"adapterId"`
+	Pool       string             `db:"pool" json:"pool"`
 }
 
 type FeedModel struct {
@@ -25,6 +27,7 @@ type FeedModel struct {
 	Name       string             `db:"name" json:"name"`
 	Definition json.RawMessage    `db:"definition" json:"definition"`
 	AdapterId  *utils.CustomInt64 `db:"adapter_id" json:"adapterId"`
+	Pool       string             `db:"pool" json:"pool"`
 }
 
 func get(c *fiber.Ctx) error {

@@ -1,7 +1,11 @@
 import { buildReducer, checkDataFormat, pipe, REDUCER_MAPPING } from '@bisonai/orakl-util'
 import { Logger } from '@nestjs/common'
+import { FullMath, TickMath } from '@uniswap/v3-sdk'
 import axios from 'axios'
-import { FETCH_TIMEOUT } from '../settings'
+import { Contract, JsonRpcProvider } from 'ethers'
+import { readFile } from 'fs/promises'
+import JSBI from 'jsbi'
+import { FETCH_TIMEOUT, PROVIDER_URL } from '../settings'
 import { LOCAL_AGGREGATOR_FN } from './job.aggregator'
 import { FetcherError, FetcherErrorCode } from './job.errors'
 import { IAdapter, IFetchedData, IProxy } from './job.types'
@@ -181,6 +185,7 @@ export function extractFeeds(
       headers: f.definition.headers,
       method: f.definition.method,
       reducers: f.definition.reducers,
+      pool: f.pool,
       proxy
     }
   })
@@ -233,4 +238,32 @@ export function shouldReport(
     // Something strange happened, don't report!
     return false
   }
+}
+
+export async function fetchDataFromDex(adapterList, logger) {
+  const provider = new JsonRpcProvider(PROVIDER_URL)
+  const abis = await readFile('../abis/pool.json', 'utf-8')
+  const data = await Promise.allSettled(
+    adapterList.map(async (adapter) => {
+      try {
+        const poolContract = new Contract(adapter.pool, abis, provider)
+        const inputAmount = 1
+        const slot0 = await poolContract.slot0()
+        const currentTick = Number(slot0[1])
+        const sqrtRatioX96 = TickMath.getSqrtRatioAtTick(currentTick)
+        const ratioX192 = JSBI.multiply(sqrtRatioX96, sqrtRatioX96)
+        const baseAmount = JSBI.BigInt(inputAmount * 10 ** adapter.decimals)
+        const shift = JSBI.leftShift(JSBI.BigInt(1), JSBI.BigInt(192))
+        const datum = FullMath.mulDivRoundingUp(ratioX192, baseAmount, shift)
+        checkDataFormat(datum)
+        return { id: adapter.id, value: datum }
+      } catch (e) {
+        logger.error(`Fetching with proxy ${adapter.proxy.host} failed in ${adapter.name}`)
+        logger.error(e)
+        throw e
+      }
+    })
+  )
+
+  return data.flatMap((D) => (D.status == 'fulfilled' ? [D.value] : []))
 }
