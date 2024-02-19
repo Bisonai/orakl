@@ -69,7 +69,11 @@ export async function getReporters({
     return (await axios.get(endpoint, { data: { service, chain } }))?.data
   } catch (e) {
     logger?.error({ name: 'getReporters', file: FILE_NAME, ...e }, 'error')
-    throw new OraklError(OraklErrorCode.GetReporterRequestFailed)
+    if (e.code === 'ECONNREFUSED') {
+      throw new OraklError(OraklErrorCode.FailedToConnectAPI)
+    } else {
+      throw new OraklError(OraklErrorCode.GetReporterRequestFailed)
+    }
   }
 }
 
@@ -92,8 +96,12 @@ export async function getReporter({
     const endpoint = buildUrl(ORAKL_NETWORK_API_URL, `reporter/${id}`)
     return (await axios.get(endpoint))?.data
   } catch (e) {
-    logger?.error({ name: 'getReporter', file: FILE_NAME, ...e }, 'error')
-    throw new OraklError(OraklErrorCode.GetReporterRequestFailed)
+    logger?.error({ name: 'getReporters', file: FILE_NAME, ...e }, 'error')
+    if (e.code === 'ECONNREFUSED') {
+      throw new OraklError(OraklErrorCode.FailedToConnectAPI)
+    } else {
+      throw new OraklError(OraklErrorCode.GetReporterRequestFailed)
+    }
   }
 }
 
@@ -131,7 +139,11 @@ export async function getReporterByOracleAddress({
     return reporter[0]
   } catch (e) {
     logger.error({ name: 'getReportersByOracleAddress', file: FILE_NAME, ...e }, 'error')
-    throw new OraklError(OraklErrorCode.GetReporterRequestFailed)
+    if (e.code === 'ECONNREFUSED') {
+      throw new OraklError(OraklErrorCode.FailedToConnectAPI)
+    } else {
+      throw new OraklError(OraklErrorCode.GetReporterRequestFailed)
+    }
   }
 }
 
