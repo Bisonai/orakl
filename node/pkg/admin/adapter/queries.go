@@ -13,24 +13,3 @@ const (
 
 	DeleteAdapterById = `DELETE FROM adapters WHERE adapter_id = @id;`
 )
-
-// try later
-
-// func generateInsertAdapterQuery(insertPayload AdapterInsertModel) string {
-// 	feeds := make([]string, len(insertPayload.Feeds))
-// 	for i, feed := range insertPayload.Feeds {
-// 		feeds[i] = fmt.Sprintf("('%s', '%s', (SELECT id FROM new_adapter))", feed.Name, feed.Definition)
-// 	}
-
-// 	return fmt.Sprintf(`
-// 		WITH new_adapter AS (
-// 			INSERT INTO adapters (name) VALUES ('%s') RETURNING id
-// 		),
-// 		feeds_data(name, definition) AS (
-// 			VALUES
-// 				%s
-// 		)
-// 		INSERT INTO feeds (name, definition, adapter_id)
-// 		SELECT name, definition, (SELECT id FROM new_adapter) FROM feeds_data RETURNING *;
-// 	`, insertPayload.Name, strings.Join(feeds, ","))
-// }
