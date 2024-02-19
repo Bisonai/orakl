@@ -8,14 +8,32 @@ import (
 	"bisonai.com/orakl/node/pkg/db"
 )
 
-func TestRedisSetAndGet(t *testing.T) {
+func TestGetRedisConnSingleton(t *testing.T) {
 	ctx := context.Background()
+
+	// Call GetRedisConn multiple times
+	rdb1, err := db.GetRedisConn(ctx)
+	if err != nil {
+		t.Fatalf("GetRedisConn failed: %v", err)
+	}
+	defer db.CloseRedis()
+
+	rdb2, err := db.GetRedisConn(ctx)
+	if err != nil {
+		t.Fatalf("GetRedisConn failed: %v", err)
+	}
+
+	// Check that the returned instances are the same
+	if rdb1 != rdb2 {
+		t.Errorf("GetRedisConn did not return the same instance")
+	}
+
 	key := "testKey"
 	value := "testValue"
 	exp := 10 * time.Second
 
 	// Test Set
-	err := db.Set(ctx, key, value, exp)
+	err = db.Set(ctx, key, value, exp)
 	if err != nil {
 		t.Errorf("Error setting key: %v", err)
 	}
@@ -34,6 +52,4 @@ func TestRedisSetAndGet(t *testing.T) {
 	if err != nil {
 		t.Errorf("Error deleting key: %v", err)
 	}
-
-	defer db.CloseRedis()
 }

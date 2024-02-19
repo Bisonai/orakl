@@ -7,15 +7,27 @@ import (
 	"bisonai.com/orakl/node/pkg/db"
 )
 
-func TestPGSQuery(t *testing.T) {
+func TestPGSGetPoolSingleton(t *testing.T) {
 	ctx := context.Background()
 
-	// Get the connection pool
-	pool, err := db.GetPool(ctx)
+	// Call GetPool multiple times
+	pool1, err := db.GetPool(ctx)
 	if err != nil {
 		t.Fatalf("GetPool failed: %v", err)
 	}
 	defer db.ClosePool()
+
+	pool2, err := db.GetPool(ctx)
+	if err != nil {
+		t.Fatalf("GetPool failed: %v", err)
+	}
+
+	// Check that the returned instances are the same
+	if pool1 != pool2 {
+		t.Errorf("GetPool did not return the same instance")
+	}
+
+	pool, err := db.GetPool(ctx)
 
 	// Create a temporary table
 	_, err = pool.Exec(ctx, `CREATE TEMPORARY TABLE test (id SERIAL PRIMARY KEY, name TEXT)`)
