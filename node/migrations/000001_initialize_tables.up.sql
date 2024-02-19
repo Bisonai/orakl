@@ -1,12 +1,12 @@
 CREATE TABLE IF NOT EXISTS adapters (
     id SERIAL PRIMARY KEY,
-    name TEXT NOT NULL,
+    name TEXT NOT NULL UNIQUE,
     active BOOLEAN NOT NULL DEFAULT TRUE
 );
 
 CREATE TABLE IF NOT EXISTS feeds (
     id SERIAL PRIMARY KEY,
-    name TEXT NOT NULL,
+    name TEXT NOT NULL UNIQUE,
     definition JSONB NOT NULL,
     adapter_id INT16 NOT NULL,
     CONSTRAINT feeds_adapter_id_fkey
