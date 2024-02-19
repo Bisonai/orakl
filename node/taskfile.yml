@@ -1,0 +1,6 @@
+version: '3'
+
+includes:
+  local: taskfiles/taskfile.local.yml
+  prod: taskfiles/taskfile.prod.yml
+  dev: taskfiles/taskfile.dev.yml

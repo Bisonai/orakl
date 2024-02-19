@@ -5,7 +5,7 @@ package bus
 type Message struct {
 	From    string
 	To      string
-	Content string
+	Content interface{}
 }
 
 type MessageBus struct {

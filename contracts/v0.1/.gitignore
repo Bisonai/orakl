@@ -1,0 +1,14 @@
+yarn-error.log
+.env
+dist/
+artifacts/
+cache/
+node_modules/
+typechain-types/
+deployments/localhost/
+deployments/baobab_test
+migration/baobab_test
+deployments/*/solcInputs
+coverage/
+coverage.json
+scripts/tmp/

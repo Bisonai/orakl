@@ -1,0 +1,60 @@
+name: "godelegator: test+build"
+
+on:
+  push:
+    branches-ignore:
+      - "master"
+    paths:
+      - "go-delegator/**"
+
+jobs:
+  core-build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    services:
+      postgres:
+        image: postgres
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: orakl-test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+    steps:
+      - uses: actions/checkout@v3
+      - name: Setup Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: "1.21.5"
+          check-latest: true
+          cache-dependency-path: |
+            ./go-delegator/go.sum
+      - name: Install golang-migrate
+        run: |
+          curl -L https://github.com/golang-migrate/migrate/releases/download/v4.17.0/migrate.linux-amd64.tar.gz | tar xvz
+          sudo mv ./migrate /usr/bin
+      - name: Migrate up
+        run: |
+          cd ./go-delegator
+          migrate -database "postgresql://postgres:postgres@localhost:5432/orakl-test?search_path=public&sslmode=disable" -verbose -path ./migrations up
+      - name: Install dependencies
+        run: |
+          cd ./go-delegator
+          go mod tidy
+      - name: Build
+        run: |
+          cd ./go-delegator
+          go build
+      - name: Run test
+        run: |
+          cd ./go-delegator
+          go test ./tests -v
+        env:
+          DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/orakl-test?search_path=public"
+          PROVIDER_URL: "https://api.baobab.klaytn.net:8651"
+          TEST_DELEGATOR_REPORTER_PK: ${{ secrets.TEST_DELEGATOR_REPORTER_PK}}
+          DELEGATOR_FEEPAYER_PK: ${{ secrets.DELEGATOR_FEEPAYER_PK}}

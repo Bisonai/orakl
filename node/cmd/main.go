@@ -35,5 +35,5 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	aggregator.Run()
+	aggregator.Run(context.Background())
 }
