@@ -8,7 +8,7 @@ const {
   validateAggregatorChangeOraclesConfig,
   validateAggregatorRedirectProxyConfig,
   getFormattedDate
-} = require('../../scripts/v0.1/utils.cjs')
+} = require('../../scripts/utils.cjs')
 
 const func = async function (hre) {
   const { deployments, getNamedAccounts } = hre

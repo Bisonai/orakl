@@ -3,8 +3,8 @@ const {
   loadJson,
   loadMigration,
   updateMigration,
-  loadDeployments,
-} = require('../../scripts/v0.1/utils.cjs')
+  loadDeployments
+} = require('../../scripts/utils.cjs')
 
 const func = async function (hre) {
   console.log('AggregatorRouter')

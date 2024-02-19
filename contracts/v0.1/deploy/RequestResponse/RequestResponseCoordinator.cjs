@@ -5,7 +5,7 @@ const {
   updateMigration,
   validateCoordinatorDeployConfig,
   validateSetConfig
-} = require('../../scripts/v0.1/utils.cjs')
+} = require('../../scripts/utils.cjs')
 
 const func = async function (hre) {
   const { deployments, getNamedAccounts, network } = hre

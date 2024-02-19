@@ -11,4 +11,4 @@ migration/baobab_test
 deployments/*/solcInputs
 coverage/
 coverage.json
-scripts/v0.1/tmp/
+scripts/tmp/
