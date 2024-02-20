@@ -53,7 +53,7 @@ func (f *Fetcher) runAdapter(ctx context.Context) error {
 }
 
 func (f *Fetcher) insertPgsql(ctx context.Context, name string, value float64) error {
-	_, err := db.Query(ctx, InsertLocalAggregateQuery, map[string]any{"name": name, "value": int64(value)})
+	err := db.QueryWithoutResult(ctx, InsertLocalAggregateQuery, map[string]any{"name": name, "value": int64(value)})
 	return err
 }
 
