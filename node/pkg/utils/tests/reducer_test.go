@@ -1,43 +1,37 @@
-package fetcher
+package tests
 
 import (
 	"encoding/json"
 	"testing"
 
+	"bisonai.com/orakl/node/pkg/utils"
 	"github.com/stretchr/testify/assert"
 )
 
-var sampleDefintion2 = `{
-	"url": "https://quotation-api-cdn.dunamu.com/v1/forex/recent?codes=FRX.KRWUSD",
-	"headers": {
-	  "Content-Type": "application/json"
+var reducers = `[
+	{
+	  "function": "INDEX",
+	  "args": 0
 	},
-	"method": "GET",
-	"reducers": [
-	  {
-		"function": "INDEX",
-		"args": 0
-	  },
-	  {
-		"function": "PARSE",
-		"args": [
-		  "basePrice"
-		]
-	  },
-	  {
-		"function": "DIVFROM",
-		"args": 1
-	  },
-	  {
-		"function": "POW10",
-		"args": 8
-	  },
-	  {
-		"function": "ROUND"
-	  }
-	]
-  }`
-var sampleResult2 = `[
+	{
+	  "function": "PARSE",
+	  "args": [
+		"basePrice"
+	  ]
+	},
+	{
+	  "function": "DIVFROM",
+	  "args": 1
+	},
+	{
+	  "function": "POW10",
+	  "args": 8
+	},
+	{
+	  "function": "ROUND"
+	}
+  ]`
+var sampleResult = `[
 	{
 	  "code": "FRX.KRWUSD",
 	  "currencyCode": "USD",
@@ -78,19 +72,19 @@ var sampleResult2 = `[
   ]`
 
 func TestReduceAll(t *testing.T) {
-	var def Definition
-	err := json.Unmarshal([]byte(sampleDefintion2), &def)
+	var red []utils.Reducer
+	err := json.Unmarshal([]byte(reducers), &red)
 	if err != nil {
 		t.Fatalf("error unmarshalling sample def: %v", err)
 	}
 
 	var res interface{}
-	err = json.Unmarshal([]byte(sampleResult2), &res)
+	err = json.Unmarshal([]byte(sampleResult), &res)
 	if err != nil {
 		t.Fatalf("error unmarshalling sample result: %v", err)
 	}
 
-	result, err := ReduceAll(res, def.Reducers)
+	result, err := utils.Reduce(res, red)
 	if err != nil {
 		t.Fatalf("error reducing: %v", err)
 	}

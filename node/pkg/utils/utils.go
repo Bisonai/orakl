@@ -22,3 +22,19 @@ func FindMedian(nums []int) int {
 		return nums[n/2]
 	}
 }
+
+func GetFloatAvg(data []float64) float64 {
+	var sum float64
+	for _, v := range data {
+		sum += v
+	}
+	return sum / float64(len(data))
+}
+
+func GetFloatMed(data []float64) float64 {
+	sort.Float64s(data)
+	if len(data)%2 == 0 {
+		return (data[len(data)/2-1] + data[len(data)/2]) / 2
+	}
+	return data[len(data)/2]
+}

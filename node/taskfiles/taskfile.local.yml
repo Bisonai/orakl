@@ -13,3 +13,6 @@ tasks:
     dotenv: [".env"]
     cmds:
       - go test ./pkg/fetcher -v
+  test-utils:
+    cmds:
+      - go test ./pkg/utils/tests -v

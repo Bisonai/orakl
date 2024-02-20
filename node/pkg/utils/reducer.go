@@ -1,4 +1,4 @@
-package fetcher
+package utils
 
 import (
 	"fmt"
@@ -6,7 +6,12 @@ import (
 	"strconv"
 )
 
-func ReduceAll(raw interface{}, reducers []Reducer) (float64, error) {
+type Reducer struct {
+	Function string      `json:"function"`
+	Args     interface{} `json:"args"`
+}
+
+func Reduce(raw interface{}, reducers []Reducer) (float64, error) {
 	var result float64
 	for _, reducer := range reducers {
 		var err error
@@ -37,7 +42,6 @@ func reduce(raw interface{}, reducer Reducer) (interface{}, error) {
 
 		return castedRaw[int(index)], nil
 	case "PARSE", "PATH":
-
 		args, ok := reducer.Args.([]interface{})
 		if !ok {
 			return nil, fmt.Errorf("cannot cast reducer.Args to []interface{}")

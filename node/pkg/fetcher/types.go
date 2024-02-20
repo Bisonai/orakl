@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"bisonai.com/orakl/node/pkg/bus"
+	"bisonai.com/orakl/node/pkg/utils"
 )
 
 const (
@@ -40,12 +41,7 @@ type Definition struct {
 	Url      string            `json:"url"`
 	Headers  map[string]string `json:"headers"`
 	Method   string            `json:"method"`
-	Reducers []Reducer         `json:"reducers"`
-}
-
-type Reducer struct {
-	Function string      `json:"function"`
-	Args     interface{} `json:"args"`
+	Reducers []utils.Reducer   `json:"reducers"`
 }
 
 type Aggregate struct {

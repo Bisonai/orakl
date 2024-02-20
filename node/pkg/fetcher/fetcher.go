@@ -39,7 +39,7 @@ func (f *Fetcher) runAdapter(ctx context.Context) error {
 		if err != nil {
 			return err
 		}
-		aggregated := getAvg(result)
+		aggregated := utils.GetFloatAvg(result)
 		err = f.insertPgsql(ctx, adapter.Name, aggregated)
 		if err != nil {
 			return err
@@ -85,7 +85,7 @@ func (f *Fetcher) fetch(adapter AdapterDetail) ([]float64, error) {
 			continue
 		}
 
-		result, err := ReduceAll(res, definition.Reducers)
+		result, err := utils.Reduce(res, definition.Reducers)
 		if err != nil {
 			fmt.Println(err)
 			continue
