@@ -28,7 +28,7 @@ const readArgs = async () => {
 async function main() {
   const { pairs, chain } = await readArgs()
 
-  const baseSource = path.join(__filename, `../../../../migration/${chain}/Aggregator/`)
+  const baseSource = path.join(__filename, `../../../migration/${chain}/Aggregator/`)
   const aggregatorSource = path.join(__filename, '../dataFeedSample.json')
   const tempFolderPath = path.join(__filename, '../../tmp/')
   const data = await loadJson(aggregatorSource)
