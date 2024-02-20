@@ -2,6 +2,7 @@ package fetcher
 
 import (
 	"encoding/json"
+	"time"
 
 	"bisonai.com/orakl/node/pkg/bus"
 )
@@ -45,4 +46,10 @@ type Definition struct {
 type Reducer struct {
 	Function string      `json:"function"`
 	Args     interface{} `json:"args"`
+}
+
+type Aggregate struct {
+	Name      string     `db:"name"`
+	Value     int64      `db:"value"`
+	Timestamp *time.Time `db:"timestamp"`
 }

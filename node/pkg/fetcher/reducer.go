@@ -9,7 +9,6 @@ import (
 func ReduceAll(raw interface{}, reducers []Reducer) (float64, error) {
 	var result float64
 	for _, reducer := range reducers {
-		fmt.Println("reducer: ", reducer.Function)
 		var err error
 		tmp, err := reduce(raw, reducer)
 		if err != nil {
@@ -52,7 +51,6 @@ func reduce(raw interface{}, reducer Reducer) (interface{}, error) {
 			argStrs[i] = argStr
 		}
 		for _, arg := range argStrs {
-			fmt.Println("arg: ", arg)
 			castedRaw, ok := raw.(map[string]interface{})
 			if !ok {
 				return nil, fmt.Errorf("cannot cast raw data to map[string]interface{}")

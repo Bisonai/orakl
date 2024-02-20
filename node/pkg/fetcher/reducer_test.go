@@ -2,10 +2,9 @@ package fetcher
 
 import (
 	"encoding/json"
-	"fmt"
 	"testing"
 
-	"gopkg.in/go-playground/assert.v1"
+	"github.com/stretchr/testify/assert"
 )
 
 var sampleDefintion2 = `{
@@ -84,7 +83,6 @@ func TestReduceAll(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error unmarshalling sample def: %v", err)
 	}
-	fmt.Printf("def: %v\n", def.Reducers)
 
 	var res interface{}
 	err = json.Unmarshal([]byte(sampleResult2), &res)

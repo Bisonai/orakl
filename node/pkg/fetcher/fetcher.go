@@ -89,10 +89,11 @@ func (f *Fetcher) getAdapters(ctx context.Context) ([]Adapter, error) {
 }
 
 func (f *Fetcher) getFeeds(ctx context.Context, adapterId int64) ([]Feed, error) {
-	feeds, err := db.QueryRows[Feed](ctx, SelectFeedsByAdapterIdQuery, map[string]any{"id": adapterId})
+	feeds, err := db.QueryRows[Feed](ctx, SelectFeedsByAdapterIdQuery, map[string]any{"adapterId": adapterId})
 	if err != nil {
 		return nil, err
 	}
+
 	return feeds, err
 }
 
