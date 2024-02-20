@@ -5,7 +5,7 @@ on:
     branches-ignore:
       - "master"
     paths:
-      - "contracts-v0.2/**"
+      - "contracts/v0.2/**"
 
 env:
   FOUNDRY_PROFILE: ci
@@ -32,10 +32,10 @@ jobs:
           forge --version
           forge build --sizes
         id: build
-        working-directory: ./contracts-v0.2
+        working-directory: ./contracts/v0.2
 
       - name: Run Forge tests
         run: |
           forge test -vvv
         id: test
-        working-directory: ./contracts-v0.2
+        working-directory: ./contracts/v0.2
