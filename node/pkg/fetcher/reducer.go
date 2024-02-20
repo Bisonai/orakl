@@ -17,11 +17,11 @@ type Reducer struct {
 	Args     interface{} `json:"args"`
 }
 
-func (f *Fetcher) reduceAll(raw interface{}, reducers []Reducer) (float64, error) {
+func ReduceAll(raw interface{}, reducers []Reducer) (float64, error) {
 	var result float64
 	for _, reducer := range reducers {
 		var err error
-		raw, err = f.reduce(raw, reducer)
+		raw, err = reduce(raw, reducer)
 		if err != nil {
 			return 0, err
 		}
@@ -33,7 +33,7 @@ func (f *Fetcher) reduceAll(raw interface{}, reducers []Reducer) (float64, error
 	return result, nil
 }
 
-func (f *Fetcher) reduce(raw interface{}, reducer Reducer) (interface{}, error) {
+func reduce(raw interface{}, reducer Reducer) (interface{}, error) {
 	switch reducer.Function {
 	case "INDEX":
 		castedRaw, ok := raw.([]interface{})

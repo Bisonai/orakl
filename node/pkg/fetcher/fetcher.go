@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"time"
 
 	"bisonai.com/orakl/node/pkg/bus"
 	"bisonai.com/orakl/node/pkg/db"
@@ -11,8 +12,9 @@ import (
 )
 
 const (
-	loadActiveAdaptersQuery   = `SELECT * FROM adapters WHERE active = true`
-	loadFeedsByAdapterIdQuery = `SELECT * FROM feeds WHERE adapter_id = @adapterId`
+	SelectActiveAdaptersQuery   = `SELECT * FROM adapters WHERE active = true`
+	SelectFeedsByAdapterIdQuery = `SELECT * FROM feeds WHERE adapter_id = @adapterId`
+	InsertLocalAggregateQuery   = `INSERT INTO local_aggregates (name, value) VALUES (@name, @value)`
 )
 
 type Adapter struct {
@@ -45,18 +47,31 @@ func NewFetcher(bus *bus.MessageBus) *Fetcher {
 	}
 }
 
-func (f *Fetcher) Run() error {
-	f.initialize(context.Background())
-	return nil
+func (f *Fetcher) Run(ctx context.Context) {
+	f.initialize(ctx)
+	ticker := time.NewTicker(2 * time.Second)
+
+	go func() {
+		for range ticker.C {
+			err := f.runAdapter(ctx)
+			if err != nil {
+				fmt.Println(err)
+			}
+		}
+	}()
 }
 
-func (f *Fetcher) Stop() error {
-	return nil
-}
-
-func (f *Fetcher) StartAdapter(adapterName string) error {
+func (f *Fetcher) runAdapter(ctx context.Context) error {
 	for _, adapter := range f.Adapters {
-		f.fetch(adapter)
+		result, err := f.fetch(adapter)
+		if err != nil {
+			return err
+		}
+		aggregated := getAvg(result)
+		_, err = db.Query(ctx, InsertLocalAggregateQuery, map[string]any{"name": adapter.Name, "value": int64(aggregated)})
+		if err != nil {
+			return err
+		}
 	}
 	return nil
 }
@@ -79,7 +94,7 @@ func (f *Fetcher) fetch(adapter AdapterDetail) ([]float64, error) {
 			continue
 		}
 
-		result, err := f.reduceAll(res, definition.Reducers)
+		result, err := ReduceAll(res, definition.Reducers)
 		if err != nil {
 			fmt.Println(err)
 			continue
@@ -93,24 +108,8 @@ func (f *Fetcher) fetch(adapter AdapterDetail) ([]float64, error) {
 	return data, nil
 }
 
-func (f *Fetcher) StopAdapter(adapterName string) error {
-	return nil
-}
-
-func (f *Fetcher) Refresh() error {
-	return nil
-}
-
-func (f *Fetcher) sendDeviationSignal() error {
-	return nil
-}
-
-func (f *Fetcher) loadActiveAdapters() error {
-	return nil
-}
-
 func (f *Fetcher) getAdapters(ctx context.Context) ([]Adapter, error) {
-	adapters, err := db.QueryRows[Adapter](ctx, loadActiveAdaptersQuery, nil)
+	adapters, err := db.QueryRows[Adapter](ctx, SelectActiveAdaptersQuery, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -118,7 +117,7 @@ func (f *Fetcher) getAdapters(ctx context.Context) ([]Adapter, error) {
 }
 
 func (f *Fetcher) getFeeds(ctx context.Context, adapterId int64) ([]Feed, error) {
-	feeds, err := db.QueryRows[Feed](ctx, loadFeedsByAdapterIdQuery, map[string]any{"id": adapterId})
+	feeds, err := db.QueryRows[Feed](ctx, SelectFeedsByAdapterIdQuery, map[string]any{"id": adapterId})
 	if err != nil {
 		return nil, err
 	}
