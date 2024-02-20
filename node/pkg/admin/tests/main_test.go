@@ -53,7 +53,10 @@ func cleanup() {
 }
 
 func TestMain(m *testing.M) {
-	os.Exit(m.Run())
+	// setup
+	code := m.Run()
 	db.ClosePool()
 	db.CloseRedis()
+	// teardown
+	os.Exit(code)
 }
