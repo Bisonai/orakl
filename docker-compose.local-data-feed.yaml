@@ -29,6 +29,7 @@ services:
       - "5432"
     volumes:
       - pgsql_volume:/var/lib/postgresql/data
+      - ./dockerfiles/local-data-feed/scripts/create-schema.sql:/docker-entrypoint-initdb.d/create-schema.sql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -d $$POSTGRES_DB -U $$POSTGRES_USER"]
       interval: 10s
@@ -88,7 +89,7 @@ services:
   delegator:
     build:
       context: .
-      dockerfile: dockerfiles/orakl-delegator.Dockerfile
+      dockerfile: dockerfiles/orakl-godelegator.Dockerfile
     image: orakl-delegator
     expose:
       - "3002"

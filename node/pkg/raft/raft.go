@@ -35,8 +35,8 @@ func NewRaftNode(h host.Host, ps *pubsub.PubSub, topic *pubsub.Topic, sub *pubsu
 	return r
 }
 
-func (r *Raft) Run(node Node) {
-	go r.subscribe(context.Background())
+func (r *Raft) Run(ctx context.Context, node Node) {
+	go r.subscribe(ctx)
 	r.startElectionTimer()
 	var jobTicker <-chan time.Time
 	if node.GetJobTimeout() != nil {

@@ -1,6 +1,7 @@
 package aggregator
 
 import (
+	"context"
 	"encoding/json"
 	"log"
 	"strconv"
@@ -75,8 +76,8 @@ func NewAggregator(h host.Host, ps *pubsub.PubSub, topicString string) (*Aggrega
 	return &aggregator, nil
 }
 
-func (a *Aggregator) Run() {
-	a.Raft.Run(a)
+func (a *Aggregator) Run(ctx context.Context) {
+	a.Raft.Run(ctx, a)
 }
 
 func (a *Aggregator) GetLeaderJobTimeout() *time.Duration {
