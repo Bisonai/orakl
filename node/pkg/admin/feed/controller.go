@@ -34,7 +34,7 @@ func getById(c *fiber.Ctx) error {
 
 func getByAdpaterId(c *fiber.Ctx) error {
 	id := c.Params("id")
-	results, err := db.QueryRows[FeedModel](c.Context(), GetFeedsByAdapterId, map[string]any{"id": id})
+	results, err := db.QueryRows[FeedModel](c.Context(), GetFeedsByAdapterId, map[string]any{"adapter_id": id})
 	if err != nil {
 		panic(err)
 	}

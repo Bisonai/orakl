@@ -7,9 +7,9 @@ const (
 
 	GetAdapter = `SELECT * FROM adapters;`
 
-	GetAdapterById = `SELECT * FROM adapters WHERE adapter_id = @id;`
+	GetAdapterById = `SELECT * FROM adapters WHERE id = @id;`
 
 	GetFeedsByAdapterId = `SELECT * FROM feeds WHERE adapter_id = @id;`
 
-	DeleteAdapterById = `DELETE FROM adapters WHERE adapter_id = @id;`
+	DeleteAdapterById = `DELETE FROM adapters WHERE id = @id RETURNING *;`
 )
