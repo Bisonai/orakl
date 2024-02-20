@@ -316,15 +316,35 @@ func TestFetcherRunAdapter(t *testing.T) {
 	}
 
 	// read aggregate from db
-	res, err := db.QueryRow[Aggregate](context.Background(), "SELECT * FROM local_aggregates WHERE name = @name", map[string]any{"name": fetcher.Adapters[0].Name})
+	pgResult, err := db.QueryRow[Aggregate](context.Background(), "SELECT * FROM local_aggregates WHERE name = @name", map[string]any{"name": fetcher.Adapters[0].Name})
 	if err != nil {
 		t.Fatalf("error reading from db: %v", err)
 	}
-	assert.NotNil(t, res)
+	assert.NotNil(t, pgResult)
 
 	// cleanup aggregate from db
 	_, err = db.Query(context.Background(), "DELETE FROM local_aggregates WHERE name = @name", map[string]any{"name": fetcher.Adapters[0].Name})
 	if err != nil {
 		t.Fatalf("error cleaning up from db: %v", err)
+	}
+
+	// read aggregate from redis
+	rdbResult, err := db.Get(context.Background(), "latestAggregate:"+fetcher.Adapters[0].Name)
+	if err != nil {
+		t.Fatalf("error reading from redis: %v", err)
+	}
+	assert.NotNil(t, rdbResult)
+	var redisAgg redisAggregate
+	err = json.Unmarshal([]byte(rdbResult), &redisAgg)
+	if err != nil {
+		t.Fatalf("error unmarshalling from redis: %v", err)
+	}
+	assert.NotNil(t, redisAgg)
+	assert.NotNil(t, redisAgg.Value)
+
+	// remove aggregate from redis
+	err = db.Del(context.Background(), "latestAggregate:"+fetcher.Adapters[0].Name)
+	if err != nil {
+		t.Fatalf("error removing from redis: %v", err)
 	}
 }

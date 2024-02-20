@@ -53,3 +53,8 @@ type Aggregate struct {
 	Value     int64      `db:"value"`
 	Timestamp *time.Time `db:"timestamp"`
 }
+
+type redisAggregate struct {
+	Value     int64     `json:"value"`
+	Timestamp time.Time `json:"timestamp"`
+}

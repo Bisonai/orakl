@@ -40,11 +40,30 @@ func (f *Fetcher) runAdapter(ctx context.Context) error {
 			return err
 		}
 		aggregated := getAvg(result)
-		_, err = db.Query(ctx, InsertLocalAggregateQuery, map[string]any{"name": adapter.Name, "value": int64(aggregated)})
+		err = f.insertPgsql(ctx, adapter.Name, aggregated)
+		if err != nil {
+			return err
+		}
+		err = f.insertRdb(ctx, adapter.Name, aggregated)
 		if err != nil {
 			return err
 		}
 	}
+	return nil
+}
+
+func (f *Fetcher) insertPgsql(ctx context.Context, name string, value float64) error {
+	_, err := db.Query(ctx, InsertLocalAggregateQuery, map[string]any{"name": name, "value": int64(value)})
+	return err
+}
+
+func (f *Fetcher) insertRdb(ctx context.Context, name string, value float64) error {
+	key := "latestAggregate:" + name
+	data, err := json.Marshal(redisAggregate{Value: int64(value), Timestamp: time.Now()})
+	if err != nil {
+		return err
+	}
+	db.Set(ctx, key, string(data), time.Duration(5*time.Minute))
 	return nil
 }
 
