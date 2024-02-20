@@ -11,35 +11,6 @@ import (
 	"bisonai.com/orakl/node/pkg/utils"
 )
 
-const (
-	SelectActiveAdaptersQuery   = `SELECT * FROM adapters WHERE active = true`
-	SelectFeedsByAdapterIdQuery = `SELECT * FROM feeds WHERE adapter_id = @adapterId`
-	InsertLocalAggregateQuery   = `INSERT INTO local_aggregates (name, value) VALUES (@name, @value)`
-)
-
-type Adapter struct {
-	ID     int64  `db:"id"`
-	Name   string `db:"name"`
-	Active bool   `db:"active"`
-}
-
-type AdapterDetail struct {
-	Adapter
-	Feeds []Feed
-}
-
-type Feed struct {
-	ID         int64           `db:"id"`
-	Name       string          `db:"name"`
-	Definition json.RawMessage `db:"definition"`
-	AdapterID  int64           `db:"adapter_id"`
-}
-
-type Fetcher struct {
-	Bus      *bus.MessageBus
-	Adapters []AdapterDetail
-}
-
 func NewFetcher(bus *bus.MessageBus) *Fetcher {
 	return &Fetcher{
 		Adapters: make([]AdapterDetail, 0),
@@ -49,6 +20,7 @@ func NewFetcher(bus *bus.MessageBus) *Fetcher {
 
 func (f *Fetcher) Run(ctx context.Context) {
 	f.initialize(ctx)
+
 	ticker := time.NewTicker(2 * time.Second)
 
 	go func() {

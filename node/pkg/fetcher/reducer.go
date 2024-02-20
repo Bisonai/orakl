@@ -3,28 +3,19 @@ package fetcher
 import (
 	"fmt"
 	"math"
+	"strconv"
 )
-
-type Definition struct {
-	Url      string            `json:"url"`
-	Headers  map[string]string `json:"headers"`
-	Method   string            `json:"method"`
-	Reducers []Reducer         `json:"reducers"`
-}
-
-type Reducer struct {
-	Function string      `json:"function"`
-	Args     interface{} `json:"args"`
-}
 
 func ReduceAll(raw interface{}, reducers []Reducer) (float64, error) {
 	var result float64
 	for _, reducer := range reducers {
+		fmt.Println("reducer: ", reducer.Function)
 		var err error
-		raw, err = reduce(raw, reducer)
+		tmp, err := reduce(raw, reducer)
 		if err != nil {
 			return 0, err
 		}
+		raw = tmp
 	}
 	result, ok := raw.(float64)
 	if !ok {
@@ -40,49 +31,89 @@ func reduce(raw interface{}, reducer Reducer) (interface{}, error) {
 		if !ok {
 			return nil, fmt.Errorf("cannot cast raw data to []interface{}")
 		}
-		return castedRaw[reducer.Args.(int)], nil
+		index, err := tryParseFloat(reducer.Args)
+		if err != nil {
+			return nil, err
+		}
+
+		return castedRaw[int(index)], nil
 	case "PARSE", "PATH":
-		castedRaw, ok := raw.(map[string]interface{})
+
+		args, ok := reducer.Args.([]interface{})
 		if !ok {
-			return nil, fmt.Errorf("cannot cast raw data to map[string]interface{}")
+			return nil, fmt.Errorf("cannot cast reducer.Args to []interface{}")
 		}
-		args := reducer.Args.([]string)
-		for _, arg := range args {
-			castedRaw = castedRaw[arg].(map[string]interface{})
+		argStrs := make([]string, len(args))
+		for i, arg := range args {
+			argStr, ok := arg.(string)
+			if !ok {
+				return nil, fmt.Errorf("cannot cast arg to string")
+			}
+			argStrs[i] = argStr
 		}
-		return castedRaw, nil
+		for _, arg := range argStrs {
+			fmt.Println("arg: ", arg)
+			castedRaw, ok := raw.(map[string]interface{})
+			if !ok {
+				return nil, fmt.Errorf("cannot cast raw data to map[string]interface{}")
+			}
+			raw = castedRaw[arg]
+		}
+		return raw, nil
 	case "MUL":
-		castedRaw, ok := raw.(float64)
-		if !ok {
-			return nil, fmt.Errorf("cannot cast raw data to float")
+		castedRaw, err := tryParseFloat(raw)
+		if err != nil {
+			return nil, err
 		}
+
 		return castedRaw * reducer.Args.(float64), nil
 	case "POW10":
-		castedRaw, ok := raw.(float64)
-		if !ok {
-			return nil, fmt.Errorf("cannot cast raw data to float")
+		castedRaw, err := tryParseFloat(raw)
+		if err != nil {
+			return nil, err
 		}
-		return float64(math.Pow10(reducer.Args.(int))) * castedRaw, nil
+		arg, err := tryParseFloat(reducer.Args)
+		if err != nil {
+			return nil, err
+		}
+
+		return float64(math.Pow10(int(arg))) * castedRaw, nil
 	case "ROUND":
-		castedRaw, ok := raw.(float64)
-		if !ok {
-			return nil, fmt.Errorf("cannot cast raw data to float")
+		castedRaw, err := tryParseFloat(raw)
+		if err != nil {
+			return nil, err
 		}
 		return math.Round(castedRaw), nil
 	case "DIV":
-		castedRaw, ok := raw.(float64)
-		if !ok {
-			return nil, fmt.Errorf("cannot cast raw data to float")
+		castedRaw, err := tryParseFloat(raw)
+		if err != nil {
+			return nil, err
 		}
 		return castedRaw / reducer.Args.(float64), nil
 	case "DIVFROM":
-		castedRaw, ok := raw.(float64)
-		if !ok {
-			return nil, fmt.Errorf("cannot cast raw data to float")
+		castedRaw, err := tryParseFloat(raw)
+		if err != nil {
+			return nil, err
 		}
 		return reducer.Args.(float64) / castedRaw, nil
 	default:
 		return nil, fmt.Errorf("unknown reducer function: %s", reducer.Function)
 	}
 
+}
+
+// numbers in raw json string are parsed as float64 from golang
+func tryParseFloat(raw interface{}) (float64, error) {
+	f, ok := raw.(float64)
+	if ok {
+		return f, nil
+	}
+	s, ok := raw.(string)
+	if ok {
+		f, err := strconv.ParseFloat(s, 64)
+		if err == nil {
+			return f, nil
+		}
+	}
+	return 0, fmt.Errorf("cannot parse raw data to float")
 }
