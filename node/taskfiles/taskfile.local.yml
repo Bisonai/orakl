@@ -5,3 +5,7 @@ tasks:
     dotenv: [".env"]
     cmds:
       - go test ./pkg/db -v
+  test-admin:
+    dotenv: [".env"]
+    cmds:
+      - go test ./pkg/admin/tests -v

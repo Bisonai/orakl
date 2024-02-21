@@ -4,7 +4,7 @@
   "workspaces": {
     "packages": [
       "cli",
-      "contracts-v0.1",
+      "contracts/v0.1",
       "core",
       "delegator",
       "fetcher",

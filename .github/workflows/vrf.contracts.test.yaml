@@ -5,9 +5,9 @@ on:
     branches-ignore:
       - "master"
     paths:
-      - "contracts-v0.1/**/VRFCoordinator.sol"
-      - "contracts-v0.1/**/VRFConsumerBase.sol"
-      - "contracts-v0.1/**/vrf/**"
+      - "contracts/v0.1/**/VRFCoordinator.sol"
+      - "contracts/v0.1/**/VRFConsumerBase.sol"
+      - "contracts/v0.1/**/vrf/**"
 jobs:
   build:
     runs-on: ubuntu-latest
