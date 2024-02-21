@@ -256,10 +256,10 @@ func (r *Raft) sendReplyVote(to string, voteGranted bool) error {
 }
 
 func (r *Raft) sendRequestVote() error {
-	RequestVoteMessage := RequestVoteMessage{
+	requestVoteMessage := RequestVoteMessage{
 		Term: r.GetCurrentTerm(),
 	}
-	marshalledRequestVoteMsg, err := json.Marshal(RequestVoteMessage)
+	marshalledRequestVoteMsg, err := json.Marshal(requestVoteMessage)
 	if err != nil {
 		return err
 	}

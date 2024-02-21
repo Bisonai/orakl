@@ -58,8 +58,8 @@ jobs:
         run: |
           cd ./node
           go install golang.org/x/tools/go/analysis/passes/shadow/cmd/shadow@latest
-          go vet
-          go vet -vettool=$(which shadow)
+          go vet ./...
+          go vet -vettool=$(which shadow) ./...
 
       - name: Install golang-migrate
         run: |

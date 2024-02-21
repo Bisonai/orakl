@@ -44,27 +44,30 @@ func loadPgsqlConnectionString() string {
 }
 
 func Query(ctx context.Context, queryString string, args map[string]any) (pgx.Rows, error) {
-	pool, err := GetPool(ctx)
+	_pool, err := GetPool(ctx)
 	if err != nil {
 		return nil, err
 	}
+	pool = _pool
 	return query(pool, queryString, args)
 }
 
 func QueryRow[T any](ctx context.Context, queryString string, args map[string]any) (T, error) {
 	var t T
-	pool, err := GetPool(ctx)
+	_pool, err := GetPool(ctx)
 	if err != nil {
 		return t, err
 	}
+	pool = _pool
 	return queryRow[T](pool, queryString, args)
 }
 
 func QueryRows[T any](ctx context.Context, queryString string, args map[string]any) ([]T, error) {
-	pool, err := GetPool(ctx)
+	_pool, err := GetPool(ctx)
 	if err != nil {
 		return nil, err
 	}
+	pool = _pool
 	return queryRows[T](pool, queryString, args)
 }
 
