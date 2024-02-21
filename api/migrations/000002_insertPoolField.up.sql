@@ -1,1 +1,0 @@
-ALTER TABLE IF EXISTS "feeds" ADD pool TEXT;

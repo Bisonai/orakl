@@ -6,7 +6,7 @@ const (
 	`
 
 	InsertFeed = `
-	INSERT INTO feeds (name, definition, adapter_id, pool) VALUES (@name, @definition, @adapter_id, @pool) RETURNING feed_id;
+	INSERT INTO feeds (name, definition, adapter_id) VALUES (@name, @definition, @adapter_id) RETURNING feed_id;
 	`
 
 	GetAdapter = `SELECT * FROM adapters;`

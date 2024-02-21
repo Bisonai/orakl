@@ -25,11 +25,12 @@ export class JobProcessor extends WorkerHost {
       const adapterHash = keys[0]
       const aggregatorId = inData[adapterHash].aggregatorId
       const feeds = inData[adapterHash].feeds
-      const data = await fetchDataFromDex(feeds, this.logger)
+      const decimals = inData[adapterHash].decimals
+      const data = await fetchDataFromDex(feeds, decimals, this.logger)
       const aggregate = aggregateData(data)
+
       const threshold = inData[adapterHash].threshold
       const absoluteThreshold = inData[adapterHash].absoluteThreshold
-      const decimals = inData[adapterHash].decimals
 
       const oracleAddress = inData[adapterHash].address
 

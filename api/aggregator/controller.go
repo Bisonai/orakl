@@ -1,13 +1,14 @@
 package aggregator
 
 import (
+	"encoding/json"
+	"fmt"
+	"strconv"
+
 	"bisonai.com/orakl/api/adapter"
 	"bisonai.com/orakl/api/chain"
 	"bisonai.com/orakl/api/feed"
 	"bisonai.com/orakl/api/utils"
-	"encoding/json"
-	"fmt"
-	"strconv"
 
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/go-playground/validator/v10"
@@ -143,7 +144,6 @@ func insert(c *fiber.Ctx) error {
 		insertFetcherType := utils.CustomInt32(0)
 		insertParam.FetcherType = &insertFetcherType
 	}
-
 	row, err := utils.QueryRow[AggregatorIdModel](c, InsertAggregator, map[string]any{
 		"aggregator_hash":    insertParam.AggregatorHash,
 		"active":             insertParam.Active,
@@ -318,6 +318,8 @@ func computeAggregatorHash(data *AggregatorHashComputeInputModel, verify bool) e
 
 	hash := crypto.Keccak256Hash([]byte(out))
 	hashString := fmt.Sprintf("0x%x", hash)
+	println("hash",hashString)
+
 	if verify && data.AggregatorHash != hashString {
 		panic(err)
 	}

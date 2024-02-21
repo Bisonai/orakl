@@ -1,11 +1,9 @@
 import { buildReducer, checkDataFormat, pipe, REDUCER_MAPPING } from '@bisonai/orakl-util'
 import { Logger } from '@nestjs/common'
-import { FullMath, TickMath } from '@uniswap/v3-sdk'
 import axios from 'axios'
 import { Contract, JsonRpcProvider } from 'ethers'
-import { readFile } from 'fs/promises'
-import JSBI from 'jsbi'
-import { FETCH_TIMEOUT, PROVIDER_URL } from '../settings'
+import { abis as uniswapPoolAbis } from '../abis/pool'
+import { FETCH_TIMEOUT } from '../settings'
 import { LOCAL_AGGREGATOR_FN } from './job.aggregator'
 import { FetcherError, FetcherErrorCode } from './job.errors'
 import { IAdapter, IFetchedData, IProxy } from './job.types'
@@ -181,11 +179,11 @@ export function extractFeeds(
     return {
       id: f.id,
       name: f.name,
-      url: f.definition.url,
-      headers: f.definition.headers,
-      method: f.definition.method,
-      reducers: f.definition.reducers,
-      pool: f.pool,
+      chain: f.definition.chain,
+      address: f.definition.address,
+      type: f.definition.type,
+      token0Decimals: f.definition.token0Decimals,
+      token1Decimals: f.definition.token1Decimals,
       proxy
     }
   })
@@ -240,21 +238,12 @@ export function shouldReport(
   }
 }
 
-export async function fetchDataFromDex(adapterList, logger) {
-  const provider = new JsonRpcProvider(PROVIDER_URL)
-  const abis = await readFile('../abis/pool.json', 'utf-8')
+export async function fetchDataFromDex(adapterList, decimals: number, logger) {
   const data = await Promise.allSettled(
     adapterList.map(async (adapter) => {
       try {
-        const poolContract = new Contract(adapter.pool, abis, provider)
-        const inputAmount = 1
-        const slot0 = await poolContract.slot0()
-        const currentTick = Number(slot0[1])
-        const sqrtRatioX96 = TickMath.getSqrtRatioAtTick(currentTick)
-        const ratioX192 = JSBI.multiply(sqrtRatioX96, sqrtRatioX96)
-        const baseAmount = JSBI.BigInt(inputAmount * 10 ** adapter.decimals)
-        const shift = JSBI.leftShift(JSBI.BigInt(1), JSBI.BigInt(192))
-        const datum = FullMath.mulDivRoundingUp(ratioX192, baseAmount, shift)
+        let datum: number
+        if (adapter.type == 'UniswapPool') datum = await extractKlaySwapPrice(adapter, decimals)
         checkDataFormat(datum)
         return { id: adapter.id, value: datum }
       } catch (e) {
@@ -264,6 +253,31 @@ export async function fetchDataFromDex(adapterList, logger) {
       }
     })
   )
-
   return data.flatMap((D) => (D.status == 'fulfilled' ? [D.value] : []))
+}
+
+export async function extractKlaySwapPrice(adapter, decimals) {
+  const provider = await providerByChain(adapter.chain)
+  const poolContract = new Contract(adapter.address, uniswapPoolAbis, provider)
+  const rawData = await poolContract.slot0()
+  const datum = sqrtPriceX96ToTokenPrice(
+    BigInt(rawData[0]),
+    adapter.token0Decimals,
+    adapter.token1Decimals
+  )
+  return Math.round(datum * 10 ** decimals)
+}
+
+export async function providerByChain(chainId: number) {
+  if (chainId == 8217) {
+    return new JsonRpcProvider('https://public-en-cypress.klaytn.net')
+  } else return new JsonRpcProvider('https://public-en-cypress.klaytn.net')
+}
+
+function sqrtPriceX96ToTokenPrice(
+  sqrtPriceX96: bigint,
+  decimal0: number,
+  decimal1: number
+): number {
+  return (Number(sqrtPriceX96) / 2 ** 96) ** 2 / (10 ** decimal1 / 10 ** decimal0)
 }

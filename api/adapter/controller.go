@@ -75,8 +75,7 @@ func insert(c *fiber.Ctx) error {
 		_, err := utils.QueryRow[FeedIdModel](c, InsertFeed, map[string]any{
 			"name":       item.Name,
 			"definition": item.Definition,
-			"adapter_id": item.AdapterId,
-			"pool":item.Pool})
+			"adapter_id": item.AdapterId})
 		if err != nil {
 			panic(err)
 		}
