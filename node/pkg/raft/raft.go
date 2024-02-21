@@ -40,7 +40,10 @@ func (r *Raft) Run(ctx context.Context, node Node) {
 	r.startElectionTimer()
 	var jobTicker <-chan time.Time
 	if node.GetJobTimeout() != nil {
-		node.SetJobTicker(node.GetJobTimeout())
+		err := node.SetJobTicker(node.GetJobTimeout())
+		if err != nil {
+			log.Println("failed to set job ticker")
+		}
 		jobTicker = node.GetJobTicker().C
 	}
 
@@ -54,7 +57,10 @@ func (r *Raft) Run(ctx context.Context, node Node) {
 		case <-r.ElectionTimer.C:
 			r.startElection()
 		case <-jobTicker:
-			node.Job()
+			err := node.Job()
+			if err != nil {
+				log.Println("failed to execute job:", err)
+			}
 		}
 	}
 }
@@ -151,7 +157,10 @@ func (r *Raft) handleRequestVote(msg Message) error {
 	}
 
 	if RequestVoteMessage.Term < r.GetCurrentTerm() {
-		r.sendReplyVote(msg.SentFrom, false)
+		err := r.sendReplyVote(msg.SentFrom, false)
+		if err != nil {
+			log.Println("failed to send reply vote:", err)
+		}
 		return nil
 	}
 
@@ -165,8 +174,7 @@ func (r *Raft) handleRequestVote(msg Message) error {
 		r.UpdateVotedFor(msg.SentFrom)
 	}
 
-	r.sendReplyVote(msg.SentFrom, voteGranted)
-	return nil
+	return r.sendReplyVote(msg.SentFrom, voteGranted)
 }
 
 func (r *Raft) handleReplyVote(node Node, msg Message) error {
@@ -248,10 +256,10 @@ func (r *Raft) sendReplyVote(to string, voteGranted bool) error {
 }
 
 func (r *Raft) sendRequestVote() error {
-	RequestVoteMessage := RequestVoteMessage{
+	requestVoteMessage := RequestVoteMessage{
 		Term: r.GetCurrentTerm(),
 	}
-	marshalledRequestVoteMsg, err := json.Marshal(RequestVoteMessage)
+	marshalledRequestVoteMsg, err := json.Marshal(requestVoteMessage)
 	if err != nil {
 		return err
 	}
@@ -279,7 +287,10 @@ func (r *Raft) StopHeartbeatTicker(node Node) {
 
 	if node.GetLeaderJobTicker() != nil {
 		node.GetLeaderJobTicker().Stop()
-		node.SetLeaderJobTicker(nil)
+		err := node.SetLeaderJobTicker(nil)
+		if err != nil {
+			log.Println("failed to stop leader job ticker")
+		}
 	}
 	if r.Resign != nil {
 		close(r.Resign)
@@ -296,7 +307,10 @@ func (r *Raft) becomeLeader(node Node) {
 
 	var leaderJobTicker <-chan time.Time
 	if node.GetLeaderJobTimeout() != nil {
-		node.SetLeaderJobTicker(node.GetLeaderJobTimeout())
+		err := node.SetLeaderJobTicker(node.GetLeaderJobTimeout())
+		if err != nil {
+			log.Println("failed to set leader job ticker")
+		}
 		leaderJobTicker = node.GetLeaderJobTicker().C
 	}
 
@@ -304,9 +318,15 @@ func (r *Raft) becomeLeader(node Node) {
 		for {
 			select {
 			case <-r.HeartbeatTicker.C:
-				r.sendHeartbeat()
+				err := r.sendHeartbeat()
+				if err != nil {
+					log.Println("failed to send heartbeat:", err)
+				}
 			case <-leaderJobTicker:
-				node.LeaderJob()
+				err := node.LeaderJob()
+				if err != nil {
+					log.Println("failed to execute leader job:", err)
+				}
 			case <-r.Resign:
 				log.Println("resigning as leader")
 				return
