@@ -1,7 +1,9 @@
 import { buildReducer, checkDataFormat, pipe, REDUCER_MAPPING } from '@bisonai/orakl-util'
 import { Logger } from '@nestjs/common'
 import axios from 'axios'
-import { FETCH_TIMEOUT } from '../settings'
+import { Contract, JsonRpcProvider } from 'ethers'
+import { abis as uniswapPoolAbis } from '../abis/pool'
+import { FETCH_TIMEOUT, PROVIDER_URL } from '../settings'
 import { LOCAL_AGGREGATOR_FN } from './job.aggregator'
 import { FetcherError, FetcherErrorCode } from './job.errors'
 import { IAdapter, IFetchedData, IProxy } from './job.types'
@@ -177,10 +179,11 @@ export function extractFeeds(
     return {
       id: f.id,
       name: f.name,
-      url: f.definition.url,
-      headers: f.definition.headers,
-      method: f.definition.method,
-      reducers: f.definition.reducers,
+      chain: f.definition.chain,
+      address: f.definition.address,
+      type: f.definition.type,
+      token0Decimals: f.definition.token0Decimals,
+      token1Decimals: f.definition.token1Decimals,
       proxy
     }
   })
@@ -233,4 +236,48 @@ export function shouldReport(
     // Something strange happened, don't report!
     return false
   }
+}
+
+export async function fetchDataFromDex(adapterList, decimals: number, logger) {
+  const data = await Promise.allSettled(
+    adapterList.map(async (adapter) => {
+      try {
+        let datum: number
+        if (adapter.type == 'UniswapPool') datum = await extractKlaySwapPrice(adapter, decimals)
+        checkDataFormat(datum)
+        return { id: adapter.id, value: datum }
+      } catch (e) {
+        logger.error(`Fetching with proxy ${adapter.proxy.host} failed in ${adapter.name}`)
+        logger.error(e)
+        throw e
+      }
+    })
+  )
+  return data.flatMap((D) => (D.status == 'fulfilled' ? [D.value] : []))
+}
+
+export async function extractKlaySwapPrice(adapter, decimals) {
+  const provider = await providerByChain(adapter.chain)
+  const poolContract = new Contract(adapter.address, uniswapPoolAbis, provider)
+  const rawData = await poolContract.slot0()
+  const datum = sqrtPriceX96ToTokenPrice(
+    BigInt(rawData[0]),
+    adapter.token0Decimals,
+    adapter.token1Decimals
+  )
+  return Math.round(datum * 10 ** decimals)
+}
+
+export async function providerByChain(chainId: number) {
+  if (chainId == 8217) {
+    return new JsonRpcProvider(PROVIDER_URL)
+  } else return new JsonRpcProvider('https://public-en-cypress.klaytn.net')
+}
+
+function sqrtPriceX96ToTokenPrice(
+  sqrtPriceX96: bigint,
+  decimal0: number,
+  decimal1: number
+): number {
+  return (Number(sqrtPriceX96) / 2 ** 96) ** 2 / (10 ** decimal1 / 10 ** decimal0)
 }

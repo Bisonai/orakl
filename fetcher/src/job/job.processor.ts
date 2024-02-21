@@ -5,7 +5,7 @@ import { DEVIATION_QUEUE_NAME, FETCHER_QUEUE_NAME, WORKER_OPTS } from '../settin
 import { fetchDataFeedByAggregatorId, insertAggregateData, insertMultipleData } from './job.api'
 import { FetcherError, FetcherErrorCode } from './job.errors'
 import { IDeviationData } from './job.types'
-import { aggregateData, fetchData, shouldReport } from './job.utils'
+import { aggregateData, fetchDataFromDex, shouldReport } from './job.utils'
 
 @Processor(FETCHER_QUEUE_NAME, WORKER_OPTS)
 export class JobProcessor extends WorkerHost {
@@ -16,7 +16,7 @@ export class JobProcessor extends WorkerHost {
 
   async process(job: Job<any, any, string>): Promise<any> {
     const inData = job.data
-    const timestamp = new Date(Date.now()).toISOString();
+    const timestamp = new Date(Date.now()).toISOString()
 
     const keys = Object.keys(inData)
     if (keys.length == 0 || keys.length > 1) {
@@ -25,11 +25,12 @@ export class JobProcessor extends WorkerHost {
       const adapterHash = keys[0]
       const aggregatorId = inData[adapterHash].aggregatorId
       const feeds = inData[adapterHash].feeds
-      const data = await fetchData(feeds, this.logger)
+      const decimals = inData[adapterHash].decimals
+      const data = await fetchDataFromDex(feeds, decimals, this.logger)
       const aggregate = aggregateData(data)
+
       const threshold = inData[adapterHash].threshold
       const absoluteThreshold = inData[adapterHash].absoluteThreshold
-      const decimals = inData[adapterHash].decimals
 
       const oracleAddress = inData[adapterHash].address
 
