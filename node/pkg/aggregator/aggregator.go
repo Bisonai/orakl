@@ -143,10 +143,10 @@ func (a *Aggregator) LeaderJob() error {
 func (a *Aggregator) HandleCustomMessage(message raft.Message) error {
 	switch message.Type {
 	case RoundSync:
-		a.HandleRoundSyncMessage(message)
+		return a.HandleRoundSyncMessage(message)
 		// every node runs its job when leader sends roundSync message
 	case PriceData:
-		a.HandlePriceDataMessage(message)
+		return a.HandlePriceDataMessage(message)
 	}
 	return nil
 }
