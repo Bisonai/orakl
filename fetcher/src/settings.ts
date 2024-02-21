@@ -12,3 +12,5 @@ export const FETCH_TIMEOUT = 1_000
 export const DEVIATION_QUEUE_NAME = 'orakl-deviation-queue'
 
 export const FETCHER_TYPE = process.env.FETCHER_TYPE || 0
+
+export const PROVIDER_URL = process.env.PROVIDER_URL || 'https://public-en-cypress.klaytn.net'

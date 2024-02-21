@@ -3,7 +3,7 @@ import { Logger } from '@nestjs/common'
 import axios from 'axios'
 import { Contract, JsonRpcProvider } from 'ethers'
 import { abis as uniswapPoolAbis } from '../abis/pool'
-import { FETCH_TIMEOUT } from '../settings'
+import { FETCH_TIMEOUT, PROVIDER_URL } from '../settings'
 import { LOCAL_AGGREGATOR_FN } from './job.aggregator'
 import { FetcherError, FetcherErrorCode } from './job.errors'
 import { IAdapter, IFetchedData, IProxy } from './job.types'
@@ -270,7 +270,7 @@ export async function extractKlaySwapPrice(adapter, decimals) {
 
 export async function providerByChain(chainId: number) {
   if (chainId == 8217) {
-    return new JsonRpcProvider('https://public-en-cypress.klaytn.net')
+    return new JsonRpcProvider(PROVIDER_URL)
   } else return new JsonRpcProvider('https://public-en-cypress.klaytn.net')
 }
 
