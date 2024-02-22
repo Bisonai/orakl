@@ -13,13 +13,12 @@ type Reducer struct {
 
 func Reduce(raw interface{}, reducers []Reducer) (float64, error) {
 	var result float64
+	var err error
 	for _, reducer := range reducers {
-		var err error
-		tmp, err := reduce(raw, reducer)
+		raw, err = reduce(raw, reducer)
 		if err != nil {
 			return 0, err
 		}
-		raw = tmp
 	}
 	result, ok := raw.(float64)
 	if !ok {
@@ -67,8 +66,12 @@ func reduce(raw interface{}, reducer Reducer) (interface{}, error) {
 		if err != nil {
 			return nil, err
 		}
+		arg, ok := reducer.Args.(float64)
+		if !ok {
+			return nil, fmt.Errorf("cannot cast reducer.Args to float64")
+		}
 
-		return castedRaw * reducer.Args.(float64), nil
+		return castedRaw * arg, nil
 	case "POW10":
 		castedRaw, err := tryParseFloat(raw)
 		if err != nil {
@@ -91,13 +94,24 @@ func reduce(raw interface{}, reducer Reducer) (interface{}, error) {
 		if err != nil {
 			return nil, err
 		}
-		return castedRaw / reducer.Args.(float64), nil
-	case "DIVFROM":
+		arg, ok := reducer.Args.(float64)
+		if !ok {
+			return nil, fmt.Errorf("cannot cast reducer.Args to float64")
+		}
+		if arg == 0 {
+			return nil, fmt.Errorf("cannot divide by zero")
+		}
+		return castedRaw / arg, nil
+	case "DIVFROM", "RECIPROCAL_DIV":
 		castedRaw, err := tryParseFloat(raw)
 		if err != nil {
 			return nil, err
 		}
-		return reducer.Args.(float64) / castedRaw, nil
+		arg, ok := reducer.Args.(float64)
+		if !ok {
+			return nil, fmt.Errorf("cannot cast reducer.Args to float64")
+		}
+		return arg / castedRaw, nil
 	default:
 		return nil, fmt.Errorf("unknown reducer function: %s", reducer.Function)
 	}

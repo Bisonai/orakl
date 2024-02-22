@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"errors"
 	"math/rand"
 	"sort"
 )
@@ -23,18 +24,24 @@ func FindMedian(nums []int) int {
 	}
 }
 
-func GetFloatAvg(data []float64) float64 {
+func GetFloatAvg(data []float64) (float64, error) {
+	if len(data) == 0 {
+		return 0, errors.New("empty array")
+	}
 	var sum float64
 	for _, v := range data {
 		sum += v
 	}
-	return sum / float64(len(data))
+	return sum / float64(len(data)), nil
 }
 
-func GetFloatMed(data []float64) float64 {
+func GetFloatMed(data []float64) (float64, error) {
+	if len(data) == 0 {
+		return 0, errors.New("empty array")
+	}
 	sort.Float64s(data)
 	if len(data)%2 == 0 {
-		return (data[len(data)/2-1] + data[len(data)/2]) / 2
+		return (data[len(data)/2-1] + data[len(data)/2]) / 2, nil
 	}
-	return data[len(data)/2]
+	return data[len(data)/2], nil
 }

@@ -13,7 +13,7 @@ import (
 
 const FETCHER_FREQUENCY = 2 * time.Second
 
-func NewFetcher(bus *bus.MessageBus) *Fetcher {
+func New(bus *bus.MessageBus) *Fetcher {
 	return &Fetcher{
 		Adapters: make([]AdapterDetail, 0),
 		Bus:      bus,
@@ -29,7 +29,7 @@ func (f *Fetcher) Run(ctx context.Context) error {
 	ticker := time.NewTicker(FETCHER_FREQUENCY)
 	go func() {
 		for range ticker.C {
-			err := f.runAdapter(ctx)
+			err := f.fetchAll(ctx)
 			if err != nil {
 				fmt.Println(err)
 			}
@@ -39,13 +39,19 @@ func (f *Fetcher) Run(ctx context.Context) error {
 	return nil
 }
 
-func (f *Fetcher) runAdapter(ctx context.Context) error {
+func (f *Fetcher) fetchAll(ctx context.Context) error {
+	iterationDuration := FETCHER_FREQUENCY / time.Duration(len(f.Adapters))
 	for _, adapter := range f.Adapters {
+		start := time.Now()
+
 		result, err := f.fetch(adapter)
 		if err != nil {
 			return err
 		}
-		aggregated := utils.GetFloatAvg(result)
+		aggregated, err := utils.GetFloatAvg(result)
+		if err != nil {
+			return err
+		}
 		err = f.insertPgsql(ctx, adapter.Name, aggregated)
 		if err != nil {
 			return err
@@ -53,6 +59,11 @@ func (f *Fetcher) runAdapter(ctx context.Context) error {
 		err = f.insertRdb(ctx, adapter.Name, aggregated)
 		if err != nil {
 			return err
+		}
+
+		elapsed := time.Since(start)
+		if elapsed < iterationDuration {
+			time.Sleep(iterationDuration - elapsed)
 		}
 	}
 	return nil
