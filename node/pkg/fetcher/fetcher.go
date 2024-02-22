@@ -20,18 +20,31 @@ func NewFetcher(bus *bus.MessageBus) *Fetcher {
 	}
 }
 
+func (f *Fetcher) Start(ctx context.Context) error {
+	go f.SubscribeMsg(ctx)
+
+	go func() {
+		err := f.Run(ctx)
+		if err != nil {
+			fmt.Println("Error running fetcher:", err)
+		}
+	}()
+
+	return nil
+}
+
 func (f *Fetcher) SubscribeMsg(ctx context.Context) {
 	channel := f.Bus.Subscribe("fetcher", 10)
 	go func() {
 		msg := <-channel
-		err := f.MessageHandler(ctx, msg)
+		err := f.messageHandler(ctx, msg)
 		if err != nil {
 			fmt.Println(err)
 		}
 	}()
 }
 
-func (f *Fetcher) MessageHandler(ctx context.Context, msg bus.Message) error {
+func (f *Fetcher) messageHandler(ctx context.Context, msg bus.Message) error {
 	switch msg.Content.Command {
 	case "start":
 		if msg.From != "admin" {
@@ -192,6 +205,14 @@ func (f *Fetcher) initialize(ctx context.Context) error {
 		}
 		f.Adapters = append(f.Adapters, AdapterDetail{adapter, feeds})
 	}
+	return nil
+}
+
+func (f *Fetcher) StopAdapter(ctx context.Context, adapterId int64) error {
+	return nil
+}
+
+func (f *Fetcher) StartAdapter(ctx context.Context, adapterId int64) error {
 	return nil
 }
 
