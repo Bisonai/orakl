@@ -3,10 +3,12 @@ import { Logger } from '@nestjs/common'
 import axios from 'axios'
 import { Contract, JsonRpcProvider } from 'ethers'
 import { abis as uniswapPoolAbis } from '../abis/pool'
-import { FETCH_TIMEOUT, PROVIDER_URL } from '../settings'
+import { CYPRESS_PROVIDER_URL, FETCH_TIMEOUT } from '../settings'
 import { LOCAL_AGGREGATOR_FN } from './job.aggregator'
 import { FetcherError, FetcherErrorCode } from './job.errors'
 import { IAdapter, IFetchedData, IProxy } from './job.types'
+
+const CYPRESS_CHAIN_ID = 8217
 
 export function buildUrl(host: string, path: string) {
   const url = [host, path].join('/')
@@ -69,25 +71,33 @@ async function fetchRawDataWithoutProxy(adapter, logger) {
  * @param {} NestJs logger
  * @return {number} aggregatedresults
  */
-export async function fetchData(adapterList, logger) {
+export async function fetchData(adapterList, decimals, logger) {
   const data = await Promise.allSettled(
     adapterList.map(async (adapter) => {
       let rawDatum = INVALID_DATA
-      if (isProxyDefined(adapter)) {
-        rawDatum = await fetchRawDataWithProxy(adapter, logger)
-      }
-      if (rawDatum === INVALID_DATA) {
-        rawDatum = await fetchRawDataWithoutProxy(adapter, logger)
+      if (!adapter.type) {
+        if (isProxyDefined(adapter)) {
+          rawDatum = await fetchRawDataWithProxy(adapter, logger)
+        }
         if (rawDatum === INVALID_DATA) {
-          throw new Error(`Error in fetching data`)
+          rawDatum = await fetchRawDataWithoutProxy(adapter, logger)
+          if (rawDatum === INVALID_DATA) {
+            throw new Error(`Error in fetching data`)
+          }
         }
       }
+
       try {
         // FIXME Build reducers just once and use. Currently, can't
         // be passed to queue, therefore has to be recreated before
         // every fetch.
-        const reducers = buildReducer(REDUCER_MAPPING, adapter.reducers)
-        const datum = pipe(...reducers)(rawDatum)
+        let datum
+        if (adapter.type == 'UniswapPool') {
+          datum = await extractUniswapPrice(adapter, decimals)
+        } else {
+          const reducers = buildReducer(REDUCER_MAPPING, adapter.reducers)
+          datum = pipe(...reducers)(rawDatum)
+        }
         checkDataFormat(datum)
         return { id: adapter.id, value: datum }
       } catch (e) {
@@ -179,7 +189,11 @@ export function extractFeeds(
     return {
       id: f.id,
       name: f.name,
-      chain: f.definition.chain,
+      url: f.definition.url,
+      headers: f.definition.headers,
+      method: f.definition.method,
+      reducers: f.definition.reducers,
+      chainId: f.definition.chainId,
       address: f.definition.address,
       type: f.definition.type,
       token0Decimals: f.definition.token0Decimals,
@@ -238,26 +252,8 @@ export function shouldReport(
   }
 }
 
-export async function fetchDataFromDex(adapterList, decimals: number, logger) {
-  const data = await Promise.allSettled(
-    adapterList.map(async (adapter) => {
-      try {
-        let datum: number
-        if (adapter.type == 'UniswapPool') datum = await extractKlaySwapPrice(adapter, decimals)
-        checkDataFormat(datum)
-        return { id: adapter.id, value: datum }
-      } catch (e) {
-        logger.error(`Fetching with proxy ${adapter.proxy.host} failed in ${adapter.name}`)
-        logger.error(e)
-        throw e
-      }
-    })
-  )
-  return data.flatMap((D) => (D.status == 'fulfilled' ? [D.value] : []))
-}
-
-export async function extractKlaySwapPrice(adapter, decimals) {
-  const provider = await providerByChain(adapter.chain)
+export async function extractUniswapPrice(adapter, decimals) {
+  const provider = await providerByChain(Number(adapter.chainId))
   const poolContract = new Contract(adapter.address, uniswapPoolAbis, provider)
   const rawData = await poolContract.slot0()
   const datum = sqrtPriceX96ToTokenPrice(
@@ -269,9 +265,11 @@ export async function extractKlaySwapPrice(adapter, decimals) {
 }
 
 export async function providerByChain(chainId: number) {
-  if (chainId == 8217) {
-    return new JsonRpcProvider(PROVIDER_URL)
-  } else return new JsonRpcProvider('https://public-en-cypress.klaytn.net')
+  if (chainId == CYPRESS_CHAIN_ID) {
+    return new JsonRpcProvider(CYPRESS_PROVIDER_URL)
+  } else {
+    throw new Error(`Invalid chain id`)
+  }
 }
 
 function sqrtPriceX96ToTokenPrice(
@@ -279,5 +277,8 @@ function sqrtPriceX96ToTokenPrice(
   decimal0: number,
   decimal1: number
 ): number {
-  return (Number(sqrtPriceX96) / 2 ** 96) ** 2 / (10 ** decimal1 / 10 ** decimal0)
+  return (
+    Math.pow(Number(sqrtPriceX96) / Math.pow(2, 96), 2) /
+    (Math.pow(10, decimal1) / Math.pow(10, decimal0))
+  )
 }

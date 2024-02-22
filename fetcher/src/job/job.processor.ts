@@ -5,7 +5,7 @@ import { DEVIATION_QUEUE_NAME, FETCHER_QUEUE_NAME, WORKER_OPTS } from '../settin
 import { fetchDataFeedByAggregatorId, insertAggregateData, insertMultipleData } from './job.api'
 import { FetcherError, FetcherErrorCode } from './job.errors'
 import { IDeviationData } from './job.types'
-import { aggregateData, fetchDataFromDex, shouldReport } from './job.utils'
+import { aggregateData, fetchData, shouldReport } from './job.utils'
 
 @Processor(FETCHER_QUEUE_NAME, WORKER_OPTS)
 export class JobProcessor extends WorkerHost {
@@ -26,7 +26,7 @@ export class JobProcessor extends WorkerHost {
       const aggregatorId = inData[adapterHash].aggregatorId
       const feeds = inData[adapterHash].feeds
       const decimals = inData[adapterHash].decimals
-      const data = await fetchDataFromDex(feeds, decimals, this.logger)
+      const data = await fetchData(feeds, decimals, this.logger)
       const aggregate = aggregateData(data)
 
       const threshold = inData[adapterHash].threshold
