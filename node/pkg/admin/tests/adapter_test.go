@@ -128,3 +128,63 @@ func TestAdapterDeleteById(t *testing.T) {
 
 	assert.Lessf(t, len(readResultAfter), len(readResultBefore), "expected to have less adapters after deletion")
 }
+
+func TestAdapterDeactivate(t *testing.T) {
+	app, err := setup()
+	if err != nil {
+		t.Fatalf("error setting up test: %v", err)
+	}
+	defer cleanup()
+	defer app.Shutdown()
+
+	channel := appBus.Subscribe("fetcher", 10)
+
+	deactivateResult, err := PostRequest[adapter.AdapterModel](app, "/api/v1/adapter/deactivate/"+strconv.FormatInt(*insertedAdapter.Id, 10), nil)
+	if err != nil {
+		t.Fatalf("error deactivating adapter: %v", err)
+	}
+	assert.False(t, deactivateResult.Active)
+
+	select {
+	case msg := <-channel:
+		if msg.From != "admin" || msg.To != "fetcher" || msg.Content.Command != "deactivate" {
+			t.Errorf("Message did not match expected. Got %v", msg)
+		}
+	default:
+		t.Errorf("No message received on channel")
+	}
+}
+
+func TestAdapterActivate(t *testing.T) {
+	app, err := setup()
+	if err != nil {
+		t.Fatalf("error setting up test: %v", err)
+	}
+	defer cleanup()
+	defer app.Shutdown()
+
+	channel := appBus.Subscribe("fetcher", 10)
+
+	//first deactivate before activate
+	_, err = PostRequest[adapter.AdapterModel](app, "/api/v1/adapter/deactivate/"+strconv.FormatInt(*insertedAdapter.Id, 10), nil)
+	if err != nil {
+		t.Fatalf("error deactivating adapter: %v", err)
+	}
+	<-channel
+
+	// activate
+	activateResult, err := PostRequest[adapter.AdapterModel](app, "/api/v1/adapter/activate/"+strconv.FormatInt(*insertedAdapter.Id, 10), nil)
+	if err != nil {
+		t.Fatalf("error activating adapter: %v", err)
+	}
+	assert.True(t, activateResult.Active)
+
+	select {
+	case msg := <-channel:
+		if msg.From != "admin" || msg.To != "fetcher" || msg.Content.Command != "activate" {
+			t.Errorf("Message did not match expected. Got %v", msg)
+		}
+	default:
+		t.Errorf("No message received on channel")
+	}
+}

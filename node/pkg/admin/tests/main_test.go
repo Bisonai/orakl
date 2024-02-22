@@ -7,16 +7,22 @@ import (
 
 	"bisonai.com/orakl/node/pkg/admin/adapter"
 	"bisonai.com/orakl/node/pkg/admin/feed"
+	"bisonai.com/orakl/node/pkg/admin/fetcher"
 	"bisonai.com/orakl/node/pkg/admin/utils"
+	"bisonai.com/orakl/node/pkg/bus"
 	"bisonai.com/orakl/node/pkg/db"
 	"github.com/gofiber/fiber/v2"
 )
 
 var insertedAdapter adapter.AdapterModel
 var insertedFeed feed.FeedModel
+var appBus *bus.MessageBus
 
 func setup() (*fiber.App, error) {
-	app, err := utils.Setup("")
+	_bus := bus.NewMessageBus()
+	appBus = _bus
+
+	app, err := utils.Setup("", appBus)
 	if err != nil {
 		return nil, err
 	}
@@ -27,6 +33,7 @@ func setup() (*fiber.App, error) {
 	v1 := app.Group("/api/v1")
 	adapter.Routes(v1)
 	feed.Routes(v1)
+	fetcher.Routes(v1)
 	return app, nil
 }
 

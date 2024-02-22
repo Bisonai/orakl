@@ -8,15 +8,17 @@ import (
 	"runtime/debug"
 	"strings"
 
+	"bisonai.com/orakl/node/pkg/bus"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/gofiber/fiber/v2/middleware/recover"
 )
 
-func Setup(version string) (*fiber.App, error) {
+func Setup(version string, bus *bus.MessageBus) (*fiber.App, error) {
 	if version == "" {
 		version = "test"
 	}
+
 	app := fiber.New(fiber.Config{
 		AppName:           "Node API " + version,
 		EnablePrintRoutes: true,
@@ -31,6 +33,11 @@ func Setup(version string) (*fiber.App, error) {
 	))
 
 	app.Use(cors.New())
+
+	app.Use(func(c *fiber.Ctx) error {
+		c.Locals("bus", bus)
+		return c.Next()
+	})
 
 	return app, nil
 
@@ -70,4 +77,21 @@ func CustomStackTraceHandler(_ *fiber.Ctx, e interface{}) {
 	}
 	log.Printf("| (%s) panic: %v \n", failPoint, e)
 	_, _ = os.Stderr.WriteString(fmt.Sprintf("%s\n", debug.Stack())) //nolint:errcheck // This will never fail
+}
+
+func SendMessage(c *fiber.Ctx, to string, command string, args map[string]interface{}) error {
+	messageBus, ok := c.Locals("bus").(*bus.MessageBus)
+	if !ok {
+		return errors.New("bus is not found, failed to message fetcher")
+	}
+	msg := bus.Message{
+		From: "admin",
+		To:   to,
+		Content: bus.MessageContent{
+			Command: command,
+			Args:    args,
+		},
+	}
+	messageBus.Publish(msg)
+	return nil
 }
