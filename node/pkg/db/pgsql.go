@@ -44,10 +44,11 @@ func loadPgsqlConnectionString() string {
 }
 
 func QueryWithoutResult(ctx context.Context, queryString string, args map[string]any) error {
-	pool, err := GetPool(ctx)
+	_pool, err := GetPool(ctx)
 	if err != nil {
 		return err
 	}
+	pool = _pool
 	rows, err := query(pool, queryString, args)
 	if err != nil {
 		return err
