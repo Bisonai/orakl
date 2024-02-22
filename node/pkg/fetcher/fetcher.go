@@ -11,6 +11,8 @@ import (
 	"bisonai.com/orakl/node/pkg/utils"
 )
 
+const FETCHER_FREQUENCY = 2 * time.Second
+
 func NewFetcher(bus *bus.MessageBus) *Fetcher {
 	return &Fetcher{
 		Adapters: make([]AdapterDetail, 0),
@@ -18,11 +20,13 @@ func NewFetcher(bus *bus.MessageBus) *Fetcher {
 	}
 }
 
-func (f *Fetcher) Run(ctx context.Context) {
-	f.initialize(ctx)
+func (f *Fetcher) Run(ctx context.Context) error {
+	err := f.initialize(ctx)
+	if err != nil {
+		return err
+	}
 
-	ticker := time.NewTicker(2 * time.Second)
-
+	ticker := time.NewTicker(FETCHER_FREQUENCY)
 	go func() {
 		for range ticker.C {
 			err := f.runAdapter(ctx)
@@ -31,6 +35,8 @@ func (f *Fetcher) Run(ctx context.Context) {
 			}
 		}
 	}()
+
+	return nil
 }
 
 func (f *Fetcher) runAdapter(ctx context.Context) error {
@@ -63,8 +69,7 @@ func (f *Fetcher) insertRdb(ctx context.Context, name string, value float64) err
 	if err != nil {
 		return err
 	}
-	db.Set(ctx, key, string(data), time.Duration(5*time.Minute))
-	return nil
+	return db.Set(ctx, key, string(data), time.Duration(5*time.Minute))
 }
 
 func (f *Fetcher) fetch(adapter AdapterDetail) ([]float64, error) {
