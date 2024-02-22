@@ -28,3 +28,5 @@ tasks:
       - test-admin
       - test-bus
       - test-libp2p
+      - test-admin
+      - test-fetcher
