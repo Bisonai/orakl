@@ -16,7 +16,7 @@ export class JobProcessor extends WorkerHost {
 
   async process(job: Job<any, any, string>): Promise<any> {
     const inData = job.data
-    const timestamp = new Date(Date.now()).toISOString();
+    const timestamp = new Date(Date.now()).toISOString()
 
     const keys = Object.keys(inData)
     if (keys.length == 0 || keys.length > 1) {
@@ -25,11 +25,12 @@ export class JobProcessor extends WorkerHost {
       const adapterHash = keys[0]
       const aggregatorId = inData[adapterHash].aggregatorId
       const feeds = inData[adapterHash].feeds
-      const data = await fetchData(feeds, this.logger)
+      const decimals = inData[adapterHash].decimals
+      const data = await fetchData(feeds, decimals, this.logger)
       const aggregate = aggregateData(data)
+
       const threshold = inData[adapterHash].threshold
       const absoluteThreshold = inData[adapterHash].absoluteThreshold
-      const decimals = inData[adapterHash].decimals
 
       const oracleAddress = inData[adapterHash].address
 

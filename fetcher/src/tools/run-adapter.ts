@@ -12,7 +12,7 @@ const main = async () => {
     return feed.definition
   })
 
-  const data = await fetchData(adapterDefintions, console)
+  const data = await fetchData(adapterDefintions, adapter.decimals, console)
   console.log(data)
 
   const aggregate = aggregateData(data)
