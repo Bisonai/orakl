@@ -20,7 +20,46 @@ func NewFetcher(bus *bus.MessageBus) *Fetcher {
 	}
 }
 
+func (f *Fetcher) SubscribeMsg(ctx context.Context) {
+	channel := f.Bus.Subscribe("fetcher", 10)
+	go func() {
+		msg := <-channel
+		err := f.MessageHandler(ctx, msg)
+		if err != nil {
+			fmt.Println(err)
+		}
+	}()
+}
+
+func (f *Fetcher) MessageHandler(ctx context.Context, msg bus.Message) error {
+	switch msg.Content.Command {
+	case "start":
+		if msg.From != "admin" {
+			return fmt.Errorf("only admin can start")
+		}
+		return f.Run(ctx)
+	case "stop":
+		if msg.From != "admin" {
+			return fmt.Errorf("only admin can stop")
+		}
+		return f.Stop()
+	case "refresh":
+		if msg.From != "admin" {
+			return fmt.Errorf("only admin can refresh")
+		}
+		return f.initialize(ctx)
+	}
+	return nil
+}
+
 func (f *Fetcher) Run(ctx context.Context) error {
+	if f.running {
+		return fmt.Errorf("fetcher already running")
+	}
+
+	f.fetcherCtx, f.cancel = context.WithCancel(ctx)
+	f.running = true
+
 	err := f.initialize(ctx)
 	if err != nil {
 		return err
@@ -28,15 +67,34 @@ func (f *Fetcher) Run(ctx context.Context) error {
 
 	ticker := time.NewTicker(FETCHER_FREQUENCY)
 	go func() {
-		for range ticker.C {
-			err := f.runAdapter(ctx)
-			if err != nil {
-				fmt.Println(err)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ticker.C:
+				err := f.runAdapter(f.fetcherCtx)
+				if err != nil {
+					fmt.Println(err)
+				}
+			case <-f.fetcherCtx.Done():
+				return
 			}
 		}
 	}()
 
 	return nil
+}
+
+func (f *Fetcher) Stop() error {
+	if !f.running {
+		return fmt.Errorf("fetcher not running")
+	}
+
+	if f.cancel != nil {
+		f.cancel()
+	}
+	f.running = false
+	return nil
+
 }
 
 func (f *Fetcher) runAdapter(ctx context.Context) error {

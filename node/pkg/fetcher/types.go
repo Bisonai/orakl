@@ -1,6 +1,7 @@
 package fetcher
 
 import (
+	"context"
 	"encoding/json"
 	"time"
 
@@ -33,8 +34,11 @@ type Feed struct {
 }
 
 type Fetcher struct {
-	Bus      *bus.MessageBus
-	Adapters []AdapterDetail
+	Bus        *bus.MessageBus
+	Adapters   []AdapterDetail
+	fetcherCtx context.Context
+	cancel     context.CancelFunc
+	running    bool
 }
 
 type Definition struct {
