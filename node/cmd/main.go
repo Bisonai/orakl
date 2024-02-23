@@ -31,7 +31,7 @@ func main() {
 
 	log.Debug().Msg("establishing connection")
 	go func() {
-		if err := libp2p.DiscoverPeers(context.Background(), h, discoverString, ""); err != nil {
+		if err = libp2p.DiscoverPeers(context.Background(), h, discoverString, ""); err != nil {
 			log.Error().Err(err).Msg("Error from DiscoverPeers")
 		}
 	}()
