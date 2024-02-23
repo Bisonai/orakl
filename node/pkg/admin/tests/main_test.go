@@ -12,9 +12,6 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
-// var insertedAdapter adapter.AdapterModel
-// var insertedFeed feed.FeedModel
-
 type TestItems struct {
 	app      *fiber.App
 	tempData *TempData
