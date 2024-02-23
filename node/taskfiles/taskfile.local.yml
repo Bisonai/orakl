@@ -9,6 +9,13 @@ tasks:
     dotenv: [".env"]
     cmds:
       - go test ./pkg/admin/tests -v
+  test-fetcher:
+    dotenv: [".env"]
+    cmds:
+      - go test ./pkg/fetcher -v
+  test-utils:
+    cmds:
+      - go test ./pkg/utils/tests -v
   test-bus:
     cmds:
       - go test ./pkg/bus -v
@@ -21,3 +28,5 @@ tasks:
       - test-admin
       - test-bus
       - test-libp2p
+      - test-admin
+      - test-fetcher

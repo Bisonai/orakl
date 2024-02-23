@@ -24,14 +24,17 @@ func GetPool(ctx context.Context) (*pgxpool.Pool, error) {
 
 func getPool(ctx context.Context, once *sync.Once) (*pgxpool.Pool, error) {
 	var err error
+
+	connectionString := loadPgsqlConnectionString()
+	if connectionString == "" {
+		err = errors.New("DATABASE_URL is not set")
+		return nil, err
+	}
+
 	once.Do(func() {
-		connectionString := loadPgsqlConnectionString()
-		if connectionString == "" {
-			err = errors.New("DATABASE_URL is not set")
-			return
-		}
 		pool, err = connectToPgsql(ctx, connectionString)
 	})
+
 	return pool, err
 }
 
@@ -43,32 +46,47 @@ func loadPgsqlConnectionString() string {
 	return os.Getenv("DATABASE_URL")
 }
 
+func QueryWithoutResult(ctx context.Context, queryString string, args map[string]any) error {
+	currentPool, err := GetPool(ctx)
+	if err != nil {
+		return err
+	}
+
+	rows, err := query(currentPool, queryString, args)
+	if err != nil {
+		return err
+	}
+	rows.Close()
+	return nil
+}
+
+// Using this raw function is highly unrecommended since rows should be manually closed
 func Query(ctx context.Context, queryString string, args map[string]any) (pgx.Rows, error) {
-	_pool, err := GetPool(ctx)
+	currentPool, err := GetPool(ctx)
 	if err != nil {
 		return nil, err
 	}
-	pool = _pool
-	return query(pool, queryString, args)
+
+	return query(currentPool, queryString, args)
 }
 
 func QueryRow[T any](ctx context.Context, queryString string, args map[string]any) (T, error) {
 	var t T
-	_pool, err := GetPool(ctx)
+	currentPool, err := GetPool(ctx)
 	if err != nil {
 		return t, err
 	}
-	pool = _pool
-	return queryRow[T](pool, queryString, args)
+
+	return queryRow[T](currentPool, queryString, args)
 }
 
 func QueryRows[T any](ctx context.Context, queryString string, args map[string]any) ([]T, error) {
-	_pool, err := GetPool(ctx)
+	currentPool, err := GetPool(ctx)
 	if err != nil {
 		return nil, err
 	}
-	pool = _pool
-	return queryRows[T](pool, queryString, args)
+
+	return queryRows[T](currentPool, queryString, args)
 }
 
 func query(pool *pgxpool.Pool, query string, args map[string]any) (pgx.Rows, error) {
@@ -86,6 +104,7 @@ func queryRow[T any](pool *pgxpool.Pool, _query string, args map[string]any) (T,
 	if errors.Is(err, pgx.ErrNoRows) {
 		return result, nil
 	}
+	defer rows.Close()
 	return result, err
 }
 
@@ -101,6 +120,7 @@ func queryRows[T any](pool *pgxpool.Pool, _query string, args map[string]any) ([
 	if errors.Is(err, pgx.ErrNoRows) {
 		return results, nil
 	}
+	defer rows.Close()
 	return results, err
 }
 

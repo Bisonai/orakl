@@ -1,12 +1,15 @@
 package utils
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"log"
 	"os"
 	"runtime/debug"
 	"strings"
+
+	"bisonai.com/orakl/node/pkg/db"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
@@ -17,6 +20,18 @@ func Setup(version string) (*fiber.App, error) {
 	if version == "" {
 		version = "test"
 	}
+
+	ctx := context.Background()
+	_, err := db.GetPool(ctx)
+	if err != nil {
+		return nil, errors.New("error getting db pool")
+	}
+
+	_, err = db.GetRedisConn(ctx)
+	if err != nil {
+		return nil, errors.New("error getting redis conn")
+	}
+
 	app := fiber.New(fiber.Config{
 		AppName:           "Node API " + version,
 		EnablePrintRoutes: true,
