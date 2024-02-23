@@ -40,13 +40,13 @@ export class JobProcessor extends WorkerHost {
           logger: this.logger
         })
         let response = await insertMultipleData({ aggregatorId, timestamp, data })
-        this.logger.debug(response)
+
         response = await insertAggregateData({
           aggregatorId,
           timestamp,
           value: aggregate
         })
-        this.logger.debug(response)
+
         const outData: IDeviationData = {
           timestamp: timestamp,
           submission: aggregate,
