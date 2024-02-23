@@ -10,6 +10,7 @@ import (
 	"bisonai.com/orakl/node/pkg/admin/adapter"
 	"bisonai.com/orakl/node/pkg/admin/tests"
 	"bisonai.com/orakl/node/pkg/admin/utils"
+	"bisonai.com/orakl/node/pkg/bus"
 	"bisonai.com/orakl/node/pkg/db"
 	"github.com/gofiber/fiber/v2"
 )
@@ -332,7 +333,12 @@ var sampleData = []string{`{
   }`}
 
 func setup() (*fiber.App, error) {
-	app, err := utils.Setup("")
+	mb := bus.New(10)
+
+	app, err := utils.Setup(utils.SetupInfo{
+		Version: "",
+		Bus:     mb,
+	})
 	if err != nil {
 		return nil, err
 	}

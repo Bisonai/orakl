@@ -13,6 +13,24 @@ import (
 
 func req[T any](app *fiber.App, method string, endpoint string, requestBody interface{}) (T, error) {
 	var result T
+
+	resultBody, err := rawReq(app, method, endpoint, requestBody)
+	if err != nil {
+		fmt.Println("failed to raw request:", err)
+		return result, err
+	}
+
+	err = json.Unmarshal(resultBody, &result)
+	if err != nil {
+		fmt.Println("failed Unmarshal result body:" + string(resultBody))
+		return result, err
+	}
+
+	return result, nil
+}
+
+func rawReq(app *fiber.App, method string, endpoint string, requestBody interface{}) ([]byte, error) {
+	var result []byte
 	var body io.Reader
 
 	if requestBody != nil {
@@ -48,13 +66,7 @@ func req[T any](app *fiber.App, method string, endpoint string, requestBody inte
 		return result, err
 	}
 
-	err = json.Unmarshal(resultBody, &result)
-	if err != nil {
-		fmt.Println("failed Unmarshal result body:" + string(resultBody))
-		return result, err
-	}
-
-	return result, nil
+	return resultBody, nil
 }
 
 func GetRequest[T any](app *fiber.App, endpoint string, requestBody interface{}) (T, error) {
@@ -71,6 +83,10 @@ func PatchRequest[T any](app *fiber.App, endpoint string, requestBody interface{
 
 func DeleteRequest[T any](app *fiber.App, endpoint string, requestBody interface{}) (T, error) {
 	return req[T](app, "DELETE", endpoint, requestBody)
+}
+
+func RawPostRequest(app *fiber.App, endpoint string, requestBody interface{}) ([]byte, error) {
+	return rawReq(app, "POST", endpoint, requestBody)
 }
 
 func UrlRequest[T any](urlEndpoint string, method string, requestBody interface{}) (T, error) {

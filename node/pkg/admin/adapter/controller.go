@@ -3,6 +3,8 @@ package adapter
 import (
 	"encoding/json"
 
+	"bisonai.com/orakl/node/pkg/admin/utils"
+	"bisonai.com/orakl/node/pkg/bus"
 	"bisonai.com/orakl/node/pkg/db"
 	"github.com/go-playground/validator"
 	"github.com/gofiber/fiber/v2"
@@ -110,5 +112,35 @@ func deleteById(c *fiber.Ctx) error {
 	if err != nil {
 		panic(err)
 	}
+	return c.JSON(result)
+}
+
+func activate(c *fiber.Ctx) error {
+	id := c.Params("id")
+	result, err := db.QueryRow[AdapterModel](c.Context(), ActivateAdapter, map[string]any{"id": id})
+	if err != nil {
+		panic(err)
+	}
+
+	err = utils.SendMessage(c, bus.FETCHER, bus.ACTIVATE_ADAPTER, map[string]any{"id": id})
+	if err != nil {
+		panic(err)
+	}
+
+	return c.JSON(result)
+}
+
+func deactivate(c *fiber.Ctx) error {
+	id := c.Params("id")
+	result, err := db.QueryRow[AdapterModel](c.Context(), DeactivateAdapter, map[string]any{"id": id})
+	if err != nil {
+		panic(err)
+	}
+
+	err = utils.SendMessage(c, bus.FETCHER, bus.DEACTIVATE_ADAPTER, map[string]any{"id": id})
+	if err != nil {
+		panic(err)
+	}
+
 	return c.JSON(result)
 }

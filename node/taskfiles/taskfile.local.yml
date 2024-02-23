@@ -23,10 +23,10 @@ tasks:
     cmds:
       - go test ./pkg/libp2p -v
   test:
-    deps:
-      - test-db
-      - test-admin
-      - test-bus
-      - test-libp2p
-      - test-admin
-      - test-fetcher
+    cmds:
+      - task: test-db
+      - task: test-admin
+      - task: test-bus
+      - task: test-libp2p
+      - task: test-admin
+      - task: test-fetcher

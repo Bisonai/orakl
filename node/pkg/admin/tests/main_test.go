@@ -7,13 +7,16 @@ import (
 
 	"bisonai.com/orakl/node/pkg/admin/adapter"
 	"bisonai.com/orakl/node/pkg/admin/feed"
+	"bisonai.com/orakl/node/pkg/admin/fetcher"
 	"bisonai.com/orakl/node/pkg/admin/utils"
+	"bisonai.com/orakl/node/pkg/bus"
 	"bisonai.com/orakl/node/pkg/db"
 	"github.com/gofiber/fiber/v2"
 )
 
 type TestItems struct {
 	app      *fiber.App
+	mb       *bus.MessageBus
 	tempData *TempData
 }
 
@@ -25,7 +28,14 @@ type TempData struct {
 func setup(ctx context.Context) (func() error, *TestItems, error) {
 	var testItems = new(TestItems)
 
-	app, err := utils.Setup("")
+	mb := bus.New(10)
+	testItems.mb = mb
+
+	app, err := utils.Setup(utils.SetupInfo{
+		Version: "",
+		Bus:     mb,
+	})
+
 	if err != nil {
 		return nil, nil, err
 	}
@@ -42,6 +52,7 @@ func setup(ctx context.Context) (func() error, *TestItems, error) {
 	v1 := app.Group("/api/v1")
 	adapter.Routes(v1)
 	feed.Routes(v1)
+	fetcher.Routes(v1)
 	return cleanup(testItems), testItems, nil
 }
 

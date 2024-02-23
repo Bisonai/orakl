@@ -12,4 +12,8 @@ const (
 	GetFeedsByAdapterId = `SELECT * FROM feeds WHERE adapter_id = @id;`
 
 	DeleteAdapterById = `DELETE FROM adapters WHERE id = @id RETURNING *;`
+
+	ActivateAdapter = `UPDATE adapters SET active = true WHERE id = @id RETURNING *;`
+
+	DeactivateAdapter = `UPDATE adapters SET active = false WHERE id = @id RETURNING *;`
 )

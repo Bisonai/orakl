@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"bisonai.com/orakl/node/pkg/admin/adapter"
+	"bisonai.com/orakl/node/pkg/bus"
 	"bisonai.com/orakl/node/pkg/db"
 	"github.com/stretchr/testify/assert"
 )
@@ -127,4 +128,64 @@ func TestAdapterDeleteById(t *testing.T) {
 	}
 
 	assert.Lessf(t, len(readResultAfter), len(readResultBefore), "expected to have less adapters after deletion")
+}
+
+func TestAdapterDeactivate(t *testing.T) {
+	ctx := context.Background()
+	_cleanup, testItems, err := setup(ctx)
+	if err != nil {
+		t.Fatalf("error setting up test: %v", err)
+	}
+	defer _cleanup()
+
+	channel := testItems.mb.Subscribe(bus.FETCHER)
+
+	deactivateResult, err := PostRequest[adapter.AdapterModel](testItems.app, "/api/v1/adapter/deactivate/"+strconv.FormatInt(*testItems.tempData.adapter.Id, 10), nil)
+	if err != nil {
+		t.Fatalf("error deactivating adapter: %v", err)
+	}
+	assert.False(t, deactivateResult.Active)
+
+	select {
+	case msg := <-channel:
+		if msg.From != bus.ADMIN || msg.To != bus.FETCHER || msg.Content.Command != bus.DEACTIVATE_ADAPTER {
+			t.Errorf("Message did not match expected. Got %v", msg)
+		}
+	default:
+		t.Errorf("No message received on channel")
+	}
+}
+
+func TestAdapterActivate(t *testing.T) {
+	ctx := context.Background()
+	_cleanup, testItems, err := setup(ctx)
+	if err != nil {
+		t.Fatalf("error setting up test: %v", err)
+	}
+	defer _cleanup()
+
+	channel := testItems.mb.Subscribe(bus.FETCHER)
+
+	//first deactivate before activate
+	_, err = PostRequest[adapter.AdapterModel](testItems.app, "/api/v1/adapter/deactivate/"+strconv.FormatInt(*testItems.tempData.adapter.Id, 10), nil)
+	if err != nil {
+		t.Fatalf("error deactivating adapter: %v", err)
+	}
+	<-channel
+
+	// activate
+	activateResult, err := PostRequest[adapter.AdapterModel](testItems.app, "/api/v1/adapter/activate/"+strconv.FormatInt(*testItems.tempData.adapter.Id, 10), nil)
+	if err != nil {
+		t.Fatalf("error activating adapter: %v", err)
+	}
+	assert.True(t, activateResult.Active)
+
+	select {
+	case msg := <-channel:
+		if msg.From != bus.ADMIN || msg.To != bus.FETCHER || msg.Content.Command != bus.ACTIVATE_ADAPTER {
+			t.Errorf("Message did not match expected. Got %v", msg)
+		}
+	default:
+		t.Errorf("No message received on channel")
+	}
 }
