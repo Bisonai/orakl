@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"bisonai.com/orakl/node/pkg/admin/adapter"
+	"bisonai.com/orakl/node/pkg/bus"
 	"bisonai.com/orakl/node/pkg/db"
 	"github.com/stretchr/testify/assert"
 )
@@ -137,7 +138,7 @@ func TestAdapterDeactivate(t *testing.T) {
 	}
 	defer _cleanup()
 
-	channel := testItems.mb.Subscribe("fetcher", 10)
+	channel := testItems.mb.Subscribe(bus.FETCHER)
 
 	deactivateResult, err := PostRequest[adapter.AdapterModel](testItems.app, "/api/v1/adapter/deactivate/"+strconv.FormatInt(*testItems.tempData.adapter.Id, 10), nil)
 	if err != nil {
@@ -147,7 +148,7 @@ func TestAdapterDeactivate(t *testing.T) {
 
 	select {
 	case msg := <-channel:
-		if msg.From != "admin" || msg.To != "fetcher" || msg.Content.Command != "deactivate" {
+		if msg.From != bus.ADMIN || msg.To != bus.FETCHER || msg.Content.Command != bus.DEACTIVATE_ADAPTER {
 			t.Errorf("Message did not match expected. Got %v", msg)
 		}
 	default:
@@ -163,7 +164,7 @@ func TestAdapterActivate(t *testing.T) {
 	}
 	defer _cleanup()
 
-	channel := testItems.mb.Subscribe("fetcher", 10)
+	channel := testItems.mb.Subscribe(bus.FETCHER)
 
 	//first deactivate before activate
 	_, err = PostRequest[adapter.AdapterModel](testItems.app, "/api/v1/adapter/deactivate/"+strconv.FormatInt(*testItems.tempData.adapter.Id, 10), nil)
@@ -181,7 +182,7 @@ func TestAdapterActivate(t *testing.T) {
 
 	select {
 	case msg := <-channel:
-		if msg.From != "admin" || msg.To != "fetcher" || msg.Content.Command != "activate" {
+		if msg.From != bus.ADMIN || msg.To != bus.FETCHER || msg.Content.Command != bus.ACTIVATE_ADAPTER {
 			t.Errorf("Message did not match expected. Got %v", msg)
 		}
 	default:

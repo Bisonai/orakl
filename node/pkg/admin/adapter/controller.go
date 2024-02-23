@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 
 	"bisonai.com/orakl/node/pkg/admin/utils"
+	"bisonai.com/orakl/node/pkg/bus"
 	"bisonai.com/orakl/node/pkg/db"
 	"github.com/go-playground/validator"
 	"github.com/gofiber/fiber/v2"
@@ -121,7 +122,7 @@ func activate(c *fiber.Ctx) error {
 		panic(err)
 	}
 
-	err = utils.SendMessage(c, "fetcher", "activate", map[string]any{"id": id})
+	err = utils.SendMessage(c, bus.FETCHER, bus.ACTIVATE_ADAPTER, map[string]any{"id": id})
 	if err != nil {
 		panic(err)
 	}
@@ -136,7 +137,7 @@ func deactivate(c *fiber.Ctx) error {
 		panic(err)
 	}
 
-	err = utils.SendMessage(c, "fetcher", "deactivate", map[string]any{"id": id})
+	err = utils.SendMessage(c, bus.FETCHER, bus.DEACTIVATE_ADAPTER, map[string]any{"id": id})
 	if err != nil {
 		panic(err)
 	}

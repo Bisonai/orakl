@@ -14,17 +14,19 @@ type MessageContent struct {
 }
 
 type MessageBus struct {
-	channels map[string]chan Message
+	channels  map[string]chan Message
+	msgBuffer int
 }
 
-func NewMessageBus() *MessageBus {
+func New(bufferSize int) *MessageBus {
 	return &MessageBus{
-		channels: make(map[string]chan Message),
+		channels:  make(map[string]chan Message),
+		msgBuffer: bufferSize,
 	}
 }
 
-func (mb *MessageBus) Subscribe(id string, buffer int) <-chan Message {
-	ch := make(chan Message, buffer)
+func (mb *MessageBus) Subscribe(id string) <-chan Message {
+	ch := make(chan Message, mb.msgBuffer)
 	mb.channels[id] = ch
 	return ch
 }

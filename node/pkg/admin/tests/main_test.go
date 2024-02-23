@@ -28,7 +28,7 @@ type TempData struct {
 func setup(ctx context.Context) (func() error, *TestItems, error) {
 	var testItems = new(TestItems)
 
-	mb := bus.NewMessageBus()
+	mb := bus.New(10)
 	testItems.mb = mb
 
 	app, err := utils.Setup(utils.SetupInfo{

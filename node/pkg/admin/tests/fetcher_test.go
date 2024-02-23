@@ -5,6 +5,7 @@ import (
 	"context"
 	"testing"
 
+	"bisonai.com/orakl/node/pkg/bus"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -16,7 +17,7 @@ func TestFetcherStart(t *testing.T) {
 	}
 	defer _cleanup()
 
-	channel := testItems.mb.Subscribe("fetcher", 10)
+	channel := testItems.mb.Subscribe(bus.FETCHER)
 
 	result, err := RawPostRequest(testItems.app, "/api/v1/fetcher/start", nil)
 	if err != nil {
@@ -27,7 +28,7 @@ func TestFetcherStart(t *testing.T) {
 
 	select {
 	case msg := <-channel:
-		if msg.From != "admin" || msg.To != "fetcher" || msg.Content.Command != "start" {
+		if msg.From != bus.ADMIN || msg.To != bus.FETCHER || msg.Content.Command != bus.START_FETCHER {
 			t.Fatalf("unexpected message: %v", msg)
 		}
 	default:
@@ -43,7 +44,7 @@ func TestFetcherStop(t *testing.T) {
 	}
 	defer _cleanup()
 
-	channel := testItems.mb.Subscribe("fetcher", 10)
+	channel := testItems.mb.Subscribe(bus.FETCHER)
 
 	result, err := RawPostRequest(testItems.app, "/api/v1/fetcher/stop", nil)
 	if err != nil {
@@ -54,7 +55,7 @@ func TestFetcherStop(t *testing.T) {
 
 	select {
 	case msg := <-channel:
-		if msg.From != "admin" || msg.To != "fetcher" || msg.Content.Command != "stop" {
+		if msg.From != bus.ADMIN || msg.To != bus.FETCHER || msg.Content.Command != bus.STOP_FETCHER {
 			t.Fatalf("unexpected message: %v", msg)
 		}
 	default:
@@ -70,7 +71,7 @@ func TestFetcherRefresh(t *testing.T) {
 	}
 	defer _cleanup()
 
-	channel := testItems.mb.Subscribe("fetcher", 10)
+	channel := testItems.mb.Subscribe(bus.FETCHER)
 
 	result, err := RawPostRequest(testItems.app, "/api/v1/fetcher/refresh", nil)
 	if err != nil {
@@ -81,7 +82,7 @@ func TestFetcherRefresh(t *testing.T) {
 
 	select {
 	case msg := <-channel:
-		if msg.From != "admin" || msg.To != "fetcher" || msg.Content.Command != "refresh" {
+		if msg.From != bus.ADMIN || msg.To != bus.FETCHER || msg.Content.Command != bus.REFRESH_FETCHER {
 			t.Fatalf("unexpected message: %v", msg)
 		}
 	default:

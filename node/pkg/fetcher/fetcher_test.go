@@ -25,7 +25,7 @@ func TestFetcherInitialize(t *testing.T) {
 	defer admin.Shutdown()
 	defer cleanup()
 
-	b := bus.NewMessageBus()
+	b := bus.New(10)
 	fetcher := New(b)
 	fetcher.initialize(ctx)
 	assert.Greater(t, len(fetcher.Adapters), 0)
@@ -46,7 +46,7 @@ func TestFetcherFetch(t *testing.T) {
 	defer admin.Shutdown()
 	defer cleanup()
 
-	b := bus.NewMessageBus()
+	b := bus.New(10)
 	fetcher := New(b)
 	fetcher.initialize(ctx)
 	result, err := fetcher.fetch(fetcher.Adapters[0])
@@ -70,7 +70,7 @@ func TestFetcherRunAdapter(t *testing.T) {
 	defer admin.Shutdown()
 	defer cleanup()
 
-	b := bus.NewMessageBus()
+	b := bus.New(10)
 	fetcher := New(b)
 	fetcher.initialize(ctx)
 

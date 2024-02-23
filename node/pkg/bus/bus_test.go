@@ -5,10 +5,10 @@ import (
 )
 
 func TestSubscribeAndPublish(t *testing.T) {
-	mb := NewMessageBus()
+	mb := New(10)
 
 	// Test Subscribe
-	channel := mb.Subscribe("test", 10)
+	channel := mb.Subscribe("test")
 
 	// Test Publish
 	mb.Publish(Message{

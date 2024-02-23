@@ -333,7 +333,7 @@ var sampleData = []string{`{
   }`}
 
 func setup() (*fiber.App, error) {
-	mb := bus.NewMessageBus()
+	mb := bus.New(10)
 
 	app, err := utils.Setup(utils.SetupInfo{
 		Version: "",

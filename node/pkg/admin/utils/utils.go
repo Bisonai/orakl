@@ -104,7 +104,7 @@ func SendMessage(c *fiber.Ctx, to string, command string, args map[string]interf
 		return errors.New("bus is not found, failed to message fetcher")
 	}
 	msg := bus.Message{
-		From: "admin",
+		From: bus.ADMIN,
 		To:   to,
 		Content: bus.MessageContent{
 			Command: command,
