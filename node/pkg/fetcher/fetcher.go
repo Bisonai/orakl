@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"math/rand"
 	"time"
 
 	"bisonai.com/orakl/node/pkg/bus"
@@ -26,45 +27,43 @@ func (f *Fetcher) Run(ctx context.Context) error {
 		return err
 	}
 
-	ticker := time.NewTicker(FETCHER_FREQUENCY)
-	go func() {
-		for range ticker.C {
-			err := f.fetchAll(ctx)
-			if err != nil {
-				fmt.Println(err)
-			}
-		}
-	}()
+	for _, adapter := range f.Adapters {
+		go f.runAdapter(ctx, adapter)
+		// 100 ~ 400 ms delay between launching each adapters
+		time.Sleep(time.Millisecond * time.Duration(rand.Intn(300)+100))
+	}
 
 	return nil
 }
 
-func (f *Fetcher) fetchAll(ctx context.Context) error {
-	iterationDuration := FETCHER_FREQUENCY / time.Duration(len(f.Adapters))
-	for _, adapter := range f.Adapters {
-		start := time.Now()
+func (f *Fetcher) runAdapter(ctx context.Context, adapter AdapterDetail) {
+	ticker := time.NewTicker(FETCHER_FREQUENCY)
+	defer ticker.Stop()
 
-		results, err := f.fetch(adapter)
+	for range ticker.C {
+		err := f.fetchAndInsert(ctx, adapter)
 		if err != nil {
-			return err
+			fmt.Println(err)
 		}
-		aggregated, err := utils.GetFloatAvg(results)
-		if err != nil {
-			return err
-		}
-		err = f.insertPgsql(ctx, adapter.Name, aggregated)
-		if err != nil {
-			return err
-		}
-		err = f.insertRdb(ctx, adapter.Name, aggregated)
-		if err != nil {
-			return err
-		}
+	}
+}
 
-		elapsed := time.Since(start)
-		if elapsed < iterationDuration {
-			time.Sleep(iterationDuration - elapsed)
-		}
+func (f *Fetcher) fetchAndInsert(ctx context.Context, adapter AdapterDetail) error {
+	results, err := f.fetch(adapter)
+	if err != nil {
+		return err
+	}
+	aggregated, err := utils.GetFloatAvg(results)
+	if err != nil {
+		return err
+	}
+	err = f.insertPgsql(ctx, adapter.Name, aggregated)
+	if err != nil {
+		return err
+	}
+	err = f.insertRdb(ctx, adapter.Name, aggregated)
+	if err != nil {
+		return err
 	}
 	return nil
 }
