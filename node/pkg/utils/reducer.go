@@ -40,7 +40,7 @@ func reduce(raw interface{}, reducer Reducer) (interface{}, error) {
 		}
 
 		return castedRaw[int(index)], nil
-	case "PARSE", "PATH":
+	case "PARSE":
 		args, ok := reducer.Args.([]interface{})
 		if !ok {
 			return nil, fmt.Errorf("cannot cast reducer.Args to []interface{}")
@@ -102,7 +102,7 @@ func reduce(raw interface{}, reducer Reducer) (interface{}, error) {
 			return nil, fmt.Errorf("cannot divide by zero")
 		}
 		return castedRaw / arg, nil
-	case "DIVFROM", "RECIPROCAL_DIV":
+	case "DIVFROM":
 		castedRaw, err := tryParseFloat(raw)
 		if err != nil {
 			return nil, err
