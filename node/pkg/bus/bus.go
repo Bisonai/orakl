@@ -5,7 +5,12 @@ package bus
 type Message struct {
 	From    string
 	To      string
-	Content interface{}
+	Content MessageContent
+}
+
+type MessageContent struct {
+	Command string
+	Args    map[string]any
 }
 
 type MessageBus struct {

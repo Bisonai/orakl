@@ -5,21 +5,24 @@ import (
 )
 
 func TestSubscribeAndPublish(t *testing.T) {
-	bus := NewMessageBus()
+	mb := NewMessageBus()
 
 	// Test Subscribe
-	channel := bus.Subscribe("test", 10)
+	channel := mb.Subscribe("test", 10)
 
 	// Test Publish
-	bus.Publish(Message{
-		From:    "testFrom",
-		To:      "test",
-		Content: "testContent",
+	mb.Publish(Message{
+		From: "testFrom",
+		To:   "test",
+		Content: MessageContent{
+			Command: "testCommand",
+			Args:    map[string]any{"testArg": "testArg"},
+		},
 	})
 
 	select {
 	case msg := <-channel:
-		if msg.From != "testFrom" || msg.To != "test" || msg.Content.(string) != "testContent" {
+		if msg.From != "testFrom" || msg.To != "test" || msg.Content.Command != "testCommand" {
 			t.Errorf("Message did not match expected. Got %v", msg)
 		}
 	default:

@@ -12,4 +12,6 @@ func Routes(router fiber.Router) {
 	adapter.Get("/detail/:id", getDetailById)
 	adapter.Get("/:id", getById)
 	adapter.Delete("/:id", deleteById)
+	adapter.Post("/activate/:id", activate)
+	adapter.Post("/deactivate/:id", deactivate)
 }
