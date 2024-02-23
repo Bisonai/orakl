@@ -44,11 +44,11 @@ func (f *Fetcher) fetchAll(ctx context.Context) error {
 	for _, adapter := range f.Adapters {
 		start := time.Now()
 
-		result, err := f.fetch(adapter)
+		results, err := f.fetch(adapter)
 		if err != nil {
 			return err
 		}
-		aggregated, err := utils.GetFloatAvg(result)
+		aggregated, err := utils.GetFloatAvg(results)
 		if err != nil {
 			return err
 		}
