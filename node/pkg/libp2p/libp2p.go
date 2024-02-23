@@ -3,6 +3,7 @@ package libp2p
 import (
 	"context"
 	"crypto/rand"
+	"errors"
 	"fmt"
 
 	"strings"
@@ -92,14 +93,14 @@ func initDHT(ctx context.Context, h host.Host, bootstrap string) *dht.IpfsDHT {
 	for _, peerAddr := range bootstrapPeers {
 		peerinfo, err := peer.AddrInfoFromP2pAddr(peerAddr)
 		if err != nil {
-			log.Info().Err(err).Msg("Error getting AddrInfo from p2p address")
+			log.Debug().Err(err).Msg("Error getting AddrInfo from p2p address")
 			continue
 		}
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
 			if err := h.Connect(ctx, *peerinfo); err != nil {
-				log.Info().Err(err).Msg("Bootstrap warning")
+				log.Debug().Err(err).Msg("Bootstrap warning")
 			}
 		}()
 	}
@@ -108,7 +109,7 @@ func initDHT(ctx context.Context, h host.Host, bootstrap string) *dht.IpfsDHT {
 	return kademliaDHT
 }
 
-func DiscoverPeers(ctx context.Context, h host.Host, topicName string, bootstrap string) {
+func DiscoverPeers(ctx context.Context, h host.Host, topicName string, bootstrap string) error {
 	kademliaDHT := initDHT(ctx, h, bootstrap)
 	routingDiscovery := drouting.NewRoutingDiscovery(kademliaDHT)
 	dutil.Advertise(ctx, routingDiscovery, topicName)
@@ -120,7 +121,7 @@ func DiscoverPeers(ctx context.Context, h host.Host, topicName string, bootstrap
 		log.Debug().Msg("Searching for peers...")
 		peerChan, err := routingDiscovery.FindPeers(ctx, topicName)
 		if err != nil {
-			panic(err)
+			return err
 		}
 		for p := range peerChan {
 			if p.ID == h.ID() {
@@ -141,5 +142,9 @@ func DiscoverPeers(ctx context.Context, h host.Host, topicName string, bootstrap
 		}
 	}
 	wg.Wait()
+	if !anyConnected {
+		return errors.New("no peers connected")
+	}
 	log.Debug().Msg("Peer discovery complete")
+	return nil
 }

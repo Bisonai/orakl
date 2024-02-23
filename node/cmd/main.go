@@ -30,7 +30,11 @@ func main() {
 	}
 
 	log.Debug().Msg("establishing connection")
-	go libp2p.DiscoverPeers(context.Background(), h, discoverString, "")
+	go func() {
+		if err := libp2p.DiscoverPeers(context.Background(), h, discoverString, ""); err != nil {
+			log.Error().Err(err).Msg("Error from DiscoverPeers")
+		}
+	}()
 
 	aggregator, err := aggregator.NewAggregator(h, ps, "orakl-aggregator-2024-gazuaa")
 	if err != nil {

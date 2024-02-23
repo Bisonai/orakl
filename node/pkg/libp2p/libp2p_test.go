@@ -1,12 +1,11 @@
+//nolint:all
 package libp2p
 
 import (
-	"bytes"
 	"context"
-	"log"
-	"os"
-	"strings"
 	"testing"
+
+	"github.com/rs/zerolog"
 )
 
 func TestMakeHost(t *testing.T) {
@@ -38,12 +37,7 @@ func TestInitDHT(t *testing.T) {
 }
 
 func TestDiscoverPeers(t *testing.T) {
-	var buf bytes.Buffer
-	log.SetOutput(&buf)
-	defer func() {
-		log.SetOutput(os.Stderr)
-	}()
-
+	zerolog.SetGlobalLevel(zerolog.InfoLevel)
 	h1, _ := MakeHost(10001)
 	h2, _ := MakeHost(10002)
 
@@ -51,10 +45,9 @@ func TestDiscoverPeers(t *testing.T) {
 	defer h2.Close()
 
 	go DiscoverPeers(context.Background(), h1, "test-discover-peers", h2.Addrs()[0].String())
-	DiscoverPeers(context.Background(), h2, "test-discover-peers", h1.Addrs()[0].String())
+	err := DiscoverPeers(context.Background(), h2, "test-discover-peers", h1.Addrs()[0].String())
 
-	str := buf.String()
-	if !strings.Contains(str, "Peer discovery complete") {
-		t.Errorf("Expected 'Peer discovery complete' but it was not found")
+	if err != nil {
+		t.Errorf("Failed to discover peers: %v", err)
 	}
 }
