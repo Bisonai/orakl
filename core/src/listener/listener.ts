@@ -242,7 +242,7 @@ function latestJob({
         }
         logger.info(logPrefix)
       } else {
-        logger.info(`${logPrefix} noop`)
+        logger.debug(`${logPrefix} noop`)
       }
     } catch (e) {
       // Querying the latest events or passing data to [process] queue
