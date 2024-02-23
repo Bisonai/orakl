@@ -29,19 +29,16 @@ func GetRedisConn(ctx context.Context) (*redis.Conn, error) {
 
 func getRedisConn(ctx context.Context, once *sync.Once) (*redis.Conn, error) {
 	var err error
-	once.Do(func() {
-		rdb, err = connectRdb(ctx)
-	})
-	return rdb, err
 
-}
-
-func connectRdb(ctx context.Context) (*redis.Conn, error) {
 	connectionInfo, err := loadRedisConnectionString()
 	if err != nil {
 		return nil, err
 	}
-	return connectToRedis(ctx, connectionInfo)
+
+	once.Do(func() {
+		rdb, err = connectToRedis(ctx, connectionInfo)
+	})
+	return rdb, err
 
 }
 

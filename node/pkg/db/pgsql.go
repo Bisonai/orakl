@@ -24,14 +24,17 @@ func GetPool(ctx context.Context) (*pgxpool.Pool, error) {
 
 func getPool(ctx context.Context, once *sync.Once) (*pgxpool.Pool, error) {
 	var err error
+
+	connectionString := loadPgsqlConnectionString()
+	if connectionString == "" {
+		err = errors.New("DATABASE_URL is not set")
+		return nil, err
+	}
+
 	once.Do(func() {
-		connectionString := loadPgsqlConnectionString()
-		if connectionString == "" {
-			err = errors.New("DATABASE_URL is not set")
-			return
-		}
 		pool, err = connectToPgsql(ctx, connectionString)
 	})
+
 	return pool, err
 }
 
