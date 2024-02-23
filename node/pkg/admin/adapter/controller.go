@@ -121,7 +121,10 @@ func activate(c *fiber.Ctx) error {
 		panic(err)
 	}
 
-	utils.SendMessage(c, "fetcher", "activate", map[string]any{"id": id})
+	err = utils.SendMessage(c, "fetcher", "activate", map[string]any{"id": id})
+	if err != nil {
+		panic(err)
+	}
 
 	return c.JSON(result)
 }
@@ -133,7 +136,10 @@ func deactivate(c *fiber.Ctx) error {
 		panic(err)
 	}
 
-	utils.SendMessage(c, "fetcher", "deactivate", map[string]any{"id": id})
+	err = utils.SendMessage(c, "fetcher", "deactivate", map[string]any{"id": id})
+	if err != nil {
+		panic(err)
+	}
 
 	return c.JSON(result)
 }

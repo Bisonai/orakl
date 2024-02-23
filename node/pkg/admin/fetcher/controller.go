@@ -6,16 +6,25 @@ import (
 )
 
 func start(c *fiber.Ctx) error {
-	utils.SendMessage(c, "fetcher", "start", nil)
+	err := utils.SendMessage(c, "fetcher", "start", nil)
+	if err != nil {
+		panic(err)
+	}
 	return c.SendString("fetcher started")
 }
 
 func stop(c *fiber.Ctx) error {
-	utils.SendMessage(c, "fetcher", "stop", nil)
+	err := utils.SendMessage(c, "fetcher", "stop", nil)
+	if err != nil {
+		panic(err)
+	}
 	return c.SendString("fetcher stopped")
 }
 
 func refresh(c *fiber.Ctx) error {
-	utils.SendMessage(c, "fetcher", "refresh", nil)
+	err := utils.SendMessage(c, "fetcher", "refresh", nil)
+	if err != nil {
+		panic(err)
+	}
 	return c.SendString("fetcher refreshed")
 }
