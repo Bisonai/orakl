@@ -3,10 +3,11 @@ package tests
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"io"
 	"net/http"
 	"net/url"
+
+	"github.com/rs/zerolog/log"
 
 	"github.com/gofiber/fiber/v2"
 )
@@ -16,13 +17,13 @@ func req[T any](app *fiber.App, method string, endpoint string, requestBody inte
 
 	resultBody, err := rawReq(app, method, endpoint, requestBody)
 	if err != nil {
-		fmt.Println("failed to raw request:", err)
+		log.Info().Err(err).Msg("failed to raw request")
 		return result, err
 	}
 
 	err = json.Unmarshal(resultBody, &result)
 	if err != nil {
-		fmt.Println("failed Unmarshal result body:" + string(resultBody))
+		log.Info().Err(err).Msg("failed Unmarshal result body:" + string(resultBody))
 		return result, err
 	}
 
@@ -36,7 +37,7 @@ func rawReq(app *fiber.App, method string, endpoint string, requestBody interfac
 	if requestBody != nil {
 		marshalledData, err := json.Marshal(requestBody)
 		if err != nil {
-			fmt.Println("failed to marshal request body")
+			log.Info().Err(err).Msg("failed to marshal request body")
 			return result, err
 		}
 		body = bytes.NewReader(marshalledData)
@@ -50,19 +51,18 @@ func rawReq(app *fiber.App, method string, endpoint string, requestBody interfac
 
 	req.Header.Set("Content-Type", "application/json")
 	if err != nil {
-		fmt.Println("failed to create request")
+		log.Info().Err(err).Msg("failed to create request")
 		return result, err
 	}
 	res, err := app.Test(req, -1)
 	if err != nil {
-		fmt.Println("failed to call test")
-		fmt.Println(err)
+		log.Info().Err(err).Msg("failed to call test")
 		return result, err
 	}
 
 	resultBody, err := io.ReadAll(res.Body)
 	if err != nil {
-		fmt.Println("failed to read result body:" + string(resultBody))
+		log.Info().Err(err).Str("resultBody", string(resultBody)).Msg("failed to read response body")
 		return result, err
 	}
 
@@ -96,7 +96,7 @@ func UrlRequest[T any](urlEndpoint string, method string, requestBody interface{
 	if requestBody != nil {
 		marshalledData, err := json.Marshal(requestBody)
 		if err != nil {
-			fmt.Println("failed to marshal request body")
+			log.Info().Err(err).Msg("failed to marshal request body")
 			return result, err
 		}
 		body = bytes.NewReader(marshalledData)
@@ -104,7 +104,7 @@ func UrlRequest[T any](urlEndpoint string, method string, requestBody interface{
 
 	url, err := url.Parse(urlEndpoint)
 	if err != nil {
-		fmt.Println("Error parsing URL:", err)
+		log.Info().Err(err).Msg("failed to parse url")
 		return result, err
 	}
 
@@ -116,25 +116,25 @@ func UrlRequest[T any](urlEndpoint string, method string, requestBody interface{
 
 	req.Header.Set("Content-Type", "application/json")
 	if err != nil {
-		fmt.Println("failed to create request")
+		log.Info().Err(err).Msg("failed to create request")
 		return result, err
 	}
 
 	response, err := http.DefaultClient.Do(req)
 	if err != nil {
-		fmt.Println(url.String())
-		fmt.Println("Error making POST request:", err)
+		log.Info().Err(err).Str("url", url.String()).Msg("failed to make request")
 		return result, err
 	}
 	resultBody, err := io.ReadAll(response.Body)
 	if err != nil {
-		fmt.Println("Error reading response body:", err)
+		log.Info().Err(err).Msg("failed to read response body")
 		return result, err
 	}
 
 	err = json.Unmarshal(resultBody, &result)
 	if err != nil {
-		fmt.Println("failed Unmarshal result body:" + string(resultBody))
+		log.Info().Err(err).Str("resultBody", string(resultBody)).Msg("failed Unmarshal result body")
+
 		return result, err
 	}
 

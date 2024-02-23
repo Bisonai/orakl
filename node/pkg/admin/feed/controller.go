@@ -17,7 +17,7 @@ type FeedModel struct {
 func get(c *fiber.Ctx) error {
 	results, err := db.QueryRows[FeedModel](c.Context(), GetFeed, nil)
 	if err != nil {
-		panic(err)
+		return c.Status(fiber.StatusInternalServerError).SendString("failed to execute feed get query: " + err.Error())
 	}
 
 	return c.JSON(results)
@@ -27,7 +27,7 @@ func getById(c *fiber.Ctx) error {
 	id := c.Params("id")
 	result, err := db.QueryRow[FeedModel](c.Context(), GetFeedById, map[string]any{"id": id})
 	if err != nil {
-		panic(err)
+		return c.Status(fiber.StatusInternalServerError).SendString("failed to execute feed get by id query: " + err.Error())
 	}
 	return c.JSON(result)
 }
@@ -36,7 +36,7 @@ func getByAdpaterId(c *fiber.Ctx) error {
 	id := c.Params("id")
 	results, err := db.QueryRows[FeedModel](c.Context(), GetFeedsByAdapterId, map[string]any{"adapter_id": id})
 	if err != nil {
-		panic(err)
+		return c.Status(fiber.StatusInternalServerError).SendString("failed to execute feed get by adapter id query: " + err.Error())
 	}
 	return c.JSON(results)
 }

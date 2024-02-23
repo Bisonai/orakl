@@ -3,7 +3,7 @@ package aggregator
 import (
 	"context"
 	"encoding/json"
-	"log"
+
 	"strconv"
 	"sync"
 	"time"
@@ -12,6 +12,7 @@ import (
 	"bisonai.com/orakl/node/pkg/utils"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 	"github.com/libp2p/go-libp2p/core/host"
+	"github.com/rs/zerolog/log"
 )
 
 const RoundSync raft.MessageType = "roundSync"
@@ -203,7 +204,7 @@ func (a *Aggregator) HandlePriceDataMessage(msg raft.Message) error {
 		median := utils.FindMedian(a.CollectedPrices[priceDataMessage.RoundID])
 		roundID := strconv.Itoa(priceDataMessage.RoundID)
 		aggregate := strconv.Itoa(median)
-		log.Println("Aggregate for round:", roundID, "is:", aggregate)
+		log.Debug().Msg("Aggregate for round: " + roundID + " is: " + aggregate)
 		delete(a.CollectedPrices, priceDataMessage.RoundID)
 	}
 	return nil

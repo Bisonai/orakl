@@ -3,7 +3,8 @@ package main
 import (
 	"context"
 	"flag"
-	"log"
+
+	"github.com/rs/zerolog/log"
 
 	"bisonai.com/orakl/node/pkg/aggregator"
 	"bisonai.com/orakl/node/pkg/libp2p"
@@ -15,25 +16,25 @@ func main() {
 
 	flag.Parse()
 	if *port == 0 {
-		log.Fatal("Please provide a port to bind on with -p")
+		log.Fatal().Msg("Please provide a port to bind on with -p")
 	}
 
 	h, err := libp2p.MakeHost(*port)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal().Err(err).Msg("Failed to create libp2p host")
 	}
 
 	ps, err := libp2p.MakePubsub(context.Background(), h)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal().Err(err).Msg("Failed to create pubsub")
 	}
 
-	log.Println("establishing connection")
+	log.Debug().Msg("establishing connection")
 	go libp2p.DiscoverPeers(context.Background(), h, discoverString, "")
 
 	aggregator, err := aggregator.NewAggregator(h, ps, "orakl-aggregator-2024-gazuaa")
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal().Err(err).Msg("Failed to create aggregator")
 	}
 	aggregator.Run(context.Background())
 }
