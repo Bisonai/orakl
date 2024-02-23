@@ -240,9 +240,9 @@ function latestJob({
             ...LISTENER_JOB_SETTINGS
           })
         }
-        logger.info(logPrefix)
+        logger.debug(logPrefix)
       } else {
-        logger.info(`${logPrefix} noop`)
+        logger.debug(`${logPrefix} noop`)
       }
     } catch (e) {
       // Querying the latest events or passing data to [process] queue
@@ -301,7 +301,7 @@ function historyJob({
       throw e
     }
 
-    logger.info(`${logPrefix} hist`)
+    logger.debug(`${logPrefix} hist`)
 
     for (const [index, event] of events.entries()) {
       const outData: IProcessEventListenerJob = {
