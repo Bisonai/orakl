@@ -12,29 +12,29 @@ import (
 )
 
 func TestAdapterInsert(t *testing.T) {
-	app, err := setup()
+	ctx := context.Background()
+	_cleanup, testItems, err := setup(ctx)
 	if err != nil {
 		t.Fatalf("error setting up test: %v", err)
 	}
-	defer cleanup()
-	defer app.Shutdown()
+	defer _cleanup()
 
 	mockAdapter1 := adapter.AdapterInsertModel{
 		Name: "test_adapter_2",
 	}
 
-	readResultBefore, err := GetRequest[[]adapter.AdapterModel](app, "/api/v1/adapter", nil)
+	readResultBefore, err := GetRequest[[]adapter.AdapterModel](testItems.app, "/api/v1/adapter", nil)
 	if err != nil {
 		t.Fatalf("error getting adapters before: %v", err)
 	}
 
-	insertResult, err := PostRequest[adapter.AdapterModel](app, "/api/v1/adapter", mockAdapter1)
+	insertResult, err := PostRequest[adapter.AdapterModel](testItems.app, "/api/v1/adapter", mockAdapter1)
 	if err != nil {
 		t.Fatalf("error inserting adapter: %v", err)
 	}
 	assert.Equal(t, insertResult.Name, mockAdapter1.Name)
 
-	readResultAfter, err := GetRequest[[]adapter.AdapterModel](app, "/api/v1/adapter", nil)
+	readResultAfter, err := GetRequest[[]adapter.AdapterModel](testItems.app, "/api/v1/adapter", nil)
 	if err != nil {
 		t.Fatalf("error getting adapters after: %v", err)
 	}
@@ -49,14 +49,14 @@ func TestAdapterInsert(t *testing.T) {
 }
 
 func TestAdapterGet(t *testing.T) {
-	app, err := setup()
+	ctx := context.Background()
+	_cleanup, testItems, err := setup(ctx)
 	if err != nil {
 		t.Fatalf("error setting up test: %v", err)
 	}
-	defer cleanup()
-	defer app.Shutdown()
+	defer _cleanup()
 
-	readResult, err := GetRequest[[]adapter.AdapterModel](app, "/api/v1/adapter", nil)
+	readResult, err := GetRequest[[]adapter.AdapterModel](testItems.app, "/api/v1/adapter", nil)
 	if err != nil {
 		t.Fatalf("error getting adapters: %v", err)
 	}
@@ -64,64 +64,64 @@ func TestAdapterGet(t *testing.T) {
 }
 
 func TestAdapterReadDetailById(t *testing.T) {
-	app, err := setup()
+	ctx := context.Background()
+	_cleanup, testItems, err := setup(ctx)
 	if err != nil {
 		t.Fatalf("error setting up test: %v", err)
 	}
-	defer cleanup()
-	defer app.Shutdown()
+	defer _cleanup()
 
-	readResult, err := GetRequest[adapter.AdapterDetailModel](app, "/api/v1/adapter/detail/"+strconv.FormatInt(*insertedAdapter.Id, 10), nil)
+	readResult, err := GetRequest[adapter.AdapterDetailModel](testItems.app, "/api/v1/adapter/detail/"+strconv.FormatInt(*testItems.tempData.adapter.Id, 10), nil)
 	if err != nil {
 		t.Fatalf("error getting adapter detail: %v", err)
 	}
-	assert.Equal(t, readResult.Id, insertedAdapter.Id)
+	assert.Equal(t, readResult.Id, testItems.tempData.adapter.Id)
 	assert.NotEmpty(t, readResult.Feeds)
 }
 
 func TestAdapterGetById(t *testing.T) {
-	app, err := setup()
+	ctx := context.Background()
+	_cleanup, testItems, err := setup(ctx)
 	if err != nil {
 		t.Fatalf("error setting up test: %v", err)
 	}
-	defer cleanup()
-	defer app.Shutdown()
+	defer _cleanup()
 
-	readResult, err := GetRequest[adapter.AdapterModel](app, "/api/v1/adapter/"+strconv.FormatInt(*insertedAdapter.Id, 10), nil)
+	readResult, err := GetRequest[adapter.AdapterModel](testItems.app, "/api/v1/adapter/"+strconv.FormatInt(*testItems.tempData.adapter.Id, 10), nil)
 	if err != nil {
 		t.Fatalf("error getting adapter by id: %v", err)
 	}
-	assert.Equal(t, readResult.Id, insertedAdapter.Id)
+	assert.Equal(t, readResult.Id, testItems.tempData.adapter.Id)
 }
 
 func TestAdapterDeleteById(t *testing.T) {
-	app, err := setup()
+	ctx := context.Background()
+	_cleanup, testItems, err := setup(ctx)
 	if err != nil {
 		t.Fatalf("error setting up test: %v", err)
 	}
-	defer cleanup()
-	defer app.Shutdown()
+	defer _cleanup()
 
 	mockAdapter1 := adapter.AdapterInsertModel{
 		Name: "test_adapter_2",
 	}
-	insertResult, err := PostRequest[adapter.AdapterModel](app, "/api/v1/adapter", mockAdapter1)
+	insertResult, err := PostRequest[adapter.AdapterModel](testItems.app, "/api/v1/adapter", mockAdapter1)
 	if err != nil {
 		t.Fatalf("error inserting adapter: %v", err)
 	}
 
-	readResultBefore, err := GetRequest[[]adapter.AdapterModel](app, "/api/v1/adapter", nil)
+	readResultBefore, err := GetRequest[[]adapter.AdapterModel](testItems.app, "/api/v1/adapter", nil)
 	if err != nil {
 		t.Fatalf("error getting adapters before: %v", err)
 	}
 
-	deleteResult, err := DeleteRequest[adapter.AdapterModel](app, "/api/v1/adapter/"+strconv.FormatInt(*insertResult.Id, 10), nil)
+	deleteResult, err := DeleteRequest[adapter.AdapterModel](testItems.app, "/api/v1/adapter/"+strconv.FormatInt(*insertResult.Id, 10), nil)
 	if err != nil {
 		t.Fatalf("error deleting adapter: %v", err)
 	}
 	assert.Equal(t, deleteResult.Id, insertResult.Id)
 
-	readResultAfter, err := GetRequest[[]adapter.AdapterModel](app, "/api/v1/adapter", nil)
+	readResultAfter, err := GetRequest[[]adapter.AdapterModel](testItems.app, "/api/v1/adapter", nil)
 	if err != nil {
 		t.Fatalf("error getting adapters after: %v", err)
 	}

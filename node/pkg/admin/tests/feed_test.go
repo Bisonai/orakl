@@ -2,6 +2,7 @@
 package tests
 
 import (
+	"context"
 	"strconv"
 	"testing"
 
@@ -10,14 +11,14 @@ import (
 )
 
 func TestFeedGet(t *testing.T) {
-	app, err := setup()
+	ctx := context.Background()
+	_cleanup, testItems, err := setup(ctx)
 	if err != nil {
 		t.Fatalf("error setting up test: %v", err)
 	}
-	defer cleanup()
-	defer app.Shutdown()
+	defer _cleanup()
 
-	readResult, err := GetRequest[[]feed.FeedModel](app, "/api/v1/feed", nil)
+	readResult, err := GetRequest[[]feed.FeedModel](testItems.app, "/api/v1/feed", nil)
 	if err != nil {
 		t.Fatalf("error getting feeds: %v", err)
 	}
@@ -25,32 +26,32 @@ func TestFeedGet(t *testing.T) {
 }
 
 func TestFeedGetByAdapterId(t *testing.T) {
-	app, err := setup()
+	ctx := context.Background()
+	_cleanup, testItems, err := setup(ctx)
 	if err != nil {
 		t.Fatalf("error setting up test: %v", err)
 	}
-	defer cleanup()
-	defer app.Shutdown()
+	defer _cleanup()
 
-	readResult, err := GetRequest[[]feed.FeedModel](app, "/api/v1/feed/adapter/"+strconv.FormatInt(*insertedAdapter.Id, 10), nil)
+	readResult, err := GetRequest[[]feed.FeedModel](testItems.app, "/api/v1/feed/adapter/"+strconv.FormatInt(*testItems.tempData.adapter.Id, 10), nil)
 	if err != nil {
 		t.Fatalf("error getting feeds: %v", err)
 	}
 	assert.Greater(t, len(readResult), 0)
-	assert.Equal(t, insertedFeed.Id, readResult[0].Id)
+	assert.Equal(t, testItems.tempData.feed.Id, readResult[0].Id)
 }
 
 func TestFeedGetById(t *testing.T) {
-	app, err := setup()
+	ctx := context.Background()
+	_cleanup, testItems, err := setup(ctx)
 	if err != nil {
 		t.Fatalf("error setting up test: %v", err)
 	}
-	defer cleanup()
-	defer app.Shutdown()
+	defer _cleanup()
 
-	readResult, err := GetRequest[feed.FeedModel](app, "/api/v1/feed/"+strconv.FormatInt(*insertedFeed.Id, 10), nil)
+	readResult, err := GetRequest[feed.FeedModel](testItems.app, "/api/v1/feed/"+strconv.FormatInt(*testItems.tempData.feed.Id, 10), nil)
 	if err != nil {
 		t.Fatalf("error getting feeds: %v", err)
 	}
-	assert.Equal(t, insertedFeed.Id, readResult.Id)
+	assert.Equal(t, testItems.tempData.feed.Id, readResult.Id)
 }
