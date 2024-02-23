@@ -331,8 +331,6 @@ var sampleData = []string{`{
 	]
   }`}
 
-// var insertResult adapter.AdapterModel
-
 func setup() (*fiber.App, error) {
 	app, err := utils.Setup("")
 	if err != nil {

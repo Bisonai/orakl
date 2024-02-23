@@ -73,7 +73,7 @@ func TestFetcherRunAdapter(t *testing.T) {
 	b := bus.NewMessageBus()
 	fetcher := New(b)
 	fetcher.initialize(ctx)
-	// err = fetcher.fetchAll(ctx)
+
 	for _, adapter := range fetcher.Adapters {
 		fetcher.fetchAndInsert(ctx, adapter)
 	}
