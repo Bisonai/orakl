@@ -78,10 +78,9 @@ func cleanup(testItems *TestItems) func() error {
 }
 
 func TestMain(m *testing.M) {
-	// setup
 	code := m.Run()
 	db.ClosePool()
 	db.CloseRedis()
-	// teardown
+
 	os.Exit(code)
 }
