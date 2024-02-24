@@ -2,6 +2,7 @@ package adapter
 
 import (
 	"encoding/json"
+	"time"
 
 	"bisonai.com/orakl/node/pkg/admin/utils"
 	"bisonai.com/orakl/node/pkg/bus"
@@ -126,7 +127,8 @@ func activate(c *fiber.Ctx) error {
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).SendString("failed to send activate message to fetcher: " + err.Error())
 	}
-
+	// delay for message to be processed
+	time.Sleep(10 * time.Millisecond)
 	return c.JSON(result)
 }
 
@@ -141,6 +143,7 @@ func deactivate(c *fiber.Ctx) error {
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).SendString("failed to send deactivate message to fetcher: " + err.Error())
 	}
-
+	// delay for message to be processed
+	time.Sleep(10 * time.Millisecond)
 	return c.JSON(result)
 }
