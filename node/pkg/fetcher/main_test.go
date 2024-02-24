@@ -395,7 +395,10 @@ func cleanup(app *fiber.App, ctx context.Context, insertResult []adapter.Adapter
 			if err != nil {
 				return err
 			}
-			app.Shutdown()
+			err = app.Shutdown()
+			if err != nil {
+				return err
+			}
 		}
 		return nil
 	}

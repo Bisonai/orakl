@@ -86,7 +86,10 @@ func (f *Fetcher) handleMessage(ctx context.Context, msg bus.Message) {
 		}
 
 		log.Debug().Int64("adapterId", adapterId).Msg("activating adapter")
-		f.startAdapterById(ctx, adapterId)
+		err = f.startAdapterById(ctx, adapterId)
+		if err != nil {
+			log.Error().Err(err).Msg("failed to start adapter")
+		}
 	case bus.DEACTIVATE_ADAPTER:
 		log.Debug().Msg("deactivate adapter msg received")
 		adapterId, err := f.parseIdMsgParam(msg)
@@ -96,7 +99,10 @@ func (f *Fetcher) handleMessage(ctx context.Context, msg bus.Message) {
 		}
 
 		log.Debug().Int64("adapterId", adapterId).Msg("deactivating adapter")
-		f.stopAdapterById(ctx, adapterId)
+		err = f.stopAdapterById(ctx, adapterId)
+		if err != nil {
+			log.Error().Err(err).Msg("failed to stop adapter")
+		}
 	case bus.STOP_FETCHER:
 		// TODO: stop fetcher
 
