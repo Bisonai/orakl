@@ -19,7 +19,7 @@ const FETCHER_FREQUENCY = 2 * time.Second
 
 func New(bus *bus.MessageBus) *Fetcher {
 	return &Fetcher{
-		Adapters: make(map[int64]AdapterDetail, 0),
+		Adapters: make(map[int64]*AdapterDetail, 0),
 		Bus:      bus,
 	}
 }
@@ -33,7 +33,7 @@ func (f *Fetcher) Run(ctx context.Context) error {
 	f.subscribe(ctx)
 
 	for _, adapter := range f.Adapters {
-		err = f.startAdapter(ctx, &adapter)
+		err = f.startAdapter(ctx, adapter)
 		if err != nil {
 			log.Error().Err(err).Str("name", adapter.Name).Msg("failed to start adapter")
 		}
@@ -44,15 +44,23 @@ func (f *Fetcher) Run(ctx context.Context) error {
 }
 
 func (f *Fetcher) subscribe(ctx context.Context) {
+	log.Debug().Msg("fetcher subscribing to message bus")
 	channel := f.Bus.Subscribe(bus.FETCHER)
 	go func() {
+		log.Debug().Msg("fetcher message bus subscription goroutine started")
 		for {
-			msg, ok := <-channel
-			if !ok {
-				log.Debug().Msg("message bus channel closed")
+			select {
+			case msg := <-channel:
+				log.Debug().
+					Str("from", msg.From).
+					Str("to", msg.To).
+					Str("command", msg.Content.Command).
+					Msg("fetcher received message")
+				f.handleMessage(ctx, msg)
+			case <-ctx.Done():
+				log.Debug().Msg("fetcher message bus subscription goroutine stopped")
 				return
 			}
-			f.handleMessage(ctx, msg)
 		}
 	}()
 }
@@ -70,6 +78,7 @@ func (f *Fetcher) handleMessage(ctx context.Context, msg bus.Message) {
 
 	switch msg.Content.Command {
 	case bus.ACTIVATE_ADAPTER:
+		log.Debug().Msg("activate adapter msg received")
 		adapterId, err := f.parseIdMsgParam(msg)
 		if err != nil {
 			log.Error().Err(err).Msg("failed to parse adapterId")
@@ -79,6 +88,7 @@ func (f *Fetcher) handleMessage(ctx context.Context, msg bus.Message) {
 		log.Debug().Int64("adapterId", adapterId).Msg("activating adapter")
 		f.startAdapterById(ctx, adapterId)
 	case bus.DEACTIVATE_ADAPTER:
+		log.Debug().Msg("deactivate adapter msg received")
 		adapterId, err := f.parseIdMsgParam(msg)
 		if err != nil {
 			log.Error().Err(err).Msg("failed to parse adapterId")
@@ -113,12 +123,13 @@ func (f *Fetcher) startAdapter(ctx context.Context, adapter *AdapterDetail) erro
 	adapter.isRunning = true
 
 	ticker := time.NewTicker(FETCHER_FREQUENCY)
-	defer ticker.Stop()
 
 	go func() {
+		log.Debug().Str("adapter", adapter.Name).Msg("starting adapter goroutine")
 		for {
 			select {
 			case <-ticker.C:
+				log.Debug().Str("adapter", adapter.Name).Msg("fetching and inserting")
 				err := f.fetchAndInsert(adapterCtx, *adapter)
 				if err != nil {
 					log.Error().Err(err).Msg("failed to fetch and insert")
@@ -130,17 +141,19 @@ func (f *Fetcher) startAdapter(ctx context.Context, adapter *AdapterDetail) erro
 		}
 	}()
 
+	log.Debug().Str("adapter", adapter.Name).Msg("adapter started")
 	return nil
 }
 
 func (f *Fetcher) startAdapterById(ctx context.Context, adapterId int64) error {
 	if adapter, ok := f.Adapters[adapterId]; ok {
-		return f.startAdapter(ctx, &adapter)
+		return f.startAdapter(ctx, adapter)
 	}
 	return errors.New("adapter not found")
 }
 
 func (f *Fetcher) stopAdapter(ctx context.Context, adapter *AdapterDetail) error {
+	log.Debug().Str("adapter", adapter.Name).Msg("stopping adapter")
 	if !adapter.isRunning {
 		return errors.New("adapter already stopped")
 	}
@@ -154,28 +167,37 @@ func (f *Fetcher) stopAdapter(ctx context.Context, adapter *AdapterDetail) error
 
 func (f *Fetcher) stopAdapterById(ctx context.Context, adapterId int64) error {
 	if adapter, ok := f.Adapters[adapterId]; ok {
-		return f.stopAdapter(ctx, &adapter)
+		return f.stopAdapter(ctx, adapter)
 	}
 	return errors.New("adapter not found")
 }
 
 func (f *Fetcher) fetchAndInsert(ctx context.Context, adapter AdapterDetail) error {
+	log.Debug().Str("adapter", adapter.Name).Msg("fetching and inserting")
+
 	results, err := f.fetch(adapter)
 	if err != nil {
 		return err
 	}
+	log.Debug().Str("adapter", adapter.Name).Msg("fetch complete")
+
 	aggregated, err := utils.GetFloatAvg(results)
 	if err != nil {
 		return err
 	}
+	log.Debug().Str("adapter", adapter.Name).Float64("aggregated", aggregated).Msg("aggregated")
+
 	err = f.insertPgsql(ctx, adapter.Name, aggregated)
 	if err != nil {
 		return err
 	}
+	log.Debug().Str("adapter", adapter.Name).Msg("inserted into pgsql")
+
 	err = f.insertRdb(ctx, adapter.Name, aggregated)
 	if err != nil {
 		return err
 	}
+	log.Debug().Str("adapter", adapter.Name).Msg("inserted into rdb")
 	return nil
 }
 
@@ -247,14 +269,14 @@ func (f *Fetcher) initialize(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	f.Adapters = make(map[int64]AdapterDetail, len(adapters))
+	f.Adapters = make(map[int64]*AdapterDetail, len(adapters))
 	for _, adapter := range adapters {
 		feeds, err := f.getFeeds(ctx, adapter.ID)
 		if err != nil {
 			return err
 		}
 
-		f.Adapters[adapter.ID] = AdapterDetail{
+		f.Adapters[adapter.ID] = &AdapterDetail{
 			Adapter:   adapter,
 			Feeds:     feeds,
 			isRunning: false,
