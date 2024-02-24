@@ -1,6 +1,7 @@
 package fetcher
 
 import (
+	"context"
 	"encoding/json"
 	"time"
 
@@ -23,6 +24,10 @@ type Adapter struct {
 type AdapterDetail struct {
 	Adapter
 	Feeds []Feed
+
+	adapterCtx context.Context
+	cancel     context.CancelFunc
+	isRunning  bool
 }
 
 type Feed struct {
