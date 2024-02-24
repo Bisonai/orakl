@@ -1,5 +1,7 @@
 package bus
 
+import "errors"
+
 // message bus will be passed as parameter to modules that need to communicate with each other
 
 type Message struct {
@@ -31,8 +33,15 @@ func (mb *MessageBus) Subscribe(id string) <-chan Message {
 	return ch
 }
 
-func (mb *MessageBus) Publish(msg Message) {
-	if ch, ok := mb.channels[msg.To]; ok {
-		ch <- msg
+func (mb *MessageBus) Publish(msg Message) error {
+	ch, ok := mb.channels[msg.To]
+	if !ok {
+		return errors.New("channel not found")
+	}
+	select {
+	case ch <- msg:
+		return nil
+	default:
+		return errors.New("failed to send message to channel")
 	}
 }
