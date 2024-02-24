@@ -46,8 +46,14 @@ func (f *Fetcher) Run(ctx context.Context) error {
 func (f *Fetcher) subscribe(ctx context.Context) {
 	channel := f.Bus.Subscribe(bus.FETCHER)
 	go func() {
-		msg := <-channel
-		f.handleMessage(ctx, msg)
+		for {
+			msg, ok := <-channel
+			if !ok {
+				log.Debug().Msg("message bus channel closed")
+				return
+			}
+			f.handleMessage(ctx, msg)
+		}
 	}()
 }
 
