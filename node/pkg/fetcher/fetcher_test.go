@@ -27,9 +27,16 @@ func TestFetcherInitialize(t *testing.T) {
 
 	b := bus.New(10)
 	fetcher := New(b)
-	fetcher.initialize(ctx)
+	err = fetcher.initialize(ctx)
+	if err != nil {
+		t.Fatalf("error initializing fetcher: %v", err)
+	}
+
 	assert.Greater(t, len(fetcher.Adapters), 0)
-	assert.Greater(t, len(fetcher.Adapters[0].Feeds), 0)
+	for _, adapter := range fetcher.Adapters {
+		assert.Greater(t, len(adapter.Feeds), 0)
+	}
+
 }
 
 func TestFetcherFetch(t *testing.T) {
@@ -48,15 +55,21 @@ func TestFetcherFetch(t *testing.T) {
 
 	b := bus.New(10)
 	fetcher := New(b)
-	fetcher.initialize(ctx)
-	result, err := fetcher.fetch(fetcher.Adapters[0])
+	err = fetcher.initialize(ctx)
 	if err != nil {
-		t.Fatalf("error fetching: %v", err)
+		t.Fatalf("error initializing fetcher: %v", err)
 	}
-	assert.Greater(t, len(result), 0)
+
+	for _, adapter := range fetcher.Adapters {
+		result, err := fetcher.fetch(adapter)
+		if err != nil {
+			t.Fatalf("error fetching: %v", err)
+		}
+		assert.Greater(t, len(result), 0)
+	}
 }
 
-func TestFetcherRunAdapter(t *testing.T) {
+func TestFetcherFetchAndInsertAdapter(t *testing.T) {
 	ctx := context.Background()
 	admin, err := setup()
 	if err != nil {
@@ -81,36 +94,34 @@ func TestFetcherRunAdapter(t *testing.T) {
 		t.Fatalf("error running adapter: %v", err)
 	}
 
-	// read aggregate from db
-	pgResult, err := db.QueryRow[Aggregate](ctx, "SELECT * FROM local_aggregates WHERE name = @name", map[string]any{"name": fetcher.Adapters[0].Name})
-	if err != nil {
-		t.Fatalf("error reading from db: %v", err)
-	}
-	assert.NotNil(t, pgResult)
+	for _, adapter := range fetcher.Adapters {
+		pgResult, err := db.QueryRow[Aggregate](ctx, "SELECT * FROM local_aggregates WHERE name = @name", map[string]any{"name": adapter.Name})
+		if err != nil {
+			t.Fatalf("error reading from db: %v", err)
+		}
+		assert.NotNil(t, pgResult)
 
-	// cleanup aggregate from db
-	err = db.QueryWithoutResult(ctx, "DELETE FROM local_aggregates WHERE name = @name", map[string]any{"name": fetcher.Adapters[0].Name})
-	if err != nil {
-		t.Fatalf("error cleaning up from db: %v", err)
-	}
+		err = db.QueryWithoutResult(ctx, "DELETE FROM local_aggregates WHERE name = @name", map[string]any{"name": adapter.Name})
+		if err != nil {
+			t.Fatalf("error cleaning up from db: %v", err)
+		}
 
-	// read aggregate from redis
-	rdbResult, err := db.Get(ctx, "latestAggregate:"+fetcher.Adapters[0].Name)
-	if err != nil {
-		t.Fatalf("error reading from redis: %v", err)
-	}
-	assert.NotNil(t, rdbResult)
-	var redisAgg redisAggregate
-	err = json.Unmarshal([]byte(rdbResult), &redisAgg)
-	if err != nil {
-		t.Fatalf("error unmarshalling from redis: %v", err)
-	}
-	assert.NotNil(t, redisAgg)
-	assert.NotNil(t, redisAgg.Value)
+		rdbResult, err := db.Get(ctx, "latestAggregate:"+adapter.Name)
+		if err != nil {
+			t.Fatalf("error reading from redis: %v", err)
+		}
+		assert.NotNil(t, rdbResult)
+		var redisAgg redisAggregate
+		err = json.Unmarshal([]byte(rdbResult), &redisAgg)
+		if err != nil {
+			t.Fatalf("error unmarshalling from redis: %v", err)
+		}
+		assert.NotNil(t, redisAgg)
+		assert.NotNil(t, redisAgg.Value)
 
-	// remove aggregate from redis
-	err = db.Del(ctx, "latestAggregate:"+fetcher.Adapters[0].Name)
-	if err != nil {
-		t.Fatalf("error removing from redis: %v", err)
+		err = db.Del(ctx, "latestAggregate:"+adapter.Name)
+		if err != nil {
+			t.Fatalf("error removing from redis: %v", err)
+		}
 	}
 }

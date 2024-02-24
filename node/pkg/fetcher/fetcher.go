@@ -19,7 +19,7 @@ const FETCHER_FREQUENCY = 2 * time.Second
 
 func New(bus *bus.MessageBus) *Fetcher {
 	return &Fetcher{
-		Adapters: make([]AdapterDetail, 0),
+		Adapters: make(map[int64]AdapterDetail, 0),
 		Bus:      bus,
 	}
 }
@@ -134,10 +134,8 @@ func (f *Fetcher) startAdapter(ctx context.Context, adapter *AdapterDetail) erro
 }
 
 func (f *Fetcher) startAdapterById(ctx context.Context, adapterId int64) error {
-	for _, adapter := range f.Adapters {
-		if adapter.ID == adapterId {
-			return f.startAdapter(ctx, &adapter)
-		}
+	if adapter, ok := f.Adapters[adapterId]; ok {
+		return f.startAdapter(ctx, &adapter)
 	}
 	return errors.New("adapter not found")
 }
@@ -155,10 +153,8 @@ func (f *Fetcher) stopAdapter(ctx context.Context, adapter *AdapterDetail) error
 }
 
 func (f *Fetcher) stopAdapterById(ctx context.Context, adapterId int64) error {
-	for _, adapter := range f.Adapters {
-		if adapter.ID == adapterId {
-			return f.stopAdapter(ctx, &adapter)
-		}
+	if adapter, ok := f.Adapters[adapterId]; ok {
+		return f.stopAdapter(ctx, &adapter)
 	}
 	return errors.New("adapter not found")
 }
@@ -251,18 +247,18 @@ func (f *Fetcher) initialize(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	f.Adapters = make([]AdapterDetail, 0, len(adapters))
+	f.Adapters = make(map[int64]AdapterDetail, len(adapters))
 	for _, adapter := range adapters {
 		feeds, err := f.getFeeds(ctx, adapter.ID)
 		if err != nil {
 			return err
 		}
 
-		f.Adapters = append(f.Adapters, AdapterDetail{
+		f.Adapters[adapter.ID] = AdapterDetail{
 			Adapter:   adapter,
 			Feeds:     feeds,
 			isRunning: false,
-		})
+		}
 	}
 	return nil
 }

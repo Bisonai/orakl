@@ -39,7 +39,7 @@ type Feed struct {
 
 type Fetcher struct {
 	Bus      *bus.MessageBus
-	Adapters []AdapterDetail
+	Adapters map[int64]AdapterDetail
 }
 
 type Definition struct {
