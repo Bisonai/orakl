@@ -44,7 +44,7 @@ func (r *Raft) Run(ctx context.Context, node Node) {
 	if node.GetJobTimeout() != nil {
 		err := node.SetJobTicker(node.GetJobTimeout())
 		if err != nil {
-			log.Info().Err(err).Msg("failed to set job ticker")
+			log.Error().Err(err).Msg("failed to set job ticker")
 		}
 		jobTicker = node.GetJobTicker().C
 	}
@@ -54,7 +54,7 @@ func (r *Raft) Run(ctx context.Context, node Node) {
 		case msg := <-r.MessageBuffer:
 			err := r.handleMessage(node, msg)
 			if err != nil {
-				log.Info().Err(err).Msg("failed to handle message")
+				log.Error().Err(err).Msg("failed to handle message")
 			}
 
 		case <-r.ElectionTimer.C:
@@ -63,7 +63,7 @@ func (r *Raft) Run(ctx context.Context, node Node) {
 		case <-jobTicker:
 			err := node.Job()
 			if err != nil {
-				log.Info().Err(err).Msg("failed to execute job")
+				log.Error().Err(err).Msg("failed to execute job")
 			}
 		}
 	}
@@ -72,16 +72,16 @@ func (r *Raft) Run(ctx context.Context, node Node) {
 func (r *Raft) subscribe(ctx context.Context) {
 	sub, err := r.Topic.Subscribe()
 	if err != nil {
-		log.Info().Err(err).Msg("failed to subscribe to topic")
+		log.Error().Err(err).Msg("failed to subscribe to topic")
 	}
 	for {
 		rawMsg, err := sub.Next(ctx)
 		if err != nil {
-			log.Info().Err(err).Msg("failed to get message from topic")
+			log.Error().Err(err).Msg("failed to get message from topic")
 		}
 		msg, err := r.unmarshalMessage(rawMsg.Data)
 		if err != nil {
-			log.Info().Err(err).Msg("failed to unmarshal message")
+			log.Error().Err(err).Msg("failed to unmarshal message")
 		}
 		r.MessageBuffer <- msg
 	}
@@ -152,7 +152,7 @@ func (r *Raft) handleRequestVote(msg Message) error {
 	var RequestVoteMessage RequestVoteMessage
 	err := json.Unmarshal(msg.Data, &RequestVoteMessage)
 	if err != nil {
-		log.Info().Err(err).Msg("failed to unmarshal request vote message")
+		log.Error().Err(err).Msg("failed to unmarshal request vote message")
 		return err
 	}
 
@@ -163,7 +163,7 @@ func (r *Raft) handleRequestVote(msg Message) error {
 	if RequestVoteMessage.Term < r.GetCurrentTerm() {
 		err := r.sendReplyVote(msg.SentFrom, false)
 		if err != nil {
-			log.Info().Err(err).Msg("failed to send reply vote")
+			log.Error().Err(err).Msg("failed to send reply vote")
 		}
 		return nil
 	}
@@ -221,7 +221,7 @@ func (r *Raft) sendHeartbeat() error {
 	}
 	marshalledHeartbeatMsg, err := json.Marshal(_heartbeatMessage)
 	if err != nil {
-		log.Info().Err(err).Msg("failed to marshal heartbeat message")
+		log.Error().Err(err).Msg("failed to marshal heartbeat message")
 		return err
 	}
 
@@ -232,7 +232,7 @@ func (r *Raft) sendHeartbeat() error {
 	}
 	err = r.PublishMessage(heartbeatMessage)
 	if err != nil {
-		log.Info().Err(err).Msg("failed to send heartbeat")
+		log.Error().Err(err).Msg("failed to send heartbeat")
 		return err
 	}
 	return nil
@@ -293,7 +293,7 @@ func (r *Raft) StopHeartbeatTicker(node Node) {
 		node.GetLeaderJobTicker().Stop()
 		err := node.SetLeaderJobTicker(nil)
 		if err != nil {
-			log.Info().Err(err).Msg("failed to stop leader job ticker")
+			log.Error().Err(err).Msg("failed to stop leader job ticker")
 		}
 	}
 	if r.Resign != nil {
@@ -314,7 +314,7 @@ func (r *Raft) becomeLeader(node Node) {
 	if node.GetLeaderJobTimeout() != nil {
 		err := node.SetLeaderJobTicker(node.GetLeaderJobTimeout())
 		if err != nil {
-			log.Info().Err(err).Msg("failed to set leader job ticker")
+			log.Error().Err(err).Msg("failed to set leader job ticker")
 		}
 		leaderJobTicker = node.GetLeaderJobTicker().C
 	}
@@ -325,12 +325,12 @@ func (r *Raft) becomeLeader(node Node) {
 			case <-r.HeartbeatTicker.C:
 				err := r.sendHeartbeat()
 				if err != nil {
-					log.Info().Err(err).Msg("failed to send heartbeat")
+					log.Error().Err(err).Msg("failed to send heartbeat")
 				}
 			case <-leaderJobTicker:
 				err := node.LeaderJob()
 				if err != nil {
-					log.Info().Err(err).Msg("failed to execute leader job")
+					log.Error().Err(err).Msg("failed to execute leader job")
 				}
 			case <-r.Resign:
 				log.Debug().Msg("resigning as leader")
@@ -364,7 +364,7 @@ func (r *Raft) startElection() {
 
 	err := r.sendRequestVote()
 	if err != nil {
-		log.Info().Err(err).Msg("failed to send request vote")
+		log.Error().Err(err).Msg("failed to send request vote")
 	}
 }
 

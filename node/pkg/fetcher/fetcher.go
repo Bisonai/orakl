@@ -45,7 +45,7 @@ func (f *Fetcher) runAdapter(ctx context.Context, adapter AdapterDetail) {
 	for range ticker.C {
 		err := f.fetchAndInsert(ctx, adapter)
 		if err != nil {
-			log.Info().Err(err).Msg("failed to fetch and insert")
+			log.Error().Err(err).Msg("failed to fetch and insert")
 		}
 	}
 }
@@ -93,19 +93,18 @@ func (f *Fetcher) fetch(adapter AdapterDetail) ([]float64, error) {
 		definition := new(Definition)
 		err := json.Unmarshal(feed.Definition, &definition)
 		if err != nil {
-			log.Info().Err(err).Msg("failed to unmarshal feed definition")
+			log.Error().Err(err).Msg("failed to unmarshal feed definition")
 			continue
 		}
 		res, err := utils.GetRequest[interface{}](definition.Url, nil, definition.Headers)
 		if err != nil {
-			log.Info().Err(err).Msg("failed to get request")
-
+			log.Error().Err(err).Msg("failed to get request")
 			continue
 		}
 
 		result, err := utils.Reduce(res, definition.Reducers)
 		if err != nil {
-			log.Info().Err(err).Msg("failed to reduce")
+			log.Error().Err(err).Msg("failed to reduce")
 			continue
 		}
 

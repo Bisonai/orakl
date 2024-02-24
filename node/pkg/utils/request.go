@@ -26,7 +26,7 @@ func UrlRequestRaw(urlEndpoint string, method string, requestBody interface{}, h
 	if requestBody != nil {
 		marshalledData, err := json.Marshal(requestBody)
 		if err != nil {
-			log.Info().Err(err).Msg("failed to marshal request body")
+			log.Error().Err(err).Msg("failed to marshal request body")
 			return nil, err
 		}
 		body = bytes.NewReader(marshalledData)
@@ -34,7 +34,7 @@ func UrlRequestRaw(urlEndpoint string, method string, requestBody interface{}, h
 
 	url, err := url.Parse(urlEndpoint)
 	if err != nil {
-		log.Info().Err(err).Msg("failed to parse url")
+		log.Error().Err(err).Msg("failed to parse url")
 		return nil, err
 	}
 
@@ -44,7 +44,7 @@ func UrlRequestRaw(urlEndpoint string, method string, requestBody interface{}, h
 		body,
 	)
 	if err != nil {
-		log.Info().Err(err).Msg("failed to create request")
+		log.Error().Err(err).Msg("failed to create request")
 		return nil, err
 	}
 
@@ -66,7 +66,7 @@ func UrlRequest[T any](urlEndpoint string, method string, requestBody interface{
 	var result T
 	response, err := UrlRequestRaw(urlEndpoint, method, requestBody, headers)
 	if err != nil {
-		log.Info().Err(err).Msg("failed to make request")
+		log.Error().Err(err).Msg("failed to make request")
 		return result, err
 	}
 
@@ -80,7 +80,7 @@ func UrlRequest[T any](urlEndpoint string, method string, requestBody interface{
 
 	resultBody, err := io.ReadAll(response.Body)
 	if err != nil {
-		log.Info().Err(err).Msg("failed to read response body")
+		log.Error().Err(err).Msg("failed to read response body")
 		return result, err
 	}
 

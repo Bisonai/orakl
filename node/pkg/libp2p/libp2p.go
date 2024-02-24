@@ -59,7 +59,7 @@ func MakePubsub(ctx context.Context, host host.Host) (*pubsub.PubSub, error) {
 func GetHostAddress(host host.Host) (string, error) {
 	hostAddr, err := multiaddr.NewMultiaddr(fmt.Sprintf("/p2p/%s", host.ID()))
 	if err != nil {
-		log.Info().Err(err).Msg("Error creating multiaddr")
+		log.Error().Err(err).Msg("Error creating multiaddr")
 		return "", err
 	}
 
