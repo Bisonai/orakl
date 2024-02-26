@@ -66,7 +66,33 @@ func UrlRequest[T any](urlEndpoint string, method string, requestBody interface{
 	var result T
 	response, err := UrlRequestRaw(urlEndpoint, method, requestBody, headers)
 	if err != nil {
-		log.Error().Err(err).Msg("failed to make request")
+		fmt.Println("Error making request:", err)
+		return result, err
+	}
+	resultBody, err := io.ReadAll(response.Body)
+	if err != nil {
+		fmt.Println("Error reading response body:", err)
+		return result, err
+	}
+
+	err = json.Unmarshal(resultBody, &result)
+	if err != nil {
+		fmt.Println("failed Unmarshal result body:" + string(resultBody))
+		return result, err
+	}
+
+	return result, nil
+}
+
+func GetRequestProxy[T any](urlEndpoint string, requestBody interface{}, headers map[string]string, proxy string) (T, error) {
+	return UrlRequestProxy[T](urlEndpoint, "GET", requestBody, headers, proxy)
+}
+
+func UrlRequestProxy[T any](urlEndpoint string, method string, requestBody interface{}, headers map[string]string, proxy string) (T, error) {
+	var result T
+	response, err := UrlRequestRawProxy(urlEndpoint, method, requestBody, headers, proxy)
+	if err != nil {
+		fmt.Println("Error making POST request:", err)
 		return result, err
 	}
 
@@ -95,4 +121,56 @@ func UrlRequest[T any](urlEndpoint string, method string, requestBody interface{
 	}
 
 	return result, nil
+}
+
+func UrlRequestRawProxy(urlEndpoint string, method string, requestBody interface{}, headers map[string]string, proxy string) (*http.Response, error) {
+	var body io.Reader
+
+	if requestBody != nil {
+		marshalledData, err := json.Marshal(requestBody)
+		if err != nil {
+			fmt.Println("failed to marshal request body")
+			return nil, err
+		}
+		body = bytes.NewReader(marshalledData)
+	}
+
+	url, err := url.Parse(urlEndpoint)
+	if err != nil {
+		fmt.Println("Error parsing URL:", err)
+		return nil, err
+	}
+
+	req, err := http.NewRequest(
+		method,
+		url.String(),
+		body,
+	)
+	if err != nil {
+		fmt.Println("failed to create request")
+		return nil, err
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	if len(headers) > 0 {
+		for key, value := range headers {
+			req.Header.Set(key, value)
+		}
+	}
+
+	client := &http.Client{
+		Timeout: time.Second, // Set the timeout to 1 second
+	}
+
+	proxyUrl, err := url.Parse(proxy)
+	if err != nil {
+		fmt.Println("failed to parse proxy url")
+		return nil, err
+	}
+
+	client.Transport = &http.Transport{
+		Proxy: http.ProxyURL(proxyUrl),
+	}
+
+	return client.Do(req)
 }
