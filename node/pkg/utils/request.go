@@ -66,18 +66,19 @@ func UrlRequest[T any](urlEndpoint string, method string, requestBody interface{
 	var result T
 	response, err := UrlRequestRaw(urlEndpoint, method, requestBody, headers)
 	if err != nil {
-		fmt.Println("Error making request:", err)
+		log.Error().Err(err).Msg("failed to make request")
 		return result, err
 	}
 	resultBody, err := io.ReadAll(response.Body)
 	if err != nil {
-		fmt.Println("Error reading response body:", err)
+		log.Error().Err(err).Msg("failed to read response body")
+
 		return result, err
 	}
 
 	err = json.Unmarshal(resultBody, &result)
 	if err != nil {
-		fmt.Println("failed Unmarshal result body:" + string(resultBody))
+		log.Error().Err(err).Str("resultBody", string(resultBody)).Msg("failed to unmarshal response body")
 		return result, err
 	}
 
@@ -92,7 +93,7 @@ func UrlRequestProxy[T any](urlEndpoint string, method string, requestBody inter
 	var result T
 	response, err := UrlRequestRawProxy(urlEndpoint, method, requestBody, headers, proxy)
 	if err != nil {
-		fmt.Println("Error making POST request:", err)
+		log.Error().Err(err).Msg("failed to make request")
 		return result, err
 	}
 
@@ -129,7 +130,7 @@ func UrlRequestRawProxy(urlEndpoint string, method string, requestBody interface
 	if requestBody != nil {
 		marshalledData, err := json.Marshal(requestBody)
 		if err != nil {
-			fmt.Println("failed to marshal request body")
+			log.Error().Err(err).Msg("failed to marshal request body")
 			return nil, err
 		}
 		body = bytes.NewReader(marshalledData)
@@ -137,7 +138,7 @@ func UrlRequestRawProxy(urlEndpoint string, method string, requestBody interface
 
 	url, err := url.Parse(urlEndpoint)
 	if err != nil {
-		fmt.Println("Error parsing URL:", err)
+		log.Error().Err(err).Str("url", urlEndpoint).Msg("failed to parse url")
 		return nil, err
 	}
 
@@ -147,7 +148,7 @@ func UrlRequestRawProxy(urlEndpoint string, method string, requestBody interface
 		body,
 	)
 	if err != nil {
-		fmt.Println("failed to create request")
+		log.Error().Err(err).Msg("failed to create request")
 		return nil, err
 	}
 
@@ -164,7 +165,7 @@ func UrlRequestRawProxy(urlEndpoint string, method string, requestBody interface
 
 	proxyUrl, err := url.Parse(proxy)
 	if err != nil {
-		fmt.Println("failed to parse proxy url")
+		log.Error().Err(err).Str("proxy", proxy).Msg("failed to parse proxy")
 		return nil, err
 	}
 
