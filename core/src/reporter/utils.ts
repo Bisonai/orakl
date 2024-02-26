@@ -81,7 +81,7 @@ export async function sendTransaction({
   }
 
   const tx = {
-    from: wallet.address,
+    from: await wallet.getAddress(),
     to: to,
     data: payload || '0x00',
     value: value || '0x00'
