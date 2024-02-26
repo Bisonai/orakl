@@ -16,6 +16,7 @@ import (
 var (
 	initPgxOnce sync.Once
 	pool        *pgxpool.Pool
+	poolErr     error
 )
 
 func GetPool(ctx context.Context) (*pgxpool.Pool, error) {
@@ -23,19 +24,16 @@ func GetPool(ctx context.Context) (*pgxpool.Pool, error) {
 }
 
 func getPool(ctx context.Context, once *sync.Once) (*pgxpool.Pool, error) {
-	var err error
-
-	connectionString := loadPgsqlConnectionString()
-	if connectionString == "" {
-		err = errors.New("DATABASE_URL is not set")
-		return nil, err
-	}
-
 	once.Do(func() {
-		pool, err = connectToPgsql(ctx, connectionString)
+		connectionString := loadPgsqlConnectionString()
+		if connectionString == "" {
+			poolErr = errors.New("DATABASE_URL is not set")
+			return
+		}
+		pool, poolErr = connectToPgsql(ctx, connectionString)
 	})
 
-	return pool, err
+	return pool, poolErr
 }
 
 func connectToPgsql(ctx context.Context, connectionString string) (*pgxpool.Pool, error) {
