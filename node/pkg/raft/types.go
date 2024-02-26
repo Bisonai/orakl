@@ -73,10 +73,4 @@ type Node interface {
 	GetLeaderJobTicker() *time.Ticker
 	SetLeaderJobTicker(*time.Duration) error
 	LeaderJob() error
-
-	// define regular job run by every node
-	GetJobTimeout() *time.Duration
-	GetJobTicker() *time.Ticker
-	SetJobTicker(*time.Duration) error
-	Job() error
 }

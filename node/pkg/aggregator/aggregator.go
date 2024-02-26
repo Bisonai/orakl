@@ -90,27 +90,6 @@ func (a *Aggregator) SetLeaderJobTicker(d *time.Duration) error {
 	return nil
 }
 
-func (a *Aggregator) GetJobTimeout() *time.Duration {
-	return a.JobTimeout
-}
-
-func (a *Aggregator) GetJobTicker() *time.Ticker {
-	return a.JobTicker
-}
-
-func (a *Aggregator) SetJobTicker(d *time.Duration) error {
-	if d == nil {
-		a.JobTicker = nil
-		return nil
-	}
-	a.JobTicker = time.NewTicker(*d)
-	return nil
-}
-
-func (a *Aggregator) Job() error {
-	return nil
-}
-
 func (a *Aggregator) LeaderJob() error {
 	// leader continously sends roundId in regular basis and triggers all other nodes to run its job
 	a.RoundID++
