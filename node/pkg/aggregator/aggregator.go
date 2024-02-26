@@ -19,11 +19,7 @@ const RoundSync raft.MessageType = "roundSync"
 const PriceData raft.MessageType = "priceData"
 
 type Aggregator struct {
-	Raft  *raft.Raft
-	Host  host.Host
-	Ps    *pubsub.PubSub
-	Topic *pubsub.Topic
-	Sub   *pubsub.Subscription
+	Raft *raft.Raft
 
 	LeaderJobTicker *time.Ticker
 	JobTicker       *time.Ticker
@@ -61,11 +57,7 @@ func NewAggregator(h host.Host, ps *pubsub.PubSub, topicString string) (*Aggrega
 	leaderTimeout := 5 * time.Second
 
 	aggregator := Aggregator{
-		Raft:  raft.NewRaftNode(h, ps, topic, sub, 100), // consider updating after testing
-		Host:  h,
-		Ps:    ps,
-		Topic: topic,
-		Sub:   sub,
+		Raft: raft.NewRaftNode(h, ps, topic, sub, 100), // consider updating after testing
 
 		LeaderJobTimeout: &leaderTimeout,
 		JobTimeout:       nil,
@@ -123,7 +115,7 @@ func (a *Aggregator) LeaderJob() error {
 	// leader continously sends roundId in regular basis and triggers all other nodes to run its job
 	a.RoundID++
 	roundMessage := RoundSyncMessage{
-		LeaderID: a.Host.ID().String(),
+		LeaderID: a.Raft.Host.ID().String(),
 		RoundID:  a.RoundID,
 	}
 
@@ -134,7 +126,7 @@ func (a *Aggregator) LeaderJob() error {
 
 	message := raft.Message{
 		Type:     RoundSync,
-		SentFrom: a.Host.ID().String(),
+		SentFrom: a.Raft.Host.ID().String(),
 		Data:     json.RawMessage(marshalledRoundMessage),
 	}
 
@@ -180,7 +172,7 @@ func (a *Aggregator) HandleRoundSyncMessage(msg raft.Message) error {
 	}
 	message := raft.Message{
 		Type:     PriceData,
-		SentFrom: a.Host.ID().String(),
+		SentFrom: a.Raft.Host.ID().String(),
 		Data:     json.RawMessage(marshalledPriceDataMessage),
 	}
 
@@ -199,7 +191,7 @@ func (a *Aggregator) HandlePriceDataMessage(msg raft.Message) error {
 		a.CollectedPrices[priceDataMessage.RoundID] = []int{}
 	}
 	a.CollectedPrices[priceDataMessage.RoundID] = append(a.CollectedPrices[priceDataMessage.RoundID], priceDataMessage.PriceData)
-	if len(a.CollectedPrices[priceDataMessage.RoundID]) >= len(a.Ps.ListPeers(a.Topic.String()))+1 {
+	if len(a.CollectedPrices[priceDataMessage.RoundID]) >= len(a.Raft.Ps.ListPeers(a.Raft.Topic.String()))+1 {
 		// handle aggregation here once all the data have been collected
 		median := utils.FindMedian(a.CollectedPrices[priceDataMessage.RoundID])
 		roundID := strconv.Itoa(priceDataMessage.RoundID)
