@@ -3,8 +3,9 @@ package libp2p
 import (
 	"context"
 	"crypto/rand"
+	"errors"
 	"fmt"
-	"log"
+
 	"strings"
 	"sync"
 
@@ -16,6 +17,7 @@ import (
 	"github.com/libp2p/go-libp2p/core/peer"
 	drouting "github.com/libp2p/go-libp2p/p2p/discovery/routing"
 	dutil "github.com/libp2p/go-libp2p/p2p/discovery/util"
+	"github.com/rs/zerolog/log"
 
 	"github.com/multiformats/go-multiaddr"
 )
@@ -23,26 +25,25 @@ import (
 func MakeHost(listenPort int) (host.Host, error) {
 	r := rand.Reader
 
-	log.Println("generating private key")
+	log.Debug().Msg("generating private key")
 	priv, _, err := crypto.GenerateKeyPairWithReader(crypto.Ed25519, 2048, r)
 	if err != nil {
 		return nil, err
 	}
-	log.Println("generating libp2p options")
+	log.Debug().Msg("generating libp2p options")
 
 	opts := []libp2p.Option{
 		libp2p.ListenAddrStrings(fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", listenPort)),
 		libp2p.Identity(priv),
 		libp2p.DisableRelay(),
 	}
-
-	log.Println("generating libp2p instance")
+	log.Debug().Msg("generating libp2p instance")
 
 	return libp2p.New(opts...)
 }
 
 func MakePubsub(ctx context.Context, host host.Host) (*pubsub.PubSub, error) {
-	log.Println("generating pubsub instance")
+	log.Debug().Msg("creating pubsub instance")
 	var basePeerFilter pubsub.PeerFilter = func(pid peer.ID, topic string) bool {
 		return strings.HasPrefix(pid.String(), "12D")
 	}
@@ -58,6 +59,7 @@ func MakePubsub(ctx context.Context, host host.Host) (*pubsub.PubSub, error) {
 func GetHostAddress(host host.Host) (string, error) {
 	hostAddr, err := multiaddr.NewMultiaddr(fmt.Sprintf("/p2p/%s", host.ID()))
 	if err != nil {
+		log.Error().Err(err).Msg("Error creating multiaddr")
 		return "", err
 	}
 
@@ -91,14 +93,14 @@ func initDHT(ctx context.Context, h host.Host, bootstrap string) *dht.IpfsDHT {
 	for _, peerAddr := range bootstrapPeers {
 		peerinfo, err := peer.AddrInfoFromP2pAddr(peerAddr)
 		if err != nil {
-			log.Println("Error getting AddrInfo from p2p address:", err)
+			log.Debug().Err(err).Msg("Error getting AddrInfo from p2p address")
 			continue
 		}
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
 			if err := h.Connect(ctx, *peerinfo); err != nil {
-				log.Println("Bootstrap warning:", err)
+				log.Debug().Err(err).Msg("Bootstrap warning")
 			}
 		}()
 	}
@@ -107,7 +109,7 @@ func initDHT(ctx context.Context, h host.Host, bootstrap string) *dht.IpfsDHT {
 	return kademliaDHT
 }
 
-func DiscoverPeers(ctx context.Context, h host.Host, topicName string, bootstrap string) {
+func DiscoverPeers(ctx context.Context, h host.Host, topicName string, bootstrap string) error {
 	kademliaDHT := initDHT(ctx, h, bootstrap)
 	routingDiscovery := drouting.NewRoutingDiscovery(kademliaDHT)
 	dutil.Advertise(ctx, routingDiscovery, topicName)
@@ -116,10 +118,10 @@ func DiscoverPeers(ctx context.Context, h host.Host, topicName string, bootstrap
 	anyConnected := false
 	var wg sync.WaitGroup
 	for !anyConnected {
-		log.Println("Searching for peers...")
+		log.Debug().Msg("Searching for peers...")
 		peerChan, err := routingDiscovery.FindPeers(ctx, topicName)
 		if err != nil {
-			panic(err)
+			return err
 		}
 		for p := range peerChan {
 			if p.ID == h.ID() {
@@ -130,10 +132,9 @@ func DiscoverPeers(ctx context.Context, h host.Host, topicName string, bootstrap
 				defer wg.Done()
 				err := h.Connect(ctx, p)
 				if err != nil {
-					// log.Printf("Failed connecting to %s, error: %s\n", peer.ID, err)
-
+					log.Trace().Msg("Failed connecting to " + p.ID.String())
 				} else {
-					// log.Println("Connected to:", peer.ID)
+					log.Trace().Str("connectedTo", p.ID.String()).Msg("Connected to peer")
 					anyConnected = true
 				}
 			}(p)
@@ -141,5 +142,9 @@ func DiscoverPeers(ctx context.Context, h host.Host, topicName string, bootstrap
 		}
 	}
 	wg.Wait()
-	log.Println("Peer discovery complete")
+	if !anyConnected {
+		return errors.New("no peers connected")
+	}
+	log.Debug().Msg("Peer discovery complete")
+	return nil
 }

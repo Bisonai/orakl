@@ -3,11 +3,13 @@ package utils
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
+	"errors"
 	"io"
 	"net/http"
 	"net/url"
 	"time"
+
+	"github.com/rs/zerolog/log"
 )
 
 func GetRequest[T any](urlEndpoint string, requestBody interface{}, headers map[string]string) (T, error) {
@@ -24,7 +26,7 @@ func UrlRequestRaw(urlEndpoint string, method string, requestBody interface{}, h
 	if requestBody != nil {
 		marshalledData, err := json.Marshal(requestBody)
 		if err != nil {
-			fmt.Println("failed to marshal request body")
+			log.Error().Err(err).Msg("failed to marshal request body")
 			return nil, err
 		}
 		body = bytes.NewReader(marshalledData)
@@ -32,7 +34,7 @@ func UrlRequestRaw(urlEndpoint string, method string, requestBody interface{}, h
 
 	url, err := url.Parse(urlEndpoint)
 	if err != nil {
-		fmt.Println("Error parsing URL:", err)
+		log.Error().Err(err).Msg("failed to parse url")
 		return nil, err
 	}
 
@@ -42,7 +44,7 @@ func UrlRequestRaw(urlEndpoint string, method string, requestBody interface{}, h
 		body,
 	)
 	if err != nil {
-		fmt.Println("failed to create request")
+		log.Error().Err(err).Msg("failed to create request")
 		return nil, err
 	}
 
@@ -64,18 +66,31 @@ func UrlRequest[T any](urlEndpoint string, method string, requestBody interface{
 	var result T
 	response, err := UrlRequestRaw(urlEndpoint, method, requestBody, headers)
 	if err != nil {
-		fmt.Println("Error making POST request:", err)
+		log.Error().Err(err).Msg("failed to make request")
 		return result, err
 	}
+
+	if response.StatusCode != http.StatusOK {
+		log.Info().
+			Int("status", response.StatusCode).
+			Str("url", urlEndpoint).
+			Msg("failed to make request")
+		return result, errors.New("failed to make request")
+	}
+
 	resultBody, err := io.ReadAll(response.Body)
 	if err != nil {
-		fmt.Println("Error reading response body:", err)
+		log.Error().Err(err).Msg("failed to read response body")
 		return result, err
 	}
 
 	err = json.Unmarshal(resultBody, &result)
 	if err != nil {
-		fmt.Println("failed Unmarshal result body:" + string(resultBody))
+		log.Info().
+			Err(err).
+			Str("response", string(resultBody)).
+			Msg("failed to unmarshal response body")
+
 		return result, err
 	}
 

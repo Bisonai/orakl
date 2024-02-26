@@ -64,12 +64,10 @@ go run main.go -p="3002"
 func MakeHost(listenPort int) (host.Host, error) {
 	r := rand.Reader
 
-	log.Println("generating private key")
 	priv, _, err := crypto.GenerateKeyPairWithReader(crypto.Ed25519, 2048, r)
 	if err != nil {
 		return nil, err
 	}
-	log.Println("generating libp2p options")
 
 	opts := []libp2p.Option{
 		libp2p.ListenAddrStrings(fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", listenPort)),
@@ -77,7 +75,6 @@ func MakeHost(listenPort int) (host.Host, error) {
 		libp2p.DisableRelay(),
 	}
 
-	log.Println("generating libp2p instance")
 
 	return libp2p.New(opts...)
 }
@@ -96,7 +93,6 @@ func MakeHost(listenPort int) (host.Host, error) {
 
 ```golang
 func MakePubsub(ctx context.Context, host host.Host) (*pubsub.PubSub, error) {
-	log.Println("generating pubsub instance")
 	var basePeerFilter pubsub.PeerFilter = func(pid peer.ID, topic string) bool {
 		return strings.HasPrefix(pid.String(), "12D")
 	}

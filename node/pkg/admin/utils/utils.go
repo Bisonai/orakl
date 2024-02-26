@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
+
 	"os"
 	"runtime/debug"
 	"strings"
@@ -15,6 +15,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/gofiber/fiber/v2/middleware/recover"
+	"github.com/rs/zerolog/log"
 )
 
 type SetupInfo struct {
@@ -77,7 +78,16 @@ func CustomErrorHandler(c *fiber.Ctx, err error) error {
 
 	// Return status code with error message
 	// | ${status} | ${ip} | ${method} | ${path} | ${error}",
-	log.Printf("| %d | %s | %s | %s | %s\n", code, c.IP(), c.Method(), c.Path(), err.Error())
+
+	log.
+		Info().
+		Err(err).
+		Int("status", code).
+		Str("ip", c.IP()).
+		Str("method", c.Method()).
+		Str("path", c.Path()).
+		Msg("error")
+
 	return c.Status(code).SendString(err.Error())
 }
 
@@ -94,7 +104,11 @@ func CustomStackTraceHandler(_ *fiber.Ctx, e interface{}) {
 			break
 		}
 	}
-	log.Printf("| (%s) panic: %v \n", failPoint, e)
+	log.
+		Info().
+		Str("failPoint", failPoint).
+		Msgf("panic: %v", e)
+
 	_, _ = os.Stderr.WriteString(fmt.Sprintf("%s\n", debug.Stack())) //nolint:errcheck // This will never fail
 }
 
