@@ -21,6 +21,7 @@ type RedisConnectionInfo struct {
 var (
 	initRdbOnce sync.Once
 	rdb         *redis.Conn
+	rdbErr      error
 )
 
 func GetRedisConn(ctx context.Context) (*redis.Conn, error) {
@@ -28,17 +29,17 @@ func GetRedisConn(ctx context.Context) (*redis.Conn, error) {
 }
 
 func getRedisConn(ctx context.Context, once *sync.Once) (*redis.Conn, error) {
-	var err error
-
-	connectionInfo, err := loadRedisConnectionString()
-	if err != nil {
-		return nil, err
-	}
 
 	once.Do(func() {
-		rdb, err = connectToRedis(ctx, connectionInfo)
+		connectionInfo, err := loadRedisConnectionString()
+		if err != nil {
+			rdbErr = err
+			return
+		}
+
+		rdb, rdbErr = connectToRedis(ctx, connectionInfo)
 	})
-	return rdb, err
+	return rdb, rdbErr
 
 }
 
