@@ -69,6 +69,15 @@ func UrlRequest[T any](urlEndpoint string, method string, requestBody interface{
 		log.Error().Err(err).Msg("failed to make request")
 		return result, err
 	}
+
+	if response.StatusCode != http.StatusOK {
+		log.Info().
+			Int("status", response.StatusCode).
+			Str("url", urlEndpoint).
+			Msg("failed to make request")
+		return result, errors.New("failed to make request")
+	}
+
 	resultBody, err := io.ReadAll(response.Body)
 	if err != nil {
 		log.Error().Err(err).Msg("failed to read response body")
