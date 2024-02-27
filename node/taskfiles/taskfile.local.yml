@@ -30,3 +30,4 @@ tasks:
       - task: test-libp2p
       - task: test-admin
       - task: test-fetcher
+      - task: test-utils
