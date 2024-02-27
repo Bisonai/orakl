@@ -8,6 +8,7 @@ import (
 	"bisonai.com/orakl/node/pkg/admin/adapter"
 	"bisonai.com/orakl/node/pkg/admin/feed"
 	"bisonai.com/orakl/node/pkg/admin/fetcher"
+	"bisonai.com/orakl/node/pkg/admin/proxy"
 	"bisonai.com/orakl/node/pkg/admin/utils"
 	"bisonai.com/orakl/node/pkg/bus"
 	"bisonai.com/orakl/node/pkg/db"
@@ -23,6 +24,7 @@ type TestItems struct {
 type TempData struct {
 	adapter adapter.AdapterModel
 	feed    feed.FeedModel
+	proxy   proxy.ProxyModel
 }
 
 func setup(ctx context.Context) (func() error, *TestItems, error) {
@@ -53,6 +55,7 @@ func setup(ctx context.Context) (func() error, *TestItems, error) {
 	adapter.Routes(v1)
 	feed.Routes(v1)
 	fetcher.Routes(v1)
+	proxy.Routes(v1)
 	return cleanup(testItems), testItems, nil
 }
 
@@ -71,6 +74,12 @@ func insertSampleData(ctx context.Context) (*TempData, error) {
 	}
 	tempData.feed = tmpFeed
 
+	tmpProxy, err := db.QueryRow[proxy.ProxyModel](ctx, proxy.InsertProxy, map[string]any{"protocol": "http", "host": "localhost", "port": 80, "location": "test"})
+	if err != nil {
+		return nil, err
+	}
+	tempData.proxy = tmpProxy
+
 	return tempData, nil
 }
 
@@ -81,6 +90,10 @@ func cleanup(testItems *TestItems) func() error {
 			return err
 		}
 		_, err = db.QueryRow[adapter.AdapterModel](context.Background(), adapter.DeleteAdapterById, map[string]any{"id": testItems.tempData.adapter.Id})
+		if err != nil {
+			return err
+		}
+		_, err = db.QueryRow[proxy.ProxyModel](context.Background(), proxy.DeleteProxyById, map[string]any{"id": testItems.tempData.proxy.Id})
 		return err
 	}
 }
