@@ -157,7 +157,7 @@ func TestUrlRequest(t *testing.T) {
 		Test: "value",
 	}
 
-	testResponse, err := utils.UrlRequest[TestResponse](server.URL, "GET", requestBody, headers)
+	testResponse, err := utils.UrlRequest[TestResponse](server.URL, "GET", requestBody, headers, "")
 	if err != nil {
 		t.Errorf("Error making request: %v", err)
 	}
@@ -211,7 +211,7 @@ func TestUrlRequestProxy(t *testing.T) {
 		"Test-Header": "test-value",
 	}
 
-	testResponse, err := utils.UrlRequestProxy[TestResponse](server.URL, "GET", requestBody, headers, proxy.URL)
+	testResponse, err := utils.UrlRequest[TestResponse](server.URL, "GET", requestBody, headers, proxy.URL)
 	if err != nil {
 		t.Errorf("Error making request: %v", err)
 	}
@@ -238,7 +238,7 @@ func TestUrlRequestRawProxy(t *testing.T) {
 		"Test-Header": "test-value",
 	}
 
-	res, err := utils.UrlRequestRawProxy(server.URL, "GET", requestBody, headers, proxy.URL)
+	res, err := utils.UrlRequestRaw(server.URL, "GET", requestBody, headers, proxy.URL)
 	if err != nil {
 		t.Errorf("Error making request: %v", err)
 	}
