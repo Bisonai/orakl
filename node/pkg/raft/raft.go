@@ -39,15 +39,6 @@ func NewRaftNode(h host.Host, ps *pubsub.PubSub, topic *pubsub.Topic, sub *pubsu
 func (r *Raft) Run(ctx context.Context, node Node) {
 	go r.subscribe(ctx)
 	r.startElectionTimer()
-	var jobTicker <-chan time.Time
-
-	if node.GetJobTimeout() != nil {
-		err := node.SetJobTicker(node.GetJobTimeout())
-		if err != nil {
-			log.Error().Err(err).Msg("failed to set job ticker")
-		}
-		jobTicker = node.GetJobTicker().C
-	}
 
 	for {
 		select {
@@ -59,12 +50,6 @@ func (r *Raft) Run(ctx context.Context, node Node) {
 
 		case <-r.ElectionTimer.C:
 			r.startElection()
-
-		case <-jobTicker:
-			err := node.Job()
-			if err != nil {
-				log.Error().Err(err).Msg("failed to execute job")
-			}
 		}
 	}
 }
