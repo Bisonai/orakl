@@ -1,5 +1,5 @@
 CREATE TABLE IF NOT EXISTS local_aggregates (
-    name TEXT NOT NULL UNIQUE,
+    name TEXT NOT NULL,
     value INT8 NOT NULL,
     timestamp TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL
 );

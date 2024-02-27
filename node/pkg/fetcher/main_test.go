@@ -332,7 +332,14 @@ var sampleData = []string{`{
 	]
   }`}
 
-func setup() (*fiber.App, error) {
+type TestItems struct {
+	app        *fiber.App
+	messageBus *bus.MessageBus
+	fetcher    *Fetcher
+}
+
+func setup(ctx context.Context) (func() error, *TestItems, error) {
+	var testItems = new(TestItems)
 	mb := bus.New(10)
 
 	app, err := utils.Setup(utils.SetupInfo{
@@ -340,12 +347,23 @@ func setup() (*fiber.App, error) {
 		Bus:     mb,
 	})
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	v1 := app.Group("/api/v1")
 	adapter.Routes(v1)
 
-	return app, nil
+	fetcher := New(mb)
+
+	testItems.app = app
+	testItems.messageBus = mb
+	testItems.fetcher = fetcher
+
+	cleanup, err := insertSampleData(app, ctx)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return cleanup, testItems, nil
 }
 
 func insertSampleData(app *fiber.App, ctx context.Context) (func() error, error) {
@@ -367,13 +385,17 @@ func insertSampleData(app *fiber.App, ctx context.Context) (func() error, error)
 		insertResults[i] = tmp
 	}
 
-	return cleanupSampleData(app, ctx, insertResults), nil
+	return cleanup(app, ctx, insertResults), nil
 }
 
-func cleanupSampleData(app *fiber.App, ctx context.Context, insertResult []adapter.AdapterModel) func() error {
+func cleanup(app *fiber.App, ctx context.Context, insertResult []adapter.AdapterModel) func() error {
 	return func() error {
 		for i := range insertResult {
 			_, err := tests.DeleteRequest[adapter.AdapterModel](app, "/api/v1/adapter/"+strconv.FormatInt(*insertResult[i].Id, 10), nil)
+			if err != nil {
+				return err
+			}
+			err = app.Shutdown()
 			if err != nil {
 				return err
 			}

@@ -125,6 +125,5 @@ func SendMessage(c *fiber.Ctx, to string, command string, args map[string]interf
 			Args:    args,
 		},
 	}
-	messageBus.Publish(msg)
-	return nil
+	return messageBus.Publish(msg)
 }

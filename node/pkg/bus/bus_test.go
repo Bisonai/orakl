@@ -11,7 +11,7 @@ func TestSubscribeAndPublish(t *testing.T) {
 	channel := mb.Subscribe("test")
 
 	// Test Publish
-	mb.Publish(Message{
+	err := mb.Publish(Message{
 		From: "testFrom",
 		To:   "test",
 		Content: MessageContent{
@@ -19,6 +19,9 @@ func TestSubscribeAndPublish(t *testing.T) {
 			Args:    map[string]any{"testArg": "testArg"},
 		},
 	})
+	if err != nil {
+		t.Errorf("Failed to publish message: %v", err)
+	}
 
 	select {
 	case msg := <-channel:
