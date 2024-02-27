@@ -4,6 +4,7 @@ package fetcher
 import (
 	"context"
 	"encoding/json"
+	"net/http"
 	"strconv"
 	"testing"
 	"time"
@@ -11,6 +12,9 @@ import (
 	"bisonai.com/orakl/node/pkg/admin/tests"
 	"bisonai.com/orakl/node/pkg/db"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/elazarl/goproxy"
+	"github.com/rs/zerolog/log"
 )
 
 const WAIT_SECONDS = 4 * time.Second
@@ -332,6 +336,58 @@ func TestFetcherFetch(t *testing.T) {
 		}
 		assert.Greater(t, len(result), 0)
 	}
+}
+
+func TestFetcherFetchProxy(t *testing.T) {
+	ctx := context.Background()
+	clean, testItems, err := setup(ctx)
+	if err != nil {
+		t.Fatalf("error setting up test: %v", err)
+	}
+	defer clean()
+
+	fetcher := testItems.fetcher
+
+	proxyServer := goproxy.NewProxyHttpServer()
+	proxyServer.Verbose = true
+	srv := &http.Server{
+		Addr:    ":8088",
+		Handler: proxyServer,
+	}
+	go func() {
+		if proxyServeErr := srv.ListenAndServe(); proxyServeErr != http.ErrServerClosed {
+			// Unexpected server shutdown
+			log.Fatal().Err(proxyServeErr).Msg("unexpected server shutdown")
+		}
+	}()
+
+	proxy, err := tests.PostRequest[Proxy](testItems.app, "/api/v1/proxy", map[string]any{"protocol": "http", "host": "localhost", "port": 8088})
+	if err != nil {
+		t.Fatalf("error creating proxy: %v", err)
+	}
+
+	err = fetcher.initialize(ctx)
+	if err != nil {
+		t.Fatalf("error initializing fetcher: %v", err)
+	}
+
+	for _, adapter := range fetcher.Adapters {
+		result, fetchErr := fetcher.fetch(*adapter)
+		if fetchErr != nil {
+			t.Fatalf("error fetching: %v", fetchErr)
+		}
+		assert.Greater(t, len(result), 0)
+	}
+
+	_, err = tests.DeleteRequest[Proxy](testItems.app, "/api/v1/proxy/"+strconv.FormatInt(proxy.ID, 10), nil)
+	if err != nil {
+		t.Fatalf("error cleaning up proxy: %v", err)
+	}
+
+	if err = srv.Shutdown(ctx); err != nil {
+		log.Fatal().Err(err).Msg("unexpected server shutdown")
+	}
+
 }
 
 func TestFetcherFetchAndInsertAdapter(t *testing.T) {

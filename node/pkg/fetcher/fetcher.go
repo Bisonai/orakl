@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"math/rand"
 	"strconv"
+	"sync"
 	"time"
 
 	"bisonai.com/orakl/node/pkg/bus"
@@ -222,38 +223,98 @@ func (f *App) insertRdb(ctx context.Context, name string, value float64) error {
 }
 
 func (f *App) fetch(fetcher Fetcher) ([]float64, error) {
-	adapterFeeds := fetcher.Feeds
+	feeds := fetcher.Feeds
 
 	data := []float64{}
+	dataChan := make(chan float64)
+	errChan := make(chan error)
 
-	for _, feed := range adapterFeeds {
-		definition := new(Definition)
-		err := json.Unmarshal(feed.Definition, &definition)
-		if err != nil {
-			log.Error().Err(err).Msg("failed to unmarshal feed definition")
-			continue
-		}
-		res, err := utils.GetRequest[interface{}](definition.Url, nil, definition.Headers)
-		if err != nil {
-			log.Error().Err(err).Msg("failed to get request")
-			continue
-		}
+	var wg sync.WaitGroup
+	wg.Add(len(feeds))
 
-		result, err := utils.Reduce(res, definition.Reducers)
-		if err != nil {
-			log.Error().Err(err).Msg("failed to reduce")
-			continue
-		}
+	for _, feed := range feeds {
+		go func(feed Feed) {
+			defer wg.Done()
+			definition := new(Definition)
+			err := json.Unmarshal(feed.Definition, &definition)
+			if err != nil {
+				errChan <- err
+				return
+			}
+			res, err := f.requestFeed(*definition)
+			if err != nil {
+				errChan <- err
+				return
+			}
 
-		data = append(data, result)
+			result, err := utils.Reduce(res, definition.Reducers)
+			if err != nil {
+				errChan <- err
+				return
+			}
+
+			dataChan <- result
+		}(feed)
 	}
+
+	go func() {
+		wg.Wait()
+		close(dataChan)
+		close(errChan)
+	}()
+
+	for i := 0; i < len(feeds); i++ {
+		select {
+		case result := <-dataChan:
+			data = append(data, result)
+		case err := <-errChan:
+			log.Error().Err(err).Msg("error in fetch")
+		}
+	}
+
 	if len(data) < 1 {
 		return nil, errors.New("no data fetched")
 	}
 	return data, nil
 }
 
-func (f *App) getAdapters(ctx context.Context) ([]Adapter, error) {
+func (f *Fetcher) requestFeed(definition Definition) (interface{}, error) {
+	var proxies []Proxy
+	if definition.Location != nil && *definition.Location != "" {
+		proxies = f.filterProxyByLocation(*definition.Location)
+	} else {
+		proxies = f.Proxies
+	}
+
+	if len(proxies) > 0 {
+		proxy := proxies[rand.Intn(len(proxies))]
+		proxyUrl := fmt.Sprintf("%s://%s:%d", proxy.Protocol, proxy.Host, proxy.Port)
+		log.Debug().Str("proxyUrl", proxyUrl).Msg("using proxy")
+		return f.requestWithProxy(definition, proxyUrl)
+	}
+
+	return f.requestWithoutProxy(definition)
+}
+
+func (f *Fetcher) requestWithoutProxy(definition Definition) (interface{}, error) {
+	return utils.GetRequest[interface{}](definition.Url, nil, definition.Headers)
+}
+
+func (f *Fetcher) requestWithProxy(definition Definition, proxyUrl string) (interface{}, error) {
+	return utils.GetRequestProxy[interface{}](definition.Url, nil, definition.Headers, proxyUrl)
+}
+
+func (f *Fetcher) filterProxyByLocation(location string) []Proxy {
+	proxies := []Proxy{}
+	for _, proxy := range f.Proxies {
+		if proxy.Location != nil && *proxy.Location == location {
+			proxies = append(proxies, proxy)
+		}
+	}
+	return proxies
+}
+
+func (f *Fetcher) getAdapters(ctx context.Context) ([]Adapter, error) {
 	adapters, err := db.QueryRows[Adapter](ctx, SelectActiveAdaptersQuery, nil)
 	if err != nil {
 		return nil, err
@@ -270,7 +331,15 @@ func (f *App) getFeeds(ctx context.Context, adapterId int64) ([]Feed, error) {
 	return feeds, err
 }
 
-func (f *App) initialize(ctx context.Context) error {
+func (f *Fetcher) getProxies(ctx context.Context) ([]Proxy, error) {
+	proxies, err := db.QueryRows[Proxy](ctx, SelectAllProxiesQuery, nil)
+	if err != nil {
+		return nil, err
+	}
+	return proxies, err
+}
+
+func (f *Fetcher) initialize(ctx context.Context) error {
 	adapters, err := f.getAdapters(ctx)
 	if err != nil {
 		return err
@@ -288,6 +357,14 @@ func (f *App) initialize(ctx context.Context) error {
 			isRunning: false,
 		}
 	}
+
+	proxies, getProxyErr := f.getProxies(ctx)
+	if getProxyErr != nil {
+		return getProxyErr
+	}
+
+	f.Proxies = proxies
+
 	return nil
 }
 

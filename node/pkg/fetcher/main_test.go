@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"bisonai.com/orakl/node/pkg/admin/adapter"
+	"bisonai.com/orakl/node/pkg/admin/proxy"
 	"bisonai.com/orakl/node/pkg/admin/tests"
 	"bisonai.com/orakl/node/pkg/admin/utils"
 	"bisonai.com/orakl/node/pkg/bus"
@@ -351,6 +352,7 @@ func setup(ctx context.Context) (func() error, *TestItems, error) {
 	}
 	v1 := app.Group("/api/v1")
 	adapter.Routes(v1)
+	proxy.Routes(v1)
 
 	fetcher := New(mb)
 
