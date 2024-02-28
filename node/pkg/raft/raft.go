@@ -62,21 +62,23 @@ func (r *Raft) subscribe(ctx context.Context) {
 		log.Error().Err(err).Msg("failed to subscribe to topic")
 	}
 	for {
-		if ctx.Err() == context.Canceled {
+		select {
+		case <-ctx.Done():
 			log.Debug().Msg("context cancelled")
 			return
+		default:
+			rawMsg, err := sub.Next(ctx)
+			if err != nil {
+				log.Error().Err(err).Msg("failed to get message from topic")
+				continue
+			}
+			msg, err := r.unmarshalMessage(rawMsg.Data)
+			if err != nil {
+				log.Error().Err(err).Msg("failed to unmarshal message")
+				continue
+			}
+			r.MessageBuffer <- msg
 		}
-		rawMsg, err := sub.Next(ctx)
-		if err != nil {
-			log.Error().Err(err).Msg("failed to get message from topic")
-			continue
-		}
-		msg, err := r.unmarshalMessage(rawMsg.Data)
-		if err != nil {
-			log.Error().Err(err).Msg("failed to unmarshal message")
-			continue
-		}
-		r.MessageBuffer <- msg
 	}
 }
 
