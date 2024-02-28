@@ -44,12 +44,12 @@ func setup(ctx context.Context) (func() error, *TestItems, error) {
 
 	testItems.app = app
 
-	tempData, err := insertSampleData(ctx)
+	tmpData, err := insertSampleData(ctx)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	testItems.tmpData = tempData
+	testItems.tmpData = tmpData
 
 	v1 := app.Group("/api/v1")
 	adapter.Routes(v1)
@@ -60,27 +60,27 @@ func setup(ctx context.Context) (func() error, *TestItems, error) {
 }
 
 func insertSampleData(ctx context.Context) (*TmpData, error) {
-	var tempData = new(TmpData)
+	var tmpData = new(TmpData)
 
 	tmpAdapter, err := db.QueryRow[adapter.AdapterModel](ctx, adapter.InsertAdapter, map[string]any{"name": "test_adapter"})
 	if err != nil {
 		return nil, err
 	}
-	tempData.adapter = tmpAdapter
+	tmpData.adapter = tmpAdapter
 
 	tmpFeed, err := db.QueryRow[feed.FeedModel](ctx, adapter.InsertFeed, map[string]any{"name": "test_feed", "adapter_id": tmpAdapter.Id, "definition": `{"test": "test"}`})
 	if err != nil {
 		return nil, err
 	}
-	tempData.feed = tmpFeed
+	tmpData.feed = tmpFeed
 
 	tmpProxy, err := db.QueryRow[proxy.ProxyModel](ctx, proxy.InsertProxy, map[string]any{"protocol": "http", "host": "localhost", "port": 80, "location": "test"})
 	if err != nil {
 		return nil, err
 	}
-	tempData.proxy = tmpProxy
+	tmpData.proxy = tmpProxy
 
-	return tempData, nil
+	return tmpData, nil
 }
 
 func cleanup(testItems *TestItems) func() error {
