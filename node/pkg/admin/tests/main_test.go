@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"bisonai.com/orakl/node/pkg/admin/adapter"
+	"bisonai.com/orakl/node/pkg/admin/aggregator"
 	"bisonai.com/orakl/node/pkg/admin/feed"
 	"bisonai.com/orakl/node/pkg/admin/fetcher"
 	"bisonai.com/orakl/node/pkg/admin/proxy"
@@ -22,9 +23,10 @@ type TestItems struct {
 }
 
 type TmpData struct {
-	adapter adapter.AdapterModel
-	feed    feed.FeedModel
-	proxy   proxy.ProxyModel
+	aggregator aggregator.AggregatorModel
+	adapter    adapter.AdapterModel
+	feed       feed.FeedModel
+	proxy      proxy.ProxyModel
 }
 
 func setup(ctx context.Context) (func() error, *TestItems, error) {
@@ -52,6 +54,7 @@ func setup(ctx context.Context) (func() error, *TestItems, error) {
 	testItems.tmpData = tmpData
 
 	v1 := app.Group("/api/v1")
+	aggregator.Routes(v1)
 	adapter.Routes(v1)
 	feed.Routes(v1)
 	fetcher.Routes(v1)
@@ -67,6 +70,12 @@ func insertSampleData(ctx context.Context) (*TmpData, error) {
 		return nil, err
 	}
 	tmpData.adapter = tmpAdapter
+
+	tmpAggregator, err := db.QueryRow[aggregator.AggregatorModel](ctx, aggregator.InsertAggregator, map[string]any{"name": "test_aggregator"})
+	if err != nil {
+		return nil, err
+	}
+	tmpData.aggregator = tmpAggregator
 
 	tmpFeed, err := db.QueryRow[feed.FeedModel](ctx, adapter.InsertFeed, map[string]any{"name": "test_feed", "adapter_id": tmpAdapter.Id, "definition": `{"test": "test"}`})
 	if err != nil {
@@ -93,6 +102,12 @@ func adminCleanup(testItems *TestItems) func() error {
 		if err != nil {
 			return err
 		}
+
+		_, err = db.QueryRow[aggregator.AggregatorModel](context.Background(), aggregator.DeleteAggregatorById, map[string]any{"id": testItems.tmpData.aggregator.Id})
+		if err != nil {
+			return err
+		}
+
 		_, err = db.QueryRow[proxy.ProxyModel](context.Background(), proxy.DeleteProxyById, map[string]any{"id": testItems.tmpData.proxy.Id})
 		return err
 	}
