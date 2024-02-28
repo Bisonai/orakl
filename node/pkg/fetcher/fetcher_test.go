@@ -346,7 +346,7 @@ func TestFetcherFetchProxy(t *testing.T) {
 	}
 	defer clean()
 
-	fetcher := testItems.fetcher
+	app := testItems.fetcher
 
 	proxyServer := goproxy.NewProxyHttpServer()
 	proxyServer.Verbose = true
@@ -366,13 +366,13 @@ func TestFetcherFetchProxy(t *testing.T) {
 		t.Fatalf("error creating proxy: %v", err)
 	}
 
-	err = fetcher.initialize(ctx)
+	err = app.initialize(ctx)
 	if err != nil {
 		t.Fatalf("error initializing fetcher: %v", err)
 	}
 
-	for _, adapter := range fetcher.Adapters {
-		result, fetchErr := fetcher.fetch(*adapter)
+	for _, fetcher := range app.Fetchers {
+		result, fetchErr := app.fetch(*fetcher)
 		if fetchErr != nil {
 			t.Fatalf("error fetching: %v", fetchErr)
 		}

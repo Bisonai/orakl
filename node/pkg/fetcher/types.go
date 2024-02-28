@@ -34,7 +34,7 @@ type Fetcher struct {
 	Adapter
 	Feeds []Feed
 
-	adapterCtx context.Context
+	fetcherCtx context.Context
 	cancel     context.CancelFunc
 	isRunning  bool
 }
@@ -49,7 +49,7 @@ type Feed struct {
 type App struct {
 	Bus      *bus.MessageBus
 	Fetchers map[int64]*Fetcher
-	Proxies []Proxy
+	Proxies  []Proxy
 }
 
 type Definition struct {
