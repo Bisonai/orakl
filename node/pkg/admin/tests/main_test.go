@@ -56,7 +56,7 @@ func setup(ctx context.Context) (func() error, *TestItems, error) {
 	feed.Routes(v1)
 	fetcher.Routes(v1)
 	proxy.Routes(v1)
-	return cleanup(testItems), testItems, nil
+	return adminCleanup(testItems), testItems, nil
 }
 
 func insertSampleData(ctx context.Context) (*TempData, error) {
@@ -83,7 +83,7 @@ func insertSampleData(ctx context.Context) (*TempData, error) {
 	return tempData, nil
 }
 
-func cleanup(testItems *TestItems) func() error {
+func adminCleanup(testItems *TestItems) func() error {
 	return func() error {
 		err := testItems.app.Shutdown()
 		if err != nil {

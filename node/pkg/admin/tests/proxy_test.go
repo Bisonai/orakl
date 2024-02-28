@@ -13,11 +13,11 @@ import (
 
 func TestProxyInsert(t *testing.T) {
 	ctx := context.Background()
-	_cleanup, testItems, err := setup(ctx)
+	cleanup, testItems, err := setup(ctx)
 	if err != nil {
 		t.Fatalf("error setting up test: %v", err)
 	}
-	defer _cleanup()
+	defer cleanup()
 
 	mockProxy := proxy.ProxyInsertModel{
 		Protocol: "http",
@@ -54,11 +54,11 @@ func TestProxyInsert(t *testing.T) {
 
 func TestProxyGet(t *testing.T) {
 	ctx := context.Background()
-	_cleanup, testItems, err := setup(ctx)
+	cleanup, testItems, err := setup(ctx)
 	if err != nil {
 		t.Fatalf("error setting up test: %v", err)
 	}
-	defer _cleanup()
+	defer cleanup()
 
 	readResult, err := GetRequest[[]proxy.ProxyModel](testItems.app, "/api/v1/proxy", nil)
 	if err != nil {
@@ -70,11 +70,11 @@ func TestProxyGet(t *testing.T) {
 
 func TestProxyGetById(t *testing.T) {
 	ctx := context.Background()
-	_cleanup, testItems, err := setup(ctx)
+	cleanup, testItems, err := setup(ctx)
 	if err != nil {
 		t.Fatalf("error setting up test: %v", err)
 	}
-	defer _cleanup()
+	defer cleanup()
 
 	readResultById, err := GetRequest[proxy.ProxyModel](testItems.app, "/api/v1/proxy/"+strconv.FormatInt(*testItems.tempData.proxy.Id, 10), nil)
 	if err != nil {
@@ -86,11 +86,11 @@ func TestProxyGetById(t *testing.T) {
 
 func TestProxyUpdateById(t *testing.T) {
 	ctx := context.Background()
-	_cleanup, testItems, err := setup(ctx)
+	cleanup, testItems, err := setup(ctx)
 	if err != nil {
 		t.Fatalf("error setting up test: %v", err)
 	}
-	defer _cleanup()
+	defer cleanup()
 
 	mockProxy := proxy.ProxyInsertModel{
 		Protocol: "http",
@@ -126,11 +126,11 @@ func TestProxyUpdateById(t *testing.T) {
 
 func TestProxyDeleteById(t *testing.T) {
 	ctx := context.Background()
-	_cleanup, testItems, err := setup(ctx)
+	cleanup, testItems, err := setup(ctx)
 	if err != nil {
 		t.Fatalf("error setting up test: %v", err)
 	}
-	defer _cleanup()
+	defer cleanup()
 
 	mockProxy := proxy.ProxyInsertModel{
 		Protocol: "http",

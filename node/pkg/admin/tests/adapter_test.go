@@ -14,11 +14,11 @@ import (
 
 func TestAdapterInsert(t *testing.T) {
 	ctx := context.Background()
-	_cleanup, testItems, err := setup(ctx)
+	cleanup, testItems, err := setup(ctx)
 	if err != nil {
 		t.Fatalf("error setting up test: %v", err)
 	}
-	defer _cleanup()
+	defer cleanup()
 
 	mockAdapter1 := adapter.AdapterInsertModel{
 		Name: "test_adapter_2",
@@ -51,11 +51,11 @@ func TestAdapterInsert(t *testing.T) {
 
 func TestAdapterGet(t *testing.T) {
 	ctx := context.Background()
-	_cleanup, testItems, err := setup(ctx)
+	cleanup, testItems, err := setup(ctx)
 	if err != nil {
 		t.Fatalf("error setting up test: %v", err)
 	}
-	defer _cleanup()
+	defer cleanup()
 
 	readResult, err := GetRequest[[]adapter.AdapterModel](testItems.app, "/api/v1/adapter", nil)
 	if err != nil {
@@ -66,11 +66,11 @@ func TestAdapterGet(t *testing.T) {
 
 func TestAdapterReadDetailById(t *testing.T) {
 	ctx := context.Background()
-	_cleanup, testItems, err := setup(ctx)
+	cleanup, testItems, err := setup(ctx)
 	if err != nil {
 		t.Fatalf("error setting up test: %v", err)
 	}
-	defer _cleanup()
+	defer cleanup()
 
 	readResult, err := GetRequest[adapter.AdapterDetailModel](testItems.app, "/api/v1/adapter/detail/"+strconv.FormatInt(*testItems.tempData.adapter.Id, 10), nil)
 	if err != nil {
@@ -82,11 +82,11 @@ func TestAdapterReadDetailById(t *testing.T) {
 
 func TestAdapterGetById(t *testing.T) {
 	ctx := context.Background()
-	_cleanup, testItems, err := setup(ctx)
+	cleanup, testItems, err := setup(ctx)
 	if err != nil {
 		t.Fatalf("error setting up test: %v", err)
 	}
-	defer _cleanup()
+	defer cleanup()
 
 	readResult, err := GetRequest[adapter.AdapterModel](testItems.app, "/api/v1/adapter/"+strconv.FormatInt(*testItems.tempData.adapter.Id, 10), nil)
 	if err != nil {
@@ -97,11 +97,11 @@ func TestAdapterGetById(t *testing.T) {
 
 func TestAdapterDeleteById(t *testing.T) {
 	ctx := context.Background()
-	_cleanup, testItems, err := setup(ctx)
+	cleanup, testItems, err := setup(ctx)
 	if err != nil {
 		t.Fatalf("error setting up test: %v", err)
 	}
-	defer _cleanup()
+	defer cleanup()
 
 	mockAdapter1 := adapter.AdapterInsertModel{
 		Name: "test_adapter_2",
@@ -132,11 +132,11 @@ func TestAdapterDeleteById(t *testing.T) {
 
 func TestAdapterDeactivate(t *testing.T) {
 	ctx := context.Background()
-	_cleanup, testItems, err := setup(ctx)
+	cleanup, testItems, err := setup(ctx)
 	if err != nil {
 		t.Fatalf("error setting up test: %v", err)
 	}
-	defer _cleanup()
+	defer cleanup()
 
 	channel := testItems.mb.Subscribe(bus.FETCHER)
 
@@ -158,11 +158,11 @@ func TestAdapterDeactivate(t *testing.T) {
 
 func TestAdapterActivate(t *testing.T) {
 	ctx := context.Background()
-	_cleanup, testItems, err := setup(ctx)
+	cleanup, testItems, err := setup(ctx)
 	if err != nil {
 		t.Fatalf("error setting up test: %v", err)
 	}
-	defer _cleanup()
+	defer cleanup()
 
 	channel := testItems.mb.Subscribe(bus.FETCHER)
 

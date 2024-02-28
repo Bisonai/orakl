@@ -11,11 +11,11 @@ import (
 
 func TestFetcherStart(t *testing.T) {
 	ctx := context.Background()
-	_cleanup, testItems, err := setup(ctx)
+	cleanup, testItems, err := setup(ctx)
 	if err != nil {
 		t.Fatalf("error setting up test: %v", err)
 	}
-	defer _cleanup()
+	defer cleanup()
 
 	channel := testItems.mb.Subscribe(bus.FETCHER)
 
@@ -38,11 +38,11 @@ func TestFetcherStart(t *testing.T) {
 
 func TestFetcherStop(t *testing.T) {
 	ctx := context.Background()
-	_cleanup, testItems, err := setup(ctx)
+	cleanup, testItems, err := setup(ctx)
 	if err != nil {
 		t.Fatalf("error setting up test: %v", err)
 	}
-	defer _cleanup()
+	defer cleanup()
 
 	channel := testItems.mb.Subscribe(bus.FETCHER)
 
@@ -65,11 +65,11 @@ func TestFetcherStop(t *testing.T) {
 
 func TestFetcherRefresh(t *testing.T) {
 	ctx := context.Background()
-	_cleanup, testItems, err := setup(ctx)
+	cleanup, testItems, err := setup(ctx)
 	if err != nil {
 		t.Fatalf("error setting up test: %v", err)
 	}
-	defer _cleanup()
+	defer cleanup()
 
 	channel := testItems.mb.Subscribe(bus.FETCHER)
 
