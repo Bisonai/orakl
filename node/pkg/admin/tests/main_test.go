@@ -16,12 +16,12 @@ import (
 )
 
 type TestItems struct {
-	app      *fiber.App
-	mb       *bus.MessageBus
-	tempData *TempData
+	app     *fiber.App
+	mb      *bus.MessageBus
+	tmpData *TmpData
 }
 
-type TempData struct {
+type TmpData struct {
 	adapter adapter.AdapterModel
 	feed    feed.FeedModel
 	proxy   proxy.ProxyModel
@@ -49,7 +49,7 @@ func setup(ctx context.Context) (func() error, *TestItems, error) {
 		return nil, nil, err
 	}
 
-	testItems.tempData = tempData
+	testItems.tmpData = tempData
 
 	v1 := app.Group("/api/v1")
 	adapter.Routes(v1)
@@ -59,8 +59,8 @@ func setup(ctx context.Context) (func() error, *TestItems, error) {
 	return cleanup(testItems), testItems, nil
 }
 
-func insertSampleData(ctx context.Context) (*TempData, error) {
-	var tempData = new(TempData)
+func insertSampleData(ctx context.Context) (*TmpData, error) {
+	var tempData = new(TmpData)
 
 	tmpAdapter, err := db.QueryRow[adapter.AdapterModel](ctx, adapter.InsertAdapter, map[string]any{"name": "test_adapter"})
 	if err != nil {
@@ -89,11 +89,11 @@ func cleanup(testItems *TestItems) func() error {
 		if err != nil {
 			return err
 		}
-		_, err = db.QueryRow[adapter.AdapterModel](context.Background(), adapter.DeleteAdapterById, map[string]any{"id": testItems.tempData.adapter.Id})
+		_, err = db.QueryRow[adapter.AdapterModel](context.Background(), adapter.DeleteAdapterById, map[string]any{"id": testItems.tmpData.adapter.Id})
 		if err != nil {
 			return err
 		}
-		_, err = db.QueryRow[proxy.ProxyModel](context.Background(), proxy.DeleteProxyById, map[string]any{"id": testItems.tempData.proxy.Id})
+		_, err = db.QueryRow[proxy.ProxyModel](context.Background(), proxy.DeleteProxyById, map[string]any{"id": testItems.tmpData.proxy.Id})
 		return err
 	}
 }
