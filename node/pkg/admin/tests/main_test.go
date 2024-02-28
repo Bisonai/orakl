@@ -16,12 +16,12 @@ import (
 )
 
 type TestItems struct {
-	app      *fiber.App
-	mb       *bus.MessageBus
-	tempData *TempData
+	app     *fiber.App
+	mb      *bus.MessageBus
+	tmpData *TmpData
 }
 
-type TempData struct {
+type TmpData struct {
 	adapter adapter.AdapterModel
 	feed    feed.FeedModel
 	proxy   proxy.ProxyModel
@@ -44,12 +44,12 @@ func setup(ctx context.Context) (func() error, *TestItems, error) {
 
 	testItems.app = app
 
-	tempData, err := insertSampleData(ctx)
+	tmpData, err := insertSampleData(ctx)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	testItems.tempData = tempData
+	testItems.tmpData = tmpData
 
 	v1 := app.Group("/api/v1")
 	adapter.Routes(v1)
@@ -59,28 +59,28 @@ func setup(ctx context.Context) (func() error, *TestItems, error) {
 	return cleanup(testItems), testItems, nil
 }
 
-func insertSampleData(ctx context.Context) (*TempData, error) {
-	var tempData = new(TempData)
+func insertSampleData(ctx context.Context) (*TmpData, error) {
+	var tmpData = new(TmpData)
 
 	tmpAdapter, err := db.QueryRow[adapter.AdapterModel](ctx, adapter.InsertAdapter, map[string]any{"name": "test_adapter"})
 	if err != nil {
 		return nil, err
 	}
-	tempData.adapter = tmpAdapter
+	tmpData.adapter = tmpAdapter
 
 	tmpFeed, err := db.QueryRow[feed.FeedModel](ctx, adapter.InsertFeed, map[string]any{"name": "test_feed", "adapter_id": tmpAdapter.Id, "definition": `{"test": "test"}`})
 	if err != nil {
 		return nil, err
 	}
-	tempData.feed = tmpFeed
+	tmpData.feed = tmpFeed
 
 	tmpProxy, err := db.QueryRow[proxy.ProxyModel](ctx, proxy.InsertProxy, map[string]any{"protocol": "http", "host": "localhost", "port": 80, "location": "test"})
 	if err != nil {
 		return nil, err
 	}
-	tempData.proxy = tmpProxy
+	tmpData.proxy = tmpProxy
 
-	return tempData, nil
+	return tmpData, nil
 }
 
 func cleanup(testItems *TestItems) func() error {
@@ -89,11 +89,11 @@ func cleanup(testItems *TestItems) func() error {
 		if err != nil {
 			return err
 		}
-		_, err = db.QueryRow[adapter.AdapterModel](context.Background(), adapter.DeleteAdapterById, map[string]any{"id": testItems.tempData.adapter.Id})
+		_, err = db.QueryRow[adapter.AdapterModel](context.Background(), adapter.DeleteAdapterById, map[string]any{"id": testItems.tmpData.adapter.Id})
 		if err != nil {
 			return err
 		}
-		_, err = db.QueryRow[proxy.ProxyModel](context.Background(), proxy.DeleteProxyById, map[string]any{"id": testItems.tempData.proxy.Id})
+		_, err = db.QueryRow[proxy.ProxyModel](context.Background(), proxy.DeleteProxyById, map[string]any{"id": testItems.tmpData.proxy.Id})
 		return err
 	}
 }

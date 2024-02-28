@@ -72,11 +72,11 @@ func TestAdapterReadDetailById(t *testing.T) {
 	}
 	defer _cleanup()
 
-	readResult, err := GetRequest[adapter.AdapterDetailModel](testItems.app, "/api/v1/adapter/detail/"+strconv.FormatInt(*testItems.tempData.adapter.Id, 10), nil)
+	readResult, err := GetRequest[adapter.AdapterDetailModel](testItems.app, "/api/v1/adapter/detail/"+strconv.FormatInt(*testItems.tmpData.adapter.Id, 10), nil)
 	if err != nil {
 		t.Fatalf("error getting adapter detail: %v", err)
 	}
-	assert.Equal(t, readResult.Id, testItems.tempData.adapter.Id)
+	assert.Equal(t, readResult.Id, testItems.tmpData.adapter.Id)
 	assert.NotEmpty(t, readResult.Feeds)
 }
 
@@ -88,11 +88,11 @@ func TestAdapterGetById(t *testing.T) {
 	}
 	defer _cleanup()
 
-	readResult, err := GetRequest[adapter.AdapterModel](testItems.app, "/api/v1/adapter/"+strconv.FormatInt(*testItems.tempData.adapter.Id, 10), nil)
+	readResult, err := GetRequest[adapter.AdapterModel](testItems.app, "/api/v1/adapter/"+strconv.FormatInt(*testItems.tmpData.adapter.Id, 10), nil)
 	if err != nil {
 		t.Fatalf("error getting adapter by id: %v", err)
 	}
-	assert.Equal(t, readResult.Id, testItems.tempData.adapter.Id)
+	assert.Equal(t, readResult.Id, testItems.tmpData.adapter.Id)
 }
 
 func TestAdapterDeleteById(t *testing.T) {
@@ -140,7 +140,7 @@ func TestAdapterDeactivate(t *testing.T) {
 
 	channel := testItems.mb.Subscribe(bus.FETCHER)
 
-	deactivateResult, err := PostRequest[adapter.AdapterModel](testItems.app, "/api/v1/adapter/deactivate/"+strconv.FormatInt(*testItems.tempData.adapter.Id, 10), nil)
+	deactivateResult, err := PostRequest[adapter.AdapterModel](testItems.app, "/api/v1/adapter/deactivate/"+strconv.FormatInt(*testItems.tmpData.adapter.Id, 10), nil)
 	if err != nil {
 		t.Fatalf("error deactivating adapter: %v", err)
 	}
@@ -167,14 +167,14 @@ func TestAdapterActivate(t *testing.T) {
 	channel := testItems.mb.Subscribe(bus.FETCHER)
 
 	//first deactivate before activate
-	_, err = PostRequest[adapter.AdapterModel](testItems.app, "/api/v1/adapter/deactivate/"+strconv.FormatInt(*testItems.tempData.adapter.Id, 10), nil)
+	_, err = PostRequest[adapter.AdapterModel](testItems.app, "/api/v1/adapter/deactivate/"+strconv.FormatInt(*testItems.tmpData.adapter.Id, 10), nil)
 	if err != nil {
 		t.Fatalf("error deactivating adapter: %v", err)
 	}
 	<-channel
 
 	// activate
-	activateResult, err := PostRequest[adapter.AdapterModel](testItems.app, "/api/v1/adapter/activate/"+strconv.FormatInt(*testItems.tempData.adapter.Id, 10), nil)
+	activateResult, err := PostRequest[adapter.AdapterModel](testItems.app, "/api/v1/adapter/activate/"+strconv.FormatInt(*testItems.tmpData.adapter.Id, 10), nil)
 	if err != nil {
 		t.Fatalf("error activating adapter: %v", err)
 	}

@@ -76,12 +76,12 @@ func TestProxyGetById(t *testing.T) {
 	}
 	defer _cleanup()
 
-	readResultById, err := GetRequest[proxy.ProxyModel](testItems.app, "/api/v1/proxy/"+strconv.FormatInt(*testItems.tempData.proxy.Id, 10), nil)
+	readResultById, err := GetRequest[proxy.ProxyModel](testItems.app, "/api/v1/proxy/"+strconv.FormatInt(*testItems.tmpData.proxy.Id, 10), nil)
 	if err != nil {
 		t.Fatalf("error getting proxy by id: %v", err)
 	}
 
-	assert.Equal(t, readResultById.Id, testItems.tempData.proxy.Id)
+	assert.Equal(t, readResultById.Id, testItems.tmpData.proxy.Id)
 }
 
 func TestProxyUpdateById(t *testing.T) {

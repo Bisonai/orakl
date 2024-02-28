@@ -33,12 +33,12 @@ func TestFeedGetByAdapterId(t *testing.T) {
 	}
 	defer _cleanup()
 
-	readResult, err := GetRequest[[]feed.FeedModel](testItems.app, "/api/v1/feed/adapter/"+strconv.FormatInt(*testItems.tempData.adapter.Id, 10), nil)
+	readResult, err := GetRequest[[]feed.FeedModel](testItems.app, "/api/v1/feed/adapter/"+strconv.FormatInt(*testItems.tmpData.adapter.Id, 10), nil)
 	if err != nil {
 		t.Fatalf("error getting feeds: %v", err)
 	}
 	assert.Greater(t, len(readResult), 0)
-	assert.Equal(t, testItems.tempData.feed.Id, readResult[0].Id)
+	assert.Equal(t, testItems.tmpData.feed.Id, readResult[0].Id)
 }
 
 func TestFeedGetById(t *testing.T) {
@@ -49,9 +49,9 @@ func TestFeedGetById(t *testing.T) {
 	}
 	defer _cleanup()
 
-	readResult, err := GetRequest[feed.FeedModel](testItems.app, "/api/v1/feed/"+strconv.FormatInt(*testItems.tempData.feed.Id, 10), nil)
+	readResult, err := GetRequest[feed.FeedModel](testItems.app, "/api/v1/feed/"+strconv.FormatInt(*testItems.tmpData.feed.Id, 10), nil)
 	if err != nil {
 		t.Fatalf("error getting feeds: %v", err)
 	}
-	assert.Equal(t, testItems.tempData.feed.Id, readResult.Id)
+	assert.Equal(t, testItems.tmpData.feed.Id, readResult.Id)
 }
