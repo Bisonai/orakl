@@ -5,9 +5,9 @@ import (
 	"encoding/json"
 	"sync"
 
-	"strconv"
 	"time"
 
+	"bisonai.com/orakl/node/pkg/db"
 	"bisonai.com/orakl/node/pkg/raft"
 	"bisonai.com/orakl/node/pkg/utils"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
@@ -32,9 +32,8 @@ func NewNode(h host.Host, ps *pubsub.PubSub, topicString string) (*AggregatorNod
 		Raft: raft.NewRaftNode(h, ps, topic, sub, 100), // consider updating after testing
 
 		LeaderJobTimeout: &leaderTimeout,
-		JobTimeout:       nil,
 
-		CollectedPrices: map[int][]int{},
+		CollectedPrices: map[int64][]int64{},
 		AggregatorMutex: sync.Mutex{},
 	}
 
@@ -96,12 +95,11 @@ func (n *AggregatorNode) HandleCustomMessage(message raft.Message) error {
 }
 
 /*
-should be updated further later to handle various edge cases
-1. leader's roundSync message could be lower than follower's roundId
--> might need to add another phase where all the peers agree on the roundId to use
+TODO: adding another phase to agree on roundId
 
-2. roundId should be stored and loaded from db on node restarts
--> should carefully handle when it should be stored and loaded
+1. leader sends roundSync message
+2. followers check if the leader's roundId is greater than its own roundId
+3. if it is, follower will send signal to leader to update roundId
 */
 func (n *AggregatorNode) HandleRoundSyncMessage(msg raft.Message) error {
 	var roundSyncMessage RoundSyncMessage
@@ -112,15 +110,31 @@ func (n *AggregatorNode) HandleRoundSyncMessage(msg raft.Message) error {
 	n.RoundID = roundSyncMessage.RoundID
 
 	// pull latest local aggregate and send to peers
-	latestAggregate := utils.RandomNumberGenerator()
+	// latestAggregate := utils.RandomNumberGenerator()
+	var updateValue int64
+	value, updateTime, err := n.getLatestLocalAggregate(n.nodeCtx)
+	if err != nil {
+		return err
+	}
+
+	// when local aggregate have not been updated, send priceDataMessage with -1 value indicating it should be ignored
+	if !n.LastLocalAggregateTime.IsZero() && n.LastLocalAggregateTime.Equal(updateTime) {
+		updateValue = -1
+	} else {
+		updateValue = value
+		n.LastLocalAggregateTime = updateTime
+	}
+
 	priceDataMessage := PriceDataMessage{
 		RoundID:   n.RoundID,
-		PriceData: latestAggregate,
+		PriceData: updateValue,
 	}
+
 	marshalledPriceDataMessage, err := json.Marshal(priceDataMessage)
 	if err != nil {
 		return err
 	}
+
 	message := raft.Message{
 		Type:     PriceData,
 		SentFrom: n.Raft.Host.ID().String(),
@@ -139,16 +153,47 @@ func (n *AggregatorNode) HandlePriceDataMessage(msg raft.Message) error {
 	n.AggregatorMutex.Lock()
 	defer n.AggregatorMutex.Unlock()
 	if _, ok := n.CollectedPrices[priceDataMessage.RoundID]; !ok {
-		n.CollectedPrices[priceDataMessage.RoundID] = []int{}
+		n.CollectedPrices[priceDataMessage.RoundID] = []int64{}
 	}
+
 	n.CollectedPrices[priceDataMessage.RoundID] = append(n.CollectedPrices[priceDataMessage.RoundID], priceDataMessage.PriceData)
 	if len(n.CollectedPrices[priceDataMessage.RoundID]) >= len(n.Raft.Ps.ListPeers(n.Raft.Topic.String()))+1 {
+		filteredCollectedPrices := FilterNegative(n.CollectedPrices[priceDataMessage.RoundID])
+
 		// handle aggregation here once all the data have been collected
-		median := utils.FindMedian(n.CollectedPrices[priceDataMessage.RoundID])
-		roundID := strconv.Itoa(priceDataMessage.RoundID)
-		aggregate := strconv.Itoa(median)
-		log.Debug().Msg("Aggregate for round: " + roundID + " is: " + aggregate)
+		median := utils.FindMedianInt64(filteredCollectedPrices)
+		log.Debug().Int64("roundId", priceDataMessage.RoundID).Int64("global_aggregate", median).Msg("global aggregated")
+		err := n.insertGlobalAggregate(n.nodeCtx, n.Name, median, priceDataMessage.RoundID)
+		if err != nil {
+			log.Error().Err(err).Msg("failed to insert global aggregate")
+			return err
+		}
 		delete(n.CollectedPrices, priceDataMessage.RoundID)
 	}
+	return nil
+}
+
+func (n *AggregatorNode) getLatestLocalAggregate(ctx context.Context) (int64, time.Time, error) {
+	redisAggregate, err := GetLatestLocalAggregateFromRdb(ctx, n.Name)
+	if err != nil {
+		pgsqlAggregate, err := GetLatestLocalAggregateFromPgs(ctx, n.Name)
+		if err != nil {
+			return 0, time.Time{}, err
+		}
+		return pgsqlAggregate.Value, pgsqlAggregate.Timestamp, nil
+	}
+	return redisAggregate.Value, redisAggregate.Timestamp, nil
+}
+
+func (n *AggregatorNode) insertGlobalAggregate(ctx context.Context, name string, value int64, round int64) error {
+	_, err := db.QueryRow[globalAggregate](ctx, InsertGlobalAggregateQuery, map[string]any{"name": name, "value": value, "round": round})
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (n *AggregatorNode) executeDeviation() error {
+	// signals for deviation job which triggers immediate aggregation and sends submission request to submitter
 	return nil
 }

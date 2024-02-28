@@ -1,6 +1,9 @@
 package bus
 
-import "errors"
+import (
+	"errors"
+	"strconv"
+)
 
 // message bus will be passed as parameter to modules that need to communicate with each other
 
@@ -44,4 +47,37 @@ func (mb *MessageBus) Publish(msg Message) error {
 	default:
 		return errors.New("failed to send message to channel")
 	}
+}
+
+func ParseInt64MsgParam(msg Message, param string) (int64, error) {
+	rawId, ok := msg.Content.Args[param]
+	if !ok {
+		return 0, errors.New("adapterId not found in message")
+	}
+
+	idPayload, ok := rawId.(string)
+	if !ok {
+		return 0, errors.New("failed to convert adapter id to string")
+	}
+
+	id, err := strconv.ParseInt(idPayload, 10, 64)
+	if err != nil {
+		return 0, errors.New("failed to parse adapterId")
+	}
+
+	return id, nil
+}
+
+func ParseStringMsgParam(msg Message, param string) (string, error) {
+	raw, ok := msg.Content.Args[param]
+	if !ok {
+		return "", errors.New("param not found in message")
+	}
+
+	payload, ok := raw.(string)
+	if !ok {
+		return "", errors.New("failed to convert param to string")
+	}
+
+	return payload, nil
 }
