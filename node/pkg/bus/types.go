@@ -12,10 +12,10 @@ const (
 	SUBMITTER  = "submitter"
 
 	// Modular Monolith pkg commands, please follow {verb}_{noun} pattern for both variable name and value
-	START_FETCHER   = "start_fetcher"
-	STOP_FETCHER    = "stop_fetcher"
-	REFRESH_FETCHER = "refresh_fetcher"
+	START_FETCHER_APP   = "start_fetcher_app"
+	STOP_FETCHER_APP    = "stop_fetcher_app"
+	REFRESH_FETCHER_APP = "refresh_fetcher_app"
 
-	ACTIVATE_ADAPTER   = "activate_adapter"
-	DEACTIVATE_ADAPTER = "deactivate_adapter"
+	ACTIVATE_FETCHER   = "activate_fetcher"
+	DEACTIVATE_FETCHER = "deactivate_fetcher"
 )

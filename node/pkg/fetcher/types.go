@@ -21,7 +21,7 @@ type Adapter struct {
 	Active bool   `db:"active"`
 }
 
-type AdapterDetail struct {
+type Fetcher struct {
 	Adapter
 	Feeds []Feed
 
@@ -37,9 +37,9 @@ type Feed struct {
 	AdapterID  int64           `db:"adapter_id"`
 }
 
-type Fetcher struct {
+type App struct {
 	Bus      *bus.MessageBus
-	Adapters map[int64]*AdapterDetail
+	Fetchers map[int64]*Fetcher
 }
 
 type Definition struct {
