@@ -74,3 +74,18 @@ type PriceDataMessage struct {
 	RoundID   int64 `json:"roundID"`
 	PriceData int64 `json:"priceData"`
 }
+
+func GetLatestAggregateFromRdb(ctx context.Context, name string) (redisAggregate, error) {
+	key := "latestAggregate:" + name
+	var aggregate redisAggregate
+	data, err := db.Get(ctx, key)
+	if err != nil {
+		return aggregate, err
+	}
+
+	err = json.Unmarshal([]byte(data), &aggregate)
+	if err != nil {
+		return aggregate, err
+	}
+	return aggregate, nil
+}
