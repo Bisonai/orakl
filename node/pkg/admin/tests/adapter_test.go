@@ -148,7 +148,7 @@ func TestAdapterDeactivate(t *testing.T) {
 
 	select {
 	case msg := <-channel:
-		if msg.From != bus.ADMIN || msg.To != bus.FETCHER || msg.Content.Command != bus.DEACTIVATE_ADAPTER {
+		if msg.From != bus.ADMIN || msg.To != bus.FETCHER || msg.Content.Command != bus.DEACTIVATE_FETCHER {
 			t.Errorf("Message did not match expected. Got %v", msg)
 		}
 	default:
@@ -182,7 +182,7 @@ func TestAdapterActivate(t *testing.T) {
 
 	select {
 	case msg := <-channel:
-		if msg.From != bus.ADMIN || msg.To != bus.FETCHER || msg.Content.Command != bus.ACTIVATE_ADAPTER {
+		if msg.From != bus.ADMIN || msg.To != bus.FETCHER || msg.Content.Command != bus.ACTIVATE_FETCHER {
 			t.Errorf("Message did not match expected. Got %v", msg)
 		}
 	default:

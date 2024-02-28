@@ -17,14 +17,14 @@ import (
 
 const FETCHER_FREQUENCY = 2 * time.Second
 
-func New(bus *bus.MessageBus) *Fetcher {
-	return &Fetcher{
-		Adapters: make(map[int64]*AdapterDetail, 0),
+func New(bus *bus.MessageBus) *App {
+	return &App{
+		Fetchers: make(map[int64]*Fetcher, 0),
 		Bus:      bus,
 	}
 }
 
-func (f *Fetcher) Run(ctx context.Context) error {
+func (f *App) Run(ctx context.Context) error {
 	err := f.initialize(ctx)
 	if err != nil {
 		return err
@@ -32,8 +32,8 @@ func (f *Fetcher) Run(ctx context.Context) error {
 
 	f.subscribe(ctx)
 
-	for _, adapter := range f.Adapters {
-		err = f.startAdapter(ctx, adapter)
+	for _, adapter := range f.Fetchers {
+		err = f.startFetcher(ctx, adapter)
 		if err != nil {
 			log.Error().Err(err).Str("name", adapter.Name).Msg("failed to start adapter")
 		}
@@ -43,7 +43,7 @@ func (f *Fetcher) Run(ctx context.Context) error {
 	return nil
 }
 
-func (f *Fetcher) subscribe(ctx context.Context) {
+func (f *App) subscribe(ctx context.Context) {
 	log.Debug().Msg("fetcher subscribing to message bus")
 	channel := f.Bus.Subscribe(bus.FETCHER)
 	go func() {
@@ -65,7 +65,7 @@ func (f *Fetcher) subscribe(ctx context.Context) {
 	}()
 }
 
-func (f *Fetcher) handleMessage(ctx context.Context, msg bus.Message) {
+func (f *App) handleMessage(ctx context.Context, msg bus.Message) {
 	if msg.From != bus.ADMIN {
 		log.Debug().Msg("fetcher received message from non-admin")
 		return
@@ -77,7 +77,7 @@ func (f *Fetcher) handleMessage(ctx context.Context, msg bus.Message) {
 	}
 
 	switch msg.Content.Command {
-	case bus.ACTIVATE_ADAPTER:
+	case bus.ACTIVATE_FETCHER:
 		log.Debug().Msg("activate adapter msg received")
 		adapterId, err := f.parseIdMsgParam(msg)
 		if err != nil {
@@ -86,11 +86,11 @@ func (f *Fetcher) handleMessage(ctx context.Context, msg bus.Message) {
 		}
 
 		log.Debug().Int64("adapterId", adapterId).Msg("activating adapter")
-		err = f.startAdapterById(ctx, adapterId)
+		err = f.startFetcherById(ctx, adapterId)
 		if err != nil {
 			log.Error().Err(err).Msg("failed to start adapter")
 		}
-	case bus.DEACTIVATE_ADAPTER:
+	case bus.DEACTIVATE_FETCHER:
 		log.Debug().Msg("deactivate adapter msg received")
 		adapterId, err := f.parseIdMsgParam(msg)
 		if err != nil {
@@ -99,120 +99,120 @@ func (f *Fetcher) handleMessage(ctx context.Context, msg bus.Message) {
 		}
 
 		log.Debug().Int64("adapterId", adapterId).Msg("deactivating adapter")
-		err = f.stopAdapterById(ctx, adapterId)
+		err = f.stopFetcherById(ctx, adapterId)
 		if err != nil {
 			log.Error().Err(err).Msg("failed to stop adapter")
 		}
-	case bus.STOP_FETCHER:
+	case bus.STOP_FETCHER_APP:
 		// TODO: stop fetcher
 
 		log.Debug().Msg("stopping fetcher")
-	case bus.START_FETCHER:
+	case bus.START_FETCHER_APP:
 		// TODO: start fetcher
 
 		log.Debug().Msg("starting fetcher")
-	case bus.REFRESH_FETCHER:
+	case bus.REFRESH_FETCHER_APP:
 		// TODO: refresh adapters
 
 		log.Debug().Msg("refreshing fetcher")
 	}
 }
 
-func (f *Fetcher) startAdapter(ctx context.Context, adapter *AdapterDetail) error {
-	if adapter.isRunning {
-		log.Debug().Str("adapter", adapter.Name).Msg("adapter already running")
+func (f *App) startFetcher(ctx context.Context, fetcher *Fetcher) error {
+	if fetcher.isRunning {
+		log.Debug().Str("adapter", fetcher.Name).Msg("adapter already running")
 		return errors.New("adapter already running")
 	}
 	adapterCtx, cancel := context.WithCancel(ctx)
-	adapter.adapterCtx = adapterCtx
-	adapter.cancel = cancel
-	adapter.isRunning = true
+	fetcher.adapterCtx = adapterCtx
+	fetcher.cancel = cancel
+	fetcher.isRunning = true
 
 	ticker := time.NewTicker(FETCHER_FREQUENCY)
 
 	go func() {
-		log.Debug().Str("adapter", adapter.Name).Msg("starting adapter goroutine")
+		log.Debug().Str("adapter", fetcher.Name).Msg("starting adapter goroutine")
 		for {
 			select {
 			case <-ticker.C:
-				log.Debug().Str("adapter", adapter.Name).Msg("fetching and inserting")
-				err := f.fetchAndInsert(adapterCtx, *adapter)
+				log.Debug().Str("adapter", fetcher.Name).Msg("fetching and inserting")
+				err := f.fetchAndInsert(adapterCtx, *fetcher)
 				if err != nil {
 					log.Error().Err(err).Msg("failed to fetch and insert")
 				}
 			case <-adapterCtx.Done():
-				log.Debug().Str("adapter", adapter.Name).Msg("adapter stopped")
+				log.Debug().Str("adapter", fetcher.Name).Msg("adapter stopped")
 				return
 			}
 		}
 	}()
 
-	log.Debug().Str("adapter", adapter.Name).Msg("adapter started")
+	log.Debug().Str("adapter", fetcher.Name).Msg("adapter started")
 	return nil
 }
 
-func (f *Fetcher) startAdapterById(ctx context.Context, adapterId int64) error {
-	if adapter, ok := f.Adapters[adapterId]; ok {
-		return f.startAdapter(ctx, adapter)
+func (f *App) startFetcherById(ctx context.Context, adapterId int64) error {
+	if adapter, ok := f.Fetchers[adapterId]; ok {
+		return f.startFetcher(ctx, adapter)
 	}
 	return errors.New("adapter not found")
 }
 
-func (f *Fetcher) stopAdapter(ctx context.Context, adapter *AdapterDetail) error {
-	log.Debug().Str("adapter", adapter.Name).Msg("stopping adapter")
-	if !adapter.isRunning {
+func (f *App) stopFetcher(ctx context.Context, fetcher *Fetcher) error {
+	log.Debug().Str("adapter", fetcher.Name).Msg("stopping adapter")
+	if !fetcher.isRunning {
 		return errors.New("adapter already stopped")
 	}
-	if adapter.cancel == nil {
+	if fetcher.cancel == nil {
 		return errors.New("adapter cancel function not found")
 	}
-	adapter.cancel()
-	adapter.isRunning = false
+	fetcher.cancel()
+	fetcher.isRunning = false
 	return nil
 }
 
-func (f *Fetcher) stopAdapterById(ctx context.Context, adapterId int64) error {
-	if adapter, ok := f.Adapters[adapterId]; ok {
-		return f.stopAdapter(ctx, adapter)
+func (f *App) stopFetcherById(ctx context.Context, adapterId int64) error {
+	if adapter, ok := f.Fetchers[adapterId]; ok {
+		return f.stopFetcher(ctx, adapter)
 	}
 	return errors.New("adapter not found")
 }
 
-func (f *Fetcher) fetchAndInsert(ctx context.Context, adapter AdapterDetail) error {
-	log.Debug().Str("adapter", adapter.Name).Msg("fetching and inserting")
+func (f *App) fetchAndInsert(ctx context.Context, fetcher Fetcher) error {
+	log.Debug().Str("adapter", fetcher.Name).Msg("fetching and inserting")
 
-	results, err := f.fetch(adapter)
+	results, err := f.fetch(fetcher)
 	if err != nil {
 		return err
 	}
-	log.Debug().Str("adapter", adapter.Name).Msg("fetch complete")
+	log.Debug().Str("adapter", fetcher.Name).Msg("fetch complete")
 
 	aggregated, err := utils.GetFloatAvg(results)
 	if err != nil {
 		return err
 	}
-	log.Debug().Str("adapter", adapter.Name).Float64("aggregated", aggregated).Msg("aggregated")
+	log.Debug().Str("adapter", fetcher.Name).Float64("aggregated", aggregated).Msg("aggregated")
 
-	err = f.insertPgsql(ctx, adapter.Name, aggregated)
+	err = f.insertPgsql(ctx, fetcher.Name, aggregated)
 	if err != nil {
 		return err
 	}
-	log.Debug().Str("adapter", adapter.Name).Msg("inserted into pgsql")
+	log.Debug().Str("adapter", fetcher.Name).Msg("inserted into pgsql")
 
-	err = f.insertRdb(ctx, adapter.Name, aggregated)
+	err = f.insertRdb(ctx, fetcher.Name, aggregated)
 	if err != nil {
 		return err
 	}
-	log.Debug().Str("adapter", adapter.Name).Msg("inserted into rdb")
+	log.Debug().Str("adapter", fetcher.Name).Msg("inserted into rdb")
 	return nil
 }
 
-func (f *Fetcher) insertPgsql(ctx context.Context, name string, value float64) error {
+func (f *App) insertPgsql(ctx context.Context, name string, value float64) error {
 	err := db.QueryWithoutResult(ctx, InsertLocalAggregateQuery, map[string]any{"name": name, "value": int64(value)})
 	return err
 }
 
-func (f *Fetcher) insertRdb(ctx context.Context, name string, value float64) error {
+func (f *App) insertRdb(ctx context.Context, name string, value float64) error {
 	key := "latestAggregate:" + name
 	data, err := json.Marshal(redisAggregate{Value: int64(value), Timestamp: time.Now()})
 	if err != nil {
@@ -221,8 +221,8 @@ func (f *Fetcher) insertRdb(ctx context.Context, name string, value float64) err
 	return db.Set(ctx, key, string(data), time.Duration(5*time.Minute))
 }
 
-func (f *Fetcher) fetch(adapter AdapterDetail) ([]float64, error) {
-	adapterFeeds := adapter.Feeds
+func (f *App) fetch(fetcher Fetcher) ([]float64, error) {
+	adapterFeeds := fetcher.Feeds
 
 	data := []float64{}
 
@@ -253,7 +253,7 @@ func (f *Fetcher) fetch(adapter AdapterDetail) ([]float64, error) {
 	return data, nil
 }
 
-func (f *Fetcher) getAdapters(ctx context.Context) ([]Adapter, error) {
+func (f *App) getAdapters(ctx context.Context) ([]Adapter, error) {
 	adapters, err := db.QueryRows[Adapter](ctx, SelectActiveAdaptersQuery, nil)
 	if err != nil {
 		return nil, err
@@ -261,7 +261,7 @@ func (f *Fetcher) getAdapters(ctx context.Context) ([]Adapter, error) {
 	return adapters, err
 }
 
-func (f *Fetcher) getFeeds(ctx context.Context, adapterId int64) ([]Feed, error) {
+func (f *App) getFeeds(ctx context.Context, adapterId int64) ([]Feed, error) {
 	feeds, err := db.QueryRows[Feed](ctx, SelectFeedsByAdapterIdQuery, map[string]any{"adapterId": adapterId})
 	if err != nil {
 		return nil, err
@@ -270,19 +270,19 @@ func (f *Fetcher) getFeeds(ctx context.Context, adapterId int64) ([]Feed, error)
 	return feeds, err
 }
 
-func (f *Fetcher) initialize(ctx context.Context) error {
+func (f *App) initialize(ctx context.Context) error {
 	adapters, err := f.getAdapters(ctx)
 	if err != nil {
 		return err
 	}
-	f.Adapters = make(map[int64]*AdapterDetail, len(adapters))
+	f.Fetchers = make(map[int64]*Fetcher, len(adapters))
 	for _, adapter := range adapters {
 		feeds, err := f.getFeeds(ctx, adapter.ID)
 		if err != nil {
 			return err
 		}
 
-		f.Adapters[adapter.ID] = &AdapterDetail{
+		f.Fetchers[adapter.ID] = &Fetcher{
 			Adapter:   adapter,
 			Feeds:     feeds,
 			isRunning: false,
@@ -291,11 +291,11 @@ func (f *Fetcher) initialize(ctx context.Context) error {
 	return nil
 }
 
-func (f *Fetcher) String() string {
-	return fmt.Sprintf("%+v\n", f.Adapters)
+func (f *App) String() string {
+	return fmt.Sprintf("%+v\n", f.Fetchers)
 }
 
-func (f *Fetcher) parseIdMsgParam(msg bus.Message) (int64, error) {
+func (f *App) parseIdMsgParam(msg bus.Message) (int64, error) {
 	rawId, ok := msg.Content.Args["id"]
 	if !ok {
 		return 0, errors.New("adapterId not found in message")

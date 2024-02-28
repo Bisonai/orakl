@@ -123,7 +123,7 @@ func activate(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusInternalServerError).SendString("failed to execute adapter activate query: " + err.Error())
 	}
 
-	err = utils.SendMessage(c, bus.FETCHER, bus.ACTIVATE_ADAPTER, map[string]any{"id": id})
+	err = utils.SendMessage(c, bus.FETCHER, bus.ACTIVATE_FETCHER, map[string]any{"id": id})
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).SendString("failed to send activate message to fetcher: " + err.Error())
 	}
@@ -139,7 +139,7 @@ func deactivate(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusInternalServerError).SendString("failed to execute adapter deactivate query: " + err.Error())
 	}
 
-	err = utils.SendMessage(c, bus.FETCHER, bus.DEACTIVATE_ADAPTER, map[string]any{"id": id})
+	err = utils.SendMessage(c, bus.FETCHER, bus.DEACTIVATE_FETCHER, map[string]any{"id": id})
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).SendString("failed to send deactivate message to fetcher: " + err.Error())
 	}

@@ -28,7 +28,7 @@ func TestFetcherStart(t *testing.T) {
 
 	select {
 	case msg := <-channel:
-		if msg.From != bus.ADMIN || msg.To != bus.FETCHER || msg.Content.Command != bus.START_FETCHER {
+		if msg.From != bus.ADMIN || msg.To != bus.FETCHER || msg.Content.Command != bus.START_FETCHER_APP {
 			t.Fatalf("unexpected message: %v", msg)
 		}
 	default:
@@ -55,7 +55,7 @@ func TestFetcherStop(t *testing.T) {
 
 	select {
 	case msg := <-channel:
-		if msg.From != bus.ADMIN || msg.To != bus.FETCHER || msg.Content.Command != bus.STOP_FETCHER {
+		if msg.From != bus.ADMIN || msg.To != bus.FETCHER || msg.Content.Command != bus.STOP_FETCHER_APP {
 			t.Fatalf("unexpected message: %v", msg)
 		}
 	default:
@@ -82,7 +82,7 @@ func TestFetcherRefresh(t *testing.T) {
 
 	select {
 	case msg := <-channel:
-		if msg.From != bus.ADMIN || msg.To != bus.FETCHER || msg.Content.Command != bus.REFRESH_FETCHER {
+		if msg.From != bus.ADMIN || msg.To != bus.FETCHER || msg.Content.Command != bus.REFRESH_FETCHER_APP {
 			t.Fatalf("unexpected message: %v", msg)
 		}
 	default:

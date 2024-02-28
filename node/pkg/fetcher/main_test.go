@@ -335,7 +335,7 @@ var sampleData = []string{`{
 type TestItems struct {
 	app        *fiber.App
 	messageBus *bus.MessageBus
-	fetcher    *Fetcher
+	fetcher    *App
 }
 
 func setup(ctx context.Context) (func() error, *TestItems, error) {

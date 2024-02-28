@@ -23,15 +23,15 @@ func TestFetcherInitialize(t *testing.T) {
 	}
 	defer clean()
 
-	fetcher := testItems.fetcher
+	app := testItems.fetcher
 
-	err = fetcher.initialize(ctx)
+	err = app.initialize(ctx)
 	if err != nil {
 		t.Fatalf("error initializing fetcher: %v", err)
 	}
 
-	assert.Greater(t, len(fetcher.Adapters), 0)
-	for _, adapter := range fetcher.Adapters {
+	assert.Greater(t, len(app.Fetchers), 0)
+	for _, adapter := range app.Fetchers {
 		assert.Greater(t, len(adapter.Feeds), 0)
 	}
 
@@ -45,9 +45,9 @@ func TestFetcherRun(t *testing.T) {
 	}
 	defer clean()
 
-	fetcher := testItems.fetcher
+	app := testItems.fetcher
 
-	err = fetcher.initialize(ctx)
+	err = app.initialize(ctx)
 	if err != nil {
 		t.Fatalf("error initializing fetcher: %v", err)
 	}
@@ -58,22 +58,22 @@ func TestFetcherRun(t *testing.T) {
 	}
 	assert.Equal(t, 0, len(rowsBefore))
 
-	err = fetcher.Run(ctx)
+	err = app.Run(ctx)
 	if err != nil {
 		t.Fatalf("error running fetcher: %v", err)
 	}
 
-	for _, adapter := range fetcher.Adapters {
-		assert.True(t, adapter.isRunning)
+	for _, fetcher := range app.Fetchers {
+		assert.True(t, fetcher.isRunning)
 	}
 
 	// wait for fetcher to run
 	time.Sleep(WAIT_SECONDS)
 
 	// stop running after 2 seconds
-	for _, adapter := range fetcher.Adapters {
-		fetcher.stopAdapter(ctx, adapter)
-		assert.False(t, adapter.isRunning)
+	for _, fetcher := range app.Fetchers {
+		app.stopFetcher(ctx, fetcher)
+		assert.False(t, fetcher.isRunning)
 	}
 
 	rowsAfter, err := db.QueryRows[Aggregate](ctx, "SELECT * FROM local_aggregates", nil)
@@ -88,21 +88,21 @@ func TestFetcherRun(t *testing.T) {
 		t.Fatalf("error cleaning up from db: %v", err)
 	}
 
-	for _, adapter := range fetcher.Adapters {
-		rdbResult, err := db.Get(ctx, "latestAggregate:"+adapter.Name)
+	for _, fetcher := range app.Fetchers {
+		rdbResult, err := db.Get(ctx, "latestAggregate:"+fetcher.Name)
 		if err != nil {
 			t.Fatalf("error reading from redis: %v", err)
 		}
 		assert.NotNil(t, rdbResult)
 
-		err = db.Del(ctx, "latestAggregate:"+adapter.Name)
+		err = db.Del(ctx, "latestAggregate:"+fetcher.Name)
 		if err != nil {
 			t.Fatalf("error removing from redis: %v", err)
 		}
 	}
 }
 
-func TestFetcherAdapterStart(t *testing.T) {
+func TestFetcherFetcherStart(t *testing.T) {
 	ctx := context.Background()
 	clean, testItems, err := setup(ctx)
 	if err != nil {
@@ -110,9 +110,9 @@ func TestFetcherAdapterStart(t *testing.T) {
 	}
 	defer clean()
 
-	fetcher := testItems.fetcher
+	app := testItems.fetcher
 
-	err = fetcher.initialize(ctx)
+	err = app.initialize(ctx)
 	if err != nil {
 		t.Fatalf("error initializing fetcher: %v", err)
 	}
@@ -123,21 +123,21 @@ func TestFetcherAdapterStart(t *testing.T) {
 	}
 	assert.Equal(t, 0, len(rowsBefore))
 
-	for _, adapter := range fetcher.Adapters {
-		err = fetcher.startAdapter(ctx, adapter)
+	for _, fetcher := range app.Fetchers {
+		err = app.startFetcher(ctx, fetcher)
 		if err != nil {
 			t.Fatalf("error starting adapter: %v", err)
 		}
-		assert.True(t, adapter.isRunning)
+		assert.True(t, fetcher.isRunning)
 	}
 
 	// wait for fetcher to run
 	time.Sleep(WAIT_SECONDS)
 
 	// stop running after 2 seconds
-	for _, adapter := range fetcher.Adapters {
-		fetcher.stopAdapter(ctx, adapter)
-		assert.False(t, adapter.isRunning)
+	for _, fetcher := range app.Fetchers {
+		app.stopFetcher(ctx, fetcher)
+		assert.False(t, fetcher.isRunning)
 	}
 
 	rowsAfter, err := db.QueryRows[Aggregate](ctx, "SELECT * FROM local_aggregates", nil)
@@ -153,21 +153,21 @@ func TestFetcherAdapterStart(t *testing.T) {
 	}
 
 	// check rdb and cleanup rdb
-	for _, adapter := range fetcher.Adapters {
-		rdbResult, err := db.Get(ctx, "latestAggregate:"+adapter.Name)
+	for _, fetcher := range app.Fetchers {
+		rdbResult, err := db.Get(ctx, "latestAggregate:"+fetcher.Name)
 		if err != nil {
 			t.Fatalf("error reading from redis: %v", err)
 		}
 		assert.NotNil(t, rdbResult)
 
-		err = db.Del(ctx, "latestAggregate:"+adapter.Name)
+		err = db.Del(ctx, "latestAggregate:"+fetcher.Name)
 		if err != nil {
 			t.Fatalf("error removing from redis: %v", err)
 		}
 	}
 }
 
-func TestFetcherAdapterStop(t *testing.T) {
+func TestFetcherFetcherStop(t *testing.T) {
 	ctx := context.Background()
 	clean, testItems, err := setup(ctx)
 	if err != nil {
@@ -175,29 +175,29 @@ func TestFetcherAdapterStop(t *testing.T) {
 	}
 	defer clean()
 
-	fetcher := testItems.fetcher
+	app := testItems.fetcher
 
-	err = fetcher.initialize(ctx)
+	err = app.initialize(ctx)
 	if err != nil {
 		t.Fatalf("error initializing fetcher: %v", err)
 	}
 
 	// first start adapters to stop
-	for _, adapter := range fetcher.Adapters {
-		err = fetcher.startAdapter(ctx, adapter)
+	for _, fetcher := range app.Fetchers {
+		err = app.startFetcher(ctx, fetcher)
 		if err != nil {
 			t.Fatalf("error starting adapter: %v", err)
 		}
-		assert.True(t, adapter.isRunning)
+		assert.True(t, fetcher.isRunning)
 	}
 
 	// wait for fetcher to run
 	time.Sleep(WAIT_SECONDS)
 
 	// stop adapters
-	for _, adapter := range fetcher.Adapters {
-		fetcher.stopAdapter(ctx, adapter)
-		assert.False(t, adapter.isRunning)
+	for _, fetcher := range app.Fetchers {
+		app.stopFetcher(ctx, fetcher)
+		assert.False(t, fetcher.isRunning)
 	}
 
 	time.Sleep(WAIT_SECONDS / 2)
@@ -222,21 +222,21 @@ func TestFetcherAdapterStop(t *testing.T) {
 	}
 
 	// check rdb and cleanup rdb
-	for _, adapter := range fetcher.Adapters {
-		rdbResult, err := db.Get(ctx, "latestAggregate:"+adapter.Name)
+	for _, fetcher := range app.Fetchers {
+		rdbResult, err := db.Get(ctx, "latestAggregate:"+fetcher.Name)
 		if err != nil {
 			t.Fatalf("error reading from redis: %v", err)
 		}
 		assert.NotNil(t, rdbResult)
 
-		err = db.Del(ctx, "latestAggregate:"+adapter.Name)
+		err = db.Del(ctx, "latestAggregate:"+fetcher.Name)
 		if err != nil {
 			t.Fatalf("error removing from redis: %v", err)
 		}
 	}
 }
 
-func TestFetcherAdapterStartById(t *testing.T) {
+func TestFetcherFetcherStartById(t *testing.T) {
 	ctx := context.Background()
 	clean, testItems, err := setup(ctx)
 	if err != nil {
@@ -244,14 +244,14 @@ func TestFetcherAdapterStartById(t *testing.T) {
 	}
 	defer clean()
 
-	fetcher := testItems.fetcher
+	app := testItems.fetcher
 
-	err = fetcher.initialize(ctx)
+	err = app.initialize(ctx)
 	if err != nil {
 		t.Fatalf("error initializing fetcher: %v", err)
 	}
 
-	fetcher.subscribe(ctx)
+	app.subscribe(ctx)
 
 	rowsBefore, err := db.QueryRows[Aggregate](ctx, "SELECT * FROM local_aggregates", nil)
 	if err != nil {
@@ -259,21 +259,21 @@ func TestFetcherAdapterStartById(t *testing.T) {
 	}
 	assert.Equal(t, 0, len(rowsBefore))
 
-	for _, adapter := range fetcher.Adapters {
-		result, _err := tests.PostRequest[Adapter](testItems.app, "/api/v1/adapter/activate/"+strconv.FormatInt(adapter.ID, 10), nil)
+	for _, fetcher := range app.Fetchers {
+		result, _err := tests.PostRequest[Adapter](testItems.app, "/api/v1/adapter/activate/"+strconv.FormatInt(fetcher.ID, 10), nil)
 		if _err != nil {
 			t.Fatalf("error starting adapter: %v", _err)
 		}
 		assert.True(t, result.Active)
 	}
 
-	for _, adapter := range fetcher.Adapters {
-		assert.True(t, adapter.isRunning)
+	for _, fetcher := range app.Fetchers {
+		assert.True(t, fetcher.isRunning)
 	}
 
 }
 
-func TestFetcherAdapterStopById(t *testing.T) {
+func TestFetcherFetcherStopById(t *testing.T) {
 	ctx := context.Background()
 	clean, testItems, err := setup(ctx)
 	if err != nil {
@@ -281,23 +281,23 @@ func TestFetcherAdapterStopById(t *testing.T) {
 	}
 	defer clean()
 
-	fetcher := testItems.fetcher
+	app := testItems.fetcher
 
-	err = fetcher.initialize(ctx)
+	err = app.initialize(ctx)
 	if err != nil {
 		t.Fatalf("error initializing fetcher: %v", err)
 	}
 
-	err = fetcher.Run(ctx)
+	err = app.Run(ctx)
 	if err != nil {
 		t.Fatalf("error running fetcher: %v", err)
 	}
-	for _, adapter := range fetcher.Adapters {
-		assert.True(t, adapter.isRunning)
+	for _, fetcher := range app.Fetchers {
+		assert.True(t, fetcher.isRunning)
 	}
 
-	for _, adapter := range fetcher.Adapters {
-		result, _err := tests.PostRequest[Adapter](testItems.app, "/api/v1/adapter/deactivate/"+strconv.FormatInt(adapter.ID, 10), nil)
+	for _, fetcher := range app.Fetchers {
+		result, _err := tests.PostRequest[Adapter](testItems.app, "/api/v1/adapter/deactivate/"+strconv.FormatInt(fetcher.ID, 10), nil)
 		if _err != nil {
 			t.Fatalf("error stopping adapter: %v", _err)
 		}
@@ -305,8 +305,8 @@ func TestFetcherAdapterStopById(t *testing.T) {
 
 	}
 
-	for _, adapter := range fetcher.Adapters {
-		assert.False(t, adapter.isRunning)
+	for _, fetcher := range app.Fetchers {
+		assert.False(t, fetcher.isRunning)
 	}
 }
 
@@ -318,15 +318,15 @@ func TestFetcherFetch(t *testing.T) {
 	}
 	defer clean()
 
-	fetcher := testItems.fetcher
+	app := testItems.fetcher
 
-	err = fetcher.initialize(ctx)
+	err = app.initialize(ctx)
 	if err != nil {
 		t.Fatalf("error initializing fetcher: %v", err)
 	}
 
-	for _, adapter := range fetcher.Adapters {
-		result, err := fetcher.fetch(*adapter)
+	for _, fetcher := range app.Fetchers {
+		result, err := app.fetch(*fetcher)
 		if err != nil {
 			t.Fatalf("error fetching: %v", err)
 		}
@@ -342,30 +342,30 @@ func TestFetcherFetchAndInsertAdapter(t *testing.T) {
 	}
 	defer clean()
 
-	fetcher := testItems.fetcher
+	app := testItems.fetcher
 
-	fetcher.initialize(ctx)
+	app.initialize(ctx)
 
-	for _, adapter := range fetcher.Adapters {
-		fetcher.fetchAndInsert(ctx, *adapter)
+	for _, fetcher := range app.Fetchers {
+		app.fetchAndInsert(ctx, *fetcher)
 	}
 	if err != nil {
 		t.Fatalf("error running adapter: %v", err)
 	}
 
-	for _, adapter := range fetcher.Adapters {
-		pgResult, err := db.QueryRow[Aggregate](ctx, "SELECT * FROM local_aggregates WHERE name = @name", map[string]any{"name": adapter.Name})
+	for _, fetcher := range app.Fetchers {
+		pgResult, err := db.QueryRow[Aggregate](ctx, "SELECT * FROM local_aggregates WHERE name = @name", map[string]any{"name": fetcher.Name})
 		if err != nil {
 			t.Fatalf("error reading from db: %v", err)
 		}
 		assert.NotNil(t, pgResult)
 
-		err = db.QueryWithoutResult(ctx, "DELETE FROM local_aggregates WHERE name = @name", map[string]any{"name": adapter.Name})
+		err = db.QueryWithoutResult(ctx, "DELETE FROM local_aggregates WHERE name = @name", map[string]any{"name": fetcher.Name})
 		if err != nil {
 			t.Fatalf("error cleaning up from db: %v", err)
 		}
 
-		rdbResult, err := db.Get(ctx, "latestAggregate:"+adapter.Name)
+		rdbResult, err := db.Get(ctx, "latestAggregate:"+fetcher.Name)
 		if err != nil {
 			t.Fatalf("error reading from redis: %v", err)
 		}
@@ -378,7 +378,7 @@ func TestFetcherFetchAndInsertAdapter(t *testing.T) {
 		assert.NotNil(t, redisAgg)
 		assert.NotNil(t, redisAgg.Value)
 
-		err = db.Del(ctx, "latestAggregate:"+adapter.Name)
+		err = db.Del(ctx, "latestAggregate:"+fetcher.Name)
 		if err != nil {
 			t.Fatalf("error removing from redis: %v", err)
 		}

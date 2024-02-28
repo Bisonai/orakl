@@ -7,7 +7,7 @@ import (
 )
 
 func start(c *fiber.Ctx) error {
-	err := utils.SendMessage(c, bus.FETCHER, bus.START_FETCHER, nil)
+	err := utils.SendMessage(c, bus.FETCHER, bus.START_FETCHER_APP, nil)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).SendString("failed to start fetcher: " + err.Error())
 	}
@@ -15,7 +15,7 @@ func start(c *fiber.Ctx) error {
 }
 
 func stop(c *fiber.Ctx) error {
-	err := utils.SendMessage(c, bus.FETCHER, bus.STOP_FETCHER, nil)
+	err := utils.SendMessage(c, bus.FETCHER, bus.STOP_FETCHER_APP, nil)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).SendString("failed to stop fetcher: " + err.Error())
 	}
@@ -23,7 +23,7 @@ func stop(c *fiber.Ctx) error {
 }
 
 func refresh(c *fiber.Ctx) error {
-	err := utils.SendMessage(c, bus.FETCHER, bus.REFRESH_FETCHER, nil)
+	err := utils.SendMessage(c, bus.FETCHER, bus.REFRESH_FETCHER_APP, nil)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).SendString("failed to refresh fetcher: " + err.Error())
 	}
