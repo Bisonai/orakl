@@ -12,11 +12,11 @@ import (
 
 func TestFeedGet(t *testing.T) {
 	ctx := context.Background()
-	_cleanup, testItems, err := setup(ctx)
+	cleanup, testItems, err := setup(ctx)
 	if err != nil {
 		t.Fatalf("error setting up test: %v", err)
 	}
-	defer _cleanup()
+	defer cleanup()
 
 	readResult, err := GetRequest[[]feed.FeedModel](testItems.app, "/api/v1/feed", nil)
 	if err != nil {
@@ -27,11 +27,11 @@ func TestFeedGet(t *testing.T) {
 
 func TestFeedGetByAdapterId(t *testing.T) {
 	ctx := context.Background()
-	_cleanup, testItems, err := setup(ctx)
+	cleanup, testItems, err := setup(ctx)
 	if err != nil {
 		t.Fatalf("error setting up test: %v", err)
 	}
-	defer _cleanup()
+	defer cleanup()
 
 	readResult, err := GetRequest[[]feed.FeedModel](testItems.app, "/api/v1/feed/adapter/"+strconv.FormatInt(*testItems.tmpData.adapter.Id, 10), nil)
 	if err != nil {
@@ -43,11 +43,11 @@ func TestFeedGetByAdapterId(t *testing.T) {
 
 func TestFeedGetById(t *testing.T) {
 	ctx := context.Background()
-	_cleanup, testItems, err := setup(ctx)
+	cleanup, testItems, err := setup(ctx)
 	if err != nil {
 		t.Fatalf("error setting up test: %v", err)
 	}
-	defer _cleanup()
+	defer cleanup()
 
 	readResult, err := GetRequest[feed.FeedModel](testItems.app, "/api/v1/feed/"+strconv.FormatInt(*testItems.tmpData.feed.Id, 10), nil)
 	if err != nil {
