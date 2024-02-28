@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"math/rand"
 	"strconv"
-	"sync"
 	"time"
 
 	"bisonai.com/orakl/node/pkg/bus"
@@ -229,12 +228,11 @@ func (a *App) fetch(fetcher Fetcher) ([]float64, error) {
 	dataChan := make(chan float64)
 	errChan := make(chan error)
 
-	var wg sync.WaitGroup
-	wg.Add(len(feeds))
+	defer close(dataChan)
+	defer close(errChan)
 
 	for _, feed := range feeds {
 		go func(feed Feed) {
-			defer wg.Done()
 			definition := new(Definition)
 			err := json.Unmarshal(feed.Definition, &definition)
 			if err != nil {
@@ -256,12 +254,6 @@ func (a *App) fetch(fetcher Fetcher) ([]float64, error) {
 			dataChan <- result
 		}(feed)
 	}
-
-	go func() {
-		wg.Wait()
-		close(dataChan)
-		close(errChan)
-	}()
 
 	for i := 0; i < len(feeds); i++ {
 		select {
