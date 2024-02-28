@@ -43,13 +43,15 @@ func (r *Raft) Run(ctx context.Context, node Node) {
 	for {
 		select {
 		case msg := <-r.MessageBuffer:
-			err := r.handleMessage(node, msg)
+			err := r.handleMessage(ctx, node, msg)
 			if err != nil {
 				log.Error().Err(err).Msg("failed to handle message")
 			}
 
 		case <-r.ElectionTimer.C:
 			r.startElection()
+		case <-ctx.Done():
+			return
 		}
 	}
 }
@@ -60,13 +62,19 @@ func (r *Raft) subscribe(ctx context.Context) {
 		log.Error().Err(err).Msg("failed to subscribe to topic")
 	}
 	for {
+		if ctx.Err() == context.Canceled {
+			log.Debug().Msg("context cancelled")
+			return
+		}
 		rawMsg, err := sub.Next(ctx)
 		if err != nil {
 			log.Error().Err(err).Msg("failed to get message from topic")
+			continue
 		}
 		msg, err := r.unmarshalMessage(rawMsg.Data)
 		if err != nil {
 			log.Error().Err(err).Msg("failed to unmarshal message")
+			continue
 		}
 		r.MessageBuffer <- msg
 	}
@@ -74,14 +82,14 @@ func (r *Raft) subscribe(ctx context.Context) {
 
 // handler for incoming messages
 
-func (r *Raft) handleMessage(node Node, msg Message) error {
+func (r *Raft) handleMessage(ctx context.Context, node Node, msg Message) error {
 	switch msg.Type {
 	case Heartbeat:
 		return r.handleHeartbeat(node, msg)
 	case RequestVote:
 		return r.handleRequestVote(msg)
 	case ReplyVote:
-		return r.handleReplyVote(node, msg)
+		return r.handleReplyVote(ctx, node, msg)
 	default:
 		return node.HandleCustomMessage(msg)
 	}
@@ -166,7 +174,7 @@ func (r *Raft) handleRequestVote(msg Message) error {
 	return r.sendReplyVote(msg.SentFrom, voteGranted)
 }
 
-func (r *Raft) handleReplyVote(node Node, msg Message) error {
+func (r *Raft) handleReplyVote(ctx context.Context, node Node, msg Message) error {
 	log.Debug().Msg("received reply vote message")
 	if r.GetRole() != Candidate {
 		return nil
@@ -183,7 +191,7 @@ func (r *Raft) handleReplyVote(node Node, msg Message) error {
 		log.Debug().Int("vote received", r.GetVoteReceived()).Msg("vote received")
 		log.Debug().Int("subscribers count", r.SubscribersCount()).Msg("subscribers count")
 		if r.GetVoteReceived() >= (r.SubscribersCount()+1)/2 {
-			r.becomeLeader(node)
+			r.becomeLeader(ctx, node)
 		}
 	}
 	return nil
@@ -287,7 +295,7 @@ func (r *Raft) StopHeartbeatTicker(node Node) {
 	}
 }
 
-func (r *Raft) becomeLeader(node Node) {
+func (r *Raft) becomeLeader(ctx context.Context, node Node) {
 	log.Debug().Msg("becoming leader")
 
 	r.Resign = make(chan interface{})
@@ -319,6 +327,9 @@ func (r *Raft) becomeLeader(node Node) {
 				}
 			case <-r.Resign:
 				log.Debug().Msg("resigning as leader")
+				return
+			case <-ctx.Done():
+				log.Debug().Msg("context cancelled")
 				return
 			}
 		}
