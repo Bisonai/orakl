@@ -302,6 +302,10 @@ func LoadFeePayerFromGSM(ctx context.Context) (string, error) {
 		panic(fmt.Errorf("failed to access secret version: %v", err))
 	}
 
+	if string(result.Payload.Data) == "" {
+		return "", fmt.Errorf("failed to get secret from secret manager")
+	}
+
 	feePayer := result.Payload.Data
 	return string(feePayer), nil
 }
