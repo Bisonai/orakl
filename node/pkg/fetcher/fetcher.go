@@ -108,8 +108,6 @@ func (a *App) handleMessage(ctx context.Context, msg bus.Message) {
 		}
 
 	case bus.START_FETCHER_APP:
-		// TODO: start fetcher
-
 		log.Debug().Msg("starting all fetchers")
 		err := f.startAllFetchers(ctx)
 		if err != nil {
@@ -117,10 +115,6 @@ func (a *App) handleMessage(ctx context.Context, msg bus.Message) {
 		}
 
 	case bus.REFRESH_FETCHER_APP:
-		// TODO: refresh adapters
-		// 1. stop all fetchers
-		// 2. call initialize again
-		// 3. start all fetchers
 		err := f.stopAllFetchers(ctx)
 		if err != nil {
 			log.Error().Err(err).Msg("failed to stop all fetchers")
