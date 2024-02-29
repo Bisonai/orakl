@@ -8,7 +8,7 @@ import (
 
 func main() {
 	mb := bus.New(10)
-	err := admin.Run("8088", mb)
+	err := admin.Run(mb)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to start admin server")
 		return

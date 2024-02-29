@@ -179,6 +179,7 @@ func (a *App) startAllFetchers(ctx context.Context) error {
 			log.Error().Err(err).Str("adapter", fetcher.Name).Msg("failed to start adapter")
 			return err
 		}
+		// starts with random sleep to avoid all fetchers starting at the same time
 		time.Sleep(time.Millisecond * time.Duration(rand.Intn(300)+100))
 	}
 	return nil

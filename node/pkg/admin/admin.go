@@ -2,6 +2,7 @@ package admin
 
 import (
 	"fmt"
+	"os"
 
 	"bisonai.com/orakl/node/pkg/admin/adapter"
 	"bisonai.com/orakl/node/pkg/admin/feed"
@@ -13,10 +14,10 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-func Run(port string, bus *bus.MessageBus) error {
+func Run(bus *bus.MessageBus) error {
 	log.Debug().Msg("Starting admin server")
 	app, err := utils.Setup(utils.SetupInfo{
-		Version: "test",
+		Version: "0.1.0",
 		Bus:     bus,
 	})
 	if err != nil {
@@ -32,6 +33,11 @@ func Run(port string, bus *bus.MessageBus) error {
 	feed.Routes(v1)
 	proxy.Routes(v1)
 	fetcher.Routes(v1)
+
+	port := os.Getenv("APP_PORT")
+	if port == "" {
+		port = "8088"
+	}
 
 	err = app.Listen(fmt.Sprintf(":%s", port))
 	if err != nil {
