@@ -18,4 +18,13 @@ const (
 
 	ACTIVATE_FETCHER   = "activate_fetcher"
 	DEACTIVATE_FETCHER = "deactivate_fetcher"
+
+	START_AGGREGATOR_APP   = "start_aggregator_app"
+	STOP_AGGREGATOR_APP    = "stop_aggregator_app"
+	REFRESH_AGGREGATOR_APP = "refresh_aggregator_app"
+
+	ACTIVATE_AGGREGATOR   = "activate_aggregator"
+	DEACTIVATE_AGGREGATOR = "deactivate_aggregator"
+
+	DEVIATION = "deviation"
 )
