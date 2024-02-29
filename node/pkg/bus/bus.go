@@ -52,7 +52,7 @@ func (mb *MessageBus) Publish(msg Message) error {
 func ParseInt64MsgParam(msg Message, param string) (int64, error) {
 	rawId, ok := msg.Content.Args[param]
 	if !ok {
-		return 0, errors.New("adapterId not found in message")
+		return 0, errors.New("param not found in message")
 	}
 
 	idPayload, ok := rawId.(string)
