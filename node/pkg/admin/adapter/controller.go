@@ -2,11 +2,15 @@ package adapter
 
 import (
 	"encoding/json"
+	"io"
 	"time"
+
+	"net/http"
 
 	"bisonai.com/orakl/node/pkg/admin/utils"
 	"bisonai.com/orakl/node/pkg/bus"
 	"bisonai.com/orakl/node/pkg/db"
+	"github.com/PuerkitoBio/goquery"
 	"github.com/go-playground/validator"
 	"github.com/gofiber/fiber/v2"
 )
@@ -38,6 +42,69 @@ type AdapterInsertModel struct {
 type AdapterDetailModel struct {
 	AdapterModel
 	Feeds []FeedModel `json:"feeds"`
+}
+
+func syncFromOraklConfig(c *fiber.Ctx) error {
+	resp, err := http.Get("https://config.orakl.network/")
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).SendString("failed to fetch orakl config: " + err.Error())
+	}
+	defer resp.Body.Close()
+
+	doc, err := goquery.NewDocumentFromReader(resp.Body)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).SendString("failed to parse orakl config: " + err.Error())
+	}
+
+	go func() {
+		doc.Find("Body > div > table:nth-child(3) a").Each(func(i int, s *goquery.Selection) {
+			href, exists := s.Attr("href")
+			if exists {
+				resp, err := http.Get("https://config.orakl.network/" + href)
+				if err != nil {
+					return
+				}
+				defer resp.Body.Close()
+
+				body, err := io.ReadAll(resp.Body)
+				if err != nil {
+					return
+				}
+
+				var adapter AdapterInsertModel
+				err = json.Unmarshal(body, &adapter)
+				if err != nil {
+					return
+				}
+
+				validate := validator.New()
+				if err := validate.Struct(adapter); err != nil {
+					return
+				}
+
+				row, err := db.QueryRow[AdapterModel](c.Context(), InsertAdapter, map[string]any{
+					"name": adapter.Name,
+				})
+				if err != nil {
+					return
+				}
+
+				for _, feed := range adapter.Feeds {
+					feed.AdapterId = row.Id
+					_, err := db.QueryRow[FeedModel](c.Context(), InsertFeed, map[string]any{
+						"name":       feed.Name,
+						"definition": feed.Definition,
+						"adapter_id": feed.AdapterId,
+					})
+					if err != nil {
+						return
+					}
+				}
+			}
+		})
+	}()
+
+	return c.Status(fiber.StatusOK).SendString("syncing request sent")
 }
 
 func insert(c *fiber.Ctx) error {

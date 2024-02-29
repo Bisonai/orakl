@@ -1,6 +1,10 @@
 version: "3"
 
 tasks:
+  local-admin:
+    dotenv: [".env"]
+    cmds:
+      - go run ./cmd/admin/main.go
   test-db:
     dotenv: [".env"]
     cmds:

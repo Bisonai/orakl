@@ -9,6 +9,7 @@ func Routes(router fiber.Router) {
 
 	adapter.Post("", insert)
 	adapter.Get("", get)
+	adapter.Post("/sync", syncFromOraklConfig)
 	adapter.Get("/detail/:id", getDetailById)
 	adapter.Get("/:id", getById)
 	adapter.Delete("/:id", deleteById)
