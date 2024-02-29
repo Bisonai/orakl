@@ -32,7 +32,7 @@ func (a *App) Run(ctx context.Context) error {
 
 	a.subscribe(ctx)
 
-	err = f.startAllFetchers(ctx)
+	err = a.startAllFetchers(ctx)
 	if err != nil {
 		return err
 	}
@@ -102,28 +102,28 @@ func (a *App) handleMessage(ctx context.Context, msg bus.Message) {
 		}
 	case bus.STOP_FETCHER_APP:
 		log.Debug().Msg("stopping all fetchers")
-		err := f.stopAllFetchers(ctx)
+		err := a.stopAllFetchers(ctx)
 		if err != nil {
 			log.Error().Err(err).Msg("failed to stop all fetchers")
 		}
 
 	case bus.START_FETCHER_APP:
 		log.Debug().Msg("starting all fetchers")
-		err := f.startAllFetchers(ctx)
+		err := a.startAllFetchers(ctx)
 		if err != nil {
 			log.Error().Err(err).Msg("failed to start all fetchers")
 		}
 
 	case bus.REFRESH_FETCHER_APP:
-		err := f.stopAllFetchers(ctx)
+		err := a.stopAllFetchers(ctx)
 		if err != nil {
 			log.Error().Err(err).Msg("failed to stop all fetchers")
 		}
-		err = f.initialize(ctx)
+		err = a.initialize(ctx)
 		if err != nil {
 			log.Error().Err(err).Msg("failed to initialize fetchers")
 		}
-		err = f.startAllFetchers(ctx)
+		err = a.startAllFetchers(ctx)
 		if err != nil {
 			log.Error().Err(err).Msg("failed to start all fetchers")
 		}
@@ -172,9 +172,9 @@ func (a *App) startFetcherById(ctx context.Context, adapterId int64) error {
 	return errors.New("fetcher not found by id:" + strconv.FormatInt(adapterId, 10))
 }
 
-func (f *App) startAllFetchers(ctx context.Context) error {
-	for _, fetcher := range f.Fetchers {
-		err := f.startFetcher(ctx, fetcher)
+func (a *App) startAllFetchers(ctx context.Context) error {
+	for _, fetcher := range a.Fetchers {
+		err := a.startFetcher(ctx, fetcher)
 		if err != nil {
 			log.Error().Err(err).Str("adapter", fetcher.Name).Msg("failed to start adapter")
 			return err
@@ -184,7 +184,7 @@ func (f *App) startAllFetchers(ctx context.Context) error {
 	return nil
 }
 
-func (f *App) stopFetcher(ctx context.Context, fetcher *Fetcher) error {
+func (a *App) stopFetcher(ctx context.Context, fetcher *Fetcher) error {
 	log.Debug().Str("adapter", fetcher.Name).Msg("stopping adapter")
 	if !fetcher.isRunning {
 		return errors.New("fetcher already stopped")
@@ -204,9 +204,9 @@ func (a *App) stopFetcherById(ctx context.Context, adapterId int64) error {
 	return errors.New("fetcher not found by id:" + strconv.FormatInt(adapterId, 10))
 }
 
-func (f *App) stopAllFetchers(ctx context.Context) error {
-	for _, fetcher := range f.Fetchers {
-		err := f.stopFetcher(ctx, fetcher)
+func (a *App) stopAllFetchers(ctx context.Context) error {
+	for _, fetcher := range a.Fetchers {
+		err := a.stopFetcher(ctx, fetcher)
 		if err != nil {
 			log.Error().Err(err).Str("adapter", fetcher.Name).Msg("failed to stop adapter")
 			return err
@@ -215,7 +215,7 @@ func (f *App) stopAllFetchers(ctx context.Context) error {
 	return nil
 }
 
-func (f *App) fetchAndInsert(ctx context.Context, fetcher Fetcher) error {
+func (a *App) fetchAndInsert(ctx context.Context, fetcher Fetcher) error {
 	log.Debug().Str("adapter", fetcher.Name).Msg("fetching and inserting")
 
 	results, err := a.fetch(fetcher)
