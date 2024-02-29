@@ -78,7 +78,7 @@ func syncFromOraklConfig(c *fiber.Ctx) error {
 				}
 
 				validate := validator.New()
-				if err := validate.Struct(adapter); err != nil {
+				if err = validate.Struct(adapter); err != nil {
 					return
 				}
 
