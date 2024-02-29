@@ -307,7 +307,8 @@ func LoadFeePayerFromGSM(ctx context.Context) (string, error) {
 	}
 
 	feePayer := result.Payload.Data
-	return string(feePayer), nil
+	pk := strings.TrimPrefix(string(feePayer), "0x")
+	return pk, nil
 }
 
 func GetPublicKey(pk string) (string, error) {
