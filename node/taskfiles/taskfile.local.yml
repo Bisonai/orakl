@@ -5,6 +5,10 @@ tasks:
     dotenv: [".env"]
     cmds:
       - go run ./cmd/admin/main.go
+  local-fetcher-test:
+    dotenv: [".env"]
+    cmds:
+      - go run ./cmd/test_fetcher/main.go
   test-db:
     dotenv: [".env"]
     cmds:
