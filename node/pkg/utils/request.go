@@ -107,5 +107,6 @@ func UrlRequestRaw(urlEndpoint string, method string, requestBody interface{}, h
 }
 
 func GetRequestProxy[T any](urlEndpoint string, requestBody interface{}, headers map[string]string, proxy string) (T, error) {
+	log.Debug().Str("url", urlEndpoint).Str("proxy", proxy).Msg("making request with proxy")
 	return UrlRequest[T](urlEndpoint, "GET", requestBody, headers, proxy)
 }

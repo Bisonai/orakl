@@ -10,6 +10,7 @@ import (
 )
 
 const (
+	SelectAllProxiesQuery       = `SELECT * FROM proxies`
 	SelectActiveAdaptersQuery   = `SELECT * FROM adapters WHERE active = true`
 	SelectFeedsByAdapterIdQuery = `SELECT * FROM feeds WHERE adapter_id = @adapterId`
 	InsertLocalAggregateQuery   = `INSERT INTO local_aggregates (name, value) VALUES (@name, @value)`
@@ -21,11 +22,19 @@ type Adapter struct {
 	Active bool   `db:"active"`
 }
 
+type Proxy struct {
+	ID       int64   `db:"id"`
+	Protocol string  `db:"protocol"`
+	Host     string  `db:"host"`
+	Port     int     `db:"port"`
+	Location *string `db:"location"`
+}
+
 type Fetcher struct {
 	Adapter
 	Feeds []Feed
 
-	adapterCtx context.Context
+	fetcherCtx context.Context
 	cancel     context.CancelFunc
 	isRunning  bool
 }
@@ -40,6 +49,7 @@ type Feed struct {
 type App struct {
 	Bus      *bus.MessageBus
 	Fetchers map[int64]*Fetcher
+	Proxies  []Proxy
 }
 
 type Definition struct {
@@ -47,6 +57,7 @@ type Definition struct {
 	Headers  map[string]string `json:"headers"`
 	Method   string            `json:"method"`
 	Reducers []utils.Reducer   `json:"reducers"`
+	Location *string           `json:"location"`
 }
 
 type Aggregate struct {
