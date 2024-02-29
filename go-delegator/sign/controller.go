@@ -17,6 +17,7 @@ import (
 	"github.com/klaytn/klaytn/crypto"
 	"github.com/klaytn/klaytn/params"
 	"github.com/klaytn/klaytn/rlp"
+	"github.com/rs/zerolog/log"
 )
 
 type FeePayer struct {
@@ -221,33 +222,40 @@ func validateTransaction(c *fiber.Ctx, tx *SignModel) error {
 }
 
 func signTxByFeePayer(c *fiber.Ctx, tx *SignModel) error {
+
 	pk, err := utils.GetFeePayer(c)
 	if err != nil {
+		log.Error().Err(err).Msg("failed to get fee payer")
 		return err
 	}
 
 	feePayerKey, err := crypto.HexToECDSA(pk)
 	if err != nil {
+		log.Error().Err(err).Msg("failed to convert fee payer private key to ECDSA")
 		return err
 	}
 
 	feePayerPublicKey, err := utils.GetPublicKey(pk)
 	if err != nil {
+		log.Error().Err(err).Msg("failed to get fee payer public key")
 		return err
 	}
 
 	transaction, err := CreateUnsignedTx(tx, feePayerPublicKey)
 	if err != nil {
+		log.Error().Err(err).Msg("failed to create unsigned transaction")
 		return err
 	}
 
 	chainId, ok := new(big.Int).SetString(tx.ChainId[2:], 16)
 	if !ok {
+		log.Error().Err(err).Msg("failed to convert chainId to big.Int")
 		return fmt.Errorf("failed to convert chainId to big.Int")
 	}
 
 	signedWithTxFeepayer, err := types.SignTxAsFeePayer(transaction, types.LatestSigner(&params.ChainConfig{ChainID: chainId}), feePayerKey)
 	if err != nil {
+		log.Error().Err(err).Msg("failed to sign transaction with fee payer")
 		return err
 	}
 
