@@ -38,6 +38,12 @@ func SetBootNode(listenPort int) (*host.Host, error) {
 		return nil, err
 	}
 
+	_, err = dht.New(context.Background(), h)
+	if err != nil {
+		log.Error().Err(err).Msg("Error creating DHT")
+		return nil, err
+	}
+
 	pi := peer.AddrInfo{
 		ID:    h.ID(),
 		Addrs: h.Addrs(),
