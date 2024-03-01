@@ -9,6 +9,9 @@ tasks:
     dotenv: [".env"]
     cmds:
       - go run ./cmd/test_fetcher/main.go
+  boot-node:
+    cmds:
+      - go run ./cmd/boot/main.go
   test-db:
     dotenv: [".env"]
     cmds:
@@ -36,6 +39,5 @@ tasks:
       - task: test-admin
       - task: test-bus
       - task: test-libp2p
-      - task: test-admin
       - task: test-fetcher
       - task: test-utils

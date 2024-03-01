@@ -4,7 +4,10 @@ import (
 	"context"
 	"crypto/rand"
 	"errors"
+	"flag"
 	"fmt"
+	"os"
+	"strconv"
 
 	"strings"
 	"sync"
@@ -21,6 +24,135 @@ import (
 
 	"github.com/multiformats/go-multiaddr"
 )
+
+func SetBootNode(listenPort int) (*host.Host, error) {
+	priv, _, err := crypto.GenerateKeyPairWithReader(crypto.RSA, 2048, rand.Reader)
+	if err != nil {
+		log.Error().Err(err).Msg("Error generating key pair")
+		return nil, err
+	}
+
+	h, err := libp2p.New(libp2p.ListenAddrStrings("/ip4/0.0.0.0/tcp/"+strconv.Itoa(listenPort)), libp2p.Identity(priv))
+	if err != nil {
+		log.Error().Err(err).Msg("Error creating libp2p host")
+		return nil, err
+	}
+
+	pi := peer.AddrInfo{
+		ID:    h.ID(),
+		Addrs: h.Addrs(),
+	}
+	fmt.Printf("%s\n", pi.String())
+	for _, addr := range pi.Addrs {
+		fmt.Println(addr.String() + "/p2p/" + h.ID().String())
+	}
+
+	return &h, nil
+}
+
+func Setup(ctx context.Context) (*host.Host, *pubsub.PubSub, error) {
+	flagBootnode := flag.String("b", "", "bootnode address")
+	flagPort := flag.Int("p", 0, "libp2p port")
+	flag.Parse()
+
+	port, err := getListenPort(*flagPort)
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed to get listen port")
+		return nil, nil, err
+	}
+	host, err := MakeHost(port)
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed to create libp2p host")
+		return nil, nil, err
+	}
+	ps, err := MakePubsub(ctx, host)
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed to create pubsub")
+		return nil, nil, err
+	}
+
+	bootnodeStr, _ := getBootNode(*flagBootnode)
+
+	if bootnodeStr != "" {
+		log.Debug().Str("bootnode", bootnodeStr).Msg("connecting to bootnode")
+		bootnode, err := multiaddr.NewMultiaddr(bootnodeStr)
+		if err != nil {
+			log.Fatal().Err(err).Msg("Failed to create multiaddr")
+			return nil, nil, err
+		}
+
+		peerinfo, err := peer.AddrInfoFromP2pAddr(bootnode)
+		if err != nil {
+			log.Fatal().Err(err).Msg("Failed to create peerinfo")
+			return nil, nil, err
+		}
+
+		err = host.Connect(ctx, *peerinfo)
+		if err != nil {
+			log.Fatal().Err(err).Msg("Failed to connect to bootnode")
+			return nil, nil, err
+		}
+		log.Debug().Str("bootnode", bootnodeStr).Msg("connected to bootnode")
+	}
+
+	go func() {
+		if err = DiscoverPeers(ctx, host, "orakl-test-discover-2024", bootnodeStr); err != nil {
+			log.Error().Err(err).Msg("Error from DiscoverPeers")
+		}
+	}()
+
+	return &host, ps, nil
+}
+
+func getBootNode(flagNode string) (string, error) {
+	var err error
+	bootnode := ""
+
+	if flagNode != "" {
+		bootnode = flagNode
+	}
+
+	if os.Getenv("BOOT_NODE") != "" && bootnode == "" {
+		bootnode = os.Getenv("BOOT_NODE")
+	}
+
+	if bootnode == "" {
+		return "", errors.New("no bootnode specified")
+	}
+
+	return bootnode, err
+}
+
+func getListenPort(flagPort int) (int, error) {
+	var err error
+	listenPort := 0
+
+	if flagPort != 0 {
+		listenPort = flagPort
+	}
+
+	if os.Getenv("LISTEN_PORT") != "" && listenPort == 0 {
+		listenPort, err = strconv.Atoi(os.Getenv("LISTEN_PORT"))
+		if err != nil {
+			log.Error().Err(err).Msg("Error parsing LISTEN_PORT")
+		}
+	}
+
+	if os.Getenv("APP_PORT") != "" && listenPort == 0 {
+		appPort, err := strconv.Atoi(os.Getenv("APP_PORT"))
+		if err != nil {
+			log.Error().Err(err).Msg("Error parsing APP_PORT")
+		} else {
+			listenPort = appPort + 3000
+		}
+	}
+
+	if listenPort == 0 {
+		return 0, errors.New("no libp2p listen port specified")
+	}
+
+	return listenPort, nil
+}
 
 func MakeHost(listenPort int) (host.Host, error) {
 	r := rand.Reader
@@ -132,13 +264,12 @@ func DiscoverPeers(ctx context.Context, h host.Host, topicName string, bootstrap
 				defer wg.Done()
 				err := h.Connect(ctx, p)
 				if err != nil {
-					log.Trace().Msg("Failed connecting to " + p.ID.String())
+					// log.Trace().Msg("Failed connecting to " + p.ID.String())
 				} else {
-					log.Trace().Str("connectedTo", p.ID.String()).Msg("Connected to peer")
+					// log.Trace().Str("connectedTo", p.ID.String()).Msg("Connected to peer")
 					anyConnected = true
 				}
 			}(p)
-
 		}
 	}
 	wg.Wait()
