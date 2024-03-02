@@ -3,6 +3,7 @@ package aggregator
 import (
 	"context"
 	"encoding/json"
+	"os"
 	"sync"
 
 	"time"
@@ -69,6 +70,7 @@ func (n *AggregatorNode) SetLeaderJobTicker(d *time.Duration) error {
 func (n *AggregatorNode) LeaderJob() error {
 	// leader continously sends roundId in regular basis and triggers all other nodes to run its job
 	n.RoundID++
+	n.Raft.Term++
 	roundMessage := RoundSyncMessage{
 		LeaderID: n.Raft.Host.ID().String(),
 		RoundID:  n.RoundID,
@@ -92,9 +94,12 @@ func (n *AggregatorNode) HandleCustomMessage(message raft.Message) error {
 	switch message.Type {
 	case RoundSync:
 		return n.HandleRoundSyncMessage(message)
-		// every node runs its job when leader sends roundSync message
 	case PriceData:
 		return n.HandlePriceDataMessage(message)
+	case RoundReply:
+		return n.HandleRoundReplyMessage(message)
+	case TriggerAggregate:
+		return n.HandleTriggerAggregateMessage(message)
 	}
 	return nil
 }
@@ -105,7 +110,77 @@ func (n *AggregatorNode) HandleRoundSyncMessage(msg raft.Message) error {
 	if err != nil {
 		return err
 	}
-	n.RoundID = roundSyncMessage.RoundID
+
+	if n.RoundID < roundSyncMessage.RoundID {
+		n.RoundID = roundSyncMessage.RoundID
+	}
+
+	roundReplyMessage := RoundReplyMessage{
+		RoundId: n.RoundID,
+	}
+
+	marshalledRoundReplyMessage, err := json.Marshal(roundReplyMessage)
+	if err != nil {
+		return err
+	}
+
+	message := raft.Message{
+		Type:     RoundReply,
+		SentFrom: n.Raft.Host.ID().String(),
+		Data:     json.RawMessage(marshalledRoundReplyMessage),
+	}
+
+	return n.Raft.PublishMessage(message)
+
+}
+
+func (n *AggregatorNode) HandleRoundReplyMessage(msg raft.Message) error {
+	if n.Raft.GetRole() != raft.Leader {
+		return nil
+	}
+
+	n.RoundSyncReplies++
+	var roundReplyMessage RoundReplyMessage
+	err := json.Unmarshal(msg.Data, &roundReplyMessage)
+	if err != nil {
+		return err
+	}
+
+	if roundReplyMessage.RoundId > n.RoundID {
+		n.RoundID = roundReplyMessage.RoundId
+	}
+
+	if n.RoundSyncReplies > n.Raft.SubscribersCount() {
+		triggerAggregateMessage := TriggerAggregateMessage{
+			RoundID: n.RoundID,
+		}
+
+		marshalledTriggerAggregateMessage, err := json.Marshal(triggerAggregateMessage)
+		if err != nil {
+			return err
+		}
+
+		message := raft.Message{
+			Type:     TriggerAggregate,
+			SentFrom: n.Raft.Host.ID().String(),
+			Data:     json.RawMessage(marshalledTriggerAggregateMessage),
+		}
+		n.RoundSyncReplies = 0
+		return n.Raft.PublishMessage(message)
+	}
+	return nil
+}
+
+func (n *AggregatorNode) HandleTriggerAggregateMessage(msg raft.Message) error {
+	var triggerAggregateMessage TriggerAggregateMessage
+	err := json.Unmarshal(msg.Data, &triggerAggregateMessage)
+	if err != nil {
+		return err
+	}
+
+	if triggerAggregateMessage.RoundID != n.RoundID {
+		n.RoundID = triggerAggregateMessage.RoundID
+	}
 
 	var updateValue int64 = -1
 	value, updateTime, err := n.getLatestLocalAggregate(n.nodeCtx)
@@ -164,6 +239,9 @@ func (n *AggregatorNode) HandlePriceDataMessage(msg raft.Message) error {
 }
 
 func (n *AggregatorNode) getLatestLocalAggregate(ctx context.Context) (int64, time.Time, error) {
+	if os.Getenv("TEST") == "true" {
+		return int64(utils.RandomNumberGenerator()), time.Now(), nil
+	}
 	redisAggregate, err := GetLatestLocalAggregateFromRdb(ctx, n.Name)
 	if err != nil {
 		pgsqlAggregate, err := GetLatestLocalAggregateFromPgs(ctx, n.Name)
@@ -184,11 +262,28 @@ func (n *AggregatorNode) getLatestRoundId(ctx context.Context) (int64, error) {
 }
 
 func (n *AggregatorNode) insertGlobalAggregate(ctx context.Context, name string, value int64, round int64) error {
+	if os.Getenv("TEST") == "true" {
+		return nil
+	}
 	_, err := db.QueryRow[globalAggregate](ctx, InsertGlobalAggregateQuery, map[string]any{"name": name, "value": value, "round": round})
 	if err != nil {
 		return err
 	}
 	return nil
+}
+
+func (n *AggregatorNode) loadLatestRoundId(ctx context.Context) error {
+	if os.Getenv("TEST") == "true" {
+		n.RoundID = 0
+		return nil
+	}
+	latestGlobalAggregate, err := db.QueryRow[globalAggregate](ctx, SelectLatestGlobalAggregateQuery, map[string]any{"name": n.Name})
+	if err != nil {
+		return err
+	}
+	n.RoundID = latestGlobalAggregate.Round
+	return nil
+
 }
 
 func (n *AggregatorNode) executeDeviation() error {

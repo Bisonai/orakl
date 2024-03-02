@@ -112,16 +112,19 @@ func (r *Raft) handleHeartbeat(node Node, msg Message) error {
 		return fmt.Errorf("leader id mismatch")
 	}
 
-	r.StopHeartbeatTicker(node)
 	r.startElectionTimer()
 
 	currentRole := r.GetRole()
 	currentTerm := r.GetCurrentTerm()
 	currentLeader := r.GetLeader()
 
+	// log.Debug().Str("current role", string(currentRole)).Str("current leader", currentLeader).Int("current term", currentTerm).Msg("received heartbeat")
+
 	// If the current role is Candidate or the current role is Leader and the current term is less than the heartbeat term, update the role to Follower
-	shouldUpdateRoleToFollower := (currentRole == Candidate) || (currentRole == Leader && currentTerm < heartbeatMessage.Term)
+	shouldUpdateRoleToFollower := (currentRole == Candidate) || (currentRole == Leader && currentTerm <= heartbeatMessage.Term)
 	if shouldUpdateRoleToFollower {
+		log.Debug().Msg("updating role to follower\n")
+		r.StopHeartbeatTicker(node)
 		r.UpdateRole(Follower)
 	}
 
@@ -303,6 +306,7 @@ func (r *Raft) becomeLeader(ctx context.Context, node Node) {
 	r.Resign = make(chan interface{})
 	r.ElectionTimer.Stop()
 	r.UpdateRole(Leader)
+	r.UpdateLeader(r.GetHostId())
 	r.HeartbeatTicker = time.NewTicker(r.HeartbeatTimeout)
 
 	var leaderJobTicker <-chan time.Time

@@ -11,6 +11,9 @@ func RandomNumberGenerator() int {
 }
 
 func FindMedian(nums []int) int {
+	if len(nums) == 0 {
+		return 0
+	}
 	sort.Ints(nums)
 	n := len(nums)
 	if n%2 == 0 {
@@ -25,6 +28,9 @@ func FindMedian(nums []int) int {
 }
 
 func FindMedianInt64(nums []int64) int64 {
+	if len(nums) == 0 {
+		return 0
+	}
 	sort.Slice(nums, func(i, j int) bool { return nums[i] < nums[j] })
 	n := len(nums)
 	if n%2 == 0 {

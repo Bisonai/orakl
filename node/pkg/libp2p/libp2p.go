@@ -256,7 +256,7 @@ func DiscoverPeers(ctx context.Context, h host.Host, topicName string, bootstrap
 	anyConnected := false
 	var wg sync.WaitGroup
 	for !anyConnected {
-		log.Debug().Msg("Searching for peers...")
+		// log.Debug().Msg("Searching for peers...")
 		peerChan, err := routingDiscovery.FindPeers(ctx, topicName)
 		if err != nil {
 			return err
