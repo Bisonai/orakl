@@ -77,8 +77,7 @@ func (a *App) startAggregator(ctx context.Context, aggregator *AggregatorNode) e
 	aggregator.nodeCancel = cancel
 	aggregator.isRunning = true
 
-	aggregator.Run(ctx)
-	return nil
+	return aggregator.Run(ctx)
 }
 
 func (a *App) startAggregatorById(ctx context.Context, id int64) error {

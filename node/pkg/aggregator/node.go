@@ -3,6 +3,7 @@ package aggregator
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"os"
 	"sync"
 
@@ -100,8 +101,9 @@ func (n *AggregatorNode) HandleCustomMessage(message raft.Message) error {
 		return n.HandleRoundReplyMessage(message)
 	case TriggerAggregate:
 		return n.HandleTriggerAggregateMessage(message)
+	default:
+		return errors.New("unknown message type")
 	}
-	return nil
 }
 
 func (n *AggregatorNode) HandleRoundSyncMessage(msg raft.Message) error {
