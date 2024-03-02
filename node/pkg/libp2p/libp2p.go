@@ -81,22 +81,22 @@ func Setup(ctx context.Context) (*host.Host, *pubsub.PubSub, error) {
 
 	if bootnodeStr != "" {
 		log.Debug().Str("bootnode", bootnodeStr).Msg("connecting to bootnode")
-		bootnode, err := multiaddr.NewMultiaddr(bootnodeStr)
-		if err != nil {
-			log.Fatal().Err(err).Msg("Failed to create multiaddr")
-			return nil, nil, err
+		bootnode, bootErr := multiaddr.NewMultiaddr(bootnodeStr)
+		if bootErr != nil {
+			log.Fatal().Err(bootErr).Msg("Failed to create multiaddr")
+			return nil, nil, bootErr
 		}
 
-		peerinfo, err := peer.AddrInfoFromP2pAddr(bootnode)
-		if err != nil {
-			log.Fatal().Err(err).Msg("Failed to create peerinfo")
-			return nil, nil, err
+		peerinfo, bootErr := peer.AddrInfoFromP2pAddr(bootnode)
+		if bootErr != nil {
+			log.Fatal().Err(bootErr).Msg("Failed to create peerinfo")
+			return nil, nil, bootErr
 		}
 
-		err = host.Connect(ctx, *peerinfo)
-		if err != nil {
-			log.Fatal().Err(err).Msg("Failed to connect to bootnode")
-			return nil, nil, err
+		bootErr = host.Connect(ctx, *peerinfo)
+		if bootErr != nil {
+			log.Fatal().Err(bootErr).Msg("Failed to connect to bootnode")
+			return nil, nil, bootErr
 		}
 		log.Debug().Str("bootnode", bootnodeStr).Msg("connected to bootnode")
 	}
