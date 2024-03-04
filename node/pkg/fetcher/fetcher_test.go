@@ -264,9 +264,9 @@ func TestFetcherFetcherStartById(t *testing.T) {
 	assert.Equal(t, 0, len(rowsBefore))
 
 	for _, fetcher := range app.Fetchers {
-		result, _err := tests.PostRequest[Adapter](testItems.app, "/api/v1/adapter/activate/"+strconv.FormatInt(fetcher.ID, 10), nil)
-		if _err != nil {
-			t.Fatalf("error starting adapter: %v", _err)
+		result, requestErr := tests.PostRequest[Adapter](testItems.app, "/api/v1/adapter/activate/"+strconv.FormatInt(fetcher.ID, 10), nil)
+		if requestErr != nil {
+			t.Fatalf("error starting adapter: %v", requestErr)
 		}
 		assert.True(t, result.Active)
 	}
@@ -301,9 +301,9 @@ func TestFetcherFetcherStopById(t *testing.T) {
 	}
 
 	for _, fetcher := range app.Fetchers {
-		result, _err := tests.PostRequest[Adapter](testItems.app, "/api/v1/adapter/deactivate/"+strconv.FormatInt(fetcher.ID, 10), nil)
-		if _err != nil {
-			t.Fatalf("error stopping adapter: %v", _err)
+		result, requestErr := tests.PostRequest[Adapter](testItems.app, "/api/v1/adapter/deactivate/"+strconv.FormatInt(fetcher.ID, 10), nil)
+		if requestErr != nil {
+			t.Fatalf("error stopping adapter: %v", requestErr)
 		}
 		assert.False(t, result.Active)
 
