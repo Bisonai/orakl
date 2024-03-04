@@ -32,12 +32,9 @@ func (a *App) Run(ctx context.Context) error {
 
 	a.subscribe(ctx)
 
-	for _, fetcher := range a.Fetchers {
-		err = a.startFetcher(ctx, fetcher)
-		if err != nil {
-			log.Error().Err(err).Str("name", fetcher.Name).Msg("failed to start fetcher")
-		}
-		time.Sleep(time.Millisecond * time.Duration(rand.Intn(300)+100))
+	err = a.startAllFetchers(ctx)
+	if err != nil {
+		return err
 	}
 
 	return nil
@@ -104,15 +101,32 @@ func (a *App) handleMessage(ctx context.Context, msg bus.Message) {
 			log.Error().Err(err).Msg("failed to stop fetcher")
 		}
 	case bus.STOP_FETCHER_APP:
-		// TODO: stop fetcher
+		log.Debug().Msg("stopping all fetchers")
+		err := a.stopAllFetchers(ctx)
+		if err != nil {
+			log.Error().Err(err).Msg("failed to stop all fetchers")
+		}
 
-		log.Debug().Msg("stopping fetcher")
 	case bus.START_FETCHER_APP:
-		// TODO: start fetcher
+		log.Debug().Msg("starting all fetchers")
+		err := a.startAllFetchers(ctx)
+		if err != nil {
+			log.Error().Err(err).Msg("failed to start all fetchers")
+		}
 
-		log.Debug().Msg("starting fetcher")
 	case bus.REFRESH_FETCHER_APP:
-		// TODO: refresh adapters
+		err := a.stopAllFetchers(ctx)
+		if err != nil {
+			log.Error().Err(err).Msg("failed to stop all fetchers")
+		}
+		err = a.initialize(ctx)
+		if err != nil {
+			log.Error().Err(err).Msg("failed to initialize fetchers")
+		}
+		err = a.startAllFetchers(ctx)
+		if err != nil {
+			log.Error().Err(err).Msg("failed to start all fetchers")
+		}
 
 		log.Debug().Msg("refreshing fetcher")
 	}
@@ -158,8 +172,21 @@ func (a *App) startFetcherById(ctx context.Context, adapterId int64) error {
 	return errors.New("fetcher not found by id:" + strconv.FormatInt(adapterId, 10))
 }
 
+func (a *App) startAllFetchers(ctx context.Context) error {
+	for _, fetcher := range a.Fetchers {
+		err := a.startFetcher(ctx, fetcher)
+		if err != nil {
+			log.Error().Err(err).Str("adapter", fetcher.Name).Msg("failed to start adapter")
+			return err
+		}
+		// starts with random sleep to avoid all fetchers starting at the same time
+		time.Sleep(time.Millisecond * time.Duration(rand.Intn(300)+100))
+	}
+	return nil
+}
+
 func (a *App) stopFetcher(ctx context.Context, fetcher *Fetcher) error {
-	log.Debug().Str("fetcher", fetcher.Name).Msg("stopping fetcher")
+	log.Debug().Str("adapter", fetcher.Name).Msg("stopping adapter")
 	if !fetcher.isRunning {
 		return errors.New("fetcher already stopped")
 	}
@@ -178,8 +205,19 @@ func (a *App) stopFetcherById(ctx context.Context, adapterId int64) error {
 	return errors.New("fetcher not found by id:" + strconv.FormatInt(adapterId, 10))
 }
 
+func (a *App) stopAllFetchers(ctx context.Context) error {
+	for _, fetcher := range a.Fetchers {
+		err := a.stopFetcher(ctx, fetcher)
+		if err != nil {
+			log.Error().Err(err).Str("adapter", fetcher.Name).Msg("failed to stop adapter")
+			return err
+		}
+	}
+	return nil
+}
+
 func (a *App) fetchAndInsert(ctx context.Context, fetcher Fetcher) error {
-	log.Debug().Str("fetcher", fetcher.Name).Msg("fetching and inserting")
+	log.Debug().Str("adapter", fetcher.Name).Msg("fetching and inserting")
 
 	results, err := a.fetch(fetcher)
 	if err != nil {
