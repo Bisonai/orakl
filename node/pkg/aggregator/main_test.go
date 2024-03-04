@@ -8,9 +8,11 @@ import (
 	"time"
 
 	"bisonai.com/orakl/node/pkg/admin/aggregator"
+	"bisonai.com/orakl/node/pkg/admin/utils"
 	"bisonai.com/orakl/node/pkg/bus"
 	"bisonai.com/orakl/node/pkg/db"
 	"bisonai.com/orakl/node/pkg/libp2p"
+	"github.com/gofiber/fiber/v2"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 	"github.com/libp2p/go-libp2p/core/host"
 	"github.com/rs/zerolog"
@@ -32,6 +34,7 @@ type TmpData struct {
 
 type TestItems struct {
 	app         *App
+	admin       *fiber.App
 	host        *host.Host
 	pubsub      *pubsub.PubSub
 	topicString string
@@ -44,6 +47,15 @@ func setup(ctx context.Context) (func() error, *TestItems, error) {
 
 	mb := bus.New(10)
 	testItems.messageBus = mb
+
+	admin, err := utils.Setup(utils.SetupInfo{
+		Version: "",
+		Bus:     mb,
+	})
+	if err != nil {
+		return nil, nil, err
+	}
+	testItems.admin = admin
 
 	app := New(mb)
 	testItems.app = app
@@ -68,7 +80,10 @@ func setup(ctx context.Context) (func() error, *TestItems, error) {
 	}
 	testItems.tmpData = tmpData
 
-	return aggregatorCleanup(ctx, testItems), testItems, nil
+	v1 := admin.Group("/api/v1")
+	aggregator.Routes(v1)
+
+	return aggregatorCleanup(ctx, admin, testItems), testItems, nil
 }
 
 func insertSampleData(ctx context.Context) (*TmpData, error) {
@@ -82,7 +97,7 @@ func insertSampleData(ctx context.Context) (*TmpData, error) {
 
 	localAggregateInsertTime := time.Now()
 
-	key := "latestAggregate:test"
+	key := "latestAggregate:test-aggregate"
 	data, err := json.Marshal(redisLocalAggregate{Value: int64(10), Timestamp: localAggregateInsertTime})
 	if err != nil {
 		return nil, err
@@ -95,13 +110,13 @@ func insertSampleData(ctx context.Context) (*TmpData, error) {
 
 	tmpData.rLocalAggregate = redisLocalAggregate{Value: int64(10), Timestamp: localAggregateInsertTime}
 
-	tmpPLocalAggregate, err := db.QueryRow[pgsLocalAggregate](ctx, InsertLocalAggregateQuery, map[string]any{"name": "test", "value": int64(10), "time": localAggregateInsertTime})
+	tmpPLocalAggregate, err := db.QueryRow[pgsLocalAggregate](ctx, InsertLocalAggregateQuery, map[string]any{"name": "test-aggregate", "value": int64(10), "time": localAggregateInsertTime})
 	if err != nil {
 		return nil, err
 	}
 	tmpData.pLocalAggregate = tmpPLocalAggregate
 
-	tmpGlobalAggregate, err := db.QueryRow[globalAggregate](ctx, InsertGlobalAggregateQuery, map[string]any{"name": "test", "value": int64(15), "round": int64(1)})
+	tmpGlobalAggregate, err := db.QueryRow[globalAggregate](ctx, InsertGlobalAggregateQuery, map[string]any{"name": "test-aggregate", "value": int64(15), "round": int64(1)})
 	if err != nil {
 		return nil, err
 	}
@@ -109,7 +124,7 @@ func insertSampleData(ctx context.Context) (*TmpData, error) {
 	return tmpData, nil
 }
 
-func aggregatorCleanup(ctx context.Context, testItems *TestItems) func() error {
+func aggregatorCleanup(ctx context.Context, admin *fiber.App, testItems *TestItems) func() error {
 	return func() error {
 		err := db.QueryWithoutResult(ctx, RemoveGlobalAggregateQuery, map[string]any{"name": testItems.tmpData.globalAggregate.Name})
 		if err != nil {
@@ -121,12 +136,17 @@ func aggregatorCleanup(ctx context.Context, testItems *TestItems) func() error {
 			return err
 		}
 
-		err = db.Del(ctx, "latestAggregate:test")
+		err = db.Del(ctx, "latestAggregate:test-aggregate")
 		if err != nil {
 			return err
 		}
 
 		err = db.QueryWithoutResult(ctx, DeleteAggregatorById, map[string]any{"id": testItems.tmpData.aggregator.ID})
+		if err != nil {
+			return err
+		}
+
+		err = admin.Shutdown()
 		if err != nil {
 			return err
 		}

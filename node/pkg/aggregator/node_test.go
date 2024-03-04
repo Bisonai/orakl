@@ -111,7 +111,7 @@ func TestGetLatestLocalAggregate(t *testing.T) {
 		t.Fatal("error creating new node")
 	}
 
-	node.Name = "test"
+	node.Name = "test-aggregate"
 
 	val, dbTime, err := node.getLatestLocalAggregate(ctx)
 	if err != nil {
@@ -138,7 +138,7 @@ func TestGetLatestRoundId(t *testing.T) {
 		t.Fatal("error creating new node")
 	}
 
-	node.Name = "test"
+	node.Name = "test-aggregate"
 
 	roundId, err := node.getLatestRoundId(ctx)
 	if err != nil {
@@ -161,7 +161,7 @@ func TestInsertGlobalAggregate(t *testing.T) {
 		t.Fatal("error creating new node")
 	}
 
-	node.Name = "test"
+	node.Name = "test-aggregate"
 
 	err = node.insertGlobalAggregate(20, 2)
 	if err != nil {
