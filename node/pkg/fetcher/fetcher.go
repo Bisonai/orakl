@@ -75,8 +75,8 @@ func (a *App) handleMessage(ctx context.Context, msg bus.Message) {
 
 	switch msg.Content.Command {
 	case bus.ACTIVATE_FETCHER:
-		log.Debug().Msg("activate fetcher msg received")
-		adapterId, err := a.parseIdMsgParam(msg)
+		log.Debug().Msg("activate adapter msg received")
+		adapterId, err := bus.ParseInt64MsgParam(msg, "id")
 		if err != nil {
 			log.Error().Err(err).Msg("failed to parse adapterId")
 			return
@@ -88,8 +88,8 @@ func (a *App) handleMessage(ctx context.Context, msg bus.Message) {
 			log.Error().Err(err).Msg("failed to start fetcher")
 		}
 	case bus.DEACTIVATE_FETCHER:
-		log.Debug().Msg("deactivate fetcher msg received")
-		adapterId, err := a.parseIdMsgParam(msg)
+		log.Debug().Msg("deactivate adapter msg received")
+		adapterId, err := bus.ParseInt64MsgParam(msg, "id")
 		if err != nil {
 			log.Error().Err(err).Msg("failed to parse adapterId")
 			return
@@ -400,23 +400,4 @@ func (a *App) initialize(ctx context.Context) error {
 
 func (a *App) String() string {
 	return fmt.Sprintf("%+v\n", a.Fetchers)
-}
-
-func (a *App) parseIdMsgParam(msg bus.Message) (int64, error) {
-	rawId, ok := msg.Content.Args["id"]
-	if !ok {
-		return 0, errors.New("adapterId not found in message")
-	}
-
-	adapterIdPayload, ok := rawId.(string)
-	if !ok {
-		return 0, errors.New("failed to convert adapter id to string")
-	}
-
-	adapterId, err := strconv.ParseInt(adapterIdPayload, 10, 64)
-	if err != nil {
-		return 0, errors.New("failed to parse adapterId")
-	}
-
-	return adapterId, nil
 }

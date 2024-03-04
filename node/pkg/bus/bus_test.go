@@ -32,3 +32,35 @@ func TestSubscribeAndPublish(t *testing.T) {
 		t.Errorf("No message received on channel")
 	}
 }
+
+func TestParseInt64MsgParam(t *testing.T) {
+	msg := Message{
+		Content: MessageContent{
+			Args: map[string]any{"testArg": "123"},
+		},
+	}
+
+	val, err := ParseInt64MsgParam(msg, "testArg")
+	if err != nil {
+		t.Errorf("Failed to parse int64 param: %v", err)
+	}
+	if val != 123 {
+		t.Errorf("Parsed value did not match expected. Got %v", val)
+	}
+}
+
+func TestParseStringMsgParam(t *testing.T) {
+	msg := Message{
+		Content: MessageContent{
+			Args: map[string]any{"testArg": "testArg"},
+		},
+	}
+
+	val, err := ParseStringMsgParam(msg, "testArg")
+	if err != nil {
+		t.Errorf("Failed to parse string param: %v", err)
+	}
+	if val != "testArg" {
+		t.Errorf("Parsed value did not match expected. Got %v", val)
+	}
+}

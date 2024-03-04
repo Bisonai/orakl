@@ -36,7 +36,7 @@ func main() {
 		}
 	}()
 
-	aggregator, err := aggregator.NewAggregator(h, ps, "orakl-aggregator-2024-gazuaa")
+	aggregator, err := aggregator.NewNode(h, ps, "orakl-aggregator-2024-gazuaa")
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to create aggregator")
 	}

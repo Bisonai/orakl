@@ -24,6 +24,20 @@ func FindMedian(nums []int) int {
 	}
 }
 
+func FindMedianInt64(nums []int64) int64 {
+	sort.Slice(nums, func(i, j int) bool { return nums[i] < nums[j] })
+	n := len(nums)
+	if n%2 == 0 {
+		// Round down
+		return (nums[n/2-1] + nums[n/2]) / 2
+
+		// Or round to nearest integer
+		// return int(float64(nums[n/2-1]+nums[n/2]) / 2 + 0.5)
+	} else {
+		return nums[n/2]
+	}
+}
+
 func GetFloatAvg(data []float64) (float64, error) {
 	if len(data) == 0 {
 		return 0, errors.New("empty array")

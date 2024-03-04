@@ -2,181 +2,230 @@ package aggregator
 
 import (
 	"context"
-	"encoding/json"
+	"errors"
 
-	"strconv"
-	"sync"
-	"time"
+	"bisonai.com/orakl/node/pkg/bus"
+	"bisonai.com/orakl/node/pkg/db"
 
-	"bisonai.com/orakl/node/pkg/raft"
 	"bisonai.com/orakl/node/pkg/utils"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 	"github.com/libp2p/go-libp2p/core/host"
 	"github.com/rs/zerolog/log"
 )
 
-const RoundSync raft.MessageType = "roundSync"
-const PriceData raft.MessageType = "priceData"
-
-type Aggregator struct {
-	Raft *raft.Raft
-
-	LeaderJobTicker *time.Ticker
-	JobTicker       *time.Ticker
-
-	LeaderJobTimeout *time.Duration
-	JobTimeout       *time.Duration
-
-	CollectedPrices map[int][]int
-	AggregatorMutex sync.Mutex
-
-	RoundID int
-}
-
-type RoundSyncMessage struct {
-	LeaderID string `json:"leaderID"`
-	RoundID  int    `json:"roundID"`
-}
-
-type PriceDataMessage struct {
-	RoundID   int `json:"roundID"`
-	PriceData int `json:"priceData"`
-}
-
-func NewAggregator(h host.Host, ps *pubsub.PubSub, topicString string) (*Aggregator, error) {
-	topic, err := ps.Join(topicString)
-	if err != nil {
-		return nil, err
+func New(bus *bus.MessageBus) *App {
+	return &App{
+		Aggregators: make(map[int64]*AggregatorNode, 0),
+		Bus:         bus,
 	}
-
-	sub, err := topic.Subscribe()
-	if err != nil {
-		return nil, err
-	}
-
-	leaderTimeout := 5 * time.Second
-
-	aggregator := Aggregator{
-		Raft: raft.NewRaftNode(h, ps, topic, sub, 100), // consider updating after testing
-
-		LeaderJobTimeout: &leaderTimeout,
-		JobTimeout:       nil,
-
-		CollectedPrices: map[int][]int{},
-		AggregatorMutex: sync.Mutex{},
-	}
-
-	return &aggregator, nil
 }
 
-func (a *Aggregator) Run(ctx context.Context) {
-	a.Raft.Run(ctx, a)
-}
-
-func (a *Aggregator) GetLeaderJobTimeout() *time.Duration {
-	return a.LeaderJobTimeout
-}
-
-func (a *Aggregator) GetLeaderJobTicker() *time.Ticker {
-	return a.LeaderJobTicker
-}
-
-func (a *Aggregator) SetLeaderJobTicker(d *time.Duration) error {
-	if d == nil {
-		a.LeaderJobTicker = nil
-		return nil
-	}
-	a.LeaderJobTicker = time.NewTicker(*d)
-	return nil
-}
-
-func (a *Aggregator) LeaderJob() error {
-	// leader continously sends roundId in regular basis and triggers all other nodes to run its job
-	a.RoundID++
-	roundMessage := RoundSyncMessage{
-		LeaderID: a.Raft.Host.ID().String(),
-		RoundID:  a.RoundID,
-	}
-
-	marshalledRoundMessage, err := json.Marshal(roundMessage)
+func (a *App) Run(ctx context.Context, h host.Host, ps *pubsub.PubSub) error {
+	err := a.initialize(ctx, h, ps)
 	if err != nil {
 		return err
 	}
 
-	message := raft.Message{
-		Type:     RoundSync,
-		SentFrom: a.Raft.Host.ID().String(),
-		Data:     json.RawMessage(marshalledRoundMessage),
+	a.subscribe(ctx)
+
+	for _, aggregator := range a.Aggregators {
+		err = a.startAggregator(ctx, aggregator)
+		if err != nil {
+			log.Error().Err(err).Str("name", aggregator.Name).Msg("failed to start aggregator")
+		}
 	}
 
-	return a.Raft.PublishMessage(message)
+	return nil
 }
 
-func (a *Aggregator) HandleCustomMessage(message raft.Message) error {
-	switch message.Type {
-	case RoundSync:
-		return a.HandleRoundSyncMessage(message)
-		// every node runs its job when leader sends roundSync message
-	case PriceData:
-		return a.HandlePriceDataMessage(message)
+func (a *App) initialize(ctx context.Context, h host.Host, ps *pubsub.PubSub) error {
+	aggregators, err := a.getAggregators(ctx)
+	if err != nil {
+		return err
+	}
+	a.Aggregators = make(map[int64]*AggregatorNode, len(aggregators))
+
+	for _, aggregator := range aggregators {
+		topicString, err := utils.EncryptText(aggregator.Name)
+		if err != nil {
+			return err
+		}
+
+		tmpNode, err := NewNode(h, ps, topicString)
+		if err != nil {
+			return err
+		}
+		tmpNode.Aggregator = aggregator
+		a.Aggregators[aggregator.ID] = tmpNode
 	}
 	return nil
 }
 
-/*
-should be updated further later to handle various edge cases
-1. leader's roundSync message could be lower than follower's roundId
--> might need to add another phase where all the peers agree on the roundId to use
-
-2. roundId should be stored and loaded from db on node restarts
--> should carefully handle when it should be stored and loaded
-*/
-func (a *Aggregator) HandleRoundSyncMessage(msg raft.Message) error {
-	var roundSyncMessage RoundSyncMessage
-	err := json.Unmarshal(msg.Data, &roundSyncMessage)
-	if err != nil {
-		return err
-	}
-	a.RoundID = roundSyncMessage.RoundID
-
-	// pull latest local aggregate and send to peers
-	latestAggregate := utils.RandomNumberGenerator()
-	priceDataMessage := PriceDataMessage{
-		RoundID:   a.RoundID,
-		PriceData: latestAggregate,
-	}
-	marshalledPriceDataMessage, err := json.Marshal(priceDataMessage)
-	if err != nil {
-		return err
-	}
-	message := raft.Message{
-		Type:     PriceData,
-		SentFrom: a.Raft.Host.ID().String(),
-		Data:     json.RawMessage(marshalledPriceDataMessage),
-	}
-
-	return a.Raft.PublishMessage(message)
+func (a *App) getAggregators(ctx context.Context) ([]Aggregator, error) {
+	return db.QueryRows[Aggregator](ctx, SelectActiveAggregatorsQuery, nil)
 }
 
-func (a *Aggregator) HandlePriceDataMessage(msg raft.Message) error {
-	var priceDataMessage PriceDataMessage
-	err := json.Unmarshal(msg.Data, &priceDataMessage)
+func (a *App) startAggregator(ctx context.Context, aggregator *AggregatorNode) error {
+	log.Debug().Str("name", aggregator.Name).Msg("starting aggregator")
+	if aggregator.isRunning {
+		log.Debug().Str("name", aggregator.Name).Msg("aggregator already running")
+		return errors.New("aggregator already running")
+	}
+
+	latestGlobalAggregate, err := db.QueryRow[globalAggregate](ctx, SelectLatestGlobalAggregateQuery, map[string]interface{}{"name": aggregator.Name})
 	if err != nil {
+		log.Error().Err(err).Msg("failed to get latest global aggregate")
 		return err
 	}
-	a.AggregatorMutex.Lock()
-	defer a.AggregatorMutex.Unlock()
-	if _, ok := a.CollectedPrices[priceDataMessage.RoundID]; !ok {
-		a.CollectedPrices[priceDataMessage.RoundID] = []int{}
+	nodeCtx, cancel := context.WithCancel(ctx)
+	aggregator.nodeCtx = nodeCtx
+	aggregator.nodeCancel = cancel
+	aggregator.isRunning = true
+
+	if latestGlobalAggregate.Round > 0 {
+		aggregator.RoundID = latestGlobalAggregate.Round
 	}
-	a.CollectedPrices[priceDataMessage.RoundID] = append(a.CollectedPrices[priceDataMessage.RoundID], priceDataMessage.PriceData)
-	if len(a.CollectedPrices[priceDataMessage.RoundID]) >= len(a.Raft.Ps.ListPeers(a.Raft.Topic.String()))+1 {
-		// handle aggregation here once all the data have been collected
-		median := utils.FindMedian(a.CollectedPrices[priceDataMessage.RoundID])
-		roundID := strconv.Itoa(priceDataMessage.RoundID)
-		aggregate := strconv.Itoa(median)
-		log.Debug().Msg("Aggregate for round: " + roundID + " is: " + aggregate)
-		delete(a.CollectedPrices, priceDataMessage.RoundID)
-	}
+
+	aggregator.Run(ctx)
 	return nil
+}
+
+func (a *App) startAggregatorById(ctx context.Context, id int64) error {
+	aggregator, ok := a.Aggregators[id]
+	if !ok {
+		return errors.New("aggregator not found")
+	}
+	return a.startAggregator(ctx, aggregator)
+}
+
+func (a *App) stopAggregator(ctx context.Context, aggregator *AggregatorNode) error {
+	log.Debug().Str("name", aggregator.Name).Msg("stopping aggregator")
+	if !aggregator.isRunning {
+		log.Debug().Str("name", aggregator.Name).Msg("aggregator already stopped")
+		return errors.New("aggregator already stopped")
+	}
+	if aggregator.nodeCancel == nil {
+		return errors.New("aggregator cancel function not found")
+	}
+	aggregator.nodeCancel()
+	aggregator.isRunning = false
+	return nil
+}
+
+func (a *App) stopAggregatorById(ctx context.Context, id int64) error {
+	aggregator, ok := a.Aggregators[id]
+	if !ok {
+		return errors.New("aggregator not found")
+	}
+	return a.stopAggregator(ctx, aggregator)
+}
+
+func (a *App) subscribe(ctx context.Context) {
+	log.Debug().Msg("subscribing to aggregator topics")
+	channel := a.Bus.Subscribe(bus.AGGREGATOR)
+	go func() {
+		log.Debug().Msg("starting aggregator subscription goroutine")
+		for {
+			select {
+			case msg := <-channel:
+				log.Debug().
+					Str("from", msg.From).
+					Str("to", msg.To).
+					Str("command", msg.Content.Command).
+					Msg("fetcher received message")
+				a.handleMessage(ctx, msg)
+			case <-ctx.Done():
+				log.Debug().Msg("stopping aggregator subscription goroutine")
+				return
+			}
+		}
+	}()
+}
+
+func (a *App) getAggregatorByName(name string) (*AggregatorNode, error) {
+	for _, aggregator := range a.Aggregators {
+		if aggregator.Name == name {
+			return aggregator, nil
+		}
+	}
+	return nil, errors.New("aggregator not found")
+}
+
+func (a *App) handleMessage(ctx context.Context, msg bus.Message) {
+	// expected messages
+	// from admin: control related messages, activate and deactivate aggregator
+	// from fetcher: deviation related messages
+
+	if msg.To != bus.AGGREGATOR {
+		log.Debug().Msg("message not for aggregator")
+		return
+	}
+
+	switch msg.Content.Command {
+	case bus.ACTIVATE_AGGREGATOR:
+		if msg.From != bus.ADMIN {
+			log.Debug().Msg("aggregator received message from non-admin")
+			return
+		}
+		log.Debug().Msg("activate aggregator msg received")
+		aggregatorId, err := bus.ParseInt64MsgParam(msg, "id")
+		if err != nil {
+			log.Error().Err(err).Msg("failed to parse aggregatorId")
+			return
+		}
+
+		log.Debug().Int64("aggregatorId", aggregatorId).Msg("activating aggregator")
+		err = a.startAggregatorById(ctx, aggregatorId)
+		if err != nil {
+			log.Error().Err(err).Msg("failed to start aggregator")
+		}
+	case bus.DEACTIVATE_AGGREGATOR:
+		if msg.From != bus.ADMIN {
+			log.Debug().Msg("aggregator received message from non-admin")
+			return
+		}
+		log.Debug().Msg("deactivate aggregator msg received")
+		aggregatorId, err := bus.ParseInt64MsgParam(msg, "id")
+		if err != nil {
+			log.Error().Err(err).Msg("failed to parse aggregatorId")
+			return
+		}
+
+		log.Debug().Int64("aggregatorId", aggregatorId).Msg("deactivating aggregator")
+		err = a.stopAggregatorById(ctx, aggregatorId)
+		if err != nil {
+			log.Error().Err(err).Msg("failed to stop aggregator")
+		}
+	case bus.REFRESH_AGGREGATOR_APP:
+		// TODO: refresh aggregator
+		log.Debug().Msg("refresh aggregator msg received")
+	case bus.STOP_AGGREGATOR_APP:
+		// TODO: stop aggregator
+		log.Debug().Msg("stop aggregator msg received")
+	case bus.START_AGGREGATOR_APP:
+		// TODO: start aggregator
+		log.Debug().Msg("start aggregator msg received")
+
+	case bus.DEVIATION:
+		if msg.From != bus.FETCHER {
+			log.Debug().Msg("aggregator received deviation message from non-fetcher")
+			return
+		}
+		log.Debug().Msg("deviation message received")
+		aggregatorName, err := bus.ParseStringMsgParam(msg, "name")
+		if err != nil {
+			log.Error().Err(err).Msg("failed to parse aggregator name")
+			return
+		}
+		aggregator, err := a.getAggregatorByName(aggregatorName)
+		if err != nil {
+			log.Error().Err(err).Msg("aggregator not found")
+			return
+		}
+
+		err = aggregator.executeDeviation()
+		if err != nil {
+			log.Error().Err(err).Msg("failed to execute deviation")
+		}
+	}
 }
