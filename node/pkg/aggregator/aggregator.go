@@ -69,7 +69,7 @@ func (a *App) startAggregator(ctx context.Context, aggregator *AggregatorNode) e
 	log.Debug().Str("name", aggregator.Name).Msg("starting aggregator")
 	if aggregator.isRunning {
 		log.Debug().Str("name", aggregator.Name).Msg("aggregator already running")
-		return errors.New("aggregator already running")
+		return errors.New("aggregator alreadyß running")
 	}
 
 	nodeCtx, cancel := context.WithCancel(ctx)
@@ -77,7 +77,8 @@ func (a *App) startAggregator(ctx context.Context, aggregator *AggregatorNode) e
 	aggregator.nodeCancel = cancel
 	aggregator.isRunning = true
 
-	return aggregator.Run(ctx)
+	aggregator.Run(ctx)
+	return nil
 }
 
 func (a *App) startAggregatorById(ctx context.Context, id int64) error {

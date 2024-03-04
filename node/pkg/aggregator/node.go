@@ -274,20 +274,6 @@ func (n *AggregatorNode) insertGlobalAggregate(ctx context.Context, name string,
 	return nil
 }
 
-func (n *AggregatorNode) loadLatestRoundId(ctx context.Context) error {
-	if os.Getenv("TEST") == "true" {
-		n.RoundID = 0
-		return nil
-	}
-	latestGlobalAggregate, err := db.QueryRow[globalAggregate](ctx, SelectLatestGlobalAggregateQuery, map[string]any{"name": n.Name})
-	if err != nil {
-		return err
-	}
-	n.RoundID = latestGlobalAggregate.Round
-	return nil
-
-}
-
 func (n *AggregatorNode) executeDeviation() error {
 	// signals for deviation job which triggers immediate aggregation and sends submission request to submitter
 	return nil
