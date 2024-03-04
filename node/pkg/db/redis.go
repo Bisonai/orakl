@@ -44,40 +44,40 @@ func getRedisConn(ctx context.Context, once *sync.Once) (*redis.Conn, error) {
 }
 
 func Set(ctx context.Context, key string, value string, exp time.Duration) error {
-	_rdb, err := GetRedisConn(ctx)
+	rdbConn, err := GetRedisConn(ctx)
 	if err != nil {
 		return err
 	}
-	rdb = _rdb
+	rdb = rdbConn
 	return setRedis(ctx, rdb, key, value, exp)
 }
 
 func Get(ctx context.Context, key string) (string, error) {
-	_rdb, err := GetRedisConn(ctx)
+	rdbConn, err := GetRedisConn(ctx)
 	if err != nil {
 		return "", err
 	}
-	rdb = _rdb
+	rdb = rdbConn
 	return getRedis(ctx, rdb, key)
 }
 
 func Del(ctx context.Context, key string) error {
-	_rdb, err := GetRedisConn(ctx)
+	rdbConn, err := GetRedisConn(ctx)
 	if err != nil {
 		return err
 	}
-	rdb = _rdb
+	rdb = rdbConn
 	return rdb.Del(ctx, key).Err()
 }
 
 func connectToRedis(ctx context.Context, connectionInfo RedisConnectionInfo) (*redis.Conn, error) {
-	_rdb := redis.NewClient(&redis.Options{
+	rdbConn := redis.NewClient(&redis.Options{
 		Addr: connectionInfo.Host + ":" + connectionInfo.Port}).Conn()
-	_, rdbErr := _rdb.Ping(ctx).Result()
+	_, rdbErr := rdbConn.Ping(ctx).Result()
 	if rdbErr != nil {
 		return nil, rdbErr
 	}
-	return _rdb, nil
+	return rdbConn, nil
 }
 
 func loadRedisConnectionString() (RedisConnectionInfo, error) {

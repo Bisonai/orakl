@@ -91,9 +91,9 @@ func query(pool *pgxpool.Pool, query string, args map[string]any) (pgx.Rows, err
 	return pool.Query(context.Background(), query, pgx.NamedArgs(args))
 }
 
-func queryRow[T any](pool *pgxpool.Pool, _query string, args map[string]any) (T, error) {
+func queryRow[T any](pool *pgxpool.Pool, queryString string, args map[string]any) (T, error) {
 	var result T
-	rows, err := query(pool, _query, args)
+	rows, err := query(pool, queryString, args)
 	if err != nil {
 		return result, err
 	}
@@ -106,10 +106,10 @@ func queryRow[T any](pool *pgxpool.Pool, _query string, args map[string]any) (T,
 	return result, err
 }
 
-func queryRows[T any](pool *pgxpool.Pool, _query string, args map[string]any) ([]T, error) {
+func queryRows[T any](pool *pgxpool.Pool, queryString string, args map[string]any) ([]T, error) {
 	results := []T{}
 
-	rows, err := query(pool, _query, args)
+	rows, err := query(pool, queryString, args)
 	if err != nil {
 		return results, err
 	}
