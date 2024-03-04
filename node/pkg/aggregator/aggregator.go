@@ -72,19 +72,10 @@ func (a *App) startAggregator(ctx context.Context, aggregator *AggregatorNode) e
 		return errors.New("aggregator already running")
 	}
 
-	latestGlobalAggregate, err := db.QueryRow[globalAggregate](ctx, SelectLatestGlobalAggregateQuery, map[string]interface{}{"name": aggregator.Name})
-	if err != nil {
-		log.Error().Err(err).Msg("failed to get latest global aggregate")
-		return err
-	}
 	nodeCtx, cancel := context.WithCancel(ctx)
 	aggregator.nodeCtx = nodeCtx
 	aggregator.nodeCancel = cancel
 	aggregator.isRunning = true
-
-	if latestGlobalAggregate.Round > 0 {
-		aggregator.RoundID = latestGlobalAggregate.Round
-	}
 
 	aggregator.Run(ctx)
 	return nil

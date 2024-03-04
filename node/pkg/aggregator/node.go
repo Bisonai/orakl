@@ -41,6 +41,11 @@ func NewNode(h host.Host, ps *pubsub.PubSub, topicString string) (*AggregatorNod
 }
 
 func (n *AggregatorNode) Run(ctx context.Context) {
+	latestRoundId, err := n.getLatestRoundId(ctx)
+	if err == nil && latestRoundId > 0 {
+		n.RoundID = latestRoundId
+	}
+
 	n.Raft.Run(ctx, n)
 }
 
@@ -94,13 +99,6 @@ func (n *AggregatorNode) HandleCustomMessage(message raft.Message) error {
 	return nil
 }
 
-/*
-TODO: adding another phase to agree on roundId
-
-1. leader sends roundSync message
-2. followers check if the leader's roundId is greater than its own roundId
-3. if it is, follower will send signal to leader to update roundId
-*/
 func (n *AggregatorNode) HandleRoundSyncMessage(msg raft.Message) error {
 	var roundSyncMessage RoundSyncMessage
 	err := json.Unmarshal(msg.Data, &roundSyncMessage)
@@ -109,18 +107,10 @@ func (n *AggregatorNode) HandleRoundSyncMessage(msg raft.Message) error {
 	}
 	n.RoundID = roundSyncMessage.RoundID
 
-	// pull latest local aggregate and send to peers
-	// latestAggregate := utils.RandomNumberGenerator()
-	var updateValue int64
+	var updateValue int64 = -1
 	value, updateTime, err := n.getLatestLocalAggregate(n.nodeCtx)
-	if err != nil {
-		return err
-	}
 
-	// when local aggregate have not been updated, send priceDataMessage with -1 value indicating it should be ignored
-	if !n.LastLocalAggregateTime.IsZero() && n.LastLocalAggregateTime.Equal(updateTime) {
-		updateValue = -1
-	} else {
+	if err == nil && n.LastLocalAggregateTime.IsZero() || !n.LastLocalAggregateTime.Equal(updateTime) {
 		updateValue = value
 		n.LastLocalAggregateTime = updateTime
 	}
@@ -157,7 +147,7 @@ func (n *AggregatorNode) HandlePriceDataMessage(msg raft.Message) error {
 	}
 
 	n.CollectedPrices[priceDataMessage.RoundID] = append(n.CollectedPrices[priceDataMessage.RoundID], priceDataMessage.PriceData)
-	if len(n.CollectedPrices[priceDataMessage.RoundID]) >= len(n.Raft.Ps.ListPeers(n.Raft.Topic.String()))+1 {
+	if len(n.CollectedPrices[priceDataMessage.RoundID]) >= n.Raft.SubscribersCount()+1 {
 		filteredCollectedPrices := FilterNegative(n.CollectedPrices[priceDataMessage.RoundID])
 
 		// handle aggregation here once all the data have been collected
@@ -183,6 +173,14 @@ func (n *AggregatorNode) getLatestLocalAggregate(ctx context.Context) (int64, ti
 		return pgsqlAggregate.Value, pgsqlAggregate.Timestamp, nil
 	}
 	return redisAggregate.Value, redisAggregate.Timestamp, nil
+}
+
+func (n *AggregatorNode) getLatestRoundId(ctx context.Context) (int64, error) {
+	result, err := db.QueryRow[globalAggregate](ctx, SelectLatestGlobalAggregateQuery, map[string]any{"name": n.Name})
+	if err != nil {
+		return 0, err
+	}
+	return result.Round, nil
 }
 
 func (n *AggregatorNode) insertGlobalAggregate(ctx context.Context, name string, value int64, round int64) error {
