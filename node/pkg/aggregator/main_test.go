@@ -3,6 +3,8 @@ package aggregator
 import (
 	"context"
 	"encoding/json"
+	"os"
+	"testing"
 	"time"
 
 	"bisonai.com/orakl/node/pkg/admin/aggregator"
@@ -11,12 +13,13 @@ import (
 	"bisonai.com/orakl/node/pkg/libp2p"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 	"github.com/libp2p/go-libp2p/core/host"
+	"github.com/rs/zerolog"
 )
 
 const (
-	InsertLocalAggregateQuery  = `INSERT INTO local_aggregates (name, value, timestamp) VALUES (@name, @value, @time);`
-	RemoveGlobalAggregateQuery = `DELETE FROM global_aggregates WHERE name = @name AND round = @round RETURNING *;`
-	RemoveLocalAggregateQuery  = `DELETE FROM local_aggregates WHERE name = @name AND timestamp = @timestamp RETURNING *;`
+	InsertLocalAggregateQuery  = `INSERT INTO local_aggregates (name, value, timestamp) VALUES (@name, @value, @time) RETURNING *;`
+	RemoveGlobalAggregateQuery = `DELETE FROM global_aggregates WHERE name = @name RETURNING *;`
+	RemoveLocalAggregateQuery  = `DELETE FROM local_aggregates WHERE name = @name RETURNING *;`
 	DeleteAggregatorById       = `DELETE FROM aggregators WHERE id = @id RETURNING *;`
 )
 
@@ -33,7 +36,6 @@ type TestItems struct {
 	pubsub      *pubsub.PubSub
 	topicString string
 	messageBus  *bus.MessageBus
-	aggregator  *App
 	tmpData     *TmpData
 }
 
@@ -91,7 +93,7 @@ func insertSampleData(ctx context.Context) (*TmpData, error) {
 		return nil, err
 	}
 
-	tmpData.rLocalAggregate = redisLocalAggregate{Value: int64(10), Timestamp: time.Now()}
+	tmpData.rLocalAggregate = redisLocalAggregate{Value: int64(10), Timestamp: localAggregateInsertTime}
 
 	tmpPLocalAggregate, err := db.QueryRow[pgsLocalAggregate](ctx, InsertLocalAggregateQuery, map[string]any{"name": "test", "value": int64(10), "time": localAggregateInsertTime})
 	if err != nil {
@@ -109,12 +111,12 @@ func insertSampleData(ctx context.Context) (*TmpData, error) {
 
 func aggregatorCleanup(ctx context.Context, testItems *TestItems) func() error {
 	return func() error {
-		_, err := db.QueryRow[Aggregator](ctx, RemoveGlobalAggregateQuery, map[string]any{"name": testItems.tmpData.globalAggregate.Name, "round": testItems.tmpData.globalAggregate.Round})
+		err := db.QueryWithoutResult(ctx, RemoveGlobalAggregateQuery, map[string]any{"name": testItems.tmpData.globalAggregate.Name})
 		if err != nil {
 			return err
 		}
 
-		_, err = db.QueryRow[pgsLocalAggregate](ctx, RemoveLocalAggregateQuery, map[string]any{"name": testItems.tmpData.pLocalAggregate.Name, "timestamp": testItems.tmpData.pLocalAggregate.Timestamp})
+		err = db.QueryWithoutResult(ctx, RemoveLocalAggregateQuery, map[string]any{"name": testItems.tmpData.pLocalAggregate.Name})
 		if err != nil {
 			return err
 		}
@@ -124,11 +126,19 @@ func aggregatorCleanup(ctx context.Context, testItems *TestItems) func() error {
 			return err
 		}
 
-		_, err = db.QueryRow[Aggregator](ctx, aggregator.DeleteAggregatorById, map[string]any{"id": testItems.tmpData.aggregator.ID})
+		err = db.QueryWithoutResult(ctx, DeleteAggregatorById, map[string]any{"id": testItems.tmpData.aggregator.ID})
 		if err != nil {
 			return err
 		}
 		return nil
 	}
 
+}
+
+func TestMain(m *testing.M) {
+	zerolog.SetGlobalLevel(zerolog.InfoLevel)
+	code := m.Run()
+	db.ClosePool()
+	db.CloseRedis()
+	os.Exit(code)
 }

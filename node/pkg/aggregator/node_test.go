@@ -68,13 +68,14 @@ func TestSetLeaderJobTicker(t *testing.T) {
 		t.Fatal("error creating new node")
 	}
 
+	assert.Nil(t, node.LeaderJobTicker)
 	duration := 10 * time.Second
 	err = node.SetLeaderJobTicker(&duration)
 	if err != nil {
 		t.Fatal("error setting leader job ticker")
 	}
 
-	assert.Equal(t, node.LeaderJobTicker, time.NewTicker(duration))
+	assert.NotNil(t, node.LeaderJobTicker)
 }
 
 func TestLeaderJob(t *testing.T) {
@@ -105,21 +106,23 @@ func TestGetLatestLocalAggregate(t *testing.T) {
 	defer cleanup()
 
 	node, err := NewNode(*testItems.host, testItems.pubsub, testItems.topicString)
+
 	if err != nil {
 		t.Fatal("error creating new node")
 	}
 
 	node.Name = "test"
 
-	val, time, err := node.getLatestLocalAggregate(ctx)
+	val, dbTime, err := node.getLatestLocalAggregate(ctx)
 	if err != nil {
 		t.Fatal("error getting latest local aggregate")
 	}
 
 	assert.Equal(t, val, testItems.tmpData.rLocalAggregate.Value)
 	assert.Equal(t, val, testItems.tmpData.pLocalAggregate.Value)
-	assert.Equal(t, time, testItems.tmpData.rLocalAggregate.Timestamp)
-	assert.Equal(t, time, testItems.tmpData.pLocalAggregate.Timestamp)
+
+	assert.Equal(t, dbTime, testItems.tmpData.rLocalAggregate.Timestamp.Truncate(time.Microsecond))
+	assert.Equal(t, dbTime, testItems.tmpData.pLocalAggregate.Timestamp.Truncate(time.Microsecond))
 }
 
 func TestGetLatestRoundId(t *testing.T) {
