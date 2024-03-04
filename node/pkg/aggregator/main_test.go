@@ -20,9 +20,9 @@ import (
 
 const (
 	InsertLocalAggregateQuery  = `INSERT INTO local_aggregates (name, value, timestamp) VALUES (@name, @value, @time) RETURNING *;`
-	RemoveGlobalAggregateQuery = `DELETE FROM global_aggregates WHERE name = @name RETURNING *;`
-	RemoveLocalAggregateQuery  = `DELETE FROM local_aggregates WHERE name = @name RETURNING *;`
-	DeleteAggregatorById       = `DELETE FROM aggregators WHERE id = @id RETURNING *;`
+	RemoveGlobalAggregateQuery = `DELETE FROM global_aggregates;`
+	RemoveLocalAggregateQuery  = `DELETE FROM local_aggregates;`
+	DeleteAggregatorById       = `DELETE FROM aggregators;`
 )
 
 type TmpData struct {
@@ -126,12 +126,12 @@ func insertSampleData(ctx context.Context) (*TmpData, error) {
 
 func aggregatorCleanup(ctx context.Context, admin *fiber.App, testItems *TestItems) func() error {
 	return func() error {
-		err := db.QueryWithoutResult(ctx, RemoveGlobalAggregateQuery, map[string]any{"name": testItems.tmpData.globalAggregate.Name})
+		err := db.QueryWithoutResult(ctx, RemoveGlobalAggregateQuery, nil)
 		if err != nil {
 			return err
 		}
 
-		err = db.QueryWithoutResult(ctx, RemoveLocalAggregateQuery, map[string]any{"name": testItems.tmpData.pLocalAggregate.Name})
+		err = db.QueryWithoutResult(ctx, RemoveLocalAggregateQuery, nil)
 		if err != nil {
 			return err
 		}
@@ -141,7 +141,7 @@ func aggregatorCleanup(ctx context.Context, admin *fiber.App, testItems *TestIte
 			return err
 		}
 
-		err = db.QueryWithoutResult(ctx, DeleteAggregatorById, map[string]any{"id": testItems.tmpData.aggregator.ID})
+		err = db.QueryWithoutResult(ctx, DeleteAggregatorById, nil)
 		if err != nil {
 			return err
 		}
