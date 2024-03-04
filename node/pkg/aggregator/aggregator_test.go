@@ -3,7 +3,6 @@ package aggregator
 
 import (
 	"context"
-	"fmt"
 	"strconv"
 	"testing"
 	"time"
@@ -23,7 +22,6 @@ func TestInit(t *testing.T) {
 
 	err = testItems.app.initialize(ctx, *testItems.host, testItems.pubsub)
 	if err != nil {
-		fmt.Println(err)
 		t.Fatal("error initializing app")
 	}
 }
