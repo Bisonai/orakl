@@ -121,8 +121,8 @@ func TestGetLatestLocalAggregate(t *testing.T) {
 	assert.Equal(t, val, testItems.tmpData.rLocalAggregate.Value)
 	assert.Equal(t, val, testItems.tmpData.pLocalAggregate.Value)
 
-	assert.Equal(t, dbTime, testItems.tmpData.rLocalAggregate.Timestamp.Truncate(time.Microsecond))
-	assert.Equal(t, dbTime, testItems.tmpData.pLocalAggregate.Timestamp.Truncate(time.Microsecond))
+	assert.Equal(t, dbTime.UTC().Truncate(time.Millisecond), testItems.tmpData.rLocalAggregate.Timestamp.UTC().Truncate(time.Millisecond))
+	assert.Equal(t, dbTime.UTC().Truncate(time.Millisecond), testItems.tmpData.pLocalAggregate.Timestamp.UTC().Truncate(time.Millisecond))
 }
 
 func TestGetLatestRoundId(t *testing.T) {
