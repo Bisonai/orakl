@@ -10,12 +10,15 @@ import (
 )
 
 const (
-	RoundSync                        raft.MessageType = "roundSync"
-	PriceData                        raft.MessageType = "priceData"
-	SelectActiveAggregatorsQuery                      = `SELECT * FROM aggregators WHERE active = true`
-	SelectLatestLocalAggregateQuery                   = `SELECT * FROM local_aggregates WHERE name = @name ORDER BY timestamp DESC LIMIT 1`
-	InsertGlobalAggregateQuery                        = `INSERT INTO global_aggregates (name, value, round) VALUES (@name, @value, @round) RETURNING *`
-	SelectLatestGlobalAggregateQuery                  = `SELECT * FROM global_aggregates WHERE name = @name ORDER BY round DESC LIMIT 1`
+	RoundSync        raft.MessageType = "roundSync"
+	RoundReply       raft.MessageType = "roundReply"
+	TriggerAggregate raft.MessageType = "triggerAggregate"
+	PriceData        raft.MessageType = "priceData"
+
+	SelectActiveAggregatorsQuery     = `SELECT * FROM aggregators WHERE active = true`
+	SelectLatestLocalAggregateQuery  = `SELECT * FROM local_aggregates WHERE name = @name ORDER BY timestamp DESC LIMIT 1`
+	InsertGlobalAggregateQuery       = `INSERT INTO global_aggregates (name, value, round) VALUES (@name, @value, @round) RETURNING *`
+	SelectLatestGlobalAggregateQuery = `SELECT * FROM global_aggregates WHERE name = @name ORDER BY round DESC LIMIT 1`
 )
 
 type redisLocalAggregate struct {
@@ -59,6 +62,7 @@ type AggregatorNode struct {
 
 	LastLocalAggregateTime time.Time
 	RoundID                int64
+	RoundSyncReplies       int
 
 	nodeCtx    context.Context
 	nodeCancel context.CancelFunc
@@ -68,6 +72,14 @@ type AggregatorNode struct {
 type RoundSyncMessage struct {
 	LeaderID string `json:"leaderID"`
 	RoundID  int64  `json:"roundID"`
+}
+
+type RoundReplyMessage struct {
+	RoundId int64 `json:"roundId"`
+}
+
+type TriggerAggregateMessage struct {
+	RoundID int64 `json:"roundID"`
 }
 
 type PriceDataMessage struct {
