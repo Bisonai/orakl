@@ -210,22 +210,22 @@ func (r *Raft) PublishMessage(msg Message) error {
 }
 
 func (r *Raft) sendHeartbeat() error {
-	_heartbeatMessage := HeartbeatMessage{
+	heartbeatMessage := HeartbeatMessage{
 		LeaderID: r.GetHostId(),
 		Term:     r.GetCurrentTerm(),
 	}
-	marshalledHeartbeatMsg, err := json.Marshal(_heartbeatMessage)
+	marshalledHeartbeatMsg, err := json.Marshal(heartbeatMessage)
 	if err != nil {
 		log.Error().Err(err).Msg("failed to marshal heartbeat message")
 		return err
 	}
 
-	heartbeatMessage := Message{
+	message := Message{
 		Type:     Heartbeat,
 		SentFrom: r.GetHostId(),
 		Data:     json.RawMessage(marshalledHeartbeatMsg),
 	}
-	err = r.PublishMessage(heartbeatMessage)
+	err = r.PublishMessage(message)
 	if err != nil {
 		log.Error().Err(err).Msg("failed to send heartbeat")
 		return err
