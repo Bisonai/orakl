@@ -9,6 +9,9 @@ tasks:
     dotenv: [".env"]
     cmds:
       - go run ./cmd/test_fetcher/main.go
+  boot-node:
+    cmds:
+      - go run ./cmd/boot/main.go
   test-db:
     dotenv: [".env"]
     cmds:
