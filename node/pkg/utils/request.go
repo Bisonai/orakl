@@ -101,6 +101,11 @@ func UrlRequestRaw(urlEndpoint string, method string, requestBody interface{}, h
 		client.Transport = &http.Transport{
 			Proxy: http.ProxyURL(proxyUrl),
 		}
+
+		if url.Scheme == "https" {
+			url.Scheme = "http"
+			req.URL = url
+		}
 	}
 
 	return client.Do(req)
