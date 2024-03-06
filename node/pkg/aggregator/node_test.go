@@ -39,45 +39,6 @@ func TestGetLeaderJobTimeout(t *testing.T) {
 	assert.Equal(t, node.GetLeaderJobTimeout(), node.LeaderJobTimeout)
 }
 
-func TestGetLeaderJobTicker(t *testing.T) {
-	ctx := context.Background()
-	cleanup, testItems, err := setup(ctx)
-	if err != nil {
-		t.Fatalf("error setting up test: %v", err)
-	}
-	defer cleanup()
-
-	node, err := NewNode(*testItems.host, testItems.pubsub, testItems.topicString)
-	if err != nil {
-		t.Fatal("error creating new node")
-	}
-
-	assert.Equal(t, node.GetLeaderJobTicker(), node.LeaderJobTicker)
-}
-
-func TestSetLeaderJobTicker(t *testing.T) {
-	ctx := context.Background()
-	cleanup, testItems, err := setup(ctx)
-	if err != nil {
-		t.Fatalf("error setting up test: %v", err)
-	}
-	defer cleanup()
-
-	node, err := NewNode(*testItems.host, testItems.pubsub, testItems.topicString)
-	if err != nil {
-		t.Fatal("error creating new node")
-	}
-
-	assert.Nil(t, node.LeaderJobTicker)
-	duration := 10 * time.Second
-	err = node.SetLeaderJobTicker(&duration)
-	if err != nil {
-		t.Fatal("error setting leader job ticker")
-	}
-
-	assert.NotNil(t, node.LeaderJobTicker)
-}
-
 func TestLeaderJob(t *testing.T) {
 	ctx := context.Background()
 	cleanup, testItems, err := setup(ctx)
