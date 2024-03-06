@@ -46,13 +46,19 @@ func main() {
 		bootnode := os.Getenv("BOOT_NODE")
 		if bootnode == "" {
 			log.Fatal().Msg("No bootnode specified")
+			return
 		}
 		listenPort, err := strconv.Atoi(os.Getenv("LISTEN_PORT"))
 		if err != nil {
 			log.Error().Err(err).Msg("Error parsing LISTEN_PORT")
+			return
 		}
 
 		host, ps, err := libp2p.Setup(ctx, bootnode, listenPort)
+		if err != nil {
+			log.Error().Err(err).Msg("Failed to setup libp2p")
+			return
+		}
 		a := aggregator.New(mb)
 		err = a.Run(ctx, *host, ps)
 		if err != nil {
