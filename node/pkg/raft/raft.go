@@ -162,7 +162,7 @@ func (r *Raft) handleRequestVote(msg Message) error {
 		return r.sendReplyVote(msg.SentFrom, false)
 	}
 
-	if r.GetRole() == Candidate && RequestVoteMessage.Term == currentTerm {
+	if r.GetRole() == Candidate && RequestVoteMessage.Term == currentTerm && msg.SentFrom != r.GetHostId() {
 		// Deny the vote and revert to follower
 		r.UpdateRole(Follower)
 		return r.sendReplyVote(msg.SentFrom, false)
@@ -173,7 +173,7 @@ func (r *Raft) handleRequestVote(msg Message) error {
 		voteGranted = true
 		r.UpdateVotedFor(msg.SentFrom)
 	}
-
+	log.Debug().Bool("vote granted", voteGranted).Msg("vote granted")
 	return r.sendReplyVote(msg.SentFrom, voteGranted)
 }
 
