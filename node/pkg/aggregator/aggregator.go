@@ -3,6 +3,8 @@ package aggregator
 import (
 	"context"
 	"errors"
+	"math/rand"
+	"time"
 
 	"bisonai.com/orakl/node/pkg/bus"
 	"bisonai.com/orakl/node/pkg/db"
@@ -28,17 +30,17 @@ func (a *App) Run(ctx context.Context, h host.Host, ps *pubsub.PubSub) error {
 
 	a.subscribe(ctx)
 
-	for _, aggregator := range a.Aggregators {
-		err = a.startAggregator(ctx, aggregator)
-		if err != nil {
-			log.Error().Err(err).Str("name", aggregator.Name).Msg("failed to start aggregator")
-		}
-	}
-
-	return nil
+	return a.startAllAggregators(ctx)
 }
 
 func (a *App) initialize(ctx context.Context, h host.Host, ps *pubsub.PubSub) error {
+	a.Host = h
+	a.Pubsub = ps
+
+	return a.setAggregators(ctx, h, ps)
+}
+
+func (a *App) setAggregators(ctx context.Context, h host.Host, ps *pubsub.PubSub) error {
 	aggregators, err := a.getAggregators(ctx)
 	if err != nil {
 		return err
@@ -69,7 +71,7 @@ func (a *App) startAggregator(ctx context.Context, aggregator *AggregatorNode) e
 	log.Debug().Str("name", aggregator.Name).Msg("starting aggregator")
 	if aggregator.isRunning {
 		log.Debug().Str("name", aggregator.Name).Msg("aggregator already running")
-		return errors.New("aggregator already running")
+		return nil
 	}
 
 	nodeCtx, cancel := context.WithCancel(ctx)
@@ -89,11 +91,24 @@ func (a *App) startAggregatorById(ctx context.Context, id int64) error {
 	return a.startAggregator(ctx, aggregator)
 }
 
+func (a *App) startAllAggregators(ctx context.Context) error {
+	for _, aggregator := range a.Aggregators {
+		err := a.startAggregator(ctx, aggregator)
+		if err != nil {
+			log.Error().Err(err).Str("name", aggregator.Name).Msg("failed to start aggregator")
+			return err
+		}
+		// starts with random sleep to avoid all aggregators starting at the same time
+		time.Sleep(time.Millisecond * time.Duration(rand.Intn(300)+100))
+	}
+	return nil
+}
+
 func (a *App) stopAggregator(ctx context.Context, aggregator *AggregatorNode) error {
 	log.Debug().Str("name", aggregator.Name).Msg("stopping aggregator")
 	if !aggregator.isRunning {
 		log.Debug().Str("name", aggregator.Name).Msg("aggregator already stopped")
-		return errors.New("aggregator already stopped")
+		return nil
 	}
 	if aggregator.nodeCancel == nil {
 		return errors.New("aggregator cancel function not found")
@@ -111,6 +126,17 @@ func (a *App) stopAggregatorById(ctx context.Context, id int64) error {
 	return a.stopAggregator(ctx, aggregator)
 }
 
+func (a *App) stopAllAggregators(ctx context.Context) error {
+	for _, aggregator := range a.Aggregators {
+		err := a.stopAggregator(ctx, aggregator)
+		if err != nil {
+			log.Error().Err(err).Str("name", aggregator.Name).Msg("failed to stop aggregator")
+			return err
+		}
+	}
+	return nil
+}
+
 func (a *App) subscribe(ctx context.Context) {
 	log.Debug().Msg("subscribing to aggregator topics")
 	channel := a.Bus.Subscribe(bus.AGGREGATOR)
@@ -123,8 +149,8 @@ func (a *App) subscribe(ctx context.Context) {
 					Str("from", msg.From).
 					Str("to", msg.To).
 					Str("command", msg.Content.Command).
-					Msg("fetcher received message")
-				a.handleMessage(ctx, msg)
+					Msg("aggregator received message")
+				go a.handleMessage(ctx, msg)
 			case <-ctx.Done():
 				log.Debug().Msg("stopping aggregator subscription goroutine")
 				return
@@ -188,15 +214,43 @@ func (a *App) handleMessage(ctx context.Context, msg bus.Message) {
 			log.Error().Err(err).Msg("failed to stop aggregator")
 		}
 	case bus.REFRESH_AGGREGATOR_APP:
-		// TODO: refresh aggregator
+		if msg.From != bus.ADMIN {
+			log.Debug().Msg("aggregator received message from non-admin")
+			return
+		}
 		log.Debug().Msg("refresh aggregator msg received")
+		err := a.stopAllAggregators(ctx)
+		if err != nil {
+			log.Error().Err(err).Msg("failed to stop all aggregators")
+		}
+		err = a.setAggregators(ctx, a.Host, a.Pubsub)
+		if err != nil {
+			log.Error().Err(err).Msg("failed to set aggregators")
+		}
+		err = a.startAllAggregators(ctx)
+		if err != nil {
+			log.Error().Err(err).Msg("failed to start all aggregators")
+		}
 	case bus.STOP_AGGREGATOR_APP:
-		// TODO: stop aggregator
+		if msg.From != bus.ADMIN {
+			log.Debug().Msg("aggregator received message from non-admin")
+			return
+		}
 		log.Debug().Msg("stop aggregator msg received")
+		err := a.stopAllAggregators(ctx)
+		if err != nil {
+			log.Error().Err(err).Msg("failed to stop all aggregators")
+		}
 	case bus.START_AGGREGATOR_APP:
-		// TODO: start aggregator
+		if msg.From != bus.ADMIN {
+			log.Debug().Msg("aggregator received message from non-admin")
+			return
+		}
 		log.Debug().Msg("start aggregator msg received")
-
+		err := a.startAllAggregators(ctx)
+		if err != nil {
+			log.Error().Err(err).Msg("failed to start all aggregators")
+		}
 	case bus.DEVIATION:
 		if msg.From != bus.FETCHER {
 			log.Debug().Msg("aggregator received deviation message from non-fetcher")

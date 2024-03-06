@@ -7,6 +7,8 @@ import (
 
 	"bisonai.com/orakl/node/pkg/bus"
 	"bisonai.com/orakl/node/pkg/raft"
+	pubsub "github.com/libp2p/go-libp2p-pubsub"
+	"github.com/libp2p/go-libp2p/core/host"
 )
 
 const (
@@ -39,6 +41,8 @@ type globalAggregate struct {
 type App struct {
 	Bus         *bus.MessageBus
 	Aggregators map[int64]*AggregatorNode
+	Host        host.Host
+	Pubsub      *pubsub.PubSub
 }
 
 type Aggregator struct {

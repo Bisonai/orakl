@@ -53,7 +53,7 @@ func (a *App) subscribe(ctx context.Context) {
 					Str("to", msg.To).
 					Str("command", msg.Content.Command).
 					Msg("fetcher received message")
-				a.handleMessage(ctx, msg)
+				go a.handleMessage(ctx, msg)
 			case <-ctx.Done():
 				log.Debug().Msg("fetcher message bus subscription goroutine stopped")
 				return
@@ -135,7 +135,7 @@ func (a *App) handleMessage(ctx context.Context, msg bus.Message) {
 func (a *App) startFetcher(ctx context.Context, fetcher *Fetcher) error {
 	if fetcher.isRunning {
 		log.Debug().Str("fetcher", fetcher.Name).Msg("fetcher already running")
-		return errors.New("fetcher already running")
+		return nil
 	}
 	fetcherCtx, cancel := context.WithCancel(ctx)
 	fetcher.fetcherCtx = fetcherCtx
@@ -188,7 +188,8 @@ func (a *App) startAllFetchers(ctx context.Context) error {
 func (a *App) stopFetcher(ctx context.Context, fetcher *Fetcher) error {
 	log.Debug().Str("adapter", fetcher.Name).Msg("stopping adapter")
 	if !fetcher.isRunning {
-		return errors.New("fetcher already stopped")
+		log.Debug().Str("adapter", fetcher.Name).Msg("fetcher already stopped")
+		return nil
 	}
 	if fetcher.cancel == nil {
 		return errors.New("fetcher cancel function not found")
