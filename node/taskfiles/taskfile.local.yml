@@ -24,6 +24,10 @@ tasks:
     dotenv: [".env"]
     cmds:
       - go test ./pkg/fetcher -v
+  test-aggregator:
+    dotenv: [".env"]
+    cmds:
+      - go test ./pkg/aggregator -v
   test-utils:
     cmds:
       - go test ./pkg/utils/tests -v
@@ -41,3 +45,4 @@ tasks:
       - task: test-libp2p
       - task: test-fetcher
       - task: test-utils
+      - task: test-aggregator

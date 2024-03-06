@@ -349,7 +349,6 @@ func TestFetcherFetchProxy(t *testing.T) {
 	app := testItems.fetcher
 
 	proxyServer := goproxy.NewProxyHttpServer()
-	proxyServer.Verbose = true
 	srv := &http.Server{
 		Addr:    ":8088",
 		Handler: proxyServer,

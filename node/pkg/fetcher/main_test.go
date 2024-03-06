@@ -14,6 +14,7 @@ import (
 	"bisonai.com/orakl/node/pkg/bus"
 	"bisonai.com/orakl/node/pkg/db"
 	"github.com/gofiber/fiber/v2"
+	"github.com/rs/zerolog"
 )
 
 var sampleData = []string{`{
@@ -407,6 +408,7 @@ func cleanup(app *fiber.App, ctx context.Context, insertResult []adapter.Adapter
 }
 
 func TestMain(m *testing.M) {
+	zerolog.SetGlobalLevel(zerolog.InfoLevel)
 	// setup
 	code := m.Run()
 

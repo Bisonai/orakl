@@ -90,3 +90,4 @@ jobs:
           DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/orakl-test?search_path=public"
           REDIS_HOST: "localhost"
           REDIS_PORT: "6379"
+          ENCRYPT_PASSWORD: "anything"
