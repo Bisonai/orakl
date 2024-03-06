@@ -37,15 +37,20 @@ func TestInitDHT(t *testing.T) {
 }
 
 func TestDiscoverPeers(t *testing.T) {
+	ctx := context.Background()
 	zerolog.SetGlobalLevel(zerolog.InfoLevel)
+	b, _ := SetBootNode(10003)
 	h1, _ := MakeHost(10001)
 	h2, _ := MakeHost(10002)
 
 	defer h1.Close()
 	defer h2.Close()
 
-	go DiscoverPeers(context.Background(), h1, "test-discover-peers", h2.Addrs()[0].String())
-	err := DiscoverPeers(context.Background(), h2, "test-discover-peers", h1.Addrs()[0].String())
+	h1.Connect(ctx, (*b).Peerstore().PeerInfo((*b).ID()))
+	h2.Connect(ctx, (*b).Peerstore().PeerInfo((*b).ID()))
+
+	go DiscoverPeers(context.Background(), h1, "test-discover-peers", (*b).Addrs()[0].String())
+	err := DiscoverPeers(context.Background(), h2, "test-discover-peers", (*b).Addrs()[0].String())
 
 	if err != nil {
 		t.Errorf("Failed to discover peers: %v", err)

@@ -4,7 +4,6 @@ import (
 	"context"
 	"crypto/rand"
 	"errors"
-	"flag"
 	"fmt"
 	"os"
 	"strconv"
@@ -56,49 +55,31 @@ func SetBootNode(listenPort int) (*host.Host, error) {
 	return &h, nil
 }
 
-func Setup(ctx context.Context) (*host.Host, *pubsub.PubSub, error) {
-	flagBootnode := flag.String("b", "", "bootnode address")
-	flagPort := flag.Int("p", 0, "libp2p port")
-	flag.Parse()
-
-	port, err := getListenPort(*flagPort)
-	if err != nil {
-		log.Fatal().Err(err).Msg("Failed to get listen port")
-		return nil, nil, err
-	}
+func Setup(ctx context.Context, bootnodeStr string, port int) (*host.Host, *pubsub.PubSub, error) {
 	host, err := MakeHost(port)
 	if err != nil {
-		log.Fatal().Err(err).Msg("Failed to create libp2p host")
 		return nil, nil, err
 	}
 	ps, err := MakePubsub(ctx, host)
 	if err != nil {
-		log.Fatal().Err(err).Msg("Failed to create pubsub")
 		return nil, nil, err
 	}
 
-	bootnodeStr, _ := getBootNode(*flagBootnode)
-
 	if bootnodeStr != "" {
-		log.Debug().Str("bootnode", bootnodeStr).Msg("connecting to bootnode")
 		bootnode, bootErr := multiaddr.NewMultiaddr(bootnodeStr)
 		if bootErr != nil {
-			log.Fatal().Err(bootErr).Msg("Failed to create multiaddr")
 			return nil, nil, bootErr
 		}
 
 		peerinfo, bootErr := peer.AddrInfoFromP2pAddr(bootnode)
 		if bootErr != nil {
-			log.Fatal().Err(bootErr).Msg("Failed to create peerinfo")
 			return nil, nil, bootErr
 		}
 
 		bootErr = host.Connect(ctx, *peerinfo)
 		if bootErr != nil {
-			log.Fatal().Err(bootErr).Msg("Failed to connect to bootnode")
 			return nil, nil, bootErr
 		}
-		log.Debug().Str("bootnode", bootnodeStr).Msg("connected to bootnode")
 	}
 
 	go func() {
@@ -110,7 +91,7 @@ func Setup(ctx context.Context) (*host.Host, *pubsub.PubSub, error) {
 	return &host, ps, nil
 }
 
-func getBootNode(flagNode string) (string, error) {
+func GetBootNode(flagNode string) (string, error) {
 	var err error
 	bootnode := ""
 
@@ -129,7 +110,7 @@ func getBootNode(flagNode string) (string, error) {
 	return bootnode, err
 }
 
-func getListenPort(flagPort int) (int, error) {
+func GetListenPort(flagPort int) (int, error) {
 	var err error
 	listenPort := 0
 
