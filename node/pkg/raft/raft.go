@@ -117,8 +117,12 @@ func (r *Raft) handleHeartbeat(node Node, msg Message) error {
 	currentTerm := r.GetCurrentTerm()
 	currentLeader := r.GetLeader()
 
-	if currentTerm > heartbeatMessage.Term {
+	if currentTerm > heartbeatMessage.Term && currentRole != Leader {
 		r.startElectionTimer()
+		return nil
+	}
+
+	if currentTerm > heartbeatMessage.Term && currentRole == Leader {
 		return nil
 	}
 
@@ -140,7 +144,6 @@ func (r *Raft) handleHeartbeat(node Node, msg Message) error {
 }
 
 func (r *Raft) handleRequestVote(msg Message) error {
-	log.Debug().Msg("received request vote message")
 	if r.GetRole() == Leader {
 		return nil
 	}
@@ -173,12 +176,11 @@ func (r *Raft) handleRequestVote(msg Message) error {
 		voteGranted = true
 		r.UpdateVotedFor(msg.SentFrom)
 	}
-	log.Debug().Bool("vote granted", voteGranted).Msg("vote granted")
+	log.Debug().Bool("vote granted", voteGranted).Msg("voted")
 	return r.sendReplyVote(msg.SentFrom, voteGranted)
 }
 
 func (r *Raft) handleReplyVote(ctx context.Context, node Node, msg Message) error {
-	log.Debug().Msg("received reply vote message")
 	if r.GetRole() != Candidate {
 		return nil
 	}
@@ -189,7 +191,11 @@ func (r *Raft) handleReplyVote(ctx context.Context, node Node, msg Message) erro
 		return err
 	}
 
-	if replyVoteMessage.VoteGranted && replyVoteMessage.LeaderID == r.GetHostId() {
+	if replyVoteMessage.LeaderID != r.GetHostId() {
+		return nil
+	}
+
+	if replyVoteMessage.VoteGranted && replyVoteMessage.LeaderID == r.GetHostId() && r.GetRole() == Candidate {
 		r.IncreaseVote()
 		log.Debug().Int("vote received", r.GetVoteReceived()).Msg("vote received")
 		log.Debug().Int("subscribers count", r.SubscribersCount()).Msg("subscribers count")
@@ -285,13 +291,6 @@ func (r *Raft) StopHeartbeatTicker(node Node) {
 		r.HeartbeatTicker = nil
 	}
 
-	if node.GetLeaderJobTicker() != nil {
-		node.GetLeaderJobTicker().Stop()
-		err := node.SetLeaderJobTicker(nil)
-		if err != nil {
-			log.Error().Err(err).Msg("failed to stop leader job ticker")
-		}
-	}
 	if r.Resign != nil {
 		close(r.Resign)
 		r.Resign = nil
@@ -306,14 +305,7 @@ func (r *Raft) becomeLeader(ctx context.Context, node Node) {
 	r.UpdateRole(Leader)
 	r.HeartbeatTicker = time.NewTicker(r.HeartbeatTimeout)
 
-	var leaderJobTicker <-chan time.Time
-	if node.GetLeaderJobTimeout() != nil {
-		err := node.SetLeaderJobTicker(node.GetLeaderJobTimeout())
-		if err != nil {
-			log.Error().Err(err).Msg("failed to set leader job ticker")
-		}
-		leaderJobTicker = node.GetLeaderJobTicker().C
-	}
+	leaderJobTimer := time.NewTimer(*node.GetLeaderJobTimeout())
 
 	go func() {
 		for {
@@ -323,16 +315,20 @@ func (r *Raft) becomeLeader(ctx context.Context, node Node) {
 				if err != nil {
 					log.Error().Err(err).Msg("failed to send heartbeat")
 				}
-			case <-leaderJobTicker:
+			case <-leaderJobTimer.C:
 				err := node.LeaderJob()
 				if err != nil {
 					log.Error().Err(err).Msg("failed to execute leader job")
 				}
+				leaderJobTimer.Reset(*node.GetLeaderJobTimeout())
+
 			case <-r.Resign:
 				log.Debug().Msg("resigning as leader")
+				leaderJobTimer.Stop()
 				return
 			case <-ctx.Done():
 				log.Debug().Msg("context cancelled")
+				leaderJobTimer.Stop()
 				return
 			}
 		}

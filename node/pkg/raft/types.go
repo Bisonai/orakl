@@ -70,7 +70,6 @@ type Node interface {
 
 	// define job run by leader
 	GetLeaderJobTimeout() *time.Duration
-	GetLeaderJobTicker() *time.Ticker
-	SetLeaderJobTicker(*time.Duration) error
+
 	LeaderJob() error
 }
