@@ -230,7 +230,6 @@ func TestStartAppByAdmin(t *testing.T) {
 		t.Fatalf("error starting app: %v", err)
 	}
 
-	time.Sleep(100 * time.Millisecond)
 	assert.Equal(t, true, testItems.app.Aggregators[testItems.tmpData.aggregator.ID].isRunning)
 }
 
@@ -253,7 +252,6 @@ func TestStopAppByAdmin(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error starting app: %v", err)
 	}
-	time.Sleep(100 * time.Millisecond)
 	assert.Equal(t, true, testItems.app.Aggregators[testItems.tmpData.aggregator.ID].isRunning)
 
 	_, err = tests.RawPostRequest(testItems.admin, "/api/v1/aggregator/stop", nil)
@@ -261,7 +259,6 @@ func TestStopAppByAdmin(t *testing.T) {
 		t.Fatalf("error stopping app: %v", err)
 	}
 
-	time.Sleep(150 * time.Millisecond)
 	assert.Equal(t, false, testItems.app.Aggregators[testItems.tmpData.aggregator.ID].isRunning)
 }
 
@@ -287,8 +284,6 @@ func TestRefreshAppByAdmin(t *testing.T) {
 		t.Fatalf("error starting app: %v", err)
 	}
 
-	time.Sleep(100 * time.Millisecond)
-
 	tmpAggregator, err := tests.PostRequest[Aggregator](testItems.admin, "/api/v1/aggregator", map[string]any{"name": "test_aggregator_2"})
 	if err != nil {
 		t.Fatalf("error creating new aggregator: %v", err)
@@ -298,7 +293,6 @@ func TestRefreshAppByAdmin(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error refreshing app: %v", err)
 	}
-	time.Sleep(150 * time.Millisecond)
 
 	assert.Greater(t, len(testItems.app.Aggregators), lengthBefore)
 

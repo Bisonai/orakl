@@ -25,6 +25,8 @@ func start(c *fiber.Ctx) error {
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).SendString("failed to start aggregator: " + err.Error())
 	}
+	// delay for message to be processed
+	time.Sleep(10 * time.Millisecond)
 	return c.SendString("aggregator started")
 }
 
@@ -33,6 +35,8 @@ func stop(c *fiber.Ctx) error {
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).SendString("failed to stop aggregator: " + err.Error())
 	}
+	// delay for message to be processed
+	time.Sleep(10 * time.Millisecond)
 	return c.SendString("aggregator stopped")
 }
 
@@ -41,6 +45,8 @@ func refresh(c *fiber.Ctx) error {
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).SendString("failed to refresh aggregator: " + err.Error())
 	}
+	// delay for message to be processed TODO: update message bus communication with a better solution
+	time.Sleep(100 * time.Millisecond)
 	return c.SendString("aggregator refreshed")
 }
 
