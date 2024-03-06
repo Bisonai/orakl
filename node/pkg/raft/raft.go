@@ -105,6 +105,7 @@ func (r *Raft) handleHeartbeat(node Node, msg Message) error {
 	var heartbeatMessage HeartbeatMessage
 	err := json.Unmarshal(msg.Data, &heartbeatMessage)
 	if err != nil {
+		log.Error().Err(err).Msg("failed to unmarshal heartbeat message")
 		return err
 	}
 
@@ -112,29 +113,29 @@ func (r *Raft) handleHeartbeat(node Node, msg Message) error {
 		return fmt.Errorf("leader id mismatch")
 	}
 
-	r.StopHeartbeatTicker(node)
-	r.startElectionTimer()
-
 	currentRole := r.GetRole()
 	currentTerm := r.GetCurrentTerm()
 	currentLeader := r.GetLeader()
 
-	// If the current role is Candidate or the current role is Leader and the current term is less than the heartbeat term, update the role to Follower
-	shouldUpdateRoleToFollower := (currentRole == Candidate) || (currentRole == Leader && currentTerm < heartbeatMessage.Term)
-	if shouldUpdateRoleToFollower {
+	if currentTerm > heartbeatMessage.Term {
+		r.startElectionTimer()
+		return nil
+	}
+
+	if currentRole == Leader {
+		r.StopHeartbeatTicker(node)
+		r.UpdateRole(Follower)
+	} else if currentRole == Candidate {
 		r.UpdateRole(Follower)
 	}
 
-	// If the heartbeat term is greater than the current term, update the term
-	if heartbeatMessage.Term > currentTerm {
-		r.UpdateTerm(heartbeatMessage.Term)
-	}
+	r.startElectionTimer()
+	r.UpdateTerm(heartbeatMessage.Term)
 
-	// If the current leader is not the leader in the heartbeat message and the current term is less than the heartbeat term, update the leader
-	shouldUpdateLeader := (currentLeader != heartbeatMessage.LeaderID) && (currentTerm < heartbeatMessage.Term)
-	if shouldUpdateLeader {
+	if currentLeader != heartbeatMessage.LeaderID {
 		r.UpdateLeader(heartbeatMessage.LeaderID)
 	}
+
 	return nil
 }
 
@@ -151,20 +152,20 @@ func (r *Raft) handleRequestVote(msg Message) error {
 		return err
 	}
 
-	if RequestVoteMessage.Term > r.GetCurrentTerm() {
+	currentTerm := r.GetCurrentTerm()
+
+	if RequestVoteMessage.Term > currentTerm {
 		r.UpdateTerm(RequestVoteMessage.Term)
 	}
 
-	if RequestVoteMessage.Term < r.GetCurrentTerm() {
-		err := r.sendReplyVote(msg.SentFrom, false)
-		if err != nil {
-			log.Error().Err(err).Msg("failed to send reply vote")
-		}
-		return nil
+	if RequestVoteMessage.Term < currentTerm {
+		return r.sendReplyVote(msg.SentFrom, false)
 	}
 
-	if r.GetRole() == Candidate {
-		r.startElectionTimer()
+	if r.GetRole() == Candidate && RequestVoteMessage.Term == currentTerm {
+		// Deny the vote and revert to follower
+		r.UpdateRole(Follower)
+		return r.sendReplyVote(msg.SentFrom, false)
 	}
 
 	voteGranted := false
@@ -357,6 +358,7 @@ func (r *Raft) startElection() {
 	log.Debug().Msg("start election")
 
 	r.UpdateRole(Candidate)
+	r.UpdateVotedFor(r.GetHostId())
 
 	r.startElectionTimer()
 
