@@ -68,7 +68,6 @@ func Setup(options ...string) (AppConfig, error) {
 	app.Use(func(c *fiber.Ctx) error {
 		c.Locals("feePayer", feePayer)
 		c.Locals("pgxConn", pgxPool)
-		c.Locals("providerUrl", os.Getenv("PROVIDER_URL"))
 		return c.Next()
 	})
 
@@ -156,15 +155,6 @@ func GetPgx(c *fiber.Ctx) (*pgxpool.Pool, error) {
 		return con, errors.New("failed to get pgxConn")
 	} else {
 		return con, nil
-	}
-}
-
-func GetProviderUrl(c *fiber.Ctx) (string, error) {
-	providerUrl, ok := c.Locals("providerUrl").(string)
-	if !ok {
-		return providerUrl, errors.New("failed to get providerUrl")
-	} else {
-		return providerUrl, nil
 	}
 }
 
