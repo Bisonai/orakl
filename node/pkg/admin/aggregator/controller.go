@@ -1,8 +1,6 @@
 package aggregator
 
 import (
-	"time"
-
 	"bisonai.com/orakl/node/pkg/admin/utils"
 	"bisonai.com/orakl/node/pkg/bus"
 	"bisonai.com/orakl/node/pkg/db"
@@ -113,12 +111,16 @@ func activate(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusInternalServerError).SendString("failed to execute aggregator activate query: " + err.Error())
 	}
 
-	err = utils.SendMessage(c, bus.AGGREGATOR, bus.ACTIVATE_AGGREGATOR, map[string]any{"id": id})
+	msg, err := utils.SendMessage(c, bus.AGGREGATOR, bus.ACTIVATE_AGGREGATOR, map[string]any{"id": id})
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).SendString("failed to send message to aggregator: " + err.Error())
 	}
 
-	time.Sleep(10 * time.Millisecond)
+	resp := <-msg.Response
+	if !resp.Success {
+		return c.Status(fiber.StatusInternalServerError).SendString("failed to activate aggregator: " + resp.Args["error"].(string))
+	}
+
 	return c.JSON(result)
 }
 
@@ -129,11 +131,15 @@ func deactivate(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusInternalServerError).SendString("failed to execute aggregator deactivate query: " + err.Error())
 	}
 
-	err = utils.SendMessage(c, bus.AGGREGATOR, bus.DEACTIVATE_AGGREGATOR, map[string]any{"id": id})
+	msg, err := utils.SendMessage(c, bus.AGGREGATOR, bus.DEACTIVATE_AGGREGATOR, map[string]any{"id": id})
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).SendString("failed to send message to aggregator: " + err.Error())
 	}
 
-	time.Sleep(10 * time.Millisecond)
+	resp := <-msg.Response
+	if !resp.Success {
+		return c.Status(fiber.StatusInternalServerError).SendString("failed to deactivate aggregator: " + resp.Args["error"].(string))
+	}
+
 	return c.JSON(result)
 }

@@ -1,7 +1,7 @@
 package fetcher
 
 import (
-	"time"
+	"strconv"
 
 	"bisonai.com/orakl/node/pkg/admin/utils"
 	"bisonai.com/orakl/node/pkg/bus"
@@ -9,31 +9,39 @@ import (
 )
 
 func start(c *fiber.Ctx) error {
-	err := utils.SendMessage(c, bus.FETCHER, bus.START_FETCHER_APP, nil)
+	msg, err := utils.SendMessage(c, bus.FETCHER, bus.START_FETCHER_APP, nil)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).SendString("failed to start fetcher: " + err.Error())
 	}
-	// delay for message to be processed
-	time.Sleep(10 * time.Millisecond)
-	return c.SendString("fetcher started")
+	resp := <-msg.Response
+	if !resp.Success {
+		return c.Status(fiber.StatusInternalServerError).SendString("failed to start fetcher: " + resp.Args["error"].(string))
+	}
+	return c.SendString("fetcher started: " + strconv.FormatBool(resp.Success))
 }
 
 func stop(c *fiber.Ctx) error {
-	err := utils.SendMessage(c, bus.FETCHER, bus.STOP_FETCHER_APP, nil)
+	msg, err := utils.SendMessage(c, bus.FETCHER, bus.STOP_FETCHER_APP, nil)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).SendString("failed to stop fetcher: " + err.Error())
 	}
-	// delay for message to be processed
-	time.Sleep(10 * time.Millisecond)
-	return c.SendString("fetcher stopped")
+	resp := <-msg.Response
+
+	if !resp.Success {
+		return c.Status(fiber.StatusInternalServerError).SendString("failed to stop fetcher: " + resp.Args["error"].(string))
+	}
+	return c.SendString("fetcher stopped: " + strconv.FormatBool(resp.Success))
 }
 
 func refresh(c *fiber.Ctx) error {
-	err := utils.SendMessage(c, bus.FETCHER, bus.REFRESH_FETCHER_APP, nil)
+	msg, err := utils.SendMessage(c, bus.FETCHER, bus.REFRESH_FETCHER_APP, nil)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).SendString("failed to refresh fetcher: " + err.Error())
 	}
-	// delay for message to be processed
-	time.Sleep(10 * time.Millisecond)
-	return c.SendString("fetcher refreshed")
+	resp := <-msg.Response
+
+	if !resp.Success {
+		return c.Status(fiber.StatusInternalServerError).SendString("failed to refresh fetcher: " + resp.Args["error"].(string))
+	}
+	return c.SendString("fetcher refreshed: " + strconv.FormatBool(resp.Success))
 }

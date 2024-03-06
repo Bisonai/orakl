@@ -2,6 +2,7 @@ package bus
 
 import (
 	"testing"
+	"time"
 )
 
 func TestSubscribeAndPublish(t *testing.T) {
@@ -62,5 +63,53 @@ func TestParseStringMsgParam(t *testing.T) {
 	}
 	if val != "testArg" {
 		t.Errorf("Parsed value did not match expected. Got %v", val)
+	}
+}
+
+func TestMessageResponse(t *testing.T) {
+	// Create a new message bus
+	mb := New(10)
+
+	// Subscribe to a channel
+	ch := mb.Subscribe("test")
+
+	// Create a message with a response channel
+	msg := Message{
+		From:     "sender",
+		To:       "test",
+		Content:  MessageContent{Command: "do something", Args: nil},
+		Response: make(chan MessageResponse),
+	}
+
+	// Send the message
+	err := mb.Publish(msg)
+	if err != nil {
+		t.Fatalf("Failed to publish message: %v", err)
+	}
+
+	// In a separate goroutine, receive the message, process it, and send a response
+	go func() {
+		select {
+		case receivedMsg := <-ch:
+			// Check the received message
+			if receivedMsg.From != "sender" || receivedMsg.To != "test" || receivedMsg.Content.Command != "do something" {
+				t.Errorf("Received message did not match expected. Got %v", receivedMsg)
+			}
+
+			// Send a response
+			receivedMsg.Response <- MessageResponse{Success: true, Args: nil}
+		case <-time.After(5 * time.Second):
+			t.Errorf("No message received on channel")
+		}
+	}()
+
+	// Receive the response and check it
+	select {
+	case response := <-msg.Response:
+		if !response.Success {
+			t.Errorf("Received response did not indicate success. Got %v", response)
+		}
+	case <-time.After(5 * time.Second):
+		t.Errorf("No response received on response channel")
 	}
 }

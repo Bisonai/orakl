@@ -15,7 +15,6 @@ import (
 	"github.com/gofiber/fiber/v2"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 	"github.com/libp2p/go-libp2p/core/host"
-	"github.com/rs/zerolog"
 )
 
 const (
@@ -156,7 +155,7 @@ func aggregatorCleanup(ctx context.Context, admin *fiber.App, testItems *TestIte
 }
 
 func TestMain(m *testing.M) {
-	zerolog.SetGlobalLevel(zerolog.InfoLevel)
+	// zerolog.SetGlobalLevel(zerolog.InfoLevel)
 	code := m.Run()
 	db.ClosePool()
 	db.CloseRedis()
