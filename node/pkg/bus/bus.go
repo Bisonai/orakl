@@ -8,13 +8,19 @@ import (
 // message bus will be passed as parameter to modules that need to communicate with each other
 
 type Message struct {
-	From    string
-	To      string
-	Content MessageContent
+	From     string
+	To       string
+	Content  MessageContent
+	Response chan MessageResponse
 }
 
 type MessageContent struct {
 	Command string
+	Args    map[string]any
+}
+
+type MessageResponse struct {
+	Success bool
 	Args    map[string]any
 }
 

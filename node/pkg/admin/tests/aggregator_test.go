@@ -5,6 +5,7 @@ import (
 	"context"
 	"strconv"
 	"testing"
+	"time"
 
 	"bisonai.com/orakl/node/pkg/admin/aggregator"
 	"bisonai.com/orakl/node/pkg/bus"
@@ -22,21 +23,24 @@ func TestAggregatorStart(t *testing.T) {
 
 	channel := testItems.mb.Subscribe(bus.AGGREGATOR)
 
+	go func() {
+		select {
+		case msg := <-channel:
+			if msg.From != bus.ADMIN || msg.To != bus.AGGREGATOR || msg.Content.Command != bus.START_AGGREGATOR_APP {
+				t.Errorf("unexpected message: %v", msg)
+			}
+			msg.Response <- bus.MessageResponse{Success: true}
+		case <-time.After(5 * time.Second):
+			t.Errorf("no message received on channel")
+		}
+	}()
+
 	result, err := RawPostRequest(testItems.app, "/api/v1/aggregator/start", nil)
 	if err != nil {
 		t.Fatalf("error starting aggregator: %v", err)
 	}
 
 	assert.Equal(t, string(result), "aggregator started")
-
-	select {
-	case msg := <-channel:
-		if msg.From != bus.ADMIN || msg.To != bus.AGGREGATOR || msg.Content.Command != bus.START_AGGREGATOR_APP {
-			t.Fatalf("unexpected message: %v", msg)
-		}
-	default:
-		t.Fatalf("no message received on channel")
-	}
 }
 
 func TestAggregatorStop(t *testing.T) {
@@ -49,6 +53,18 @@ func TestAggregatorStop(t *testing.T) {
 
 	channel := testItems.mb.Subscribe(bus.AGGREGATOR)
 
+	go func() {
+		select {
+		case msg := <-channel:
+			if msg.From != bus.ADMIN || msg.To != bus.AGGREGATOR || msg.Content.Command != bus.STOP_AGGREGATOR_APP {
+				t.Errorf("unexpected message: %v", msg)
+			}
+			msg.Response <- bus.MessageResponse{Success: true}
+		case <-time.After(5 * time.Second):
+			t.Errorf("no message received on channel")
+		}
+	}()
+
 	result, err := RawPostRequest(testItems.app, "/api/v1/aggregator/stop", nil)
 	if err != nil {
 		t.Fatalf("error stopping aggregator: %v", err)
@@ -56,14 +72,6 @@ func TestAggregatorStop(t *testing.T) {
 
 	assert.Equal(t, string(result), "aggregator stopped")
 
-	select {
-	case msg := <-channel:
-		if msg.From != bus.ADMIN || msg.To != bus.AGGREGATOR || msg.Content.Command != bus.STOP_AGGREGATOR_APP {
-			t.Fatalf("unexpected message: %v", msg)
-		}
-	default:
-		t.Fatalf("no message received on channel")
-	}
 }
 
 func TestAggregatorRefresh(t *testing.T) {
@@ -76,6 +84,18 @@ func TestAggregatorRefresh(t *testing.T) {
 
 	channel := testItems.mb.Subscribe(bus.AGGREGATOR)
 
+	go func() {
+		select {
+		case msg := <-channel:
+			if msg.From != bus.ADMIN || msg.To != bus.AGGREGATOR || msg.Content.Command != bus.REFRESH_AGGREGATOR_APP {
+				t.Errorf("unexpected message: %v", msg)
+			}
+			msg.Response <- bus.MessageResponse{Success: true}
+		case <-time.After(5 * time.Second):
+			t.Errorf("no message received on channel")
+		}
+	}()
+
 	result, err := RawPostRequest(testItems.app, "/api/v1/aggregator/refresh", nil)
 	if err != nil {
 		t.Fatalf("error refreshing aggregator: %v", err)
@@ -83,14 +103,6 @@ func TestAggregatorRefresh(t *testing.T) {
 
 	assert.Equal(t, string(result), "aggregator refreshed")
 
-	select {
-	case msg := <-channel:
-		if msg.From != bus.ADMIN || msg.To != bus.AGGREGATOR || msg.Content.Command != bus.REFRESH_AGGREGATOR_APP {
-			t.Fatalf("unexpected message: %v", msg)
-		}
-	default:
-		t.Fatalf("no message received on channel")
-	}
 }
 
 func TestAggregatorInsert(t *testing.T) {
@@ -210,11 +222,17 @@ func TestAggregatorActivate(t *testing.T) {
 
 	channel := testItems.mb.Subscribe(bus.AGGREGATOR)
 
-	_, err = PostRequest[aggregator.AggregatorModel](testItems.app, "/api/v1/aggregator/deactivate/"+strconv.FormatInt(*testItems.tmpData.aggregator.Id, 10), nil)
-	if err != nil {
-		t.Fatalf("error deactivating aggregator: %v", err)
-	}
-	<-channel
+	go func() {
+		select {
+		case msg := <-channel:
+			if msg.From != bus.ADMIN || msg.To != bus.AGGREGATOR || msg.Content.Command != bus.ACTIVATE_AGGREGATOR {
+				t.Errorf("expected to receive activate message from admin to aggregator")
+			}
+			msg.Response <- bus.MessageResponse{Success: true}
+		case <-time.After(5 * time.Second):
+			t.Errorf("No message received on channel")
+		}
+	}()
 
 	activateResult, err := PostRequest[aggregator.AggregatorModel](testItems.app, "/api/v1/aggregator/activate/"+strconv.FormatInt(*testItems.tmpData.aggregator.Id, 10), nil)
 	if err != nil {
@@ -222,14 +240,6 @@ func TestAggregatorActivate(t *testing.T) {
 	}
 	assert.True(t, activateResult.Active)
 
-	select {
-	case msg := <-channel:
-		if msg.From != bus.ADMIN || msg.To != bus.AGGREGATOR || msg.Content.Command != bus.ACTIVATE_AGGREGATOR {
-			t.Fatalf("expected to receive activate message from admin to aggregator")
-		}
-	default:
-		t.Errorf("No message received on channel")
-	}
 }
 
 func TestAggregatorDeactivate(t *testing.T) {
@@ -242,20 +252,24 @@ func TestAggregatorDeactivate(t *testing.T) {
 
 	channel := testItems.mb.Subscribe(bus.AGGREGATOR)
 
+	go func() {
+		select {
+		case msg := <-channel:
+			if msg.From != bus.ADMIN || msg.To != bus.AGGREGATOR || msg.Content.Command != bus.DEACTIVATE_AGGREGATOR {
+				t.Errorf("expected to receive deactivate message from admin to aggregator")
+			}
+			msg.Response <- bus.MessageResponse{Success: true}
+		case <-time.After(5 * time.Second):
+			t.Errorf("No message received on channel")
+		}
+	}()
+
 	deactivateResult, err := PostRequest[aggregator.AggregatorModel](testItems.app, "/api/v1/aggregator/deactivate/"+strconv.FormatInt(*testItems.tmpData.aggregator.Id, 10), nil)
 	if err != nil {
 		t.Fatalf("error deactivating aggregator: %v", err)
 	}
 	assert.False(t, deactivateResult.Active)
 
-	select {
-	case msg := <-channel:
-		if msg.From != bus.ADMIN || msg.To != bus.AGGREGATOR || msg.Content.Command != bus.DEACTIVATE_AGGREGATOR {
-			t.Fatalf("expected to receive deactivate message from admin to aggregator")
-		}
-	default:
-		t.Errorf("No message received on channel")
-	}
 }
 
 func TestAggregatorSyncWithAdapter(t *testing.T) {

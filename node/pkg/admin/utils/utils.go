@@ -112,18 +112,22 @@ func CustomStackTraceHandler(_ *fiber.Ctx, e interface{}) {
 	_, _ = os.Stderr.WriteString(fmt.Sprintf("%s\n", debug.Stack())) //nolint:errcheck // This will never fail
 }
 
-func SendMessage(c *fiber.Ctx, to string, command string, args map[string]interface{}) error {
+func SendMessage(c *fiber.Ctx, to string, command string, args map[string]interface{}) (bus.Message, error) {
+	var msg bus.Message
+
 	messageBus, ok := c.Locals("bus").(*bus.MessageBus)
 	if !ok {
-		return errors.New("bus is not found, failed to message fetcher")
+		return msg, errors.New("bus is not found, failed to message fetcher")
 	}
-	msg := bus.Message{
+
+	msg = bus.Message{
 		From: bus.ADMIN,
 		To:   to,
 		Content: bus.MessageContent{
 			Command: command,
 			Args:    args,
 		},
+		Response: make(chan bus.MessageResponse),
 	}
-	return messageBus.Publish(msg)
+	return msg, messageBus.Publish(msg)
 }

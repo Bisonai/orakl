@@ -79,7 +79,7 @@ func (a *App) startAggregator(ctx context.Context, aggregator *AggregatorNode) e
 	aggregator.nodeCancel = cancel
 	aggregator.isRunning = true
 
-	aggregator.Run(ctx)
+	go aggregator.Run(ctx)
 	return nil
 }
 
@@ -149,7 +149,7 @@ func (a *App) subscribe(ctx context.Context) {
 					Str("from", msg.From).
 					Str("to", msg.To).
 					Str("command", msg.Content.Command).
-					Msg("aggregator received message")
+					Msg("fetcher received message")
 				go a.handleMessage(ctx, msg)
 			case <-ctx.Done():
 				log.Debug().Msg("stopping aggregator subscription goroutine")
@@ -182,12 +182,14 @@ func (a *App) handleMessage(ctx context.Context, msg bus.Message) {
 	case bus.ACTIVATE_AGGREGATOR:
 		if msg.From != bus.ADMIN {
 			log.Debug().Msg("aggregator received message from non-admin")
+			msg.Response <- bus.MessageResponse{Success: false, Args: map[string]any{"error": "non-admin"}}
 			return
 		}
 		log.Debug().Msg("activate aggregator msg received")
 		aggregatorId, err := bus.ParseInt64MsgParam(msg, "id")
 		if err != nil {
 			log.Error().Err(err).Msg("failed to parse aggregatorId")
+			msg.Response <- bus.MessageResponse{Success: false, Args: map[string]any{"error": err.Error()}}
 			return
 		}
 
@@ -195,16 +197,22 @@ func (a *App) handleMessage(ctx context.Context, msg bus.Message) {
 		err = a.startAggregatorById(ctx, aggregatorId)
 		if err != nil {
 			log.Error().Err(err).Msg("failed to start aggregator")
+			msg.Response <- bus.MessageResponse{Success: false, Args: map[string]any{"error": err.Error()}}
+			return
 		}
+		log.Debug().Msg("sending success response for activate aggregator")
+		msg.Response <- bus.MessageResponse{Success: true}
 	case bus.DEACTIVATE_AGGREGATOR:
 		if msg.From != bus.ADMIN {
 			log.Debug().Msg("aggregator received message from non-admin")
+			msg.Response <- bus.MessageResponse{Success: false, Args: map[string]any{"error": "non-admin"}}
 			return
 		}
 		log.Debug().Msg("deactivate aggregator msg received")
 		aggregatorId, err := bus.ParseInt64MsgParam(msg, "id")
 		if err != nil {
 			log.Error().Err(err).Msg("failed to parse aggregatorId")
+			msg.Response <- bus.MessageResponse{Success: false, Args: map[string]any{"error": err.Error()}}
 			return
 		}
 
@@ -212,7 +220,10 @@ func (a *App) handleMessage(ctx context.Context, msg bus.Message) {
 		err = a.stopAggregatorById(ctx, aggregatorId)
 		if err != nil {
 			log.Error().Err(err).Msg("failed to stop aggregator")
+			msg.Response <- bus.MessageResponse{Success: false, Args: map[string]any{"error": err.Error()}}
+			return
 		}
+		msg.Response <- bus.MessageResponse{Success: true}
 	case bus.REFRESH_AGGREGATOR_APP:
 		if msg.From != bus.ADMIN {
 			log.Debug().Msg("aggregator received message from non-admin")
@@ -222,35 +233,50 @@ func (a *App) handleMessage(ctx context.Context, msg bus.Message) {
 		err := a.stopAllAggregators(ctx)
 		if err != nil {
 			log.Error().Err(err).Msg("failed to stop all aggregators")
+			msg.Response <- bus.MessageResponse{Success: false, Args: map[string]any{"error": err.Error()}}
+			return
 		}
 		err = a.setAggregators(ctx, a.Host, a.Pubsub)
 		if err != nil {
 			log.Error().Err(err).Msg("failed to set aggregators")
+			msg.Response <- bus.MessageResponse{Success: false, Args: map[string]any{"error": err.Error()}}
+			return
 		}
 		err = a.startAllAggregators(ctx)
 		if err != nil {
 			log.Error().Err(err).Msg("failed to start all aggregators")
+			msg.Response <- bus.MessageResponse{Success: false, Args: map[string]any{"error": err.Error()}}
+			return
 		}
+		msg.Response <- bus.MessageResponse{Success: true}
 	case bus.STOP_AGGREGATOR_APP:
 		if msg.From != bus.ADMIN {
 			log.Debug().Msg("aggregator received message from non-admin")
+			msg.Response <- bus.MessageResponse{Success: false, Args: map[string]any{"error": "non-admin"}}
 			return
 		}
 		log.Debug().Msg("stop aggregator msg received")
 		err := a.stopAllAggregators(ctx)
 		if err != nil {
 			log.Error().Err(err).Msg("failed to stop all aggregators")
+			msg.Response <- bus.MessageResponse{Success: false, Args: map[string]any{"error": err.Error()}}
+			return
 		}
+		msg.Response <- bus.MessageResponse{Success: true}
 	case bus.START_AGGREGATOR_APP:
 		if msg.From != bus.ADMIN {
 			log.Debug().Msg("aggregator received message from non-admin")
+			msg.Response <- bus.MessageResponse{Success: false, Args: map[string]any{"error": "non-admin"}}
 			return
 		}
 		log.Debug().Msg("start aggregator msg received")
 		err := a.startAllAggregators(ctx)
 		if err != nil {
 			log.Error().Err(err).Msg("failed to start all aggregators")
+			msg.Response <- bus.MessageResponse{Success: false, Args: map[string]any{"error": err.Error()}}
+			return
 		}
+		msg.Response <- bus.MessageResponse{Success: true}
 	case bus.DEVIATION:
 		if msg.From != bus.FETCHER {
 			log.Debug().Msg("aggregator received deviation message from non-fetcher")

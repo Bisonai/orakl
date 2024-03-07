@@ -1,8 +1,6 @@
 package aggregator
 
 import (
-	"time"
-
 	"bisonai.com/orakl/node/pkg/admin/utils"
 	"bisonai.com/orakl/node/pkg/bus"
 	"bisonai.com/orakl/node/pkg/db"
@@ -21,32 +19,38 @@ type AggregatorInsertModel struct {
 }
 
 func start(c *fiber.Ctx) error {
-	err := utils.SendMessage(c, bus.AGGREGATOR, bus.START_AGGREGATOR_APP, nil)
+	msg, err := utils.SendMessage(c, bus.AGGREGATOR, bus.START_AGGREGATOR_APP, nil)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).SendString("failed to start aggregator: " + err.Error())
 	}
-	// delay for message to be processed
-	time.Sleep(10 * time.Millisecond)
+	resp := <-msg.Response
+	if !resp.Success {
+		return c.Status(fiber.StatusInternalServerError).SendString("failed to start aggregator: " + resp.Args["error"].(string))
+	}
 	return c.SendString("aggregator started")
 }
 
 func stop(c *fiber.Ctx) error {
-	err := utils.SendMessage(c, bus.AGGREGATOR, bus.STOP_AGGREGATOR_APP, nil)
+	msg, err := utils.SendMessage(c, bus.AGGREGATOR, bus.STOP_AGGREGATOR_APP, nil)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).SendString("failed to stop aggregator: " + err.Error())
 	}
-	// delay for message to be processed
-	time.Sleep(10 * time.Millisecond)
+	resp := <-msg.Response
+	if !resp.Success {
+		return c.Status(fiber.StatusInternalServerError).SendString("failed to stop aggregator: " + resp.Args["error"].(string))
+	}
 	return c.SendString("aggregator stopped")
 }
 
 func refresh(c *fiber.Ctx) error {
-	err := utils.SendMessage(c, bus.AGGREGATOR, bus.REFRESH_AGGREGATOR_APP, nil)
+	msg, err := utils.SendMessage(c, bus.AGGREGATOR, bus.REFRESH_AGGREGATOR_APP, nil)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).SendString("failed to refresh aggregator: " + err.Error())
 	}
-	// delay for message to be processed TODO: update message bus communication with a better solution
-	time.Sleep(100 * time.Millisecond)
+	resp := <-msg.Response
+	if !resp.Success {
+		return c.Status(fiber.StatusInternalServerError).SendString("failed to refresh aggregator: " + resp.Args["error"].(string))
+	}
 	return c.SendString("aggregator refreshed")
 }
 
@@ -113,12 +117,16 @@ func activate(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusInternalServerError).SendString("failed to execute aggregator activate query: " + err.Error())
 	}
 
-	err = utils.SendMessage(c, bus.AGGREGATOR, bus.ACTIVATE_AGGREGATOR, map[string]any{"id": id})
+	msg, err := utils.SendMessage(c, bus.AGGREGATOR, bus.ACTIVATE_AGGREGATOR, map[string]any{"id": id})
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).SendString("failed to send message to aggregator: " + err.Error())
 	}
 
-	time.Sleep(10 * time.Millisecond)
+	resp := <-msg.Response
+	if !resp.Success {
+		return c.Status(fiber.StatusInternalServerError).SendString("failed to activate aggregator: " + resp.Args["error"].(string))
+	}
+
 	return c.JSON(result)
 }
 
@@ -129,11 +137,15 @@ func deactivate(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusInternalServerError).SendString("failed to execute aggregator deactivate query: " + err.Error())
 	}
 
-	err = utils.SendMessage(c, bus.AGGREGATOR, bus.DEACTIVATE_AGGREGATOR, map[string]any{"id": id})
+	msg, err := utils.SendMessage(c, bus.AGGREGATOR, bus.DEACTIVATE_AGGREGATOR, map[string]any{"id": id})
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).SendString("failed to send message to aggregator: " + err.Error())
 	}
 
-	time.Sleep(10 * time.Millisecond)
+	resp := <-msg.Response
+	if !resp.Success {
+		return c.Status(fiber.StatusInternalServerError).SendString("failed to deactivate aggregator: " + resp.Args["error"].(string))
+	}
+
 	return c.JSON(result)
 }

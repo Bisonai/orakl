@@ -3,7 +3,6 @@ package adapter
 import (
 	"encoding/json"
 	"io"
-	"time"
 
 	"net/http"
 
@@ -190,12 +189,16 @@ func activate(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusInternalServerError).SendString("failed to execute adapter activate query: " + err.Error())
 	}
 
-	err = utils.SendMessage(c, bus.FETCHER, bus.ACTIVATE_FETCHER, map[string]any{"id": id})
+	msg, err := utils.SendMessage(c, bus.FETCHER, bus.ACTIVATE_FETCHER, map[string]any{"id": id})
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).SendString("failed to send activate message to fetcher: " + err.Error())
 	}
-	// delay for message to be processed
-	time.Sleep(10 * time.Millisecond)
+
+	resp := <-msg.Response
+	if !resp.Success {
+		return c.Status(fiber.StatusInternalServerError).SendString("failed to activate adapter: " + resp.Args["error"].(string))
+	}
+
 	return c.JSON(result)
 }
 
@@ -206,11 +209,15 @@ func deactivate(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusInternalServerError).SendString("failed to execute adapter deactivate query: " + err.Error())
 	}
 
-	err = utils.SendMessage(c, bus.FETCHER, bus.DEACTIVATE_FETCHER, map[string]any{"id": id})
+	msg, err := utils.SendMessage(c, bus.FETCHER, bus.DEACTIVATE_FETCHER, map[string]any{"id": id})
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).SendString("failed to send deactivate message to fetcher: " + err.Error())
 	}
-	// delay for message to be processed
-	time.Sleep(10 * time.Millisecond)
+
+	resp := <-msg.Response
+	if !resp.Success {
+		return c.Status(fiber.StatusInternalServerError).SendString("failed to deactivate adapter: " + resp.Args["error"].(string))
+	}
+
 	return c.JSON(result)
 }
