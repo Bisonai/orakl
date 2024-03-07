@@ -233,35 +233,50 @@ func (a *App) handleMessage(ctx context.Context, msg bus.Message) {
 		err := a.stopAllAggregators(ctx)
 		if err != nil {
 			log.Error().Err(err).Msg("failed to stop all aggregators")
+			msg.Response <- bus.MessageResponse{Success: false, Args: map[string]any{"error": err.Error()}}
+			return
 		}
 		err = a.setAggregators(ctx, a.Host, a.Pubsub)
 		if err != nil {
 			log.Error().Err(err).Msg("failed to set aggregators")
+			msg.Response <- bus.MessageResponse{Success: false, Args: map[string]any{"error": err.Error()}}
+			return
 		}
 		err = a.startAllAggregators(ctx)
 		if err != nil {
 			log.Error().Err(err).Msg("failed to start all aggregators")
+			msg.Response <- bus.MessageResponse{Success: false, Args: map[string]any{"error": err.Error()}}
+			return
 		}
+		msg.Response <- bus.MessageResponse{Success: true}
 	case bus.STOP_AGGREGATOR_APP:
 		if msg.From != bus.ADMIN {
 			log.Debug().Msg("aggregator received message from non-admin")
+			msg.Response <- bus.MessageResponse{Success: false, Args: map[string]any{"error": "non-admin"}}
 			return
 		}
 		log.Debug().Msg("stop aggregator msg received")
 		err := a.stopAllAggregators(ctx)
 		if err != nil {
 			log.Error().Err(err).Msg("failed to stop all aggregators")
+			msg.Response <- bus.MessageResponse{Success: false, Args: map[string]any{"error": err.Error()}}
+			return
 		}
+		msg.Response <- bus.MessageResponse{Success: true}
 	case bus.START_AGGREGATOR_APP:
 		if msg.From != bus.ADMIN {
 			log.Debug().Msg("aggregator received message from non-admin")
+			msg.Response <- bus.MessageResponse{Success: false, Args: map[string]any{"error": "non-admin"}}
 			return
 		}
 		log.Debug().Msg("start aggregator msg received")
 		err := a.startAllAggregators(ctx)
 		if err != nil {
 			log.Error().Err(err).Msg("failed to start all aggregators")
+			msg.Response <- bus.MessageResponse{Success: false, Args: map[string]any{"error": err.Error()}}
+			return
 		}
+		msg.Response <- bus.MessageResponse{Success: true}
 	case bus.DEVIATION:
 		if msg.From != bus.FETCHER {
 			log.Debug().Msg("aggregator received deviation message from non-fetcher")
