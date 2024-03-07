@@ -16,12 +16,11 @@ import (
 
 const HEARTBEAT_TIMEOUT = 100 * time.Millisecond
 
-func NewRaftNode(h host.Host, ps *pubsub.PubSub, topic *pubsub.Topic, sub *pubsub.Subscription, messageBuffer int) *Raft {
+func NewRaftNode(h host.Host, ps *pubsub.PubSub, topic *pubsub.Topic, messageBuffer int) *Raft {
 	r := &Raft{
 		Host:  h,
 		Ps:    ps,
 		Topic: topic,
-		Sub:   sub,
 
 		Role:             "follower",
 		VotedFor:         "",

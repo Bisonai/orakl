@@ -21,15 +21,10 @@ func NewNode(h host.Host, ps *pubsub.PubSub, topicString string) (*AggregatorNod
 		return nil, err
 	}
 
-	sub, err := topic.Subscribe()
-	if err != nil {
-		return nil, err
-	}
-
 	leaderTimeout := 5 * time.Second
 
 	aggregator := AggregatorNode{
-		Raft: raft.NewRaftNode(h, ps, topic, sub, 100), // consider updating after testing
+		Raft: raft.NewRaftNode(h, ps, topic, 100), // consider updating after testing
 
 		LeaderJobTimeout: &leaderTimeout,
 
