@@ -209,3 +209,96 @@ func TestDeactivateAggregatorByAdmin(t *testing.T) {
 	assert.NotNil(t, aggregator)
 	assert.False(t, aggregator.isRunning)
 }
+
+func TestStartAppByAdmin(t *testing.T) {
+	ctx := context.Background()
+	cleanup, testItems, err := setup(ctx)
+	if err != nil {
+		t.Fatalf("error setting up test: %v", err)
+	}
+	defer cleanup()
+
+	testItems.app.subscribe(ctx)
+
+	err = testItems.app.initialize(ctx, *testItems.host, testItems.pubsub)
+	if err != nil {
+		t.Fatal("error initializing app")
+	}
+
+	_, err = tests.RawPostRequest(testItems.admin, "/api/v1/aggregator/start", nil)
+	if err != nil {
+		t.Fatalf("error starting app: %v", err)
+	}
+
+	assert.Equal(t, true, testItems.app.Aggregators[testItems.tmpData.aggregator.ID].isRunning)
+}
+
+func TestStopAppByAdmin(t *testing.T) {
+	ctx := context.Background()
+	cleanup, testItems, err := setup(ctx)
+	if err != nil {
+		t.Fatalf("error setting up test: %v", err)
+	}
+	defer cleanup()
+
+	testItems.app.subscribe(ctx)
+
+	err = testItems.app.initialize(ctx, *testItems.host, testItems.pubsub)
+	if err != nil {
+		t.Fatal("error initializing app")
+	}
+
+	_, err = tests.RawPostRequest(testItems.admin, "/api/v1/aggregator/start", nil)
+	if err != nil {
+		t.Fatalf("error starting app: %v", err)
+	}
+	assert.Equal(t, true, testItems.app.Aggregators[testItems.tmpData.aggregator.ID].isRunning)
+
+	_, err = tests.RawPostRequest(testItems.admin, "/api/v1/aggregator/stop", nil)
+	if err != nil {
+		t.Fatalf("error stopping app: %v", err)
+	}
+
+	assert.Equal(t, false, testItems.app.Aggregators[testItems.tmpData.aggregator.ID].isRunning)
+}
+
+func TestRefreshAppByAdmin(t *testing.T) {
+	ctx := context.Background()
+	cleanup, testItems, err := setup(ctx)
+	if err != nil {
+		t.Fatalf("error setting up test: %v", err)
+	}
+	defer cleanup()
+
+	testItems.app.subscribe(ctx)
+
+	err = testItems.app.initialize(ctx, *testItems.host, testItems.pubsub)
+	if err != nil {
+		t.Fatal("error initializing app")
+	}
+
+	lengthBefore := len(testItems.app.Aggregators)
+
+	_, err = tests.RawPostRequest(testItems.admin, "/api/v1/aggregator/start", nil)
+	if err != nil {
+		t.Fatalf("error starting app: %v", err)
+	}
+
+	tmpAggregator, err := tests.PostRequest[Aggregator](testItems.admin, "/api/v1/aggregator", map[string]any{"name": "test_aggregator_2"})
+	if err != nil {
+		t.Fatalf("error creating new aggregator: %v", err)
+	}
+
+	_, err = tests.RawPostRequest(testItems.admin, "/api/v1/aggregator/refresh", nil)
+	if err != nil {
+		t.Fatalf("error refreshing app: %v", err)
+	}
+
+	assert.Greater(t, len(testItems.app.Aggregators), lengthBefore)
+
+	//cleanup
+	_, err = tests.DeleteRequest[Aggregator](testItems.admin, "/api/v1/aggregator/"+strconv.FormatInt(tmpAggregator.ID, 10), nil)
+	if err != nil {
+		t.Fatalf("error cleaning up test: %v", err)
+	}
+}

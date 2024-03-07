@@ -9,6 +9,11 @@ func Routes(router fiber.Router) {
 
 	aggregator.Post("", insert)
 	aggregator.Get("", get)
+
+	aggregator.Post("/start", start)
+	aggregator.Post("/stop", stop)
+	aggregator.Post("/refresh", refresh)
+
 	aggregator.Post("/sync", syncWithAdapter)
 	aggregator.Get("/:id", getById)
 	aggregator.Delete("/:id", deleteById)

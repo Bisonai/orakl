@@ -1,6 +1,8 @@
 package fetcher
 
 import (
+	"time"
+
 	"bisonai.com/orakl/node/pkg/admin/utils"
 	"bisonai.com/orakl/node/pkg/bus"
 	"github.com/gofiber/fiber/v2"
@@ -11,6 +13,8 @@ func start(c *fiber.Ctx) error {
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).SendString("failed to start fetcher: " + err.Error())
 	}
+	// delay for message to be processed
+	time.Sleep(10 * time.Millisecond)
 	return c.SendString("fetcher started")
 }
 
@@ -19,6 +23,8 @@ func stop(c *fiber.Ctx) error {
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).SendString("failed to stop fetcher: " + err.Error())
 	}
+	// delay for message to be processed
+	time.Sleep(10 * time.Millisecond)
 	return c.SendString("fetcher stopped")
 }
 
@@ -27,5 +33,7 @@ func refresh(c *fiber.Ctx) error {
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).SendString("failed to refresh fetcher: " + err.Error())
 	}
+	// delay for message to be processed
+	time.Sleep(10 * time.Millisecond)
 	return c.SendString("fetcher refreshed")
 }

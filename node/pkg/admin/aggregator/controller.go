@@ -20,6 +20,36 @@ type AggregatorInsertModel struct {
 	Name string `db:"name" json:"name" validate:"required"`
 }
 
+func start(c *fiber.Ctx) error {
+	err := utils.SendMessage(c, bus.AGGREGATOR, bus.START_AGGREGATOR_APP, nil)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).SendString("failed to start aggregator: " + err.Error())
+	}
+	// delay for message to be processed
+	time.Sleep(10 * time.Millisecond)
+	return c.SendString("aggregator started")
+}
+
+func stop(c *fiber.Ctx) error {
+	err := utils.SendMessage(c, bus.AGGREGATOR, bus.STOP_AGGREGATOR_APP, nil)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).SendString("failed to stop aggregator: " + err.Error())
+	}
+	// delay for message to be processed
+	time.Sleep(10 * time.Millisecond)
+	return c.SendString("aggregator stopped")
+}
+
+func refresh(c *fiber.Ctx) error {
+	err := utils.SendMessage(c, bus.AGGREGATOR, bus.REFRESH_AGGREGATOR_APP, nil)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).SendString("failed to refresh aggregator: " + err.Error())
+	}
+	// delay for message to be processed TODO: update message bus communication with a better solution
+	time.Sleep(100 * time.Millisecond)
+	return c.SendString("aggregator refreshed")
+}
+
 func insert(c *fiber.Ctx) error {
 	payload := new(AggregatorInsertModel)
 	if err := c.BodyParser(payload); err != nil {
