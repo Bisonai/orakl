@@ -19,32 +19,38 @@ type AggregatorInsertModel struct {
 }
 
 func start(c *fiber.Ctx) error {
-	err := utils.SendMessage(c, bus.AGGREGATOR, bus.START_AGGREGATOR_APP, nil)
+	msg, err := utils.SendMessage(c, bus.AGGREGATOR, bus.START_AGGREGATOR_APP, nil)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).SendString("failed to start aggregator: " + err.Error())
 	}
-	// delay for message to be processed
-	time.Sleep(10 * time.Millisecond)
+	resp := <-msg.Response
+	if !resp.Success {
+		return c.Status(fiber.StatusInternalServerError).SendString("failed to start aggregator: " + resp.Args["error"].(string))
+	}
 	return c.SendString("aggregator started")
 }
 
 func stop(c *fiber.Ctx) error {
-	err := utils.SendMessage(c, bus.AGGREGATOR, bus.STOP_AGGREGATOR_APP, nil)
+	msg, err := utils.SendMessage(c, bus.AGGREGATOR, bus.STOP_AGGREGATOR_APP, nil)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).SendString("failed to stop aggregator: " + err.Error())
 	}
-	// delay for message to be processed
-	time.Sleep(10 * time.Millisecond)
+	resp := <-msg.Response
+	if !resp.Success {
+		return c.Status(fiber.StatusInternalServerError).SendString("failed to stop aggregator: " + resp.Args["error"].(string))
+	}
 	return c.SendString("aggregator stopped")
 }
 
 func refresh(c *fiber.Ctx) error {
-	err := utils.SendMessage(c, bus.AGGREGATOR, bus.REFRESH_AGGREGATOR_APP, nil)
+	msg, err := utils.SendMessage(c, bus.AGGREGATOR, bus.REFRESH_AGGREGATOR_APP, nil)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).SendString("failed to refresh aggregator: " + err.Error())
 	}
-	// delay for message to be processed TODO: update message bus communication with a better solution
-	time.Sleep(100 * time.Millisecond)
+	resp := <-msg.Response
+	if !resp.Success {
+		return c.Status(fiber.StatusInternalServerError).SendString("failed to refresh aggregator: " + resp.Args["error"].(string))
+	}
 	return c.SendString("aggregator refreshed")
 }
 
