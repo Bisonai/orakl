@@ -49,7 +49,6 @@ type Raft struct {
 	Host  host.Host
 	Ps    *pubsub.PubSub
 	Topic *pubsub.Topic
-	Sub   *pubsub.Subscription
 
 	Role          RoleType
 	VotedFor      string
