@@ -13,8 +13,6 @@ import (
 	"bisonai.com/orakl/node/pkg/db"
 	"bisonai.com/orakl/node/pkg/libp2p"
 	"github.com/gofiber/fiber/v2"
-	pubsub "github.com/libp2p/go-libp2p-pubsub"
-	"github.com/libp2p/go-libp2p/core/host"
 	"github.com/rs/zerolog"
 )
 
@@ -35,8 +33,6 @@ type TmpData struct {
 type TestItems struct {
 	app         *App
 	admin       *fiber.App
-	host        *host.Host
-	pubsub      *pubsub.PubSub
 	topicString string
 	messageBus  *bus.MessageBus
 	tmpData     *TmpData
@@ -57,20 +53,18 @@ func setup(ctx context.Context) (func() error, *TestItems, error) {
 	}
 	testItems.admin = admin
 
-	app := New(mb)
-	testItems.app = app
-
 	h, err := libp2p.MakeHost(10001)
 	if err != nil {
 		return nil, nil, err
 	}
-	testItems.host = &h
 
 	ps, err := libp2p.MakePubsub(ctx, h)
 	if err != nil {
 		return nil, nil, err
 	}
-	testItems.pubsub = ps
+
+	app := New(mb, h, ps)
+	testItems.app = app
 
 	testItems.topicString = "test-topic"
 

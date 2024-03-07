@@ -15,15 +15,17 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-func New(bus *bus.MessageBus) *App {
+func New(bus *bus.MessageBus, h host.Host, ps *pubsub.PubSub) *App {
 	return &App{
 		Aggregators: make(map[int64]*AggregatorNode, 0),
 		Bus:         bus,
+		Host:        h,
+		Pubsub:      ps,
 	}
 }
 
-func (a *App) Run(ctx context.Context, h host.Host, ps *pubsub.PubSub) error {
-	err := a.initialize(ctx, h, ps)
+func (a *App) Run(ctx context.Context) error {
+	err := a.setAggregators(ctx, a.Host, a.Pubsub)
 	if err != nil {
 		return err
 	}
@@ -31,13 +33,6 @@ func (a *App) Run(ctx context.Context, h host.Host, ps *pubsub.PubSub) error {
 	a.subscribe(ctx)
 
 	return a.startAllAggregators(ctx)
-}
-
-func (a *App) initialize(ctx context.Context, h host.Host, ps *pubsub.PubSub) error {
-	a.Host = h
-	a.Pubsub = ps
-
-	return a.setAggregators(ctx, h, ps)
 }
 
 func (a *App) setAggregators(ctx context.Context, h host.Host, ps *pubsub.PubSub) error {

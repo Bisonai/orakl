@@ -20,7 +20,7 @@ func TestInit(t *testing.T) {
 	}
 	defer cleanup()
 
-	err = testItems.app.initialize(ctx, *testItems.host, testItems.pubsub)
+	err = testItems.app.setAggregators(ctx, testItems.app.Host, testItems.app.Pubsub)
 	if err != nil {
 		t.Fatal("error initializing app")
 	}
@@ -51,7 +51,7 @@ func TestStartAggregator(t *testing.T) {
 	}
 	defer cleanup()
 
-	err = testItems.app.initialize(ctx, *testItems.host, testItems.pubsub)
+	err = testItems.app.setAggregators(ctx, testItems.app.Host, testItems.app.Pubsub)
 	if err != nil {
 		t.Fatal("error initializing app")
 	}
@@ -69,7 +69,7 @@ func TestStartAggregatorById(t *testing.T) {
 	}
 	defer cleanup()
 
-	err = testItems.app.initialize(ctx, *testItems.host, testItems.pubsub)
+	err = testItems.app.setAggregators(ctx, testItems.app.Host, testItems.app.Pubsub)
 	if err != nil {
 		t.Fatal("error initializing app")
 	}
@@ -87,7 +87,7 @@ func TestStopAggregator(t *testing.T) {
 	}
 	defer cleanup()
 
-	err = testItems.app.initialize(ctx, *testItems.host, testItems.pubsub)
+	err = testItems.app.setAggregators(ctx, testItems.app.Host, testItems.app.Pubsub)
 	if err != nil {
 		t.Fatal("error initializing app")
 	}
@@ -110,7 +110,7 @@ func TestStopAggregatorById(t *testing.T) {
 	}
 	defer cleanup()
 
-	err = testItems.app.initialize(ctx, *testItems.host, testItems.pubsub)
+	err = testItems.app.setAggregators(ctx, testItems.app.Host, testItems.app.Pubsub)
 	if err != nil {
 		t.Fatal("error initializing app")
 	}
@@ -133,7 +133,7 @@ func TestGetAggregatorByName(t *testing.T) {
 	}
 	defer cleanup()
 
-	err = testItems.app.initialize(ctx, *testItems.host, testItems.pubsub)
+	err = testItems.app.setAggregators(ctx, testItems.app.Host, testItems.app.Pubsub)
 	if err != nil {
 		t.Fatal("error initializing app")
 	}
@@ -156,7 +156,7 @@ func TestActivateAggregatorByAdmin(t *testing.T) {
 
 	testItems.app.subscribe(ctx)
 
-	err = testItems.app.initialize(ctx, *testItems.host, testItems.pubsub)
+	err = testItems.app.setAggregators(ctx, testItems.app.Host, testItems.app.Pubsub)
 	if err != nil {
 		t.Fatal("error initializing app")
 	}
@@ -186,7 +186,7 @@ func TestDeactivateAggregatorByAdmin(t *testing.T) {
 
 	testItems.app.subscribe(ctx)
 
-	err = testItems.app.initialize(ctx, *testItems.host, testItems.pubsub)
+	err = testItems.app.setAggregators(ctx, testItems.app.Host, testItems.app.Pubsub)
 	if err != nil {
 		t.Fatal("error initializing app")
 	}
@@ -220,7 +220,7 @@ func TestStartAppByAdmin(t *testing.T) {
 
 	testItems.app.subscribe(ctx)
 
-	err = testItems.app.initialize(ctx, *testItems.host, testItems.pubsub)
+	err = testItems.app.setAggregators(ctx, testItems.app.Host, testItems.app.Pubsub)
 	if err != nil {
 		t.Fatal("error initializing app")
 	}
@@ -243,7 +243,7 @@ func TestStopAppByAdmin(t *testing.T) {
 
 	testItems.app.subscribe(ctx)
 
-	err = testItems.app.initialize(ctx, *testItems.host, testItems.pubsub)
+	err = testItems.app.setAggregators(ctx, testItems.app.Host, testItems.app.Pubsub)
 	if err != nil {
 		t.Fatal("error initializing app")
 	}
@@ -272,7 +272,7 @@ func TestRefreshAppByAdmin(t *testing.T) {
 
 	testItems.app.subscribe(ctx)
 
-	err = testItems.app.initialize(ctx, *testItems.host, testItems.pubsub)
+	err = testItems.app.setAggregators(ctx, testItems.app.Host, testItems.app.Pubsub)
 	if err != nil {
 		t.Fatal("error initializing app")
 	}
