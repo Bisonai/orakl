@@ -53,22 +53,10 @@ func (n *AggregatorNode) GetLeaderJobTimeout() *time.Duration {
 	return n.LeaderJobTimeout
 }
 
-func (n *AggregatorNode) GetLeaderJobTicker() *time.Ticker {
-	return n.LeaderJobTicker
-}
-
-func (n *AggregatorNode) SetLeaderJobTicker(d *time.Duration) error {
-	if d == nil {
-		n.LeaderJobTicker = nil
-		return nil
-	}
-	n.LeaderJobTicker = time.NewTicker(*d)
-	return nil
-}
-
 func (n *AggregatorNode) LeaderJob() error {
 	// leader continously sends roundId in regular basis and triggers all other nodes to run its job
 	n.RoundID++
+	n.Raft.IncreaseTerm()
 	roundMessage := RoundSyncMessage{
 		LeaderID: n.Raft.Host.ID().String(),
 		RoundID:  n.RoundID,
@@ -105,8 +93,10 @@ func (n *AggregatorNode) HandleRoundSyncMessage(msg raft.Message) error {
 	if err != nil {
 		return err
 	}
-	n.RoundID = roundSyncMessage.RoundID
 
+	if n.Raft.GetRole() != raft.Leader {
+		n.RoundID = roundSyncMessage.RoundID
+	}
 	var updateValue int64 = -1
 	value, updateTime, err := n.getLatestLocalAggregate(n.nodeCtx)
 
