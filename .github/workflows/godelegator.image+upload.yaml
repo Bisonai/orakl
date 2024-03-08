@@ -94,9 +94,18 @@ jobs:
           docker push ${{ env.ecr_url }}:v${{ needs.prepare.outputs.version }}.${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }}
 
   create-helmchart-pr:
-    name: create-helmchart-pr
+    name: create-pr-helmchart
     runs-on: ubuntu-latest
     needs: prepare
+
+    strategy:
+      matrix:
+        environment: ["baobab", "cypress"]
+        include:
+          - environment: "baobab"
+            base: "gcp-baobab-prod"
+          - environment: "cypress"
+            base: "gcp-cypress-prod"
 
     steps:
       - name: Checkout code
@@ -108,40 +117,21 @@ jobs:
       - name: Install YQ
         uses: dcarbone/install-yq-action@v1.1.1
 
-      - name: (BAOBAB) Create new branch and make changes
+      - name: Create new branch and make changes
         run: |
-          git checkout gcp-baobab-prod
+          git checkout ${{ matrix.base }}
           git pull
-          git checkout -b feat/baobab-delegator-v${{ needs.prepare.outputs.version }}.${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }}
+          git checkout -b feat/${{ matrix.environment }}-delegator-v${{ needs.prepare.outputs.version }}.${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }}
           yq eval '.global.image.tag = "v${{ needs.prepare.outputs.version }}.${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }}"' -i ./godelegator/values.yaml
           yq eval '.appVersion = "${{ needs.prepare.outputs.version }}.${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }}"' -i ./godelegator/Chart.yaml
           git add .
           git commit -m "feat: deploy v${{ needs.prepare.outputs.version }}.${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }}"
 
-      - name: (BAOBAB) Push changes and create PR
+      - name: Push changes and create PR
         uses: peter-evans/create-pull-request@v6
         with:
           token: ${{ secrets.PAT }}
-          title: "deploy baobab-delegator-v${{ needs.prepare.outputs.version }}.${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }}"
-          body: "baobab-delegator-v${{ needs.prepare.outputs.version }}.${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }}"
-          branch: "feat/baobab-delegator-v${{ needs.prepare.outputs.version }}.${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }}"
-          base: "gcp-baobab-prod"
-
-      - name: (CYPRESS) Create new branch and make changes
-        run: |
-          git checkout gcp-cypress-prod
-          git pull
-          git checkout -b feat/cypress-delegator-v${{ needs.prepare.outputs.version }}.${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }}
-          yq eval '.global.image.tag = "v${{ needs.prepare.outputs.version }}.${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }}"' -i ./godelegator/values.yaml
-          yq eval '.appVersion = "${{ needs.prepare.outputs.version }}.${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }}"' -i ./godelegator/Chart.yaml
-          git add .
-          git commit -m "feat: deploy v${{ needs.prepare.outputs.version }}.${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }}"
-
-      - name: (CYPRESS) Push changes and create PR
-        uses: peter-evans/create-pull-request@v6
-        with:
-          token: ${{ secrets.PAT }}
-          title: "deploy cypress-delegator-v${{ needs.prepare.outputs.version }}.${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }}"
-          body: "cypress-delegator-v${{ needs.prepare.outputs.version }}.${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }}"
-          branch: "feat/cypress-delegator-v${{ needs.prepare.outputs.version }}.${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }}"
-          base: "gcp-cypress-prod"
+          title: "deploy ${{ matrix.environment }}-delegator-v${{ needs.prepare.outputs.version }}.${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }}"
+          body: "${{ matrix.environment }}-delegator-v${{ needs.prepare.outputs.version }}.${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }}"
+          branch: "feat/${{ matrix.environment }}-delegator-v${{ needs.prepare.outputs.version }}.${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }}"
+          base: "${{ matrix.base }}"
