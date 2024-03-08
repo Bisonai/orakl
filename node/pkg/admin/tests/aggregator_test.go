@@ -5,7 +5,6 @@ import (
 	"context"
 	"strconv"
 	"testing"
-	"time"
 
 	"bisonai.com/orakl/node/pkg/admin/aggregator"
 	"bisonai.com/orakl/node/pkg/bus"
@@ -22,18 +21,7 @@ func TestAggregatorStart(t *testing.T) {
 	defer cleanup()
 
 	channel := testItems.mb.Subscribe(bus.AGGREGATOR)
-
-	go func() {
-		select {
-		case msg := <-channel:
-			if msg.From != bus.ADMIN || msg.To != bus.AGGREGATOR || msg.Content.Command != bus.START_AGGREGATOR_APP {
-				t.Errorf("unexpected message: %v", msg)
-			}
-			msg.Response <- bus.MessageResponse{Success: true}
-		case <-time.After(5 * time.Second):
-			t.Errorf("no message received on channel")
-		}
-	}()
+	waitForMessage(t, channel, bus.ADMIN, bus.AGGREGATOR, bus.START_AGGREGATOR_APP)
 
 	result, err := RawPostRequest(testItems.app, "/api/v1/aggregator/start", nil)
 	if err != nil {
@@ -52,18 +40,7 @@ func TestAggregatorStop(t *testing.T) {
 	defer cleanup()
 
 	channel := testItems.mb.Subscribe(bus.AGGREGATOR)
-
-	go func() {
-		select {
-		case msg := <-channel:
-			if msg.From != bus.ADMIN || msg.To != bus.AGGREGATOR || msg.Content.Command != bus.STOP_AGGREGATOR_APP {
-				t.Errorf("unexpected message: %v", msg)
-			}
-			msg.Response <- bus.MessageResponse{Success: true}
-		case <-time.After(5 * time.Second):
-			t.Errorf("no message received on channel")
-		}
-	}()
+	waitForMessage(t, channel, bus.ADMIN, bus.AGGREGATOR, bus.STOP_AGGREGATOR_APP)
 
 	result, err := RawPostRequest(testItems.app, "/api/v1/aggregator/stop", nil)
 	if err != nil {
@@ -83,18 +60,7 @@ func TestAggregatorRefresh(t *testing.T) {
 	defer cleanup()
 
 	channel := testItems.mb.Subscribe(bus.AGGREGATOR)
-
-	go func() {
-		select {
-		case msg := <-channel:
-			if msg.From != bus.ADMIN || msg.To != bus.AGGREGATOR || msg.Content.Command != bus.REFRESH_AGGREGATOR_APP {
-				t.Errorf("unexpected message: %v", msg)
-			}
-			msg.Response <- bus.MessageResponse{Success: true}
-		case <-time.After(5 * time.Second):
-			t.Errorf("no message received on channel")
-		}
-	}()
+	waitForMessage(t, channel, bus.ADMIN, bus.AGGREGATOR, bus.REFRESH_AGGREGATOR_APP)
 
 	result, err := RawPostRequest(testItems.app, "/api/v1/aggregator/refresh", nil)
 	if err != nil {
@@ -221,18 +187,7 @@ func TestAggregatorActivate(t *testing.T) {
 	defer cleanup()
 
 	channel := testItems.mb.Subscribe(bus.AGGREGATOR)
-
-	go func() {
-		select {
-		case msg := <-channel:
-			if msg.From != bus.ADMIN || msg.To != bus.AGGREGATOR || msg.Content.Command != bus.ACTIVATE_AGGREGATOR {
-				t.Errorf("expected to receive activate message from admin to aggregator")
-			}
-			msg.Response <- bus.MessageResponse{Success: true}
-		case <-time.After(5 * time.Second):
-			t.Errorf("No message received on channel")
-		}
-	}()
+	waitForMessage(t, channel, bus.ADMIN, bus.AGGREGATOR, bus.ACTIVATE_AGGREGATOR)
 
 	activateResult, err := PostRequest[aggregator.AggregatorModel](testItems.app, "/api/v1/aggregator/activate/"+strconv.FormatInt(*testItems.tmpData.aggregator.Id, 10), nil)
 	if err != nil {
@@ -251,18 +206,7 @@ func TestAggregatorDeactivate(t *testing.T) {
 	defer cleanup()
 
 	channel := testItems.mb.Subscribe(bus.AGGREGATOR)
-
-	go func() {
-		select {
-		case msg := <-channel:
-			if msg.From != bus.ADMIN || msg.To != bus.AGGREGATOR || msg.Content.Command != bus.DEACTIVATE_AGGREGATOR {
-				t.Errorf("expected to receive deactivate message from admin to aggregator")
-			}
-			msg.Response <- bus.MessageResponse{Success: true}
-		case <-time.After(5 * time.Second):
-			t.Errorf("No message received on channel")
-		}
-	}()
+	waitForMessage(t, channel, bus.ADMIN, bus.AGGREGATOR, bus.DEACTIVATE_AGGREGATOR)
 
 	deactivateResult, err := PostRequest[aggregator.AggregatorModel](testItems.app, "/api/v1/aggregator/deactivate/"+strconv.FormatInt(*testItems.tmpData.aggregator.Id, 10), nil)
 	if err != nil {

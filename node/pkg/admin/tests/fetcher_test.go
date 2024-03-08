@@ -4,7 +4,6 @@ package tests
 import (
 	"context"
 	"testing"
-	"time"
 
 	"bisonai.com/orakl/node/pkg/bus"
 	"github.com/stretchr/testify/assert"
@@ -19,18 +18,7 @@ func TestFetcherStart(t *testing.T) {
 	defer cleanup()
 
 	channel := testItems.mb.Subscribe(bus.FETCHER)
-
-	go func() {
-		select {
-		case msg := <-channel:
-			if msg.From != bus.ADMIN || msg.To != bus.FETCHER || msg.Content.Command != bus.START_FETCHER_APP {
-				t.Errorf("unexpected message: %v", msg)
-			}
-			msg.Response <- bus.MessageResponse{Success: true}
-		case <-time.After(5 * time.Second):
-			t.Errorf("no message received on channel")
-		}
-	}()
+	waitForMessage(t, channel, bus.ADMIN, bus.FETCHER, bus.START_FETCHER_APP)
 
 	result, err := RawPostRequest(testItems.app, "/api/v1/fetcher/start", nil)
 	if err != nil {
@@ -49,18 +37,7 @@ func TestFetcherStop(t *testing.T) {
 	defer cleanup()
 
 	channel := testItems.mb.Subscribe(bus.FETCHER)
-
-	go func() {
-		select {
-		case msg := <-channel:
-			if msg.From != bus.ADMIN || msg.To != bus.FETCHER || msg.Content.Command != bus.STOP_FETCHER_APP {
-				t.Errorf("unexpected message: %v", msg)
-			}
-			msg.Response <- bus.MessageResponse{Success: true}
-		case <-time.After(5 * time.Second):
-			t.Errorf("no message received on channel")
-		}
-	}()
+	waitForMessage(t, channel, bus.ADMIN, bus.FETCHER, bus.STOP_FETCHER_APP)
 
 	result, err := RawPostRequest(testItems.app, "/api/v1/fetcher/stop", nil)
 	if err != nil {
@@ -79,18 +56,7 @@ func TestFetcherRefresh(t *testing.T) {
 	defer cleanup()
 
 	channel := testItems.mb.Subscribe(bus.FETCHER)
-
-	go func() {
-		select {
-		case msg := <-channel:
-			if msg.From != bus.ADMIN || msg.To != bus.FETCHER || msg.Content.Command != bus.REFRESH_FETCHER_APP {
-				t.Errorf("unexpected message: %v", msg)
-			}
-			msg.Response <- bus.MessageResponse{Success: true}
-		case <-time.After(5 * time.Second):
-			t.Errorf("no message received on channel")
-		}
-	}()
+	waitForMessage(t, channel, bus.ADMIN, bus.FETCHER, bus.REFRESH_FETCHER_APP)
 
 	result, err := RawPostRequest(testItems.app, "/api/v1/fetcher/refresh", nil)
 	if err != nil {

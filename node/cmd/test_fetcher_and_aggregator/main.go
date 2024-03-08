@@ -59,8 +59,8 @@ func main() {
 			log.Error().Err(err).Msg("Failed to setup libp2p")
 			return
 		}
-		a := aggregator.New(mb)
-		err = a.Run(ctx, *host, ps)
+		a := aggregator.New(mb, *host, ps)
+		err = a.Run(ctx)
 		if err != nil {
 			log.Error().Err(err).Msg("Failed to start aggregator")
 			return
