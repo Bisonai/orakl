@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"bisonai.com/orakl/node/pkg/admin/adapter"
+	"bisonai.com/orakl/node/pkg/admin/aggregator"
 	"bisonai.com/orakl/node/pkg/admin/feed"
 	"bisonai.com/orakl/node/pkg/admin/fetcher"
 	"bisonai.com/orakl/node/pkg/admin/proxy"
@@ -33,6 +34,7 @@ func Run(bus *bus.MessageBus) error {
 	feed.Routes(v1)
 	proxy.Routes(v1)
 	fetcher.Routes(v1)
+	aggregator.Routes(v1)
 
 	port := os.Getenv("APP_PORT")
 	if port == "" {

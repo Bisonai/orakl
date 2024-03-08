@@ -2,9 +2,11 @@ package main
 
 import (
 	"context"
+	"net/http"
 	"os"
 	"strconv"
 	"sync"
+	"time"
 
 	"bisonai.com/orakl/node/pkg/admin"
 	"bisonai.com/orakl/node/pkg/aggregator"
@@ -29,6 +31,18 @@ func main() {
 		}
 	}()
 
+	time.Sleep(1 * time.Second)
+
+	_, err := http.Post("http://localhost:"+os.Getenv("APP_PORT")+"/api/v1/adapter/sync", "application/json", nil)
+	if err != nil {
+		log.Error().Err(err).Msg("Failed to sync from orakl config")
+	}
+
+	_, err = http.Post("http://localhost:"+os.Getenv("APP_PORT")+"/api/v1/aggregator/sync", "application/json", nil)
+	if err != nil {
+		log.Error().Err(err).Msg("Failed to sync from adapter table")
+	}
+
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
@@ -45,8 +59,7 @@ func main() {
 		defer wg.Done()
 		bootnode := os.Getenv("BOOT_NODE")
 		if bootnode == "" {
-			log.Fatal().Msg("No bootnode specified")
-			return
+			log.Debug().Msg("No bootnode specified")
 		}
 		listenPort, err := strconv.Atoi(os.Getenv("LISTEN_PORT"))
 		if err != nil {
@@ -59,8 +72,8 @@ func main() {
 			log.Error().Err(err).Msg("Failed to setup libp2p")
 			return
 		}
-		a := aggregator.New(mb)
-		err = a.Run(ctx, *host, ps)
+		a := aggregator.New(mb, *host, ps)
+		err = a.Run(ctx)
 		if err != nil {
 			log.Error().Err(err).Msg("Failed to start aggregator")
 			return
