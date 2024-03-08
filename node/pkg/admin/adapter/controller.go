@@ -54,6 +54,10 @@ func syncFromOraklConfig(c *fiber.Ctx) error {
 	}
 	defer resp.Body.Close()
 
+	if resp.StatusCode != http.StatusOK {
+		return c.Status(fiber.StatusInternalServerError).SendString("failed to fetch orakl config: " + resp.Status)
+	}
+
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).SendString("failed to read orakl config: " + err.Error())
