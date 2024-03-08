@@ -152,5 +152,10 @@ func GetOraklConfigUrls(ctx context.Context) ([]string, error) {
 			urls = append(urls, "https://config.orakl.network/"+href)
 		}
 	})
+
+	if len(urls) == 0 {
+		log.Debug().Msg("no orakl config urls found")
+	}
+
 	return urls, nil
 }
