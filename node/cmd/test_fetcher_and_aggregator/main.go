@@ -36,11 +36,13 @@ func main() {
 	_, err := http.Post("http://localhost:"+os.Getenv("APP_PORT")+"/api/v1/adapter/sync", "application/json", nil)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to sync from orakl config")
+		return
 	}
 
 	_, err = http.Post("http://localhost:"+os.Getenv("APP_PORT")+"/api/v1/aggregator/sync", "application/json", nil)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to sync from adapter table")
+		return
 	}
 
 	wg.Add(1)

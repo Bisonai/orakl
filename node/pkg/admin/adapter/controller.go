@@ -13,6 +13,7 @@ import (
 	"bisonai.com/orakl/node/pkg/db"
 	"github.com/go-playground/validator"
 	"github.com/gofiber/fiber/v2"
+	"github.com/rs/zerolog/log"
 )
 
 type AdapterModel struct {
@@ -58,7 +59,10 @@ func syncFromOraklConfig(c *fiber.Ctx) error {
 		go func(url string) {
 			defer wg.Done()
 			sem <- struct{}{}
-			processConfigUrl(c.Context(), url)
+			err = processConfigUrl(c.Context(), url)
+			if err != nil {
+				log.Error().Err(err).Msg("failed to process config url")
+			}
 			<-sem
 		}(url)
 	}
@@ -184,34 +188,34 @@ func deactivate(c *fiber.Ctx) error {
 	return c.JSON(result)
 }
 
-func processConfigUrl(ctx context.Context, url string) {
+func processConfigUrl(ctx context.Context, url string) error {
 	resp, err := http.Get(url)
 	if err != nil {
-		return
+		return err
 	}
 	defer resp.Body.Close()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return
+		return err
 	}
 
 	var adapter AdapterInsertModel
 	err = json.Unmarshal(body, &adapter)
 	if err != nil {
-		return
+		return err
 	}
 
 	validate := validator.New()
 	if err = validate.Struct(adapter); err != nil {
-		return
+		return err
 	}
 
 	row, err := db.QueryRow[AdapterModel](ctx, InsertAdapter, map[string]any{
 		"name": adapter.Name,
 	})
 	if err != nil {
-		return
+		return err
 	}
 
 	for _, feed := range adapter.Feeds {
@@ -222,7 +226,8 @@ func processConfigUrl(ctx context.Context, url string) {
 			"adapter_id": feed.AdapterId,
 		})
 		if err != nil {
-			return
+			return err
 		}
 	}
+	return nil
 }
