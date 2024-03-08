@@ -6,7 +6,10 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"testing"
+	"time"
 
+	"bisonai.com/orakl/node/pkg/bus"
 	"github.com/rs/zerolog/log"
 
 	"github.com/gofiber/fiber/v2"
@@ -139,4 +142,18 @@ func UrlRequest[T any](urlEndpoint string, method string, requestBody interface{
 	}
 
 	return result, nil
+}
+
+func waitForMessage(t *testing.T, channel <-chan bus.Message, from, to, command string) {
+	go func() {
+		select {
+		case msg := <-channel:
+			if msg.From != from || msg.To != to || msg.Content.Command != command {
+				t.Errorf("unexpected message: %v", msg)
+			}
+			msg.Response <- bus.MessageResponse{Success: true}
+		case <-time.After(5 * time.Second):
+			t.Errorf("no message received on channel")
+		}
+	}()
 }

@@ -5,7 +5,6 @@ import (
 	"context"
 	"strconv"
 	"testing"
-	"time"
 
 	"bisonai.com/orakl/node/pkg/admin/adapter"
 	"bisonai.com/orakl/node/pkg/bus"
@@ -140,18 +139,7 @@ func TestAdapterDeactivate(t *testing.T) {
 	defer cleanup()
 
 	channel := testItems.mb.Subscribe(bus.FETCHER)
-
-	go func() {
-		select {
-		case msg := <-channel:
-			if msg.From != bus.ADMIN || msg.To != bus.FETCHER || msg.Content.Command != bus.DEACTIVATE_FETCHER {
-				t.Errorf("Message did not match expected. Got %v", msg)
-			}
-			msg.Response <- bus.MessageResponse{Success: true}
-		case <-time.After(5 * time.Second):
-			t.Errorf("No message received on channel")
-		}
-	}()
+	waitForMessage(t, channel, bus.ADMIN, bus.FETCHER, bus.DEACTIVATE_FETCHER)
 
 	deactivateResult, err := PostRequest[adapter.AdapterModel](testItems.app, "/api/v1/adapter/deactivate/"+strconv.FormatInt(*testItems.tmpData.adapter.Id, 10), nil)
 	if err != nil {
@@ -169,18 +157,7 @@ func TestAdapterActivate(t *testing.T) {
 	defer cleanup()
 
 	channel := testItems.mb.Subscribe(bus.FETCHER)
-
-	go func() {
-		select {
-		case msg := <-channel:
-			if msg.From != bus.ADMIN || msg.To != bus.FETCHER || msg.Content.Command != bus.ACTIVATE_FETCHER {
-				t.Errorf("Message did not match expected. Got %v", msg)
-			}
-			msg.Response <- bus.MessageResponse{Success: true}
-		case <-time.After(5 * time.Second):
-			t.Errorf("No message received on channel")
-		}
-	}()
+	waitForMessage(t, channel, bus.ADMIN, bus.FETCHER, bus.ACTIVATE_FETCHER)
 
 	// activate
 	activateResult, err := PostRequest[adapter.AdapterModel](testItems.app, "/api/v1/adapter/activate/"+strconv.FormatInt(*testItems.tmpData.adapter.Id, 10), nil)

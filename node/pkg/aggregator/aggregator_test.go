@@ -5,7 +5,6 @@ import (
 	"context"
 	"strconv"
 	"testing"
-	"time"
 
 	"bisonai.com/orakl/node/pkg/admin/aggregator"
 	"bisonai.com/orakl/node/pkg/admin/tests"
@@ -56,8 +55,11 @@ func TestStartAggregator(t *testing.T) {
 		t.Fatal("error initializing app")
 	}
 
-	go testItems.app.startAggregator(ctx, testItems.app.Aggregators[testItems.tmpData.aggregator.ID])
-	time.Sleep(100 * time.Millisecond)
+	err = testItems.app.startAggregator(ctx, testItems.app.Aggregators[testItems.tmpData.aggregator.ID])
+	if err != nil {
+		t.Fatal("error starting aggregator")
+	}
+
 	assert.Equal(t, true, testItems.app.Aggregators[testItems.tmpData.aggregator.ID].isRunning)
 }
 
@@ -74,8 +76,10 @@ func TestStartAggregatorById(t *testing.T) {
 		t.Fatal("error initializing app")
 	}
 
-	go testItems.app.startAggregatorById(ctx, testItems.app.Aggregators[testItems.tmpData.aggregator.ID].Aggregator.ID)
-	time.Sleep(100 * time.Millisecond)
+	err = testItems.app.startAggregatorById(ctx, testItems.app.Aggregators[testItems.tmpData.aggregator.ID].Aggregator.ID)
+	if err != nil {
+		t.Fatal("error starting aggregator")
+	}
 	assert.Equal(t, testItems.app.Aggregators[testItems.tmpData.aggregator.ID].isRunning, true)
 }
 
@@ -92,8 +96,10 @@ func TestStopAggregator(t *testing.T) {
 		t.Fatal("error initializing app")
 	}
 
-	go testItems.app.startAggregator(ctx, testItems.app.Aggregators[testItems.tmpData.aggregator.ID])
-	time.Sleep(100 * time.Millisecond)
+	err = testItems.app.startAggregator(ctx, testItems.app.Aggregators[testItems.tmpData.aggregator.ID])
+	if err != nil {
+		t.Fatal("error starting aggregator")
+	}
 
 	err = testItems.app.stopAggregator(ctx, testItems.app.Aggregators[testItems.tmpData.aggregator.ID])
 	if err != nil {
@@ -115,8 +121,10 @@ func TestStopAggregatorById(t *testing.T) {
 		t.Fatal("error initializing app")
 	}
 
-	go testItems.app.startAggregator(ctx, testItems.app.Aggregators[testItems.tmpData.aggregator.ID])
-	time.Sleep(100 * time.Millisecond)
+	err = testItems.app.startAggregator(ctx, testItems.app.Aggregators[testItems.tmpData.aggregator.ID])
+	if err != nil {
+		t.Fatal("error starting aggregator")
+	}
 
 	err = testItems.app.stopAggregatorById(ctx, testItems.app.Aggregators[testItems.tmpData.aggregator.ID].Aggregator.ID)
 	if err != nil {
@@ -191,8 +199,10 @@ func TestDeactivateAggregatorByAdmin(t *testing.T) {
 		t.Fatal("error initializing app")
 	}
 
-	go testItems.app.startAggregatorById(ctx, testItems.app.Aggregators[testItems.tmpData.aggregator.ID].Aggregator.ID)
-	time.Sleep(100 * time.Millisecond)
+	err = testItems.app.startAggregatorById(ctx, testItems.app.Aggregators[testItems.tmpData.aggregator.ID].Aggregator.ID)
+	if err != nil {
+		t.Fatal("error starting aggregator")
+	}
 	assert.Equal(t, testItems.app.Aggregators[testItems.tmpData.aggregator.ID].isRunning, true)
 
 	result, err := tests.PostRequest[aggregator.AggregatorModel](testItems.admin, "/api/v1/aggregator/deactivate/"+strconv.FormatInt(testItems.tmpData.aggregator.ID, 10), nil)
