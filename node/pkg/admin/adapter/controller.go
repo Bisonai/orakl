@@ -70,32 +70,34 @@ func syncFromOraklConfig(c *fiber.Ctx) error {
 	}
 
 	for _, adapter := range adapters.Adapters {
-		validate := validator.New()
-		if err = validate.Struct(adapter); err != nil {
-			log.Error().Err(err).Msg("failed to validate orakl config")
-			continue
-		}
+		go func(adapter AdapterInsertModel) {
+			validate := validator.New()
+			if err = validate.Struct(adapter); err != nil {
+				log.Error().Err(err).Msg("failed to validate orakl config")
+				return
+			}
 
-		row, err := db.QueryRow[AdapterModel](c.Context(), InsertAdapter, map[string]any{
-			"name": adapter.Name,
-		})
-		if err != nil {
-			log.Error().Err(err).Msg("failed to execute adapter insert query")
-			continue
-		}
-
-		for _, feed := range adapter.Feeds {
-			feed.AdapterId = row.Id
-			_, err := db.QueryRow[FeedModel](c.Context(), InsertFeed, map[string]any{
-				"name":       feed.Name,
-				"definition": feed.Definition,
-				"adapter_id": feed.AdapterId,
+			row, err := db.QueryRow[AdapterModel](c.Context(), InsertAdapter, map[string]any{
+				"name": adapter.Name,
 			})
 			if err != nil {
-				log.Error().Err(err).Msg("failed to execute feed insert query")
-				continue
+				log.Error().Err(err).Msg("failed to execute adapter insert query")
+				return
 			}
-		}
+
+			for _, feed := range adapter.Feeds {
+				feed.AdapterId = row.Id
+				_, err := db.QueryRow[FeedModel](c.Context(), InsertFeed, map[string]any{
+					"name":       feed.Name,
+					"definition": feed.Definition,
+					"adapter_id": feed.AdapterId,
+				})
+				if err != nil {
+					log.Error().Err(err).Msg("failed to execute feed insert query")
+					continue
+				}
+			}
+		}(adapter)
 	}
 
 	return c.Status(fiber.StatusOK).SendString("syncing request sent")
