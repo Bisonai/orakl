@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"net/http"
 	"os"
 	"runtime/debug"
 	"strings"
@@ -12,7 +11,6 @@ import (
 	"bisonai.com/orakl/node/pkg/bus"
 	"bisonai.com/orakl/node/pkg/db"
 
-	"github.com/PuerkitoBio/goquery"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/gofiber/fiber/v2/middleware/recover"
@@ -131,31 +129,4 @@ func SendMessage(c *fiber.Ctx, to string, command string, args map[string]interf
 		Response: make(chan bus.MessageResponse),
 	}
 	return msg, messageBus.Publish(msg)
-}
-
-func GetOraklConfigUrls(ctx context.Context) ([]string, error) {
-	resp, err := http.Get("https://config.orakl.network/")
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	doc, err := goquery.NewDocumentFromReader(resp.Body)
-	if err != nil {
-		return nil, err
-	}
-
-	var urls []string
-	doc.Find("Body > div > table:nth-child(3) a").Each(func(i int, s *goquery.Selection) {
-		href, exists := s.Attr("href")
-		if exists {
-			urls = append(urls, "https://config.orakl.network/"+href)
-		}
-	})
-
-	if len(urls) == 0 {
-		log.Debug().Msg("no orakl config urls found")
-	}
-
-	return urls, nil
 }

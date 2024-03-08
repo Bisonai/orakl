@@ -1,10 +1,8 @@
 package adapter
 
 import (
-	"context"
 	"encoding/json"
 	"io"
-	"sync"
 
 	"net/http"
 
@@ -15,6 +13,10 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/rs/zerolog/log"
 )
+
+type BulkAdapters struct {
+	Adapters []AdapterInsertModel `json:"adapters"`
+}
 
 type AdapterModel struct {
 	Id     *int64 `db:"id" json:"id"`
@@ -46,28 +48,51 @@ type AdapterDetailModel struct {
 }
 
 func syncFromOraklConfig(c *fiber.Ctx) error {
-	urls, err := utils.GetOraklConfigUrls(c.Context())
+	resp, err := http.Get("https://config.orakl.network/adapters.json")
 	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).SendString("failed to get orakl config urls: " + err.Error())
+		return c.Status(fiber.StatusInternalServerError).SendString("failed to fetch orakl config: " + err.Error())
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).SendString("failed to read orakl config: " + err.Error())
 	}
 
-	sem := make(chan struct{}, 10)
-	var wg sync.WaitGroup
+	var adapters BulkAdapters
+	err = json.Unmarshal(body, &adapters)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).SendString("failed to parse orakl config: " + err.Error())
+	}
 
-	for _, url := range urls {
-		wg.Add(1)
-		go func(url string) {
-			defer wg.Done()
-			sem <- struct{}{}
-			err = processConfigUrl(c.Context(), url)
+	for _, adapter := range adapters.Adapters {
+		validate := validator.New()
+		if err = validate.Struct(adapter); err != nil {
+			log.Error().Err(err).Msg("failed to validate orakl config")
+			continue
+		}
+
+		row, err := db.QueryRow[AdapterModel](c.Context(), InsertAdapter, map[string]any{
+			"name": adapter.Name,
+		})
+		if err != nil {
+			log.Error().Err(err).Msg("failed to execute adapter insert query")
+			continue
+		}
+
+		for _, feed := range adapter.Feeds {
+			feed.AdapterId = row.Id
+			_, err := db.QueryRow[FeedModel](c.Context(), InsertFeed, map[string]any{
+				"name":       feed.Name,
+				"definition": feed.Definition,
+				"adapter_id": feed.AdapterId,
+			})
 			if err != nil {
-				log.Error().Err(err).Msg("failed to process config url")
+				log.Error().Err(err).Msg("failed to execute feed insert query")
+				continue
 			}
-			<-sem
-		}(url)
+		}
 	}
-
-	wg.Wait()
 
 	return c.Status(fiber.StatusOK).SendString("syncing request sent")
 }
@@ -186,48 +211,4 @@ func deactivate(c *fiber.Ctx) error {
 	}
 
 	return c.JSON(result)
-}
-
-func processConfigUrl(ctx context.Context, url string) error {
-	resp, err := http.Get(url)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return err
-	}
-
-	var adapter AdapterInsertModel
-	err = json.Unmarshal(body, &adapter)
-	if err != nil {
-		return err
-	}
-
-	validate := validator.New()
-	if err = validate.Struct(adapter); err != nil {
-		return err
-	}
-
-	row, err := db.QueryRow[AdapterModel](ctx, InsertAdapter, map[string]any{
-		"name": adapter.Name,
-	})
-	if err != nil {
-		return err
-	}
-
-	for _, feed := range adapter.Feeds {
-		feed.AdapterId = row.Id
-		_, err := db.QueryRow[FeedModel](ctx, InsertFeed, map[string]any{
-			"name":       feed.Name,
-			"definition": feed.Definition,
-			"adapter_id": feed.AdapterId,
-		})
-		if err != nil {
-			return err
-		}
-	}
-	return nil
 }
