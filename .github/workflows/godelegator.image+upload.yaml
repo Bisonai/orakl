@@ -92,17 +92,17 @@ jobs:
         run: |
           docker tag orakl-godelegator ${{ env.ecr_url }}:v${{ needs.prepare.outputs.version }}.${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }}
           docker push ${{ env.ecr_url }}:v${{ needs.prepare.outputs.version }}.${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }}
-          
+
   create-helmchart-pr:
-    name: create-pr-helmchart
+    name: create-helmchart-pr
     runs-on: ubuntu-latest
     needs: prepare
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
         with:
-          repository: 'Bisonai/orakl-helm-charts'
+          repository: "Bisonai/orakl-helm-charts"
           token: ${{ secrets.PAT }} # Personal Access Token with repo scope
 
       - name: Install YQ
@@ -116,7 +116,7 @@ jobs:
           yq eval '.global.image.tag = "v${{ needs.prepare.outputs.version }}.${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }}"' -i ./godelegator/values.yaml
           yq eval '.appVersion = "${{ needs.prepare.outputs.version }}.${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }}"' -i ./godelegator/Chart.yaml
           git add .
-          git commit -m "feat: deploy new version"
+          git commit -m "feat: deploy v${{ needs.prepare.outputs.version }}.${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }}"
 
       - name: (BAOBAB) Push changes and create PR
         uses: peter-evans/create-pull-request@v6
@@ -135,7 +135,7 @@ jobs:
           yq eval '.global.image.tag = "v${{ needs.prepare.outputs.version }}.${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }}"' -i ./godelegator/values.yaml
           yq eval '.appVersion = "${{ needs.prepare.outputs.version }}.${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }}"' -i ./godelegator/Chart.yaml
           git add .
-          git commit -m "feat: deploy new version"
+          git commit -m "feat: deploy v${{ needs.prepare.outputs.version }}.${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }}"
 
       - name: (CYPRESS) Push changes and create PR
         uses: peter-evans/create-pull-request@v6
