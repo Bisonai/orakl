@@ -117,6 +117,11 @@ jobs:
       - name: Install YQ
         uses: dcarbone/install-yq-action@v1.1.1
 
+      - name: Set Git user
+        run: |
+          git config --global user.email "orakl-bot@users.noreply.github.com"
+          git config --global user.name "orakl-bot"
+
       - name: Create new branch and make changes
         run: |
           set -e
