@@ -21,7 +21,8 @@ contract SubmissionProxy is Ownable {
     error InvalidSubmissionLength();
 
     modifier onlyOracle() {
-        if (expirations[msg.sender] == 0) revert OnlyOracle();
+	uint256 expiration = expirations[msg.sender];
+        if (expiration == 0 || expiration < block.timestamp) revert OnlyOracle();
         _;
     }
 
