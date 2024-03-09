@@ -137,7 +137,7 @@ func (n *AggregatorNode) HandlePriceDataMessage(msg raft.Message) error {
 		filteredCollectedPrices := FilterNegative(n.CollectedPrices[priceDataMessage.RoundID])
 
 		// handle aggregation here once all the data have been collected
-		median, err := utils.GetMedianInt64(filteredCollectedPrices)
+		median, err := utils.GetInt64Med(filteredCollectedPrices)
 		if err != nil {
 			log.Error().Err(err).Msg("failed to get median")
 			return err
