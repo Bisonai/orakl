@@ -2,4 +2,4 @@
 
 - Go implementation for delegator
 
-- Uses GSM
+- Uses GSM (setup env vars)
