@@ -78,16 +78,14 @@ func (a *App) handleMessage(ctx context.Context, msg bus.Message) {
 		log.Debug().Msg("activate fetcher msg received")
 		adapterId, err := bus.ParseInt64MsgParam(msg, "id")
 		if err != nil {
-			log.Error().Err(err).Msg("failed to parse adapterId")
-			msg.Response <- bus.MessageResponse{Success: false, Args: map[string]any{"error": err.Error()}}
+			bus.HandleMessageError(err, msg, "failed to parse adapterId")
 			return
 		}
 
 		log.Debug().Int64("adapterId", adapterId).Msg("activating fetcher")
 		err = a.startFetcherById(ctx, adapterId)
 		if err != nil {
-			log.Error().Err(err).Msg("failed to start fetcher")
-			msg.Response <- bus.MessageResponse{Success: false, Args: map[string]any{"error": err.Error()}}
+			bus.HandleMessageError(err, msg, "failed to start fetcher")
 			return
 		}
 		msg.Response <- bus.MessageResponse{Success: true}
@@ -95,16 +93,14 @@ func (a *App) handleMessage(ctx context.Context, msg bus.Message) {
 		log.Debug().Msg("deactivate fetcher msg received")
 		adapterId, err := bus.ParseInt64MsgParam(msg, "id")
 		if err != nil {
-			log.Error().Err(err).Msg("failed to parse adapterId")
-			msg.Response <- bus.MessageResponse{Success: false, Args: map[string]any{"error": err.Error()}}
+			bus.HandleMessageError(err, msg, "failed to parse adapterId")
 			return
 		}
 
 		log.Debug().Int64("adapterId", adapterId).Msg("deactivating fetcher")
 		err = a.stopFetcherById(ctx, adapterId)
 		if err != nil {
-			log.Error().Err(err).Msg("failed to stop fetcher")
-			msg.Response <- bus.MessageResponse{Success: false, Args: map[string]any{"error": err.Error()}}
+			bus.HandleMessageError(err, msg, "failed to stop fetcher")
 			return
 		}
 		msg.Response <- bus.MessageResponse{Success: true}
@@ -112,8 +108,7 @@ func (a *App) handleMessage(ctx context.Context, msg bus.Message) {
 		log.Debug().Msg("stopping all fetchers")
 		err := a.stopAllFetchers(ctx)
 		if err != nil {
-			log.Error().Err(err).Msg("failed to stop all fetchers")
-			msg.Response <- bus.MessageResponse{Success: false, Args: map[string]any{"error": err.Error()}}
+			bus.HandleMessageError(err, msg, "failed to stop all fetchers")
 			return
 		}
 		msg.Response <- bus.MessageResponse{Success: true}
@@ -121,28 +116,24 @@ func (a *App) handleMessage(ctx context.Context, msg bus.Message) {
 		log.Debug().Msg("starting all fetchers")
 		err := a.startAllFetchers(ctx)
 		if err != nil {
-			log.Error().Err(err).Msg("failed to start all fetchers")
-			msg.Response <- bus.MessageResponse{Success: false, Args: map[string]any{"error": err.Error()}}
+			bus.HandleMessageError(err, msg, "failed to start all fetchers")
 			return
 		}
 		msg.Response <- bus.MessageResponse{Success: true}
 	case bus.REFRESH_FETCHER_APP:
 		err := a.stopAllFetchers(ctx)
 		if err != nil {
-			log.Error().Err(err).Msg("failed to stop all fetchers")
-			msg.Response <- bus.MessageResponse{Success: false, Args: map[string]any{"error": err.Error()}}
+			bus.HandleMessageError(err, msg, "failed to stop all fetchers")
 			return
 		}
 		err = a.initialize(ctx)
 		if err != nil {
-			log.Error().Err(err).Msg("failed to initialize fetchers")
-			msg.Response <- bus.MessageResponse{Success: false, Args: map[string]any{"error": err.Error()}}
+			bus.HandleMessageError(err, msg, "failed to initialize fetchers")
 			return
 		}
 		err = a.startAllFetchers(ctx)
 		if err != nil {
-			log.Error().Err(err).Msg("failed to start all fetchers")
-			msg.Response <- bus.MessageResponse{Success: false, Args: map[string]any{"error": err.Error()}}
+			bus.HandleMessageError(err, msg, "failed to start all fetchers")
 			return
 		}
 

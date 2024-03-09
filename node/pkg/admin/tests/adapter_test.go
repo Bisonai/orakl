@@ -167,3 +167,30 @@ func TestAdapterActivate(t *testing.T) {
 	assert.True(t, activateResult.Active)
 
 }
+
+func TestAdapterSync(t *testing.T) {
+	ctx := context.Background()
+	cleanup, testItems, err := setup(ctx)
+	if err != nil {
+		t.Fatalf("error setting up test: %v", err)
+	}
+	defer cleanup()
+
+	readResultBefore, err := GetRequest[[]adapter.AdapterModel](testItems.app, "/api/v1/adapter", nil)
+	if err != nil {
+		t.Fatalf("error getting adapters after: %v", err)
+	}
+
+	_, err = RawPostRequest(testItems.app, "/api/v1/adapter/sync", nil)
+	if err != nil {
+		t.Fatalf("error syncing adapter: %v", err)
+	}
+
+	readResultAfter, err := GetRequest[[]adapter.AdapterModel](testItems.app, "/api/v1/adapter", nil)
+	if err != nil {
+		t.Fatalf("error getting adapters after: %v", err)
+	}
+
+	assert.Greaterf(t, len(readResultAfter), len(readResultBefore), "expected to have more adapters after insertion")
+
+}

@@ -10,31 +10,59 @@ func RandomNumberGenerator() int {
 	return rand.Intn(20) + 1
 }
 
-func FindMedian(nums []int) int {
+func GetIntAvg(nums []int) (int, error) {
+	if len(nums) == 0 {
+		return 0, errors.New("empty array")
+	}
+	var sum int
+	for _, v := range nums {
+		sum += v
+	}
+	return sum / len(nums), nil
+}
+
+func GetMedianInt(nums []int) (int, error) {
+	if len(nums) == 0 {
+		return 0, errors.New("empty array")
+	}
 	sort.Ints(nums)
 	n := len(nums)
 	if n%2 == 0 {
 		// Round down
-		return (nums[n/2-1] + nums[n/2]) / 2
+		return (nums[n/2-1] + nums[n/2]) / 2, nil
 
 		// Or round to nearest integer
 		// return int(float64(nums[n/2-1]+nums[n/2]) / 2 + 0.5)
 	} else {
-		return nums[n/2]
+		return nums[n/2], nil
 	}
 }
 
-func FindMedianInt64(nums []int64) int64 {
+func GetInt64Avg(nums []int64) (int64, error) {
+	if len(nums) == 0 {
+		return 0, errors.New("empty array")
+	}
+	var sum int64
+	for _, v := range nums {
+		sum += v
+	}
+	return sum / int64(len(nums)), nil
+}
+
+func GetMedianInt64(nums []int64) (int64, error) {
+	if len(nums) == 0 {
+		return 0, errors.New("empty array")
+	}
 	sort.Slice(nums, func(i, j int) bool { return nums[i] < nums[j] })
 	n := len(nums)
 	if n%2 == 0 {
 		// Round down
-		return (nums[n/2-1] + nums[n/2]) / 2
+		return (nums[n/2-1] + nums[n/2]) / 2, nil
 
 		// Or round to nearest integer
 		// return int(float64(nums[n/2-1]+nums[n/2]) / 2 + 0.5)
 	} else {
-		return nums[n/2]
+		return nums[n/2], nil
 	}
 }
 

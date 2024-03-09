@@ -3,6 +3,8 @@ package bus
 import (
 	"errors"
 	"strconv"
+
+	"github.com/rs/zerolog/log"
 )
 
 // message bus will be passed as parameter to modules that need to communicate with each other
@@ -86,4 +88,9 @@ func ParseStringMsgParam(msg Message, param string) (string, error) {
 	}
 
 	return payload, nil
+}
+
+func HandleMessageError(err error, msg Message, logMessage string) {
+	log.Error().Err(err).Msg(logMessage)
+	msg.Response <- MessageResponse{Success: false, Args: map[string]any{"error": err.Error()}}
 }
