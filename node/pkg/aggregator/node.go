@@ -133,6 +133,7 @@ func (n *AggregatorNode) HandlePriceDataMessage(msg raft.Message) error {
 
 	n.CollectedPrices[priceDataMessage.RoundID] = append(n.CollectedPrices[priceDataMessage.RoundID], priceDataMessage.PriceData)
 	if len(n.CollectedPrices[priceDataMessage.RoundID]) >= n.Raft.SubscribersCount()+1 {
+		defer delete(n.CollectedPrices, priceDataMessage.RoundID)
 		filteredCollectedPrices := FilterNegative(n.CollectedPrices[priceDataMessage.RoundID])
 
 		// handle aggregation here once all the data have been collected
@@ -147,7 +148,6 @@ func (n *AggregatorNode) HandlePriceDataMessage(msg raft.Message) error {
 			log.Error().Err(err).Msg("failed to insert global aggregate")
 			return err
 		}
-		defer delete(n.CollectedPrices, priceDataMessage.RoundID)
 	}
 	return nil
 }
