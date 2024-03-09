@@ -70,3 +70,14 @@ jobs:
         run: |
           docker tag orakl-cli ${{ env.ecr_url }}:v${{ needs.prepare.outputs.version }}.${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }}
           docker push ${{ env.ecr_url }}:v${{ needs.prepare.outputs.version }}.${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }}
+
+  create-helmchart-pr:
+    needs: [prepare, build]
+    uses: ./.github/workflows/create-helmchart-pr.yaml
+    with:
+      project-name: "cli"
+      version: ${{ needs.prepare.outputs.version }}
+      tag_date: ${{ needs.prepare.outputs.tag_date }}
+      tag_git_hash: ${{ needs.prepare.outputs.tag_git_hash }}
+    secrets:
+      PAT: ${{ secrets.PAT }}
