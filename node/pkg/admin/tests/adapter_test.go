@@ -193,4 +193,9 @@ func TestAdapterSync(t *testing.T) {
 
 	assert.Greaterf(t, len(readResultAfter), len(readResultBefore), "expected to have more adapters after insertion")
 
+	// cleanup
+	err = db.QueryWithoutResult(ctx, "DELETE FROM adapters", nil)
+	if err != nil {
+		t.Fatalf("error cleaning up test: %v", err)
+	}
 }
