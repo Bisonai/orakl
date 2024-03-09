@@ -1,6 +1,10 @@
 version: "3"
 
 tasks:
+  test-submission:
+    dotenv: [".env"]
+    cmds:
+      - go run ./cmd/test_submission/main.go
   local-admin:
     dotenv: [".env"]
     cmds:
