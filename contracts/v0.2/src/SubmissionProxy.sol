@@ -8,13 +8,15 @@ import {IAggregator} from "./interfaces/IAggregatorSubmit.sol";
 // TODO: submission verification
 // TODO: submission by aggregator name
 contract SubmissionProxy is Ownable {
-    uint256 maxSubmission = 50;
+    uint256 MAX_SUBMISSION = 50;
+    uint256 public constant EXPIRATION_PERIOD = 4 weeks;
+
     address[] public oracles;
     mapping(address => uint256) expirations;
 
     event OracleAdded(address oracle);
     event OracleRemoved(address oracle);
-    event MaxSubmissionSet(uint256 maxSubmission);
+    event MaxSubmissionSet(uint256 MAX_SUBMISSION);
 
     error OnlyOracle();
     error InvalidOracle();
@@ -32,8 +34,28 @@ contract SubmissionProxy is Ownable {
         return oracles;
     }
 
+    function expiredOracles() public view returns (address[] memory) {
+	uint256 numOracles = oracles.length;
+	uint256 numExpired = 0;
+	address[] memory expiredFull = new address[](numOracles);
+
+	for (uint256 i = 0; i < numOracles; ++i) {
+	    if (expirations[oracles[i]] < block.timestamp) {
+		expiredFull[numExpired] = oracles[i];
+		numExpired++;
+	    }
+	}
+
+	address[] memory expired = new address[](numExpired);
+	for (uint256 i = 0; i < numExpired; ++i) {
+	    expired[i] = expiredFull[i];
+	}
+
+	return expired;
+    }
+
     function addOracle(address _oracle) public onlyOwner {
-	uint256 expiration_ = block.timestamp + 4 weeks;
+	uint256 expiration_ = block.timestamp + EXPIRATION_PERIOD;
 	expirations[_oracle] = expiration_;
 	oracles.push(_oracle);
         emit OracleAdded(_oracle);
@@ -57,9 +79,9 @@ contract SubmissionProxy is Ownable {
         }
     }
 
-    function setMaxSubmission(uint256 _maxSubmission) public onlyOwner {
-        maxSubmission = _maxSubmission;
-	emit MaxSubmissionSet(_maxSubmission);
+    function setMaxSubmission(uint256 _MAX_SUBMISSION) public onlyOwner {
+        MAX_SUBMISSION = _MAX_SUBMISSION;
+	emit MaxSubmissionSet(_MAX_SUBMISSION);
     }
 
     function submit(address[] memory _aggregators, int256[] memory _submissions) public onlyOracle {

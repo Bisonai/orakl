@@ -89,5 +89,22 @@ contract SubmissionProxyTest is Test {
 	} else {
 	    console.log("waste", batchSubmissionGas - singleSubmissionGas);
 	}
+    function test_ExpiredOracles() public {
+	address oracle = makeAddr("oracle");
+
+        submissionProxy.addOracle(oracle);
+        uint256 numOracles = submissionProxy.getOracles().length;
+        assertEq(numOracles, 1);
+
+	// oracle has not expired yet
+	vm.warp(block.timestamp + 1);
+	address[] memory expired = submissionProxy.expiredOracles();
+	assertEq(expired.length, 0);
+
+	// oracle expired
+	vm.warp(block.timestamp + submissionProxy.EXPIRATION_PERIOD() + 1);
+	expired = submissionProxy.expiredOracles();
+	assertEq(expired.length, 1);
+	assertEq(expired[0], oracle);
     }
 }
