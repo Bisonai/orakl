@@ -5,6 +5,7 @@ import {Test, console2, console} from "forge-std/Test.sol";
 import {SubmissionProxy} from "../src/SubmissionProxy.sol";
 import {Aggregator} from "../src/Aggregator.sol";
 
+// TODO test submit after oracle expires
 contract SubmissionProxyTest is Test {
     SubmissionProxy submissionProxy;
     uint32 timeout = 10;
@@ -22,14 +23,20 @@ contract SubmissionProxyTest is Test {
         submissionProxy = new SubmissionProxy();
     }
 
+    // Cannot remove non-existing oracle
+    function testFail_RemoveOracle() public {
+	submissionProxy.removeOracle(address(0));
+    }
+
+    // Add and remove oracle
     function test_AddAndRemoveOracle() public {
         submissionProxy.addOracle(address(0));
-        uint256 oracleLength = submissionProxy.getOracles().length;
-        assertEq(oracleLength, 1);
+        uint256 numOracles = submissionProxy.getOracles().length;
+        assertEq(numOracles, 1);
 
         submissionProxy.removeOracle(address(0));
-        oracleLength = submissionProxy.getOracles().length;
-        assertEq(oracleLength, 0);
+        numOracles = submissionProxy.getOracles().length;
+        assertEq(numOracles, 0);
     }
 
     function test_BatchSubmission() public {
