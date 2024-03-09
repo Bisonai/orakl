@@ -29,10 +29,8 @@ contract AggregatorScript is Script {
             }
 
             bytes memory changeOracleData = config.readJson(migrationFiles[i], ".changeOracles");
-            UtilsScript.ChangeOracles memory changeOracleConfig = abi.decode(
-                changeOracleData,
-                (UtilsScript.ChangeOracles)
-            );
+            UtilsScript.ChangeOracles memory changeOracleConfig =
+                abi.decode(changeOracleData, (UtilsScript.ChangeOracles));
             if (changeOracleConfig.minSubmissionCount > 0) {
                 aggregator.changeOracles(
                     changeOracleConfig.removed,

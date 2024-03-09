@@ -54,10 +54,7 @@ contract SubmissionProxy is Ownable {
         _;
     }
 
-    function batchSubmit(
-        address[] memory _aggregators,
-        int256[] memory _submissions
-    ) public onlyOracle {
+    function batchSubmit(address[] memory _aggregators, int256[] memory _submissions) public onlyOracle {
         if (_aggregators.length != _submissions.length) revert InvalidSubmissionLength();
         for (uint256 i = 0; i < _aggregators.length; i++) {
             IAggregator(_aggregators[i]).submit(_submissions[i]);

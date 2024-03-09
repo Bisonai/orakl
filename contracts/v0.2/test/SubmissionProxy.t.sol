@@ -42,7 +42,7 @@ contract SubmissionProxyTest is Test {
         int256[] memory submissions = new int256[](50);
         uint256 startGas;
 
-        for (uint i = 0; i < 50; i++) {
+        for (uint256 i = 0; i < 50; i++) {
             Aggregator aggregator = new Aggregator(timeout, decimals, description);
             oracleAdd[0] = address(batchSubmission);
             oracleAdd[1] = address(0);

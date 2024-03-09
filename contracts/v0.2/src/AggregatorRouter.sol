@@ -17,41 +17,23 @@ import "./interfaces/IAggregatorProxy.sol";
 contract AggregatorRouter is Ownable, IAggregatorRouter {
     mapping(string => address) public aggregatorProxies;
 
-    event RouterProxyAddressUpdated(
-        string feedName,
-        address indexed proxyAddress
-    );
-    event RouterProxyAddressBulkUpdated(
-        string[] feedNames,
-        address[] proxyAddresses
-    );
+    event RouterProxyAddressUpdated(string feedName, address indexed proxyAddress);
+    event RouterProxyAddressBulkUpdated(string[] feedNames, address[] proxyAddresses);
 
     modifier validFeed(string calldata feedName) {
-        require(
-            aggregatorProxies[feedName] != address(0),
-            "feed not set in router"
-        );
+        require(aggregatorProxies[feedName] != address(0), "feed not set in router");
         _;
     }
 
-    function updateProxy(
-        string calldata feedName,
-        address proxyAddress
-    ) external onlyOwner {
+    function updateProxy(string calldata feedName, address proxyAddress) external onlyOwner {
         aggregatorProxies[feedName] = proxyAddress;
         emit RouterProxyAddressUpdated(feedName, proxyAddress);
     }
 
-    function updateProxyBulk(
-        string[] calldata feedNames,
-        address[] calldata proxyAddresses
-    ) external onlyOwner {
-        require(
-            feedNames.length > 0 && feedNames.length == proxyAddresses.length,
-            "invalid input"
-        );
+    function updateProxyBulk(string[] calldata feedNames, address[] calldata proxyAddresses) external onlyOwner {
+        require(feedNames.length > 0 && feedNames.length == proxyAddresses.length, "invalid input");
 
-        for (uint i = 0; i < feedNames.length; i++) {
+        for (uint256 i = 0; i < feedNames.length; i++) {
             aggregatorProxies[feedNames[i]] = proxyAddresses[i];
         }
 
@@ -84,23 +66,13 @@ contract AggregatorRouter is Ownable, IAggregatorRouter {
      * (Only some AggregatorV3Interface implementations return meaningful values)
      * @dev Note that answer and updatedAt may change between queries.
      */
-    function getRoundData(
-        string calldata feedName,
-        uint80 roundId
-    )
+    function getRoundData(string calldata feedName, uint80 roundId)
         external
         view
         validFeed(feedName)
-        returns (
-            uint80 id,
-            int256 answer,
-            uint256 startedAt,
-            uint256 updatedAt,
-            uint80 answeredInRound
-        )
+        returns (uint80 id, int256 answer, uint256 startedAt, uint256 updatedAt, uint80 answeredInRound)
     {
-        return
-            IAggregatorProxy(aggregatorProxies[feedName]).getRoundData(roundId);
+        return IAggregatorProxy(aggregatorProxies[feedName]).getRoundData(roundId);
     }
 
     /**
@@ -126,19 +98,11 @@ contract AggregatorRouter is Ownable, IAggregatorRouter {
      * (Only some AggregatorV3Interface implementations return meaningful values)
      * @dev Note that answer and updatedAt may change between queries.
      */
-    function latestRoundData(
-        string calldata feedName
-    )
+    function latestRoundData(string calldata feedName)
         external
         view
         validFeed(feedName)
-        returns (
-            uint80 id,
-            int256 answer,
-            uint256 startedAt,
-            uint256 updatedAt,
-            uint80 answeredInRound
-        )
+        returns (uint80 id, int256 answer, uint256 startedAt, uint256 updatedAt, uint80 answeredInRound)
     {
         return IAggregatorProxy(aggregatorProxies[feedName]).latestRoundData();
     }
@@ -156,25 +120,13 @@ contract AggregatorRouter is Ownable, IAggregatorRouter {
      * @return answeredInRound is the round ID of the round in which the answer
      * was computed.
      */
-    function proposedGetRoundData(
-        string calldata feedName,
-        uint80 roundId
-    )
+    function proposedGetRoundData(string calldata feedName, uint80 roundId)
         external
         view
         validFeed(feedName)
-        returns (
-            uint80 id,
-            int256 answer,
-            uint256 startedAt,
-            uint256 updatedAt,
-            uint80 answeredInRound
-        )
+        returns (uint80 id, int256 answer, uint256 startedAt, uint256 updatedAt, uint80 answeredInRound)
     {
-        return
-            IAggregatorProxy(aggregatorProxies[feedName]).proposedGetRoundData(
-                roundId
-            );
+        return IAggregatorProxy(aggregatorProxies[feedName]).proposedGetRoundData(roundId);
     }
 
     /**
@@ -189,49 +141,33 @@ contract AggregatorRouter is Ownable, IAggregatorRouter {
      * @return answeredInRound is the round ID of the round in which the answer
      * was computed.
      */
-    function proposedLatestRoundData(
-        string calldata feedName
-    )
+    function proposedLatestRoundData(string calldata feedName)
         external
         view
         validFeed(feedName)
-        returns (
-            uint80 id,
-            int256 answer,
-            uint256 startedAt,
-            uint256 updatedAt,
-            uint80 answeredInRound
-        )
+        returns (uint80 id, int256 answer, uint256 startedAt, uint256 updatedAt, uint80 answeredInRound)
     {
-        return
-            IAggregatorProxy(aggregatorProxies[feedName])
-                .proposedLatestRoundData();
+        return IAggregatorProxy(aggregatorProxies[feedName]).proposedLatestRoundData();
     }
 
     /**
      * @notice returns the current phase's aggregator address.
      */
-    function aggregator(
-        string calldata feedName
-    ) external view validFeed(feedName) returns (address) {
+    function aggregator(string calldata feedName) external view validFeed(feedName) returns (address) {
         return IAggregatorProxy(aggregatorProxies[feedName]).aggregator();
     }
 
     /**
      * @notice returns the current phase's ID.
      */
-    function phaseId(
-        string calldata feedName
-    ) external view validFeed(feedName) returns (uint16) {
+    function phaseId(string calldata feedName) external view validFeed(feedName) returns (uint16) {
         return IAggregatorProxy(aggregatorProxies[feedName]).phaseId();
     }
 
     /**
      * @notice represents the number of decimals the aggregator responses represent.
      */
-    function decimals(
-        string calldata feedName
-    ) external view validFeed(feedName) returns (uint8) {
+    function decimals(string calldata feedName) external view validFeed(feedName) returns (uint8) {
         return IAggregatorProxy(aggregatorProxies[feedName]).decimals();
     }
 
@@ -239,29 +175,22 @@ contract AggregatorRouter is Ownable, IAggregatorRouter {
      * @notice the type and version of aggregator to which proxy
      * points to.
      */
-    function typeAndVersion(
-        string calldata feedName
-    ) external view validFeed(feedName) returns (string memory) {
+    function typeAndVersion(string calldata feedName) external view validFeed(feedName) returns (string memory) {
         return IAggregatorProxy(aggregatorProxies[feedName]).typeAndVersion();
     }
 
     /**
      * @notice returns the description of the aggregator the proxy points to.
      */
-    function description(
-        string calldata feedName
-    ) external view validFeed(feedName) returns (string memory) {
+    function description(string calldata feedName) external view validFeed(feedName) returns (string memory) {
         return IAggregatorProxy(aggregatorProxies[feedName]).description();
     }
 
     /**
      * @notice returns the current proposed aggregator
      */
-    function proposedAggregator(
-        string calldata feedName
-    ) external view validFeed(feedName) returns (address) {
-        return
-            IAggregatorProxy(aggregatorProxies[feedName]).proposedAggregator();
+    function proposedAggregator(string calldata feedName) external view validFeed(feedName) returns (address) {
+        return IAggregatorProxy(aggregatorProxies[feedName]).proposedAggregator();
     }
 
     /**
@@ -269,14 +198,13 @@ contract AggregatorRouter is Ownable, IAggregatorRouter {
      *
      * @param phaseId_ uint16
      */
-    function phaseAggregators(
-        string calldata feedName,
-        uint16 phaseId_
-    ) external view validFeed(feedName) returns (address) {
-        return
-            IAggregatorProxy(aggregatorProxies[feedName]).phaseAggregators(
-                phaseId_
-            );
+    function phaseAggregators(string calldata feedName, uint16 phaseId_)
+        external
+        view
+        validFeed(feedName)
+        returns (address)
+    {
+        return IAggregatorProxy(aggregatorProxies[feedName]).phaseAggregators(phaseId_);
     }
 
     constructor() Ownable(msg.sender) {}
