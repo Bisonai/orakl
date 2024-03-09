@@ -56,7 +56,7 @@ contract SubmissionProxyTest is Test {
         }
         startGas = gasleft();
         vm.prank(address(0));
-        batchSubmission.batchSubmit(aggregatorForBathSubmit, submissions);
+        batchSubmission.submit(aggregatorForBathSubmit, submissions);
         batchSubmitGas = estimateGasCost(startGas);
 
         console.log("submit", submitGas, "batch submit", batchSubmitGas);
