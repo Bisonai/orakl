@@ -176,122 +176,110 @@ func (a *App) handleMessage(ctx context.Context, msg bus.Message) {
 	switch msg.Content.Command {
 	case bus.ACTIVATE_AGGREGATOR:
 		if msg.From != bus.ADMIN {
-			log.Debug().Msg("aggregator received message from non-admin")
-			msg.Response <- bus.MessageResponse{Success: false, Args: map[string]any{"error": "non-admin"}}
+			bus.HandleMessageError(errors.New("non-admin"), msg, "aggregator received message from non-admin")
 			return
 		}
 		log.Debug().Msg("activate aggregator msg received")
 		aggregatorId, err := bus.ParseInt64MsgParam(msg, "id")
 		if err != nil {
-			log.Error().Err(err).Msg("failed to parse aggregatorId")
-			msg.Response <- bus.MessageResponse{Success: false, Args: map[string]any{"error": err.Error()}}
+			bus.HandleMessageError(err, msg, "failed to parse aggregatorId")
 			return
 		}
 
 		log.Debug().Int64("aggregatorId", aggregatorId).Msg("activating aggregator")
 		err = a.startAggregatorById(ctx, aggregatorId)
 		if err != nil {
-			log.Error().Err(err).Msg("failed to start aggregator")
-			msg.Response <- bus.MessageResponse{Success: false, Args: map[string]any{"error": err.Error()}}
+			bus.HandleMessageError(err, msg, "failed to start aggregator")
 			return
 		}
 		log.Debug().Msg("sending success response for activate aggregator")
 		msg.Response <- bus.MessageResponse{Success: true}
 	case bus.DEACTIVATE_AGGREGATOR:
 		if msg.From != bus.ADMIN {
-			log.Debug().Msg("aggregator received message from non-admin")
-			msg.Response <- bus.MessageResponse{Success: false, Args: map[string]any{"error": "non-admin"}}
+			bus.HandleMessageError(errors.New("non-admin"), msg, "aggregator received message from non-admin")
 			return
 		}
 		log.Debug().Msg("deactivate aggregator msg received")
 		aggregatorId, err := bus.ParseInt64MsgParam(msg, "id")
 		if err != nil {
-			log.Error().Err(err).Msg("failed to parse aggregatorId")
-			msg.Response <- bus.MessageResponse{Success: false, Args: map[string]any{"error": err.Error()}}
+			bus.HandleMessageError(err, msg, "failed to parse aggregatorId")
 			return
 		}
 
 		log.Debug().Int64("aggregatorId", aggregatorId).Msg("deactivating aggregator")
 		err = a.stopAggregatorById(ctx, aggregatorId)
 		if err != nil {
-			log.Error().Err(err).Msg("failed to stop aggregator")
-			msg.Response <- bus.MessageResponse{Success: false, Args: map[string]any{"error": err.Error()}}
+			bus.HandleMessageError(err, msg, "failed to stop aggregator")
 			return
 		}
 		msg.Response <- bus.MessageResponse{Success: true}
 	case bus.REFRESH_AGGREGATOR_APP:
 		if msg.From != bus.ADMIN {
-			log.Debug().Msg("aggregator received message from non-admin")
+			bus.HandleMessageError(errors.New("non-admin"), msg, "aggregator received message from non-admin")
 			return
 		}
 		log.Debug().Msg("refresh aggregator msg received")
 		err := a.stopAllAggregators(ctx)
 		if err != nil {
-			log.Error().Err(err).Msg("failed to stop all aggregators")
-			msg.Response <- bus.MessageResponse{Success: false, Args: map[string]any{"error": err.Error()}}
+			bus.HandleMessageError(err, msg, "failed to stop all aggregators")
 			return
 		}
 		err = a.setAggregators(ctx, a.Host, a.Pubsub)
 		if err != nil {
-			log.Error().Err(err).Msg("failed to set aggregators")
-			msg.Response <- bus.MessageResponse{Success: false, Args: map[string]any{"error": err.Error()}}
+			bus.HandleMessageError(err, msg, "failed to set aggregators")
 			return
 		}
 		err = a.startAllAggregators(ctx)
 		if err != nil {
-			log.Error().Err(err).Msg("failed to start all aggregators")
-			msg.Response <- bus.MessageResponse{Success: false, Args: map[string]any{"error": err.Error()}}
+			bus.HandleMessageError(err, msg, "failed to start all aggregators")
 			return
 		}
 		msg.Response <- bus.MessageResponse{Success: true}
 	case bus.STOP_AGGREGATOR_APP:
 		if msg.From != bus.ADMIN {
-			log.Debug().Msg("aggregator received message from non-admin")
-			msg.Response <- bus.MessageResponse{Success: false, Args: map[string]any{"error": "non-admin"}}
+			bus.HandleMessageError(errors.New("non-admin"), msg, "aggregator received message from non-admin")
 			return
 		}
 		log.Debug().Msg("stop aggregator msg received")
 		err := a.stopAllAggregators(ctx)
 		if err != nil {
-			log.Error().Err(err).Msg("failed to stop all aggregators")
-			msg.Response <- bus.MessageResponse{Success: false, Args: map[string]any{"error": err.Error()}}
+			bus.HandleMessageError(err, msg, "failed to stop all aggregators")
 			return
 		}
 		msg.Response <- bus.MessageResponse{Success: true}
 	case bus.START_AGGREGATOR_APP:
 		if msg.From != bus.ADMIN {
-			log.Debug().Msg("aggregator received message from non-admin")
-			msg.Response <- bus.MessageResponse{Success: false, Args: map[string]any{"error": "non-admin"}}
+			bus.HandleMessageError(errors.New("non-admin"), msg, "aggregator received message from non-admin")
 			return
 		}
 		log.Debug().Msg("start aggregator msg received")
 		err := a.startAllAggregators(ctx)
 		if err != nil {
-			log.Error().Err(err).Msg("failed to start all aggregators")
-			msg.Response <- bus.MessageResponse{Success: false, Args: map[string]any{"error": err.Error()}}
+			bus.HandleMessageError(err, msg, "failed to start all aggregators")
 			return
 		}
 		msg.Response <- bus.MessageResponse{Success: true}
 	case bus.DEVIATION:
 		if msg.From != bus.FETCHER {
-			log.Debug().Msg("aggregator received deviation message from non-fetcher")
+			bus.HandleMessageError(errors.New("non-fetcher"), msg, "aggregator received deviation message from non-fetcher")
 			return
 		}
 		log.Debug().Msg("deviation message received")
 		aggregatorName, err := bus.ParseStringMsgParam(msg, "name")
 		if err != nil {
-			log.Error().Err(err).Msg("failed to parse aggregator name")
+			bus.HandleMessageError(err, msg, "failed to parse aggregator name")
 			return
 		}
 		aggregator, err := a.getAggregatorByName(aggregatorName)
 		if err != nil {
-			log.Error().Err(err).Msg("aggregator not found")
+			bus.HandleMessageError(err, msg, "aggregator not found")
 			return
 		}
 
 		err = aggregator.executeDeviation()
 		if err != nil {
-			log.Error().Err(err).Msg("failed to execute deviation")
+			bus.HandleMessageError(err, msg, "failed to execute deviation")
+			return
 		}
 	}
 }

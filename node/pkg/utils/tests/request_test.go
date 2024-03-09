@@ -167,6 +167,44 @@ func TestUrlRequest(t *testing.T) {
 	}
 }
 
+func TestUrlRequestRaw(t *testing.T) {
+	// Create a mock HTTP server
+	server := createMockServer()
+	defer server.Close()
+
+	headers := map[string]string{
+		"Test-Header": "test-value",
+	}
+
+	requestBody := TestRequestBody{
+		Test: "value",
+	}
+
+	res, err := utils.UrlRequestRaw(server.URL, "GET", requestBody, headers, "")
+	if err != nil {
+		t.Errorf("Error making request: %v", err)
+	}
+
+	if res.StatusCode != 200 {
+		t.Errorf("Expected status code 200 but got %v", res.StatusCode)
+	}
+
+	var result TestResponse
+	resultBody, err := io.ReadAll(res.Body)
+	if err != nil {
+		t.Error("Error reading response body:", err)
+	}
+
+	err = json.Unmarshal(resultBody, &result)
+	if err != nil {
+		t.Error("Error unmarshalling response body:", err)
+	}
+
+	if result.Message != "Mock server response" {
+		t.Errorf("Expected response message 'Mock server response' but got %v", result.Message)
+	}
+}
+
 func TestGetRequestProxy(t *testing.T) {
 	// Create a mock HTTP server that acts as a proxy
 	proxy := createMockProxyServer()
