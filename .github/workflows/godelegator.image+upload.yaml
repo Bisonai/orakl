@@ -111,35 +111,29 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
         with:
+          ref: ${{ matrix.base }}
           repository: "Bisonai/orakl-helm-charts"
           token: ${{ secrets.PAT }} # Personal Access Token with repo scope, should be carefully handled
 
       - name: Install YQ
         uses: dcarbone/install-yq-action@v1.1.1
 
-      - name: Set Git user
+      - name: Create commits
         run: |
+          set -e
           git config --global user.email "orakl-bot@users.noreply.github.com"
           git config --global user.name "orakl-bot"
 
-      - name: Create new branch and make changes
-        run: |
-          set -e
-          git fetch origin ${{ matrix.base }}
-          git checkout ${{ matrix.base }}
-          git pull
-          git checkout -b feat/${{ matrix.environment }}-delegator-v${{ needs.prepare.outputs.version }}.${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }}
           yq eval '.global.image.tag = "v${{ needs.prepare.outputs.version }}.${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }}"' -i ./godelegator/values.yaml
           yq eval '.appVersion = "${{ needs.prepare.outputs.version }}.${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }}"' -i ./godelegator/Chart.yaml
           git add .
           git commit -m "feat: deploy v${{ needs.prepare.outputs.version }}.${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }}"
-          git push origin feat/${{ matrix.environment }}-delegator-v${{ needs.prepare.outputs.version }}.${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }}
 
       - name: create PR
         uses: peter-evans/create-pull-request@v6
         with:
           token: ${{ secrets.PAT }}
+          commit-mssage: "feat: deploy v${{ needs.prepare.outputs.version }}.${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }}"
           title: "deploy ${{ matrix.environment }}-delegator-v${{ needs.prepare.outputs.version }}.${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }}"
           body: "${{ matrix.environment }}-delegator-v${{ needs.prepare.outputs.version }}.${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }}"
-          branch: "feat/${{ matrix.environment }}-delegator-v${{ needs.prepare.outputs.version }}.${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }}"
           base: "${{ matrix.base }}"
