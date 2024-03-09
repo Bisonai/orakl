@@ -2,14 +2,12 @@ package adapter
 
 import (
 	"encoding/json"
-	"io"
 	"sync"
-
-	"net/http"
 
 	"bisonai.com/orakl/node/pkg/admin/utils"
 	"bisonai.com/orakl/node/pkg/bus"
 	"bisonai.com/orakl/node/pkg/db"
+	oraklUtil "bisonai.com/orakl/node/pkg/utils"
 	"github.com/go-playground/validator"
 	"github.com/gofiber/fiber/v2"
 	"github.com/rs/zerolog/log"
@@ -49,25 +47,10 @@ type AdapterDetailModel struct {
 }
 
 func syncFromOraklConfig(c *fiber.Ctx) error {
-	resp, err := http.Get("https://config.orakl.network/adapters.json")
-	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).SendString("failed to fetch orakl config: " + err.Error())
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return c.Status(fiber.StatusInternalServerError).SendString("failed to fetch orakl config: " + resp.Status)
-	}
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).SendString("failed to read orakl config: " + err.Error())
-	}
-
 	var adapters BulkAdapters
-	err = json.Unmarshal(body, &adapters)
+	adapters, err := oraklUtil.GetRequest[BulkAdapters]("https://config.orakl.network/adapters.json", nil, map[string]string{"Content-Type": "application/json"})
 	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).SendString("failed to parse orakl config: " + err.Error())
+		return c.Status(fiber.StatusInternalServerError).SendString("failed to get orakl config: " + err.Error())
 	}
 
 	errs := make(chan error, len(adapters.Adapters))
