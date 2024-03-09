@@ -96,7 +96,7 @@ jobs:
   create-helmchart-pr:
     name: create-pr-helmchart
     runs-on: ubuntu-latest
-    needs: prepare
+    needs: [prepare, build]
 
     strategy:
       matrix:
@@ -120,6 +120,7 @@ jobs:
       - name: Create new branch and make changes
         run: |
           set -e
+          git fetch origin ${{ matrix.base }}
           git checkout ${{ matrix.base }}
           git pull
           git checkout -b feat/${{ matrix.environment }}-delegator-v${{ needs.prepare.outputs.version }}.${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }}
