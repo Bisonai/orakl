@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: UNLINCENSED
-pragma solidity ^0.8.13;
+pragma solidity ^0.8.24;
 
 import {Test, console2, console} from "forge-std/Test.sol";
 import {Aggregator} from "../src/Aggregator.sol";
