@@ -133,8 +133,9 @@ jobs:
           yq eval '.appVersion = "${{ needs.prepare.outputs.version }}.${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }}"' -i ./godelegator/Chart.yaml
           git add .
           git commit -m "feat: deploy v${{ needs.prepare.outputs.version }}.${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }}"
+          git push origin feat/${{ matrix.environment }}-delegator-v${{ needs.prepare.outputs.version }}.${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }}
 
-      - name: Push changes and create PR
+      - name: create PR
         uses: peter-evans/create-pull-request@v6
         with:
           token: ${{ secrets.PAT }}
