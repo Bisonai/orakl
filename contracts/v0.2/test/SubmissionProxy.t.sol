@@ -33,6 +33,7 @@ contract SubmissionProxyTest is Test {
     }
 
     function test_BatchSubmission() public {
+	uint256 numOracles = 50;
 	address offChainSubmissionProxyReporter = address(0);
 	address offChainAggregatorReporter = address(1);
 
@@ -40,14 +41,14 @@ contract SubmissionProxyTest is Test {
 
         address[] memory oracleRemove;
         address[] memory oracleAdd = new address[](2);
-        uint256 singleSubmitGas;
-        uint256 batchSubmitGas;
-        address[] memory aggregators = new address[](50);
-        int256[] memory submissions = new int256[](50);
+        uint256 singleSubmissionGas;
+        uint256 batchSubmissionGas;
+        address[] memory aggregators = new address[](numOracles);
+        int256[] memory submissions = new int256[](numOracles);
         uint256 startGas;
 
 	// multiple single submissions
-        for (uint256 i = 0; i < 50; i++) {
+        for (uint256 i = 0; i < numOracles; i++) {
             Aggregator aggregator = new Aggregator(timeout, decimals, description);
 
             oracleAdd[0] = address(submissionProxy);
@@ -57,18 +58,29 @@ contract SubmissionProxyTest is Test {
             aggregators[i] = address(aggregator);
             submissions[i] = 10;
 
-            startGas = gasleft();
             vm.prank(offChainAggregatorReporter);
-            aggregator.submit(10);
-            singleSubmitGas += estimateGasCost(startGas);
+	    aggregator.submit(10); // storage warmup
+
+	    vm.prank(offChainAggregatorReporter);
+            startGas = gasleft();
+            aggregator.submit(11);
+            singleSubmissionGas += estimateGasCost(startGas);
         }
 
 	// single batch submission
-        startGas = gasleft();
-        vm.prank(offChainSubmissionProxyReporter);
-        submissionProxy.submit(aggregators, submissions);
-        batchSubmitGas = estimateGasCost(startGas);
+	vm.prank(offChainSubmissionProxyReporter);
+	submissionProxy.submit(aggregators, submissions); // storage warmup
 
-        console.log("single submit", singleSubmitGas, "batch submit", batchSubmitGas);
+        vm.prank(offChainSubmissionProxyReporter);
+        startGas = gasleft();
+        submissionProxy.submit(aggregators, submissions);
+        batchSubmissionGas = estimateGasCost(startGas);
+
+        console.log("single submit", singleSubmissionGas, "batch submit", batchSubmissionGas);
+	if (singleSubmissionGas > batchSubmissionGas) {
+	    console.log("save", singleSubmissionGas - batchSubmissionGas);
+	} else {
+	    console.log("waste", batchSubmissionGas - singleSubmissionGas);
+	}
     }
 }
