@@ -59,6 +59,7 @@ contract SubmissionProxy is Ownable {
 
     function setMaxSubmission(uint256 _maxSubmission) public onlyOwner {
         maxSubmission = _maxSubmission;
+	emit MaxSubmissionSet(_maxSubmission);
     }
 
     function submit(address[] memory _aggregators, int256[] memory _submissions) public onlyOracle {
