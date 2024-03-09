@@ -3,6 +3,7 @@ package adapter
 import (
 	"encoding/json"
 	"io"
+	"sync"
 
 	"net/http"
 
@@ -69,35 +70,55 @@ func syncFromOraklConfig(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusInternalServerError).SendString("failed to parse orakl config: " + err.Error())
 	}
 
+	errs := make(chan error, len(adapters.Adapters))
+	var wg sync.WaitGroup
+
 	for _, adapter := range adapters.Adapters {
+		wg.Add(1)
 		go func(adapter AdapterInsertModel) {
+			defer wg.Done()
 			validate := validator.New()
 			if err = validate.Struct(adapter); err != nil {
-				log.Error().Err(err).Msg("failed to validate orakl config")
+				log.Error().Err(err).Msg("failed to validate orakl config adapter")
+				errs <- err
 				return
 			}
 
-			row, err := db.QueryRow[AdapterModel](c.Context(), InsertAdapter, map[string]any{
+			row, err := db.QueryRow[AdapterModel](c.Context(), UpsertAdapter, map[string]any{
 				"name": adapter.Name,
 			})
 			if err != nil {
 				log.Error().Err(err).Msg("failed to execute adapter insert query")
+				errs <- err
 				return
 			}
 
 			for _, feed := range adapter.Feeds {
 				feed.AdapterId = row.Id
-				_, err := db.QueryRow[FeedModel](c.Context(), InsertFeed, map[string]any{
+				_, err := db.QueryRow[FeedModel](c.Context(), UpsertFeed, map[string]any{
 					"name":       feed.Name,
 					"definition": feed.Definition,
 					"adapter_id": feed.AdapterId,
 				})
 				if err != nil {
 					log.Error().Err(err).Msg("failed to execute feed insert query")
+					errs <- err
 					continue
 				}
 			}
 		}(adapter)
+	}
+
+	wg.Wait()
+	close(errs)
+
+	var errorMessages []string
+	for err := range errs {
+		errorMessages = append(errorMessages, err.Error())
+	}
+
+	if len(errorMessages) > 0 {
+		return c.Status(fiber.StatusInternalServerError).JSON(errorMessages)
 	}
 
 	return c.Status(fiber.StatusOK).SendString("syncing request sent")
