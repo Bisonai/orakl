@@ -2,17 +2,20 @@ package adapter
 
 import (
 	"encoding/json"
-	"io"
-
-	"net/http"
+	"sync"
 
 	"bisonai.com/orakl/node/pkg/admin/utils"
 	"bisonai.com/orakl/node/pkg/bus"
 	"bisonai.com/orakl/node/pkg/db"
-	"github.com/PuerkitoBio/goquery"
+	oraklUtil "bisonai.com/orakl/node/pkg/utils"
 	"github.com/go-playground/validator"
 	"github.com/gofiber/fiber/v2"
+	"github.com/rs/zerolog/log"
 )
+
+type BulkAdapters struct {
+	Adapters []AdapterInsertModel `json:"adapters"`
+}
 
 type AdapterModel struct {
 	Id     *int64 `db:"id" json:"id"`
@@ -44,64 +47,67 @@ type AdapterDetailModel struct {
 }
 
 func syncFromOraklConfig(c *fiber.Ctx) error {
-	resp, err := http.Get("https://config.orakl.network/")
+	var adapters BulkAdapters
+	adapters, err := oraklUtil.GetRequest[BulkAdapters]("https://config.orakl.network/adapters.json", nil, map[string]string{"Content-Type": "application/json"})
 	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).SendString("failed to fetch orakl config: " + err.Error())
-	}
-	defer resp.Body.Close()
-
-	doc, err := goquery.NewDocumentFromReader(resp.Body)
-	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).SendString("failed to parse orakl config: " + err.Error())
+		return c.Status(fiber.StatusInternalServerError).SendString("failed to get orakl config: " + err.Error())
 	}
 
-	go func() {
-		doc.Find("Body > div > table:nth-child(3) a").Each(func(i int, s *goquery.Selection) {
-			href, exists := s.Attr("href")
-			if exists {
-				resp, err := http.Get("https://config.orakl.network/" + href)
-				if err != nil {
-					return
-				}
-				defer resp.Body.Close()
+	errs := make(chan error, len(adapters.Adapters))
+	var wg sync.WaitGroup
 
-				body, err := io.ReadAll(resp.Body)
-				if err != nil {
-					return
-				}
+	maxConcurrency := 20
+	sem := make(chan struct{}, maxConcurrency)
 
-				var adapter AdapterInsertModel
-				err = json.Unmarshal(body, &adapter)
-				if err != nil {
-					return
-				}
+	for _, adapter := range adapters.Adapters {
+		wg.Add(1)
+		sem <- struct{}{}
+		go func(adapter AdapterInsertModel) {
+			defer wg.Done()
+			defer func() { <-sem }()
+			validate := validator.New()
+			if err = validate.Struct(adapter); err != nil {
+				log.Error().Err(err).Msg("failed to validate orakl config adapter")
+				errs <- err
+				return
+			}
 
-				validate := validator.New()
-				if err = validate.Struct(adapter); err != nil {
-					return
-				}
+			row, err := db.QueryRow[AdapterModel](c.Context(), UpsertAdapter, map[string]any{
+				"name": adapter.Name,
+			})
+			if err != nil {
+				log.Error().Err(err).Msg("failed to execute adapter insert query")
+				errs <- err
+				return
+			}
 
-				row, err := db.QueryRow[AdapterModel](c.Context(), InsertAdapter, map[string]any{
-					"name": adapter.Name,
+			for _, feed := range adapter.Feeds {
+				feed.AdapterId = row.Id
+				_, err := db.QueryRow[FeedModel](c.Context(), UpsertFeed, map[string]any{
+					"name":       feed.Name,
+					"definition": feed.Definition,
+					"adapter_id": feed.AdapterId,
 				})
 				if err != nil {
-					return
-				}
-
-				for _, feed := range adapter.Feeds {
-					feed.AdapterId = row.Id
-					_, err := db.QueryRow[FeedModel](c.Context(), InsertFeed, map[string]any{
-						"name":       feed.Name,
-						"definition": feed.Definition,
-						"adapter_id": feed.AdapterId,
-					})
-					if err != nil {
-						return
-					}
+					log.Error().Err(err).Msg("failed to execute feed insert query")
+					errs <- err
+					continue
 				}
 			}
-		})
-	}()
+		}(adapter)
+	}
+
+	wg.Wait()
+	close(errs)
+
+	var errorMessages []string
+	for err := range errs {
+		errorMessages = append(errorMessages, err.Error())
+	}
+
+	if len(errorMessages) > 0 {
+		return c.Status(fiber.StatusInternalServerError).JSON(errorMessages)
+	}
 
 	return c.Status(fiber.StatusOK).SendString("syncing request sent")
 }

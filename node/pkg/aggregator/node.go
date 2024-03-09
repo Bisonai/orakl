@@ -137,7 +137,7 @@ func (n *AggregatorNode) HandlePriceDataMessage(msg raft.Message) error {
 
 		// handle aggregation here once all the data have been collected
 		median := utils.FindMedianInt64(filteredCollectedPrices)
-		log.Debug().Int64("roundId", priceDataMessage.RoundID).Int64("global_aggregate", median).Msg("global aggregated")
+		log.Debug().Str("Role", string(n.Raft.GetRole())).Int64("roundId", priceDataMessage.RoundID).Int64("global_aggregate", median).Msg("global aggregated")
 		err := n.insertGlobalAggregate(median, priceDataMessage.RoundID)
 		if err != nil {
 			log.Error().Err(err).Msg("failed to insert global aggregate")
