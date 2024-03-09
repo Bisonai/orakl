@@ -56,10 +56,15 @@ func syncFromOraklConfig(c *fiber.Ctx) error {
 	errs := make(chan error, len(adapters.Adapters))
 	var wg sync.WaitGroup
 
+	maxConcurrency := 20
+	sem := make(chan struct{}, maxConcurrency)
+
 	for _, adapter := range adapters.Adapters {
 		wg.Add(1)
+		sem <- struct{}{}
 		go func(adapter AdapterInsertModel) {
 			defer wg.Done()
+			defer func() { <-sem }()
 			validate := validator.New()
 			if err = validate.Struct(adapter); err != nil {
 				log.Error().Err(err).Msg("failed to validate orakl config adapter")
