@@ -9,46 +9,47 @@ import {IAggregator} from "./interfaces/IAggregatorSubmit.sol";
 // TODO: submission by aggregator name
 contract SubmissionProxy is Ownable {
     uint256 maxSubmission = 50;
-    address[] public oracleAddresses;
-    mapping(address => bool) oracles;
-
-    error OnlyOracle();
-    error InvalidOracle();
-    error InvalidSubmissionLength();
+    address[] public oracles;
+    mapping(address => uint256) expirations;
 
     event OracleAdded(address oracle);
     event OracleRemoved(address oracle);
     event MaxSubmissionSet(uint256 maxSubmission);
 
+    error OnlyOracle();
+    error InvalidOracle();
+    error InvalidSubmissionLength();
+
     modifier onlyOracle() {
-        if (!oracles[msg.sender]) revert OnlyOracle();
+        if (expirations[msg.sender] == 0) revert OnlyOracle();
         _;
     }
 
     constructor() Ownable(msg.sender) {}
 
     function getOracles() public view returns (address[] memory) {
-        return oracleAddresses;
+        return oracles;
     }
 
     function addOracle(address _oracle) public onlyOwner {
-        oracleAddresses.push(_oracle);
-        oracles[_oracle] = true;
+	uint256 expiration_ = block.timestamp + 4 weeks;
+	expirations[_oracle] = expiration_;
+	oracles.push(_oracle);
         emit OracleAdded(_oracle);
     }
 
     function removeOracle(address _oracle) public onlyOwner {
-        if (!oracles[_oracle]) {
+        if (expirations[_oracle] == 0) {
             revert InvalidOracle();
         }
 
-	uint256 oracleAddressesLength = oracleAddresses.length;
-        for (uint256 i = 0; i < oracleAddressesLength; ++i) {
-            if (oracleAddresses[i] == _oracle) {
-                address last = oracleAddresses[oracleAddressesLength - 1];
-                oracleAddresses[i] = last;
-                oracleAddresses.pop();
-                delete oracles[_oracle];
+	uint256 numOracles = oracles.length;
+        for (uint256 i = 0; i < numOracles; ++i) {
+            if (oracles[i] == _oracle) {
+                address last = oracles[numOracles - 1];
+                oracles[i] = last;
+                oracles.pop();
+                delete expirations[_oracle];
                 emit OracleRemoved(_oracle);
                 break;
             }
