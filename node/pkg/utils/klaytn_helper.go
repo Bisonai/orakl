@@ -55,7 +55,8 @@ func NewTxHelper(ctx context.Context) (*TxHelper, error) {
 	}
 
 	if os.Getenv("REPORTER_PK") != "" {
-		reporters = append(reporters, os.Getenv("REPORTER_PK"))
+		reporter := strings.TrimPrefix(os.Getenv("REPORTER_PK"), "0x")
+		reporters = append(reporters, reporter)
 	}
 
 	if len(reporters) == 0 {
@@ -268,7 +269,8 @@ func makeFeeDelegatedTx(ctx context.Context, client *client.Client, contractAddr
 }
 
 func signTxByFeePayer(ctx context.Context, client *client.Client, tx *types.Transaction, chainID *big.Int) (*types.Transaction, error) {
-	feePayerPrivateKey, err := crypto.HexToECDSA(os.Getenv("TEST_FEE_PAYER_PK"))
+	feePayer := strings.TrimPrefix(os.Getenv("TEST_FEE_PAYER_PK"), "0x")
+	feePayerPrivateKey, err := crypto.HexToECDSA(feePayer)
 	if err != nil {
 		return nil, err
 	}
