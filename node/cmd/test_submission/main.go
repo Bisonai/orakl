@@ -4,44 +4,36 @@ import (
 	"context"
 
 	"bisonai.com/orakl/node/pkg/utils"
+	"github.com/rs/zerolog/log"
 )
 
-// func testContractDirectCall(ctx context.Context) error {
-// 	rawTx, err := utils.TestMakeRawTxV2(ctx)
-// 	if err != nil {
-// 		return err
-// 	}
-
-// 	log.Info().Msgf("Raw transaction: %s", rawTx)
-
-// 	err = utils.TestSendRawTx(ctx, rawTx)
-// 	if err != nil {
-// 		return err
-// 	}
-// 	return nil
-// }
-
 func testContractDelegatedCall(ctx context.Context) error {
-	rawTx, err := utils.TestMakeFeeDelegatedRawTx(ctx)
+	txHelper, err := utils.NewTxHelper(ctx)
 	if err != nil {
+		log.Error().Err(err).Msg("NewTxHelper")
 		return err
 	}
 
-	signedRawTx, err := utils.SignTxByFeePayer(ctx, rawTx)
+	rawTx, err := txHelper.MakeFeeDelegatedTx(ctx, "0x93120927379723583c7a0dd2236fcb255e96949f", "increment()")
 	if err != nil {
+		log.Error().Err(err).Msg("MakeFeeDelegatedTx")
 		return err
 	}
 
-	signedRawTxHash, err := utils.GetRawTxHash(signedRawTx)
+	signedRawTx, err := txHelper.SignTxByFeePayer(ctx, rawTx)
 	if err != nil {
+		log.Error().Err(err).Msg("SignTxByFeePayer")
 		return err
 	}
 
-	return utils.TestSendRawTx(ctx, signedRawTxHash)
-
+	return txHelper.SubmitRawTx(ctx, signedRawTx)
 }
 
 func main() {
 	ctx := context.Background()
-	testContractDelegatedCall(ctx)
+
+	err := testContractDelegatedCall(ctx)
+	if err != nil {
+		log.Error().Err(err).Msg("testContractDelegatedCall")
+	}
 }

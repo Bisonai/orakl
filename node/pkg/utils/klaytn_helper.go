@@ -10,226 +10,181 @@ import (
 	"os"
 	"strings"
 
+	"bisonai.com/orakl/node/pkg/db"
+
 	"github.com/klaytn/klaytn/accounts/abi"
 	"github.com/klaytn/klaytn/blockchain/types"
 	"github.com/klaytn/klaytn/client"
 	"github.com/klaytn/klaytn/common"
 	"github.com/klaytn/klaytn/crypto"
 	"github.com/klaytn/klaytn/rlp"
+
+	"github.com/rs/zerolog/log"
 )
 
-func TestMakeRawTx(ctx context.Context) (string, error) {
-	client, err := client.Dial(os.Getenv("PROVIDER_URL"))
-	if err != nil {
-		return "", err
-	}
+const DEFAULT_GAS_LIMIT = uint64(400000)
 
-	privateKey, err := crypto.HexToECDSA(os.Getenv("REPORTER_PK"))
-	if err != nil {
-		return "", err
-	}
-
-	publicKey := privateKey.Public()
-	publicKeyECDSA, ok := publicKey.(*ecdsa.PublicKey)
-	if !ok {
-		return "", errors.New("error casting public key to ECDSA")
-	}
-
-	fromAddress := crypto.PubkeyToAddress(*publicKeyECDSA)
-	nonce, err := client.PendingNonceAt(ctx, fromAddress)
-	if err != nil {
-		return "", err
-	}
-
-	value := big.NewInt(1000000000000000000)
-	gasLimit := uint64(90000)
-	gasPrice, err := client.SuggestGasPrice(ctx)
-	if err != nil {
-		return "", err
-	}
-
-	toAddress := common.HexToAddress("0x9dDa69d0CCdB06125a662070138800D4CE4F53b9")
-	var data []byte
-	tx := types.NewTransaction(nonce, toAddress, value, gasLimit, gasPrice, data)
-
-	chainID, err := client.NetworkID(ctx)
-	if err != nil {
-		return "", err
-	}
-
-	signedTx, err := types.SignTx(tx, types.NewEIP155Signer(chainID), privateKey)
-	if err != nil {
-		return "", err
-	}
-
-	ts := types.Transactions{signedTx}
-	rawTxBytes := ts.GetRlp(0)
-	rawTxHex := hex.EncodeToString(rawTxBytes)
-
-	return rawTxHex, nil
+type ReporterModel struct {
+	ID int64  `db:"id"`
+	PK string `db:"pk"`
 }
 
-func TestMakeRawTxV2(ctx context.Context) (string, error) {
-	const methoddata = `[
-		{
-		  "inputs": [],
-		  "stateMutability": "nonpayable",
-		  "type": "constructor"
-		},
-		{
-		  "inputs": [],
-		  "name": "COUNTER",
-		  "outputs": [
-			{
-			  "internalType": "uint256",
-			  "name": "",
-			  "type": "uint256"
-			}
-		  ],
-		  "stateMutability": "view",
-		  "type": "function"
-		},
-		{
-		  "inputs": [],
-		  "name": "decrement",
-		  "outputs": [],
-		  "stateMutability": "nonpayable",
-		  "type": "function"
-		},
-		{
-		  "inputs": [],
-		  "name": "increment",
-		  "outputs": [],
-		  "stateMutability": "nonpayable",
-		  "type": "function"
-		}
-	  ]`
+// not intended for massive concurrent submissions, use with caution
+type TxHelper struct {
+	client    *client.Client
+	reporters []string
+	chainID   *big.Int
 
-	abi, err := abi.JSON(strings.NewReader(methoddata))
-	if err != nil {
-		return "", err
-	}
-
-	packed, err := abi.Pack("increment")
-	if err != nil {
-		return "", err
-	}
-
-	client, err := client.Dial(os.Getenv("PROVIDER_URL"))
-	if err != nil {
-		return "", err
-	}
-
-	privateKey, err := crypto.HexToECDSA(os.Getenv("REPORTER_PK"))
-	if err != nil {
-		return "", err
-	}
-
-	publicKey := privateKey.Public()
-	publicKeyECDSA, ok := publicKey.(*ecdsa.PublicKey)
-	if !ok {
-		return "", errors.New("error casting public key to ECDSA")
-	}
-
-	fromAddress := crypto.PubkeyToAddress(*publicKeyECDSA)
-	nonce, err := client.PendingNonceAt(ctx, fromAddress)
-	if err != nil {
-		return "", err
-	}
-
-	gasPrice, err := client.SuggestGasPrice(ctx)
-	if err != nil {
-		return "", err
-	}
-
-	chainID, err := client.NetworkID(ctx)
-	if err != nil {
-		return "", err
-	}
-
-	contractAddress := common.HexToAddress("0x93120927379723583c7a0dd2236fcb255e96949f")
-	tx := types.NewTransaction(nonce, contractAddress, big.NewInt(0), uint64(90000), gasPrice, packed)
-	signedTx, err := types.SignTx(tx, types.NewEIP155Signer(chainID), privateKey)
-	if err != nil {
-		return "", err
-	}
-
-	ts := types.Transactions{signedTx}
-	rawTxBytes := ts.GetRlp(0)
-	rawTxHex := hex.EncodeToString(rawTxBytes)
-
-	return rawTxHex, nil
+	lastUsed int
 }
 
-func TestMakeFeeDelegatedRawTx(ctx context.Context) (*types.Transaction, error) {
-	const methoddata = `[
-		{
-		  "inputs": [],
-		  "stateMutability": "nonpayable",
-		  "type": "constructor"
-		},
-		{
-		  "inputs": [],
-		  "name": "COUNTER",
-		  "outputs": [
-			{
-			  "internalType": "uint256",
-			  "name": "",
-			  "type": "uint256"
-			}
-		  ],
-		  "stateMutability": "view",
-		  "type": "function"
-		},
-		{
-		  "inputs": [],
-		  "name": "decrement",
-		  "outputs": [],
-		  "stateMutability": "nonpayable",
-		  "type": "function"
-		},
-		{
-		  "inputs": [],
-		  "name": "increment",
-		  "outputs": [],
-		  "stateMutability": "nonpayable",
-		  "type": "function"
-		}
-	  ]`
-
-	abi, err := abi.JSON(strings.NewReader(methoddata))
-	if err != nil {
-		return nil, err
-	}
-
-	packed, err := abi.Pack("increment")
-	if err != nil {
-		return nil, err
-	}
-
+func NewTxHelper(ctx context.Context) (*TxHelper, error) {
 	client, err := client.Dial(os.Getenv("PROVIDER_URL"))
 	if err != nil {
 		return nil, err
 	}
 
-	privateKey, err := crypto.HexToECDSA(os.Getenv("REPORTER_PK"))
+	chainID, err := getChainID(ctx, client)
+	if err != nil {
+		return nil, err
+	}
+
+	reporters, err := getReporters(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	if os.Getenv("REPORTER_PK") != "" {
+		reporters = append(reporters, os.Getenv("REPORTER_PK"))
+	}
+
+	if len(reporters) == 0 {
+		return nil, errors.New("no reporters found")
+	}
+
+	return &TxHelper{
+		client:    client,
+		reporters: reporters,
+		chainID:   chainID,
+	}, nil
+}
+
+func (t *TxHelper) Close() {
+	t.client.Close()
+}
+
+func (t *TxHelper) NextReporter() string {
+	if len(t.reporters) == 0 {
+		return ""
+	}
+	reporter := t.reporters[t.lastUsed]
+	t.lastUsed = (t.lastUsed + 1) % len(t.reporters)
+	return reporter
+}
+
+func (t *TxHelper) MakeDirectTx(ctx context.Context, contractAddressHex string, functionString string, args ...interface{}) (*types.Transaction, error) {
+	return makeDirectTx(ctx, t.client, contractAddressHex, t.NextReporter(), functionString, t.chainID, args...)
+}
+
+func (t *TxHelper) MakeFeeDelegatedTx(ctx context.Context, contractAddressHex string, functionString string, args ...interface{}) (*types.Transaction, error) {
+	return makeFeeDelegatedTx(ctx, t.client, contractAddressHex, t.NextReporter(), functionString, t.chainID, args...)
+}
+
+func (t *TxHelper) SubmitRawTx(ctx context.Context, tx *types.Transaction) error {
+	return submitRawTx(ctx, t.client, tx)
+}
+
+func (t *TxHelper) SubmitRawTxString(ctx context.Context, rawTx string) error {
+	return submitRawTxString(ctx, t.client, rawTx)
+}
+
+func (t *TxHelper) SignTxByFeePayer(ctx context.Context, tx *types.Transaction) (*types.Transaction, error) {
+	return signTxByFeePayer(ctx, t.client, tx, t.chainID)
+}
+
+func TxToHash(tx *types.Transaction) string {
+	ts := types.Transactions{tx}
+	rawTxBytes := ts.GetRlp(0)
+	return hex.EncodeToString(rawTxBytes)
+}
+
+func HashToTx(hash string) (*types.Transaction, error) {
+	rawTxBytes, err := hex.DecodeString(hash)
+	if err != nil {
+		return nil, err
+	}
+
+	tx := new(types.Transaction)
+	rlp.DecodeBytes(rawTxBytes, &tx)
+	return tx, nil
+}
+
+func GenerateABI(functionString string) (*abi.ABI, error) {
+	parts := strings.Split(functionString, "(")
+	if len(parts) != 2 {
+		return nil, fmt.Errorf("invalid function string")
+	}
+
+	functionName := parts[0]
+	arguments := strings.TrimRight(parts[1], ")")
+
+	json := fmt.Sprintf(`[
+        {
+            "constant": false,
+            "inputs": [%s],
+            "name": "%s",
+            "outputs": [],
+            "payable": false,
+            "stateMutability": "nonpayable",
+            "type": "function"
+        }
+    ]`, arguments, functionName)
+
+	parsedABI, err := abi.JSON(strings.NewReader(json))
+	if err != nil {
+		return nil, err
+	}
+
+	return &parsedABI, nil
+}
+
+func getChainID(ctx context.Context, client *client.Client) (*big.Int, error) {
+	return client.NetworkID(ctx)
+}
+
+func getReporters(ctx context.Context) ([]string, error) {
+	reporterModels, err := db.QueryRows[ReporterModel](ctx, "SELECT * FROM reporters;", nil)
+	if err != nil {
+		return nil, err
+	}
+
+	reporters := make([]string, len(reporterModels))
+	for i, reporter := range reporterModels {
+		reporters[i] = reporter.PK
+	}
+
+	return reporters, nil
+}
+
+func makeDirectTx(ctx context.Context, client *client.Client, contractAddressHex string, reporter string, functionString string, chainID *big.Int, args ...interface{}) (*types.Transaction, error) {
+	abi, err := GenerateABI(functionString)
+	if err != nil {
+		return nil, err
+	}
+
+	functionName := strings.Split(functionString, "(")[0]
+	packed, err := abi.Pack(functionName, args...)
+	if err != nil {
+		return nil, err
+	}
+
+	privateKey, err := crypto.HexToECDSA(reporter)
 	if err != nil {
 		return nil, err
 	}
 
 	publicKey := privateKey.Public()
 	publicKeyECDSA, ok := publicKey.(*ecdsa.PublicKey)
-	if !ok {
-		return nil, errors.New("error casting public key to ECDSA")
-	}
-
-	feePayerPrivateKey, err := crypto.HexToECDSA(os.Getenv("TEST_FEE_PAYER_PK"))
-	if err != nil {
-		return nil, err
-	}
-
-	feePayerPublicKey := feePayerPrivateKey.Public()
-	feePayerPublicKeyECDSA, ok := feePayerPublicKey.(*ecdsa.PublicKey)
 	if !ok {
 		return nil, errors.New("error casting public key to ECDSA")
 	}
@@ -245,12 +200,48 @@ func TestMakeFeeDelegatedRawTx(ctx context.Context) (*types.Transaction, error) 
 		return nil, err
 	}
 
-	chainID, err := client.NetworkID(ctx)
+	contractAddress := common.HexToAddress(contractAddressHex)
+
+	// defaults amount value to 0
+	tx := types.NewTransaction(nonce, contractAddress, big.NewInt(0), DEFAULT_GAS_LIMIT, gasPrice, packed)
+	return types.SignTx(tx, types.NewEIP155Signer(chainID), privateKey)
+}
+
+func makeFeeDelegatedTx(ctx context.Context, client *client.Client, contractAddressHex string, reporter string, functionString string, chainID *big.Int, args ...interface{}) (*types.Transaction, error) {
+	abi, err := GenerateABI(functionString)
 	if err != nil {
 		return nil, err
 	}
 
-	contractAddress := common.HexToAddress("0x93120927379723583c7a0dd2236fcb255e96949f")
+	functionName := strings.Split(functionString, "(")[0]
+	packed, err := abi.Pack(functionName, args...)
+	if err != nil {
+		return nil, err
+	}
+
+	privateKey, err := crypto.HexToECDSA(reporter)
+	if err != nil {
+		return nil, err
+	}
+
+	publicKey := privateKey.Public()
+	publicKeyECDSA, ok := publicKey.(*ecdsa.PublicKey)
+	if !ok {
+		return nil, errors.New("error casting public key to ECDSA")
+	}
+
+	fromAddress := crypto.PubkeyToAddress(*publicKeyECDSA)
+	nonce, err := client.PendingNonceAt(ctx, fromAddress)
+	if err != nil {
+		return nil, err
+	}
+
+	gasPrice, err := client.SuggestGasPrice(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	contractAddress := common.HexToAddress(contractAddressHex)
 
 	txMap := map[types.TxValueKeyType]interface{}{
 		types.TxValueKeyNonce:    nonce,
@@ -260,62 +251,49 @@ func TestMakeFeeDelegatedRawTx(ctx context.Context) (*types.Transaction, error) 
 		types.TxValueKeyAmount:   big.NewInt(0),
 		types.TxValueKeyFrom:     fromAddress,
 		types.TxValueKeyData:     packed,
-		types.TxValueKeyFeePayer: crypto.PubkeyToAddress(*feePayerPublicKeyECDSA),
+		types.TxValueKeyFeePayer: common.Address{}, // assumes that reporter doesn't know fee payer address
 	}
+
 	unsigned, err := types.NewTransactionWithMap(types.TxTypeFeeDelegatedSmartContractExecution, txMap)
 	if err != nil {
 		return nil, err
 	}
-	signedTx, err := types.SignTx(unsigned, types.NewEIP155Signer(chainID), privateKey)
-	if err != nil {
-		return nil, err
-	}
-	return signedTx, nil
+
+	return types.SignTx(unsigned, types.NewEIP155Signer(chainID), privateKey)
 }
 
-func GetRawTxHash(tx *types.Transaction) (string, error) {
-	ts := types.Transactions{tx}
-	rawTxBytes := ts.GetRlp(0)
-	rawTxHex := hex.EncodeToString(rawTxBytes)
-
-	return rawTxHex, nil
-}
-
-func SignTxByFeePayer(ctx context.Context, tx *types.Transaction) (*types.Transaction, error) {
-	client, err := client.Dial(os.Getenv("PROVIDER_URL"))
-	if err != nil {
-		return nil, err
-	}
-
-	chainID, err := client.NetworkID(ctx)
-	if err != nil {
-		return nil, err
-	}
-
+func signTxByFeePayer(ctx context.Context, client *client.Client, tx *types.Transaction, chainID *big.Int) (*types.Transaction, error) {
 	feePayerPrivateKey, err := crypto.HexToECDSA(os.Getenv("TEST_FEE_PAYER_PK"))
 	if err != nil {
 		return nil, err
 	}
 
 	feePayerPublicKey := feePayerPrivateKey.Public()
-	_, ok := feePayerPublicKey.(*ecdsa.PublicKey)
+	publicKeyECDSA, ok := feePayerPublicKey.(*ecdsa.PublicKey)
 	if !ok {
 		return nil, errors.New("error casting public key to ECDSA")
 	}
 
-	signedWithTxFeePayer, err := types.SignTxAsFeePayer(tx, types.NewEIP155Signer(chainID), feePayerPrivateKey)
+	updatedTx, err := updateFeePayer(tx, crypto.PubkeyToAddress(*publicKeyECDSA))
 	if err != nil {
 		return nil, err
 	}
-	return signedWithTxFeePayer, nil
+
+	return types.SignTxAsFeePayer(updatedTx, types.NewEIP155Signer(chainID), feePayerPrivateKey)
 }
 
-func TestSendRawTx(ctx context.Context, rawTx string) error {
-	client, err := client.Dial(os.Getenv("PROVIDER_URL"))
+func submitRawTx(ctx context.Context, client *client.Client, tx *types.Transaction) error {
+
+	err := client.SendTransaction(ctx, tx)
 	if err != nil {
 		return err
 	}
 
+	log.Debug().Str("txHash", tx.Hash().Hex()).Msg("submitted")
+	return nil
+}
+
+func submitRawTxString(ctx context.Context, client *client.Client, rawTx string) error {
 	rawTxBytes, err := hex.DecodeString(rawTx)
 	if err != nil {
 		return err
@@ -324,33 +302,33 @@ func TestSendRawTx(ctx context.Context, rawTx string) error {
 	tx := new(types.Transaction)
 	rlp.DecodeBytes(rawTxBytes, &tx)
 
-	err = client.SendTransaction(ctx, tx)
-	if err != nil {
-		return err
-	}
-
-	fmt.Printf("tx sent: %s", tx.Hash().Hex())
-	return nil
+	return submitRawTx(ctx, client, tx)
 }
 
-func GetPublicKey(pk string) (string, error) {
-	pk = strings.TrimPrefix(pk, "0x")
-	if len(pk) == 110 {
-		return "", errors.New("klaytn wallet key is given instead of private key")
-	}
-
-	privateKeyECDSA, err := crypto.HexToECDSA(pk)
+func updateFeePayer(tx *types.Transaction, feePayer common.Address) (*types.Transaction, error) {
+	from, err := tx.From()
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
-	publicKey := privateKeyECDSA.Public()
-
-	publicKeyECDSA, ok := publicKey.(*ecdsa.PublicKey)
-	if !ok {
-		return "", err
+	to := tx.To()
+	if to == nil {
+		return nil, errors.New("to address is nil")
 	}
 
-	address := crypto.PubkeyToAddress(*publicKeyECDSA)
-	return address.String(), nil
+	remap := map[types.TxValueKeyType]interface{}{
+		types.TxValueKeyNonce:    tx.Nonce(),
+		types.TxValueKeyGasPrice: tx.GasPrice(),
+		types.TxValueKeyGasLimit: tx.Gas(),
+		types.TxValueKeyTo:       *to,
+		types.TxValueKeyAmount:   tx.Value(),
+		types.TxValueKeyFrom:     from,
+		types.TxValueKeyData:     tx.Data(),
+		types.TxValueKeyFeePayer: feePayer,
+	}
+
+	newTx, err := types.NewTransactionWithMap(types.TxTypeFeeDelegatedSmartContractExecution, remap)
+
+	newTx.SetSignature(tx.GetTxInternalData().RawSignatureValues())
+	return newTx, err
 }

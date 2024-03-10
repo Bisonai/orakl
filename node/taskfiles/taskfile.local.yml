@@ -37,6 +37,7 @@ tasks:
     cmds:
       - go test ./pkg/aggregator -v
   test-utils:
+    dotenv: [".env"]
     cmds:
       - go test ./pkg/utils/tests -v
   test-bus:

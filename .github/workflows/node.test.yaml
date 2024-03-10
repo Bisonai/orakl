@@ -91,3 +91,6 @@ jobs:
           REDIS_HOST: "localhost"
           REDIS_PORT: "6379"
           ENCRYPT_PASSWORD: "anything"
+          PROVIDER_URL: "https://api.baobab.klaytn.net:8651"
+          REPORTER_PK: ${{ secrets.TEST_DELEGATOR_REPORTER_PK}}
+          TEST_FEE_PAYER_PK: ${{ secrets.DELEGATOR_FEEPAYER_PK}}
