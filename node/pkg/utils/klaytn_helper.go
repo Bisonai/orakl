@@ -111,11 +111,16 @@ func TxToHash(tx *types.Transaction) string {
 func HashToTx(hash string) (*types.Transaction, error) {
 	rawTxBytes, err := hex.DecodeString(hash)
 	if err != nil {
+		log.Error().Err(err).Msg("failed to decode hash")
 		return nil, err
 	}
 
 	tx := new(types.Transaction)
-	rlp.DecodeBytes(rawTxBytes, &tx)
+	err = rlp.DecodeBytes(rawTxBytes, &tx)
+	if err != nil {
+		log.Error().Err(err).Msg("failed to decode raw tx")
+		return nil, err
+	}
 	return tx, nil
 }
 
@@ -300,7 +305,11 @@ func submitRawTxString(ctx context.Context, client *client.Client, rawTx string)
 	}
 
 	tx := new(types.Transaction)
-	rlp.DecodeBytes(rawTxBytes, &tx)
+	err = rlp.DecodeBytes(rawTxBytes, &tx)
+	if err != nil {
+		log.Error().Err(err).Msg("failed to decode raw tx")
+		return err
+	}
 
 	return submitRawTx(ctx, client, tx)
 }
