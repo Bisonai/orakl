@@ -29,7 +29,6 @@ type ReporterModel struct {
 	PK string `db:"pk"`
 }
 
-// not intended for massive concurrent submissions, use with caution
 type TxHelper struct {
 	client    *client.Client
 	reporters []string
@@ -208,7 +207,6 @@ func makeDirectTx(ctx context.Context, client *client.Client, contractAddressHex
 
 	contractAddress := common.HexToAddress(contractAddressHex)
 
-	// defaults amount value to 0
 	tx := types.NewTransaction(nonce, contractAddress, big.NewInt(0), DEFAULT_GAS_LIMIT, gasPrice, packed)
 	return types.SignTx(tx, types.NewEIP155Signer(chainID), privateKey)
 }
@@ -257,7 +255,7 @@ func makeFeeDelegatedTx(ctx context.Context, client *client.Client, contractAddr
 		types.TxValueKeyAmount:   big.NewInt(0),
 		types.TxValueKeyFrom:     fromAddress,
 		types.TxValueKeyData:     packed,
-		types.TxValueKeyFeePayer: common.Address{}, // assumes that reporter doesn't know fee payer address
+		types.TxValueKeyFeePayer: common.Address{},
 	}
 
 	unsigned, err := types.NewTransactionWithMap(types.TxTypeFeeDelegatedSmartContractExecution, txMap)

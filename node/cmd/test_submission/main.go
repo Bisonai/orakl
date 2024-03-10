@@ -42,7 +42,6 @@ func main() {
 	log.Info().Msgf("contractFunction: %s", *contractFunction)
 	log.Info().Msgf("contractArguments: %s", *contractArguments)
 
-	// Split the contractArguments string into arguments
 	args := strings.Split(*contractArguments, ",")
 
 	err := testContractDelegatedCall(ctx, *contractAddress, *contractFunction, args...)
