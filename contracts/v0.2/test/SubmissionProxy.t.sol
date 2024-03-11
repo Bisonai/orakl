@@ -31,12 +31,54 @@ contract SubmissionProxyTest is Test {
     // Add and remove oracle
     function test_AddAndRemoveOracle() public {
         submissionProxy.addOracle(address(0));
-        uint256 numOracles = submissionProxy.getOracles().length;
-        assertEq(numOracles, 1);
+        uint256 numOracles_ = submissionProxy.getOracles().length;
+        assertEq(numOracles_, 1);
 
         submissionProxy.removeOracle(address(0));
-        numOracles = submissionProxy.getOracles().length;
-        assertEq(numOracles, 0);
+        numOracles_ = submissionProxy.getOracles().length;
+        assertEq(numOracles_, 0);
+    }
+
+    function test_GetExpiredOracles() public {
+	address oracle_ = makeAddr("oracle");
+
+        submissionProxy.addOracle(oracle_);
+        uint256 numOracles_ = submissionProxy.getOracles().length;
+        assertEq(numOracles_, 1);
+
+	// oracle has not expired yet
+	address[] memory expired_ = submissionProxy.getExpiredOracles();
+	assertEq(expired_.length, 0);
+
+	// oracle expired
+	vm.warp(block.timestamp + submissionProxy.expirationPeriod() + 1);
+	expired_ = submissionProxy.getExpiredOracles();
+	assertEq(expired_.length, 1);
+	assertEq(expired_[0], oracle_);
+    }
+
+    function test_SetMaxSubmission() public {
+	uint256 maxSubmission_ = 10;
+	submissionProxy.setMaxSubmission(maxSubmission_);
+	assertEq(submissionProxy.maxSubmission(), maxSubmission_);
+    }
+
+    function testFail_SetMaxSubmissionProtectExecution() public {
+	address nonOwner_ = makeAddr("nonOwner");
+	vm.prank(nonOwner_);
+	submissionProxy.setMaxSubmission(10);
+    }
+
+    function test_SetExpirationPeriod() public {
+	uint256 expirationPeriod_ = 1 weeks;
+	submissionProxy.setExpirationPeriod(expirationPeriod_);
+	assertEq(submissionProxy.expirationPeriod(), expirationPeriod_);
+    }
+
+    function testFail_SetExpirationPeriodProtectExecution() public {
+	address nonOwner_ = makeAddr("nonOwner");
+	vm.prank(nonOwner_);
+	submissionProxy.setExpirationPeriod(1 weeks);
     }
 
     function test_BatchSubmission() public {
@@ -89,34 +131,5 @@ contract SubmissionProxyTest is Test {
 	} else {
 	    console.log("waste", batchSubmissionGas - singleSubmissionGas);
 	}
-    function test_GetExpiredOracles() public {
-	address oracle = makeAddr("oracle");
-
-        submissionProxy.addOracle(oracle);
-        uint256 numOracles = submissionProxy.getOracles().length;
-        assertEq(numOracles, 1);
-
-	// oracle has not expired yet
-	address[] memory expired = submissionProxy.getExpiredOracles();
-	assertEq(expired.length, 0);
-
-	// oracle expired
-	vm.warp(block.timestamp + submissionProxy.expirationPeriod() + 1);
-	expired = submissionProxy.getExpiredOracles();
-	assertEq(expired.length, 1);
-	assertEq(expired[0], oracle);
     }
-
-    function test_SetMaxSubmission() public {
-	uint256 maxSubmission = 10;
-	submissionProxy.setMaxSubmission(maxSubmission);
-	assertEq(submissionProxy.maxSubmission(), maxSubmission);
-    }
-
-    function testFail_SetMaxSubmission() public {
-	address nonOwner = makeAddr("nonOwner");
-	vm.prank(nonOwner);
-	submissionProxy.setMaxSubmission(10);
-    }
-
 }
