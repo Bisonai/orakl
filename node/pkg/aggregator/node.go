@@ -3,6 +3,7 @@ package aggregator
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"sync"
 
 	"time"
@@ -71,8 +72,9 @@ func (n *AggregatorNode) HandleCustomMessage(message raft.Message) error {
 		return n.HandleRoundSyncMessage(message)
 	case PriceData:
 		return n.HandlePriceDataMessage(message)
+	default:
+		return errors.New("unknown message type")
 	}
-	return nil
 }
 
 func (n *AggregatorNode) HandleRoundSyncMessage(msg raft.Message) error {
