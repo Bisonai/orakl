@@ -22,6 +22,7 @@ contract SubmissionProxy is Ownable {
     error InvalidOracle();
     error InvalidSubmissionLength();
     error InvalidExpirationPeriod();
+    error InvalidMaxSubmission();
 
     modifier onlyOracle() {
         uint256 expiration = expirations[msg.sender];
@@ -32,6 +33,9 @@ contract SubmissionProxy is Ownable {
     constructor() Ownable(msg.sender) {}
 
     function setMaxSubmission(uint256 _maxSubmission) external onlyOwner {
+	if (_maxSubmission == 0 || _maxSubmission > 1_000) {
+	    revert InvalidMaxSubmission();
+	}
         maxSubmission = _maxSubmission;
         emit MaxSubmissionSet(_maxSubmission);
     }

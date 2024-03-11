@@ -70,6 +70,16 @@ contract SubmissionProxyTest is Test {
         assertEq(submissionProxy.maxSubmission(), maxSubmission_);
     }
 
+    function test_SetMaxSubmissionBelowMinimum() public {
+	vm.expectRevert(SubmissionProxy.InvalidMaxSubmission.selector);
+        submissionProxy.setMaxSubmission(0);
+    }
+
+    function test_SetMaxSubmissionAboveMaximum() public {
+	vm.expectRevert(SubmissionProxy.InvalidMaxSubmission.selector);
+        submissionProxy.setMaxSubmission(1_000 + 1);
+    }
+
     function testFail_SetMaxSubmissionProtectExecution() public {
         address nonOwner_ = makeAddr("nonOwner");
         vm.prank(nonOwner_);
