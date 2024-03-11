@@ -1,6 +1,10 @@
 version: "3"
 
 tasks:
+  test-submission:
+    dotenv: [".env"]
+    cmds:
+      - go run ./cmd/test_submission/main.go
   local-admin:
     dotenv: [".env"]
     cmds:
@@ -33,6 +37,7 @@ tasks:
     cmds:
       - go test ./pkg/aggregator -v
   test-utils:
+    dotenv: [".env"]
     cmds:
       - go test ./pkg/utils/tests -v
   test-bus:
