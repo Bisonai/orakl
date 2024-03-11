@@ -24,7 +24,7 @@ func NewNode(h host.Host, ps *pubsub.PubSub, topicString string) (*AggregatorNod
 	leaderTimeout := 5 * time.Second
 
 	aggregator := AggregatorNode{
-		Raft:            raft.NewRaftNode(h, ps, topic, 100, &leaderTimeout), // consider updating after testing
+		Raft:            raft.NewRaftNode(h, ps, topic, 100, &leaderTimeout),
 		CollectedPrices: map[int64][]int64{},
 		AggregatorMutex: sync.Mutex{},
 	}
@@ -44,7 +44,6 @@ func (n *AggregatorNode) Run(ctx context.Context) {
 }
 
 func (n *AggregatorNode) LeaderJob() error {
-	// leader continously sends roundId in regular basis and triggers all other nodes to run its job
 	n.RoundID++
 	n.Raft.IncreaseTerm()
 	roundMessage := RoundSyncMessage{
@@ -70,7 +69,6 @@ func (n *AggregatorNode) HandleCustomMessage(message raft.Message) error {
 	switch message.Type {
 	case RoundSync:
 		return n.HandleRoundSyncMessage(message)
-		// every node runs its job when leader sends roundSync message
 	case PriceData:
 		return n.HandlePriceDataMessage(message)
 	}
@@ -131,7 +129,6 @@ func (n *AggregatorNode) HandlePriceDataMessage(msg raft.Message) error {
 		defer delete(n.CollectedPrices, priceDataMessage.RoundID)
 		filteredCollectedPrices := FilterNegative(n.CollectedPrices[priceDataMessage.RoundID])
 
-		// handle aggregation here once all the data have been collected
 		median, err := utils.GetInt64Med(filteredCollectedPrices)
 		if err != nil {
 			log.Error().Err(err).Msg("failed to get median")

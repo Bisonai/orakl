@@ -174,7 +174,6 @@ func (r *Raft) handleRequestVote(msg Message) error {
 	}
 
 	if r.GetRole() == Candidate && RequestVoteMessage.Term == currentTerm && msg.SentFrom != r.GetHostId() {
-		// Deny the vote and revert to follower
 		r.UpdateRole(Follower)
 		return r.sendReplyVote(msg.SentFrom, false)
 	}
@@ -293,7 +292,6 @@ func (r *Raft) sendRequestVote() error {
 // utility functions
 
 func (r *Raft) StopHeartbeatTicker() {
-	// should be called on leader job failure to resign and handover leadership
 	if r.HeartbeatTicker != nil {
 		r.HeartbeatTicker.Stop()
 		r.HeartbeatTicker = nil
