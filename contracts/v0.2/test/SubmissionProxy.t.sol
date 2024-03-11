@@ -106,4 +106,17 @@ contract SubmissionProxyTest is Test {
 	assertEq(expired.length, 1);
 	assertEq(expired[0], oracle);
     }
+
+    function test_SetMaxSubmission() public {
+	uint256 maxSubmission = 10;
+	submissionProxy.setMaxSubmission(maxSubmission);
+	assertEq(submissionProxy.maxSubmission(), maxSubmission);
+    }
+
+    function testFail_SetMaxSubmission() public {
+	address nonOwner = makeAddr("nonOwner");
+	vm.prank(nonOwner);
+	submissionProxy.setMaxSubmission(10);
+    }
+
 }

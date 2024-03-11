@@ -7,7 +7,7 @@ import {IAggregator} from "./interfaces/IAggregatorSubmit.sol";
 // TODO: submission verification
 // TODO: submission by aggregator name
 contract SubmissionProxy is Ownable {
-    uint256 maxSubmission = 50;
+    uint256 public maxSubmission = 50;
     uint256 public expirationPeriod = 5 weeks;
 
     address[] public oracles;
