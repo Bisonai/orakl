@@ -62,13 +62,8 @@ type Raft struct {
 	Resign           chan interface{}
 	MessageBuffer    chan Message
 	HeartbeatTimeout time.Duration
-}
 
-type Node interface {
-	HandleCustomMessage(Message) error
-
-	// define job run by leader
-	GetLeaderJobTimeout() *time.Duration
-
-	LeaderJob() error
+	LeaderJobTimeout    time.Duration
+	HandleCustomMessage func(Message) error
+	LeaderJob           func() error
 }
