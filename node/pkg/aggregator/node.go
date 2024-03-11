@@ -24,13 +24,12 @@ func NewNode(h host.Host, ps *pubsub.PubSub, topicString string) (*AggregatorNod
 	leaderTimeout := 5 * time.Second
 
 	aggregator := AggregatorNode{
-		Raft: raft.NewRaftNode(h, ps, topic, 100), // consider updating after testing
-
-		LeaderJobTimeout: &leaderTimeout,
-
+		Raft:            raft.NewRaftNode(h, ps, topic, 100, &leaderTimeout), // consider updating after testing
 		CollectedPrices: map[int64][]int64{},
 		AggregatorMutex: sync.Mutex{},
 	}
+	aggregator.Raft.LeaderJob = aggregator.LeaderJob
+	aggregator.Raft.HandleCustomMessage = aggregator.HandleCustomMessage
 
 	return &aggregator, nil
 }
@@ -41,11 +40,7 @@ func (n *AggregatorNode) Run(ctx context.Context) {
 		n.RoundID = latestRoundId
 	}
 
-	n.Raft.Run(ctx, n)
-}
-
-func (n *AggregatorNode) GetLeaderJobTimeout() *time.Duration {
-	return n.LeaderJobTimeout
+	n.Raft.Run(ctx)
 }
 
 func (n *AggregatorNode) LeaderJob() error {

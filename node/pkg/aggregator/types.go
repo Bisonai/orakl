@@ -55,9 +55,6 @@ type AggregatorNode struct {
 	Aggregator
 	Raft *raft.Raft
 
-	LeaderJobTicker  *time.Ticker
-	LeaderJobTimeout *time.Duration
-
 	CollectedPrices map[int64][]int64
 	AggregatorMutex sync.Mutex
 

@@ -23,22 +23,6 @@ func TestNewNode(t *testing.T) {
 	}
 }
 
-func TestGetLeaderJobTimeout(t *testing.T) {
-	ctx := context.Background()
-	cleanup, testItems, err := setup(ctx)
-	if err != nil {
-		t.Fatalf("error setting up test: %v", err)
-	}
-	defer cleanup()
-
-	node, err := NewNode(testItems.app.Host, testItems.app.Pubsub, testItems.topicString)
-	if err != nil {
-		t.Fatal("error creating new node")
-	}
-
-	assert.Equal(t, node.GetLeaderJobTimeout(), node.LeaderJobTimeout)
-}
-
 func TestLeaderJob(t *testing.T) {
 	ctx := context.Background()
 	cleanup, testItems, err := setup(ctx)

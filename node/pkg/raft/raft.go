@@ -16,33 +16,42 @@ import (
 
 const HEARTBEAT_TIMEOUT = 100 * time.Millisecond
 
-func NewRaftNode(h host.Host, ps *pubsub.PubSub, topic *pubsub.Topic, messageBuffer int) *Raft {
+func NewRaftNode(
+	h host.Host,
+	ps *pubsub.PubSub,
+	topic *pubsub.Topic,
+	messageBuffer int,
+	leaderJobTimeout *time.Duration,
+) *Raft {
 	r := &Raft{
 		Host:  h,
 		Ps:    ps,
 		Topic: topic,
 
-		Role:             "follower",
-		VotedFor:         "",
-		LeaderID:         "",
-		VotesReceived:    0,
-		Term:             0,
-		Mutex:            sync.Mutex{},
+		Role:          "follower",
+		VotedFor:      "",
+		LeaderID:      "",
+		VotesReceived: 0,
+		Term:          0,
+		Mutex:         sync.Mutex{},
+
 		MessageBuffer:    make(chan Message, messageBuffer),
 		Resign:           make(chan interface{}),
 		HeartbeatTimeout: HEARTBEAT_TIMEOUT,
+
+		LeaderJobTimeout: leaderJobTimeout,
 	}
 	return r
 }
 
-func (r *Raft) Run(ctx context.Context, node Node) {
+func (r *Raft) Run(ctx context.Context) {
 	go r.subscribe(ctx)
 	r.startElectionTimer()
 
 	for {
 		select {
 		case msg := <-r.MessageBuffer:
-			err := r.handleMessage(ctx, node, msg)
+			err := r.handleMessage(ctx, msg)
 			if err != nil {
 				log.Error().Err(err).Msg("failed to handle message")
 			}
@@ -83,20 +92,20 @@ func (r *Raft) subscribe(ctx context.Context) {
 
 // handler for incoming messages
 
-func (r *Raft) handleMessage(ctx context.Context, node Node, msg Message) error {
+func (r *Raft) handleMessage(ctx context.Context, msg Message) error {
 	switch msg.Type {
 	case Heartbeat:
-		return r.handleHeartbeat(node, msg)
+		return r.handleHeartbeat(msg)
 	case RequestVote:
 		return r.handleRequestVote(msg)
 	case ReplyVote:
-		return r.handleReplyVote(ctx, node, msg)
+		return r.handleReplyVote(ctx, msg)
 	default:
-		return node.HandleCustomMessage(msg)
+		return r.HandleCustomMessage(msg)
 	}
 }
 
-func (r *Raft) handleHeartbeat(node Node, msg Message) error {
+func (r *Raft) handleHeartbeat(msg Message) error {
 	if msg.SentFrom == r.GetHostId() {
 		return nil
 	}
@@ -126,7 +135,7 @@ func (r *Raft) handleHeartbeat(node Node, msg Message) error {
 	}
 
 	if currentRole == Leader {
-		r.StopHeartbeatTicker(node)
+		r.StopHeartbeatTicker()
 		r.UpdateRole(Follower)
 	} else if currentRole == Candidate {
 		r.UpdateRole(Follower)
@@ -179,7 +188,7 @@ func (r *Raft) handleRequestVote(msg Message) error {
 	return r.sendReplyVote(msg.SentFrom, voteGranted)
 }
 
-func (r *Raft) handleReplyVote(ctx context.Context, node Node, msg Message) error {
+func (r *Raft) handleReplyVote(ctx context.Context, msg Message) error {
 	if r.GetRole() != Candidate {
 		return nil
 	}
@@ -199,7 +208,7 @@ func (r *Raft) handleReplyVote(ctx context.Context, node Node, msg Message) erro
 		log.Debug().Int("vote received", r.GetVoteReceived()).Msg("vote received")
 		log.Debug().Int("subscribers count", r.SubscribersCount()).Msg("subscribers count")
 		if r.GetVoteReceived() >= (r.SubscribersCount()+1)/2 {
-			r.becomeLeader(ctx, node)
+			r.becomeLeader(ctx)
 		}
 	}
 	return nil
@@ -283,7 +292,7 @@ func (r *Raft) sendRequestVote() error {
 
 // utility functions
 
-func (r *Raft) StopHeartbeatTicker(node Node) {
+func (r *Raft) StopHeartbeatTicker() {
 	// should be called on leader job failure to resign and handover leadership
 	if r.HeartbeatTicker != nil {
 		r.HeartbeatTicker.Stop()
@@ -296,7 +305,7 @@ func (r *Raft) StopHeartbeatTicker(node Node) {
 	}
 }
 
-func (r *Raft) becomeLeader(ctx context.Context, node Node) {
+func (r *Raft) becomeLeader(ctx context.Context) {
 	log.Debug().Msg("becoming leader")
 
 	r.Resign = make(chan interface{})
@@ -304,7 +313,7 @@ func (r *Raft) becomeLeader(ctx context.Context, node Node) {
 	r.UpdateRole(Leader)
 	r.HeartbeatTicker = time.NewTicker(r.HeartbeatTimeout)
 
-	leaderJobTimer := time.NewTimer(*node.GetLeaderJobTimeout())
+	leaderJobTimer := time.NewTimer(*r.LeaderJobTimeout)
 
 	go func() {
 		for {
@@ -315,11 +324,11 @@ func (r *Raft) becomeLeader(ctx context.Context, node Node) {
 					log.Error().Err(err).Msg("failed to send heartbeat")
 				}
 			case <-leaderJobTimer.C:
-				err := node.LeaderJob()
+				err := r.LeaderJob()
 				if err != nil {
 					log.Error().Err(err).Msg("failed to execute leader job")
 				}
-				leaderJobTimer.Reset(*node.GetLeaderJobTimeout())
+				leaderJobTimer.Reset(*r.LeaderJobTimeout)
 
 			case <-r.Resign:
 				log.Debug().Msg("resigning as leader")
