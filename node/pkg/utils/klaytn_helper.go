@@ -125,12 +125,15 @@ func HashToTx(hash string) (*types.Transaction, error) {
 }
 
 func ConvertFunctionParameters(input string) string {
+	if strings.TrimSpace(input) == "" {
+		return ""
+	}
+
 	parts := strings.Split(input, ",")
 	var outputParts []string
 	for _, part := range parts {
 		part = strings.TrimSpace(part)
 		paramType := strings.Split(part, " ")[0]
-
 		outputParts = append(outputParts, fmt.Sprintf(`{
             "type": "%s"
         }`, paramType))
