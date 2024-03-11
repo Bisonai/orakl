@@ -4,7 +4,6 @@ pragma solidity 0.8.24;
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {IAggregator} from "./interfaces/IAggregatorSubmit.sol";
 
-// TODO: oracle address expiration
 // TODO: submission verification
 // TODO: submission by aggregator name
 contract SubmissionProxy is Ownable {
