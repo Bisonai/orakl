@@ -239,8 +239,6 @@ func makeFeeDelegatedTx(ctx context.Context, client *client.Client, contractAddr
 		return nil, err
 	}
 
-	fmt.Println(len(args))
-
 	functionName := strings.Split(functionString, "(")[0]
 	packed, err := abi.Pack(functionName, args...)
 	if err != nil {

@@ -68,9 +68,10 @@ func New(ctx context.Context, h host.Host, ps *pubsub.PubSub) (*Reporter, error)
 		Raft:            raft,
 		TxHelper:        txHelper,
 		contractAddress: os.Getenv("SUBMISSION_PROXY_CONTRACT"),
+		lastSubmissions: make(map[string]int64),
 	}
-	reporter.Raft.LeaderJob = reporter.LeaderJob
-	reporter.Raft.HandleCustomMessage = reporter.HandleCustomMessage
+	reporter.Raft.LeaderJob = reporter.leaderJob
+	reporter.Raft.HandleCustomMessage = reporter.handleCustomMessage
 
 	return reporter, nil
 }
@@ -79,20 +80,21 @@ func (r *Reporter) Run(ctx context.Context) {
 	r.Raft.Run(ctx)
 }
 
-func (r *Reporter) LeaderJob() error {
+func (r *Reporter) leaderJob() error {
 	for i := 0; i < MAX_RETRY; i++ {
-		aggregates, err := r.GetLatestGlobalAggregates(context.Background())
+		aggregates, err := r.getLatestGlobalAggregates(context.Background())
 		if err != nil {
 			log.Error().Err(err).Msg("GetLatestGlobalAggregates")
 			continue
 		}
+
 		validAggregates := r.filterInvalidAggregates(aggregates)
 		if len(validAggregates) == 0 {
 			log.Error().Msg("no valid aggregates to report")
 			continue
 		}
 
-		err = r.Report(context.Background(), validAggregates)
+		err = r.report(context.Background(), validAggregates)
 		if err != nil {
 			log.Error().Err(err).Msg("Report")
 			continue
@@ -103,24 +105,24 @@ func (r *Reporter) LeaderJob() error {
 		}
 		return nil
 	}
-	r.ResignLeader()
+	r.resignLeader()
 	return errors.New("failed to report")
 }
 
-func (r *Reporter) ResignLeader() {
+func (r *Reporter) resignLeader() {
 	r.Raft.StopHeartbeatTicker()
 	r.Raft.UpdateRole(raft.Follower)
 }
 
-func (r *Reporter) HandleCustomMessage(msg raft.Message) error {
+func (r *Reporter) handleCustomMessage(msg raft.Message) error {
 	return errors.New("unknown message type")
 }
 
-func (r *Reporter) GetLatestGlobalAggregates(ctx context.Context) ([]GlobalAggregate, error) {
+func (r *Reporter) getLatestGlobalAggregates(ctx context.Context) ([]GlobalAggregate, error) {
 	return db.QueryRows[GlobalAggregate](ctx, GET_LATEST_GLOBAL_AGGREGATES_QUERY, nil)
 }
 
-func (r *Reporter) Report(ctx context.Context, aggregates []GlobalAggregate) error {
+func (r *Reporter) report(ctx context.Context, aggregates []GlobalAggregate) error {
 	pairs, values := r.makeContractArgs(aggregates)
 	rawTx, err := r.TxHelper.MakeDirectTx(ctx, r.contractAddress, FUNCTION_STRING, pairs, values)
 	if err != nil {
@@ -149,11 +151,11 @@ func (r *Reporter) isAggValid(aggregate GlobalAggregate) bool {
 }
 
 func (r *Reporter) makeContractArgs(aggregates []GlobalAggregate) ([]string, []*big.Int) {
-	args := make([]string, len(aggregates))
+	pairs := make([]string, len(aggregates))
 	values := make([]*big.Int, len(aggregates))
 	for i, agg := range aggregates {
-		args[i] = agg.Name
+		pairs[i] = agg.Name
 		values[i] = big.NewInt(agg.Value)
 	}
-	return args, values
+	return pairs, values
 }
