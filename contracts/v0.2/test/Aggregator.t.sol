@@ -1,5 +1,5 @@
-// SPDX-License-Identifier: UNLICENSED
-pragma solidity ^0.8.13;
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.24;
 
 import {Test, console2, console} from "forge-std/Test.sol";
 import {Aggregator} from "../src/Aggregator.sol";
@@ -15,23 +15,22 @@ contract AggregatorTest is Test {
     address[] oracleAdd;
 
     uint256 timestamp = 1706170779;
+
     event AnswerUpdated(int256 indexed current, uint256 indexed roundId, uint256 updatedAt);
 
     event NewRound(uint256 indexed roundId, address indexed startedBy, uint256 startedAt);
 
     function clear() internal {
-        for (uint i = 0; i < oracleRemove.length; i++) {
+        for (uint256 i = 0; i < oracleRemove.length; i++) {
             oracleRemove.pop();
         }
-        for (uint i = 0; i < oracleAdd.length; i++) {
+        for (uint256 i = 0; i < oracleAdd.length; i++) {
             oracleAdd.pop();
         }
     }
 
     function changeOracles() internal {
-        uint256 maxSubmission = aggregator.getOracles().length +
-            oracleAdd.length -
-            oracleRemove.length;
+        uint256 maxSubmission = aggregator.getOracles().length + oracleAdd.length - oracleRemove.length;
         uint32 minSubmission = 1;
         if (maxSubmission > 2) minSubmission = 2;
         aggregator.changeOracles(oracleRemove, oracleAdd, minSubmission, uint32(maxSubmission), 0);
@@ -86,7 +85,7 @@ contract AggregatorTest is Test {
         vm.expectEmit(true, true, false, true);
         emit NewRound(1, address(0), timestamp);
         aggregator.submit(10);
-        (, int256 answer, , , ) = aggregator.latestRoundData();
+        (, int256 answer,,,) = aggregator.latestRoundData();
         assertEq(answer, 10);
     }
 
@@ -119,13 +118,7 @@ contract AggregatorTest is Test {
         uint32 restartDelay = 1;
         vm.expectRevert(Aggregator.RestartDelayExceedOracleNum.selector);
         oracleAdd.push(address(0));
-        aggregator.changeOracles(
-            oracleRemove,
-            oracleAdd,
-            minSubmissionCount,
-            maxSubmissionCount,
-            restartDelay
-        );
+        aggregator.changeOracles(oracleRemove, oracleAdd, minSubmissionCount, maxSubmissionCount, restartDelay);
     }
 
     function test_RevertWith_MinSubmissionZero() public {
@@ -134,13 +127,7 @@ contract AggregatorTest is Test {
         uint32 restartDelay = 0;
         vm.expectRevert(Aggregator.MinSubmissionZero.selector);
         oracleAdd.push(address(0));
-        aggregator.changeOracles(
-            oracleRemove,
-            oracleAdd,
-            minSubmissionCount,
-            maxSubmissionCount,
-            restartDelay
-        );
+        aggregator.changeOracles(oracleRemove, oracleAdd, minSubmissionCount, maxSubmissionCount, restartDelay);
     }
 
     function test_RevertWith_PrevRoundNotSupersedable() public {
@@ -161,13 +148,13 @@ contract AggregatorTest is Test {
     function test_currentRoundStartedAt() public {
         oracleAdd.push(address(0));
         changeOracles();
-        for (uint i = 1; i <= 2; i++) {
+        for (uint256 i = 1; i <= 2; i++) {
             vm.warp(timestamp + i);
             vm.prank(address(0));
             aggregator.submit(321);
             uint256 startedAt = aggregator.currentRoundStartedAt();
             assertEq(startedAt, timestamp + i);
-            (uint80 roundId, , , , ) = aggregator.latestRoundData();
+            (uint80 roundId,,,,) = aggregator.latestRoundData();
             assertEq(roundId, i);
         }
     }

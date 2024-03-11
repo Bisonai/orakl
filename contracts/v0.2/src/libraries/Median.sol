@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.16;
+pragma solidity ^0.8.24;
 
 // https://github.com/smartcontractkit/chainlink/blob/develop/contracts/src/v0.6/Median.sol
 
@@ -61,13 +61,11 @@ library Median {
      * @notice Select the k1-th and k2-th element from list of length at most 7
      * @dev Uses an optimal sorting network
      */
-    function shortSelectTwo(
-        int256[] memory list,
-        uint256 lo,
-        uint256 hi,
-        uint256 k1,
-        uint256 k2
-    ) private pure returns (int256 k1th, int256 k2th) {
+    function shortSelectTwo(int256[] memory list, uint256 lo, uint256 hi, uint256 k1, uint256 k2)
+        private
+        pure
+        returns (int256 k1th, int256 k2th)
+    {
         // Uses an optimal sorting network (https://en.wikipedia.org/wiki/Sorting_network)
         // for lists of length 7. Network layout is taken from
         // http://jgamble.ripco.net/cgi-bin/nw.cgi?inputs=7&algorithm=hibbard&output=svg
@@ -175,12 +173,7 @@ library Median {
      * @notice Selects the k-th ranked element from list, looking only at indices between lo and hi
      * (inclusive). Modifies list in-place.
      */
-    function quickselect(
-        int256[] memory list,
-        uint256 lo,
-        uint256 hi,
-        uint256 k
-    ) private pure returns (int256 kth) {
+    function quickselect(int256[] memory list, uint256 lo, uint256 hi, uint256 k) private pure returns (int256 kth) {
         require(lo <= k);
         require(k <= hi);
         while (lo < hi) {
@@ -244,11 +237,7 @@ library Median {
      * - forall j in [lo, i]. list[j] <= list[i]
      * - forall j in [i, hi]. list[i] <= list[j]
      */
-    function partition(
-        int256[] memory list,
-        uint256 lo,
-        uint256 hi
-    ) private pure returns (uint256) {
+    function partition(int256[] memory list, uint256 lo, uint256 hi) private pure returns (uint256) {
         // We don't care about overflow of the addition, because it would require a list
         // larger than any feasible computer's memory.
         int256 pivot = list[(lo + hi) / 2];

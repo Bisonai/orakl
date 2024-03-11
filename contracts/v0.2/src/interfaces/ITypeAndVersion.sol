@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.20;
+pragma solidity ^0.8.24;
 
 // https://github.com/smartcontractkit/chainlink/blob/develop/contracts/src/v0.8/interfaces/TypeAndVersionInterface.sol
 

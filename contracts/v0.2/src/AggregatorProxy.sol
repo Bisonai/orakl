@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.20;
+pragma solidity ^0.8.24;
 
 // https://github.com/smartcontractkit/chainlink/blob/develop/contracts/src/v0.7/dev/AggregatorProxy.sol
 
@@ -17,6 +17,7 @@ contract AggregatorProxy is Ownable, IAggregatorProxy {
         uint16 id;
         IAggregatorProxy aggregator;
     }
+
     IAggregatorProxy private sProposedAggregator;
     mapping(uint16 => IAggregatorProxy) private sPhaseAggregators;
     Phase private sCurrentPhase;
@@ -31,10 +32,7 @@ contract AggregatorProxy is Ownable, IAggregatorProxy {
     event AggregatorConfirmed(address indexed previous, address indexed latest);
 
     modifier hasProposal() {
-        require(
-            address(sProposedAggregator) != address(0),
-            "No proposed aggregator present"
-        );
+        require(address(sProposedAggregator) != address(0), "No proposed aggregator present");
         _;
     }
 
@@ -67,36 +65,19 @@ contract AggregatorProxy is Ownable, IAggregatorProxy {
      * (Only some AggregatorV3Interface implementations return meaningful values)
      * @dev Note that answer and updatedAt may change between queries.
      */
-    function getRoundData(
-        uint80 roundId
-    )
+    function getRoundData(uint80 roundId)
         public
         view
         virtual
         override
-        returns (
-            uint80 id,
-            int256 answer,
-            uint256 startedAt,
-            uint256 updatedAt,
-            uint80 answeredInRound
-        )
+        returns (uint80 id, int256 answer, uint256 startedAt, uint256 updatedAt, uint80 answeredInRound)
     {
         (uint16 _phaseId, uint64 aggregatorRoundId) = parseIds(roundId);
 
-        (id, answer, startedAt, updatedAt, answeredInRound) = sPhaseAggregators[
-            _phaseId
-        ].getRoundData(aggregatorRoundId);
+        (id, answer, startedAt, updatedAt, answeredInRound) =
+            sPhaseAggregators[_phaseId].getRoundData(aggregatorRoundId);
 
-        return
-            addPhaseIds(
-                id,
-                answer,
-                startedAt,
-                updatedAt,
-                answeredInRound,
-                _phaseId
-            );
+        return addPhaseIds(id, answer, startedAt, updatedAt, answeredInRound, _phaseId);
     }
 
     /**
@@ -126,29 +107,13 @@ contract AggregatorProxy is Ownable, IAggregatorProxy {
         view
         virtual
         override
-        returns (
-            uint80 id,
-            int256 answer,
-            uint256 startedAt,
-            uint256 updatedAt,
-            uint80 answeredInRound
-        )
+        returns (uint80 id, int256 answer, uint256 startedAt, uint256 updatedAt, uint80 answeredInRound)
     {
         Phase memory current = sCurrentPhase; // cache storage reads
 
-        (id, answer, startedAt, updatedAt, answeredInRound) = current
-            .aggregator
-            .latestRoundData();
+        (id, answer, startedAt, updatedAt, answeredInRound) = current.aggregator.latestRoundData();
 
-        return
-            addPhaseIds(
-                id,
-                answer,
-                startedAt,
-                updatedAt,
-                answeredInRound,
-                current.id
-            );
+        return addPhaseIds(id, answer, startedAt, updatedAt, answeredInRound, current.id);
     }
 
     /**
@@ -163,21 +128,13 @@ contract AggregatorProxy is Ownable, IAggregatorProxy {
      * @return answeredInRound is the round ID of the round in which the answer
      * was computed.
      */
-    function proposedGetRoundData(
-        uint80 roundId
-    )
+    function proposedGetRoundData(uint80 roundId)
         external
         view
         virtual
         override
         hasProposal
-        returns (
-            uint80 id,
-            int256 answer,
-            uint256 startedAt,
-            uint256 updatedAt,
-            uint80 answeredInRound
-        )
+        returns (uint80 id, int256 answer, uint256 startedAt, uint256 updatedAt, uint80 answeredInRound)
     {
         return sProposedAggregator.getRoundData(roundId);
     }
@@ -199,13 +156,7 @@ contract AggregatorProxy is Ownable, IAggregatorProxy {
         virtual
         override
         hasProposal
-        returns (
-            uint80 id,
-            int256 answer,
-            uint256 startedAt,
-            uint256 updatedAt,
-            uint80 answeredInRound
-        )
+        returns (uint80 id, int256 answer, uint256 startedAt, uint256 updatedAt, uint80 answeredInRound)
     {
         return sProposedAggregator.latestRoundData();
     }
@@ -257,9 +208,7 @@ contract AggregatorProxy is Ownable, IAggregatorProxy {
      *
      * @param phaseId_ uint16
      */
-    function phaseAggregators(
-        uint16 phaseId_
-    ) external view override returns (address) {
+    function phaseAggregators(uint16 phaseId_) external view override returns (address) {
         return address(sPhaseAggregators[phaseId_]);
     }
 
@@ -269,10 +218,7 @@ contract AggregatorProxy is Ownable, IAggregatorProxy {
      */
     function proposeAggregator(address aggregatorAddress) external onlyOwner {
         sProposedAggregator = IAggregatorProxy(aggregatorAddress);
-        emit AggregatorProposed(
-            address(sCurrentPhase.aggregator),
-            aggregatorAddress
-        );
+        emit AggregatorProposed(address(sCurrentPhase.aggregator), aggregatorAddress);
     }
 
     /**
@@ -298,10 +244,7 @@ contract AggregatorProxy is Ownable, IAggregatorProxy {
         sPhaseAggregators[id] = IAggregatorProxy(aggregatorAddress);
     }
 
-    function addPhase(
-        uint16 phase,
-        uint64 originalId
-    ) internal pure returns (uint80) {
+    function addPhase(uint16 phase, uint64 originalId) internal pure returns (uint80) {
         return uint80((uint256(phase) << PHASE_OFFSET) | originalId);
     }
 

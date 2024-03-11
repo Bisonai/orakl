@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.20;
+pragma solidity ^0.8.24;
 
 // https://github.com/smartcontractkit/chainlink/blob/develop/contracts/src/v0.7/interfaces/AggregatorProxyInterface.sol
 
@@ -12,29 +12,15 @@ interface IAggregatorProxy is IAggregator {
 
     function proposedAggregator() external view returns (address);
 
-    function proposedGetRoundData(
-        uint80 roundId
-    )
+    function proposedGetRoundData(uint80 roundId)
         external
         view
-        returns (
-            uint80 id,
-            int256 answer,
-            uint256 startedAt,
-            uint256 updatedAt,
-            uint80 answeredInRound
-        );
+        returns (uint80 id, int256 answer, uint256 startedAt, uint256 updatedAt, uint80 answeredInRound);
 
     function proposedLatestRoundData()
         external
         view
-        returns (
-            uint80 id,
-            int256 answer,
-            uint256 startedAt,
-            uint256 updatedAt,
-            uint80 answeredInRound
-        );
+        returns (uint80 id, int256 answer, uint256 startedAt, uint256 updatedAt, uint80 answeredInRound);
 
     function aggregator() external view returns (address);
 

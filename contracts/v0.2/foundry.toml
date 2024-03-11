@@ -6,6 +6,9 @@ broadcast="deployments"
 script="deploy"
 fs_permissions = [{ access = "read-write", path = "./"}]
 memory_limit = 67108864
+solc-version = "0.8.24"
+# optimizer = true
+# optimizer-runs = 10_000_000
 
 [rpc_endpoints]
 baobab = "https://api.baobab.klaytn.net:8651"

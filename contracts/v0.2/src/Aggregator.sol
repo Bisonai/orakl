@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.20;
+pragma solidity ^0.8.24;
 
 // https://github.com/smartcontractkit/chainlink/blob/develop/contracts/src/v0.6/FluxAggregator.sol
 
@@ -78,26 +78,11 @@ contract Aggregator is Ownable, IAggregator, ITypeAndVersion {
     error MinSubmissionZero();
     error MaxSubmissionGtOracleNum();
 
-    event RoundDetailsUpdated(
-        uint32 indexed minSubmissionCount,
-        uint32 indexed maxSubmissionCount,
-        uint32 restartDelay,
-        uint32 timeout // measured in seconds
-    );
-    event OraclePermissionsUpdated(
-        address indexed oracle,
-        bool indexed whitelisted
-    );
-    event SubmissionReceived(
-        int256 indexed submission,
-        uint32 indexed round,
-        address indexed oracle
-    );
-    event RequesterPermissionsSet(
-        address indexed requester,
-        bool authorized,
-        uint32 delay
-    );
+    event RoundDetailsUpdated( // measured in seconds
+    uint32 indexed minSubmissionCount, uint32 indexed maxSubmissionCount, uint32 restartDelay, uint32 timeout);
+    event OraclePermissionsUpdated(address indexed oracle, bool indexed whitelisted);
+    event SubmissionReceived(int256 indexed submission, uint32 indexed round, address indexed oracle);
+    event RequesterPermissionsSet(address indexed requester, bool authorized, uint32 delay);
     event ValidatorUpdated(address indexed previous, address indexed current);
 
     /**
@@ -107,11 +92,7 @@ contract Aggregator is Ownable, IAggregator, ITypeAndVersion {
      * @param _decimals represents the number of decimals to offset the answer by
      * @param _description a short description of what is being reported
      */
-    constructor(
-        uint32 _timeout,
-        uint8 _decimals,
-        string memory _description
-    ) Ownable(msg.sender) {
+    constructor(uint32 _timeout, uint8 _decimals, string memory _description) Ownable(msg.sender) {
         updateFutureRounds(0, 0, 0, _timeout);
         decimals = _decimals;
         description = _description;
@@ -163,12 +144,7 @@ contract Aggregator is Ownable, IAggregator, ITypeAndVersion {
             addOracle(_added[i]);
         }
 
-        updateFutureRounds(
-            _minSubmissionCount,
-            _maxSubmissionCount,
-            _restartDelay,
-            timeout
-        );
+        updateFutureRounds(_minSubmissionCount, _maxSubmissionCount, _restartDelay, timeout);
     }
 
     /**
@@ -209,12 +185,7 @@ contract Aggregator is Ownable, IAggregator, ITypeAndVersion {
         restartDelay = _restartDelay;
         timeout = _timeout;
 
-        emit RoundDetailsUpdated(
-            _minSubmissionCount,
-            _maxSubmissionCount,
-            _restartDelay,
-            _timeout
-        );
+        emit RoundDetailsUpdated(_minSubmissionCount, _maxSubmissionCount, _restartDelay, _timeout);
     }
 
     /**
@@ -249,20 +220,12 @@ contract Aggregator is Ownable, IAggregator, ITypeAndVersion {
      * @dev Note that for in-progress rounds (i.e. rounds that haven't yet received
      * maxSubmissions) answer and updatedAt may change between queries.
      */
-    function getRoundData(
-        uint80 _roundId
-    )
+    function getRoundData(uint80 _roundId)
         public
         view
         virtual
         override
-        returns (
-            uint80 roundId,
-            int256 answer,
-            uint256 startedAt,
-            uint256 updatedAt,
-            uint80 answeredInRound
-        )
+        returns (uint80 roundId, int256 answer, uint256 startedAt, uint256 updatedAt, uint80 answeredInRound)
     {
         Round memory r = rounds[uint32(_roundId)];
 
@@ -270,13 +233,7 @@ contract Aggregator is Ownable, IAggregator, ITypeAndVersion {
             revert NoDataPresent();
         }
 
-        return (
-            _roundId,
-            r.answer,
-            r.startedAt,
-            r.updatedAt,
-            r.answeredInRound
-        );
+        return (_roundId, r.answer, r.startedAt, r.updatedAt, r.answeredInRound);
     }
 
     /**
@@ -303,13 +260,7 @@ contract Aggregator is Ownable, IAggregator, ITypeAndVersion {
         view
         virtual
         override
-        returns (
-            uint80 roundId,
-            int256 answer,
-            uint256 startedAt,
-            uint256 updatedAt,
-            uint80 answeredInRound
-        )
+        returns (uint80 roundId, int256 answer, uint256 startedAt, uint256 updatedAt, uint80 answeredInRound)
     {
         return getRoundData(latestRoundId);
     }
@@ -338,11 +289,7 @@ contract Aggregator is Ownable, IAggregator, ITypeAndVersion {
      * @param _authorized is a boolean specifying whether they can start new rounds or not
      * @param _delay is the number of rounds the requester must wait before starting another round
      */
-    function setRequesterPermissions(
-        address _requester,
-        bool _authorized,
-        uint32 _delay
-    ) external onlyOwner {
+    function setRequesterPermissions(address _requester, bool _authorized, uint32 _delay) external onlyOwner {
         if (requesters[_requester].authorized == _authorized) {
             return;
         }
@@ -362,10 +309,7 @@ contract Aggregator is Ownable, IAggregator, ITypeAndVersion {
      * only to be callable by oracles. Not for use by contracts to read state.
      * @param _oracle the address to look up information for.
      */
-    function oracleRoundState(
-        address _oracle,
-        uint32 _queriedRoundId
-    )
+    function oracleRoundState(address _oracle, uint32 _queriedRoundId)
         external
         view
         returns (
@@ -406,13 +350,7 @@ contract Aggregator is Ownable, IAggregator, ITypeAndVersion {
      * @notice The type and version of this contract
      * @return Type and version string
      */
-    function typeAndVersion()
-        external
-        pure
-        virtual
-        override
-        returns (string memory)
-    {
+    function typeAndVersion() external pure virtual override returns (string memory) {
         return "Aggregator v0.2";
     }
 
@@ -428,12 +366,7 @@ contract Aggregator is Ownable, IAggregator, ITypeAndVersion {
         updateTimedOutRoundInfo(_roundId - 1);
 
         reportingRoundId = _roundId;
-        RoundDetails memory nextDetails = RoundDetails(
-            new int256[](0),
-            maxSubmissionCount,
-            minSubmissionCount,
-            timeout
-        );
+        RoundDetails memory nextDetails = RoundDetails(new int256[](0), maxSubmissionCount, minSubmissionCount, timeout);
         details[_roundId] = nextDetails;
         rounds[_roundId].startedAt = uint64(block.timestamp);
 
@@ -464,10 +397,7 @@ contract Aggregator is Ownable, IAggregator, ITypeAndVersion {
             return;
         }
         uint256 lastStarted = requesters[msg.sender].lastStartedRound;
-        if (
-            lastStarted > 0 &&
-            _roundId <= lastStarted + requesters[msg.sender].delay
-        ) {
+        if (lastStarted > 0 && _roundId <= lastStarted + requesters[msg.sender].delay) {
             revert NewRequestTooSoon();
         }
 
@@ -488,26 +418,17 @@ contract Aggregator is Ownable, IAggregator, ITypeAndVersion {
         delete details[_roundId];
     }
 
-    function eligibleForSpecificRound(
-        address _oracle,
-        uint32 _queriedRoundId
-    ) private view returns (bool _eligible) {
+    function eligibleForSpecificRound(address _oracle, uint32 _queriedRoundId) private view returns (bool _eligible) {
         if (rounds[_queriedRoundId].startedAt > 0) {
             // past or current round
-            return
-                acceptingSubmissions(_queriedRoundId) &&
-                validateOracleRound(_oracle, _queriedRoundId).length == 0;
+            return acceptingSubmissions(_queriedRoundId) && validateOracleRound(_oracle, _queriedRoundId).length == 0;
         } else {
             // future rounds
-            return
-                delayed(_oracle, _queriedRoundId) &&
-                validateOracleRound(_oracle, _queriedRoundId).length == 0;
+            return delayed(_oracle, _queriedRoundId) && validateOracleRound(_oracle, _queriedRoundId).length == 0;
         }
     }
 
-    function oracleRoundStateSuggestRound(
-        address _oracle
-    )
+    function oracleRoundStateSuggestRound(address _oracle)
         private
         view
         returns (
@@ -522,8 +443,7 @@ contract Aggregator is Ownable, IAggregator, ITypeAndVersion {
         Round storage round = rounds[0];
         OracleStatus storage oracle = oracles[_oracle];
 
-        bool shouldSupersede = oracle.lastReportedRound == reportingRoundId ||
-            !acceptingSubmissions(reportingRoundId);
+        bool shouldSupersede = oracle.lastReportedRound == reportingRoundId || !acceptingSubmissions(reportingRoundId);
 
         // Instead of nudging oracles to submit to the next round, the
         // inclusion of the shouldSupersede bool in the if condition
@@ -553,16 +473,11 @@ contract Aggregator is Ownable, IAggregator, ITypeAndVersion {
     }
 
     function updateRoundAnswer(uint32 _roundId) internal {
-        if (
-            details[_roundId].submissions.length <
-            details[_roundId].minSubmissions
-        ) {
+        if (details[_roundId].submissions.length < details[_roundId].minSubmissions) {
             return;
         }
 
-        int256 newAnswer = Median.calculateInplace(
-            details[_roundId].submissions
-        );
+        int256 newAnswer = Median.calculateInplace(details[_roundId].submissions);
         rounds[_roundId].answer = newAnswer;
         rounds[_roundId].updatedAt = uint64(block.timestamp);
         rounds[_roundId].answeredInRound = _roundId;
@@ -584,10 +499,7 @@ contract Aggregator is Ownable, IAggregator, ITypeAndVersion {
     }
 
     function deleteRoundDetails(uint32 _roundId) private {
-        if (
-            details[_roundId].submissions.length >=
-            details[_roundId].maxSubmissions
-        ) {
+        if (details[_roundId].submissions.length >= details[_roundId].maxSubmissions) {
             delete details[_roundId];
         }
     }
@@ -606,10 +518,7 @@ contract Aggregator is Ownable, IAggregator, ITypeAndVersion {
         // 0), and a `roundTimeout` is over, a non-negative value of
         // `roundTimeout` represents unsuccessfully finished round.
         uint32 roundTimeout = details[_roundId].timeout;
-        return
-            startedAt > 0 &&
-            roundTimeout > 0 &&
-            startedAt + roundTimeout < block.timestamp;
+        return startedAt > 0 && roundTimeout > 0 && startedAt + roundTimeout < block.timestamp;
     }
 
     function getStartingRound(address _oracle) private view returns (uint32) {
@@ -629,10 +538,7 @@ contract Aggregator is Ownable, IAggregator, ITypeAndVersion {
      * (`reportingRound - 1`) is when the current round has not
      * received enough submissions to produce an aggregate value.
      */
-    function previousAndCurrentUnanswered(
-        uint32 _roundId,
-        uint32 _rrId
-    ) private view returns (bool) {
+    function previousAndCurrentUnanswered(uint32 _roundId, uint32 _rrId) private view returns (bool) {
         return _roundId + 1 == _rrId && rounds[_rrId].updatedAt == 0;
     }
 
@@ -663,30 +569,30 @@ contract Aggregator is Ownable, IAggregator, ITypeAndVersion {
         emit OraclePermissionsUpdated(_oracle, false);
     }
 
-    function validateOracleRound(
-        address _oracle,
-        uint32 _roundId
-    ) private view returns (bytes memory) {
+    function validateOracleRound(address _oracle, uint32 _roundId) private view returns (bytes memory) {
         uint32 startingRound = oracles[_oracle].startingRound;
         uint32 rrId = reportingRoundId;
 
         if (startingRound == 0) return "not enabled oracle";
         if (startingRound > _roundId) return "not yet enabled oracle";
-        if (oracles[_oracle].endingRound < _roundId)
+        if (oracles[_oracle].endingRound < _roundId) {
             return "no longer allowed oracle";
-        if (oracles[_oracle].lastReportedRound >= _roundId)
+        }
+        if (oracles[_oracle].lastReportedRound >= _roundId) {
             return "cannot report on previous rounds";
+        }
         if (
             // Not reporting on current round.
-            _roundId != rrId &&
+            _roundId != rrId
             // Not reporting on next round.
-            _roundId != rrId + 1 &&
+            && _roundId != rrId + 1
             // Not reporting on the previous round while the current
             // round has not finished yet.
-            !previousAndCurrentUnanswered(_roundId, rrId)
+            && !previousAndCurrentUnanswered(_roundId, rrId)
         ) return "invalid round to report";
-        if (_roundId != 1 && !supersedable(_roundId - 1))
+        if (_roundId != 1 && !supersedable(_roundId - 1)) {
             return "previous round not supersedable";
+        }
 
         return "";
     }
@@ -743,10 +649,7 @@ contract Aggregator is Ownable, IAggregator, ITypeAndVersion {
      * a new answer to aggregator. If `restartDelay` is 0, there are
      * no frequency limitations on initiating a new round.
      */
-    function delayed(
-        address _oracle,
-        uint32 _roundId
-    ) private view returns (bool) {
+    function delayed(address _oracle, uint32 _roundId) private view returns (bool) {
         uint256 lastStarted = oracles[_oracle].lastStartedRound;
         return lastStarted == 0 || _roundId > lastStarted + restartDelay;
     }
