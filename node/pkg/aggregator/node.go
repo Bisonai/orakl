@@ -15,16 +15,16 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
+const LEADER_TIMEOUT = 5 * time.Second
+
 func NewNode(h host.Host, ps *pubsub.PubSub, topicString string) (*AggregatorNode, error) {
 	topic, err := ps.Join(topicString)
 	if err != nil {
 		return nil, err
 	}
 
-	leaderTimeout := 5 * time.Second
-
 	aggregator := AggregatorNode{
-		Raft:            raft.NewRaftNode(h, ps, topic, 100, leaderTimeout),
+		Raft:            raft.NewRaftNode(h, ps, topic, 100, LEADER_TIMEOUT),
 		CollectedPrices: map[int64][]int64{},
 		AggregatorMutex: sync.Mutex{},
 	}
