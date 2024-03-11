@@ -22,17 +22,20 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-const DEFAULT_GAS_LIMIT = uint64(1200000)
+const (
+	DEFAULT_GAS_LIMIT    = uint64(1200000)
+	SELECT_WALLETS_QUERY = "SELECT * FROM wallets;"
+)
 
-type ReporterModel struct {
+type Wallet struct {
 	ID int64  `db:"id"`
 	PK string `db:"pk"`
 }
 
 type TxHelper struct {
-	client    *client.Client
-	reporters []string
-	chainID   *big.Int
+	client  *client.Client
+	wallets []string
+	chainID *big.Int
 
 	lastUsed int
 }
@@ -48,24 +51,24 @@ func NewTxHelper(ctx context.Context) (*TxHelper, error) {
 		return nil, err
 	}
 
-	reporters, err := getReporters(ctx)
+	wallets, err := getWallets(ctx)
 	if err != nil {
 		return nil, err
 	}
 
 	if os.Getenv("REPORTER_PK") != "" {
-		reporter := strings.TrimPrefix(os.Getenv("REPORTER_PK"), "0x")
-		reporters = append(reporters, reporter)
+		wallet := strings.TrimPrefix(os.Getenv("REPORTER_PK"), "0x")
+		wallets = append(wallets, wallet)
 	}
 
-	if len(reporters) == 0 {
-		return nil, errors.New("no reporters found")
+	if len(wallets) == 0 {
+		return nil, errors.New("no wallets found")
 	}
 
 	return &TxHelper{
-		client:    client,
-		reporters: reporters,
-		chainID:   chainID,
+		client:  client,
+		wallets: wallets,
+		chainID: chainID,
 	}, nil
 }
 
@@ -74,11 +77,11 @@ func (t *TxHelper) Close() {
 }
 
 func (t *TxHelper) NextReporter() string {
-	if len(t.reporters) == 0 {
+	if len(t.wallets) == 0 {
 		return ""
 	}
-	reporter := t.reporters[t.lastUsed]
-	t.lastUsed = (t.lastUsed + 1) % len(t.reporters)
+	reporter := t.wallets[t.lastUsed]
+	t.lastUsed = (t.lastUsed + 1) % len(t.wallets)
 	return reporter
 }
 
@@ -162,8 +165,6 @@ func GenerateABI(functionString string) (*abi.ABI, error) {
         }
     ]`, convertedArgs, functionName)
 
-	log.Debug().Str("json", json).Msg("generated abi")
-
 	parsedABI, err := abi.JSON(strings.NewReader(json))
 	if err != nil {
 		return nil, err
@@ -176,18 +177,18 @@ func getChainID(ctx context.Context, client *client.Client) (*big.Int, error) {
 	return client.NetworkID(ctx)
 }
 
-func getReporters(ctx context.Context) ([]string, error) {
-	reporterModels, err := db.QueryRows[ReporterModel](ctx, "SELECT * FROM reporters;", nil)
+func getWallets(ctx context.Context) ([]string, error) {
+	reporterModels, err := db.QueryRows[Wallet](ctx, SELECT_WALLETS_QUERY, nil)
 	if err != nil {
 		return nil, err
 	}
 
-	reporters := make([]string, len(reporterModels))
+	wallets := make([]string, len(reporterModels))
 	for i, reporter := range reporterModels {
-		reporters[i] = reporter.PK
+		wallets[i] = reporter.PK
 	}
 
-	return reporters, nil
+	return wallets, nil
 }
 
 func makeDirectTx(ctx context.Context, client *client.Client, contractAddressHex string, reporter string, functionString string, chainID *big.Int, args ...interface{}) (*types.Transaction, error) {
