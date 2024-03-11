@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"math/big"
+	"math/rand"
 	"os"
 	"time"
 
@@ -86,13 +87,18 @@ func (r *Reporter) Run(ctx context.Context) {
 }
 
 func (r *Reporter) leaderJob() error {
-	failureTimout := time.Duration(150 * time.Millisecond)
+	ctx := context.Background()
+	failureTimout := 50 * time.Millisecond
 	for i := 0; i < MAX_RETRY; i++ {
-		aggregates, err := r.getLatestGlobalAggregates(context.Background())
+		failureTimout += failureTimout + time.Duration(rand.Intn(100))*time.Millisecond
+		if failureTimout > 500*time.Millisecond {
+			failureTimout = 500 * time.Millisecond
+		}
+
+		aggregates, err := r.getLatestGlobalAggregates(ctx)
 		if err != nil {
 			log.Error().Err(err).Msg("GetLatestGlobalAggregates")
 			time.Sleep(failureTimout)
-			failureTimout += failureTimout
 			continue
 		}
 
@@ -100,15 +106,13 @@ func (r *Reporter) leaderJob() error {
 		if len(validAggregates) == 0 {
 			log.Error().Msg("no valid aggregates to report")
 			time.Sleep(failureTimout)
-			failureTimout += failureTimout
 			continue
 		}
 
-		err = r.report(context.Background(), validAggregates)
+		err = r.report(ctx, validAggregates)
 		if err != nil {
 			log.Error().Err(err).Msg("Report")
 			time.Sleep(failureTimout)
-			failureTimout += failureTimout
 			continue
 		}
 
