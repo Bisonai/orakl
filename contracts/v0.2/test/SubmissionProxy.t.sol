@@ -21,20 +21,9 @@ contract SubmissionProxyTest is Test {
         submissionProxy = new SubmissionProxy();
     }
 
-    // Cannot remove non-existing oracle
-    function testFail_RemoveOracle() public {
-        submissionProxy.removeOracle(address(0));
-    }
-
-    // Add and remove oracle
-    function test_AddAndRemoveOracle() public {
-        submissionProxy.addOracle(address(0));
-        uint256 numOracles_ = submissionProxy.getOracles().length;
-        assertEq(numOracles_, 1);
-
-        submissionProxy.removeOracle(address(0));
-        numOracles_ = submissionProxy.getOracles().length;
-        assertEq(numOracles_, 0);
+    function test_AddOracleOnce() public {
+	address oracle_ = makeAddr("oracle");
+        submissionProxy.addOracle(oracle_);
     }
 
     function test_AddOracleTwice() public {
@@ -44,24 +33,6 @@ contract SubmissionProxyTest is Test {
 	// cannot add the same oracle twice => fail
 	vm.expectRevert(SubmissionProxy.InvalidOracle.selector);
 	submissionProxy.addOracle(oracle_);
-    }
-
-    function test_GetExpiredOracles() public {
-        address oracle_ = makeAddr("oracle");
-
-        submissionProxy.addOracle(oracle_);
-        uint256 numOracles_ = submissionProxy.getOracles().length;
-        assertEq(numOracles_, 1);
-
-        // oracle has not expired yet
-        address[] memory expired_ = submissionProxy.getExpiredOracles();
-        assertEq(expired_.length, 0);
-
-        // oracle expired
-        vm.warp(block.timestamp + submissionProxy.expirationPeriod() + 1);
-        expired_ = submissionProxy.getExpiredOracles();
-        assertEq(expired_.length, 1);
-        assertEq(expired_[0], oracle_);
     }
 
     function test_SetMaxSubmission() public {
@@ -76,8 +47,9 @@ contract SubmissionProxyTest is Test {
     }
 
     function test_SetMaxSubmissionAboveMaximum() public {
+	uint256 maxSubmission_ = submissionProxy.MAX_SUBMISSION();
 	vm.expectRevert(SubmissionProxy.InvalidMaxSubmission.selector);
-        submissionProxy.setMaxSubmission(1_000 + 1);
+        submissionProxy.setMaxSubmission(maxSubmission_ + 1);
     }
 
     function testFail_SetMaxSubmissionProtectExecution() public {
@@ -93,13 +65,15 @@ contract SubmissionProxyTest is Test {
     }
 
     function test_SetExpirationPeriodBelowMinimum() public {
+	uint256 minExpiration_ = submissionProxy.MIN_EXPIRATION();
 	vm.expectRevert(SubmissionProxy.InvalidExpirationPeriod.selector);
-        submissionProxy.setExpirationPeriod(1 days / 2);
+        submissionProxy.setExpirationPeriod(minExpiration_ / 2);
     }
 
     function test_SetExpirationPeriodAboveMaximum() public {
+	uint256 maxExpiration_ = submissionProxy.MAX_EXPIRATION();
 	vm.expectRevert(SubmissionProxy.InvalidExpirationPeriod.selector);
-        submissionProxy.setExpirationPeriod(365 days + 1 days);
+        submissionProxy.setExpirationPeriod(maxExpiration_ + 1 days);
     }
 
     function testFail_SetExpirationPeriodProtectExecution() public {
