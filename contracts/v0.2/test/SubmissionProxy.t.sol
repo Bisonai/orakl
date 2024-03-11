@@ -24,7 +24,7 @@ contract SubmissionProxyTest is Test {
 
     // Cannot remove non-existing oracle
     function testFail_RemoveOracle() public {
-	submissionProxy.removeOracle(address(0));
+        submissionProxy.removeOracle(address(0));
     }
 
     // Add and remove oracle
@@ -39,89 +39,92 @@ contract SubmissionProxyTest is Test {
     }
 
     function test_GetExpiredOracles() public {
-	address oracle_ = makeAddr("oracle");
+        address oracle_ = makeAddr("oracle");
 
         submissionProxy.addOracle(oracle_);
         uint256 numOracles_ = submissionProxy.getOracles().length;
         assertEq(numOracles_, 1);
 
-	// oracle has not expired yet
-	address[] memory expired_ = submissionProxy.getExpiredOracles();
-	assertEq(expired_.length, 0);
+        // oracle has not expired yet
+        address[] memory expired_ = submissionProxy.getExpiredOracles();
+        assertEq(expired_.length, 0);
 
-	// oracle expired
-	vm.warp(block.timestamp + submissionProxy.expirationPeriod() + 1);
-	expired_ = submissionProxy.getExpiredOracles();
-	assertEq(expired_.length, 1);
-	assertEq(expired_[0], oracle_);
+        // oracle expired
+        vm.warp(block.timestamp + submissionProxy.expirationPeriod() + 1);
+        expired_ = submissionProxy.getExpiredOracles();
+        assertEq(expired_.length, 1);
+        assertEq(expired_[0], oracle_);
     }
 
     function test_SetMaxSubmission() public {
-	uint256 maxSubmission_ = 10;
-	submissionProxy.setMaxSubmission(maxSubmission_);
-	assertEq(submissionProxy.maxSubmission(), maxSubmission_);
+        uint256 maxSubmission_ = 10;
+        submissionProxy.setMaxSubmission(maxSubmission_);
+        assertEq(submissionProxy.maxSubmission(), maxSubmission_);
     }
 
     function testFail_SetMaxSubmissionProtectExecution() public {
-	address nonOwner_ = makeAddr("nonOwner");
-	vm.prank(nonOwner_);
-	submissionProxy.setMaxSubmission(10);
+        address nonOwner_ = makeAddr("nonOwner");
+        vm.prank(nonOwner_);
+        submissionProxy.setMaxSubmission(10);
     }
 
     function test_SetExpirationPeriod() public {
-	uint256 expirationPeriod_ = 1 weeks;
-	submissionProxy.setExpirationPeriod(expirationPeriod_);
-	assertEq(submissionProxy.expirationPeriod(), expirationPeriod_);
+        uint256 expirationPeriod_ = 1 weeks;
+        submissionProxy.setExpirationPeriod(expirationPeriod_);
+        assertEq(submissionProxy.expirationPeriod(), expirationPeriod_);
     }
 
     function testFail_SetExpirationPeriodProtectExecution() public {
-	address nonOwner_ = makeAddr("nonOwner");
-	vm.prank(nonOwner_);
-	submissionProxy.setExpirationPeriod(1 weeks);
+        address nonOwner_ = makeAddr("nonOwner");
+        vm.prank(nonOwner_);
+        submissionProxy.setExpirationPeriod(1 weeks);
     }
 
-    function prepareAggregatorsSubmissions(uint256 _numOracles, int256 _submissionValue, address _oracle) internal returns (address[] memory, int256[] memory) {
-	submissionProxy.addOracle(_oracle);
+    function prepareAggregatorsSubmissions(uint256 _numOracles, int256 _submissionValue, address _oracle)
+        internal
+        returns (address[] memory, int256[] memory)
+    {
+        submissionProxy.addOracle(_oracle);
 
-	address[] memory remove_;
-	address[] memory add_ = new address[](2);
-	add_[0] = address(submissionProxy);
-	add_[1] = _oracle;
+        address[] memory remove_;
+        address[] memory add_ = new address[](2);
+        add_[0] = address(submissionProxy);
+        add_[1] = _oracle;
 
-	address[] memory aggregators_ = new address[](_numOracles);
-	int256[] memory submissions_ = new int256[](_numOracles);
+        address[] memory aggregators_ = new address[](_numOracles);
+        int256[] memory submissions_ = new int256[](_numOracles);
 
-	for (uint256 i = 0; i < _numOracles; i++) {
-	    Aggregator aggregator_ = new Aggregator(TIMEOUT, DECIMALS, DESCRIPTION);
+        for (uint256 i = 0; i < _numOracles; i++) {
+            Aggregator aggregator_ = new Aggregator(TIMEOUT, DECIMALS, DESCRIPTION);
 
+            aggregator_.changeOracles(remove_, add_, 1, 1, 0);
 
-	    aggregator_.changeOracles(remove_, add_, 1, 1, 0);
-
-	    aggregators_[i] = address(aggregator_);
+            aggregators_[i] = address(aggregator_);
             submissions_[i] = _submissionValue;
-	}
+        }
 
-	return (aggregators_, submissions_);
+        return (aggregators_, submissions_);
     }
 
     function testFail_submitWithExpiredOracle() public {
-	uint256 numOracles_ = 2;
-	int256 submissionValue_ = 10;
-	address oracle_ = makeAddr("oracle");
+        uint256 numOracles_ = 2;
+        int256 submissionValue_ = 10;
+        address oracle_ = makeAddr("oracle");
 
-	(address[] memory aggregators_, int256[] memory submissions_) = prepareAggregatorsSubmissions(numOracles_, submissionValue_, oracle_);
+        (address[] memory aggregators_, int256[] memory submissions_) =
+            prepareAggregatorsSubmissions(numOracles_, submissionValue_, oracle_);
 
-	// move time past the expiration period => fail to submit
-	vm.warp(block.timestamp + submissionProxy.expirationPeriod() + 1);
+        // move time past the expiration period => fail to submit
+        vm.warp(block.timestamp + submissionProxy.expirationPeriod() + 1);
 
-	vm.prank(oracle_);
-	submissionProxy.submit(aggregators_, submissions_);
+        vm.prank(oracle_);
+        submissionProxy.submit(aggregators_, submissions_);
     }
 
     function test_BatchSubmission() public {
-	uint256 numOracles = 50;
-	address offChainSubmissionProxyReporter = address(0);
-	address offChainAggregatorReporter = address(1);
+        uint256 numOracles = 50;
+        address offChainSubmissionProxyReporter = address(0);
+        address offChainAggregatorReporter = address(1);
 
         submissionProxy.addOracle(offChainSubmissionProxyReporter);
 
@@ -133,7 +136,7 @@ contract SubmissionProxyTest is Test {
         int256[] memory submissions = new int256[](numOracles);
         uint256 startGas;
 
-	// multiple single submissions
+        // multiple single submissions
         for (uint256 i = 0; i < numOracles; i++) {
             Aggregator aggregator = new Aggregator(TIMEOUT, DECIMALS, DESCRIPTION);
 
@@ -145,17 +148,17 @@ contract SubmissionProxyTest is Test {
             submissions[i] = 10;
 
             vm.prank(offChainAggregatorReporter);
-	    aggregator.submit(10); // storage warmup
+            aggregator.submit(10); // storage warmup
 
-	    vm.prank(offChainAggregatorReporter);
+            vm.prank(offChainAggregatorReporter);
             startGas = gasleft();
             aggregator.submit(11);
             singleSubmissionGas += estimateGasCost(startGas);
         }
 
-	// single batch submission
-	vm.prank(offChainSubmissionProxyReporter);
-	submissionProxy.submit(aggregators, submissions); // storage warmup
+        // single batch submission
+        vm.prank(offChainSubmissionProxyReporter);
+        submissionProxy.submit(aggregators, submissions); // storage warmup
 
         vm.prank(offChainSubmissionProxyReporter);
         startGas = gasleft();
@@ -163,10 +166,10 @@ contract SubmissionProxyTest is Test {
         batchSubmissionGas = estimateGasCost(startGas);
 
         console.log("single submit", singleSubmissionGas, "batch submit", batchSubmissionGas);
-	if (singleSubmissionGas > batchSubmissionGas) {
-	    console.log("save", singleSubmissionGas - batchSubmissionGas);
-	} else {
-	    console.log("waste", batchSubmissionGas - singleSubmissionGas);
-	}
+        if (singleSubmissionGas > batchSubmissionGas) {
+            console.log("save", singleSubmissionGas - batchSubmissionGas);
+        } else {
+            console.log("waste", batchSubmissionGas - singleSubmissionGas);
+        }
     }
 }

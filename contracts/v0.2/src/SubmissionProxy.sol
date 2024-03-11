@@ -23,7 +23,7 @@ contract SubmissionProxy is Ownable {
     error InvalidSubmissionLength();
 
     modifier onlyOracle() {
-	uint256 expiration = expirations[msg.sender];
+        uint256 expiration = expirations[msg.sender];
         if (expiration == 0 || expiration < block.timestamp) revert OnlyOracle();
         _;
     }
@@ -35,29 +35,29 @@ contract SubmissionProxy is Ownable {
     }
 
     function getExpiredOracles() public view returns (address[] memory) {
-	uint256 numOracles = oracles.length;
-	uint256 numExpired = 0;
-	address[] memory expiredFull = new address[](numOracles);
+        uint256 numOracles = oracles.length;
+        uint256 numExpired = 0;
+        address[] memory expiredFull = new address[](numOracles);
 
-	for (uint256 i = 0; i < numOracles; ++i) {
-	    if (expirations[oracles[i]] < block.timestamp) {
-		expiredFull[numExpired] = oracles[i];
-		numExpired++;
-	    }
-	}
+        for (uint256 i = 0; i < numOracles; ++i) {
+            if (expirations[oracles[i]] < block.timestamp) {
+                expiredFull[numExpired] = oracles[i];
+                numExpired++;
+            }
+        }
 
-	address[] memory expired = new address[](numExpired);
-	for (uint256 i = 0; i < numExpired; ++i) {
-	    expired[i] = expiredFull[i];
-	}
+        address[] memory expired = new address[](numExpired);
+        for (uint256 i = 0; i < numExpired; ++i) {
+            expired[i] = expiredFull[i];
+        }
 
-	return expired;
+        return expired;
     }
 
     function addOracle(address _oracle) public onlyOwner {
-	uint256 expiration_ = block.timestamp + expirationPeriod;
-	expirations[_oracle] = expiration_;
-	oracles.push(_oracle);
+        uint256 expiration_ = block.timestamp + expirationPeriod;
+        expirations[_oracle] = expiration_;
+        oracles.push(_oracle);
         emit OracleAdded(_oracle);
     }
 
@@ -66,7 +66,7 @@ contract SubmissionProxy is Ownable {
             revert InvalidOracle();
         }
 
-	uint256 numOracles = oracles.length;
+        uint256 numOracles = oracles.length;
         for (uint256 i = 0; i < numOracles; ++i) {
             if (oracles[i] == _oracle) {
                 address last = oracles[numOracles - 1];
@@ -81,18 +81,18 @@ contract SubmissionProxy is Ownable {
 
     function setMaxSubmission(uint256 _maxSubmission) public onlyOwner {
         maxSubmission = _maxSubmission;
-	emit MaxSubmissionSet(_maxSubmission);
+        emit MaxSubmissionSet(_maxSubmission);
     }
 
     function setExpirationPeriod(uint256 _expirationPeriod) public onlyOwner {
         expirationPeriod = _expirationPeriod;
-	emit ExpirationPeriodSet(_expirationPeriod);
+        emit ExpirationPeriodSet(_expirationPeriod);
     }
 
     function submit(address[] memory _aggregators, int256[] memory _submissions) public onlyOracle {
         if (_aggregators.length != _submissions.length) {
-	    revert InvalidSubmissionLength();
-	}
+            revert InvalidSubmissionLength();
+        }
 
         for (uint256 i = 0; i < _aggregators.length; ++i) {
             IAggregator(_aggregators[i]).submit(_submissions[i]);
