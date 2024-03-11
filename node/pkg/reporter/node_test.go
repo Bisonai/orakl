@@ -132,7 +132,11 @@ func TestMakeContractArgs(t *testing.T) {
 		Value: 15,
 		Round: 1,
 	}
-	pairs, values := testItems.reporter.makeContractArgs([]GlobalAggregate{agg})
+	pairs, values, err := testItems.reporter.makeContractArgs([]GlobalAggregate{agg})
+	if err != nil {
+		t.Fatal("error making contract args")
+	}
+
 	assert.Equal(t, pairs[0], "test-aggregate")
 	assert.Equal(t, values[0], big.NewInt(15))
 }
