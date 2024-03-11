@@ -121,6 +121,20 @@ contract SubmissionProxyTest is Test {
         submissionProxy.submit(aggregators_, submissions_);
     }
 
+    function testFail_submitWithNonOracle() public {
+        uint256 numOracles_ = 2;
+        int256 submissionValue_ = 10;
+        address oracle_ = makeAddr("oracle");
+        address nonOracle_ = makeAddr("nonOracle");
+
+        (address[] memory aggregators_, int256[] memory submissions_) =
+            prepareAggregatorsSubmissions(numOracles_, submissionValue_, oracle_);
+
+        // only oracle can submit through submission proxy => fail to submit
+        vm.prank(nonOracle_);
+        submissionProxy.submit(aggregators_, submissions_);
+    }
+
     function test_BatchSubmission() public {
         uint256 numOracles = 50;
         address offChainSubmissionProxyReporter = address(0);
