@@ -21,7 +21,7 @@ func NewRaftNode(
 	ps *pubsub.PubSub,
 	topic *pubsub.Topic,
 	messageBuffer int,
-	leaderJobTimeout *time.Duration,
+	leaderJobTimeout time.Duration,
 ) *Raft {
 	r := &Raft{
 		Host:  h,
@@ -311,7 +311,7 @@ func (r *Raft) becomeLeader(ctx context.Context) {
 	r.UpdateRole(Leader)
 	r.HeartbeatTicker = time.NewTicker(r.HeartbeatTimeout)
 
-	leaderJobTimer := time.NewTimer(*r.LeaderJobTimeout)
+	leaderJobTimer := time.NewTimer(r.LeaderJobTimeout)
 
 	go func() {
 		for {
@@ -326,7 +326,7 @@ func (r *Raft) becomeLeader(ctx context.Context) {
 				if err != nil {
 					log.Error().Err(err).Msg("failed to execute leader job")
 				}
-				leaderJobTimer.Reset(*r.LeaderJobTimeout)
+				leaderJobTimer.Reset(r.LeaderJobTimeout)
 
 			case <-r.Resign:
 				log.Debug().Msg("resigning as leader")

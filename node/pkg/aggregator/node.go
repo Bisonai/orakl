@@ -24,7 +24,7 @@ func NewNode(h host.Host, ps *pubsub.PubSub, topicString string) (*AggregatorNod
 	leaderTimeout := 5 * time.Second
 
 	aggregator := AggregatorNode{
-		Raft:            raft.NewRaftNode(h, ps, topic, 100, &leaderTimeout),
+		Raft:            raft.NewRaftNode(h, ps, topic, 100, leaderTimeout),
 		CollectedPrices: map[int64][]int64{},
 		AggregatorMutex: sync.Mutex{},
 	}
