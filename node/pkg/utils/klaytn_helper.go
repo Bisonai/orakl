@@ -22,7 +22,7 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-const DEFAULT_GAS_LIMIT = uint64(400000)
+const DEFAULT_GAS_LIMIT = uint64(1200000)
 
 type ReporterModel struct {
 	ID int64  `db:"id"`
@@ -124,6 +124,20 @@ func HashToTx(hash string) (*types.Transaction, error) {
 	return tx, nil
 }
 
+func ConvertFunctionParameters(input string) string {
+	parts := strings.Split(input, ",")
+	var outputParts []string
+	for _, part := range parts {
+		part = strings.TrimSpace(part)
+		paramType := strings.Split(part, " ")[0]
+
+		outputParts = append(outputParts, fmt.Sprintf(`{
+            "type": "%s"
+        }`, paramType))
+	}
+	return strings.Join(outputParts, ",\n")
+}
+
 func GenerateABI(functionString string) (*abi.ABI, error) {
 	parts := strings.Split(functionString, "(")
 	if len(parts) != 2 {
@@ -132,7 +146,7 @@ func GenerateABI(functionString string) (*abi.ABI, error) {
 
 	functionName := parts[0]
 	arguments := strings.TrimRight(parts[1], ")")
-
+	convertedArgs := ConvertFunctionParameters(arguments)
 	json := fmt.Sprintf(`[
         {
             "constant": false,
@@ -143,7 +157,9 @@ func GenerateABI(functionString string) (*abi.ABI, error) {
             "stateMutability": "nonpayable",
             "type": "function"
         }
-    ]`, arguments, functionName)
+    ]`, convertedArgs, functionName)
+
+	log.Debug().Str("json", json).Msg("generated abi")
 
 	parsedABI, err := abi.JSON(strings.NewReader(json))
 	if err != nil {
@@ -214,12 +230,16 @@ func makeDirectTx(ctx context.Context, client *client.Client, contractAddressHex
 func makeFeeDelegatedTx(ctx context.Context, client *client.Client, contractAddressHex string, reporter string, functionString string, chainID *big.Int, args ...interface{}) (*types.Transaction, error) {
 	abi, err := GenerateABI(functionString)
 	if err != nil {
+		log.Error().Err(err).Msg("failed to generate abi")
 		return nil, err
 	}
+
+	fmt.Println(len(args))
 
 	functionName := strings.Split(functionString, "(")[0]
 	packed, err := abi.Pack(functionName, args...)
 	if err != nil {
+		log.Error().Err(err).Msg("failed to pack abi")
 		return nil, err
 	}
 
@@ -250,7 +270,7 @@ func makeFeeDelegatedTx(ctx context.Context, client *client.Client, contractAddr
 	txMap := map[types.TxValueKeyType]interface{}{
 		types.TxValueKeyNonce:    nonce,
 		types.TxValueKeyGasPrice: gasPrice,
-		types.TxValueKeyGasLimit: uint64(90000),
+		types.TxValueKeyGasLimit: DEFAULT_GAS_LIMIT,
 		types.TxValueKeyTo:       contractAddress,
 		types.TxValueKeyAmount:   big.NewInt(0),
 		types.TxValueKeyFrom:     fromAddress,
