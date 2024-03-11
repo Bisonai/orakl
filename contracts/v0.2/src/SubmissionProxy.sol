@@ -30,11 +30,21 @@ contract SubmissionProxy is Ownable {
 
     constructor() Ownable(msg.sender) {}
 
-    function getOracles() public view returns (address[] memory) {
+    function setMaxSubmission(uint256 _maxSubmission) external onlyOwner {
+        maxSubmission = _maxSubmission;
+        emit MaxSubmissionSet(_maxSubmission);
+    }
+
+    function setExpirationPeriod(uint256 _expirationPeriod) external onlyOwner {
+        expirationPeriod = _expirationPeriod;
+        emit ExpirationPeriodSet(_expirationPeriod);
+    }
+
+    function getOracles() external view returns (address[] memory) {
         return oracles;
     }
 
-    function getExpiredOracles() public view returns (address[] memory) {
+    function getExpiredOracles() external view returns (address[] memory) {
         uint256 numOracles = oracles.length;
         uint256 numExpired = 0;
         address[] memory expiredFull = new address[](numOracles);
@@ -54,14 +64,17 @@ contract SubmissionProxy is Ownable {
         return expired;
     }
 
-    function addOracle(address _oracle) public onlyOwner {
-        uint256 expiration_ = block.timestamp + expirationPeriod;
-        expirations[_oracle] = expiration_;
+    function addOracle(address _oracle) external onlyOwner {
+	if (expirations[_oracle] != 0) {
+	    revert InvalidOracle();
+	}
+
+        expirations[_oracle] = block.timestamp + expirationPeriod;
         oracles.push(_oracle);
         emit OracleAdded(_oracle);
     }
 
-    function removeOracle(address _oracle) public onlyOwner {
+    function removeOracle(address _oracle) external onlyOwner {
         if (expirations[_oracle] == 0) {
             revert InvalidOracle();
         }
@@ -79,17 +92,7 @@ contract SubmissionProxy is Ownable {
         }
     }
 
-    function setMaxSubmission(uint256 _maxSubmission) public onlyOwner {
-        maxSubmission = _maxSubmission;
-        emit MaxSubmissionSet(_maxSubmission);
-    }
-
-    function setExpirationPeriod(uint256 _expirationPeriod) public onlyOwner {
-        expirationPeriod = _expirationPeriod;
-        emit ExpirationPeriodSet(_expirationPeriod);
-    }
-
-    function submit(address[] memory _aggregators, int256[] memory _submissions) public onlyOracle {
+    function submit(address[] memory _aggregators, int256[] memory _submissions) external onlyOracle {
         if (_aggregators.length != _submissions.length) {
             revert InvalidSubmissionLength();
         }

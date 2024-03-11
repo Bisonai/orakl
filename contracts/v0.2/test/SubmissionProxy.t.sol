@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
-import {Test, console2, console} from "forge-std/Test.sol";
+import {Test, console} from "forge-std/Test.sol";
 import {SubmissionProxy} from "../src/SubmissionProxy.sol";
 import {Aggregator} from "../src/Aggregator.sol";
 
@@ -36,6 +36,15 @@ contract SubmissionProxyTest is Test {
         submissionProxy.removeOracle(address(0));
         numOracles_ = submissionProxy.getOracles().length;
         assertEq(numOracles_, 0);
+    }
+
+    function test_AddOracleTwice() public {
+	address oracle_ = makeAddr("oracle");
+	submissionProxy.addOracle(oracle_);
+
+	// cannot add the same oracle twice => fail
+	vm.expectRevert(SubmissionProxy.InvalidOracle.selector);
+	submissionProxy.addOracle(oracle_);
     }
 
     function test_GetExpiredOracles() public {
@@ -78,32 +87,6 @@ contract SubmissionProxyTest is Test {
         address nonOwner_ = makeAddr("nonOwner");
         vm.prank(nonOwner_);
         submissionProxy.setExpirationPeriod(1 weeks);
-    }
-
-    function prepareAggregatorsSubmissions(uint256 _numOracles, int256 _submissionValue, address _oracle)
-        internal
-        returns (address[] memory, int256[] memory)
-    {
-        submissionProxy.addOracle(_oracle);
-
-        address[] memory remove_;
-        address[] memory add_ = new address[](2);
-        add_[0] = address(submissionProxy);
-        add_[1] = _oracle;
-
-        address[] memory aggregators_ = new address[](_numOracles);
-        int256[] memory submissions_ = new int256[](_numOracles);
-
-        for (uint256 i = 0; i < _numOracles; i++) {
-            Aggregator aggregator_ = new Aggregator(TIMEOUT, DECIMALS, DESCRIPTION);
-
-            aggregator_.changeOracles(remove_, add_, 1, 1, 0);
-
-            aggregators_[i] = address(aggregator_);
-            submissions_[i] = _submissionValue;
-        }
-
-        return (aggregators_, submissions_);
     }
 
     function testFail_submitWithExpiredOracle() public {
@@ -185,5 +168,31 @@ contract SubmissionProxyTest is Test {
         } else {
             console.log("waste", batchSubmissionGas - singleSubmissionGas);
         }
+    }
+
+    function prepareAggregatorsSubmissions(uint256 _numOracles, int256 _submissionValue, address _oracle)
+        internal
+        returns (address[] memory, int256[] memory)
+    {
+        submissionProxy.addOracle(_oracle);
+
+        address[] memory remove_;
+        address[] memory add_ = new address[](2);
+        add_[0] = address(submissionProxy);
+        add_[1] = _oracle;
+
+        address[] memory aggregators_ = new address[](_numOracles);
+        int256[] memory submissions_ = new int256[](_numOracles);
+
+        for (uint256 i = 0; i < _numOracles; i++) {
+            Aggregator aggregator_ = new Aggregator(TIMEOUT, DECIMALS, DESCRIPTION);
+
+            aggregator_.changeOracles(remove_, add_, 1, 1, 0);
+
+            aggregators_[i] = address(aggregator_);
+            submissions_[i] = _submissionValue;
+        }
+
+        return (aggregators_, submissions_);
     }
 }
