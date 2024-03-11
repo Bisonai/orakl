@@ -2,9 +2,9 @@ package reporter
 
 import (
 	"context"
+	"crypto/rand"
 	"errors"
 	"math/big"
-	"math/rand"
 	"os"
 	"time"
 
@@ -21,6 +21,7 @@ const (
 	TOPIC_STRING    = "orakl-offchain-aggregation-reporter"
 	LEADER_TIMEOUT  = 5 * time.Second
 	MAX_RETRY       = 3
+	MAX_RETRY_DELAY = 500 * time.Millisecond
 	FUNCTION_STRING = "batchSubmit(string[] memory _pairs, int256[] memory _prices)"
 
 	GET_LATEST_GLOBAL_AGGREGATES_QUERY = `
@@ -90,9 +91,14 @@ func (r *Reporter) leaderJob() error {
 	ctx := context.Background()
 	failureTimout := 50 * time.Millisecond
 	for i := 0; i < MAX_RETRY; i++ {
-		failureTimout += failureTimout + time.Duration(rand.Intn(100))*time.Millisecond
-		if failureTimout > 500*time.Millisecond {
-			failureTimout = 500 * time.Millisecond
+		n, err := rand.Int(rand.Reader, big.NewInt(100))
+		if err != nil {
+			log.Error().Err(err).Msg("failed to generate jitter for retry timeout")
+			n = big.NewInt(0)
+		}
+		failureTimout += failureTimout + time.Duration(n.Int64())*time.Millisecond
+		if failureTimout > MAX_RETRY_DELAY {
+			failureTimout = MAX_RETRY_DELAY
 		}
 
 		aggregates, err := r.getLatestGlobalAggregates(ctx)
@@ -140,12 +146,18 @@ func (r *Reporter) getLatestGlobalAggregates(ctx context.Context) ([]GlobalAggre
 }
 
 func (r *Reporter) report(ctx context.Context, aggregates []GlobalAggregate) error {
-	pairs, values := r.makeContractArgs(aggregates)
+	pairs, values, err := r.makeContractArgs(aggregates)
+	if err != nil {
+		log.Error().Err(err).Msg("makeContractArgs")
+		return err
+	}
+
 	rawTx, err := r.TxHelper.MakeDirectTx(ctx, r.contractAddress, FUNCTION_STRING, pairs, values)
 	if err != nil {
 		log.Error().Err(err).Msg("MakeDirectTx")
 		return err
 	}
+
 	return r.TxHelper.SubmitRawTx(ctx, rawTx)
 }
 
@@ -167,12 +179,21 @@ func (r *Reporter) isAggValid(aggregate GlobalAggregate) bool {
 	return aggregate.Round > lastSubmission
 }
 
-func (r *Reporter) makeContractArgs(aggregates []GlobalAggregate) ([]string, []*big.Int) {
+func (r *Reporter) makeContractArgs(aggregates []GlobalAggregate) ([]string, []*big.Int, error) {
 	pairs := make([]string, len(aggregates))
 	values := make([]*big.Int, len(aggregates))
 	for i, agg := range aggregates {
+		if agg.Name == "" || agg.Value < 0 {
+			log.Error().Str("name", agg.Name).Int64("value", agg.Value).Msg("skipping invalid aggregate")
+			return nil, nil, errors.New("invalid aggregate exists")
+		}
 		pairs[i] = agg.Name
 		values[i] = big.NewInt(agg.Value)
 	}
-	return pairs, values
+
+	if len(pairs) == 0 || len(values) < 0 {
+		return nil, nil, errors.New("no valid aggregates")
+	}
+
+	return pairs, values, nil
 }
