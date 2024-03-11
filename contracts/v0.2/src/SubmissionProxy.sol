@@ -101,7 +101,7 @@ contract SubmissionProxy is Ownable {
     }
 
     function submit(address[] memory _aggregators, int256[] memory _submissions) external onlyOracle {
-        if (_aggregators.length != _submissions.length) {
+        if (_aggregators.length != _submissions.length || _aggregators.length > maxSubmission) {
             revert InvalidSubmissionLength();
         }
 
