@@ -21,6 +21,7 @@ contract SubmissionProxy is Ownable {
     error OnlyOracle();
     error InvalidOracle();
     error InvalidSubmissionLength();
+    error InvalidExpirationPeriod();
 
     modifier onlyOracle() {
         uint256 expiration = expirations[msg.sender];
@@ -36,6 +37,9 @@ contract SubmissionProxy is Ownable {
     }
 
     function setExpirationPeriod(uint256 _expirationPeriod) external onlyOwner {
+	if (_expirationPeriod < 1 days || _expirationPeriod > 365 days) {
+	    revert InvalidExpirationPeriod();
+	}
         expirationPeriod = _expirationPeriod;
         emit ExpirationPeriodSet(_expirationPeriod);
     }

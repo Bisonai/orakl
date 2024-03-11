@@ -5,7 +5,6 @@ import {Test, console} from "forge-std/Test.sol";
 import {SubmissionProxy} from "../src/SubmissionProxy.sol";
 import {Aggregator} from "../src/Aggregator.sol";
 
-// TODO test submit after oracle expires
 contract SubmissionProxyTest is Test {
     SubmissionProxy submissionProxy;
     uint32 TIMEOUT = 10;
@@ -81,6 +80,16 @@ contract SubmissionProxyTest is Test {
         uint256 expirationPeriod_ = 1 weeks;
         submissionProxy.setExpirationPeriod(expirationPeriod_);
         assertEq(submissionProxy.expirationPeriod(), expirationPeriod_);
+    }
+
+    function test_SetExpirationPeriodBelowMinimum() public {
+	vm.expectRevert(SubmissionProxy.InvalidExpirationPeriod.selector);
+        submissionProxy.setExpirationPeriod(1 days / 2);
+    }
+
+    function test_SetExpirationPeriodAboveMaximum() public {
+	vm.expectRevert(SubmissionProxy.InvalidExpirationPeriod.selector);
+        submissionProxy.setExpirationPeriod(365 days + 1 days);
     }
 
     function testFail_SetExpirationPeriodProtectExecution() public {
