@@ -8,10 +8,9 @@ import {Aggregator} from "../src/Aggregator.sol";
 // TODO test submit after oracle expires
 contract SubmissionProxyTest is Test {
     SubmissionProxy submissionProxy;
-    uint32 timeout = 10;
-    address validator = address(0);
-    uint8 decimals = 18;
-    string description = "Test Aggregator";
+    uint32 TIMEOUT = 10;
+    uint8 DECIMALS = 18;
+    string DESCRIPTION = "Test Aggregator";
     uint256 timestamp = 1706170779;
 
     function estimateGasCost(uint256 startGas) internal view returns (uint256) {
@@ -81,6 +80,44 @@ contract SubmissionProxyTest is Test {
 	submissionProxy.setExpirationPeriod(1 weeks);
     }
 
+    function prepareAggregatorsSubmissions(uint256 _numOracles, int256 _submissionValue, address _oracle) internal returns (address[] memory, int256[] memory) {
+	submissionProxy.addOracle(_oracle);
+
+	address[] memory remove_;
+	address[] memory add_ = new address[](2);
+	add_[0] = address(submissionProxy);
+	add_[1] = _oracle;
+
+	address[] memory aggregators_ = new address[](_numOracles);
+	int256[] memory submissions_ = new int256[](_numOracles);
+
+	for (uint256 i = 0; i < _numOracles; i++) {
+	    Aggregator aggregator_ = new Aggregator(TIMEOUT, DECIMALS, DESCRIPTION);
+
+
+	    aggregator_.changeOracles(remove_, add_, 1, 1, 0);
+
+	    aggregators_[i] = address(aggregator_);
+            submissions_[i] = _submissionValue;
+	}
+
+	return (aggregators_, submissions_);
+    }
+
+    function testFail_submitWithExpiredOracle() public {
+	uint256 numOracles_ = 2;
+	int256 submissionValue_ = 10;
+	address oracle_ = makeAddr("oracle");
+
+	(address[] memory aggregators_, int256[] memory submissions_) = prepareAggregatorsSubmissions(numOracles_, submissionValue_, oracle_);
+
+	// move time past the expiration period => fail to submit
+	vm.warp(block.timestamp + submissionProxy.expirationPeriod() + 1);
+
+	vm.prank(oracle_);
+	submissionProxy.submit(aggregators_, submissions_);
+    }
+
     function test_BatchSubmission() public {
 	uint256 numOracles = 50;
 	address offChainSubmissionProxyReporter = address(0);
@@ -98,7 +135,7 @@ contract SubmissionProxyTest is Test {
 
 	// multiple single submissions
         for (uint256 i = 0; i < numOracles; i++) {
-            Aggregator aggregator = new Aggregator(timeout, decimals, description);
+            Aggregator aggregator = new Aggregator(TIMEOUT, DECIMALS, DESCRIPTION);
 
             oracleAdd[0] = address(submissionProxy);
             oracleAdd[1] = offChainAggregatorReporter;
