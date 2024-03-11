@@ -5,7 +5,6 @@ import (
 	"context"
 	"math/big"
 	"testing"
-	"time"
 
 	"bisonai.com/orakl/node/pkg/raft"
 	"github.com/stretchr/testify/assert"
@@ -46,7 +45,6 @@ func TestResignLeader(t *testing.T) {
 		t.Fatalf("error setting up test: %v", err)
 	}
 	defer cleanup()
-	time.Sleep(1 * time.Second)
 
 	testItems.reporter.resignLeader()
 	assert.Equal(t, testItems.reporter.Raft.GetRole(), raft.Follower)
