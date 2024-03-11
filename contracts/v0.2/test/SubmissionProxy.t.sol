@@ -89,7 +89,7 @@ contract SubmissionProxyTest is Test {
 	} else {
 	    console.log("waste", batchSubmissionGas - singleSubmissionGas);
 	}
-    function test_ExpiredOracles() public {
+    function test_GetExpiredOracles() public {
 	address oracle = makeAddr("oracle");
 
         submissionProxy.addOracle(oracle);
@@ -97,13 +97,12 @@ contract SubmissionProxyTest is Test {
         assertEq(numOracles, 1);
 
 	// oracle has not expired yet
-	vm.warp(block.timestamp + 1);
-	address[] memory expired = submissionProxy.expiredOracles();
+	address[] memory expired = submissionProxy.getExpiredOracles();
 	assertEq(expired.length, 0);
 
 	// oracle expired
-	vm.warp(block.timestamp + submissionProxy.EXPIRATION_PERIOD() + 1);
-	expired = submissionProxy.expiredOracles();
+	vm.warp(block.timestamp + submissionProxy.expirationPeriod() + 1);
+	expired = submissionProxy.getExpiredOracles();
 	assertEq(expired.length, 1);
 	assertEq(expired[0], oracle);
     }

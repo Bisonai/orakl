@@ -8,15 +8,16 @@ import {IAggregator} from "./interfaces/IAggregatorSubmit.sol";
 // TODO: submission verification
 // TODO: submission by aggregator name
 contract SubmissionProxy is Ownable {
-    uint256 MAX_SUBMISSION = 50;
-    uint256 public constant EXPIRATION_PERIOD = 4 weeks;
+    uint256 maxSubmission = 50;
+    uint256 public expirationPeriod = 5 weeks;
 
     address[] public oracles;
     mapping(address => uint256) expirations;
 
     event OracleAdded(address oracle);
     event OracleRemoved(address oracle);
-    event MaxSubmissionSet(uint256 MAX_SUBMISSION);
+    event MaxSubmissionSet(uint256 maxSubmission);
+    event ExpirationPeriodSet(uint256 expirationPeriod);
 
     error OnlyOracle();
     error InvalidOracle();
@@ -34,7 +35,7 @@ contract SubmissionProxy is Ownable {
         return oracles;
     }
 
-    function expiredOracles() public view returns (address[] memory) {
+    function getExpiredOracles() public view returns (address[] memory) {
 	uint256 numOracles = oracles.length;
 	uint256 numExpired = 0;
 	address[] memory expiredFull = new address[](numOracles);
@@ -55,7 +56,7 @@ contract SubmissionProxy is Ownable {
     }
 
     function addOracle(address _oracle) public onlyOwner {
-	uint256 expiration_ = block.timestamp + EXPIRATION_PERIOD;
+	uint256 expiration_ = block.timestamp + expirationPeriod;
 	expirations[_oracle] = expiration_;
 	oracles.push(_oracle);
         emit OracleAdded(_oracle);
@@ -79,9 +80,14 @@ contract SubmissionProxy is Ownable {
         }
     }
 
-    function setMaxSubmission(uint256 _MAX_SUBMISSION) public onlyOwner {
-        MAX_SUBMISSION = _MAX_SUBMISSION;
-	emit MaxSubmissionSet(_MAX_SUBMISSION);
+    function setMaxSubmission(uint256 _maxSubmission) public onlyOwner {
+        maxSubmission = _maxSubmission;
+	emit MaxSubmissionSet(_maxSubmission);
+    }
+
+    function setExpirationPeriod(uint256 _expirationPeriod) public onlyOwner {
+        expirationPeriod = _expirationPeriod;
+	emit ExpirationPeriodSet(_expirationPeriod);
     }
 
     function submit(address[] memory _aggregators, int256[] memory _submissions) public onlyOracle {
