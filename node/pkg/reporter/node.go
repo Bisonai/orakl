@@ -191,7 +191,7 @@ func (r *Reporter) makeContractArgs(aggregates []GlobalAggregate) ([]string, []*
 		values[i] = big.NewInt(agg.Value)
 	}
 
-	if len(pairs) == 0 || len(values) < 0 {
+	if len(pairs) == 0 || len(values) == 0 {
 		return nil, nil, errors.New("no valid aggregates")
 	}
 
