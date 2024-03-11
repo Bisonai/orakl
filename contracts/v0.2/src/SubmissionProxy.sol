@@ -26,7 +26,7 @@ contract SubmissionProxy is Ownable {
 
     modifier onlyOracle() {
         uint256 expiration = expirations[msg.sender];
-        if (expiration == 0 || expiration < block.timestamp) revert OnlyOracle();
+        if (expiration == 0 || expiration <= block.timestamp) revert OnlyOracle();
         _;
     }
 
