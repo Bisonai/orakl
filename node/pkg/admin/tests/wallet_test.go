@@ -42,6 +42,12 @@ func TestWalletInsert(t *testing.T) {
 
 	assert.Greaterf(t, len(readResultAfter), len(readResultBefore), "expected to have more wallets after insertion")
 
+	readSingle, err := GetRequest[wallet.WalletModel](testItems.app, "/api/v1/wallet/"+strconv.FormatInt(*insertResult.Id, 10), nil)
+	if err != nil {
+		t.Fatalf("error getting wallet by id: %v", err)
+	}
+	assert.Equalf(t, readSingle.Pk, mockWallet.Pk, "expected to have the same wallet")
+
 	err = db.QueryWithoutResult(context.Background(), wallet.DeleteWalletById, map[string]any{"id": insertResult.Id})
 	if err != nil {
 		t.Fatalf("error cleaning up test: %v", err)
@@ -62,6 +68,7 @@ func TestWalletGet(t *testing.T) {
 	}
 
 	assert.Greaterf(t, len(readResult), 0, "expected to have at least one wallet")
+	assert.Equalf(t, readResult[0].Pk, testItems.tmpData.wallet.Pk, "expected to have the same wallet")
 }
 
 func TestWalletGetById(t *testing.T) {
@@ -76,6 +83,12 @@ func TestWalletGetById(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error getting wallet by id: %v", err)
 	}
+	failReadByInvalidId, err := GetRequest[wallet.WalletModel](testItems.app, "/api/v1/wallet/0", nil)
+	if err != nil {
+		t.Fatalf("error getting wallet by invalid id: %v", err)
+	}
+
+	assert.Equal(t, failReadByInvalidId, wallet.WalletModel{})
 
 	assert.Equal(t, testItems.tmpData.wallet.Pk, readResultById.Pk)
 }
@@ -113,7 +126,7 @@ func TestWalletDeleteById(t *testing.T) {
 		t.Fatalf("error getting wallets before: %v", err)
 	}
 
-	err = db.QueryWithoutResult(context.Background(), wallet.DeleteWalletById, map[string]any{"id": testItems.tmpData.wallet.Id})
+	removeResult, err := DeleteRequest[wallet.WalletModel](testItems.app, "/api/v1/wallet/"+strconv.FormatInt(*testItems.tmpData.wallet.Id, 10), nil)
 	if err != nil {
 		t.Fatalf("error deleting wallet: %v", err)
 	}
@@ -124,4 +137,10 @@ func TestWalletDeleteById(t *testing.T) {
 	}
 
 	assert.Lessf(t, len(readResultAfter), len(readResultBefore), "expected to have less wallets after deletion")
+
+	failReadAfterDelete, err := GetRequest[wallet.WalletModel](testItems.app, "/api/v1/wallet/"+strconv.FormatInt(*removeResult.Id, 10), nil)
+	if err != nil {
+		t.Fatalf("error getting wallet by id after deletion: %v", err)
+	}
+	assert.Equalf(t, failReadAfterDelete, wallet.WalletModel{}, "expected to have no wallet after deletion")
 }
