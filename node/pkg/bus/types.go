@@ -5,11 +5,11 @@ const (
 	// 1. admin: works as user interface to control whole system, sends message to other packages to control
 	// 2. fetcher: fetches data from different sources and stores in db, sends message to aggregator in case of deviation
 	// 3. aggregator: aggregates data through data sent from other nodes and stores global aggregates into db
-	// 4. submitter: submits price into blockchain in regular basis
+	// 4. reporter: submits price into blockchain in regular basis
 	ADMIN      = "admin"
 	FETCHER    = "fetcher"
 	AGGREGATOR = "aggregator"
-	SUBMITTER  = "submitter"
+	REPORTER   = "reporter"
 
 	// Modular Monolith pkg commands, please follow {verb}_{noun} pattern for both variable name and value
 	START_FETCHER_APP   = "start_fetcher_app"
@@ -25,6 +25,10 @@ const (
 
 	ACTIVATE_AGGREGATOR   = "activate_aggregator"
 	DEACTIVATE_AGGREGATOR = "deactivate_aggregator"
+
+	ACTIVATE_REPORTER   = "activate_reporter"
+	DEACTIVATE_REPORTER = "deactivate_reporter"
+	REFRESH_REPORTER    = "refresh_reporter"
 
 	DEVIATION = "deviation"
 )

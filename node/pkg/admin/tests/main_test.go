@@ -10,7 +10,9 @@ import (
 	"bisonai.com/orakl/node/pkg/admin/feed"
 	"bisonai.com/orakl/node/pkg/admin/fetcher"
 	"bisonai.com/orakl/node/pkg/admin/proxy"
+	"bisonai.com/orakl/node/pkg/admin/reporter"
 	"bisonai.com/orakl/node/pkg/admin/utils"
+	"bisonai.com/orakl/node/pkg/admin/wallet"
 	"bisonai.com/orakl/node/pkg/bus"
 	"bisonai.com/orakl/node/pkg/db"
 	"github.com/gofiber/fiber/v2"
@@ -27,6 +29,7 @@ type TmpData struct {
 	adapter    adapter.AdapterModel
 	feed       feed.FeedModel
 	proxy      proxy.ProxyModel
+	wallet     wallet.WalletModel
 }
 
 func setup(ctx context.Context) (func() error, *TestItems, error) {
@@ -59,6 +62,9 @@ func setup(ctx context.Context) (func() error, *TestItems, error) {
 	feed.Routes(v1)
 	fetcher.Routes(v1)
 	proxy.Routes(v1)
+	wallet.Routes(v1)
+	reporter.Routes(v1)
+
 	return adminCleanup(testItems), testItems, nil
 }
 
@@ -89,6 +95,12 @@ func insertSampleData(ctx context.Context) (*TmpData, error) {
 	}
 	tmpData.proxy = tmpProxy
 
+	tmpWallet, err := db.QueryRow[wallet.WalletModel](ctx, wallet.InsertWallet, map[string]any{"pk": "test_pk"})
+	if err != nil {
+		return nil, err
+	}
+	tmpData.wallet = tmpWallet
+
 	return tmpData, nil
 }
 
@@ -109,7 +121,11 @@ func adminCleanup(testItems *TestItems) func() error {
 		}
 
 		_, err = db.QueryRow[proxy.ProxyModel](context.Background(), proxy.DeleteProxyById, map[string]any{"id": testItems.tmpData.proxy.Id})
-		return err
+		if err != nil {
+			return err
+		}
+
+		return db.QueryWithoutResult(context.Background(), wallet.DeleteWalletById, map[string]any{"id": testItems.tmpData.wallet.Id})
 	}
 }
 
