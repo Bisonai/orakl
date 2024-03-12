@@ -105,12 +105,18 @@ func TestWalletUpdateById(t *testing.T) {
 		Pk: "test_pk_v2",
 	}
 
+	beforeUpdate, err := GetRequest[wallet.WalletModel](testItems.app, "/api/v1/wallet/"+strconv.FormatInt(*testItems.tmpData.wallet.Id, 10), nil)
+	if err != nil {
+		t.Fatalf("error getting wallet by id before update: %v", err)
+	}
+
 	updateResult, err := PatchRequest[wallet.WalletModel](testItems.app, "/api/v1/wallet/"+strconv.FormatInt(*testItems.tmpData.wallet.Id, 10), map[string]any{"pk": mockWallet.Pk})
 	if err != nil {
 		t.Fatalf("error updating wallet: %v", err)
 	}
 
 	assert.Equal(t, updateResult.Pk, mockWallet.Pk)
+	assert.NotEqual(t, beforeUpdate.Pk, updateResult.Pk)
 }
 
 func TestWalletDeleteById(t *testing.T) {
