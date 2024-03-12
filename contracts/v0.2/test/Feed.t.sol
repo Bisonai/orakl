@@ -8,12 +8,12 @@ contract FeedTest is Test {
     Feed public feed;
     uint8 decimals = 18;
     string description = "Test Feed";
-    uint256 timestamp = 1706170779;
     address[] removed;
     address[] added;
 
+    event FeedUpdated(int256 indexed answer, uint256 indexed roundId, uint256 updatedAt);
+
     function setUp() public {
-        vm.warp(timestamp);
         feed = new Feed(decimals, description);
     }
 
@@ -49,18 +49,23 @@ contract FeedTest is Test {
 	feed.changeOracles(removed, added);
     }
 
-    /* function test_SubmitAndReadResponse() public { */
-    /*     clear(); */
-    /*     oracleAdd.push(address(0)); */
+    function test_SubmitAndReadResponse() public {
+	address alice = makeAddr('alice');
+	added.push(alice);
+	feed.changeOracles(removed, added);
 
-    /*     changeOracles(); */
-    /*     vm.prank(address(0)); */
-    /*     vm.expectEmit(true, true, false, true); */
-    /*     emit NewRound(1, address(0), timestamp); */
-    /*     feed.submit(10); */
-    /*     (, int256 answer,,,) = feed.latestRoundData(); */
-    /*     assertEq(answer, 10); */
-    /* } */
+	int256 expectedAnswer = 10;
+	uint256 expectedRoundId = 1;
+	uint256 expectedUpdatedAt = block.timestamp;
+
+        vm.expectEmit(true, true, true, true);
+        emit FeedUpdated(expectedAnswer, expectedRoundId, expectedUpdatedAt);
+        feed.submit(expectedAnswer);
+        (uint80 roundId, int256 answer, uint256 updatedAt) = feed.latestRoundData();
+	assertEq(roundId, expectedRoundId);
+        assertEq(answer, expectedAnswer);
+	assertEq(updatedAt, expectedUpdatedAt);
+    }
 
     /* function test_RevertWith_TooManyOracles() public { */
     /*     uint256 maxOracle = feed.MAX_ORACLE_COUNT(); */
