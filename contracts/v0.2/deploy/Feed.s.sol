@@ -22,10 +22,9 @@ contract FeedScript is Script {
             bytes memory deployData = config.readJson(migrationFilePath, ".deploy");
             UtilsScript.Deploy memory deployConfig = abi.decode(deployData, (UtilsScript.Deploy));
             if (bytes(deployConfig.name).length > 0) {
-                uint32 timeout = uint32(deployConfig.timeout);
                 uint8 decimals = uint8(deployConfig.decimals);
                 string memory description = deployConfig.description;
-                feed = new Feed(timeout, decimals, description);
+                feed = new Feed(decimals, description);
             }
 
             bytes memory changeOracleData = config.readJson(migrationFiles[i], ".changeOracles");
@@ -34,10 +33,7 @@ contract FeedScript is Script {
             if (changeOracleConfig.minSubmissionCount > 0) {
                 feed.changeOracles(
                     changeOracleConfig.removed,
-                    changeOracleConfig.added,
-                    uint32(changeOracleConfig.minSubmissionCount),
-                    uint32(changeOracleConfig.maxSubmissionCount),
-                    uint32(changeOracleConfig.restartDelay)
+                    changeOracleConfig.added
                 );
             }
             vm.stopBroadcast();

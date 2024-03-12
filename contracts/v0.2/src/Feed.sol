@@ -27,7 +27,7 @@ contract Feed is Ownable, IFeed, ITypeAndVersion {
     event OraclePermissionsUpdated(address indexed oracle, bool indexed whitelisted);
     event FeedUpdated(int256 indexed answer, uint256 indexed roundId, uint256 updatedAt);
 
-    constructor(uint32 _timeout, uint8 _decimals, string memory _description) Ownable(msg.sender) {
+    constructor(uint8 _decimals, string memory _description) Ownable(msg.sender) {
         decimals = _decimals;
         description = _description;
     }
@@ -45,9 +45,7 @@ contract Feed is Ownable, IFeed, ITypeAndVersion {
 
     function changeOracles(
         address[] calldata _removed,
-        address[] calldata _added,
-        uint32 _minSubmissionCount,
-        uint32 _maxSubmissionCount
+        address[] calldata _added
     ) external onlyOwner {
         for (uint256 i = 0; i < _removed.length; i++) {
             removeOracle(_removed[i]);

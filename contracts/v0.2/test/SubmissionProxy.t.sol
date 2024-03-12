@@ -7,7 +7,6 @@ import {Feed} from "../src/Feed.sol";
 
 contract SubmissionProxyTest is Test {
     SubmissionProxy submissionProxy;
-    uint32 TIMEOUT = 10;
     uint8 DECIMALS = 18;
     string DESCRIPTION = "Test Feed";
     uint256 timestamp = 1706170779;
@@ -128,11 +127,11 @@ contract SubmissionProxyTest is Test {
 
         // multiple single submissions
         for (uint256 i = 0; i < numOracles; i++) {
-            Feed feed = new Feed(TIMEOUT, DECIMALS, DESCRIPTION);
+            Feed feed = new Feed(DECIMALS, DESCRIPTION);
 
             oracleAdd[0] = address(submissionProxy);
             oracleAdd[1] = offChainFeedReporter;
-            feed.changeOracles(oracleRemove, oracleAdd, 1, 1, 0);
+            feed.changeOracles(oracleRemove, oracleAdd);
 
             feeds[i] = address(feed);
             submissions[i] = 10;
@@ -178,9 +177,9 @@ contract SubmissionProxyTest is Test {
         int256[] memory submissions_ = new int256[](_numOracles);
 
         for (uint256 i = 0; i < _numOracles; i++) {
-            Feed feed_ = new Feed(TIMEOUT, DECIMALS, DESCRIPTION);
+            Feed feed_ = new Feed(DECIMALS, DESCRIPTION);
 
-            feed_.changeOracles(remove_, add_, 1, 1, 0);
+            feed_.changeOracles(remove_, add_);
 
             feeds_[i] = address(feed_);
             submissions_[i] = _submissionValue;
