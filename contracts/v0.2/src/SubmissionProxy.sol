@@ -2,7 +2,7 @@
 pragma solidity ^0.8.24;
 
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
-import {IAggregator} from "./interfaces/IAggregatorSubmit.sol";
+import {IFeed} from "./interfaces/IFeedSubmit.sol";
 
 // TODO: submission verification
 // TODO: submission by aggregator name
@@ -59,13 +59,13 @@ contract SubmissionProxy is Ownable {
         emit OracleAdded(_oracle);
     }
 
-    function submit(address[] memory _aggregators, int256[] memory _submissions) external onlyOracle {
-        if (_aggregators.length != _submissions.length || _aggregators.length > maxSubmission) {
+    function submit(address[] memory _feeds, int256[] memory _submissions) external onlyOracle {
+        if (_feeds.length != _submissions.length || _feeds.length > maxSubmission) {
             revert InvalidSubmissionLength();
         }
 
-        for (uint256 i = 0; i < _aggregators.length; ++i) {
-            IAggregator(_aggregators[i]).submit(_submissions[i]);
+        for (uint256 i = 0; i < _feeds.length; ++i) {
+            IFeed(_feeds[i]).submit(_submissions[i]);
         }
     }
 }

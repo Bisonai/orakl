@@ -1,15 +1,15 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
-import {Test, console2, console} from "forge-std/Test.sol";
-import {Aggregator} from "../src/Aggregator.sol";
+import {Test, console} from "forge-std/Test.sol";
+import {Feed} from "../src/Feed.sol";
 
-contract AggregatorTest is Test {
-    Aggregator public aggregator;
+contract FeedTest is Test {
+    Feed public feed;
     uint32 timeout = 10;
     address validator = address(0);
     uint8 decimals = 18;
-    string description = "Test Aggregator";
+    string description = "Test Feed";
 
     address[] oracleRemove;
     address[] oracleAdd;
@@ -30,15 +30,15 @@ contract AggregatorTest is Test {
     }
 
     function changeOracles() internal {
-        uint256 maxSubmission = aggregator.getOracles().length + oracleAdd.length - oracleRemove.length;
+        uint256 maxSubmission = feed.getOracles().length + oracleAdd.length - oracleRemove.length;
         uint32 minSubmission = 1;
         if (maxSubmission > 2) minSubmission = 2;
-        aggregator.changeOracles(oracleRemove, oracleAdd, minSubmission, uint32(maxSubmission), 0);
+        feed.changeOracles(oracleRemove, oracleAdd, minSubmission, uint32(maxSubmission), 0);
     }
 
     function setUp() public {
         vm.warp(timestamp);
-        aggregator = new Aggregator(timeout, decimals, description);
+        feed = new Feed(timeout, decimals, description);
     }
 
     function test_AddAndRemoveOracle() public {
@@ -46,14 +46,14 @@ contract AggregatorTest is Test {
         oracleAdd.push(address(0));
         oracleAdd.push(address(1));
         changeOracles();
-        assertEq(aggregator.getOracles().length, 2);
+        assertEq(feed.getOracles().length, 2);
 
         oracleAdd.pop();
         oracleAdd.pop();
 
         oracleRemove.push(address(1));
         changeOracles();
-        assertEq(aggregator.getOracles().length, 1);
+        assertEq(feed.getOracles().length, 1);
     }
 
     function testFail_RemoveOracleNoExisted() public {
@@ -61,7 +61,7 @@ contract AggregatorTest is Test {
         oracleAdd.push(address(0));
         changeOracles();
 
-        assertEq(aggregator.getOracles().length, 1);
+        assertEq(feed.getOracles().length, 1);
         oracleRemove.push(address(2));
         changeOracles();
     }
@@ -71,7 +71,7 @@ contract AggregatorTest is Test {
         oracleAdd.push(address(0));
         changeOracles();
 
-        assertEq(aggregator.getOracles().length, 1);
+        assertEq(feed.getOracles().length, 1);
         oracleAdd.push(address(0));
         changeOracles();
     }
@@ -84,65 +84,65 @@ contract AggregatorTest is Test {
         vm.prank(address(0));
         vm.expectEmit(true, true, false, true);
         emit NewRound(1, address(0), timestamp);
-        aggregator.submit(10);
-        (, int256 answer,,,) = aggregator.latestRoundData();
+        feed.submit(10);
+        (, int256 answer,,,) = feed.latestRoundData();
         assertEq(answer, 10);
     }
 
     function test_RevertWith_TooManyOracles() public {
-        uint256 maxOracle = aggregator.MAX_ORACLE_COUNT();
+        uint256 maxOracle = feed.MAX_ORACLE_COUNT();
         for (uint32 i = 1; i < maxOracle; i++) {
             address add = address(bytes20(keccak256(abi.encodePacked(i))));
             oracleAdd.push(add);
-            aggregator.changeOracles(oracleRemove, oracleAdd, i, i, 0);
+            feed.changeOracles(oracleRemove, oracleAdd, i, i, 0);
             oracleAdd.pop();
         }
-        vm.expectRevert(Aggregator.TooManyOracles.selector);
+        vm.expectRevert(Feed.TooManyOracles.selector);
         oracleAdd.push(address(0));
-        aggregator.changeOracles(oracleRemove, oracleAdd, uint32(maxOracle), uint32(maxOracle), 0);
+        feed.changeOracles(oracleRemove, oracleAdd, uint32(maxOracle), uint32(maxOracle), 0);
     }
 
     function test_RevertWith_MinSubmissionGtMaxSubmission() public {
-        vm.expectRevert(Aggregator.MinSubmissionGtMaxSubmission.selector);
-        aggregator.changeOracles(oracleRemove, oracleAdd, 1, 0, 0);
+        vm.expectRevert(Feed.MinSubmissionGtMaxSubmission.selector);
+        feed.changeOracles(oracleRemove, oracleAdd, 1, 0, 0);
     }
 
     function test_RevertWith_MaxSubmissionGtOracleNum() public {
-        vm.expectRevert(Aggregator.MaxSubmissionGtOracleNum.selector);
-        aggregator.changeOracles(oracleRemove, oracleAdd, 0, 1, 0);
+        vm.expectRevert(Feed.MaxSubmissionGtOracleNum.selector);
+        feed.changeOracles(oracleRemove, oracleAdd, 0, 1, 0);
     }
 
     function test_RevertWith_RestartDelayExceedOracleNum() public {
         uint32 minSubmissionCount = 0;
         uint32 maxSubmissionCount = 1;
         uint32 restartDelay = 1;
-        vm.expectRevert(Aggregator.RestartDelayExceedOracleNum.selector);
+        vm.expectRevert(Feed.RestartDelayExceedOracleNum.selector);
         oracleAdd.push(address(0));
-        aggregator.changeOracles(oracleRemove, oracleAdd, minSubmissionCount, maxSubmissionCount, restartDelay);
+        feed.changeOracles(oracleRemove, oracleAdd, minSubmissionCount, maxSubmissionCount, restartDelay);
     }
 
     function test_RevertWith_MinSubmissionZero() public {
         uint32 minSubmissionCount = 0;
         uint32 maxSubmissionCount = 1;
         uint32 restartDelay = 0;
-        vm.expectRevert(Aggregator.MinSubmissionZero.selector);
+        vm.expectRevert(Feed.MinSubmissionZero.selector);
         oracleAdd.push(address(0));
-        aggregator.changeOracles(oracleRemove, oracleAdd, minSubmissionCount, maxSubmissionCount, restartDelay);
+        feed.changeOracles(oracleRemove, oracleAdd, minSubmissionCount, maxSubmissionCount, restartDelay);
     }
 
     function test_RevertWith_PrevRoundNotSupersedable() public {
         bool authorized = true;
         uint32 deplay = 0;
-        aggregator.setRequesterPermissions(address(0), authorized, deplay);
+        feed.setRequesterPermissions(address(0), authorized, deplay);
         oracleAdd.push(address(1));
         oracleAdd.push(address(2));
         oracleAdd.push(address(3));
-        aggregator.changeOracles(oracleRemove, oracleAdd, 2, 3, 0);
+        feed.changeOracles(oracleRemove, oracleAdd, 2, 3, 0);
         vm.prank(address(1));
-        aggregator.submit(321);
-        vm.expectRevert(Aggregator.PrevRoundNotSupersedable.selector);
+        feed.submit(321);
+        vm.expectRevert(Feed.PrevRoundNotSupersedable.selector);
         vm.prank(address(0));
-        aggregator.requestNewRound();
+        feed.requestNewRound();
     }
 
     function test_currentRoundStartedAt() public {
@@ -151,17 +151,17 @@ contract AggregatorTest is Test {
         for (uint256 i = 1; i <= 2; i++) {
             vm.warp(timestamp + i);
             vm.prank(address(0));
-            aggregator.submit(321);
-            uint256 startedAt = aggregator.currentRoundStartedAt();
+            feed.submit(321);
+            uint256 startedAt = feed.currentRoundStartedAt();
             assertEq(startedAt, timestamp + i);
-            (uint80 roundId,,,,) = aggregator.latestRoundData();
+            (uint80 roundId,,,,) = feed.latestRoundData();
             assertEq(roundId, i);
         }
     }
 
     function test_validateOracleRound() public {
         vm.expectRevert("not enabled oracle");
-        aggregator.submit(321);
+        feed.submit(321);
         oracleAdd.push(address(0));
         changeOracles();
     }
