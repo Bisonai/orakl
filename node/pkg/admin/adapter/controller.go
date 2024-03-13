@@ -112,6 +112,55 @@ func syncFromOraklConfig(c *fiber.Ctx) error {
 	return c.Status(fiber.StatusOK).SendString("syncing request sent")
 }
 
+func addFromOraklConfig(c *fiber.Ctx) error {
+	name := c.Params("name")
+
+	if name == "" {
+		return c.Status(fiber.StatusBadRequest).SendString("name is required")
+	}
+
+	var adapters BulkAdapters
+	adapters, err := oraklUtil.GetRequest[BulkAdapters]("https://config.orakl.network/adapters.json", nil, map[string]string{"Content-Type": "application/json"})
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).SendString("failed to get orakl config: " + err.Error())
+	}
+
+	for _, adapter := range adapters.Adapters {
+		if adapter.Name == name {
+			validate := validator.New()
+			if err = validate.Struct(adapter); err != nil {
+				log.Error().Err(err).Msg("failed to validate orakl config adapter")
+				return c.Status(fiber.StatusInternalServerError).SendString("failed to validate orakl config adapter: " + err.Error())
+			}
+
+			row, err := db.QueryRow[AdapterModel](c.Context(), UpsertAdapter, map[string]any{
+				"name": adapter.Name,
+			})
+			if err != nil {
+				log.Error().Err(err).Msg("failed to execute adapter insert query")
+				return c.Status(fiber.StatusInternalServerError).SendString("failed to execute adapter insert query: " + err.Error())
+			}
+
+			for _, feed := range adapter.Feeds {
+				feed.AdapterId = row.Id
+				_, err := db.QueryRow[FeedModel](c.Context(), UpsertFeed, map[string]any{
+					"name":       feed.Name,
+					"definition": feed.Definition,
+					"adapter_id": feed.AdapterId,
+				})
+				if err != nil {
+					log.Error().Err(err).Msg("failed to execute feed insert query")
+					return c.Status(fiber.StatusInternalServerError).SendString("failed to execute feed insert query: " + err.Error())
+				}
+			}
+
+			result := AdapterModel{Id: row.Id, Name: row.Name, Active: row.Active}
+			return c.JSON(result)
+		}
+	}
+	return c.Status(fiber.StatusInternalServerError).SendString("adapter not found in orakl config")
+}
+
 func insert(c *fiber.Ctx) error {
 	payload := new(AdapterInsertModel)
 	if err := c.BodyParser(payload); err != nil {
