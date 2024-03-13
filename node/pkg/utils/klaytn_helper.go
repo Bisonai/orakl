@@ -60,6 +60,10 @@ func NewTxHelper(ctx context.Context) (*TxHelper, error) {
 }
 
 func newTxHelper(ctx context.Context, providerUrl string, reporterPKs []string) (*TxHelper, error) {
+	if providerUrl == "" {
+		return nil, errors.New("provider url not set")
+	}
+
 	client, err := client.Dial(providerUrl)
 	if err != nil {
 		return nil, err

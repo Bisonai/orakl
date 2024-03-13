@@ -63,6 +63,10 @@ func (a *App) getAggregators(ctx context.Context) ([]Aggregator, error) {
 }
 
 func (a *App) startAggregator(ctx context.Context, aggregator *AggregatorNode) error {
+	if aggregator == nil {
+		return errors.New("aggregator not found")
+	}
+
 	log.Debug().Str("name", aggregator.Name).Msg("starting aggregator")
 	if aggregator.isRunning {
 		log.Debug().Str("name", aggregator.Name).Msg("aggregator already running")
