@@ -46,6 +46,10 @@ tasks:
   test-libp2p:
     cmds:
       - go test ./pkg/libp2p -v
+  test-reporter:
+    dotenv: [".env"]
+    cmds:
+      - go test ./pkg/reporter -v
   test:
     cmds:
       - task: test-db
@@ -55,3 +59,4 @@ tasks:
       - task: test-fetcher
       - task: test-utils
       - task: test-aggregator
+      - task: test-reporter

@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"bisonai.com/orakl/node/pkg/utils"
-	"github.com/go-playground/assert/v2"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestNewTxHelper(t *testing.T) {

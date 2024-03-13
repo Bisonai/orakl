@@ -94,3 +94,4 @@ jobs:
           PROVIDER_URL: "https://api.baobab.klaytn.net:8651"
           REPORTER_PK: ${{ secrets.TEST_DELEGATOR_REPORTER_PK}}
           TEST_FEE_PAYER_PK: ${{ secrets.DELEGATOR_FEEPAYER_PK}}
+          SUBMISSION_PROXY_CONTRACT: "0x8fb610c0Cc27Ca7726fad4c8696d09ca0E8eAee1"

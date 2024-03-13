@@ -13,6 +13,7 @@ import (
 	"bisonai.com/orakl/node/pkg/db"
 
 	"github.com/klaytn/klaytn/accounts/abi"
+	"github.com/klaytn/klaytn/accounts/abi/bind"
 	"github.com/klaytn/klaytn/blockchain/types"
 	"github.com/klaytn/klaytn/client"
 	"github.com/klaytn/klaytn/common"
@@ -238,8 +239,6 @@ func makeFeeDelegatedTx(ctx context.Context, client *client.Client, contractAddr
 		return nil, err
 	}
 
-	fmt.Println(len(args))
-
 	functionName := strings.Split(functionString, "(")[0]
 	packed, err := abi.Pack(functionName, args...)
 	if err != nil {
@@ -318,7 +317,11 @@ func submitRawTx(ctx context.Context, client *client.Client, tx *types.Transacti
 		return err
 	}
 
-	log.Debug().Str("txHash", tx.Hash().Hex()).Msg("submitted")
+	receipt, err := bind.WaitMined(ctx, client, tx)
+	if err != nil {
+		return err
+	}
+	log.Debug().Any("receipt", receipt).Msg("mined")
 	return nil
 }
 
