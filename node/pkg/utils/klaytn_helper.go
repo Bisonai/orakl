@@ -42,16 +42,6 @@ type TxHelper struct {
 }
 
 func NewTxHelper(ctx context.Context) (*TxHelper, error) {
-	client, err := client.Dial(os.Getenv("PROVIDER_URL"))
-	if err != nil {
-		return nil, err
-	}
-
-	chainID, err := getChainID(ctx, client)
-	if err != nil {
-		return nil, err
-	}
-
 	wallets, err := getWallets(ctx)
 	if err != nil {
 		return nil, err
@@ -66,9 +56,27 @@ func NewTxHelper(ctx context.Context) (*TxHelper, error) {
 		return nil, errors.New("no wallets found")
 	}
 
+	return newTxHelper(ctx, os.Getenv("PROVIDER_URL"), wallets)
+}
+
+func newTxHelper(ctx context.Context, providerUrl string, reporterPKs []string) (*TxHelper, error) {
+	client, err := client.Dial(providerUrl)
+	if err != nil {
+		return nil, err
+	}
+
+	chainID, err := getChainID(ctx, client)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(reporterPKs) == 0 {
+		return nil, errors.New("no wallets found")
+	}
+
 	return &TxHelper{
 		client:  client,
-		wallets: wallets,
+		wallets: reporterPKs,
 		chainID: chainID,
 	}, nil
 }

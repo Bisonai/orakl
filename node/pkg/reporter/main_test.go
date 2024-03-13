@@ -6,6 +6,7 @@ import (
 	"os"
 	"testing"
 
+	"bisonai.com/orakl/node/pkg/admin/reporter"
 	"bisonai.com/orakl/node/pkg/admin/utils"
 	"bisonai.com/orakl/node/pkg/bus"
 	"bisonai.com/orakl/node/pkg/db"
@@ -17,7 +18,8 @@ import (
 const InsertGlobalAggregateQuery = `INSERT INTO global_aggregates (name, value, round) VALUES (@name, @value, @round) RETURNING *`
 
 type TestItems struct {
-	reporter   *Reporter
+	app        *App
+	reporter   *ReporterNode
 	admin      *fiber.App
 	messageBus *bus.MessageBus
 	tmpData    *TmpData
@@ -58,12 +60,15 @@ func setup(ctx context.Context) (func() error, *TestItems, error) {
 		return nil, nil, err
 	}
 
-	reporter, err := New(ctx, *h, ps)
+	app := New(mb, *h, ps)
+	testItems.app = app
+
+	reporterNode, err := NewNode(ctx, *h, ps)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	testItems.reporter = reporter
+	testItems.reporter = reporterNode
 
 	tmpData, err := insertSampleData(ctx)
 	if err != nil {
@@ -71,9 +76,8 @@ func setup(ctx context.Context) (func() error, *TestItems, error) {
 	}
 	testItems.tmpData = tmpData
 
-	_ = admin.Group("/api/v1")
-	// TODO: add reporter admin test
-	// reporter.Routes(v1)
+	v1 := admin.Group("/api/v1")
+	reporter.Routes(v1)
 
 	return reporterCleanup(ctx, admin, testItems), testItems, nil
 

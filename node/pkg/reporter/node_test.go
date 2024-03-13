@@ -18,7 +18,7 @@ func TestNew(t *testing.T) {
 	}
 	defer cleanup()
 
-	_, err = New(ctx, testItems.reporter.Raft.Host, testItems.reporter.Raft.Ps)
+	_, err = NewNode(ctx, testItems.reporter.Raft.Host, testItems.reporter.Raft.Ps)
 	if err != nil {
 		t.Fatal("error creating new reporter")
 	}
