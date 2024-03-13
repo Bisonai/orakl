@@ -2,7 +2,8 @@ package main
 
 import (
 	"context"
-	"flag"
+	"fmt"
+	"math/big"
 
 	"bisonai.com/orakl/node/pkg/utils"
 	"github.com/rs/zerolog/log"
@@ -21,9 +22,10 @@ func testContractDelegatedCall(ctx context.Context, contractAddress string, cont
 		return err
 	}
 
-	signedRawTx, err := txHelper.SignTxByFeePayer(ctx, rawTx)
+	signedRawTx, err := txHelper.GetSignedFromDelegator(rawTx)
 	if err != nil {
-		log.Error().Err(err).Msg("SignTxByFeePayer")
+		fmt.Println(signedRawTx)
+		log.Error().Err(err).Msg("GetSignedFromDelegator")
 		return err
 	}
 
@@ -32,24 +34,27 @@ func testContractDelegatedCall(ctx context.Context, contractAddress string, cont
 
 func main() {
 	ctx := context.Background()
-	contractAddress := flag.String("c", "0x93120927379723583c7a0dd2236fcb255e96949f", "contract address")
-	contractFunction := flag.String("f", "increment()", "contract function")
+	// contractAddress := flag.String("c", "0x93120927379723583c7a0dd2236fcb255e96949f", "contract address")
+	// contractFunction := flag.String("f", "increment()", "contract function")
 
-	flag.Parse()
+	// flag.Parse()
 
-	log.Info().Msgf("contractAddress: %s", *contractAddress)
-	log.Info().Msgf("contractFunction: %s", *contractFunction)
+	// log.Info().Msgf("contractAddress: %s", *contractAddress)
+	// log.Info().Msgf("contractFunction: %s", *contractFunction)
 
-	err := testContractDelegatedCall(ctx, *contractAddress, *contractFunction)
-	if err != nil {
-		log.Error().Err(err).Msg("testContractDelegatedCall")
-	}
+	// err := testContractDelegatedCall(ctx, *contractAddress, *contractFunction)
+	// if err != nil {
+	// 	log.Error().Err(err).Msg("testContractDelegatedCall")
+	// }
 
 	// example code for dummy batch submission, check args usage from the code below
 
-	// contractAddress := "0x8fb610c0Cc27Ca7726fad4c8696d09ca0E8eAee1"
-	// contractFunction := `batchSubmit(string[] memory _pairs, int256[] memory _prices)`
-	// pairs := []string{"BTC-USD", "ETH-USD"}
-	// prices := []*big.Int{big.NewInt(100000000), big.NewInt(200000000)}
-	// err := testContractDelegatedCall(ctx, contractAddress, contractFunction, pairs, prices)
+	contractAddress := "0x8fb610c0Cc27Ca7726fad4c8696d09ca0E8eAee1"
+	contractFunction := `batchSubmit(string[] memory _pairs, int256[] memory _prices)`
+	pairs := []string{"BTC-USD", "ETH-USD"}
+	prices := []*big.Int{big.NewInt(100000000), big.NewInt(200000000)}
+	err := testContractDelegatedCall(ctx, contractAddress, contractFunction, pairs, prices)
+	if err != nil {
+		log.Error().Err(err).Msg("testContractDelegatedCall")
+	}
 }

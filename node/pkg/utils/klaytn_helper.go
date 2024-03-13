@@ -9,9 +9,11 @@ import (
 	"math/big"
 	"os"
 	"strings"
+	"time"
 
 	"bisonai.com/orakl/node/pkg/db"
 
+	"github.com/klaytn/klaytn"
 	"github.com/klaytn/klaytn/accounts/abi"
 	"github.com/klaytn/klaytn/accounts/abi/bind"
 	"github.com/klaytn/klaytn/blockchain/types"
@@ -34,11 +36,49 @@ type Wallet struct {
 }
 
 type TxHelper struct {
-	client  *client.Client
-	wallets []string
-	chainID *big.Int
+	client       *client.Client
+	wallets      []string
+	chainID      *big.Int
+	delegatorUrl string
 
 	lastUsed int
+}
+
+type SignInsertPayload struct {
+	From     string `json:"from"`
+	To       string `json:"to"`
+	Input    string `json:"input"`
+	Gas      string `json:"gas"`
+	Value    string `json:"value"`
+	ChainId  string `json:"chainId"`
+	GasPrice string `json:"gasPrice"`
+	Nonce    string `json:"nonce"`
+	V        string `json:"v"`
+	R        string `json:"r"`
+	S        string `json:"s"`
+	RawTx    string `json:"rawTx"`
+}
+
+type SignModel struct {
+	Id          int64     `json:"id" db:"transaction_id"`
+	Timestamp   time.Time `json:"timestamp" db:"timestamp"`
+	From        string    `json:"from" db:"from"`
+	To          string    `json:"to" db:"to"`
+	Input       string    `json:"input" db:"input"`
+	Gas         string    `json:"gas" db:"gas"`
+	Value       string    `json:"value" db:"value"`
+	ChainId     string    `json:"chainId" db:"chainId"`
+	GasPrice    string    `json:"gasPrice" db:"gasPrice"`
+	Nonce       string    `json:"nonce" db:"nonce"`
+	V           string    `json:"v" db:"v"`
+	R           string    `json:"r" db:"r"`
+	S           string    `json:"s" db:"s"`
+	RawTx       string    `json:"rawTx" db:"rawTx"`
+	SignedRawTx *string   `json:"signedRawTx" db:"signedRawTx"`
+	Succeed     *bool     `json:"succeed" db:"succeed"`
+	FunctionId  int64     `json:"functionId" db:"functionId"`
+	ContractId  int64     `json:"contractId" db:"contractId"`
+	ReporterId  int64     `json:"reporterId" db:"reporterId"`
 }
 
 func NewTxHelper(ctx context.Context) (*TxHelper, error) {
@@ -56,10 +96,12 @@ func NewTxHelper(ctx context.Context) (*TxHelper, error) {
 		return nil, errors.New("no wallets found")
 	}
 
-	return newTxHelper(ctx, os.Getenv("PROVIDER_URL"), wallets)
+	delegatorUrl := os.Getenv("DELEGATOR_URL")
+
+	return newTxHelper(ctx, os.Getenv("PROVIDER_URL"), wallets, delegatorUrl)
 }
 
-func newTxHelper(ctx context.Context, providerUrl string, reporterPKs []string) (*TxHelper, error) {
+func newTxHelper(ctx context.Context, providerUrl string, reporterPKs []string, delegatorUrl string) (*TxHelper, error) {
 	if providerUrl == "" {
 		return nil, errors.New("provider url not set")
 	}
@@ -79,14 +121,37 @@ func newTxHelper(ctx context.Context, providerUrl string, reporterPKs []string) 
 	}
 
 	return &TxHelper{
-		client:  client,
-		wallets: reporterPKs,
-		chainID: chainID,
+		client:       client,
+		wallets:      reporterPKs,
+		chainID:      chainID,
+		delegatorUrl: delegatorUrl,
 	}, nil
 }
 
 func (t *TxHelper) Close() {
 	t.client.Close()
+}
+
+func (t *TxHelper) GetSignedFromDelegator(tx *types.Transaction) (*types.Transaction, error) {
+	if t.delegatorUrl == "" {
+		return nil, errors.New("delegator url not set")
+	}
+
+	payload, err := makeSignPayload(tx)
+	if err != nil {
+		return nil, err
+	}
+
+	result, err := UrlRequest[SignModel](t.delegatorUrl+"/api/v1/sign/volatile", "POST", payload, nil, "")
+	if err != nil {
+		log.Error().Err(err).Msg("failed to request sign from delegator")
+		return nil, err
+	}
+
+	if result.SignedRawTx == nil {
+		return nil, errors.New("no signed raw tx")
+	}
+	return HashToTx(*result.SignedRawTx)
 }
 
 func (t *TxHelper) NextReporter() string {
@@ -125,6 +190,7 @@ func TxToHash(tx *types.Transaction) string {
 }
 
 func HashToTx(hash string) (*types.Transaction, error) {
+	hash = strings.TrimPrefix(hash, "0x")
 	rawTxBytes, err := hex.DecodeString(hash)
 	if err != nil {
 		log.Error().Err(err).Msg("failed to decode hash")
@@ -240,7 +306,20 @@ func makeDirectTx(ctx context.Context, client *client.Client, contractAddressHex
 
 	contractAddress := common.HexToAddress(contractAddressHex)
 
-	tx := types.NewTransaction(nonce, contractAddress, big.NewInt(0), DEFAULT_GAS_LIMIT, gasPrice, packed)
+	estimatedGas, err := client.EstimateGas(ctx, klaytn.CallMsg{
+		To:   &contractAddress,
+		Data: packed,
+	})
+	if err != nil {
+		log.Debug().Msg("failed to estimate gas, using default gas limit")
+		estimatedGas = DEFAULT_GAS_LIMIT
+	}
+
+	if estimatedGas < DEFAULT_GAS_LIMIT {
+		estimatedGas = DEFAULT_GAS_LIMIT
+	}
+
+	tx := types.NewTransaction(nonce, contractAddress, big.NewInt(0), estimatedGas, gasPrice, packed)
 	return types.SignTx(tx, types.NewEIP155Signer(chainID), privateKey)
 }
 
@@ -282,10 +361,22 @@ func makeFeeDelegatedTx(ctx context.Context, client *client.Client, contractAddr
 
 	contractAddress := common.HexToAddress(contractAddressHex)
 
+	estimatedGas, err := client.EstimateGas(ctx, klaytn.CallMsg{
+		To:   &contractAddress,
+		Data: packed,
+	})
+	if err != nil {
+		log.Debug().Msg("failed to estimate gas, using default gas limit")
+		estimatedGas = DEFAULT_GAS_LIMIT
+	}
+	if estimatedGas < DEFAULT_GAS_LIMIT {
+		estimatedGas = DEFAULT_GAS_LIMIT
+	}
+
 	txMap := map[types.TxValueKeyType]interface{}{
 		types.TxValueKeyNonce:    nonce,
 		types.TxValueKeyGasPrice: gasPrice,
-		types.TxValueKeyGasLimit: DEFAULT_GAS_LIMIT,
+		types.TxValueKeyGasLimit: estimatedGas,
 		types.TxValueKeyTo:       contractAddress,
 		types.TxValueKeyAmount:   big.NewInt(0),
 		types.TxValueKeyFrom:     fromAddress,
@@ -333,7 +424,7 @@ func submitRawTx(ctx context.Context, client *client.Client, tx *types.Transacti
 	if err != nil {
 		return err
 	}
-	log.Debug().Any("receipt", receipt).Msg("mined")
+	log.Debug().Any("hash", receipt.TxHash).Msg("mined")
 	return nil
 }
 
@@ -379,4 +470,45 @@ func updateFeePayer(tx *types.Transaction, feePayer common.Address) (*types.Tran
 
 	newTx.SetSignature(tx.GetTxInternalData().RawSignatureValues())
 	return newTx, err
+}
+
+func makeSignPayload(tx *types.Transaction) (SignInsertPayload, error) {
+	rawFrom, err := tx.From()
+	if err != nil {
+		log.Error().Err(err).Msg("failed to get from")
+		return SignInsertPayload{}, err
+	}
+
+	from := strings.ToLower(rawFrom.Hex())
+	to := strings.ToLower(tx.To().Hex())
+	input := "0x" + hex.EncodeToString(tx.Data())
+	gas := fmt.Sprintf("0x%x", tx.Gas())
+	value := "0x" + tx.Value().String()
+	chainId := tx.ChainId()
+	gasPrice := "0x" + tx.GasPrice().String()
+	nonce := fmt.Sprintf("0x%x", tx.Nonce())
+
+	sig := tx.RawSignatureValues()
+	r := "0x" + sig[0].R.Text(16)
+	s := "0x" + sig[0].S.Text(16)
+	v := "0x" + sig[0].V.Text(16)
+
+	rawTx := "0x" + TxToHash(tx)
+
+	payload := SignInsertPayload{
+		From:     from,
+		To:       to,
+		Input:    input,
+		Gas:      gas,
+		Value:    value,
+		ChainId:  "0x" + chainId.Text(16),
+		GasPrice: gasPrice,
+		Nonce:    nonce,
+		V:        r,
+		R:        s,
+		S:        v,
+		RawTx:    rawTx,
+	}
+
+	return payload, nil
 }
