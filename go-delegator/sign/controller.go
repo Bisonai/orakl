@@ -1,7 +1,9 @@
 package sign
 
 import (
+	"crypto/ecdsa"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"math/big"
 	"strconv"
@@ -173,6 +175,31 @@ func insert(c *fiber.Ctx) error {
 	return c.JSON(result)
 }
 
+func onlySign(c *fiber.Ctx) error {
+	payload := new(SignInsertPayload)
+	if err := c.BodyParser(payload); err != nil {
+		panic(err)
+	}
+
+	validate := validator.New()
+	if err := validate.Struct(payload); err != nil {
+		panic(err)
+	}
+	transaction, err := HashToTx(payload.RawTx)
+	if err != nil {
+		panic(err)
+	}
+
+	signedTransaction, err := signTxByFeePayerV2(c, transaction)
+	if err != nil {
+		panic(err)
+	}
+
+	signedRawTx := TxToHash(signedTransaction)
+
+	return c.JSON(SignModel{SignedRawTx: &signedRawTx})
+}
+
 func get(c *fiber.Ctx) error {
 	transactions, err := utils.QueryRows[SignModel](c, GetTransactions, nil)
 	if err != nil {
@@ -269,6 +296,32 @@ func signTxByFeePayer(c *fiber.Ctx, tx *SignModel) error {
 	return nil
 }
 
+func signTxByFeePayerV2(c *fiber.Ctx, tx *types.Transaction) (*types.Transaction, error) {
+	pk, err := utils.GetFeePayer(c)
+	if err != nil {
+		log.Error().Err(err).Msg("failed to get fee payer")
+		return nil, err
+	}
+
+	feePayerKey, err := crypto.HexToECDSA(pk)
+	if err != nil {
+		log.Error().Err(err).Msg("failed to convert fee payer private key to ECDSA")
+		return nil, err
+	}
+	feePayerPublicKey := feePayerKey.Public()
+	publicKeyECDSA, ok := feePayerPublicKey.(*ecdsa.PublicKey)
+	if !ok {
+		return nil, errors.New("error casting public key to ECDSA")
+	}
+
+	updatedTx, err := updateFeePayer(tx, crypto.PubkeyToAddress(*publicKeyECDSA))
+	if err != nil {
+		return nil, err
+	}
+
+	return types.SignTxAsFeePayer(updatedTx, types.NewEIP155Signer(tx.ChainId()), feePayerKey)
+}
+
 func CreateUnsignedTx(tx *SignModel, feePayerPublicKey string) (*types.Transaction, error) {
 	nonce, err := strconv.ParseUint(tx.Nonce[2:], 16, 64)
 	if err != nil {
@@ -323,4 +376,55 @@ func CreateUnsignedTx(tx *SignModel, feePayerPublicKey string) (*types.Transacti
 	}))
 
 	return transaction, nil
+}
+
+func updateFeePayer(tx *types.Transaction, feePayer common.Address) (*types.Transaction, error) {
+	from, err := tx.From()
+	if err != nil {
+		return nil, err
+	}
+
+	to := tx.To()
+	if to == nil {
+		return nil, errors.New("to address is nil")
+	}
+
+	remap := map[types.TxValueKeyType]interface{}{
+		types.TxValueKeyNonce:    tx.Nonce(),
+		types.TxValueKeyGasPrice: tx.GasPrice(),
+		types.TxValueKeyGasLimit: tx.Gas(),
+		types.TxValueKeyTo:       *to,
+		types.TxValueKeyAmount:   tx.Value(),
+		types.TxValueKeyFrom:     from,
+		types.TxValueKeyData:     tx.Data(),
+		types.TxValueKeyFeePayer: feePayer,
+	}
+
+	newTx, err := types.NewTransactionWithMap(types.TxTypeFeeDelegatedSmartContractExecution, remap)
+
+	newTx.SetSignature(tx.GetTxInternalData().RawSignatureValues())
+	return newTx, err
+}
+
+func TxToHash(tx *types.Transaction) string {
+	ts := types.Transactions{tx}
+	rawTxBytes := ts.GetRlp(0)
+	return hex.EncodeToString(rawTxBytes)
+}
+
+func HashToTx(hash string) (*types.Transaction, error) {
+	hash = strings.TrimPrefix(hash, "0x")
+	rawTxBytes, err := hex.DecodeString(hash)
+	if err != nil {
+		log.Error().Err(err).Msg("failed to decode hash")
+		return nil, err
+	}
+
+	tx := new(types.Transaction)
+	err = rlp.DecodeBytes(rawTxBytes, &tx)
+	if err != nil {
+		log.Error().Err(err).Msg("failed to decode raw tx")
+		return nil, err
+	}
+	return tx, nil
 }

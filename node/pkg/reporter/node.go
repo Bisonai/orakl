@@ -142,13 +142,38 @@ func (r *ReporterNode) report(ctx context.Context, aggregates []GlobalAggregate)
 		return err
 	}
 
-	rawTx, err := r.TxHelper.MakeDirectTx(ctx, r.contractAddress, FUNCTION_STRING, pairs, values)
+	err = r.reportDelegated(ctx, pairs, values)
+	if err != nil {
+		log.Error().Err(err).Msg("reportDelegated failed")
+		return r.reportDirect(ctx, pairs, values)
+	}
+	return nil
+}
+
+func (r *ReporterNode) reportDirect(ctx context.Context, args ...interface{}) error {
+	rawTx, err := r.TxHelper.MakeDirectTx(ctx, r.contractAddress, FUNCTION_STRING, args...)
 	if err != nil {
 		log.Error().Err(err).Msg("MakeDirectTx")
 		return err
 	}
 
 	return r.TxHelper.SubmitRawTx(ctx, rawTx)
+}
+
+func (r *ReporterNode) reportDelegated(ctx context.Context, args ...interface{}) error {
+	rawTx, err := r.TxHelper.MakeFeeDelegatedTx(ctx, r.contractAddress, FUNCTION_STRING, args...)
+	if err != nil {
+		log.Error().Err(err).Msg("MakeFeeDelegatedTx")
+		return err
+	}
+
+	signedTx, err := r.TxHelper.GetSignedFromDelegator(rawTx)
+	if err != nil {
+		log.Error().Err(err).Msg("GetSignedFromDelegator")
+		return err
+	}
+
+	return r.TxHelper.SubmitRawTx(ctx, signedTx)
 }
 
 func (r *ReporterNode) filterInvalidAggregates(aggregates []GlobalAggregate) []GlobalAggregate {
