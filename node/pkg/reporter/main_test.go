@@ -18,11 +18,11 @@ import (
 const InsertGlobalAggregateQuery = `INSERT INTO global_aggregates (name, value, round) VALUES (@name, @value, @round) RETURNING *`
 
 type TestItems struct {
-	app        *App
-	reporter   *ReporterNode
-	admin      *fiber.App
-	messageBus *bus.MessageBus
-	tmpData    *TmpData
+	app          *App
+	reporterNode *ReporterNode
+	admin        *fiber.App
+	messageBus   *bus.MessageBus
+	tmpData      *TmpData
 }
 
 type TmpData struct {
@@ -68,7 +68,7 @@ func setup(ctx context.Context) (func() error, *TestItems, error) {
 		return nil, nil, err
 	}
 
-	testItems.reporter = reporterNode
+	testItems.reporterNode = reporterNode
 
 	tmpData, err := insertSampleData(ctx)
 	if err != nil {

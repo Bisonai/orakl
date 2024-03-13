@@ -18,7 +18,7 @@ func TestNew(t *testing.T) {
 	}
 	defer cleanup()
 
-	_, err = NewNode(ctx, testItems.reporter.Raft.Host, testItems.reporter.Raft.Ps)
+	_, err = NewNode(ctx, testItems.reporterNode.Raft.Host, testItems.reporterNode.Raft.Ps)
 	if err != nil {
 		t.Fatal("error creating new reporter")
 	}
@@ -32,7 +32,7 @@ func TestLeaderJob(t *testing.T) {
 	}
 	defer cleanup()
 
-	err = testItems.reporter.leaderJob()
+	err = testItems.reporterNode.leaderJob()
 	if err != nil {
 		t.Fatal("error running leader job")
 	}
@@ -46,8 +46,8 @@ func TestResignLeader(t *testing.T) {
 	}
 	defer cleanup()
 
-	testItems.reporter.resignLeader()
-	assert.Equal(t, testItems.reporter.Raft.GetRole(), raft.Follower)
+	testItems.reporterNode.resignLeader()
+	assert.Equal(t, testItems.reporterNode.Raft.GetRole(), raft.Follower)
 }
 
 func TestHandleCustomMessage(t *testing.T) {
@@ -58,7 +58,7 @@ func TestHandleCustomMessage(t *testing.T) {
 	}
 	defer cleanup()
 
-	err = testItems.reporter.handleCustomMessage(raft.Message{})
+	err = testItems.reporterNode.handleCustomMessage(raft.Message{})
 	assert.Equal(t, err.Error(), "unknown message type")
 }
 
@@ -70,7 +70,7 @@ func TestGetLatestGlobalAggregates(t *testing.T) {
 	}
 	defer cleanup()
 
-	result, err := testItems.reporter.getLatestGlobalAggregates(ctx)
+	result, err := testItems.reporterNode.getLatestGlobalAggregates(ctx)
 	if err != nil {
 		t.Fatal("error getting latest global aggregates")
 	}
@@ -90,11 +90,11 @@ func TestFilterInvalidAggregates(t *testing.T) {
 		Value: 15,
 		Round: 1,
 	}}
-	result := testItems.reporter.filterInvalidAggregates(aggregates)
+	result := testItems.reporterNode.filterInvalidAggregates(aggregates)
 	assert.Equal(t, result, aggregates)
 
-	testItems.reporter.lastSubmissions = map[string]int64{"test-aggregate": 1}
-	result = testItems.reporter.filterInvalidAggregates(aggregates)
+	testItems.reporterNode.lastSubmissions = map[string]int64{"test-aggregate": 1}
+	result = testItems.reporterNode.filterInvalidAggregates(aggregates)
 	assert.Equal(t, result, []GlobalAggregate{})
 }
 
@@ -111,11 +111,11 @@ func TestIsAggValid(t *testing.T) {
 		Value: 15,
 		Round: 1,
 	}
-	result := testItems.reporter.isAggValid(agg)
+	result := testItems.reporterNode.isAggValid(agg)
 	assert.Equal(t, result, true)
 
-	testItems.reporter.lastSubmissions = map[string]int64{"test-aggregate": 1}
-	result = testItems.reporter.isAggValid(agg)
+	testItems.reporterNode.lastSubmissions = map[string]int64{"test-aggregate": 1}
+	result = testItems.reporterNode.isAggValid(agg)
 	assert.Equal(t, result, false)
 }
 
@@ -132,7 +132,7 @@ func TestMakeContractArgs(t *testing.T) {
 		Value: 15,
 		Round: 1,
 	}
-	pairs, values, err := testItems.reporter.makeContractArgs([]GlobalAggregate{agg})
+	pairs, values, err := testItems.reporterNode.makeContractArgs([]GlobalAggregate{agg})
 	if err != nil {
 		t.Fatal("error making contract args")
 	}
