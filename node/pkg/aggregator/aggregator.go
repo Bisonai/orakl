@@ -63,6 +63,10 @@ func (a *App) getAggregators(ctx context.Context) ([]Aggregator, error) {
 }
 
 func (a *App) startAggregator(ctx context.Context, aggregator *AggregatorNode) error {
+	if aggregator == nil {
+		return errors.New("aggregator not found")
+	}
+
 	log.Debug().Str("name", aggregator.Name).Msg("starting aggregator")
 	if aggregator.isRunning {
 		log.Debug().Str("name", aggregator.Name).Msg("aggregator already running")
@@ -74,7 +78,7 @@ func (a *App) startAggregator(ctx context.Context, aggregator *AggregatorNode) e
 	aggregator.nodeCancel = cancel
 	aggregator.isRunning = true
 
-	go aggregator.Run(ctx)
+	go aggregator.Run(nodeCtx)
 	return nil
 }
 
@@ -144,7 +148,7 @@ func (a *App) subscribe(ctx context.Context) {
 					Str("from", msg.From).
 					Str("to", msg.To).
 					Str("command", msg.Content.Command).
-					Msg("fetcher received message")
+					Msg("fetcher received bus message")
 				go a.handleMessage(ctx, msg)
 			case <-ctx.Done():
 				log.Debug().Msg("stopping aggregator subscription goroutine")

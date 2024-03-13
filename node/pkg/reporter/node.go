@@ -17,41 +17,7 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-const (
-	TOPIC_STRING            = "orakl-offchain-aggregation-reporter"
-	MESSAGE_BUFFER          = 100
-	LEADER_TIMEOUT          = 5 * time.Second
-	INITIAL_FAILURE_TIMEOUT = 50 * time.Millisecond
-	MAX_RETRY               = 3
-	MAX_RETRY_DELAY         = 500 * time.Millisecond
-	FUNCTION_STRING         = "batchSubmit(string[] memory _pairs, int256[] memory _prices)"
-
-	GET_LATEST_GLOBAL_AGGREGATES_QUERY = `
-		SELECT ga.name, ga.value, ga.round, ga.timestamp
-		FROM global_aggregates ga
-		JOIN (
-			SELECT name, MAX(round) as max_round
-			FROM global_aggregates
-			GROUP BY name
-		) subq ON ga.name = subq.name AND ga.round = subq.max_round;`
-)
-
-type Reporter struct {
-	Raft     *raft.Raft
-	TxHelper *utils.TxHelper
-
-	lastSubmissions map[string]int64
-	contractAddress string
-}
-
-type GlobalAggregate struct {
-	Name      string    `db:"name"`
-	Value     int64     `db:"value"`
-	Round     int64     `db:"round"`
-	Timestamp time.Time `db:"timestamp"`
-}
-
-func New(ctx context.Context, h host.Host, ps *pubsub.PubSub) (*Reporter, error) {
+func NewNode(ctx context.Context, h host.Host, ps *pubsub.PubSub) (*ReporterNode, error) {
 	encryptedTopic, err := utils.EncryptText(TOPIC_STRING)
 	if err != nil {
 		return nil, err
@@ -73,7 +39,7 @@ func New(ctx context.Context, h host.Host, ps *pubsub.PubSub) (*Reporter, error)
 		return nil, errors.New("SUBMISSION_PROXY_CONTRACT not set")
 	}
 
-	reporter := &Reporter{
+	reporter := &ReporterNode{
 		Raft:            raft,
 		TxHelper:        txHelper,
 		contractAddress: contractAddress,
@@ -85,11 +51,16 @@ func New(ctx context.Context, h host.Host, ps *pubsub.PubSub) (*Reporter, error)
 	return reporter, nil
 }
 
-func (r *Reporter) Run(ctx context.Context) {
+func (r *ReporterNode) Run(ctx context.Context) {
+	if r.isRunning {
+		log.Debug().Msg("reporter already running")
+		return
+	}
+
 	r.Raft.Run(ctx)
 }
 
-func (r *Reporter) retry(job func() error) error {
+func (r *ReporterNode) retry(job func() error) error {
 	failureTimeout := INITIAL_FAILURE_TIMEOUT
 	for i := 0; i < MAX_RETRY; i++ {
 		n, err := rand.Int(rand.Reader, big.NewInt(100))
@@ -113,7 +84,7 @@ func (r *Reporter) retry(job func() error) error {
 	return errors.New("job failed")
 }
 
-func (r *Reporter) leaderJob() error {
+func (r *ReporterNode) leaderJob() error {
 	ctx := context.Background()
 
 	job := func() error {
@@ -150,21 +121,21 @@ func (r *Reporter) leaderJob() error {
 	return nil
 }
 
-func (r *Reporter) resignLeader() {
+func (r *ReporterNode) resignLeader() {
 	r.Raft.StopHeartbeatTicker()
 	r.Raft.UpdateRole(raft.Follower)
 }
 
-func (r *Reporter) handleCustomMessage(msg raft.Message) error {
+func (r *ReporterNode) handleCustomMessage(msg raft.Message) error {
 	// TODO: implement message handling related to validation
 	return errors.New("unknown message type")
 }
 
-func (r *Reporter) getLatestGlobalAggregates(ctx context.Context) ([]GlobalAggregate, error) {
+func (r *ReporterNode) getLatestGlobalAggregates(ctx context.Context) ([]GlobalAggregate, error) {
 	return db.QueryRows[GlobalAggregate](ctx, GET_LATEST_GLOBAL_AGGREGATES_QUERY, nil)
 }
 
-func (r *Reporter) report(ctx context.Context, aggregates []GlobalAggregate) error {
+func (r *ReporterNode) report(ctx context.Context, aggregates []GlobalAggregate) error {
 	pairs, values, err := r.makeContractArgs(aggregates)
 	if err != nil {
 		log.Error().Err(err).Msg("makeContractArgs")
@@ -180,7 +151,7 @@ func (r *Reporter) report(ctx context.Context, aggregates []GlobalAggregate) err
 	return r.TxHelper.SubmitRawTx(ctx, rawTx)
 }
 
-func (r *Reporter) filterInvalidAggregates(aggregates []GlobalAggregate) []GlobalAggregate {
+func (r *ReporterNode) filterInvalidAggregates(aggregates []GlobalAggregate) []GlobalAggregate {
 	validAggregates := make([]GlobalAggregate, 0, len(aggregates))
 	for _, agg := range aggregates {
 		if r.isAggValid(agg) {
@@ -190,7 +161,7 @@ func (r *Reporter) filterInvalidAggregates(aggregates []GlobalAggregate) []Globa
 	return validAggregates
 }
 
-func (r *Reporter) isAggValid(aggregate GlobalAggregate) bool {
+func (r *ReporterNode) isAggValid(aggregate GlobalAggregate) bool {
 	lastSubmission, ok := r.lastSubmissions[aggregate.Name]
 	if !ok {
 		return true
@@ -198,7 +169,7 @@ func (r *Reporter) isAggValid(aggregate GlobalAggregate) bool {
 	return aggregate.Round > lastSubmission
 }
 
-func (r *Reporter) makeContractArgs(aggregates []GlobalAggregate) ([]string, []*big.Int, error) {
+func (r *ReporterNode) makeContractArgs(aggregates []GlobalAggregate) ([]string, []*big.Int, error) {
 	pairs := make([]string, len(aggregates))
 	values := make([]*big.Int, len(aggregates))
 	for i, agg := range aggregates {
