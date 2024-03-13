@@ -18,11 +18,13 @@ import (
 )
 
 const (
-	TOPIC_STRING    = "orakl-offchain-aggregation-reporter"
-	LEADER_TIMEOUT  = 5 * time.Second
-	MAX_RETRY       = 3
-	MAX_RETRY_DELAY = 500 * time.Millisecond
-	FUNCTION_STRING = "batchSubmit(string[] memory _pairs, int256[] memory _prices)"
+	TOPIC_STRING            = "orakl-offchain-aggregation-reporter"
+	MESSAGE_BUFFER          = 100
+	LEADER_TIMEOUT          = 5 * time.Second
+	INITIAL_FAILURE_TIMEOUT = 50 * time.Millisecond
+	MAX_RETRY               = 3
+	MAX_RETRY_DELAY         = 500 * time.Millisecond
+	FUNCTION_STRING         = "batchSubmit(string[] memory _pairs, int256[] memory _prices)"
 
 	GET_LATEST_GLOBAL_AGGREGATES_QUERY = `
 		SELECT ga.name, ga.value, ga.round, ga.timestamp
@@ -60,7 +62,7 @@ func New(ctx context.Context, h host.Host, ps *pubsub.PubSub) (*Reporter, error)
 		return nil, err
 	}
 
-	raft := raft.NewRaftNode(h, ps, topic, 100, LEADER_TIMEOUT)
+	raft := raft.NewRaftNode(h, ps, topic, MESSAGE_BUFFER, LEADER_TIMEOUT)
 	txHelper, err := utils.NewTxHelper(ctx)
 	if err != nil {
 		return nil, err
@@ -87,39 +89,50 @@ func (r *Reporter) Run(ctx context.Context) {
 	r.Raft.Run(ctx)
 }
 
-func (r *Reporter) leaderJob() error {
-	ctx := context.Background()
-	failureTimout := 50 * time.Millisecond
+func (r *Reporter) retry(job func() error) error {
+	failureTimeout := INITIAL_FAILURE_TIMEOUT
 	for i := 0; i < MAX_RETRY; i++ {
 		n, err := rand.Int(rand.Reader, big.NewInt(100))
 		if err != nil {
 			log.Error().Err(err).Msg("failed to generate jitter for retry timeout")
 			n = big.NewInt(0)
 		}
-		failureTimout += failureTimout + time.Duration(n.Int64())*time.Millisecond
-		if failureTimout > MAX_RETRY_DELAY {
-			failureTimout = MAX_RETRY_DELAY
+		failureTimeout += failureTimeout + time.Duration(n.Int64())*time.Millisecond
+		if failureTimeout > MAX_RETRY_DELAY {
+			failureTimeout = MAX_RETRY_DELAY
 		}
 
+		err = job()
+		if err != nil {
+			log.Error().Err(err).Msg("job failed")
+			time.Sleep(failureTimeout)
+			continue
+		}
+		return nil
+	}
+	return errors.New("job failed")
+}
+
+func (r *Reporter) leaderJob() error {
+	ctx := context.Background()
+
+	job := func() error {
 		aggregates, err := r.getLatestGlobalAggregates(ctx)
 		if err != nil {
 			log.Error().Err(err).Msg("GetLatestGlobalAggregates")
-			time.Sleep(failureTimout)
-			continue
+			return err
 		}
 
 		validAggregates := r.filterInvalidAggregates(aggregates)
 		if len(validAggregates) == 0 {
 			log.Error().Msg("no valid aggregates to report")
-			time.Sleep(failureTimout)
-			continue
+			return errors.New("no valid aggregates to report")
 		}
 
 		err = r.report(ctx, validAggregates)
 		if err != nil {
 			log.Error().Err(err).Msg("Report")
-			time.Sleep(failureTimout)
-			continue
+			return err
 		}
 
 		for _, agg := range validAggregates {
@@ -127,8 +140,14 @@ func (r *Reporter) leaderJob() error {
 		}
 		return nil
 	}
-	r.resignLeader()
-	return errors.New("failed to report")
+
+	err := r.retry(job)
+	if err != nil {
+		r.resignLeader()
+		return errors.New("failed to report")
+	}
+
+	return nil
 }
 
 func (r *Reporter) resignLeader() {

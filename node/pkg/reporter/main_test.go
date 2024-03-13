@@ -72,6 +72,7 @@ func setup(ctx context.Context) (func() error, *TestItems, error) {
 	testItems.tmpData = tmpData
 
 	_ = admin.Group("/api/v1")
+	// TODO: add reporter admin test
 	// reporter.Routes(v1)
 
 	return reporterCleanup(ctx, admin, testItems), testItems, nil
