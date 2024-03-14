@@ -3,12 +3,13 @@ import { Logger } from '@nestjs/common'
 import axios from 'axios'
 import { Contract, JsonRpcProvider } from 'ethers'
 import { abis as uniswapPoolAbis } from '../abis/pool'
-import { CYPRESS_PROVIDER_URL, FETCH_TIMEOUT } from '../settings'
+import { CYPRESS_PROVIDER_URL, ETHEREUM_PROVIDER_URL, FETCH_TIMEOUT } from '../settings'
 import { LOCAL_AGGREGATOR_FN } from './job.aggregator'
 import { FetcherError, FetcherErrorCode } from './job.errors'
 import { IAdapter, IFetchedData, IProxy } from './job.types'
 
 const CYPRESS_CHAIN_ID = 8217
+const ETHEREUM_CHAIN_ID = 1
 
 export function buildUrl(host: string, path: string) {
   const url = [host, path].join('/')
@@ -267,6 +268,8 @@ export async function extractUniswapPrice(adapter, decimals) {
 export async function providerByChain(chainId: number) {
   if (chainId == CYPRESS_CHAIN_ID) {
     return new JsonRpcProvider(CYPRESS_PROVIDER_URL)
+  } else if (chainId == ETHEREUM_CHAIN_ID) {
+    return new JsonRpcProvider(ETHEREUM_PROVIDER_URL)
   } else {
     throw new Error(`Invalid chain id`)
   }

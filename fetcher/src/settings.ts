@@ -15,3 +15,6 @@ export const FETCHER_TYPE = process.env.FETCHER_TYPE || 0
 
 export const CYPRESS_PROVIDER_URL =
   process.env.CYPRESS_PROVIDER_URL || 'https://public-en-cypress.klaytn.net'
+
+export const ETHEREUM_PROVIDER_URL =
+  process.env.ETHEREUM_PROVIDER_URL || 'https://ethereum-mainnet-rpc.allthatnode.com'
