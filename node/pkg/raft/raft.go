@@ -292,14 +292,14 @@ func (r *Raft) sendRequestVote() error {
 // utility functions
 
 func (r *Raft) StopHeartbeatTicker() {
-	if r.HeartbeatTicker != nil {
-		r.HeartbeatTicker.Stop()
-		r.HeartbeatTicker = nil
-	}
-
 	if r.Resign != nil {
 		close(r.Resign)
 		r.Resign = nil
+	}
+
+	if r.HeartbeatTicker != nil {
+		r.HeartbeatTicker.Stop()
+		r.HeartbeatTicker = nil
 	}
 }
 
@@ -322,11 +322,15 @@ func (r *Raft) becomeLeader(ctx context.Context) {
 					log.Error().Err(err).Msg("failed to send heartbeat")
 				}
 			case <-leaderJobTimer.C:
+				start := time.Now()
 				err := r.LeaderJob()
 				if err != nil {
 					log.Error().Err(err).Msg("failed to execute leader job")
 				}
-				leaderJobTimer.Reset(r.LeaderJobTimeout)
+
+				timeSpent := time.Since(start)
+
+				leaderJobTimer.Reset(r.LeaderJobTimeout - timeSpent)
 
 			case <-r.Resign:
 				log.Debug().Msg("resigning as leader")

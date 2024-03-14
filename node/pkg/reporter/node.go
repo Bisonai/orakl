@@ -52,11 +52,6 @@ func NewNode(ctx context.Context, h host.Host, ps *pubsub.PubSub) (*ReporterNode
 }
 
 func (r *ReporterNode) Run(ctx context.Context) {
-	if r.isRunning {
-		log.Debug().Msg("reporter already running")
-		return
-	}
-
 	r.Raft.Run(ctx)
 }
 
@@ -97,7 +92,7 @@ func (r *ReporterNode) leaderJob() error {
 		validAggregates := r.filterInvalidAggregates(aggregates)
 		if len(validAggregates) == 0 {
 			log.Error().Msg("no valid aggregates to report")
-			return errors.New("no valid aggregates to report")
+			return nil
 		}
 
 		err = r.report(ctx, validAggregates)
@@ -115,6 +110,7 @@ func (r *ReporterNode) leaderJob() error {
 	err := r.retry(job)
 	if err != nil {
 		r.resignLeader()
+		log.Error().Err(err).Msg("failed to report")
 		return errors.New("failed to report")
 	}
 
