@@ -32,8 +32,13 @@ jobs:
           - environment: "cypress"
             base: "gcp-cypress-prod"
     steps:
+      - name: Find Original PR
+        uses: jwalton/gh-find-current-pr@master
+        id: findPr
+        with:
+          state: closed
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           ref: ${{ matrix.base }}
           repository: "Bisonai/orakl-helm-charts"
@@ -59,6 +64,7 @@ jobs:
           token: ${{ secrets.PAT }}
           commit-message: "feat: deploy v${{ inputs.version }}.${{ inputs.tag_date }}.${{ inputs.tag_git_hash }}"
           title: "deploy ${{ matrix.environment }}-${{ inputs.project-name }}-v${{ inputs.version }}.${{ inputs.tag_date }}.${{ inputs.tag_git_hash }}"
-          body: "${{ matrix.environment }}-${{ inputs.project-name }}-v${{ inputs.version }}.${{ inputs.tag_date }}.${{ inputs.tag_git_hash }}"
+          body: "${{ matrix.environment }}-${{ inputs.project-name }}-v${{ inputs.version }}.${{ inputs.tag_date }}.${{ inputs.tag_git_hash }}\n### ${{ steps.findPr.outputs.title }}\n ${{ steps.findPr.outputs.body }}\n - PR: ${{ steps.findPr.outputs.pr }}"
           base: "${{ matrix.base }}"
           branch: "deploy/${{ matrix.environment }}-${{ inputs.project-name }}-v${{ inputs.version }}.${{ inputs.tag_date }}.${{ inputs.tag_git_hash }}"
+          reviewers: "Bisonai/orakl-team"
