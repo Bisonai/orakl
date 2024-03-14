@@ -44,9 +44,9 @@ func main() {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		err := admin.Run(mb)
-		if err != nil {
-			log.Error().Err(err).Msg("Failed to start admin server")
+		adminErr := admin.Run(mb)
+		if adminErr != nil {
+			log.Error().Err(adminErr).Msg("Failed to start admin server")
 			return
 		}
 	}()
@@ -55,9 +55,9 @@ func main() {
 	go func() {
 		defer wg.Done()
 		f := fetcher.New(mb)
-		err := f.Run(ctx)
-		if err != nil {
-			log.Error().Err(err).Msg("Failed to start fetcher")
+		fetcherErr := f.Run(ctx)
+		if fetcherErr != nil {
+			log.Error().Err(fetcherErr).Msg("Failed to start fetcher")
 			return
 		}
 	}()
@@ -67,9 +67,9 @@ func main() {
 		defer wg.Done()
 
 		a := aggregator.New(mb, *host, ps)
-		err = a.Run(ctx)
-		if err != nil {
-			log.Error().Err(err).Msg("Failed to start aggregator")
+		aaggreegatorErr := a.Run(ctx)
+		if aaggreegatorErr != nil {
+			log.Error().Err(aaggreegatorErr).Msg("Failed to start aggregator")
 			return
 		}
 	}()
@@ -79,9 +79,9 @@ func main() {
 		defer wg.Done()
 
 		r := reporter.New(mb, *host, ps)
-		err = r.Run(ctx)
-		if err != nil {
-			log.Error().Err(err).Msg("Failed to start reporter")
+		reporterErr := r.Run(ctx)
+		if reporterErr != nil {
+			log.Error().Err(reporterErr).Msg("Failed to start reporter")
 			return
 		}
 	}()
