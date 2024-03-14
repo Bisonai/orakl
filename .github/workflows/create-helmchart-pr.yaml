@@ -49,7 +49,7 @@ jobs:
           git config --global user.name "orakl-bot"
 
           yq eval '.global.image.tag = "v${{ inputs.version }}.${{ inputs.tag_date }}.${{ inputs.tag_git_hash }}"' -i ./${{ inputs.project-name }}/values.yaml
-          yq eval '.appVersion = "${{ inputs.version }}.${{ inputs.tag_date }}.${{ inputs.tag_git_hash }}"' -i ./${{ inputs.project-name }}/Chart.yaml
+          yq eval '.appVersion = "v${{ inputs.version }}.${{ inputs.tag_date }}.${{ inputs.tag_git_hash }}"' -i ./${{ inputs.project-name }}/Chart.yaml
           git add .
           git commit -m "feat: deploy v${{ inputs.version }}.${{ inputs.tag_date }}.${{ inputs.tag_git_hash }}"
 
