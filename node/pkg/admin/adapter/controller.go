@@ -2,6 +2,7 @@ package adapter
 
 import (
 	"encoding/json"
+	"os"
 	"sync"
 
 	"bisonai.com/orakl/node/pkg/admin/utils"
@@ -47,8 +48,14 @@ type AdapterDetailModel struct {
 }
 
 func syncFromOraklConfig(c *fiber.Ctx) error {
+	configUrl := os.Getenv("CONFIG_URL")
+	if configUrl == "" {
+		//defaults to baobab_adapters
+		configUrl = "https://config.orakl.network/baobab_adapters.json"
+	}
+
 	var adapters BulkAdapters
-	adapters, err := oraklUtil.GetRequest[BulkAdapters]("https://config.orakl.network/adapters.json", nil, map[string]string{"Content-Type": "application/json"})
+	adapters, err := oraklUtil.GetRequest[BulkAdapters](configUrl, nil, map[string]string{"Content-Type": "application/json"})
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).SendString("failed to get orakl config: " + err.Error())
 	}
