@@ -42,4 +42,6 @@ func main() {
 		}
 	}
 
+	// Block indefinitely
+	select {}
 }
