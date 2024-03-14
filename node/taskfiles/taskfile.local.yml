@@ -17,6 +17,10 @@ tasks:
     dotenv: [".env"]
     cmds:
       - go run ./cmd/test_fetcher_and_aggregator/main.go
+  local-test-all:
+    dotenv: [".env"]
+    cmds:
+      - go run ./cmd/test_all/main.go
   boot-node:
     cmds:
       - go run ./cmd/boot/main.go

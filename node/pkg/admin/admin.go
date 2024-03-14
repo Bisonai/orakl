@@ -9,7 +9,9 @@ import (
 	"bisonai.com/orakl/node/pkg/admin/feed"
 	"bisonai.com/orakl/node/pkg/admin/fetcher"
 	"bisonai.com/orakl/node/pkg/admin/proxy"
+	"bisonai.com/orakl/node/pkg/admin/reporter"
 	"bisonai.com/orakl/node/pkg/admin/utils"
+	"bisonai.com/orakl/node/pkg/admin/wallet"
 	"bisonai.com/orakl/node/pkg/bus"
 	"github.com/gofiber/fiber/v2"
 	"github.com/rs/zerolog/log"
@@ -35,6 +37,8 @@ func Run(bus *bus.MessageBus) error {
 	proxy.Routes(v1)
 	fetcher.Routes(v1)
 	aggregator.Routes(v1)
+	reporter.Routes(v1)
+	wallet.Routes(v1)
 
 	port := os.Getenv("APP_PORT")
 	if port == "" {
