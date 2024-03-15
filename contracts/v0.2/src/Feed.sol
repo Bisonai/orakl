@@ -6,7 +6,6 @@ import {IFeed} from "./interfaces/IFeed.sol";
 import {ITypeAndVersion} from "./interfaces/ITypeAndVersion.sol";
 
 contract Feed is Ownable, IFeed, ITypeAndVersion {
-    uint64 private constant MAX_ROUND = 2 ** 64 - 1;
     int256 private constant NOT_FOUND = -1;
 
     uint8 public override decimals;
@@ -88,7 +87,7 @@ contract Feed is Ownable, IFeed, ITypeAndVersion {
     {
         Round memory r = rounds[_roundId];
 
-        if (r.updatedAt == 0 || !validRoundId(_roundId)) {
+        if (r.updatedAt == 0) {
             revert NoDataPresent();
         }
 
@@ -129,9 +128,5 @@ contract Feed is Ownable, IFeed, ITypeAndVersion {
 	}
 
 	return NOT_FOUND;
-    }
-
-    function validRoundId(uint64 _roundId) private pure returns (bool) {
-        return _roundId <= MAX_ROUND;
     }
 }
