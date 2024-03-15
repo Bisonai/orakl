@@ -275,10 +275,10 @@ func LoadEnvVars() (map[string]interface{}, error) {
 		return nil, errors.New("DATABASE_URL is not set")
 	}
 	if redisHost == "" {
-		return nil, errors.New("REDIS_HOST is not set")
+		redisHost = "localhost"
 	}
 	if redisPort == "" {
-		return nil, errors.New("REDIS_PORT is not set")
+		redisPort = "6379"
 	}
 	if appPort == "" {
 		appPort = "3000"
