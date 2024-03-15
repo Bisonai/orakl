@@ -28,35 +28,33 @@ contract FeedProxy is Ownable, IFeedProxy {
         setFeed(_feed);
     }
 
-    // FIXME uint80
-    function getRoundData(uint80 roundId)
+    function getRoundData(uint64 roundId)
         public
         view
         virtual
         override
-        returns (uint80 id, int256 answer, uint256 updatedAt)
+        returns (uint64 id, int256 answer, uint256 updatedAt)
     {
 	return feed.getRoundData(roundId);
     }
 
-    // FIXME uint80
     function latestRoundData()
         public
         view
         virtual
         override
-        returns (uint80 id, int256 answer, uint256 updatedAt)
+        returns (uint64 id, int256 answer, uint256 updatedAt)
     {
         return feed.latestRoundData();
     }
 
-    function proposedGetRoundData(uint80 roundId)
+    function proposedGetRoundData(uint64 roundId)
         external
         view
         virtual
         override
         hasProposal
-        returns (uint80 id, int256 answer, uint256 updatedAt)
+        returns (uint64 id, int256 answer, uint256 updatedAt)
     {
         return proposedFeed.getRoundData(roundId);
     }
@@ -67,7 +65,7 @@ contract FeedProxy is Ownable, IFeedProxy {
         virtual
         override
         hasProposal
-        returns (uint80 id, int256 answer, uint256 updatedAt)
+        returns (uint64 id, int256 answer, uint256 updatedAt)
     {
         return proposedFeed.latestRoundData();
     }

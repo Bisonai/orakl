@@ -6,13 +6,14 @@ import {IFeed} from "./interfaces/IFeed.sol";
 import {ITypeAndVersion} from "./interfaces/ITypeAndVersion.sol";
 
 contract Feed is Ownable, IFeed, ITypeAndVersion {
-    uint32 private constant ROUND_MAX = 2 ** 32 - 1;
+    uint64 private constant ROUND_MAX = 2 ** 64 - 1;
+    int256 private constant NOT_FOUND = -1;
 
     uint8 public override decimals;
     string public override description;
 
-    uint32 private latestRoundId;
-    mapping(uint32 => Round) internal rounds;
+    uint64 private latestRoundId;
+    mapping(uint64 => Round) internal rounds;
     address[] private oracles;
 
     struct Round {
@@ -34,7 +35,7 @@ contract Feed is Ownable, IFeed, ITypeAndVersion {
 
     function submit(int256 _answer) external {
 	// TODO verification
-        uint32 roundId_ = latestRoundId + 1;
+        uint64 roundId_ = latestRoundId + 1;
 
 	rounds[roundId_].answer = _answer;
         rounds[roundId_].updatedAt = uint64(block.timestamp);
@@ -60,29 +61,12 @@ contract Feed is Ownable, IFeed, ITypeAndVersion {
         return oracles;
     }
 
-    // FIXME roundId to uint32
-    function getRoundData(uint80 _roundId)
-        public
-        view
-        virtual
-        override
-        returns (uint80 roundId, int256 answer, uint256 updatedAt)
-    {
-        Round memory r = rounds[uint32(_roundId)];
-
-        if (r.updatedAt == 0 || !validRoundId(_roundId)) {
-            revert NoDataPresent();
-        }
-
-        return (_roundId, r.answer, r.updatedAt);
-    }
-
     function latestRoundData()
-        public
+        external
         view
         virtual
         override
-        returns (uint80 roundId, int256 answer, uint256 updatedAt)
+        returns (uint64 roundId, int256 answer, uint256 updatedAt)
     {
         return getRoundData(latestRoundId);
     }
@@ -92,12 +76,28 @@ contract Feed is Ownable, IFeed, ITypeAndVersion {
         return round.updatedAt;
     }
 
+    function getRoundData(uint64 _roundId)
+        public
+        view
+        virtual
+        override
+        returns (uint64 roundId, int256 answer, uint256 updatedAt)
+    {
+        Round memory r = rounds[_roundId];
+
+        if (r.updatedAt == 0 || !validRoundId(_roundId)) {
+            revert NoDataPresent();
+        }
+
+        return (_roundId, r.answer, r.updatedAt);
+    }
+
     function typeAndVersion() external pure virtual override returns (string memory) {
         return "Feed v0.2";
     }
 
     function addOracle(address _oracle) private {
-        if (oracleEnabled(_oracle) != -1) {
+        if (oracleEnabled(_oracle) != NOT_FOUND) {
             revert OracleAlreadyEnabled();
         }
         oracles.push(_oracle);
@@ -106,7 +106,7 @@ contract Feed is Ownable, IFeed, ITypeAndVersion {
 
     function removeOracle(address _oracle) private {
 	int256 oracleId = oracleEnabled(_oracle);
-        if (oracleId == -1) {
+        if (oracleId == NOT_FOUND) {
             revert OracleNotEnabled();
         }
 
@@ -124,11 +124,11 @@ contract Feed is Ownable, IFeed, ITypeAndVersion {
 	    }
 	}
 
-	return -1;
+	return NOT_FOUND;
     }
 
     // FIXME strange data type conversion
-    function validRoundId(uint256 _roundId) private pure returns (bool) {
+    function validRoundId(uint64 _roundId) private pure returns (bool) {
         return _roundId <= ROUND_MAX;
     }
 }

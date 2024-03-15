@@ -62,11 +62,11 @@ contract FeedRouter is Ownable, IFeedRouter {
      * @return updatedAt is the timestamp when the round last was updated (i.e.
      * answer was last computed)
      */
-    function getRoundData(string calldata feedName, uint80 roundId)
+    function getRoundData(string calldata feedName, uint64 roundId)
         external
         view
         validFeed(feedName)
-        returns (uint80 id, int256 answer, uint256 updatedAt)
+        returns (uint64 id, int256 answer, uint256 updatedAt)
     {
         return IFeedProxy(feedProxies[feedName]).getRoundData(roundId);
     }
@@ -92,7 +92,7 @@ contract FeedRouter is Ownable, IFeedRouter {
         external
         view
         validFeed(feedName)
-        returns (uint80 id, int256 answer, uint256 updatedAt)
+        returns (uint64 id, int256 answer, uint256 updatedAt)
     {
         return IFeedProxy(feedProxies[feedName]).latestRoundData();
     }
@@ -106,11 +106,11 @@ contract FeedRouter is Ownable, IFeedRouter {
      * @return updatedAt is the timestamp when the round last was updated (i.e.
      * answer was last computed)
      */
-    function proposedGetRoundData(string calldata feedName, uint80 roundId)
+    function proposedGetRoundData(string calldata feedName, uint64 roundId)
         external
         view
         validFeed(feedName)
-        returns (uint80 id, int256 answer, uint256 updatedAt)
+        returns (uint64 id, int256 answer, uint256 updatedAt)
     {
         return IFeedProxy(feedProxies[feedName]).proposedGetRoundData(roundId);
     }
@@ -127,7 +127,7 @@ contract FeedRouter is Ownable, IFeedRouter {
         external
         view
         validFeed(feedName)
-        returns (uint80 id, int256 answer, uint256 updatedAt)
+        returns (uint64 id, int256 answer, uint256 updatedAt)
     {
         return IFeedProxy(feedProxies[feedName]).proposedLatestRoundData();
     }

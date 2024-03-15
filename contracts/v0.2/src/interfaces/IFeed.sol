@@ -6,13 +6,13 @@ interface IFeed {
 
     function description() external view returns (string memory);
 
-    function getRoundData(uint80 _roundId)
+    function getRoundData(uint64 _roundId)
         external
         view
-        returns (uint80 roundId, int256 answer, uint256 updatedAt);
+        returns (uint64 roundId, int256 answer, uint256 updatedAt);
 
     function latestRoundData()
         external
         view
-        returns (uint80 roundId, int256 answer, uint256 updatedAt);
+        returns (uint64 roundId, int256 answer, uint256 updatedAt);
 }

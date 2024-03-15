@@ -8,25 +8,25 @@ interface IFeedRouter {
 
     function updateProxyBulk(string[] calldata feedNames, address[] calldata proxyAddresses) external;
 
-    function getRoundData(string calldata feedName, uint80 roundId)
+    function getRoundData(string calldata feedName, uint64 roundId)
         external
         view
-        returns (uint80 id, int256 answer, uint256 updatedAt);
+        returns (uint64 id, int256 answer, uint256 updatedAt);
 
     function latestRoundData(string calldata feedName)
         external
         view
-        returns (uint80 id, int256 answer, uint256 updatedAt);
+        returns (uint64 id, int256 answer, uint256 updatedAt);
 
-    function proposedGetRoundData(string calldata feedName, uint80 roundId)
+    function proposedGetRoundData(string calldata feedName, uint64 roundId)
         external
         view
-        returns (uint80 id, int256 answer, uint256 updatedAt);
+        returns (uint64 id, int256 answer, uint256 updatedAt);
 
     function proposedLatestRoundData(string calldata feedName)
         external
         view
-        returns (uint80 id, int256 answer, uint256 updatedAt);
+        returns (uint64 id, int256 answer, uint256 updatedAt);
 
     function feed(string calldata feedName) external view returns (address);
 
