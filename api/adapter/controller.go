@@ -59,7 +59,7 @@ func insert(c *fiber.Ctx) error {
 
 	err := computeAdapterHash(payload, true)
 	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).SendString("failed to compute adapter hash: " + err.Error())
+		return c.Status(fiber.StatusInternalServerError).SendString(err.Error())
 	}
 
 	row, err := utils.QueryRow[AdapterIdModel](c, InsertAdapter, map[string]any{
@@ -106,7 +106,7 @@ func hash(c *fiber.Ctx) error {
 
 	err = computeAdapterHash(&payload, verify)
 	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).SendString("failed to compute adapter hash: " + err.Error())
+		return c.Status(fiber.StatusInternalServerError).SendString(err.Error())
 	}
 	return c.JSON(payload)
 }
@@ -153,13 +153,14 @@ func computeAdapterHash(data *AdapterInsertModel, verify bool) error {
 
 	out, err := json.Marshal(input)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to compute adapter hash: %s", err.Error())
 	}
 
 	hash := crypto.Keccak256Hash([]byte(out))
 	hashString := fmt.Sprintf("0x%x", hash)
 	if verify && data.AdapterHash != hashString {
-		return fmt.Errorf("hashes do not match!\nexpected %s, received %s", hashString, data.AdapterHash)
+		hashComputeErr := fmt.Errorf("hashes do not match!\nexpected %s, received %s", hashString, data.AdapterHash)
+		return fmt.Errorf("failed to compute adapter hash: %s", hashComputeErr.Error())
 	}
 
 	data.AdapterHash = hashString

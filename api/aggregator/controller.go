@@ -119,7 +119,7 @@ func insert(c *fiber.Ctx) error {
 	}
 	err = computeAggregatorHash(&hashComputeParam, true)
 	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).SendString("failed to compute aggregator hash: " + err.Error())
+		return c.Status(fiber.StatusInternalServerError).SendString(err.Error())
 	}
 
 	insertParam := _AggregatorInsertModel{
@@ -208,7 +208,7 @@ func hash(c *fiber.Ctx) error {
 
 	err = computeAggregatorHash(&hashComputeParam, verify)
 	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).SendString("failed to compute aggregator hash: " + err.Error())
+		return c.Status(fiber.StatusInternalServerError).SendString(err.Error())
 	}
 
 	return c.JSON(hashComputeParam)
@@ -314,13 +314,14 @@ func computeAggregatorHash(data *AggregatorHashComputeInputModel, verify bool) e
 	processData := input.AggregatorHashComputeProcessModel
 	out, err := json.Marshal(processData)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to compute adapter hash: %s", err.Error())
 	}
 
 	hash := crypto.Keccak256Hash([]byte(out))
 	hashString := fmt.Sprintf("0x%x", hash)
 	if verify && data.AggregatorHash != hashString {
-		return fmt.Errorf("hashes do not match!\nexpected %s, received %s", hashString, data.AdapterHash)
+		hashComputeErr := fmt.Errorf("hashes do not match!\nexpected %s, received %s", hashString, data.AggregatorHash)
+		return fmt.Errorf("failed to compute adapter hash: %s", hashComputeErr.Error())
 	}
 
 	data.AggregatorHash = hashString
