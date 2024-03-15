@@ -73,5 +73,4 @@ contract SubmissionProxy is Ownable, ITypeAndVersion {
     function typeAndVersion() external pure virtual override returns (string memory) {
         return "SubmissionProxy v0.2";
     }
-
 }

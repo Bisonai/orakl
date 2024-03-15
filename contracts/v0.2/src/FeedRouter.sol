@@ -20,26 +20,26 @@ contract FeedRouter is Ownable, IFeedRouter {
     event RouterProxyAddressUpdated(string feedName, address indexed proxyAddress);
     event RouterProxyAddressBulkUpdated(string[] feedNames, address[] proxyAddresses);
 
-    modifier validFeed(string calldata feedName) {
-        require(feedProxies[feedName] != address(0), "feed not set in router");
+    modifier validFeed(string calldata _feedName) {
+        require(feedProxies[_feedName] != address(0), "feed not set in router");
         _;
     }
 
     constructor() Ownable(msg.sender) {}
 
-    function updateProxy(string calldata feedName, address proxyAddress) external onlyOwner {
-        feedProxies[feedName] = proxyAddress;
-        emit RouterProxyAddressUpdated(feedName, proxyAddress);
+    function updateProxy(string calldata _feedName, address _proxyAddress) external onlyOwner {
+        feedProxies[_feedName] = _proxyAddress;
+        emit RouterProxyAddressUpdated(_feedName, _proxyAddress);
     }
 
-    function updateProxyBulk(string[] calldata feedNames, address[] calldata proxyAddresses) external onlyOwner {
-        require(feedNames.length > 0 && feedNames.length == proxyAddresses.length, "invalid input");
+    function updateProxyBulk(string[] calldata _feedNames, address[] calldata _proxyAddresses) external onlyOwner {
+        require(_feedNames.length > 0 && _feedNames.length == _proxyAddresses.length, "invalid input");
 
-        for (uint256 i = 0; i < feedNames.length; i++) {
-            feedProxies[feedNames[i]] = proxyAddresses[i];
+        for (uint256 i = 0; i < _feedNames.length; i++) {
+            feedProxies[_feedNames[i]] = _proxyAddresses[i];
         }
 
-        emit RouterProxyAddressBulkUpdated(feedNames, proxyAddresses);
+        emit RouterProxyAddressBulkUpdated(_feedNames, _proxyAddresses);
     }
 
     /**
@@ -51,8 +51,8 @@ contract FeedRouter is Ownable, IFeedRouter {
      * should determine what implementations they expect to receive
      * data from and validate that they can properly handle return data from all
      * of them.
-     * @param feedName the name of the datafeed (ex. BTC-USDT)
-     * @param roundId the requested round ID as presented through the proxy, this
+     * @param _feedName the name of the datafeed (ex. BTC-USDT)
+     * @param _roundId the requested round ID as presented through the proxy, this
      * is made up of the aggregator's round ID with the phase ID encoded in the
      * two highest order bytes
      * @return id is the round ID from the aggregator for which the data was
@@ -62,13 +62,13 @@ contract FeedRouter is Ownable, IFeedRouter {
      * @return updatedAt is the timestamp when the round last was updated (i.e.
      * answer was last computed)
      */
-    function getRoundData(string calldata feedName, uint64 roundId)
+    function getRoundData(string calldata _feedName, uint64 _roundId)
         external
         view
-        validFeed(feedName)
+        validFeed(_feedName)
         returns (uint64 id, int256 answer, uint256 updatedAt)
     {
-        return IFeedProxy(feedProxies[feedName]).getRoundData(roundId);
+        return IFeedProxy(feedProxies[_feedName]).getRoundData(_roundId);
     }
 
     /**
@@ -80,7 +80,7 @@ contract FeedRouter is Ownable, IFeedRouter {
      * should determine what implementations they expect to receive
      * data from and validate that they can properly handle return data from all
      * of them.
-     * @param feedName the name of the datafeed (ex. BTC-USDT)
+     * @param _feedName the name of the datafeed (ex. BTC-USDT)
      * @return id is the round ID from the aggregator for which the data was
      * retrieved combined with an phase to ensure that round IDs get larger as
      * time moves forward.
@@ -88,83 +88,83 @@ contract FeedRouter is Ownable, IFeedRouter {
      * @return updatedAt is the timestamp when the round last was updated (i.e.
      * answer was last computed)
      */
-    function latestRoundData(string calldata feedName)
+    function latestRoundData(string calldata _feedName)
         external
         view
-        validFeed(feedName)
+        validFeed(_feedName)
         returns (uint64 id, int256 answer, uint256 updatedAt)
     {
-        return IFeedProxy(feedProxies[feedName]).latestRoundData();
+        return IFeedProxy(feedProxies[_feedName]).latestRoundData();
     }
 
     /**
      * @notice Used if an feed contract has been proposed.
-     * @param feedName the name of the datafeed (ex. BTC-USDT)
-     * @param roundId the round ID to retrieve the round data for
+     * @param _feedName the name of the datafeed (ex. BTC-USDT)
+     * @param _roundId the round ID to retrieve the round data for
      * @return id is the round ID for which data was retrieved
      * @return answer is the answer for the given round
      * @return updatedAt is the timestamp when the round last was updated (i.e.
      * answer was last computed)
      */
-    function proposedGetRoundData(string calldata feedName, uint64 roundId)
+    function proposedGetRoundData(string calldata _feedName, uint64 _roundId)
         external
         view
-        validFeed(feedName)
+        validFeed(_feedName)
         returns (uint64 id, int256 answer, uint256 updatedAt)
     {
-        return IFeedProxy(feedProxies[feedName]).proposedGetRoundData(roundId);
+        return IFeedProxy(feedProxies[_feedName]).proposedGetRoundData(_roundId);
     }
 
     /**
      * @notice Used if an feed contract has been proposed.
-     * @param feedName the name of the datafeed (ex. BTC-USDT)
+     * @param _feedName the name of the datafeed (ex. BTC-USDT)
      * @return id is the round ID for which data was retrieved
      * @return answer is the answer for the given round
      * @return updatedAt is the timestamp when the round last was updated (i.e.
      * answer was last computed)
      */
-    function proposedLatestRoundData(string calldata feedName)
+    function proposedLatestRoundData(string calldata _feedName)
         external
         view
-        validFeed(feedName)
+        validFeed(_feedName)
         returns (uint64 id, int256 answer, uint256 updatedAt)
     {
-        return IFeedProxy(feedProxies[feedName]).proposedLatestRoundData();
+        return IFeedProxy(feedProxies[_feedName]).proposedLatestRoundData();
     }
 
     /**
      * @notice returns the current phase's feed address.
      */
-    function feed(string calldata feedName) external view validFeed(feedName) returns (address) {
-        return IFeedProxy(feedProxies[feedName]).getFeed();
+    function feed(string calldata _feedName) external view validFeed(_feedName) returns (address) {
+        return IFeedProxy(feedProxies[_feedName]).getFeed();
     }
 
     /**
      * @notice represents the number of decimals the feed responses represent.
      */
-    function decimals(string calldata feedName) external view validFeed(feedName) returns (uint8) {
-        return IFeedProxy(feedProxies[feedName]).decimals();
+    function decimals(string calldata _feedName) external view validFeed(_feedName) returns (uint8) {
+        return IFeedProxy(feedProxies[_feedName]).decimals();
     }
 
     /**
      * @notice the type and version of feed to which proxy
      * points to.
      */
-    function typeAndVersion(string calldata feedName) external view validFeed(feedName) returns (string memory) {
-        return IFeedProxy(feedProxies[feedName]).typeAndVersion();
+    function typeAndVersion(string calldata _feedName) external view validFeed(_feedName) returns (string memory) {
+        return IFeedProxy(feedProxies[_feedName]).typeAndVersion();
     }
 
     /**
      * @notice returns the description of the feed the proxy points to.
      */
-    function description(string calldata feedName) external view validFeed(feedName) returns (string memory) {
-        return IFeedProxy(feedProxies[feedName]).description();
+    function description(string calldata _feedName) external view validFeed(_feedName) returns (string memory) {
+        return IFeedProxy(feedProxies[_feedName]).description();
     }
 
     /**
      * @notice returns the current proposed feed
      */
-    function proposedFeed(string calldata feedName) external view validFeed(feedName) returns (address) {
-        return IFeedProxy(feedProxies[feedName]).getProposedFeed();
+    function proposedFeed(string calldata _feedName) external view validFeed(_feedName) returns (address) {
+        return IFeedProxy(feedProxies[_feedName]).getProposedFeed();
     }
 }
