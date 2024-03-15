@@ -1,29 +1,31 @@
 version: "3"
 
 tasks:
-  test-submission:
-    dotenv: [".env"]
-    cmds:
-      - go run ./cmd/test_submission/main.go
-  local-admin:
-    dotenv: [".env"]
-    cmds:
-      - go run ./cmd/admin/main.go
-  local-fetcher-test:
-    dotenv: [".env"]
-    cmds:
-      - go run ./cmd/test_fetcher/main.go
-  local-fetcher-aggregator-test:
-    dotenv: [".env"]
-    cmds:
-      - go run ./cmd/test_fetcher_and_aggregator/main.go
-  local-test-all:
-    dotenv: [".env"]
-    cmds:
-      - go run ./cmd/test_all/main.go
   boot-node:
     cmds:
       - go run ./cmd/boot/main.go
+  admin:
+    dotenv: [".env"]
+    cmds:
+      - go run ./cmd/admin/main.go
+
+  script-submission:
+    dotenv: [".env"]
+    cmds:
+      - go run ./script/test_submission/main.go
+  script-fetcher-test:
+    dotenv: [".env"]
+    cmds:
+      - go run ./script/test_fetcher/main.go
+  script-fetcher-aggregator-test:
+    dotenv: [".env"]
+    cmds:
+      - go run ./script/test_fetcher_and_aggregator/main.go
+  script-test-all:
+    dotenv: [".env"]
+    cmds:
+      - go run ./script/test_all/main.go
+
   test-db:
     dotenv: [".env"]
     cmds:

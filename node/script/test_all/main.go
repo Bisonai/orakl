@@ -16,8 +16,10 @@ import (
 )
 
 /*
+its purpose is to check if the whole system including api, fetcher, aggregator, and reporter can run together
+
 following script does not include initialization of adapters and aggregators
-add 1 adapter and then sync aggregator before running the script
+so manually add those before running this script
 */
 
 func main() {
