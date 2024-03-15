@@ -1,4 +1,4 @@
-# Offchain Aggregator
+# Off-chain Aggregator
 
 ## Introduction
 
@@ -20,11 +20,11 @@ Modular Monolithic with loose coupling between packages
 
 - cmd
 
-Holds entrypoints to run basic functionalities
+Holds entry points to run basic functionalities
 
 - migrations
 
-Migration files to initialize pgsql table
+Migration files to initialize PostgreSQL table
 
 - pkg
 
@@ -47,7 +47,7 @@ Check source code inside ./pkg for details
 Gofiber application for user interface. Mainly performs 2 things
 
 1. CRUD for system tables
-2. Control other package through bus message. (ex. stop fetcher)
+2. Control other packages through bus messages. (For example, stop fetcher)
 
 ### Aggregator
 
@@ -93,7 +93,7 @@ Fetcher continuously fetches data from data source for entries declared in adapt
 
 3. Aggregator
 
-Aggregator sends & recieves local fetched data into other offchain aggregators and saves into global_aggregates table
+Aggregator sends & receives local fetched data into other off-chain aggregators and saves into global_aggregates table
 
 4. Reporter
 
@@ -145,7 +145,6 @@ task local:admin
 
 ### Run Scripts
 
-- Temporary scripts used to run application in testing environment, to be removed after stablized. Use it to test application in local environment
 
 - Submission test: submit single tx on chain
 
