@@ -6,7 +6,7 @@ Offchain aggregator.
 It performs following steps to regularly submit data into chain
 
 1. Fetch price data and save into database
-2. Send and Receive data with other nodes and aggregate all received data. save aggregated data into database
+2. Send and Receive data with other nodes and aggregate all received data. Save aggregated data into database
 3. Submit aggregated data into chain
 
 ![Overview](./image.svg)
