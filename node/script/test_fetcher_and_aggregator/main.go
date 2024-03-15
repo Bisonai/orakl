@@ -16,6 +16,10 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
+// its purpose is to check whether api + fetcher + aggregator works properly
+// it syncs adapters and aggregators from orakl config
+// setting up entries in proxies table before running this script is recommended
+
 func main() {
 	ctx := context.Background()
 	mb := bus.New(10)

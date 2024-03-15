@@ -11,6 +11,9 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
+// its purpose is to quickly run raft node without specific functionality
+// should be enough to test leader election, resign, relaction and so on.
+
 func main() {
 	ctx := context.Background()
 

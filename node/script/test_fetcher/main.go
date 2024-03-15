@@ -10,6 +10,9 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
+// its purpose is to check whether api + fetcher works properly
+// it doesn't automatically import adapters so please manually add before running the script
+
 func main() {
 	mb := bus.New(10)
 	var wg sync.WaitGroup

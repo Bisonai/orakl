@@ -9,6 +9,8 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
+// send single submission through this script
+
 func testContractDelegatedCall(ctx context.Context, contractAddress string, contractFunction string, args ...interface{}) error {
 	txHelper, err := utils.NewTxHelper(ctx)
 	if err != nil {

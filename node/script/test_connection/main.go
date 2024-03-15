@@ -9,6 +9,8 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
+// run this script in each different vm and check the output for connection time
+
 func main() {
 	ctx := context.Background()
 	topicString := "orakl-test-discover-connection-time"
