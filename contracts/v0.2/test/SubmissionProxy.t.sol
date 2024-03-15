@@ -2,6 +2,7 @@
 pragma solidity ^0.8.24;
 
 import {Test, console} from "forge-std/Test.sol";
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {SubmissionProxy} from "../src/SubmissionProxy.sol";
 import {Feed} from "../src/Feed.sol";
 
@@ -18,6 +19,42 @@ contract SubmissionProxyTest is Test {
     function setUp() public {
         vm.warp(timestamp);
         submissionProxy = new SubmissionProxy();
+    }
+
+    function test_UpdateFeedWithOwner() public {
+	address btcUsdtFeed = makeAddr("btc-usdt-feed");
+	submissionProxy.updateFeed("BTC-USDT", btcUsdtFeed);
+    }
+
+    function test_UpdateFeedMultipleTimesIsAllowed() public {
+	address btcUsdtFeed1 = makeAddr("btc-usdt-feed-1");
+	address btcUsdtFeed2 = makeAddr("btc-usdt-feed-2");
+	submissionProxy.updateFeed("BTC-USDT", btcUsdtFeed1);
+	submissionProxy.updateFeed("BTC-USDT", btcUsdtFeed2);
+    }
+
+    function test_UpdateFeedWithNonOwner() public {
+	address btcUsdtFeed = makeAddr("btc-usdt-feed");
+	address nonOwner = makeAddr("nonOwner");
+
+	vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, nonOwner));
+	vm.prank(nonOwner);
+	submissionProxy.updateFeed("BTC-USDT", btcUsdtFeed);
+    }
+
+    function test_UpdateFeedBulkWithOwner() public {
+	address btcUsdtFeed = makeAddr("btc-usdt-feed");
+	address ethUsdtFeed = makeAddr("eth-usdt-feed");
+
+	string[] memory names = new string[](2);
+	names[0] = "BTC-USDT";
+	names[1] = "ETH-USDT";
+
+	address[] memory feeds = new address[](2);
+	feeds[0] = btcUsdtFeed;
+	feeds[1] = ethUsdtFeed;
+
+	submissionProxy.updateFeedBulk(names, feeds);
     }
 
     function test_AddOracleOnce() public {
