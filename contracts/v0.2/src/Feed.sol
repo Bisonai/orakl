@@ -113,8 +113,7 @@ contract Feed is Ownable, IFeed, ITypeAndVersion {
             revert OracleNotEnabled();
         }
 
-        address tail = oracles[oracles.length - 1];
-        oracles[uint256(oracleId)] = tail;
+        oracles[uint256(oracleId)] = oracles[oracles.length - 1];
 	oracles.pop();
 
         emit OraclePermissionsUpdated(_oracle, false);
