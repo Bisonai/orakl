@@ -1,13 +1,14 @@
 package aggregator
 
 import (
+	"encoding/json"
+	"fmt"
+	"strconv"
+
 	"bisonai.com/orakl/api/adapter"
 	"bisonai.com/orakl/api/chain"
 	"bisonai.com/orakl/api/feed"
 	"bisonai.com/orakl/api/utils"
-	"encoding/json"
-	"fmt"
-	"strconv"
 
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/go-playground/validator/v10"
@@ -118,7 +119,7 @@ func insert(c *fiber.Ctx) error {
 	}
 	err = computeAggregatorHash(&hashComputeParam, true)
 	if err != nil {
-		panic(err)
+		return c.Status(fiber.StatusInternalServerError).SendString(err.Error())
 	}
 
 	insertParam := _AggregatorInsertModel{
@@ -207,7 +208,7 @@ func hash(c *fiber.Ctx) error {
 
 	err = computeAggregatorHash(&hashComputeParam, verify)
 	if err != nil {
-		panic(err)
+		return c.Status(fiber.StatusInternalServerError).SendString(err.Error())
 	}
 
 	return c.JSON(hashComputeParam)
@@ -313,13 +314,14 @@ func computeAggregatorHash(data *AggregatorHashComputeInputModel, verify bool) e
 	processData := input.AggregatorHashComputeProcessModel
 	out, err := json.Marshal(processData)
 	if err != nil {
-		panic(err)
+		return fmt.Errorf("failed to compute adapter hash: %s", err.Error())
 	}
 
 	hash := crypto.Keccak256Hash([]byte(out))
 	hashString := fmt.Sprintf("0x%x", hash)
 	if verify && data.AggregatorHash != hashString {
-		panic(err)
+		hashComputeErr := fmt.Errorf("hashes do not match!\nexpected %s, received %s", hashString, data.AggregatorHash)
+		return fmt.Errorf("failed to compute adapter hash: %s", hashComputeErr.Error())
 	}
 
 	data.AggregatorHash = hashString

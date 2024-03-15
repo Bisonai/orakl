@@ -83,7 +83,7 @@ export const VRF_1 = {
 export const DATAFEED_BULK_0 = {
   bulk: [
     {
-      adapterSource: 'https://config.orakl.network/adapter/ada-usdt.adapter.json',
+      adapterSource: 'https://config.orakl.network/adapter/baobab/ada-usdt.adapter.json',
       aggregatorSource: 'https://config.orakl.network/aggregator/baobab/ada-usdt.aggregator.json',
       reporter: {
         walletAddress: '0xa',
@@ -91,7 +91,7 @@ export const DATAFEED_BULK_0 = {
       }
     },
     {
-      adapterSource: 'https://config.orakl.network/adapter/atom-usdt.adapter.json',
+      adapterSource: 'https://config.orakl.network/adapter/baobab/atom-usdt.adapter.json',
       aggregatorSource: 'https://config.orakl.network/aggregator/baobab/atom-usdt.aggregator.json',
       reporter: {
         walletAddress: '0xc',
@@ -99,7 +99,7 @@ export const DATAFEED_BULK_0 = {
       }
     },
     {
-      adapterSource: 'https://config.orakl.network/adapter/avax-usdt.adapter.json',
+      adapterSource: 'https://config.orakl.network/adapter/baobab/avax-usdt.adapter.json',
       aggregatorSource: 'https://config.orakl.network/aggregator/baobab/avax-usdt.aggregator.json',
       reporter: {
         walletAddress: '0xe',
@@ -117,24 +117,24 @@ export const DATAFEED_BULK_1 = {
   eventName: 'NewRoundV2',
   bulk: [
     {
-      adapterSource: 'https://config.orakl.network/adapter/bnb-usdt.adapter.json',
-      aggregatorSource: 'https://config.orakl.network/aggregator/baobab/bnb-usdt.aggregator.json',
+      adapterSource: 'https://config.orakl.network/adapter/baobab/btc-usdt.adapter.json',
+      aggregatorSource: 'https://config.orakl.network/aggregator/baobab/btc-usdt.aggregator.json',
       reporter: {
         walletAddress: '0x0',
         walletPrivateKey: '0x1'
       }
     },
     {
-      adapterSource: 'https://config.orakl.network/adapter/bora-krw.adapter.json',
-      aggregatorSource: 'https://config.orakl.network/aggregator/baobab/bora-krw.aggregator.json',
+      adapterSource: 'https://config.orakl.network/adapter/baobab/ltc-usdt.adapter.json',
+      aggregatorSource: 'https://config.orakl.network/aggregator/baobab/ltc-usdt.aggregator.json',
       reporter: {
         walletAddress: '0x2',
         walletPrivateKey: '0x3'
       }
     },
     {
-      adapterSource: 'https://config.orakl.network/adapter/eth-usdt.adapter.json',
-      aggregatorSource: 'https://config.orakl.network/aggregator/baobab/eth-usdt.aggregator.json',
+      adapterSource: 'https://config.orakl.network/adapter/baobab/klay-usdt.adapter.json',
+      aggregatorSource: 'https://config.orakl.network/aggregator/baobab/klay-usdt.aggregator.json',
       reporter: {
         walletAddress: '0x4',
         walletPrivateKey: '0x5'
