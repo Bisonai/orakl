@@ -119,9 +119,9 @@ export function hashHandler() {
       return adapterWithCorrectHash
     } catch (e) {
       console.error('Adapter hash could not be computed. Reason:')
-      const errMsg = e?.response?.data?.message ? e.response.data.message : e.message
+      const errMsg = e?.response?.data ? e.response.data : e.message
 
-      console.error(errMsg)
+      console.error(e.response.data)
       return errMsg
     }
   }

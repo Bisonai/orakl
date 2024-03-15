@@ -232,8 +232,9 @@ export function hashHandler() {
       return aggregatorWithCorrectHash
     } catch (e) {
       console.error('Aggregator hash could not be computed. Reason:')
-      const errMsg = e?.response?.data?.message ? e.response.data.message : e.message
-      console.error(errMsg)
+      const errMsg = e?.response?.data ? e.response.data : e.message
+
+      console.error(e.response.data)
       return errMsg
     }
   }
