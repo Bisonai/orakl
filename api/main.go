@@ -30,7 +30,10 @@ func main() {
 	if err != nil {
 		log.Println("env file is not found, continuing without .env file")
 	}
-	config := utils.LoadEnvVars()
+	config, err := utils.LoadEnvVars()
+	if err != nil {
+		panic(err)
+	}
 
 	appConfig, err := utils.Setup(version)
 	if err != nil {
