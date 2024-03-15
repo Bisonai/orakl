@@ -139,7 +139,10 @@ func Setup(options ...string) (AppConfig, error) {
 		version = "test"
 	}
 
-	config := LoadEnvVars()
+	config, err := LoadEnvVars()
+	if err != nil {
+		return appConfig, err
+	}
 	// pgsql connect
 	pgxPool, pgxError := pgxpool.New(context.Background(), config["DATABASE_URL"].(string))
 	if pgxError != nil {
@@ -189,7 +192,10 @@ func Setup(options ...string) (AppConfig, error) {
 }
 
 func EncryptText(textToEncrypt string) (string, error) {
-	config := LoadEnvVars()
+	config, err := LoadEnvVars()
+	if err != nil {
+		return "", err
+	}
 	password := config["ENCRYPT_PASSWORD"].(string)
 	// Generate a random 16-byte IV
 	iv := make([]byte, 16)
@@ -221,7 +227,10 @@ func EncryptText(textToEncrypt string) (string, error) {
 }
 
 func DecryptText(encryptedText string) (string, error) {
-	config := LoadEnvVars()
+	config, err := LoadEnvVars()
+	if err != nil {
+		return "", err
+	}
 	password := config["ENCRYPT_PASSWORD"].(string)
 
 	// Extract the IV and ciphertext from the string
@@ -254,15 +263,38 @@ func DecryptText(encryptedText string) (string, error) {
 	return string(decryptedText), nil
 }
 
-func LoadEnvVars() map[string]interface{} {
-	return map[string]interface{}{
-		"DATABASE_URL":     os.Getenv("DATABASE_URL"),
-		"REDIS_HOST":       os.Getenv("REDIS_HOST"),
-		"REDIS_PORT":       os.Getenv("REDIS_PORT"),
-		"APP_PORT":         os.Getenv("APP_PORT"),
-		"TEST_MODE":        os.Getenv("TEST_MODE"),
-		"ENCRYPT_PASSWORD": os.Getenv("ENCRYPT_PASSWORD"),
+func LoadEnvVars() (map[string]interface{}, error) {
+	databaseURL := os.Getenv("DATABASE_URL")
+	redisHost := os.Getenv("REDIS_HOST")
+	redisPort := os.Getenv("REDIS_PORT")
+	appPort := os.Getenv("APP_PORT")
+	testMode := os.Getenv("TEST_MODE")
+	encryptPassword := os.Getenv("ENCRYPT_PASSWORD")
+
+	if databaseURL == "" {
+		return nil, errors.New("DATABASE_URL is not set")
 	}
+	if redisHost == "" {
+		redisHost = "localhost"
+	}
+	if redisPort == "" {
+		redisPort = "6379"
+	}
+	if appPort == "" {
+		appPort = "3000"
+	}
+	if encryptPassword == "" {
+		return nil, errors.New("ENCRYPT_PASSWORD is not set")
+	}
+
+	return map[string]interface{}{
+		"DATABASE_URL":     databaseURL,
+		"REDIS_HOST":       redisHost,
+		"REDIS_PORT":       redisPort,
+		"APP_PORT":         appPort,
+		"TEST_MODE":        testMode,
+		"ENCRYPT_PASSWORD": encryptPassword,
+	}, nil
 }
 
 func CustomErrorHandler(c *fiber.Ctx, err error) error {
