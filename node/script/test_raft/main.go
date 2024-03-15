@@ -18,12 +18,14 @@ func main() {
 	ctx := context.Background()
 
 	port := flag.Int("p", 0, "libp2p port")
+	bootnode := flag.String("b", "", "bootnode")
+
 	flag.Parse()
 	if *port == 0 {
 		log.Fatal().Msg("Please provide a port to bind on with -p")
 	}
 
-	host, ps, err := libp2p.Setup(ctx, "", *port)
+	host, ps, err := libp2p.Setup(ctx, *bootnode, *port)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to setup libp2p")
 	}
