@@ -123,8 +123,8 @@ func QueryRows[T any](c *fiber.Ctx, query string, args map[string]any) ([]T, err
 	}
 
 	results, err = pgx.CollectRows(rows, pgx.RowToStructByName[T])
-	if errors.Is(err, pgx.ErrNoRows) {
-		return results, nil
+	if errors.Is(err, pgx.ErrNoRows) || (results == nil && err == nil) {
+		return []T{}, nil
 	}
 	return results, err
 }

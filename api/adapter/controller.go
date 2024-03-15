@@ -117,10 +117,6 @@ func get(c *fiber.Ctx) error {
 		panic(err)
 	}
 
-	if results == nil {
-		results = []AdapterModel{}
-	}
-
 	return c.JSON(results)
 }
 

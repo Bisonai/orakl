@@ -231,10 +231,6 @@ func get(c *fiber.Ctx) error {
 		panic(err)
 	}
 
-	if results == nil {
-		results = []AggregatorResultModel{}
-	}
-
 	return c.JSON(results)
 }
 
