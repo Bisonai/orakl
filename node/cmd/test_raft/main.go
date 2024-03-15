@@ -22,8 +22,7 @@ func main() {
 
 	host, ps, err := libp2p.Setup(ctx, "", *port)
 	if err != nil {
-		log.Error().Err(err).Msg("Failed to setup libp2p")
-		return
+		log.Fatal().Err(err).Msg("Failed to setup libp2p")
 	}
 
 	topicString := "orakl-raft-test-topic"
