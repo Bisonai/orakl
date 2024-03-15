@@ -39,7 +39,7 @@ func TestInitDHT(t *testing.T) {
 func TestDiscoverPeers(t *testing.T) {
 	ctx := context.Background()
 	zerolog.SetGlobalLevel(zerolog.InfoLevel)
-	b, _ := SetBootNode(10003)
+	b, _ := SetBootNode(10003, "")
 	h1, _ := MakeHost(10001)
 	h2, _ := MakeHost(10002)
 

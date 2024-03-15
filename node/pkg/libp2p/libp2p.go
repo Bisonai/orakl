@@ -2,12 +2,14 @@ package libp2p
 
 import (
 	"context"
+	"crypto/ed25519"
 	"crypto/rand"
 	"errors"
 	"fmt"
 	"os"
 	"strconv"
 
+	"crypto/sha256"
 	"strings"
 	"sync"
 
@@ -24,11 +26,23 @@ import (
 	"github.com/multiformats/go-multiaddr"
 )
 
-func SetBootNode(listenPort int) (*host.Host, error) {
-	priv, _, err := crypto.GenerateKeyPairWithReader(crypto.RSA, 2048, rand.Reader)
-	if err != nil {
-		log.Error().Err(err).Msg("Error generating key pair")
-		return nil, err
+func SetBootNode(listenPort int, seed string) (*host.Host, error) {
+	var priv crypto.PrivKey
+	var err error
+	if seed == "" {
+		priv, _, err = crypto.GenerateKeyPairWithReader(crypto.RSA, 2048, rand.Reader)
+		if err != nil {
+			log.Error().Err(err).Msg("Error generating key pair")
+			return nil, err
+		}
+	} else {
+		hash := sha256.Sum256([]byte(seed))
+		rawKey := ed25519.NewKeyFromSeed(hash[:])
+		priv, err = crypto.UnmarshalEd25519PrivateKey(rawKey)
+		if err != nil {
+			log.Error().Err(err).Msg("Error unmarshalling private key")
+			return nil, err
+		}
 	}
 
 	h, err := libp2p.New(libp2p.ListenAddrStrings("/ip4/0.0.0.0/tcp/"+strconv.Itoa(listenPort)), libp2p.Identity(priv))
