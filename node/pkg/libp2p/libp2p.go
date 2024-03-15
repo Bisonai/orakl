@@ -2,12 +2,14 @@ package libp2p
 
 import (
 	"context"
+	"crypto/ed25519"
 	"crypto/rand"
 	"errors"
 	"fmt"
 	"os"
 	"strconv"
 
+	"crypto/sha256"
 	"strings"
 	"sync"
 
@@ -24,23 +26,35 @@ import (
 	"github.com/multiformats/go-multiaddr"
 )
 
-func SetBootNode(listenPort int) (*host.Host, error) {
-	priv, _, err := crypto.GenerateKeyPairWithReader(crypto.RSA, 2048, rand.Reader)
-	if err != nil {
-		log.Error().Err(err).Msg("Error generating key pair")
-		return nil, err
+func SetBootNode(ctx context.Context, listenPort int, seed string) (*host.Host, *dht.IpfsDHT, error) {
+	var priv crypto.PrivKey
+	var err error
+	if seed == "" {
+		priv, _, err = crypto.GenerateKeyPairWithReader(crypto.RSA, 2048, rand.Reader)
+		if err != nil {
+			log.Error().Err(err).Msg("Error generating key pair")
+			return nil, nil, err
+		}
+	} else {
+		hash := sha256.Sum256([]byte(seed))
+		rawKey := ed25519.NewKeyFromSeed(hash[:])
+		priv, err = crypto.UnmarshalEd25519PrivateKey(rawKey)
+		if err != nil {
+			log.Error().Err(err).Msg("Error unmarshalling private key")
+			return nil, nil, err
+		}
 	}
 
 	h, err := libp2p.New(libp2p.ListenAddrStrings("/ip4/0.0.0.0/tcp/"+strconv.Itoa(listenPort)), libp2p.Identity(priv))
 	if err != nil {
 		log.Error().Err(err).Msg("Error creating libp2p host")
-		return nil, err
+		return nil, nil, err
 	}
 
-	_, err = dht.New(context.Background(), h)
+	dht, err := dht.New(ctx, h)
 	if err != nil {
 		log.Error().Err(err).Msg("Error creating DHT")
-		return nil, err
+		return nil, nil, err
 	}
 
 	pi := peer.AddrInfo{
@@ -52,7 +66,7 @@ func SetBootNode(listenPort int) (*host.Host, error) {
 		fmt.Println(addr.String() + "/p2p/" + h.ID().String())
 	}
 
-	return &h, nil
+	return &h, dht, nil
 }
 
 func Setup(ctx context.Context, bootnodeStr string, port int) (*host.Host, *pubsub.PubSub, error) {
