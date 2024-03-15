@@ -33,8 +33,8 @@ contract Feed is Ownable, IFeed, ITypeAndVersion {
         description = _description;
     }
 
+    // TODO verification
     function submit(int256 _answer) external {
-	// TODO verification
         uint64 roundId_ = latestRoundId + 1;
 
 	rounds[roundId_].answer = _answer;
@@ -100,6 +100,7 @@ contract Feed is Ownable, IFeed, ITypeAndVersion {
         if (oracleEnabled(_oracle) != NOT_FOUND) {
             revert OracleAlreadyEnabled();
         }
+
         oracles.push(_oracle);
         emit OraclePermissionsUpdated(_oracle, true);
     }
@@ -127,7 +128,6 @@ contract Feed is Ownable, IFeed, ITypeAndVersion {
 	return NOT_FOUND;
     }
 
-    // FIXME strange data type conversion
     function validRoundId(uint64 _roundId) private pure returns (bool) {
         return _roundId <= ROUND_MAX;
     }
