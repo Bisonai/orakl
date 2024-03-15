@@ -100,6 +100,9 @@ contract FeedProxy is Ownable, IFeedProxy {
     }
 
     function proposeFeed(address _feed) external onlyOwner {
+	if (_feed == address(0)) {
+	    revert InvalidProposedFeed();
+	}
         proposedFeed = IFeedProxy(_feed);
         emit FeedProposed(address(feed), _feed);
     }
