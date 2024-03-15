@@ -17,6 +17,8 @@ import {IFeedProxy} from "./interfaces/IFeedProxy.sol";
 contract FeedRouter is Ownable, IFeedRouter {
     mapping(string => address) public feedProxies;
 
+    error InvalidProxyAddress();
+
     event RouterProxyAddressUpdated(string feedName, address indexed proxyAddress);
     event RouterProxyAddressBulkUpdated(string[] feedNames, address[] proxyAddresses);
 
@@ -27,16 +29,11 @@ contract FeedRouter is Ownable, IFeedRouter {
 
     constructor() Ownable(msg.sender) {}
 
-    function updateProxy(string calldata _feedName, address _proxyAddress) external onlyOwner {
-        feedProxies[_feedName] = _proxyAddress;
-        emit RouterProxyAddressUpdated(_feedName, _proxyAddress);
-    }
-
     function updateProxyBulk(string[] calldata _feedNames, address[] calldata _proxyAddresses) external onlyOwner {
         require(_feedNames.length > 0 && _feedNames.length == _proxyAddresses.length, "invalid input");
 
         for (uint256 i = 0; i < _feedNames.length; i++) {
-            feedProxies[_feedNames[i]] = _proxyAddresses[i];
+            updateProxy(_feedNames[i], _proxyAddresses[i]);
         }
 
         emit RouterProxyAddressBulkUpdated(_feedNames, _proxyAddresses);
@@ -166,5 +163,14 @@ contract FeedRouter is Ownable, IFeedRouter {
      */
     function proposedFeed(string calldata _feedName) external view validFeed(_feedName) returns (address) {
         return IFeedProxy(feedProxies[_feedName]).getProposedFeed();
+    }
+
+    function updateProxy(string calldata _feedName, address _proxyAddress) public onlyOwner {
+	if (_proxyAddress == address(0)) {
+	    revert InvalidProxyAddress();
+	}
+
+        feedProxies[_feedName] = _proxyAddress;
+        emit RouterProxyAddressUpdated(_feedName, _proxyAddress);
     }
 }
