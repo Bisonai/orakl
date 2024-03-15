@@ -57,6 +57,17 @@ contract SubmissionProxyTest is Test {
 	submissionProxy.updateFeedBulk(names, feeds);
     }
 
+    function test_RemoveFeed() public {
+	address btcUsdtFeed = makeAddr("btc-usdt-feed");
+	submissionProxy.updateFeed("BTC-USDT", btcUsdtFeed);
+	address[] memory feeds = submissionProxy.getFeeds();
+	assertEq(feeds.length, 1);
+
+	submissionProxy.removeFeed("BTC-USDT");
+	feeds = submissionProxy.getFeeds();
+	assertEq(feeds.length, 0);
+    }
+
     function test_AddOracleOnce() public {
 	address oracle_ = makeAddr("oracle");
         submissionProxy.addOracle(oracle_);
