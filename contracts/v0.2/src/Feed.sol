@@ -53,6 +53,9 @@ contract Feed is Ownable, IFeed, ITypeAndVersion {
         }
 
         for (uint256 i = 0; i < _added.length; i++) {
+	    if (_added[i] == address(0)) {
+		continue;
+	    }
             addOracle(_added[i]);
         }
     }

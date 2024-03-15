@@ -32,6 +32,14 @@ contract FeedTest is Test {
         assertEq(feed.getOracles().length, 0);
     }
 
+    function test_addZeroAddressOracle() public {
+	address[] memory added_ = new address[](1);
+	address[] memory removed_ = new address[](0);
+	added_[0] = address(0);
+	feed.changeOracles(removed_, added_);
+	assertEq(feed.getOracles().length, 0);
+    }
+
     function test_RemoveNonexistantOracle() public {
 	address alice = makeAddr('alice');
 
