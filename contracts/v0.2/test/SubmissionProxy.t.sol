@@ -55,6 +55,8 @@ contract SubmissionProxyTest is Test {
 	feeds[1] = ethUsdtFeed;
 
 	submissionProxy.updateFeedBulk(names, feeds);
+	feeds = submissionProxy.getFeeds();
+	assertEq(feeds.length, 2);
     }
 
     function test_RemoveFeed() public {
