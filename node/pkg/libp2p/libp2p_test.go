@@ -16,8 +16,11 @@ func TestMakeHost(t *testing.T) {
 }
 
 func TestMakePubsub(t *testing.T) {
-	h, _ := MakeHost(10001)
-	_, err := MakePubsub(context.Background(), h)
+	h, err := MakeHost(10001)
+	if err != nil {
+		t.Fatalf("Failed to make host: %v", err)
+	}
+	_, err = MakePubsub(context.Background(), h)
 	if err != nil {
 		t.Errorf("Failed to make pubsub: %v", err)
 	}
@@ -39,7 +42,7 @@ func TestInitDHT(t *testing.T) {
 func TestDiscoverPeers(t *testing.T) {
 	ctx := context.Background()
 	zerolog.SetGlobalLevel(zerolog.InfoLevel)
-	b, _, _ := SetBootNode(ctx, 10003, "")
+	b, _ := SetBootNode(ctx, 10003, "")
 	h1, _ := MakeHost(10001)
 	h2, _ := MakeHost(10002)
 

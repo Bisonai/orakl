@@ -2,6 +2,7 @@ version: "3"
 
 tasks:
   boot-node:
+    dotenv: [".env"]
     cmds:
       - go run ./cmd/boot/main.go
   admin:
@@ -25,6 +26,14 @@ tasks:
     dotenv: [".env"]
     cmds:
       - go run ./script/test_all/main.go
+  script-test-connection:
+    dotenv: [".env"]
+    cmds:
+      - go run ./script/test_connection/main.go -p={{.P}} -b={{.B}}
+  script-test-raft:
+    dotenv: [".env"]
+    cmds:
+      - go run ./script/test_raft/main.go -p={{.P}} -b={{.B}}
 
   test-db:
     dotenv: [".env"]
@@ -50,6 +59,7 @@ tasks:
     cmds:
       - go test ./pkg/bus -v
   test-libp2p:
+    dotenv: [".env"]
     cmds:
       - go test ./pkg/libp2p -v
   test-reporter:

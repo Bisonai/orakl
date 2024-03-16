@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"errors"
-	"flag"
 	"time"
 
 	"bisonai.com/orakl/node/pkg/libp2p"
@@ -17,36 +16,66 @@ import (
 func main() {
 	ctx := context.Background()
 
-	port := flag.Int("p", 0, "libp2p port")
-	bootnode := flag.String("b", "", "bootnode")
-
-	flag.Parse()
-	if *port == 0 {
-		log.Fatal().Msg("Please provide a port to bind on with -p")
-	}
-
-	host, ps, err := libp2p.Setup(ctx, *bootnode, *port)
+	host1, err := libp2p.MakeHost(10001)
 	if err != nil {
-		log.Fatal().Err(err).Msg("Failed to setup libp2p")
+		log.Fatal().Err(err).Msg("Failed to make host")
+	}
+	host2, err := libp2p.MakeHost(10002)
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed to make host")
+	}
+	host1.Connect(ctx, host2.Peerstore().PeerInfo(host2.ID()))
+	host2.Connect(ctx, host1.Peerstore().PeerInfo(host1.ID()))
+
+	ps1, err := libp2p.MakePubsub(ctx, host1)
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed to make pubsub")
+	}
+	ps2, err := libp2p.MakePubsub(ctx, host2)
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed to make pubsub")
 	}
 
-	topicString := "orakl-raft-test-topic"
-	topic, err := ps.Join(topicString)
-
+	topicString := "orakl-test-raft"
+	topic1, err := ps1.Join(topicString)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to join topic")
 	}
 
-	node := raft.NewRaftNode(*host, ps, topic, 100, 5*time.Second)
-	node.LeaderJob = func() error {
-		log.Debug().Int("Term", node.GetCurrentTerm()).Msg("Leader job")
-		node.IncreaseTerm()
+	topic2, err := ps2.Join(topicString)
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed to join topic")
+	}
+
+	node1 := raft.NewRaftNode(host1, ps1, topic1, 100, 3*time.Second)
+	node1.LeaderJob = func() error {
+		log.Debug().Int("Term", node1.GetCurrentTerm()).Msg("node 1 Leader job")
+		node1.IncreaseTerm()
 		return nil
 	}
-	node.HandleCustomMessage = func(message raft.Message) error {
+	node1.HandleCustomMessage = func(message raft.Message) error {
 		log.Debug().Msg("Custom message")
 		return errors.New("unknown message type")
 	}
 
-	node.Run(ctx)
+	node2 := raft.NewRaftNode(host2, ps2, topic2, 100, 3*time.Second)
+	node2.LeaderJob = func() error {
+		log.Debug().Int("Term", node2.GetCurrentTerm()).Msg("node 2 Leader job")
+		node2.IncreaseTerm()
+		return nil
+	}
+	node2.HandleCustomMessage = func(message raft.Message) error {
+		log.Debug().Msg("Custom message")
+		return errors.New("unknown message type")
+	}
+
+	go node1.Run(ctx)
+	time.Sleep(10 * time.Second)
+	go node2.Run(ctx)
+
+	time.Sleep(10 * time.Second)
+	go node1.StopHeartbeatTicker()
+	time.Sleep(10 * time.Second)
+	go node2.StopHeartbeatTicker()
+	time.Sleep(10 * time.Second)
 }

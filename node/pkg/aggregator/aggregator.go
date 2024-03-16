@@ -9,7 +9,6 @@ import (
 	"bisonai.com/orakl/node/pkg/bus"
 	"bisonai.com/orakl/node/pkg/db"
 
-	"bisonai.com/orakl/node/pkg/utils"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 	"github.com/libp2p/go-libp2p/core/host"
 	"github.com/rs/zerolog/log"
@@ -43,11 +42,7 @@ func (a *App) setAggregators(ctx context.Context, h host.Host, ps *pubsub.PubSub
 	a.Aggregators = make(map[int64]*AggregatorNode, len(aggregators))
 
 	for _, aggregator := range aggregators {
-		topicString, err := utils.EncryptText(aggregator.Name)
-		if err != nil {
-			return err
-		}
-
+		topicString := aggregator.Name + "-global-aggregator-topic"
 		tmpNode, err := NewNode(h, ps, topicString)
 		if err != nil {
 			return err

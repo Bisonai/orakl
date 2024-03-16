@@ -14,7 +14,8 @@ import (
 func main() {
 	ctx := context.Background()
 	topicString := "orakl-test-discover-connection-time"
-	port := flag.Int("p", 0, "libp2p port")
+
+	port := flag.Int("p", 10010, "libp2p port")
 	bootnode := flag.String("b", "", "bootnode")
 	flag.Parse()
 	if *port == 0 {
