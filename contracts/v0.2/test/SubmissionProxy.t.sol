@@ -2,14 +2,14 @@
 pragma solidity ^0.8.24;
 
 import {Test, console} from "forge-std/Test.sol";
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {SubmissionProxy} from "../src/SubmissionProxy.sol";
-import {Aggregator} from "../src/Aggregator.sol";
+import {Feed} from "../src/Feed.sol";
 
 contract SubmissionProxyTest is Test {
     SubmissionProxy submissionProxy;
-    uint32 TIMEOUT = 10;
     uint8 DECIMALS = 18;
-    string DESCRIPTION = "Test Aggregator";
+    string DESCRIPTION = "Test Feed";
     uint256 timestamp = 1706170779;
 
     function estimateGasCost(uint256 startGas) internal view returns (uint256) {
@@ -19,6 +19,55 @@ contract SubmissionProxyTest is Test {
     function setUp() public {
         vm.warp(timestamp);
         submissionProxy = new SubmissionProxy();
+    }
+
+    function test_UpdateFeedWithOwner() public {
+	address btcUsdtFeed = makeAddr("btc-usdt-feed");
+	submissionProxy.updateFeed("BTC-USDT", btcUsdtFeed);
+    }
+
+    function test_UpdateFeedMultipleTimesIsAllowed() public {
+	address btcUsdtFeed1 = makeAddr("btc-usdt-feed-1");
+	address btcUsdtFeed2 = makeAddr("btc-usdt-feed-2");
+	submissionProxy.updateFeed("BTC-USDT", btcUsdtFeed1);
+	submissionProxy.updateFeed("BTC-USDT", btcUsdtFeed2);
+    }
+
+    function test_UpdateFeedWithNonOwner() public {
+	address btcUsdtFeed = makeAddr("btc-usdt-feed");
+	address nonOwner = makeAddr("nonOwner");
+
+	vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, nonOwner));
+	vm.prank(nonOwner);
+	submissionProxy.updateFeed("BTC-USDT", btcUsdtFeed);
+    }
+
+    function test_UpdateFeedBulkWithOwner() public {
+	address btcUsdtFeed = makeAddr("btc-usdt-feed");
+	address ethUsdtFeed = makeAddr("eth-usdt-feed");
+
+	string[] memory names = new string[](2);
+	names[0] = "BTC-USDT";
+	names[1] = "ETH-USDT";
+
+	address[] memory feeds = new address[](2);
+	feeds[0] = btcUsdtFeed;
+	feeds[1] = ethUsdtFeed;
+
+	submissionProxy.updateFeedBulk(names, feeds);
+	feeds = submissionProxy.getFeeds();
+	assertEq(feeds.length, 2);
+    }
+
+    function test_RemoveFeed() public {
+	address btcUsdtFeed = makeAddr("btc-usdt-feed");
+	submissionProxy.updateFeed("BTC-USDT", btcUsdtFeed);
+	address[] memory feeds = submissionProxy.getFeeds();
+	assertEq(feeds.length, 1);
+
+	submissionProxy.removeFeed("BTC-USDT");
+	feeds = submissionProxy.getFeeds();
+	assertEq(feeds.length, 0);
     }
 
     function test_AddOracleOnce() public {
@@ -87,14 +136,14 @@ contract SubmissionProxyTest is Test {
         int256 submissionValue_ = 10;
         address oracle_ = makeAddr("oracle");
 
-        (address[] memory aggregators_, int256[] memory submissions_) =
-            prepareAggregatorsSubmissions(numOracles_, submissionValue_, oracle_);
+        (address[] memory feeds_, int256[] memory submissions_) =
+            prepareFeedsSubmissions(numOracles_, submissionValue_, oracle_);
 
         // move time past the expiration period => fail to submit
         vm.warp(block.timestamp + submissionProxy.expirationPeriod() + 1);
 
         vm.prank(oracle_);
-        submissionProxy.submit(aggregators_, submissions_);
+        submissionProxy.submit(feeds_, submissions_);
     }
 
     function testFail_submitWithNonOracle() public {
@@ -103,18 +152,18 @@ contract SubmissionProxyTest is Test {
         address oracle_ = makeAddr("oracle");
         address nonOracle_ = makeAddr("nonOracle");
 
-        (address[] memory aggregators_, int256[] memory submissions_) =
-            prepareAggregatorsSubmissions(numOracles_, submissionValue_, oracle_);
+        (address[] memory feeds_, int256[] memory submissions_) =
+            prepareFeedsSubmissions(numOracles_, submissionValue_, oracle_);
 
         // only oracle can submit through submission proxy => fail to submit
         vm.prank(nonOracle_);
-        submissionProxy.submit(aggregators_, submissions_);
+        submissionProxy.submit(feeds_, submissions_);
     }
 
     function test_BatchSubmission() public {
         uint256 numOracles = 50;
         address offChainSubmissionProxyReporter = address(0);
-        address offChainAggregatorReporter = address(1);
+        address offChainFeedReporter = address(1);
 
         submissionProxy.addOracle(offChainSubmissionProxyReporter);
 
@@ -122,37 +171,37 @@ contract SubmissionProxyTest is Test {
         address[] memory oracleAdd = new address[](2);
         uint256 singleSubmissionGas;
         uint256 batchSubmissionGas;
-        address[] memory aggregators = new address[](numOracles);
+        address[] memory feeds = new address[](numOracles);
         int256[] memory submissions = new int256[](numOracles);
         uint256 startGas;
 
         // multiple single submissions
         for (uint256 i = 0; i < numOracles; i++) {
-            Aggregator aggregator = new Aggregator(TIMEOUT, DECIMALS, DESCRIPTION);
+            Feed feed = new Feed(DECIMALS, DESCRIPTION);
 
             oracleAdd[0] = address(submissionProxy);
-            oracleAdd[1] = offChainAggregatorReporter;
-            aggregator.changeOracles(oracleRemove, oracleAdd, 1, 1, 0);
+            oracleAdd[1] = offChainFeedReporter;
+            feed.changeOracles(oracleRemove, oracleAdd);
 
-            aggregators[i] = address(aggregator);
+            feeds[i] = address(feed);
             submissions[i] = 10;
 
-            vm.prank(offChainAggregatorReporter);
-            aggregator.submit(10); // storage warmup
+            vm.prank(offChainFeedReporter);
+            feed.submit(10); // storage warmup
 
-            vm.prank(offChainAggregatorReporter);
+            vm.prank(offChainFeedReporter);
             startGas = gasleft();
-            aggregator.submit(11);
+            feed.submit(11);
             singleSubmissionGas += estimateGasCost(startGas);
         }
 
         // single batch submission
         vm.prank(offChainSubmissionProxyReporter);
-        submissionProxy.submit(aggregators, submissions); // storage warmup
+        submissionProxy.submit(feeds, submissions); // storage warmup
 
         vm.prank(offChainSubmissionProxyReporter);
         startGas = gasleft();
-        submissionProxy.submit(aggregators, submissions);
+        submissionProxy.submit(feeds, submissions);
         batchSubmissionGas = estimateGasCost(startGas);
 
         console.log("single submit", singleSubmissionGas, "batch submit", batchSubmissionGas);
@@ -163,7 +212,7 @@ contract SubmissionProxyTest is Test {
         }
     }
 
-    function prepareAggregatorsSubmissions(uint256 _numOracles, int256 _submissionValue, address _oracle)
+    function prepareFeedsSubmissions(uint256 _numOracles, int256 _submissionValue, address _oracle)
         internal
         returns (address[] memory, int256[] memory)
     {
@@ -174,18 +223,18 @@ contract SubmissionProxyTest is Test {
         add_[0] = address(submissionProxy);
         add_[1] = _oracle;
 
-        address[] memory aggregators_ = new address[](_numOracles);
+        address[] memory feeds_ = new address[](_numOracles);
         int256[] memory submissions_ = new int256[](_numOracles);
 
         for (uint256 i = 0; i < _numOracles; i++) {
-            Aggregator aggregator_ = new Aggregator(TIMEOUT, DECIMALS, DESCRIPTION);
+            Feed feed_ = new Feed(DECIMALS, DESCRIPTION);
 
-            aggregator_.changeOracles(remove_, add_, 1, 1, 0);
+            feed_.changeOracles(remove_, add_);
 
-            aggregators_[i] = address(aggregator_);
+            feeds_[i] = address(feed_);
             submissions_[i] = _submissionValue;
         }
 
-        return (aggregators_, submissions_);
+        return (feeds_, submissions_);
     }
 }
