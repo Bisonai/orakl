@@ -9,9 +9,8 @@ It performs following steps to regularly submit data into chain
 2. Send and Receive data with other nodes and aggregate all received data. Save aggregated data into database
 3. Submit aggregated data into chain
 
-![Overview](./image.svg)
+![Overview](./oca.drawio.svg)
 
-- `submitter` is `reporter`.
 - Set of `fetcher`, `aggregator`, and `reporter` runs in a single application, assuming running in different instance.
 
 ## Project Structure
@@ -144,7 +143,6 @@ task local:admin
 ```
 
 ### Run Scripts
-
 
 - Submission test: submit single tx on chain
 
