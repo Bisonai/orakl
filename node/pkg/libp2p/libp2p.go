@@ -63,7 +63,7 @@ func SetBootNode(ctx context.Context, listenPort int, seed string) (*host.Host, 
 		ID:    h.ID(),
 		Addrs: h.Addrs(),
 	}
-	fmt.Printf("%s\n", pi.String())
+
 	for _, addr := range pi.Addrs {
 		fmt.Println(addr.String() + "/p2p/" + h.ID().String())
 	}
@@ -181,7 +181,6 @@ func makeHost(listenPort int, priv crypto.PrivKey) (host.Host, error) {
 
 	if secretString != "" {
 		hash := sha256.Sum256([]byte(secretString))
-		fmt.Println(hash)
 		protector := pnet.PSK(hash[:])
 		opts = append(opts, libp2p.PrivateNetwork(protector))
 	}
@@ -224,7 +223,6 @@ func initDHT(ctx context.Context, h host.Host, bootstrap string) (*dht.IpfsDHT, 
 	var err error
 
 	if bootstrap == "" {
-		log.Info().Msg("No bootstrap provided")
 		kademliaDHT, err = dht.New(ctx, h)
 		if err != nil {
 			log.Error().Err(err).Msg("Error creating DHT without bootstrap")

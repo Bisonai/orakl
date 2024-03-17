@@ -55,8 +55,8 @@ func TestDiscoverPeers(t *testing.T) {
 	h1.Connect(ctx, (*b).Peerstore().PeerInfo((*b).ID()))
 	h2.Connect(ctx, (*b).Peerstore().PeerInfo((*b).ID()))
 
-	go DiscoverPeers(context.Background(), h1, "test-discover-peers", (*b).Addrs()[0].String())
-	err := DiscoverPeers(context.Background(), h2, "test-discover-peers", (*b).Addrs()[0].String())
+	go DiscoverPeers(context.Background(), h1, "test-discover-peers", (*b).Addrs()[0].String()+"/p2p/"+(*b).ID().String())
+	err := DiscoverPeers(context.Background(), h2, "test-discover-peers", (*b).Addrs()[0].String()+"/p2p/"+(*b).ID().String())
 
 	if err != nil {
 		t.Errorf("Failed to discover peers: %v", err)
