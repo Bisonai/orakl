@@ -289,6 +289,7 @@ func connectToPeers(ctx context.Context, h host.Host, routingDiscovery *drouting
 	if err != nil {
 		return false, err
 	}
+	successChan := make(chan bool)
 	var wg sync.WaitGroup
 	for p := range peerChan {
 		if p.ID == h.ID() {
@@ -299,12 +300,22 @@ func connectToPeers(ctx context.Context, h host.Host, routingDiscovery *drouting
 			defer wg.Done()
 			err := h.Connect(ctx, p)
 			if err == nil {
-				connected = true
+				successChan <- true
 			}
 		}(p)
 	}
-	wg.Wait()
-	return connected, nil
+	go func() {
+		wg.Wait()
+		close(successChan)
+	}()
+
+	for success := range successChan {
+		if success {
+			return true, nil
+		}
+	}
+
+	return false, nil
 }
 
 func DiscoverPeers(ctx context.Context, h host.Host, topicName string, bootstrap string) error {
