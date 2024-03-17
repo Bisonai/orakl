@@ -39,9 +39,23 @@ func (a *App) setAggregators(ctx context.Context, h host.Host, ps *pubsub.PubSub
 	if err != nil {
 		return err
 	}
-	a.Aggregators = make(map[int64]*AggregatorNode, len(aggregators))
+
+	if a.Aggregators == nil {
+		a.Aggregators = make(map[int64]*AggregatorNode, len(aggregators))
+	}
+
+	for _, aggregator := range a.Aggregators {
+		if !aggregatorIdExists(aggregators, aggregator.ID) {
+			aggregator.Raft.Topic.Close()
+			delete(a.Aggregators, aggregator.ID)
+		}
+	}
 
 	for _, aggregator := range aggregators {
+		if a.Aggregators[aggregator.ID] != nil {
+			continue
+		}
+
 		topicString := aggregator.Name + "-global-aggregator-topic"
 		tmpNode, err := NewNode(h, ps, topicString)
 		if err != nil {
@@ -49,6 +63,7 @@ func (a *App) setAggregators(ctx context.Context, h host.Host, ps *pubsub.PubSub
 		}
 		tmpNode.Aggregator = aggregator
 		a.Aggregators[aggregator.ID] = tmpNode
+
 	}
 	return nil
 }
@@ -281,4 +296,13 @@ func (a *App) handleMessage(ctx context.Context, msg bus.Message) {
 			return
 		}
 	}
+}
+
+func aggregatorIdExists(aggregators []Aggregator, id int64) bool {
+	for _, aggregator := range aggregators {
+		if aggregator.ID == id {
+			return true
+		}
+	}
+	return false
 }
