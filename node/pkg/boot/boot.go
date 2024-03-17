@@ -83,7 +83,6 @@ func RefreshJob(ctx context.Context) error {
 		log.Error().Err(err).Msg("Failed to make host")
 		return err
 	}
-	defer h.Close()
 
 	peers, err := db.QueryRows[peer.PeerModel](ctx, peer.GetPeer, nil)
 	if err != nil {
@@ -93,9 +92,12 @@ func RefreshJob(ctx context.Context) error {
 
 	for _, p := range peers {
 		connectionUrl := fmt.Sprintf("/ip4/%s/tcp/%d/p2p/%s", p.Ip, p.Port, p.LibId)
-		isAlive, err := libp2p.IsHostAlive(ctx, h, connectionUrl)
-		if err != nil {
-			log.Error().Err(err).Msg("Failed to check peer")
+		isAlive, liveCheckErr := libp2p.IsHostAlive(ctx, h, connectionUrl)
+		if liveCheckErr != nil {
+			log.Error().Err(liveCheckErr).Msg("Failed to check peer")
+			if liveCheckErr.Error() != "failed to connect to peer" {
+				continue
+			}
 		}
 		if isAlive {
 			continue
@@ -106,6 +108,12 @@ func RefreshJob(ctx context.Context) error {
 		if err != nil {
 			log.Error().Err(err).Msg("Failed to delete peer")
 		}
+	}
+
+	err = h.Close()
+	if err != nil {
+		log.Error().Err(err).Msg("Failed to close host")
+		return err
 	}
 
 	return nil

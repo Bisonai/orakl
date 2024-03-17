@@ -27,7 +27,7 @@ func TestPeerInsert(t *testing.T) {
 	mockPeer1 := peer.PeerInsertModel{
 		Ip:    "127.0.0.2",
 		Port:  10002,
-		LibId: "def",
+		LibId: "12DGKooWM8vWWqGPWWNCVPqb4tfqGrzx45W257GDBSeYbDSSLdef",
 	}
 
 	readResultBefore, err := adminTests.GetRequest[[]peer.PeerModel](testItems.app, "/api/v1/peer", nil)
@@ -81,13 +81,13 @@ func TestSync(t *testing.T) {
 	mockPeer1 := peer.PeerInsertModel{
 		Ip:    "127.0.0.2",
 		Port:  10002,
-		LibId: "def",
+		LibId: "12DGKooWM8vWWqGPWWNCVPqb4tfqGrzx45W257GDBSeYbDSSLdef",
 	}
 
 	mockPeer2 := peer.PeerInsertModel{
 		Ip:    "127.0.0.3",
 		Port:  10003,
-		LibId: "ghi",
+		LibId: "12DGKooWM8vWWqGPWWNCVPqb4tfqGrzx45W257GDBSeYbDSSLghi",
 	}
 
 	syncResult, err := adminTests.PostRequest[[]peer.PeerModel](testItems.app, "/api/v1/peer/sync", mockPeer1)
