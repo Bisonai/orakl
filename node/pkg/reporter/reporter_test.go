@@ -19,7 +19,7 @@ func TestRun(t *testing.T) {
 
 	err = testItems.app.Run(ctx)
 	if err != nil {
-		t.Fatal("error running reporter")
+		t.Fatalf("error running reporter: %v", err)
 	}
 
 	assert.Equal(t, testItems.app.Reporter.isRunning, true)
