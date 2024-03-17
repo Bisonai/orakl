@@ -328,21 +328,18 @@ func DiscoverPeers(ctx context.Context, h host.Host, topicName string, bootstrap
 	dutil.Advertise(ctx, routingDiscovery, topicName)
 
 	// Look for others who have announced and attempt to connect to them
-	var anyConnected bool
-	var err error
-	for i := 0; i < 10 && !anyConnected; i++ {
+	const maxConnectionTrials = 10
+	for i := 0; i < maxConnectionTrials; i++ {
 		log.Debug().Int("connected peers", len(h.Network().Peers())).Msg("Searching for peers...")
-		anyConnected, err = connectToPeers(ctx, h, routingDiscovery, topicName)
+		connected, err := connectToPeers(ctx, h, routingDiscovery, topicName)
 		if err != nil {
 			return err
 		}
-		if !anyConnected {
+		if !connected {
 			time.Sleep(time.Second * 3) // wait before retrying
+			continue
 		}
+		return nil
 	}
-	if !anyConnected {
-		return errors.New("no peers connected")
-	}
-	log.Debug().Msg("Peer discovery complete")
-	return nil
+	return errors.New("no peers connected")
 }
