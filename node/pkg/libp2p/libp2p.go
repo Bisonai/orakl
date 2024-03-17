@@ -53,7 +53,11 @@ func SetBootNode(ctx context.Context, listenPort int, seed string) (*host.Host, 
 		return nil, err
 	}
 
-	_ = initDHT(ctx, h, "")
+	_, err = initDHT(ctx, h, "")
+	if err != nil {
+		log.Error().Err(err).Msg("Error initializing DHT")
+		return nil, err
+	}
 
 	pi := peer.AddrInfo{
 		ID:    h.ID(),
@@ -210,7 +214,7 @@ func GetHostAddress(host host.Host) (string, error) {
 	return addr.Encapsulate(hostAddr).String(), nil
 }
 
-func initDHT(ctx context.Context, h host.Host, bootstrap string) *dht.IpfsDHT {
+func initDHT(ctx context.Context, h host.Host, bootstrap string) (*dht.IpfsDHT, error) {
 	// Start a DHT, for use in peer discovery. We can't just make a new DHT
 	// client because we want each peer to maintain its own local copy of the
 	// DHT, so that the bootstrapping node of the DHT can go down without
@@ -223,31 +227,42 @@ func initDHT(ctx context.Context, h host.Host, bootstrap string) *dht.IpfsDHT {
 		log.Info().Msg("No bootstrap provided")
 		kademliaDHT, err = dht.New(ctx, h)
 		if err != nil {
-			panic(err)
+			log.Error().Err(err).Msg("Error creating DHT without bootstrap")
+			return nil, err
 		}
 	} else {
+		var ma multiaddr.Multiaddr
+		var info *peer.AddrInfo
 		log.Info().Msg("Using bootstrap")
-		ma, err := multiaddr.NewMultiaddr(bootstrap)
+		ma, err = multiaddr.NewMultiaddr(bootstrap)
 		if err != nil {
-			panic(err)
+			log.Error().Err(err).Msg("Error creating multiaddr")
+			return nil, err
 		}
 		log.Info().Msg("Got multiaddr")
-		info, err := peer.AddrInfoFromP2pAddr(ma)
+		info, err = peer.AddrInfoFromP2pAddr(ma)
 		if err != nil {
-			panic(err)
+			log.Error().Err(err).Msg("Error getting AddrInfo from p2p address")
+			return nil, err
 		}
 
 		kademliaDHT, err = dht.New(ctx, h, dht.BootstrapPeers(*info))
 		if err != nil {
-			panic(err)
+			log.Error().Err(err).Msg("Error creating DHT with bootstrap")
+			return nil, err
 		}
 
-		h.Connect(ctx, *info)
+		err = h.Connect(ctx, *info)
+		if err != nil {
+			log.Error().Err(err).Msg("Error connecting to bootstrap node")
+			return nil, err
+		}
 		log.Debug().Msg("Connected to bootstrap node")
 	}
 
 	if err = kademliaDHT.Bootstrap(ctx); err != nil {
-		panic(err)
+		log.Error().Err(err).Msg("Error bootstrapping DHT")
+		return nil, err
 	}
 
 	var wg sync.WaitGroup
@@ -268,7 +283,7 @@ func initDHT(ctx context.Context, h host.Host, bootstrap string) *dht.IpfsDHT {
 	}
 	wg.Wait()
 
-	return kademliaDHT
+	return kademliaDHT, nil
 }
 
 func connectToPeers(ctx context.Context, h host.Host, routingDiscovery *drouting.RoutingDiscovery, topicName string) (connected bool, err error) {
@@ -295,7 +310,11 @@ func connectToPeers(ctx context.Context, h host.Host, routingDiscovery *drouting
 }
 
 func DiscoverPeers(ctx context.Context, h host.Host, topicName string, bootstrap string) error {
-	kademliaDHT := initDHT(ctx, h, bootstrap)
+	kademliaDHT, dhtErr := initDHT(ctx, h, bootstrap)
+	if dhtErr != nil {
+		log.Error().Err(dhtErr).Msg("Error initializing DHT")
+		return dhtErr
+	}
 	routingDiscovery := drouting.NewRoutingDiscovery(kademliaDHT)
 	dutil.Advertise(ctx, routingDiscovery, topicName)
 

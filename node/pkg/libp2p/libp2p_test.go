@@ -36,7 +36,10 @@ func TestGetHostAddress(t *testing.T) {
 
 func TestInitDHT(t *testing.T) {
 	h, _ := MakeHost(10001)
-	_ = initDHT(context.Background(), h, "")
+	_, err := initDHT(context.Background(), h, "")
+	if err != nil {
+		t.Errorf("Failed to initialize DHT: %v", err)
+	}
 }
 
 func TestDiscoverPeers(t *testing.T) {
