@@ -1,204 +1,169 @@
-# Offchain Aggregator POC
+# Off-chain Aggregator
 
-## Further works to be done
+## Introduction
 
-- functionality
-- [ ] peer decision among pubsub subscribers (elect reporter)
+Offchain aggregator.
+It performs following steps to regularly submit data into chain
 
-- optimization
-- [ ] faster peer search
-- [ ] optimize pubsub peerfilter
-- [ ] check following options (libp2p host option, pubsub.option, discovery.option, pubsub.TopicOpt, pubsub.SubOpt)
-- [ ] is there a better way to generate id based on timerange? 🤔
+1. Fetch price data and save into database
+2. Send and Receive data with other nodes and aggregate all received data. Save aggregated data into database
+3. Submit aggregated data into chain
 
-- db integration
-- [ ] store data into db (redis or pgsql)
+![Overview](./oca.drawio.svg)
 
-- migrate codes
-- [ ] fetcher codes
-- [ ] reporter codes: how to deal with caver.js 🤔
+- Set of `fetcher`, `aggregator`, and `reporter` runs in a single application, assuming running in different instance.
 
-- tests
-- [ ] add test codes
-- [ ] try to run with multiple nodes
-- [ ] try to run with multiple hosts
+## Project Structure
 
-## How to run
+Modular Monolithic with loose coupling between packages
 
-1. Prepare 2 consoles
-2. Start application from each node. Fiber endpoint will be opened for each port with -p parameter.
+- cmd
 
-```
-go run main.go -p="3001"
-go run main.go -p="3002"
-```
+Holds entry points to run basic functionalities
 
-3. Run testPubsub.sh bash file
+- migrations
 
-```
-./testPubsub.sh
-```
+Migration files to initialize PostgreSQL table
 
-## Structure
+- pkg
 
-- `main.go`: entrypoint to run application
-- `/admin`: gofiber app for user interface
-  > - `/admin/admin.go`: functionality for fiber app initialization
-  > - `/admin/node.go`: fiber controller for node (add, start, stop node)
-- `/utils`: utilities
-  > - `/utils/fetcher-node.go`: node simulating fetcher, generates random number, publish, and subscribe random number from other nodes
-  > - `/utils/libp2p.go`: libp2p utility to setup libp2p host and nodes
-  > - `/utils/local.go`: saves fiber locals which are referenced from fiber app (ex. host, nodes)
-  > - `/utils/utils.fo`: contains basic utility functions such as random number generator
+Implementation packages for offchain aggregator
 
-## Libp2p
+- script
 
-- libp2p is library for decentralized networking. (https://libp2p.io/)
+Scripts for testing purpose or temporary usage
 
-### Host
+- taskfiles
 
-- Host is an instance containing all the functionality for networking
-- Following is how host is declared from here
+Taskfile holding commands to run application
 
-```golang
-func MakeHost(listenPort int) (host.Host, error) {
-	r := rand.Reader
+## Packages
 
-	priv, _, err := crypto.GenerateKeyPairWithReader(crypto.Ed25519, 2048, r)
-	if err != nil {
-		return nil, err
-	}
+Check source code inside ./pkg for details
 
-	opts := []libp2p.Option{
-		libp2p.ListenAddrStrings(fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", listenPort)),
-		libp2p.Identity(priv),
-		libp2p.DisableRelay(),
-	}
+### Admin
 
+Gofiber application for user interface. Mainly performs 2 things
 
-	return libp2p.New(opts...)
-}
-```
+1. CRUD for system tables
+2. Control other packages through bus messages. (For example, stop fetcher)
 
-- `ListenAddrStrings`: port for libp2p listening, normally set starting from 10000 from official example codes
-- `Identity`: sets up PID for the host, one of the information needed for peer connection. (ip, port, PID)
-- `DisableRelay`: disables relay function since it's not used
+### Aggregator
 
-### Pubsub
+Aggregator shares recently fetched data with other aggregators, saves as global_aggregate.
 
-- Pubsub is an instance for multiple pubsub channels
-- It doesn't track for peers which are listening or publishing
-- Gossip Pubsub doesn't require peers to be directly connected to send or receive message
-- Following is how pubsub is declared from here
+### Bus
 
-```golang
-func MakePubsub(ctx context.Context, host host.Host) (*pubsub.PubSub, error) {
-	var basePeerFilter pubsub.PeerFilter = func(pid peer.ID, topic string) bool {
-		return strings.HasPrefix(pid.String(), "12D")
-	}
-	var fetcherSubParams = pubsub.DefaultGossipSubParams()
+Base package for message bus communication among multiple packages.
 
-	fetcherSubParams.D = 2
-	fetcherSubParams.Dlo = 1
-	fetcherSubParams.Dhi = 3
+### DB
 
-	return pubsub.NewGossipSub(ctx, host, pubsub.WithPeerFilter(basePeerFilter), pubsub.WithGossipSubParams(fetcherSubParams))
-}
-```
+Helper package to perform querying pgsql or redis
 
-- `PeerFilter`: It helps filter peer which is not of an interest. Once rules for topic string are settled, it could be better optimized.
-- `fetcherSubParams.D`: Degree of the network, number of peers a node tries to maintain connection with
-- `fetcherSubParams.Dlo`, `fetcherSubParams.Dhi`: Low and highest limit for number of peers which control when a node will prune or graft peers.
+### Fetcher
 
-### Node
+Regularly fetches data from data source, saves into database
 
-- Node is basic instance for single pubsub channel
-- Each node has different `topicString`, which means peers subscribing to same topicString can only receive message published through this node
-- Following is how node is declared from here
+### Libp2p
 
-```golang
-type FetcherNode struct {
-	Host      host.Host
-	Ps        *pubsub.PubSub
-	Topic     *pubsub.Topic
-	Sub       *pubsub.Subscription
-	Data      map[string][]int
-	NodeMutex sync.Mutex
-	Cancel    context.CancelFunc
-}
+Helper package to utilize libp2p package in a higher level
 
-func NewNode(host host.Host, ps *pubsub.PubSub, topicString string) (*FetcherNode, error) {
-	topic, err := ps.Join(topicString)
-	if err != nil {
-		return nil, err
-	}
+### Raft
 
-	sub, err := topic.Subscribe()
-	if err != nil {
-		return nil, err
-	}
+Simple raft consensus implementation without log replication for leader election and syncing among multiple peers
 
-	return &FetcherNode{
-		Host:  host,
-		Ps:    ps,
-		Topic: topic,
-		Sub:   sub,
-		Data:  make(map[string][]int),
-	}, nil
-}
+### Reporter
+
+Regularly report global_aggregates with latest Round into chain
+
+### Utils
+
+Includes helper functions to be used among other packages
+
+## Main Elements
+
+1. API
+
+API supports interface to add entries to the table or control internal applications
+
+2. Fetcher
+
+Fetcher continuously fetches data from data source for entries declared in adapters table
+
+3. Aggregator
+
+Aggregator sends & receives local fetched data into other off-chain aggregators and saves into global_aggregates table
+
+4. Reporter
+
+Reporter submits all the data in global_aggregates with most recent round
+
+## Quickstart
+
+### Prerequisites
+
+- go: https://go.dev/doc/install
+- golang-migrate: https://github.com/golang-migrate/migrate/releases
+- go-taskfile: https://taskfile.dev/installation/
+- pgsql: https://www.postgresql.org/download/
+- redis: https://redis.io/docs/install/install-redis/install-redis-on-linux/
+
+### Setup DB and ENV
+
+```bash
+APP_PORT=${app port for pai} #defaults to 3000
+DATABASE_URL=${postgresql connection url}
+REDIS_HOST=${redis_host} #defaults to localhost
+REDIS_PORT=${redis_port} #defaults to 6379
+ENCRYPT_PASSWORD=${encrypt password for topic string encryption.}
+BOOT_NODE=${libp2p addr for bootnode, not required}
+LISTEN_PORT=${libp2p listen port}
+PROVIDER_URL=${target chain for submission}
+CONFIG_URL=${orakl config url for adapter json file}
+REPORTER_PK=${reporter for submission, not required if entry is inside wallets table}
+SUBMISSION_PROXY_CONTRACT=${contract for submission}
+DELEGATOR_URL=${delegator url, not required}
+TEST_FEE_PAYER_PK=${referenced from testcode, eoa of fee payer}
 ```
 
-### Peer Discovery
+### Run unit tests
 
-- Peer discovery is done through `DiscoverPeers` function inside `utils/libp2p.go`
-- Basic codebase is referenced from here: https://github.com/libp2p/go-libp2p/blob/6aa701ac36456e0d8862b631ad19f7f7fbc1f233/examples/chat-with-rendezvous/chat.go#L117-L182
-- initializes DHT, connects bootstrap peers from dht, and then initialize `routingDiscovery` instance which contains functionality to advertise and search peers with same topic string. Connects peers which are found from `FindPeers` function
+- Run all tests
 
-### Order of Execution
-
-1. Host & Pubsub declaration
-
-```golang
-h, err := utils.MakeHost(*port + 6999)
-if err != nil {
-    log.Fatal(err)
-}
-
-ps, err := utils.MakePubsub(context.Background(), h)
-if err != nil {
-    log.Fatal(err)
-}
+```
+task local:test
 ```
 
-2. Peer Discovery
+> check out `./taskfiles/taskfile.local/yml` to check command for certain test
 
-```golang
-go utils.DiscoverPeers(context.Background(), h, discoverString, *bootstrap, discoveredPeers)
+### Run API
+
+```
+task local:admin
 ```
 
-3. Node declaration (called from gofiber controller)
+### Run Scripts
 
-```golang
-func addNode(c *fiber.Ctx) error {
-    ...
-    node, err := utils.NewNode(*h, ps, topicString)
-	if err != nil {
-		log.Errorf("failed to create node: %s", err)
-	}
-    ...
-}
+- Submission test: submit single tx on chain
+
+```
+task local:script-submission
 ```
 
-4. Node start (called from go fiber controller)
+- Fetcher test: run api + fetcher
 
-```golang
-func startNode(c *fiber.Ctx) error {
-    ...
-	node, err := utils.GetNode(c, topicString)
-	if err != nil {
-		log.Errorf("failed to load node: %s", err)
-	}
-	node.Start(time.Second * 2)
-	...
-}
+```
+task local:script-fetcher-test
+```
+
+- Fetcher-aggregator test: run api + fetcher + aggregator
+
+```
+task local:script-fetcher-aggregator-test
+```
+
+- All: run api + fetcher + aggregator + reporter
+
+```
+task local:script-test-all
 ```
