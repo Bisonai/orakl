@@ -355,8 +355,17 @@ func IsHostAlive(ctx context.Context, h host.Host, addr string) (bool, error) {
 		return false, err
 	}
 
-	err = h.Connect(ctx, *info)
-	if err != nil {
+	var lastErr error
+	for i := 0; i < 3; i++ { // Retry up to 3 times
+		err = h.Connect(ctx, *info)
+		if err == nil {
+			break
+		}
+		lastErr = err
+		time.Sleep(100 * time.Millisecond)
+	}
+
+	if lastErr != nil {
 		return false, fmt.Errorf("failed to connect to peer")
 	}
 
