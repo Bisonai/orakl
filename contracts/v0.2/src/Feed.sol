@@ -13,7 +13,7 @@ contract Feed is Ownable, IFeed, ITypeAndVersion {
     mapping(uint64 => Round) internal rounds;
 
     address[] private oracles;
-    mapping(address => bool) private oracleWhitelist;
+    mapping(address => bool) private whitelist;
 
     struct Round {
         int256 answer;
@@ -29,7 +29,7 @@ contract Feed is Ownable, IFeed, ITypeAndVersion {
     error NoDataPresent();
 
     modifier onlyOracle() {
-        if (!oracleWhitelist[msg.sender]) {
+        if (!whitelist[msg.sender]) {
 	    revert OnlyOracle();
 	}
         _;
@@ -106,21 +106,21 @@ contract Feed is Ownable, IFeed, ITypeAndVersion {
     }
 
     function addOracle(address _oracle) private {
-        if (oracleWhitelist[_oracle]) {
+        if (whitelist[_oracle]) {
             revert OracleAlreadyEnabled();
         }
 
-	oracleWhitelist[_oracle] = true;
+	whitelist[_oracle] = true;
         oracles.push(_oracle);
         emit OraclePermissionsUpdated(_oracle, true);
     }
 
     function removeOracle(address _oracle) private {
-        if (!oracleWhitelist[_oracle]) {
+        if (!whitelist[_oracle]) {
             revert OracleNotEnabled();
         }
 
-	oracleWhitelist[_oracle] = false;
+	whitelist[_oracle] = false;
 	for (uint i = 0; i < oracles.length; i++) {
 	    if (oracles[i] == _oracle) {
 		oracles[i] = oracles[oracles.length - 1];
