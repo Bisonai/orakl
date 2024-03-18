@@ -14,7 +14,6 @@ contract UtilsScript is Script {
         uint256 decimals;
         string description;
         string name;
-	address oracle;
     }
 
     struct ChangeOracles {

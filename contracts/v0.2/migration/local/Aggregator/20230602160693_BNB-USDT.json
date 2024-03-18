@@ -2,8 +2,7 @@
   "deploy": {
     "name": "BNB-USDT",
     "decimals": 8,
-    "description": "BNB-USDT",
-    "oracle": ""
+    "description": "BNB-USDT"
   },
   "changeOracles": {
     "removed": [],

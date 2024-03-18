@@ -24,8 +24,7 @@ contract FeedScript is Script {
             if (bytes(deployConfig.name).length > 0) {
                 uint8 decimals = uint8(deployConfig.decimals);
                 string memory description = deployConfig.description;
-		address oracle = deployConfig.oracle;
-                feed = new Feed(decimals, description, oracle);
+                feed = new Feed(decimals, description);
             }
 
             bytes memory changeOracleData = config.readJson(migrationFiles[i], ".changeOracles");
