@@ -44,7 +44,7 @@ func Run(ctx context.Context) error {
 		for {
 			select {
 			case <-refreshTimer.C:
-				err := RefreshJob(ctx)
+				err = RefreshJob(ctx)
 				if err != nil {
 					log.Error().Err(err).Msg("Failed to refresh peers")
 				}
