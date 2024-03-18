@@ -132,7 +132,13 @@ func SetupFromBootApi(ctx context.Context, port int) (host.Host, *pubsub.PubSub,
 		return nil, nil, err
 	}
 
-	dbPeers, err := request.UrlRequest[[]BootPeerModel](os.Getenv("BOOT_API_URL")+"/api/v1/peer/sync", "POST", map[string]any{
+	apiEndpoint := os.Getenv("BOOT_API_ENDPOINT")
+	if apiEndpoint == "" {
+		log.Info().Msg("boot api endpoint not set, using default url: http://localhost:8089")
+		apiEndpoint = "http://localhost:8089"
+	}
+
+	dbPeers, err := request.UrlRequest[[]BootPeerModel](apiEndpoint+"/api/v1/peer/sync", "POST", map[string]any{
 		"ip":      ip,
 		"port":    port,
 		"host_id": hostId,
