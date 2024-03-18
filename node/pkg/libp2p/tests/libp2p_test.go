@@ -83,7 +83,7 @@ func TestDiscoverPeers(t *testing.T) {
 	}
 }
 
-func TestSetupoFromBootApi(t *testing.T) {
+func TestSetupFromBootApi(t *testing.T) {
 
 	ctx := context.Background()
 	go func() {
