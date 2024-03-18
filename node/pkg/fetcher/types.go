@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"bisonai.com/orakl/node/pkg/bus"
-	"bisonai.com/orakl/node/pkg/utils"
+	"bisonai.com/orakl/node/pkg/utils/reducer"
 )
 
 const (
@@ -56,7 +56,7 @@ type Definition struct {
 	Url      string            `json:"url"`
 	Headers  map[string]string `json:"headers"`
 	Method   string            `json:"method"`
-	Reducers []utils.Reducer   `json:"reducers"`
+	Reducers []reducer.Reducer `json:"reducers"`
 	Location *string           `json:"location"`
 }
 

@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"testing"
 
-	"bisonai.com/orakl/node/pkg/utils"
+	"bisonai.com/orakl/node/pkg/utils/reducer"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -72,7 +72,7 @@ var sampleResult = `[
   ]`
 
 func TestReduceAll(t *testing.T) {
-	var red []utils.Reducer
+	var red []reducer.Reducer
 	err := json.Unmarshal([]byte(reducers), &red)
 	if err != nil {
 		t.Fatalf("error unmarshalling sample def: %v", err)
@@ -84,7 +84,7 @@ func TestReduceAll(t *testing.T) {
 		t.Fatalf("error unmarshalling sample result: %v", err)
 	}
 
-	result, err := utils.Reduce(res, red)
+	result, err := reducer.Reduce(res, red)
 	if err != nil {
 		t.Fatalf("error reducing: %v", err)
 	}

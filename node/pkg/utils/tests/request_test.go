@@ -8,7 +8,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"bisonai.com/orakl/node/pkg/utils"
+	"bisonai.com/orakl/node/pkg/utils/request"
 )
 
 type TestResponse struct {
@@ -98,7 +98,7 @@ func TestGetRequest(t *testing.T) {
 		Test: "value",
 	}
 
-	testResponse, err := utils.GetRequest[TestResponse](server.URL, requestBody, headers)
+	testResponse, err := request.GetRequest[TestResponse](server.URL, requestBody, headers)
 	if err != nil {
 		t.Errorf("Error making request: %v", err)
 	}
@@ -120,7 +120,7 @@ func TestGetRequestRaw(t *testing.T) {
 		Test: "value",
 	}
 
-	res, err := utils.GetRequestRaw(server.URL, requestBody, headers)
+	res, err := request.GetRequestRaw(server.URL, requestBody, headers)
 	if err != nil {
 		t.Errorf("Error making request: %v", err)
 	}
@@ -157,7 +157,7 @@ func TestUrlRequest(t *testing.T) {
 		Test: "value",
 	}
 
-	testResponse, err := utils.UrlRequest[TestResponse](server.URL, "GET", requestBody, headers, "")
+	testResponse, err := request.UrlRequest[TestResponse](server.URL, "GET", requestBody, headers, "")
 	if err != nil {
 		t.Errorf("Error making request: %v", err)
 	}
@@ -180,7 +180,7 @@ func TestUrlRequestRaw(t *testing.T) {
 		Test: "value",
 	}
 
-	res, err := utils.UrlRequestRaw(server.URL, "GET", requestBody, headers, "")
+	res, err := request.UrlRequestRaw(server.URL, "GET", requestBody, headers, "")
 	if err != nil {
 		t.Errorf("Error making request: %v", err)
 	}
@@ -223,7 +223,7 @@ func TestGetRequestProxy(t *testing.T) {
 		Test: "value",
 	}
 
-	testResponse, err := utils.GetRequestProxy[TestResponse](server.URL, requestBody, headers, proxy.URL)
+	testResponse, err := request.GetRequestProxy[TestResponse](server.URL, requestBody, headers, proxy.URL)
 	if err != nil {
 		t.Errorf("Error making request: %v", err)
 	}
@@ -249,7 +249,7 @@ func TestUrlRequestProxy(t *testing.T) {
 		"Test-Header": "test-value",
 	}
 
-	testResponse, err := utils.UrlRequest[TestResponse](server.URL, "GET", requestBody, headers, proxy.URL)
+	testResponse, err := request.UrlRequest[TestResponse](server.URL, "GET", requestBody, headers, proxy.URL)
 	if err != nil {
 		t.Errorf("Error making request: %v", err)
 	}
@@ -276,7 +276,7 @@ func TestUrlRequestRawProxy(t *testing.T) {
 		"Test-Header": "test-value",
 	}
 
-	res, err := utils.UrlRequestRaw(server.URL, "GET", requestBody, headers, proxy.URL)
+	res, err := request.UrlRequestRaw(server.URL, "GET", requestBody, headers, proxy.URL)
 	if err != nil {
 		t.Errorf("Error making request: %v", err)
 	}

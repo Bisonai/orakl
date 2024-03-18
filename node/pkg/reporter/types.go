@@ -6,7 +6,7 @@ import (
 
 	"bisonai.com/orakl/node/pkg/bus"
 	"bisonai.com/orakl/node/pkg/raft"
-	"bisonai.com/orakl/node/pkg/utils"
+	"bisonai.com/orakl/node/pkg/utils/klaytn_helper"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 	"github.com/libp2p/go-libp2p/core/host"
 )
@@ -39,7 +39,7 @@ type App struct {
 
 type ReporterNode struct {
 	Raft     *raft.Raft
-	TxHelper *utils.TxHelper
+	TxHelper *klaytn_helper.TxHelper
 
 	lastSubmissions map[string]int64
 	contractAddress string

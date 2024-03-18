@@ -12,6 +12,8 @@ import (
 	"bisonai.com/orakl/node/pkg/bus"
 	"bisonai.com/orakl/node/pkg/db"
 	"bisonai.com/orakl/node/pkg/utils"
+	"bisonai.com/orakl/node/pkg/utils/reducer"
+	"bisonai.com/orakl/node/pkg/utils/request"
 	"github.com/rs/zerolog/log"
 )
 
@@ -294,7 +296,7 @@ func (a *App) fetch(fetcher Fetcher) ([]float64, error) {
 				return
 			}
 
-			result, err := utils.Reduce(res, definition.Reducers)
+			result, err := reducer.Reduce(res, definition.Reducers)
 			if err != nil {
 				errChan <- err
 				return
@@ -338,11 +340,11 @@ func (a *App) requestFeed(definition Definition) (interface{}, error) {
 }
 
 func (a *App) requestWithoutProxy(definition Definition) (interface{}, error) {
-	return utils.GetRequest[interface{}](definition.Url, nil, definition.Headers)
+	return request.GetRequest[interface{}](definition.Url, nil, definition.Headers)
 }
 
 func (a *App) requestWithProxy(definition Definition, proxyUrl string) (interface{}, error) {
-	return utils.GetRequestProxy[interface{}](definition.Url, nil, definition.Headers, proxyUrl)
+	return request.GetRequestProxy[interface{}](definition.Url, nil, definition.Headers, proxyUrl)
 }
 
 func (a *App) filterProxyByLocation(location string) []Proxy {
