@@ -39,12 +39,6 @@ func Run(ctx context.Context) error {
 		port = "8089"
 	}
 
-	err = app.Listen(fmt.Sprintf(":%s", port))
-	if err != nil {
-		log.Fatal().Err(err).Msg("Failed to start boot server")
-		return err
-	}
-
 	refreshTimer := time.NewTimer(REFRESH_INTERVAL)
 	go func() {
 		for {
@@ -61,6 +55,12 @@ func Run(ctx context.Context) error {
 			}
 		}
 	}()
+
+	err = app.Listen(fmt.Sprintf(":%s", port))
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed to start boot server")
+		return err
+	}
 
 	return nil
 
