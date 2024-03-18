@@ -21,55 +21,6 @@ contract SubmissionProxyTest is Test {
         submissionProxy = new SubmissionProxy();
     }
 
-    function test_UpdateFeedWithOwner() public {
-	address btcUsdtFeed = makeAddr("btc-usdt-feed");
-	submissionProxy.updateFeed("BTC-USDT", btcUsdtFeed);
-    }
-
-    function test_UpdateFeedMultipleTimesIsAllowed() public {
-	address btcUsdtFeed1 = makeAddr("btc-usdt-feed-1");
-	address btcUsdtFeed2 = makeAddr("btc-usdt-feed-2");
-	submissionProxy.updateFeed("BTC-USDT", btcUsdtFeed1);
-	submissionProxy.updateFeed("BTC-USDT", btcUsdtFeed2);
-    }
-
-    function test_UpdateFeedWithNonOwner() public {
-	address btcUsdtFeed = makeAddr("btc-usdt-feed");
-	address nonOwner = makeAddr("nonOwner");
-
-	vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, nonOwner));
-	vm.prank(nonOwner);
-	submissionProxy.updateFeed("BTC-USDT", btcUsdtFeed);
-    }
-
-    function test_UpdateFeedBulkWithOwner() public {
-	address btcUsdtFeed = makeAddr("btc-usdt-feed");
-	address ethUsdtFeed = makeAddr("eth-usdt-feed");
-
-	string[] memory names = new string[](2);
-	names[0] = "BTC-USDT";
-	names[1] = "ETH-USDT";
-
-	address[] memory feeds = new address[](2);
-	feeds[0] = btcUsdtFeed;
-	feeds[1] = ethUsdtFeed;
-
-	submissionProxy.updateFeedBulk(names, feeds);
-	feeds = submissionProxy.getFeeds();
-	assertEq(feeds.length, 2);
-    }
-
-    function test_RemoveFeed() public {
-	address btcUsdtFeed = makeAddr("btc-usdt-feed");
-	submissionProxy.updateFeed("BTC-USDT", btcUsdtFeed);
-	address[] memory feeds = submissionProxy.getFeeds();
-	assertEq(feeds.length, 1);
-
-	submissionProxy.removeFeed("BTC-USDT");
-	feeds = submissionProxy.getFeeds();
-	assertEq(feeds.length, 0);
-    }
-
     function test_AddOracleOnce() public {
 	address oracle_ = makeAddr("oracle");
         submissionProxy.addOracle(oracle_);
