@@ -18,12 +18,9 @@ import (
 )
 
 func NewNode(ctx context.Context, h host.Host, ps *pubsub.PubSub) (*ReporterNode, error) {
-	encryptedTopic, err := utils.EncryptText(TOPIC_STRING)
-	if err != nil {
-		return nil, err
-	}
+	topicString := TOPIC_STRING
 
-	topic, err := ps.Join(encryptedTopic)
+	topic, err := ps.Join(topicString)
 	if err != nil {
 		return nil, err
 	}

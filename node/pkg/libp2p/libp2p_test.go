@@ -16,8 +16,11 @@ func TestMakeHost(t *testing.T) {
 }
 
 func TestMakePubsub(t *testing.T) {
-	h, _ := MakeHost(10001)
-	_, err := MakePubsub(context.Background(), h)
+	h, err := MakeHost(10001)
+	if err != nil {
+		t.Fatalf("Failed to make host: %v", err)
+	}
+	_, err = MakePubsub(context.Background(), h)
 	if err != nil {
 		t.Errorf("Failed to make pubsub: %v", err)
 	}
@@ -33,13 +36,16 @@ func TestGetHostAddress(t *testing.T) {
 
 func TestInitDHT(t *testing.T) {
 	h, _ := MakeHost(10001)
-	_ = initDHT(context.Background(), h, "")
+	_, err := initDHT(context.Background(), h, "")
+	if err != nil {
+		t.Errorf("Failed to initialize DHT: %v", err)
+	}
 }
 
 func TestDiscoverPeers(t *testing.T) {
 	ctx := context.Background()
 	zerolog.SetGlobalLevel(zerolog.InfoLevel)
-	b, _, _ := SetBootNode(ctx, 10003, "")
+	b, _ := SetBootNode(ctx, 10003, "")
 	h1, _ := MakeHost(10001)
 	h2, _ := MakeHost(10002)
 
@@ -49,8 +55,8 @@ func TestDiscoverPeers(t *testing.T) {
 	h1.Connect(ctx, (*b).Peerstore().PeerInfo((*b).ID()))
 	h2.Connect(ctx, (*b).Peerstore().PeerInfo((*b).ID()))
 
-	go DiscoverPeers(context.Background(), h1, "test-discover-peers", (*b).Addrs()[0].String())
-	err := DiscoverPeers(context.Background(), h2, "test-discover-peers", (*b).Addrs()[0].String())
+	go DiscoverPeers(context.Background(), h1, "test-discover-peers", (*b).Addrs()[0].String()+"/p2p/"+(*b).ID().String())
+	err := DiscoverPeers(context.Background(), h2, "test-discover-peers", (*b).Addrs()[0].String()+"/p2p/"+(*b).ID().String())
 
 	if err != nil {
 		t.Errorf("Failed to discover peers: %v", err)

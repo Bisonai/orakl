@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"time"
 
 	"crypto/sha256"
 	"strings"
@@ -19,6 +20,7 @@ import (
 	"github.com/libp2p/go-libp2p/core/crypto"
 	"github.com/libp2p/go-libp2p/core/host"
 	"github.com/libp2p/go-libp2p/core/peer"
+	"github.com/libp2p/go-libp2p/core/pnet"
 	drouting "github.com/libp2p/go-libp2p/p2p/discovery/routing"
 	dutil "github.com/libp2p/go-libp2p/p2p/discovery/util"
 	"github.com/rs/zerolog/log"
@@ -26,14 +28,14 @@ import (
 	"github.com/multiformats/go-multiaddr"
 )
 
-func SetBootNode(ctx context.Context, listenPort int, seed string) (*host.Host, *dht.IpfsDHT, error) {
+func SetBootNode(ctx context.Context, listenPort int, seed string) (*host.Host, error) {
 	var priv crypto.PrivKey
 	var err error
 	if seed == "" {
-		priv, _, err = crypto.GenerateKeyPairWithReader(crypto.RSA, 2048, rand.Reader)
+		priv, _, err = crypto.GenerateKeyPairWithReader(crypto.Ed25519, 2048, rand.Reader)
 		if err != nil {
 			log.Error().Err(err).Msg("Error generating key pair")
-			return nil, nil, err
+			return nil, err
 		}
 	} else {
 		hash := sha256.Sum256([]byte(seed))
@@ -41,32 +43,32 @@ func SetBootNode(ctx context.Context, listenPort int, seed string) (*host.Host, 
 		priv, err = crypto.UnmarshalEd25519PrivateKey(rawKey)
 		if err != nil {
 			log.Error().Err(err).Msg("Error unmarshalling private key")
-			return nil, nil, err
+			return nil, err
 		}
 	}
 
-	h, err := libp2p.New(libp2p.ListenAddrStrings("/ip4/0.0.0.0/tcp/"+strconv.Itoa(listenPort)), libp2p.Identity(priv))
+	h, err := makeHost(listenPort, priv)
 	if err != nil {
 		log.Error().Err(err).Msg("Error creating libp2p host")
-		return nil, nil, err
+		return nil, err
 	}
 
-	dht, err := dht.New(ctx, h)
+	_, err = initDHT(ctx, h, "")
 	if err != nil {
-		log.Error().Err(err).Msg("Error creating DHT")
-		return nil, nil, err
+		log.Error().Err(err).Msg("Error initializing DHT")
+		return nil, err
 	}
 
 	pi := peer.AddrInfo{
 		ID:    h.ID(),
 		Addrs: h.Addrs(),
 	}
-	fmt.Printf("%s\n", pi.String())
+
 	for _, addr := range pi.Addrs {
 		fmt.Println(addr.String() + "/p2p/" + h.ID().String())
 	}
 
-	return &h, dht, nil
+	return &h, nil
 }
 
 func Setup(ctx context.Context, bootnodeStr string, port int) (*host.Host, *pubsub.PubSub, error) {
@@ -96,8 +98,9 @@ func Setup(ctx context.Context, bootnodeStr string, port int) (*host.Host, *pubs
 		}
 	}
 
+	discoverString := "orakl-topic-discovery-2024"
 	go func() {
-		if err = DiscoverPeers(ctx, host, "orakl-test-discover-2024", bootnodeStr); err != nil {
+		if err = DiscoverPeers(ctx, host, discoverString, bootnodeStr); err != nil {
 			log.Error().Err(err).Msg("Error from DiscoverPeers")
 		}
 	}()
@@ -165,12 +168,22 @@ func MakeHost(listenPort int) (host.Host, error) {
 	}
 	log.Debug().Msg("generating libp2p options")
 
+	return makeHost(listenPort, priv)
+}
+
+func makeHost(listenPort int, priv crypto.PrivKey) (host.Host, error) {
+	secretString := os.Getenv("PRIVATE_NETWORK_SECRET")
 	opts := []libp2p.Option{
+		libp2p.EnableNATService(),
 		libp2p.ListenAddrStrings(fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", listenPort)),
 		libp2p.Identity(priv),
-		libp2p.DisableRelay(),
 	}
-	log.Debug().Msg("generating libp2p instance")
+
+	if secretString != "" {
+		hash := sha256.Sum256([]byte(secretString))
+		protector := pnet.PSK(hash[:])
+		opts = append(opts, libp2p.PrivateNetwork(protector))
+	}
 
 	return libp2p.New(opts...)
 }
@@ -200,30 +213,59 @@ func GetHostAddress(host host.Host) (string, error) {
 	return addr.Encapsulate(hostAddr).String(), nil
 }
 
-func initDHT(ctx context.Context, h host.Host, bootstrap string) *dht.IpfsDHT {
+func initDHT(ctx context.Context, h host.Host, bootstrap string) (*dht.IpfsDHT, error) {
 	// Start a DHT, for use in peer discovery. We can't just make a new DHT
 	// client because we want each peer to maintain its own local copy of the
 	// DHT, so that the bootstrapping node of the DHT can go down without
 	// inhibiting future peer discovery.
-	kademliaDHT, err := dht.New(ctx, h)
-	if err != nil {
-		panic(err)
-	}
-	if err = kademliaDHT.Bootstrap(ctx); err != nil {
-		panic(err)
-	}
-	var wg sync.WaitGroup
-	bootstrapPeers := dht.DefaultBootstrapPeers
-	if bootstrap != "" {
-		// if bootstrap address is specified, add it to first index of the list
-		bootstrapPeerAddr, err := multiaddr.NewMultiaddr(bootstrap)
+
+	var kademliaDHT *dht.IpfsDHT
+	var err error
+
+	if bootstrap == "" {
+		kademliaDHT, err = dht.New(ctx, h)
 		if err != nil {
-			panic(err)
+			log.Error().Err(err).Msg("Error creating DHT without bootstrap")
+			return nil, err
 		}
-		bootstrapPeers = append([]multiaddr.Multiaddr{bootstrapPeerAddr}, bootstrapPeers...)
+	} else {
+		var ma multiaddr.Multiaddr
+		var info *peer.AddrInfo
+		log.Info().Msg("Using bootstrap")
+		ma, err = multiaddr.NewMultiaddr(bootstrap)
+		if err != nil {
+			log.Error().Err(err).Msg("Error creating multiaddr")
+			return nil, err
+		}
+		log.Info().Msg("Got multiaddr")
+		info, err = peer.AddrInfoFromP2pAddr(ma)
+		if err != nil {
+			log.Error().Err(err).Msg("Error getting AddrInfo from p2p address")
+			return nil, err
+		}
+
+		kademliaDHT, err = dht.New(ctx, h, dht.BootstrapPeers(*info))
+		if err != nil {
+			log.Error().Err(err).Msg("Error creating DHT with bootstrap")
+			return nil, err
+		}
+
+		err = h.Connect(ctx, *info)
+		if err != nil {
+			log.Error().Err(err).Msg("Error connecting to bootstrap node")
+			return nil, err
+		}
+		log.Debug().Msg("Connected to bootstrap node")
 	}
 
-	for _, peerAddr := range bootstrapPeers {
+	if err = kademliaDHT.Bootstrap(ctx); err != nil {
+		log.Error().Err(err).Msg("Error bootstrapping DHT")
+		return nil, err
+	}
+
+	var wg sync.WaitGroup
+
+	for _, peerAddr := range dht.DefaultBootstrapPeers {
 		peerinfo, err := peer.AddrInfoFromP2pAddr(peerAddr)
 		if err != nil {
 			log.Debug().Err(err).Msg("Error getting AddrInfo from p2p address")
@@ -239,44 +281,65 @@ func initDHT(ctx context.Context, h host.Host, bootstrap string) *dht.IpfsDHT {
 	}
 	wg.Wait()
 
-	return kademliaDHT
+	return kademliaDHT, nil
+}
+
+func connectToPeers(ctx context.Context, h host.Host, routingDiscovery *drouting.RoutingDiscovery, topicName string) (connected bool, err error) {
+	peerChan, err := routingDiscovery.FindPeers(ctx, topicName)
+	if err != nil {
+		return false, err
+	}
+	successChan := make(chan bool)
+	var wg sync.WaitGroup
+	for p := range peerChan {
+		if p.ID == h.ID() {
+			continue // No self connection
+		}
+		wg.Add(1)
+		go func(p peer.AddrInfo) {
+			defer wg.Done()
+			err := h.Connect(ctx, p)
+			if err == nil {
+				successChan <- true
+			}
+		}(p)
+	}
+	go func() {
+		wg.Wait()
+		close(successChan)
+	}()
+
+	for success := range successChan {
+		if success {
+			return true, nil
+		}
+	}
+
+	return false, nil
 }
 
 func DiscoverPeers(ctx context.Context, h host.Host, topicName string, bootstrap string) error {
-	kademliaDHT := initDHT(ctx, h, bootstrap)
+	kademliaDHT, dhtErr := initDHT(ctx, h, bootstrap)
+	if dhtErr != nil {
+		log.Error().Err(dhtErr).Msg("Error initializing DHT")
+		return dhtErr
+	}
 	routingDiscovery := drouting.NewRoutingDiscovery(kademliaDHT)
 	dutil.Advertise(ctx, routingDiscovery, topicName)
 
 	// Look for others who have announced and attempt to connect to them
-	anyConnected := false
-	var wg sync.WaitGroup
-	for !anyConnected {
-		log.Debug().Msg("Searching for peers...")
-		peerChan, err := routingDiscovery.FindPeers(ctx, topicName)
+	const maxConnectionTrials = 10
+	for i := 0; i < maxConnectionTrials; i++ {
+		log.Debug().Int("connected peers", len(h.Network().Peers())).Msg("Searching for peers...")
+		connected, err := connectToPeers(ctx, h, routingDiscovery, topicName)
 		if err != nil {
 			return err
 		}
-		for p := range peerChan {
-			if p.ID == h.ID() {
-				continue // No self connection
-			}
-			wg.Add(1)
-			go func(p peer.AddrInfo) {
-				defer wg.Done()
-				err := h.Connect(ctx, p)
-				if err != nil {
-					// log.Trace().Msg("Failed connecting to " + p.ID.String())
-				} else {
-					// log.Trace().Str("connectedTo", p.ID.String()).Msg("Connected to peer")
-					anyConnected = true
-				}
-			}(p)
+		if !connected {
+			time.Sleep(time.Second * 3) // wait before retrying
+			continue
 		}
+		return nil
 	}
-	wg.Wait()
-	if !anyConnected {
-		return errors.New("no peers connected")
-	}
-	log.Debug().Msg("Peer discovery complete")
-	return nil
+	return errors.New("no peers connected")
 }
