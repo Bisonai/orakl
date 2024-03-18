@@ -11,7 +11,7 @@ import (
 	"bisonai.com/orakl/node/pkg/boot"
 	"bisonai.com/orakl/node/pkg/boot/peer"
 	"bisonai.com/orakl/node/pkg/db"
-	"bisonai.com/orakl/node/pkg/libp2p"
+	libp2p_setup "bisonai.com/orakl/node/pkg/libp2p/setup"
 	_peer "github.com/libp2p/go-libp2p/core/peer"
 	"github.com/multiformats/go-multiaddr"
 	"github.com/stretchr/testify/assert"
@@ -120,7 +120,7 @@ func TestRefresh(t *testing.T) {
 	}
 	defer cleanup()
 
-	h, err := libp2p.MakeHost(10011)
+	h, err := libp2p_setup.MakeHost(10011)
 	if err != nil {
 		t.Fatalf("error making host: %v", err)
 	}

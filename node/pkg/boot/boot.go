@@ -10,7 +10,8 @@ import (
 	"bisonai.com/orakl/node/pkg/boot/peer"
 	"bisonai.com/orakl/node/pkg/boot/utils"
 	"bisonai.com/orakl/node/pkg/db"
-	"bisonai.com/orakl/node/pkg/libp2p"
+	libp2p_setup "bisonai.com/orakl/node/pkg/libp2p/setup"
+	libp2p_utils "bisonai.com/orakl/node/pkg/libp2p/utils"
 	"github.com/gofiber/fiber/v2"
 	"github.com/rs/zerolog/log"
 )
@@ -38,18 +39,12 @@ func Run(ctx context.Context) error {
 		port = "8089"
 	}
 
-	err = app.Listen(fmt.Sprintf(":%s", port))
-	if err != nil {
-		log.Fatal().Err(err).Msg("Failed to start boot server")
-		return err
-	}
-
 	refreshTimer := time.NewTimer(REFRESH_INTERVAL)
 	go func() {
 		for {
 			select {
 			case <-refreshTimer.C:
-				err := RefreshJob(ctx)
+				err = RefreshJob(ctx)
 				if err != nil {
 					log.Error().Err(err).Msg("Failed to refresh peers")
 				}
@@ -60,6 +55,12 @@ func Run(ctx context.Context) error {
 			}
 		}
 	}()
+
+	err = app.Listen(fmt.Sprintf(":%s", port))
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed to start boot server")
+		return err
+	}
 
 	return nil
 
@@ -78,7 +79,7 @@ func RefreshJob(ctx context.Context) error {
 		bootPort = 10010
 	}
 
-	h, err := libp2p.MakeHost(bootPort)
+	h, err := libp2p_setup.MakeHost(bootPort)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to make host")
 		return err
@@ -92,7 +93,7 @@ func RefreshJob(ctx context.Context) error {
 
 	for _, p := range peers {
 		connectionUrl := fmt.Sprintf("/ip4/%s/tcp/%d/p2p/%s", p.Ip, p.Port, p.HostId)
-		isAlive, liveCheckErr := libp2p.IsHostAlive(ctx, h, connectionUrl)
+		isAlive, liveCheckErr := libp2p_utils.IsHostAlive(ctx, h, connectionUrl)
 		if liveCheckErr != nil {
 			log.Error().Err(liveCheckErr).Msg("Failed to check peer")
 			if liveCheckErr.Error() != "failed to connect to peer" {

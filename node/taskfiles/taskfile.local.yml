@@ -1,6 +1,10 @@
 version: "3"
 
 tasks:
+  boot-api:
+    dotenv: [".env"]
+    cmds:
+      - go run ./cmd/boot_api/main.go
   boot-node:
     dotenv: [".env"]
     cmds:
@@ -34,6 +38,10 @@ tasks:
     dotenv: [".env"]
     cmds:
       - go run ./script/test_raft/main.go -p={{.P}} -b={{.B}}
+  script-test-raft-with-boot-api:
+    dotenv: [".env"]
+    cmds:
+      - go run ./script/test_raft_with_boot_api/main.go -p={{.P}}
 
   test-db:
     dotenv: [".env"]
@@ -61,7 +69,7 @@ tasks:
   test-libp2p:
     dotenv: [".env"]
     cmds:
-      - go test ./pkg/libp2p -v
+      - go test ./pkg/libp2p/tests -v
   test-reporter:
     dotenv: [".env"]
     cmds:
