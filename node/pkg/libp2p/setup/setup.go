@@ -150,20 +150,20 @@ func SetupFromBootApi(ctx context.Context, port int) (host.Host, *pubsub.PubSub,
 		peerAddr := fmt.Sprintf("/ip4/%s/tcp/%d/p2p/%s", dbPeer.Ip, dbPeer.Port, dbPeer.HostId)
 		peerMultiAddr, err := multiaddr.NewMultiaddr(peerAddr)
 		if err != nil {
-			log.Error().Err(err).Msg("Error creating multiaddr")
-			return nil, nil, err
+			log.Error().Err(err).Msg("Error creating multiaddr: " + peerAddr)
+			continue
 		}
 
 		peerInfo, err := peer.AddrInfoFromP2pAddr(peerMultiAddr)
 		if err != nil {
-			log.Error().Err(err).Msg("Error getting AddrInfo from p2p address")
-			return nil, nil, err
+			log.Error().Err(err).Msg("Error getting AddrInfo from p2p address: " + peerAddr)
+			continue
 		}
 
 		err = host.Connect(ctx, *peerInfo)
 		if err != nil {
-			log.Error().Err(err).Msg("error connecting to peer")
-			return nil, nil, err
+			log.Error().Err(err).Msg("error connecting to peer: " + peerAddr)
+			continue
 		}
 	}
 
