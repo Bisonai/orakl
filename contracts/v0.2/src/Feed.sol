@@ -6,15 +6,14 @@ import {IFeed} from "./interfaces/IFeed.sol";
 import {ITypeAndVersion} from "./interfaces/ITypeAndVersion.sol";
 
 contract Feed is Ownable, IFeed, ITypeAndVersion {
-    int256 private constant NOT_FOUND = -1;
-
     uint8 public override decimals;
     string public override description;
-    address public oracle;
 
     uint64 private latestRoundId;
     mapping(uint64 => Round) internal rounds;
+
     address[] private oracles;
+    mapping(address => bool) private oracleWhitelist;
 
     struct Round {
         int256 answer;
@@ -30,16 +29,15 @@ contract Feed is Ownable, IFeed, ITypeAndVersion {
     error NoDataPresent();
 
     modifier onlyOracle() {
-        if (msg.sender != oracle) {
+        if (!oracleWhitelist[msg.sender]) {
 	    revert OnlyOracle();
 	}
         _;
     }
 
-    constructor(uint8 _decimals, string memory _description, address _oracle) Ownable(msg.sender) {
+    constructor(uint8 _decimals, string memory _description) Ownable(msg.sender) {
         decimals = _decimals;
         description = _description;
-	oracle = _oracle;
     }
 
     function submit(int256 _answer) external onlyOracle {
@@ -108,33 +106,29 @@ contract Feed is Ownable, IFeed, ITypeAndVersion {
     }
 
     function addOracle(address _oracle) private {
-        if (oracleEnabled(_oracle) != NOT_FOUND) {
+        if (oracleWhitelist[_oracle]) {
             revert OracleAlreadyEnabled();
         }
 
+	oracleWhitelist[_oracle] = true;
         oracles.push(_oracle);
         emit OraclePermissionsUpdated(_oracle, true);
     }
 
     function removeOracle(address _oracle) private {
-	int256 oracleId = oracleEnabled(_oracle);
-        if (oracleId == NOT_FOUND) {
+        if (!oracleWhitelist[_oracle]) {
             revert OracleNotEnabled();
         }
 
-        oracles[uint256(oracleId)] = oracles[oracles.length - 1];
-	oracles.pop();
-
-        emit OraclePermissionsUpdated(_oracle, false);
-    }
-
-    function oracleEnabled(address _oracle) private view returns (int256) {
-	for (uint256 i = 0; i < oracles.length; i++) {
+	oracleWhitelist[_oracle] = false;
+	for (uint i = 0; i < oracles.length; i++) {
 	    if (oracles[i] == _oracle) {
-		return int256(i);
+		oracles[i] = oracles[oracles.length - 1];
+		oracles.pop();
+		break;
 	    }
 	}
 
-	return NOT_FOUND;
+        emit OraclePermissionsUpdated(_oracle, false);
     }
 }

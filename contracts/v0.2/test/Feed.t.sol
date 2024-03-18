@@ -6,7 +6,6 @@ import {Feed} from "../src/Feed.sol";
 
 contract FeedTest is Test {
     Feed public feed;
-    address oracle;
     uint8 decimals = 18;
     string description = "Test Feed";
     address[] removed;
@@ -15,8 +14,7 @@ contract FeedTest is Test {
     event FeedUpdated(int256 indexed answer, uint256 indexed roundId, uint256 updatedAt);
 
     function setUp() public {
-	oracle = makeAddr('oracle');
-        feed = new Feed(decimals, description, oracle);
+        feed = new Feed(decimals, description);
     }
 
     function test_AddAndRemoveOracle() public {
@@ -68,7 +66,7 @@ contract FeedTest is Test {
 	uint256 expectedRoundId = 1;
 	uint256 expectedUpdatedAt = block.timestamp;
 
-	vm.prank(oracle);
+	vm.prank(alice);
         vm.expectEmit(true, true, true, true);
         emit FeedUpdated(expectedAnswer, expectedRoundId, expectedUpdatedAt);
         feed.submit(expectedAnswer);
