@@ -66,6 +66,10 @@ tasks:
     dotenv: [".env"]
     cmds:
       - go test ./pkg/reporter -v
+  test-boot:
+    dotenv: [".env"]
+    cmds:
+      - go test ./pkg/boot/tests -v
   test:
     cmds:
       - task: test-db

@@ -343,3 +343,36 @@ func DiscoverPeers(ctx context.Context, h host.Host, topicName string, bootstrap
 	}
 	return errors.New("no peers connected")
 }
+
+func IsHostAlive(ctx context.Context, h host.Host, addr string) (bool, error) {
+	maddr, err := multiaddr.NewMultiaddr(addr)
+	if err != nil {
+		return false, err
+	}
+
+	info, err := peer.AddrInfoFromP2pAddr(maddr)
+	if err != nil {
+		return false, err
+	}
+
+	var lastErr error
+	for i := 0; i < 3; i++ { // Retry up to 3 times
+		err = h.Connect(ctx, *info)
+		if err == nil {
+			break
+		}
+		lastErr = err
+		time.Sleep(100 * time.Millisecond)
+	}
+
+	if lastErr != nil {
+		return false, fmt.Errorf("failed to connect to peer")
+	}
+
+	err = h.Network().ClosePeer(info.ID)
+	if err != nil {
+		return false, err
+	}
+
+	return true, nil
+}
