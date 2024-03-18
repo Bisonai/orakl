@@ -10,6 +10,7 @@ contract Feed is Ownable, IFeed, ITypeAndVersion {
 
     uint8 public override decimals;
     string public override description;
+    address public oracle;
 
     uint64 private latestRoundId;
     mapping(uint64 => Round) internal rounds;
@@ -20,20 +21,28 @@ contract Feed is Ownable, IFeed, ITypeAndVersion {
         uint64 updatedAt;
     }
 
+    event OraclePermissionsUpdated(address indexed oracle, bool indexed whitelisted);
+    event FeedUpdated(int256 indexed answer, uint256 indexed roundId, uint256 updatedAt);
+
+    error OnlyOracle();
     error OracleAlreadyEnabled();
     error OracleNotEnabled();
     error NoDataPresent();
 
-    event OraclePermissionsUpdated(address indexed oracle, bool indexed whitelisted);
-    event FeedUpdated(int256 indexed answer, uint256 indexed roundId, uint256 updatedAt);
-
-    constructor(uint8 _decimals, string memory _description) Ownable(msg.sender) {
-        decimals = _decimals;
-        description = _description;
+    modifier onlyOracle() {
+        if (msg.sender != oracle) {
+	    revert OnlyOracle();
+	}
+        _;
     }
 
-    // TODO verification
-    function submit(int256 _answer) external {
+    constructor(uint8 _decimals, string memory _description, address _oracle) Ownable(msg.sender) {
+        decimals = _decimals;
+        description = _description;
+	oracle = _oracle;
+    }
+
+    function submit(int256 _answer) external onlyOracle {
         uint64 roundId_ = latestRoundId + 1;
 
 	rounds[roundId_].answer = _answer;

@@ -128,7 +128,7 @@ contract SubmissionProxyTest is Test {
 
         // multiple single submissions
         for (uint256 i = 0; i < numOracles; i++) {
-            Feed feed = new Feed(DECIMALS, DESCRIPTION);
+            Feed feed = new Feed(DECIMALS, DESCRIPTION, address(submissionProxy));
 
             oracleAdd[0] = address(submissionProxy);
             oracleAdd[1] = offChainFeedReporter;
@@ -137,10 +137,10 @@ contract SubmissionProxyTest is Test {
             feeds[i] = address(feed);
             submissions[i] = 10;
 
-            vm.prank(offChainFeedReporter);
+            vm.prank(address(submissionProxy));
             feed.submit(10); // storage warmup
 
-            vm.prank(offChainFeedReporter);
+            vm.prank(address(submissionProxy));
             startGas = gasleft();
             feed.submit(11);
             singleSubmissionGas += estimateGasCost(startGas);
@@ -178,7 +178,7 @@ contract SubmissionProxyTest is Test {
         int256[] memory submissions_ = new int256[](_numOracles);
 
         for (uint256 i = 0; i < _numOracles; i++) {
-            Feed feed_ = new Feed(DECIMALS, DESCRIPTION);
+            Feed feed_ = new Feed(DECIMALS, DESCRIPTION, address(submissionProxy));
 
             feed_.changeOracles(remove_, add_);
 

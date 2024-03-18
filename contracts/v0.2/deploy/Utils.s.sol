@@ -12,12 +12,9 @@ contract UtilsScript is Script {
 
     struct Deploy {
         uint256 decimals;
-        uint256 depositAmount;
         string description;
         string name;
-        uint256 paymentAmount;
-        uint256 timeout;
-        address validator;
+	address oracle;
     }
 
     struct ChangeOracles {
