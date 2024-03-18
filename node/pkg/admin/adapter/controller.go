@@ -15,7 +15,7 @@ import (
 )
 
 type BulkAdapters struct {
-	Adapters []AdapterInsertModel `json:"adapters"`
+	Adapters []AdapterInsertModel `json:"result"`
 }
 
 type AdapterModel struct {
