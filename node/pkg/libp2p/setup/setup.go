@@ -118,8 +118,6 @@ func SetupFromBootApi(ctx context.Context, port int) (host.Host, *pubsub.PubSub,
 		return nil, nil, err
 	}
 
-	fmt.Println(host.ID().String())
-
 	ps, err := MakePubsub(ctx, host)
 	if err != nil {
 		log.Error().Err(err).Msg("Error making pubsub")
@@ -150,7 +148,6 @@ func SetupFromBootApi(ctx context.Context, port int) (host.Host, *pubsub.PubSub,
 
 	for _, dbPeer := range dbPeers {
 		peerAddr := fmt.Sprintf("/ip4/%s/tcp/%d/p2p/%s", dbPeer.Ip, dbPeer.Port, dbPeer.HostId)
-		fmt.Println(peerAddr)
 		peerMultiAddr, err := multiaddr.NewMultiaddr(peerAddr)
 		if err != nil {
 			log.Error().Err(err).Msg("Error creating multiaddr")
