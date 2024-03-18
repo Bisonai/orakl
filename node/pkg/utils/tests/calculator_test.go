@@ -3,13 +3,13 @@ package tests
 import (
 	"testing"
 
-	"bisonai.com/orakl/node/pkg/utils"
+	"bisonai.com/orakl/node/pkg/utils/calculator"
 )
 
 func TestFloatAvgOddLength(t *testing.T) {
 	// Test with odd length array
 	data1 := []float64{1, 2, 3, 4, 5}
-	avg1, err := utils.GetFloatAvg(data1)
+	avg1, err := calculator.GetFloatAvg(data1)
 	if err != nil {
 		t.Errorf("Error calculating average: %v", err)
 	}
@@ -21,7 +21,7 @@ func TestFloatAvgOddLength(t *testing.T) {
 func TestFloatAvgEvnLength(t *testing.T) {
 	// Test with even length array
 	data2 := []float64{1, 2, 3, 4}
-	avg2, err := utils.GetFloatAvg(data2)
+	avg2, err := calculator.GetFloatAvg(data2)
 	if err != nil {
 		t.Errorf("Error calculating average: %v", err)
 	}
@@ -33,7 +33,7 @@ func TestFloatAvgEvnLength(t *testing.T) {
 func TestFloatAvgUnsorted(t *testing.T) {
 	// Test with unsorted list
 	data3 := []float64{5, 3, 1, 4, 2}
-	avg3, err := utils.GetFloatAvg(data3)
+	avg3, err := calculator.GetFloatAvg(data3)
 	if err != nil {
 		t.Errorf("Error calculating average: %v", err)
 	}
@@ -45,7 +45,7 @@ func TestFloatAvgUnsorted(t *testing.T) {
 func TestFloatAvgZeroLength(t *testing.T) {
 	// Test with zero length array
 	data4 := []float64{}
-	avg4, err := utils.GetFloatAvg(data4)
+	avg4, err := calculator.GetFloatAvg(data4)
 	if err == nil {
 		t.Errorf("Expected error but got nil")
 	}
@@ -57,7 +57,7 @@ func TestFloatAvgZeroLength(t *testing.T) {
 func TestFloatMedOddLength(t *testing.T) {
 	// Test with odd length array
 	data1 := []float64{1, 2, 3, 4, 5}
-	med1, err := utils.GetFloatMed(data1)
+	med1, err := calculator.GetFloatMed(data1)
 	if err != nil {
 		t.Errorf("Error calculating median: %v", err)
 	}
@@ -69,7 +69,7 @@ func TestFloatMedOddLength(t *testing.T) {
 func TestFloatMedEvenLength(t *testing.T) {
 	// Test with even length array
 	data2 := []float64{1, 2, 3, 4}
-	med2, err := utils.GetFloatMed(data2)
+	med2, err := calculator.GetFloatMed(data2)
 	if err != nil {
 		t.Errorf("Error calculating median: %v", err)
 	}
@@ -81,7 +81,7 @@ func TestFloatMedEvenLength(t *testing.T) {
 func TestFloatMedUnsorted(t *testing.T) {
 	// Test with unsorted list
 	data3 := []float64{5, 3, 1, 4, 2}
-	med3, err := utils.GetFloatMed(data3)
+	med3, err := calculator.GetFloatMed(data3)
 	if err != nil {
 		t.Errorf("Error calculating median: %v", err)
 	}
@@ -93,7 +93,7 @@ func TestFloatMedUnsorted(t *testing.T) {
 func TestFloatMedZeroLength(t *testing.T) {
 	// Test with zero length array
 	data4 := []float64{}
-	med4, err := utils.GetFloatMed(data4)
+	med4, err := calculator.GetFloatMed(data4)
 	if err == nil {
 		t.Errorf("Expected error but got nil")
 	}
@@ -105,7 +105,7 @@ func TestFloatMedZeroLength(t *testing.T) {
 func TestIntAvgOddLength(t *testing.T) {
 	// Test with odd length array
 	data1 := []int{1, 2, 3, 4, 5}
-	avg1, err := utils.GetIntAvg(data1)
+	avg1, err := calculator.GetIntAvg(data1)
 	if err != nil {
 		t.Errorf("Error calculating average: %v", err)
 	}
@@ -117,7 +117,7 @@ func TestIntAvgOddLength(t *testing.T) {
 func TestIntAvgEvnLength(t *testing.T) {
 	// Test with even length array
 	data2 := []int{1, 2, 3, 4}
-	avg2, err := utils.GetIntAvg(data2)
+	avg2, err := calculator.GetIntAvg(data2)
 	if err != nil {
 		t.Errorf("Error calculating average: %v", err)
 	}
@@ -129,7 +129,7 @@ func TestIntAvgEvnLength(t *testing.T) {
 func TestIntAvgZeroLength(t *testing.T) {
 	// Test with zero length array
 	data3 := []int{}
-	avg3, err := utils.GetIntAvg(data3)
+	avg3, err := calculator.GetIntAvg(data3)
 	if err == nil {
 		t.Errorf("Expected error but got nil")
 	}
@@ -141,7 +141,7 @@ func TestIntAvgZeroLength(t *testing.T) {
 func TestIntAvgUnsorted(t *testing.T) {
 	// Test with unsorted list
 	data4 := []int{5, 3, 1, 4, 2}
-	avg4, err := utils.GetIntAvg(data4)
+	avg4, err := calculator.GetIntAvg(data4)
 	if err != nil {
 		t.Errorf("Error calculating average: %v", err)
 	}
@@ -153,7 +153,7 @@ func TestIntAvgUnsorted(t *testing.T) {
 func TestIntMedOddLength(t *testing.T) {
 	// Test with odd length array
 	data1 := []int{1, 2, 3, 4, 5}
-	med1, err := utils.GetIntMed(data1)
+	med1, err := calculator.GetIntMed(data1)
 	if err != nil {
 		t.Errorf("Error calculating median: %v", err)
 	}
@@ -165,7 +165,7 @@ func TestIntMedOddLength(t *testing.T) {
 func TestIntMedEvnLength(t *testing.T) {
 	// Test with even length array
 	data2 := []int{1, 2, 3, 4}
-	med2, err := utils.GetIntMed(data2)
+	med2, err := calculator.GetIntMed(data2)
 	if err != nil {
 		t.Errorf("Error calculating median: %v", err)
 	}
@@ -177,7 +177,7 @@ func TestIntMedEvnLength(t *testing.T) {
 func TestIntMedUnsorted(t *testing.T) {
 	// Test with unsorted list
 	data3 := []int{5, 3, 1, 4, 2}
-	med3, err := utils.GetIntMed(data3)
+	med3, err := calculator.GetIntMed(data3)
 	if err != nil {
 		t.Errorf("Error calculating median: %v", err)
 	}
@@ -189,7 +189,7 @@ func TestIntMedUnsorted(t *testing.T) {
 func TestIntMedZeroLength(t *testing.T) {
 	// Test with zero length array
 	data4 := []int{}
-	med4, err := utils.GetIntMed(data4)
+	med4, err := calculator.GetIntMed(data4)
 	if err == nil {
 		t.Errorf("Expected error but got nil")
 	}
@@ -201,7 +201,7 @@ func TestIntMedZeroLength(t *testing.T) {
 func TestInt64AvgOddLength(t *testing.T) {
 	// Test with odd length array
 	data1 := []int64{1, 2, 3, 4, 5}
-	avg1, err := utils.GetInt64Avg(data1)
+	avg1, err := calculator.GetInt64Avg(data1)
 	if err != nil {
 		t.Errorf("Error calculating average: %v", err)
 	}
@@ -213,7 +213,7 @@ func TestInt64AvgOddLength(t *testing.T) {
 func TestInt64AvgEvnLength(t *testing.T) {
 	// Test with even length array
 	data2 := []int64{1, 2, 3, 4}
-	avg2, err := utils.GetInt64Avg(data2)
+	avg2, err := calculator.GetInt64Avg(data2)
 	if err != nil {
 		t.Errorf("Error calculating average: %v", err)
 	}
@@ -225,7 +225,7 @@ func TestInt64AvgEvnLength(t *testing.T) {
 func TestInt64AvgUnsorted(t *testing.T) {
 	// Test with unsorted list
 	data3 := []int64{5, 3, 1, 4, 2}
-	avg3, err := utils.GetInt64Avg(data3)
+	avg3, err := calculator.GetInt64Avg(data3)
 	if err != nil {
 		t.Errorf("Error calculating average: %v", err)
 	}
@@ -237,7 +237,7 @@ func TestInt64AvgUnsorted(t *testing.T) {
 func TestInt64AvgZeroLength(t *testing.T) {
 	// Test with zero length array
 	data4 := []int64{}
-	avg4, err := utils.GetInt64Avg(data4)
+	avg4, err := calculator.GetInt64Avg(data4)
 	if err == nil {
 		t.Errorf("Expected error but got nil")
 	}
@@ -249,7 +249,7 @@ func TestInt64AvgZeroLength(t *testing.T) {
 func TestInt64MedOddLength(t *testing.T) {
 	// Test with odd length array
 	data1 := []int64{1, 2, 3, 4, 5}
-	med1, err := utils.GetInt64Med(data1)
+	med1, err := calculator.GetInt64Med(data1)
 	if err != nil {
 		t.Errorf("Error calculating median: %v", err)
 	}
@@ -261,7 +261,7 @@ func TestInt64MedOddLength(t *testing.T) {
 func TestInt64MedEvnLength(t *testing.T) {
 	// Test with even length array
 	data2 := []int64{1, 2, 3, 4}
-	med2, err := utils.GetInt64Med(data2)
+	med2, err := calculator.GetInt64Med(data2)
 	if err != nil {
 		t.Errorf("Error calculating median: %v", err)
 	}
@@ -273,7 +273,7 @@ func TestInt64MedEvnLength(t *testing.T) {
 func TestInt64MedUnsorted(t *testing.T) {
 	// Test with unsorted list
 	data3 := []int64{5, 3, 1, 4, 2}
-	med3, err := utils.GetInt64Med(data3)
+	med3, err := calculator.GetInt64Med(data3)
 	if err != nil {
 		t.Errorf("Error calculating median: %v", err)
 	}
@@ -285,7 +285,7 @@ func TestInt64MedUnsorted(t *testing.T) {
 func TestInt64MedZeroLength(t *testing.T) {
 	// Test with zero length array
 	data4 := []int64{}
-	med4, err := utils.GetInt64Med(data4)
+	med4, err := calculator.GetInt64Med(data4)
 	if err == nil {
 		t.Errorf("Expected error but got nil")
 	}

@@ -10,7 +10,7 @@ import (
 
 	"bisonai.com/orakl/node/pkg/db"
 	"bisonai.com/orakl/node/pkg/raft"
-	"bisonai.com/orakl/node/pkg/utils"
+	"bisonai.com/orakl/node/pkg/utils/calculator"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 	"github.com/libp2p/go-libp2p/core/host"
 	"github.com/rs/zerolog/log"
@@ -131,7 +131,7 @@ func (n *AggregatorNode) HandlePriceDataMessage(msg raft.Message) error {
 		defer delete(n.CollectedPrices, priceDataMessage.RoundID)
 		filteredCollectedPrices := FilterNegative(n.CollectedPrices[priceDataMessage.RoundID])
 
-		median, err := utils.GetInt64Med(filteredCollectedPrices)
+		median, err := calculator.GetInt64Med(filteredCollectedPrices)
 		if err != nil {
 			log.Error().Err(err).Msg("failed to get median")
 			return err

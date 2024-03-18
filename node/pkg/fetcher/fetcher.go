@@ -11,7 +11,7 @@ import (
 
 	"bisonai.com/orakl/node/pkg/bus"
 	"bisonai.com/orakl/node/pkg/db"
-	"bisonai.com/orakl/node/pkg/utils"
+	"bisonai.com/orakl/node/pkg/utils/calculator"
 	"bisonai.com/orakl/node/pkg/utils/reducer"
 	"bisonai.com/orakl/node/pkg/utils/request"
 	"github.com/rs/zerolog/log"
@@ -238,7 +238,7 @@ func (a *App) fetchAndInsert(ctx context.Context, fetcher Fetcher) error {
 	}
 	log.Debug().Str("fetcher", fetcher.Name).Msg("fetch complete")
 
-	aggregated, err := utils.GetFloatAvg(results)
+	aggregated, err := calculator.GetFloatAvg(results)
 	if err != nil {
 		return err
 	}
