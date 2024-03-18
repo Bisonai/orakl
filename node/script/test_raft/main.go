@@ -6,7 +6,7 @@ import (
 	"flag"
 	"time"
 
-	"bisonai.com/orakl/node/pkg/libp2p"
+	libp2p_setup "bisonai.com/orakl/node/pkg/libp2p/setup"
 	"bisonai.com/orakl/node/pkg/raft"
 	"github.com/rs/zerolog/log"
 )
@@ -25,7 +25,7 @@ func main() {
 		log.Fatal().Msg("Please provide a port to bind on with -p")
 	}
 
-	host, ps, err := libp2p.Setup(ctx, *bootnode, *port)
+	host, ps, err := libp2p_setup.Setup(ctx, *bootnode, *port)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to setup libp2p")
 	}

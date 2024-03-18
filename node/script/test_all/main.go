@@ -10,7 +10,7 @@ import (
 	"bisonai.com/orakl/node/pkg/aggregator"
 	"bisonai.com/orakl/node/pkg/bus"
 	"bisonai.com/orakl/node/pkg/fetcher"
-	"bisonai.com/orakl/node/pkg/libp2p"
+	libp2p_setup "bisonai.com/orakl/node/pkg/libp2p/setup"
 	"bisonai.com/orakl/node/pkg/reporter"
 	"github.com/rs/zerolog/log"
 )
@@ -37,7 +37,7 @@ func main() {
 		return
 	}
 
-	host, ps, err := libp2p.Setup(ctx, bootnode, listenPort)
+	host, ps, err := libp2p_setup.Setup(ctx, bootnode, listenPort)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to setup libp2p")
 		return

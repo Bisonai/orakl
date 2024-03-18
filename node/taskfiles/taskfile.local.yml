@@ -61,7 +61,7 @@ tasks:
   test-libp2p:
     dotenv: [".env"]
     cmds:
-      - go test ./pkg/libp2p -v
+      - go test ./pkg/libp2p/tests -v
   test-reporter:
     dotenv: [".env"]
     cmds:

@@ -1,4 +1,4 @@
-package libp2p
+package tests
 
 import (
 	"os"
