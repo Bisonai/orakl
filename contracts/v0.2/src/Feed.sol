@@ -6,34 +6,41 @@ import {IFeed} from "./interfaces/IFeed.sol";
 import {ITypeAndVersion} from "./interfaces/ITypeAndVersion.sol";
 
 contract Feed is Ownable, IFeed, ITypeAndVersion {
-    int256 private constant NOT_FOUND = -1;
-
     uint8 public override decimals;
     string public override description;
 
     uint64 private latestRoundId;
     mapping(uint64 => Round) internal rounds;
+
     address[] private oracles;
+    mapping(address => bool) private whitelist;
 
     struct Round {
         int256 answer;
         uint64 updatedAt;
     }
 
+    event OraclePermissionsUpdated(address indexed oracle, bool indexed whitelisted);
+    event FeedUpdated(int256 indexed answer, uint256 indexed roundId, uint256 updatedAt);
+
+    error OnlyOracle();
     error OracleAlreadyEnabled();
     error OracleNotEnabled();
     error NoDataPresent();
 
-    event OraclePermissionsUpdated(address indexed oracle, bool indexed whitelisted);
-    event FeedUpdated(int256 indexed answer, uint256 indexed roundId, uint256 updatedAt);
+    modifier onlyOracle() {
+        if (!whitelist[msg.sender]) {
+	    revert OnlyOracle();
+	}
+        _;
+    }
 
     constructor(uint8 _decimals, string memory _description) Ownable(msg.sender) {
         decimals = _decimals;
         description = _description;
     }
 
-    // TODO verification
-    function submit(int256 _answer) external {
+    function submit(int256 _answer) external onlyOracle {
         uint64 roundId_ = latestRoundId + 1;
 
 	rounds[roundId_].answer = _answer;
@@ -99,33 +106,29 @@ contract Feed is Ownable, IFeed, ITypeAndVersion {
     }
 
     function addOracle(address _oracle) private {
-        if (oracleEnabled(_oracle) != NOT_FOUND) {
+        if (whitelist[_oracle]) {
             revert OracleAlreadyEnabled();
         }
 
+	whitelist[_oracle] = true;
         oracles.push(_oracle);
         emit OraclePermissionsUpdated(_oracle, true);
     }
 
     function removeOracle(address _oracle) private {
-	int256 oracleId = oracleEnabled(_oracle);
-        if (oracleId == NOT_FOUND) {
+        if (!whitelist[_oracle]) {
             revert OracleNotEnabled();
         }
 
-        oracles[uint256(oracleId)] = oracles[oracles.length - 1];
-	oracles.pop();
-
-        emit OraclePermissionsUpdated(_oracle, false);
-    }
-
-    function oracleEnabled(address _oracle) private view returns (int256) {
-	for (uint256 i = 0; i < oracles.length; i++) {
+	whitelist[_oracle] = false;
+	for (uint i = 0; i < oracles.length; i++) {
 	    if (oracles[i] == _oracle) {
-		return int256(i);
+		oracles[i] = oracles[oracles.length - 1];
+		oracles.pop();
+		break;
 	    }
 	}
 
-	return NOT_FOUND;
+        emit OraclePermissionsUpdated(_oracle, false);
     }
 }

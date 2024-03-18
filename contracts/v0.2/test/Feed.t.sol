@@ -66,6 +66,7 @@ contract FeedTest is Test {
 	uint256 expectedRoundId = 1;
 	uint256 expectedUpdatedAt = block.timestamp;
 
+	vm.prank(alice);
         vm.expectEmit(true, true, true, true);
         emit FeedUpdated(expectedAnswer, expectedRoundId, expectedUpdatedAt);
         feed.submit(expectedAnswer);

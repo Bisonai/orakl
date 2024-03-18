@@ -113,8 +113,8 @@ contract SubmissionProxyTest is Test {
 
     function test_BatchSubmission() public {
         uint256 numOracles = 50;
-        address offChainSubmissionProxyReporter = address(0);
-        address offChainFeedReporter = address(1);
+        address offChainSubmissionProxyReporter = makeAddr("submission-proxy-reporter");
+        address offChainFeedReporter = makeAddr("off-chain-reporter");
 
         submissionProxy.addOracle(offChainSubmissionProxyReporter);
 
