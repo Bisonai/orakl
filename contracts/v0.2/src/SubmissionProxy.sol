@@ -15,7 +15,6 @@ contract SubmissionProxy is Ownable, ITypeAndVersion {
     uint256 public maxSubmission = 50;
     uint256 public expirationPeriod = 5 weeks;
     mapping(address oracle => uint256 expiration) oracles;
-    address[] public feedAddresses;
 
     event OracleAdded(address oracle);
     event MaxSubmissionSet(uint256 maxSubmission);
@@ -34,10 +33,6 @@ contract SubmissionProxy is Ownable, ITypeAndVersion {
     }
 
     constructor() Ownable(msg.sender) {}
-
-    function getFeeds() external view returns (address[] memory) {
-	return feedAddresses;
-    }
 
     function setMaxSubmission(uint256 _maxSubmission) external onlyOwner {
 	if (_maxSubmission == MIN_SUBMISSION || _maxSubmission > MAX_SUBMISSION) {
