@@ -132,7 +132,7 @@ func SetupFromBootApi(ctx context.Context, port int) (host.Host, *pubsub.PubSub,
 		return nil, nil, err
 	}
 
-	apiEndpoint := os.Getenv("BOOT_API_ENDPOINT")
+	apiEndpoint := os.Getenv("BOOT_API_URL")
 	if apiEndpoint == "" {
 		log.Info().Msg("boot api endpoint not set, using default url: http://localhost:8089")
 		apiEndpoint = "http://localhost:8089"
