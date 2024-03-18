@@ -1,4 +1,4 @@
-package utils
+package klaytn_helper
 
 import (
 	"context"
@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"bisonai.com/orakl/node/pkg/db"
+	"bisonai.com/orakl/node/pkg/utils/request"
 
 	"github.com/klaytn/klaytn"
 	"github.com/klaytn/klaytn/accounts/abi"
@@ -142,7 +143,7 @@ func (t *TxHelper) GetSignedFromDelegator(tx *types.Transaction) (*types.Transac
 		return nil, err
 	}
 
-	result, err := UrlRequest[SignModel](t.delegatorUrl+"/api/v1/sign/volatile", "POST", payload, nil, "")
+	result, err := request.UrlRequest[SignModel](t.delegatorUrl+"/api/v1/sign/volatile", "POST", payload, nil, "")
 	if err != nil {
 		log.Error().Err(err).Msg("failed to request sign from delegator")
 		return nil, err

@@ -8,7 +8,7 @@ import (
 	"bisonai.com/orakl/node/pkg/admin/utils"
 	"bisonai.com/orakl/node/pkg/bus"
 	"bisonai.com/orakl/node/pkg/db"
-	oraklUtil "bisonai.com/orakl/node/pkg/utils"
+	"bisonai.com/orakl/node/pkg/utils/request"
 	"github.com/go-playground/validator"
 	"github.com/gofiber/fiber/v2"
 	"github.com/rs/zerolog/log"
@@ -51,7 +51,7 @@ func syncFromOraklConfig(c *fiber.Ctx) error {
 	configUrl := getConfigUrl()
 
 	var adapters BulkAdapters
-	adapters, err := oraklUtil.GetRequest[BulkAdapters](configUrl, nil, map[string]string{"Content-Type": "application/json"})
+	adapters, err := request.GetRequest[BulkAdapters](configUrl, nil, map[string]string{"Content-Type": "application/json"})
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).SendString("failed to get orakl config: " + err.Error())
 	}
@@ -124,7 +124,7 @@ func addFromOraklConfig(c *fiber.Ctx) error {
 	}
 
 	var adapters BulkAdapters
-	adapters, err := oraklUtil.GetRequest[BulkAdapters](configUrl, nil, map[string]string{"Content-Type": "application/json"})
+	adapters, err := request.GetRequest[BulkAdapters](configUrl, nil, map[string]string{"Content-Type": "application/json"})
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).SendString("failed to get orakl config: " + err.Error())
 	}

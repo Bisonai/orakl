@@ -10,7 +10,7 @@ import (
 
 	"bisonai.com/orakl/node/pkg/db"
 	"bisonai.com/orakl/node/pkg/raft"
-	"bisonai.com/orakl/node/pkg/utils"
+	"bisonai.com/orakl/node/pkg/utils/klaytn_helper"
 
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 	"github.com/libp2p/go-libp2p/core/host"
@@ -26,7 +26,7 @@ func NewNode(ctx context.Context, h host.Host, ps *pubsub.PubSub) (*ReporterNode
 	}
 
 	raft := raft.NewRaftNode(h, ps, topic, MESSAGE_BUFFER, LEADER_TIMEOUT)
-	txHelper, err := utils.NewTxHelper(ctx)
+	txHelper, err := klaytn_helper.NewTxHelper(ctx)
 	if err != nil {
 		return nil, err
 	}

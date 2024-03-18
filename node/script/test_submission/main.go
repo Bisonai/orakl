@@ -5,14 +5,14 @@ import (
 	"fmt"
 	"math/big"
 
-	"bisonai.com/orakl/node/pkg/utils"
+	"bisonai.com/orakl/node/pkg/utils/klaytn_helper"
 	"github.com/rs/zerolog/log"
 )
 
 // send single submission through this script
 
 func testContractDelegatedCall(ctx context.Context, contractAddress string, contractFunction string, args ...interface{}) error {
-	txHelper, err := utils.NewTxHelper(ctx)
+	txHelper, err := klaytn_helper.NewTxHelper(ctx)
 	if err != nil {
 		log.Error().Err(err).Msg("NewTxHelper")
 		return err
