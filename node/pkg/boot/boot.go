@@ -91,7 +91,7 @@ func RefreshJob(ctx context.Context) error {
 	}
 
 	for _, p := range peers {
-		connectionUrl := fmt.Sprintf("/ip4/%s/tcp/%d/p2p/%s", p.Ip, p.Port, p.LibId)
+		connectionUrl := fmt.Sprintf("/ip4/%s/tcp/%d/p2p/%s", p.Ip, p.Port, p.HostId)
 		isAlive, liveCheckErr := libp2p.IsHostAlive(ctx, h, connectionUrl)
 		if liveCheckErr != nil {
 			log.Error().Err(liveCheckErr).Msg("Failed to check peer")

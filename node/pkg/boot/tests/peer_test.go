@@ -13,6 +13,7 @@ import (
 	"bisonai.com/orakl/node/pkg/db"
 	"bisonai.com/orakl/node/pkg/libp2p"
 	_peer "github.com/libp2p/go-libp2p/core/peer"
+	"github.com/multiformats/go-multiaddr"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -25,9 +26,9 @@ func TestPeerInsert(t *testing.T) {
 	defer cleanup()
 
 	mockPeer1 := peer.PeerInsertModel{
-		Ip:    "127.0.0.2",
-		Port:  10002,
-		LibId: "12DGKooWM8vWWqGPWWNCVPqb4tfqGrzx45W257GDBSeYbDSSLdef",
+		Ip:     "127.0.0.2",
+		Port:   10002,
+		HostId: "12DGKooWM8vWWqGPWWNCVPqb4tfqGrzx45W257GDBSeYbDSSLdef",
 	}
 
 	readResultBefore, err := adminTests.GetRequest[[]peer.PeerModel](testItems.app, "/api/v1/peer", nil)
@@ -79,15 +80,15 @@ func TestSync(t *testing.T) {
 	defer cleanup()
 
 	mockPeer1 := peer.PeerInsertModel{
-		Ip:    "127.0.0.2",
-		Port:  10002,
-		LibId: "12DGKooWM8vWWqGPWWNCVPqb4tfqGrzx45W257GDBSeYbDSSLdef",
+		Ip:     "127.0.0.2",
+		Port:   10002,
+		HostId: "12DGKooWM8vWWqGPWWNCVPqb4tfqGrzx45W257GDBSeYbDSSLdef",
 	}
 
 	mockPeer2 := peer.PeerInsertModel{
-		Ip:    "127.0.0.3",
-		Port:  10003,
-		LibId: "12DGKooWM8vWWqGPWWNCVPqb4tfqGrzx45W257GDBSeYbDSSLghi",
+		Ip:     "127.0.0.3",
+		Port:   10003,
+		HostId: "12DGKooWM8vWWqGPWWNCVPqb4tfqGrzx45W257GDBSeYbDSSLghi",
 	}
 
 	syncResult, err := adminTests.PostRequest[[]peer.PeerModel](testItems.app, "/api/v1/peer/sync", mockPeer1)
@@ -129,7 +130,15 @@ func TestRefresh(t *testing.T) {
 		Addrs: h.Addrs(),
 	}
 
-	addr := pi.Addrs[len(pi.Addrs)-1]
+	var addr multiaddr.Multiaddr
+	for _, a := range pi.Addrs {
+		if strings.Contains(a.String(), "127.0.0.1") {
+			continue
+		}
+		addr = a
+		break
+	}
+
 	splitted := strings.Split(addr.String(), "/")
 	if len(splitted) < 5 {
 		t.Fatalf("error splitting address: %v", splitted)
@@ -143,9 +152,9 @@ func TestRefresh(t *testing.T) {
 	}
 
 	res, err := adminTests.PostRequest[peer.PeerModel](testItems.app, "/api/v1/peer", peer.PeerInsertModel{
-		Ip:    ip,
-		Port:  portInt,
-		LibId: h.ID().String(),
+		Ip:     ip,
+		Port:   portInt,
+		HostId: h.ID().String(),
 	})
 	if err != nil {
 		t.Fatalf("error inserting peer: %v", err)
