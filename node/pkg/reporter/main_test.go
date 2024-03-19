@@ -16,6 +16,7 @@ import (
 )
 
 const InsertGlobalAggregateQuery = `INSERT INTO global_aggregates (name, value, round) VALUES (@name, @value, @round) RETURNING *`
+const InsertAddressQuery = `INSERT INTO submission_addresses (name, address) VALUES (@name, @address) RETURNING *`
 
 type TestItems struct {
 	app        *App
@@ -24,17 +25,31 @@ type TestItems struct {
 	tmpData    *TmpData
 }
 
+type SubmissionAddress struct {
+	Id      int64  `db:"id"`
+	Name    string `db:"name"`
+	Address string `db:"address"`
+}
+
 type TmpData struct {
-	globalAggregate GlobalAggregate
+	globalAggregate   GlobalAggregateBase
+	submissionAddress SubmissionAddress
 }
 
 func insertSampleData(ctx context.Context) (*TmpData, error) {
 	var tmpData = new(TmpData)
-	tmpGlobalAggregate, err := db.QueryRow[GlobalAggregate](ctx, InsertGlobalAggregateQuery, map[string]any{"name": "test-aggregate", "value": int64(15), "round": int64(1)})
+	tmpGlobalAggregate, err := db.QueryRow[GlobalAggregateBase](ctx, InsertGlobalAggregateQuery, map[string]any{"name": "test-aggregate", "value": int64(15), "round": int64(1)})
 	if err != nil {
 		return nil, err
 	}
 	tmpData.globalAggregate = tmpGlobalAggregate
+
+	tmpAddress, err := db.QueryRow[SubmissionAddress](ctx, InsertAddressQuery, map[string]any{"name": "test-aggregate", "address": "0x1234"})
+	if err != nil {
+		return nil, err
+	}
+	tmpData.submissionAddress = tmpAddress
+
 	return tmpData, nil
 }
 
@@ -86,6 +101,12 @@ func reporterCleanup(ctx context.Context, admin *fiber.App, testItems *TestItems
 		if err != nil {
 			return err
 		}
+
+		err = db.QueryWithoutResult(ctx, "DELETE FROM submission_addresses;", nil)
+		if err != nil {
+			return err
+		}
+
 		err = admin.Shutdown()
 		if err != nil {
 			return err

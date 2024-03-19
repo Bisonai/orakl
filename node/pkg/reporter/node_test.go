@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"bisonai.com/orakl/node/pkg/raft"
+	"github.com/klaytn/klaytn/common"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -74,7 +75,8 @@ func TestGetLatestGlobalAggregates(t *testing.T) {
 	if err != nil {
 		t.Fatal("error getting latest global aggregates")
 	}
-	assert.Equal(t, result[0], testItems.tmpData.globalAggregate)
+	assert.Equal(t, result[0].Name, testItems.tmpData.globalAggregate.Name)
+	assert.Equal(t, result[0].Value, testItems.tmpData.globalAggregate.Value)
 }
 
 func TestFilterInvalidAggregates(t *testing.T) {
@@ -86,9 +88,10 @@ func TestFilterInvalidAggregates(t *testing.T) {
 	defer cleanup()
 	testItems.app.setReporter(ctx, testItems.app.Host, testItems.app.Pubsub)
 	aggregates := []GlobalAggregate{{
-		Name:  "test-aggregate",
-		Value: 15,
-		Round: 1,
+		Name:    "test-aggregate",
+		Value:   15,
+		Round:   1,
+		Address: "0x1234",
 	}}
 	result := testItems.app.Reporter.filterInvalidAggregates(aggregates)
 	assert.Equal(t, result, aggregates)
@@ -107,9 +110,10 @@ func TestIsAggValid(t *testing.T) {
 	defer cleanup()
 	testItems.app.setReporter(ctx, testItems.app.Host, testItems.app.Pubsub)
 	agg := GlobalAggregate{
-		Name:  "test-aggregate",
-		Value: 15,
-		Round: 1,
+		Name:    "test-aggregate",
+		Value:   15,
+		Round:   1,
+		Address: "0x1234",
 	}
 	result := testItems.app.Reporter.isAggValid(agg)
 	assert.Equal(t, result, true)
@@ -128,15 +132,16 @@ func TestMakeContractArgs(t *testing.T) {
 	defer cleanup()
 	testItems.app.setReporter(ctx, testItems.app.Host, testItems.app.Pubsub)
 	agg := GlobalAggregate{
-		Name:  "test-aggregate",
-		Value: 15,
-		Round: 1,
+		Name:    "test-aggregate",
+		Value:   15,
+		Round:   1,
+		Address: "0x1234",
 	}
-	pairs, values, err := testItems.app.Reporter.makeContractArgs([]GlobalAggregate{agg})
+	addresses, values, err := testItems.app.Reporter.makeContractArgs([]GlobalAggregate{agg})
 	if err != nil {
 		t.Fatal("error making contract args")
 	}
 
-	assert.Equal(t, pairs[0], "test-aggregate")
+	assert.Equal(t, addresses[0], common.HexToAddress(agg.Address))
 	assert.Equal(t, values[0], big.NewInt(15))
 }
