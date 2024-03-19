@@ -1,11 +1,17 @@
 package aggregator
 
 import (
+	"fmt"
+	"os"
+	"sync"
+
 	"bisonai.com/orakl/node/pkg/admin/utils"
 	"bisonai.com/orakl/node/pkg/bus"
 	"bisonai.com/orakl/node/pkg/db"
+	"bisonai.com/orakl/node/pkg/utils/request"
 	"github.com/go-playground/validator"
 	"github.com/gofiber/fiber/v2"
+	"github.com/rs/zerolog/log"
 )
 
 type AggregatorModel struct {
@@ -16,6 +22,10 @@ type AggregatorModel struct {
 
 type AggregatorInsertModel struct {
 	Name string `db:"name" json:"name" validate:"required"`
+}
+
+type BulkAggregators struct {
+	Aggregators []AggregatorInsertModel `json:"result"`
 }
 
 func start(c *fiber.Ctx) error {
@@ -110,6 +120,60 @@ func syncWithAdapter(c *fiber.Ctx) error {
 	return c.JSON(result)
 }
 
+func SyncFromOraklConfig(c *fiber.Ctx) error {
+	configUrl := getConfigUrl()
+
+	var aggregators BulkAggregators
+	aggregators, err := request.GetRequest[BulkAggregators](configUrl, nil, nil)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).SendString("failed to get aggregators from config: " + err.Error())
+	}
+
+	errs := make(chan error, len(aggregators.Aggregators))
+	var wg sync.WaitGroup
+
+	validate := validator.New()
+	maxConcurrency := 20
+	sem := make(chan struct{}, maxConcurrency)
+
+	for _, aggregator := range aggregators.Aggregators {
+		wg.Add(1)
+		sem <- struct{}{}
+		go func(aggregator AggregatorInsertModel) {
+			defer wg.Done()
+			defer func() { <-sem }()
+
+			if err = validate.Struct(aggregator); err != nil {
+				log.Error().Err(err).Msg("failed to validate orakl config aggregator")
+				errs <- err
+				return
+			}
+
+			_, err := db.QueryRow[AggregatorModel](c.Context(), UpsertAggregator, map[string]any{
+				"name": aggregator.Name,
+			})
+			if err != nil {
+				log.Error().Err(err).Msg("failed to execute aggregator insert query")
+				errs <- err
+				return
+			}
+		}(aggregator)
+	}
+	wg.Wait()
+	close(errs)
+
+	var errorMessages []string
+	for err := range errs {
+		errorMessages = append(errorMessages, err.Error())
+	}
+
+	if len(errorMessages) > 0 {
+		return c.Status(fiber.StatusInternalServerError).JSON(errorMessages)
+	}
+
+	return c.Status(fiber.StatusOK).SendString("sync successful")
+}
+
 func activate(c *fiber.Ctx) error {
 	id := c.Params("id")
 	result, err := db.QueryRow[AggregatorModel](c.Context(), ActivateAggregator, map[string]any{"id": id})
@@ -148,4 +212,13 @@ func deactivate(c *fiber.Ctx) error {
 	}
 
 	return c.JSON(result)
+}
+
+func getConfigUrl() string {
+	// TODO: add chain validation (currently only supporting baobab and cypress)
+	chain := os.Getenv("CHAIN")
+	if chain == "" {
+		chain = "baobab"
+	}
+	return fmt.Sprintf("https://config.orakl.network/%s_aggregators.json", chain)
 }

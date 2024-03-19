@@ -2,6 +2,7 @@ package adapter
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"sync"
 
@@ -47,11 +48,11 @@ type AdapterDetailModel struct {
 	Feeds []FeedModel `json:"feeds"`
 }
 
-func syncFromOraklConfig(c *fiber.Ctx) error {
+func SyncFromOraklConfig(c *fiber.Ctx) error {
 	configUrl := getConfigUrl()
 
 	var adapters BulkAdapters
-	adapters, err := request.GetRequest[BulkAdapters](configUrl, nil, map[string]string{"Content-Type": "application/json"})
+	adapters, err := request.GetRequest[BulkAdapters](configUrl, nil, nil)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).SendString("failed to get orakl config: " + err.Error())
 	}
@@ -59,6 +60,7 @@ func syncFromOraklConfig(c *fiber.Ctx) error {
 	errs := make(chan error, len(adapters.Adapters))
 	var wg sync.WaitGroup
 
+	validate := validator.New()
 	maxConcurrency := 20
 	sem := make(chan struct{}, maxConcurrency)
 
@@ -68,7 +70,7 @@ func syncFromOraklConfig(c *fiber.Ctx) error {
 		go func(adapter AdapterInsertModel) {
 			defer wg.Done()
 			defer func() { <-sem }()
-			validate := validator.New()
+
 			if err = validate.Struct(adapter); err != nil {
 				log.Error().Err(err).Msg("failed to validate orakl config adapter")
 				errs <- err
@@ -112,7 +114,7 @@ func syncFromOraklConfig(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusInternalServerError).JSON(errorMessages)
 	}
 
-	return c.Status(fiber.StatusOK).SendString("syncing request sent")
+	return c.Status(fiber.StatusOK).SendString("sync successful")
 }
 
 func addFromOraklConfig(c *fiber.Ctx) error {
@@ -282,10 +284,10 @@ func deactivate(c *fiber.Ctx) error {
 }
 
 func getConfigUrl() string {
-	configUrl := os.Getenv("CONFIG_URL")
-	if configUrl == "" {
-		//defaults to baobab_adapters
-		configUrl = "https://config.orakl.network/baobab_adapters.json"
+	// TODO: add chain validation (currently only supporting baobab and cypress)
+	chain := os.Getenv("CHAIN")
+	if chain == "" {
+		chain = "baobab"
 	}
-	return configUrl
+	return fmt.Sprintf("https://config.orakl.network/%s_adapters.json", chain)
 }

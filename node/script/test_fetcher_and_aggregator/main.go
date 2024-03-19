@@ -43,7 +43,7 @@ func main() {
 		return
 	}
 
-	_, err = http.Post("http://localhost:"+os.Getenv("APP_PORT")+"/api/v1/aggregator/sync", "application/json", nil)
+	_, err = http.Post("http://localhost:"+os.Getenv("APP_PORT")+"/api/v1/aggregator/sync/adapter", "application/json", nil)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to sync from adapter table")
 		return
