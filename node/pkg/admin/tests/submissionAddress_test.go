@@ -1,5 +1,4 @@
 //nolint:all
-
 package tests
 
 import (
@@ -77,6 +76,9 @@ func TestSubmissionAddressInsert(t *testing.T) {
 
 	//cleanup
 	err = db.QueryWithoutResult(ctx, "DELETE FROM submission_addresses WHERE id = @id;", map[string]interface{}{"id": insertResult.Id})
+	if err != nil {
+		t.Fatalf("error cleaning up test: %v", err)
+	}
 }
 
 func TestSubmissionAddressGet(t *testing.T) {
