@@ -73,12 +73,12 @@ func main() {
 			return
 		}
 
-		host, ps, err := libp2p_setup.Setup(ctx, bootnode, listenPort)
+		host, ps, err := libp2p_setup.SetupFromBootApi(ctx, listenPort)
 		if err != nil {
 			log.Error().Err(err).Msg("Failed to setup libp2p")
 			return
 		}
-		a := aggregator.New(mb, *host, ps)
+		a := aggregator.New(mb, host, ps)
 		err = a.Run(ctx)
 		if err != nil {
 			log.Error().Err(err).Msg("Failed to start aggregator")

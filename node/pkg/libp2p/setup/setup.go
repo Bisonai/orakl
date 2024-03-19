@@ -2,7 +2,6 @@ package setup
 
 import (
 	"context"
-	"crypto/ed25519"
 	"crypto/rand"
 	"fmt"
 	"os"
@@ -29,86 +28,6 @@ type BootPeerModel struct {
 	Ip     string `db:"ip" json:"ip"`
 	Port   int    `db:"port" json:"port"`
 	HostId string `db:"host_id" json:"host_id"`
-}
-
-func SetBootNode(ctx context.Context, listenPort int, seed string) (*host.Host, error) {
-	var priv crypto.PrivKey
-	var err error
-	if seed == "" {
-		priv, _, err = crypto.GenerateKeyPairWithReader(crypto.Ed25519, 2048, rand.Reader)
-		if err != nil {
-			log.Error().Err(err).Msg("Error generating key pair")
-			return nil, err
-		}
-	} else {
-		hash := sha256.Sum256([]byte(seed))
-		rawKey := ed25519.NewKeyFromSeed(hash[:])
-		priv, err = crypto.UnmarshalEd25519PrivateKey(rawKey)
-		if err != nil {
-			log.Error().Err(err).Msg("Error unmarshalling private key")
-			return nil, err
-		}
-	}
-
-	h, err := makeHost(listenPort, priv)
-	if err != nil {
-		log.Error().Err(err).Msg("Error creating libp2p host")
-		return nil, err
-	}
-
-	_, err = utils.InitDHT(ctx, h, "")
-	if err != nil {
-		log.Error().Err(err).Msg("Error initializing DHT")
-		return nil, err
-	}
-
-	pi := peer.AddrInfo{
-		ID:    h.ID(),
-		Addrs: h.Addrs(),
-	}
-
-	for _, addr := range pi.Addrs {
-		fmt.Println(addr.String() + "/p2p/" + h.ID().String())
-	}
-
-	return &h, nil
-}
-
-func Setup(ctx context.Context, bootnodeStr string, port int) (*host.Host, *pubsub.PubSub, error) {
-	host, err := MakeHost(port)
-	if err != nil {
-		return nil, nil, err
-	}
-	ps, err := MakePubsub(ctx, host)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	if bootnodeStr != "" {
-		bootnode, bootErr := multiaddr.NewMultiaddr(bootnodeStr)
-		if bootErr != nil {
-			return nil, nil, bootErr
-		}
-
-		peerinfo, bootErr := peer.AddrInfoFromP2pAddr(bootnode)
-		if bootErr != nil {
-			return nil, nil, bootErr
-		}
-
-		bootErr = host.Connect(ctx, *peerinfo)
-		if bootErr != nil {
-			return nil, nil, bootErr
-		}
-	}
-
-	discoverString := "orakl-topic-discovery-2024"
-	go func() {
-		if err = utils.DiscoverPeers(ctx, host, discoverString, bootnodeStr); err != nil {
-			log.Error().Err(err).Msg("Error from DiscoverPeers")
-		}
-	}()
-
-	return &host, ps, nil
 }
 
 func SetupFromBootApi(ctx context.Context, port int) (host.Host, *pubsub.PubSub, error) {

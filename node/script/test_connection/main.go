@@ -16,14 +16,13 @@ func main() {
 	topicString := "orakl-test-discover-connection-time"
 
 	port := flag.Int("p", 10010, "libp2p port")
-	bootnode := flag.String("b", "", "bootnode")
 	flag.Parse()
 	if *port == 0 {
 		log.Fatal().Msg("Please provide a port to bind on with -p")
 	}
 
 	startTime := time.Now()
-	_, ps, err := libp2p_setup.Setup(ctx, *bootnode, *port)
+	_, ps, err := libp2p_setup.SetupFromBootApi(ctx, *port)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to setup libp2p")
 	}

@@ -49,40 +49,6 @@ func TestGetHostAddress(t *testing.T) {
 	}
 }
 
-func TestInitDHT(t *testing.T) {
-	h, err := setup.MakeHost(10001)
-	if err != nil {
-		t.Fatalf("Failed to make host: %v", err)
-	}
-	defer h.Close()
-
-	_, err = utils.InitDHT(context.Background(), h, "")
-	if err != nil {
-		t.Errorf("Failed to initialize DHT: %v", err)
-	}
-}
-
-func TestDiscoverPeers(t *testing.T) {
-	ctx := context.Background()
-	zerolog.SetGlobalLevel(zerolog.InfoLevel)
-	b, _ := setup.SetBootNode(ctx, 10003, "")
-	h1, _ := setup.MakeHost(10001)
-	h2, _ := setup.MakeHost(10002)
-
-	defer h1.Close()
-	defer h2.Close()
-
-	h1.Connect(ctx, (*b).Peerstore().PeerInfo((*b).ID()))
-	h2.Connect(ctx, (*b).Peerstore().PeerInfo((*b).ID()))
-
-	go utils.DiscoverPeers(context.Background(), h1, "test-discover-peers", (*b).Addrs()[0].String()+"/p2p/"+(*b).ID().String())
-	err := utils.DiscoverPeers(context.Background(), h2, "test-discover-peers", (*b).Addrs()[0].String()+"/p2p/"+(*b).ID().String())
-
-	if err != nil {
-		t.Errorf("Failed to discover peers: %v", err)
-	}
-}
-
 func TestSetupFromBootApi(t *testing.T) {
 
 	ctx := context.Background()
