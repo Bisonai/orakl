@@ -12,6 +12,7 @@ import (
 	"bisonai.com/orakl/node/pkg/raft"
 	"bisonai.com/orakl/node/pkg/utils/klaytn_helper"
 
+	"github.com/klaytn/klaytn/common"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 	"github.com/libp2p/go-libp2p/core/host"
 	"github.com/rs/zerolog/log"
@@ -129,16 +130,16 @@ func (r *ReporterNode) getLatestGlobalAggregates(ctx context.Context) ([]GlobalA
 }
 
 func (r *ReporterNode) report(ctx context.Context, aggregates []GlobalAggregate) error {
-	pairs, values, err := r.makeContractArgs(aggregates)
+	addresses, values, err := r.makeContractArgs(aggregates)
 	if err != nil {
 		log.Error().Err(err).Msg("makeContractArgs")
 		return err
 	}
 
-	err = r.reportDelegated(ctx, pairs, values)
+	err = r.reportDelegated(ctx, addresses, values)
 	if err != nil {
-		log.Error().Err(err).Msg("reportDelegated failed")
-		return r.reportDirect(ctx, pairs, values)
+		log.Error().Err(err).Msg("reporting direct")
+		return r.reportDirect(ctx, addresses, values)
 	}
 	return nil
 }
@@ -187,21 +188,21 @@ func (r *ReporterNode) isAggValid(aggregate GlobalAggregate) bool {
 	return aggregate.Round > lastSubmission
 }
 
-func (r *ReporterNode) makeContractArgs(aggregates []GlobalAggregate) ([]string, []*big.Int, error) {
-	pairs := make([]string, len(aggregates))
+func (r *ReporterNode) makeContractArgs(aggregates []GlobalAggregate) ([]common.Address, []*big.Int, error) {
+	addresses := make([]common.Address, len(aggregates))
 	values := make([]*big.Int, len(aggregates))
 	for i, agg := range aggregates {
-		if agg.Name == "" || agg.Value < 0 {
+		if agg.Name == "" || agg.Value < 0 || agg.Address == "" {
 			log.Error().Str("name", agg.Name).Int64("value", agg.Value).Msg("skipping invalid aggregate")
 			return nil, nil, errors.New("invalid aggregate exists")
 		}
-		pairs[i] = agg.Name
+		addresses[i] = common.HexToAddress(agg.Address)
 		values[i] = big.NewInt(agg.Value)
 	}
 
-	if len(pairs) == 0 || len(values) == 0 {
+	if len(addresses) == 0 || len(values) == 0 {
 		return nil, nil, errors.New("no valid aggregates")
 	}
 
-	return pairs, values, nil
+	return addresses, values, nil
 }
