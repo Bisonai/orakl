@@ -138,7 +138,7 @@ func (r *ReporterNode) report(ctx context.Context, aggregates []GlobalAggregate)
 
 	err = r.reportDelegated(ctx, addresses, values)
 	if err != nil {
-		log.Error().Err(err).Msg("reporting direct")
+		log.Error().Err(err).Msg("reporting directly")
 		return r.reportDirect(ctx, addresses, values)
 	}
 	return nil
