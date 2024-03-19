@@ -89,6 +89,8 @@ func TestStartReporterByAdmin(t *testing.T) {
 }
 
 func TestRestartReporterByAdmin(t *testing.T) {
+	// TODO: add checking for address mapping changes
+
 	ctx := context.Background()
 	cleanup, testItems, err := setup(ctx)
 	if err != nil {
