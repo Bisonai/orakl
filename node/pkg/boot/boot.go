@@ -67,6 +67,16 @@ func Run(ctx context.Context) error {
 }
 
 func RefreshJob(ctx context.Context) error {
+	peers, err := db.QueryRows[peer.PeerModel](ctx, peer.GetPeer, nil)
+	if err != nil {
+		log.Error().Err(err).Msg("Failed to get peers")
+		return err
+	}
+
+	if len(peers) == 0 {
+		return nil
+	}
+
 	bootPortStr := os.Getenv("BOOT_LISTEN_PORT")
 	if bootPortStr == "" {
 		log.Info().Msg("BOOT_PORT not set, defaulting to 10010")
@@ -82,12 +92,6 @@ func RefreshJob(ctx context.Context) error {
 	h, err := libp2p_setup.MakeHost(bootPort)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to make host")
-		return err
-	}
-
-	peers, err := db.QueryRows[peer.PeerModel](ctx, peer.GetPeer, nil)
-	if err != nil {
-		log.Error().Err(err).Msg("Failed to get peers")
 		return err
 	}
 
