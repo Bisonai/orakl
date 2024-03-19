@@ -215,9 +215,10 @@ func deactivate(c *fiber.Ctx) error {
 }
 
 func getConfigUrl() string {
+	// TODO: add chain validation (currently only supporting baobab and cypress)
 	chain := os.Getenv("CHAIN")
 	if chain == "" {
-		return "https://config.orakl.network/baobab_aggregators.json"
+		chain = "baobab"
 	}
 	return fmt.Sprintf("https://config.orakl.network/%s_aggregators.json", chain)
 }
