@@ -87,3 +87,27 @@ func TestStartReporterByAdmin(t *testing.T) {
 
 	assert.Equal(t, testItems.app.Reporter.isRunning, true)
 }
+
+func TestRestartReporterByAdmin(t *testing.T) {
+	ctx := context.Background()
+	cleanup, testItems, err := setup(ctx)
+	if err != nil {
+		t.Fatalf("error setting up test: %v", err)
+	}
+	defer cleanup()
+
+	testItems.app.subscribe(ctx)
+	testItems.app.setReporter(ctx, testItems.app.Host, testItems.app.Pubsub)
+
+	_, err = tests.RawPostRequest(testItems.admin, "/api/v1/reporter/activate", nil)
+	if err != nil {
+		t.Fatalf("error activating reporter: %v", err)
+	}
+
+	_, err = tests.RawPostRequest(testItems.admin, "/api/v1/reporter/refresh", nil)
+	if err != nil {
+		t.Fatalf("error refreshing reporter: %v", err)
+	}
+
+	assert.Equal(t, testItems.app.Reporter.isRunning, true)
+}
