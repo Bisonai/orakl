@@ -132,6 +132,7 @@ func SyncFromOraklConfig(c *fiber.Ctx) error {
 	errs := make(chan error, len(aggregators.Aggregators))
 	var wg sync.WaitGroup
 
+	validate := validator.New()
 	maxConcurrency := 20
 	sem := make(chan struct{}, maxConcurrency)
 
@@ -141,7 +142,7 @@ func SyncFromOraklConfig(c *fiber.Ctx) error {
 		go func(aggregator AggregatorInsertModel) {
 			defer wg.Done()
 			defer func() { <-sem }()
-			validate := validator.New()
+
 			if err = validate.Struct(aggregator); err != nil {
 				log.Error().Err(err).Msg("failed to validate orakl config aggregator")
 				errs <- err
@@ -170,7 +171,7 @@ func SyncFromOraklConfig(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusInternalServerError).JSON(errorMessages)
 	}
 
-	return c.Status(fiber.StatusOK).SendString("syncing request sent")
+	return c.Status(fiber.StatusOK).SendString("sync successful")
 }
 
 func activate(c *fiber.Ctx) error {

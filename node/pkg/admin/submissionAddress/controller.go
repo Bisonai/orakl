@@ -40,6 +40,7 @@ func SyncFromOraklConfig(c *fiber.Ctx) error {
 	errs := make(chan error, len(submissionAddresses.Addresses))
 	var wg sync.WaitGroup
 
+	validate := validator.New()
 	maxConcurrency := 20
 	sem := make(chan struct{}, maxConcurrency)
 
@@ -49,7 +50,7 @@ func SyncFromOraklConfig(c *fiber.Ctx) error {
 		go func(address SubmissionAddressInsertModel) {
 			defer wg.Done()
 			defer func() { <-sem }()
-			validate := validator.New()
+
 			if err := validate.Struct(address); err != nil {
 				log.Error().Err(err).Str("Name", address.Name).Str("Address", address.Address).Msg("failed to validate submission address")
 				errs <- err
@@ -76,7 +77,7 @@ func SyncFromOraklConfig(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusInternalServerError).JSON(errorMessages)
 	}
 
-	return c.Status(fiber.StatusOK).SendString("syncing request sent")
+	return c.Status(fiber.StatusOK).SendString("sync successful")
 }
 
 func insert(c *fiber.Ctx) error {
