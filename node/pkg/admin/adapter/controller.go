@@ -2,6 +2,7 @@ package adapter
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"sync"
 
@@ -47,11 +48,11 @@ type AdapterDetailModel struct {
 	Feeds []FeedModel `json:"feeds"`
 }
 
-func syncFromOraklConfig(c *fiber.Ctx) error {
+func SyncFromOraklConfig(c *fiber.Ctx) error {
 	configUrl := getConfigUrl()
 
 	var adapters BulkAdapters
-	adapters, err := request.GetRequest[BulkAdapters](configUrl, nil, map[string]string{"Content-Type": "application/json"})
+	adapters, err := request.GetRequest[BulkAdapters](configUrl, nil, nil)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).SendString("failed to get orakl config: " + err.Error())
 	}
@@ -282,10 +283,10 @@ func deactivate(c *fiber.Ctx) error {
 }
 
 func getConfigUrl() string {
-	configUrl := os.Getenv("CONFIG_URL")
-	if configUrl == "" {
+	chain := os.Getenv("CHAIN")
+	if chain == "" {
 		//defaults to baobab_adapters
-		configUrl = "https://config.orakl.network/baobab_adapters.json"
+		return "https://config.orakl.network/baobab_adapters.json"
 	}
-	return configUrl
+	return fmt.Sprintf("https://config.orakl.network/%s_adapters.json", chain)
 }

@@ -3,6 +3,10 @@ package aggregator
 const (
 	InsertAggregator = `INSERT INTO aggregators (name) VALUES (@name) RETURNING *;`
 
+	UpsertAggregator = `INSERT INTO aggregators (name) VALUES (@name)
+	ON CONFILCT (name) DO UPDATE SET active = true
+	RETURNING *;`
+
 	GetAggregator = `SELECT * FROM aggregators;`
 
 	GetAggregatorById = `SELECT * FROM aggregators WHERE id = @id;`

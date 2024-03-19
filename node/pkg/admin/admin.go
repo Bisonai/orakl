@@ -10,6 +10,7 @@ import (
 	"bisonai.com/orakl/node/pkg/admin/fetcher"
 	"bisonai.com/orakl/node/pkg/admin/proxy"
 	"bisonai.com/orakl/node/pkg/admin/reporter"
+	"bisonai.com/orakl/node/pkg/admin/submissionAddress"
 	"bisonai.com/orakl/node/pkg/admin/utils"
 	"bisonai.com/orakl/node/pkg/admin/wallet"
 	"bisonai.com/orakl/node/pkg/bus"
@@ -32,6 +33,9 @@ func Run(bus *bus.MessageBus) error {
 	v1.Get("/", func(c *fiber.Ctx) error {
 		return c.SendString("Orakl Node Admin API")
 	})
+
+	v1.Post("/sync", syncAll)
+
 	adapter.Routes(v1)
 	feed.Routes(v1)
 	proxy.Routes(v1)
@@ -51,4 +55,23 @@ func Run(bus *bus.MessageBus) error {
 		return err
 	}
 	return nil
+}
+
+func syncAll(c *fiber.Ctx) error {
+	err := adapter.SyncFromOraklConfig(c)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).SendString(err.Error())
+	}
+
+	err = aggregator.SyncFromOraklConfig(c)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).SendString(err.Error())
+	}
+
+	err = submissionAddress.SyncFromOraklConfig(c)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).SendString(err.Error())
+	}
+
+	return c.SendString("synced")
 }

@@ -11,6 +11,7 @@ import (
 	"bisonai.com/orakl/node/pkg/admin/fetcher"
 	"bisonai.com/orakl/node/pkg/admin/proxy"
 	"bisonai.com/orakl/node/pkg/admin/reporter"
+	"bisonai.com/orakl/node/pkg/admin/submissionAddress"
 	"bisonai.com/orakl/node/pkg/admin/utils"
 	"bisonai.com/orakl/node/pkg/admin/wallet"
 	"bisonai.com/orakl/node/pkg/bus"
@@ -25,11 +26,12 @@ type TestItems struct {
 }
 
 type TmpData struct {
-	aggregator aggregator.AggregatorModel
-	adapter    adapter.AdapterModel
-	feed       feed.FeedModel
-	proxy      proxy.ProxyModel
-	wallet     wallet.WalletModel
+	aggregator        aggregator.AggregatorModel
+	adapter           adapter.AdapterModel
+	submissionAddress submissionAddress.SubmissionAddressModel
+	feed              feed.FeedModel
+	proxy             proxy.ProxyModel
+	wallet            wallet.WalletModel
 }
 
 func setup(ctx context.Context) (func() error, *TestItems, error) {
@@ -64,6 +66,7 @@ func setup(ctx context.Context) (func() error, *TestItems, error) {
 	proxy.Routes(v1)
 	wallet.Routes(v1)
 	reporter.Routes(v1)
+	submissionAddress.Routes(v1)
 
 	return adminCleanup(testItems), testItems, nil
 }
@@ -101,6 +104,12 @@ func insertSampleData(ctx context.Context) (*TmpData, error) {
 	}
 	tmpData.wallet = tmpWallet
 
+	tmpSubmissionAddress, err := db.QueryRow[submissionAddress.SubmissionAddressModel](ctx, submissionAddress.InsertSubmissionAddress, map[string]any{"name": "test_submission_address", "address": "test_address"})
+	if err != nil {
+		return nil, err
+	}
+	tmpData.submissionAddress = tmpSubmissionAddress
+
 	return tmpData, nil
 }
 
@@ -121,6 +130,11 @@ func adminCleanup(testItems *TestItems) func() error {
 		}
 
 		_, err = db.QueryRow[proxy.ProxyModel](context.Background(), proxy.DeleteProxyById, map[string]any{"id": testItems.tmpData.proxy.Id})
+		if err != nil {
+			return err
+		}
+
+		_, err = db.QueryRow[submissionAddress.SubmissionAddressModel](context.Background(), submissionAddress.DeleteSubmissionAddressById, map[string]any{"id": testItems.tmpData.submissionAddress.Id})
 		if err != nil {
 			return err
 		}

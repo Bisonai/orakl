@@ -224,7 +224,7 @@ func TestAggregatorSyncWithAdapter(t *testing.T) {
 	}
 	defer cleanup()
 
-	syncResult, err := PostRequest[[]aggregator.AggregatorModel](testItems.app, "/api/v1/aggregator/sync", nil)
+	syncResult, err := PostRequest[[]aggregator.AggregatorModel](testItems.app, "/api/v1/aggregator/sync/adapter", nil)
 	if err != nil {
 		t.Fatalf("error syncing aggregator with adapter: %v", err)
 	}
