@@ -37,7 +37,7 @@ func main() {
 		return
 	}
 
-	host, ps, err := libp2p_setup.Setup(ctx, bootnode, listenPort)
+	host, ps, err := libp2p_setup.SetupFromBootApi(ctx, listenPort)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to setup libp2p")
 		return
@@ -68,7 +68,7 @@ func main() {
 	go func() {
 		defer wg.Done()
 
-		a := aggregator.New(mb, *host, ps)
+		a := aggregator.New(mb, host, ps)
 		aaggreegatorErr := a.Run(ctx)
 		if aaggreegatorErr != nil {
 			log.Error().Err(aaggreegatorErr).Msg("Failed to start aggregator")
@@ -80,7 +80,7 @@ func main() {
 	go func() {
 		defer wg.Done()
 
-		r := reporter.New(mb, *host, ps)
+		r := reporter.New(mb, host, ps)
 		reporterErr := r.Run(ctx)
 		if reporterErr != nil {
 			log.Error().Err(reporterErr).Msg("Failed to start reporter")

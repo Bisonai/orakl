@@ -54,12 +54,17 @@ func setup(ctx context.Context) (func() error, *TestItems, error) {
 
 	testItems.admin = admin
 
-	h, ps, err := libp2p_setup.Setup(ctx, "", 10001)
+	h, err := libp2p_setup.MakeHost(10001)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	app := New(mb, *h, ps)
+	ps, err := libp2p_setup.MakePubsub(ctx, h)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	app := New(mb, h, ps)
 	testItems.app = app
 
 	tmpData, err := insertSampleData(ctx)

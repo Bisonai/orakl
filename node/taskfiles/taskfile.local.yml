@@ -37,10 +37,6 @@ tasks:
   script-test-raft:
     dotenv: [".env"]
     cmds:
-      - go run ./script/test_raft/main.go -p={{.P}} -b={{.B}}
-  script-test-raft-with-boot-api:
-    dotenv: [".env"]
-    cmds:
       - go run ./script/test_raft_with_boot_api/main.go -p={{.P}}
 
   test-db:
