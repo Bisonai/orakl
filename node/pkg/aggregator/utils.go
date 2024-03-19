@@ -8,7 +8,7 @@ import (
 )
 
 func GetLatestLocalAggregateFromRdb(ctx context.Context, name string) (redisLocalAggregate, error) {
-	key := "latestAggregate:" + name
+	key := "localAggregate:" + name
 	var aggregate redisLocalAggregate
 	data, err := db.Get(ctx, key)
 	if err != nil {
@@ -24,6 +24,21 @@ func GetLatestLocalAggregateFromRdb(ctx context.Context, name string) (redisLoca
 
 func GetLatestLocalAggregateFromPgs(ctx context.Context, name string) (pgsLocalAggregate, error) {
 	return db.QueryRow[pgsLocalAggregate](ctx, SelectLatestLocalAggregateQuery, map[string]any{"name": name})
+}
+
+func GetLatestGlobalAggregateFromRdb(ctx context.Context, name string) (redisGlobalAggregate, error) {
+	key := "globalAggregate:" + name
+	var aggregate redisGlobalAggregate
+	data, err := db.Get(ctx, key)
+	if err != nil {
+		return aggregate, err
+	}
+
+	err = json.Unmarshal([]byte(data), &aggregate)
+	if err != nil {
+		return aggregate, err
+	}
+	return aggregate, nil
 }
 
 func FilterNegative(values []int64) []int64 {

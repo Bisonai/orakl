@@ -91,7 +91,7 @@ func insertSampleData(ctx context.Context) (*TmpData, error) {
 
 	localAggregateInsertTime := time.Now()
 
-	key := "latestAggregate:test-aggregate"
+	key := "localAggregate:test-aggregate"
 	data, err := json.Marshal(redisLocalAggregate{Value: int64(10), Timestamp: localAggregateInsertTime})
 	if err != nil {
 		return nil, err
@@ -130,7 +130,7 @@ func aggregatorCleanup(ctx context.Context, admin *fiber.App, testItems *TestIte
 			return err
 		}
 
-		err = db.Del(ctx, "latestAggregate:test-aggregate")
+		err = db.Del(ctx, "localAggregate:test-aggregate")
 		if err != nil {
 			return err
 		}

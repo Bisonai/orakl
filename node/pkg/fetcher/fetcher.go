@@ -264,7 +264,7 @@ func (a *App) insertPgsql(ctx context.Context, name string, value float64) error
 }
 
 func (a *App) insertRdb(ctx context.Context, name string, value float64) error {
-	key := "latestAggregate:" + name
+	key := "localAggregate:" + name
 	data, err := json.Marshal(redisAggregate{Value: int64(value), Timestamp: time.Now()})
 	if err != nil {
 		return err
