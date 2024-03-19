@@ -107,5 +107,23 @@ func (a *App) handleMessage(ctx context.Context, msg bus.Message) {
 			return
 		}
 		msg.Response <- bus.MessageResponse{Success: true}
+	case bus.REFRESH_REPORTER:
+		if msg.From != bus.ADMIN {
+			bus.HandleMessageError(errors.New("non-admin"), msg, "reporter received message from non-admin")
+			return
+		}
+		err := a.stopReporter()
+		if err != nil {
+			bus.HandleMessageError(err, msg, "failed to stop reporter")
+			return
+		}
+
+		err = a.startReporter(ctx)
+		if err != nil {
+			bus.HandleMessageError(err, msg, "failed to start reporter")
+			return
+		}
+		msg.Response <- bus.MessageResponse{Success: true}
 	}
+
 }
