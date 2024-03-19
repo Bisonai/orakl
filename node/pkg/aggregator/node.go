@@ -167,11 +167,25 @@ func (n *AggregatorNode) getLatestRoundId(ctx context.Context) (int64, error) {
 }
 
 func (n *AggregatorNode) insertGlobalAggregate(value int64, round int64) error {
-	_, err := db.QueryRow[globalAggregate](n.nodeCtx, InsertGlobalAggregateQuery, map[string]any{"name": n.Name, "value": value, "round": round})
+	err := n.insertPgsql(n.nodeCtx, value, round)
 	if err != nil {
 		return err
 	}
-	return nil
+	return n.insertRdb(n.nodeCtx, value, round)
+}
+
+func (n *AggregatorNode) insertPgsql(ctx context.Context, value int64, round int64) error {
+	return db.QueryWithoutResult(n.nodeCtx, InsertGlobalAggregateQuery, map[string]any{"name": n.Name, "value": value, "round": round})
+}
+
+func (n *AggregatorNode) insertRdb(ctx context.Context, value int64, round int64) error {
+	key := "globalAggregate:" + n.Name
+	data, err := json.Marshal(redisGlobalAggregate{Value: value, Round: round})
+	if err != nil {
+		log.Error().Err(err).Msg("failed to marshal global aggregate")
+		return err
+	}
+	return db.Set(ctx, key, string(data), time.Duration(5*time.Minute))
 }
 
 func (n *AggregatorNode) executeDeviation() error {

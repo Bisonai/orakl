@@ -118,5 +118,12 @@ func TestInsertGlobalAggregate(t *testing.T) {
 		t.Fatal("error getting latest round id")
 	}
 
+	redisResult, err := GetLatestGlobalAggregateFromRdb(ctx, "test-aggregate")
+	if err != nil {
+		t.Fatal("error getting latest global aggregate from rdb")
+	}
+	assert.Equal(t, redisResult.Value, int64(20))
+	assert.Equal(t, redisResult.Round, int64(2))
+
 	assert.Equal(t, roundId, int64(2))
 }

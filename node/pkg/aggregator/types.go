@@ -25,6 +25,11 @@ type redisLocalAggregate struct {
 	Timestamp time.Time `json:"timestamp"`
 }
 
+type redisGlobalAggregate struct {
+	Value int64 `json:"value"`
+	Round int64 `json:"round"`
+}
+
 type pgsLocalAggregate struct {
 	Name      string    `db:"name"`
 	Value     int64     `db:"value"`

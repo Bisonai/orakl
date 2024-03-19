@@ -93,13 +93,13 @@ func TestFetcherRun(t *testing.T) {
 	}
 
 	for _, fetcher := range app.Fetchers {
-		rdbResult, err := db.Get(ctx, "latestAggregate:"+fetcher.Name)
+		rdbResult, err := db.Get(ctx, "localAggregate:"+fetcher.Name)
 		if err != nil {
 			t.Fatalf("error reading from redis: %v", err)
 		}
 		assert.NotNil(t, rdbResult)
 
-		err = db.Del(ctx, "latestAggregate:"+fetcher.Name)
+		err = db.Del(ctx, "localAggregate:"+fetcher.Name)
 		if err != nil {
 			t.Fatalf("error removing from redis: %v", err)
 		}
@@ -158,13 +158,13 @@ func TestFetcherFetcherStart(t *testing.T) {
 
 	// check rdb and cleanup rdb
 	for _, fetcher := range app.Fetchers {
-		rdbResult, err := db.Get(ctx, "latestAggregate:"+fetcher.Name)
+		rdbResult, err := db.Get(ctx, "localAggregate:"+fetcher.Name)
 		if err != nil {
 			t.Fatalf("error reading from redis: %v", err)
 		}
 		assert.NotNil(t, rdbResult)
 
-		err = db.Del(ctx, "latestAggregate:"+fetcher.Name)
+		err = db.Del(ctx, "localAggregate:"+fetcher.Name)
 		if err != nil {
 			t.Fatalf("error removing from redis: %v", err)
 		}
@@ -227,13 +227,13 @@ func TestFetcherFetcherStop(t *testing.T) {
 
 	// check rdb and cleanup rdb
 	for _, fetcher := range app.Fetchers {
-		rdbResult, err := db.Get(ctx, "latestAggregate:"+fetcher.Name)
+		rdbResult, err := db.Get(ctx, "localAggregate:"+fetcher.Name)
 		if err != nil {
 			t.Fatalf("error reading from redis: %v", err)
 		}
 		assert.NotNil(t, rdbResult)
 
-		err = db.Del(ctx, "latestAggregate:"+fetcher.Name)
+		err = db.Del(ctx, "localAggregate:"+fetcher.Name)
 		if err != nil {
 			t.Fatalf("error removing from redis: %v", err)
 		}
@@ -420,7 +420,7 @@ func TestFetcherFetchAndInsertAdapter(t *testing.T) {
 			t.Fatalf("error cleaning up from db: %v", err)
 		}
 
-		rdbResult, err := db.Get(ctx, "latestAggregate:"+fetcher.Name)
+		rdbResult, err := db.Get(ctx, "localAggregate:"+fetcher.Name)
 		if err != nil {
 			t.Fatalf("error reading from redis: %v", err)
 		}
@@ -433,7 +433,7 @@ func TestFetcherFetchAndInsertAdapter(t *testing.T) {
 		assert.NotNil(t, redisAgg)
 		assert.NotNil(t, redisAgg.Value)
 
-		err = db.Del(ctx, "latestAggregate:"+fetcher.Name)
+		err = db.Del(ctx, "localAggregate:"+fetcher.Name)
 		if err != nil {
 			t.Fatalf("error removing from redis: %v", err)
 		}
