@@ -314,10 +314,7 @@ func (r *Raft) becomeLeader(ctx context.Context) {
 			case <-r.Resign:
 				log.Debug().Msg("resigning as leader")
 				leaderJobTimer.Stop()
-				if r.HeartbeatTicker != nil {
-					r.HeartbeatTicker.Stop()
-					r.HeartbeatTicker = nil
-				}
+				r.HeartbeatTicker.Stop()
 
 				return
 
