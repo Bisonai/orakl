@@ -26,7 +26,6 @@ func Run(ctx context.Context) error {
 		log.Error().Err(err).Msg("Failed to setup boot server")
 		return err
 	}
-	defer app.Shutdown()
 
 	v1 := app.Group("/api/v1")
 	v1.Get("/", func(c *fiber.Ctx) error {
@@ -63,6 +62,11 @@ func Run(ctx context.Context) error {
 		return err
 	}
 
+	err = app.Shutdown()
+	if err != nil {
+		log.Error().Err(err).Msg("Failed to shutdown boot server")
+		return err
+	}
 	return nil
 
 }
