@@ -41,7 +41,7 @@ func (a *App) setReporter(ctx context.Context, h host.Host, ps *pubsub.PubSub) e
 
 func (a *App) startReporter(ctx context.Context) error {
 	if a.Reporter.isRunning {
-		log.Debug().Msg("reporter already running")
+		log.Debug().Str("Player", "Reporter").Msg("reporter already running")
 		return errors.New("reporter already running")
 	}
 
@@ -56,7 +56,7 @@ func (a *App) startReporter(ctx context.Context) error {
 
 func (a *App) stopReporter() error {
 	if !a.Reporter.isRunning {
-		log.Debug().Msg("reporter not running")
+		log.Debug().Str("Player", "Reporter").Msg("reporter not running")
 		return errors.New("reporter not running")
 	}
 
@@ -66,17 +66,17 @@ func (a *App) stopReporter() error {
 }
 
 func (a *App) subscribe(ctx context.Context) {
-	log.Debug().Msg("subscribing to reporter topic")
+	log.Debug().Str("Player", "Reporter").Msg("subscribing to reporter topic")
 	channel := a.Bus.Subscribe(bus.REPORTER)
 	go func() {
-		log.Debug().Msg("start reporter subscription goroutine")
+		log.Debug().Str("Player", "Reporter").Msg("start reporter subscription goroutine")
 		for {
 			select {
 			case msg := <-channel:
-				log.Debug().Str("command", msg.Content.Command).Msg("received message from reporter topic")
+				log.Debug().Str("Player", "Reporter").Str("command", msg.Content.Command).Msg("received message from reporter topic")
 				go a.handleMessage(ctx, msg)
 			case <-ctx.Done():
-				log.Debug().Msg("stopping reporter subscription goroutine")
+				log.Debug().Str("Player", "Reporter").Msg("stopping reporter subscription goroutine")
 				return
 			}
 		}

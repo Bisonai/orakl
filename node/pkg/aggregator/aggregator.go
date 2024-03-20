@@ -77,9 +77,9 @@ func (a *App) startAggregator(ctx context.Context, aggregator *AggregatorNode) e
 		return errors.New("aggregator not found")
 	}
 
-	log.Debug().Str("name", aggregator.Name).Msg("starting aggregator")
+	log.Debug().Str("Player", "Aggregator").Str("name", aggregator.Name).Msg("starting aggregator")
 	if aggregator.isRunning {
-		log.Debug().Str("name", aggregator.Name).Msg("aggregator already running")
+		log.Debug().Str("Player", "Aggregator").Str("name", aggregator.Name).Msg("aggregator already running")
 		return nil
 	}
 
@@ -104,7 +104,7 @@ func (a *App) startAllAggregators(ctx context.Context) error {
 	for _, aggregator := range a.Aggregators {
 		err := a.startAggregator(ctx, aggregator)
 		if err != nil {
-			log.Error().Err(err).Str("name", aggregator.Name).Msg("failed to start aggregator")
+			log.Error().Str("Player", "Aggregator").Err(err).Str("name", aggregator.Name).Msg("failed to start aggregator")
 			return err
 		}
 		// starts with random sleep to avoid all aggregators starting at the same time
@@ -114,9 +114,9 @@ func (a *App) startAllAggregators(ctx context.Context) error {
 }
 
 func (a *App) stopAggregator(ctx context.Context, aggregator *AggregatorNode) error {
-	log.Debug().Str("name", aggregator.Name).Msg("stopping aggregator")
+	log.Debug().Str("Player", "Aggregator").Str("name", aggregator.Name).Msg("stopping aggregator")
 	if !aggregator.isRunning {
-		log.Debug().Str("name", aggregator.Name).Msg("aggregator already stopped")
+		log.Debug().Str("Player", "Aggregator").Str("name", aggregator.Name).Msg("aggregator already stopped")
 		return nil
 	}
 	if aggregator.nodeCancel == nil {
@@ -139,7 +139,7 @@ func (a *App) stopAllAggregators(ctx context.Context) error {
 	for _, aggregator := range a.Aggregators {
 		err := a.stopAggregator(ctx, aggregator)
 		if err != nil {
-			log.Error().Err(err).Str("name", aggregator.Name).Msg("failed to stop aggregator")
+			log.Error().Str("Player", "Aggregator").Err(err).Str("name", aggregator.Name).Msg("failed to stop aggregator")
 			return err
 		}
 	}
@@ -147,21 +147,22 @@ func (a *App) stopAllAggregators(ctx context.Context) error {
 }
 
 func (a *App) subscribe(ctx context.Context) {
-	log.Debug().Msg("subscribing to aggregator topics")
+	log.Debug().Str("Player", "Aggregator").Msg("subscribing to aggregator topics")
 	channel := a.Bus.Subscribe(bus.AGGREGATOR)
 	go func() {
-		log.Debug().Msg("starting aggregator subscription goroutine")
+		log.Debug().Str("Player", "Aggregator").Msg("starting aggregator subscription goroutine")
 		for {
 			select {
 			case msg := <-channel:
 				log.Debug().
+					Str("Player", "Aggregator").
 					Str("from", msg.From).
 					Str("to", msg.To).
 					Str("command", msg.Content.Command).
 					Msg("fetcher received bus message")
 				go a.handleMessage(ctx, msg)
 			case <-ctx.Done():
-				log.Debug().Msg("stopping aggregator subscription goroutine")
+				log.Debug().Str("Player", "Aggregator").Msg("stopping aggregator subscription goroutine")
 				return
 			}
 		}
@@ -183,7 +184,7 @@ func (a *App) handleMessage(ctx context.Context, msg bus.Message) {
 	// from fetcher: deviation related messages
 
 	if msg.To != bus.AGGREGATOR {
-		log.Debug().Msg("message not for aggregator")
+		log.Debug().Str("Player", "Aggregator").Msg("message not for aggregator")
 		return
 	}
 
@@ -193,34 +194,34 @@ func (a *App) handleMessage(ctx context.Context, msg bus.Message) {
 			bus.HandleMessageError(errors.New("non-admin"), msg, "aggregator received message from non-admin")
 			return
 		}
-		log.Debug().Msg("activate aggregator msg received")
+		log.Debug().Str("Player", "Aggregator").Msg("activate aggregator msg received")
 		aggregatorId, err := bus.ParseInt64MsgParam(msg, "id")
 		if err != nil {
 			bus.HandleMessageError(err, msg, "failed to parse aggregatorId")
 			return
 		}
 
-		log.Debug().Int64("aggregatorId", aggregatorId).Msg("activating aggregator")
+		log.Debug().Str("Player", "Aggregator").Int64("aggregatorId", aggregatorId).Msg("activating aggregator")
 		err = a.startAggregatorById(ctx, aggregatorId)
 		if err != nil {
 			bus.HandleMessageError(err, msg, "failed to start aggregator")
 			return
 		}
-		log.Debug().Msg("sending success response for activate aggregator")
+		log.Debug().Str("Player", "Aggregator").Msg("sending success response for activate aggregator")
 		msg.Response <- bus.MessageResponse{Success: true}
 	case bus.DEACTIVATE_AGGREGATOR:
 		if msg.From != bus.ADMIN {
 			bus.HandleMessageError(errors.New("non-admin"), msg, "aggregator received message from non-admin")
 			return
 		}
-		log.Debug().Msg("deactivate aggregator msg received")
+		log.Debug().Str("Player", "Aggregator").Msg("deactivate aggregator msg received")
 		aggregatorId, err := bus.ParseInt64MsgParam(msg, "id")
 		if err != nil {
 			bus.HandleMessageError(err, msg, "failed to parse aggregatorId")
 			return
 		}
 
-		log.Debug().Int64("aggregatorId", aggregatorId).Msg("deactivating aggregator")
+		log.Debug().Str("Player", "Aggregator").Int64("aggregatorId", aggregatorId).Msg("deactivating aggregator")
 		err = a.stopAggregatorById(ctx, aggregatorId)
 		if err != nil {
 			bus.HandleMessageError(err, msg, "failed to stop aggregator")
@@ -232,7 +233,7 @@ func (a *App) handleMessage(ctx context.Context, msg bus.Message) {
 			bus.HandleMessageError(errors.New("non-admin"), msg, "aggregator received message from non-admin")
 			return
 		}
-		log.Debug().Msg("refresh aggregator msg received")
+		log.Debug().Str("Player", "Aggregator").Msg("refresh aggregator msg received")
 		err := a.stopAllAggregators(ctx)
 		if err != nil {
 			bus.HandleMessageError(err, msg, "failed to stop all aggregators")
@@ -254,7 +255,7 @@ func (a *App) handleMessage(ctx context.Context, msg bus.Message) {
 			bus.HandleMessageError(errors.New("non-admin"), msg, "aggregator received message from non-admin")
 			return
 		}
-		log.Debug().Msg("stop aggregator msg received")
+		log.Debug().Str("Player", "Aggregator").Msg("stop aggregator msg received")
 		err := a.stopAllAggregators(ctx)
 		if err != nil {
 			bus.HandleMessageError(err, msg, "failed to stop all aggregators")
@@ -266,7 +267,7 @@ func (a *App) handleMessage(ctx context.Context, msg bus.Message) {
 			bus.HandleMessageError(errors.New("non-admin"), msg, "aggregator received message from non-admin")
 			return
 		}
-		log.Debug().Msg("start aggregator msg received")
+		log.Debug().Str("Player", "Aggregator").Msg("start aggregator msg received")
 		err := a.startAllAggregators(ctx)
 		if err != nil {
 			bus.HandleMessageError(err, msg, "failed to start all aggregators")
@@ -278,7 +279,7 @@ func (a *App) handleMessage(ctx context.Context, msg bus.Message) {
 			bus.HandleMessageError(errors.New("non-fetcher"), msg, "aggregator received deviation message from non-fetcher")
 			return
 		}
-		log.Debug().Msg("deviation message received")
+		log.Debug().Str("Player", "Aggregator").Msg("deviation message received")
 		aggregatorName, err := bus.ParseStringMsgParam(msg, "name")
 		if err != nil {
 			bus.HandleMessageError(err, msg, "failed to parse aggregator name")

@@ -43,21 +43,22 @@ func (a *App) Run(ctx context.Context) error {
 }
 
 func (a *App) subscribe(ctx context.Context) {
-	log.Debug().Msg("fetcher subscribing to message bus")
+	log.Debug().Str("Player", "Fetcher").Msg("fetcher subscribing to message bus")
 	channel := a.Bus.Subscribe(bus.FETCHER)
 	go func() {
-		log.Debug().Msg("fetcher message bus subscription goroutine started")
+		log.Debug().Str("Player", "Fetcher").Msg("fetcher message bus subscription goroutine started")
 		for {
 			select {
 			case msg := <-channel:
 				log.Debug().
+					Str("Player", "Fetcher").
 					Str("from", msg.From).
 					Str("to", msg.To).
 					Str("command", msg.Content.Command).
 					Msg("fetcher received message")
 				go a.handleMessage(ctx, msg)
 			case <-ctx.Done():
-				log.Debug().Msg("fetcher message bus subscription goroutine stopped")
+				log.Debug().Str("Player", "Fetcher").Msg("fetcher message bus subscription goroutine stopped")
 				return
 			}
 		}
@@ -66,25 +67,25 @@ func (a *App) subscribe(ctx context.Context) {
 
 func (a *App) handleMessage(ctx context.Context, msg bus.Message) {
 	if msg.From != bus.ADMIN {
-		log.Debug().Msg("fetcher received message from non-admin")
+		log.Debug().Str("Player", "Fetcher").Msg("fetcher received message from non-admin")
 		return
 	}
 
 	if msg.To != bus.FETCHER {
-		log.Debug().Msg("message not for fetcher")
+		log.Debug().Str("Player", "Fetcher").Msg("message not for fetcher")
 		return
 	}
 
 	switch msg.Content.Command {
 	case bus.ACTIVATE_FETCHER:
-		log.Debug().Msg("activate fetcher msg received")
+		log.Debug().Str("Player", "Fetcher").Msg("activate fetcher msg received")
 		adapterId, err := bus.ParseInt64MsgParam(msg, "id")
 		if err != nil {
 			bus.HandleMessageError(err, msg, "failed to parse adapterId")
 			return
 		}
 
-		log.Debug().Int64("adapterId", adapterId).Msg("activating fetcher")
+		log.Debug().Str("Player", "Fetcher").Int64("adapterId", adapterId).Msg("activating fetcher")
 		err = a.startFetcherById(ctx, adapterId)
 		if err != nil {
 			bus.HandleMessageError(err, msg, "failed to start fetcher")
@@ -92,14 +93,14 @@ func (a *App) handleMessage(ctx context.Context, msg bus.Message) {
 		}
 		msg.Response <- bus.MessageResponse{Success: true}
 	case bus.DEACTIVATE_FETCHER:
-		log.Debug().Msg("deactivate fetcher msg received")
+		log.Debug().Str("Player", "Fetcher").Msg("deactivate fetcher msg received")
 		adapterId, err := bus.ParseInt64MsgParam(msg, "id")
 		if err != nil {
 			bus.HandleMessageError(err, msg, "failed to parse adapterId")
 			return
 		}
 
-		log.Debug().Int64("adapterId", adapterId).Msg("deactivating fetcher")
+		log.Debug().Str("Player", "Fetcher").Int64("adapterId", adapterId).Msg("deactivating fetcher")
 		err = a.stopFetcherById(ctx, adapterId)
 		if err != nil {
 			bus.HandleMessageError(err, msg, "failed to stop fetcher")
@@ -107,7 +108,7 @@ func (a *App) handleMessage(ctx context.Context, msg bus.Message) {
 		}
 		msg.Response <- bus.MessageResponse{Success: true}
 	case bus.STOP_FETCHER_APP:
-		log.Debug().Msg("stopping all fetchers")
+		log.Debug().Str("Player", "Fetcher").Msg("stopping all fetchers")
 		err := a.stopAllFetchers(ctx)
 		if err != nil {
 			bus.HandleMessageError(err, msg, "failed to stop all fetchers")
@@ -115,7 +116,7 @@ func (a *App) handleMessage(ctx context.Context, msg bus.Message) {
 		}
 		msg.Response <- bus.MessageResponse{Success: true}
 	case bus.START_FETCHER_APP:
-		log.Debug().Msg("starting all fetchers")
+		log.Debug().Str("Player", "Fetcher").Msg("starting all fetchers")
 		err := a.startAllFetchers(ctx)
 		if err != nil {
 			bus.HandleMessageError(err, msg, "failed to start all fetchers")
@@ -139,14 +140,14 @@ func (a *App) handleMessage(ctx context.Context, msg bus.Message) {
 			return
 		}
 
-		log.Debug().Msg("refreshing fetcher")
+		log.Debug().Str("Player", "Fetcher").Msg("refreshing fetcher")
 		msg.Response <- bus.MessageResponse{Success: true}
 	}
 }
 
 func (a *App) startFetcher(ctx context.Context, fetcher *Fetcher) error {
 	if fetcher.isRunning {
-		log.Debug().Str("fetcher", fetcher.Name).Msg("fetcher already running")
+		log.Debug().Str("Player", "Fetcher").Str("fetcher", fetcher.Name).Msg("fetcher already running")
 		return nil
 	}
 	fetcherCtx, cancel := context.WithCancel(ctx)
@@ -157,23 +158,23 @@ func (a *App) startFetcher(ctx context.Context, fetcher *Fetcher) error {
 	ticker := time.NewTicker(FETCHER_FREQUENCY)
 
 	go func() {
-		log.Debug().Str("fetcher", fetcher.Name).Msg("starting fetcher goroutine")
+		log.Debug().Str("Player", "Fetcher").Str("fetcher", fetcher.Name).Msg("starting fetcher goroutine")
 		for {
 			select {
 			case <-ticker.C:
-				log.Debug().Str("fetcher", fetcher.Name).Msg("fetching and inserting")
+				log.Debug().Str("Player", "Fetcher").Str("fetcher", fetcher.Name).Msg("fetching and inserting")
 				err := a.fetchAndInsert(fetcherCtx, *fetcher)
 				if err != nil {
-					log.Error().Err(err).Msg("failed to fetch and insert")
+					log.Error().Str("Player", "Fetcher").Err(err).Msg("failed to fetch and insert")
 				}
 			case <-fetcherCtx.Done():
-				log.Debug().Str("fetcher", fetcher.Name).Msg("fetcher stopped")
+				log.Debug().Str("Player", "Fetcher").Str("fetcher", fetcher.Name).Msg("fetcher stopped")
 				return
 			}
 		}
 	}()
 
-	log.Debug().Str("fetcher", fetcher.Name).Msg("fetcher started")
+	log.Debug().Str("Player", "Fetcher").Str("fetcher", fetcher.Name).Msg("fetcher started")
 	return nil
 }
 
@@ -188,7 +189,7 @@ func (a *App) startAllFetchers(ctx context.Context) error {
 	for _, fetcher := range a.Fetchers {
 		err := a.startFetcher(ctx, fetcher)
 		if err != nil {
-			log.Error().Err(err).Str("fetcher", fetcher.Name).Msg("failed to start fetcher")
+			log.Error().Str("Player", "Fetcher").Err(err).Str("fetcher", fetcher.Name).Msg("failed to start fetcher")
 			return err
 		}
 		// starts with random sleep to avoid all fetchers starting at the same time
@@ -200,7 +201,7 @@ func (a *App) startAllFetchers(ctx context.Context) error {
 func (a *App) stopFetcher(ctx context.Context, fetcher *Fetcher) error {
 	log.Debug().Str("fetcher", fetcher.Name).Msg("stopping fetcher")
 	if !fetcher.isRunning {
-		log.Debug().Str("fetcher", fetcher.Name).Msg("fetcher already stopped")
+		log.Debug().Str("Player", "Fetcher").Str("fetcher", fetcher.Name).Msg("fetcher already stopped")
 		return nil
 	}
 	if fetcher.cancel == nil {
@@ -222,7 +223,7 @@ func (a *App) stopAllFetchers(ctx context.Context) error {
 	for _, fetcher := range a.Fetchers {
 		err := a.stopFetcher(ctx, fetcher)
 		if err != nil {
-			log.Error().Err(err).Str("fetcher", fetcher.Name).Msg("failed to stop fetcher")
+			log.Error().Str("Player", "Fetcher").Err(err).Str("fetcher", fetcher.Name).Msg("failed to stop fetcher")
 			return err
 		}
 	}
@@ -230,31 +231,31 @@ func (a *App) stopAllFetchers(ctx context.Context) error {
 }
 
 func (a *App) fetchAndInsert(ctx context.Context, fetcher Fetcher) error {
-	log.Debug().Str("fetcher", fetcher.Name).Msg("fetching and inserting")
+	log.Debug().Str("Player", "Fetcher").Str("fetcher", fetcher.Name).Msg("fetching and inserting")
 
 	results, err := a.fetch(fetcher)
 	if err != nil {
 		return err
 	}
-	log.Debug().Str("fetcher", fetcher.Name).Msg("fetch complete")
+	log.Debug().Str("Player", "Fetcher").Str("fetcher", fetcher.Name).Msg("fetch complete")
 
 	aggregated, err := calculator.GetFloatAvg(results)
 	if err != nil {
 		return err
 	}
-	log.Debug().Str("fetcher", fetcher.Name).Float64("aggregated", aggregated).Msg("aggregated")
+	log.Debug().Str("Player", "Fetcher").Str("fetcher", fetcher.Name).Float64("aggregated", aggregated).Msg("aggregated")
 
 	err = a.insertPgsql(ctx, fetcher.Name, aggregated)
 	if err != nil {
 		return err
 	}
-	log.Debug().Str("fetcher", fetcher.Name).Msg("inserted into pgsql")
+	log.Debug().Str("Player", "Fetcher").Str("fetcher", fetcher.Name).Msg("inserted into pgsql")
 
 	err = a.insertRdb(ctx, fetcher.Name, aggregated)
 	if err != nil {
 		return err
 	}
-	log.Debug().Str("fetcher", fetcher.Name).Msg("inserted into rdb")
+	log.Debug().Str("Player", "Fetcher").Str("fetcher", fetcher.Name).Msg("inserted into rdb")
 	return nil
 }
 
@@ -311,7 +312,7 @@ func (a *App) fetch(fetcher Fetcher) ([]float64, error) {
 		case result := <-dataChan:
 			data = append(data, result)
 		case err := <-errChan:
-			log.Error().Err(err).Msg("error in fetch")
+			log.Error().Str("Player", "Fetcher").Err(err).Msg("error in fetch")
 		}
 	}
 
@@ -332,7 +333,7 @@ func (a *App) requestFeed(definition Definition) (interface{}, error) {
 	if len(proxies) > 0 {
 		proxy := proxies[rand.Intn(len(proxies))]
 		proxyUrl := fmt.Sprintf("%s://%s:%d", proxy.Protocol, proxy.Host, proxy.Port)
-		log.Debug().Str("proxyUrl", proxyUrl).Msg("using proxy")
+		log.Debug().Str("Player", "Fetcher").Str("proxyUrl", proxyUrl).Msg("using proxy")
 		return a.requestWithProxy(definition, proxyUrl)
 	}
 

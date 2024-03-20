@@ -133,13 +133,13 @@ func (n *AggregatorNode) HandlePriceDataMessage(msg raft.Message) error {
 
 		median, err := calculator.GetInt64Med(filteredCollectedPrices)
 		if err != nil {
-			log.Error().Err(err).Msg("failed to get median")
+			log.Error().Str("Player", "Aggregator").Err(err).Msg("failed to get median")
 			return err
 		}
-		log.Debug().Int64("roundId", priceDataMessage.RoundID).Int64("global_aggregate", median).Msg("global aggregated")
+		log.Debug().Str("Player", "Aggregator").Int64("roundId", priceDataMessage.RoundID).Int64("global_aggregate", median).Msg("global aggregated")
 		err = n.insertGlobalAggregate(median, priceDataMessage.RoundID)
 		if err != nil {
-			log.Error().Err(err).Msg("failed to insert global aggregate")
+			log.Error().Str("Player", "Aggregator").Err(err).Msg("failed to insert global aggregate")
 			return err
 		}
 	}
@@ -182,7 +182,7 @@ func (n *AggregatorNode) insertRdb(ctx context.Context, value int64, round int64
 	key := "globalAggregate:" + n.Name
 	data, err := json.Marshal(redisGlobalAggregate{Value: value, Round: round})
 	if err != nil {
-		log.Error().Err(err).Msg("failed to marshal global aggregate")
+		log.Error().Str("Player", "Aggregator").Err(err).Msg("failed to marshal global aggregate")
 		return err
 	}
 	return db.Set(ctx, key, string(data), time.Duration(5*time.Minute))
