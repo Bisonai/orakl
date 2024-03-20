@@ -35,25 +35,25 @@ contract SubmissionProxy is Ownable, ITypeAndVersion {
     constructor() Ownable(msg.sender) {}
 
     function setMaxSubmission(uint256 _maxSubmission) external onlyOwner {
-	if (_maxSubmission == MIN_SUBMISSION || _maxSubmission > MAX_SUBMISSION) {
-	    revert InvalidMaxSubmission();
-	}
+        if (_maxSubmission == MIN_SUBMISSION || _maxSubmission > MAX_SUBMISSION) {
+            revert InvalidMaxSubmission();
+        }
         maxSubmission = _maxSubmission;
         emit MaxSubmissionSet(_maxSubmission);
     }
 
     function setExpirationPeriod(uint256 _expirationPeriod) external onlyOwner {
-	if (_expirationPeriod < MIN_EXPIRATION || _expirationPeriod > MAX_EXPIRATION) {
-	    revert InvalidExpirationPeriod();
-	}
+        if (_expirationPeriod < MIN_EXPIRATION || _expirationPeriod > MAX_EXPIRATION) {
+            revert InvalidExpirationPeriod();
+        }
         expirationPeriod = _expirationPeriod;
         emit ExpirationPeriodSet(_expirationPeriod);
     }
 
     function addOracle(address _oracle) external onlyOwner {
-	if (oracles[_oracle] != 0) {
-	    revert InvalidOracle();
-	}
+        if (oracles[_oracle] != 0) {
+            revert InvalidOracle();
+        }
 
         oracles[_oracle] = block.timestamp + expirationPeriod;
         emit OracleAdded(_oracle);

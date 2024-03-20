@@ -21,10 +21,7 @@ interface IFeed {
      * @return answer The oracle answer.
      * @return updatedAt Timestamp of the last update.
      */
-    function getRoundData(uint64 _roundId)
-        external
-        view
-        returns (uint64 roundId, int256 answer, uint256 updatedAt);
+    function getRoundData(uint64 _roundId) external view returns (uint64 roundId, int256 answer, uint256 updatedAt);
 
     /**
      * @notice Return the latest round data of the feed.
@@ -34,8 +31,5 @@ interface IFeed {
      * @return answer The oracle answer.
      * @return updatedAt Timestamp of the last update.
      */
-    function latestRoundData()
-        external
-        view
-        returns (uint64 roundId, int256 answer, uint256 updatedAt);
+    function latestRoundData() external view returns (uint64 roundId, int256 answer, uint256 updatedAt);
 }

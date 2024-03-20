@@ -22,7 +22,7 @@ contract Feed is Ownable, IFeed, ITypeAndVersion {
         uint64 updatedAt;
     }
 
-	event OraclePermissionsUpdated(address indexed oracle, bool indexed whitelisted);
+    event OraclePermissionsUpdated(address indexed oracle, bool indexed whitelisted);
     event FeedUpdated(int256 indexed answer, uint256 indexed roundId, uint256 updatedAt);
 
     error OnlyOracle();
@@ -32,8 +32,8 @@ contract Feed is Ownable, IFeed, ITypeAndVersion {
 
     modifier onlyOracle() {
         if (!whitelist[msg.sender]) {
-	    revert OnlyOracle();
-	}
+            revert OnlyOracle();
+        }
         _;
     }
 
@@ -58,11 +58,11 @@ contract Feed is Ownable, IFeed, ITypeAndVersion {
     function submit(int256 _answer) external onlyOracle {
         uint64 roundId_ = latestRoundId + 1;
 
-	rounds[roundId_].answer = _answer;
+        rounds[roundId_].answer = _answer;
         rounds[roundId_].updatedAt = uint64(block.timestamp);
 
-	emit FeedUpdated(_answer, roundId_, block.timestamp);
-	latestRoundId = roundId_;
+        emit FeedUpdated(_answer, roundId_, block.timestamp);
+        latestRoundId = roundId_;
     }
 
     /**
@@ -78,18 +78,15 @@ contract Feed is Ownable, IFeed, ITypeAndVersion {
      * whitelist
      * @param _added The list of oracles to be added to the whitelist
      */
-    function changeOracles(
-        address[] calldata _removed,
-        address[] calldata _added
-    ) external onlyOwner {
+    function changeOracles(address[] calldata _removed, address[] calldata _added) external onlyOwner {
         for (uint256 i = 0; i < _removed.length; i++) {
             removeOracle(_removed[i]);
         }
 
         for (uint256 i = 0; i < _added.length; i++) {
-	    if (_added[i] == address(0)) {
-		continue;
-	    }
+            if (_added[i] == address(0)) {
+                continue;
+            }
             addOracle(_added[i]);
         }
     }
@@ -160,7 +157,7 @@ contract Feed is Ownable, IFeed, ITypeAndVersion {
             revert OracleAlreadyEnabled();
         }
 
-	whitelist[_oracle] = true;
+        whitelist[_oracle] = true;
         oracles.push(_oracle);
         emit OraclePermissionsUpdated(_oracle, true);
     }
@@ -178,14 +175,14 @@ contract Feed is Ownable, IFeed, ITypeAndVersion {
             revert OracleNotEnabled();
         }
 
-	whitelist[_oracle] = false;
-	for (uint i = 0; i < oracles.length; i++) {
-	    if (oracles[i] == _oracle) {
-		oracles[i] = oracles[oracles.length - 1];
-		oracles.pop();
-		break;
-	    }
-	}
+        whitelist[_oracle] = false;
+        for (uint256 i = 0; i < oracles.length; i++) {
+            if (oracles[i] == _oracle) {
+                oracles[i] = oracles[oracles.length - 1];
+                oracles.pop();
+                break;
+            }
+        }
 
         emit OraclePermissionsUpdated(_oracle, false);
     }

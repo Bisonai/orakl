@@ -166,9 +166,9 @@ contract FeedRouter is Ownable, IFeedRouter {
     }
 
     function updateProxy(string calldata _feedName, address _proxyAddress) public onlyOwner {
-	if (_proxyAddress == address(0)) {
-	    revert InvalidProxyAddress();
-	}
+        if (_proxyAddress == address(0)) {
+            revert InvalidProxyAddress();
+        }
 
         feedProxies[_feedName] = _proxyAddress;
         emit RouterProxyAddressUpdated(_feedName, _proxyAddress);

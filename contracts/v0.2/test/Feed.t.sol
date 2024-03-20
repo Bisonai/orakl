@@ -18,61 +18,61 @@ contract FeedTest is Test {
     }
 
     function test_AddAndRemoveOracle() public {
-	address alice = makeAddr('alice');
-	address bob = makeAddr('bob');
+        address alice = makeAddr("alice");
+        address bob = makeAddr("bob");
 
         added.push(alice);
         added.push(bob);
 
-	feed.changeOracles(removed, added);
+        feed.changeOracles(removed, added);
         assertEq(feed.getOracles().length, 2);
 
-	// remove what has been added (switched parameters)
-	feed.changeOracles(added, removed);
+        // remove what has been added (switched parameters)
+        feed.changeOracles(added, removed);
         assertEq(feed.getOracles().length, 0);
     }
 
     function test_addZeroAddressOracle() public {
-	address[] memory added_ = new address[](1);
-	address[] memory removed_ = new address[](0);
-	added_[0] = address(0);
-	feed.changeOracles(removed_, added_);
-	assertEq(feed.getOracles().length, 0);
+        address[] memory added_ = new address[](1);
+        address[] memory removed_ = new address[](0);
+        added_[0] = address(0);
+        feed.changeOracles(removed_, added_);
+        assertEq(feed.getOracles().length, 0);
     }
 
     function test_RemoveNonexistantOracle() public {
-	address alice = makeAddr('alice');
+        address alice = makeAddr("alice");
 
-	removed.push(alice);
-	vm.expectRevert(Feed.OracleNotEnabled.selector);
-	feed.changeOracles(removed, added);
+        removed.push(alice);
+        vm.expectRevert(Feed.OracleNotEnabled.selector);
+        feed.changeOracles(removed, added);
     }
 
     function test_AddOracleTwice() public {
-	address alice = makeAddr('alice');
+        address alice = makeAddr("alice");
 
-	added.push(alice);
-	feed.changeOracles(removed, added);
-	vm.expectRevert(Feed.OracleAlreadyEnabled.selector);
-	feed.changeOracles(removed, added);
+        added.push(alice);
+        feed.changeOracles(removed, added);
+        vm.expectRevert(Feed.OracleAlreadyEnabled.selector);
+        feed.changeOracles(removed, added);
     }
 
     function test_SubmitAndReadResponse() public {
-	address alice = makeAddr('alice');
-	added.push(alice);
-	feed.changeOracles(removed, added);
+        address alice = makeAddr("alice");
+        added.push(alice);
+        feed.changeOracles(removed, added);
 
-	int256 expectedAnswer = 10;
-	uint256 expectedRoundId = 1;
-	uint256 expectedUpdatedAt = block.timestamp;
+        int256 expectedAnswer = 10;
+        uint256 expectedRoundId = 1;
+        uint256 expectedUpdatedAt = block.timestamp;
 
-	vm.prank(alice);
+        vm.prank(alice);
         vm.expectEmit(true, true, true, true);
         emit FeedUpdated(expectedAnswer, expectedRoundId, expectedUpdatedAt);
         feed.submit(expectedAnswer);
         (uint80 roundId, int256 answer, uint256 updatedAt) = feed.latestRoundData();
-	assertEq(roundId, expectedRoundId);
+        assertEq(roundId, expectedRoundId);
         assertEq(answer, expectedAnswer);
-	assertEq(updatedAt, expectedUpdatedAt);
+        assertEq(updatedAt, expectedUpdatedAt);
     }
 }

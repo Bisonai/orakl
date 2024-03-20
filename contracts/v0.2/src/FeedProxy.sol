@@ -36,16 +36,10 @@ contract FeedProxy is Ownable, IFeedProxy, ITypeAndVersion {
         override
         returns (uint64 id, int256 answer, uint256 updatedAt)
     {
-	return feed.getRoundData(roundId);
+        return feed.getRoundData(roundId);
     }
 
-    function latestRoundData()
-        public
-        view
-        virtual
-        override
-        returns (uint64 id, int256 answer, uint256 updatedAt)
-    {
+    function latestRoundData() public view virtual override returns (uint64 id, int256 answer, uint256 updatedAt) {
         return feed.latestRoundData();
     }
 
@@ -101,9 +95,9 @@ contract FeedProxy is Ownable, IFeedProxy, ITypeAndVersion {
     }
 
     function proposeFeed(address _feed) external onlyOwner {
-	if (_feed == address(0)) {
-	    revert InvalidProposedFeed();
-	}
+        if (_feed == address(0)) {
+            revert InvalidProposedFeed();
+        }
         proposedFeed = IFeedProxy(_feed);
         emit FeedProposed(address(feed), _feed);
     }
@@ -119,6 +113,6 @@ contract FeedProxy is Ownable, IFeedProxy, ITypeAndVersion {
     }
 
     function setFeed(address _feed) internal {
-	feed = IFeedProxy(_feed);
+        feed = IFeedProxy(_feed);
     }
 }
