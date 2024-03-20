@@ -52,6 +52,15 @@ func Set(ctx context.Context, key string, value string, exp time.Duration) error
 	return setRedis(ctx, rdb, key, value, exp)
 }
 
+func MGet(ctx context.Context, keys []string) ([]any, error) {
+	rdbConn, err := GetRedisConn(ctx)
+	if err != nil {
+		return nil, err
+	}
+	rdb = rdbConn
+	return rdb.MGet(ctx, keys...).Result()
+}
+
 func Get(ctx context.Context, key string) (string, error) {
 	rdbConn, err := GetRedisConn(ctx)
 	if err != nil {
