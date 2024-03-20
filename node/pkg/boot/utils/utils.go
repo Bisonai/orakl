@@ -18,6 +18,7 @@ import (
 func Setup(ctx context.Context) (*fiber.App, error) {
 	_, err := db.GetPool(ctx)
 	if err != nil {
+		log.Error().Err(err).Msg("error getting db pool")
 		return nil, errors.New("error getting db pool")
 	}
 
