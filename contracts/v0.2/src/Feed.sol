@@ -4,22 +4,34 @@ pragma solidity ^0.8.24;
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {IFeed} from "./interfaces/IFeed.sol";
 
-/// @title Feed contract
-/// @author Bisonai Labs
+/**
+ * @title Feed contract
+ * @author Bisonai Labs
+ * @notice A contract that stores the historical and latest answers, and
+ * the timestamp submitted by a whitelisted set of oracles. The
+ * contract owner can add or remove oracles from the whitelist using
+ * `changeOracles` function.
+ * @dev A set of oracles is represented with `oracles` list and
+ * `whitelist` mapping. The submitted answers are expected to be
+ * submitted directly by whitelisted EOA oracles or through a
+ * `SubmissionProxy` contract.
+ */
 contract Feed is Ownable, IFeed {
     uint8 public override decimals;
     string public override description;
 
-    uint64 private latestRoundId;
-    mapping(uint64 => Round) internal rounds;
-
-    address[] private oracles;
-    mapping(address => bool) private whitelist;
-
+    // round data
     struct Round {
         int256 answer;
         uint64 updatedAt;
     }
+
+    uint64 private latestRoundId;
+    mapping(uint64 => Round) internal rounds;
+
+    // whitelisted oracles
+    address[] private oracles;
+    mapping(address => bool) private whitelist;
 
     event OraclePermissionsUpdated(address indexed oracle, bool indexed whitelisted);
     event FeedUpdated(int256 indexed answer, uint256 indexed roundId, uint256 updatedAt);
@@ -112,8 +124,7 @@ contract Feed is Ownable, IFeed {
     }
 
     /**
-     * @notice Return the timestamp of the latest round update
-     * @return The timestamp of the latest round update
+     * @inheritdoc IFeed
      */
     function latestRoundUpdatedAt() external view returns (uint256) {
         return rounds[latestRoundId].updatedAt;
@@ -148,7 +159,8 @@ contract Feed is Ownable, IFeed {
     /**
      * @notice Attempt to add oracle to a set of whitelisted oracles.
      * @dev If the oracle is already in the whitelist, it will revert
-     * with `OracleAlreadyEnabled` error.
+     * with `OracleAlreadyEnabled` error. If oracle is successfully
+     * added, `OraclePermissionsUpdated` event is emitted.
      * @param _oracle The address of the oracle to be whitelisted
      */
     function addOracle(address _oracle) private {
@@ -165,7 +177,8 @@ contract Feed is Ownable, IFeed {
      * @notice Attempt to remove oracle from a set of whitelisted
      * oracles.
      * @dev If the oracle is not in the whitelist, it will revert with
-     * `OracleNotEnabled` error.
+     * `OracleNotEnabled` error. If oracle is successfully removed,
+     * `OraclePermissionsUpdated` event is emitted.
      * @param _oracle The address of the oracle to be removed from the
      * whitelist
      */

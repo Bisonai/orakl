@@ -33,5 +33,15 @@ interface IFeed {
      */
     function latestRoundData() external view returns (uint64 roundId, int256 answer, uint256 updatedAt);
 
+    /**
+     * @notice Return the timestamp of the latest round update
+     * @return The timestamp of the latest round update
+     */
+    function latestRoundUpdatedAt() external view returns (uint256);
+
+    /**
+     * @notice Return the version and type of the feed.
+     * @return typeAndVersion The type and version of the feed.
+     */
     function typeAndVersion() external view returns (string memory);
 }
