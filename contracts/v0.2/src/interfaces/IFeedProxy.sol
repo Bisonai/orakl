@@ -4,6 +4,9 @@ pragma solidity ^0.8.24;
 import {IFeed} from "./IFeed.sol";
 
 interface IFeedProxy is IFeed {
+    /**
+     * @notice return the address of the proposed feed.
+     */
     function getProposedFeed() external view returns (address);
 
     function proposedGetRoundData(uint64 roundId)
@@ -18,9 +21,5 @@ interface IFeedProxy is IFeed {
 
     function getFeed() external view returns (address);
 
-    /**
-     * @notice the type and version of aggregator to which proxy
-     * points to.
-     */
-    function typeAndVersion() external view returns (string memory);
+
 }

@@ -3,6 +3,7 @@ pragma solidity ^0.8.24;
 
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {IFeedProxy} from "./interfaces/IFeedProxy.sol";
+import {ITypeAndVersion} from "./interfaces/ITypeAndVersion.sol";
 
 /**
  * @title A trusted proxy for updating where current answers are read from
@@ -10,7 +11,7 @@ import {IFeedProxy} from "./interfaces/IFeedProxy.sol";
  * CurrentAnswerInterface but delegates where it reads from to the owner, who is
  * trusted to update it.
  */
-contract FeedProxy is Ownable, IFeedProxy {
+contract FeedProxy is Ownable, IFeedProxy, ITypeAndVersion {
     IFeedProxy public feed;
     IFeedProxy private proposedFeed;
 
@@ -79,7 +80,7 @@ contract FeedProxy is Ownable, IFeedProxy {
     }
 
     /**
-     * @inheritdoc IFeedProxy
+     * @inheritdoc ITypeAndVersion
      */
     function typeAndVersion() external view returns (string memory) {
         return feed.typeAndVersion();
