@@ -2,6 +2,8 @@ package reporter
 
 import (
 	"context"
+	"fmt"
+	"strings"
 	"time"
 
 	"bisonai.com/orakl/node/pkg/bus"
@@ -21,13 +23,15 @@ const (
 	MAX_RETRY_DELAY         = 500 * time.Millisecond
 	FUNCTION_STRING         = "batchSubmit(address[] memory _addresses, int256[] memory _prices)"
 
-	GET_LATEST_GLOBAL_AGGREGATE_QUERY = `
-		SELECT value, round
-		FROM global_aggregates
-		WHERE name = @name
-		ORDER BY round DESC
-		LIMIT 1;
-	`
+	GET_LATEST_GLOBAL_AGGREGATES_QUERY = `
+		SELECT ga.name, ga.value, ga.round, ga.timestamp, sa.address
+		FROM global_aggregates ga
+		JOIN (
+			SELECT name, MAX(round) as max_round
+			FROM global_aggregates
+			GROUP BY name
+		) subq ON ga.name = subq.name AND ga.round = subq.max_round
+		INNER JOIN submission_addresses sa ON ga.name = sa.name;`
 )
 
 type SubmissionAddress struct {
@@ -64,4 +68,23 @@ type GlobalAggregate struct {
 	Name  string `db:"name" json:"name"`
 	Value int64  `db:"value" json:"value"`
 	Round int64  `db:"round" json:"round"`
+}
+
+func makeGetLatestGlobalAggregatesQuery(names []string) string {
+	queryNames := make([]string, len(names))
+	for i, name := range names {
+		queryNames[i] = fmt.Sprintf("'%s'", name)
+	}
+
+	q := fmt.Sprintf(`
+	SELECT ga.name, ga.value, ga.round
+	FROM global_aggregates ga
+	JOIN (
+		SELECT name, MAX(round) as max_round
+		FROM global_aggregates
+		WHERE name IN (%s)
+		GROUP BY name
+	) subq ON ga.name = subq.name AND ga.round = subq.max_round;`, strings.Join(queryNames, ","))
+
+	return q
 }

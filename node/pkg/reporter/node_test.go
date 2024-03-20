@@ -3,6 +3,7 @@ package reporter
 
 import (
 	"context"
+	"fmt"
 	"math/big"
 	"testing"
 
@@ -88,10 +89,9 @@ func TestFilterInvalidAggregates(t *testing.T) {
 	defer cleanup()
 	testItems.app.setReporter(ctx, testItems.app.Host, testItems.app.Pubsub)
 	aggregates := []GlobalAggregate{{
-		Name:    "test-aggregate",
-		Value:   15,
-		Round:   1,
-		Address: "0x1234",
+		Name:  "test-aggregate",
+		Value: 15,
+		Round: 1,
 	}}
 	result := testItems.app.Reporter.filterInvalidAggregates(aggregates)
 	assert.Equal(t, result, aggregates)
@@ -110,10 +110,9 @@ func TestIsAggValid(t *testing.T) {
 	defer cleanup()
 	testItems.app.setReporter(ctx, testItems.app.Host, testItems.app.Pubsub)
 	agg := GlobalAggregate{
-		Name:    "test-aggregate",
-		Value:   15,
-		Round:   1,
-		Address: "0x1234",
+		Name:  "test-aggregate",
+		Value: 15,
+		Round: 1,
 	}
 	result := testItems.app.Reporter.isAggValid(agg)
 	assert.Equal(t, result, true)
@@ -132,16 +131,54 @@ func TestMakeContractArgs(t *testing.T) {
 	defer cleanup()
 	testItems.app.setReporter(ctx, testItems.app.Host, testItems.app.Pubsub)
 	agg := GlobalAggregate{
-		Name:    "test-aggregate",
-		Value:   15,
-		Round:   1,
-		Address: "0x1234",
+		Name:  "test-aggregate",
+		Value: 15,
+		Round: 1,
 	}
 	addresses, values, err := testItems.app.Reporter.makeContractArgs([]GlobalAggregate{agg})
 	if err != nil {
 		t.Fatal("error making contract args")
 	}
 
-	assert.Equal(t, addresses[0], common.HexToAddress(agg.Address))
+	assert.Equal(t, addresses[0], testItems.app.Reporter.SubmissionPairs[agg.Name].Address)
 	assert.Equal(t, values[0], big.NewInt(15))
+}
+
+func TestGetLatestGlobalAggregatesRdb(t *testing.T) {
+	ctx := context.Background()
+	cleanup, testItems, err := setup(ctx)
+	if err != nil {
+		t.Fatalf("error setting up test: %v", err)
+	}
+	defer cleanup()
+
+	testItems.app.setReporter(ctx, testItems.app.Host, testItems.app.Pubsub)
+
+	result, err := testItems.app.Reporter.getLatestGlobalAggregatesRdb(ctx)
+	if err != nil {
+		t.Fatal("error getting latest global aggregates from rdb")
+	}
+
+	assert.Equal(t, result[0].Name, testItems.tmpData.globalAggregate.Name)
+	assert.Equal(t, result[0].Value, testItems.tmpData.globalAggregate.Value)
+}
+
+func TestGetLatestGlobalAggregatesPgsql(t *testing.T) {
+	ctx := context.Background()
+	cleanup, testItems, err := setup(ctx)
+	if err != nil {
+		t.Fatalf("error setting up test: %v", err)
+	}
+	defer cleanup()
+
+	testItems.app.setReporter(ctx, testItems.app.Host, testItems.app.Pubsub)
+
+	result, err := testItems.app.Reporter.getLatestGlobalAggregatesPgsql(ctx)
+	if err != nil {
+		fmt.Println(err)
+		t.Fatal("error getting latest global aggregates from pgs")
+	}
+
+	assert.Equal(t, result[0].Name, testItems.tmpData.globalAggregate.Name)
+	assert.Equal(t, result[0].Value, testItems.tmpData.globalAggregate.Value)
 }

@@ -3,9 +3,11 @@ package reporter
 import (
 	"context"
 	"crypto/rand"
+	"encoding/json"
 	"errors"
 	"math/big"
 	"os"
+	"strings"
 	"time"
 
 	"bisonai.com/orakl/node/pkg/db"
@@ -131,7 +133,54 @@ func (r *ReporterNode) handleCustomMessage(msg raft.Message) error {
 }
 
 func (r *ReporterNode) getLatestGlobalAggregates(ctx context.Context) ([]GlobalAggregate, error) {
-	return db.QueryRows[GlobalAggregate](ctx, GET_LATEST_GLOBAL_AGGREGATES_QUERY, nil)
+	result, err := r.getLatestGlobalAggregatesRdb(ctx)
+	if err != nil {
+		log.Error().Err(err).Msg("getLatestGlobalAggregatesRdb failed, trying to get from pgsql")
+		return r.getLatestGlobalAggregatesPgsql(ctx)
+	}
+	return result, nil
+}
+
+func (r *ReporterNode) getLatestGlobalAggregatesPgsql(ctx context.Context) ([]GlobalAggregate, error) {
+	names := make([]string, 0, len(r.SubmissionPairs))
+	for name := range r.SubmissionPairs {
+		names = append(names, name)
+	}
+
+	q := makeGetLatestGlobalAggregatesQuery(names)
+	return db.QueryRows[GlobalAggregate](ctx, q, nil)
+}
+
+func (r *ReporterNode) getLatestGlobalAggregatesRdb(ctx context.Context) ([]GlobalAggregate, error) {
+	keys := make([]string, 0, len(r.SubmissionPairs))
+
+	for name := range r.SubmissionPairs {
+		keys = append(keys, "globalAggregate:"+name)
+	}
+
+	result, err := db.MGet(ctx, keys)
+	if err != nil {
+		log.Error().Err(err).Msg("failed to get latest global aggregates")
+		return nil, err
+	}
+
+	aggregates := make([]GlobalAggregate, 0, len(result))
+	for i, agg := range result {
+		if agg == nil {
+			log.Error().Str("key", keys[i]).Msg("missing aggregate")
+			continue
+		}
+		var aggregate GlobalAggregate
+		err = json.Unmarshal([]byte(agg.(string)), &aggregate)
+		if err != nil {
+			log.Error().Err(err).Str("key", keys[i]).Msg("failed to unmarshal aggregate")
+			continue
+		}
+		aggregate.Name = strings.TrimPrefix(keys[i], "globalAggregate:")
+		aggregates = append(aggregates, aggregate)
+	}
+
+	return aggregates, nil
 }
 
 func (r *ReporterNode) report(ctx context.Context, aggregates []GlobalAggregate) error {
@@ -197,11 +246,11 @@ func (r *ReporterNode) makeContractArgs(aggregates []GlobalAggregate) ([]common.
 	addresses := make([]common.Address, len(aggregates))
 	values := make([]*big.Int, len(aggregates))
 	for i, agg := range aggregates {
-		if agg.Name == "" || agg.Value < 0 || agg.Address == "" {
+		if agg.Name == "" || agg.Value < 0 {
 			log.Error().Str("name", agg.Name).Int64("value", agg.Value).Msg("skipping invalid aggregate")
 			return nil, nil, errors.New("invalid aggregate exists")
 		}
-		addresses[i] = common.HexToAddress(agg.Address)
+		addresses[i] = r.SubmissionPairs[agg.Name].Address
 		values[i] = big.NewInt(agg.Value)
 	}
 
