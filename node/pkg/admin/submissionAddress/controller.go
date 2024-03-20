@@ -28,6 +28,10 @@ type BulkAddresses struct {
 	Addresses []SubmissionAddressInsertModel `json:"result"`
 }
 
+type AggregatorName struct {
+	Name string `json:"name"`
+}
+
 func SyncFromOraklConfig(c *fiber.Ctx) error {
 	configUrl := getConfigUrl()
 
@@ -78,6 +82,58 @@ func SyncFromOraklConfig(c *fiber.Ctx) error {
 	}
 
 	return c.Status(fiber.StatusOK).SendString("sync successful")
+}
+
+func syncWithAggregator(c *fiber.Ctx) error {
+	pairNames, err := db.QueryRows[AggregatorName](c.Context(), GetAggregatorNames, nil)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).SendString("failed to execute aggregator sync with adapter query: " + err.Error())
+	}
+
+	configUrl := getConfigUrl()
+
+	var submissionAddresses BulkAddresses
+	submissionAddresses, err = request.GetRequest[BulkAddresses](configUrl, nil, nil)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).SendString("failed to get orakl config: " + err.Error())
+	}
+
+	for _, address := range submissionAddresses.Addresses {
+		if containsName(pairNames, address.Name) {
+			_, err := insertSubmissionAddress(c.Context(), address)
+			if err != nil {
+				return c.Status(fiber.StatusInternalServerError).SendString("failed to execute submission address insert query: " + err.Error())
+			}
+		}
+	}
+
+	return c.Status(fiber.StatusOK).SendString("sync successful")
+}
+
+func addFromOraklConfig(c *fiber.Ctx) error {
+	configUrl := getConfigUrl()
+	name := c.Params("name")
+
+	if name == "" {
+		return c.Status(fiber.StatusBadRequest).SendString("name is required")
+	}
+
+	var submissionAddresses BulkAddresses
+	submissionAddresses, err := request.GetRequest[BulkAddresses](configUrl, nil, nil)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).SendString("failed to get orakl config: " + err.Error())
+	}
+
+	for _, address := range submissionAddresses.Addresses {
+		if address.Name == name {
+			result, err := insertSubmissionAddress(c.Context(), address)
+			if err != nil {
+				return c.Status(fiber.StatusInternalServerError).SendString("failed to execute submission address insert query: " + err.Error())
+			}
+			return c.JSON(result)
+		}
+	}
+	return c.Status(fiber.StatusNotFound).SendString("name not found in orakl config")
 }
 
 func insert(c *fiber.Ctx) error {
@@ -172,4 +228,13 @@ func getConfigUrl() string {
 		chain = "baobab"
 	}
 	return fmt.Sprintf("https://config.orakl.network/%s_aggregators.json", chain)
+}
+
+func containsName(names []AggregatorName, target string) bool {
+	for _, name := range names {
+		if name.Name == target {
+			return true
+		}
+	}
+	return false
 }

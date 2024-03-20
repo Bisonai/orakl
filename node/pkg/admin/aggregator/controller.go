@@ -174,6 +174,39 @@ func SyncFromOraklConfig(c *fiber.Ctx) error {
 	return c.Status(fiber.StatusOK).SendString("sync successful")
 }
 
+func addFromOraklConfig(c *fiber.Ctx) error {
+	configUrl := getConfigUrl()
+	name := c.Params("name")
+
+	if name == "" {
+		return c.Status(fiber.StatusBadRequest).SendString("name is required")
+	}
+
+	var aggregators BulkAggregators
+	aggregators, err := request.GetRequest[BulkAggregators](configUrl, nil, nil)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).SendString("failed to get orakl config: " + err.Error())
+	}
+
+	validate := validator.New()
+	for _, aggregator := range aggregators.Aggregators {
+		if aggregator.Name == name {
+			if err := validate.Struct(aggregator); err != nil {
+				return c.Status(fiber.StatusInternalServerError).SendString("failed to validate orakl config aggregator: " + err.Error())
+			}
+
+			result, err := db.QueryRow[AggregatorModel](c.Context(), UpsertAggregator, map[string]any{
+				"name": aggregator.Name,
+			})
+			if err != nil {
+				return c.Status(fiber.StatusInternalServerError).SendString("failed to execute aggregator insert query: " + err.Error())
+			}
+			return c.JSON(result)
+		}
+	}
+	return c.Status(fiber.StatusNotFound).SendString("aggregator not found in orakl config")
+}
+
 func activate(c *fiber.Ctx) error {
 	id := c.Params("id")
 	result, err := db.QueryRow[AggregatorModel](c.Context(), ActivateAggregator, map[string]any{"id": id})

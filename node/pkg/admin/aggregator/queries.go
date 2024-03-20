@@ -4,7 +4,7 @@ const (
 	InsertAggregator = `INSERT INTO aggregators (name) VALUES (@name) RETURNING *;`
 
 	UpsertAggregator = `INSERT INTO aggregators (name) VALUES (@name)
-	ON CONFILCT (name) DO UPDATE SET active = true
+	ON CONFLICT (name) DO UPDATE SET active = true
 	RETURNING *;`
 
 	GetAggregator = `SELECT * FROM aggregators;`
