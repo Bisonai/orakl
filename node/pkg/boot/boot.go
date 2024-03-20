@@ -16,7 +16,7 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-const REFRESH_INTERVAL = 30 * time.Second
+const REFRESH_INTERVAL = 60 * time.Second
 
 func Run(ctx context.Context) error {
 
