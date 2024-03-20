@@ -113,13 +113,7 @@ contract Feed is Ownable, IFeed {
     /**
      * @inheritdoc IFeed
      */
-    function latestRoundData()
-        external
-        view
-        virtual
-        override
-        returns (uint64 roundId, int256 answer, uint256 updatedAt)
-    {
+    function latestRoundData() external view virtual override returns (uint64 id, int256 answer, uint256 updatedAt) {
         return getRoundData(latestRoundId);
     }
 
@@ -145,7 +139,7 @@ contract Feed is Ownable, IFeed {
         view
         virtual
         override
-        returns (uint64 roundId, int256 answer, uint256 updatedAt)
+        returns (uint64 id, int256 answer, uint256 updatedAt)
     {
         Round memory r = rounds[_roundId];
 
