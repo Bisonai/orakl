@@ -16,7 +16,7 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-const REFRESH_INTERVAL = 60 * time.Second
+const REFRESH_INTERVAL = 30 * time.Second
 
 func Run(ctx context.Context) error {
 
@@ -39,18 +39,18 @@ func Run(ctx context.Context) error {
 		port = "8089"
 	}
 
-	refreshTimer := time.NewTimer(REFRESH_INTERVAL)
+	refreshTicker := time.NewTicker(REFRESH_INTERVAL)
 	go func() {
 		for {
 			select {
-			case <-refreshTimer.C:
+			case <-refreshTicker.C:
 				err = RefreshJob(ctx)
 				if err != nil {
 					log.Error().Err(err).Msg("Failed to refresh peers")
 				}
 			case <-ctx.Done():
 				log.Debug().Msg("context cancelled")
-				refreshTimer.Stop()
+				refreshTicker.Stop()
 				return
 			}
 		}
@@ -72,6 +72,7 @@ func Run(ctx context.Context) error {
 }
 
 func RefreshJob(ctx context.Context) error {
+	log.Info().Msg("Refreshing peers")
 	peers, err := db.QueryRows[peer.PeerModel](ctx, peer.GetPeer, nil)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to get peers")
