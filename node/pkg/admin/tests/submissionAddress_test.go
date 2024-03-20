@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"testing"
 
+	"bisonai.com/orakl/node/pkg/admin/aggregator"
 	"bisonai.com/orakl/node/pkg/admin/submissionAddress"
 	"bisonai.com/orakl/node/pkg/db"
 	"github.com/stretchr/testify/assert"
@@ -24,7 +25,7 @@ func TestSubmissionAddressSync(t *testing.T) {
 		t.Fatalf("error getting submission addresses before: %v", err)
 	}
 
-	_, err = RawPostRequest(testItems.app, "/api/v1/submission-address/sync", nil)
+	_, err = RawPostRequest(testItems.app, "/api/v1/submission-address/sync/config", nil)
 	if err != nil {
 		t.Fatalf("error syncing submission addresses: %v", err)
 	}
@@ -167,4 +168,76 @@ func TestSubmissionAddressUpdateById(t *testing.T) {
 
 	assert.Equal(t, readResult.Name, mockSubmissionAddress1.Name)
 	assert.Equal(t, readResult.Address, mockSubmissionAddress1.Address)
+}
+
+func TestSubmissionAddressSyncWithAggregator(t *testing.T) {
+	ctx := context.Background()
+	cleanup, testItems, err := setup(ctx)
+	if err != nil {
+		t.Fatalf("error setting up test: %v", err)
+	}
+	defer cleanup()
+
+	// first add an aggregator into table
+	mockAggregator := aggregator.AggregatorInsertModel{
+		Name: "ADA-USDT",
+	}
+	tmpAggregatorInsertResult, err := PostRequest[aggregator.AggregatorModel](testItems.app, "/api/v1/aggregator", mockAggregator)
+	if err != nil {
+		t.Fatalf("error inserting aggregator: %v", err)
+	}
+
+	readResultBefore, err := GetRequest[[]submissionAddress.SubmissionAddressModel](testItems.app, "/api/v1/submission-address", nil)
+	if err != nil {
+		t.Fatalf("error getting submission addresses before: %v", err)
+	}
+
+	_, err = RawPostRequest(testItems.app, "/api/v1/submission-address/sync/aggregator", nil)
+	if err != nil {
+		t.Fatalf("error syncing submission addresses with aggregator")
+	}
+
+	readResultAfter, err := GetRequest[[]submissionAddress.SubmissionAddressModel](testItems.app, "/api/v1/submission-address", nil)
+	if err != nil {
+		t.Fatalf("error getting submission addresses after: %v", err)
+	}
+
+	assert.Greaterf(t, len(readResultAfter), len(readResultBefore), "expected to have more submission addresses after syncing")
+
+	//cleanup
+	err = db.QueryWithoutResult(ctx, "DELETE FROM aggregators WHERE id = @id;", map[string]any{"id": tmpAggregatorInsertResult.Id})
+	if err != nil {
+		t.Fatalf("error cleaning up test: %v", err)
+	}
+
+	err = db.QueryWithoutResult(ctx, "DELETE FROM submission_addresses;", nil)
+	if err != nil {
+		t.Fatalf("error cleaning up test: %v", err)
+	}
+}
+
+func TestSubmissionAddressAddFromOraklConfig(t *testing.T) {
+	ctx := context.Background()
+	cleanup, testItems, err := setup(ctx)
+	if err != nil {
+		t.Fatalf("error setting up test: %v", err)
+	}
+	defer cleanup()
+
+	readResultBefore, err := GetRequest[[]submissionAddress.SubmissionAddressModel](testItems.app, "/api/v1/submission-address", nil)
+	if err != nil {
+		t.Fatalf("error getting submission addresses before: %v", err)
+	}
+
+	_, err = RawPostRequest(testItems.app, "/api/v1/submission-address/sync/config/"+"ADA-USDT", nil)
+	if err != nil {
+		t.Fatalf("error adding submission address from orakl config: %v", err)
+	}
+
+	readResultAfter, err := GetRequest[[]submissionAddress.SubmissionAddressModel](testItems.app, "/api/v1/submission-address", nil)
+	if err != nil {
+		t.Fatalf("error getting submission addresses after: %v", err)
+	}
+
+	assert.Greaterf(t, len(readResultAfter), len(readResultBefore), "expected to have more submission addresses after adding from orakl config")
 }

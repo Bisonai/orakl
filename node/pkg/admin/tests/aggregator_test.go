@@ -237,3 +237,66 @@ func TestAggregatorSyncWithAdapter(t *testing.T) {
 		t.Fatalf("error cleaning up test: %v", err)
 	}
 }
+
+func TestAggregatorSyncWithOraklConfig(t *testing.T) {
+	ctx := context.Background()
+	cleanup, testItems, err := setup(ctx)
+	if err != nil {
+		t.Fatalf("error setting up test: %v", err)
+	}
+	defer cleanup()
+
+	readResultBefore, err := GetRequest[[]aggregator.AggregatorModel](testItems.app, "/api/v1/aggregator", nil)
+	if err != nil {
+		t.Fatalf("error getting aggregators before: %v", err)
+	}
+
+	_, err = RawPostRequest(testItems.app, "/api/v1/aggregator/sync/config", nil)
+	if err != nil {
+		t.Fatalf("error syncing aggregator with orakl config: %v", err)
+	}
+
+	readResultAfter, err := GetRequest[[]aggregator.AggregatorModel](testItems.app, "/api/v1/aggregator", nil)
+	if err != nil {
+		t.Fatalf("error getting aggregators before: %v", err)
+	}
+
+	assert.Greaterf(t, len(readResultAfter), len(readResultBefore), "expected to have more aggregators after syncing with orakl config")
+
+	// cleanup
+	_, err = db.QueryRow[aggregator.AggregatorModel](context.Background(), "DELETE FROM aggregators;", nil)
+	if err != nil {
+		t.Fatalf("error cleaning up test: %v", err)
+	}
+}
+
+func TestAggregatorAddFromOraklConfig(t *testing.T) {
+	ctx := context.Background()
+	cleanup, testItems, err := setup(ctx)
+	if err != nil {
+		t.Fatalf("error setting up test: %v", err)
+	}
+	defer cleanup()
+
+	readResultBefore, err := GetRequest[[]aggregator.AggregatorModel](testItems.app, "/api/v1/aggregator", nil)
+	if err != nil {
+		t.Fatalf("error getting aggregators before: %v", err)
+	}
+
+	result, err := PostRequest[aggregator.AggregatorModel](testItems.app, "/api/v1/aggregator/sync/config/ADA-USDT", nil)
+	if err != nil {
+		t.Fatalf("error adding aggregator from orakl config: %v", err)
+	}
+
+	assert.Equal(t, result.Name, "ADA-USDT")
+
+	readResultAfter, err := GetRequest[[]aggregator.AggregatorModel](testItems.app, "/api/v1/aggregator", nil)
+	if err != nil {
+		t.Fatalf("error getting aggregators after: %v", err)
+	}
+
+	assert.Greaterf(t, len(readResultAfter), len(readResultBefore), "expected to have more aggregators after adding from orakl config")
+
+	// cleanup
+	_, err = db.QueryRow[aggregator.AggregatorModel](context.Background(), "DELETE FROM aggregators;", nil)
+}

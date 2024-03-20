@@ -16,6 +16,7 @@ func Routes(router fiber.Router) {
 
 	aggregator.Post("/sync/adapter", syncWithAdapter)
 	aggregator.Post("/sync/config", SyncFromOraklConfig)
+	aggregator.Post("/sync/config/:name", addFromOraklConfig)
 	aggregator.Get("/:id", getById)
 	aggregator.Delete("/:id", deleteById)
 	aggregator.Post("/activate/:id", activate)
