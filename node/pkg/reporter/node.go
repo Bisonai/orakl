@@ -63,7 +63,7 @@ func (r *ReporterNode) retry(job func() error) error {
 	for i := 0; i < MAX_RETRY; i++ {
 		n, err := rand.Int(rand.Reader, big.NewInt(100))
 		if err != nil {
-			log.Error().Err(err).Msg("failed to generate jitter for retry timeout")
+			log.Error().Str("Player", "Reporter").Err(err).Msg("failed to generate jitter for retry timeout")
 			n = big.NewInt(0)
 		}
 		failureTimeout += failureTimeout + time.Duration(n.Int64())*time.Millisecond
@@ -73,7 +73,7 @@ func (r *ReporterNode) retry(job func() error) error {
 
 		err = job()
 		if err != nil {
-			log.Error().Err(err).Msg("job failed")
+			log.Error().Str("Player", "Reporter").Err(err).Msg("job failed")
 			time.Sleep(failureTimeout)
 			continue
 		}
@@ -83,24 +83,26 @@ func (r *ReporterNode) retry(job func() error) error {
 }
 
 func (r *ReporterNode) leaderJob() error {
+	start := time.Now()
+	r.Raft.IncreaseTerm()
 	ctx := context.Background()
 
 	job := func() error {
 		aggregates, err := r.getLatestGlobalAggregates(ctx)
 		if err != nil {
-			log.Error().Err(err).Msg("GetLatestGlobalAggregates")
+			log.Error().Str("Player", "Reporter").Err(err).Msg("GetLatestGlobalAggregates")
 			return err
 		}
 
 		validAggregates := r.filterInvalidAggregates(aggregates)
 		if len(validAggregates) == 0 {
-			log.Error().Msg("no valid aggregates to report")
+			log.Error().Str("Player", "Reporter").Msg("no valid aggregates to report")
 			return nil
 		}
 
 		err = r.report(ctx, validAggregates)
 		if err != nil {
-			log.Error().Err(err).Msg("Report")
+			log.Error().Str("Player", "Reporter").Err(err).Msg("Report")
 			return err
 		}
 
@@ -109,13 +111,14 @@ func (r *ReporterNode) leaderJob() error {
 			pair.LastSubmission = agg.Round
 			r.SubmissionPairs[agg.Name] = pair
 		}
+		log.Debug().Str("Player", "Reporter").Dur("duration", time.Since(start)).Msg("reporting done")
 		return nil
 	}
 
 	err := r.retry(job)
 	if err != nil {
 		r.resignLeader()
-		log.Error().Err(err).Msg("failed to report")
+		log.Error().Str("Player", "Reporter").Err(err).Msg("failed to report")
 		return errors.New("failed to report")
 	}
 
@@ -135,7 +138,7 @@ func (r *ReporterNode) handleCustomMessage(msg raft.Message) error {
 func (r *ReporterNode) getLatestGlobalAggregates(ctx context.Context) ([]GlobalAggregate, error) {
 	result, err := r.getLatestGlobalAggregatesRdb(ctx)
 	if err != nil {
-		log.Error().Err(err).Msg("getLatestGlobalAggregatesRdb failed, trying to get from pgsql")
+		log.Error().Str("Player", "Reporter").Err(err).Msg("getLatestGlobalAggregatesRdb failed, trying to get from pgsql")
 		return r.getLatestGlobalAggregatesPgsql(ctx)
 	}
 	return result, nil
@@ -160,20 +163,20 @@ func (r *ReporterNode) getLatestGlobalAggregatesRdb(ctx context.Context) ([]Glob
 
 	result, err := db.MGet(ctx, keys)
 	if err != nil {
-		log.Error().Err(err).Msg("failed to get latest global aggregates")
+		log.Error().Str("Player", "Reporter").Err(err).Msg("failed to get latest global aggregates")
 		return nil, err
 	}
 
 	aggregates := make([]GlobalAggregate, 0, len(result))
 	for i, agg := range result {
 		if agg == nil {
-			log.Error().Str("key", keys[i]).Msg("missing aggregate")
+			log.Error().Str("Player", "Reporter").Str("key", keys[i]).Msg("missing aggregate")
 			continue
 		}
 		var aggregate GlobalAggregate
 		err = json.Unmarshal([]byte(agg.(string)), &aggregate)
 		if err != nil {
-			log.Error().Err(err).Str("key", keys[i]).Msg("failed to unmarshal aggregate")
+			log.Error().Str("Player", "Reporter").Err(err).Str("key", keys[i]).Msg("failed to unmarshal aggregate")
 			continue
 		}
 		aggregate.Name = strings.TrimPrefix(keys[i], "globalAggregate:")
@@ -186,13 +189,13 @@ func (r *ReporterNode) getLatestGlobalAggregatesRdb(ctx context.Context) ([]Glob
 func (r *ReporterNode) report(ctx context.Context, aggregates []GlobalAggregate) error {
 	addresses, values, err := r.makeContractArgs(aggregates)
 	if err != nil {
-		log.Error().Err(err).Msg("makeContractArgs")
+		log.Error().Str("Player", "Reporter").Err(err).Msg("makeContractArgs")
 		return err
 	}
 
 	err = r.reportDelegated(ctx, addresses, values)
 	if err != nil {
-		log.Error().Err(err).Msg("reporting directly")
+		log.Error().Str("Player", "Reporter").Err(err).Msg("reporting directly")
 		return r.reportDirect(ctx, addresses, values)
 	}
 	return nil
@@ -201,7 +204,7 @@ func (r *ReporterNode) report(ctx context.Context, aggregates []GlobalAggregate)
 func (r *ReporterNode) reportDirect(ctx context.Context, args ...interface{}) error {
 	rawTx, err := r.TxHelper.MakeDirectTx(ctx, r.contractAddress, FUNCTION_STRING, args...)
 	if err != nil {
-		log.Error().Err(err).Msg("MakeDirectTx")
+		log.Error().Str("Player", "Reporter").Err(err).Msg("MakeDirectTx")
 		return err
 	}
 
@@ -211,13 +214,13 @@ func (r *ReporterNode) reportDirect(ctx context.Context, args ...interface{}) er
 func (r *ReporterNode) reportDelegated(ctx context.Context, args ...interface{}) error {
 	rawTx, err := r.TxHelper.MakeFeeDelegatedTx(ctx, r.contractAddress, FUNCTION_STRING, args...)
 	if err != nil {
-		log.Error().Err(err).Msg("MakeFeeDelegatedTx")
+		log.Error().Str("Player", "Reporter").Err(err).Msg("MakeFeeDelegatedTx")
 		return err
 	}
 
 	signedTx, err := r.TxHelper.GetSignedFromDelegator(rawTx)
 	if err != nil {
-		log.Error().Err(err).Msg("GetSignedFromDelegator")
+		log.Error().Str("Player", "Reporter").Err(err).Msg("GetSignedFromDelegator")
 		return err
 	}
 
@@ -247,7 +250,7 @@ func (r *ReporterNode) makeContractArgs(aggregates []GlobalAggregate) ([]common.
 	values := make([]*big.Int, len(aggregates))
 	for i, agg := range aggregates {
 		if agg.Name == "" || agg.Value < 0 {
-			log.Error().Str("name", agg.Name).Int64("value", agg.Value).Msg("skipping invalid aggregate")
+			log.Error().Str("Player", "Reporter").Str("name", agg.Name).Int64("value", agg.Value).Msg("skipping invalid aggregate")
 			return nil, nil, errors.New("invalid aggregate exists")
 		}
 		addresses[i] = r.SubmissionPairs[agg.Name].Address
@@ -268,12 +271,12 @@ func (r *ReporterNode) loadSubmissionPairs(ctx context.Context) error {
 
 	submissionAddresses, err := db.QueryRows[SubmissionAddress](ctx, "SELECT * FROM submission_addresses;", nil)
 	if err != nil {
-		log.Error().Err(err).Msg("failed to load submission addresses")
+		log.Error().Str("Player", "Reporter").Err(err).Msg("failed to load submission addresses")
 		return err
 	}
 
 	if len(submissionAddresses) == 0 {
-		log.Error().Msg("no submission addresses found")
+		log.Error().Str("Player", "Reporter").Msg("no submission addresses found")
 		return errors.New("no submission addresses found")
 	}
 
