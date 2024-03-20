@@ -25,13 +25,13 @@ interface IFeedProxy is IFeed {
     function proposedLatestRoundData() external view returns (uint64 id, int256 answer, uint256 updatedAt);
 
     /**
-     * @notice Return the address of the feed.
+     * @notice Get address of the feed.
      * @return The address of the feed.
      */
     function getFeed() external view returns (address);
 
     /**
-     * @notice Return the address of the proposed feed.
+     * @notice Get address of the proposed feed.
      * @return The address of the proposed feed.
      */
     function getProposedFeed() external view returns (address);

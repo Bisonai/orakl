@@ -5,7 +5,7 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {IFeed} from "./interfaces/IFeed.sol";
 
 /**
- * @title Feed contract
+ * @title Orakl Network Feed
  * @author Bisonai Labs
  * @notice A contract that stores the historical and latest answers, and
  * the timestamp submitted by a whitelisted set of oracles. The
@@ -103,7 +103,7 @@ contract Feed is Ownable, IFeed {
     }
 
     /**
-     * @notice Return the list of whitelisted oracles
+     * @notice Get list of whitelisted oracles
      * @return The list of whitelisted oracles
      */
     function getOracles() external view returns (address[] memory) {

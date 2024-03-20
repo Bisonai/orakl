@@ -6,7 +6,10 @@ import {IFeedRouter} from "./interfaces/IFeedRouter.sol";
 import {IFeedProxy} from "./interfaces/IFeedProxy.sol";
 
 /**
- * @title Orakl Network Aggregator Router
+ * @title Orakl Network Feed Router
+ * @author Bisonai Labs
+ * 
+ * 
  * @notice The `FeedRouter` is the main contract needed to read Orakl
  * Network Data Feeds. The interface is similar to the `AggregatorProxy`
  * contract but requires an extra string parameter called `feedName`. The
@@ -17,18 +20,25 @@ import {IFeedProxy} from "./interfaces/IFeedProxy.sol";
 contract FeedRouter is Ownable, IFeedRouter {
     mapping(string => address) public feedProxies;
 
-    error InvalidProxyAddress();
-
     event RouterProxyAddressUpdated(string feedName, address indexed proxyAddress);
     event RouterProxyAddressBulkUpdated(string[] feedNames, address[] proxyAddresses);
 
+    error InvalidProxyAddress();
+
     modifier validFeed(string calldata _feedName) {
-        require(feedProxies[_feedName] != address(0), "feed not set in router");
+        require(feedProxies[_feedName] != address(0), "Feed not set in router");
         _;
     }
 
+    /**
+     * @notice Construct a new `FeedRouter` contract.
+     * @dev The deployer of the contract will become the owner.
+     */
     constructor() Ownable(msg.sender) {}
 
+    /**
+     * @inheritdoc IFeedRouter
+     */
     function updateProxyBulk(string[] calldata _feedNames, address[] calldata _proxyAddresses) external onlyOwner {
         require(_feedNames.length > 0 && _feedNames.length == _proxyAddresses.length, "invalid input");
 
@@ -40,24 +50,7 @@ contract FeedRouter is Ownable, IFeedRouter {
     }
 
     /**
-     * @notice get data about a round. Consumers are encouraged to check
-     * that they're receiving fresh data by inspecting the updatedAt and
-     * answeredInRound return values.
-     * Note that different underlying implementations of AggregatorV3Interface
-     * have slightly different semantics for some of the return values. Consumers
-     * should determine what implementations they expect to receive
-     * data from and validate that they can properly handle return data from all
-     * of them.
-     * @param _feedName the name of the datafeed (ex. BTC-USDT)
-     * @param _roundId the requested round ID as presented through the proxy, this
-     * is made up of the aggregator's round ID with the phase ID encoded in the
-     * two highest order bytes
-     * @return id is the round ID from the aggregator for which the data was
-     * retrieved combined with an phase to ensure that round IDs get larger as
-     * time moves forward.
-     * @return answer is the answer for the given round
-     * @return updatedAt is the timestamp when the round last was updated (i.e.
-     * answer was last computed)
+     * @inheritdoc IFeedRouter
      */
     function getRoundData(string calldata _feedName, uint64 _roundId)
         external
@@ -69,21 +62,7 @@ contract FeedRouter is Ownable, IFeedRouter {
     }
 
     /**
-     * @notice get data about the latest round. Consumers are encouraged to check
-     * that they're receiving fresh data by inspecting the updatedAt and
-     * answeredInRound return values.
-     * Note that different underlying implementations of AggregatorV3Interface
-     * have slightly different semantics for some of the return values. Consumers
-     * should determine what implementations they expect to receive
-     * data from and validate that they can properly handle return data from all
-     * of them.
-     * @param _feedName the name of the datafeed (ex. BTC-USDT)
-     * @return id is the round ID from the aggregator for which the data was
-     * retrieved combined with an phase to ensure that round IDs get larger as
-     * time moves forward.
-     * @return answer is the answer for the given round
-     * @return updatedAt is the timestamp when the round last was updated (i.e.
-     * answer was last computed)
+     * @inheritdoc IFeedRouter
      */
     function latestRoundData(string calldata _feedName)
         external
@@ -95,13 +74,7 @@ contract FeedRouter is Ownable, IFeedRouter {
     }
 
     /**
-     * @notice Used if an feed contract has been proposed.
-     * @param _feedName the name of the datafeed (ex. BTC-USDT)
-     * @param _roundId the round ID to retrieve the round data for
-     * @return id is the round ID for which data was retrieved
-     * @return answer is the answer for the given round
-     * @return updatedAt is the timestamp when the round last was updated (i.e.
-     * answer was last computed)
+     * @inheritdoc IFeedRouter
      */
     function proposedGetRoundData(string calldata _feedName, uint64 _roundId)
         external
@@ -113,12 +86,7 @@ contract FeedRouter is Ownable, IFeedRouter {
     }
 
     /**
-     * @notice Used if an feed contract has been proposed.
-     * @param _feedName the name of the datafeed (ex. BTC-USDT)
-     * @return id is the round ID for which data was retrieved
-     * @return answer is the answer for the given round
-     * @return updatedAt is the timestamp when the round last was updated (i.e.
-     * answer was last computed)
+     * @inheritdoc IFeedRouter
      */
     function proposedLatestRoundData(string calldata _feedName)
         external
@@ -130,41 +98,43 @@ contract FeedRouter is Ownable, IFeedRouter {
     }
 
     /**
-     * @notice returns the current phase's feed address.
+     * @inheritdoc IFeedRouter
      */
     function feed(string calldata _feedName) external view validFeed(_feedName) returns (address) {
         return IFeedProxy(feedProxies[_feedName]).getFeed();
     }
 
     /**
-     * @notice represents the number of decimals the feed responses represent.
+     * @inheritdoc IFeedRouter
+     */
+    function proposedFeed(string calldata _feedName) external view validFeed(_feedName) returns (address) {
+        return IFeedProxy(feedProxies[_feedName]).getProposedFeed();
+    }
+
+    /**
+     * @inheritdoc IFeedRouter
      */
     function decimals(string calldata _feedName) external view validFeed(_feedName) returns (uint8) {
         return IFeedProxy(feedProxies[_feedName]).decimals();
     }
 
     /**
-     * @notice the type and version of feed to which proxy
-     * points to.
+     * @inheritdoc IFeedRouter
      */
     function typeAndVersion(string calldata _feedName) external view validFeed(_feedName) returns (string memory) {
         return IFeedProxy(feedProxies[_feedName]).typeAndVersion();
     }
 
     /**
-     * @notice returns the description of the feed the proxy points to.
+     * @inheritdoc IFeedRouter
      */
     function description(string calldata _feedName) external view validFeed(_feedName) returns (string memory) {
         return IFeedProxy(feedProxies[_feedName]).description();
     }
 
     /**
-     * @notice returns the current proposed feed
+     * @inheritdoc IFeedRouter
      */
-    function proposedFeed(string calldata _feedName) external view validFeed(_feedName) returns (address) {
-        return IFeedProxy(feedProxies[_feedName]).getProposedFeed();
-    }
-
     function updateProxy(string calldata _feedName, address _proxyAddress) public onlyOwner {
         if (_proxyAddress == address(0)) {
             revert InvalidProxyAddress();

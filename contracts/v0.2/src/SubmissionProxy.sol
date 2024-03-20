@@ -5,7 +5,7 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {IFeed} from "./interfaces/IFeedSubmit.sol";
 
 /**
- * @title Submission proxy contract
+ * @title Orakl Network Submission Proxy
  * @author Bisonai Labs
  * @notice A contract that allows oracles to batch submit to multiple
  * `Feed` contracts with a single transaction.

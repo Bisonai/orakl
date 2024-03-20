@@ -6,7 +6,7 @@ import {IFeedProxy} from "./interfaces/IFeedProxy.sol";
 import {IFeed} from "./interfaces/IFeed.sol";
 
 /**
- * @title Proxy feed contract
+ * @title Orakl Network Proxy Feed
  * @author Bisonai Labs
  * @notice A contract that acts as a proxy for a `Feed` contract. It
  * allows the owner to propose and confirm a new feed.
@@ -37,7 +37,7 @@ contract FeedProxy is Ownable, IFeedProxy {
     }
 
     /**
-     * @notice Return the round data given a round ID.
+     * @notice Get round data given a round ID.
      * @param _roundId The round ID.
      * @return id The round ID.
      * @return answer The oracle answer.
@@ -48,7 +48,7 @@ contract FeedProxy is Ownable, IFeedProxy {
     }
 
     /**
-     * @notice Return the timestamp of the latest round update.
+     * @notice Get timestamp of the latest round update.
      * @return The timestamp of the latest round update
      */
     function latestRoundUpdatedAt() external view returns (uint256) {
@@ -56,7 +56,7 @@ contract FeedProxy is Ownable, IFeedProxy {
     }
 
     /**
-     * @notice Return the latest round data of the feed.
+     * @notice Get the latest round data of the feed.
      * @return id The round ID.
      * @return answer The oracle answer.
      * @return updatedAt Timestamp of the last update.
@@ -104,7 +104,7 @@ contract FeedProxy is Ownable, IFeedProxy {
     }
 
     /**
-     * @notice Return the decimals of the feed.
+     * @notice Get decimals of the feed.
      * @return decimals The decimals of the feed.
      */
     function decimals() external view returns (uint8) {
@@ -119,7 +119,7 @@ contract FeedProxy is Ownable, IFeedProxy {
     }
 
     /**
-     * @notice returns the description of the feed the proxy points to.
+     * @inheritdoc IFeed
      */
     function description() external view returns (string memory) {
         return feed.description();
