@@ -24,13 +24,6 @@ type TestItems struct {
 	messageBus *bus.MessageBus
 	tmpData    *TmpData
 }
-
-type SubmissionAddress struct {
-	Id      int64  `db:"id"`
-	Name    string `db:"name"`
-	Address string `db:"address"`
-}
-
 type TmpData struct {
 	globalAggregate   GlobalAggregateBase
 	submissionAddress SubmissionAddress

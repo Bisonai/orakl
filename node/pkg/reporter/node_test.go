@@ -96,7 +96,7 @@ func TestFilterInvalidAggregates(t *testing.T) {
 	result := testItems.app.Reporter.filterInvalidAggregates(aggregates)
 	assert.Equal(t, result, aggregates)
 
-	testItems.app.Reporter.lastSubmissions = map[string]int64{"test-aggregate": 1}
+	testItems.app.Reporter.SubmissionPairs = map[string]SubmissionPair{"test-aggregate": {LastSubmission: 1, Address: common.HexToAddress("0x1234")}}
 	result = testItems.app.Reporter.filterInvalidAggregates(aggregates)
 	assert.Equal(t, result, []GlobalAggregate{})
 }
@@ -118,7 +118,7 @@ func TestIsAggValid(t *testing.T) {
 	result := testItems.app.Reporter.isAggValid(agg)
 	assert.Equal(t, result, true)
 
-	testItems.app.Reporter.lastSubmissions = map[string]int64{"test-aggregate": 1}
+	testItems.app.Reporter.SubmissionPairs = map[string]SubmissionPair{"test-aggregate": {LastSubmission: 1, Address: common.HexToAddress("0x1234")}}
 	result = testItems.app.Reporter.isAggValid(agg)
 	assert.Equal(t, result, false)
 }

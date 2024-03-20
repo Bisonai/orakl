@@ -7,6 +7,7 @@ import (
 	"bisonai.com/orakl/node/pkg/bus"
 	"bisonai.com/orakl/node/pkg/raft"
 	"bisonai.com/orakl/node/pkg/utils/klaytn_helper"
+	"github.com/klaytn/klaytn/common"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 	"github.com/libp2p/go-libp2p/core/host"
 )
@@ -20,17 +21,25 @@ const (
 	MAX_RETRY_DELAY         = 500 * time.Millisecond
 	FUNCTION_STRING         = "batchSubmit(address[] memory _addresses, int256[] memory _prices)"
 
-	GET_LATEST_GLOBAL_AGGREGATES_QUERY = `
-		SELECT ga.name, ga.value, ga.round, ga.timestamp, sa.address
-		FROM global_aggregates ga
-		JOIN (
-			SELECT name, MAX(round) as max_round
-			FROM global_aggregates
-			GROUP BY name
-		) subq ON ga.name = subq.name AND ga.round = subq.max_round
-		INNER JOIN submission_addresses sa ON ga.name = sa.name;
+	GET_LATEST_GLOBAL_AGGREGATE_QUERY = `
+		SELECT value, round
+		FROM global_aggregates
+		WHERE name = @name
+		ORDER BY round DESC
+		LIMIT 1;
 	`
 )
+
+type SubmissionAddress struct {
+	Id      int    `db:"id"`
+	Name    string `db:"name"`
+	Address string `db:"address"`
+}
+
+type SubmissionPair struct {
+	LastSubmission int64 `db:"last_submission"`
+	Address        common.Address
+}
 
 type App struct {
 	Reporter *ReporterNode
@@ -40,10 +49,10 @@ type App struct {
 }
 
 type ReporterNode struct {
-	Raft     *raft.Raft
-	TxHelper *klaytn_helper.TxHelper
+	Raft            *raft.Raft
+	TxHelper        *klaytn_helper.TxHelper
+	SubmissionPairs map[string]SubmissionPair
 
-	lastSubmissions map[string]int64
 	contractAddress string
 
 	nodeCtx    context.Context
@@ -51,17 +60,8 @@ type ReporterNode struct {
 	isRunning  bool
 }
 
-type GlobalAggregateBase struct {
-	Name      string    `db:"name"`
-	Value     int64     `db:"value"`
-	Round     int64     `db:"round"`
-	Timestamp time.Time `db:"timestamp"`
-}
-
 type GlobalAggregate struct {
-	Name      string    `db:"name"`
-	Value     int64     `db:"value"`
-	Round     int64     `db:"round"`
-	Timestamp time.Time `db:"timestamp"`
-	Address   string    `db:"address"`
+	Name  string `db:"name" json:"name"`
+	Value int64  `db:"value" json:"value"`
+	Round int64  `db:"round" json:"round"`
 }

@@ -41,7 +41,10 @@ func NewNode(ctx context.Context, h host.Host, ps *pubsub.PubSub) (*ReporterNode
 		Raft:            raft,
 		TxHelper:        txHelper,
 		contractAddress: contractAddress,
-		lastSubmissions: make(map[string]int64),
+	}
+	err = reporter.loadSubmissionPairs(ctx)
+	if err != nil {
+		return nil, err
 	}
 	reporter.Raft.LeaderJob = reporter.leaderJob
 	reporter.Raft.HandleCustomMessage = reporter.handleCustomMessage
@@ -100,7 +103,9 @@ func (r *ReporterNode) leaderJob() error {
 		}
 
 		for _, agg := range validAggregates {
-			r.lastSubmissions[agg.Name] = agg.Round
+			pair := r.SubmissionPairs[agg.Name]
+			pair.LastSubmission = agg.Round
+			r.SubmissionPairs[agg.Name] = pair
 		}
 		return nil
 	}
@@ -181,8 +186,8 @@ func (r *ReporterNode) filterInvalidAggregates(aggregates []GlobalAggregate) []G
 }
 
 func (r *ReporterNode) isAggValid(aggregate GlobalAggregate) bool {
-	lastSubmission, ok := r.lastSubmissions[aggregate.Name]
-	if !ok {
+	lastSubmission := r.SubmissionPairs[aggregate.Name].LastSubmission
+	if lastSubmission == 0 {
 		return true
 	}
 	return aggregate.Round > lastSubmission
@@ -205,4 +210,26 @@ func (r *ReporterNode) makeContractArgs(aggregates []GlobalAggregate) ([]common.
 	}
 
 	return addresses, values, nil
+}
+
+func (r *ReporterNode) loadSubmissionPairs(ctx context.Context) error {
+	if r.SubmissionPairs == nil {
+		r.SubmissionPairs = make(map[string]SubmissionPair)
+	}
+
+	submissionAddresses, err := db.QueryRows[SubmissionAddress](ctx, "SELECT * FROM submission_addresses;", nil)
+	if err != nil {
+		log.Error().Err(err).Msg("failed to load submission addresses")
+		return err
+	}
+
+	if len(submissionAddresses) == 0 {
+		log.Error().Msg("no submission addresses found")
+		return errors.New("no submission addresses found")
+	}
+
+	for _, sa := range submissionAddresses {
+		r.SubmissionPairs[sa.Name] = SubmissionPair{LastSubmission: 0, Address: common.HexToAddress(sa.Address)}
+	}
+	return nil
 }
