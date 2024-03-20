@@ -32,4 +32,6 @@ interface IFeed {
      * @return updatedAt Timestamp of the last update.
      */
     function latestRoundData() external view returns (uint64 roundId, int256 answer, uint256 updatedAt);
+
+    function typeAndVersion() external view returns (string memory);
 }

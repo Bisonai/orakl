@@ -3,10 +3,9 @@ pragma solidity ^0.8.24;
 
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {IFeed} from "./interfaces/IFeedSubmit.sol";
-import {ITypeAndVersion} from "./interfaces/ITypeAndVersion.sol";
 
 // TODO: submission verification
-contract SubmissionProxy is Ownable, ITypeAndVersion {
+contract SubmissionProxy is Ownable {
     uint256 public constant MIN_SUBMISSION = 0;
     uint256 public constant MAX_SUBMISSION = 1_000;
     uint256 public constant MIN_EXPIRATION = 1 days;
@@ -69,7 +68,7 @@ contract SubmissionProxy is Ownable, ITypeAndVersion {
         }
     }
 
-    function typeAndVersion() external pure virtual override returns (string memory) {
+    function typeAndVersion() external pure returns (string memory) {
         return "SubmissionProxy v0.2";
     }
 }

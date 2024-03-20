@@ -3,11 +3,10 @@ pragma solidity ^0.8.24;
 
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {IFeed} from "./interfaces/IFeed.sol";
-import {ITypeAndVersion} from "./interfaces/ITypeAndVersion.sol";
 
 /// @title Feed contract
 /// @author Bisonai Labs
-contract Feed is Ownable, IFeed, ITypeAndVersion {
+contract Feed is Ownable, IFeed {
     uint8 public override decimals;
     string public override description;
 
@@ -121,9 +120,9 @@ contract Feed is Ownable, IFeed, ITypeAndVersion {
     }
 
     /**
-     * @inheritdoc ITypeAndVersion
+     * @inheritdoc IFeed
      */
-    function typeAndVersion() external pure virtual override returns (string memory) {
+    function typeAndVersion() external pure returns (string memory) {
         return "Feed v0.2";
     }
 
