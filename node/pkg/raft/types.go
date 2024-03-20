@@ -64,6 +64,7 @@ type Raft struct {
 	HeartbeatTimeout time.Duration
 
 	LeaderJobTimeout    time.Duration
+	LeaderJobTicker     *time.Ticker
 	HandleCustomMessage func(Message) error
 	LeaderJob           func() error
 }
