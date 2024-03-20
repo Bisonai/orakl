@@ -49,7 +49,7 @@ contract Feed is Ownable, IFeed {
     }
 
     /**
-     * @notice Construct a new Feed contract
+     * @notice Construct a new `Feed` contract.
      * @dev The deployer of the contract will become the owner.
      * @param _decimals The number of decimals for the feed
      * @param _description The description of the feed
