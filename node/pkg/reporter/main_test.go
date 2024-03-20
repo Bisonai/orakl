@@ -3,8 +3,10 @@ package reporter
 
 import (
 	"context"
+	"encoding/json"
 	"os"
 	"testing"
+	"time"
 
 	"bisonai.com/orakl/node/pkg/admin/reporter"
 	"bisonai.com/orakl/node/pkg/admin/utils"
@@ -15,7 +17,7 @@ import (
 	"github.com/rs/zerolog"
 )
 
-const InsertGlobalAggregateQuery = `INSERT INTO global_aggregates (name, value, round) VALUES (@name, @value, @round) RETURNING *`
+const InsertGlobalAggregateQuery = `INSERT INTO global_aggregates (name, value, round) VALUES (@name, @value, @round) RETURNING name, value, round`
 const InsertAddressQuery = `INSERT INTO submission_addresses (name, address) VALUES (@name, @address) RETURNING *`
 
 type TestItems struct {
@@ -24,21 +26,22 @@ type TestItems struct {
 	messageBus *bus.MessageBus
 	tmpData    *TmpData
 }
-
-type SubmissionAddress struct {
-	Id      int64  `db:"id"`
-	Name    string `db:"name"`
-	Address string `db:"address"`
-}
-
 type TmpData struct {
-	globalAggregate   GlobalAggregateBase
+	globalAggregate   GlobalAggregate
 	submissionAddress SubmissionAddress
 }
 
 func insertSampleData(ctx context.Context) (*TmpData, error) {
 	var tmpData = new(TmpData)
-	tmpGlobalAggregate, err := db.QueryRow[GlobalAggregateBase](ctx, InsertGlobalAggregateQuery, map[string]any{"name": "test-aggregate", "value": int64(15), "round": int64(1)})
+
+	key := "globalAggregate:" + "test-aggregate"
+	data, err := json.Marshal(map[string]any{"value": int64(15), "round": int64(1)})
+	if err != nil {
+		return nil, err
+	}
+	db.Set(ctx, key, string(data), time.Duration(10*time.Second))
+
+	tmpGlobalAggregate, err := db.QueryRow[GlobalAggregate](ctx, InsertGlobalAggregateQuery, map[string]any{"name": "test-aggregate", "value": int64(15), "round": int64(1)})
 	if err != nil {
 		return nil, err
 	}
