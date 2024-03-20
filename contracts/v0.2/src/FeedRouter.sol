@@ -8,12 +8,10 @@ import {IFeedProxy} from "./interfaces/IFeedProxy.sol";
 /**
  * @title Orakl Network Feed Router
  * @author Bisonai Labs
- * 
- * 
  * @notice The `FeedRouter` is the main contract needed to read Orakl
- * Network Data Feeds. The interface is similar to the `AggregatorProxy`
- * contract but requires an extra string parameter called `feedName`. The
- * supported `feedName` parameters are a combination of base and quote
+ * Network Data Feeds. The interface is similar to the `FeedProxy`
+ * contract but requires an extra feed name (`_feedName`) parameter. The
+ * supported feed names are a combination of base and quote
  * currencies (e.g. BTC-USDT for Bitcoin's price in USDT stablecoin). You
  * can find all supported tokens at https://config.orakl.network.
  */
