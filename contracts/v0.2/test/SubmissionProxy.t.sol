@@ -22,17 +22,17 @@ contract SubmissionProxyTest is Test {
     }
 
     function test_AddOracleOnce() public {
-	address oracle_ = makeAddr("oracle");
+        address oracle_ = makeAddr("oracle");
         submissionProxy.addOracle(oracle_);
     }
 
     function test_AddOracleTwice() public {
-	address oracle_ = makeAddr("oracle");
-	submissionProxy.addOracle(oracle_);
+        address oracle_ = makeAddr("oracle");
+        submissionProxy.addOracle(oracle_);
 
-	// cannot add the same oracle twice => fail
-	vm.expectRevert(SubmissionProxy.InvalidOracle.selector);
-	submissionProxy.addOracle(oracle_);
+        // cannot add the same oracle twice => fail
+        vm.expectRevert(SubmissionProxy.InvalidOracle.selector);
+        submissionProxy.addOracle(oracle_);
     }
 
     function test_SetMaxSubmission() public {
@@ -42,13 +42,13 @@ contract SubmissionProxyTest is Test {
     }
 
     function test_SetMaxSubmissionBelowMinimum() public {
-	vm.expectRevert(SubmissionProxy.InvalidMaxSubmission.selector);
+        vm.expectRevert(SubmissionProxy.InvalidMaxSubmission.selector);
         submissionProxy.setMaxSubmission(0);
     }
 
     function test_SetMaxSubmissionAboveMaximum() public {
-	uint256 maxSubmission_ = submissionProxy.MAX_SUBMISSION();
-	vm.expectRevert(SubmissionProxy.InvalidMaxSubmission.selector);
+        uint256 maxSubmission_ = submissionProxy.MAX_SUBMISSION();
+        vm.expectRevert(SubmissionProxy.InvalidMaxSubmission.selector);
         submissionProxy.setMaxSubmission(maxSubmission_ + 1);
     }
 
@@ -65,14 +65,14 @@ contract SubmissionProxyTest is Test {
     }
 
     function test_SetExpirationPeriodBelowMinimum() public {
-	uint256 minExpiration_ = submissionProxy.MIN_EXPIRATION();
-	vm.expectRevert(SubmissionProxy.InvalidExpirationPeriod.selector);
+        uint256 minExpiration_ = submissionProxy.MIN_EXPIRATION();
+        vm.expectRevert(SubmissionProxy.InvalidExpirationPeriod.selector);
         submissionProxy.setExpirationPeriod(minExpiration_ / 2);
     }
 
     function test_SetExpirationPeriodAboveMaximum() public {
-	uint256 maxExpiration_ = submissionProxy.MAX_EXPIRATION();
-	vm.expectRevert(SubmissionProxy.InvalidExpirationPeriod.selector);
+        uint256 maxExpiration_ = submissionProxy.MAX_EXPIRATION();
+        vm.expectRevert(SubmissionProxy.InvalidExpirationPeriod.selector);
         submissionProxy.setExpirationPeriod(maxExpiration_ + 1 days);
     }
 

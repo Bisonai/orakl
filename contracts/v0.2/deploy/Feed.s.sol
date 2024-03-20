@@ -31,10 +31,7 @@ contract FeedScript is Script {
             UtilsScript.ChangeOracles memory changeOracleConfig =
                 abi.decode(changeOracleData, (UtilsScript.ChangeOracles));
             if (changeOracleConfig.minSubmissionCount > 0) {
-                feed.changeOracles(
-                    changeOracleConfig.removed,
-                    changeOracleConfig.added
-                );
+                feed.changeOracles(changeOracleConfig.removed, changeOracleConfig.added);
             }
             vm.stopBroadcast();
             config.updateMigration(dirPath, migrationFilePath);
