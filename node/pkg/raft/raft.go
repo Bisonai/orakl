@@ -296,11 +296,6 @@ func (r *Raft) StopHeartbeatTicker() {
 		close(r.Resign)
 		r.Resign = nil
 	}
-
-	if r.HeartbeatTicker != nil {
-		r.HeartbeatTicker.Stop()
-		r.HeartbeatTicker = nil
-	}
 }
 
 func (r *Raft) becomeLeader(ctx context.Context) {
@@ -316,11 +311,19 @@ func (r *Raft) becomeLeader(ctx context.Context) {
 	go func() {
 		for {
 			select {
+			case <-r.Resign:
+				log.Debug().Msg("resigning as leader")
+				leaderJobTimer.Stop()
+				r.HeartbeatTicker.Stop()
+
+				return
+
 			case <-r.HeartbeatTicker.C:
 				err := r.sendHeartbeat()
 				if err != nil {
 					log.Error().Err(err).Msg("failed to send heartbeat")
 				}
+
 			case <-leaderJobTimer.C:
 				start := time.Now()
 				err := r.LeaderJob()
@@ -332,10 +335,6 @@ func (r *Raft) becomeLeader(ctx context.Context) {
 
 				leaderJobTimer.Reset(r.LeaderJobTimeout - timeSpent)
 
-			case <-r.Resign:
-				log.Debug().Msg("resigning as leader")
-				leaderJobTimer.Stop()
-				return
 			case <-ctx.Done():
 				log.Debug().Msg("context cancelled")
 				leaderJobTimer.Stop()

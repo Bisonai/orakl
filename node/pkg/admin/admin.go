@@ -43,6 +43,7 @@ func Run(bus *bus.MessageBus) error {
 	aggregator.Routes(v1)
 	reporter.Routes(v1)
 	wallet.Routes(v1)
+	submissionAddress.Routes(v1)
 
 	port := os.Getenv("APP_PORT")
 	if port == "" {

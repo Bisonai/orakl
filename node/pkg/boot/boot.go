@@ -62,6 +62,11 @@ func Run(ctx context.Context) error {
 		return err
 	}
 
+	err = app.Shutdown()
+	if err != nil {
+		log.Error().Err(err).Msg("Failed to shutdown boot server")
+		return err
+	}
 	return nil
 
 }

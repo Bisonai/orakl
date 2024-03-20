@@ -5,10 +5,6 @@ tasks:
     dotenv: [".env"]
     cmds:
       - go run ./cmd/boot_api/main.go
-  boot-node:
-    dotenv: [".env"]
-    cmds:
-      - go run ./cmd/boot/main.go
   admin:
     dotenv: [".env"]
     cmds:
