@@ -1,7 +1,11 @@
 package peer
 
 import (
+	"fmt"
+
 	"bisonai.com/orakl/node/pkg/db"
+	libp2p_setup "bisonai.com/orakl/node/pkg/libp2p/setup"
+	libp2p_utils "bisonai.com/orakl/node/pkg/libp2p/utils"
 	"github.com/go-playground/validator"
 	"github.com/gofiber/fiber/v2"
 	"github.com/rs/zerolog/log"
@@ -33,7 +37,7 @@ func insert(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusBadRequest).SendString("Failed to validate request")
 	}
 
-	result, err := db.QueryRow[PeerModel](c.Context(), UpsertPeer, map[string]any{
+	result, err := db.QueryRow[PeerModel](c.Context(), InsertPeer, map[string]any{
 		"ip":      payload.Ip,
 		"port":    payload.Port,
 		"host_id": payload.HostId})
@@ -67,6 +71,23 @@ func sync(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusBadRequest).SendString("Failed to validate request")
 	}
 
+	h, err := libp2p_setup.MakeHost(0)
+	if err != nil {
+		log.Error().Err(err).Msg("Failed to make host")
+		return c.Status(fiber.StatusInternalServerError).SendString("Failed to make host")
+	}
+
+	connectionUrl := fmt.Sprintf("/ip4/%s/tcp/%d/p2p/%s", payload.Ip, payload.Port, payload.HostId)
+	isAlive, _ := libp2p_utils.IsHostAlive(c.Context(), h, connectionUrl)
+	if !isAlive {
+		log.Info().Str("peer", connectionUrl).Msg("invalid peer")
+		err = h.Close()
+		if err != nil {
+			log.Error().Err(err).Msg("Failed to close host")
+		}
+		return c.Status(fiber.StatusBadRequest).SendString("invalid peer")
+	}
+
 	peers, err := db.QueryRows[PeerModel](c.Context(), GetPeer, nil)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to execute get query")
@@ -80,6 +101,12 @@ func sync(c *fiber.Ctx) error {
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to execute insert query")
 		return c.Status(fiber.StatusInternalServerError).SendString("Failed to execute insert query")
+	}
+
+	err = h.Close()
+	if err != nil {
+		log.Error().Err(err).Msg("Failed to close host")
+		return c.Status(fiber.StatusInternalServerError).SendString("Failed to close host")
 	}
 
 	return c.JSON(peers)

@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"strconv"
 	"time"
 
 	"bisonai.com/orakl/node/pkg/boot/peer"
@@ -83,19 +82,7 @@ func RefreshJob(ctx context.Context) error {
 		return nil
 	}
 
-	bootPortStr := os.Getenv("BOOT_LISTEN_PORT")
-	if bootPortStr == "" {
-		log.Info().Msg("BOOT_PORT not set, defaulting to 10010")
-		bootPortStr = "10010"
-	}
-
-	bootPort, err := strconv.Atoi(bootPortStr)
-	if err != nil {
-		log.Error().Err(err).Msg("Failed to convert BOOT_PORT to int")
-		bootPort = 10010
-	}
-
-	h, err := libp2p_setup.MakeHost(bootPort)
+	h, err := libp2p_setup.MakeHost(0)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to make host")
 		return err
