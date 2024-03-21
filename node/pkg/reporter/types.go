@@ -21,7 +21,7 @@ const (
 	INITIAL_FAILURE_TIMEOUT = 50 * time.Millisecond
 	MAX_RETRY               = 3
 	MAX_RETRY_DELAY         = 500 * time.Millisecond
-	FUNCTION_STRING         = "batchSubmit(address[] memory _addresses, int256[] memory _prices)"
+	FUNCTION_STRING         = "submit(address[] memory _feeds, int256[] memory _submissions)"
 
 	GET_LATEST_GLOBAL_AGGREGATES_QUERY = `
 		SELECT ga.name, ga.value, ga.round, ga.timestamp, sa.address
