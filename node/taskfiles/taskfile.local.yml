@@ -80,3 +80,4 @@ tasks:
       - task: test-utils
       - task: test-aggregator
       - task: test-reporter
+      - task: test-boot

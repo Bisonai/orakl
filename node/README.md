@@ -194,3 +194,15 @@ task local:script-fetcher-aggregator-test
 ```sh
 task local:script-test-all
 ```
+
+- test connection: check if nodes properly connects through boot api
+
+```sh
+task local:script-test-connection
+```
+
+- test raft: run simple raft node to test its functionality
+
+```sh
+task local:script-test-raft
+```
