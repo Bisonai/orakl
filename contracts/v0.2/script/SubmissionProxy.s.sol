@@ -4,7 +4,7 @@ pragma solidity ^0.8.24;
 import {Script, console} from "forge-std/Script.sol";
 import {SubmissionProxy} from "../src/SubmissionProxy.sol";
 
-contract SubmissionProxyScript is Script {
+contract DeploySubmissionProxy is Script {
     function setUp() public {}
 
     function run() public {

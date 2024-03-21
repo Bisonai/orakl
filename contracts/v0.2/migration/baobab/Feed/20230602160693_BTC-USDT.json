@@ -1,0 +1,11 @@
+{
+  "deploy": {
+    "name": "BTC-USDT",
+    "decimals": 8,
+    "description": "BTC-USDT"
+  },
+  "changeOracles": {
+    "removed": [],
+    "added": ["0x3C8b7951161444bbF137db0921c6Fb6c2A4f6bB9"]
+  }
+}

@@ -2,7 +2,7 @@
 pragma solidity ^0.8.24;
 
 import {Test, console, Vm} from "forge-std/Test.sol";
-import {UtilsScript} from "../deploy/Utils.s.sol";
+import {UtilsScript} from "../script/Utils.s.sol";
 
 contract UtilsTest is Test {
     UtilsScript config;
