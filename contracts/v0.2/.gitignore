@@ -2,3 +2,4 @@
 cache
 out
 deployments/*/31337
+migration/local/*/migration.lock
