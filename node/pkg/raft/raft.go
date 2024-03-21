@@ -299,22 +299,22 @@ func (r *Raft) StopHeartbeatTicker() {
 }
 
 func (r *Raft) becomeLeader(ctx context.Context) {
+
 	log.Debug().Msg("becoming leader")
 
 	r.Resign = make(chan interface{})
 	r.ElectionTimer.Stop()
 	r.UpdateRole(Leader)
 	r.HeartbeatTicker = time.NewTicker(r.HeartbeatTimeout)
-
-	leaderJobTimer := time.NewTimer(r.LeaderJobTimeout)
+	r.LeaderJobTicker = time.NewTicker(r.LeaderJobTimeout)
 
 	go func() {
 		for {
 			select {
 			case <-r.Resign:
 				log.Debug().Msg("resigning as leader")
-				leaderJobTimer.Stop()
 				r.HeartbeatTicker.Stop()
+				r.LeaderJobTicker.Stop()
 
 				return
 
@@ -324,20 +324,16 @@ func (r *Raft) becomeLeader(ctx context.Context) {
 					log.Error().Err(err).Msg("failed to send heartbeat")
 				}
 
-			case <-leaderJobTimer.C:
-				start := time.Now()
+			case <-r.LeaderJobTicker.C:
 				err := r.LeaderJob()
 				if err != nil {
 					log.Error().Err(err).Msg("failed to execute leader job")
 				}
 
-				timeSpent := time.Since(start)
-
-				leaderJobTimer.Reset(r.LeaderJobTimeout - timeSpent)
-
 			case <-ctx.Done():
 				log.Debug().Msg("context cancelled")
-				leaderJobTimer.Stop()
+				r.HeartbeatTicker.Stop()
+				r.LeaderJobTicker.Stop()
 				return
 			}
 		}
