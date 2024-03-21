@@ -1,80 +1,42 @@
-## Foundry
+# Orakl Network Contracts v0.2
 
-**Foundry is a blazing fast, portable and modular toolkit for Ethereum application development written in Rust.**
+## Prerequisities
 
-Foundry consists of:
-
-- **Forge**: Ethereum testing framework (like Truffle, Hardhat and DappTools).
-- **Cast**: Swiss army knife for interacting with EVM smart contracts, sending transactions and getting chain data.
-- **Anvil**: Local Ethereum node, akin to Ganache, Hardhat Network.
-- **Chisel**: Fast, utilitarian, and verbose solidity REPL.
-
-## Documentation
-
-https://book.getfoundry.sh/
-
-## Usage
-
-### Build
+Install Foundry by following description at https://book.getfoundry.sh/getting-started/installation or by executing the command below.
 
 ```shell
-
-$ forge build
-
+curl -L https://foundry.paradigm.xyz | bash
 ```
 
-### Test
+## Build
 
 ```shell
-$ forge test
+forge build
 ```
 
-### Format
+## Test
 
 ```shell
-$ forge fmt
+forge test
 ```
 
-### Gas Snapshots
+## Format
 
 ```shell
-$ forge snapshot
+forge fmt
 ```
 
-### Anvil
+## Deployment
 
-```shell
-$ anvil
-```
-
-### Deploy
-
-1. create .env
+1. Create `.env` from `.env.example` and fill in `PRIVATE_KEY`
 
 ```
 cp .env.example .env
 ```
 
-2. deploy
+2. Deploy
 
 ```shell
-$ forge script deploy/SubmissionProxy.s.sol:SubmissionProxyScript --rpc-url [RPC] --broadcast -gas-estimate-multiplier 200
-
-$ forge script deploy/Aggregator.s.sol:AggregatorScript --rpc-url [RPC] --broadcast --gas-estimate-multiplier 200
-```
-
-### Cast
-
-```shell
-
-$ cast <subcommand>
-
-```
-
-### Help
-
-```shell
-$ forge --help
-$ anvil --help
-$ cast --help
+forge script deploy/SubmissionProxy.s.sol:SubmissionProxyScript --rpc-url [RPC] --broadcast
+forge script deploy/Aggregator.s.sol:AggregatorScript --rpc-url [RPC] --broadcast
 ```
