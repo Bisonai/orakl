@@ -12,7 +12,7 @@ contract UtilsTest is Test {
     }
 
     function test_getAggregators() public {
-        string memory dirPath = "/migration/local/Aggregator";
+        string memory dirPath = "/migration/local/Feed";
         string[] memory files = config.loadMigration(dirPath);
         if (files.length > 0) config.updateMigration(dirPath, files[0]);
     }
