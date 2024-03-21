@@ -1,1 +1,4 @@
 .env
+cache
+out
+deployments/*/31337
