@@ -1,0 +1,20 @@
+{
+  "submissionProxy": {
+    "oracle": "0x260836ac4f046b6887bbe16b322e7f1e5f9a0452"
+  },
+  "numFeeds": 2,
+  "feed": [
+    {
+      "constructor": {
+        "decimals": 8,
+        "description": "BTC-USDT"
+      }
+    },
+    {
+      "constructor": {
+        "decimals": 8,
+        "description": "ETH-USDT"
+      }
+    }
+  ]
+}

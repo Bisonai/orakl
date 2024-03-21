@@ -37,6 +37,5 @@ cp .env.example .env
 2. Deploy
 
 ```shell
-forge script deploy/SubmissionProxy.s.sol:SubmissionProxyScript --rpc-url [RPC] --broadcast
-forge script deploy/Aggregator.s.sol:AggregatorScript --rpc-url [RPC] --broadcast
+forge script DeployFull --broadcast --rpc-url [RPC]
 ```

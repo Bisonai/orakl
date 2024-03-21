@@ -10,10 +10,9 @@ contract UtilsScript is Script {
 
     string MIGRATION_LOCK_FILE_NAME = "migration.lock";
 
-    struct Deploy {
+    struct FeedConstructor {
         uint256 decimals;
         string description;
-        string name;
     }
 
     struct ChangeOracles {
