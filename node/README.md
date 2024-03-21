@@ -3,7 +3,7 @@
 ## Introduction
 
 Offchain aggregator.
-It performs following steps to regularly submit data into chain
+It performs the following steps to regularly submit data into chain
 
 1. Fetch price data and save into database
 2. Send and Receive data with other nodes and aggregate all received data. Save aggregated data into database
@@ -155,7 +155,7 @@ migrate -database "{$DATABASE_URL}" -path ./migrations up
 task local:test
 ```
 
-> check out `./taskfiles/taskfile.local/yml` to check command for certain test
+> check out `./taskfiles/taskfile.local.yml` to check command for certain test
 
 ### Run Boot API
 
