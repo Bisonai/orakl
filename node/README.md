@@ -119,7 +119,7 @@ Reporter submits all the data in global_aggregates with most recent round
 ### Setup DB and ENV
 
 ```sh
-APP_PORT=${app port for pai} #defaults to 3000
+APP_PORT=${app port for admin API} #defaults to 3000
 DATABASE_URL=${postgresql connection url}
 REDIS_HOST=${redis_host} #defaults to localhost
 REDIS_PORT=${redis_port} #defaults to 6379
