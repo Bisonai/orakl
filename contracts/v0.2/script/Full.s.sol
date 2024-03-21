@@ -43,7 +43,7 @@ contract DeployFull is Script {
         vm.stopBroadcast();
     }
 
-    function buildFeed(string memory json, uint256 feedIndex, address submissionProxy) internal returns (address) {
+    function buildFeed(string memory json, uint256 feedIndex, address submissionProxy) internal {
 	UtilsScript.FeedConstructor memory constructor_ = abi.decode(json.parseRaw(buildJsonQuery(feedIndex)), (UtilsScript.FeedConstructor));
 	uint8 decimals = uint8(constructor_.decimals);
 	string memory description = constructor_.description;
@@ -54,9 +54,7 @@ contract DeployFull is Script {
 	add_[0] = submissionProxy;
 	feed.changeOracles(remove_, add_);
 
-	console.log("Feed", address(feed));
-
-	return address(feed);
+	console.log(description, address(feed));
     }
 
     function buildJsonQuery(uint256 index) internal returns (string memory) {
