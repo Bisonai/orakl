@@ -45,6 +45,10 @@ Taskfile holding commands to run application
 
 Check source code inside ./pkg for details
 
+### Boot
+
+Boot Api for peer initial connection. One boot api should be running for node meshes.
+
 ### Admin
 
 Gofiber application for user interface. Mainly performs 2 things
