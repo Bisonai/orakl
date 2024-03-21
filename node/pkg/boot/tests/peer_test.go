@@ -12,6 +12,8 @@ import (
 	"bisonai.com/orakl/node/pkg/boot/peer"
 	"bisonai.com/orakl/node/pkg/db"
 	libp2p_setup "bisonai.com/orakl/node/pkg/libp2p/setup"
+	libp2p_utils "bisonai.com/orakl/node/pkg/libp2p/utils"
+
 	_peer "github.com/libp2p/go-libp2p/core/peer"
 	"github.com/multiformats/go-multiaddr"
 	"github.com/stretchr/testify/assert"
@@ -79,16 +81,35 @@ func TestSync(t *testing.T) {
 	}
 	defer cleanup()
 
+	mockHost1, err := libp2p_setup.MakeHost(0)
+	if err != nil {
+		t.Fatalf("error making host: %v", err)
+	}
+
+	mockHost2, err := libp2p_setup.MakeHost(0)
+	if err != nil {
+		t.Fatalf("error making host: %v", err)
+	}
+
+	ip1, port1, hostId1, err := libp2p_utils.ExtractPayloadFromHost(mockHost1)
+	if err != nil {
+		t.Fatalf("error extracting payload from host: %v", err)
+	}
+	ip2, port2, hostId2, err := libp2p_utils.ExtractPayloadFromHost(mockHost2)
+	if err != nil {
+		t.Fatalf("error extracting payload from host: %v", err)
+	}
+
 	mockPeer1 := peer.PeerInsertModel{
-		Ip:     "127.0.0.2",
-		Port:   10002,
-		HostId: "12DGKooWM8vWWqGPWWNCVPqb4tfqGrzx45W257GDBSeYbDSSLdef",
+		Ip:     ip1,
+		Port:   port1,
+		HostId: hostId1,
 	}
 
 	mockPeer2 := peer.PeerInsertModel{
-		Ip:     "127.0.0.3",
-		Port:   10003,
-		HostId: "12DGKooWM8vWWqGPWWNCVPqb4tfqGrzx45W257GDBSeYbDSSLghi",
+		Ip:     ip2,
+		Port:   port2,
+		HostId: hostId2,
 	}
 
 	syncResult, err := adminTests.PostRequest[[]peer.PeerModel](testItems.app, "/api/v1/peer/sync", mockPeer1)

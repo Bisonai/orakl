@@ -2,7 +2,6 @@ package tests
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"testing"
 
@@ -52,7 +51,6 @@ func insertSampleData(ctx context.Context) (*TmpData, error) {
 		return nil, err
 	}
 	tmpData.peer = tmpPeer
-	fmt.Println(tmpPeer)
 	return tmpData, nil
 }
 

@@ -104,8 +104,11 @@ func MakeHost(listenPort int) (host.Host, error) {
 
 func makeHost(listenPort int, priv crypto.PrivKey) (host.Host, error) {
 	opts := []libp2p.Option{
-		libp2p.ListenAddrStrings(fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", listenPort)),
 		libp2p.Identity(priv),
+	}
+
+	if listenPort != 0 {
+		opts = append(opts, libp2p.ListenAddrStrings(fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", listenPort)))
 	}
 
 	secretString := os.Getenv("PRIVATE_NETWORK_SECRET")
