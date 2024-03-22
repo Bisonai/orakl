@@ -3,7 +3,6 @@ src = "src"
 out = "out"
 libs = ["lib"]
 broadcast="deployments"
-script="deploy"
 fs_permissions = [{ access = "read-write", path = "./"}]
 memory_limit = 67108864
 solc-version = "0.8.24"
@@ -11,6 +10,5 @@ solc-version = "0.8.24"
 # optimizer-runs = 10_000_000
 
 [rpc_endpoints]
+anvil = "http://127.0.0.1:8545"
 baobab = "https://api.baobab.klaytn.net:8651"
-
-# See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options

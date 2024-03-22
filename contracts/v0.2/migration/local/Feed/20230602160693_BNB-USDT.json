@@ -1,0 +1,7 @@
+{
+  "deploy": {
+    "name": "BNB-USDT",
+    "decimals": 8,
+    "description": "BNB-USDT"
+  }
+}

@@ -1,4 +1,4 @@
-# Orakl Network Contracts
+# Orakl Network Contracts v0.1
 
 ## Installation
 
@@ -69,16 +69,20 @@ yarn deploy:localhost:rr
 yarn deploy:localhost:aggregator
 ```
 
-### Hardhat library confliction issue
+### Hardhat library conflict issue
 
-- Followed following example to avoid package conflict https://ethereum.stackexchange.com/questions/143246/conflict-peer-dependencies-nomicfoundation-hardhat-deploy-ethers
+- Follow the link to avoid package conflict https://ethereum.stackexchange.com/questions/143246/conflict-peer-dependencies-nomicfoundation-hardhat-deploy-ethers
 - `"@nomiclabs/hardhat-ethers": "npm:hardhat-deploy-ethers@^0.3.0-beta.13"`
-- Without setting 0.3.0-beta.13 it requires to install @nomiclabs/hardhat-ethers, after setting this dependency, it fails to compile proper types.
+- Without setting `0.3.0-beta.13` it requires to install `@nomiclabs/hardhat-ethers`. After setting this dependency, it fails to compile proper types.
 
 ### Script
 
-- run `scripts/generate-aggregator-deployments.cjs` to creates migration, wallets, and bulk json files
-- migration files are saved in migration folder while wallets and bulk files are saved in scripts/\*\*/tmp/ folder
-- call example `node ./scripts/admin-aggregator/generate-aggregator-deployments.cjs --pairs '["usd-krw", "jpy-usd", "joy-usdc"]' --chain baobab`
+1. Run `scripts/generate-aggregator-deployments.cjs` to creates migration, wallets, and bulk JSON files.
+2. Migration files are saved in migration folder while wallets and bulk files are saved in `scripts/\*\*/tmp/` folder.
+3. Execute the following command.
 
-###
+```shell
+node ./scripts/admin-aggregator/generate-aggregator-deployments.cjs \
+  --pairs '["usd-krw", "jpy-usd", "joy-usdc"]' \
+  --chain baobab
+```
