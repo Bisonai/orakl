@@ -88,6 +88,7 @@ async function main() {
   console.log(bulkData)
   const storeBulkJsonFilePath = `${tempFolderPath}bulk.json`
   storeJson(storeBulkJsonFilePath, JSON.stringify(bulkData, null, 2))
+  process.exit()
 }
 
 main().catch((error) => {
