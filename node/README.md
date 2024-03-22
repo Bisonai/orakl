@@ -1,4 +1,6 @@
-# Off-chain Aggregator
+# Orakl Node
+
+**Orakl Node for Off-Chain Aggregation**
 
 ## Table of Contents
 
@@ -26,11 +28,11 @@ Off-chain aggregator performs the following steps to regularly submit data into 
 
 ![Overview](./Node.drawio.svg)
 
-- Set of `fetcher`, `aggregator`, and `reporter` runs in a single application, running in different instances.
+- Set of `Admin`, `fetcher`, `aggregator`, and `reporter` runs in a single Orakl Node
 
 ![DAL](./DAL.drawio.svg)
 
-- Data Availability Layer for both pull & push pattern oracle implementation.
+- Data Availability Layer for both pull & push pattern
 
 ## Project Structure
 
