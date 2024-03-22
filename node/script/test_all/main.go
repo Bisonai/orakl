@@ -56,7 +56,14 @@ func main() {
 	}()
 
 	time.Sleep(1 * time.Second)
-	_, err = http.Post("http://localhost:"+os.Getenv("APP_PORT")+"/api/v1/sync", "application/json", nil)
+	port := os.Getenv("APP_PORT")
+	if port == "" {
+		log.Info().Msg("No APP_PORT specified, using default 8088")
+		port = "8088"
+	}
+	syncUrl := "http://localhost:" + port + "/api/v1/sync"
+
+	_, err = http.Post(syncUrl, "application/json", nil)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to sync from orakl config")
 		return
