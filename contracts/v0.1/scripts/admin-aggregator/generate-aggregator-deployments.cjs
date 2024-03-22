@@ -70,7 +70,7 @@ async function main() {
 
     // Bulk .json File
     bulkData['bulk'].push({
-      adapterSource: `https://config.orakl.network/adapter/${priceFeed.toLowerCase()}.adapter.json`,
+      adapterSource: `https://config.orakl.network/adapter/${chain}/${priceFeed.toLowerCase()}.adapter.json`,
       aggregatorSource: `https://config.orakl.network/aggregator/${chain}/${priceFeed.toLowerCase()}.aggregator.json`,
       reporter: {
         walletAddress: wallet.address,
