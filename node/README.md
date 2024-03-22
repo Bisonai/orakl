@@ -39,7 +39,7 @@ Modular Monolithic with loose coupling between packages:
 - `cmd`: Holds entry points to run basic functionalities.
 - `migrations`: Migration files to initialize PostgreSQL tables.
 - `pkg`: Implementation packages for off-chain aggregator.
-- `script`: Scripts for testing purposes such as smoke tests or temporary usage.
+- `script`: Scripts for testing purposes, such as smoke tests or temporary usage.
 - `taskfiles`: Taskfile holding commands to run the application.
 
 ## Packages
