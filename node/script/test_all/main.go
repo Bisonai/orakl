@@ -2,9 +2,11 @@ package main
 
 import (
 	"context"
+	"net/http"
 	"os"
 	"strconv"
 	"sync"
+	"time"
 
 	"bisonai.com/orakl/node/pkg/admin"
 	"bisonai.com/orakl/node/pkg/aggregator"
@@ -52,6 +54,13 @@ func main() {
 			return
 		}
 	}()
+
+	time.Sleep(1 * time.Second)
+	_, err = http.Post("http://localhost:"+os.Getenv("APP_PORT")+"/api/v1/sync", "application/json", nil)
+	if err != nil {
+		log.Error().Err(err).Msg("Failed to sync from orakl config")
+		return
+	}
 
 	wg.Add(1)
 	go func() {

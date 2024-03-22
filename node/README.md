@@ -157,6 +157,30 @@ task local:test
 
 > check out `./taskfiles/taskfile.local.yml` to check command for certain test
 
+### How to run single node from local environment
+
+1. Set up database, redis and pgsql should be running. And pgsql should have tables based on migration files.
+
+2. Copy .env.local.
+
+```sh
+cp .env.local .env
+```
+
+3. Update `DATABASE_URL` and `REPORTER_PK` with valid value from `.env`.
+
+4. Run Boot API.
+
+```sh
+task local:boot-api
+```
+
+5. Run test-all script from different shell.
+
+```sh
+task local:script-test-all
+```
+
 ### Run Boot API
 
 ```sh
