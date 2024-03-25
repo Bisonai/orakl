@@ -70,6 +70,10 @@ tasks:
     dotenv: [".env"]
     cmds:
       - go test ./pkg/boot/tests -v
+  test-chain:
+    dotenv: [".env"]
+    cmds:
+      - go test ./pkg/chain/tests -v
   test:
     cmds:
       - task: test-db
@@ -81,3 +85,4 @@ tasks:
       - task: test-aggregator
       - task: test-reporter
       - task: test-boot
+      - task: test-chain

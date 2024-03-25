@@ -4,13 +4,14 @@ import (
 	"context"
 	"testing"
 
-	"bisonai.com/orakl/node/pkg/utils/klaytn_helper"
+	"bisonai.com/orakl/node/pkg/chain/tx"
+	chain_utils "bisonai.com/orakl/node/pkg/chain/utils"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestNewTxHelper(t *testing.T) {
 	ctx := context.Background()
-	txHelper, err := klaytn_helper.NewTxHelper(ctx)
+	txHelper, err := tx.NewTxHelper(ctx)
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
 	}
@@ -19,7 +20,7 @@ func TestNewTxHelper(t *testing.T) {
 
 func TestNextReporter(t *testing.T) {
 	ctx := context.Background()
-	txHelper, err := klaytn_helper.NewTxHelper(ctx)
+	txHelper, err := tx.NewTxHelper(ctx)
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
 	}
@@ -33,7 +34,7 @@ func TestNextReporter(t *testing.T) {
 
 func TestMakeDirectTx(t *testing.T) {
 	ctx := context.Background()
-	txHelper, err := klaytn_helper.NewTxHelper(ctx)
+	txHelper, err := tx.NewTxHelper(ctx)
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
 	}
@@ -47,7 +48,7 @@ func TestMakeDirectTx(t *testing.T) {
 
 func TestMakeFeeDelegatedTx(t *testing.T) {
 	ctx := context.Background()
-	txHelper, err := klaytn_helper.NewTxHelper(ctx)
+	txHelper, err := tx.NewTxHelper(ctx)
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
 	}
@@ -61,7 +62,7 @@ func TestMakeFeeDelegatedTx(t *testing.T) {
 
 func TestTxToHashToTx(t *testing.T) {
 	ctx := context.Background()
-	txHelper, err := klaytn_helper.NewTxHelper(ctx)
+	txHelper, err := tx.NewTxHelper(ctx)
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
 	}
@@ -72,10 +73,10 @@ func TestTxToHashToTx(t *testing.T) {
 		t.Errorf("Unexpected error: %v", err)
 	}
 
-	hash := klaytn_helper.TxToHash(rawTx)
+	hash := chain_utils.TxToHash(rawTx)
 	assert.NotEqual(t, hash, "")
 
-	tx, err := klaytn_helper.HashToTx(hash)
+	tx, err := chain_utils.HashToTx(hash)
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
 	}
@@ -85,13 +86,13 @@ func TestTxToHashToTx(t *testing.T) {
 
 func TestGenerateABI(t *testing.T) {
 	ctx := context.Background()
-	txHelper, err := klaytn_helper.NewTxHelper(ctx)
+	txHelper, err := tx.NewTxHelper(ctx)
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
 	}
 	defer txHelper.Close()
 
-	abi, err := klaytn_helper.GenerateABI("increment()")
+	abi, err := chain_utils.GenerateABI("increment()")
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
 	}
@@ -101,7 +102,7 @@ func TestGenerateABI(t *testing.T) {
 
 func TestSubmitRawTxString(t *testing.T) {
 	ctx := context.Background()
-	txHelper, err := klaytn_helper.NewTxHelper(ctx)
+	txHelper, err := tx.NewTxHelper(ctx)
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
 	}
@@ -117,7 +118,7 @@ func TestSubmitRawTxString(t *testing.T) {
 		t.Errorf("Unexpected error: %v", err)
 	}
 
-	rawTxString := klaytn_helper.TxToHash(signedTx)
+	rawTxString := chain_utils.TxToHash(signedTx)
 	err = txHelper.SubmitRawTxString(ctx, rawTxString)
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
