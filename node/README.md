@@ -1,208 +1,218 @@
-# Off-chain Aggregator
+# Orakl Node
+
+**Orakl Node for Off-Chain Aggregation**
+
+## Table of Contents
+
+- [Introduction](#introduction)
+- [Project Structure](#project-structure)
+- [Packages](#packages)
+  - [Main Elements](#main-elements)
+- [Quickstart](#quickstart)
+  - [Prerequisites](#prerequisites)
+  - [Setup `.env`](#setup-env)
+  - [Database Initialization](#database-initialization)
+  - [Test Run Single Local Node](#test-run-single-local-node)
+- [Other Task Commands](#other-task-commands)
+  - [Unit Test](#unit-test)
+  - [Commands](#commands)
+  - [Scripts](#scripts)
 
 ## Introduction
 
-Offchain aggregator.
-It performs the following steps to regularly submit data into chain
+Off-chain aggregator performs the following steps to regularly submit data into the chain:
 
-1. Fetch price data and save into database
-2. Send and Receive data with other nodes and aggregate all received data. Save aggregated data into database
-3. Submit aggregated data into chain
+1. Fetch price data and save it into the database.
+2. Send and receive data with other nodes, aggregate all received data, and save aggregated data into the database.
+3. Submit aggregated data into the chain.
 
 ![Overview](./Node.drawio.svg)
 
-- Set of `fetcher`, `aggregator`, and `reporter` runs in a single application, running in different instance.
+- Set of `Admin`, `fetcher`, `aggregator`, and `reporter` runs in a single Orakl Node
 
-![Dal](./DAL.drawio.svg)
+![DAL](./DAL.drawio.svg)
 
-- Data Availability Layer for both pull & push pattern orakl implementation.
+- Data Availability Layer for both pull & push pattern
 
 ## Project Structure
 
-Modular Monolithic with loose coupling between packages
+Modular Monolithic with loose coupling between packages:
 
-- cmd
-
-Holds entry points to run basic functionalities
-
-- migrations
-
-Migration files to initialize PostgreSQL table
-
-- pkg
-
-Implementation packages for offchain aggregator
-
-- script
-
-Scripts for testing purpose or temporary usage
-
-- taskfiles
-
-Taskfile holding commands to run application
+- `cmd`: Holds entry points to run basic functionalities.
+- `migrations`: Migration files to initialize PostgreSQL tables.
+- `pkg`: Implementation packages for off-chain aggregator.
+- `script`: Scripts for testing purposes, such as smoke tests or temporary usage.
+- `taskfiles`: Taskfile holding commands to run the application.
 
 ## Packages
 
-Check source code inside ./pkg for details
+Check the source code inside `./pkg` for details:
 
-### Boot
+- **Boot**: Handles peer initial connection. One Boot API should be running for node meshes.
+- **Admin**: Provides an API for the user interface, performing CRUD operations for system tables and controlling other packages through bus messages (e.g., stopping fetcher).
+- **Aggregator**: Shares recently fetched data with other aggregators and saves it as `global_aggregate`.
+- **Bus**: Facilitates message bus communication among multiple packages.
+- **DB**: Offers helper functions for querying PostgreSQL or Redis databases.
+- **Fetcher**: Regularly retrieves data from the data source and stores it in the database.
+- **Libp2p**: Assists in utilizing the libp2p package at a higher level.
+- **Raft**: Implements simple raft consensus for leader election and syncing among multiple peers.
+- **Reporter**: Submits data from `global_aggregates` with the latest Round to the chain.
+- **Utils**: Contains helper functions usable among other packages.
 
-Boot Api for peer initial connection. One boot api should be running for node meshes.
+### Main Elements
 
-### Admin
-
-Gofiber application for user interface. Mainly performs 2 things
-
-1. CRUD for system tables
-2. Control other packages through bus messages. (For example, stop fetcher)
-
-### Aggregator
-
-Aggregator shares recently fetched data with other aggregators, saves as global_aggregate.
-
-### Bus
-
-Base package for message bus communication among multiple packages.
-
-### DB
-
-Helper package to perform querying pgsql or redis
-
-### Fetcher
-
-Regularly fetches data from data source, saves into database
-
-### Libp2p
-
-Helper package to utilize libp2p package in a higher level
-
-### Raft
-
-Simple raft consensus implementation without log replication for leader election and syncing among multiple peers
-
-### Reporter
-
-Regularly report global_aggregates with latest Round into chain
-
-### Utils
-
-Includes helper functions to be used among other packages
-
-## Main Elements
-
-1. API
-
-API supports interface to add entries to the table or control internal applications
-
-2. Fetcher
-
-Fetcher continuously fetches data from data source for entries declared in adapters table
-
-3. Aggregator
-
-Aggregator sends & receives local fetched data into other off-chain aggregators and saves into global_aggregates table
-
-4. Reporter
-
-Reporter submits all the data in global_aggregates with most recent round
+- **Admin API**: Supports an interface to add entries to the table or control internal applications.
+- **Fetcher**: Continuously retrieves data from the data source for entries declared in the adapters table.
+- **Aggregator**: Sends and receives locally fetched data to/from other off-chain aggregators, storing it in the `global_aggregates` table.
+- **Reporter**: Submits all data from `global_aggregates` with the most recent round.
 
 ## Quickstart
 
 ### Prerequisites
 
-- go: https://go.dev/doc/install
-- golang-migrate: https://github.com/golang-migrate/migrate/releases
-- go-taskfile: https://taskfile.dev/installation/
-- pgsql: https://www.postgresql.org/download/
-- redis: https://redis.io/docs/install/install-redis/install-redis-on-linux/
+Ensure you have the following installed:
 
-### Setup DB and ENV
+- Go: [Installation Guide](https://go.dev/doc/install)
+- golang-migrate: [Installation Guide](https://github.com/golang-migrate/migrate/releases)
+- go-taskfile: [Installation Guide](https://taskfile.dev/installation/)
+- PostgreSQL: [Installation Guide](https://www.postgresql.org/download/)
+- Redis: [Installation Guide](https://redis.io/docs/install/install-redis/install-redis-on-linux/)
+
+### Setup `.env`
 
 ```sh
-APP_PORT=${app port for admin API} #defaults to 3000
-DATABASE_URL=${postgresql connection url}
-REDIS_HOST=${redis_host} #defaults to localhost
-REDIS_PORT=${redis_port} #defaults to 6379
-LISTEN_PORT=${libp2p listen port} # should allow inbound connection for this tcp port
-PROVIDER_URL=${chain provider url}
-SUBMISSION_PROXY_CONTRACT=${contract for submission}
-DELEGATOR_URL=${delegator url, not required}
-CHAIN=${chain name, `baobab` or `cypress`}
-REPORTER_PK=${reporter for submission, not required if entry is inside wallets table}
-TEST_FEE_PAYER_PK=${referenced from testcode, eoa of fee payer}
-PRIVATE_NETWORK_SECRET=${required for secure connection}
+# Application port for the admin API, defaults to 8088
+APP_PORT=<Your App Port>
 
-# required to run boot api
-BOOT_API_PORT=${defaults to 8089}
+# PostgreSQL connection URL
+DATABASE_URL=<Your Database URL>
 
-# required for node connection
-BOOT_API_URL=${boot api connection url}
+# Redis host, defaults to localhost
+REDIS_HOST=<Your Redis Host>
+
+# Redis port, defaults to 6379
+REDIS_PORT=<Your Redis Port>
+
+# libp2p listen port
+LISTEN_PORT=<Your Listen Port>
+
+# Chain provider URL
+PROVIDER_URL=<Your Provider URL>
+
+# Contract for submission
+SUBMISSION_PROXY_CONTRACT=<Your Submission Proxy Contract>
+
+# Delegator URL, tx fee is directly payed from reporter if not provided
+DELEGATOR_URL=<Your Delegator URL>
+
+# Chain name, 'baobab', 'cypress', or 'test'
+CHAIN=<Your Chain Name>
+
+# Reporter for submission, not required if entry is inside wallets table
+REPORTER_PK=<Your Reporter PK>
+
+# Referenced from test code, EOA of fee payer
+TEST_FEE_PAYER_PK=<Your Test Fee Payer PK>
+
+# Required for secure connection
+PRIVATE_NETWORK_SECRET=<Your Private Network Secret>
+
+# Port for Boot API, defaults to 8089
+BOOT_API_PORT=<Your Boot API Port>
+
+# Boot API connection URL
+BOOT_API_URL=<Your Boot API URL>
 ```
 
-### Database initialization
+### Database Initialization
 
-- If `go-migrate` is installed, run migration with following command. Using `?sslmode=disable` option for database url is recommended.
+After go-migrate is installed, run migration with the following command:
 
 ```sh
 migrate -database "{$DATABASE_URL}" -path ./migrations up
 ```
 
-### Run unit tests
+### Test Run Single Local Node
 
-- Run all tests
+Follow these steps to set up and run the application:
+
+1. **Set up the database**: Ensure PostgreSQL and Redis are running. PostgreSQL should have tables based on migration files.
+2. **Copy .env.local to .env**:
+
+    ```sh
+    cp .env.local .env
+    ```
+
+3. **Update environment variables**: Replace `DATABASE_URL` and `REPORTER_PK` with valid values in the .env file.
+4. **Run Boot API**:
+
+    ```sh
+    task local:boot-api
+    ```
+
+5. **Run test-all script**: Execute this from a different shell.
+
+    ```sh
+    task local:script-test-all
+    ```
+
+## Other Task Commands
+
+### Unit Test
 
 ```sh
+# Run all tests
 task local:test
 ```
 
-> check out `./taskfiles/taskfile.local.yml` to check command for certain test
-
-### Run Boot API
+### Commands
 
 ```sh
+# Run Boot API
 task local:boot-api
-```
 
-### Run API
-
-```sh
+# Run Admin API
 task local:admin
 ```
 
-### Run Scripts
-
-- Submission test: submit single tx on chain
+### Scripts
 
 ```sh
+# Submission test: submit single tx on chain
 task local:script-submission
-```
 
-- Fetcher test: run api + fetcher
-
-```sh
+# Fetcher test: run api + fetcher
 task local:script-fetcher-test
-```
 
-- Fetcher-aggregator test: run api + fetcher + aggregator
-
-```sh
+# Fetcher-aggregator test: run api + fetcher + aggregator
 task local:script-fetcher-aggregator-test
-```
 
-- All: run api + fetcher + aggregator + reporter
-
-```sh
+# All: run api + fetcher + aggregator + reporter
 task local:script-test-all
-```
 
-- test connection: check if nodes properly connects through boot api
-
-```sh
+# Test connection: check if nodes properly connect through boot api
 task local:script-test-connection
+
+# Test raft: run simple raft node to test its functionality
+task local:script-test-raft
 ```
 
-- test raft: run simple raft node to test its functionality
+## Troubleshooting
 
+### `Klaytn` package compile error
+
+[Reference](https://github.com/klaytn/klaytn/issues/197#issuecomment-612597933)
+
+1. Install C compilers
 ```sh
-task local:script-test-raft
+# use appropriate command depending on instance environment
+sudo apt-get install -y g++-x86-64-linux-gnu libc6-dev-amd64-cross
+```
+
+2. Set variables
+```sh
+set CGO_ENABLED=1
+set CC=[c cross compiler]
+set GOOS=linux
+set GOARCH=amd64
 ```
