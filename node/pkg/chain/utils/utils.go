@@ -309,7 +309,7 @@ func SubmitRawTx(ctx context.Context, client *client.Client, tx *types.Transacti
 
 	if receipt.Status != 1 {
 		log.Error().Str("tx", receipt.TxHash.String()).Msg("tx failed")
-		return errors.New("tx failed:" + receipt.TxHash.String())
+		return fmt.Errorf("transaction failed (hash: %s), status: %d", receipt.TxHash.String(), receipt.Status)
 	}
 
 	return nil
