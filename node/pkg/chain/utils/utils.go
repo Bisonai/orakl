@@ -306,6 +306,12 @@ func SubmitRawTx(ctx context.Context, client *client.Client, tx *types.Transacti
 		return err
 	}
 	log.Debug().Any("hash", receipt.TxHash).Msg("mined")
+
+	if receipt.Status != 1 {
+		log.Error().Str("tx", receipt.TxHash.String()).Msg("tx failed")
+		return errors.New("tx failed:" + receipt.TxHash.String())
+	}
+
 	return nil
 }
 
