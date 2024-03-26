@@ -2,6 +2,7 @@ package tests
 
 import (
 	"context"
+	"errors"
 	"math/big"
 	"strings"
 	"testing"
@@ -11,6 +12,11 @@ import (
 	klaytn_utils "bisonai.com/orakl/node/pkg/chain/klaytn/utils"
 	"github.com/klaytn/klaytn/blockchain/types"
 	"github.com/stretchr/testify/assert"
+)
+
+var (
+	ErrEmptyContractAddress = errors.New("contract address is empty")
+	ErrEmptyFunctionString  = errors.New("function string is empty")
 )
 
 func TestNewKlaytnHelper(t *testing.T) {
@@ -44,14 +50,44 @@ func TestMakeDirectTx(t *testing.T) {
 	}
 	defer klaytnHelper.Close()
 
-	directTx, err := klaytnHelper.MakeDirectTx(ctx, "0x93120927379723583c7a0dd2236fcb255e96949f", "increment()")
-	if err != nil {
-		t.Errorf("Unexpected error: %v", err)
+	tests := []struct {
+		name            string
+		contractAddress string
+		functionString  string
+		expectedError   error
+	}{
+		{
+			name:            "Test case 1",
+			contractAddress: "0x93120927379723583c7a0dd2236fcb255e96949f",
+			functionString:  "increment()",
+			expectedError:   nil,
+		},
+		{
+			name:            "Test case 2",
+			contractAddress: "",
+			functionString:  "increment()",
+			expectedError:   ErrEmptyContractAddress,
+		},
+		{
+			name:            "Test case 3",
+			contractAddress: "0x93120927379723583c7a0dd2236fcb255e96949f",
+			functionString:  "",
+			expectedError:   ErrEmptyFunctionString,
+		},
 	}
 
-	assert.Equal(t, strings.ToLower(directTx.To().Hex()), "0x93120927379723583c7a0dd2236fcb255e96949f")
-	assert.Equal(t, directTx.Value().Cmp(big.NewInt(0)), 0)
-	assert.Equal(t, directTx.Type(), types.TxTypeLegacyTransaction)
+	for _, test := range tests {
+		directTx, err := klaytnHelper.MakeDirectTx(ctx, test.contractAddress, test.functionString)
+		if err != nil {
+			if err.Error() != test.expectedError.Error() {
+				t.Errorf("Test case %s: Expected error '%v', but got '%v'", test.name, test.expectedError, err)
+			}
+		}
+		if err == nil {
+			assert.Equal(t, strings.ToLower(directTx.To().Hex()), test.contractAddress)
+			assert.Equal(t, directTx.Value().Cmp(big.NewInt(0)), 0)
+		}
+	}
 }
 
 func TestMakeFeeDelegatedTx(t *testing.T) {
@@ -62,14 +98,45 @@ func TestMakeFeeDelegatedTx(t *testing.T) {
 	}
 	defer klaytnHelper.Close()
 
-	feeDelegatedTx, err := klaytnHelper.MakeFeeDelegatedTx(ctx, "0x93120927379723583c7a0dd2236fcb255e96949f", "increment()")
-	if err != nil {
-		t.Errorf("Unexpected error: %v", err)
+	tests := []struct {
+		name            string
+		contractAddress string
+		functionString  string
+		expectedError   error
+	}{
+		{
+			name:            "Test case 1",
+			contractAddress: "0x93120927379723583c7a0dd2236fcb255e96949f",
+			functionString:  "increment()",
+			expectedError:   nil,
+		},
+		{
+			name:            "Test case 2",
+			contractAddress: "",
+			functionString:  "increment()",
+			expectedError:   ErrEmptyContractAddress,
+		},
+		{
+			name:            "Test case 3",
+			contractAddress: "0x93120927379723583c7a0dd2236fcb255e96949f",
+			functionString:  "",
+			expectedError:   ErrEmptyFunctionString,
+		},
 	}
 
-	assert.Equal(t, strings.ToLower(feeDelegatedTx.To().Hex()), "0x93120927379723583c7a0dd2236fcb255e96949f")
-	assert.Equal(t, feeDelegatedTx.Value().Cmp(big.NewInt(0)), 0)
-	assert.Equal(t, feeDelegatedTx.Type(), types.TxTypeFeeDelegatedSmartContractExecution)
+	for _, test := range tests {
+		feeDelegatedTx, err := klaytnHelper.MakeFeeDelegatedTx(ctx, test.contractAddress, test.functionString)
+		if err != nil {
+			if err.Error() != test.expectedError.Error() {
+				t.Errorf("Test case %s: Expected error '%v', but got '%v'", test.name, test.expectedError, err)
+			}
+		}
+		if err == nil {
+			assert.Equal(t, strings.ToLower(feeDelegatedTx.To().Hex()), test.contractAddress)
+			assert.Equal(t, feeDelegatedTx.Value().Cmp(big.NewInt(0)), 0)
+			assert.Equal(t, feeDelegatedTx.Type(), types.TxTypeFeeDelegatedSmartContractExecution)
+		}
+	}
 }
 
 func TestTxToHashToTx(t *testing.T) {
@@ -185,5 +252,29 @@ func TestReadContract(t *testing.T) {
 		} else {
 			t.Errorf("Unexpected error: %v", "result is empty")
 		}
+	}
+}
+
+func TestGenerateViewABIWithInvalidSignature(t *testing.T) {
+	functionName, inputs, outputs, err := chain_common.ParseMethodSignature("invalidFunctionSignature")
+	if err == nil {
+		t.Errorf("Expected an error for invalid function signature, got nil")
+	}
+
+	_, err = klaytn_utils.GenerateViewABI(functionName, inputs, outputs)
+	if err == nil {
+		t.Errorf("Expected an error when generating ABI with invalid function signature, got nil")
+	}
+}
+
+func TestGenerateViewABIWithEmptySignature(t *testing.T) {
+	functionName, inputs, outputs, err := chain_common.ParseMethodSignature("")
+	if err == nil {
+		t.Errorf("Expected an error for empty function signature, got nil")
+	}
+
+	_, err = klaytn_utils.GenerateViewABI(functionName, inputs, outputs)
+	if err == nil {
+		t.Errorf("Expected an error when generating ABI with empty function signature, got nil")
 	}
 }

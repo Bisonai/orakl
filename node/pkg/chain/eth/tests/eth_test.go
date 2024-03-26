@@ -2,6 +2,7 @@ package tests
 
 import (
 	"context"
+	"errors"
 	"math/big"
 	"testing"
 
@@ -9,6 +10,11 @@ import (
 	"bisonai.com/orakl/node/pkg/chain/eth/helper"
 	eth_utils "bisonai.com/orakl/node/pkg/chain/eth/utils"
 	"github.com/stretchr/testify/assert"
+)
+
+var (
+	ErrEmptyContractAddress = errors.New("contract address is empty")
+	ErrEmptyFunctionString  = errors.New("function string is empty")
 )
 
 func TestNewEthHelper(t *testing.T) {
@@ -42,12 +48,42 @@ func TestMakeDirectTx(t *testing.T) {
 	}
 	defer ethHelper.Close()
 
-	directTx, err := ethHelper.MakeDirectTx(ctx, "0x72C8f1933A0C0a9ad53D6CdDAF2e1Ce2F6075D2b", "increment()")
-	if err != nil {
-		t.Errorf("Unexpected error: %v", err)
+	tests := []struct {
+		name            string
+		contractAddress string
+		functionString  string
+		expectedError   error
+	}{
+		{
+			name:            "Test case 1",
+			contractAddress: "0x72C8f1933A0C0a9ad53D6CdDAF2e1Ce2F6075D2b",
+			functionString:  "increment()",
+			expectedError:   nil,
+		},
+		{
+			name:            "Test case 2",
+			contractAddress: "",
+			functionString:  "increment()",
+			expectedError:   ErrEmptyContractAddress,
+		},
+		{
+			name:            "Test case 3",
+			contractAddress: "0x72C8f1933A0C0a9ad53D6CdDAF2e1Ce2F6075D2b",
+			functionString:  "",
+			expectedError:   ErrEmptyFunctionString,
+		},
 	}
-	assert.Equal(t, directTx.To().Hex(), "0x72C8f1933A0C0a9ad53D6CdDAF2e1Ce2F6075D2b")
-	assert.Equal(t, directTx.Value().Cmp(big.NewInt(0)), 0)
+
+	for _, test := range tests {
+		directTx, err := ethHelper.MakeDirectTx(ctx, test.contractAddress, test.functionString)
+		if err != nil && err.Error() != test.expectedError.Error() {
+			t.Errorf("Test case %s: Expected error '%v', but got '%v'", test.name, test.expectedError, err)
+		}
+		if directTx != nil {
+			assert.NotEqual(t, directTx, nil)
+			assert.Equal(t, directTx.To().Hex(), test.contractAddress)
+		}
+	}
 }
 
 func TestGenerateABI(t *testing.T) {

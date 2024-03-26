@@ -22,6 +22,18 @@ import (
 )
 
 func ReadContract(ctx context.Context, client *ethclient.Client, functionString string, contractAddress string, args ...interface{}) (interface{}, error) {
+	if client == nil {
+		return nil, errors.New("client is nil")
+	}
+
+	if functionString == "" {
+		return nil, errors.New("function string is empty")
+	}
+
+	if contractAddress == "" {
+		return nil, errors.New("contract address is empty")
+	}
+
 	functionName, inputs, outputs, err := chain_common.ParseMethodSignature(functionString)
 	if err != nil {
 		return nil, err
@@ -55,6 +67,26 @@ func ReadContract(ctx context.Context, client *ethclient.Client, functionString 
 }
 
 func MakeDirectTx(ctx context.Context, client *ethclient.Client, contractAddressHex string, reporter string, functionString string, chainID *big.Int, args ...interface{}) (*types.Transaction, error) {
+	if client == nil {
+		return nil, errors.New("client is nil")
+	}
+
+	if contractAddressHex == "" {
+		return nil, errors.New("contract address is empty")
+	}
+
+	if reporter == "" {
+		return nil, errors.New("reporter is empty")
+	}
+
+	if functionString == "" {
+		return nil, errors.New("function string is empty")
+	}
+
+	if chainID == nil {
+		return nil, errors.New("chain id is nil")
+	}
+
 	functionName, inputs, outputs, err := chain_common.ParseMethodSignature(functionString)
 	if err != nil {
 		return nil, err

@@ -13,6 +13,10 @@ var (
 )
 
 func ParseMethodSignature(name string) (string, string, string, error) {
+	if name == "" {
+		return "", "", "", fmt.Errorf("empty name")
+	}
+
 	name = strings.Replace(name, "\n", " ", -1)
 	name = strings.Replace(name, "\t", " ", -1)
 

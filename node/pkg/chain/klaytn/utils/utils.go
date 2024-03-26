@@ -99,6 +99,10 @@ func GenerateViewABI(functionName string, inputs string, outputs string) (*abi.A
 }
 
 func generateABI(functionName string, inputs string, outputs string, stateMutability string, payable bool) (*abi.ABI, error) {
+	if functionName == "" {
+		return nil, errors.New("function name is empty")
+	}
+
 	inputArgs := chain_common.MakeAbiFuncAttribute(inputs)
 	outputArgs := chain_common.MakeAbiFuncAttribute(outputs)
 
@@ -142,6 +146,26 @@ func GetChainID(ctx context.Context, client *client.Client) (*big.Int, error) {
 }
 
 func MakeDirectTx(ctx context.Context, client *client.Client, contractAddressHex string, reporter string, functionString string, chainID *big.Int, args ...interface{}) (*types.Transaction, error) {
+	if client == nil {
+		return nil, errors.New("client is nil")
+	}
+
+	if contractAddressHex == "" {
+		return nil, errors.New("contract address is empty")
+	}
+
+	if reporter == "" {
+		return nil, errors.New("reporter is empty")
+	}
+
+	if functionString == "" {
+		return nil, errors.New("function string is empty")
+	}
+
+	if chainID == nil {
+		return nil, errors.New("chain id is nil")
+	}
+
 	functionName, inputs, outputs, err := chain_common.ParseMethodSignature(functionString)
 	if err != nil {
 		return nil, err
@@ -199,6 +223,26 @@ func MakeDirectTx(ctx context.Context, client *client.Client, contractAddressHex
 }
 
 func MakeFeeDelegatedTx(ctx context.Context, client *client.Client, contractAddressHex string, reporter string, functionString string, chainID *big.Int, args ...interface{}) (*types.Transaction, error) {
+	if client == nil {
+		return nil, errors.New("client is nil")
+	}
+
+	if contractAddressHex == "" {
+		return nil, errors.New("contract address is empty")
+	}
+
+	if reporter == "" {
+		return nil, errors.New("reporter is empty")
+	}
+
+	if functionString == "" {
+		return nil, errors.New("function string is empty")
+	}
+
+	if chainID == nil {
+		return nil, errors.New("chain id is nil")
+	}
+
 	functionName, inputs, outputs, err := chain_common.ParseMethodSignature(functionString)
 	if err != nil {
 		log.Error().Err(err).Msg("failed to parse method signature")
@@ -358,6 +402,18 @@ func UpdateFeePayer(tx *types.Transaction, feePayer common.Address) (*types.Tran
 }
 
 func ReadContract(ctx context.Context, client *client.Client, functionString string, contractAddress string, args ...interface{}) (interface{}, error) {
+	if client == nil {
+		return nil, errors.New("client is nil")
+	}
+
+	if contractAddress == "" {
+		return nil, errors.New("contract address is empty")
+	}
+
+	if functionString == "" {
+		return nil, errors.New("function string is empty")
+	}
+
 	functionName, inputs, outputs, err := chain_common.ParseMethodSignature(functionString)
 	if err != nil {
 		return nil, err
