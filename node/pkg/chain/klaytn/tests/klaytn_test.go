@@ -163,14 +163,7 @@ func TestTxToHashToTx(t *testing.T) {
 	assert.Equal(t, tx.Equal(rawTx), true)
 }
 
-func TestGenerateABI(t *testing.T) {
-	ctx := context.Background()
-	klaytnHelper, err := helper.NewKlaytnHelper(ctx)
-	if err != nil {
-		t.Errorf("Unexpected error: %v", err)
-	}
-	defer klaytnHelper.Close()
-
+func TestGenerateCallABI(t *testing.T) {
 	functionName, inputs, outputs, err := chain_common.ParseMethodSignature("increment()")
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)

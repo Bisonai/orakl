@@ -86,14 +86,22 @@ func TestMakeDirectTx(t *testing.T) {
 	}
 }
 
-func TestGenerateABI(t *testing.T) {
-	ctx := context.Background()
-	ethHelper, err := helper.NewEthHelper(ctx)
+func TestGenerateViewABI(t *testing.T) {
+	functionName, inputs, outputs, err := chain_common.ParseMethodSignature("count() external view returns (uint256)")
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
 	}
-	defer ethHelper.Close()
 
+	abi, err := eth_utils.GenerateViewABI(functionName, inputs, outputs)
+	if err != nil {
+		t.Errorf("Unexpected error: %v", err)
+	}
+
+	assert.Equal(t, "count", abi.Methods["count"].Name)
+	assert.NotEqual(t, abi, nil)
+}
+
+func TestGenerateCallABI(t *testing.T) {
 	functionName, inputs, outputs, err := chain_common.ParseMethodSignature("increment()")
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)

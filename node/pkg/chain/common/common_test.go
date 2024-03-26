@@ -1,7 +1,7 @@
 package common
 
 import (
-	"errors"
+	"fmt"
 	"testing"
 )
 
@@ -38,11 +38,19 @@ func TestParseMethodSignature(t *testing.T) {
 			expectedOutput: "bool, string",
 			expectedError:  nil,
 		},
+		{
+			name:           "Test case 4",
+			input:          "",
+			expectedName:   "",
+			expectedInput:  "",
+			expectedOutput: "",
+			expectedError:  fmt.Errorf("empty name"),
+		},
 	}
 
 	for _, test := range tests {
 		funcName, inputArgs, outputArgs, err := ParseMethodSignature(test.input)
-		if !errors.Is(err, test.expectedError) {
+		if err != nil && err.Error() != test.expectedError.Error() {
 			t.Errorf("Test case %s: Expected error '%v', but got '%v'", test.name, test.expectedError, err)
 		}
 		if funcName != test.expectedName {
