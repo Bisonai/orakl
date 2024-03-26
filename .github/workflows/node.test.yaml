@@ -91,7 +91,9 @@ jobs:
           REDIS_HOST: "localhost"
           REDIS_PORT: "6379"
           ENCRYPT_PASSWORD: "anything"
-          PROVIDER_URL: "https://api.baobab.klaytn.net:8651"
-          REPORTER_PK: ${{ secrets.TEST_DELEGATOR_REPORTER_PK}}
+          KLAYTN_PROVIDER_URL: "https://api.baobab.klaytn.net:8651"
+          KLAYTN_REPORTER_PK: ${{ secrets.TEST_DELEGATOR_REPORTER_PK}}
+          ETH_PROVIDER_URL: "https://ethereum-sepolia-rpc.allthatnode.com"
+          ETH_REPORTER_PK: ${{ secrets.TEST_DELEGATOR_REPORTER_PK}}
           TEST_FEE_PAYER_PK: ${{ secrets.DELEGATOR_FEEPAYER_PK}}
           SUBMISSION_PROXY_CONTRACT: "0x8B5B98ABdc0281D5cf8bD93FE82768b22FD11623"

@@ -5,33 +5,33 @@ import (
 	"fmt"
 	"math/big"
 
-	"bisonai.com/orakl/node/pkg/chain/tx"
+	"bisonai.com/orakl/node/pkg/chain/klaytn/helper"
 	"github.com/rs/zerolog/log"
 )
 
 // send single submission through this script
 
 func testContractDelegatedCall(ctx context.Context, contractAddress string, contractFunction string, args ...interface{}) error {
-	txHelper, err := tx.NewTxHelper(ctx)
+	klaytnHelper, err := helper.NewKlaytnHelper(ctx)
 	if err != nil {
 		log.Error().Err(err).Msg("NewTxHelper")
 		return err
 	}
 
-	rawTx, err := txHelper.MakeFeeDelegatedTx(ctx, contractAddress, contractFunction, args...)
+	rawTx, err := klaytnHelper.MakeFeeDelegatedTx(ctx, contractAddress, contractFunction, args...)
 	if err != nil {
 		log.Error().Err(err).Msg("MakeFeeDelegatedTx")
 		return err
 	}
 
-	signedRawTx, err := txHelper.GetSignedFromDelegator(rawTx)
+	signedRawTx, err := klaytnHelper.GetSignedFromDelegator(rawTx)
 	if err != nil {
 		fmt.Println(signedRawTx)
 		log.Error().Err(err).Msg("GetSignedFromDelegator")
 		return err
 	}
 
-	return txHelper.SubmitRawTx(ctx, signedRawTx)
+	return klaytnHelper.SubmitRawTx(ctx, signedRawTx)
 }
 
 func main() {

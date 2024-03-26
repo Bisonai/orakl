@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"bisonai.com/orakl/node/pkg/chain/tx"
+	"bisonai.com/orakl/node/pkg/chain/klaytn/helper"
 	"bisonai.com/orakl/node/pkg/db"
 	"bisonai.com/orakl/node/pkg/raft"
 
@@ -29,7 +29,9 @@ func NewNode(ctx context.Context, h host.Host, ps *pubsub.PubSub) (*ReporterNode
 	}
 
 	raft := raft.NewRaftNode(h, ps, topic, MESSAGE_BUFFER, LEADER_TIMEOUT)
-	txHelper, err := tx.NewTxHelper(ctx)
+
+	// TODO: currently bound to KlaytnHelper, abstract for loose coupling
+	txHelper, err := helper.NewKlaytnHelper(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -41,7 +43,7 @@ func NewNode(ctx context.Context, h host.Host, ps *pubsub.PubSub) (*ReporterNode
 
 	reporter := &ReporterNode{
 		Raft:            raft,
-		TxHelper:        txHelper,
+		KlaytnHelper:    txHelper,
 		contractAddress: contractAddress,
 	}
 	err = reporter.loadSubmissionPairs(ctx)
@@ -202,29 +204,29 @@ func (r *ReporterNode) report(ctx context.Context, aggregates []GlobalAggregate)
 }
 
 func (r *ReporterNode) reportDirect(ctx context.Context, args ...interface{}) error {
-	rawTx, err := r.TxHelper.MakeDirectTx(ctx, r.contractAddress, FUNCTION_STRING, args...)
+	rawTx, err := r.KlaytnHelper.MakeDirectTx(ctx, r.contractAddress, FUNCTION_STRING, args...)
 	if err != nil {
 		log.Error().Str("Player", "Reporter").Err(err).Msg("MakeDirectTx")
 		return err
 	}
 
-	return r.TxHelper.SubmitRawTx(ctx, rawTx)
+	return r.KlaytnHelper.SubmitRawTx(ctx, rawTx)
 }
 
 func (r *ReporterNode) reportDelegated(ctx context.Context, args ...interface{}) error {
-	rawTx, err := r.TxHelper.MakeFeeDelegatedTx(ctx, r.contractAddress, FUNCTION_STRING, args...)
+	rawTx, err := r.KlaytnHelper.MakeFeeDelegatedTx(ctx, r.contractAddress, FUNCTION_STRING, args...)
 	if err != nil {
 		log.Error().Str("Player", "Reporter").Err(err).Msg("MakeFeeDelegatedTx")
 		return err
 	}
 
-	signedTx, err := r.TxHelper.GetSignedFromDelegator(rawTx)
+	signedTx, err := r.KlaytnHelper.GetSignedFromDelegator(rawTx)
 	if err != nil {
 		log.Error().Str("Player", "Reporter").Err(err).Msg("GetSignedFromDelegator")
 		return err
 	}
 
-	return r.TxHelper.SubmitRawTx(ctx, signedTx)
+	return r.KlaytnHelper.SubmitRawTx(ctx, signedTx)
 }
 
 func (r *ReporterNode) filterInvalidAggregates(aggregates []GlobalAggregate) []GlobalAggregate {

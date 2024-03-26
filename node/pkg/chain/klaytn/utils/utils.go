@@ -22,6 +22,8 @@ import (
 	"github.com/klaytn/klaytn/rlp"
 
 	"github.com/rs/zerolog/log"
+
+	chain_common "bisonai.com/orakl/node/pkg/chain/common"
 )
 
 func MakePayload(tx *types.Transaction) (SignInsertPayload, error) {
@@ -88,43 +90,34 @@ func HashToTx(hash string) (*types.Transaction, error) {
 	return tx, nil
 }
 
-func ConvertFunctionParameters(input string) string {
-	if strings.TrimSpace(input) == "" {
-		return ""
-	}
-
-	parts := strings.Split(input, ",")
-	var outputParts []string
-	for _, part := range parts {
-		part = strings.TrimSpace(part)
-		paramType := strings.Split(part, " ")[0]
-		outputParts = append(outputParts, fmt.Sprintf(`{
-            "type": "%s"
-        }`, paramType))
-	}
-	return strings.Join(outputParts, ",\n")
+func GenerateCallABI(functionName string, inputs string, outputs string) (*abi.ABI, error) {
+	return generateABI(functionName, inputs, outputs, "nonpayable", false)
 }
 
-func GenerateABI(functionString string) (*abi.ABI, error) {
-	parts := strings.Split(functionString, "(")
-	if len(parts) != 2 {
-		return nil, fmt.Errorf("invalid function string")
+func GenerateViewABI(functionName string, inputs string, outputs string) (*abi.ABI, error) {
+	return generateABI(functionName, inputs, outputs, "view", false)
+}
+
+func generateABI(functionName string, inputs string, outputs string, stateMutability string, payable bool) (*abi.ABI, error) {
+	if functionName == "" {
+		return nil, errors.New("function name is empty")
 	}
 
-	functionName := parts[0]
-	arguments := strings.TrimRight(parts[1], ")")
-	convertedArgs := ConvertFunctionParameters(arguments)
+	inputArgs := chain_common.MakeAbiFuncAttribute(inputs)
+	outputArgs := chain_common.MakeAbiFuncAttribute(outputs)
+
 	json := fmt.Sprintf(`[
-        {
-            "constant": false,
-            "inputs": [%s],
-            "name": "%s",
-            "outputs": [],
-            "payable": false,
-            "stateMutability": "nonpayable",
-            "type": "function"
-        }
-    ]`, convertedArgs, functionName)
+		{
+			"constant": false,
+			"inputs": [%s],
+			"name": "%s",
+			"outputs": [%s],
+			"payable": %t,
+			"stateMutability": "%s",
+			"type": "function"
+		}
+	]
+	`, inputArgs, functionName, outputArgs, payable, stateMutability)
 
 	parsedABI, err := abi.JSON(strings.NewReader(json))
 	if err != nil {
@@ -153,12 +146,36 @@ func GetChainID(ctx context.Context, client *client.Client) (*big.Int, error) {
 }
 
 func MakeDirectTx(ctx context.Context, client *client.Client, contractAddressHex string, reporter string, functionString string, chainID *big.Int, args ...interface{}) (*types.Transaction, error) {
-	abi, err := GenerateABI(functionString)
+	if client == nil {
+		return nil, errors.New("client is nil")
+	}
+
+	if contractAddressHex == "" {
+		return nil, errors.New("contract address is empty")
+	}
+
+	if reporter == "" {
+		return nil, errors.New("reporter is empty")
+	}
+
+	if functionString == "" {
+		return nil, errors.New("function string is empty")
+	}
+
+	if chainID == nil {
+		return nil, errors.New("chain id is nil")
+	}
+
+	functionName, inputs, outputs, err := chain_common.ParseMethodSignature(functionString)
 	if err != nil {
 		return nil, err
 	}
 
-	functionName := strings.Split(functionString, "(")[0]
+	abi, err := GenerateCallABI(functionName, inputs, outputs)
+	if err != nil {
+		return nil, err
+	}
+
 	packed, err := abi.Pack(functionName, args...)
 	if err != nil {
 		return nil, err
@@ -206,13 +223,38 @@ func MakeDirectTx(ctx context.Context, client *client.Client, contractAddressHex
 }
 
 func MakeFeeDelegatedTx(ctx context.Context, client *client.Client, contractAddressHex string, reporter string, functionString string, chainID *big.Int, args ...interface{}) (*types.Transaction, error) {
-	abi, err := GenerateABI(functionString)
+	if client == nil {
+		return nil, errors.New("client is nil")
+	}
+
+	if contractAddressHex == "" {
+		return nil, errors.New("contract address is empty")
+	}
+
+	if reporter == "" {
+		return nil, errors.New("reporter is empty")
+	}
+
+	if functionString == "" {
+		return nil, errors.New("function string is empty")
+	}
+
+	if chainID == nil {
+		return nil, errors.New("chain id is nil")
+	}
+
+	functionName, inputs, outputs, err := chain_common.ParseMethodSignature(functionString)
+	if err != nil {
+		log.Error().Err(err).Msg("failed to parse method signature")
+		return nil, err
+	}
+
+	abi, err := GenerateCallABI(functionName, inputs, outputs)
 	if err != nil {
 		log.Error().Err(err).Msg("failed to generate abi")
 		return nil, err
 	}
 
-	functionName := strings.Split(functionString, "(")[0]
 	packed, err := abi.Pack(functionName, args...)
 	if err != nil {
 		log.Error().Err(err).Msg("failed to pack abi")
@@ -357,4 +399,50 @@ func UpdateFeePayer(tx *types.Transaction, feePayer common.Address) (*types.Tran
 
 	newTx.SetSignature(tx.GetTxInternalData().RawSignatureValues())
 	return newTx, err
+}
+
+func ReadContract(ctx context.Context, client *client.Client, functionString string, contractAddress string, args ...interface{}) (interface{}, error) {
+	if client == nil {
+		return nil, errors.New("client is nil")
+	}
+
+	if contractAddress == "" {
+		return nil, errors.New("contract address is empty")
+	}
+
+	if functionString == "" {
+		return nil, errors.New("function string is empty")
+	}
+
+	functionName, inputs, outputs, err := chain_common.ParseMethodSignature(functionString)
+	if err != nil {
+		return nil, err
+	}
+
+	abi, err := GenerateViewABI(functionName, inputs, outputs)
+	if err != nil {
+		return nil, err
+	}
+
+	contractAddressHex := common.HexToAddress(contractAddress)
+	callData, err := abi.Pack(functionName, args...)
+	if err != nil {
+		return nil, err
+	}
+
+	result, err := client.CallContract(ctx, klaytn.CallMsg{
+		To:   &contractAddressHex,
+		Data: callData,
+	}, nil)
+
+	if err != nil {
+		return nil, err
+	}
+
+	output, err := abi.Unpack(functionName, result)
+	if err != nil {
+		return nil, err
+	}
+
+	return output, nil
 }
