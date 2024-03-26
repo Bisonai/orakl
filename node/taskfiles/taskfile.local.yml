@@ -78,6 +78,10 @@ tasks:
     dotenv: [".env"]
     cmds:
       - go test ./pkg/chain/eth/tests -v
+  test-chain-common:
+    dotenv: [".env"]
+    cmds:
+      - go test ./pkg/chain/common -v
   test:
     cmds:
       - task: test-db
@@ -91,3 +95,4 @@ tasks:
       - task: test-boot
       - task: test-klaytn
       - task: test-eth
+      - task: test-chain-common

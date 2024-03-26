@@ -3,11 +3,13 @@ package tests
 import (
 	"context"
 	"math/big"
+	"strings"
 	"testing"
 
 	chain_common "bisonai.com/orakl/node/pkg/chain/common"
 	"bisonai.com/orakl/node/pkg/chain/klaytn/helper"
 	klaytn_utils "bisonai.com/orakl/node/pkg/chain/klaytn/utils"
+	"github.com/klaytn/klaytn/blockchain/types"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -42,10 +44,14 @@ func TestMakeDirectTx(t *testing.T) {
 	}
 	defer klaytnHelper.Close()
 
-	_, err = klaytnHelper.MakeDirectTx(ctx, "0x93120927379723583c7a0dd2236fcb255e96949f", "increment()")
+	directTx, err := klaytnHelper.MakeDirectTx(ctx, "0x93120927379723583c7a0dd2236fcb255e96949f", "increment()")
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
 	}
+
+	assert.Equal(t, strings.ToLower(directTx.To().Hex()), "0x93120927379723583c7a0dd2236fcb255e96949f")
+	assert.Equal(t, directTx.Value().Cmp(big.NewInt(0)), 0)
+	assert.Equal(t, directTx.Type(), types.TxTypeLegacyTransaction)
 }
 
 func TestMakeFeeDelegatedTx(t *testing.T) {
@@ -56,10 +62,14 @@ func TestMakeFeeDelegatedTx(t *testing.T) {
 	}
 	defer klaytnHelper.Close()
 
-	_, err = klaytnHelper.MakeFeeDelegatedTx(ctx, "0x93120927379723583c7a0dd2236fcb255e96949f", "increment()")
+	feeDelegatedTx, err := klaytnHelper.MakeFeeDelegatedTx(ctx, "0x93120927379723583c7a0dd2236fcb255e96949f", "increment()")
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
 	}
+
+	assert.Equal(t, strings.ToLower(feeDelegatedTx.To().Hex()), "0x93120927379723583c7a0dd2236fcb255e96949f")
+	assert.Equal(t, feeDelegatedTx.Value().Cmp(big.NewInt(0)), 0)
+	assert.Equal(t, feeDelegatedTx.Type(), types.TxTypeFeeDelegatedSmartContractExecution)
 }
 
 func TestTxToHashToTx(t *testing.T) {

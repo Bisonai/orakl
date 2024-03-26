@@ -42,10 +42,12 @@ func TestMakeDirectTx(t *testing.T) {
 	}
 	defer ethHelper.Close()
 
-	_, err = ethHelper.MakeDirectTx(ctx, "0x72C8f1933A0C0a9ad53D6CdDAF2e1Ce2F6075D2b", "increment()")
+	directTx, err := ethHelper.MakeDirectTx(ctx, "0x72C8f1933A0C0a9ad53D6CdDAF2e1Ce2F6075D2b", "increment()")
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
 	}
+	assert.Equal(t, directTx.To().Hex(), "0x72C8f1933A0C0a9ad53D6CdDAF2e1Ce2F6075D2b")
+	assert.Equal(t, directTx.Value().Cmp(big.NewInt(0)), 0)
 }
 
 func TestGenerateABI(t *testing.T) {
