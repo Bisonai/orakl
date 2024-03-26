@@ -10,7 +10,6 @@ import (
 	"strings"
 	"time"
 
-	"bisonai.com/orakl/node/pkg/chain/klaytn/helper"
 	"bisonai.com/orakl/node/pkg/db"
 	"bisonai.com/orakl/node/pkg/raft"
 
@@ -30,12 +29,6 @@ func NewNode(ctx context.Context, h host.Host, ps *pubsub.PubSub) (*ReporterNode
 
 	raft := raft.NewRaftNode(h, ps, topic, MESSAGE_BUFFER, LEADER_TIMEOUT)
 
-	// TODO: currently bound to KlaytnHelper, abstract for loose coupling
-	txHelper, err := helper.NewKlaytnHelper(ctx)
-	if err != nil {
-		return nil, err
-	}
-
 	contractAddress := os.Getenv("SUBMISSION_PROXY_CONTRACT")
 	if contractAddress == "" {
 		return nil, errors.New("SUBMISSION_PROXY_CONTRACT not set")
@@ -43,7 +36,6 @@ func NewNode(ctx context.Context, h host.Host, ps *pubsub.PubSub) (*ReporterNode
 
 	reporter := &ReporterNode{
 		Raft:            raft,
-		KlaytnHelper:    txHelper,
 		contractAddress: contractAddress,
 	}
 	err = reporter.loadSubmissionPairs(ctx)
