@@ -41,7 +41,7 @@ func TestParseMethodSignature(t *testing.T) {
 
 	for _, test := range tests {
 		funcName, inputArgs, outputArgs, err := ParseMethodSignature(test.input)
-		if err != test.expectedError {
+		if !errors.Is(err, test.expectedError) {
 			t.Errorf("Test case %s: Expected error '%v', but got '%v'", test.name, test.expectedError, err)
 		}
 		if funcName != test.expectedName {
