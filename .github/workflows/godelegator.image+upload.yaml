@@ -1,15 +1,13 @@
-name: CLI Deploy to Amazon ECR
+name: Go Delegator Deploy to Amazon ECR
 
 on:
   push:
     branches:
       - master
     paths:
-      - "cli/**"
-  workflow_dispatch:
-
+      - "go-delegator/**"
 env:
-  ecr_url: public.ecr.aws/bisonai/orakl-cli
+  ecr_url: public.ecr.aws/bisonai/orakl-godelegator
 
 jobs:
   prepare:
@@ -33,8 +31,8 @@ jobs:
       - name: Get package version
         id: package
         run: |
-          echo "version=$(node -p -e "require('./cli/package.json').version")" >> $GITHUB_OUTPUT
-
+          version=$(cat "./go-delegator/.version")
+          echo "version=${version}" >> $GITHUB_OUTPUT
   build:
     name: Build
     runs-on: ubuntu-latest
@@ -51,8 +49,32 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - name: Docker build orakl-cli
-        run: SERVICE_NAME=orakl-cli docker-compose -f docker-compose.build.yaml build
+      - name: Setup Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: "1.21.5"
+          check-latest: true
+          cache-dependency-path: |
+            ./go-delegator/go.sum
+
+      - name: Run lint
+        uses: golangci/golangci-lint-action@v3
+        with:
+          version: v1.54
+          working-directory: go-delegator
+          skip-pkg-cache: true
+          skip-build-cache: true
+          args: --timeout=10m --skip-dirs=tests
+
+      - name: Run vet
+        run: |
+          cd ./go-delegator
+          go install golang.org/x/tools/go/analysis/passes/shadow/cmd/shadow@latest
+          go vet
+          go vet -vettool=$(which shadow)
+
+      - name: Docker build orakl-godelegator
+        run: SERVICE_NAME=orakl-godelegator docker-compose -f docker-compose.build.yaml build
 
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v2
@@ -66,19 +88,19 @@ jobs:
         with:
           registry-type: public
 
-      - name: Publish Image to ECR(cli)
+      - name: Publish Image to ECR(delegator)
         run: |
           if [ "${GITHUB_REF##*/}" == "master" ]; then
             docker push ${{ env.ecr_url }}:latest
           fi
-          docker tag orakl-cli ${{ env.ecr_url }}:v${{ needs.prepare.outputs.version }}.${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }}
+          docker tag orakl-godelegator ${{ env.ecr_url }}:v${{ needs.prepare.outputs.version }}.${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }}
           docker push ${{ env.ecr_url }}:v${{ needs.prepare.outputs.version }}.${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }}
 
   create-helmchart-pr:
     needs: [prepare, build]
     uses: ./.github/workflows/create-helmchart-pr.yaml
     with:
-      project-name: "cli"
+      project-name: "godelegator"
       version: ${{ needs.prepare.outputs.version }}
       tag_date: ${{ needs.prepare.outputs.tag_date }}
       tag_git_hash: ${{ needs.prepare.outputs.tag_git_hash }}

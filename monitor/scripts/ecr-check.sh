@@ -79,8 +79,8 @@ check_tag() {
 
 # orakl-general has quite mixed set of tags, so we skip it
 # check_repository_tags "orakl-general"
-check_repository_tags "orakl-core" 5 "vrf" "request-response" "aggregator"
-check_repository_tags "orakl-api" 5 "api"
-check_repository_tags "orakl-cli" 5 "cli"
-check_repository_tags "orakl-fetcher" 5 "fetcher"
-check_repository_tags "orakl-delegator" 5 "delegator"
+check_repository_tags "orakl-core" 6 "vrf" "request-response" "aggregator"
+check_repository_tags "orakl-api" 6 "api"
+check_repository_tags "orakl-cli" 6 "cli"
+check_repository_tags "orakl-fetcher" 6 "fetcher"
+check_repository_tags "orakl-delegator" 6 "delegator"
