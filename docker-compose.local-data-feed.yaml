@@ -89,7 +89,7 @@ services:
   delegator:
     build:
       context: .
-      dockerfile: dockerfiles/orakl-godelegator.Dockerfile
+      dockerfile: dockerfiles/orakl-delegator.Dockerfile
     image: orakl-delegator
     expose:
       - "3002"

@@ -1,4 +1,4 @@
-name: Delegator Deploy to Amazon ECR
+name: Go Delegator Deploy to Amazon ECR
 
 on:
   push:
@@ -6,7 +6,6 @@ on:
       - master
     paths:
       - "delegator/**"
-
 env:
   ecr_url: public.ecr.aws/bisonai/orakl-delegator
 
@@ -32,8 +31,8 @@ jobs:
       - name: Get package version
         id: package
         run: |
-          echo "version=$(node -p -e "require('./delegator/package.json').version")" >> $GITHUB_OUTPUT
-
+          version=$(cat "./delegator/.version")
+          echo "version=${version}" >> $GITHUB_OUTPUT
   build:
     name: Build
     runs-on: ubuntu-latest
@@ -50,7 +49,31 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - name: Docker build orakl-core
+      - name: Setup Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: "1.21.5"
+          check-latest: true
+          cache-dependency-path: |
+            ./delegator/go.sum
+
+      - name: Run lint
+        uses: golangci/golangci-lint-action@v3
+        with:
+          version: v1.54
+          working-directory: delegator
+          skip-pkg-cache: true
+          skip-build-cache: true
+          args: --timeout=10m --skip-dirs=tests
+
+      - name: Run vet
+        run: |
+          cd ./delegator
+          go install golang.org/x/tools/go/analysis/passes/shadow/cmd/shadow@latest
+          go vet
+          go vet -vettool=$(which shadow)
+
+      - name: Docker build orakl-delegator
         run: SERVICE_NAME=orakl-delegator docker-compose -f docker-compose.build.yaml build
 
       - name: Configure AWS Credentials
@@ -69,3 +92,14 @@ jobs:
         run: |
           docker tag orakl-delegator ${{ env.ecr_url }}:v${{ needs.prepare.outputs.version }}.${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }}
           docker push ${{ env.ecr_url }}:v${{ needs.prepare.outputs.version }}.${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }}
+
+  create-helmchart-pr:
+    needs: [prepare, build]
+    uses: ./.github/workflows/create-helmchart-pr.yaml
+    with:
+      project-name: "delegator"
+      version: ${{ needs.prepare.outputs.version }}
+      tag_date: ${{ needs.prepare.outputs.tag_date }}
+      tag_git_hash: ${{ needs.prepare.outputs.tag_git_hash }}
+    secrets:
+      PAT: ${{ secrets.PAT }}

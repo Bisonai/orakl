@@ -1,6 +1,7 @@
 const { readdir, readFile, appendFile, writeFile } = require('node:fs/promises')
 const path = require('node:path')
 const moment = require('moment')
+const { writeFileSync } = require('node:fs')
 const MIGRATION_LOCK_FILE_NAME = 'migration.lock'
 
 async function loadJson(filepath) {
@@ -15,7 +16,7 @@ async function loadJson(filepath) {
 
 async function storeJson(filepath, data) {
   try {
-    await writeFile(filepath, data)
+    await writeFileSync(filepath, data)
   } catch (e) {
     console.error(e)
     throw e
