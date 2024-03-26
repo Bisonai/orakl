@@ -1,6 +1,7 @@
 package common
 
 import (
+	"errors"
 	"testing"
 )
 
