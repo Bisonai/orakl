@@ -1,23 +1,3 @@
-// Modifications Copyright 2018 The klaytn Authors
-// Copyright 2016 The go-ethereum Authors
-// This file is part of go-ethereum.
-//
-// go-ethereum is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// go-ethereum is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
-//
-// This file is derived from ethclient/ethclient.go (2018/06/04).
-// Modified and improved for the klaytn development.
-
 package eth_client
 
 import (
@@ -36,15 +16,11 @@ import (
 	"github.com/klaytn/klaytn/rlp"
 )
 
-// TODO-Klaytn Needs to separate APIs along with each namespaces.
-
-// EthClient defines typed wrappers for the Klaytn RPC API.
 type EthClient struct {
 	c       *rpc.Client
 	chainID *big.Int
 }
 
-// Dial connects a client to the given URL.
 func Dial(rawurl string) (*EthClient, error) {
 	return DialContext(context.Background(), rawurl)
 }
@@ -57,7 +33,6 @@ func DialContext(ctx context.Context, rawurl string) (*EthClient, error) {
 	return NewClient(c), nil
 }
 
-// NewClient creates a client that uses the given RPC client.
 func NewClient(c *rpc.Client) *EthClient {
 	return &EthClient{c, nil}
 }
@@ -70,21 +45,10 @@ func (ec *EthClient) SetHeader(key, value string) {
 	ec.c.SetHeader(key, value)
 }
 
-// Blockchain Access
-
-// BlockByHash returns the given full block.
-//
-// Note that loading full blocks requires two requests. Use HeaderByHash
-// if you don't need all transactions.
 func (ec *EthClient) BlockByHash(ctx context.Context, hash common.Hash) (*types.Block, error) {
 	return ec.getBlock(ctx, "eth_getBlockByHash", hash, true)
 }
 
-// BlockByNumber returns a block from the current canonical chain. If number is nil, the
-// latest known block is returned.
-//
-// Note that loading full blocks requires two requests. Use HeaderByNumber
-// if you don't need all transactions.
 func (ec *EthClient) BlockByNumber(ctx context.Context, number *big.Int) (*types.Block, error) {
 	return ec.getBlock(ctx, "eth_getBlockByNumber", toBlockNumArg(number), true)
 }
@@ -102,7 +66,7 @@ func (ec *EthClient) getBlock(ctx context.Context, method string, args ...interf
 	} else if len(raw) == 0 {
 		return nil, klaytn.NotFound
 	}
-	// Decode header and transactions.
+
 	var head *types.Header
 	var body rpcBlock
 	if err := json.Unmarshal(raw, &head); err != nil {
@@ -111,15 +75,7 @@ func (ec *EthClient) getBlock(ctx context.Context, method string, args ...interf
 	if err := json.Unmarshal(raw, &body); err != nil {
 		return nil, err
 	}
-	// TODO-Klaytn Enable the below error checks after having a way to get the correct EmptyRootHash
-	// Quick-verify transaction lists. This mostly helps with debugging the server.
-	//if head.TxHash == types.EmptyRootHash && len(body.Transactions) > 0 {
-	//	return nil, fmt.Errorf("server returned non-empty transaction list but block header indicates no transactions")
-	//}
-	//if head.TxHash != types.EmptyRootHash && len(body.Transactions) == 0 {
-	//	return nil, fmt.Errorf("server returned empty transaction list but block header indicates transactions")
-	//}
-	// Fill the sender cache of transactions in the block.
+
 	txs := make([]*types.Transaction, len(body.Transactions))
 	for i, tx := range body.Transactions {
 		if tx.From != nil {
@@ -130,7 +86,6 @@ func (ec *EthClient) getBlock(ctx context.Context, method string, args ...interf
 	return types.NewBlockWithHeader(head).WithBody(txs), nil
 }
 
-// HeaderByHash returns the block header with the given hash.
 func (ec *EthClient) HeaderByHash(ctx context.Context, hash common.Hash) (*types.Header, error) {
 	var head *types.Header
 	err := ec.c.CallContext(ctx, &head, "eth_getBlockByHash", hash, false)
@@ -140,8 +95,6 @@ func (ec *EthClient) HeaderByHash(ctx context.Context, hash common.Hash) (*types
 	return head, err
 }
 
-// HeaderByNumber returns a block header from the current canonical chain. If number is
-// nil, the latest known header is returned.
 func (ec *EthClient) HeaderByNumber(ctx context.Context, number *big.Int) (*types.Header, error) {
 	var head *types.Header
 	err := ec.c.CallContext(ctx, &head, "eth_getBlockByNumber", toBlockNumArg(number), false)
@@ -169,7 +122,6 @@ func (tx *rpcTransaction) UnmarshalJSON(msg []byte) error {
 	return json.Unmarshal(msg, &tx.txExtraInfo)
 }
 
-// TransactionByHash returns the transaction with the given hash.
 func (ec *EthClient) TransactionByHash(ctx context.Context, hash common.Hash) (tx *types.Transaction, isPending bool, err error) {
 	var json *rpcTransaction
 	err = ec.c.CallContext(ctx, &json, "eth_getTransactionByHash", hash)
@@ -186,17 +138,10 @@ func (ec *EthClient) TransactionByHash(ctx context.Context, hash common.Hash) (t
 	return json.tx, json.BlockNumber == nil, nil
 }
 
-// TransactionSender returns the sender address of the given transaction. The transaction
-// must be known to the remote node and included in the blockchain at the given block and
-// index. The sender is the one derived by the protocol at the time of inclusion.
-//
-// There is a fast-path for transactions retrieved by TransactionByHash and
-// TransactionInBlock. Getting their sender address can be done without an RPC interaction.
 func (ec *EthClient) TransactionSender(ctx context.Context, tx *types.Transaction, block common.Hash, index uint) (common.Address, error) {
 	if tx == nil {
 		return common.Address{}, errors.New("Transaction must not be nil")
 	}
-	// Try to load the address from the cache.
 	sender, err := types.Sender(&senderFromServer{blockhash: block}, tx)
 	if err == nil {
 		return sender, nil
@@ -214,14 +159,12 @@ func (ec *EthClient) TransactionSender(ctx context.Context, tx *types.Transactio
 	return meta.From, nil
 }
 
-// TransactionCount returns the total number of transactions in the given block.
 func (ec *EthClient) TransactionCount(ctx context.Context, blockHash common.Hash) (uint, error) {
 	var num hexutil.Uint
 	err := ec.c.CallContext(ctx, &num, "eth_getBlockTransactionCountByHash", blockHash)
 	return uint(num), err
 }
 
-// TransactionInBlock returns a single transaction at index in the given block.
 func (ec *EthClient) TransactionInBlock(ctx context.Context, blockHash common.Hash, index uint) (*types.Transaction, error) {
 	var json *rpcTransaction
 	err := ec.c.CallContext(ctx, &json, "eth_getTransactionByBlockHashAndIndex", blockHash, hexutil.Uint64(index))
@@ -239,8 +182,6 @@ func (ec *EthClient) TransactionInBlock(ctx context.Context, blockHash common.Ha
 	return json.tx, err
 }
 
-// TransactionReceipt returns the receipt of a transaction by transaction hash.
-// Note that the receipt is not available for pending transactions.
 func (ec *EthClient) TransactionReceipt(ctx context.Context, txHash common.Hash) (*types.Receipt, error) {
 	var r *types.Receipt
 	err := ec.c.CallContext(ctx, &r, "eth_getTransactionReceipt", txHash)
@@ -252,7 +193,6 @@ func (ec *EthClient) TransactionReceipt(ctx context.Context, txHash common.Hash)
 	return r, err
 }
 
-// TransactionReceiptRpcOutput returns the receipt of a transaction by transaction hash as a rpc output.
 func (ec *EthClient) TransactionReceiptRpcOutput(ctx context.Context, txHash common.Hash) (r map[string]interface{}, err error) {
 	err = ec.c.CallContext(ctx, &r, "eth_getTransactionReceipt", txHash)
 	if err == nil && r == nil {
@@ -276,17 +216,15 @@ type rpcProgress struct {
 	KnownStates   hexutil.Uint64
 }
 
-// SyncProgress retrieves the current progress of the sync algorithm. If there's
-// no sync currently running, it returns nil.
 func (ec *EthClient) SyncProgress(ctx context.Context) (*klaytn.SyncProgress, error) {
 	var raw json.RawMessage
 	if err := ec.c.CallContext(ctx, &raw, "eth_syncing"); err != nil {
 		return nil, err
 	}
-	// Handle the possible response types
+
 	var syncing bool
 	if err := json.Unmarshal(raw, &syncing); err == nil {
-		return nil, nil // Not syncing (always false)
+		return nil, nil
 	}
 	var progress *rpcProgress
 	if err := json.Unmarshal(raw, &progress); err != nil {
@@ -301,15 +239,10 @@ func (ec *EthClient) SyncProgress(ctx context.Context) (*klaytn.SyncProgress, er
 	}, nil
 }
 
-// SubscribeNewHead subscribes to notifications about the current blockchain head
-// on the given channel.
 func (ec *EthClient) SubscribeNewHead(ctx context.Context, ch chan<- *types.Header) (klaytn.Subscription, error) {
 	return ec.c.KlaySubscribe(ctx, ch, "newHeads")
 }
 
-// State Access
-
-// NetworkID returns the network ID (also known as the chain ID) for this chain.
 func (ec *EthClient) NetworkID(ctx context.Context) (*big.Int, error) {
 	version := new(big.Int)
 	var ver string
@@ -322,48 +255,36 @@ func (ec *EthClient) NetworkID(ctx context.Context) (*big.Int, error) {
 	return version, nil
 }
 
-// BalanceAt returns the peb balance of the given account.
-// The block number can be nil, in which case the balance is taken from the latest known block.
 func (ec *EthClient) BalanceAt(ctx context.Context, account common.Address, blockNumber *big.Int) (*big.Int, error) {
 	var result hexutil.Big
 	err := ec.c.CallContext(ctx, &result, "eth_getBalance", account, toBlockNumArg(blockNumber))
 	return (*big.Int)(&result), err
 }
 
-// StorageAt returns the value of key in the contract storage of the given account.
-// The block number can be nil, in which case the value is taken from the latest known block.
 func (ec *EthClient) StorageAt(ctx context.Context, account common.Address, key common.Hash, blockNumber *big.Int) ([]byte, error) {
 	var result hexutil.Bytes
 	err := ec.c.CallContext(ctx, &result, "eth_getStorageAt", account, key, toBlockNumArg(blockNumber))
 	return result, err
 }
 
-// CodeAt returns the contract code of the given account.
-// The block number can be nil, in which case the code is taken from the latest known block.
 func (ec *EthClient) CodeAt(ctx context.Context, account common.Address, blockNumber *big.Int) ([]byte, error) {
 	var result hexutil.Bytes
 	err := ec.c.CallContext(ctx, &result, "eth_getCode", account, toBlockNumArg(blockNumber))
 	return result, err
 }
 
-// NonceAt returns the account nonce of the given account.
-// The block number can be nil, in which case the nonce is taken from the latest known block.
 func (ec *EthClient) NonceAt(ctx context.Context, account common.Address, blockNumber *big.Int) (uint64, error) {
 	var result hexutil.Uint64
 	err := ec.c.CallContext(ctx, &result, "eth_getTransactionCount", account, toBlockNumArg(blockNumber))
 	return uint64(result), err
 }
 
-// Filters
-
-// FilterLogs executes a filter query.
 func (ec *EthClient) FilterLogs(ctx context.Context, q klaytn.FilterQuery) ([]types.Log, error) {
 	var result []types.Log
 	err := ec.c.CallContext(ctx, &result, "eth_getLogs", toFilterArg(q))
 	return result, err
 }
 
-// SubscribeFilterLogs subscribes to the results of a streaming filter query.
 func (ec *EthClient) SubscribeFilterLogs(ctx context.Context, q klaytn.FilterQuery, ch chan<- types.Log) (klaytn.Subscription, error) {
 	return ec.c.KlaySubscribe(ctx, ch, "logs", toFilterArg(q))
 }
@@ -381,54 +302,36 @@ func toFilterArg(q klaytn.FilterQuery) interface{} {
 	return arg
 }
 
-// Pending State
-
-// PendingBalanceAt returns the peb balance of the given account in the pending state.
 func (ec *EthClient) PendingBalanceAt(ctx context.Context, account common.Address) (*big.Int, error) {
 	var result hexutil.Big
 	err := ec.c.CallContext(ctx, &result, "eth_getBalance", account, "pending")
 	return (*big.Int)(&result), err
 }
 
-// PendingStorageAt returns the value of key in the contract storage of the given account in the pending state.
 func (ec *EthClient) PendingStorageAt(ctx context.Context, account common.Address, key common.Hash) ([]byte, error) {
 	var result hexutil.Bytes
 	err := ec.c.CallContext(ctx, &result, "eth_getStorageAt", account, key, "pending")
 	return result, err
 }
 
-// PendingCodeAt returns the contract code of the given account in the pending state.
 func (ec *EthClient) PendingCodeAt(ctx context.Context, account common.Address) ([]byte, error) {
 	var result hexutil.Bytes
 	err := ec.c.CallContext(ctx, &result, "eth_getCode", account, "pending")
 	return result, err
 }
 
-// PendingNonceAt returns the account nonce of the given account in the pending state.
-// This is the nonce that should be used for the next transaction.
 func (ec *EthClient) PendingNonceAt(ctx context.Context, account common.Address) (uint64, error) {
 	var result hexutil.Uint64
 	err := ec.c.CallContext(ctx, &result, "eth_getTransactionCount", account, "pending")
 	return uint64(result), err
 }
 
-// PendingTransactionCount returns the total number of transactions in the pending state.
 func (ec *EthClient) PendingTransactionCount(ctx context.Context) (uint, error) {
 	var num hexutil.Uint
 	err := ec.c.CallContext(ctx, &num, "eth_getBlockTransactionCountByNumber", "pending")
 	return uint(num), err
 }
 
-// TODO: SubscribePendingTransactions (needs server side)
-
-// Contract Calling
-
-// CallContract executes a message call transaction, which is directly executed in the VM
-// of the node, but never mined into the blockchain.
-//
-// blockNumber selects the block height at which the call runs. It can be nil, in which
-// case the code is taken from the latest known block. Note that state from very old
-// blocks might not be available.
 func (ec *EthClient) CallContract(ctx context.Context, msg klaytn.CallMsg, blockNumber *big.Int) ([]byte, error) {
 	var hex hexutil.Bytes
 	err := ec.c.CallContext(ctx, &hex, "eth_call", toCallArg(msg), toBlockNumArg(blockNumber))
@@ -438,8 +341,6 @@ func (ec *EthClient) CallContract(ctx context.Context, msg klaytn.CallMsg, block
 	return hex, nil
 }
 
-// PendingCallContract executes a message call transaction using the EVM.
-// The state seen by the contract call is the pending state.
 func (ec *EthClient) PendingCallContract(ctx context.Context, msg klaytn.CallMsg) ([]byte, error) {
 	var hex hexutil.Bytes
 	err := ec.c.CallContext(ctx, &hex, "eth_call", toCallArg(msg), "pending")
@@ -449,8 +350,6 @@ func (ec *EthClient) PendingCallContract(ctx context.Context, msg klaytn.CallMsg
 	return hex, nil
 }
 
-// SuggestGasPrice retrieves the currently suggested gas price to allow a timely
-// execution of a transaction.
 func (ec *EthClient) SuggestGasPrice(ctx context.Context) (*big.Int, error) {
 	var hex hexutil.Big
 	if err := ec.c.CallContext(ctx, &hex, "eth_gasPrice"); err != nil {
@@ -459,10 +358,6 @@ func (ec *EthClient) SuggestGasPrice(ctx context.Context) (*big.Int, error) {
 	return (*big.Int)(&hex), nil
 }
 
-// EstimateGas tries to estimate the gas needed to execute a specific transaction based on
-// the latest state of the backend blockchain. There is no guarantee that this is
-// the true gas limit requirement as other transactions may be added or removed by miners,
-// but it should provide a basis for setting a reasonable default.
 func (ec *EthClient) EstimateGas(ctx context.Context, msg klaytn.CallMsg) (uint64, error) {
 	var hex hexutil.Uint64
 	err := ec.c.CallContext(ctx, &hex, "eth_estimateGas", toCallArg(msg))
@@ -472,23 +367,11 @@ func (ec *EthClient) EstimateGas(ctx context.Context, msg klaytn.CallMsg) (uint6
 	return uint64(hex), nil
 }
 
-// SendTransaction injects a signed transaction into the pending pool for execution.
-//
-// If the transaction was a contract creation use the TransactionReceipt method to get the
-// contract address after the transaction has been mined.
 func (ec *EthClient) SendTransaction(ctx context.Context, tx *types.Transaction) error {
 	_, err := ec.SendRawTransaction(ctx, tx)
 	return err
-	//data, err := rlp.EncodeToBytes(tx)
-	//if err != nil {
-	//	return err
-	//}
-	//return ec.c.CallContext(ctx, nil, "eth_sendRawTransaction", common.ToHex(data))
 }
 
-// SendRawTransaction injects a signed transaction into the pending pool for execution.
-//
-// This function can return the transaction hash and error.
 func (ec *EthClient) SendRawTransaction(ctx context.Context, tx *types.Transaction) (common.Hash, error) {
 	var hex hexutil.Bytes
 	data, err := rlp.EncodeToBytes(tx)
@@ -502,9 +385,6 @@ func (ec *EthClient) SendRawTransaction(ctx context.Context, tx *types.Transacti
 	return hash, nil
 }
 
-// SendUnsignedTransaction injects a unsigned transaction into the pending pool for execution.
-//
-// This function can return the transaction hash and error.
 func (ec *EthClient) SendUnsignedTransaction(ctx context.Context, from common.Address, to common.Address, gas uint64, gasPrice uint64, value *big.Int, data []byte, input []byte) (common.Hash, error) {
 	var hex hexutil.Bytes
 
@@ -521,9 +401,8 @@ func (ec *EthClient) SendUnsignedTransaction(ctx context.Context, from common.Ad
 		GasLimit:  &tGas,
 		Price:     tGasPrice,
 		Amount:    hValue,
-		// Nonce : nonce,	Nonce will be determined by Klay node.
-		Data:    &tData,
-		Payload: &tInput,
+		Data:      &tData,
+		Payload:   &tInput,
 	}
 
 	if err := ec.c.CallContext(ctx, &hex, "eth_sendTransaction", toSendTxArgs(unsignedTx)); err != nil {
@@ -533,7 +412,6 @@ func (ec *EthClient) SendUnsignedTransaction(ctx context.Context, from common.Ad
 	return hash, nil
 }
 
-// ImportRawKey can create key store from private key string on Klaytn node.
 func (ec *EthClient) ImportRawKey(ctx context.Context, key string, password string) (common.Address, error) {
 	var result hexutil.Bytes
 	err := ec.c.CallContext(ctx, &result, "personal_importRawKey", key, password)
@@ -541,7 +419,6 @@ func (ec *EthClient) ImportRawKey(ctx context.Context, key string, password stri
 	return address, err
 }
 
-// UnlockAccount can unlock the account on Klaytn node.
 func (ec *EthClient) UnlockAccount(ctx context.Context, address common.Address, password string, time uint) (bool, error) {
 	var result bool
 	err := ec.c.CallContext(ctx, &result, "personal_unlockAccount", address, password, time)
@@ -592,14 +469,12 @@ func toSendTxArgs(msg api.SendTxArgs) interface{} {
 	return arg
 }
 
-// BlockNumber can get the latest block number.
 func (ec *EthClient) BlockNumber(ctx context.Context) (*big.Int, error) {
 	var result hexutil.Big
 	err := ec.c.CallContext(ctx, &result, "eth_blockNumber")
 	return (*big.Int)(&result), err
 }
 
-// ChainID can return the chain ID of the chain.
 func (ec *EthClient) ChainID(ctx context.Context) (*big.Int, error) {
 	if ec.chainID != nil {
 		return ec.chainID, nil
@@ -613,22 +488,18 @@ func (ec *EthClient) ChainID(ctx context.Context) (*big.Int, error) {
 	return ec.chainID, err
 }
 
-// AddPeer can add a static peer on Klaytn node.
 func (ec *EthClient) AddPeer(ctx context.Context, url string) (bool, error) {
 	var result bool
 	err := ec.c.CallContext(ctx, &result, "admin_addPeer", url)
 	return result, err
 }
 
-// RemovePeer can remove a static peer on Klaytn node.
 func (ec *EthClient) RemovePeer(ctx context.Context, url string) (bool, error) {
 	var result bool
 	err := ec.c.CallContext(ctx, &result, "admin_removePeer", url)
 	return result, err
 }
 
-// CreateAccessList tries to create an access list for a specific transaction based on the
-// current pending state of the blockchain.
 func (ec *EthClient) CreateAccessList(ctx context.Context, msg klaytn.CallMsg) (*types.AccessList, uint64, string, error) {
 	type AccessListResult struct {
 		Accesslist *types.AccessList `json:"accessList"`
