@@ -83,4 +83,5 @@ type redisAggregate struct {
 type ChainHelper interface {
 	ReadContract(ctx context.Context, contractAddress string, functionString string, args ...interface{}) (interface{}, error)
 	ChainID() *big.Int
+	Close()
 }

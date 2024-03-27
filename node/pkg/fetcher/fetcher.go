@@ -462,6 +462,12 @@ func (a *App) initialize(ctx context.Context) error {
 	}
 	a.Proxies = proxies
 
+	if a.ChainHelpers != nil && len(a.ChainHelpers) > 0 {
+		for _, chainHelper := range a.ChainHelpers {
+			chainHelper.Close()
+		}
+	}
+
 	chainHelpers, getChainHelpersErr := a.getChainHelpers(ctx)
 	if getChainHelpersErr != nil {
 		return getChainHelpersErr
