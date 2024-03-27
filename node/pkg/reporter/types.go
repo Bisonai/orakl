@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"bisonai.com/orakl/node/pkg/bus"
-	"bisonai.com/orakl/node/pkg/chain/klaytn/helper"
+	"bisonai.com/orakl/node/pkg/chain/helper"
 	"bisonai.com/orakl/node/pkg/raft"
 	"github.com/klaytn/klaytn/common"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"

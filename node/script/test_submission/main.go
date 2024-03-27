@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"math/big"
 
-	"bisonai.com/orakl/node/pkg/chain/klaytn/helper"
+	"bisonai.com/orakl/node/pkg/chain/helper"
 	"github.com/rs/zerolog/log"
 )
 

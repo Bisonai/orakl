@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"bisonai.com/orakl/node/pkg/chain/klaytn/helper"
+	"bisonai.com/orakl/node/pkg/chain/helper"
 	"bisonai.com/orakl/node/pkg/db"
 	"bisonai.com/orakl/node/pkg/raft"
 

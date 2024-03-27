@@ -3,13 +3,13 @@ package tests
 import (
 	"context"
 	"errors"
+	"fmt"
 	"math/big"
 	"strings"
 	"testing"
 
-	chain_common "bisonai.com/orakl/node/pkg/chain/common"
-	"bisonai.com/orakl/node/pkg/chain/klaytn/helper"
-	klaytn_utils "bisonai.com/orakl/node/pkg/chain/klaytn/utils"
+	"bisonai.com/orakl/node/pkg/chain/helper"
+	"bisonai.com/orakl/node/pkg/chain/utils"
 	"github.com/klaytn/klaytn/blockchain/types"
 	"github.com/stretchr/testify/assert"
 )
@@ -152,10 +152,10 @@ func TestTxToHashToTx(t *testing.T) {
 		t.Errorf("Unexpected error: %v", err)
 	}
 
-	hash := klaytn_utils.TxToHash(rawTx)
+	hash := utils.TxToHash(rawTx)
 	assert.NotEqual(t, hash, "")
 
-	tx, err := klaytn_utils.HashToTx(hash)
+	tx, err := utils.HashToTx(hash)
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
 	}
@@ -164,12 +164,12 @@ func TestTxToHashToTx(t *testing.T) {
 }
 
 func TestGenerateCallABI(t *testing.T) {
-	functionName, inputs, outputs, err := chain_common.ParseMethodSignature("increment()")
+	functionName, inputs, outputs, err := utils.ParseMethodSignature("increment()")
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
 	}
 
-	abi, err := klaytn_utils.GenerateCallABI(functionName, inputs, outputs)
+	abi, err := utils.GenerateCallABI(functionName, inputs, outputs)
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
 	}
@@ -180,12 +180,12 @@ func TestGenerateCallABI(t *testing.T) {
 }
 
 func TestGenerateViewABI(t *testing.T) {
-	functionName, inputs, outputs, err := chain_common.ParseMethodSignature("function slot0() external view returns (uint160 sqrtPriceX96, int24 tick, uint16 observationIndex, uint16 observationCardinality, uint16 observationCardinalityNext, uint8 feeProtocol, bool unlocked)")
+	functionName, inputs, outputs, err := utils.ParseMethodSignature("function slot0() external view returns (uint160 sqrtPriceX96, int24 tick, uint16 observationIndex, uint16 observationCardinality, uint16 observationCardinalityNext, uint8 feeProtocol, bool unlocked)")
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
 	}
 
-	abi, err := klaytn_utils.GenerateViewABI(functionName, inputs, outputs)
+	abi, err := utils.GenerateViewABI(functionName, inputs, outputs)
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
 	}
@@ -213,7 +213,7 @@ func TestSubmitRawTxString(t *testing.T) {
 		t.Errorf("Unexpected error: %v", err)
 	}
 
-	rawTxString := klaytn_utils.TxToHash(signedTx)
+	rawTxString := utils.TxToHash(signedTx)
 	err = klaytnHelper.SubmitRawTxString(ctx, rawTxString)
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
@@ -249,25 +249,134 @@ func TestReadContract(t *testing.T) {
 }
 
 func TestGenerateViewABIWithInvalidSignature(t *testing.T) {
-	functionName, inputs, outputs, err := chain_common.ParseMethodSignature("invalidFunctionSignature")
+	functionName, inputs, outputs, err := utils.ParseMethodSignature("invalidFunctionSignature")
 	if err == nil {
 		t.Errorf("Expected an error for invalid function signature, got nil")
 	}
 
-	_, err = klaytn_utils.GenerateViewABI(functionName, inputs, outputs)
+	_, err = utils.GenerateViewABI(functionName, inputs, outputs)
 	if err == nil {
 		t.Errorf("Expected an error when generating ABI with invalid function signature, got nil")
 	}
 }
 
 func TestGenerateViewABIWithEmptySignature(t *testing.T) {
-	functionName, inputs, outputs, err := chain_common.ParseMethodSignature("")
+	functionName, inputs, outputs, err := utils.ParseMethodSignature("")
 	if err == nil {
 		t.Errorf("Expected an error for empty function signature, got nil")
 	}
 
-	_, err = klaytn_utils.GenerateViewABI(functionName, inputs, outputs)
+	_, err = utils.GenerateViewABI(functionName, inputs, outputs)
 	if err == nil {
 		t.Errorf("Expected an error when generating ABI with empty function signature, got nil")
+	}
+}
+
+func TestParseMethodSignature(t *testing.T) {
+	tests := []struct {
+		name           string
+		input          string
+		expectedName   string
+		expectedInput  string
+		expectedOutput string
+		expectedError  error
+	}{
+		{
+			name:           "Test case 1",
+			input:          "function foo()",
+			expectedName:   "foo",
+			expectedInput:  "",
+			expectedOutput: "",
+			expectedError:  nil,
+		},
+		{
+			name:           "Test case 2",
+			input:          "function bar(arg1 int, arg2 string) returns (bool)",
+			expectedName:   "bar",
+			expectedInput:  "arg1 int, arg2 string",
+			expectedOutput: "bool",
+			expectedError:  nil,
+		},
+		{
+			name:           "Test case 3",
+			input:          "function baz(arg1 int, arg2 string) returns (bool, string)",
+			expectedName:   "baz",
+			expectedInput:  "arg1 int, arg2 string",
+			expectedOutput: "bool, string",
+			expectedError:  nil,
+		},
+		{
+			name:           "Test case 4",
+			input:          "",
+			expectedName:   "",
+			expectedInput:  "",
+			expectedOutput: "",
+			expectedError:  fmt.Errorf("empty name"),
+		},
+	}
+
+	for _, test := range tests {
+		funcName, inputArgs, outputArgs, err := utils.ParseMethodSignature(test.input)
+		if err != nil && err.Error() != test.expectedError.Error() {
+			t.Errorf("Test case %s: Expected error '%v', but got '%v'", test.name, test.expectedError, err)
+		}
+		if funcName != test.expectedName {
+			t.Errorf("Test case %s: Expected function name '%s', but got '%s'", test.name, test.expectedName, funcName)
+		}
+		if inputArgs != test.expectedInput {
+			t.Errorf("Test case %s: Expected input arguments '%s', but got '%s'", test.name, test.expectedInput, inputArgs)
+		}
+		if outputArgs != test.expectedOutput {
+			t.Errorf("Test case %s: Expected output arguments '%s', but got '%s'", test.name, test.expectedOutput, outputArgs)
+		}
+	}
+}
+
+func TestMakeAbiFuncAttribute(t *testing.T) {
+	tests := []struct {
+		name     string
+		args     string
+		expected string
+	}{
+		{
+			name:     "Test case 1",
+			args:     "",
+			expected: "",
+		},
+		{
+			name:     "Test case 2",
+			args:     "int",
+			expected: `{"type":"int"}`,
+		},
+		{
+			name:     "Test case 3",
+			args:     "string",
+			expected: `{"type":"string"}`,
+		},
+		{
+			name: "Test case 4",
+			args: "int, string",
+			expected: `{"type":"int"},
+{"type":"string"}`,
+		},
+		{
+			name: "Test case 5",
+			args: "int arg1, string arg2",
+			expected: `{"type":"int","name":"arg1"},
+{"type":"string","name":"arg2"}`,
+		},
+		{
+			name: "Test case 6",
+			args: "address[] memory addresses, uint256[] memory amounts",
+			expected: `{"type":"address[]","name":"addresses"},
+{"type":"uint256[]","name":"amounts"}`,
+		},
+	}
+
+	for _, test := range tests {
+		result := utils.MakeAbiFuncAttribute(test.args)
+		if result != test.expected {
+			t.Errorf("Test case %s: Expected '%s', but got '%s'", test.name, test.expected, result)
+		}
 	}
 }

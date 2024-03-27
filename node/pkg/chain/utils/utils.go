@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"math/big"
 	"os"
+	"regexp"
 	"strings"
 
 	"bisonai.com/orakl/node/pkg/db"
@@ -22,8 +23,6 @@ import (
 	"github.com/klaytn/klaytn/rlp"
 
 	"github.com/rs/zerolog/log"
-
-	chain_common "bisonai.com/orakl/node/pkg/chain/common"
 )
 
 func MakePayload(tx *types.Transaction) (SignInsertPayload, error) {
@@ -103,8 +102,8 @@ func generateABI(functionName string, inputs string, outputs string, stateMutabi
 		return nil, errors.New("function name is empty")
 	}
 
-	inputArgs := chain_common.MakeAbiFuncAttribute(inputs)
-	outputArgs := chain_common.MakeAbiFuncAttribute(outputs)
+	inputArgs := MakeAbiFuncAttribute(inputs)
+	outputArgs := MakeAbiFuncAttribute(outputs)
 
 	json := fmt.Sprintf(`[
 		{
@@ -166,7 +165,7 @@ func MakeDirectTx(ctx context.Context, client *client.Client, contractAddressHex
 		return nil, errors.New("chain id is nil")
 	}
 
-	functionName, inputs, outputs, err := chain_common.ParseMethodSignature(functionString)
+	functionName, inputs, outputs, err := ParseMethodSignature(functionString)
 	if err != nil {
 		return nil, err
 	}
@@ -243,7 +242,7 @@ func MakeFeeDelegatedTx(ctx context.Context, client *client.Client, contractAddr
 		return nil, errors.New("chain id is nil")
 	}
 
-	functionName, inputs, outputs, err := chain_common.ParseMethodSignature(functionString)
+	functionName, inputs, outputs, err := ParseMethodSignature(functionString)
 	if err != nil {
 		log.Error().Err(err).Msg("failed to parse method signature")
 		return nil, err
@@ -414,7 +413,7 @@ func ReadContract(ctx context.Context, client *client.Client, functionString str
 		return nil, errors.New("function string is empty")
 	}
 
-	functionName, inputs, outputs, err := chain_common.ParseMethodSignature(functionString)
+	functionName, inputs, outputs, err := ParseMethodSignature(functionString)
 	if err != nil {
 		return nil, err
 	}
@@ -445,4 +444,63 @@ func ReadContract(ctx context.Context, client *client.Client, functionString str
 	}
 
 	return output, nil
+}
+
+// reference: https://github.com/umbracle/ethgo/blob/main/abi/abi.go
+var (
+	funcRegexpWithReturn    = regexp.MustCompile(`(\w*)\s*\((.*)\)(.*)\s*returns\s*\((.*)\)`)
+	funcRegexpWithoutReturn = regexp.MustCompile(`(\w*)\s*\((.*)\)(.*)`)
+)
+
+func ParseMethodSignature(name string) (string, string, string, error) {
+	if name == "" {
+		return "", "", "", fmt.Errorf("empty name")
+	}
+
+	name = strings.Replace(name, "\n", " ", -1)
+	name = strings.Replace(name, "\t", " ", -1)
+
+	name = strings.TrimPrefix(name, "function ")
+	name = strings.TrimSpace(name)
+
+	var funcName, inputArgs, outputArgs string
+
+	if strings.Contains(name, "returns") {
+		matches := funcRegexpWithReturn.FindAllStringSubmatch(name, -1)
+		if len(matches) == 0 {
+			return "", "", "", fmt.Errorf("no matches found")
+		}
+		funcName = strings.TrimSpace(matches[0][1])
+		inputArgs = strings.TrimSpace(matches[0][2])
+		outputArgs = strings.TrimSpace(matches[0][4])
+	} else {
+		matches := funcRegexpWithoutReturn.FindAllStringSubmatch(name, -1)
+		if len(matches) == 0 {
+			return "", "", "", fmt.Errorf("no matches found")
+		}
+		funcName = strings.TrimSpace(matches[0][1])
+		inputArgs = strings.TrimSpace(matches[0][2])
+	}
+
+	return funcName, inputArgs, outputArgs, nil
+}
+
+func MakeAbiFuncAttribute(args string) string {
+	splittedArgs := strings.Split(args, ",")
+	if len(splittedArgs) == 0 || splittedArgs[0] == "" {
+		return ""
+	}
+
+	var parts []string
+	for _, arg := range splittedArgs {
+		arg = strings.TrimSpace(arg)
+		part := strings.Split(arg, " ")
+
+		if len(part) < 2 {
+			parts = append(parts, fmt.Sprintf(`{"type":"%s"}`, part[0]))
+		} else {
+			parts = append(parts, fmt.Sprintf(`{"type":"%s","name":"%s"}`, part[0], part[len(part)-1]))
+		}
+	}
+	return strings.Join(parts, ",\n")
 }
