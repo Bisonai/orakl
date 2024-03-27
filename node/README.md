@@ -96,8 +96,11 @@ REDIS_PORT=<Your Redis Port>
 # libp2p listen port
 LISTEN_PORT=<Your Listen Port>
 
-# Chain provider URL
-PROVIDER_URL=<Your Provider URL>
+# provider URL for `klaytn_helper`
+KLAYTN_PROVIDER_URL=<Your Provider URL>
+
+# provider URL for `eth_helper`
+ETH_PROVIDER_URL=<Provider URL>
 
 # Contract for submission
 SUBMISSION_PROXY_CONTRACT=<Your Submission Proxy Contract>
@@ -108,8 +111,11 @@ DELEGATOR_URL=<Your Delegator URL>
 # Chain name, 'baobab', 'cypress', or 'test'
 CHAIN=<Your Chain Name>
 
-# Reporter for submission, not required if entry is inside wallets table
-REPORTER_PK=<Your Reporter PK>
+# tx submission wallet for `klaytn_helper`, not required if entry is inside wallets table
+KLAYTN_REPORTER_PK=<Your Reporter PK>
+
+# tx submission wallet for `eth_helper`
+ETH_REPORTER_PK=<Reporter PK>
 
 # Referenced from test code, EOA of fee payer
 TEST_FEE_PAYER_PK=<Your Test Fee Payer PK>
@@ -173,6 +179,9 @@ task local:boot-api
 
 # Run Admin API
 task local:admin
+
+# Run Node
+task local:node
 ```
 
 ### Scripts

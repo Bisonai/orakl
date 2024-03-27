@@ -9,6 +9,10 @@ tasks:
     dotenv: [".env"]
     cmds:
       - go run ./cmd/admin/main.go
+  node:
+    dotenv: [".env"]
+    cmds:
+      - go run ./cmd/node/main.go
 
   script-submission:
     dotenv: [".env"]

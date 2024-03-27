@@ -30,12 +30,6 @@ func NewNode(ctx context.Context, h host.Host, ps *pubsub.PubSub) (*ReporterNode
 
 	raft := raft.NewRaftNode(h, ps, topic, MESSAGE_BUFFER, LEADER_TIMEOUT)
 
-	// TODO: currently bound to KlaytnHelper, abstract for loose coupling
-	txHelper, err := helper.NewKlaytnHelper(ctx)
-	if err != nil {
-		return nil, err
-	}
-
 	contractAddress := os.Getenv("SUBMISSION_PROXY_CONTRACT")
 	if contractAddress == "" {
 		return nil, errors.New("SUBMISSION_PROXY_CONTRACT not set")
@@ -43,7 +37,6 @@ func NewNode(ctx context.Context, h host.Host, ps *pubsub.PubSub) (*ReporterNode
 
 	reporter := &ReporterNode{
 		Raft:            raft,
-		KlaytnHelper:    txHelper,
 		contractAddress: contractAddress,
 	}
 	err = reporter.loadSubmissionPairs(ctx)
@@ -189,6 +182,10 @@ func (r *ReporterNode) getLatestGlobalAggregatesRdb(ctx context.Context) ([]Glob
 }
 
 func (r *ReporterNode) report(ctx context.Context, aggregates []GlobalAggregate) error {
+	if r.KlaytnHelper == nil {
+		return errors.New("klaytn helper not set")
+	}
+
 	addresses, values, err := r.makeContractArgs(aggregates)
 	if err != nil {
 		log.Error().Str("Player", "Reporter").Err(err).Msg("makeContractArgs")
@@ -285,5 +282,18 @@ func (r *ReporterNode) loadSubmissionPairs(ctx context.Context) error {
 	for _, sa := range submissionAddresses {
 		r.SubmissionPairs[sa.Name] = SubmissionPair{LastSubmission: 0, Address: common.HexToAddress(sa.Address)}
 	}
+	return nil
+}
+
+func (r *ReporterNode) SetKlaytnHelper(ctx context.Context) error {
+	if r.KlaytnHelper != nil {
+		r.KlaytnHelper.Close()
+	}
+	klaytnHelper, err := helper.NewKlaytnHelper(ctx)
+	if err != nil {
+		log.Error().Str("Player", "Reporter").Err(err).Msg("failed to create klaytn helper")
+		return err
+	}
+	r.KlaytnHelper = klaytnHelper
 	return nil
 }

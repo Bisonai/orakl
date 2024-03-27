@@ -45,6 +45,12 @@ func (a *App) startReporter(ctx context.Context) error {
 		return errors.New("reporter already running")
 	}
 
+	err := a.Reporter.SetKlaytnHelper(ctx)
+	if err != nil {
+		log.Error().Str("Player", "Reporter").Err(err).Msg("failed to set klaytn helper")
+		return err
+	}
+
 	nodeCtx, cancel := context.WithCancel(ctx)
 	a.Reporter.nodeCtx = nodeCtx
 	a.Reporter.nodeCancel = cancel
@@ -62,6 +68,7 @@ func (a *App) stopReporter() error {
 
 	a.Reporter.nodeCancel()
 	a.Reporter.isRunning = false
+	a.Reporter.KlaytnHelper.Close()
 	return nil
 }
 
