@@ -70,18 +70,10 @@ tasks:
     dotenv: [".env"]
     cmds:
       - go test ./pkg/boot/tests -v
-  test-klaytn:
+  test-chain:
     dotenv: [".env"]
     cmds:
-      - go test ./pkg/chain/klaytn/tests -v
-  test-eth:
-    dotenv: [".env"]
-    cmds:
-      - go test ./pkg/chain/eth/tests -v
-  test-chain-common:
-    dotenv: [".env"]
-    cmds:
-      - go test ./pkg/chain/common -v
+      - go test ./pkg/chain/tests -v
   test:
     cmds:
       - task: test-db
@@ -93,6 +85,4 @@ tasks:
       - task: test-aggregator
       - task: test-reporter
       - task: test-boot
-      - task: test-klaytn
-      - task: test-eth
-      - task: test-chain-common
+      - task: test-chain

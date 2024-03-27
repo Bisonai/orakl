@@ -7,7 +7,7 @@ import (
 	"os"
 	"strings"
 
-	klaytn_utils "bisonai.com/orakl/node/pkg/chain/klaytn/utils"
+	"bisonai.com/orakl/node/pkg/chain/utils"
 	"bisonai.com/orakl/node/pkg/utils/request"
 
 	"github.com/klaytn/klaytn/blockchain/types"
@@ -39,7 +39,7 @@ const (
 )
 
 func NewKlaytnHelper(ctx context.Context) (*KlaytnHelper, error) {
-	wallets, err := klaytn_utils.GetWallets(ctx)
+	wallets, err := utils.GetWallets(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -62,7 +62,7 @@ func NewKlaytnHelper(ctx context.Context) (*KlaytnHelper, error) {
 		return nil, err
 	}
 
-	chainID, err := klaytn_utils.GetChainID(ctx, client)
+	chainID, err := utils.GetChainID(ctx, client)
 	if err != nil {
 		return nil, err
 	}
@@ -84,7 +84,7 @@ func (t *KlaytnHelper) GetSignedFromDelegator(tx *types.Transaction) (*types.Tra
 		return nil, errors.New("delegator url not set")
 	}
 
-	payload, err := klaytn_utils.MakePayload(tx)
+	payload, err := utils.MakePayload(tx)
 	if err != nil {
 		return nil, err
 	}
@@ -98,7 +98,7 @@ func (t *KlaytnHelper) GetSignedFromDelegator(tx *types.Transaction) (*types.Tra
 	if result.SignedRawTx == nil {
 		return nil, errors.New("no signed raw tx")
 	}
-	return klaytn_utils.HashToTx(*result.SignedRawTx)
+	return utils.HashToTx(*result.SignedRawTx)
 }
 
 func (t *KlaytnHelper) NextReporter() string {
@@ -111,27 +111,27 @@ func (t *KlaytnHelper) NextReporter() string {
 }
 
 func (t *KlaytnHelper) MakeDirectTx(ctx context.Context, contractAddressHex string, functionString string, args ...interface{}) (*types.Transaction, error) {
-	return klaytn_utils.MakeDirectTx(ctx, t.client, contractAddressHex, t.NextReporter(), functionString, t.chainID, args...)
+	return utils.MakeDirectTx(ctx, t.client, contractAddressHex, t.NextReporter(), functionString, t.chainID, args...)
 }
 
 func (t *KlaytnHelper) MakeFeeDelegatedTx(ctx context.Context, contractAddressHex string, functionString string, args ...interface{}) (*types.Transaction, error) {
-	return klaytn_utils.MakeFeeDelegatedTx(ctx, t.client, contractAddressHex, t.NextReporter(), functionString, t.chainID, args...)
+	return utils.MakeFeeDelegatedTx(ctx, t.client, contractAddressHex, t.NextReporter(), functionString, t.chainID, args...)
 }
 
 func (t *KlaytnHelper) SubmitRawTx(ctx context.Context, tx *types.Transaction) error {
-	return klaytn_utils.SubmitRawTx(ctx, t.client, tx)
+	return utils.SubmitRawTx(ctx, t.client, tx)
 }
 
 func (t *KlaytnHelper) SubmitRawTxString(ctx context.Context, rawTx string) error {
-	return klaytn_utils.SubmitRawTxString(ctx, t.client, rawTx)
+	return utils.SubmitRawTxString(ctx, t.client, rawTx)
 }
 
 // SignTxByFeePayer: used for testing purpose
 func (t *KlaytnHelper) SignTxByFeePayer(ctx context.Context, tx *types.Transaction) (*types.Transaction, error) {
-	return klaytn_utils.SignTxByFeePayer(ctx, t.client, tx, t.chainID)
+	return utils.SignTxByFeePayer(ctx, t.client, tx, t.chainID)
 }
 
 // * `functionString` should include `returns()` clause
 func (t *KlaytnHelper) ReadContract(ctx context.Context, contractAddressHex string, functionString string, args ...interface{}) (interface{}, error) {
-	return klaytn_utils.ReadContract(ctx, t.client, functionString, contractAddressHex, args...)
+	return utils.ReadContract(ctx, t.client, functionString, contractAddressHex, args...)
 }
