@@ -34,6 +34,7 @@ func TestLeaderJob(t *testing.T) {
 	}
 	defer cleanup()
 	testItems.app.setReporter(ctx, testItems.app.Host, testItems.app.Pubsub)
+	testItems.app.Reporter.SetKlaytnHelper(ctx)
 	err = testItems.app.Reporter.leaderJob()
 	if err != nil {
 		t.Fatal("error running leader job")

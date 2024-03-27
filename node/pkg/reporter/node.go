@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"bisonai.com/orakl/node/pkg/chain/klaytn/helper"
 	"bisonai.com/orakl/node/pkg/db"
 	"bisonai.com/orakl/node/pkg/raft"
 
@@ -181,6 +182,10 @@ func (r *ReporterNode) getLatestGlobalAggregatesRdb(ctx context.Context) ([]Glob
 }
 
 func (r *ReporterNode) report(ctx context.Context, aggregates []GlobalAggregate) error {
+	if r.KlaytnHelper == nil {
+		return errors.New("klaytn helper not set")
+	}
+
 	addresses, values, err := r.makeContractArgs(aggregates)
 	if err != nil {
 		log.Error().Str("Player", "Reporter").Err(err).Msg("makeContractArgs")
@@ -277,5 +282,18 @@ func (r *ReporterNode) loadSubmissionPairs(ctx context.Context) error {
 	for _, sa := range submissionAddresses {
 		r.SubmissionPairs[sa.Name] = SubmissionPair{LastSubmission: 0, Address: common.HexToAddress(sa.Address)}
 	}
+	return nil
+}
+
+func (r *ReporterNode) SetKlaytnHelper(ctx context.Context) error {
+	if r.KlaytnHelper != nil {
+		r.KlaytnHelper.Close()
+	}
+	klaytnHelper, err := helper.NewKlaytnHelper(ctx)
+	if err != nil {
+		log.Error().Str("Player", "Reporter").Err(err).Msg("failed to create klaytn helper")
+		return err
+	}
+	r.KlaytnHelper = klaytnHelper
 	return nil
 }

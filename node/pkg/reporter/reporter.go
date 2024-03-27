@@ -5,7 +5,6 @@ import (
 	"errors"
 
 	"bisonai.com/orakl/node/pkg/bus"
-	"bisonai.com/orakl/node/pkg/chain/klaytn/helper"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 	"github.com/libp2p/go-libp2p/core/host"
 	"github.com/rs/zerolog/log"
@@ -46,11 +45,7 @@ func (a *App) startReporter(ctx context.Context) error {
 		return errors.New("reporter already running")
 	}
 
-	klaytnHelper, err := helper.NewKlaytnHelper(ctx)
-	if err != nil {
-		return err
-	}
-	a.Reporter.KlaytnHelper = klaytnHelper
+	a.Reporter.SetKlaytnHelper(ctx)
 
 	nodeCtx, cancel := context.WithCancel(ctx)
 	a.Reporter.nodeCtx = nodeCtx
