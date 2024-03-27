@@ -167,3 +167,7 @@ func (t *ChainHelper) SignTxByFeePayer(ctx context.Context, tx *types.Transactio
 func (t *ChainHelper) ReadContract(ctx context.Context, contractAddressHex string, functionString string, args ...interface{}) (interface{}, error) {
 	return utils.ReadContract(ctx, t.client, functionString, contractAddressHex, args...)
 }
+
+func (t *ChainHelper) ChainID() *big.Int {
+	return t.chainID
+}

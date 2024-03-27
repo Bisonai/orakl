@@ -5,11 +5,15 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math"
+	"math/big"
 	"math/rand"
+	"os"
 	"strconv"
 	"time"
 
 	"bisonai.com/orakl/node/pkg/bus"
+	chain_helper "bisonai.com/orakl/node/pkg/chain/helper"
 	"bisonai.com/orakl/node/pkg/db"
 	"bisonai.com/orakl/node/pkg/utils/calculator"
 	"bisonai.com/orakl/node/pkg/utils/reducer"
@@ -239,7 +243,7 @@ func (a *App) fetchAndInsert(ctx context.Context, fetcher Fetcher) error {
 	}
 	log.Debug().Str("Player", "Fetcher").Str("fetcher", fetcher.Name).Msg("fetch complete")
 
-	aggregated, err := calculator.GetFloatAvg(results)
+	aggregated, err := calculator.GetFloatMed(results)
 	if err != nil {
 		return err
 	}
@@ -291,16 +295,25 @@ func (a *App) fetch(fetcher Fetcher) ([]float64, error) {
 				errChan <- err
 				return
 			}
-			res, err := a.requestFeed(*definition)
-			if err != nil {
-				errChan <- err
-				return
-			}
 
-			result, err := reducer.Reduce(res, definition.Reducers)
-			if err != nil {
-				errChan <- err
-				return
+			var result float64
+			var fetchErr error
+
+			switch {
+			case definition.Type == nil:
+				result, fetchErr = a.cex(*definition)
+				if fetchErr != nil {
+					errChan <- fetchErr
+					return
+				}
+			case *definition.Type == "UniswapPool":
+				result, fetchErr = a.uniswapV3(*definition)
+				if fetchErr != nil {
+					errChan <- fetchErr
+					return
+				}
+			default:
+				errChan <- errors.New("unknown fetcher type")
 			}
 
 			dataChan <- result
@@ -322,6 +335,47 @@ func (a *App) fetch(fetcher Fetcher) ([]float64, error) {
 	return data, nil
 }
 
+func (a *App) cex(definition Definition) (float64, error) {
+	rawResult, err := a.requestFeed(definition)
+	if err != nil {
+		log.Error().Str("Player", "Fetcher").Err(err).Msg("error in requestFeed")
+		return 0, err
+	}
+
+	return reducer.Reduce(rawResult, definition.Reducers)
+}
+
+func (a *App) uniswapV3(definition Definition) (float64, error) {
+	if definition.Address == nil || definition.ChainID == nil || definition.Token0Decimals == nil || definition.Token1Decimals == nil {
+		log.Error().Any("definition", definition).Msg("missing required fields for uniswapV3")
+		return 0, errors.New("missing required fields for uniswapV3")
+	}
+
+	helper := a.ChainHelpers[*definition.ChainID]
+	if helper == nil {
+		return 0, errors.New("chain helper not found")
+	}
+
+	rawResult, err := helper.ReadContract(context.Background(), *definition.Address, "function slot0() external view returns (uint160 sqrtPriceX96, int24 tick, uint16 observationIndex, uint16 observationCardinality, uint16 observationCardinalityNext, uint8 feeProtocol, bool unlocked)")
+	if err != nil {
+		log.Error().Err(err).Msg("failed to read contract for uniswap v3 pool contract")
+		return 0, err
+	}
+
+	rawResultSlice, ok := rawResult.([]interface{})
+	if !ok || len(rawResultSlice) < 1 {
+		return 0, errors.New("unexpected raw result type")
+	}
+
+	sqrtPriceX96, ok := rawResultSlice[0].(*big.Int)
+	if !ok {
+		return 0, errors.New("unexpected result on converting to bigint")
+	}
+
+	result := getTokenPrice(sqrtPriceX96, int(*definition.Token0Decimals), int(*definition.Token1Decimals))
+	return result, nil
+}
+
 func (a *App) requestFeed(definition Definition) (interface{}, error) {
 	var proxies []Proxy
 	if definition.Location != nil && *definition.Location != "" {
@@ -341,11 +395,11 @@ func (a *App) requestFeed(definition Definition) (interface{}, error) {
 }
 
 func (a *App) requestWithoutProxy(definition Definition) (interface{}, error) {
-	return request.GetRequest[interface{}](definition.Url, nil, definition.Headers)
+	return request.GetRequest[interface{}](*definition.Url, nil, definition.Headers)
 }
 
 func (a *App) requestWithProxy(definition Definition, proxyUrl string) (interface{}, error) {
-	return request.GetRequestProxy[interface{}](definition.Url, nil, definition.Headers, proxyUrl)
+	return request.GetRequestProxy[interface{}](*definition.Url, nil, definition.Headers, proxyUrl)
 }
 
 func (a *App) filterProxyByLocation(location string) []Proxy {
@@ -406,12 +460,76 @@ func (a *App) initialize(ctx context.Context) error {
 	if getProxyErr != nil {
 		return getProxyErr
 	}
-
 	a.Proxies = proxies
+
+	if a.ChainHelpers != nil && len(a.ChainHelpers) > 0 {
+		for _, chainHelper := range a.ChainHelpers {
+			chainHelper.Close()
+		}
+	}
+
+	chainHelpers, getChainHelpersErr := a.getChainHelpers(ctx)
+	if getChainHelpersErr != nil {
+		return getChainHelpersErr
+	}
+	a.ChainHelpers = chainHelpers
 
 	return nil
 }
 
+func (a *App) getChainHelpers(ctx context.Context) (map[string]ChainHelper, error) {
+	cypressProviderUrl := os.Getenv("FETCHER_CYPRESS_PROVIDER_URL")
+	if cypressProviderUrl == "" {
+		log.Info().Msg("cypress provider url not set, using default url: https://public-en-cypress.klaytn.net")
+		cypressProviderUrl = "https://public-en-cypress.klaytn.net"
+	}
+
+	cypressHelper, err := chain_helper.NewKlayHelper(ctx, cypressProviderUrl)
+	if err != nil {
+		log.Error().Err(err).Msg("failed to create cypress helper")
+		return nil, err
+	}
+
+	ethereumProviderUrl := os.Getenv("FETCHER_ETHEREUM_PROVIDER_URL")
+	if ethereumProviderUrl == "" {
+		log.Info().Msg("ethereum provider url not set, using default url: https://ethereum-mainnet-rpc.allthatnode.com")
+		ethereumProviderUrl = "https://ethereum-mainnet-rpc.allthatnode.com"
+	}
+
+	ethereumHelper, err := chain_helper.NewEthHelper(ctx, ethereumProviderUrl)
+	if err != nil {
+		log.Error().Err(err).Msg("failed to create ethereum helper")
+		return nil, err
+	}
+
+	var result = make(map[string]ChainHelper, 2)
+
+	cypressChainId := cypressHelper.ChainID()
+	result[cypressChainId.String()] = cypressHelper
+
+	ethereumChainId := ethereumHelper.ChainID()
+	result[ethereumChainId.String()] = ethereumHelper
+
+	return result, nil
+}
+
 func (a *App) String() string {
 	return fmt.Sprintf("%+v\n", a.Fetchers)
+}
+
+func getTokenPrice(sqrtPriceX96 *big.Int, decimal0 int, decimal1 int) float64 {
+	sqrtPriceX96Float := new(big.Float).SetInt(sqrtPriceX96)
+	sqrtPriceX96Float.Quo(sqrtPriceX96Float, new(big.Float).SetFloat64(math.Pow(2, 96)))
+	sqrtPriceX96Float.Mul(sqrtPriceX96Float, sqrtPriceX96Float) // square
+
+	decimalDiff := new(big.Float).SetFloat64(math.Pow(10, float64(decimal1-decimal0)))
+
+	datum := sqrtPriceX96Float.Quo(sqrtPriceX96Float, decimalDiff)
+
+	multiplier := new(big.Float).SetFloat64(math.Pow(10, 6))
+	datum.Mul(datum, multiplier)
+
+	result, _ := datum.Float64()
+
+	return math.Round(result)
 }
