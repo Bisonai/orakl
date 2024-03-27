@@ -21,16 +21,27 @@ var (
 
 func TestNewKlaytnHelper(t *testing.T) {
 	ctx := context.Background()
-	txHelper, err := helper.NewKlaytnHelper(ctx)
+
+	klaytnHelper, err := helper.NewKlayHelper(ctx, "")
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
 	}
-	txHelper.Close()
+	klaytnHelper.Close()
+}
+
+func TestNewEthHelper(t *testing.T) {
+	ctx := context.Background()
+
+	ethHelper, err := helper.NewEthHelper(ctx, "")
+	if err != nil {
+		t.Errorf("Unexpected error: %v", err)
+	}
+	ethHelper.Close()
 }
 
 func TestNextReporter(t *testing.T) {
 	ctx := context.Background()
-	klaytnHelper, err := helper.NewKlaytnHelper(ctx)
+	klaytnHelper, err := helper.NewKlayHelper(ctx, "")
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
 	}
@@ -44,7 +55,7 @@ func TestNextReporter(t *testing.T) {
 
 func TestMakeDirectTx(t *testing.T) {
 	ctx := context.Background()
-	klaytnHelper, err := helper.NewKlaytnHelper(ctx)
+	klaytnHelper, err := helper.NewKlayHelper(ctx, "")
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
 	}
@@ -92,7 +103,7 @@ func TestMakeDirectTx(t *testing.T) {
 
 func TestMakeFeeDelegatedTx(t *testing.T) {
 	ctx := context.Background()
-	klaytnHelper, err := helper.NewKlaytnHelper(ctx)
+	klaytnHelper, err := helper.NewKlayHelper(ctx, "")
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
 	}
@@ -141,7 +152,7 @@ func TestMakeFeeDelegatedTx(t *testing.T) {
 
 func TestTxToHashToTx(t *testing.T) {
 	ctx := context.Background()
-	klaytnHelper, err := helper.NewKlaytnHelper(ctx)
+	klaytnHelper, err := helper.NewKlayHelper(ctx, "")
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
 	}
@@ -196,8 +207,9 @@ func TestGenerateViewABI(t *testing.T) {
 }
 
 func TestSubmitRawTxString(t *testing.T) {
+	// testing based on baobab testnet
 	ctx := context.Background()
-	klaytnHelper, err := helper.NewKlaytnHelper(ctx)
+	klaytnHelper, err := helper.NewKlayHelper(ctx, "")
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
 	}
@@ -221,8 +233,9 @@ func TestSubmitRawTxString(t *testing.T) {
 }
 
 func TestReadContract(t *testing.T) {
+	// testing based on baobab testnet
 	ctx := context.Background()
-	klaytnHelper, err := helper.NewKlaytnHelper(ctx)
+	klaytnHelper, err := helper.NewKlayHelper(ctx, "")
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
 	}
@@ -230,6 +243,33 @@ func TestReadContract(t *testing.T) {
 
 	result, err := klaytnHelper.ReadContract(ctx, "0x93120927379723583c7a0dd2236fcb255e96949f", "COUNTER() returns (uint256)")
 
+	if err != nil {
+		t.Errorf("Unexpected error: %v", err)
+	}
+
+	assert.NotEqual(t, result, nil)
+	if resultSlice, ok := result.([]interface{}); ok {
+		if len(resultSlice) > 0 {
+			if bigIntResult, ok := resultSlice[0].(*big.Int); ok {
+				assert.NotEqual(t, bigIntResult, nil)
+			} else {
+				t.Errorf("Unexpected error: %v", err)
+			}
+		} else {
+			t.Errorf("Unexpected error: %v", "result is empty")
+		}
+	}
+}
+
+func TestReadContractWithEthHelper(t *testing.T) {
+	// testing based on sepolia eth testnet
+	ctx := context.Background()
+	ethHelper, err := helper.NewEthHelper(ctx, "")
+	if err != nil {
+		t.Errorf("Unexpected error: %v", err)
+	}
+
+	result, err := ethHelper.ReadContract(ctx, "0x72C8f1933A0C0a9ad53D6CdDAF2e1Ce2F6075D2b", "count() returns (uint256)")
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
 	}

@@ -12,7 +12,7 @@ import (
 // send single submission through this script
 
 func testContractDelegatedCall(ctx context.Context, contractAddress string, contractFunction string, args ...interface{}) error {
-	klaytnHelper, err := helper.NewKlaytnHelper(ctx)
+	klaytnHelper, err := helper.NewKlayHelper(ctx, "")
 	if err != nil {
 		log.Error().Err(err).Msg("NewTxHelper")
 		return err

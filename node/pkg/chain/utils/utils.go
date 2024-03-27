@@ -17,7 +17,6 @@ import (
 	"github.com/klaytn/klaytn/accounts/abi"
 	"github.com/klaytn/klaytn/accounts/abi/bind"
 	"github.com/klaytn/klaytn/blockchain/types"
-	"github.com/klaytn/klaytn/client"
 	"github.com/klaytn/klaytn/common"
 	"github.com/klaytn/klaytn/crypto"
 	"github.com/klaytn/klaytn/rlp"
@@ -140,11 +139,11 @@ func GetWallets(ctx context.Context) ([]string, error) {
 	return wallets, nil
 }
 
-func GetChainID(ctx context.Context, client *client.Client) (*big.Int, error) {
+func GetChainID(ctx context.Context, client ClientInterface) (*big.Int, error) {
 	return client.NetworkID(ctx)
 }
 
-func MakeDirectTx(ctx context.Context, client *client.Client, contractAddressHex string, reporter string, functionString string, chainID *big.Int, args ...interface{}) (*types.Transaction, error) {
+func MakeDirectTx(ctx context.Context, client ClientInterface, contractAddressHex string, reporter string, functionString string, chainID *big.Int, args ...interface{}) (*types.Transaction, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
 	}
@@ -221,7 +220,7 @@ func MakeDirectTx(ctx context.Context, client *client.Client, contractAddressHex
 	return types.SignTx(tx, types.NewEIP155Signer(chainID), privateKey)
 }
 
-func MakeFeeDelegatedTx(ctx context.Context, client *client.Client, contractAddressHex string, reporter string, functionString string, chainID *big.Int, args ...interface{}) (*types.Transaction, error) {
+func MakeFeeDelegatedTx(ctx context.Context, client ClientInterface, contractAddressHex string, reporter string, functionString string, chainID *big.Int, args ...interface{}) (*types.Transaction, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
 	}
@@ -315,7 +314,7 @@ func MakeFeeDelegatedTx(ctx context.Context, client *client.Client, contractAddr
 	return types.SignTx(unsigned, types.NewEIP155Signer(chainID), privateKey)
 }
 
-func SignTxByFeePayer(ctx context.Context, client *client.Client, tx *types.Transaction, chainID *big.Int) (*types.Transaction, error) {
+func SignTxByFeePayer(ctx context.Context, client ClientInterface, tx *types.Transaction, chainID *big.Int) (*types.Transaction, error) {
 	feePayer := strings.TrimPrefix(os.Getenv("TEST_FEE_PAYER_PK"), "0x")
 	feePayerPrivateKey, err := crypto.HexToECDSA(feePayer)
 	if err != nil {
@@ -336,7 +335,7 @@ func SignTxByFeePayer(ctx context.Context, client *client.Client, tx *types.Tran
 	return types.SignTxAsFeePayer(updatedTx, types.NewEIP155Signer(chainID), feePayerPrivateKey)
 }
 
-func SubmitRawTx(ctx context.Context, client *client.Client, tx *types.Transaction) error {
+func SubmitRawTx(ctx context.Context, client ClientInterface, tx *types.Transaction) error {
 	err := client.SendTransaction(ctx, tx)
 	if err != nil {
 		return err
@@ -356,7 +355,7 @@ func SubmitRawTx(ctx context.Context, client *client.Client, tx *types.Transacti
 	return nil
 }
 
-func SubmitRawTxString(ctx context.Context, client *client.Client, rawTx string) error {
+func SubmitRawTxString(ctx context.Context, client ClientInterface, rawTx string) error {
 	rawTxBytes, err := hex.DecodeString(rawTx)
 	if err != nil {
 		return err
@@ -400,7 +399,7 @@ func UpdateFeePayer(tx *types.Transaction, feePayer common.Address) (*types.Tran
 	return newTx, err
 }
 
-func ReadContract(ctx context.Context, client *client.Client, functionString string, contractAddress string, args ...interface{}) (interface{}, error) {
+func ReadContract(ctx context.Context, client ClientInterface, functionString string, contractAddress string, args ...interface{}) (interface{}, error) {
 	if client == nil {
 		return nil, errors.New("client is nil")
 	}

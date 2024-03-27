@@ -1,7 +1,13 @@
 package utils
 
 import (
+	"context"
+	"math/big"
 	"time"
+
+	"github.com/klaytn/klaytn"
+	"github.com/klaytn/klaytn/blockchain/types"
+	"github.com/klaytn/klaytn/common"
 )
 
 const (
@@ -49,4 +55,16 @@ type SignModel struct {
 	FunctionId  int64     `json:"functionId" db:"functionId"`
 	ContractId  int64     `json:"contractId" db:"contractId"`
 	ReporterId  int64     `json:"reporterId" db:"reporterId"`
+}
+
+type ClientInterface interface {
+	Close()
+	PendingNonceAt(ctx context.Context, account common.Address) (uint64, error)
+	SuggestGasPrice(ctx context.Context) (*big.Int, error)
+	EstimateGas(ctx context.Context, call klaytn.CallMsg) (uint64, error)
+	SendTransaction(ctx context.Context, tx *types.Transaction) error
+	CallContract(ctx context.Context, call klaytn.CallMsg, blockNumber *big.Int) ([]byte, error)
+	NetworkID(ctx context.Context) (*big.Int, error)
+	CodeAt(ctx context.Context, account common.Address, blockNumber *big.Int) ([]byte, error)
+	TransactionReceipt(ctx context.Context, txHash common.Hash) (*types.Receipt, error)
 }

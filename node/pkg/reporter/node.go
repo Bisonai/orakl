@@ -289,7 +289,7 @@ func (r *ReporterNode) SetKlaytnHelper(ctx context.Context) error {
 	if r.KlaytnHelper != nil {
 		r.KlaytnHelper.Close()
 	}
-	klaytnHelper, err := helper.NewKlaytnHelper(ctx)
+	klaytnHelper, err := helper.NewKlayHelper(ctx, "")
 	if err != nil {
 		log.Error().Str("Player", "Reporter").Err(err).Msg("failed to create klaytn helper")
 		return err
