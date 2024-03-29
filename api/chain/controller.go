@@ -30,7 +30,7 @@ func insert(c *fiber.Ctx) error {
 
 	result, err := utils.QueryRow[ChainModel](c, InsertChain, map[string]any{"name": payload.Name})
 	if err != nil {
-		panic(err)
+		return c.Status(fiber.StatusInternalServerError).SendString("failed to insert chain: " + err.Error())
 	}
 
 	return c.JSON(result)
