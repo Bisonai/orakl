@@ -59,32 +59,33 @@ jobs:
           curl -L https://github.com/golang-migrate/migrate/releases/download/v4.17.0/migrate.linux-amd64.tar.gz | tar xvz
           sudo mv ./migrate /usr/bin
 
+      - name: Install delegator dependencies
+        working-derectory: ./delegator
+        run: go mod tidy
+
       - name: Install api dependencies
-        run: |
-          cd ./api
-          go mod tidy
+        working-directory: ./api
+        run: go mod tidy
 
       - name: Delegator db migrate
-        run: yarn delegator prisma-migrate dev --name init-delegator
-        env:
-          DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/delegator?schema=public"
+        working-directory: ./delegator
+        run: migrate -database "postgresql://postgres:postgres@localhost:5432/delegator?search_path=public&sslmode=disable" -verbose -path ./migrations up
 
       - name: Api db migrate
-        run: |
-          cd ./api
-          migrate -database "postgresql://postgres:postgres@localhost:5432/orakl-test?search_path=public&sslmode=disable" -verbose -path ./migrations up
+        working-directory: ./api
+        run: migrate -database "postgresql://postgres:postgres@localhost:5432/orakl-test?search_path=public&sslmode=disable" -verbose -path ./migrations up
 
       - name: Run delegator
-        run: yarn delegator build && yarn delegator start &
+        working-directory: ./delegator
+        run: go run main.go &
         env:
-          DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/delegator?schema=public"
+          DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/delegator?search_path=public"
           PROVIDER_URL: "https://api.baobab.klaytn.net:8651"
           APP_PORT: "3002"
 
       - name: Run api
-        run: |
-          cd ./api
-          go run main.go &
+        working-directory: ./api
+        run: go run main.go &
         env:
           DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/orakl-test?search_path=public"
           ENCRYPT_PASSWORD: "abc123"
