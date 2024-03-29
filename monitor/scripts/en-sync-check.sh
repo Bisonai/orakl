@@ -43,7 +43,7 @@ get_our_klay_block() {
 	# Get block number from log
 	# If col 8 string starts with "number=",
 	# then print the value only integer part
-	$our_klay_blockNumber = $(echo $response | awk '$8 ~ /^number*/ { sub(/^number=/, "", $8); print $8 }')
+	our_klay_blockNumber=$(echo $response | awk '$8 ~ /^number*/ { sub(/^number=/, "", $8); print $8 }')
 
 	echo $our_klay_blockNumber
 }
