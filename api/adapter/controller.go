@@ -26,6 +26,13 @@ type AdapterInsertModel struct {
 	Feeds       []feed.FeedInsertModel `json:"feeds"`
 }
 
+type HashInsertModel struct {
+	AdapterHash string                           `db:"adapter_hash" json:"adapterHash"`
+	Name        string                           `db:"name" json:"name" validate:"required"`
+	Decimals    *utils.CustomInt32               `db:"decimals" json:"decimals" validate:"required"`
+	Feeds       []feed.FeedWithoutAdapterIdModel `json:"feeds"`
+}
+
 type AdapterModel struct {
 	AdapterId   *utils.CustomInt64 `db:"adapter_id" json:"id"`
 	AdapterHash string             `db:"adapter_hash" json:"adapterHash"`
@@ -57,7 +64,7 @@ func insert(c *fiber.Ctx) error {
 		panic(err)
 	}
 
-	err := computeAdapterHash(payload, true)
+	err := computeAdapterHashForInsertRoute(payload, true)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).SendString(err.Error())
 	}
@@ -93,7 +100,7 @@ func hash(c *fiber.Ctx) error {
 		panic(err)
 	}
 
-	var payload AdapterInsertModel
+	var payload HashInsertModel
 
 	if err := c.BodyParser(&payload); err != nil {
 		panic(err)
@@ -104,7 +111,7 @@ func hash(c *fiber.Ctx) error {
 		panic(err)
 	}
 
-	err = computeAdapterHash(&payload, verify)
+	err = computeAdapterHashForHashRoute(&payload, verify)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).SendString(err.Error())
 	}
@@ -140,7 +147,16 @@ func deleteById(c *fiber.Ctx) error {
 	return c.JSON(result)
 }
 
-func computeAdapterHash(data *AdapterInsertModel, verify bool) error {
+func computeAdapterHashForHashRoute(data *HashInsertModel, verify bool) error {
+	hashString, err := computeAdapterHash(data.Name, data.Decimals, data.Feeds, data.AdapterHash, verify)
+	if err != nil {
+		return err
+	}
+	data.AdapterHash = hashString
+	return nil
+}
+
+func computeAdapterHashForInsertRoute(data *AdapterInsertModel, verify bool) error {
 	adapterIdRemovedFeeds := make([]feed.FeedWithoutAdapterIdModel, len(data.Feeds))
 	for idx, item := range data.Feeds {
 		adapterIdRemovedFeeds[idx] = feed.FeedWithoutAdapterIdModel{
@@ -149,20 +165,26 @@ func computeAdapterHash(data *AdapterInsertModel, verify bool) error {
 		}
 	}
 
-	input := AdapterHashModel{data.Name, data.Decimals, adapterIdRemovedFeeds}
+	hashString, err := computeAdapterHash(data.Name, data.Decimals, adapterIdRemovedFeeds, data.AdapterHash, verify)
+	if err != nil {
+		return err
+	}
+	data.AdapterHash = hashString
+	return nil
+}
 
+func computeAdapterHash(name string, decimals *utils.CustomInt32, feeds []feed.FeedWithoutAdapterIdModel, prevHashString string, verify bool) (string, error) {
+	input := AdapterHashModel{name, decimals, feeds}
 	out, err := json.Marshal(input)
 	if err != nil {
-		return fmt.Errorf("failed to compute adapter hash: %s", err.Error())
+		return "", fmt.Errorf("failed to compute adapter hash: %s", err.Error())
 	}
 
 	hash := crypto.Keccak256Hash([]byte(out))
 	hashString := fmt.Sprintf("0x%x", hash)
-	if verify && data.AdapterHash != hashString {
-		hashComputeErr := fmt.Errorf("hashes do not match!\nexpected %s, received %s", hashString, data.AdapterHash)
-		return fmt.Errorf("failed to compute adapter hash: %s", hashComputeErr.Error())
+	if verify && prevHashString != hashString {
+		return hashString, fmt.Errorf("hashes do not match!\nexpected %s, received %s", prevHashString, hashString)
 	}
 
-	data.AdapterHash = hashString
-	return nil
+	return fmt.Sprintf("0x%x", hash), nil
 }
