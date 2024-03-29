@@ -64,7 +64,7 @@ func insert(c *fiber.Ctx) error {
 		panic(err)
 	}
 
-	err := computeAdapterHash(payload, true)
+	err := computeAdapterHashForInsertRoute(payload, true)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).SendString(err.Error())
 	}
@@ -148,24 +148,15 @@ func deleteById(c *fiber.Ctx) error {
 }
 
 func computeAdapterHashForHashRoute(data *HashInsertModel, verify bool) error {
-	input := AdapterHashModel{data.Name, data.Decimals, data.Feeds}
-	out, err := json.Marshal(input)
+	hashString, err := computeAdapterHash(data.Name, data.Decimals, data.Feeds, data.AdapterHash, verify)
 	if err != nil {
-		return fmt.Errorf("failed to compute adapter hash: %s", err.Error())
+		return err
 	}
-
-	hash := crypto.Keccak256Hash([]byte(out))
-	hashString := fmt.Sprintf("0x%x", hash)
-	if verify && data.AdapterHash != hashString {
-		hashComputeErr := fmt.Errorf("hashes do not match!\nexpected %s, received %s", hashString, data.AdapterHash)
-		return fmt.Errorf("failed to compute adapter hash: %s", hashComputeErr.Error())
-	}
-
 	data.AdapterHash = hashString
 	return nil
 }
 
-func computeAdapterHash(data *AdapterInsertModel, verify bool) error {
+func computeAdapterHashForInsertRoute(data *AdapterInsertModel, verify bool) error {
 	adapterIdRemovedFeeds := make([]feed.FeedWithoutAdapterIdModel, len(data.Feeds))
 	for idx, item := range data.Feeds {
 		adapterIdRemovedFeeds[idx] = feed.FeedWithoutAdapterIdModel{
@@ -174,20 +165,26 @@ func computeAdapterHash(data *AdapterInsertModel, verify bool) error {
 		}
 	}
 
-	input := AdapterHashModel{data.Name, data.Decimals, adapterIdRemovedFeeds}
+	hashString, err := computeAdapterHash(data.Name, data.Decimals, adapterIdRemovedFeeds, data.AdapterHash, verify)
+	if err != nil {
+		return err
+	}
+	data.AdapterHash = hashString
+	return nil
+}
 
+func computeAdapterHash(name string, decimals *utils.CustomInt32, feeds []feed.FeedWithoutAdapterIdModel, prevHashString string, verify bool) (string, error) {
+	input := AdapterHashModel{name, decimals, feeds}
 	out, err := json.Marshal(input)
 	if err != nil {
-		return fmt.Errorf("failed to compute adapter hash: %s", err.Error())
+		return "", fmt.Errorf("failed to compute adapter hash: %s", err.Error())
 	}
 
 	hash := crypto.Keccak256Hash([]byte(out))
 	hashString := fmt.Sprintf("0x%x", hash)
-	if verify && data.AdapterHash != hashString {
-		hashComputeErr := fmt.Errorf("hashes do not match!\nexpected %s, received %s", hashString, data.AdapterHash)
-		return fmt.Errorf("failed to compute adapter hash: %s", hashComputeErr.Error())
+	if verify && prevHashString != hashString {
+		return hashString, fmt.Errorf("hashes do not match!\nexpected %s, received %s", prevHashString, hashString)
 	}
 
-	data.AdapterHash = hashString
-	return nil
+	return fmt.Sprintf("0x%x", hash), nil
 }
