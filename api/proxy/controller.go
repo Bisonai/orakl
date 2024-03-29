@@ -39,7 +39,7 @@ func insert(c *fiber.Ctx) error {
 		"port":     payload.Port,
 		"location": &payload.Location})
 	if err != nil {
-		panic(err)
+		return c.Status(fiber.StatusInternalServerError).SendString("failed to insert proxy: " + err.Error())
 	}
 
 	return c.JSON(result)

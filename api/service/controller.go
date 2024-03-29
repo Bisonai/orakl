@@ -29,7 +29,7 @@ func insert(c *fiber.Ctx) error {
 
 	result, err := utils.QueryRow[ServiceModel](c, InsertService, map[string]any{"name": payload.Name})
 	if err != nil {
-		panic(err)
+		return c.Status(fiber.StatusInternalServerError).SendString("failed to insert service: " + err.Error())
 	}
 
 	return c.JSON(result)
