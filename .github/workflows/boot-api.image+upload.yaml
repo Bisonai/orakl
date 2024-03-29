@@ -69,6 +69,5 @@ jobs:
 
       - name: Publish Image to ECR(boot-api)
         run: |
-          docker push ${{ env.ecr_url }}:latest
           docker tag orakl-boot-api ${{ env.ecr_url }}:v0.0.1.${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }}
           docker push ${{ env.ecr_url }}:v0.0.1.${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }}
