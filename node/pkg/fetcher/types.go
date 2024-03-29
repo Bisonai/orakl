@@ -3,6 +3,7 @@ package fetcher
 import (
 	"context"
 	"encoding/json"
+	"math/big"
 	"time"
 
 	"bisonai.com/orakl/node/pkg/bus"
@@ -47,17 +48,25 @@ type Feed struct {
 }
 
 type App struct {
-	Bus      *bus.MessageBus
-	Fetchers map[int64]*Fetcher
-	Proxies  []Proxy
+	Bus          *bus.MessageBus
+	Fetchers     map[int64]*Fetcher
+	Proxies      []Proxy
+	ChainHelpers map[string]ChainHelper
 }
 
 type Definition struct {
-	Url      string            `json:"url"`
+	Url      *string           `json:"url"`
 	Headers  map[string]string `json:"headers"`
-	Method   string            `json:"method"`
+	Method   *string           `json:"method"`
 	Reducers []reducer.Reducer `json:"reducers"`
 	Location *string           `json:"location"`
+
+	// dex specific
+	Type           *string `json:"type"`
+	ChainID        *string `json:"chainId"`
+	Address        *string `json:"address"`
+	Token0Decimals *int64  `json:"token0Decimals"`
+	Token1Decimals *int64  `json:"token1Decimals"`
 }
 
 type Aggregate struct {
@@ -69,4 +78,10 @@ type Aggregate struct {
 type redisAggregate struct {
 	Value     int64     `json:"value"`
 	Timestamp time.Time `json:"timestamp"`
+}
+
+type ChainHelper interface {
+	ReadContract(ctx context.Context, contractAddress string, functionString string, args ...interface{}) (interface{}, error)
+	ChainID() *big.Int
+	Close()
 }
