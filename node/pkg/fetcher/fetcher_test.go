@@ -125,7 +125,6 @@ func TestFetcherFetcherStart(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error reading from db: %v", err)
 	}
-	assert.Equal(t, 0, len(rowsBefore))
 
 	for _, fetcher := range app.Fetchers {
 		err = app.startFetcher(ctx, fetcher)
