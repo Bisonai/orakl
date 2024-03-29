@@ -286,28 +286,36 @@ export function bulkActivateHandler() {
         continue
       }
 
-      await fetcherStartHandler()({
-        id: aggregatorData.aggregatorHash,
-        chain,
-        host: fetcherHost,
-        port: fetcherPort
-      })
-      await aggregatorActivateHandler()({
-        aggregatorHash: aggregatorData.aggregatorHash,
-        host: workerHost,
-        port: workerPort
-      })
+      try {
+        await fetcherStartHandler()({
+          id: aggregatorData.aggregatorHash,
+          chain,
+          host: fetcherHost,
+          port: fetcherPort
+        })
+        await aggregatorActivateHandler()({
+          aggregatorHash: aggregatorData.aggregatorHash,
+          host: workerHost,
+          port: workerPort
+        })
 
-      await reporterActivateHandler()({
-        id: Number(reporterId),
-        host: reporterHost,
-        port: reporterPort
-      })
-      await listenerActivateHandler()({
-        id: Number(listenerId),
-        host: listenerHost,
-        port: listenerPort
-      })
+        await reporterActivateHandler()({
+          id: Number(reporterId),
+          host: reporterHost,
+          port: reporterPort
+        })
+        await listenerActivateHandler()({
+          id: Number(listenerId),
+          host: listenerHost,
+          port: listenerPort
+        })
+      } catch (e) {
+        console.error(
+          `activation failed for ${activateElement.aggregatorSource}, breaking iteration`
+        )
+        console.error(e?.response?.data)
+        break
+      }
     }
   }
   return wrapper
@@ -364,30 +372,38 @@ export function bulkDeactivateHandler() {
         continue
       }
 
-      await listenerDeactivateHandler()({
-        id: Number(listenerId),
-        host: listenerHost,
-        port: listenerPort
-      })
+      try {
+        await listenerDeactivateHandler()({
+          id: Number(listenerId),
+          host: listenerHost,
+          port: listenerPort
+        })
 
-      await reporterDeactivateHandler()({
-        id: Number(reporterId),
-        host: reporterHost,
-        port: reporterPort
-      })
+        await reporterDeactivateHandler()({
+          id: Number(reporterId),
+          host: reporterHost,
+          port: reporterPort
+        })
 
-      await aggregatorDeactivateHandler()({
-        aggregatorHash: aggregatorData.aggregatorHash,
-        host: workerHost,
-        port: workerPort
-      })
+        await aggregatorDeactivateHandler()({
+          aggregatorHash: aggregatorData.aggregatorHash,
+          host: workerHost,
+          port: workerPort
+        })
 
-      await fetcherStopHandler()({
-        id: aggregatorData.aggregatorHash,
-        chain,
-        host: fetcherHost,
-        port: fetcherPort
-      })
+        await fetcherStopHandler()({
+          id: aggregatorData.aggregatorHash,
+          chain,
+          host: fetcherHost,
+          port: fetcherPort
+        })
+      } catch (e) {
+        console.error(
+          `deactivation failed for ${deactivateElement.aggregatorSource}, breaking iteration`
+        )
+        console.error(e?.response?.data)
+        break
+      }
     }
   }
   return wrapper

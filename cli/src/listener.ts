@@ -231,6 +231,7 @@ export function activateHandler() {
     } catch (e) {
       console.error('Listener was not activated. Reason:')
       console.error(e?.response?.data?.message)
+      throw e
     }
   }
   return wrapper
@@ -249,6 +250,7 @@ export function deactivateHandler() {
     } catch (e) {
       console.error('Listener was not deactivated. Reason:')
       console.error(e?.response?.data?.message)
+      throw e
     }
   }
   return wrapper
