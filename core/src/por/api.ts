@@ -29,7 +29,7 @@ export async function insertData({
   value,
   logger
 }: {
-  aggregatorId: bigint
+  aggregatorId: string
   feedId: bigint
   value: number
   logger: Logger
@@ -38,7 +38,7 @@ export async function insertData({
 
   const data: IData[] = [
     {
-      aggregatorId: aggregatorId.toString(),
+      aggregatorId: aggregatorId,
       feedId,
       timestamp,
       value
@@ -65,7 +65,7 @@ export async function insertAggregateData({
   value,
   logger
 }: {
-  aggregatorId: bigint
+  aggregatorId: string
   value: number
   logger: Logger
 }) {

@@ -47,10 +47,7 @@ func Setup(options ...string) (AppConfig, error) {
 		return appConfig, pgxError
 	}
 
-	err := InitFeePayerPK(context.Background(), pgxPool)
-	if err != nil {
-		return appConfig, err
-	}
+	_ = InitFeePayerPK(context.Background(), pgxPool)
 
 	app := fiber.New(fiber.Config{
 		AppName:           "delegator " + version,
