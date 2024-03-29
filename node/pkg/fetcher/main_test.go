@@ -18,8 +18,11 @@ import (
 )
 
 var sampleData = []string{`{
+	"adapterHash": "0x8e663b20c6e6be22294af4aa53603101f104a759ae9c47133ffb032560c37929",
 	"name": "BNB-USDT",
-	"feeds": [{
+	"decimals": 8,
+	"feeds": [
+	  {
 		"name": "Bybit-BNB-USDT",
 		"definition": {
 		  "url": "https://api.bybit.com/derivatives/v3/public/tickers?symbol=BNBUSDT",
@@ -217,22 +220,56 @@ var sampleData = []string{`{
 			}
 		  ]
 		}
-	  }]
-}`, `{
+	  },
+	  {
+		"name": "KlaySwap-oBNB-oUSDT",
+		"definition": {
+		  "chainId": "8217",
+		  "address": "0x14afeda13bc2028cef34d3f45d1b4e3f44747b9a",
+		  "type": "UniswapPool",
+		  "token0Decimals": 18,
+		  "token1Decimals": 6
+		}
+	  }
+	]
+  }`, `{
+	"adapterHash": "0xd18f6885ba66c44550c73b4b8a16702bf70e654d9f17d80b4451f80ec616bc60",
 	"name": "BTC-USDT",
+	"decimals": 8,
 	"feeds": [
 	  {
 		"name": "Bybit-BTC-USDT",
 		"definition": {
 		  "url": "https://api.bybit.com/derivatives/v3/public/tickers?symbol=BTCUSDT",
-		  "headers": { "Content-Type": "application/json" },
+		  "headers": {
+			"Content-Type": "application/json"
+		  },
 		  "method": "GET",
 		  "reducers": [
-			{ "function": "PARSE", "args": ["result", "list"] },
-			{ "function": "INDEX", "args": 0 },
-			{ "function": "PARSE", "args": ["lastPrice"] },
-			{ "function": "POW10", "args": 8 },
-			{ "function": "ROUND" }
+			{
+			  "function": "PARSE",
+			  "args": [
+				"result",
+				"list"
+			  ]
+			},
+			{
+			  "function": "INDEX",
+			  "args": 0
+			},
+			{
+			  "function": "PARSE",
+			  "args": [
+				"lastPrice"
+			  ]
+			},
+			{
+			  "function": "POW10",
+			  "args": 8
+			},
+			{
+			  "function": "ROUND"
+			}
 		  ]
 		}
 	  },
@@ -240,12 +277,24 @@ var sampleData = []string{`{
 		"name": "Binance-BTC-USDT",
 		"definition": {
 		  "url": "https://api.binance.com/api/v3/avgPrice?symbol=BTCUSDT",
-		  "headers": { "Content-Type": "application/json" },
+		  "headers": {
+			"Content-Type": "application/json"
+		  },
 		  "method": "GET",
 		  "reducers": [
-			{ "function": "PARSE", "args": ["price"] },
-			{ "function": "POW10", "args": 8 },
-			{ "function": "ROUND" }
+			{
+			  "function": "PARSE",
+			  "args": [
+				"price"
+			  ]
+			},
+			{
+			  "function": "POW10",
+			  "args": 8
+			},
+			{
+			  "function": "ROUND"
+			}
 		  ]
 		}
 	  },
@@ -253,12 +302,26 @@ var sampleData = []string{`{
 		"name": "Coinbase-BTC-USDT",
 		"definition": {
 		  "url": "https://api.coinbase.com/v2/exchange-rates?currency=BTC",
-		  "headers": { "Content-Type": "application/json" },
+		  "headers": {
+			"Content-Type": "application/json"
+		  },
 		  "method": "GET",
 		  "reducers": [
-			{ "function": "PARSE", "args": ["data", "rates", "USDT"] },
-			{ "function": "POW10", "args": 8 },
-			{ "function": "ROUND" }
+			{
+			  "function": "PARSE",
+			  "args": [
+				"data",
+				"rates",
+				"USDT"
+			  ]
+			},
+			{
+			  "function": "POW10",
+			  "args": 8
+			},
+			{
+			  "function": "ROUND"
+			}
 		  ]
 		}
 	  },
@@ -266,12 +329,25 @@ var sampleData = []string{`{
 		"name": "Kucoin-BTC-USDT",
 		"definition": {
 		  "url": "https://api.kucoin.com/api/v1/market/orderbook/level1?symbol=BTC-USDT",
-		  "headers": { "Content-Type": "application/json" },
+		  "headers": {
+			"Content-Type": "application/json"
+		  },
 		  "method": "GET",
 		  "reducers": [
-			{ "function": "PARSE", "args": ["data", "price"] },
-			{ "function": "POW10", "args": 8 },
-			{ "function": "ROUND" }
+			{
+			  "function": "PARSE",
+			  "args": [
+				"data",
+				"price"
+			  ]
+			},
+			{
+			  "function": "POW10",
+			  "args": 8
+			},
+			{
+			  "function": "ROUND"
+			}
 		  ]
 		}
 	  },
@@ -279,14 +355,35 @@ var sampleData = []string{`{
 		"name": "Crypto-BTC-USDT",
 		"definition": {
 		  "url": "https://api.crypto.com/v2/public/get-ticker?instrument_name=BTC_USDT",
-		  "headers": { "Content-Type": "application/json" },
+		  "headers": {
+			"Content-Type": "application/json"
+		  },
 		  "method": "GET",
 		  "reducers": [
-			{ "function": "PARSE", "args": ["result", "data"] },
-			{ "function": "INDEX", "args": 0 },
-			{ "function": "PARSE", "args": ["a"] },
-			{ "function": "POW10", "args": 8 },
-			{ "function": "ROUND" }
+			{
+			  "function": "PARSE",
+			  "args": [
+				"result",
+				"data"
+			  ]
+			},
+			{
+			  "function": "INDEX",
+			  "args": 0
+			},
+			{
+			  "function": "PARSE",
+			  "args": [
+				"a"
+			  ]
+			},
+			{
+			  "function": "POW10",
+			  "args": 8
+			},
+			{
+			  "function": "ROUND"
+			}
 		  ]
 		}
 	  },
@@ -294,13 +391,28 @@ var sampleData = []string{`{
 		"name": "Btse-BTC-USDT",
 		"definition": {
 		  "url": "https://api.btse.com/spot/api/v3.2/price?symbol=BTC-USDT",
-		  "headers": { "Content-Type": "application/json" },
+		  "headers": {
+			"Content-Type": "application/json"
+		  },
 		  "method": "GET",
 		  "reducers": [
-			{ "function": "INDEX", "args": 0 },
-			{ "function": "PARSE", "args": ["indexPrice"] },
-			{ "function": "POW10", "args": 8 },
-			{ "function": "ROUND" }
+			{
+			  "function": "INDEX",
+			  "args": 0
+			},
+			{
+			  "function": "PARSE",
+			  "args": [
+				"indexPrice"
+			  ]
+			},
+			{
+			  "function": "POW10",
+			  "args": 8
+			},
+			{
+			  "function": "ROUND"
+			}
 		  ]
 		}
 	  },
@@ -308,13 +420,28 @@ var sampleData = []string{`{
 		"name": "Gateio-BTC-USDT",
 		"definition": {
 		  "url": "https://api.gateio.ws/api/v4/spot/tickers?currency_pair=BTC_USDT",
-		  "headers": { "Content-Type": "application/json" },
+		  "headers": {
+			"Content-Type": "application/json"
+		  },
 		  "method": "GET",
 		  "reducers": [
-			{ "function": "INDEX", "args": 0 },
-			{ "function": "PARSE", "args": ["last"] },
-			{ "function": "POW10", "args": 8 },
-			{ "function": "ROUND" }
+			{
+			  "function": "INDEX",
+			  "args": 0
+			},
+			{
+			  "function": "PARSE",
+			  "args": [
+				"last"
+			  ]
+			},
+			{
+			  "function": "POW10",
+			  "args": 8
+			},
+			{
+			  "function": "ROUND"
+			}
 		  ]
 		}
 	  },
@@ -322,13 +449,37 @@ var sampleData = []string{`{
 		"name": "Coinex-BTC-USDT",
 		"definition": {
 		  "url": "https://api.coinex.com/v1/market/ticker?market=BTCUSDT",
-		  "headers": { "Content-Type": "application/json" },
+		  "headers": {
+			"Content-Type": "application/json"
+		  },
 		  "method": "GET",
 		  "reducers": [
-			{ "function": "PARSE", "args": ["data", "ticker", "last"] },
-			{ "function": "POW10", "args": 8 },
-			{ "function": "ROUND" }
+			{
+			  "function": "PARSE",
+			  "args": [
+				"data",
+				"ticker",
+				"last"
+			  ]
+			},
+			{
+			  "function": "POW10",
+			  "args": 8
+			},
+			{
+			  "function": "ROUND"
+			}
 		  ]
+		}
+	  },
+	  {
+		"name": "UniswapV3-0.3-WBTC-USDT",
+		"definition": {
+		  "chainId": "1",
+		  "address": "0x9db9e0e53058c89e5b94e29621a205198648425b",
+		  "type": "UniswapPool",
+		  "token0Decimals": 8,
+		  "token1Decimals": 6
 		}
 	  }
 	]

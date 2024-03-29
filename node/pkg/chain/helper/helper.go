@@ -7,17 +7,16 @@ import (
 	"os"
 	"strings"
 
+	"bisonai.com/orakl/node/pkg/chain/eth_client"
 	"bisonai.com/orakl/node/pkg/chain/utils"
 	"bisonai.com/orakl/node/pkg/utils/request"
-
 	"github.com/klaytn/klaytn/blockchain/types"
 	"github.com/klaytn/klaytn/client"
-
 	"github.com/rs/zerolog/log"
 )
 
-type KlaytnHelper struct {
-	client       *client.Client
+type ChainHelper struct {
+	client       utils.ClientInterface
 	wallets      []string
 	chainID      *big.Int
 	delegatorUrl string
@@ -33,33 +32,67 @@ const (
 	DelegatorEndpoint = "/api/v1/sign/volatile"
 
 	// TODO: support multiple json rpc providers
-	EnvDelegatorUrl = "DELEGATOR_URL"
-	EnvProviderUrl  = "KLAYTN_PROVIDER_URL"
-	EnvReporterPk   = "KLAYTN_REPORTER_PK"
+	EnvDelegatorUrl   = "DELEGATOR_URL"
+	KlaytnProviderUrl = "KLAYTN_PROVIDER_URL"
+	KlaytnReporterPk  = "KLAYTN_REPORTER_PK"
+	EthProviderUrl    = "ETH_PROVIDER_URL"
+	EthReporterPk     = "ETH_REPORTER_PK"
 )
 
-func NewKlaytnHelper(ctx context.Context) (*KlaytnHelper, error) {
+func NewEthHelper(ctx context.Context, providerUrl string) (*ChainHelper, error) {
+	if providerUrl == "" {
+		providerUrl = os.Getenv(EthProviderUrl)
+		if providerUrl == "" {
+			log.Error().Msg("provider url not set")
+			return nil, errors.New("provider url not set")
+		}
+	}
+
+	reporterPk := os.Getenv(EthReporterPk)
+
+	client, err := eth_client.Dial(providerUrl)
+	if err != nil {
+		return nil, err
+	}
+	return newHelper(ctx, client, reporterPk)
+}
+
+func NewKlayHelper(ctx context.Context, providerUrl string) (*ChainHelper, error) {
+	if providerUrl == "" {
+		providerUrl = os.Getenv(KlaytnProviderUrl)
+		if providerUrl == "" {
+			log.Error().Msg("provider url not set")
+			return nil, errors.New("provider url not set")
+		}
+	}
+
+	reporterPk := os.Getenv(KlaytnReporterPk)
+
+	client, err := client.Dial(providerUrl)
+	if err != nil {
+		return nil, err
+	}
+	return newHelper(ctx, client, reporterPk)
+}
+
+func newHelper(ctx context.Context, client utils.ClientInterface, reporterPK string) (*ChainHelper, error) {
+	// assumes that single application submits to single chain, get wallets will select all from wallets table
 	wallets, err := utils.GetWallets(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	if os.Getenv(EnvReporterPk) != "" {
-		wallet := strings.TrimPrefix(os.Getenv(EnvReporterPk), "0x")
+	if reporterPK != "" {
+		wallet := strings.TrimPrefix(reporterPK, "0x")
 		wallets = append(wallets, wallet)
 	}
 
 	delegatorUrl := os.Getenv(EnvDelegatorUrl)
 
-	providerUrl := os.Getenv(EnvProviderUrl)
+	providerUrl := os.Getenv(KlaytnProviderUrl)
 	if providerUrl == "" {
 		log.Error().Msg("provider url not set")
 		return nil, errors.New("provider url not set")
-	}
-
-	client, err := client.Dial(providerUrl)
-	if err != nil {
-		return nil, err
 	}
 
 	chainID, err := utils.GetChainID(ctx, client)
@@ -67,7 +100,7 @@ func NewKlaytnHelper(ctx context.Context) (*KlaytnHelper, error) {
 		return nil, err
 	}
 
-	return &KlaytnHelper{
+	return &ChainHelper{
 		client:       client,
 		wallets:      wallets,
 		chainID:      chainID,
@@ -75,11 +108,11 @@ func NewKlaytnHelper(ctx context.Context) (*KlaytnHelper, error) {
 	}, nil
 }
 
-func (t *KlaytnHelper) Close() {
+func (t *ChainHelper) Close() {
 	t.client.Close()
 }
 
-func (t *KlaytnHelper) GetSignedFromDelegator(tx *types.Transaction) (*types.Transaction, error) {
+func (t *ChainHelper) GetSignedFromDelegator(tx *types.Transaction) (*types.Transaction, error) {
 	if t.delegatorUrl == "" {
 		return nil, errors.New("delegator url not set")
 	}
@@ -101,7 +134,7 @@ func (t *KlaytnHelper) GetSignedFromDelegator(tx *types.Transaction) (*types.Tra
 	return utils.HashToTx(*result.SignedRawTx)
 }
 
-func (t *KlaytnHelper) NextReporter() string {
+func (t *ChainHelper) NextReporter() string {
 	if len(t.wallets) == 0 {
 		return ""
 	}
@@ -110,28 +143,31 @@ func (t *KlaytnHelper) NextReporter() string {
 	return reporter
 }
 
-func (t *KlaytnHelper) MakeDirectTx(ctx context.Context, contractAddressHex string, functionString string, args ...interface{}) (*types.Transaction, error) {
+func (t *ChainHelper) MakeDirectTx(ctx context.Context, contractAddressHex string, functionString string, args ...interface{}) (*types.Transaction, error) {
 	return utils.MakeDirectTx(ctx, t.client, contractAddressHex, t.NextReporter(), functionString, t.chainID, args...)
 }
 
-func (t *KlaytnHelper) MakeFeeDelegatedTx(ctx context.Context, contractAddressHex string, functionString string, args ...interface{}) (*types.Transaction, error) {
+func (t *ChainHelper) MakeFeeDelegatedTx(ctx context.Context, contractAddressHex string, functionString string, args ...interface{}) (*types.Transaction, error) {
 	return utils.MakeFeeDelegatedTx(ctx, t.client, contractAddressHex, t.NextReporter(), functionString, t.chainID, args...)
 }
 
-func (t *KlaytnHelper) SubmitRawTx(ctx context.Context, tx *types.Transaction) error {
+func (t *ChainHelper) SubmitRawTx(ctx context.Context, tx *types.Transaction) error {
 	return utils.SubmitRawTx(ctx, t.client, tx)
 }
 
-func (t *KlaytnHelper) SubmitRawTxString(ctx context.Context, rawTx string) error {
+func (t *ChainHelper) SubmitRawTxString(ctx context.Context, rawTx string) error {
 	return utils.SubmitRawTxString(ctx, t.client, rawTx)
 }
 
 // SignTxByFeePayer: used for testing purpose
-func (t *KlaytnHelper) SignTxByFeePayer(ctx context.Context, tx *types.Transaction) (*types.Transaction, error) {
+func (t *ChainHelper) SignTxByFeePayer(ctx context.Context, tx *types.Transaction) (*types.Transaction, error) {
 	return utils.SignTxByFeePayer(ctx, t.client, tx, t.chainID)
 }
 
-// * `functionString` should include `returns()` clause
-func (t *KlaytnHelper) ReadContract(ctx context.Context, contractAddressHex string, functionString string, args ...interface{}) (interface{}, error) {
+func (t *ChainHelper) ReadContract(ctx context.Context, contractAddressHex string, functionString string, args ...interface{}) (interface{}, error) {
 	return utils.ReadContract(ctx, t.client, functionString, contractAddressHex, args...)
+}
+
+func (t *ChainHelper) ChainID() *big.Int {
+	return t.chainID
 }

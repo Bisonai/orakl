@@ -54,7 +54,7 @@ type App struct {
 
 type ReporterNode struct {
 	Raft            *raft.Raft
-	KlaytnHelper    *helper.KlaytnHelper
+	KlaytnHelper    *helper.ChainHelper
 	SubmissionPairs map[string]SubmissionPair
 
 	contractAddress string
