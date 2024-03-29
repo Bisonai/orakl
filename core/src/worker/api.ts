@@ -40,7 +40,7 @@ export async function fetchDataFeedByAggregatorId({
   aggregatorId,
   logger
 }: {
-  aggregatorId: bigint
+  aggregatorId: string
   logger: Logger
 }): Promise<IAggregateById> {
   try {

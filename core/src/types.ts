@@ -360,7 +360,7 @@ export interface IAdapter {
 }
 
 export interface IAggregator {
-  id: bigint
+  id: string
   aggregatorHash: string
   active: boolean
   name: string
@@ -377,7 +377,7 @@ export interface IAggregate {
   id: bigint
   timestamp: string
   value: bigint
-  aggregatorId: bigint
+  aggregatorId: string
 }
 
 export interface IAggregateById {

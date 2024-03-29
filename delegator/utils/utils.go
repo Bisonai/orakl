@@ -49,7 +49,7 @@ func Setup(options ...string) (AppConfig, error) {
 
 	err := InitFeePayerPK(context.Background(), pgxPool)
 	if err != nil {
-		return appConfig, err
+		fmt.Println("fee payer not initialized due to error:" + err.Error() + "\nplease refresh the application after fee payer insertion through following endpoint: /api/v1/sign/initialize")
 	}
 
 	app := fiber.New(fiber.Config{
