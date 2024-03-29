@@ -65,9 +65,9 @@ jobs:
           go mod tidy
 
       - name: Delegator db migrate
-        run: yarn delegator prisma-migrate dev --name init-delegator
-        env:
-          DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/delegator?schema=public"
+        run: |
+          cd ./delegator
+          migrate -database "postgresql://postgres:postgres@localhost:5432/delegator?search_path=public&sslmode=disable" -verbose -path ./migrations up
 
       - name: Api db migrate
         run: |
@@ -75,9 +75,11 @@ jobs:
           migrate -database "postgresql://postgres:postgres@localhost:5432/orakl-test?search_path=public&sslmode=disable" -verbose -path ./migrations up
 
       - name: Run delegator
-        run: yarn delegator build && yarn delegator start &
+        run: |
+          cd ./delegator
+          go run main.go &
         env:
-          DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/delegator?schema=public"
+          DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/delegator?search_path=public"
           PROVIDER_URL: "https://api.baobab.klaytn.net:8651"
           APP_PORT: "3002"
 
