@@ -118,6 +118,7 @@ export function startHandler() {
       console.log(result)
     } catch (e) {
       console.error(e?.response?.data, { depth: null })
+      throw e
     }
   }
   return wrapper
@@ -144,6 +145,7 @@ export function stopHandler() {
       console.log(result)
     } catch (e) {
       console.error(e?.response?.data?.message)
+      throw e
     }
   }
   return wrapper
