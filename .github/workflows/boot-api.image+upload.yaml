@@ -71,3 +71,6 @@ jobs:
         run: |
           docker tag orakl-boot-api ${{ env.ecr_url }}:v0.0.1.${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }}
           docker push ${{ env.ecr_url }}:v0.0.1.${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }}
+          if [ "${GITHUB_REF##*/}" == "master" ]; then
+            docker push ${{ env.ecr_url }}:latest
+          fi
