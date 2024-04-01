@@ -78,6 +78,30 @@ tasks:
     dotenv: [".env"]
     cmds:
       - go test ./pkg/chain/tests -v
+
+  refresh-fetcher:
+    dotenv: [".env"]
+    cmds:
+      - curl -X POST "http://localhost:$APP_PORT/api/v1/fetcher/refresh"
+  refresh-reporter:
+    dotenv: [".env"]
+    cmds:
+      - curl -X POST "http://localhost:$APP_PORT/api/v1/reporter/refresh"
+  add-proxy:
+    dotenv: [".env"]
+    cmds:
+      - |
+        curl -X POST "http://localhost:$APP_PORT/api/v1/proxy" \
+        -H "Content-Type: application/json" \
+        -d '{"protocol": "{{.PROTOCOL}}", "host": "{{.HOST}}", "port": {{.PORT}}, "location": "{{.LOCATION}}"}'
+  add-wallet:
+    dotenv: [".env"]
+    cmds:
+      - |
+        curl -X POST "http://localhost:$APP_PORT/api/v1/wallet" \
+        -H "Content-Type: application/json" \
+        -d '{"pk": "{{.PK}}"}'
+
   test:
     cmds:
       - task: test-db

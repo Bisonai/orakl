@@ -32,6 +32,10 @@ func insert(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusInternalServerError).SendString("failed to validate request body: " + err.Error())
 	}
 
+	if payload.Location != nil && *payload.Location == "" {
+		payload.Location = nil
+	}
+
 	result, err := db.QueryRow[ProxyModel](c.Context(), InsertProxy, map[string]any{
 		"protocol": payload.Protocol,
 		"host":     payload.Host,

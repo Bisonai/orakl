@@ -206,6 +206,19 @@ task local:script-test-connection
 task local:script-test-raft
 ```
 
+### CLI
+
+```sh
+task local:refresh-fetcher
+
+task local:refresh-reporter
+
+# `LOCATION` is optional parameter
+task local:add-proxy HOST="127.0.0.2" PORT=8080 PROTOCOL="http" LOCATION="kr"
+
+task local:add-wallet PK=0x123
+```
+
 ## Troubleshooting
 
 ### `Klaytn` package compile error
