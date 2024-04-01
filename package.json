@@ -9,7 +9,6 @@
       "delegator",
       "fetcher",
       "l2-api",
-      "monitor",
       "vrf",
       "util"
     ],
@@ -29,7 +28,6 @@
     "delegator": "yarn workspace @bisonai/orakl-delegator",
     "fetcher": "yarn workspace @bisonai/orakl-fetcher",
     "l2-api": "yarn workspace @bisonai/orakl-l2-api",
-    "monitor": "yarn workspace @bisonai/orakl-monitor",
     "vrf": "yarn workspace @bisonai/orakl-vrf",
     "util": "yarn workspace @bisonai/orakl-util"
   }

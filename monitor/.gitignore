@@ -1,6 +1,0 @@
-node_modules
-data
-dist
-yarn.lock
-.env
-docker-compose.yml
