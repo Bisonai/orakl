@@ -294,7 +294,7 @@ func TestRefreshAppByAdmin(t *testing.T) {
 		t.Fatalf("error starting app: %v", err)
 	}
 
-	tmpAggregator, err := tests.PostRequest[Aggregator](testItems.admin, "/api/v1/aggregator", map[string]any{"name": "test_aggregator_2"})
+	tmpAggregator, err := tests.PostRequest[Aggregator](testItems.admin, "/api/v1/aggregator", map[string]any{"name": "test_pair_2"})
 	if err != nil {
 		t.Fatalf("error creating new aggregator: %v", err)
 	}
