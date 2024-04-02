@@ -36,7 +36,7 @@ contract Feed is Ownable, IFeed {
     mapping(address => bool) private whitelist;
 
     event OraclePermissionsUpdated(address indexed oracle, bool indexed whitelisted);
-    event FeedUpdated(int256 indexed answer, uint256 indexed roundId, uint256 updatedAt);
+    event FeedUpdated(int256 indexed answer, uint256 indexed roundId, uint256 updatedAt, bool verified);
 
     error OnlyOracle();
     error OracleAlreadyEnabled();
@@ -76,7 +76,7 @@ contract Feed is Ownable, IFeed {
         rounds[roundId_].updatedAt = uint64(block.timestamp);
 	rounds[roundId_].verified = false;
 
-        emit FeedUpdated(_answer, roundId_, block.timestamp);
+        emit FeedUpdated(_answer, roundId_, block.timestamp, false);
         latestRoundId = roundId_;
     }
 
@@ -107,7 +107,7 @@ contract Feed is Ownable, IFeed {
         rounds[roundId_].updatedAt = uint64(block.timestamp);
 	rounds[roundId_].verified = true;
 
-        emit FeedUpdated(_answer, roundId_, block.timestamp);
+        emit FeedUpdated(_answer, roundId_, block.timestamp, true);
         latestRoundId = roundId_;
     }
 
@@ -156,7 +156,7 @@ contract Feed is Ownable, IFeed {
     /**
      * @inheritdoc IFeed
      */
-    function latestRoundData() external view virtual override returns (uint64 id, int256 answer, uint256 updatedAt) {
+    function latestRoundData() external view virtual override returns (uint64 id, int256 answer, uint256 updatedAt, bool verified) {
         return getRoundData(latestRoundId);
     }
 
@@ -182,7 +182,7 @@ contract Feed is Ownable, IFeed {
         view
         virtual
         override
-        returns (uint64 id, int256 answer, uint256 updatedAt)
+        returns (uint64 id, int256 answer, uint256 updatedAt, bool verified)
     {
         Round memory r = rounds[_roundId];
 
@@ -190,7 +190,7 @@ contract Feed is Ownable, IFeed {
             revert NoDataPresent();
         }
 
-        return (_roundId, r.answer, r.updatedAt);
+        return (_roundId, r.answer, r.updatedAt, r.verified);
     }
 
 
