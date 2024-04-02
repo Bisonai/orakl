@@ -486,33 +486,33 @@ var sampleData = []string{`{
   }`}
 
 type TestItems struct {
-	app        *fiber.App
+	admin      *fiber.App
 	messageBus *bus.MessageBus
-	fetcher    *App
+	app        *App
 }
 
 func setup(ctx context.Context) (func() error, *TestItems, error) {
 	var testItems = new(TestItems)
 	mb := bus.New(10)
 
-	app, err := utils.Setup(utils.SetupInfo{
+	admin, err := utils.Setup(utils.SetupInfo{
 		Version: "",
 		Bus:     mb,
 	})
 	if err != nil {
 		return nil, nil, err
 	}
-	v1 := app.Group("/api/v1")
+	v1 := admin.Group("/api/v1")
 	adapter.Routes(v1)
 	proxy.Routes(v1)
 
-	fetcher := New(mb)
+	app := New(mb)
 
-	testItems.app = app
+	testItems.admin = admin
 	testItems.messageBus = mb
-	testItems.fetcher = fetcher
+	testItems.app = app
 
-	cleanup, err := insertSampleData(app, ctx)
+	cleanup, err := insertSampleData(admin, ctx)
 	if err != nil {
 		return nil, nil, err
 	}
