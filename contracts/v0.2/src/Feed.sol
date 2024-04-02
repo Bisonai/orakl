@@ -24,6 +24,7 @@ contract Feed is Ownable, IFeed {
     struct Round {
         int256 answer;
         uint64 updatedAt;
+	bool verified;
     }
 
     uint64 private latestRoundId;
@@ -71,9 +72,106 @@ contract Feed is Ownable, IFeed {
 
         rounds[roundId_].answer = _answer;
         rounds[roundId_].updatedAt = uint64(block.timestamp);
+	rounds[roundId_].verified = false;
 
         emit FeedUpdated(_answer, roundId_, block.timestamp);
         latestRoundId = roundId_;
+    }
+
+    /**
+     * EXPERIMENTAL
+     * @notice Submit the answer and proof for the current round. The round ID
+     * is derived from the current round ID, and the answer together
+     * with timestamp is stored in the contract. Only whitelisted
+     * oracles can submit the answer.
+     * @dev The proof parameter is split into chunks of 65 bytes and
+     * each chunk is verified. The proof is verified by recovering the
+     * signer of the hash of the answer and comparing it with the
+     * whitelist.
+     * @param _answer The answer for the current round
+     * @param _proof The proof of the answer
+     */
+    function submit(int256 _answer, bytes memory _proof) external onlyOracle {
+	bytes[] memory proofs = splitBytesToChunks(_proof);
+	bytes32 msg = keccak256(abi.encodePacked(_answer));
+	for (uint256 i = 0; i < proofs.length; i++) {
+	    bytes memory proof = proofs[i];
+	    address signer = recoverSigner(msg, proof);
+	    require(whitelist[signer], "Invalid signer");
+	}
+
+        uint64 roundId_ = latestRoundId + 1;
+
+        rounds[roundId_].answer = _answer;
+        rounds[roundId_].updatedAt = uint64(block.timestamp);
+	rounds[roundId_].verified = true;
+
+        emit FeedUpdated(_answer, roundId_, block.timestamp);
+        latestRoundId = roundId_;
+    }
+
+    /**
+     * @notice Split bytes into chunks of 65 bytes
+     * @param data The bytes to be split
+     * @return chunks The array of bytes chunks
+     */
+    function splitBytesToChunks(bytes memory data) internal returns (bytes[] memory chunks) {
+	uint256 dataLength = data.length;
+	uint256 numChunks = dataLength / 65;
+	chunks = new bytes[](numChunks);
+
+	bytes32 first;
+	bytes32 second;
+
+	for (uint256 i = 0; i < numChunks; i++) {
+	    uint256 f = (i * 65) + 32;
+	    uint256 s = (i * 65) + 64;
+	    assembly {
+	            first := mload(add(data, f))
+		    second := mload(add(data, s))
+	    }
+	    chunks[i] = abi.encodePacked(first, second, data[(i*65)+64]);
+	}
+    }
+
+    /**
+     * @notice Split signature into `v`, `r`, and `s` components
+     * @param sig The signature to be split
+     * @return v The `v` component of the signature
+     * @return r The `r` component of the signature
+     * @return s The `s` component of the signature
+     */
+    function splitSignature(bytes memory sig)
+        internal
+        pure
+        returns (uint8 v, bytes32 r, bytes32 s)
+    {
+        require(sig.length == 65);
+
+        assembly {
+            // first 32 bytes, after the length prefix
+            r := mload(add(sig, 32))
+            // second 32 bytes
+            s := mload(add(sig, 64))
+            // final byte (first byte of the next 32 bytes)
+            v := byte(0, mload(add(sig, 96)))
+        }
+        return (v, r, s);
+    }
+
+    /**
+     * @notice Recover the signer of the hash of the message
+     * @param message The hash of the message
+     * @param sig The signature of the message
+     * @return The address of the signer
+     */
+    function recoverSigner(bytes32 message, bytes memory sig)
+        internal
+        pure
+        returns (address)
+    {
+        (uint8 v, bytes32 r, bytes32 s) = splitSignature(sig);
+        return ecrecover(message, v, r, s);
     }
 
     /**

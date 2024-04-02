@@ -107,6 +107,26 @@ contract SubmissionProxy is Ownable {
     }
 
     /**
+     * EXPERIMENTAL
+     * @notice Submit a batch of submissions to multiple feeds.
+     * @dev If the number size of `_feeds`, `_submissions`, and `_proofs`
+     * is not equal, or longer than `maxSubmission`, the function will
+     * revert with `InvalidSubmissionLength` error.
+     * @param _feeds The addresses of the feeds
+     * @param _submissions The submissions
+     * @param _proofs The proofs
+     */
+    function submit(address[] memory _feeds, int256[] memory _submissions, bytes[] memory _proofs) external onlyOracle {
+        if (_feeds.length != _submissions.length || _submissions.length != _proofs.length || _feeds.length > maxSubmission) {
+            revert InvalidSubmissionLength();
+        }
+
+        for (uint256 i = 0; i < _feeds.length; i++) {
+	    IFeed(_feeds[i]).submit(_submissions[i], _proofs[i]);
+        }
+    }
+
+    /**
      * @notice Return the version and type of the feed.
      * @return typeAndVersion The type and version of the feed.
      */
