@@ -244,3 +244,26 @@ func TestQueryRows(t *testing.T) {
 		t.Fatalf("Failed to drop table: %v", err)
 	}
 }
+
+func TestBulkInsert(t *testing.T) {
+	ctx := context.Background()
+	pool, err := GetPool(ctx)
+	if err != nil {
+		t.Fatalf("GetPool failed: %v", err)
+	}
+
+	// Create a temporary table
+	_, err = pool.Exec(ctx, `CREATE TEMPORARY TABLE test (id SERIAL PRIMARY KEY, name TEXT)`)
+	if err != nil {
+		t.Fatalf("Failed to create temporary table: %v", err)
+	}
+
+	cnt, err := BulkInsert(ctx, "test", []string{"name"}, [][]any{{"Alice"}, {"Bob"}})
+	if err != nil {
+		t.Fatalf("BulkInsert failed: %v", err)
+	}
+
+	if cnt != 2 {
+		t.Errorf("Unexpected number of rows inserted: got %d, want 2", cnt)
+	}
+}

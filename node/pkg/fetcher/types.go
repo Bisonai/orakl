@@ -17,6 +17,11 @@ const (
 	InsertLocalAggregateQuery   = `INSERT INTO local_aggregates (name, value) VALUES (@name, @value)`
 )
 
+type FeedData struct {
+	FeedName string  `db:"name"`
+	Value    float64 `db:"value"`
+}
+
 type Adapter struct {
 	ID     int64  `db:"id"`
 	Name   string `db:"name"`
@@ -72,6 +77,13 @@ type Definition struct {
 type Aggregate struct {
 	Name      string     `db:"name"`
 	Value     int64      `db:"value"`
+	Timestamp *time.Time `db:"timestamp"`
+}
+
+type FeedDataFromDB struct {
+	AdapterID int64      `db:"adapter_id"`
+	Name      string     `db:"name"`
+	Value     float64    `db:"value"`
 	Timestamp *time.Time `db:"timestamp"`
 }
 

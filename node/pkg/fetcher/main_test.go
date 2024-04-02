@@ -554,6 +554,15 @@ func cleanup(app *fiber.App, ctx context.Context, insertResult []adapter.Adapter
 				return err
 			}
 		}
+
+		err := db.QueryWithoutResult(ctx, "DELETE FROM local_aggregates", nil)
+		if err != nil {
+			return err
+		}
+		err = db.QueryWithoutResult(ctx, "DELETE FROM feed_data", nil)
+		if err != nil {
+			return err
+		}
 		return nil
 	}
 }

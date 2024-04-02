@@ -122,6 +122,20 @@ func queryRows[T any](pool *pgxpool.Pool, queryString string, args map[string]an
 	return results, err
 }
 
+func BulkInsert(ctx context.Context, tableName string, columnNames []string, rows [][]any) (int64, error) {
+	currentPool, err := GetPool(ctx)
+	if err != nil {
+		return 0, err
+	}
+
+	return currentPool.CopyFrom(
+		ctx,
+		pgx.Identifier{tableName},
+		columnNames,
+		pgx.CopyFromRows(rows),
+	)
+}
+
 func ClosePool() {
 	if pool != nil {
 		pool.Close()

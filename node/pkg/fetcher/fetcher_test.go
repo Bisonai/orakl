@@ -62,6 +62,12 @@ func TestFetcherRun(t *testing.T) {
 	}
 	assert.Equal(t, 0, len(rowsBefore))
 
+	feedDataRowsBefore, err := db.QueryRows[FeedDataFromDB](ctx, "SELECT * FROM feed_data", nil)
+	if err != nil {
+		t.Fatalf("error reading from db: %v", err)
+	}
+	assert.Equal(t, 0, len(rowsBefore))
+
 	err = app.Run(ctx)
 	if err != nil {
 		t.Fatalf("error running fetcher: %v", err)
@@ -85,12 +91,11 @@ func TestFetcherRun(t *testing.T) {
 		t.Fatalf("error reading from db: %v", err)
 	}
 	assert.Greater(t, len(rowsAfter), len(rowsBefore))
-
-	// clean up db
-	err = db.QueryWithoutResult(ctx, "DELETE FROM local_aggregates", nil)
+	feedDataRowsAfter, err := db.QueryRows[FeedDataFromDB](ctx, "SELECT * FROM feed_data", nil)
 	if err != nil {
-		t.Fatalf("error cleaning up from db: %v", err)
+		t.Fatalf("error reading from db: %v", err)
 	}
+	assert.Greater(t, len(feedDataRowsAfter), len(feedDataRowsBefore))
 
 	for _, fetcher := range app.Fetchers {
 		rdbResult, err := db.Get(ctx, "localAggregate:"+fetcher.Name)
@@ -125,6 +130,10 @@ func TestFetcherFetcherStart(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error reading from db: %v", err)
 	}
+	feedDataRowsBefore, err := db.QueryRows[FeedDataFromDB](ctx, "SELECT * FROM feed_data", nil)
+	if err != nil {
+		t.Fatalf("error reading from db: %v", err)
+	}
 
 	for _, fetcher := range app.Fetchers {
 		err = app.startFetcher(ctx, fetcher)
@@ -148,12 +157,11 @@ func TestFetcherFetcherStart(t *testing.T) {
 		t.Fatalf("error reading from db: %v", err)
 	}
 	assert.Greater(t, len(rowsAfter), len(rowsBefore))
-
-	// clean up db
-	err = db.QueryWithoutResult(ctx, "DELETE FROM local_aggregates", nil)
+	feedDataRowsAfter, err := db.QueryRows[FeedDataFromDB](ctx, "SELECT * FROM feed_data", nil)
 	if err != nil {
-		t.Fatalf("error cleaning up from db: %v", err)
+		t.Fatalf("error reading from db: %v", err)
 	}
+	assert.Greater(t, len(feedDataRowsAfter), len(feedDataRowsBefore))
 
 	// check rdb and cleanup rdb
 	for _, fetcher := range app.Fetchers {
@@ -208,6 +216,10 @@ func TestFetcherFetcherStop(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error reading from db: %v", err)
 	}
+	feedDataRowsBefore, err := db.QueryRows[FeedDataFromDB](ctx, "SELECT * FROM feed_data", nil)
+	if err != nil {
+		t.Fatalf("error reading from db: %v", err)
+	}
 	assert.Greater(t, len(rowsBefore), 0)
 	time.Sleep(WAIT_SECONDS / 2)
 
@@ -217,12 +229,11 @@ func TestFetcherFetcherStop(t *testing.T) {
 		t.Fatalf("error reading from db: %v", err)
 	}
 	assert.Equal(t, len(rowsAfter), len(rowsBefore))
-
-	// clean up db
-	err = db.QueryWithoutResult(ctx, "DELETE FROM local_aggregates", nil)
+	feedDataRowsAfter, err := db.QueryRows[FeedDataFromDB](ctx, "SELECT * FROM feed_data", nil)
 	if err != nil {
-		t.Fatalf("error cleaning up from db: %v", err)
+		t.Fatalf("error reading from db: %v", err)
 	}
+	assert.Equal(t, len(feedDataRowsAfter), len(feedDataRowsBefore))
 
 	// check rdb and cleanup rdb
 	for _, fetcher := range app.Fetchers {
@@ -255,12 +266,6 @@ func TestFetcherFetcherStartById(t *testing.T) {
 	}
 
 	app.subscribe(ctx)
-
-	rowsBefore, err := db.QueryRows[Aggregate](ctx, "SELECT * FROM local_aggregates", nil)
-	if err != nil {
-		t.Fatalf("error reading from db: %v", err)
-	}
-	assert.Equal(t, 0, len(rowsBefore))
 
 	for _, fetcher := range app.Fetchers {
 		result, requestErr := tests.PostRequest[Adapter](testItems.app, "/api/v1/adapter/activate/"+strconv.FormatInt(fetcher.ID, 10), nil)
@@ -414,10 +419,11 @@ func TestFetcherFetchAndInsertAdapter(t *testing.T) {
 		}
 		assert.NotNil(t, pgResult)
 
-		err = db.QueryWithoutResult(ctx, "DELETE FROM local_aggregates WHERE name = @name", map[string]any{"name": fetcher.Name})
+		feedPgResult, err := db.QueryRows[FeedDataFromDB](ctx, "SELECT * FROM feed_data WHERE adapter_id = @adapter_id", map[string]any{"adapter_id": fetcher.Adapter.ID})
 		if err != nil {
-			t.Fatalf("error cleaning up from db: %v", err)
+			t.Fatalf("error reading from db: %v", err)
 		}
+		assert.Greater(t, len(feedPgResult), 0)
 
 		rdbResult, err := db.Get(ctx, "localAggregate:"+fetcher.Name)
 		if err != nil {
