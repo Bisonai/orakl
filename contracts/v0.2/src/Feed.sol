@@ -25,7 +25,7 @@ contract Feed is Ownable, IFeed {
     struct Round {
         int256 answer;
         uint64 updatedAt;
-	bool verified;
+        bool verified;
     }
 
     uint64 private latestRoundId;
@@ -69,12 +69,12 @@ contract Feed is Ownable, IFeed {
      * @param _answer The answer for the current round
      */
     function submit(int256 _answer) external onlyOracle {
-	require(!proofRequired, "Proof required");
+        require(!proofRequired, "Proof required");
         uint64 roundId_ = latestRoundId + 1;
 
         rounds[roundId_].answer = _answer;
         rounds[roundId_].updatedAt = uint64(block.timestamp);
-	rounds[roundId_].verified = false;
+        rounds[roundId_].verified = false;
 
         emit FeedUpdated(_answer, roundId_, block.timestamp, false);
         latestRoundId = roundId_;
@@ -93,19 +93,19 @@ contract Feed is Ownable, IFeed {
      * @param _proof The proof of the answer
      */
     function submit(int256 _answer, bytes memory _proof) external onlyOracle {
-	bytes[] memory proofs = splitBytesToChunks(_proof);
-	bytes32 message = keccak256(abi.encodePacked(_answer));
-	for (uint256 i = 0; i < proofs.length; i++) {
-	    bytes memory proof = proofs[i];
-	    address signer = recoverSigner(message, proof);
-	    require(whitelist[signer], "Invalid signer");
-	}
+        bytes[] memory proofs = splitBytesToChunks(_proof);
+        bytes32 message = keccak256(abi.encodePacked(_answer));
+        for (uint256 i = 0; i < proofs.length; i++) {
+            bytes memory proof = proofs[i];
+            address signer = recoverSigner(message, proof);
+            require(whitelist[signer], "Invalid signer");
+        }
 
         uint64 roundId_ = latestRoundId + 1;
 
         rounds[roundId_].answer = _answer;
         rounds[roundId_].updatedAt = uint64(block.timestamp);
-	rounds[roundId_].verified = true;
+        rounds[roundId_].verified = true;
 
         emit FeedUpdated(_answer, roundId_, block.timestamp, true);
         latestRoundId = roundId_;
@@ -142,7 +142,7 @@ contract Feed is Ownable, IFeed {
      * @param _proofRequired The proof requirement for the feed
      */
     function setProofRequired(bool _proofRequired) external onlyOwner {
-	proofRequired = _proofRequired;
+        proofRequired = _proofRequired;
     }
 
     /**
@@ -156,7 +156,13 @@ contract Feed is Ownable, IFeed {
     /**
      * @inheritdoc IFeed
      */
-    function latestRoundData() external view virtual override returns (uint64 id, int256 answer, uint256 updatedAt, bool verified) {
+    function latestRoundData()
+        external
+        view
+        virtual
+        override
+        returns (uint64 id, int256 answer, uint256 updatedAt, bool verified)
+    {
         return getRoundData(latestRoundId);
     }
 
@@ -193,31 +199,30 @@ contract Feed is Ownable, IFeed {
         return (_roundId, r.answer, r.updatedAt, r.verified);
     }
 
-
     /**
      * @notice Split bytes into chunks of 65 bytes
      * @param data The bytes to be split
      * @return chunks The array of bytes chunks
      */
     function splitBytesToChunks(bytes memory data) private pure returns (bytes[] memory) {
-	uint256 dataLength = data.length;
-	uint256 numChunks = dataLength / 65;
-	bytes[] memory chunks = new bytes[](numChunks);
+        uint256 dataLength = data.length;
+        uint256 numChunks = dataLength / 65;
+        bytes[] memory chunks = new bytes[](numChunks);
 
-	bytes32 halfChunk0;
-	bytes32 halfChunk1;
+        bytes32 halfChunk0;
+        bytes32 halfChunk1;
 
-	for (uint256 i = 0; i < numChunks; i++) {
-	    uint256 f = (i * 65) + 32;
-	    uint256 s = (i * 65) + 64;
-	    assembly {
-	            halfChunk0 := mload(add(data, f))
-		    halfChunk1 := mload(add(data, s))
-	    }
-	    chunks[i] = abi.encodePacked(halfChunk0, halfChunk1, data[(i*65)+64]);
-	}
+        for (uint256 i = 0; i < numChunks; i++) {
+            uint256 f = (i * 65) + 32;
+            uint256 s = (i * 65) + 64;
+            assembly {
+                halfChunk0 := mload(add(data, f))
+                halfChunk1 := mload(add(data, s))
+            }
+            chunks[i] = abi.encodePacked(halfChunk0, halfChunk1, data[(i * 65) + 64]);
+        }
 
-	return chunks;
+        return chunks;
     }
 
     /**
@@ -227,11 +232,7 @@ contract Feed is Ownable, IFeed {
      * @return r The `r` component of the signature
      * @return s The `s` component of the signature
      */
-    function splitSignature(bytes memory sig)
-        private
-        pure
-        returns (uint8 v, bytes32 r, bytes32 s)
-    {
+    function splitSignature(bytes memory sig) private pure returns (uint8 v, bytes32 r, bytes32 s) {
         require(sig.length == 65);
 
         assembly {
@@ -251,11 +252,7 @@ contract Feed is Ownable, IFeed {
      * @param sig The signature of the message
      * @return The address of the signer
      */
-    function recoverSigner(bytes32 message, bytes memory sig)
-        private
-        pure
-        returns (address)
-    {
+    function recoverSigner(bytes32 message, bytes memory sig) private pure returns (address) {
         (uint8 v, bytes32 r, bytes32 s) = splitSignature(sig);
         return ecrecover(message, v, r, s);
     }

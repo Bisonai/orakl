@@ -44,7 +44,11 @@ contract FeedProxy is Ownable, IFeedProxy {
      * @return updatedAt Timestamp of the last update.
      * @return verified A boolean indicating if the data is verified.
      */
-    function getRoundData(uint64 _roundId) external view returns (uint64 id, int256 answer, uint256 updatedAt, bool verified) {
+    function getRoundData(uint64 _roundId)
+        external
+        view
+        returns (uint64 id, int256 answer, uint256 updatedAt, bool verified)
+    {
         return feed.getRoundData(_roundId);
     }
 

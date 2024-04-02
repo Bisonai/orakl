@@ -115,13 +115,19 @@ contract SubmissionProxy is Ownable {
      * @param _submissions The submissions
      * @param _proofs The proofs
      */
-    function submit(address[] memory _feeds, int256[] memory _submissions, bytes[] memory _proofs) external onlyOracle {
-        if (_feeds.length != _submissions.length || _submissions.length != _proofs.length || _feeds.length > maxSubmission) {
+    function submit(address[] memory _feeds, int256[] memory _submissions, bytes[] memory _proofs)
+        external
+        onlyOracle
+    {
+        if (
+            _feeds.length != _submissions.length || _submissions.length != _proofs.length
+                || _feeds.length > maxSubmission
+        ) {
             revert InvalidSubmissionLength();
         }
 
         for (uint256 i = 0; i < _feeds.length; i++) {
-	    IFeed(_feeds[i]).submit(_submissions[i], _proofs[i]);
+            IFeed(_feeds[i]).submit(_submissions[i], _proofs[i]);
         }
     }
 

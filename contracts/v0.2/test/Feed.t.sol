@@ -61,12 +61,12 @@ contract FeedTest is Test {
         address alice = makeAddr("alice");
         added.push(alice);
         feed.changeOracles(removed, added);
-	feed.setProofRequired(false);
+        feed.setProofRequired(false);
 
         int256 expectedAnswer = 10;
         uint256 expectedRoundId = 1;
         uint256 expectedUpdatedAt = block.timestamp;
-	bool expectedVerified = false;
+        bool expectedVerified = false;
 
         vm.prank(alice);
         vm.expectEmit(true, true, true, true);
@@ -76,6 +76,6 @@ contract FeedTest is Test {
         assertEq(roundId, expectedRoundId);
         assertEq(answer, expectedAnswer);
         assertEq(updatedAt, expectedUpdatedAt);
-	assertEq(verified, expectedVerified);
+        assertEq(verified, expectedVerified);
     }
 }

@@ -24,7 +24,10 @@ interface IFeedProxy is IFeed {
      * @return updatedAt Timestamp of the last update.
      * @return verified A boolean indicating if the data is verified.
      */
-    function proposedLatestRoundData() external view returns (uint64 id, int256 answer, uint256 updatedAt, bool verified);
+    function proposedLatestRoundData()
+        external
+        view
+        returns (uint64 id, int256 answer, uint256 updatedAt, bool verified);
 
     /**
      * @notice Get address of the feed.

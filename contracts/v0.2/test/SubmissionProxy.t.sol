@@ -129,7 +129,7 @@ contract SubmissionProxyTest is Test {
         // multiple single submissions
         for (uint256 i = 0; i < numOracles; i++) {
             Feed feed = new Feed(DECIMALS, DESCRIPTION);
-	    feed.setProofRequired(false);
+            feed.setProofRequired(false);
 
             oracleAdd[0] = address(submissionProxy);
             oracleAdd[1] = offChainFeedReporter;
@@ -191,62 +191,67 @@ contract SubmissionProxyTest is Test {
     }
 
     function test_submitWithProof() public {
-	address offChainSubmissionProxyReporter = makeAddr("submission-proxy-reporter");
-	submissionProxy.addOracle(offChainSubmissionProxyReporter);
-	(address alice, uint256 aliceSk) = makeAddrAndKey("alice");
-	(address bob, uint256 bobSk) = makeAddrAndKey("bob");
-	(address celine, uint256 celineSk) = makeAddrAndKey("celine");
+        address offChainSubmissionProxyReporter = makeAddr("submission-proxy-reporter");
+        submissionProxy.addOracle(offChainSubmissionProxyReporter);
+        (address alice, uint256 aliceSk) = makeAddrAndKey("alice");
+        (address bob, uint256 bobSk) = makeAddrAndKey("bob");
+        (address celine, uint256 celineSk) = makeAddrAndKey("celine");
 
-	bytes32 hash = keccak256(abi.encodePacked(int256(10)));
+        bytes32 hash = keccak256(abi.encodePacked(int256(10)));
 
-	uint256 numSubmissions = 1;
-	address[] memory feeds = new address[](numSubmissions);
-	int256[] memory submissions = new int256[](numSubmissions);
-	bytes[] memory proofs = new bytes[](numSubmissions);
+        uint256 numSubmissions = 1;
+        address[] memory feeds = new address[](numSubmissions);
+        int256[] memory submissions = new int256[](numSubmissions);
+        bytes[] memory proofs = new bytes[](numSubmissions);
 
-	// single data feed
+        // single data feed
         address[] memory oracleRemove;
         address[] memory oracleAdd = new address[](4);
-	Feed feed = new Feed(DECIMALS, DESCRIPTION);
-	feed.setProofRequired(false);
-	oracleAdd[0] = address(submissionProxy);
-	oracleAdd[1] = address(alice);
-	oracleAdd[2] = address(bob);
-	oracleAdd[3] = address(celine);
-	feed.changeOracles(oracleRemove, oracleAdd);
+        Feed feed = new Feed(DECIMALS, DESCRIPTION);
+        feed.setProofRequired(false);
+        oracleAdd[0] = address(submissionProxy);
+        oracleAdd[1] = address(alice);
+        oracleAdd[2] = address(bob);
+        oracleAdd[3] = address(celine);
+        feed.changeOracles(oracleRemove, oracleAdd);
 
-	feeds[0] = address(feed);
-	submissions[0] = 10;
+        feeds[0] = address(feed);
+        submissions[0] = 10;
 
-	/* proofs[0] = abi.encodePacked(createProof(aliceSk, hash)); */
-	/* proofs[0] = abi.encodePacked(createProof(aliceSk, hash), createProof(bobSk, hash)); */
-	proofs[0] = abi.encodePacked(createProof(aliceSk, hash), createProof(bobSk, hash), createProof(celineSk, hash));
+        /* proofs[0] = abi.encodePacked(createProof(aliceSk, hash)); */
+        /* proofs[0] = abi.encodePacked(createProof(aliceSk, hash), createProof(bobSk, hash)); */
+        proofs[0] = abi.encodePacked(createProof(aliceSk, hash), createProof(bobSk, hash), createProof(celineSk, hash));
 
-	submitWithProof(offChainSubmissionProxyReporter, feeds, submissions, proofs); // warmup
-	submitWithProof(offChainSubmissionProxyReporter, feeds, submissions, proofs);
+        submitWithProof(offChainSubmissionProxyReporter, feeds, submissions, proofs); // warmup
+        submitWithProof(offChainSubmissionProxyReporter, feeds, submissions, proofs);
 
-	submitWithoutProof(offChainSubmissionProxyReporter, feeds, submissions); // warmup
-	submitWithoutProof(offChainSubmissionProxyReporter, feeds, submissions);
+        submitWithoutProof(offChainSubmissionProxyReporter, feeds, submissions); // warmup
+        submitWithoutProof(offChainSubmissionProxyReporter, feeds, submissions);
     }
 
-    function submitWithProof(address reporter, address[] memory feeds, int256[] memory submissions, bytes[] memory proofs) internal {
-	vm.prank(reporter);
-	uint256 startGas = gasleft();
-	submissionProxy.submit(feeds, submissions, proofs);
-	uint256 gas = estimateGasCost(startGas);
-	console.log("w/ proof", gas);
+    function submitWithProof(
+        address reporter,
+        address[] memory feeds,
+        int256[] memory submissions,
+        bytes[] memory proofs
+    ) internal {
+        vm.prank(reporter);
+        uint256 startGas = gasleft();
+        submissionProxy.submit(feeds, submissions, proofs);
+        uint256 gas = estimateGasCost(startGas);
+        console.log("w/ proof", gas);
     }
 
     function submitWithoutProof(address reporter, address[] memory feeds, int256[] memory submissions) internal {
-	vm.prank(reporter);
-	uint256 startGas = gasleft();
-	submissionProxy.submit(feeds, submissions);
-	uint256 gas = estimateGasCost(startGas);
-	console.log("w/o proof", gas);
+        vm.prank(reporter);
+        uint256 startGas = gasleft();
+        submissionProxy.submit(feeds, submissions);
+        uint256 gas = estimateGasCost(startGas);
+        console.log("w/o proof", gas);
     }
 
     function createProof(uint256 sk, bytes32 hash) internal pure returns (bytes memory) {
-	(uint8 v, bytes32 r, bytes32 s) = vm.sign(sk, hash);
-	return abi.encodePacked(r, s, v);
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(sk, hash);
+        return abi.encodePacked(r, s, v);
     }
 }
