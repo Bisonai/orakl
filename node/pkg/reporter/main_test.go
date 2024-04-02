@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"bisonai.com/orakl/node/pkg/admin/aggregator"
 	"bisonai.com/orakl/node/pkg/admin/reporter"
 	"bisonai.com/orakl/node/pkg/admin/utils"
 	"bisonai.com/orakl/node/pkg/bus"
@@ -40,6 +41,11 @@ func insertSampleData(ctx context.Context) (*TmpData, error) {
 		return nil, err
 	}
 	db.Set(ctx, key, string(data), time.Duration(10*time.Second))
+
+	err = db.QueryWithoutResult(ctx, aggregator.InsertAggregator, map[string]any{"name": "test-aggregate"})
+	if err != nil {
+		return nil, err
+	}
 
 	tmpGlobalAggregate, err := db.QueryRow[GlobalAggregate](ctx, InsertGlobalAggregateQuery, map[string]any{"name": "test-aggregate", "value": int64(15), "round": int64(1)})
 	if err != nil {
@@ -100,7 +106,12 @@ func setup(ctx context.Context) (func() error, *TestItems, error) {
 
 func reporterCleanup(ctx context.Context, admin *fiber.App, testItems *TestItems) func() error {
 	return func() error {
-		err := db.QueryWithoutResult(ctx, "DELETE FROM global_aggregates;", nil)
+		err := db.QueryWithoutResult(ctx, "DELETE FROM aggregators;", nil)
+		if err != nil {
+			return err
+		}
+
+		err = db.QueryWithoutResult(ctx, "DELETE FROM global_aggregates;", nil)
 		if err != nil {
 			return err
 		}
