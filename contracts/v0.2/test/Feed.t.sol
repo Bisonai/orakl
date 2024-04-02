@@ -61,6 +61,7 @@ contract FeedTest is Test {
         address alice = makeAddr("alice");
         added.push(alice);
         feed.changeOracles(removed, added);
+	feed.setProofRequired(false);
 
         int256 expectedAnswer = 10;
         uint256 expectedRoundId = 1;

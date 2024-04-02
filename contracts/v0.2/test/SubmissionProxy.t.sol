@@ -129,6 +129,7 @@ contract SubmissionProxyTest is Test {
         // multiple single submissions
         for (uint256 i = 0; i < numOracles; i++) {
             Feed feed = new Feed(DECIMALS, DESCRIPTION);
+	    feed.setProofRequired(false);
 
             oracleAdd[0] = address(submissionProxy);
             oracleAdd[1] = offChainFeedReporter;
@@ -207,6 +208,7 @@ contract SubmissionProxyTest is Test {
         address[] memory oracleRemove;
         address[] memory oracleAdd = new address[](4);
 	Feed feed = new Feed(DECIMALS, DESCRIPTION);
+	feed.setProofRequired(false);
 	oracleAdd[0] = address(submissionProxy);
 	oracleAdd[1] = address(alice);
 	oracleAdd[2] = address(bob);
@@ -228,24 +230,18 @@ contract SubmissionProxyTest is Test {
     }
 
     function submitWithProof(address reporter, address[] memory feeds, int256[] memory submissions, bytes[] memory proofs) internal {
-	uint256 startGas;
-	uint256 gas;
-
 	vm.prank(reporter);
-	startGas = gasleft();
+	uint256 startGas = gasleft();
 	submissionProxy.submit(feeds, submissions, proofs);
-	gas = estimateGasCost(startGas);
+	uint256 gas = estimateGasCost(startGas);
 	console.log("w/ proof", gas);
     }
 
     function submitWithoutProof(address reporter, address[] memory feeds, int256[] memory submissions) internal {
-	uint256 startGas;
-	uint256 gas;
-
 	vm.prank(reporter);
-	startGas = gasleft();
+	uint256 startGas = gasleft();
 	submissionProxy.submit(feeds, submissions);
-	gas = estimateGasCost(startGas);
+	uint256 gas = estimateGasCost(startGas);
 	console.log("w/o proof", gas);
     }
 
