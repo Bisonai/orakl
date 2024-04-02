@@ -199,23 +199,25 @@ contract Feed is Ownable, IFeed {
      * @param data The bytes to be split
      * @return chunks The array of bytes chunks
      */
-    function splitBytesToChunks(bytes memory data) private pure returns (bytes[] memory chunks) {
+    function splitBytesToChunks(bytes memory data) private pure returns (bytes[] memory) {
 	uint256 dataLength = data.length;
 	uint256 numChunks = dataLength / 65;
-	chunks = new bytes[](numChunks);
+	bytes[] memory chunks = new bytes[](numChunks);
 
-	bytes32 first;
-	bytes32 second;
+	bytes32 halfChunk0;
+	bytes32 halfChunk1;
 
 	for (uint256 i = 0; i < numChunks; i++) {
 	    uint256 f = (i * 65) + 32;
 	    uint256 s = (i * 65) + 64;
 	    assembly {
-	            first := mload(add(data, f))
-		    second := mload(add(data, s))
+	            halfChunk0 := mload(add(data, f))
+		    halfChunk1 := mload(add(data, s))
 	    }
-	    chunks[i] = abi.encodePacked(first, second, data[(i*65)+64]);
+	    chunks[i] = abi.encodePacked(halfChunk0, halfChunk1, data[(i*65)+64]);
 	}
+
+	return chunks;
     }
 
     /**
