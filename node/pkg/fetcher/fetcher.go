@@ -290,8 +290,6 @@ func (a *App) insertRdb(ctx context.Context, name string, value float64) error {
 func (a *App) fetch(fetcher Fetcher) ([]FeedData, error) {
 	feeds := fetcher.Feeds
 
-	// data := []float64{}
-	// dataChan := make(chan float64)
 	data := []FeedData{}
 	dataChan := make(chan FeedData)
 	errChan := make(chan error)
