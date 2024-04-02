@@ -79,7 +79,6 @@ contract Feed is Ownable, IFeed {
     }
 
     /**
-     * EXPERIMENTAL
      * @notice Submit the answer and proof for the current round. The round ID
      * is derived from the current round ID, and the answer together
      * with timestamp is stored in the contract. Only whitelisted

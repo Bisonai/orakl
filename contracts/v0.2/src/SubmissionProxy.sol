@@ -107,7 +107,6 @@ contract SubmissionProxy is Ownable {
     }
 
     /**
-     * EXPERIMENTAL
      * @notice Submit a batch of submissions to multiple feeds.
      * @dev If the number size of `_feeds`, `_submissions`, and `_proofs`
      * is not equal, or longer than `maxSubmission`, the function will
