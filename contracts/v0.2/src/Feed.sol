@@ -93,10 +93,10 @@ contract Feed is Ownable, IFeed {
      */
     function submit(int256 _answer, bytes memory _proof) external onlyOracle {
 	bytes[] memory proofs = splitBytesToChunks(_proof);
-	bytes32 msg = keccak256(abi.encodePacked(_answer));
+	bytes32 message = keccak256(abi.encodePacked(_answer));
 	for (uint256 i = 0; i < proofs.length; i++) {
 	    bytes memory proof = proofs[i];
-	    address signer = recoverSigner(msg, proof);
+	    address signer = recoverSigner(message, proof);
 	    require(whitelist[signer], "Invalid signer");
 	}
 
@@ -115,7 +115,7 @@ contract Feed is Ownable, IFeed {
      * @param data The bytes to be split
      * @return chunks The array of bytes chunks
      */
-    function splitBytesToChunks(bytes memory data) internal returns (bytes[] memory chunks) {
+    function splitBytesToChunks(bytes memory data) internal pure returns (bytes[] memory chunks) {
 	uint256 dataLength = data.length;
 	uint256 numChunks = dataLength / 65;
 	chunks = new bytes[](numChunks);
