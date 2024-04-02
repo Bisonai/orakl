@@ -243,7 +243,17 @@ func (a *App) fetchAndInsert(ctx context.Context, fetcher Fetcher) error {
 	}
 	log.Debug().Str("Player", "Fetcher").Str("fetcher", fetcher.Name).Msg("fetch complete")
 
-	aggregated, err := calculator.GetFloatMed(results)
+	err = a.insertFeedData(ctx, fetcher.Adapter.ID, results)
+	if err != nil {
+		return err
+	}
+
+	rawValues := make([]float64, len(results))
+	for i, result := range results {
+		rawValues[i] = result.Value
+	}
+
+	aggregated, err := calculator.GetFloatMed(rawValues)
 	if err != nil {
 		return err
 	}
@@ -277,11 +287,13 @@ func (a *App) insertRdb(ctx context.Context, name string, value float64) error {
 	return db.Set(ctx, key, string(data), time.Duration(5*time.Minute))
 }
 
-func (a *App) fetch(fetcher Fetcher) ([]float64, error) {
+func (a *App) fetch(fetcher Fetcher) ([]FeedData, error) {
 	feeds := fetcher.Feeds
 
-	data := []float64{}
-	dataChan := make(chan float64)
+	// data := []float64{}
+	// dataChan := make(chan float64)
+	data := []FeedData{}
+	dataChan := make(chan FeedData)
 	errChan := make(chan error)
 
 	defer close(dataChan)
@@ -296,18 +308,18 @@ func (a *App) fetch(fetcher Fetcher) ([]float64, error) {
 				return
 			}
 
-			var result float64
+			var resultValue float64
 			var fetchErr error
 
 			switch {
 			case definition.Type == nil:
-				result, fetchErr = a.cex(*definition)
+				resultValue, fetchErr = a.cex(*definition)
 				if fetchErr != nil {
 					errChan <- fetchErr
 					return
 				}
 			case *definition.Type == "UniswapPool":
-				result, fetchErr = a.uniswapV3(*definition)
+				resultValue, fetchErr = a.uniswapV3(*definition)
 				if fetchErr != nil {
 					errChan <- fetchErr
 					return
@@ -316,7 +328,9 @@ func (a *App) fetch(fetcher Fetcher) ([]float64, error) {
 				errChan <- errors.New("unknown fetcher type")
 			}
 
-			dataChan <- result
+			if resultValue != 0 {
+				dataChan <- FeedData{FeedName: feed.Name, Value: resultValue}
+			}
 		}(feed)
 	}
 
@@ -515,6 +529,16 @@ func (a *App) getChainHelpers(ctx context.Context) (map[string]ChainHelper, erro
 
 func (a *App) String() string {
 	return fmt.Sprintf("%+v\n", a.Fetchers)
+}
+
+func (a *App) insertFeedData(ctx context.Context, adapterId int64, feedData []FeedData) error {
+	insertRows := make([][]any, 0, len(feedData))
+	for _, data := range feedData {
+		insertRows = append(insertRows, []any{adapterId, data.FeedName, data.Value})
+	}
+
+	_, err := db.BulkInsert(ctx, "feed_data", []string{"adapter_id", "name", "value"}, insertRows)
+	return err
 }
 
 func getTokenPrice(sqrtPriceX96 *big.Int, decimal0 int, decimal1 int) float64 {
