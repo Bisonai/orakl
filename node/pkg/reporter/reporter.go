@@ -58,17 +58,13 @@ func (r *Reporter) Run(ctx context.Context) {
 func (r *Reporter) retry(job func() error) error {
 	failureTimeout := INITIAL_FAILURE_TIMEOUT
 	for i := 0; i < MAX_RETRY; i++ {
-		n, err := rand.Int(rand.Reader, big.NewInt(100))
-		if err != nil {
-			log.Error().Str("Player", "Reporter").Err(err).Msg("failed to generate jitter for retry timeout")
-			n = big.NewInt(0)
-		}
-		failureTimeout += failureTimeout + time.Duration(n.Int64())*time.Millisecond
+
+		failureTimeout += calculateJitter(failureTimeout)
 		if failureTimeout > MAX_RETRY_DELAY {
 			failureTimeout = MAX_RETRY_DELAY
 		}
 
-		err = job()
+		err := job()
 		if err != nil {
 			log.Error().Str("Player", "Reporter").Err(err).Msg("job failed")
 			time.Sleep(failureTimeout)
@@ -278,7 +274,6 @@ func (r *Reporter) loadSubmissionPairs(ctx context.Context) error {
 
 	if len(submissionAddresses) == 0 {
 		log.Warn().Str("Player", "Reporter").Msg("no submission addresses found")
-		return errors.New("no submission addresses found")
 	}
 
 	for _, sa := range submissionAddresses {
@@ -298,4 +293,14 @@ func (r *Reporter) SetKlaytnHelper(ctx context.Context) error {
 	}
 	r.KlaytnHelper = klaytnHelper
 	return nil
+}
+
+func calculateJitter(baseTimeout time.Duration) time.Duration {
+	n, err := rand.Int(rand.Reader, big.NewInt(100))
+	if err != nil {
+		log.Error().Str("Player", "Reporter").Err(err).Msg("failed to generate jitter for retry timeout")
+		return baseTimeout
+	}
+	jitter := time.Duration(n.Int64()) * time.Millisecond
+	return baseTimeout + jitter
 }

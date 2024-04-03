@@ -77,7 +77,7 @@ func (n *Aggregator) HandleCustomMessage(message raft.Message) error {
 	case PriceData:
 		return n.HandlePriceDataMessage(message)
 	default:
-		return fmt.Errorf("unknown message type: %v", message.Type)
+		return fmt.Errorf("unknown message type received in HandleCustomMessage: %v", message.Type)
 	}
 }
 
