@@ -91,9 +91,9 @@ func main() {
 		defer wg.Done()
 
 		a := aggregator.New(mb, host, ps)
-		aaggreegatorErr := a.Run(ctx)
-		if aaggreegatorErr != nil {
-			log.Error().Err(aaggreegatorErr).Msg("Failed to start aggregator")
+		aggregatorErr := a.Run(ctx)
+		if aggregatorErr != nil {
+			log.Error().Err(aggregatorErr).Msg("Failed to start aggregator")
 			return
 		}
 	}()
