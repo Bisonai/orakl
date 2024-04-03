@@ -155,9 +155,9 @@ func (f *Fetcher) fetch(chainHelpers map[string]ChainHelper, proxies []Proxy) ([
 		for _, err := range errList {
 			errString += err.Error() + "\n"
 		}
-	}
 
-	log.Error().Str("Player", "Fetcher").Err(fmt.Errorf("errors in fetching: %s", errString)).Msg("errors in fetching")
+		log.Error().Str("Player", "Fetcher").Err(fmt.Errorf("errors in fetching: %s", errString)).Msg("errors in fetching")
+	}
 
 	return data, nil
 }
