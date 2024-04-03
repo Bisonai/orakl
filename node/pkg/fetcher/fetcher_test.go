@@ -116,7 +116,8 @@ func TestFetcherFetchAndInsertAdapter(t *testing.T) {
 	app.initialize(ctx)
 
 	for _, fetcher := range app.Fetchers {
-		fetcher.fetchAndInsert(ctx, app.ChainHelpers, app.Proxies)
+		err = fetcher.fetchAndInsert(ctx, app.ChainHelpers, app.Proxies)
+		assert.NoError(t, err, "fetchAndInsert should not return an error")
 	}
 	if err != nil {
 		t.Fatalf("error running adapter: %v", err)

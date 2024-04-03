@@ -48,6 +48,7 @@ func TestLeaderJob(t *testing.T) {
 	if err != nil {
 		t.Fatal("error running leader job")
 	}
+	assert.Greater(t, node.RoundID, int64(0), "RoundID should be greater than 0")
 }
 
 func TestGetLatestLocalAggregate(t *testing.T) {
@@ -74,6 +75,8 @@ func TestGetLatestLocalAggregate(t *testing.T) {
 	if err != nil {
 		t.Fatal("error getting latest local aggregate")
 	}
+
+	assert.NotZero(t, dbTime, "dbTime should not be zero")
 
 	assert.Equal(t, val, testItems.tmpData.rLocalAggregate.Value)
 	assert.Equal(t, val, testItems.tmpData.pLocalAggregate.Value)
@@ -142,8 +145,8 @@ func TestInsertGlobalAggregate(t *testing.T) {
 	if err != nil {
 		t.Fatal("error getting latest global aggregate from rdb")
 	}
-	assert.Equal(t, redisResult.Value, int64(20))
-	assert.Equal(t, redisResult.Round, int64(2))
+	assert.Equal(t, int64(20), redisResult.Value)
+	assert.Equal(t, int64(2), redisResult.Round)
 
-	assert.Equal(t, roundId, int64(2))
+	assert.Equal(t, int64(2), roundId)
 }
