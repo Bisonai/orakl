@@ -20,8 +20,12 @@ interface IFeed {
      * @return id The round ID.
      * @return answer The oracle answer.
      * @return updatedAt Timestamp of the last update.
+     * @return verified A boolean indicating if the data is verified.
      */
-    function getRoundData(uint64 _roundId) external view returns (uint64 id, int256 answer, uint256 updatedAt);
+    function getRoundData(uint64 _roundId)
+        external
+        view
+        returns (uint64 id, int256 answer, uint256 updatedAt, bool verified);
 
     /**
      * @notice Get latest round data of the feed.
@@ -30,8 +34,9 @@ interface IFeed {
      * @return id The round ID.
      * @return answer The oracle answer.
      * @return updatedAt Timestamp of the last update.
+     * @return verified A boolean indicating if the data is verified.
      */
-    function latestRoundData() external view returns (uint64 id, int256 answer, uint256 updatedAt);
+    function latestRoundData() external view returns (uint64 id, int256 answer, uint256 updatedAt, bool verified);
 
     /**
      * @notice Get timestamp of the latest round update

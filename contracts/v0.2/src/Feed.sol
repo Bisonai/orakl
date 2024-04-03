@@ -19,11 +19,13 @@ import {IFeed} from "./interfaces/IFeed.sol";
 contract Feed is Ownable, IFeed {
     uint8 public override decimals;
     string public override description;
+    bool public proofRequired = true;
 
     // round data
     struct Round {
         int256 answer;
         uint64 updatedAt;
+        bool verified;
     }
 
     uint64 private latestRoundId;
@@ -34,7 +36,7 @@ contract Feed is Ownable, IFeed {
     mapping(address => bool) private whitelist;
 
     event OraclePermissionsUpdated(address indexed oracle, bool indexed whitelisted);
-    event FeedUpdated(int256 indexed answer, uint256 indexed roundId, uint256 updatedAt);
+    event FeedUpdated(int256 indexed answer, uint256 indexed roundId, uint256 updatedAt, bool verified);
 
     error OnlyOracle();
     error OracleAlreadyEnabled();
@@ -67,12 +69,45 @@ contract Feed is Ownable, IFeed {
      * @param _answer The answer for the current round
      */
     function submit(int256 _answer) external onlyOracle {
+        require(!proofRequired, "Proof required");
         uint64 roundId_ = latestRoundId + 1;
 
         rounds[roundId_].answer = _answer;
         rounds[roundId_].updatedAt = uint64(block.timestamp);
+        rounds[roundId_].verified = false;
 
-        emit FeedUpdated(_answer, roundId_, block.timestamp);
+        emit FeedUpdated(_answer, roundId_, block.timestamp, false);
+        latestRoundId = roundId_;
+    }
+
+    /**
+     * @notice Submit the answer and proof for the current round. The round ID
+     * is derived from the current round ID, and the answer together
+     * with timestamp is stored in the contract. Only whitelisted
+     * oracles can submit the answer.
+     * @dev The proof parameter is split into chunks of 65 bytes and
+     * each chunk is verified. The proof is verified by recovering the
+     * signer of the hash of the answer and comparing it with the
+     * whitelist.
+     * @param _answer The answer for the current round
+     * @param _proof The proof of the answer
+     */
+    function submit(int256 _answer, bytes memory _proof) external onlyOracle {
+        bytes[] memory proofs = splitBytesToChunks(_proof);
+        bytes32 message = keccak256(abi.encodePacked(_answer));
+        for (uint256 i = 0; i < proofs.length; i++) {
+            bytes memory proof = proofs[i];
+            address signer = recoverSigner(message, proof);
+            require(whitelist[signer], "Invalid signer");
+        }
+
+        uint64 roundId_ = latestRoundId + 1;
+
+        rounds[roundId_].answer = _answer;
+        rounds[roundId_].updatedAt = uint64(block.timestamp);
+        rounds[roundId_].verified = true;
+
+        emit FeedUpdated(_answer, roundId_, block.timestamp, true);
         latestRoundId = roundId_;
     }
 
@@ -103,6 +138,14 @@ contract Feed is Ownable, IFeed {
     }
 
     /**
+     * @notice Set the proof requirement for the feed submission
+     * @param _proofRequired The proof requirement for the feed
+     */
+    function setProofRequired(bool _proofRequired) external onlyOwner {
+        proofRequired = _proofRequired;
+    }
+
+    /**
      * @notice Get list of whitelisted oracles
      * @return The list of whitelisted oracles
      */
@@ -113,7 +156,13 @@ contract Feed is Ownable, IFeed {
     /**
      * @inheritdoc IFeed
      */
-    function latestRoundData() external view virtual override returns (uint64 id, int256 answer, uint256 updatedAt) {
+    function latestRoundData()
+        external
+        view
+        virtual
+        override
+        returns (uint64 id, int256 answer, uint256 updatedAt, bool verified)
+    {
         return getRoundData(latestRoundId);
     }
 
@@ -139,7 +188,7 @@ contract Feed is Ownable, IFeed {
         view
         virtual
         override
-        returns (uint64 id, int256 answer, uint256 updatedAt)
+        returns (uint64 id, int256 answer, uint256 updatedAt, bool verified)
     {
         Round memory r = rounds[_roundId];
 
@@ -147,7 +196,65 @@ contract Feed is Ownable, IFeed {
             revert NoDataPresent();
         }
 
-        return (_roundId, r.answer, r.updatedAt);
+        return (_roundId, r.answer, r.updatedAt, r.verified);
+    }
+
+    /**
+     * @notice Split bytes into chunks of 65 bytes
+     * @param data The bytes to be split
+     * @return chunks The array of bytes chunks
+     */
+    function splitBytesToChunks(bytes memory data) private pure returns (bytes[] memory) {
+        uint256 dataLength = data.length;
+        uint256 numChunks = dataLength / 65;
+        bytes[] memory chunks = new bytes[](numChunks);
+
+        bytes32 halfChunk0;
+        bytes32 halfChunk1;
+
+        for (uint256 i = 0; i < numChunks; i++) {
+            uint256 f = (i * 65) + 32;
+            uint256 s = (i * 65) + 64;
+            assembly {
+                halfChunk0 := mload(add(data, f))
+                halfChunk1 := mload(add(data, s))
+            }
+            chunks[i] = abi.encodePacked(halfChunk0, halfChunk1, data[(i * 65) + 64]);
+        }
+
+        return chunks;
+    }
+
+    /**
+     * @notice Split signature into `v`, `r`, and `s` components
+     * @param sig The signature to be split
+     * @return v The `v` component of the signature
+     * @return r The `r` component of the signature
+     * @return s The `s` component of the signature
+     */
+    function splitSignature(bytes memory sig) private pure returns (uint8 v, bytes32 r, bytes32 s) {
+        require(sig.length == 65);
+
+        assembly {
+            // first 32 bytes, after the length prefix
+            r := mload(add(sig, 32))
+            // second 32 bytes
+            s := mload(add(sig, 64))
+            // final byte (first byte of the next 32 bytes)
+            v := byte(0, mload(add(sig, 96)))
+        }
+        return (v, r, s);
+    }
+
+    /**
+     * @notice Recover the signer of the hash of the message
+     * @param message The hash of the message
+     * @param sig The signature of the message
+     * @return The address of the signer
+     */
+    function recoverSigner(bytes32 message, bytes memory sig) private pure returns (address) {
+        (uint8 v, bytes32 r, bytes32 s) = splitSignature(sig);
+        return ecrecover(message, v, r, s);
     }
 
     /**
