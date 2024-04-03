@@ -46,13 +46,13 @@ type SubmissionPair struct {
 }
 
 type App struct {
-	Reporter *ReporterNode
+	Reporter *Reporter
 	Bus      *bus.MessageBus
 	Host     host.Host
 	Pubsub   *pubsub.PubSub
 }
 
-type ReporterNode struct {
+type Reporter struct {
 	Raft            *raft.Raft
 	KlaytnHelper    *helper.ChainHelper
 	SubmissionPairs map[string]SubmissionPair

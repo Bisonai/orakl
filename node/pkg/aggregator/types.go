@@ -45,19 +45,19 @@ type globalAggregate struct {
 
 type App struct {
 	Bus         *bus.MessageBus
-	Aggregators map[int64]*AggregatorNode
+	Aggregators map[int64]*Aggregator
 	Host        host.Host
 	Pubsub      *pubsub.PubSub
 }
 
-type Aggregator struct {
+type AggregatorModel struct {
 	ID     int64  `db:"id"`
 	Name   string `db:"name"`
 	Active bool   `db:"active"`
 }
 
-type AggregatorNode struct {
-	Aggregator
+type Aggregator struct {
+	AggregatorModel
 	Raft *raft.Raft
 
 	CollectedPrices map[int64][]int64

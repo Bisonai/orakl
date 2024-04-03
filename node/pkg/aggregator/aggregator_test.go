@@ -3,15 +3,13 @@ package aggregator
 
 import (
 	"context"
-	"strconv"
 	"testing"
+	"time"
 
-	"bisonai.com/orakl/node/pkg/admin/aggregator"
-	"bisonai.com/orakl/node/pkg/admin/tests"
 	"github.com/stretchr/testify/assert"
 )
 
-func TestInit(t *testing.T) {
+func TestNewNode(t *testing.T) {
 	ctx := context.Background()
 	cleanup, testItems, err := setup(ctx)
 	if err != nil {
@@ -19,13 +17,13 @@ func TestInit(t *testing.T) {
 	}
 	defer cleanup()
 
-	err = testItems.app.setAggregators(ctx, testItems.app.Host, testItems.app.Pubsub)
+	_, err = NewNode(testItems.app.Host, testItems.app.Pubsub, testItems.topicString)
 	if err != nil {
-		t.Fatal("error initializing app")
+		t.Fatal("error creating new node")
 	}
 }
 
-func TestGetAggregators(t *testing.T) {
+func TestLeaderJob(t *testing.T) {
 	ctx := context.Background()
 	cleanup, testItems, err := setup(ctx)
 	if err != nil {
@@ -33,16 +31,18 @@ func TestGetAggregators(t *testing.T) {
 	}
 	defer cleanup()
 
-	aggregators, err := testItems.app.getAggregators(ctx)
+	node, err := NewNode(testItems.app.Host, testItems.app.Pubsub, testItems.topicString)
 	if err != nil {
-		t.Fatal("error getting aggregators")
+		t.Fatal("error creating new node")
 	}
 
-	assert.Equal(t, len(aggregators), 1)
-	assert.Equal(t, aggregators[0].Name, testItems.tmpData.aggregator.Name)
+	err = node.LeaderJob()
+	if err != nil {
+		t.Fatal("error running leader job")
+	}
 }
 
-func TestStartAggregator(t *testing.T) {
+func TestGetLatestLocalAggregate(t *testing.T) {
 	ctx := context.Background()
 	cleanup, testItems, err := setup(ctx)
 	if err != nil {
@@ -50,20 +50,27 @@ func TestStartAggregator(t *testing.T) {
 	}
 	defer cleanup()
 
-	err = testItems.app.setAggregators(ctx, testItems.app.Host, testItems.app.Pubsub)
+	node, err := NewNode(testItems.app.Host, testItems.app.Pubsub, testItems.topicString)
+
 	if err != nil {
-		t.Fatal("error initializing app")
+		t.Fatal("error creating new node")
 	}
 
-	err = testItems.app.startAggregator(ctx, testItems.app.Aggregators[testItems.tmpData.aggregator.ID])
+	node.Name = "test_pair"
+
+	val, dbTime, err := node.getLatestLocalAggregate(ctx)
 	if err != nil {
-		t.Fatal("error starting aggregator")
+		t.Fatal("error getting latest local aggregate")
 	}
 
-	assert.Equal(t, true, testItems.app.Aggregators[testItems.tmpData.aggregator.ID].isRunning)
+	assert.Equal(t, val, testItems.tmpData.rLocalAggregate.Value)
+	assert.Equal(t, val, testItems.tmpData.pLocalAggregate.Value)
+
+	assert.Equal(t, dbTime.UTC().Truncate(time.Millisecond), testItems.tmpData.rLocalAggregate.Timestamp.UTC().Truncate(time.Millisecond))
+	assert.Equal(t, dbTime.UTC().Truncate(time.Millisecond), testItems.tmpData.pLocalAggregate.Timestamp.UTC().Truncate(time.Millisecond))
 }
 
-func TestStartAggregatorById(t *testing.T) {
+func TestGetLatestRoundId(t *testing.T) {
 	ctx := context.Background()
 	cleanup, testItems, err := setup(ctx)
 	if err != nil {
@@ -71,19 +78,22 @@ func TestStartAggregatorById(t *testing.T) {
 	}
 	defer cleanup()
 
-	err = testItems.app.setAggregators(ctx, testItems.app.Host, testItems.app.Pubsub)
+	node, err := NewNode(testItems.app.Host, testItems.app.Pubsub, testItems.topicString)
 	if err != nil {
-		t.Fatal("error initializing app")
+		t.Fatal("error creating new node")
 	}
 
-	err = testItems.app.startAggregatorById(ctx, testItems.app.Aggregators[testItems.tmpData.aggregator.ID].Aggregator.ID)
+	node.Name = "test_pair"
+
+	roundId, err := node.getLatestRoundId(ctx)
 	if err != nil {
-		t.Fatal("error starting aggregator")
+		t.Fatal("error getting latest round id")
 	}
-	assert.Equal(t, testItems.app.Aggregators[testItems.tmpData.aggregator.ID].isRunning, true)
+
+	assert.Equal(t, roundId, testItems.tmpData.globalAggregate.Round)
 }
 
-func TestStopAggregator(t *testing.T) {
+func TestInsertGlobalAggregate(t *testing.T) {
 	ctx := context.Background()
 	cleanup, testItems, err := setup(ctx)
 	if err != nil {
@@ -91,224 +101,29 @@ func TestStopAggregator(t *testing.T) {
 	}
 	defer cleanup()
 
-	err = testItems.app.setAggregators(ctx, testItems.app.Host, testItems.app.Pubsub)
+	node, err := NewNode(testItems.app.Host, testItems.app.Pubsub, testItems.topicString)
 	if err != nil {
-		t.Fatal("error initializing app")
+		t.Fatal("error creating new node")
 	}
 
-	err = testItems.app.startAggregator(ctx, testItems.app.Aggregators[testItems.tmpData.aggregator.ID])
+	node.Name = "test_pair"
+
+	err = node.insertGlobalAggregate(20, 2)
 	if err != nil {
-		t.Fatal("error starting aggregator")
+		t.Fatal("error inserting global aggregate")
 	}
 
-	err = testItems.app.stopAggregator(ctx, testItems.app.Aggregators[testItems.tmpData.aggregator.ID])
+	roundId, err := node.getLatestRoundId(ctx)
 	if err != nil {
-		t.Fatal("error stopping aggregator")
-	}
-	assert.Equal(t, testItems.app.Aggregators[testItems.tmpData.aggregator.ID].isRunning, false)
-}
-
-func TestStopAggregatorById(t *testing.T) {
-	ctx := context.Background()
-	cleanup, testItems, err := setup(ctx)
-	if err != nil {
-		t.Fatalf("error setting up test: %v", err)
-	}
-	defer cleanup()
-
-	err = testItems.app.setAggregators(ctx, testItems.app.Host, testItems.app.Pubsub)
-	if err != nil {
-		t.Fatal("error initializing app")
+		t.Fatal("error getting latest round id")
 	}
 
-	err = testItems.app.startAggregator(ctx, testItems.app.Aggregators[testItems.tmpData.aggregator.ID])
+	redisResult, err := GetLatestGlobalAggregateFromRdb(ctx, "test_pair")
 	if err != nil {
-		t.Fatal("error starting aggregator")
+		t.Fatal("error getting latest global aggregate from rdb")
 	}
+	assert.Equal(t, redisResult.Value, int64(20))
+	assert.Equal(t, redisResult.Round, int64(2))
 
-	err = testItems.app.stopAggregatorById(ctx, testItems.app.Aggregators[testItems.tmpData.aggregator.ID].Aggregator.ID)
-	if err != nil {
-		t.Fatal("error stopping aggregator")
-	}
-	assert.Equal(t, testItems.app.Aggregators[testItems.tmpData.aggregator.ID].isRunning, false)
-}
-
-func TestGetAggregatorByName(t *testing.T) {
-	ctx := context.Background()
-	cleanup, testItems, err := setup(ctx)
-	if err != nil {
-		t.Fatalf("error setting up test: %v", err)
-	}
-	defer cleanup()
-
-	err = testItems.app.setAggregators(ctx, testItems.app.Host, testItems.app.Pubsub)
-	if err != nil {
-		t.Fatal("error initializing app")
-	}
-
-	aggregator, err := testItems.app.getAggregatorByName(testItems.tmpData.aggregator.Name)
-	if err != nil {
-		t.Fatal("error getting aggregator by name")
-	}
-	assert.NotNil(t, aggregator)
-	assert.Equal(t, aggregator.Name, testItems.tmpData.aggregator.Name)
-}
-
-func TestActivateAggregatorByAdmin(t *testing.T) {
-	ctx := context.Background()
-	cleanup, testItems, err := setup(ctx)
-	if err != nil {
-		t.Fatalf("error setting up test: %v", err)
-	}
-	defer cleanup()
-
-	testItems.app.subscribe(ctx)
-
-	err = testItems.app.setAggregators(ctx, testItems.app.Host, testItems.app.Pubsub)
-	if err != nil {
-		t.Fatal("error initializing app")
-	}
-
-	result, err := tests.PostRequest[aggregator.AggregatorModel](testItems.admin, "/api/v1/aggregator/activate/"+strconv.FormatInt(testItems.tmpData.aggregator.ID, 10), nil)
-	if err != nil {
-		t.Fatalf("error activating aggregator: %v", err)
-	}
-
-	assert.Equal(t, *result.Id, testItems.tmpData.aggregator.ID)
-
-	aggregator, err := testItems.app.getAggregatorByName(testItems.tmpData.aggregator.Name)
-	if err != nil {
-		t.Fatal("error getting aggregator by name")
-	}
-	assert.NotNil(t, aggregator)
-	assert.True(t, aggregator.isRunning)
-}
-
-func TestDeactivateAggregatorByAdmin(t *testing.T) {
-	ctx := context.Background()
-	cleanup, testItems, err := setup(ctx)
-	if err != nil {
-		t.Fatalf("error setting up test: %v", err)
-	}
-	defer cleanup()
-
-	testItems.app.subscribe(ctx)
-
-	err = testItems.app.setAggregators(ctx, testItems.app.Host, testItems.app.Pubsub)
-	if err != nil {
-		t.Fatal("error initializing app")
-	}
-
-	err = testItems.app.startAggregatorById(ctx, testItems.app.Aggregators[testItems.tmpData.aggregator.ID].Aggregator.ID)
-	if err != nil {
-		t.Fatal("error starting aggregator")
-	}
-	assert.Equal(t, testItems.app.Aggregators[testItems.tmpData.aggregator.ID].isRunning, true)
-
-	result, err := tests.PostRequest[aggregator.AggregatorModel](testItems.admin, "/api/v1/aggregator/deactivate/"+strconv.FormatInt(testItems.tmpData.aggregator.ID, 10), nil)
-	if err != nil {
-		t.Fatalf("error deactivating aggregator: %v", err)
-	}
-
-	assert.Equal(t, *result.Id, testItems.tmpData.aggregator.ID)
-
-	aggregator, err := testItems.app.getAggregatorByName(testItems.tmpData.aggregator.Name)
-	if err != nil {
-		t.Fatal("error getting aggregator by name")
-	}
-	assert.NotNil(t, aggregator)
-	assert.False(t, aggregator.isRunning)
-}
-
-func TestStartAppByAdmin(t *testing.T) {
-	ctx := context.Background()
-	cleanup, testItems, err := setup(ctx)
-	if err != nil {
-		t.Fatalf("error setting up test: %v", err)
-	}
-	defer cleanup()
-
-	testItems.app.subscribe(ctx)
-
-	err = testItems.app.setAggregators(ctx, testItems.app.Host, testItems.app.Pubsub)
-	if err != nil {
-		t.Fatal("error initializing app")
-	}
-
-	_, err = tests.RawPostRequest(testItems.admin, "/api/v1/aggregator/start", nil)
-	if err != nil {
-		t.Fatalf("error starting app: %v", err)
-	}
-
-	assert.Equal(t, true, testItems.app.Aggregators[testItems.tmpData.aggregator.ID].isRunning)
-}
-
-func TestStopAppByAdmin(t *testing.T) {
-	ctx := context.Background()
-	cleanup, testItems, err := setup(ctx)
-	if err != nil {
-		t.Fatalf("error setting up test: %v", err)
-	}
-	defer cleanup()
-
-	testItems.app.subscribe(ctx)
-
-	err = testItems.app.setAggregators(ctx, testItems.app.Host, testItems.app.Pubsub)
-	if err != nil {
-		t.Fatal("error initializing app")
-	}
-
-	_, err = tests.RawPostRequest(testItems.admin, "/api/v1/aggregator/start", nil)
-	if err != nil {
-		t.Fatalf("error starting app: %v", err)
-	}
-	assert.Equal(t, true, testItems.app.Aggregators[testItems.tmpData.aggregator.ID].isRunning)
-
-	_, err = tests.RawPostRequest(testItems.admin, "/api/v1/aggregator/stop", nil)
-	if err != nil {
-		t.Fatalf("error stopping app: %v", err)
-	}
-
-	assert.Equal(t, false, testItems.app.Aggregators[testItems.tmpData.aggregator.ID].isRunning)
-}
-
-func TestRefreshAppByAdmin(t *testing.T) {
-	ctx := context.Background()
-	cleanup, testItems, err := setup(ctx)
-	if err != nil {
-		t.Fatalf("error setting up test: %v", err)
-	}
-	defer cleanup()
-
-	testItems.app.subscribe(ctx)
-
-	err = testItems.app.setAggregators(ctx, testItems.app.Host, testItems.app.Pubsub)
-	if err != nil {
-		t.Fatal("error initializing app")
-	}
-
-	lengthBefore := len(testItems.app.Aggregators)
-
-	_, err = tests.RawPostRequest(testItems.admin, "/api/v1/aggregator/start", nil)
-	if err != nil {
-		t.Fatalf("error starting app: %v", err)
-	}
-
-	tmpAggregator, err := tests.PostRequest[Aggregator](testItems.admin, "/api/v1/aggregator", map[string]any{"name": "test_pair_2"})
-	if err != nil {
-		t.Fatalf("error creating new aggregator: %v", err)
-	}
-
-	_, err = tests.RawPostRequest(testItems.admin, "/api/v1/aggregator/refresh", nil)
-	if err != nil {
-		t.Fatalf("error refreshing app: %v", err)
-	}
-
-	assert.Greater(t, len(testItems.app.Aggregators), lengthBefore)
-
-	//cleanup
-	_, err = tests.DeleteRequest[Aggregator](testItems.admin, "/api/v1/aggregator/"+strconv.FormatInt(tmpAggregator.ID, 10), nil)
-	if err != nil {
-		t.Fatalf("error cleaning up test: %v", err)
-	}
+	assert.Equal(t, roundId, int64(2))
 }

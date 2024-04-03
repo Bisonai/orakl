@@ -3,13 +3,16 @@ package reporter
 
 import (
 	"context"
+	"fmt"
+	"math/big"
 	"testing"
 
-	"bisonai.com/orakl/node/pkg/admin/tests"
+	"bisonai.com/orakl/node/pkg/raft"
+	"github.com/klaytn/klaytn/common"
 	"github.com/stretchr/testify/assert"
 )
 
-func TestRun(t *testing.T) {
+func TestNew(t *testing.T) {
 	ctx := context.Background()
 	cleanup, testItems, err := setup(ctx)
 	if err != nil {
@@ -17,59 +20,132 @@ func TestRun(t *testing.T) {
 	}
 	defer cleanup()
 
-	err = testItems.app.Run(ctx)
+	_, err = NewNode(ctx, testItems.app.Host, testItems.app.Pubsub)
 	if err != nil {
-		t.Fatalf("error running reporter: %v", err)
+		t.Fatal("error creating new reporter")
 	}
-
-	assert.Equal(t, testItems.app.Reporter.isRunning, true)
 }
 
-func TestStopReporter(t *testing.T) {
+func TestLeaderJob(t *testing.T) {
 	ctx := context.Background()
 	cleanup, testItems, err := setup(ctx)
 	if err != nil {
 		t.Fatalf("error setting up test: %v", err)
 	}
 	defer cleanup()
-
-	err = testItems.app.Run(ctx)
+	testItems.app.setReporter(ctx, testItems.app.Host, testItems.app.Pubsub)
+	testItems.app.Reporter.SetKlaytnHelper(ctx)
+	err = testItems.app.Reporter.leaderJob()
 	if err != nil {
-		t.Fatal("error running reporter")
+		t.Fatal("error running leader job")
 	}
-
-	err = testItems.app.stopReporter()
-	if err != nil {
-		t.Fatal("error stopping reporter")
-	}
-
-	assert.Equal(t, testItems.app.Reporter.isRunning, false)
 }
 
-func TestStopReporterByAdmin(t *testing.T) {
+func TestResignLeader(t *testing.T) {
 	ctx := context.Background()
 	cleanup, testItems, err := setup(ctx)
 	if err != nil {
 		t.Fatalf("error setting up test: %v", err)
 	}
 	defer cleanup()
-
-	testItems.app.subscribe(ctx)
-
-	err = testItems.app.Run(ctx)
-	if err != nil {
-		t.Fatal("error running reporter")
-	}
-
-	_, err = tests.RawPostRequest(testItems.admin, "/api/v1/reporter/deactivate", nil)
-	if err != nil {
-		t.Fatalf("error activating reporter: %v", err)
-	}
-
-	assert.Equal(t, testItems.app.Reporter.isRunning, false)
+	testItems.app.setReporter(ctx, testItems.app.Host, testItems.app.Pubsub)
+	testItems.app.Reporter.resignLeader()
+	assert.Equal(t, testItems.app.Reporter.Raft.GetRole(), raft.Follower)
 }
 
-func TestStartReporterByAdmin(t *testing.T) {
+func TestHandleCustomMessage(t *testing.T) {
+	ctx := context.Background()
+	cleanup, testItems, err := setup(ctx)
+	if err != nil {
+		t.Fatalf("error setting up test: %v", err)
+	}
+	defer cleanup()
+	testItems.app.setReporter(ctx, testItems.app.Host, testItems.app.Pubsub)
+	err = testItems.app.Reporter.handleCustomMessage(raft.Message{})
+	assert.Equal(t, err.Error(), "unknown message type")
+}
+
+func TestGetLatestGlobalAggregates(t *testing.T) {
+	ctx := context.Background()
+	cleanup, testItems, err := setup(ctx)
+	if err != nil {
+		t.Fatalf("error setting up test: %v", err)
+	}
+	defer cleanup()
+	testItems.app.setReporter(ctx, testItems.app.Host, testItems.app.Pubsub)
+	result, err := testItems.app.Reporter.getLatestGlobalAggregates(ctx)
+	if err != nil {
+		t.Fatal("error getting latest global aggregates")
+	}
+	assert.Equal(t, result[0].Name, testItems.tmpData.globalAggregate.Name)
+	assert.Equal(t, result[0].Value, testItems.tmpData.globalAggregate.Value)
+}
+
+func TestFilterInvalidAggregates(t *testing.T) {
+	ctx := context.Background()
+	cleanup, testItems, err := setup(ctx)
+	if err != nil {
+		t.Fatalf("error setting up test: %v", err)
+	}
+	defer cleanup()
+	testItems.app.setReporter(ctx, testItems.app.Host, testItems.app.Pubsub)
+	aggregates := []GlobalAggregate{{
+		Name:  "test-aggregate",
+		Value: 15,
+		Round: 1,
+	}}
+	result := testItems.app.Reporter.filterInvalidAggregates(aggregates)
+	assert.Equal(t, result, aggregates)
+
+	testItems.app.Reporter.SubmissionPairs = map[string]SubmissionPair{"test-aggregate": {LastSubmission: 1, Address: common.HexToAddress("0x1234")}}
+	result = testItems.app.Reporter.filterInvalidAggregates(aggregates)
+	assert.Equal(t, result, []GlobalAggregate{})
+}
+
+func TestIsAggValid(t *testing.T) {
+	ctx := context.Background()
+	cleanup, testItems, err := setup(ctx)
+	if err != nil {
+		t.Fatalf("error setting up test: %v", err)
+	}
+	defer cleanup()
+	testItems.app.setReporter(ctx, testItems.app.Host, testItems.app.Pubsub)
+	agg := GlobalAggregate{
+		Name:  "test-aggregate",
+		Value: 15,
+		Round: 1,
+	}
+	result := testItems.app.Reporter.isAggValid(agg)
+	assert.Equal(t, result, true)
+
+	testItems.app.Reporter.SubmissionPairs = map[string]SubmissionPair{"test-aggregate": {LastSubmission: 1, Address: common.HexToAddress("0x1234")}}
+	result = testItems.app.Reporter.isAggValid(agg)
+	assert.Equal(t, result, false)
+}
+
+func TestMakeContractArgs(t *testing.T) {
+	ctx := context.Background()
+	cleanup, testItems, err := setup(ctx)
+	if err != nil {
+		t.Fatalf("error setting up test: %v", err)
+	}
+	defer cleanup()
+	testItems.app.setReporter(ctx, testItems.app.Host, testItems.app.Pubsub)
+	agg := GlobalAggregate{
+		Name:  "test-aggregate",
+		Value: 15,
+		Round: 1,
+	}
+	addresses, values, err := testItems.app.Reporter.makeContractArgs([]GlobalAggregate{agg})
+	if err != nil {
+		t.Fatal("error making contract args")
+	}
+
+	assert.Equal(t, addresses[0], testItems.app.Reporter.SubmissionPairs[agg.Name].Address)
+	assert.Equal(t, values[0], big.NewInt(15))
+}
+
+func TestGetLatestGlobalAggregatesRdb(t *testing.T) {
 	ctx := context.Background()
 	cleanup, testItems, err := setup(ctx)
 	if err != nil {
@@ -77,20 +153,18 @@ func TestStartReporterByAdmin(t *testing.T) {
 	}
 	defer cleanup()
 
-	testItems.app.subscribe(ctx)
 	testItems.app.setReporter(ctx, testItems.app.Host, testItems.app.Pubsub)
 
-	_, err = tests.RawPostRequest(testItems.admin, "/api/v1/reporter/activate", nil)
+	result, err := testItems.app.Reporter.getLatestGlobalAggregatesRdb(ctx)
 	if err != nil {
-		t.Fatalf("error activating reporter: %v", err)
+		t.Fatal("error getting latest global aggregates from rdb")
 	}
 
-	assert.Equal(t, testItems.app.Reporter.isRunning, true)
+	assert.Equal(t, result[0].Name, testItems.tmpData.globalAggregate.Name)
+	assert.Equal(t, result[0].Value, testItems.tmpData.globalAggregate.Value)
 }
 
-func TestRestartReporterByAdmin(t *testing.T) {
-	// TODO: add checking for address mapping changes
-
+func TestGetLatestGlobalAggregatesPgsql(t *testing.T) {
 	ctx := context.Background()
 	cleanup, testItems, err := setup(ctx)
 	if err != nil {
@@ -98,18 +172,14 @@ func TestRestartReporterByAdmin(t *testing.T) {
 	}
 	defer cleanup()
 
-	testItems.app.subscribe(ctx)
 	testItems.app.setReporter(ctx, testItems.app.Host, testItems.app.Pubsub)
 
-	_, err = tests.RawPostRequest(testItems.admin, "/api/v1/reporter/activate", nil)
+	result, err := testItems.app.Reporter.getLatestGlobalAggregatesPgsql(ctx)
 	if err != nil {
-		t.Fatalf("error activating reporter: %v", err)
+		fmt.Println(err)
+		t.Fatal("error getting latest global aggregates from pgs")
 	}
 
-	_, err = tests.RawPostRequest(testItems.admin, "/api/v1/reporter/refresh", nil)
-	if err != nil {
-		t.Fatalf("error refreshing reporter: %v", err)
-	}
-
-	assert.Equal(t, testItems.app.Reporter.isRunning, true)
+	assert.Equal(t, result[0].Name, testItems.tmpData.globalAggregate.Name)
+	assert.Equal(t, result[0].Value, testItems.tmpData.globalAggregate.Value)
 }
