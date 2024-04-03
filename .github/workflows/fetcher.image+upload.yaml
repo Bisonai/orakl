@@ -69,7 +69,7 @@ jobs:
       - name: Publish Image to ECR(fetcher)
         run: |
           docker tag orakl-fetcher ${{ env.ecr_url }}:latest
-          docker push orakl-fetcher ${{ env.ecr_url }}:latest
+          docker push ${{ env.ecr_url }}:latest
           docker tag ${{ env.ecr_url }}:latest ${{ env.ecr_url }}:v${{ needs.prepare.outputs.version }}.${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }}
           docker push ${{ env.ecr_url }}:v${{ needs.prepare.outputs.version }}.${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }}
 
