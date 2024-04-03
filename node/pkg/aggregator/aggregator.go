@@ -18,7 +18,7 @@ import (
 
 const LEADER_TIMEOUT = 5 * time.Second
 
-func NewNode(h host.Host, ps *pubsub.PubSub, topicString string) (*Aggregator, error) {
+func NewAggregator(h host.Host, ps *pubsub.PubSub, topicString string) (*Aggregator, error) {
 	topic, err := ps.Join(topicString)
 	if err != nil {
 		return nil, err

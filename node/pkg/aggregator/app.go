@@ -57,7 +57,7 @@ func (a *App) setAggregators(ctx context.Context, h host.Host, ps *pubsub.PubSub
 		}
 
 		topicString := aggregator.Name + "-global-aggregator-topic"
-		tmpNode, err := NewNode(h, ps, topicString)
+		tmpNode, err := NewAggregator(h, ps, topicString)
 		if err != nil {
 			return err
 		}

@@ -17,6 +17,13 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
+func NewFetcher(adapter Adapter, feeds []Feed) *Fetcher {
+	return &Fetcher{
+		Adapter: adapter,
+		Feeds:   feeds,
+	}
+}
+
 func (f *Fetcher) Run(ctx context.Context, chainHelpers map[string]ChainHelper, proxies []Proxy) {
 	fetcherCtx, cancel := context.WithCancel(ctx)
 	f.fetcherCtx = fetcherCtx

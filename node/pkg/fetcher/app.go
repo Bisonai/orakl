@@ -245,11 +245,7 @@ func (a *App) initialize(ctx context.Context) error {
 			return err
 		}
 
-		a.Fetchers[adapter.ID] = &Fetcher{
-			Adapter:   adapter,
-			Feeds:     feeds,
-			isRunning: false,
-		}
+		a.Fetchers[adapter.ID] = NewFetcher(adapter, feeds)
 	}
 
 	proxies, getProxyErr := a.getProxies(ctx)

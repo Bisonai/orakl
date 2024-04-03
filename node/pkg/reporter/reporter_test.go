@@ -12,7 +12,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestNew(t *testing.T) {
+func TestNewReporter(t *testing.T) {
 	ctx := context.Background()
 	cleanup, testItems, err := setup(ctx)
 	if err != nil {
@@ -20,7 +20,7 @@ func TestNew(t *testing.T) {
 	}
 	defer cleanup()
 
-	_, err = NewNode(ctx, testItems.app.Host, testItems.app.Pubsub)
+	_, err = NewReporter(ctx, testItems.app.Host, testItems.app.Pubsub)
 	if err != nil {
 		t.Fatal("error creating new reporter")
 	}

@@ -20,7 +20,7 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-func NewNode(ctx context.Context, h host.Host, ps *pubsub.PubSub) (*Reporter, error) {
+func NewReporter(ctx context.Context, h host.Host, ps *pubsub.PubSub) (*Reporter, error) {
 	topicString := TOPIC_STRING
 
 	topic, err := ps.Join(topicString)

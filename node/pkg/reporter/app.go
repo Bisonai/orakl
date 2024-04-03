@@ -31,7 +31,7 @@ func (a *App) Run(ctx context.Context) error {
 }
 
 func (a *App) setReporter(ctx context.Context, h host.Host, ps *pubsub.PubSub) error {
-	reporter, err := NewNode(ctx, h, ps)
+	reporter, err := NewReporter(ctx, h, ps)
 	if err != nil {
 		return err
 	}

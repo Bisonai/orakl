@@ -17,7 +17,7 @@ func TestNewNode(t *testing.T) {
 	}
 	defer cleanup()
 
-	_, err = NewNode(testItems.app.Host, testItems.app.Pubsub, testItems.topicString)
+	_, err = NewAggregator(testItems.app.Host, testItems.app.Pubsub, testItems.topicString)
 	if err != nil {
 		t.Fatal("error creating new node")
 	}
@@ -31,7 +31,7 @@ func TestLeaderJob(t *testing.T) {
 	}
 	defer cleanup()
 
-	node, err := NewNode(testItems.app.Host, testItems.app.Pubsub, testItems.topicString)
+	node, err := NewAggregator(testItems.app.Host, testItems.app.Pubsub, testItems.topicString)
 	if err != nil {
 		t.Fatal("error creating new node")
 	}
@@ -50,7 +50,7 @@ func TestGetLatestLocalAggregate(t *testing.T) {
 	}
 	defer cleanup()
 
-	node, err := NewNode(testItems.app.Host, testItems.app.Pubsub, testItems.topicString)
+	node, err := NewAggregator(testItems.app.Host, testItems.app.Pubsub, testItems.topicString)
 
 	if err != nil {
 		t.Fatal("error creating new node")
@@ -78,7 +78,7 @@ func TestGetLatestRoundId(t *testing.T) {
 	}
 	defer cleanup()
 
-	node, err := NewNode(testItems.app.Host, testItems.app.Pubsub, testItems.topicString)
+	node, err := NewAggregator(testItems.app.Host, testItems.app.Pubsub, testItems.topicString)
 	if err != nil {
 		t.Fatal("error creating new node")
 	}
@@ -101,7 +101,7 @@ func TestInsertGlobalAggregate(t *testing.T) {
 	}
 	defer cleanup()
 
-	node, err := NewNode(testItems.app.Host, testItems.app.Pubsub, testItems.topicString)
+	node, err := NewAggregator(testItems.app.Host, testItems.app.Pubsub, testItems.topicString)
 	if err != nil {
 		t.Fatal("error creating new node")
 	}
