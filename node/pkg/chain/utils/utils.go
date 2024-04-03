@@ -10,6 +10,7 @@ import (
 	"os"
 	"regexp"
 	"strings"
+	"time"
 
 	"bisonai.com/orakl/node/pkg/db"
 
@@ -341,7 +342,10 @@ func SubmitRawTx(ctx context.Context, client ClientInterface, tx *types.Transact
 		return err
 	}
 
-	receipt, err := bind.WaitMined(ctx, client, tx)
+	ctxWithTimeout, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+
+	receipt, err := bind.WaitMined(ctxWithTimeout, client, tx)
 	if err != nil {
 		return err
 	}

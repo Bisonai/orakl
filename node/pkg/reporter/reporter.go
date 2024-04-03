@@ -59,23 +59,25 @@ func (r *Reporter) retry(job func() error) error {
 	failureTimeout := INITIAL_FAILURE_TIMEOUT
 	for i := 0; i < MAX_RETRY; i++ {
 
-		failureTimeout += calculateJitter(failureTimeout)
+		failureTimeout = calculateJitter(failureTimeout)
 		if failureTimeout > MAX_RETRY_DELAY {
 			failureTimeout = MAX_RETRY_DELAY
 		}
 
 		err := job()
 		if err != nil {
-			log.Error().Str("Player", "Reporter").Err(err).Msg("job failed")
+			log.Error().Str("Player", "Reporter").Err(err).Msg("job failed, retrying")
 			time.Sleep(failureTimeout)
 			continue
 		}
 		return nil
 	}
+	log.Error().Str("Player", "Reporter").Msg("job failed")
 	return errors.New("job failed")
 }
 
 func (r *Reporter) leaderJob() error {
+	log.Debug().Str("Player", "Reporter").Msg("reporting")
 	start := time.Now()
 	r.Raft.IncreaseTerm()
 	ctx := context.Background()
@@ -93,6 +95,7 @@ func (r *Reporter) leaderJob() error {
 			return nil
 		}
 
+		log.Debug().Str("Player", "Reporter").Int("validAggregates", len(validAggregates)).Msg("valid aggregates")
 		err = r.report(ctx, validAggregates)
 		if err != nil {
 			log.Error().Str("Player", "Reporter").Err(err).Msg("Report")
@@ -180,6 +183,7 @@ func (r *Reporter) getLatestGlobalAggregatesRdb(ctx context.Context) ([]GlobalAg
 }
 
 func (r *Reporter) report(ctx context.Context, aggregates []GlobalAggregate) error {
+	log.Debug().Str("Player", "Reporter").Int("aggregates", len(aggregates)).Msg("reporting")
 	if r.KlaytnHelper == nil {
 		return errors.New("klaytn helper not set")
 	}
