@@ -2,313 +2,286 @@ package fetcher
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
-
+	"math"
+	"math/big"
 	"math/rand"
-	"os"
-	"strconv"
 	"time"
 
-	"bisonai.com/orakl/node/pkg/bus"
-	chain_helper "bisonai.com/orakl/node/pkg/chain/helper"
 	"bisonai.com/orakl/node/pkg/db"
+	"bisonai.com/orakl/node/pkg/utils/calculator"
+	"bisonai.com/orakl/node/pkg/utils/reducer"
+	"bisonai.com/orakl/node/pkg/utils/request"
 	"github.com/rs/zerolog/log"
 )
 
-const FETCHER_FREQUENCY = 2 * time.Second
-
-func New(bus *bus.MessageBus) *App {
-	return &App{
-		Fetchers: make(map[int64]*Fetcher, 0),
-		Bus:      bus,
+func NewFetcher(adapter Adapter, feeds []Feed) *Fetcher {
+	return &Fetcher{
+		Adapter:    adapter,
+		Feeds:      feeds,
+		fetcherCtx: nil,
+		cancel:     nil,
 	}
 }
 
-func (a *App) Run(ctx context.Context) error {
-	err := a.initialize(ctx)
-	if err != nil {
-		return err
-	}
+func (f *Fetcher) Run(ctx context.Context, chainHelpers map[string]ChainHelper, proxies []Proxy) {
+	fetcherCtx, cancel := context.WithCancel(ctx)
+	f.fetcherCtx = fetcherCtx
+	f.cancel = cancel
+	f.isRunning = true
 
-	a.subscribe(ctx)
-
-	err = a.startAllFetchers(ctx)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (a *App) subscribe(ctx context.Context) {
-	log.Debug().Str("Player", "Fetcher").Msg("fetcher subscribing to message bus")
-	channel := a.Bus.Subscribe(bus.FETCHER)
+	ticker := time.NewTicker(FETCHER_FREQUENCY)
 	go func() {
-		log.Debug().Str("Player", "Fetcher").Msg("fetcher message bus subscription goroutine started")
 		for {
 			select {
-			case msg := <-channel:
-				log.Debug().
-					Str("Player", "Fetcher").
-					Str("from", msg.From).
-					Str("to", msg.To).
-					Str("command", msg.Content.Command).
-					Msg("fetcher received message")
-				go a.handleMessage(ctx, msg)
-			case <-ctx.Done():
-				log.Debug().Str("Player", "Fetcher").Msg("fetcher message bus subscription goroutine stopped")
+			case <-f.fetcherCtx.Done():
+				ticker.Stop()
 				return
+			case <-ticker.C:
+				err := f.fetchAndInsert(f.fetcherCtx, chainHelpers, proxies)
+				if err != nil {
+					log.Error().Str("Player", "Fetcher").Err(err).Msg("error in fetchAndInsert")
+				}
 			}
 		}
 	}()
 }
 
-func (a *App) handleMessage(ctx context.Context, msg bus.Message) {
-	if msg.From != bus.ADMIN {
-		log.Debug().Str("Player", "Fetcher").Msg("fetcher received message from non-admin")
-		return
-	}
-
-	if msg.To != bus.FETCHER {
-		log.Debug().Str("Player", "Fetcher").Msg("message not for fetcher")
-		return
-	}
-
-	switch msg.Content.Command {
-	case bus.ACTIVATE_FETCHER:
-		log.Debug().Str("Player", "Fetcher").Msg("activate fetcher msg received")
-		adapterId, err := bus.ParseInt64MsgParam(msg, "id")
-		if err != nil {
-			bus.HandleMessageError(err, msg, "failed to parse adapterId")
-			return
-		}
-
-		log.Debug().Str("Player", "Fetcher").Int64("adapterId", adapterId).Msg("activating fetcher")
-		err = a.startFetcherById(ctx, adapterId)
-		if err != nil {
-			bus.HandleMessageError(err, msg, "failed to start fetcher")
-			return
-		}
-		msg.Response <- bus.MessageResponse{Success: true}
-	case bus.DEACTIVATE_FETCHER:
-		log.Debug().Str("Player", "Fetcher").Msg("deactivate fetcher msg received")
-		adapterId, err := bus.ParseInt64MsgParam(msg, "id")
-		if err != nil {
-			bus.HandleMessageError(err, msg, "failed to parse adapterId")
-			return
-		}
-
-		log.Debug().Str("Player", "Fetcher").Int64("adapterId", adapterId).Msg("deactivating fetcher")
-		err = a.stopFetcherById(ctx, adapterId)
-		if err != nil {
-			bus.HandleMessageError(err, msg, "failed to stop fetcher")
-			return
-		}
-		msg.Response <- bus.MessageResponse{Success: true}
-	case bus.STOP_FETCHER_APP:
-		log.Debug().Str("Player", "Fetcher").Msg("stopping all fetchers")
-		err := a.stopAllFetchers(ctx)
-		if err != nil {
-			bus.HandleMessageError(err, msg, "failed to stop all fetchers")
-			return
-		}
-		msg.Response <- bus.MessageResponse{Success: true}
-	case bus.START_FETCHER_APP:
-		log.Debug().Str("Player", "Fetcher").Msg("starting all fetchers")
-		err := a.startAllFetchers(ctx)
-		if err != nil {
-			bus.HandleMessageError(err, msg, "failed to start all fetchers")
-			return
-		}
-		msg.Response <- bus.MessageResponse{Success: true}
-	case bus.REFRESH_FETCHER_APP:
-		err := a.stopAllFetchers(ctx)
-		if err != nil {
-			bus.HandleMessageError(err, msg, "failed to stop all fetchers")
-			return
-		}
-		err = a.initialize(ctx)
-		if err != nil {
-			bus.HandleMessageError(err, msg, "failed to initialize fetchers")
-			return
-		}
-		err = a.startAllFetchers(ctx)
-		if err != nil {
-			bus.HandleMessageError(err, msg, "failed to start all fetchers")
-			return
-		}
-
-		log.Debug().Str("Player", "Fetcher").Msg("refreshing fetcher")
-		msg.Response <- bus.MessageResponse{Success: true}
-	}
-}
-
-func (a *App) startFetcher(ctx context.Context, fetcher *Fetcher) error {
-	if fetcher.isRunning {
-		log.Debug().Str("Player", "Fetcher").Str("fetcher", fetcher.Name).Msg("fetcher already running")
-		return nil
-	}
-
-	fetcher.Run(ctx, a.ChainHelpers, a.Proxies)
-
-	log.Debug().Str("Player", "Fetcher").Str("fetcher", fetcher.Name).Msg("fetcher started")
-	return nil
-}
-
-func (a *App) startFetcherById(ctx context.Context, adapterId int64) error {
-	if fetcher, ok := a.Fetchers[adapterId]; ok {
-		return a.startFetcher(ctx, fetcher)
-	}
-	return errors.New("fetcher not found by id:" + strconv.FormatInt(adapterId, 10))
-}
-
-func (a *App) startAllFetchers(ctx context.Context) error {
-	for _, fetcher := range a.Fetchers {
-		err := a.startFetcher(ctx, fetcher)
-		if err != nil {
-			log.Error().Str("Player", "Fetcher").Err(err).Str("fetcher", fetcher.Name).Msg("failed to start fetcher")
-			return err
-		}
-		// starts with random sleep to avoid all fetchers starting at the same time
-		time.Sleep(time.Millisecond * time.Duration(rand.Intn(300)+100))
-	}
-	return nil
-}
-
-func (a *App) stopFetcher(ctx context.Context, fetcher *Fetcher) error {
-	log.Debug().Str("fetcher", fetcher.Name).Msg("stopping fetcher")
-	if !fetcher.isRunning {
-		log.Debug().Str("Player", "Fetcher").Str("fetcher", fetcher.Name).Msg("fetcher already stopped")
-		return nil
-	}
-	if fetcher.cancel == nil {
-		return errors.New("fetcher cancel function not found")
-	}
-	fetcher.cancel()
-	fetcher.isRunning = false
-	return nil
-}
-
-func (a *App) stopFetcherById(ctx context.Context, adapterId int64) error {
-	if fetcher, ok := a.Fetchers[adapterId]; ok {
-		return a.stopFetcher(ctx, fetcher)
-	}
-	return errors.New("fetcher not found by id:" + strconv.FormatInt(adapterId, 10))
-}
-
-func (a *App) stopAllFetchers(ctx context.Context) error {
-	for _, fetcher := range a.Fetchers {
-		err := a.stopFetcher(ctx, fetcher)
-		if err != nil {
-			log.Error().Str("Player", "Fetcher").Err(err).Str("fetcher", fetcher.Name).Msg("failed to stop fetcher")
-			return err
-		}
-	}
-	return nil
-}
-
-func (a *App) getAdapters(ctx context.Context) ([]Adapter, error) {
-	adapters, err := db.QueryRows[Adapter](ctx, SelectActiveAdaptersQuery, nil)
+func (f *Fetcher) fetchAndInsert(ctx context.Context, chainHelpers map[string]ChainHelper, proxies []Proxy) error {
+	log.Debug().Str("Player", "Fetcher").Str("fetcher", f.Name).Msg("fetching and inserting")
+	results, err := f.fetch(chainHelpers, proxies)
 	if err != nil {
-		return nil, err
+		log.Error().Str("Player", "Fetcher").Err(err).Msg("error in fetch")
+		return err
 	}
-	return adapters, err
-}
+	log.Debug().Str("Player", "Fetcher").Str("fetcher", f.Name).Msg("fetch complete")
 
-func (a *App) getFeeds(ctx context.Context, adapterId int64) ([]Feed, error) {
-	feeds, err := db.QueryRows[Feed](ctx, SelectFeedsByAdapterIdQuery, map[string]any{"adapterId": adapterId})
+	err = insertFeedData(ctx, f.Adapter.ID, results)
 	if err != nil {
-		return nil, err
+		log.Error().Str("Player", "Fetcher").Err(err).Msg("error in insertFeedData")
+		return err
 	}
 
-	return feeds, err
-}
+	rawValues := make([]float64, len(results))
+	for i, result := range results {
+		rawValues[i] = result.Value
+	}
 
-func (a *App) getProxies(ctx context.Context) ([]Proxy, error) {
-	proxies, err := db.QueryRows[Proxy](ctx, SelectAllProxiesQuery, nil)
+	aggregated, err := calculator.GetFloatMed(rawValues)
 	if err != nil {
-		return nil, err
+		log.Error().Str("Player", "Fetcher").Err(err).Msg("error in GetFloatMed")
+		return err
 	}
-	return proxies, err
+	log.Debug().Str("Player", "Fetcher").Str("fetcher", f.Name).Float64("aggregated", aggregated).Msg("aggregated")
+
+	err = insertPgsql(ctx, f.Name, aggregated)
+	if err != nil {
+		log.Error().Str("Player", "Fetcher").Err(err).Msg("error in insertPgsql")
+		return err
+	}
+	log.Debug().Str("Player", "Fetcher").Str("fetcher", f.Name).Msg("inserted into pgsql")
+
+	err = insertRdb(ctx, f.Name, aggregated)
+	if err != nil {
+		log.Error().Str("Player", "Fetcher").Err(err).Msg("error in insertRdb")
+		return err
+	}
+	log.Debug().Str("Player", "Fetcher").Str("fetcher", f.Name).Msg("inserted into rdb")
+	return nil
 }
 
-func (a *App) initialize(ctx context.Context) error {
-	adapters, err := a.getAdapters(ctx)
+func (f *Fetcher) fetch(chainHelpers map[string]ChainHelper, proxies []Proxy) ([]FeedData, error) {
+	feeds := f.Feeds
+
+	data := []FeedData{}
+	errList := []error{}
+	dataChan := make(chan FeedData)
+	errChan := make(chan error)
+
+	defer close(dataChan)
+	defer close(errChan)
+
+	for _, feed := range feeds {
+		go func(feed Feed) {
+			definition := new(Definition)
+			err := json.Unmarshal(feed.Definition, &definition)
+			if err != nil {
+				errChan <- err
+				return
+			}
+
+			var resultValue float64
+			var fetchErr error
+
+			switch {
+			case definition.Type == nil:
+				resultValue, fetchErr = f.cex(definition, proxies)
+				if fetchErr != nil {
+					errChan <- fetchErr
+					return
+				}
+			case *definition.Type == "UniswapPool":
+				resultValue, fetchErr = f.uniswapV3(definition, chainHelpers)
+				if fetchErr != nil {
+					errChan <- fetchErr
+					return
+				}
+			default:
+				errChan <- errors.New("unknown fetcher type")
+			}
+
+			dataChan <- FeedData{FeedName: feed.Name, Value: resultValue}
+
+		}(feed)
+	}
+
+	for i := 0; i < len(feeds); i++ {
+		select {
+		case result := <-dataChan:
+			data = append(data, result)
+		case err := <-errChan:
+			errList = append(errList, err)
+		}
+	}
+
+	if len(data) < 1 {
+		return nil, errors.New("no data fetched")
+	}
+
+	errString := ""
+	if len(errList) > 0 {
+		for _, err := range errList {
+			errString += err.Error() + "\n"
+		}
+
+		log.Error().Str("Player", "Fetcher").Err(fmt.Errorf("errors in fetching: %s", errString)).Msg("errors in fetching")
+	}
+
+	return data, nil
+}
+
+func (f *Fetcher) cex(definition *Definition, proxies []Proxy) (float64, error) {
+	rawResult, err := f.requestFeed(definition, proxies)
+	if err != nil {
+		log.Error().Str("Player", "Fetcher").Err(err).Msg("error in requestFeed")
+		return 0, err
+	}
+
+	return reducer.Reduce(rawResult, definition.Reducers)
+}
+
+func (f *Fetcher) uniswapV3(definition *Definition, chainHelpers map[string]ChainHelper) (float64, error) {
+	if definition.Address == nil || definition.ChainID == nil || definition.Token0Decimals == nil || definition.Token1Decimals == nil {
+		log.Error().Any("definition", definition).Msg("missing required fields for uniswapV3")
+		return 0, errors.New("missing required fields for uniswapV3")
+	}
+
+	helper := chainHelpers[*definition.ChainID]
+	if helper == nil {
+		return 0, errors.New("chain helper not found")
+	}
+
+	rawResult, err := helper.ReadContract(context.Background(), *definition.Address, "function slot0() external view returns (uint160 sqrtPriceX96, int24 tick, uint16 observationIndex, uint16 observationCardinality, uint16 observationCardinalityNext, uint8 feeProtocol, bool unlocked)")
+	if err != nil {
+		log.Error().Err(err).Msg("failed to read contract for uniswap v3 pool contract")
+		return 0, err
+	}
+
+	rawResultSlice, ok := rawResult.([]interface{})
+	if !ok || len(rawResultSlice) < 1 {
+		return 0, errors.New("unexpected raw result type")
+	}
+
+	sqrtPriceX96, ok := rawResultSlice[0].(*big.Int)
+	if !ok {
+		return 0, errors.New("unexpected result on converting to bigint")
+	}
+
+	return getTokenPrice(sqrtPriceX96, int(*definition.Token0Decimals), int(*definition.Token1Decimals))
+}
+
+func (f *Fetcher) requestFeed(definition *Definition, proxies []Proxy) (interface{}, error) {
+	var filteredProxy []Proxy
+	if definition.Location != nil && *definition.Location != "" {
+		filteredProxy = f.filterProxyByLocation(proxies, *definition.Location)
+	} else {
+		filteredProxy = proxies
+	}
+
+	if len(filteredProxy) > 0 {
+		proxy := filteredProxy[rand.Intn(len(filteredProxy))]
+		proxyUrl := fmt.Sprintf("%s://%s:%d", proxy.Protocol, proxy.Host, proxy.Port)
+		log.Debug().Str("Player", "Fetcher").Str("proxyUrl", proxyUrl).Msg("using proxy")
+		return f.requestWithProxy(definition, proxyUrl)
+	}
+
+	return f.requestWithoutProxy(definition)
+}
+
+func (f *Fetcher) requestWithoutProxy(definition *Definition) (interface{}, error) {
+	return request.GetRequest[interface{}](*definition.Url, nil, definition.Headers)
+}
+
+func (f *Fetcher) requestWithProxy(definition *Definition, proxyUrl string) (interface{}, error) {
+	return request.GetRequestProxy[interface{}](*definition.Url, nil, definition.Headers, proxyUrl)
+}
+
+func (f *Fetcher) filterProxyByLocation(proxies []Proxy, location string) []Proxy {
+	filteredProxies := []Proxy{}
+	for _, proxy := range proxies {
+		if proxy.Location != nil && *proxy.Location == location {
+			filteredProxies = append(proxies, proxy)
+		}
+	}
+	return filteredProxies
+}
+
+func getTokenPrice(sqrtPriceX96 *big.Int, decimal0 int, decimal1 int) (float64, error) {
+	if sqrtPriceX96 == nil || decimal0 == 0 || decimal1 == 0 {
+		return 0, errors.New("invalid input")
+	}
+
+	sqrtPriceX96Float := new(big.Float).SetInt(sqrtPriceX96)
+	sqrtPriceX96Float.Quo(sqrtPriceX96Float, new(big.Float).SetFloat64(math.Pow(2, 96)))
+	sqrtPriceX96Float.Mul(sqrtPriceX96Float, sqrtPriceX96Float) // square
+
+	decimalDiff := new(big.Float).SetFloat64(math.Pow(10, float64(decimal1-decimal0)))
+
+	datum := sqrtPriceX96Float.Quo(sqrtPriceX96Float, decimalDiff)
+
+	multiplier := new(big.Float).SetFloat64(math.Pow(10, 6))
+	datum.Mul(datum, multiplier)
+
+	result, _ := datum.Float64()
+
+	return math.Round(result), nil
+}
+
+func insertFeedData(ctx context.Context, adapterId int64, feedData []FeedData) error {
+	insertRows := make([][]any, 0, len(feedData))
+	for _, data := range feedData {
+		insertRows = append(insertRows, []any{adapterId, data.FeedName, data.Value})
+	}
+
+	_, err := db.BulkInsert(ctx, "feed_data", []string{"adapter_id", "name", "value"}, insertRows)
+	if err != nil {
+		log.Error().Str("Player", "Fetcher").Err(err).Msg("failed to insert feed data")
+	}
+	return err
+}
+
+func insertPgsql(ctx context.Context, name string, value float64) error {
+	err := db.QueryWithoutResult(ctx, InsertLocalAggregateQuery, map[string]any{"name": name, "value": int64(value)})
+	return err
+}
+
+func insertRdb(ctx context.Context, name string, value float64) error {
+	key := "localAggregate:" + name
+	data, err := json.Marshal(redisAggregate{Value: int64(value), Timestamp: time.Now()})
 	if err != nil {
 		return err
 	}
-	a.Fetchers = make(map[int64]*Fetcher, len(adapters))
-	for _, adapter := range adapters {
-		feeds, err := a.getFeeds(ctx, adapter.ID)
-		if err != nil {
-			return err
-		}
-
-		a.Fetchers[adapter.ID] = &Fetcher{
-			Adapter:   adapter,
-			Feeds:     feeds,
-			isRunning: false,
-		}
-	}
-
-	proxies, getProxyErr := a.getProxies(ctx)
-	if getProxyErr != nil {
-		return getProxyErr
-	}
-	a.Proxies = proxies
-
-	if a.ChainHelpers != nil && len(a.ChainHelpers) > 0 {
-		for _, chainHelper := range a.ChainHelpers {
-			chainHelper.Close()
-		}
-	}
-
-	chainHelpers, getChainHelpersErr := a.getChainHelpers(ctx)
-	if getChainHelpersErr != nil {
-		return getChainHelpersErr
-	}
-	a.ChainHelpers = chainHelpers
-
-	return nil
-}
-
-func (a *App) getChainHelpers(ctx context.Context) (map[string]ChainHelper, error) {
-	cypressProviderUrl := os.Getenv("FETCHER_CYPRESS_PROVIDER_URL")
-	if cypressProviderUrl == "" {
-		log.Info().Msg("cypress provider url not set, using default url: https://public-en-cypress.klaytn.net")
-		cypressProviderUrl = "https://public-en-cypress.klaytn.net"
-	}
-
-	cypressHelper, err := chain_helper.NewKlayHelper(ctx, cypressProviderUrl)
-	if err != nil {
-		log.Error().Err(err).Msg("failed to create cypress helper")
-		return nil, err
-	}
-
-	ethereumProviderUrl := os.Getenv("FETCHER_ETHEREUM_PROVIDER_URL")
-	if ethereumProviderUrl == "" {
-		log.Info().Msg("ethereum provider url not set, using default url: https://ethereum-mainnet-rpc.allthatnode.com")
-		ethereumProviderUrl = "https://ethereum-mainnet-rpc.allthatnode.com"
-	}
-
-	ethereumHelper, err := chain_helper.NewEthHelper(ctx, ethereumProviderUrl)
-	if err != nil {
-		log.Error().Err(err).Msg("failed to create ethereum helper")
-		return nil, err
-	}
-
-	var result = make(map[string]ChainHelper, 2)
-
-	cypressChainId := cypressHelper.ChainID()
-	result[cypressChainId.String()] = cypressHelper
-
-	ethereumChainId := ethereumHelper.ChainID()
-	result[ethereumChainId.String()] = ethereumHelper
-
-	return result, nil
-}
-
-func (a *App) String() string {
-	return fmt.Sprintf("%+v\n", a.Fetchers)
+	return db.Set(ctx, key, string(data), time.Duration(5*time.Minute))
 }

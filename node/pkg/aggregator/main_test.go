@@ -26,7 +26,7 @@ const (
 )
 
 type TmpData struct {
-	aggregator      Aggregator
+	aggregator      AggregatorModel
 	rLocalAggregate redisLocalAggregate
 	pLocalAggregate pgsLocalAggregate
 	globalAggregate globalAggregate
@@ -90,7 +90,7 @@ func insertSampleData(ctx context.Context) (*TmpData, error) {
 		return nil, err
 	}
 
-	tmpAggregator, err := db.QueryRow[Aggregator](ctx, aggregator.InsertAggregator, map[string]any{"name": "test_pair"})
+	tmpAggregator, err := db.QueryRow[AggregatorModel](ctx, aggregator.InsertAggregator, map[string]any{"name": "test_pair"})
 	if err != nil {
 		return nil, err
 	}
