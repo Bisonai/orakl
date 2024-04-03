@@ -35,9 +35,10 @@ const (
 )
 
 type SubmissionAddress struct {
-	Id      int    `db:"id"`
-	Name    string `db:"name"`
-	Address string `db:"address"`
+	Id       int    `db:"id"`
+	Name     string `db:"name"`
+	Address  string `db:"address"`
+	Interval *int   `db:"interval"`
 }
 
 type SubmissionPair struct {
