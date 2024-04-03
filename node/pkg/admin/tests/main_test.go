@@ -2,6 +2,7 @@ package tests
 
 import (
 	"context"
+	"database/sql"
 	"os"
 	"testing"
 
@@ -104,7 +105,7 @@ func insertSampleData(ctx context.Context) (*TmpData, error) {
 	}
 	tmpData.wallet = tmpWallet
 
-	tmpSubmissionAddress, err := db.QueryRow[submissionAddress.SubmissionAddressModel](ctx, submissionAddress.InsertSubmissionAddress, map[string]any{"name": "test_submission_address", "address": "test_address"})
+	tmpSubmissionAddress, err := db.QueryRow[submissionAddress.SubmissionAddressModel](ctx, submissionAddress.InsertSubmissionAddress, map[string]any{"name": "test_submission_address", "address": "test_address", "interval": sql.NullInt32{Valid: false}})
 	if err != nil {
 		return nil, err
 	}
