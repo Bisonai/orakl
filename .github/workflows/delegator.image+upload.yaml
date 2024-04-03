@@ -74,7 +74,7 @@ jobs:
           go vet -vettool=$(which shadow)
 
       - name: Docker build orakl-delegator
-        run: SERVICE_NAME=orakl-delegator docker-compose -f docker-compose.build.yaml build
+        run: SERVICE_NAME=orakl-delegator docker compose -f docker-compose.build.yaml build
 
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v2
@@ -90,10 +90,9 @@ jobs:
 
       - name: Publish Image to ECR(delegator)
         run: |
-          if [ "${GITHUB_REF##*/}" == "master" ]; then
-            docker push ${{ env.ecr_url }}:latest
-          fi
-          docker tag orakl-delegator ${{ env.ecr_url }}:v${{ needs.prepare.outputs.version }}.${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }}
+          docker tag orakl-delegator ${{ env.ecr_url }}:latest
+          docker push ${{ env.ecr_url }}:latest
+          docker tag ${{ env.ecr_url }}:latest ${{ env.ecr_url }}:v${{ needs.prepare.outputs.version }}.${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }}
           docker push ${{ env.ecr_url }}:v${{ needs.prepare.outputs.version }}.${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }}
 
   create-helmchart-pr:
