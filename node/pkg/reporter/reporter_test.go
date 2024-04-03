@@ -19,8 +19,8 @@ func TestNewReporter(t *testing.T) {
 		t.Fatalf("error setting up test: %v", err)
 	}
 	defer func() {
-		if err := cleanup(); err != nil {
-			t.Logf("Cleanup failed: %v", err)
+		if cleanupErr := cleanup(); cleanupErr != nil {
+			t.Logf("Cleanup failed: %v", cleanupErr)
 		}
 	}()
 
@@ -37,8 +37,8 @@ func TestLeaderJob(t *testing.T) {
 		t.Fatalf("error setting up test: %v", err)
 	}
 	defer func() {
-		if err := cleanup(); err != nil {
-			t.Logf("Cleanup failed: %v", err)
+		if cleanupErr := cleanup(); cleanupErr != nil {
+			t.Logf("Cleanup failed: %v", cleanupErr)
 		}
 	}()
 	testItems.app.setReporter(ctx, testItems.app.Host, testItems.app.Pubsub)
@@ -56,8 +56,8 @@ func TestResignLeader(t *testing.T) {
 		t.Fatalf("error setting up test: %v", err)
 	}
 	defer func() {
-		if err := cleanup(); err != nil {
-			t.Logf("Cleanup failed: %v", err)
+		if cleanupErr := cleanup(); cleanupErr != nil {
+			t.Logf("Cleanup failed: %v", cleanupErr)
 		}
 	}()
 	testItems.app.setReporter(ctx, testItems.app.Host, testItems.app.Pubsub)
@@ -72,8 +72,8 @@ func TestHandleCustomMessage(t *testing.T) {
 		t.Fatalf("error setting up test: %v", err)
 	}
 	defer func() {
-		if err := cleanup(); err != nil {
-			t.Logf("Cleanup failed: %v", err)
+		if cleanupErr := cleanup(); cleanupErr != nil {
+			t.Logf("Cleanup failed: %v", cleanupErr)
 		}
 	}()
 	testItems.app.setReporter(ctx, testItems.app.Host, testItems.app.Pubsub)
@@ -88,8 +88,8 @@ func TestGetLatestGlobalAggregates(t *testing.T) {
 		t.Fatalf("error setting up test: %v", err)
 	}
 	defer func() {
-		if err := cleanup(); err != nil {
-			t.Logf("Cleanup failed: %v", err)
+		if cleanupErr := cleanup(); cleanupErr != nil {
+			t.Logf("Cleanup failed: %v", cleanupErr)
 		}
 	}()
 	testItems.app.setReporter(ctx, testItems.app.Host, testItems.app.Pubsub)
@@ -108,8 +108,8 @@ func TestFilterInvalidAggregates(t *testing.T) {
 		t.Fatalf("error setting up test: %v", err)
 	}
 	defer func() {
-		if err := cleanup(); err != nil {
-			t.Logf("Cleanup failed: %v", err)
+		if cleanupErr := cleanup(); cleanupErr != nil {
+			t.Logf("Cleanup failed: %v", cleanupErr)
 		}
 	}()
 	testItems.app.setReporter(ctx, testItems.app.Host, testItems.app.Pubsub)
@@ -133,8 +133,8 @@ func TestIsAggValid(t *testing.T) {
 		t.Fatalf("error setting up test: %v", err)
 	}
 	defer func() {
-		if err := cleanup(); err != nil {
-			t.Logf("Cleanup failed: %v", err)
+		if cleanupErr := cleanup(); cleanupErr != nil {
+			t.Logf("Cleanup failed: %v", cleanupErr)
 		}
 	}()
 	testItems.app.setReporter(ctx, testItems.app.Host, testItems.app.Pubsub)
@@ -158,8 +158,8 @@ func TestMakeContractArgs(t *testing.T) {
 		t.Fatalf("error setting up test: %v", err)
 	}
 	defer func() {
-		if err := cleanup(); err != nil {
-			t.Logf("Cleanup failed: %v", err)
+		if cleanupErr := cleanup(); cleanupErr != nil {
+			t.Logf("Cleanup failed: %v", cleanupErr)
 		}
 	}()
 	testItems.app.setReporter(ctx, testItems.app.Host, testItems.app.Pubsub)
@@ -184,8 +184,8 @@ func TestGetLatestGlobalAggregatesRdb(t *testing.T) {
 		t.Fatalf("error setting up test: %v", err)
 	}
 	defer func() {
-		if err := cleanup(); err != nil {
-			t.Logf("Cleanup failed: %v", err)
+		if cleanupErr := cleanup(); cleanupErr != nil {
+			t.Logf("Cleanup failed: %v", cleanupErr)
 		}
 	}()
 
@@ -207,8 +207,8 @@ func TestGetLatestGlobalAggregatesPgsql(t *testing.T) {
 		t.Fatalf("error setting up test: %v", err)
 	}
 	defer func() {
-		if err := cleanup(); err != nil {
-			t.Logf("Cleanup failed: %v", err)
+		if cleanupErr := cleanup(); cleanupErr != nil {
+			t.Logf("Cleanup failed: %v", cleanupErr)
 		}
 	}()
 

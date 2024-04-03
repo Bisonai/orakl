@@ -18,8 +18,8 @@ func TestInit(t *testing.T) {
 		t.Fatalf("error setting up test: %v", err)
 	}
 	defer func() {
-		if err := cleanup(); err != nil {
-			t.Logf("Cleanup failed: %v", err)
+		if cleanupErr := cleanup(); cleanupErr != nil {
+			t.Logf("Cleanup failed: %v", cleanupErr)
 		}
 	}()
 
@@ -36,8 +36,8 @@ func TestGetAggregators(t *testing.T) {
 		t.Fatalf("error setting up test: %v", err)
 	}
 	defer func() {
-		if err := cleanup(); err != nil {
-			t.Logf("Cleanup failed: %v", err)
+		if cleanupErr := cleanup(); cleanupErr != nil {
+			t.Logf("Cleanup failed: %v", cleanupErr)
 		}
 	}()
 
@@ -57,12 +57,12 @@ func TestStartAggregator(t *testing.T) {
 		t.Fatalf("error setting up test: %v", err)
 	}
 	defer func() {
-		if err := cleanup(); err != nil {
-			t.Logf("Cleanup failed: %v", err)
+		if cleanupErr := cleanup(); cleanupErr != nil {
+			t.Logf("Cleanup failed: %v", cleanupErr)
 		}
 
-		if err := testItems.app.stopAggregatorById(ctx, testItems.tmpData.aggregator.ID); err != nil {
-			t.Logf("error stopping aggregator: %v", err)
+		if aggregatorStopErr := testItems.app.stopAggregatorById(ctx, testItems.tmpData.aggregator.ID); aggregatorStopErr != nil {
+			t.Logf("error stopping aggregator: %v", aggregatorStopErr)
 		}
 	}()
 
@@ -86,8 +86,8 @@ func TestStartAggregatorById(t *testing.T) {
 		t.Fatalf("error setting up test: %v", err)
 	}
 	defer func() {
-		if err := cleanup(); err != nil {
-			t.Logf("Cleanup failed: %v", err)
+		if cleanupErr := cleanup(); cleanupErr != nil {
+			t.Logf("Cleanup failed: %v", cleanupErr)
 		}
 	}()
 
@@ -114,8 +114,8 @@ func TestStopAggregator(t *testing.T) {
 		t.Fatalf("error setting up test: %v", err)
 	}
 	defer func() {
-		if err := cleanup(); err != nil {
-			t.Logf("Cleanup failed: %v", err)
+		if cleanupErr := cleanup(); cleanupErr != nil {
+			t.Logf("Cleanup failed: %v", cleanupErr)
 		}
 	}()
 
@@ -144,8 +144,8 @@ func TestStopAggregatorById(t *testing.T) {
 		t.Fatalf("error setting up test: %v", err)
 	}
 	defer func() {
-		if err := cleanup(); err != nil {
-			t.Logf("Cleanup failed: %v", err)
+		if cleanupErr := cleanup(); cleanupErr != nil {
+			t.Logf("Cleanup failed: %v", cleanupErr)
 		}
 	}()
 
@@ -173,8 +173,8 @@ func TestGetAggregatorByName(t *testing.T) {
 		t.Fatalf("error setting up test: %v", err)
 	}
 	defer func() {
-		if err := cleanup(); err != nil {
-			t.Logf("Cleanup failed: %v", err)
+		if cleanupErr := cleanup(); cleanupErr != nil {
+			t.Logf("Cleanup failed: %v", cleanupErr)
 		}
 	}()
 
@@ -198,8 +198,8 @@ func TestActivateAggregatorByAdmin(t *testing.T) {
 		t.Fatalf("error setting up test: %v", err)
 	}
 	defer func() {
-		if err := cleanup(); err != nil {
-			t.Logf("Cleanup failed: %v", err)
+		if cleanupErr := cleanup(); cleanupErr != nil {
+			t.Logf("Cleanup failed: %v", cleanupErr)
 		}
 	}()
 
@@ -232,8 +232,8 @@ func TestDeactivateAggregatorByAdmin(t *testing.T) {
 		t.Fatalf("error setting up test: %v", err)
 	}
 	defer func() {
-		if err := cleanup(); err != nil {
-			t.Logf("Cleanup failed: %v", err)
+		if cleanupErr := cleanup(); cleanupErr != nil {
+			t.Logf("Cleanup failed: %v", cleanupErr)
 		}
 	}()
 
@@ -272,8 +272,8 @@ func TestStartAppByAdmin(t *testing.T) {
 		t.Fatalf("error setting up test: %v", err)
 	}
 	defer func() {
-		if err := cleanup(); err != nil {
-			t.Logf("Cleanup failed: %v", err)
+		if cleanupErr := cleanup(); cleanupErr != nil {
+			t.Logf("Cleanup failed: %v", cleanupErr)
 		}
 	}()
 
@@ -299,8 +299,8 @@ func TestStopAppByAdmin(t *testing.T) {
 		t.Fatalf("error setting up test: %v", err)
 	}
 	defer func() {
-		if err := cleanup(); err != nil {
-			t.Logf("Cleanup failed: %v", err)
+		if cleanupErr := cleanup(); cleanupErr != nil {
+			t.Logf("Cleanup failed: %v", cleanupErr)
 		}
 	}()
 
@@ -332,8 +332,8 @@ func TestRefreshAppByAdmin(t *testing.T) {
 		t.Fatalf("error setting up test: %v", err)
 	}
 	defer func() {
-		if err := cleanup(); err != nil {
-			t.Logf("Cleanup failed: %v", err)
+		if cleanupErr := cleanup(); cleanupErr != nil {
+			t.Logf("Cleanup failed: %v", cleanupErr)
 		}
 	}()
 

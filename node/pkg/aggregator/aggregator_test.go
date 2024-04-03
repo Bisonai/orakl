@@ -16,8 +16,8 @@ func TestNewAggregator(t *testing.T) {
 		t.Fatalf("error setting up test: %v", err)
 	}
 	defer func() {
-		if err := cleanup(); err != nil {
-			t.Logf("Cleanup failed: %v", err)
+		if cleanupErr := cleanup(); cleanupErr != nil {
+			t.Logf("Cleanup failed: %v", cleanupErr)
 		}
 	}()
 
@@ -34,8 +34,8 @@ func TestLeaderJob(t *testing.T) {
 		t.Fatalf("error setting up test: %v", err)
 	}
 	defer func() {
-		if err := cleanup(); err != nil {
-			t.Logf("Cleanup failed: %v", err)
+		if cleanupErr := cleanup(); cleanupErr != nil {
+			t.Logf("Cleanup failed: %v", cleanupErr)
 		}
 	}()
 
@@ -57,8 +57,8 @@ func TestGetLatestLocalAggregate(t *testing.T) {
 		t.Fatalf("error setting up test: %v", err)
 	}
 	defer func() {
-		if err := cleanup(); err != nil {
-			t.Logf("Cleanup failed: %v", err)
+		if cleanupErr := cleanup(); cleanupErr != nil {
+			t.Logf("Cleanup failed: %v", cleanupErr)
 		}
 	}()
 
@@ -89,8 +89,8 @@ func TestGetLatestRoundId(t *testing.T) {
 		t.Fatalf("error setting up test: %v", err)
 	}
 	defer func() {
-		if err := cleanup(); err != nil {
-			t.Logf("Cleanup failed: %v", err)
+		if cleanupErr := cleanup(); cleanupErr != nil {
+			t.Logf("Cleanup failed: %v", cleanupErr)
 		}
 	}()
 
@@ -116,8 +116,8 @@ func TestInsertGlobalAggregate(t *testing.T) {
 		t.Fatalf("error setting up test: %v", err)
 	}
 	defer func() {
-		if err := cleanup(); err != nil {
-			t.Logf("Cleanup failed: %v", err)
+		if cleanupErr := cleanup(); cleanupErr != nil {
+			t.Logf("Cleanup failed: %v", cleanupErr)
 		}
 	}()
 

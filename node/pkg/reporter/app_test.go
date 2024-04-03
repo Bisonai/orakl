@@ -16,8 +16,8 @@ func TestRun(t *testing.T) {
 		t.Fatalf("error setting up test: %v", err)
 	}
 	defer func() {
-		if err := cleanup(); err != nil {
-			t.Logf("Cleanup failed: %v", err)
+		if cleanupErr := cleanup(); cleanupErr != nil {
+			t.Logf("Cleanup failed: %v", cleanupErr)
 		}
 	}()
 
@@ -36,8 +36,8 @@ func TestStopReporter(t *testing.T) {
 		t.Fatalf("error setting up test: %v", err)
 	}
 	defer func() {
-		if err := cleanup(); err != nil {
-			t.Logf("Cleanup failed: %v", err)
+		if cleanupErr := cleanup(); cleanupErr != nil {
+			t.Logf("Cleanup failed: %v", cleanupErr)
 		}
 	}()
 
@@ -61,8 +61,8 @@ func TestStopReporterByAdmin(t *testing.T) {
 		t.Fatalf("error setting up test: %v", err)
 	}
 	defer func() {
-		if err := cleanup(); err != nil {
-			t.Logf("Cleanup failed: %v", err)
+		if cleanupErr := cleanup(); cleanupErr != nil {
+			t.Logf("Cleanup failed: %v", cleanupErr)
 		}
 	}()
 
@@ -88,8 +88,8 @@ func TestStartReporterByAdmin(t *testing.T) {
 		t.Fatalf("error setting up test: %v", err)
 	}
 	defer func() {
-		if err := cleanup(); err != nil {
-			t.Logf("Cleanup failed: %v", err)
+		if cleanupErr := cleanup(); cleanupErr != nil {
+			t.Logf("Cleanup failed: %v", cleanupErr)
 		}
 	}()
 
@@ -113,8 +113,8 @@ func TestRestartReporterByAdmin(t *testing.T) {
 		t.Fatalf("error setting up test: %v", err)
 	}
 	defer func() {
-		if err := cleanup(); err != nil {
-			t.Logf("Cleanup failed: %v", err)
+		if cleanupErr := cleanup(); cleanupErr != nil {
+			t.Logf("Cleanup failed: %v", cleanupErr)
 		}
 	}()
 
