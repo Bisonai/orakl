@@ -20,6 +20,10 @@ import (
 const LEADER_TIMEOUT = 5 * time.Second
 
 func NewAggregator(h host.Host, ps *pubsub.PubSub, topicString string) (*Aggregator, error) {
+	if h == nil || ps == nil || topicString == "" {
+		return nil, fmt.Errorf("invalid parameters")
+	}
+
 	topic, err := ps.Join(topicString)
 	if err != nil {
 		log.Error().Str("Player", "Aggregator").Err(err).Msg("Failed to join topic")
