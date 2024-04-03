@@ -15,7 +15,11 @@ func TestRun(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error setting up test: %v", err)
 	}
-	defer cleanup()
+	defer func() {
+		if err := cleanup(); err != nil {
+			t.Logf("Cleanup failed: %v", err)
+		}
+	}()
 
 	err = testItems.app.Run(ctx)
 	if err != nil {
@@ -31,7 +35,11 @@ func TestStopReporter(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error setting up test: %v", err)
 	}
-	defer cleanup()
+	defer func() {
+		if err := cleanup(); err != nil {
+			t.Logf("Cleanup failed: %v", err)
+		}
+	}()
 
 	err = testItems.app.Run(ctx)
 	if err != nil {
@@ -52,7 +60,11 @@ func TestStopReporterByAdmin(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error setting up test: %v", err)
 	}
-	defer cleanup()
+	defer func() {
+		if err := cleanup(); err != nil {
+			t.Logf("Cleanup failed: %v", err)
+		}
+	}()
 
 	testItems.app.subscribe(ctx)
 
@@ -75,7 +87,11 @@ func TestStartReporterByAdmin(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error setting up test: %v", err)
 	}
-	defer cleanup()
+	defer func() {
+		if err := cleanup(); err != nil {
+			t.Logf("Cleanup failed: %v", err)
+		}
+	}()
 
 	testItems.app.subscribe(ctx)
 	testItems.app.setReporter(ctx, testItems.app.Host, testItems.app.Pubsub)
@@ -96,7 +112,11 @@ func TestRestartReporterByAdmin(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error setting up test: %v", err)
 	}
-	defer cleanup()
+	defer func() {
+		if err := cleanup(); err != nil {
+			t.Logf("Cleanup failed: %v", err)
+		}
+	}()
 
 	testItems.app.subscribe(ctx)
 	testItems.app.setReporter(ctx, testItems.app.Host, testItems.app.Pubsub)

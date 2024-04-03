@@ -22,7 +22,11 @@ func TestFetcherFetch(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error setting up test: %v", err)
 	}
-	defer clean()
+	defer func() {
+		if err := clean(); err != nil {
+			t.Logf("Cleanup failed: %v", err)
+		}
+	}()
 
 	app := testItems.app
 
@@ -46,7 +50,11 @@ func TestFetcherFetchProxy(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error setting up test: %v", err)
 	}
-	defer clean()
+	defer func() {
+		if err := clean(); err != nil {
+			t.Logf("Cleanup failed: %v", err)
+		}
+	}()
 
 	app := testItems.app
 
@@ -97,7 +105,11 @@ func TestFetcherFetchAndInsertAdapter(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error setting up test: %v", err)
 	}
-	defer clean()
+	defer func() {
+		if err := clean(); err != nil {
+			t.Logf("Cleanup failed: %v", err)
+		}
+	}()
 
 	app := testItems.app
 

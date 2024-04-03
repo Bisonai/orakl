@@ -9,13 +9,17 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestNewNode(t *testing.T) {
+func TestNewAggregator(t *testing.T) {
 	ctx := context.Background()
 	cleanup, testItems, err := setup(ctx)
 	if err != nil {
 		t.Fatalf("error setting up test: %v", err)
 	}
-	defer cleanup()
+	defer func() {
+		if err := cleanup(); err != nil {
+			t.Logf("Cleanup failed: %v", err)
+		}
+	}()
 
 	_, err = NewAggregator(testItems.app.Host, testItems.app.Pubsub, testItems.topicString)
 	if err != nil {
@@ -29,7 +33,11 @@ func TestLeaderJob(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error setting up test: %v", err)
 	}
-	defer cleanup()
+	defer func() {
+		if err := cleanup(); err != nil {
+			t.Logf("Cleanup failed: %v", err)
+		}
+	}()
 
 	node, err := NewAggregator(testItems.app.Host, testItems.app.Pubsub, testItems.topicString)
 	if err != nil {
@@ -48,7 +56,11 @@ func TestGetLatestLocalAggregate(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error setting up test: %v", err)
 	}
-	defer cleanup()
+	defer func() {
+		if err := cleanup(); err != nil {
+			t.Logf("Cleanup failed: %v", err)
+		}
+	}()
 
 	node, err := NewAggregator(testItems.app.Host, testItems.app.Pubsub, testItems.topicString)
 
@@ -76,7 +88,11 @@ func TestGetLatestRoundId(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error setting up test: %v", err)
 	}
-	defer cleanup()
+	defer func() {
+		if err := cleanup(); err != nil {
+			t.Logf("Cleanup failed: %v", err)
+		}
+	}()
 
 	node, err := NewAggregator(testItems.app.Host, testItems.app.Pubsub, testItems.topicString)
 	if err != nil {
@@ -99,7 +115,11 @@ func TestInsertGlobalAggregate(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error setting up test: %v", err)
 	}
-	defer cleanup()
+	defer func() {
+		if err := cleanup(); err != nil {
+			t.Logf("Cleanup failed: %v", err)
+		}
+	}()
 
 	node, err := NewAggregator(testItems.app.Host, testItems.app.Pubsub, testItems.topicString)
 	if err != nil {

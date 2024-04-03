@@ -25,6 +25,7 @@ func NewReporter(ctx context.Context, h host.Host, ps *pubsub.PubSub) (*Reporter
 
 	topic, err := ps.Join(topicString)
 	if err != nil {
+		log.Error().Str("Player", "Reporter").Err(err).Msg("Failed to join topic")
 		return nil, err
 	}
 
@@ -41,6 +42,7 @@ func NewReporter(ctx context.Context, h host.Host, ps *pubsub.PubSub) (*Reporter
 	}
 	err = reporter.loadSubmissionPairs(ctx)
 	if err != nil {
+		log.Error().Str("Player", "Reporter").Err(err).Msg("failed to load submission pairs")
 		return nil, err
 	}
 	reporter.Raft.LeaderJob = reporter.leaderJob
@@ -275,7 +277,7 @@ func (r *Reporter) loadSubmissionPairs(ctx context.Context) error {
 	}
 
 	if len(submissionAddresses) == 0 {
-		log.Error().Str("Player", "Reporter").Msg("no submission addresses found")
+		log.Warn().Str("Player", "Reporter").Msg("no submission addresses found")
 		return errors.New("no submission addresses found")
 	}
 

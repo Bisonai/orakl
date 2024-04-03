@@ -160,6 +160,7 @@ func (a *App) startFetcherById(ctx context.Context, adapterId int64) error {
 	if fetcher, ok := a.Fetchers[adapterId]; ok {
 		return a.startFetcher(ctx, fetcher)
 	}
+	log.Error().Str("Player", "Fetcher").Int64("adapterId", adapterId).Msg("fetcher not found")
 	return errors.New("fetcher not found by id:" + strconv.FormatInt(adapterId, 10))
 }
 

@@ -3,7 +3,8 @@ package aggregator
 import (
 	"context"
 	"encoding/json"
-	"errors"
+	"fmt"
+	"strings"
 	"sync"
 
 	"time"
@@ -21,6 +22,7 @@ const LEADER_TIMEOUT = 5 * time.Second
 func NewAggregator(h host.Host, ps *pubsub.PubSub, topicString string) (*Aggregator, error) {
 	topic, err := ps.Join(topicString)
 	if err != nil {
+		log.Error().Str("Player", "Aggregator").Err(err).Msg("Failed to join topic")
 		return nil, err
 	}
 
@@ -28,6 +30,7 @@ func NewAggregator(h host.Host, ps *pubsub.PubSub, topicString string) (*Aggrega
 		Raft:            raft.NewRaftNode(h, ps, topic, 100, LEADER_TIMEOUT),
 		CollectedPrices: map[int64][]int64{},
 		AggregatorMutex: sync.Mutex{},
+		RoundID:         0,
 	}
 	aggregator.Raft.LeaderJob = aggregator.LeaderJob
 	aggregator.Raft.HandleCustomMessage = aggregator.HandleCustomMessage
@@ -54,6 +57,7 @@ func (n *Aggregator) LeaderJob() error {
 
 	marshalledRoundMessage, err := json.Marshal(roundMessage)
 	if err != nil {
+		log.Error().Str("Player", "Aggregator").Err(err).Msg("failed to marshal round message")
 		return err
 	}
 
@@ -73,7 +77,7 @@ func (n *Aggregator) HandleCustomMessage(message raft.Message) error {
 	case PriceData:
 		return n.HandlePriceDataMessage(message)
 	default:
-		return errors.New("unknown message type")
+		return fmt.Errorf("unknown message type: %v", message.Type)
 	}
 }
 
@@ -82,6 +86,10 @@ func (n *Aggregator) HandleRoundSyncMessage(msg raft.Message) error {
 	err := json.Unmarshal(msg.Data, &roundSyncMessage)
 	if err != nil {
 		return err
+	}
+
+	if roundSyncMessage.LeaderID == "" || roundSyncMessage.RoundID == 0 {
+		return fmt.Errorf("invalid round sync message: %v", roundSyncMessage)
 	}
 
 	if n.Raft.GetRole() != raft.Leader {
@@ -120,6 +128,11 @@ func (n *Aggregator) HandlePriceDataMessage(msg raft.Message) error {
 	if err != nil {
 		return err
 	}
+
+	if priceDataMessage.RoundID == 0 {
+		return fmt.Errorf("invalid price data message: %v", priceDataMessage)
+	}
+
 	n.AggregatorMutex.Lock()
 	defer n.AggregatorMutex.Unlock()
 	if _, ok := n.CollectedPrices[priceDataMessage.RoundID]; !ok {
@@ -167,11 +180,25 @@ func (n *Aggregator) getLatestRoundId(ctx context.Context) (int64, error) {
 }
 
 func (n *Aggregator) insertGlobalAggregate(value int64, round int64) error {
+	var errs []string
+
 	err := n.insertPgsql(n.nodeCtx, value, round)
 	if err != nil {
-		return err
+		log.Error().Str("Player", "Aggregator").Err(err).Msg("failed to insert global aggregate into pgsql")
+		errs = append(errs, err.Error())
 	}
-	return n.insertRdb(n.nodeCtx, value, round)
+
+	err = n.insertRdb(n.nodeCtx, value, round)
+	if err != nil {
+		log.Error().Str("Player", "Aggregator").Err(err).Msg("failed to insert global aggregate into rdb")
+		errs = append(errs, err.Error())
+	}
+
+	if len(errs) > 0 {
+		return fmt.Errorf(strings.Join(errs, "; "))
+	}
+
+	return nil
 }
 
 func (n *Aggregator) insertPgsql(ctx context.Context, value int64, round int64) error {

@@ -22,6 +22,7 @@ func New(bus *bus.MessageBus, h host.Host, ps *pubsub.PubSub) *App {
 func (a *App) Run(ctx context.Context) error {
 	err := a.setReporter(ctx, a.Host, a.Pubsub)
 	if err != nil {
+		log.Error().Str("Player", "Reporter").Err(err).Msg("failed to set reporter")
 		return err
 	}
 
@@ -75,6 +76,11 @@ func (a *App) stopReporter() error {
 func (a *App) subscribe(ctx context.Context) {
 	log.Debug().Str("Player", "Reporter").Msg("subscribing to reporter topic")
 	channel := a.Bus.Subscribe(bus.REPORTER)
+	if channel == nil {
+		log.Error().Str("Player", "Reporter").Msg("failed to subscribe to reporter topic")
+		return
+	}
+
 	go func() {
 		log.Debug().Str("Player", "Reporter").Msg("start reporter subscription goroutine")
 		for {

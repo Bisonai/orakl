@@ -17,7 +17,11 @@ func TestInit(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error setting up test: %v", err)
 	}
-	defer cleanup()
+	defer func() {
+		if err := cleanup(); err != nil {
+			t.Logf("Cleanup failed: %v", err)
+		}
+	}()
 
 	err = testItems.app.setAggregators(ctx, testItems.app.Host, testItems.app.Pubsub)
 	if err != nil {
@@ -31,7 +35,11 @@ func TestGetAggregators(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error setting up test: %v", err)
 	}
-	defer cleanup()
+	defer func() {
+		if err := cleanup(); err != nil {
+			t.Logf("Cleanup failed: %v", err)
+		}
+	}()
 
 	aggregators, err := testItems.app.getAggregators(ctx)
 	if err != nil {
@@ -48,7 +56,15 @@ func TestStartAggregator(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error setting up test: %v", err)
 	}
-	defer cleanup()
+	defer func() {
+		if err := cleanup(); err != nil {
+			t.Logf("Cleanup failed: %v", err)
+		}
+
+		if err := testItems.app.stopAggregatorById(ctx, testItems.tmpData.aggregator.ID); err != nil {
+			t.Logf("error stopping aggregator: %v", err)
+		}
+	}()
 
 	err = testItems.app.setAggregators(ctx, testItems.app.Host, testItems.app.Pubsub)
 	if err != nil {
@@ -69,11 +85,19 @@ func TestStartAggregatorById(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error setting up test: %v", err)
 	}
-	defer cleanup()
+	defer func() {
+		if err := cleanup(); err != nil {
+			t.Logf("Cleanup failed: %v", err)
+		}
+	}()
 
 	err = testItems.app.setAggregators(ctx, testItems.app.Host, testItems.app.Pubsub)
 	if err != nil {
 		t.Fatal("error initializing app")
+	}
+
+	if testItems.app.Aggregators[testItems.tmpData.aggregator.ID].isRunning {
+		t.Fatal("Aggregator should not be running before test")
 	}
 
 	err = testItems.app.startAggregatorById(ctx, testItems.app.Aggregators[testItems.tmpData.aggregator.ID].AggregatorModel.ID)
@@ -89,7 +113,11 @@ func TestStopAggregator(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error setting up test: %v", err)
 	}
-	defer cleanup()
+	defer func() {
+		if err := cleanup(); err != nil {
+			t.Logf("Cleanup failed: %v", err)
+		}
+	}()
 
 	err = testItems.app.setAggregators(ctx, testItems.app.Host, testItems.app.Pubsub)
 	if err != nil {
@@ -100,12 +128,13 @@ func TestStopAggregator(t *testing.T) {
 	if err != nil {
 		t.Fatal("error starting aggregator")
 	}
+	assert.Equal(t, true, testItems.app.Aggregators[testItems.tmpData.aggregator.ID].isRunning)
 
 	err = testItems.app.stopAggregator(ctx, testItems.app.Aggregators[testItems.tmpData.aggregator.ID])
 	if err != nil {
 		t.Fatal("error stopping aggregator")
 	}
-	assert.Equal(t, testItems.app.Aggregators[testItems.tmpData.aggregator.ID].isRunning, false)
+	assert.Equal(t, false, testItems.app.Aggregators[testItems.tmpData.aggregator.ID].isRunning)
 }
 
 func TestStopAggregatorById(t *testing.T) {
@@ -114,7 +143,11 @@ func TestStopAggregatorById(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error setting up test: %v", err)
 	}
-	defer cleanup()
+	defer func() {
+		if err := cleanup(); err != nil {
+			t.Logf("Cleanup failed: %v", err)
+		}
+	}()
 
 	err = testItems.app.setAggregators(ctx, testItems.app.Host, testItems.app.Pubsub)
 	if err != nil {
@@ -139,7 +172,11 @@ func TestGetAggregatorByName(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error setting up test: %v", err)
 	}
-	defer cleanup()
+	defer func() {
+		if err := cleanup(); err != nil {
+			t.Logf("Cleanup failed: %v", err)
+		}
+	}()
 
 	err = testItems.app.setAggregators(ctx, testItems.app.Host, testItems.app.Pubsub)
 	if err != nil {
@@ -160,7 +197,11 @@ func TestActivateAggregatorByAdmin(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error setting up test: %v", err)
 	}
-	defer cleanup()
+	defer func() {
+		if err := cleanup(); err != nil {
+			t.Logf("Cleanup failed: %v", err)
+		}
+	}()
 
 	testItems.app.subscribe(ctx)
 
@@ -190,7 +231,11 @@ func TestDeactivateAggregatorByAdmin(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error setting up test: %v", err)
 	}
-	defer cleanup()
+	defer func() {
+		if err := cleanup(); err != nil {
+			t.Logf("Cleanup failed: %v", err)
+		}
+	}()
 
 	testItems.app.subscribe(ctx)
 
@@ -226,7 +271,11 @@ func TestStartAppByAdmin(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error setting up test: %v", err)
 	}
-	defer cleanup()
+	defer func() {
+		if err := cleanup(); err != nil {
+			t.Logf("Cleanup failed: %v", err)
+		}
+	}()
 
 	testItems.app.subscribe(ctx)
 
@@ -249,7 +298,11 @@ func TestStopAppByAdmin(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error setting up test: %v", err)
 	}
-	defer cleanup()
+	defer func() {
+		if err := cleanup(); err != nil {
+			t.Logf("Cleanup failed: %v", err)
+		}
+	}()
 
 	testItems.app.subscribe(ctx)
 
@@ -278,7 +331,11 @@ func TestRefreshAppByAdmin(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error setting up test: %v", err)
 	}
-	defer cleanup()
+	defer func() {
+		if err := cleanup(); err != nil {
+			t.Logf("Cleanup failed: %v", err)
+		}
+	}()
 
 	testItems.app.subscribe(ctx)
 

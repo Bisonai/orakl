@@ -19,8 +19,10 @@ import (
 
 func NewFetcher(adapter Adapter, feeds []Feed) *Fetcher {
 	return &Fetcher{
-		Adapter: adapter,
-		Feeds:   feeds,
+		Adapter:    adapter,
+		Feeds:      feeds,
+		fetcherCtx: nil,
+		cancel:     nil,
 	}
 }
 
@@ -51,12 +53,14 @@ func (f *Fetcher) fetchAndInsert(ctx context.Context, chainHelpers map[string]Ch
 	log.Debug().Str("Player", "Fetcher").Str("fetcher", f.Name).Msg("fetching and inserting")
 	results, err := f.fetch(chainHelpers, proxies)
 	if err != nil {
+		log.Error().Str("Player", "Fetcher").Err(err).Msg("error in fetch")
 		return err
 	}
 	log.Debug().Str("Player", "Fetcher").Str("fetcher", f.Name).Msg("fetch complete")
 
 	err = insertFeedData(ctx, f.Adapter.ID, results)
 	if err != nil {
+		log.Error().Str("Player", "Fetcher").Err(err).Msg("error in insertFeedData")
 		return err
 	}
 
@@ -67,18 +71,21 @@ func (f *Fetcher) fetchAndInsert(ctx context.Context, chainHelpers map[string]Ch
 
 	aggregated, err := calculator.GetFloatMed(rawValues)
 	if err != nil {
+		log.Error().Str("Player", "Fetcher").Err(err).Msg("error in GetFloatMed")
 		return err
 	}
 	log.Debug().Str("Player", "Fetcher").Str("fetcher", f.Name).Float64("aggregated", aggregated).Msg("aggregated")
 
 	err = insertPgsql(ctx, f.Name, aggregated)
 	if err != nil {
+		log.Error().Str("Player", "Fetcher").Err(err).Msg("error in insertPgsql")
 		return err
 	}
 	log.Debug().Str("Player", "Fetcher").Str("fetcher", f.Name).Msg("inserted into pgsql")
 
 	err = insertRdb(ctx, f.Name, aggregated)
 	if err != nil {
+		log.Error().Str("Player", "Fetcher").Err(err).Msg("error in insertRdb")
 		return err
 	}
 	log.Debug().Str("Player", "Fetcher").Str("fetcher", f.Name).Msg("inserted into rdb")
@@ -89,6 +96,7 @@ func (f *Fetcher) fetch(chainHelpers map[string]ChainHelper, proxies []Proxy) ([
 	feeds := f.Feeds
 
 	data := []FeedData{}
+	errList := []error{}
 	dataChan := make(chan FeedData)
 	errChan := make(chan error)
 
@@ -134,13 +142,23 @@ func (f *Fetcher) fetch(chainHelpers map[string]ChainHelper, proxies []Proxy) ([
 		case result := <-dataChan:
 			data = append(data, result)
 		case err := <-errChan:
-			log.Error().Str("Player", "Fetcher").Err(err).Msg("error in fetch")
+			errList = append(errList, err)
 		}
 	}
 
 	if len(data) < 1 {
 		return nil, errors.New("no data fetched")
 	}
+
+	errString := ""
+	if len(errList) > 0 {
+		for _, err := range errList {
+			errString += err.Error() + "\n"
+		}
+	}
+
+	log.Error().Str("Player", "Fetcher").Err(fmt.Errorf("errors in fetching: %s", errString)).Msg("errors in fetching")
+
 	return data, nil
 }
 
@@ -181,8 +199,7 @@ func (f *Fetcher) uniswapV3(definition *Definition, chainHelpers map[string]Chai
 		return 0, errors.New("unexpected result on converting to bigint")
 	}
 
-	result := getTokenPrice(sqrtPriceX96, int(*definition.Token0Decimals), int(*definition.Token1Decimals))
-	return result, nil
+	return getTokenPrice(sqrtPriceX96, int(*definition.Token0Decimals), int(*definition.Token1Decimals))
 }
 
 func (f *Fetcher) requestFeed(definition *Definition, proxies []Proxy) (interface{}, error) {
@@ -221,7 +238,11 @@ func (f *Fetcher) filterProxyByLocation(proxies []Proxy, location string) []Prox
 	return filteredProxies
 }
 
-func getTokenPrice(sqrtPriceX96 *big.Int, decimal0 int, decimal1 int) float64 {
+func getTokenPrice(sqrtPriceX96 *big.Int, decimal0 int, decimal1 int) (float64, error) {
+	if sqrtPriceX96 == nil || decimal0 == 0 || decimal1 == 0 {
+		return 0, errors.New("invalid input")
+	}
+
 	sqrtPriceX96Float := new(big.Float).SetInt(sqrtPriceX96)
 	sqrtPriceX96Float.Quo(sqrtPriceX96Float, new(big.Float).SetFloat64(math.Pow(2, 96)))
 	sqrtPriceX96Float.Mul(sqrtPriceX96Float, sqrtPriceX96Float) // square
@@ -235,7 +256,7 @@ func getTokenPrice(sqrtPriceX96 *big.Int, decimal0 int, decimal1 int) float64 {
 
 	result, _ := datum.Float64()
 
-	return math.Round(result)
+	return math.Round(result), nil
 }
 
 func insertFeedData(ctx context.Context, adapterId int64, feedData []FeedData) error {
@@ -245,6 +266,9 @@ func insertFeedData(ctx context.Context, adapterId int64, feedData []FeedData) e
 	}
 
 	_, err := db.BulkInsert(ctx, "feed_data", []string{"adapter_id", "name", "value"}, insertRows)
+	if err != nil {
+		log.Error().Str("Player", "Fetcher").Err(err).Msg("failed to insert feed data")
+	}
 	return err
 }
 

@@ -20,7 +20,11 @@ func TestFetcherInitialize(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error setting up test: %v", err)
 	}
-	defer clean()
+	defer func() {
+		if err := clean(); err != nil {
+			t.Logf("Cleanup failed: %v", err)
+		}
+	}()
 
 	app := testItems.app
 
@@ -42,7 +46,11 @@ func TestFetcherRun(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error setting up test: %v", err)
 	}
-	defer clean()
+	defer func() {
+		if err := clean(); err != nil {
+			t.Logf("Cleanup failed: %v", err)
+		}
+	}()
 
 	app := testItems.app
 
@@ -112,7 +120,11 @@ func TestFetcherFetcherStart(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error setting up test: %v", err)
 	}
-	defer clean()
+	defer func() {
+		if err := clean(); err != nil {
+			t.Logf("Cleanup failed: %v", err)
+		}
+	}()
 
 	app := testItems.app
 
@@ -179,7 +191,11 @@ func TestFetcherFetcherStop(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error setting up test: %v", err)
 	}
-	defer clean()
+	defer func() {
+		if err := clean(); err != nil {
+			t.Logf("Cleanup failed: %v", err)
+		}
+	}()
 
 	app := testItems.app
 
@@ -251,7 +267,11 @@ func TestFetcherFetcherStartById(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error setting up test: %v", err)
 	}
-	defer clean()
+	defer func() {
+		if err := clean(); err != nil {
+			t.Logf("Cleanup failed: %v", err)
+		}
+	}()
 
 	app := testItems.app
 
@@ -282,7 +302,11 @@ func TestFetcherFetcherStopById(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error setting up test: %v", err)
 	}
-	defer clean()
+	defer func() {
+		if err := clean(); err != nil {
+			t.Logf("Cleanup failed: %v", err)
+		}
+	}()
 
 	app := testItems.app
 

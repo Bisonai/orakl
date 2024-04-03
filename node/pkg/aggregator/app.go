@@ -16,7 +16,7 @@ import (
 
 func New(bus *bus.MessageBus, h host.Host, ps *pubsub.PubSub) *App {
 	return &App{
-		Aggregators: make(map[int64]*Aggregator, 0),
+		Aggregators: make(map[int64]*Aggregator),
 		Bus:         bus,
 		Host:        h,
 		Pubsub:      ps,
@@ -35,23 +35,30 @@ func (a *App) Run(ctx context.Context) error {
 }
 
 func (a *App) setAggregators(ctx context.Context, h host.Host, ps *pubsub.PubSub) error {
-	aggregators, err := a.getAggregators(ctx)
+	loadedAggregators, err := a.getAggregators(ctx)
 	if err != nil {
 		return err
 	}
 
 	if a.Aggregators == nil {
-		a.Aggregators = make(map[int64]*Aggregator, len(aggregators))
+		a.Aggregators = make(map[int64]*Aggregator, len(loadedAggregators))
 	}
 
+	a.removeAggregatorsNotInList(loadedAggregators)
+	return a.initializeLoadedAggregators(loadedAggregators, h, ps)
+}
+
+func (a *App) removeAggregatorsNotInList(loadedAggregators []AggregatorModel) {
 	for _, aggregator := range a.Aggregators {
-		if !aggregatorIdExists(aggregators, aggregator.ID) {
+		if !aggregatorIdExists(loadedAggregators, aggregator.ID) {
 			aggregator.Raft.Topic.Close()
 			delete(a.Aggregators, aggregator.ID)
 		}
 	}
+}
 
-	for _, aggregator := range aggregators {
+func (a *App) initializeLoadedAggregators(loadedAggregators []AggregatorModel, h host.Host, ps *pubsub.PubSub) error {
+	for _, aggregator := range loadedAggregators {
 		if a.Aggregators[aggregator.ID] != nil {
 			continue
 		}
@@ -89,6 +96,7 @@ func (a *App) startAggregator(ctx context.Context, aggregator *Aggregator) error
 	aggregator.isRunning = true
 
 	go aggregator.Run(nodeCtx)
+	log.Info().Str("Player", "Aggregator").Str("name", aggregator.Name).Msg("Aggregator started successfully")
 	return nil
 }
 
@@ -108,7 +116,8 @@ func (a *App) startAllAggregators(ctx context.Context) error {
 			return err
 		}
 		// starts with random sleep to avoid all aggregators starting at the same time
-		time.Sleep(time.Millisecond * time.Duration(rand.Intn(300)+100))
+		jitter := time.Duration(rand.Intn(100)) * time.Millisecond
+		time.Sleep(time.Millisecond*200 + jitter)
 	}
 	return nil
 }
@@ -179,6 +188,8 @@ func (a *App) getAggregatorByName(name string) (*Aggregator, error) {
 }
 
 func (a *App) handleMessage(ctx context.Context, msg bus.Message) {
+	// TODO: Consider refactoring the handleMessage method to improve its structure and readability. Using a switch-case with many cases can be simplified by mapping commands to handler functions.
+
 	// expected messages
 	// from admin: control related messages, activate and deactivate aggregator
 	// from fetcher: deviation related messages
