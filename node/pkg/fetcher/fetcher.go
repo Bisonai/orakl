@@ -2,11 +2,9 @@ package fetcher
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
-	"math"
-	"math/big"
+
 	"math/rand"
 	"os"
 	"strconv"
@@ -15,9 +13,6 @@ import (
 	"bisonai.com/orakl/node/pkg/bus"
 	chain_helper "bisonai.com/orakl/node/pkg/chain/helper"
 	"bisonai.com/orakl/node/pkg/db"
-	"bisonai.com/orakl/node/pkg/utils/calculator"
-	"bisonai.com/orakl/node/pkg/utils/reducer"
-	"bisonai.com/orakl/node/pkg/utils/request"
 	"github.com/rs/zerolog/log"
 )
 
@@ -154,29 +149,8 @@ func (a *App) startFetcher(ctx context.Context, fetcher *Fetcher) error {
 		log.Debug().Str("Player", "Fetcher").Str("fetcher", fetcher.Name).Msg("fetcher already running")
 		return nil
 	}
-	fetcherCtx, cancel := context.WithCancel(ctx)
-	fetcher.fetcherCtx = fetcherCtx
-	fetcher.cancel = cancel
-	fetcher.isRunning = true
 
-	ticker := time.NewTicker(FETCHER_FREQUENCY)
-
-	go func() {
-		log.Debug().Str("Player", "Fetcher").Str("fetcher", fetcher.Name).Msg("starting fetcher goroutine")
-		for {
-			select {
-			case <-ticker.C:
-				log.Debug().Str("Player", "Fetcher").Str("fetcher", fetcher.Name).Msg("fetching and inserting")
-				err := a.fetchAndInsert(fetcherCtx, *fetcher)
-				if err != nil {
-					log.Error().Str("Player", "Fetcher").Err(err).Msg("failed to fetch and insert")
-				}
-			case <-fetcherCtx.Done():
-				log.Debug().Str("Player", "Fetcher").Str("fetcher", fetcher.Name).Msg("fetcher stopped")
-				return
-			}
-		}
-	}()
+	fetcher.Run(ctx, a.ChainHelpers, a.Proxies)
 
 	log.Debug().Str("Player", "Fetcher").Str("fetcher", fetcher.Name).Msg("fetcher started")
 	return nil
@@ -232,196 +206,6 @@ func (a *App) stopAllFetchers(ctx context.Context) error {
 		}
 	}
 	return nil
-}
-
-func (a *App) fetchAndInsert(ctx context.Context, fetcher Fetcher) error {
-	log.Debug().Str("Player", "Fetcher").Str("fetcher", fetcher.Name).Msg("fetching and inserting")
-
-	results, err := a.fetch(fetcher)
-	if err != nil {
-		return err
-	}
-	log.Debug().Str("Player", "Fetcher").Str("fetcher", fetcher.Name).Msg("fetch complete")
-
-	err = a.insertFeedData(ctx, fetcher.Adapter.ID, results)
-	if err != nil {
-		return err
-	}
-
-	rawValues := make([]float64, len(results))
-	for i, result := range results {
-		rawValues[i] = result.Value
-	}
-
-	aggregated, err := calculator.GetFloatMed(rawValues)
-	if err != nil {
-		return err
-	}
-	log.Debug().Str("Player", "Fetcher").Str("fetcher", fetcher.Name).Float64("aggregated", aggregated).Msg("aggregated")
-
-	err = a.insertPgsql(ctx, fetcher.Name, aggregated)
-	if err != nil {
-		return err
-	}
-	log.Debug().Str("Player", "Fetcher").Str("fetcher", fetcher.Name).Msg("inserted into pgsql")
-
-	err = a.insertRdb(ctx, fetcher.Name, aggregated)
-	if err != nil {
-		return err
-	}
-	log.Debug().Str("Player", "Fetcher").Str("fetcher", fetcher.Name).Msg("inserted into rdb")
-	return nil
-}
-
-func (a *App) insertPgsql(ctx context.Context, name string, value float64) error {
-	err := db.QueryWithoutResult(ctx, InsertLocalAggregateQuery, map[string]any{"name": name, "value": int64(value)})
-	return err
-}
-
-func (a *App) insertRdb(ctx context.Context, name string, value float64) error {
-	key := "localAggregate:" + name
-	data, err := json.Marshal(redisAggregate{Value: int64(value), Timestamp: time.Now()})
-	if err != nil {
-		return err
-	}
-	return db.Set(ctx, key, string(data), time.Duration(5*time.Minute))
-}
-
-func (a *App) fetch(fetcher Fetcher) ([]FeedData, error) {
-	feeds := fetcher.Feeds
-
-	data := []FeedData{}
-	dataChan := make(chan FeedData)
-	errChan := make(chan error)
-
-	defer close(dataChan)
-	defer close(errChan)
-
-	for _, feed := range feeds {
-		go func(feed Feed) {
-			definition := new(Definition)
-			err := json.Unmarshal(feed.Definition, &definition)
-			if err != nil {
-				errChan <- err
-				return
-			}
-
-			var resultValue float64
-			var fetchErr error
-
-			switch {
-			case definition.Type == nil:
-				resultValue, fetchErr = a.cex(*definition)
-				if fetchErr != nil {
-					errChan <- fetchErr
-					return
-				}
-			case *definition.Type == "UniswapPool":
-				resultValue, fetchErr = a.uniswapV3(*definition)
-				if fetchErr != nil {
-					errChan <- fetchErr
-					return
-				}
-			default:
-				errChan <- errors.New("unknown fetcher type")
-			}
-
-			if resultValue != 0 {
-				dataChan <- FeedData{FeedName: feed.Name, Value: resultValue}
-			}
-		}(feed)
-	}
-
-	for i := 0; i < len(feeds); i++ {
-		select {
-		case result := <-dataChan:
-			data = append(data, result)
-		case err := <-errChan:
-			log.Error().Str("Player", "Fetcher").Err(err).Msg("error in fetch")
-		}
-	}
-
-	if len(data) < 1 {
-		return nil, errors.New("no data fetched")
-	}
-	return data, nil
-}
-
-func (a *App) cex(definition Definition) (float64, error) {
-	rawResult, err := a.requestFeed(definition)
-	if err != nil {
-		log.Error().Str("Player", "Fetcher").Err(err).Msg("error in requestFeed")
-		return 0, err
-	}
-
-	return reducer.Reduce(rawResult, definition.Reducers)
-}
-
-func (a *App) uniswapV3(definition Definition) (float64, error) {
-	if definition.Address == nil || definition.ChainID == nil || definition.Token0Decimals == nil || definition.Token1Decimals == nil {
-		log.Error().Any("definition", definition).Msg("missing required fields for uniswapV3")
-		return 0, errors.New("missing required fields for uniswapV3")
-	}
-
-	helper := a.ChainHelpers[*definition.ChainID]
-	if helper == nil {
-		return 0, errors.New("chain helper not found")
-	}
-
-	rawResult, err := helper.ReadContract(context.Background(), *definition.Address, "function slot0() external view returns (uint160 sqrtPriceX96, int24 tick, uint16 observationIndex, uint16 observationCardinality, uint16 observationCardinalityNext, uint8 feeProtocol, bool unlocked)")
-	if err != nil {
-		log.Error().Err(err).Msg("failed to read contract for uniswap v3 pool contract")
-		return 0, err
-	}
-
-	rawResultSlice, ok := rawResult.([]interface{})
-	if !ok || len(rawResultSlice) < 1 {
-		return 0, errors.New("unexpected raw result type")
-	}
-
-	sqrtPriceX96, ok := rawResultSlice[0].(*big.Int)
-	if !ok {
-		return 0, errors.New("unexpected result on converting to bigint")
-	}
-
-	result := getTokenPrice(sqrtPriceX96, int(*definition.Token0Decimals), int(*definition.Token1Decimals))
-	return result, nil
-}
-
-func (a *App) requestFeed(definition Definition) (interface{}, error) {
-	var proxies []Proxy
-	if definition.Location != nil && *definition.Location != "" {
-		proxies = a.filterProxyByLocation(*definition.Location)
-	} else {
-		proxies = a.Proxies
-	}
-
-	if len(proxies) > 0 {
-		proxy := proxies[rand.Intn(len(proxies))]
-		proxyUrl := fmt.Sprintf("%s://%s:%d", proxy.Protocol, proxy.Host, proxy.Port)
-		log.Debug().Str("Player", "Fetcher").Str("proxyUrl", proxyUrl).Msg("using proxy")
-		return a.requestWithProxy(definition, proxyUrl)
-	}
-
-	return a.requestWithoutProxy(definition)
-}
-
-func (a *App) requestWithoutProxy(definition Definition) (interface{}, error) {
-	return request.GetRequest[interface{}](*definition.Url, nil, definition.Headers)
-}
-
-func (a *App) requestWithProxy(definition Definition, proxyUrl string) (interface{}, error) {
-	return request.GetRequestProxy[interface{}](*definition.Url, nil, definition.Headers, proxyUrl)
-}
-
-func (a *App) filterProxyByLocation(location string) []Proxy {
-	proxies := []Proxy{}
-	for _, proxy := range a.Proxies {
-		if proxy.Location != nil && *proxy.Location == location {
-			proxies = append(proxies, proxy)
-		}
-	}
-	return proxies
 }
 
 func (a *App) getAdapters(ctx context.Context) ([]Adapter, error) {
@@ -527,31 +311,4 @@ func (a *App) getChainHelpers(ctx context.Context) (map[string]ChainHelper, erro
 
 func (a *App) String() string {
 	return fmt.Sprintf("%+v\n", a.Fetchers)
-}
-
-func (a *App) insertFeedData(ctx context.Context, adapterId int64, feedData []FeedData) error {
-	insertRows := make([][]any, 0, len(feedData))
-	for _, data := range feedData {
-		insertRows = append(insertRows, []any{adapterId, data.FeedName, data.Value})
-	}
-
-	_, err := db.BulkInsert(ctx, "feed_data", []string{"adapter_id", "name", "value"}, insertRows)
-	return err
-}
-
-func getTokenPrice(sqrtPriceX96 *big.Int, decimal0 int, decimal1 int) float64 {
-	sqrtPriceX96Float := new(big.Float).SetInt(sqrtPriceX96)
-	sqrtPriceX96Float.Quo(sqrtPriceX96Float, new(big.Float).SetFloat64(math.Pow(2, 96)))
-	sqrtPriceX96Float.Mul(sqrtPriceX96Float, sqrtPriceX96Float) // square
-
-	decimalDiff := new(big.Float).SetFloat64(math.Pow(10, float64(decimal1-decimal0)))
-
-	datum := sqrtPriceX96Float.Quo(sqrtPriceX96Float, decimalDiff)
-
-	multiplier := new(big.Float).SetFloat64(math.Pow(10, 6))
-	datum.Mul(datum, multiplier)
-
-	result, _ := datum.Float64()
-
-	return math.Round(result)
 }
