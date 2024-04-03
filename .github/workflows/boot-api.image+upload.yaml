@@ -53,7 +53,7 @@ jobs:
             ./node/go.sum
             ./node/go.mod
       - name: Docker build orakl-boot-api
-        run: SERVICE_NAME=orakl-boot-api docker-compose -f docker-compose.build.yaml build
+        run: SERVICE_NAME=orakl-boot-api docker compose -f docker-compose.build.yaml build
 
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v2

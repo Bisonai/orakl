@@ -77,7 +77,7 @@ jobs:
           go vet -vettool=$(which shadow)
 
       - name: Docker build orakl-api
-        run: SERVICE_NAME=orakl-api docker-compose -f docker-compose.build.yaml build
+        run: SERVICE_NAME=orakl-api docker compose -f docker-compose.build.yaml build
 
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v2
