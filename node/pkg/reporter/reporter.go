@@ -23,13 +23,14 @@ import (
 
 func NewReporter(ctx context.Context, h host.Host, ps *pubsub.PubSub, submissionPairs []SubmissionAddress, interval int) (*Reporter, error) {
 	topicString := TOPIC_STRING + "-" + strconv.Itoa(interval)
+	groupInterval := time.Duration(interval) * time.Millisecond
 	topic, err := ps.Join(topicString)
 	if err != nil {
 		log.Error().Str("Player", "Reporter").Err(err).Msg("Failed to join topic")
 		return nil, err
 	}
 
-	raft := raft.NewRaftNode(h, ps, topic, MESSAGE_BUFFER, time.Duration(interval)*time.Millisecond)
+	raft := raft.NewRaftNode(h, ps, topic, MESSAGE_BUFFER, groupInterval)
 
 	contractAddress := os.Getenv("SUBMISSION_PROXY_CONTRACT")
 	if contractAddress == "" {
@@ -37,8 +38,9 @@ func NewReporter(ctx context.Context, h host.Host, ps *pubsub.PubSub, submission
 	}
 
 	reporter := &Reporter{
-		Raft:            raft,
-		contractAddress: contractAddress,
+		Raft:               raft,
+		contractAddress:    contractAddress,
+		SubmissionInterval: groupInterval,
 	}
 
 	reporter.SubmissionPairs = make(map[string]SubmissionPair)

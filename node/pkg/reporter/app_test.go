@@ -94,7 +94,10 @@ func TestStartReporterByAdmin(t *testing.T) {
 	}()
 
 	testItems.app.subscribe(ctx)
-	testItems.app.setReporters(ctx, testItems.app.Host, testItems.app.Pubsub)
+	err = testItems.app.setReporters(ctx, testItems.app.Host, testItems.app.Pubsub)
+	if err != nil {
+		t.Fatalf("error setting reporters: %v", err)
+	}
 
 	_, err = tests.RawPostRequest(testItems.admin, "/api/v1/reporter/activate", nil)
 	if err != nil {
@@ -119,7 +122,10 @@ func TestRestartReporterByAdmin(t *testing.T) {
 	}()
 
 	testItems.app.subscribe(ctx)
-	testItems.app.setReporters(ctx, testItems.app.Host, testItems.app.Pubsub)
+	err = testItems.app.setReporters(ctx, testItems.app.Host, testItems.app.Pubsub)
+	if err != nil {
+		t.Fatalf("error setting reporters: %v", err)
+	}
 
 	_, err = tests.RawPostRequest(testItems.admin, "/api/v1/reporter/activate", nil)
 	if err != nil {

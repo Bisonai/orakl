@@ -23,16 +23,7 @@ const (
 	MAX_RETRY_DELAY         = 500 * time.Millisecond
 	FUNCTION_STRING         = "submit(address[] memory _feeds, int256[] memory _submissions)"
 
-	GET_SUBMISSIONS_QUERY              = `SELECT * FROM submission_addresses;`
-	GET_LATEST_GLOBAL_AGGREGATES_QUERY = `
-		SELECT ga.name, ga.value, ga.round, ga.timestamp, sa.address
-		FROM global_aggregates ga
-		JOIN (
-			SELECT name, MAX(round) as max_round
-			FROM global_aggregates
-			GROUP BY name
-		) subq ON ga.name = subq.name AND ga.round = subq.max_round
-		INNER JOIN submission_addresses sa ON ga.name = sa.name;`
+	GET_SUBMISSIONS_QUERY = `SELECT * FROM submission_addresses;`
 )
 
 type SubmissionAddress struct {

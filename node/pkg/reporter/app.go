@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	"bisonai.com/orakl/node/pkg/bus"
 	"bisonai.com/orakl/node/pkg/db"
@@ -62,6 +63,7 @@ func (a *App) setReporters(ctx context.Context, h host.Host, ps *pubsub.PubSub) 
 		return errors.New("no reporters set")
 	}
 
+	log.Info().Str("Player", "Reporter").Msgf("%d reporters set", len(a.Reporters))
 	return nil
 }
 
@@ -189,7 +191,15 @@ func (a *App) handleMessage(ctx context.Context, msg bus.Message) {
 		}
 		msg.Response <- bus.MessageResponse{Success: true}
 	}
+}
 
+func (a *App) GetReporterWithInterval(interval int) (*Reporter, error) {
+	for _, reporter := range a.Reporters {
+		if reporter.SubmissionInterval == time.Duration(interval)*time.Millisecond {
+			return reporter, nil
+		}
+	}
+	return nil, errors.New("reporter not found")
 }
 
 func startReporter(ctx context.Context, reporter *Reporter) error {
