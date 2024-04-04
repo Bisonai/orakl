@@ -35,26 +35,35 @@ func (a *App) Run(ctx context.Context) error {
 }
 
 func (a *App) setAggregators(ctx context.Context, h host.Host, ps *pubsub.PubSub) error {
+	err := a.clearAggregators()
+	if err != nil {
+		log.Error().Str("Player", "Aggregator").Err(err).Msg("failed to clear aggregators in setAggregators method")
+		return err
+	}
+
 	loadedAggregators, err := a.getAggregators(ctx)
 	if err != nil {
 		return err
 	}
 
-	if a.Aggregators == nil {
-		a.Aggregators = make(map[int64]*Aggregator, len(loadedAggregators))
-	}
-
-	a.removeAggregatorsNotInList(loadedAggregators)
 	return a.initializeLoadedAggregators(loadedAggregators, h, ps)
 }
 
-func (a *App) removeAggregatorsNotInList(loadedAggregators []AggregatorModel) {
+func (a *App) clearAggregators() error {
+	if a.Aggregators == nil {
+		return nil
+	}
 	for _, aggregator := range a.Aggregators {
-		if !aggregatorIdExists(loadedAggregators, aggregator.ID) {
-			aggregator.Raft.Topic.Close()
-			delete(a.Aggregators, aggregator.ID)
+		if aggregator.isRunning {
+			err := a.stopAggregator(aggregator)
+			if err != nil {
+				log.Error().Str("Player", "Aggregator").Err(err).Msgf("Failed to stop aggregator with ID: %d", aggregator.ID)
+				return err
+			}
 		}
 	}
+	a.Aggregators = make(map[int64]*Aggregator)
+	return nil
 }
 
 func (a *App) initializeLoadedAggregators(loadedAggregators []AggregatorModel, h host.Host, ps *pubsub.PubSub) error {
@@ -122,7 +131,7 @@ func (a *App) startAllAggregators(ctx context.Context) error {
 	return nil
 }
 
-func (a *App) stopAggregator(ctx context.Context, aggregator *Aggregator) error {
+func (a *App) stopAggregator(aggregator *Aggregator) error {
 	log.Debug().Str("Player", "Aggregator").Str("name", aggregator.Name).Msg("stopping aggregator")
 	if !aggregator.isRunning {
 		log.Debug().Str("Player", "Aggregator").Str("name", aggregator.Name).Msg("aggregator already stopped")
@@ -136,17 +145,17 @@ func (a *App) stopAggregator(ctx context.Context, aggregator *Aggregator) error 
 	return nil
 }
 
-func (a *App) stopAggregatorById(ctx context.Context, id int64) error {
+func (a *App) stopAggregatorById(id int64) error {
 	aggregator, ok := a.Aggregators[id]
 	if !ok {
 		return errors.New("aggregator not found")
 	}
-	return a.stopAggregator(ctx, aggregator)
+	return a.stopAggregator(aggregator)
 }
 
-func (a *App) stopAllAggregators(ctx context.Context) error {
+func (a *App) stopAllAggregators() error {
 	for _, aggregator := range a.Aggregators {
-		err := a.stopAggregator(ctx, aggregator)
+		err := a.stopAggregator(aggregator)
 		if err != nil {
 			log.Error().Str("Player", "Aggregator").Err(err).Str("name", aggregator.Name).Msg("failed to stop aggregator")
 			return err
@@ -233,7 +242,7 @@ func (a *App) handleMessage(ctx context.Context, msg bus.Message) {
 		}
 
 		log.Debug().Str("Player", "Aggregator").Int64("aggregatorId", aggregatorId).Msg("deactivating aggregator")
-		err = a.stopAggregatorById(ctx, aggregatorId)
+		err = a.stopAggregatorById(aggregatorId)
 		if err != nil {
 			bus.HandleMessageError(err, msg, "failed to stop aggregator")
 			return
@@ -245,7 +254,7 @@ func (a *App) handleMessage(ctx context.Context, msg bus.Message) {
 			return
 		}
 		log.Debug().Str("Player", "Aggregator").Msg("refresh aggregator msg received")
-		err := a.stopAllAggregators(ctx)
+		err := a.stopAllAggregators()
 		if err != nil {
 			bus.HandleMessageError(err, msg, "failed to stop all aggregators")
 			return
@@ -267,7 +276,7 @@ func (a *App) handleMessage(ctx context.Context, msg bus.Message) {
 			return
 		}
 		log.Debug().Str("Player", "Aggregator").Msg("stop aggregator msg received")
-		err := a.stopAllAggregators(ctx)
+		err := a.stopAllAggregators()
 		if err != nil {
 			bus.HandleMessageError(err, msg, "failed to stop all aggregators")
 			return
@@ -308,13 +317,4 @@ func (a *App) handleMessage(ctx context.Context, msg bus.Message) {
 			return
 		}
 	}
-}
-
-func aggregatorIdExists(aggregators []AggregatorModel, id int64) bool {
-	for _, aggregator := range aggregators {
-		if aggregator.ID == id {
-			return true
-		}
-	}
-	return false
 }

@@ -26,7 +26,7 @@ func TestRun(t *testing.T) {
 		t.Fatalf("error running reporter: %v", err)
 	}
 
-	assert.Equal(t, testItems.app.Reporter.isRunning, true)
+	assert.Equal(t, testItems.app.Reporters[0].isRunning, true)
 }
 
 func TestStopReporter(t *testing.T) {
@@ -46,12 +46,12 @@ func TestStopReporter(t *testing.T) {
 		t.Fatal("error running reporter")
 	}
 
-	err = testItems.app.stopReporter()
+	err = testItems.app.stopReporters()
 	if err != nil {
 		t.Fatal("error stopping reporter")
 	}
 
-	assert.Equal(t, testItems.app.Reporter.isRunning, false)
+	assert.Equal(t, testItems.app.Reporters[0].isRunning, false)
 }
 
 func TestStopReporterByAdmin(t *testing.T) {
@@ -78,7 +78,7 @@ func TestStopReporterByAdmin(t *testing.T) {
 		t.Fatalf("error activating reporter: %v", err)
 	}
 
-	assert.Equal(t, testItems.app.Reporter.isRunning, false)
+	assert.Equal(t, testItems.app.Reporters[0].isRunning, false)
 }
 
 func TestStartReporterByAdmin(t *testing.T) {
@@ -94,14 +94,17 @@ func TestStartReporterByAdmin(t *testing.T) {
 	}()
 
 	testItems.app.subscribe(ctx)
-	testItems.app.setReporter(ctx, testItems.app.Host, testItems.app.Pubsub)
+	err = testItems.app.setReporters(ctx, testItems.app.Host, testItems.app.Pubsub)
+	if err != nil {
+		t.Fatalf("error setting reporters: %v", err)
+	}
 
 	_, err = tests.RawPostRequest(testItems.admin, "/api/v1/reporter/activate", nil)
 	if err != nil {
 		t.Fatalf("error activating reporter: %v", err)
 	}
 
-	assert.Equal(t, testItems.app.Reporter.isRunning, true)
+	assert.Equal(t, testItems.app.Reporters[0].isRunning, true)
 }
 
 func TestRestartReporterByAdmin(t *testing.T) {
@@ -119,7 +122,10 @@ func TestRestartReporterByAdmin(t *testing.T) {
 	}()
 
 	testItems.app.subscribe(ctx)
-	testItems.app.setReporter(ctx, testItems.app.Host, testItems.app.Pubsub)
+	err = testItems.app.setReporters(ctx, testItems.app.Host, testItems.app.Pubsub)
+	if err != nil {
+		t.Fatalf("error setting reporters: %v", err)
+	}
 
 	_, err = tests.RawPostRequest(testItems.admin, "/api/v1/reporter/activate", nil)
 	if err != nil {
@@ -131,5 +137,5 @@ func TestRestartReporterByAdmin(t *testing.T) {
 		t.Fatalf("error refreshing reporter: %v", err)
 	}
 
-	assert.Equal(t, testItems.app.Reporter.isRunning, true)
+	assert.Equal(t, testItems.app.Reporters[0].isRunning, true)
 }

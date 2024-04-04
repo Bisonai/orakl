@@ -7,6 +7,7 @@ import (
 	"errors"
 	"math/big"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -20,16 +21,16 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-func NewReporter(ctx context.Context, h host.Host, ps *pubsub.PubSub) (*Reporter, error) {
-	topicString := TOPIC_STRING
-
+func NewReporter(ctx context.Context, h host.Host, ps *pubsub.PubSub, submissionPairs []SubmissionAddress, interval int) (*Reporter, error) {
+	topicString := TOPIC_STRING + "-" + strconv.Itoa(interval)
+	groupInterval := time.Duration(interval) * time.Millisecond
 	topic, err := ps.Join(topicString)
 	if err != nil {
 		log.Error().Str("Player", "Reporter").Err(err).Msg("Failed to join topic")
 		return nil, err
 	}
 
-	raft := raft.NewRaftNode(h, ps, topic, MESSAGE_BUFFER, LEADER_TIMEOUT)
+	raft := raft.NewRaftNode(h, ps, topic, MESSAGE_BUFFER, groupInterval)
 
 	contractAddress := os.Getenv("SUBMISSION_PROXY_CONTRACT")
 	if contractAddress == "" {
@@ -37,14 +38,16 @@ func NewReporter(ctx context.Context, h host.Host, ps *pubsub.PubSub) (*Reporter
 	}
 
 	reporter := &Reporter{
-		Raft:            raft,
-		contractAddress: contractAddress,
+		Raft:               raft,
+		contractAddress:    contractAddress,
+		SubmissionInterval: groupInterval,
 	}
-	err = reporter.loadSubmissionPairs(ctx)
-	if err != nil {
-		log.Error().Str("Player", "Reporter").Err(err).Msg("failed to load submission pairs")
-		return nil, err
+
+	reporter.SubmissionPairs = make(map[string]SubmissionPair)
+	for _, sa := range submissionPairs {
+		reporter.SubmissionPairs[sa.Name] = SubmissionPair{LastSubmission: 0, Address: common.HexToAddress(sa.Address)}
 	}
+
 	reporter.Raft.LeaderJob = reporter.leaderJob
 	reporter.Raft.HandleCustomMessage = reporter.handleCustomMessage
 
@@ -77,7 +80,6 @@ func (r *Reporter) retry(job func() error) error {
 }
 
 func (r *Reporter) leaderJob() error {
-	log.Debug().Str("Player", "Reporter").Msg("reporting")
 	start := time.Now()
 	r.Raft.IncreaseTerm()
 	ctx := context.Background()
@@ -91,7 +93,7 @@ func (r *Reporter) leaderJob() error {
 
 		validAggregates := r.filterInvalidAggregates(aggregates)
 		if len(validAggregates) == 0 {
-			log.Error().Str("Player", "Reporter").Msg("no valid aggregates to report")
+			log.Warn().Str("Player", "Reporter").Msg("no valid aggregates to report")
 			return nil
 		}
 
@@ -263,27 +265,6 @@ func (r *Reporter) makeContractArgs(aggregates []GlobalAggregate) ([]common.Addr
 	}
 
 	return addresses, values, nil
-}
-
-func (r *Reporter) loadSubmissionPairs(ctx context.Context) error {
-	if r.SubmissionPairs == nil {
-		r.SubmissionPairs = make(map[string]SubmissionPair)
-	}
-
-	submissionAddresses, err := db.QueryRows[SubmissionAddress](ctx, "SELECT * FROM submission_addresses;", nil)
-	if err != nil {
-		log.Error().Str("Player", "Reporter").Err(err).Msg("failed to load submission addresses")
-		return err
-	}
-
-	if len(submissionAddresses) == 0 {
-		log.Warn().Str("Player", "Reporter").Msg("no submission addresses found")
-	}
-
-	for _, sa := range submissionAddresses {
-		r.SubmissionPairs[sa.Name] = SubmissionPair{LastSubmission: 0, Address: common.HexToAddress(sa.Address)}
-	}
-	return nil
 }
 
 func (r *Reporter) SetKlaytnHelper(ctx context.Context) error {

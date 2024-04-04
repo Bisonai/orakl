@@ -1,9 +1,9 @@
 package submissionAddress
 
 const (
-	InsertSubmissionAddress = `INSERT INTO submission_addresses (name, address) VALUES (@name, @address) RETURNING *;`
+	InsertSubmissionAddress = `INSERT INTO submission_addresses (name, address, interval) VALUES (@name, @address, @interval) RETURNING *;`
 
-	UpsertSubmissionAddress = `INSERT INTO submission_addresses (name, address) VALUES (@name, @address) ON CONFLICT (name) DO UPDATE SET address = @address RETURNING *;`
+	UpsertSubmissionAddress = `INSERT INTO submission_addresses (name, address, interval) VALUES (@name, @address, @interval) ON CONFLICT (name) DO UPDATE SET address = @address, interval = @interval RETURNING *;`
 
 	GetAggregatorNames = `SELECT name FROM aggregators WHERE active = true;`
 

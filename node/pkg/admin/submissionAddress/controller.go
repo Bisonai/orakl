@@ -14,14 +14,16 @@ import (
 )
 
 type SubmissionAddressModel struct {
-	Id      *int64 `db:"id" json:"id"`
-	Name    string `db:"name" json:"name"`
-	Address string `db:"address" json:"address"`
+	Id       *int64 `db:"id" json:"id"`
+	Name     string `db:"name" json:"name"`
+	Address  string `db:"address" json:"address"`
+	Interval *int   `db:"interval" json:"heartbeat"`
 }
 
 type SubmissionAddressInsertModel struct {
-	Name    string `db:"name" json:"name" validate:"required"`
-	Address string `db:"address" json:"address" validate:"required"`
+	Name     string `db:"name" json:"name" validate:"required"`
+	Address  string `db:"address" json:"address" validate:"required"`
+	Interval *int   `db:"interval" json:"heartbeat"`
 }
 
 type BulkAddresses struct {
@@ -212,8 +214,9 @@ func updateById(c *fiber.Ctx) error {
 
 func insertSubmissionAddress(ctx context.Context, address SubmissionAddressInsertModel) (SubmissionAddressModel, error) {
 	result, err := db.QueryRow[SubmissionAddressModel](ctx, UpsertSubmissionAddress, map[string]any{
-		"name":    address.Name,
-		"address": address.Address,
+		"name":     address.Name,
+		"address":  address.Address,
+		"interval": address.Interval,
 	})
 	if err != nil {
 		return SubmissionAddressModel{}, err
