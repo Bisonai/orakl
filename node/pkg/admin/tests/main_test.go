@@ -10,6 +10,7 @@ import (
 	"bisonai.com/orakl/node/pkg/admin/aggregator"
 	"bisonai.com/orakl/node/pkg/admin/feed"
 	"bisonai.com/orakl/node/pkg/admin/fetcher"
+	"bisonai.com/orakl/node/pkg/admin/providerUrl"
 	"bisonai.com/orakl/node/pkg/admin/proxy"
 	"bisonai.com/orakl/node/pkg/admin/reporter"
 	"bisonai.com/orakl/node/pkg/admin/submissionAddress"
@@ -33,6 +34,7 @@ type TmpData struct {
 	feed              feed.FeedModel
 	proxy             proxy.ProxyModel
 	wallet            wallet.WalletModel
+	providerUrl       providerUrl.ProviderUrlModel
 }
 
 func setup(ctx context.Context) (func() error, *TestItems, error) {
@@ -68,6 +70,7 @@ func setup(ctx context.Context) (func() error, *TestItems, error) {
 	wallet.Routes(v1)
 	reporter.Routes(v1)
 	submissionAddress.Routes(v1)
+	providerUrl.Routes(v1)
 
 	return adminCleanup(testItems), testItems, nil
 }
@@ -111,6 +114,12 @@ func insertSampleData(ctx context.Context) (*TmpData, error) {
 	}
 	tmpData.submissionAddress = tmpSubmissionAddress
 
+	tmpProviderUrl, err := db.QueryRow[providerUrl.ProviderUrlModel](ctx, providerUrl.InsertProviderUrl, map[string]any{"chain": "test_chain", "chain_id": 1, "url": "test_url", "priority": 1})
+	if err != nil {
+		return nil, err
+	}
+	tmpData.providerUrl = tmpProviderUrl
+
 	return tmpData, nil
 }
 
@@ -136,6 +145,11 @@ func adminCleanup(testItems *TestItems) func() error {
 		}
 
 		_, err = db.QueryRow[submissionAddress.SubmissionAddressModel](context.Background(), submissionAddress.DeleteSubmissionAddressById, map[string]any{"id": testItems.tmpData.submissionAddress.Id})
+		if err != nil {
+			return err
+		}
+
+		_, err = db.QueryRow[providerUrl.ProviderUrlModel](context.Background(), providerUrl.DeleteProviderUrlById, map[string]any{"id": testItems.tmpData.providerUrl.Id})
 		if err != nil {
 			return err
 		}
