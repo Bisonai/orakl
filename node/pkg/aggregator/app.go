@@ -37,7 +37,7 @@ func (a *App) Run(ctx context.Context) error {
 func (a *App) setAggregators(ctx context.Context, h host.Host, ps *pubsub.PubSub) error {
 	err := a.clearAggregators()
 	if err != nil {
-		log.Error().Str("Player", "Aggregator").Err(err).Msg("failed to clear aggregators")
+		log.Error().Str("Player", "Aggregator").Err(err).Msg("failed to clear aggregators in setAggregators method")
 		return err
 	}
 
