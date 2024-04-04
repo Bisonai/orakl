@@ -35,26 +35,35 @@ func (a *App) Run(ctx context.Context) error {
 }
 
 func (a *App) setAggregators(ctx context.Context, h host.Host, ps *pubsub.PubSub) error {
+	err := a.clearAggregators()
+	if err != nil {
+		log.Error().Str("Player", "Aggregator").Err(err).Msg("failed to clear aggregators")
+		return err
+	}
+
 	loadedAggregators, err := a.getAggregators(ctx)
 	if err != nil {
 		return err
 	}
 
-	if a.Aggregators == nil {
-		a.Aggregators = make(map[int64]*Aggregator, len(loadedAggregators))
-	}
-
-	a.removeAggregatorsNotInList(loadedAggregators)
 	return a.initializeLoadedAggregators(loadedAggregators, h, ps)
 }
 
-func (a *App) removeAggregatorsNotInList(loadedAggregators []AggregatorModel) {
+func (a *App) clearAggregators() error {
+	if a.Aggregators == nil {
+		return nil
+	}
 	for _, aggregator := range a.Aggregators {
-		if !aggregatorIdExists(loadedAggregators, aggregator.ID) {
-			aggregator.Raft.Topic.Close()
-			delete(a.Aggregators, aggregator.ID)
+		if aggregator.isRunning {
+			err := a.stopAggregator(context.Background(), aggregator)
+			if err != nil {
+				log.Error().Str("Player", "Aggregator").Err(err).Msg("failed to stop aggregator")
+				return err
+			}
 		}
 	}
+	a.Aggregators = make(map[int64]*Aggregator)
+	return nil
 }
 
 func (a *App) initializeLoadedAggregators(loadedAggregators []AggregatorModel, h host.Host, ps *pubsub.PubSub) error {

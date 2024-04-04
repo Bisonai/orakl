@@ -69,11 +69,6 @@ func (a *App) clearReporters() error {
 				return err
 			}
 		}
-		err := reporter.Raft.Topic.Close()
-		if err != nil {
-			log.Error().Str("Player", "Reporter").Err(err).Msg("failed to close topic")
-			return err
-		}
 	}
 	a.Reporters = make([]*Reporter, 0)
 	return nil
