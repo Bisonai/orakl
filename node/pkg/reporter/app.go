@@ -3,6 +3,8 @@ package reporter
 import (
 	"context"
 	"errors"
+	"fmt"
+	"strings"
 
 	"bisonai.com/orakl/node/pkg/bus"
 	"bisonai.com/orakl/node/pkg/db"
@@ -50,10 +52,16 @@ func (a *App) setReporters(ctx context.Context, h host.Host, ps *pubsub.PubSub) 
 		reporter, err := NewReporter(ctx, h, ps, pairs, groupInterval)
 		if err != nil {
 			log.Error().Str("Player", "Reporter").Err(err).Msg("failed to set reporter")
-			return err
+			continue
 		}
 		a.Reporters = append(a.Reporters, reporter)
 	}
+
+	if len(a.Reporters) == 0 {
+		log.Error().Str("Player", "Reporter").Msg("no reporters set")
+		return errors.New("no reporters set")
+	}
+
 	return nil
 }
 
@@ -75,24 +83,38 @@ func (a *App) clearReporters() error {
 }
 
 func (a *App) startReporters(ctx context.Context) error {
+	var errs []string
+
 	for _, reporter := range a.Reporters {
 		err := startReporter(ctx, reporter)
 		if err != nil {
 			log.Error().Str("Player", "Reporter").Err(err).Msg("failed to start reporter")
-			return err
+			errs = append(errs, err.Error())
 		}
 	}
+
+	if len(errs) > 0 {
+		return fmt.Errorf(strings.Join(errs, "; "))
+	}
+
 	return nil
 }
 
 func (a *App) stopReporters() error {
+	var errs []string
+
 	for _, reporter := range a.Reporters {
 		err := stopReporter(reporter)
 		if err != nil {
 			log.Error().Str("Player", "Reporter").Err(err).Msg("failed to stop reporter")
-			return err
+			errs = append(errs, err.Error())
 		}
 	}
+
+	if len(errs) > 0 {
+		return fmt.Errorf(strings.Join(errs, "; "))
+	}
+
 	return nil
 }
 

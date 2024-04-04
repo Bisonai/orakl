@@ -61,7 +61,7 @@ func TestStartAggregator(t *testing.T) {
 			t.Logf("Cleanup failed: %v", cleanupErr)
 		}
 
-		if aggregatorStopErr := testItems.app.stopAggregatorById(ctx, testItems.tmpData.aggregator.ID); aggregatorStopErr != nil {
+		if aggregatorStopErr := testItems.app.stopAggregatorById(testItems.tmpData.aggregator.ID); aggregatorStopErr != nil {
 			t.Logf("error stopping aggregator: %v", aggregatorStopErr)
 		}
 	}()
@@ -130,7 +130,7 @@ func TestStopAggregator(t *testing.T) {
 	}
 	assert.Equal(t, true, testItems.app.Aggregators[testItems.tmpData.aggregator.ID].isRunning)
 
-	err = testItems.app.stopAggregator(ctx, testItems.app.Aggregators[testItems.tmpData.aggregator.ID])
+	err = testItems.app.stopAggregator(testItems.app.Aggregators[testItems.tmpData.aggregator.ID])
 	if err != nil {
 		t.Fatal("error stopping aggregator")
 	}
@@ -159,7 +159,7 @@ func TestStopAggregatorById(t *testing.T) {
 		t.Fatal("error starting aggregator")
 	}
 
-	err = testItems.app.stopAggregatorById(ctx, testItems.app.Aggregators[testItems.tmpData.aggregator.ID].AggregatorModel.ID)
+	err = testItems.app.stopAggregatorById(testItems.app.Aggregators[testItems.tmpData.aggregator.ID].AggregatorModel.ID)
 	if err != nil {
 		t.Fatal("error stopping aggregator")
 	}
