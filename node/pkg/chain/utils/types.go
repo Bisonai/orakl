@@ -11,7 +11,7 @@ import (
 )
 
 const (
-	DEFAULT_GAS_LIMIT    = uint64(1200000)
+	DEFAULT_GAS_LIMIT    = uint64(6000000)
 	SELECT_WALLETS_QUERY = "SELECT * FROM wallets;"
 )
 
