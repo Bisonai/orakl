@@ -318,12 +318,3 @@ func (a *App) handleMessage(ctx context.Context, msg bus.Message) {
 		}
 	}
 }
-
-func aggregatorIdExists(aggregators []AggregatorModel, id int64) bool {
-	for _, aggregator := range aggregators {
-		if aggregator.ID == id {
-			return true
-		}
-	}
-	return false
-}
