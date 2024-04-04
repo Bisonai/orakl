@@ -93,7 +93,7 @@ func (a *App) clearReporters() error {
 	a.Reporters = make([]*Reporter, 0)
 
 	if len(errs) > 0 {
-		return fmt.Errorf("errors occurred while stopping reporters: %s", strings.Join(errs, "; "))
+		return fmt.Errorf("errors occurred while stopping reporters: %v", errs)
 	}
 
 	return nil
@@ -245,6 +245,7 @@ func stopReporter(reporter *Reporter) error {
 	}
 
 	if reporter.nodeCancel == nil {
+		log.Error().Str("Player", "Reporter").Msg("reporter cancel function not found")
 		return errors.New("reporter cancel function not found")
 	}
 
