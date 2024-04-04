@@ -19,7 +19,7 @@ import (
 )
 
 const InsertGlobalAggregateQuery = `INSERT INTO global_aggregates (name, value, round) VALUES (@name, @value, @round) RETURNING name, value, round`
-const InsertAddressQuery = `INSERT INTO submission_addresses (name, address) VALUES (@name, @address) RETURNING *`
+const InsertAddressQuery = `INSERT INTO submission_addresses (name, address, interval) VALUES (@name, @address, @interval) RETURNING *`
 
 type TestItems struct {
 	app        *App
@@ -53,7 +53,7 @@ func insertSampleData(ctx context.Context) (*TmpData, error) {
 	}
 	tmpData.globalAggregate = tmpGlobalAggregate
 
-	tmpAddress, err := db.QueryRow[SubmissionAddress](ctx, InsertAddressQuery, map[string]any{"name": "test-aggregate", "address": "0x1234"})
+	tmpAddress, err := db.QueryRow[SubmissionAddress](ctx, InsertAddressQuery, map[string]any{"name": "test-aggregate", "address": "0x1234", "interval": 15000})
 	if err != nil {
 		return nil, err
 	}

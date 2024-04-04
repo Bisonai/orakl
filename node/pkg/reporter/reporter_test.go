@@ -24,9 +24,17 @@ func TestNewReporter(t *testing.T) {
 		}
 	}()
 
-	_, err = NewReporter(ctx, testItems.app.Host, testItems.app.Pubsub)
+	submissionPairs, err := getSubmissionPairs(ctx)
 	if err != nil {
-		t.Fatal("error creating new reporter")
+		t.Fatalf("error getting submission pairs: %v", err)
+	}
+	groupedSubmissionPairs := groupSubmissionPairsByIntervals(submissionPairs)
+
+	for groupInterval, pairs := range groupedSubmissionPairs {
+		_, err := NewReporter(ctx, testItems.app.Host, testItems.app.Pubsub, pairs, groupInterval)
+		if err != nil {
+			t.Fatalf("error creating new reporter: %v", err)
+		}
 	}
 }
 
@@ -41,9 +49,9 @@ func TestLeaderJob(t *testing.T) {
 			t.Logf("Cleanup failed: %v", cleanupErr)
 		}
 	}()
-	testItems.app.setReporter(ctx, testItems.app.Host, testItems.app.Pubsub)
-	testItems.app.Reporter.SetKlaytnHelper(ctx)
-	err = testItems.app.Reporter.leaderJob()
+	testItems.app.setReporters(ctx, testItems.app.Host, testItems.app.Pubsub)
+	testItems.app.Reporters[0].SetKlaytnHelper(ctx)
+	err = testItems.app.Reporters[0].leaderJob()
 	if err != nil {
 		t.Fatal("error running leader job")
 	}
@@ -60,9 +68,9 @@ func TestResignLeader(t *testing.T) {
 			t.Logf("Cleanup failed: %v", cleanupErr)
 		}
 	}()
-	testItems.app.setReporter(ctx, testItems.app.Host, testItems.app.Pubsub)
-	testItems.app.Reporter.resignLeader()
-	assert.Equal(t, testItems.app.Reporter.Raft.GetRole(), raft.Follower)
+	testItems.app.setReporters(ctx, testItems.app.Host, testItems.app.Pubsub)
+	testItems.app.Reporters[0].resignLeader()
+	assert.Equal(t, testItems.app.Reporters[0].Raft.GetRole(), raft.Follower)
 }
 
 func TestHandleCustomMessage(t *testing.T) {
@@ -76,8 +84,8 @@ func TestHandleCustomMessage(t *testing.T) {
 			t.Logf("Cleanup failed: %v", cleanupErr)
 		}
 	}()
-	testItems.app.setReporter(ctx, testItems.app.Host, testItems.app.Pubsub)
-	err = testItems.app.Reporter.handleCustomMessage(raft.Message{})
+	testItems.app.setReporters(ctx, testItems.app.Host, testItems.app.Pubsub)
+	err = testItems.app.Reporters[0].handleCustomMessage(raft.Message{})
 	assert.Equal(t, err.Error(), "unknown message type")
 }
 
@@ -92,8 +100,8 @@ func TestGetLatestGlobalAggregates(t *testing.T) {
 			t.Logf("Cleanup failed: %v", cleanupErr)
 		}
 	}()
-	testItems.app.setReporter(ctx, testItems.app.Host, testItems.app.Pubsub)
-	result, err := testItems.app.Reporter.getLatestGlobalAggregates(ctx)
+	testItems.app.setReporters(ctx, testItems.app.Host, testItems.app.Pubsub)
+	result, err := testItems.app.Reporters[0].getLatestGlobalAggregates(ctx)
 	if err != nil {
 		t.Fatal("error getting latest global aggregates")
 	}
@@ -112,17 +120,17 @@ func TestFilterInvalidAggregates(t *testing.T) {
 			t.Logf("Cleanup failed: %v", cleanupErr)
 		}
 	}()
-	testItems.app.setReporter(ctx, testItems.app.Host, testItems.app.Pubsub)
+	testItems.app.setReporters(ctx, testItems.app.Host, testItems.app.Pubsub)
 	aggregates := []GlobalAggregate{{
 		Name:  "test-aggregate",
 		Value: 15,
 		Round: 1,
 	}}
-	result := testItems.app.Reporter.filterInvalidAggregates(aggregates)
+	result := testItems.app.Reporters[0].filterInvalidAggregates(aggregates)
 	assert.Equal(t, result, aggregates)
 
-	testItems.app.Reporter.SubmissionPairs = map[string]SubmissionPair{"test-aggregate": {LastSubmission: 1, Address: common.HexToAddress("0x1234")}}
-	result = testItems.app.Reporter.filterInvalidAggregates(aggregates)
+	testItems.app.Reporters[0].SubmissionPairs = map[string]SubmissionPair{"test-aggregate": {LastSubmission: 1, Address: common.HexToAddress("0x1234")}}
+	result = testItems.app.Reporters[0].filterInvalidAggregates(aggregates)
 	assert.Equal(t, result, []GlobalAggregate{})
 }
 
@@ -137,17 +145,17 @@ func TestIsAggValid(t *testing.T) {
 			t.Logf("Cleanup failed: %v", cleanupErr)
 		}
 	}()
-	testItems.app.setReporter(ctx, testItems.app.Host, testItems.app.Pubsub)
+	testItems.app.setReporters(ctx, testItems.app.Host, testItems.app.Pubsub)
 	agg := GlobalAggregate{
 		Name:  "test-aggregate",
 		Value: 15,
 		Round: 1,
 	}
-	result := testItems.app.Reporter.isAggValid(agg)
+	result := testItems.app.Reporters[0].isAggValid(agg)
 	assert.Equal(t, result, true)
 
-	testItems.app.Reporter.SubmissionPairs = map[string]SubmissionPair{"test-aggregate": {LastSubmission: 1, Address: common.HexToAddress("0x1234")}}
-	result = testItems.app.Reporter.isAggValid(agg)
+	testItems.app.Reporters[0].SubmissionPairs = map[string]SubmissionPair{"test-aggregate": {LastSubmission: 1, Address: common.HexToAddress("0x1234")}}
+	result = testItems.app.Reporters[0].isAggValid(agg)
 	assert.Equal(t, result, false)
 }
 
@@ -162,18 +170,18 @@ func TestMakeContractArgs(t *testing.T) {
 			t.Logf("Cleanup failed: %v", cleanupErr)
 		}
 	}()
-	testItems.app.setReporter(ctx, testItems.app.Host, testItems.app.Pubsub)
+	testItems.app.setReporters(ctx, testItems.app.Host, testItems.app.Pubsub)
 	agg := GlobalAggregate{
 		Name:  "test-aggregate",
 		Value: 15,
 		Round: 1,
 	}
-	addresses, values, err := testItems.app.Reporter.makeContractArgs([]GlobalAggregate{agg})
+	addresses, values, err := testItems.app.Reporters[0].makeContractArgs([]GlobalAggregate{agg})
 	if err != nil {
 		t.Fatal("error making contract args")
 	}
 
-	assert.Equal(t, addresses[0], testItems.app.Reporter.SubmissionPairs[agg.Name].Address)
+	assert.Equal(t, addresses[0], testItems.app.Reporters[0].SubmissionPairs[agg.Name].Address)
 	assert.Equal(t, values[0], big.NewInt(15))
 }
 
@@ -189,9 +197,9 @@ func TestGetLatestGlobalAggregatesRdb(t *testing.T) {
 		}
 	}()
 
-	testItems.app.setReporter(ctx, testItems.app.Host, testItems.app.Pubsub)
+	testItems.app.setReporters(ctx, testItems.app.Host, testItems.app.Pubsub)
 
-	result, err := testItems.app.Reporter.getLatestGlobalAggregatesRdb(ctx)
+	result, err := testItems.app.Reporters[0].getLatestGlobalAggregatesRdb(ctx)
 	if err != nil {
 		t.Fatal("error getting latest global aggregates from rdb")
 	}
@@ -212,9 +220,9 @@ func TestGetLatestGlobalAggregatesPgsql(t *testing.T) {
 		}
 	}()
 
-	testItems.app.setReporter(ctx, testItems.app.Host, testItems.app.Pubsub)
+	testItems.app.setReporters(ctx, testItems.app.Host, testItems.app.Pubsub)
 
-	result, err := testItems.app.Reporter.getLatestGlobalAggregatesPgsql(ctx)
+	result, err := testItems.app.Reporters[0].getLatestGlobalAggregatesPgsql(ctx)
 	if err != nil {
 		fmt.Println(err)
 		t.Fatal("error getting latest global aggregates from pgs")

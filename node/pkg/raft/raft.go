@@ -69,6 +69,7 @@ func (r *Raft) subscribe(ctx context.Context) {
 	if err != nil {
 		log.Error().Err(err).Msg("failed to subscribe to topic")
 	}
+	defer sub.Cancel()
 	for {
 		select {
 		case <-ctx.Done():
