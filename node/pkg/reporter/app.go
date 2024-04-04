@@ -41,13 +41,11 @@ func (a *App) setReporters(ctx context.Context, h host.Host, ps *pubsub.PubSub) 
 		return err
 	}
 
-	submissionPairs, err := getSubmissionPairs(ctx)
+	groupedSubmissionPairs, err := a.prepareReporters(ctx)
 	if err != nil {
-		log.Error().Str("Player", "Reporter").Err(err).Msg("failed to get submission pairs")
+		log.Error().Str("Player", "Reporter").Err(err).Msg("failed to prepare reporters")
 		return err
 	}
-
-	groupedSubmissionPairs := groupSubmissionPairsByIntervals(submissionPairs)
 
 	for groupInterval, pairs := range groupedSubmissionPairs {
 		reporter, err := NewReporter(ctx, h, ps, pairs, groupInterval)
@@ -67,20 +65,37 @@ func (a *App) setReporters(ctx context.Context, h host.Host, ps *pubsub.PubSub) 
 	return nil
 }
 
+func (a *App) prepareReporters(ctx context.Context) (map[int][]SubmissionAddress, error) {
+	submissionPairs, err := getSubmissionPairs(ctx)
+	if err != nil {
+		log.Error().Str("Player", "Reporter").Err(err).Msg("failed to get submission pairs")
+		return nil, err
+	}
+
+	return groupSubmissionPairsByIntervals(submissionPairs), nil
+}
+
 func (a *App) clearReporters() error {
 	if a.Reporters == nil {
 		return nil
 	}
+
+	var errs []string
 	for _, reporter := range a.Reporters {
 		if reporter.isRunning {
 			err := stopReporter(reporter)
 			if err != nil {
 				log.Error().Str("Player", "Reporter").Err(err).Msg("failed to stop reporter")
-				return err
+				errs = append(errs, err.Error())
 			}
 		}
 	}
 	a.Reporters = make([]*Reporter, 0)
+
+	if len(errs) > 0 {
+		return fmt.Errorf("errors occurred while stopping reporters: %s", strings.Join(errs, "; "))
+	}
+
 	return nil
 }
 
@@ -226,7 +241,11 @@ func startReporter(ctx context.Context, reporter *Reporter) error {
 func stopReporter(reporter *Reporter) error {
 	if !reporter.isRunning {
 		log.Debug().Str("Player", "Reporter").Msg("reporter not running")
-		return errors.New("reporter not running")
+		return nil
+	}
+
+	if reporter.nodeCancel == nil {
+		return errors.New("reporter cancel function not found")
 	}
 
 	reporter.nodeCancel()

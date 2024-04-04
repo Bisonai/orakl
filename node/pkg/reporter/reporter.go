@@ -22,6 +22,10 @@ import (
 )
 
 func NewReporter(ctx context.Context, h host.Host, ps *pubsub.PubSub, submissionPairs []SubmissionAddress, interval int) (*Reporter, error) {
+	if len(submissionPairs) == 0 {
+		log.Error().Str("Player", "Reporter").Err(errors.New("no submission pairs")).Msg("no submission pairs to make new reporter")
+		return nil, errors.New("no submission pairs")
+	}
 	topicString := TOPIC_STRING + "-" + strconv.Itoa(interval)
 	groupInterval := time.Duration(interval) * time.Millisecond
 	topic, err := ps.Join(topicString)
