@@ -19,7 +19,8 @@ import (
 )
 
 const InsertGlobalAggregateQuery = `INSERT INTO global_aggregates (name, value, round) VALUES (@name, @value, @round) RETURNING name, value, round`
-const InsertAddressQuery = `INSERT INTO submission_addresses (name, address) VALUES (@name, @address) RETURNING *`
+const InsertAddressQuery = `INSERT INTO submission_addresses (name, address, interval) VALUES (@name, @address, @interval) RETURNING *`
+const TestInterval = 15000
 
 type TestItems struct {
 	app        *App
@@ -47,17 +48,27 @@ func insertSampleData(ctx context.Context) (*TmpData, error) {
 		return nil, err
 	}
 
+	err = db.QueryWithoutResult(ctx, aggregator.InsertAggregator, map[string]any{"name": "test-aggregate2"})
+	if err != nil {
+		return nil, err
+	}
+
 	tmpGlobalAggregate, err := db.QueryRow[GlobalAggregate](ctx, InsertGlobalAggregateQuery, map[string]any{"name": "test-aggregate", "value": int64(15), "round": int64(1)})
 	if err != nil {
 		return nil, err
 	}
 	tmpData.globalAggregate = tmpGlobalAggregate
 
-	tmpAddress, err := db.QueryRow[SubmissionAddress](ctx, InsertAddressQuery, map[string]any{"name": "test-aggregate", "address": "0x1234"})
+	tmpAddress, err := db.QueryRow[SubmissionAddress](ctx, InsertAddressQuery, map[string]any{"name": "test-aggregate", "address": "0x1234", "interval": TestInterval})
 	if err != nil {
 		return nil, err
 	}
 	tmpData.submissionAddress = tmpAddress
+
+	_, err = db.QueryRow[SubmissionAddress](ctx, InsertAddressQuery, map[string]any{"name": "test-aggregate2", "address": "0x1234", "interval": 20000})
+	if err != nil {
+		return nil, err
+	}
 
 	return tmpData, nil
 }

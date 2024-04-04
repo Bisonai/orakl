@@ -206,7 +206,7 @@ func (n *Aggregator) insertGlobalAggregate(value int64, round int64) error {
 }
 
 func (n *Aggregator) insertPgsql(ctx context.Context, value int64, round int64) error {
-	return db.QueryWithoutResult(n.nodeCtx, InsertGlobalAggregateQuery, map[string]any{"name": n.Name, "value": value, "round": round})
+	return db.QueryWithoutResult(ctx, InsertGlobalAggregateQuery, map[string]any{"name": n.Name, "value": value, "round": round})
 }
 
 func (n *Aggregator) insertRdb(ctx context.Context, value int64, round int64) error {
