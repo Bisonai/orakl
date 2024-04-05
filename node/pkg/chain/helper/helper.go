@@ -16,11 +16,10 @@ import (
 )
 
 type ChainHelper struct {
-	client       utils.ClientInterface
+	clients      []utils.ClientInterface
 	wallets      []string
 	chainID      *big.Int
 	delegatorUrl string
-	providerUrls []string // array index stands for priority
 
 	lastUsedWalletIndex int
 }
@@ -51,11 +50,33 @@ func NewEthHelper(ctx context.Context, providerUrl string) (*ChainHelper, error)
 
 	reporterPk := os.Getenv(EthReporterPk)
 
-	client, err := eth_client.Dial(providerUrl)
+	primaryClient, err := eth_client.Dial(providerUrl)
 	if err != nil {
 		return nil, err
 	}
-	return newHelper(ctx, client, reporterPk)
+
+	chainID, err := utils.GetChainID(ctx, primaryClient)
+	if err != nil {
+		log.Error().Err(err).Msg("failed to get chain id based on:" + providerUrl)
+		return nil, err
+	}
+	providerUrls, err := utils.LoadProviderUrls(ctx, int(chainID.Int64()))
+	if err != nil {
+		log.Error().Err(err).Msg("failed to load provider urls")
+		return nil, err
+	}
+	clients := make([]utils.ClientInterface, len(providerUrls)+1)
+	clients[0] = primaryClient
+	for _, url := range providerUrls {
+		subClient, err := eth_client.Dial(url)
+		if err != nil {
+			log.Error().Err(err).Msg("failed to dial sub client")
+			continue
+		}
+		clients = append(clients, subClient)
+	}
+
+	return newHelper(ctx, clients, reporterPk, chainID)
 }
 
 func NewKlayHelper(ctx context.Context, providerUrl string) (*ChainHelper, error) {
@@ -69,14 +90,35 @@ func NewKlayHelper(ctx context.Context, providerUrl string) (*ChainHelper, error
 
 	reporterPk := os.Getenv(KlaytnReporterPk)
 
-	client, err := client.Dial(providerUrl)
+	primaryClient, err := client.Dial(providerUrl)
 	if err != nil {
 		return nil, err
 	}
-	return newHelper(ctx, client, reporterPk)
+	chainID, err := utils.GetChainID(ctx, primaryClient)
+	if err != nil {
+		log.Error().Err(err).Msg("failed to get chain id based on:" + providerUrl)
+		return nil, err
+	}
+	providerUrls, err := utils.LoadProviderUrls(ctx, int(chainID.Int64()))
+	if err != nil {
+		log.Error().Err(err).Msg("failed to load provider urls")
+		return nil, err
+	}
+	clients := make([]utils.ClientInterface, len(providerUrls)+1)
+	clients[0] = primaryClient
+	for _, url := range providerUrls {
+		subClient, err := client.Dial(url)
+		if err != nil {
+			log.Error().Err(err).Msg("failed to dial sub client")
+			continue
+		}
+		clients = append(clients, subClient)
+	}
+
+	return newHelper(ctx, clients, reporterPk, chainID)
 }
 
-func newHelper(ctx context.Context, client utils.ClientInterface, reporterPK string) (*ChainHelper, error) {
+func newHelper(ctx context.Context, clients []utils.ClientInterface, reporterPK string, chainID *big.Int) (*ChainHelper, error) {
 	// assumes that single application submits to single chain, get wallets will select all from wallets table
 	wallets, err := utils.GetWallets(ctx)
 	if err != nil {
@@ -90,41 +132,18 @@ func newHelper(ctx context.Context, client utils.ClientInterface, reporterPK str
 
 	delegatorUrl := os.Getenv(EnvDelegatorUrl)
 
-	providerUrl := os.Getenv(KlaytnProviderUrl)
-	if providerUrl == "" {
-		log.Error().Msg("provider url not set")
-		return nil, errors.New("provider url not set")
-	}
-
-	chainID, err := utils.GetChainID(ctx, client)
-	if err != nil {
-		log.Error().Err(err).Msg("failed to get chain id based on:" + providerUrl)
-		return nil, err
-	}
-
-	loadedProviderUrls, err := utils.LoadProviderUrls(ctx, int(chainID.Int64()))
-	if err != nil {
-		log.Error().Err(err).Msg("failed to load provider urls")
-		return nil, err
-
-	}
-	providerUrls := make([]string, len(loadedProviderUrls)+1)
-	providerUrls[0] = providerUrl
-	for i, url := range loadedProviderUrls {
-		providerUrls[i+1] = url.Url
-	}
-
 	return &ChainHelper{
-		client:       client,
+		clients:      clients,
 		wallets:      wallets,
 		chainID:      chainID,
 		delegatorUrl: delegatorUrl,
-		providerUrls: providerUrls,
 	}, nil
 }
 
 func (t *ChainHelper) Close() {
-	t.client.Close()
+	for _, helperClient := range t.clients {
+		helperClient.Close()
+	}
 }
 
 func (t *ChainHelper) GetSignedFromDelegator(tx *types.Transaction) (*types.Transaction, error) {
@@ -159,30 +178,86 @@ func (t *ChainHelper) NextReporter() string {
 }
 
 func (t *ChainHelper) MakeDirectTx(ctx context.Context, contractAddressHex string, functionString string, args ...interface{}) (*types.Transaction, error) {
-	return utils.MakeDirectTx(ctx, t.client, contractAddressHex, t.NextReporter(), functionString, t.chainID, args...)
+	var result *types.Transaction
+	job := func(c utils.ClientInterface) error {
+		tmp, err := utils.MakeDirectTx(ctx, c, contractAddressHex, t.NextReporter(), functionString, t.chainID, args...)
+		if err == nil {
+			result = tmp
+		}
+		return err
+	}
+	err := t.retryOnJsonRpcFailure(ctx, job)
+	return result, err
 }
 
 func (t *ChainHelper) MakeFeeDelegatedTx(ctx context.Context, contractAddressHex string, functionString string, args ...interface{}) (*types.Transaction, error) {
-	return utils.MakeFeeDelegatedTx(ctx, t.client, contractAddressHex, t.NextReporter(), functionString, t.chainID, args...)
+	var result *types.Transaction
+	job := func(c utils.ClientInterface) error {
+		tmp, err := utils.MakeFeeDelegatedTx(ctx, c, contractAddressHex, t.NextReporter(), functionString, t.chainID, args...)
+		if err == nil {
+			result = tmp
+		}
+		return err
+	}
+	err := t.retryOnJsonRpcFailure(ctx, job)
+	return result, err
 }
 
 func (t *ChainHelper) SubmitRawTx(ctx context.Context, tx *types.Transaction) error {
-	return utils.SubmitRawTx(ctx, t.client, tx)
+	job := func(c utils.ClientInterface) error {
+		return utils.SubmitRawTx(ctx, c, tx)
+	}
+	return t.retryOnJsonRpcFailure(ctx, job)
 }
 
 func (t *ChainHelper) SubmitRawTxString(ctx context.Context, rawTx string) error {
-	return utils.SubmitRawTxString(ctx, t.client, rawTx)
+	job := func(c utils.ClientInterface) error {
+		return utils.SubmitRawTxString(ctx, c, rawTx)
+	}
+	return t.retryOnJsonRpcFailure(ctx, job)
 }
 
 // SignTxByFeePayer: used for testing purpose
 func (t *ChainHelper) SignTxByFeePayer(ctx context.Context, tx *types.Transaction) (*types.Transaction, error) {
-	return utils.SignTxByFeePayer(ctx, t.client, tx, t.chainID)
+	var result *types.Transaction
+	job := func(c utils.ClientInterface) error {
+		tmp, err := utils.SignTxByFeePayer(ctx, c, tx, t.chainID)
+		if err == nil {
+			result = tmp
+		}
+		return err
+	}
+	err := t.retryOnJsonRpcFailure(ctx, job)
+	return result, err
 }
 
 func (t *ChainHelper) ReadContract(ctx context.Context, contractAddressHex string, functionString string, args ...interface{}) (interface{}, error) {
-	return utils.ReadContract(ctx, t.client, functionString, contractAddressHex, args...)
+	var result interface{}
+	job := func(c utils.ClientInterface) error {
+		tmp, err := utils.ReadContract(ctx, c, functionString, contractAddressHex, args...)
+		if err == nil {
+			result = tmp
+		}
+		return err
+	}
+	err := t.retryOnJsonRpcFailure(ctx, job)
+	return result, err
 }
 
 func (t *ChainHelper) ChainID() *big.Int {
 	return t.chainID
+}
+
+func (t *ChainHelper) retryOnJsonRpcFailure(ctx context.Context, job func(c utils.ClientInterface) error) error {
+	for _, client := range t.clients {
+		err := job(client)
+		if err != nil {
+			if utils.ShouldRetryWithSwitchedJsonRPC(err) {
+				continue
+			}
+			return err
+		}
+		break
+	}
+	return nil
 }

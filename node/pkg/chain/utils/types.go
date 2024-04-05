@@ -77,7 +77,7 @@ type ClientInterface interface {
 	TransactionReceipt(ctx context.Context, txHash common.Hash) (*types.Receipt, error)
 }
 
-type JsonError interface {
+type JsonRpcError interface {
 	Error() string
 	ErrorCode() int
 	ErrorData() interface{}

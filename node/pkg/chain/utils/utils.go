@@ -520,3 +520,22 @@ func LoadProviderUrls(ctx context.Context, chainId int) ([]string, error) {
 
 	return result, nil
 }
+
+// reference: https://github.com/ethereum/go-ethereum/issues/19766#issuecomment-963442824
+func ShouldRetryWithSwitchedJsonRPC(err error) bool {
+	jsonErr, ok := err.(JsonRpcError)
+	if ok {
+		return IsJsonRpcFailureError(jsonErr.ErrorCode())
+	}
+	return false
+}
+
+func IsJsonRpcFailureError(errorCode int) bool {
+	if errorCode == -32603 {
+		return true
+	}
+	if errorCode <= -32000 && errorCode >= -32099 {
+		return true
+	}
+	return false
+}
