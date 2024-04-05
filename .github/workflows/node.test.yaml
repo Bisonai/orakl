@@ -78,9 +78,8 @@ jobs:
           cd ./node
           go mod tidy
 
-      - name: Install task
-        run: |
-          sudo snap install task --classic
+      - name: Install Task
+        uses: arduino/setup-task@v2
 
       - name: Run test
         run: |

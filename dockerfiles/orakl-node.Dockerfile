@@ -15,7 +15,7 @@ FROM debian@sha256:4b48997afc712259da850373fdbc60315316ee72213a4e77fc5a66032d790
 
 RUN apt-get update && apt-get install -y curl
 
-RUN sh -c "$(curl --location https://taskfile.dev/install.sh)" -- -d -b ~/.local/bin
+RUN sh -c "$(curl --location https://taskfile.dev/install.sh)" -- -d -b /usr/bin
 
 RUN curl -L https://github.com/golang-migrate/migrate/releases/download/v4.17.0/migrate.linux-amd64.tar.gz | tar xvz && \
     mv ./migrate /usr/bin
