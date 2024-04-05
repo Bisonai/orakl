@@ -22,7 +22,6 @@ func TestProviderUrlInsert(t *testing.T) {
 	testChainId := 1
 
 	mockProviderUrl1 := providerUrl.ProviderUrlInsertModel{
-		Chain:   "test_provider_chain_1",
 		ChainId: &testChainId,
 		Url:     "test_provider_url_1",
 	}

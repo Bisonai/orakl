@@ -114,7 +114,7 @@ func insertSampleData(ctx context.Context) (*TmpData, error) {
 	}
 	tmpData.submissionAddress = tmpSubmissionAddress
 
-	tmpProviderUrl, err := db.QueryRow[providerUrl.ProviderUrlModel](ctx, providerUrl.InsertProviderUrl, map[string]any{"chain": "test_chain", "chain_id": 1, "url": "test_url", "priority": 1})
+	tmpProviderUrl, err := db.QueryRow[providerUrl.ProviderUrlModel](ctx, providerUrl.InsertProviderUrl, map[string]any{"chain_id": 1, "url": "test_url", "priority": 1})
 	if err != nil {
 		return nil, err
 	}

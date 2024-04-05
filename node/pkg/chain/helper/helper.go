@@ -20,8 +20,9 @@ type ChainHelper struct {
 	wallets      []string
 	chainID      *big.Int
 	delegatorUrl string
+	providerUrls []string // array index stands for priority
 
-	lastUsed int
+	lastUsedWalletIndex int
 }
 
 type signedTx struct {
@@ -97,7 +98,20 @@ func newHelper(ctx context.Context, client utils.ClientInterface, reporterPK str
 
 	chainID, err := utils.GetChainID(ctx, client)
 	if err != nil {
+		log.Error().Err(err).Msg("failed to get chain id based on:" + providerUrl)
 		return nil, err
+	}
+
+	loadedProviderUrls, err := utils.LoadProviderUrls(ctx, int(chainID.Int64()))
+	if err != nil {
+		log.Error().Err(err).Msg("failed to load provider urls")
+		return nil, err
+
+	}
+	providerUrls := make([]string, len(loadedProviderUrls)+1)
+	providerUrls[0] = providerUrl
+	for i, url := range loadedProviderUrls {
+		providerUrls[i+1] = url.Url
 	}
 
 	return &ChainHelper{
@@ -105,6 +119,7 @@ func newHelper(ctx context.Context, client utils.ClientInterface, reporterPK str
 		wallets:      wallets,
 		chainID:      chainID,
 		delegatorUrl: delegatorUrl,
+		providerUrls: providerUrls,
 	}, nil
 }
 
@@ -138,8 +153,8 @@ func (t *ChainHelper) NextReporter() string {
 	if len(t.wallets) == 0 {
 		return ""
 	}
-	reporter := t.wallets[t.lastUsed]
-	t.lastUsed = (t.lastUsed + 1) % len(t.wallets)
+	reporter := t.wallets[t.lastUsedWalletIndex]
+	t.lastUsedWalletIndex = (t.lastUsedWalletIndex + 1) % len(t.wallets)
 	return reporter
 }
 

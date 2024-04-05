@@ -8,14 +8,12 @@ import (
 
 type ProviderUrlModel struct {
 	Id       *int64 `db:"id" json:"id"`
-	Chain    string `db:"chain" json:"chain"`
 	ChainId  *int   `db:"chain_id" json:"chain_id"`
 	Url      string `db:"url" json:"url"`
 	Priority *int   `db:"priority" json:"priority"`
 }
 
 type ProviderUrlInsertModel struct {
-	Chain    string `db:"chain" json:"chain" validate:"required"`
 	ChainId  *int   `db:"chain_id" json:"chain_id" validate:"required"`
 	Url      string `db:"url" json:"url" validate:"required"`
 	Priority *int   `db:"priority" json:"priority"`
@@ -33,7 +31,6 @@ func insert(c *fiber.Ctx) error {
 	}
 
 	result, err := db.QueryRow[ProviderUrlModel](c.Context(), InsertProviderUrl, map[string]any{
-		"chain":    payload.Chain,
 		"chain_id": payload.ChainId,
 		"url":      payload.Url,
 		"priority": payload.Priority,

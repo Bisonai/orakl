@@ -507,3 +507,16 @@ func MakeAbiFuncAttribute(args string) string {
 	}
 	return strings.Join(parts, ",\n")
 }
+
+func LoadProviderUrls(ctx context.Context, chainId int) ([]string, error) {
+	providerUrls, err := db.QueryRows[ProviderUrl](ctx, SELECT_PROVIDER_URLS_QUERY, map[string]interface{}{"chain_id": chainId})
+	if err != nil {
+		return nil, err
+	}
+	result := make([]string, len(providerUrls))
+	for i, providerUrl := range providerUrls {
+		result[i] = providerUrl.Url
+	}
+
+	return result, nil
+}
