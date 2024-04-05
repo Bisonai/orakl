@@ -65,8 +65,9 @@ func NewEthHelper(ctx context.Context, providerUrl string) (*ChainHelper, error)
 		log.Error().Err(err).Msg("failed to load provider urls")
 		return nil, err
 	}
-	clients := make([]utils.ClientInterface, len(providerUrls)+1)
-	clients[0] = primaryClient
+
+	clients := make([]utils.ClientInterface, 0, len(providerUrls)+1)
+	clients = append(clients, primaryClient)
 	for _, url := range providerUrls {
 		subClient, err := eth_client.Dial(url)
 		if err != nil {
@@ -104,8 +105,9 @@ func NewKlayHelper(ctx context.Context, providerUrl string) (*ChainHelper, error
 		log.Error().Err(err).Msg("failed to load provider urls")
 		return nil, err
 	}
-	clients := make([]utils.ClientInterface, len(providerUrls)+1)
-	clients[0] = primaryClient
+
+	clients := make([]utils.ClientInterface, 0, len(providerUrls)+1)
+	clients = append(clients, primaryClient)
 	for _, url := range providerUrls {
 		subClient, err := client.Dial(url)
 		if err != nil {
@@ -246,6 +248,10 @@ func (t *ChainHelper) ReadContract(ctx context.Context, contractAddressHex strin
 
 func (t *ChainHelper) ChainID() *big.Int {
 	return t.chainID
+}
+
+func (t *ChainHelper) NumClients() int {
+	return len(t.clients)
 }
 
 func (t *ChainHelper) retryOnJsonRpcFailure(ctx context.Context, job func(c utils.ClientInterface) error) error {

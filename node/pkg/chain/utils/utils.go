@@ -530,6 +530,7 @@ func ShouldRetryWithSwitchedJsonRPC(err error) bool {
 	return false
 }
 
+// errorCode reference: https://www.jsonrpc.org/specification
 func IsJsonRpcFailureError(errorCode int) bool {
 	if errorCode == -32603 {
 		return true

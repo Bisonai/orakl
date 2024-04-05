@@ -10,6 +10,7 @@ import (
 
 	"bisonai.com/orakl/node/pkg/chain/helper"
 	"bisonai.com/orakl/node/pkg/chain/utils"
+	"bisonai.com/orakl/node/pkg/db"
 	"github.com/klaytn/klaytn/blockchain/types"
 	"github.com/stretchr/testify/assert"
 )
@@ -17,26 +18,74 @@ import (
 var (
 	ErrEmptyContractAddress = errors.New("contract address is empty")
 	ErrEmptyFunctionString  = errors.New("function string is empty")
+	InsertProviderUrlQuery  = "INSERT INTO provider_urls (chain_id, url, priority) VALUES (@chain_id, @url, @priority)"
 )
 
 func TestNewKlaytnHelper(t *testing.T) {
 	ctx := context.Background()
 
+	err := db.QueryWithoutResult(ctx, InsertProviderUrlQuery, map[string]any{
+		"chain_id": 1001,
+		"url":      "https://api.baobab.klaytn.net:8651",
+		"priority": 1,
+	})
+	if err != nil {
+		t.Errorf("Unexpected error: %v", err)
+
+	}
+	err = db.QueryWithoutResult(ctx, InsertProviderUrlQuery, map[string]any{
+		"chain_id": 1001,
+		"url":      "https://klaytn-baobab-rpc.allthatnode.com:8551",
+		"priority": 2,
+	})
+	if err != nil {
+		t.Errorf("Unexpected error: %v", err)
+	}
+
 	klaytnHelper, err := helper.NewKlayHelper(ctx, "")
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
 	}
+	assert.Equal(t, 3, klaytnHelper.NumClients())
+
 	klaytnHelper.Close()
+	err = db.QueryWithoutResult(ctx, "DELETE FROM provider_urls;", nil)
+	if err != nil {
+		t.Errorf("Unexpected error: %v", err)
+	}
+
 }
 
 func TestNewEthHelper(t *testing.T) {
 	ctx := context.Background()
 
+	err := db.QueryWithoutResult(ctx, InsertProviderUrlQuery, map[string]any{
+		"chain_id": 11155111,
+		"url":      "https://sepolia.gateway.tenderly.co",
+		"priority": 1,
+	})
+	if err != nil {
+		t.Errorf("Unexpected error: %v", err)
+	}
+	err = db.QueryWithoutResult(ctx, InsertProviderUrlQuery, map[string]any{
+		"chain_id": 11155111,
+		"url":      "wss://ethereum-sepolia-rpc.publicnode.com",
+		"priority": 2,
+	})
+	if err != nil {
+		t.Errorf("Unexpected error: %v", err)
+	}
+
 	ethHelper, err := helper.NewEthHelper(ctx, "")
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
 	}
+	assert.Equal(t, 3, ethHelper.NumClients())
 	ethHelper.Close()
+	err = db.QueryWithoutResult(ctx, "DELETE FROM provider_urls;", nil)
+	if err != nil {
+		t.Errorf("Unexpected error: %v", err)
+	}
 }
 
 func TestNextReporter(t *testing.T) {
