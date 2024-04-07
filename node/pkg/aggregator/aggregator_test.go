@@ -76,7 +76,7 @@ func TestGetLatestLocalAggregate(t *testing.T) {
 
 	node.Name = "test_pair"
 
-	val, dbTime, err := node.getLatestLocalAggregate(ctx)
+	val, dbTime, err := GetLatestLocalAggregate(ctx, node.Name)
 	if err != nil {
 		t.Fatal("error getting latest local aggregate")
 	}
@@ -136,7 +136,7 @@ func TestInsertGlobalAggregate(t *testing.T) {
 
 	node.Name = "test_pair"
 
-	err = node.insertGlobalAggregate(20, 2)
+	err = InsertGlobalAggregate(ctx, node.Name, 20, 2)
 	if err != nil {
 		t.Fatal("error inserting global aggregate")
 	}

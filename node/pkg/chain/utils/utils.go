@@ -540,3 +540,13 @@ func IsJsonRpcFailureError(errorCode int) bool {
 	}
 	return false
 }
+
+func MakeValueSignature(value int64, pk *ecdsa.PrivateKey) ([]byte, error) {
+	bigIntVal := big.NewInt(value)
+	hash := crypto.Keccak256(bigIntVal.Bytes())
+	return crypto.Sign(hash, pk)
+}
+
+func StringToPk(pk string) (*ecdsa.PrivateKey, error) {
+	return crypto.HexToECDSA(pk)
+}

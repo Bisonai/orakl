@@ -2,6 +2,8 @@ package helper
 
 import (
 	"context"
+	"crypto/ecdsa"
+	"encoding/hex"
 	"errors"
 	"math/big"
 	"os"
@@ -22,6 +24,10 @@ type ChainHelper struct {
 	delegatorUrl string
 
 	lastUsedWalletIndex int
+}
+
+type SignHelper struct {
+	PK *ecdsa.PrivateKey
 }
 
 type signedTx struct {
@@ -266,4 +272,31 @@ func (t *ChainHelper) retryOnJsonRpcFailure(ctx context.Context, job func(c util
 		break
 	}
 	return nil
+}
+
+func NewSignHelper(pk string) (*SignHelper, error) {
+	if pk == "" {
+		pk = os.Getenv(KlaytnReporterPk)
+		if pk == "" {
+			log.Error().Msg("reporter pk not set")
+			return nil, errors.New("reporter pk not set")
+		}
+	}
+
+	pk = strings.TrimPrefix(pk, "0x")
+	privateKey, err := utils.StringToPk(pk)
+	if err != nil {
+		return nil, err
+	}
+	return &SignHelper{
+		PK: privateKey,
+	}, nil
+}
+
+func (s *SignHelper) MakeGlobalAggregateProof(val int64) ([]byte, error) {
+	return utils.MakeValueSignature(val, s.PK)
+}
+
+func (s *SignHelper) RawByteProofToString(rawBytes []byte) string {
+	return hex.EncodeToString(rawBytes)
 }

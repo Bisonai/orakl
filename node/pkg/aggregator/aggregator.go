@@ -4,11 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"strings"
 	"sync"
 
 	"time"
 
+	"bisonai.com/orakl/node/pkg/chain/helper"
 	"bisonai.com/orakl/node/pkg/db"
 	"bisonai.com/orakl/node/pkg/raft"
 	"bisonai.com/orakl/node/pkg/utils/calculator"
@@ -30,11 +30,19 @@ func NewAggregator(h host.Host, ps *pubsub.PubSub, topicString string) (*Aggrega
 		return nil, err
 	}
 
+	signHelper, err := helper.NewSignHelper("")
+	if err != nil {
+		log.Error().Str("Player", "Aggregator").Err(err).Msg("failed to create sign helper")
+		return nil, err
+	}
+
 	aggregator := Aggregator{
 		Raft:            raft.NewRaftNode(h, ps, topic, 100, LEADER_TIMEOUT),
 		CollectedPrices: map[int64][]int64{},
+		CollectedProofs: map[int64][][]byte{},
 		AggregatorMutex: sync.Mutex{},
 		RoundID:         0,
+		SignHelper:      signHelper,
 	}
 	aggregator.Raft.LeaderJob = aggregator.LeaderJob
 	aggregator.Raft.HandleCustomMessage = aggregator.HandleCustomMessage
@@ -80,6 +88,8 @@ func (n *Aggregator) HandleCustomMessage(message raft.Message) error {
 		return n.HandleRoundSyncMessage(message)
 	case PriceData:
 		return n.HandlePriceDataMessage(message)
+	case Proof:
+		return n.HandleProofMessage(message)
 	default:
 		return fmt.Errorf("unknown message type received in HandleCustomMessage: %v", message.Type)
 	}
@@ -100,30 +110,14 @@ func (n *Aggregator) HandleRoundSyncMessage(msg raft.Message) error {
 		n.RoundID = roundSyncMessage.RoundID
 	}
 	var updateValue int64 = -1
-	value, updateTime, err := n.getLatestLocalAggregate(n.nodeCtx)
+	value, updateTime, err := GetLatestLocalAggregate(n.nodeCtx, n.Name)
 
 	if err == nil && n.LastLocalAggregateTime.IsZero() || !n.LastLocalAggregateTime.Equal(updateTime) {
 		updateValue = value
 		n.LastLocalAggregateTime = updateTime
 	}
 
-	priceDataMessage := PriceDataMessage{
-		RoundID:   n.RoundID,
-		PriceData: updateValue,
-	}
-
-	marshalledPriceDataMessage, err := json.Marshal(priceDataMessage)
-	if err != nil {
-		return err
-	}
-
-	message := raft.Message{
-		Type:     PriceData,
-		SentFrom: n.Raft.Host.ID().String(),
-		Data:     json.RawMessage(marshalledPriceDataMessage),
-	}
-
-	return n.Raft.PublishMessage(message)
+	return n.SendPriceDataMessage(n.RoundID, updateValue)
 }
 
 func (n *Aggregator) HandlePriceDataMessage(msg raft.Message) error {
@@ -154,25 +148,49 @@ func (n *Aggregator) HandlePriceDataMessage(msg raft.Message) error {
 			return err
 		}
 		log.Debug().Str("Player", "Aggregator").Int64("roundId", priceDataMessage.RoundID).Int64("global_aggregate", median).Msg("global aggregated")
-		err = n.insertGlobalAggregate(median, priceDataMessage.RoundID)
+		err = InsertGlobalAggregate(n.nodeCtx, n.Name, median, priceDataMessage.RoundID)
 		if err != nil {
 			log.Error().Str("Player", "Aggregator").Err(err).Msg("failed to insert global aggregate")
 			return err
 		}
+
+		proof, err := n.SignHelper.MakeGlobalAggregateProof(median)
+		if err != nil {
+			log.Error().Str("Player", "Aggregator").Err(err).Msg("failed to make global aggregate proof")
+			return err
+		}
+		return n.SendProofMessage(priceDataMessage.RoundID, proof)
 	}
 	return nil
 }
 
-func (n *Aggregator) getLatestLocalAggregate(ctx context.Context) (int64, time.Time, error) {
-	redisAggregate, err := GetLatestLocalAggregateFromRdb(ctx, n.Name)
+func (n *Aggregator) HandleProofMessage(msg raft.Message) error {
+	var proofMessage ProofMessage
+	err := json.Unmarshal(msg.Data, &proofMessage)
 	if err != nil {
-		pgsqlAggregate, err := GetLatestLocalAggregateFromPgs(ctx, n.Name)
-		if err != nil {
-			return 0, time.Time{}, err
-		}
-		return pgsqlAggregate.Value, pgsqlAggregate.Timestamp, nil
+		return err
 	}
-	return redisAggregate.Value, redisAggregate.Timestamp, nil
+
+	if proofMessage.RoundID == 0 {
+		return fmt.Errorf("invalid proof message: %v", proofMessage)
+	}
+
+	n.AggregatorMutex.Lock()
+	defer n.AggregatorMutex.Unlock()
+	if _, ok := n.CollectedProofs[proofMessage.RoundID]; !ok {
+		n.CollectedProofs[proofMessage.RoundID] = [][]byte{}
+	}
+
+	n.CollectedProofs[proofMessage.RoundID] = append(n.CollectedProofs[proofMessage.RoundID], proofMessage.Proof)
+	if len(n.CollectedProofs[proofMessage.RoundID]) >= n.Raft.SubscribersCount()+1 {
+		defer delete(n.CollectedProofs, proofMessage.RoundID)
+		err := InsertProof(n.nodeCtx, n.Name, proofMessage.RoundID, n.CollectedProofs[proofMessage.RoundID])
+		if err != nil {
+			log.Error().Str("Player", "Aggregator").Err(err).Msg("failed to insert proof")
+			return err
+		}
+	}
+	return nil
 }
 
 func (n *Aggregator) getLatestRoundId(ctx context.Context) (int64, error) {
@@ -183,43 +201,47 @@ func (n *Aggregator) getLatestRoundId(ctx context.Context) (int64, error) {
 	return result.Round, nil
 }
 
-func (n *Aggregator) insertGlobalAggregate(value int64, round int64) error {
-	var errs []string
-
-	err := n.insertPgsql(n.nodeCtx, value, round)
-	if err != nil {
-		log.Error().Str("Player", "Aggregator").Err(err).Msg("failed to insert global aggregate into pgsql")
-		errs = append(errs, err.Error())
-	}
-
-	err = n.insertRdb(n.nodeCtx, value, round)
-	if err != nil {
-		log.Error().Str("Player", "Aggregator").Err(err).Msg("failed to insert global aggregate into rdb")
-		errs = append(errs, err.Error())
-	}
-
-	if len(errs) > 0 {
-		return fmt.Errorf(strings.Join(errs, "; "))
-	}
-
-	return nil
-}
-
-func (n *Aggregator) insertPgsql(ctx context.Context, value int64, round int64) error {
-	return db.QueryWithoutResult(ctx, InsertGlobalAggregateQuery, map[string]any{"name": n.Name, "value": value, "round": round})
-}
-
-func (n *Aggregator) insertRdb(ctx context.Context, value int64, round int64) error {
-	key := "globalAggregate:" + n.Name
-	data, err := json.Marshal(globalAggregate{Name: n.Name, Value: value, Round: round, Timestamp: time.Now()})
-	if err != nil {
-		log.Error().Str("Player", "Aggregator").Err(err).Msg("failed to marshal global aggregate")
-		return err
-	}
-	return db.Set(ctx, key, string(data), time.Duration(5*time.Minute))
-}
-
 func (n *Aggregator) executeDeviation() error {
 	// signals for deviation job which triggers immediate aggregation and sends submission request to submitter
 	return nil
+}
+
+func (n *Aggregator) SendPriceDataMessage(roundId int64, value int64) error {
+	priceDataMessage := PriceDataMessage{
+		RoundID:   roundId,
+		PriceData: value,
+	}
+
+	marshalledPriceDataMessage, err := json.Marshal(priceDataMessage)
+	if err != nil {
+		return err
+	}
+
+	message := raft.Message{
+		Type:     PriceData,
+		SentFrom: n.Raft.GetHostId(),
+		Data:     json.RawMessage(marshalledPriceDataMessage),
+	}
+
+	return n.Raft.PublishMessage(message)
+}
+
+func (n *Aggregator) SendProofMessage(roundId int64, proof []byte) error {
+	proofMessage := ProofMessage{
+		RoundID: roundId,
+		Proof:   proof,
+	}
+
+	marshalledProofMessage, err := json.Marshal(proofMessage)
+	if err != nil {
+		return err
+	}
+
+	message := raft.Message{
+		Type:     Proof,
+		SentFrom: n.Raft.GetHostId(),
+		Data:     json.RawMessage(marshalledProofMessage),
+	}
+
+	return n.Raft.PublishMessage(message)
 }
