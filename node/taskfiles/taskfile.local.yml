@@ -79,6 +79,10 @@ tasks:
     cmds:
       - go test ./pkg/chain/tests -v
 
+  check-api:
+    dotenv: [".env"]
+    cmds:
+      - curl -X GET "http://localhost:$APP_PORT/api/v1"
   refresh-fetcher:
     dotenv: [".env"]
     cmds:
@@ -93,15 +97,33 @@ tasks:
       - |
         curl -X POST "http://localhost:$APP_PORT/api/v1/proxy" \
         -H "Content-Type: application/json" \
-        -d '{"protocol": "{{.PROTOCOL}}", "host": "{{.HOST}}", "port": {{.PORT}}, "location": "{{.LOCATION}}"}'
+        -d '{"protocol": "{{.PROTOCOL}}", "host": "{{.HOST}}", "port": {{.PORT}}, "location": "{{.LOCATION}}"}'| jq
+  get-proxy:
+    dotenv: [".env"]
+    cmds:
+      - curl -X GET "http://localhost:$APP_PORT/api/v1/proxy"| jq
   add-wallet:
     dotenv: [".env"]
     cmds:
       - |
         curl -X POST "http://localhost:$APP_PORT/api/v1/wallet" \
         -H "Content-Type: application/json" \
-        -d '{"pk": "{{.PK}}"}'
-
+        -d '{"pk": "{{.PK}}"}'| jq
+  get-wallet:
+    dotenv: [".env"]
+    cmds:
+      - curl -X GET "http://localhost:$APP_PORT/api/v1/wallet" | jq
+  add-json-rpc:
+    dotenv: [".env"]
+    cmds:
+      - |
+        curl -X POST "http://localhost:$APP_PORT/api/v1/provider-url" \
+        -H "Content-Type: application/json" \
+        -d '{"chain_id": {{.CHAIN_ID}}, "url": "{{.URL}}", "priority": {{.PRIORITY}}}' | jq
+  get-json-rpc:
+    dotenv: [".env"]
+    cmds:
+      - curl -X GET "http://localhost:$APP_PORT/api/v1/provider-url" | jq
   test:
     cmds:
       - task: test-db
