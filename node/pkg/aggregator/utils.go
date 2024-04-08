@@ -26,9 +26,9 @@ func GetLatestLocalAggregateFromPgs(ctx context.Context, name string) (pgsLocalA
 	return db.QueryRow[pgsLocalAggregate](ctx, SelectLatestLocalAggregateQuery, map[string]any{"name": name})
 }
 
-func GetLatestGlobalAggregateFromRdb(ctx context.Context, name string) (redisGlobalAggregate, error) {
+func GetLatestGlobalAggregateFromRdb(ctx context.Context, name string) (globalAggregate, error) {
 	key := "globalAggregate:" + name
-	var aggregate redisGlobalAggregate
+	var aggregate globalAggregate
 	data, err := db.Get(ctx, key)
 	if err != nil {
 		return aggregate, err

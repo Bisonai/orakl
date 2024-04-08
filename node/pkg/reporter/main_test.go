@@ -37,7 +37,7 @@ func insertSampleData(ctx context.Context) (*TmpData, error) {
 	var tmpData = new(TmpData)
 
 	key := "globalAggregate:" + "test-aggregate"
-	data, err := json.Marshal(map[string]any{"value": int64(15), "round": int64(1)})
+	data, err := json.Marshal(map[string]any{"name": "test-aggregate", "value": int64(15), "round": int64(1)})
 	if err != nil {
 		return nil, err
 	}
