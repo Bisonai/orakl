@@ -27,7 +27,8 @@ type redisLocalAggregate struct {
 	Timestamp time.Time `json:"timestamp"`
 }
 
-type redisProofs struct {
+type Proofs struct {
+	Name   string   `json:"name"`
 	Round  int64    `json:"round"`
 	Proofs [][]byte `json:"proofs"`
 }

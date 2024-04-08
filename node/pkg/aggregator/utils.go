@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
@@ -84,7 +85,7 @@ func insertPgsql(ctx context.Context, name string, value int64, round int64) err
 
 func insertRdb(ctx context.Context, name string, value int64, round int64) error {
 	key := "globalAggregate:" + name
-	data, err := json.Marshal(redisGlobalAggregate{Value: value, Round: round})
+	data, err := json.Marshal(globalAggregate{Name: name, Value: value, Round: round})
 	if err != nil {
 		log.Error().Str("Player", "Aggregator").Err(err).Msg("failed to marshal global aggregate")
 		return err
@@ -128,8 +129,8 @@ func insertProofPgsql(ctx context.Context, name string, round int64, proofs [][]
 }
 
 func insertProofRdb(ctx context.Context, name string, round int64, proofs [][]byte) error {
-	key := "proof:" + name
-	data, err := json.Marshal(redisProofs{Round: round, Proofs: proofs})
+	key := "proof:" + name + "|round:" + strconv.FormatInt(round, 10)
+	data, err := json.Marshal(Proofs{Name: name, Round: round, Proofs: proofs})
 	if err != nil {
 		log.Error().Str("Player", "Aggregator").Err(err).Msg("failed to marshal proofs")
 		return err

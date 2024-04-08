@@ -236,7 +236,7 @@ func TestMakeContractArgs(t *testing.T) {
 		Value: 15,
 		Round: 1,
 	}
-	addresses, values, err := reporter.makeContractArgs([]GlobalAggregate{agg})
+	addresses, values, err := reporter.makeContractArgsWithoutProofs([]GlobalAggregate{agg})
 	if err != nil {
 		t.Fatal("error making contract args")
 	}
