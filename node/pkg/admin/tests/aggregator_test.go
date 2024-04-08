@@ -299,4 +299,7 @@ func TestAggregatorAddFromOraklConfig(t *testing.T) {
 
 	// cleanup
 	_, err = db.QueryRow[aggregator.AggregatorModel](context.Background(), "DELETE FROM aggregators;", nil)
+	if err != nil {
+		t.Fatalf("error cleaning up test: %v", err)
+	}
 }

@@ -11,13 +11,21 @@ import (
 )
 
 const (
-	DEFAULT_GAS_LIMIT    = uint64(6000000)
-	SELECT_WALLETS_QUERY = "SELECT * FROM wallets;"
+	DEFAULT_GAS_LIMIT          = uint64(6000000)
+	SELECT_WALLETS_QUERY       = "SELECT * FROM wallets;"
+	SELECT_PROVIDER_URLS_QUERY = "SELECT * FROM provider_urls WHERE chain_id = @chain_id ORDER BY priority;"
 )
 
 type Wallet struct {
 	ID int64  `db:"id"`
 	PK string `db:"pk"`
+}
+
+type ProviderUrl struct {
+	Id       *int64 `db:"id"`
+	ChainId  *int   `db:"chain_id"`
+	Url      string `db:"url"`
+	Priority *int   `db:"priority"`
 }
 
 type SignInsertPayload struct {
@@ -67,4 +75,10 @@ type ClientInterface interface {
 	NetworkID(ctx context.Context) (*big.Int, error)
 	CodeAt(ctx context.Context, account common.Address, blockNumber *big.Int) ([]byte, error)
 	TransactionReceipt(ctx context.Context, txHash common.Hash) (*types.Receipt, error)
+}
+
+type JsonRpcError interface {
+	Error() string
+	ErrorCode() int
+	ErrorData() interface{}
 }

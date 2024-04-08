@@ -507,3 +507,36 @@ func MakeAbiFuncAttribute(args string) string {
 	}
 	return strings.Join(parts, ",\n")
 }
+
+func LoadProviderUrls(ctx context.Context, chainId int) ([]string, error) {
+	providerUrls, err := db.QueryRows[ProviderUrl](ctx, SELECT_PROVIDER_URLS_QUERY, map[string]interface{}{"chain_id": chainId})
+	if err != nil {
+		return nil, err
+	}
+	result := make([]string, len(providerUrls))
+	for i, providerUrl := range providerUrls {
+		result[i] = providerUrl.Url
+	}
+
+	return result, nil
+}
+
+// reference: https://github.com/ethereum/go-ethereum/issues/19766#issuecomment-963442824
+func ShouldRetryWithSwitchedJsonRPC(err error) bool {
+	jsonErr, ok := err.(JsonRpcError)
+	if ok {
+		return IsJsonRpcFailureError(jsonErr.ErrorCode())
+	}
+	return false
+}
+
+// errorCode reference: https://www.jsonrpc.org/specification
+func IsJsonRpcFailureError(errorCode int) bool {
+	if errorCode == -32603 {
+		return true
+	}
+	if errorCode <= -32000 && errorCode >= -32099 {
+		return true
+	}
+	return false
+}
