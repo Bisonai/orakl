@@ -211,7 +211,7 @@ func (n *Aggregator) insertPgsql(ctx context.Context, value int64, round int64) 
 
 func (n *Aggregator) insertRdb(ctx context.Context, value int64, round int64) error {
 	key := "globalAggregate:" + n.Name
-	data, err := json.Marshal(redisGlobalAggregate{Value: value, Round: round})
+	data, err := json.Marshal(globalAggregate{Name: n.Name, Value: value, Round: round, Timestamp: time.Now()})
 	if err != nil {
 		log.Error().Str("Player", "Aggregator").Err(err).Msg("failed to marshal global aggregate")
 		return err

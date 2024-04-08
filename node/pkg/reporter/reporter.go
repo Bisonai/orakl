@@ -8,7 +8,6 @@ import (
 	"math/big"
 	"os"
 	"strconv"
-	"strings"
 	"time"
 
 	"bisonai.com/orakl/node/pkg/chain/helper"
@@ -181,7 +180,6 @@ func (r *Reporter) getLatestGlobalAggregatesRdb(ctx context.Context) ([]GlobalAg
 			log.Error().Str("Player", "Reporter").Err(err).Str("key", keys[i]).Msg("failed to unmarshal aggregate")
 			continue
 		}
-		aggregate.Name = strings.TrimPrefix(keys[i], "globalAggregate:")
 		aggregates = append(aggregates, aggregate)
 	}
 
