@@ -3,7 +3,6 @@ package utils
 import (
 	"context"
 	"crypto/ecdsa"
-	"encoding/binary"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -548,7 +547,8 @@ func IsJsonRpcFailureError(errorCode int) bool {
 func MakeValueSignature(value int64, pk *ecdsa.PrivateKey) ([]byte, error) {
 	bigIntVal := big.NewInt(value)
 	buf := make([]byte, 32)
-	binary.BigEndian.PutUint64(buf[24:], bigIntVal.Uint64())
+
+	copy(buf[32-len(bigIntVal.Bytes()):], bigIntVal.Bytes())
 	hash := crypto.Keccak256(buf)
 	signature, err := crypto.Sign(hash, pk)
 	if err != nil {
