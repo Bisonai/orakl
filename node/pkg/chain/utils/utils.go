@@ -3,6 +3,7 @@ package utils
 import (
 	"context"
 	"crypto/ecdsa"
+	"encoding/binary"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -120,6 +121,7 @@ func generateABI(functionName string, inputs string, outputs string, stateMutabi
 
 	parsedABI, err := abi.JSON(strings.NewReader(json))
 	if err != nil {
+		log.Error().Err(err).Msg("failed to parse abi")
 		return nil, err
 	}
 
@@ -172,11 +174,13 @@ func MakeDirectTx(ctx context.Context, client ClientInterface, contractAddressHe
 
 	abi, err := GenerateCallABI(functionName, inputs, outputs)
 	if err != nil {
+		log.Error().Err(err).Msg("failed to generate abi")
 		return nil, err
 	}
 
 	packed, err := abi.Pack(functionName, args...)
 	if err != nil {
+		log.Error().Err(err).Msg("failed to pack abi")
 		return nil, err
 	}
 
@@ -543,8 +547,20 @@ func IsJsonRpcFailureError(errorCode int) bool {
 
 func MakeValueSignature(value int64, pk *ecdsa.PrivateKey) ([]byte, error) {
 	bigIntVal := big.NewInt(value)
-	hash := crypto.Keccak256(bigIntVal.Bytes())
-	return crypto.Sign(hash, pk)
+	buf := make([]byte, 32)
+	binary.BigEndian.PutUint64(buf[24:], bigIntVal.Uint64())
+	hash := crypto.Keccak256(buf)
+	signature, err := crypto.Sign(hash, pk)
+	if err != nil {
+		return nil, err
+	}
+
+	// Convert V from 0/1 to 27/28
+	if signature[64] < 27 {
+		signature[64] += 27
+	}
+
+	return signature, nil
 }
 
 func StringToPk(pk string) (*ecdsa.PrivateKey, error) {
