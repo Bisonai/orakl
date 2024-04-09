@@ -265,7 +265,7 @@ func insertFeedData(ctx context.Context, adapterId int64, feedData []FeedData) e
 		insertRows = append(insertRows, []any{adapterId, data.FeedName, data.Value})
 	}
 
-	_, err := db.BulkInsert(ctx, "feed_data", []string{"adapter_id", "name", "value"}, insertRows)
+	err := db.BulkInsert(ctx, "feed_data", []string{"adapter_id", "name", "value"}, insertRows)
 	if err != nil {
 		log.Error().Str("Player", "Fetcher").Err(err).Msg("failed to insert feed data")
 	}
