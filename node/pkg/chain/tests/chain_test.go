@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"os"
 	"strings"
 	"testing"
 
@@ -12,6 +13,7 @@ import (
 	"bisonai.com/orakl/node/pkg/chain/utils"
 	"bisonai.com/orakl/node/pkg/db"
 	"github.com/klaytn/klaytn/blockchain/types"
+	"github.com/klaytn/klaytn/crypto"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -53,7 +55,13 @@ func TestNewKlaytnHelper(t *testing.T) {
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
 	}
+}
 
+func TestNewChainHelper(t *testing.T) {
+	_, err := helper.NewSignHelper("")
+	if err != nil {
+		t.Errorf("Unexpected error: %v", err)
+	}
 }
 
 func TestNewEthHelper(t *testing.T) {
@@ -468,4 +476,32 @@ func TestMakeAbiFuncAttribute(t *testing.T) {
 			t.Errorf("Test case %s: Expected '%s', but got '%s'", test.name, test.expected, result)
 		}
 	}
+}
+
+func TestMakeGlobalAggregateProof(t *testing.T) {
+	s, err := helper.NewSignHelper("")
+	if err != nil {
+		t.Errorf("Unexpected error: %v", err)
+	}
+
+	proof, err := s.MakeGlobalAggregateProof(200000000)
+	if err != nil {
+		t.Errorf("Unexpected error: %v", err)
+	}
+
+	assert.NotEqual(t, proof, nil)
+
+	hash := utils.Value2HashForSign(200000000)
+	addr, err := utils.RecoverSigner(hash, proof)
+	if err != nil {
+		t.Errorf("Unexpected error: %v", err)
+	}
+
+	pk, err := utils.StringToPk(os.Getenv("KLAYTN_REPORTER_PK"))
+	if err != nil {
+		t.Errorf("Unexpected error: %v", err)
+	}
+	addrFromEnv := crypto.PubkeyToAddress(pk.PublicKey)
+
+	assert.Equal(t, addrFromEnv.Hex(), addr.Hex())
 }

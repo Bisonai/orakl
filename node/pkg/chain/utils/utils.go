@@ -545,11 +545,7 @@ func IsJsonRpcFailureError(errorCode int) bool {
 }
 
 func MakeValueSignature(value int64, pk *ecdsa.PrivateKey) ([]byte, error) {
-	bigIntVal := big.NewInt(value)
-	buf := make([]byte, 32)
-
-	copy(buf[32-len(bigIntVal.Bytes()):], bigIntVal.Bytes())
-	hash := crypto.Keccak256(buf)
+	hash := Value2HashForSign(value)
 	signature, err := crypto.Sign(hash, pk)
 	if err != nil {
 		return nil, err
@@ -563,6 +559,31 @@ func MakeValueSignature(value int64, pk *ecdsa.PrivateKey) ([]byte, error) {
 	return signature, nil
 }
 
+func Value2HashForSign(value int64) []byte {
+	bigIntVal := big.NewInt(value)
+	buf := make([]byte, 32)
+
+	copy(buf[32-len(bigIntVal.Bytes()):], bigIntVal.Bytes())
+	return crypto.Keccak256(buf)
+}
+
 func StringToPk(pk string) (*ecdsa.PrivateKey, error) {
 	return crypto.HexToECDSA(pk)
+}
+
+func RecoverSigner(hash []byte, signature []byte) (address common.Address, err error) {
+	if len(signature) != 65 {
+		return common.Address{}, fmt.Errorf("signature must be 65 bytes long")
+	}
+
+	signature[64] -= 27
+
+	pubKey, err := crypto.SigToPub(hash, signature)
+	if err != nil {
+		return common.Address{}, err
+	}
+
+	address = crypto.PubkeyToAddress(*pubKey)
+
+	return address, nil
 }
