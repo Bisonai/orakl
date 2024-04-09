@@ -263,6 +263,9 @@ export async function extractUniswapPrice(adapter, decimals) {
     adapter.token1Decimals
   )
   if (adapter.reciprocal) {
+    if (datum === 0) {
+      throw new Error(`Division by zero err in extractUniswapPrice`)
+    }
     return Math.round((1 / datum) * 10 ** decimals)
   }
   return Math.round(datum * 10 ** decimals)
