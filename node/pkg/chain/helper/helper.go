@@ -3,7 +3,6 @@ package helper
 import (
 	"context"
 	"crypto/ecdsa"
-	"encoding/hex"
 	"errors"
 	"math/big"
 	"os"
@@ -295,8 +294,4 @@ func NewSignHelper(pk string) (*SignHelper, error) {
 
 func (s *SignHelper) MakeGlobalAggregateProof(val int64) ([]byte, error) {
 	return utils.MakeValueSignature(val, s.PK)
-}
-
-func (s *SignHelper) RawByteProofToString(rawBytes []byte) string {
-	return hex.EncodeToString(rawBytes)
 }
