@@ -236,6 +236,7 @@ func TestMakeContractArgs(t *testing.T) {
 		Value: 15,
 		Round: 1,
 	}
+
 	addresses, values, err := reporter.makeContractArgsWithoutProofs([]GlobalAggregate{agg})
 	if err != nil {
 		t.Fatal("error making contract args")
@@ -243,6 +244,21 @@ func TestMakeContractArgs(t *testing.T) {
 
 	assert.Equal(t, addresses[0], reporter.SubmissionPairs[agg.Name].Address)
 	assert.Equal(t, values[0], big.NewInt(15))
+
+	rawProofs, err := reporter.getProofsRdb(ctx, []GlobalAggregate{agg})
+	if err != nil {
+		t.Fatal("error getting proofs")
+	}
+
+	proofMap := ProofsToMap(rawProofs)
+
+	addresses, values, proofs, err := reporter.makeContractArgsWithProofs([]GlobalAggregate{agg}, proofMap)
+	if err != nil {
+		t.Fatal("error making contract args")
+	}
+	assert.Equal(t, reporter.SubmissionPairs[agg.Name].Address, addresses[0])
+	assert.Equal(t, big.NewInt(15), values[0])
+	assert.EqualValues(t, proofs, rawProofs[0].Proofs)
 }
 
 func TestGetLatestGlobalAggregatesRdb(t *testing.T) {
@@ -305,4 +321,62 @@ func TestGetLatestGlobalAggregatesPgsql(t *testing.T) {
 
 	assert.Equal(t, result[0].Name, testItems.tmpData.globalAggregate.Name)
 	assert.Equal(t, result[0].Value, testItems.tmpData.globalAggregate.Value)
+}
+
+func TestGetProofsRdb(t *testing.T) {
+	ctx := context.Background()
+	cleanup, testItems, err := setup(ctx)
+	if err != nil {
+		t.Fatalf("error setting up test: %v", err)
+	}
+	defer func() {
+		if cleanupErr := cleanup(); cleanupErr != nil {
+			t.Logf("Cleanup failed: %v", cleanupErr)
+		}
+	}()
+
+	err = testItems.app.setReporters(ctx, testItems.app.Host, testItems.app.Pubsub)
+	if err != nil {
+		t.Fatalf("error setting reporters: %v", err)
+	}
+	reporter, err := testItems.app.GetReporterWithInterval(TestInterval)
+	if err != nil {
+		t.Fatalf("error getting reporter: %v", err)
+	}
+
+	agg := testItems.tmpData.globalAggregate
+	result, err := reporter.getProofsRdb(ctx, []GlobalAggregate{agg})
+	if err != nil {
+		t.Fatal("error getting proofs from rdb")
+	}
+	assert.EqualValues(t, testItems.tmpData.proofBytes, result[0].Proofs[0])
+}
+
+func TestGetProofsPgsql(t *testing.T) {
+	ctx := context.Background()
+	cleanup, testItems, err := setup(ctx)
+	if err != nil {
+		t.Fatalf("error setting up test: %v", err)
+	}
+	defer func() {
+		if cleanupErr := cleanup(); cleanupErr != nil {
+			t.Logf("Cleanup failed: %v", cleanupErr)
+		}
+	}()
+
+	err = testItems.app.setReporters(ctx, testItems.app.Host, testItems.app.Pubsub)
+	if err != nil {
+		t.Fatalf("error setting reporters: %v", err)
+	}
+	reporter, err := testItems.app.GetReporterWithInterval(TestInterval)
+	if err != nil {
+		t.Fatalf("error getting reporter: %v", err)
+	}
+
+	agg := testItems.tmpData.globalAggregate
+	result, err := reporter.getProofsPgsql(ctx, []GlobalAggregate{agg})
+	if err != nil {
+		t.Fatal("error getting proofs from pgsql")
+	}
+	assert.EqualValues(t, testItems.tmpData.proofBytes, result[0].Proofs[0])
 }

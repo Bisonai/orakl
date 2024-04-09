@@ -12,6 +12,7 @@ import (
 	"bisonai.com/orakl/node/pkg/admin/reporter"
 	"bisonai.com/orakl/node/pkg/admin/utils"
 	"bisonai.com/orakl/node/pkg/bus"
+	"bisonai.com/orakl/node/pkg/chain/helper"
 	"bisonai.com/orakl/node/pkg/db"
 	libp2p_setup "bisonai.com/orakl/node/pkg/libp2p/setup"
 	"github.com/gofiber/fiber/v2"
@@ -31,10 +32,16 @@ type TestItems struct {
 type TmpData struct {
 	globalAggregate   GlobalAggregate
 	submissionAddress SubmissionAddress
+	proofBytes        []byte
 }
 
 func insertSampleData(ctx context.Context) (*TmpData, error) {
 	var tmpData = new(TmpData)
+
+	signHelper, err := helper.NewSignHelper("")
+	if err != nil {
+		return nil, err
+	}
 
 	key := "globalAggregate:" + "test-aggregate"
 	data, err := json.Marshal(map[string]any{"name": "test-aggregate", "value": int64(15), "round": int64(1)})
@@ -58,6 +65,32 @@ func insertSampleData(ctx context.Context) (*TmpData, error) {
 		return nil, err
 	}
 	tmpData.globalAggregate = tmpGlobalAggregate
+
+	p, err := signHelper.MakeGlobalAggregateProof(int64(15))
+	if err != nil {
+		return nil, err
+	}
+	tmpData.proofBytes = p
+
+	err = db.QueryWithoutResult(ctx, "INSERT INTO proofs (name, round, proof) VALUES (@name, @round, @proof)", map[string]any{"name": "test-aggregate", "round": int64(1), "proof": p})
+	if err != nil {
+		return nil, err
+	}
+
+	rdbProof := Proofs{
+		Name:   "test-aggregate",
+		Round:  int64(1),
+		Proofs: [][]byte{p},
+	}
+	rdbProofData, err := json.Marshal(rdbProof)
+	if err != nil {
+		return nil, err
+	}
+
+	err = db.Set(ctx, "proof:test-aggregate|round:1", string(rdbProofData), time.Duration(10*time.Second))
+	if err != nil {
+		return nil, err
+	}
 
 	tmpAddress, err := db.QueryRow[SubmissionAddress](ctx, InsertAddressQuery, map[string]any{"name": "test-aggregate", "address": "0x1234", "interval": TestInterval})
 	if err != nil {
@@ -128,6 +161,11 @@ func reporterCleanup(ctx context.Context, admin *fiber.App, testItems *TestItems
 		}
 
 		err = db.QueryWithoutResult(ctx, "DELETE FROM submission_addresses;", nil)
+		if err != nil {
+			return err
+		}
+
+		err = db.QueryWithoutResult(ctx, "DELETE FROM proofs;", nil)
 		if err != nil {
 			return err
 		}

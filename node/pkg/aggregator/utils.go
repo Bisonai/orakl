@@ -31,21 +31,6 @@ func GetLatestLocalAggregateFromPgs(ctx context.Context, name string) (pgsLocalA
 	return db.QueryRow[pgsLocalAggregate](ctx, SelectLatestLocalAggregateQuery, map[string]any{"name": name})
 }
 
-func GetLatestGlobalAggregateFromRdb(ctx context.Context, name string) (globalAggregate, error) {
-	key := "globalAggregate:" + name
-	var aggregate globalAggregate
-	data, err := db.Get(ctx, key)
-	if err != nil {
-		return aggregate, err
-	}
-
-	err = json.Unmarshal([]byte(data), &aggregate)
-	if err != nil {
-		return aggregate, err
-	}
-	return aggregate, nil
-}
-
 func FilterNegative(values []int64) []int64 {
 	result := []int64{}
 	for _, value := range values {
@@ -148,4 +133,50 @@ func GetLatestLocalAggregate(ctx context.Context, name string) (int64, time.Time
 		return pgsqlAggregate.Value, pgsqlAggregate.Timestamp, nil
 	}
 	return redisAggregate.Value, redisAggregate.Timestamp, nil
+}
+
+// used for testing
+func getProofFromRdb(ctx context.Context, name string, round int64) (Proofs, error) {
+	key := "proof:" + name + "|round:" + strconv.FormatInt(round, 10)
+	var proofs Proofs
+	data, err := db.Get(ctx, key)
+	if err != nil {
+		return proofs, err
+	}
+
+	err = json.Unmarshal([]byte(data), &proofs)
+	if err != nil {
+		return proofs, err
+	}
+	return proofs, nil
+}
+
+// used for testing
+func getProofFromPgsql(ctx context.Context, name string, round int64) (Proofs, error) {
+	rawProofs, err := db.QueryRows[PgsqlProof](ctx, "SELECT * FROM proofs WHERE name = @name AND round = @round", map[string]any{"name": name, "round": round})
+	if err != nil {
+		return Proofs{}, err
+	}
+
+	proofs := Proofs{Name: name, Round: round}
+	for _, rawProof := range rawProofs {
+		proofs.Proofs = append(proofs.Proofs, rawProof.Proof)
+	}
+	return proofs, nil
+}
+
+// used for testing
+func getLatestGlobalAggregateFromRdb(ctx context.Context, name string) (globalAggregate, error) {
+	key := "globalAggregate:" + name
+	var aggregate globalAggregate
+	data, err := db.Get(ctx, key)
+	if err != nil {
+		return aggregate, err
+	}
+
+	err = json.Unmarshal([]byte(data), &aggregate)
+	if err != nil {
+		return aggregate, err
+	}
+	return aggregate, nil
 }

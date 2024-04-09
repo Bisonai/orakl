@@ -72,9 +72,10 @@ type Proofs struct {
 }
 
 type Proof struct {
-	Name  string `json:"name"`
-	Round int64  `json:"round"`
-	Proof []byte `json:"proof"`
+	ID    int64  `db:"id" json:"id"`
+	Name  string `db:"name" json:"name"`
+	Round int64  `db:"round" json:"round"`
+	Proof []byte `db:"proof" json:"proof"`
 }
 
 func makeGetLatestGlobalAggregatesQuery(names []string) string {

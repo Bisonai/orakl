@@ -27,6 +27,14 @@ type redisLocalAggregate struct {
 	Timestamp time.Time `json:"timestamp"`
 }
 
+// pgsql row entry
+type PgsqlProof struct {
+	ID    int64  `db:"id"`
+	Name  string `json:"name"`
+	Round int64  `json:"round"`
+	Proof []byte `json:"proof"`
+}
+
 type Proofs struct {
 	Name   string   `json:"name"`
 	Round  int64    `json:"round"`

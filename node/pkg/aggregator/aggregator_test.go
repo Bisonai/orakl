@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"bisonai.com/orakl/node/pkg/db"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -146,12 +147,62 @@ func TestInsertGlobalAggregate(t *testing.T) {
 		t.Fatal("error getting latest round id")
 	}
 
-	redisResult, err := GetLatestGlobalAggregateFromRdb(ctx, "test_pair")
+	redisResult, err := getLatestGlobalAggregateFromRdb(ctx, "test_pair")
 	if err != nil {
 		t.Fatal("error getting latest global aggregate from rdb")
 	}
 	assert.Equal(t, int64(20), redisResult.Value)
 	assert.Equal(t, int64(2), redisResult.Round)
-
 	assert.Equal(t, int64(2), roundId)
+}
+
+func TestInsertProof(t *testing.T) {
+	ctx := context.Background()
+	cleanup, testItems, err := setup(ctx)
+	if err != nil {
+		t.Fatalf("error setting up test: %v", err)
+	}
+	defer func() {
+		if cleanupErr := cleanup(); cleanupErr != nil {
+			t.Logf("Cleanup failed: %v", cleanupErr)
+		}
+	}()
+
+	node, err := NewAggregator(testItems.app.Host, testItems.app.Pubsub, testItems.topicString)
+	if err != nil {
+		t.Fatal("error creating new node")
+	}
+
+	node.Name = "test_pair"
+
+	value := int64(20)
+	round := int64(2)
+	p, err := node.SignHelper.MakeGlobalAggregateProof(value)
+	if err != nil {
+		t.Fatal("error making global aggregate proof")
+	}
+
+	err = InsertProof(ctx, node.Name, round, [][]byte{p, p})
+	if err != nil {
+		t.Fatal("error inserting proof")
+	}
+
+	rdbResult, err := getProofFromRdb(ctx, node.Name, round)
+	if err != nil {
+		t.Fatal("error getting proof from rdb")
+	}
+	assert.Equal(t, 2, len(rdbResult.Proofs))
+	assert.EqualValues(t, [][]byte{p, p}, rdbResult.Proofs)
+
+	pgsqlResult, err := getProofFromPgsql(ctx, node.Name, round)
+	if err != nil {
+		t.Fatal("error getting proof from pgsql:" + err.Error())
+	}
+	assert.Equal(t, 2, len(pgsqlResult.Proofs))
+	assert.EqualValues(t, [][]byte{p, p}, pgsqlResult.Proofs)
+
+	err = db.QueryWithoutResult(ctx, "DELETE FROM proofs", nil)
+	if err != nil {
+		t.Fatal("error deleting proofs")
+	}
 }
