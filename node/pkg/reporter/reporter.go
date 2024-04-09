@@ -88,8 +88,6 @@ func (r *Reporter) leaderJob() error {
 	ctx := context.Background()
 
 	job := func() error {
-		useProofs := true
-
 		aggregates, err := r.getLatestGlobalAggregates(ctx)
 		if err != nil {
 			log.Error().Str("Player", "Reporter").Err(err).Msg("GetLatestGlobalAggregates")
@@ -103,25 +101,10 @@ func (r *Reporter) leaderJob() error {
 		}
 		log.Debug().Str("Player", "Reporter").Int("validAggregates", len(validAggregates)).Msg("valid aggregates")
 
-		rawProofs, err := r.getProofs(ctx, validAggregates)
-		if err != nil || len(rawProofs) < len(validAggregates) {
-			log.Error().Str("Player", "Reporter").Err(err).Msg("submit without proofs")
-			useProofs = false
-		}
-
-		if !useProofs {
-			err = r.reportWithoutProofs(ctx, validAggregates)
-			if err != nil {
-				log.Error().Str("Player", "Reporter").Err(err).Msg("Report")
-				return err
-			}
-		} else {
-			proofMap := ProofsToMap(rawProofs)
-			err = r.reportWithProofs(ctx, validAggregates, proofMap)
-			if err != nil {
-				log.Error().Str("Player", "Reporter").Err(err).Msg("Report")
-				return err
-			}
+		err = r.report(ctx, validAggregates)
+		if err != nil {
+			log.Error().Str("Player", "Reporter").Err(err).Msg("report")
+			return err
 		}
 
 		for _, agg := range validAggregates {
@@ -142,6 +125,16 @@ func (r *Reporter) leaderJob() error {
 	}
 
 	return nil
+}
+
+func (r *Reporter) report(ctx context.Context, aggregates []GlobalAggregate) error {
+	rawProofs, err := r.getProofs(ctx, aggregates)
+	if err != nil || len(rawProofs) < len(aggregates) {
+		log.Error().Str("Player", "Reporter").Err(err).Msg("submit without proofs")
+		return r.reportWithoutProofs(ctx, aggregates)
+	}
+	proofMap := ProofsToMap(rawProofs)
+	return r.reportWithProofs(ctx, aggregates, proofMap)
 }
 
 func (r *Reporter) resignLeader() {
