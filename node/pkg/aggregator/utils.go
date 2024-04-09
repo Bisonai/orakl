@@ -106,7 +106,7 @@ func insertProofPgsql(ctx context.Context, name string, round int64, proofs [][]
 		insertRows = append(insertRows, []any{name, round, proof})
 	}
 
-	_, err := db.BulkInsert(ctx, "proofs", []string{"name", "round", "proof"}, insertRows)
+	err := db.BulkInsert(ctx, "proofs", []string{"name", "round", "proof"}, insertRows)
 	if err != nil {
 		log.Error().Str("Player", "Aggregator").Err(err).Msg("failed to insert proofs into pgsql")
 	}
