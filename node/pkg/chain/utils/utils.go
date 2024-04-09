@@ -568,7 +568,7 @@ func Value2HashForSign(value int64) []byte {
 }
 
 func StringToPk(pk string) (*ecdsa.PrivateKey, error) {
-	return crypto.HexToECDSA(pk)
+	return crypto.HexToECDSA(strings.TrimPrefix(pk, "0x"))
 }
 
 func RecoverSigner(hash []byte, signature []byte) (address common.Address, err error) {
