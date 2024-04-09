@@ -45,7 +45,7 @@ func main() {
 
 	err = testContractDirectCall(ctx, contractAddress, contractFunction, answer, testProof)
 	if err != nil {
-		log.Error().Err(err).Msg("testContractDelegatedCall")
+		log.Error().Err(err).Msg("testContractDirectCall")
 	}
 }
 

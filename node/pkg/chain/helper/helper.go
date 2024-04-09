@@ -285,6 +285,7 @@ func NewSignHelper(pk string) (*SignHelper, error) {
 	pk = strings.TrimPrefix(pk, "0x")
 	privateKey, err := utils.StringToPk(pk)
 	if err != nil {
+		log.Error().Err(err).Msg("failed to convert pk")
 		return nil, err
 	}
 	return &SignHelper{
