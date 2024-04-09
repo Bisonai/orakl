@@ -62,24 +62,7 @@ func (n *Aggregator) Run(ctx context.Context) {
 func (n *Aggregator) LeaderJob() error {
 	n.RoundID++
 	n.Raft.IncreaseTerm()
-	roundMessage := RoundSyncMessage{
-		LeaderID: n.Raft.Host.ID().String(),
-		RoundID:  n.RoundID,
-	}
-
-	marshalledRoundMessage, err := json.Marshal(roundMessage)
-	if err != nil {
-		log.Error().Str("Player", "Aggregator").Err(err).Msg("failed to marshal round message")
-		return err
-	}
-
-	message := raft.Message{
-		Type:     RoundSync,
-		SentFrom: n.Raft.Host.ID().String(),
-		Data:     json.RawMessage(marshalledRoundMessage),
-	}
-
-	return n.Raft.PublishMessage(message)
+	return n.PublishRoundMessage(n.RoundID)
 }
 
 func (n *Aggregator) HandleCustomMessage(message raft.Message) error {
@@ -117,7 +100,7 @@ func (n *Aggregator) HandleRoundSyncMessage(msg raft.Message) error {
 		n.LastLocalAggregateTime = updateTime
 	}
 
-	return n.SendPriceDataMessage(n.RoundID, updateValue)
+	return n.PublishPriceDataMessage(n.RoundID, updateValue)
 }
 
 func (n *Aggregator) HandlePriceDataMessage(msg raft.Message) error {
@@ -159,7 +142,7 @@ func (n *Aggregator) HandlePriceDataMessage(msg raft.Message) error {
 			log.Error().Str("Player", "Aggregator").Err(err).Msg("failed to make global aggregate proof")
 			return err
 		}
-		return n.SendProofMessage(priceDataMessage.RoundID, proof)
+		return n.PublishProofMessage(priceDataMessage.RoundID, proof)
 	}
 	return nil
 }
@@ -206,7 +189,27 @@ func (n *Aggregator) executeDeviation() error {
 	return nil
 }
 
-func (n *Aggregator) SendPriceDataMessage(roundId int64, value int64) error {
+func (n *Aggregator) PublishRoundMessage(roundId int64) error {
+	roundMessage := RoundSyncMessage{
+		LeaderID: n.Raft.GetHostId(),
+		RoundID:  roundId,
+	}
+
+	marshalledRoundMessage, err := json.Marshal(roundMessage)
+	if err != nil {
+		return err
+	}
+
+	message := raft.Message{
+		Type:     RoundSync,
+		SentFrom: n.Raft.GetHostId(),
+		Data:     json.RawMessage(marshalledRoundMessage),
+	}
+
+	return n.Raft.PublishMessage(message)
+}
+
+func (n *Aggregator) PublishPriceDataMessage(roundId int64, value int64) error {
 	priceDataMessage := PriceDataMessage{
 		RoundID:   roundId,
 		PriceData: value,
@@ -226,7 +229,7 @@ func (n *Aggregator) SendPriceDataMessage(roundId int64, value int64) error {
 	return n.Raft.PublishMessage(message)
 }
 
-func (n *Aggregator) SendProofMessage(roundId int64, proof []byte) error {
+func (n *Aggregator) PublishProofMessage(roundId int64, proof []byte) error {
 	proofMessage := ProofMessage{
 		RoundID: roundId,
 		Proof:   proof,
