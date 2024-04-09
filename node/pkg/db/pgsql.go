@@ -3,7 +3,9 @@ package db
 import (
 	"context"
 	"errors"
+	"fmt"
 	"os"
+	"strings"
 	"sync"
 
 	"github.com/jackc/pgx/v5"
@@ -122,7 +124,43 @@ func queryRows[T any](pool *pgxpool.Pool, queryString string, args map[string]an
 	return results, err
 }
 
-func BulkInsert(ctx context.Context, tableName string, columnNames []string, rows [][]any) (int64, error) {
+func BulkInsert(ctx context.Context, tableName string, columnNames []string, rows [][]any) error {
+	currentPool, err := GetPool(ctx)
+	if err != nil {
+		return err
+	}
+
+	var b strings.Builder
+	fmt.Fprintf(&b, "INSERT INTO %s (%s) VALUES ", tableName, strings.Join(columnNames, ", "))
+
+	for i, row := range rows {
+		if i > 0 {
+			b.WriteString(", ")
+		}
+		b.WriteString("(")
+		for j := range row {
+			if j > 0 {
+				b.WriteString(", ")
+			}
+			fmt.Fprintf(&b, "$%d", i*len(row)+j+1)
+		}
+		b.WriteString(")")
+	}
+
+	values := make([]any, 0, len(rows)*len(columnNames))
+	for _, row := range rows {
+		values = append(values, row...)
+	}
+
+	_, err = currentPool.Exec(ctx, b.String(), values...)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// use for large entries of data more than 100+ rows
+func BulkCopy(ctx context.Context, tableName string, columnNames []string, rows [][]any) (int64, error) {
 	currentPool, err := GetPool(ctx)
 	if err != nil {
 		return 0, err
