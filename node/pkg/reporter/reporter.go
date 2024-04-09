@@ -128,13 +128,28 @@ func (r *Reporter) leaderJob() error {
 }
 
 func (r *Reporter) report(ctx context.Context, aggregates []GlobalAggregate) error {
-	rawProofs, err := r.getProofs(ctx, aggregates)
-	if err != nil || len(rawProofs) < len(aggregates) {
+	proofMap, err := r.getProofsAsMap(ctx, aggregates)
+	if err != nil {
 		log.Error().Str("Player", "Reporter").Err(err).Msg("submit without proofs")
 		return r.reportWithoutProofs(ctx, aggregates)
 	}
-	proofMap := ProofsToMap(rawProofs)
+
 	return r.reportWithProofs(ctx, aggregates, proofMap)
+}
+
+func (r *Reporter) getProofsAsMap(ctx context.Context, aggregates []GlobalAggregate) (map[string][]byte, error) {
+	proofs, err := r.getProofs(ctx, aggregates)
+	if err != nil {
+		log.Error().Str("Player", "Reporter").Err(err).Msg("submit without proofs")
+		return nil, err
+	}
+
+	if len(proofs) < len(aggregates) {
+		log.Error().Str("Player", "Reporter").Msg("proofs not found for all aggregates")
+		return nil, errors.New("proofs not found for all aggregates")
+	}
+
+	return ProofsToMap(proofs), nil
 }
 
 func (r *Reporter) resignLeader() {
@@ -200,7 +215,7 @@ func (r *Reporter) getLatestGlobalAggregatesRdb(ctx context.Context) ([]GlobalAg
 func (r *Reporter) getProofs(ctx context.Context, aggregates []GlobalAggregate) ([]Proofs, error) {
 	result, err := r.getProofsRdb(ctx, aggregates)
 	if err != nil {
-		log.Error().Str("Player", "Reporter").Err(err).Msg("getProofsRdb failed, trying to get from pgsql")
+		log.Warn().Str("Player", "Reporter").Err(err).Msg("getProofsRdb failed, trying to get from pgsql")
 		return r.getProofsPgsql(ctx, aggregates)
 	}
 	return result, nil
@@ -250,6 +265,7 @@ func (r *Reporter) getProofsPgsql(ctx context.Context, aggregates []GlobalAggreg
 func (r *Reporter) reportWithoutProofs(ctx context.Context, aggregates []GlobalAggregate) error {
 	log.Debug().Str("Player", "Reporter").Int("aggregates", len(aggregates)).Msg("reporting without proofs")
 	if r.KlaytnHelper == nil {
+		log.Error().Str("Player", "Reporter").Msg("klaytn helper not set")
 		return errors.New("klaytn helper not set")
 	}
 
@@ -433,6 +449,7 @@ func concatBytes(slices [][]byte) []byte {
 func ProofsToMap(proofs []Proofs) map[string][]byte {
 	m := make(map[string][]byte)
 	for _, proof := range proofs {
+		//m[name-round] = proof
 		m[proof.Name+"-"+strconv.FormatInt(proof.Round, 10)] = concatBytes(proof.Proofs)
 	}
 	return m
