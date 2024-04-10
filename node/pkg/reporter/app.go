@@ -49,9 +49,9 @@ func (a *App) setReporters(ctx context.Context, h host.Host, ps *pubsub.PubSub) 
 
 	groupedSubmissionPairs := groupSubmissionPairsByIntervals(submissionPairs)
 	for groupInterval, pairs := range groupedSubmissionPairs {
-		reporter, err := NewReporter(ctx, h, ps, pairs, groupInterval)
-		if err != nil {
-			log.Error().Str("Player", "Reporter").Err(err).Msg("failed to set reporter")
+		reporter, errNewReporter := NewReporter(ctx, h, ps, pairs, groupInterval)
+		if errNewReporter != nil {
+			log.Error().Str("Player", "Reporter").Err(errNewReporter).Msg("failed to set reporter")
 			continue
 		}
 		a.Reporters = append(a.Reporters, reporter)
