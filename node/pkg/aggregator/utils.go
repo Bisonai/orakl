@@ -1,6 +1,7 @@
 package aggregator
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -177,9 +178,5 @@ func getLatestGlobalAggregateFromRdb(ctx context.Context, name string) (globalAg
 }
 
 func concatBytes(slices [][]byte) []byte {
-	var result []byte
-	for _, slice := range slices {
-		result = append(result, slice...)
-	}
-	return result
+	return bytes.Join(slices, nil)
 }

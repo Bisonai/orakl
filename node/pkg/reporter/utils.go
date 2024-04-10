@@ -1,6 +1,7 @@
 package reporter
 
 import (
+	"bytes"
 	"context"
 	"crypto/rand"
 	"encoding/json"
@@ -106,11 +107,7 @@ func StoreLastSubmission(ctx context.Context, aggregates []GlobalAggregate) erro
 }
 
 func ConcatBytes(slices [][]byte) []byte {
-	var result []byte
-	for _, slice := range slices {
-		result = append(result, slice...)
-	}
-	return result
+	return bytes.Join(slices, nil)
 }
 
 func ProofsToMap(proofs []Proof) map[string][]byte {
