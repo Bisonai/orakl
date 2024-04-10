@@ -120,6 +120,7 @@ func generateABI(functionName string, inputs string, outputs string, stateMutabi
 
 	parsedABI, err := abi.JSON(strings.NewReader(json))
 	if err != nil {
+		log.Error().Err(err).Msg("failed to parse abi")
 		return nil, err
 	}
 
@@ -172,11 +173,13 @@ func MakeDirectTx(ctx context.Context, client ClientInterface, contractAddressHe
 
 	abi, err := GenerateCallABI(functionName, inputs, outputs)
 	if err != nil {
+		log.Error().Err(err).Msg("failed to generate abi")
 		return nil, err
 	}
 
 	packed, err := abi.Pack(functionName, args...)
 	if err != nil {
+		log.Error().Err(err).Msg("failed to pack abi")
 		return nil, err
 	}
 
@@ -539,4 +542,48 @@ func IsJsonRpcFailureError(errorCode int) bool {
 		return true
 	}
 	return false
+}
+
+func MakeValueSignature(value int64, pk *ecdsa.PrivateKey) ([]byte, error) {
+	hash := Value2HashForSign(value)
+	signature, err := crypto.Sign(hash, pk)
+	if err != nil {
+		return nil, err
+	}
+
+	// Convert V from 0/1 to 27/28
+	if signature[64] < 27 {
+		signature[64] += 27
+	}
+
+	return signature, nil
+}
+
+func Value2HashForSign(value int64) []byte {
+	bigIntVal := big.NewInt(value)
+	buf := make([]byte, 32)
+
+	copy(buf[32-len(bigIntVal.Bytes()):], bigIntVal.Bytes())
+	return crypto.Keccak256(buf)
+}
+
+func StringToPk(pk string) (*ecdsa.PrivateKey, error) {
+	return crypto.HexToECDSA(strings.TrimPrefix(pk, "0x"))
+}
+
+func RecoverSigner(hash []byte, signature []byte) (address common.Address, err error) {
+	if len(signature) != 65 {
+		return common.Address{}, fmt.Errorf("signature must be 65 bytes long")
+	}
+
+	signature[64] -= 27
+
+	pubKey, err := crypto.SigToPub(hash, signature)
+	if err != nil {
+		return common.Address{}, err
+	}
+
+	address = crypto.PubkeyToAddress(*pubKey)
+
+	return address, nil
 }

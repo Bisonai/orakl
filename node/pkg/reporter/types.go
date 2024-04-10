@@ -21,7 +21,8 @@ const (
 	INITIAL_FAILURE_TIMEOUT = 50 * time.Millisecond
 	MAX_RETRY               = 3
 	MAX_RETRY_DELAY         = 500 * time.Millisecond
-	FUNCTION_STRING         = "submit(address[] memory _feeds, int256[] memory _submissions)"
+	SUBMIT_WITHOUT_PROOFS   = "submit(address[] memory _feeds, int256[] memory _submissions)"
+	SUBMIT_WITH_PROOFS      = "submit(address[] memory _feeds, int256[] memory _submissions, bytes[] memory _proofs)"
 
 	GET_SUBMISSIONS_QUERY = `SELECT * FROM submission_addresses;`
 )
@@ -64,6 +65,19 @@ type GlobalAggregate struct {
 	Round int64  `db:"round" json:"round"`
 }
 
+type Proof struct {
+	Name  string `json:"name"`
+	Round int64  `json:"round"`
+	Proof []byte `json:"proofs"`
+}
+
+type PgsqlProof struct {
+	ID    int64  `db:"id" json:"id"`
+	Name  string `db:"name" json:"name"`
+	Round int64  `db:"round" json:"round"`
+	Proof []byte `db:"proof" json:"proof"`
+}
+
 func makeGetLatestGlobalAggregatesQuery(names []string) string {
 	queryNames := make([]string, len(names))
 	for i, name := range names {
@@ -81,4 +95,13 @@ func makeGetLatestGlobalAggregatesQuery(names []string) string {
 	) subq ON ga.name = subq.name AND ga.round = subq.max_round;`, strings.Join(queryNames, ","))
 
 	return q
+}
+
+func makeGetProofsQuery(aggregates []GlobalAggregate) string {
+	placeHolders := make([]string, len(aggregates))
+	for i, agg := range aggregates {
+		placeHolders[i] = fmt.Sprintf("('%s', %d)", agg.Name, agg.Round)
+	}
+
+	return fmt.Sprintf("SELECT * FROM proofs WHERE (name, round) IN (%s);", strings.Join(placeHolders, ","))
 }

@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"bisonai.com/orakl/node/pkg/bus"
+	"bisonai.com/orakl/node/pkg/chain/helper"
 	"bisonai.com/orakl/node/pkg/raft"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 	"github.com/libp2p/go-libp2p/core/host"
@@ -14,15 +15,31 @@ import (
 const (
 	RoundSync                        raft.MessageType = "roundSync"
 	PriceData                        raft.MessageType = "priceData"
+	ProofMsg                         raft.MessageType = "proof"
 	SelectActiveAggregatorsQuery                      = `SELECT * FROM aggregators WHERE active = true`
 	SelectLatestLocalAggregateQuery                   = `SELECT * FROM local_aggregates WHERE name = @name ORDER BY timestamp DESC LIMIT 1`
 	InsertGlobalAggregateQuery                        = `INSERT INTO global_aggregates (name, value, round) VALUES (@name, @value, @round) RETURNING *`
 	SelectLatestGlobalAggregateQuery                  = `SELECT * FROM global_aggregates WHERE name = @name ORDER BY round DESC LIMIT 1`
+	InsertProofQuery                                  = `INSERT INTO proofs (name, round, proof) VALUES (@name, @round, @proof) RETURNING *`
 )
 
 type redisLocalAggregate struct {
 	Value     int64     `json:"value"`
 	Timestamp time.Time `json:"timestamp"`
+}
+
+// pgsql row entry
+type PgsqlProof struct {
+	ID    int64  `db:"id"`
+	Name  string `json:"name"`
+	Round int64  `json:"round"`
+	Proof []byte `json:"proof"`
+}
+
+type Proof struct {
+	Name  string `json:"name"`
+	Round int64  `json:"round"`
+	Proof []byte `json:"proofs"`
 }
 
 type pgsLocalAggregate struct {
@@ -56,10 +73,13 @@ type Aggregator struct {
 	Raft *raft.Raft
 
 	CollectedPrices map[int64][]int64
+	CollectedProofs map[int64][][]byte
 	AggregatorMutex sync.Mutex
 
 	LastLocalAggregateTime time.Time
 	RoundID                int64
+
+	SignHelper *helper.SignHelper
 
 	nodeCtx    context.Context
 	nodeCancel context.CancelFunc
@@ -74,4 +94,9 @@ type RoundSyncMessage struct {
 type PriceDataMessage struct {
 	RoundID   int64 `json:"roundID"`
 	PriceData int64 `json:"priceData"`
+}
+
+type ProofMessage struct {
+	RoundID int64  `json:"roundID"`
+	Proof   []byte `json:"proof"`
 }

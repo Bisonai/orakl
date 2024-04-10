@@ -99,11 +99,11 @@ func (r *Reporter) leaderJob() error {
 			log.Warn().Str("Player", "Reporter").Msg("no valid aggregates to report")
 			return nil
 		}
-
 		log.Debug().Str("Player", "Reporter").Int("validAggregates", len(validAggregates)).Msg("valid aggregates")
+
 		err = r.report(ctx, validAggregates)
 		if err != nil {
-			log.Error().Str("Player", "Reporter").Err(err).Msg("Report")
+			log.Error().Str("Player", "Reporter").Err(err).Msg("report")
 			return err
 		}
 
@@ -114,6 +114,7 @@ func (r *Reporter) leaderJob() error {
 		}
 		log.Debug().Str("Player", "Reporter").Dur("duration", time.Since(start)).Msg("reporting done")
 		return nil
+
 	}
 
 	err := r.retry(job)
@@ -124,6 +125,31 @@ func (r *Reporter) leaderJob() error {
 	}
 
 	return nil
+}
+
+func (r *Reporter) report(ctx context.Context, aggregates []GlobalAggregate) error {
+	proofMap, err := r.getProofsAsMap(ctx, aggregates)
+	if err != nil {
+		log.Error().Str("Player", "Reporter").Err(err).Msg("submit without proofs")
+		return r.reportWithoutProofs(ctx, aggregates)
+	}
+
+	return r.reportWithProofs(ctx, aggregates, proofMap)
+}
+
+func (r *Reporter) getProofsAsMap(ctx context.Context, aggregates []GlobalAggregate) (map[string][]byte, error) {
+	proofs, err := r.getProofs(ctx, aggregates)
+	if err != nil {
+		log.Error().Str("Player", "Reporter").Err(err).Msg("submit without proofs")
+		return nil, err
+	}
+
+	if len(proofs) < len(aggregates) {
+		log.Error().Str("Player", "Reporter").Msg("proofs not found for all aggregates")
+		return nil, errors.New("proofs not found for all aggregates")
+	}
+
+	return ProofsToMap(proofs), nil
 }
 
 func (r *Reporter) resignLeader() {
@@ -186,28 +212,98 @@ func (r *Reporter) getLatestGlobalAggregatesRdb(ctx context.Context) ([]GlobalAg
 	return aggregates, nil
 }
 
-func (r *Reporter) report(ctx context.Context, aggregates []GlobalAggregate) error {
-	log.Debug().Str("Player", "Reporter").Int("aggregates", len(aggregates)).Msg("reporting")
+func (r *Reporter) getProofs(ctx context.Context, aggregates []GlobalAggregate) ([]Proof, error) {
+	result, err := r.getProofsRdb(ctx, aggregates)
+	if err != nil {
+		log.Warn().Str("Player", "Reporter").Err(err).Msg("getProofsRdb failed, trying to get from pgsql")
+		return r.getProofsPgsql(ctx, aggregates)
+	}
+	return result, nil
+}
+
+func (r *Reporter) getProofsRdb(ctx context.Context, aggregates []GlobalAggregate) ([]Proof, error) {
+	keys := make([]string, 0, len(aggregates))
+	for _, agg := range aggregates {
+		keys = append(keys, "proof:"+agg.Name+"|round:"+strconv.FormatInt(agg.Round, 10))
+	}
+
+	result, err := db.MGet(ctx, keys)
+	if err != nil {
+		log.Error().Str("Player", "Reporter").Err(err).Msg("failed to get proofs")
+		return nil, err
+	}
+
+	proofs := make([]Proof, 0, len(result))
+	for i, proof := range result {
+		if proof == nil {
+			log.Error().Str("Player", "Reporter").Str("key", keys[i]).Msg("missing proof")
+			continue
+		}
+		var p Proof
+		err = json.Unmarshal([]byte(proof.(string)), &p)
+		if err != nil {
+			log.Error().Str("Player", "Reporter").Err(err).Str("key", keys[i]).Msg("failed to unmarshal proof")
+			continue
+		}
+		proofs = append(proofs, p)
+
+	}
+	return proofs, nil
+}
+
+func (r *Reporter) getProofsPgsql(ctx context.Context, aggregates []GlobalAggregate) ([]Proof, error) {
+	q := makeGetProofsQuery(aggregates)
+	rawResult, err := db.QueryRows[PgsqlProof](ctx, q, nil)
+	if err != nil {
+		log.Error().Str("Player", "Reporter").Err(err).Msg("failed to get proofs")
+		return nil, err
+	}
+	return convertPgsqlProofsToProofs(rawResult), nil
+}
+
+func (r *Reporter) reportWithoutProofs(ctx context.Context, aggregates []GlobalAggregate) error {
+	log.Debug().Str("Player", "Reporter").Int("aggregates", len(aggregates)).Msg("reporting without proofs")
 	if r.KlaytnHelper == nil {
+		log.Error().Str("Player", "Reporter").Msg("klaytn helper not set")
 		return errors.New("klaytn helper not set")
 	}
 
-	addresses, values, err := r.makeContractArgs(aggregates)
+	addresses, values, err := r.makeContractArgsWithoutProofs(aggregates)
 	if err != nil {
-		log.Error().Str("Player", "Reporter").Err(err).Msg("makeContractArgs")
+		log.Error().Str("Player", "Reporter").Err(err).Msg("makeContractArgsWithoutProofs")
 		return err
 	}
 
-	err = r.reportDelegated(ctx, addresses, values)
+	err = r.reportDelegated(ctx, SUBMIT_WITHOUT_PROOFS, addresses, values)
 	if err != nil {
 		log.Error().Str("Player", "Reporter").Err(err).Msg("reporting directly")
-		return r.reportDirect(ctx, addresses, values)
+		return r.reportDirect(ctx, SUBMIT_WITHOUT_PROOFS, addresses, values)
 	}
 	return nil
 }
 
-func (r *Reporter) reportDirect(ctx context.Context, args ...interface{}) error {
-	rawTx, err := r.KlaytnHelper.MakeDirectTx(ctx, r.contractAddress, FUNCTION_STRING, args...)
+func (r *Reporter) reportWithProofs(ctx context.Context, aggregates []GlobalAggregate, proofMap map[string][]byte) error {
+	log.Debug().Str("Player", "Reporter").Int("aggregates", len(aggregates)).Msg("reporting with proofs")
+	if r.KlaytnHelper == nil {
+		return errors.New("klaytn helper not set")
+	}
+
+	addresses, values, proofs, err := r.makeContractArgsWithProofs(aggregates, proofMap)
+	if err != nil {
+		log.Error().Str("Player", "Reporter").Err(err).Msg("makeContractArgsWithProofs")
+		return err
+	}
+
+	err = r.reportDelegated(ctx, SUBMIT_WITH_PROOFS, addresses, values, proofs)
+	if err != nil {
+		log.Error().Str("Player", "Reporter").Err(err).Msg("reporting directly")
+		return r.reportDirect(ctx, SUBMIT_WITH_PROOFS, addresses, values, proofs)
+	}
+	return nil
+}
+
+func (r *Reporter) reportDirect(ctx context.Context, functionString string, args ...interface{}) error {
+	rawTx, err := r.KlaytnHelper.MakeDirectTx(ctx, r.contractAddress, functionString, args...)
 	if err != nil {
 		log.Error().Str("Player", "Reporter").Err(err).Msg("MakeDirectTx")
 		return err
@@ -216,8 +312,8 @@ func (r *Reporter) reportDirect(ctx context.Context, args ...interface{}) error 
 	return r.KlaytnHelper.SubmitRawTx(ctx, rawTx)
 }
 
-func (r *Reporter) reportDelegated(ctx context.Context, args ...interface{}) error {
-	rawTx, err := r.KlaytnHelper.MakeFeeDelegatedTx(ctx, r.contractAddress, FUNCTION_STRING, args...)
+func (r *Reporter) reportDelegated(ctx context.Context, functionString string, args ...interface{}) error {
+	rawTx, err := r.KlaytnHelper.MakeFeeDelegatedTx(ctx, r.contractAddress, functionString, args...)
 	if err != nil {
 		log.Error().Str("Player", "Reporter").Err(err).Msg("MakeFeeDelegatedTx")
 		return err
@@ -250,7 +346,7 @@ func (r *Reporter) isAggValid(aggregate GlobalAggregate) bool {
 	return aggregate.Round > lastSubmission
 }
 
-func (r *Reporter) makeContractArgs(aggregates []GlobalAggregate) ([]common.Address, []*big.Int, error) {
+func (r *Reporter) makeContractArgsWithoutProofs(aggregates []GlobalAggregate) ([]common.Address, []*big.Int, error) {
 	addresses := make([]common.Address, len(aggregates))
 	values := make([]*big.Int, len(aggregates))
 	for i, agg := range aggregates {
@@ -267,6 +363,29 @@ func (r *Reporter) makeContractArgs(aggregates []GlobalAggregate) ([]common.Addr
 	}
 
 	return addresses, values, nil
+}
+
+func (r *Reporter) makeContractArgsWithProofs(aggregates []GlobalAggregate, proofMap map[string][]byte) ([]common.Address, []*big.Int, [][]byte, error) {
+	addresses := make([]common.Address, len(aggregates))
+	values := make([]*big.Int, len(aggregates))
+	proofs := make([][]byte, len(aggregates))
+
+	for i, agg := range aggregates {
+		if agg.Name == "" || agg.Value < 0 {
+			log.Error().Str("Player", "Reporter").Str("name", agg.Name).Int64("value", agg.Value).Msg("skipping invalid aggregate")
+			return nil, nil, nil, errors.New("invalid aggregate exists")
+		}
+		addresses[i] = r.SubmissionPairs[agg.Name].Address
+		values[i] = big.NewInt(agg.Value)
+		proofs[i] = proofMap[agg.Name+"-"+strconv.FormatInt(agg.Round, 10)]
+
+	}
+
+	if len(addresses) == 0 || len(values) == 0 || len(proofs) == 0 {
+		return nil, nil, nil, errors.New("no valid aggregates")
+	}
+
+	return addresses, values, proofs, nil
 }
 
 func (r *Reporter) SetKlaytnHelper(ctx context.Context) error {
@@ -290,4 +409,33 @@ func calculateJitter(baseTimeout time.Duration) time.Duration {
 	}
 	jitter := time.Duration(n.Int64()) * time.Millisecond
 	return baseTimeout + jitter
+}
+
+func convertPgsqlProofsToProofs(pgsqlProofs []PgsqlProof) []Proof {
+	proofs := make([]Proof, len(pgsqlProofs))
+	for i, pgsqlProof := range pgsqlProofs {
+		proofs[i] = Proof{
+			Name:  pgsqlProof.Name,
+			Round: pgsqlProof.Round,
+			Proof: pgsqlProof.Proof,
+		}
+	}
+	return proofs
+}
+
+func concatBytes(slices [][]byte) []byte {
+	var result []byte
+	for _, slice := range slices {
+		result = append(result, slice...)
+	}
+	return result
+}
+
+func ProofsToMap(proofs []Proof) map[string][]byte {
+	m := make(map[string][]byte)
+	for _, proof := range proofs {
+		//m[name-round] = proof
+		m[proof.Name+"-"+strconv.FormatInt(proof.Round, 10)] = proof.Proof
+	}
+	return m
 }

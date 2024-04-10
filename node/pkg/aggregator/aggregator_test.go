@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"bisonai.com/orakl/node/pkg/db"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -76,7 +77,7 @@ func TestGetLatestLocalAggregate(t *testing.T) {
 
 	node.Name = "test_pair"
 
-	val, dbTime, err := node.getLatestLocalAggregate(ctx)
+	val, dbTime, err := GetLatestLocalAggregate(ctx, node.Name)
 	if err != nil {
 		t.Fatal("error getting latest local aggregate")
 	}
@@ -136,7 +137,7 @@ func TestInsertGlobalAggregate(t *testing.T) {
 
 	node.Name = "test_pair"
 
-	err = node.insertGlobalAggregate(20, 2)
+	err = InsertGlobalAggregate(ctx, node.Name, 20, 2)
 	if err != nil {
 		t.Fatal("error inserting global aggregate")
 	}
@@ -146,12 +147,62 @@ func TestInsertGlobalAggregate(t *testing.T) {
 		t.Fatal("error getting latest round id")
 	}
 
-	redisResult, err := GetLatestGlobalAggregateFromRdb(ctx, "test_pair")
+	redisResult, err := getLatestGlobalAggregateFromRdb(ctx, "test_pair")
 	if err != nil {
 		t.Fatal("error getting latest global aggregate from rdb")
 	}
 	assert.Equal(t, int64(20), redisResult.Value)
 	assert.Equal(t, int64(2), redisResult.Round)
-
 	assert.Equal(t, int64(2), roundId)
+}
+
+func TestInsertProof(t *testing.T) {
+	ctx := context.Background()
+	cleanup, testItems, err := setup(ctx)
+	if err != nil {
+		t.Fatalf("error setting up test: %v", err)
+	}
+	defer func() {
+		if cleanupErr := cleanup(); cleanupErr != nil {
+			t.Logf("Cleanup failed: %v", cleanupErr)
+		}
+	}()
+
+	node, err := NewAggregator(testItems.app.Host, testItems.app.Pubsub, testItems.topicString)
+	if err != nil {
+		t.Fatal("error creating new node")
+	}
+
+	node.Name = "test_pair"
+
+	value := int64(20)
+	round := int64(2)
+	p, err := node.SignHelper.MakeGlobalAggregateProof(value)
+	if err != nil {
+		t.Fatal("error making global aggregate proof")
+	}
+
+	err = InsertProof(ctx, node.Name, round, [][]byte{p, p})
+	if err != nil {
+		t.Fatal("error inserting proof")
+	}
+
+	rdbResult, err := getProofFromRdb(ctx, node.Name, round)
+	if err != nil {
+		t.Fatal("error getting proof from rdb")
+	}
+
+	assert.EqualValues(t, concatBytes([][]byte{p, p}), rdbResult.Proof)
+
+	pgsqlResult, err := getProofFromPgsql(ctx, node.Name, round)
+	if err != nil {
+		t.Fatal("error getting proof from pgsql:" + err.Error())
+	}
+
+	assert.EqualValues(t, concatBytes([][]byte{p, p}), pgsqlResult.Proof)
+
+	err = db.QueryWithoutResult(ctx, "DELETE FROM proofs", nil)
+	if err != nil {
+		t.Fatal("error deleting proofs")
+	}
 }
