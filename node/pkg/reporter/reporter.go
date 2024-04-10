@@ -57,6 +57,40 @@ func NewReporter(ctx context.Context, h host.Host, ps *pubsub.PubSub, submission
 	return reporter, nil
 }
 
+func NewDeviationReporter(ctx context.Context, h host.Host, ps *pubsub.PubSub, submissionPairs []SubmissionAddress) (*Reporter, error) {
+	topicString := TOPIC_STRING + "-deviation"
+
+	topic, err := ps.Join(topicString)
+	if err != nil {
+		log.Error().Str("Player", "Reporter").Err(err).Msg("Failed to join topic")
+		return nil, err
+	}
+
+	raft := raft.NewRaftNode(h, ps, topic, MESSAGE_BUFFER, DEVIATION_TIMEOUT)
+
+	contractAddress := os.Getenv("SUBMISSION_PROXY_CONTRACT")
+	if contractAddress == "" {
+		return nil, errors.New("SUBMISSION_PROXY_CONTRACT not set")
+	}
+
+	reporter := &Reporter{
+		Raft:               raft,
+		contractAddress:    contractAddress,
+		SubmissionInterval: DEVIATION_TIMEOUT,
+	}
+
+	reporter.SubmissionPairs = make(map[string]SubmissionPair)
+	for _, sa := range submissionPairs {
+		reporter.SubmissionPairs[sa.Name] = SubmissionPair{LastSubmission: 0, Address: common.HexToAddress(sa.Address)}
+	}
+
+	reporter.Raft.LeaderJob = reporter.deviationJob
+	reporter.Raft.HandleCustomMessage = reporter.handleCustomMessage
+
+	return reporter, nil
+
+}
+
 func (r *Reporter) Run(ctx context.Context) {
 	r.Raft.Run(ctx)
 }
@@ -104,6 +138,12 @@ func (r *Reporter) leaderJob() error {
 		err = r.report(ctx, validAggregates)
 		if err != nil {
 			log.Error().Str("Player", "Reporter").Err(err).Msg("report")
+			return err
+		}
+
+		err = r.storeLastSubmission(ctx, validAggregates)
+		if err != nil {
+			log.Error().Str("Player", "Reporter").Err(err).Msg("storeLastSubmission")
 			return err
 		}
 
@@ -438,4 +478,153 @@ func ProofsToMap(proofs []Proof) map[string][]byte {
 		m[proof.Name+"-"+strconv.FormatInt(proof.Round, 10)] = proof.Proof
 	}
 	return m
+}
+
+func (r *Reporter) storeLastSubmission(ctx context.Context, aggregates []GlobalAggregate) error {
+	vals := make(map[string]string)
+
+	for _, agg := range aggregates {
+		if agg.Name == "" {
+			log.Error().Str("Player", "Reporter").Str("name", agg.Name).Msg("skipping invalid aggregate")
+			continue
+		}
+		key := "lastSubmission:" + agg.Name
+
+		tmpValue, err := json.Marshal(agg)
+		if err != nil {
+			log.Error().Str("Player", "Reporter").Err(err).Msg("failed to marshal aggregate")
+			continue
+		}
+		value := string(tmpValue)
+		vals[key] = value
+	}
+
+	if len(vals) == 0 {
+		return errors.New("no valid aggregates")
+	}
+
+	return db.MSet(ctx, vals)
+}
+
+func (r *Reporter) getLastSubmission(ctx context.Context) ([]GlobalAggregate, error) {
+	keys := make([]string, 0, len(r.SubmissionPairs))
+
+	for name := range r.SubmissionPairs {
+		keys = append(keys, "lastSubmission:"+name)
+	}
+
+	result, err := db.MGet(ctx, keys)
+	if err != nil {
+		log.Error().Str("Player", "Reporter").Err(err).Msg("failed to get last submission")
+		return nil, err
+	}
+
+	aggregates := make([]GlobalAggregate, 0, len(result))
+	for i, agg := range result {
+		if agg == nil {
+			log.Error().Str("Player", "Reporter").Str("key", keys[i]).Msg("missing aggregate")
+			continue
+		}
+		var aggregate GlobalAggregate
+		err = json.Unmarshal([]byte(agg.(string)), &aggregate)
+		if err != nil {
+			log.Error().Str("Player", "Reporter").Err(err).Str("key", keys[i]).Msg("failed to unmarshal aggregate")
+			continue
+		}
+		aggregates = append(aggregates, aggregate)
+	}
+
+	return aggregates, nil
+}
+
+func (r *Reporter) deviationJob() error {
+	start := time.Now()
+	r.Raft.IncreaseTerm()
+	ctx := context.Background()
+
+	lastSubmissions, err := r.getLastSubmission(ctx)
+	if err != nil {
+		log.Error().Str("Player", "Reporter").Err(err).Msg("getLastSubmission")
+		return err
+	}
+	lastAggregates, err := r.getLatestGlobalAggregates(ctx)
+	if err != nil {
+		log.Error().Str("Player", "Reporter").Err(err).Msg("getLatestGlobalAggregates")
+		return err
+	}
+
+	deviatingAggregates := r.getDeviatingAggregates(lastSubmissions, lastAggregates)
+	if len(deviatingAggregates) == 0 {
+		return nil
+	}
+
+	job := func() error {
+		err = r.report(ctx, deviatingAggregates)
+		if err != nil {
+			log.Error().Str("Player", "Reporter").Err(err).Msg("DeviationReport")
+			return err
+		}
+
+		err = r.storeLastSubmission(ctx, deviatingAggregates)
+		if err != nil {
+			log.Error().Str("Player", "Reporter").Err(err).Msg("storeLastSubmission from deviation")
+			return err
+		}
+
+		err = r.storeLastSubmission(ctx, deviatingAggregates)
+		if err != nil {
+			log.Error().Str("Player", "Reporter").Err(err).Msg("storeLastSubmission from deviation")
+			return err
+		}
+
+		for _, agg := range deviatingAggregates {
+			pair := r.SubmissionPairs[agg.Name]
+			pair.LastSubmission = agg.Round
+			r.SubmissionPairs[agg.Name] = pair
+		}
+
+		log.Debug().Str("Player", "Reporter").Dur("duration", time.Since(start)).Msg("reporting deviation done")
+		return nil
+	}
+
+	err = r.retry(job)
+	if err != nil {
+		r.resignLeader()
+		log.Error().Str("Player", "Reporter").Err(err).Msg("failed to report deviation")
+		return errors.New("failed to report deviation")
+	}
+
+	return nil
+
+}
+
+func (r *Reporter) shouldReportDeviation(old int64, new int64) bool {
+	if old != 0 && new != 0 {
+		deviationRange := float64(old) * DEVIATION_THRESHOLD
+		minimum := float64(old) - deviationRange
+		maximum := float64(old) + deviationRange
+		return float64(new) < minimum || float64(new) > maximum
+	} else if old == 0 && new != 0 {
+		return float64(new) > DEVIATION_ABSOLUTE_THRESHOLD
+	} else {
+		return false
+	}
+}
+
+func (r *Reporter) getDeviatingAggregates(lastSubmitted []GlobalAggregate, newAggregates []GlobalAggregate) []GlobalAggregate {
+	submittedAggregates := make(map[string]GlobalAggregate)
+	for _, aggregate := range lastSubmitted {
+		submittedAggregates[aggregate.Name] = aggregate
+	}
+
+	result := make([]GlobalAggregate, 0, len(newAggregates))
+
+	for _, newAggregate := range newAggregates {
+		submittedAggregate, ok := submittedAggregates[newAggregate.Name]
+		if !ok || r.shouldReportDeviation(submittedAggregate.Value, newAggregate.Value) {
+			result = append(result, newAggregate)
+		}
+	}
+
+	return result
 }

@@ -17,14 +17,16 @@ import (
 const (
 	TOPIC_STRING            = "orakl-offchain-aggregation-reporter"
 	MESSAGE_BUFFER          = 100
-	LEADER_TIMEOUT          = 5 * time.Second
+	DEVIATION_TIMEOUT       = 5 * time.Second
 	INITIAL_FAILURE_TIMEOUT = 50 * time.Millisecond
 	MAX_RETRY               = 3
 	MAX_RETRY_DELAY         = 500 * time.Millisecond
 	SUBMIT_WITHOUT_PROOFS   = "submit(address[] memory _feeds, int256[] memory _submissions)"
 	SUBMIT_WITH_PROOFS      = "submit(address[] memory _feeds, int256[] memory _submissions, bytes[] memory _proofs)"
 
-	GET_SUBMISSIONS_QUERY = `SELECT * FROM submission_addresses;`
+	GET_SUBMISSIONS_QUERY        = `SELECT * FROM submission_addresses;`
+	DEVIATION_THRESHOLD          = 0.05
+	DEVIATION_ABSOLUTE_THRESHOLD = 0.1
 )
 
 type SubmissionAddress struct {
