@@ -199,7 +199,7 @@ func (f *Fetcher) uniswapV3(definition *Definition, chainHelpers map[string]Chai
 		return 0, errors.New("unexpected result on converting to bigint")
 	}
 
-	return getTokenPrice(sqrtPriceX96, int(*definition.Token0Decimals), int(*definition.Token1Decimals))
+	return getTokenPrice(sqrtPriceX96, definition)
 }
 
 func (f *Fetcher) requestFeed(definition *Definition, proxies []Proxy) (interface{}, error) {
@@ -238,7 +238,9 @@ func (f *Fetcher) filterProxyByLocation(proxies []Proxy, location string) []Prox
 	return filteredProxies
 }
 
-func getTokenPrice(sqrtPriceX96 *big.Int, decimal0 int, decimal1 int) (float64, error) {
+func getTokenPrice(sqrtPriceX96 *big.Int, definition *Definition) (float64, error) {
+	decimal0 := *definition.Token0Decimals
+	decimal1 := *definition.Token1Decimals
 	if sqrtPriceX96 == nil || decimal0 == 0 || decimal1 == 0 {
 		return 0, errors.New("invalid input")
 	}
@@ -250,6 +252,12 @@ func getTokenPrice(sqrtPriceX96 *big.Int, decimal0 int, decimal1 int) (float64, 
 	decimalDiff := new(big.Float).SetFloat64(math.Pow(10, float64(decimal1-decimal0)))
 
 	datum := sqrtPriceX96Float.Quo(sqrtPriceX96Float, decimalDiff)
+	if definition.Reciprocal != nil && *definition.Reciprocal {
+		if datum == nil || datum.Sign() == 0 {
+			return 0, errors.New("division by zero error from reciprocal division")
+		}
+		datum = datum.Quo(new(big.Float).SetFloat64(1), datum)
+	}
 
 	multiplier := new(big.Float).SetFloat64(math.Pow(10, 6))
 	datum.Mul(datum, multiplier)

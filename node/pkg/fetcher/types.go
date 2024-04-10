@@ -72,6 +72,7 @@ type Definition struct {
 	Address        *string `json:"address"`
 	Token0Decimals *int64  `json:"token0Decimals"`
 	Token1Decimals *int64  `json:"token1Decimals"`
+	Reciprocal     *bool   `json:"reciprocal"`
 }
 
 type Aggregate struct {
