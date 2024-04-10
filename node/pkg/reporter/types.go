@@ -27,6 +27,7 @@ const (
 	GET_SUBMISSIONS_QUERY        = `SELECT * FROM submission_addresses;`
 	DEVIATION_THRESHOLD          = 0.05
 	DEVIATION_ABSOLUTE_THRESHOLD = 0.1
+	DECIMALS                     = 8
 )
 
 type SubmissionAddress struct {

@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"encoding/json"
 	"errors"
+	"math"
 	"math/big"
 	"os"
 	"strconv"
@@ -237,7 +238,7 @@ func (r *Reporter) getLatestGlobalAggregatesRdb(ctx context.Context) ([]GlobalAg
 	aggregates := make([]GlobalAggregate, 0, len(result))
 	for i, agg := range result {
 		if agg == nil {
-			log.Error().Str("Player", "Reporter").Str("key", keys[i]).Msg("missing aggregate")
+			log.Warn().Str("Player", "Reporter").Str("key", keys[i]).Msg("no latest aggregate")
 			continue
 		}
 		var aggregate GlobalAggregate
@@ -598,14 +599,18 @@ func (r *Reporter) deviationJob() error {
 
 }
 
-func (r *Reporter) shouldReportDeviation(old int64, new int64) bool {
-	if old != 0 && new != 0 {
-		deviationRange := float64(old) * DEVIATION_THRESHOLD
-		minimum := float64(old) - deviationRange
-		maximum := float64(old) + deviationRange
-		return float64(new) < minimum || float64(new) > maximum
-	} else if old == 0 && new != 0 {
-		return float64(new) > DEVIATION_ABSOLUTE_THRESHOLD
+func (r *Reporter) shouldReportDeviation(oldValue int64, newValue int64) bool {
+	denominator := math.Pow10(DECIMALS)
+	oldValueInFLoat := float64(oldValue) / denominator
+	newValueInFLoat := float64(newValue) / denominator
+
+	if oldValue != 0 && newValue != 0 {
+		deviationRange := oldValueInFLoat * DEVIATION_THRESHOLD
+		minimum := oldValueInFLoat - deviationRange
+		maximum := oldValueInFLoat + deviationRange
+		return newValueInFLoat < minimum || newValueInFLoat > maximum
+	} else if oldValue == 0 && newValue != 0 {
+		return newValueInFLoat > DEVIATION_ABSOLUTE_THRESHOLD
 	} else {
 		return false
 	}

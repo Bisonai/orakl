@@ -386,3 +386,157 @@ func TestGetProofsPgsql(t *testing.T) {
 	}
 	assert.EqualValues(t, testItems.tmpData.proofBytes, result[0].Proof)
 }
+
+func TestNewDeviationReporter(t *testing.T) {
+	ctx := context.Background()
+	cleanup, testItems, err := setup(ctx)
+	if err != nil {
+		t.Fatalf("error setting up test: %v", err)
+	}
+	defer func() {
+		if cleanupErr := cleanup(); cleanupErr != nil {
+			t.Logf("Cleanup failed: %v", cleanupErr)
+		}
+	}()
+
+	submissionPairs, err := getSubmissionPairs(ctx)
+	if err != nil {
+		t.Fatalf("error getting submission pairs: %v", err)
+	}
+	_, err = NewDeviationReporter(ctx, testItems.app.Host, testItems.app.Pubsub, submissionPairs)
+	if err != nil {
+		t.Fatalf("error creating new deviation reporter: %v", err)
+	}
+}
+
+func TestStoreAndGetLastSubmission(t *testing.T) {
+	ctx := context.Background()
+	cleanup, testItems, err := setup(ctx)
+	if err != nil {
+		t.Fatalf("error setting up test: %v", err)
+	}
+	defer func() {
+		if cleanupErr := cleanup(); cleanupErr != nil {
+			t.Logf("Cleanup failed: %v", cleanupErr)
+		}
+	}()
+
+	err = testItems.app.setReporters(ctx, testItems.app.Host, testItems.app.Pubsub)
+	if err != nil {
+		t.Fatalf("error setting reporters: %v", err)
+	}
+	reporter, err := testItems.app.GetReporterWithInterval(TestInterval)
+	if err != nil {
+		t.Fatalf("error getting reporter: %v", err)
+	}
+
+	aggregates, err := reporter.getLatestGlobalAggregates(ctx)
+	if err != nil {
+		t.Fatal("error getting latest global aggregates")
+	}
+
+	err = reporter.storeLastSubmission(ctx, aggregates)
+	if err != nil {
+		t.Fatal("error storing last submission")
+	}
+
+	loadedAggregates, err := reporter.getLastSubmission(ctx)
+	if err != nil {
+		t.Fatal("error getting last submission")
+	}
+
+	assert.EqualValues(t, aggregates, loadedAggregates)
+
+}
+
+func TestShouldReportDeviation(t *testing.T) {
+	ctx := context.Background()
+	cleanup, testItems, err := setup(ctx)
+	if err != nil {
+		t.Fatalf("error setting up test: %v", err)
+	}
+	defer func() {
+		if cleanupErr := cleanup(); cleanupErr != nil {
+			t.Logf("Cleanup failed: %v", cleanupErr)
+		}
+	}()
+
+	err = testItems.app.setReporters(ctx, testItems.app.Host, testItems.app.Pubsub)
+	if err != nil {
+		t.Fatalf("error setting reporters: %v", err)
+	}
+	reporter, err := testItems.app.GetReporterWithInterval(TestInterval)
+	if err != nil {
+		t.Fatalf("error getting reporter: %v", err)
+	}
+
+	assert.False(t, reporter.shouldReportDeviation(0, 0))
+	assert.True(t, reporter.shouldReportDeviation(0, 100000000))
+	assert.False(t, reporter.shouldReportDeviation(100000000000, 100100000000))
+	assert.True(t, reporter.shouldReportDeviation(100000000000, 105100000000))
+	assert.False(t, reporter.shouldReportDeviation(100000000000, 0))
+}
+
+func TestGetDeviatingAggregates(t *testing.T) {
+	ctx := context.Background()
+	cleanup, testItems, err := setup(ctx)
+	if err != nil {
+		t.Fatalf("error setting up test: %v", err)
+	}
+	defer func() {
+		if cleanupErr := cleanup(); cleanupErr != nil {
+			t.Logf("Cleanup failed: %v", cleanupErr)
+		}
+	}()
+
+	submissionPairs, err := getSubmissionPairs(ctx)
+	if err != nil {
+		t.Fatalf("error getting submission pairs: %v", err)
+	}
+	reporter, err := NewDeviationReporter(ctx, testItems.app.Host, testItems.app.Pubsub, submissionPairs)
+	if err != nil {
+		t.Fatalf("error creating new deviation reporter: %v", err)
+	}
+
+	oldAggregates := []GlobalAggregate{{
+		Name:  "test-aggregate",
+		Value: 15,
+		Round: 1,
+	}}
+
+	newAggregates := []GlobalAggregate{{
+		Name:  "test-aggregate",
+		Value: 30,
+		Round: 2,
+	}}
+
+	result := reporter.getDeviatingAggregates(oldAggregates, newAggregates)
+	assert.Equal(t, result, newAggregates)
+}
+
+func TestDeviationJob(t *testing.T) {
+	ctx := context.Background()
+	cleanup, testItems, err := setup(ctx)
+	if err != nil {
+		t.Fatalf("error setting up test: %v", err)
+	}
+	defer func() {
+		if cleanupErr := cleanup(); cleanupErr != nil {
+			t.Logf("Cleanup failed: %v", cleanupErr)
+		}
+	}()
+
+	submissionPairs, err := getSubmissionPairs(ctx)
+	if err != nil {
+		t.Fatalf("error getting submission pairs: %v", err)
+	}
+	reporter, err := NewDeviationReporter(ctx, testItems.app.Host, testItems.app.Pubsub, submissionPairs)
+	if err != nil {
+		t.Fatalf("error creating new deviation reporter: %v", err)
+	}
+
+	err = reporter.deviationJob()
+	if err != nil {
+		t.Fatal("error running deviation job")
+	}
+}

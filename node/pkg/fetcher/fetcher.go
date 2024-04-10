@@ -259,7 +259,7 @@ func getTokenPrice(sqrtPriceX96 *big.Int, definition *Definition) (float64, erro
 		datum = datum.Quo(new(big.Float).SetFloat64(1), datum)
 	}
 
-	multiplier := new(big.Float).SetFloat64(math.Pow(10, 6))
+	multiplier := new(big.Float).SetFloat64(math.Pow(10, DECIMALS))
 	datum.Mul(datum, multiplier)
 
 	result, _ := datum.Float64()
