@@ -70,9 +70,9 @@ func insertSampleData(ctx context.Context) (*TmpData, error) {
 	if err != nil {
 		return nil, err
 	}
-	tmpData.proofBytes = concatBytes([][]byte{rawProof, rawProof})
+	tmpData.proofBytes = ConcatBytes([][]byte{rawProof, rawProof})
 
-	err = db.QueryWithoutResult(ctx, "INSERT INTO proofs (name, round, proof) VALUES (@name, @round, @proof)", map[string]any{"name": "test-aggregate", "round": int64(1), "proof": concatBytes([][]byte{rawProof, rawProof})})
+	err = db.QueryWithoutResult(ctx, "INSERT INTO proofs (name, round, proof) VALUES (@name, @round, @proof)", map[string]any{"name": "test-aggregate", "round": int64(1), "proof": ConcatBytes([][]byte{rawProof, rawProof})})
 	if err != nil {
 		return nil, err
 	}
@@ -80,7 +80,7 @@ func insertSampleData(ctx context.Context) (*TmpData, error) {
 	rdbProof := Proof{
 		Name:  "test-aggregate",
 		Round: int64(1),
-		Proof: concatBytes([][]byte{rawProof, rawProof}),
+		Proof: ConcatBytes([][]byte{rawProof, rawProof}),
 	}
 	rdbProofData, err := json.Marshal(rdbProof)
 	if err != nil {
