@@ -71,7 +71,7 @@ func (n *Aggregator) HandleCustomMessage(message raft.Message) error {
 		return n.HandleRoundSyncMessage(message)
 	case PriceData:
 		return n.HandlePriceDataMessage(message)
-	case Proof:
+	case ProofMsg:
 		return n.HandleProofMessage(message)
 	default:
 		return fmt.Errorf("unknown message type received in HandleCustomMessage: %v", message.Type)
@@ -241,7 +241,7 @@ func (n *Aggregator) PublishProofMessage(roundId int64, proof []byte) error {
 	}
 
 	message := raft.Message{
-		Type:     Proof,
+		Type:     ProofMsg,
 		SentFrom: n.Raft.GetHostId(),
 		Data:     json.RawMessage(marshalledProofMessage),
 	}

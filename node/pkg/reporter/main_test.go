@@ -66,21 +66,21 @@ func insertSampleData(ctx context.Context) (*TmpData, error) {
 	}
 	tmpData.globalAggregate = tmpGlobalAggregate
 
-	p, err := signHelper.MakeGlobalAggregateProof(int64(15))
+	rawProof, err := signHelper.MakeGlobalAggregateProof(int64(15))
 	if err != nil {
 		return nil, err
 	}
-	tmpData.proofBytes = p
+	tmpData.proofBytes = concatBytes([][]byte{rawProof, rawProof})
 
-	err = db.QueryWithoutResult(ctx, "INSERT INTO proofs (name, round, proof) VALUES (@name, @round, @proof)", map[string]any{"name": "test-aggregate", "round": int64(1), "proof": p})
+	err = db.QueryWithoutResult(ctx, "INSERT INTO proofs (name, round, proof) VALUES (@name, @round, @proof)", map[string]any{"name": "test-aggregate", "round": int64(1), "proof": concatBytes([][]byte{rawProof, rawProof})})
 	if err != nil {
 		return nil, err
 	}
 
-	rdbProof := Proofs{
-		Name:   "test-aggregate",
-		Round:  int64(1),
-		Proofs: [][]byte{p},
+	rdbProof := Proof{
+		Name:  "test-aggregate",
+		Round: int64(1),
+		Proof: concatBytes([][]byte{rawProof, rawProof}),
 	}
 	rdbProofData, err := json.Marshal(rdbProof)
 	if err != nil {

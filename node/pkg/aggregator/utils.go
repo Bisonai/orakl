@@ -101,21 +101,19 @@ func InsertProof(ctx context.Context, name string, round int64, proofs [][]byte)
 }
 
 func insertProofPgsql(ctx context.Context, name string, round int64, proofs [][]byte) error {
-	insertRows := make([][]any, 0, len(proofs))
-	for _, proof := range proofs {
-		insertRows = append(insertRows, []any{name, round, proof})
-	}
-
-	err := db.BulkInsert(ctx, "proofs", []string{"name", "round", "proof"}, insertRows)
+	concatProof := concatBytes(proofs)
+	err := db.QueryWithoutResult(ctx, InsertProofQuery, map[string]any{"name": name, "round": round, "proof": concatProof})
 	if err != nil {
 		log.Error().Str("Player", "Aggregator").Err(err).Msg("failed to insert proofs into pgsql")
 	}
+
 	return err
 }
 
 func insertProofRdb(ctx context.Context, name string, round int64, proofs [][]byte) error {
+	concatProof := concatBytes(proofs)
 	key := "proof:" + name + "|round:" + strconv.FormatInt(round, 10)
-	data, err := json.Marshal(Proofs{Name: name, Round: round, Proofs: proofs})
+	data, err := json.Marshal(Proof{Name: name, Round: round, Proof: concatProof})
 	if err != nil {
 		log.Error().Str("Player", "Aggregator").Err(err).Msg("failed to marshal proofs")
 		return err
@@ -136,9 +134,9 @@ func GetLatestLocalAggregate(ctx context.Context, name string) (int64, time.Time
 }
 
 // used for testing
-func getProofFromRdb(ctx context.Context, name string, round int64) (Proofs, error) {
+func getProofFromRdb(ctx context.Context, name string, round int64) (Proof, error) {
 	key := "proof:" + name + "|round:" + strconv.FormatInt(round, 10)
-	var proofs Proofs
+	var proofs Proof
 	data, err := db.Get(ctx, key)
 	if err != nil {
 		return proofs, err
@@ -152,16 +150,13 @@ func getProofFromRdb(ctx context.Context, name string, round int64) (Proofs, err
 }
 
 // used for testing
-func getProofFromPgsql(ctx context.Context, name string, round int64) (Proofs, error) {
-	rawProofs, err := db.QueryRows[PgsqlProof](ctx, "SELECT * FROM proofs WHERE name = @name AND round = @round", map[string]any{"name": name, "round": round})
+func getProofFromPgsql(ctx context.Context, name string, round int64) (Proof, error) {
+	rawProof, err := db.QueryRow[PgsqlProof](ctx, "SELECT * FROM proofs WHERE name = @name AND round = @round", map[string]any{"name": name, "round": round})
 	if err != nil {
-		return Proofs{}, err
+		return Proof{}, err
 	}
 
-	proofs := Proofs{Name: name, Round: round}
-	for _, rawProof := range rawProofs {
-		proofs.Proofs = append(proofs.Proofs, rawProof.Proof)
-	}
+	proofs := Proof{Name: name, Round: round, Proof: rawProof.Proof}
 	return proofs, nil
 }
 
@@ -179,4 +174,12 @@ func getLatestGlobalAggregateFromRdb(ctx context.Context, name string) (globalAg
 		return aggregate, err
 	}
 	return aggregate, nil
+}
+
+func concatBytes(slices [][]byte) []byte {
+	var result []byte
+	for _, slice := range slices {
+		result = append(result, slice...)
+	}
+	return result
 }

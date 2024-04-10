@@ -258,7 +258,13 @@ func TestMakeContractArgs(t *testing.T) {
 	}
 	assert.Equal(t, reporter.SubmissionPairs[agg.Name].Address, addresses[0])
 	assert.Equal(t, big.NewInt(15), values[0])
-	assert.EqualValues(t, proofs, rawProofs[0].Proofs)
+
+	proofArr := make([][]byte, len(proofs))
+	for i, p := range rawProofs {
+		proofArr[i] = p.Proof
+	}
+
+	assert.EqualValues(t, proofs, proofArr)
 }
 
 func TestGetLatestGlobalAggregatesRdb(t *testing.T) {
@@ -349,7 +355,7 @@ func TestGetProofsRdb(t *testing.T) {
 	if err != nil {
 		t.Fatal("error getting proofs from rdb")
 	}
-	assert.EqualValues(t, testItems.tmpData.proofBytes, result[0].Proofs[0])
+	assert.EqualValues(t, testItems.tmpData.proofBytes, result[0].Proof)
 }
 
 func TestGetProofsPgsql(t *testing.T) {
@@ -378,5 +384,5 @@ func TestGetProofsPgsql(t *testing.T) {
 	if err != nil {
 		t.Fatal("error getting proofs from pgsql")
 	}
-	assert.EqualValues(t, testItems.tmpData.proofBytes, result[0].Proofs[0])
+	assert.EqualValues(t, testItems.tmpData.proofBytes, result[0].Proof)
 }

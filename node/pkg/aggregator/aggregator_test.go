@@ -191,15 +191,15 @@ func TestInsertProof(t *testing.T) {
 	if err != nil {
 		t.Fatal("error getting proof from rdb")
 	}
-	assert.Equal(t, 2, len(rdbResult.Proofs))
-	assert.EqualValues(t, [][]byte{p, p}, rdbResult.Proofs)
+
+	assert.EqualValues(t, concatBytes([][]byte{p, p}), rdbResult.Proof)
 
 	pgsqlResult, err := getProofFromPgsql(ctx, node.Name, round)
 	if err != nil {
 		t.Fatal("error getting proof from pgsql:" + err.Error())
 	}
-	assert.Equal(t, 2, len(pgsqlResult.Proofs))
-	assert.EqualValues(t, [][]byte{p, p}, pgsqlResult.Proofs)
+
+	assert.EqualValues(t, concatBytes([][]byte{p, p}), pgsqlResult.Proof)
 
 	err = db.QueryWithoutResult(ctx, "DELETE FROM proofs", nil)
 	if err != nil {

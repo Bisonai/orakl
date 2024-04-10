@@ -15,11 +15,12 @@ import (
 const (
 	RoundSync                        raft.MessageType = "roundSync"
 	PriceData                        raft.MessageType = "priceData"
-	Proof                            raft.MessageType = "proof"
+	ProofMsg                         raft.MessageType = "proof"
 	SelectActiveAggregatorsQuery                      = `SELECT * FROM aggregators WHERE active = true`
 	SelectLatestLocalAggregateQuery                   = `SELECT * FROM local_aggregates WHERE name = @name ORDER BY timestamp DESC LIMIT 1`
 	InsertGlobalAggregateQuery                        = `INSERT INTO global_aggregates (name, value, round) VALUES (@name, @value, @round) RETURNING *`
 	SelectLatestGlobalAggregateQuery                  = `SELECT * FROM global_aggregates WHERE name = @name ORDER BY round DESC LIMIT 1`
+	InsertProofQuery                                  = `INSERT INTO proofs (name, round, proof) VALUES (@name, @round, @proof) RETURNING *`
 )
 
 type redisLocalAggregate struct {
@@ -35,10 +36,10 @@ type PgsqlProof struct {
 	Proof []byte `json:"proof"`
 }
 
-type Proofs struct {
-	Name   string   `json:"name"`
-	Round  int64    `json:"round"`
-	Proofs [][]byte `json:"proofs"`
+type Proof struct {
+	Name  string `json:"name"`
+	Round int64  `json:"round"`
+	Proof []byte `json:"proofs"`
 }
 
 type pgsLocalAggregate struct {

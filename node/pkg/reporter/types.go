@@ -65,13 +65,13 @@ type GlobalAggregate struct {
 	Round int64  `db:"round" json:"round"`
 }
 
-type Proofs struct {
-	Name   string   `json:"name"`
-	Round  int64    `json:"round"`
-	Proofs [][]byte `json:"proofs"`
+type Proof struct {
+	Name  string `json:"name"`
+	Round int64  `json:"round"`
+	Proof []byte `json:"proofs"`
 }
 
-type Proof struct {
+type PgsqlProof struct {
 	ID    int64  `db:"id" json:"id"`
 	Name  string `db:"name" json:"name"`
 	Round int64  `db:"round" json:"round"`

@@ -212,7 +212,7 @@ func (r *Reporter) getLatestGlobalAggregatesRdb(ctx context.Context) ([]GlobalAg
 	return aggregates, nil
 }
 
-func (r *Reporter) getProofs(ctx context.Context, aggregates []GlobalAggregate) ([]Proofs, error) {
+func (r *Reporter) getProofs(ctx context.Context, aggregates []GlobalAggregate) ([]Proof, error) {
 	result, err := r.getProofsRdb(ctx, aggregates)
 	if err != nil {
 		log.Warn().Str("Player", "Reporter").Err(err).Msg("getProofsRdb failed, trying to get from pgsql")
@@ -221,7 +221,7 @@ func (r *Reporter) getProofs(ctx context.Context, aggregates []GlobalAggregate) 
 	return result, nil
 }
 
-func (r *Reporter) getProofsRdb(ctx context.Context, aggregates []GlobalAggregate) ([]Proofs, error) {
+func (r *Reporter) getProofsRdb(ctx context.Context, aggregates []GlobalAggregate) ([]Proof, error) {
 	keys := make([]string, 0, len(aggregates))
 	for _, agg := range aggregates {
 		keys = append(keys, "proof:"+agg.Name+"|round:"+strconv.FormatInt(agg.Round, 10))
@@ -233,13 +233,13 @@ func (r *Reporter) getProofsRdb(ctx context.Context, aggregates []GlobalAggregat
 		return nil, err
 	}
 
-	proofs := make([]Proofs, 0, len(result))
+	proofs := make([]Proof, 0, len(result))
 	for i, proof := range result {
 		if proof == nil {
 			log.Error().Str("Player", "Reporter").Str("key", keys[i]).Msg("missing proof")
 			continue
 		}
-		var p Proofs
+		var p Proof
 		err = json.Unmarshal([]byte(proof.(string)), &p)
 		if err != nil {
 			log.Error().Str("Player", "Reporter").Err(err).Str("key", keys[i]).Msg("failed to unmarshal proof")
@@ -251,15 +251,14 @@ func (r *Reporter) getProofsRdb(ctx context.Context, aggregates []GlobalAggregat
 	return proofs, nil
 }
 
-func (r *Reporter) getProofsPgsql(ctx context.Context, aggregates []GlobalAggregate) ([]Proofs, error) {
+func (r *Reporter) getProofsPgsql(ctx context.Context, aggregates []GlobalAggregate) ([]Proof, error) {
 	q := makeGetProofsQuery(aggregates)
-	rawResult, err := db.QueryRows[Proof](ctx, q, nil)
+	rawResult, err := db.QueryRows[PgsqlProof](ctx, q, nil)
 	if err != nil {
 		log.Error().Str("Player", "Reporter").Err(err).Msg("failed to get proofs")
 		return nil, err
 	}
-	return mergeProofs(rawResult), nil
-
+	return convertPgsqlProofsToProofs(rawResult), nil
 }
 
 func (r *Reporter) reportWithoutProofs(ctx context.Context, aggregates []GlobalAggregate) error {
@@ -412,30 +411,16 @@ func calculateJitter(baseTimeout time.Duration) time.Duration {
 	return baseTimeout + jitter
 }
 
-func mergeProofs(proofs []Proof) []Proofs {
-	merged := make(map[string]Proofs)
-
-	for _, proof := range proofs {
-		key := proof.Name + "-" + strconv.FormatInt(proof.Round, 10)
-
-		p, ok := merged[key]
-		if !ok {
-			p = Proofs{
-				Name:  proof.Name,
-				Round: proof.Round,
-			}
+func convertPgsqlProofsToProofs(pgsqlProofs []PgsqlProof) []Proof {
+	proofs := make([]Proof, len(pgsqlProofs))
+	for i, pgsqlProof := range pgsqlProofs {
+		proofs[i] = Proof{
+			Name:  pgsqlProof.Name,
+			Round: pgsqlProof.Round,
+			Proof: pgsqlProof.Proof,
 		}
-
-		p.Proofs = append(p.Proofs, proof.Proof)
-		merged[key] = p
 	}
-
-	result := make([]Proofs, 0, len(merged))
-	for _, p := range merged {
-		result = append(result, p)
-	}
-
-	return result
+	return proofs
 }
 
 func concatBytes(slices [][]byte) []byte {
@@ -446,11 +431,11 @@ func concatBytes(slices [][]byte) []byte {
 	return result
 }
 
-func ProofsToMap(proofs []Proofs) map[string][]byte {
+func ProofsToMap(proofs []Proof) map[string][]byte {
 	m := make(map[string][]byte)
 	for _, proof := range proofs {
 		//m[name-round] = proof
-		m[proof.Name+"-"+strconv.FormatInt(proof.Round, 10)] = concatBytes(proof.Proofs)
+		m[proof.Name+"-"+strconv.FormatInt(proof.Round, 10)] = proof.Proof
 	}
 	return m
 }
