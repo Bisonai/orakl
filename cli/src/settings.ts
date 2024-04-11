@@ -1,13 +1,13 @@
 const production = process.env.NODE_ENV == 'production'
 const default_api_url = production
-  ? 'http://api.orakl.svc.cluster.local'
+  ? 'http://orakl-api.orakl.svc.cluster.local'
   : 'http://localhost:3000/api/v1'
 const default_delegator_url = production
-  ? 'http://delegator.orakl.svc.cluster.local'
+  ? 'http://orakl-delegator.orakl.svc.cluster.local'
   : 'http://localhost:3002/api/v1'
 
 const default_fetcher_host = production
-  ? 'http://fetcher.orakl.svc.cluster.local'
+  ? 'http://orakl-fetcher.orakl.svc.cluster.local'
   : 'http://localhost'
 const default_fetcher_port = production ? '4040' : '3001'
 
