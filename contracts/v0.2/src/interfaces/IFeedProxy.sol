@@ -10,24 +10,22 @@ interface IFeedProxy is IFeed {
      * @return id The round ID.
      * @return answer The oracle answer.
      * @return updatedAt Timestamp of the last update.
-     * @return verified A boolean indicating if the data is verified.
      */
     function proposedGetRoundData(uint64 _roundId)
         external
         view
-        returns (uint64 id, int256 answer, uint256 updatedAt, bool verified);
+        returns (uint64 id, int256 answer, uint256 updatedAt);
 
     /**
      * @notice Get the latest round data from the proposed feed.
      * @return id The round ID.
      * @return answer The oracle answer.
      * @return updatedAt Timestamp of the last update.
-     * @return verified A boolean indicating if the data is verified.
      */
     function proposedLatestRoundData()
         external
         view
-        returns (uint64 id, int256 answer, uint256 updatedAt, bool verified);
+        returns (uint64 id, int256 answer, uint256 updatedAt);
 
     /**
      * @notice Get address of the feed.

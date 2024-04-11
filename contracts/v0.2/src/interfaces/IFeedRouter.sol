@@ -36,12 +36,11 @@ interface IFeedRouter {
      * @return id The round ID.
      * @return answer The oracle answer.
      * @return updatedAt Timestamp of the last update.
-     * @return verified A boolean indicating if the data is verified.
      */
     function getRoundData(string calldata _feedName, uint64 _roundId)
         external
         view
-        returns (uint64 id, int256 answer, uint256 updatedAt, bool verified);
+        returns (uint64 id, int256 answer, uint256 updatedAt);
 
     /**
      * @notice Get the latest round data of the feed given a feed name.
@@ -49,12 +48,11 @@ interface IFeedRouter {
      * @return id The round ID.
      * @return answer The oracle answer.
      * @return updatedAt Timestamp of the last update.
-     * @return verified A boolean indicating if the data is verified.
      */
     function latestRoundData(string calldata _feedName)
         external
         view
-        returns (uint64 id, int256 answer, uint256 updatedAt, bool verified);
+        returns (uint64 id, int256 answer, uint256 updatedAt);
 
     /**
      * @notice Get round data from the proposed feed given a feed name and round ID.
@@ -63,12 +61,11 @@ interface IFeedRouter {
      * @return id The round ID.
      * @return answer The oracle answer.
      * @return updatedAt Timestamp of the last update.
-     * @return verified A boolean indicating if the data is verified.
      */
     function proposedGetRoundData(string calldata _feedName, uint64 _roundId)
         external
         view
-        returns (uint64 id, int256 answer, uint256 updatedAt, bool verified);
+        returns (uint64 id, int256 answer, uint256 updatedAt);
 
     /**
      * @notice Get the latest round data from the proposed feed given a feed name.
@@ -76,12 +73,11 @@ interface IFeedRouter {
      * @return id The round ID.
      * @return answer The oracle answer.
      * @return updatedAt Timestamp of the last update.
-     * @return verified A boolean indicating if the data is verified.
      */
     function proposedLatestRoundData(string calldata _feedName)
         external
         view
-        returns (uint64 id, int256 answer, uint256 updatedAt, bool verified);
+        returns (uint64 id, int256 answer, uint256 updatedAt);
 
     /**
      * @notice Get address of the feed given a feed name.

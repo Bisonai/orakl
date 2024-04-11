@@ -54,7 +54,7 @@ contract FeedRouter is Ownable, IFeedRouter {
         external
         view
         validFeed(_feedName)
-        returns (uint64 id, int256 answer, uint256 updatedAt, bool verified)
+        returns (uint64 id, int256 answer, uint256 updatedAt)
     {
         return IFeedProxy(feedProxies[_feedName]).getRoundData(_roundId);
     }
@@ -66,7 +66,7 @@ contract FeedRouter is Ownable, IFeedRouter {
         external
         view
         validFeed(_feedName)
-        returns (uint64 id, int256 answer, uint256 updatedAt, bool verified)
+        returns (uint64 id, int256 answer, uint256 updatedAt)
     {
         return IFeedProxy(feedProxies[_feedName]).latestRoundData();
     }
@@ -78,7 +78,7 @@ contract FeedRouter is Ownable, IFeedRouter {
         external
         view
         validFeed(_feedName)
-        returns (uint64 id, int256 answer, uint256 updatedAt, bool verified)
+        returns (uint64 id, int256 answer, uint256 updatedAt)
     {
         return IFeedProxy(feedProxies[_feedName]).proposedGetRoundData(_roundId);
     }
@@ -90,7 +90,7 @@ contract FeedRouter is Ownable, IFeedRouter {
         external
         view
         validFeed(_feedName)
-        returns (uint64 id, int256 answer, uint256 updatedAt, bool verified)
+        returns (uint64 id, int256 answer, uint256 updatedAt)
     {
         return IFeedProxy(feedProxies[_feedName]).proposedLatestRoundData();
     }
