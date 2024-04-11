@@ -1,28 +1,28 @@
 const production = process.env.NODE_ENV == 'production'
 const default_api_url = production
-  ? 'http://api.orakl.svc.cluster.local'
+  ? 'http://orakl-api.orakl.svc.cluster.local'
   : 'http://localhost:3000/api/v1'
 const default_delegator_url = production
-  ? 'http://delegator.orakl.svc.cluster.local'
+  ? 'http://orakl-delegator.orakl.svc.cluster.local'
   : 'http://localhost:3002/api/v1'
 
 const default_fetcher_host = production
-  ? 'http://fetcher.orakl.svc.cluster.local'
+  ? 'http://orakl-fetcher.orakl.svc.cluster.local'
   : 'http://localhost'
 const default_fetcher_port = production ? '4040' : '3001'
 
 const default_listener_host = production
-  ? 'http://aggregator-listener.orakl.svc.cluster.local'
+  ? 'http://orakl-aggregator-listener.orakl.svc.cluster.local'
   : 'http://localhost'
 const default_listener_port = production ? '4000' : '4000'
 
 const default_worker_host = production
-  ? 'http://aggregator-worker.orakl.svc.cluster.local'
+  ? 'http://orakl-aggregator-worker.orakl.svc.cluster.local'
   : 'http://localhost'
 const default_worker_port = production ? '5000' : '5001'
 
 const default_reporter_host = production
-  ? 'http://aggregator-reporter.orakl.svc.cluster.local'
+  ? 'http://orakl-aggregator-reporter.orakl.svc.cluster.local'
   : 'http://localhost'
 const default_reporter_port = production ? '6000' : '6000'
 
