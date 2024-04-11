@@ -1,0 +1,18 @@
+{
+  "deploy": {
+    "name": "PER-KLAY",
+    "timeout": 0,
+    "validator": "0x0000000000000000000000000000000000000000",
+    "decimals": 8,
+    "description": "PER-KLAY"
+  },
+  "changeOracles": {
+    "removed": [],
+    "added": [
+      "0xC971283bc5a7329f375B5DB19120Ba37051229fF"
+    ],
+    "minSubmissionCount": 1,
+    "maxSubmissionCount": 1,
+    "restartDelay": 0
+  }
+}
