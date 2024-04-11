@@ -31,7 +31,7 @@ contract Feed is Ownable, IFeed {
 
     // whitelisted oracles
     address[] private oracles;
-    mapping(address => bool) private whitelist;
+    mapping(address oracle => bool isWhitelisted) private whitelist;
 
     event OraclePermissionsUpdated(address indexed oracle, bool indexed whitelisted);
     event FeedUpdated(int256 indexed answer, uint256 indexed roundId, uint256 updatedAt);

@@ -5,6 +5,7 @@ import {Test, console} from "forge-std/Test.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {SubmissionProxy} from "../src/SubmissionProxy.sol";
 import {Feed} from "../src/Feed.sol";
+import {IFeed} from "../src/interfaces/IFeed.sol";
 
 contract SubmissionProxyTest is Test {
     SubmissionProxy submissionProxy;
@@ -82,86 +83,38 @@ contract SubmissionProxyTest is Test {
         submissionProxy.setExpirationPeriod(1 weeks);
     }
 
-    function testFail_submitWithExpiredOracle() public {
-        uint256 numOracles_ = 2;
+    function test_submitInvalidThreshold() public {
+        uint256 numOracles_ = 1;
         int256 submissionValue_ = 10;
         address oracle_ = makeAddr("oracle");
 
         (address[] memory feeds_, int256[] memory submissions_) =
             prepareFeedsSubmissions(numOracles_, submissionValue_, oracle_);
 
-        // move time past the expiration period => fail to submit
-        vm.warp(block.timestamp + submissionProxy.expirationPeriod() + 1);
+	bytes[] memory proofs_ = new bytes[](1);
+	proofs_[0] = "invalid-proof";
 
-        vm.prank(oracle_);
-        submissionProxy.submit(feeds_, submissions_);
+        vm.expectRevert(SubmissionProxy.InvalidThreshold.selector);
+        submissionProxy.submit(feeds_, submissions_, proofs_);
     }
 
-    function testFail_submitWithNonOracle() public {
-        uint256 numOracles_ = 2;
+    function test_submitInvalidProof() public {
+        uint256 numOracles_ = 1;
         int256 submissionValue_ = 10;
         address oracle_ = makeAddr("oracle");
-        address nonOracle_ = makeAddr("nonOracle");
 
         (address[] memory feeds_, int256[] memory submissions_) =
             prepareFeedsSubmissions(numOracles_, submissionValue_, oracle_);
 
-        // only oracle can submit through submission proxy => fail to submit
-        vm.prank(nonOracle_);
-        submissionProxy.submit(feeds_, submissions_);
-    }
+	bytes[] memory proofs_ = new bytes[](1);
+	proofs_[0] = "invalid-proof";
 
-    function test_BatchSubmission() public {
-        uint256 numOracles = 50;
-        address offChainSubmissionProxyReporter = makeAddr("submission-proxy-reporter");
-        address offChainFeedReporter = makeAddr("off-chain-reporter");
+	submissionProxy.setProofThreshold(feeds_[0], 1);
 
-        submissionProxy.addOracle(offChainSubmissionProxyReporter);
+        submissionProxy.submit(feeds_, submissions_, proofs_);
 
-        address[] memory oracleRemove;
-        address[] memory oracleAdd = new address[](2);
-        uint256 singleSubmissionGas;
-        uint256 batchSubmissionGas;
-        address[] memory feeds = new address[](numOracles);
-        int256[] memory submissions = new int256[](numOracles);
-        uint256 startGas;
-
-        // multiple single submissions
-        for (uint256 i = 0; i < numOracles; i++) {
-            Feed feed = new Feed(DECIMALS, DESCRIPTION);
-            feed.setProofRequired(false);
-
-            oracleAdd[0] = address(submissionProxy);
-            oracleAdd[1] = offChainFeedReporter;
-            feed.changeOracles(oracleRemove, oracleAdd);
-
-            feeds[i] = address(feed);
-            submissions[i] = 10;
-
-            vm.prank(offChainFeedReporter);
-            feed.submit(10); // storage warmup
-
-            vm.prank(offChainFeedReporter);
-            startGas = gasleft();
-            feed.submit(11);
-            singleSubmissionGas += estimateGasCost(startGas);
-        }
-
-        // single batch submission
-        vm.prank(offChainSubmissionProxyReporter);
-        submissionProxy.submit(feeds, submissions); // storage warmup
-
-        vm.prank(offChainSubmissionProxyReporter);
-        startGas = gasleft();
-        submissionProxy.submit(feeds, submissions);
-        batchSubmissionGas = estimateGasCost(startGas);
-
-        console.log("single submit", singleSubmissionGas, "batch submit", batchSubmissionGas);
-        if (singleSubmissionGas > batchSubmissionGas) {
-            console.log("save", singleSubmissionGas - batchSubmissionGas);
-        } else {
-            console.log("waste", batchSubmissionGas - singleSubmissionGas);
-        }
+        vm.expectRevert(Feed.NoDataPresent.selector);
+	IFeed(feeds_[0]).latestRoundData();
     }
 
     function prepareFeedsSubmissions(uint256 _numOracles, int256 _submissionValue, address _oracle)
@@ -171,9 +124,8 @@ contract SubmissionProxyTest is Test {
         submissionProxy.addOracle(_oracle);
 
         address[] memory remove_;
-        address[] memory add_ = new address[](2);
+        address[] memory add_ = new address[](1);
         add_[0] = address(submissionProxy);
-        add_[1] = _oracle;
 
         address[] memory feeds_ = new address[](_numOracles);
         int256[] memory submissions_ = new int256[](_numOracles);
@@ -208,7 +160,6 @@ contract SubmissionProxyTest is Test {
         address[] memory oracleRemove;
         address[] memory oracleAdd = new address[](4);
         Feed feed = new Feed(DECIMALS, DESCRIPTION);
-        feed.setProofRequired(false);
         oracleAdd[0] = address(submissionProxy);
         oracleAdd[1] = address(alice);
         oracleAdd[2] = address(bob);
@@ -218,15 +169,14 @@ contract SubmissionProxyTest is Test {
         feeds[0] = address(feed);
         submissions[0] = 10;
 
+	submissionProxy.setProofThreshold(feeds[0], 3);
+
         /* proofs[0] = abi.encodePacked(createProof(aliceSk, hash)); */
         /* proofs[0] = abi.encodePacked(createProof(aliceSk, hash), createProof(bobSk, hash)); */
         proofs[0] = abi.encodePacked(createProof(aliceSk, hash), createProof(bobSk, hash), createProof(celineSk, hash));
 
         submitWithProof(offChainSubmissionProxyReporter, feeds, submissions, proofs); // warmup
         submitWithProof(offChainSubmissionProxyReporter, feeds, submissions, proofs);
-
-        submitWithoutProof(offChainSubmissionProxyReporter, feeds, submissions); // warmup
-        submitWithoutProof(offChainSubmissionProxyReporter, feeds, submissions);
     }
 
     function submitWithProof(
@@ -240,14 +190,6 @@ contract SubmissionProxyTest is Test {
         submissionProxy.submit(feeds, submissions, proofs);
         uint256 gas = estimateGasCost(startGas);
         console.log("w/ proof", gas);
-    }
-
-    function submitWithoutProof(address reporter, address[] memory feeds, int256[] memory submissions) internal {
-        vm.prank(reporter);
-        uint256 startGas = gasleft();
-        submissionProxy.submit(feeds, submissions);
-        uint256 gas = estimateGasCost(startGas);
-        console.log("w/o proof", gas);
     }
 
     function createProof(uint256 sk, bytes32 hash) internal pure returns (bytes memory) {
