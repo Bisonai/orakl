@@ -184,11 +184,6 @@ func (n *Aggregator) getLatestRoundId(ctx context.Context) (int64, error) {
 	return result.Round, nil
 }
 
-func (n *Aggregator) executeDeviation() error {
-	// signals for deviation job which triggers immediate aggregation and sends submission request to submitter
-	return nil
-}
-
 func (n *Aggregator) PublishRoundMessage(roundId int64) error {
 	roundMessage := RoundSyncMessage{
 		LeaderID: n.Raft.GetHostId(),
