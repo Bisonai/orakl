@@ -190,16 +190,8 @@ export function extractFeeds(
     return {
       id: f.id,
       name: f.name,
-      url: f.definition.url,
-      headers: f.definition.headers,
-      method: f.definition.method,
-      reducers: f.definition.reducers,
-      chainId: f.definition.chainId,
-      address: f.definition.address,
-      type: f.definition.type,
-      token0Decimals: f.definition.token0Decimals,
-      token1Decimals: f.definition.token1Decimals,
-      proxy
+      proxy,
+      ...f.definition
     }
   })
 
