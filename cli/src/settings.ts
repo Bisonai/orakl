@@ -12,17 +12,17 @@ const default_fetcher_host = production
 const default_fetcher_port = production ? '4040' : '3001'
 
 const default_listener_host = production
-  ? 'http://orakl-aggregator-listener.orakl.svc.cluster.local'
+  ? 'http://aggregator-listener.orakl.svc.cluster.local'
   : 'http://localhost'
 const default_listener_port = production ? '4000' : '4000'
 
 const default_worker_host = production
-  ? 'http://orakl-aggregator-worker.orakl.svc.cluster.local'
+  ? 'http://aggregator-worker.orakl.svc.cluster.local'
   : 'http://localhost'
 const default_worker_port = production ? '5000' : '5001'
 
 const default_reporter_host = production
-  ? 'http://orakl-aggregator-reporter.orakl.svc.cluster.local'
+  ? 'http://aggregator-reporter.orakl.svc.cluster.local'
   : 'http://localhost'
 const default_reporter_port = production ? '6000' : '6000'
 
