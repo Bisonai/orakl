@@ -102,7 +102,7 @@ func InsertProof(ctx context.Context, name string, round int64, proofs [][]byte)
 }
 
 func insertProofPgsql(ctx context.Context, name string, round int64, proofs [][]byte) error {
-	concatProof := concatBytes(proofs)
+	concatProof := bytes.Join(proofs, nil)
 	err := db.QueryWithoutResult(ctx, InsertProofQuery, map[string]any{"name": name, "round": round, "proof": concatProof})
 	if err != nil {
 		log.Error().Str("Player", "Aggregator").Err(err).Msg("failed to insert proofs into pgsql")
@@ -112,7 +112,7 @@ func insertProofPgsql(ctx context.Context, name string, round int64, proofs [][]
 }
 
 func insertProofRdb(ctx context.Context, name string, round int64, proofs [][]byte) error {
-	concatProof := concatBytes(proofs)
+	concatProof := bytes.Join(proofs, nil)
 	key := "proof:" + name + "|round:" + strconv.FormatInt(round, 10)
 	data, err := json.Marshal(Proof{Name: name, Round: round, Proof: concatProof})
 	if err != nil {
@@ -175,8 +175,4 @@ func getLatestGlobalAggregateFromRdb(ctx context.Context, name string) (globalAg
 		return aggregate, err
 	}
 	return aggregate, nil
-}
-
-func concatBytes(slices [][]byte) []byte {
-	return bytes.Join(slices, nil)
 }

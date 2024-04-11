@@ -2,6 +2,7 @@
 package aggregator
 
 import (
+	"bytes"
 	"context"
 	"testing"
 	"time"
@@ -192,14 +193,14 @@ func TestInsertProof(t *testing.T) {
 		t.Fatal("error getting proof from rdb")
 	}
 
-	assert.EqualValues(t, concatBytes([][]byte{p, p}), rdbResult.Proof)
+	assert.EqualValues(t, bytes.Join([][]byte{p, p}, nil), rdbResult.Proof)
 
 	pgsqlResult, err := getProofFromPgsql(ctx, node.Name, round)
 	if err != nil {
 		t.Fatal("error getting proof from pgsql:" + err.Error())
 	}
 
-	assert.EqualValues(t, concatBytes([][]byte{p, p}), pgsqlResult.Proof)
+	assert.EqualValues(t, bytes.Join([][]byte{p, p}, nil), pgsqlResult.Proof)
 
 	err = db.QueryWithoutResult(ctx, "DELETE FROM proofs", nil)
 	if err != nil {
