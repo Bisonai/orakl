@@ -41,7 +41,7 @@ func main() {
 		return nil
 	}
 
-	node.HandleCustomMessage = func(message raft.Message) error {
+	node.HandleCustomMessage = func(ctx context.Context, message raft.Message) error {
 		log.Debug().Msg("Custom message")
 		return errors.New("unknown message type")
 	}

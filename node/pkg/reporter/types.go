@@ -15,14 +15,15 @@ import (
 )
 
 const (
-	TOPIC_STRING            = "orakl-offchain-aggregation-reporter"
-	MESSAGE_BUFFER          = 100
-	DEVIATION_TIMEOUT       = 5 * time.Second
-	INITIAL_FAILURE_TIMEOUT = 50 * time.Millisecond
-	MAX_RETRY               = 3
-	MAX_RETRY_DELAY         = 500 * time.Millisecond
-	SUBMIT_WITHOUT_PROOFS   = "submit(address[] memory _feeds, int256[] memory _submissions)"
-	SUBMIT_WITH_PROOFS      = "submit(address[] memory _feeds, int256[] memory _submissions, bytes[] memory _proofs)"
+	SubmissionMsg           raft.MessageType = "submission"
+	TOPIC_STRING                             = "orakl-offchain-aggregation-reporter"
+	MESSAGE_BUFFER                           = 100
+	DEVIATION_TIMEOUT                        = 5 * time.Second
+	INITIAL_FAILURE_TIMEOUT                  = 50 * time.Millisecond
+	MAX_RETRY                                = 3
+	MAX_RETRY_DELAY                          = 500 * time.Millisecond
+	SUBMIT_WITHOUT_PROOFS                    = "submit(address[] memory _feeds, int256[] memory _submissions)"
+	SUBMIT_WITH_PROOFS                       = "submit(address[] memory _feeds, int256[] memory _submissions, bytes[] memory _proofs)"
 
 	GET_SUBMISSIONS_QUERY        = `SELECT * FROM submission_addresses;`
 	DEVIATION_THRESHOLD          = 0.05
@@ -79,6 +80,10 @@ type PgsqlProof struct {
 	Name  string `db:"name" json:"name"`
 	Round int64  `db:"round" json:"round"`
 	Proof []byte `db:"proof" json:"proof"`
+}
+
+type SubmissionMessage struct {
+	Submissions []GlobalAggregate `json:"submissions"`
 }
 
 func makeGetLatestGlobalAggregatesQuery(names []string) string {

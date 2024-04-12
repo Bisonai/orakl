@@ -1,6 +1,7 @@
 package raft
 
 import (
+	"context"
 	"encoding/json"
 	"sync"
 	"time"
@@ -65,6 +66,6 @@ type Raft struct {
 
 	LeaderJobTimeout    time.Duration
 	LeaderJobTicker     *time.Ticker
-	HandleCustomMessage func(Message) error
+	HandleCustomMessage func(context.Context, Message) error
 	LeaderJob           func() error
 }

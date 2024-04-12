@@ -2,6 +2,7 @@ package reporter
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"os"
 	"strconv"
@@ -125,9 +126,9 @@ func (r *Reporter) leaderJob() error {
 			return err
 		}
 
-		err = StoreLastSubmission(ctx, validAggregates)
+		err = r.PublishSubmissionMessage(validAggregates)
 		if err != nil {
-			log.Error().Str("Player", "Reporter").Err(err).Msg("storeLastSubmission")
+			log.Error().Str("Player", "Reporter").Err(err).Msg("PublishSubmissionMessage")
 			return err
 		}
 
@@ -166,9 +167,13 @@ func (r *Reporter) resignLeader() {
 	r.Raft.UpdateRole(raft.Follower)
 }
 
-func (r *Reporter) handleCustomMessage(msg raft.Message) error {
-	// TODO: implement message handling related to validation
-	return errors.New("unknown message type")
+func (r *Reporter) handleCustomMessage(ctx context.Context, msg raft.Message) error {
+	switch msg.Type {
+	case SubmissionMsg:
+		return r.HandleSubmissionMessage(ctx, msg)
+	default:
+		return errors.New("unknown message type")
+	}
 }
 
 func (r *Reporter) reportWithoutProofs(ctx context.Context, aggregates []GlobalAggregate) error {
@@ -279,15 +284,9 @@ func (r *Reporter) deviationJob() error {
 			return err
 		}
 
-		err = StoreLastSubmission(ctx, deviatingAggregates)
+		err = r.PublishSubmissionMessage(deviatingAggregates)
 		if err != nil {
-			log.Error().Str("Player", "Reporter").Err(err).Msg("storeLastSubmission from deviation")
-			return err
-		}
-
-		err = StoreLastSubmission(ctx, deviatingAggregates)
-		if err != nil {
-			log.Error().Str("Player", "Reporter").Err(err).Msg("storeLastSubmission from deviation")
+			log.Error().Str("Player", "Reporter").Err(err).Msg("PublishSubmissionMessage")
 			return err
 		}
 
@@ -306,6 +305,38 @@ func (r *Reporter) deviationJob() error {
 		r.resignLeader()
 		log.Error().Str("Player", "Reporter").Err(err).Msg("failed to report deviation")
 		return errors.New("failed to report deviation")
+	}
+
+	return nil
+}
+
+func (r *Reporter) PublishSubmissionMessage(submissions []GlobalAggregate) error {
+	submissionMessage := SubmissionMessage{Submissions: submissions}
+	marshalledSubmissionMessage, err := json.Marshal(submissionMessage)
+	if err != nil {
+		return err
+	}
+
+	message := raft.Message{
+		Type:     SubmissionMsg,
+		SentFrom: r.Raft.GetHostId(),
+		Data:     json.RawMessage(marshalledSubmissionMessage),
+	}
+
+	return r.Raft.PublishMessage(message)
+}
+
+func (r *Reporter) HandleSubmissionMessage(ctx context.Context, msg raft.Message) error {
+	var submissionMessage SubmissionMessage
+	err := json.Unmarshal(msg.Data, &submissionMessage)
+	if err != nil {
+		return err
+	}
+
+	err = StoreLastSubmission(ctx, submissionMessage.Submissions)
+	if err != nil {
+		log.Error().Str("Player", "Reporter").Err(err).Msg("storeLastSubmission")
+		return err
 	}
 
 	return nil

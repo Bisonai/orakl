@@ -109,7 +109,7 @@ func TestHandleCustomMessage(t *testing.T) {
 		t.Fatalf("error getting reporter: %v", err)
 	}
 
-	err = reporter.handleCustomMessage(raft.Message{})
+	err = reporter.handleCustomMessage(ctx, raft.Message{})
 	assert.Equal(t, err.Error(), "unknown message type")
 }
 
