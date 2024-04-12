@@ -109,7 +109,7 @@ func TestHandleCustomMessage(t *testing.T) {
 		t.Fatalf("error getting reporter: %v", err)
 	}
 
-	err = reporter.handleCustomMessage(raft.Message{})
+	err = reporter.handleCustomMessage(ctx, raft.Message{})
 	assert.Equal(t, err.Error(), "unknown message type")
 }
 
@@ -133,7 +133,7 @@ func TestGetLatestGlobalAggregates(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error getting reporter: %v", err)
 	}
-	result, err := reporter.getLatestGlobalAggregates(ctx)
+	result, err := GetLatestGlobalAggregates(ctx, reporter.SubmissionPairs)
 	if err != nil {
 		t.Fatal("error getting latest global aggregates")
 	}
@@ -168,11 +168,11 @@ func TestFilterInvalidAggregates(t *testing.T) {
 		Value: 15,
 		Round: 1,
 	}}
-	result := reporter.filterInvalidAggregates(aggregates)
+	result := FilterInvalidAggregates(aggregates, reporter.SubmissionPairs)
 	assert.Equal(t, result, aggregates)
 
 	reporter.SubmissionPairs = map[string]SubmissionPair{"test-aggregate": {LastSubmission: 1, Address: common.HexToAddress("0x1234")}}
-	result = reporter.filterInvalidAggregates(aggregates)
+	result = FilterInvalidAggregates(aggregates, reporter.SubmissionPairs)
 	assert.Equal(t, result, []GlobalAggregate{})
 }
 
@@ -202,11 +202,11 @@ func TestIsAggValid(t *testing.T) {
 		Value: 15,
 		Round: 1,
 	}
-	result := reporter.isAggValid(agg)
+	result := IsAggValid(agg, reporter.SubmissionPairs)
 	assert.Equal(t, result, true)
 
 	reporter.SubmissionPairs = map[string]SubmissionPair{"test-aggregate": {LastSubmission: 1, Address: common.HexToAddress("0x1234")}}
-	result = reporter.isAggValid(agg)
+	result = IsAggValid(agg, reporter.SubmissionPairs)
 	assert.Equal(t, result, false)
 }
 
@@ -237,7 +237,7 @@ func TestMakeContractArgs(t *testing.T) {
 		Round: 1,
 	}
 
-	addresses, values, err := reporter.makeContractArgsWithoutProofs([]GlobalAggregate{agg})
+	addresses, values, err := MakeContractArgsWithoutProofs([]GlobalAggregate{agg}, reporter.SubmissionPairs)
 	if err != nil {
 		t.Fatal("error making contract args")
 	}
@@ -245,14 +245,14 @@ func TestMakeContractArgs(t *testing.T) {
 	assert.Equal(t, addresses[0], reporter.SubmissionPairs[agg.Name].Address)
 	assert.Equal(t, values[0], big.NewInt(15))
 
-	rawProofs, err := reporter.getProofsRdb(ctx, []GlobalAggregate{agg})
+	rawProofs, err := GetProofsRdb(ctx, []GlobalAggregate{agg})
 	if err != nil {
 		t.Fatal("error getting proofs")
 	}
 
 	proofMap := ProofsToMap(rawProofs)
 
-	addresses, values, proofs, err := reporter.makeContractArgsWithProofs([]GlobalAggregate{agg}, proofMap)
+	addresses, values, proofs, err := MakeContractArgsWithProofs([]GlobalAggregate{agg}, reporter.SubmissionPairs, proofMap)
 	if err != nil {
 		t.Fatal("error making contract args")
 	}
@@ -288,7 +288,7 @@ func TestGetLatestGlobalAggregatesRdb(t *testing.T) {
 		t.Fatalf("error getting reporter: %v", err)
 	}
 
-	result, err := reporter.getLatestGlobalAggregatesRdb(ctx)
+	result, err := GetLatestGlobalAggregatesRdb(ctx, reporter.SubmissionPairs)
 	if err != nil {
 		t.Fatal("error getting latest global aggregates from rdb")
 	}
@@ -319,7 +319,7 @@ func TestGetLatestGlobalAggregatesPgsql(t *testing.T) {
 		t.Fatalf("error getting reporter: %v", err)
 	}
 
-	result, err := reporter.getLatestGlobalAggregatesPgsql(ctx)
+	result, err := GetLatestGlobalAggregatesPgsql(ctx, reporter.SubmissionPairs)
 	if err != nil {
 		fmt.Println(err)
 		t.Fatal("error getting latest global aggregates from pgs")
@@ -345,13 +345,9 @@ func TestGetProofsRdb(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error setting reporters: %v", err)
 	}
-	reporter, err := testItems.app.GetReporterWithInterval(TestInterval)
-	if err != nil {
-		t.Fatalf("error getting reporter: %v", err)
-	}
 
 	agg := testItems.tmpData.globalAggregate
-	result, err := reporter.getProofsRdb(ctx, []GlobalAggregate{agg})
+	result, err := GetProofsRdb(ctx, []GlobalAggregate{agg})
 	if err != nil {
 		t.Fatal("error getting proofs from rdb")
 	}
@@ -374,15 +370,152 @@ func TestGetProofsPgsql(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error setting reporters: %v", err)
 	}
+
+	agg := testItems.tmpData.globalAggregate
+	result, err := GetProofsPgsql(ctx, []GlobalAggregate{agg})
+	if err != nil {
+		t.Fatal("error getting proofs from pgsql")
+	}
+	assert.EqualValues(t, testItems.tmpData.proofBytes, result[0].Proof)
+}
+
+func TestNewDeviationReporter(t *testing.T) {
+	ctx := context.Background()
+	cleanup, testItems, err := setup(ctx)
+	if err != nil {
+		t.Fatalf("error setting up test: %v", err)
+	}
+	defer func() {
+		if cleanupErr := cleanup(); cleanupErr != nil {
+			t.Logf("Cleanup failed: %v", cleanupErr)
+		}
+	}()
+
+	submissionPairs, err := getSubmissionPairs(ctx)
+	if err != nil {
+		t.Fatalf("error getting submission pairs: %v", err)
+	}
+	_, err = NewDeviationReporter(ctx, testItems.app.Host, testItems.app.Pubsub, submissionPairs)
+	if err != nil {
+		t.Fatalf("error creating new deviation reporter: %v", err)
+	}
+}
+
+func TestStoreAndGetLastSubmission(t *testing.T) {
+	ctx := context.Background()
+	cleanup, testItems, err := setup(ctx)
+	if err != nil {
+		t.Fatalf("error setting up test: %v", err)
+	}
+	defer func() {
+		if cleanupErr := cleanup(); cleanupErr != nil {
+			t.Logf("Cleanup failed: %v", cleanupErr)
+		}
+	}()
+
+	err = testItems.app.setReporters(ctx, testItems.app.Host, testItems.app.Pubsub)
+	if err != nil {
+		t.Fatalf("error setting reporters: %v", err)
+	}
 	reporter, err := testItems.app.GetReporterWithInterval(TestInterval)
 	if err != nil {
 		t.Fatalf("error getting reporter: %v", err)
 	}
 
-	agg := testItems.tmpData.globalAggregate
-	result, err := reporter.getProofsPgsql(ctx, []GlobalAggregate{agg})
+	aggregates, err := GetLatestGlobalAggregates(ctx, reporter.SubmissionPairs)
 	if err != nil {
-		t.Fatal("error getting proofs from pgsql")
+		t.Fatal("error getting latest global aggregates")
 	}
-	assert.EqualValues(t, testItems.tmpData.proofBytes, result[0].Proof)
+
+	err = StoreLastSubmission(ctx, aggregates)
+	if err != nil {
+		t.Fatal("error storing last submission")
+	}
+
+	loadedAggregates, err := GetLastSubmission(ctx, reporter.SubmissionPairs)
+	if err != nil {
+		t.Fatal("error getting last submission")
+	}
+
+	assert.EqualValues(t, aggregates, loadedAggregates)
+
+}
+
+func TestShouldReportDeviation(t *testing.T) {
+	ctx := context.Background()
+	cleanup, testItems, err := setup(ctx)
+	if err != nil {
+		t.Fatalf("error setting up test: %v", err)
+	}
+	defer func() {
+		if cleanupErr := cleanup(); cleanupErr != nil {
+			t.Logf("Cleanup failed: %v", cleanupErr)
+		}
+	}()
+
+	err = testItems.app.setReporters(ctx, testItems.app.Host, testItems.app.Pubsub)
+	if err != nil {
+		t.Fatalf("error setting reporters: %v", err)
+	}
+
+	assert.False(t, ShouldReportDeviation(0, 0))
+	assert.True(t, ShouldReportDeviation(0, 100000000))
+	assert.False(t, ShouldReportDeviation(100000000000, 100100000000))
+	assert.True(t, ShouldReportDeviation(100000000000, 105100000000))
+	assert.False(t, ShouldReportDeviation(100000000000, 0))
+}
+
+func TestGetDeviatingAggregates(t *testing.T) {
+	ctx := context.Background()
+	cleanup, _, err := setup(ctx)
+	if err != nil {
+		t.Fatalf("error setting up test: %v", err)
+	}
+	defer func() {
+		if cleanupErr := cleanup(); cleanupErr != nil {
+			t.Logf("Cleanup failed: %v", cleanupErr)
+		}
+	}()
+
+	oldAggregates := []GlobalAggregate{{
+		Name:  "test-aggregate",
+		Value: 15,
+		Round: 1,
+	}}
+
+	newAggregates := []GlobalAggregate{{
+		Name:  "test-aggregate",
+		Value: 30,
+		Round: 2,
+	}}
+
+	result := GetDeviatingAggregates(oldAggregates, newAggregates)
+	assert.Equal(t, result, newAggregates)
+}
+
+func TestDeviationJob(t *testing.T) {
+	ctx := context.Background()
+	cleanup, testItems, err := setup(ctx)
+	if err != nil {
+		t.Fatalf("error setting up test: %v", err)
+	}
+	defer func() {
+		if cleanupErr := cleanup(); cleanupErr != nil {
+			t.Logf("Cleanup failed: %v", cleanupErr)
+		}
+	}()
+
+	submissionPairs, err := getSubmissionPairs(ctx)
+	if err != nil {
+		t.Fatalf("error getting submission pairs: %v", err)
+	}
+	reporter, err := NewDeviationReporter(ctx, testItems.app.Host, testItems.app.Pubsub, submissionPairs)
+	if err != nil {
+		t.Fatalf("error creating new deviation reporter: %v", err)
+	}
+
+	err = reporter.deviationJob()
+	if err != nil {
+		t.Fatal("error running deviation job")
+	}
 }

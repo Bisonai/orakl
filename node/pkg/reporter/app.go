@@ -41,16 +41,17 @@ func (a *App) setReporters(ctx context.Context, h host.Host, ps *pubsub.PubSub) 
 		return err
 	}
 
-	groupedSubmissionPairs, err := a.prepareReporters(ctx)
+	submissionPairs, err := getSubmissionPairs(ctx)
 	if err != nil {
-		log.Error().Str("Player", "Reporter").Err(err).Msg("failed to prepare reporters")
+		log.Error().Str("Player", "Reporter").Err(err).Msg("failed to get submission pairs")
 		return err
 	}
 
+	groupedSubmissionPairs := groupSubmissionPairsByIntervals(submissionPairs)
 	for groupInterval, pairs := range groupedSubmissionPairs {
-		reporter, err := NewReporter(ctx, h, ps, pairs, groupInterval)
-		if err != nil {
-			log.Error().Str("Player", "Reporter").Err(err).Msg("failed to set reporter")
+		reporter, errNewReporter := NewReporter(ctx, h, ps, pairs, groupInterval)
+		if errNewReporter != nil {
+			log.Error().Str("Player", "Reporter").Err(errNewReporter).Msg("failed to set reporter")
 			continue
 		}
 		a.Reporters = append(a.Reporters, reporter)
@@ -61,18 +62,15 @@ func (a *App) setReporters(ctx context.Context, h host.Host, ps *pubsub.PubSub) 
 		return errors.New("no reporters set")
 	}
 
+	deviationReporter, err := NewDeviationReporter(ctx, h, ps, submissionPairs)
+	if err != nil {
+		log.Error().Str("Player", "Reporter").Err(err).Msg("failed to set deviation reporter")
+		return err
+	}
+	a.Reporters = append(a.Reporters, deviationReporter)
+
 	log.Info().Str("Player", "Reporter").Msgf("%d reporters set", len(a.Reporters))
 	return nil
-}
-
-func (a *App) prepareReporters(ctx context.Context) (map[int][]SubmissionAddress, error) {
-	submissionPairs, err := getSubmissionPairs(ctx)
-	if err != nil {
-		log.Error().Str("Player", "Reporter").Err(err).Msg("failed to get submission pairs")
-		return nil, err
-	}
-
-	return groupSubmissionPairsByIntervals(submissionPairs), nil
 }
 
 func (a *App) clearReporters() error {

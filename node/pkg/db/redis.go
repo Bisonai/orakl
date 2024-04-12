@@ -40,7 +40,19 @@ func getRedisConn(ctx context.Context, once *sync.Once) (*redis.Conn, error) {
 		rdb, rdbErr = connectToRedis(ctx, connectionInfo)
 	})
 	return rdb, rdbErr
+}
 
+func MSet(ctx context.Context, values map[string]string) error {
+	rdbConn, err := GetRedisConn(ctx)
+	if err != nil {
+		return err
+	}
+	rdb = rdbConn
+	var pairs []interface{}
+	for key, value := range values {
+		pairs = append(pairs, key, value)
+	}
+	return rdb.MSet(ctx, pairs...).Err()
 }
 
 func Set(ctx context.Context, key string, value string, exp time.Duration) error {

@@ -15,6 +15,7 @@ const (
 	SelectActiveAdaptersQuery   = `SELECT * FROM adapters WHERE active = true`
 	SelectFeedsByAdapterIdQuery = `SELECT * FROM feeds WHERE adapter_id = @adapterId`
 	InsertLocalAggregateQuery   = `INSERT INTO local_aggregates (name, value) VALUES (@name, @value)`
+	DECIMALS                    = 8
 )
 
 type FeedData struct {

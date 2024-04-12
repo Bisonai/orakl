@@ -65,20 +65,20 @@ func (n *Aggregator) LeaderJob() error {
 	return n.PublishRoundMessage(n.RoundID)
 }
 
-func (n *Aggregator) HandleCustomMessage(message raft.Message) error {
+func (n *Aggregator) HandleCustomMessage(ctx context.Context, message raft.Message) error {
 	switch message.Type {
 	case RoundSync:
-		return n.HandleRoundSyncMessage(message)
+		return n.HandleRoundSyncMessage(ctx, message)
 	case PriceData:
-		return n.HandlePriceDataMessage(message)
+		return n.HandlePriceDataMessage(ctx, message)
 	case ProofMsg:
-		return n.HandleProofMessage(message)
+		return n.HandleProofMessage(ctx, message)
 	default:
 		return fmt.Errorf("unknown message type received in HandleCustomMessage: %v", message.Type)
 	}
 }
 
-func (n *Aggregator) HandleRoundSyncMessage(msg raft.Message) error {
+func (n *Aggregator) HandleRoundSyncMessage(ctx context.Context, msg raft.Message) error {
 	var roundSyncMessage RoundSyncMessage
 	err := json.Unmarshal(msg.Data, &roundSyncMessage)
 	if err != nil {
@@ -93,7 +93,7 @@ func (n *Aggregator) HandleRoundSyncMessage(msg raft.Message) error {
 		n.RoundID = roundSyncMessage.RoundID
 	}
 	var updateValue int64 = -1
-	value, updateTime, err := GetLatestLocalAggregate(n.nodeCtx, n.Name)
+	value, updateTime, err := GetLatestLocalAggregate(ctx, n.Name)
 
 	if err == nil && n.LastLocalAggregateTime.IsZero() || !n.LastLocalAggregateTime.Equal(updateTime) {
 		updateValue = value
@@ -103,7 +103,7 @@ func (n *Aggregator) HandleRoundSyncMessage(msg raft.Message) error {
 	return n.PublishPriceDataMessage(n.RoundID, updateValue)
 }
 
-func (n *Aggregator) HandlePriceDataMessage(msg raft.Message) error {
+func (n *Aggregator) HandlePriceDataMessage(ctx context.Context, msg raft.Message) error {
 	var priceDataMessage PriceDataMessage
 	err := json.Unmarshal(msg.Data, &priceDataMessage)
 	if err != nil {
@@ -131,7 +131,7 @@ func (n *Aggregator) HandlePriceDataMessage(msg raft.Message) error {
 			return err
 		}
 		log.Debug().Str("Player", "Aggregator").Int64("roundId", priceDataMessage.RoundID).Int64("global_aggregate", median).Msg("global aggregated")
-		err = InsertGlobalAggregate(n.nodeCtx, n.Name, median, priceDataMessage.RoundID)
+		err = InsertGlobalAggregate(ctx, n.Name, median, priceDataMessage.RoundID)
 		if err != nil {
 			log.Error().Str("Player", "Aggregator").Err(err).Msg("failed to insert global aggregate")
 			return err
@@ -147,7 +147,7 @@ func (n *Aggregator) HandlePriceDataMessage(msg raft.Message) error {
 	return nil
 }
 
-func (n *Aggregator) HandleProofMessage(msg raft.Message) error {
+func (n *Aggregator) HandleProofMessage(ctx context.Context, msg raft.Message) error {
 	var proofMessage ProofMessage
 	err := json.Unmarshal(msg.Data, &proofMessage)
 	if err != nil {
@@ -167,7 +167,7 @@ func (n *Aggregator) HandleProofMessage(msg raft.Message) error {
 	n.CollectedProofs[proofMessage.RoundID] = append(n.CollectedProofs[proofMessage.RoundID], proofMessage.Proof)
 	if len(n.CollectedProofs[proofMessage.RoundID]) >= n.Raft.SubscribersCount()+1 {
 		defer delete(n.CollectedProofs, proofMessage.RoundID)
-		err := InsertProof(n.nodeCtx, n.Name, proofMessage.RoundID, n.CollectedProofs[proofMessage.RoundID])
+		err := InsertProof(ctx, n.Name, proofMessage.RoundID, n.CollectedProofs[proofMessage.RoundID])
 		if err != nil {
 			log.Error().Str("Player", "Aggregator").Err(err).Msg("failed to insert proof")
 			return err
@@ -182,11 +182,6 @@ func (n *Aggregator) getLatestRoundId(ctx context.Context) (int64, error) {
 		return 0, err
 	}
 	return result.Round, nil
-}
-
-func (n *Aggregator) executeDeviation() error {
-	// signals for deviation job which triggers immediate aggregation and sends submission request to submitter
-	return nil
 }
 
 func (n *Aggregator) PublishRoundMessage(roundId int64) error {

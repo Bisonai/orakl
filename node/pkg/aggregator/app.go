@@ -201,19 +201,19 @@ func (a *App) handleMessage(ctx context.Context, msg bus.Message) {
 
 	// expected messages
 	// from admin: control related messages, activate and deactivate aggregator
-	// from fetcher: deviation related messages
 
 	if msg.To != bus.AGGREGATOR {
 		log.Debug().Str("Player", "Aggregator").Msg("message not for aggregator")
 		return
 	}
 
+	if msg.From != bus.ADMIN {
+		bus.HandleMessageError(errors.New("non-admin"), msg, "aggregator received message from non-admin")
+		return
+	}
+
 	switch msg.Content.Command {
 	case bus.ACTIVATE_AGGREGATOR:
-		if msg.From != bus.ADMIN {
-			bus.HandleMessageError(errors.New("non-admin"), msg, "aggregator received message from non-admin")
-			return
-		}
 		log.Debug().Str("Player", "Aggregator").Msg("activate aggregator msg received")
 		aggregatorId, err := bus.ParseInt64MsgParam(msg, "id")
 		if err != nil {
@@ -230,10 +230,6 @@ func (a *App) handleMessage(ctx context.Context, msg bus.Message) {
 		log.Debug().Str("Player", "Aggregator").Msg("sending success response for activate aggregator")
 		msg.Response <- bus.MessageResponse{Success: true}
 	case bus.DEACTIVATE_AGGREGATOR:
-		if msg.From != bus.ADMIN {
-			bus.HandleMessageError(errors.New("non-admin"), msg, "aggregator received message from non-admin")
-			return
-		}
 		log.Debug().Str("Player", "Aggregator").Msg("deactivate aggregator msg received")
 		aggregatorId, err := bus.ParseInt64MsgParam(msg, "id")
 		if err != nil {
@@ -249,10 +245,6 @@ func (a *App) handleMessage(ctx context.Context, msg bus.Message) {
 		}
 		msg.Response <- bus.MessageResponse{Success: true}
 	case bus.REFRESH_AGGREGATOR_APP:
-		if msg.From != bus.ADMIN {
-			bus.HandleMessageError(errors.New("non-admin"), msg, "aggregator received message from non-admin")
-			return
-		}
 		log.Debug().Str("Player", "Aggregator").Msg("refresh aggregator msg received")
 		err := a.stopAllAggregators()
 		if err != nil {
@@ -271,10 +263,6 @@ func (a *App) handleMessage(ctx context.Context, msg bus.Message) {
 		}
 		msg.Response <- bus.MessageResponse{Success: true}
 	case bus.STOP_AGGREGATOR_APP:
-		if msg.From != bus.ADMIN {
-			bus.HandleMessageError(errors.New("non-admin"), msg, "aggregator received message from non-admin")
-			return
-		}
 		log.Debug().Str("Player", "Aggregator").Msg("stop aggregator msg received")
 		err := a.stopAllAggregators()
 		if err != nil {
@@ -283,10 +271,6 @@ func (a *App) handleMessage(ctx context.Context, msg bus.Message) {
 		}
 		msg.Response <- bus.MessageResponse{Success: true}
 	case bus.START_AGGREGATOR_APP:
-		if msg.From != bus.ADMIN {
-			bus.HandleMessageError(errors.New("non-admin"), msg, "aggregator received message from non-admin")
-			return
-		}
 		log.Debug().Str("Player", "Aggregator").Msg("start aggregator msg received")
 		err := a.startAllAggregators(ctx)
 		if err != nil {
@@ -294,27 +278,8 @@ func (a *App) handleMessage(ctx context.Context, msg bus.Message) {
 			return
 		}
 		msg.Response <- bus.MessageResponse{Success: true}
-	case bus.DEVIATION:
-		if msg.From != bus.FETCHER {
-			bus.HandleMessageError(errors.New("non-fetcher"), msg, "aggregator received deviation message from non-fetcher")
-			return
-		}
-		log.Debug().Str("Player", "Aggregator").Msg("deviation message received")
-		aggregatorName, err := bus.ParseStringMsgParam(msg, "name")
-		if err != nil {
-			bus.HandleMessageError(err, msg, "failed to parse aggregator name")
-			return
-		}
-		aggregator, err := a.getAggregatorByName(aggregatorName)
-		if err != nil {
-			bus.HandleMessageError(err, msg, "aggregator not found")
-			return
-		}
-
-		err = aggregator.executeDeviation()
-		if err != nil {
-			bus.HandleMessageError(err, msg, "failed to execute deviation")
-			return
-		}
+	default:
+		bus.HandleMessageError(errors.New("unknown-command"), msg, "aggregator received unknown command")
+		return
 	}
 }

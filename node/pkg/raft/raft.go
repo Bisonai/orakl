@@ -105,7 +105,7 @@ func (r *Raft) handleMessage(ctx context.Context, msg Message) error {
 	case ReplyVote:
 		return r.handleReplyVote(ctx, msg)
 	default:
-		return r.HandleCustomMessage(msg)
+		return r.HandleCustomMessage(ctx, msg)
 	}
 }
 
