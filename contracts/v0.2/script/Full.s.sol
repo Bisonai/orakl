@@ -59,7 +59,7 @@ contract DeployFull is Script {
         console.log(description, address(feed));
     }
 
-    function buildJsonQuery(uint256 index) internal returns (string memory) {
+    function buildJsonQuery(uint256 index) internal pure returns (string memory) {
         string memory first = ".feed[";
         string memory second = Strings.toString(index);
         string memory third = "].constructor";

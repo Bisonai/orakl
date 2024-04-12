@@ -11,7 +11,7 @@ contract FeedTest is Test {
     address[] removed;
     address[] added;
 
-    event FeedUpdated(int256 indexed answer, uint256 indexed roundId, uint256 updatedAt, bool verified);
+    event FeedUpdated(int256 indexed answer, uint256 indexed roundId, uint256 updatedAt);
 
     function setUp() public {
         feed = new Feed(decimals, description);
@@ -58,24 +58,21 @@ contract FeedTest is Test {
     }
 
     function test_SubmitAndReadResponse() public {
-        address alice = makeAddr("alice");
-        added.push(alice);
+        address alice_ = makeAddr("alice");
+        added.push(alice_);
         feed.changeOracles(removed, added);
-        feed.setProofRequired(false);
 
         int256 expectedAnswer = 10;
         uint256 expectedRoundId = 1;
         uint256 expectedUpdatedAt = block.timestamp;
-        bool expectedVerified = false;
 
-        vm.prank(alice);
+        vm.prank(alice_);
         vm.expectEmit(true, true, true, true);
-        emit FeedUpdated(expectedAnswer, expectedRoundId, expectedUpdatedAt, expectedVerified);
+        emit FeedUpdated(expectedAnswer, expectedRoundId, expectedUpdatedAt);
         feed.submit(expectedAnswer);
-        (uint80 roundId, int256 answer, uint256 updatedAt, bool verified) = feed.latestRoundData();
+        (uint80 roundId, int256 answer, uint256 updatedAt) = feed.latestRoundData();
         assertEq(roundId, expectedRoundId);
         assertEq(answer, expectedAnswer);
         assertEq(updatedAt, expectedUpdatedAt);
-        assertEq(verified, expectedVerified);
     }
 }
