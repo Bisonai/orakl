@@ -1,9 +1,33 @@
 const path = require('path')
 const fs = require('fs')
+const axios = require('axios')
 const { loadJson, storeJson } = require('./utils.cjs')
 
 const ValidChains = ['baobab', 'cypress']
 const deploymentsPath = path.join(__dirname, '../deployments/')
+
+const getFeedTag = async (network, pairName) => {
+  url = `https://config.orakl.network/adapter/${network}/${pairName.toLowerCase()}.adapter.json`
+  numFeeds = 0
+
+  try {
+    const res = await axios.get(url)
+    numFeeds = res?.data?.feeds?.length
+    if (numFeeds == undefined) {
+      console.error(`Error getting feed level for ${pairName} on ${network}`)
+    }
+  } catch (error) {
+    console.error(`Error getting feed level for ${pairName} on ${network}: ${error}`)
+  }
+
+  if (numFeeds > 8) {
+    return 'premium'
+  } else if (numFeeds > 5) {
+    return 'standard'
+  } else {
+    return 'basic'
+  }
+}
 
 const isValidPath = (_path) => {
   const fileName = path.basename(_path)
@@ -48,7 +72,15 @@ const readDeployments = async (folderPath) => {
             if (!dataFeeds[pairName][network]) {
               dataFeeds[pairName][network] = {}
             }
+
+            // data feed contract address
             dataFeeds[pairName][network][convertContractType(contractType)] = address
+
+            // data feed tag
+            if (network == 'cypress') {
+              const tag = await getFeedTag(network, pairName)
+              dataFeeds[pairName]['tag'] = tag
+            }
           } else {
             if (!others[network]) {
               others[network] = {}
