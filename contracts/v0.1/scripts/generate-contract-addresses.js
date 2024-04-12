@@ -6,8 +6,8 @@ const ValidChains = ['baobab', 'cypress']
 const deploymentsPath = path.join(__dirname, '../deployments/')
 
 const isValidPath = (_path) => {
-  const splitted = _path.replace(deploymentsPath, '').split('/')
-  return splitted.length == 2 && path.extname(_path) === '.json'
+  const fileName = path.basename(_path)
+  return path.extname(fileName) === '.json'
 }
 
 const readDeployments = async (folderPath) => {
@@ -54,7 +54,11 @@ const readDeployments = async (folderPath) => {
     )
   }
 
-  await readFolder(folderPath)
+  try {
+    await readFolder(folderPath)
+  } catch (error) {
+    console.error(`Failed to read directory: ${error}`)
+  }
   return result
 }
 
