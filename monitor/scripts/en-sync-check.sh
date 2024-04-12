@@ -3,16 +3,18 @@
 # Dependencies: jq, curl, gcloud-sdk
 
 check_klay_sync() {
-    local our_block=$(get_our_klay_block)
+    local our_block
+    our_block=$(get_our_klay_block)
 
-    local public_block_hex=$(get_public_klay_block)
-    public_block=$((16#$public_block_hex))
+    local public_block_hex
+    public_block_hex=$(get_public_klay_block)
+    public_block=$((16#$public_block_hex)) || { echo "[ERROR] Failed to convert hex to decimal"; exit 1; }
 
     # Calculate difference
     diff=$((our_block - public_block))
 
     # Check if the abs of difference is less than 10
-    if [ $diff -lt 10 ]; then
+    if [ ${diff#-} -lt 10 ]; then
 	echo "[INFO] Klaytn is synchronized"
     else
 	echo "[ERROR] Synchronization failed. Remain blocks to latest: $diff"
@@ -30,9 +32,9 @@ get_public_klay_block() {
 
     # Get block number from response
     # Print result field without "0x" in json response
-    public_klay_blockNumber=$(echo $response | jq -r '.result' | awk '{ sub("0x", ""); print $0 }')
+    public_klay_blockNumber=$(echo "$response" | jq -r '.result' | awk '{ sub("0x", ""); print $0 }')
 
-    echo $public_klay_blockNumber
+    echo "$public_klay_blockNumber"
 }
 
 get_our_klay_block() {
@@ -45,9 +47,9 @@ get_our_klay_block() {
     # Get block number from log
     # If col 8 string starts with "number=",
     # then print the value only integer part
-    our_klay_blockNumber=$(echo $response | awk '$8 ~ /^number*/ { sub(/^number=/, "", $8); print $8 }')
+    our_klay_blockNumber=$(echo "$response" | awk '$8 ~ /^number*/ { sub(/^number=/, "", $8); print $8 }')
 
-    echo $our_klay_blockNumber
+    echo "$our_klay_blockNumber"
 }
 
 check_klay_sync
