@@ -13,11 +13,13 @@ const getFeedTag = async (network, pairName) => {
   try {
     const res = await axios.get(url)
     numFeeds = res?.data?.feeds?.length
-    if (numFeeds == undefined) {
+    if (numFeeds === undefined || numFeeds === null) {
       console.error(`Error getting feed level for ${pairName} on ${network}`)
+      return 'unknown'
     }
   } catch (error) {
     console.error(`Error getting feed level for ${pairName} on ${network}: ${error}`)
+    return 'unknown'
   }
 
   if (numFeeds > 8) {
