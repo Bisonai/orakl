@@ -6,29 +6,32 @@ const { loadJson, storeJson } = require('./utils.cjs')
 const ValidChains = ['baobab', 'cypress']
 const deploymentsPath = path.join(__dirname, '../deployments/')
 
-const getFeedTag = async (network, pairName) => {
-  url = `https://config.orakl.network/adapter/${network}/${pairName.toLowerCase()}.adapter.json`
-  numFeeds = 0
+const fetchTags = async () => {
+  url = 'https://config.orakl.network/cypress_adapters.json'
+  tags = {}
 
-  try {
-    const res = await axios.get(url)
-    numFeeds = res?.data?.feeds?.length
-    if (numFeeds === undefined || numFeeds === null) {
-      console.error(`Error getting feed level for ${pairName} on ${network}`)
-      return 'unknown'
-    }
-  } catch (error) {
-    console.error(`Error getting feed level for ${pairName} on ${network}: ${error}`)
-    return 'unknown'
-  }
+  await axios
+    .get(url)
+    .catch((error) => {
+      console.error(`Error fetching tags: ${error}`)
+    })
+    .then((res) => {
+      res.data.result.map((feed) => {
+        const numFeeds = feed.feeds.length
+        let tag = ''
 
-  if (numFeeds > 8) {
-    return 'premium'
-  } else if (numFeeds > 5) {
-    return 'standard'
-  } else {
-    return 'basic'
-  }
+        if (numFeeds > 8) {
+          tag = 'premium'
+        } else if (numFeeds > 5) {
+          tag = 'standard'
+        } else {
+          tag = 'basic'
+        }
+        tags[feed.name] = tag
+      })
+    })
+
+  return tags
 }
 
 const isValidPath = (_path) => {
@@ -36,7 +39,7 @@ const isValidPath = (_path) => {
   return path.extname(fileName) === '.json'
 }
 
-const readDeployments = async (folderPath) => {
+const readDeployments = async (folderPath, tags) => {
   const dataFeeds = {}
   const others = {}
 
@@ -75,14 +78,8 @@ const readDeployments = async (folderPath) => {
               dataFeeds[pairName][network] = {}
             }
 
-            // data feed contract address
             dataFeeds[pairName][network][convertContractType(contractType)] = address
-
-            // data feed tag
-            if (network == 'cypress') {
-              const tag = await getFeedTag(network, pairName)
-              dataFeeds[pairName]['tag'] = tag
-            }
+            dataFeeds[pairName]['tag'] = tags[pairName]
           } else {
             if (!others[network]) {
               others[network] = {}
@@ -129,7 +126,8 @@ const convertContractType = (contractType) => {
 }
 
 async function main() {
-  const { dataFeeds, others } = await readDeployments(deploymentsPath)
+  const tags = await fetchTags()
+  const { dataFeeds, others } = await readDeployments(deploymentsPath, tags)
   await storeJson(
     path.join(deploymentsPath, 'datafeeds-addresses.json'),
     JSON.stringify(dataFeeds, null, 2)
