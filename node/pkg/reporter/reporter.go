@@ -106,48 +106,47 @@ func (r *Reporter) leaderJob() error {
 	r.Raft.IncreaseTerm()
 	ctx := context.Background()
 
-	job := func() error {
-		aggregates, err := GetLatestGlobalAggregates(ctx, r.SubmissionPairs)
-		if err != nil {
-			log.Error().Str("Player", "Reporter").Err(err).Msg("GetLatestGlobalAggregates")
-			return err
-		}
+	aggregates, err := GetLatestGlobalAggregates(ctx, r.SubmissionPairs)
+	if err != nil {
+		log.Error().Str("Player", "Reporter").Err(err).Msg("GetLatestGlobalAggregates")
+		return err
+	}
 
-		validAggregates := FilterInvalidAggregates(aggregates, r.SubmissionPairs)
-		if len(validAggregates) == 0 {
-			log.Warn().Str("Player", "Reporter").Msg("no valid aggregates to report")
-			return nil
-		}
-		log.Debug().Str("Player", "Reporter").Int("validAggregates", len(validAggregates)).Msg("valid aggregates")
+	validAggregates := FilterInvalidAggregates(aggregates, r.SubmissionPairs)
+	if len(validAggregates) == 0 {
+		log.Warn().Str("Player", "Reporter").Msg("no valid aggregates to report")
+		return nil
+	}
+	log.Debug().Str("Player", "Reporter").Int("validAggregates", len(validAggregates)).Msg("valid aggregates")
 
+	reportJob := func() error {
 		err = r.report(ctx, validAggregates)
 		if err != nil {
 			log.Error().Str("Player", "Reporter").Err(err).Msg("report")
 			return err
 		}
-
-		err = r.PublishSubmissionMessage(validAggregates)
-		if err != nil {
-			log.Error().Str("Player", "Reporter").Err(err).Msg("PublishSubmissionMessage")
-			return err
-		}
-
-		for _, agg := range validAggregates {
-			pair := r.SubmissionPairs[agg.Name]
-			pair.LastSubmission = agg.Round
-			r.SubmissionPairs[agg.Name] = pair
-		}
-		log.Debug().Str("Player", "Reporter").Dur("duration", time.Since(start)).Msg("reporting done")
 		return nil
-
 	}
 
-	err := r.retry(job)
+	err = r.retry(reportJob)
 	if err != nil {
 		r.resignLeader()
 		log.Error().Str("Player", "Reporter").Err(err).Msg("failed to report")
 		return errors.New("failed to report")
 	}
+
+	err = r.PublishSubmissionMessage(validAggregates)
+	if err != nil {
+		log.Error().Str("Player", "Reporter").Err(err).Msg("PublishSubmissionMessage")
+		return err
+	}
+
+	for _, agg := range validAggregates {
+		pair := r.SubmissionPairs[agg.Name]
+		pair.LastSubmission = agg.Round
+		r.SubmissionPairs[agg.Name] = pair
+	}
+	log.Debug().Str("Player", "Reporter").Dur("duration", time.Since(start)).Msg("reporting done")
 
 	return nil
 }
@@ -277,35 +276,36 @@ func (r *Reporter) deviationJob() error {
 		return nil
 	}
 
-	job := func() error {
+	reportJob := func() error {
 		err = r.report(ctx, deviatingAggregates)
 		if err != nil {
 			log.Error().Str("Player", "Reporter").Err(err).Msg("DeviationReport")
 			return err
 		}
 
-		err = r.PublishSubmissionMessage(deviatingAggregates)
-		if err != nil {
-			log.Error().Str("Player", "Reporter").Err(err).Msg("PublishSubmissionMessage")
-			return err
-		}
-
-		for _, agg := range deviatingAggregates {
-			pair := r.SubmissionPairs[agg.Name]
-			pair.LastSubmission = agg.Round
-			r.SubmissionPairs[agg.Name] = pair
-		}
-
-		log.Debug().Str("Player", "Reporter").Dur("duration", time.Since(start)).Msg("reporting deviation done")
 		return nil
 	}
 
-	err = r.retry(job)
+	err = r.retry(reportJob)
 	if err != nil {
 		r.resignLeader()
 		log.Error().Str("Player", "Reporter").Err(err).Msg("failed to report deviation")
 		return errors.New("failed to report deviation")
 	}
+
+	err = r.PublishSubmissionMessage(deviatingAggregates)
+	if err != nil {
+		log.Error().Str("Player", "Reporter").Err(err).Msg("PublishSubmissionMessage")
+		return err
+	}
+
+	for _, agg := range deviatingAggregates {
+		pair := r.SubmissionPairs[agg.Name]
+		pair.LastSubmission = agg.Round
+		r.SubmissionPairs[agg.Name] = pair
+	}
+
+	log.Debug().Str("Player", "Reporter").Dur("duration", time.Since(start)).Msg("reporting deviation done")
 
 	return nil
 }
