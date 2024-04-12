@@ -7,8 +7,8 @@ const ValidChains = ['baobab', 'cypress']
 const deploymentsPath = path.join(__dirname, '../deployments/')
 
 const fetchTags = async () => {
-  url = 'https://config.orakl.network/cypress_adapters.json'
-  tags = {}
+  const url = 'https://config.orakl.network/cypress_adapters.json'
+  let tags = {}
 
   await axios
     .get(url)
@@ -16,7 +16,7 @@ const fetchTags = async () => {
       console.error(`Error fetching tags: ${error}`)
     })
     .then((res) => {
-      res.data.result.map((feed) => {
+      res.data.result.forEach((feed) => {
         const numFeeds = feed.feeds.length
         let tag = ''
 
