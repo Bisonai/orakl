@@ -44,7 +44,7 @@ interface IFeedProxy is IFeed {
      * @param minCount The minimum number of data points
      * @return The TWAP
      */
-    function twap(uint256 interval_, uint256 latestUpdatedAtTolerance_, int256 minCount)
+    function twap(uint256 interval_, uint256 latestUpdatedAtTolerance_, int256 minCount_)
         external
         view
         returns (int256);

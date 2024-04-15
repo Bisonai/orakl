@@ -70,7 +70,7 @@ contract FeedProxy is Ownable, IFeedProxy {
     /**
      * @inheritdoc IFeedProxy
      */
-    function twap(uint256 interval_, uint256 latestUpdatedAtTolerance_, int256 minCount)
+    function twap(uint256 interval_, uint256 latestUpdatedAtTolerance_, int256 minCount_)
         external
         view
         returns (int256)
@@ -93,7 +93,7 @@ contract FeedProxy is Ownable, IFeedProxy {
             sum += answer_;
             count += 1;
 
-            if (((block.timestamp - updatedAt_) >= interval_) && (count >= minCount)) {
+            if (((block.timestamp - updatedAt_) >= interval_) && (count >= minCount_)) {
                 break;
             }
 
