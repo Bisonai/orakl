@@ -138,7 +138,7 @@ func TestInsertGlobalAggregate(t *testing.T) {
 
 	node.Name = "test_pair"
 
-	err = InsertGlobalAggregate(ctx, node.Name, 20, 2)
+	err = InsertGlobalAggregate(ctx, node.Name, 20, 2, time.Now())
 	if err != nil {
 		t.Fatal("error inserting global aggregate")
 	}

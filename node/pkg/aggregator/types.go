@@ -21,7 +21,7 @@ const (
 
 	SelectActiveAggregatorsQuery     = `SELECT * FROM aggregators WHERE active = true`
 	SelectLatestLocalAggregateQuery  = `SELECT * FROM local_aggregates WHERE name = @name ORDER BY timestamp DESC LIMIT 1`
-	InsertGlobalAggregateQuery       = `INSERT INTO global_aggregates (name, value, round) VALUES (@name, @value, @round) RETURNING *`
+	InsertGlobalAggregateQuery       = `INSERT INTO global_aggregates (name, value, round, timestamp) VALUES (@name, @value, @round, @timestamp) RETURNING *`
 	SelectLatestGlobalAggregateQuery = `SELECT * FROM global_aggregates WHERE name = @name ORDER BY round DESC LIMIT 1`
 	InsertProofQuery                 = `INSERT INTO proofs (name, round, proof) VALUES (@name, @round, @proof) RETURNING *`
 )

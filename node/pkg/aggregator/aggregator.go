@@ -203,7 +203,7 @@ func (n *Aggregator) HandlePriceDataMessage(ctx context.Context, msg raft.Messag
 			return err
 		}
 		log.Debug().Str("Player", "Aggregator").Int64("roundId", priceDataMessage.RoundID).Int64("global_aggregate", median).Msg("global aggregated")
-		err = InsertGlobalAggregate(ctx, n.Name, median, priceDataMessage.RoundID)
+		err = InsertGlobalAggregate(ctx, n.Name, median, priceDataMessage.RoundID, n.SyncedTimes[priceDataMessage.RoundID])
 		if err != nil {
 			log.Error().Str("Player", "Aggregator").Err(err).Msg("failed to insert global aggregate")
 			return err

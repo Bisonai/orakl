@@ -43,16 +43,16 @@ func FilterNegative(values []int64) []int64 {
 	return result
 }
 
-func InsertGlobalAggregate(ctx context.Context, name string, value int64, round int64) error {
+func InsertGlobalAggregate(ctx context.Context, name string, value int64, round int64, timestamp time.Time) error {
 	var errs []string
 
-	err := insertRdb(ctx, name, value, round)
+	err := insertRdb(ctx, name, value, round, timestamp)
 	if err != nil {
 		log.Error().Str("Player", "Aggregator").Err(err).Msg("failed to insert global aggregate into rdb")
 		errs = append(errs, err.Error())
 	}
 
-	err = insertPgsql(ctx, name, value, round)
+	err = insertPgsql(ctx, name, value, round, timestamp)
 	if err != nil {
 		log.Error().Str("Player", "Aggregator").Err(err).Msg("failed to insert global aggregate into pgsql")
 		errs = append(errs, err.Error())
@@ -65,13 +65,13 @@ func InsertGlobalAggregate(ctx context.Context, name string, value int64, round 
 	return nil
 }
 
-func insertPgsql(ctx context.Context, name string, value int64, round int64) error {
-	return db.QueryWithoutResult(ctx, InsertGlobalAggregateQuery, map[string]any{"name": name, "value": value, "round": round})
+func insertPgsql(ctx context.Context, name string, value int64, round int64, timestamp time.Time) error {
+	return db.QueryWithoutResult(ctx, InsertGlobalAggregateQuery, map[string]any{"name": name, "value": value, "round": round, "timestamp": timestamp})
 }
 
-func insertRdb(ctx context.Context, name string, value int64, round int64) error {
+func insertRdb(ctx context.Context, name string, value int64, round int64, timestamp time.Time) error {
 	key := "globalAggregate:" + name
-	data, err := json.Marshal(GlobalAggregate{Name: name, Value: value, Round: round})
+	data, err := json.Marshal(GlobalAggregate{Name: name, Value: value, Round: round, Timestamp: timestamp})
 	if err != nil {
 		log.Error().Str("Player", "Aggregator").Err(err).Msg("failed to marshal global aggregate")
 		return err
