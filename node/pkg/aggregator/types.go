@@ -13,22 +13,24 @@ import (
 )
 
 const (
-	RoundSync                        raft.MessageType = "roundSync"
-	PriceData                        raft.MessageType = "priceData"
-	ProofMsg                         raft.MessageType = "proof"
-	SelectActiveAggregatorsQuery                      = `SELECT * FROM aggregators WHERE active = true`
-	SelectLatestLocalAggregateQuery                   = `SELECT * FROM local_aggregates WHERE name = @name ORDER BY timestamp DESC LIMIT 1`
-	InsertGlobalAggregateQuery                        = `INSERT INTO global_aggregates (name, value, round) VALUES (@name, @value, @round) RETURNING *`
-	SelectLatestGlobalAggregateQuery                  = `SELECT * FROM global_aggregates WHERE name = @name ORDER BY round DESC LIMIT 1`
-	InsertProofQuery                                  = `INSERT INTO proofs (name, round, proof) VALUES (@name, @round, @proof) RETURNING *`
+	RoundSync raft.MessageType = "roundSync"
+	SyncReply raft.MessageType = "syncReply"
+	Trigger   raft.MessageType = "trigger"
+	PriceData raft.MessageType = "priceData"
+	ProofMsg  raft.MessageType = "proof"
+
+	SelectActiveAggregatorsQuery     = `SELECT * FROM aggregators WHERE active = true`
+	SelectLatestLocalAggregateQuery  = `SELECT * FROM local_aggregates WHERE name = @name ORDER BY timestamp DESC LIMIT 1`
+	InsertGlobalAggregateQuery       = `INSERT INTO global_aggregates (name, value, round) VALUES (@name, @value, @round) RETURNING *`
+	SelectLatestGlobalAggregateQuery = `SELECT * FROM global_aggregates WHERE name = @name ORDER BY round DESC LIMIT 1`
+	InsertProofQuery                 = `INSERT INTO proofs (name, round, proof) VALUES (@name, @round, @proof) RETURNING *`
 )
 
-type redisLocalAggregate struct {
+type LocalAggregate struct {
 	Value     int64     `json:"value"`
 	Timestamp time.Time `json:"timestamp"`
 }
 
-// pgsql row entry
 type PgsqlProof struct {
 	ID        int64     `db:"id"`
 	Name      string    `json:"name"`
@@ -43,13 +45,13 @@ type Proof struct {
 	Proof []byte `json:"proofs"`
 }
 
-type pgsLocalAggregate struct {
+type PgsLocalAggregate struct {
 	Name      string    `db:"name"`
 	Value     int64     `db:"value"`
 	Timestamp time.Time `db:"timestamp"`
 }
 
-type globalAggregate struct {
+type GlobalAggregate struct {
 	Name      string    `db:"name" json:"name"`
 	Value     int64     `db:"value" json:"value"`
 	Round     int64     `db:"round" json:"round"`
@@ -73,12 +75,14 @@ type Aggregator struct {
 	AggregatorModel
 	Raft *raft.Raft
 
-	CollectedPrices map[int64][]int64
-	CollectedProofs map[int64][][]byte
-	AggregatorMutex sync.Mutex
+	CollectedPrices         map[int64][]int64
+	CollectedProofs         map[int64][][]byte
+	CollectedAgreements     map[int64][]bool
+	PreparedLocalAggregates map[int64]int64
+	SyncedTimes             map[int64]time.Time
+	AggregatorMutex         sync.Mutex
 
-	LastLocalAggregateTime time.Time
-	RoundID                int64
+	RoundID int64
 
 	SignHelper *helper.SignHelper
 
@@ -88,8 +92,9 @@ type Aggregator struct {
 }
 
 type RoundSyncMessage struct {
-	LeaderID string `json:"leaderID"`
-	RoundID  int64  `json:"roundID"`
+	LeaderID  string    `json:"leaderID"`
+	RoundID   int64     `json:"roundID"`
+	Timestamp time.Time `json:"timestamp"`
 }
 
 type PriceDataMessage struct {
@@ -100,4 +105,14 @@ type PriceDataMessage struct {
 type ProofMessage struct {
 	RoundID int64  `json:"roundID"`
 	Proof   []byte `json:"proof"`
+}
+
+type SyncReplyMessage struct {
+	RoundID int64 `json:"roundID"`
+	Agreed  bool  `json:"agreed"`
+}
+
+type TriggerMessage struct {
+	LeaderID string `json:"leaderID"`
+	RoundID  int64  `json:"roundID"`
 }

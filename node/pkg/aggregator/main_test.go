@@ -27,9 +27,9 @@ const (
 
 type TmpData struct {
 	aggregator      AggregatorModel
-	rLocalAggregate redisLocalAggregate
-	pLocalAggregate pgsLocalAggregate
-	globalAggregate globalAggregate
+	rLocalAggregate LocalAggregate
+	pLocalAggregate PgsLocalAggregate
+	globalAggregate GlobalAggregate
 }
 
 type TestItems struct {
@@ -100,7 +100,7 @@ func insertSampleData(ctx context.Context) (*TmpData, error) {
 	localAggregateInsertTime := time.Now()
 
 	key := "localAggregate:test_pair"
-	data, err := json.Marshal(redisLocalAggregate{Value: int64(10), Timestamp: localAggregateInsertTime})
+	data, err := json.Marshal(LocalAggregate{Value: int64(10), Timestamp: localAggregateInsertTime})
 	if err != nil {
 		return nil, err
 	}
@@ -110,15 +110,15 @@ func insertSampleData(ctx context.Context) (*TmpData, error) {
 		return nil, err
 	}
 
-	tmpData.rLocalAggregate = redisLocalAggregate{Value: int64(10), Timestamp: localAggregateInsertTime}
+	tmpData.rLocalAggregate = LocalAggregate{Value: int64(10), Timestamp: localAggregateInsertTime}
 
-	tmpPLocalAggregate, err := db.QueryRow[pgsLocalAggregate](ctx, InsertLocalAggregateQuery, map[string]any{"name": "test_pair", "value": int64(10), "time": localAggregateInsertTime})
+	tmpPLocalAggregate, err := db.QueryRow[PgsLocalAggregate](ctx, InsertLocalAggregateQuery, map[string]any{"name": "test_pair", "value": int64(10), "time": localAggregateInsertTime})
 	if err != nil {
 		return nil, err
 	}
 	tmpData.pLocalAggregate = tmpPLocalAggregate
 
-	tmpGlobalAggregate, err := db.QueryRow[globalAggregate](ctx, InsertGlobalAggregateQuery, map[string]any{"name": "test_pair", "value": int64(15), "round": int64(1)})
+	tmpGlobalAggregate, err := db.QueryRow[GlobalAggregate](ctx, InsertGlobalAggregateQuery, map[string]any{"name": "test_pair", "value": int64(15), "round": int64(1)})
 	if err != nil {
 		return nil, err
 	}

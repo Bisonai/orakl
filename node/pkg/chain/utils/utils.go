@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"bytes"
 	"context"
 	"crypto/ecdsa"
 	"encoding/hex"
@@ -544,8 +545,8 @@ func IsJsonRpcFailureError(errorCode int) bool {
 	return false
 }
 
-func MakeValueSignature(value int64, pk *ecdsa.PrivateKey) ([]byte, error) {
-	hash := Value2HashForSign(value)
+func MakeValueSignature(value int64, timestamp int64, pk *ecdsa.PrivateKey) ([]byte, error) {
+	hash := Value2HashForSign(value, timestamp)
 	signature, err := crypto.Sign(hash, pk)
 	if err != nil {
 		return nil, err
@@ -559,12 +560,18 @@ func MakeValueSignature(value int64, pk *ecdsa.PrivateKey) ([]byte, error) {
 	return signature, nil
 }
 
-func Value2HashForSign(value int64) []byte {
+func Value2HashForSign(value int64, timestamp int64) []byte {
 	bigIntVal := big.NewInt(value)
-	buf := make([]byte, 32)
+	bigIntTimestamp := big.NewInt(timestamp)
 
-	copy(buf[32-len(bigIntVal.Bytes()):], bigIntVal.Bytes())
-	return crypto.Keccak256(buf)
+	valueBuf := make([]byte, 32)
+	timestampBuf := make([]byte, 32)
+
+	copy(valueBuf[32-len(bigIntVal.Bytes()):], bigIntVal.Bytes())
+	copy(timestampBuf[32-len(bigIntTimestamp.Bytes()):], bigIntTimestamp.Bytes())
+
+	concatBytes := bytes.Join([][]byte{valueBuf, timestampBuf}, nil)
+	return crypto.Keccak256(concatBytes)
 }
 
 func StringToPk(pk string) (*ecdsa.PrivateKey, error) {

@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"bisonai.com/orakl/node/pkg/chain/helper"
-	"bisonai.com/orakl/node/pkg/db"
 	"bisonai.com/orakl/node/pkg/raft"
 	"bisonai.com/orakl/node/pkg/utils/calculator"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
@@ -51,7 +50,7 @@ func NewAggregator(h host.Host, ps *pubsub.PubSub, topicString string) (*Aggrega
 }
 
 func (n *Aggregator) Run(ctx context.Context) {
-	latestRoundId, err := n.getLatestRoundId(ctx)
+	latestRoundId, err := getLatestRoundId(ctx, n.Name)
 	if err == nil && latestRoundId > 0 {
 		n.RoundID = latestRoundId
 	}
@@ -62,7 +61,7 @@ func (n *Aggregator) Run(ctx context.Context) {
 func (n *Aggregator) LeaderJob() error {
 	n.RoundID++
 	n.Raft.IncreaseTerm()
-	return n.PublishRoundMessage(n.RoundID)
+	return n.PublishRoundMessage(n.RoundID, time.Now())
 }
 
 func (n *Aggregator) HandleCustomMessage(ctx context.Context, message raft.Message) error {
@@ -73,6 +72,10 @@ func (n *Aggregator) HandleCustomMessage(ctx context.Context, message raft.Messa
 		return n.HandlePriceDataMessage(ctx, message)
 	case ProofMsg:
 		return n.HandleProofMessage(ctx, message)
+	case SyncReply:
+		return n.HandleSyncReplyMessage(ctx, message)
+	case Trigger:
+		return n.HandleTriggerMessage(ctx, message)
 	default:
 		return fmt.Errorf("unknown message type received in HandleCustomMessage: %v", message.Type)
 	}
@@ -92,15 +95,84 @@ func (n *Aggregator) HandleRoundSyncMessage(ctx context.Context, msg raft.Messag
 	if n.Raft.GetRole() != raft.Leader {
 		n.RoundID = roundSyncMessage.RoundID
 	}
-	var updateValue int64 = -1
-	value, updateTime, err := GetLatestLocalAggregate(ctx, n.Name)
 
-	if err == nil && n.LastLocalAggregateTime.IsZero() || !n.LastLocalAggregateTime.Equal(updateTime) {
-		updateValue = value
-		n.LastLocalAggregateTime = updateTime
+	n.AggregatorMutex.Lock()
+	defer n.AggregatorMutex.Unlock()
+
+	value, updateTime, err := GetLatestLocalAggregate(ctx, n.Name)
+	if err != nil {
+		log.Error().Str("Player", "Aggregator").Err(err).Msg("failed to get latest local aggregate")
+		value = -1
 	}
 
-	return n.PublishPriceDataMessage(n.RoundID, updateValue)
+	n.PreparedLocalAggregates[roundSyncMessage.RoundID] = value
+	n.SyncedTimes[roundSyncMessage.RoundID] = roundSyncMessage.Timestamp
+
+	if !isTimeValid(updateTime, roundSyncMessage.Timestamp) {
+		n.PreparedLocalAggregates[roundSyncMessage.RoundID] = -1
+		return n.PublishSyncReplyMessage(roundSyncMessage.RoundID, false)
+	}
+	return n.PublishSyncReplyMessage(roundSyncMessage.RoundID, true)
+}
+
+func (n *Aggregator) HandleSyncReplyMessage(ctx context.Context, msg raft.Message) error {
+	if n.Raft.GetRole() != raft.Leader {
+		return nil
+	}
+
+	var syncReplyMessage SyncReplyMessage
+	err := json.Unmarshal(msg.Data, &syncReplyMessage)
+	if err != nil {
+		return err
+	}
+
+	if syncReplyMessage.RoundID == 0 {
+		return fmt.Errorf("invalid sync reply message: %v", syncReplyMessage)
+	}
+
+	n.AggregatorMutex.Lock()
+	defer n.AggregatorMutex.Unlock()
+
+	if _, ok := n.CollectedAgreements[syncReplyMessage.RoundID]; !ok {
+		n.CollectedAgreements[syncReplyMessage.RoundID] = []bool{}
+	}
+
+	n.CollectedAgreements[syncReplyMessage.RoundID] = append(n.CollectedAgreements[syncReplyMessage.RoundID], syncReplyMessage.Agreed)
+	if len(n.CollectedAgreements[syncReplyMessage.RoundID]) >= n.Raft.SubscribersCount()+1 {
+		defer delete(n.CollectedAgreements, syncReplyMessage.RoundID)
+		agreeCount := 0
+		for _, agreed := range n.CollectedAgreements[syncReplyMessage.RoundID] {
+			if agreed {
+				agreeCount++
+			}
+		}
+		if agreeCount >= n.Raft.SubscribersCount()/2 {
+			return n.PublishTriggerMessage(syncReplyMessage.RoundID)
+		} else {
+			n.Raft.StopHeartbeatTicker()
+			n.Raft.UpdateRole(raft.Follower)
+			return nil
+		}
+	}
+	return nil
+}
+
+func (n *Aggregator) HandleTriggerMessage(ctx context.Context, msg raft.Message) error {
+	var triggerMessage TriggerMessage
+	err := json.Unmarshal(msg.Data, &triggerMessage)
+	if err != nil {
+		return err
+	}
+
+	if triggerMessage.RoundID == 0 {
+		return fmt.Errorf("invalid trigger message: %v", triggerMessage)
+	}
+
+	if msg.SentFrom != n.Raft.GetLeader() {
+		return fmt.Errorf("trigger message sent from non-leader")
+	}
+	defer delete(n.PreparedLocalAggregates, triggerMessage.RoundID)
+	return n.PublishPriceDataMessage(triggerMessage.RoundID, n.PreparedLocalAggregates[triggerMessage.RoundID])
 }
 
 func (n *Aggregator) HandlePriceDataMessage(ctx context.Context, msg raft.Message) error {
@@ -137,7 +209,7 @@ func (n *Aggregator) HandlePriceDataMessage(ctx context.Context, msg raft.Messag
 			return err
 		}
 
-		proof, err := n.SignHelper.MakeGlobalAggregateProof(median)
+		proof, err := n.SignHelper.MakeGlobalAggregateProof(median, n.SyncedTimes[priceDataMessage.RoundID])
 		if err != nil {
 			log.Error().Str("Player", "Aggregator").Err(err).Msg("failed to make global aggregate proof")
 			return err
@@ -176,18 +248,11 @@ func (n *Aggregator) HandleProofMessage(ctx context.Context, msg raft.Message) e
 	return nil
 }
 
-func (n *Aggregator) getLatestRoundId(ctx context.Context) (int64, error) {
-	result, err := db.QueryRow[globalAggregate](ctx, SelectLatestGlobalAggregateQuery, map[string]any{"name": n.Name})
-	if err != nil {
-		return 0, err
-	}
-	return result.Round, nil
-}
-
-func (n *Aggregator) PublishRoundMessage(roundId int64) error {
+func (n *Aggregator) PublishRoundMessage(roundId int64, timestamp time.Time) error {
 	roundMessage := RoundSyncMessage{
-		LeaderID: n.Raft.GetHostId(),
-		RoundID:  roundId,
+		LeaderID:  n.Raft.GetHostId(),
+		RoundID:   roundId,
+		Timestamp: timestamp,
 	}
 
 	marshalledRoundMessage, err := json.Marshal(roundMessage)
@@ -239,6 +304,46 @@ func (n *Aggregator) PublishProofMessage(roundId int64, proof []byte) error {
 		Type:     ProofMsg,
 		SentFrom: n.Raft.GetHostId(),
 		Data:     json.RawMessage(marshalledProofMessage),
+	}
+
+	return n.Raft.PublishMessage(message)
+}
+
+func (n *Aggregator) PublishSyncReplyMessage(roundId int64, agreed bool) error {
+	syncReplyMessage := SyncReplyMessage{
+		RoundID: roundId,
+		Agreed:  agreed,
+	}
+
+	marshalledSyncReplyMessage, err := json.Marshal(syncReplyMessage)
+	if err != nil {
+		return err
+	}
+
+	message := raft.Message{
+		Type:     SyncReply,
+		SentFrom: n.Raft.GetHostId(),
+		Data:     json.RawMessage(marshalledSyncReplyMessage),
+	}
+
+	return n.Raft.PublishMessage(message)
+}
+
+func (n *Aggregator) PublishTriggerMessage(roundId int64) error {
+	triggerMessage := TriggerMessage{
+		LeaderID: n.Raft.GetHostId(),
+		RoundID:  roundId,
+	}
+
+	marshalledTriggerMessage, err := json.Marshal(triggerMessage)
+	if err != nil {
+		return err
+	}
+
+	message := raft.Message{
+		Type:     Trigger,
+		SentFrom: n.Raft.GetHostId(),
+		Data:     json.RawMessage(marshalledTriggerMessage),
 	}
 
 	return n.Raft.PublishMessage(message)

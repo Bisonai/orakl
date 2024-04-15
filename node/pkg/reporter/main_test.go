@@ -67,7 +67,7 @@ func insertSampleData(ctx context.Context) (*TmpData, error) {
 	}
 	tmpData.globalAggregate = tmpGlobalAggregate
 
-	rawProof, err := signHelper.MakeGlobalAggregateProof(int64(15))
+	rawProof, err := signHelper.MakeGlobalAggregateProof(int64(15), time.Now())
 	if err != nil {
 		return nil, err
 	}
