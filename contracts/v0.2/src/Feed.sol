@@ -19,7 +19,7 @@ contract Feed is Ownable, IFeed {
 
     struct Round {
         int256 answer;
-        uint64 updatedAt;
+        uint256 updatedAt;
     }
 
     uint64 private latestRoundId;
@@ -61,7 +61,7 @@ contract Feed is Ownable, IFeed {
         uint64 roundId_ = latestRoundId + 1;
 
         rounds[roundId_].answer = _answer;
-        rounds[roundId_].updatedAt = uint64(block.timestamp);
+        rounds[roundId_].updatedAt = block.timestamp;
 
         emit FeedUpdated(_answer, roundId_, block.timestamp);
         latestRoundId = roundId_;

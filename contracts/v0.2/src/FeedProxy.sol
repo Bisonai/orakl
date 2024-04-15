@@ -21,6 +21,8 @@ contract FeedProxy is Ownable, IFeedProxy {
     event FeedConfirmed(address indexed previous, address indexed current);
 
     error InvalidProposedFeed();
+    error InsufficientData();
+    error AnswerAboveTolerance();
 
     modifier hasProposal() {
         require(address(proposedFeed) != address(0), "No proposed feed present");
@@ -63,6 +65,42 @@ contract FeedProxy is Ownable, IFeedProxy {
      */
     function latestRoundData() external view returns (uint64 id, int256 answer, uint256 updatedAt) {
         return feed.latestRoundData();
+    }
+
+    /**
+     * @inheritdoc IFeedProxy
+     */
+    function twap(uint256 interval_, uint256 latestUpdatedAtTolerance_, int256 minCount)
+        external
+        view
+        returns (int256)
+    {
+        (uint64 latestId_, int256 latestAnswer_, uint256 latestUpdatedAt_) = feed.latestRoundData();
+
+        if ((latestUpdatedAtTolerance_ > 0) && ((block.timestamp - latestUpdatedAt_) > latestUpdatedAtTolerance_)) {
+            revert AnswerAboveTolerance();
+        }
+
+        int256 count = 1;
+        int256 sum = latestAnswer_;
+
+        while (true) {
+            if (latestId_ == 1) {
+                revert InsufficientData();
+            }
+
+            (uint64 id_, int256 answer_, uint256 updatedAt_) = feed.getRoundData(latestId_ - 1);
+            sum += answer_;
+            count += 1;
+
+            if (((block.timestamp - updatedAt_) >= interval_) && (count >= minCount)) {
+                break;
+            }
+
+            latestId_ = id_;
+        }
+
+        return sum / count;
     }
 
     /**

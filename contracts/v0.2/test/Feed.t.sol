@@ -6,17 +6,14 @@ import {Feed} from "../src/Feed.sol";
 
 contract FeedTest is Test {
     Feed public feed;
-    address oracle;
 
+    address oracle = makeAddr("oracle");
     uint8 decimals = 18;
     string description = "Test Feed";
-    address[] removed;
-    address[] added;
 
     event FeedUpdated(int256 indexed answer, uint256 indexed roundId, uint256 updatedAt);
 
     function setUp() public {
-        oracle = makeAddr("oracle");
         feed = new Feed(decimals, description, oracle);
     }
 
