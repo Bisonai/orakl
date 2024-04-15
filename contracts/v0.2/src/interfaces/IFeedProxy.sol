@@ -39,12 +39,12 @@ interface IFeedProxy is IFeed {
     /**
      * @notice Get the time-weighted average price (TWAP) of the feed
      * over a given interval.
-     * @param interval_ The time interval in seconds
-     * @param latestUpdatedAtTolerance_ The tolerance for the latest update time
-     * @param minCount_ The minimum number of data points
+     * @param interval The time interval in seconds
+     * @param latestUpdatedAtTolerance The tolerance for the latest update time
+     * @param minCount The minimum number of data points
      * @return The TWAP
      */
-    function twap(uint256 interval_, uint256 latestUpdatedAtTolerance_, int256 minCount_)
+    function twap(uint256 interval, uint256 latestUpdatedAtTolerance, int256 minCount)
         external
         view
         returns (int256);

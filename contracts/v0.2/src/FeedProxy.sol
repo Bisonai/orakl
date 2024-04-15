@@ -70,19 +70,19 @@ contract FeedProxy is Ownable, IFeedProxy {
     /**
      * @inheritdoc IFeedProxy
      */
-    function twap(uint256 interval_, uint256 latestUpdatedAtTolerance_, int256 minCount_)
+    function twap(uint256 _interval, uint256 _latestUpdatedAtTolerance, int256 _minCount)
         external
         view
         returns (int256)
     {
         (uint64 latestId_, int256 latestAnswer_, uint256 latestUpdatedAt_) = feed.latestRoundData();
 
-        if ((latestUpdatedAtTolerance_ > 0) && ((block.timestamp - latestUpdatedAt_) > latestUpdatedAtTolerance_)) {
+        if ((_latestUpdatedAtTolerance > 0) && ((block.timestamp - latestUpdatedAt_) > _latestUpdatedAtTolerance)) {
             revert AnswerAboveTolerance();
         }
 
-        int256 count = 1;
-        int256 sum = latestAnswer_;
+        int256 count_ = 1;
+        int256 sum_ = latestAnswer_;
 
         while (true) {
             if (latestId_ == 1) {
@@ -90,17 +90,17 @@ contract FeedProxy is Ownable, IFeedProxy {
             }
 
             (uint64 id_, int256 answer_, uint256 updatedAt_) = feed.getRoundData(latestId_ - 1);
-            sum += answer_;
-            count += 1;
+            sum_ += answer_;
+            count_ += 1;
 
-            if (((block.timestamp - updatedAt_) >= interval_) && (count >= minCount_)) {
+            if (((block.timestamp - updatedAt_) >= _interval) && (count_ >= _minCount)) {
                 break;
             }
 
             latestId_ = id_;
         }
 
-        return sum / count;
+        return sum_ / count_;
     }
 
     /**
