@@ -26,7 +26,7 @@ contract SubmissionProxy is Ownable {
     mapping(address oracle => uint256 expirationTime) whitelist;
     mapping(address feed => uint8 threshold) thresholds;
 
-    event OracleAdded(address oracle);
+    event OracleAdded(address oracle, uint256 expirationTime);
     event MaxSubmissionSet(uint256 maxSubmission);
     event ExpirationPeriodSet(uint256 expirationPeriod);
     event ThresholdSet(address feed, uint8 threshold);
@@ -92,8 +92,9 @@ contract SubmissionProxy is Ownable {
             revert InvalidOracle();
         }
 
-        whitelist[_oracle] = block.timestamp + expirationPeriod;
-        emit OracleAdded(_oracle);
+	uint256 expirationTime = block.timestamp + expirationPeriod;
+        whitelist[_oracle] = expirationTime;
+        emit OracleAdded(_oracle, expirationTime);
     }
 
     /**
