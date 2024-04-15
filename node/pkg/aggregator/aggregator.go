@@ -55,6 +55,11 @@ func (n *Aggregator) Run(ctx context.Context) {
 		n.RoundID = latestRoundId
 	}
 
+	if err != nil {
+		log.Error().Str("Player", "Aggregator").Err(err).Msg("failed to get latest round id, setting roundId to 1")
+		n.RoundID = 1
+	}
+
 	n.Raft.Run(ctx)
 }
 
