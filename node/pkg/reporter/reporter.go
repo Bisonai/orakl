@@ -153,7 +153,7 @@ func (r *Reporter) leaderJob() error {
 
 func (r *Reporter) report(ctx context.Context, aggregates []GlobalAggregate) error {
 	proofMap, err := GetProofsAsMap(ctx, aggregates)
-	if err != nil || !validateAggregateTimestampValues(aggregates) {
+	if err != nil || !ValidateAggregateTimestampValues(aggregates) {
 		log.Error().Str("Player", "Reporter").Err(err).Msg("submit without proofs")
 		return r.reportWithoutProofs(ctx, aggregates)
 	}

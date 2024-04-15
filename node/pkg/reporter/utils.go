@@ -308,3 +308,12 @@ func GetLatestGlobalAggregatesRdb(ctx context.Context, submissionPairs map[strin
 	}
 	return aggregates, nil
 }
+
+func ValidateAggregateTimestampValues(aggregates []GlobalAggregate) bool {
+	for _, agg := range aggregates {
+		if agg.Timestamp.IsZero() || agg.Timestamp.After(time.Now()) {
+			return false
+		}
+	}
+	return true
+}
