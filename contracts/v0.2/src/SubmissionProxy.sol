@@ -73,12 +73,12 @@ contract SubmissionProxy is Ownable {
      * @param _threshold The number of required signatures
      */
     function setProofThreshold(address _feed, uint8 _threshold) external onlyOwner {
-	if (_threshold == 0) {
-	    revert InvalidThreshold();
-	}
+        if (_threshold == 0) {
+            revert InvalidThreshold();
+        }
 
-	thresholds[_feed] = _threshold;
-	emit ThresholdSet(_feed, _threshold);
+        thresholds[_feed] = _threshold;
+        emit ThresholdSet(_feed, _threshold);
     }
 
     /**
@@ -105,47 +105,41 @@ contract SubmissionProxy is Ownable {
      * @param _answers The submissions
      * @param _proofs The proofs
      */
-    function submit(address[] memory _feeds, int256[] memory _answers, bytes[] memory _proofs)
-        external
-    {
-        if (
-            _feeds.length != _answers.length || _answers.length != _proofs.length
-	    || _feeds.length > maxSubmission
-        ) {
+    function submit(address[] memory _feeds, int256[] memory _answers, bytes[] memory _proofs) external {
+        if (_feeds.length != _answers.length || _answers.length != _proofs.length || _feeds.length > maxSubmission) {
             revert InvalidSubmissionLength();
         }
 
         for (uint256 feedIdx = 0; feedIdx < _feeds.length; feedIdx++) {
-	    bytes[] memory proofs_ = splitBytesToChunks(_proofs[feedIdx]);
-	    bytes32 message_ = keccak256(abi.encodePacked(_answers[feedIdx]));
+            bytes[] memory proofs_ = splitBytesToChunks(_proofs[feedIdx]);
+            bytes32 message_ = keccak256(abi.encodePacked(_answers[feedIdx]));
 
-	    bool verified_ = false;
-	    uint8 verifiedSignatures_ = 0;
-	    uint8 requiredSignatures_ = thresholds[_feeds[feedIdx]];
-	    if (requiredSignatures_ == 0) {
-		revert InvalidThreshold();
-	    }
+            bool verified_ = false;
+            uint8 verifiedSignatures_ = 0;
+            uint8 requiredSignatures_ = thresholds[_feeds[feedIdx]];
+            if (requiredSignatures_ == 0) {
+                revert InvalidThreshold();
+            }
 
-	    for (uint256 proofIdx = 0; proofIdx < proofs_.length; proofIdx++) {
-		bytes memory singleProof_ = proofs_[proofIdx];
-		address signer_ = recoverSigner(message_, singleProof_);
-		if (isWhitelisted(signer_)) {
-		    verifiedSignatures_++;
-		    if (verifiedSignatures_ >= requiredSignatures_) {
-			verified_ = true;
-			break;
-		    }
-		}
+            for (uint256 proofIdx = 0; proofIdx < proofs_.length; proofIdx++) {
+                bytes memory singleProof_ = proofs_[proofIdx];
+                address signer_ = recoverSigner(message_, singleProof_);
+                if (isWhitelisted(signer_)) {
+                    verifiedSignatures_++;
+                    if (verifiedSignatures_ >= requiredSignatures_) {
+                        verified_ = true;
+                        break;
+                    }
+                }
+            }
 
-	    }
+            if (!verified_) {
+                // Insufficient number of signatures have been
+                // verified -> do not submit!
+                continue;
+            }
 
-	    if (!verified_) {
-		// Insufficient number of signatures have been
-		// verified -> do not submit!
-		continue;
-	    }
-
-	    IFeed(_feeds[feedIdx]).submit(_answers[feedIdx]);
+            IFeed(_feeds[feedIdx]).submit(_answers[feedIdx]);
         }
     }
 
@@ -226,9 +220,9 @@ contract SubmissionProxy is Ownable {
     function isWhitelisted(address _signer) private view returns (bool) {
         uint256 expiration_ = whitelist[_signer];
         if (expiration_ == 0 || expiration_ <= block.timestamp) {
-	    return false;
-	} else {
-	    return true;
-	}
+            return false;
+        } else {
+            return true;
+        }
     }
 }

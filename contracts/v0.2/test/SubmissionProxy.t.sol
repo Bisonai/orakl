@@ -91,8 +91,8 @@ contract SubmissionProxyTest is Test {
         (address[] memory feeds_, int256[] memory submissions_) =
             prepareFeedsSubmissions(numOracles_, submissionValue_, oracle_);
 
-	bytes[] memory proofs_ = new bytes[](1);
-	proofs_[0] = "invalid-proof";
+        bytes[] memory proofs_ = new bytes[](1);
+        proofs_[0] = "invalid-proof";
 
         vm.expectRevert(SubmissionProxy.InvalidThreshold.selector);
         submissionProxy.submit(feeds_, submissions_, proofs_);
@@ -106,15 +106,15 @@ contract SubmissionProxyTest is Test {
         (address[] memory feeds_, int256[] memory submissions_) =
             prepareFeedsSubmissions(numOracles_, submissionValue_, oracle_);
 
-	bytes[] memory proofs_ = new bytes[](1);
-	proofs_[0] = "invalid-proof";
+        bytes[] memory proofs_ = new bytes[](1);
+        proofs_[0] = "invalid-proof";
 
-	submissionProxy.setProofThreshold(feeds_[0], 1);
+        submissionProxy.setProofThreshold(feeds_[0], 1);
 
         submissionProxy.submit(feeds_, submissions_, proofs_);
 
         vm.expectRevert(Feed.NoDataPresent.selector);
-	IFeed(feeds_[0]).latestRoundData();
+        IFeed(feeds_[0]).latestRoundData();
     }
 
     function prepareFeedsSubmissions(uint256 _numOracles, int256 _submissionValue, address _oracle)
@@ -123,17 +123,11 @@ contract SubmissionProxyTest is Test {
     {
         submissionProxy.addOracle(_oracle);
 
-        address[] memory remove_;
-        address[] memory add_ = new address[](1);
-        add_[0] = address(submissionProxy);
-
         address[] memory feeds_ = new address[](_numOracles);
         int256[] memory submissions_ = new int256[](_numOracles);
 
         for (uint256 i = 0; i < _numOracles; i++) {
-            Feed feed_ = new Feed(DECIMALS, DESCRIPTION);
-
-            feed_.changeOracles(remove_, add_);
+            Feed feed_ = new Feed(DECIMALS, DESCRIPTION, address(submissionProxy));
 
             feeds_[i] = address(feed_);
             submissions_[i] = _submissionValue;
@@ -145,9 +139,9 @@ contract SubmissionProxyTest is Test {
     function test_submitWithProof() public {
         address offChainSubmissionProxyReporter = makeAddr("submission-proxy-reporter");
         submissionProxy.addOracle(offChainSubmissionProxyReporter);
-        (address alice, uint256 aliceSk) = makeAddrAndKey("alice");
-        (address bob, uint256 bobSk) = makeAddrAndKey("bob");
-        (address celine, uint256 celineSk) = makeAddrAndKey("celine");
+        (, uint256 aliceSk) = makeAddrAndKey("alice");
+        (, uint256 bobSk) = makeAddrAndKey("bob");
+        (, uint256 celineSk) = makeAddrAndKey("celine");
 
         bytes32 hash = keccak256(abi.encodePacked(int256(10)));
 
@@ -157,19 +151,12 @@ contract SubmissionProxyTest is Test {
         bytes[] memory proofs = new bytes[](numSubmissions);
 
         // single data feed
-        address[] memory oracleRemove;
-        address[] memory oracleAdd = new address[](4);
-        Feed feed = new Feed(DECIMALS, DESCRIPTION);
-        oracleAdd[0] = address(submissionProxy);
-        oracleAdd[1] = address(alice);
-        oracleAdd[2] = address(bob);
-        oracleAdd[3] = address(celine);
-        feed.changeOracles(oracleRemove, oracleAdd);
+        Feed feed = new Feed(DECIMALS, DESCRIPTION, address(submissionProxy));
 
         feeds[0] = address(feed);
         submissions[0] = 10;
 
-	submissionProxy.setProofThreshold(feeds[0], 3);
+        submissionProxy.setProofThreshold(feeds[0], 3);
 
         /* proofs[0] = abi.encodePacked(createProof(aliceSk, hash)); */
         /* proofs[0] = abi.encodePacked(createProof(aliceSk, hash), createProof(bobSk, hash)); */

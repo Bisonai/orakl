@@ -35,7 +35,7 @@ contract DeployFull is Script {
             uint256 numFeeds = abi.decode(numFeedsRaw, (uint256));
 
             for (uint256 j = 0; j < numFeeds; j++) {
-                buildFeed(json, j, address(sp), oracle);
+                buildFeed(json, j, address(sp));
             }
             config.updateMigration(dirPath, migrationFilePath);
         }
@@ -43,19 +43,13 @@ contract DeployFull is Script {
         vm.stopBroadcast();
     }
 
-    function buildFeed(string memory json, uint256 feedIndex, address submissionProxy, address oracle) internal {
+    function buildFeed(string memory json, uint256 feedIndex, address oracle) internal {
         UtilsScript.FeedConstructor memory constructor_ =
             abi.decode(json.parseRaw(buildJsonQuery(feedIndex)), (UtilsScript.FeedConstructor));
         uint8 decimals = uint8(constructor_.decimals);
         string memory description = constructor_.description;
 
-        Feed feed = new Feed(decimals, description);
-        address[] memory remove_;
-        address[] memory add_ = new address[](2);
-        add_[0] = submissionProxy;
-	add_[1] = oracle;
-        feed.changeOracles(remove_, add_);
-
+        Feed feed = new Feed(decimals, description, oracle);
         console.log(description, address(feed));
     }
 

@@ -43,11 +43,7 @@ contract FeedProxy is Ownable, IFeedProxy {
      * @return answer The oracle answer.
      * @return updatedAt Timestamp of the last update.
      */
-    function getRoundData(uint64 _roundId)
-        external
-        view
-        returns (uint64 id, int256 answer, uint256 updatedAt)
-    {
+    function getRoundData(uint64 _roundId) external view returns (uint64 id, int256 answer, uint256 updatedAt) {
         return feed.getRoundData(_roundId);
     }
 
