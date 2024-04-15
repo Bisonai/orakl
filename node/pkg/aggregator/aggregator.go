@@ -66,21 +66,21 @@ func (n *Aggregator) Run(ctx context.Context) {
 func (n *Aggregator) LeaderJob() error {
 	n.RoundID++
 	n.Raft.IncreaseTerm()
-	return n.PublishRoundMessage(n.RoundID, time.Now())
+	return n.PublishSyncMessage(n.RoundID, time.Now())
 }
 
 func (n *Aggregator) HandleCustomMessage(ctx context.Context, message raft.Message) error {
 	switch message.Type {
 	case RoundSync:
 		return n.HandleRoundSyncMessage(ctx, message)
-	case PriceData:
-		return n.HandlePriceDataMessage(ctx, message)
-	case ProofMsg:
-		return n.HandleProofMessage(ctx, message)
 	case SyncReply:
 		return n.HandleSyncReplyMessage(ctx, message)
 	case Trigger:
 		return n.HandleTriggerMessage(ctx, message)
+	case PriceData:
+		return n.HandlePriceDataMessage(ctx, message)
+	case ProofMsg:
+		return n.HandleProofMessage(ctx, message)
 	default:
 		return fmt.Errorf("unknown message type received in HandleCustomMessage: %v", message.Type)
 	}
@@ -254,7 +254,7 @@ func (n *Aggregator) HandleProofMessage(ctx context.Context, msg raft.Message) e
 	return nil
 }
 
-func (n *Aggregator) PublishRoundMessage(roundId int64, timestamp time.Time) error {
+func (n *Aggregator) PublishSyncMessage(roundId int64, timestamp time.Time) error {
 	roundMessage := RoundSyncMessage{
 		LeaderID:  n.Raft.GetHostId(),
 		RoundID:   roundId,
@@ -270,46 +270,6 @@ func (n *Aggregator) PublishRoundMessage(roundId int64, timestamp time.Time) err
 		Type:     RoundSync,
 		SentFrom: n.Raft.GetHostId(),
 		Data:     json.RawMessage(marshalledRoundMessage),
-	}
-
-	return n.Raft.PublishMessage(message)
-}
-
-func (n *Aggregator) PublishPriceDataMessage(roundId int64, value int64) error {
-	priceDataMessage := PriceDataMessage{
-		RoundID:   roundId,
-		PriceData: value,
-	}
-
-	marshalledPriceDataMessage, err := json.Marshal(priceDataMessage)
-	if err != nil {
-		return err
-	}
-
-	message := raft.Message{
-		Type:     PriceData,
-		SentFrom: n.Raft.GetHostId(),
-		Data:     json.RawMessage(marshalledPriceDataMessage),
-	}
-
-	return n.Raft.PublishMessage(message)
-}
-
-func (n *Aggregator) PublishProofMessage(roundId int64, proof []byte) error {
-	proofMessage := ProofMessage{
-		RoundID: roundId,
-		Proof:   proof,
-	}
-
-	marshalledProofMessage, err := json.Marshal(proofMessage)
-	if err != nil {
-		return err
-	}
-
-	message := raft.Message{
-		Type:     ProofMsg,
-		SentFrom: n.Raft.GetHostId(),
-		Data:     json.RawMessage(marshalledProofMessage),
 	}
 
 	return n.Raft.PublishMessage(message)
@@ -350,6 +310,46 @@ func (n *Aggregator) PublishTriggerMessage(roundId int64) error {
 		Type:     Trigger,
 		SentFrom: n.Raft.GetHostId(),
 		Data:     json.RawMessage(marshalledTriggerMessage),
+	}
+
+	return n.Raft.PublishMessage(message)
+}
+
+func (n *Aggregator) PublishPriceDataMessage(roundId int64, value int64) error {
+	priceDataMessage := PriceDataMessage{
+		RoundID:   roundId,
+		PriceData: value,
+	}
+
+	marshalledPriceDataMessage, err := json.Marshal(priceDataMessage)
+	if err != nil {
+		return err
+	}
+
+	message := raft.Message{
+		Type:     PriceData,
+		SentFrom: n.Raft.GetHostId(),
+		Data:     json.RawMessage(marshalledPriceDataMessage),
+	}
+
+	return n.Raft.PublishMessage(message)
+}
+
+func (n *Aggregator) PublishProofMessage(roundId int64, proof []byte) error {
+	proofMessage := ProofMessage{
+		RoundID: roundId,
+		Proof:   proof,
+	}
+
+	marshalledProofMessage, err := json.Marshal(proofMessage)
+	if err != nil {
+		return err
+	}
+
+	message := raft.Message{
+		Type:     ProofMsg,
+		SentFrom: n.Raft.GetHostId(),
+		Data:     json.RawMessage(marshalledProofMessage),
 	}
 
 	return n.Raft.PublishMessage(message)
