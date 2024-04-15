@@ -13,8 +13,8 @@ import {IFeed} from "./interfaces/IFeed.sol";
  * `SubmissionProxy` contract.
  */
 contract Feed is Ownable, IFeed {
-    uint8 public override decimals;
-    string public override description;
+    uint8 public decimals;
+    string public description;
     address public oracle;
 
     struct Round {
@@ -23,7 +23,7 @@ contract Feed is Ownable, IFeed {
     }
 
     uint64 private latestRoundId;
-    mapping(uint64 => Round) internal rounds;
+    mapping(uint64 roundId => Round data) internal rounds;
 
     event FeedUpdated(int256 indexed answer, uint256 indexed roundId, uint256 updatedAt);
 
