@@ -195,6 +195,7 @@ func (n *Aggregator) HandlePriceDataMessage(ctx context.Context, msg raft.Messag
 	n.CollectedPrices[priceDataMessage.RoundID] = append(n.CollectedPrices[priceDataMessage.RoundID], priceDataMessage.PriceData)
 	if len(n.CollectedPrices[priceDataMessage.RoundID]) >= n.Raft.SubscribersCount()+1 {
 		defer delete(n.CollectedPrices, priceDataMessage.RoundID)
+		defer delete(n.SyncedTimes, priceDataMessage.RoundID)
 		filteredCollectedPrices := FilterNegative(n.CollectedPrices[priceDataMessage.RoundID])
 
 		median, err := calculator.GetInt64Med(filteredCollectedPrices)
