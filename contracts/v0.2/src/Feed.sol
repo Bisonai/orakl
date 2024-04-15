@@ -42,6 +42,7 @@ contract Feed is Ownable, IFeed {
      * @dev The deployer of the contract will become the owner.
      * @param _decimals The number of decimals for the feed
      * @param _description The description of the feed
+     * @param _oracle The address of the oracle
      */
     constructor(uint8 _decimals, string memory _description, address _oracle) Ownable(msg.sender) {
         decimals = _decimals;
