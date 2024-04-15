@@ -20,7 +20,7 @@ import (
 	"github.com/rs/zerolog"
 )
 
-const InsertGlobalAggregateQuery = `INSERT INTO global_aggregates (name, value, round) VALUES (@name, @value, @round) RETURNING name, value, round`
+const InsertGlobalAggregateQuery = `INSERT INTO global_aggregates (name, value, round, timestamp) VALUES (@name, @value, @round, @timestamp) RETURNING *`
 const InsertAddressQuery = `INSERT INTO submission_addresses (name, address, interval) VALUES (@name, @address, @interval) RETURNING *`
 const TestInterval = 15000
 
@@ -34,6 +34,7 @@ type TmpData struct {
 	globalAggregate   GlobalAggregate
 	submissionAddress SubmissionAddress
 	proofBytes        []byte
+	proofTime         time.Time
 }
 
 func insertSampleData(ctx context.Context) (*TmpData, error) {
@@ -43,9 +44,9 @@ func insertSampleData(ctx context.Context) (*TmpData, error) {
 	if err != nil {
 		return nil, err
 	}
-
+	proofTime := time.Now()
 	key := "globalAggregate:" + "test-aggregate"
-	data, err := json.Marshal(map[string]any{"name": "test-aggregate", "value": int64(15), "round": int64(1)})
+	data, err := json.Marshal(map[string]any{"name": "test-aggregate", "value": int64(15), "round": int64(1), "timestamp": proofTime})
 	if err != nil {
 		return nil, err
 	}
@@ -61,17 +62,18 @@ func insertSampleData(ctx context.Context) (*TmpData, error) {
 		return nil, err
 	}
 
-	tmpGlobalAggregate, err := db.QueryRow[GlobalAggregate](ctx, InsertGlobalAggregateQuery, map[string]any{"name": "test-aggregate", "value": int64(15), "round": int64(1)})
+	tmpGlobalAggregate, err := db.QueryRow[GlobalAggregate](ctx, InsertGlobalAggregateQuery, map[string]any{"name": "test-aggregate", "value": int64(15), "round": int64(1), "timestamp": proofTime})
 	if err != nil {
 		return nil, err
 	}
 	tmpData.globalAggregate = tmpGlobalAggregate
 
-	rawProof, err := signHelper.MakeGlobalAggregateProof(int64(15), time.Now())
+	rawProof, err := signHelper.MakeGlobalAggregateProof(int64(15), proofTime)
 	if err != nil {
 		return nil, err
 	}
 	tmpData.proofBytes = bytes.Join([][]byte{rawProof, rawProof}, nil)
+	tmpData.proofTime = proofTime
 
 	err = db.QueryWithoutResult(ctx, "INSERT INTO proofs (name, round, proof) VALUES (@name, @round, @proof)", map[string]any{"name": "test-aggregate", "round": int64(1), "proof": bytes.Join([][]byte{rawProof, rawProof}, nil)})
 	if err != nil {

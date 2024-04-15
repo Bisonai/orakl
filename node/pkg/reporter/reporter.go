@@ -153,7 +153,7 @@ func (r *Reporter) leaderJob() error {
 
 func (r *Reporter) report(ctx context.Context, aggregates []GlobalAggregate) error {
 	proofMap, err := GetProofsAsMap(ctx, aggregates)
-	if err != nil {
+	if err != nil || !validateAggregateTimestampValues(aggregates) {
 		log.Error().Str("Player", "Reporter").Err(err).Msg("submit without proofs")
 		return r.reportWithoutProofs(ctx, aggregates)
 	}
@@ -202,16 +202,16 @@ func (r *Reporter) reportWithProofs(ctx context.Context, aggregates []GlobalAggr
 		return errors.New("klaytn helper not set")
 	}
 
-	addresses, values, proofs, err := MakeContractArgsWithProofs(aggregates, r.SubmissionPairs, proofMap)
+	addresses, values, proofs, timestamps, err := MakeContractArgsWithProofs(aggregates, r.SubmissionPairs, proofMap)
 	if err != nil {
 		log.Error().Str("Player", "Reporter").Err(err).Msg("makeContractArgsWithProofs")
 		return err
 	}
 
-	err = r.reportDelegated(ctx, SUBMIT_WITH_PROOFS, addresses, values, proofs)
+	err = r.reportDelegated(ctx, SUBMIT_WITH_PROOFS, addresses, values, proofs, timestamps)
 	if err != nil {
 		log.Error().Str("Player", "Reporter").Err(err).Msg("reporting directly")
-		return r.reportDirect(ctx, SUBMIT_WITH_PROOFS, addresses, values, proofs)
+		return r.reportDirect(ctx, SUBMIT_WITH_PROOFS, addresses, values, proofs, timestamps)
 	}
 	return nil
 }

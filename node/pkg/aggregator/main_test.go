@@ -118,7 +118,9 @@ func insertSampleData(ctx context.Context) (*TmpData, error) {
 	}
 	tmpData.pLocalAggregate = tmpPLocalAggregate
 
-	tmpGlobalAggregate, err := db.QueryRow[GlobalAggregate](ctx, InsertGlobalAggregateQuery, map[string]any{"name": "test_pair", "value": int64(15), "round": int64(1)})
+	globalAggregateInsertTime := time.Now()
+
+	tmpGlobalAggregate, err := db.QueryRow[GlobalAggregate](ctx, InsertGlobalAggregateQuery, map[string]any{"name": "test_pair", "value": int64(15), "round": int64(1), "timestamp": globalAggregateInsertTime})
 	if err != nil {
 		return nil, err
 	}
