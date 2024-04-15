@@ -91,8 +91,8 @@ contract SubmissionProxyTest is Test {
         (address[] memory feeds_, int256[] memory submissions_) =
             prepareFeedsSubmissions(numOracles_, submissionValue_, oracle_);
 
-	bytes[] memory proofs_ = new bytes[](1);
-	proofs_[0] = "invalid-proof";
+        bytes[] memory proofs_ = new bytes[](1);
+        proofs_[0] = "invalid-proof";
 
         vm.expectRevert(SubmissionProxy.InvalidThreshold.selector);
         submissionProxy.submit(feeds_, submissions_, proofs_);
@@ -106,15 +106,15 @@ contract SubmissionProxyTest is Test {
         (address[] memory feeds_, int256[] memory submissions_) =
             prepareFeedsSubmissions(numOracles_, submissionValue_, oracle_);
 
-	bytes[] memory proofs_ = new bytes[](1);
-	proofs_[0] = "invalid-proof";
+        bytes[] memory proofs_ = new bytes[](1);
+        proofs_[0] = "invalid-proof";
 
-	submissionProxy.setProofThreshold(feeds_[0], 1);
+        submissionProxy.setProofThreshold(feeds_[0], 1);
 
         submissionProxy.submit(feeds_, submissions_, proofs_);
 
         vm.expectRevert(Feed.NoDataPresent.selector);
-	IFeed(feeds_[0]).latestRoundData();
+        IFeed(feeds_[0]).latestRoundData();
     }
 
     function prepareFeedsSubmissions(uint256 _numOracles, int256 _submissionValue, address _oracle)
@@ -156,7 +156,7 @@ contract SubmissionProxyTest is Test {
         feeds[0] = address(feed);
         submissions[0] = 10;
 
-	submissionProxy.setProofThreshold(feeds[0], 3);
+        submissionProxy.setProofThreshold(feeds[0], 3);
 
         /* proofs[0] = abi.encodePacked(createProof(aliceSk, hash)); */
         /* proofs[0] = abi.encodePacked(createProof(aliceSk, hash), createProof(bobSk, hash)); */

@@ -16,7 +16,7 @@ contract FeedTest is Test {
     event FeedUpdated(int256 indexed answer, uint256 indexed roundId, uint256 updatedAt);
 
     function setUp() public {
-	oracle = makeAddr("oracle");
+        oracle = makeAddr("oracle");
         feed = new Feed(decimals, description, oracle);
     }
 

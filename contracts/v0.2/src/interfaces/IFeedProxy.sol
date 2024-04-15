@@ -22,10 +22,7 @@ interface IFeedProxy is IFeed {
      * @return answer The oracle answer.
      * @return updatedAt Timestamp of the last update.
      */
-    function proposedLatestRoundData()
-        external
-        view
-        returns (uint64 id, int256 answer, uint256 updatedAt);
+    function proposedLatestRoundData() external view returns (uint64 id, int256 answer, uint256 updatedAt);
 
     /**
      * @notice Get address of the feed.

@@ -46,7 +46,7 @@ contract Feed is Ownable, IFeed {
     constructor(uint8 _decimals, string memory _description, address _oracle) Ownable(msg.sender) {
         decimals = _decimals;
         description = _description;
-	oracle = _oracle;
+        oracle = _oracle;
     }
 
     /**
@@ -69,13 +69,7 @@ contract Feed is Ownable, IFeed {
     /**
      * @inheritdoc IFeed
      */
-    function latestRoundData()
-        external
-        view
-        virtual
-        override
-        returns (uint64 id, int256 answer, uint256 updatedAt)
-    {
+    function latestRoundData() external view virtual override returns (uint64 id, int256 answer, uint256 updatedAt) {
         return getRoundData(latestRoundId);
     }
 
