@@ -31,11 +31,19 @@ contract SubmissionProxy is Ownable {
     event ExpirationPeriodSet(uint256 expirationPeriod);
     event ThresholdSet(address feed, uint8 threshold);
 
+    error OnlyOracle();
     error InvalidOracle();
     error InvalidSubmissionLength();
     error InvalidExpirationPeriod();
     error InvalidMaxSubmission();
     error InvalidThreshold();
+
+    modifier onlyOracle() {
+	if (!isWhitelisted(msg.sender))  {
+            revert OnlyOracle();
+        }
+        _;
+    }
 
     /**
      * @notice Construct a new `SubmissionProxy` contract.
@@ -82,7 +90,12 @@ contract SubmissionProxy is Ownable {
     }
 
     /**
-     * @notice Add an oracle to the whitelist.
+     * @notice Add an oracle to the whitelist. The oracle will be able
+     * to produce valid submission proofs until the expiration
+     * time. This function is called only once for a single node
+     * operator. Afterward, the oracle itself can update its address
+     * using `updateOracle`. Address update must be done before the
+     * expiration time.
      * @dev If the oracle is already in the whitelist, the function
      * will revert with `InvalidOracle` error.
      * @param _oracle The address of the oracle
@@ -92,9 +105,28 @@ contract SubmissionProxy is Ownable {
             revert InvalidOracle();
         }
 
-	uint256 expirationTime = block.timestamp + expirationPeriod;
-        whitelist[_oracle] = expirationTime;
-        emit OracleAdded(_oracle, expirationTime);
+	uint256 expirationTime_ = block.timestamp + expirationPeriod;
+	whitelist[_oracle] = expirationTime_;
+	emit OracleAdded(_oracle, expirationTime_);
+    }
+
+    /**
+     * @notice Update address of active oracle. The oracle will be able to
+     * produce valid submission proofs until the expiration time.
+     * @dev If the oracle address is already in the whitelist, the
+     * function will revert with `InvalidOracle` error.
+     * @param _oracle The address of the oracle
+     */
+    function updateOracle(address _oracle) external onlyOracle {
+        if (whitelist[_oracle] != 0) {
+            revert InvalidOracle();
+        }
+
+	whitelist[msg.sender] = block.timestamp; // deactivate the old oracle
+
+	uint256 expirationTime_ = block.timestamp + expirationPeriod;
+        whitelist[_oracle] = expirationTime_;
+        emit OracleAdded(_oracle, expirationTime_);
     }
 
     /**
