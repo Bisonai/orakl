@@ -41,7 +41,7 @@ interface IFeedProxy is IFeed {
      * over a given interval.
      * @param interval_ The time interval in seconds
      * @param latestUpdatedAtTolerance_ The tolerance for the latest update time
-     * @param minCount The minimum number of data points
+     * @param minCount_ The minimum number of data points
      * @return The TWAP
      */
     function twap(uint256 interval_, uint256 latestUpdatedAtTolerance_, int256 minCount_)
