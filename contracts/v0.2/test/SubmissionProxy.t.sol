@@ -36,6 +36,40 @@ contract SubmissionProxyTest is Test {
         submissionProxy.addOracle(oracle_);
     }
 
+    function test_UpdateOracle() public {
+	address oracle_ = makeAddr("oracle");
+        submissionProxy.addOracle(oracle_);
+
+	address newOracle_ = makeAddr("new-oracle");
+	address nonOracle_ = makeAddr("non-oracle");
+
+	// FAIL - Only registered oracle can update its address
+	vm.prank(nonOracle_);
+	vm.expectRevert(SubmissionProxy.OnlyOracle.selector);
+	submissionProxy.updateOracle(newOracle_);
+
+	// Expiration time is larger than the current block timestamp.
+	uint256 duringUpdateTimestamp = block.timestamp;
+	assertGe(submissionProxy.whitelist(oracle_), duringUpdateTimestamp);
+
+	// SUCCESS - Registered oracle can update its address
+	vm.prank(oracle_);
+	submissionProxy.updateOracle(newOracle_);
+
+	// Old oracle has expiration time changed to the timestamp
+	// during which the update occured.
+	assertEq(submissionProxy.whitelist(oracle_), duringUpdateTimestamp);
+
+	// New oracle has expiration time larger than the current block timestamp.
+	assertGe(submissionProxy.whitelist(newOracle_), block.timestamp);
+
+	// FAIL - Cannot update with outdated oracle address
+	address newestOracle_ = makeAddr("newest-oracle");
+	vm.expectRevert(SubmissionProxy.OnlyOracle.selector);
+	vm.prank(oracle_);
+	submissionProxy.updateOracle(newestOracle_);
+    }
+
     function test_SetMaxSubmission() public {
         uint256 maxSubmission_ = 10;
         submissionProxy.setMaxSubmission(maxSubmission_);
@@ -83,7 +117,7 @@ contract SubmissionProxyTest is Test {
         submissionProxy.setExpirationPeriod(1 weeks);
     }
 
-    function test_submitInvalidThreshold() public {
+    function test_SubmitInvalidThreshold() public {
         uint256 numOracles_ = 1;
         int256 submissionValue_ = 10;
         address oracle_ = makeAddr("oracle");
@@ -98,7 +132,7 @@ contract SubmissionProxyTest is Test {
         submissionProxy.submit(feeds_, submissions_, proofs_);
     }
 
-    function test_submitInvalidProof() public {
+    function test_SubmitInvalidProof() public {
         uint256 numOracles_ = 1;
         int256 submissionValue_ = 10;
         address oracle_ = makeAddr("oracle");

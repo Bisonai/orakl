@@ -23,7 +23,7 @@ contract SubmissionProxy is Ownable {
 
     uint256 public maxSubmission = 50;
     uint256 public expirationPeriod = 5 weeks;
-    mapping(address oracle => uint256 expirationTime) whitelist;
+    mapping(address oracle => uint256 expirationTime) public whitelist;
     mapping(address feed => uint8 threshold) thresholds;
 
     event OracleAdded(address oracle, uint256 expirationTime);
