@@ -76,10 +76,11 @@ type Proof struct {
 }
 
 type PgsqlProof struct {
-	ID    int64  `db:"id" json:"id"`
-	Name  string `db:"name" json:"name"`
-	Round int64  `db:"round" json:"round"`
-	Proof []byte `db:"proof" json:"proof"`
+	ID        int64     `db:"id" json:"id"`
+	Name      string    `db:"name" json:"name"`
+	Round     int64     `db:"round" json:"round"`
+	Proof     []byte    `db:"proof" json:"proof"`
+	Timestamp time.Time `db:"timestamp" json:"timestamp"`
 }
 
 type SubmissionMessage struct {
