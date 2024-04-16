@@ -40,6 +40,8 @@ contract SubmissionProxy is Ownable {
     error InvalidExpirationPeriod();
     error InvalidMaxSubmission();
     error InvalidThreshold();
+    error IndexOutOfBounds();
+    error IndexesNotAscending();
 
     modifier onlyOracle() {
 	if (!isWhitelisted(msg.sender))  {
@@ -181,29 +183,42 @@ contract SubmissionProxy is Ownable {
         }
 
         for (uint256 feedIdx = 0; feedIdx < _feeds.length; feedIdx++) {
-            bytes[] memory proofs_ = splitBytesToChunks(_proofs[feedIdx]);
+            (bytes[] memory proofs_, uint8[] memory indexes_) = splitBytesToChunks(_proofs[feedIdx]);
             bytes32 message_ = keccak256(abi.encodePacked(_answers[feedIdx]));
 
-            bool verified_ = false;
+            bool isVerified_ = false;
             uint8 verifiedSignatures_ = 0;
+	    uint8 lastIndex_ = 0;
+	    uint256 oracleCount_ = oracles.length;
+
             uint8 requiredSignatures_ = thresholds[_feeds[feedIdx]];
             if (requiredSignatures_ == 0) {
 		requiredSignatures_ = threshold;
             }
 
-            for (uint256 proofIdx = 0; proofIdx < proofs_.length; proofIdx++) {
-                bytes memory singleProof_ = proofs_[proofIdx];
+            for (uint256 proofIdx_ = 0; proofIdx_ < proofs_.length; proofIdx_++) {
+		uint8 oracleIndex_ =  indexes_[proofIdx_];
+		if (proofIdx_ != 0 && oracleIndex_ <= lastIndex_) {
+		    revert IndexesNotAscending();
+		}
+		lastIndex_ = oracleIndex_;
+
+		if (oracleIndex_ >= oracleCount_) {
+		    revert IndexOutOfBounds();
+		}
+
+                bytes memory singleProof_ = proofs_[proofIdx_];
                 address signer_ = recoverSigner(message_, singleProof_);
-                if (isWhitelisted(signer_)) {
+                if (isWhitelisted(signer_) && (signer_ != oracles[oracleIndex_])) {
                     verifiedSignatures_++;
                     if (verifiedSignatures_ >= requiredSignatures_) {
-                        verified_ = true;
+                        isVerified_ = true;
                         break;
                     }
                 }
             }
 
-            if (!verified_) {
+            if (!isVerified_) {
                 // Insufficient number of signatures have been
                 // verified -> do not submit!
                 continue;
@@ -224,27 +239,31 @@ contract SubmissionProxy is Ownable {
     /**
      * @notice Split bytes into chunks of 65 bytes
      * @param data The bytes to be split
-     * @return chunks The array of bytes chunks
+     * @return chunks The split bytes
+     * @return indexes The indexes of the split bytes
      */
-    function splitBytesToChunks(bytes memory data) private pure returns (bytes[] memory) {
+    function splitBytesToChunks(bytes memory data) private pure returns (bytes[] memory, uint8[] memory) {
         uint256 dataLength = data.length;
-        uint256 numChunks = dataLength / 65;
+        uint256 numChunks = dataLength / 66;
         bytes[] memory chunks = new bytes[](numChunks);
+	uint8[] memory indexes = new uint8[](numChunks);
 
-        bytes32 halfChunk0;
-        bytes32 halfChunk1;
+        bytes32 firstHalf;
+        bytes32 secondHalf;
 
         for (uint256 i = 0; i < numChunks; i++) {
-            uint256 f = (i * 65) + 32;
-            uint256 s = (i * 65) + 64;
+            uint256 f = (i * 66) + 32;
+            uint256 s = (i * 66) + 64;
             assembly {
-                halfChunk0 := mload(add(data, f))
-                halfChunk1 := mload(add(data, s))
+                firstHalf := mload(add(data, f))
+                secondHalf := mload(add(data, s))
             }
-            chunks[i] = abi.encodePacked(halfChunk0, halfChunk1, data[(i * 65) + 64]);
+
+            chunks[i] = abi.encodePacked(firstHalf, secondHalf, data[(i * 66) + 65]);
+	    indexes[i] = uint8(data[i * 66]);
         }
 
-        return chunks;
+        return (chunks, indexes);
     }
 
     /**

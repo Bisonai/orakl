@@ -155,19 +155,19 @@ contract SubmissionProxyTest is Test {
         return (feeds_, submissions_);
     }
 
-    function test_submitWithProof() public {
-        address offChainSubmissionProxyReporter = makeAddr("submission-proxy-reporter");
-        submissionProxy.addOracle(offChainSubmissionProxyReporter);
-        (, uint256 aliceSk) = makeAddrAndKey("alice");
-        (, uint256 bobSk) = makeAddrAndKey("bob");
-        (, uint256 celineSk) = makeAddrAndKey("celine");
+    function test_SubmitWithProof() public {
+        (address alice, uint256 aliceSk) = makeAddrAndKey("alice");
+        (address bob, uint256 bobSk) = makeAddrAndKey("bob");
+        (address celine, uint256 celineSk) = makeAddrAndKey("celine");
+
+        uint256 aliceIdx = submissionProxy.addOracle(alice);
+	uint256 bobIdx = submissionProxy.addOracle(bob);
+	uint256 celineIdx = submissionProxy.addOracle(celine);
 
         bytes32 hash = keccak256(abi.encodePacked(int256(10)));
 
         uint256 numSubmissions = 1;
-        address[] memory feeds = new address[](numSubmissions);
-        int256[] memory submissions = new int256[](numSubmissions);
-        bytes[] memory proofs = new bytes[](numSubmissions);
+	(address[] memory feeds, int256[] memory submissions, bytes[] memory proofs) = createSubmitParameters(numSubmissions);
 
         // single data feed
         Feed feed = new Feed(DECIMALS, DESCRIPTION, address(submissionProxy));
@@ -177,25 +177,71 @@ contract SubmissionProxyTest is Test {
 
         submissionProxy.setProofThreshold(feeds[0], 3);
 
-        /* proofs[0] = abi.encodePacked(createProof(aliceSk, hash)); */
-        /* proofs[0] = abi.encodePacked(createProof(aliceSk, hash), createProof(bobSk, hash)); */
-        proofs[0] = abi.encodePacked(createProof(aliceSk, hash), createProof(bobSk, hash), createProof(celineSk, hash));
+        /* proofs[0] = abi.encodePacked(uint8(aliceIdx), createProof(aliceSk, hash)); */
+        /* proofs[0] = abi.encodePacked(uint8(aliceIdx), createProof(aliceSk, hash), uint8(bobIdx), createProof(bobSk, hash)); */
+        proofs[0] = abi.encodePacked(uint8(aliceIdx), createProof(aliceSk, hash), uint8(bobIdx), createProof(bobSk, hash), uint8(celineIdx), createProof(celineSk, hash));
 
-        submitWithProof(offChainSubmissionProxyReporter, feeds, submissions, proofs); // warmup
-        submitWithProof(offChainSubmissionProxyReporter, feeds, submissions, proofs);
+	submissionProxy.submit(feeds, submissions, proofs);
     }
 
-    function submitWithProof(
-        address reporter,
-        address[] memory feeds,
-        int256[] memory submissions,
-        bytes[] memory proofs
-    ) internal {
-        vm.prank(reporter);
-        uint256 startGas = gasleft();
-        submissionProxy.submit(feeds, submissions, proofs);
-        uint256 gas = estimateGasCost(startGas);
-        console.log("w/ proof", gas);
+    function test_SubmitIndexOutOfBounds() public {
+        (address alice, uint256 aliceSk) = makeAddrAndKey("alice");
+        (address bob, uint256 bobSk) = makeAddrAndKey("bob");
+
+        uint256 aliceIdx = submissionProxy.addOracle(alice); // index 0
+	uint256 bobIdx = submissionProxy.addOracle(bob); // index 1
+	uint256 wrongIdx = 3; // cannot be index 3 (out of bounds)
+	assertEq((wrongIdx - bobIdx) != 0, true);
+
+        uint256 numSubmissions = 1;
+	(address[] memory feeds, int256[] memory submissions, bytes[] memory proofs) = createSubmitParameters(numSubmissions);
+
+        Feed feed = new Feed(DECIMALS, DESCRIPTION, address(submissionProxy));
+
+        feeds[0] = address(feed);
+        submissions[0] = 10;
+	bytes32 hash = keccak256(abi.encodePacked(int256(submissions[0])));
+        proofs[0] = abi.encodePacked(
+	    uint8(aliceIdx), createProof(aliceSk, hash),
+	    uint8(wrongIdx), createProof(bobSk, hash)
+	);
+
+	vm.expectRevert(SubmissionProxy.IndexOutOfBounds.selector);
+	submissionProxy.submit(feeds, submissions, proofs);
+    }
+
+    function test_SubmitIndexNotAscending() public {
+        (address alice, uint256 aliceSk) = makeAddrAndKey("alice");
+        (address bob, uint256 bobSk) = makeAddrAndKey("bob");
+
+        uint256 aliceIdx = submissionProxy.addOracle(alice); // index 0
+	uint256 bobIdx = submissionProxy.addOracle(bob); // index 1
+	uint256 wrongIdx = 0; // cannot be index 0 (repetitive index)
+	assertGe(bobIdx, wrongIdx);
+
+        uint256 numSubmissions = 1;
+	(address[] memory feeds, int256[] memory submissions, bytes[] memory proofs) = createSubmitParameters(numSubmissions);
+
+        Feed feed = new Feed(DECIMALS, DESCRIPTION, address(submissionProxy));
+
+        feeds[0] = address(feed);
+        submissions[0] = 10;
+	bytes32 hash = keccak256(abi.encodePacked(int256(submissions[0])));
+        proofs[0] = abi.encodePacked(
+	    uint8(aliceIdx), createProof(aliceSk, hash),
+	    uint8(wrongIdx), createProof(bobSk, hash)
+	);
+
+	vm.expectRevert(SubmissionProxy.IndexesNotAscending.selector);
+	submissionProxy.submit(feeds, submissions, proofs);
+    }
+
+    function createSubmitParameters(uint256 numSubmissions) internal pure returns (address[] memory, int256[] memory, bytes[] memory) {
+        address[] memory feeds = new address[](numSubmissions);
+        int256[] memory submissions = new int256[](numSubmissions);
+        bytes[] memory proofs = new bytes[](numSubmissions);
+
+	return (feeds, submissions, proofs);
     }
 
     function createProof(uint256 sk, bytes32 hash) internal pure returns (bytes memory) {
