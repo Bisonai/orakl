@@ -23,6 +23,9 @@ contract SubmissionProxy is Ownable {
 
     uint256 public maxSubmission = 50;
     uint256 public expirationPeriod = 5 weeks;
+    uint8 public threshold = 2;
+    address[] public oracles;
+
     mapping(address oracle => uint256 expirationTime) public whitelist;
     mapping(address feed => uint8 threshold) thresholds;
 
@@ -99,15 +102,38 @@ contract SubmissionProxy is Ownable {
      * @dev If the oracle is already in the whitelist, the function
      * will revert with `InvalidOracle` error.
      * @param _oracle The address of the oracle
+     * @return The index of the oracle in the whitelist
      */
-    function addOracle(address _oracle) external onlyOwner {
+    function addOracle(address _oracle) external onlyOwner returns (uint256) {
         if (whitelist[_oracle] != 0) {
             revert InvalidOracle();
         }
 
+	bool found = false;
+	uint256 index = 0;
+
+	// register the oracle
+	for (uint256 i = 0; i < oracles.length; i++) {
+	    // reuse existing oracle slot if it is expired
+	    if (!isWhitelisted(oracles[i])) {
+		oracles[i] = _oracle;
+		found = true;
+		index = i;
+		break;
+	    }
+	}
+
+	if (!found) {
+	    oracles.push(_oracle);
+	    index = oracles.length - 1;
+	}
+
+	// set the expiration time
 	uint256 expirationTime_ = block.timestamp + expirationPeriod;
 	whitelist[_oracle] = expirationTime_;
+
 	emit OracleAdded(_oracle, expirationTime_);
+	return index;
     }
 
     /**
@@ -122,10 +148,21 @@ contract SubmissionProxy is Ownable {
             revert InvalidOracle();
         }
 
-	whitelist[msg.sender] = block.timestamp; // deactivate the old oracle
+	// deactivate the old oracle
+	whitelist[msg.sender] = block.timestamp;
 
+	// update the oracle address
+	for (uint256 i = 0; i < oracles.length; i++) {
+	    if (msg.sender == oracles[i]) {
+		oracles[i] = _oracle;
+		break;
+	    }
+	}
+
+	// extend the expiration time
 	uint256 expirationTime_ = block.timestamp + expirationPeriod;
         whitelist[_oracle] = expirationTime_;
+
         emit OracleAdded(_oracle, expirationTime_);
     }
 
@@ -151,7 +188,7 @@ contract SubmissionProxy is Ownable {
             uint8 verifiedSignatures_ = 0;
             uint8 requiredSignatures_ = thresholds[_feeds[feedIdx]];
             if (requiredSignatures_ == 0) {
-                revert InvalidThreshold();
+		requiredSignatures_ = threshold;
             }
 
             for (uint256 proofIdx = 0; proofIdx < proofs_.length; proofIdx++) {

@@ -117,21 +117,6 @@ contract SubmissionProxyTest is Test {
         submissionProxy.setExpirationPeriod(1 weeks);
     }
 
-    function test_SubmitInvalidThreshold() public {
-        uint256 numOracles_ = 1;
-        int256 submissionValue_ = 10;
-        address oracle_ = makeAddr("oracle");
-
-        (address[] memory feeds_, int256[] memory submissions_) =
-            prepareFeedsSubmissions(numOracles_, submissionValue_, oracle_);
-
-        bytes[] memory proofs_ = new bytes[](1);
-        proofs_[0] = "invalid-proof";
-
-        vm.expectRevert(SubmissionProxy.InvalidThreshold.selector);
-        submissionProxy.submit(feeds_, submissions_, proofs_);
-    }
-
     function test_SubmitInvalidProof() public {
         uint256 numOracles_ = 1;
         int256 submissionValue_ = 10;
