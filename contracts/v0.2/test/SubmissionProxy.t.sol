@@ -213,8 +213,6 @@ contract SubmissionProxyTest is Test {
 
         submissionProxy.setProofThreshold(feeds[0], 100);
 
-        /* proofs[0] = abi.encodePacked(uint8(aliceIdx), createProof(aliceSk, hash)); */
-        /* proofs[0] = abi.encodePacked(uint8(aliceIdx), createProof(aliceSk, hash), uint8(bobIdx), createProof(bobSk, hash)); */
         proofs[0] = abi.encodePacked(
             uint8(aliceIdx),
             createProof(aliceSk, hash),
