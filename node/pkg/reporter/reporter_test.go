@@ -232,9 +232,10 @@ func TestMakeContractArgs(t *testing.T) {
 	}
 
 	agg := GlobalAggregate{
-		Name:  "test-aggregate",
-		Value: 15,
-		Round: 1,
+		Name:      "test-aggregate",
+		Value:     15,
+		Round:     1,
+		Timestamp: testItems.tmpData.proofTime,
 	}
 
 	addresses, values, err := MakeContractArgsWithoutProofs([]GlobalAggregate{agg}, reporter.SubmissionPairs)
@@ -252,7 +253,7 @@ func TestMakeContractArgs(t *testing.T) {
 
 	proofMap := ProofsToMap(rawProofs)
 
-	addresses, values, proofs, err := MakeContractArgsWithProofs([]GlobalAggregate{agg}, reporter.SubmissionPairs, proofMap)
+	addresses, values, proofs, timestamps, err := MakeContractArgsWithProofs([]GlobalAggregate{agg}, reporter.SubmissionPairs, proofMap)
 	if err != nil {
 		t.Fatal("error making contract args")
 	}
@@ -265,6 +266,8 @@ func TestMakeContractArgs(t *testing.T) {
 	}
 
 	assert.EqualValues(t, proofs, proofArr)
+	assert.Equal(t, testItems.tmpData.proofTime.Unix(), timestamps[0].Int64())
+
 }
 
 func TestGetLatestGlobalAggregatesRdb(t *testing.T) {

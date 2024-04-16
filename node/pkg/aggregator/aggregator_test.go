@@ -111,7 +111,7 @@ func TestGetLatestRoundId(t *testing.T) {
 
 	node.Name = "test_pair"
 
-	roundId, err := node.getLatestRoundId(ctx)
+	roundId, err := getLatestRoundId(ctx, node.Name)
 	if err != nil {
 		t.Fatal("error getting latest round id")
 	}
@@ -138,12 +138,12 @@ func TestInsertGlobalAggregate(t *testing.T) {
 
 	node.Name = "test_pair"
 
-	err = InsertGlobalAggregate(ctx, node.Name, 20, 2)
+	err = InsertGlobalAggregate(ctx, node.Name, 20, 2, time.Now())
 	if err != nil {
 		t.Fatal("error inserting global aggregate")
 	}
 
-	roundId, err := node.getLatestRoundId(ctx)
+	roundId, err := getLatestRoundId(ctx, node.Name)
 	if err != nil {
 		t.Fatal("error getting latest round id")
 	}
@@ -178,7 +178,7 @@ func TestInsertProof(t *testing.T) {
 
 	value := int64(20)
 	round := int64(2)
-	p, err := node.SignHelper.MakeGlobalAggregateProof(value)
+	p, err := node.SignHelper.MakeGlobalAggregateProof(value, time.Now())
 	if err != nil {
 		t.Fatal("error making global aggregate proof")
 	}

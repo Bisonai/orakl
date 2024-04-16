@@ -136,26 +136,27 @@ func ConvertPgsqlProofsToProofs(pgsqlProofs []PgsqlProof) []Proof {
 	return proofs
 }
 
-func MakeContractArgsWithProofs(aggregates []GlobalAggregate, submissionPairs map[string]SubmissionPair, proofMap map[string][]byte) ([]common.Address, []*big.Int, [][]byte, error) {
+func MakeContractArgsWithProofs(aggregates []GlobalAggregate, submissionPairs map[string]SubmissionPair, proofMap map[string][]byte) ([]common.Address, []*big.Int, [][]byte, []*big.Int, error) {
 	addresses := make([]common.Address, len(aggregates))
 	values := make([]*big.Int, len(aggregates))
 	proofs := make([][]byte, len(aggregates))
+	timestamps := make([]*big.Int, len(aggregates))
 
 	for i, agg := range aggregates {
 		if agg.Name == "" || agg.Value < 0 {
 			log.Error().Str("Player", "Reporter").Str("name", agg.Name).Int64("value", agg.Value).Msg("skipping invalid aggregate")
-			return nil, nil, nil, errors.New("invalid aggregate exists")
+			return nil, nil, nil, nil, errors.New("invalid aggregate exists")
 		}
 		addresses[i] = submissionPairs[agg.Name].Address
 		values[i] = big.NewInt(agg.Value)
 		proofs[i] = proofMap[agg.Name+"-"+strconv.FormatInt(agg.Round, 10)]
-
+		timestamps[i] = big.NewInt(agg.Timestamp.Unix())
 	}
 
-	if len(addresses) == 0 || len(values) == 0 || len(proofs) == 0 {
-		return nil, nil, nil, errors.New("no valid aggregates")
+	if len(addresses) == 0 || len(values) == 0 || len(proofs) == 0 || len(timestamps) == 0 {
+		return nil, nil, nil, nil, errors.New("no valid aggregates")
 	}
-	return addresses, values, proofs, nil
+	return addresses, values, proofs, timestamps, nil
 }
 
 func MakeContractArgsWithoutProofs(aggregates []GlobalAggregate, submissionPairs map[string]SubmissionPair) ([]common.Address, []*big.Int, error) {
@@ -169,6 +170,7 @@ func MakeContractArgsWithoutProofs(aggregates []GlobalAggregate, submissionPairs
 		}
 		addresses[i] = submissionPairs[agg.Name].Address
 		values[i] = big.NewInt(agg.Value)
+
 	}
 
 	if len(addresses) == 0 || len(values) == 0 {
@@ -305,4 +307,13 @@ func GetLatestGlobalAggregatesRdb(ctx context.Context, submissionPairs map[strin
 		aggregates = append(aggregates, aggregate)
 	}
 	return aggregates, nil
+}
+
+func ValidateAggregateTimestampValues(aggregates []GlobalAggregate) bool {
+	for _, agg := range aggregates {
+		if agg.Timestamp.IsZero() || agg.Timestamp.After(time.Now()) {
+			return false
+		}
+	}
+	return true
 }

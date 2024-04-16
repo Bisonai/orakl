@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"math/big"
+	"time"
 
 	"bisonai.com/orakl/node/pkg/chain/helper"
 	"github.com/rs/zerolog/log"
@@ -36,7 +37,7 @@ func main() {
 	contractAddress := "0x08f43BebA1B0642C14493C70268a5AC8f380476b"
 	contractFunction := `test(int256 _answer, bytes memory _proof)`
 	answer := big.NewInt(200000000)
-	proof, err := s.MakeGlobalAggregateProof(200000000)
+	proof, err := s.MakeGlobalAggregateProof(200000000, time.Now())
 	if err != nil {
 		log.Error().Err(err).Msg("MakeGlobalAggregateProof")
 	}

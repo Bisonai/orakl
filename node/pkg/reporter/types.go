@@ -23,7 +23,7 @@ const (
 	MAX_RETRY                                = 3
 	MAX_RETRY_DELAY                          = 500 * time.Millisecond
 	SUBMIT_WITHOUT_PROOFS                    = "submit(address[] memory _feeds, int256[] memory _submissions)"
-	SUBMIT_WITH_PROOFS                       = "submit(address[] memory _feeds, int256[] memory _submissions, bytes[] memory _proofs)"
+	SUBMIT_WITH_PROOFS                       = "submit(address[] memory _feeds, int256[] memory _answers, bytes[] memory _proofs, uint256[] memory _timestamps)"
 
 	GET_SUBMISSIONS_QUERY        = `SELECT * FROM submission_addresses;`
 	DEVIATION_THRESHOLD          = 0.05
@@ -64,9 +64,10 @@ type Reporter struct {
 }
 
 type GlobalAggregate struct {
-	Name  string `db:"name" json:"name"`
-	Value int64  `db:"value" json:"value"`
-	Round int64  `db:"round" json:"round"`
+	Name      string    `db:"name" json:"name"`
+	Value     int64     `db:"value" json:"value"`
+	Round     int64     `db:"round" json:"round"`
+	Timestamp time.Time `db:"timestamp" json:"timestamp"`
 }
 
 type Proof struct {
@@ -94,7 +95,7 @@ func makeGetLatestGlobalAggregatesQuery(names []string) string {
 	}
 
 	q := fmt.Sprintf(`
-	SELECT ga.name, ga.value, ga.round
+	SELECT ga.name, ga.value, ga.round, ga.timestamp
 	FROM global_aggregates ga
 	JOIN (
 		SELECT name, MAX(round) as max_round

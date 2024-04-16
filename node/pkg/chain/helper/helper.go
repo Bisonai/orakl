@@ -7,6 +7,7 @@ import (
 	"math/big"
 	"os"
 	"strings"
+	"time"
 
 	"bisonai.com/orakl/node/pkg/chain/eth_client"
 	"bisonai.com/orakl/node/pkg/chain/utils"
@@ -293,6 +294,6 @@ func NewSignHelper(pk string) (*SignHelper, error) {
 	}, nil
 }
 
-func (s *SignHelper) MakeGlobalAggregateProof(val int64) ([]byte, error) {
-	return utils.MakeValueSignature(val, s.PK)
+func (s *SignHelper) MakeGlobalAggregateProof(val int64, timestamp time.Time) ([]byte, error) {
+	return utils.MakeValueSignature(val, timestamp.Unix(), s.PK)
 }
