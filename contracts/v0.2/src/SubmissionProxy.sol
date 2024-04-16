@@ -20,10 +20,12 @@ contract SubmissionProxy is Ownable {
     uint256 public constant MAX_SUBMISSION = 1_000;
     uint256 public constant MIN_EXPIRATION = 1 days;
     uint256 public constant MAX_EXPIRATION = 365 days;
+    uint8 public constant MIN_THRESHOLD = 1;
+    uint8 public constant MAX_THRESHOLD = 100;
 
     uint256 public maxSubmission = 50;
     uint256 public expirationPeriod = 5 weeks;
-    uint8 public threshold = 2;
+    uint8 public threshold = 50; // 50 %
     address[] public oracles;
 
     mapping(address oracle => uint256 expirationTime) public whitelist;
@@ -33,6 +35,7 @@ contract SubmissionProxy is Ownable {
     event OracleRemoved(address oracle);
     event MaxSubmissionSet(uint256 maxSubmission);
     event ExpirationPeriodSet(uint256 expirationPeriod);
+    event DefaultThresholdSet(uint8 threshold);
     event ThresholdSet(address feed, uint8 threshold);
 
     error OnlyOracle();
@@ -82,12 +85,29 @@ contract SubmissionProxy is Ownable {
     }
 
     /**
+     * @notice Set the default proof threshold for feeds.
+     * @param _threshold The percentage of required
+     * signatures. Percentage is represented as a number between 1 and
+     * 100.
+     */
+    function setDefaultProofThreshold(uint8 _threshold) external onlyOwner {
+	if (_threshold < MIN_THRESHOLD || _threshold > MAX_THRESHOLD) {
+            revert InvalidThreshold();
+        }
+
+	threshold = _threshold;
+        emit DefaultThresholdSet(_threshold);
+    }
+
+    /**
      * @notice Set the proof threshold for a feed.
      * @param _feed The address of the feed
-     * @param _threshold The number of required signatures
+     * @param _threshold The percentage of required
+     * signatures. Percentage is represented as a number between 1 and
+     * 100.
      */
     function setProofThreshold(address _feed, uint8 _threshold) external onlyOwner {
-        if (_threshold == 0) {
+	if (_threshold < MIN_THRESHOLD || _threshold > MAX_THRESHOLD) {
             revert InvalidThreshold();
         }
 
@@ -212,10 +232,11 @@ contract SubmissionProxy is Ownable {
 	    uint8 lastIndex_ = 0;
 	    uint256 oracleCount_ = oracles.length;
 
-            uint8 requiredSignatures_ = thresholds[_feeds[feedIdx]];
-            if (requiredSignatures_ == 0) {
-		requiredSignatures_ = threshold;
+            uint8 threshold_ = thresholds[_feeds[feedIdx]];
+            if (threshold_ == 0) {
+		threshold_ = threshold;
             }
+	    uint8 requiredSignatures_ = quorum(threshold_);
 
             for (uint256 proofIdx_ = 0; proofIdx_ < proofs_.length; proofIdx_++) {
 		uint8 oracleIndex_ =  indexes_[proofIdx_];
@@ -334,5 +355,15 @@ contract SubmissionProxy is Ownable {
         } else {
             return true;
         }
+    }
+
+    /**
+     * @notice Calculate the quorum for the threshold
+     * @param _threshold The threshold
+     * @return The quorum
+     */
+    function quorum(uint8 _threshold) private view returns (uint8) {
+	uint256 nominator = oracles.length * _threshold;
+	return uint8((nominator / 100) + (nominator % 100 == 0 ? 0 : 1));
     }
 }

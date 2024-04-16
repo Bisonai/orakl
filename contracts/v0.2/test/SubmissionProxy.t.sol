@@ -85,6 +85,28 @@ contract SubmissionProxyTest is Test {
 	submissionProxy.updateOracle(newestOracle_);
     }
 
+    function test_SetDefaultProofThreshold() public {
+	// SUCCESS - 1 is a valid threshold
+	uint8 defaultProofThreshold_ = 1;
+	submissionProxy.setDefaultProofThreshold(defaultProofThreshold_);
+	assertEq(submissionProxy.threshold(), defaultProofThreshold_);
+
+	// SUCCESS - 100 is a valid threshold
+	defaultProofThreshold_ = 100;
+	submissionProxy.setDefaultProofThreshold(defaultProofThreshold_);
+	assertEq(submissionProxy.threshold(), defaultProofThreshold_);
+
+	// FAIL - 0 is not a valid threshold
+	defaultProofThreshold_ = 0;
+	vm.expectRevert(SubmissionProxy.InvalidThreshold.selector);
+	submissionProxy.setDefaultProofThreshold(defaultProofThreshold_);
+
+	// FAIL - 101 is not a valid threshold
+	defaultProofThreshold_ = 101;
+	vm.expectRevert(SubmissionProxy.InvalidThreshold.selector);
+	submissionProxy.setDefaultProofThreshold(defaultProofThreshold_);
+    }
+
     function test_SetMaxSubmission() public {
         uint256 maxSubmission_ = 10;
         submissionProxy.setMaxSubmission(maxSubmission_);
@@ -143,8 +165,6 @@ contract SubmissionProxyTest is Test {
         bytes[] memory proofs_ = new bytes[](1);
         proofs_[0] = "invalid-proof";
 
-        submissionProxy.setProofThreshold(feeds_[0], 1);
-
         submissionProxy.submit(feeds_, submissions_, proofs_);
 
         vm.expectRevert(Feed.NoDataPresent.selector);
@@ -190,7 +210,7 @@ contract SubmissionProxyTest is Test {
         feeds[0] = address(feed);
         submissions[0] = 10;
 
-        submissionProxy.setProofThreshold(feeds[0], 3);
+        submissionProxy.setProofThreshold(feeds[0], 100);
 
         /* proofs[0] = abi.encodePacked(uint8(aliceIdx), createProof(aliceSk, hash)); */
         /* proofs[0] = abi.encodePacked(uint8(aliceIdx), createProof(aliceSk, hash), uint8(bobIdx), createProof(bobSk, hash)); */
