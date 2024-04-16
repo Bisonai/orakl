@@ -49,13 +49,10 @@ func NewAggregator(h host.Host, ps *pubsub.PubSub, topicString string) (*Aggrega
 
 func (n *Aggregator) Run(ctx context.Context) {
 	latestRoundId, err := getLatestRoundId(ctx, n.Name)
-	if err == nil && latestRoundId > 0 {
-		n.RoundID = latestRoundId
-	}
-
 	if err != nil {
 		log.Error().Str("Player", "Aggregator").Err(err).Msg("failed to get latest round id, setting roundId to 1")
-		n.RoundID = 0
+	} else if latestRoundId > 0 {
+		n.RoundID = latestRoundId
 	}
 
 	n.Raft.Run(ctx)
@@ -88,10 +85,12 @@ func (n *Aggregator) HandleRoundSyncMessage(ctx context.Context, msg raft.Messag
 	var roundSyncMessage RoundSyncMessage
 	err := json.Unmarshal(msg.Data, &roundSyncMessage)
 	if err != nil {
+		log.Error().Str("Player", "Aggregator").Err(err).Msg("failed to unmarshal round sync message")
 		return err
 	}
 
 	if roundSyncMessage.LeaderID == "" || roundSyncMessage.RoundID == 0 {
+		log.Error().Str("Player", "Aggregator").Msg("invalid round sync message")
 		return fmt.Errorf("invalid round sync message: %v", roundSyncMessage)
 	}
 
@@ -120,16 +119,19 @@ func (n *Aggregator) HandleRoundSyncMessage(ctx context.Context, msg raft.Messag
 
 func (n *Aggregator) HandleSyncReplyMessage(ctx context.Context, msg raft.Message) error {
 	if n.Raft.GetRole() != raft.Leader {
+		log.Debug().Str("Player", "Aggregator").Msg("received sync reply message while not leader")
 		return nil
 	}
 
 	var syncReplyMessage SyncReplyMessage
 	err := json.Unmarshal(msg.Data, &syncReplyMessage)
 	if err != nil {
+		log.Error().Str("Player", "Aggregator").Err(err).Msg("failed to unmarshal sync reply message")
 		return err
 	}
 
 	if syncReplyMessage.RoundID == 0 {
+		log.Error().Str("Player", "Aggregator").Msg("invalid sync reply message")
 		return fmt.Errorf("invalid sync reply message: %v", syncReplyMessage)
 	}
 
@@ -153,6 +155,7 @@ func (n *Aggregator) HandleSyncReplyMessage(ctx context.Context, msg raft.Messag
 		if agreeCount >= requiredAgreements {
 			return n.PublishTriggerMessage(syncReplyMessage.RoundID)
 		} else {
+			log.Warn().Str("Player", "Aggregator").Int("agreeCount", agreeCount).Int("requiredAgreements", requiredAgreements).Msg("not enough agreements, resigning as leader")
 			n.Raft.StopHeartbeatTicker()
 			n.Raft.UpdateRole(raft.Follower)
 			return nil
@@ -165,14 +168,17 @@ func (n *Aggregator) HandleTriggerMessage(ctx context.Context, msg raft.Message)
 	var triggerMessage TriggerMessage
 	err := json.Unmarshal(msg.Data, &triggerMessage)
 	if err != nil {
+		log.Error().Str("Player", "Aggregator").Err(err).Msg("failed to unmarshal trigger message")
 		return err
 	}
 
 	if triggerMessage.RoundID == 0 {
+		log.Error().Str("Player", "Aggregator").Msg("invalid trigger message")
 		return fmt.Errorf("invalid trigger message: %v", triggerMessage)
 	}
 
 	if msg.SentFrom != n.Raft.GetLeader() {
+		log.Warn().Str("Player", "Aggregator").Msg("trigger message sent from non-leader")
 		return fmt.Errorf("trigger message sent from non-leader")
 	}
 	defer delete(n.PreparedLocalAggregates, triggerMessage.RoundID)
@@ -183,10 +189,12 @@ func (n *Aggregator) HandlePriceDataMessage(ctx context.Context, msg raft.Messag
 	var priceDataMessage PriceDataMessage
 	err := json.Unmarshal(msg.Data, &priceDataMessage)
 	if err != nil {
+		log.Error().Str("Player", "Aggregator").Err(err).Msg("failed to unmarshal price data message")
 		return err
 	}
 
 	if priceDataMessage.RoundID == 0 {
+		log.Error().Str("Player", "Aggregator").Msg("invalid price data message")
 		return fmt.Errorf("invalid price data message: %v", priceDataMessage)
 	}
 
@@ -228,10 +236,12 @@ func (n *Aggregator) HandleProofMessage(ctx context.Context, msg raft.Message) e
 	var proofMessage ProofMessage
 	err := json.Unmarshal(msg.Data, &proofMessage)
 	if err != nil {
+		log.Error().Str("Player", "Aggregator").Err(err).Msg("failed to unmarshal proof message")
 		return err
 	}
 
 	if proofMessage.RoundID == 0 {
+		log.Error().Str("Player", "Aggregator").Msg("invalid proof message")
 		return fmt.Errorf("invalid proof message: %v", proofMessage)
 	}
 
@@ -262,6 +272,7 @@ func (n *Aggregator) PublishSyncMessage(roundId int64, timestamp time.Time) erro
 
 	marshalledRoundMessage, err := json.Marshal(roundMessage)
 	if err != nil {
+		log.Error().Str("Player", "Aggregator").Err(err).Msg("failed to marshal round message")
 		return err
 	}
 
@@ -282,6 +293,7 @@ func (n *Aggregator) PublishSyncReplyMessage(roundId int64, agreed bool) error {
 
 	marshalledSyncReplyMessage, err := json.Marshal(syncReplyMessage)
 	if err != nil {
+		log.Error().Str("Player", "Aggregator").Err(err).Msg("failed to marshal sync reply message")
 		return err
 	}
 
@@ -302,6 +314,7 @@ func (n *Aggregator) PublishTriggerMessage(roundId int64) error {
 
 	marshalledTriggerMessage, err := json.Marshal(triggerMessage)
 	if err != nil {
+		log.Error().Str("Player", "Aggregator").Err(err).Msg("failed to marshal trigger message")
 		return err
 	}
 
@@ -322,6 +335,7 @@ func (n *Aggregator) PublishPriceDataMessage(roundId int64, value int64) error {
 
 	marshalledPriceDataMessage, err := json.Marshal(priceDataMessage)
 	if err != nil {
+		log.Error().Str("Player", "Aggregator").Err(err).Msg("failed to marshal price data message")
 		return err
 	}
 
@@ -342,6 +356,7 @@ func (n *Aggregator) PublishProofMessage(roundId int64, proof []byte) error {
 
 	marshalledProofMessage, err := json.Marshal(proofMessage)
 	if err != nil {
+		log.Error().Str("Player", "Aggregator").Err(err).Msg("failed to marshal proof message")
 		return err
 	}
 
