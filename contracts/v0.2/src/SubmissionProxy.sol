@@ -30,6 +30,7 @@ contract SubmissionProxy is Ownable {
     mapping(address feed => uint8 threshold) thresholds;
 
     event OracleAdded(address oracle, uint256 expirationTime);
+    event OracleRemoved(address oracle);
     event MaxSubmissionSet(uint256 maxSubmission);
     event ExpirationPeriodSet(uint256 expirationPeriod);
     event ThresholdSet(address feed, uint8 threshold);
@@ -136,6 +137,26 @@ contract SubmissionProxy is Ownable {
 
 	emit OracleAdded(_oracle, expirationTime_);
 	return index;
+    }
+
+    /**
+     * @notice Remove an oracle from the whitelist. The oracle will not be
+     * able to produce valid submission proofs after the expiration
+     * time.
+     * @param _oracle The address of the oracle
+     */
+    function removeOracle(address _oracle) external onlyOwner {
+	whitelist[_oracle] = block.timestamp;
+
+	for (uint256 i = 0; i < oracles.length; i++) {
+	    if (_oracle == oracles[i]) {
+		oracles[i] = oracles[oracles.length - 1];
+		oracles.pop();
+		break;
+	    }
+	}
+
+	emit OracleRemoved(_oracle);
     }
 
     /**

@@ -36,6 +36,21 @@ contract SubmissionProxyTest is Test {
         submissionProxy.addOracle(oracle_);
     }
 
+    function test_RemoveOracle() public {
+        address oracle_ = makeAddr("oracle");
+
+	// add
+        submissionProxy.addOracle(oracle_);
+	assertEq(submissionProxy.oracles(0), oracle_);
+	assertGe(submissionProxy.whitelist(oracle_), block.timestamp);
+
+	// remove
+	submissionProxy.removeOracle(oracle_);
+	vm.expectRevert(bytes("")); // "EvmError: Revert"
+	submissionProxy.oracles(0);
+	assertEq(submissionProxy.whitelist(oracle_), block.timestamp);
+    }
+
     function test_UpdateOracle() public {
 	address oracle_ = makeAddr("oracle");
         submissionProxy.addOracle(oracle_);
