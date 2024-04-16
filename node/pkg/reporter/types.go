@@ -23,7 +23,7 @@ const (
 	MAX_RETRY                                = 3
 	MAX_RETRY_DELAY                          = 500 * time.Millisecond
 	SUBMIT_WITHOUT_PROOFS                    = "submit(address[] memory _feeds, int256[] memory _submissions)"
-	SUBMIT_WITH_PROOFS                       = "submit(address[] memory _feeds, int256[] memory _answers, bytes[] memory _proofs, int256[] memory _timestamps)"
+	SUBMIT_WITH_PROOFS                       = "submit(address[] memory _feeds, int256[] memory _answers, bytes[] memory _proofs, uint256[] memory _timestamps)"
 
 	GET_SUBMISSIONS_QUERY        = `SELECT * FROM submission_addresses;`
 	DEVIATION_THRESHOLD          = 0.05

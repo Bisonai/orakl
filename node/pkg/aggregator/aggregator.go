@@ -16,8 +16,6 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-const LEADER_TIMEOUT = 5 * time.Second
-
 func NewAggregator(h host.Host, ps *pubsub.PubSub, topicString string) (*Aggregator, error) {
 	if h == nil || ps == nil || topicString == "" {
 		return nil, fmt.Errorf("invalid parameters")
@@ -151,7 +149,8 @@ func (n *Aggregator) HandleSyncReplyMessage(ctx context.Context, msg raft.Messag
 				agreeCount++
 			}
 		}
-		if agreeCount >= n.Raft.SubscribersCount()/2 {
+		requiredAgreements := int(float64(n.Raft.SubscribersCount()) * AGREEMENT_QUORUM)
+		if agreeCount >= requiredAgreements {
 			return n.PublishTriggerMessage(syncReplyMessage.RoundID)
 		} else {
 			n.Raft.StopHeartbeatTicker()

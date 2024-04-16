@@ -13,6 +13,9 @@ import (
 )
 
 const (
+	LEADER_TIMEOUT   = 5 * time.Second
+	AGREEMENT_QUORUM = 0.5
+
 	RoundSync raft.MessageType = "roundSync"
 	SyncReply raft.MessageType = "syncReply"
 	Trigger   raft.MessageType = "trigger"
