@@ -142,6 +142,7 @@ func (a *App) stopAggregator(aggregator *Aggregator) error {
 	}
 	aggregator.nodeCancel()
 	aggregator.isRunning = false
+	<-aggregator.nodeCtx.Done()
 	return nil
 }
 

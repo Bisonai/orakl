@@ -250,6 +250,7 @@ func stopReporter(reporter *Reporter) error {
 	reporter.nodeCancel()
 	reporter.isRunning = false
 	reporter.KlaytnHelper.Close()
+	<-reporter.nodeCtx.Done()
 	return nil
 }
 
