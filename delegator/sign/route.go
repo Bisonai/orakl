@@ -8,7 +8,7 @@ func Routes(router fiber.Router) {
 	sign := router.Group("/sign")
 
 	sign.Post("", insert)
-	sign.Post("/signWithContractAddr", signWithContractAddrValidation)
+	sign.Post("/v2", insertV2)
 	sign.Post("/volatile", onlySign)
 
 	sign.Get("/initialize", initialize)

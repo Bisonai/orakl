@@ -121,57 +121,24 @@ func insert(c *fiber.Ctx) error {
 	payload.From = strings.ToLower(payload.From)
 	payload.To = strings.ToLower(payload.To)
 
-	transaction, err := utils.QueryRow[SignModel](c, InsertTransaction, map[string]any{
-		"timestamp": payload.Timestamp.String(),
-		"from":      payload.From,
-		"to":        payload.To,
-		"input":     payload.Input,
-		"gas":       payload.Gas,
-		"value":     payload.Value,
-		"chainId":   payload.ChainId,
-		"gasPrice":  payload.GasPrice,
-		"nonce":     payload.Nonce,
-		"v":         payload.V,
-		"r":         payload.R,
-		"s":         payload.S,
-		"rawTx":     payload.RawTx,
-	})
-	if err != nil {
-		panic(err)
-	}
-	err = validateTransaction(c, &transaction)
-	if err != nil {
-		panic(err)
-	}
-	err = signTxByFeePayer(c, &transaction)
-	if err != nil {
-		panic(err)
-	}
-	result, err := utils.QueryRow[SignModel](c, UpdateTransaction, map[string]any{
-		"timestamp":   transaction.Timestamp.String(),
-		"from":        transaction.From,
-		"to":          transaction.To,
-		"input":       transaction.Input,
-		"gas":         transaction.Gas,
-		"value":       transaction.Value,
-		"chainId":     transaction.ChainId,
-		"gasPrice":    transaction.GasPrice,
-		"nonce":       transaction.Nonce,
-		"v":           transaction.V,
-		"r":           transaction.R,
-		"s":           transaction.S,
-		"rawTx":       transaction.RawTx,
-		"signedRawTx": transaction.SignedRawTx,
-		"succeed":     transaction.Succeed,
-		"functionId":  transaction.FunctionId,
-		"contractId":  transaction.ContractId,
-		"reporterId":  transaction.ReporterId,
-		"id":          transaction.Id,
-	})
+	tx, err := insertTransaction(c, payload)
 	if err != nil {
 		panic(err)
 	}
 
+	err = validateTransaction(c, tx)
+	if err != nil {
+		panic(err)
+	}
+	err = signTxByFeePayer(c, tx)
+	if err != nil {
+		panic(err)
+	}
+
+	result, err := updateTransaction(c, tx)
+	if err != nil {
+		panic(err)
+	}
 	return c.JSON(result)
 }
 
@@ -200,7 +167,7 @@ func onlySign(c *fiber.Ctx) error {
 	return c.JSON(SignModel{SignedRawTx: &signedRawTx})
 }
 
-func signWithContractAddrValidation(c *fiber.Ctx) error {
+func insertV2(c *fiber.Ctx) error {
 	payload := new(SignInsertPayload)
 	if err := c.BodyParser(payload); err != nil {
 		panic(err)
@@ -215,55 +182,21 @@ func signWithContractAddrValidation(c *fiber.Ctx) error {
 	payload.From = strings.ToLower(payload.From)
 	payload.To = strings.ToLower(payload.To)
 
-	transaction, err := utils.QueryRow[SignModel](c, InsertTransaction, map[string]any{
-		"timestamp": payload.Timestamp.String(),
-		"from":      payload.From,
-		"to":        payload.To,
-		"input":     payload.Input,
-		"gas":       payload.Gas,
-		"value":     payload.Value,
-		"chainId":   payload.ChainId,
-		"gasPrice":  payload.GasPrice,
-		"nonce":     payload.Nonce,
-		"v":         payload.V,
-		"r":         payload.R,
-		"s":         payload.S,
-		"rawTx":     payload.RawTx,
-	})
+	tx, err := insertTransaction(c, payload)
 	if err != nil {
 		panic(err)
 	}
 
-	err = validateContractAddress(c, &transaction)
+	err = validateContractAddress(c, tx)
 	if err != nil {
 		panic(err)
 	}
 
-	err = signTxByFeePayer(c, &transaction)
+	err = signTxByFeePayer(c, tx)
 	if err != nil {
 		panic(err)
 	}
-	result, err := utils.QueryRow[SignModel](c, UpdateTransaction, map[string]any{
-		"timestamp":   transaction.Timestamp.String(),
-		"from":        transaction.From,
-		"to":          transaction.To,
-		"input":       transaction.Input,
-		"gas":         transaction.Gas,
-		"value":       transaction.Value,
-		"chainId":     transaction.ChainId,
-		"gasPrice":    transaction.GasPrice,
-		"nonce":       transaction.Nonce,
-		"v":           transaction.V,
-		"r":           transaction.R,
-		"s":           transaction.S,
-		"rawTx":       transaction.RawTx,
-		"signedRawTx": transaction.SignedRawTx,
-		"succeed":     transaction.Succeed,
-		"functionId":  transaction.FunctionId,
-		"contractId":  transaction.ContractId,
-		"reporterId":  transaction.ReporterId,
-		"id":          transaction.Id,
-	})
+	result, err := updateTransaction(c, tx)
 	if err != nil {
 		panic(err)
 	}
@@ -507,4 +440,54 @@ func HashToTx(hash string) (*types.Transaction, error) {
 		return nil, err
 	}
 	return tx, nil
+}
+
+func insertTransaction(c *fiber.Ctx, payload *SignInsertPayload) (*SignModel, error) {
+	transaction, err := utils.QueryRow[SignModel](c, InsertTransaction, map[string]any{
+		"timestamp": payload.Timestamp.String(),
+		"from":      payload.From,
+		"to":        payload.To,
+		"input":     payload.Input,
+		"gas":       payload.Gas,
+		"value":     payload.Value,
+		"chainId":   payload.ChainId,
+		"gasPrice":  payload.GasPrice,
+		"nonce":     payload.Nonce,
+		"v":         payload.V,
+		"r":         payload.R,
+		"s":         payload.S,
+		"rawTx":     payload.RawTx,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &transaction, nil
+}
+
+func updateTransaction(c *fiber.Ctx, tx *SignModel) (*SignModel, error) {
+	result, err := utils.QueryRow[SignModel](c, UpdateTransaction, map[string]any{
+		"timestamp":   tx.Timestamp.String(),
+		"from":        tx.From,
+		"to":          tx.To,
+		"input":       tx.Input,
+		"gas":         tx.Gas,
+		"value":       tx.Value,
+		"chainId":     tx.ChainId,
+		"gasPrice":    tx.GasPrice,
+		"nonce":       tx.Nonce,
+		"v":           tx.V,
+		"r":           tx.R,
+		"s":           tx.S,
+		"rawTx":       tx.RawTx,
+		"signedRawTx": tx.SignedRawTx,
+		"succeed":     tx.Succeed,
+		"functionId":  tx.FunctionId,
+		"contractId":  tx.ContractId,
+		"reporterId":  tx.ReporterId,
+		"id":          tx.Id,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &result, nil
 }
