@@ -48,7 +48,7 @@ contract SubmissionProxy is Ownable {
     error IndexesNotAscending();
 
     modifier onlyOracle() {
-	if (!isWhitelisted(msg.sender))  {
+        if (!isWhitelisted(msg.sender)) {
             revert OnlyOracle();
         }
         _;
@@ -91,11 +91,11 @@ contract SubmissionProxy is Ownable {
      * 100.
      */
     function setDefaultProofThreshold(uint8 _threshold) external onlyOwner {
-	if (_threshold < MIN_THRESHOLD || _threshold > MAX_THRESHOLD) {
+        if (_threshold < MIN_THRESHOLD || _threshold > MAX_THRESHOLD) {
             revert InvalidThreshold();
         }
 
-	threshold = _threshold;
+        threshold = _threshold;
         emit DefaultThresholdSet(_threshold);
     }
 
@@ -107,7 +107,7 @@ contract SubmissionProxy is Ownable {
      * 100.
      */
     function setProofThreshold(address _feed, uint8 _threshold) external onlyOwner {
-	if (_threshold < MIN_THRESHOLD || _threshold > MAX_THRESHOLD) {
+        if (_threshold < MIN_THRESHOLD || _threshold > MAX_THRESHOLD) {
             revert InvalidThreshold();
         }
 
@@ -132,31 +132,31 @@ contract SubmissionProxy is Ownable {
             revert InvalidOracle();
         }
 
-	bool found = false;
-	uint256 index = 0;
+        bool found = false;
+        uint256 index = 0;
 
-	// register the oracle
-	for (uint256 i = 0; i < oracles.length; i++) {
-	    // reuse existing oracle slot if it is expired
-	    if (!isWhitelisted(oracles[i])) {
-		oracles[i] = _oracle;
-		found = true;
-		index = i;
-		break;
-	    }
-	}
+        // register the oracle
+        for (uint256 i = 0; i < oracles.length; i++) {
+            // reuse existing oracle slot if it is expired
+            if (!isWhitelisted(oracles[i])) {
+                oracles[i] = _oracle;
+                found = true;
+                index = i;
+                break;
+            }
+        }
 
-	if (!found) {
-	    oracles.push(_oracle);
-	    index = oracles.length - 1;
-	}
+        if (!found) {
+            oracles.push(_oracle);
+            index = oracles.length - 1;
+        }
 
-	// set the expiration time
-	uint256 expirationTime_ = block.timestamp + expirationPeriod;
-	whitelist[_oracle] = expirationTime_;
+        // set the expiration time
+        uint256 expirationTime_ = block.timestamp + expirationPeriod;
+        whitelist[_oracle] = expirationTime_;
 
-	emit OracleAdded(_oracle, expirationTime_);
-	return index;
+        emit OracleAdded(_oracle, expirationTime_);
+        return index;
     }
 
     /**
@@ -166,17 +166,17 @@ contract SubmissionProxy is Ownable {
      * @param _oracle The address of the oracle
      */
     function removeOracle(address _oracle) external onlyOwner {
-	whitelist[_oracle] = block.timestamp;
+        whitelist[_oracle] = block.timestamp;
 
-	for (uint256 i = 0; i < oracles.length; i++) {
-	    if (_oracle == oracles[i]) {
-		oracles[i] = oracles[oracles.length - 1];
-		oracles.pop();
-		break;
-	    }
-	}
+        for (uint256 i = 0; i < oracles.length; i++) {
+            if (_oracle == oracles[i]) {
+                oracles[i] = oracles[oracles.length - 1];
+                oracles.pop();
+                break;
+            }
+        }
 
-	emit OracleRemoved(_oracle);
+        emit OracleRemoved(_oracle);
     }
 
     /**
@@ -191,19 +191,19 @@ contract SubmissionProxy is Ownable {
             revert InvalidOracle();
         }
 
-	// deactivate the old oracle
-	whitelist[msg.sender] = block.timestamp;
+        // deactivate the old oracle
+        whitelist[msg.sender] = block.timestamp;
 
-	// update the oracle address
-	for (uint256 i = 0; i < oracles.length; i++) {
-	    if (msg.sender == oracles[i]) {
-		oracles[i] = _oracle;
-		break;
-	    }
-	}
+        // update the oracle address
+        for (uint256 i = 0; i < oracles.length; i++) {
+            if (msg.sender == oracles[i]) {
+                oracles[i] = _oracle;
+                break;
+            }
+        }
 
-	// extend the expiration time
-	uint256 expirationTime_ = block.timestamp + expirationPeriod;
+        // extend the expiration time
+        uint256 expirationTime_ = block.timestamp + expirationPeriod;
         whitelist[_oracle] = expirationTime_;
 
         emit OracleAdded(_oracle, expirationTime_);
@@ -229,25 +229,25 @@ contract SubmissionProxy is Ownable {
 
             bool isVerified_ = false;
             uint8 verifiedSignatures_ = 0;
-	    uint8 lastIndex_ = 0;
-	    uint256 oracleCount_ = oracles.length;
+            uint8 lastIndex_ = 0;
+            uint256 oracleCount_ = oracles.length;
 
             uint8 threshold_ = thresholds[_feeds[feedIdx]];
             if (threshold_ == 0) {
-		threshold_ = threshold;
+                threshold_ = threshold;
             }
-	    uint8 requiredSignatures_ = quorum(threshold_);
+            uint8 requiredSignatures_ = quorum(threshold_);
 
             for (uint256 proofIdx_ = 0; proofIdx_ < proofs_.length; proofIdx_++) {
-		uint8 oracleIndex_ =  indexes_[proofIdx_];
-		if (proofIdx_ != 0 && oracleIndex_ <= lastIndex_) {
-		    revert IndexesNotAscending();
-		}
-		lastIndex_ = oracleIndex_;
+                uint8 oracleIndex_ = indexes_[proofIdx_];
+                if (proofIdx_ != 0 && oracleIndex_ <= lastIndex_) {
+                    revert IndexesNotAscending();
+                }
+                lastIndex_ = oracleIndex_;
 
-		if (oracleIndex_ >= oracleCount_) {
-		    revert IndexOutOfBounds();
-		}
+                if (oracleIndex_ >= oracleCount_) {
+                    revert IndexOutOfBounds();
+                }
 
                 bytes memory singleProof_ = proofs_[proofIdx_];
                 address signer_ = recoverSigner(message_, singleProof_);
@@ -288,7 +288,7 @@ contract SubmissionProxy is Ownable {
         uint256 dataLength = data.length;
         uint256 numChunks = dataLength / 66;
         bytes[] memory chunks = new bytes[](numChunks);
-	uint8[] memory indexes = new uint8[](numChunks);
+        uint8[] memory indexes = new uint8[](numChunks);
 
         bytes32 firstHalf;
         bytes32 secondHalf;
@@ -302,7 +302,7 @@ contract SubmissionProxy is Ownable {
             }
 
             chunks[i] = abi.encodePacked(firstHalf, secondHalf, data[(i * 66) + 65]);
-	    indexes[i] = uint8(data[i * 66]);
+            indexes[i] = uint8(data[i * 66]);
         }
 
         return (chunks, indexes);
@@ -363,7 +363,7 @@ contract SubmissionProxy is Ownable {
      * @return The quorum
      */
     function quorum(uint8 _threshold) private view returns (uint8) {
-	uint256 nominator = oracles.length * _threshold;
-	return uint8((nominator / 100) + (nominator % 100 == 0 ? 0 : 1));
+        uint256 nominator = oracles.length * _threshold;
+        return uint8((nominator / 100) + (nominator % 100 == 0 ? 0 : 1));
     }
 }

@@ -39,72 +39,72 @@ contract SubmissionProxyTest is Test {
     function test_RemoveOracle() public {
         address oracle_ = makeAddr("oracle");
 
-	// add
+        // add
         submissionProxy.addOracle(oracle_);
-	assertEq(submissionProxy.oracles(0), oracle_);
-	assertGe(submissionProxy.whitelist(oracle_), block.timestamp);
+        assertEq(submissionProxy.oracles(0), oracle_);
+        assertGe(submissionProxy.whitelist(oracle_), block.timestamp);
 
-	// remove
-	submissionProxy.removeOracle(oracle_);
-	vm.expectRevert(bytes("")); // "EvmError: Revert"
-	submissionProxy.oracles(0);
-	assertEq(submissionProxy.whitelist(oracle_), block.timestamp);
+        // remove
+        submissionProxy.removeOracle(oracle_);
+        vm.expectRevert(bytes("")); // "EvmError: Revert"
+        submissionProxy.oracles(0);
+        assertEq(submissionProxy.whitelist(oracle_), block.timestamp);
     }
 
     function test_UpdateOracle() public {
-	address oracle_ = makeAddr("oracle");
+        address oracle_ = makeAddr("oracle");
         submissionProxy.addOracle(oracle_);
 
-	address newOracle_ = makeAddr("new-oracle");
-	address nonOracle_ = makeAddr("non-oracle");
+        address newOracle_ = makeAddr("new-oracle");
+        address nonOracle_ = makeAddr("non-oracle");
 
-	// FAIL - Only registered oracle can update its address
-	vm.prank(nonOracle_);
-	vm.expectRevert(SubmissionProxy.OnlyOracle.selector);
-	submissionProxy.updateOracle(newOracle_);
+        // FAIL - Only registered oracle can update its address
+        vm.prank(nonOracle_);
+        vm.expectRevert(SubmissionProxy.OnlyOracle.selector);
+        submissionProxy.updateOracle(newOracle_);
 
-	// Expiration time is larger than the current block timestamp.
-	uint256 duringUpdateTimestamp = block.timestamp;
-	assertGe(submissionProxy.whitelist(oracle_), duringUpdateTimestamp);
+        // Expiration time is larger than the current block timestamp.
+        uint256 duringUpdateTimestamp = block.timestamp;
+        assertGe(submissionProxy.whitelist(oracle_), duringUpdateTimestamp);
 
-	// SUCCESS - Registered oracle can update its address
-	vm.prank(oracle_);
-	submissionProxy.updateOracle(newOracle_);
+        // SUCCESS - Registered oracle can update its address
+        vm.prank(oracle_);
+        submissionProxy.updateOracle(newOracle_);
 
-	// Old oracle has expiration time changed to the timestamp
-	// during which the update occured.
-	assertEq(submissionProxy.whitelist(oracle_), duringUpdateTimestamp);
+        // Old oracle has expiration time changed to the timestamp
+        // during which the update occured.
+        assertEq(submissionProxy.whitelist(oracle_), duringUpdateTimestamp);
 
-	// New oracle has expiration time larger than the current block timestamp.
-	assertGe(submissionProxy.whitelist(newOracle_), block.timestamp);
+        // New oracle has expiration time larger than the current block timestamp.
+        assertGe(submissionProxy.whitelist(newOracle_), block.timestamp);
 
-	// FAIL - Cannot update with outdated oracle address
-	address newestOracle_ = makeAddr("newest-oracle");
-	vm.expectRevert(SubmissionProxy.OnlyOracle.selector);
-	vm.prank(oracle_);
-	submissionProxy.updateOracle(newestOracle_);
+        // FAIL - Cannot update with outdated oracle address
+        address newestOracle_ = makeAddr("newest-oracle");
+        vm.expectRevert(SubmissionProxy.OnlyOracle.selector);
+        vm.prank(oracle_);
+        submissionProxy.updateOracle(newestOracle_);
     }
 
     function test_SetDefaultProofThreshold() public {
-	// SUCCESS - 1 is a valid threshold
-	uint8 defaultProofThreshold_ = 1;
-	submissionProxy.setDefaultProofThreshold(defaultProofThreshold_);
-	assertEq(submissionProxy.threshold(), defaultProofThreshold_);
+        // SUCCESS - 1 is a valid threshold
+        uint8 defaultProofThreshold_ = 1;
+        submissionProxy.setDefaultProofThreshold(defaultProofThreshold_);
+        assertEq(submissionProxy.threshold(), defaultProofThreshold_);
 
-	// SUCCESS - 100 is a valid threshold
-	defaultProofThreshold_ = 100;
-	submissionProxy.setDefaultProofThreshold(defaultProofThreshold_);
-	assertEq(submissionProxy.threshold(), defaultProofThreshold_);
+        // SUCCESS - 100 is a valid threshold
+        defaultProofThreshold_ = 100;
+        submissionProxy.setDefaultProofThreshold(defaultProofThreshold_);
+        assertEq(submissionProxy.threshold(), defaultProofThreshold_);
 
-	// FAIL - 0 is not a valid threshold
-	defaultProofThreshold_ = 0;
-	vm.expectRevert(SubmissionProxy.InvalidThreshold.selector);
-	submissionProxy.setDefaultProofThreshold(defaultProofThreshold_);
+        // FAIL - 0 is not a valid threshold
+        defaultProofThreshold_ = 0;
+        vm.expectRevert(SubmissionProxy.InvalidThreshold.selector);
+        submissionProxy.setDefaultProofThreshold(defaultProofThreshold_);
 
-	// FAIL - 101 is not a valid threshold
-	defaultProofThreshold_ = 101;
-	vm.expectRevert(SubmissionProxy.InvalidThreshold.selector);
-	submissionProxy.setDefaultProofThreshold(defaultProofThreshold_);
+        // FAIL - 101 is not a valid threshold
+        defaultProofThreshold_ = 101;
+        vm.expectRevert(SubmissionProxy.InvalidThreshold.selector);
+        submissionProxy.setDefaultProofThreshold(defaultProofThreshold_);
     }
 
     function test_SetMaxSubmission() public {
@@ -196,13 +196,14 @@ contract SubmissionProxyTest is Test {
         (address celine, uint256 celineSk) = makeAddrAndKey("celine");
 
         uint256 aliceIdx = submissionProxy.addOracle(alice);
-	uint256 bobIdx = submissionProxy.addOracle(bob);
-	uint256 celineIdx = submissionProxy.addOracle(celine);
+        uint256 bobIdx = submissionProxy.addOracle(bob);
+        uint256 celineIdx = submissionProxy.addOracle(celine);
 
         bytes32 hash = keccak256(abi.encodePacked(int256(10)));
 
         uint256 numSubmissions = 1;
-	(address[] memory feeds, int256[] memory submissions, bytes[] memory proofs) = createSubmitParameters(numSubmissions);
+        (address[] memory feeds, int256[] memory submissions, bytes[] memory proofs) =
+            createSubmitParameters(numSubmissions);
 
         // single data feed
         Feed feed = new Feed(DECIMALS, DESCRIPTION, address(submissionProxy));
@@ -214,9 +215,16 @@ contract SubmissionProxyTest is Test {
 
         /* proofs[0] = abi.encodePacked(uint8(aliceIdx), createProof(aliceSk, hash)); */
         /* proofs[0] = abi.encodePacked(uint8(aliceIdx), createProof(aliceSk, hash), uint8(bobIdx), createProof(bobSk, hash)); */
-        proofs[0] = abi.encodePacked(uint8(aliceIdx), createProof(aliceSk, hash), uint8(bobIdx), createProof(bobSk, hash), uint8(celineIdx), createProof(celineSk, hash));
+        proofs[0] = abi.encodePacked(
+            uint8(aliceIdx),
+            createProof(aliceSk, hash),
+            uint8(bobIdx),
+            createProof(bobSk, hash),
+            uint8(celineIdx),
+            createProof(celineSk, hash)
+        );
 
-	submissionProxy.submit(feeds, submissions, proofs);
+        submissionProxy.submit(feeds, submissions, proofs);
     }
 
     function test_SubmitIndexOutOfBounds() public {
@@ -224,25 +232,24 @@ contract SubmissionProxyTest is Test {
         (address bob, uint256 bobSk) = makeAddrAndKey("bob");
 
         uint256 aliceIdx = submissionProxy.addOracle(alice); // index 0
-	uint256 bobIdx = submissionProxy.addOracle(bob); // index 1
-	uint256 wrongIdx = 3; // cannot be index 3 (out of bounds)
-	assertEq((wrongIdx - bobIdx) != 0, true);
+        uint256 bobIdx = submissionProxy.addOracle(bob); // index 1
+        uint256 wrongIdx = 3; // cannot be index 3 (out of bounds)
+        assertEq((wrongIdx - bobIdx) != 0, true);
 
         uint256 numSubmissions = 1;
-	(address[] memory feeds, int256[] memory submissions, bytes[] memory proofs) = createSubmitParameters(numSubmissions);
+        (address[] memory feeds, int256[] memory submissions, bytes[] memory proofs) =
+            createSubmitParameters(numSubmissions);
 
         Feed feed = new Feed(DECIMALS, DESCRIPTION, address(submissionProxy));
 
         feeds[0] = address(feed);
         submissions[0] = 10;
-	bytes32 hash = keccak256(abi.encodePacked(int256(submissions[0])));
-        proofs[0] = abi.encodePacked(
-	    uint8(aliceIdx), createProof(aliceSk, hash),
-	    uint8(wrongIdx), createProof(bobSk, hash)
-	);
+        bytes32 hash = keccak256(abi.encodePacked(int256(submissions[0])));
+        proofs[0] =
+            abi.encodePacked(uint8(aliceIdx), createProof(aliceSk, hash), uint8(wrongIdx), createProof(bobSk, hash));
 
-	vm.expectRevert(SubmissionProxy.IndexOutOfBounds.selector);
-	submissionProxy.submit(feeds, submissions, proofs);
+        vm.expectRevert(SubmissionProxy.IndexOutOfBounds.selector);
+        submissionProxy.submit(feeds, submissions, proofs);
     }
 
     function test_SubmitIndexNotAscending() public {
@@ -250,33 +257,36 @@ contract SubmissionProxyTest is Test {
         (address bob, uint256 bobSk) = makeAddrAndKey("bob");
 
         uint256 aliceIdx = submissionProxy.addOracle(alice); // index 0
-	uint256 bobIdx = submissionProxy.addOracle(bob); // index 1
-	uint256 wrongIdx = 0; // cannot be index 0 (repetitive index)
-	assertGe(bobIdx, wrongIdx);
+        uint256 bobIdx = submissionProxy.addOracle(bob); // index 1
+        uint256 wrongIdx = 0; // cannot be index 0 (repetitive index)
+        assertGe(bobIdx, wrongIdx);
 
         uint256 numSubmissions = 1;
-	(address[] memory feeds, int256[] memory submissions, bytes[] memory proofs) = createSubmitParameters(numSubmissions);
+        (address[] memory feeds, int256[] memory submissions, bytes[] memory proofs) =
+            createSubmitParameters(numSubmissions);
 
         Feed feed = new Feed(DECIMALS, DESCRIPTION, address(submissionProxy));
 
         feeds[0] = address(feed);
         submissions[0] = 10;
-	bytes32 hash = keccak256(abi.encodePacked(int256(submissions[0])));
-        proofs[0] = abi.encodePacked(
-	    uint8(aliceIdx), createProof(aliceSk, hash),
-	    uint8(wrongIdx), createProof(bobSk, hash)
-	);
+        bytes32 hash = keccak256(abi.encodePacked(int256(submissions[0])));
+        proofs[0] =
+            abi.encodePacked(uint8(aliceIdx), createProof(aliceSk, hash), uint8(wrongIdx), createProof(bobSk, hash));
 
-	vm.expectRevert(SubmissionProxy.IndexesNotAscending.selector);
-	submissionProxy.submit(feeds, submissions, proofs);
+        vm.expectRevert(SubmissionProxy.IndexesNotAscending.selector);
+        submissionProxy.submit(feeds, submissions, proofs);
     }
 
-    function createSubmitParameters(uint256 numSubmissions) internal pure returns (address[] memory, int256[] memory, bytes[] memory) {
+    function createSubmitParameters(uint256 numSubmissions)
+        internal
+        pure
+        returns (address[] memory, int256[] memory, bytes[] memory)
+    {
         address[] memory feeds = new address[](numSubmissions);
         int256[] memory submissions = new int256[](numSubmissions);
         bytes[] memory proofs = new bytes[](numSubmissions);
 
-	return (feeds, submissions, proofs);
+        return (feeds, submissions, proofs);
     }
 
     function createProof(uint256 sk, bytes32 hash) internal pure returns (bytes memory) {
