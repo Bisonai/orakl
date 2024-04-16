@@ -104,6 +104,9 @@ func (n *Aggregator) HandleRoundSyncMessage(ctx context.Context, msg raft.Messag
 	value, updateTime, err := GetLatestLocalAggregate(ctx, n.Name)
 	if err != nil {
 		log.Error().Str("Player", "Aggregator").Err(err).Msg("failed to get latest local aggregate")
+		// set value to -1 rather than returning error
+		// it is to proceed further steps even if current node fails to get latest local aggregate
+		// if not enough messages collected from HandleSyncReplyMessage, it will hang in certain round
 		value = -1
 	}
 
