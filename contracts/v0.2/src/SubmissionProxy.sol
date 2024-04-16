@@ -279,7 +279,7 @@ contract SubmissionProxy is Ownable {
     }
 
     /**
-     * @notice Split bytes into chunks of 65 bytes
+     * @notice Split bytes into proof chunks and indexes
      * @param data The bytes to be split
      * @return chunks The split bytes
      * @return indexes The indexes of the split bytes
