@@ -378,3 +378,63 @@ func TestBulkUpsert(t *testing.T) {
 		t.Fatalf("Failed to drop table: %v", err)
 	}
 }
+func TestBulkUpdate(t *testing.T) {
+	ctx := context.Background()
+	pool, err := GetPool(ctx)
+	if err != nil {
+		t.Fatalf("GetPool failed: %v", err)
+	}
+
+	// Create a temporary table
+	_, err = pool.Exec(ctx, `CREATE TEMPORARY TABLE test4 (name TEXT PRIMARY KEY, age INT)`)
+	if err != nil {
+		t.Fatalf("Failed to create temporary table: %v", err)
+	}
+
+	// Insert initial data
+	err = BulkInsert(ctx, "test4", []string{"name", "age"}, [][]interface{}{{"Alice", 25}, {"Bob", 30}})
+	if err != nil {
+		t.Fatalf("BulkInsert failed: %v", err)
+	}
+
+	// Update existing data
+	err = BulkUpdate(ctx, "test4", []string{"age"}, [][]interface{}{{26, "Alice"}, {31, "Bob"}}, []string{"name"})
+	if err != nil {
+		t.Fatalf("BulkUpdate failed: %v", err)
+	}
+
+	// Check the updated results
+	rows, err := pool.Query(ctx, `SELECT * FROM test4`)
+	if err != nil {
+		t.Fatalf("Failed to query test data: %v", err)
+	}
+	defer rows.Close()
+
+	var name string
+	var age int
+	for i := 0; rows.Next(); i++ {
+		err = rows.Scan(&name, &age)
+		if err != nil {
+			t.Fatalf("Failed to scan row: %v", err)
+		}
+
+		if name == "Alice" && age != 26 {
+			t.Errorf("Unexpected row: got %s %d, want Alice 26", name, age)
+		}
+
+		if name == "Bob" && age != 31 {
+			t.Errorf("Unexpected row: got %s %d, want Bob 31", name, age)
+		}
+	}
+
+	// Check for any error that occurred while iterating over the rows
+	if rows.Err() != nil {
+		t.Fatalf("Rows iteration failed: %v", rows.Err())
+	}
+
+	// Clean up the temporary table
+	_, err = pool.Exec(ctx, "DROP TABLE test4")
+	if err != nil {
+		t.Fatalf("Failed to drop table: %v", err)
+	}
+}

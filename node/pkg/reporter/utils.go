@@ -444,9 +444,26 @@ func UpsertProofs(ctx context.Context, aggregates []GlobalAggregate, proofMap ma
 		upsertRows = append(upsertRows, []any{agg.Name, agg.Round, proof})
 	}
 
-	err := db.BulkUpsert(ctx, "proofs", []string{"name", "round", "proof"}, upsertRows, []string{"name", "round", "proof"}, []string{"proof"})
+	err := db.BulkUpsert(ctx, "proofs", []string{"name", "round", "proof"}, upsertRows, []string{"name", "round"}, []string{"proof"})
 	if err != nil {
 		log.Error().Str("Player", "Reporter").Err(err).Msg("failed to upsert proofs")
+	}
+	return err
+}
+
+func UpdateProofs(ctx context.Context, aggregates []GlobalAggregate, proofMap map[string][]byte) error {
+	rows := make([][]any, 0, len(aggregates))
+	for _, agg := range aggregates {
+		proof, ok := proofMap[agg.Name]
+		if !ok {
+			continue
+		}
+		rows = append(rows, []any{proof, agg.Name, agg.Round})
+	}
+
+	err := db.BulkUpdate(ctx, "proofs", []string{"proof"}, rows, []string{"name", "round"})
+	if err != nil {
+		log.Error().Str("Player", "Reporter").Err(err).Msg("failed to update proofs")
 	}
 	return err
 }

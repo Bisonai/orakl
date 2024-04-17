@@ -205,6 +205,41 @@ func BulkUpsert(ctx context.Context, tableName string, columnNames []string, row
 	return nil
 }
 
+func BulkUpdate(ctx context.Context, tableName string, columnNames []string, rows [][]interface{}, whereColumns []string) error {
+	currentPool, err := GetPool(ctx)
+	if err != nil {
+		return err
+	}
+
+	for _, row := range rows {
+		var b strings.Builder
+		fmt.Fprintf(&b, "UPDATE %s SET ", tableName)
+
+		for i, col := range columnNames {
+			if i > 0 {
+				b.WriteString(", ")
+			}
+			fmt.Fprintf(&b, "%s = $%d", col, i+1)
+		}
+
+		b.WriteString(" WHERE ")
+
+		for i, col := range whereColumns {
+			if i > 0 {
+				b.WriteString(" AND ")
+			}
+			fmt.Fprintf(&b, "%s = $%d", col, i+len(columnNames)+1)
+		}
+
+		_, err = currentPool.Exec(ctx, b.String(), row...)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 // use for large entries of data more than 100+ rows
 func BulkCopy(ctx context.Context, tableName string, columnNames []string, rows [][]any) (int64, error) {
 	currentPool, err := GetPool(ctx)

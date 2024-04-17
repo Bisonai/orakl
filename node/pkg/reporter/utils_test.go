@@ -225,7 +225,7 @@ func TestRemoveDuplicateProof(t *testing.T) {
 	})
 }
 
-func TestUpsertProofs(t *testing.T) {
+func TestUpdateProofs(t *testing.T) {
 	ctx := context.Background()
 
 	aggregates := []GlobalAggregate{
@@ -264,9 +264,9 @@ func TestUpsertProofs(t *testing.T) {
 		{"aggregate1", int64(1), []byte("proof3")},
 		{"aggregate2", int64(2), []byte("proof4")},
 	}
-	err = UpsertProofs(ctx, aggregates, proofMap)
+	err = UpdateProofs(ctx, aggregates, proofMap)
 	if err != nil {
-		t.Fatalf("UpsertProofs failed: %v", err)
+		t.Fatalf("UpdateProofs failed: %v", err)
 	}
 	result, err = db.QueryRows[PgsqlProof](ctx, "SELECT * FROM proofs WHERE name IN ('aggregate1', 'aggregate2')", nil)
 	if err != nil {

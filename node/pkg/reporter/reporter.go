@@ -160,9 +160,9 @@ func (r *Reporter) report(ctx context.Context, aggregates []GlobalAggregate) err
 		return r.reportWithoutProofs(ctx, aggregates)
 	}
 
-	err = UpsertProofs(ctx, aggregates, orderedProofMap)
+	err = UpdateProofs(ctx, aggregates, orderedProofMap)
 	if err != nil {
-		log.Error().Str("Player", "Reporter").Err(err).Msg("upsertProofs")
+		log.Error().Str("Player", "Reporter").Err(err).Msg("updateProofs")
 		return r.reportWithoutProofs(ctx, aggregates)
 	}
 
