@@ -260,7 +260,7 @@ contract SubmissionProxy is Ownable {
             }
 
             bytes[] memory proofs_ = splitBytesToChunks(_proofs[feedIdx_]);
-            bytes32 message_ = keccak256(abi.encodePacked(_timestamps[feedIdx_], _answers[feedIdx_]));
+            bytes32 message_ = keccak256(abi.encodePacked(_answers[feedIdx_], _timestamps[feedIdx_]));
 
             bool isVerified_ = false;
             uint8 verifiedSignatures_ = 0;
@@ -287,7 +287,7 @@ contract SubmissionProxy is Ownable {
                     revert IndexOutOfBounds();
                 }
 
-                if (isWhitelisted(signer_) && (signer_ != oracles[oracleIndex_])) {
+                if (isWhitelisted(signer_) && (signer_ == oracles[oracleIndex_])) {
                     verifiedSignatures_++;
                     if (verifiedSignatures_ >= requiredSignatures_) {
                         isVerified_ = true;
