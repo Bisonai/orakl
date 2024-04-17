@@ -234,16 +234,16 @@ contract SubmissionProxy is Ownable {
             revert InvalidSubmissionLength();
         }
 
-        for (uint256 feedIdx = 0; feedIdx < _feeds.length; feedIdx++) {
-            bytes[] memory proofs_ = splitBytesToChunks(_proofs[feedIdx]);
-            bytes32 message_ = keccak256(abi.encodePacked(_answers[feedIdx]));
+        for (uint256 feedIdx_ = 0; feedIdx_ < _feeds.length; feedIdx_++) {
+            bytes[] memory proofs_ = splitBytesToChunks(_proofs[feedIdx_]);
+            bytes32 message_ = keccak256(abi.encodePacked(_answers[feedIdx_]));
 
             bool isVerified_ = false;
             uint8 verifiedSignatures_ = 0;
             uint8 lastIndex_ = 0;
             uint256 oracleCount_ = oracles.length;
 
-            uint8 threshold_ = thresholds[_feeds[feedIdx]];
+            uint8 threshold_ = thresholds[_feeds[feedIdx_]];
             if (threshold_ == 0) {
                 threshold_ = threshold;
             }
@@ -278,7 +278,7 @@ contract SubmissionProxy is Ownable {
                 continue;
             }
 
-            IFeed(_feeds[feedIdx]).submit(_answers[feedIdx]);
+            IFeed(_feeds[feedIdx_]).submit(_answers[feedIdx_]);
         }
     }
 
