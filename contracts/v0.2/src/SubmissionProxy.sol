@@ -25,6 +25,7 @@ contract SubmissionProxy is Ownable {
 
     uint256 public maxSubmission = 50;
     uint256 public expirationPeriod = 5 weeks;
+    uint256 public dataFreshness = 10 seconds;
     uint8 public threshold = 50; // 50 %
     address[] public oracles;
 
@@ -42,6 +43,7 @@ contract SubmissionProxy is Ownable {
     event ExpirationPeriodSet(uint256 expirationPeriod);
     event DefaultThresholdSet(uint8 threshold);
     event ThresholdSet(address feed, uint8 threshold);
+    event DataFreshnessSet(uint256 dataFreshness);
 
     error OnlyOracle();
     error InvalidOracle();
@@ -75,6 +77,15 @@ contract SubmissionProxy is Ownable {
         }
         maxSubmission = _maxSubmission;
         emit MaxSubmissionSet(_maxSubmission);
+    }
+
+    /**
+     * @notice Set the data freshness for oracles.
+     * @param _dataFreshness The data freshness
+     */
+    function setDataFreshness(uint256 _dataFreshness) external onlyOwner {
+        dataFreshness = _dataFreshness;
+        emit DataFreshnessSet(_dataFreshness);
     }
 
     /**
@@ -244,6 +255,10 @@ contract SubmissionProxy is Ownable {
         }
 
         for (uint256 feedIdx_ = 0; feedIdx_ < _feeds.length; feedIdx_++) {
+            if (_timestamps[feedIdx_] + dataFreshness <= block.timestamp) {
+                continue;
+            }
+
             bytes[] memory proofs_ = splitBytesToChunks(_proofs[feedIdx_]);
             bytes32 message_ = keccak256(abi.encodePacked(_timestamps[feedIdx_], _answers[feedIdx_]));
 
