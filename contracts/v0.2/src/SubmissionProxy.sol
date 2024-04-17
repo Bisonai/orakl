@@ -228,15 +228,16 @@ contract SubmissionProxy is Ownable {
      * @param _feeds The addresses of the feeds
      * @param _answers The submissions
      * @param _proofs The proofs
+     * @param _timestamps The timestamps of the proofs
      */
-    function submit(address[] memory _feeds, int256[] memory _answers, bytes[] memory _proofs) external {
-        if (_feeds.length != _answers.length || _answers.length != _proofs.length || _feeds.length > maxSubmission) {
+    function submit(address[] memory _feeds, int256[] memory _answers, bytes[] memory _proofs, uint256[] memory _timestamps) external {
+        if (_feeds.length != _answers.length || _answers.length != _proofs.length || _proofs.length != _timestamps.length || _feeds.length > maxSubmission) {
             revert InvalidSubmissionLength();
         }
 
         for (uint256 feedIdx_ = 0; feedIdx_ < _feeds.length; feedIdx_++) {
             bytes[] memory proofs_ = splitBytesToChunks(_proofs[feedIdx_]);
-            bytes32 message_ = keccak256(abi.encodePacked(_answers[feedIdx_]));
+            bytes32 message_ = keccak256(abi.encodePacked(_timestamps[feedIdx_], _answers[feedIdx_]));
 
             bool isVerified_ = false;
             uint8 verifiedSignatures_ = 0;

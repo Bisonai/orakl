@@ -175,36 +175,46 @@ contract SubmissionProxyTest is Test {
         uint256 numOracles_ = 1;
         int256 submissionValue_ = 10;
         address oracle_ = makeAddr("oracle");
+	(,uint256 invalidOracleSk) = makeAddrAndKey("invalid-oracle");
 
-        (address[] memory feeds_, int256[] memory submissions_) =
+        (address[] memory feeds_, int256[] memory submissions_, uint256[] memory timestamps_) =
             prepareFeedsSubmissions(numOracles_, submissionValue_, oracle_);
 
+        Feed feed = new Feed(DECIMALS, DESCRIPTION, address(submissionProxy));
+	uint256 ts_ = block.timestamp;
+
+	feeds_[0] = address(feed);
+	submissions_[0] = 10;
+	timestamps_[0] = ts_;
+	bytes32 hash = keccak256(abi.encodePacked(ts_, int256(submissions_[0])));
         bytes[] memory proofs_ = new bytes[](1);
-        proofs_[0] = "invalid-proof";
+	proofs_[0] = abi.encodePacked(createProof(invalidOracleSk, hash)); // using invalid signer
 
-        submissionProxy.submit(feeds_, submissions_, proofs_);
+	// Submission with invalid proof does not fail.
+        submissionProxy.submit(feeds_, submissions_, proofs_, timestamps_);
 
+	// But no value is stored in the Feed contract.
         vm.expectRevert(Feed.NoDataPresent.selector);
         IFeed(feeds_[0]).latestRoundData();
     }
 
     function prepareFeedsSubmissions(uint256 _numOracles, int256 _submissionValue, address _oracle)
         internal
-        returns (address[] memory, int256[] memory)
+        returns (address[] memory, int256[] memory, uint256[] memory)
     {
         submissionProxy.addOracle(_oracle);
 
-        address[] memory feeds_ = new address[](_numOracles);
-        int256[] memory submissions_ = new int256[](_numOracles);
+	(address[] memory feeds_, int256[] memory submissions_, , uint256[] memory timestamps_) = createSubmitParameters(_numOracles);
 
         for (uint256 i = 0; i < _numOracles; i++) {
             Feed feed_ = new Feed(DECIMALS, DESCRIPTION, address(submissionProxy));
 
             feeds_[i] = address(feed_);
             submissions_[i] = _submissionValue;
+	    timestamps_[i] = block.timestamp;
         }
 
-        return (feeds_, submissions_);
+        return (feeds_, submissions_, timestamps_);
     }
 
     function test_SubmitWithProof() public {
@@ -216,23 +226,22 @@ contract SubmissionProxyTest is Test {
         submissionProxy.addOracle(bob);
         submissionProxy.addOracle(celine);
 
-        bytes32 hash = keccak256(abi.encodePacked(int256(10)));
-
         uint256 numSubmissions = 1;
-        (address[] memory feeds, int256[] memory submissions, bytes[] memory proofs) =
+        (address[] memory feeds, int256[] memory submissions, bytes[] memory proofs, uint256[] memory timestamps) =
             createSubmitParameters(numSubmissions);
 
         // single data feed
         Feed feed = new Feed(DECIMALS, DESCRIPTION, address(submissionProxy));
+	uint256 ts = block.timestamp;
 
         feeds[0] = address(feed);
         submissions[0] = 10;
-
-        submissionProxy.setProofThreshold(feeds[0], 100);
-
+	timestamps[0] = ts;
+	bytes32 hash = keccak256(abi.encodePacked(ts, int256(submissions[0])));
         proofs[0] = abi.encodePacked(createProof(aliceSk, hash), createProof(bobSk, hash), createProof(celineSk, hash));
 
-        submissionProxy.submit(feeds, submissions, proofs);
+        submissionProxy.setProofThreshold(feeds[0], 100);
+        submissionProxy.submit(feeds, submissions, proofs, timestamps);
     }
 
     function test_SubmitIndexNotAscending() public {
@@ -243,31 +252,35 @@ contract SubmissionProxyTest is Test {
         submissionProxy.addOracle(bob); // index 1
 
         uint256 numSubmissions = 1;
-        (address[] memory feeds, int256[] memory submissions, bytes[] memory proofs) =
+        (address[] memory feeds, int256[] memory submissions, bytes[] memory proofs, uint256[] memory timestamps) =
             createSubmitParameters(numSubmissions);
 
         Feed feed = new Feed(DECIMALS, DESCRIPTION, address(submissionProxy));
+	uint256 ts = block.timestamp;
 
         feeds[0] = address(feed);
         submissions[0] = 10;
-        bytes32 hash = keccak256(abi.encodePacked(int256(submissions[0])));
+	timestamps[0] = ts;
+        bytes32 hash = keccak256(abi.encodePacked(ts, int256(submissions[0])));
+
         // order of proofs is reversed!
         proofs[0] = abi.encodePacked(createProof(bobSk, hash), createProof(aliceSk, hash));
 
         vm.expectRevert(SubmissionProxy.IndexesNotAscending.selector);
-        submissionProxy.submit(feeds, submissions, proofs);
+        submissionProxy.submit(feeds, submissions, proofs, timestamps);
     }
 
     function createSubmitParameters(uint256 numSubmissions)
         internal
         pure
-        returns (address[] memory, int256[] memory, bytes[] memory)
+        returns (address[] memory, int256[] memory, bytes[] memory, uint256[] memory)
     {
-        address[] memory feeds = new address[](numSubmissions);
-        int256[] memory submissions = new int256[](numSubmissions);
-        bytes[] memory proofs = new bytes[](numSubmissions);
+        address[] memory feeds_ = new address[](numSubmissions);
+        int256[] memory submissions_ = new int256[](numSubmissions);
+        bytes[] memory proofs_ = new bytes[](numSubmissions);
+	uint256[] memory timestamps_ = new uint256[](numSubmissions);
 
-        return (feeds, submissions, proofs);
+        return (feeds_, submissions_, proofs_, timestamps_);
     }
 
     function createProof(uint256 sk, bytes32 hash) internal pure returns (bytes memory) {
