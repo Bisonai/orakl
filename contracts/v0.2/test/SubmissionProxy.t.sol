@@ -167,6 +167,30 @@ contract SubmissionProxyTest is Test {
         submissionProxy.setExpirationPeriod(1 weeks);
     }
 
+    function test_SubmitWithInvalidSubmissionLength() public {
+        (address[] memory feeds1_, int256[] memory submissions1_, bytes[] memory proofs1_, uint256[] memory timestamps1_) =
+            createSubmitParameters(1);
+
+        (address[] memory feeds2_, int256[] memory submissions2_, bytes[] memory proofs2_, uint256[] memory timestamps2_) =
+            createSubmitParameters(2);
+
+	// FAIL - invalid feeds length
+	vm.expectRevert(SubmissionProxy.InvalidSubmissionLength.selector);
+	submissionProxy.submit(feeds2_, submissions1_, proofs1_, timestamps1_);
+
+	// FAIL - invalid submissions length
+	vm.expectRevert(SubmissionProxy.InvalidSubmissionLength.selector);
+	submissionProxy.submit(feeds1_, submissions2_, proofs1_, timestamps1_);
+
+	// FAIL - invalid proofs length
+	vm.expectRevert(SubmissionProxy.InvalidSubmissionLength.selector);
+	submissionProxy.submit(feeds1_, submissions1_, proofs2_, timestamps1_);
+
+	// FAIL - invalid timestamps length
+	vm.expectRevert(SubmissionProxy.InvalidSubmissionLength.selector);
+	submissionProxy.submit(feeds1_, submissions1_, proofs1_, timestamps2_);
+    }
+
     function test_SubmitInvalidProof() public {
         uint256 numOracles_ = 1;
         int256 submissionValue_ = 10;
