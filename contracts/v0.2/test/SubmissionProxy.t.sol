@@ -243,6 +243,29 @@ contract SubmissionProxyTest is Test {
         IFeed(feeds_[0]).latestRoundData();
     }
 
+    function test_SubmitIndexNotAscending() public {
+        (address alice_, uint256 aliceSk_) = makeAddrAndKey("alice");
+        (address bob_, uint256 bobSk_) = makeAddrAndKey("bob");
+        (, uint256 dummySk_) = makeAddrAndKey("dummy");
+
+        submissionProxy.addOracle(alice_); // index 0
+        submissionProxy.addOracle(bob_); // index 1
+
+        uint256 numOracles_ = 1;
+        int256 submissionValue_ = 10;
+        (address[] memory feeds_, int256[] memory submissions_, bytes[] memory proofs_, uint256[] memory timestamps_) =
+            prepareFeedsSubmissions(numOracles_, submissionValue_, dummySk_);
+        bytes32 hash_ = keccak256(abi.encodePacked(submissions_[0], timestamps_[0]));
+
+        // order of proofs is reversed!
+        proofs_[0] = abi.encodePacked(createProof(bobSk_, hash_), createProof(aliceSk_, hash_));
+
+        submissionProxy.setProofThreshold(feeds_[0], 100); // 100 % of the oracles must submit a valid proof
+
+        vm.expectRevert(SubmissionProxy.IndexesNotAscending.selector);
+        submissionProxy.submit(feeds_, submissions_, proofs_, timestamps_);
+    }
+
     function test_SubmitCorrectProof() public {
         (address alice_, uint256 aliceSk_) = makeAddrAndKey("alice");
         (address bob_, uint256 bobSk_) = makeAddrAndKey("bob");
@@ -266,29 +289,6 @@ contract SubmissionProxyTest is Test {
 
         // don't raise `NoDataPresent`
         IFeed(feeds_[0]).latestRoundData();
-    }
-
-    function test_SubmitIndexNotAscending() public {
-        (address alice_, uint256 aliceSk_) = makeAddrAndKey("alice");
-        (address bob_, uint256 bobSk_) = makeAddrAndKey("bob");
-        (, uint256 dummySk_) = makeAddrAndKey("dummy");
-
-        submissionProxy.addOracle(alice_); // index 0
-        submissionProxy.addOracle(bob_); // index 1
-
-        uint256 numOracles_ = 1;
-        int256 submissionValue_ = 10;
-        (address[] memory feeds_, int256[] memory submissions_, bytes[] memory proofs_, uint256[] memory timestamps_) =
-            prepareFeedsSubmissions(numOracles_, submissionValue_, dummySk_);
-        bytes32 hash_ = keccak256(abi.encodePacked(submissions_[0], timestamps_[0]));
-
-        // order of proofs is reversed!
-        proofs_[0] = abi.encodePacked(createProof(bobSk_, hash_), createProof(aliceSk_, hash_));
-
-        submissionProxy.setProofThreshold(feeds_[0], 100); // 100 % of the oracles must submit a valid proof
-
-        vm.expectRevert(SubmissionProxy.IndexesNotAscending.selector);
-        submissionProxy.submit(feeds_, submissions_, proofs_, timestamps_);
     }
 
     function prepareFeedsSubmissions(uint256 _numOracles, int256 _submissionValue, uint256 _oracleSk)
