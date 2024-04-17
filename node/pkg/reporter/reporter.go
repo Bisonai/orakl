@@ -187,10 +187,10 @@ func (r *Reporter) orderProof(ctx context.Context, proof []byte, aggregate Globa
 	err = CheckForNonWhitelistedSigners(signers, r.CachedWhitelist)
 	if err != nil {
 		log.Warn().Str("Player", "Reporter").Err(err).Msg("non-whitelisted signers in proof, reloading whitelist")
-		reloadedWhitelist, err := ReadOnchainWhitelist(ctx, r.KlaytnHelper, r.contractAddress, GET_ONCHAIN_WHITELIST)
-		if err != nil {
-			log.Error().Str("Player", "Reporter").Err(err).Msg("failed to reload whitelist")
-			return nil, err
+		reloadedWhitelist, contractReadErr := ReadOnchainWhitelist(ctx, r.KlaytnHelper, r.contractAddress, GET_ONCHAIN_WHITELIST)
+		if contractReadErr != nil {
+			log.Error().Str("Player", "Reporter").Err(contractReadErr).Msg("failed to reload whitelist")
+			return nil, contractReadErr
 		}
 		r.CachedWhitelist = reloadedWhitelist
 	}

@@ -279,5 +279,8 @@ func TestUpsertProofs(t *testing.T) {
 
 	assert.NoError(t, err)
 
-	db.QueryWithoutResult(ctx, "DELETE FROM proofs WHERE name IN ('aggregate1', 'aggregate2')", nil)
+	err = db.QueryWithoutResult(ctx, "DELETE FROM proofs WHERE name IN ('aggregate1', 'aggregate2')", nil)
+	if err != nil {
+		t.Fatalf("QueryWithoutResult failed: %v", err)
+	}
 }
