@@ -4,11 +4,14 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
 	"strings"
 	"time"
 
 	"bisonai.com/orakl/node/pkg/bus"
+	"bisonai.com/orakl/node/pkg/chain/helper"
 	"bisonai.com/orakl/node/pkg/db"
+	"github.com/klaytn/klaytn/common"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 	"github.com/libp2p/go-libp2p/core/host"
 	"github.com/rs/zerolog/log"
@@ -41,6 +44,24 @@ func (a *App) setReporters(ctx context.Context, h host.Host, ps *pubsub.PubSub) 
 		return err
 	}
 
+	contractAddress := os.Getenv("SUBMISSION_PROXY_CONTRACT")
+	if contractAddress == "" {
+		return errors.New("SUBMISSION_PROXY_CONTRACT not set")
+	}
+
+	tmpChainHelper, err := helper.NewKlayHelper(ctx, "")
+	if err != nil {
+		log.Error().Str("Player", "Reporter").Err(err).Msg("failed to create chain helper")
+		return err
+	}
+	defer tmpChainHelper.Close()
+
+	cachedWhitelist, err := ReadOnchainWhitelist(ctx, tmpChainHelper, contractAddress, GET_ONCHAIN_WHITELIST)
+	if err != nil {
+		log.Error().Str("Player", "Reporter").Err(err).Msg("failed to get whitelist, starting with empty whitelist")
+		cachedWhitelist = []common.Address{}
+	}
+
 	submissionPairs, err := getSubmissionPairs(ctx)
 	if err != nil {
 		log.Error().Str("Player", "Reporter").Err(err).Msg("failed to get submission pairs")
@@ -49,7 +70,7 @@ func (a *App) setReporters(ctx context.Context, h host.Host, ps *pubsub.PubSub) 
 
 	groupedSubmissionPairs := groupSubmissionPairsByIntervals(submissionPairs)
 	for groupInterval, pairs := range groupedSubmissionPairs {
-		reporter, errNewReporter := NewReporter(ctx, h, ps, pairs, groupInterval)
+		reporter, errNewReporter := NewReporter(ctx, h, ps, pairs, groupInterval, contractAddress, cachedWhitelist)
 		if errNewReporter != nil {
 			log.Error().Str("Player", "Reporter").Err(errNewReporter).Msg("failed to set reporter")
 			continue
@@ -62,7 +83,7 @@ func (a *App) setReporters(ctx context.Context, h host.Host, ps *pubsub.PubSub) 
 		return errors.New("no reporters set")
 	}
 
-	deviationReporter, err := NewDeviationReporter(ctx, h, ps, submissionPairs)
+	deviationReporter, err := NewDeviationReporter(ctx, h, ps, submissionPairs, contractAddress, cachedWhitelist)
 	if err != nil {
 		log.Error().Str("Player", "Reporter").Err(err).Msg("failed to set deviation reporter")
 		return err

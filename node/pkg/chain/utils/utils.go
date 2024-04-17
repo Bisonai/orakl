@@ -583,9 +583,12 @@ func RecoverSigner(hash []byte, signature []byte) (address common.Address, err e
 		return common.Address{}, fmt.Errorf("signature must be 65 bytes long")
 	}
 
-	signature[64] -= 27
+	// use copy to avoid modifying the original signature
+	signatureCopy := make([]byte, len(signature))
+	copy(signatureCopy, signature)
+	signatureCopy[64] -= 27
 
-	pubKey, err := crypto.SigToPub(hash, signature)
+	pubKey, err := crypto.SigToPub(hash, signatureCopy)
 	if err != nil {
 		return common.Address{}, err
 	}

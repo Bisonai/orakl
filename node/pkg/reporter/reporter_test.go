@@ -5,8 +5,10 @@ import (
 	"context"
 	"fmt"
 	"math/big"
+	"os"
 	"testing"
 
+	"bisonai.com/orakl/node/pkg/chain/helper"
 	"bisonai.com/orakl/node/pkg/raft"
 	"github.com/klaytn/klaytn/common"
 	"github.com/stretchr/testify/assert"
@@ -30,8 +32,24 @@ func TestNewReporter(t *testing.T) {
 	}
 	groupedSubmissionPairs := groupSubmissionPairsByIntervals(submissionPairs)
 
+	contractAddress := os.Getenv("SUBMISSION_PROXY_CONTRACT")
+	if contractAddress == "" {
+		t.Fatal("SUBMISSION_PROXY_CONTRACT not set")
+	}
+
+	tmpHelper, err := helper.NewKlayHelper(ctx, "")
+	if err != nil {
+		t.Fatalf("error creating chain helper: %v", err)
+	}
+	defer tmpHelper.Close()
+
+	whitelist, err := ReadOnchainWhitelist(ctx, tmpHelper, contractAddress, GET_ONCHAIN_WHITELIST)
+	if err != nil {
+		t.Fatalf("error reading onchain whitelist: %v", err)
+	}
+
 	for groupInterval, pairs := range groupedSubmissionPairs {
-		_, err := NewReporter(ctx, testItems.app.Host, testItems.app.Pubsub, pairs, groupInterval)
+		_, err := NewReporter(ctx, testItems.app.Host, testItems.app.Pubsub, pairs, groupInterval, contractAddress, whitelist)
 		if err != nil {
 			t.Fatalf("error creating new reporter: %v", err)
 		}
@@ -398,7 +416,24 @@ func TestNewDeviationReporter(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error getting submission pairs: %v", err)
 	}
-	_, err = NewDeviationReporter(ctx, testItems.app.Host, testItems.app.Pubsub, submissionPairs)
+
+	contractAddress := os.Getenv("SUBMISSION_PROXY_CONTRACT")
+	if contractAddress == "" {
+		t.Fatal("SUBMISSION_PROXY_CONTRACT not set")
+	}
+
+	tmpHelper, err := helper.NewKlayHelper(ctx, "")
+	if err != nil {
+		t.Fatalf("error creating chain helper: %v", err)
+	}
+	defer tmpHelper.Close()
+
+	whitelist, err := ReadOnchainWhitelist(ctx, tmpHelper, contractAddress, GET_ONCHAIN_WHITELIST)
+	if err != nil {
+		t.Fatalf("error reading onchain whitelist: %v", err)
+	}
+
+	_, err = NewDeviationReporter(ctx, testItems.app.Host, testItems.app.Pubsub, submissionPairs, contractAddress, whitelist)
 	if err != nil {
 		t.Fatalf("error creating new deviation reporter: %v", err)
 	}
@@ -512,7 +547,24 @@ func TestDeviationJob(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error getting submission pairs: %v", err)
 	}
-	reporter, err := NewDeviationReporter(ctx, testItems.app.Host, testItems.app.Pubsub, submissionPairs)
+
+	contractAddress := os.Getenv("SUBMISSION_PROXY_CONTRACT")
+	if contractAddress == "" {
+		t.Fatal("SUBMISSION_PROXY_CONTRACT not set")
+	}
+
+	tmpHelper, err := helper.NewKlayHelper(ctx, "")
+	if err != nil {
+		t.Fatalf("error creating chain helper: %v", err)
+	}
+	defer tmpHelper.Close()
+
+	whitelist, err := ReadOnchainWhitelist(ctx, tmpHelper, contractAddress, GET_ONCHAIN_WHITELIST)
+	if err != nil {
+		t.Fatalf("error reading onchain whitelist: %v", err)
+	}
+
+	reporter, err := NewDeviationReporter(ctx, testItems.app.Host, testItems.app.Pubsub, submissionPairs, contractAddress, whitelist)
 	if err != nil {
 		t.Fatalf("error creating new deviation reporter: %v", err)
 	}
