@@ -28,7 +28,12 @@ contract SubmissionProxy is Ownable {
     uint8 public threshold = 50; // 50 %
     address[] public oracles;
 
-    mapping(address oracle => uint256 expirationTime) public whitelist;
+    struct OracleInfo {
+        uint8 index;
+        uint256 expirationTime;
+    }
+
+    mapping(address => OracleInfo) public whitelist;
     mapping(address feed => uint8 threshold) thresholds;
 
     event OracleAdded(address oracle, uint256 expirationTime);
@@ -127,36 +132,39 @@ contract SubmissionProxy is Ownable {
      * @param _oracle The address of the oracle
      * @return The index of the oracle in the whitelist
      */
-    function addOracle(address _oracle) external onlyOwner returns (uint256) {
-        if (whitelist[_oracle] != 0) {
+    function addOracle(address _oracle) external onlyOwner returns (uint8) {
+        if (whitelist[_oracle].expirationTime != 0) {
             revert InvalidOracle();
         }
 
         bool found = false;
-        uint256 index = 0;
+        uint8 index_ = 0;
 
         // register the oracle
-        for (uint256 i = 0; i < oracles.length; i++) {
+        for (uint8 i = 0; i < oracles.length; i++) {
             // reuse existing oracle slot if it is expired
             if (!isWhitelisted(oracles[i])) {
                 oracles[i] = _oracle;
                 found = true;
-                index = i;
+                index_ = i;
                 break;
             }
         }
 
         if (!found) {
             oracles.push(_oracle);
-            index = oracles.length - 1;
+            index_ = uint8(oracles.length - 1);
         }
 
-        // set the expiration time
+        // set the expiration time and index
+        OracleInfo storage info = whitelist[_oracle];
         uint256 expirationTime_ = block.timestamp + expirationPeriod;
-        whitelist[_oracle] = expirationTime_;
+        info.expirationTime = expirationTime_;
+        info.index = index_;
 
         emit OracleAdded(_oracle, expirationTime_);
-        return index;
+
+        return index_;
     }
 
     /**
@@ -166,8 +174,6 @@ contract SubmissionProxy is Ownable {
      * @param _oracle The address of the oracle
      */
     function removeOracle(address _oracle) external onlyOwner {
-        whitelist[_oracle] = block.timestamp;
-
         for (uint256 i = 0; i < oracles.length; i++) {
             if (_oracle == oracles[i]) {
                 oracles[i] = oracles[oracles.length - 1];
@@ -175,6 +181,10 @@ contract SubmissionProxy is Ownable {
                 break;
             }
         }
+
+        OracleInfo storage info = whitelist[_oracle];
+        info.index = 0;
+        info.expirationTime = block.timestamp;
 
         emit OracleRemoved(_oracle);
     }
@@ -187,12 +197,13 @@ contract SubmissionProxy is Ownable {
      * @param _oracle The address of the oracle
      */
     function updateOracle(address _oracle) external onlyOracle {
-        if (whitelist[_oracle] != 0) {
+        OracleInfo storage info = whitelist[_oracle];
+        if (info.expirationTime != 0) {
             revert InvalidOracle();
         }
 
         // deactivate the old oracle
-        whitelist[msg.sender] = block.timestamp;
+        whitelist[msg.sender].expirationTime = block.timestamp;
 
         // update the oracle address
         for (uint256 i = 0; i < oracles.length; i++) {
@@ -204,7 +215,7 @@ contract SubmissionProxy is Ownable {
 
         // extend the expiration time
         uint256 expirationTime_ = block.timestamp + expirationPeriod;
-        whitelist[_oracle] = expirationTime_;
+        info.expirationTime = expirationTime_;
 
         emit OracleAdded(_oracle, expirationTime_);
     }
@@ -224,7 +235,7 @@ contract SubmissionProxy is Ownable {
         }
 
         for (uint256 feedIdx = 0; feedIdx < _feeds.length; feedIdx++) {
-            (bytes[] memory proofs_, uint8[] memory indexes_) = splitBytesToChunks(_proofs[feedIdx]);
+            bytes[] memory proofs_ = splitBytesToChunks(_proofs[feedIdx]);
             bytes32 message_ = keccak256(abi.encodePacked(_answers[feedIdx]));
 
             bool isVerified_ = false;
@@ -239,7 +250,10 @@ contract SubmissionProxy is Ownable {
             uint8 requiredSignatures_ = quorum(threshold_);
 
             for (uint256 proofIdx_ = 0; proofIdx_ < proofs_.length; proofIdx_++) {
-                uint8 oracleIndex_ = indexes_[proofIdx_];
+                bytes memory singleProof_ = proofs_[proofIdx_];
+                address signer_ = recoverSigner(message_, singleProof_);
+                uint8 oracleIndex_ = whitelist[signer_].index;
+
                 if (proofIdx_ != 0 && oracleIndex_ <= lastIndex_) {
                     revert IndexesNotAscending();
                 }
@@ -249,8 +263,6 @@ contract SubmissionProxy is Ownable {
                     revert IndexOutOfBounds();
                 }
 
-                bytes memory singleProof_ = proofs_[proofIdx_];
-                address signer_ = recoverSigner(message_, singleProof_);
                 if (isWhitelisted(signer_) && (signer_ != oracles[oracleIndex_])) {
                     verifiedSignatures_++;
                     if (verifiedSignatures_ >= requiredSignatures_) {
@@ -279,33 +291,30 @@ contract SubmissionProxy is Ownable {
     }
 
     /**
-     * @notice Split bytes into proof chunks and indexes
+     * @notice Split bytes into proof chunks
      * @param data The bytes to be split
      * @return chunks The split bytes
-     * @return indexes The indexes of the split bytes
      */
-    function splitBytesToChunks(bytes memory data) private pure returns (bytes[] memory, uint8[] memory) {
+    function splitBytesToChunks(bytes memory data) private pure returns (bytes[] memory) {
         uint256 dataLength = data.length;
-        uint256 numChunks = dataLength / 66;
+        uint256 numChunks = dataLength / 65;
         bytes[] memory chunks = new bytes[](numChunks);
-        uint8[] memory indexes = new uint8[](numChunks);
 
         bytes32 firstHalf;
         bytes32 secondHalf;
 
         for (uint256 i = 0; i < numChunks; i++) {
-            uint256 f = (i * 66) + 32;
-            uint256 s = (i * 66) + 64;
+            uint256 f = (i * 65) + 32;
+            uint256 s = (i * 65) + 64;
             assembly {
                 firstHalf := mload(add(data, f))
                 secondHalf := mload(add(data, s))
             }
 
-            chunks[i] = abi.encodePacked(firstHalf, secondHalf, data[(i * 66) + 65]);
-            indexes[i] = uint8(data[i * 66]);
+            chunks[i] = abi.encodePacked(firstHalf, secondHalf, data[(i * 65) + 64]);
         }
 
-        return (chunks, indexes);
+        return chunks;
     }
 
     /**
@@ -349,7 +358,7 @@ contract SubmissionProxy is Ownable {
      * @return `true` if the signer is whitelisted, `false` otherwise
      */
     function isWhitelisted(address _signer) private view returns (bool) {
-        uint256 expiration_ = whitelist[_signer];
+        uint256 expiration_ = whitelist[_signer].expirationTime;
         if (expiration_ == 0 || expiration_ <= block.timestamp) {
             return false;
         } else {
@@ -365,5 +374,13 @@ contract SubmissionProxy is Ownable {
     function quorum(uint8 _threshold) private view returns (uint8) {
         uint256 nominator = oracles.length * _threshold;
         return uint8((nominator / 100) + (nominator % 100 == 0 ? 0 : 1));
+    }
+
+    /**
+     * @notice Get all oracles
+     * @return The list of oracles
+     */
+    function getAllOracles() public view returns (address[] memory) {
+        return oracles;
     }
 }

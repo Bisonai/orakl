@@ -40,15 +40,23 @@ contract SubmissionProxyTest is Test {
         address oracle_ = makeAddr("oracle");
 
         // add
-        submissionProxy.addOracle(oracle_);
-        assertEq(submissionProxy.oracles(0), oracle_);
-        assertGe(submissionProxy.whitelist(oracle_), block.timestamp);
+        {
+            submissionProxy.addOracle(oracle_);
+            assertEq(submissionProxy.oracles(0), oracle_);
+            (, uint256 expirationTime_) = submissionProxy.whitelist(oracle_);
+            assertGe(expirationTime_, block.timestamp);
+        }
 
         // remove
-        submissionProxy.removeOracle(oracle_);
-        vm.expectRevert(bytes("")); // "EvmError: Revert"
-        submissionProxy.oracles(0);
-        assertEq(submissionProxy.whitelist(oracle_), block.timestamp);
+        {
+            submissionProxy.removeOracle(oracle_);
+
+            vm.expectRevert(bytes("")); // "EvmError: Revert"
+            submissionProxy.oracles(0);
+
+            (, uint256 expirationTime_) = submissionProxy.whitelist(oracle_);
+            assertEq(expirationTime_, block.timestamp);
+        }
     }
 
     function test_UpdateOracle() public {
@@ -65,7 +73,10 @@ contract SubmissionProxyTest is Test {
 
         // Expiration time is larger than the current block timestamp.
         uint256 duringUpdateTimestamp = block.timestamp;
-        assertGe(submissionProxy.whitelist(oracle_), duringUpdateTimestamp);
+        {
+            (, uint256 expirationTime_) = submissionProxy.whitelist(oracle_);
+            assertGe(expirationTime_, duringUpdateTimestamp);
+        }
 
         // SUCCESS - Registered oracle can update its address
         vm.prank(oracle_);
@@ -73,10 +84,16 @@ contract SubmissionProxyTest is Test {
 
         // Old oracle has expiration time changed to the timestamp
         // during which the update occured.
-        assertEq(submissionProxy.whitelist(oracle_), duringUpdateTimestamp);
+        {
+            (, uint256 expirationTime_) = submissionProxy.whitelist(oracle_);
+            assertEq(expirationTime_, duringUpdateTimestamp);
+        }
 
         // New oracle has expiration time larger than the current block timestamp.
-        assertGe(submissionProxy.whitelist(newOracle_), block.timestamp);
+        {
+            (, uint256 expirationTime_) = submissionProxy.whitelist(newOracle_);
+            assertGe(expirationTime_, block.timestamp);
+        }
 
         // FAIL - Cannot update with outdated oracle address
         address newestOracle_ = makeAddr("newest-oracle");
@@ -195,9 +212,9 @@ contract SubmissionProxyTest is Test {
         (address bob, uint256 bobSk) = makeAddrAndKey("bob");
         (address celine, uint256 celineSk) = makeAddrAndKey("celine");
 
-        uint256 aliceIdx = submissionProxy.addOracle(alice);
-        uint256 bobIdx = submissionProxy.addOracle(bob);
-        uint256 celineIdx = submissionProxy.addOracle(celine);
+        submissionProxy.addOracle(alice);
+        submissionProxy.addOracle(bob);
+        submissionProxy.addOracle(celine);
 
         bytes32 hash = keccak256(abi.encodePacked(int256(10)));
 
@@ -213,40 +230,8 @@ contract SubmissionProxyTest is Test {
 
         submissionProxy.setProofThreshold(feeds[0], 100);
 
-        proofs[0] = abi.encodePacked(
-            uint8(aliceIdx),
-            createProof(aliceSk, hash),
-            uint8(bobIdx),
-            createProof(bobSk, hash),
-            uint8(celineIdx),
-            createProof(celineSk, hash)
-        );
+        proofs[0] = abi.encodePacked(createProof(aliceSk, hash), createProof(bobSk, hash), createProof(celineSk, hash));
 
-        submissionProxy.submit(feeds, submissions, proofs);
-    }
-
-    function test_SubmitIndexOutOfBounds() public {
-        (address alice, uint256 aliceSk) = makeAddrAndKey("alice");
-        (address bob, uint256 bobSk) = makeAddrAndKey("bob");
-
-        uint256 aliceIdx = submissionProxy.addOracle(alice); // index 0
-        uint256 bobIdx = submissionProxy.addOracle(bob); // index 1
-        uint256 wrongIdx = 3; // cannot be index 3 (out of bounds)
-        assertEq((wrongIdx - bobIdx) != 0, true);
-
-        uint256 numSubmissions = 1;
-        (address[] memory feeds, int256[] memory submissions, bytes[] memory proofs) =
-            createSubmitParameters(numSubmissions);
-
-        Feed feed = new Feed(DECIMALS, DESCRIPTION, address(submissionProxy));
-
-        feeds[0] = address(feed);
-        submissions[0] = 10;
-        bytes32 hash = keccak256(abi.encodePacked(int256(submissions[0])));
-        proofs[0] =
-            abi.encodePacked(uint8(aliceIdx), createProof(aliceSk, hash), uint8(wrongIdx), createProof(bobSk, hash));
-
-        vm.expectRevert(SubmissionProxy.IndexOutOfBounds.selector);
         submissionProxy.submit(feeds, submissions, proofs);
     }
 
@@ -254,10 +239,8 @@ contract SubmissionProxyTest is Test {
         (address alice, uint256 aliceSk) = makeAddrAndKey("alice");
         (address bob, uint256 bobSk) = makeAddrAndKey("bob");
 
-        uint256 aliceIdx = submissionProxy.addOracle(alice); // index 0
-        uint256 bobIdx = submissionProxy.addOracle(bob); // index 1
-        uint256 wrongIdx = 0; // cannot be index 0 (repetitive index)
-        assertGe(bobIdx, wrongIdx);
+        submissionProxy.addOracle(alice); // index 0
+        submissionProxy.addOracle(bob); // index 1
 
         uint256 numSubmissions = 1;
         (address[] memory feeds, int256[] memory submissions, bytes[] memory proofs) =
@@ -268,8 +251,8 @@ contract SubmissionProxyTest is Test {
         feeds[0] = address(feed);
         submissions[0] = 10;
         bytes32 hash = keccak256(abi.encodePacked(int256(submissions[0])));
-        proofs[0] =
-            abi.encodePacked(uint8(aliceIdx), createProof(aliceSk, hash), uint8(wrongIdx), createProof(bobSk, hash));
+        // order of proofs is reversed!
+        proofs[0] = abi.encodePacked(createProof(bobSk, hash), createProof(aliceSk, hash));
 
         vm.expectRevert(SubmissionProxy.IndexesNotAscending.selector);
         submissionProxy.submit(feeds, submissions, proofs);
