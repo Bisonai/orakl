@@ -20,15 +20,27 @@ contract SubmissionProxy is Ownable {
     uint256 public constant MAX_SUBMISSION = 1_000;
     uint256 public constant MIN_EXPIRATION = 1 days;
     uint256 public constant MAX_EXPIRATION = 365 days;
+    uint8 public constant MIN_THRESHOLD = 1;
+    uint8 public constant MAX_THRESHOLD = 100;
 
     uint256 public maxSubmission = 50;
     uint256 public expirationPeriod = 5 weeks;
-    mapping(address oracle => uint256 expirationTime) public whitelist;
+    uint8 public threshold = 50; // 50 %
+    address[] public oracles;
+
+    struct OracleInfo {
+        uint8 index;
+        uint256 expirationTime;
+    }
+
+    mapping(address => OracleInfo) public whitelist;
     mapping(address feed => uint8 threshold) thresholds;
 
     event OracleAdded(address oracle, uint256 expirationTime);
+    event OracleRemoved(address oracle);
     event MaxSubmissionSet(uint256 maxSubmission);
     event ExpirationPeriodSet(uint256 expirationPeriod);
+    event DefaultThresholdSet(uint8 threshold);
     event ThresholdSet(address feed, uint8 threshold);
 
     error OnlyOracle();
@@ -37,9 +49,11 @@ contract SubmissionProxy is Ownable {
     error InvalidExpirationPeriod();
     error InvalidMaxSubmission();
     error InvalidThreshold();
+    error IndexOutOfBounds();
+    error IndexesNotAscending();
 
     modifier onlyOracle() {
-	if (!isWhitelisted(msg.sender))  {
+        if (!isWhitelisted(msg.sender)) {
             revert OnlyOracle();
         }
         _;
@@ -76,12 +90,29 @@ contract SubmissionProxy is Ownable {
     }
 
     /**
+     * @notice Set the default proof threshold for feeds.
+     * @param _threshold The percentage of required
+     * signatures. Percentage is represented as a number between 1 and
+     * 100.
+     */
+    function setDefaultProofThreshold(uint8 _threshold) external onlyOwner {
+        if (_threshold < MIN_THRESHOLD || _threshold > MAX_THRESHOLD) {
+            revert InvalidThreshold();
+        }
+
+        threshold = _threshold;
+        emit DefaultThresholdSet(_threshold);
+    }
+
+    /**
      * @notice Set the proof threshold for a feed.
      * @param _feed The address of the feed
-     * @param _threshold The number of required signatures
+     * @param _threshold The percentage of required
+     * signatures. Percentage is represented as a number between 1 and
+     * 100.
      */
     function setProofThreshold(address _feed, uint8 _threshold) external onlyOwner {
-        if (_threshold == 0) {
+        if (_threshold < MIN_THRESHOLD || _threshold > MAX_THRESHOLD) {
             revert InvalidThreshold();
         }
 
@@ -99,15 +130,63 @@ contract SubmissionProxy is Ownable {
      * @dev If the oracle is already in the whitelist, the function
      * will revert with `InvalidOracle` error.
      * @param _oracle The address of the oracle
+     * @return The index of the oracle in the whitelist
      */
-    function addOracle(address _oracle) external onlyOwner {
-        if (whitelist[_oracle] != 0) {
+    function addOracle(address _oracle) external onlyOwner returns (uint8) {
+        if (whitelist[_oracle].expirationTime != 0) {
             revert InvalidOracle();
         }
 
-	uint256 expirationTime_ = block.timestamp + expirationPeriod;
-	whitelist[_oracle] = expirationTime_;
-	emit OracleAdded(_oracle, expirationTime_);
+        bool found = false;
+        uint8 index_ = 0;
+
+        // register the oracle
+        for (uint8 i = 0; i < oracles.length; i++) {
+            // reuse existing oracle slot if it is expired
+            if (!isWhitelisted(oracles[i])) {
+                oracles[i] = _oracle;
+                found = true;
+                index_ = i;
+                break;
+            }
+        }
+
+        if (!found) {
+            oracles.push(_oracle);
+            index_ = uint8(oracles.length - 1);
+        }
+
+        // set the expiration time and index
+        OracleInfo storage info = whitelist[_oracle];
+        uint256 expirationTime_ = block.timestamp + expirationPeriod;
+        info.expirationTime = expirationTime_;
+        info.index = index_;
+
+        emit OracleAdded(_oracle, expirationTime_);
+
+        return index_;
+    }
+
+    /**
+     * @notice Remove an oracle from the whitelist. The oracle will not be
+     * able to produce valid submission proofs after the expiration
+     * time.
+     * @param _oracle The address of the oracle
+     */
+    function removeOracle(address _oracle) external onlyOwner {
+        for (uint256 i = 0; i < oracles.length; i++) {
+            if (_oracle == oracles[i]) {
+                oracles[i] = oracles[oracles.length - 1];
+                oracles.pop();
+                break;
+            }
+        }
+
+        OracleInfo storage info = whitelist[_oracle];
+        info.index = 0;
+        info.expirationTime = block.timestamp;
+
+        emit OracleRemoved(_oracle);
     }
 
     /**
@@ -118,14 +197,26 @@ contract SubmissionProxy is Ownable {
      * @param _oracle The address of the oracle
      */
     function updateOracle(address _oracle) external onlyOracle {
-        if (whitelist[_oracle] != 0) {
+        OracleInfo storage info = whitelist[_oracle];
+        if (info.expirationTime != 0) {
             revert InvalidOracle();
         }
 
-	whitelist[msg.sender] = block.timestamp; // deactivate the old oracle
+        // deactivate the old oracle
+        whitelist[msg.sender].expirationTime = block.timestamp;
 
-	uint256 expirationTime_ = block.timestamp + expirationPeriod;
-        whitelist[_oracle] = expirationTime_;
+        // update the oracle address
+        for (uint256 i = 0; i < oracles.length; i++) {
+            if (msg.sender == oracles[i]) {
+                oracles[i] = _oracle;
+                break;
+            }
+        }
+
+        // extend the expiration time
+        uint256 expirationTime_ = block.timestamp + expirationPeriod;
+        info.expirationTime = expirationTime_;
+
         emit OracleAdded(_oracle, expirationTime_);
     }
 
@@ -147,26 +238,41 @@ contract SubmissionProxy is Ownable {
             bytes[] memory proofs_ = splitBytesToChunks(_proofs[feedIdx]);
             bytes32 message_ = keccak256(abi.encodePacked(_answers[feedIdx]));
 
-            bool verified_ = false;
+            bool isVerified_ = false;
             uint8 verifiedSignatures_ = 0;
-            uint8 requiredSignatures_ = thresholds[_feeds[feedIdx]];
-            if (requiredSignatures_ == 0) {
-                revert InvalidThreshold();
-            }
+            uint8 lastIndex_ = 0;
+            uint256 oracleCount_ = oracles.length;
 
-            for (uint256 proofIdx = 0; proofIdx < proofs_.length; proofIdx++) {
-                bytes memory singleProof_ = proofs_[proofIdx];
+            uint8 threshold_ = thresholds[_feeds[feedIdx]];
+            if (threshold_ == 0) {
+                threshold_ = threshold;
+            }
+            uint8 requiredSignatures_ = quorum(threshold_);
+
+            for (uint256 proofIdx_ = 0; proofIdx_ < proofs_.length; proofIdx_++) {
+                bytes memory singleProof_ = proofs_[proofIdx_];
                 address signer_ = recoverSigner(message_, singleProof_);
-                if (isWhitelisted(signer_)) {
+                uint8 oracleIndex_ = whitelist[signer_].index;
+
+                if (proofIdx_ != 0 && oracleIndex_ <= lastIndex_) {
+                    revert IndexesNotAscending();
+                }
+                lastIndex_ = oracleIndex_;
+
+                if (oracleIndex_ >= oracleCount_) {
+                    revert IndexOutOfBounds();
+                }
+
+                if (isWhitelisted(signer_) && (signer_ != oracles[oracleIndex_])) {
                     verifiedSignatures_++;
                     if (verifiedSignatures_ >= requiredSignatures_) {
-                        verified_ = true;
+                        isVerified_ = true;
                         break;
                     }
                 }
             }
 
-            if (!verified_) {
+            if (!isVerified_) {
                 // Insufficient number of signatures have been
                 // verified -> do not submit!
                 continue;
@@ -185,26 +291,27 @@ contract SubmissionProxy is Ownable {
     }
 
     /**
-     * @notice Split bytes into chunks of 65 bytes
+     * @notice Split bytes into proof chunks
      * @param data The bytes to be split
-     * @return chunks The array of bytes chunks
+     * @return chunks The split bytes
      */
     function splitBytesToChunks(bytes memory data) private pure returns (bytes[] memory) {
         uint256 dataLength = data.length;
         uint256 numChunks = dataLength / 65;
         bytes[] memory chunks = new bytes[](numChunks);
 
-        bytes32 halfChunk0;
-        bytes32 halfChunk1;
+        bytes32 firstHalf;
+        bytes32 secondHalf;
 
         for (uint256 i = 0; i < numChunks; i++) {
             uint256 f = (i * 65) + 32;
             uint256 s = (i * 65) + 64;
             assembly {
-                halfChunk0 := mload(add(data, f))
-                halfChunk1 := mload(add(data, s))
+                firstHalf := mload(add(data, f))
+                secondHalf := mload(add(data, s))
             }
-            chunks[i] = abi.encodePacked(halfChunk0, halfChunk1, data[(i * 65) + 64]);
+
+            chunks[i] = abi.encodePacked(firstHalf, secondHalf, data[(i * 65) + 64]);
         }
 
         return chunks;
@@ -251,11 +358,29 @@ contract SubmissionProxy is Ownable {
      * @return `true` if the signer is whitelisted, `false` otherwise
      */
     function isWhitelisted(address _signer) private view returns (bool) {
-        uint256 expiration_ = whitelist[_signer];
+        uint256 expiration_ = whitelist[_signer].expirationTime;
         if (expiration_ == 0 || expiration_ <= block.timestamp) {
             return false;
         } else {
             return true;
         }
+    }
+
+    /**
+     * @notice Calculate the quorum for the threshold
+     * @param _threshold The threshold
+     * @return The quorum
+     */
+    function quorum(uint8 _threshold) private view returns (uint8) {
+        uint256 nominator = oracles.length * _threshold;
+        return uint8((nominator / 100) + (nominator % 100 == 0 ? 0 : 1));
+    }
+
+    /**
+     * @notice Get all oracles
+     * @return The list of oracles
+     */
+    function getAllOracles() public view returns (address[] memory) {
+        return oracles;
     }
 }
