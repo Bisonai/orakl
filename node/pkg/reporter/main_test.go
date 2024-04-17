@@ -72,10 +72,10 @@ func insertSampleData(ctx context.Context) (*TmpData, error) {
 	if err != nil {
 		return nil, err
 	}
-	tmpData.proofBytes = bytes.Join([][]byte{rawProof, rawProof}, nil)
+	tmpData.proofBytes = bytes.Join([][]byte{rawProof}, nil)
 	tmpData.proofTime = proofTime
 
-	err = db.QueryWithoutResult(ctx, "INSERT INTO proofs (name, round, proof) VALUES (@name, @round, @proof)", map[string]any{"name": "test-aggregate", "round": int64(1), "proof": bytes.Join([][]byte{rawProof, rawProof}, nil)})
+	err = db.QueryWithoutResult(ctx, "INSERT INTO proofs (name, round, proof) VALUES (@name, @round, @proof)", map[string]any{"name": "test-aggregate", "round": int64(1), "proof": bytes.Join([][]byte{rawProof}, nil)})
 	if err != nil {
 		return nil, err
 	}
@@ -83,7 +83,7 @@ func insertSampleData(ctx context.Context) (*TmpData, error) {
 	rdbProof := Proof{
 		Name:  "test-aggregate",
 		Round: int64(1),
-		Proof: bytes.Join([][]byte{rawProof, rawProof}, nil),
+		Proof: bytes.Join([][]byte{rawProof}, nil),
 	}
 	rdbProofData, err := json.Marshal(rdbProof)
 	if err != nil {

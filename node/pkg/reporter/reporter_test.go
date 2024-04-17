@@ -387,11 +387,6 @@ func TestGetProofsPgsql(t *testing.T) {
 		}
 	}()
 
-	err = testItems.app.setReporters(ctx, testItems.app.Host, testItems.app.Pubsub)
-	if err != nil {
-		t.Fatalf("error setting reporters: %v", err)
-	}
-
 	agg := testItems.tmpData.globalAggregate
 	result, err := GetProofsPgsql(ctx, []GlobalAggregate{agg})
 	if err != nil {
