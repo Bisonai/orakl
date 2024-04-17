@@ -365,7 +365,6 @@ func OrderProof(signerMap map[common.Address][]byte, whitelist []common.Address)
 	for _, signer := range whitelist {
 		tmpProof, ok := signerMap[signer]
 		if ok {
-			tmpProof = bytes.TrimRight(tmpProof, "\x00")
 			tmpProofs = append(tmpProofs, tmpProof)
 		}
 	}
@@ -445,7 +444,7 @@ func UpsertProofs(ctx context.Context, aggregates []GlobalAggregate, proofMap ma
 		upsertRows = append(upsertRows, []any{agg.Name, agg.Round, proof})
 	}
 
-	err := db.BulkUpsert(ctx, "proofs", []string{"name", "round", "proof"}, upsertRows, []string{"name", "round"}, []string{"proof"})
+	err := db.BulkUpsert(ctx, "proofs", []string{"name", "round", "proof"}, upsertRows, []string{"name", "round", "proof"}, []string{"proof"})
 	if err != nil {
 		log.Error().Str("Player", "Reporter").Err(err).Msg("failed to upsert proofs")
 	}
