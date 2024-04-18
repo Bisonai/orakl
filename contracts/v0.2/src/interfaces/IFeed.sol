@@ -48,10 +48,10 @@ interface IFeed {
 
     /**
      * @notice Get round data given a round ID.
-     * @param _roundId The round ID.
+     * @param roundId The round ID.
      * @return id The round ID.
      * @return answer The oracle answer.
      * @return updatedAt Timestamp of the last update.
      */
-    function getRoundData(uint64 _roundId) external view returns (uint64 id, int256 answer, uint256 updatedAt);
+    function getRoundData(uint64 roundId) external view returns (uint64 id, int256 answer, uint256 updatedAt);
 }
