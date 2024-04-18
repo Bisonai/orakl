@@ -159,6 +159,95 @@ func BulkInsert(ctx context.Context, tableName string, columnNames []string, row
 	return nil
 }
 
+func BulkUpsert(ctx context.Context, tableName string, columnNames []string, rows [][]any, conflictColumns []string, updateColumns []string) error {
+	currentPool, err := GetPool(ctx)
+	if err != nil {
+		return err
+	}
+
+	var b strings.Builder
+	fmt.Fprintf(&b, "INSERT INTO %s (%s) VALUES ", tableName, strings.Join(columnNames, ", "))
+
+	for i, row := range rows {
+		if i > 0 {
+			b.WriteString(", ")
+		}
+		b.WriteString("(")
+		for j := range row {
+			if j > 0 {
+				b.WriteString(", ")
+			}
+			fmt.Fprintf(&b, "$%d", i*len(row)+j+1)
+		}
+		b.WriteString(")")
+	}
+
+	b.WriteString(" ON CONFLICT (")
+	b.WriteString(strings.Join(conflictColumns, ", "))
+	b.WriteString(") DO UPDATE SET ")
+
+	for i, col := range updateColumns {
+		if i > 0 {
+			b.WriteString(", ")
+		}
+		fmt.Fprintf(&b, "%s = EXCLUDED.%s", col, col)
+	}
+
+	values := make([]any, 0, len(rows)*len(columnNames))
+	for _, row := range rows {
+		values = append(values, row...)
+	}
+
+	_, err = currentPool.Exec(ctx, b.String(), values...)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func BulkUpdate(ctx context.Context, tableName string, columnNames []string, rows [][]interface{}, whereColumns []string) error {
+	currentPool, err := GetPool(ctx)
+	if err != nil {
+		return err
+	}
+
+	batch := &pgx.Batch{}
+
+	for _, row := range rows {
+		var b strings.Builder
+		fmt.Fprintf(&b, "UPDATE %s SET ", tableName)
+
+		for i, col := range columnNames {
+			if i > 0 {
+				b.WriteString(", ")
+			}
+			fmt.Fprintf(&b, "%s = $%d", col, i+1)
+		}
+
+		b.WriteString(" WHERE ")
+
+		for i, col := range whereColumns {
+			if i > 0 {
+				b.WriteString(" AND ")
+			}
+			fmt.Fprintf(&b, "%s = $%d", col, i+len(columnNames)+1)
+		}
+		batch.Queue(b.String(), row...)
+	}
+
+	br := currentPool.SendBatch(ctx, batch)
+	defer br.Close()
+
+	for range rows {
+		_, err = br.Exec()
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 // use for large entries of data more than 100+ rows
 func BulkCopy(ctx context.Context, tableName string, columnNames []string, rows [][]any) (int64, error) {
 	currentPool, err := GetPool(ctx)

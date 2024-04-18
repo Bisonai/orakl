@@ -4,11 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"os"
 	"strconv"
 	"time"
 
 	"bisonai.com/orakl/node/pkg/chain/helper"
+	chain_utils "bisonai.com/orakl/node/pkg/chain/utils"
 	"bisonai.com/orakl/node/pkg/raft"
 
 	"github.com/klaytn/klaytn/common"
@@ -17,11 +17,11 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-func NewReporter(ctx context.Context, h host.Host, ps *pubsub.PubSub, submissionPairs []SubmissionAddress, interval int) (*Reporter, error) {
+func NewReporter(ctx context.Context, h host.Host, ps *pubsub.PubSub, submissionPairs []SubmissionAddress, interval int, contractAddress string, cachedWhitelist []common.Address) (*Reporter, error) {
 	topicString := TOPIC_STRING + "-" + strconv.Itoa(interval)
 	groupInterval := time.Duration(interval) * time.Millisecond
 
-	reporter, err := newReporter(ctx, h, ps, submissionPairs, groupInterval, topicString)
+	reporter, err := newReporter(ctx, h, ps, submissionPairs, groupInterval, topicString, contractAddress, cachedWhitelist)
 	if err != nil {
 		return nil, err
 	}
@@ -30,10 +30,10 @@ func NewReporter(ctx context.Context, h host.Host, ps *pubsub.PubSub, submission
 	return reporter, nil
 }
 
-func NewDeviationReporter(ctx context.Context, h host.Host, ps *pubsub.PubSub, submissionPairs []SubmissionAddress) (*Reporter, error) {
+func NewDeviationReporter(ctx context.Context, h host.Host, ps *pubsub.PubSub, submissionPairs []SubmissionAddress, contractAddress string, cachedWhitelist []common.Address) (*Reporter, error) {
 	topicString := TOPIC_STRING + "-deviation"
 
-	reporter, err := newReporter(ctx, h, ps, submissionPairs, DEVIATION_TIMEOUT, topicString)
+	reporter, err := newReporter(ctx, h, ps, submissionPairs, DEVIATION_TIMEOUT, topicString, contractAddress, cachedWhitelist)
 	if err != nil {
 		return nil, err
 	}
@@ -42,7 +42,7 @@ func NewDeviationReporter(ctx context.Context, h host.Host, ps *pubsub.PubSub, s
 	return reporter, nil
 }
 
-func newReporter(ctx context.Context, h host.Host, ps *pubsub.PubSub, submissionPairs []SubmissionAddress, interval time.Duration, topicString string) (*Reporter, error) {
+func newReporter(ctx context.Context, h host.Host, ps *pubsub.PubSub, submissionPairs []SubmissionAddress, interval time.Duration, topicString string, contractAddress string, cachedWhitelist []common.Address) (*Reporter, error) {
 	if len(submissionPairs) == 0 {
 		log.Error().Str("Player", "Reporter").Err(errors.New("no submission pairs")).Msg("no submission pairs to make new reporter")
 		return nil, errors.New("no submission pairs")
@@ -56,15 +56,11 @@ func newReporter(ctx context.Context, h host.Host, ps *pubsub.PubSub, submission
 
 	raft := raft.NewRaftNode(h, ps, topic, MESSAGE_BUFFER, interval)
 
-	contractAddress := os.Getenv("SUBMISSION_PROXY_CONTRACT")
-	if contractAddress == "" {
-		return nil, errors.New("SUBMISSION_PROXY_CONTRACT not set")
-	}
-
 	reporter := &Reporter{
 		Raft:               raft,
 		contractAddress:    contractAddress,
 		SubmissionInterval: interval,
+		CachedWhitelist:    cachedWhitelist,
 	}
 
 	reporter.SubmissionPairs = make(map[string]SubmissionPair)
@@ -158,7 +154,75 @@ func (r *Reporter) report(ctx context.Context, aggregates []GlobalAggregate) err
 		return r.reportWithoutProofs(ctx, aggregates)
 	}
 
-	return r.reportWithProofs(ctx, aggregates, proofMap)
+	orderedProofMap, err := r.orderProofs(ctx, proofMap, aggregates)
+	if err != nil {
+		log.Error().Str("Player", "Reporter").Err(err).Msg("orderProofs")
+		return r.reportWithoutProofs(ctx, aggregates)
+	}
+
+	err = UpdateProofs(ctx, aggregates, orderedProofMap)
+	if err != nil {
+		log.Error().Str("Player", "Reporter").Err(err).Msg("updateProofs")
+		return r.reportWithoutProofs(ctx, aggregates)
+	}
+
+	return r.reportWithProofs(ctx, aggregates, orderedProofMap)
+}
+
+func (r *Reporter) orderProof(ctx context.Context, proof []byte, aggregate GlobalAggregate) ([]byte, error) {
+	proof = RemoveDuplicateProof(proof)
+	hash := chain_utils.Value2HashForSign(aggregate.Value, aggregate.Timestamp.Unix())
+	proofChunks, err := SplitProofToChunk(proof)
+	if err != nil {
+		log.Error().Str("Player", "Reporter").Err(err).Msg("failed to split proof")
+		return nil, err
+	}
+
+	signers, err := GetSignerListFromProofs(hash, proofChunks)
+	if err != nil {
+		log.Error().Str("Player", "Reporter").Err(err).Msg("failed to get signers from proof")
+		return nil, err
+	}
+
+	err = CheckForNonWhitelistedSigners(signers, r.CachedWhitelist)
+	if err != nil {
+		log.Warn().Str("Player", "Reporter").Err(err).Msg("non-whitelisted signers in proof, reloading whitelist")
+		reloadedWhitelist, contractReadErr := ReadOnchainWhitelist(ctx, r.KlaytnHelper, r.contractAddress, GET_ONCHAIN_WHITELIST)
+		if contractReadErr != nil {
+			log.Error().Str("Player", "Reporter").Err(contractReadErr).Msg("failed to reload whitelist")
+			return nil, contractReadErr
+		}
+		r.CachedWhitelist = reloadedWhitelist
+	}
+
+	signerMap := GetSignerMap(signers, proofChunks)
+	orderedProof, err := OrderProof(signerMap, r.CachedWhitelist)
+	if err != nil {
+		log.Error().Str("Player", "Reporter").Err(err).Msg("failed to order proof")
+		return nil, err
+	}
+	return orderedProof, nil
+}
+
+func (r *Reporter) orderProofs(ctx context.Context, proofMap map[string][]byte, aggregates []GlobalAggregate) (map[string][]byte, error) {
+	orderedProofMap := make(map[string][]byte)
+	for _, agg := range aggregates {
+		proof, ok := proofMap[agg.Name]
+		if !ok {
+			log.Error().Str("Player", "Reporter").Msg("proof not found")
+			return nil, errors.New("proof not found")
+		}
+
+		orderedProof, err := r.orderProof(ctx, proof, agg)
+		if err != nil {
+			log.Error().Str("Player", "Reporter").Err(err).Msg("orderProof")
+			return nil, err
+		}
+
+		orderedProofMap[agg.Name] = orderedProof
+	}
+
+	return orderedProofMap, nil
 }
 
 func (r *Reporter) resignLeader() {
@@ -282,7 +346,6 @@ func (r *Reporter) deviationJob() error {
 			log.Error().Str("Player", "Reporter").Err(err).Msg("DeviationReport")
 			return err
 		}
-
 		return nil
 	}
 

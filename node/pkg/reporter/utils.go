@@ -1,6 +1,7 @@
 package reporter
 
 import (
+	"bytes"
 	"context"
 	"crypto/rand"
 	"encoding/json"
@@ -10,6 +11,8 @@ import (
 	"strconv"
 	"time"
 
+	"bisonai.com/orakl/node/pkg/chain/helper"
+	chain_utils "bisonai.com/orakl/node/pkg/chain/utils"
 	"bisonai.com/orakl/node/pkg/db"
 
 	"github.com/klaytn/klaytn/common"
@@ -108,8 +111,7 @@ func StoreLastSubmission(ctx context.Context, aggregates []GlobalAggregate) erro
 func ProofsToMap(proofs []Proof) map[string][]byte {
 	m := make(map[string][]byte)
 	for _, proof := range proofs {
-		//m[name-round] = proof
-		m[proof.Name+"-"+strconv.FormatInt(proof.Round, 10)] = proof.Proof
+		m[proof.Name] = proof.Proof
 	}
 	return m
 }
@@ -149,7 +151,7 @@ func MakeContractArgsWithProofs(aggregates []GlobalAggregate, submissionPairs ma
 		}
 		addresses[i] = submissionPairs[agg.Name].Address
 		values[i] = big.NewInt(agg.Value)
-		proofs[i] = proofMap[agg.Name+"-"+strconv.FormatInt(agg.Round, 10)]
+		proofs[i] = proofMap[agg.Name]
 		timestamps[i] = big.NewInt(agg.Timestamp.Unix())
 	}
 
@@ -316,4 +318,152 @@ func ValidateAggregateTimestampValues(aggregates []GlobalAggregate) bool {
 		}
 	}
 	return true
+}
+
+func ReadOnchainWhitelist(ctx context.Context, chainHelper *helper.ChainHelper, contractAddress string, contractFunction string) ([]common.Address, error) {
+	result, err := chainHelper.ReadContract(ctx, contractAddress, contractFunction)
+	if err != nil {
+		log.Error().Str("Player", "Reporter").Err(err).Msg("failed to read contract")
+		return nil, err
+	}
+
+	rawResultSlice, ok := result.([]interface{})
+	if !ok {
+		log.Error().Str("Player", "Reporter").Msg("unexpected raw result type")
+		return nil, errors.New("unexpected result type")
+	}
+
+	arr, ok := rawResultSlice[0].([]common.Address)
+	if !ok {
+		log.Error().Str("Player", "Reporter").Msg("unexpected raw result type")
+		return nil, errors.New("unexpected rawResult type")
+	}
+	return arr, nil
+}
+
+func CheckForNonWhitelistedSigners(signers []common.Address, whitelist []common.Address) error {
+	for _, signer := range signers {
+		if !isWhitelisted(signer, whitelist) {
+			log.Error().Str("Player", "Reporter").Str("signer", signer.Hex()).Msg("non-whitelisted signer")
+			return errors.New("non-whitelisted signer")
+		}
+	}
+	return nil
+}
+
+func isWhitelisted(signer common.Address, whitelist []common.Address) bool {
+	for _, w := range whitelist {
+		if w == signer {
+			return true
+		}
+	}
+	return false
+}
+
+func OrderProof(signerMap map[common.Address][]byte, whitelist []common.Address) ([]byte, error) {
+	tmpProofs := make([][]byte, 0, len(whitelist))
+	for _, signer := range whitelist {
+		tmpProof, ok := signerMap[signer]
+		if ok {
+			tmpProofs = append(tmpProofs, tmpProof)
+		}
+	}
+
+	if len(tmpProofs) == 0 {
+		log.Error().Str("Player", "Reporter").Msg("no valid proofs")
+		return nil, errors.New("no valid proofs")
+	}
+
+	return bytes.Join(tmpProofs, nil), nil
+}
+
+func GetSignerMap(signers []common.Address, proofChunks [][]byte) map[common.Address][]byte {
+	signerMap := make(map[common.Address][]byte)
+	for i, signer := range signers {
+		signerMap[signer] = proofChunks[i]
+	}
+	return signerMap
+}
+
+func GetSignerListFromProofs(hash []byte, proofChunks [][]byte) ([]common.Address, error) {
+	signers := make([]common.Address, 0, len(proofChunks))
+	for _, p := range proofChunks {
+		signer, err := chain_utils.RecoverSigner(hash, p)
+		if err != nil {
+			return nil, err
+		}
+		signers = append(signers, signer)
+	}
+
+	return signers, nil
+}
+
+func SplitProofToChunk(proof []byte) ([][]byte, error) {
+	if len(proof) == 0 {
+		return nil, errors.New("empty proof")
+	}
+
+	if len(proof)%65 != 0 {
+		return nil, errors.New("invalid proof length")
+	}
+
+	proofs := make([][]byte, 0, len(proof)/65)
+	for i := 0; i < len(proof); i += 65 {
+		proofs = append(proofs, proof[i:i+65])
+	}
+
+	return proofs, nil
+}
+
+func RemoveDuplicateProof(proof []byte) []byte {
+	proofs, err := SplitProofToChunk(proof)
+	if err != nil {
+		return []byte{}
+	}
+
+	uniqueProofs := make(map[string][]byte)
+	for _, p := range proofs {
+		uniqueProofs[string(p)] = p
+	}
+
+	result := make([][]byte, 0, len(uniqueProofs)*65)
+	for _, p := range uniqueProofs {
+		result = append(result, p)
+	}
+
+	return bytes.Join(result, nil)
+}
+
+func UpsertProofs(ctx context.Context, aggregates []GlobalAggregate, proofMap map[string][]byte) error {
+	upsertRows := make([][]any, 0, len(aggregates))
+	for _, agg := range aggregates {
+		proof, ok := proofMap[agg.Name]
+		if !ok {
+			continue
+		}
+		upsertRows = append(upsertRows, []any{agg.Name, agg.Round, proof})
+	}
+
+	err := db.BulkUpsert(ctx, "proofs", []string{"name", "round", "proof"}, upsertRows, []string{"name", "round"}, []string{"proof"})
+	if err != nil {
+		log.Error().Str("Player", "Reporter").Err(err).Msg("failed to upsert proofs")
+	}
+	return err
+}
+
+func UpdateProofs(ctx context.Context, aggregates []GlobalAggregate, proofMap map[string][]byte) error {
+	rows := make([][]any, 0, len(aggregates))
+	for _, agg := range aggregates {
+		proof, ok := proofMap[agg.Name]
+		if !ok {
+			continue
+		}
+		rows = append(rows, []any{proof, agg.Name, agg.Round})
+	}
+
+	err := db.BulkUpdate(ctx, "proofs", []string{"proof"}, rows, []string{"name", "round"})
+	if err != nil {
+		log.Error().Str("Player", "Reporter").Err(err).Msg("failed to update proofs")
+	}
+	return err
 }
