@@ -31,6 +31,8 @@ contract Feed is Ownable, IFeed {
     error InvalidSubmitter();
     error OnlySubmitter();
     error NoDataPresent();
+    error InsufficientData();
+    error AnswerAboveTolerance();
 
     modifier onlySubmitter() {
         if (msg.sender != submitter) {
@@ -57,12 +59,12 @@ contract Feed is Ownable, IFeed {
      * @param _submitter The address of the new submitter
      */
     function updateSubmitter(address _submitter) external onlyOwner {
-	if (_submitter == address(0)) {
-	    revert InvalidSubmitter();
-	}
+        if (_submitter == address(0)) {
+            revert InvalidSubmitter();
+        }
 
-	submitter = _submitter;
-	emit SubmitterUpdated(_submitter);
+        submitter = _submitter;
+        emit SubmitterUpdated(_submitter);
     }
 
     /**
@@ -85,7 +87,7 @@ contract Feed is Ownable, IFeed {
     /**
      * @inheritdoc IFeed
      */
-    function latestRoundData() external view virtual override returns (uint64 id, int256 answer, uint256 updatedAt) {
+    function latestRoundData() public view virtual override returns (uint64 id, int256 answer, uint256 updatedAt) {
         return getRoundData(latestRoundId);
     }
 
@@ -94,6 +96,42 @@ contract Feed is Ownable, IFeed {
      */
     function latestRoundUpdatedAt() external view returns (uint256) {
         return rounds[latestRoundId].updatedAt;
+    }
+
+    /**
+     * @inheritdoc IFeed
+     */
+    function twap(uint256 _interval, uint256 _latestUpdatedAtTolerance, int256 _minCount)
+        external
+        view
+        returns (int256)
+    {
+        (uint64 latestId_, int256 latestAnswer_, uint256 latestUpdatedAt_) = latestRoundData();
+
+        if ((_latestUpdatedAtTolerance > 0) && ((block.timestamp - latestUpdatedAt_) > _latestUpdatedAtTolerance)) {
+            revert AnswerAboveTolerance();
+        }
+
+        int256 count_ = 1;
+        int256 sum_ = latestAnswer_;
+
+        while (true) {
+            if (latestId_ == 1) {
+                revert InsufficientData();
+            }
+
+            (uint64 id_, int256 answer_, uint256 updatedAt_) = getRoundData(latestId_ - 1);
+            sum_ += answer_;
+            count_ += 1;
+
+            if (((block.timestamp - updatedAt_) >= _interval) && (count_ >= _minCount)) {
+                break;
+            }
+
+            latestId_ = id_;
+        }
+
+        return sum_ / count_;
     }
 
     /**

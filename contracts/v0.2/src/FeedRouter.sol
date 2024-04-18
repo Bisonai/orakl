@@ -74,6 +74,17 @@ contract FeedRouter is Ownable, IFeedRouter {
     /**
      * @inheritdoc IFeedRouter
      */
+    function twap(string calldata _feedName, uint256 _interval, uint256 _latestUpdatedAtTolerance, int256 _minCount)
+        external
+        view
+        returns (int256)
+    {
+        return IFeedProxy(feedProxies[_feedName]).twap(_interval, _latestUpdatedAtTolerance, _minCount);
+    }
+
+    /**
+     * @inheritdoc IFeedRouter
+     */
     function proposedGetRoundData(string calldata _feedName, uint64 _roundId)
         external
         view
