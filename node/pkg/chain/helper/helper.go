@@ -35,9 +35,8 @@ type signedTx struct {
 }
 
 const (
-	DelegatorEndpoint = "/api/v1/sign/volatile"
+	DelegatorEndpoint = "/api/v1/sign/v2"
 
-	// TODO: support multiple json rpc providers
 	EnvDelegatorUrl   = "DELEGATOR_URL"
 	KlaytnProviderUrl = "KLAYTN_PROVIDER_URL"
 	KlaytnReporterPk  = "KLAYTN_REPORTER_PK"
