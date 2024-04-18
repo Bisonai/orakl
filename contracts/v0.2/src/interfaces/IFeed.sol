@@ -15,6 +15,12 @@ interface IFeed {
     function description() external view returns (string memory);
 
     /**
+     * @notice Get version and type of the feed.
+     * @return typeAndVersion The type and version of the feed.
+     */
+    function typeAndVersion() external view returns (string memory);
+
+    /**
      * @notice Get latest round data of the feed.
      * @dev This function internally calls getRoundData with the
      * latest round ID.
@@ -39,12 +45,6 @@ interface IFeed {
      * @return The TWAP
      */
     function twap(uint256 interval, uint256 latestUpdatedAtTolerance, int256 minCount) external view returns (int256);
-
-    /**
-     * @notice Get version and type of the feed.
-     * @return typeAndVersion The type and version of the feed.
-     */
-    function typeAndVersion() external view returns (string memory);
 
     /**
      * @notice Get round data given a round ID.

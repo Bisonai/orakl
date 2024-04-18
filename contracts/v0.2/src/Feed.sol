@@ -6,7 +6,7 @@ import {IFeed} from "./interfaces/IFeed.sol";
 
 /**
  * @title Orakl Network Feed
- * @author Bisonai Labs
+ * @author Bisonai
  * @notice A contract that stores the historical and latest answers, and
  * the timestamp submitted by submitter.
  * @dev The submitted answers are expected to be submitted through a
@@ -52,6 +52,13 @@ contract Feed is Ownable, IFeed {
         decimals = _decimals;
         description = _description;
         submitter = _submitter;
+    }
+
+    /**
+     * @inheritdoc IFeed
+     */
+    function typeAndVersion() external pure returns (string memory) {
+        return "Feed v0.2";
     }
 
     /**
@@ -132,13 +139,6 @@ contract Feed is Ownable, IFeed {
         }
 
         return sum_ / count_;
-    }
-
-    /**
-     * @inheritdoc IFeed
-     */
-    function typeAndVersion() external pure returns (string memory) {
-        return "Feed v0.2";
     }
 
     /**

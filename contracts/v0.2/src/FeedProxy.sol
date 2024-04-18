@@ -7,7 +7,7 @@ import {IFeed} from "./interfaces/IFeed.sol";
 
 /**
  * @title Orakl Network Proxy Feed
- * @author Bisonai Labs
+ * @author Bisonai
  * @notice A contract that acts as a proxy for a `Feed` contract. It
  * allows the owner to propose and confirm a new feed.
  * @dev The current and proposed contracts are stored in the `feed`
@@ -49,6 +49,27 @@ contract FeedProxy is Ownable, IFeedProxy {
      */
     function description() external view returns (string memory) {
         return feed.description();
+    }
+
+    /**
+     * @inheritdoc IFeed
+     */
+    function typeAndVersion() external view returns (string memory) {
+        return feed.typeAndVersion();
+    }
+
+    /**
+     * @inheritdoc IFeedProxy
+     */
+    function getFeed() external view returns (address) {
+        return address(feed);
+    }
+
+    /**
+     * @inheritdoc IFeedProxy
+     */
+    function getProposedFeed() external view returns (address) {
+        return address(proposedFeed);
     }
 
     /**
@@ -105,20 +126,6 @@ contract FeedProxy is Ownable, IFeedProxy {
     }
 
     /**
-     * @inheritdoc IFeedProxy
-     */
-    function getFeed() external view returns (address) {
-        return address(feed);
-    }
-
-    /**
-     * @inheritdoc IFeedProxy
-     */
-    function getProposedFeed() external view returns (address) {
-        return address(proposedFeed);
-    }
-
-    /**
      * @inheritdoc IFeed
      */
     function twap(uint256 _interval, uint256 _latestUpdatedAtTolerance, int256 _minCount)
@@ -130,10 +137,14 @@ contract FeedProxy is Ownable, IFeedProxy {
     }
 
     /**
-     * @inheritdoc IFeed
+     * @inheritdoc IFeedProxy
      */
-    function typeAndVersion() external view returns (string memory) {
-        return feed.typeAndVersion();
+    function proposedTwap(uint256 _interval, uint256 _latestUpdatedAtTolerance, int256 _minCount)
+        external
+        view
+        returns (int256)
+    {
+        return proposedFeed.twap(_interval, _latestUpdatedAtTolerance, _minCount);
     }
 
     /**

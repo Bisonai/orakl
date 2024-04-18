@@ -7,7 +7,7 @@ import {IFeedProxy} from "./interfaces/IFeedProxy.sol";
 
 /**
  * @title Orakl Network Feed Router
- * @author Bisonai Labs
+ * @author Bisonai
  * @notice The `FeedRouter` is the main contract needed to read Orakl
  * Network Data Feeds. The interface is similar to the `FeedProxy`
  * contract but requires an extra feed name (`_feedName`) parameter. The
