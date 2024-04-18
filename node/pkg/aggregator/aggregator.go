@@ -39,6 +39,7 @@ func NewAggregator(h host.Host, ps *pubsub.PubSub, topicString string) (*Aggrega
 		CollectedProofs:         map[int64][][]byte{},
 		CollectedAgreements:     map[int64][]bool{},
 		PreparedLocalAggregates: map[int64]int64{},
+		SyncedTimes:             map[int64]time.Time{},
 		AggregatorMutex:         sync.Mutex{},
 		RoundID:                 0,
 		SignHelper:              signHelper,
