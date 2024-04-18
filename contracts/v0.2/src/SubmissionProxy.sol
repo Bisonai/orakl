@@ -25,6 +25,7 @@ contract SubmissionProxy is Ownable {
 
     uint256 public maxSubmission = 50;
     uint256 public expirationPeriod = 5 weeks;
+    uint256 public dataFreshness = 10 seconds;
     uint8 public threshold = 50; // 50 %
     address[] public oracles;
 
@@ -42,6 +43,7 @@ contract SubmissionProxy is Ownable {
     event ExpirationPeriodSet(uint256 expirationPeriod);
     event DefaultThresholdSet(uint8 threshold);
     event ThresholdSet(address feed, uint8 threshold);
+    event DataFreshnessSet(uint256 dataFreshness);
 
     error OnlyOracle();
     error InvalidOracle();
@@ -75,6 +77,15 @@ contract SubmissionProxy is Ownable {
         }
         maxSubmission = _maxSubmission;
         emit MaxSubmissionSet(_maxSubmission);
+    }
+
+    /**
+     * @notice Set the data freshness for oracles.
+     * @param _dataFreshness The data freshness
+     */
+    function setDataFreshness(uint256 _dataFreshness) external onlyOwner {
+        dataFreshness = _dataFreshness;
+        emit DataFreshnessSet(_dataFreshness);
     }
 
     /**
@@ -228,22 +239,35 @@ contract SubmissionProxy is Ownable {
      * @param _feeds The addresses of the feeds
      * @param _answers The submissions
      * @param _proofs The proofs
+     * @param _timestamps The timestamps of the proofs
      */
-    function submit(address[] memory _feeds, int256[] memory _answers, bytes[] memory _proofs) external {
-        if (_feeds.length != _answers.length || _answers.length != _proofs.length || _feeds.length > maxSubmission) {
+    function submit(
+        address[] memory _feeds,
+        int256[] memory _answers,
+        bytes[] memory _proofs,
+        uint256[] memory _timestamps
+    ) external {
+        if (
+            _feeds.length != _answers.length || _answers.length != _proofs.length
+                || _proofs.length != _timestamps.length || _feeds.length > maxSubmission
+        ) {
             revert InvalidSubmissionLength();
         }
 
-        for (uint256 feedIdx = 0; feedIdx < _feeds.length; feedIdx++) {
-            bytes[] memory proofs_ = splitBytesToChunks(_proofs[feedIdx]);
-            bytes32 message_ = keccak256(abi.encodePacked(_answers[feedIdx]));
+        for (uint256 feedIdx_ = 0; feedIdx_ < _feeds.length; feedIdx_++) {
+            if (_timestamps[feedIdx_] <= block.timestamp - dataFreshness) {
+                continue;
+            }
+
+            bytes[] memory proofs_ = splitBytesToChunks(_proofs[feedIdx_]);
+            bytes32 message_ = keccak256(abi.encodePacked(_answers[feedIdx_], _timestamps[feedIdx_]));
 
             bool isVerified_ = false;
             uint8 verifiedSignatures_ = 0;
             uint8 lastIndex_ = 0;
             uint256 oracleCount_ = oracles.length;
 
-            uint8 threshold_ = thresholds[_feeds[feedIdx]];
+            uint8 threshold_ = thresholds[_feeds[feedIdx_]];
             if (threshold_ == 0) {
                 threshold_ = threshold;
             }
@@ -263,7 +287,7 @@ contract SubmissionProxy is Ownable {
                     revert IndexOutOfBounds();
                 }
 
-                if (isWhitelisted(signer_) && (signer_ != oracles[oracleIndex_])) {
+                if (isWhitelisted(signer_)) {
                     verifiedSignatures_++;
                     if (verifiedSignatures_ >= requiredSignatures_) {
                         isVerified_ = true;
@@ -278,7 +302,7 @@ contract SubmissionProxy is Ownable {
                 continue;
             }
 
-            IFeed(_feeds[feedIdx]).submit(_answers[feedIdx]);
+            IFeed(_feeds[feedIdx_]).submit(_answers[feedIdx_]);
         }
     }
 
