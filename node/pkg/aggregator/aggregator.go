@@ -93,8 +93,8 @@ func (n *Aggregator) HandleRoundSyncMessage(ctx context.Context, msg raft.Messag
 	}
 
 	if msg.SentFrom != n.Raft.GetLeader() {
-		log.Warn().Str("Player", "Aggregator").Msg("trigger message sent from non-leader")
-		return fmt.Errorf("trigger message sent from non-leader")
+		log.Warn().Str("Player", "Aggregator").Msg("round sync message sent from non-leader")
+		return fmt.Errorf("round sync message sent from non-leader")
 	}
 
 	if roundSyncMessage.LeaderID == "" || roundSyncMessage.RoundID == 0 {
