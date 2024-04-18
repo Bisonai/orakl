@@ -255,7 +255,7 @@ contract SubmissionProxy is Ownable {
         }
 
         for (uint256 feedIdx_ = 0; feedIdx_ < _feeds.length; feedIdx_++) {
-            if (_timestamps[feedIdx_] + dataFreshness <= block.timestamp) {
+            if (_timestamps[feedIdx_] <= block.timestamp - dataFreshness) {
                 continue;
             }
 
@@ -287,7 +287,7 @@ contract SubmissionProxy is Ownable {
                     revert IndexOutOfBounds();
                 }
 
-                if (isWhitelisted(signer_) && (signer_ == oracles[oracleIndex_])) {
+                if (isWhitelisted(signer_)) {
                     verifiedSignatures_++;
                     if (verifiedSignatures_ >= requiredSignatures_) {
                         isVerified_ = true;
