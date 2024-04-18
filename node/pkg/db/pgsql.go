@@ -211,6 +211,8 @@ func BulkUpdate(ctx context.Context, tableName string, columnNames []string, row
 		return err
 	}
 
+	batch := &pgx.Batch{}
+
 	for _, row := range rows {
 		var b strings.Builder
 		fmt.Fprintf(&b, "UPDATE %s SET ", tableName)
@@ -230,8 +232,14 @@ func BulkUpdate(ctx context.Context, tableName string, columnNames []string, row
 			}
 			fmt.Fprintf(&b, "%s = $%d", col, i+len(columnNames)+1)
 		}
+		batch.Queue(b.String(), row...)
+	}
 
-		_, err = currentPool.Exec(ctx, b.String(), row...)
+	br := currentPool.SendBatch(ctx, batch)
+	defer br.Close()
+
+	for range rows {
+		_, err = br.Exec()
 		if err != nil {
 			return err
 		}
