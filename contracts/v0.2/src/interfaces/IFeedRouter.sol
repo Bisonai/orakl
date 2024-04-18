@@ -69,6 +69,20 @@ interface IFeedRouter {
         returns (int256);
 
     /**
+     * @notice Get the time-weighted average price (TWAP) of the
+     * proposed feed over a given interval.
+     * @param feedName The feed name.
+     * @param interval The time interval in seconds
+     * @param latestUpdatedAtTolerance The tolerance for the latest update time
+     * @param minCount The minimum number of data points
+     * @return The TWAP
+     */
+    function proposedTwap(string calldata feedName, uint256 interval, uint256 latestUpdatedAtTolerance, int256 minCount)
+        external
+        view
+        returns (int256);
+
+    /**
      * @notice Get round data from the proposed feed given a feed name and round ID.
      * @param feedName The feed name.
      * @param roundId The round ID.
