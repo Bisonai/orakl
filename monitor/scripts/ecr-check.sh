@@ -16,7 +16,7 @@ check_repository_tags() {
 
     # Count the number of tags
     available_tags=$(echo "$response" | jq '.imageTagDetails |= sort_by(.createdAt)')
-    tag_count=$(echo "$available_tags" | jq '.imageTagDetails[].imageTag' | wc -l | tr -d '[:space:]')
+    tag_count=$(echo "$available_tags" | jq '.imageTagDetails[].imageTag | select(. != "latest")' | wc -l | tr -d '[:space:]')
 
     # Check if the tag count exceeds the maximum allowed
     if [ "${tag_count}" -gt "${max_tag_count}" ]; then
