@@ -309,6 +309,7 @@ func (r *Raft) becomeLeader(ctx context.Context) {
 	r.Resign = make(chan interface{})
 	r.ElectionTimer.Stop()
 	r.UpdateRole(Leader)
+	r.UpdateLeader(r.GetHostId())
 	r.HeartbeatTicker = time.NewTicker(r.HeartbeatTimeout)
 	r.LeaderJobTicker = time.NewTicker(r.LeaderJobTimeout)
 
