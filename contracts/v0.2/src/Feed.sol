@@ -26,7 +26,9 @@ contract Feed is Ownable, IFeed {
     mapping(uint64 roundId => Round data) internal rounds;
 
     event FeedUpdated(int256 indexed answer, uint256 indexed roundId, uint256 updatedAt);
+    event SubmitterUpdated(address indexed submitter);
 
+    error InvalidSubmitter();
     error OnlySubmitter();
     error NoDataPresent();
 
@@ -48,6 +50,19 @@ contract Feed is Ownable, IFeed {
         decimals = _decimals;
         description = _description;
         submitter = _submitter;
+    }
+
+    /**
+     * @notice Update the submitter address.
+     * @param _submitter The address of the new submitter
+     */
+    function updateSubmitter(address _submitter) external onlyOwner {
+	if (_submitter == address(0)) {
+	    revert InvalidSubmitter();
+	}
+
+	submitter = _submitter;
+	emit SubmitterUpdated(_submitter);
     }
 
     /**
