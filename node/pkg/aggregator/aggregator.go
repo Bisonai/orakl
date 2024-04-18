@@ -34,12 +34,14 @@ func NewAggregator(h host.Host, ps *pubsub.PubSub, topicString string) (*Aggrega
 	}
 
 	aggregator := Aggregator{
-		Raft:            raft.NewRaftNode(h, ps, topic, 100, LEADER_TIMEOUT),
-		CollectedPrices: map[int64][]int64{},
-		CollectedProofs: map[int64][][]byte{},
-		AggregatorMutex: sync.Mutex{},
-		RoundID:         0,
-		SignHelper:      signHelper,
+		Raft:                    raft.NewRaftNode(h, ps, topic, 100, LEADER_TIMEOUT),
+		CollectedPrices:         map[int64][]int64{},
+		CollectedProofs:         map[int64][][]byte{},
+		CollectedAgreements:     map[int64][]bool{},
+		PreparedLocalAggregates: map[int64]int64{},
+		AggregatorMutex:         sync.Mutex{},
+		RoundID:                 0,
+		SignHelper:              signHelper,
 	}
 	aggregator.Raft.LeaderJob = aggregator.LeaderJob
 	aggregator.Raft.HandleCustomMessage = aggregator.HandleCustomMessage
