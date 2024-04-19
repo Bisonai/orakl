@@ -341,7 +341,7 @@ func SignTxByFeePayer(ctx context.Context, client ClientInterface, tx *types.Tra
 }
 
 func SubmitRawTx(ctx context.Context, client ClientInterface, tx *types.Transaction) error {
-	log.Debug().Str("tx", tx.Hash().String()).Msg("submitting tx")
+	log.Debug().Str("Player", "ChainHelper").Str("tx", tx.Hash().String()).Msg("submitting tx")
 	err := client.SendTransaction(ctx, tx)
 	if err != nil {
 		return err
@@ -352,16 +352,17 @@ func SubmitRawTx(ctx context.Context, client ClientInterface, tx *types.Transact
 
 	receipt, err := bind.WaitMined(ctxWithTimeout, client, tx)
 	if err != nil {
+		log.Error().Str("Player", "ChainHelper").Err(err).Msg("failed to wait for tx to be mined")
 		return err
 	}
-	log.Debug().Str("tx", tx.Hash().String()).Msg("tx mined")
+	log.Debug().Str("Player", "ChainHelper").Str("tx", tx.Hash().String()).Msg("tx mined")
 
 	if receipt.Status != 1 {
 		log.Error().Str("tx", receipt.TxHash.String()).Msg("tx failed")
 		return fmt.Errorf("transaction failed (hash: %s), status: %d", receipt.TxHash.String(), receipt.Status)
 	}
 
-	log.Debug().Any("hash", receipt.TxHash).Msg("tx success")
+	log.Debug().Str("Player", "ChainHelper").Any("hash", receipt.TxHash).Msg("tx success")
 	return nil
 }
 
