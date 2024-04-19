@@ -35,7 +35,7 @@ type signedTx struct {
 }
 
 const (
-	DelegatorEndpoint = "/api/v1/sign/v2"
+	DelegatorEndpoint = "/api/v1/sign/volatile"
 
 	EnvDelegatorUrl   = "DELEGATOR_URL"
 	KlaytnProviderUrl = "KLAYTN_PROVIDER_URL"
