@@ -6,12 +6,12 @@ import {IFeed} from "./IFeed.sol";
 interface IFeedProxy is IFeed {
     /**
      * @notice Get round data from the proposed feed given a round ID.
-     * @param _roundId The round ID.
+     * @param roundId The round ID.
      * @return id The round ID.
      * @return answer The oracle answer.
      * @return updatedAt Timestamp of the last update.
      */
-    function proposedGetRoundData(uint64 _roundId)
+    function getRoundDataFromProposedFeed(uint64 roundId)
         external
         view
         returns (uint64 id, int256 answer, uint256 updatedAt);
@@ -22,7 +22,7 @@ interface IFeedProxy is IFeed {
      * @return answer The oracle answer.
      * @return updatedAt Timestamp of the last update.
      */
-    function proposedLatestRoundData() external view returns (uint64 id, int256 answer, uint256 updatedAt);
+    function latestRoundDataFromProposedFeed() external view returns (uint64 id, int256 answer, uint256 updatedAt);
 
     /**
      * @notice Get address of the feed.
@@ -37,12 +37,15 @@ interface IFeedProxy is IFeed {
     function getProposedFeed() external view returns (address);
 
     /**
-     * @notice Get the time-weighted average price (TWAP) of the feed
-     * over a given interval.
+     * @notice Get the time-weighted average price (TWAP) of the
+     * proposed feed over a given interval.
      * @param interval The time interval in seconds
      * @param latestUpdatedAtTolerance The tolerance for the latest update time
      * @param minCount The minimum number of data points
      * @return The TWAP
      */
-    function twap(uint256 interval, uint256 latestUpdatedAtTolerance, int256 minCount) external view returns (int256);
+    function twapFromProposedFeed(uint256 interval, uint256 latestUpdatedAtTolerance, int256 minCount)
+        external
+        view
+        returns (int256);
 }

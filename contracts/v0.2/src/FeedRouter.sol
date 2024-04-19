@@ -7,7 +7,7 @@ import {IFeedProxy} from "./interfaces/IFeedProxy.sol";
 
 /**
  * @title Orakl Network Feed Router
- * @author Bisonai Labs
+ * @author Bisonai
  * @notice The `FeedRouter` is the main contract needed to read Orakl
  * Network Data Feeds. The interface is similar to the `FeedProxy`
  * contract but requires an extra feed name (`_feedName`) parameter. The
@@ -74,25 +74,48 @@ contract FeedRouter is Ownable, IFeedRouter {
     /**
      * @inheritdoc IFeedRouter
      */
-    function proposedGetRoundData(string calldata _feedName, uint64 _roundId)
+    function twap(string calldata _feedName, uint256 _interval, uint256 _latestUpdatedAtTolerance, int256 _minCount)
         external
         view
-        validFeed(_feedName)
-        returns (uint64 id, int256 answer, uint256 updatedAt)
+        returns (int256)
     {
-        return IFeedProxy(feedProxies[_feedName]).proposedGetRoundData(_roundId);
+        return IFeedProxy(feedProxies[_feedName]).twap(_interval, _latestUpdatedAtTolerance, _minCount);
     }
 
     /**
      * @inheritdoc IFeedRouter
      */
-    function proposedLatestRoundData(string calldata _feedName)
+    function twapFromProposedFeed(
+        string calldata _feedName,
+        uint256 _interval,
+        uint256 _latestUpdatedAtTolerance,
+        int256 _minCount
+    ) external view returns (int256) {
+        return IFeedProxy(feedProxies[_feedName]).twapFromProposedFeed(_interval, _latestUpdatedAtTolerance, _minCount);
+    }
+
+    /**
+     * @inheritdoc IFeedRouter
+     */
+    function getRoundDataFromProposedFeed(string calldata _feedName, uint64 _roundId)
         external
         view
         validFeed(_feedName)
         returns (uint64 id, int256 answer, uint256 updatedAt)
     {
-        return IFeedProxy(feedProxies[_feedName]).proposedLatestRoundData();
+        return IFeedProxy(feedProxies[_feedName]).getRoundDataFromProposedFeed(_roundId);
+    }
+
+    /**
+     * @inheritdoc IFeedRouter
+     */
+    function latestRoundDataFromProposedFeed(string calldata _feedName)
+        external
+        view
+        validFeed(_feedName)
+        returns (uint64 id, int256 answer, uint256 updatedAt)
+    {
+        return IFeedProxy(feedProxies[_feedName]).latestRoundDataFromProposedFeed();
     }
 
     /**

@@ -6,7 +6,7 @@ import {IFeed} from "./interfaces/IFeedSubmit.sol";
 
 /**
  * @title Orakl Network Submission Proxy
- * @author Bisonai Labs
+ * @author Bisonai
  * @notice A contract that allows oracles to batch submit to multiple
  * `Feed` contracts with a single transaction.
  * @dev The contract owner can set the maximum batch size in a single

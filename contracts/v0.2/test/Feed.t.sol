@@ -13,6 +13,7 @@ contract FeedTest is Test {
 
     event FeedUpdated(int256 indexed answer, uint256 indexed roundId, uint256 updatedAt);
     event SubmitterUpdated(address indexed submitter);
+
     error OwnableUnauthorizedAccount(address account);
 
     function setUp() public {
@@ -20,32 +21,30 @@ contract FeedTest is Test {
     }
 
     function test_UpdateSubmitter() public {
-	address newSubmitter = makeAddr("new-submitter");
-	assert(feed.submitter() != newSubmitter);
+        address newSubmitter = makeAddr("new-submitter");
+        assert(feed.submitter() != newSubmitter);
 
-	// SUCCESS
-	vm.expectEmit(true, true, true, true);
+        // SUCCESS
+        vm.expectEmit(true, true, true, true);
         emit SubmitterUpdated(newSubmitter);
-	feed.updateSubmitter(newSubmitter);
-	assertEq(feed.submitter(), newSubmitter);
+        feed.updateSubmitter(newSubmitter);
+        assertEq(feed.submitter(), newSubmitter);
     }
 
     function test_UpdateSubmitterWithNonOwner() public {
-	address nonOwner = makeAddr("non-owner");
-	address newSubmitter = makeAddr("new-submitter");
+        address nonOwner = makeAddr("non-owner");
+        address newSubmitter = makeAddr("new-submitter");
 
-	// FAIL - only owner can update submitter
-	vm.prank(nonOwner);
-	vm.expectRevert(
-	    abi.encodeWithSelector(OwnableUnauthorizedAccount.selector, nonOwner)
-	);
-	feed.updateSubmitter(newSubmitter);
+        // FAIL - only owner can update submitter
+        vm.prank(nonOwner);
+        vm.expectRevert(abi.encodeWithSelector(OwnableUnauthorizedAccount.selector, nonOwner));
+        feed.updateSubmitter(newSubmitter);
     }
 
     function test_UpdateSubmitterWithZeroAddress() public {
-	// FAIL - cannot set submitter to address(0)
-	vm.expectRevert(Feed.InvalidSubmitter.selector);
-	feed.updateSubmitter(address(0));
+        // FAIL - cannot set submitter to address(0)
+        vm.expectRevert(Feed.InvalidSubmitter.selector);
+        feed.updateSubmitter(address(0));
     }
 
     function test_SubmitAndReadResponse() public {

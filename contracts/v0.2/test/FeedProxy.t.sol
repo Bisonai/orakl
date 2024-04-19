@@ -74,7 +74,7 @@ contract FeedProxyTest is Test {
         uint256 heartbeat_ = 10;
         vm.warp(block.timestamp + heartbeat_);
 
-        vm.expectRevert(FeedProxy.AnswerAboveTolerance.selector);
+        vm.expectRevert(Feed.AnswerAboveTolerance.selector);
         feedProxy.twap(60, heartbeat_ / 2, 0);
     }
 
@@ -82,7 +82,7 @@ contract FeedProxyTest is Test {
         vm.prank(oracle);
         feed.submit(10);
 
-        vm.expectRevert(FeedProxy.InsufficientData.selector);
+        vm.expectRevert(Feed.InsufficientData.selector);
         feedProxy.twap(60, 0, 0);
     }
 

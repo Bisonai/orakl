@@ -7,7 +7,7 @@ import {IFeed} from "./interfaces/IFeed.sol";
 
 /**
  * @title Orakl Network Proxy Feed
- * @author Bisonai Labs
+ * @author Bisonai
  * @notice A contract that acts as a proxy for a `Feed` contract. It
  * allows the owner to propose and confirm a new feed.
  * @dev The current and proposed contracts are stored in the `feed`
@@ -21,8 +21,6 @@ contract FeedProxy is Ownable, IFeedProxy {
     event FeedConfirmed(address indexed previous, address indexed current);
 
     error InvalidProposedFeed();
-    error InsufficientData();
-    error AnswerAboveTolerance();
 
     modifier hasProposal() {
         require(address(proposedFeed) != address(0), "No proposed feed present");
@@ -36,6 +34,42 @@ contract FeedProxy is Ownable, IFeedProxy {
      */
     constructor(address _feed) Ownable(msg.sender) {
         setFeed(_feed);
+    }
+
+    /**
+     * @notice Get decimals of the feed.
+     * @return decimals The decimals of the feed.
+     */
+    function decimals() external view returns (uint8) {
+        return feed.decimals();
+    }
+
+    /**
+     * @inheritdoc IFeed
+     */
+    function description() external view returns (string memory) {
+        return feed.description();
+    }
+
+    /**
+     * @inheritdoc IFeed
+     */
+    function typeAndVersion() external view returns (string memory) {
+        return feed.typeAndVersion();
+    }
+
+    /**
+     * @inheritdoc IFeedProxy
+     */
+    function getFeed() external view returns (address) {
+        return address(feed);
+    }
+
+    /**
+     * @inheritdoc IFeedProxy
+     */
+    function getProposedFeed() external view returns (address) {
+        return address(proposedFeed);
     }
 
     /**
@@ -70,43 +104,7 @@ contract FeedProxy is Ownable, IFeedProxy {
     /**
      * @inheritdoc IFeedProxy
      */
-    function twap(uint256 _interval, uint256 _latestUpdatedAtTolerance, int256 _minCount)
-        external
-        view
-        returns (int256)
-    {
-        (uint64 latestId_, int256 latestAnswer_, uint256 latestUpdatedAt_) = feed.latestRoundData();
-
-        if ((_latestUpdatedAtTolerance > 0) && ((block.timestamp - latestUpdatedAt_) > _latestUpdatedAtTolerance)) {
-            revert AnswerAboveTolerance();
-        }
-
-        int256 count_ = 1;
-        int256 sum_ = latestAnswer_;
-
-        while (true) {
-            if (latestId_ == 1) {
-                revert InsufficientData();
-            }
-
-            (uint64 id_, int256 answer_, uint256 updatedAt_) = feed.getRoundData(latestId_ - 1);
-            sum_ += answer_;
-            count_ += 1;
-
-            if (((block.timestamp - updatedAt_) >= _interval) && (count_ >= _minCount)) {
-                break;
-            }
-
-            latestId_ = id_;
-        }
-
-        return sum_ / count_;
-    }
-
-    /**
-     * @inheritdoc IFeedProxy
-     */
-    function proposedGetRoundData(uint64 _roundId)
+    function getRoundDataFromProposedFeed(uint64 _roundId)
         external
         view
         hasProposal
@@ -118,7 +116,7 @@ contract FeedProxy is Ownable, IFeedProxy {
     /**
      * @inheritdoc IFeedProxy
      */
-    function proposedLatestRoundData()
+    function latestRoundDataFromProposedFeed()
         external
         view
         hasProposal
@@ -128,39 +126,25 @@ contract FeedProxy is Ownable, IFeedProxy {
     }
 
     /**
-     * @inheritdoc IFeedProxy
-     */
-    function getFeed() external view returns (address) {
-        return address(feed);
-    }
-
-    /**
-     * @inheritdoc IFeedProxy
-     */
-    function getProposedFeed() external view returns (address) {
-        return address(proposedFeed);
-    }
-
-    /**
-     * @notice Get decimals of the feed.
-     * @return decimals The decimals of the feed.
-     */
-    function decimals() external view returns (uint8) {
-        return feed.decimals();
-    }
-
-    /**
      * @inheritdoc IFeed
      */
-    function typeAndVersion() external view returns (string memory) {
-        return feed.typeAndVersion();
+    function twap(uint256 _interval, uint256 _latestUpdatedAtTolerance, int256 _minCount)
+        external
+        view
+        returns (int256)
+    {
+        return feed.twap(_interval, _latestUpdatedAtTolerance, _minCount);
     }
 
     /**
-     * @inheritdoc IFeed
+     * @inheritdoc IFeedProxy
      */
-    function description() external view returns (string memory) {
-        return feed.description();
+    function twapFromProposedFeed(uint256 _interval, uint256 _latestUpdatedAtTolerance, int256 _minCount)
+        external
+        view
+        returns (int256)
+    {
+        return proposedFeed.twap(_interval, _latestUpdatedAtTolerance, _minCount);
     }
 
     /**
@@ -176,7 +160,7 @@ contract FeedProxy is Ownable, IFeedProxy {
         if (_feed == address(0)) {
             revert InvalidProposedFeed();
         }
-        proposedFeed = IFeedProxy(_feed);
+        proposedFeed = IFeed(_feed);
         emit FeedProposed(address(feed), _feed);
     }
 
@@ -204,7 +188,7 @@ contract FeedProxy is Ownable, IFeedProxy {
      * `confirmFeed` function.
      * @param _feed The address of the new feed
      */
-    function setFeed(address _feed) internal {
-        feed = IFeedProxy(_feed);
+    function setFeed(address _feed) private {
+        feed = IFeed(_feed);
     }
 }

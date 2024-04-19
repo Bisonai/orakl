@@ -15,13 +15,10 @@ interface IFeed {
     function description() external view returns (string memory);
 
     /**
-     * @notice Get round data given a round ID.
-     * @param _roundId The round ID.
-     * @return id The round ID.
-     * @return answer The oracle answer.
-     * @return updatedAt Timestamp of the last update.
+     * @notice Get version and type of the feed.
+     * @return typeAndVersion The type and version of the feed.
      */
-    function getRoundData(uint64 _roundId) external view returns (uint64 id, int256 answer, uint256 updatedAt);
+    function typeAndVersion() external view returns (string memory);
 
     /**
      * @notice Get latest round data of the feed.
@@ -40,8 +37,21 @@ interface IFeed {
     function latestRoundUpdatedAt() external view returns (uint256);
 
     /**
-     * @notice Get version and type of the feed.
-     * @return typeAndVersion The type and version of the feed.
+     * @notice Get the time-weighted average price (TWAP) of the feed
+     * over a given interval.
+     * @param interval The time interval in seconds
+     * @param latestUpdatedAtTolerance The tolerance for the latest update time
+     * @param minCount The minimum number of data points
+     * @return The TWAP
      */
-    function typeAndVersion() external view returns (string memory);
+    function twap(uint256 interval, uint256 latestUpdatedAtTolerance, int256 minCount) external view returns (int256);
+
+    /**
+     * @notice Get round data given a round ID.
+     * @param roundId The round ID.
+     * @return id The round ID.
+     * @return answer The oracle answer.
+     * @return updatedAt Timestamp of the last update.
+     */
+    function getRoundData(uint64 roundId) external view returns (uint64 id, int256 answer, uint256 updatedAt);
 }

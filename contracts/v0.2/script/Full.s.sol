@@ -43,13 +43,13 @@ contract DeployFull is Script {
         vm.stopBroadcast();
     }
 
-    function buildFeed(string memory json, uint256 feedIndex, address oracle) internal {
+    function buildFeed(string memory json, uint256 feedIndex, address submitter) internal {
         UtilsScript.FeedConstructor memory constructor_ =
             abi.decode(json.parseRaw(buildJsonQuery(feedIndex)), (UtilsScript.FeedConstructor));
         uint8 decimals = uint8(constructor_.decimals);
         string memory description = constructor_.description;
 
-        Feed feed = new Feed(decimals, description, oracle);
+        Feed feed = new Feed(decimals, description, submitter);
         console.log(description, address(feed));
     }
 
