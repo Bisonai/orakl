@@ -85,37 +85,37 @@ contract FeedRouter is Ownable, IFeedRouter {
     /**
      * @inheritdoc IFeedRouter
      */
-    function proposedTwap(
+    function twapFromProposedFeed(
         string calldata _feedName,
         uint256 _interval,
         uint256 _latestUpdatedAtTolerance,
         int256 _minCount
     ) external view returns (int256) {
-        return IFeedProxy(feedProxies[_feedName]).proposedTwap(_interval, _latestUpdatedAtTolerance, _minCount);
+        return IFeedProxy(feedProxies[_feedName]).twapFromProposedFeed(_interval, _latestUpdatedAtTolerance, _minCount);
     }
 
     /**
      * @inheritdoc IFeedRouter
      */
-    function proposedGetRoundData(string calldata _feedName, uint64 _roundId)
+    function getRoundDataFromProposedFeed(string calldata _feedName, uint64 _roundId)
         external
         view
         validFeed(_feedName)
         returns (uint64 id, int256 answer, uint256 updatedAt)
     {
-        return IFeedProxy(feedProxies[_feedName]).proposedGetRoundData(_roundId);
+        return IFeedProxy(feedProxies[_feedName]).getRoundDataFromProposedFeed(_roundId);
     }
 
     /**
      * @inheritdoc IFeedRouter
      */
-    function proposedLatestRoundData(string calldata _feedName)
+    function latestRoundDataFromProposedFeed(string calldata _feedName)
         external
         view
         validFeed(_feedName)
         returns (uint64 id, int256 answer, uint256 updatedAt)
     {
-        return IFeedProxy(feedProxies[_feedName]).proposedLatestRoundData();
+        return IFeedProxy(feedProxies[_feedName]).latestRoundDataFromProposedFeed();
     }
 
     /**

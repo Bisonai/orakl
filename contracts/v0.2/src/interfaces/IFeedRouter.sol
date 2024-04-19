@@ -77,10 +77,12 @@ interface IFeedRouter {
      * @param minCount The minimum number of data points
      * @return The TWAP
      */
-    function proposedTwap(string calldata feedName, uint256 interval, uint256 latestUpdatedAtTolerance, int256 minCount)
-        external
-        view
-        returns (int256);
+    function twapFromProposedFeed(
+        string calldata feedName,
+        uint256 interval,
+        uint256 latestUpdatedAtTolerance,
+        int256 minCount
+    ) external view returns (int256);
 
     /**
      * @notice Get round data from the proposed feed given a feed name and round ID.
@@ -90,7 +92,7 @@ interface IFeedRouter {
      * @return answer The oracle answer.
      * @return updatedAt Timestamp of the last update.
      */
-    function proposedGetRoundData(string calldata feedName, uint64 roundId)
+    function getRoundDataFromProposedFeed(string calldata feedName, uint64 roundId)
         external
         view
         returns (uint64 id, int256 answer, uint256 updatedAt);
@@ -102,7 +104,7 @@ interface IFeedRouter {
      * @return answer The oracle answer.
      * @return updatedAt Timestamp of the last update.
      */
-    function proposedLatestRoundData(string calldata feedName)
+    function latestRoundDataFromProposedFeed(string calldata feedName)
         external
         view
         returns (uint64 id, int256 answer, uint256 updatedAt);

@@ -11,7 +11,10 @@ interface IFeedProxy is IFeed {
      * @return answer The oracle answer.
      * @return updatedAt Timestamp of the last update.
      */
-    function proposedGetRoundData(uint64 roundId) external view returns (uint64 id, int256 answer, uint256 updatedAt);
+    function getRoundDataFromProposedFeed(uint64 roundId)
+        external
+        view
+        returns (uint64 id, int256 answer, uint256 updatedAt);
 
     /**
      * @notice Get the latest round data from the proposed feed.
@@ -19,7 +22,7 @@ interface IFeedProxy is IFeed {
      * @return answer The oracle answer.
      * @return updatedAt Timestamp of the last update.
      */
-    function proposedLatestRoundData() external view returns (uint64 id, int256 answer, uint256 updatedAt);
+    function latestRoundDataFromProposedFeed() external view returns (uint64 id, int256 answer, uint256 updatedAt);
 
     /**
      * @notice Get address of the feed.
@@ -41,7 +44,7 @@ interface IFeedProxy is IFeed {
      * @param minCount The minimum number of data points
      * @return The TWAP
      */
-    function proposedTwap(uint256 interval, uint256 latestUpdatedAtTolerance, int256 minCount)
+    function twapFromProposedFeed(uint256 interval, uint256 latestUpdatedAtTolerance, int256 minCount)
         external
         view
         returns (int256);

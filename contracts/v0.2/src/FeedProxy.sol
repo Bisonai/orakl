@@ -104,7 +104,7 @@ contract FeedProxy is Ownable, IFeedProxy {
     /**
      * @inheritdoc IFeedProxy
      */
-    function proposedGetRoundData(uint64 _roundId)
+    function getRoundDataFromProposedFeed(uint64 _roundId)
         external
         view
         hasProposal
@@ -116,7 +116,7 @@ contract FeedProxy is Ownable, IFeedProxy {
     /**
      * @inheritdoc IFeedProxy
      */
-    function proposedLatestRoundData()
+    function latestRoundDataFromProposedFeed()
         external
         view
         hasProposal
@@ -139,7 +139,7 @@ contract FeedProxy is Ownable, IFeedProxy {
     /**
      * @inheritdoc IFeedProxy
      */
-    function proposedTwap(uint256 _interval, uint256 _latestUpdatedAtTolerance, int256 _minCount)
+    function twapFromProposedFeed(uint256 _interval, uint256 _latestUpdatedAtTolerance, int256 _minCount)
         external
         view
         returns (int256)
