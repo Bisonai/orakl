@@ -344,12 +344,15 @@ func SubmitRawTx(ctx context.Context, client ClientInterface, tx *types.Transact
 	log.Debug().Str("Player", "ChainHelper").Str("tx", tx.Hash().String()).Msg("submitting tx")
 	err := client.SendTransaction(ctx, tx)
 	if err != nil {
+		log.Error().Str("Player", "ChainHelper").Err(err).Msg("failed to send tx")
 		return err
 	}
+	log.Debug().Str("Player", "ChainHelper").Str("tx", tx.Hash().String()).Msg("tx sent")
 
 	ctxWithTimeout, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
+	log.Debug().Str("Player", "ChainHelper").Str("tx", tx.Hash().String()).Msg("waiting for tx to be mined")
 	receipt, err := bind.WaitMined(ctxWithTimeout, client, tx)
 	if err != nil {
 		log.Error().Str("Player", "ChainHelper").Err(err).Msg("failed to wait for tx to be mined")
