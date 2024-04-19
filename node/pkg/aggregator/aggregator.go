@@ -92,6 +92,11 @@ func (n *Aggregator) HandleRoundSyncMessage(ctx context.Context, msg raft.Messag
 		return err
 	}
 
+	if msg.SentFrom != n.Raft.GetLeader() {
+		log.Warn().Str("Player", "Aggregator").Msg("round sync message sent from non-leader")
+		return fmt.Errorf("round sync message sent from non-leader")
+	}
+
 	if roundSyncMessage.LeaderID == "" || roundSyncMessage.RoundID == 0 {
 		log.Error().Str("Player", "Aggregator").Msg("invalid round sync message")
 		return fmt.Errorf("invalid round sync message: %v", roundSyncMessage)
