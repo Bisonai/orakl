@@ -341,6 +341,7 @@ func SignTxByFeePayer(ctx context.Context, client ClientInterface, tx *types.Tra
 }
 
 func SubmitRawTx(ctx context.Context, client ClientInterface, tx *types.Transaction) error {
+	log.Debug().Str("tx", tx.Hash().String()).Msg("submitting tx")
 	err := client.SendTransaction(ctx, tx)
 	if err != nil {
 		return err
@@ -353,6 +354,7 @@ func SubmitRawTx(ctx context.Context, client ClientInterface, tx *types.Transact
 	if err != nil {
 		return err
 	}
+	log.Debug().Str("tx", tx.Hash().String()).Msg("tx mined")
 
 	if receipt.Status != 1 {
 		log.Error().Str("tx", receipt.TxHash.String()).Msg("tx failed")

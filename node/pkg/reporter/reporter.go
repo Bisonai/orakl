@@ -148,23 +148,27 @@ func (r *Reporter) leaderJob() error {
 }
 
 func (r *Reporter) report(ctx context.Context, aggregates []GlobalAggregate) error {
+	log.Debug().Str("Player", "Reporter").Int("aggregates", len(aggregates)).Msg("reporting")
 	proofMap, err := GetProofsAsMap(ctx, aggregates)
 	if err != nil || !ValidateAggregateTimestampValues(aggregates) {
 		log.Error().Str("Player", "Reporter").Err(err).Msg("submit without proofs")
 		return r.reportWithoutProofs(ctx, aggregates)
 	}
+	log.Debug().Str("Player", "Reporter").Int("proofs", len(proofMap)).Msg("proof map generated")
 
 	orderedProofMap, err := r.orderProofs(ctx, proofMap, aggregates)
 	if err != nil {
 		log.Error().Str("Player", "Reporter").Err(err).Msg("orderProofs")
 		return r.reportWithoutProofs(ctx, aggregates)
 	}
+	log.Debug().Str("Player", "Reporter").Int("orderedProofs", len(orderedProofMap)).Msg("ordered proof map generated")
 
 	err = UpdateProofs(ctx, aggregates, orderedProofMap)
 	if err != nil {
 		log.Error().Str("Player", "Reporter").Err(err).Msg("updateProofs")
 		return r.reportWithoutProofs(ctx, aggregates)
 	}
+	log.Debug().Str("Player", "Reporter").Msg("proofs updated to db, reporting with proofs")
 
 	return r.reportWithProofs(ctx, aggregates, orderedProofMap)
 }
@@ -271,6 +275,7 @@ func (r *Reporter) reportWithProofs(ctx context.Context, aggregates []GlobalAggr
 		log.Error().Str("Player", "Reporter").Err(err).Msg("makeContractArgsWithProofs")
 		return err
 	}
+	log.Debug().Str("Player", "Reporter").Int("proofs", len(proofs)).Msg("contract arguements generated")
 
 	err = r.reportDelegated(ctx, SUBMIT_WITH_PROOFS, addresses, values, proofs, timestamps)
 	if err != nil {
@@ -291,17 +296,20 @@ func (r *Reporter) reportDirect(ctx context.Context, functionString string, args
 }
 
 func (r *Reporter) reportDelegated(ctx context.Context, functionString string, args ...interface{}) error {
+	log.Debug().Str("Player", "Reporter").Msg("reporting delegated")
 	rawTx, err := r.KlaytnHelper.MakeFeeDelegatedTx(ctx, r.contractAddress, functionString, args...)
 	if err != nil {
 		log.Error().Str("Player", "Reporter").Err(err).Msg("MakeFeeDelegatedTx")
 		return err
 	}
+	log.Debug().Str("Player", "Reporter").Msg("delegated raw tx generated")
 
 	signedTx, err := r.KlaytnHelper.GetSignedFromDelegator(rawTx)
 	if err != nil {
 		log.Error().Str("Player", "Reporter").Err(err).Msg("GetSignedFromDelegator")
 		return err
 	}
+	log.Debug().Str("Player", "Reporter").Msg("signed tx generated, submitting raw tx")
 
 	return r.KlaytnHelper.SubmitRawTx(ctx, signedTx)
 }
