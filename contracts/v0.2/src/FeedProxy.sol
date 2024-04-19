@@ -160,7 +160,7 @@ contract FeedProxy is Ownable, IFeedProxy {
         if (_feed == address(0)) {
             revert InvalidProposedFeed();
         }
-        proposedFeed = IFeedProxy(_feed);
+        proposedFeed = IFeed(_feed);
         emit FeedProposed(address(feed), _feed);
     }
 
@@ -189,6 +189,6 @@ contract FeedProxy is Ownable, IFeedProxy {
      * @param _feed The address of the new feed
      */
     function setFeed(address _feed) private {
-        feed = IFeedProxy(_feed);
+        feed = IFeed(_feed);
     }
 }
