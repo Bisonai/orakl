@@ -156,7 +156,7 @@ func (f *Fetcher) fetch(chainHelpers map[string]ChainHelper, proxies []Proxy) ([
 			errString += err.Error() + "\n"
 		}
 
-		log.Error().Str("Player", "Fetcher").Err(fmt.Errorf("errors in fetching: %s", errString)).Msg("errors in fetching")
+		log.Warn().Str("Player", "Fetcher").Err(fmt.Errorf("errors in fetching: %s", errString)).Msg("errors in fetching")
 	}
 
 	return data, nil
@@ -165,7 +165,7 @@ func (f *Fetcher) fetch(chainHelpers map[string]ChainHelper, proxies []Proxy) ([
 func (f *Fetcher) cex(definition *Definition, proxies []Proxy) (float64, error) {
 	rawResult, err := f.requestFeed(definition, proxies)
 	if err != nil {
-		log.Error().Str("Player", "Fetcher").Err(err).Msg("error in requestFeed")
+		log.Warn().Str("Player", "Fetcher").Err(err).Msg("error in requestFeed")
 		return 0, err
 	}
 
