@@ -302,14 +302,14 @@ func (r *Reporter) reportDelegated(ctx context.Context, functionString string, a
 		log.Error().Str("Player", "Reporter").Err(err).Msg("MakeFeeDelegatedTx")
 		return err
 	}
-	log.Debug().Str("Player", "Reporter").Msg("delegated raw tx generated")
+	log.Debug().Str("Player", "Reporter").Str("RawTx", rawTx.String()).Msg("delegated raw tx generated")
 
 	signedTx, err := r.KlaytnHelper.GetSignedFromDelegator(rawTx)
 	if err != nil {
 		log.Error().Str("Player", "Reporter").Err(err).Msg("GetSignedFromDelegator")
 		return err
 	}
-	log.Debug().Str("Player", "Reporter").Msg("signed tx generated, submitting raw tx")
+	log.Debug().Str("Player", "Reporter").Str("signedTx", signedTx.String()).Msg("signed tx generated, submitting raw tx")
 
 	return r.KlaytnHelper.SubmitRawTx(ctx, signedTx)
 }
