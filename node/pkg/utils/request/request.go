@@ -3,11 +3,10 @@ package request
 import (
 	"bytes"
 	"encoding/json"
-	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"net/url"
-	"strconv"
 	"time"
 
 	"github.com/rs/zerolog/log"
@@ -34,7 +33,7 @@ func UrlRequest[T any](urlEndpoint string, method string, requestBody interface{
 			Int("status", response.StatusCode).
 			Str("url", urlEndpoint).
 			Msg("failed to make request")
-		return result, errors.New("failed to get status ok: " + urlEndpoint + "\nstatus:" + strconv.Itoa(response.StatusCode))
+		return result, fmt.Errorf("failed to get status ok: %s\nstatus: %d", urlEndpoint, response.StatusCode)
 	}
 
 	resultBody, err := io.ReadAll(response.Body)
