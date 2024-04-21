@@ -36,12 +36,12 @@ type ContractModel struct {
 func insert(c *fiber.Ctx) error {
 	payload := new(FunctionInsertModel)
 	if err := c.BodyParser(payload); err != nil {
-		panic(err)
+		return err
 	}
 
 	validate := validator.New()
 	if err := validate.Struct(payload); err != nil {
-		panic(err)
+		return err
 	}
 
 	hash := crypto.Keccak256([]byte(payload.Name))
@@ -53,7 +53,7 @@ func insert(c *fiber.Ctx) error {
 		"encodedName": encodedName,
 	})
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	return c.JSON(result)
@@ -62,14 +62,14 @@ func insert(c *fiber.Ctx) error {
 func get(c *fiber.Ctx) error {
 	functionResults, err := utils.QueryRows[FunctionModel](c, GetFunction, nil)
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	results := make([]FunctionDetailModel, len(functionResults))
 	for i, function := range functionResults {
 		contract, err := utils.QueryRow[ContractModel](c, GetContractById, map[string]any{"id": function.ContractId})
 		if err != nil {
-			panic(err)
+			return err
 		}
 		results[i] = FunctionDetailModel{
 			FunctionId:  function.FunctionId,
@@ -86,11 +86,11 @@ func getById(c *fiber.Ctx) error {
 	id := c.Params("id")
 	function, err := utils.QueryRow[FunctionModel](c, GetFunctionById, map[string]any{"id": id})
 	if err != nil {
-		panic(err)
+		return err
 	}
 	contract, err := utils.QueryRow[ContractModel](c, GetContractById, map[string]any{"id": function.ContractId})
 	if err != nil {
-		panic(err)
+		return err
 	}
 	result := FunctionDetailModel{
 		FunctionId:  function.FunctionId,
@@ -106,12 +106,12 @@ func updateById(c *fiber.Ctx) error {
 	id := c.Params("id")
 	payload := new(FunctionInsertModel)
 	if err := c.BodyParser(payload); err != nil {
-		panic(err)
+		return err
 	}
 
 	validate := validator.New()
 	if err := validate.Struct(payload); err != nil {
-		panic(err)
+		return err
 	}
 
 	hash := crypto.Keccak256([]byte(payload.Name))
@@ -119,7 +119,7 @@ func updateById(c *fiber.Ctx) error {
 
 	result, err := utils.QueryRow[FunctionModel](c, UpdateFunctionById, map[string]any{"id": id, "name": payload.Name, "contract_id": payload.ContractId, "encodedName": encodedName})
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	return c.JSON(result)
@@ -129,7 +129,7 @@ func deleteById(c *fiber.Ctx) error {
 	id := c.Params("id")
 	result, err := utils.QueryRow[FunctionModel](c, DeleteFunctionById, map[string]any{"id": id})
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	return c.JSON(result)
