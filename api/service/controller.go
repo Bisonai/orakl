@@ -19,17 +19,17 @@ type ServiceInsertModel struct {
 func insert(c *fiber.Ctx) error {
 	payload := new(ServiceInsertModel)
 	if err := c.BodyParser(payload); err != nil {
-		panic(err)
+		return err
 	}
 
 	validate := validator.New()
 	if err := validate.Struct(payload); err != nil {
-		panic(err)
+		return err
 	}
 
 	result, err := utils.QueryRow[ServiceModel](c, InsertService, map[string]any{"name": payload.Name})
 	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).SendString("failed to insert service: " + err.Error())
+		return err
 	}
 
 	return c.JSON(result)
@@ -38,7 +38,7 @@ func insert(c *fiber.Ctx) error {
 func get(c *fiber.Ctx) error {
 	results, err := utils.QueryRows[ServiceModel](c, GetService, nil)
 	if err != nil {
-		panic(err)
+		return err
 	}
 	return c.JSON(results)
 }
@@ -47,7 +47,7 @@ func getById(c *fiber.Ctx) error {
 	id := c.Params("id")
 	result, err := utils.QueryRow[ServiceModel](c, GetServiceById, map[string]any{"id": id})
 	if err != nil {
-		panic(err)
+		return err
 	}
 	return c.JSON(result)
 }
@@ -56,12 +56,12 @@ func updateById(c *fiber.Ctx) error {
 	id := c.Params("id")
 	payload := new(ServiceInsertModel)
 	if err := c.BodyParser(payload); err != nil {
-		panic(err)
+		return err
 	}
 
 	result, err := utils.QueryRow[ServiceModel](c, UpdateServiceById, map[string]any{"id": id, "name": payload.Name})
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	return c.JSON(result)
@@ -71,7 +71,7 @@ func deleteById(c *fiber.Ctx) error {
 	id := c.Params("id")
 	result, err := utils.QueryRow[ServiceModel](c, DeleteServiceById, map[string]any{"id": id})
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	return c.JSON(result)

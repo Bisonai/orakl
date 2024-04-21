@@ -46,27 +46,27 @@ type ReporterSearchByOracleAddressModel struct {
 func insert(c *fiber.Ctx) error {
 	payload := new(ReporterInsertModel)
 	if err := c.BodyParser(payload); err != nil {
-		panic(err)
+		return err
 	}
 
 	validate := validator.New()
 	if err := validate.Struct(payload); err != nil {
-		panic(err)
+		return err
 	}
 
 	chain_result, err := utils.QueryRow[chain.ChainModel](c, chain.GetChainByName, map[string]any{"name": payload.Chain})
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	service_result, err := utils.QueryRow[service.ServiceModel](c, service.GetServiceByName, map[string]any{"name": payload.Service})
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	encrypted, err := utils.EncryptText(payload.PrivateKey)
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	result, err := utils.QueryRow[ReporterModel](c, InsertReporter, map[string]any{
@@ -76,7 +76,7 @@ func insert(c *fiber.Ctx) error {
 		"chain_id":      chain_result.ChainId,
 		"service_id":    service_result.ServiceId})
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	result.PrivateKey = payload.PrivateKey
@@ -91,12 +91,12 @@ func get(c *fiber.Ctx) error {
 	if len(c.Body()) == 0 {
 		results, err := utils.QueryRows[ReporterModel](c, GenerateGetReporterQuery(params), nil)
 		if err != nil {
-			panic(err)
+			return err
 		}
 		for i := range results {
 			decrypted, err := utils.DecryptText(results[i].PrivateKey)
 			if err != nil {
-				panic(err)
+				return err
 			}
 			results[i].PrivateKey = decrypted
 		}
@@ -105,13 +105,13 @@ func get(c *fiber.Ctx) error {
 	}
 
 	if err := c.BodyParser(payload); err != nil {
-		panic(err)
+		return err
 	}
 
 	if payload.Chain != "" {
 		chain_result, err := utils.QueryRow[chain.ChainModel](c, chain.GetChainByName, map[string]any{"name": payload.Chain})
 		if err != nil {
-			panic(err)
+			return err
 		}
 		params.ChainId = chain_result.ChainId.String()
 	}
@@ -119,20 +119,20 @@ func get(c *fiber.Ctx) error {
 	if payload.Service != "" {
 		service_result, err := utils.QueryRow[service.ServiceModel](c, service.GetServiceByName, map[string]any{"name": payload.Service})
 		if err != nil {
-			panic(err)
+			return err
 		}
 		params.ServiceId = service_result.ServiceId.String()
 	}
 
 	results, err := utils.QueryRows[ReporterModel](c, GenerateGetReporterQuery(params), nil)
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	for i := range results {
 		decrypted, err := utils.DecryptText(results[i].PrivateKey)
 		if err != nil {
-			panic(err)
+			return err
 		}
 		results[i].PrivateKey = decrypted
 	}
@@ -146,7 +146,7 @@ func getByOracleAddress(c *fiber.Ctx) error {
 	params := GetReporterQueryParams{}
 
 	if err := c.BodyParser(payload); err != nil {
-		panic(err)
+		return err
 	}
 
 	params.OracleAddress = oracleAddress
@@ -154,7 +154,7 @@ func getByOracleAddress(c *fiber.Ctx) error {
 	if payload.Chain != "" {
 		chain_result, err := utils.QueryRow[chain.ChainModel](c, chain.GetChainByName, map[string]any{"name": payload.Chain})
 		if err != nil {
-			panic(err)
+			return err
 		}
 		params.ChainId = chain_result.ChainId.String()
 	}
@@ -162,20 +162,20 @@ func getByOracleAddress(c *fiber.Ctx) error {
 	if payload.Service != "" {
 		service_result, err := utils.QueryRow[service.ServiceModel](c, service.GetServiceByName, map[string]any{"name": payload.Service})
 		if err != nil {
-			panic(err)
+			return err
 		}
 		params.ServiceId = service_result.ServiceId.String()
 	}
 
 	results, err := utils.QueryRows[ReporterModel](c, GenerateGetReporterQuery(params), nil)
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	for i := range results {
 		decrypted, err := utils.DecryptText(results[i].PrivateKey)
 		if err != nil {
-			panic(err)
+			return err
 		}
 		results[i].PrivateKey = decrypted
 	}
@@ -187,12 +187,12 @@ func getById(c *fiber.Ctx) error {
 	id := c.Params("id")
 	result, err := utils.QueryRow[ReporterModel](c, GetReporterById, map[string]any{"id": id})
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	decrypted, err := utils.DecryptText(result.PrivateKey)
 	if err != nil {
-		panic(err)
+		return err
 	}
 	result.PrivateKey = decrypted
 
@@ -203,17 +203,17 @@ func updateById(c *fiber.Ctx) error {
 	id := c.Params("id")
 	payload := new(ReporterUpdateModel)
 	if err := c.BodyParser(payload); err != nil {
-		panic(err)
+		return err
 	}
 
 	validate := validator.New()
 	if err := validate.Struct(payload); err != nil {
-		panic(err)
+		return err
 	}
 
 	encrypted, err := utils.EncryptText(payload.PrivateKey)
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	result, err := utils.QueryRow[ReporterModel](c, UpdateReporterById, map[string]any{
@@ -223,7 +223,7 @@ func updateById(c *fiber.Ctx) error {
 		"oracleAddress": payload.OracleAddress})
 
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	result.PrivateKey = payload.PrivateKey
@@ -235,12 +235,12 @@ func deleteById(c *fiber.Ctx) error {
 	id := c.Params("id")
 	result, err := utils.QueryRow[ReporterModel](c, DeleteReporterById, map[string]any{"id": id})
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	decrypted, err := utils.DecryptText(result.PrivateKey)
 	if err != nil {
-		panic(err)
+		return err
 	}
 	result.PrivateKey = decrypted
 

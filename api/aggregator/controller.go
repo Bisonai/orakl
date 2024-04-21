@@ -89,22 +89,22 @@ type AggregatorIdModel struct {
 func insert(c *fiber.Ctx) error {
 	payload := new(AggregatorInsertModel)
 	if err := c.BodyParser(payload); err != nil {
-		panic(err)
+		return err
 	}
 
 	validate := validator.New()
 	if err := validate.Struct(payload); err != nil {
-		panic(err)
+		return err
 	}
 
 	chain_result, err := utils.QueryRow[chain.ChainModel](c, chain.GetChainByName, map[string]any{"name": payload.Chain})
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	adapter_result, err := utils.QueryRow[adapter.AdapterModel](c, adapter.GetAdapterByHash, map[string]any{"adapter_hash": payload.AdapterHash})
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	hashComputeParam := AggregatorHashComputeInputModel{
@@ -119,7 +119,7 @@ func insert(c *fiber.Ctx) error {
 	}
 	err = computeAggregatorHash(&hashComputeParam, true)
 	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).SendString(err.Error())
+		return err
 	}
 
 	insertParam := _AggregatorInsertModel{
@@ -158,7 +158,7 @@ func insert(c *fiber.Ctx) error {
 		"fetcher_type":       insertParam.FetcherType,
 	})
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	result := AggregatorResultModel{
@@ -182,17 +182,17 @@ func hash(c *fiber.Ctx) error {
 	verifyRaw := c.Query("verify")
 	verify, err := strconv.ParseBool(verifyRaw)
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	payload := new(AggregatorInsertModel)
 	if err := c.BodyParser(payload); err != nil {
-		panic(err)
+		return err
 	}
 
 	validate := validator.New()
 	if err := validate.StructExcept(payload, "Chain"); err != nil {
-		panic(err)
+		return err
 	}
 
 	hashComputeParam := AggregatorHashComputeInputModel{
@@ -208,7 +208,7 @@ func hash(c *fiber.Ctx) error {
 
 	err = computeAggregatorHash(&hashComputeParam, verify)
 	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).SendString(err.Error())
+		return err
 	}
 
 	return c.JSON(hashComputeParam)
@@ -223,12 +223,12 @@ func get(c *fiber.Ctx) error {
 	}
 	queryString, err := GenerateGetAggregatorQuery(queryParam)
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	results, err := utils.QueryRows[AggregatorResultModel](c, queryString, nil)
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	return c.JSON(results)
@@ -241,7 +241,7 @@ func getByHashAndChain(c *fiber.Ctx) error {
 
 	chain_result, err := utils.QueryRow[chain.ChainModel](c, chain.GetChainByName, map[string]any{"name": _chain})
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	result.AggregatorResultModel, err = utils.QueryRow[AggregatorResultModel](c, GetAggregatorByChainAndHash, map[string]any{
@@ -249,17 +249,17 @@ func getByHashAndChain(c *fiber.Ctx) error {
 		"chain_id":        chain_result.ChainId,
 	})
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	result.Adapter.AdapterModel, err = utils.QueryRow[adapter.AdapterModel](c, adapter.GetAdpaterById, map[string]any{"id": result.AggregatorResultModel.AdapterId})
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	result.Adapter.Feeds, err = utils.QueryRows[feed.FeedModel](c, feed.GetFeedsByAdapterId, map[string]any{"id": result.AggregatorResultModel.AdapterId})
 	if err != nil {
-		panic(err)
+		return err
 	}
 	return c.JSON(result)
 }
@@ -268,7 +268,7 @@ func deleteById(c *fiber.Ctx) error {
 	id := c.Params("id")
 	result, err := utils.QueryRow[AggregatorResultModel](c, RemoveAggregator, map[string]any{"id": id})
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	return c.JSON(result)
@@ -278,14 +278,14 @@ func updateByHash(c *fiber.Ctx) error {
 	hash := c.Params("hash")
 	_payload := new(WrappedUpdateModel)
 	if err := c.BodyParser(_payload); err != nil {
-		panic(err)
+		return err
 	}
 
 	payload := _payload.Data
 
 	validate := validator.New()
 	if err := validate.Struct(payload); err != nil {
-		panic(err)
+		return err
 	}
 
 	if payload.Active == nil {
@@ -295,7 +295,7 @@ func updateByHash(c *fiber.Ctx) error {
 
 	chain_result, err := utils.QueryRow[chain.ChainModel](c, chain.GetChainByName, map[string]any{"name": payload.Chain})
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	result, err := utils.QueryRow[AggregatorResultModel](c, UpdateAggregatorByHash, map[string]any{
@@ -303,7 +303,7 @@ func updateByHash(c *fiber.Ctx) error {
 		"hash":     hash,
 		"chain_id": chain_result.ChainId})
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	return c.JSON(result)

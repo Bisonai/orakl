@@ -25,12 +25,12 @@ type ProxyInsertModel struct {
 func insert(c *fiber.Ctx) error {
 	payload := new(ProxyInsertModel)
 	if err := c.BodyParser(payload); err != nil {
-		panic(err)
+		return err
 	}
 
 	validate := validator.New()
 	if err := validate.Struct(payload); err != nil {
-		panic(err)
+		return err
 	}
 
 	result, err := utils.QueryRow[ProxyModel](c, InsertProxy, map[string]any{
@@ -39,7 +39,7 @@ func insert(c *fiber.Ctx) error {
 		"port":     payload.Port,
 		"location": &payload.Location})
 	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).SendString("failed to insert proxy: " + err.Error())
+		return err
 	}
 
 	return c.JSON(result)
@@ -48,7 +48,7 @@ func insert(c *fiber.Ctx) error {
 func get(c *fiber.Ctx) error {
 	results, err := utils.QueryRows[ProxyModel](c, GetProxy, nil)
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	return c.JSON(results)
@@ -58,7 +58,7 @@ func getById(c *fiber.Ctx) error {
 	id := c.Params("id")
 	result, err := utils.QueryRow[ProxyModel](c, GetProxyById, map[string]any{"id": id})
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	return c.JSON(result)
@@ -69,12 +69,12 @@ func updateById(c *fiber.Ctx) error {
 
 	payload := new(ProxyInsertModel)
 	if err := c.BodyParser(payload); err != nil {
-		panic(err)
+		return err
 	}
 
 	validate := validator.New()
 	if err := validate.Struct(payload); err != nil {
-		panic(err)
+		return err
 	}
 
 	result, err := utils.QueryRow[ProxyModel](c, UpdateProxyById, map[string]any{
@@ -84,7 +84,7 @@ func updateById(c *fiber.Ctx) error {
 		"port":     payload.Port,
 		"location": &payload.Location})
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	return c.JSON(result)
@@ -94,7 +94,7 @@ func deleteById(c *fiber.Ctx) error {
 	id := c.Params("id")
 	result, err := utils.QueryRow[ProxyModel](c, DeleteProxyById, map[string]any{"id": id})
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	return c.JSON(result)

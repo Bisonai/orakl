@@ -1,8 +1,9 @@
 package feed
 
 import (
-	"bisonai.com/orakl/api/utils"
 	"fmt"
+
+	"bisonai.com/orakl/api/utils"
 
 	"encoding/json"
 
@@ -30,7 +31,7 @@ type FeedModel struct {
 func get(c *fiber.Ctx) error {
 	results, err := utils.QueryRows[FeedModel](c, GetFeed, nil)
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	return c.JSON(results)
@@ -40,7 +41,7 @@ func getById(c *fiber.Ctx) error {
 	id := c.Params("id")
 	result, err := utils.QueryRow[FeedModel](c, GetFeedById, map[string]any{"id": id})
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	return c.JSON(result)
@@ -53,7 +54,7 @@ func getByAdpaterId(c *fiber.Ctx) error {
 	id := c.Params("id")
 	results, err := utils.QueryRows[FeedModel](c, GetFeedsByAdapterId, map[string]any{"id": id})
 	if err != nil {
-		panic(err)
+		return err
 	}
 	return c.JSON(results)
 }
@@ -65,7 +66,7 @@ func removeById(c *fiber.Ctx) error {
 	id := c.Params("id")
 	result, err := utils.QueryRow[FeedModel](c, DeleteFeedById, map[string]any{"id": id})
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	return c.JSON(result)

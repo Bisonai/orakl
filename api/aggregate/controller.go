@@ -1,8 +1,9 @@
 package aggregate
 
 import (
-	"bisonai.com/orakl/api/utils"
 	"encoding/json"
+
+	"bisonai.com/orakl/api/utils"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/gofiber/fiber/v2"
@@ -37,13 +38,13 @@ type AggregateIdModel struct {
 func insert(c *fiber.Ctx) error {
 	_payload := new(WrappedInsertModel)
 	if err := c.BodyParser(_payload); err != nil {
-		panic(err)
+		return err
 	}
 	payload := _payload.Data
 
 	validate := validator.New()
 	if err := validate.Struct(payload); err != nil {
-		panic(err)
+		return err
 	}
 
 	row, err := utils.QueryRow[AggregateIdModel](c, InsertAggregate, map[string]any{
@@ -51,18 +52,18 @@ func insert(c *fiber.Ctx) error {
 		"value":         payload.Value,
 		"aggregator_id": payload.AggregatorId})
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	key := "latestAggregate:" + payload.AggregatorId.String()
 	value, err := json.Marshal(AggregateRedisValueModel{Timestamp: payload.Timestamp, Value: payload.Value})
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	err = utils.SetRedis(c, key, string(value))
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	result := AggregateModel{AggregateId: row.AggregateId, Timestamp: payload.Timestamp, Value: payload.Value, AggregatorId: payload.AggregatorId}
@@ -72,7 +73,7 @@ func insert(c *fiber.Ctx) error {
 func get(c *fiber.Ctx) error {
 	results, err := utils.QueryRows[AggregateModel](c, GetAggregate, nil)
 	if err != nil {
-		panic(err)
+		return err
 	}
 	return c.JSON(results)
 }
@@ -81,7 +82,7 @@ func getById(c *fiber.Ctx) error {
 	id := c.Params("id")
 	result, err := utils.QueryRow[AggregateModel](c, GetAggregateById, map[string]any{"id": id})
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	return c.JSON(result)
@@ -91,7 +92,7 @@ func getLatestByHash(c *fiber.Ctx) error {
 	hash := c.Params("hash")
 	result, err := utils.QueryRow[AggregateModel](c, GetLatestAggregateByHash, map[string]any{"aggregator_hash": hash})
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	return c.JSON(result)
@@ -107,14 +108,14 @@ func getLatestById(c *fiber.Ctx) error {
 	if err != nil {
 		pgsqlResult, err := utils.QueryRow[AggregateModel](c, GetLatestAggregateById, map[string]any{"aggregator_id": id})
 		if err != nil {
-			panic(err)
+			return err
 		}
 		return c.JSON(pgsqlResult)
 	}
 
 	err = json.Unmarshal([]byte(rawResult), &result)
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	return c.JSON(result)
@@ -124,17 +125,17 @@ func updateById(c *fiber.Ctx) error {
 	id := c.Params("id")
 	payload := new(AggregateInsertModel)
 	if err := c.BodyParser(payload); err != nil {
-		panic(err)
+		return err
 	}
 
 	validate := validator.New()
 	if err := validate.Struct(payload); err != nil {
-		panic(err)
+		return err
 	}
 
 	result, err := utils.QueryRow[AggregateModel](c, UpdateAggregateById, map[string]any{"timestamp": payload.Timestamp.String(), "value": payload.Value, "aggregator_id": payload.AggregatorId, "id": id})
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	return c.JSON(result)
@@ -144,7 +145,7 @@ func deleteById(c *fiber.Ctx) error {
 	id := c.Params("id")
 	result, err := utils.QueryRow[AggregateModel](c, DeleteAggregateById, map[string]any{"id": id})
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	return c.JSON(result)

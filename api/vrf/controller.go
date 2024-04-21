@@ -38,17 +38,17 @@ type VrfInsertModel struct {
 func insert(c *fiber.Ctx) error {
 	payload := new(VrfInsertModel)
 	if err := c.BodyParser(payload); err != nil {
-		panic(err)
+		return err
 	}
 
 	validate := validator.New()
 	if err := validate.Struct(payload); err != nil {
-		panic(err)
+		return err
 	}
 
 	chain_result, err := utils.QueryRow[chain.ChainModel](c, chain.GetChainByName, map[string]any{"name": payload.Chain})
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	result, err := utils.QueryRow[VrfModel](c, InsertVrf, map[string]any{
@@ -59,7 +59,7 @@ func insert(c *fiber.Ctx) error {
 		"key_hash": payload.KeyHash,
 		"chain_id": chain_result.ChainId})
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	return c.JSON(result)
@@ -73,23 +73,23 @@ func get(c *fiber.Ctx) error {
 	if len(c.Body()) == 0 {
 		results, err := utils.QueryRows[VrfModel](c, GetVrfWithoutChainId, nil)
 		if err != nil {
-			panic(err)
+			return err
 		}
 		return c.JSON(results)
 	}
 
 	if err := c.BodyParser(payload); err != nil {
-		panic(err)
+		return err
 	}
 
 	chain_result, err := utils.QueryRow[chain.ChainModel](c, chain.GetChainByName, map[string]any{"name": payload.CHAIN})
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	results, err := utils.QueryRows[VrfModel](c, GetVrf, map[string]any{"chain_id": chain_result.ChainId})
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	return c.JSON(results)
@@ -99,7 +99,7 @@ func getById(c *fiber.Ctx) error {
 	id := c.Params("id")
 	result, err := utils.QueryRow[VrfModel](c, GetVrfById, map[string]any{"id": id})
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	return c.JSON(result)
@@ -109,12 +109,12 @@ func updateById(c *fiber.Ctx) error {
 	id := c.Params("id")
 	payload := new(VrfUpdateModel)
 	if err := c.BodyParser(payload); err != nil {
-		panic(err)
+		return err
 	}
 
 	validate := validator.New()
 	if err := validate.Struct(payload); err != nil {
-		panic(err)
+		return err
 	}
 
 	result, err := utils.QueryRow[VrfModel](c, UpdateVrfById, map[string]any{
@@ -125,7 +125,7 @@ func updateById(c *fiber.Ctx) error {
 		"pk_y":     payload.PkY,
 		"key_hash": payload.KeyHash})
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	return c.JSON(result)
@@ -135,7 +135,7 @@ func deleteById(c *fiber.Ctx) error {
 	id := c.Params("id")
 	result, err := utils.QueryRow[VrfModel](c, DeleteVrfById, map[string]any{"id": id})
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	return c.JSON(result)

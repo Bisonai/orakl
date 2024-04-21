@@ -56,17 +56,17 @@ type FeedIdModel struct {
 func insert(c *fiber.Ctx) error {
 	payload := new(AdapterInsertModel)
 	if err := c.BodyParser(payload); err != nil {
-		panic(err)
+		return err
 	}
 
 	validate := validator.New()
 	if err := validate.Struct(payload); err != nil {
-		panic(err)
+		return err
 	}
 
 	err := computeAdapterHashForInsertRoute(payload, true)
 	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).SendString(err.Error())
+		return err
 	}
 
 	row, err := utils.QueryRow[AdapterIdModel](c, InsertAdapter, map[string]any{
@@ -74,7 +74,7 @@ func insert(c *fiber.Ctx) error {
 		"name":         payload.Name,
 		"decimals":     payload.Decimals})
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	for _, item := range payload.Feeds {
@@ -84,7 +84,7 @@ func insert(c *fiber.Ctx) error {
 			"definition": item.Definition,
 			"adapter_id": item.AdapterId})
 		if err != nil {
-			panic(err)
+			return err
 		}
 	}
 
@@ -97,23 +97,23 @@ func hash(c *fiber.Ctx) error {
 	verifyRaw := c.Query("verify")
 	verify, err := strconv.ParseBool(verifyRaw)
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	var payload HashInsertModel
 
 	if err := c.BodyParser(&payload); err != nil {
-		panic(err)
+		return err
 	}
 
 	validate := validator.New()
 	if err := validate.Struct(payload); err != nil {
-		panic(err)
+		return err
 	}
 
 	err = computeAdapterHashForHashRoute(&payload, verify)
 	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).SendString(err.Error())
+		return err
 	}
 	return c.JSON(payload)
 }
@@ -121,7 +121,7 @@ func hash(c *fiber.Ctx) error {
 func get(c *fiber.Ctx) error {
 	results, err := utils.QueryRows[AdapterModel](c, GetAdapter, nil)
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	return c.JSON(results)
@@ -131,7 +131,7 @@ func getById(c *fiber.Ctx) error {
 	id := c.Params("id")
 	result, err := utils.QueryRow[AdapterModel](c, GetAdpaterById, map[string]any{"id": id})
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	return c.JSON(result)
@@ -141,7 +141,7 @@ func deleteById(c *fiber.Ctx) error {
 	id := c.Params("id")
 	result, err := utils.QueryRow[AdapterModel](c, RemoveAdapter, map[string]any{"id": id})
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	return c.JSON(result)
