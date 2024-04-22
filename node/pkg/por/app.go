@@ -27,14 +27,23 @@ const (
 	MAX_RETRY_DELAY         = 500 * time.Millisecond
 
 	SUBMIT_FUNCTION_STRING = "submit(uint256 _roundId, int256 _submission)"
+	READ_ROUND_ID          = `function oracleRoundState(address _oracle, uint32 _queriedRoundId) external view returns (
+            bool _eligibleToSubmit,
+            uint32 _roundId,
+            int256 _latestSubmission,
+            uint64 _startedAt,
+            uint64 _timeout,
+            uint8 _oracleCount
+    )`
 )
 
 type App struct {
-	Name           string
-	Definition     *fetcher.Definition
-	FetchInterval  time.Duration
-	SubmitInterval time.Duration
-	KlaytnHelper   *helper.ChainHelper
+	Name            string
+	Definition      *fetcher.Definition
+	FetchInterval   time.Duration
+	SubmitInterval  time.Duration
+	KlaytnHelper    *helper.ChainHelper
+	ContractAddress string
 
 	LastSubmissionValue float64
 	LastSubmissionTime  time.Time
@@ -106,25 +115,18 @@ func New(ctx context.Context) (*App, error) {
 	}
 
 	return &App{
-		Name:           adapter.Name,
-		Definition:     definition,
-		FetchInterval:  fetchInterval,
-		SubmitInterval: submitInterval,
-		KlaytnHelper:   chainHelper,
+		Name:            adapter.Name,
+		Definition:      definition,
+		FetchInterval:   fetchInterval,
+		SubmitInterval:  submitInterval,
+		KlaytnHelper:    chainHelper,
+		ContractAddress: aggregator.Address,
 
 		LastSubmissionValue: 0,
 		LastSubmissionTime:  time.Time{},
 	}, nil
 }
 
-/*
-POR has different job cycle compared to price feeds
- 1. Fetches from the url
- 2. Checks if it should be reported
-    a. when deviation check returns true
-    b. when last submission time is over submission interval
- 3. Saves data into its structure and report if required and store in redis for last submitted value & time
-*/
 func (a *App) Run(ctx context.Context) error {
 	ticker := time.NewTicker(a.FetchInterval)
 	for {
@@ -146,10 +148,14 @@ func (a *App) Run(ctx context.Context) error {
 				}
 			}
 
-			if a.ShouldReport(value, time.Now()) {
-
+			now := time.Now()
+			if a.ShouldReport(value, now) {
+				err := a.report(ctx, now, value)
+				if err != nil {
+					log.Error().Err(err).Msg("failed to report")
+					continue
+				}
 			}
-
 		}
 	}
 }
@@ -169,6 +175,38 @@ func (a *App) ShouldReport(value float64, fetchedTime time.Time) bool {
 	return false
 }
 
+func (a *App) report(ctx context.Context, submissionTime time.Time, submissionValue float64) error {
+	reportJob := func() error {
+		latestRoundId, err := a.ReadLatestRoundId(ctx)
+		if err != nil {
+			log.Error().Err(err).Msg("failed to read latest round id")
+			return err
+		}
+
+		tx, err := a.KlaytnHelper.MakeDirectTx(ctx, a.ContractAddress, SUBMIT_FUNCTION_STRING, latestRoundId, submissionValue)
+		if err != nil {
+			log.Error().Err(err).Msg("failed to make direct tx")
+			return err
+		}
+
+		err = a.KlaytnHelper.SubmitRawTx(ctx, tx)
+		if err != nil {
+			log.Error().Err(err).Msg("failed to submit raw tx")
+			return err
+		}
+		return nil
+	}
+
+	err := retry(reportJob)
+	if err != nil {
+		log.Error().Err(err).Msg("failed to report")
+		return err
+	}
+	a.LastSubmissionTime = submissionTime
+	a.LastSubmissionValue = submissionValue
+	return StoreSubmission(ctx, a.Name, submissionValue, submissionTime)
+}
+
 func (a *App) DeviationCheck(oldValue float64, newValue float64) bool {
 	denominator := math.Pow10(DECIMALS)
 	old := oldValue / denominator
@@ -184,6 +222,30 @@ func (a *App) DeviationCheck(oldValue float64, newValue float64) bool {
 	} else {
 		return false
 	}
+}
+
+func (a *App) ReadLatestRoundId(ctx context.Context) (uint32, error) {
+	publicAddress, err := a.KlaytnHelper.PublicAddress()
+	if err != nil {
+		return 0, err
+	}
+
+	rawResult, err := a.KlaytnHelper.ReadContract(ctx, a.ContractAddress, READ_ROUND_ID, publicAddress, uint32(0))
+	if err != nil {
+		return 0, err
+	}
+
+	rawResultSlice, ok := rawResult.([]interface{})
+	if !ok {
+		return 0, errors.New("failed to cast raw result to slice")
+	}
+
+	result, ok := rawResultSlice[1].(uint32)
+	if !ok {
+		return 0, errors.New("failed to cast roundId to uint32")
+	}
+
+	return result, nil
 }
 
 func StoreSubmission(ctx context.Context, name string, value float64, time time.Time) error {

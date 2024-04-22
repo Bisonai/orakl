@@ -155,3 +155,37 @@ func TestFetcherFetchAndInsertAdapter(t *testing.T) {
 		}
 	}
 }
+
+func TestFetchSingle(t *testing.T) {
+	ctx := context.Background()
+	rawDefinition := `
+	{
+        "url": "https://dev.pennygold.kr/api/v2/balance/getTotalNftAmount",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "method": "GET",
+        "reducers": [
+          {
+            "function": "PARSE",
+            "args": [
+              "data",
+              "PEG",
+              "amount"
+            ]
+          }
+        ]
+      }
+	`
+	definition := new(Definition)
+	err := json.Unmarshal([]byte(rawDefinition), &definition)
+	if err != nil {
+		t.Fatalf("error unmarshalling definition: %v", err)
+	}
+
+	result, err := FetchSingle(ctx, definition)
+	if err != nil {
+		t.Fatalf("error fetching single: %v", err)
+	}
+	assert.Greater(t, result, float64(0))
+}

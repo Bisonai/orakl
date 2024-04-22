@@ -229,6 +229,33 @@ func (t *ChainHelper) NumClients() int {
 	return len(t.clients)
 }
 
+func (t *ChainHelper) PublicAddress() (common.Address, error) {
+	// should get the public address of next reporter yet not move the index
+	result := common.Address{}
+
+	reporterPrivateKey := t.wallets[t.lastUsedWalletIndex]
+	privateKey, err := crypto.HexToECDSA(reporterPrivateKey)
+	if err != nil {
+		return result, err
+	}
+	publicKey := privateKey.Public()
+	publicKeyECDSA, ok := publicKey.(*ecdsa.PublicKey)
+	if !ok {
+		return result, errors.New("error casting public key to ECDSA")
+	}
+	result = crypto.PubkeyToAddress(*publicKeyECDSA)
+	return result, nil
+}
+
+func (t *ChainHelper) PublicAddressString() (string, error) {
+	address, err := t.PublicAddress()
+	if err != nil {
+		return "", err
+	}
+
+	return address.Hex(), nil
+}
+
 func (t *ChainHelper) retryOnJsonRpcFailure(ctx context.Context, job func(c utils.ClientInterface) error) error {
 	for _, client := range t.clients {
 		err := job(client)
