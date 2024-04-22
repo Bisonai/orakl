@@ -14,7 +14,7 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-func FetchSingle(ctx context.Context, definition Definition) (float64, error) {
+func FetchSingle(ctx context.Context, definition *Definition) (float64, error) {
 	rawResult, err := request.GetRequest[interface{}](*definition.Url, nil, definition.Headers)
 	if err != nil {
 		return 0, err
