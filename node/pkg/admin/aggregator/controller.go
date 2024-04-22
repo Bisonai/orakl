@@ -1,6 +1,7 @@
 package aggregator
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"sync"
@@ -15,13 +16,15 @@ import (
 )
 
 type AggregatorModel struct {
-	Id     *int64 `db:"id" json:"id"`
-	Name   string `db:"name" json:"name"`
-	Active bool   `db:"active" json:"active"`
+	Id       *int64 `db:"id" json:"id"`
+	Name     string `db:"name" json:"name"`
+	Active   bool   `db:"active" json:"active"`
+	Interval int    `db:"interval" json:"interval"`
 }
 
 type AggregatorInsertModel struct {
-	Name string `db:"name" json:"name" validate:"required"`
+	Name     string `db:"name" json:"name" validate:"required"`
+	Interval *int   `db:"interval" json:"aggregateHeartbeat"`
 }
 
 type BulkAggregators struct {
@@ -74,10 +77,7 @@ func insert(c *fiber.Ctx) error {
 	if err := validate.Struct(payload); err != nil {
 		return c.Status(fiber.StatusInternalServerError).SendString("failed to validate aggregator insert payload: " + err.Error())
 	}
-
-	result, err := db.QueryRow[AggregatorModel](c.Context(), InsertAggregator, map[string]any{
-		"name": payload.Name,
-	})
+	result, err := insertAggregator(c.Context(), *payload)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).SendString("failed to execute aggregator insert query: " + err.Error())
 	}
@@ -112,14 +112,6 @@ func deleteById(c *fiber.Ctx) error {
 	return c.JSON(result)
 }
 
-func syncWithAdapter(c *fiber.Ctx) error {
-	result, err := db.QueryRows[AggregatorModel](c.Context(), SyncAggregator, nil)
-	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).SendString("failed to execute aggregator sync with adapter query: " + err.Error())
-	}
-	return c.JSON(result)
-}
-
 func SyncFromOraklConfig(c *fiber.Ctx) error {
 	configUrl := getConfigUrl()
 
@@ -148,10 +140,7 @@ func SyncFromOraklConfig(c *fiber.Ctx) error {
 				errs <- err
 				return
 			}
-
-			_, err := db.QueryRow[AggregatorModel](c.Context(), UpsertAggregator, map[string]any{
-				"name": aggregator.Name,
-			})
+			_, err := insertAggregator(c.Context(), aggregator)
 			if err != nil {
 				log.Error().Err(err).Msg("failed to execute aggregator insert query")
 				errs <- err
@@ -194,10 +183,7 @@ func addFromOraklConfig(c *fiber.Ctx) error {
 			if err := validate.Struct(aggregator); err != nil {
 				return c.Status(fiber.StatusInternalServerError).SendString("failed to validate orakl config aggregator: " + err.Error())
 			}
-
-			result, err := db.QueryRow[AggregatorModel](c.Context(), UpsertAggregator, map[string]any{
-				"name": aggregator.Name,
-			})
+			result, err := insertAggregator(c.Context(), aggregator)
 			if err != nil {
 				return c.Status(fiber.StatusInternalServerError).SendString("failed to execute aggregator insert query: " + err.Error())
 			}
@@ -254,4 +240,16 @@ func getConfigUrl() string {
 		chain = "baobab"
 	}
 	return fmt.Sprintf("https://config.orakl.network/%s_aggregators.json", chain)
+}
+
+func insertAggregator(ctx context.Context, aggregator AggregatorInsertModel) (AggregatorModel, error) {
+	if aggregator.Interval == nil {
+		newInterval := 5000
+		aggregator.Interval = &newInterval
+	}
+
+	return db.QueryRow[AggregatorModel](ctx, UpsertAggregatorWithInterval, map[string]any{
+		"name":     aggregator.Name,
+		"interval": aggregator.Interval,
+	})
 }
