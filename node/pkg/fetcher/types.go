@@ -24,9 +24,10 @@ type FeedData struct {
 }
 
 type Adapter struct {
-	ID     int64  `db:"id"`
-	Name   string `db:"name"`
-	Active bool   `db:"active"`
+	ID       int64  `db:"id"`
+	Name     string `db:"name"`
+	Active   bool   `db:"active"`
+	Interval int    `db:"interval"`
 }
 
 type Proxy struct {
