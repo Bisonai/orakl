@@ -114,6 +114,15 @@ func New(ctx context.Context) (*App, error) {
 		return nil, err
 	}
 
+	initValue := 0.0
+	initTime := time.Time{}
+
+	loaded, err := LoadSubmission(ctx, adapter.Name)
+	if err == nil {
+		initTime = loaded.Time
+		initValue = loaded.Value
+	}
+
 	return &App{
 		Name:            adapter.Name,
 		Definition:      definition,
@@ -122,8 +131,8 @@ func New(ctx context.Context) (*App, error) {
 		KlaytnHelper:    chainHelper,
 		ContractAddress: aggregator.Address,
 
-		LastSubmissionValue: 0,
-		LastSubmissionTime:  time.Time{},
+		LastSubmissionValue: initValue,
+		LastSubmissionTime:  initTime,
 	}, nil
 }
 
@@ -135,29 +144,30 @@ func (a *App) Run(ctx context.Context) error {
 			ticker.Stop()
 			return nil
 		case <-ticker.C:
-			value, err := fetcher.FetchSingle(ctx, a.Definition)
+			err := a.Execute(ctx)
 			if err != nil {
-				log.Error().Err(err).Msg("error in fetch")
-			}
-
-			if a.LastSubmissionTime.IsZero() && a.LastSubmissionValue == 0 {
-				loaded, err := LoadSubmission(ctx, a.Name)
-				if err == nil {
-					a.LastSubmissionTime = loaded.Time
-					a.LastSubmissionValue = loaded.Value
-				}
-			}
-
-			now := time.Now()
-			if a.ShouldReport(value, now) {
-				err := a.report(ctx, now, value)
-				if err != nil {
-					log.Error().Err(err).Msg("failed to report")
-					continue
-				}
+				log.Error().Err(err).Msg("error in execute")
 			}
 		}
 	}
+}
+
+func (a *App) Execute(ctx context.Context) error {
+	value, err := fetcher.FetchSingle(ctx, a.Definition)
+	if err != nil {
+		log.Error().Err(err).Msg("error in fetch")
+	}
+
+	now := time.Now()
+	if a.ShouldReport(value, now) {
+		err := a.report(ctx, now, value)
+		if err != nil {
+			log.Error().Err(err).Msg("failed to report")
+			return err
+		}
+	}
+
+	return nil
 }
 
 func (a *App) ShouldReport(value float64, fetchedTime time.Time) bool {
