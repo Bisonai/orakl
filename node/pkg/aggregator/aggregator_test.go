@@ -23,14 +23,14 @@ func TestNewAggregator(t *testing.T) {
 		}
 	}()
 
-	_, err = NewAggregator(testItems.app.Host, testItems.app.Pubsub, testItems.topicString)
+	_, err = NewAggregator(testItems.app.Host, testItems.app.Pubsub, testItems.topicString, testItems.tmpData.aggregator)
 	if err != nil {
 		t.Fatal("error creating new node")
 	}
 }
 
 func TestNewAggregator_Error(t *testing.T) {
-	_, err := NewAggregator(nil, nil, "")
+	_, err := NewAggregator(nil, nil, "", AggregatorModel{})
 	assert.NotNil(t, err, "Expected error when creating new aggregator with nil parameters")
 }
 
@@ -46,7 +46,7 @@ func TestLeaderJob(t *testing.T) {
 		}
 	}()
 
-	node, err := NewAggregator(testItems.app.Host, testItems.app.Pubsub, testItems.topicString)
+	node, err := NewAggregator(testItems.app.Host, testItems.app.Pubsub, testItems.topicString, testItems.tmpData.aggregator)
 	if err != nil {
 		t.Fatal("error creating new node")
 	}
@@ -70,7 +70,7 @@ func TestGetLatestLocalAggregate(t *testing.T) {
 		}
 	}()
 
-	node, err := NewAggregator(testItems.app.Host, testItems.app.Pubsub, testItems.topicString)
+	node, err := NewAggregator(testItems.app.Host, testItems.app.Pubsub, testItems.topicString, testItems.tmpData.aggregator)
 
 	if err != nil {
 		t.Fatal("error creating new node")
@@ -104,7 +104,7 @@ func TestGetLatestRoundId(t *testing.T) {
 		}
 	}()
 
-	node, err := NewAggregator(testItems.app.Host, testItems.app.Pubsub, testItems.topicString)
+	node, err := NewAggregator(testItems.app.Host, testItems.app.Pubsub, testItems.topicString, testItems.tmpData.aggregator)
 	if err != nil {
 		t.Fatal("error creating new node")
 	}
@@ -131,7 +131,7 @@ func TestInsertGlobalAggregate(t *testing.T) {
 		}
 	}()
 
-	node, err := NewAggregator(testItems.app.Host, testItems.app.Pubsub, testItems.topicString)
+	node, err := NewAggregator(testItems.app.Host, testItems.app.Pubsub, testItems.topicString, testItems.tmpData.aggregator)
 	if err != nil {
 		t.Fatal("error creating new node")
 	}
@@ -169,7 +169,7 @@ func TestInsertProof(t *testing.T) {
 		}
 	}()
 
-	node, err := NewAggregator(testItems.app.Host, testItems.app.Pubsub, testItems.topicString)
+	node, err := NewAggregator(testItems.app.Host, testItems.app.Pubsub, testItems.topicString, testItems.tmpData.aggregator)
 	if err != nil {
 		t.Fatal("error creating new node")
 	}

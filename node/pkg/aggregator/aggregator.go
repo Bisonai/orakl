@@ -16,7 +16,7 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-func NewAggregator(h host.Host, ps *pubsub.PubSub, topicString string) (*Aggregator, error) {
+func NewAggregator(h host.Host, ps *pubsub.PubSub, topicString string, aggregatorModel AggregatorModel) (*Aggregator, error) {
 	if h == nil || ps == nil || topicString == "" {
 		return nil, fmt.Errorf("invalid parameters")
 	}
@@ -33,8 +33,11 @@ func NewAggregator(h host.Host, ps *pubsub.PubSub, topicString string) (*Aggrega
 		return nil, err
 	}
 
+	aggregateInterval := time.Duration(aggregatorModel.Interval) * time.Millisecond
+
 	aggregator := Aggregator{
-		Raft:                    raft.NewRaftNode(h, ps, topic, 100, LEADER_TIMEOUT),
+		AggregatorModel:         aggregatorModel,
+		Raft:                    raft.NewRaftNode(h, ps, topic, 100, aggregateInterval),
 		CollectedPrices:         map[int64][]int64{},
 		CollectedProofs:         map[int64][][]byte{},
 		CollectedAgreements:     map[int64][]bool{},
@@ -121,7 +124,7 @@ func (n *Aggregator) HandleRoundSyncMessage(ctx context.Context, msg raft.Messag
 	n.PreparedLocalAggregates[roundSyncMessage.RoundID] = value
 	n.SyncedTimes[roundSyncMessage.RoundID] = roundSyncMessage.Timestamp
 
-	if !isTimeValid(updateTime, roundSyncMessage.Timestamp) {
+	if !n.isTimeValid(updateTime, roundSyncMessage.Timestamp) {
 		n.PreparedLocalAggregates[roundSyncMessage.RoundID] = -1
 		return n.PublishSyncReplyMessage(roundSyncMessage.RoundID, false)
 	}
@@ -378,4 +381,9 @@ func (n *Aggregator) PublishProofMessage(roundId int64, proof []byte) error {
 	}
 
 	return n.Raft.PublishMessage(message)
+}
+
+func (n *Aggregator) isTimeValid(timeToValidate time.Time, baseTime time.Time) bool {
+	aggregatorInterval := time.Duration(n.AggregatorModel.Interval) * time.Millisecond
+	return timeToValidate.After(baseTime.Add(-aggregatorInterval)) && timeToValidate.Before(baseTime)
 }

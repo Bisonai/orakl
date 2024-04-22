@@ -13,7 +13,6 @@ import (
 )
 
 const (
-	LEADER_TIMEOUT   = 5 * time.Second
 	AGREEMENT_QUORUM = 0.5
 
 	RoundSync raft.MessageType = "roundSync"
@@ -69,9 +68,10 @@ type App struct {
 }
 
 type AggregatorModel struct {
-	ID     int64  `db:"id"`
-	Name   string `db:"name"`
-	Active bool   `db:"active"`
+	ID       int64  `db:"id"`
+	Name     string `db:"name"`
+	Active   bool   `db:"active"`
+	Interval int    `db:"interval"`
 }
 
 type Aggregator struct {

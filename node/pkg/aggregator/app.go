@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"math/rand"
+	"strconv"
 	"time"
 
 	"bisonai.com/orakl/node/pkg/bus"
@@ -72,12 +73,11 @@ func (a *App) initializeLoadedAggregators(loadedAggregators []AggregatorModel, h
 			continue
 		}
 
-		topicString := aggregator.Name + "-global-aggregator-topic"
-		tmpNode, err := NewAggregator(h, ps, topicString)
+		topicString := aggregator.Name + "-global-aggregator-topic-" + strconv.Itoa(aggregator.Interval)
+		tmpNode, err := NewAggregator(h, ps, topicString, aggregator)
 		if err != nil {
 			return err
 		}
-		tmpNode.AggregatorModel = aggregator
 		a.Aggregators[aggregator.ID] = tmpNode
 
 	}
