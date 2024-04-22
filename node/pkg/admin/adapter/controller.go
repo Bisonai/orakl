@@ -1,6 +1,7 @@
 package adapter
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -20,9 +21,10 @@ type BulkAdapters struct {
 }
 
 type AdapterModel struct {
-	Id     *int64 `db:"id" json:"id"`
-	Name   string `db:"name" json:"name"`
-	Active bool   `db:"active" json:"active"`
+	Id       *int64 `db:"id" json:"id"`
+	Name     string `db:"name" json:"name"`
+	Active   bool   `db:"active" json:"active"`
+	Interval int    `db:"interval" json:"interval"`
 }
 
 type FeedModel struct {
@@ -39,8 +41,9 @@ type FeedInsertModel struct {
 }
 
 type AdapterInsertModel struct {
-	Name  string            `db:"name" json:"name" validate:"required"`
-	Feeds []FeedInsertModel `json:"feeds"`
+	Name     string            `db:"name" json:"name" validate:"required"`
+	Feeds    []FeedInsertModel `json:"feeds"`
+	Interval *int              `db:"interval" json:"interval"`
 }
 
 type AdapterDetailModel struct {
@@ -77,9 +80,7 @@ func SyncFromOraklConfig(c *fiber.Ctx) error {
 				return
 			}
 
-			row, err := db.QueryRow[AdapterModel](c.Context(), UpsertAdapter, map[string]any{
-				"name": adapter.Name,
-			})
+			row, err := insertAdapter(c.Context(), adapter)
 			if err != nil {
 				log.Error().Err(err).Msg("failed to execute adapter insert query")
 				errs <- err
@@ -139,9 +140,7 @@ func addFromOraklConfig(c *fiber.Ctx) error {
 				return c.Status(fiber.StatusInternalServerError).SendString("failed to validate orakl config adapter: " + err.Error())
 			}
 
-			row, err := db.QueryRow[AdapterModel](c.Context(), UpsertAdapter, map[string]any{
-				"name": adapter.Name,
-			})
+			row, err := insertAdapter(c.Context(), adapter)
 			if err != nil {
 				log.Error().Err(err).Msg("failed to execute adapter insert query")
 				return c.Status(fiber.StatusInternalServerError).SendString("failed to execute adapter insert query: " + err.Error())
@@ -177,10 +176,7 @@ func insert(c *fiber.Ctx) error {
 	if err := validate.Struct(payload); err != nil {
 		return c.Status(fiber.StatusInternalServerError).SendString("failed to validate adapter insert payload: " + err.Error())
 	}
-
-	row, err := db.QueryRow[AdapterModel](c.Context(), InsertAdapter, map[string]any{
-		"name": payload.Name,
-	})
+	row, err := insertAdapter(c.Context(), *payload)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).SendString("failed to execute adapter insert query: " + err.Error())
 	}
@@ -290,4 +286,16 @@ func getConfigUrl() string {
 		chain = "baobab"
 	}
 	return fmt.Sprintf("https://config.orakl.network/%s_adapters.json", chain)
+}
+
+func insertAdapter(ctx context.Context, adapter AdapterInsertModel) (AdapterModel, error) {
+	if adapter.Interval == nil {
+		newInterval := 2000
+		adapter.Interval = &newInterval
+	}
+
+	return db.QueryRow[AdapterModel](ctx, UpsertAdapterWithInterval, map[string]any{
+		"name":     adapter.Name,
+		"interval": adapter.Interval,
+	})
 }

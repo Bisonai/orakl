@@ -8,6 +8,12 @@ const (
 	ON CONFLICT (name) DO UPDATE SET active = true
 	RETURNING *;`
 
+	UpsertAdapterWithInterval = `
+	INSERT INTO adapters (name, interval) VALUES (@name, @interval)
+	ON CONFLICT (name) DO UPDATE SET active = true, interval = @interval
+	RETURNING *;
+	`
+
 	InsertFeed = `INSERT INTO feeds (name, definition, adapter_id) VALUES (@name, @definition, @adapter_id) RETURNING *;`
 
 	UpsertFeed = `

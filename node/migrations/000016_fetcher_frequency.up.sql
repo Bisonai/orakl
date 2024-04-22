@@ -7,6 +7,6 @@ BEGIN
         AND column_name = 'interval'
     ) THEN
         ALTER TABLE adapters
-        ADD COLUMN interval INT4;
+        ADD COLUMN interval INT4 DEFAULT 2000 NOT NULL;
     END IF;
 END $$;
