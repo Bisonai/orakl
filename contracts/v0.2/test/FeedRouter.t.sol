@@ -34,6 +34,8 @@ contract FeedRouterTest is Test {
 	emit ProxyAdded(feedNames_[1], proxyAddresses_[1]);
 	feedRouter.updateProxyBulk(feedNames_, proxyAddresses_);
 
+	assertEq(feedRouter.feedToProxies(feedNames_[0]), btcUsdt);
+	assertEq(feedRouter.feedToProxies(feedNames_[1]), ethUsdt);
 	assertEq(true, compareArrays(feedNames_, feedRouter.getFeedNames()));
     }
 
@@ -53,11 +55,13 @@ contract FeedRouterTest is Test {
 	emit ProxyAdded(feedNames_[0], proxyAddressesOld_[0]);
 	feedRouter.updateProxyBulk(feedNames_, proxyAddressesOld_);
 	assertEq(btcUsdtOld, feedRouter.feedToProxies(feedNames_[0]));
+	assertEq(feedRouter.feedToProxies(feedNames_[0]), btcUsdtOld);
 
 	vm.expectEmit(true, true, true, true);
 	emit ProxyUpdated(feedNames_[0], proxyAddressesNew_[0]);
 	feedRouter.updateProxyBulk(feedNames_, proxyAddressesNew_);
 	assertEq(btcUsdtNew, feedRouter.feedToProxies(feedNames_[0]));
+	assertEq(feedRouter.feedToProxies(feedNames_[0]), btcUsdtNew);
     }
 
     function test_UpdateNotEqualLength() public {
@@ -98,18 +102,23 @@ contract FeedRouterTest is Test {
 	vm.expectEmit(true, true, true, true);
 	emit ProxyAdded(feedNamesAdd_[0], proxyAddresses_[0]);
 	feedRouter.updateProxyBulk(feedNamesAdd_, proxyAddresses_);
+	assertEq(feedRouter.feedToProxies(feedNamesAdd_[0]), btcUsdt);
+	assertEq(feedRouter.feedToProxies(feedNamesAdd_[1]), ethUsdt);
 
 	// remove btc-usdt proxy
 	string[] memory feedNamesRemove_ = new string[](1);
-	feedNamesRemove_[0] = "btc-usdt";
+	feedNamesRemove_[0] = feedNamesAdd_[0];
 	vm.expectEmit(true, true, true, true);
 	emit ProxyRemoved(feedNamesRemove_[0], proxyAddresses_[0]);
 	feedRouter.removeProxyBulk(feedNamesRemove_);
 
 	// expect that only eth-usdt is left
 	string[] memory expectedFeedNames_ = new string[](1);
-	expectedFeedNames_[0] = "eth-usdt";
+	expectedFeedNames_[0] = feedNamesAdd_[1];
 	assertEq(true, compareArrays(expectedFeedNames_, feedRouter.getFeedNames()));
+
+	assertEq(feedRouter.feedToProxies(feedNamesAdd_[0]), address(0));
+	assertEq(feedRouter.feedToProxies(feedNamesAdd_[1]), ethUsdt);
     }
 
     function compareArrays(string[] memory array1, string[] memory array2) private pure returns (bool) {
