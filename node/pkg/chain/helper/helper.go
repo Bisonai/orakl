@@ -88,9 +88,9 @@ func NewChainHelper(ctx context.Context, opts ...ChainHelperOption) (*ChainHelpe
 	clients := make([]utils.ClientInterface, 0, len(providerUrls)+1)
 	clients = append(clients, primaryClient)
 	for _, url := range providerUrls {
-		subClient, err := dialFuncs[config.BlockchainType](url)
-		if err != nil {
-			log.Error().Err(err).Msg("failed to dial sub client")
+		subClient, subClientErr := dialFuncs[config.BlockchainType](url)
+		if subClientErr != nil {
+			log.Error().Err(subClientErr).Msg("failed to dial sub client")
 			continue
 		}
 		clients = append(clients, subClient)
