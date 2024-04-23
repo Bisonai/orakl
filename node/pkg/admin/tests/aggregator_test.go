@@ -216,28 +216,6 @@ func TestAggregatorDeactivate(t *testing.T) {
 
 }
 
-func TestAggregatorSyncWithAdapter(t *testing.T) {
-	ctx := context.Background()
-	cleanup, testItems, err := setup(ctx)
-	if err != nil {
-		t.Fatalf("error setting up test: %v", err)
-	}
-	defer cleanup()
-
-	syncResult, err := PostRequest[[]aggregator.AggregatorModel](testItems.app, "/api/v1/aggregator/sync/adapter", nil)
-	if err != nil {
-		t.Fatalf("error syncing aggregator with adapter: %v", err)
-	}
-	assert.Greater(t, len(syncResult), 0, "expected to have at least one aggregator")
-	assert.Equal(t, syncResult[0].Name, testItems.tmpData.adapter.Name)
-
-	// cleanup
-	_, err = db.QueryRow[aggregator.AggregatorModel](context.Background(), aggregator.DeleteAggregatorById, map[string]any{"id": syncResult[0].Id})
-	if err != nil {
-		t.Fatalf("error cleaning up test: %v", err)
-	}
-}
-
 func TestAggregatorSyncWithOraklConfig(t *testing.T) {
 	ctx := context.Background()
 	cleanup, testItems, err := setup(ctx)

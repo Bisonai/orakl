@@ -32,7 +32,8 @@ func (f *Fetcher) Run(ctx context.Context, chainHelpers map[string]ChainHelper, 
 	f.cancel = cancel
 	f.isRunning = true
 
-	ticker := time.NewTicker(FETCHER_FREQUENCY)
+	fetcher_frequency := time.Duration(f.Adapter.Interval) * time.Millisecond
+	ticker := time.NewTicker(fetcher_frequency)
 	go func() {
 		for {
 			select {

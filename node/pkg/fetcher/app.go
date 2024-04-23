@@ -16,8 +16,6 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-const FETCHER_FREQUENCY = 2 * time.Second
-
 func New(bus *bus.MessageBus) *App {
 	return &App{
 		Fetchers: make(map[int64]*Fetcher, 0),
