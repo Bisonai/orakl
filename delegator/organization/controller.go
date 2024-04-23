@@ -18,17 +18,17 @@ type OrganizationModel struct {
 func insert(c *fiber.Ctx) error {
 	payload := new(OrganizationInsertModel)
 	if err := c.BodyParser(payload); err != nil {
-		panic(err)
+		return err
 	}
 
 	validate := validator.New()
 	if err := validate.Struct(payload); err != nil {
-		panic(err)
+		return err
 	}
 
 	result, err := utils.QueryRow[OrganizationModel](c, InsertOrganization, map[string]any{"name": payload.Name})
 	if err != nil {
-		panic(err)
+		return err
 	}
 	return c.JSON(result)
 
@@ -37,7 +37,7 @@ func insert(c *fiber.Ctx) error {
 func get(c *fiber.Ctx) error {
 	result, err := utils.QueryRows[OrganizationModel](c, GetOrganization, nil)
 	if err != nil {
-		panic(err)
+		return err
 	}
 	return c.JSON(result)
 }
@@ -46,7 +46,7 @@ func getById(c *fiber.Ctx) error {
 	id := c.Params("id")
 	result, err := utils.QueryRow[OrganizationModel](c, GetOrganizationById, map[string]any{"id": id})
 	if err != nil {
-		panic(err)
+		return err
 	}
 	return c.JSON(result)
 }
@@ -55,11 +55,11 @@ func updateById(c *fiber.Ctx) error {
 	id := c.Params("id")
 	payload := new(OrganizationInsertModel)
 	if err := c.BodyParser(payload); err != nil {
-		panic(err)
+		return err
 	}
 	result, err := utils.QueryRow[OrganizationModel](c, UpdateOrganization, map[string]any{"name": payload.Name, "id": id})
 	if err != nil {
-		panic(err)
+		return err
 	}
 	return c.JSON(result)
 }
@@ -68,7 +68,7 @@ func deleteById(c *fiber.Ctx) error {
 	id := c.Params("id")
 	result, err := utils.QueryRow[OrganizationModel](c, DeleteOrganization, map[string]any{"id": id})
 	if err != nil {
-		panic(err)
+		return err
 	}
 	return c.JSON(result)
 }

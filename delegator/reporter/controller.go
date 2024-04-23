@@ -39,17 +39,17 @@ type OrganizationName struct {
 func insert(c *fiber.Ctx) error {
 	payload := new(ReporterInsertModel)
 	if err := c.BodyParser(payload); err != nil {
-		panic(err)
+		return err
 	}
 
 	validate := validator.New()
 	if err := validate.Struct(payload); err != nil {
-		panic(err)
+		return err
 	}
 
 	result, err := utils.QueryRow[ReporterModel](c, InsertReporter, map[string]any{"address": strings.ToLower(payload.Address), "organizationId": payload.OrganizationId})
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	return c.JSON(result)
@@ -58,19 +58,19 @@ func insert(c *fiber.Ctx) error {
 func get(c *fiber.Ctx) error {
 	reporters, err := utils.QueryRows[ReporterModel](c, GetReporter, nil)
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	results := make([]ReporterDetailModel, len(reporters))
 	for i, reporter := range reporters {
 		organizationName, err := utils.QueryRow[OrganizationName](c, GetOrganizationName, map[string]any{"organizationId": reporter.OrganizationId})
 		if err != nil {
-			panic(err)
+			return err
 		}
 
 		contracts, err := utils.QueryRows[ContractModel](c, GetConnectedContracts, map[string]any{"reporterId": reporter.ReporterId})
 		if err != nil {
-			panic(err)
+			return err
 		}
 
 		contractAddresses := make([]string, len(contracts))
@@ -93,16 +93,16 @@ func getById(c *fiber.Ctx) error {
 	id := c.Params("id")
 	reporter, err := utils.QueryRow[ReporterModel](c, GetReporterById, map[string]any{"id": id})
 	if err != nil {
-		panic(err)
+		return err
 	}
 	organizationName, err := utils.QueryRow[OrganizationName](c, GetOrganizationName, map[string]any{"organizationId": reporter.OrganizationId})
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	contracts, err := utils.QueryRows[ContractModel](c, GetConnectedContracts, map[string]any{"reporterId": reporter.ReporterId})
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	contractAddresses := make([]string, len(contracts))
@@ -124,17 +124,17 @@ func updateById(c *fiber.Ctx) error {
 	id := c.Params("id")
 	payload := new(ReporterInsertModel)
 	if err := c.BodyParser(payload); err != nil {
-		panic(err)
+		return err
 	}
 
 	validate := validator.New()
 	if err := validate.Struct(payload); err != nil {
-		panic(err)
+		return err
 	}
 
 	result, err := utils.QueryRow[ReporterModel](c, UpdateReporterById, map[string]any{"id": id, "address": payload.Address, "organizationId": payload.OrganizationId})
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	return c.JSON(result)
@@ -144,7 +144,7 @@ func deleteById(c *fiber.Ctx) error {
 	id := c.Params("id")
 	result, err := utils.QueryRow[ReporterModel](c, DeleteReporterById, map[string]any{"id": id})
 	if err != nil {
-		panic(err)
+		return err
 	}
 	return c.JSON(result)
 }

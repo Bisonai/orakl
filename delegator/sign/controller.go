@@ -92,11 +92,11 @@ func initialize(c *fiber.Ctx) error {
 	if pk == "" {
 		pgx, err := utils.GetPgx(c)
 		if err != nil {
-			panic(err)
+			return err
 		}
 		err = utils.InitFeePayerPK(c.Context(), pgx)
 		if err != nil {
-			panic(err)
+			return err
 		}
 		return c.SendString("Initialized")
 	}
@@ -109,12 +109,12 @@ func initialize(c *fiber.Ctx) error {
 func insert(c *fiber.Ctx) error {
 	payload := new(SignInsertPayload)
 	if err := c.BodyParser(payload); err != nil {
-		panic(err)
+		return err
 	}
 
 	validate := validator.New()
 	if err := validate.Struct(payload); err != nil {
-		panic(err)
+		return err
 	}
 
 	payload.Timestamp = &utils.CustomDateTime{Time: time.Now()}
@@ -123,21 +123,21 @@ func insert(c *fiber.Ctx) error {
 
 	tx, err := insertTransaction(c, payload)
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	err = validateTransaction(c, tx)
 	if err != nil {
-		panic(err)
+		return err
 	}
 	err = signTxByFeePayer(c, tx)
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	result, err := updateTransaction(c, tx)
 	if err != nil {
-		panic(err)
+		return err
 	}
 	return c.JSON(result)
 }
@@ -145,21 +145,21 @@ func insert(c *fiber.Ctx) error {
 func onlySign(c *fiber.Ctx) error {
 	payload := new(SignInsertPayload)
 	if err := c.BodyParser(payload); err != nil {
-		panic(err)
+		return err
 	}
 
 	validate := validator.New()
 	if err := validate.Struct(payload); err != nil {
-		panic(err)
+		return err
 	}
 	transaction, err := HashToTx(payload.RawTx)
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	signedTransaction, err := signTxByFeePayerV2(c, transaction)
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	signedRawTx := TxToHash(signedTransaction)
@@ -170,7 +170,7 @@ func onlySign(c *fiber.Ctx) error {
 func insertV2(c *fiber.Ctx) error {
 	payload := new(SignInsertPayload)
 	if err := c.BodyParser(payload); err != nil {
-		panic(err)
+		return err
 	}
 
 	transaction, err := HashToTx(payload.RawTx)
@@ -180,7 +180,7 @@ func insertV2(c *fiber.Ctx) error {
 
 	validate := validator.New()
 	if err := validate.Struct(payload); err != nil {
-		panic(err)
+		return err
 	}
 
 	payload.Timestamp = &utils.CustomDateTime{Time: time.Now()}
@@ -189,17 +189,17 @@ func insertV2(c *fiber.Ctx) error {
 
 	tx, err := insertTransaction(c, payload)
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	err = validateContractAddress(c, tx)
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	signedTransaction, err := signTxByFeePayerV2(c, transaction)
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	succeed := true
@@ -209,7 +209,7 @@ func insertV2(c *fiber.Ctx) error {
 
 	result, err := updateTransaction(c, tx)
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	return c.JSON(result)
@@ -218,7 +218,7 @@ func insertV2(c *fiber.Ctx) error {
 func get(c *fiber.Ctx) error {
 	transactions, err := utils.QueryRows[SignModel](c, GetTransactions, nil)
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	return c.JSON(transactions)
@@ -228,7 +228,7 @@ func getById(c *fiber.Ctx) error {
 	id := c.Params("id")
 	transaction, err := utils.QueryRow[SignModel](c, GetTransactionById, map[string]any{"id": id})
 	if err != nil {
-		panic(err)
+		return err
 	}
 	return c.JSON(transaction)
 }
