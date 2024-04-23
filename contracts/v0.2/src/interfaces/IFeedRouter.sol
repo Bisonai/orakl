@@ -10,17 +10,6 @@ interface IFeedRouter {
     function feedProxies(string calldata feedName) external view returns (address);
 
     /**
-     * @notice Update the feed proxy address of given a feed name.
-     * @dev This function is restricted to the owner. If null address
-     * is passed as proxy address, the function will revert with
-     * `InvalidProxyAddress` error. If the proxy has sucessfully been
-     * updated, the `RouterProxyAddressUpdated` event will be emitted.
-     * @param feedName The feed name.
-     * @param proxyAddress The address of the feed proxy.
-     */
-    function updateProxy(string calldata feedName, address proxyAddress) external;
-
-    /**
      * @notice Update the feed proxy addresses in bulk.
      * @dev This function is restricted to the owner. Internally, this
      * function uses `updateProxy` to update the proxy addresses.
@@ -28,6 +17,14 @@ interface IFeedRouter {
      * @param proxyAddresses The addresses of the feed proxies.
      */
     function updateProxyBulk(string[] calldata feedNames, address[] calldata proxyAddresses) external;
+
+    /**
+     * @notice Remove the feed proxy addresses in bulk.
+     * @dev This function is restricted to the owner. Internally, this
+     * function uses `removeProxy` to remove the proxy addresses.
+     * @param feedNames The feed names.
+     */
+    function removeProxyBulk(string[] calldata feedNames) external;
 
     /**
      * @notice Get the round data given a a feedd name and round ID.

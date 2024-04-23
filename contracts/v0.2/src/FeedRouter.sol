@@ -19,7 +19,7 @@ contract FeedRouter is Ownable, IFeedRouter {
     mapping(string => address) public feedProxies;
 
     event RouterProxyAddressUpdated(string feedName, address indexed proxyAddress);
-    event RouterProxyAddressBulkUpdated(string[] feedNames, address[] proxyAddresses);
+    event RouterProxyAddressesRemoved(string[] feedNames);
 
     error InvalidProxyAddress();
 
@@ -43,8 +43,19 @@ contract FeedRouter is Ownable, IFeedRouter {
         for (uint256 i = 0; i < _feedNames.length; i++) {
             updateProxy(_feedNames[i], _proxyAddresses[i]);
         }
+    }
 
-        emit RouterProxyAddressBulkUpdated(_feedNames, _proxyAddresses);
+    /**
+     * @inheritdoc IFeedRouter
+     */
+    function removeProxyBulk(string[] calldata _feedNames) external onlyOwner {
+	require(_feedNames.length > 0, "invalid input");
+
+	for (uint256 i = 0; i < _feedNames.length; i++) {
+	    feedProxies[_feedNames[i]] = address(0);
+	}
+
+	emit RouterProxyAddressesRemoved(_feedNames);
     }
 
     /**
@@ -154,9 +165,11 @@ contract FeedRouter is Ownable, IFeedRouter {
     }
 
     /**
-     * @inheritdoc IFeedRouter
+     * @notice Update the feed proxy address of given a feed name.
+     * @param _feedName The feed name.
+     * @param _proxyAddress The address of the feed proxy.
      */
-    function updateProxy(string calldata _feedName, address _proxyAddress) public onlyOwner {
+    function updateProxy(string calldata _feedName, address _proxyAddress) private {
         if (_proxyAddress == address(0)) {
             revert InvalidProxyAddress();
         }
