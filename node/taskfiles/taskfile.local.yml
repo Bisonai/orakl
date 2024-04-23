@@ -13,6 +13,10 @@ tasks:
     dotenv: [".env"]
     cmds:
       - go run ./cmd/node/main.go
+  por:
+    dotenv: [".env"]
+    cmds:
+      - go run ./cmd/por/main.go
 
   script-submission:
     dotenv: [".env"]
