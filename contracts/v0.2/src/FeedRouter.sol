@@ -188,6 +188,7 @@ contract FeedRouter is Ownable, IFeedRouter {
 	for (uint256 i = 0; i < feedNames.length; i++) {
 	    if (keccak256(abi.encodePacked(feedNames[i])) == feedNameHash) {
 		found = true;
+		break;
 	    }
 	}
 
