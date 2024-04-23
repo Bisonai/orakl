@@ -7,7 +7,7 @@ interface IFeedRouter {
      * @param feedName The feed name.
      * @return The address of the feed proxy.
      */
-    function feedProxies(string calldata feedName) external view returns (address);
+    function feedToProxies(string calldata feedName) external view returns (address);
 
     /**
      * @notice Update the feed proxy addresses in bulk.
@@ -140,4 +140,10 @@ interface IFeedRouter {
      * @return description The description of the feed.
      */
     function description(string calldata feedName) external view returns (string memory);
+
+    /**
+     * @notice Get supported feed names.
+     * @return The feed names.
+     */
+    function getFeedNames() external view returns (string[] memory);
 }
