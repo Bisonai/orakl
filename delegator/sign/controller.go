@@ -173,6 +173,11 @@ func insertV2(c *fiber.Ctx) error {
 		panic(err)
 	}
 
+	transaction, err := HashToTx(payload.RawTx)
+	if err != nil {
+		panic(err)
+	}
+
 	validate := validator.New()
 	if err := validate.Struct(payload); err != nil {
 		panic(err)
@@ -192,10 +197,16 @@ func insertV2(c *fiber.Ctx) error {
 		panic(err)
 	}
 
-	err = signTxByFeePayer(c, tx)
+	signedTransaction, err := signTxByFeePayerV2(c, transaction)
 	if err != nil {
 		panic(err)
 	}
+
+	succeed := true
+	rawTxHash := TxToHash(signedTransaction)
+	tx.Succeed = &succeed
+	tx.SignedRawTx = &rawTxHash
+
 	result, err := updateTransaction(c, tx)
 	if err != nil {
 		panic(err)
