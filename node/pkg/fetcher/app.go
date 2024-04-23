@@ -275,7 +275,7 @@ func (a *App) getChainHelpers(ctx context.Context) (map[string]ChainHelper, erro
 		cypressProviderUrl = "https://public-en-cypress.klaytn.net"
 	}
 
-	cypressHelper, err := chain_helper.NewKlayHelper(ctx, cypressProviderUrl)
+	cypressHelper, err := chain_helper.NewChainHelper(ctx, chain_helper.WithProviderUrl(cypressProviderUrl))
 	if err != nil {
 		log.Error().Err(err).Msg("failed to create cypress helper")
 		return nil, err
@@ -287,7 +287,7 @@ func (a *App) getChainHelpers(ctx context.Context) (map[string]ChainHelper, erro
 		ethereumProviderUrl = "https://ethereum-mainnet-rpc.allthatnode.com"
 	}
 
-	ethereumHelper, err := chain_helper.NewEthHelper(ctx, ethereumProviderUrl)
+	ethereumHelper, err := chain_helper.NewChainHelper(ctx, chain_helper.WithBlockchainType(chain_helper.Ethereum), chain_helper.WithProviderUrl(ethereumProviderUrl))
 	if err != nil {
 		log.Error().Err(err).Msg("failed to create ethereum helper")
 		return nil, err
