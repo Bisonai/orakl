@@ -1,8 +1,9 @@
 package apierr
 
 import (
-	"bisonai.com/orakl/api/utils"
 	"fmt"
+
+	"bisonai.com/orakl/api/utils"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/gofiber/fiber/v2"
@@ -28,12 +29,12 @@ type ErrorModel struct {
 func insert(c *fiber.Ctx) error {
 	payload := new(ErrorInsertModel)
 	if err := c.BodyParser(payload); err != nil {
-		panic(err)
+		return err
 	}
 
 	validate := validator.New()
 	if err := validate.Struct(payload); err != nil {
-		panic(err)
+		return err
 	}
 
 	result, err := utils.QueryRow[ErrorModel](c, InsertError, map[string]any{
@@ -44,7 +45,7 @@ func insert(c *fiber.Ctx) error {
 		"stack":      payload.Stack})
 
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	return c.JSON(result)
@@ -53,7 +54,7 @@ func insert(c *fiber.Ctx) error {
 func get(c *fiber.Ctx) error {
 	results, err := utils.QueryRows[ErrorModel](c, GetError, nil)
 	if err != nil {
-		panic(err)
+		return err
 	}
 	return c.JSON(results)
 }
@@ -62,7 +63,7 @@ func getById(c *fiber.Ctx) error {
 	id := c.Params("id")
 	result, err := utils.QueryRow[ErrorModel](c, GetErrorById, map[string]any{"id": id})
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	return c.JSON(result)
@@ -75,7 +76,7 @@ func deleteById(c *fiber.Ctx) error {
 	id := c.Params("id")
 	result, err := utils.QueryRow[ErrorModel](c, RemoveErrorById, map[string]any{"id": id})
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	return c.JSON(result)

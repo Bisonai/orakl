@@ -1,8 +1,9 @@
 package data
 
 import (
-	"bisonai.com/orakl/api/utils"
 	"fmt"
+
+	"bisonai.com/orakl/api/utils"
 
 	"github.com/gofiber/fiber/v2"
 )
@@ -33,17 +34,17 @@ type BulkInsertResultModel struct {
 func bulkInsert(c *fiber.Ctx) error {
 	payload := new(BulkInsertModel)
 	if err := c.BodyParser(payload); err != nil {
-		panic(err)
+		return err
 	}
 
 	query, err := GenerateBulkInsertQuery(payload.Data)
 	if err != nil {
-		panic(err)
+		return err
 	}
 	err = utils.RawQueryWithoutReturn(c, query, nil)
 
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	countResult := BulkInsertResultModel{Count: len(payload.Data)}
@@ -54,7 +55,7 @@ func bulkInsert(c *fiber.Ctx) error {
 func get(c *fiber.Ctx) error {
 	results, err := utils.QueryRows[DataResultModel](c, GetData, nil)
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	return c.JSON(results)
@@ -64,7 +65,7 @@ func getById(c *fiber.Ctx) error {
 	id := c.Params("id")
 	result, err := utils.QueryRow[DataResultModel](c, GetDataById, map[string]any{"id": id})
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	return c.JSON(result)
@@ -77,7 +78,7 @@ func getByFeedId(c *fiber.Ctx) error {
 	id := c.Params("id")
 	results, err := utils.QueryRows[DataResultModel](c, GetDataByFeedId, map[string]any{"id": id})
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	return c.JSON(results)
@@ -90,7 +91,7 @@ func deleteById(c *fiber.Ctx) error {
 	id := c.Params("id")
 	result, err := utils.QueryRow[DataResultModel](c, DeleteDataById, map[string]any{"id": id})
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	return c.JSON(result)

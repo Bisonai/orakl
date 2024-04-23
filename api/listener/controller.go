@@ -37,22 +37,22 @@ type ListenerInsertModel struct {
 func insert(c *fiber.Ctx) error {
 	payload := new(ListenerInsertModel)
 	if err := c.BodyParser(payload); err != nil {
-		panic(err)
+		return err
 	}
 
 	validate := validator.New()
 	if err := validate.Struct(payload); err != nil {
-		panic(err)
+		return err
 	}
 
 	chain_result, err := utils.QueryRow[chain.ChainModel](c, chain.GetChainByName, map[string]any{"name": payload.Chain})
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	service_result, err := utils.QueryRow[service.ServiceModel](c, service.GetServiceByName, map[string]any{"name": payload.Service})
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	result, err := utils.QueryRow[ListenerModel](c, InsertListener, map[string]any{
@@ -61,7 +61,7 @@ func insert(c *fiber.Ctx) error {
 		"chain_id":   chain_result.ChainId,
 		"service_id": service_result.ServiceId})
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	return c.JSON(result)
@@ -74,20 +74,20 @@ func get(c *fiber.Ctx) error {
 	if len(c.Body()) == 0 {
 		results, err := utils.QueryRows[ListenerModel](c, GenerateGetListenerQuery(params), nil)
 		if err != nil {
-			panic(err)
+			return err
 		}
 
 		return c.JSON(results)
 	}
 
 	if err := c.BodyParser(payload); err != nil {
-		panic(err)
+		return err
 	}
 
 	if payload.Chain != "" {
 		chain_result, err := utils.QueryRow[chain.ChainModel](c, chain.GetChainByName, map[string]any{"name": payload.Chain})
 		if err != nil {
-			panic(err)
+			return err
 		}
 		params.ChainId = chain_result.ChainId.String()
 	}
@@ -95,14 +95,14 @@ func get(c *fiber.Ctx) error {
 	if payload.Service != "" {
 		service_result, err := utils.QueryRow[service.ServiceModel](c, service.GetServiceByName, map[string]any{"name": payload.Service})
 		if err != nil {
-			panic(err)
+			return err
 		}
 		params.ServiceId = service_result.ServiceId.String()
 	}
 
 	results, err := utils.QueryRows[ListenerModel](c, GenerateGetListenerQuery(params), nil)
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	return c.JSON(results)
@@ -112,7 +112,7 @@ func getById(c *fiber.Ctx) error {
 	id := c.Params("id")
 	result, err := utils.QueryRow[ListenerModel](c, GetListenerById, map[string]any{"id": id})
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	return c.JSON(result)
@@ -122,12 +122,12 @@ func updateById(c *fiber.Ctx) error {
 	id := c.Params("id")
 	payload := new(ListenerUpdateModel)
 	if err := c.BodyParser(payload); err != nil {
-		panic(err)
+		return err
 	}
 
 	validate := validator.New()
 	if err := validate.Struct(payload); err != nil {
-		panic(err)
+		return err
 	}
 
 	result, err := utils.QueryRow[ListenerModel](c, UpdateListenerById, map[string]any{
@@ -135,7 +135,7 @@ func updateById(c *fiber.Ctx) error {
 		"address":    payload.Address,
 		"event_name": payload.EventName})
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	return c.JSON(result)
@@ -146,7 +146,7 @@ func deleteById(c *fiber.Ctx) error {
 	id := c.Params("id")
 	result, err := utils.QueryRow[ListenerModel](c, DeleteListenerById, map[string]any{"id": id})
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	return c.JSON(result)
