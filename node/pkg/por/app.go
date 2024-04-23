@@ -11,77 +11,28 @@ import (
 	"time"
 
 	"bisonai.com/orakl/node/pkg/chain/helper"
-	"bisonai.com/orakl/node/pkg/db"
 	"bisonai.com/orakl/node/pkg/fetcher"
 	"bisonai.com/orakl/node/pkg/utils/request"
 	"github.com/rs/zerolog/log"
 )
 
-const (
-	DECIMALS            = 4
-	DEVIATION_THRESHOLD = 0.0001
-	ABSOLUTE_THRESHOLD  = 0.1
-
-	INITIAL_FAILURE_TIMEOUT = 50 * time.Millisecond
-	MAX_RETRY               = 3
-	MAX_RETRY_DELAY         = 500 * time.Millisecond
-
-	SUBMIT_FUNCTION_STRING = "submit(uint256 _roundId, int256 _submission)"
-	READ_ROUND_ID          = `function oracleRoundState(address _oracle, uint32 _queriedRoundId) external view returns (
-            bool _eligibleToSubmit,
-            uint32 _roundId,
-            int256 _latestSubmission,
-            uint64 _startedAt,
-            uint64 _timeout,
-            uint8 _oracleCount
-    )`
-)
-
-type App struct {
-	Name            string
-	Definition      *fetcher.Definition
-	FetchInterval   time.Duration
-	SubmitInterval  time.Duration
-	KlaytnHelper    *helper.ChainHelper
-	ContractAddress string
-
-	LastSubmissionValue float64
-	LastSubmissionTime  time.Time
-}
-
-type FeedModel struct {
-	Name       string          `json:"name"`
-	Definition json.RawMessage `json:"definition"`
-	AdapterId  *int64          `json:"adapterId"`
-}
-
-type AdapterModel struct {
-	Name     string      `json:"name"`
-	Feeds    []FeedModel `json:"feeds"`
-	Interval *int        `json:"interval"`
-}
-
-type AggregatorModel struct {
-	Name      string `json:"name"`
-	Heartbeat *int   `json:"heartbeat"`
-	Address   string `json:"address"`
-}
-
-type SubmissionModel struct {
-	Name  string    `json:"name"`
-	Time  time.Time `json:"time"`
-	Value float64   `json:"value"`
-}
-
 func New(ctx context.Context) (*App, error) {
 	// TODO: updates for multiple PORs
-	chain := os.Getenv("CHAIN")
+	chain := os.Getenv("POR_CHAIN")
 	if chain == "" {
 		chain = "baobab"
 	}
 
-	adapterUrl := "https://raw.githubusercontent.com/Bisonai/orakl-config/master/adapter/" + chain + "/peg-" + chain + ".por.json"
-	aggregatorUrl := "https://raw.githubusercontent.com/Bisonai/orakl-config/master/aggregator/" + chain + "/peg.por.json"
+	providerUrl := os.Getenv("POR_PROVIDER_URL")
+	if providerUrl == "" {
+		providerUrl = os.Getenv("KLAYTN_PROVIDER_URL")
+		if providerUrl == "" {
+			return nil, errors.New("POR_PROVIDER_URL not set")
+		}
+	}
+
+	adapterUrl := "https://config.orakl.network/adapter/" + chain + "/peg-" + chain + ".por.json"
+	aggregatorUrl := "https://config.orakl.network/aggregator/" + chain + "/peg.por.json"
 
 	adapter, err := request.GetRequest[AdapterModel](adapterUrl, nil, nil)
 	if err != nil {
@@ -109,18 +60,19 @@ func New(ctx context.Context) (*App, error) {
 		submitInterval = time.Duration(*aggregator.Heartbeat) * time.Millisecond
 	}
 
-	chainHelper, err := helper.NewKlayHelper(ctx, "")
-	if err != nil {
-		return nil, err
+	porReporterPk := os.Getenv("POR_REPORTER_PK")
+	if porReporterPk == "" {
+		return nil, errors.New("POR_REPORTER_PK not set")
 	}
 
-	initValue := 0.0
-	initTime := time.Time{}
-
-	loaded, err := LoadSubmission(ctx, adapter.Name)
-	if err == nil {
-		initTime = loaded.Time
-		initValue = loaded.Value
+	chainHelper, err := helper.NewChainHelper(
+		ctx,
+		helper.WithBlockchainType(helper.Klaytn),
+		helper.WithReporterPk(porReporterPk),
+		helper.WithProviderUrl(providerUrl),
+	)
+	if err != nil {
+		return nil, err
 	}
 
 	return &App{
@@ -130,9 +82,6 @@ func New(ctx context.Context) (*App, error) {
 		SubmitInterval:  submitInterval,
 		KlaytnHelper:    chainHelper,
 		ContractAddress: aggregator.Address,
-
-		LastSubmissionValue: initValue,
-		LastSubmissionTime:  initTime,
 	}, nil
 }
 
@@ -153,47 +102,70 @@ func (a *App) Run(ctx context.Context) error {
 }
 
 func (a *App) Execute(ctx context.Context) error {
-	value, err := fetcher.FetchSingle(ctx, a.Definition)
+	value, err := a.Fetch(ctx)
 	if err != nil {
 		log.Error().Err(err).Msg("error in fetch")
 	}
+	log.Debug().Msg("fetched value")
+
+	lastInfo, err := a.GetLastInfo(ctx)
+	if err != nil {
+		log.Error().Err(err).Msg("error in read contract")
+		return err
+	}
+	log.Debug().Msg("read last info")
 
 	now := time.Now()
-	if a.ShouldReport(value, now) {
-		err := a.report(ctx, now, value)
+	if a.ShouldReport(&lastInfo, value, now) {
+		roundId, err := a.GetRoundID(ctx)
+		if err != nil {
+			log.Error().Err(err).Msg("failed to get roundId")
+			return err
+		}
+
+		err = a.report(ctx, value, roundId)
 		if err != nil {
 			log.Error().Err(err).Msg("failed to report")
 			return err
 		}
+	} else {
+		log.Debug().Msg("no need to report")
 	}
 
 	return nil
 }
 
-func (a *App) ShouldReport(value float64, fetchedTime time.Time) bool {
-	if a.LastSubmissionTime.IsZero() && a.LastSubmissionValue == 0 {
-		return true
-	}
-
-	if fetchedTime.Sub(a.LastSubmissionTime) > a.SubmitInterval {
-		return true
-	}
-
-	if a.DeviationCheck(a.LastSubmissionValue, value) {
-		return true
-	}
-	return false
+func (a *App) Fetch(ctx context.Context) (float64, error) {
+	return fetcher.FetchSingle(ctx, a.Definition)
 }
 
-func (a *App) report(ctx context.Context, submissionTime time.Time, submissionValue float64) error {
-	reportJob := func() error {
-		latestRoundId, err := a.ReadLatestRoundId(ctx)
-		if err != nil {
-			log.Error().Err(err).Msg("failed to read latest round id")
-			return err
-		}
+func (a *App) ShouldReport(lastInfo *LastInfo, value float64, fetchedTime time.Time) bool {
+	if lastInfo.UpdatedAt.Sign() == 0 && lastInfo.Answer.Sign() == 0 {
+		return true
+	}
 
-		tx, err := a.KlaytnHelper.MakeDirectTx(ctx, a.ContractAddress, SUBMIT_FUNCTION_STRING, latestRoundId, submissionValue)
+	int64UpdatedAt := lastInfo.UpdatedAt.Int64()
+	lastSubmissionTime := time.Unix(int64UpdatedAt, 0)
+	log.Debug().Msg("time since last submission: " + fetchedTime.Sub(lastSubmissionTime).String())
+	if fetchedTime.Sub(lastSubmissionTime) > a.SubmitInterval {
+		return true
+	}
+
+	lastSubmittedValue := new(big.Float).SetInt(lastInfo.Answer)
+	float64Value, _ := lastSubmittedValue.Float64()
+
+	return a.DeviationCheck(float64Value, value)
+}
+
+func (a *App) report(ctx context.Context, submissionValue float64, latestRoundId uint32) error {
+	reportJob := func() error {
+		tmp := new(big.Float).SetFloat64(submissionValue)
+		submissionValueParam := new(big.Int)
+		tmp.Int(submissionValueParam)
+
+		latestRoundIdParam := new(big.Int).SetUint64(uint64(latestRoundId))
+
+		tx, err := a.KlaytnHelper.MakeDirectTx(ctx, a.ContractAddress, SUBMIT_FUNCTION_STRING, latestRoundIdParam, submissionValueParam)
 		if err != nil {
 			log.Error().Err(err).Msg("failed to make direct tx")
 			return err
@@ -212,12 +184,13 @@ func (a *App) report(ctx context.Context, submissionTime time.Time, submissionVa
 		log.Error().Err(err).Msg("failed to report")
 		return err
 	}
-	a.LastSubmissionTime = submissionTime
-	a.LastSubmissionValue = submissionValue
-	return StoreSubmission(ctx, a.Name, submissionValue, submissionTime)
+
+	return nil
 }
 
 func (a *App) DeviationCheck(oldValue float64, newValue float64) bool {
+	log.Debug().Float64("oldValue", oldValue).Float64("newValue", newValue).Msg("checking deviation")
+
 	denominator := math.Pow10(DECIMALS)
 	old := oldValue / denominator
 	new := newValue / denominator
@@ -234,7 +207,7 @@ func (a *App) DeviationCheck(oldValue float64, newValue float64) bool {
 	}
 }
 
-func (a *App) ReadLatestRoundId(ctx context.Context) (uint32, error) {
+func (a *App) GetRoundID(ctx context.Context) (uint32, error) {
 	publicAddress, err := a.KlaytnHelper.PublicAddress()
 	if err != nil {
 		return 0, err
@@ -250,37 +223,39 @@ func (a *App) ReadLatestRoundId(ctx context.Context) (uint32, error) {
 		return 0, errors.New("failed to cast raw result to slice")
 	}
 
-	result, ok := rawResultSlice[1].(uint32)
+	RoundID, ok := rawResultSlice[1].(uint32)
 	if !ok {
 		return 0, errors.New("failed to cast roundId to uint32")
 	}
 
-	return result, nil
+	return RoundID, nil
 }
 
-func StoreSubmission(ctx context.Context, name string, value float64, time time.Time) error {
-	key := "POR:" + name
-	data, err := json.Marshal(SubmissionModel{Name: name, Value: value, Time: time})
+func (a *App) GetLastInfo(ctx context.Context) (LastInfo, error) {
+	rawResult, err := a.KlaytnHelper.ReadContract(ctx, a.ContractAddress, READ_LATEST_ROUND_DATA)
 	if err != nil {
-		return err
-	}
-	return db.Set(ctx, key, string(data), 0)
-}
-
-// loaded only when not found within app structure
-func LoadSubmission(ctx context.Context, name string) (SubmissionModel, error) {
-	key := "POR:" + name
-	var result SubmissionModel
-	data, err := db.Get(ctx, key)
-	if err != nil {
-		return result, err
+		return LastInfo{}, err
 	}
 
-	err = json.Unmarshal([]byte(data), &result)
-	if err != nil {
-		return result, err
+	rawResultSlice, ok := rawResult.([]interface{})
+	if !ok {
+		return LastInfo{}, errors.New("failed to cast raw result to slice")
 	}
-	return result, nil
+
+	updatedAt, ok := rawResultSlice[3].(*big.Int)
+	if !ok {
+		return LastInfo{}, errors.New("failed to cast updatedAt to big.Int")
+	}
+
+	answer, ok := rawResultSlice[1].(*big.Int)
+	if !ok {
+		return LastInfo{}, errors.New("failed to cast answer to big.Int")
+	}
+
+	return LastInfo{
+		UpdatedAt: updatedAt,
+		Answer:    answer,
+	}, nil
 }
 
 func retry(job func() error) error {

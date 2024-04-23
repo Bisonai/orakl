@@ -78,6 +78,10 @@ tasks:
     dotenv: [".env"]
     cmds:
       - go test ./pkg/chain/tests -v
+  test-por:
+    dotenv: [".env"]
+    cmds:
+      - go test ./pkg/por -v
 
   check-api:
     dotenv: [".env"]
