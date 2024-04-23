@@ -51,11 +51,11 @@ contract FeedRouter is Ownable, IFeedRouter {
      * @inheritdoc IFeedRouter
      */
     function removeProxyBulk(string[] calldata _feedNames) external onlyOwner {
-	require(_feedNames.length > 0, "invalid input");
+        require(_feedNames.length > 0, "invalid input");
 
-	for (uint256 i = 0; i < _feedNames.length; i++) {
-	    removeProxy(_feedNames[i], feedToProxies[_feedNames[i]]);
-	}
+        for (uint256 i = 0; i < _feedNames.length; i++) {
+            removeProxy(_feedNames[i], feedToProxies[_feedNames[i]]);
+        }
     }
 
     /**
@@ -102,7 +102,8 @@ contract FeedRouter is Ownable, IFeedRouter {
         uint256 _latestUpdatedAtTolerance,
         int256 _minCount
     ) external view returns (int256) {
-        return IFeedProxy(feedToProxies[_feedName]).twapFromProposedFeed(_interval, _latestUpdatedAtTolerance, _minCount);
+        return
+            IFeedProxy(feedToProxies[_feedName]).twapFromProposedFeed(_interval, _latestUpdatedAtTolerance, _minCount);
     }
 
     /**
@@ -168,7 +169,7 @@ contract FeedRouter is Ownable, IFeedRouter {
      * @inheritdoc IFeedRouter
      */
     function getFeedNames() external view returns (string[] memory) {
-	return feedNames;
+        return feedNames;
     }
 
     /**
@@ -182,23 +183,23 @@ contract FeedRouter is Ownable, IFeedRouter {
         }
 
         feedToProxies[_feedName] = _proxyAddress;
-	bytes32 feedNameHash = keccak256(abi.encodePacked(_feedName));
-	bool found = false;
+        bytes32 feedNameHash = keccak256(abi.encodePacked(_feedName));
+        bool found = false;
 
-	uint256 feedNamesLength = feedNames.length;
-	for (uint256 i = 0; i < feedNamesLength; i++) {
-	    if (keccak256(abi.encodePacked(feedNames[i])) == feedNameHash) {
-		found = true;
-		break;
-	    }
-	}
+        uint256 feedNamesLength = feedNames.length;
+        for (uint256 i = 0; i < feedNamesLength; i++) {
+            if (keccak256(abi.encodePacked(feedNames[i])) == feedNameHash) {
+                found = true;
+                break;
+            }
+        }
 
-	if (!found) {
-	    feedNames.push(_feedName);
-	    emit ProxyAdded(_feedName, _proxyAddress);
-	} else {
-	    emit ProxyUpdated(_feedName, _proxyAddress);
-	}
+        if (!found) {
+            feedNames.push(_feedName);
+            emit ProxyAdded(_feedName, _proxyAddress);
+        } else {
+            emit ProxyUpdated(_feedName, _proxyAddress);
+        }
     }
 
     /**
@@ -211,18 +212,18 @@ contract FeedRouter is Ownable, IFeedRouter {
             revert InvalidProxyAddress();
         }
 
-	feedToProxies[_feedName] = address(0);
-	bytes32 feedNameHash = keccak256(abi.encodePacked(_feedName));
+        feedToProxies[_feedName] = address(0);
+        bytes32 feedNameHash = keccak256(abi.encodePacked(_feedName));
 
-	uint256 feedNamesLength = feedNames.length;
-	for (uint256 i = 0; i < feedNamesLength; i++) {
-	    if (keccak256(abi.encodePacked(feedNames[i])) == feedNameHash) {
-		feedNames[i] = feedNames[feedNames.length - 1];
-		feedNames.pop();
-		break;
-	    }
-	}
+        uint256 feedNamesLength = feedNames.length;
+        for (uint256 i = 0; i < feedNamesLength; i++) {
+            if (keccak256(abi.encodePacked(feedNames[i])) == feedNameHash) {
+                feedNames[i] = feedNames[feedNames.length - 1];
+                feedNames.pop();
+                break;
+            }
+        }
 
-	emit ProxyRemoved(_feedName, _proxyAddress);
+        emit ProxyRemoved(_feedName, _proxyAddress);
     }
 }
