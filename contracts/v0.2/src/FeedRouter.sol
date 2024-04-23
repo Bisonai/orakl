@@ -19,9 +19,9 @@ contract FeedRouter is Ownable, IFeedRouter {
     mapping(string => address) public feedToProxies;
     string[] public feedNames;
 
-    event ProxyAddressAdded(string feedName, address indexed proxyAddress);
-    event ProxyAddressRemoved(string feedName, address indexed proxyAddress);
-    event ProxyAddressUpdated(string feedName, address indexed proxyAddress);
+    event ProxyAdded(string feedName, address indexed proxyAddress);
+    event ProxyRemoved(string feedName, address indexed proxyAddress);
+    event ProxyUpdated(string feedName, address indexed proxyAddress);
 
     error InvalidProxyAddress();
 
@@ -194,9 +194,9 @@ contract FeedRouter is Ownable, IFeedRouter {
 
 	if (!found) {
 	    feedNames.push(_feedName);
-	    emit ProxyAddressAdded(_feedName, _proxyAddress);
+	    emit ProxyAdded(_feedName, _proxyAddress);
 	} else {
-	    emit ProxyAddressUpdated(_feedName, _proxyAddress);
+	    emit ProxyUpdated(_feedName, _proxyAddress);
 	}
     }
 
@@ -221,6 +221,6 @@ contract FeedRouter is Ownable, IFeedRouter {
 	    }
 	}
 
-	emit ProxyAddressRemoved(_feedName, _proxyAddress);
+	emit ProxyRemoved(_feedName, _proxyAddress);
     }
 }

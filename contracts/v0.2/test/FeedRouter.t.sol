@@ -7,6 +7,10 @@ import {FeedRouter} from "../src/FeedRouter.sol";
 contract FeedRouterTest is Test {
     FeedRouter public feedRouter;
 
+    event ProxyAdded(string feedName, address indexed proxyAddress);
+    event ProxyRemoved(string feedName, address indexed proxyAddress);
+    event ProxyUpdated(string feedName, address indexed proxyAddress);
+
     function setUp() public {
         feedRouter = new FeedRouter();
     }
@@ -24,6 +28,10 @@ contract FeedRouterTest is Test {
 	proxyAddresses_[0] = btcUsdt;
 	proxyAddresses_[1] = ethUsdt;
 
+	vm.expectEmit(true, true, true, true);
+	emit ProxyAdded(feedNames_[0], proxyAddresses_[0]);
+	vm.expectEmit(true, true, true, true);
+	emit ProxyAdded(feedNames_[1], proxyAddresses_[1]);
 	feedRouter.updateProxyBulk(feedNames_, proxyAddresses_);
 
 	assertEq(true, compareArrays(feedNames_, feedRouter.getFeedNames()));
@@ -41,9 +49,13 @@ contract FeedRouterTest is Test {
 	proxyAddressesOld_[0] = btcUsdtOld;
 	proxyAddressesNew_[0] = btcUsdtNew;
 
+	vm.expectEmit(true, true, true, true);
+	emit ProxyAdded(feedNames_[0], proxyAddressesOld_[0]);
 	feedRouter.updateProxyBulk(feedNames_, proxyAddressesOld_);
 	assertEq(btcUsdtOld, feedRouter.feedToProxies(feedNames_[0]));
 
+	vm.expectEmit(true, true, true, true);
+	emit ProxyUpdated(feedNames_[0], proxyAddressesNew_[0]);
 	feedRouter.updateProxyBulk(feedNames_, proxyAddressesNew_);
 	assertEq(btcUsdtNew, feedRouter.feedToProxies(feedNames_[0]));
     }
@@ -83,11 +95,15 @@ contract FeedRouterTest is Test {
 	proxyAddresses_[1] = ethUsdt;
 
 	// add proxies
+	vm.expectEmit(true, true, true, true);
+	emit ProxyAdded(feedNamesAdd_[0], proxyAddresses_[0]);
 	feedRouter.updateProxyBulk(feedNamesAdd_, proxyAddresses_);
 
 	// remove btc-usdt proxy
 	string[] memory feedNamesRemove_ = new string[](1);
 	feedNamesRemove_[0] = "btc-usdt";
+	vm.expectEmit(true, true, true, true);
+	emit ProxyRemoved(feedNamesRemove_[0], proxyAddresses_[0]);
 	feedRouter.removeProxyBulk(feedNamesRemove_);
 
 	// expect that only eth-usdt is left
