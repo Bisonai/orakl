@@ -10,7 +10,7 @@ import (
 )
 
 func testContractDirectCall(ctx context.Context, contractAddress string, contractFunction string, args ...interface{}) error {
-	klaytnHelper, err := helper.NewKlayHelper(ctx, "")
+	klaytnHelper, err := helper.NewChainHelper(ctx)
 	if err != nil {
 		log.Error().Err(err).Msg("NewTxHelper")
 		return err

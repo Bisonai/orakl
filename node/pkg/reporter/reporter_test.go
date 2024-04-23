@@ -37,7 +37,7 @@ func TestNewReporter(t *testing.T) {
 		t.Fatal("SUBMISSION_PROXY_CONTRACT not set")
 	}
 
-	tmpHelper, err := helper.NewKlayHelper(ctx, "")
+	tmpHelper, err := helper.NewChainHelper(ctx)
 	if err != nil {
 		t.Fatalf("error creating chain helper: %v", err)
 	}
@@ -417,7 +417,7 @@ func TestNewDeviationReporter(t *testing.T) {
 		t.Fatal("SUBMISSION_PROXY_CONTRACT not set")
 	}
 
-	tmpHelper, err := helper.NewKlayHelper(ctx, "")
+	tmpHelper, err := helper.NewChainHelper(ctx)
 	if err != nil {
 		t.Fatalf("error creating chain helper: %v", err)
 	}
@@ -548,7 +548,7 @@ func TestDeviationJob(t *testing.T) {
 		t.Fatal("SUBMISSION_PROXY_CONTRACT not set")
 	}
 
-	tmpHelper, err := helper.NewKlayHelper(ctx, "")
+	tmpHelper, err := helper.NewChainHelper(ctx)
 	if err != nil {
 		t.Fatalf("error creating chain helper: %v", err)
 	}

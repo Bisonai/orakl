@@ -318,7 +318,7 @@ func (r *Reporter) SetKlaytnHelper(ctx context.Context) error {
 	if r.KlaytnHelper != nil {
 		r.KlaytnHelper.Close()
 	}
-	klaytnHelper, err := helper.NewKlayHelper(ctx, "")
+	klaytnHelper, err := helper.NewChainHelper(ctx)
 	if err != nil {
 		log.Error().Str("Player", "Reporter").Err(err).Msg("failed to create klaytn helper")
 		return err

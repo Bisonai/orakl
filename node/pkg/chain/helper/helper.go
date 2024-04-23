@@ -2,69 +2,83 @@ package helper
 
 import (
 	"context"
-	"crypto/ecdsa"
 	"errors"
 	"math/big"
 	"os"
 	"strings"
 	"time"
 
-	"bisonai.com/orakl/node/pkg/chain/eth_client"
 	"bisonai.com/orakl/node/pkg/chain/utils"
 	"bisonai.com/orakl/node/pkg/utils/request"
 	"github.com/klaytn/klaytn/blockchain/types"
-	"github.com/klaytn/klaytn/client"
 	"github.com/rs/zerolog/log"
 )
 
-type ChainHelper struct {
-	clients      []utils.ClientInterface
-	wallets      []string
-	chainID      *big.Int
-	delegatorUrl string
-
-	lastUsedWalletIndex int
-}
-
-type SignHelper struct {
-	PK *ecdsa.PrivateKey
-}
-
-type signedTx struct {
-	SignedRawTx *string `json:"signedRawTx" db:"signedRawTx"`
-}
-
-const (
-	DelegatorEndpoint = "/api/v1/sign/volatile"
-
-	EnvDelegatorUrl   = "DELEGATOR_URL"
-	KlaytnProviderUrl = "KLAYTN_PROVIDER_URL"
-	KlaytnReporterPk  = "KLAYTN_REPORTER_PK"
-	EthProviderUrl    = "ETH_PROVIDER_URL"
-	EthReporterPk     = "ETH_REPORTER_PK"
-)
-
-func NewEthHelper(ctx context.Context, providerUrl string) (*ChainHelper, error) {
-	if providerUrl == "" {
-		providerUrl = os.Getenv(EthProviderUrl)
-		if providerUrl == "" {
-			log.Error().Msg("provider url not set")
-			return nil, errors.New("provider url not set")
+func setProviderAndReporter(config *ChainHelperConfig, blockchainType BlockchainType) error {
+	switch blockchainType {
+	case Klaytn:
+		if config.ProviderUrl == "" {
+			config.ProviderUrl = os.Getenv(KlaytnProviderUrl)
+			if config.ProviderUrl == "" {
+				log.Error().Msg("provider url not set")
+				return errors.New("provider url not set")
+			}
 		}
+
+		if config.ReporterPk == "" {
+			config.ReporterPk = os.Getenv(KlaytnReporterPk)
+			if config.ReporterPk == "" {
+				log.Error().Msg("reporter pk not set")
+				return errors.New("reporter pk not set")
+			}
+		}
+	case Ethereum:
+		if config.ProviderUrl == "" {
+			config.ProviderUrl = os.Getenv(EthProviderUrl)
+			if config.ProviderUrl == "" {
+				log.Error().Msg("provider url not set")
+				return errors.New("provider url not set")
+			}
+		}
+
+		if config.ReporterPk == "" {
+			config.ReporterPk = os.Getenv(EthReporterPk)
+			if config.ReporterPk == "" {
+				log.Error().Msg("reporter pk not set")
+				return errors.New("reporter pk not set")
+			}
+		}
+	default:
+		return errors.New("unsupported blockchain type")
 	}
 
-	reporterPk := os.Getenv(EthReporterPk)
+	return nil
+}
 
-	primaryClient, err := eth_client.Dial(providerUrl)
+func NewChainHelper(ctx context.Context, opts ...ChainHelperOption) (*ChainHelper, error) {
+	config := &ChainHelperConfig{
+		BlockchainType: Klaytn,
+	}
+	for _, opt := range opts {
+		opt(config)
+	}
+
+	err := setProviderAndReporter(config, config.BlockchainType)
+	if err != nil {
+		return nil, err
+	}
+
+	primaryClient, err := dialFuncs[config.BlockchainType](config.ProviderUrl)
 	if err != nil {
 		return nil, err
 	}
 
 	chainID, err := utils.GetChainID(ctx, primaryClient)
 	if err != nil {
-		log.Error().Err(err).Msg("failed to get chain id based on:" + providerUrl)
+		log.Error().Err(err).Msg("failed to get chain id based on:" + config.ProviderUrl)
 		return nil, err
 	}
+
 	providerUrls, err := utils.LoadProviderUrls(ctx, int(chainID.Int64()))
 	if err != nil {
 		log.Error().Err(err).Msg("failed to load provider urls")
@@ -74,7 +88,7 @@ func NewEthHelper(ctx context.Context, providerUrl string) (*ChainHelper, error)
 	clients := make([]utils.ClientInterface, 0, len(providerUrls)+1)
 	clients = append(clients, primaryClient)
 	for _, url := range providerUrls {
-		subClient, err := eth_client.Dial(url)
+		subClient, err := dialFuncs[config.BlockchainType](url)
 		if err != nil {
 			log.Error().Err(err).Msg("failed to dial sub client")
 			continue
@@ -82,62 +96,18 @@ func NewEthHelper(ctx context.Context, providerUrl string) (*ChainHelper, error)
 		clients = append(clients, subClient)
 	}
 
-	return newHelper(ctx, clients, reporterPk, chainID)
-}
-
-func NewKlayHelper(ctx context.Context, providerUrl string) (*ChainHelper, error) {
-	if providerUrl == "" {
-		providerUrl = os.Getenv(KlaytnProviderUrl)
-		if providerUrl == "" {
-			log.Error().Msg("provider url not set")
-			return nil, errors.New("provider url not set")
-		}
-	}
-
-	reporterPk := os.Getenv(KlaytnReporterPk)
-
-	primaryClient, err := client.Dial(providerUrl)
-	if err != nil {
-		return nil, err
-	}
-	chainID, err := utils.GetChainID(ctx, primaryClient)
-	if err != nil {
-		log.Error().Err(err).Msg("failed to get chain id based on:" + providerUrl)
-		return nil, err
-	}
-	providerUrls, err := utils.LoadProviderUrls(ctx, int(chainID.Int64()))
-	if err != nil {
-		log.Error().Err(err).Msg("failed to load provider urls")
-		return nil, err
-	}
-
-	clients := make([]utils.ClientInterface, 0, len(providerUrls)+1)
-	clients = append(clients, primaryClient)
-	for _, url := range providerUrls {
-		subClient, err := client.Dial(url)
-		if err != nil {
-			log.Error().Err(err).Msg("failed to dial sub client")
-			continue
-		}
-		clients = append(clients, subClient)
-	}
-
-	return newHelper(ctx, clients, reporterPk, chainID)
-}
-
-func newHelper(ctx context.Context, clients []utils.ClientInterface, reporterPK string, chainID *big.Int) (*ChainHelper, error) {
-	// assumes that single application submits to single chain, get wallets will select all from wallets table
 	wallets, err := utils.GetWallets(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	if reporterPK != "" {
-		wallet := strings.TrimPrefix(reporterPK, "0x")
-		wallets = append(wallets, wallet)
-	}
+	primaryWallet := strings.TrimPrefix(config.ReporterPk, "0x")
+	wallets = append([]string{primaryWallet}, wallets...)
 
 	delegatorUrl := os.Getenv(EnvDelegatorUrl)
+	if delegatorUrl == "" {
+		log.Warn().Msg("delegator url not set")
+	}
 
 	return &ChainHelper{
 		clients:      clients,
