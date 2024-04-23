@@ -259,7 +259,10 @@ contract SubmissionProxy is Ownable {
                 continue;
             }
 
-            bytes[] memory proofs_ = splitBytesToChunks(_proofs[feedIdx_]);
+            (bytes[] memory proofs_, bool success_) = splitBytesToChunks(_proofs[feedIdx_]);
+            if (!success_) {
+                continue;
+            }
             bytes32 message_ = keccak256(abi.encodePacked(_answers[feedIdx_], _timestamps[feedIdx_]));
 
             bool isVerified_ = false;
@@ -315,51 +318,64 @@ contract SubmissionProxy is Ownable {
     }
 
     /**
-     * @notice Split bytes into proof chunks
-     * @param data The bytes to be split
-     * @return chunks The split bytes
+     * @notice Split bytes into 65-byte long proof chunks
+     * @dev The function intentionally does not test whether the
+     * @param _data The bytes to be split
+     * @return chunks_ The split bytes
+     * @return success_ `true` if the split was successful, `false`
      */
-    function splitBytesToChunks(bytes memory data) private pure returns (bytes[] memory) {
-        uint256 dataLength = data.length;
-        uint256 numChunks = dataLength / 65;
-        bytes[] memory chunks = new bytes[](numChunks);
-
-        bytes32 firstHalf;
-        bytes32 secondHalf;
-
-        for (uint256 i = 0; i < numChunks; i++) {
-            uint256 f = (i * 65) + 32;
-            uint256 s = (i * 65) + 64;
-            assembly {
-                firstHalf := mload(add(data, f))
-                secondHalf := mload(add(data, s))
-            }
-
-            chunks[i] = abi.encodePacked(firstHalf, secondHalf, data[(i * 65) + 64]);
+    function splitBytesToChunks(bytes memory _data) private pure returns (bytes[] memory chunks_, bool success_) {
+        uint256 dataLength_ = _data.length;
+        if (dataLength_ % 65 != 0) {
+            return (chunks_, false);
         }
 
-        return chunks;
+        uint256 numChunks_ = dataLength_ / 65;
+        chunks_ = new bytes[](numChunks_);
+
+        for (uint256 i = 0; i < numChunks_; i++) {
+            bytes memory chunk_ = new bytes(65);
+            assembly {
+                // Load the first half of the chunk
+                let firstHalfPtr := add(_data, add(mul(i, 65), 32))
+                mstore(add(chunk_, 32), mload(firstHalfPtr))
+
+                // Load the second half of the chunk
+                let secondHalfPtr := add(_data, add(mul(i, 65), 64))
+                mstore(add(chunk_, 64), mload(secondHalfPtr))
+            }
+            // Load the last byte of the chunk
+            chunk_[64] = _data[i * 65 + 64];
+
+            chunks_[i] = chunk_;
+        }
+
+        return (chunks_, true);
     }
 
     /**
      * @notice Split signature into `v`, `r`, and `s` components
-     * @param sig The signature to be split
-     * @return v The `v` component of the signature
-     * @return r The `r` component of the signature
-     * @return s The `s` component of the signature
+     * @param _sig The signature to be split
+     * @return v_ The `v` component of the signature
+     * @return r_ The `r` component of the signature
+     * @return s_ The `s` component of the signature
      */
-    function splitSignature(bytes memory sig) private pure returns (uint8 v, bytes32 r, bytes32 s) {
-        require(sig.length == 65);
+    function splitSignature(bytes memory _sig) private pure returns (uint8 v_, bytes32 r_, bytes32 s_) {
+        require(_sig.length == 65, "Invalid signature length");
 
         assembly {
-            // first 32 bytes, after the length prefix
-            r := mload(add(sig, 32))
-            // second 32 bytes
-            s := mload(add(sig, 64))
-            // final byte (first byte of the next 32 bytes)
-            v := byte(0, mload(add(sig, 96)))
+            // Load the signature into memory
+            let signature_ := add(_sig, 32)
+
+            // Extract r
+            r_ := mload(signature_)
+
+            // Extract s
+            s_ := mload(add(signature_, 32))
+
+            // Extract v
+            v_ := byte(0, mload(add(signature_, 64)))
         }
-        return (v, r, s);
     }
 
     /**
