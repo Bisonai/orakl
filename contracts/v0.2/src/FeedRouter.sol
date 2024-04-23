@@ -185,7 +185,8 @@ contract FeedRouter is Ownable, IFeedRouter {
 	bytes32 feedNameHash = keccak256(abi.encodePacked(_feedName));
 	bool found = false;
 
-	for (uint256 i = 0; i < feedNames.length; i++) {
+	uint256 feedNamesLength = feedNames.length;
+	for (uint256 i = 0; i < feedNamesLength; i++) {
 	    if (keccak256(abi.encodePacked(feedNames[i])) == feedNameHash) {
 		found = true;
 		break;
@@ -213,7 +214,8 @@ contract FeedRouter is Ownable, IFeedRouter {
 	feedToProxies[_feedName] = address(0);
 	bytes32 feedNameHash = keccak256(abi.encodePacked(_feedName));
 
-	for (uint256 i = 0; i < feedNames.length; i++) {
+	uint256 feedNamesLength = feedNames.length;
+	for (uint256 i = 0; i < feedNamesLength; i++) {
 	    if (keccak256(abi.encodePacked(feedNames[i])) == feedNameHash) {
 		feedNames[i] = feedNames[feedNames.length - 1];
 		feedNames.pop();
