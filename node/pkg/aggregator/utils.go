@@ -184,7 +184,3 @@ func getLatestGlobalAggregateFromRdb(ctx context.Context, name string) (GlobalAg
 	}
 	return aggregate, nil
 }
-
-func isTimeValid(timeToValidate time.Time, baseTime time.Time) bool {
-	return timeToValidate.After(baseTime.Add(-LEADER_TIMEOUT)) && timeToValidate.Before(baseTime)
-}

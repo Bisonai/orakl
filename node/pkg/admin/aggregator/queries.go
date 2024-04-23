@@ -7,6 +7,11 @@ const (
 	ON CONFLICT (name) DO UPDATE SET active = true
 	RETURNING *;`
 
+	UpsertAggregatorWithInterval = `INSERT INTO aggregators (name, interval) VALUES (@name, @interval)
+	ON CONFLICT (name) DO UPDATE SET active = true, interval = @interval
+	RETURNING *;
+	`
+
 	GetAggregator = `SELECT * FROM aggregators;`
 
 	GetAggregatorById = `SELECT * FROM aggregators WHERE id = @id;`
