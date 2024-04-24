@@ -337,10 +337,19 @@ func (r *Reporter) deviationJob() error {
 		log.Error().Str("Player", "Reporter").Err(err).Msg("getLastSubmission")
 		return err
 	}
+	if len(lastSubmissions) == 0 {
+		log.Warn().Str("Player", "Reporter").Msg("no last submissions")
+		return nil
+	}
+
 	lastAggregates, err := GetLatestGlobalAggregates(ctx, r.SubmissionPairs)
 	if err != nil {
 		log.Error().Str("Player", "Reporter").Err(err).Msg("getLatestGlobalAggregates")
 		return err
+	}
+	if len(lastAggregates) == 0 {
+		log.Warn().Str("Player", "Reporter").Msg("no last aggregates")
+		return nil
 	}
 
 	deviatingAggregates := GetDeviatingAggregates(lastSubmissions, lastAggregates)
