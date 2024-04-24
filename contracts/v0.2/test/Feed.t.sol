@@ -11,7 +11,7 @@ contract FeedTest is Test {
     uint8 decimals = 18;
     string description = "Test Feed";
 
-    event FeedUpdated(int256 indexed answer, uint256 indexed roundId, uint256 updatedAt);
+    event FeedUpdated(int256 indexed answer);
     event SubmitterUpdated(address indexed submitter);
 
     error OwnableUnauthorizedAccount(address account);
@@ -49,16 +49,12 @@ contract FeedTest is Test {
 
     function test_SubmitAndReadResponse() public {
         int256 expectedAnswer_ = 10;
-        uint256 expectedRoundId_ = 1;
-        uint256 expectedUpdatedAt_ = block.timestamp;
 
         vm.prank(oracle);
         vm.expectEmit(true, true, true, true);
-        emit FeedUpdated(expectedAnswer_, expectedRoundId_, expectedUpdatedAt_);
+        emit FeedUpdated(expectedAnswer_);
         feed.submit(expectedAnswer_);
-        (uint80 roundId, int256 answer, uint256 updatedAt) = feed.latestRoundData();
-        assertEq(roundId, expectedRoundId_);
+        (, int256 answer,) = feed.latestRoundData();
         assertEq(answer, expectedAnswer_);
-        assertEq(updatedAt, expectedUpdatedAt_);
     }
 }

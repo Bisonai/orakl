@@ -7,8 +7,8 @@ import {IFeed} from "./interfaces/IFeed.sol";
 /**
  * @title Orakl Network Feed
  * @author Bisonai
- * @notice A contract that stores the historical and latest answers, and
- * the timestamp submitted by submitter.
+ * @notice A contract that stores the historical and latest answers, as well as
+ * the timestamp submitted by the submitter.
  * @dev The submitted answers are expected to be submitted through a
  * `SubmissionProxy` contract.
  */
@@ -25,7 +25,7 @@ contract Feed is Ownable, IFeed {
     uint64 private latestRoundId;
     mapping(uint64 roundId => Round data) internal rounds;
 
-    event FeedUpdated(int256 indexed answer, uint256 indexed roundId, uint256 updatedAt);
+    event FeedUpdated(int256 indexed answer);
     event SubmitterUpdated(address indexed submitter);
 
     error InvalidSubmitter();
@@ -87,7 +87,7 @@ contract Feed is Ownable, IFeed {
         rounds[roundId_].answer = _answer;
         rounds[roundId_].updatedAt = block.timestamp;
 
-        emit FeedUpdated(_answer, roundId_, block.timestamp);
+        emit FeedUpdated(_answer);
         latestRoundId = roundId_;
     }
 
