@@ -18,9 +18,11 @@ type ChainHelper struct {
 }
 
 type ChainHelperConfig struct {
-	ProviderUrl    string
-	ReporterPk     string
-	BlockchainType BlockchainType
+	ProviderUrl               string
+	ReporterPk                string
+	BlockchainType            BlockchainType
+	UseAdditionalProviderUrls bool
+	UseAdditionalWallets      bool
 }
 
 type ChainHelperOption func(*ChainHelperConfig)
@@ -40,6 +42,18 @@ func WithReporterPk(pk string) ChainHelperOption {
 func WithBlockchainType(t BlockchainType) ChainHelperOption {
 	return func(c *ChainHelperConfig) {
 		c.BlockchainType = t
+	}
+}
+
+func WithoutAdditionalProviderUrls() ChainHelperOption {
+	return func(c *ChainHelperConfig) {
+		c.UseAdditionalProviderUrls = false
+	}
+}
+
+func WithoutAdditionalWallets() ChainHelperOption {
+	return func(c *ChainHelperConfig) {
+		c.UseAdditionalWallets = false
 	}
 }
 

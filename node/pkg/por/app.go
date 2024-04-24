@@ -71,6 +71,8 @@ func New(ctx context.Context) (*App, error) {
 		helper.WithBlockchainType(helper.Klaytn),
 		helper.WithReporterPk(porReporterPk),
 		helper.WithProviderUrl(providerUrl),
+		helper.WithoutAdditionalProviderUrls(),
+		helper.WithoutAdditionalWallets(),
 	)
 	if err != nil {
 		return nil, err
@@ -113,7 +115,9 @@ func (a *App) Run(ctx context.Context) error {
 			ticker.Stop()
 			return nil
 		case <-ticker.C:
-			err := a.Execute(ctx)
+			err := retry(func() error {
+				return a.Execute(ctx)
+			})
 			if err != nil {
 				log.Error().Err(err).Msg("error in execute")
 			}
@@ -178,33 +182,23 @@ func (a *App) ShouldReport(lastInfo *LastInfo, value float64, fetchedTime time.T
 }
 
 func (a *App) report(ctx context.Context, submissionValue float64, latestRoundId uint32) error {
-	reportJob := func() error {
-		tmp := new(big.Float).SetFloat64(submissionValue)
-		submissionValueParam := new(big.Int)
-		tmp.Int(submissionValueParam)
+	tmp := new(big.Float).SetFloat64(submissionValue)
+	submissionValueParam := new(big.Int)
+	tmp.Int(submissionValueParam)
 
-		latestRoundIdParam := new(big.Int).SetUint64(uint64(latestRoundId))
+	latestRoundIdParam := new(big.Int).SetUint64(uint64(latestRoundId))
 
-		tx, err := a.KlaytnHelper.MakeDirectTx(ctx, a.ContractAddress, SUBMIT_FUNCTION_STRING, latestRoundIdParam, submissionValueParam)
-		if err != nil {
-			log.Error().Err(err).Msg("failed to make direct tx")
-			return err
-		}
-
-		err = a.KlaytnHelper.SubmitRawTx(ctx, tx)
-		if err != nil {
-			log.Error().Err(err).Msg("failed to submit raw tx")
-			return err
-		}
-		return nil
-	}
-
-	err := retry(reportJob)
+	tx, err := a.KlaytnHelper.MakeDirectTx(ctx, a.ContractAddress, SUBMIT_FUNCTION_STRING, latestRoundIdParam, submissionValueParam)
 	if err != nil {
-		log.Error().Err(err).Msg("failed to report")
+		log.Error().Err(err).Msg("failed to make direct tx")
 		return err
 	}
 
+	err = a.KlaytnHelper.SubmitRawTx(ctx, tx)
+	if err != nil {
+		log.Error().Err(err).Msg("failed to submit raw tx")
+		return err
+	}
 	return nil
 }
 

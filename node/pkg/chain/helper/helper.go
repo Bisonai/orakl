@@ -58,7 +58,9 @@ func setProviderAndReporter(config *ChainHelperConfig, blockchainType Blockchain
 
 func NewChainHelper(ctx context.Context, opts ...ChainHelperOption) (*ChainHelper, error) {
 	config := &ChainHelperConfig{
-		BlockchainType: Klaytn,
+		BlockchainType:            Klaytn,
+		UseAdditionalWallets:      true,
+		UseAdditionalProviderUrls: true,
 	}
 	for _, opt := range opts {
 		opt(config)
@@ -79,27 +81,31 @@ func NewChainHelper(ctx context.Context, opts ...ChainHelperOption) (*ChainHelpe
 		log.Error().Err(err).Msg("failed to get chain id based on:" + config.ProviderUrl)
 		return nil, err
 	}
-
-	providerUrls, err := utils.LoadProviderUrls(ctx, int(chainID.Int64()))
-	if err != nil {
-		log.Error().Err(err).Msg("failed to load provider urls")
-		return nil, err
-	}
-
-	clients := make([]utils.ClientInterface, 0, len(providerUrls)+1)
+	clients := make([]utils.ClientInterface, 0)
 	clients = append(clients, primaryClient)
-	for _, url := range providerUrls {
-		subClient, subClientErr := dialFuncs[config.BlockchainType](url)
-		if subClientErr != nil {
-			log.Error().Err(subClientErr).Msg("failed to dial sub client")
-			continue
+
+	if config.UseAdditionalProviderUrls {
+		providerUrls, providerUrlLoadErr := utils.LoadProviderUrls(ctx, int(chainID.Int64()))
+		if providerUrlLoadErr != nil {
+			log.Warn().Err(providerUrlLoadErr).Msg("failed to load additional provider urls")
 		}
-		clients = append(clients, subClient)
+
+		for _, url := range providerUrls {
+			subClient, subClientErr := dialFuncs[config.BlockchainType](url)
+			if subClientErr != nil {
+				log.Error().Err(subClientErr).Msg("failed to dial sub client")
+				continue
+			}
+			clients = append(clients, subClient)
+		}
 	}
 
-	wallets, err := utils.GetWallets(ctx)
-	if err != nil {
-		return nil, err
+	wallets := make([]string, 0)
+	if config.UseAdditionalWallets {
+		wallets, err = utils.GetWallets(ctx)
+		if err != nil {
+			log.Warn().Err(err).Msg("failed to get additional wallets")
+		}
 	}
 	if config.ReporterPk != "" {
 		primaryWallet := strings.TrimPrefix(config.ReporterPk, "0x")

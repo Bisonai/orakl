@@ -14,9 +14,9 @@ const (
 	DEVIATION_THRESHOLD = 0.0001
 	ABSOLUTE_THRESHOLD  = 0.1
 
-	INITIAL_FAILURE_TIMEOUT = 50 * time.Millisecond
+	INITIAL_FAILURE_TIMEOUT = 500 * time.Millisecond
 	MAX_RETRY               = 3
-	MAX_RETRY_DELAY         = 500 * time.Millisecond
+	MAX_RETRY_DELAY         = 5000 * time.Millisecond
 
 	SUBMIT_FUNCTION_STRING = "submit(uint256 _roundId, int256 _submission)"
 	READ_ROUND_ID          = `function oracleRoundState(address _oracle, uint32 _queriedRoundId) external view returns (
