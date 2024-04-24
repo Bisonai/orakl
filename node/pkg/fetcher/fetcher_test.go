@@ -191,9 +191,7 @@ func TestFetchSingle(t *testing.T) {
             "function": "ROUND"
           }
         ]
-      }
-    }
-	`
+	}`
 	definition := new(Definition)
 	err := json.Unmarshal([]byte(rawDefinition), &definition)
 	if err != nil {
