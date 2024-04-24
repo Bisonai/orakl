@@ -312,7 +312,7 @@ contract SubmissionProxy is Ownable {
                 let secondHalfPtr := add(_data, add(mul(i, 65), 64))
                 mstore(add(chunk_, 64), mload(secondHalfPtr))
             }
-            // Load the last byte of the chunk
+            // Copy the last byte of the chunk
             chunk_[64] = _data[i * 65 + 64];
 
             chunks_[i] = chunk_;
