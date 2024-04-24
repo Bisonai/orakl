@@ -157,10 +157,11 @@ func TestFetcherFetchAndInsertAdapter(t *testing.T) {
 }
 
 func TestFetchSingle(t *testing.T) {
+	t.Skip() // test fails if data provider refuses connection
 	ctx := context.Background()
 	rawDefinition := `
 	{
-        "url": "https://dev.pennygold.kr/api/v2/balance/getTotalNftAmount",
+        "url": "https://api.bybit.com/derivatives/v3/public/tickers?symbol=ADAUSDT",
         "headers": {
           "Content-Type": "application/json"
         },
@@ -169,14 +170,29 @@ func TestFetchSingle(t *testing.T) {
           {
             "function": "PARSE",
             "args": [
-              "data",
-              "PEG",
-              "amount"
+              "result",
+              "list"
             ]
+          },
+          {
+            "function": "INDEX",
+            "args": 0
+          },
+          {
+            "function": "PARSE",
+            "args": [
+              "lastPrice"
+            ]
+          },
+          {
+            "function": "POW10",
+            "args": 8
+          },
+          {
+            "function": "ROUND"
           }
         ]
-      }
-	`
+	}`
 	definition := new(Definition)
 	err := json.Unmarshal([]byte(rawDefinition), &definition)
 	if err != nil {
