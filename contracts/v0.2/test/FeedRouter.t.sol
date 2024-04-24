@@ -11,11 +11,14 @@ contract FeedRouterTest is Test {
     event ProxyRemoved(string feedName, address indexed proxyAddress);
     event ProxyUpdated(string feedName, address indexed proxyAddress);
 
+    error OwnableUnauthorizedAccount(address account);
+
     function setUp() public {
         feedRouter = new FeedRouter();
     }
 
     function test_AddProxy() public {
+        address nonOwner_ = makeAddr("non-owner");
         string[] memory feedNames_ = new string[](2);
         address[] memory proxyAddresses_ = new address[](2);
 
@@ -27,6 +30,11 @@ contract FeedRouterTest is Test {
 
         proxyAddresses_[0] = btcUsdt;
         proxyAddresses_[1] = ethUsdt;
+
+        // FAIL - updateProxyBulk can be called only by owner
+        vm.prank(nonOwner_);
+        vm.expectRevert(abi.encodeWithSelector(OwnableUnauthorizedAccount.selector, nonOwner_));
+        feedRouter.updateProxyBulk(feedNames_, proxyAddresses_);
 
         vm.expectEmit(true, true, true, true);
         emit ProxyAdded(feedNames_[0], proxyAddresses_[0]);
@@ -86,6 +94,7 @@ contract FeedRouterTest is Test {
     }
 
     function test_RemoveProxy() public {
+        address nonOwner_ = makeAddr("non-owner");
         string[] memory feedNamesAdd_ = new string[](2);
         address[] memory proxyAddresses_ = new address[](2);
 
@@ -113,6 +122,12 @@ contract FeedRouterTest is Test {
         // remove btc-usdt proxy
         string[] memory feedNamesRemove_ = new string[](1);
         feedNamesRemove_[0] = feedNamesAdd_[0];
+
+        // FAIL - removeProxyBulk can be called only by owner
+        vm.prank(nonOwner_);
+        vm.expectRevert(abi.encodeWithSelector(OwnableUnauthorizedAccount.selector, nonOwner_));
+        feedRouter.removeProxyBulk(feedNamesRemove_);
+
         vm.expectEmit(true, true, true, true);
         emit ProxyRemoved(feedNamesRemove_[0], proxyAddresses_[0]);
         feedRouter.removeProxyBulk(feedNamesRemove_);
