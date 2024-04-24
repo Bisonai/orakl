@@ -114,14 +114,13 @@ contract SubmissionProxyTest is Test {
     }
 
     function test_AddOracleProtectExecution() public {
-	address oracle_ = makeAddr("oracle");
-	address nonOwner_ = makeAddr("non-owner");
+        address oracle_ = makeAddr("oracle");
+        address nonOwner_ = makeAddr("non-owner");
 
-	vm.prank(nonOwner_);
-	vm.expectRevert(abi.encodeWithSelector(OwnableUnauthorizedAccount.selector, nonOwner_));
-	// FAIL - only owner can add oracle
-	submissionProxy.addOracle(oracle_);
-
+        vm.prank(nonOwner_);
+        vm.expectRevert(abi.encodeWithSelector(OwnableUnauthorizedAccount.selector, nonOwner_));
+        // FAIL - only owner can add oracle
+        submissionProxy.addOracle(oracle_);
     }
 
     function test_AddOracleOnce() public {
@@ -139,13 +138,13 @@ contract SubmissionProxyTest is Test {
     }
 
     function test_RemoveOracleProtectExecution() public {
-	address oracle_ = makeAddr("oracle");
-	address nonOwner_ = makeAddr("non-owner");
+        address oracle_ = makeAddr("oracle");
+        address nonOwner_ = makeAddr("non-owner");
 
-	vm.prank(nonOwner_);
-	vm.expectRevert(abi.encodeWithSelector(OwnableUnauthorizedAccount.selector, nonOwner_));
-	// FAIL - only owner can remove oracle
-	submissionProxy.removeOracle(oracle_);
+        vm.prank(nonOwner_);
+        vm.expectRevert(abi.encodeWithSelector(OwnableUnauthorizedAccount.selector, nonOwner_));
+        // FAIL - only owner can remove oracle
+        submissionProxy.removeOracle(oracle_);
     }
 
     function test_RemoveOracle() public {
@@ -172,13 +171,13 @@ contract SubmissionProxyTest is Test {
     }
 
     function test_UpdateOracleProtectExecution() public {
-	address oracle_ = makeAddr("oracle");
-	address nonOwner_ = makeAddr("non-owner");
+        address oracle_ = makeAddr("oracle");
+        address nonOwner_ = makeAddr("non-owner");
 
-	vm.prank(nonOwner_);
-	vm.expectRevert(SubmissionProxy.OnlyOracle.selector);
-	// FAIL - only owner can update oracle
-	submissionProxy.updateOracle(oracle_);
+        vm.prank(nonOwner_);
+        vm.expectRevert(SubmissionProxy.OnlyOracle.selector);
+        // FAIL - only owner can update oracle
+        submissionProxy.updateOracle(oracle_);
     }
 
     function test_UpdateOracle() public {
