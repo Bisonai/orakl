@@ -54,15 +54,15 @@ contract FeedTest is Test {
         vm.expectEmit(true, true, true, true);
         emit FeedUpdated(expectedAnswer_);
         feed.submit(expectedAnswer_);
-        (, int256 answer,) = feed.latestRoundData();
-        assertEq(answer, expectedAnswer_);
+        (, int256 answer_,) = feed.latestRoundData();
+        assertEq(answer_, expectedAnswer_);
     }
 
     function test_SubmitByNonSubmitter() public {
         address nonSubmitter = makeAddr("non-submitter");
 
-	// only submitter is allowed to submit
         vm.prank(nonSubmitter);
+	// FAIL - only submitter is allowed to submit
 	vm.expectRevert(Feed.OnlySubmitter.selector);
         feed.submit(10);
     }

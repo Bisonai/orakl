@@ -117,4 +117,26 @@ contract FeedProxyTest is Test {
         // (30 + 40 + 50) / 3 = 40
         assertEq(twap, 40);
     }
+
+    function test_ReadLatestRoundDataFromEmptyFeed() public {
+	// FAIL - cannot read rom feed with no data
+	vm.expectRevert(Feed.NoDataPresent.selector);
+	feedProxy.latestRoundData();
+    }
+
+    function test_ReadRoundDataFromEmptyFeed() public {
+	// FAIL - cannot read rom feed with no data
+	vm.expectRevert(Feed.NoDataPresent.selector);
+	feed.getRoundData(0); // smallest index
+
+	// FAIL - cannot read rom feed with no data
+	vm.expectRevert(Feed.NoDataPresent.selector);
+	feedProxy.getRoundData((2**64)-1); // largest index
+    }
+
+    function test_LatestRoundUpdatedAtFromEmptyFeed() public {
+	uint256 updatedAt_ = feedProxy.latestRoundUpdatedAt();
+	// feed without data does not setup timestamp -> default timestamp = 0
+	assertEq(updatedAt_, 0);
+    }
 }
