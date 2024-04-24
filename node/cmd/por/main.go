@@ -12,5 +12,8 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	app.Run(ctx)
+	err = app.Run(ctx)
+	if err != nil {
+		panic(err)
+	}
 }
