@@ -101,29 +101,29 @@ contract SubmissionProxyTest is Test {
     }
 
     function test_SetDefaultProofThreshold() public {
+        uint8 threshold_ = submissionProxy.MIN_THRESHOLD();
         // SUCCESS - 1 is a valid threshold
-        uint8 defaultProofThreshold_ = 1;
-        submissionProxy.setDefaultProofThreshold(defaultProofThreshold_);
-        assertEq(submissionProxy.defaultThreshold(), defaultProofThreshold_);
+        submissionProxy.setDefaultProofThreshold(threshold_);
+        assertEq(submissionProxy.defaultThreshold(), threshold_);
 
+        threshold_ = submissionProxy.MAX_THRESHOLD();
         // SUCCESS - 100 is a valid threshold
-        defaultProofThreshold_ = 100;
-        submissionProxy.setDefaultProofThreshold(defaultProofThreshold_);
-        assertEq(submissionProxy.defaultThreshold(), defaultProofThreshold_);
+        submissionProxy.setDefaultProofThreshold(threshold_);
+        assertEq(submissionProxy.defaultThreshold(), threshold_);
 
-        // FAIL - 0 is not a valid threshold
-        defaultProofThreshold_ = 0;
+        threshold_ = submissionProxy.MIN_THRESHOLD() - 1;
         vm.expectRevert(SubmissionProxy.InvalidThreshold.selector);
-        submissionProxy.setDefaultProofThreshold(defaultProofThreshold_);
+        // FAIL - threshold must be greater than or equal to MIN_THRESHOLD
+        submissionProxy.setDefaultProofThreshold(threshold_);
 
-        // FAIL - 101 is not a valid threshold
-        defaultProofThreshold_ = 101;
+        threshold_ = submissionProxy.MAX_THRESHOLD() + 1;
         vm.expectRevert(SubmissionProxy.InvalidThreshold.selector);
-        submissionProxy.setDefaultProofThreshold(defaultProofThreshold_);
+        // FAIL - threshold must be less than or equal to MAX_THRESHOLD
+        submissionProxy.setDefaultProofThreshold(threshold_);
     }
 
     function test_SetMaxSubmission() public {
-        uint256 maxSubmission_ = 10;
+        uint256 maxSubmission_ = (submissionProxy.MAX_SUBMISSION() - submissionProxy.MIN_SUBMISSION()) / 2;
         submissionProxy.setMaxSubmission(maxSubmission_);
         assertEq(submissionProxy.maxSubmission(), maxSubmission_);
     }
@@ -166,7 +166,7 @@ contract SubmissionProxyTest is Test {
     }
 
     function test_SetExpirationPeriod() public {
-        uint256 expirationPeriod_ = 1 weeks;
+        uint256 expirationPeriod_ = (submissionProxy.MAX_EXPIRATION() - submissionProxy.MIN_EXPIRATION()) / 2;
         submissionProxy.setExpirationPeriod(expirationPeriod_);
         assertEq(submissionProxy.expirationPeriod(), expirationPeriod_);
     }
@@ -174,12 +174,14 @@ contract SubmissionProxyTest is Test {
     function test_SetExpirationPeriodBelowMinimum() public {
         uint256 minExpiration_ = submissionProxy.MIN_EXPIRATION();
         vm.expectRevert(SubmissionProxy.InvalidExpirationPeriod.selector);
+        // FAIL - expiration period must be greater than or equal to MIN_EXPIRATION
         submissionProxy.setExpirationPeriod(minExpiration_ / 2);
     }
 
     function test_SetExpirationPeriodAboveMaximum() public {
         uint256 maxExpiration_ = submissionProxy.MAX_EXPIRATION();
         vm.expectRevert(SubmissionProxy.InvalidExpirationPeriod.selector);
+        // FAIL - expiration period must be less than or equal to MAX_EXPIRATION
         submissionProxy.setExpirationPeriod(maxExpiration_ + 1 days);
     }
 
