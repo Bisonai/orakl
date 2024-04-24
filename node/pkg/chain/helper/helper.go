@@ -31,8 +31,7 @@ func setProviderAndReporter(config *ChainHelperConfig, blockchainType Blockchain
 		if config.ReporterPk == "" {
 			config.ReporterPk = os.Getenv(KlaytnReporterPk)
 			if config.ReporterPk == "" {
-				log.Error().Msg("reporter pk not set")
-				return errors.New("reporter pk not set")
+				log.Warn().Msg("reporter pk not set")
 			}
 		}
 	case Ethereum:
@@ -47,8 +46,7 @@ func setProviderAndReporter(config *ChainHelperConfig, blockchainType Blockchain
 		if config.ReporterPk == "" {
 			config.ReporterPk = os.Getenv(EthReporterPk)
 			if config.ReporterPk == "" {
-				log.Error().Msg("reporter pk not set")
-				return errors.New("reporter pk not set")
+				log.Warn().Msg("reporter pk not set")
 			}
 		}
 	default:
@@ -103,9 +101,10 @@ func NewChainHelper(ctx context.Context, opts ...ChainHelperOption) (*ChainHelpe
 	if err != nil {
 		return nil, err
 	}
-
-	primaryWallet := strings.TrimPrefix(config.ReporterPk, "0x")
-	wallets = append([]string{primaryWallet}, wallets...)
+	if config.ReporterPk != "" {
+		primaryWallet := strings.TrimPrefix(config.ReporterPk, "0x")
+		wallets = append([]string{primaryWallet}, wallets...)
+	}
 
 	delegatorUrl := os.Getenv(EnvDelegatorUrl)
 	if delegatorUrl == "" {
