@@ -247,8 +247,8 @@ contract SubmissionProxy is Ownable {
     function submit(
         address[] memory _feeds,
         int256[] memory _answers,
-        bytes[] memory _proofs,
-        uint256[] memory _timestamps
+        uint256[] memory _timestamps,
+        bytes[] memory _proofs
     ) external {
         if (
             _feeds.length != _answers.length || _answers.length != _proofs.length
