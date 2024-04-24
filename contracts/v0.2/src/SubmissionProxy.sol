@@ -271,7 +271,7 @@ contract SubmissionProxy is Ownable {
             }
 
             bytes32 message_ = keccak256(abi.encodePacked(_answers[i], _timestamps[i]));
-            if (verifyProof(_feeds[i], message_, proofs_)) {
+            if (validateProof(_feeds[i], message_, proofs_)) {
                 IFeed(_feeds[i]).submit(_answers[i]);
             }
         }
@@ -393,13 +393,13 @@ contract SubmissionProxy is Ownable {
     }
 
     /**
-     * @notice Verify the proof
+     * @notice Validate the proof
      * @param _feed The address of the feed
      * @param _message The hash of the message
      * @param _proofs The proofs
      * @return `true` if the proof is valid, `false` otherwise
      */
-    function verifyProof(address _feed, bytes32 _message, bytes[] memory _proofs) private view returns (bool) {
+    function validateProof(address _feed, bytes32 _message, bytes[] memory _proofs) private view returns (bool) {
         uint8 verifiedSignatures_ = 0;
         uint8 lastIndex_ = 0;
         uint256 oracleCount_ = oracles.length;
