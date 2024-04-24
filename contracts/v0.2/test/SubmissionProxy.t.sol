@@ -20,108 +20,6 @@ contract SubmissionProxyTest is Test {
         submissionProxy = new SubmissionProxy();
     }
 
-    function test_AddOracleOnce() public {
-        address oracle_ = makeAddr("oracle");
-        submissionProxy.addOracle(oracle_);
-    }
-
-    function test_AddOracleTwice() public {
-        address oracle_ = makeAddr("oracle");
-        submissionProxy.addOracle(oracle_);
-
-        // cannot add the same oracle twice => fail
-        vm.expectRevert(SubmissionProxy.InvalidOracle.selector);
-        submissionProxy.addOracle(oracle_);
-    }
-
-    function test_RemoveOracle() public {
-        address oracle_ = makeAddr("oracle");
-
-        // add
-        {
-            submissionProxy.addOracle(oracle_);
-            assertEq(submissionProxy.oracles(0), oracle_);
-            (, uint256 expirationTime_) = submissionProxy.whitelist(oracle_);
-            assertGe(expirationTime_, block.timestamp);
-        }
-
-        // remove
-        {
-            submissionProxy.removeOracle(oracle_);
-
-            vm.expectRevert(bytes("")); // "EvmError: Revert"
-            submissionProxy.oracles(0);
-
-            (, uint256 expirationTime_) = submissionProxy.whitelist(oracle_);
-            assertEq(expirationTime_, block.timestamp);
-        }
-    }
-
-    function test_UpdateOracle() public {
-        address oracle_ = makeAddr("oracle");
-        submissionProxy.addOracle(oracle_);
-
-        address newOracle_ = makeAddr("new-oracle");
-        address nonOracle_ = makeAddr("non-oracle");
-
-        // FAIL - Only registered oracle can update its address
-        vm.prank(nonOracle_);
-        vm.expectRevert(SubmissionProxy.OnlyOracle.selector);
-        submissionProxy.updateOracle(newOracle_);
-
-        // Expiration time is larger than the current block timestamp.
-        uint256 duringUpdateTimestamp_ = block.timestamp;
-        {
-            (, uint256 expirationTime_) = submissionProxy.whitelist(oracle_);
-            assertGe(expirationTime_, duringUpdateTimestamp_);
-        }
-
-        // SUCCESS - Registered oracle can update its address
-        vm.prank(oracle_);
-        submissionProxy.updateOracle(newOracle_);
-
-        // Old oracle has expiration time changed to the timestamp
-        // during which the update occured.
-        {
-            (, uint256 expirationTime_) = submissionProxy.whitelist(oracle_);
-            assertEq(expirationTime_, duringUpdateTimestamp_);
-        }
-
-        // New oracle has expiration time larger than the current block timestamp.
-        {
-            (, uint256 expirationTime_) = submissionProxy.whitelist(newOracle_);
-            assertGe(expirationTime_, block.timestamp);
-        }
-
-        // FAIL - Cannot update with outdated oracle address
-        address newestOracle_ = makeAddr("newest-oracle");
-        vm.expectRevert(SubmissionProxy.OnlyOracle.selector);
-        vm.prank(oracle_);
-        submissionProxy.updateOracle(newestOracle_);
-    }
-
-    function test_SetDefaultProofThreshold() public {
-        uint8 threshold_ = submissionProxy.MIN_THRESHOLD();
-        // SUCCESS - 1 is a valid threshold
-        submissionProxy.setDefaultProofThreshold(threshold_);
-        assertEq(submissionProxy.defaultThreshold(), threshold_);
-
-        threshold_ = submissionProxy.MAX_THRESHOLD();
-        // SUCCESS - 100 is a valid threshold
-        submissionProxy.setDefaultProofThreshold(threshold_);
-        assertEq(submissionProxy.defaultThreshold(), threshold_);
-
-        threshold_ = submissionProxy.MIN_THRESHOLD() - 1;
-        vm.expectRevert(SubmissionProxy.InvalidThreshold.selector);
-        // FAIL - threshold must be greater than or equal to MIN_THRESHOLD
-        submissionProxy.setDefaultProofThreshold(threshold_);
-
-        threshold_ = submissionProxy.MAX_THRESHOLD() + 1;
-        vm.expectRevert(SubmissionProxy.InvalidThreshold.selector);
-        // FAIL - threshold must be less than or equal to MAX_THRESHOLD
-        submissionProxy.setDefaultProofThreshold(threshold_);
-    }
-
     function test_SetMaxSubmission() public {
         uint256 maxSubmission_ = (submissionProxy.MAX_SUBMISSION() - submissionProxy.MIN_SUBMISSION()) / 2;
         submissionProxy.setMaxSubmission(maxSubmission_);
@@ -191,6 +89,132 @@ contract SubmissionProxyTest is Test {
         vm.expectRevert(abi.encodeWithSelector(OwnableUnauthorizedAccount.selector, nonOwner_));
         // FAIL - only owner can set expiration period
         submissionProxy.setExpirationPeriod(1 weeks);
+    }
+
+    function test_SetDefaultProofThreshold() public {
+        uint8 threshold_ = submissionProxy.MIN_THRESHOLD();
+        // SUCCESS - 1 is a valid threshold
+        submissionProxy.setDefaultProofThreshold(threshold_);
+        assertEq(submissionProxy.defaultThreshold(), threshold_);
+
+        threshold_ = submissionProxy.MAX_THRESHOLD();
+        // SUCCESS - 100 is a valid threshold
+        submissionProxy.setDefaultProofThreshold(threshold_);
+        assertEq(submissionProxy.defaultThreshold(), threshold_);
+
+        threshold_ = submissionProxy.MIN_THRESHOLD() - 1;
+        vm.expectRevert(SubmissionProxy.InvalidThreshold.selector);
+        // FAIL - threshold must be greater than or equal to MIN_THRESHOLD
+        submissionProxy.setDefaultProofThreshold(threshold_);
+
+        threshold_ = submissionProxy.MAX_THRESHOLD() + 1;
+        vm.expectRevert(SubmissionProxy.InvalidThreshold.selector);
+        // FAIL - threshold must be less than or equal to MAX_THRESHOLD
+        submissionProxy.setDefaultProofThreshold(threshold_);
+    }
+
+    function test_AddOracleProtectExecution() public {
+	address oracle_ = makeAddr("oracle");
+	address nonOwner_ = makeAddr("non-owner");
+
+	vm.prank(nonOwner_);
+	vm.expectRevert(abi.encodeWithSelector(OwnableUnauthorizedAccount.selector, nonOwner_));
+	// FAIL - only owner can add oracle
+	submissionProxy.addOracle(oracle_);
+
+    }
+
+    function test_AddOracleOnce() public {
+        address oracle_ = makeAddr("oracle");
+        submissionProxy.addOracle(oracle_);
+    }
+
+    function test_AddOracleTwice() public {
+        address oracle_ = makeAddr("oracle");
+
+        submissionProxy.addOracle(oracle_);
+        vm.expectRevert(SubmissionProxy.InvalidOracle.selector);
+        // FAIL - cannot add the same oracle twice => fail
+        submissionProxy.addOracle(oracle_);
+    }
+
+    function test_RemoveOracleProtectExecution() public {
+	address oracle_ = makeAddr("oracle");
+	address nonOwner_ = makeAddr("non-owner");
+
+	vm.prank(nonOwner_);
+	vm.expectRevert(abi.encodeWithSelector(OwnableUnauthorizedAccount.selector, nonOwner_));
+	// FAIL - only owner can remove oracle
+	submissionProxy.removeOracle(oracle_);
+    }
+
+    function test_RemoveOracle() public {
+        address oracle_ = makeAddr("oracle");
+
+        // add
+        {
+            submissionProxy.addOracle(oracle_);
+            assertEq(submissionProxy.oracles(0), oracle_);
+            (, uint256 expirationTime_) = submissionProxy.whitelist(oracle_);
+            assertGe(expirationTime_, block.timestamp);
+        }
+
+        // remove
+        {
+            submissionProxy.removeOracle(oracle_);
+
+            vm.expectRevert(bytes("")); // "EvmError: Revert"
+            submissionProxy.oracles(0);
+
+            (, uint256 expirationTime_) = submissionProxy.whitelist(oracle_);
+            assertEq(expirationTime_, block.timestamp);
+        }
+    }
+
+    function test_UpdateOracleProtectExecution() public {
+	address oracle_ = makeAddr("oracle");
+	address nonOwner_ = makeAddr("non-owner");
+
+	vm.prank(nonOwner_);
+	vm.expectRevert(SubmissionProxy.OnlyOracle.selector);
+	// FAIL - only owner can update oracle
+	submissionProxy.updateOracle(oracle_);
+    }
+
+    function test_UpdateOracle() public {
+        address oracle_ = makeAddr("oracle");
+        submissionProxy.addOracle(oracle_);
+
+        address newOracle_ = makeAddr("new-oracle");
+
+        // Expiration time is larger than the current block timestamp.
+        uint256 duringUpdateTimestamp_ = block.timestamp;
+        {
+            (, uint256 expirationTime_) = submissionProxy.whitelist(oracle_);
+            assertGe(expirationTime_, duringUpdateTimestamp_);
+        }
+
+        // SUCCESS - Registered oracle can update its address
+        vm.prank(oracle_);
+        submissionProxy.updateOracle(newOracle_);
+
+        // Old oracle has expiration time changed to the timestamp
+        // during which the update occured.
+        {
+            (, uint256 expirationTime_) = submissionProxy.whitelist(oracle_);
+            assertEq(expirationTime_, duringUpdateTimestamp_);
+        }
+
+        // New oracle has expiration time larger than the current block timestamp.
+        {
+            (, uint256 expirationTime_) = submissionProxy.whitelist(newOracle_);
+            assertGe(expirationTime_, block.timestamp);
+        }
+
+        // FAIL - Cannot update with outdated oracle address
+        vm.prank(oracle_);
+        vm.expectRevert(SubmissionProxy.OnlyOracle.selector);
+        submissionProxy.updateOracle(makeAddr("anything"));
     }
 
     function test_SubmitWithInvalidSubmissionLength() public {
