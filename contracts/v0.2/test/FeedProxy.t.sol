@@ -88,7 +88,7 @@ contract FeedProxyTest is Test {
 
     // | time   | 16 | 31 | 46 | 61 | 76 |
     // | answer | 10 | 20 | 30 | 40 | 50 |
-    function test_twapWithMinCount() public {
+    function test_twapWithZeroTolerance() public {
         uint256 heartbeat_ = 15;
 
         vm.warp(block.timestamp + heartbeat_);
@@ -118,9 +118,41 @@ contract FeedProxyTest is Test {
         assertEq(twap_, 40);
     }
 
+    // | time   | 16 | 31 | 46 | 61 | 76 |
+    // | answer | 10 | 20 | 30 | 40 | 50 |
+    function test_twapWithZeroMinCount() public {
+        uint256 heartbeat_ = 15;
+
+        vm.warp(block.timestamp + heartbeat_);
+        vm.prank(oracle);
+        feed.submit(10);
+
+        vm.warp(block.timestamp + heartbeat_);
+        vm.prank(oracle);
+        feed.submit(20);
+
+        vm.warp(block.timestamp + heartbeat_);
+        vm.prank(oracle);
+        feed.submit(30);
+
+        vm.warp(block.timestamp + heartbeat_);
+        vm.prank(oracle);
+        feed.submit(40);
+
+        vm.warp(block.timestamp + heartbeat_);
+        vm.prank(oracle);
+        feed.submit(50);
+
+        // TWAP in the last 60 seconds with the latest value no older than 5 seconds
+        int256 twap_ = feedProxy.twap(60, 5, 0);
+
+        // (10 + 20 + 30 + 40 + 50) / 5 = 150 / 5 =  30
+        assertEq(twap_, 30);
+    }
+
     // | time   | 16 | 31 |
     // | answer | 10 | 20 |
-    function test_TwapWithZeroInterval() public {
+    function test_TwapWithZeroParameters() public {
         uint256 heartbeat_ = 15;
 
 	// not used
@@ -135,6 +167,19 @@ contract FeedProxyTest is Test {
 
 	int256 twap_ = feedProxy.twap(0, 0, 0);
 	assertEq(twap_, 20);
+    }
+
+    // | time   | 16 |
+    // | answer | 10 |
+    function test_TwapWithZeroParametersAndSingleRound() public {
+        uint256 heartbeat_ = 15;
+
+        vm.warp(block.timestamp + heartbeat_);
+        vm.prank(oracle);
+        feed.submit(10);
+
+	int256 twap_ = feedProxy.twap(0, 0, 0);
+	assertEq(twap_, 10);
     }
 
     function test_ReadLatestRoundDataFromEmptyFeed() public {

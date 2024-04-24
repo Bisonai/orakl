@@ -37,8 +37,7 @@ contract FeedProxy is Ownable, IFeedProxy {
     }
 
     /**
-     * @notice Get decimals of the feed.
-     * @return decimals The decimals of the feed.
+     * @inheritdoc IFeed
      */
     function decimals() external view returns (uint8) {
         return feed.decimals();
