@@ -16,15 +16,17 @@ import {IFeedProxy} from "./interfaces/IFeedProxy.sol";
  * can find all supported tokens at https://config.orakl.network.
  */
 contract FeedRouter is Ownable, IFeedRouter {
-    mapping(string => address) public feedProxies;
+    mapping(string => address) public feedToProxies;
+    string[] public feedNames;
 
-    event RouterProxyAddressUpdated(string feedName, address indexed proxyAddress);
-    event RouterProxyAddressBulkUpdated(string[] feedNames, address[] proxyAddresses);
+    event ProxyAdded(string feedName, address indexed proxyAddress);
+    event ProxyRemoved(string feedName, address indexed proxyAddress);
+    event ProxyUpdated(string feedName, address indexed proxyAddress);
 
     error InvalidProxyAddress();
 
     modifier validFeed(string calldata _feedName) {
-        require(feedProxies[_feedName] != address(0), "Feed not set in router");
+        require(feedToProxies[_feedName] != address(0), "Feed not set in router");
         _;
     }
 
@@ -43,8 +45,17 @@ contract FeedRouter is Ownable, IFeedRouter {
         for (uint256 i = 0; i < _feedNames.length; i++) {
             updateProxy(_feedNames[i], _proxyAddresses[i]);
         }
+    }
 
-        emit RouterProxyAddressBulkUpdated(_feedNames, _proxyAddresses);
+    /**
+     * @inheritdoc IFeedRouter
+     */
+    function removeProxyBulk(string[] calldata _feedNames) external onlyOwner {
+        require(_feedNames.length > 0, "invalid input");
+
+        for (uint256 i = 0; i < _feedNames.length; i++) {
+            removeProxy(_feedNames[i], feedToProxies[_feedNames[i]]);
+        }
     }
 
     /**
@@ -56,7 +67,7 @@ contract FeedRouter is Ownable, IFeedRouter {
         validFeed(_feedName)
         returns (uint64 id, int256 answer, uint256 updatedAt)
     {
-        return IFeedProxy(feedProxies[_feedName]).getRoundData(_roundId);
+        return IFeedProxy(feedToProxies[_feedName]).getRoundData(_roundId);
     }
 
     /**
@@ -68,7 +79,7 @@ contract FeedRouter is Ownable, IFeedRouter {
         validFeed(_feedName)
         returns (uint64 id, int256 answer, uint256 updatedAt)
     {
-        return IFeedProxy(feedProxies[_feedName]).latestRoundData();
+        return IFeedProxy(feedToProxies[_feedName]).latestRoundData();
     }
 
     /**
@@ -79,7 +90,7 @@ contract FeedRouter is Ownable, IFeedRouter {
         view
         returns (int256)
     {
-        return IFeedProxy(feedProxies[_feedName]).twap(_interval, _latestUpdatedAtTolerance, _minCount);
+        return IFeedProxy(feedToProxies[_feedName]).twap(_interval, _latestUpdatedAtTolerance, _minCount);
     }
 
     /**
@@ -91,7 +102,8 @@ contract FeedRouter is Ownable, IFeedRouter {
         uint256 _latestUpdatedAtTolerance,
         int256 _minCount
     ) external view returns (int256) {
-        return IFeedProxy(feedProxies[_feedName]).twapFromProposedFeed(_interval, _latestUpdatedAtTolerance, _minCount);
+        return
+            IFeedProxy(feedToProxies[_feedName]).twapFromProposedFeed(_interval, _latestUpdatedAtTolerance, _minCount);
     }
 
     /**
@@ -103,7 +115,7 @@ contract FeedRouter is Ownable, IFeedRouter {
         validFeed(_feedName)
         returns (uint64 id, int256 answer, uint256 updatedAt)
     {
-        return IFeedProxy(feedProxies[_feedName]).getRoundDataFromProposedFeed(_roundId);
+        return IFeedProxy(feedToProxies[_feedName]).getRoundDataFromProposedFeed(_roundId);
     }
 
     /**
@@ -115,53 +127,103 @@ contract FeedRouter is Ownable, IFeedRouter {
         validFeed(_feedName)
         returns (uint64 id, int256 answer, uint256 updatedAt)
     {
-        return IFeedProxy(feedProxies[_feedName]).latestRoundDataFromProposedFeed();
+        return IFeedProxy(feedToProxies[_feedName]).latestRoundDataFromProposedFeed();
     }
 
     /**
      * @inheritdoc IFeedRouter
      */
     function feed(string calldata _feedName) external view validFeed(_feedName) returns (address) {
-        return IFeedProxy(feedProxies[_feedName]).getFeed();
+        return IFeedProxy(feedToProxies[_feedName]).getFeed();
     }
 
     /**
      * @inheritdoc IFeedRouter
      */
     function proposedFeed(string calldata _feedName) external view validFeed(_feedName) returns (address) {
-        return IFeedProxy(feedProxies[_feedName]).getProposedFeed();
+        return IFeedProxy(feedToProxies[_feedName]).getProposedFeed();
     }
 
     /**
      * @inheritdoc IFeedRouter
      */
     function decimals(string calldata _feedName) external view validFeed(_feedName) returns (uint8) {
-        return IFeedProxy(feedProxies[_feedName]).decimals();
+        return IFeedProxy(feedToProxies[_feedName]).decimals();
     }
 
     /**
      * @inheritdoc IFeedRouter
      */
     function typeAndVersion(string calldata _feedName) external view validFeed(_feedName) returns (string memory) {
-        return IFeedProxy(feedProxies[_feedName]).typeAndVersion();
+        return IFeedProxy(feedToProxies[_feedName]).typeAndVersion();
     }
 
     /**
      * @inheritdoc IFeedRouter
      */
     function description(string calldata _feedName) external view validFeed(_feedName) returns (string memory) {
-        return IFeedProxy(feedProxies[_feedName]).description();
+        return IFeedProxy(feedToProxies[_feedName]).description();
     }
 
     /**
      * @inheritdoc IFeedRouter
      */
-    function updateProxy(string calldata _feedName, address _proxyAddress) public onlyOwner {
+    function getFeedNames() external view returns (string[] memory) {
+        return feedNames;
+    }
+
+    /**
+     * @notice Update the feed proxy address of given a feed name.
+     * @param _feedName The feed name.
+     * @param _proxyAddress The address of the feed proxy.
+     */
+    function updateProxy(string calldata _feedName, address _proxyAddress) private {
         if (_proxyAddress == address(0)) {
             revert InvalidProxyAddress();
         }
 
-        feedProxies[_feedName] = _proxyAddress;
-        emit RouterProxyAddressUpdated(_feedName, _proxyAddress);
+        feedToProxies[_feedName] = _proxyAddress;
+        bytes32 feedNameHash = keccak256(abi.encodePacked(_feedName));
+        bool found = false;
+
+        uint256 feedNamesLength = feedNames.length;
+        for (uint256 i = 0; i < feedNamesLength; i++) {
+            if (keccak256(abi.encodePacked(feedNames[i])) == feedNameHash) {
+                found = true;
+                break;
+            }
+        }
+
+        if (!found) {
+            feedNames.push(_feedName);
+            emit ProxyAdded(_feedName, _proxyAddress);
+        } else {
+            emit ProxyUpdated(_feedName, _proxyAddress);
+        }
+    }
+
+    /**
+     * @notice Remove the feed proxy address of given a feed name.
+     * @param _feedName The feed name.
+     * @param _proxyAddress The address of the feed proxy.
+     */
+    function removeProxy(string calldata _feedName, address _proxyAddress) private {
+        if (_proxyAddress == address(0)) {
+            revert InvalidProxyAddress();
+        }
+
+        feedToProxies[_feedName] = address(0);
+        bytes32 feedNameHash = keccak256(abi.encodePacked(_feedName));
+
+        uint256 feedNamesLength = feedNames.length;
+        for (uint256 i = 0; i < feedNamesLength; i++) {
+            if (keccak256(abi.encodePacked(feedNames[i])) == feedNameHash) {
+                feedNames[i] = feedNames[feedNames.length - 1];
+                feedNames.pop();
+                break;
+            }
+        }
+
+        emit ProxyRemoved(_feedName, _proxyAddress);
     }
 }
