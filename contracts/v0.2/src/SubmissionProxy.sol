@@ -51,7 +51,6 @@ contract SubmissionProxy is Ownable {
     error InvalidExpirationPeriod();
     error InvalidMaxSubmission();
     error InvalidThreshold();
-    error IndexOutOfBounds();
     error IndexesNotAscending();
 
     modifier onlyOracle() {
@@ -394,6 +393,9 @@ contract SubmissionProxy is Ownable {
 
     /**
      * @notice Validate the proof
+     * @dev The order of the proofs must be in ascending order of the
+     * oracle index. The function will revert with `IndexesNotAscending`
+     * error if the order is not ascending.
      * @param _feed The address of the feed
      * @param _message The hash of the message
      * @param _proofs The proofs
@@ -402,7 +404,6 @@ contract SubmissionProxy is Ownable {
     function validateProof(address _feed, bytes32 _message, bytes[] memory _proofs) private view returns (bool) {
         uint8 verifiedSignatures_ = 0;
         uint8 lastIndex_ = 0;
-        uint256 oracleCount_ = oracles.length;
 
         uint8 threshold_ = thresholds[_feed];
         if (threshold_ == 0) {
@@ -420,10 +421,6 @@ contract SubmissionProxy is Ownable {
                 revert IndexesNotAscending();
             }
             lastIndex_ = oracleIndex_;
-
-            if (oracleIndex_ >= oracleCount_) {
-                revert IndexOutOfBounds();
-            }
 
             if (isWhitelisted(signer_)) {
                 verifiedSignatures_++;
