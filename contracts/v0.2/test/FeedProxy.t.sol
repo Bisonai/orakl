@@ -23,12 +23,12 @@ contract FeedProxyTest is Test {
         feedProxy = new FeedProxy(address(feed));
     }
 
-    function test_revertWithNoDataPresent() public {
+    function test_RevertWithNoDataPresent() public {
         vm.expectRevert(Feed.NoDataPresent.selector);
         feedProxy.latestRoundData();
     }
 
-    function test_readLatestRoundData() public {
+    function test_ReadLatestRoundData() public {
         int256 answer_ = 10;
 
         vm.prank(oracle);
@@ -42,7 +42,7 @@ contract FeedProxyTest is Test {
 
     // | time   | 16 | 31 | 46 | 61 | 76 |
     // | answer | 10 | 20 | 30 | 40 | 50 |
-    function test_twapWithoutRestrictions() public {
+    function test_TwapWithoutRestrictions() public {
         uint256 heartbeat_ = 15;
 
         vm.warp(block.timestamp + heartbeat_);
@@ -72,7 +72,7 @@ contract FeedProxyTest is Test {
         assertEq(twap_, 30);
     }
 
-    function test_twapAnswerAboveTolerance() public {
+    function test_TwapAnswerAboveTolerance() public {
         vm.prank(oracle);
         feed.submit(10);
 
@@ -83,7 +83,7 @@ contract FeedProxyTest is Test {
         feedProxy.twap(60, heartbeat_ / 2, 0);
     }
 
-    function test_twapInsufficientData() public {
+    function test_TwapInsufficientData() public {
         vm.prank(oracle);
         feed.submit(10);
 
@@ -93,7 +93,7 @@ contract FeedProxyTest is Test {
 
     // | time   | 16 | 31 | 46 | 61 | 76 |
     // | answer | 10 | 20 | 30 | 40 | 50 |
-    function test_twapWithZeroTolerance() public {
+    function test_TwapWithZeroTolerance() public {
         uint256 heartbeat_ = 15;
 
         vm.warp(block.timestamp + heartbeat_);
@@ -125,7 +125,7 @@ contract FeedProxyTest is Test {
 
     // | time   | 16 | 31 | 46 | 61 | 76 |
     // | answer | 10 | 20 | 30 | 40 | 50 |
-    function test_twapWithZeroMinCount() public {
+    function test_TwapWithZeroMinCount() public {
         uint256 heartbeat_ = 15;
 
         vm.warp(block.timestamp + heartbeat_);
@@ -249,5 +249,15 @@ contract FeedProxyTest is Test {
         // FAIL - cannot propose zero address feed
         vm.expectRevert(FeedProxy.InvalidProposedFeed.selector);
         feedProxy.proposeFeed(address(0));
+    }
+
+    function test_ReadFromZeroAddressProposedFeed() public {
+        // FAIL - no proposed feed has been set
+        vm.expectRevert(FeedProxy.NoProposedFeed.selector);
+        feedProxy.latestRoundDataFromProposedFeed();
+
+        // FAIL - no proposed feed has been set
+        vm.expectRevert(FeedProxy.NoProposedFeed.selector);
+        feedProxy.getRoundDataFromProposedFeed(0);
     }
 }

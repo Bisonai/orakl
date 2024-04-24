@@ -24,7 +24,7 @@ contract FeedProxy is Ownable, IFeedProxy {
     error NoProposedFeed();
 
     modifier hasProposal() {
-        if (address(proposedFeed) != address(0)) {
+        if (address(proposedFeed) == address(0)) {
             revert NoProposedFeed();
         }
         _;
