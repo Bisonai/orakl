@@ -26,7 +26,7 @@ contract SubmissionProxy is Ownable {
     uint256 public maxSubmission = 50;
     uint256 public expirationPeriod = 5 weeks;
     uint256 public dataFreshness = 10 seconds;
-    uint8 public threshold = 50; // 50 %
+    uint8 public defaultThreshold = 50; // 50 %
     address[] public oracles;
 
     struct OracleInfo {
@@ -111,7 +111,7 @@ contract SubmissionProxy is Ownable {
             revert InvalidThreshold();
         }
 
-        threshold = _threshold;
+        defaultThreshold = _threshold;
         emit DefaultThresholdSet(_threshold);
     }
 
@@ -256,11 +256,13 @@ contract SubmissionProxy is Ownable {
 
         for (uint256 feedIdx_ = 0; feedIdx_ < _feeds.length; feedIdx_++) {
             if (_timestamps[feedIdx_] <= block.timestamp - dataFreshness) {
+                // answer is too old -> do not submit!
                 continue;
             }
 
-            (bytes[] memory proofs_, bool success_) = splitBytesToChunks(_proofs[feedIdx_]);
+            (bytes[] memory proofs_, bool success_) = splitProofs(_proofs[feedIdx_]);
             if (!success_) {
+                // splitting proofs failed -> do not submit!
                 continue;
             }
             bytes32 message_ = keccak256(abi.encodePacked(_answers[feedIdx_], _timestamps[feedIdx_]));
@@ -272,13 +274,13 @@ contract SubmissionProxy is Ownable {
 
             uint8 threshold_ = thresholds[_feeds[feedIdx_]];
             if (threshold_ == 0) {
-                threshold_ = threshold;
+                threshold_ = defaultThreshold;
             }
             uint8 requiredSignatures_ = quorum(threshold_);
 
             for (uint256 proofIdx_ = 0; proofIdx_ < proofs_.length; proofIdx_++) {
-                bytes memory singleProof_ = proofs_[proofIdx_];
-                address signer_ = recoverSigner(message_, singleProof_);
+                bytes memory proof_ = proofs_[proofIdx_];
+                address signer_ = recoverSigner(message_, proof_);
                 uint8 oracleIndex_ = whitelist[signer_].index;
 
                 if (proofIdx_ != 0 && oracleIndex_ <= lastIndex_) {
@@ -300,8 +302,7 @@ contract SubmissionProxy is Ownable {
             }
 
             if (!isVerified_) {
-                // Insufficient number of signatures have been
-                // verified -> do not submit!
+                // Insufficient number of proofs -> do not submit!
                 continue;
             }
 
@@ -318,13 +319,13 @@ contract SubmissionProxy is Ownable {
     }
 
     /**
-     * @notice Split bytes into 65-byte long proof chunks
+     * @notice Split concatenated proofs into individual proofs of length 65 bytes
      * @dev The function intentionally does not test whether the
      * @param _data The bytes to be split
      * @return chunks_ The split bytes
      * @return success_ `true` if the split was successful, `false`
      */
-    function splitBytesToChunks(bytes memory _data) private pure returns (bytes[] memory chunks_, bool success_) {
+    function splitProofs(bytes memory _data) private pure returns (bytes[] memory chunks_, bool success_) {
         uint256 dataLength_ = _data.length;
         if (dataLength_ % 65 != 0) {
             return (chunks_, false);

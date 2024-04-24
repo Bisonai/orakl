@@ -102,12 +102,12 @@ contract SubmissionProxyTest is Test {
         // SUCCESS - 1 is a valid threshold
         uint8 defaultProofThreshold_ = 1;
         submissionProxy.setDefaultProofThreshold(defaultProofThreshold_);
-        assertEq(submissionProxy.threshold(), defaultProofThreshold_);
+        assertEq(submissionProxy.defaultThreshold(), defaultProofThreshold_);
 
         // SUCCESS - 100 is a valid threshold
         defaultProofThreshold_ = 100;
         submissionProxy.setDefaultProofThreshold(defaultProofThreshold_);
-        assertEq(submissionProxy.threshold(), defaultProofThreshold_);
+        assertEq(submissionProxy.defaultThreshold(), defaultProofThreshold_);
 
         // FAIL - 0 is not a valid threshold
         defaultProofThreshold_ = 0;
