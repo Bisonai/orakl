@@ -68,8 +68,8 @@ contract FeedRouterTest is Test {
         string[] memory feedNames_ = new string[](2);
         address[] memory proxyAddresses_ = new address[](1);
 
-        // feedNames_ is longer than proxyAddresses_ -> FAIL
-        vm.expectRevert("invalid input");
+        // FAIL - feedNames_ is longer than proxyAddresses_
+        vm.expectRevert(FeedRouter.InvalidInput.selector);
         feedRouter.updateProxyBulk(feedNames_, proxyAddresses_);
     }
 
@@ -80,7 +80,7 @@ contract FeedRouterTest is Test {
         feedNames_[0] = "btc-usdt";
         proxyAddresses_[0] = address(0);
 
-        // proxy address is 0 -> FAIL
+        // FAIL - proxy address is 0
         vm.expectRevert(FeedRouter.InvalidProxyAddress.selector);
         feedRouter.updateProxyBulk(feedNames_, proxyAddresses_);
     }
@@ -105,6 +105,11 @@ contract FeedRouterTest is Test {
         assertEq(feedRouter.feedToProxies(feedNamesAdd_[0]), btcUsdt);
         assertEq(feedRouter.feedToProxies(feedNamesAdd_[1]), ethUsdt);
 
+        // FAIL - cannot call removeProxyBulk with empty array
+        string[] memory feedNamesEmpty_;
+        vm.expectRevert(FeedRouter.InvalidInput.selector);
+        feedRouter.removeProxyBulk(feedNamesEmpty_);
+
         // remove btc-usdt proxy
         string[] memory feedNamesRemove_ = new string[](1);
         feedNamesRemove_[0] = feedNamesAdd_[0];
@@ -119,6 +124,12 @@ contract FeedRouterTest is Test {
 
         assertEq(feedRouter.feedToProxies(feedNamesAdd_[0]), address(0));
         assertEq(feedRouter.feedToProxies(feedNamesAdd_[1]), ethUsdt);
+    }
+
+    function test_GetDataFromNonExistingFeed() public {
+        // FAIL - cannot read data from feed that has not been set
+        vm.expectRevert(FeedRouter.FeedNotSetInRouter.selector);
+        feedRouter.latestRoundData("NOT-EXIST");
     }
 
     function compareArrays(string[] memory array1, string[] memory array2) private pure returns (bool) {

@@ -12,7 +12,7 @@ import {IFeedProxy} from "./interfaces/IFeedProxy.sol";
  * Network Data Feeds. The interface is similar to the `FeedProxy`
  * contract but requires an extra feed name (`_feedName`) parameter. The
  * supported feed names are a combination of base and quote
- * currencies (e.g. BTC-USDT for Bitcoin's price in USDT stablecoin). You
+ * symbols (e.g. BTC-USDT for Bitcoin's price in USDT stablecoin). You
  * can find all supported tokens at https://config.orakl.network.
  */
 contract FeedRouter is Ownable, IFeedRouter {
@@ -24,9 +24,13 @@ contract FeedRouter is Ownable, IFeedRouter {
     event ProxyUpdated(string feedName, address indexed proxyAddress);
 
     error InvalidProxyAddress();
+    error InvalidInput();
+    error FeedNotSetInRouter();
 
     modifier validFeed(string calldata _feedName) {
-        require(feedToProxies[_feedName] != address(0), "Feed not set in router");
+        if (feedToProxies[_feedName] == address(0)) {
+            revert FeedNotSetInRouter();
+        }
         _;
     }
 
@@ -40,7 +44,9 @@ contract FeedRouter is Ownable, IFeedRouter {
      * @inheritdoc IFeedRouter
      */
     function updateProxyBulk(string[] calldata _feedNames, address[] calldata _proxyAddresses) external onlyOwner {
-        require(_feedNames.length > 0 && _feedNames.length == _proxyAddresses.length, "invalid input");
+        if (_feedNames.length == 0 || _feedNames.length != _proxyAddresses.length) {
+            revert InvalidInput();
+        }
 
         for (uint256 i = 0; i < _feedNames.length; i++) {
             updateProxy(_feedNames[i], _proxyAddresses[i]);
@@ -51,7 +57,9 @@ contract FeedRouter is Ownable, IFeedRouter {
      * @inheritdoc IFeedRouter
      */
     function removeProxyBulk(string[] calldata _feedNames) external onlyOwner {
-        require(_feedNames.length > 0, "invalid input");
+        if (_feedNames.length == 0) {
+            revert InvalidInput();
+        }
 
         for (uint256 i = 0; i < _feedNames.length; i++) {
             removeProxy(_feedNames[i], feedToProxies[_feedNames[i]]);
