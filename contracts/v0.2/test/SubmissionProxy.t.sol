@@ -13,6 +13,8 @@ contract SubmissionProxyTest is Test {
     string DESCRIPTION = "Test Feed";
     uint256 timestamp = 1706170779;
 
+    error OwnableUnauthorizedAccount(address account);
+
     function setUp() public {
         vm.warp(timestamp);
         submissionProxy = new SubmissionProxy();
@@ -128,19 +130,39 @@ contract SubmissionProxyTest is Test {
 
     function test_SetMaxSubmissionBelowMinimum() public {
         vm.expectRevert(SubmissionProxy.InvalidMaxSubmission.selector);
+        // FAIL - 0 is not a valid max submission
         submissionProxy.setMaxSubmission(0);
     }
 
     function test_SetMaxSubmissionAboveMaximum() public {
         uint256 maxSubmission_ = submissionProxy.MAX_SUBMISSION();
         vm.expectRevert(SubmissionProxy.InvalidMaxSubmission.selector);
+        // FAIL - MAX_SUBMISSION is the maximum allowed value
         submissionProxy.setMaxSubmission(maxSubmission_ + 1);
     }
 
-    function testFail_SetMaxSubmissionProtectExecution() public {
-        address nonOwner_ = makeAddr("nonOwner");
+    function test_SetMaxSubmissionProtectExecution() public {
+        address nonOwner_ = makeAddr("non-owner");
         vm.prank(nonOwner_);
+        vm.expectRevert(abi.encodeWithSelector(OwnableUnauthorizedAccount.selector, nonOwner_));
+        // FAIL - only owner can set max submission
         submissionProxy.setMaxSubmission(10);
+    }
+
+    function test_SetDataFreshness() public {
+        uint256 dataFreshness_ = 1 days;
+        submissionProxy.setDataFreshness(dataFreshness_);
+        assertEq(submissionProxy.dataFreshness(), dataFreshness_);
+    }
+
+    function test_SetDataFreshnessProtextExecution() public {
+        uint256 dataFreshness_ = 1 days;
+        address nonOwner_ = makeAddr("non-owner");
+
+        vm.prank(nonOwner_);
+        vm.expectRevert(abi.encodeWithSelector(OwnableUnauthorizedAccount.selector, nonOwner_));
+        // FAIL - only owner can set data freshness
+        submissionProxy.setDataFreshness(dataFreshness_);
     }
 
     function test_SetExpirationPeriod() public {
@@ -161,9 +183,11 @@ contract SubmissionProxyTest is Test {
         submissionProxy.setExpirationPeriod(maxExpiration_ + 1 days);
     }
 
-    function testFail_SetExpirationPeriodProtectExecution() public {
-        address nonOwner_ = makeAddr("nonOwner");
+    function test_SetExpirationPeriodProtectExecution() public {
+        address nonOwner_ = makeAddr("non-owner");
         vm.prank(nonOwner_);
+        vm.expectRevert(abi.encodeWithSelector(OwnableUnauthorizedAccount.selector, nonOwner_));
+        // FAIL - only owner can set expiration period
         submissionProxy.setExpirationPeriod(1 weeks);
     }
 
