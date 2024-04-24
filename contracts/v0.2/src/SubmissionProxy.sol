@@ -235,7 +235,10 @@ contract SubmissionProxy is Ownable {
      * @notice Submit a batch of submissions to multiple feeds.
      * @dev If the number size of `_feeds`, `_answers`, and `_proofs`
      * is not equal, or longer than `maxSubmission`, the function will
-     * revert with `InvalidSubmissionLength` error.
+     * revert with `InvalidSubmissionLength` error. If the data are
+     * outdated (older than `dataFreshness`), the function will not
+     * submit the data. If the proof is invalid, the function will not
+     * submit the data.
      * @param _feeds The addresses of the feeds
      * @param _answers The submissions
      * @param _proofs The proofs
@@ -254,59 +257,23 @@ contract SubmissionProxy is Ownable {
             revert InvalidSubmissionLength();
         }
 
-        for (uint256 feedIdx_ = 0; feedIdx_ < _feeds.length; feedIdx_++) {
-            if (_timestamps[feedIdx_] <= block.timestamp - dataFreshness) {
+        uint256 feedsLength_ = _feeds.length;
+        for (uint256 i = 0; i < feedsLength_; i++) {
+            if (_timestamps[i] <= block.timestamp - dataFreshness) {
                 // answer is too old -> do not submit!
                 continue;
             }
 
-            (bytes[] memory proofs_, bool success_) = splitProofs(_proofs[feedIdx_]);
+            (bytes[] memory proofs_, bool success_) = splitProofs(_proofs[i]);
             if (!success_) {
                 // splitting proofs failed -> do not submit!
                 continue;
             }
-            bytes32 message_ = keccak256(abi.encodePacked(_answers[feedIdx_], _timestamps[feedIdx_]));
 
-            bool isVerified_ = false;
-            uint8 verifiedSignatures_ = 0;
-            uint8 lastIndex_ = 0;
-            uint256 oracleCount_ = oracles.length;
-
-            uint8 threshold_ = thresholds[_feeds[feedIdx_]];
-            if (threshold_ == 0) {
-                threshold_ = defaultThreshold;
+            bytes32 message_ = keccak256(abi.encodePacked(_answers[i], _timestamps[i]));
+            if (verifyProof(_feeds[i], message_, proofs_)) {
+                IFeed(_feeds[i]).submit(_answers[i]);
             }
-            uint8 requiredSignatures_ = quorum(threshold_);
-
-            for (uint256 proofIdx_ = 0; proofIdx_ < proofs_.length; proofIdx_++) {
-                bytes memory proof_ = proofs_[proofIdx_];
-                address signer_ = recoverSigner(message_, proof_);
-                uint8 oracleIndex_ = whitelist[signer_].index;
-
-                if (proofIdx_ != 0 && oracleIndex_ <= lastIndex_) {
-                    revert IndexesNotAscending();
-                }
-                lastIndex_ = oracleIndex_;
-
-                if (oracleIndex_ >= oracleCount_) {
-                    revert IndexOutOfBounds();
-                }
-
-                if (isWhitelisted(signer_)) {
-                    verifiedSignatures_++;
-                    if (verifiedSignatures_ >= requiredSignatures_) {
-                        isVerified_ = true;
-                        break;
-                    }
-                }
-            }
-
-            if (!isVerified_) {
-                // Insufficient number of proofs -> do not submit!
-                continue;
-            }
-
-            IFeed(_feeds[feedIdx_]).submit(_answers[feedIdx_]);
         }
     }
 
@@ -423,5 +390,49 @@ contract SubmissionProxy is Ownable {
      */
     function getAllOracles() public view returns (address[] memory) {
         return oracles;
+    }
+
+    /**
+     * @notice Verify the proof
+     * @param _feed The address of the feed
+     * @param _message The hash of the message
+     * @param _proofs The proofs
+     * @return `true` if the proof is valid, `false` otherwise
+     */
+    function verifyProof(address _feed, bytes32 _message, bytes[] memory _proofs) private view returns (bool) {
+        uint8 verifiedSignatures_ = 0;
+        uint8 lastIndex_ = 0;
+        uint256 oracleCount_ = oracles.length;
+
+        uint8 threshold_ = thresholds[_feed];
+        if (threshold_ == 0) {
+            threshold_ = defaultThreshold;
+        }
+        uint8 requiredSignatures_ = quorum(threshold_);
+
+        uint256 proofsLength_ = _proofs.length;
+        for (uint256 j = 0; j < proofsLength_; j++) {
+            bytes memory proof_ = _proofs[j];
+            address signer_ = recoverSigner(_message, proof_);
+            uint8 oracleIndex_ = whitelist[signer_].index;
+
+            if (j != 0 && oracleIndex_ <= lastIndex_) {
+                revert IndexesNotAscending();
+            }
+            lastIndex_ = oracleIndex_;
+
+            if (oracleIndex_ >= oracleCount_) {
+                revert IndexOutOfBounds();
+            }
+
+            if (isWhitelisted(signer_)) {
+                verifiedSignatures_++;
+                if (verifiedSignatures_ >= requiredSignatures_) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 }
