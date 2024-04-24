@@ -94,7 +94,7 @@ contract Feed is Ownable, IFeed {
     /**
      * @inheritdoc IFeed
      */
-    function latestRoundData() public view virtual override returns (uint64 id, int256 answer, uint256 updatedAt) {
+    function latestRoundData() external view virtual override returns (uint64 id, int256 answer, uint256 updatedAt) {
         return getRoundData(latestRoundId);
     }
 
@@ -113,7 +113,7 @@ contract Feed is Ownable, IFeed {
         view
         returns (int256)
     {
-        (uint64 latestId_, int256 latestAnswer_, uint256 latestUpdatedAt_) = latestRoundData();
+        (uint64 latestRoundId_, int256 latestAnswer_, uint256 latestUpdatedAt_) = getRoundData(latestRoundId);
 
         if ((_latestUpdatedAtTolerance > 0) && ((block.timestamp - latestUpdatedAt_) > _latestUpdatedAtTolerance)) {
             revert AnswerAboveTolerance();
@@ -127,14 +127,14 @@ contract Feed is Ownable, IFeed {
                 break;
             }
 
-            if (latestId_ == 1) {
+            if (latestRoundId_ == 1) {
                 revert InsufficientData();
             }
 
-            (uint64 id_, int256 answer_, uint256 updatedAt_) = getRoundData(latestId_ - 1);
+            (uint64 roundId_, int256 answer_, uint256 updatedAt_) = getRoundData(latestRoundId_ - 1);
             sum_ += answer_;
             count_ += 1;
-            latestId_ = id_;
+            latestRoundId_ = roundId_;
             latestUpdatedAt_ = updatedAt_;
         }
 
