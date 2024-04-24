@@ -171,7 +171,10 @@ func (a *App) ShouldReport(lastInfo *LastInfo, value float64, fetchedTime time.T
 	int64UpdatedAt := lastInfo.UpdatedAt.Int64()
 	lastSubmissionTime := time.Unix(int64UpdatedAt, 0)
 	log.Debug().Msg("time since last submission: " + fetchedTime.Sub(lastSubmissionTime).String())
-	if fetchedTime.Sub(lastSubmissionTime) > a.SubmitInterval {
+
+	buffer := 5 * time.Second
+
+	if fetchedTime.Sub(lastSubmissionTime) > a.SubmitInterval-buffer {
 		return true
 	}
 
