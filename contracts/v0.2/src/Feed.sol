@@ -122,23 +122,23 @@ contract Feed is Ownable, IFeed {
         int256 count_ = 1;
         int256 sum_ = latestAnswer_;
 
-        while (true) {
+	while (true) {
+	    if (((block.timestamp - latestUpdatedAt_) >= _interval) && (count_ >= _minCount)) {
+		break;
+	    }
+
             if (latestId_ == 1) {
                 revert InsufficientData();
             }
 
-            (uint64 id_, int256 answer_, uint256 updatedAt_) = getRoundData(latestId_ - 1);
+	    (uint64 id_, int256 answer_, uint256 updatedAt_) = getRoundData(latestId_ - 1);
             sum_ += answer_;
             count_ += 1;
+	    latestId_ = id_;
+	    latestUpdatedAt_ = updatedAt_;
+	}
 
-            if (((block.timestamp - updatedAt_) >= _interval) && (count_ >= _minCount)) {
-                break;
-            }
-
-            latestId_ = id_;
-        }
-
-        return sum_ / count_;
+	return sum_ / count_;
     }
 
     /**

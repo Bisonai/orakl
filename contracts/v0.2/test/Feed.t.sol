@@ -62,8 +62,8 @@ contract FeedTest is Test {
         address nonSubmitter_ = makeAddr("non-submitter");
 
         vm.prank(nonSubmitter_);
-	// FAIL - only submitter is allowed to submit
-	vm.expectRevert(Feed.OnlySubmitter.selector);
+        // FAIL - only submitter is allowed to submit
+        vm.expectRevert(Feed.OnlySubmitter.selector);
         feed.submit(10);
     }
 }

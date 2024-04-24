@@ -23,7 +23,8 @@ interface IFeed {
     /**
      * @notice Get latest round data of the feed.
      * @dev This function internally calls getRoundData with the
-     * latest round ID.
+     * latest round ID. If no rounds have been submitted, this function
+     * reverts with NoDataPresent error.
      * @return id The round ID.
      * @return answer The oracle answer.
      * @return updatedAt Timestamp of the last update.
@@ -32,6 +33,7 @@ interface IFeed {
 
     /**
      * @notice Get timestamp of the latest round update
+     * @dev If no updates have been made, this function returns 0.
      * @return The timestamp of the latest round update
      */
     function latestRoundUpdatedAt() external view returns (uint256);
@@ -39,6 +41,10 @@ interface IFeed {
     /**
      * @notice Get the time-weighted average price (TWAP) of the feed
      * over a given interval.
+     * @dev If the latest update time is older than the given tolerance,
+     * this function reverts with AnswerAboveTolerange error. If the number of
+     * data points is less than the given minimum count, this function reverts
+     * with InsufficientData error.
      * @param interval The time interval in seconds
      * @param latestUpdatedAtTolerance The tolerance for the latest update time
      * @param minCount The minimum number of data points
@@ -48,6 +54,9 @@ interface IFeed {
 
     /**
      * @notice Get round data given a round ID.
+     * @dev If the given roundId is higher than the latest round ID or
+     * feed has not been updated yet, this function reverts with
+     * NoDataPresent error.
      * @param roundId The round ID.
      * @return id The round ID.
      * @return answer The oracle answer.
