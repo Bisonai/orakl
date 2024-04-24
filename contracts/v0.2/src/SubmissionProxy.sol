@@ -378,7 +378,7 @@ contract SubmissionProxy is Ownable {
      * @param _threshold The threshold
      * @return The quorum
      */
-    function quorum(uint8 _threshold) private view returns (uint8) {
+    function quorum(uint8 _threshold) internal view returns (uint8) {
         uint256 nominator = oracles.length * _threshold;
         return uint8((nominator / 100) + (nominator % 100 == 0 ? 0 : 1));
     }
