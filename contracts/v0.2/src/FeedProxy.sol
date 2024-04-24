@@ -21,9 +21,12 @@ contract FeedProxy is Ownable, IFeedProxy {
     event FeedConfirmed(address indexed previous, address indexed current);
 
     error InvalidProposedFeed();
+    error NoProposedFeed();
 
     modifier hasProposal() {
-        require(address(proposedFeed) != address(0), "No proposed feed present");
+        if (address(proposedFeed) != address(0)) {
+            revert NoProposedFeed();
+        }
         _;
     }
 

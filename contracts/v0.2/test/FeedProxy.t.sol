@@ -13,6 +13,11 @@ contract FeedProxyTest is Test {
     uint8 decimals = 18;
     string description = "Test Feed";
 
+    event FeedProposed(address indexed current, address indexed proposed);
+    event FeedConfirmed(address indexed previous, address indexed current);
+
+    error OwnableUnauthorizedAccount(address account);
+
     function setUp() public {
         feed = new Feed(decimals, description, oracle);
         feedProxy = new FeedProxy(address(feed));
@@ -155,18 +160,18 @@ contract FeedProxyTest is Test {
     function test_TwapWithZeroParameters() public {
         uint256 heartbeat_ = 15;
 
-	// not used
+        // not used
         vm.warp(block.timestamp + heartbeat_);
         vm.prank(oracle);
         feed.submit(10);
 
-	// used
+        // used
         vm.warp(block.timestamp + heartbeat_);
         vm.prank(oracle);
         feed.submit(20);
 
-	int256 twap_ = feedProxy.twap(0, 0, 0);
-	assertEq(twap_, 20);
+        int256 twap_ = feedProxy.twap(0, 0, 0);
+        assertEq(twap_, 20);
     }
 
     // | time   | 16 |
@@ -178,8 +183,8 @@ contract FeedProxyTest is Test {
         vm.prank(oracle);
         feed.submit(10);
 
-	int256 twap_ = feedProxy.twap(0, 0, 0);
-	assertEq(twap_, 10);
+        int256 twap_ = feedProxy.twap(0, 0, 0);
+        assertEq(twap_, 10);
     }
 
     function test_ReadLatestRoundDataFromEmptyFeed() public {
@@ -202,5 +207,47 @@ contract FeedProxyTest is Test {
         uint256 updatedAt_ = feedProxy.latestRoundUpdatedAt();
         // feed without data does not setup timestamp -> default timestamp = 0
         assertEq(updatedAt_, 0);
+    }
+
+    function test_ProposeAndConfirmFeed() public {
+        address nonOwner_ = makeAddr("non-owner");
+        address newFeed_ = makeAddr("new-feed");
+        address nonProposedFeed_ = makeAddr("non-proposed-feed");
+
+        //// PROPOSE
+        // FAIL - only owner can propose feed
+        vm.prank(nonOwner_);
+        vm.expectRevert(abi.encodeWithSelector(OwnableUnauthorizedAccount.selector, nonOwner_));
+        feedProxy.proposeFeed(newFeed_);
+
+        // OK
+        vm.expectEmit(true, true, true, true);
+        emit FeedProposed(address(feed), newFeed_);
+        feedProxy.proposeFeed(newFeed_);
+        assertEq(feedProxy.getFeed(), address(feed));
+        assertEq(feedProxy.getProposedFeed(), newFeed_);
+
+        //// CONFIRM
+        // FAIL - only owner can confirm feed
+        vm.prank(nonOwner_);
+        vm.expectRevert(abi.encodeWithSelector(OwnableUnauthorizedAccount.selector, nonOwner_));
+        feedProxy.confirmFeed(newFeed_);
+
+        // FAIL - cannot confirm non-proposed feed
+        vm.expectRevert(FeedProxy.InvalidProposedFeed.selector);
+        feedProxy.confirmFeed(nonProposedFeed_);
+
+        // OK
+        vm.expectEmit(true, true, true, true);
+        emit FeedConfirmed(address(feed), newFeed_);
+        feedProxy.confirmFeed(newFeed_);
+        assertEq(feedProxy.getFeed(), newFeed_);
+        assertEq(feedProxy.getProposedFeed(), address(0));
+    }
+
+    function test_ProposeZeroAddressFeed() public {
+        // FAIL - cannot propose zero address feed
+        vm.expectRevert(FeedProxy.InvalidProposedFeed.selector);
+        feedProxy.proposeFeed(address(0));
     }
 }
