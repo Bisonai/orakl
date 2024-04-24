@@ -102,12 +102,12 @@ contract SubmissionProxyTest is Test {
         // SUCCESS - 1 is a valid threshold
         uint8 defaultProofThreshold_ = 1;
         submissionProxy.setDefaultProofThreshold(defaultProofThreshold_);
-        assertEq(submissionProxy.threshold(), defaultProofThreshold_);
+        assertEq(submissionProxy.defaultThreshold(), defaultProofThreshold_);
 
         // SUCCESS - 100 is a valid threshold
         defaultProofThreshold_ = 100;
         submissionProxy.setDefaultProofThreshold(defaultProofThreshold_);
-        assertEq(submissionProxy.threshold(), defaultProofThreshold_);
+        assertEq(submissionProxy.defaultThreshold(), defaultProofThreshold_);
 
         // FAIL - 0 is not a valid threshold
         defaultProofThreshold_ = 0;
@@ -184,19 +184,19 @@ contract SubmissionProxyTest is Test {
 
         // FAIL - invalid feeds length
         vm.expectRevert(SubmissionProxy.InvalidSubmissionLength.selector);
-        submissionProxy.submit(feeds2_, submissions1_, proofs1_, timestamps1_);
+        submissionProxy.submit(feeds2_, submissions1_, timestamps1_, proofs1_);
 
         // FAIL - invalid submissions length
         vm.expectRevert(SubmissionProxy.InvalidSubmissionLength.selector);
-        submissionProxy.submit(feeds1_, submissions2_, proofs1_, timestamps1_);
+        submissionProxy.submit(feeds1_, submissions2_, timestamps1_, proofs1_);
 
         // FAIL - invalid proofs length
         vm.expectRevert(SubmissionProxy.InvalidSubmissionLength.selector);
-        submissionProxy.submit(feeds1_, submissions1_, proofs2_, timestamps1_);
+        submissionProxy.submit(feeds1_, submissions1_, timestamps1_, proofs2_);
 
         // FAIL - invalid timestamps length
         vm.expectRevert(SubmissionProxy.InvalidSubmissionLength.selector);
-        submissionProxy.submit(feeds1_, submissions1_, proofs1_, timestamps2_);
+        submissionProxy.submit(feeds1_, submissions1_, timestamps2_, proofs1_);
     }
 
     function test_SubmitInvalidProof() public {
@@ -215,7 +215,7 @@ contract SubmissionProxyTest is Test {
         proofs_[0] = abi.encodePacked(createProof(nonOracleSk_, hash_));
 
         // submission with invalid proof does not fail
-        submissionProxy.submit(feeds_, submissions_, proofs_, timestamps_);
+        submissionProxy.submit(feeds_, submissions_, timestamps_, proofs_);
 
         // but no value is stored in the `Feed` contract
         vm.expectRevert(Feed.NoDataPresent.selector);
@@ -236,7 +236,7 @@ contract SubmissionProxyTest is Test {
         proofs_[0] = abi.encodePacked(createProof(oracleSk_, hash_));
 
         // submission with invalid data does not fail
-        submissionProxy.submit(feeds_, submissions_, proofs_, timestamps_);
+        submissionProxy.submit(feeds_, submissions_, timestamps_, proofs_);
 
         // but no value is stored in the `Feed` contract
         vm.expectRevert(Feed.NoDataPresent.selector);
@@ -263,7 +263,7 @@ contract SubmissionProxyTest is Test {
         submissionProxy.setProofThreshold(feeds_[0], 100); // 100 % of the oracles must submit a valid proof
 
         vm.expectRevert(SubmissionProxy.IndexesNotAscending.selector);
-        submissionProxy.submit(feeds_, submissions_, proofs_, timestamps_);
+        submissionProxy.submit(feeds_, submissions_, timestamps_, proofs_);
     }
 
     function test_SubmitCorrectProof() public {
@@ -285,7 +285,7 @@ contract SubmissionProxyTest is Test {
             abi.encodePacked(createProof(aliceSk_, hash_), createProof(bobSk_, hash_), createProof(celineSk_, hash_));
 
         submissionProxy.setProofThreshold(feeds_[0], 100); // 100 % of the oracles must submit a valid proof
-        submissionProxy.submit(feeds_, submissions_, proofs_, timestamps_);
+        submissionProxy.submit(feeds_, submissions_, timestamps_, proofs_);
 
         // don't raise `NoDataPresent`
         IFeed(feeds_[0]).latestRoundData();

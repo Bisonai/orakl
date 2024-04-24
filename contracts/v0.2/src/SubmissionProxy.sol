@@ -26,7 +26,7 @@ contract SubmissionProxy is Ownable {
     uint256 public maxSubmission = 50;
     uint256 public expirationPeriod = 5 weeks;
     uint256 public dataFreshness = 10 seconds;
-    uint8 public threshold = 50; // 50 %
+    uint8 public defaultThreshold = 50; // 50 %
     address[] public oracles;
 
     struct OracleInfo {
@@ -51,7 +51,6 @@ contract SubmissionProxy is Ownable {
     error InvalidExpirationPeriod();
     error InvalidMaxSubmission();
     error InvalidThreshold();
-    error IndexOutOfBounds();
     error IndexesNotAscending();
 
     modifier onlyOracle() {
@@ -111,7 +110,7 @@ contract SubmissionProxy is Ownable {
             revert InvalidThreshold();
         }
 
-        threshold = _threshold;
+        defaultThreshold = _threshold;
         emit DefaultThresholdSet(_threshold);
     }
 
@@ -235,7 +234,10 @@ contract SubmissionProxy is Ownable {
      * @notice Submit a batch of submissions to multiple feeds.
      * @dev If the number size of `_feeds`, `_answers`, and `_proofs`
      * is not equal, or longer than `maxSubmission`, the function will
-     * revert with `InvalidSubmissionLength` error.
+     * revert with `InvalidSubmissionLength` error. If the data are
+     * outdated (older than `dataFreshness`), the function will not
+     * submit the data. If the proof is invalid, the function will not
+     * submit the data.
      * @param _feeds The addresses of the feeds
      * @param _answers The submissions
      * @param _proofs The proofs
@@ -244,8 +246,8 @@ contract SubmissionProxy is Ownable {
     function submit(
         address[] memory _feeds,
         int256[] memory _answers,
-        bytes[] memory _proofs,
-        uint256[] memory _timestamps
+        uint256[] memory _timestamps,
+        bytes[] memory _proofs
     ) external {
         if (
             _feeds.length != _answers.length || _answers.length != _proofs.length
@@ -254,55 +256,23 @@ contract SubmissionProxy is Ownable {
             revert InvalidSubmissionLength();
         }
 
-        for (uint256 feedIdx_ = 0; feedIdx_ < _feeds.length; feedIdx_++) {
-            if (_timestamps[feedIdx_] <= block.timestamp - dataFreshness) {
+        uint256 feedsLength_ = _feeds.length;
+        for (uint256 i = 0; i < feedsLength_; i++) {
+            if (_timestamps[i] <= block.timestamp - dataFreshness) {
+                // answer is too old -> do not submit!
                 continue;
             }
 
-            bytes[] memory proofs_ = splitBytesToChunks(_proofs[feedIdx_]);
-            bytes32 message_ = keccak256(abi.encodePacked(_answers[feedIdx_], _timestamps[feedIdx_]));
-
-            bool isVerified_ = false;
-            uint8 verifiedSignatures_ = 0;
-            uint8 lastIndex_ = 0;
-            uint256 oracleCount_ = oracles.length;
-
-            uint8 threshold_ = thresholds[_feeds[feedIdx_]];
-            if (threshold_ == 0) {
-                threshold_ = threshold;
-            }
-            uint8 requiredSignatures_ = quorum(threshold_);
-
-            for (uint256 proofIdx_ = 0; proofIdx_ < proofs_.length; proofIdx_++) {
-                bytes memory singleProof_ = proofs_[proofIdx_];
-                address signer_ = recoverSigner(message_, singleProof_);
-                uint8 oracleIndex_ = whitelist[signer_].index;
-
-                if (proofIdx_ != 0 && oracleIndex_ <= lastIndex_) {
-                    revert IndexesNotAscending();
-                }
-                lastIndex_ = oracleIndex_;
-
-                if (oracleIndex_ >= oracleCount_) {
-                    revert IndexOutOfBounds();
-                }
-
-                if (isWhitelisted(signer_)) {
-                    verifiedSignatures_++;
-                    if (verifiedSignatures_ >= requiredSignatures_) {
-                        isVerified_ = true;
-                        break;
-                    }
-                }
-            }
-
-            if (!isVerified_) {
-                // Insufficient number of signatures have been
-                // verified -> do not submit!
+            (bytes[] memory proofs_, bool success_) = splitProofs(_proofs[i]);
+            if (!success_) {
+                // splitting proofs failed -> do not submit!
                 continue;
             }
 
-            IFeed(_feeds[feedIdx_]).submit(_answers[feedIdx_]);
+            bytes32 message_ = keccak256(abi.encodePacked(_answers[i], _timestamps[i]));
+            if (validateProof(_feeds[i], message_, proofs_)) {
+                IFeed(_feeds[i]).submit(_answers[i]);
+            }
         }
     }
 
@@ -315,51 +285,64 @@ contract SubmissionProxy is Ownable {
     }
 
     /**
-     * @notice Split bytes into proof chunks
-     * @param data The bytes to be split
-     * @return chunks The split bytes
+     * @notice Split concatenated proofs into individual proofs of length 65 bytes
+     * @dev The function intentionally does not test whether the
+     * @param _data The bytes to be split
+     * @return chunks_ The split bytes
+     * @return success_ `true` if the split was successful, `false`
      */
-    function splitBytesToChunks(bytes memory data) private pure returns (bytes[] memory) {
-        uint256 dataLength = data.length;
-        uint256 numChunks = dataLength / 65;
-        bytes[] memory chunks = new bytes[](numChunks);
-
-        bytes32 firstHalf;
-        bytes32 secondHalf;
-
-        for (uint256 i = 0; i < numChunks; i++) {
-            uint256 f = (i * 65) + 32;
-            uint256 s = (i * 65) + 64;
-            assembly {
-                firstHalf := mload(add(data, f))
-                secondHalf := mload(add(data, s))
-            }
-
-            chunks[i] = abi.encodePacked(firstHalf, secondHalf, data[(i * 65) + 64]);
+    function splitProofs(bytes memory _data) private pure returns (bytes[] memory chunks_, bool success_) {
+        uint256 dataLength_ = _data.length;
+        if (dataLength_ % 65 != 0) {
+            return (chunks_, false);
         }
 
-        return chunks;
+        uint256 numChunks_ = dataLength_ / 65;
+        chunks_ = new bytes[](numChunks_);
+
+        for (uint256 i = 0; i < numChunks_; i++) {
+            bytes memory chunk_ = new bytes(65);
+            assembly {
+                // Load the first half of the chunk
+                let firstHalfPtr := add(_data, add(mul(i, 65), 32))
+                mstore(add(chunk_, 32), mload(firstHalfPtr))
+
+                // Load the second half of the chunk
+                let secondHalfPtr := add(_data, add(mul(i, 65), 64))
+                mstore(add(chunk_, 64), mload(secondHalfPtr))
+            }
+            // Copy the last byte of the chunk
+            chunk_[64] = _data[i * 65 + 64];
+
+            chunks_[i] = chunk_;
+        }
+
+        return (chunks_, true);
     }
 
     /**
      * @notice Split signature into `v`, `r`, and `s` components
-     * @param sig The signature to be split
-     * @return v The `v` component of the signature
-     * @return r The `r` component of the signature
-     * @return s The `s` component of the signature
+     * @param _sig The signature to be split
+     * @return v_ The `v` component of the signature
+     * @return r_ The `r` component of the signature
+     * @return s_ The `s` component of the signature
      */
-    function splitSignature(bytes memory sig) private pure returns (uint8 v, bytes32 r, bytes32 s) {
-        require(sig.length == 65);
+    function splitSignature(bytes memory _sig) private pure returns (uint8 v_, bytes32 r_, bytes32 s_) {
+        require(_sig.length == 65, "Invalid signature length");
 
         assembly {
-            // first 32 bytes, after the length prefix
-            r := mload(add(sig, 32))
-            // second 32 bytes
-            s := mload(add(sig, 64))
-            // final byte (first byte of the next 32 bytes)
-            v := byte(0, mload(add(sig, 96)))
+            // Load the signature into memory
+            let signature_ := add(_sig, 32)
+
+            // Extract r
+            r_ := mload(signature_)
+
+            // Extract s
+            s_ := mload(add(signature_, 32))
+
+            // Extract v
+            v_ := byte(0, mload(add(signature_, 64)))
         }
-        return (v, r, s);
     }
 
     /**
@@ -406,5 +389,47 @@ contract SubmissionProxy is Ownable {
      */
     function getAllOracles() public view returns (address[] memory) {
         return oracles;
+    }
+
+    /**
+     * @notice Validate the proof
+     * @dev The order of the proofs must be in ascending order of the
+     * oracle index. The function will revert with `IndexesNotAscending`
+     * error if the order is not ascending.
+     * @param _feed The address of the feed
+     * @param _message The hash of the message
+     * @param _proofs The proofs
+     * @return `true` if the proof is valid, `false` otherwise
+     */
+    function validateProof(address _feed, bytes32 _message, bytes[] memory _proofs) private view returns (bool) {
+        uint8 verifiedSignatures_ = 0;
+        uint8 lastIndex_ = 0;
+
+        uint8 threshold_ = thresholds[_feed];
+        if (threshold_ == 0) {
+            threshold_ = defaultThreshold;
+        }
+        uint8 requiredSignatures_ = quorum(threshold_);
+
+        uint256 proofsLength_ = _proofs.length;
+        for (uint256 j = 0; j < proofsLength_; j++) {
+            bytes memory proof_ = _proofs[j];
+            address signer_ = recoverSigner(_message, proof_);
+            uint8 oracleIndex_ = whitelist[signer_].index;
+
+            if (j != 0 && oracleIndex_ <= lastIndex_) {
+                revert IndexesNotAscending();
+            }
+            lastIndex_ = oracleIndex_;
+
+            if (isWhitelisted(signer_)) {
+                verifiedSignatures_++;
+                if (verifiedSignatures_ >= requiredSignatures_) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 }
