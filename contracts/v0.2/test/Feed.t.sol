@@ -7,7 +7,7 @@ import {Feed} from "../src/Feed.sol";
 contract FeedTest is Test {
     Feed public feed;
 
-    address oracle = makeAddr("oracle");
+    address submitter = makeAddr("submitter");
     uint8 decimals = 18;
     string description = "Test Feed";
 
@@ -17,7 +17,7 @@ contract FeedTest is Test {
     error OwnableUnauthorizedAccount(address account);
 
     function setUp() public {
-        feed = new Feed(decimals, description, oracle);
+        feed = new Feed(decimals, description, submitter);
     }
 
     function test_UpdateSubmitter() public {
@@ -50,11 +50,20 @@ contract FeedTest is Test {
     function test_SubmitAndReadResponse() public {
         int256 expectedAnswer_ = 10;
 
-        vm.prank(oracle);
+        vm.prank(submitter);
         vm.expectEmit(true, true, true, true);
         emit FeedUpdated(expectedAnswer_);
         feed.submit(expectedAnswer_);
         (, int256 answer,) = feed.latestRoundData();
         assertEq(answer, expectedAnswer_);
+    }
+
+    function test_SubmitByNonSubmitter() public {
+        address nonSubmitter = makeAddr("non-submitter");
+
+	// only submitter is allowed to submit
+        vm.prank(nonSubmitter);
+	vm.expectRevert(Feed.OnlySubmitter.selector);
+        feed.submit(10);
     }
 }
