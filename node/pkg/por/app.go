@@ -7,6 +7,7 @@ import (
 	"errors"
 	"math"
 	"math/big"
+	"net/http"
 	"os"
 	"time"
 
@@ -86,6 +87,17 @@ func New(ctx context.Context) (*App, error) {
 }
 
 func (a *App) Run(ctx context.Context) error {
+	go func() {
+		http.HandleFunc("/api/v1", func(w http.ResponseWriter, r *http.Request) {
+			// Respond with a simple string
+			w.Write([]byte("Orakl POR"))
+		})
+
+		if err := http.ListenAndServe(":3000", nil); err != nil {
+			log.Fatal().Err(err).Msg("failed to start http server")
+		}
+	}()
+
 	ticker := time.NewTicker(a.FetchInterval)
 	for {
 		select {
