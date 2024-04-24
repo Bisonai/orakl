@@ -85,9 +85,9 @@ func NewChainHelper(ctx context.Context, opts ...ChainHelperOption) (*ChainHelpe
 	clients = append(clients, primaryClient)
 
 	if config.UseAdditionalProviderUrls {
-		providerUrls, err := utils.LoadProviderUrls(ctx, int(chainID.Int64()))
-		if err != nil {
-			log.Warn().Err(err).Msg("failed to load additional provider urls")
+		providerUrls, providerUrlLoadErr := utils.LoadProviderUrls(ctx, int(chainID.Int64()))
+		if providerUrlLoadErr != nil {
+			log.Warn().Err(providerUrlLoadErr).Msg("failed to load additional provider urls")
 		}
 
 		for _, url := range providerUrls {
