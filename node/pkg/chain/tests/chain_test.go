@@ -45,7 +45,7 @@ func TestNewKlaytnHelper(t *testing.T) {
 		t.Errorf("Unexpected error: %v", err)
 	}
 
-	klaytnHelper, err := helper.NewKlayHelper(ctx, "")
+	klaytnHelper, err := helper.NewChainHelper(ctx)
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
 	}
@@ -85,7 +85,7 @@ func TestNewEthHelper(t *testing.T) {
 		t.Errorf("Unexpected error: %v", err)
 	}
 
-	ethHelper, err := helper.NewEthHelper(ctx, "")
+	ethHelper, err := helper.NewChainHelper(ctx, helper.WithBlockchainType(helper.Ethereum))
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
 	}
@@ -99,7 +99,7 @@ func TestNewEthHelper(t *testing.T) {
 
 func TestNextReporter(t *testing.T) {
 	ctx := context.Background()
-	klaytnHelper, err := helper.NewKlayHelper(ctx, "")
+	klaytnHelper, err := helper.NewChainHelper(ctx)
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
 	}
@@ -113,7 +113,7 @@ func TestNextReporter(t *testing.T) {
 
 func TestMakeDirectTx(t *testing.T) {
 	ctx := context.Background()
-	klaytnHelper, err := helper.NewKlayHelper(ctx, "")
+	klaytnHelper, err := helper.NewChainHelper(ctx)
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
 	}
@@ -161,7 +161,7 @@ func TestMakeDirectTx(t *testing.T) {
 
 func TestMakeFeeDelegatedTx(t *testing.T) {
 	ctx := context.Background()
-	klaytnHelper, err := helper.NewKlayHelper(ctx, "")
+	klaytnHelper, err := helper.NewChainHelper(ctx)
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
 	}
@@ -210,7 +210,7 @@ func TestMakeFeeDelegatedTx(t *testing.T) {
 
 func TestTxToHashToTx(t *testing.T) {
 	ctx := context.Background()
-	klaytnHelper, err := helper.NewKlayHelper(ctx, "")
+	klaytnHelper, err := helper.NewChainHelper(ctx)
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
 	}
@@ -267,7 +267,7 @@ func TestGenerateViewABI(t *testing.T) {
 func TestSubmitRawTxString(t *testing.T) {
 	// testing based on baobab testnet
 	ctx := context.Background()
-	klaytnHelper, err := helper.NewKlayHelper(ctx, "")
+	klaytnHelper, err := helper.NewChainHelper(ctx)
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
 	}
@@ -293,7 +293,7 @@ func TestSubmitRawTxString(t *testing.T) {
 func TestReadContract(t *testing.T) {
 	// testing based on baobab testnet
 	ctx := context.Background()
-	klaytnHelper, err := helper.NewKlayHelper(ctx, "")
+	klaytnHelper, err := helper.NewChainHelper(ctx)
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
 	}
@@ -322,7 +322,7 @@ func TestReadContract(t *testing.T) {
 func TestReadContractWithEthHelper(t *testing.T) {
 	// testing based on sepolia eth testnet
 	ctx := context.Background()
-	ethHelper, err := helper.NewEthHelper(ctx, "")
+	ethHelper, err := helper.NewChainHelper(ctx, helper.WithBlockchainType(helper.Ethereum))
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
 	}
