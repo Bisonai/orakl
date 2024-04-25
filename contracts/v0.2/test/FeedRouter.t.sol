@@ -11,11 +11,14 @@ contract FeedRouterTest is Test {
     event ProxyRemoved(string feedName, address indexed proxyAddress);
     event ProxyUpdated(string feedName, address indexed proxyAddress);
 
+    error OwnableUnauthorizedAccount(address account);
+
     function setUp() public {
         feedRouter = new FeedRouter();
     }
 
     function test_AddProxy() public {
+        address nonOwner_ = makeAddr("non-owner");
         string[] memory feedNames_ = new string[](2);
         address[] memory proxyAddresses_ = new address[](2);
 
@@ -27,6 +30,11 @@ contract FeedRouterTest is Test {
 
         proxyAddresses_[0] = btcUsdt;
         proxyAddresses_[1] = ethUsdt;
+
+        // FAIL - updateProxyBulk can be called only by owner
+        vm.prank(nonOwner_);
+        vm.expectRevert(abi.encodeWithSelector(OwnableUnauthorizedAccount.selector, nonOwner_));
+        feedRouter.updateProxyBulk(feedNames_, proxyAddresses_);
 
         vm.expectEmit(true, true, true, true);
         emit ProxyAdded(feedNames_[0], proxyAddresses_[0]);
@@ -68,8 +76,8 @@ contract FeedRouterTest is Test {
         string[] memory feedNames_ = new string[](2);
         address[] memory proxyAddresses_ = new address[](1);
 
-        // feedNames_ is longer than proxyAddresses_ -> FAIL
-        vm.expectRevert("invalid input");
+        // FAIL - feedNames_ is longer than proxyAddresses_
+        vm.expectRevert(FeedRouter.InvalidInput.selector);
         feedRouter.updateProxyBulk(feedNames_, proxyAddresses_);
     }
 
@@ -80,12 +88,13 @@ contract FeedRouterTest is Test {
         feedNames_[0] = "btc-usdt";
         proxyAddresses_[0] = address(0);
 
-        // proxy address is 0 -> FAIL
+        // FAIL - proxy address is 0
         vm.expectRevert(FeedRouter.InvalidProxyAddress.selector);
         feedRouter.updateProxyBulk(feedNames_, proxyAddresses_);
     }
 
     function test_RemoveProxy() public {
+        address nonOwner_ = makeAddr("non-owner");
         string[] memory feedNamesAdd_ = new string[](2);
         address[] memory proxyAddresses_ = new address[](2);
 
@@ -105,9 +114,20 @@ contract FeedRouterTest is Test {
         assertEq(feedRouter.feedToProxies(feedNamesAdd_[0]), btcUsdt);
         assertEq(feedRouter.feedToProxies(feedNamesAdd_[1]), ethUsdt);
 
+        // FAIL - cannot call removeProxyBulk with empty array
+        string[] memory feedNamesEmpty_;
+        vm.expectRevert(FeedRouter.InvalidInput.selector);
+        feedRouter.removeProxyBulk(feedNamesEmpty_);
+
         // remove btc-usdt proxy
         string[] memory feedNamesRemove_ = new string[](1);
         feedNamesRemove_[0] = feedNamesAdd_[0];
+
+        // FAIL - removeProxyBulk can be called only by owner
+        vm.prank(nonOwner_);
+        vm.expectRevert(abi.encodeWithSelector(OwnableUnauthorizedAccount.selector, nonOwner_));
+        feedRouter.removeProxyBulk(feedNamesRemove_);
+
         vm.expectEmit(true, true, true, true);
         emit ProxyRemoved(feedNamesRemove_[0], proxyAddresses_[0]);
         feedRouter.removeProxyBulk(feedNamesRemove_);
@@ -119,6 +139,12 @@ contract FeedRouterTest is Test {
 
         assertEq(feedRouter.feedToProxies(feedNamesAdd_[0]), address(0));
         assertEq(feedRouter.feedToProxies(feedNamesAdd_[1]), ethUsdt);
+    }
+
+    function test_GetDataFromNonExistingFeed() public {
+        // FAIL - cannot read data from feed that has not been set
+        vm.expectRevert(FeedRouter.FeedNotSetInRouter.selector);
+        feedRouter.latestRoundData("NOT-EXIST");
     }
 
     function compareArrays(string[] memory array1, string[] memory array2) private pure returns (bool) {

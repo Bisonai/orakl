@@ -6,6 +6,10 @@ import {IFeed} from "./IFeed.sol";
 interface IFeedProxy is IFeed {
     /**
      * @notice Get round data from the proposed feed given a round ID.
+     * @dev If there is no proposed feed, this function reverts with
+     * NoProposedFeed error. If the given roundId is higher than the
+     * latest round ID or feed has not been updated yet, this function
+     * reverts with NoDataPresent error.
      * @param roundId The round ID.
      * @return id The round ID.
      * @return answer The oracle answer.
@@ -18,6 +22,9 @@ interface IFeedProxy is IFeed {
 
     /**
      * @notice Get the latest round data from the proposed feed.
+     * @dev If there is no proposed feed, this function reverts with
+     * NoProposedFeed error. If no rounds have been submitted, this function
+     * reverts with NoDataPresent error.
      * @return id The round ID.
      * @return answer The oracle answer.
      * @return updatedAt Timestamp of the last update.

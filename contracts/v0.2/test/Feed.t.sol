@@ -7,38 +7,38 @@ import {Feed} from "../src/Feed.sol";
 contract FeedTest is Test {
     Feed public feed;
 
-    address oracle = makeAddr("oracle");
+    address submitter = makeAddr("submitter");
     uint8 decimals = 18;
     string description = "Test Feed";
 
-    event FeedUpdated(int256 indexed answer, uint256 indexed roundId, uint256 updatedAt);
+    event FeedUpdated(int256 indexed answer);
     event SubmitterUpdated(address indexed submitter);
 
     error OwnableUnauthorizedAccount(address account);
 
     function setUp() public {
-        feed = new Feed(decimals, description, oracle);
+        feed = new Feed(decimals, description, submitter);
     }
 
     function test_UpdateSubmitter() public {
-        address newSubmitter = makeAddr("new-submitter");
-        assert(feed.submitter() != newSubmitter);
+        address newSubmitter_ = makeAddr("new-submitter");
+        assert(feed.submitter() != newSubmitter_);
 
         // SUCCESS
         vm.expectEmit(true, true, true, true);
-        emit SubmitterUpdated(newSubmitter);
-        feed.updateSubmitter(newSubmitter);
-        assertEq(feed.submitter(), newSubmitter);
+        emit SubmitterUpdated(newSubmitter_);
+        feed.updateSubmitter(newSubmitter_);
+        assertEq(feed.submitter(), newSubmitter_);
     }
 
     function test_UpdateSubmitterWithNonOwner() public {
-        address nonOwner = makeAddr("non-owner");
-        address newSubmitter = makeAddr("new-submitter");
+        address nonOwner_ = makeAddr("non-owner");
+        address newSubmitter_ = makeAddr("new-submitter");
 
         // FAIL - only owner can update submitter
-        vm.prank(nonOwner);
-        vm.expectRevert(abi.encodeWithSelector(OwnableUnauthorizedAccount.selector, nonOwner));
-        feed.updateSubmitter(newSubmitter);
+        vm.prank(nonOwner_);
+        vm.expectRevert(abi.encodeWithSelector(OwnableUnauthorizedAccount.selector, nonOwner_));
+        feed.updateSubmitter(newSubmitter_);
     }
 
     function test_UpdateSubmitterWithZeroAddress() public {
@@ -49,16 +49,21 @@ contract FeedTest is Test {
 
     function test_SubmitAndReadResponse() public {
         int256 expectedAnswer_ = 10;
-        uint256 expectedRoundId_ = 1;
-        uint256 expectedUpdatedAt_ = block.timestamp;
 
-        vm.prank(oracle);
+        vm.prank(submitter);
         vm.expectEmit(true, true, true, true);
-        emit FeedUpdated(expectedAnswer_, expectedRoundId_, expectedUpdatedAt_);
+        emit FeedUpdated(expectedAnswer_);
         feed.submit(expectedAnswer_);
-        (uint80 roundId, int256 answer, uint256 updatedAt) = feed.latestRoundData();
-        assertEq(roundId, expectedRoundId_);
-        assertEq(answer, expectedAnswer_);
-        assertEq(updatedAt, expectedUpdatedAt_);
+        (, int256 answer_,) = feed.latestRoundData();
+        assertEq(answer_, expectedAnswer_);
+    }
+
+    function test_SubmitByNonSubmitter() public {
+        address nonSubmitter_ = makeAddr("non-submitter");
+
+        vm.prank(nonSubmitter_);
+        // FAIL - only submitter is allowed to submit
+        vm.expectRevert(Feed.OnlySubmitter.selector);
+        feed.submit(10);
     }
 }

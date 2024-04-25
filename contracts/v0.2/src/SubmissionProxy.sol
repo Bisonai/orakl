@@ -52,6 +52,7 @@ contract SubmissionProxy is Ownable {
     error InvalidMaxSubmission();
     error InvalidThreshold();
     error IndexesNotAscending();
+    error InvalidSignatureLength();
 
     modifier onlyOracle() {
         if (!isWhitelisted(msg.sender)) {
@@ -288,19 +289,19 @@ contract SubmissionProxy is Ownable {
      * @notice Split concatenated proofs into individual proofs of length 65 bytes
      * @dev The function intentionally does not test whether the
      * @param _data The bytes to be split
-     * @return chunks_ The split bytes
+     * @return proofs_ The split bytes
      * @return success_ `true` if the split was successful, `false`
      */
-    function splitProofs(bytes memory _data) private pure returns (bytes[] memory chunks_, bool success_) {
+    function splitProofs(bytes memory _data) internal pure returns (bytes[] memory proofs_, bool success_) {
         uint256 dataLength_ = _data.length;
-        if (dataLength_ % 65 != 0) {
-            return (chunks_, false);
+        if (dataLength_ == 0 || dataLength_ % 65 != 0) {
+            return (proofs_, false);
         }
 
-        uint256 numChunks_ = dataLength_ / 65;
-        chunks_ = new bytes[](numChunks_);
+        uint256 numProofs_ = dataLength_ / 65;
+        proofs_ = new bytes[](numProofs_);
 
-        for (uint256 i = 0; i < numChunks_; i++) {
+        for (uint256 i = 0; i < numProofs_; i++) {
             bytes memory chunk_ = new bytes(65);
             assembly {
                 // Load the first half of the chunk
@@ -314,10 +315,10 @@ contract SubmissionProxy is Ownable {
             // Copy the last byte of the chunk
             chunk_[64] = _data[i * 65 + 64];
 
-            chunks_[i] = chunk_;
+            proofs_[i] = chunk_;
         }
 
-        return (chunks_, true);
+        return (proofs_, true);
     }
 
     /**
@@ -327,8 +328,10 @@ contract SubmissionProxy is Ownable {
      * @return r_ The `r` component of the signature
      * @return s_ The `s` component of the signature
      */
-    function splitSignature(bytes memory _sig) private pure returns (uint8 v_, bytes32 r_, bytes32 s_) {
-        require(_sig.length == 65, "Invalid signature length");
+    function splitSignature(bytes memory _sig) internal pure returns (uint8 v_, bytes32 r_, bytes32 s_) {
+        if (_sig.length != 65) {
+            revert InvalidSignatureLength();
+        }
 
         assembly {
             // Load the signature into memory
@@ -378,7 +381,7 @@ contract SubmissionProxy is Ownable {
      * @param _threshold The threshold
      * @return The quorum
      */
-    function quorum(uint8 _threshold) private view returns (uint8) {
+    function quorum(uint8 _threshold) internal view returns (uint8) {
         uint256 nominator = oracles.length * _threshold;
         return uint8((nominator / 100) + (nominator % 100 == 0 ? 0 : 1));
     }

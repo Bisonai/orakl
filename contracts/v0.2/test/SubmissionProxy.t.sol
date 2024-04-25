@@ -13,9 +13,114 @@ contract SubmissionProxyTest is Test {
     string DESCRIPTION = "Test Feed";
     uint256 timestamp = 1706170779;
 
+    error OwnableUnauthorizedAccount(address account);
+
     function setUp() public {
         vm.warp(timestamp);
         submissionProxy = new SubmissionProxy();
+    }
+
+    function test_SetMaxSubmission() public {
+        uint256 maxSubmission_ = (submissionProxy.MAX_SUBMISSION() - submissionProxy.MIN_SUBMISSION()) / 2;
+        submissionProxy.setMaxSubmission(maxSubmission_);
+        assertEq(submissionProxy.maxSubmission(), maxSubmission_);
+    }
+
+    function test_SetMaxSubmissionBelowMinimum() public {
+        vm.expectRevert(SubmissionProxy.InvalidMaxSubmission.selector);
+        // FAIL - 0 is not a valid max submission
+        submissionProxy.setMaxSubmission(0);
+    }
+
+    function test_SetMaxSubmissionAboveMaximum() public {
+        uint256 maxSubmission_ = submissionProxy.MAX_SUBMISSION();
+        vm.expectRevert(SubmissionProxy.InvalidMaxSubmission.selector);
+        // FAIL - MAX_SUBMISSION is the maximum allowed value
+        submissionProxy.setMaxSubmission(maxSubmission_ + 1);
+    }
+
+    function test_SetMaxSubmissionProtectExecution() public {
+        address nonOwner_ = makeAddr("non-owner");
+        vm.prank(nonOwner_);
+        vm.expectRevert(abi.encodeWithSelector(OwnableUnauthorizedAccount.selector, nonOwner_));
+        // FAIL - only owner can set max submission
+        submissionProxy.setMaxSubmission(10);
+    }
+
+    function test_SetDataFreshness() public {
+        uint256 dataFreshness_ = 1 days;
+        submissionProxy.setDataFreshness(dataFreshness_);
+        assertEq(submissionProxy.dataFreshness(), dataFreshness_);
+    }
+
+    function test_SetDataFreshnessProtextExecution() public {
+        uint256 dataFreshness_ = 1 days;
+        address nonOwner_ = makeAddr("non-owner");
+
+        vm.prank(nonOwner_);
+        vm.expectRevert(abi.encodeWithSelector(OwnableUnauthorizedAccount.selector, nonOwner_));
+        // FAIL - only owner can set data freshness
+        submissionProxy.setDataFreshness(dataFreshness_);
+    }
+
+    function test_SetExpirationPeriod() public {
+        uint256 expirationPeriod_ = (submissionProxy.MAX_EXPIRATION() - submissionProxy.MIN_EXPIRATION()) / 2;
+        submissionProxy.setExpirationPeriod(expirationPeriod_);
+        assertEq(submissionProxy.expirationPeriod(), expirationPeriod_);
+    }
+
+    function test_SetExpirationPeriodBelowMinimum() public {
+        uint256 minExpiration_ = submissionProxy.MIN_EXPIRATION();
+        vm.expectRevert(SubmissionProxy.InvalidExpirationPeriod.selector);
+        // FAIL - expiration period must be greater than or equal to MIN_EXPIRATION
+        submissionProxy.setExpirationPeriod(minExpiration_ / 2);
+    }
+
+    function test_SetExpirationPeriodAboveMaximum() public {
+        uint256 maxExpiration_ = submissionProxy.MAX_EXPIRATION();
+        vm.expectRevert(SubmissionProxy.InvalidExpirationPeriod.selector);
+        // FAIL - expiration period must be less than or equal to MAX_EXPIRATION
+        submissionProxy.setExpirationPeriod(maxExpiration_ + 1 days);
+    }
+
+    function test_SetExpirationPeriodProtectExecution() public {
+        address nonOwner_ = makeAddr("non-owner");
+        vm.prank(nonOwner_);
+        vm.expectRevert(abi.encodeWithSelector(OwnableUnauthorizedAccount.selector, nonOwner_));
+        // FAIL - only owner can set expiration period
+        submissionProxy.setExpirationPeriod(1 weeks);
+    }
+
+    function test_SetDefaultProofThreshold() public {
+        uint8 threshold_ = submissionProxy.MIN_THRESHOLD();
+        // SUCCESS - 1 is a valid threshold
+        submissionProxy.setDefaultProofThreshold(threshold_);
+        assertEq(submissionProxy.defaultThreshold(), threshold_);
+
+        threshold_ = submissionProxy.MAX_THRESHOLD();
+        // SUCCESS - 100 is a valid threshold
+        submissionProxy.setDefaultProofThreshold(threshold_);
+        assertEq(submissionProxy.defaultThreshold(), threshold_);
+
+        threshold_ = submissionProxy.MIN_THRESHOLD() - 1;
+        vm.expectRevert(SubmissionProxy.InvalidThreshold.selector);
+        // FAIL - threshold must be greater than or equal to MIN_THRESHOLD
+        submissionProxy.setDefaultProofThreshold(threshold_);
+
+        threshold_ = submissionProxy.MAX_THRESHOLD() + 1;
+        vm.expectRevert(SubmissionProxy.InvalidThreshold.selector);
+        // FAIL - threshold must be less than or equal to MAX_THRESHOLD
+        submissionProxy.setDefaultProofThreshold(threshold_);
+    }
+
+    function test_AddOracleProtectExecution() public {
+        address oracle_ = makeAddr("oracle");
+        address nonOwner_ = makeAddr("non-owner");
+
+        vm.prank(nonOwner_);
+        vm.expectRevert(abi.encodeWithSelector(OwnableUnauthorizedAccount.selector, nonOwner_));
+        // FAIL - only owner can add oracle
+        submissionProxy.addOracle(oracle_);
     }
 
     function test_AddOracleOnce() public {
@@ -25,11 +130,21 @@ contract SubmissionProxyTest is Test {
 
     function test_AddOracleTwice() public {
         address oracle_ = makeAddr("oracle");
-        submissionProxy.addOracle(oracle_);
 
-        // cannot add the same oracle twice => fail
-        vm.expectRevert(SubmissionProxy.InvalidOracle.selector);
         submissionProxy.addOracle(oracle_);
+        vm.expectRevert(SubmissionProxy.InvalidOracle.selector);
+        // FAIL - cannot add the same oracle twice => fail
+        submissionProxy.addOracle(oracle_);
+    }
+
+    function test_RemoveOracleProtectExecution() public {
+        address oracle_ = makeAddr("oracle");
+        address nonOwner_ = makeAddr("non-owner");
+
+        vm.prank(nonOwner_);
+        vm.expectRevert(abi.encodeWithSelector(OwnableUnauthorizedAccount.selector, nonOwner_));
+        // FAIL - only owner can remove oracle
+        submissionProxy.removeOracle(oracle_);
     }
 
     function test_RemoveOracle() public {
@@ -55,17 +170,21 @@ contract SubmissionProxyTest is Test {
         }
     }
 
+    function test_UpdateOracleProtectExecution() public {
+        address oracle_ = makeAddr("oracle");
+        address nonOwner_ = makeAddr("non-owner");
+
+        vm.prank(nonOwner_);
+        vm.expectRevert(SubmissionProxy.OnlyOracle.selector);
+        // FAIL - only owner can update oracle
+        submissionProxy.updateOracle(oracle_);
+    }
+
     function test_UpdateOracle() public {
         address oracle_ = makeAddr("oracle");
         submissionProxy.addOracle(oracle_);
 
         address newOracle_ = makeAddr("new-oracle");
-        address nonOracle_ = makeAddr("non-oracle");
-
-        // FAIL - Only registered oracle can update its address
-        vm.prank(nonOracle_);
-        vm.expectRevert(SubmissionProxy.OnlyOracle.selector);
-        submissionProxy.updateOracle(newOracle_);
 
         // Expiration time is larger than the current block timestamp.
         uint256 duringUpdateTimestamp_ = block.timestamp;
@@ -92,79 +211,9 @@ contract SubmissionProxyTest is Test {
         }
 
         // FAIL - Cannot update with outdated oracle address
-        address newestOracle_ = makeAddr("newest-oracle");
-        vm.expectRevert(SubmissionProxy.OnlyOracle.selector);
         vm.prank(oracle_);
-        submissionProxy.updateOracle(newestOracle_);
-    }
-
-    function test_SetDefaultProofThreshold() public {
-        // SUCCESS - 1 is a valid threshold
-        uint8 defaultProofThreshold_ = 1;
-        submissionProxy.setDefaultProofThreshold(defaultProofThreshold_);
-        assertEq(submissionProxy.defaultThreshold(), defaultProofThreshold_);
-
-        // SUCCESS - 100 is a valid threshold
-        defaultProofThreshold_ = 100;
-        submissionProxy.setDefaultProofThreshold(defaultProofThreshold_);
-        assertEq(submissionProxy.defaultThreshold(), defaultProofThreshold_);
-
-        // FAIL - 0 is not a valid threshold
-        defaultProofThreshold_ = 0;
-        vm.expectRevert(SubmissionProxy.InvalidThreshold.selector);
-        submissionProxy.setDefaultProofThreshold(defaultProofThreshold_);
-
-        // FAIL - 101 is not a valid threshold
-        defaultProofThreshold_ = 101;
-        vm.expectRevert(SubmissionProxy.InvalidThreshold.selector);
-        submissionProxy.setDefaultProofThreshold(defaultProofThreshold_);
-    }
-
-    function test_SetMaxSubmission() public {
-        uint256 maxSubmission_ = 10;
-        submissionProxy.setMaxSubmission(maxSubmission_);
-        assertEq(submissionProxy.maxSubmission(), maxSubmission_);
-    }
-
-    function test_SetMaxSubmissionBelowMinimum() public {
-        vm.expectRevert(SubmissionProxy.InvalidMaxSubmission.selector);
-        submissionProxy.setMaxSubmission(0);
-    }
-
-    function test_SetMaxSubmissionAboveMaximum() public {
-        uint256 maxSubmission_ = submissionProxy.MAX_SUBMISSION();
-        vm.expectRevert(SubmissionProxy.InvalidMaxSubmission.selector);
-        submissionProxy.setMaxSubmission(maxSubmission_ + 1);
-    }
-
-    function testFail_SetMaxSubmissionProtectExecution() public {
-        address nonOwner_ = makeAddr("nonOwner");
-        vm.prank(nonOwner_);
-        submissionProxy.setMaxSubmission(10);
-    }
-
-    function test_SetExpirationPeriod() public {
-        uint256 expirationPeriod_ = 1 weeks;
-        submissionProxy.setExpirationPeriod(expirationPeriod_);
-        assertEq(submissionProxy.expirationPeriod(), expirationPeriod_);
-    }
-
-    function test_SetExpirationPeriodBelowMinimum() public {
-        uint256 minExpiration_ = submissionProxy.MIN_EXPIRATION();
-        vm.expectRevert(SubmissionProxy.InvalidExpirationPeriod.selector);
-        submissionProxy.setExpirationPeriod(minExpiration_ / 2);
-    }
-
-    function test_SetExpirationPeriodAboveMaximum() public {
-        uint256 maxExpiration_ = submissionProxy.MAX_EXPIRATION();
-        vm.expectRevert(SubmissionProxy.InvalidExpirationPeriod.selector);
-        submissionProxy.setExpirationPeriod(maxExpiration_ + 1 days);
-    }
-
-    function testFail_SetExpirationPeriodProtectExecution() public {
-        address nonOwner_ = makeAddr("nonOwner");
-        vm.prank(nonOwner_);
-        submissionProxy.setExpirationPeriod(1 weeks);
+        vm.expectRevert(SubmissionProxy.OnlyOracle.selector);
+        submissionProxy.updateOracle(makeAddr("anything"));
     }
 
     function test_SubmitWithInvalidSubmissionLength() public {
