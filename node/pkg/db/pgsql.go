@@ -124,6 +124,52 @@ func queryRows[T any](pool *pgxpool.Pool, queryString string, args map[string]an
 	return results, err
 }
 
+func BulkSelect[T any](ctx context.Context, tableName string, columnNames []string, whereColumns []string, whereValues ...[]interface{}) ([]T, error) {
+	results := []T{}
+
+	currentPool, err := GetPool(ctx)
+	if err != nil {
+		return results, err
+	}
+
+	var b strings.Builder
+	fmt.Fprintf(&b, "SELECT %s FROM %s WHERE ", strings.Join(columnNames, ", "), tableName)
+
+	argIndex := 1
+	for i, col := range whereColumns {
+		if i > 0 {
+			b.WriteString(" AND ")
+		}
+
+		values := whereValues[i]
+
+		placeholders := make([]string, len(values))
+		for j := range values {
+			placeholders[j] = fmt.Sprintf("$%d", argIndex)
+			argIndex++
+		}
+
+		fmt.Fprintf(&b, "%s IN (%s)", col, strings.Join(placeholders, ","))
+	}
+
+	flatWhereValues := make([]interface{}, 0, argIndex-1)
+	for _, v := range whereValues {
+		flatWhereValues = append(flatWhereValues, v...)
+	}
+
+	rows, err := currentPool.Query(ctx, b.String(), flatWhereValues...)
+	if err != nil {
+		return results, err
+	}
+
+	results, err = pgx.CollectRows(rows, pgx.RowToStructByName[T])
+	if errors.Is(err, pgx.ErrNoRows) {
+		return results, nil
+	}
+
+	return results, err
+}
+
 func BulkInsert(ctx context.Context, tableName string, columnNames []string, rows [][]any) error {
 	currentPool, err := GetPool(ctx)
 	if err != nil {
