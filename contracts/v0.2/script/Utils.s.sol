@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.24;
+pragma solidity ^0.8.20;
 
 import {Script, stdJson, VmSafe, console} from "forge-std/Script.sol";
 import {strings} from "solidity-stringutils/strings.sol";
