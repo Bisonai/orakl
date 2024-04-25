@@ -463,6 +463,36 @@ func TestBulkSelect(t *testing.T) {
 		t.Fatalf("Failed to insert test data: %v", err)
 	}
 
+	// Call with invalid values
+	_, err = BulkSelect[struct {
+		Name string `db:"name"`
+		Age  int    `db:"age"`
+	}](ctx, "", []string{}, []string{}, []any{"Alice", "Bob"})
+	if err == nil {
+		t.Fatalf("BulkSelect did not return an error")
+	}
+	_, err = BulkSelect[struct {
+		Name string `db:"name"`
+		Age  int    `db:"age"`
+	}](ctx, "test", []string{}, []string{"name"}, []any{"Alice", "Bob"})
+	if err == nil {
+		t.Fatalf("BulkSelect did not return an error")
+	}
+	_, err = BulkSelect[struct {
+		Name string `db:"name"`
+		Age  int    `db:"age"`
+	}](ctx, "test", []string{"name", "age"}, []string{}, []any{"Alice", "Bob"})
+	if err == nil {
+		t.Fatalf("BulkSelect did not return an error")
+	}
+	_, err = BulkSelect[struct {
+		Name string `db:"name"`
+		Age  int    `db:"age"`
+	}](ctx, "test", []string{}, []string{"name", "age"}, []any{"Alice", "Bob"})
+	if err == nil {
+		t.Fatalf("BulkSelect did not return an error")
+	}
+
 	// Call the function being tested
 	results, err := BulkSelect[struct {
 		Name string `db:"name"`

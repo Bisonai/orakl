@@ -126,6 +126,18 @@ func queryRows[T any](pool *pgxpool.Pool, queryString string, args map[string]an
 
 func BulkSelect[T any](ctx context.Context, tableName string, columnNames []string, whereColumns []string, whereValues ...[]interface{}) ([]T, error) {
 	results := []T{}
+	if tableName == "" {
+		return results, errors.New("tableName must not be empty")
+	}
+	if len(columnNames) == 0 {
+		return results, errors.New("columnNames must not be empty")
+	}
+	if len(whereColumns) == 0 {
+		return results, errors.New("whereColumns must not be empty")
+	}
+	if len(whereColumns) != len(whereValues) {
+		return results, errors.New("whereColumns and whereValues must have the same length")
+	}
 
 	currentPool, err := GetPool(ctx)
 	if err != nil {
@@ -161,6 +173,7 @@ func BulkSelect[T any](ctx context.Context, tableName string, columnNames []stri
 	if err != nil {
 		return results, err
 	}
+	defer rows.Close()
 
 	results, err = pgx.CollectRows(rows, pgx.RowToStructByName[T])
 	if errors.Is(err, pgx.ErrNoRows) {
