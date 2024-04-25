@@ -615,6 +615,13 @@ func TestBulkSelect(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create temporary table: %v", err)
 	}
+	defer func() {
+		// Clean up the temporary table
+		_, err = pool.Exec(ctx, "DROP TABLE test")
+		if err != nil {
+			t.Fatalf("Failed to drop table: %v", err)
+		}
+	}()
 
 	// Insert some test data
 	_, err = pool.Exec(ctx, `INSERT INTO test (name, age) VALUES ('Alice', 25), ('Bob', 30)`)
@@ -728,9 +735,4 @@ func TestBulkSelect(t *testing.T) {
 		t.Errorf("Unexpected result: got %+v, want %+v", results, expectedResult2)
 	}
 
-	// Clean up the temporary table
-	_, err = pool.Exec(ctx, "DROP TABLE test")
-	if err != nil {
-		t.Fatalf("Failed to drop table: %v", err)
-	}
 }
