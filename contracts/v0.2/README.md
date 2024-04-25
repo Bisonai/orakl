@@ -52,7 +52,7 @@ forge script {ContractScriptName} --broadcast --rpc-url {RPC}
     "deploy": {
       "submitter": "0xa195bE68Bd37EBFfB056279Dc3d236fAa6F23670",
       "count": 2,
-      "feed": [
+      "feeds": [
         { "decimals": 8, "description": "ADA-USDT" },
         { "decimals": 8, "description": "ATOM-USDT" }
       ]
@@ -66,7 +66,6 @@ forge script {ContractScriptName} --broadcast --rpc-url {RPC}
 ```
 {
   "Feed": {
-    "address": "0x1ac6cd893eddb6cac15e5a9fc549335b8b449015",
     "updateSubmitter": {
       "submitter": "0xa195bE68Bd37EBFfB056279Dc3d236fAa6F23670",
       "count": 2,
@@ -158,13 +157,19 @@ forge script {ContractScriptName} --broadcast --rpc-url {RPC}
 }
 ```
 
-### Deploy `SubmissionProxy` with `Feed` contracts
+### Deploy `SubmissionProxy` with `Feed` and `FeedProxy` contracts
 
 ```
 {
   "SubmissionProxy": {
     "deploy": {},
-    "deployAndConnectFeeds": {}
+    "deployFeed": {
+      "count": 2,
+      "feeds": [
+        { "decimals": 8, "description": "ADA-USDT" },
+        { "decimals": 8, "description": "ATOM-USDT" }
+      ]
+    }
   }
 }
 ```
