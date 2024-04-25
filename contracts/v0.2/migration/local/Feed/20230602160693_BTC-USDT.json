@@ -1,7 +1,0 @@
-{
-  "deploy": {
-    "name": "BTC-USDT",
-    "decimals": 8,
-    "description": "BTC-USDT"
-  }
-}
