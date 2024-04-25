@@ -152,7 +152,7 @@ contract SubmissionProxy is Ownable {
         uint8 index_ = 0;
 
         // register the oracle
-	uint256 oraclesLength_ = oracles.length;
+	uint8 oraclesLength_ = uint8(oracles.length);
         for (uint8 i = 0; i < oraclesLength_; i++) {
             if (!isWhitelisted(oracles[i])) {
 		// reuse existing oracle slot if it is expired
