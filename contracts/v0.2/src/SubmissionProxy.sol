@@ -152,9 +152,10 @@ contract SubmissionProxy is Ownable {
         uint8 index_ = 0;
 
         // register the oracle
-        for (uint8 i = 0; i < oracles.length; i++) {
-            // reuse existing oracle slot if it is expired
+	uint256 oraclesLength_ = oracles.length;
+        for (uint8 i = 0; i < oraclesLength_; i++) {
             if (!isWhitelisted(oracles[i])) {
+		// reuse existing oracle slot if it is expired
                 oracles[i] = _oracle;
                 found = true;
                 index_ = i;
@@ -163,6 +164,7 @@ contract SubmissionProxy is Ownable {
         }
 
         if (!found) {
+	    // oracle has not been registered yet
             oracles.push(_oracle);
             index_ = uint8(oracles.length - 1);
         }
@@ -217,7 +219,8 @@ contract SubmissionProxy is Ownable {
         whitelist[msg.sender].expirationTime = block.timestamp;
 
         // update the oracle address
-        for (uint256 i = 0; i < oracles.length; i++) {
+	uint256 oraclesLength_ = oracles.length;
+        for (uint256 i = 0; i < oraclesLength_; i++) {
             if (msg.sender == oracles[i]) {
                 oracles[i] = _oracle;
                 break;
@@ -241,8 +244,8 @@ contract SubmissionProxy is Ownable {
      * submit the data.
      * @param _feeds The addresses of the feeds
      * @param _answers The submissions
-     * @param _proofs The proofs
      * @param _timestamps The timestamps of the proofs
+     * @param _proofs The proofs
      */
     function submit(
         address[] memory _feeds,

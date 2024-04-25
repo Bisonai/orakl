@@ -13,7 +13,7 @@ import {IFeed} from "./interfaces/IFeed.sol";
  * `SubmissionProxy` contract.
  */
 contract Feed is Ownable, IFeed {
-    uint8 public decimals;
+    uint8 public immutable decimals;
     string public description;
     address public submitter;
 
@@ -94,7 +94,7 @@ contract Feed is Ownable, IFeed {
     /**
      * @inheritdoc IFeed
      */
-    function latestRoundData() external view virtual override returns (uint64 id, int256 answer, uint256 updatedAt) {
+    function latestRoundData() external view virtual override returns (uint64, int256, uint256) {
         return getRoundData(latestRoundId);
     }
 
@@ -149,7 +149,7 @@ contract Feed is Ownable, IFeed {
         view
         virtual
         override
-        returns (uint64 id, int256 answer, uint256 updatedAt)
+        returns (uint64, int256, uint256)
     {
         Round memory r = rounds[_roundId];
 

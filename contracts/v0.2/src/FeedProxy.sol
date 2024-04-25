@@ -81,7 +81,7 @@ contract FeedProxy is Ownable, IFeedProxy {
      * @return answer The oracle answer.
      * @return updatedAt Timestamp of the last update.
      */
-    function getRoundData(uint64 _roundId) external view returns (uint64 id, int256 answer, uint256 updatedAt) {
+    function getRoundData(uint64 _roundId) external view returns (uint64, int256, uint256) {
         return feed.getRoundData(_roundId);
     }
 
@@ -99,7 +99,7 @@ contract FeedProxy is Ownable, IFeedProxy {
      * @return answer The oracle answer.
      * @return updatedAt Timestamp of the last update.
      */
-    function latestRoundData() external view returns (uint64 id, int256 answer, uint256 updatedAt) {
+    function latestRoundData() external view returns (uint64, int256, uint256) {
         return feed.latestRoundData();
     }
 
@@ -110,7 +110,7 @@ contract FeedProxy is Ownable, IFeedProxy {
         external
         view
         hasProposal
-        returns (uint64 id, int256 answer, uint256 updatedAt)
+        returns (uint64, int256, uint256)
     {
         return proposedFeed.getRoundData(_roundId);
     }
@@ -122,7 +122,7 @@ contract FeedProxy is Ownable, IFeedProxy {
         external
         view
         hasProposal
-        returns (uint64 id, int256 answer, uint256 updatedAt)
+        returns (uint64, int256, uint256)
     {
         return proposedFeed.latestRoundData();
     }
