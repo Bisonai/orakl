@@ -295,7 +295,7 @@ contract SubmissionProxy is Ownable {
      * @return proofs_ The split bytes
      * @return success_ `true` if the split was successful, `false`
      */
-    function splitProofs(bytes memory _data) internal pure returns (bytes[] memory proofs_, bool success_) {
+    function splitProofs(bytes memory _data) internal pure returns (bytes[] memory proofs_, bool) {
         uint256 dataLength_ = _data.length;
         if (dataLength_ == 0 || dataLength_ % 65 != 0) {
             return (proofs_, false);
@@ -337,16 +337,9 @@ contract SubmissionProxy is Ownable {
         }
 
         assembly {
-            // Load the signature into memory
             let signature_ := add(_sig, 32)
-
-            // Extract r
             r_ := mload(signature_)
-
-            // Extract s
             s_ := mload(add(signature_, 32))
-
-            // Extract v
             v_ := byte(0, mload(add(signature_, 64)))
         }
     }
