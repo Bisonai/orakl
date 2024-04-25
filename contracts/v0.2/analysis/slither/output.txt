@@ -1,0 +1,201 @@
+'forge config --json' running
+'/Users/kersner/git/orakl/venv-slither/.solc-select/artifacts/solc-0.8.20/solc-0.8.20 --version' running
+'/Users/kersner/git/orakl/venv-slither/.solc-select/artifacts/solc-0.8.20/solc-0.8.20 @openzeppelin/contracts/=lib/openzeppelin-contracts/contracts/ ds-test/=lib/forge-std/lib/ds-test/src/ erc4626-tests/=lib/openzeppelin-contracts/lib/erc4626-tests/ forge-std/=lib/forge-std/src/ openzeppelin-contracts/=lib/openzeppelin-contracts/ solidity-stringutils/=lib/solidity-stringutils/ src/SubmissionProxy.sol --combined-json abi,ast,bin,bin-runtime,srcmap,srcmap-runtime,userdoc,devdoc,hashes --optimize --optimize-runs 100000 --evm-version paris --allow-paths .,/Users/kersner/git/orakl/contracts/v0.2/src' running
+'forge config --json' running
+'/Users/kersner/git/orakl/venv-slither/.solc-select/artifacts/solc-0.8.20/solc-0.8.20 --version' running
+'/Users/kersner/git/orakl/venv-slither/.solc-select/artifacts/solc-0.8.20/solc-0.8.20 @openzeppelin/contracts/=lib/openzeppelin-contracts/contracts/ ds-test/=lib/forge-std/lib/ds-test/src/ erc4626-tests/=lib/openzeppelin-contracts/lib/erc4626-tests/ forge-std/=lib/forge-std/src/ openzeppelin-contracts/=lib/openzeppelin-contracts/ solidity-stringutils/=lib/solidity-stringutils/ src/Feed.sol --combined-json abi,ast,bin,bin-runtime,srcmap,srcmap-runtime,userdoc,devdoc,hashes --optimize --optimize-runs 100000 --evm-version paris --allow-paths .,/Users/kersner/git/orakl/contracts/v0.2/src' running
+'forge config --json' running
+'/Users/kersner/git/orakl/venv-slither/.solc-select/artifacts/solc-0.8.20/solc-0.8.20 --version' running
+'/Users/kersner/git/orakl/venv-slither/.solc-select/artifacts/solc-0.8.20/solc-0.8.20 @openzeppelin/contracts/=lib/openzeppelin-contracts/contracts/ ds-test/=lib/forge-std/lib/ds-test/src/ erc4626-tests/=lib/openzeppelin-contracts/lib/erc4626-tests/ forge-std/=lib/forge-std/src/ openzeppelin-contracts/=lib/openzeppelin-contracts/ solidity-stringutils/=lib/solidity-stringutils/ src/FeedRouter.sol --combined-json abi,ast,bin,bin-runtime,srcmap,srcmap-runtime,userdoc,devdoc,hashes --optimize --optimize-runs 100000 --evm-version paris --allow-paths .,/Users/kersner/git/orakl/contracts/v0.2/src' running
+'forge config --json' running
+'/Users/kersner/git/orakl/venv-slither/.solc-select/artifacts/solc-0.8.20/solc-0.8.20 --version' running
+'/Users/kersner/git/orakl/venv-slither/.solc-select/artifacts/solc-0.8.20/solc-0.8.20 @openzeppelin/contracts/=lib/openzeppelin-contracts/contracts/ ds-test/=lib/forge-std/lib/ds-test/src/ erc4626-tests/=lib/openzeppelin-contracts/lib/erc4626-tests/ forge-std/=lib/forge-std/src/ openzeppelin-contracts/=lib/openzeppelin-contracts/ solidity-stringutils/=lib/solidity-stringutils/ src/FeedProxy.sol --combined-json abi,ast,bin,bin-runtime,srcmap,srcmap-runtime,userdoc,devdoc,hashes --optimize --optimize-runs 100000 --evm-version paris --allow-paths .,/Users/kersner/git/orakl/contracts/v0.2/src' running
+INFO:Detectors:
+SubmissionProxy.isWhitelisted(address) (src/SubmissionProxy.sol#373-380) uses a dangerous strict equality:
+	- expiration_ == 0 || expiration_ <= block.timestamp (src/SubmissionProxy.sol#375)
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#dangerous-strict-equalities
+INFO:Detectors:
+SubmissionProxy.submit(address[],int256[],uint256[],bytes[]) (src/SubmissionProxy.sol#250-281) has external calls inside a loop: IFeed(_feeds[i]).submit(_answers[i]) (src/SubmissionProxy.sol#278)
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation/#calls-inside-a-loop
+INFO:Detectors:
+SubmissionProxy.submit(address[],int256[],uint256[],bytes[]) (src/SubmissionProxy.sol#250-281) uses timestamp for comparisons
+	Dangerous comparisons:
+	- _timestamps[i] <= block.timestamp - dataFreshness (src/SubmissionProxy.sol#265)
+SubmissionProxy.isWhitelisted(address) (src/SubmissionProxy.sol#373-380) uses timestamp for comparisons
+	Dangerous comparisons:
+	- expiration_ == 0 || expiration_ <= block.timestamp (src/SubmissionProxy.sol#375)
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#block-timestamp
+INFO:Detectors:
+SubmissionProxy.splitProofs(bytes) (src/SubmissionProxy.sol#298-325) uses assembly
+	- INLINE ASM (src/SubmissionProxy.sol#309-317)
+SubmissionProxy.splitSignature(bytes) (src/SubmissionProxy.sol#334-352) uses assembly
+	- INLINE ASM (src/SubmissionProxy.sol#339-351)
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#assembly-usage
+INFO:Detectors:
+SubmissionProxy.removeOracle(address) (src/SubmissionProxy.sol#189-203) has costly operations inside a loop:
+	- oracles.pop() (src/SubmissionProxy.sol#193)
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#costly-operations-inside-a-loop
+INFO:Detectors:
+Context._contextSuffixLength() (lib/openzeppelin-contracts/contracts/utils/Context.sol#25-27) is never used and should be removed
+Context._msgData() (lib/openzeppelin-contracts/contracts/utils/Context.sol#21-23) is never used and should be removed
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#dead-code
+INFO:Detectors:
+Version constraint ^0.8.20 contains known severe issues (https://solidity.readthedocs.io/en/latest/bugs.html)
+	- VerbatimInvalidDeduplication
+	- FullInlinerNonExpressionSplitArgumentEvaluationOrder
+	- MissingSideEffectsOnSelectorAccess.
+ It is used by:
+	- lib/openzeppelin-contracts/contracts/access/Ownable.sol#4
+	- lib/openzeppelin-contracts/contracts/utils/Context.sol#4
+	- src/SubmissionProxy.sol#2
+	- src/interfaces/IFeedSubmit.sol#2
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#incorrect-versions-of-solidity
+INFO:Detectors:
+Parameter SubmissionProxy.setMaxSubmission(uint256)._maxSubmission (src/SubmissionProxy.sol#74) is not in mixedCase
+Parameter SubmissionProxy.setDataFreshness(uint256)._dataFreshness (src/SubmissionProxy.sol#86) is not in mixedCase
+Parameter SubmissionProxy.setExpirationPeriod(uint256)._expirationPeriod (src/SubmissionProxy.sol#95) is not in mixedCase
+Parameter SubmissionProxy.setDefaultProofThreshold(uint8)._threshold (src/SubmissionProxy.sol#109) is not in mixedCase
+Parameter SubmissionProxy.setProofThreshold(address,uint8)._feed (src/SubmissionProxy.sol#125) is not in mixedCase
+Parameter SubmissionProxy.setProofThreshold(address,uint8)._threshold (src/SubmissionProxy.sol#125) is not in mixedCase
+Parameter SubmissionProxy.addOracle(address)._oracle (src/SubmissionProxy.sol#146) is not in mixedCase
+Parameter SubmissionProxy.removeOracle(address)._oracle (src/SubmissionProxy.sol#189) is not in mixedCase
+Parameter SubmissionProxy.updateOracle(address)._oracle (src/SubmissionProxy.sol#212) is not in mixedCase
+Parameter SubmissionProxy.submit(address[],int256[],uint256[],bytes[])._feeds (src/SubmissionProxy.sol#251) is not in mixedCase
+Parameter SubmissionProxy.submit(address[],int256[],uint256[],bytes[])._answers (src/SubmissionProxy.sol#252) is not in mixedCase
+Parameter SubmissionProxy.submit(address[],int256[],uint256[],bytes[])._timestamps (src/SubmissionProxy.sol#253) is not in mixedCase
+Parameter SubmissionProxy.submit(address[],int256[],uint256[],bytes[])._proofs (src/SubmissionProxy.sol#254) is not in mixedCase
+Parameter SubmissionProxy.splitProofs(bytes)._data (src/SubmissionProxy.sol#298) is not in mixedCase
+Parameter SubmissionProxy.splitSignature(bytes)._sig (src/SubmissionProxy.sol#334) is not in mixedCase
+Parameter SubmissionProxy.isWhitelisted(address)._signer (src/SubmissionProxy.sol#373) is not in mixedCase
+Parameter SubmissionProxy.quorum(uint8)._threshold (src/SubmissionProxy.sol#387) is not in mixedCase
+Parameter SubmissionProxy.validateProof(address,bytes32,bytes[])._feed (src/SubmissionProxy.sol#410) is not in mixedCase
+Parameter SubmissionProxy.validateProof(address,bytes32,bytes[])._message (src/SubmissionProxy.sol#410) is not in mixedCase
+Parameter SubmissionProxy.validateProof(address,bytes32,bytes[])._proofs (src/SubmissionProxy.sol#410) is not in mixedCase
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#conformance-to-solidity-naming-conventions
+INFO:Detectors:
+Variable SubmissionProxy.MAX_SUBMISSION (src/SubmissionProxy.sol#20) is too similar to SubmissionProxy.setMaxSubmission(uint256)._maxSubmission (src/SubmissionProxy.sol#74)
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#variable-names-too-similar
+INFO:Detectors:
+Feed.constructor(uint8,string,address)._submitter (src/Feed.sol#51) lacks a zero-check on :
+		- submitter = _submitter (src/Feed.sol#54)
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#missing-zero-address-validation
+INFO:Detectors:
+Feed.twap(uint256,uint256,int256) (src/Feed.sol#111-142) uses timestamp for comparisons
+	Dangerous comparisons:
+	- (_latestUpdatedAtTolerance > 0) && ((block.timestamp - latestUpdatedAt_) > _latestUpdatedAtTolerance) (src/Feed.sol#118)
+	- ((block.timestamp - latestUpdatedAt_) >= _interval) && (count_ >= _minCount) (src/Feed.sol#126)
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#block-timestamp
+INFO:Detectors:
+Context._contextSuffixLength() (lib/openzeppelin-contracts/contracts/utils/Context.sol#25-27) is never used and should be removed
+Context._msgData() (lib/openzeppelin-contracts/contracts/utils/Context.sol#21-23) is never used and should be removed
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#dead-code
+INFO:Detectors:
+Version constraint ^0.8.20 contains known severe issues (https://solidity.readthedocs.io/en/latest/bugs.html)
+	- VerbatimInvalidDeduplication
+	- FullInlinerNonExpressionSplitArgumentEvaluationOrder
+	- MissingSideEffectsOnSelectorAccess.
+ It is used by:
+	- lib/openzeppelin-contracts/contracts/access/Ownable.sol#4
+	- lib/openzeppelin-contracts/contracts/utils/Context.sol#4
+	- src/Feed.sol#2
+	- src/interfaces/IFeed.sol#2
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#incorrect-versions-of-solidity
+INFO:Detectors:
+Parameter Feed.updateSubmitter(address)._submitter (src/Feed.sol#68) is not in mixedCase
+Parameter Feed.submit(int256)._answer (src/Feed.sol#84) is not in mixedCase
+Parameter Feed.twap(uint256,uint256,int256)._interval (src/Feed.sol#111) is not in mixedCase
+Parameter Feed.twap(uint256,uint256,int256)._latestUpdatedAtTolerance (src/Feed.sol#111) is not in mixedCase
+Parameter Feed.twap(uint256,uint256,int256)._minCount (src/Feed.sol#111) is not in mixedCase
+Parameter Feed.getRoundData(uint64)._roundId (src/Feed.sol#147) is not in mixedCase
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#conformance-to-solidity-naming-conventions
+INFO:Detectors:
+FeedRouter.getRoundData(string,uint64) (src/FeedRouter.sol#72-79) ignores return value by IFeedProxy(feedToProxies[_feedName]).getRoundData(_roundId) (src/FeedRouter.sol#78)
+FeedRouter.latestRoundData(string) (src/FeedRouter.sol#84-91) ignores return value by IFeedProxy(feedToProxies[_feedName]).latestRoundData() (src/FeedRouter.sol#90)
+FeedRouter.getRoundDataFromProposedFeed(string,uint64) (src/FeedRouter.sol#120-127) ignores return value by IFeedProxy(feedToProxies[_feedName]).getRoundDataFromProposedFeed(_roundId) (src/FeedRouter.sol#126)
+FeedRouter.latestRoundDataFromProposedFeed(string) (src/FeedRouter.sol#132-139) ignores return value by IFeedProxy(feedToProxies[_feedName]).latestRoundDataFromProposedFeed() (src/FeedRouter.sol#138)
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#unused-return
+INFO:Detectors:
+FeedRouter.removeProxy(string,address) (src/FeedRouter.sol#218-236) has costly operations inside a loop:
+	- feedNames.pop() (src/FeedRouter.sol#230)
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#costly-operations-inside-a-loop
+INFO:Detectors:
+Context._contextSuffixLength() (lib/openzeppelin-contracts/contracts/utils/Context.sol#25-27) is never used and should be removed
+Context._msgData() (lib/openzeppelin-contracts/contracts/utils/Context.sol#21-23) is never used and should be removed
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#dead-code
+INFO:Detectors:
+Version constraint ^0.8.20 contains known severe issues (https://solidity.readthedocs.io/en/latest/bugs.html)
+	- VerbatimInvalidDeduplication
+	- FullInlinerNonExpressionSplitArgumentEvaluationOrder
+	- MissingSideEffectsOnSelectorAccess.
+ It is used by:
+	- lib/openzeppelin-contracts/contracts/access/Ownable.sol#4
+	- lib/openzeppelin-contracts/contracts/utils/Context.sol#4
+	- src/FeedRouter.sol#2
+	- src/interfaces/IFeed.sol#2
+	- src/interfaces/IFeedProxy.sol#2
+	- src/interfaces/IFeedRouter.sol#2
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#incorrect-versions-of-solidity
+INFO:Detectors:
+Parameter FeedRouter.updateProxyBulk(string[],address[])._feedNames (src/FeedRouter.sol#46) is not in mixedCase
+Parameter FeedRouter.updateProxyBulk(string[],address[])._proxyAddresses (src/FeedRouter.sol#46) is not in mixedCase
+Parameter FeedRouter.removeProxyBulk(string[])._feedNames (src/FeedRouter.sol#59) is not in mixedCase
+Parameter FeedRouter.getRoundData(string,uint64)._feedName (src/FeedRouter.sol#72) is not in mixedCase
+Parameter FeedRouter.getRoundData(string,uint64)._roundId (src/FeedRouter.sol#72) is not in mixedCase
+Parameter FeedRouter.latestRoundData(string)._feedName (src/FeedRouter.sol#84) is not in mixedCase
+Parameter FeedRouter.twap(string,uint256,uint256,int256)._feedName (src/FeedRouter.sol#96) is not in mixedCase
+Parameter FeedRouter.twap(string,uint256,uint256,int256)._interval (src/FeedRouter.sol#96) is not in mixedCase
+Parameter FeedRouter.twap(string,uint256,uint256,int256)._latestUpdatedAtTolerance (src/FeedRouter.sol#96) is not in mixedCase
+Parameter FeedRouter.twap(string,uint256,uint256,int256)._minCount (src/FeedRouter.sol#96) is not in mixedCase
+Parameter FeedRouter.twapFromProposedFeed(string,uint256,uint256,int256)._feedName (src/FeedRouter.sol#108) is not in mixedCase
+Parameter FeedRouter.twapFromProposedFeed(string,uint256,uint256,int256)._interval (src/FeedRouter.sol#109) is not in mixedCase
+Parameter FeedRouter.twapFromProposedFeed(string,uint256,uint256,int256)._latestUpdatedAtTolerance (src/FeedRouter.sol#110) is not in mixedCase
+Parameter FeedRouter.twapFromProposedFeed(string,uint256,uint256,int256)._minCount (src/FeedRouter.sol#111) is not in mixedCase
+Parameter FeedRouter.getRoundDataFromProposedFeed(string,uint64)._feedName (src/FeedRouter.sol#120) is not in mixedCase
+Parameter FeedRouter.getRoundDataFromProposedFeed(string,uint64)._roundId (src/FeedRouter.sol#120) is not in mixedCase
+Parameter FeedRouter.latestRoundDataFromProposedFeed(string)._feedName (src/FeedRouter.sol#132) is not in mixedCase
+Parameter FeedRouter.feed(string)._feedName (src/FeedRouter.sol#144) is not in mixedCase
+Parameter FeedRouter.proposedFeed(string)._feedName (src/FeedRouter.sol#151) is not in mixedCase
+Parameter FeedRouter.decimals(string)._feedName (src/FeedRouter.sol#158) is not in mixedCase
+Parameter FeedRouter.typeAndVersion(string)._feedName (src/FeedRouter.sol#165) is not in mixedCase
+Parameter FeedRouter.description(string)._feedName (src/FeedRouter.sol#172) is not in mixedCase
+Parameter FeedRouter.updateProxy(string,address)._feedName (src/FeedRouter.sol#188) is not in mixedCase
+Parameter FeedRouter.updateProxy(string,address)._proxyAddress (src/FeedRouter.sol#188) is not in mixedCase
+Parameter FeedRouter.removeProxy(string,address)._feedName (src/FeedRouter.sol#218) is not in mixedCase
+Parameter FeedRouter.removeProxy(string,address)._proxyAddress (src/FeedRouter.sol#218) is not in mixedCase
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#conformance-to-solidity-naming-conventions
+INFO:Detectors:
+FeedProxy.getRoundData(uint64) (src/FeedProxy.sol#84-86) ignores return value by feed.getRoundData(_roundId) (src/FeedProxy.sol#85)
+FeedProxy.latestRoundData() (src/FeedProxy.sol#102-104) ignores return value by feed.latestRoundData() (src/FeedProxy.sol#103)
+FeedProxy.getRoundDataFromProposedFeed(uint64) (src/FeedProxy.sol#109-116) ignores return value by proposedFeed.getRoundData(_roundId) (src/FeedProxy.sol#115)
+FeedProxy.latestRoundDataFromProposedFeed() (src/FeedProxy.sol#121-128) ignores return value by proposedFeed.latestRoundData() (src/FeedProxy.sol#127)
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#unused-return
+INFO:Detectors:
+Context._contextSuffixLength() (lib/openzeppelin-contracts/contracts/utils/Context.sol#25-27) is never used and should be removed
+Context._msgData() (lib/openzeppelin-contracts/contracts/utils/Context.sol#21-23) is never used and should be removed
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#dead-code
+INFO:Detectors:
+Version constraint ^0.8.20 contains known severe issues (https://solidity.readthedocs.io/en/latest/bugs.html)
+	- VerbatimInvalidDeduplication
+	- FullInlinerNonExpressionSplitArgumentEvaluationOrder
+	- MissingSideEffectsOnSelectorAccess.
+ It is used by:
+	- lib/openzeppelin-contracts/contracts/access/Ownable.sol#4
+	- lib/openzeppelin-contracts/contracts/utils/Context.sol#4
+	- src/FeedProxy.sol#2
+	- src/interfaces/IFeed.sol#2
+	- src/interfaces/IFeedProxy.sol#2
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#incorrect-versions-of-solidity
+INFO:Detectors:
+Parameter FeedProxy.getRoundData(uint64)._roundId (src/FeedProxy.sol#84) is not in mixedCase
+Parameter FeedProxy.getRoundDataFromProposedFeed(uint64)._roundId (src/FeedProxy.sol#109) is not in mixedCase
+Parameter FeedProxy.twap(uint256,uint256,int256)._interval (src/FeedProxy.sol#133) is not in mixedCase
+Parameter FeedProxy.twap(uint256,uint256,int256)._latestUpdatedAtTolerance (src/FeedProxy.sol#133) is not in mixedCase
+Parameter FeedProxy.twap(uint256,uint256,int256)._minCount (src/FeedProxy.sol#133) is not in mixedCase
+Parameter FeedProxy.twapFromProposedFeed(uint256,uint256,int256)._interval (src/FeedProxy.sol#144) is not in mixedCase
+Parameter FeedProxy.twapFromProposedFeed(uint256,uint256,int256)._latestUpdatedAtTolerance (src/FeedProxy.sol#144) is not in mixedCase
+Parameter FeedProxy.twapFromProposedFeed(uint256,uint256,int256)._minCount (src/FeedProxy.sol#144) is not in mixedCase
+Parameter FeedProxy.proposeFeed(address)._feed (src/FeedProxy.sol#161) is not in mixedCase
+Parameter FeedProxy.confirmFeed(address)._feed (src/FeedProxy.sol#177) is not in mixedCase
+Parameter FeedProxy.setFeed(address)._feed (src/FeedProxy.sol#193) is not in mixedCase
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#conformance-to-solidity-naming-conventions
+INFO:Slither:src/ analyzed (19 contracts with 95 detectors), 94 result(s) found

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.24;
+pragma solidity ^0.8.20;
 
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {IFeedRouter} from "./interfaces/IFeedRouter.sol";
@@ -73,7 +73,7 @@ contract FeedRouter is Ownable, IFeedRouter {
         external
         view
         validFeed(_feedName)
-        returns (uint64 id, int256 answer, uint256 updatedAt)
+        returns (uint64, int256, uint256)
     {
         return IFeedProxy(feedToProxies[_feedName]).getRoundData(_roundId);
     }
@@ -85,7 +85,7 @@ contract FeedRouter is Ownable, IFeedRouter {
         external
         view
         validFeed(_feedName)
-        returns (uint64 id, int256 answer, uint256 updatedAt)
+        returns (uint64, int256, uint256)
     {
         return IFeedProxy(feedToProxies[_feedName]).latestRoundData();
     }
@@ -121,7 +121,7 @@ contract FeedRouter is Ownable, IFeedRouter {
         external
         view
         validFeed(_feedName)
-        returns (uint64 id, int256 answer, uint256 updatedAt)
+        returns (uint64, int256, uint256)
     {
         return IFeedProxy(feedToProxies[_feedName]).getRoundDataFromProposedFeed(_roundId);
     }
@@ -133,7 +133,7 @@ contract FeedRouter is Ownable, IFeedRouter {
         external
         view
         validFeed(_feedName)
-        returns (uint64 id, int256 answer, uint256 updatedAt)
+        returns (uint64, int256, uint256)
     {
         return IFeedProxy(feedToProxies[_feedName]).latestRoundDataFromProposedFeed();
     }

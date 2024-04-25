@@ -37,5 +37,5 @@ cp .env.example .env
 2. Deploy
 
 ```shell
-forge script DeployFull --broadcast --rpc-url [RPC]
+forge script {ContractScriptName} --broadcast --rpc-url {RPC}
 ```

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.24;
+pragma solidity ^0.8.20;
 
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {IFeed} from "./interfaces/IFeedSubmit.sol";
@@ -152,9 +152,10 @@ contract SubmissionProxy is Ownable {
         uint8 index_ = 0;
 
         // register the oracle
-        for (uint8 i = 0; i < oracles.length; i++) {
-            // reuse existing oracle slot if it is expired
+	uint8 oraclesLength_ = uint8(oracles.length);
+        for (uint8 i = 0; i < oraclesLength_; i++) {
             if (!isWhitelisted(oracles[i])) {
+		// reuse existing oracle slot if it is expired
                 oracles[i] = _oracle;
                 found = true;
                 index_ = i;
@@ -163,6 +164,7 @@ contract SubmissionProxy is Ownable {
         }
 
         if (!found) {
+	    // oracle has not been registered yet
             oracles.push(_oracle);
             index_ = uint8(oracles.length - 1);
         }
@@ -217,7 +219,8 @@ contract SubmissionProxy is Ownable {
         whitelist[msg.sender].expirationTime = block.timestamp;
 
         // update the oracle address
-        for (uint256 i = 0; i < oracles.length; i++) {
+	uint256 oraclesLength_ = oracles.length;
+        for (uint256 i = 0; i < oraclesLength_; i++) {
             if (msg.sender == oracles[i]) {
                 oracles[i] = _oracle;
                 break;
@@ -241,8 +244,8 @@ contract SubmissionProxy is Ownable {
      * submit the data.
      * @param _feeds The addresses of the feeds
      * @param _answers The submissions
-     * @param _proofs The proofs
      * @param _timestamps The timestamps of the proofs
+     * @param _proofs The proofs
      */
     function submit(
         address[] memory _feeds,
@@ -292,7 +295,7 @@ contract SubmissionProxy is Ownable {
      * @return proofs_ The split bytes
      * @return success_ `true` if the split was successful, `false`
      */
-    function splitProofs(bytes memory _data) internal pure returns (bytes[] memory proofs_, bool success_) {
+    function splitProofs(bytes memory _data) internal pure returns (bytes[] memory proofs_, bool) {
         uint256 dataLength_ = _data.length;
         if (dataLength_ == 0 || dataLength_ % 65 != 0) {
             return (proofs_, false);
@@ -334,16 +337,9 @@ contract SubmissionProxy is Ownable {
         }
 
         assembly {
-            // Load the signature into memory
             let signature_ := add(_sig, 32)
-
-            // Extract r
             r_ := mload(signature_)
-
-            // Extract s
             s_ := mload(add(signature_, 32))
-
-            // Extract v
             v_ := byte(0, mload(add(signature_, 64)))
         }
     }
