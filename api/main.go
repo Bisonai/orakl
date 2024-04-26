@@ -1,6 +1,9 @@
 package main
 
 import (
+	_ "embed"
+	"log"
+
 	"bisonai.com/orakl/api/adapter"
 	"bisonai.com/orakl/api/aggregate"
 	"bisonai.com/orakl/api/aggregator"
@@ -8,15 +11,12 @@ import (
 	"bisonai.com/orakl/api/chain"
 	"bisonai.com/orakl/api/data"
 	"bisonai.com/orakl/api/feed"
-	"bisonai.com/orakl/api/l2aggregator"
 	"bisonai.com/orakl/api/listener"
 	"bisonai.com/orakl/api/proxy"
 	"bisonai.com/orakl/api/reporter"
 	"bisonai.com/orakl/api/service"
 	"bisonai.com/orakl/api/utils"
 	"bisonai.com/orakl/api/vrf"
-	_ "embed"
-	"log"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/joho/godotenv"
@@ -75,7 +75,6 @@ func SetRouter(_router fiber.Router) {
 	chain.Routes(_router)
 	data.Routes(_router)
 	feed.Routes(_router)
-	l2aggregator.Routes(_router)
 	listener.Routes(_router)
 	proxy.Routes(_router)
 	reporter.Routes(_router)
