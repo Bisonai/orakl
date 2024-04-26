@@ -46,18 +46,18 @@ type ConfigNameIdModel struct {
 
 func Sync(c *fiber.Ctx) error {
 	configUrl := getConfigUrl()
-	bulkConfigs, err := request.GetRequest[BulkConfigs](configUrl, nil, nil)
+	configs, err := request.GetRequest[[]ConfigInsertModel](configUrl, nil, nil)
 	if err != nil {
 		return err
 	}
 
-	err = bulkUpsertConfigs(c.Context(), bulkConfigs.Configs)
+	err = bulkUpsertConfigs(c.Context(), configs)
 	if err != nil {
 		return err
 	}
 
-	whereValues := make([]interface{}, 0, len(bulkConfigs.Configs))
-	for _, config := range bulkConfigs.Configs {
+	whereValues := make([]interface{}, 0, len(configs))
+	for _, config := range configs {
 		whereValues = append(whereValues, config.Name)
 	}
 
@@ -72,7 +72,7 @@ func Sync(c *fiber.Ctx) error {
 	}
 
 	upsertRows := make([][]any, 0)
-	for _, config := range bulkConfigs.Configs {
+	for _, config := range configs {
 		for _, feed := range config.Feeds {
 			configId, ok := configNameIdMap[config.Name]
 			if !ok {

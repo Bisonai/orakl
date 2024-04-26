@@ -25,7 +25,7 @@ func TestFeedGet(t *testing.T) {
 	assert.Greater(t, len(readResult), 0)
 }
 
-func TestFeedGetByAdapterId(t *testing.T) {
+func TestFeedGetByConfigId(t *testing.T) {
 	ctx := context.Background()
 	cleanup, testItems, err := setup(ctx)
 	if err != nil {

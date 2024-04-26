@@ -72,13 +72,13 @@ func setup(ctx context.Context) (func() error, *TestItems, error) {
 func insertSampleData(ctx context.Context) (*TmpData, error) {
 	var tmpData = new(TmpData)
 
-	tmpConfig, err := db.QueryRow[config.ConfigModel](ctx, "INSERT INTO configs (name, address, fetch_interval, aggregate_interval, submit_interval) RETURNING *", map[string]any{"name": "test_config", "address": "test_address", "fetch_interval": 1, "aggregate_interval": 1, "submit_interval": 1})
+	tmpConfig, err := db.QueryRow[config.ConfigModel](ctx, "INSERT INTO configs (name, address, fetch_interval, aggregate_interval, submit_interval) VALUES (@name, @address, @fetch_interval, @aggregate_interval, @submit_interval) RETURNING *;", map[string]any{"name": "test_config", "address": "test_address", "fetch_interval": 1, "aggregate_interval": 1, "submit_interval": 1})
 	if err != nil {
 		return nil, err
 	}
 	tmpData.config = tmpConfig
 
-	tmpFeed, err := db.QueryRow[feed.FeedModel](ctx, "INSERT INTO feeds (name, config_id, definition)", map[string]any{"name": "test_feed", "config_id": tmpConfig.Id, "definition": `{"test": "test"}`})
+	tmpFeed, err := db.QueryRow[feed.FeedModel](ctx, "INSERT INTO feeds (name, config_id, definition) VALUES (@name, @config_id, @definition) RETURNING *;", map[string]any{"name": "test_feed", "config_id": tmpConfig.Id, "definition": `{"test": "test"}`})
 	if err != nil {
 		return nil, err
 	}

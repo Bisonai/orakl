@@ -11,7 +11,7 @@ type FeedModel struct {
 	Id         *int64          `db:"id" json:"id"`
 	Name       string          `db:"name" json:"name"`
 	Definition json.RawMessage `db:"definition" json:"definition"`
-	AdapterId  *int64          `db:"adapter_id" json:"adapterId"`
+	ConfigId   *int64          `db:"config_id" json:"configId"`
 }
 
 func get(c *fiber.Ctx) error {

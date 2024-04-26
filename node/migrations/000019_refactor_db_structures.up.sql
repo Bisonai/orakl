@@ -8,7 +8,6 @@ BEGIN
             DELETE FROM feeds;
         END IF;
         ALTER TABLE feeds DROP COLUMN adapter_id;
-        ALTER TABLE feeds DROP COLUMN IF EXISTS name;
         ALTER TABLE feeds ADD COLUMN config_id INT4 NOT NULL;
         ALTER TABLE feeds ADD CONSTRAINT feeds_config_id_fkey FOREIGN KEY (config_id) REFERENCES configs(id) ON DELETE CASCADE;
     END IF;
