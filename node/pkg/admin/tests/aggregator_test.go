@@ -3,6 +3,7 @@ package tests
 
 import (
 	"context"
+	"strconv"
 	"testing"
 
 	"bisonai.com/orakl/node/pkg/bus"
@@ -66,4 +67,39 @@ func TestAggregatorRefresh(t *testing.T) {
 
 	assert.Equal(t, string(result), "aggregator refreshed")
 
+}
+
+func TestAggregatorActivate(t *testing.T) {
+	ctx := context.Background()
+	cleanup, testItems, err := setup(ctx)
+	if err != nil {
+		t.Fatalf("error setting up test: %v", err)
+	}
+	defer cleanup()
+
+	channel := testItems.mb.Subscribe(bus.AGGREGATOR)
+	waitForMessage(t, channel, bus.ADMIN, bus.AGGREGATOR, bus.ACTIVATE_AGGREGATOR)
+
+	_, err = RawPostRequest(testItems.app, "/api/v1/aggregator/activate/"+strconv.FormatInt(testItems.tmpData.config.Id, 10), nil)
+	if err != nil {
+		t.Fatalf("error activating aggregator: %v", err)
+	}
+
+}
+
+func TestAggregatorDeactivate(t *testing.T) {
+	ctx := context.Background()
+	cleanup, testItems, err := setup(ctx)
+	if err != nil {
+		t.Fatalf("error setting up test: %v", err)
+	}
+	defer cleanup()
+
+	channel := testItems.mb.Subscribe(bus.AGGREGATOR)
+	waitForMessage(t, channel, bus.ADMIN, bus.AGGREGATOR, bus.DEACTIVATE_AGGREGATOR)
+
+	_, err = RawPostRequest(testItems.app, "/api/v1/aggregator/deactivate/"+strconv.FormatInt(testItems.tmpData.config.Id, 10), nil)
+	if err != nil {
+		t.Fatalf("error deactivating aggregator: %v", err)
+	}
 }

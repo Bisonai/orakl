@@ -3,6 +3,7 @@ package tests
 
 import (
 	"context"
+	"strconv"
 	"testing"
 
 	"bisonai.com/orakl/node/pkg/bus"
@@ -64,4 +65,39 @@ func TestFetcherRefresh(t *testing.T) {
 	}
 
 	assert.Equal(t, string(result), "fetcher refreshed: true")
+}
+
+func TestFetcherDeactivate(t *testing.T) {
+	ctx := context.Background()
+	cleanup, testItems, err := setup(ctx)
+	if err != nil {
+		t.Fatalf("error setting up test: %v", err)
+	}
+	defer cleanup()
+
+	channel := testItems.mb.Subscribe(bus.FETCHER)
+	waitForMessage(t, channel, bus.ADMIN, bus.FETCHER, bus.DEACTIVATE_FETCHER)
+
+	_, err = RawPostRequest(testItems.app, "/api/v1/fetcher/deactivate/"+strconv.FormatInt(testItems.tmpData.config.Id, 10), nil)
+	if err != nil {
+		t.Fatalf("error deactivating adapter: %v", err)
+	}
+}
+
+func TestAdapterActivate(t *testing.T) {
+	ctx := context.Background()
+	cleanup, testItems, err := setup(ctx)
+	if err != nil {
+		t.Fatalf("error setting up test: %v", err)
+	}
+	defer cleanup()
+
+	channel := testItems.mb.Subscribe(bus.FETCHER)
+	waitForMessage(t, channel, bus.ADMIN, bus.FETCHER, bus.ACTIVATE_FETCHER)
+
+	// activate
+	_, err = RawPostRequest(testItems.app, "/api/v1/fetcher/activate/"+strconv.FormatInt(testItems.tmpData.config.Id, 10), nil)
+	if err != nil {
+		t.Fatalf("error activating adapter: %v", err)
+	}
 }

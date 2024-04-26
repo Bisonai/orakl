@@ -10,5 +10,6 @@ func Routes(router fiber.Router) {
 	aggregator.Post("/start", start)
 	aggregator.Post("/stop", stop)
 	aggregator.Post("/refresh", refresh)
-
+	aggregator.Post("/activate/:id", activate)
+	aggregator.Post("/deactivate/:id", deactivate)
 }
