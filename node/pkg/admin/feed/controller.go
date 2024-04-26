@@ -32,9 +32,9 @@ func getById(c *fiber.Ctx) error {
 	return c.JSON(result)
 }
 
-func getByAdpaterId(c *fiber.Ctx) error {
+func getByConfigId(c *fiber.Ctx) error {
 	id := c.Params("id")
-	results, err := db.QueryRows[FeedModel](c.Context(), GetFeedsByAdapterId, map[string]any{"adapter_id": id})
+	results, err := db.QueryRows[FeedModel](c.Context(), GetFeedsByConfigId, map[string]any{"config_id": id})
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).SendString("failed to execute feed get by adapter id query: " + err.Error())
 	}

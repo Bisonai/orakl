@@ -2,18 +2,16 @@ package tests
 
 import (
 	"context"
-	"database/sql"
 	"os"
 	"testing"
 
-	"bisonai.com/orakl/node/pkg/admin/adapter"
 	"bisonai.com/orakl/node/pkg/admin/aggregator"
+	"bisonai.com/orakl/node/pkg/admin/config"
 	"bisonai.com/orakl/node/pkg/admin/feed"
 	"bisonai.com/orakl/node/pkg/admin/fetcher"
 	"bisonai.com/orakl/node/pkg/admin/providerUrl"
 	"bisonai.com/orakl/node/pkg/admin/proxy"
 	"bisonai.com/orakl/node/pkg/admin/reporter"
-	"bisonai.com/orakl/node/pkg/admin/submissionAddress"
 	"bisonai.com/orakl/node/pkg/admin/utils"
 	"bisonai.com/orakl/node/pkg/admin/wallet"
 	"bisonai.com/orakl/node/pkg/bus"
@@ -28,13 +26,11 @@ type TestItems struct {
 }
 
 type TmpData struct {
-	aggregator        aggregator.AggregatorModel
-	adapter           adapter.AdapterModel
-	submissionAddress submissionAddress.SubmissionAddressModel
-	feed              feed.FeedModel
-	proxy             proxy.ProxyModel
-	wallet            wallet.WalletModel
-	providerUrl       providerUrl.ProviderUrlModel
+	config      config.ConfigModel
+	feed        feed.FeedModel
+	proxy       proxy.ProxyModel
+	wallet      wallet.WalletModel
+	providerUrl providerUrl.ProviderUrlModel
 }
 
 func setup(ctx context.Context) (func() error, *TestItems, error) {
@@ -63,34 +59,26 @@ func setup(ctx context.Context) (func() error, *TestItems, error) {
 
 	v1 := app.Group("/api/v1")
 	aggregator.Routes(v1)
-	adapter.Routes(v1)
 	feed.Routes(v1)
 	fetcher.Routes(v1)
 	proxy.Routes(v1)
 	wallet.Routes(v1)
 	reporter.Routes(v1)
-	submissionAddress.Routes(v1)
 	providerUrl.Routes(v1)
-
+	config.Routes(v1)
 	return adminCleanup(testItems), testItems, nil
 }
 
 func insertSampleData(ctx context.Context) (*TmpData, error) {
 	var tmpData = new(TmpData)
 
-	tmpAdapter, err := db.QueryRow[adapter.AdapterModel](ctx, adapter.InsertAdapter, map[string]any{"name": "test_adapter"})
+	tmpConfig, err := db.QueryRow[config.ConfigModel](ctx, "INSERT INTO configs (name, address, fetch_interval, aggregate_interval, submit_interval) RETURNING *", map[string]any{"name": "test_config", "address": "test_address", "fetch_interval": 1, "aggregate_interval": 1, "submit_interval": 1})
 	if err != nil {
 		return nil, err
 	}
-	tmpData.adapter = tmpAdapter
+	tmpData.config = tmpConfig
 
-	tmpAggregator, err := db.QueryRow[aggregator.AggregatorModel](ctx, aggregator.InsertAggregator, map[string]any{"name": "test_aggregator"})
-	if err != nil {
-		return nil, err
-	}
-	tmpData.aggregator = tmpAggregator
-
-	tmpFeed, err := db.QueryRow[feed.FeedModel](ctx, adapter.InsertFeed, map[string]any{"name": "test_feed", "adapter_id": tmpAdapter.Id, "definition": `{"test": "test"}`})
+	tmpFeed, err := db.QueryRow[feed.FeedModel](ctx, "INSERT INTO feeds (name, config_id, definition)", map[string]any{"name": "test_feed", "config_id": tmpConfig.Id, "definition": `{"test": "test"}`})
 	if err != nil {
 		return nil, err
 	}
@@ -108,12 +96,6 @@ func insertSampleData(ctx context.Context) (*TmpData, error) {
 	}
 	tmpData.wallet = tmpWallet
 
-	tmpSubmissionAddress, err := db.QueryRow[submissionAddress.SubmissionAddressModel](ctx, submissionAddress.InsertSubmissionAddress, map[string]any{"name": "test_submission_address", "address": "test_address", "interval": sql.NullInt32{Valid: false}})
-	if err != nil {
-		return nil, err
-	}
-	tmpData.submissionAddress = tmpSubmissionAddress
-
 	tmpProviderUrl, err := db.QueryRow[providerUrl.ProviderUrlModel](ctx, providerUrl.InsertProviderUrl, map[string]any{"chain_id": 1, "url": "test_url", "priority": 1})
 	if err != nil {
 		return nil, err
@@ -129,27 +111,18 @@ func adminCleanup(testItems *TestItems) func() error {
 		if err != nil {
 			return err
 		}
-		_, err = db.QueryRow[adapter.AdapterModel](context.Background(), adapter.DeleteAdapterById, map[string]any{"id": testItems.tmpData.adapter.Id})
-		if err != nil {
-			return err
-		}
-
-		_, err = db.QueryRow[aggregator.AggregatorModel](context.Background(), aggregator.DeleteAggregatorById, map[string]any{"id": testItems.tmpData.aggregator.Id})
-		if err != nil {
-			return err
-		}
 
 		_, err = db.QueryRow[proxy.ProxyModel](context.Background(), proxy.DeleteProxyById, map[string]any{"id": testItems.tmpData.proxy.Id})
 		if err != nil {
 			return err
 		}
 
-		_, err = db.QueryRow[submissionAddress.SubmissionAddressModel](context.Background(), submissionAddress.DeleteSubmissionAddressById, map[string]any{"id": testItems.tmpData.submissionAddress.Id})
+		_, err = db.QueryRow[providerUrl.ProviderUrlModel](context.Background(), providerUrl.DeleteProviderUrlById, map[string]any{"id": testItems.tmpData.providerUrl.Id})
 		if err != nil {
 			return err
 		}
 
-		_, err = db.QueryRow[providerUrl.ProviderUrlModel](context.Background(), providerUrl.DeleteProviderUrlById, map[string]any{"id": testItems.tmpData.providerUrl.Id})
+		err = db.QueryWithoutResult(context.Background(), "DELETE FROM configs", nil)
 		if err != nil {
 			return err
 		}

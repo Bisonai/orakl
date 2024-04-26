@@ -68,7 +68,7 @@ func main() {
 		return
 	}
 
-	syncUrl := "http://localhost:" + port + "/api/v1/sync"
+	syncUrl := "http://localhost:" + port + "/api/v1/config/sync"
 	_, err = http.Post(syncUrl, "application/json", nil)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to sync from orakl config")

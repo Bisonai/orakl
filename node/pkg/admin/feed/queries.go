@@ -5,5 +5,5 @@ const (
 
 	GetFeedById = `SELECT * FROM feeds WHERE id = @id;`
 
-	GetFeedsByAdapterId = `SELECT * FROM feeds WHERE adapter_id = @adapter_id;`
+	GetFeedsByConfigId = `SELECT * FROM feeds WHERE config_id = @config_id;`
 )
