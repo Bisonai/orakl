@@ -681,24 +681,6 @@ func TestBulkSelect(t *testing.T) {
 		Age:  25,
 	}
 
-	if !reflect.DeepEqual(results[0], expectedResult) {
-		t.Errorf("Unexpected result: got %+v, want %+v", results[0], expectedResult)
-	}
-
-	// Call the function with multiple where values
-	results, err = BulkSelect[struct {
-		Name string `db:"name"`
-		Age  int    `db:"age"`
-	}](ctx, "test", []string{"name", "age"}, []string{"name"}, []any{"Alice", "Bob"})
-	if err != nil {
-		t.Fatalf("BulkSelect failed: %v", err)
-	}
-
-	// Check the results
-	if len(results) != 2 {
-		t.Errorf("Unexpected number of results: got %d, want 2", len(results))
-	}
-
 	expectedResult2 := []struct {
 		Name string `db:"name"`
 		Age  int    `db:"age"`
@@ -713,26 +695,96 @@ func TestBulkSelect(t *testing.T) {
 		},
 	}
 
-	if !reflect.DeepEqual(results, expectedResult2) {
-		t.Errorf("Unexpected result: got %+v, want %+v", results, expectedResult2)
-	}
+	t.Run("test invalid values", func(t *testing.T) {
+		// Call with invalid values
+		_, err = BulkSelect[struct {
+			Name string `db:"name"`
+			Age  int    `db:"age"`
+		}](ctx, "", []string{}, []string{}, []any{"Alice", "Bob"})
+		if err == nil {
+			t.Fatalf("BulkSelect did not return an error")
+		}
+		_, err = BulkSelect[struct {
+			Name string `db:"name"`
+			Age  int    `db:"age"`
+		}](ctx, "test", []string{}, []string{"name"}, []any{"Alice", "Bob"})
+		if err == nil {
+			t.Fatalf("BulkSelect did not return an error")
+		}
+		_, err = BulkSelect[struct {
+			Name string `db:"name"`
+			Age  int    `db:"age"`
+		}](ctx, "test", []string{"name", "age"}, []string{}, []any{"Alice", "Bob"})
+		if err == nil {
+			t.Fatalf("BulkSelect did not return an error")
+		}
+		_, err = BulkSelect[struct {
+			Name string `db:"name"`
+			Age  int    `db:"age"`
+		}](ctx, "test", []string{}, []string{"name", "age"}, []any{"Alice", "Bob"})
+		if err == nil {
+			t.Fatalf("BulkSelect did not return an error")
+		}
+	})
 
-	// Call the function with multiple where columns
-	results, err = BulkSelect[struct {
-		Name string `db:"name"`
-		Age  int    `db:"age"`
-	}](ctx, "test", []string{"name", "age"}, []string{"name", "age"}, []any{"Alice", "Bob"}, []any{25, 30})
-	if err != nil {
-		t.Fatalf("BulkSelect failed: %v", err)
-	}
+	t.Run("test single where value", func(t *testing.T) {
+		// Call the function being tested
+		results, err := BulkSelect[struct {
+			Name string `db:"name"`
+			Age  int    `db:"age"`
+		}](ctx, "test", []string{"name", "age"}, []string{"name"}, []any{"Alice"})
+		if err != nil {
+			t.Fatalf("BulkSelect failed: %v", err)
+		}
 
-	// Check the results
-	if len(results) != 2 {
-		t.Errorf("Unexpected number of results: got %d, want 2", len(results))
-	}
+		// Check the results
+		if len(results) != 1 {
+			t.Errorf("Unexpected number of results: got %d, want 1", len(results))
+		}
 
-	if !reflect.DeepEqual(results, expectedResult2) {
-		t.Errorf("Unexpected result: got %+v, want %+v", results, expectedResult2)
-	}
+		if !reflect.DeepEqual(results[0], expectedResult) {
+			t.Errorf("Unexpected result: got %+v, want %+v", results[0], expectedResult)
+		}
+	})
+
+	t.Run("test multiple where values", func(t *testing.T) {
+		// Call the function with multiple where values
+		results, err := BulkSelect[struct {
+			Name string `db:"name"`
+			Age  int    `db:"age"`
+		}](ctx, "test", []string{"name", "age"}, []string{"name"}, []any{"Alice", "Bob"})
+		if err != nil {
+			t.Fatalf("BulkSelect failed: %v", err)
+		}
+
+		// Check the results
+		if len(results) != 2 {
+			t.Errorf("Unexpected number of results: got %d, want 2", len(results))
+		}
+
+		if !reflect.DeepEqual(results, expectedResult2) {
+			t.Errorf("Unexpected result: got %+v, want %+v", results, expectedResult2)
+		}
+	})
+
+	t.Run("test multiple where columns", func(t *testing.T) {
+		// Call the function with multiple where columns
+		results, err := BulkSelect[struct {
+			Name string `db:"name"`
+			Age  int    `db:"age"`
+		}](ctx, "test", []string{"name", "age"}, []string{"name", "age"}, []any{"Alice", "Bob"}, []any{25, 30})
+		if err != nil {
+			t.Fatalf("BulkSelect failed: %v", err)
+		}
+
+		// Check the results
+		if len(results) != 2 {
+			t.Errorf("Unexpected number of results: got %d, want 2", len(results))
+		}
+
+		if !reflect.DeepEqual(results, expectedResult2) {
+			t.Errorf("Unexpected result: got %+v, want %+v", results, expectedResult2)
+		}
+	})
 
 }
