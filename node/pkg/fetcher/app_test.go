@@ -101,13 +101,15 @@ func TestFetcherRun(t *testing.T) {
 	assert.Greater(t, len(feedDataRowsAfter), len(feedDataRowsBefore))
 
 	for _, fetcher := range app.Fetchers {
-		rdbResult, err := db.Get(ctx, "localAggregate:"+strconv.Itoa(int(fetcher.FetcherConfig.ID)))
+		configId := fetcher.FetcherConfig.ID
+		rdbResult, err := db.Get(ctx, "localAggregate:"+strconv.Itoa(int(configId)))
 		if err != nil {
 			t.Fatalf("error reading from redis: %v", err)
 		}
 		assert.NotNil(t, rdbResult)
+
 		defer func() {
-			err = db.Del(ctx, "localAggregate:"+strconv.Itoa(int(fetcher.FetcherConfig.ID)))
+			err = db.Del(ctx, "localAggregate:"+strconv.Itoa(int(configId)))
 			if err != nil {
 				t.Fatalf("error removing from redis: %v", err)
 			}
@@ -174,13 +176,14 @@ func TestFetcherFetcherStart(t *testing.T) {
 
 	// check rdb and cleanup rdb
 	for _, fetcher := range app.Fetchers {
-		rdbResult, err := db.Get(ctx, "localAggregate:"+strconv.Itoa(int(fetcher.FetcherConfig.ID)))
+		configId := fetcher.FetcherConfig.ID
+		rdbResult, err := db.Get(ctx, "localAggregate:"+strconv.Itoa(int(configId)))
 		if err != nil {
 			t.Fatalf("error reading from redis: %v", err)
 		}
 		assert.NotNil(t, rdbResult)
 		defer func() {
-			err = db.Del(ctx, "localAggregate:"+strconv.Itoa(int(fetcher.FetcherConfig.ID)))
+			err = db.Del(ctx, "localAggregate:"+strconv.Itoa(int(configId)))
 			if err != nil {
 				t.Fatalf("error removing from redis: %v", err)
 			}
@@ -251,13 +254,14 @@ func TestFetcherFetcherStop(t *testing.T) {
 
 	// check rdb and cleanup rdb
 	for _, fetcher := range app.Fetchers {
-		rdbResult, err := db.Get(ctx, "localAggregate:"+strconv.Itoa(int(fetcher.FetcherConfig.ID)))
+		configId := fetcher.FetcherConfig.ID
+		rdbResult, err := db.Get(ctx, "localAggregate:"+strconv.Itoa(int(configId)))
 		if err != nil {
 			t.Fatalf("error reading from redis: %v", err)
 		}
 		assert.NotNil(t, rdbResult)
 		defer func() {
-			err = db.Del(ctx, "localAggregate:"+strconv.Itoa(int(fetcher.FetcherConfig.ID)))
+			err = db.Del(ctx, "localAggregate:"+strconv.Itoa(int(configId)))
 			if err != nil {
 				t.Fatalf("error removing from redis: %v", err)
 			}
