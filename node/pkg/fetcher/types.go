@@ -11,23 +11,22 @@ import (
 )
 
 const (
-	SelectAllProxiesQuery       = `SELECT * FROM proxies`
-	SelectActiveAdaptersQuery   = `SELECT * FROM adapters WHERE active = true`
-	SelectFeedsByAdapterIdQuery = `SELECT * FROM feeds WHERE adapter_id = @adapterId`
-	InsertLocalAggregateQuery   = `INSERT INTO local_aggregates (name, value) VALUES (@name, @value)`
-	DECIMALS                    = 8
+	SelectAllProxiesQuery      = `SELECT * FROM proxies`
+	SelectConfigsQuery         = `SELECT id, name, fetch_interval FROM configs`
+	SelectFeedsByConfigIdQuery = `SELECT * FROM feeds WHERE config_id = @config_id`
+	InsertLocalAggregateQuery  = `INSERT INTO local_aggregates (config_id, value) VALUES (@config_id, @value)`
+	DECIMALS                   = 8
 )
 
 type FeedData struct {
-	FeedName string  `db:"name"`
-	Value    float64 `db:"value"`
+	FeedID int32   `db:"feed_id"`
+	Value  float64 `db:"value"`
 }
 
-type Adapter struct {
-	ID       int64  `db:"id"`
-	Name     string `db:"name"`
-	Active   bool   `db:"active"`
-	Interval int    `db:"interval"`
+type Config struct {
+	ID            int32  `db:"id"`
+	Name          string `db:"name"`
+	FetchInterval int32  `db:"fetch_interval"`
 }
 
 type Proxy struct {
@@ -39,7 +38,7 @@ type Proxy struct {
 }
 
 type Fetcher struct {
-	Adapter
+	Config
 	Feeds []Feed
 
 	fetcherCtx context.Context
@@ -48,15 +47,15 @@ type Fetcher struct {
 }
 
 type Feed struct {
-	ID         int64           `db:"id"`
+	ID         int32           `db:"id"`
 	Name       string          `db:"name"`
 	Definition json.RawMessage `db:"definition"`
-	AdapterID  int64           `db:"adapter_id"`
+	ConfigID   int32           `db:"config_id"`
 }
 
 type App struct {
 	Bus          *bus.MessageBus
-	Fetchers     map[int64]*Fetcher
+	Fetchers     map[int32]*Fetcher
 	Proxies      []Proxy
 	ChainHelpers map[string]ChainHelper
 }
@@ -78,19 +77,19 @@ type Definition struct {
 }
 
 type Aggregate struct {
-	Name      string     `db:"name"`
+	ConfigId  int32      `db:"config_id"`
 	Value     int64      `db:"value"`
 	Timestamp *time.Time `db:"timestamp"`
 }
 
 type FeedDataFromDB struct {
-	AdapterID int64      `db:"adapter_id"`
-	Name      string     `db:"name"`
+	FeedId    int32      `db:"feed_id"`
 	Value     float64    `db:"value"`
 	Timestamp *time.Time `db:"timestamp"`
 }
 
-type redisAggregate struct {
+type RedisAggregate struct {
+	ConfigId  int32     `json:"configId"`
 	Value     int64     `json:"value"`
 	Timestamp time.Time `json:"timestamp"`
 }
