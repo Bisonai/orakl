@@ -91,6 +91,8 @@ func Insert(c *fiber.Ctx) error {
 		return err
 	}
 
+	setDefaultIntervals(config)
+
 	result, err := db.QueryRow[ConfigModel](c.Context(), InsertConfigQuery, map[string]any{
 		"name":               config.Name,
 		"address":            config.Address,
@@ -109,7 +111,7 @@ func Insert(c *fiber.Ctx) error {
 		}
 	}
 
-	return c.SendStatus(fiber.StatusCreated)
+	return c.JSON(result)
 }
 
 func Get(c *fiber.Ctx) error {
@@ -154,4 +156,19 @@ func bulkUpsertConfigs(ctx context.Context, configs []ConfigInsertModel) error {
 	}
 
 	return db.BulkUpsert(ctx, "configs", []string{"name", "address", "fetch_interval", "aggregate_interval", "submit_interval"}, upsertRows, []string{"name"}, []string{"address", "fetch_interval", "aggregate_interval", "submit_interval"})
+}
+
+func setDefaultIntervals(config *ConfigInsertModel) {
+	if config.FetchInterval == nil || *config.FetchInterval == 0 {
+		config.FetchInterval = new(int)
+		*config.FetchInterval = 2000
+	}
+	if config.AggregateInterval == nil || *config.AggregateInterval == 0 {
+		config.AggregateInterval = new(int)
+		*config.AggregateInterval = 5000
+	}
+	if config.SubmitInterval == nil || *config.SubmitInterval == 0 {
+		config.SubmitInterval = new(int)
+		*config.SubmitInterval = 15000
+	}
 }

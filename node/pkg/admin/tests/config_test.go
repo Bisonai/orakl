@@ -29,6 +29,28 @@ func TestConfigSync(t *testing.T) {
 	assert.Greater(t, len(readResult), 1)
 }
 
+func TestConfigInsert(t *testing.T) {
+	ctx := context.Background()
+	cleanup, testItems, err := setup(ctx)
+	if err != nil {
+		t.Fatalf("error setting up test: %v", err)
+	}
+	defer cleanup()
+
+	insertResult, err := PostRequest[config.ConfigModel](testItems.app, "/api/v1/config", config.ConfigModel{
+		Name:              "test",
+		Address:           "test",
+		FetchInterval:     nil,
+		AggregateInterval: nil,
+		SubmitInterval:    nil,
+	})
+	if err != nil {
+		t.Fatalf("error inserting config: %v", err)
+	}
+	assert.NotEqual(t, 0, insertResult.Id)
+
+}
+
 func TestConfigRead(t *testing.T) {
 	ctx := context.Background()
 	cleanup, testItems, err := setup(ctx)
