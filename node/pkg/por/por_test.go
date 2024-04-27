@@ -2,7 +2,6 @@ package por
 
 import (
 	"context"
-	"fmt"
 	"testing"
 	"time"
 
@@ -65,11 +64,10 @@ func TestFetch(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	value, err := app.Fetch(ctx)
+	_, err = app.Fetch(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
-	fmt.Println(value)
 }
 
 func TestExecute(t *testing.T) {
