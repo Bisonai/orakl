@@ -85,14 +85,57 @@ func Sync(c *fiber.Ctx) error {
 	return db.BulkUpsert(c.Context(), "feeds", []string{"name", "definition", "config_id"}, upsertRows, []string{"name"}, []string{"definition", "config_id"})
 }
 
-func Get(c *fiber.Ctx) error {
-	configs, err := db.QueryRows[ConfigModel](c.Context(), "SELECT * FROM configs", nil)
+func Insert(c *fiber.Ctx) error {
+	config := new(ConfigInsertModel)
+	if err := c.BodyParser(config); err != nil {
+		return err
+	}
+
+	result, err := db.QueryRow[ConfigModel](c.Context(), InsertConfigQuery, map[string]any{
+		"name":               config.Name,
+		"address":            config.Address,
+		"fetch_interval":     config.FetchInterval,
+		"aggregate_interval": config.AggregateInterval,
+		"submit_interval":    config.SubmitInterval})
 	if err != nil {
 		return err
 	}
 
-	return c.JSON(configs)
+	for _, feed := range config.Feeds {
+		feed.ConfigId = &result.Id
+		err = db.QueryWithoutResult(c.Context(), InsertFeedQuery, map[string]any{"name": feed.Name, "definition": feed.Definition, "config_id": result.Id})
+		if err != nil {
+			return err
+		}
+	}
 
+	return c.SendStatus(fiber.StatusCreated)
+}
+
+func Get(c *fiber.Ctx) error {
+	configs, err := db.QueryRows[ConfigModel](c.Context(), SelectConfigQuery, nil)
+	if err != nil {
+		return err
+	}
+	return c.JSON(configs)
+}
+
+func GetById(c *fiber.Ctx) error {
+	id := c.Params("id")
+	config, err := db.QueryRow[ConfigModel](c.Context(), SelectConfigByIdQuery, map[string]any{"id": id})
+	if err != nil {
+		return err
+	}
+	return c.JSON(config)
+}
+
+func DeleteById(c *fiber.Ctx) error {
+	id := c.Params("id")
+	deleted, err := db.QueryRow[ConfigModel](c.Context(), DeleteConfigQuery, map[string]any{"id": id})
+	if err != nil {
+		return err
+	}
+	return c.JSON(deleted)
 }
 
 func getConfigUrl() string {

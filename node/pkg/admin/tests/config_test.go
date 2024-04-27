@@ -2,6 +2,7 @@ package tests
 
 import (
 	"context"
+	"strconv"
 	"testing"
 
 	"bisonai.com/orakl/node/pkg/admin/config"
@@ -41,4 +42,42 @@ func TestConfigRead(t *testing.T) {
 		t.Fatalf("error getting config: %v", err)
 	}
 	assert.Greater(t, len(readResult), 0)
+}
+
+func TestConfigReadById(t *testing.T) {
+	ctx := context.Background()
+	cleanup, testItems, err := setup(ctx)
+	if err != nil {
+		t.Fatalf("error setting up test: %v", err)
+	}
+	defer cleanup()
+
+	readResult, err := GetRequest[config.ConfigModel](testItems.app, "/api/v1/config/"+strconv.Itoa(int(testItems.tmpData.config.Id)), nil)
+	if err != nil {
+		t.Fatalf("error getting config: %v", err)
+	}
+	assert.Equal(t, testItems.tmpData.config.Id, readResult.Id)
+}
+
+func TestConfigDeleteById(t *testing.T) {
+	ctx := context.Background()
+	cleanup, testItems, err := setup(ctx)
+	if err != nil {
+		t.Fatalf("error setting up test: %v", err)
+	}
+	defer cleanup()
+
+	deleted, err := DeleteRequest[config.ConfigModel](testItems.app, "/api/v1/config/"+strconv.Itoa(int(testItems.tmpData.config.Id)), nil)
+	if err != nil {
+		t.Fatalf("error deleting config: %v", err)
+	}
+	assert.Equal(t, testItems.tmpData.config.Id, deleted.Id)
+
+	readResult, err := GetRequest[[]config.ConfigModel](testItems.app, "/api/v1/config", nil)
+	if err != nil {
+		t.Fatalf("error getting config: %v", err)
+	}
+
+	assert.Equal(t, 0, len(readResult))
+
 }
