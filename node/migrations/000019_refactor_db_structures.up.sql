@@ -19,8 +19,8 @@ BEGIN
         END IF;
         ALTER TABLE feed_data DROP COLUMN name;
         ALTER TABLE feed_data DROP COLUMN adapter_id;
-        ALTER TABLE feed_data ADD COLUMN config_id INT4 NOT NULL;
-        ALTER TABLE feed_data ADD CONSTRAINT feed_data_config_id_fkey FOREIGN KEY (config_id) REFERENCES configs(id) ON DELETE CASCADE;
+        ALTER TABLE feed_data ADD COLUMN feed_id INT4 NOT NULL;
+        ALTER TABLE feed_data ADD CONSTRAINT feed_data_feed_id_fkey FOREIGN KEY (feed_id) REFERENCES feeds(id) ON DELETE CASCADE;
     END IF;
 
     -- local_aggregates

@@ -12,7 +12,7 @@ BEGIN
     -- feed_data
     ALTER TABLE feed_data DROP CONSTRAINT IF EXISTS feed_data_config_id_fkey;
     IF NOT EXISTS(SELECT 1 FROM information_schema.columns WHERE table_name = 'feed_data' AND column_name = 'name') THEN
-        ALTER TABLE feed_data DROP COLUMN IF EXISTS config_id;
+        ALTER TABLE feed_data DROP COLUMN IF EXISTS feed_id;
         ALTER TABLE feed_data ADD COLUMN name TEXT NOT NULL;
     END IF;
 
