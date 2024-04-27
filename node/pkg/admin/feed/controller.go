@@ -36,7 +36,7 @@ func getByConfigId(c *fiber.Ctx) error {
 	id := c.Params("id")
 	results, err := db.QueryRows[FeedModel](c.Context(), GetFeedsByConfigId, map[string]any{"config_id": id})
 	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).SendString("failed to execute feed get by adapter id query: " + err.Error())
+		return c.Status(fiber.StatusInternalServerError).SendString("failed to execute feed get by config id query: " + err.Error())
 	}
 	return c.JSON(results)
 }

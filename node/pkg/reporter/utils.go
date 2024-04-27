@@ -88,7 +88,7 @@ func StoreLastSubmission(ctx context.Context, aggregates []GlobalAggregate) erro
 
 	for _, agg := range aggregates {
 		if agg.ConfigID == 0 {
-			log.Error().Str("Player", "Reporter").Int32("name", agg.ConfigID).Msg("skipping invalid aggregate")
+			log.Error().Str("Player", "Reporter").Int32("ConfigID", agg.ConfigID).Msg("skipping invalid aggregate")
 			continue
 		}
 		key := "lastSubmission:" + strconv.Itoa(int(agg.ConfigID))
@@ -139,6 +139,18 @@ func ConvertPgsqlProofsToProofs(pgsqlProofs []PgsqlProof) []Proof {
 }
 
 func MakeContractArgsWithProofs(aggregates []GlobalAggregate, submissionPairs map[int32]SubmissionPair, proofMap map[int32][]byte) ([]common.Address, []*big.Int, [][]byte, []*big.Int, error) {
+	if len(aggregates) == 0 {
+		return nil, nil, nil, nil, errors.New("no aggregates")
+	}
+
+	if len(submissionPairs) == 0 {
+		return nil, nil, nil, nil, errors.New("no submission pairs")
+	}
+
+	if len(proofMap) == 0 {
+		return nil, nil, nil, nil, errors.New("no proofs")
+	}
+
 	addresses := make([]common.Address, len(aggregates))
 	values := make([]*big.Int, len(aggregates))
 	proofs := make([][]byte, len(aggregates))
@@ -193,10 +205,7 @@ func FilterInvalidAggregates(aggregates []GlobalAggregate, submissionPairs map[i
 
 func IsAggValid(aggregate GlobalAggregate, submissionPairs map[int32]SubmissionPair) bool {
 	lastSubmission := submissionPairs[aggregate.ConfigID].LastSubmission
-	if lastSubmission == 0 {
-		return true
-	}
-	return aggregate.Round > lastSubmission
+	return lastSubmission == 0 || aggregate.Round > lastSubmission
 }
 
 func GetProofs(ctx context.Context, aggregates []GlobalAggregate) ([]Proof, error) {

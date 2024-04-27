@@ -231,18 +231,23 @@ func TestUpdateProofs(t *testing.T) {
 	defer func() {
 		err := db.QueryWithoutResult(ctx, "DELETE FROM proofs", nil)
 		if err != nil {
-			t.Fatalf("QueryWithoutResult failed: %v", err)
+			t.Logf("QueryWithoutResult failed: %v", err)
 		}
 
 		err = db.QueryWithoutResult(ctx, "DELETE FROM configs", nil)
 		if err != nil {
-			t.Fatalf("QueryWithoutResult failed: %v", err)
+			t.Logf("QueryWithoutResult failed: %v", err)
 		}
 	}()
 
 	tmpConfigs := []ReporterConfig{}
 	for i := 0; i < 3; i++ {
-		tmpConfig, err := db.QueryRow[ReporterConfig](ctx, InsertConfigQuery, map[string]any{"name": "test-aggregate-" + strconv.Itoa(i), "address": "0x1234" + strconv.Itoa(i), "submit_interval": TestInterval, "fetch_interval": TestInterval, "aggregate_interval": TestInterval})
+		tmpConfig, err := db.QueryRow[ReporterConfig](ctx, InsertConfigQuery, map[string]any{
+			"name":               "test-aggregate-" + strconv.Itoa(i),
+			"address":            "0x1234" + strconv.Itoa(i),
+			"submit_interval":    TestInterval,
+			"fetch_interval":     TestInterval,
+			"aggregate_interval": TestInterval})
 		if err != nil {
 			t.Fatalf("QueryRow failed: %v", err)
 		}

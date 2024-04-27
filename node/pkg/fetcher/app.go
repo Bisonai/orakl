@@ -78,6 +78,7 @@ func (a *App) handleMessage(ctx context.Context, msg bus.Message) {
 		log.Debug().Str("Player", "Fetcher").Msg("activate fetcher msg received")
 		configId, err := bus.ParseInt32MsgParam(msg, "id")
 		if err != nil {
+			log.Error().Err(err).Str("Player", "Fetcher").Msg("failed to parse configId")
 			bus.HandleMessageError(err, msg, "failed to parse configId")
 			return
 		}
@@ -85,6 +86,7 @@ func (a *App) handleMessage(ctx context.Context, msg bus.Message) {
 		log.Debug().Str("Player", "Fetcher").Int32("configId", configId).Msg("activating fetcher")
 		err = a.startFetcherById(ctx, configId)
 		if err != nil {
+			log.Error().Err(err).Str("Player", "Fetcher").Msg("failed to start fetcher")
 			bus.HandleMessageError(err, msg, "failed to start fetcher")
 			return
 		}
@@ -93,6 +95,7 @@ func (a *App) handleMessage(ctx context.Context, msg bus.Message) {
 		log.Debug().Str("Player", "Fetcher").Msg("deactivate fetcher msg received")
 		configId, err := bus.ParseInt32MsgParam(msg, "id")
 		if err != nil {
+			log.Error().Err(err).Str("Player", "Fetcher").Msg("failed to parse configId")
 			bus.HandleMessageError(err, msg, "failed to parse configId")
 			return
 		}
@@ -100,6 +103,7 @@ func (a *App) handleMessage(ctx context.Context, msg bus.Message) {
 		log.Debug().Str("Player", "Fetcher").Int32("configId", configId).Msg("deactivating fetcher")
 		err = a.stopFetcherById(ctx, configId)
 		if err != nil {
+			log.Error().Err(err).Str("Player", "Fetcher").Msg("failed to stop fetcher")
 			bus.HandleMessageError(err, msg, "failed to stop fetcher")
 			return
 		}
@@ -108,6 +112,7 @@ func (a *App) handleMessage(ctx context.Context, msg bus.Message) {
 		log.Debug().Str("Player", "Fetcher").Msg("stopping all fetchers")
 		err := a.stopAllFetchers(ctx)
 		if err != nil {
+			log.Error().Err(err).Str("Player", "Fetcher").Msg("failed to stop all fetchers")
 			bus.HandleMessageError(err, msg, "failed to stop all fetchers")
 			return
 		}
@@ -116,6 +121,7 @@ func (a *App) handleMessage(ctx context.Context, msg bus.Message) {
 		log.Debug().Str("Player", "Fetcher").Msg("starting all fetchers")
 		err := a.startAllFetchers(ctx)
 		if err != nil {
+			log.Error().Err(err).Str("Player", "Fetcher").Msg("failed to start all fetchers")
 			bus.HandleMessageError(err, msg, "failed to start all fetchers")
 			return
 		}
@@ -123,16 +129,19 @@ func (a *App) handleMessage(ctx context.Context, msg bus.Message) {
 	case bus.REFRESH_FETCHER_APP:
 		err := a.stopAllFetchers(ctx)
 		if err != nil {
+			log.Error().Err(err).Str("Player", "Fetcher").Msg("failed to stop all fetchers")
 			bus.HandleMessageError(err, msg, "failed to stop all fetchers")
 			return
 		}
 		err = a.initialize(ctx)
 		if err != nil {
+			log.Error().Err(err).Str("Player", "Fetcher").Msg("failed to initialize fetchers")
 			bus.HandleMessageError(err, msg, "failed to initialize fetchers")
 			return
 		}
 		err = a.startAllFetchers(ctx)
 		if err != nil {
+			log.Error().Err(err).Str("Player", "Fetcher").Msg("failed to start all fetchers")
 			bus.HandleMessageError(err, msg, "failed to start all fetchers")
 			return
 		}

@@ -64,7 +64,7 @@ func (a *App) setReporters(ctx context.Context, h host.Host, ps *pubsub.PubSub) 
 
 	reporterConfigs, err := getReporterConfigs(ctx)
 	if err != nil {
-		log.Error().Str("Player", "Reporter").Err(err).Msg("failed to get submission pairs")
+		log.Error().Str("Player", "Reporter").Err(err).Msg("failed to get reporter configs")
 		return err
 	}
 
@@ -85,7 +85,7 @@ func (a *App) setReporters(ctx context.Context, h host.Host, ps *pubsub.PubSub) 
 
 	deviationReporter, err := NewDeviationReporter(ctx, h, ps, reporterConfigs, contractAddress, cachedWhitelist)
 	if err != nil {
-		log.Error().Str("Player", "Reporter").Err(err).Msg("failed to set deviation reporter")
+		log.Error().Str("Player", "Reporter").Err(err).Msg("failed to create deviation reporter")
 		return err
 	}
 	a.Reporters = append(a.Reporters, deviationReporter)
@@ -278,7 +278,7 @@ func stopReporter(reporter *Reporter) error {
 func getReporterConfigs(ctx context.Context) ([]ReporterConfig, error) {
 	reporterConfigs, err := db.QueryRows[ReporterConfig](ctx, GET_REPORTER_CONFIGS, nil)
 	if err != nil {
-		log.Error().Str("Player", "Reporter").Err(err).Msg("failed to load submission addresses")
+		log.Error().Str("Player", "Reporter").Err(err).Msg("failed to load reporter configs")
 		return nil, err
 	}
 	return reporterConfigs, nil
@@ -288,7 +288,7 @@ func groupReporterConfigsByIntervals(reporterConfigs []ReporterConfig) map[int][
 	grouped := make(map[int][]ReporterConfig)
 	for _, sa := range reporterConfigs {
 		var interval = 5000
-		if sa.SubmitInterval != nil || *sa.SubmitInterval > 0 {
+		if sa.SubmitInterval != nil && *sa.SubmitInterval > 0 {
 			interval = *sa.SubmitInterval
 		}
 		grouped[interval] = append(grouped[interval], sa)

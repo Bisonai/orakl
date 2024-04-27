@@ -545,8 +545,7 @@ func cleanup(app *fiber.App, ctx context.Context, insertResult []config.ConfigMo
 			if err != nil {
 				return err
 			}
-			err = app.Shutdown()
-			if err != nil {
+			if err := app.Shutdown(); err != nil {
 				return err
 			}
 		}

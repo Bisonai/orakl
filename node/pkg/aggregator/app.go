@@ -44,6 +44,7 @@ func (a *App) setAggregators(ctx context.Context, h host.Host, ps *pubsub.PubSub
 
 	loadedAggregators, err := a.getAggregatorConfigs(ctx)
 	if err != nil {
+		log.Error().Str("Player", "Aggregator").Err(err).Msg("failed to get aggregator configs")
 		return err
 	}
 
