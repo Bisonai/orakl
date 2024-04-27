@@ -15,12 +15,12 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-func NewFetcher(config Config, feeds []Feed) *Fetcher {
+func NewFetcher(config FetcherConfig, feeds []Feed) *Fetcher {
 	return &Fetcher{
-		Config:     config,
-		Feeds:      feeds,
-		fetcherCtx: nil,
-		cancel:     nil,
+		FetcherConfig: config,
+		Feeds:         feeds,
+		fetcherCtx:    nil,
+		cancel:        nil,
 	}
 }
 

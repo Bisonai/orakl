@@ -40,7 +40,7 @@ func TestGetAggregators(t *testing.T) {
 		}
 	}()
 
-	aggregators, err := testItems.app.getAggregators(ctx)
+	aggregators, err := testItems.app.getAggregatorConfigs(ctx)
 	if err != nil {
 		t.Fatal("error getting aggregators")
 	}
@@ -99,7 +99,7 @@ func TestStartAggregatorById(t *testing.T) {
 		t.Fatal("Aggregator should not be running before test")
 	}
 
-	err = testItems.app.startAggregatorById(ctx, testItems.app.Aggregators[testItems.tmpData.config.ID].Config.ID)
+	err = testItems.app.startAggregatorById(ctx, testItems.app.Aggregators[testItems.tmpData.config.ID].AggregatorConfig.ID)
 	if err != nil {
 		t.Fatal("error starting aggregator")
 	}
@@ -158,7 +158,7 @@ func TestStopAggregatorById(t *testing.T) {
 		t.Fatal("error starting aggregator")
 	}
 
-	err = testItems.app.stopAggregatorById(testItems.app.Aggregators[testItems.tmpData.config.ID].Config.ID)
+	err = testItems.app.stopAggregatorById(testItems.app.Aggregators[testItems.tmpData.config.ID].AggregatorConfig.ID)
 	if err != nil {
 		t.Fatal("error stopping aggregator")
 	}
@@ -241,7 +241,7 @@ func TestDeactivateAggregatorByAdmin(t *testing.T) {
 		t.Fatal("error initializing app")
 	}
 
-	err = testItems.app.startAggregatorById(ctx, testItems.app.Aggregators[testItems.tmpData.config.ID].Config.ID)
+	err = testItems.app.startAggregatorById(ctx, testItems.app.Aggregators[testItems.tmpData.config.ID].AggregatorConfig.ID)
 	if err != nil {
 		t.Fatal("error starting aggregator")
 	}

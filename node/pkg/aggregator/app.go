@@ -42,7 +42,7 @@ func (a *App) setAggregators(ctx context.Context, h host.Host, ps *pubsub.PubSub
 		return err
 	}
 
-	loadedAggregators, err := a.getAggregators(ctx)
+	loadedAggregators, err := a.getAggregatorConfigs(ctx)
 	if err != nil {
 		return err
 	}
@@ -67,7 +67,7 @@ func (a *App) clearAggregators() error {
 	return nil
 }
 
-func (a *App) initializeLoadedAggregators(loadedAggregators []Config, h host.Host, ps *pubsub.PubSub) error {
+func (a *App) initializeLoadedAggregators(loadedAggregators []AggregatorConfig, h host.Host, ps *pubsub.PubSub) error {
 	for _, aggregator := range loadedAggregators {
 		if a.Aggregators[aggregator.ID] != nil {
 			continue
@@ -84,8 +84,8 @@ func (a *App) initializeLoadedAggregators(loadedAggregators []Config, h host.Hos
 	return nil
 }
 
-func (a *App) getAggregators(ctx context.Context) ([]Config, error) {
-	return db.QueryRows[Config](ctx, SelectConfigQuery, nil)
+func (a *App) getAggregatorConfigs(ctx context.Context) ([]AggregatorConfig, error) {
+	return db.QueryRows[AggregatorConfig](ctx, SelectConfigQuery, nil)
 }
 
 func (a *App) startAggregator(ctx context.Context, aggregator *Aggregator) error {

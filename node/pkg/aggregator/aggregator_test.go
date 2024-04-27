@@ -30,7 +30,7 @@ func TestNewAggregator(t *testing.T) {
 }
 
 func TestNewAggregator_Error(t *testing.T) {
-	_, err := NewAggregator(nil, nil, "", Config{})
+	_, err := NewAggregator(nil, nil, "", AggregatorConfig{})
 	assert.NotNil(t, err, "Expected error when creating new aggregator with nil parameters")
 }
 

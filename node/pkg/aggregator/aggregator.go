@@ -16,7 +16,7 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-func NewAggregator(h host.Host, ps *pubsub.PubSub, topicString string, config Config) (*Aggregator, error) {
+func NewAggregator(h host.Host, ps *pubsub.PubSub, topicString string, config AggregatorConfig) (*Aggregator, error) {
 	if h == nil || ps == nil || topicString == "" {
 		return nil, fmt.Errorf("invalid parameters")
 	}
@@ -36,7 +36,7 @@ func NewAggregator(h host.Host, ps *pubsub.PubSub, topicString string, config Co
 	aggregateInterval := time.Duration(config.AggregateInterval) * time.Millisecond
 
 	aggregator := Aggregator{
-		Config:                  config,
+		AggregatorConfig:        config,
 		Raft:                    raft.NewRaftNode(h, ps, topic, 100, aggregateInterval),
 		CollectedPrices:         map[int64][]int64{},
 		CollectedProofs:         map[int64][][]byte{},
