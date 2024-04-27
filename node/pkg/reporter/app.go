@@ -62,15 +62,15 @@ func (a *App) setReporters(ctx context.Context, h host.Host, ps *pubsub.PubSub) 
 		cachedWhitelist = []common.Address{}
 	}
 
-	submissionPairs, err := getSubmissionPairs(ctx)
+	reporterConfigs, err := getReporterConfigs(ctx)
 	if err != nil {
 		log.Error().Str("Player", "Reporter").Err(err).Msg("failed to get submission pairs")
 		return err
 	}
 
-	groupedSubmissionPairs := groupSubmissionPairsByIntervals(submissionPairs)
-	for groupInterval, pairs := range groupedSubmissionPairs {
-		reporter, errNewReporter := NewReporter(ctx, h, ps, pairs, groupInterval, contractAddress, cachedWhitelist)
+	groupedReporterConfigs := groupReporterConfigsByIntervals(reporterConfigs)
+	for groupInterval, configs := range groupedReporterConfigs {
+		reporter, errNewReporter := NewReporter(ctx, h, ps, configs, groupInterval, contractAddress, cachedWhitelist)
 		if errNewReporter != nil {
 			log.Error().Str("Player", "Reporter").Err(errNewReporter).Msg("failed to set reporter")
 			continue
@@ -83,7 +83,7 @@ func (a *App) setReporters(ctx context.Context, h host.Host, ps *pubsub.PubSub) 
 		return errors.New("no reporters set")
 	}
 
-	deviationReporter, err := NewDeviationReporter(ctx, h, ps, submissionPairs, contractAddress, cachedWhitelist)
+	deviationReporter, err := NewDeviationReporter(ctx, h, ps, reporterConfigs, contractAddress, cachedWhitelist)
 	if err != nil {
 		log.Error().Str("Player", "Reporter").Err(err).Msg("failed to set deviation reporter")
 		return err
@@ -275,21 +275,21 @@ func stopReporter(reporter *Reporter) error {
 	return nil
 }
 
-func getSubmissionPairs(ctx context.Context) ([]SubmissionAddress, error) {
-	submissionAddresses, err := db.QueryRows[SubmissionAddress](ctx, "SELECT * FROM submission_addresses;", nil)
+func getReporterConfigs(ctx context.Context) ([]ReporterConfig, error) {
+	reporterConfigs, err := db.QueryRows[ReporterConfig](ctx, GET_REPORTER_CONFIGS, nil)
 	if err != nil {
 		log.Error().Str("Player", "Reporter").Err(err).Msg("failed to load submission addresses")
 		return nil, err
 	}
-	return submissionAddresses, nil
+	return reporterConfigs, nil
 }
 
-func groupSubmissionPairsByIntervals(submissionAddresses []SubmissionAddress) map[int][]SubmissionAddress {
-	grouped := make(map[int][]SubmissionAddress)
-	for _, sa := range submissionAddresses {
+func groupReporterConfigsByIntervals(reporterConfigs []ReporterConfig) map[int][]ReporterConfig {
+	grouped := make(map[int][]ReporterConfig)
+	for _, sa := range reporterConfigs {
 		var interval = 5000
-		if sa.Interval != nil || *sa.Interval > 0 {
-			interval = *sa.Interval
+		if sa.SubmitInterval != nil || *sa.SubmitInterval > 0 {
+			interval = *sa.SubmitInterval
 		}
 		grouped[interval] = append(grouped[interval], sa)
 	}

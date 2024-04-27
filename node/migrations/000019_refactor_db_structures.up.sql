@@ -51,6 +51,7 @@ BEGIN
         ALTER TABLE proofs DROP COLUMN name;
         ALTER TABLE proofs ADD COLUMN config_id INT4 NOT NULL;
         ALTER TABLE proofs ADD CONSTRAINT proofs_config_id_fkey FOREIGN KEY (config_id) REFERENCES configs(id) ON DELETE CASCADE;
+        ALTER TABLE proofs ADD CONSTRAINT proofs_config_id_round_key UNIQUE (config_id, round);
     END IF;
 
     -- 2. drop tables

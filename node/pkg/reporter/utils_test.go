@@ -2,6 +2,7 @@ package reporter
 
 import (
 	"context"
+	"strconv"
 	"testing"
 	"time"
 
@@ -227,60 +228,73 @@ func TestRemoveDuplicateProof(t *testing.T) {
 
 func TestUpdateProofs(t *testing.T) {
 	ctx := context.Background()
+	defer func() {
+		err := db.QueryWithoutResult(ctx, "DELETE FROM proofs", nil)
+		if err != nil {
+			t.Fatalf("QueryWithoutResult failed: %v", err)
+		}
 
-	aggregates := []GlobalAggregate{
-		{Name: "aggregate1", Round: 1},
-		{Name: "aggregate2", Round: 2},
-		{Name: "aggregate3", Round: 3},
+		err = db.QueryWithoutResult(ctx, "DELETE FROM configs", nil)
+		if err != nil {
+			t.Fatalf("QueryWithoutResult failed: %v", err)
+		}
+	}()
+
+	tmpConfigs := []ReporterConfig{}
+	for i := 0; i < 3; i++ {
+		tmpConfig, err := db.QueryRow[ReporterConfig](ctx, InsertConfigQuery, map[string]any{"name": "test-aggregate-" + strconv.Itoa(i), "address": "0x1234" + strconv.Itoa(i), "submit_interval": TestInterval, "fetch_interval": TestInterval, "aggregate_interval": TestInterval})
+		if err != nil {
+			t.Fatalf("QueryRow failed: %v", err)
+		}
+		tmpConfigs = append(tmpConfigs, tmpConfig)
 	}
 
-	proofMap := map[string][]byte{
-		"aggregate1": []byte("proof1"),
-		"aggregate2": []byte("proof2"),
+	aggregates := []GlobalAggregate{
+		{ConfigID: tmpConfigs[0].ID, Round: 1},
+		{ConfigID: tmpConfigs[1].ID, Round: 2},
+		{ConfigID: tmpConfigs[2].ID, Round: 3},
+	}
+
+	proofMap := map[int32][]byte{
+		tmpConfigs[0].ID: []byte("proof1"),
+		tmpConfigs[1].ID: []byte("proof2"),
 	}
 
 	expectedUpsertRows := [][]any{
-		{"aggregate1", int64(1), []byte("proof1")},
-		{"aggregate2", int64(2), []byte("proof2")},
+		{tmpConfigs[0].ID, int64(1), []byte("proof1")},
+		{tmpConfigs[1].ID, int64(2), []byte("proof2")},
 	}
 	err := UpsertProofs(ctx, aggregates, proofMap)
 	if err != nil {
 		t.Fatalf("UpsertProofs failed: %v", err)
 	}
-	result, err := db.QueryRows[PgsqlProof](ctx, "SELECT * FROM proofs WHERE name IN ('aggregate1', 'aggregate2')", nil)
+	result, err := db.QueryRows[PgsqlProof](ctx, "SELECT * FROM proofs WHERE config_id IN ("+strconv.Itoa(int(tmpConfigs[0].ID))+", "+strconv.Itoa(int(tmpConfigs[1].ID))+")", nil)
 	if err != nil {
 		t.Fatalf("QueryRows failed: %v", err)
 	}
 
 	for i, p := range result {
-		assert.Equal(t, expectedUpsertRows[i], []any{p.Name, p.Round, p.Proof})
+		assert.Equal(t, expectedUpsertRows[i], []any{p.ConfigID, p.Round, p.Proof})
 	}
 
-	proofMap = map[string][]byte{
-		"aggregate1": []byte("proof3"),
-		"aggregate2": []byte("proof4"),
+	proofMap = map[int32][]byte{
+		tmpConfigs[0].ID: []byte("proof3"),
+		tmpConfigs[1].ID: []byte("proof4"),
 	}
 	expectedUpsertRows = [][]any{
-		{"aggregate1", int64(1), []byte("proof3")},
-		{"aggregate2", int64(2), []byte("proof4")},
+		{tmpConfigs[0].ID, int64(1), []byte("proof3")},
+		{tmpConfigs[1].ID, int64(2), []byte("proof4")},
 	}
 	err = UpdateProofs(ctx, aggregates, proofMap)
 	if err != nil {
 		t.Fatalf("UpdateProofs failed: %v", err)
 	}
-	result, err = db.QueryRows[PgsqlProof](ctx, "SELECT * FROM proofs WHERE name IN ('aggregate1', 'aggregate2')", nil)
+	result, err = db.QueryRows[PgsqlProof](ctx, "SELECT * FROM proofs WHERE config_id IN ("+strconv.Itoa(int(tmpConfigs[0].ID))+", "+strconv.Itoa(int(tmpConfigs[1].ID))+")", nil)
 	if err != nil {
 		t.Fatalf("QueryRows failed: %v", err)
 	}
 
 	for i, p := range result {
-		assert.Equal(t, expectedUpsertRows[i], []any{p.Name, p.Round, p.Proof})
-	}
-
-	assert.NoError(t, err)
-
-	err = db.QueryWithoutResult(ctx, "DELETE FROM proofs WHERE name IN ('aggregate1', 'aggregate2')", nil)
-	if err != nil {
-		t.Fatalf("QueryWithoutResult failed: %v", err)
+		assert.Equal(t, expectedUpsertRows[i], []any{p.ConfigID, p.Round, p.Proof})
 	}
 }

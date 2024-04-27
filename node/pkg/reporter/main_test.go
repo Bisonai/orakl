@@ -6,10 +6,10 @@ import (
 	"context"
 	"encoding/json"
 	"os"
+	"strconv"
 	"testing"
 	"time"
 
-	"bisonai.com/orakl/node/pkg/admin/aggregator"
 	"bisonai.com/orakl/node/pkg/admin/reporter"
 	"bisonai.com/orakl/node/pkg/admin/utils"
 	"bisonai.com/orakl/node/pkg/bus"
@@ -18,10 +18,11 @@ import (
 	libp2p_setup "bisonai.com/orakl/node/pkg/libp2p/setup"
 	"github.com/gofiber/fiber/v2"
 	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 )
 
-const InsertGlobalAggregateQuery = `INSERT INTO global_aggregates (name, value, round, timestamp) VALUES (@name, @value, @round, @timestamp) RETURNING *`
-const InsertAddressQuery = `INSERT INTO submission_addresses (name, address, interval) VALUES (@name, @address, @interval) RETURNING *`
+const InsertGlobalAggregateQuery = `INSERT INTO global_aggregates (config_id, value, round, timestamp) VALUES (@config_id, @value, @round, @timestamp) RETURNING *`
+const InsertConfigQuery = `INSERT INTO configs (name, address, fetch_interval, aggregate_interval, submit_interval) VALUES (@name, @address, @fetch_interval, @aggregate_interval, @submit_interval) RETURNING name, id, submit_interval, address;`
 const TestInterval = 15000
 
 type TestItems struct {
@@ -31,10 +32,10 @@ type TestItems struct {
 	tmpData    *TmpData
 }
 type TmpData struct {
-	globalAggregate   GlobalAggregate
-	submissionAddress SubmissionAddress
-	proofBytes        []byte
-	proofTime         time.Time
+	globalAggregate GlobalAggregate
+	reporterConfig  ReporterConfig
+	proofBytes      []byte
+	proofTime       time.Time
 }
 
 func insertSampleData(ctx context.Context) (*TmpData, error) {
@@ -45,24 +46,28 @@ func insertSampleData(ctx context.Context) (*TmpData, error) {
 		return nil, err
 	}
 	proofTime := time.Now()
-	key := "globalAggregate:" + "test-aggregate"
-	data, err := json.Marshal(map[string]any{"name": "test-aggregate", "value": int64(15), "round": int64(1), "timestamp": proofTime})
+
+	tmpConfig, err := db.QueryRow[ReporterConfig](ctx, InsertConfigQuery, map[string]any{"name": "test-aggregate", "address": "0x1234", "submit_interval": TestInterval, "fetch_interval": TestInterval, "aggregate_interval": TestInterval})
+	if err != nil {
+		log.Error().Err(err).Msg("error inserting config 0")
+		return nil, err
+	}
+	tmpData.reporterConfig = tmpConfig
+
+	err = db.QueryWithoutResult(ctx, InsertConfigQuery, map[string]any{"name": "test-aggregate-2", "address": "0xabcd", "submit_interval": TestInterval * 2, "fetch_interval": TestInterval, "aggregate_interval": TestInterval})
+	if err != nil {
+		log.Error().Err(err).Msg("error inserting config 1")
+		return nil, err
+	}
+
+	key := "globalAggregate:" + strconv.Itoa(int(tmpConfig.ID))
+	data, err := json.Marshal(map[string]any{"configId": tmpConfig.ID, "value": int64(15), "round": int64(1), "timestamp": proofTime})
 	if err != nil {
 		return nil, err
 	}
 	db.Set(ctx, key, string(data), time.Duration(10*time.Second))
 
-	err = db.QueryWithoutResult(ctx, aggregator.InsertAggregator, map[string]any{"name": "test-aggregate"})
-	if err != nil {
-		return nil, err
-	}
-
-	err = db.QueryWithoutResult(ctx, aggregator.InsertAggregator, map[string]any{"name": "test-aggregate2"})
-	if err != nil {
-		return nil, err
-	}
-
-	tmpGlobalAggregate, err := db.QueryRow[GlobalAggregate](ctx, InsertGlobalAggregateQuery, map[string]any{"name": "test-aggregate", "value": int64(15), "round": int64(1), "timestamp": proofTime})
+	tmpGlobalAggregate, err := db.QueryRow[GlobalAggregate](ctx, InsertGlobalAggregateQuery, map[string]any{"config_id": tmpConfig.ID, "value": int64(15), "round": int64(1), "timestamp": proofTime})
 	if err != nil {
 		return nil, err
 	}
@@ -75,33 +80,22 @@ func insertSampleData(ctx context.Context) (*TmpData, error) {
 	tmpData.proofBytes = bytes.Join([][]byte{rawProof}, nil)
 	tmpData.proofTime = proofTime
 
-	err = db.QueryWithoutResult(ctx, "INSERT INTO proofs (name, round, proof) VALUES (@name, @round, @proof)", map[string]any{"name": "test-aggregate", "round": int64(1), "proof": bytes.Join([][]byte{rawProof}, nil)})
+	err = db.QueryWithoutResult(ctx, "INSERT INTO proofs (config_id, round, proof) VALUES (@config_id, @round, @proof)", map[string]any{"config_id": tmpConfig.ID, "round": int64(1), "proof": bytes.Join([][]byte{rawProof}, nil)})
 	if err != nil {
 		return nil, err
 	}
 
 	rdbProof := Proof{
-		Name:  "test-aggregate",
-		Round: int64(1),
-		Proof: bytes.Join([][]byte{rawProof}, nil),
+		ConfigID: tmpConfig.ID,
+		Round:    int64(1),
+		Proof:    bytes.Join([][]byte{rawProof}, nil),
 	}
 	rdbProofData, err := json.Marshal(rdbProof)
 	if err != nil {
 		return nil, err
 	}
 
-	err = db.Set(ctx, "proof:test-aggregate|round:1", string(rdbProofData), time.Duration(10*time.Second))
-	if err != nil {
-		return nil, err
-	}
-
-	tmpAddress, err := db.QueryRow[SubmissionAddress](ctx, InsertAddressQuery, map[string]any{"name": "test-aggregate", "address": "0x1234", "interval": TestInterval})
-	if err != nil {
-		return nil, err
-	}
-	tmpData.submissionAddress = tmpAddress
-
-	_, err = db.QueryRow[SubmissionAddress](ctx, InsertAddressQuery, map[string]any{"name": "test-aggregate2", "address": "0x1234", "interval": 20000})
+	err = db.Set(ctx, "proof:"+strconv.Itoa(int(tmpConfig.ID))+"|round:1", string(rdbProofData), time.Duration(10*time.Second))
 	if err != nil {
 		return nil, err
 	}
@@ -153,22 +147,17 @@ func setup(ctx context.Context) (func() error, *TestItems, error) {
 
 func reporterCleanup(ctx context.Context, admin *fiber.App, testItems *TestItems) func() error {
 	return func() error {
-		err := db.QueryWithoutResult(ctx, "DELETE FROM aggregators;", nil)
-		if err != nil {
-			return err
-		}
-
-		err = db.QueryWithoutResult(ctx, "DELETE FROM global_aggregates;", nil)
-		if err != nil {
-			return err
-		}
-
-		err = db.QueryWithoutResult(ctx, "DELETE FROM submission_addresses;", nil)
+		err := db.QueryWithoutResult(ctx, "DELETE FROM global_aggregates;", nil)
 		if err != nil {
 			return err
 		}
 
 		err = db.QueryWithoutResult(ctx, "DELETE FROM proofs;", nil)
+		if err != nil {
+			return err
+		}
+
+		err = db.QueryWithoutResult(ctx, "DELETE FROM configs;", nil)
 		if err != nil {
 			return err
 		}
