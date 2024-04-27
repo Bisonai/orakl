@@ -23,14 +23,14 @@ func TestNewAggregator(t *testing.T) {
 		}
 	}()
 
-	_, err = NewAggregator(testItems.app.Host, testItems.app.Pubsub, testItems.topicString, testItems.tmpData.aggregator)
+	_, err = NewAggregator(testItems.app.Host, testItems.app.Pubsub, testItems.topicString, testItems.tmpData.config)
 	if err != nil {
 		t.Fatal("error creating new node")
 	}
 }
 
 func TestNewAggregator_Error(t *testing.T) {
-	_, err := NewAggregator(nil, nil, "", AggregatorModel{})
+	_, err := NewAggregator(nil, nil, "", Config{})
 	assert.NotNil(t, err, "Expected error when creating new aggregator with nil parameters")
 }
 
@@ -46,7 +46,7 @@ func TestLeaderJob(t *testing.T) {
 		}
 	}()
 
-	node, err := NewAggregator(testItems.app.Host, testItems.app.Pubsub, testItems.topicString, testItems.tmpData.aggregator)
+	node, err := NewAggregator(testItems.app.Host, testItems.app.Pubsub, testItems.topicString, testItems.tmpData.config)
 	if err != nil {
 		t.Fatal("error creating new node")
 	}
@@ -70,7 +70,7 @@ func TestGetLatestLocalAggregate(t *testing.T) {
 		}
 	}()
 
-	node, err := NewAggregator(testItems.app.Host, testItems.app.Pubsub, testItems.topicString, testItems.tmpData.aggregator)
+	node, err := NewAggregator(testItems.app.Host, testItems.app.Pubsub, testItems.topicString, testItems.tmpData.config)
 
 	if err != nil {
 		t.Fatal("error creating new node")
@@ -78,7 +78,7 @@ func TestGetLatestLocalAggregate(t *testing.T) {
 
 	node.Name = "test_pair"
 
-	val, dbTime, err := GetLatestLocalAggregate(ctx, node.Name)
+	val, dbTime, err := GetLatestLocalAggregate(ctx, node.ID)
 	if err != nil {
 		t.Fatal("error getting latest local aggregate")
 	}
@@ -104,14 +104,14 @@ func TestGetLatestRoundId(t *testing.T) {
 		}
 	}()
 
-	node, err := NewAggregator(testItems.app.Host, testItems.app.Pubsub, testItems.topicString, testItems.tmpData.aggregator)
+	node, err := NewAggregator(testItems.app.Host, testItems.app.Pubsub, testItems.topicString, testItems.tmpData.config)
 	if err != nil {
 		t.Fatal("error creating new node")
 	}
 
 	node.Name = "test_pair"
 
-	roundId, err := getLatestRoundId(ctx, node.Name)
+	roundId, err := getLatestRoundId(ctx, node.ID)
 	if err != nil {
 		t.Fatal("error getting latest round id")
 	}
@@ -131,24 +131,22 @@ func TestInsertGlobalAggregate(t *testing.T) {
 		}
 	}()
 
-	node, err := NewAggregator(testItems.app.Host, testItems.app.Pubsub, testItems.topicString, testItems.tmpData.aggregator)
+	node, err := NewAggregator(testItems.app.Host, testItems.app.Pubsub, testItems.topicString, testItems.tmpData.config)
 	if err != nil {
 		t.Fatal("error creating new node")
 	}
 
-	node.Name = "test_pair"
-
-	err = InsertGlobalAggregate(ctx, node.Name, 20, 2, time.Now())
+	err = InsertGlobalAggregate(ctx, node.ID, 20, 2, time.Now())
 	if err != nil {
 		t.Fatal("error inserting global aggregate")
 	}
 
-	roundId, err := getLatestRoundId(ctx, node.Name)
+	roundId, err := getLatestRoundId(ctx, node.ID)
 	if err != nil {
 		t.Fatal("error getting latest round id")
 	}
 
-	redisResult, err := getLatestGlobalAggregateFromRdb(ctx, "test_pair")
+	redisResult, err := getLatestGlobalAggregateFromRdb(ctx, node.ID)
 	if err != nil {
 		t.Fatal("error getting latest global aggregate from rdb")
 	}
@@ -169,12 +167,10 @@ func TestInsertProof(t *testing.T) {
 		}
 	}()
 
-	node, err := NewAggregator(testItems.app.Host, testItems.app.Pubsub, testItems.topicString, testItems.tmpData.aggregator)
+	node, err := NewAggregator(testItems.app.Host, testItems.app.Pubsub, testItems.topicString, testItems.tmpData.config)
 	if err != nil {
 		t.Fatal("error creating new node")
 	}
-
-	node.Name = "test_pair"
 
 	value := int64(20)
 	round := int64(2)
@@ -183,19 +179,19 @@ func TestInsertProof(t *testing.T) {
 		t.Fatal("error making global aggregate proof")
 	}
 
-	err = InsertProof(ctx, node.Name, round, [][]byte{p, p})
+	err = InsertProof(ctx, node.ID, round, [][]byte{p, p})
 	if err != nil {
 		t.Fatal("error inserting proof")
 	}
 
-	rdbResult, err := getProofFromRdb(ctx, node.Name, round)
+	rdbResult, err := getProofFromRdb(ctx, node.ID, round)
 	if err != nil {
 		t.Fatal("error getting proof from rdb")
 	}
 
 	assert.EqualValues(t, bytes.Join([][]byte{p, p}, nil), rdbResult.Proof)
 
-	pgsqlResult, err := getProofFromPgsql(ctx, node.Name, round)
+	pgsqlResult, err := getProofFromPgsql(ctx, node.ID, round)
 	if err != nil {
 		t.Fatal("error getting proof from pgsql:" + err.Error())
 	}

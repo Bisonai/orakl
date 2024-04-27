@@ -6,7 +6,6 @@ import (
 	"strconv"
 	"testing"
 
-	"bisonai.com/orakl/node/pkg/admin/aggregator"
 	"bisonai.com/orakl/node/pkg/admin/tests"
 	"github.com/stretchr/testify/assert"
 )
@@ -47,7 +46,7 @@ func TestGetAggregators(t *testing.T) {
 	}
 
 	assert.Equal(t, len(aggregators), 1)
-	assert.Equal(t, aggregators[0].Name, testItems.tmpData.aggregator.Name)
+	assert.Equal(t, aggregators[0].Name, testItems.tmpData.config.Name)
 }
 
 func TestStartAggregator(t *testing.T) {
@@ -61,7 +60,7 @@ func TestStartAggregator(t *testing.T) {
 			t.Logf("Cleanup failed: %v", cleanupErr)
 		}
 
-		if aggregatorStopErr := testItems.app.stopAggregatorById(testItems.tmpData.aggregator.ID); aggregatorStopErr != nil {
+		if aggregatorStopErr := testItems.app.stopAggregatorById(testItems.tmpData.config.ID); aggregatorStopErr != nil {
 			t.Logf("error stopping aggregator: %v", aggregatorStopErr)
 		}
 	}()
@@ -71,12 +70,12 @@ func TestStartAggregator(t *testing.T) {
 		t.Fatal("error initializing app")
 	}
 
-	err = testItems.app.startAggregator(ctx, testItems.app.Aggregators[testItems.tmpData.aggregator.ID])
+	err = testItems.app.startAggregator(ctx, testItems.app.Aggregators[testItems.tmpData.config.ID])
 	if err != nil {
 		t.Fatal("error starting aggregator")
 	}
 
-	assert.Equal(t, true, testItems.app.Aggregators[testItems.tmpData.aggregator.ID].isRunning)
+	assert.Equal(t, true, testItems.app.Aggregators[testItems.tmpData.config.ID].isRunning)
 }
 
 func TestStartAggregatorById(t *testing.T) {
@@ -96,15 +95,15 @@ func TestStartAggregatorById(t *testing.T) {
 		t.Fatal("error initializing app")
 	}
 
-	if testItems.app.Aggregators[testItems.tmpData.aggregator.ID].isRunning {
+	if testItems.app.Aggregators[testItems.tmpData.config.ID].isRunning {
 		t.Fatal("Aggregator should not be running before test")
 	}
 
-	err = testItems.app.startAggregatorById(ctx, testItems.app.Aggregators[testItems.tmpData.aggregator.ID].AggregatorModel.ID)
+	err = testItems.app.startAggregatorById(ctx, testItems.app.Aggregators[testItems.tmpData.config.ID].Config.ID)
 	if err != nil {
 		t.Fatal("error starting aggregator")
 	}
-	assert.Equal(t, testItems.app.Aggregators[testItems.tmpData.aggregator.ID].isRunning, true)
+	assert.Equal(t, testItems.app.Aggregators[testItems.tmpData.config.ID].isRunning, true)
 }
 
 func TestStopAggregator(t *testing.T) {
@@ -124,17 +123,17 @@ func TestStopAggregator(t *testing.T) {
 		t.Fatal("error initializing app")
 	}
 
-	err = testItems.app.startAggregator(ctx, testItems.app.Aggregators[testItems.tmpData.aggregator.ID])
+	err = testItems.app.startAggregator(ctx, testItems.app.Aggregators[testItems.tmpData.config.ID])
 	if err != nil {
 		t.Fatal("error starting aggregator")
 	}
-	assert.Equal(t, true, testItems.app.Aggregators[testItems.tmpData.aggregator.ID].isRunning)
+	assert.Equal(t, true, testItems.app.Aggregators[testItems.tmpData.config.ID].isRunning)
 
-	err = testItems.app.stopAggregator(testItems.app.Aggregators[testItems.tmpData.aggregator.ID])
+	err = testItems.app.stopAggregator(testItems.app.Aggregators[testItems.tmpData.config.ID])
 	if err != nil {
 		t.Fatal("error stopping aggregator")
 	}
-	assert.Equal(t, false, testItems.app.Aggregators[testItems.tmpData.aggregator.ID].isRunning)
+	assert.Equal(t, false, testItems.app.Aggregators[testItems.tmpData.config.ID].isRunning)
 }
 
 func TestStopAggregatorById(t *testing.T) {
@@ -154,16 +153,16 @@ func TestStopAggregatorById(t *testing.T) {
 		t.Fatal("error initializing app")
 	}
 
-	err = testItems.app.startAggregator(ctx, testItems.app.Aggregators[testItems.tmpData.aggregator.ID])
+	err = testItems.app.startAggregator(ctx, testItems.app.Aggregators[testItems.tmpData.config.ID])
 	if err != nil {
 		t.Fatal("error starting aggregator")
 	}
 
-	err = testItems.app.stopAggregatorById(testItems.app.Aggregators[testItems.tmpData.aggregator.ID].AggregatorModel.ID)
+	err = testItems.app.stopAggregatorById(testItems.app.Aggregators[testItems.tmpData.config.ID].Config.ID)
 	if err != nil {
 		t.Fatal("error stopping aggregator")
 	}
-	assert.Equal(t, testItems.app.Aggregators[testItems.tmpData.aggregator.ID].isRunning, false)
+	assert.Equal(t, testItems.app.Aggregators[testItems.tmpData.config.ID].isRunning, false)
 }
 
 func TestGetAggregatorByName(t *testing.T) {
@@ -183,12 +182,12 @@ func TestGetAggregatorByName(t *testing.T) {
 		t.Fatal("error initializing app")
 	}
 
-	aggregator, err := testItems.app.getAggregatorByName(testItems.tmpData.aggregator.Name)
+	aggregator, err := testItems.app.getAggregatorByName(testItems.tmpData.config.Name)
 	if err != nil {
 		t.Fatal("error getting aggregator by name")
 	}
 	assert.NotNil(t, aggregator)
-	assert.Equal(t, aggregator.Name, testItems.tmpData.aggregator.Name)
+	assert.Equal(t, aggregator.Name, testItems.tmpData.config.Name)
 }
 
 func TestActivateAggregatorByAdmin(t *testing.T) {
@@ -210,14 +209,12 @@ func TestActivateAggregatorByAdmin(t *testing.T) {
 		t.Fatal("error initializing app")
 	}
 
-	result, err := tests.PostRequest[aggregator.AggregatorModel](testItems.admin, "/api/v1/aggregator/activate/"+strconv.FormatInt(testItems.tmpData.aggregator.ID, 10), nil)
+	_, err = tests.RawPostRequest(testItems.admin, "/api/v1/aggregator/activate/"+strconv.Itoa(int(testItems.tmpData.config.ID)), nil)
 	if err != nil {
 		t.Fatalf("error activating aggregator: %v", err)
 	}
 
-	assert.Equal(t, *result.Id, testItems.tmpData.aggregator.ID)
-
-	aggregator, err := testItems.app.getAggregatorByName(testItems.tmpData.aggregator.Name)
+	aggregator, err := testItems.app.getAggregatorByName(testItems.tmpData.config.Name)
 	if err != nil {
 		t.Fatal("error getting aggregator by name")
 	}
@@ -244,20 +241,18 @@ func TestDeactivateAggregatorByAdmin(t *testing.T) {
 		t.Fatal("error initializing app")
 	}
 
-	err = testItems.app.startAggregatorById(ctx, testItems.app.Aggregators[testItems.tmpData.aggregator.ID].AggregatorModel.ID)
+	err = testItems.app.startAggregatorById(ctx, testItems.app.Aggregators[testItems.tmpData.config.ID].Config.ID)
 	if err != nil {
 		t.Fatal("error starting aggregator")
 	}
-	assert.Equal(t, testItems.app.Aggregators[testItems.tmpData.aggregator.ID].isRunning, true)
+	assert.Equal(t, testItems.app.Aggregators[testItems.tmpData.config.ID].isRunning, true)
 
-	result, err := tests.PostRequest[aggregator.AggregatorModel](testItems.admin, "/api/v1/aggregator/deactivate/"+strconv.FormatInt(testItems.tmpData.aggregator.ID, 10), nil)
+	_, err = tests.RawPostRequest(testItems.admin, "/api/v1/aggregator/deactivate/"+strconv.Itoa(int(testItems.tmpData.config.ID)), nil)
 	if err != nil {
 		t.Fatalf("error deactivating aggregator: %v", err)
 	}
 
-	assert.Equal(t, *result.Id, testItems.tmpData.aggregator.ID)
-
-	aggregator, err := testItems.app.getAggregatorByName(testItems.tmpData.aggregator.Name)
+	aggregator, err := testItems.app.getAggregatorByName(testItems.tmpData.config.Name)
 	if err != nil {
 		t.Fatal("error getting aggregator by name")
 	}
@@ -289,7 +284,7 @@ func TestStartAppByAdmin(t *testing.T) {
 		t.Fatalf("error starting app: %v", err)
 	}
 
-	assert.Equal(t, true, testItems.app.Aggregators[testItems.tmpData.aggregator.ID].isRunning)
+	assert.Equal(t, true, testItems.app.Aggregators[testItems.tmpData.config.ID].isRunning)
 }
 
 func TestStopAppByAdmin(t *testing.T) {
@@ -315,14 +310,14 @@ func TestStopAppByAdmin(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error starting app: %v", err)
 	}
-	assert.Equal(t, true, testItems.app.Aggregators[testItems.tmpData.aggregator.ID].isRunning)
+	assert.Equal(t, true, testItems.app.Aggregators[testItems.tmpData.config.ID].isRunning)
 
 	_, err = tests.RawPostRequest(testItems.admin, "/api/v1/aggregator/stop", nil)
 	if err != nil {
 		t.Fatalf("error stopping app: %v", err)
 	}
 
-	assert.Equal(t, false, testItems.app.Aggregators[testItems.tmpData.aggregator.ID].isRunning)
+	assert.Equal(t, false, testItems.app.Aggregators[testItems.tmpData.config.ID].isRunning)
 }
 
 func TestRefreshAppByAdmin(t *testing.T) {
@@ -351,7 +346,7 @@ func TestRefreshAppByAdmin(t *testing.T) {
 		t.Fatalf("error starting app: %v", err)
 	}
 
-	tmpAggregator, err := tests.PostRequest[AggregatorModel](testItems.admin, "/api/v1/aggregator", map[string]any{"name": "test_pair_2"})
+	_, err = tests.RawPostRequest(testItems.admin, "/api/v1/config", map[string]any{"name": "test_pair_2", "address": "test_address_2", "fetch_interval": 2000, "aggregate_interval": 5000, "submit_interval": 15000})
 	if err != nil {
 		t.Fatalf("error creating new aggregator: %v", err)
 	}
@@ -362,10 +357,4 @@ func TestRefreshAppByAdmin(t *testing.T) {
 	}
 
 	assert.Greater(t, len(testItems.app.Aggregators), lengthBefore)
-
-	//cleanup
-	_, err = tests.DeleteRequest[AggregatorModel](testItems.admin, "/api/v1/aggregator/"+strconv.FormatInt(tmpAggregator.ID, 10), nil)
-	if err != nil {
-		t.Fatalf("error cleaning up test: %v", err)
-	}
 }

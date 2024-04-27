@@ -30,7 +30,7 @@ func (f *Fetcher) Run(ctx context.Context, chainHelpers map[string]ChainHelper, 
 	f.cancel = cancel
 	f.isRunning = true
 
-	fetcher_frequency := time.Duration(f.Config.FetchInterval) * time.Millisecond
+	fetcher_frequency := time.Duration(f.FetchInterval) * time.Millisecond
 	ticker := time.NewTicker(fetcher_frequency)
 	go func() {
 		for {
@@ -75,14 +75,14 @@ func (f *Fetcher) fetchAndInsert(ctx context.Context, chainHelpers map[string]Ch
 	}
 	log.Debug().Str("Player", "Fetcher").Str("fetcher", f.Name).Float64("aggregated", aggregated).Msg("aggregated")
 
-	err = insertLocalAggregatePgsql(ctx, f.Config.ID, aggregated)
+	err = insertLocalAggregatePgsql(ctx, f.ID, aggregated)
 	if err != nil {
 		log.Error().Str("Player", "Fetcher").Err(err).Msg("error in insertPgsql")
 		return err
 	}
 	log.Debug().Str("Player", "Fetcher").Str("fetcher", f.Name).Msg("inserted into pgsql")
 
-	err = insertLocalAggregateRdb(ctx, f.Config.ID, aggregated)
+	err = insertLocalAggregateRdb(ctx, f.ID, aggregated)
 	if err != nil {
 		log.Error().Str("Player", "Fetcher").Err(err).Msg("error in insertRdb")
 		return err

@@ -21,40 +21,41 @@ const (
 	PriceData raft.MessageType = "priceData"
 	ProofMsg  raft.MessageType = "proof"
 
-	SelectActiveAggregatorsQuery     = `SELECT * FROM aggregators WHERE active = true`
-	SelectLatestLocalAggregateQuery  = `SELECT * FROM local_aggregates WHERE name = @name ORDER BY timestamp DESC LIMIT 1`
-	InsertGlobalAggregateQuery       = `INSERT INTO global_aggregates (name, value, round, timestamp) VALUES (@name, @value, @round, @timestamp) RETURNING *`
-	SelectLatestGlobalAggregateQuery = `SELECT * FROM global_aggregates WHERE name = @name ORDER BY round DESC LIMIT 1`
-	InsertProofQuery                 = `INSERT INTO proofs (name, round, proof) VALUES (@name, @round, @proof) RETURNING *`
+	SelectConfigQuery                = `SELECT id, name, aggregate_interval FROM configs`
+	SelectLatestLocalAggregateQuery  = `SELECT * FROM local_aggregates WHERE config_id = @config_id ORDER BY timestamp DESC LIMIT 1`
+	InsertGlobalAggregateQuery       = `INSERT INTO global_aggregates (config_id, value, round, timestamp) VALUES (@config_id, @value, @round, @timestamp) RETURNING *`
+	SelectLatestGlobalAggregateQuery = `SELECT * FROM global_aggregates WHERE config_id = @config_id ORDER BY round DESC LIMIT 1`
+	InsertProofQuery                 = `INSERT INTO proofs (config_id, round, proof) VALUES (@config_id, @round, @proof) RETURNING *`
 )
 
 type LocalAggregate struct {
+	ConfigId  int32     `json:"configId"`
 	Value     int64     `json:"value"`
 	Timestamp time.Time `json:"timestamp"`
 }
 
 type PgsqlProof struct {
 	ID        int64     `db:"id"`
-	Name      string    `json:"name"`
+	ConfigID  int32     `json:"configId"`
 	Round     int64     `json:"round"`
 	Proof     []byte    `json:"proof"`
 	Timestamp time.Time `json:"timestamp"`
 }
 
 type Proof struct {
-	Name  string `json:"name"`
-	Round int64  `json:"round"`
-	Proof []byte `json:"proofs"`
+	ConfigID int32  `json:"configId"`
+	Round    int64  `json:"round"`
+	Proof    []byte `json:"proofs"`
 }
 
 type PgsLocalAggregate struct {
-	Name      string    `db:"name"`
+	ConfigID  int32     `db:"configId"`
 	Value     int64     `db:"value"`
 	Timestamp time.Time `db:"timestamp"`
 }
 
 type GlobalAggregate struct {
-	Name      string    `db:"name" json:"name"`
+	ConfigID  int32     `db:"config_id" json:"configId"`
 	Value     int64     `db:"value" json:"value"`
 	Round     int64     `db:"round" json:"round"`
 	Timestamp time.Time `db:"timestamp" json:"timestamp"`
@@ -62,20 +63,19 @@ type GlobalAggregate struct {
 
 type App struct {
 	Bus         *bus.MessageBus
-	Aggregators map[int64]*Aggregator
+	Aggregators map[int32]*Aggregator
 	Host        host.Host
 	Pubsub      *pubsub.PubSub
 }
 
-type AggregatorModel struct {
-	ID       int64  `db:"id"`
-	Name     string `db:"name"`
-	Active   bool   `db:"active"`
-	Interval int    `db:"interval"`
+type Config struct {
+	ID                int32  `db:"id"`
+	Name              string `db:"name"`
+	AggregateInterval int32  `db:"aggregate_interval"`
 }
 
 type Aggregator struct {
-	AggregatorModel
+	Config
 	Raft *raft.Raft
 
 	CollectedPrices         map[int64][]int64
