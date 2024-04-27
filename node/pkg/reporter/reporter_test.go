@@ -3,7 +3,6 @@ package reporter
 
 import (
 	"context"
-	"fmt"
 	"math/big"
 	"os"
 	"testing"
@@ -342,7 +341,6 @@ func TestGetLatestGlobalAggregatesPgsql(t *testing.T) {
 
 	result, err := GetLatestGlobalAggregatesPgsql(ctx, reporter.SubmissionPairs)
 	if err != nil {
-		fmt.Println(err)
 		t.Fatal("error getting latest global aggregates from pgs")
 	}
 

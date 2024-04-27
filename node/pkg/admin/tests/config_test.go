@@ -15,7 +15,12 @@ func TestConfigSync(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error setting up test: %v", err)
 	}
-	defer cleanup()
+	defer func() {
+		err = cleanup()
+		if err != nil {
+			t.Logf("Cleanup failed: %v", err)
+		}
+	}()
 
 	_, err = RawPostRequest(testItems.app, "/api/v1/config/sync", nil)
 	if err != nil {
@@ -35,7 +40,12 @@ func TestConfigInsert(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error setting up test: %v", err)
 	}
-	defer cleanup()
+	defer func() {
+		err = cleanup()
+		if err != nil {
+			t.Logf("Cleanup failed: %v", err)
+		}
+	}()
 
 	insertResult, err := PostRequest[config.ConfigModel](testItems.app, "/api/v1/config", config.ConfigModel{
 		Name:              "test",
@@ -57,7 +67,12 @@ func TestConfigRead(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error setting up test: %v", err)
 	}
-	defer cleanup()
+	defer func() {
+		err = cleanup()
+		if err != nil {
+			t.Logf("Cleanup failed: %v", err)
+		}
+	}()
 
 	readResult, err := GetRequest[[]config.ConfigModel](testItems.app, "/api/v1/config", nil)
 	if err != nil {
@@ -72,7 +87,12 @@ func TestConfigReadById(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error setting up test: %v", err)
 	}
-	defer cleanup()
+	defer func() {
+		err = cleanup()
+		if err != nil {
+			t.Logf("Cleanup failed: %v", err)
+		}
+	}()
 
 	readResult, err := GetRequest[config.ConfigModel](testItems.app, "/api/v1/config/"+strconv.Itoa(int(testItems.tmpData.config.Id)), nil)
 	if err != nil {
@@ -87,7 +107,12 @@ func TestConfigDeleteById(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error setting up test: %v", err)
 	}
-	defer cleanup()
+	defer func() {
+		err = cleanup()
+		if err != nil {
+			t.Logf("Cleanup failed: %v", err)
+		}
+	}()
 
 	deleted, err := DeleteRequest[config.ConfigModel](testItems.app, "/api/v1/config/"+strconv.Itoa(int(testItems.tmpData.config.Id)), nil)
 	if err != nil {
