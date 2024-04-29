@@ -76,6 +76,25 @@ func ParseInt64MsgParam(msg Message, param string) (int64, error) {
 	return id, nil
 }
 
+func ParseInt32MsgParam(msg Message, param string) (int32, error) {
+	rawId, ok := msg.Content.Args[param]
+	if !ok {
+		return 0, errors.New("param not found in message")
+	}
+
+	idPayload, ok := rawId.(string)
+	if !ok {
+		return 0, errors.New("failed to convert adapter id to string")
+	}
+
+	id, err := strconv.ParseInt(idPayload, 10, 32)
+	if err != nil {
+		return 0, errors.New("failed to parse adapterId")
+	}
+
+	return int32(id), nil
+}
+
 func ParseStringMsgParam(msg Message, param string) (string, error) {
 	raw, ok := msg.Content.Args[param]
 	if !ok {

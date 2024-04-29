@@ -17,7 +17,7 @@ import (
 
 func New(bus *bus.MessageBus, h host.Host, ps *pubsub.PubSub) *App {
 	return &App{
-		Aggregators: make(map[int64]*Aggregator),
+		Aggregators: make(map[int32]*Aggregator),
 		Bus:         bus,
 		Host:        h,
 		Pubsub:      ps,
@@ -42,8 +42,9 @@ func (a *App) setAggregators(ctx context.Context, h host.Host, ps *pubsub.PubSub
 		return err
 	}
 
-	loadedAggregators, err := a.getAggregators(ctx)
+	loadedAggregators, err := a.getAggregatorConfigs(ctx)
 	if err != nil {
+		log.Error().Str("Player", "Aggregator").Err(err).Msg("failed to get aggregator configs")
 		return err
 	}
 
@@ -63,17 +64,17 @@ func (a *App) clearAggregators() error {
 			}
 		}
 	}
-	a.Aggregators = make(map[int64]*Aggregator)
+	a.Aggregators = make(map[int32]*Aggregator)
 	return nil
 }
 
-func (a *App) initializeLoadedAggregators(loadedAggregators []AggregatorModel, h host.Host, ps *pubsub.PubSub) error {
+func (a *App) initializeLoadedAggregators(loadedAggregators []AggregatorConfig, h host.Host, ps *pubsub.PubSub) error {
 	for _, aggregator := range loadedAggregators {
 		if a.Aggregators[aggregator.ID] != nil {
 			continue
 		}
 
-		topicString := aggregator.Name + "-global-aggregator-topic-" + strconv.Itoa(aggregator.Interval)
+		topicString := aggregator.Name + "-global-aggregator-topic-" + strconv.Itoa(int(aggregator.AggregateInterval))
 		tmpNode, err := NewAggregator(h, ps, topicString, aggregator)
 		if err != nil {
 			return err
@@ -84,8 +85,8 @@ func (a *App) initializeLoadedAggregators(loadedAggregators []AggregatorModel, h
 	return nil
 }
 
-func (a *App) getAggregators(ctx context.Context) ([]AggregatorModel, error) {
-	return db.QueryRows[AggregatorModel](ctx, SelectActiveAggregatorsQuery, nil)
+func (a *App) getAggregatorConfigs(ctx context.Context) ([]AggregatorConfig, error) {
+	return db.QueryRows[AggregatorConfig](ctx, SelectConfigQuery, nil)
 }
 
 func (a *App) startAggregator(ctx context.Context, aggregator *Aggregator) error {
@@ -109,7 +110,7 @@ func (a *App) startAggregator(ctx context.Context, aggregator *Aggregator) error
 	return nil
 }
 
-func (a *App) startAggregatorById(ctx context.Context, id int64) error {
+func (a *App) startAggregatorById(ctx context.Context, id int32) error {
 	aggregator, ok := a.Aggregators[id]
 	if !ok {
 		return errors.New("aggregator not found")
@@ -146,7 +147,7 @@ func (a *App) stopAggregator(aggregator *Aggregator) error {
 	return nil
 }
 
-func (a *App) stopAggregatorById(id int64) error {
+func (a *App) stopAggregatorById(id int32) error {
 	aggregator, ok := a.Aggregators[id]
 	if !ok {
 		return errors.New("aggregator not found")
@@ -216,13 +217,13 @@ func (a *App) handleMessage(ctx context.Context, msg bus.Message) {
 	switch msg.Content.Command {
 	case bus.ACTIVATE_AGGREGATOR:
 		log.Debug().Str("Player", "Aggregator").Msg("activate aggregator msg received")
-		aggregatorId, err := bus.ParseInt64MsgParam(msg, "id")
+		aggregatorId, err := bus.ParseInt32MsgParam(msg, "id")
 		if err != nil {
 			bus.HandleMessageError(err, msg, "failed to parse aggregatorId")
 			return
 		}
 
-		log.Debug().Str("Player", "Aggregator").Int64("aggregatorId", aggregatorId).Msg("activating aggregator")
+		log.Debug().Str("Player", "Aggregator").Int32("aggregatorId", aggregatorId).Msg("activating aggregator")
 		err = a.startAggregatorById(ctx, aggregatorId)
 		if err != nil {
 			bus.HandleMessageError(err, msg, "failed to start aggregator")
@@ -232,13 +233,13 @@ func (a *App) handleMessage(ctx context.Context, msg bus.Message) {
 		msg.Response <- bus.MessageResponse{Success: true}
 	case bus.DEACTIVATE_AGGREGATOR:
 		log.Debug().Str("Player", "Aggregator").Msg("deactivate aggregator msg received")
-		aggregatorId, err := bus.ParseInt64MsgParam(msg, "id")
+		aggregatorId, err := bus.ParseInt32MsgParam(msg, "id")
 		if err != nil {
 			bus.HandleMessageError(err, msg, "failed to parse aggregatorId")
 			return
 		}
 
-		log.Debug().Str("Player", "Aggregator").Int64("aggregatorId", aggregatorId).Msg("deactivating aggregator")
+		log.Debug().Str("Player", "Aggregator").Int32("aggregatorId", aggregatorId).Msg("deactivating aggregator")
 		err = a.stopAggregatorById(aggregatorId)
 		if err != nil {
 			bus.HandleMessageError(err, msg, "failed to stop aggregator")

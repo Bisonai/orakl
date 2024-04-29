@@ -4,12 +4,14 @@ import (
 	"context"
 	"encoding/json"
 	"os"
+	"strconv"
 	"testing"
 	"time"
 
-	"bisonai.com/orakl/node/pkg/admin/adapter"
 	"bisonai.com/orakl/node/pkg/admin/aggregator"
+	"bisonai.com/orakl/node/pkg/admin/config"
 	"bisonai.com/orakl/node/pkg/admin/utils"
+
 	"bisonai.com/orakl/node/pkg/bus"
 	"bisonai.com/orakl/node/pkg/db"
 	libp2p_setup "bisonai.com/orakl/node/pkg/libp2p/setup"
@@ -18,15 +20,15 @@ import (
 )
 
 const (
-	InsertLocalAggregateQuery = `INSERT INTO local_aggregates (name, value, timestamp) VALUES (@name, @value, @time) RETURNING *;`
+	InsertConfigQuery         = `INSERT INTO configs (name, address, fetch_interval, aggregate_interval, submit_interval) VALUES (@name, @address, @fetch_interval, @aggregate_interval, @submit_interval) RETURNING name, id, aggregate_interval;`
+	InsertLocalAggregateQuery = `INSERT INTO local_aggregates (config_id, value, timestamp) VALUES (@config_id, @value, @time) RETURNING *;`
 	DeleteGlobalAggregates    = `DELETE FROM global_aggregates;`
 	DeleteLocalAggregates     = `DELETE FROM local_aggregates;`
-	DeleteAggregators         = `DELETE FROM aggregators;`
-	DeleteAdapters            = `DELETE FROM adapters;`
+	DeleteConfigs             = `DELETE FROM configs;`
 )
 
 type TmpData struct {
-	aggregator      AggregatorModel
+	config          AggregatorConfig
 	rLocalAggregate LocalAggregate
 	pLocalAggregate PgsLocalAggregate
 	globalAggregate GlobalAggregate
@@ -78,6 +80,7 @@ func setup(ctx context.Context) (func() error, *TestItems, error) {
 
 	v1 := admin.Group("/api/v1")
 	aggregator.Routes(v1)
+	config.Routes(v1)
 
 	return aggregatorCleanup(ctx, admin), testItems, nil
 }
@@ -85,22 +88,17 @@ func setup(ctx context.Context) (func() error, *TestItems, error) {
 func insertSampleData(ctx context.Context) (*TmpData, error) {
 	var tmpData = new(TmpData)
 
-	err := db.QueryWithoutResult(ctx, adapter.InsertAdapter, map[string]any{"name": "test_pair"})
+	tmpConfig, err := db.QueryRow[AggregatorConfig](ctx, InsertConfigQuery, map[string]any{"name": "test_pair", "address": "test_address", "fetch_interval": 2000, "aggregate_interval": 5000, "submit_interval": 15000})
 	if err != nil {
 		return nil, err
 	}
 
-	tmpAggregator, err := db.QueryRow[AggregatorModel](ctx, aggregator.InsertAggregator, map[string]any{"name": "test_pair"})
-	if err != nil {
-		return nil, err
-	}
-
-	tmpData.aggregator = tmpAggregator
+	tmpData.config = tmpConfig
 
 	localAggregateInsertTime := time.Now()
 
-	key := "localAggregate:test_pair"
-	data, err := json.Marshal(LocalAggregate{Value: int64(10), Timestamp: localAggregateInsertTime})
+	key := "localAggregate:" + strconv.Itoa(int(tmpConfig.ID))
+	data, err := json.Marshal(LocalAggregate{ConfigId: tmpConfig.ID, Value: int64(10), Timestamp: localAggregateInsertTime})
 	if err != nil {
 		return nil, err
 	}
@@ -110,9 +108,9 @@ func insertSampleData(ctx context.Context) (*TmpData, error) {
 		return nil, err
 	}
 
-	tmpData.rLocalAggregate = LocalAggregate{Value: int64(10), Timestamp: localAggregateInsertTime}
+	tmpData.rLocalAggregate = LocalAggregate{ConfigId: tmpConfig.ID, Value: int64(10), Timestamp: localAggregateInsertTime}
 
-	tmpPLocalAggregate, err := db.QueryRow[PgsLocalAggregate](ctx, InsertLocalAggregateQuery, map[string]any{"name": "test_pair", "value": int64(10), "time": localAggregateInsertTime})
+	tmpPLocalAggregate, err := db.QueryRow[PgsLocalAggregate](ctx, InsertLocalAggregateQuery, map[string]any{"config_id": tmpConfig.ID, "value": int64(10), "time": localAggregateInsertTime})
 	if err != nil {
 		return nil, err
 	}
@@ -120,7 +118,7 @@ func insertSampleData(ctx context.Context) (*TmpData, error) {
 
 	globalAggregateInsertTime := time.Now()
 
-	tmpGlobalAggregate, err := db.QueryRow[GlobalAggregate](ctx, InsertGlobalAggregateQuery, map[string]any{"name": "test_pair", "value": int64(15), "round": int64(1), "timestamp": globalAggregateInsertTime})
+	tmpGlobalAggregate, err := db.QueryRow[GlobalAggregate](ctx, InsertGlobalAggregateQuery, map[string]any{"config_id": tmpConfig.ID, "value": int64(15), "round": int32(1), "timestamp": globalAggregateInsertTime})
 	if err != nil {
 		return nil, err
 	}
@@ -130,12 +128,7 @@ func insertSampleData(ctx context.Context) (*TmpData, error) {
 
 func aggregatorCleanup(ctx context.Context, admin *fiber.App) func() error {
 	return func() error {
-		err := db.QueryWithoutResult(ctx, DeleteAggregators, nil)
-		if err != nil {
-			return err
-		}
-
-		err = db.QueryWithoutResult(ctx, DeleteAdapters, nil)
+		err := db.QueryWithoutResult(ctx, DeleteConfigs, nil)
 		if err != nil {
 			return err
 		}

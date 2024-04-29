@@ -15,12 +15,12 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-func NewFetcher(adapter Adapter, feeds []Feed) *Fetcher {
+func NewFetcher(config FetcherConfig, feeds []Feed) *Fetcher {
 	return &Fetcher{
-		Adapter:    adapter,
-		Feeds:      feeds,
-		fetcherCtx: nil,
-		cancel:     nil,
+		FetcherConfig: config,
+		Feeds:         feeds,
+		fetcherCtx:    nil,
+		cancel:        nil,
 	}
 }
 
@@ -30,7 +30,7 @@ func (f *Fetcher) Run(ctx context.Context, chainHelpers map[string]ChainHelper, 
 	f.cancel = cancel
 	f.isRunning = true
 
-	fetcher_frequency := time.Duration(f.Adapter.Interval) * time.Millisecond
+	fetcher_frequency := time.Duration(f.FetchInterval) * time.Millisecond
 	ticker := time.NewTicker(fetcher_frequency)
 	go func() {
 		for {
@@ -57,7 +57,7 @@ func (f *Fetcher) fetchAndInsert(ctx context.Context, chainHelpers map[string]Ch
 	}
 	log.Debug().Str("Player", "Fetcher").Str("fetcher", f.Name).Msg("fetch complete")
 
-	err = insertFeedData(ctx, f.Adapter.ID, results)
+	err = insertFeedData(ctx, results)
 	if err != nil {
 		log.Error().Str("Player", "Fetcher").Err(err).Msg("error in insertFeedData")
 		return err
@@ -75,14 +75,14 @@ func (f *Fetcher) fetchAndInsert(ctx context.Context, chainHelpers map[string]Ch
 	}
 	log.Debug().Str("Player", "Fetcher").Str("fetcher", f.Name).Float64("aggregated", aggregated).Msg("aggregated")
 
-	err = insertPgsql(ctx, f.Name, aggregated)
+	err = insertLocalAggregatePgsql(ctx, f.ID, aggregated)
 	if err != nil {
 		log.Error().Str("Player", "Fetcher").Err(err).Msg("error in insertPgsql")
 		return err
 	}
 	log.Debug().Str("Player", "Fetcher").Str("fetcher", f.Name).Msg("inserted into pgsql")
 
-	err = insertRdb(ctx, f.Name, aggregated)
+	err = insertLocalAggregateRdb(ctx, f.ID, aggregated)
 	if err != nil {
 		log.Error().Str("Player", "Fetcher").Err(err).Msg("error in insertRdb")
 		return err
@@ -131,7 +131,7 @@ func (f *Fetcher) fetch(chainHelpers map[string]ChainHelper, proxies []Proxy) ([
 				errChan <- errors.New("unknown fetcher type")
 			}
 
-			dataChan <- FeedData{FeedName: feed.Name, Value: resultValue}
+			dataChan <- FeedData{FeedID: feed.ID, Value: resultValue}
 
 		}(feed)
 	}

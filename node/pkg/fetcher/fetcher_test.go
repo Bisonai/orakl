@@ -124,24 +124,29 @@ func TestFetcherFetchAndInsertAdapter(t *testing.T) {
 	}
 
 	for _, fetcher := range app.Fetchers {
-		pgResult, err := db.QueryRow[Aggregate](ctx, "SELECT * FROM local_aggregates WHERE name = @name", map[string]any{"name": fetcher.Name})
+		pgResult, err := db.QueryRow[Aggregate](ctx, "SELECT * FROM local_aggregates WHERE config_id = @config_id", map[string]any{"config_id": fetcher.FetcherConfig.ID})
 		if err != nil {
 			t.Fatalf("error reading from db: %v", err)
 		}
 		assert.NotNil(t, pgResult)
 
-		feedPgResult, err := db.QueryRows[FeedDataFromDB](ctx, "SELECT * FROM feed_data WHERE adapter_id = @adapter_id", map[string]any{"adapter_id": fetcher.Adapter.ID})
+		feedIds := make([]interface{}, len(fetcher.Feeds))
+		for i, feed := range fetcher.Feeds {
+			feedIds[i] = feed.ID
+		}
+
+		feedPgResult, err := db.BulkSelect[FeedDataFromDB](ctx, "feed_data", []string{"feed_id", "value", "timestamp"}, []string{"feed_id"}, feedIds)
 		if err != nil {
 			t.Fatalf("error reading from db: %v", err)
 		}
 		assert.Greater(t, len(feedPgResult), 0)
 
-		rdbResult, err := db.Get(ctx, "localAggregate:"+fetcher.Name)
+		rdbResult, err := db.Get(ctx, "localAggregate:"+strconv.Itoa(int(fetcher.FetcherConfig.ID)))
 		if err != nil {
 			t.Fatalf("error reading from redis: %v", err)
 		}
 		assert.NotNil(t, rdbResult)
-		var redisAgg redisAggregate
+		var redisAgg RedisAggregate
 		err = json.Unmarshal([]byte(rdbResult), &redisAgg)
 		if err != nil {
 			t.Fatalf("error unmarshalling from redis: %v", err)
@@ -149,7 +154,7 @@ func TestFetcherFetchAndInsertAdapter(t *testing.T) {
 		assert.NotNil(t, redisAgg)
 		assert.NotNil(t, redisAgg.Value)
 
-		err = db.Del(ctx, "localAggregate:"+fetcher.Name)
+		err = db.Del(ctx, "localAggregate:"+strconv.Itoa(int(fetcher.FetcherConfig.ID)))
 		if err != nil {
 			t.Fatalf("error removing from redis: %v", err)
 		}

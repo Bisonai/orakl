@@ -26,17 +26,18 @@ const (
 	SUBMIT_WITH_PROOFS                       = "submit(address[] memory _feeds, int256[] memory _answers, bytes[] memory _proofs, uint256[] memory _timestamps)"
 	GET_ONCHAIN_WHITELIST                    = "getAllOracles() public view returns (address[] memory)"
 
-	GET_SUBMISSIONS_QUERY        = `SELECT * FROM submission_addresses;`
+	GET_REPORTER_CONFIGS = `SELECT name, id, address, submit_interval FROM configs;`
+
 	DEVIATION_THRESHOLD          = 0.05
 	DEVIATION_ABSOLUTE_THRESHOLD = 0.1
 	DECIMALS                     = 8
 )
 
-type SubmissionAddress struct {
-	Id       int    `db:"id"`
-	Name     string `db:"name"`
-	Address  string `db:"address"`
-	Interval *int   `db:"interval"`
+type ReporterConfig struct {
+	ID             int32  `db:"id"`
+	Name           string `db:"name"`
+	Address        string `db:"address"`
+	SubmitInterval *int   `db:"submit_interval"`
 }
 
 type SubmissionPair struct {
@@ -54,7 +55,7 @@ type App struct {
 type Reporter struct {
 	Raft               *raft.Raft
 	KlaytnHelper       *helper.ChainHelper
-	SubmissionPairs    map[string]SubmissionPair
+	SubmissionPairs    map[int32]SubmissionPair
 	SubmissionInterval time.Duration
 	CachedWhitelist    []common.Address
 
@@ -66,21 +67,21 @@ type Reporter struct {
 }
 
 type GlobalAggregate struct {
-	Name      string    `db:"name" json:"name"`
+	ConfigID  int32     `db:"config_id" json:"configId"`
 	Value     int64     `db:"value" json:"value"`
 	Round     int64     `db:"round" json:"round"`
 	Timestamp time.Time `db:"timestamp" json:"timestamp"`
 }
 
 type Proof struct {
-	Name  string `json:"name"`
-	Round int64  `json:"round"`
-	Proof []byte `json:"proofs"`
+	ConfigID int32  `json:"configId"`
+	Round    int64  `json:"round"`
+	Proof    []byte `json:"proofs"`
 }
 
 type PgsqlProof struct {
-	ID        int64     `db:"id" json:"id"`
-	Name      string    `db:"name" json:"name"`
+	ID        int32     `db:"id" json:"id"`
+	ConfigID  int32     `db:"config_id" json:"configId"`
 	Round     int64     `db:"round" json:"round"`
 	Proof     []byte    `db:"proof" json:"proof"`
 	Timestamp time.Time `db:"timestamp" json:"timestamp"`
@@ -90,21 +91,21 @@ type SubmissionMessage struct {
 	Submissions []GlobalAggregate `json:"submissions"`
 }
 
-func makeGetLatestGlobalAggregatesQuery(names []string) string {
-	queryNames := make([]string, len(names))
-	for i, name := range names {
-		queryNames[i] = fmt.Sprintf("'%s'", name)
+func makeGetLatestGlobalAggregatesQuery(configIds []int32) string {
+	queryConfigIds := make([]string, len(configIds))
+	for i, id := range configIds {
+		queryConfigIds[i] = fmt.Sprintf("'%d'", id)
 	}
 
 	q := fmt.Sprintf(`
-	SELECT ga.name, ga.value, ga.round, ga.timestamp
+	SELECT ga.config_id, ga.value, ga.round, ga.timestamp
 	FROM global_aggregates ga
 	JOIN (
-		SELECT name, MAX(round) as max_round
+		SELECT config_id, MAX(round) as max_round
 		FROM global_aggregates
-		WHERE name IN (%s)
-		GROUP BY name
-	) subq ON ga.name = subq.name AND ga.round = subq.max_round;`, strings.Join(queryNames, ","))
+		WHERE config_id IN (%s)
+		GROUP BY config_id
+	) subq ON ga.config_id = subq.config_id AND ga.round = subq.max_round;`, strings.Join(queryConfigIds, ","))
 
 	return q
 }
@@ -112,8 +113,8 @@ func makeGetLatestGlobalAggregatesQuery(names []string) string {
 func makeGetProofsQuery(aggregates []GlobalAggregate) string {
 	placeHolders := make([]string, len(aggregates))
 	for i, agg := range aggregates {
-		placeHolders[i] = fmt.Sprintf("('%s', %d)", agg.Name, agg.Round)
+		placeHolders[i] = fmt.Sprintf("('%d', %d)", agg.ConfigID, agg.Round)
 	}
 
-	return fmt.Sprintf("SELECT * FROM proofs WHERE (name, round) IN (%s);", strings.Join(placeHolders, ","))
+	return fmt.Sprintf("SELECT * FROM proofs WHERE (config_id, round) IN (%s);", strings.Join(placeHolders, ","))
 }

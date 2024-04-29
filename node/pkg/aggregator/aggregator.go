@@ -16,7 +16,7 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-func NewAggregator(h host.Host, ps *pubsub.PubSub, topicString string, aggregatorModel AggregatorModel) (*Aggregator, error) {
+func NewAggregator(h host.Host, ps *pubsub.PubSub, topicString string, config AggregatorConfig) (*Aggregator, error) {
 	if h == nil || ps == nil || topicString == "" {
 		return nil, fmt.Errorf("invalid parameters")
 	}
@@ -33,18 +33,18 @@ func NewAggregator(h host.Host, ps *pubsub.PubSub, topicString string, aggregato
 		return nil, err
 	}
 
-	aggregateInterval := time.Duration(aggregatorModel.Interval) * time.Millisecond
+	aggregateInterval := time.Duration(config.AggregateInterval) * time.Millisecond
 
 	aggregator := Aggregator{
-		AggregatorModel:         aggregatorModel,
+		AggregatorConfig:        config,
 		Raft:                    raft.NewRaftNode(h, ps, topic, 100, aggregateInterval),
-		CollectedPrices:         map[int64][]int64{},
-		CollectedProofs:         map[int64][][]byte{},
-		CollectedAgreements:     map[int64][]bool{},
-		PreparedLocalAggregates: map[int64]int64{},
-		SyncedTimes:             map[int64]time.Time{},
+		CollectedPrices:         map[int32][]int64{},
+		CollectedProofs:         map[int32][][]byte{},
+		CollectedAgreements:     map[int32][]bool{},
+		PreparedLocalAggregates: map[int32]int64{},
+		SyncedTimes:             map[int32]time.Time{},
 		AggregatorMutex:         sync.Mutex{},
-		RoundID:                 0,
+		RoundID:                 1,
 		SignHelper:              signHelper,
 	}
 	aggregator.Raft.LeaderJob = aggregator.LeaderJob
@@ -54,7 +54,7 @@ func NewAggregator(h host.Host, ps *pubsub.PubSub, topicString string, aggregato
 }
 
 func (n *Aggregator) Run(ctx context.Context) {
-	latestRoundId, err := getLatestRoundId(ctx, n.Name)
+	latestRoundId, err := getLatestRoundId(ctx, n.ID)
 	if err != nil {
 		log.Error().Str("Player", "Aggregator").Err(err).Msg("failed to get latest round id, setting roundId to 1")
 	} else if latestRoundId > 0 {
@@ -112,7 +112,7 @@ func (n *Aggregator) HandleRoundSyncMessage(ctx context.Context, msg raft.Messag
 	n.AggregatorMutex.Lock()
 	defer n.AggregatorMutex.Unlock()
 
-	value, updateTime, err := GetLatestLocalAggregate(ctx, n.Name)
+	value, updateTime, err := GetLatestLocalAggregate(ctx, n.ID)
 	if err != nil {
 		log.Error().Str("Player", "Aggregator").Err(err).Msg("failed to get latest local aggregate")
 		// set value to -1 rather than returning error
@@ -229,8 +229,8 @@ func (n *Aggregator) HandlePriceDataMessage(ctx context.Context, msg raft.Messag
 			log.Error().Str("Player", "Aggregator").Err(err).Msg("failed to get median")
 			return err
 		}
-		log.Debug().Str("Player", "Aggregator").Int64("roundId", priceDataMessage.RoundID).Int64("global_aggregate", median).Msg("global aggregated")
-		err = InsertGlobalAggregate(ctx, n.Name, median, priceDataMessage.RoundID, n.SyncedTimes[priceDataMessage.RoundID])
+		log.Debug().Str("Player", "Aggregator").Int32("roundId", priceDataMessage.RoundID).Int64("global_aggregate", median).Msg("global aggregated")
+		err = InsertGlobalAggregate(ctx, n.ID, median, priceDataMessage.RoundID, n.SyncedTimes[priceDataMessage.RoundID])
 		if err != nil {
 			log.Error().Str("Player", "Aggregator").Err(err).Msg("failed to insert global aggregate")
 			return err
@@ -268,7 +268,7 @@ func (n *Aggregator) HandleProofMessage(ctx context.Context, msg raft.Message) e
 	n.CollectedProofs[proofMessage.RoundID] = append(n.CollectedProofs[proofMessage.RoundID], proofMessage.Proof)
 	if len(n.CollectedProofs[proofMessage.RoundID]) >= n.Raft.SubscribersCount()+1 {
 		defer delete(n.CollectedProofs, proofMessage.RoundID)
-		err := InsertProof(ctx, n.Name, proofMessage.RoundID, n.CollectedProofs[proofMessage.RoundID])
+		err := InsertProof(ctx, n.ID, proofMessage.RoundID, n.CollectedProofs[proofMessage.RoundID])
 		if err != nil {
 			log.Error().Str("Player", "Aggregator").Err(err).Msg("failed to insert proof")
 			return err
@@ -277,7 +277,7 @@ func (n *Aggregator) HandleProofMessage(ctx context.Context, msg raft.Message) e
 	return nil
 }
 
-func (n *Aggregator) PublishSyncMessage(roundId int64, timestamp time.Time) error {
+func (n *Aggregator) PublishSyncMessage(roundId int32, timestamp time.Time) error {
 	roundMessage := RoundSyncMessage{
 		LeaderID:  n.Raft.GetHostId(),
 		RoundID:   roundId,
@@ -299,7 +299,7 @@ func (n *Aggregator) PublishSyncMessage(roundId int64, timestamp time.Time) erro
 	return n.Raft.PublishMessage(message)
 }
 
-func (n *Aggregator) PublishSyncReplyMessage(roundId int64, agreed bool) error {
+func (n *Aggregator) PublishSyncReplyMessage(roundId int32, agreed bool) error {
 	syncReplyMessage := SyncReplyMessage{
 		RoundID: roundId,
 		Agreed:  agreed,
@@ -320,7 +320,7 @@ func (n *Aggregator) PublishSyncReplyMessage(roundId int64, agreed bool) error {
 	return n.Raft.PublishMessage(message)
 }
 
-func (n *Aggregator) PublishTriggerMessage(roundId int64) error {
+func (n *Aggregator) PublishTriggerMessage(roundId int32) error {
 	triggerMessage := TriggerMessage{
 		LeaderID: n.Raft.GetHostId(),
 		RoundID:  roundId,
@@ -341,7 +341,7 @@ func (n *Aggregator) PublishTriggerMessage(roundId int64) error {
 	return n.Raft.PublishMessage(message)
 }
 
-func (n *Aggregator) PublishPriceDataMessage(roundId int64, value int64) error {
+func (n *Aggregator) PublishPriceDataMessage(roundId int32, value int64) error {
 	priceDataMessage := PriceDataMessage{
 		RoundID:   roundId,
 		PriceData: value,
@@ -362,7 +362,7 @@ func (n *Aggregator) PublishPriceDataMessage(roundId int64, value int64) error {
 	return n.Raft.PublishMessage(message)
 }
 
-func (n *Aggregator) PublishProofMessage(roundId int64, proof []byte) error {
+func (n *Aggregator) PublishProofMessage(roundId int32, proof []byte) error {
 	proofMessage := ProofMessage{
 		RoundID: roundId,
 		Proof:   proof,
@@ -384,6 +384,6 @@ func (n *Aggregator) PublishProofMessage(roundId int64, proof []byte) error {
 }
 
 func (n *Aggregator) isTimeValid(timeToValidate time.Time, baseTime time.Time) bool {
-	aggregatorInterval := time.Duration(n.AggregatorModel.Interval) * time.Millisecond
+	aggregatorInterval := time.Duration(n.AggregateInterval) * time.Millisecond
 	return timeToValidate.After(baseTime.Add(-aggregatorInterval)) && timeToValidate.Before(baseTime)
 }

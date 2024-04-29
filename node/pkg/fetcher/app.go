@@ -18,7 +18,7 @@ import (
 
 func New(bus *bus.MessageBus) *App {
 	return &App{
-		Fetchers: make(map[int64]*Fetcher, 0),
+		Fetchers: make(map[int32]*Fetcher, 0),
 		Bus:      bus,
 	}
 }
@@ -76,30 +76,34 @@ func (a *App) handleMessage(ctx context.Context, msg bus.Message) {
 	switch msg.Content.Command {
 	case bus.ACTIVATE_FETCHER:
 		log.Debug().Str("Player", "Fetcher").Msg("activate fetcher msg received")
-		adapterId, err := bus.ParseInt64MsgParam(msg, "id")
+		configId, err := bus.ParseInt32MsgParam(msg, "id")
 		if err != nil {
-			bus.HandleMessageError(err, msg, "failed to parse adapterId")
+			log.Error().Err(err).Str("Player", "Fetcher").Msg("failed to parse configId")
+			bus.HandleMessageError(err, msg, "failed to parse configId")
 			return
 		}
 
-		log.Debug().Str("Player", "Fetcher").Int64("adapterId", adapterId).Msg("activating fetcher")
-		err = a.startFetcherById(ctx, adapterId)
+		log.Debug().Str("Player", "Fetcher").Int32("configId", configId).Msg("activating fetcher")
+		err = a.startFetcherById(ctx, configId)
 		if err != nil {
+			log.Error().Err(err).Str("Player", "Fetcher").Msg("failed to start fetcher")
 			bus.HandleMessageError(err, msg, "failed to start fetcher")
 			return
 		}
 		msg.Response <- bus.MessageResponse{Success: true}
 	case bus.DEACTIVATE_FETCHER:
 		log.Debug().Str("Player", "Fetcher").Msg("deactivate fetcher msg received")
-		adapterId, err := bus.ParseInt64MsgParam(msg, "id")
+		configId, err := bus.ParseInt32MsgParam(msg, "id")
 		if err != nil {
-			bus.HandleMessageError(err, msg, "failed to parse adapterId")
+			log.Error().Err(err).Str("Player", "Fetcher").Msg("failed to parse configId")
+			bus.HandleMessageError(err, msg, "failed to parse configId")
 			return
 		}
 
-		log.Debug().Str("Player", "Fetcher").Int64("adapterId", adapterId).Msg("deactivating fetcher")
-		err = a.stopFetcherById(ctx, adapterId)
+		log.Debug().Str("Player", "Fetcher").Int32("configId", configId).Msg("deactivating fetcher")
+		err = a.stopFetcherById(ctx, configId)
 		if err != nil {
+			log.Error().Err(err).Str("Player", "Fetcher").Msg("failed to stop fetcher")
 			bus.HandleMessageError(err, msg, "failed to stop fetcher")
 			return
 		}
@@ -108,6 +112,7 @@ func (a *App) handleMessage(ctx context.Context, msg bus.Message) {
 		log.Debug().Str("Player", "Fetcher").Msg("stopping all fetchers")
 		err := a.stopAllFetchers(ctx)
 		if err != nil {
+			log.Error().Err(err).Str("Player", "Fetcher").Msg("failed to stop all fetchers")
 			bus.HandleMessageError(err, msg, "failed to stop all fetchers")
 			return
 		}
@@ -116,6 +121,7 @@ func (a *App) handleMessage(ctx context.Context, msg bus.Message) {
 		log.Debug().Str("Player", "Fetcher").Msg("starting all fetchers")
 		err := a.startAllFetchers(ctx)
 		if err != nil {
+			log.Error().Err(err).Str("Player", "Fetcher").Msg("failed to start all fetchers")
 			bus.HandleMessageError(err, msg, "failed to start all fetchers")
 			return
 		}
@@ -123,16 +129,19 @@ func (a *App) handleMessage(ctx context.Context, msg bus.Message) {
 	case bus.REFRESH_FETCHER_APP:
 		err := a.stopAllFetchers(ctx)
 		if err != nil {
+			log.Error().Err(err).Str("Player", "Fetcher").Msg("failed to stop all fetchers")
 			bus.HandleMessageError(err, msg, "failed to stop all fetchers")
 			return
 		}
 		err = a.initialize(ctx)
 		if err != nil {
+			log.Error().Err(err).Str("Player", "Fetcher").Msg("failed to initialize fetchers")
 			bus.HandleMessageError(err, msg, "failed to initialize fetchers")
 			return
 		}
 		err = a.startAllFetchers(ctx)
 		if err != nil {
+			log.Error().Err(err).Str("Player", "Fetcher").Msg("failed to start all fetchers")
 			bus.HandleMessageError(err, msg, "failed to start all fetchers")
 			return
 		}
@@ -154,12 +163,12 @@ func (a *App) startFetcher(ctx context.Context, fetcher *Fetcher) error {
 	return nil
 }
 
-func (a *App) startFetcherById(ctx context.Context, adapterId int64) error {
-	if fetcher, ok := a.Fetchers[adapterId]; ok {
+func (a *App) startFetcherById(ctx context.Context, configId int32) error {
+	if fetcher, ok := a.Fetchers[configId]; ok {
 		return a.startFetcher(ctx, fetcher)
 	}
-	log.Error().Str("Player", "Fetcher").Int64("adapterId", adapterId).Msg("fetcher not found")
-	return errors.New("fetcher not found by id:" + strconv.FormatInt(adapterId, 10))
+	log.Error().Str("Player", "Fetcher").Int32("adapterId", configId).Msg("fetcher not found")
+	return errors.New("fetcher not found by id:" + strconv.Itoa(int(configId)))
 }
 
 func (a *App) startAllFetchers(ctx context.Context) error {
@@ -189,11 +198,11 @@ func (a *App) stopFetcher(ctx context.Context, fetcher *Fetcher) error {
 	return nil
 }
 
-func (a *App) stopFetcherById(ctx context.Context, adapterId int64) error {
-	if fetcher, ok := a.Fetchers[adapterId]; ok {
+func (a *App) stopFetcherById(ctx context.Context, configId int32) error {
+	if fetcher, ok := a.Fetchers[configId]; ok {
 		return a.stopFetcher(ctx, fetcher)
 	}
-	return errors.New("fetcher not found by id:" + strconv.FormatInt(adapterId, 10))
+	return errors.New("fetcher not found by id:" + strconv.Itoa(int(configId)))
 }
 
 func (a *App) stopAllFetchers(ctx context.Context) error {
@@ -207,16 +216,16 @@ func (a *App) stopAllFetchers(ctx context.Context) error {
 	return nil
 }
 
-func (a *App) getAdapters(ctx context.Context) ([]Adapter, error) {
-	adapters, err := db.QueryRows[Adapter](ctx, SelectActiveAdaptersQuery, nil)
+func (a *App) getFetcherConfigs(ctx context.Context) ([]FetcherConfig, error) {
+	configs, err := db.QueryRows[FetcherConfig](ctx, SelectConfigsQuery, nil)
 	if err != nil {
 		return nil, err
 	}
-	return adapters, err
+	return configs, err
 }
 
-func (a *App) getFeeds(ctx context.Context, adapterId int64) ([]Feed, error) {
-	feeds, err := db.QueryRows[Feed](ctx, SelectFeedsByAdapterIdQuery, map[string]any{"adapterId": adapterId})
+func (a *App) getFeeds(ctx context.Context, configId int32) ([]Feed, error) {
+	feeds, err := db.QueryRows[Feed](ctx, SelectFeedsByConfigIdQuery, map[string]any{"config_id": configId})
 	if err != nil {
 		return nil, err
 	}
@@ -233,18 +242,18 @@ func (a *App) getProxies(ctx context.Context) ([]Proxy, error) {
 }
 
 func (a *App) initialize(ctx context.Context) error {
-	adapters, err := a.getAdapters(ctx)
+	fetcherConfigs, err := a.getFetcherConfigs(ctx)
 	if err != nil {
 		return err
 	}
-	a.Fetchers = make(map[int64]*Fetcher, len(adapters))
-	for _, adapter := range adapters {
-		feeds, err := a.getFeeds(ctx, adapter.ID)
+	a.Fetchers = make(map[int32]*Fetcher, len(fetcherConfigs))
+	for _, config := range fetcherConfigs {
+		feeds, err := a.getFeeds(ctx, config.ID)
 		if err != nil {
 			return err
 		}
 
-		a.Fetchers[adapter.ID] = NewFetcher(adapter, feeds)
+		a.Fetchers[config.ID] = NewFetcher(config, feeds)
 	}
 
 	proxies, getProxyErr := a.getProxies(ctx)

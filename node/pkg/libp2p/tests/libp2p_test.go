@@ -3,7 +3,6 @@ package tests
 
 import (
 	"context"
-	"fmt"
 	"testing"
 
 	"bisonai.com/orakl/node/pkg/boot"
@@ -64,8 +63,6 @@ func TestSetupFromBootApi(t *testing.T) {
 		t.Errorf("Failed to setup from boot api: %v", err)
 	}
 	defer h1.Close()
-
-	fmt.Println("h1: ", h1.ID())
 
 	h2, _, err := setup.SetupFromBootApi(ctx, 10002)
 	if err != nil {

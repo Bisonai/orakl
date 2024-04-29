@@ -25,7 +25,7 @@ func TestFeedGet(t *testing.T) {
 	assert.Greater(t, len(readResult), 0)
 }
 
-func TestFeedGetByAdapterId(t *testing.T) {
+func TestFeedGetByConfigId(t *testing.T) {
 	ctx := context.Background()
 	cleanup, testItems, err := setup(ctx)
 	if err != nil {
@@ -33,7 +33,7 @@ func TestFeedGetByAdapterId(t *testing.T) {
 	}
 	defer cleanup()
 
-	readResult, err := GetRequest[[]feed.FeedModel](testItems.app, "/api/v1/feed/adapter/"+strconv.FormatInt(*testItems.tmpData.adapter.Id, 10), nil)
+	readResult, err := GetRequest[[]feed.FeedModel](testItems.app, "/api/v1/feed/config/"+strconv.FormatInt(testItems.tmpData.config.Id, 10), nil)
 	if err != nil {
 		t.Fatalf("error getting feeds: %v", err)
 	}

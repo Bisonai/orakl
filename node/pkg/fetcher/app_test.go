@@ -101,16 +101,20 @@ func TestFetcherRun(t *testing.T) {
 	assert.Greater(t, len(feedDataRowsAfter), len(feedDataRowsBefore))
 
 	for _, fetcher := range app.Fetchers {
-		rdbResult, err := db.Get(ctx, "localAggregate:"+fetcher.Name)
+		configId := fetcher.FetcherConfig.ID
+		rdbResult, err := db.Get(ctx, "localAggregate:"+strconv.Itoa(int(configId)))
 		if err != nil {
 			t.Fatalf("error reading from redis: %v", err)
 		}
 		assert.NotNil(t, rdbResult)
 
-		err = db.Del(ctx, "localAggregate:"+fetcher.Name)
-		if err != nil {
-			t.Fatalf("error removing from redis: %v", err)
-		}
+		defer func() {
+			err = db.Del(ctx, "localAggregate:"+strconv.Itoa(int(configId)))
+			if err != nil {
+				t.Fatalf("error removing from redis: %v", err)
+			}
+		}()
+
 	}
 }
 
@@ -172,16 +176,18 @@ func TestFetcherFetcherStart(t *testing.T) {
 
 	// check rdb and cleanup rdb
 	for _, fetcher := range app.Fetchers {
-		rdbResult, err := db.Get(ctx, "localAggregate:"+fetcher.Name)
+		configId := fetcher.FetcherConfig.ID
+		rdbResult, err := db.Get(ctx, "localAggregate:"+strconv.Itoa(int(configId)))
 		if err != nil {
 			t.Fatalf("error reading from redis: %v", err)
 		}
 		assert.NotNil(t, rdbResult)
-
-		err = db.Del(ctx, "localAggregate:"+fetcher.Name)
-		if err != nil {
-			t.Fatalf("error removing from redis: %v", err)
-		}
+		defer func() {
+			err = db.Del(ctx, "localAggregate:"+strconv.Itoa(int(configId)))
+			if err != nil {
+				t.Fatalf("error removing from redis: %v", err)
+			}
+		}()
 	}
 }
 
@@ -248,16 +254,18 @@ func TestFetcherFetcherStop(t *testing.T) {
 
 	// check rdb and cleanup rdb
 	for _, fetcher := range app.Fetchers {
-		rdbResult, err := db.Get(ctx, "localAggregate:"+fetcher.Name)
+		configId := fetcher.FetcherConfig.ID
+		rdbResult, err := db.Get(ctx, "localAggregate:"+strconv.Itoa(int(configId)))
 		if err != nil {
 			t.Fatalf("error reading from redis: %v", err)
 		}
 		assert.NotNil(t, rdbResult)
-
-		err = db.Del(ctx, "localAggregate:"+fetcher.Name)
-		if err != nil {
-			t.Fatalf("error removing from redis: %v", err)
-		}
+		defer func() {
+			err = db.Del(ctx, "localAggregate:"+strconv.Itoa(int(configId)))
+			if err != nil {
+				t.Fatalf("error removing from redis: %v", err)
+			}
+		}()
 	}
 }
 
@@ -283,11 +291,10 @@ func TestFetcherFetcherStartById(t *testing.T) {
 	app.subscribe(ctx)
 
 	for _, fetcher := range app.Fetchers {
-		result, requestErr := tests.PostRequest[Adapter](testItems.admin, "/api/v1/adapter/activate/"+strconv.FormatInt(fetcher.ID, 10), nil)
+		_, requestErr := tests.RawPostRequest(testItems.admin, "/api/v1/fetcher/activate/"+strconv.Itoa(int(fetcher.FetcherConfig.ID)), nil)
 		if requestErr != nil {
 			t.Fatalf("error starting adapter: %v", requestErr)
 		}
-		assert.True(t, result.Active)
 	}
 
 	for _, fetcher := range app.Fetchers {
@@ -324,12 +331,10 @@ func TestFetcherFetcherStopById(t *testing.T) {
 	}
 
 	for _, fetcher := range app.Fetchers {
-		result, requestErr := tests.PostRequest[Adapter](testItems.admin, "/api/v1/adapter/deactivate/"+strconv.FormatInt(fetcher.ID, 10), nil)
+		_, requestErr := tests.RawPostRequest(testItems.admin, "/api/v1/fetcher/deactivate/"+strconv.Itoa(int(fetcher.FetcherConfig.ID)), nil)
 		if requestErr != nil {
 			t.Fatalf("error stopping adapter: %v", requestErr)
 		}
-		assert.False(t, result.Active)
-
 	}
 
 	for _, fetcher := range app.Fetchers {

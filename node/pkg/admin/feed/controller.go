@@ -11,7 +11,7 @@ type FeedModel struct {
 	Id         *int64          `db:"id" json:"id"`
 	Name       string          `db:"name" json:"name"`
 	Definition json.RawMessage `db:"definition" json:"definition"`
-	AdapterId  *int64          `db:"adapter_id" json:"adapterId"`
+	ConfigId   *int64          `db:"config_id" json:"configId"`
 }
 
 func get(c *fiber.Ctx) error {
@@ -32,11 +32,11 @@ func getById(c *fiber.Ctx) error {
 	return c.JSON(result)
 }
 
-func getByAdpaterId(c *fiber.Ctx) error {
+func getByConfigId(c *fiber.Ctx) error {
 	id := c.Params("id")
-	results, err := db.QueryRows[FeedModel](c.Context(), GetFeedsByAdapterId, map[string]any{"adapter_id": id})
+	results, err := db.QueryRows[FeedModel](c.Context(), GetFeedsByConfigId, map[string]any{"config_id": id})
 	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).SendString("failed to execute feed get by adapter id query: " + err.Error())
+		return c.Status(fiber.StatusInternalServerError).SendString("failed to execute feed get by config id query: " + err.Error())
 	}
 	return c.JSON(results)
 }

@@ -6,6 +6,7 @@ import (
 	"errors"
 	"math"
 	"math/big"
+	"strconv"
 	"time"
 
 	"bisonai.com/orakl/node/pkg/db"
@@ -51,27 +52,27 @@ func getTokenPrice(sqrtPriceX96 *big.Int, definition *Definition) (float64, erro
 	return math.Round(result), nil
 }
 
-func insertFeedData(ctx context.Context, adapterId int64, feedData []FeedData) error {
+func insertFeedData(ctx context.Context, feedData []FeedData) error {
 	insertRows := make([][]any, 0, len(feedData))
 	for _, data := range feedData {
-		insertRows = append(insertRows, []any{adapterId, data.FeedName, data.Value})
+		insertRows = append(insertRows, []any{data.FeedID, data.Value})
 	}
 
-	err := db.BulkInsert(ctx, "feed_data", []string{"adapter_id", "name", "value"}, insertRows)
+	err := db.BulkInsert(ctx, "feed_data", []string{"feed_id", "value"}, insertRows)
 	if err != nil {
 		log.Error().Str("Player", "Fetcher").Err(err).Msg("failed to insert feed data")
 	}
 	return err
 }
 
-func insertPgsql(ctx context.Context, name string, value float64) error {
-	err := db.QueryWithoutResult(ctx, InsertLocalAggregateQuery, map[string]any{"name": name, "value": int64(value)})
+func insertLocalAggregatePgsql(ctx context.Context, configId int32, value float64) error {
+	err := db.QueryWithoutResult(ctx, InsertLocalAggregateQuery, map[string]any{"config_id": configId, "value": int64(value)})
 	return err
 }
 
-func insertRdb(ctx context.Context, name string, value float64) error {
-	key := "localAggregate:" + name
-	data, err := json.Marshal(redisAggregate{Value: int64(value), Timestamp: time.Now()})
+func insertLocalAggregateRdb(ctx context.Context, configId int32, value float64) error {
+	key := "localAggregate:" + strconv.Itoa(int(configId))
+	data, err := json.Marshal(RedisAggregate{ConfigId: configId, Value: int64(value), Timestamp: time.Now()})
 	if err != nil {
 		return err
 	}

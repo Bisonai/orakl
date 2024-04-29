@@ -17,11 +17,11 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-func NewReporter(ctx context.Context, h host.Host, ps *pubsub.PubSub, submissionPairs []SubmissionAddress, interval int, contractAddress string, cachedWhitelist []common.Address) (*Reporter, error) {
+func NewReporter(ctx context.Context, h host.Host, ps *pubsub.PubSub, reporterConfigs []ReporterConfig, interval int, contractAddress string, cachedWhitelist []common.Address) (*Reporter, error) {
 	topicString := TOPIC_STRING + "-" + strconv.Itoa(interval)
 	groupInterval := time.Duration(interval) * time.Millisecond
 
-	reporter, err := newReporter(ctx, h, ps, submissionPairs, groupInterval, topicString, contractAddress, cachedWhitelist)
+	reporter, err := newReporter(ctx, h, ps, reporterConfigs, groupInterval, topicString, contractAddress, cachedWhitelist)
 	if err != nil {
 		return nil, err
 	}
@@ -30,10 +30,10 @@ func NewReporter(ctx context.Context, h host.Host, ps *pubsub.PubSub, submission
 	return reporter, nil
 }
 
-func NewDeviationReporter(ctx context.Context, h host.Host, ps *pubsub.PubSub, submissionPairs []SubmissionAddress, contractAddress string, cachedWhitelist []common.Address) (*Reporter, error) {
+func NewDeviationReporter(ctx context.Context, h host.Host, ps *pubsub.PubSub, reporterConfigs []ReporterConfig, contractAddress string, cachedWhitelist []common.Address) (*Reporter, error) {
 	topicString := TOPIC_STRING + "-deviation"
 
-	reporter, err := newReporter(ctx, h, ps, submissionPairs, DEVIATION_TIMEOUT, topicString, contractAddress, cachedWhitelist)
+	reporter, err := newReporter(ctx, h, ps, reporterConfigs, DEVIATION_TIMEOUT, topicString, contractAddress, cachedWhitelist)
 	if err != nil {
 		return nil, err
 	}
@@ -42,8 +42,8 @@ func NewDeviationReporter(ctx context.Context, h host.Host, ps *pubsub.PubSub, s
 	return reporter, nil
 }
 
-func newReporter(ctx context.Context, h host.Host, ps *pubsub.PubSub, submissionPairs []SubmissionAddress, interval time.Duration, topicString string, contractAddress string, cachedWhitelist []common.Address) (*Reporter, error) {
-	if len(submissionPairs) == 0 {
+func newReporter(ctx context.Context, h host.Host, ps *pubsub.PubSub, reporterConfigs []ReporterConfig, interval time.Duration, topicString string, contractAddress string, cachedWhitelist []common.Address) (*Reporter, error) {
+	if len(reporterConfigs) == 0 {
 		log.Error().Str("Player", "Reporter").Err(errors.New("no submission pairs")).Msg("no submission pairs to make new reporter")
 		return nil, errors.New("no submission pairs")
 	}
@@ -63,9 +63,9 @@ func newReporter(ctx context.Context, h host.Host, ps *pubsub.PubSub, submission
 		CachedWhitelist:    cachedWhitelist,
 	}
 
-	reporter.SubmissionPairs = make(map[string]SubmissionPair)
-	for _, sa := range submissionPairs {
-		reporter.SubmissionPairs[sa.Name] = SubmissionPair{LastSubmission: 0, Address: common.HexToAddress(sa.Address)}
+	reporter.SubmissionPairs = make(map[int32]SubmissionPair)
+	for _, sa := range reporterConfigs {
+		reporter.SubmissionPairs[sa.ID] = SubmissionPair{LastSubmission: 0, Address: common.HexToAddress(sa.Address)}
 	}
 	reporter.Raft.HandleCustomMessage = reporter.handleCustomMessage
 
@@ -138,9 +138,9 @@ func (r *Reporter) leaderJob() error {
 	}
 
 	for _, agg := range validAggregates {
-		pair := r.SubmissionPairs[agg.Name]
+		pair := r.SubmissionPairs[agg.ConfigID]
 		pair.LastSubmission = agg.Round
-		r.SubmissionPairs[agg.Name] = pair
+		r.SubmissionPairs[agg.ConfigID] = pair
 	}
 	log.Debug().Str("Player", "Reporter").Dur("duration", time.Since(start)).Msg("reporting done")
 
@@ -208,10 +208,10 @@ func (r *Reporter) orderProof(ctx context.Context, proof []byte, aggregate Globa
 	return orderedProof, nil
 }
 
-func (r *Reporter) orderProofs(ctx context.Context, proofMap map[string][]byte, aggregates []GlobalAggregate) (map[string][]byte, error) {
-	orderedProofMap := make(map[string][]byte)
+func (r *Reporter) orderProofs(ctx context.Context, proofMap map[int32][]byte, aggregates []GlobalAggregate) (map[int32][]byte, error) {
+	orderedProofMap := make(map[int32][]byte)
 	for _, agg := range aggregates {
-		proof, ok := proofMap[agg.Name]
+		proof, ok := proofMap[agg.ConfigID]
 		if !ok {
 			log.Error().Str("Player", "Reporter").Msg("proof not found")
 			return nil, errors.New("proof not found")
@@ -223,7 +223,7 @@ func (r *Reporter) orderProofs(ctx context.Context, proofMap map[string][]byte, 
 			return nil, err
 		}
 
-		orderedProofMap[agg.Name] = orderedProof
+		orderedProofMap[agg.ConfigID] = orderedProof
 	}
 
 	return orderedProofMap, nil
@@ -264,7 +264,7 @@ func (r *Reporter) reportWithoutProofs(ctx context.Context, aggregates []GlobalA
 	return nil
 }
 
-func (r *Reporter) reportWithProofs(ctx context.Context, aggregates []GlobalAggregate, proofMap map[string][]byte) error {
+func (r *Reporter) reportWithProofs(ctx context.Context, aggregates []GlobalAggregate, proofMap map[int32][]byte) error {
 	log.Debug().Str("Player", "Reporter").Int("aggregates", len(aggregates)).Msg("reporting with proofs")
 	if r.KlaytnHelper == nil {
 		return errors.New("klaytn helper not set")
@@ -380,9 +380,9 @@ func (r *Reporter) deviationJob() error {
 	}
 
 	for _, agg := range deviatingAggregates {
-		pair := r.SubmissionPairs[agg.Name]
+		pair := r.SubmissionPairs[agg.ConfigID]
 		pair.LastSubmission = agg.Round
-		r.SubmissionPairs[agg.Name] = pair
+		r.SubmissionPairs[agg.ConfigID] = pair
 	}
 
 	log.Debug().Str("Player", "Reporter").Dur("duration", time.Since(start)).Msg("reporting deviation done")

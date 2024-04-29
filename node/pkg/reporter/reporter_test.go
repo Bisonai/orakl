@@ -3,7 +3,6 @@ package reporter
 
 import (
 	"context"
-	"fmt"
 	"math/big"
 	"os"
 	"testing"
@@ -26,11 +25,11 @@ func TestNewReporter(t *testing.T) {
 		}
 	}()
 
-	submissionPairs, err := getSubmissionPairs(ctx)
+	submissionPairs, err := getReporterConfigs(ctx)
 	if err != nil {
 		t.Fatalf("error getting submission pairs: %v", err)
 	}
-	groupedSubmissionPairs := groupSubmissionPairsByIntervals(submissionPairs)
+	groupedSubmissionPairs := groupReporterConfigsByIntervals(submissionPairs)
 
 	contractAddress := os.Getenv("SUBMISSION_PROXY_CONTRACT")
 	if contractAddress == "" {
@@ -156,7 +155,7 @@ func TestGetLatestGlobalAggregates(t *testing.T) {
 		t.Fatal("error getting latest global aggregates")
 	}
 
-	assert.Equal(t, result[0].Name, testItems.tmpData.globalAggregate.Name)
+	assert.Equal(t, result[0].ConfigID, testItems.tmpData.globalAggregate.ConfigID)
 	assert.Equal(t, result[0].Value, testItems.tmpData.globalAggregate.Value)
 }
 
@@ -182,14 +181,14 @@ func TestFilterInvalidAggregates(t *testing.T) {
 	}
 
 	aggregates := []GlobalAggregate{{
-		Name:  "test-aggregate",
-		Value: 15,
-		Round: 1,
+		ConfigID: testItems.tmpData.reporterConfig.ID,
+		Value:    15,
+		Round:    1,
 	}}
 	result := FilterInvalidAggregates(aggregates, reporter.SubmissionPairs)
 	assert.Equal(t, result, aggregates)
 
-	reporter.SubmissionPairs = map[string]SubmissionPair{"test-aggregate": {LastSubmission: 1, Address: common.HexToAddress("0x1234")}}
+	reporter.SubmissionPairs = map[int32]SubmissionPair{testItems.tmpData.reporterConfig.ID: {LastSubmission: 1, Address: common.HexToAddress("0x1234")}}
 	result = FilterInvalidAggregates(aggregates, reporter.SubmissionPairs)
 	assert.Equal(t, result, []GlobalAggregate{})
 }
@@ -216,14 +215,14 @@ func TestIsAggValid(t *testing.T) {
 	}
 
 	agg := GlobalAggregate{
-		Name:  "test-aggregate",
-		Value: 15,
-		Round: 1,
+		ConfigID: testItems.tmpData.reporterConfig.ID,
+		Value:    15,
+		Round:    1,
 	}
 	result := IsAggValid(agg, reporter.SubmissionPairs)
 	assert.Equal(t, result, true)
 
-	reporter.SubmissionPairs = map[string]SubmissionPair{"test-aggregate": {LastSubmission: 1, Address: common.HexToAddress("0x1234")}}
+	reporter.SubmissionPairs = map[int32]SubmissionPair{testItems.tmpData.reporterConfig.ID: {LastSubmission: 1, Address: common.HexToAddress("0x1234")}}
 	result = IsAggValid(agg, reporter.SubmissionPairs)
 	assert.Equal(t, result, false)
 }
@@ -250,7 +249,7 @@ func TestMakeContractArgs(t *testing.T) {
 	}
 
 	agg := GlobalAggregate{
-		Name:      "test-aggregate",
+		ConfigID:  testItems.tmpData.reporterConfig.ID,
 		Value:     15,
 		Round:     1,
 		Timestamp: testItems.tmpData.proofTime,
@@ -261,7 +260,7 @@ func TestMakeContractArgs(t *testing.T) {
 		t.Fatal("error making contract args")
 	}
 
-	assert.Equal(t, addresses[0], reporter.SubmissionPairs[agg.Name].Address)
+	assert.Equal(t, addresses[0], reporter.SubmissionPairs[agg.ConfigID].Address)
 	assert.Equal(t, values[0], big.NewInt(15))
 
 	rawProofs, err := GetProofsRdb(ctx, []GlobalAggregate{agg})
@@ -275,7 +274,7 @@ func TestMakeContractArgs(t *testing.T) {
 	if err != nil {
 		t.Fatal("error making contract args")
 	}
-	assert.Equal(t, reporter.SubmissionPairs[agg.Name].Address, addresses[0])
+	assert.Equal(t, reporter.SubmissionPairs[agg.ConfigID].Address, addresses[0])
 	assert.Equal(t, big.NewInt(15), values[0])
 
 	proofArr := make([][]byte, len(proofs))
@@ -314,7 +313,7 @@ func TestGetLatestGlobalAggregatesRdb(t *testing.T) {
 		t.Fatal("error getting latest global aggregates from rdb")
 	}
 
-	assert.Equal(t, result[0].Name, testItems.tmpData.globalAggregate.Name)
+	assert.Equal(t, result[0].ConfigID, testItems.tmpData.globalAggregate.ConfigID)
 	assert.Equal(t, result[0].Value, testItems.tmpData.globalAggregate.Value)
 }
 
@@ -342,11 +341,10 @@ func TestGetLatestGlobalAggregatesPgsql(t *testing.T) {
 
 	result, err := GetLatestGlobalAggregatesPgsql(ctx, reporter.SubmissionPairs)
 	if err != nil {
-		fmt.Println(err)
 		t.Fatal("error getting latest global aggregates from pgs")
 	}
 
-	assert.Equal(t, result[0].Name, testItems.tmpData.globalAggregate.Name)
+	assert.Equal(t, result[0].ConfigID, testItems.tmpData.globalAggregate.ConfigID)
 	assert.Equal(t, result[0].Value, testItems.tmpData.globalAggregate.Value)
 }
 
@@ -407,7 +405,7 @@ func TestNewDeviationReporter(t *testing.T) {
 		}
 	}()
 
-	submissionPairs, err := getSubmissionPairs(ctx)
+	submissionPairs, err := getReporterConfigs(ctx)
 	if err != nil {
 		t.Fatalf("error getting submission pairs: %v", err)
 	}
@@ -511,15 +509,15 @@ func TestGetDeviatingAggregates(t *testing.T) {
 	}()
 
 	oldAggregates := []GlobalAggregate{{
-		Name:  "test-aggregate",
-		Value: 15,
-		Round: 1,
+		ConfigID: 2,
+		Value:    15,
+		Round:    1,
 	}}
 
 	newAggregates := []GlobalAggregate{{
-		Name:  "test-aggregate",
-		Value: 30,
-		Round: 2,
+		ConfigID: 2,
+		Value:    30,
+		Round:    2,
 	}}
 
 	result := GetDeviatingAggregates(oldAggregates, newAggregates)
@@ -538,7 +536,7 @@ func TestDeviationJob(t *testing.T) {
 		}
 	}()
 
-	submissionPairs, err := getSubmissionPairs(ctx)
+	submissionPairs, err := getReporterConfigs(ctx)
 	if err != nil {
 		t.Fatalf("error getting submission pairs: %v", err)
 	}

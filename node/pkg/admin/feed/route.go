@@ -7,7 +7,7 @@ import (
 func Routes(router fiber.Router) {
 	feed := router.Group("/feed")
 	feed.Get("", get)
-	feed.Get("/adapter/:id", getByAdpaterId)
+	feed.Get("/config/:id", getByConfigId)
 	feed.Get("/:id", getById)
 
 }

@@ -20,14 +20,14 @@ import (
 )
 
 func GetDeviatingAggregates(lastSubmitted []GlobalAggregate, newAggregates []GlobalAggregate) []GlobalAggregate {
-	submittedAggregates := make(map[string]GlobalAggregate)
+	submittedAggregates := make(map[int32]GlobalAggregate)
 	for _, aggregate := range lastSubmitted {
-		submittedAggregates[aggregate.Name] = aggregate
+		submittedAggregates[aggregate.ConfigID] = aggregate
 	}
 
 	result := make([]GlobalAggregate, 0, len(newAggregates))
 	for _, newAggregate := range newAggregates {
-		submittedAggregate, ok := submittedAggregates[newAggregate.Name]
+		submittedAggregate, ok := submittedAggregates[newAggregate.ConfigID]
 		if !ok || ShouldReportDeviation(submittedAggregate.Value, newAggregate.Value) {
 			result = append(result, newAggregate)
 		}
@@ -52,11 +52,11 @@ func ShouldReportDeviation(oldValue int64, newValue int64) bool {
 	}
 }
 
-func GetLastSubmission(ctx context.Context, submissionPairs map[string]SubmissionPair) ([]GlobalAggregate, error) {
+func GetLastSubmission(ctx context.Context, submissionPairs map[int32]SubmissionPair) ([]GlobalAggregate, error) {
 	keys := make([]string, 0, len(submissionPairs))
 
-	for name := range submissionPairs {
-		keys = append(keys, "lastSubmission:"+name)
+	for config_id := range submissionPairs {
+		keys = append(keys, "lastSubmission:"+strconv.Itoa(int(config_id)))
 	}
 
 	result, err := db.MGet(ctx, keys)
@@ -87,11 +87,11 @@ func StoreLastSubmission(ctx context.Context, aggregates []GlobalAggregate) erro
 	vals := make(map[string]string)
 
 	for _, agg := range aggregates {
-		if agg.Name == "" {
-			log.Error().Str("Player", "Reporter").Str("name", agg.Name).Msg("skipping invalid aggregate")
+		if agg.ConfigID == 0 {
+			log.Error().Str("Player", "Reporter").Int32("ConfigID", agg.ConfigID).Msg("skipping invalid aggregate")
 			continue
 		}
-		key := "lastSubmission:" + agg.Name
+		key := "lastSubmission:" + strconv.Itoa(int(agg.ConfigID))
 
 		tmpValue, err := json.Marshal(agg)
 		if err != nil {
@@ -108,10 +108,10 @@ func StoreLastSubmission(ctx context.Context, aggregates []GlobalAggregate) erro
 	return db.MSet(ctx, vals)
 }
 
-func ProofsToMap(proofs []Proof) map[string][]byte {
-	m := make(map[string][]byte)
+func ProofsToMap(proofs []Proof) map[int32][]byte {
+	m := make(map[int32][]byte)
 	for _, proof := range proofs {
-		m[proof.Name] = proof.Proof
+		m[proof.ConfigID] = proof.Proof
 	}
 	return m
 }
@@ -130,28 +130,40 @@ func ConvertPgsqlProofsToProofs(pgsqlProofs []PgsqlProof) []Proof {
 	proofs := make([]Proof, len(pgsqlProofs))
 	for i, pgsqlProof := range pgsqlProofs {
 		proofs[i] = Proof{
-			Name:  pgsqlProof.Name,
-			Round: pgsqlProof.Round,
-			Proof: pgsqlProof.Proof,
+			ConfigID: pgsqlProof.ConfigID,
+			Round:    pgsqlProof.Round,
+			Proof:    pgsqlProof.Proof,
 		}
 	}
 	return proofs
 }
 
-func MakeContractArgsWithProofs(aggregates []GlobalAggregate, submissionPairs map[string]SubmissionPair, proofMap map[string][]byte) ([]common.Address, []*big.Int, [][]byte, []*big.Int, error) {
+func MakeContractArgsWithProofs(aggregates []GlobalAggregate, submissionPairs map[int32]SubmissionPair, proofMap map[int32][]byte) ([]common.Address, []*big.Int, [][]byte, []*big.Int, error) {
+	if len(aggregates) == 0 {
+		return nil, nil, nil, nil, errors.New("no aggregates")
+	}
+
+	if len(submissionPairs) == 0 {
+		return nil, nil, nil, nil, errors.New("no submission pairs")
+	}
+
+	if len(proofMap) == 0 {
+		return nil, nil, nil, nil, errors.New("no proofs")
+	}
+
 	addresses := make([]common.Address, len(aggregates))
 	values := make([]*big.Int, len(aggregates))
 	proofs := make([][]byte, len(aggregates))
 	timestamps := make([]*big.Int, len(aggregates))
 
 	for i, agg := range aggregates {
-		if agg.Name == "" || agg.Value < 0 {
-			log.Error().Str("Player", "Reporter").Str("name", agg.Name).Int64("value", agg.Value).Msg("skipping invalid aggregate")
+		if agg.ConfigID == 0 || agg.Value < 0 {
+			log.Error().Str("Player", "Reporter").Int32("configId", agg.ConfigID).Int64("value", agg.Value).Msg("skipping invalid aggregate")
 			return nil, nil, nil, nil, errors.New("invalid aggregate exists")
 		}
-		addresses[i] = submissionPairs[agg.Name].Address
+		addresses[i] = submissionPairs[agg.ConfigID].Address
 		values[i] = big.NewInt(agg.Value)
-		proofs[i] = proofMap[agg.Name]
+		proofs[i] = proofMap[agg.ConfigID]
 		timestamps[i] = big.NewInt(agg.Timestamp.Unix())
 	}
 
@@ -161,16 +173,16 @@ func MakeContractArgsWithProofs(aggregates []GlobalAggregate, submissionPairs ma
 	return addresses, values, proofs, timestamps, nil
 }
 
-func MakeContractArgsWithoutProofs(aggregates []GlobalAggregate, submissionPairs map[string]SubmissionPair) ([]common.Address, []*big.Int, error) {
+func MakeContractArgsWithoutProofs(aggregates []GlobalAggregate, submissionPairs map[int32]SubmissionPair) ([]common.Address, []*big.Int, error) {
 	addresses := make([]common.Address, len(aggregates))
 	values := make([]*big.Int, len(aggregates))
 
 	for i, agg := range aggregates {
-		if agg.Name == "" || agg.Value < 0 {
-			log.Error().Str("Player", "Reporter").Str("name", agg.Name).Int64("value", agg.Value).Msg("skipping invalid aggregate")
+		if agg.ConfigID == 0 || agg.Value < 0 {
+			log.Error().Str("Player", "Reporter").Int32("configId", agg.ConfigID).Int64("value", agg.Value).Msg("skipping invalid aggregate")
 			return nil, nil, errors.New("invalid aggregate exists")
 		}
-		addresses[i] = submissionPairs[agg.Name].Address
+		addresses[i] = submissionPairs[agg.ConfigID].Address
 		values[i] = big.NewInt(agg.Value)
 
 	}
@@ -181,7 +193,7 @@ func MakeContractArgsWithoutProofs(aggregates []GlobalAggregate, submissionPairs
 	return addresses, values, nil
 }
 
-func FilterInvalidAggregates(aggregates []GlobalAggregate, submissionPairs map[string]SubmissionPair) []GlobalAggregate {
+func FilterInvalidAggregates(aggregates []GlobalAggregate, submissionPairs map[int32]SubmissionPair) []GlobalAggregate {
 	validAggregates := make([]GlobalAggregate, 0, len(aggregates))
 	for _, aggregate := range aggregates {
 		if IsAggValid(aggregate, submissionPairs) {
@@ -191,12 +203,9 @@ func FilterInvalidAggregates(aggregates []GlobalAggregate, submissionPairs map[s
 	return validAggregates
 }
 
-func IsAggValid(aggregate GlobalAggregate, submissionPairs map[string]SubmissionPair) bool {
-	lastSubmission := submissionPairs[aggregate.Name].LastSubmission
-	if lastSubmission == 0 {
-		return true
-	}
-	return aggregate.Round > lastSubmission
+func IsAggValid(aggregate GlobalAggregate, submissionPairs map[int32]SubmissionPair) bool {
+	lastSubmission := submissionPairs[aggregate.ConfigID].LastSubmission
+	return lastSubmission == 0 || aggregate.Round > lastSubmission
 }
 
 func GetProofs(ctx context.Context, aggregates []GlobalAggregate) ([]Proof, error) {
@@ -211,7 +220,7 @@ func GetProofs(ctx context.Context, aggregates []GlobalAggregate) ([]Proof, erro
 func GetProofsRdb(ctx context.Context, aggregates []GlobalAggregate) ([]Proof, error) {
 	keys := make([]string, 0, len(aggregates))
 	for _, agg := range aggregates {
-		keys = append(keys, "proof:"+agg.Name+"|round:"+strconv.FormatInt(agg.Round, 10))
+		keys = append(keys, "proof:"+strconv.Itoa(int(agg.ConfigID))+"|round:"+strconv.FormatInt(agg.Round, 10))
 	}
 
 	result, err := db.MGet(ctx, keys)
@@ -248,7 +257,7 @@ func GetProofsPgsql(ctx context.Context, aggregates []GlobalAggregate) ([]Proof,
 	return ConvertPgsqlProofsToProofs(rawResult), nil
 }
 
-func GetProofsAsMap(ctx context.Context, aggregates []GlobalAggregate) (map[string][]byte, error) {
+func GetProofsAsMap(ctx context.Context, aggregates []GlobalAggregate) (map[int32][]byte, error) {
 	proofs, err := GetProofs(ctx, aggregates)
 	if err != nil {
 		log.Error().Str("Player", "Reporter").Err(err).Msg("submit without proofs")
@@ -262,7 +271,7 @@ func GetProofsAsMap(ctx context.Context, aggregates []GlobalAggregate) (map[stri
 	return ProofsToMap(proofs), nil
 }
 
-func GetLatestGlobalAggregates(ctx context.Context, submissionPairs map[string]SubmissionPair) ([]GlobalAggregate, error) {
+func GetLatestGlobalAggregates(ctx context.Context, submissionPairs map[int32]SubmissionPair) ([]GlobalAggregate, error) {
 	result, err := GetLatestGlobalAggregatesRdb(ctx, submissionPairs)
 	if err != nil {
 		log.Error().Str("Player", "Reporter").Err(err).Msg("getLatestGlobalAggregatesRdb failed, trying to get from pgsql")
@@ -271,21 +280,21 @@ func GetLatestGlobalAggregates(ctx context.Context, submissionPairs map[string]S
 	return result, nil
 }
 
-func GetLatestGlobalAggregatesPgsql(ctx context.Context, submissionPairs map[string]SubmissionPair) ([]GlobalAggregate, error) {
-	names := make([]string, 0, len(submissionPairs))
-	for name := range submissionPairs {
-		names = append(names, name)
+func GetLatestGlobalAggregatesPgsql(ctx context.Context, submissionPairs map[int32]SubmissionPair) ([]GlobalAggregate, error) {
+	configIds := make([]int32, 0, len(submissionPairs))
+	for configId := range submissionPairs {
+		configIds = append(configIds, configId)
 	}
 
-	q := makeGetLatestGlobalAggregatesQuery(names)
+	q := makeGetLatestGlobalAggregatesQuery(configIds)
 	return db.QueryRows[GlobalAggregate](ctx, q, nil)
 }
 
-func GetLatestGlobalAggregatesRdb(ctx context.Context, submissionPairs map[string]SubmissionPair) ([]GlobalAggregate, error) {
+func GetLatestGlobalAggregatesRdb(ctx context.Context, submissionPairs map[int32]SubmissionPair) ([]GlobalAggregate, error) {
 	keys := make([]string, 0, len(submissionPairs))
 
-	for name := range submissionPairs {
-		keys = append(keys, "globalAggregate:"+name)
+	for configId := range submissionPairs {
+		keys = append(keys, "globalAggregate:"+strconv.Itoa(int(configId)))
 	}
 
 	result, err := db.MGet(ctx, keys)
@@ -434,34 +443,34 @@ func RemoveDuplicateProof(proof []byte) []byte {
 	return bytes.Join(result, nil)
 }
 
-func UpsertProofs(ctx context.Context, aggregates []GlobalAggregate, proofMap map[string][]byte) error {
+func UpsertProofs(ctx context.Context, aggregates []GlobalAggregate, proofMap map[int32][]byte) error {
 	upsertRows := make([][]any, 0, len(aggregates))
 	for _, agg := range aggregates {
-		proof, ok := proofMap[agg.Name]
+		proof, ok := proofMap[agg.ConfigID]
 		if !ok {
 			continue
 		}
-		upsertRows = append(upsertRows, []any{agg.Name, agg.Round, proof})
+		upsertRows = append(upsertRows, []any{agg.ConfigID, agg.Round, proof})
 	}
 
-	err := db.BulkUpsert(ctx, "proofs", []string{"name", "round", "proof"}, upsertRows, []string{"name", "round"}, []string{"proof"})
+	err := db.BulkUpsert(ctx, "proofs", []string{"config_id", "round", "proof"}, upsertRows, []string{"config_id", "round"}, []string{"proof"})
 	if err != nil {
 		log.Error().Str("Player", "Reporter").Err(err).Msg("failed to upsert proofs")
 	}
 	return err
 }
 
-func UpdateProofs(ctx context.Context, aggregates []GlobalAggregate, proofMap map[string][]byte) error {
+func UpdateProofs(ctx context.Context, aggregates []GlobalAggregate, proofMap map[int32][]byte) error {
 	rows := make([][]any, 0, len(aggregates))
 	for _, agg := range aggregates {
-		proof, ok := proofMap[agg.Name]
+		proof, ok := proofMap[agg.ConfigID]
 		if !ok {
 			continue
 		}
-		rows = append(rows, []any{proof, agg.Name, agg.Round})
+		rows = append(rows, []any{proof, agg.ConfigID, agg.Round})
 	}
 
-	err := db.BulkUpdate(ctx, "proofs", []string{"proof"}, rows, []string{"name", "round"})
+	err := db.BulkUpdate(ctx, "proofs", []string{"proof"}, rows, []string{"config_id", "round"})
 	if err != nil {
 		log.Error().Str("Player", "Reporter").Err(err).Msg("failed to update proofs")
 	}
