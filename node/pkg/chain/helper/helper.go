@@ -282,8 +282,8 @@ func NewSignHelper(pk string) (*SignHelper, error) {
 	if pk == "" {
 		pk = os.Getenv(SignerPk)
 		if pk == "" {
-			log.Error().Msg("reporter pk not set")
-			return nil, errors.New("reporter pk not set")
+			log.Error().Msg("signer pk not set")
+			return nil, errors.New("signer pk not set")
 		}
 	}
 
