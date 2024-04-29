@@ -22,8 +22,14 @@ func EncryptText(textToEncrypt string) (string, error) {
 		return "", err
 	}
 
+	// Generate a random 16-byte salt
+	salt := make([]byte, 16)
+	if _, err := rand.Read(salt); err != nil {
+		return "", err
+	}
+
 	// Derive a 32-byte key using scrypt
-	key, err := scrypt.Key([]byte(password), []byte("salt"), 16384, 8, 1, 32)
+	key, err := scrypt.Key([]byte(password), salt, 16384, 8, 1, 32)
 	if err != nil {
 		return "", err
 	}
@@ -39,8 +45,8 @@ func EncryptText(textToEncrypt string) (string, error) {
 	ciphertext := make([]byte, len(textToEncrypt))
 	stream.XORKeyStream(ciphertext, []byte(textToEncrypt))
 
-	// Combine the IV and ciphertext into a single string
-	encryptedText := hex.EncodeToString(iv) + hex.EncodeToString(ciphertext)
+	// Combine the IV, salt and ciphertext into a single string
+	encryptedText := hex.EncodeToString(iv) + hex.EncodeToString(salt) + hex.EncodeToString(ciphertext)
 
 	return encryptedText, nil
 }
@@ -51,18 +57,22 @@ func DecryptText(encryptedText string) (string, error) {
 		password = "anything"
 	}
 
-	// Extract the IV and ciphertext from the string
+	// Extract the IV, salt and ciphertext from the string
 	iv, err := hex.DecodeString(encryptedText[:32])
 	if err != nil {
 		return "", err
 	}
-	ciphertext, err := hex.DecodeString(encryptedText[32:])
+	salt, err := hex.DecodeString(encryptedText[32:64])
+	if err != nil {
+		return "", err
+	}
+	ciphertext, err := hex.DecodeString(encryptedText[64:])
 	if err != nil {
 		return "", err
 	}
 
 	// Derive the key using scrypt
-	key, err := scrypt.Key([]byte(password), []byte("salt"), 16384, 8, 1, 32)
+	key, err := scrypt.Key([]byte(password), salt, 16384, 8, 1, 32)
 	if err != nil {
 		return "", err
 	}
