@@ -40,6 +40,7 @@ BEGIN
         END IF;
         ALTER TABLE global_aggregates DROP COLUMN name;
         ALTER TABLE global_aggregates ADD COLUMN config_id INT4 NOT NULL;
+        ALTER TABLE global_aggregates ALTER COLUMN round TYPE INT4 USING round::integer;
         ALTER TABLE global_aggregates ADD CONSTRAINT global_aggregates_config_id_fkey FOREIGN KEY (config_id) REFERENCES configs(id) ON DELETE CASCADE;
     END IF;
 
@@ -50,6 +51,7 @@ BEGIN
         END IF;
         ALTER TABLE proofs DROP COLUMN name;
         ALTER TABLE proofs ADD COLUMN config_id INT4 NOT NULL;
+        ALTER TABLE proofs ALTER COLUMN round TYPE INT4 USING round::integer;
         ALTER TABLE proofs ADD CONSTRAINT proofs_config_id_fkey FOREIGN KEY (config_id) REFERENCES configs(id) ON DELETE CASCADE;
         ALTER TABLE proofs ADD CONSTRAINT proofs_config_id_round_key UNIQUE (config_id, round);
     END IF;

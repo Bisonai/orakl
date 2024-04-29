@@ -38,11 +38,11 @@ func NewAggregator(h host.Host, ps *pubsub.PubSub, topicString string, config Ag
 	aggregator := Aggregator{
 		AggregatorConfig:        config,
 		Raft:                    raft.NewRaftNode(h, ps, topic, 100, aggregateInterval),
-		CollectedPrices:         map[int64][]int64{},
-		CollectedProofs:         map[int64][][]byte{},
-		CollectedAgreements:     map[int64][]bool{},
-		PreparedLocalAggregates: map[int64]int64{},
-		SyncedTimes:             map[int64]time.Time{},
+		CollectedPrices:         map[int32][]int64{},
+		CollectedProofs:         map[int32][][]byte{},
+		CollectedAgreements:     map[int32][]bool{},
+		PreparedLocalAggregates: map[int32]int64{},
+		SyncedTimes:             map[int32]time.Time{},
 		AggregatorMutex:         sync.Mutex{},
 		RoundID:                 1,
 		SignHelper:              signHelper,
@@ -229,7 +229,7 @@ func (n *Aggregator) HandlePriceDataMessage(ctx context.Context, msg raft.Messag
 			log.Error().Str("Player", "Aggregator").Err(err).Msg("failed to get median")
 			return err
 		}
-		log.Debug().Str("Player", "Aggregator").Int64("roundId", priceDataMessage.RoundID).Int64("global_aggregate", median).Msg("global aggregated")
+		log.Debug().Str("Player", "Aggregator").Int32("roundId", priceDataMessage.RoundID).Int64("global_aggregate", median).Msg("global aggregated")
 		err = InsertGlobalAggregate(ctx, n.ID, median, priceDataMessage.RoundID, n.SyncedTimes[priceDataMessage.RoundID])
 		if err != nil {
 			log.Error().Str("Player", "Aggregator").Err(err).Msg("failed to insert global aggregate")
@@ -277,7 +277,7 @@ func (n *Aggregator) HandleProofMessage(ctx context.Context, msg raft.Message) e
 	return nil
 }
 
-func (n *Aggregator) PublishSyncMessage(roundId int64, timestamp time.Time) error {
+func (n *Aggregator) PublishSyncMessage(roundId int32, timestamp time.Time) error {
 	roundMessage := RoundSyncMessage{
 		LeaderID:  n.Raft.GetHostId(),
 		RoundID:   roundId,
@@ -299,7 +299,7 @@ func (n *Aggregator) PublishSyncMessage(roundId int64, timestamp time.Time) erro
 	return n.Raft.PublishMessage(message)
 }
 
-func (n *Aggregator) PublishSyncReplyMessage(roundId int64, agreed bool) error {
+func (n *Aggregator) PublishSyncReplyMessage(roundId int32, agreed bool) error {
 	syncReplyMessage := SyncReplyMessage{
 		RoundID: roundId,
 		Agreed:  agreed,
@@ -320,7 +320,7 @@ func (n *Aggregator) PublishSyncReplyMessage(roundId int64, agreed bool) error {
 	return n.Raft.PublishMessage(message)
 }
 
-func (n *Aggregator) PublishTriggerMessage(roundId int64) error {
+func (n *Aggregator) PublishTriggerMessage(roundId int32) error {
 	triggerMessage := TriggerMessage{
 		LeaderID: n.Raft.GetHostId(),
 		RoundID:  roundId,
@@ -341,7 +341,7 @@ func (n *Aggregator) PublishTriggerMessage(roundId int64) error {
 	return n.Raft.PublishMessage(message)
 }
 
-func (n *Aggregator) PublishPriceDataMessage(roundId int64, value int64) error {
+func (n *Aggregator) PublishPriceDataMessage(roundId int32, value int64) error {
 	priceDataMessage := PriceDataMessage{
 		RoundID:   roundId,
 		PriceData: value,
@@ -362,7 +362,7 @@ func (n *Aggregator) PublishPriceDataMessage(roundId int64, value int64) error {
 	return n.Raft.PublishMessage(message)
 }
 
-func (n *Aggregator) PublishProofMessage(roundId int64, proof []byte) error {
+func (n *Aggregator) PublishProofMessage(roundId int32, proof []byte) error {
 	proofMessage := ProofMessage{
 		RoundID: roundId,
 		Proof:   proof,

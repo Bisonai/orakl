@@ -37,14 +37,14 @@ type LocalAggregate struct {
 type PgsqlProof struct {
 	ID        int64     `db:"id"`
 	ConfigID  int32     `json:"configId"`
-	Round     int64     `json:"round"`
+	Round     int32     `json:"round"`
 	Proof     []byte    `json:"proof"`
 	Timestamp time.Time `json:"timestamp"`
 }
 
 type Proof struct {
 	ConfigID int32  `json:"configId"`
-	Round    int64  `json:"round"`
+	Round    int32  `json:"round"`
 	Proof    []byte `json:"proofs"`
 }
 
@@ -57,7 +57,7 @@ type PgsLocalAggregate struct {
 type GlobalAggregate struct {
 	ConfigID  int32     `db:"config_id" json:"configId"`
 	Value     int64     `db:"value" json:"value"`
-	Round     int64     `db:"round" json:"round"`
+	Round     int32     `db:"round" json:"round"`
 	Timestamp time.Time `db:"timestamp" json:"timestamp"`
 }
 
@@ -78,14 +78,14 @@ type Aggregator struct {
 	AggregatorConfig
 	Raft *raft.Raft
 
-	CollectedPrices         map[int64][]int64
-	CollectedProofs         map[int64][][]byte
-	CollectedAgreements     map[int64][]bool
-	PreparedLocalAggregates map[int64]int64
-	SyncedTimes             map[int64]time.Time
+	CollectedPrices         map[int32][]int64
+	CollectedProofs         map[int32][][]byte
+	CollectedAgreements     map[int32][]bool
+	PreparedLocalAggregates map[int32]int64
+	SyncedTimes             map[int32]time.Time
 	AggregatorMutex         sync.Mutex
 
-	RoundID int64
+	RoundID int32
 
 	SignHelper *helper.SignHelper
 
@@ -96,26 +96,26 @@ type Aggregator struct {
 
 type RoundSyncMessage struct {
 	LeaderID  string    `json:"leaderID"`
-	RoundID   int64     `json:"roundID"`
+	RoundID   int32     `json:"roundID"`
 	Timestamp time.Time `json:"timestamp"`
 }
 
 type PriceDataMessage struct {
-	RoundID   int64 `json:"roundID"`
+	RoundID   int32 `json:"roundID"`
 	PriceData int64 `json:"priceData"`
 }
 
 type ProofMessage struct {
-	RoundID int64  `json:"roundID"`
+	RoundID int32  `json:"roundID"`
 	Proof   []byte `json:"proof"`
 }
 
 type SyncReplyMessage struct {
-	RoundID int64 `json:"roundID"`
+	RoundID int32 `json:"roundID"`
 	Agreed  bool  `json:"agreed"`
 }
 
 type TriggerMessage struct {
 	LeaderID string `json:"leaderID"`
-	RoundID  int64  `json:"roundID"`
+	RoundID  int32  `json:"roundID"`
 }

@@ -55,7 +55,7 @@ func TestLeaderJob(t *testing.T) {
 	if err != nil {
 		t.Fatal("error running leader job")
 	}
-	assert.Greater(t, node.RoundID, int64(0), "RoundID should be greater than 0")
+	assert.Greater(t, node.RoundID, int32(0), "RoundID should be greater than 0")
 }
 
 func TestGetLatestLocalAggregate(t *testing.T) {
@@ -151,8 +151,8 @@ func TestInsertGlobalAggregate(t *testing.T) {
 		t.Fatal("error getting latest global aggregate from rdb")
 	}
 	assert.Equal(t, int64(20), redisResult.Value)
-	assert.Equal(t, int64(2), redisResult.Round)
-	assert.Equal(t, int64(2), roundId)
+	assert.Equal(t, int32(2), redisResult.Round)
+	assert.Equal(t, int32(2), roundId)
 }
 
 func TestInsertProof(t *testing.T) {
@@ -173,7 +173,7 @@ func TestInsertProof(t *testing.T) {
 	}
 
 	value := int64(20)
-	round := int64(2)
+	round := int32(2)
 	p, err := node.SignHelper.MakeGlobalAggregateProof(value, time.Now())
 	if err != nil {
 		t.Fatal("error making global aggregate proof")
