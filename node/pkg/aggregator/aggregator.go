@@ -44,7 +44,7 @@ func NewAggregator(h host.Host, ps *pubsub.PubSub, topicString string, config Ag
 		PreparedLocalAggregates: map[int64]int64{},
 		SyncedTimes:             map[int64]time.Time{},
 		AggregatorMutex:         sync.Mutex{},
-		RoundID:                 0,
+		RoundID:                 1,
 		SignHelper:              signHelper,
 	}
 	aggregator.Raft.LeaderJob = aggregator.LeaderJob
@@ -57,7 +57,6 @@ func (n *Aggregator) Run(ctx context.Context) {
 	latestRoundId, err := getLatestRoundId(ctx, n.ID)
 	if err != nil {
 		log.Error().Str("Player", "Aggregator").Err(err).Msg("failed to get latest round id, setting roundId to 1")
-		n.RoundID = 1
 	} else if latestRoundId > 0 {
 		n.RoundID = latestRoundId
 	}
