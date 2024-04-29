@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"bisonai.com/orakl/node/pkg/db"
+	"bisonai.com/orakl/node/pkg/utils/encryptor"
 
 	"github.com/klaytn/klaytn"
 	"github.com/klaytn/klaytn/accounts/abi"
@@ -136,7 +137,12 @@ func GetWallets(ctx context.Context) ([]string, error) {
 
 	wallets := make([]string, len(reporterModels))
 	for i, reporter := range reporterModels {
-		wallets[i] = reporter.PK
+		pk, err := encryptor.DecryptText(reporter.PK)
+		if err != nil {
+			log.Warn().Err(err).Msg("failed to decrypt pk")
+			continue
+		}
+		wallets[i] = pk
 	}
 
 	return wallets, nil
