@@ -16,6 +16,7 @@ import (
 	"bisonai.com/orakl/node/pkg/admin/wallet"
 	"bisonai.com/orakl/node/pkg/bus"
 	"bisonai.com/orakl/node/pkg/db"
+	"bisonai.com/orakl/node/pkg/utils/encryptor"
 	"github.com/gofiber/fiber/v2"
 )
 
@@ -90,10 +91,15 @@ func insertSampleData(ctx context.Context) (*TmpData, error) {
 	}
 	tmpData.proxy = tmpProxy
 
-	tmpWallet, err := db.QueryRow[wallet.WalletModel](ctx, wallet.InsertWallet, map[string]any{"pk": "test_pk"})
+	encryptedTestPk, err := encryptor.EncryptText("test_pk")
 	if err != nil {
 		return nil, err
 	}
+	tmpWallet, err := db.QueryRow[wallet.WalletModel](ctx, wallet.InsertWallet, map[string]any{"pk": encryptedTestPk})
+	if err != nil {
+		return nil, err
+	}
+	tmpWallet.Pk = "test_pk"
 	tmpData.wallet = tmpWallet
 
 	tmpProviderUrl, err := db.QueryRow[providerUrl.ProviderUrlModel](ctx, providerUrl.InsertProviderUrl, map[string]any{"chain_id": 1, "url": "test_url", "priority": 1})
