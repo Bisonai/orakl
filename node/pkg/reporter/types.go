@@ -22,8 +22,7 @@ const (
 	INITIAL_FAILURE_TIMEOUT                  = 50 * time.Millisecond
 	MAX_RETRY                                = 3
 	MAX_RETRY_DELAY                          = 500 * time.Millisecond
-	SUBMIT_WITHOUT_PROOFS                    = "submit(address[] memory _feeds, int256[] memory _submissions)"
-	SUBMIT_WITH_PROOFS                       = "submit(address[] memory _feeds, int256[] memory _answers, bytes[] memory _proofs, uint256[] memory _timestamps)"
+	SUBMIT_WITH_PROOFS                       = "submit(address[] memory _feeds, int256[] memory _answers, uint256[] memory _timestamps, bytes[] memory _proofs)"
 	GET_ONCHAIN_WHITELIST                    = "getAllOracles() public view returns (address[] memory)"
 
 	GET_REPORTER_CONFIGS = `SELECT name, id, address, submit_interval FROM configs;`
