@@ -6,6 +6,8 @@ on:
       - "master"
     paths:
       - "node/**"
+  workflow_dispatch:
+
 jobs:
   core-build:
     strategy:
