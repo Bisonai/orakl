@@ -95,5 +95,6 @@ jobs:
           ETH_PROVIDER_URL: "https://ethereum-sepolia-rpc.allthatnode.com"
           ETH_REPORTER_PK: ${{ secrets.TEST_DELEGATOR_REPORTER_PK}}
           TEST_FEE_PAYER_PK: ${{ secrets.DELEGATOR_FEEPAYER_PK}}
+          SIGNER_PK: ${{ secrets.TEST_DELEGATOR_REPORTER_PK}}
           SUBMISSION_PROXY_CONTRACT: "0xba5208a3b387796773Ecb38524C41eEa3b3541F9"
           CHAIN: "test"

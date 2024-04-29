@@ -87,6 +87,7 @@ const (
 	EnvDelegatorUrl   = "DELEGATOR_URL"
 	KlaytnProviderUrl = "KLAYTN_PROVIDER_URL"
 	KlaytnReporterPk  = "KLAYTN_REPORTER_PK"
+	SignerPk          = "SIGNER_PK"
 	EthProviderUrl    = "ETH_PROVIDER_URL"
 	EthReporterPk     = "ETH_REPORTER_PK"
 )
