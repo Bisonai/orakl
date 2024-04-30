@@ -291,7 +291,7 @@ func GetSecretWithKubernetesAuth() (string, error) {
 		return "", fmt.Errorf("no auth info was returned after login")
 	}
 
-	secret, err := client.KVv2("baobab/data/api").Get(context.Background(), "creds")
+	secret, err := client.KVv2("baobab").Get(context.Background(), "api")
 	if err != nil {
 		return "", fmt.Errorf("unable to read secret: %w", err)
 	}
