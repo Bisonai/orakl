@@ -298,11 +298,17 @@ func GetSecretWithKubernetesAuth() (string, error) {
 
 	log.Printf("Secret: %v\n", secret)
 
-	return "", nil
+	return "ok", nil
 }
 
 func LoadEnvVars() (map[string]interface{}, error) {
-	GetSecretWithKubernetesAuth()
+	vault, err := GetSecretWithKubernetesAuth()
+	if err != nil {
+		return nil, err
+	}
+	if vault != "" {
+		return nil, errors.New("vault is not empty")
+	}
 	databaseURL := os.Getenv("DATABASE_URL")
 	redisHost := os.Getenv("REDIS_HOST")
 	redisPort := os.Getenv("REDIS_PORT")
