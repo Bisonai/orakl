@@ -36,16 +36,17 @@ func NewAggregator(h host.Host, ps *pubsub.PubSub, topicString string, config Ag
 	aggregateInterval := time.Duration(config.AggregateInterval) * time.Millisecond
 
 	aggregator := Aggregator{
-		AggregatorConfig:        config,
-		Raft:                    raft.NewRaftNode(h, ps, topic, 100, aggregateInterval),
-		CollectedPrices:         map[int32][]int64{},
-		CollectedProofs:         map[int32][][]byte{},
-		CollectedAgreements:     map[int32][]bool{},
-		PreparedLocalAggregates: map[int32]int64{},
-		SyncedTimes:             map[int32]time.Time{},
-		AggregatorMutex:         sync.Mutex{},
-		RoundID:                 1,
-		SignHelper:              signHelper,
+		AggregatorConfig:         config,
+		Raft:                     raft.NewRaftNode(h, ps, topic, 100, aggregateInterval),
+		CollectedPrices:          map[int32][]int64{},
+		CollectedProofs:          map[int32][][]byte{},
+		CollectedAgreements:      map[int32][]bool{},
+		PreparedLocalAggregates:  map[int32]int64{},
+		PreparedGlobalAggregates: map[int32]GlobalAggregate{},
+		SyncedTimes:              map[int32]time.Time{},
+		AggregatorMutex:          sync.Mutex{},
+		RoundID:                  1,
+		SignHelper:               signHelper,
 	}
 	aggregator.Raft.LeaderJob = aggregator.LeaderJob
 	aggregator.Raft.HandleCustomMessage = aggregator.HandleCustomMessage
@@ -125,6 +126,7 @@ func (n *Aggregator) HandleRoundSyncMessage(ctx context.Context, msg raft.Messag
 	n.SyncedTimes[roundSyncMessage.RoundID] = roundSyncMessage.Timestamp
 
 	if !n.isTimeValid(updateTime, roundSyncMessage.Timestamp) {
+		log.Debug().Str("Player", "Aggregator").Time("updateTime", updateTime).Time("roundSyncTime", roundSyncMessage.Timestamp).Int32("roundId", roundSyncMessage.RoundID).Msg("time invalid local aggregate")
 		n.PreparedLocalAggregates[roundSyncMessage.RoundID] = -1
 		return n.PublishSyncReplyMessage(roundSyncMessage.RoundID, false)
 	}
@@ -230,10 +232,11 @@ func (n *Aggregator) HandlePriceDataMessage(ctx context.Context, msg raft.Messag
 			return err
 		}
 		log.Debug().Str("Player", "Aggregator").Int32("roundId", priceDataMessage.RoundID).Int64("global_aggregate", median).Msg("global aggregated")
-		err = InsertGlobalAggregate(ctx, n.ID, median, priceDataMessage.RoundID, n.SyncedTimes[priceDataMessage.RoundID])
-		if err != nil {
-			log.Error().Str("Player", "Aggregator").Err(err).Msg("failed to insert global aggregate")
-			return err
+		n.PreparedGlobalAggregates[priceDataMessage.RoundID] = GlobalAggregate{
+			ConfigID:  n.ID,
+			Value:     median,
+			Round:     priceDataMessage.RoundID,
+			Timestamp: n.SyncedTimes[priceDataMessage.RoundID],
 		}
 
 		proof, err := n.SignHelper.MakeGlobalAggregateProof(median, n.SyncedTimes[priceDataMessage.RoundID])
@@ -268,9 +271,15 @@ func (n *Aggregator) HandleProofMessage(ctx context.Context, msg raft.Message) e
 	n.CollectedProofs[proofMessage.RoundID] = append(n.CollectedProofs[proofMessage.RoundID], proofMessage.Proof)
 	if len(n.CollectedProofs[proofMessage.RoundID]) >= n.Raft.SubscribersCount()+1 {
 		defer delete(n.CollectedProofs, proofMessage.RoundID)
+		defer delete(n.PreparedGlobalAggregates, proofMessage.RoundID)
 		err := InsertProof(ctx, n.ID, proofMessage.RoundID, n.CollectedProofs[proofMessage.RoundID])
 		if err != nil {
 			log.Error().Str("Player", "Aggregator").Err(err).Msg("failed to insert proof")
+			return err
+		}
+		err = InsertGlobalAggregate(ctx, n.ID, n.PreparedGlobalAggregates[proofMessage.RoundID].Value, proofMessage.RoundID, n.PreparedGlobalAggregates[proofMessage.RoundID].Timestamp)
+		if err != nil {
+			log.Error().Str("Player", "Aggregator").Err(err).Msg("failed to insert global aggregate")
 			return err
 		}
 	}

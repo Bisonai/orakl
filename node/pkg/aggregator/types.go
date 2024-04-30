@@ -78,12 +78,13 @@ type Aggregator struct {
 	AggregatorConfig
 	Raft *raft.Raft
 
-	CollectedPrices         map[int32][]int64
-	CollectedProofs         map[int32][][]byte
-	CollectedAgreements     map[int32][]bool
-	PreparedLocalAggregates map[int32]int64
-	SyncedTimes             map[int32]time.Time
-	AggregatorMutex         sync.Mutex
+	CollectedPrices          map[int32][]int64
+	CollectedProofs          map[int32][][]byte
+	CollectedAgreements      map[int32][]bool
+	PreparedLocalAggregates  map[int32]int64
+	PreparedGlobalAggregates map[int32]GlobalAggregate
+	SyncedTimes              map[int32]time.Time
+	AggregatorMutex          sync.Mutex
 
 	RoundID int32
 
