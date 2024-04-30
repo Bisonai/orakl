@@ -299,9 +299,7 @@ func GetSecretWithKubernetesAuth() (string, error) {
 	log.Printf("Secret: %v\n", secret)
 
 	// value, ok := secret.Data["password"].(string)
-	// if !ok {
-	// 	return "", fmt.Errorf("value type assertion failed: %T %#v", secret.Data["password"], secret.Data["password"])
-	// }
+
 	return "", nil
 }
 
