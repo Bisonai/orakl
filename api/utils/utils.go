@@ -298,8 +298,6 @@ func GetSecretWithKubernetesAuth() (string, error) {
 
 	log.Printf("Secret: %v\n", secret)
 
-	// value, ok := secret.Data["password"].(string)
-
 	return "", nil
 }
 
