@@ -22,6 +22,9 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/redis/go-redis/v9"
+
+	vault "github.com/hashicorp/vault/api"
+	auth "github.com/hashicorp/vault/api/auth/kubernetes"
 )
 
 type AppConfig struct {
@@ -263,7 +266,48 @@ func DecryptText(encryptedText string) (string, error) {
 	return string(decryptedText), nil
 }
 
+func GetSecretWithKubernetesAuth() (string, error) {
+
+	config := vault.DefaultConfig()
+
+	client, err := vault.NewClient(config)
+	if err != nil {
+		return "", fmt.Errorf("unable to initialize Vault client: %w", err)
+	}
+
+	k8sAuth, err := auth.NewKubernetesAuth(
+		"orakl",
+		auth.WithServiceAccountTokenPath("/var/run/secrets/kubernetes.io/serviceaccount/token"),
+	)
+	if err != nil {
+		return "", fmt.Errorf("unable to initialize Kubernetes auth method: %w", err)
+	}
+
+	authInfo, err := client.Auth().Login(context.TODO(), k8sAuth)
+	if err != nil {
+		return "", fmt.Errorf("unable to log in with Kubernetes auth: %w", err)
+	}
+	if authInfo == nil {
+		return "", fmt.Errorf("no auth info was returned after login")
+	}
+
+	secret, err := client.KVv2("baobab/data/api").Get(context.Background(), "creds")
+	if err != nil {
+		return "", fmt.Errorf("unable to read secret: %w", err)
+	}
+
+	log.Printf("Secret: %v\n", secret)
+	// data map can contain more than one key-value pair,
+	// in this case we're just grabbing one of them
+	// value, ok := secret.Data["password"].(string)
+	// if !ok {
+	// 	return "", fmt.Errorf("value type assertion failed: %T %#v", secret.Data["password"], secret.Data["password"])
+	// }
+	return "", nil
+}
+
 func LoadEnvVars() (map[string]interface{}, error) {
+	GetSecretWithKubernetesAuth()
 	databaseURL := os.Getenv("DATABASE_URL")
 	redisHost := os.Getenv("REDIS_HOST")
 	redisPort := os.Getenv("REDIS_PORT")
