@@ -297,8 +297,7 @@ func GetSecretWithKubernetesAuth() (string, error) {
 	}
 
 	log.Printf("Secret: %v\n", secret)
-	// data map can contain more than one key-value pair,
-	// in this case we're just grabbing one of them
+
 	// value, ok := secret.Data["password"].(string)
 	// if !ok {
 	// 	return "", fmt.Errorf("value type assertion failed: %T %#v", secret.Data["password"], secret.Data["password"])

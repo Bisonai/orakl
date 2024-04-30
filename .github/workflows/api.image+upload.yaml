@@ -3,7 +3,7 @@ name: API Deploy to Amazon ECR
 on:
   push:
     branches:
-      - master
+      - idc-fi
     paths:
       - "api/**"
   workflow_dispatch:
