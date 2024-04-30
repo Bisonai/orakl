@@ -142,7 +142,8 @@ func GetWallets(ctx context.Context) ([]string, error) {
 			log.Warn().Err(err).Msg("failed to decrypt pk")
 			continue
 		}
-		wallets[i] = pk
+		wallet := strings.TrimPrefix(pk, "0x")
+		wallets[i] = wallet
 	}
 
 	return wallets, nil
