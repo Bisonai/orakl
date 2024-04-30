@@ -138,11 +138,11 @@ func GetWallets(ctx context.Context) ([]string, error) {
 	wallets := make([]string, len(reporterModels))
 	for i, reporter := range reporterModels {
 		pk, err := encryptor.DecryptText(reporter.PK)
-		wallet := strings.TrimPrefix(pk, "0x")
 		if err != nil {
 			log.Warn().Err(err).Msg("failed to decrypt pk")
 			continue
 		}
+		wallet := strings.TrimPrefix(pk, "0x")
 		wallets[i] = wallet
 	}
 
