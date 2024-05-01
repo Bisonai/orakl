@@ -112,7 +112,7 @@ SUBMISSION_PROXY_CONTRACT=<Your Submission Proxy Contract>
 # Delegator URL, tx fee is directly paid from reporter if not provided
 DELEGATOR_URL=<Your Delegator URL>
 
-# Signer PK, generates a signature based on this value
+# Signer PK generates a signature value for submission based on this value. EOA address should be whitelisted in the SubmissionProxy contract to be used.
 SIGNER_PK=<Your Signer PK>
 
 # Encrypt Password, this is referenced to store encrypted wallet pk into table. defaults to 'anything'
@@ -157,6 +157,8 @@ This process will generate required tables and constraints to run the service.
 
 ### Optional Setups
 
+Following are optional setups which helps the application run more smoothly."
+
 1. Proxies
 
 Proxies are referenced from fetcher to prevent being blocked from 3rd party data providers. If provided, fetcher will utilize proxy requests
@@ -172,9 +174,11 @@ JSON-RPCs are referenced from both fetcher and reporter. If provided, it'll try 
 ---
 
 If you want to set these settings, use [cli commands](#cli) while admin API is running. Admin API is run together while the node is running, or you can run Admin API separately without running the whole service through the following task command
-```
+```sh
 task local:admin
 ```
+- Run CLI commands while the admin API is running (e.g., `task local:add-wallet PK=0x123`).
+- If the whole service was running when adding the settings, refresh the related service to apply changes (e.g., `task local:refresh-reporter`).
 
 
 ### Run Node
