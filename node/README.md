@@ -237,6 +237,9 @@ task local:script-fetcher-aggregator-test
 
 # Test connection: check if nodes properly connect through boot api
 task local:script-test-connection
+
+# Test raft: run simple raft node to test its functionality
+task local:script-test-raft
 ```
 
 ### CLI
