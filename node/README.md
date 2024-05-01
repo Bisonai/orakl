@@ -24,7 +24,7 @@
 
 ## Introduction
 
-Off-chain aggregator performs following steps to regularly submit data into the chain:
+Off-chain aggregator performs the following steps to regularly submit data into the chain:
 
 1. Fetch price data and save it into the database.
 2. Send and receive data with other nodes, aggregate all received data, and save aggregated data into the database.
@@ -61,7 +61,7 @@ Check the source code inside `./pkg` for details:
 - **Raft**: Implements simple raft consensus for leader election and syncing among multiple peers.
 - **Reporter**: Submits data from `global_aggregates` with the latest Round to the chain.
 - **Utils**: Contains helper functions usable among other packages.
-- **Por**: Package to run separate service for POR.
+- **Por**: Package to run a separate service for POR.
 
 ### Main Elements
 
@@ -74,7 +74,7 @@ Check the source code inside `./pkg` for details:
 
 ### Prerequisites
 
-Ensure you have the following installed and setup:
+Ensure you have the following installed and set up:
 
 - Go: [Installation Guide](https://go.dev/doc/install)
 - golang-migrate: [Installation Guide](https://github.com/golang-migrate/migrate/releases)
@@ -109,10 +109,10 @@ ETH_PROVIDER_URL=<Provider URL>
 # Contract for submission
 SUBMISSION_PROXY_CONTRACT=<Your Submission Proxy Contract>
 
-# Delegator URL, tx fee is directly payed from reporter if not provided
+# Delegator URL, tx fee is directly paid from reporter if not provided
 DELEGATOR_URL=<Your Delegator URL>
 
-# Signer PK, generates signature based on this value
+# Signer PK, generates a signature based on this value
 SIGNER_PK=<Your Signer PK>
 
 # Encrypt Password, this is referenced to store encrypted wallet pk into table. defaults to 'anything'
@@ -121,7 +121,7 @@ ENCRYPT_PASSWORD=<Your Encrypt Password>
 # Chain name, 'baobab', 'cypress', or 'test'
 CHAIN=<Your Chain Name>
 
-# tx submission wallet for `klaytn_helper`, not required if entry is inside wallets table
+# tx submission wallet for `klaytn_helper`
 KLAYTN_REPORTER_PK=<Your Reporter PK>
 
 # tx submission wallet for `eth_helper`
@@ -139,9 +139,9 @@ BOOT_API_PORT=<Your Boot API Port>
 # Boot API connection URL
 BOOT_API_URL=<Your Boot API URL>
 
-# provider urls referenced from fetcher, uses public json rpc if not provided
-FETCHER_CYPRESS_PROVIDER_URL=<Your Cypress provider url>
-FETCHER_ETHEREUM_PROVIDER_URL=<Your Ethereum provider url>
+# provider URLs referenced from fetcher, uses public JSON-RPC if not provided
+FETCHER_CYPRESS_PROVIDER_URL=<Your Cypress provider URL>
+FETCHER_ETHEREUM_PROVIDER_URL=<Your Ethereum provider URL>
 ```
 
 ### Database Initialization
@@ -163,15 +163,15 @@ Proxies are referenced from fetcher to prevent being blocked from 3rd party data
 
 2. Wallets
 
-Wallets are referenced from reporter. If provided, each wallets will take turn for submissions.
+Wallets are referenced from reporter. If provided, each wallet will take a turn for submissions.
 
-3. Json-rpcs
+3. JSON-RPCs
 
-Json rpcs are referenced from both fetcher and reporter. If provided, it'll try to use provided json rpcs as fallback in case of json rpc failure.
+JSON-RPCs are referenced from both fetcher and reporter. If provided, it'll try to use provided JSON-RPCs as a fallback in case of JSON-RPC failure.
 
 ---
 
-If you want to set these settings, use [cli commands](#cli) while admin api is running. Admin API is run together while the node is running, or you can run Admin API separately without running the whole service through following task command
+If you want to set these settings, use [cli commands](#cli) while admin API is running. Admin API is run together while the node is running, or you can run Admin API separately without running the whole service through the following task command
 ```
 task local:admin
 ```
@@ -184,11 +184,11 @@ Follow these steps to set up and run the application:
 1. **Set up the database**: Ensure PostgreSQL and Redis are running. PostgreSQL should have tables based on migration files.
 2. **Copy .env.local to .env**:
 
-    ```sh
-    cp .env.local .env
-    ```
+  ```sh
+  cp .env.local .env
+  ```
 
-3. **Update environment variables**: Replace `DATABASE_URL`, `KLAYTN_REPORTER_PK`, `SIGNER_PK` and other values with valid ones in the .env file. 
+3. **Update environment variables**: Replace `DATABASE_URL`, `KLAYTN_REPORTER_PK`, `SIGNER_PK`, and other values with valid ones in the .env file. 
 4. **Run Boot API**:
 
     ```sh
@@ -226,7 +226,7 @@ task local:node
 ### Scripts
 
 ```sh
-# Submission test: submit single tx on chain
+# Submission test: submit a single tx on chain
 task local:script-submission
 
 # Fetcher test: run api + fetcher
@@ -235,14 +235,8 @@ task local:script-fetcher-test
 # Fetcher-aggregator test: run api + fetcher + aggregator
 task local:script-fetcher-aggregator-test
 
-# All: run api + fetcher + aggregator + reporter
-task local:script-test-all
-
 # Test connection: check if nodes properly connect through boot api
 task local:script-test-connection
-
-# Test raft: run simple raft node to test its functionality
-task local:script-test-raft
 ```
 
 ### CLI
@@ -257,22 +251,22 @@ task local:refresh-fetcher
 # refresh reporter, trigger it after adding wallet or json rpc. Execute only if service is running.
 task local:refresh-reporter
 
-# `LOCATION` is optional parameter
+# `LOCATION` is an optional parameter
 task local:add-proxy HOST="127.0.0.2" PORT=8080 PROTOCOL="http" LOCATION="kr"
 
 # get all registered proxies
 task local:get-proxy
 
-# add wallet which triggers submission
+# add a wallet which triggers submission
 task local:add-wallet PK=0x123
 
 # get all registered wallets
 task local:get-wallet
 
-# add fallback json rpc, lower priority value will be referenced first
-task local:add-json-rpc CHAIN_ID=1001 URL="http://test.com" PROIRITY=10
+# add fallback JSON-RPC, lower priority value will be referenced first
+task local:add-json-rpc CHAIN_ID=1001 URL="http://test.com" PRIORITY=10
 
-# get all registered fallback json rpc
+# get all registered fallback JSON-RPC
 task local:get-json-rpc
 ```
 
@@ -284,7 +278,7 @@ task local:get-json-rpc
 
 1. Install C compilers
 ```sh
-# use appropriate command depending on instance environment
+# use the appropriate command depending on the instance environment
 sudo apt-get install -y g++-x86-64-linux-gnu libc6-dev-amd64-cross
 ```
 
