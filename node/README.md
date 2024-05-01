@@ -13,7 +13,7 @@
   - [Setup `.env`](#setup-env)
   - [Database Initialization](#database-initialization)
   - [Optional Setups](#optional-setups)
-  - [Test Run Single Local Node](#test-run-single-local-node)
+  - [Run Node](#run-node)
 - [Other Task Commands](#other-task-commands)
   - [Unit Test](#unit-test)
   - [Commands](#commands)
@@ -177,7 +177,7 @@ task local:admin
 ```
 
 
-### Run Single Local Node
+### Run Node
 
 Follow these steps to set up and run the application:
 
@@ -188,7 +188,7 @@ Follow these steps to set up and run the application:
     cp .env.local .env
     ```
 
-3. **Update environment variables**: Replace `DATABASE_URL`, `KLAYTN_REPORTER_PK`, `SIGNER_PK` with valid values in the .env file.
+3. **Update environment variables**: Replace `DATABASE_URL`, `KLAYTN_REPORTER_PK`, `SIGNER_PK` and other values with valid ones in the .env file. 
 4. **Run Boot API**:
 
     ```sh
