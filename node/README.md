@@ -182,7 +182,7 @@ task local:admin
 Follow these steps to set up and run the application:
 
 1. **Set up the database**: Ensure PostgreSQL and Redis are running. PostgreSQL should have tables based on migration files.
-2. **Copy .env.local to .env**:
+2. **Copy .env.local to .env**: Copy the local environment settings to the main environment file
 
   ```sh
   cp .env.local .env
@@ -291,4 +291,26 @@ set CGO_ENABLED=1
 set CC=[c cross compiler]
 set GOOS=linux
 set GOARCH=amd64
+```
+
+# POR
+Por service stands for proof of reserve. To be updated later, with scalability to support multiple providers.
+
+## Quickstart
+
+### Set .env variables
+
+```sh
+# POR
+POR_REPORTER_PK=
+POR_CHAIN=
+POR_PROVIDER_URL=
+# (optional) defaults to 3000
+POR_PORT=
+```
+
+### Run
+
+```sh
+task local:por
 ```
