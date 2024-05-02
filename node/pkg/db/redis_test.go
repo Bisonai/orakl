@@ -179,7 +179,11 @@ func TestMSetObject(t *testing.T) {
 		if getValueErr != nil {
 			t.Errorf("Error getting key: %v", getValueErr)
 		}
-		expectedValue, _ := json.Marshal(value)
+		expectedValue, err := json.Marshal(value)
+		if err != nil {
+			t.Errorf("Error marshalling value: %v", err)
+			continue
+		}
 		if gotValue != string(expectedValue) {
 			t.Errorf("Value did not match expected. Got %v, expected %v", gotValue, string(expectedValue))
 		}
@@ -210,7 +214,10 @@ func TestSetObject(t *testing.T) {
 	if err != nil {
 		t.Errorf("Error getting key: %v", err)
 	}
-	expectedValue, _ := json.Marshal(value)
+	expectedValue, err := json.Marshal(value)
+	if err != nil {
+		t.Errorf("Error marshalling value: %v", err)
+	}
 	if gotValue != string(expectedValue) {
 		t.Errorf("Value did not match expected. Got %v, expected %v", gotValue, string(expectedValue))
 	}
