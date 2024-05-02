@@ -157,7 +157,7 @@ This process will generate required tables and constraints to run the service.
 
 ### Optional Setups
 
-Following are optional setups which helps the application run more smoothly."
+Following are optional setups which helps the application run more smoothly.
 
 1. Proxies
 
