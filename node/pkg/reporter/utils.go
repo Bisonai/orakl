@@ -3,7 +3,6 @@ package reporter
 import (
 	"bytes"
 	"context"
-	"crypto/rand"
 	"encoding/json"
 	"errors"
 	"math"
@@ -114,16 +113,6 @@ func ProofsToMap(proofs []Proof) map[int32][]byte {
 		m[proof.ConfigID] = proof.Proof
 	}
 	return m
-}
-
-func CalculateJitter(baseTimeout time.Duration) time.Duration {
-	n, err := rand.Int(rand.Reader, big.NewInt(100))
-	if err != nil {
-		log.Error().Str("Player", "Reporter").Err(err).Msg("failed to generate jitter for retry timeout")
-		return baseTimeout
-	}
-	jitter := time.Duration(n.Int64()) * time.Millisecond
-	return baseTimeout + jitter
 }
 
 func ConvertPgsqlProofsToProofs(pgsqlProofs []PgsqlProof) []Proof {
