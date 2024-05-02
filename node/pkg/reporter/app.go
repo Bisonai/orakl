@@ -62,33 +62,52 @@ func (a *App) setReporters(ctx context.Context, h host.Host, ps *pubsub.PubSub) 
 		cachedWhitelist = []common.Address{}
 	}
 
-	reporterConfigs, err := getReporterConfigs(ctx)
+	configs, err := getConfigs(ctx)
 	if err != nil {
 		log.Error().Str("Player", "Reporter").Err(err).Msg("failed to get reporter configs")
 		return err
 	}
 
-	groupedReporterConfigs := groupReporterConfigsByIntervals(reporterConfigs)
-	for groupInterval, configs := range groupedReporterConfigs {
-		reporter, errNewReporter := NewReporter(ctx, h, ps, configs, groupInterval, contractAddress, cachedWhitelist)
+	groupedConfigs := groupConfigsBySubmitIntervals(configs)
+	for groupInterval, configs := range groupedConfigs {
+		reporter, errNewReporter := NewReporter(
+			ctx,
+			WithHost(h),
+			WithPubsub(ps),
+			WithConfigs(configs),
+			WithInterval(groupInterval),
+			WithContractAddress(contractAddress),
+			WithCachedWhitelist(cachedWhitelist),
+		)
 		if errNewReporter != nil {
 			log.Error().Str("Player", "Reporter").Err(errNewReporter).Msg("failed to set reporter")
 			continue
 		}
 		a.Reporters = append(a.Reporters, reporter)
 	}
-
 	if len(a.Reporters) == 0 {
 		log.Error().Str("Player", "Reporter").Msg("no reporters set")
 		return errors.New("no reporters set")
 	}
 
-	deviationReporter, err := NewDeviationReporter(ctx, h, ps, reporterConfigs, contractAddress, cachedWhitelist)
-	if err != nil {
-		log.Error().Str("Player", "Reporter").Err(err).Msg("failed to create deviation reporter")
-		return err
+	groupedDeviationConfigs := groupConfigsByAggregateIntervals(configs)
+	for groupInterval, configs := range groupedDeviationConfigs {
+		deviationReporter, errNewDeviationReporter := NewReporter(
+			ctx,
+			WithHost(h),
+			WithPubsub(ps),
+			WithConfigs(configs),
+			WithInterval(groupInterval),
+			WithContractAddress(contractAddress),
+			WithCachedWhitelist(cachedWhitelist),
+			WithJobType(DeviationJob),
+		)
+		if errNewDeviationReporter != nil {
+			log.Error().Str("Player", "Reporter").Err(errNewDeviationReporter).Msg("failed to set deviation reporter")
+			continue
+		}
+		a.Reporters = append(a.Reporters, deviationReporter)
 	}
-	a.Reporters = append(a.Reporters, deviationReporter)
 
 	log.Info().Str("Player", "Reporter").Msgf("%d reporters set", len(a.Reporters))
 	return nil
@@ -275,8 +294,8 @@ func stopReporter(reporter *Reporter) error {
 	return nil
 }
 
-func getReporterConfigs(ctx context.Context) ([]ReporterConfig, error) {
-	reporterConfigs, err := db.QueryRows[ReporterConfig](ctx, GET_REPORTER_CONFIGS, nil)
+func getConfigs(ctx context.Context) ([]Config, error) {
+	reporterConfigs, err := db.QueryRows[Config](ctx, GET_REPORTER_CONFIGS, nil)
 	if err != nil {
 		log.Error().Str("Player", "Reporter").Err(err).Msg("failed to load reporter configs")
 		return nil, err
@@ -284,12 +303,24 @@ func getReporterConfigs(ctx context.Context) ([]ReporterConfig, error) {
 	return reporterConfigs, nil
 }
 
-func groupReporterConfigsByIntervals(reporterConfigs []ReporterConfig) map[int][]ReporterConfig {
-	grouped := make(map[int][]ReporterConfig)
+func groupConfigsBySubmitIntervals(reporterConfigs []Config) map[int][]Config {
+	grouped := make(map[int][]Config)
 	for _, sa := range reporterConfigs {
 		var interval = 5000
 		if sa.SubmitInterval != nil && *sa.SubmitInterval > 0 {
 			interval = *sa.SubmitInterval
+		}
+		grouped[interval] = append(grouped[interval], sa)
+	}
+	return grouped
+}
+
+func groupConfigsByAggregateIntervals(reporterConfigs []Config) map[int][]Config {
+	grouped := make(map[int][]Config)
+	for _, sa := range reporterConfigs {
+		var interval = 5000
+		if sa.AggregateInterval != nil && *sa.AggregateInterval > 0 {
+			interval = *sa.AggregateInterval
 		}
 		grouped[interval] = append(grouped[interval], sa)
 	}

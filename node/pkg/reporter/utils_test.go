@@ -240,9 +240,9 @@ func TestUpdateProofs(t *testing.T) {
 		}
 	}()
 
-	tmpConfigs := []ReporterConfig{}
+	tmpConfigs := []Config{}
 	for i := 0; i < 3; i++ {
-		tmpConfig, err := db.QueryRow[ReporterConfig](ctx, InsertConfigQuery, map[string]any{
+		tmpConfig, err := db.QueryRow[Config](ctx, InsertConfigQuery, map[string]any{
 			"name":               "test-aggregate-" + strconv.Itoa(i),
 			"address":            "0x1234" + strconv.Itoa(i),
 			"submit_interval":    TestInterval,
