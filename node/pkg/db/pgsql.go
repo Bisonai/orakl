@@ -10,6 +10,7 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/rs/zerolog/log"
 )
 
 // singleton pattern
@@ -29,6 +30,7 @@ func getPool(ctx context.Context, once *sync.Once) (*pgxpool.Pool, error) {
 	once.Do(func() {
 		connectionString := loadPgsqlConnectionString()
 		if connectionString == "" {
+			log.Error().Msg("DATABASE_URL is not set")
 			poolErr = errors.New("DATABASE_URL is not set")
 			return
 		}
@@ -49,11 +51,13 @@ func loadPgsqlConnectionString() string {
 func QueryWithoutResult(ctx context.Context, queryString string, args map[string]any) error {
 	currentPool, err := GetPool(ctx)
 	if err != nil {
+		log.Error().Err(err).Msg("Error getting pool")
 		return err
 	}
 
 	rows, err := query(currentPool, queryString, args)
 	if err != nil {
+		log.Error().Err(err).Msg("Error querying")
 		return err
 	}
 	rows.Close()
@@ -64,6 +68,7 @@ func QueryWithoutResult(ctx context.Context, queryString string, args map[string
 func Query(ctx context.Context, queryString string, args map[string]any) (pgx.Rows, error) {
 	currentPool, err := GetPool(ctx)
 	if err != nil {
+		log.Error().Err(err).Msg("Error getting pool")
 		return nil, err
 	}
 
@@ -74,6 +79,7 @@ func QueryRow[T any](ctx context.Context, queryString string, args map[string]an
 	var t T
 	currentPool, err := GetPool(ctx)
 	if err != nil {
+		log.Error().Err(err).Msg("Error getting pool")
 		return t, err
 	}
 
@@ -83,6 +89,7 @@ func QueryRow[T any](ctx context.Context, queryString string, args map[string]an
 func QueryRows[T any](ctx context.Context, queryString string, args map[string]any) ([]T, error) {
 	currentPool, err := GetPool(ctx)
 	if err != nil {
+		log.Error().Err(err).Msg("Error getting pool")
 		return nil, err
 	}
 
@@ -97,6 +104,7 @@ func queryRow[T any](pool *pgxpool.Pool, queryString string, args map[string]any
 	var result T
 	rows, err := query(pool, queryString, args)
 	if err != nil {
+		log.Error().Err(err).Str("query", queryString).Msg("Error querying")
 		return result, err
 	}
 
@@ -113,6 +121,7 @@ func queryRows[T any](pool *pgxpool.Pool, queryString string, args map[string]an
 
 	rows, err := query(pool, queryString, args)
 	if err != nil {
+		log.Error().Err(err).Str("query", queryString).Msg("Error querying")
 		return results, err
 	}
 
@@ -127,20 +136,25 @@ func queryRows[T any](pool *pgxpool.Pool, queryString string, args map[string]an
 func BulkSelect[T any](ctx context.Context, tableName string, columnNames []string, whereColumns []string, whereValues ...[]interface{}) ([]T, error) {
 	results := []T{}
 	if tableName == "" {
+		log.Error().Msg("tableName must not be empty")
 		return results, errors.New("tableName must not be empty")
 	}
 	if len(columnNames) == 0 {
+		log.Error().Msg("columnNames must not be empty")
 		return results, errors.New("columnNames must not be empty")
 	}
 	if len(whereColumns) == 0 {
+		log.Error().Msg("whereColumns must not be empty")
 		return results, errors.New("whereColumns must not be empty")
 	}
 	if len(whereColumns) != len(whereValues) {
+		log.Error().Strs("whereColumns", whereColumns).Any("whereValues", whereValues).Msg("whereColumns and whereValues must have the same length")
 		return results, errors.New("whereColumns and whereValues must have the same length")
 	}
 
 	currentPool, err := GetPool(ctx)
 	if err != nil {
+		log.Error().Err(err).Msg("Error getting pool")
 		return results, err
 	}
 
@@ -171,6 +185,7 @@ func BulkSelect[T any](ctx context.Context, tableName string, columnNames []stri
 
 	rows, err := currentPool.Query(ctx, b.String(), flatWhereValues...)
 	if err != nil {
+		log.Error().Err(err).Str("query", b.String()).Msg("Error querying")
 		return results, err
 	}
 	defer rows.Close()
@@ -186,6 +201,7 @@ func BulkSelect[T any](ctx context.Context, tableName string, columnNames []stri
 func BulkInsert(ctx context.Context, tableName string, columnNames []string, rows [][]any) error {
 	currentPool, err := GetPool(ctx)
 	if err != nil {
+		log.Error().Err(err).Msg("Error getting pool")
 		return err
 	}
 
@@ -213,6 +229,7 @@ func BulkInsert(ctx context.Context, tableName string, columnNames []string, row
 
 	_, err = currentPool.Exec(ctx, b.String(), values...)
 	if err != nil {
+		log.Error().Err(err).Str("query", b.String()).Msg("Error executing query")
 		return err
 	}
 	return nil
@@ -221,6 +238,7 @@ func BulkInsert(ctx context.Context, tableName string, columnNames []string, row
 func BulkUpsert(ctx context.Context, tableName string, columnNames []string, rows [][]any, conflictColumns []string, updateColumns []string) error {
 	currentPool, err := GetPool(ctx)
 	if err != nil {
+		log.Error().Err(err).Msg("Error getting pool")
 		return err
 	}
 
@@ -259,6 +277,7 @@ func BulkUpsert(ctx context.Context, tableName string, columnNames []string, row
 
 	_, err = currentPool.Exec(ctx, b.String(), values...)
 	if err != nil {
+		log.Error().Err(err).Str("query", b.String()).Msg("Error executing query")
 		return err
 	}
 	return nil
@@ -267,6 +286,7 @@ func BulkUpsert(ctx context.Context, tableName string, columnNames []string, row
 func BulkUpdate(ctx context.Context, tableName string, columnNames []string, rows [][]interface{}, whereColumns []string) error {
 	currentPool, err := GetPool(ctx)
 	if err != nil {
+		log.Error().Err(err).Msg("Error getting pool")
 		return err
 	}
 
@@ -300,6 +320,7 @@ func BulkUpdate(ctx context.Context, tableName string, columnNames []string, row
 	for range rows {
 		_, err = br.Exec()
 		if err != nil {
+			log.Error().Err(err).Msg("Error executing batch")
 			return err
 		}
 	}
@@ -311,6 +332,7 @@ func BulkUpdate(ctx context.Context, tableName string, columnNames []string, row
 func BulkCopy(ctx context.Context, tableName string, columnNames []string, rows [][]any) (int64, error) {
 	currentPool, err := GetPool(ctx)
 	if err != nil {
+		log.Error().Err(err).Msg("Error getting pool")
 		return 0, err
 	}
 

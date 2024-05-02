@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/redis/go-redis/v9"
+	"github.com/rs/zerolog/log"
 )
 
 // singleton pattern
@@ -61,6 +62,7 @@ func MSetObject(ctx context.Context, values map[string]any) error {
 	for key, value := range values {
 		data, err := json.Marshal(value)
 		if err != nil {
+			log.Error().Err(err).Msg("Error marshalling object")
 			return err
 		}
 		stringMap[key] = string(data)
@@ -71,6 +73,7 @@ func MSetObject(ctx context.Context, values map[string]any) error {
 func Set(ctx context.Context, key string, value string, exp time.Duration) error {
 	rdbConn, err := GetRedisConn(ctx)
 	if err != nil {
+		log.Error().Err(err).Msg("Error getting redis connection")
 		return err
 	}
 	rdb = rdbConn
@@ -80,6 +83,7 @@ func Set(ctx context.Context, key string, value string, exp time.Duration) error
 func SetObject(ctx context.Context, key string, value any, exp time.Duration) error {
 	data, err := json.Marshal(value)
 	if err != nil {
+		log.Error().Err(err).Msg("Error marshalling object")
 		return err
 	}
 	return Set(ctx, key, string(data), exp)
@@ -88,6 +92,7 @@ func SetObject(ctx context.Context, key string, value any, exp time.Duration) er
 func MGet(ctx context.Context, keys []string) ([]any, error) {
 	rdbConn, err := GetRedisConn(ctx)
 	if err != nil {
+		log.Error().Err(err).Msg("Error getting redis connection")
 		return nil, err
 	}
 	rdb = rdbConn
@@ -99,13 +104,19 @@ func MGetObject[T any](ctx context.Context, keys []string) ([]T, error) {
 
 	data, err := MGet(ctx, keys)
 	if err != nil {
+		log.Error().Strs("keys", keys).Err(err).Msg("Error getting objects from MGetObject")
 		return results, err
 	}
 
 	for _, d := range data {
+		if d == nil {
+			log.Warn().Msg("Nil value in MGetObject")
+			continue
+		}
 		var t T
 		err = json.Unmarshal([]byte(d.(string)), &t)
 		if err != nil {
+			log.Warn().Err(err).Msg("Error unmarshalling object")
 			continue
 		}
 		results = append(results, t)
@@ -116,6 +127,7 @@ func MGetObject[T any](ctx context.Context, keys []string) ([]T, error) {
 func Get(ctx context.Context, key string) (string, error) {
 	rdbConn, err := GetRedisConn(ctx)
 	if err != nil {
+		log.Error().Err(err).Msg("Error getting redis connection")
 		return "", err
 	}
 	rdb = rdbConn
@@ -126,6 +138,7 @@ func GetObject[T any](ctx context.Context, key string) (T, error) {
 	var t T
 	data, err := Get(ctx, key)
 	if err != nil {
+		log.Error().Err(err).Msg("Error getting object")
 		return t, err
 	}
 	err = json.Unmarshal([]byte(data), &t)
@@ -135,6 +148,7 @@ func GetObject[T any](ctx context.Context, key string) (T, error) {
 func Del(ctx context.Context, key string) error {
 	rdbConn, err := GetRedisConn(ctx)
 	if err != nil {
+		log.Error().Err(err).Msg("Error getting redis connection")
 		return err
 	}
 	rdb = rdbConn
@@ -146,6 +160,7 @@ func connectToRedis(ctx context.Context, connectionInfo RedisConnectionInfo) (*r
 		Addr: connectionInfo.Host + ":" + connectionInfo.Port}).Conn()
 	_, rdbErr := rdbConn.Ping(ctx).Result()
 	if rdbErr != nil {
+		log.Error().Err(rdbErr).Msg("Error connecting to redis")
 		return nil, rdbErr
 	}
 	return rdbConn, nil
@@ -154,11 +169,13 @@ func connectToRedis(ctx context.Context, connectionInfo RedisConnectionInfo) (*r
 func loadRedisConnectionString() (RedisConnectionInfo, error) {
 	host := os.Getenv("REDIS_HOST")
 	if host == "" {
+		log.Error().Msg("REDIS_HOST not set")
 		return RedisConnectionInfo{}, errors.New("REDIS_HOST not set")
 	}
 
 	port := os.Getenv("REDIS_PORT")
 	if port == "" {
+		log.Error().Msg("REDIS_PORT not set")
 		return RedisConnectionInfo{}, errors.New("REDIS_PORT not set")
 	}
 
