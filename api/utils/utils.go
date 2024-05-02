@@ -14,6 +14,7 @@ import (
 	"strconv"
 	"strings"
 
+	"bisonai.com/orakl/api/secrets"
 	"golang.org/x/crypto/scrypt"
 
 	"github.com/gofiber/fiber/v2"
@@ -264,12 +265,37 @@ func DecryptText(encryptedText string) (string, error) {
 }
 
 func LoadEnvVars() (map[string]interface{}, error) {
-	databaseURL := os.Getenv("DATABASE_URL")
+
+	databaseURL := ""
+	encryptPassword := ""
+	vaultRole := os.Getenv("VAULT_ROLE")
+	jwtPath := os.Getenv("JWT_PATH")
+	vaultSecretPath := os.Getenv("VAULT_SECRET_PATH")
+	vaultKeyName := os.Getenv("VAULT_KEY_NAME")
+
+	if vaultRole != "" && jwtPath != "" && vaultSecretPath != "" && vaultKeyName != "" {
+		log.Println("Using Vault to get secrets")
+		secretsEnv := secrets.SecretEnv{
+			VaultRole:       vaultRole,
+			JwtPath:         jwtPath,
+			VaultSecretPath: vaultSecretPath,
+			VaultKeyName:    vaultKeyName,
+		}
+		secrets, err := secretsEnv.GetSecretFromVaultWithKubernetesAuth()
+		if err != nil {
+			return nil, err
+		}
+		databaseURL = secrets.DatabaseURL
+		encryptPassword = secrets.EncryptPassword
+	} else {
+		databaseURL = os.Getenv("DATABASE_URL")
+		encryptPassword = os.Getenv("ENCRYPT_PASSWORD")
+	}
+
 	redisHost := os.Getenv("REDIS_HOST")
 	redisPort := os.Getenv("REDIS_PORT")
 	appPort := os.Getenv("APP_PORT")
 	testMode := os.Getenv("TEST_MODE")
-	encryptPassword := os.Getenv("ENCRYPT_PASSWORD")
 
 	if databaseURL == "" {
 		return nil, errors.New("DATABASE_URL is not set")
