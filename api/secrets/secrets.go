@@ -11,7 +11,7 @@ import (
 
 type SecretEnv struct {
 	VaultRole       string
-	VaultTokenPath  string
+	JwtPtah         string
 	VaultSecretPath string
 	VaultKeyName    string
 }
@@ -30,7 +30,7 @@ func (s *SecretEnv) GetSecretFromVaultWithKubernetesAuth() (*Secrets, error) {
 
 	k8sAuth, err := auth.NewKubernetesAuth(
 		s.VaultRole,
-		auth.WithServiceAccountTokenPath(s.VaultTokenPath),
+		auth.WithServiceAccountTokenPath(s.JwtPtah),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("unable to initialize Kubernetes auth method: %w", err)

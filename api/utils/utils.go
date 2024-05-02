@@ -269,14 +269,14 @@ func LoadEnvVars() (map[string]interface{}, error) {
 	databaseURL := ""
 	encryptPassword := ""
 	vaultRole := os.Getenv("VAULT_ROLE")
-	vaultTokenPath := os.Getenv("VAULT_TOKEN_PATH")
+	jwtPath := os.Getenv("JWT_PATH")
 	vaultSecretPath := os.Getenv("VAULT_SECRET_PATH")
 	vaultKeyName := os.Getenv("VAULT_KEY_NAME")
 
-	if vaultRole != "" && vaultTokenPath != "" && vaultSecretPath != "" && vaultKeyName != "" {
+	if vaultRole != "" && jwtPath != "" && vaultSecretPath != "" && vaultKeyName != "" {
 		secretsEnv := secrets.SecretEnv{
 			VaultRole:       vaultRole,
-			VaultTokenPath:  vaultTokenPath,
+			JwtPtah:         jwtPath,
 			VaultSecretPath: vaultSecretPath,
 			VaultKeyName:    vaultKeyName,
 		}
