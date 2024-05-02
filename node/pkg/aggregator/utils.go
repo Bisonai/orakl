@@ -3,7 +3,6 @@ package aggregator
 import (
 	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
 	"strconv"
 	"strings"
@@ -15,17 +14,7 @@ import (
 
 func GetLatestLocalAggregateFromRdb(ctx context.Context, configId int32) (LocalAggregate, error) {
 	key := "localAggregate:" + strconv.Itoa(int(configId))
-	var aggregate LocalAggregate
-	data, err := db.Get(ctx, key)
-	if err != nil {
-		return aggregate, err
-	}
-
-	err = json.Unmarshal([]byte(data), &aggregate)
-	if err != nil {
-		return aggregate, err
-	}
-	return aggregate, nil
+	return db.GetObject[LocalAggregate](ctx, key)
 }
 
 func GetLatestLocalAggregateFromPgs(ctx context.Context, configId int32) (PgsLocalAggregate, error) {
@@ -71,12 +60,8 @@ func insertPgsql(ctx context.Context, configId int32, value int64, round int32, 
 
 func insertRdb(ctx context.Context, configId int32, value int64, round int32, timestamp time.Time) error {
 	key := "globalAggregate:" + strconv.Itoa(int(configId))
-	data, err := json.Marshal(GlobalAggregate{ConfigID: configId, Value: value, Round: round, Timestamp: timestamp})
-	if err != nil {
-		log.Error().Str("Player", "Aggregator").Err(err).Msg("failed to marshal global aggregate")
-		return err
-	}
-	return db.Set(ctx, key, string(data), time.Duration(5*time.Minute))
+	data := GlobalAggregate{ConfigID: configId, Value: value, Round: round, Timestamp: timestamp}
+	return db.SetObject(ctx, key, data, time.Duration(5*time.Minute))
 }
 
 func InsertProof(ctx context.Context, configId int32, round int32, proofs [][]byte) error {
@@ -114,12 +99,8 @@ func insertProofPgsql(ctx context.Context, configId int32, round int32, proofs [
 func insertProofRdb(ctx context.Context, configId int32, round int32, proofs [][]byte) error {
 	concatProof := bytes.Join(proofs, nil)
 	key := "proof:" + strconv.Itoa(int(configId)) + "|round:" + strconv.Itoa(int(round))
-	data, err := json.Marshal(Proof{ConfigID: configId, Round: round, Proof: concatProof})
-	if err != nil {
-		log.Error().Str("Player", "Aggregator").Err(err).Msg("failed to marshal proofs")
-		return err
-	}
-	return db.Set(ctx, key, string(data), time.Duration(5*time.Minute))
+	data := Proof{ConfigID: configId, Round: round, Proof: concatProof}
+	return db.SetObject(ctx, key, data, time.Duration(5*time.Minute))
 }
 
 func GetLatestLocalAggregate(ctx context.Context, configId int32) (int64, time.Time, error) {
@@ -145,17 +126,7 @@ func getLatestRoundId(ctx context.Context, configId int32) (int32, error) {
 // used for testing
 func getProofFromRdb(ctx context.Context, configId int32, round int32) (Proof, error) {
 	key := "proof:" + strconv.Itoa(int(configId)) + "|round:" + strconv.Itoa(int(round))
-	var proofs Proof
-	data, err := db.Get(ctx, key)
-	if err != nil {
-		return proofs, err
-	}
-
-	err = json.Unmarshal([]byte(data), &proofs)
-	if err != nil {
-		return proofs, err
-	}
-	return proofs, nil
+	return db.GetObject[Proof](ctx, key)
 }
 
 // used for testing
@@ -172,15 +143,5 @@ func getProofFromPgsql(ctx context.Context, configId int32, round int32) (Proof,
 // used for testing
 func getLatestGlobalAggregateFromRdb(ctx context.Context, configId int32) (GlobalAggregate, error) {
 	key := "globalAggregate:" + strconv.Itoa(int(configId))
-	var aggregate GlobalAggregate
-	data, err := db.Get(ctx, key)
-	if err != nil {
-		return aggregate, err
-	}
-
-	err = json.Unmarshal([]byte(data), &aggregate)
-	if err != nil {
-		return aggregate, err
-	}
-	return aggregate, nil
+	return db.GetObject[GlobalAggregate](ctx, key)
 }
