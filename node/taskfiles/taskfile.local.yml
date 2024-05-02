@@ -30,10 +30,6 @@ tasks:
     dotenv: [".env"]
     cmds:
       - go run ./script/test_fetcher_and_aggregator/main.go
-  script-test-all:
-    dotenv: [".env"]
-    cmds:
-      - go run ./script/test_all/main.go
   script-test-connection:
     dotenv: [".env"]
     cmds:
