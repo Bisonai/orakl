@@ -3,6 +3,7 @@ package secrets
 import (
 	"context"
 	"fmt"
+	"log"
 
 	vault "github.com/hashicorp/vault/api"
 	auth "github.com/hashicorp/vault/api/auth/kubernetes"
@@ -52,6 +53,9 @@ func (s *SecretEnv) GetSecretFromVaultWithKubernetesAuth() (*Secrets, error) {
 		DatabaseURL:     secrets.Data["DATABASE_URL"].(string),
 		EncryptPassword: secrets.Data["ENCRYPT_PASSWORD"].(string),
 	}
+
+	log.Printf("Database URL: %s", secretDataSet.DatabaseURL)
+	log.Printf("Encrypt Password: %s", secretDataSet.EncryptPassword)
 
 	return secretDataSet, nil
 }
