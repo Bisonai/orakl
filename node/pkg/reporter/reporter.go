@@ -152,21 +152,21 @@ func (r *Reporter) report(ctx context.Context, aggregates []GlobalAggregate) err
 	proofMap, err := GetProofsAsMap(ctx, aggregates)
 	if err != nil || !ValidateAggregateTimestampValues(aggregates) {
 		log.Error().Str("Player", "Reporter").Err(err).Msg("submit without proofs")
-		return r.reportWithoutProofs(ctx, aggregates)
+		return err
 	}
 	log.Debug().Str("Player", "Reporter").Int("proofs", len(proofMap)).Msg("proof map generated")
 
 	orderedProofMap, err := r.orderProofs(ctx, proofMap, aggregates)
 	if err != nil {
 		log.Error().Str("Player", "Reporter").Err(err).Msg("orderProofs")
-		return r.reportWithoutProofs(ctx, aggregates)
+		return err
 	}
 	log.Debug().Str("Player", "Reporter").Int("orderedProofs", len(orderedProofMap)).Msg("ordered proof map generated")
 
 	err = UpdateProofs(ctx, aggregates, orderedProofMap)
 	if err != nil {
 		log.Error().Str("Player", "Reporter").Err(err).Msg("updateProofs")
-		return r.reportWithoutProofs(ctx, aggregates)
+		return err
 	}
 	log.Debug().Str("Player", "Reporter").Msg("proofs updated to db, reporting with proofs")
 
@@ -243,44 +243,23 @@ func (r *Reporter) handleCustomMessage(ctx context.Context, msg raft.Message) er
 	}
 }
 
-func (r *Reporter) reportWithoutProofs(ctx context.Context, aggregates []GlobalAggregate) error {
-	log.Debug().Str("Player", "Reporter").Int("aggregates", len(aggregates)).Msg("reporting without proofs")
-	if r.KlaytnHelper == nil {
-		log.Error().Str("Player", "Reporter").Msg("klaytn helper not set")
-		return errors.New("klaytn helper not set")
-	}
-
-	addresses, values, err := MakeContractArgsWithoutProofs(aggregates, r.SubmissionPairs)
-	if err != nil {
-		log.Error().Str("Player", "Reporter").Err(err).Msg("makeContractArgsWithoutProofs")
-		return err
-	}
-
-	err = r.reportDelegated(ctx, SUBMIT_WITHOUT_PROOFS, addresses, values)
-	if err != nil {
-		log.Error().Str("Player", "Reporter").Err(err).Msg("reporting directly")
-		return r.reportDirect(ctx, SUBMIT_WITHOUT_PROOFS, addresses, values)
-	}
-	return nil
-}
-
 func (r *Reporter) reportWithProofs(ctx context.Context, aggregates []GlobalAggregate, proofMap map[int32][]byte) error {
 	log.Debug().Str("Player", "Reporter").Int("aggregates", len(aggregates)).Msg("reporting with proofs")
 	if r.KlaytnHelper == nil {
 		return errors.New("klaytn helper not set")
 	}
 
-	addresses, values, proofs, timestamps, err := MakeContractArgsWithProofs(aggregates, r.SubmissionPairs, proofMap)
+	addresses, values, timestamps, proofs, err := MakeContractArgsWithProofs(aggregates, r.SubmissionPairs, proofMap)
 	if err != nil {
 		log.Error().Str("Player", "Reporter").Err(err).Msg("makeContractArgsWithProofs")
 		return err
 	}
 	log.Debug().Str("Player", "Reporter").Int("proofs", len(proofs)).Msg("contract arguements generated")
 
-	err = r.reportDelegated(ctx, SUBMIT_WITH_PROOFS, addresses, values, proofs, timestamps)
+	err = r.reportDelegated(ctx, SUBMIT_WITH_PROOFS, addresses, values, timestamps, proofs)
 	if err != nil {
 		log.Error().Str("Player", "Reporter").Err(err).Msg("reporting directly")
-		return r.reportDirect(ctx, SUBMIT_WITH_PROOFS, addresses, values, proofs, timestamps)
+		return r.reportDirect(ctx, SUBMIT_WITH_PROOFS, addresses, values, timestamps, proofs)
 	}
 	return nil
 }

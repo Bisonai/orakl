@@ -255,14 +255,6 @@ func TestMakeContractArgs(t *testing.T) {
 		Timestamp: testItems.tmpData.proofTime,
 	}
 
-	addresses, values, err := MakeContractArgsWithoutProofs([]GlobalAggregate{agg}, reporter.SubmissionPairs)
-	if err != nil {
-		t.Fatal("error making contract args")
-	}
-
-	assert.Equal(t, addresses[0], reporter.SubmissionPairs[agg.ConfigID].Address)
-	assert.Equal(t, values[0], big.NewInt(15))
-
 	rawProofs, err := GetProofsRdb(ctx, []GlobalAggregate{agg})
 	if err != nil {
 		t.Fatal("error getting proofs")
@@ -270,7 +262,7 @@ func TestMakeContractArgs(t *testing.T) {
 
 	proofMap := ProofsToMap(rawProofs)
 
-	addresses, values, proofs, timestamps, err := MakeContractArgsWithProofs([]GlobalAggregate{agg}, reporter.SubmissionPairs, proofMap)
+	addresses, values, timestamps, proofs, err := MakeContractArgsWithProofs([]GlobalAggregate{agg}, reporter.SubmissionPairs, proofMap)
 	if err != nil {
 		t.Fatal("error making contract args")
 	}

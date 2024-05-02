@@ -138,7 +138,7 @@ func ConvertPgsqlProofsToProofs(pgsqlProofs []PgsqlProof) []Proof {
 	return proofs
 }
 
-func MakeContractArgsWithProofs(aggregates []GlobalAggregate, submissionPairs map[int32]SubmissionPair, proofMap map[int32][]byte) ([]common.Address, []*big.Int, [][]byte, []*big.Int, error) {
+func MakeContractArgsWithProofs(aggregates []GlobalAggregate, submissionPairs map[int32]SubmissionPair, proofMap map[int32][]byte) ([]common.Address, []*big.Int, []*big.Int, [][]byte, error) {
 	if len(aggregates) == 0 {
 		return nil, nil, nil, nil, errors.New("no aggregates")
 	}
@@ -170,27 +170,7 @@ func MakeContractArgsWithProofs(aggregates []GlobalAggregate, submissionPairs ma
 	if len(addresses) == 0 || len(values) == 0 || len(proofs) == 0 || len(timestamps) == 0 {
 		return nil, nil, nil, nil, errors.New("no valid aggregates")
 	}
-	return addresses, values, proofs, timestamps, nil
-}
-
-func MakeContractArgsWithoutProofs(aggregates []GlobalAggregate, submissionPairs map[int32]SubmissionPair) ([]common.Address, []*big.Int, error) {
-	addresses := make([]common.Address, len(aggregates))
-	values := make([]*big.Int, len(aggregates))
-
-	for i, agg := range aggregates {
-		if agg.ConfigID == 0 || agg.Value < 0 {
-			log.Error().Str("Player", "Reporter").Int32("configId", agg.ConfigID).Int64("value", agg.Value).Msg("skipping invalid aggregate")
-			return nil, nil, errors.New("invalid aggregate exists")
-		}
-		addresses[i] = submissionPairs[agg.ConfigID].Address
-		values[i] = big.NewInt(agg.Value)
-
-	}
-
-	if len(addresses) == 0 || len(values) == 0 {
-		return nil, nil, errors.New("no valid aggregates")
-	}
-	return addresses, values, nil
+	return addresses, values, timestamps, proofs, nil
 }
 
 func FilterInvalidAggregates(aggregates []GlobalAggregate, submissionPairs map[int32]SubmissionPair) []GlobalAggregate {
