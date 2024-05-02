@@ -9,9 +9,9 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-func Retry(job func() error, maxAttepts int, initialTimeout time.Duration, maxTimeout time.Duration) error {
+func Retry(job func() error, maxAttempts int, initialTimeout time.Duration, maxTimeout time.Duration) error {
 	failureTimeout := initialTimeout
-	for i := 0; i < maxAttepts; i++ {
+	for i := 0; i < maxAttempts; i++ {
 		failureTimeout = calculateJitter(failureTimeout)
 		if failureTimeout > maxTimeout {
 			failureTimeout = maxTimeout
