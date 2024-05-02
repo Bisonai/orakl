@@ -14,6 +14,7 @@ import (
 	"strconv"
 	"strings"
 
+	"bisonai.com/orakl/api/secrets"
 	"golang.org/x/crypto/scrypt"
 
 	"github.com/gofiber/fiber/v2"
@@ -22,9 +23,6 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/redis/go-redis/v9"
-
-	vault "github.com/hashicorp/vault/api"
-	auth "github.com/hashicorp/vault/api/auth/kubernetes"
 )
 
 type AppConfig struct {
@@ -266,55 +264,37 @@ func DecryptText(encryptedText string) (string, error) {
 	return string(decryptedText), nil
 }
 
-func GetSecretWithKubernetesAuth() (string, error) {
-
-	config := vault.DefaultConfig()
-
-	client, err := vault.NewClient(config)
-	if err != nil {
-		return "", fmt.Errorf("unable to initialize Vault client: %w", err)
-	}
-
-	k8sAuth, err := auth.NewKubernetesAuth(
-		"orakl",
-		auth.WithServiceAccountTokenPath("/var/run/secrets/kubernetes.io/serviceaccount/token"),
-	)
-	if err != nil {
-		return "", fmt.Errorf("unable to initialize Kubernetes auth method: %w", err)
-	}
-
-	authInfo, err := client.Auth().Login(context.TODO(), k8sAuth)
-	if err != nil {
-		return "", fmt.Errorf("unable to log in with Kubernetes auth: %w", err)
-	}
-	if authInfo == nil {
-		return "", fmt.Errorf("no auth info was returned after login")
-	}
-
-	secret, err := client.KVv2("baobab").Get(context.Background(), "api")
-	if err != nil {
-		return "", fmt.Errorf("unable to read secret: %w", err)
-	}
-
-	log.Printf("Secret: %v\n", secret)
-
-	return "ok", nil
-}
-
 func LoadEnvVars() (map[string]interface{}, error) {
-	vault, err := GetSecretWithKubernetesAuth()
-	if err != nil {
-		return nil, err
+
+	databaseURL := ""
+	encryptPassword := ""
+	vaultRole := os.Getenv("VAULT_ROLE")
+	vaultTokenPath := os.Getenv("VAULT_TOKEN_PATH")
+	vaultSecretPath := os.Getenv("VAULT_SECRET_PATH")
+	vaultKeyName := os.Getenv("VAULT_KEY_NAME")
+
+	if vaultRole != "" && vaultTokenPath != "" && vaultSecretPath != "" && vaultKeyName != "" {
+		secretsEnv := secrets.SecretEnv{
+			VaultRole:       vaultRole,
+			VaultTokenPath:  vaultTokenPath,
+			VaultSecretPath: vaultSecretPath,
+			VaultKeyName:    vaultKeyName,
+		}
+		secrets, err := secretsEnv.GetSecretFromVaultWithKubernetesAuth()
+		if err != nil {
+			return nil, err
+		}
+		databaseURL = secrets.DatabaseURL
+		encryptPassword = secrets.EncryptPassword
+	} else {
+		databaseURL = os.Getenv("DATABASE_URL")
+		encryptPassword = os.Getenv("ENCRYPT_PASSWORD")
 	}
-	if vault != "" {
-		return nil, errors.New("vault is not empty")
-	}
-	databaseURL := os.Getenv("DATABASE_URL")
+
 	redisHost := os.Getenv("REDIS_HOST")
 	redisPort := os.Getenv("REDIS_PORT")
 	appPort := os.Getenv("APP_PORT")
 	testMode := os.Getenv("TEST_MODE")
-	encryptPassword := os.Getenv("ENCRYPT_PASSWORD")
 
 	if databaseURL == "" {
 		return nil, errors.New("DATABASE_URL is not set")
