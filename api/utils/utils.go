@@ -277,7 +277,7 @@ func LoadEnvVars() (map[string]interface{}, error) {
 		log.Println("Using Vault to get secrets")
 		secretsEnv := secrets.SecretEnv{
 			VaultRole:       vaultRole,
-			JwtPtah:         jwtPath,
+			JwtPath:         jwtPath,
 			VaultSecretPath: vaultSecretPath,
 			VaultKeyName:    vaultKeyName,
 		}
