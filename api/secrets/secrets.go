@@ -21,6 +21,7 @@ type Secrets struct {
 }
 
 func (s *SecretEnv) GetSecretFromVaultWithKubernetesAuth() (*Secrets, error) {
+	ctx := context.Background()
 	config := vault.DefaultConfig()
 	client, err := vault.NewClient(config)
 	if err != nil {
@@ -35,7 +36,7 @@ func (s *SecretEnv) GetSecretFromVaultWithKubernetesAuth() (*Secrets, error) {
 		return nil, fmt.Errorf("unable to initialize Kubernetes auth method: %w", err)
 	}
 
-	authInfo, err := client.Auth().Login(context.TODO(), k8sAuth)
+	authInfo, err := client.Auth().Login(ctx, k8sAuth)
 	if err != nil {
 		return nil, fmt.Errorf("unable to log in with Kubernetes auth: %w", err)
 	}
