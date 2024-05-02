@@ -1,0 +1,41 @@
+name: "vrf: build+publish"
+
+on:
+  push:
+    branches-ignore:
+      - "master"
+    paths:
+      - "vrf/**"
+
+jobs:
+  build-publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: "20.10.0"
+          registry-url: "https://registry.npmjs.org"
+          scope: "@bisonai"
+          always-auth: true
+      - name: Install dependencies
+        run: yarn vrf install
+      - name: Run lint
+        run: yarn vrf lint
+      - name: Build package
+        run: yarn vrf build
+      - name: Extract version from package.json
+        uses: sergeysova/jq-action@v2
+        id: packageJsonVersion
+        with:
+          cmd: "jq .version ./vrf/package.json -r"
+      - name: Extract version from the latest published package
+        id: npmPackageVersion
+        run: echo "VERSION=`npm view @bisonai/orakl-vrf version`" >> $GITHUB_OUTPUT
+      - name: Publish package
+        if: steps.packageJsonVersion.outputs.value != steps.npmPackageVersion.outputs.VERSION
+        run: yarn vrf publish --new-version ${{ steps.packageJsonVersion.outputs.value }} --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

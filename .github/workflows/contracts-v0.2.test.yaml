@@ -1,0 +1,41 @@
+name: "contracts-v0.2: test"
+
+on:
+  push:
+    branches-ignore:
+      - "master"
+    paths:
+      - "contracts/v0.2/**"
+
+env:
+  FOUNDRY_PROFILE: ci
+
+jobs:
+  check:
+    strategy:
+      fail-fast: true
+
+    name: Contracts v0.2
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: nightly
+
+      - name: Run Forge build
+        run: |
+          forge --version
+          forge build --sizes
+        id: build
+        working-directory: ./contracts/v0.2
+
+      - name: Run Forge tests
+        run: |
+          forge test -vvv
+        id: test
+        working-directory: ./contracts/v0.2

@@ -1,0 +1,35 @@
+name: "core: test+build"
+
+on:
+  push:
+    branches-ignore:
+      - "master"
+    paths:
+      - "core/**"
+
+jobs:
+  core-build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: "20.10.0"
+      - name: Install dependencies
+        run: yarn core install
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+      - name: Run lint
+        run: yarn core lint
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+      - name: Build package
+        run: yarn core build
+      - name: Run test
+        run: yarn core test
+        env:
+          ORAKL_DIR: "./"
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+          CAVER_PRIVATE_KEY: ${{ secrets.CAVER_PRIVATE_KEY}}
