@@ -2,6 +2,7 @@ package db
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"os"
 	"sync"
@@ -55,6 +56,18 @@ func MSet(ctx context.Context, values map[string]string) error {
 	return rdb.MSet(ctx, pairs...).Err()
 }
 
+func MSetObject(ctx context.Context, values map[string]any) error {
+	stringMap := make(map[string]string)
+	for key, value := range values {
+		data, err := json.Marshal(value)
+		if err != nil {
+			return err
+		}
+		stringMap[key] = string(data)
+	}
+	return MSet(ctx, stringMap)
+}
+
 func Set(ctx context.Context, key string, value string, exp time.Duration) error {
 	rdbConn, err := GetRedisConn(ctx)
 	if err != nil {
@@ -62,6 +75,14 @@ func Set(ctx context.Context, key string, value string, exp time.Duration) error
 	}
 	rdb = rdbConn
 	return setRedis(ctx, rdb, key, value, exp)
+}
+
+func SetObject(ctx context.Context, key string, value any, exp time.Duration) error {
+	data, err := json.Marshal(value)
+	if err != nil {
+		return err
+	}
+	return Set(ctx, key, string(data), exp)
 }
 
 func MGet(ctx context.Context, keys []string) ([]any, error) {
@@ -73,6 +94,25 @@ func MGet(ctx context.Context, keys []string) ([]any, error) {
 	return rdb.MGet(ctx, keys...).Result()
 }
 
+func MGetObject[T any](ctx context.Context, keys []string) ([]T, error) {
+	results := []T{}
+
+	data, err := MGet(ctx, keys)
+	if err != nil {
+		return results, err
+	}
+
+	for _, d := range data {
+		var t T
+		err = json.Unmarshal([]byte(d.(string)), &t)
+		if err != nil {
+			continue
+		}
+		results = append(results, t)
+	}
+	return results, nil
+}
+
 func Get(ctx context.Context, key string) (string, error) {
 	rdbConn, err := GetRedisConn(ctx)
 	if err != nil {
@@ -80,6 +120,16 @@ func Get(ctx context.Context, key string) (string, error) {
 	}
 	rdb = rdbConn
 	return getRedis(ctx, rdb, key)
+}
+
+func GetObject[T any](ctx context.Context, key string) (T, error) {
+	var t T
+	data, err := Get(ctx, key)
+	if err != nil {
+		return t, err
+	}
+	err = json.Unmarshal([]byte(data), &t)
+	return t, err
 }
 
 func Del(ctx context.Context, key string) error {
