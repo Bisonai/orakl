@@ -179,9 +179,9 @@ func TestMSetObject(t *testing.T) {
 		if getValueErr != nil {
 			t.Errorf("Error getting key: %v", getValueErr)
 		}
-		expectedValue, err := json.Marshal(value)
-		if err != nil {
-			t.Errorf("Error marshalling value: %v", err)
+		expectedValue, marshalErr := json.Marshal(value)
+		if marshalErr != nil {
+			t.Errorf("Error marshalling value: %v", marshalErr)
 			continue
 		}
 		if gotValue != string(expectedValue) {
