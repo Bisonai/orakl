@@ -126,8 +126,8 @@ func (r *Reporter) leaderJob() error {
 
 	err = r.retry(reportJob)
 	if err != nil {
+		log.Error().Str("Player", "Reporter").Err(err).Msg("failed to report, resigning from leader")
 		r.resignLeader()
-		log.Error().Str("Player", "Reporter").Err(err).Msg("failed to report")
 		return errors.New("failed to report")
 	}
 
@@ -230,8 +230,7 @@ func (r *Reporter) orderProofs(ctx context.Context, proofMap map[int32][]byte, a
 }
 
 func (r *Reporter) resignLeader() {
-	r.Raft.StopHeartbeatTicker()
-	r.Raft.UpdateRole(raft.Follower)
+	r.Raft.ResignLeader()
 }
 
 func (r *Reporter) handleCustomMessage(ctx context.Context, msg raft.Message) error {
@@ -347,8 +346,8 @@ func (r *Reporter) deviationJob() error {
 
 	err = r.retry(reportJob)
 	if err != nil {
+		log.Error().Str("Player", "Reporter").Err(err).Msg("failed to report deviation, resigning from leader")
 		r.resignLeader()
-		log.Error().Str("Player", "Reporter").Err(err).Msg("failed to report deviation")
 		return errors.New("failed to report deviation")
 	}
 

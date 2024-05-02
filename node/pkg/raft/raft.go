@@ -139,8 +139,7 @@ func (r *Raft) handleHeartbeat(msg Message) error {
 	}
 
 	if currentRole == Leader {
-		r.StopHeartbeatTicker()
-		r.UpdateRole(Follower)
+		r.ResignLeader()
 	} else if currentRole == Candidate {
 		r.UpdateRole(Follower)
 	}
@@ -295,10 +294,14 @@ func (r *Raft) sendRequestVote() error {
 
 // utility functions
 
-func (r *Raft) StopHeartbeatTicker() {
+func (r *Raft) ResignLeader() {
 	if r.Resign != nil {
 		close(r.Resign)
 		r.Resign = nil
+
+		r.UpdateRole(Follower)
+		r.UpdateLeader("")
+		r.startElectionTimer()
 	}
 }
 
