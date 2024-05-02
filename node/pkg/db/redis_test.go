@@ -175,9 +175,9 @@ func TestMSetObject(t *testing.T) {
 
 	// Check if the values were set correctly
 	for key, value := range values {
-		gotValue, err := Get(ctx, key)
-		if err != nil {
-			t.Errorf("Error getting key: %v", err)
+		gotValue, getValueErr := Get(ctx, key)
+		if getValueErr != nil {
+			t.Errorf("Error getting key: %v", getValueErr)
 		}
 		expectedValue, _ := json.Marshal(value)
 		if gotValue != string(expectedValue) {
