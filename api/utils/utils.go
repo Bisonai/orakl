@@ -273,12 +273,8 @@ func LoadEnvVars() (map[string]interface{}, error) {
 	vaultSecretPath := os.Getenv("VAULT_SECRET_PATH")
 	vaultKeyName := os.Getenv("VAULT_KEY_NAME")
 
-	log.Printf("Vault Role: %s", vaultRole)
-	log.Printf("JWT Path: %s", jwtPath)
-	log.Printf("Vault Secret Path: %s", vaultSecretPath)
-	log.Printf("Vault Key Name: %s", vaultKeyName)
-
 	if vaultRole != "" && jwtPath != "" && vaultSecretPath != "" && vaultKeyName != "" {
+		log.Println("Using Vault to get secrets")
 		secretsEnv := secrets.SecretEnv{
 			VaultRole:       vaultRole,
 			JwtPtah:         jwtPath,
@@ -286,7 +282,6 @@ func LoadEnvVars() (map[string]interface{}, error) {
 			VaultKeyName:    vaultKeyName,
 		}
 		secrets, err := secretsEnv.GetSecretFromVaultWithKubernetesAuth()
-		log.Printf("Database URL: %s", secrets.DatabaseURL)
 		if err != nil {
 			return nil, err
 		}
