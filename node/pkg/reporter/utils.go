@@ -3,7 +3,6 @@ package reporter
 import (
 	"bytes"
 	"context"
-	"encoding/json"
 	"errors"
 	"math"
 	"math/big"
@@ -58,32 +57,11 @@ func GetLastSubmission(ctx context.Context, submissionPairs map[int32]Submission
 		keys = append(keys, "lastSubmission:"+strconv.Itoa(int(config_id)))
 	}
 
-	result, err := db.MGet(ctx, keys)
-	if err != nil {
-		log.Error().Str("Player", "Reporter").Err(err).Msg("failed to get last submission")
-		return nil, err
-	}
-
-	aggregates := make([]GlobalAggregate, 0, len(result))
-	for i, agg := range result {
-		if agg == nil {
-			log.Error().Str("Player", "Reporter").Str("key", keys[i]).Msg("missing aggregate")
-			continue
-		}
-		var aggregate GlobalAggregate
-		err = json.Unmarshal([]byte(agg.(string)), &aggregate)
-		if err != nil {
-			log.Error().Str("Player", "Reporter").Err(err).Str("key", keys[i]).Msg("failed to unmarshal aggregate")
-			continue
-		}
-		aggregates = append(aggregates, aggregate)
-	}
-
-	return aggregates, nil
+	return db.MGetObject[GlobalAggregate](ctx, keys)
 }
 
 func StoreLastSubmission(ctx context.Context, aggregates []GlobalAggregate) error {
-	vals := make(map[string]string)
+	vals := make(map[string]any)
 
 	for _, agg := range aggregates {
 		if agg.ConfigID == 0 {
@@ -91,20 +69,13 @@ func StoreLastSubmission(ctx context.Context, aggregates []GlobalAggregate) erro
 			continue
 		}
 		key := "lastSubmission:" + strconv.Itoa(int(agg.ConfigID))
-
-		tmpValue, err := json.Marshal(agg)
-		if err != nil {
-			log.Error().Str("Player", "Reporter").Err(err).Msg("failed to marshal aggregate")
-			continue
-		}
-		value := string(tmpValue)
-		vals[key] = value
+		vals[key] = agg
 	}
 
 	if len(vals) == 0 {
 		return errors.New("no valid aggregates")
 	}
-	return db.MSet(ctx, vals)
+	return db.MSetObject(ctx, vals)
 }
 
 func ProofsToMap(proofs []Proof) map[int32][]byte {
@@ -191,29 +162,7 @@ func GetProofsRdb(ctx context.Context, aggregates []GlobalAggregate) ([]Proof, e
 	for _, agg := range aggregates {
 		keys = append(keys, "proof:"+strconv.Itoa(int(agg.ConfigID))+"|round:"+strconv.FormatInt(agg.Round, 10))
 	}
-
-	result, err := db.MGet(ctx, keys)
-	if err != nil {
-		log.Error().Str("Player", "Reporter").Err(err).Msg("failed to get proofs")
-		return nil, err
-	}
-
-	proofs := make([]Proof, 0, len(result))
-	for i, proof := range result {
-		if proof == nil {
-			log.Error().Str("Player", "Reporter").Str("key", keys[i]).Msg("missing proof")
-			continue
-		}
-		var p Proof
-		err = json.Unmarshal([]byte(proof.(string)), &p)
-		if err != nil {
-			log.Error().Str("Player", "Reporter").Err(err).Str("key", keys[i]).Msg("failed to unmarshal proof")
-			continue
-		}
-		proofs = append(proofs, p)
-
-	}
-	return proofs, nil
+	return db.MGetObject[Proof](ctx, keys)
 }
 
 func GetProofsPgsql(ctx context.Context, aggregates []GlobalAggregate) ([]Proof, error) {
@@ -266,27 +215,7 @@ func GetLatestGlobalAggregatesRdb(ctx context.Context, submissionPairs map[int32
 		keys = append(keys, "globalAggregate:"+strconv.Itoa(int(configId)))
 	}
 
-	result, err := db.MGet(ctx, keys)
-	if err != nil {
-		log.Error().Str("Player", "Reporter").Err(err).Msg("failed to get latest global aggregates")
-		return nil, err
-	}
-
-	aggregates := make([]GlobalAggregate, 0, len(result))
-	for i, agg := range result {
-		if agg == nil {
-			log.Warn().Str("Player", "Reporter").Str("key", keys[i]).Msg("no latest aggregate")
-			continue
-		}
-		var aggregate GlobalAggregate
-		err = json.Unmarshal([]byte(agg.(string)), &aggregate)
-		if err != nil {
-			log.Error().Str("Player", "Reporter").Err(err).Str("key", keys[i]).Msg("failed to unmarshal aggregate")
-			continue
-		}
-		aggregates = append(aggregates, aggregate)
-	}
-	return aggregates, nil
+	return db.MGetObject[GlobalAggregate](ctx, keys)
 }
 
 func ValidateAggregateTimestampValues(aggregates []GlobalAggregate) bool {

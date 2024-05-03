@@ -2,7 +2,6 @@ package fetcher
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"math"
 	"math/big"
@@ -72,9 +71,6 @@ func insertLocalAggregatePgsql(ctx context.Context, configId int32, value float6
 
 func insertLocalAggregateRdb(ctx context.Context, configId int32, value float64) error {
 	key := "localAggregate:" + strconv.Itoa(int(configId))
-	data, err := json.Marshal(RedisAggregate{ConfigId: configId, Value: int64(value), Timestamp: time.Now()})
-	if err != nil {
-		return err
-	}
-	return db.Set(ctx, key, string(data), time.Duration(5*time.Minute))
+	data := RedisAggregate{ConfigId: configId, Value: int64(value), Timestamp: time.Now()}
+	return db.SetObject(ctx, key, data, time.Duration(5*time.Minute))
 }
