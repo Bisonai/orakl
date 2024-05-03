@@ -22,7 +22,7 @@ import (
 )
 
 const InsertGlobalAggregateQuery = `INSERT INTO global_aggregates (config_id, value, round, timestamp) VALUES (@config_id, @value, @round, @timestamp) RETURNING *`
-const InsertConfigQuery = `INSERT INTO configs (name, address, fetch_interval, aggregate_interval, submit_interval) VALUES (@name, @address, @fetch_interval, @aggregate_interval, @submit_interval) RETURNING name, id, submit_interval, address;`
+const InsertConfigQuery = `INSERT INTO configs (name, address, fetch_interval, aggregate_interval, submit_interval) VALUES (@name, @address, @fetch_interval, @aggregate_interval, @submit_interval) RETURNING name, id, submit_interval, aggregate_interval, address;`
 const TestInterval = 15000
 
 type TestItems struct {
@@ -33,7 +33,7 @@ type TestItems struct {
 }
 type TmpData struct {
 	globalAggregate GlobalAggregate
-	reporterConfig  ReporterConfig
+	config          Config
 	proofBytes      []byte
 	proofTime       time.Time
 }
@@ -47,12 +47,12 @@ func insertSampleData(ctx context.Context) (*TmpData, error) {
 	}
 	proofTime := time.Now()
 
-	tmpConfig, err := db.QueryRow[ReporterConfig](ctx, InsertConfigQuery, map[string]any{"name": "test-aggregate", "address": "0x1234", "submit_interval": TestInterval, "fetch_interval": TestInterval, "aggregate_interval": TestInterval})
+	tmpConfig, err := db.QueryRow[Config](ctx, InsertConfigQuery, map[string]any{"name": "test-aggregate", "address": "0x1234", "submit_interval": TestInterval, "fetch_interval": TestInterval, "aggregate_interval": TestInterval})
 	if err != nil {
 		log.Error().Err(err).Msg("error inserting config 0")
 		return nil, err
 	}
-	tmpData.reporterConfig = tmpConfig
+	tmpData.config = tmpConfig
 
 	err = db.QueryWithoutResult(ctx, InsertConfigQuery, map[string]any{"name": "test-aggregate-2", "address": "0xabcd", "submit_interval": TestInterval * 2, "fetch_interval": TestInterval, "aggregate_interval": TestInterval})
 	if err != nil {

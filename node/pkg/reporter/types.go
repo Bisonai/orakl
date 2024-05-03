@@ -25,18 +25,19 @@ const (
 	SUBMIT_WITH_PROOFS                       = "submit(address[] memory _feeds, int256[] memory _answers, uint256[] memory _timestamps, bytes[] memory _proofs)"
 	GET_ONCHAIN_WHITELIST                    = "getAllOracles() public view returns (address[] memory)"
 
-	GET_REPORTER_CONFIGS = `SELECT name, id, address, submit_interval FROM configs;`
+	GET_REPORTER_CONFIGS = `SELECT name, id, address, submit_interval, aggregate_interval FROM configs;`
 
 	DEVIATION_THRESHOLD          = 0.05
 	DEVIATION_ABSOLUTE_THRESHOLD = 0.1
 	DECIMALS                     = 8
 )
 
-type ReporterConfig struct {
-	ID             int32  `db:"id"`
-	Name           string `db:"name"`
-	Address        string `db:"address"`
-	SubmitInterval *int   `db:"submit_interval"`
+type Config struct {
+	ID                int32  `db:"id"`
+	Name              string `db:"name"`
+	Address           string `db:"address"`
+	SubmitInterval    *int   `db:"submit_interval"`
+	AggregateInterval *int   `db:"aggregate_interval"`
 }
 
 type SubmissionPair struct {
@@ -49,6 +50,67 @@ type App struct {
 	Bus       *bus.MessageBus
 	Host      host.Host
 	Pubsub    *pubsub.PubSub
+}
+
+type JobType int
+
+const (
+	ReportJob JobType = iota
+	DeviationJob
+)
+
+type ReporterConfig struct {
+	Host            host.Host
+	Ps              *pubsub.PubSub
+	Configs         []Config
+	Interval        int
+	ContractAddress string
+	CachedWhitelist []common.Address
+	JobType         JobType
+}
+
+type ReporterOption func(*ReporterConfig)
+
+func WithHost(h host.Host) ReporterOption {
+	return func(c *ReporterConfig) {
+		c.Host = h
+	}
+}
+
+func WithPubsub(ps *pubsub.PubSub) ReporterOption {
+	return func(c *ReporterConfig) {
+		c.Ps = ps
+	}
+}
+
+func WithConfigs(configs []Config) ReporterOption {
+	return func(c *ReporterConfig) {
+		c.Configs = configs
+	}
+}
+
+func WithInterval(interval int) ReporterOption {
+	return func(c *ReporterConfig) {
+		c.Interval = interval
+	}
+}
+
+func WithContractAddress(address string) ReporterOption {
+	return func(c *ReporterConfig) {
+		c.ContractAddress = address
+	}
+}
+
+func WithCachedWhitelist(whitelist []common.Address) ReporterOption {
+	return func(c *ReporterConfig) {
+		c.CachedWhitelist = whitelist
+	}
+}
+
+func WithJobType(jobType JobType) ReporterOption {
+	return func(c *ReporterConfig) {
+		c.JobType = jobType
+	}
 }
 
 type Reporter struct {

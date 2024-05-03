@@ -25,11 +25,11 @@ func TestNewReporter(t *testing.T) {
 		}
 	}()
 
-	submissionPairs, err := getReporterConfigs(ctx)
+	submissionPairs, err := getConfigs(ctx)
 	if err != nil {
 		t.Fatalf("error getting submission pairs: %v", err)
 	}
-	groupedSubmissionPairs := groupReporterConfigsByIntervals(submissionPairs)
+	groupedSubmissionPairs := groupConfigsBySubmitIntervals(submissionPairs)
 
 	contractAddress := os.Getenv("SUBMISSION_PROXY_CONTRACT")
 	if contractAddress == "" {
@@ -48,7 +48,15 @@ func TestNewReporter(t *testing.T) {
 	}
 
 	for groupInterval, pairs := range groupedSubmissionPairs {
-		_, err := NewReporter(ctx, testItems.app.Host, testItems.app.Pubsub, pairs, groupInterval, contractAddress, whitelist)
+		_, err := NewReporter(
+			ctx,
+			WithHost(testItems.app.Host),
+			WithPubsub(testItems.app.Pubsub),
+			WithConfigs(pairs),
+			WithInterval(groupInterval),
+			WithContractAddress(contractAddress),
+			WithCachedWhitelist(whitelist),
+		)
 		if err != nil {
 			t.Fatalf("error creating new reporter: %v", err)
 		}
@@ -181,14 +189,14 @@ func TestFilterInvalidAggregates(t *testing.T) {
 	}
 
 	aggregates := []GlobalAggregate{{
-		ConfigID: testItems.tmpData.reporterConfig.ID,
+		ConfigID: testItems.tmpData.config.ID,
 		Value:    15,
 		Round:    1,
 	}}
 	result := FilterInvalidAggregates(aggregates, reporter.SubmissionPairs)
 	assert.Equal(t, result, aggregates)
 
-	reporter.SubmissionPairs = map[int32]SubmissionPair{testItems.tmpData.reporterConfig.ID: {LastSubmission: 1, Address: common.HexToAddress("0x1234")}}
+	reporter.SubmissionPairs = map[int32]SubmissionPair{testItems.tmpData.config.ID: {LastSubmission: 1, Address: common.HexToAddress("0x1234")}}
 	result = FilterInvalidAggregates(aggregates, reporter.SubmissionPairs)
 	assert.Equal(t, result, []GlobalAggregate{})
 }
@@ -215,14 +223,14 @@ func TestIsAggValid(t *testing.T) {
 	}
 
 	agg := GlobalAggregate{
-		ConfigID: testItems.tmpData.reporterConfig.ID,
+		ConfigID: testItems.tmpData.config.ID,
 		Value:    15,
 		Round:    1,
 	}
 	result := IsAggValid(agg, reporter.SubmissionPairs)
 	assert.Equal(t, result, true)
 
-	reporter.SubmissionPairs = map[int32]SubmissionPair{testItems.tmpData.reporterConfig.ID: {LastSubmission: 1, Address: common.HexToAddress("0x1234")}}
+	reporter.SubmissionPairs = map[int32]SubmissionPair{testItems.tmpData.config.ID: {LastSubmission: 1, Address: common.HexToAddress("0x1234")}}
 	result = IsAggValid(agg, reporter.SubmissionPairs)
 	assert.Equal(t, result, false)
 }
@@ -249,7 +257,7 @@ func TestMakeContractArgs(t *testing.T) {
 	}
 
 	agg := GlobalAggregate{
-		ConfigID:  testItems.tmpData.reporterConfig.ID,
+		ConfigID:  testItems.tmpData.config.ID,
 		Value:     15,
 		Round:     1,
 		Timestamp: testItems.tmpData.proofTime,
@@ -397,7 +405,7 @@ func TestNewDeviationReporter(t *testing.T) {
 		}
 	}()
 
-	submissionPairs, err := getReporterConfigs(ctx)
+	submissionPairs, err := getConfigs(ctx)
 	if err != nil {
 		t.Fatalf("error getting submission pairs: %v", err)
 	}
@@ -417,8 +425,16 @@ func TestNewDeviationReporter(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error reading onchain whitelist: %v", err)
 	}
-
-	_, err = NewDeviationReporter(ctx, testItems.app.Host, testItems.app.Pubsub, submissionPairs, contractAddress, whitelist)
+	_, err = NewReporter(
+		ctx,
+		WithHost(testItems.app.Host),
+		WithPubsub(testItems.app.Pubsub),
+		WithConfigs(submissionPairs),
+		WithInterval(5000),
+		WithContractAddress(contractAddress),
+		WithCachedWhitelist(whitelist),
+		WithJobType(DeviationJob),
+	)
 	if err != nil {
 		t.Fatalf("error creating new deviation reporter: %v", err)
 	}
@@ -528,7 +544,7 @@ func TestDeviationJob(t *testing.T) {
 		}
 	}()
 
-	submissionPairs, err := getReporterConfigs(ctx)
+	submissionPairs, err := getConfigs(ctx)
 	if err != nil {
 		t.Fatalf("error getting submission pairs: %v", err)
 	}
@@ -548,8 +564,16 @@ func TestDeviationJob(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error reading onchain whitelist: %v", err)
 	}
-
-	reporter, err := NewDeviationReporter(ctx, testItems.app.Host, testItems.app.Pubsub, submissionPairs, contractAddress, whitelist)
+	reporter, err := NewReporter(
+		ctx,
+		WithHost(testItems.app.Host),
+		WithPubsub(testItems.app.Pubsub),
+		WithConfigs(submissionPairs),
+		WithInterval(5000),
+		WithContractAddress(contractAddress),
+		WithCachedWhitelist(whitelist),
+		WithJobType(DeviationJob),
+	)
 	if err != nil {
 		t.Fatalf("error creating new deviation reporter: %v", err)
 	}

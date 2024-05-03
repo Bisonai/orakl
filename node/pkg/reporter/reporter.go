@@ -13,62 +13,55 @@ import (
 	"bisonai.com/orakl/node/pkg/utils/retrier"
 
 	"github.com/klaytn/klaytn/common"
-	pubsub "github.com/libp2p/go-libp2p-pubsub"
-	"github.com/libp2p/go-libp2p/core/host"
 	"github.com/rs/zerolog/log"
 )
 
-func NewReporter(ctx context.Context, h host.Host, ps *pubsub.PubSub, reporterConfigs []ReporterConfig, interval int, contractAddress string, cachedWhitelist []common.Address) (*Reporter, error) {
-	topicString := TOPIC_STRING + "-" + strconv.Itoa(interval)
-	groupInterval := time.Duration(interval) * time.Millisecond
-
-	reporter, err := newReporter(ctx, h, ps, reporterConfigs, groupInterval, topicString, contractAddress, cachedWhitelist)
-	if err != nil {
-		return nil, err
+func NewReporter(ctx context.Context, opts ...ReporterOption) (*Reporter, error) {
+	config := &ReporterConfig{
+		JobType: ReportJob,
 	}
 
-	reporter.Raft.LeaderJob = reporter.leaderJob
-	return reporter, nil
-}
-
-func NewDeviationReporter(ctx context.Context, h host.Host, ps *pubsub.PubSub, reporterConfigs []ReporterConfig, contractAddress string, cachedWhitelist []common.Address) (*Reporter, error) {
-	topicString := TOPIC_STRING + "-deviation"
-
-	reporter, err := newReporter(ctx, h, ps, reporterConfigs, DEVIATION_TIMEOUT, topicString, contractAddress, cachedWhitelist)
-	if err != nil {
-		return nil, err
+	for _, opt := range opts {
+		opt(config)
 	}
 
-	reporter.Raft.LeaderJob = reporter.deviationJob
-	return reporter, nil
-}
-
-func newReporter(ctx context.Context, h host.Host, ps *pubsub.PubSub, reporterConfigs []ReporterConfig, interval time.Duration, topicString string, contractAddress string, cachedWhitelist []common.Address) (*Reporter, error) {
-	if len(reporterConfigs) == 0 {
+	if len(config.Configs) == 0 {
 		log.Error().Str("Player", "Reporter").Err(errors.New("no submission pairs")).Msg("no submission pairs to make new reporter")
 		return nil, errors.New("no submission pairs")
 	}
 
-	topic, err := ps.Join(topicString)
+	topicString := TOPIC_STRING + "-"
+	if config.JobType == DeviationJob {
+		topicString += "deviation-" + strconv.Itoa(config.Interval)
+	} else {
+		topicString += strconv.Itoa(config.Interval)
+	}
+
+	groupInterval := time.Duration(config.Interval) * time.Millisecond
+
+	topic, err := config.Ps.Join(topicString)
 	if err != nil {
 		log.Error().Str("Player", "Reporter").Err(err).Msg("Failed to join topic")
 		return nil, err
 	}
 
-	raft := raft.NewRaftNode(h, ps, topic, MESSAGE_BUFFER, interval)
-
+	raft := raft.NewRaftNode(config.Host, config.Ps, topic, MESSAGE_BUFFER, groupInterval)
 	reporter := &Reporter{
 		Raft:               raft,
-		contractAddress:    contractAddress,
-		SubmissionInterval: interval,
-		CachedWhitelist:    cachedWhitelist,
+		contractAddress:    config.ContractAddress,
+		SubmissionInterval: groupInterval,
+		CachedWhitelist:    config.CachedWhitelist,
 	}
-
 	reporter.SubmissionPairs = make(map[int32]SubmissionPair)
-	for _, sa := range reporterConfigs {
+	for _, sa := range config.Configs {
 		reporter.SubmissionPairs[sa.ID] = SubmissionPair{LastSubmission: 0, Address: common.HexToAddress(sa.Address)}
 	}
 	reporter.Raft.HandleCustomMessage = reporter.handleCustomMessage
+	if config.JobType == DeviationJob {
+		reporter.Raft.LeaderJob = reporter.deviationJob
+	} else {
+		reporter.Raft.LeaderJob = reporter.leaderJob
+	}
 
 	return reporter, nil
 }
