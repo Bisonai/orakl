@@ -177,4 +177,5 @@ var (
 	ErrReducerUnknownReducerFunc       = &CustomError{Service: Others, Code: InternalError, Message: "Unknown reducer function"}
 	ErrRequestStatusNotOk              = &CustomError{Service: Others, Code: InternalError, Message: "Request status not OK"}
 	ErrCalculatorEmptyArr              = &CustomError{Service: Others, Code: InternalError, Message: "Empty array"}
+	ErrRetrierJobFail                  = &CustomError{Service: Others, Code: InternalError, Message: "Job failed"}
 )
