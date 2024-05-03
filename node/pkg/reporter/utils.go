@@ -3,8 +3,6 @@ package reporter
 import (
 	"bytes"
 	"context"
-	"crypto/rand"
-	"encoding/json"
 	"errors"
 	"math"
 	"math/big"
