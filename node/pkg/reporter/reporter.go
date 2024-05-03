@@ -7,8 +7,9 @@ import (
 	"time"
 
 	"bisonai.com/orakl/node/pkg/chain/helper"
-	chain_utils "bisonai.com/orakl/node/pkg/chain/utils"
+	chainUtils "bisonai.com/orakl/node/pkg/chain/utils"
 	errorSentinel "bisonai.com/orakl/node/pkg/error"
+
 	"bisonai.com/orakl/node/pkg/raft"
 	"bisonai.com/orakl/node/pkg/utils/retrier"
 
@@ -153,7 +154,7 @@ func (r *Reporter) report(ctx context.Context, aggregates []GlobalAggregate) err
 
 func (r *Reporter) orderProof(ctx context.Context, proof []byte, aggregate GlobalAggregate) ([]byte, error) {
 	proof = RemoveDuplicateProof(proof)
-	hash := chain_utils.Value2HashForSign(aggregate.Value, aggregate.Timestamp.Unix())
+	hash := chainUtils.Value2HashForSign(aggregate.Value, aggregate.Timestamp.Unix())
 	proofChunks, err := SplitProofToChunk(proof)
 	if err != nil {
 		log.Error().Str("Player", "Reporter").Err(err).Msg("failed to split proof")

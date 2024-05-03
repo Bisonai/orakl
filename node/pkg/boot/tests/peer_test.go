@@ -11,8 +11,8 @@ import (
 	"bisonai.com/orakl/node/pkg/boot"
 	"bisonai.com/orakl/node/pkg/boot/peer"
 	"bisonai.com/orakl/node/pkg/db"
-	libp2p_setup "bisonai.com/orakl/node/pkg/libp2p/setup"
-	libp2p_utils "bisonai.com/orakl/node/pkg/libp2p/utils"
+	libp2pSetup "bisonai.com/orakl/node/pkg/libp2p/setup"
+	libp2pUtils "bisonai.com/orakl/node/pkg/libp2p/utils"
 
 	_peer "github.com/libp2p/go-libp2p/core/peer"
 	"github.com/multiformats/go-multiaddr"
@@ -81,21 +81,21 @@ func TestSync(t *testing.T) {
 	}
 	defer cleanup()
 
-	mockHost1, err := libp2p_setup.MakeHost(0)
+	mockHost1, err := libp2pSetup.MakeHost(0)
 	if err != nil {
 		t.Fatalf("error making host: %v", err)
 	}
 
-	mockHost2, err := libp2p_setup.MakeHost(0)
+	mockHost2, err := libp2pSetup.MakeHost(0)
 	if err != nil {
 		t.Fatalf("error making host: %v", err)
 	}
 
-	ip1, port1, hostId1, err := libp2p_utils.ExtractPayloadFromHost(mockHost1)
+	ip1, port1, hostId1, err := libp2pUtils.ExtractPayloadFromHost(mockHost1)
 	if err != nil {
 		t.Fatalf("error extracting payload from host: %v", err)
 	}
-	ip2, port2, hostId2, err := libp2p_utils.ExtractPayloadFromHost(mockHost2)
+	ip2, port2, hostId2, err := libp2pUtils.ExtractPayloadFromHost(mockHost2)
 	if err != nil {
 		t.Fatalf("error extracting payload from host: %v", err)
 	}
@@ -141,7 +141,7 @@ func TestRefresh(t *testing.T) {
 	}
 	defer cleanup()
 
-	h, err := libp2p_setup.MakeHost(10011)
+	h, err := libp2pSetup.MakeHost(10011)
 	if err != nil {
 		t.Fatalf("error making host: %v", err)
 	}

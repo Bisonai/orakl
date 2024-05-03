@@ -15,7 +15,7 @@ import (
 	"bisonai.com/orakl/node/pkg/bus"
 	"bisonai.com/orakl/node/pkg/chain/helper"
 	"bisonai.com/orakl/node/pkg/db"
-	libp2p_setup "bisonai.com/orakl/node/pkg/libp2p/setup"
+	libp2pSetup "bisonai.com/orakl/node/pkg/libp2p/setup"
 	"github.com/gofiber/fiber/v2"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
@@ -119,12 +119,12 @@ func setup(ctx context.Context) (func() error, *TestItems, error) {
 
 	testItems.admin = admin
 
-	h, err := libp2p_setup.MakeHost(10001)
+	h, err := libp2pSetup.MakeHost(10001)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	ps, err := libp2p_setup.MakePubsub(ctx, h)
+	ps, err := libp2pSetup.MakePubsub(ctx, h)
 	if err != nil {
 		return nil, nil, err
 	}

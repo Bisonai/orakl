@@ -2,7 +2,6 @@ package boot
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"os"
 	"time"
@@ -10,9 +9,9 @@ import (
 	"bisonai.com/orakl/node/pkg/boot/peer"
 	"bisonai.com/orakl/node/pkg/boot/utils"
 	"bisonai.com/orakl/node/pkg/db"
-	errorSentinel "bisonai.com/orakl/node/pkg/error"
-	libp2p_setup "bisonai.com/orakl/node/pkg/libp2p/setup"
-	libp2p_utils "bisonai.com/orakl/node/pkg/libp2p/utils"
+	libp2pSetup "bisonai.com/orakl/node/pkg/libp2p/setup"
+	libp2pUtils "bisonai.com/orakl/node/pkg/libp2p/utils"
+    errorSentinel "bisonai.com/orakl/node/pkg/error"
 	"github.com/gofiber/fiber/v2"
 	"github.com/rs/zerolog/log"
 )
@@ -84,7 +83,7 @@ func RefreshJob(ctx context.Context) error {
 		return nil
 	}
 
-	h, err := libp2p_setup.MakeHost(0)
+	h, err := libp2pSetup.MakeHost(0)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to make host")
 		return err
@@ -92,7 +91,7 @@ func RefreshJob(ctx context.Context) error {
 
 	for _, p := range peers {
 		connectionUrl := fmt.Sprintf("/ip4/%s/tcp/%d/p2p/%s", p.Ip, p.Port, p.HostId)
-		isAlive, liveCheckErr := libp2p_utils.IsHostAlive(ctx, h, connectionUrl)
+		isAlive, liveCheckErr := libp2pUtils.IsHostAlive(ctx, h, connectionUrl)
 		if liveCheckErr != nil {
 			log.Error().Err(liveCheckErr).Msg("Failed to check peer")
 			if !errors.Is(liveCheckErr, errorSentinel.ErrLibP2pFailToConnectPeer) {

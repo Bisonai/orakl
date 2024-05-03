@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"bisonai.com/orakl/node/pkg/chain/helper"
-	chain_utils "bisonai.com/orakl/node/pkg/chain/utils"
+	chainUtils "bisonai.com/orakl/node/pkg/chain/utils"
 	"bisonai.com/orakl/node/pkg/db"
 	errorSentinel "bisonai.com/orakl/node/pkg/error"
 
@@ -295,7 +295,7 @@ func GetSignerMap(signers []common.Address, proofChunks [][]byte) map[common.Add
 func GetSignerListFromProofs(hash []byte, proofChunks [][]byte) ([]common.Address, error) {
 	signers := make([]common.Address, 0, len(proofChunks))
 	for _, p := range proofChunks {
-		signer, err := chain_utils.RecoverSigner(hash, p)
+		signer, err := chainUtils.RecoverSigner(hash, p)
 		if err != nil {
 			return nil, err
 		}
