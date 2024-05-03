@@ -28,7 +28,7 @@ const (
 )
 
 type TmpData struct {
-	config          AggregatorConfig
+	config          Config
 	rLocalAggregate LocalAggregate
 	pLocalAggregate PgsLocalAggregate
 	globalAggregate GlobalAggregate
@@ -88,7 +88,7 @@ func setup(ctx context.Context) (func() error, *TestItems, error) {
 func insertSampleData(ctx context.Context) (*TmpData, error) {
 	var tmpData = new(TmpData)
 
-	tmpConfig, err := db.QueryRow[AggregatorConfig](ctx, InsertConfigQuery, map[string]any{"name": "test_pair", "address": "test_address", "fetch_interval": 2000, "aggregate_interval": 5000, "submit_interval": 15000})
+	tmpConfig, err := db.QueryRow[Config](ctx, InsertConfigQuery, map[string]any{"name": "test_pair", "address": "test_address", "fetch_interval": 2000, "aggregate_interval": 5000, "submit_interval": 15000})
 	if err != nil {
 		return nil, err
 	}
