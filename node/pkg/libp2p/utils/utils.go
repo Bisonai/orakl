@@ -9,6 +9,8 @@ import (
 
 	"strings"
 
+	"bisonai.com/orakl/node/pkg/utils/retrier"
+
 	"github.com/libp2p/go-libp2p/core/host"
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/rs/zerolog/log"
@@ -51,15 +53,14 @@ func IsHostAlive(ctx context.Context, h host.Host, addr string) (bool, error) {
 		return false, err
 	}
 
-	var lastErr error
-	for i := 0; i < 3; i++ { // Retry up to 3 times
-		err = h.Connect(ctx, *info)
-		if err == nil {
-			break
-		}
-		lastErr = err
-		time.Sleep(100 * time.Millisecond)
-	}
+	lastErr := retrier.Retry(
+		func() error {
+			return h.Connect(ctx, *info)
+		},
+		3,
+		100*time.Millisecond,
+		1*time.Second,
+	)
 
 	if lastErr != nil {
 		return false, fmt.Errorf("failed to connect to peer")

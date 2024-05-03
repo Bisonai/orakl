@@ -2,7 +2,6 @@ package por
 
 import (
 	"context"
-	"crypto/rand"
 	"encoding/json"
 	"errors"
 	"math"
@@ -14,6 +13,7 @@ import (
 	"bisonai.com/orakl/node/pkg/chain/helper"
 	"bisonai.com/orakl/node/pkg/fetcher"
 	"bisonai.com/orakl/node/pkg/utils/request"
+	"bisonai.com/orakl/node/pkg/utils/retrier"
 	"github.com/rs/zerolog/log"
 )
 
@@ -115,9 +115,14 @@ func (a *App) Run(ctx context.Context) error {
 			ticker.Stop()
 			return nil
 		case <-ticker.C:
-			err := retry(func() error {
-				return a.Execute(ctx)
-			})
+			err := retrier.Retry(
+				func() error {
+					return a.Execute(ctx)
+				},
+				MAX_RETRY,
+				INITIAL_FAILURE_TIMEOUT,
+				MAX_RETRY_DELAY,
+			)
 			if err != nil {
 				log.Error().Err(err).Msg("error in execute")
 			}
@@ -273,35 +278,4 @@ func (a *App) GetLastInfo(ctx context.Context) (LastInfo, error) {
 		UpdatedAt: updatedAt,
 		Answer:    answer,
 	}, nil
-}
-
-func retry(job func() error) error {
-	failureTimeout := INITIAL_FAILURE_TIMEOUT
-	for i := 0; i < MAX_RETRY; i++ {
-
-		failureTimeout = calculateJitter(failureTimeout)
-		if failureTimeout > MAX_RETRY_DELAY {
-			failureTimeout = MAX_RETRY_DELAY
-		}
-
-		err := job()
-		if err != nil {
-			log.Error().Str("Player", "Reporter").Err(err).Msg("job failed, retrying")
-			time.Sleep(failureTimeout)
-			continue
-		}
-		return nil
-	}
-	log.Error().Str("Player", "Reporter").Msg("job failed")
-	return errors.New("job failed")
-}
-
-func calculateJitter(baseTimeout time.Duration) time.Duration {
-	n, err := rand.Int(rand.Reader, big.NewInt(100))
-	if err != nil {
-		log.Error().Str("Player", "Reporter").Err(err).Msg("failed to generate jitter for retry timeout")
-		return baseTimeout
-	}
-	jitter := time.Duration(n.Int64()) * time.Millisecond
-	return baseTimeout + jitter
 }

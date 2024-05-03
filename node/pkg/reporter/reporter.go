@@ -10,6 +10,7 @@ import (
 	"bisonai.com/orakl/node/pkg/chain/helper"
 	chain_utils "bisonai.com/orakl/node/pkg/chain/utils"
 	"bisonai.com/orakl/node/pkg/raft"
+	"bisonai.com/orakl/node/pkg/utils/retrier"
 
 	"github.com/klaytn/klaytn/common"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
@@ -76,27 +77,6 @@ func (r *Reporter) Run(ctx context.Context) {
 	r.Raft.Run(ctx)
 }
 
-func (r *Reporter) retry(job func() error) error {
-	failureTimeout := INITIAL_FAILURE_TIMEOUT
-	for i := 0; i < MAX_RETRY; i++ {
-
-		failureTimeout = CalculateJitter(failureTimeout)
-		if failureTimeout > MAX_RETRY_DELAY {
-			failureTimeout = MAX_RETRY_DELAY
-		}
-
-		err := job()
-		if err != nil {
-			log.Error().Str("Player", "Reporter").Err(err).Msg("job failed, retrying")
-			time.Sleep(failureTimeout)
-			continue
-		}
-		return nil
-	}
-	log.Error().Str("Player", "Reporter").Msg("job failed")
-	return errors.New("job failed")
-}
-
 func (r *Reporter) leaderJob() error {
 	start := time.Now()
 	r.Raft.IncreaseTerm()
@@ -124,7 +104,12 @@ func (r *Reporter) leaderJob() error {
 		return nil
 	}
 
-	err = r.retry(reportJob)
+	err = retrier.Retry(
+		reportJob,
+		MAX_RETRY,
+		INITIAL_FAILURE_TIMEOUT,
+		MAX_RETRY_DELAY,
+	)
 	if err != nil {
 		log.Error().Str("Player", "Reporter").Err(err).Msg("failed to report, resigning from leader")
 		r.resignLeader()
@@ -344,7 +329,12 @@ func (r *Reporter) deviationJob() error {
 		return nil
 	}
 
-	err = r.retry(reportJob)
+	err = retrier.Retry(
+		reportJob,
+		MAX_RETRY,
+		INITIAL_FAILURE_TIMEOUT,
+		MAX_RETRY_DELAY,
+	)
 	if err != nil {
 		log.Error().Str("Player", "Reporter").Err(err).Msg("failed to report deviation, resigning from leader")
 		r.resignLeader()
