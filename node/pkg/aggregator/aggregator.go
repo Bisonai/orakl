@@ -172,8 +172,7 @@ func (n *Aggregator) HandleSyncReplyMessage(ctx context.Context, msg raft.Messag
 			return n.PublishTriggerMessage(syncReplyMessage.RoundID)
 		} else {
 			log.Warn().Str("Player", "Aggregator").Int("agreeCount", agreeCount).Int("requiredAgreements", requiredAgreements).Msg("not enough agreements, resigning as leader")
-			n.Raft.StopHeartbeatTicker()
-			n.Raft.UpdateRole(raft.Follower)
+			n.Raft.ResignLeader()
 			return nil
 		}
 	}
