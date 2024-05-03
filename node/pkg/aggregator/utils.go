@@ -3,12 +3,11 @@ package aggregator
 import (
 	"bytes"
 	"context"
-	"fmt"
 	"strconv"
-	"strings"
 	"time"
 
 	"bisonai.com/orakl/node/pkg/db"
+	errorSentinel "bisonai.com/orakl/node/pkg/error"
 	"github.com/rs/zerolog/log"
 )
 
@@ -48,7 +47,7 @@ func InsertGlobalAggregate(ctx context.Context, configId int32, value int64, rou
 	}
 
 	if len(errs) > 0 {
-		return fmt.Errorf(strings.Join(errs, "; "))
+		return errorSentinel.ErrAggregatorGlobalAggregateInsertion
 	}
 
 	return nil
@@ -80,7 +79,7 @@ func InsertProof(ctx context.Context, configId int32, round int32, proofs [][]by
 	}
 
 	if len(errs) > 0 {
-		return fmt.Errorf(strings.Join(errs, "; "))
+		return errorSentinel.ErrAggregatorProofInsertion
 	}
 
 	return nil

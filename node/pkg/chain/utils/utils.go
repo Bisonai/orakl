@@ -5,7 +5,6 @@ import (
 	"context"
 	"crypto/ecdsa"
 	"encoding/hex"
-	"errors"
 	"fmt"
 	"math/big"
 	"os"
@@ -14,6 +13,7 @@ import (
 	"time"
 
 	"bisonai.com/orakl/node/pkg/db"
+	errorSentinel "bisonai.com/orakl/node/pkg/error"
 	"bisonai.com/orakl/node/pkg/utils/encryptor"
 
 	"github.com/klaytn/klaytn"
@@ -101,7 +101,7 @@ func GenerateViewABI(functionName string, inputs string, outputs string) (*abi.A
 
 func generateABI(functionName string, inputs string, outputs string, stateMutability string, payable bool) (*abi.ABI, error) {
 	if functionName == "" {
-		return nil, errors.New("function name is empty")
+		return nil, errorSentinel.ErrChainEmptyFuncStringParam
 	}
 
 	inputArgs := MakeAbiFuncAttribute(inputs)
@@ -155,23 +155,23 @@ func GetChainID(ctx context.Context, client ClientInterface) (*big.Int, error) {
 
 func MakeDirectTx(ctx context.Context, client ClientInterface, contractAddressHex string, reporter string, functionString string, chainID *big.Int, args ...interface{}) (*types.Transaction, error) {
 	if client == nil {
-		return nil, errors.New("client is nil")
+		return nil, errorSentinel.ErrChainEmptyClientParam
 	}
 
 	if contractAddressHex == "" {
-		return nil, errors.New("contract address is empty")
+		return nil, errorSentinel.ErrChainEmptyAddressParam
 	}
 
 	if reporter == "" {
-		return nil, errors.New("reporter is empty")
+		return nil, errorSentinel.ErrChainEmptyReporterParam
 	}
 
 	if functionString == "" {
-		return nil, errors.New("function string is empty")
+		return nil, errorSentinel.ErrChainEmptyFuncStringParam
 	}
 
 	if chainID == nil {
-		return nil, errors.New("chain id is nil")
+		return nil, errorSentinel.ErrChainEmptyChainIdParam
 	}
 
 	functionName, inputs, outputs, err := ParseMethodSignature(functionString)
@@ -199,7 +199,7 @@ func MakeDirectTx(ctx context.Context, client ClientInterface, contractAddressHe
 	publicKey := privateKey.Public()
 	publicKeyECDSA, ok := publicKey.(*ecdsa.PublicKey)
 	if !ok {
-		return nil, errors.New("error casting public key to ECDSA")
+		return nil, errorSentinel.ErrChainPubKeyToECDSAFail
 	}
 
 	fromAddress := crypto.PubkeyToAddress(*publicKeyECDSA)
@@ -234,23 +234,23 @@ func MakeDirectTx(ctx context.Context, client ClientInterface, contractAddressHe
 
 func MakeFeeDelegatedTx(ctx context.Context, client ClientInterface, contractAddressHex string, reporter string, functionString string, chainID *big.Int, args ...interface{}) (*types.Transaction, error) {
 	if client == nil {
-		return nil, errors.New("client is nil")
+		return nil, errorSentinel.ErrChainEmptyClientParam
 	}
 
 	if contractAddressHex == "" {
-		return nil, errors.New("contract address is empty")
+		return nil, errorSentinel.ErrChainEmptyAddressParam
 	}
 
 	if reporter == "" {
-		return nil, errors.New("reporter is empty")
+		return nil, errorSentinel.ErrChainEmptyReporterParam
 	}
 
 	if functionString == "" {
-		return nil, errors.New("function string is empty")
+		return nil, errorSentinel.ErrChainEmptyFuncStringParam
 	}
 
 	if chainID == nil {
-		return nil, errors.New("chain id is nil")
+		return nil, errorSentinel.ErrChainEmptyChainIdParam
 	}
 
 	functionName, inputs, outputs, err := ParseMethodSignature(functionString)
@@ -279,7 +279,7 @@ func MakeFeeDelegatedTx(ctx context.Context, client ClientInterface, contractAdd
 	publicKey := privateKey.Public()
 	publicKeyECDSA, ok := publicKey.(*ecdsa.PublicKey)
 	if !ok {
-		return nil, errors.New("error casting public key to ECDSA")
+		return nil, errorSentinel.ErrChainPubKeyToECDSAFail
 	}
 
 	fromAddress := crypto.PubkeyToAddress(*publicKeyECDSA)
@@ -336,7 +336,7 @@ func SignTxByFeePayer(ctx context.Context, client ClientInterface, tx *types.Tra
 	feePayerPublicKey := feePayerPrivateKey.Public()
 	publicKeyECDSA, ok := feePayerPublicKey.(*ecdsa.PublicKey)
 	if !ok {
-		return nil, errors.New("error casting public key to ECDSA")
+		return nil, errorSentinel.ErrChainPubKeyToECDSAFail
 	}
 
 	updatedTx, err := UpdateFeePayer(tx, crypto.PubkeyToAddress(*publicKeyECDSA))
@@ -369,7 +369,7 @@ func SubmitRawTx(ctx context.Context, client ClientInterface, tx *types.Transact
 
 	if receipt.Status != 1 {
 		log.Error().Str("tx", receipt.TxHash.String()).Msg("tx failed")
-		return fmt.Errorf("transaction failed (hash: %s), status: %d", receipt.TxHash.String(), receipt.Status)
+		return errorSentinel.ErrChainTransactionFail
 	}
 
 	log.Debug().Str("Player", "ChainHelper").Any("hash", receipt.TxHash).Msg("tx success")
@@ -400,7 +400,7 @@ func UpdateFeePayer(tx *types.Transaction, feePayer common.Address) (*types.Tran
 
 	to := tx.To()
 	if to == nil {
-		return nil, errors.New("to address is nil")
+		return nil, errorSentinel.ErrChainEmptyToAddress
 	}
 
 	remap := map[types.TxValueKeyType]interface{}{
@@ -422,15 +422,15 @@ func UpdateFeePayer(tx *types.Transaction, feePayer common.Address) (*types.Tran
 
 func ReadContract(ctx context.Context, client ClientInterface, functionString string, contractAddress string, args ...interface{}) (interface{}, error) {
 	if client == nil {
-		return nil, errors.New("client is nil")
+		return nil, errorSentinel.ErrChainEmptyClientParam
 	}
 
 	if contractAddress == "" {
-		return nil, errors.New("contract address is empty")
+		return nil, errorSentinel.ErrChainEmptyAddressParam
 	}
 
 	if functionString == "" {
-		return nil, errors.New("function string is empty")
+		return nil, errorSentinel.ErrChainEmptyFuncStringParam
 	}
 
 	functionName, inputs, outputs, err := ParseMethodSignature(functionString)
@@ -474,7 +474,7 @@ var (
 
 func ParseMethodSignature(name string) (string, string, string, error) {
 	if name == "" {
-		return "", "", "", fmt.Errorf("empty name")
+		return "", "", "", errorSentinel.ErrChainEmptyNameParam
 	}
 
 	name = strings.Replace(name, "\n", " ", -1)
@@ -488,7 +488,7 @@ func ParseMethodSignature(name string) (string, string, string, error) {
 	if strings.Contains(name, "returns") {
 		matches := funcRegexpWithReturn.FindAllStringSubmatch(name, -1)
 		if len(matches) == 0 {
-			return "", "", "", fmt.Errorf("no matches found")
+			return "", "", "", errorSentinel.ErrChainFailedToFindMethodSignatureMatch
 		}
 		funcName = strings.TrimSpace(matches[0][1])
 		inputArgs = strings.TrimSpace(matches[0][2])
@@ -496,7 +496,7 @@ func ParseMethodSignature(name string) (string, string, string, error) {
 	} else {
 		matches := funcRegexpWithoutReturn.FindAllStringSubmatch(name, -1)
 		if len(matches) == 0 {
-			return "", "", "", fmt.Errorf("no matches found")
+			return "", "", "", errorSentinel.ErrChainFailedToFindMethodSignatureMatch
 		}
 		funcName = strings.TrimSpace(matches[0][1])
 		inputArgs = strings.TrimSpace(matches[0][2])
@@ -593,7 +593,7 @@ func StringToPk(pk string) (*ecdsa.PrivateKey, error) {
 
 func RecoverSigner(hash []byte, signature []byte) (address common.Address, err error) {
 	if len(signature) != 65 {
-		return common.Address{}, fmt.Errorf("signature must be 65 bytes long")
+		return common.Address{}, errorSentinel.ErrChainInvalidSignatureLength
 	}
 
 	// use copy to avoid modifying the original signature

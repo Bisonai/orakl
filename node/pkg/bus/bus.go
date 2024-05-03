@@ -1,9 +1,9 @@
 package bus
 
 import (
-	"errors"
 	"strconv"
 
+	errorSentinel "bisonai.com/orakl/node/pkg/error"
 	"github.com/rs/zerolog/log"
 )
 
@@ -47,30 +47,30 @@ func (mb *MessageBus) Subscribe(id string) <-chan Message {
 func (mb *MessageBus) Publish(msg Message) error {
 	ch, ok := mb.channels[msg.To]
 	if !ok {
-		return errors.New("channel not found")
+		return errorSentinel.ErrBusChannelNotFound
 	}
 	select {
 	case ch <- msg:
 		return nil
 	default:
-		return errors.New("failed to send message to channel")
+		return errorSentinel.ErrBusMsgPublishFail
 	}
 }
 
 func ParseInt64MsgParam(msg Message, param string) (int64, error) {
 	rawId, ok := msg.Content.Args[param]
 	if !ok {
-		return 0, errors.New("param not found in message")
+		return 0, errorSentinel.ErrBusParamNotFound
 	}
 
 	idPayload, ok := rawId.(string)
 	if !ok {
-		return 0, errors.New("failed to convert adapter id to string")
+		return 0, errorSentinel.ErrBusConvertParamFail
 	}
 
 	id, err := strconv.ParseInt(idPayload, 10, 64)
 	if err != nil {
-		return 0, errors.New("failed to parse adapterId")
+		return 0, errorSentinel.ErrBusParseParamFail
 	}
 
 	return id, nil
@@ -79,17 +79,17 @@ func ParseInt64MsgParam(msg Message, param string) (int64, error) {
 func ParseInt32MsgParam(msg Message, param string) (int32, error) {
 	rawId, ok := msg.Content.Args[param]
 	if !ok {
-		return 0, errors.New("param not found in message")
+		return 0, errorSentinel.ErrBusParamNotFound
 	}
 
 	idPayload, ok := rawId.(string)
 	if !ok {
-		return 0, errors.New("failed to convert adapter id to string")
+		return 0, errorSentinel.ErrBusConvertParamFail
 	}
 
 	id, err := strconv.ParseInt(idPayload, 10, 32)
 	if err != nil {
-		return 0, errors.New("failed to parse adapterId")
+		return 0, errorSentinel.ErrBusParseParamFail
 	}
 
 	return int32(id), nil
@@ -98,12 +98,12 @@ func ParseInt32MsgParam(msg Message, param string) (int32, error) {
 func ParseStringMsgParam(msg Message, param string) (string, error) {
 	raw, ok := msg.Content.Args[param]
 	if !ok {
-		return "", errors.New("param not found in message")
+		return "", errorSentinel.ErrBusParamNotFound
 	}
 
 	payload, ok := raw.(string)
 	if !ok {
-		return "", errors.New("failed to convert param to string")
+		return "", errorSentinel.ErrBusConvertParamFail
 	}
 
 	return payload, nil

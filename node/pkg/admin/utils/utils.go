@@ -10,6 +10,7 @@ import (
 
 	"bisonai.com/orakl/node/pkg/bus"
 	"bisonai.com/orakl/node/pkg/db"
+	errorSentinel "bisonai.com/orakl/node/pkg/error"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
@@ -30,12 +31,12 @@ func Setup(setupInfo SetupInfo) (*fiber.App, error) {
 	ctx := context.Background()
 	_, err := db.GetPool(ctx)
 	if err != nil {
-		return nil, errors.New("error getting db pool")
+		return nil, errorSentinel.ErrAdminDbPoolNotFound
 	}
 
 	_, err = db.GetRedisConn(ctx)
 	if err != nil {
-		return nil, errors.New("error getting redis conn")
+		return nil, errorSentinel.ErrAdminRedisConnNotFound
 	}
 
 	app := fiber.New(fiber.Config{
@@ -116,7 +117,7 @@ func SendMessage(c *fiber.Ctx, to string, command string, args map[string]interf
 
 	messageBus, ok := c.Locals("bus").(*bus.MessageBus)
 	if !ok {
-		return msg, errors.New("bus is not found, failed to message fetcher")
+		return msg, errorSentinel.ErrAdminMessageBusNotFound
 	}
 
 	msg = bus.Message{

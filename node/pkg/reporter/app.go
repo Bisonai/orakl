@@ -2,15 +2,13 @@ package reporter
 
 import (
 	"context"
-	"errors"
-	"fmt"
 	"os"
-	"strings"
 	"time"
 
 	"bisonai.com/orakl/node/pkg/bus"
 	"bisonai.com/orakl/node/pkg/chain/helper"
 	"bisonai.com/orakl/node/pkg/db"
+	errorSentinel "bisonai.com/orakl/node/pkg/error"
 	"github.com/klaytn/klaytn/common"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 	"github.com/libp2p/go-libp2p/core/host"
@@ -46,7 +44,7 @@ func (a *App) setReporters(ctx context.Context, h host.Host, ps *pubsub.PubSub) 
 
 	contractAddress := os.Getenv("SUBMISSION_PROXY_CONTRACT")
 	if contractAddress == "" {
-		return errors.New("SUBMISSION_PROXY_CONTRACT not set")
+		return errorSentinel.ErrReporterSubmissionProxyContractNotFound
 	}
 
 	tmpChainHelper, err := helper.NewChainHelper(ctx)
@@ -87,7 +85,7 @@ func (a *App) setReporters(ctx context.Context, h host.Host, ps *pubsub.PubSub) 
 	}
 	if len(a.Reporters) == 0 {
 		log.Error().Str("Player", "Reporter").Msg("no reporters set")
-		return errors.New("no reporters set")
+		return errorSentinel.ErrReporterNotFound
 	}
 
 	groupedDeviationConfigs := groupConfigsByAggregateIntervals(configs)
@@ -131,7 +129,7 @@ func (a *App) clearReporters() error {
 	a.Reporters = make([]*Reporter, 0)
 
 	if len(errs) > 0 {
-		return fmt.Errorf("errors occurred while stopping reporters: %v", errs)
+		return errorSentinel.ErrReporterClear
 	}
 
 	return nil
@@ -149,7 +147,7 @@ func (a *App) startReporters(ctx context.Context) error {
 	}
 
 	if len(errs) > 0 {
-		return fmt.Errorf(strings.Join(errs, "; "))
+		return errorSentinel.ErrReporterStart
 	}
 
 	return nil
@@ -167,7 +165,7 @@ func (a *App) stopReporters() error {
 	}
 
 	if len(errs) > 0 {
-		return fmt.Errorf(strings.Join(errs, "; "))
+		return errorSentinel.ErrReporterStop
 	}
 
 	return nil
@@ -200,7 +198,7 @@ func (a *App) handleMessage(ctx context.Context, msg bus.Message) {
 	switch msg.Content.Command {
 	case bus.ACTIVATE_REPORTER:
 		if msg.From != bus.ADMIN {
-			bus.HandleMessageError(errors.New("non-admin"), msg, "reporter received message from non-admin")
+			bus.HandleMessageError(errorSentinel.ErrBusNonAdmin, msg, "reporter received message from non-admin")
 			return
 		}
 		err := a.startReporters(ctx)
@@ -211,7 +209,7 @@ func (a *App) handleMessage(ctx context.Context, msg bus.Message) {
 		msg.Response <- bus.MessageResponse{Success: true}
 	case bus.DEACTIVATE_REPORTER:
 		if msg.From != bus.ADMIN {
-			bus.HandleMessageError(errors.New("non-admin"), msg, "reporter received message from non-admin")
+			bus.HandleMessageError(errorSentinel.ErrBusNonAdmin, msg, "reporter received message from non-admin")
 			return
 		}
 		err := a.stopReporters()
@@ -222,7 +220,7 @@ func (a *App) handleMessage(ctx context.Context, msg bus.Message) {
 		msg.Response <- bus.MessageResponse{Success: true}
 	case bus.REFRESH_REPORTER:
 		if msg.From != bus.ADMIN {
-			bus.HandleMessageError(errors.New("non-admin"), msg, "reporter received message from non-admin")
+			bus.HandleMessageError(errorSentinel.ErrBusNonAdmin, msg, "reporter received message from non-admin")
 			return
 		}
 		err := a.stopReporters()
@@ -252,13 +250,13 @@ func (a *App) GetReporterWithInterval(interval int) (*Reporter, error) {
 			return reporter, nil
 		}
 	}
-	return nil, errors.New("reporter not found")
+	return nil, errorSentinel.ErrReporterNotFound
 }
 
 func startReporter(ctx context.Context, reporter *Reporter) error {
 	if reporter.isRunning {
 		log.Debug().Str("Player", "Reporter").Msg("reporter already running")
-		return errors.New("reporter already running")
+		return errorSentinel.ErrReporterAlreadyRunning
 	}
 
 	err := reporter.SetKlaytnHelper(ctx)
@@ -284,7 +282,7 @@ func stopReporter(reporter *Reporter) error {
 
 	if reporter.nodeCancel == nil {
 		log.Error().Str("Player", "Reporter").Msg("reporter cancel function not found")
-		return errors.New("reporter cancel function not found")
+		return errorSentinel.ErrReporterCancelNotFound
 	}
 
 	reporter.nodeCancel()

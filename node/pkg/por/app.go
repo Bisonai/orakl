@@ -3,7 +3,6 @@ package por
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"math"
 	"math/big"
 	"net/http"
@@ -11,6 +10,7 @@ import (
 	"time"
 
 	"bisonai.com/orakl/node/pkg/chain/helper"
+	errorSentinel "bisonai.com/orakl/node/pkg/error"
 	"bisonai.com/orakl/node/pkg/fetcher"
 	"bisonai.com/orakl/node/pkg/utils/request"
 	"bisonai.com/orakl/node/pkg/utils/retrier"
@@ -28,7 +28,7 @@ func New(ctx context.Context) (*App, error) {
 	if providerUrl == "" {
 		providerUrl = os.Getenv("KLAYTN_PROVIDER_URL")
 		if providerUrl == "" {
-			return nil, errors.New("POR_PROVIDER_URL not set")
+			return nil, errorSentinel.ErrPorProviderUrlNotFound
 		}
 	}
 
@@ -63,7 +63,7 @@ func New(ctx context.Context) (*App, error) {
 
 	porReporterPk := os.Getenv("POR_REPORTER_PK")
 	if porReporterPk == "" {
-		return nil, errors.New("POR_REPORTER_PK not set")
+		return nil, errorSentinel.ErrPorReporterPkNotFound
 	}
 
 	chainHelper, err := helper.NewChainHelper(
@@ -242,12 +242,12 @@ func (a *App) GetRoundID(ctx context.Context) (uint32, error) {
 
 	rawResultSlice, ok := rawResult.([]interface{})
 	if !ok {
-		return 0, errors.New("failed to cast raw result to slice")
+		return 0, errorSentinel.ErrPorRawResultCastFail
 	}
 
 	RoundID, ok := rawResultSlice[1].(uint32)
 	if !ok {
-		return 0, errors.New("failed to cast roundId to uint32")
+		return 0, errorSentinel.ErrPorRoundIdCastFail
 	}
 
 	return RoundID, nil
@@ -261,17 +261,17 @@ func (a *App) GetLastInfo(ctx context.Context) (LastInfo, error) {
 
 	rawResultSlice, ok := rawResult.([]interface{})
 	if !ok {
-		return LastInfo{}, errors.New("failed to cast raw result to slice")
+		return LastInfo{}, errorSentinel.ErrPorRawResultCastFail
 	}
 
 	updatedAt, ok := rawResultSlice[3].(*big.Int)
 	if !ok {
-		return LastInfo{}, errors.New("failed to cast updatedAt to big.Int")
+		return LastInfo{}, errorSentinel.ErrPorUpdatedAtCastFail
 	}
 
 	answer, ok := rawResultSlice[1].(*big.Int)
 	if !ok {
-		return LastInfo{}, errors.New("failed to cast answer to big.Int")
+		return LastInfo{}, errorSentinel.ErrPorAnswerCastFail
 	}
 
 	return LastInfo{

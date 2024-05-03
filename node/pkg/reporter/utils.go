@@ -3,7 +3,6 @@ package reporter
 import (
 	"bytes"
 	"context"
-	"errors"
 	"math"
 	"math/big"
 	"strconv"
@@ -12,6 +11,7 @@ import (
 	"bisonai.com/orakl/node/pkg/chain/helper"
 	chain_utils "bisonai.com/orakl/node/pkg/chain/utils"
 	"bisonai.com/orakl/node/pkg/db"
+	errorSentinel "bisonai.com/orakl/node/pkg/error"
 
 	"github.com/klaytn/klaytn/common"
 	"github.com/rs/zerolog/log"
@@ -73,7 +73,7 @@ func StoreLastSubmission(ctx context.Context, aggregates []GlobalAggregate) erro
 	}
 
 	if len(vals) == 0 {
-		return errors.New("no valid aggregates")
+		return errorSentinel.ErrReporterEmptyValidAggregates
 	}
 	return db.MSetObject(ctx, vals)
 }
@@ -100,15 +100,15 @@ func ConvertPgsqlProofsToProofs(pgsqlProofs []PgsqlProof) []Proof {
 
 func MakeContractArgsWithProofs(aggregates []GlobalAggregate, submissionPairs map[int32]SubmissionPair, proofMap map[int32][]byte) ([]common.Address, []*big.Int, []*big.Int, [][]byte, error) {
 	if len(aggregates) == 0 {
-		return nil, nil, nil, nil, errors.New("no aggregates")
+		return nil, nil, nil, nil, errorSentinel.ErrReporterEmptyAggregatesParam
 	}
 
 	if len(submissionPairs) == 0 {
-		return nil, nil, nil, nil, errors.New("no submission pairs")
+		return nil, nil, nil, nil, errorSentinel.ErrReporterEmptySubmissionPairsParam
 	}
 
 	if len(proofMap) == 0 {
-		return nil, nil, nil, nil, errors.New("no proofs")
+		return nil, nil, nil, nil, errorSentinel.ErrReporterEmptyProofParam
 	}
 
 	addresses := make([]common.Address, len(aggregates))
@@ -119,7 +119,7 @@ func MakeContractArgsWithProofs(aggregates []GlobalAggregate, submissionPairs ma
 	for i, agg := range aggregates {
 		if agg.ConfigID == 0 || agg.Value < 0 {
 			log.Error().Str("Player", "Reporter").Int32("configId", agg.ConfigID).Int64("value", agg.Value).Msg("skipping invalid aggregate")
-			return nil, nil, nil, nil, errors.New("invalid aggregate exists")
+			return nil, nil, nil, nil, errorSentinel.ErrReporterInvalidAggregateFound
 		}
 		addresses[i] = submissionPairs[agg.ConfigID].Address
 		values[i] = big.NewInt(agg.Value)
@@ -128,7 +128,7 @@ func MakeContractArgsWithProofs(aggregates []GlobalAggregate, submissionPairs ma
 	}
 
 	if len(addresses) == 0 || len(values) == 0 || len(proofs) == 0 || len(timestamps) == 0 {
-		return nil, nil, nil, nil, errors.New("no valid aggregates")
+		return nil, nil, nil, nil, errorSentinel.ErrReporterEmptyValidAggregates
 	}
 	return addresses, values, timestamps, proofs, nil
 }
@@ -184,7 +184,7 @@ func GetProofsAsMap(ctx context.Context, aggregates []GlobalAggregate) (map[int3
 
 	if len(proofs) < len(aggregates) {
 		log.Error().Str("Player", "Reporter").Msg("proofs not found for all aggregates")
-		return nil, errors.New("proofs not found for all aggregates")
+		return nil, errorSentinel.ErrReporterMissingProof
 	}
 	return ProofsToMap(proofs), nil
 }
@@ -237,13 +237,13 @@ func ReadOnchainWhitelist(ctx context.Context, chainHelper *helper.ChainHelper, 
 	rawResultSlice, ok := result.([]interface{})
 	if !ok {
 		log.Error().Str("Player", "Reporter").Msg("unexpected raw result type")
-		return nil, errors.New("unexpected result type")
+		return nil, errorSentinel.ErrReporterResultCastToInterfaceFail
 	}
 
 	arr, ok := rawResultSlice[0].([]common.Address)
 	if !ok {
 		log.Error().Str("Player", "Reporter").Msg("unexpected raw result type")
-		return nil, errors.New("unexpected rawResult type")
+		return nil, errorSentinel.ErrReporterResultCastToAddressFail
 	}
 	return arr, nil
 }
@@ -252,7 +252,7 @@ func CheckForNonWhitelistedSigners(signers []common.Address, whitelist []common.
 	for _, signer := range signers {
 		if !isWhitelisted(signer, whitelist) {
 			log.Error().Str("Player", "Reporter").Str("signer", signer.Hex()).Msg("non-whitelisted signer")
-			return errors.New("non-whitelisted signer")
+			return errorSentinel.ErrReporterSignerNotWhitelisted
 		}
 	}
 	return nil
@@ -278,7 +278,7 @@ func OrderProof(signerMap map[common.Address][]byte, whitelist []common.Address)
 
 	if len(tmpProofs) == 0 {
 		log.Error().Str("Player", "Reporter").Msg("no valid proofs")
-		return nil, errors.New("no valid proofs")
+		return nil, errorSentinel.ErrReporterEmptyValidProofs
 	}
 
 	return bytes.Join(tmpProofs, nil), nil
@@ -307,11 +307,11 @@ func GetSignerListFromProofs(hash []byte, proofChunks [][]byte) ([]common.Addres
 
 func SplitProofToChunk(proof []byte) ([][]byte, error) {
 	if len(proof) == 0 {
-		return nil, errors.New("empty proof")
+		return nil, errorSentinel.ErrReporterEmptyProofParam
 	}
 
 	if len(proof)%65 != 0 {
-		return nil, errors.New("invalid proof length")
+		return nil, errorSentinel.ErrReporterInvalidProofLength
 	}
 
 	proofs := make([][]byte, 0, len(proof)/65)

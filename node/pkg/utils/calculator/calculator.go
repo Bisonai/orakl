@@ -1,9 +1,10 @@
 package calculator
 
 import (
-	"errors"
 	"math/rand"
 	"sort"
+
+	errorSentinel "bisonai.com/orakl/node/pkg/error"
 )
 
 func RandomNumberGenerator() int {
@@ -12,7 +13,7 @@ func RandomNumberGenerator() int {
 
 func GetIntAvg(nums []int) (int, error) {
 	if len(nums) == 0 {
-		return 0, errors.New("empty array")
+		return 0, errorSentinel.ErrCalculatorEmptyArr
 	}
 	var sum int
 	for _, v := range nums {
@@ -23,7 +24,7 @@ func GetIntAvg(nums []int) (int, error) {
 
 func GetIntMed(nums []int) (int, error) {
 	if len(nums) == 0 {
-		return 0, errors.New("empty array")
+		return 0, errorSentinel.ErrCalculatorEmptyArr
 	}
 	sort.Ints(nums)
 	n := len(nums)
@@ -37,7 +38,7 @@ func GetIntMed(nums []int) (int, error) {
 
 func GetInt64Avg(nums []int64) (int64, error) {
 	if len(nums) == 0 {
-		return 0, errors.New("empty array")
+		return 0, errorSentinel.ErrCalculatorEmptyArr
 	}
 	var sum int64
 	for _, v := range nums {
@@ -48,7 +49,7 @@ func GetInt64Avg(nums []int64) (int64, error) {
 
 func GetInt64Med(nums []int64) (int64, error) {
 	if len(nums) == 0 {
-		return 0, errors.New("empty array")
+		return 0, errorSentinel.ErrCalculatorEmptyArr
 	}
 	sort.Slice(nums, func(i, j int) bool { return nums[i] < nums[j] })
 	n := len(nums)
@@ -62,7 +63,7 @@ func GetInt64Med(nums []int64) (int64, error) {
 
 func GetFloatAvg(data []float64) (float64, error) {
 	if len(data) == 0 {
-		return 0, errors.New("empty array")
+		return 0, errorSentinel.ErrCalculatorEmptyArr
 	}
 	var sum float64
 	for _, v := range data {
@@ -73,7 +74,7 @@ func GetFloatAvg(data []float64) (float64, error) {
 
 func GetFloatMed(data []float64) (float64, error) {
 	if len(data) == 0 {
-		return 0, errors.New("empty array")
+		return 0, errorSentinel.ErrCalculatorEmptyArr
 	}
 	sort.Float64s(data)
 	if len(data)%2 == 0 {

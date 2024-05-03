@@ -3,12 +3,12 @@ package aggregator
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"sync"
 
 	"time"
 
 	"bisonai.com/orakl/node/pkg/chain/helper"
+	errorSentinel "bisonai.com/orakl/node/pkg/error"
 	"bisonai.com/orakl/node/pkg/raft"
 	"bisonai.com/orakl/node/pkg/utils/calculator"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
@@ -18,7 +18,7 @@ import (
 
 func NewAggregator(h host.Host, ps *pubsub.PubSub, topicString string, config Config) (*Aggregator, error) {
 	if h == nil || ps == nil || topicString == "" {
-		return nil, fmt.Errorf("invalid parameters")
+		return nil, errorSentinel.ErrAggregatorInvalidInitValue
 	}
 
 	topic, err := ps.Join(topicString)
@@ -84,7 +84,7 @@ func (n *Aggregator) HandleCustomMessage(ctx context.Context, message raft.Messa
 	case ProofMsg:
 		return n.HandleProofMessage(ctx, message)
 	default:
-		return fmt.Errorf("unknown message type received in HandleCustomMessage: %v", message.Type)
+		return errorSentinel.ErrAggregatorUnhandledCustomMessage
 	}
 }
 
@@ -98,12 +98,12 @@ func (n *Aggregator) HandleRoundSyncMessage(ctx context.Context, msg raft.Messag
 
 	if msg.SentFrom != n.Raft.GetLeader() {
 		log.Warn().Str("Player", "Aggregator").Msg("round sync message sent from non-leader")
-		return fmt.Errorf("round sync message sent from non-leader")
+		return errorSentinel.ErrAggregatorNonLeaderRaftMessage
 	}
 
 	if roundSyncMessage.LeaderID == "" || roundSyncMessage.RoundID == 0 {
 		log.Error().Str("Player", "Aggregator").Msg("invalid round sync message")
-		return fmt.Errorf("invalid round sync message: %v", roundSyncMessage)
+		return errorSentinel.ErrAggregatorInvalidRaftMessage
 	}
 
 	if n.Raft.GetRole() != raft.Leader {
@@ -148,7 +148,7 @@ func (n *Aggregator) HandleSyncReplyMessage(ctx context.Context, msg raft.Messag
 
 	if syncReplyMessage.RoundID == 0 {
 		log.Error().Str("Player", "Aggregator").Msg("invalid sync reply message")
-		return fmt.Errorf("invalid sync reply message: %v", syncReplyMessage)
+		return errorSentinel.ErrAggregatorInvalidRaftMessage
 	}
 
 	n.AggregatorMutex.Lock()
@@ -189,12 +189,12 @@ func (n *Aggregator) HandleTriggerMessage(ctx context.Context, msg raft.Message)
 
 	if triggerMessage.RoundID == 0 {
 		log.Error().Str("Player", "Aggregator").Msg("invalid trigger message")
-		return fmt.Errorf("invalid trigger message: %v", triggerMessage)
+		return errorSentinel.ErrAggregatorInvalidRaftMessage
 	}
 
 	if msg.SentFrom != n.Raft.GetLeader() {
 		log.Warn().Str("Player", "Aggregator").Msg("trigger message sent from non-leader")
-		return fmt.Errorf("trigger message sent from non-leader")
+		return errorSentinel.ErrAggregatorNonLeaderRaftMessage
 	}
 	defer delete(n.PreparedLocalAggregates, triggerMessage.RoundID)
 	return n.PublishPriceDataMessage(triggerMessage.RoundID, n.PreparedLocalAggregates[triggerMessage.RoundID])
@@ -210,7 +210,7 @@ func (n *Aggregator) HandlePriceDataMessage(ctx context.Context, msg raft.Messag
 
 	if priceDataMessage.RoundID == 0 {
 		log.Error().Str("Player", "Aggregator").Msg("invalid price data message")
-		return fmt.Errorf("invalid price data message: %v", priceDataMessage)
+		return errorSentinel.ErrAggregatorInvalidRaftMessage
 	}
 
 	n.AggregatorMutex.Lock()
@@ -258,7 +258,7 @@ func (n *Aggregator) HandleProofMessage(ctx context.Context, msg raft.Message) e
 
 	if proofMessage.RoundID == 0 {
 		log.Error().Str("Player", "Aggregator").Msg("invalid proof message")
-		return fmt.Errorf("invalid proof message: %v", proofMessage)
+		return errorSentinel.ErrAggregatorInvalidRaftMessage
 	}
 
 	n.AggregatorMutex.Lock()
