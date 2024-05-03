@@ -68,14 +68,14 @@ type App struct {
 	Pubsub      *pubsub.PubSub
 }
 
-type AggregatorConfig struct {
+type Config struct {
 	ID                int32  `db:"id"`
 	Name              string `db:"name"`
 	AggregateInterval int32  `db:"aggregate_interval"`
 }
 
 type Aggregator struct {
-	AggregatorConfig
+	Config
 	Raft *raft.Raft
 
 	CollectedPrices          map[int32][]int64
