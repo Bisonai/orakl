@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"bisonai.com/orakl/node/pkg/chain/helper"
+	errorSentinel "bisonai.com/orakl/node/pkg/error"
 	"bisonai.com/orakl/node/pkg/raft"
 	"github.com/klaytn/klaytn/common"
 	"github.com/stretchr/testify/assert"
@@ -135,7 +136,8 @@ func TestHandleCustomMessage(t *testing.T) {
 	}
 
 	err = reporter.handleCustomMessage(ctx, raft.Message{})
-	assert.Equal(t, err.Error(), "unknown message type")
+	assert.ErrorIs(t, err, errorSentinel.ErrReporterUnknownMessageType)
+
 }
 
 func TestGetLatestGlobalAggregates(t *testing.T) {

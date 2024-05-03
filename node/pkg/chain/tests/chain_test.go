@@ -2,8 +2,6 @@ package tests
 
 import (
 	"context"
-	"errors"
-	"fmt"
 	"math/big"
 	"os"
 	"strings"
@@ -13,15 +11,14 @@ import (
 	"bisonai.com/orakl/node/pkg/chain/helper"
 	"bisonai.com/orakl/node/pkg/chain/utils"
 	"bisonai.com/orakl/node/pkg/db"
+	errorSentinel "bisonai.com/orakl/node/pkg/error"
 	"github.com/klaytn/klaytn/blockchain/types"
 	"github.com/klaytn/klaytn/crypto"
 	"github.com/stretchr/testify/assert"
 )
 
 var (
-	ErrEmptyContractAddress = errors.New("contract address is empty")
-	ErrEmptyFunctionString  = errors.New("function string is empty")
-	InsertProviderUrlQuery  = "INSERT INTO provider_urls (chain_id, url, priority) VALUES (@chain_id, @url, @priority)"
+	InsertProviderUrlQuery = "INSERT INTO provider_urls (chain_id, url, priority) VALUES (@chain_id, @url, @priority)"
 )
 
 func TestNewKlaytnHelper(t *testing.T) {
@@ -135,13 +132,13 @@ func TestMakeDirectTx(t *testing.T) {
 			name:            "Test case 2",
 			contractAddress: "",
 			functionString:  "increment()",
-			expectedError:   ErrEmptyContractAddress,
+			expectedError:   errorSentinel.ErrChainEmptyAddressParam,
 		},
 		{
 			name:            "Test case 3",
 			contractAddress: "0x93120927379723583c7a0dd2236fcb255e96949f",
 			functionString:  "",
-			expectedError:   ErrEmptyFunctionString,
+			expectedError:   errorSentinel.ErrChainEmptyFuncStringParam,
 		},
 	}
 
@@ -183,22 +180,20 @@ func TestMakeFeeDelegatedTx(t *testing.T) {
 			name:            "Test case 2",
 			contractAddress: "",
 			functionString:  "increment()",
-			expectedError:   ErrEmptyContractAddress,
+			expectedError:   errorSentinel.ErrChainEmptyAddressParam,
 		},
 		{
 			name:            "Test case 3",
 			contractAddress: "0x93120927379723583c7a0dd2236fcb255e96949f",
 			functionString:  "",
-			expectedError:   ErrEmptyFunctionString,
+			expectedError:   errorSentinel.ErrChainEmptyFuncStringParam,
 		},
 	}
 
 	for _, test := range tests {
 		feeDelegatedTx, err := klaytnHelper.MakeFeeDelegatedTx(ctx, test.contractAddress, test.functionString)
 		if err != nil {
-			if err.Error() != test.expectedError.Error() {
-				t.Errorf("Test case %s: Expected error '%v', but got '%v'", test.name, test.expectedError, err)
-			}
+			assert.ErrorIs(t, err, test.expectedError)
 		}
 		if err == nil {
 			assert.Equal(t, strings.ToLower(feeDelegatedTx.To().Hex()), test.contractAddress)
@@ -409,14 +404,14 @@ func TestParseMethodSignature(t *testing.T) {
 			expectedName:   "",
 			expectedInput:  "",
 			expectedOutput: "",
-			expectedError:  fmt.Errorf("empty name"),
+			expectedError:  errorSentinel.ErrChainEmptyNameParam,
 		},
 	}
 
 	for _, test := range tests {
 		funcName, inputArgs, outputArgs, err := utils.ParseMethodSignature(test.input)
-		if err != nil && err.Error() != test.expectedError.Error() {
-			t.Errorf("Test case %s: Expected error '%v', but got '%v'", test.name, test.expectedError, err)
+		if err != nil {
+			assert.ErrorIs(t, err, test.expectedError)
 		}
 		if funcName != test.expectedName {
 			t.Errorf("Test case %s: Expected function name '%s', but got '%s'", test.name, test.expectedName, funcName)
