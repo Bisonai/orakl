@@ -2,17 +2,16 @@ package fetcher
 
 import (
 	"context"
-	"errors"
 	"fmt"
 
 	"math/rand"
 	"os"
-	"strconv"
 	"time"
 
 	"bisonai.com/orakl/node/pkg/bus"
 	chain_helper "bisonai.com/orakl/node/pkg/chain/helper"
 	"bisonai.com/orakl/node/pkg/db"
+	errorSentinel "bisonai.com/orakl/node/pkg/error"
 	"github.com/rs/zerolog/log"
 )
 
@@ -168,7 +167,7 @@ func (a *App) startFetcherById(ctx context.Context, configId int32) error {
 		return a.startFetcher(ctx, fetcher)
 	}
 	log.Error().Str("Player", "Fetcher").Int32("adapterId", configId).Msg("fetcher not found")
-	return errors.New("fetcher not found by id:" + strconv.Itoa(int(configId)))
+	return errorSentinel.ErrFetcherNotFound
 }
 
 func (a *App) startAllFetchers(ctx context.Context) error {
@@ -191,7 +190,7 @@ func (a *App) stopFetcher(ctx context.Context, fetcher *Fetcher) error {
 		return nil
 	}
 	if fetcher.cancel == nil {
-		return errors.New("fetcher cancel function not found")
+		return errorSentinel.ErrFetcherCancelNotFound
 	}
 	fetcher.cancel()
 	fetcher.isRunning = false
@@ -202,7 +201,7 @@ func (a *App) stopFetcherById(ctx context.Context, configId int32) error {
 	if fetcher, ok := a.Fetchers[configId]; ok {
 		return a.stopFetcher(ctx, fetcher)
 	}
-	return errors.New("fetcher not found by id:" + strconv.Itoa(int(configId)))
+	return errorSentinel.ErrFetcherNotFound
 }
 
 func (a *App) stopAllFetchers(ctx context.Context) error {

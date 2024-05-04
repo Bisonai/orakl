@@ -8,6 +8,7 @@ import (
 
 	chain_utils "bisonai.com/orakl/node/pkg/chain/utils"
 	"bisonai.com/orakl/node/pkg/db"
+	errorSentinel "bisonai.com/orakl/node/pkg/error"
 	"github.com/klaytn/klaytn/common"
 	"github.com/stretchr/testify/assert"
 )
@@ -38,7 +39,7 @@ func TestCheckForNonWhitelistedSigners(t *testing.T) {
 
 		err := CheckForNonWhitelistedSigners(signers, whitelist)
 
-		assert.EqualError(t, err, "non-whitelisted signer")
+		assert.ErrorIs(t, err, errorSentinel.ErrReporterSignerNotWhitelisted)
 	})
 
 	t.Run("Empty signers", func(t *testing.T) {
@@ -101,7 +102,7 @@ func TestOrderProof(t *testing.T) {
 
 		proof, err := OrderProof(signerMap, whitelist)
 
-		assert.EqualError(t, err, "no valid proofs")
+		assert.ErrorIs(t, err, errorSentinel.ErrReporterEmptyValidProofs)
 		assert.Nil(t, proof)
 	})
 }
@@ -176,7 +177,7 @@ func TestSplitProofToChunk(t *testing.T) {
 		chunks, err := SplitProofToChunk(proof)
 
 		assert.Nil(t, chunks)
-		assert.EqualError(t, err, "empty proof")
+		assert.ErrorIs(t, err, errorSentinel.ErrReporterEmptyProofParam)
 	})
 
 	t.Run("Invalid proof length", func(t *testing.T) {
@@ -184,7 +185,7 @@ func TestSplitProofToChunk(t *testing.T) {
 		chunks, err := SplitProofToChunk(proof)
 
 		assert.Nil(t, chunks)
-		assert.EqualError(t, err, "invalid proof length")
+		assert.ErrorIs(t, err, errorSentinel.ErrReporterInvalidProofLength)
 	})
 
 	t.Run("Valid proof", func(t *testing.T) {

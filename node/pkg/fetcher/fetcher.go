@@ -3,12 +3,12 @@ package fetcher
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"math/big"
 	"math/rand"
 	"time"
 
+	errorSentinel "bisonai.com/orakl/node/pkg/error"
 	"bisonai.com/orakl/node/pkg/utils/calculator"
 	"bisonai.com/orakl/node/pkg/utils/reducer"
 	"bisonai.com/orakl/node/pkg/utils/request"
@@ -128,7 +128,7 @@ func (f *Fetcher) fetch(chainHelpers map[string]ChainHelper, proxies []Proxy) ([
 					return
 				}
 			default:
-				errChan <- errors.New("unknown fetcher type")
+				errChan <- errorSentinel.ErrFetcherInvalidType
 			}
 
 			dataChan <- FeedData{FeedID: feed.ID, Value: resultValue}
@@ -146,7 +146,7 @@ func (f *Fetcher) fetch(chainHelpers map[string]ChainHelper, proxies []Proxy) ([
 	}
 
 	if len(data) < 1 {
-		return nil, errors.New("no data fetched")
+		return nil, errorSentinel.ErrFetcherNoDataFetched
 	}
 
 	errString := ""
@@ -155,7 +155,7 @@ func (f *Fetcher) fetch(chainHelpers map[string]ChainHelper, proxies []Proxy) ([
 			errString += err.Error() + "\n"
 		}
 
-		log.Warn().Str("Player", "Fetcher").Err(fmt.Errorf("errors in fetching: %s", errString)).Msg("errors in fetching")
+		log.Warn().Str("Player", "Fetcher").Str("errs", errString).Msg("errors in fetching")
 	}
 
 	return data, nil
@@ -174,12 +174,12 @@ func (f *Fetcher) cex(definition *Definition, proxies []Proxy) (float64, error) 
 func (f *Fetcher) uniswapV3(definition *Definition, chainHelpers map[string]ChainHelper) (float64, error) {
 	if definition.Address == nil || definition.ChainID == nil || definition.Token0Decimals == nil || definition.Token1Decimals == nil {
 		log.Error().Any("definition", definition).Msg("missing required fields for uniswapV3")
-		return 0, errors.New("missing required fields for uniswapV3")
+		return 0, errorSentinel.ErrFetcherInvalidDexFetcherDefinition
 	}
 
 	helper := chainHelpers[*definition.ChainID]
 	if helper == nil {
-		return 0, errors.New("chain helper not found")
+		return 0, errorSentinel.ErrFetcherChainHelperNotFound
 	}
 
 	rawResult, err := helper.ReadContract(context.Background(), *definition.Address, "function slot0() external view returns (uint160 sqrtPriceX96, int24 tick, uint16 observationIndex, uint16 observationCardinality, uint16 observationCardinalityNext, uint8 feeProtocol, bool unlocked)")
@@ -190,12 +190,12 @@ func (f *Fetcher) uniswapV3(definition *Definition, chainHelpers map[string]Chai
 
 	rawResultSlice, ok := rawResult.([]interface{})
 	if !ok || len(rawResultSlice) < 1 {
-		return 0, errors.New("unexpected raw result type")
+		return 0, errorSentinel.ErrFetcherInvalidRawResult
 	}
 
 	sqrtPriceX96, ok := rawResultSlice[0].(*big.Int)
 	if !ok {
-		return 0, errors.New("unexpected result on converting to bigint")
+		return 0, errorSentinel.ErrFetcherConvertToBigInt
 	}
 
 	return getTokenPrice(sqrtPriceX96, definition)

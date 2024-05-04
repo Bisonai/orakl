@@ -3,12 +3,12 @@ package request
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"io"
 	"net/http"
 	"net/url"
 	"time"
 
+	errorSentinel "bisonai.com/orakl/node/pkg/error"
 	"github.com/rs/zerolog/log"
 )
 
@@ -33,7 +33,7 @@ func UrlRequest[T any](urlEndpoint string, method string, requestBody interface{
 			Int("status", response.StatusCode).
 			Str("url", urlEndpoint).
 			Msg("failed to make request")
-		return result, fmt.Errorf("failed to get status ok: %s\nstatus: %d", urlEndpoint, response.StatusCode)
+		return result, errorSentinel.ErrRequestStatusNotOk
 	}
 
 	resultBody, err := io.ReadAll(response.Body)

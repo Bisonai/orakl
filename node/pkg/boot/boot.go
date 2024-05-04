@@ -2,6 +2,7 @@ package boot
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"time"
@@ -9,6 +10,7 @@ import (
 	"bisonai.com/orakl/node/pkg/boot/peer"
 	"bisonai.com/orakl/node/pkg/boot/utils"
 	"bisonai.com/orakl/node/pkg/db"
+	errorSentinel "bisonai.com/orakl/node/pkg/error"
 	libp2p_setup "bisonai.com/orakl/node/pkg/libp2p/setup"
 	libp2p_utils "bisonai.com/orakl/node/pkg/libp2p/utils"
 	"github.com/gofiber/fiber/v2"
@@ -93,7 +95,7 @@ func RefreshJob(ctx context.Context) error {
 		isAlive, liveCheckErr := libp2p_utils.IsHostAlive(ctx, h, connectionUrl)
 		if liveCheckErr != nil {
 			log.Error().Err(liveCheckErr).Msg("Failed to check peer")
-			if liveCheckErr.Error() != "failed to connect to peer" {
+			if !errors.Is(liveCheckErr, errorSentinel.ErrLibP2pFailToConnectPeer) {
 				continue
 			}
 		}

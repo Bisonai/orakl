@@ -2,13 +2,13 @@ package fetcher
 
 import (
 	"context"
-	"errors"
 	"math"
 	"math/big"
 	"strconv"
 	"time"
 
 	"bisonai.com/orakl/node/pkg/db"
+	errorSentinel "bisonai.com/orakl/node/pkg/error"
 	"bisonai.com/orakl/node/pkg/utils/reducer"
 	"bisonai.com/orakl/node/pkg/utils/request"
 	"github.com/rs/zerolog/log"
@@ -26,7 +26,7 @@ func getTokenPrice(sqrtPriceX96 *big.Int, definition *Definition) (float64, erro
 	decimal0 := *definition.Token0Decimals
 	decimal1 := *definition.Token1Decimals
 	if sqrtPriceX96 == nil || decimal0 == 0 || decimal1 == 0 {
-		return 0, errors.New("invalid input")
+		return 0, errorSentinel.ErrFetcherInvalidInput
 	}
 
 	sqrtPriceX96Float := new(big.Float).SetInt(sqrtPriceX96)
@@ -38,7 +38,7 @@ func getTokenPrice(sqrtPriceX96 *big.Int, definition *Definition) (float64, erro
 	datum := sqrtPriceX96Float.Quo(sqrtPriceX96Float, decimalDiff)
 	if definition.Reciprocal != nil && *definition.Reciprocal {
 		if datum == nil || datum.Sign() == 0 {
-			return 0, errors.New("division by zero error from reciprocal division")
+			return 0, errorSentinel.ErrFetcherDivisionByZero
 		}
 		datum = datum.Quo(new(big.Float).SetFloat64(1), datum)
 	}

@@ -3,12 +3,12 @@ package reporter
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"strconv"
 	"time"
 
 	"bisonai.com/orakl/node/pkg/chain/helper"
 	chain_utils "bisonai.com/orakl/node/pkg/chain/utils"
+	errorSentinel "bisonai.com/orakl/node/pkg/error"
 	"bisonai.com/orakl/node/pkg/raft"
 	"bisonai.com/orakl/node/pkg/utils/retrier"
 
@@ -26,8 +26,8 @@ func NewReporter(ctx context.Context, opts ...ReporterOption) (*Reporter, error)
 	}
 
 	if len(config.Configs) == 0 {
-		log.Error().Str("Player", "Reporter").Err(errors.New("no submission pairs")).Msg("no submission pairs to make new reporter")
-		return nil, errors.New("no submission pairs")
+		log.Error().Str("Player", "Reporter").Msg("no submission pairs to make new reporter")
+		return nil, errorSentinel.ErrReporterEmptyConfigs
 	}
 
 	topicString := TOPIC_STRING + "-"
@@ -106,7 +106,7 @@ func (r *Reporter) leaderJob() error {
 	if err != nil {
 		log.Error().Str("Player", "Reporter").Err(err).Msg("failed to report, resigning from leader")
 		r.resignLeader()
-		return errors.New("failed to report")
+		return errorSentinel.ErrReporterReportFailed
 	}
 
 	err = r.PublishSubmissionMessage(validAggregates)
@@ -192,7 +192,7 @@ func (r *Reporter) orderProofs(ctx context.Context, proofMap map[int32][]byte, a
 		proof, ok := proofMap[agg.ConfigID]
 		if !ok {
 			log.Error().Str("Player", "Reporter").Msg("proof not found")
-			return nil, errors.New("proof not found")
+			return nil, errorSentinel.ErrReporterProofNotFound
 		}
 
 		orderedProof, err := r.orderProof(ctx, proof, agg)
@@ -216,14 +216,14 @@ func (r *Reporter) handleCustomMessage(ctx context.Context, msg raft.Message) er
 	case SubmissionMsg:
 		return r.HandleSubmissionMessage(ctx, msg)
 	default:
-		return errors.New("unknown message type")
+		return errorSentinel.ErrReporterUnknownMessageType
 	}
 }
 
 func (r *Reporter) reportWithProofs(ctx context.Context, aggregates []GlobalAggregate, proofMap map[int32][]byte) error {
 	log.Debug().Str("Player", "Reporter").Int("aggregates", len(aggregates)).Msg("reporting with proofs")
 	if r.KlaytnHelper == nil {
-		return errors.New("klaytn helper not set")
+		return errorSentinel.ErrReporterKlaytnHelperNotFound
 	}
 
 	addresses, values, timestamps, proofs, err := MakeContractArgsWithProofs(aggregates, r.SubmissionPairs, proofMap)
@@ -331,7 +331,7 @@ func (r *Reporter) deviationJob() error {
 	if err != nil {
 		log.Error().Str("Player", "Reporter").Err(err).Msg("failed to report deviation, resigning from leader")
 		r.resignLeader()
-		return errors.New("failed to report deviation")
+		return errorSentinel.ErrReporterDeviationReportFail
 	}
 
 	err = r.PublishSubmissionMessage(deviatingAggregates)

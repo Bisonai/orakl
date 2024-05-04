@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"bisonai.com/orakl/node/pkg/db"
+	errorSentinel "bisonai.com/orakl/node/pkg/error"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/gofiber/fiber/v2/middleware/recover"
@@ -19,7 +20,7 @@ func Setup(ctx context.Context) (*fiber.App, error) {
 	_, err := db.GetPool(ctx)
 	if err != nil {
 		log.Error().Err(err).Msg("error getting db pool")
-		return nil, errors.New("error getting db pool")
+		return nil, errorSentinel.ErrBootAPIDbPoolNotFound
 	}
 
 	app := fiber.New(fiber.Config{

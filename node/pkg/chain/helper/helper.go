@@ -3,13 +3,13 @@ package helper
 import (
 	"context"
 	"crypto/ecdsa"
-	"errors"
 	"math/big"
 	"os"
 	"strings"
 	"time"
 
 	"bisonai.com/orakl/node/pkg/chain/utils"
+	errorSentinel "bisonai.com/orakl/node/pkg/error"
 	"bisonai.com/orakl/node/pkg/utils/request"
 	"github.com/klaytn/klaytn/blockchain/types"
 	"github.com/klaytn/klaytn/common"
@@ -24,7 +24,7 @@ func setProviderAndReporter(config *ChainHelperConfig, blockchainType Blockchain
 			config.ProviderUrl = os.Getenv(KlaytnProviderUrl)
 			if config.ProviderUrl == "" {
 				log.Error().Msg("provider url not set")
-				return errors.New("provider url not set")
+				return errorSentinel.ErrChainProviderUrlNotFound
 			}
 		}
 
@@ -39,7 +39,7 @@ func setProviderAndReporter(config *ChainHelperConfig, blockchainType Blockchain
 			config.ProviderUrl = os.Getenv(EthProviderUrl)
 			if config.ProviderUrl == "" {
 				log.Error().Msg("provider url not set")
-				return errors.New("provider url not set")
+				return errorSentinel.ErrChainProviderUrlNotFound
 			}
 		}
 
@@ -50,7 +50,7 @@ func setProviderAndReporter(config *ChainHelperConfig, blockchainType Blockchain
 			}
 		}
 	default:
-		return errors.New("unsupported blockchain type")
+		return errorSentinel.ErrChainReporterUnsupportedChain
 	}
 
 	return nil
@@ -133,7 +133,7 @@ func (t *ChainHelper) Close() {
 
 func (t *ChainHelper) GetSignedFromDelegator(tx *types.Transaction) (*types.Transaction, error) {
 	if t.delegatorUrl == "" {
-		return nil, errors.New("delegator url not set")
+		return nil, errorSentinel.ErrChainDelegatorUrlNotFound
 	}
 
 	payload, err := utils.MakePayload(tx)
@@ -148,7 +148,7 @@ func (t *ChainHelper) GetSignedFromDelegator(tx *types.Transaction) (*types.Tran
 	}
 
 	if result.SignedRawTx == nil {
-		return nil, errors.New("no signed raw tx")
+		return nil, errorSentinel.ErrChainEmptySignedRawTx
 	}
 	return utils.HashToTx(*result.SignedRawTx)
 }
@@ -249,7 +249,7 @@ func (t *ChainHelper) PublicAddress() (common.Address, error) {
 	publicKey := privateKey.Public()
 	publicKeyECDSA, ok := publicKey.(*ecdsa.PublicKey)
 	if !ok {
-		return result, errors.New("error casting public key to ECDSA")
+		return result, errorSentinel.ErrChainPubKeyToECDSAFail
 	}
 	result = crypto.PubkeyToAddress(*publicKeyECDSA)
 	return result, nil
@@ -283,7 +283,7 @@ func NewSignHelper(pk string) (*SignHelper, error) {
 		pk = os.Getenv(SignerPk)
 		if pk == "" {
 			log.Error().Msg("signer pk not set")
-			return nil, errors.New("signer pk not set")
+			return nil, errorSentinel.ErrChainSignerPKNotFound
 		}
 	}
 

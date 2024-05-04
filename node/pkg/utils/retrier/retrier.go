@@ -2,10 +2,10 @@ package retrier
 
 import (
 	"crypto/rand"
-	"errors"
 	"math/big"
 	"time"
 
+	errorSentinel "bisonai.com/orakl/node/pkg/error"
 	"github.com/rs/zerolog/log"
 )
 
@@ -26,7 +26,7 @@ func Retry(job func() error, maxAttempts int, initialTimeout time.Duration, maxT
 		return nil
 	}
 	log.Error().Msg("job failed")
-	return errors.New("job failed")
+	return errorSentinel.ErrRetrierJobFail
 }
 
 func calculateJitter(baseTimeout time.Duration) time.Duration {

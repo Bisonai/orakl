@@ -8,6 +8,7 @@ import (
 	"strings"
 	"sync"
 
+	errorSentinel "bisonai.com/orakl/node/pkg/error"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/rs/zerolog/log"
@@ -31,7 +32,7 @@ func getPool(ctx context.Context, once *sync.Once) (*pgxpool.Pool, error) {
 		connectionString := loadPgsqlConnectionString()
 		if connectionString == "" {
 			log.Error().Msg("DATABASE_URL is not set")
-			poolErr = errors.New("DATABASE_URL is not set")
+			poolErr = errorSentinel.ErrDbDatabaseUrlNotFound
 			return
 		}
 		pool, poolErr = connectToPgsql(ctx, connectionString)
@@ -137,19 +138,19 @@ func BulkSelect[T any](ctx context.Context, tableName string, columnNames []stri
 	results := []T{}
 	if tableName == "" {
 		log.Error().Msg("tableName must not be empty")
-		return results, errors.New("tableName must not be empty")
+		return results, errorSentinel.ErrDbEmptyTableNameParam
 	}
 	if len(columnNames) == 0 {
 		log.Error().Msg("columnNames must not be empty")
-		return results, errors.New("columnNames must not be empty")
+		return results, errorSentinel.ErrDbEmptyColumnNamesParam
 	}
 	if len(whereColumns) == 0 {
 		log.Error().Msg("whereColumns must not be empty")
-		return results, errors.New("whereColumns must not be empty")
+		return results, errorSentinel.ErrDbEmptyWhereColumnsParam
 	}
 	if len(whereColumns) != len(whereValues) {
 		log.Error().Strs("whereColumns", whereColumns).Any("whereValues", whereValues).Msg("whereColumns and whereValues must have the same length")
-		return results, errors.New("whereColumns and whereValues must have the same length")
+		return results, errorSentinel.ErrDbWhereColumnValueLengthMismatch
 	}
 
 	currentPool, err := GetPool(ctx)

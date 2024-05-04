@@ -2,7 +2,6 @@ package aggregator
 
 import (
 	"context"
-	"errors"
 	"math/rand"
 	"strconv"
 	"time"
@@ -10,6 +9,7 @@ import (
 	"bisonai.com/orakl/node/pkg/bus"
 	"bisonai.com/orakl/node/pkg/db"
 
+	errorSentinel "bisonai.com/orakl/node/pkg/error"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 	"github.com/libp2p/go-libp2p/core/host"
 	"github.com/rs/zerolog/log"
@@ -91,7 +91,7 @@ func (a *App) getConfigs(ctx context.Context) ([]Config, error) {
 
 func (a *App) startAggregator(ctx context.Context, aggregator *Aggregator) error {
 	if aggregator == nil {
-		return errors.New("aggregator not found")
+		return errorSentinel.ErrAggregatorNotFound
 	}
 
 	log.Debug().Str("Player", "Aggregator").Str("name", aggregator.Name).Msg("starting aggregator")
@@ -113,7 +113,7 @@ func (a *App) startAggregator(ctx context.Context, aggregator *Aggregator) error
 func (a *App) startAggregatorById(ctx context.Context, id int32) error {
 	aggregator, ok := a.Aggregators[id]
 	if !ok {
-		return errors.New("aggregator not found")
+		return errorSentinel.ErrAggregatorNotFound
 	}
 	return a.startAggregator(ctx, aggregator)
 }
@@ -139,7 +139,7 @@ func (a *App) stopAggregator(aggregator *Aggregator) error {
 		return nil
 	}
 	if aggregator.nodeCancel == nil {
-		return errors.New("aggregator cancel function not found")
+		return errorSentinel.ErrAggregatorCancelNotFound
 	}
 	aggregator.nodeCancel()
 	aggregator.isRunning = false
@@ -150,7 +150,7 @@ func (a *App) stopAggregator(aggregator *Aggregator) error {
 func (a *App) stopAggregatorById(id int32) error {
 	aggregator, ok := a.Aggregators[id]
 	if !ok {
-		return errors.New("aggregator not found")
+		return errorSentinel.ErrAggregatorNotFound
 	}
 	return a.stopAggregator(aggregator)
 }
@@ -195,7 +195,7 @@ func (a *App) getAggregatorByName(name string) (*Aggregator, error) {
 			return aggregator, nil
 		}
 	}
-	return nil, errors.New("aggregator not found")
+	return nil, errorSentinel.ErrAggregatorNotFound
 }
 
 func (a *App) handleMessage(ctx context.Context, msg bus.Message) {
@@ -210,7 +210,7 @@ func (a *App) handleMessage(ctx context.Context, msg bus.Message) {
 	}
 
 	if msg.From != bus.ADMIN {
-		bus.HandleMessageError(errors.New("non-admin"), msg, "aggregator received message from non-admin")
+		bus.HandleMessageError(errorSentinel.ErrBusNonAdmin, msg, "aggregator received message from non-admin")
 		return
 	}
 
@@ -281,7 +281,7 @@ func (a *App) handleMessage(ctx context.Context, msg bus.Message) {
 		}
 		msg.Response <- bus.MessageResponse{Success: true}
 	default:
-		bus.HandleMessageError(errors.New("unknown-command"), msg, "aggregator received unknown command")
+		bus.HandleMessageError(errorSentinel.ErrBusUnknownCommand, msg, "aggregator received unknown command")
 		return
 	}
 }

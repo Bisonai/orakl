@@ -3,11 +3,11 @@ package db
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"os"
 	"sync"
 	"time"
 
+	errorSentinel "bisonai.com/orakl/node/pkg/error"
 	"github.com/redis/go-redis/v9"
 	"github.com/rs/zerolog/log"
 )
@@ -170,13 +170,13 @@ func loadRedisConnectionString() (RedisConnectionInfo, error) {
 	host := os.Getenv("REDIS_HOST")
 	if host == "" {
 		log.Error().Msg("REDIS_HOST not set")
-		return RedisConnectionInfo{}, errors.New("REDIS_HOST not set")
+		return RedisConnectionInfo{}, errorSentinel.ErrRdbHostNotFound
 	}
 
 	port := os.Getenv("REDIS_PORT")
 	if port == "" {
 		log.Error().Msg("REDIS_PORT not set")
-		return RedisConnectionInfo{}, errors.New("REDIS_PORT not set")
+		return RedisConnectionInfo{}, errorSentinel.ErrRdbPortNotFound
 	}
 
 	return RedisConnectionInfo{Host: host, Port: port}, nil

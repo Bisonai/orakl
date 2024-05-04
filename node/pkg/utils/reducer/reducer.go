@@ -1,9 +1,10 @@
 package reducer
 
 import (
-	"fmt"
 	"math"
 	"strconv"
+
+	errorSentinel "bisonai.com/orakl/node/pkg/error"
 )
 
 type Reducer struct {
@@ -22,7 +23,7 @@ func Reduce(raw interface{}, reducers []Reducer) (float64, error) {
 	}
 	result, ok := raw.(float64)
 	if !ok {
-		return 0, fmt.Errorf("cannot cast raw data to float")
+		return 0, errorSentinel.ErrReducerCastToFloatFail
 	}
 	return result, nil
 }
@@ -32,7 +33,7 @@ func reduce(raw interface{}, reducer Reducer) (interface{}, error) {
 	case "INDEX":
 		castedRaw, ok := raw.([]interface{})
 		if !ok {
-			return nil, fmt.Errorf("cannot cast raw data to []interface{}")
+			return nil, errorSentinel.ErrReducerIndexCastToInterfaceFail
 		}
 		index, err := tryParseFloat(reducer.Args)
 		if err != nil {
@@ -43,20 +44,20 @@ func reduce(raw interface{}, reducer Reducer) (interface{}, error) {
 	case "PARSE":
 		args, ok := reducer.Args.([]interface{})
 		if !ok {
-			return nil, fmt.Errorf("cannot cast reducer.Args to []interface{}")
+			return nil, errorSentinel.ErrReducerParseCastToInterfaceFail
 		}
 		argStrs := make([]string, len(args))
 		for i, arg := range args {
 			argStr, ok := arg.(string)
 			if !ok {
-				return nil, fmt.Errorf("cannot cast arg to string")
+				return nil, errorSentinel.ErrReducerParseCastToStringFail
 			}
 			argStrs[i] = argStr
 		}
 		for _, arg := range argStrs {
 			castedRaw, ok := raw.(map[string]interface{})
 			if !ok {
-				return nil, fmt.Errorf("cannot cast raw data to map[string]interface{}")
+				return nil, errorSentinel.ErrReducerParseCastToMapFail
 			}
 			raw = castedRaw[arg]
 		}
@@ -68,7 +69,7 @@ func reduce(raw interface{}, reducer Reducer) (interface{}, error) {
 		}
 		arg, ok := reducer.Args.(float64)
 		if !ok {
-			return nil, fmt.Errorf("cannot cast reducer.Args to float64")
+			return nil, errorSentinel.ErrReducerMulCastToFloatFail
 		}
 
 		return castedRaw * arg, nil
@@ -96,10 +97,10 @@ func reduce(raw interface{}, reducer Reducer) (interface{}, error) {
 		}
 		arg, ok := reducer.Args.(float64)
 		if !ok {
-			return nil, fmt.Errorf("cannot cast reducer.Args to float64")
+			return nil, errorSentinel.ErrReducerDivCastToFloatFail
 		}
 		if arg == 0 {
-			return nil, fmt.Errorf("cannot divide by zero")
+			return nil, errorSentinel.ErrReducerDivDivsionByZero
 		}
 		return castedRaw / arg, nil
 	case "DIVFROM":
@@ -109,11 +110,11 @@ func reduce(raw interface{}, reducer Reducer) (interface{}, error) {
 		}
 		arg, ok := reducer.Args.(float64)
 		if !ok {
-			return nil, fmt.Errorf("cannot cast reducer.Args to float64")
+			return nil, errorSentinel.ErrReducerDivFromCastToFloatFail
 		}
 		return arg / castedRaw, nil
 	default:
-		return nil, fmt.Errorf("unknown reducer function: %s", reducer.Function)
+		return nil, errorSentinel.ErrReducerUnknownReducerFunc
 	}
 
 }
@@ -131,5 +132,5 @@ func tryParseFloat(raw interface{}) (float64, error) {
 			return f, nil
 		}
 	}
-	return 0, fmt.Errorf("cannot parse raw data to float")
+	return 0, errorSentinel.ErrReducerCastToFloatFail
 }

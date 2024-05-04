@@ -3,13 +3,13 @@ package raft
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"math/rand"
 	"sync"
 	"time"
 
 	"github.com/rs/zerolog/log"
 
+	errorSentinel "bisonai.com/orakl/node/pkg/error"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 	"github.com/libp2p/go-libp2p/core/host"
 )
@@ -122,7 +122,7 @@ func (r *Raft) handleHeartbeat(msg Message) error {
 	}
 
 	if heartbeatMessage.LeaderID != msg.SentFrom {
-		return fmt.Errorf("leader id mismatch")
+		return errorSentinel.ErrRaftLeaderIdMismatch
 	}
 
 	currentRole := r.GetRole()

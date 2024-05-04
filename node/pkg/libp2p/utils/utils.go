@@ -2,13 +2,13 @@ package utils
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"strconv"
 	"time"
 
 	"strings"
 
+	errorSentinel "bisonai.com/orakl/node/pkg/error"
 	"bisonai.com/orakl/node/pkg/utils/retrier"
 
 	"github.com/libp2p/go-libp2p/core/host"
@@ -36,7 +36,7 @@ func GetHostAddress(host host.Host) (string, error) {
 
 	if addr == nil {
 		log.Error().Msg("host has no non-local addresses")
-		return "", errors.New("host has no non-local addresses")
+		return "", errorSentinel.ErrLibP2pEmptyNonLocalAddress
 	}
 
 	return addr.Encapsulate(hostAddr).String(), nil
@@ -63,7 +63,7 @@ func IsHostAlive(ctx context.Context, h host.Host, addr string) (bool, error) {
 	)
 
 	if lastErr != nil {
-		return false, fmt.Errorf("failed to connect to peer")
+		return false, errorSentinel.ErrLibP2pFailToConnectPeer
 	}
 
 	err = h.Network().ClosePeer(info.ID)
@@ -86,13 +86,13 @@ func ExtractPayloadFromHost(h host.Host) (ip string, port int, host_id string, e
 
 	if addr == nil {
 		log.Error().Msg("host has no non-local addresses")
-		return "", 0, "", errors.New("host has no non-local addresses")
+		return "", 0, "", errorSentinel.ErrLibP2pEmptyNonLocalAddress
 	}
 
 	splitted := strings.Split(addr.String(), "/")
 	if len(splitted) < 5 {
 		log.Error().Msg("error splitting address")
-		return "", 0, "", errors.New("error splitting address")
+		return "", 0, "", errorSentinel.ErrLibP2pAddressSplitFail
 	}
 	ip = splitted[2]
 	rawPort := splitted[4]
