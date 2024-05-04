@@ -5,7 +5,7 @@ import (
 	"flag"
 	"time"
 
-	libp2p_setup "bisonai.com/orakl/node/pkg/libp2p/setup"
+	libp2pSetup "bisonai.com/orakl/node/pkg/libp2p/setup"
 	"github.com/rs/zerolog/log"
 )
 
@@ -22,7 +22,7 @@ func main() {
 	}
 
 	startTime := time.Now()
-	_, ps, err := libp2p_setup.SetupFromBootApi(ctx, *port)
+	_, ps, err := libp2pSetup.SetupFromBootApi(ctx, *port)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to setup libp2p")
 	}

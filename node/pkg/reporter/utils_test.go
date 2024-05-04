@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	chain_utils "bisonai.com/orakl/node/pkg/chain/utils"
+	chainUtils "bisonai.com/orakl/node/pkg/chain/utils"
 	"bisonai.com/orakl/node/pkg/db"
 	errorSentinel "bisonai.com/orakl/node/pkg/error"
 	"github.com/klaytn/klaytn/common"
@@ -134,23 +134,23 @@ func TestGetSignerListFromProofs(t *testing.T) {
 	testValue := int64(10)
 	testTimestamp := time.Now().Unix()
 
-	hash := chain_utils.Value2HashForSign(testValue, testTimestamp)
+	hash := chainUtils.Value2HashForSign(testValue, testTimestamp)
 	test_pk_0 := "737ea08c90c582aafdd7644ec492ee685df711df1ca055fd351938a493058217"
 	test_pk_1 := "c2235dcc40306325e1e060b066edb728a1734a377a9648461526101e5365ac56"
-	pk_0, err := chain_utils.StringToPk(test_pk_0)
+	pk_0, err := chainUtils.StringToPk(test_pk_0)
 	if err != nil {
 		t.Fatalf("Failed to convert string to pk: %v", err)
 	}
-	pk_1, err := chain_utils.StringToPk(test_pk_1)
+	pk_1, err := chainUtils.StringToPk(test_pk_1)
 	if err != nil {
 		t.Fatalf("Failed to convert string to pk: %v", err)
 	}
 
-	sig_0, err := chain_utils.MakeValueSignature(testValue, testTimestamp, pk_0)
+	sig_0, err := chainUtils.MakeValueSignature(testValue, testTimestamp, pk_0)
 	if err != nil {
 		t.Fatalf("Failed to make value signature: %v", err)
 	}
-	sig_1, err := chain_utils.MakeValueSignature(testValue, testTimestamp, pk_1)
+	sig_1, err := chainUtils.MakeValueSignature(testValue, testTimestamp, pk_1)
 	if err != nil {
 		t.Fatalf("Failed to make value signature: %v", err)
 	}

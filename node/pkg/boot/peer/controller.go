@@ -4,8 +4,8 @@ import (
 	"fmt"
 
 	"bisonai.com/orakl/node/pkg/db"
-	libp2p_setup "bisonai.com/orakl/node/pkg/libp2p/setup"
-	libp2p_utils "bisonai.com/orakl/node/pkg/libp2p/utils"
+	libp2pSetup "bisonai.com/orakl/node/pkg/libp2p/setup"
+	libp2pUtils "bisonai.com/orakl/node/pkg/libp2p/utils"
 	"github.com/go-playground/validator"
 	"github.com/gofiber/fiber/v2"
 	"github.com/rs/zerolog/log"
@@ -71,14 +71,14 @@ func sync(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusBadRequest).SendString("Failed to validate request")
 	}
 
-	h, err := libp2p_setup.MakeHost(0)
+	h, err := libp2pSetup.MakeHost(0)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to make host")
 		return c.Status(fiber.StatusInternalServerError).SendString("Failed to make host")
 	}
 
 	connectionUrl := fmt.Sprintf("/ip4/%s/tcp/%d/p2p/%s", payload.Ip, payload.Port, payload.HostId)
-	isAlive, _ := libp2p_utils.IsHostAlive(c.Context(), h, connectionUrl)
+	isAlive, _ := libp2pUtils.IsHostAlive(c.Context(), h, connectionUrl)
 	if !isAlive {
 		log.Info().Str("peer", connectionUrl).Msg("invalid peer")
 		err = h.Close()
