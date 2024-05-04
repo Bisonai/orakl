@@ -2,6 +2,7 @@ package boot
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"time"
@@ -9,9 +10,9 @@ import (
 	"bisonai.com/orakl/node/pkg/boot/peer"
 	"bisonai.com/orakl/node/pkg/boot/utils"
 	"bisonai.com/orakl/node/pkg/db"
+	errorSentinel "bisonai.com/orakl/node/pkg/error"
 	libp2pSetup "bisonai.com/orakl/node/pkg/libp2p/setup"
 	libp2pUtils "bisonai.com/orakl/node/pkg/libp2p/utils"
-    errorSentinel "bisonai.com/orakl/node/pkg/error"
 	"github.com/gofiber/fiber/v2"
 	"github.com/rs/zerolog/log"
 )
