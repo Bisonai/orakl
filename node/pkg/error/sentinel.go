@@ -35,6 +35,7 @@ var ServiceNames = map[Service]string{
 	Reporter:   "Reporter",
 	BootAPI:    "BootAPI",
 	Admin:      "Admin",
+	Por:        "POR",
 	Others:     "Others",
 }
 
@@ -50,7 +51,19 @@ var ErrorCodes = map[ErrorCode]string{
 }
 
 func (s Service) String() string {
-	return ServiceNames[s]
+	name, ok := ServiceNames[s]
+	if !ok {
+		return "UnknownService"
+	}
+	return name
+}
+
+func (e ErrorCode) String() string {
+	code, ok := ErrorCodes[e]
+	if !ok {
+		return "UnknownErrorCode"
+	}
+	return code
 }
 
 type CustomError struct {
@@ -60,7 +73,7 @@ type CustomError struct {
 }
 
 func (e *CustomError) Error() string {
-	return fmt.Sprintf("Service: %s, Code: %s, Message: %s", e.Service, ErrorCodes[e.Code], e.Message)
+	return fmt.Sprintf("Service: %s, Code: %s, Message: %s", e.Service, e.Code, e.Message)
 }
 
 var (
