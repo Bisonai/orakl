@@ -7,8 +7,8 @@ import {
   string as cmdstring,
   subcommands
 } from 'cmd-ts'
-import { IAggregator, ReadFile } from './cli-types'
-import { ORAKL_NETWORK_API_URL, WORKER_SERVICE_HOST, WORKER_SERVICE_PORT } from './settings'
+import { IAggregator, ReadFile } from './cli-types.js'
+import { ORAKL_NETWORK_API_URL, WORKER_SERVICE_HOST, WORKER_SERVICE_PORT } from './settings.js'
 import {
   buildUrl,
   chainOptionalOption,
@@ -16,7 +16,7 @@ import {
   idOption,
   isOraklNetworkApiHealthy,
   isServiceHealthy
-} from './utils'
+} from './utils.js'
 
 const AGGREGATOR_ENDPOINT = buildUrl(ORAKL_NETWORK_API_URL, 'aggregator')
 

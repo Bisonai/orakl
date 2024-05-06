@@ -1,7 +1,7 @@
 import { Type } from 'cmd-ts'
 import { existsSync } from 'node:fs'
-import { CliError, CliErrorCode } from './errors'
-import { isValidUrl, loadFile, loadJsonFromUrl } from './utils'
+import { CliError, CliErrorCode } from './errors.js'
+import { isValidUrl, loadFile, loadJsonFromUrl } from './utils.js'
 
 export async function readFileFromSource(source: string) {
   if (await isValidUrl(source)) {

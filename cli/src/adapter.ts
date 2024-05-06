@@ -1,8 +1,8 @@
 import axios from 'axios'
 import { boolean as cmdboolean, command, flag, option, subcommands } from 'cmd-ts'
-import { IAdapter, ReadFile } from './cli-types'
-import { ORAKL_NETWORK_API_URL } from './settings'
-import { buildUrl, idOption, isOraklNetworkApiHealthy } from './utils'
+import { IAdapter, ReadFile } from './cli-types.js'
+import { ORAKL_NETWORK_API_URL } from './settings.js'
+import { buildUrl, idOption, isOraklNetworkApiHealthy } from './utils.js'
 
 const ADAPTER_ENDPOINT = buildUrl(ORAKL_NETWORK_API_URL, 'adapter')
 

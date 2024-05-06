@@ -7,9 +7,9 @@ import {
   isOraklNetworkApiHealthy,
   isServiceHealthy,
   serviceOptionalOption
-} from './utils'
+} from './utils.js'
 
-import { ORAKL_NETWORK_API_URL, REPORTER_SERVICE_HOST, REPORTER_SERVICE_PORT } from './settings'
+import { ORAKL_NETWORK_API_URL, REPORTER_SERVICE_HOST, REPORTER_SERVICE_PORT } from './settings.js'
 
 const REPORTER_ENDPOINT = buildUrl(ORAKL_NETWORK_API_URL, 'reporter')
 const AGGREGATOR_ENDPOINT = buildUrl(ORAKL_NETWORK_API_URL, 'aggregator')
