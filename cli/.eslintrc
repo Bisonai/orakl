@@ -9,14 +9,23 @@
   ],
   "plugins": [
     "prettier",
-    "@typescript-eslint"
+    "@typescript-eslint",
+    "import"
   ],
   "rules": {
     "no-throw-literal": "error",
     "prettier/prettier": [
       "error"
     ],
-    "@typescript-eslint/ban-ts-comment": "off"
+    "@typescript-eslint/ban-ts-comment": "off",
+    "import/extensions": [
+      "error",
+      "ignorePackages",
+      {
+        "js": "always",
+        "ts": "always"
+      }
+    ]
   },
   "ignorePatterns": [
     "src/cli/orakl-cli/dist/**"
