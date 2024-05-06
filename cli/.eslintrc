@@ -27,6 +27,14 @@
       }
     ]
   },
+  "overrides": [
+    {
+      "files": ["test/**"],
+      "rules": {
+        "import/extensions": "off"
+      }
+    }
+  ],
   "ignorePatterns": [
     "src/cli/orakl-cli/dist/**"
   ],

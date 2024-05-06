@@ -26,7 +26,10 @@ import {
   reporterListHandler as delegatorReporterListHandler,
   reporterRemoveHandler as delegatorReporterRemoveHandler
 } from './delegator.js'
-import { startHandler as fetcherStartHandler, stopHandler as fetcherStopHandler } from './fetcher.js'
+import {
+  startHandler as fetcherStartHandler,
+  stopHandler as fetcherStopHandler
+} from './fetcher.js'
 import {
   activateHandler as listenerActivateHandler,
   deactivateHandler as listenerDeactivateHandler,
