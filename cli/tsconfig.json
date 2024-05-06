@@ -2,8 +2,8 @@
     "exclude": ["node_modules"],
     "include": ["src"],
     "compilerOptions": {
-        "module": "es2022",
-        "moduleResolution": "node",
+        "module": "NodeNext",
+        "moduleResolution": "NodeNext",
         "target": "es2022",
         "declaration": true,
         "removeComments": true,
