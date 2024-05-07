@@ -2,6 +2,10 @@
     "name": "@bisonai/orakl-contracts-v02",
     "version": "0.0.1",
     "description": "The Orakl Network Smart Contracts v0.2",
+    "files": [
+        "./dist",
+        "./src"
+      ],
     "keywords": [
         "Oracle",
         "Orakl",

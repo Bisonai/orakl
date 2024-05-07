@@ -3,9 +3,12 @@
   "version": "2.4.0",
   "description": "The Orakl Network Smart Contracts",
   "files": [
-    "./v0.1/dist",
-    "./v0.1/src",
-    "./v0.2/src"
+    "v0.1/dist",
+    "v0.1/src",
+    "v0.1/package.json",
+    "v0.2/dist",
+    "v0.2/src",
+    "v0.2/package.json"
   ],
   "keywords": [
     "Oracle",
