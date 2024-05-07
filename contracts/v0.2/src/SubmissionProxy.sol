@@ -16,7 +16,7 @@ import {IFeed} from "./interfaces/IFeedSubmit.sol";
  * days. The oracles that expired cannot be reused.
  */
 contract SubmissionProxy is Ownable {
-    uint256 public constant MIN_SUBMISSION = 0;
+    uint256 public constant MIN_SUBMISSION = 1;
     uint256 public constant MAX_SUBMISSION = 1_000;
     uint256 public constant MIN_EXPIRATION = 1 days;
     uint256 public constant MAX_EXPIRATION = 365 days;
@@ -72,7 +72,7 @@ contract SubmissionProxy is Ownable {
      * @param _maxSubmission The maximum number of submissions
      */
     function setMaxSubmission(uint256 _maxSubmission) external onlyOwner {
-        if (!(_maxSubmission > MIN_SUBMISSION) || _maxSubmission > MAX_SUBMISSION) {
+        if (_maxSubmission < MIN_SUBMISSION || _maxSubmission > MAX_SUBMISSION) {
             revert InvalidMaxSubmission();
         }
         maxSubmission = _maxSubmission;
