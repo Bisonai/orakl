@@ -49,7 +49,7 @@ func (s *SecretEnv) GetSecretFromVaultWithKubernetesAuth() (*Secrets, error) {
 	}
 
 	secretDataSet := &Secrets{
-		FeePayer: secrets.Data["Fee_Payer"].(string),
+		FeePayer: secrets.Data["FEE_PAYER"].(string),
 	}
 
 	return secretDataSet, nil
