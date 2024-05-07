@@ -190,6 +190,7 @@ contract SubmissionProxy is Ownable {
         for (uint256 i = 0; i < oracles.length; i++) {
             if (_oracle == oracles[i]) {
                 oracles[i] = oracles[oracles.length - 1];
+                whitelist[oracles[i]].index = uint8(i);
                 oracles.pop();
                 break;
             }
