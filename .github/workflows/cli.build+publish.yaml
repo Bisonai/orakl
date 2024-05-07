@@ -1,8 +1,9 @@
 name: "cli: build+publish"
 
 on:
+  workflow_dispatch:
   push:
-    branches-ignore:
+    branches:
       - "master"
     paths:
       - "cli/**"
