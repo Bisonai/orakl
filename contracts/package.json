@@ -20,8 +20,6 @@
   "engines": {
     "node": ">=20.0.0"
   },
-  "exports": "./v0.1/dist/index.js",
-  "types": "./v0.1/dist/index.js",
   "author": "Bisonai",
   "homepage": "https://github.com/Bisonai/orakl/tree/master/contracts#orakl-network-contracts",
   "license": "MIT"
