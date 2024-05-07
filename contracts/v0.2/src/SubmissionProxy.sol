@@ -36,6 +36,7 @@ contract SubmissionProxy is Ownable {
 
     mapping(address => OracleInfo) public whitelist;
     mapping(address feed => uint8 threshold) thresholds;
+    mapping(bytes proof => bool used) proofUsed;
 
     event OracleAdded(address oracle, uint256 expirationTime);
     event OracleRemoved(address oracle);
@@ -53,6 +54,9 @@ contract SubmissionProxy is Ownable {
     error InvalidThreshold();
     error IndexesNotAscending();
     error InvalidSignatureLength();
+    error ProofRelayed();
+    error SignerRecoverFail();
+    error EmptyOracles();
 
     modifier onlyOracle() {
         if (!isWhitelisted(msg.sender)) {
@@ -400,7 +404,11 @@ contract SubmissionProxy is Ownable {
      * @param _proofs The proofs
      * @return `true` if the proof is valid, `false` otherwise
      */
-    function validateProof(address _feed, bytes32 _message, bytes[] memory _proofs) private view returns (bool) {
+    function validateProof(address _feed, bytes32 _message, bytes[] memory _proofs) private returns (bool) {
+        if (oracles.length == 0) {
+            revert EmptyOracles();
+        }
+
         uint8 verifiedSignatures_ = 0;
         uint8 lastIndex_ = 0;
 
@@ -413,9 +421,16 @@ contract SubmissionProxy is Ownable {
         uint256 proofsLength_ = _proofs.length;
         for (uint256 j = 0; j < proofsLength_; j++) {
             bytes memory proof_ = _proofs[j];
+            if (proofUsed[proof_]) {
+                revert ProofRelayed();
+            }
+            proofUsed[proof_] = true;
             address signer_ = recoverSigner(_message, proof_);
-            uint8 oracleIndex_ = whitelist[signer_].index;
+            if (signer_ == address(0)) {
+                revert SignerRecoverFail();
+            }
 
+            uint8 oracleIndex_ = whitelist[signer_].index;
             if (j != 0 && oracleIndex_ <= lastIndex_) {
                 revert IndexesNotAscending();
             }
