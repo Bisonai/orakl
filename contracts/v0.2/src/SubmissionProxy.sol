@@ -72,7 +72,7 @@ contract SubmissionProxy is Ownable {
      * @param _maxSubmission The maximum number of submissions
      */
     function setMaxSubmission(uint256 _maxSubmission) external onlyOwner {
-        if (_maxSubmission == MIN_SUBMISSION || _maxSubmission > MAX_SUBMISSION) {
+        if (!(_maxSubmission > MIN_SUBMISSION) || _maxSubmission > MAX_SUBMISSION) {
             revert InvalidMaxSubmission();
         }
         maxSubmission = _maxSubmission;
