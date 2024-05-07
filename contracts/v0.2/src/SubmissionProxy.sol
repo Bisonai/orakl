@@ -248,10 +248,10 @@ contract SubmissionProxy is Ownable {
      * @param _proofs The proofs
      */
     function submit(
-        address[] memory _feeds,
-        int256[] memory _answers,
-        uint256[] memory _timestamps,
-        bytes[] memory _proofs
+        address[] calldata _feeds,
+        int256[] calldata _answers,
+        uint256[] calldata _timestamps,
+        bytes[] calldata _proofs
     ) external {
         if (
             _feeds.length != _answers.length || _answers.length != _proofs.length
