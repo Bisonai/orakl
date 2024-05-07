@@ -1,4 +1,4 @@
 # Go Delegator
 
 - Go implementation for delegator
-- Uses GSM (setup env vars) or Vault
+- Uses either GSM (setup env vars) or Vault
