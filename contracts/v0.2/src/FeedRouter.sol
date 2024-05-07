@@ -96,6 +96,7 @@ contract FeedRouter is Ownable, IFeedRouter {
     function twap(string calldata _feedName, uint256 _interval, uint256 _latestUpdatedAtTolerance, int256 _minCount)
         external
         view
+        validFeed(_feedName)
         returns (int256)
     {
         return IFeedProxy(feedToProxies[_feedName]).twap(_interval, _latestUpdatedAtTolerance, _minCount);
@@ -109,7 +110,7 @@ contract FeedRouter is Ownable, IFeedRouter {
         uint256 _interval,
         uint256 _latestUpdatedAtTolerance,
         int256 _minCount
-    ) external view returns (int256) {
+    ) external view validFeed(_feedName) returns (int256) {
         return
             IFeedProxy(feedToProxies[_feedName]).twapFromProposedFeed(_interval, _latestUpdatedAtTolerance, _minCount);
     }
