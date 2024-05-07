@@ -1,7 +1,7 @@
 import axios from 'axios'
 import { command, number, option, string as cmdstring, subcommands } from 'cmd-ts'
-import { ORAKL_NETWORK_API_URL } from './settings'
-import { buildUrl, idOption, isOraklNetworkApiHealthy, proxyOptionalOption } from './utils'
+import { ORAKL_NETWORK_API_URL } from './settings.js'
+import { buildUrl, idOption, isOraklNetworkApiHealthy, proxyOptionalOption } from './utils.js'
 
 const PROXY_ENDPOINT = buildUrl(ORAKL_NETWORK_API_URL, 'proxy')
 

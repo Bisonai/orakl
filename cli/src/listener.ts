@@ -1,6 +1,6 @@
 import axios from 'axios'
 import { command, option, string as cmdstring, subcommands } from 'cmd-ts'
-import { LISTENER_SERVICE_HOST, LISTENER_SERVICE_PORT, ORAKL_NETWORK_API_URL } from './settings'
+import { LISTENER_SERVICE_HOST, LISTENER_SERVICE_PORT, ORAKL_NETWORK_API_URL } from './settings.js'
 import {
   buildUrl,
   chainOptionalOption,
@@ -8,7 +8,7 @@ import {
   isOraklNetworkApiHealthy,
   isServiceHealthy,
   serviceOptionalOption
-} from './utils'
+} from './utils.js'
 
 const LISTENER_ENDPOINT = buildUrl(ORAKL_NETWORK_API_URL, 'listener')
 const AGGREGATOR_ENDPOINT = buildUrl(ORAKL_NETWORK_API_URL, 'aggregator')

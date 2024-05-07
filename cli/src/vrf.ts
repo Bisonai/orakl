@@ -2,8 +2,8 @@ import { keygen } from '@bisonai/orakl-vrf'
 import axios from 'axios'
 import { command, option, string as cmdstring, subcommands } from 'cmd-ts'
 import ethers from 'ethers'
-import { ORAKL_NETWORK_API_URL } from './settings'
-import { buildUrl, chainOptionalOption, idOption, isOraklNetworkApiHealthy } from './utils'
+import { ORAKL_NETWORK_API_URL } from './settings.js'
+import { buildUrl, chainOptionalOption, idOption, isOraklNetworkApiHealthy } from './utils.js'
 
 const VRF_ENDPOINT = buildUrl(ORAKL_NETWORK_API_URL, 'vrf')
 

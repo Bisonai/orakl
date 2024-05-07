@@ -1,17 +1,17 @@
 #!/usr/bin/env node --no-warnings
 
 import { binary, command, run, subcommands } from 'cmd-ts'
-import { adapterSub } from './adapter'
-import { aggregatorSub } from './aggregator'
-import { chainSub } from './chain'
-import { datafeedSub } from './datafeed'
-import { delegatorSub } from './delegator'
-import { fetcherSub } from './fetcher'
-import { listenerSub } from './listener'
-import { proxySub } from './proxy'
-import { reporterSub } from './reporter'
-import { serviceSub } from './service'
-import { vrfSub } from './vrf'
+import { adapterSub } from './adapter.js'
+import { aggregatorSub } from './aggregator.js'
+import { chainSub } from './chain.js'
+import { datafeedSub } from './datafeed.js'
+import { delegatorSub } from './delegator.js'
+import { fetcherSub } from './fetcher.js'
+import { listenerSub } from './listener.js'
+import { proxySub } from './proxy.js'
+import { reporterSub } from './reporter.js'
+import { serviceSub } from './service.js'
+import { vrfSub } from './vrf.js'
 
 async function main() {
   const chain = chainSub()

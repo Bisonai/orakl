@@ -1,10 +1,10 @@
 import { command, option, subcommands } from 'cmd-ts'
-import { insertHandler as adapterInsertHandler } from './adapter'
+import { insertHandler as adapterInsertHandler } from './adapter.js'
 import {
   activateHandler as aggregatorActivateHandler,
   deactivateHandler as aggregatorDeactivateHandler,
   insertHandler as aggregatorInsertHandler
-} from './aggregator'
+} from './aggregator.js'
 import {
   IAdapter,
   IAggregator,
@@ -12,7 +12,7 @@ import {
   IDatafeedBulkInsertElement,
   ReadFile,
   readFileFromSource
-} from './cli-types'
+} from './cli-types.js'
 import {
   contractConnectHandler,
   contractInsertHandler,
@@ -25,22 +25,25 @@ import {
   reporterInsertHandler as delegatorReporterInsertHandler,
   reporterListHandler as delegatorReporterListHandler,
   reporterRemoveHandler as delegatorReporterRemoveHandler
-} from './delegator'
-import { startHandler as fetcherStartHandler, stopHandler as fetcherStopHandler } from './fetcher'
+} from './delegator.js'
+import {
+  startHandler as fetcherStartHandler,
+  stopHandler as fetcherStopHandler
+} from './fetcher.js'
 import {
   activateHandler as listenerActivateHandler,
   deactivateHandler as listenerDeactivateHandler,
   insertHandler as listenerInsertHandler,
   listHandler as listenerListHandler,
   removeHandler as listenerRemoveHandler
-} from './listener'
+} from './listener.js'
 import {
   activateHandler as reporterActivateHandler,
   deactivateHandler as reporterDeactivateHandler,
   insertHandler as reporterInsertHandler,
   listHandler as reporterListHandler,
   removeHandler as reporterRemoveHandler
-} from './reporter'
+} from './reporter.js'
 import {
   FETCHER_HOST,
   FETCHER_PORT,
@@ -50,8 +53,8 @@ import {
   REPORTER_SERVICE_PORT,
   WORKER_SERVICE_HOST,
   WORKER_SERVICE_PORT
-} from './settings'
-import { isValidUrl } from './utils'
+} from './settings.js'
+import { isValidUrl } from './utils.js'
 
 export function datafeedSub() {
   // datafeed bulk-insert --source ${source}
