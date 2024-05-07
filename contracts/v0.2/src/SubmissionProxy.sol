@@ -187,6 +187,10 @@ contract SubmissionProxy is Ownable {
      * @param _oracle The address of the oracle
      */
     function removeOracle(address _oracle) external onlyOwner {
+        if(!isWhitelisted(_oracle)){
+            revert InvalidOracle();
+        }
+
         for (uint256 i = 0; i < oracles.length; i++) {
             if (_oracle == oracles[i]) {
                 oracles[i] = oracles[oracles.length - 1];
