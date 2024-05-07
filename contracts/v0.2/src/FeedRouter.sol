@@ -189,10 +189,12 @@ contract FeedRouter is Ownable, IFeedRouter {
         if (_proxyAddress == address(0)) {
             revert InvalidProxyAddress();
         }
+        bool found = false;
+        if (feedToProxies[_feedName]
 
         feedToProxies[_feedName] = _proxyAddress;
         bytes32 feedNameHash = keccak256(abi.encodePacked(_feedName));
-        bool found = false;
+
 
         uint256 feedNamesLength = feedNames.length;
         for (uint256 i = 0; i < feedNamesLength; i++) {
