@@ -144,13 +144,7 @@ contract Feed is Ownable, IFeed {
     /**
      * @inheritdoc IFeed
      */
-    function getRoundData(uint64 _roundId)
-        public
-        view
-        virtual
-        override
-        returns (uint64, int256, uint256)
-    {
+    function getRoundData(uint64 _roundId) public view virtual override returns (uint64, int256, uint256) {
         Round memory r = rounds[_roundId];
 
         if (r.updatedAt == 0) {

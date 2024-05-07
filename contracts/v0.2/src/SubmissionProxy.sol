@@ -16,7 +16,7 @@ import {IFeed} from "./interfaces/IFeedSubmit.sol";
  * days. The oracles that expired cannot be reused.
  */
 contract SubmissionProxy is Ownable {
-    uint256 public constant MIN_SUBMISSION = 0;
+    uint256 public constant MIN_SUBMISSION = 1;
     uint256 public constant MAX_SUBMISSION = 1_000;
     uint256 public constant MIN_EXPIRATION = 1 days;
     uint256 public constant MAX_EXPIRATION = 365 days;
@@ -35,15 +35,20 @@ contract SubmissionProxy is Ownable {
     }
 
     mapping(address => OracleInfo) public whitelist;
-    mapping(address feed => uint8 threshold) thresholds;
+    mapping(bytes32 feedHash => uint8 threshold) thresholds;
+    mapping(bytes32 feedHash => IFeed feedAddress) feeds;
+    IFeed[] public feedAddresses;
 
     event OracleAdded(address oracle, uint256 expirationTime);
     event OracleRemoved(address oracle);
     event MaxSubmissionSet(uint256 maxSubmission);
     event ExpirationPeriodSet(uint256 expirationPeriod);
     event DefaultThresholdSet(uint8 threshold);
-    event ThresholdSet(address feed, uint8 threshold);
+    event ThresholdSet(bytes32 feedHash, uint8 threshold);
     event DataFreshnessSet(uint256 dataFreshness);
+    event FeedAddressUpdated(bytes32 feedHash, address indexed feed);
+    event FeedAddressBulkUpdated(bytes32[] feedHashs, address[] feeds);
+    event FeedAddressRemoved(bytes32 feedHash, address feed);
 
     error OnlyOracle();
     error InvalidOracle();
@@ -53,6 +58,8 @@ contract SubmissionProxy is Ownable {
     error InvalidThreshold();
     error IndexesNotAscending();
     error InvalidSignatureLength();
+    error InvalidFeed();
+
 
     modifier onlyOracle() {
         if (!isWhitelisted(msg.sender)) {
@@ -68,11 +75,75 @@ contract SubmissionProxy is Ownable {
     constructor() Ownable(msg.sender) {}
 
     /**
+     * @notice Get all feed addresses
+     * @return The list of feed addresses
+     */
+    function getFeeds() external view returns (address[] memory) {
+        address[] memory feedAddressesArray = new address[](feedAddresses.length);
+        for (uint256 i = 0; i < feedAddresses.length; i++) {
+            feedAddressesArray[i] = address(feedAddresses[i]);
+        }
+        return feedAddressesArray;
+    }
+
+    /**
+     * @notice Remove feed address
+     * @param _feedHash The hash of feed
+     */
+    function removeFeed(bytes32 _feedHash) external onlyOwner {
+        IFeed feed = feeds[_feedHash];
+        if (address(feed) == address(0)) {
+            revert InvalidFeed();
+        }
+
+        delete feeds[_feedHash];
+        for (uint256 i = 0; i < feedAddresses.length; i++) {
+            if (address(feedAddresses[i]) == address(feed)) {
+                feedAddresses[i] = feedAddresses[feedAddresses.length - 1];
+                feedAddresses.pop();
+                break;
+            }
+        }
+
+        emit FeedAddressRemoved(_feedHash, address(feed));
+    }
+
+    /**
+     * @notice Update feed address
+     * @param _feedHash The hash of the feed
+     * @param _feed The address of the feed
+     */
+    function updateFeed(bytes32 _feedHash, address _feed) public onlyOwner {
+        IFeed feed = IFeed(_feed);
+        if (address(feeds[_feedHash]) == address(0)) {
+            feedAddresses.push(feed);
+        }
+
+        feeds[_feedHash] = feed;
+        emit FeedAddressUpdated(_feedHash, _feed);
+    }
+
+    /**
+     * @notice Update feed addresses in bulk
+     * @param _feedHashes The feedHashes of the feeds
+     * @param _feeds The addresses of the feeds
+     */
+    function updateFeedBulk(bytes32[] calldata _feedHashes, address[] calldata _feeds) external onlyOwner {
+        require(_feedHashes.length > 0 && _feedHashes.length == _feeds.length, "invalid input");
+
+        for (uint256 i = 0; i < _feedHashes.length; i++) {
+            updateFeed(_feedHashes[i], _feeds[i]);
+        }
+
+        emit FeedAddressBulkUpdated(_feedHashes, _feeds);
+    }
+
+    /**
      * @notice Set the maximum number of submissions in a single transaction.
      * @param _maxSubmission The maximum number of submissions
      */
     function setMaxSubmission(uint256 _maxSubmission) external onlyOwner {
-        if (_maxSubmission == MIN_SUBMISSION || _maxSubmission > MAX_SUBMISSION) {
+        if (_maxSubmission < MIN_SUBMISSION || _maxSubmission > MAX_SUBMISSION) {
             revert InvalidMaxSubmission();
         }
         maxSubmission = _maxSubmission;
@@ -117,18 +188,18 @@ contract SubmissionProxy is Ownable {
 
     /**
      * @notice Set the proof threshold for a feed.
-     * @param _feed The address of the feed
+     * @param _feedHash The hash of the feed
      * @param _threshold The percentage of required
      * signatures. Percentage is represented as a number between 1 and
      * 100.
      */
-    function setProofThreshold(address _feed, uint8 _threshold) external onlyOwner {
+    function setProofThreshold(bytes32 _feedHash, uint8 _threshold) external onlyOwner {
         if (_threshold < MIN_THRESHOLD || _threshold > MAX_THRESHOLD) {
             revert InvalidThreshold();
         }
 
-        thresholds[_feed] = _threshold;
-        emit ThresholdSet(_feed, _threshold);
+        thresholds[_feedHash] = _threshold;
+        emit ThresholdSet(_feedHash, _threshold);
     }
 
     /**
@@ -152,10 +223,10 @@ contract SubmissionProxy is Ownable {
         uint8 index_ = 0;
 
         // register the oracle
-	uint8 oraclesLength_ = uint8(oracles.length);
+        uint8 oraclesLength_ = uint8(oracles.length);
         for (uint8 i = 0; i < oraclesLength_; i++) {
             if (!isWhitelisted(oracles[i])) {
-		// reuse existing oracle slot if it is expired
+                // reuse existing oracle slot if it is expired
                 oracles[i] = _oracle;
                 found = true;
                 index_ = i;
@@ -164,7 +235,7 @@ contract SubmissionProxy is Ownable {
         }
 
         if (!found) {
-	    // oracle has not been registered yet
+            // oracle has not been registered yet
             oracles.push(_oracle);
             index_ = uint8(oracles.length - 1);
         }
@@ -187,9 +258,15 @@ contract SubmissionProxy is Ownable {
      * @param _oracle The address of the oracle
      */
     function removeOracle(address _oracle) external onlyOwner {
-        for (uint256 i = 0; i < oracles.length; i++) {
+        if (!isWhitelisted(_oracle)) {
+            revert InvalidOracle();
+        }
+
+        uint8 oraclesLength_ = uint8(oracles.length);
+        for (uint8 i = 0; i < oraclesLength_; i++) {
             if (_oracle == oracles[i]) {
                 oracles[i] = oracles[oracles.length - 1];
+                whitelist[oracles[i]].index = uint8(i);
                 oracles.pop();
                 break;
             }
@@ -217,12 +294,14 @@ contract SubmissionProxy is Ownable {
 
         // deactivate the old oracle
         whitelist[msg.sender].expirationTime = block.timestamp;
+        whitelist[msg.sender].index = 0;
 
         // update the oracle address
-	uint256 oraclesLength_ = oracles.length;
-        for (uint256 i = 0; i < oraclesLength_; i++) {
+        uint8 oraclesLength_ = uint8(oracles.length);
+        for (uint8 i = 0; i < oraclesLength_; i++) {
             if (msg.sender == oracles[i]) {
                 oracles[i] = _oracle;
+                info.index = uint8(i);
                 break;
             }
         }
@@ -242,25 +321,25 @@ contract SubmissionProxy is Ownable {
      * outdated (older than `dataFreshness`), the function will not
      * submit the data. If the proof is invalid, the function will not
      * submit the data.
-     * @param _feeds The addresses of the feeds
+     * @param _feedHashes The hashes of the feeds
      * @param _answers The submissions
      * @param _timestamps The timestamps of the proofs
      * @param _proofs The proofs
      */
     function submit(
-        address[] memory _feeds,
-        int256[] memory _answers,
-        uint256[] memory _timestamps,
-        bytes[] memory _proofs
+        bytes32[] calldata _feedHashes,
+        int256[] calldata _answers,
+        uint256[] calldata _timestamps,
+        bytes[] calldata _proofs
     ) external {
         if (
-            _feeds.length != _answers.length || _answers.length != _proofs.length
-                || _proofs.length != _timestamps.length || _feeds.length > maxSubmission
+            _feedHashes.length != _answers.length || _answers.length != _proofs.length
+                || _proofs.length != _timestamps.length || _feedHashes.length > maxSubmission
         ) {
             revert InvalidSubmissionLength();
         }
 
-        uint256 feedsLength_ = _feeds.length;
+        uint256 feedsLength_ = _feedHashes.length;
         for (uint256 i = 0; i < feedsLength_; i++) {
             if (_timestamps[i] <= block.timestamp - dataFreshness) {
                 // answer is too old -> do not submit!
@@ -273,9 +352,19 @@ contract SubmissionProxy is Ownable {
                 continue;
             }
 
-            bytes32 message_ = keccak256(abi.encodePacked(_answers[i], _timestamps[i]));
-            if (validateProof(_feeds[i], message_, proofs_)) {
-                IFeed(_feeds[i]).submit(_answers[i]);
+            if (address(feeds[_feedHashes[i]]) == address(0)) {
+                // feedHash not registered -> do not submit!
+                continue;
+            }
+
+            if (keccak256(abi.encode(feeds[_feedHashes[i]].description())) != _feedHashes[i]) {
+                // feedHash not matching with registered feed -> do not submit!
+                continue;
+            }
+
+            bytes32 message_ = keccak256(abi.encodePacked(_answers[i], _timestamps[i], _feedHashes[i]));
+            if (validateProof(_feedHashes[i], message_, proofs_)) {
+                feeds[_feedHashes[i]].submit(_answers[i]);
             }
         }
     }
@@ -290,7 +379,6 @@ contract SubmissionProxy is Ownable {
 
     /**
      * @notice Split concatenated proofs into individual proofs of length 65 bytes
-     * @dev The function intentionally does not test whether the
      * @param _data The bytes to be split
      * @return proofs_ The split bytes
      * @return success_ `true` if the split was successful, `false`
@@ -400,7 +488,11 @@ contract SubmissionProxy is Ownable {
      * @param _proofs The proofs
      * @return `true` if the proof is valid, `false` otherwise
      */
-    function validateProof(address _feed, bytes32 _message, bytes[] memory _proofs) private view returns (bool) {
+    function validateProof(bytes32 _feed, bytes32 _message, bytes[] memory _proofs) private view returns (bool) {
+        if (oracles.length == 0) {
+            return false;
+        }
+
         uint8 verifiedSignatures_ = 0;
         uint8 lastIndex_ = 0;
 
@@ -414,8 +506,11 @@ contract SubmissionProxy is Ownable {
         for (uint256 j = 0; j < proofsLength_; j++) {
             bytes memory proof_ = _proofs[j];
             address signer_ = recoverSigner(_message, proof_);
-            uint8 oracleIndex_ = whitelist[signer_].index;
+            if (signer_ == address(0)) {
+                continue;
+            }
 
+            uint8 oracleIndex_ = whitelist[signer_].index;
             if (j != 0 && oracleIndex_ <= lastIndex_) {
                 revert IndexesNotAscending();
             }

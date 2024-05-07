@@ -118,12 +118,7 @@ contract FeedProxy is Ownable, IFeedProxy {
     /**
      * @inheritdoc IFeedProxy
      */
-    function latestRoundDataFromProposedFeed()
-        external
-        view
-        hasProposal
-        returns (uint64, int256, uint256)
-    {
+    function latestRoundDataFromProposedFeed() external view hasProposal returns (uint64, int256, uint256) {
         return proposedFeed.latestRoundData();
     }
 
