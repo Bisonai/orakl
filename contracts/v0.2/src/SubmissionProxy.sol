@@ -273,7 +273,7 @@ contract SubmissionProxy is Ownable {
                 continue;
             }
 
-            bytes32 message_ = keccak256(abi.encodePacked(_answers[i], _timestamps[i]));
+            bytes32 message_ = keccak256(abi.encodePacked(_answers[i], _timestamps[i], _feeds[i], block.chainid));
             if (validateProof(_feeds[i], message_, proofs_)) {
                 IFeed(_feeds[i]).submit(_answers[i]);
             }

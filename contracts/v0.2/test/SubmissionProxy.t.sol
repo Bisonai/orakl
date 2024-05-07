@@ -329,7 +329,7 @@ contract SubmissionProxyTest is Test {
         int256 submissionValue_ = 10;
         (address[] memory feeds_, int256[] memory submissions_, bytes[] memory proofs_, uint256[] memory timestamps_) =
             prepareFeedsSubmissions(numOracles_, submissionValue_, dummySk_);
-        bytes32 hash_ = keccak256(abi.encodePacked(submissions_[0], timestamps_[0]));
+        bytes32 hash_ = keccak256(abi.encodePacked(submissions_[0], timestamps_[0], feeds_[0], block.chainid));
         proofs_[0] =
             abi.encodePacked(createProof(aliceSk_, hash_), createProof(bobSk_, hash_), createProof(celineSk_, hash_));
 
@@ -353,7 +353,7 @@ contract SubmissionProxyTest is Test {
             feeds_[i] = address(feed_);
             submissions_[i] = _submissionValue;
             timestamps_[i] = block.timestamp;
-            proofs_[i] = createProof(_oracleSk, keccak256(abi.encodePacked(timestamps_[i], submissions_[i])));
+            proofs_[i] = createProof(_oracleSk, keccak256(abi.encodePacked(timestamps_[i], submissions_[i], feeds_[i], block.chainid)));
         }
 
         return (feeds_, submissions_, proofs_, timestamps_);
