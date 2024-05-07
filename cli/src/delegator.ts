@@ -1,7 +1,7 @@
 import axios from 'axios'
 import { command, number as cmdnumber, option, string as cmdstring, subcommands } from 'cmd-ts'
-import { ORAKL_NETWORK_API_URL, ORAKL_NETWORK_DELEGATOR_URL } from './settings'
-import { buildUrl, idOption, isOraklDelegatorHealthy } from './utils'
+import { ORAKL_NETWORK_API_URL, ORAKL_NETWORK_DELEGATOR_URL } from './settings.js'
+import { buildUrl, idOption, isOraklDelegatorHealthy } from './utils.js'
 
 const AGGREGATOR_ENDPOINT = buildUrl(ORAKL_NETWORK_API_URL, 'aggregator')
 
