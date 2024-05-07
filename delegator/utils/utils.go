@@ -11,6 +11,7 @@ import (
 	"strconv"
 	"strings"
 
+	"bisonai.com/orakl/delegator/secrets"
 	secretmanager "cloud.google.com/go/secretmanager/apiv1"
 	"cloud.google.com/go/secretmanager/apiv1/secretmanagerpb"
 	"github.com/gofiber/fiber/v2"
@@ -85,9 +86,14 @@ func InitFeePayerPK(ctx context.Context, pgxPool *pgxpool.Pool) error {
 	}
 
 	useGoogleSecretManager, _ := strconv.ParseBool(os.Getenv("USE_GOOGLE_SECRET_MANAGER"))
-
+	useVault, _ := strconv.ParseBool(os.Getenv("USE_VAULT"))
 	if useGoogleSecretManager {
 		feePayer, err = LoadFeePayerFromGSM(ctx)
+		if err != nil {
+			return err
+		}
+	} else if useVault {
+		feePayer, err = LoadFeePayerFromVault(ctx)
 		if err != nil {
 			return err
 		}
@@ -322,4 +328,28 @@ func GetPublicKey(pk string) (string, error) {
 
 	address := crypto.PubkeyToAddress(*publicKeyECDSA)
 	return address.String(), nil
+}
+
+func LoadFeePayerFromVault(ctx context.Context) (string, error) {
+	feePayer := ""
+	vaultRole := os.Getenv("VAULT_ROLE")
+	jwtPath := os.Getenv("JWT_PATH")
+	vaultSecretPath := os.Getenv("VAULT_SECRET_PATH")
+	vaultKeyName := os.Getenv("VAULT_KEY_NAME")
+
+	if vaultRole != "" && jwtPath != "" && vaultSecretPath != "" && vaultKeyName != "" {
+		secretsEnv := secrets.SecretEnv{
+			VaultRole:       vaultRole,
+			JwtPath:         jwtPath,
+			VaultSecretPath: vaultSecretPath,
+			VaultKeyName:    vaultKeyName,
+		}
+
+		secrets, err := secretsEnv.GetSecretFromVaultWithKubernetesAuth()
+		if err != nil {
+			return "", err
+		}
+		feePayer = secrets.FeePayer
+	}
+	return feePayer, nil
 }
