@@ -1,0 +1,28 @@
+{
+  "name": "@bisonai/orakl-contracts",
+  "version": "2.4.0",
+  "description": "The Orakl Network Smart Contracts",
+  "files": [
+    "./v0.1/dist",
+    "./v0.1/src",
+    "./v0.2/src"
+  ],
+  "keywords": [
+    "Oracle",
+    "Orakl",
+    "Orakl Network",
+    "Blockchain",
+    "Web3",
+    "VRF",
+    "Request-Response",
+    "Data Feed"
+  ],
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "exports": "./v0.1/dist/index.js",
+  "types": "./v0.1/dist/index.js",
+  "author": "Bisonai",
+  "homepage": "https://github.com/Bisonai/orakl/tree/master/contracts#orakl-network-contracts",
+  "license": "MIT"
+}
