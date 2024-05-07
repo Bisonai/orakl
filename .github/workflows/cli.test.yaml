@@ -60,7 +60,7 @@ jobs:
           sudo mv ./migrate /usr/bin
 
       - name: Install delegator dependencies
-        working-derectory: ./delegator
+        working-directory: ./delegator
         run: go mod tidy
 
       - name: Install api dependencies
