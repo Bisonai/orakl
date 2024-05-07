@@ -290,7 +290,6 @@ contract SubmissionProxy is Ownable {
 
     /**
      * @notice Split concatenated proofs into individual proofs of length 65 bytes
-     * @dev The function intentionally does not test whether the
      * @param _data The bytes to be split
      * @return proofs_ The split bytes
      * @return success_ `true` if the split was successful, `false`
