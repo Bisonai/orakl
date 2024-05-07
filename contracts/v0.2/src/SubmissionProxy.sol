@@ -217,12 +217,14 @@ contract SubmissionProxy is Ownable {
 
         // deactivate the old oracle
         whitelist[msg.sender].expirationTime = block.timestamp;
+        whitelist[msg.sender].index = 0;
 
         // update the oracle address
 	uint256 oraclesLength_ = oracles.length;
         for (uint256 i = 0; i < oraclesLength_; i++) {
             if (msg.sender == oracles[i]) {
                 oracles[i] = _oracle;
+                info.index = uint8(i);
                 break;
             }
         }
