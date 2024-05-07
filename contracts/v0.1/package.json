@@ -17,7 +17,7 @@
     "Data Feed"
   ],
   "engines": {
-    "node": ">=18.12"
+    "node": ">=20.0.0"
   },
   "exports": "./dist/index.js",
   "types": "./dist/index.js",
