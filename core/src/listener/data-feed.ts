@@ -1,4 +1,4 @@
-import { Aggregator__factory } from '@bisonai/orakl-contracts'
+import { Aggregator__factory } from '@bisonai/orakl-contracts/v0.1'
 import { Queue } from 'bullmq'
 import { ethers } from 'ethers'
 import { Logger } from 'pino'

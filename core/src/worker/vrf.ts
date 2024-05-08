@@ -1,4 +1,4 @@
-import { VRFCoordinator__factory } from '@bisonai/orakl-contracts'
+import { VRFCoordinator__factory } from '@bisonai/orakl-contracts/v0.1'
 import { processVrfRequest } from '@bisonai/orakl-vrf'
 import { Queue, Worker } from 'bullmq'
 import { ethers } from 'ethers'

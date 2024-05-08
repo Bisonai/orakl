@@ -1,4 +1,4 @@
-import { RequestResponseCoordinator__factory } from '@bisonai/orakl-contracts'
+import { RequestResponseCoordinator__factory } from '@bisonai/orakl-contracts/v0.1'
 import axios from 'axios'
 import { Queue, Worker } from 'bullmq'
 import { ethers } from 'ethers'
