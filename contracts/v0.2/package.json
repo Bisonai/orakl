@@ -26,10 +26,18 @@
         "compile": "forge build",
         "prebuild": "yarn compile && typechain --target ethers-v5 --out-dir typechain-types './out/**/*.json'",
         "build": "tsc",
-        "test": "forge test"
+        "clean": "forge clean && rm -rf dist",
+        "test": "forge test",
+        "prettier-solidity-check": "npx prettier --check src",
+        "solhint": "npx solhint -f table src/**/*.sol"
     },
     "devDependencies": {
         "@typechain/ethers-v5": "^11.1.2",
+        "prettier": "2.8.1",
+        "prettier-plugin-organize-imports": "3.2.3",
+        "prettier-plugin-solidity": "1.1.2",
+        "solhint": "4.5.4",
+        "solhint-plugin-prettier": "0.0.5",
         "typechain": "^8.3.2",
         "typescript": "^5.4.5"
     }

@@ -21,14 +21,20 @@
     "Data Feed"
   ],
   "scripts": {
-    "compile":  "yarn --cwd='../' contracts-v01 compile && yarn --cwd='../' contracts-v02 compile",
+    "compile": "yarn --cwd='../' contracts-v01 compile && yarn --cwd='../' contracts-v02 compile",
     "build": "yarn --cwd='../' contracts-v01 build && yarn --cwd='../' contracts-v02 build",
-    "test": "yarn --cwd='../' contracts-v01 test && yarn --cwd='../' contracts-v02 test"
+    "clean": "yarn --cwd='../' contracts-v01 clean && yarn --cwd='../' contracts-v02 clean",
+    "test": "yarn --cwd='../' contracts-v01 test && yarn --cwd='../' contracts-v02 test",
+    "prettier-solidity-check": "yarn --cwd='../' contracts-v01 prettier-solidity-check",
+    "solhint": "yarn --cwd='../' contracts-v01 solhint && yarn --cwd='../' contracts-v02 solhint",
+    "lint": "yarn --cwd='../' contracts-v01 lint",
+    "test-non-vrf": "yarn --cwd='../' contracts-v01 test-non-vrf"
   },
   "engines": {
     "node": ">=20.0.0"
   },
   "author": "Bisonai",
   "homepage": "https://github.com/Bisonai/orakl/tree/master/contracts#orakl-network-contracts",
-  "license": "MIT"
+  "license": "MIT",
+  "devDependencies": {}
 }
