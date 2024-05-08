@@ -20,6 +20,11 @@
     "Request-Response",
     "Data Feed"
   ],
+  "scripts": {
+    "compile":  "yarn --cwd='../' contracts-v01 compile && yarn --cwd='../' contracts-v02 compile",
+    "build": "yarn --cwd='../' contracts-v01 build && yarn --cwd='../' contracts-v02 build",
+    "test": "yarn --cwd='../' contracts-v01 test && yarn --cwd='../' contracts-v02 test"
+  },
   "engines": {
     "node": ">=20.0.0"
   },

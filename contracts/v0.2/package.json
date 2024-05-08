@@ -5,7 +5,7 @@
     "files": [
         "./dist",
         "./src"
-      ],
+    ],
     "keywords": [
         "Oracle",
         "Orakl",
@@ -25,11 +25,11 @@
     "scripts": {
         "compile": "forge build",
         "prebuild": "yarn compile && typechain --target ethers-v5 --out-dir typechain-types './out/**/*.json'",
-        "build": "tsc"
+        "build": "tsc",
+        "test": "forge test"
     },
     "devDependencies": {
         "@typechain/ethers-v5": "^11.1.2",
-        "foundry": "^4.7.0",
         "typechain": "^8.3.2",
         "typescript": "^5.4.5"
     }

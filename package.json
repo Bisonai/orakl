@@ -4,7 +4,9 @@
   "workspaces": {
     "packages": [
       "cli",
+      "contracts",
       "contracts/v0.1",
+      "contracts/v0.2",
       "core",
       "delegator",
       "fetcher",
@@ -24,7 +26,9 @@
   "devDependencies": {},
   "scripts": {
     "cli": "yarn workspace @bisonai/orakl-cli",
-    "contracts": "yarn workspace @bisonai/orakl-contracts-v01",
+    "contracts": "yarn workspace @bisonai/orakl-contracts",
+    "contracts-v01": "yarn workspace @bisonai/orakl-contracts-v01",
+    "contracts-v02": "yarn workspace @bisonai/orakl-contracts-v02",
     "core": "yarn workspace @bisonai/orakl-core",
     "delegator": "yarn workspace @bisonai/orakl-delegator",
     "fetcher": "yarn workspace @bisonai/orakl-fetcher",
