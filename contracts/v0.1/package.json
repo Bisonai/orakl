@@ -1,7 +1,7 @@
 {
-  "name": "@bisonai/orakl-contracts",
+  "name": "@bisonai/orakl-contracts-v01",
   "version": "1.4.0",
-  "description": "The Orakl Network Smart Contracts",
+  "description": "The Orakl Network Smart Contracts v0.1",
   "files": [
     "./dist",
     "./src"
@@ -17,7 +17,7 @@
     "Data Feed"
   ],
   "engines": {
-    "node": ">=18.12"
+    "node": ">=20.0.0"
   },
   "exports": "./dist/index.js",
   "types": "./dist/index.js",
@@ -97,6 +97,7 @@
     "hardhat-deploy": "^0.11.45",
     "hardhat-gas-reporter": "^1.0.8",
     "husky": "^8.0.2",
+    "lint-staged": "^15.2.2",
     "mathjs": "^11.8.0",
     "moment": "^2.29.4",
     "prettier": "^2.8.1",

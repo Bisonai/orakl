@@ -1,0 +1,40 @@
+{
+  "name": "@bisonai/orakl-contracts",
+  "version": "2.0.0",
+  "description": "The Orakl Network Smart Contracts",
+  "files": [
+    "v0.1/dist",
+    "v0.1/src",
+    "v0.1/package.json",
+    "v0.2/dist",
+    "v0.2/src",
+    "v0.2/package.json"
+  ],
+  "keywords": [
+    "Oracle",
+    "Orakl",
+    "Orakl Network",
+    "Blockchain",
+    "Web3",
+    "VRF",
+    "Request-Response",
+    "Data Feed"
+  ],
+  "scripts": {
+    "compile": "yarn --cwd='../' contracts-v01 compile && yarn --cwd='../' contracts-v02 compile",
+    "build": "yarn --cwd='../' contracts-v01 build && yarn --cwd='../' contracts-v02 build",
+    "clean": "yarn --cwd='../' contracts-v01 clean && yarn --cwd='../' contracts-v02 clean",
+    "test": "yarn --cwd='../' contracts-v01 test && yarn --cwd='../' contracts-v02 test",
+    "prettier-solidity-check": "yarn --cwd='../' contracts-v01 prettier-solidity-check",
+    "solhint": "yarn --cwd='../' contracts-v01 solhint",
+    "lint": "yarn --cwd='../' contracts-v01 lint && yarn --cwd='../' contracts-v02 lint",
+    "test-non-vrf": "yarn --cwd='../' contracts-v01 test-non-vrf"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "author": "Bisonai",
+  "homepage": "https://github.com/Bisonai/orakl/tree/master/contracts#orakl-network-contracts",
+  "license": "MIT",
+  "devDependencies": {}
+}

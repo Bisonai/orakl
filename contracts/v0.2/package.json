@@ -1,0 +1,38 @@
+{
+    "name": "@bisonai/orakl-contracts-v02",
+    "version": "0.0.1",
+    "description": "The Orakl Network Smart Contracts v0.2",
+    "files": [
+        "./dist",
+        "./src"
+    ],
+    "keywords": [
+        "Oracle",
+        "Orakl",
+        "Orakl Network",
+        "Blockchain",
+        "Web3",
+        "VRF",
+        "Request-Response",
+        "Data Feed"
+    ],
+    "engines": {
+        "node": ">=20.0.0"
+    },
+    "author": "Bisonai",
+    "homepage": "https://github.com/Bisonai/orakl/tree/master/contracts#orakl-network-contracts",
+    "license": "MIT",
+    "scripts": {
+        "compile": "forge build",
+        "prebuild": "yarn compile && typechain --target ethers-v5 --out-dir typechain-types './out/**/*.json'",
+        "build": "tsc",
+        "clean": "forge clean && rm -rf dist",
+        "test": "forge test",
+        "lint": "forge fmt"
+    },
+    "devDependencies": {
+        "@typechain/ethers-v5": "^11.1.2",
+        "typechain": "^8.3.2",
+        "typescript": "^5.4.5"
+    }
+}
