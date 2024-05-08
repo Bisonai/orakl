@@ -6,7 +6,9 @@ Install Foundry by following description at https://book.getfoundry.sh/getting-s
 
 ```shell
 curl -L https://foundry.paradigm.xyz | bash
-```
+
+  Running `foundryup` by itself will install the latest (nightly) precompiled binaries: `forge`, `cast`, `anvil`, and `chisel`
+
 Running `foundryup` by itself will install the latest (nightly) precompiled binaries: `forge`, `cast`, `anvil`, and `chisel`
 
 ## Build
