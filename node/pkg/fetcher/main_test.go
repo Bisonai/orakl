@@ -179,7 +179,7 @@ var sampleData = []string{`{
   "address": "0xc22Cd928deFce14292986aCE75a1BE1bcF100697",
   "aggregateInterval": 5000,
   "submitInterval": 15000
-}`, `
+}`, `{
 "name": "DOGE-USDT",
 "feeds": [
   {
