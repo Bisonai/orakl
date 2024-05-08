@@ -152,7 +152,7 @@ contract SubmissionProxy is Ownable {
         uint8 index_ = 0;
 
         // register the oracle
-	uint8 oraclesLength_ = uint8(oracles.length);
+	    uint8 oraclesLength_ = uint8(oracles.length);
         for (uint8 i = 0; i < oraclesLength_; i++) {
             if (!isWhitelisted(oracles[i])) {
 		// reuse existing oracle slot if it is expired
@@ -187,7 +187,8 @@ contract SubmissionProxy is Ownable {
      * @param _oracle The address of the oracle
      */
     function removeOracle(address _oracle) external onlyOwner {
-        for (uint256 i = 0; i < oracles.length; i++) {
+        uint8 oraclesLength_ = uint8(oracles.length);
+        for (uint8 i = 0; i < oraclesLength_; i++) {
             if (_oracle == oracles[i]) {
                 oracles[i] = oracles[oracles.length - 1];
                 oracles.pop();
@@ -219,8 +220,8 @@ contract SubmissionProxy is Ownable {
         whitelist[msg.sender].expirationTime = block.timestamp;
 
         // update the oracle address
-	uint256 oraclesLength_ = oracles.length;
-        for (uint256 i = 0; i < oraclesLength_; i++) {
+		uint8 oraclesLength_ = uint8(oracles.length);
+        for (uint8 i = 0; i < oraclesLength_; i++) {
             if (msg.sender == oracles[i]) {
                 oracles[i] = _oracle;
                 break;
