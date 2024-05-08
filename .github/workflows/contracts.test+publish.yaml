@@ -1,8 +1,9 @@
 name: "contracts: test+publish"
 
 on:
+  workflow_dispatch:
   push:
-    branches-ignore:
+    branches:
       - "master"
     paths:
       - "contracts/v0.1/**"
@@ -34,7 +35,7 @@ jobs:
         uses: sergeysova/jq-action@v2
         id: packageJsonVersion
         with:
-          cmd: "jq .version ./contracts/v0.1/package.json -r"
+          cmd: "jq .version ./contracts/package.json -r"
       - name: Extract version from the latest published package
         id: npmPackageVersion
         run: echo "VERSION=`npm view @bisonai/orakl-contracts version`" >> $GITHUB_OUTPUT
