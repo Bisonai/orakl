@@ -36,7 +36,6 @@ contract SubmissionProxy is Ownable {
 
     mapping(address => OracleInfo) public whitelist;
     mapping(address feed => uint8 threshold) thresholds;
-    mapping(bytes proof => bool used) proofUsed;
 
     event OracleAdded(address oracle, uint256 expirationTime);
     event OracleRemoved(address oracle);
@@ -421,10 +420,6 @@ contract SubmissionProxy is Ownable {
         uint256 proofsLength_ = _proofs.length;
         for (uint256 j = 0; j < proofsLength_; j++) {
             bytes memory proof_ = _proofs[j];
-            if (proofUsed[proof_]) {
-                revert ProofRelayed();
-            }
-            proofUsed[proof_] = true;
             address signer_ = recoverSigner(_message, proof_);
             if (signer_ == address(0)) {
                 revert SignerRecoverFail();
