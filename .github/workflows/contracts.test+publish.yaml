@@ -3,7 +3,7 @@ name: "contracts: test+publish"
 on:
   workflow_dispatch:
   push:
-    branches:
+    branches-ignore:
       - "master"
     paths:
       - "contracts/v0.1/**"
