@@ -79,7 +79,7 @@ func TestFetcherFetchProxy(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error initializing fetcher: %v", err)
 	}
-
+	log.Info().Msg("initialized")
 	for _, fetcher := range app.Fetchers {
 		result, fetchErr := fetcher.fetch(app.ChainHelpers, app.Proxies)
 		if fetchErr != nil {
@@ -113,7 +113,10 @@ func TestFetcherFetchAndInsertAdapter(t *testing.T) {
 
 	app := testItems.app
 
-	app.initialize(ctx)
+	err = app.initialize(ctx)
+	if err != nil {
+		log.Fatal().Err(err).Msg("error initializing fetcher")
+	}
 
 	for _, fetcher := range app.Fetchers {
 		err = fetcher.fetchAndInsert(ctx, app.ChainHelpers, app.Proxies)

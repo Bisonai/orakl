@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"os"
-	"strconv"
 	"testing"
 
 	"bisonai.com/orakl/node/pkg/admin/config"
@@ -508,53 +507,59 @@ func setup(ctx context.Context) (func() error, *TestItems, error) {
 	testItems.messageBus = mb
 	testItems.app = app
 
-	cleanup, err := insertSampleData(admin, ctx)
+	err = insertSampleData(ctx, admin)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	return cleanup, testItems, nil
+	return cleanup(ctx, admin, app), testItems, nil
 }
 
-func insertSampleData(app *fiber.App, ctx context.Context) (func() error, error) {
+func insertSampleData(ctx context.Context, app *fiber.App) error {
 	var insertData = make([]config.ConfigInsertModel, len(sampleData))
 	var insertResults = make([]config.ConfigModel, len(sampleData))
 
 	for i := range insertData {
 		err := json.Unmarshal([]byte(sampleData[i]), &insertData[i])
 		if err != nil {
-			return nil, err
+			return err
 		}
 	}
 
 	for i := range insertResults {
 		tmp, err := tests.PostRequest[config.ConfigModel](app, "/api/v1/config", insertData[i])
 		if err != nil {
-			return nil, err
+			return err
 		}
 		insertResults[i] = tmp
 	}
 
-	return cleanup(app, ctx, insertResults), nil
+	return nil
 }
 
-func cleanup(app *fiber.App, ctx context.Context, insertResult []config.ConfigModel) func() error {
+func cleanup(ctx context.Context, admin *fiber.App, app *App) func() error {
 	return func() error {
-		for i := range insertResult {
-			_, err := tests.DeleteRequest[config.ConfigModel](app, "/api/v1/config/"+strconv.Itoa(int(insertResult[i].Id)), nil)
-			if err != nil {
-				return err
-			}
-			if err := app.Shutdown(); err != nil {
-				return err
-			}
+		if err := admin.Shutdown(); err != nil {
+			return err
+		}
+		err := db.QueryWithoutResult(ctx, "DELETE FROM configs", nil)
+		if err != nil {
+			return err
 		}
 
-		err := db.QueryWithoutResult(ctx, "DELETE FROM local_aggregates", nil)
+		err = db.QueryWithoutResult(ctx, "DELETE FROM local_aggregates", nil)
+		if err != nil {
+			return err
+		}
+		err = db.QueryWithoutResult(ctx, "DELETE FROM feeds", nil)
 		if err != nil {
 			return err
 		}
 		err = db.QueryWithoutResult(ctx, "DELETE FROM feed_data", nil)
+		if err != nil {
+			return err
+		}
+		err = app.stopAllFetchers(ctx)
 		if err != nil {
 			return err
 		}
