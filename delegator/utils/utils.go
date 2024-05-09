@@ -351,5 +351,6 @@ func LoadFeePayerFromVault(ctx context.Context) (string, error) {
 		}
 		feePayer = secrets.FeePayer
 	}
+	feePayer = strings.TrimPrefix(string(feePayer), "0x")
 	return feePayer, nil
 }
