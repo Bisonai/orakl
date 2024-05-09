@@ -141,11 +141,11 @@ func setup(ctx context.Context) (func() error, *TestItems, error) {
 	v1 := admin.Group("/api/v1")
 	reporter.Routes(v1)
 
-	return reporterCleanup(ctx, admin, testItems), testItems, nil
+	return reporterCleanup(ctx, admin, app), testItems, nil
 
 }
 
-func reporterCleanup(ctx context.Context, admin *fiber.App, testItems *TestItems) func() error {
+func reporterCleanup(ctx context.Context, admin *fiber.App, app *App) func() error {
 	return func() error {
 		err := db.QueryWithoutResult(ctx, "DELETE FROM global_aggregates;", nil)
 		if err != nil {
@@ -163,6 +163,11 @@ func reporterCleanup(ctx context.Context, admin *fiber.App, testItems *TestItems
 		}
 
 		err = admin.Shutdown()
+		if err != nil {
+			return err
+		}
+
+		err = app.stopReporters()
 		if err != nil {
 			return err
 		}

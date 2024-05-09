@@ -82,7 +82,7 @@ func setup(ctx context.Context) (func() error, *TestItems, error) {
 	aggregator.Routes(v1)
 	config.Routes(v1)
 
-	return aggregatorCleanup(ctx, admin), testItems, nil
+	return aggregatorCleanup(ctx, admin, app), testItems, nil
 }
 
 func insertSampleData(ctx context.Context) (*TmpData, error) {
@@ -126,7 +126,7 @@ func insertSampleData(ctx context.Context) (*TmpData, error) {
 	return tmpData, nil
 }
 
-func aggregatorCleanup(ctx context.Context, admin *fiber.App) func() error {
+func aggregatorCleanup(ctx context.Context, admin *fiber.App, app *App) func() error {
 	return func() error {
 		err := db.QueryWithoutResult(ctx, DeleteConfigs, nil)
 		if err != nil {
@@ -149,6 +149,11 @@ func aggregatorCleanup(ctx context.Context, admin *fiber.App) func() error {
 		}
 
 		err = admin.Shutdown()
+		if err != nil {
+			return err
+		}
+
+		err = app.stopAllAggregators()
 		if err != nil {
 			return err
 		}
