@@ -51,30 +51,6 @@ describe('Reporter', function () {
         }
       }
     })
-
-    test('Send value without insufficient balance', async function () {
-      try {
-        const privateKey = '0xa5061ebc3567c2d3422807986c1c27425455fa62f4d9286c66d07a9afc6d9869' // account with 0 balance
-
-        const wallet = await buildWallet({
-          privateKey,
-          providerUrl: PROVIDER_URL
-        })
-
-        const to = '0x976EA74026E726554dB657fA54763abd0C3a0aa9' // hardhat account 6
-        const value = ethers.utils.parseUnits('1')
-
-        expect(async () => {
-          await sendTransaction({ wallet, to, value, logger })
-        }).rejects.toThrow('TxInsufficientFunds')
-      } catch (e) {
-        if (e.code == OraklErrorCode.ProviderNetworkError) {
-          return 0
-        } else {
-          throw e
-        }
-      }
-    })
   } else {
     // TODO Include hardhat network launch to Github Actions pipeline.
     test('Dummy test', function () {

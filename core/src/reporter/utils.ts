@@ -116,9 +116,6 @@ export async function sendTransaction({
     } else if (e.reason == 'transaction failed') {
       msg = 'TxTransactionFailed'
       error = new OraklError(OraklErrorCode.TxTransactionFailed, msg)
-    } else if (e.reason == 'insufficient funds for intrinsic transaction cost') {
-      msg = 'TxInsufficientFunds'
-      error = new OraklError(OraklErrorCode.TxProcessingResponseError, msg)
     } else if (e.code == 'UNPREDICTABLE_GAS_LIMIT') {
       msg = 'TxCannotEstimateGasError'
       error = new OraklError(OraklErrorCode.TxCannotEstimateGasError, msg, e.value)
