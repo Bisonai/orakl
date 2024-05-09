@@ -70,14 +70,14 @@ func TestInitialize(t *testing.T) {
 
 	readResult, err := utils.GetRequest[utils.FeePayer](appConfig.App, "/readpk", nil)
 	assert.Nil(t, err)
-	assert.Equal(t, readResult.PrivateKey, "0x12345")
+	assert.Equal(t, readResult.PrivateKey, "12345")
 
 	err = utils.RawReq(appConfig.App, "GET", "/api/v1/sign/initialize", nil)
 	assert.Nil(t, err)
 
 	readResultRefreshed, err := utils.GetRequest[utils.FeePayer](appConfig.App, "/readpk", nil)
 	assert.Nil(t, err)
-	assert.NotEqual(t, readResultRefreshed.PrivateKey, "0x12345")
+	assert.NotEqual(t, readResultRefreshed.PrivateKey, "12345")
 }
 
 func TestInsert(t *testing.T) {
