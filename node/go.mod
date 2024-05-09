@@ -18,6 +18,7 @@ require (
 	github.com/rs/zerolog v1.32.0
 	github.com/stretchr/testify v1.8.4
 	golang.org/x/crypto v0.19.0
+	nhooyr.io/websocket v1.8.11
 )
 
 require (
