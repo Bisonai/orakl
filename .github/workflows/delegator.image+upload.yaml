@@ -3,9 +3,10 @@ name: Go Delegator Deploy to Amazon ECR
 on:
   push:
     branches:
-      - i-1456/feat/integration-vault-to-delegator
+      - master
     paths:
       - "delegator/**"
+    workflow_dispatch:
 env:
   ecr_url: public.ecr.aws/bisonai/orakl-delegator
 
