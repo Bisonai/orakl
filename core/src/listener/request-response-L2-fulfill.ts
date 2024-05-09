@@ -1,4 +1,4 @@
-import { L1Endpoint__factory } from '@bisonai/orakl-contracts'
+import { L1Endpoint__factory } from '@bisonai/orakl-contracts/v0.1'
 import { ethers } from 'ethers'
 import { Logger } from 'pino'
 import type { RedisClientType } from 'redis'
