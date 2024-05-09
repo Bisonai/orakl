@@ -133,7 +133,7 @@ export async function listenerService({
   const watchmanServer = await watchman({ state, logger })
 
   async function handleExit() {
-    logger.info('Exiting. Wait for graceful shutdown.')
+    logger.debug('Exiting. Wait for graceful shutdown.')
 
     await latestWorker.close()
     await historyWorker.close()
