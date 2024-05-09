@@ -144,6 +144,7 @@ func CustomStackTraceHandler(_ *fiber.Ctx, e interface{}) {
 
 func GetFeePayer(c *fiber.Ctx) (string, error) {
 	feePayer, ok := c.Locals("feePayer").(string)
+	feePayer = strings.TrimPrefix(feePayer, "0x")
 	if !ok {
 		return feePayer, errors.New("failed to get feePayer")
 	} else {
