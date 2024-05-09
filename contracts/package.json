@@ -1,6 +1,6 @@
 {
   "name": "@bisonai/orakl-contracts",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "The Orakl Network Smart Contracts",
   "files": [
     "v0.1/dist",
@@ -20,7 +20,12 @@
     "Request-Response",
     "Data Feed"
   ],
+  "exports": {
+    "./v0.1": "./v0.1/dist/index.js",
+    "./v0.2": "./v0.2/dist/index.js"
+  },
   "scripts": {
+    "install": "yarn --cwd='../' contracts-v01 install && yarn --cwd='../' contracts-v02 install",
     "compile": "yarn --cwd='../' contracts-v01 compile && yarn --cwd='../' contracts-v02 compile",
     "build": "yarn --cwd='../' contracts-v01 build && yarn --cwd='../' contracts-v02 build",
     "clean": "yarn --cwd='../' contracts-v01 clean && yarn --cwd='../' contracts-v02 clean",
