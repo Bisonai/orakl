@@ -31,7 +31,7 @@ contract SubmissionProxy is Ownable {
     address[] public feedAddresses;
 
     struct OracleInfo {
-        uint8 index;
+        uint256 index;
         uint256 expirationTime;
     }
 
@@ -225,7 +225,7 @@ contract SubmissionProxy is Ownable {
      * @param _oracle The address of the oracle
      * @return The index of the oracle in the whitelist
      */
-    function addOracle(address _oracle) external onlyOwner returns (uint8) {
+    function addOracle(address _oracle) external onlyOwner returns (uint256) {
         if (_oracle == address(0)) {
             revert ZeroAddressGiven();
         }
@@ -235,11 +235,11 @@ contract SubmissionProxy is Ownable {
         }
 
         bool found = false;
-        uint8 index_ = 0;
+        uint256 index_ = 0;
 
         // register the oracle
-        uint8 oraclesLength_ = uint8(oracles.length);
-        for (uint8 i = 0; i < oraclesLength_; i++) {
+        uint256 oraclesLength_ = oracles.length;
+        for (uint256 i = 0; i < oraclesLength_; i++) {
             if (!isWhitelisted(oracles[i])) {
                 // reuse existing oracle slot if it is expired
                 whitelist[oracles[i]].index = 0;
@@ -254,7 +254,7 @@ contract SubmissionProxy is Ownable {
         if (!found) {
             // oracle has not been registered yet
             oracles.push(_oracle);
-            index_ = uint8(oracles.length - 1);
+            index_ = oracles.length - 1;
         }
 
         // set the expiration time and index
@@ -279,11 +279,11 @@ contract SubmissionProxy is Ownable {
             revert InvalidOracle();
         }
 
-        uint8 oraclesLength_ = uint8(oracles.length);
-        for (uint8 i = 0; i < oraclesLength_; i++) {
+        uint256 oraclesLength_ = oracles.length;
+        for (uint256 i = 0; i < oraclesLength_; i++) {
             if (_oracle == oracles[i]) {
                 oracles[i] = oracles[oracles.length - 1];
-                whitelist[oracles[i]].index = uint8(i);
+                whitelist[oracles[i]].index = i;
                 oracles.pop();
                 break;
             }
@@ -314,11 +314,11 @@ contract SubmissionProxy is Ownable {
         whitelist[msg.sender].index = 0;
 
         // update the oracle address
-        uint8 oraclesLength_ = uint8(oracles.length);
-        for (uint8 i = 0; i < oraclesLength_; i++) {
+        uint256 oraclesLength_ = oracles.length;
+        for (uint256 i = 0; i < oraclesLength_; i++) {
             if (msg.sender == oracles[i]) {
                 oracles[i] = _oracle;
-                info.index = uint8(i);
+                info.index = i;
                 break;
             }
         }
@@ -515,7 +515,7 @@ contract SubmissionProxy is Ownable {
         }
 
         uint8 verifiedSignatures_ = 0;
-        uint8 lastIndex_ = 0;
+        uint256 lastIndex_ = 0;
 
         uint8 threshold_ = thresholds[_feedHash];
         if (threshold_ == 0) {
@@ -531,7 +531,7 @@ contract SubmissionProxy is Ownable {
                 continue;
             }
 
-            uint8 oracleIndex_ = whitelist[signer_].index;
+            uint256 oracleIndex_ = whitelist[signer_].index;
             if (j != 0 && oracleIndex_ <= lastIndex_) {
                 revert IndexesNotAscending();
             }
