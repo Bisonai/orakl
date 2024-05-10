@@ -9,10 +9,10 @@ interface IFeed {
     function decimals() external view returns (uint8);
 
     /**
-     * @notice Get description of the feed.
-     * @return description The description of the feed.
+     * @notice Get name of the feed.
+     * @return name The name of the feed.
      */
-    function description() external view returns (string memory);
+    function name() external view returns (string memory);
 
     /**
      * @notice Get version and type of the feed.

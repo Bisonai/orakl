@@ -28,6 +28,7 @@ contract SubmissionProxy is Ownable {
     uint256 public dataFreshness = 10 seconds;
     uint8 public defaultThreshold = 50; // 50 %
     address[] public oracles;
+    address[] public feedAddresses;
 
     struct OracleInfo {
         uint8 index;
@@ -36,8 +37,7 @@ contract SubmissionProxy is Ownable {
 
     mapping(address => OracleInfo) public whitelist;
     mapping(bytes32 feedHash => uint8 threshold) thresholds;
-    mapping(bytes32 feedHash => IFeed feedAddress) feeds;
-    IFeed[] public feedAddresses;
+    mapping(bytes32 feedHash => IFeed feed) feeds;
 
     event OracleAdded(address oracle, uint256 expirationTime);
     event OracleRemoved(address oracle);
@@ -47,7 +47,7 @@ contract SubmissionProxy is Ownable {
     event ThresholdSet(bytes32 feedHash, uint8 threshold);
     event DataFreshnessSet(uint256 dataFreshness);
     event FeedAddressUpdated(bytes32 feedHash, address indexed feed);
-    event FeedAddressBulkUpdated(bytes32[] feedHashs, address[] feeds);
+    event FeedAddressBulkUpdated(bytes32[] feedHashes, address[] feeds);
     event FeedAddressRemoved(bytes32 feedHash, address feed);
 
     error OnlyOracle();
@@ -59,7 +59,6 @@ contract SubmissionProxy is Ownable {
     error IndexesNotAscending();
     error InvalidSignatureLength();
     error InvalidFeed();
-
 
     modifier onlyOracle() {
         if (!isWhitelisted(msg.sender)) {
@@ -79,11 +78,7 @@ contract SubmissionProxy is Ownable {
      * @return The list of feed addresses
      */
     function getFeeds() external view returns (address[] memory) {
-        address[] memory feedAddressesArray = new address[](feedAddresses.length);
-        for (uint256 i = 0; i < feedAddresses.length; i++) {
-            feedAddressesArray[i] = address(feedAddresses[i]);
-        }
-        return feedAddressesArray;
+        return feedAddresses;
     }
 
     /**
@@ -97,8 +92,10 @@ contract SubmissionProxy is Ownable {
         }
 
         delete feeds[_feedHash];
-        for (uint256 i = 0; i < feedAddresses.length; i++) {
-            if (address(feedAddresses[i]) == address(feed)) {
+
+        uint256 feedAddressesLength = feedAddresses.length;
+        for (uint256 i = 0; i < feedAddressesLength; i++) {
+            if (feedAddresses[i] == address(feed)) {
                 feedAddresses[i] = feedAddresses[feedAddresses.length - 1];
                 feedAddresses.pop();
                 break;
@@ -114,12 +111,19 @@ contract SubmissionProxy is Ownable {
      * @param _feed The address of the feed
      */
     function updateFeed(bytes32 _feedHash, address _feed) public onlyOwner {
-        IFeed feed = IFeed(_feed);
         if (address(feeds[_feedHash]) == address(0)) {
-            feedAddresses.push(feed);
+            feedAddresses.push(_feed);
+        } else {
+            uint256 feedAddressesLength = feedAddresses.length;
+            for (uint256 i = 0; i < feedAddressesLength; i++) {
+                if (feedAddresses[i] == address(feeds[_feedHash])) {
+                    feedAddresses[i] = _feed;
+                    break;
+                }
+            }
         }
 
-        feeds[_feedHash] = feed;
+        feeds[_feedHash] = IFeed(_feed);
         emit FeedAddressUpdated(_feedHash, _feed);
     }
 
@@ -227,7 +231,9 @@ contract SubmissionProxy is Ownable {
         for (uint8 i = 0; i < oraclesLength_; i++) {
             if (!isWhitelisted(oracles[i])) {
                 // reuse existing oracle slot if it is expired
+                whitelist[oracles[i]].index = 0;
                 oracles[i] = _oracle;
+
                 found = true;
                 index_ = i;
                 break;
@@ -357,7 +363,7 @@ contract SubmissionProxy is Ownable {
                 continue;
             }
 
-            if (keccak256(abi.encode(feeds[_feedHashes[i]].description())) != _feedHashes[i]) {
+            if (keccak256(abi.encodePacked(feeds[_feedHashes[i]].name())) != _feedHashes[i]) {
                 // feedHash not matching with registered feed -> do not submit!
                 continue;
             }
@@ -440,6 +446,10 @@ contract SubmissionProxy is Ownable {
      */
     function recoverSigner(bytes32 message, bytes memory sig) private pure returns (address) {
         (uint8 v, bytes32 r, bytes32 s) = splitSignature(sig);
+        if (uint256(s) > 0x7FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF5D576E7357A4501DDFE92F46681B20A0) {
+            // return address(0) if s is larger than half of the order, to skip signature malleability
+            return address(0);
+        }
         return ecrecover(message, v, r, s);
     }
 
@@ -483,12 +493,12 @@ contract SubmissionProxy is Ownable {
      * @dev The order of the proofs must be in ascending order of the
      * oracle index. The function will revert with `IndexesNotAscending`
      * error if the order is not ascending.
-     * @param _feed The address of the feed
+     * @param _feedHash The hash of the feed
      * @param _message The hash of the message
      * @param _proofs The proofs
      * @return `true` if the proof is valid, `false` otherwise
      */
-    function validateProof(bytes32 _feed, bytes32 _message, bytes[] memory _proofs) private view returns (bool) {
+    function validateProof(bytes32 _feedHash, bytes32 _message, bytes[] memory _proofs) private view returns (bool) {
         if (oracles.length == 0) {
             return false;
         }
@@ -496,7 +506,7 @@ contract SubmissionProxy is Ownable {
         uint8 verifiedSignatures_ = 0;
         uint8 lastIndex_ = 0;
 
-        uint8 threshold_ = thresholds[_feed];
+        uint8 threshold_ = thresholds[_feedHash];
         if (threshold_ == 0) {
             threshold_ = defaultThreshold;
         }

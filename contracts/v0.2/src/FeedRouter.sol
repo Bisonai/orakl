@@ -170,8 +170,8 @@ contract FeedRouter is Ownable, IFeedRouter {
     /**
      * @inheritdoc IFeedRouter
      */
-    function description(string calldata _feedName) external view validFeed(_feedName) returns (string memory) {
-        return IFeedProxy(feedToProxies[_feedName]).description();
+    function name(string calldata _feedName) external view validFeed(_feedName) returns (string memory) {
+        return IFeedProxy(feedToProxies[_feedName]).name();
     }
 
     /**

@@ -49,8 +49,8 @@ contract FeedProxy is Ownable, IFeedProxy {
     /**
      * @inheritdoc IFeed
      */
-    function description() external view returns (string memory) {
-        return feed.description();
+    function name() external view returns (string memory) {
+        return feed.name();
     }
 
     /**

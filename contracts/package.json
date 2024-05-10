@@ -32,7 +32,7 @@
     "prettier-solidity-check": "yarn --cwd='../' contracts-v01 prettier-solidity-check",
     "solhint": "yarn --cwd='../' contracts-v01 solhint",
     "lint": "yarn --cwd='../' contracts-v01 lint && yarn --cwd='../' contracts-v02 lint",
-    "test-non-vrf": "yarn --cwd='../' contracts-v01 test-non-vrf"
+    "test-non-vrf": "yarn --cwd='../' contracts-v01 test-non-vrf && yarn --cwd='../' contracts-v02 test"
   },
   "engines": {
     "node": ">=20.0.0"

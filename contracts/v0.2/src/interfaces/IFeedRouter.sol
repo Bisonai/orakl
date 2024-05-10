@@ -135,11 +135,11 @@ interface IFeedRouter {
     function typeAndVersion(string calldata feedName) external view returns (string memory);
 
     /**
-     * @notice Get description of the feed given a feed name.
+     * @notice Get name of the feed given a feed name.
      * @param feedName The feed name.
-     * @return description The description of the feed.
+     * @return name The name of the feed.
      */
-    function description(string calldata feedName) external view returns (string memory);
+    function name(string calldata feedName) external view returns (string memory);
 
     /**
      * @notice Get supported feed names.

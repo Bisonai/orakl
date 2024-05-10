@@ -10,7 +10,6 @@ import {IFeed} from "../src/interfaces/IFeed.sol";
 contract SubmissionProxyTest is Test {
     SubmissionProxy submissionProxy;
     uint8 DECIMALS = 18;
-    string DESCRIPTION = "Test Feed";
     string[] SAMPLE_NAMES = [
         "BTC-USDT",
         "ETH-USDT",
@@ -331,7 +330,6 @@ contract SubmissionProxyTest is Test {
             int256[] memory submissions_,
             bytes[] memory proofs_,
             uint256[] memory timestamps_,
-            address[] memory feeds_
         ) = prepareFeedsSubmissions(numOracles_, submissionValue_, dummySk_);
         bytes32 hash_ = keccak256(abi.encodePacked(submissions_[0], timestamps_[0], feedHashes_[0]));
 
@@ -342,6 +340,67 @@ contract SubmissionProxyTest is Test {
 
         vm.expectRevert(SubmissionProxy.IndexesNotAscending.selector);
         submissionProxy.submit(feedHashes_, submissions_, timestamps_, proofs_);
+    }
+
+    function test_SubmitUnregisteredFeed() public {
+        (address alice_, uint256 aliceSk_) = makeAddrAndKey("alice");
+        (address bob_, uint256 bobSk_) = makeAddrAndKey("bob");
+        (address celine_, uint256 celineSk_) = makeAddrAndKey("celine");
+        (, uint256 dummySk_) = makeAddrAndKey("dummy");
+
+        submissionProxy.addOracle(alice_);
+        submissionProxy.addOracle(bob_);
+        submissionProxy.addOracle(celine_);
+
+        uint256 numOracles_ = 1;
+        int256 submissionValue_ = 10;
+        (
+            bytes32[] memory feedHashes_,
+            int256[] memory submissions_,
+            bytes[] memory proofs_,
+            uint256[] memory timestamps_,
+            address[] memory feeds_
+        ) = prepareFeedsSubmissions(numOracles_, submissionValue_, dummySk_);
+        bytes32 hash_ = keccak256(abi.encodePacked(submissions_[0], timestamps_[0], feedHashes_[0]));
+        proofs_[0] =
+            abi.encodePacked(createProof(aliceSk_, hash_), createProof(bobSk_, hash_), createProof(celineSk_, hash_));
+
+        submissionProxy.setProofThreshold(feedHashes_[0], 100); // 100 % of the oracles must submit a valid proof
+        submissionProxy.removeFeed(feedHashes_[0]);
+        submissionProxy.submit(feedHashes_, submissions_, timestamps_, proofs_);
+
+        vm.expectRevert(Feed.NoDataPresent.selector);
+        IFeed(feeds_[0]).latestRoundData();
+    }
+
+    function test_SubmitUnmatchedNameFeed() public {
+        (address alice_, uint256 aliceSk_) = makeAddrAndKey("alice");
+        (address bob_, uint256 bobSk_) = makeAddrAndKey("bob");
+        (address celine_, uint256 celineSk_) = makeAddrAndKey("celine");
+        (, uint256 dummySk_) = makeAddrAndKey("dummy");
+
+        submissionProxy.addOracle(alice_);
+        submissionProxy.addOracle(bob_);
+        submissionProxy.addOracle(celine_);
+
+        uint256 numOracles_ = 1;
+        int256 submissionValue_ = 10;
+        (
+            bytes32[] memory feedHashes_,
+            int256[] memory submissions_,
+            bytes[] memory proofs_,
+            uint256[] memory timestamps_,
+            address[] memory feeds_
+        ) = prepareFeedsSubmissionsWrongName(numOracles_, submissionValue_, dummySk_);
+        bytes32 hash_ = keccak256(abi.encodePacked(submissions_[0], timestamps_[0], feedHashes_[0]));
+        proofs_[0] =
+            abi.encodePacked(createProof(aliceSk_, hash_), createProof(bobSk_, hash_), createProof(celineSk_, hash_));
+
+        submissionProxy.setProofThreshold(feedHashes_[0], 100); // 100 % of the oracles must submit a valid proof
+        submissionProxy.submit(feedHashes_, submissions_, timestamps_, proofs_);
+
+        vm.expectRevert(Feed.NoDataPresent.selector);
+        IFeed(feeds_[0]).latestRoundData();
     }
 
     function test_SubmitCorrectProof() public {
@@ -386,14 +445,39 @@ contract SubmissionProxyTest is Test {
         ) = createSubmitParameters(_numOracles);
         address[] memory feeds_ = new address[](_numOracles);
         for (uint256 i = 0; i < _numOracles; i++) {
-            Feed feed_ = new Feed(DECIMALS, DESCRIPTION, address(submissionProxy));
+            Feed feed_ = new Feed(DECIMALS, SAMPLE_NAMES[i], address(submissionProxy));
             feeds_[i] = address(feed_);
             feedHashes_[i] = keccak256(abi.encodePacked(SAMPLE_NAMES[i]));
             submissions_[i] = _submissionValue;
             timestamps_[i] = block.timestamp;
             proofs_[i] =
                 createProof(_oracleSk, keccak256(abi.encodePacked(timestamps_[i], submissions_[i], feedHashes_[i])));
-            submissionProxy.updateFeed(feedHashes_[i], address(feed_));
+            submissionProxy.updateFeed(feedHashes_[i], address(feeds_[i]));
+        }
+
+        return (feedHashes_, submissions_, proofs_, timestamps_, feeds_);
+    }
+
+    function prepareFeedsSubmissionsWrongName(uint256 _numOracles, int256 _submissionValue, uint256 _oracleSk)
+        private
+        returns (bytes32[] memory, int256[] memory, bytes[] memory, uint256[] memory, address[] memory)
+    {
+        (
+            bytes32[] memory feedHashes_,
+            int256[] memory submissions_,
+            bytes[] memory proofs_,
+            uint256[] memory timestamps_
+        ) = createSubmitParameters(_numOracles);
+        address[] memory feeds_ = new address[](_numOracles);
+        for (uint256 i = 0; i < _numOracles; i++) {
+            Feed feed_ = new Feed(DECIMALS, "wrong-name", address(submissionProxy));
+            feeds_[i] = address(feed_);
+            feedHashes_[i] = keccak256(abi.encodePacked(SAMPLE_NAMES[i]));
+            submissions_[i] = _submissionValue;
+            timestamps_[i] = block.timestamp;
+            proofs_[i] =
+                createProof(_oracleSk, keccak256(abi.encodePacked(timestamps_[i], submissions_[i], feedHashes_[i])));
+            submissionProxy.updateFeed(feedHashes_[i], address(feeds_[i]));
         }
 
         return (feedHashes_, submissions_, proofs_, timestamps_, feeds_);
