@@ -59,6 +59,7 @@ contract SubmissionProxy is Ownable {
     error IndexesNotAscending();
     error InvalidSignatureLength();
     error InvalidFeed();
+    error ZeroAddressGiven();
 
     modifier onlyOracle() {
         if (!isWhitelisted(msg.sender)) {
@@ -111,12 +112,18 @@ contract SubmissionProxy is Ownable {
      * @param _feed The address of the feed
      */
     function updateFeed(bytes32 _feedHash, address _feed) public onlyOwner {
-        if (address(feeds[_feedHash]) == address(0)) {
+        if (_feed == address(0)) {
+            revert ZeroAddressGiven();
+        }
+
+        address oldFeedAddress = address(feeds[_feedHash]);
+
+        if (oldFeedAddress == address(0)) {
             feedAddresses.push(_feed);
         } else {
             uint256 feedAddressesLength = feedAddresses.length;
             for (uint256 i = 0; i < feedAddressesLength; i++) {
-                if (feedAddresses[i] == address(feeds[_feedHash])) {
+                if (feedAddresses[i] == oldFeedAddress) {
                     feedAddresses[i] = _feed;
                     break;
                 }
@@ -219,6 +226,10 @@ contract SubmissionProxy is Ownable {
      * @return The index of the oracle in the whitelist
      */
     function addOracle(address _oracle) external onlyOwner returns (uint8) {
+        if (_oracle == address(0)) {
+            revert ZeroAddressGiven();
+        }
+
         if (whitelist[_oracle].expirationTime != 0) {
             revert InvalidOracle();
         }
