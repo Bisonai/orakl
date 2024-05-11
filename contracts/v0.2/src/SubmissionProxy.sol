@@ -486,9 +486,9 @@ contract SubmissionProxy is Ownable {
      * @param _threshold The threshold
      * @return The quorum
      */
-    function quorum(uint8 _threshold) internal view returns (uint8) {
+    function quorum(uint8 _threshold) internal view returns (uint256) {
         uint256 nominator = oracles.length * _threshold;
-        return uint8((nominator / 100) + (nominator % 100 == 0 ? 0 : 1));
+        return (nominator / 100) + (nominator % 100 == 0 ? 0 : 1);
     }
 
     /**
@@ -514,14 +514,14 @@ contract SubmissionProxy is Ownable {
             return false;
         }
 
-        uint8 verifiedSignatures_ = 0;
+        uint256 verifiedSignatures_ = 0;
         uint256 lastIndex_ = 0;
 
         uint8 threshold_ = thresholds[_feedHash];
         if (threshold_ == 0) {
             threshold_ = defaultThreshold;
         }
-        uint8 requiredSignatures_ = quorum(threshold_);
+        uint256 requiredSignatures_ = quorum(threshold_);
 
         uint256 proofsLength_ = _proofs.length;
         for (uint256 j = 0; j < proofsLength_; j++) {

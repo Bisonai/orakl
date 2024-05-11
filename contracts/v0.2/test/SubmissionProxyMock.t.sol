@@ -8,7 +8,7 @@ import {Feed} from "../src/Feed.sol";
 import {IFeed} from "../src/interfaces/IFeed.sol";
 
 contract SubmissionProxyMock is SubmissionProxy {
-    function callQuorum(uint8 _threshold) external view returns (uint8) {
+    function callQuorum(uint8 _threshold) external view returns (uint256) {
         return quorum(_threshold);
     }
 
@@ -31,7 +31,7 @@ contract SubmissionProxyMockTest is Test {
     function test_QuorumWithOneOracle() public {
         submissionProxy.addOracle(makeAddr("zero"));
 
-        uint8 quorum_ = submissionProxy.callQuorum(1);
+        uint256 quorum_ = submissionProxy.callQuorum(1);
         assertEq(quorum_, 1);
 
         quorum_ = submissionProxy.callQuorum(100);
@@ -42,7 +42,7 @@ contract SubmissionProxyMockTest is Test {
         submissionProxy.addOracle(makeAddr("zero"));
         submissionProxy.addOracle(makeAddr("one"));
 
-        uint8 quorum_ = submissionProxy.callQuorum(1);
+        uint256 quorum_ = submissionProxy.callQuorum(1);
         assertEq(quorum_, 1);
 
         quorum_ = submissionProxy.callQuorum(50);
@@ -61,7 +61,7 @@ contract SubmissionProxyMockTest is Test {
         submissionProxy.addOracle(makeAddr("one"));
         submissionProxy.addOracle(makeAddr("two"));
 
-        uint8 quorum_ = submissionProxy.callQuorum(1);
+        uint256 quorum_ = submissionProxy.callQuorum(1);
         assertEq(quorum_, 1);
 
         quorum_ = submissionProxy.callQuorum(33);
