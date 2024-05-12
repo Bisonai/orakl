@@ -96,6 +96,7 @@ contract FeedRouter is Ownable, IFeedRouter {
     function twap(string calldata _feedName, uint256 _interval, uint256 _latestUpdatedAtTolerance, int256 _minCount)
         external
         view
+        validFeed(_feedName)
         returns (int256)
     {
         return IFeedProxy(feedToProxies[_feedName]).twap(_interval, _latestUpdatedAtTolerance, _minCount);
@@ -109,7 +110,7 @@ contract FeedRouter is Ownable, IFeedRouter {
         uint256 _interval,
         uint256 _latestUpdatedAtTolerance,
         int256 _minCount
-    ) external view returns (int256) {
+    ) external view validFeed(_feedName) returns (int256) {
         return
             IFeedProxy(feedToProxies[_feedName]).twapFromProposedFeed(_interval, _latestUpdatedAtTolerance, _minCount);
     }
@@ -169,8 +170,8 @@ contract FeedRouter is Ownable, IFeedRouter {
     /**
      * @inheritdoc IFeedRouter
      */
-    function description(string calldata _feedName) external view validFeed(_feedName) returns (string memory) {
-        return IFeedProxy(feedToProxies[_feedName]).description();
+    function name(string calldata _feedName) external view validFeed(_feedName) returns (string memory) {
+        return IFeedProxy(feedToProxies[_feedName]).name();
     }
 
     /**
@@ -189,18 +190,12 @@ contract FeedRouter is Ownable, IFeedRouter {
         if (_proxyAddress == address(0)) {
             revert InvalidProxyAddress();
         }
+        bool found = false;
+        if (feedToProxies[_feedName] != address(0)) {
+            found = true;
+        }
 
         feedToProxies[_feedName] = _proxyAddress;
-        bytes32 feedNameHash = keccak256(abi.encodePacked(_feedName));
-        bool found = false;
-
-        uint256 feedNamesLength = feedNames.length;
-        for (uint256 i = 0; i < feedNamesLength; i++) {
-            if (keccak256(abi.encodePacked(feedNames[i])) == feedNameHash) {
-                found = true;
-                break;
-            }
-        }
 
         if (!found) {
             feedNames.push(_feedName);

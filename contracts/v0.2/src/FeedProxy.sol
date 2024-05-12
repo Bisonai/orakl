@@ -49,8 +49,8 @@ contract FeedProxy is Ownable, IFeedProxy {
     /**
      * @inheritdoc IFeed
      */
-    function description() external view returns (string memory) {
-        return feed.description();
+    function name() external view returns (string memory) {
+        return feed.name();
     }
 
     /**
@@ -118,12 +118,7 @@ contract FeedProxy is Ownable, IFeedProxy {
     /**
      * @inheritdoc IFeedProxy
      */
-    function latestRoundDataFromProposedFeed()
-        external
-        view
-        hasProposal
-        returns (uint64, int256, uint256)
-    {
+    function latestRoundDataFromProposedFeed() external view hasProposal returns (uint64, int256, uint256) {
         return proposedFeed.latestRoundData();
     }
 

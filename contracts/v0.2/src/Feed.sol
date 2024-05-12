@@ -14,7 +14,7 @@ import {IFeed} from "./interfaces/IFeed.sol";
  */
 contract Feed is Ownable, IFeed {
     uint8 public immutable decimals;
-    string public description;
+    string public name;
     address public submitter;
 
     struct Round {
@@ -45,12 +45,12 @@ contract Feed is Ownable, IFeed {
      * @notice Construct a new `Feed` contract.
      * @dev The deployer of the contract will become the owner.
      * @param _decimals The number of decimals for the feed
-     * @param _description The description of the feed
+     * @param _name The name of the feed
      * @param _submitter The address of the submitter
      */
-    constructor(uint8 _decimals, string memory _description, address _submitter) Ownable(msg.sender) {
+    constructor(uint8 _decimals, string memory _name, address _submitter) Ownable(msg.sender) {
         decimals = _decimals;
-        description = _description;
+        name = _name;
         submitter = _submitter;
     }
 
@@ -144,13 +144,7 @@ contract Feed is Ownable, IFeed {
     /**
      * @inheritdoc IFeed
      */
-    function getRoundData(uint64 _roundId)
-        public
-        view
-        virtual
-        override
-        returns (uint64, int256, uint256)
-    {
+    function getRoundData(uint64 _roundId) public view virtual override returns (uint64, int256, uint256) {
         Round memory r = rounds[_roundId];
 
         if (r.updatedAt == 0) {
