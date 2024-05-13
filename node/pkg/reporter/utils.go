@@ -126,8 +126,8 @@ func MakeContractArgsWithProofs(aggregates []GlobalAggregate, submissionPairs ma
 		name := submissionPairs[agg.ConfigID].Name
 		copy(feedHash[i][:], crypto.Keccak256([]byte(name)))
 		values[i] = big.NewInt(agg.Value)
-		proofs[i] = proofMap[agg.ConfigID]
 		timestamps[i] = big.NewInt(agg.Timestamp.Unix())
+		proofs[i] = proofMap[agg.ConfigID]
 	}
 
 	if len(feedHash) == 0 || len(values) == 0 || len(proofs) == 0 || len(timestamps) == 0 {
