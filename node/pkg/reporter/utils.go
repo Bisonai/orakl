@@ -122,10 +122,9 @@ func MakeContractArgsWithProofs(aggregates []GlobalAggregate, submissionPairs ma
 			log.Error().Str("Player", "Reporter").Int32("configId", agg.ConfigID).Int64("value", agg.Value).Msg("skipping invalid aggregate")
 			return nil, nil, nil, nil, errorSentinel.ErrReporterInvalidAggregateFound
 		}
-		var tmpFeedHash [32]byte
+
 		name := submissionPairs[agg.ConfigID].Name
-		copy(tmpFeedHash[:], crypto.Keccak256([]byte(name)))
-		feedHash[i] = tmpFeedHash
+		copy(feedHash[i][:], crypto.Keccak256([]byte(name)))
 		values[i] = big.NewInt(agg.Value)
 		proofs[i] = proofMap[agg.ConfigID]
 		timestamps[i] = big.NewInt(agg.Timestamp.Unix())
