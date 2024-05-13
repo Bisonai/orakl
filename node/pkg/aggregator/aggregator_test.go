@@ -174,7 +174,7 @@ func TestInsertProof(t *testing.T) {
 
 	value := int64(20)
 	round := int32(2)
-	p, err := node.SignHelper.MakeGlobalAggregateProof(value, time.Now())
+	p, err := node.SignHelper.MakeGlobalAggregateProof(value, time.Now(), "test-aggregate")
 	if err != nil {
 		t.Fatal("error making global aggregate proof")
 	}
