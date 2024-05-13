@@ -377,12 +377,3 @@ func UpdateProofs(ctx context.Context, aggregates []GlobalAggregate, proofMap ma
 	}
 	return err
 }
-
-func GetNameFromConfigId(configs []Config, configId int32) (string, error) {
-	for _, config := range configs {
-		if config.ID == configId {
-			return config.Name, nil
-		}
-	}
-	return "", errorSentinel.ErrReporterConfigNotFound
-}
