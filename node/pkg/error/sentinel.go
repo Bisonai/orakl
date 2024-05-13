@@ -155,6 +155,7 @@ var (
 	ErrReporterNotFound                        = &CustomError{Service: Reporter, Code: InternalError, Message: "Reporter not found"}
 	ErrReporterAlreadyRunning                  = &CustomError{Service: Reporter, Code: InternalError, Message: "Reporter already running"}
 	ErrReporterCancelNotFound                  = &CustomError{Service: Reporter, Code: InternalError, Message: "Reporter cancel function not found"}
+	ErrReporterConfigNotFound                  = &CustomError{Service: Reporter, Code: InternalError, Message: "Reporter config not found"}
 	ErrReporterEmptyConfigs                    = &CustomError{Service: Reporter, Code: InternalError, Message: "Empty configs"}
 	ErrReporterJobFailed                       = &CustomError{Service: Reporter, Code: InternalError, Message: "Job failed"}
 	ErrReporterReportFailed                    = &CustomError{Service: Reporter, Code: InternalError, Message: "Report failed"}

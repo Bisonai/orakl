@@ -13,7 +13,6 @@ import (
 	"bisonai.com/orakl/node/pkg/raft"
 	"bisonai.com/orakl/node/pkg/utils/retrier"
 
-	"github.com/klaytn/klaytn/common"
 	"github.com/rs/zerolog/log"
 )
 
@@ -55,7 +54,7 @@ func NewReporter(ctx context.Context, opts ...ReporterOption) (*Reporter, error)
 	}
 	reporter.SubmissionPairs = make(map[int32]SubmissionPair)
 	for _, sa := range config.Configs {
-		reporter.SubmissionPairs[sa.ID] = SubmissionPair{LastSubmission: 0, Address: common.HexToAddress(sa.Address)}
+		reporter.SubmissionPairs[sa.ID] = SubmissionPair{LastSubmission: 0, Name: sa.Name}
 	}
 	reporter.Raft.HandleCustomMessage = reporter.handleCustomMessage
 	if config.JobType == DeviationJob {
@@ -154,7 +153,7 @@ func (r *Reporter) report(ctx context.Context, aggregates []GlobalAggregate) err
 
 func (r *Reporter) orderProof(ctx context.Context, proof []byte, aggregate GlobalAggregate) ([]byte, error) {
 	proof = RemoveDuplicateProof(proof)
-	hash := chainUtils.Value2HashForSign(aggregate.Value, aggregate.Timestamp.Unix())
+	hash := chainUtils.Value2HashForSign(aggregate.Value, aggregate.Timestamp.Unix(), r.SubmissionPairs[aggregate.ConfigID].Name)
 	proofChunks, err := SplitProofToChunk(proof)
 	if err != nil {
 		log.Error().Str("Player", "Reporter").Err(err).Msg("failed to split proof")
@@ -227,17 +226,17 @@ func (r *Reporter) reportWithProofs(ctx context.Context, aggregates []GlobalAggr
 		return errorSentinel.ErrReporterKlaytnHelperNotFound
 	}
 
-	addresses, values, timestamps, proofs, err := MakeContractArgsWithProofs(aggregates, r.SubmissionPairs, proofMap)
+	feedHashes, values, timestamps, proofs, err := MakeContractArgsWithProofs(aggregates, r.SubmissionPairs, proofMap)
 	if err != nil {
 		log.Error().Str("Player", "Reporter").Err(err).Msg("makeContractArgsWithProofs")
 		return err
 	}
 	log.Debug().Str("Player", "Reporter").Int("proofs", len(proofs)).Msg("contract arguements generated")
 
-	err = r.reportDelegated(ctx, SUBMIT_WITH_PROOFS, addresses, values, timestamps, proofs)
+	err = r.reportDelegated(ctx, SUBMIT_WITH_PROOFS, feedHashes, values, timestamps, proofs)
 	if err != nil {
 		log.Error().Str("Player", "Reporter").Err(err).Msg("reporting directly")
-		return r.reportDirect(ctx, SUBMIT_WITH_PROOFS, addresses, values, timestamps, proofs)
+		return r.reportDirect(ctx, SUBMIT_WITH_PROOFS, feedHashes, values, timestamps, proofs)
 	}
 	return nil
 }

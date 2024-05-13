@@ -22,10 +22,10 @@ const (
 	INITIAL_FAILURE_TIMEOUT                  = 50 * time.Millisecond
 	MAX_RETRY                                = 3
 	MAX_RETRY_DELAY                          = 500 * time.Millisecond
-	SUBMIT_WITH_PROOFS                       = "submit(address[] memory _feeds, int256[] memory _answers, uint256[] memory _timestamps, bytes[] memory _proofs)"
+	SUBMIT_WITH_PROOFS                       = "submit(bytes32[] calldata _feedHashes, int256[] calldata _answers, uint256[] calldata _timestamps, bytes[] calldata _proofs)"
 	GET_ONCHAIN_WHITELIST                    = "getAllOracles() public view returns (address[] memory)"
 
-	GET_REPORTER_CONFIGS = `SELECT name, id, address, submit_interval, aggregate_interval FROM configs;`
+	GET_REPORTER_CONFIGS = `SELECT name, id, submit_interval, aggregate_interval FROM configs;`
 
 	DEVIATION_THRESHOLD          = 0.05
 	DEVIATION_ABSOLUTE_THRESHOLD = 0.1
@@ -35,14 +35,13 @@ const (
 type Config struct {
 	ID                int32  `db:"id"`
 	Name              string `db:"name"`
-	Address           string `db:"address"`
 	SubmitInterval    *int   `db:"submit_interval"`
 	AggregateInterval *int   `db:"aggregate_interval"`
 }
 
 type SubmissionPair struct {
-	LastSubmission int64 `db:"last_submission"`
-	Address        common.Address
+	LastSubmission int32  `db:"last_submission"`
+	Name           string `db:"name"`
 }
 
 type App struct {
@@ -130,20 +129,20 @@ type Reporter struct {
 type GlobalAggregate struct {
 	ConfigID  int32     `db:"config_id" json:"configId"`
 	Value     int64     `db:"value" json:"value"`
-	Round     int64     `db:"round" json:"round"`
+	Round     int32     `db:"round" json:"round"`
 	Timestamp time.Time `db:"timestamp" json:"timestamp"`
 }
 
 type Proof struct {
 	ConfigID int32  `json:"configId"`
-	Round    int64  `json:"round"`
+	Round    int32  `json:"round"`
 	Proof    []byte `json:"proofs"`
 }
 
 type PgsqlProof struct {
 	ID        int32     `db:"id" json:"id"`
 	ConfigID  int32     `db:"config_id" json:"configId"`
-	Round     int64     `db:"round" json:"round"`
+	Round     int32     `db:"round" json:"round"`
 	Proof     []byte    `db:"proof" json:"proof"`
 	Timestamp time.Time `db:"timestamp" json:"timestamp"`
 }
