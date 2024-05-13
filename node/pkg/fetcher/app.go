@@ -215,8 +215,8 @@ func (a *App) stopAllFetchers(ctx context.Context) error {
 	return nil
 }
 
-func (a *App) getFetcherConfigs(ctx context.Context) ([]FetcherConfig, error) {
-	configs, err := db.QueryRows[FetcherConfig](ctx, SelectConfigsQuery, nil)
+func (a *App) getConfigs(ctx context.Context) ([]Config, error) {
+	configs, err := db.QueryRows[Config](ctx, SelectConfigsQuery, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -241,12 +241,12 @@ func (a *App) getProxies(ctx context.Context) ([]Proxy, error) {
 }
 
 func (a *App) initialize(ctx context.Context) error {
-	fetcherConfigs, err := a.getFetcherConfigs(ctx)
+	configs, err := a.getConfigs(ctx)
 	if err != nil {
 		return err
 	}
-	a.Fetchers = make(map[int32]*Fetcher, len(fetcherConfigs))
-	for _, config := range fetcherConfigs {
+	a.Fetchers = make(map[int32]*Fetcher, len(configs))
+	for _, config := range configs {
 		feeds, err := a.getFeeds(ctx, config.ID)
 		if err != nil {
 			return err

@@ -23,7 +23,7 @@ type FeedData struct {
 	Value  float64 `db:"value"`
 }
 
-type FetcherConfig struct {
+type Config struct {
 	ID            int32  `db:"id"`
 	Name          string `db:"name"`
 	FetchInterval int32  `db:"fetch_interval"`
@@ -38,7 +38,7 @@ type Proxy struct {
 }
 
 type Fetcher struct {
-	FetcherConfig
+	Config
 	Feeds []Feed
 
 	fetcherCtx context.Context
