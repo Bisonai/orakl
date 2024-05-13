@@ -172,7 +172,7 @@ func GetProofsPgsql(ctx context.Context, aggregates []GlobalAggregate) ([]Proof,
 	q := makeGetProofsQuery(aggregates)
 	rawResult, err := db.QueryRows[PgsqlProof](ctx, q, nil)
 	if err != nil {
-		log.Error().Str("Player", "Reporter").Err(err).Msg("failed to get proofs")
+		log.Error().Str("Player", "Reporter").Err(err).Msg("failed to get proofs from pgsql")
 		return nil, err
 	}
 	return ConvertPgsqlProofsToProofs(rawResult), nil
