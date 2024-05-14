@@ -15,6 +15,21 @@ contract UtilsScript is Script {
         string description;
     }
 
+    struct UpdateProxyBulkProxyConstructor {
+        string feedName;
+        address proxyAddress;
+    }
+
+    struct SetProofThresholdThresholdConstructor {
+        string name;
+        uint8 threshold;
+    }
+
+    struct UpdateFeedFeedConstructor {
+        string name;
+        address feedAddress;
+    }
+
     struct ChangeOracles {
         address[] addedAdmins;
         address[] added;
