@@ -83,27 +83,6 @@ forge script DeployFull --broadcast --rpc-url http://localhost:8545
 }
 ```
 
-- deploy and update proxies
-
-```json
-{
-  "deploy": {
-    "updateProxyBulk": {
-      "proxies": [
-        {
-          "feedName": "BTC-USDT",
-          "proxyAddress": "0x50c23983ea26f30d368da5b257001ee3ddf9a539"
-        },
-        {
-          "feedName": "KLAY-USDT",
-          "proxyAddress": "0xd07bd0bcd3a8fa1087430b1be457e05c4a412a4b"
-        }
-      ]
-    }
-  }
-}
-```
-
 ### Update proxies in `FeedRouter`
 
 ```json
