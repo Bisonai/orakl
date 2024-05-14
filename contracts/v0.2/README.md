@@ -54,11 +54,9 @@ forge script DeployFull --broadcast --rpc-url http://localhost:8545
 
 ```json
 {
-  "Feed": {
-    "deploy": {
-      "submitter": "0xa195bE68Bd37EBFfB056279Dc3d236fAa6F23670",
-      "feedNames": ["ADA-USDT", "BTC-USDT"]
-    }
+  "deploy": {
+    "submitter": "0xa195bE68Bd37EBFfB056279Dc3d236fAa6F23670",
+    "feedNames": ["ADA-USDT", "BTC-USDT"]
   }
 }
 ```
@@ -67,14 +65,12 @@ forge script DeployFull --broadcast --rpc-url http://localhost:8545
 
 ```json
 {
-  "Feed": {
-    "updateSubmitter": {
-      "submitter": "0xa195bE68Bd37EBFfB056279Dc3d236fAa6F23670",
-      "feedAddresses": [
-        "0xc765f5ed9abb26349054020feea04f955a5cb1ec",
-        "0x9bb8f7b9f08ecc75aba62ba25d7b3f46fce79745"
-      ]
-    }
+  "updateSubmitter": {
+    "submitter": "0xa195bE68Bd37EBFfB056279Dc3d236fAa6F23670",
+    "feedAddresses": [
+      "0xc765f5ed9abb26349054020feea04f955a5cb1ec",
+      "0x9bb8f7b9f08ecc75aba62ba25d7b3f46fce79745"
+    ]
   }
 }
 ```
@@ -83,9 +79,7 @@ forge script DeployFull --broadcast --rpc-url http://localhost:8545
 
 ```json
 {
-  "FeedRouter": {
-    "deploy": {}
-  }
+  "deploy": {}
 }
 ```
 
@@ -93,20 +87,18 @@ forge script DeployFull --broadcast --rpc-url http://localhost:8545
 
 ```json
 {
-  "FeedRouter": {
-    "address": "0x1ac6cd893eddb6cac15e5a9fc549335b8b449015",
-    "updateProxyBulk": {
-      "proxies": [
-        {
-          "feedName": "BTC-USDT",
-          "proxyAddress": "0x50c23983ea26f30d368da5b257001ee3ddf9a539"
-        },
-        {
-          "feedName": "KLAY-USDT",
-          "proxyAddress": "0xd07bd0bcd3a8fa1087430b1be457e05c4a412a4b"
-        }
-      ]
-    }
+  "address": "0x1ac6cd893eddb6cac15e5a9fc549335b8b449015",
+  "updateProxyBulk": {
+    "proxies": [
+      {
+        "feedName": "BTC-USDT",
+        "proxyAddress": "0x50c23983ea26f30d368da5b257001ee3ddf9a539"
+      },
+      {
+        "feedName": "KLAY-USDT",
+        "proxyAddress": "0xd07bd0bcd3a8fa1087430b1be457e05c4a412a4b"
+      }
+    ]
   }
 }
 ```
@@ -115,11 +107,9 @@ forge script DeployFull --broadcast --rpc-url http://localhost:8545
 
 ```json
 {
-  "SubmissionProxy": {
-    "deploy": {},
-    "addOracle": {
-      "oracles": ["0x50c23983ea26f30d368da5b257001ee3ddf9a539"]
-    }
+  "deploy": {},
+  "addOracle": {
+    "oracles": ["0x50c23983ea26f30d368da5b257001ee3ddf9a539"]
   }
 }
 ```
@@ -128,41 +118,39 @@ forge script DeployFull --broadcast --rpc-url http://localhost:8545
 
 ```json
 {
-  "SubmissionProxy": {
-    "address": "0x1ac6cd893eddb6cac15e5a9fc549335b8b449015",
-    "setMaxSubmission": 120,
-    "setDataFreshness": 2,
-    "setExpirationPeriod": 2592000,
-    "setDefaultProofThreshold": 80,
-    "setProofThreshold": {
-      "thresholds": [
-        {
-          "feed": "0xd07bd0bcd3a8fa1087430b1be457e05c4a412a4b",
-          "threshold": 60
-        }
-      ]
-    },
-    "addOracle": {
-      "oracles": ["0x50c23983ea26f30d368da5b257001ee3ddf9a539"]
-    },
-    "removeOracle": {
-      "oracles": ["0xd07bd0bcd3a8fa1087430b1be457e05c4a412a4b"]
-    },
-    "updateFeed": {
-      "feeds": [
-        {
-          "name": "BTC-USDT",
-          "address": "0xB7f8BC63BbcaD18155201308C8f3540b07f84F5e"
-        },
-        {
-          "name": "ETH-USDT",
-          "address": "0x0DCd1Bf9A1b36cE34237eEaFef220932846BCD82"
-        }
-      ]
-    },
-    "removeFeed": {
-      "feedNames": ["BNB-USDT", "PEPE-USDT"]
-    }
+  "address": "0x1ac6cd893eddb6cac15e5a9fc549335b8b449015",
+  "setMaxSubmission": 120,
+  "setDataFreshness": 2,
+  "setExpirationPeriod": 2592000,
+  "setDefaultProofThreshold": 80,
+  "setProofThreshold": {
+    "thresholds": [
+      {
+        "feed": "0xd07bd0bcd3a8fa1087430b1be457e05c4a412a4b",
+        "threshold": 60
+      }
+    ]
+  },
+  "addOracle": {
+    "oracles": ["0x50c23983ea26f30d368da5b257001ee3ddf9a539"]
+  },
+  "removeOracle": {
+    "oracles": ["0xd07bd0bcd3a8fa1087430b1be457e05c4a412a4b"]
+  },
+  "updateFeed": {
+    "feeds": [
+      {
+        "name": "BTC-USDT",
+        "address": "0xB7f8BC63BbcaD18155201308C8f3540b07f84F5e"
+      },
+      {
+        "name": "ETH-USDT",
+        "address": "0x0DCd1Bf9A1b36cE34237eEaFef220932846BCD82"
+      }
+    ]
+  },
+  "removeFeed": {
+    "feedNames": ["BNB-USDT", "PEPE-USDT"]
   }
 }
 ```
@@ -171,11 +159,9 @@ forge script DeployFull --broadcast --rpc-url http://localhost:8545
 
 ```json
 {
-  "SubmissionProxy": {
-    "deploy": {},
-    "deployFeed": {
-      "feeds": [{ "name": "ADA-USDT" }, { "name": "ATOM-USDT" }]
-    }
+  "deploy": {},
+  "deployFeed": {
+    "feeds": [{ "name": "ADA-USDT" }, { "name": "ATOM-USDT" }]
   }
 }
 ```
