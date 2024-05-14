@@ -2,9 +2,9 @@
 
 ## Prerequisities
 
-Install Foundry by following description at https://book.getfoundry.sh/getting-started/installation or by executing the command below.
+Install Foundry by following name at https://book.getfoundry.sh/getting-started/installation or by executing the command below.
 
-```shell
+````shell
 curl -L https://foundry.paradigm.xyz | bash
 
   Running `foundryup` by itself will install the latest (nightly) precompiled binaries: `forge`, `cast`, `anvil`, and `chisel`
@@ -14,7 +14,7 @@ curl -L https://foundry.paradigm.xyz | bash
 
 ```shell
 forge build
-```
+````
 
 ## Test
 
@@ -42,20 +42,22 @@ cp .env.example .env
 forge script {ContractScriptName} --broadcast --rpc-url {RPC}
 ```
 
+- ex
+
+```shell
+forge script DeployFull --broadcast --rpc-url http://localhost:8545
+```
+
 ## Migration Examples
 
 ### Deploy `Feed` & `FeedProxy` Contracts
 
-```
+```json
 {
   "Feed": {
     "deploy": {
       "submitter": "0xa195bE68Bd37EBFfB056279Dc3d236fAa6F23670",
-      "count": 2,
-      "feeds": [
-        { "decimals": 8, "description": "ADA-USDT" },
-        { "decimals": 8, "description": "ATOM-USDT" }
-      ]
+      "feeds": [{ "name": "ADA-USDT" }, { "name": "ATOM-USDT" }]
     }
   }
 }
@@ -63,12 +65,11 @@ forge script {ContractScriptName} --broadcast --rpc-url {RPC}
 
 ### Update Submitter of `Feed` Contract
 
-```
+```json
 {
   "Feed": {
     "updateSubmitter": {
       "submitter": "0xa195bE68Bd37EBFfB056279Dc3d236fAa6F23670",
-      "count": 2,
       "feeds": [
         "0xc765f5ed9abb26349054020feea04f955a5cb1ec",
         "0x9bb8f7b9f08ecc75aba62ba25d7b3f46fce79745"
@@ -80,23 +81,21 @@ forge script {ContractScriptName} --broadcast --rpc-url {RPC}
 
 ### Deploy `FeedRouter`
 
-```
+```json
 {
   "FeedRouter": {
     "deploy": {}
   }
 }
-
 ```
 
 ### Update proxies in `FeedRouter`
 
-```
+```json
 {
   "FeedRouter": {
     "address": "0x1ac6cd893eddb6cac15e5a9fc549335b8b449015",
     "updateProxyBulk": {
-      "count": 2,
       "proxies": [
         {
           "feedName": "BTC-USDT",
@@ -114,21 +113,20 @@ forge script {ContractScriptName} --broadcast --rpc-url {RPC}
 
 ### Deploy `SubmissionProxy` and Register Oracle
 
-```
+```json
 {
   "SubmissionProxy": {
     "deploy": {},
     "addOracle": {
-      "count": 1,
       "oracles": ["0x50c23983ea26f30d368da5b257001ee3ddf9a539"]
-    },
+    }
   }
 }
 ```
 
 ### Update Configuration of `SubmissionProxy`
 
-```
+```json
 {
   "SubmissionProxy": {
     "address": "0x1ac6cd893eddb6cac15e5a9fc549335b8b449015",
@@ -137,7 +135,6 @@ forge script {ContractScriptName} --broadcast --rpc-url {RPC}
     "setExpirationPeriod": 2592000,
     "setDefaultProofThreshold": 80,
     "setProofThreshold": {
-      "count": 1,
       "thresholds": [
         {
           "feed": "0xd07bd0bcd3a8fa1087430b1be457e05c4a412a4b",
@@ -146,12 +143,25 @@ forge script {ContractScriptName} --broadcast --rpc-url {RPC}
       ]
     },
     "addOracle": {
-      "count": 1,
       "oracles": ["0x50c23983ea26f30d368da5b257001ee3ddf9a539"]
     },
     "removeOracle": {
-      "count": 1,
       "oracles": ["0xd07bd0bcd3a8fa1087430b1be457e05c4a412a4b"]
+    },
+    "updateFeed": {
+      "feeds": [
+        {
+          "name": "BTC-USDT",
+          "address": "0xB7f8BC63BbcaD18155201308C8f3540b07f84F5e"
+        },
+        {
+          "name": "ETH-USDT",
+          "address": "0x0DCd1Bf9A1b36cE34237eEaFef220932846BCD82"
+        }
+      ]
+    },
+    "removeFeed": {
+      "feedNames": ["BNB-USDT", "PEPE-USDT"]
     }
   }
 }
@@ -159,16 +169,12 @@ forge script {ContractScriptName} --broadcast --rpc-url {RPC}
 
 ### Deploy `SubmissionProxy` with `Feed` and `FeedProxy` contracts
 
-```
+```json
 {
   "SubmissionProxy": {
     "deploy": {},
     "deployFeed": {
-      "count": 2,
-      "feeds": [
-        { "decimals": 8, "description": "ADA-USDT" },
-        { "decimals": 8, "description": "ATOM-USDT" }
-      ]
+      "feeds": [{ "name": "ADA-USDT" }, { "name": "ATOM-USDT" }]
     }
   }
 }
