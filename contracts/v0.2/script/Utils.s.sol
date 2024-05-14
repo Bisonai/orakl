@@ -26,8 +26,8 @@ contract UtilsScript is Script {
     }
 
     struct UpdateFeedFeedConstructor {
-        string name;
         address feedAddress;
+        string feedName;
     }
 
     struct ChangeOracles {
@@ -54,6 +54,14 @@ contract UtilsScript is Script {
         VmSafe.DirEntry[] memory files = vm.readDir(path);
 
         string memory lockFilePath = string.concat(path, "/", MIGRATION_LOCK_FILE_NAME);
+
+        bool lockFileExists = vm.isFile(lockFilePath);
+        if (!lockFileExists) {
+            console.log("lock file not exists, create one: ", lockFilePath);
+            vm.writeFile(lockFilePath, "");
+            console.log("lock file created");
+        }
+        
         string memory migrationFileName;
         string memory migrationFilePath;
         uint256 fileCount = 0;

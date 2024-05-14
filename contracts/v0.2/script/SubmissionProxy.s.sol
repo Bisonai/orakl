@@ -24,13 +24,17 @@ contract DeploySubmissionProxy is Script {
         vm.startBroadcast(vm.envUint("PRIVATE_KEY"));
 
         for (uint256 i = 0; i < migrationFiles.length; i++) {
-            processMigrationFile(migrationFiles[i]);
+            bool result = executeMigration(migrationFiles[i]);
+            if (!result) {
+                console.log("Migration failed");
+                continue;
+            }
             config.updateMigration(dirPath, migrationFiles[i]);
         }
         vm.stopBroadcast();
     }
 
-    function processMigrationFile(string memory migrationFilePath) internal {
+    function executeMigration(string memory migrationFilePath) public returns (bool) {
         SubmissionProxy submissionProxy;
         string memory json = vm.readFile(migrationFilePath);
         console.log("Migration File", migrationFilePath);
@@ -43,6 +47,7 @@ contract DeploySubmissionProxy is Script {
             submissionProxy = useExistingSubmissionProxy(json);
         } else {
             console.log("SubmissionProxy not found, skipping deploy");
+            return false;
         }
 
         setMaxSubmission(submissionProxy, json);
@@ -56,6 +61,7 @@ contract DeploySubmissionProxy is Script {
         removeFeed(submissionProxy, json);
         deployFeed(submissionProxy, json);
 
+        return true;
     }
 
     function deploySubmissionProxy() internal returns (SubmissionProxy){
@@ -155,11 +161,21 @@ contract DeploySubmissionProxy is Script {
             return;
         }
         bytes memory raw = json.parseRaw(".updateFeed.feeds");
+        _updateFeeds(submissionProxy, raw);
+    }
+
+    function _updateFeeds(SubmissionProxy submissionProxy, bytes memory raw) internal {
         UtilsScript.UpdateFeedFeedConstructor[] memory feeds = abi.decode(raw, (UtilsScript.UpdateFeedFeedConstructor[]));
+        bytes32[] memory feedHashes = new bytes32[](feeds.length);
+        address[] memory feedAddresses = new address[](feeds.length);
         for (uint256 j = 0; j < feeds.length; j++) {
-            submissionProxy.updateFeed(string2bytes32Hash(feeds[j].name), feeds[j].feedAddress);
-            console.log("(Feed Updated)", feeds[j].name, feeds[j].feedAddress);
+            UtilsScript.UpdateFeedFeedConstructor memory feed = feeds[j];
+            feedHashes[j] = string2bytes32Hash(feed.feedName);
+            feedAddresses[j] = feed.feedAddress;
+            
+            console.log("(Feed Prepared)", feeds[j].feedName, feeds[j].feedAddress);
         }
+        submissionProxy.updateFeedBulk(feedHashes, feedAddresses);
     }
 
     function removeFeed(SubmissionProxy submissionProxy, string memory json) internal {
@@ -180,12 +196,20 @@ contract DeploySubmissionProxy is Script {
         }
         bytes memory raw = json.parseRaw(".deployFeed.feedNames");
         string[] memory feedNames = abi.decode(raw, (string[]));
+
+        bytes32[] memory feedHashes = new bytes32[](feedNames.length);
+        address[] memory feedAddresses = new address[](feedNames.length);
         for (uint256 j = 0; j < feedNames.length; j++) {
             Feed feed = new Feed(DECIMALS, feedNames[j], address(submissionProxy));
             console.log("(Feed Deployed)", feedNames[j], address(feed));
             FeedProxy feedProxy = new FeedProxy(address(feed));
             console.log("(FeedProxy Deployed)", feedNames[j], address(feedProxy));
+            feedHashes[j] = string2bytes32Hash(feedNames[j]);
+            feedAddresses[j] = address(feed);
+            console.log("(Feed Prepared for updateFeed)", feedNames[j], address(feed));
         }
+        submissionProxy.updateFeedBulk(feedHashes, feedAddresses);
+        console.log("(Feeds Updated)");
     }
 
 

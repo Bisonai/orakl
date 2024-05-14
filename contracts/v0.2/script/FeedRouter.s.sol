@@ -13,7 +13,6 @@ contract DeployFeedRouter is Script {
 
     function setUp() public {}
     function run() public {
-        FeedRouter feedRouter;
         UtilsScript config = new UtilsScript();
         string memory dirPath = string.concat("/migration/", config.chainName(), "/FeedRouter");
         string[] memory migrationFiles = config.loadMigration(dirPath);
@@ -25,30 +24,11 @@ contract DeployFeedRouter is Script {
             string memory json = vm.readFile(migrationFilePath);
             console.log("Migration File", migrationFilePath);
 
-            bool useExisting = vm.keyExists(json, ".address");
-            bool deploy = vm.keyExists(json, ".deploy");
-
-            // if both .deploy and .address exists, use deployed contract address
-            if (deploy) {
-                console.log("Deploying FeedRouter");
-                feedRouter = new FeedRouter();
-                console.log("(FeedRouter Deployed)", address(feedRouter));
-            }else if (useExisting) {
-                bytes memory feedRouterAddressRaw = json.parseRaw(".address");
-                address feedRouterAddress = abi.decode(feedRouterAddressRaw, (address));
-                feedRouter = FeedRouter(feedRouterAddress);
-                console.log("(Use existing FeedRouter)", address(feedRouter));
-            }else {
-                console.log("FeedRouter not found, skipping deploy");
+            bool result = executeMigration(json);
+            if (!result) {
+                console.log("Migration failed");
                 continue;
             }
-
-            bool updateProxyBulk = vm.keyExists(json, ".updateProxyBulk");
-            if (updateProxyBulk) {
-                bytes memory feedRouterProxyConstructorsRaw = json.parseRaw(".updateProxyBulk.proxies");
-                updateProxies(feedRouter, feedRouterProxyConstructorsRaw);
-            }
-
             config.updateMigration(dirPath, migrationFilePath);
         }
         vm.stopBroadcast();
@@ -68,5 +48,32 @@ contract DeployFeedRouter is Script {
         }
         feedRouter.updateProxyBulk(_feedNames, _proxyAddresses);
         console.log("(Proxies Updated)");
+    }
+
+    function executeMigration(string memory json) public returns (bool) {
+        FeedRouter feedRouter;
+        bool useExisting = vm.keyExists(json, ".address");
+        bool deploy = vm.keyExists(json, ".deploy");
+
+        if (deploy) {
+            console.log("Deploying FeedRouter");
+            feedRouter = new FeedRouter();
+            console.log("(FeedRouter Deployed)", address(feedRouter));
+        }else if (useExisting) {
+            bytes memory feedRouterAddressRaw = json.parseRaw(".address");
+            address feedRouterAddress = abi.decode(feedRouterAddressRaw, (address));
+            feedRouter = FeedRouter(feedRouterAddress);
+            console.log("(Use existing FeedRouter)", address(feedRouter));
+        }else {
+            console.log("FeedRouter not found, skipping deploy");
+            return false;
+        }
+
+        bool updateProxyBulk = vm.keyExists(json, ".updateProxyBulk");
+        if (updateProxyBulk) {
+            bytes memory feedRouterProxyConstructorsRaw = json.parseRaw(".updateProxyBulk.proxies");
+            updateProxies(feedRouter, feedRouterProxyConstructorsRaw);
+        }
+        return true;
     }
 }
