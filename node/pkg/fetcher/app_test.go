@@ -101,7 +101,7 @@ func TestFetcherRun(t *testing.T) {
 	assert.Greater(t, len(feedDataRowsAfter), len(feedDataRowsBefore))
 
 	for _, fetcher := range app.Fetchers {
-		configId := fetcher.FetcherConfig.ID
+		configId := fetcher.Config.ID
 		rdbResult, err := db.Get(ctx, "localAggregate:"+strconv.Itoa(int(configId)))
 		if err != nil {
 			t.Fatalf("error reading from redis: %v", err)
@@ -176,7 +176,7 @@ func TestFetcherFetcherStart(t *testing.T) {
 
 	// check rdb and cleanup rdb
 	for _, fetcher := range app.Fetchers {
-		configId := fetcher.FetcherConfig.ID
+		configId := fetcher.Config.ID
 		rdbResult, err := db.Get(ctx, "localAggregate:"+strconv.Itoa(int(configId)))
 		if err != nil {
 			t.Fatalf("error reading from redis: %v", err)
@@ -254,7 +254,7 @@ func TestFetcherFetcherStop(t *testing.T) {
 
 	// check rdb and cleanup rdb
 	for _, fetcher := range app.Fetchers {
-		configId := fetcher.FetcherConfig.ID
+		configId := fetcher.Config.ID
 		rdbResult, err := db.Get(ctx, "localAggregate:"+strconv.Itoa(int(configId)))
 		if err != nil {
 			t.Fatalf("error reading from redis: %v", err)
@@ -291,7 +291,7 @@ func TestFetcherFetcherStartById(t *testing.T) {
 	app.subscribe(ctx)
 
 	for _, fetcher := range app.Fetchers {
-		_, requestErr := tests.RawPostRequest(testItems.admin, "/api/v1/fetcher/activate/"+strconv.Itoa(int(fetcher.FetcherConfig.ID)), nil)
+		_, requestErr := tests.RawPostRequest(testItems.admin, "/api/v1/fetcher/activate/"+strconv.Itoa(int(fetcher.Config.ID)), nil)
 		if requestErr != nil {
 			t.Fatalf("error starting adapter: %v", requestErr)
 		}
@@ -331,7 +331,7 @@ func TestFetcherFetcherStopById(t *testing.T) {
 	}
 
 	for _, fetcher := range app.Fetchers {
-		_, requestErr := tests.RawPostRequest(testItems.admin, "/api/v1/fetcher/deactivate/"+strconv.Itoa(int(fetcher.FetcherConfig.ID)), nil)
+		_, requestErr := tests.RawPostRequest(testItems.admin, "/api/v1/fetcher/deactivate/"+strconv.Itoa(int(fetcher.Config.ID)), nil)
 		if requestErr != nil {
 			t.Fatalf("error stopping adapter: %v", requestErr)
 		}
