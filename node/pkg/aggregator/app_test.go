@@ -346,7 +346,7 @@ func TestRefreshAppByAdmin(t *testing.T) {
 		t.Fatalf("error starting app: %v", err)
 	}
 
-	_, err = tests.RawPostRequest(testItems.admin, "/api/v1/config", map[string]any{"name": "test_pair_2", "address": "test_address_2", "fetch_interval": 2000, "aggregate_interval": 5000, "submit_interval": 15000})
+	_, err = tests.RawPostRequest(testItems.admin, "/api/v1/config", map[string]any{"name": "test_pair_2", "fetch_interval": 2000, "aggregate_interval": 5000, "submit_interval": 15000})
 	if err != nil {
 		t.Fatalf("error creating new aggregator: %v", err)
 	}

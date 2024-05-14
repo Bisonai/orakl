@@ -10,7 +10,7 @@ import (
 	"bisonai.com/orakl/node/pkg/chain/helper"
 	errorSentinel "bisonai.com/orakl/node/pkg/error"
 	"bisonai.com/orakl/node/pkg/raft"
-	"github.com/klaytn/klaytn/common"
+	"github.com/klaytn/klaytn/crypto"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -198,7 +198,7 @@ func TestFilterInvalidAggregates(t *testing.T) {
 	result := FilterInvalidAggregates(aggregates, reporter.SubmissionPairs)
 	assert.Equal(t, result, aggregates)
 
-	reporter.SubmissionPairs = map[int32]SubmissionPair{testItems.tmpData.config.ID: {LastSubmission: 1, Address: common.HexToAddress("0x1234")}}
+	reporter.SubmissionPairs = map[int32]SubmissionPair{testItems.tmpData.config.ID: {LastSubmission: 1, Name: "test-aggregate"}}
 	result = FilterInvalidAggregates(aggregates, reporter.SubmissionPairs)
 	assert.Equal(t, result, []GlobalAggregate{})
 }
@@ -232,7 +232,7 @@ func TestIsAggValid(t *testing.T) {
 	result := IsAggValid(agg, reporter.SubmissionPairs)
 	assert.Equal(t, result, true)
 
-	reporter.SubmissionPairs = map[int32]SubmissionPair{testItems.tmpData.config.ID: {LastSubmission: 1, Address: common.HexToAddress("0x1234")}}
+	reporter.SubmissionPairs = map[int32]SubmissionPair{testItems.tmpData.config.ID: {LastSubmission: 1, Name: "test-aggregate"}}
 	result = IsAggValid(agg, reporter.SubmissionPairs)
 	assert.Equal(t, result, false)
 }
@@ -272,11 +272,11 @@ func TestMakeContractArgs(t *testing.T) {
 
 	proofMap := ProofsToMap(rawProofs)
 
-	addresses, values, timestamps, proofs, err := MakeContractArgsWithProofs([]GlobalAggregate{agg}, reporter.SubmissionPairs, proofMap)
+	feedHashes, values, timestamps, proofs, err := MakeContractArgsWithProofs([]GlobalAggregate{agg}, reporter.SubmissionPairs, proofMap)
 	if err != nil {
 		t.Fatal("error making contract args")
 	}
-	assert.Equal(t, reporter.SubmissionPairs[agg.ConfigID].Address, addresses[0])
+	assert.Equal(t, [32]byte(crypto.Keccak256([]byte(reporter.SubmissionPairs[agg.ConfigID].Name))), feedHashes[0])
 	assert.Equal(t, big.NewInt(15), values[0])
 
 	proofArr := make([][]byte, len(proofs))

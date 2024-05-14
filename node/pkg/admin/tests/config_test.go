@@ -49,7 +49,6 @@ func TestConfigInsert(t *testing.T) {
 
 	insertResult, err := PostRequest[config.ConfigModel](testItems.app, "/api/v1/config", config.ConfigModel{
 		Name:              "test",
-		Address:           "test",
 		FetchInterval:     nil,
 		AggregateInterval: nil,
 		SubmitInterval:    nil,

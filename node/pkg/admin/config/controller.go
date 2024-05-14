@@ -23,7 +23,6 @@ type FeedInsertModel struct {
 
 type ConfigInsertModel struct {
 	Name              string            `db:"name" json:"name"`
-	Address           string            `db:"address" json:"address"`
 	FetchInterval     *int              `db:"fetch_interval" json:"fetchInterval"`
 	AggregateInterval *int              `db:"aggregate_interval" json:"aggregateInterval"`
 	SubmitInterval    *int              `db:"submit_interval" json:"submitInterval"`
@@ -33,7 +32,6 @@ type ConfigInsertModel struct {
 type ConfigModel struct {
 	Id                int64  `db:"id" json:"id"`
 	Name              string `db:"name" json:"name"`
-	Address           string `db:"address" json:"address"`
 	FetchInterval     *int   `db:"fetch_interval" json:"fetchInterval"`
 	AggregateInterval *int   `db:"aggregate_interval" json:"aggregateInterval"`
 	SubmitInterval    *int   `db:"submit_interval" json:"submitInterval"`
@@ -95,7 +93,6 @@ func Insert(c *fiber.Ctx) error {
 
 	result, err := db.QueryRow[ConfigModel](c.Context(), InsertConfigQuery, map[string]any{
 		"name":               config.Name,
-		"address":            config.Address,
 		"fetch_interval":     config.FetchInterval,
 		"aggregate_interval": config.AggregateInterval,
 		"submit_interval":    config.SubmitInterval})
@@ -152,10 +149,10 @@ func getConfigUrl() string {
 func bulkUpsertConfigs(ctx context.Context, configs []ConfigInsertModel) error {
 	upsertRows := make([][]any, 0, len(configs))
 	for _, config := range configs {
-		upsertRows = append(upsertRows, []any{config.Name, config.Address, config.FetchInterval, config.AggregateInterval, config.SubmitInterval})
+		upsertRows = append(upsertRows, []any{config.Name, config.FetchInterval, config.AggregateInterval, config.SubmitInterval})
 	}
 
-	return db.BulkUpsert(ctx, "configs", []string{"name", "address", "fetch_interval", "aggregate_interval", "submit_interval"}, upsertRows, []string{"name"}, []string{"address", "fetch_interval", "aggregate_interval", "submit_interval"})
+	return db.BulkUpsert(ctx, "configs", []string{"name", "fetch_interval", "aggregate_interval", "submit_interval"}, upsertRows, []string{"name"}, []string{"fetch_interval", "aggregate_interval", "submit_interval"})
 }
 
 func setDefaultIntervals(config *ConfigInsertModel) {

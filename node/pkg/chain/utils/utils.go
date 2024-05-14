@@ -558,8 +558,8 @@ func IsJsonRpcFailureError(errorCode int) bool {
 	return false
 }
 
-func MakeValueSignature(value int64, timestamp int64, pk *ecdsa.PrivateKey) ([]byte, error) {
-	hash := Value2HashForSign(value, timestamp)
+func MakeValueSignature(value int64, timestamp int64, name string, pk *ecdsa.PrivateKey) ([]byte, error) {
+	hash := Value2HashForSign(value, timestamp, name)
 	signature, err := crypto.Sign(hash, pk)
 	if err != nil {
 		return nil, err
@@ -573,7 +573,7 @@ func MakeValueSignature(value int64, timestamp int64, pk *ecdsa.PrivateKey) ([]b
 	return signature, nil
 }
 
-func Value2HashForSign(value int64, timestamp int64) []byte {
+func Value2HashForSign(value int64, timestamp int64, name string) []byte {
 	bigIntVal := big.NewInt(value)
 	bigIntTimestamp := big.NewInt(timestamp)
 
@@ -583,7 +583,9 @@ func Value2HashForSign(value int64, timestamp int64) []byte {
 	copy(valueBuf[32-len(bigIntVal.Bytes()):], bigIntVal.Bytes())
 	copy(timestampBuf[32-len(bigIntTimestamp.Bytes()):], bigIntTimestamp.Bytes())
 
-	concatBytes := bytes.Join([][]byte{valueBuf, timestampBuf}, nil)
+	feedHash := crypto.Keccak256([]byte(name))
+
+	concatBytes := bytes.Join([][]byte{valueBuf, timestampBuf, feedHash}, nil)
 	return crypto.Keccak256(concatBytes)
 }
 

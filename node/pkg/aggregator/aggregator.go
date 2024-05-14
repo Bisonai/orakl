@@ -238,7 +238,7 @@ func (n *Aggregator) HandlePriceDataMessage(ctx context.Context, msg raft.Messag
 			Timestamp: n.SyncedTimes[priceDataMessage.RoundID],
 		}
 
-		proof, err := n.SignHelper.MakeGlobalAggregateProof(median, n.SyncedTimes[priceDataMessage.RoundID])
+		proof, err := n.SignHelper.MakeGlobalAggregateProof(median, n.SyncedTimes[priceDataMessage.RoundID], n.Name)
 		if err != nil {
 			log.Error().Str("Player", "Aggregator").Err(err).Msg("failed to make global aggregate proof")
 			return err

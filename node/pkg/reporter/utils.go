@@ -14,6 +14,7 @@ import (
 	errorSentinel "bisonai.com/orakl/node/pkg/error"
 
 	"github.com/klaytn/klaytn/common"
+	"github.com/klaytn/klaytn/crypto"
 	"github.com/rs/zerolog/log"
 )
 
@@ -98,7 +99,7 @@ func ConvertPgsqlProofsToProofs(pgsqlProofs []PgsqlProof) []Proof {
 	return proofs
 }
 
-func MakeContractArgsWithProofs(aggregates []GlobalAggregate, submissionPairs map[int32]SubmissionPair, proofMap map[int32][]byte) ([]common.Address, []*big.Int, []*big.Int, [][]byte, error) {
+func MakeContractArgsWithProofs(aggregates []GlobalAggregate, submissionPairs map[int32]SubmissionPair, proofMap map[int32][]byte) ([][32]byte, []*big.Int, []*big.Int, [][]byte, error) {
 	if len(aggregates) == 0 {
 		return nil, nil, nil, nil, errorSentinel.ErrReporterEmptyAggregatesParam
 	}
@@ -111,26 +112,28 @@ func MakeContractArgsWithProofs(aggregates []GlobalAggregate, submissionPairs ma
 		return nil, nil, nil, nil, errorSentinel.ErrReporterEmptyProofParam
 	}
 
-	addresses := make([]common.Address, len(aggregates))
+	feedHash := make([][32]byte, len(aggregates))
 	values := make([]*big.Int, len(aggregates))
-	proofs := make([][]byte, len(aggregates))
 	timestamps := make([]*big.Int, len(aggregates))
+	proofs := make([][]byte, len(aggregates))
 
 	for i, agg := range aggregates {
 		if agg.ConfigID == 0 || agg.Value < 0 {
 			log.Error().Str("Player", "Reporter").Int32("configId", agg.ConfigID).Int64("value", agg.Value).Msg("skipping invalid aggregate")
 			return nil, nil, nil, nil, errorSentinel.ErrReporterInvalidAggregateFound
 		}
-		addresses[i] = submissionPairs[agg.ConfigID].Address
+
+		name := submissionPairs[agg.ConfigID].Name
+		copy(feedHash[i][:], crypto.Keccak256([]byte(name)))
 		values[i] = big.NewInt(agg.Value)
-		proofs[i] = proofMap[agg.ConfigID]
 		timestamps[i] = big.NewInt(agg.Timestamp.Unix())
+		proofs[i] = proofMap[agg.ConfigID]
 	}
 
-	if len(addresses) == 0 || len(values) == 0 || len(proofs) == 0 || len(timestamps) == 0 {
+	if len(feedHash) == 0 || len(values) == 0 || len(proofs) == 0 || len(timestamps) == 0 {
 		return nil, nil, nil, nil, errorSentinel.ErrReporterEmptyValidAggregates
 	}
-	return addresses, values, timestamps, proofs, nil
+	return feedHash, values, timestamps, proofs, nil
 }
 
 func FilterInvalidAggregates(aggregates []GlobalAggregate, submissionPairs map[int32]SubmissionPair) []GlobalAggregate {
@@ -160,7 +163,7 @@ func GetProofs(ctx context.Context, aggregates []GlobalAggregate) ([]Proof, erro
 func GetProofsRdb(ctx context.Context, aggregates []GlobalAggregate) ([]Proof, error) {
 	keys := make([]string, 0, len(aggregates))
 	for _, agg := range aggregates {
-		keys = append(keys, "proof:"+strconv.Itoa(int(agg.ConfigID))+"|round:"+strconv.FormatInt(agg.Round, 10))
+		keys = append(keys, "proof:"+strconv.Itoa(int(agg.ConfigID))+"|round:"+strconv.Itoa(int(agg.Round)))
 	}
 	return db.MGetObject[Proof](ctx, keys)
 }
@@ -169,7 +172,7 @@ func GetProofsPgsql(ctx context.Context, aggregates []GlobalAggregate) ([]Proof,
 	q := makeGetProofsQuery(aggregates)
 	rawResult, err := db.QueryRows[PgsqlProof](ctx, q, nil)
 	if err != nil {
-		log.Error().Str("Player", "Reporter").Err(err).Msg("failed to get proofs")
+		log.Error().Str("Player", "Reporter").Err(err).Msg("failed to get proofs from pgsql")
 		return nil, err
 	}
 	return ConvertPgsqlProofsToProofs(rawResult), nil

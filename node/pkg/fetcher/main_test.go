@@ -176,7 +176,6 @@ var sampleData = []string{`{
     }
   ],
   "fetchInterval": 2000,
-  "address": "0xc22Cd928deFce14292986aCE75a1BE1bcF100697",
   "aggregateInterval": 5000,
   "submitInterval": 15000
 }`, `{
@@ -419,7 +418,6 @@ var sampleData = []string{`{
   }
 ],
 "fetchInterval": 2000,
-"address": "0x4470866FE5265841a56795AA28842d0e9f04E770",
 "aggregateInterval": 5000,
 "submitInterval": 15000
 }`}

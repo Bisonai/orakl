@@ -298,6 +298,6 @@ func NewSignHelper(pk string) (*SignHelper, error) {
 	}, nil
 }
 
-func (s *SignHelper) MakeGlobalAggregateProof(val int64, timestamp time.Time) ([]byte, error) {
-	return utils.MakeValueSignature(val, timestamp.Unix(), s.PK)
+func (s *SignHelper) MakeGlobalAggregateProof(val int64, timestamp time.Time, name string) ([]byte, error) {
+	return utils.MakeValueSignature(val, timestamp.Unix(), name, s.PK)
 }

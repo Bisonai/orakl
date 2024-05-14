@@ -22,7 +22,7 @@ import (
 )
 
 const InsertGlobalAggregateQuery = `INSERT INTO global_aggregates (config_id, value, round, timestamp) VALUES (@config_id, @value, @round, @timestamp) RETURNING *`
-const InsertConfigQuery = `INSERT INTO configs (name, address, fetch_interval, aggregate_interval, submit_interval) VALUES (@name, @address, @fetch_interval, @aggregate_interval, @submit_interval) RETURNING name, id, submit_interval, aggregate_interval, address;`
+const InsertConfigQuery = `INSERT INTO configs (name, fetch_interval, aggregate_interval, submit_interval) VALUES (@name, @fetch_interval, @aggregate_interval, @submit_interval) RETURNING name, id, submit_interval, aggregate_interval;`
 const TestInterval = 15000
 
 type TestItems struct {
@@ -47,14 +47,14 @@ func insertSampleData(ctx context.Context) (*TmpData, error) {
 	}
 	proofTime := time.Now()
 
-	tmpConfig, err := db.QueryRow[Config](ctx, InsertConfigQuery, map[string]any{"name": "test-aggregate", "address": "0x1234", "submit_interval": TestInterval, "fetch_interval": TestInterval, "aggregate_interval": TestInterval})
+	tmpConfig, err := db.QueryRow[Config](ctx, InsertConfigQuery, map[string]any{"name": "test-aggregate", "submit_interval": TestInterval, "fetch_interval": TestInterval, "aggregate_interval": TestInterval})
 	if err != nil {
 		log.Error().Err(err).Msg("error inserting config 0")
 		return nil, err
 	}
 	tmpData.config = tmpConfig
 
-	err = db.QueryWithoutResult(ctx, InsertConfigQuery, map[string]any{"name": "test-aggregate-2", "address": "0xabcd", "submit_interval": TestInterval * 2, "fetch_interval": TestInterval, "aggregate_interval": TestInterval})
+	err = db.QueryWithoutResult(ctx, InsertConfigQuery, map[string]any{"name": "test-aggregate-2", "submit_interval": TestInterval * 2, "fetch_interval": TestInterval, "aggregate_interval": TestInterval})
 	if err != nil {
 		log.Error().Err(err).Msg("error inserting config 1")
 		return nil, err
@@ -73,7 +73,7 @@ func insertSampleData(ctx context.Context) (*TmpData, error) {
 	}
 	tmpData.globalAggregate = tmpGlobalAggregate
 
-	rawProof, err := signHelper.MakeGlobalAggregateProof(int64(15), proofTime)
+	rawProof, err := signHelper.MakeGlobalAggregateProof(int64(15), proofTime, "test-aggregate")
 	if err != nil {
 		return nil, err
 	}
@@ -87,7 +87,7 @@ func insertSampleData(ctx context.Context) (*TmpData, error) {
 
 	rdbProof := Proof{
 		ConfigID: tmpConfig.ID,
-		Round:    int64(1),
+		Round:    int32(1),
 		Proof:    bytes.Join([][]byte{rawProof}, nil),
 	}
 	rdbProofData, err := json.Marshal(rdbProof)

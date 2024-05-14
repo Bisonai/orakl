@@ -82,6 +82,8 @@ jobs:
 
       - name: Install Task
         uses: arduino/setup-task@v2
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Run test
         run: |
@@ -97,6 +99,6 @@ jobs:
           ETH_PROVIDER_URL: "https://ethereum-sepolia-rpc.allthatnode.com"
           ETH_REPORTER_PK: ${{ secrets.TEST_DELEGATOR_REPORTER_PK}}
           TEST_FEE_PAYER_PK: ${{ secrets.DELEGATOR_FEEPAYER_PK}}
-          SUBMISSION_PROXY_CONTRACT: "0x284E7E442d64108Bd593Ec4b41538dCE5aEdA858"
+          SUBMISSION_PROXY_CONTRACT: "0x35bA1102A4954147272782302856BD8440227B85"
           CHAIN: "test"
           SIGNER_PK: ${{ secrets.TEST_DELEGATOR_REPORTER_PK}}

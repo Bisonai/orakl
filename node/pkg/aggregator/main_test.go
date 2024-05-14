@@ -20,7 +20,7 @@ import (
 )
 
 const (
-	InsertConfigQuery         = `INSERT INTO configs (name, address, fetch_interval, aggregate_interval, submit_interval) VALUES (@name, @address, @fetch_interval, @aggregate_interval, @submit_interval) RETURNING name, id, aggregate_interval;`
+	InsertConfigQuery         = `INSERT INTO configs (name, fetch_interval, aggregate_interval, submit_interval) VALUES (@name, @fetch_interval, @aggregate_interval, @submit_interval) RETURNING name, id, aggregate_interval;`
 	InsertLocalAggregateQuery = `INSERT INTO local_aggregates (config_id, value, timestamp) VALUES (@config_id, @value, @time) RETURNING *;`
 	DeleteGlobalAggregates    = `DELETE FROM global_aggregates;`
 	DeleteLocalAggregates     = `DELETE FROM local_aggregates;`
@@ -88,7 +88,7 @@ func setup(ctx context.Context) (func() error, *TestItems, error) {
 func insertSampleData(ctx context.Context) (*TmpData, error) {
 	var tmpData = new(TmpData)
 
-	tmpConfig, err := db.QueryRow[Config](ctx, InsertConfigQuery, map[string]any{"name": "test_pair", "address": "test_address", "fetch_interval": 2000, "aggregate_interval": 5000, "submit_interval": 15000})
+	tmpConfig, err := db.QueryRow[Config](ctx, InsertConfigQuery, map[string]any{"name": "test_pair", "fetch_interval": 2000, "aggregate_interval": 5000, "submit_interval": 15000})
 	if err != nil {
 		return nil, err
 	}

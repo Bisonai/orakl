@@ -482,14 +482,14 @@ func TestMakeGlobalAggregateProof(t *testing.T) {
 
 	timestamp := time.Now()
 
-	proof, err := s.MakeGlobalAggregateProof(200000000, timestamp)
+	proof, err := s.MakeGlobalAggregateProof(200000000, timestamp, "test-aggregate")
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
 	}
 
 	assert.NotEqual(t, proof, nil)
 
-	hash := utils.Value2HashForSign(200000000, timestamp.Unix())
+	hash := utils.Value2HashForSign(200000000, timestamp.Unix(), "test-aggregate")
 	addr, err := utils.RecoverSigner(hash, proof)
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
