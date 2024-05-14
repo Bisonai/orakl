@@ -161,7 +161,7 @@ forge script DeployFull --broadcast --rpc-url http://localhost:8545
 {
   "deploy": {},
   "deployFeed": {
-    "feeds": [{ "name": "ADA-USDT" }, { "name": "ATOM-USDT" }]
+    "feedNames": ["ADA-USDT", "ATOM-USDT"]
   }
 }
 ```
