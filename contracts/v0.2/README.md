@@ -57,7 +57,7 @@ forge script DeployFull --broadcast --rpc-url http://localhost:8545
   "Feed": {
     "deploy": {
       "submitter": "0xa195bE68Bd37EBFfB056279Dc3d236fAa6F23670",
-      "feeds": [{ "name": "ADA-USDT" }, { "name": "ATOM-USDT" }]
+      "feedNames": ["ADA-USDT", "BTC-USDT"]
     }
   }
 }
@@ -70,7 +70,7 @@ forge script DeployFull --broadcast --rpc-url http://localhost:8545
   "Feed": {
     "updateSubmitter": {
       "submitter": "0xa195bE68Bd37EBFfB056279Dc3d236fAa6F23670",
-      "feeds": [
+      "feedAddresses": [
         "0xc765f5ed9abb26349054020feea04f955a5cb1ec",
         "0x9bb8f7b9f08ecc75aba62ba25d7b3f46fce79745"
       ]
