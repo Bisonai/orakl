@@ -126,7 +126,7 @@ forge script DeployFull --broadcast --rpc-url http://localhost:8545
   "setProofThreshold": {
     "thresholds": [
       {
-        "feed": "0xd07bd0bcd3a8fa1087430b1be457e05c4a412a4b",
+        "name": "BTC-USDT",
         "threshold": 60
       }
     ]
@@ -141,11 +141,11 @@ forge script DeployFull --broadcast --rpc-url http://localhost:8545
     "feeds": [
       {
         "name": "BTC-USDT",
-        "address": "0xB7f8BC63BbcaD18155201308C8f3540b07f84F5e"
+        "feedAddress": "0xB7f8BC63BbcaD18155201308C8f3540b07f84F5e"
       },
       {
         "name": "ETH-USDT",
-        "address": "0x0DCd1Bf9A1b36cE34237eEaFef220932846BCD82"
+        "feedAddress": "0x0DCd1Bf9A1b36cE34237eEaFef220932846BCD82"
       }
     ]
   },
