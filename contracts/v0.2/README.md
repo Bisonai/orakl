@@ -48,6 +48,17 @@ forge script {ContractScriptName} --broadcast --rpc-url {RPC}
 forge script DeployFull --broadcast --rpc-url http://localhost:8545
 ```
 
+## Utility Scripts
+
+### Generate Migration from Orakl Config
+
+Following command will generate migration file for whole deployment in `./migration/${chain}/SubmissionProxy/${dateTime}_deploy.json`
+
+```bash
+node ./script/generate-migration-from-config.cjs --chain test
+```
+
+
 ## Migration Examples
 
 ### `./migration/{CHAIN(local/baobab/cypress)}/Feed/{migrationFile}.json`

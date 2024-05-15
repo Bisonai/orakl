@@ -6,6 +6,7 @@ import {UtilsScript} from "./Utils.s.sol";
 import {SubmissionProxy} from "../src/SubmissionProxy.sol";
 import {Feed} from "../src/Feed.sol";
 import {FeedProxy} from "../src/FeedProxy.sol";
+import {FeedRouter} from "../src/FeedRouter.sol";
 import {strings} from "solidity-stringutils/strings.sol";
 import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
 
@@ -199,10 +200,12 @@ contract DeploySubmissionProxy is Script {
 
         bytes32[] memory feedHashes = new bytes32[](feedNames.length);
         address[] memory feedAddresses = new address[](feedNames.length);
+        address[] memory proxyAddresses = new address[](feedNames.length);
         for (uint256 j = 0; j < feedNames.length; j++) {
             Feed feed = new Feed(DECIMALS, feedNames[j], address(submissionProxy));
             console.log("(Feed Deployed)", feedNames[j], address(feed));
             FeedProxy feedProxy = new FeedProxy(address(feed));
+            proxyAddresses[j] = address(feedProxy);
             console.log("(FeedProxy Deployed)", feedNames[j], address(feedProxy));
             feedHashes[j] = string2bytes32Hash(feedNames[j]);
             feedAddresses[j] = address(feed);
@@ -210,6 +213,15 @@ contract DeploySubmissionProxy is Script {
         }
         submissionProxy.updateFeedBulk(feedHashes, feedAddresses);
         console.log("(Feeds Updated)");
+
+        if (!vm.keyExists(json, ".deployFeedRouter")) {
+            return;
+        }
+
+        FeedRouter feedRouter = new FeedRouter();
+        console.log("(FeedRouter Deployed)", address(feedRouter));
+        feedRouter.updateProxyBulk(feedNames, proxyAddresses);
+        console.log("(Proxies Updated)");
     }
 
 
