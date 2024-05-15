@@ -123,8 +123,8 @@ contract DeploySubmissionProxy is Script {
         if (!vm.keyExists(json, ".setProofThreshold")) {
             return;
         }
-        bytes memory raw = json.parseRaw(".setProofThreshold.thresholds");
-        UtilsScript.SetProofThresholdThresholdConstructor[] memory thresholds = abi.decode(raw, (UtilsScript.SetProofThresholdThresholdConstructor[]));
+        bytes memory raw = json.parseRaw(".setProofThreshold");
+        UtilsScript.SetProofThresholdConstructor[] memory thresholds = abi.decode(raw, (UtilsScript.SetProofThresholdConstructor[]));
         for (uint256 j = 0; j < thresholds.length; j++) {
             submissionProxy.setProofThreshold(string2bytes32Hash(thresholds[j].name), thresholds[j].threshold);
             console.log("(Proof Threshold Set)", thresholds[j].name, thresholds[j].threshold);
@@ -160,20 +160,20 @@ contract DeploySubmissionProxy is Script {
         if (!vm.keyExists(json, ".updateFeed")) {
             return;
         }
-        bytes memory raw = json.parseRaw(".updateFeed.feeds");
+        bytes memory raw = json.parseRaw(".updateFeed");
         _updateFeeds(submissionProxy, raw);
     }
 
     function _updateFeeds(SubmissionProxy submissionProxy, bytes memory raw) internal {
-        UtilsScript.UpdateFeedFeedConstructor[] memory feeds = abi.decode(raw, (UtilsScript.UpdateFeedFeedConstructor[]));
+        UtilsScript.UpdateFeedConstructor[] memory feeds = abi.decode(raw, (UtilsScript.UpdateFeedConstructor[]));
         bytes32[] memory feedHashes = new bytes32[](feeds.length);
         address[] memory feedAddresses = new address[](feeds.length);
         for (uint256 j = 0; j < feeds.length; j++) {
-            UtilsScript.UpdateFeedFeedConstructor memory feed = feeds[j];
-            feedHashes[j] = string2bytes32Hash(feed.feedName);
+            UtilsScript.UpdateFeedConstructor memory feed = feeds[j];
+            feedHashes[j] = string2bytes32Hash(feed.name);
             feedAddresses[j] = feed.feedAddress;
             
-            console.log("(Feed Prepared)", feeds[j].feedName, feeds[j].feedAddress);
+            console.log("(Feed Prepared)", feed.name, feed.feedAddress);
         }
         submissionProxy.updateFeedBulk(feedHashes, feedAddresses);
     }

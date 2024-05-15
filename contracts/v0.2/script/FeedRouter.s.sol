@@ -35,16 +35,16 @@ contract DeployFeedRouter is Script {
     }
 
     function updateProxies(FeedRouter feedRouter, bytes memory rawJson) internal {
-        UtilsScript.UpdateProxyBulkProxyConstructor[] memory updateProxyBulkProxyConstructors = abi.decode(rawJson, (UtilsScript.UpdateProxyBulkProxyConstructor[]));
-        string[] memory _feedNames = new string[](updateProxyBulkProxyConstructors.length);
-        address[] memory _proxyAddresses = new address[](updateProxyBulkProxyConstructors.length);
+        UtilsScript.UpdateProxyBulkConstructor[] memory updateProxyBulkConstructors = abi.decode(rawJson, (UtilsScript.UpdateProxyBulkConstructor[]));
+        string[] memory _feedNames = new string[](updateProxyBulkConstructors.length);
+        address[] memory _proxyAddresses = new address[](updateProxyBulkConstructors.length);
 
-        for (uint256 j = 0; j < updateProxyBulkProxyConstructors.length; j++) {
-            UtilsScript.UpdateProxyBulkProxyConstructor memory updateProxyBulkProxyConstructor = updateProxyBulkProxyConstructors[j];
+        for (uint256 j = 0; j < updateProxyBulkConstructors.length; j++) {
+            UtilsScript.UpdateProxyBulkConstructor memory updateProxyBulkConstructor = updateProxyBulkConstructors[j];
 
-            _feedNames[j] = updateProxyBulkProxyConstructor.feedName;
-            _proxyAddresses[j] = updateProxyBulkProxyConstructor.proxyAddress;
-            console.log("(Proxy Prepared)", updateProxyBulkProxyConstructor.feedName, updateProxyBulkProxyConstructor.proxyAddress);
+            _feedNames[j] = updateProxyBulkConstructor.feedName;
+            _proxyAddresses[j] = updateProxyBulkConstructor.proxyAddress;
+            console.log("(Proxy Prepared)", updateProxyBulkConstructor.feedName, updateProxyBulkConstructor.proxyAddress);
         }
         feedRouter.updateProxyBulk(_feedNames, _proxyAddresses);
         console.log("(Proxies Updated)");
@@ -55,6 +55,7 @@ contract DeployFeedRouter is Script {
         bool useExisting = vm.keyExists(json, ".address");
         bool deploy = vm.keyExists(json, ".deploy");
 
+        // if both .deploy and .address exists, use deployed contract address
         if (deploy) {
             console.log("Deploying FeedRouter");
             feedRouter = new FeedRouter();
@@ -71,7 +72,7 @@ contract DeployFeedRouter is Script {
 
         bool updateProxyBulk = vm.keyExists(json, ".updateProxyBulk");
         if (updateProxyBulk) {
-            bytes memory feedRouterProxyConstructorsRaw = json.parseRaw(".updateProxyBulk.proxies");
+            bytes memory feedRouterProxyConstructorsRaw = json.parseRaw(".updateProxyBulk");
             updateProxies(feedRouter, feedRouterProxyConstructorsRaw);
         }
         return true;

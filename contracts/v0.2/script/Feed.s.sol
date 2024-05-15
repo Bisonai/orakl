@@ -35,35 +35,76 @@ contract DeployFeed is Script {
 
     function executeMigration(string memory json) public {
         console.log("Executing Migration");
-        bool deploy = vm.keyExists(json, ".deploy");
-        if (deploy) {
-            console.log("Deploying Feed");
-            bytes memory submitterRaw = json.parseRaw(".deploy.submitter");
-            bytes memory feedNamesRaw = json.parseRaw(".deploy.feedNames");
-            address submitter = abi.decode(submitterRaw, (address));
-            string[] memory feedNames = abi.decode(feedNamesRaw, (string[]));
-            for (uint256 j = 0; j < feedNames.length; j++) {
-                Feed feed = new Feed(DECIMALS, feedNames[j], submitter);
-                console.log("(Feed Deployed)", feedNames[j], address(feed));
-                FeedProxy feedProxy = new FeedProxy(address(feed));
-                console.log("(FeedProxy Deployed)", feedNames[j], address(feedProxy));
-            }
+        
+        deployFeeds(json);
+        updateSubmitter(json);
+        proposeFeeds(json);
+        confirmFeeds(json);
+    }
+
+    function deployFeeds(string memory json) internal {
+        if (!vm.keyExists(json, ".deploy")) {
+            return;
         }
 
-        bool updateSubmitter = vm.keyExists(json, ".updateSubmitter");
-        if (updateSubmitter) {
-            console.log("Updating Feed Submitter");
-            bytes memory submitterRaw = json.parseRaw(".updateSubmitter.submitter");
-            bytes memory feedAddressesRaw = json.parseRaw(".updateSubmitter.feedAddresses");
-            address submitter = abi.decode(submitterRaw, (address));
-            address[] memory feedAddresses = abi.decode(feedAddressesRaw, (address[]));
-            for (uint256 j = 0; j < feedAddresses.length; j++) {
-                Feed feed = Feed(feedAddresses[j]);
-                feed.updateSubmitter(submitter);
-                string memory feedName = feed.name();
-                console.log("(Submitter Updated)", feedName, submitter);
-            }
+        console.log("Deploying Feed");
+        bytes memory submitterRaw = json.parseRaw(".deploy.submitter");
+        bytes memory feedNamesRaw = json.parseRaw(".deploy.feedNames");
+        address submitter = abi.decode(submitterRaw, (address));
+        string[] memory feedNames = abi.decode(feedNamesRaw, (string[]));
+        for (uint256 j = 0; j < feedNames.length; j++) {
+            Feed feed = new Feed(DECIMALS, feedNames[j], submitter);
+            console.log("(Feed Deployed)", feedNames[j], address(feed));
+            FeedProxy feedProxy = new FeedProxy(address(feed));
+            console.log("(FeedProxy Deployed)", feedNames[j], address(feedProxy));
         }
     }
 
+    function updateSubmitter(string memory json) internal {
+        if (!vm.keyExists(json, ".updateSubmitter")) {
+            return;
+        }
+
+        console.log("Updating Feed Submitter");
+        bytes memory submitterRaw = json.parseRaw(".updateSubmitter.submitter");
+        bytes memory feedAddressesRaw = json.parseRaw(".updateSubmitter.feedAddresses");
+        address submitter = abi.decode(submitterRaw, (address));
+        address[] memory feedAddresses = abi.decode(feedAddressesRaw, (address[]));
+        for (uint256 j = 0; j < feedAddresses.length; j++) {
+            Feed feed = Feed(feedAddresses[j]);
+            feed.updateSubmitter(submitter);
+            string memory feedName = feed.name();
+            console.log("(Submitter Updated)", feedName, submitter);
+        }
+    }
+
+    function proposeFeeds(string memory json) internal {
+        if (!vm.keyExists(json, ".proposeFeeds")) {
+            return;
+        }
+        console.log("Proposing Feeds to FeedProxies");
+        bytes memory raw = json.parseRaw(".proposeFeeds");
+        UtilsScript.FeedProxyUpdateConstructor[] memory updateSets = abi.decode(raw, (UtilsScript.FeedProxyUpdateConstructor[]));
+        for (uint256 j = 0; j < updateSets.length; j++) {
+            UtilsScript.FeedProxyUpdateConstructor memory updateSet = updateSets[j];
+            FeedProxy feedProxy = FeedProxy(updateSet.feedProxyAddress);
+            feedProxy.proposeFeed(updateSet.feedAddress);
+            console.log("(Feed Proposed)", updateSet.feedAddress, updateSet.feedProxyAddress);
+        }
+    }
+
+    function confirmFeeds(string memory json) internal {
+        if (!vm.keyExists(json, ".confirmFeeds")) {
+            return;
+        }
+        console.log("Confirming Feeds to FeedProxies");
+        bytes memory raw = json.parseRaw(".confirmFeeds");
+        UtilsScript.FeedProxyUpdateConstructor[] memory updateSets = abi.decode(raw, (UtilsScript.FeedProxyUpdateConstructor[]));
+        for (uint256 j = 0; j < updateSets.length; j++) {
+            UtilsScript.FeedProxyUpdateConstructor memory updateSet = updateSets[j];
+            FeedProxy feedProxy = FeedProxy(updateSet.feedProxyAddress);
+            feedProxy.confirmFeed(updateSet.feedAddress);
+            console.log("(Feed Confirmed)", updateSet.feedProxyAddress, updateSet.feedAddress);
+        }
+    }
 }

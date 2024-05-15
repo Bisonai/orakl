@@ -50,7 +50,9 @@ forge script DeployFull --broadcast --rpc-url http://localhost:8545
 
 ## Migration Examples
 
-### Deploy `Feed` & `FeedProxy` Contracts
+### `./migration/{CHAIN(local/baobab/cypress)}/Feed/{migrationFile}.json`
+
+- Deploy `Feed` & `FeedProxy` Contracts
 
 ```json
 {
@@ -61,7 +63,7 @@ forge script DeployFull --broadcast --rpc-url http://localhost:8545
 }
 ```
 
-### Update Submitter of `Feed` Contract
+- Update Submitter of `Feed` Contract
 
 ```json
 {
@@ -75,7 +77,44 @@ forge script DeployFull --broadcast --rpc-url http://localhost:8545
 }
 ```
 
-### Deploy `FeedRouter`
+- Propose FeedProxy new Feeds
+
+```json
+{
+  "proposeFeeds": [
+    {
+      "feedProxyAddress":"0x3aa5ebb10dc797cac828524e59a333d0a371443c",
+      "feedAddress": "0x68b1d87f95878fe05b998f19b66f4baba5de1aed"
+    },
+    {
+      "feedProxyAddress":"0x59b670e9fa9d0a427751af201d676719a970857b",
+      "feedAddress":"0xc6e7df5e7b4f2a278906862b61205850344d4e7d"
+    }
+  ]
+}
+```
+
+- Confirm FeedProxy new Feeds
+
+```json
+{
+  "confirmFeeds": [
+    {
+      "feedProxyAddress":"0x3aa5ebb10dc797cac828524e59a333d0a371443c",
+      "feedAddress": "0x68b1d87f95878fe05b998f19b66f4baba5de1aed"
+    },
+    {
+      "feedProxyAddress":"0x59b670e9fa9d0a427751af201d676719a970857b",
+      "feedAddress":"0xc6e7df5e7b4f2a278906862b61205850344d4e7d"
+    }
+  ]
+}
+```
+
+### `./migration/{CHAIN(local/baobab/cypress)}/FeedRouter/{migrationFile}.json`
+
+
+- Deploy `FeedRouter`
 
 ```json
 {
@@ -83,13 +122,12 @@ forge script DeployFull --broadcast --rpc-url http://localhost:8545
 }
 ```
 
-### Update proxies in `FeedRouter`
+- Update proxies in `FeedRouter`
 
 ```json
 {
   "address": "0x1ac6cd893eddb6cac15e5a9fc549335b8b449015",
-  "updateProxyBulk": {
-    "proxies": [
+  "updateProxyBulk": [
       {
         "feedName": "BTC-USDT",
         "proxyAddress": "0x50c23983ea26f30d368da5b257001ee3ddf9a539"
@@ -99,11 +137,12 @@ forge script DeployFull --broadcast --rpc-url http://localhost:8545
         "proxyAddress": "0xd07bd0bcd3a8fa1087430b1be457e05c4a412a4b"
       }
     ]
-  }
 }
 ```
 
-### Deploy `SubmissionProxy` and Register Oracle
+### `./migration/{CHAIN(local/baobab/cypress)}/SubmissionProxy/{migrationFile}.json`
+
+- Deploy `SubmissionProxy` and Register Oracle
 
 ```json
 {
@@ -114,7 +153,7 @@ forge script DeployFull --broadcast --rpc-url http://localhost:8545
 }
 ```
 
-### Update Configuration of `SubmissionProxy`
+- Update Configuration of `SubmissionProxy`
 
 ```json
 {
@@ -123,22 +162,19 @@ forge script DeployFull --broadcast --rpc-url http://localhost:8545
   "setDataFreshness": 2,
   "setExpirationPeriod": 2592000,
   "setDefaultProofThreshold": 80,
-  "setProofThreshold": {
-    "thresholds": [
+  "setProofThreshold":  [
       {
         "name": "BTC-USDT",
         "threshold": 60
       }
-    ]
-  },
+    ],
   "addOracle": {
     "oracles": ["0x50c23983ea26f30d368da5b257001ee3ddf9a539"]
   },
   "removeOracle": {
     "oracles": ["0xd07bd0bcd3a8fa1087430b1be457e05c4a412a4b"]
   },
-  "updateFeed": {
-    "feeds": [
+  "updateFeed":  [
       {
         "name": "BTC-USDT",
         "feedAddress": "0xB7f8BC63BbcaD18155201308C8f3540b07f84F5e"
@@ -148,14 +184,14 @@ forge script DeployFull --broadcast --rpc-url http://localhost:8545
         "feedAddress": "0x0DCd1Bf9A1b36cE34237eEaFef220932846BCD82"
       }
     ]
-  },
+  ,
   "removeFeed": {
     "feedNames": ["BNB-USDT", "PEPE-USDT"]
   }
 }
 ```
 
-### Deploy `SubmissionProxy` with `Feed` and `FeedProxy` contracts
+- Deploy `SubmissionProxy` with `Feed` and `FeedProxy` contracts
 
 ```json
 {

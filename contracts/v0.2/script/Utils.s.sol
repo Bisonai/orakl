@@ -15,28 +15,24 @@ contract UtilsScript is Script {
         string description;
     }
 
-    struct UpdateProxyBulkProxyConstructor {
+    struct UpdateProxyBulkConstructor {
         string feedName;
         address proxyAddress;
     }
 
-    struct SetProofThresholdThresholdConstructor {
+    struct SetProofThresholdConstructor {
         string name;
         uint8 threshold;
     }
 
-    struct UpdateFeedFeedConstructor {
+    struct UpdateFeedConstructor {
         address feedAddress;
-        string feedName;
+        string name;
     }
 
-    struct ChangeOracles {
-        address[] addedAdmins;
-        address[] added;
-        uint256 maxSubmissionCount;
-        uint256 minSubmissionCount;
-        address[] removed;
-        uint256 restartDelay;
+    struct FeedProxyUpdateConstructor {
+        address feedAddress;
+        address feedProxyAddress;
     }
 
     function chainName() public view returns (string memory chain) {
