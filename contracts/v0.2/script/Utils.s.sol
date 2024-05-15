@@ -41,14 +41,18 @@ contract UtilsScript is Script {
         } else if (block.chainid == 8217) {
             return "cypress";
         }
-        return "local";
+        return "localhost";
     }
 
     function loadMigration(string memory dirPath) public returns (string[] memory fileNames) {
         string memory root = vm.projectRoot();
         string memory path = string.concat(root, dirPath);
-        VmSafe.DirEntry[] memory files = vm.readDir(path);
+        bool pathExists = vm.isDir(path);
+        if (!pathExists) {
+            vm.createDir(path, true);
+        }
 
+        VmSafe.DirEntry[] memory files = vm.readDir(path);
         string memory lockFilePath = string.concat(path, "/", MIGRATION_LOCK_FILE_NAME);
 
         bool lockFileExists = vm.isFile(lockFilePath);
