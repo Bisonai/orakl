@@ -46,7 +46,6 @@ contract DeployFeed is Script {
         if (!vm.keyExists(json, ".deploy")) {
             return;
         }
-
         console.log("Deploying Feed");
         bytes memory submitterRaw = json.parseRaw(".deploy.submitter");
         bytes memory feedNamesRaw = json.parseRaw(".deploy.feedNames");
@@ -64,7 +63,6 @@ contract DeployFeed is Script {
         if (!vm.keyExists(json, ".updateSubmitter")) {
             return;
         }
-
         console.log("Updating Feed Submitter");
         bytes memory submitterRaw = json.parseRaw(".updateSubmitter.submitter");
         bytes memory feedAddressesRaw = json.parseRaw(".updateSubmitter.feedAddresses");
