@@ -10,10 +10,13 @@ import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
 contract DeployFeedRouter is Script {
     using stdJson for string;
     using strings for *;
+    UtilsScript config;
 
-    function setUp() public {}
+    function setUp() public {
+        config = new UtilsScript();
+    }
     function run() public {
-        UtilsScript config = new UtilsScript();
+        
         string memory dirPath = string.concat("/migration/", config.chainName(), "/FeedRouter");
         string[] memory migrationFiles = config.loadMigration(dirPath);
 
@@ -59,6 +62,7 @@ contract DeployFeedRouter is Script {
         if (deploy) {
             console.log("Deploying FeedRouter");
             feedRouter = new FeedRouter();
+            config.storeAddress("FeedRouter", address(feedRouter));
             console.log("(FeedRouter Deployed)", address(feedRouter));
         }else if (useExisting) {
             bytes memory feedRouterAddressRaw = json.parseRaw(".address");

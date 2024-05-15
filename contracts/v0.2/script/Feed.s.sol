@@ -12,12 +12,13 @@ contract DeployFeed is Script {
     using stdJson for string;
     using strings for *;
     uint8 constant DECIMALS = 8;
+    UtilsScript config;
 
-
-    function setUp() public {}
+    function setUp() public {
+        config = new UtilsScript();
+    }
 
     function run() public {
-        UtilsScript config = new UtilsScript();
         string memory dirPath = string.concat("/migration/", config.chainName(), "/Feed");
         string[] memory migrationFiles = config.loadMigration(dirPath);
 
@@ -56,6 +57,8 @@ contract DeployFeed is Script {
             console.log("(Feed Deployed)", feedNames[j], address(feed));
             FeedProxy feedProxy = new FeedProxy(address(feed));
             console.log("(FeedProxy Deployed)", feedNames[j], address(feedProxy));
+
+            config.storeFeedAddress(feedNames[j], address(feed), address(feedProxy));
         }
     }
 

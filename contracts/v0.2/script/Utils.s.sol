@@ -3,8 +3,11 @@ pragma solidity ^0.8.20;
 
 import {Script, stdJson, VmSafe, console} from "forge-std/Script.sol";
 import {strings} from "solidity-stringutils/strings.sol";
+import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
 
 contract UtilsScript is Script {
+    using Strings for uint256;
+    using Strings for address;
     using stdJson for string;
     using strings for *;
 
@@ -119,6 +122,31 @@ contract UtilsScript is Script {
             parts[i] = strings.split(s, delim).toString();
         }
         vm.writeLine(path, parts[parts.length - 1]);
+    }
+
+    function storeAddress(string memory contractName, address _address) public {
+        string memory root = vm.projectRoot();
+        string memory path = string.concat(root, "/addresses/", chainName());
+        if(!vm.isDir(path)) {
+            vm.createDir(path, true);
+        }
+
+        string memory filePath = string.concat(path, "/", string.concat(contractName, ".json"));
+        string memory json = string.concat("{ \"address\": \"", _address.toHexString(), "\" }");
+
+        vm.writeJson(json, filePath);
+    }
+
+    function storeFeedAddress(string memory feedName, address feedAddress, address feedProxyAddress) public {
+        string memory feedContractName = string.concat("Feed_", feedName, "_", timestampString());
+        string memory feedProxyContractName = string.concat("FeedProxy_", feedName, "_", timestampString());
+
+        storeAddress(feedContractName, feedAddress);
+        storeAddress(feedProxyContractName, feedProxyAddress);
+    }
+
+    function timestampString() public returns (string memory) {
+        return (vm.unixTime() / 1000).toString();
     }
 
     function readJson(string memory filePath, string memory key) public view returns (bytes memory) {

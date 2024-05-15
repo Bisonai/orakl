@@ -13,12 +13,15 @@ import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
 contract DeploySubmissionProxy is Script {
     using stdJson for string;
     using strings for *;
-    uint8 constant DECIMALS = 8;
 
-    function setUp() public {}
+    uint8 constant DECIMALS = 8;
+    UtilsScript config;
+    function setUp() public {
+        config = new UtilsScript();
+    }
 
     function run() public {
-        UtilsScript config = new UtilsScript();
+        
         string memory dirPath = string.concat("/migration/", config.chainName(), "/SubmissionProxy");
         string[] memory migrationFiles = config.loadMigration(dirPath);
 
@@ -44,6 +47,7 @@ contract DeploySubmissionProxy is Script {
 
         if (deploy) {
             submissionProxy = deploySubmissionProxy();
+            config.storeAddress("SubmissionProxy", address(submissionProxy));
         } else if (useExisting) {
             submissionProxy = useExistingSubmissionProxy(json);
         } else {
@@ -205,9 +209,12 @@ contract DeploySubmissionProxy is Script {
             Feed feed = new Feed(DECIMALS, feedNames[j], address(submissionProxy));
             console.log("(Feed Deployed)", feedNames[j], address(feed));
             FeedProxy feedProxy = new FeedProxy(address(feed));
-            proxyAddresses[j] = address(feedProxy);
             console.log("(FeedProxy Deployed)", feedNames[j], address(feedProxy));
+
+            config.storeFeedAddress(feedNames[j], address(feed), address(feedProxy));
+
             feedHashes[j] = string2bytes32Hash(feedNames[j]);
+            proxyAddresses[j] = address(feedProxy);
             feedAddresses[j] = address(feed);
             console.log("(Feed Prepared for updateFeed)", feedNames[j], address(feed));
         }
@@ -220,6 +227,7 @@ contract DeploySubmissionProxy is Script {
 
         FeedRouter feedRouter = new FeedRouter();
         console.log("(FeedRouter Deployed)", address(feedRouter));
+        config.storeAddress("FeedRouter", address(feedRouter));
         feedRouter.updateProxyBulk(feedNames, proxyAddresses);
         console.log("(Proxies Updated)");
     }
