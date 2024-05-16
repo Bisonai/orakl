@@ -64,7 +64,7 @@ contract UtilsScript is Script {
             vm.writeFile(lockFilePath, "");
             console.log("lock file created");
         }
-        
+
         string memory migrationFileName;
         string memory migrationFilePath;
         uint256 fileCount = 0;
@@ -138,15 +138,11 @@ contract UtilsScript is Script {
     }
 
     function storeFeedAddress(string memory feedName, address feedAddress, address feedProxyAddress) public {
-        string memory feedContractName = string.concat("Feed_", feedName, "_", timestampString());
-        string memory feedProxyContractName = string.concat("FeedProxy_", feedName, "_", timestampString());
+        string memory feedContractName = string.concat("Feed_", feedName);
+        string memory feedProxyContractName = string.concat("FeedProxy_", feedName);
 
         storeAddress(feedContractName, feedAddress);
         storeAddress(feedProxyContractName, feedProxyAddress);
-    }
-
-    function timestampString() public returns (string memory) {
-        return (vm.unixTime() / 1000).toString();
     }
 
     function readJson(string memory filePath, string memory key) public view returns (bytes memory) {
