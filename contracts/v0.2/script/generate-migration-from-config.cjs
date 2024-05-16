@@ -13,8 +13,13 @@ const readArgs = async () => {
 
 const fetchConfigData = async (chain) => {
   const url = `https://config.orakl.network/${chain}_configs.json`;
-  const { data } = await axios.get(url);
-  return data.map((config) => config.name);
+  try {
+    const { data } = await axios.get(url);
+    return data.map((config) => config.name);
+  } catch (error) {
+    console.error(`Failed to fetch config data from ${url}:`, error);
+    throw error;
+  }
 };
 
 const createResultObject = (names) => ({
@@ -44,11 +49,15 @@ async function main() {
   const date = moment().format("YYYYMMDDHHMMSS");
   const fileName = `${date}_deploy.json`;
 
-  const savePath = path.join(__filename, `../../migration/${chain}/SubmissionProxy`);
+  const savePath = path.join(
+    __filename,
+    `../../migration/${chain}/SubmissionProxy`
+  );
   ensureDirectoryExistence(savePath);
 
   const filePath = path.join(savePath, fileName);
   writeToFile(filePath, result);
+  console.log(`Migration file saved to: ${filePath}`);
 }
 
 main().catch((error) => {

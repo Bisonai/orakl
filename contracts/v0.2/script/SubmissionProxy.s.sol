@@ -21,7 +21,7 @@ contract DeploySubmissionProxy is Script {
     }
 
     function run() public {
-        
+
         string memory dirPath = string.concat("/migration/", config.chainName(), "/SubmissionProxy");
         string[] memory migrationFiles = config.loadMigration(dirPath);
 
@@ -61,7 +61,7 @@ contract DeploySubmissionProxy is Script {
         setDefaultProofThreshold(submissionProxy, json);
         setProofThreshold(submissionProxy, json);
         addOracle(submissionProxy, json);
-        removeOrcale(submissionProxy, json);
+        removeOracle(submissionProxy, json);
         updateFeed(submissionProxy, json);
         removeFeed(submissionProxy, json);
         deployFeed(submissionProxy, json);
@@ -149,7 +149,7 @@ contract DeploySubmissionProxy is Script {
 
     }
 
-    function removeOrcale(SubmissionProxy submissionProxy, string memory json) internal {
+    function removeOracle(SubmissionProxy submissionProxy, string memory json) internal {
         if (!vm.keyExists(json, ".removeOracle")) {
             return;
         }
@@ -177,7 +177,7 @@ contract DeploySubmissionProxy is Script {
             UtilsScript.UpdateFeedConstructor memory feed = feeds[j];
             feedHashes[j] = string2bytes32Hash(feed.name);
             feedAddresses[j] = feed.feedAddress;
-            
+
             console.log("(Feed Prepared)", feed.name, feed.feedAddress);
         }
         submissionProxy.updateFeedBulk(feedHashes, feedAddresses);
