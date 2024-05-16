@@ -4,17 +4,17 @@
 
 Install Foundry by following name at https://book.getfoundry.sh/getting-started/installation or by executing the command below.
 
-````shell
+```shell
 curl -L https://foundry.paradigm.xyz | bash
+```
 
-  Running `foundryup` by itself will install the latest (nightly) precompiled binaries: `forge`, `cast`, `anvil`, and `chisel`
-
+Running `foundryup` by itself will install the latest (nightly) precompiled binaries: `forge`, `cast`, `anvil`, and `chisel`
 
 ## Build
 
 ```shell
 forge build
-````
+```
 
 ## Test
 
@@ -58,7 +58,6 @@ Following command will generate migration file for whole deployment in `./migrat
 node ./script/generate-migration-from-config.cjs --chain test
 ```
 
-
 ## Migration Examples
 
 ### `./migration/{CHAIN(local/baobab/cypress)}/Feed/{migrationFile}.json`
@@ -94,12 +93,12 @@ node ./script/generate-migration-from-config.cjs --chain test
 {
   "proposeFeeds": [
     {
-      "feedProxyAddress":"0x3aa5ebb10dc797cac828524e59a333d0a371443c",
+      "feedProxyAddress": "0x3aa5ebb10dc797cac828524e59a333d0a371443c",
       "feedAddress": "0x68b1d87f95878fe05b998f19b66f4baba5de1aed"
     },
     {
-      "feedProxyAddress":"0x59b670e9fa9d0a427751af201d676719a970857b",
-      "feedAddress":"0xc6e7df5e7b4f2a278906862b61205850344d4e7d"
+      "feedProxyAddress": "0x59b670e9fa9d0a427751af201d676719a970857b",
+      "feedAddress": "0xc6e7df5e7b4f2a278906862b61205850344d4e7d"
     }
   ]
 }
@@ -111,19 +110,18 @@ node ./script/generate-migration-from-config.cjs --chain test
 {
   "confirmFeeds": [
     {
-      "feedProxyAddress":"0x3aa5ebb10dc797cac828524e59a333d0a371443c",
+      "feedProxyAddress": "0x3aa5ebb10dc797cac828524e59a333d0a371443c",
       "feedAddress": "0x68b1d87f95878fe05b998f19b66f4baba5de1aed"
     },
     {
-      "feedProxyAddress":"0x59b670e9fa9d0a427751af201d676719a970857b",
-      "feedAddress":"0xc6e7df5e7b4f2a278906862b61205850344d4e7d"
+      "feedProxyAddress": "0x59b670e9fa9d0a427751af201d676719a970857b",
+      "feedAddress": "0xc6e7df5e7b4f2a278906862b61205850344d4e7d"
     }
   ]
 }
 ```
 
 ### `./migration/{CHAIN(local/baobab/cypress)}/FeedRouter/{migrationFile}.json`
-
 
 - Deploy `FeedRouter`
 
@@ -139,15 +137,15 @@ node ./script/generate-migration-from-config.cjs --chain test
 {
   "address": "0x1ac6cd893eddb6cac15e5a9fc549335b8b449015",
   "updateProxyBulk": [
-      {
-        "feedName": "BTC-USDT",
-        "proxyAddress": "0x50c23983ea26f30d368da5b257001ee3ddf9a539"
-      },
-      {
-        "feedName": "KLAY-USDT",
-        "proxyAddress": "0xd07bd0bcd3a8fa1087430b1be457e05c4a412a4b"
-      }
-    ]
+    {
+      "feedName": "BTC-USDT",
+      "proxyAddress": "0x50c23983ea26f30d368da5b257001ee3ddf9a539"
+    },
+    {
+      "feedName": "KLAY-USDT",
+      "proxyAddress": "0xd07bd0bcd3a8fa1087430b1be457e05c4a412a4b"
+    }
+  ]
 }
 ```
 
@@ -173,29 +171,28 @@ node ./script/generate-migration-from-config.cjs --chain test
   "setDataFreshness": 2,
   "setExpirationPeriod": 2592000,
   "setDefaultProofThreshold": 80,
-  "setProofThreshold":  [
-      {
-        "name": "BTC-USDT",
-        "threshold": 60
-      }
-    ],
+  "setProofThreshold": [
+    {
+      "name": "BTC-USDT",
+      "threshold": 60
+    }
+  ],
   "addOracle": {
     "oracles": ["0x50c23983ea26f30d368da5b257001ee3ddf9a539"]
   },
   "removeOracle": {
     "oracles": ["0xd07bd0bcd3a8fa1087430b1be457e05c4a412a4b"]
   },
-  "updateFeed":  [
-      {
-        "name": "BTC-USDT",
-        "feedAddress": "0xB7f8BC63BbcaD18155201308C8f3540b07f84F5e"
-      },
-      {
-        "name": "ETH-USDT",
-        "feedAddress": "0x0DCd1Bf9A1b36cE34237eEaFef220932846BCD82"
-      }
-    ]
-  ,
+  "updateFeed": [
+    {
+      "name": "BTC-USDT",
+      "feedAddress": "0xB7f8BC63BbcaD18155201308C8f3540b07f84F5e"
+    },
+    {
+      "name": "ETH-USDT",
+      "feedAddress": "0x0DCd1Bf9A1b36cE34237eEaFef220932846BCD82"
+    }
+  ],
   "removeFeed": {
     "feedNames": ["BNB-USDT", "PEPE-USDT"]
   }
