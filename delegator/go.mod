@@ -1,12 +1,14 @@
 module bisonai.com/orakl/delegator
 
-go 1.21.5
+go 1.22.3
 
 require (
 	cloud.google.com/go/secretmanager v1.11.5
 	github.com/ethereum/go-ethereum v1.13.12
 	github.com/go-playground/validator/v10 v10.18.0
 	github.com/gofiber/fiber/v2 v2.52.0
+	github.com/hashicorp/vault/api v1.13.0
+	github.com/hashicorp/vault/api/auth/kubernetes v0.6.0
 	github.com/jackc/pgx/v5 v5.5.3
 	github.com/joho/godotenv v1.5.1
 	github.com/rs/zerolog v1.32.0
@@ -83,8 +85,6 @@ require (
 	github.com/hashicorp/go-sockaddr v1.0.2 // indirect
 	github.com/hashicorp/golang-lru v1.0.2 // indirect
 	github.com/hashicorp/hcl v1.0.1-vault-5 // indirect
-	github.com/hashicorp/vault/api v1.13.0 // indirect
-	github.com/hashicorp/vault/api/auth/kubernetes v0.6.0 // indirect
 	github.com/holiman/uint256 v1.2.4 // indirect
 	github.com/huin/goupnp v1.3.0 // indirect
 	github.com/jackpal/go-nat-pmp v1.0.2 // indirect
