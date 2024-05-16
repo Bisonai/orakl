@@ -54,7 +54,7 @@ forge script DeployFull --broadcast --rpc-url http://localhost:8545
 
 Following command will generate migration file for whole deployment in `./migration/${chain}/SubmissionProxy/${dateTime}_deploy.json`
 
-```bash
+```shell
 node ./script/generate-migration-from-config.cjs --chain test
 ```
 
