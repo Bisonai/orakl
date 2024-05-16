@@ -2,7 +2,7 @@
 
 ## Prerequisities
 
-Install Foundry by following name at https://book.getfoundry.sh/getting-started/installation or by executing the command below.
+Install Foundry from [here](https://book.getfoundry.sh/getting-started/installation), or by executing the command below.
 
 ```shell
 curl -L https://foundry.paradigm.xyz | bash
