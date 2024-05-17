@@ -6,7 +6,7 @@ BEGIN
         WHERE table_name = 'wallets'
         AND column_name = 'address'
     ) THEN
-        ALTER TABLE wallets DROP COLUMN address VARCHAR(255);
+        ALTER TABLE wallets DROP COLUMN address
     END IF;
 END
 $$

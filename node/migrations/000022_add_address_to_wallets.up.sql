@@ -6,7 +6,7 @@ BEGIN
         WHERE table_name = 'wallets'
         AND column_name = 'address'
     ) THEN
-        ALTER TABLE wallets ADD COLUMN address VARCHAR(255);
+        ALTER TABLE wallets ADD COLUMN address VARCHAR(42);
     END IF;
 END
 $$
