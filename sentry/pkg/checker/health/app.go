@@ -64,7 +64,7 @@ func init() {
 
 }
 
-func start() {
+func Start() {
 	log.Info().Msg("Starting health checker")
 	ticker := time.NewTicker(HealthCheckInterval)
 	defer ticker.Stop()
