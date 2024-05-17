@@ -28,7 +28,16 @@
         "build": "tsc",
         "clean": "forge clean && rm -rf dist",
         "test": "forge test",
-        "lint": "forge fmt"
+        "lint": "forge fmt",
+        "deploy:localhost:Feed": "forge script DeployFeed --broadcast --rpc-url http://localhost:8545",
+        "deploy:localhost:FeedRouter": "forge script DeployFeedRouter --broadcast --rpc-url http://localhost:8545",
+        "deploy:localhost:SubmissionProxy": "forge script DeploySubmissionProxy --broadcast --rpc-url http://localhost:8545",
+        "deploy:baobab:Feed": "forge script DeployFeed --broadcast --rpc-url https://api.baobab.klaytn.net:8651",
+        "deploy:baobab:FeedRouter": "forge script DeployFeedRouter --broadcast --rpc-url https://api.baobab.klaytn.net:8651",
+        "deploy:baobab:SubmissionProxy": "forge script DeploySubmissionProxy --broadcast --rpc-url https://api.baobab.klaytn.net:8651",
+        "deploy:cypress:Feed": "forge script DeployFeed --broadcast --rpc-url https://klaytn-mainnet-rpc.allthatnode.com:8551",
+        "deploy:cypress:FeedRouter": "forge script DeployFeedRouter --broadcast --rpc-url https://klaytn-mainnet-rpc.allthatnode.com:8551",
+        "deploy:cypress:SubmissionProxy": "forge script DeploySubmissionProxy --broadcast --rpc-url https://klaytn-mainnet-rpc.allthatnode.com:8551"
     },
     "devDependencies": {
         "@typechain/ethers-v5": "^11.1.2",

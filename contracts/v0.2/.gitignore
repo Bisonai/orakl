@@ -2,6 +2,8 @@
 cache
 out
 deployments/*/31337
+addresses/localhost/*
 migration/local/*/migration.lock
+migration/localhost/*/migration.lock
 typechain-types/
 dist/

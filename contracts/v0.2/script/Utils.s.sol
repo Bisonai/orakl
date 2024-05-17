@@ -3,8 +3,11 @@ pragma solidity ^0.8.20;
 
 import {Script, stdJson, VmSafe, console} from "forge-std/Script.sol";
 import {strings} from "solidity-stringutils/strings.sol";
+import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
 
 contract UtilsScript is Script {
+    using Strings for uint256;
+    using Strings for address;
     using stdJson for string;
     using strings for *;
 
@@ -15,13 +18,24 @@ contract UtilsScript is Script {
         string description;
     }
 
-    struct ChangeOracles {
-        address[] addedAdmins;
-        address[] added;
-        uint256 maxSubmissionCount;
-        uint256 minSubmissionCount;
-        address[] removed;
-        uint256 restartDelay;
+    struct UpdateProxyBulkConstructor {
+        string feedName;
+        address proxyAddress;
+    }
+
+    struct SetProofThresholdConstructor {
+        string name;
+        uint8 threshold;
+    }
+
+    struct UpdateFeedConstructor {
+        address feedAddress;
+        string name;
+    }
+
+    struct FeedProxyUpdateConstructor {
+        address feedAddress;
+        address feedProxyAddress;
     }
 
     function chainName() public view returns (string memory chain) {
@@ -30,15 +44,27 @@ contract UtilsScript is Script {
         } else if (block.chainid == 8217) {
             return "cypress";
         }
-        return "local";
+        return "localhost";
     }
 
     function loadMigration(string memory dirPath) public returns (string[] memory fileNames) {
         string memory root = vm.projectRoot();
         string memory path = string.concat(root, dirPath);
-        VmSafe.DirEntry[] memory files = vm.readDir(path);
+        bool pathExists = vm.isDir(path);
+        if (!pathExists) {
+            vm.createDir(path, true);
+        }
 
+        VmSafe.DirEntry[] memory files = vm.readDir(path);
         string memory lockFilePath = string.concat(path, "/", MIGRATION_LOCK_FILE_NAME);
+
+        bool lockFileExists = vm.isFile(lockFilePath);
+        if (!lockFileExists) {
+            console.log("lock file not exists, create one: ", lockFilePath);
+            vm.writeFile(lockFilePath, "");
+            console.log("lock file created");
+        }
+
         string memory migrationFileName;
         string memory migrationFilePath;
         uint256 fileCount = 0;
@@ -96,6 +122,27 @@ contract UtilsScript is Script {
             parts[i] = strings.split(s, delim).toString();
         }
         vm.writeLine(path, parts[parts.length - 1]);
+    }
+
+    function storeAddress(string memory contractName, address _address) public {
+        string memory root = vm.projectRoot();
+        string memory path = string.concat(root, "/addresses/", chainName());
+        if(!vm.isDir(path)) {
+            vm.createDir(path, true);
+        }
+
+        string memory filePath = string.concat(path, "/", string.concat(contractName, ".json"));
+        string memory json = string.concat("{ \"address\": \"", _address.toHexString(), "\" }");
+
+        vm.writeJson(json, filePath);
+    }
+
+    function storeFeedAddress(string memory feedName, address feedAddress, address feedProxyAddress) public {
+        string memory feedContractName = string.concat("Feed_", feedName);
+        string memory feedProxyContractName = string.concat("FeedProxy_", feedName);
+
+        storeAddress(feedContractName, feedAddress);
+        storeAddress(feedProxyContractName, feedProxyAddress);
     }
 
     function readJson(string memory filePath, string memory key) public view returns (bytes memory) {
