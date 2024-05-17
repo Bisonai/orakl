@@ -109,7 +109,21 @@ func NewChainHelper(ctx context.Context, opts ...ChainHelperOption) (*ChainHelpe
 	}
 	if config.ReporterPk != "" {
 		primaryWallet := strings.TrimPrefix(config.ReporterPk, "0x")
-		wallets = append([]string{primaryWallet}, wallets...)
+		exists := false
+		for _, wallet := range wallets {
+			if wallet == primaryWallet {
+				exists = true
+				break
+			}
+		}
+
+		if !exists {
+			wallets = append([]string{primaryWallet}, wallets...)
+			err = utils.InsertWallet(ctx, primaryWallet)
+			if err != nil {
+				log.Warn().Err(err).Msg("failed to insert primary wallet")
+			}
+		}
 	}
 
 	delegatorUrl := os.Getenv(EnvDelegatorUrl)

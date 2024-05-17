@@ -91,7 +91,7 @@ func insertSampleData(ctx context.Context) (*TmpData, error) {
 	}
 	tmpData.proxy = tmpProxy
 
-	encryptedTestPk, err := encryptor.EncryptText("test_pk")
+	encryptedTestPk, err := encryptor.EncryptText("0xec5e03e43eb58d0ea03c639e9bf1894793091928f1e222ce18df961ad4efb04e")
 	if err != nil {
 		return nil, err
 	}
@@ -99,7 +99,7 @@ func insertSampleData(ctx context.Context) (*TmpData, error) {
 	if err != nil {
 		return nil, err
 	}
-	tmpWallet.Pk = "test_pk"
+	tmpWallet.Pk = "0xec5e03e43eb58d0ea03c639e9bf1894793091928f1e222ce18df961ad4efb04e"
 	tmpData.wallet = tmpWallet
 
 	tmpProviderUrl, err := db.QueryRow[providerUrl.ProviderUrlModel](ctx, providerUrl.InsertProviderUrl, map[string]any{"chain_id": 1, "url": "test_url", "priority": 1})
