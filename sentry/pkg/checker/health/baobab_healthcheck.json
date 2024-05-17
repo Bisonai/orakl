@@ -53,18 +53,18 @@
   },
   {
     "name": "redis-data-feed-master",
-    "url": "http://redis-data-feed-master.redis.svc.cluster.local:6379"
+    "url": "redis://redis-data-feed-master.redis.svc.cluster.local:6379"
   },
   {
     "name": "redis-fetcher-master",
-    "url": "http://redis-fetcher-master.redis.svc.cluster.local:6379"
+    "url": "redis://redis-fetcher-master.redis.svc.cluster.local:6379"
   },
   {
     "name": "redis-request-response-master",
-    "url": "http://redis-request-response-master.redis.svc.cluster.local:6379"
+    "url": "redis://redis-request-response-master.redis.svc.cluster.local:6379"
   },
   {
     "name": "redis-vrf-master",
-    "url": "http://redis-vrf-master.redis.svc.cluster.local:6379"
+    "url": "redis://redis-vrf-master.redis.svc.cluster.local:6379"
   }
 ]

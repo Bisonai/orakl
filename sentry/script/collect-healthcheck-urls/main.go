@@ -86,7 +86,7 @@ func getHealthCheckRedis(ctx context.Context, clientset *kubernetes.Clientset, n
 				if container.ReadinessProbe == nil && container.ReadinessProbe.HTTPGet == nil {
 					continue
 				}
-				url := fmt.Sprintf("http://%s.%s.svc.cluster.local:%d", service.Name, service.Namespace, healthPort)
+				url := fmt.Sprintf("redis://%s.%s.svc.cluster.local:%d", service.Name, service.Namespace, healthPort)
 				result = append(result, HealthCheckUrl{Name: service.Name, Url: url})
 			}
 		}
