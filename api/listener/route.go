@@ -12,4 +12,5 @@ func Routes(router fiber.Router) {
 	listener.Get("/:id", getById)
 	listener.Patch("/:id", updateById)
 	listener.Delete("/:id", deleteById)
+	listener.Post("/observed-block", insertUpdateObservedBlock)
 }
