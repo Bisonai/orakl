@@ -12,7 +12,7 @@ import (
 
 const (
 	DEFAULT_GAS_LIMIT          = uint64(6000000)
-	SELECT_WALLETS_QUERY       = "SELECT * FROM wallets;"
+	SELECT_WALLETS_QUERY       = "SELECT id, pk FROM wallets;"
 	SELECT_PROVIDER_URLS_QUERY = "SELECT * FROM provider_urls WHERE chain_id = @chain_id ORDER BY priority;"
 )
 
