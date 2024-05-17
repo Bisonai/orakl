@@ -2,7 +2,7 @@ import axios from 'axios'
 import { Logger } from 'pino'
 import { OraklError, OraklErrorCode } from '../errors'
 import { ORAKL_NETWORK_API_URL } from '../settings'
-import { IListenerRawConfig } from '../types'
+import { IListenerObservedBlock, IListenerRawConfig } from '../types'
 import { buildUrl } from '../utils'
 
 const FILE_NAME = import.meta.url
@@ -56,5 +56,32 @@ export async function getListener({
   } catch (e) {
     logger?.error({ name: 'getListener', file: FILE_NAME, ...e }, 'error')
     throw new OraklError(OraklErrorCode.GetListenerRequestFailed)
+  }
+}
+
+/**
+ * Upsert listener observed block number to the Orakl Network API for a given contract address
+ *
+ * @param {string} blockKey
+ * @param {number} blockValue
+ * @param {pino.Logger} logger
+ * @return {Promise<IListenerObservedBlock>}
+ * @exception {UpsertListenerObservedBlockFailed}
+ */
+export async function upsertListenerObservedBlock({
+  blockKey,
+  blockValue,
+  logger
+}: {
+  blockKey: string
+  blockValue: number
+  logger?: Logger
+}): Promise<IListenerObservedBlock> {
+  try {
+    const endpoint = buildUrl(ORAKL_NETWORK_API_URL, 'listener/observed-block')
+    return (await axios.post(endpoint, { blockKey, blockValue }))?.data
+  } catch (e) {
+    logger?.error({ name: 'upsertListenerObservedBlock', file: FILE_NAME, ...e }, 'error')
+    throw new OraklError(OraklErrorCode.UpsertListenerObservedBlockFailed)
   }
 }
