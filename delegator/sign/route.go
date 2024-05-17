@@ -12,6 +12,7 @@ func Routes(router fiber.Router) {
 	sign.Post("/volatile", onlySign)
 
 	sign.Get("/initialize", initialize)
+	sign.Get("/feePayer", getFeePayerAddress)
 	sign.Get("", get)
 	sign.Get("/:id", getById)
 }
