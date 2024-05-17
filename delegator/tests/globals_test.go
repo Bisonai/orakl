@@ -1,7 +1,6 @@
 package tests
 
 import (
-	"context"
 	"encoding/hex"
 	"fmt"
 	"log"
@@ -17,7 +16,6 @@ import (
 	"bisonai.com/orakl/delegator/sign"
 	"bisonai.com/orakl/delegator/utils"
 
-	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/joho/godotenv"
 	"github.com/klaytn/klaytn/blockchain/types"
 	"github.com/klaytn/klaytn/common"
@@ -77,18 +75,10 @@ func makeMockTransaction() (*types.Transaction, error) {
 		return nil, err
 	}
 
-	pgxPool, pgxError := pgxpool.New(context.Background(), os.Getenv("DATABASE_URL"))
-	if pgxError != nil {
-		return nil, pgxError
-	}
-
 	var feePayerPk string
 
 	if feePayerPk = os.Getenv("DELEGATOR_FEEPAYER_PK"); feePayerPk == "" {
-		feePayerPk, err = utils.LoadFeePayer(pgxPool)
-		if err != nil {
-			return nil, err
-		}
+		return nil, fmt.Errorf("fee payer not initialized")
 	}
 
 	feePayerPublicKey, err := utils.GetPublicKey(feePayerPk)
