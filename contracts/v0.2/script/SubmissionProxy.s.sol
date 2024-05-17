@@ -16,12 +16,12 @@ contract DeploySubmissionProxy is Script {
 
     uint8 constant DECIMALS = 8;
     UtilsScript config;
+
     function setUp() public {
         config = new UtilsScript();
     }
 
     function run() public {
-
         string memory dirPath = string.concat("/migration/", config.chainName(), "/SubmissionProxy");
         string[] memory migrationFiles = config.loadMigration(dirPath);
 
@@ -69,14 +69,14 @@ contract DeploySubmissionProxy is Script {
         return true;
     }
 
-    function deploySubmissionProxy() internal returns (SubmissionProxy){
+    function deploySubmissionProxy() internal returns (SubmissionProxy) {
         console.log("Deploying SubmissionProxy");
         SubmissionProxy submissionProxy = new SubmissionProxy();
         console.log("(SubmissionProxy Deployed)", address(submissionProxy));
         return submissionProxy;
     }
 
-    function useExistingSubmissionProxy(string memory json) internal view returns (SubmissionProxy){
+    function useExistingSubmissionProxy(string memory json) internal view returns (SubmissionProxy) {
         bytes memory submissionProxyAddressRaw = json.parseRaw(".address");
         address submissionProxyAddress = abi.decode(submissionProxyAddressRaw, (address));
         SubmissionProxy submissionProxy = SubmissionProxy(submissionProxyAddress);
@@ -129,7 +129,8 @@ contract DeploySubmissionProxy is Script {
             return;
         }
         bytes memory raw = json.parseRaw(".setProofThreshold");
-        UtilsScript.SetProofThresholdConstructor[] memory thresholds = abi.decode(raw, (UtilsScript.SetProofThresholdConstructor[]));
+        UtilsScript.SetProofThresholdConstructor[] memory thresholds =
+            abi.decode(raw, (UtilsScript.SetProofThresholdConstructor[]));
         for (uint256 j = 0; j < thresholds.length; j++) {
             submissionProxy.setProofThreshold(string2bytes32Hash(thresholds[j].name), thresholds[j].threshold);
             console.log("(Proof Threshold Set)", thresholds[j].name, thresholds[j].threshold);
@@ -146,7 +147,6 @@ contract DeploySubmissionProxy is Script {
             submissionProxy.addOracle(oracles[j]);
             console.log("(Oracle Added)", oracles[j]);
         }
-
     }
 
     function removeOracle(SubmissionProxy submissionProxy, string memory json) internal {
@@ -232,10 +232,7 @@ contract DeploySubmissionProxy is Script {
         console.log("(Proxies Updated)");
     }
 
-
     function string2bytes32Hash(string memory str) internal pure returns (bytes32) {
         return keccak256(abi.encodePacked(str));
     }
 }
-
-

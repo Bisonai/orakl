@@ -1,47 +1,47 @@
 {
-    "name": "@bisonai/orakl-contracts-v02",
-    "version": "0.0.1",
-    "description": "The Orakl Network Smart Contracts v0.2",
-    "files": [
-        "./dist",
-        "./src"
-    ],
-    "keywords": [
-        "Oracle",
-        "Orakl",
-        "Orakl Network",
-        "Blockchain",
-        "Web3",
-        "VRF",
-        "Request-Response",
-        "Data Feed"
-    ],
-    "engines": {
-        "node": ">=20.0.0"
-    },
-    "author": "Bisonai",
-    "homepage": "https://github.com/Bisonai/orakl/tree/master/contracts#orakl-network-contracts",
-    "license": "MIT",
-    "scripts": {
-        "compile": "forge build",
-        "prebuild": "yarn compile && typechain --target ethers-v5 --out-dir typechain-types './out/**/*.json'",
-        "build": "tsc",
-        "clean": "forge clean && rm -rf dist",
-        "test": "forge test",
-        "lint": "forge fmt",
-        "deploy:localhost:Feed": "forge script DeployFeed --broadcast --rpc-url http://localhost:8545",
-        "deploy:localhost:FeedRouter": "forge script DeployFeedRouter --broadcast --rpc-url http://localhost:8545",
-        "deploy:localhost:SubmissionProxy": "forge script DeploySubmissionProxy --broadcast --rpc-url http://localhost:8545",
-        "deploy:baobab:Feed": "forge script DeployFeed --broadcast --rpc-url https://api.baobab.klaytn.net:8651",
-        "deploy:baobab:FeedRouter": "forge script DeployFeedRouter --broadcast --rpc-url https://api.baobab.klaytn.net:8651",
-        "deploy:baobab:SubmissionProxy": "forge script DeploySubmissionProxy --broadcast --rpc-url https://api.baobab.klaytn.net:8651",
-        "deploy:cypress:Feed": "forge script DeployFeed --broadcast --rpc-url https://klaytn-mainnet-rpc.allthatnode.com:8551",
-        "deploy:cypress:FeedRouter": "forge script DeployFeedRouter --broadcast --rpc-url https://klaytn-mainnet-rpc.allthatnode.com:8551",
-        "deploy:cypress:SubmissionProxy": "forge script DeploySubmissionProxy --broadcast --rpc-url https://klaytn-mainnet-rpc.allthatnode.com:8551"
-    },
-    "devDependencies": {
-        "@typechain/ethers-v5": "^11.1.2",
-        "typechain": "^8.3.2",
-        "typescript": "^5.4.5"
-    }
+  "name": "@bisonai/orakl-contracts-v02",
+  "version": "0.0.1",
+  "description": "The Orakl Network Smart Contracts v0.2",
+  "files": [
+    "./dist",
+    "./src"
+  ],
+  "keywords": [
+    "Oracle",
+    "Orakl",
+    "Orakl Network",
+    "Blockchain",
+    "Web3",
+    "VRF",
+    "Request-Response",
+    "Data Feed"
+  ],
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "author": "Bisonai",
+  "homepage": "https://github.com/Bisonai/orakl/tree/master/contracts#orakl-network-contracts",
+  "license": "MIT",
+  "scripts": {
+    "compile": "forge build",
+    "prebuild": "yarn compile && typechain --target ethers-v5 --out-dir typechain-types './out/**/*.json'",
+    "build": "tsc",
+    "clean": "forge clean && rm -rf dist",
+    "test": "forge test",
+    "lint": "forge fmt",
+    "deploy:localhost:Feed": "forge script DeployFeed --broadcast --gas-estimate-multiplier 300 --rpc-url http://localhost:8545",
+    "deploy:localhost:FeedRouter": "forge script DeployFeedRouter --broadcast --gas-estimate-multiplier 300 --rpc-url http://localhost:8545",
+    "deploy:localhost:SubmissionProxy": "forge script DeploySubmissionProxy --broadcast --gas-estimate-multiplier 300 --rpc-url http://localhost:8545",
+    "deploy:baobab:Feed": "forge script DeployFeed --broadcast --gas-estimate-multiplier 300 --rpc-url https://api.baobab.klaytn.net:8651",
+    "deploy:baobab:FeedRouter": "forge script DeployFeedRouter --broadcast --gas-estimate-multiplier 300 --rpc-url https://api.baobab.klaytn.net:8651",
+    "deploy:baobab:SubmissionProxy": "forge script DeploySubmissionProxy --broadcast --gas-estimate-multiplier 300 --rpc-url https://api.baobab.klaytn.net:8651",
+    "deploy:cypress:Feed": "forge script DeployFeed --broadcast --gas-estimate-multiplier 300 --rpc-url https://klaytn-mainnet-rpc.allthatnode.com:8551",
+    "deploy:cypress:FeedRouter": "forge script DeployFeedRouter --broadcast --gas-estimate-multiplier 300 --rpc-url https://klaytn-mainnet-rpc.allthatnode.com:8551",
+    "deploy:cypress:SubmissionProxy": "forge script DeploySubmissionProxy --broadcast --gas-estimate-multiplier 300 --rpc-url https://klaytn-mainnet-rpc.allthatnode.com:8551"
+  },
+  "devDependencies": {
+    "@typechain/ethers-v5": "^11.1.2",
+    "typechain": "^8.3.2",
+    "typescript": "^5.4.5"
+  }
 }

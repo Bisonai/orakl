@@ -10,13 +10,14 @@ import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
 contract DeployFeedRouter is Script {
     using stdJson for string;
     using strings for *;
+
     UtilsScript config;
 
     function setUp() public {
         config = new UtilsScript();
     }
+
     function run() public {
-        
         string memory dirPath = string.concat("/migration/", config.chainName(), "/FeedRouter");
         string[] memory migrationFiles = config.loadMigration(dirPath);
 
@@ -38,7 +39,8 @@ contract DeployFeedRouter is Script {
     }
 
     function updateProxies(FeedRouter feedRouter, bytes memory rawJson) internal {
-        UtilsScript.UpdateProxyBulkConstructor[] memory updateProxyBulkConstructors = abi.decode(rawJson, (UtilsScript.UpdateProxyBulkConstructor[]));
+        UtilsScript.UpdateProxyBulkConstructor[] memory updateProxyBulkConstructors =
+            abi.decode(rawJson, (UtilsScript.UpdateProxyBulkConstructor[]));
         string[] memory _feedNames = new string[](updateProxyBulkConstructors.length);
         address[] memory _proxyAddresses = new address[](updateProxyBulkConstructors.length);
 
@@ -47,7 +49,9 @@ contract DeployFeedRouter is Script {
 
             _feedNames[j] = updateProxyBulkConstructor.feedName;
             _proxyAddresses[j] = updateProxyBulkConstructor.proxyAddress;
-            console.log("(Proxy Prepared)", updateProxyBulkConstructor.feedName, updateProxyBulkConstructor.proxyAddress);
+            console.log(
+                "(Proxy Prepared)", updateProxyBulkConstructor.feedName, updateProxyBulkConstructor.proxyAddress
+            );
         }
         feedRouter.updateProxyBulk(_feedNames, _proxyAddresses);
         console.log("(Proxies Updated)");
@@ -64,12 +68,12 @@ contract DeployFeedRouter is Script {
             feedRouter = new FeedRouter();
             config.storeAddress("FeedRouter", address(feedRouter));
             console.log("(FeedRouter Deployed)", address(feedRouter));
-        }else if (useExisting) {
+        } else if (useExisting) {
             bytes memory feedRouterAddressRaw = json.parseRaw(".address");
             address feedRouterAddress = abi.decode(feedRouterAddressRaw, (address));
             feedRouter = FeedRouter(feedRouterAddress);
             console.log("(Use existing FeedRouter)", address(feedRouter));
-        }else {
+        } else {
             console.log("FeedRouter not found, skipping deploy");
             return false;
         }

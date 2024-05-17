@@ -11,6 +11,7 @@ import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
 contract DeployFeed is Script {
     using stdJson for string;
     using strings for *;
+
     uint8 constant DECIMALS = 8;
     UtilsScript config;
 
@@ -36,7 +37,7 @@ contract DeployFeed is Script {
 
     function executeMigration(string memory json) public {
         console.log("Executing Migration");
-        
+
         deployFeeds(json);
         updateSubmitter(json);
         proposeFeeds(json);
@@ -85,7 +86,8 @@ contract DeployFeed is Script {
         }
         console.log("Proposing Feeds to FeedProxies");
         bytes memory raw = json.parseRaw(".proposeFeeds");
-        UtilsScript.FeedProxyUpdateConstructor[] memory updateSets = abi.decode(raw, (UtilsScript.FeedProxyUpdateConstructor[]));
+        UtilsScript.FeedProxyUpdateConstructor[] memory updateSets =
+            abi.decode(raw, (UtilsScript.FeedProxyUpdateConstructor[]));
         for (uint256 j = 0; j < updateSets.length; j++) {
             UtilsScript.FeedProxyUpdateConstructor memory updateSet = updateSets[j];
             FeedProxy feedProxy = FeedProxy(updateSet.feedProxyAddress);
@@ -100,7 +102,8 @@ contract DeployFeed is Script {
         }
         console.log("Confirming Feeds to FeedProxies");
         bytes memory raw = json.parseRaw(".confirmFeeds");
-        UtilsScript.FeedProxyUpdateConstructor[] memory updateSets = abi.decode(raw, (UtilsScript.FeedProxyUpdateConstructor[]));
+        UtilsScript.FeedProxyUpdateConstructor[] memory updateSets =
+            abi.decode(raw, (UtilsScript.FeedProxyUpdateConstructor[]));
         for (uint256 j = 0; j < updateSets.length; j++) {
             UtilsScript.FeedProxyUpdateConstructor memory updateSet = updateSets[j];
             FeedProxy feedProxy = FeedProxy(updateSet.feedProxyAddress);
