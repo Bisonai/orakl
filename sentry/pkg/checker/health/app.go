@@ -70,13 +70,20 @@ func Start() {
 	defer ticker.Stop()
 
 	for range ticker.C {
+		alarmMessage := ""
 		for _, healthCheckUrl := range HealthCheckUrls {
-			checkUrl(healthCheckUrl)
+			isAlive := checkUrl(healthCheckUrl)
+			if !isAlive {
+				alarmMessage += healthCheckUrl.Name + " is down\n"
+			}
+		}
+		if alarmMessage != "" {
+			alert.SlackAlert(alarmMessage)
 		}
 	}
 }
 
-func checkUrl(healthCheckUrl HealthCheckUrl) {
+func checkUrl(healthCheckUrl HealthCheckUrl) bool {
 	var alive bool
 	if strings.HasPrefix(healthCheckUrl.Url, "http") {
 		alive = checkHttp(healthCheckUrl.Url)
@@ -84,9 +91,7 @@ func checkUrl(healthCheckUrl HealthCheckUrl) {
 		alive = checkRedis(context.Background(), healthCheckUrl.Url)
 	}
 
-	if !alive {
-		alert.SlackAlert("Failed to check liveness of " + healthCheckUrl.Name)
-	}
+	return alive
 }
 
 func checkHttp(url string) bool {

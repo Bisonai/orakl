@@ -14,11 +14,14 @@ import (
 	"github.com/klaytn/klaytn/client"
 	"github.com/klaytn/klaytn/common"
 	"github.com/rs/zerolog/log"
+
+	"bisonai.com/orakl/sentry/pkg/alert"
 )
 
 var SubmitterAlarmAmount float64
 var DelegatorAlarmAmount float64
 var BalanceCheckInterval time.Duration
+var BalanceAlarmInterval time.Duration
 var klaytnClient *client.Client
 var wallets []Wallet
 
@@ -27,10 +30,9 @@ type LoadedAddress struct {
 }
 
 type Wallet struct {
-	Address    string  `db:"address" json:"address"`
-	Balance    float64 `db:"balance" json:"balance"`
-	LastChange float64 `db:"last_change" json:"last_change"`
-	Minimum    float64
+	Address string  `db:"address" json:"address"`
+	Balance float64 `db:"balance" json:"balance"`
+	Minimum float64
 }
 
 func init() {
@@ -40,6 +42,7 @@ func init() {
 	SubmitterAlarmAmount = 25
 	DelegatorAlarmAmount = 10000
 	BalanceCheckInterval = 10 * time.Second
+	BalanceAlarmInterval = 30 * time.Minute
 
 	submitterAlarmAmountRaw := os.Getenv("SUBMITTER_ALARM_AMOUNT")
 	if submitterAlarmAmountRaw != "" && isNumber(submitterAlarmAmountRaw) {
@@ -63,12 +66,20 @@ func init() {
 		panic(err)
 	}
 
-	interval := os.Getenv("BALANCE_CHECK_INTERVAL")
-	parsedInterval, err := time.ParseDuration(interval)
+	checkInterval := os.Getenv("BALANCE_CHECK_INTERVAL")
+	parsedCheckInterval, err := time.ParseDuration(checkInterval)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to parse BALANCE_CHECK_INTERVAL, using default 10s")
 	} else {
-		BalanceCheckInterval = parsedInterval
+		BalanceCheckInterval = parsedCheckInterval
+	}
+
+	alarmInterval := os.Getenv("BALANCE_ALARM_INTERVAL")
+	parsedAlarmInterval, err := time.ParseDuration(alarmInterval)
+	if err != nil {
+		log.Error().Err(err).Msg("Failed to parse BALANCE_ALARM_INTERVAL, using default 10s")
+	} else {
+		BalanceAlarmInterval = parsedAlarmInterval
 	}
 
 	oraklDatabaseUrl := os.Getenv("ORAKL_DATABASE_URL")
@@ -123,10 +134,9 @@ func init() {
 		}
 
 		wallet := Wallet{
-			Address:    reporter.Address,
-			Balance:    balance,
-			LastChange: 0,
-			Minimum:    SubmitterAlarmAmount,
+			Address: reporter.Address,
+			Balance: balance,
+			Minimum: SubmitterAlarmAmount,
 		}
 		wallets = append(wallets, wallet)
 	}
@@ -136,11 +146,26 @@ func init() {
 		delegatorBalance = 0
 	}
 	wallets = append(wallets, Wallet{
-		Address:    delegatorAddress,
-		Balance:    delegatorBalance,
-		LastChange: 0,
-		Minimum:    DelegatorAlarmAmount,
+		Address: delegatorAddress,
+		Balance: delegatorBalance,
+		Minimum: DelegatorAlarmAmount,
 	})
+}
+
+func Start(ctx context.Context) {
+	log.Info().Msg("Starting balance checker")
+	checkTicker := time.NewTicker(BalanceCheckInterval)
+	defer checkTicker.Stop()
+
+	alarmTicker := time.NewTicker(BalanceAlarmInterval)
+	defer alarmTicker.Stop()
+
+	for {
+		select {
+		case <-checkTicker.C:
+			updateBalances(ctx, wallets)
+		}
+	}
 }
 
 func loadAddressesFromOrakl(ctx context.Context, pool *pgxpool.Pool) ([]LoadedAddress, error) {
@@ -180,6 +205,33 @@ func getBalance(ctx context.Context, address string) (float64, error) {
 	result, _ := ethValue.Float64()
 
 	return result, nil
+}
+
+func updateBalances(ctx context.Context, wallets []Wallet) {
+	for i, wallet := range wallets {
+
+		time.Sleep(1 * time.Second) //gracefully request to prevent json rpc blockage
+		balance, err := getBalance(ctx, wallet.Address)
+		if err != nil {
+			log.Error().Err(err).Str("address", wallet.Address).Msg("Error getting balance")
+			continue
+		}
+		wallets[i].Balance = balance
+	}
+}
+
+func alarmWallets(wallets []Wallet) {
+	var alarmMessage = ""
+	for _, wallet := range wallets {
+		if wallet.Balance < wallet.Minimum {
+			log.Error().Str("address", wallet.Address).Float64("balance", wallet.Balance).Msg("Balance lower than minimum")
+			alarmMessage += wallet.Address + " balance is lower than minimum\n"
+		}
+	}
+
+	if alarmMessage != "" {
+		alert.SlackAlert(alarmMessage)
+	}
 }
 
 func isNumber(s string) bool {
