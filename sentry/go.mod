@@ -2,7 +2,10 @@ module bisonai.com/orakl/sentry
 
 go 1.22.3
 
-require github.com/rs/zerolog v1.32.0
+require (
+	github.com/rs/zerolog v1.32.0
+	k8s.io/api v0.30.1
+)
 
 require (
 	github.com/AndreasBriese/bbloom v0.0.0-20190306092124-e2d15f34fcf9 // indirect
@@ -125,7 +128,6 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	honnef.co/go/tools v0.0.1-2020.1.4 // indirect
 	inet.af/netaddr v0.0.0-20220617031823-097006376321 // indirect
-	k8s.io/api v0.30.1 // indirect
 	k8s.io/klog/v2 v2.120.1 // indirect
 	k8s.io/kube-openapi v0.0.0-20240228011516-70dd3763d340 // indirect
 	k8s.io/utils v0.0.0-20230726121419-3b25d923346b // indirect
