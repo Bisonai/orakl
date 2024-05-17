@@ -42,6 +42,14 @@ const (
 		(SELECT name from chains WHERE chain_id = listeners.chain_id) AS chain_name,
 		(SELECT name from services WHERE service_id = listeners.service_id) AS service_name;
 		`
+
+	InsertUpdateObservedBlock = `
+		INSERT INTO observed_block (block_key, block_number)
+		VALUES (@block_key, @block_number)
+		ON CONFLICT (block_key) 
+		DO UPDATE SET block_number = @block_number
+		RETURNING *;
+	`
 )
 
 func GenerateGetListenerQuery(params GetListenerQueryParams) string {

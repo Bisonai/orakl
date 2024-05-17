@@ -34,6 +34,11 @@ type ListenerInsertModel struct {
 	Chain     string `db:"chain_name" json:"chain" validate:"required"`
 }
 
+type ListenerObservedBlockModel struct {
+	BlockKey	string `db:"block_key" json:"blockKey" validate:"required"`
+	BlockNumber	int64 `db:"block_number" json:"blockNumber" validate:"required"`
+}
+
 func insert(c *fiber.Ctx) error {
 	payload := new(ListenerInsertModel)
 	if err := c.BodyParser(payload); err != nil {
@@ -149,5 +154,23 @@ func deleteById(c *fiber.Ctx) error {
 		return err
 	}
 
+	return c.JSON(result)
+}
+
+func insertUpdateObservedBlock(c *fiber.Ctx) error {
+	payload := new(ListenerObservedBlockModel)
+	if err := c.BodyParser(payload); err != nil {
+		return err
+	}
+
+	validate := validator.New()
+	if err := validate.Struct(payload); err != nil {
+		return err
+	}
+
+	result, err := utils.QueryRow[ListenerObservedBlockModel](c, InsertUpdateObservedBlock, map[string]any{"block_key": payload.BlockKey, "block_number": payload.BlockNumber})
+	if err != nil {
+		return err
+	}
 	return c.JSON(result)
 }
