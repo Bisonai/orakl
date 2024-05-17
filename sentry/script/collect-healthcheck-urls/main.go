@@ -39,7 +39,7 @@ func getHealthPort(service *corev1.Service) int32 {
 	return 0
 }
 
-func getHealthCheckUrls(ctx context.Context, clientset *kubernetes.Clientset, namespace string, urlFormat string) []HealthCheckUrl {
+func getHealthCheckHttp(ctx context.Context, clientset *kubernetes.Clientset, namespace string) []HealthCheckUrl {
 	var result []HealthCheckUrl
 
 	services, err := clientset.CoreV1().Services(namespace).List(ctx, metav1.ListOptions{})
@@ -52,22 +52,47 @@ func getHealthCheckUrls(ctx context.Context, clientset *kubernetes.Clientset, na
 		healthPort := getHealthPort(&service)
 		servicePods := getRelatedPods(pods, &service)
 
-		// fmt.Printf(urlFormat, service.Name, service.Namespace, healthPort)
-
 		for _, pod := range servicePods {
 			for _, container := range pod.Spec.Containers {
+				path := ""
 				if container.ReadinessProbe != nil && container.ReadinessProbe.HTTPGet != nil {
-					url := fmt.Sprintf(urlFormat, service.Name, service.Namespace, healthPort, container.ReadinessProbe.HTTPGet.Path)
-					result = append(result, HealthCheckUrl{Name: service.Name, Url: url})
-				} else {
-					url := fmt.Sprintf(urlFormat, service.Name, service.Namespace, healthPort)
+					path = container.ReadinessProbe.HTTPGet.Path
+					url := fmt.Sprintf("http://%s.%s.svc.cluster.local:%d%s", service.Name, service.Namespace, healthPort, path)
 					result = append(result, HealthCheckUrl{Name: service.Name, Url: url})
 				}
+
 			}
 		}
 	}
 
 	return result
+}
+
+func getHealthCheckRedis(ctx context.Context, clientset *kubernetes.Clientset, namespace string) []HealthCheckUrl {
+	var result []HealthCheckUrl
+
+	services, err := clientset.CoreV1().Services(namespace).List(ctx, metav1.ListOptions{})
+	handleError(err)
+
+	pods, err := clientset.CoreV1().Pods(namespace).List(ctx, metav1.ListOptions{})
+	handleError(err)
+
+	for _, service := range services.Items {
+		healthPort := getHealthPort(&service)
+		servicePods := getRelatedPods(pods, &service)
+
+		for _, pod := range servicePods {
+			for _, container := range pod.Spec.Containers {
+				if container.ReadinessProbe == nil && container.ReadinessProbe.HTTPGet == nil {
+					continue
+				}
+				url := fmt.Sprintf("http://%s.%s.svc.cluster.local:%d", service.Name, service.Namespace, healthPort)
+				result = append(result, HealthCheckUrl{Name: service.Name, Url: url})
+			}
+		}
+	}
+	return result
+
 }
 
 func getSavePath(chain string) (string, error) {
@@ -118,11 +143,9 @@ func main() {
 
 	var result []HealthCheckUrl
 
-	oraklUrlFormat := "http://%s.%s.svc.cluster.local:%d%s"
-	result = append(result, getHealthCheckUrls(ctx, clientset, "orakl", oraklUrlFormat)...)
+	result = append(result, getHealthCheckHttp(ctx, clientset, "orakl")...)
 
-	redisUrlFormat := "redis://%s.%s.svc.cluster.local:%d"
-	result = append(result, getHealthCheckUrls(ctx, clientset, "redis", redisUrlFormat)...)
+	result = append(result, getHealthCheckRedis(ctx, clientset, "redis")...)
 
 	savePath, err := getSavePath(*chain)
 	if err != nil {
