@@ -15,6 +15,7 @@ import (
 	"bisonai.com/orakl/node/pkg/admin/utils"
 	"bisonai.com/orakl/node/pkg/admin/wallet"
 	"bisonai.com/orakl/node/pkg/bus"
+	chainUtils "bisonai.com/orakl/node/pkg/chain/utils"
 	"bisonai.com/orakl/node/pkg/db"
 	"bisonai.com/orakl/node/pkg/utils/encryptor"
 	"github.com/gofiber/fiber/v2"
@@ -91,15 +92,20 @@ func insertSampleData(ctx context.Context) (*TmpData, error) {
 	}
 	tmpData.proxy = tmpProxy
 
-	encryptedTestPk, err := encryptor.EncryptText("test_pk")
+	publicAddress, err := chainUtils.StringPkToAddressHex("0x6c89f2b71602eda3381d2864d881907c80bd34dc9a4fc2c3a5196f873c88538b")
 	if err != nil {
 		return nil, err
 	}
-	tmpWallet, err := db.QueryRow[wallet.WalletModel](ctx, wallet.InsertWallet, map[string]any{"pk": encryptedTestPk})
+
+	encryptedTestPk, err := encryptor.EncryptText("0x6c89f2b71602eda3381d2864d881907c80bd34dc9a4fc2c3a5196f873c88538b")
 	if err != nil {
 		return nil, err
 	}
-	tmpWallet.Pk = "test_pk"
+	tmpWallet, err := db.QueryRow[wallet.WalletModel](ctx, wallet.InsertWallet, map[string]any{"pk": encryptedTestPk, "address": publicAddress})
+	if err != nil {
+		return nil, err
+	}
+	tmpWallet.Pk = "0x6c89f2b71602eda3381d2864d881907c80bd34dc9a4fc2c3a5196f873c88538b"
 	tmpData.wallet = tmpWallet
 
 	tmpProviderUrl, err := db.QueryRow[providerUrl.ProviderUrlModel](ctx, providerUrl.InsertProviderUrl, map[string]any{"chain_id": 1, "url": "test_url", "priority": 1})

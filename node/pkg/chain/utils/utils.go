@@ -593,6 +593,24 @@ func StringToPk(pk string) (*ecdsa.PrivateKey, error) {
 	return crypto.HexToECDSA(strings.TrimPrefix(pk, "0x"))
 }
 
+func StringPkToAddressHex(pk string) (string, error) {
+	privateKey, err := StringToPk(pk)
+	if err != nil {
+		return "", err
+	}
+	publicKey := privateKey.Public()
+	publicKeyECDSA, ok := publicKey.(*ecdsa.PublicKey)
+	if !ok {
+		return "", errorSentinel.ErrChainPubKeyToECDSAFail
+	}
+	result := crypto.PubkeyToAddress(*publicKeyECDSA).Hex()
+	if !strings.HasPrefix(result, "0x") {
+		result = "0x" + result
+	}
+
+	return result, nil
+}
+
 func RecoverSigner(hash []byte, signature []byte) (address common.Address, err error) {
 	if len(signature) != 65 {
 		return common.Address{}, errorSentinel.ErrChainInvalidSignatureLength

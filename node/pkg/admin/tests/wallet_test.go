@@ -20,7 +20,7 @@ func TestWalletInsert(t *testing.T) {
 	defer cleanup()
 
 	mockWallet := wallet.WalletInsertModel{
-		Pk: "test_pk_v2",
+		Pk: "0xfcaf7723a497d35765cfff9b3bbad4df11554a4ebcec65fd0f54d5060e1a66ce",
 	}
 
 	readResultBefore, err := GetRequest[[]wallet.WalletModel](testItems.app, "/api/v1/wallet", nil)
@@ -102,7 +102,7 @@ func TestWalletUpdateById(t *testing.T) {
 	defer cleanup()
 
 	mockWallet := wallet.WalletInsertModel{
-		Pk: "test_pk_v2",
+		Pk: "0xfcaf7723a497d35765cfff9b3bbad4df11554a4ebcec65fd0f54d5060e1a66ce",
 	}
 
 	beforeUpdate, err := GetRequest[wallet.WalletModel](testItems.app, "/api/v1/wallet/"+strconv.FormatInt(*testItems.tmpData.wallet.Id, 10), nil)

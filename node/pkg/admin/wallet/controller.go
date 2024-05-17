@@ -1,6 +1,7 @@
 package wallet
 
 import (
+	chainUtils "bisonai.com/orakl/node/pkg/chain/utils"
 	"bisonai.com/orakl/node/pkg/db"
 	"bisonai.com/orakl/node/pkg/utils/encryptor"
 	"github.com/go-playground/validator/v10"
@@ -9,8 +10,9 @@ import (
 )
 
 type WalletModel struct {
-	Id *int64 `db:"id" json:"id"`
-	Pk string `db:"pk" json:"pk"`
+	Id      *int64 `db:"id" json:"id"`
+	Pk      string `db:"pk" json:"pk"`
+	Address string `db:"address" json:"address"`
 }
 
 type WalletInsertModel struct {
@@ -28,13 +30,20 @@ func insert(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusInternalServerError).SendString("failed to validate request body: " + err.Error())
 	}
 
+	publicAddress, err := chainUtils.StringPkToAddressHex(payload.Pk)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).SendString("failed to convert pk to address: " + err.Error())
+	}
+
 	encryptedPk, err := encryptor.EncryptText(payload.Pk)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).SendString("failed to encrypt pk: " + err.Error())
 	}
 
 	result, err := db.QueryRow[WalletModel](c.Context(), InsertWallet, map[string]any{
-		"pk": encryptedPk})
+		"pk":      encryptedPk,
+		"address": publicAddress,
+	})
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).SendString("failed to execute insert wallet query: " + err.Error())
 	}
@@ -90,12 +99,17 @@ func updateById(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusInternalServerError).SendString("failed to validate request body: " + err.Error())
 	}
 
+	publicAddress, err := chainUtils.StringPkToAddressHex(payload.Pk)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).SendString("failed to convert pk to address: " + err.Error())
+	}
+
 	encryptedPk, err := encryptor.EncryptText(payload.Pk)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).SendString("failed to encrypt pk: " + err.Error())
 	}
 
-	result, err := db.QueryRow[WalletModel](c.Context(), UpdateWalletById, map[string]any{"pk": encryptedPk, "id": id})
+	result, err := db.QueryRow[WalletModel](c.Context(), UpdateWalletById, map[string]any{"pk": encryptedPk, "address": publicAddress, "id": id})
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).SendString("failed to execute update wallet by id query: " + err.Error())
 	}
