@@ -52,10 +52,15 @@ func getHealthCheckUrls(ctx context.Context, clientset *kubernetes.Clientset, na
 		healthPort := getHealthPort(&service)
 		servicePods := getRelatedPods(pods, &service)
 
+		// fmt.Printf(urlFormat, service.Name, service.Namespace, healthPort)
+
 		for _, pod := range servicePods {
 			for _, container := range pod.Spec.Containers {
 				if container.ReadinessProbe != nil && container.ReadinessProbe.HTTPGet != nil {
 					url := fmt.Sprintf(urlFormat, service.Name, service.Namespace, healthPort, container.ReadinessProbe.HTTPGet.Path)
+					result = append(result, HealthCheckUrl{Name: service.Name, Url: url})
+				} else {
+					url := fmt.Sprintf(urlFormat, service.Name, service.Namespace, healthPort)
 					result = append(result, HealthCheckUrl{Name: service.Name, Url: url})
 				}
 			}
@@ -71,7 +76,7 @@ func getSavePath(chain string) (string, error) {
 		return "", err
 	}
 
-	configPath := filepath.Join(wd, "config", chain+"_healthcheck.json")
+	configPath := filepath.Join(wd, "pkg/checker/health", chain+"_healthcheck.json")
 	return configPath, nil
 }
 

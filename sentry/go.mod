@@ -5,7 +5,9 @@ go 1.22.3
 require github.com/rs/zerolog v1.32.0
 
 require (
+	github.com/cespare/xxhash/v2 v2.2.0 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
+	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
 	github.com/emicklei/go-restful/v3 v3.11.0 // indirect
 	github.com/go-logr/logr v1.4.1 // indirect
 	github.com/go-openapi/jsonpointer v0.19.6 // indirect
@@ -46,6 +48,7 @@ require (
 require (
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.19 // indirect
+	github.com/redis/go-redis/v9 v9.5.1
 	golang.org/x/sys v0.18.0 // indirect
 	k8s.io/apimachinery v0.30.1
 	k8s.io/client-go v0.30.1
