@@ -91,11 +91,11 @@ jobs:
 
     - name: checkout gitops
       run: |
-        echo Checking out ${GITHUB_SERVER_URL}/orakl-helm-charts.git
+        echo Checking out ${GITHUB_SERVER_URL}/bisonai/orakl-helm-charts.git
         rm -rf ./gitops_tmp
 
         GH_URL=$(echo "$GITHUB_SERVER_URL" | sed 's,://,://x-access-token:'"${{ secrets.PAT }}"'@,g')
-        git clone --depth 1 ${GH_URL}/orakl-helm-charts.git ./gitops_tmp
+        git clone --depth 1 ${GH_URL}/bisonai/orakl-helm-charts.git ./gitops_tmp
 
       shell: bash
 
