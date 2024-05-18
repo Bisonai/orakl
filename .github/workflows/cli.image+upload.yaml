@@ -13,7 +13,7 @@ env:
 
 jobs:
   prepare:
-    name: Prepare Build
+    name: Prepare
     runs-on: ubuntu-latest
 
     outputs:
@@ -76,45 +76,15 @@ jobs:
         id: img-tag
         run: echo "img_tag=v${{ needs.prepare.outputs.version }}.${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }}" >> $GITHUB_OUTPUT
 
-  update_image_tag:
-    runs-on: ubuntu-latest
+  image-update:
+    name: Update Image Tag
     needs: [prepare, build]
-    steps:
-      - name: Checkout gitops
-        run: |
-          echo Checking out ${GITHUB_SERVER_URL}/bisonai/orakl-helm-charts.git
-          rm -rf ./gitops_tmp
-
-          GH_URL=$(echo "$GITHUB_SERVER_URL" | sed 's,://,://x-access-token:'"${{ secrets.PAT }}"'@,g')
-          git clone --depth 1 --no-single-branch ${GH_URL}/bisonai/orakl-helm-charts.git ./gitops_tmp
-
-        shell: bash
-
-      - name: Verify and Checkout Branch
-        run: |
-          cd ./gitops_tmp/
-          git fetch origin idc-fly:idc-fly
-          git checkout idc-fly
-
-      - name: Update image tag in values.baobab.yaml files
-        run: |
-          cd ./gitops_tmp/cli/
-
-          echo "Updating image tag in values.baobab.yaml files"
-          sed -i 's/tag: .*$/tag: "${{ needs.build.outputs.img_tag }}"/g' values.baobab.yaml
-
-          echo "Update App Version in Chart.yaml"
-          sed -i 's/appVersion: .*$/appVersion: "v${{ needs.prepare.outputs.version }}"/g' Chart.yaml
-
-        shell: bash
-
-      - name: Commit and Push Changes
-        run: |
-          cd ./gitops_tmp/
-          git config --global user.name 'github-actions'
-          git config --global user.email 'github-actions@github.com'
-          git add .
-          git commit -m 'Update image tag and app version'
-          git push origin idc-fly
-
-        shell: bash
+    uses: ./.github/workflows/update.image-tag.yaml
+    with:
+      project-name: "cli"
+      version: ${{ needs.prepare.outputs.version }}
+      image-tag: ${{ needs.build.outputs.img_tag }}
+      tag_date: ${{ needs.prepare.outputs.tag_date }}
+      tag_git_hash: ${{ needs.prepare.outputs.tag_git_hash }}
+    secrets:
+      PAT: ${{ secrets.PAT }}
