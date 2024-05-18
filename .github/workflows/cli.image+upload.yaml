@@ -30,14 +30,6 @@ jobs:
           echo "date=$(date +'%Y%m%d.%H%M')" >> $GITHUB_OUTPUT
           echo "git_hash=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
 
-      - name: Check version changes
-        uses: EndBug/version-check@v2
-        id: check
-
-      - name: Version update detected
-        if: steps.check.outputs.changed == 'false'
-        run: echo "No version update detected. Exiting." && exit 1
-
       - name: Get package version
         id: package
         run: |
