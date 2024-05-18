@@ -52,7 +52,7 @@ jobs:
           echo "Updating image tag in values.baobab.yaml files"
           sed -i 's/tag: .*$/tag: "${{ inputs.image-tag }}"/g' values.baobab.yaml
           echo "Update App Version in Chart.yaml"
-          sed -i 's/appVersion: .*$/appVersion: "v${{ inputs.version }}.${{ inputs.tag_date }}.${{ inputs.tag_git_hash }}"/g' Chart.yaml
+          sed -i 's/appVersion: .*$/appVersion: "v${{ inputs.version }}"/g' Chart.yaml
         shell: bash
 
       - name: Commit and Push Changes

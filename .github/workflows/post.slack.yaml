@@ -1,0 +1,31 @@
+name: Post to a Slack channel
+
+on:
+  workflow_call:
+    inputs:
+      slack-message:
+        required: true
+        type: string
+jobs:
+  post-to-slack:
+    steps:
+      - name: Post to a Slack channel
+        id: slack
+        uses: slackapi/slack-github-action@v1.26.0
+        with:
+          channel-id: 'orakl-notification'
+        payload: |
+          {
+            "text": ${{ inputs.slack-message }}",
+            "blocks": [
+              {
+                "type": "section",
+                "text": {
+                  "type": "mrkdwn",
+                  "text": ${{ inputs.slack-message }}"
+                }
+              }
+            ]
+          } 
+        env:
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}    

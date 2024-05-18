@@ -35,15 +35,6 @@ jobs:
         run: |
           echo "version=$(node -p -e "require('./cli/package.json').version")" >> $GITHUB_OUTPUT
 
-      - name: Post to a Slack channel
-        id: slack
-        uses: slackapi/slack-github-action@v1.26.0
-        with:
-          channel-id: 'orakl-notification'
-          slack-message: "test"
-        env:
-          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}    
-
   build:
     name: Build
     runs-on: ubuntu-latest
@@ -85,6 +76,13 @@ jobs:
         id: img-tag
         run: echo "img_tag=v${{ needs.prepare.outputs.version }}.${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }}" >> $GITHUB_OUTPUT
 
+  post-slack:
+    name: Post to a Slack ECR Image Upload
+    needs: [prepare, build]
+    uses: ./.github/workflows/post.slack.yaml
+    with:
+      slack-message: "CLI v${{ needs.prepare.outputs.version }}.${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }} is deployed to Amazon ECR"
+
   image-update:
     name: Update Image Tag
     needs: [prepare, build]
@@ -97,3 +95,10 @@ jobs:
       tag_git_hash: ${{ needs.prepare.outputs.tag_git_hash }}
     secrets:
       PAT: ${{ secrets.PAT }}
+
+  post-slack:
+    name: Post to a Slack Helm Chart Image Tag Update
+    needs: [prepare, build, image-update]
+    uses: ./.github/workflows/post.slack.yaml
+    with:
+      slack-message: "Image tag for CLI v${{ needs.prepare.outputs.version }}.${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }} is updated to v${{ needs.prepare.outputs.version }}.${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }} in Orakl Helm Charts"
