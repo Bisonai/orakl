@@ -35,6 +35,15 @@ jobs:
         run: |
           echo "version=$(node -p -e "require('./cli/package.json').version")" >> $GITHUB_OUTPUT
 
+      - name: Post to a Slack channel
+        id: slack
+        uses: slackapi/slack-github-action@v1.26.0
+        with:
+          channel-id: 'orakl-notification'
+          slack-message: "test"
+        env:
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}    
+
   build:
     name: Build
     runs-on: ubuntu-latest
