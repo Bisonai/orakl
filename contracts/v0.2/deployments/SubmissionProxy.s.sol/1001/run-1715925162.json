@@ -1,0 +1,60 @@
+{
+  "transactions": [
+    {
+      "hash": "0xa5fd129f7fedc432ccd6e16556653774f7392b0b72229877e3c65d20a69667d4",
+      "transactionType": "CALL",
+      "contractName": null,
+      "contractAddress": "0xdE8fb45ff8e330Ccf8E5CC0913eE0143b2A0eBDB",
+      "function": "addOracle(address)",
+      "arguments": [
+        "0x9dDa69d0CCdB06125a662070138800D4CE4F53b9"
+      ],
+      "transaction": {
+        "type": "0x02",
+        "from": "0xa195be68bd37ebffb056279dc3d236faa6f23670",
+        "to": "0xde8fb45ff8e330ccf8e5cc0913ee0143b2a0ebdb",
+        "gas": "0x4fa4f",
+        "value": "0x0",
+        "data": "0xdf5dd1a50000000000000000000000009dda69d0ccdb06125a662070138800d4ce4f53b9",
+        "nonce": "0x536b2",
+        "accessList": []
+      },
+      "additionalContracts": [],
+      "isFixedGasLimit": false
+    },
+    {
+      "hash": "0xc855bcca983681187b666f20ffed29f1e51368f6abcc518d707666e081fe3e64",
+      "transactionType": "CALL",
+      "contractName": "UtilsScript",
+      "contractAddress": "0xC7f2Cf4845C6db0e1a1e91ED41Bcd0FcC1b0E141",
+      "function": "updateMigration(string,string)",
+      "arguments": [
+        "\"/migration/baobab/SubmissionProxy\"",
+        "\"/Users/nick/development/orakl/contracts/v0.2/migration/baobab/SubmissionProxy/20240517145000_addOracle.json\""
+      ],
+      "transaction": {
+        "type": "0x02",
+        "from": "0xa195be68bd37ebffb056279dc3d236faa6f23670",
+        "to": "0xc7f2cf4845c6db0e1a1e91ed41bcd0fcc1b0e141",
+        "gas": "0x12bb8",
+        "value": "0x0",
+        "data": "0xa9612f6d000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000a000000000000000000000000000000000000000000000000000000000000000212f6d6967726174696f6e2f62616f6261622f5375626d697373696f6e50726f787900000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000006b2f55736572732f6e69636b2f646576656c6f706d656e742f6f72616b6c2f636f6e7472616374732f76302e322f6d6967726174696f6e2f62616f6261622f5375626d697373696f6e50726f78792f32303234303531373134353030305f6164644f7261636c652e6a736f6e000000000000000000000000000000000000000000",
+        "nonce": "0x536b3",
+        "accessList": []
+      },
+      "additionalContracts": [],
+      "isFixedGasLimit": false
+    }
+  ],
+  "receipts": [],
+  "libraries": [],
+  "pending": [
+    "0xa5fd129f7fedc432ccd6e16556653774f7392b0b72229877e3c65d20a69667d4",
+    "0xc855bcca983681187b666f20ffed29f1e51368f6abcc518d707666e081fe3e64"
+  ],
+  "returns": {},
+  "timestamp": 1715925162,
+  "chain": 1001,
+  "multi": false,
+  "commit": "28a2f1e"
+}

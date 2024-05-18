@@ -127,7 +127,7 @@ contract UtilsScript is Script {
     function storeAddress(string memory contractName, address _address) public {
         string memory root = vm.projectRoot();
         string memory path = string.concat(root, "/addresses/", chainName());
-        if(!vm.isDir(path)) {
+        if (!vm.isDir(path)) {
             vm.createDir(path, true);
         }
 
