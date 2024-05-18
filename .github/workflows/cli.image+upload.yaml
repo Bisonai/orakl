@@ -76,7 +76,7 @@ jobs:
         id: img-tag
         run: echo "img_tag=v${{ needs.prepare.outputs.version }}.${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }}" >> $GITHUB_OUTPUT
 
-  post-slack:
+  post-slack-image-upload:
     name: Post to a Slack ECR Image Upload
     needs: [prepare, build]
     uses: ./.github/workflows/post.slack.yaml
@@ -96,7 +96,7 @@ jobs:
     secrets:
       PAT: ${{ secrets.PAT }}
 
-  post-slack:
+  post-slack-tag-update:
     name: Post to a Slack Helm Chart Image Tag Update
     needs: [prepare, build, image-update]
     uses: ./.github/workflows/post.slack.yaml
