@@ -8,6 +8,13 @@ on:
         type: string
 jobs:
   post-to-slack:
+    name: Post a message to a Slack channel
+    runs-on: ubuntu-latest
+
+    permissions:
+      id-token: write
+      contents: read 
+
     steps:
       - name: Post to a Slack channel
         id: slack
