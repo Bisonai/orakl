@@ -7,11 +7,12 @@ on:
         required: true
         type: string
       status:
-        required: false
+        required: true
         type: string
     secrets:
       SLACK_BOT_TOKEN:
-        required: true            
+        required: true
+
 jobs:
   post-to-slack:
     name: Post a message to a Slack channel
@@ -19,60 +20,26 @@ jobs:
 
     permissions:
       id-token: write
-      contents: read 
+      contents: read
 
-  ## if inputs.status is success execute the following steps
-    if: ${{ inputs.status == 'success' }}
     steps:
+      - name: Set Slack Payload
+        id: set-payload
+        run: |
+          if [ "${{ inputs.status }}" == "success" ]; then
+            echo "::set-output name=payload::{\"text\":\":white_check_mark: ${{ inputs.slack-message }}\",\"attachments\":[{\"pretext\":\"${{ inputs.slack-message }}\",\"color\":\"28a745\",\"fields\":[{\"title\":\"Status\",\"short\":true,\"value\":\"${{ inputs.status }}\"}]}]}"
+          elif [ "${{ inputs.status }}" == "failure" ]; then
+            echo "::set-output name=payload::{\"text\":\":exclamation: ${{ inputs.slack-message }}\",\"attachments\":[{\"pretext\":\"${{ inputs.slack-message }}\",\"color\":\"E96D76\",\"fields\":[{\"title\":\"Status\",\"short\":true,\"value\":\"${{ inputs.status }}\"}]}]}"
+          else
+            echo "Invalid status: ${{ inputs.status }}"
+            exit 1
+          fi
+
       - name: Post to a Slack channel
         id: slack
         uses: slackapi/slack-github-action@v1.26.0
         with:
           channel-id: 'orakl-notification'
-          payload: |
-            {
-              "text": ":white_check_mark: ${{ inputs.slack-message }}",
-              "attachments": [
-                {
-                  "pretext": "${{ inputs.slack-message }}",
-                  "color": "28a745",
-                  "fields": [
-                    {
-                      "title": "Status",
-                      "short": true,
-                      "value": "${{ inputs.status }}"
-                    }
-                  ]
-                }
-              ]
-            } 
-        env:
-          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}    
-
-  ## if inputs.status is failure execute the following steps
-    if: ${{ inputs.status == 'failure' }}
-    steps:
-      - name: Post to a Slack channel
-        id: slack
-        uses: slackapi/slack-github-action@v1.26.0
-        with:
-          channel-id: 'orakl-notification'
-          payload: |
-            {
-              "text": ":exclamation: ${{ inputs.slack-message }}",
-              "attachments": [
-                {
-                  "pretext": "${{ inputs.slack-message }}",
-                  "color": "E96D76",
-                  "fields": [
-                    {
-                      "title": "Status",
-                      "short": true,
-                      "value": "${{ inputs.status }}"
-                    }
-                  ]
-                }
-              ]
-            } 
+          payload: ${{ steps.set-payload.outputs.payload }}
         env:
           SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
