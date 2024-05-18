@@ -1,0 +1,43 @@
+name: Deployment
+
+on:
+  workflow_dispatch:
+    inputs:
+      application:
+        description: 'Application to deploy'
+        required: true
+        type: choice
+        options:
+          - 'cli'
+          - 'aggregator'          
+          - 'vrf'
+          - 'request-response'
+          - 'delegator'
+          - 'fetcher'
+          - 'por'
+          - 'node'
+          - 'boot-api'
+          - 'monitor'
+
+      network:
+        description: 'Network to deploy to'
+        required: true
+        default: 'Baobab'
+        type: choice
+        options:
+          - 'Baobab'
+          - 'Cypress'
+
+jobs:
+  trigger-network-workflow:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger network specific workflow
+        run: |
+          if [ "${{ github.event.inputs.network }}" == "Baobab" ]; then
+            gh workflow run ${{ github.event.inputs.application }}.image+upload.yaml
+          elif [ "${{ github.event.inputs.network }}" == "Cypress" ]; then
+            echo "Cypress network is not supported yet"
+          fi
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
