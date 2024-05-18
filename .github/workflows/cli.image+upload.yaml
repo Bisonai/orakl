@@ -95,28 +95,21 @@ jobs:
         rm -rf ./gitops_tmp
 
         GH_URL=$(echo "$GITHUB_SERVER_URL" | sed 's,://,://x-access-token:'"${{ secrets.PAT }}"'@,g')
-        echo $GH_URL
         git clone --depth 1 ${GH_URL}/bisonai/orakl-helm-charts.git ./gitops_tmp
-        git checkout idc-fly
 
       shell: bash
 
     - name: Update image tag in multiple values.baobab.yaml files
       run: |
-
+        ls
         cd ./gitops_tmp/cli/   
-
-        for entry in ./*
-        do
-          echo "$entry"
-        done
-
+        ls
         echo "Updating image tag in values.baobab.yaml files"
 
-        sed -i 's/tag: .*$/tag: "'${{ needs.build.outputs.img_tag }}'"/g' "baobab.values.yaml"
+        sed -i 's/tag: .*$/tag: "'${{ needs.build.outputs.img_tag }}'"/g' baobab.values.yaml
 
         echo "Update App Version in Chart.yaml"
-        sed -i 's/appVersion: .*$/appVersion: "'${{ needs.build.outputs.version }}'"/g' "Chart.yaml"
+        sed -i 's/appVersion: .*$/appVersion: "'${{ needs.build.outputs.version }}'"/g' Chart.yaml
 
       shell: bash
 
