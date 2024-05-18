@@ -96,6 +96,7 @@ jobs:
 
         GH_URL=$(echo "$GITHUB_SERVER_URL" | sed 's,://,://x-access-token:'"${{ secrets.PAT }}"'@,g')
         git clone --depth 1 ${GH_URL}/bisonai/orakl-helm-charts.git ./gitops_tmp
+        git checkout idc-fly
 
       shell: bash
 
