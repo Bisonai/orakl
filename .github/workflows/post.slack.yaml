@@ -26,13 +26,10 @@ jobs:
       - name: Set Slack Payload
         id: set-payload
         run: |
-          if [ "${{ inputs.status }}" == "success" ]; then
+          if [ "${{ inputs.status }}" == "Success" ]; then
             echo "::set-output name=payload::{\"text\":\":white_check_mark: ${{ inputs.slack-message }}\",\"attachments\":[{\"pretext\":\"${{ inputs.slack-message }}\",\"color\":\"28a745\",\"fields\":[{\"title\":\"Status\",\"short\":true,\"value\":\"${{ inputs.status }}\"}]}]}"
-          elif [ "${{ inputs.status }}" == "failure" ]; then
+          else 
             echo "::set-output name=payload::{\"text\":\":exclamation: ${{ inputs.slack-message }}\",\"attachments\":[{\"pretext\":\"${{ inputs.slack-message }}\",\"color\":\"E96D76\",\"fields\":[{\"title\":\"Status\",\"short\":true,\"value\":\"${{ inputs.status }}\"}]}]}"
-          else
-            echo "Invalid status: ${{ inputs.status }}"
-            exit 1
           fi
 
       - name: Post to a Slack channel
@@ -40,6 +37,7 @@ jobs:
         uses: slackapi/slack-github-action@v1.26.0
         with:
           channel-id: 'orakl-notification'
+          icon_url: 'https://avatars.slack-edge.com/2020-11-25/1527503386626_319578f21381f9641cd8_512.png'
           payload: ${{ steps.set-payload.outputs.payload }}
         env:
           SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
