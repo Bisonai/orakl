@@ -50,7 +50,7 @@ jobs:
 
       - name: Update image tag in values.baobab.yaml files
         run: |
-          cd ./gitops_tmp/${{ input.project-name }}/
+          cd ./gitops_tmp/${{ inputs.project-name }}/
 
           echo "Updating image tag in values.baobab.yaml files"
           sed -i 's/tag: .*$/tag: "${{ inputs.image-tag }}"/g' values.baobab.yaml
