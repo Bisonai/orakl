@@ -102,7 +102,7 @@ jobs:
     - name: Update image tag in multiple values.baobab.yaml files
       run: |
 
-        cd ./gitops_tmp/cli/values.baobab.yaml     
+        cd ./gitops_tmp/cli   
 
         echo "Updating image tag in values.baobab.yaml files"
 
