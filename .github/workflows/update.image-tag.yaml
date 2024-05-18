@@ -31,42 +31,42 @@ jobs:
       id-token: write
       contents: read 
 
-  steps:
-    - name: Checkout gitops
-      run: |
-        echo Checking out ${GITHUB_SERVER_URL}/bisonai/orakl-helm-charts.git
-        rm -rf ./gitops_tmp
+    steps:
+      - name: Checkout gitops
+        run: |
+          echo Checking out ${GITHUB_SERVER_URL}/bisonai/orakl-helm-charts.git
+          rm -rf ./gitops_tmp
 
-        GH_URL=$(echo "$GITHUB_SERVER_URL" | sed 's,://,://x-access-token:'"${{ secrets.PAT }}"'@,g')
-        git clone --depth 1 --no-single-branch ${GH_URL}/bisonai/orakl-helm-charts.git ./gitops_tmp
+          GH_URL=$(echo "$GITHUB_SERVER_URL" | sed 's,://,://x-access-token:'"${{ secrets.PAT }}"'@,g')
+          git clone --depth 1 --no-single-branch ${GH_URL}/bisonai/orakl-helm-charts.git ./gitops_tmp
 
-      shell: bash
+        shell: bash
 
-    - name: Verify and Checkout Branch
-      run: |
-        cd ./gitops_tmp/
-        git fetch origin idc-fly:idc-fly
-        git checkout idc-fly
+      - name: Verify and Checkout Branch
+        run: |
+          cd ./gitops_tmp/
+          git fetch origin idc-fly:idc-fly
+          git checkout idc-fly
 
-    - name: Update image tag in values.baobab.yaml files
-      run: |
-        cd ./gitops_tmp/${{ input.project-name }}/
+      - name: Update image tag in values.baobab.yaml files
+        run: |
+          cd ./gitops_tmp/${{ input.project-name }}/
 
-        echo "Updating image tag in values.baobab.yaml files"
-        sed -i 's/tag: .*$/tag: "${{ inputs.image-tag }}"/g' values.baobab.yaml
+          echo "Updating image tag in values.baobab.yaml files"
+          sed -i 's/tag: .*$/tag: "${{ inputs.image-tag }}"/g' values.baobab.yaml
 
-        echo "Update App Version in Chart.yaml"
-        sed -i 's/appVersion: .*$/appVersion: "v{{ inputs.version }}.${{ inputs.tag_date }}.${{ inputs.tag_git_hash }}"/g' Chart.yaml
+          echo "Update App Version in Chart.yaml"
+          sed -i 's/appVersion: .*$/appVersion: "v{{ inputs.version }}.${{ inputs.tag_date }}.${{ inputs.tag_git_hash }}"/g' Chart.yaml
 
-      shell: bash
+        shell: bash
 
-    - name: Commit and Push Changes
-      run: |
-        cd ./gitops_tmp/
-        git config --global user.name 'github-actions'
-        git config --global user.email 'github-actions@github.com'
-        git add .
-        git commit -m 'v{{ inputs.version }}.${{ inputs.tag_date }}.${{ inputs.tag_git_hash }} is updated'
-        git push origin idc-fly
+      - name: Commit and Push Changes
+        run: |
+          cd ./gitops_tmp/
+          git config --global user.name 'github-actions'
+          git config --global user.email 'github-actions@github.com'
+          git add .
+          git commit -m 'v{{ inputs.version }}.${{ inputs.tag_date }}.${{ inputs.tag_git_hash }} is updated'
+          git push origin idc-fly
 
-      shell: bash
+        shell: bash
