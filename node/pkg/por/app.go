@@ -12,6 +12,7 @@ import (
 	"bisonai.com/orakl/node/pkg/chain/helper"
 	errorSentinel "bisonai.com/orakl/node/pkg/error"
 	"bisonai.com/orakl/node/pkg/fetcher"
+	"bisonai.com/orakl/node/pkg/secrets"
 	"bisonai.com/orakl/node/pkg/utils/request"
 	"bisonai.com/orakl/node/pkg/utils/retrier"
 	"github.com/rs/zerolog/log"
@@ -61,7 +62,7 @@ func New(ctx context.Context) (*App, error) {
 		submitInterval = time.Duration(*aggregator.Heartbeat) * time.Millisecond
 	}
 
-	porReporterPk := os.Getenv("POR_REPORTER_PK")
+	porReporterPk := secrets.GetSecret("POR_REPORTER_PK")
 	if porReporterPk == "" {
 		return nil, errorSentinel.ErrPorReporterPkNotFound
 	}
