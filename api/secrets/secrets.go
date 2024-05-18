@@ -2,57 +2,81 @@ package secrets
 
 import (
 	"context"
-	"fmt"
+	"os"
+	"sync"
 
 	vault "github.com/hashicorp/vault/api"
 	auth "github.com/hashicorp/vault/api/auth/kubernetes"
+	"github.com/rs/zerolog/log"
 )
 
-type SecretEnv struct {
-	VaultRole       string
-	JwtPath         string
-	VaultSecretPath string
-	VaultKeyName    string
+var secretData map[string]interface{}
+var initialized bool = false
+var once sync.Once
+
+func init() {
+	once.Do(func() {
+		ctx := context.Background()
+
+		vaultRole := os.Getenv("VAULT_ROLE")
+		jwtPath := os.Getenv("JWT_PATH")
+		vaultSecretPath := os.Getenv("VAULT_SECRET_PATH")
+		vaultKeyName := os.Getenv("VAULT_KEY_NAME")
+
+		if vaultRole == "" || jwtPath == "" || vaultSecretPath == "" || vaultKeyName == "" {
+			log.Error().Msg("Missing required environment variables for Vault initialization")
+			return
+		}
+
+		config := vault.DefaultConfig()
+		client, err := vault.NewClient(config)
+		if err != nil {
+			log.Error().Err(err).Msg("unable to initialize Vault client")
+			return
+		}
+
+		k8sAuth, err := auth.NewKubernetesAuth(
+			vaultRole,
+			auth.WithServiceAccountTokenPath(jwtPath),
+		)
+		if err != nil {
+			log.Error().Err(err).Msg("unable to initialize Kubernetes auth method")
+			return
+		}
+
+		authInfo, err := client.Auth().Login(ctx, k8sAuth)
+		if err != nil {
+			log.Error().Err(err).Msg("unable to log in with Kubernetes auth")
+			return
+		}
+		if authInfo == nil {
+			log.Error().Err(err).Msg("no auth info was returned after login")
+			return
+		}
+
+		secrets, err := client.KVv2(vaultSecretPath).Get(ctx, vaultKeyName)
+		if err != nil {
+			log.Error().Err(err).Msg("unable to read secret")
+			return
+		}
+
+		secretData = secrets.Data
+		initialized = true
+
+	})
 }
 
-type Secrets struct {
-	DatabaseURL     string
-	EncryptPassword string
-}
-
-func (s *SecretEnv) GetSecretFromVaultWithKubernetesAuth() (*Secrets, error) {
-	ctx := context.Background()
-	config := vault.DefaultConfig()
-	client, err := vault.NewClient(config)
-	if err != nil {
-		return nil, fmt.Errorf("unable to initialize Vault client: %w", err)
+func GetSecret(key string) string {
+	if !initialized {
+		return os.Getenv(key)
 	}
-
-	k8sAuth, err := auth.NewKubernetesAuth(
-		s.VaultRole,
-		auth.WithServiceAccountTokenPath(s.JwtPath),
-	)
-	if err != nil {
-		return nil, fmt.Errorf("unable to initialize Kubernetes auth method: %w", err)
+	value, ok := secretData[key]
+	if !ok {
+		return os.Getenv(key)
 	}
-
-	authInfo, err := client.Auth().Login(ctx, k8sAuth)
-	if err != nil {
-		return nil, fmt.Errorf("unable to log in with Kubernetes auth: %w", err)
+	result, ok := value.(string)
+	if !ok || result == "" {
+		return os.Getenv(key)
 	}
-	if authInfo == nil {
-		return nil, fmt.Errorf("no auth info was returned after login")
-	}
-
-	secrets, err := client.KVv2(s.VaultSecretPath).Get(context.Background(), s.VaultKeyName)
-	if err != nil {
-		return nil, fmt.Errorf("unable to read secret: %w", err)
-	}
-
-	secretDataSet := &Secrets{
-		DatabaseURL:     secrets.Data["DATABASE_URL"].(string),
-		EncryptPassword: secrets.Data["ENCRYPT_PASSWORD"].(string),
-	}
-
-	return secretDataSet, nil
+	return result
 }
