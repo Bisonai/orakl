@@ -102,14 +102,19 @@ jobs:
     - name: Update image tag in multiple values.baobab.yaml files
       run: |
 
-        cd ./gitops_tmp/cli   
+        cd ./gitops_tmp/cli/   
+
+        for entry in "./*
+        do
+          echo "$entry"
+        done
 
         echo "Updating image tag in values.baobab.yaml files"
 
-        sed -i 's/tag: .*$/tag: "'${{ needs.build.outputs.img_tag }}'"/g' baobab.values.yaml
+        sed -i 's/tag: .*$/tag: "'${{ needs.build.outputs.img_tag }}'"/g' "baobab.values.yaml"
 
         echo "Update App Version in Chart.yaml"
-        sed -i 's/appVersion: .*$/appVersion: "'${{ needs.build.outputs.version }}'"/g' Chart.yaml
+        sed -i 's/appVersion: .*$/appVersion: "'${{ needs.build.outputs.version }}'"/g' "Chart.yaml"
 
       shell: bash
 
