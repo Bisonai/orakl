@@ -60,8 +60,7 @@ func init() {
 		log.Error().Msg("Invalid chain")
 		os.Exit(1)
 	}
-	log.Info().Any("HealthCheckUrls", HealthCheckUrls).Msg("Loaded healthcheck.json")
-
+	log.Info().Msg("Loaded healthcheck.json")
 }
 
 func Start() {
