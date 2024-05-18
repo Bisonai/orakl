@@ -37,7 +37,6 @@ jobs:
         uses: slackapi/slack-github-action@v1.26.0
         with:
           channel-id: 'orakl-notification'
-          icon_url: 'https://avatars.slack-edge.com/2020-11-25/1527503386626_319578f21381f9641cd8_512.png'
           payload: ${{ steps.set-payload.outputs.payload }}
         env:
           SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
