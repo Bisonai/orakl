@@ -6,6 +6,9 @@ on:
       slack-message:
         required: true
         type: string
+      status:
+        required: false
+        type: string
     secrets:
       SLACK_BOT_TOKEN:
         required: true            
@@ -18,6 +21,8 @@ jobs:
       id-token: write
       contents: read 
 
+  ## if inputs.status is success execute the following steps
+    if: ${{ inputs.status == 'success' }}
     steps:
       - name: Post to a Slack channel
         id: slack
@@ -26,16 +31,48 @@ jobs:
           channel-id: 'orakl-notification'
           payload: |
             {
-              "text": "${{ inputs.slack-message }}",
-              "blocks": [
+              "text": ":white_check_mark: ${{ inputs.slack-message }}",
+              "attachments": [
                 {
-                  "type": "section",
-                  "text": {
-                    "type": "mrkdwn",
-                    "text": "${{ inputs.slack-message }}"
-                  }
+                  "pretext": "${{ inputs.slack-message }}",
+                  "color": "28a745",
+                  "fields": [
+                    {
+                      "title": "Status",
+                      "short": true,
+                      "value": "${{ inputs.status }}"
+                    }
+                  ]
                 }
               ]
             } 
         env:
           SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}    
+
+  ## if inputs.status is failure execute the following steps
+    if: ${{ inputs.status == 'failure' }}
+    steps:
+      - name: Post to a Slack channel
+        id: slack
+        uses: slackapi/slack-github-action@v1.26.0
+        with:
+          channel-id: 'orakl-notification'
+          payload: |
+            {
+              "text": ":exclamation: ${{ inputs.slack-message }}",
+              "attachments": [
+                {
+                  "pretext": "${{ inputs.slack-message }}",
+                  "color": "E96D76",
+                  "fields": [
+                    {
+                      "title": "Status",
+                      "short": true,
+                      "value": "${{ inputs.status }}"
+                    }
+                  ]
+                }
+              ]
+            } 
+        env:
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
