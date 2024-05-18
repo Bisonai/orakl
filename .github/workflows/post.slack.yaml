@@ -26,13 +26,13 @@ jobs:
           channel-id: 'orakl-notification'
           payload: |
             {
-              "text": ${{ inputs.slack-message }}",
+              "text": "${{ inputs.slack-message }}",
               "blocks": [
                 {
                   "type": "section",
                   "text": {
                     "type": "mrkdwn",
-                    "text": ${{ inputs.slack-message }}"
+                    "text": "${{ inputs.slack-message }}"
                   }
                 }
               ]
