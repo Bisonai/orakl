@@ -110,9 +110,11 @@ jobs:
       SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}        
 
   post-slack-tag-update-failure:
-      name: Post to a Slack Helm Chart Image Tag Update Failure
-      needs: [prepare, build, image-update]
-      if: ${{ failure() }}
-      uses: ./.github/workflows/post.slack.yaml
-      with:
-        slack-message: "Failed to update image tag for CLI v${{ needs.prepare.outputs.version }}.${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }} in Orakl Helm Charts"
+    name: Post to a Slack Helm Chart Image Tag Update Failure
+    needs: [prepare, build, image-update]
+    if: ${{ failure() }}
+    uses: ./.github/workflows/post.slack.yaml
+    with:
+      slack-message: "Failed to update image tag for CLI v${{ needs.prepare.outputs.version }}.${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }} in Orakl Helm Charts"
+    secrets:
+      SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}           
