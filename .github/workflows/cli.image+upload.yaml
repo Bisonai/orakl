@@ -82,7 +82,7 @@ jobs:
     uses: ./.github/workflows/post.slack.yaml
     with:
       status: "Success"
-      slack-message: "*cli* \`v${{ needs.prepare.outputs.version }}.${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }}\` is uploaded to ECR"
+      slack-message: "*cli* v${{ needs.prepare.outputs.version }}.${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }} is uploaded to ECR"
     secrets:
       SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}  
     if: ${{ success() }}    
@@ -107,7 +107,7 @@ jobs:
     if: ${{ success() }}
     with:
       status: "Success"
-      slack-message: "*cli* new image tag \`v${{ needs.prepare.outputs.version }}.${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }}\` is updated in Orakl Helm Charts"
+      slack-message: "*cli* new image tag v${{ needs.prepare.outputs.version }}.${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }} is updated in Orakl Helm Charts"
     secrets:
       SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}        
 
@@ -118,6 +118,6 @@ jobs:
     uses: ./.github/workflows/post.slack.yaml
     with:
       status: "Failed"
-      slack-message: "Failed to update image tag for *cli* \`v${{ needs.prepare.outputs.version }}.${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }}\` in Orakl Helm Charts"
+      slack-message: "Failed to update image tag for *cli* v${{ needs.prepare.outputs.version }}.${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }} in Orakl Helm Charts"
     secrets:
       SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}           
