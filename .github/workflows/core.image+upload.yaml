@@ -5,7 +5,7 @@ on:
     branches:
       - master
     paths:
-      - "core/**"
+      - "core/package.json"
   workflow_dispatch:
 
 env:
@@ -47,6 +47,7 @@ jobs:
     outputs:
       tag_date: ${{ steps.tag.outputs.date }}
       tag_git_hash: ${{ steps.tag.outputs.git_hash }}
+      img_tag: ${{ steps.img-tag.outputs.img_tag }}
 
     steps:
       - uses: actions/checkout@v3
@@ -73,13 +74,100 @@ jobs:
           docker tag ${{ env.ecr_url }}:latest ${{ env.ecr_url }}:v${{ needs.prepare.outputs.version }}.${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }}
           docker push ${{ env.ecr_url }}:v${{ needs.prepare.outputs.version }}.${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }}
 
-  create-helmchart-pr:
+      - name: Image Tag Output
+        id: img-tag
+        run: echo "img_tag=v${{ needs.prepare.outputs.version }}.${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }}" >> $GITHUB_OUTPUT
+
+  post-slack-image-upload:
+    name: Post to a Slack ECR Image Upload
     needs: [prepare, build]
-    uses: ./.github/workflows/create-helmchart-pr.yaml
+    uses: ./.github/workflows/post.slack.yaml
+    with:
+      status: "Success"
+      slack-message: "*aggregator* v${{ needs.prepare.outputs.version }}.${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }} is uploaded to ECR"
+    secrets:
+      SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}  
+    if: ${{ success() }}   
+
+  image-update-aggregator:
+    name: Update Image Tag
+    needs: [prepare, build]
+    uses: ./.github/workflows/update.image-tag.yaml
     with:
       project-name: "aggregator"
       version: ${{ needs.prepare.outputs.version }}
+      image-tag: ${{ needs.build.outputs.img_tag }}
       tag_date: ${{ needs.prepare.outputs.tag_date }}
       tag_git_hash: ${{ needs.prepare.outputs.tag_git_hash }}
     secrets:
       PAT: ${{ secrets.PAT }}
+
+  post-slack-tag-update-success-aggregator:
+    name: Post to a Slack Helm Chart Image Tag Update
+    needs: [prepare, build, image-update-aggregator]
+    uses: ./.github/workflows/post.slack.yaml
+    if: ${{ success() }}
+    with:
+      status: "Success"
+      slack-message: "*aggregator* new image tag v${{ needs.prepare.outputs.version }}.${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }} is updated in Orakl Helm Charts"
+    secrets:
+      SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }} 
+
+  image-update-vrf:
+    name: Update Image Tag
+    needs: [prepare, build]
+    uses: ./.github/workflows/update.image-tag.yaml
+    with:
+      project-name: "vrf"
+      version: ${{ needs.prepare.outputs.version }}
+      image-tag: ${{ needs.build.outputs.img_tag }}
+      tag_date: ${{ needs.prepare.outputs.tag_date }}
+      tag_git_hash: ${{ needs.prepare.outputs.tag_git_hash }}
+    secrets:
+      PAT: ${{ secrets.PAT }}      
+
+  post-slack-tag-update-success-vrf:
+    name: Post to a Slack Helm Chart Image Tag Update
+    needs: [prepare, build, image-update-vrf]
+    uses: ./.github/workflows/post.slack.yaml
+    if: ${{ success() }}
+    with:
+      status: "Success"
+      slack-message: "*vrf* new image tag v${{ needs.prepare.outputs.version }}.${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }} is updated in Orakl Helm Charts"
+    secrets:
+      SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}   
+
+  image-update-rr:
+    name: Update Image Tag
+    needs: [prepare, build]
+    uses: ./.github/workflows/update.image-tag.yaml
+    with:
+      project-name: "request-response"
+      version: ${{ needs.prepare.outputs.version }}
+      image-tag: ${{ needs.build.outputs.img_tag }}
+      tag_date: ${{ needs.prepare.outputs.tag_date }}
+      tag_git_hash: ${{ needs.prepare.outputs.tag_git_hash }}
+    secrets:
+      PAT: ${{ secrets.PAT }}    
+
+  post-slack-tag-update-success-rr:
+    name: Post to a Slack Helm Chart Image Tag Update
+    needs: [prepare, build, image-update-rr]
+    uses: ./.github/workflows/post.slack.yaml
+    if: ${{ success() }}
+    with:
+      status: "Success"
+      slack-message: "*request-response* new image tag v${{ needs.prepare.outputs.version }}.${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }} is updated in Orakl Helm Charts"
+    secrets:
+      SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}        
+
+  post-slack-tag-update-failure:
+    name: Post to a Slack Helm Chart Image Tag Update Failure
+    needs: [prepare, build, image-update-aggregator, image-update-vrf, image-update-rr]
+    if: ${{ failure() }}
+    uses: ./.github/workflows/post.slack.yaml
+    with:
+      status: "Failed"
+      slack-message: "Failed to update image tag for *cli* v${{ needs.prepare.outputs.version }}.${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }} in Orakl Helm Charts"
+    secrets:
+      SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}         

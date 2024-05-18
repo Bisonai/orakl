@@ -45,6 +45,8 @@ jobs:
       contents: read
 
     outputs:
+      tag_date: ${{ steps.tag.outputs.date }}
+      tag_git_hash: ${{ steps.tag.outputs.git_hash }}    
       img_tag: ${{ steps.img-tag.outputs.img_tag }}
 
     steps:
