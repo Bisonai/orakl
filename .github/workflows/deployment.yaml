@@ -1,4 +1,4 @@
-name: Deployment
+name: Service Deployment
 
 on:
   workflow_dispatch:
@@ -39,5 +39,3 @@ jobs:
           elif [ "${{ github.event.inputs.network }}" == "Cypress" ]; then
             echo "Cypress network is not supported yet"
           fi
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
