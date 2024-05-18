@@ -96,15 +96,21 @@ jobs:
 
         GH_URL=$(echo "$GITHUB_SERVER_URL" | sed 's,://,://x-access-token:'"${{ secrets.PAT }}"'@,g')
         git clone --depth 1 ${GH_URL}/bisonai/orakl-helm-charts.git ./gitops_tmp
+        git checkout "idc-fly"
 
       shell: bash
 
     - name: Update image tag in multiple values.baobab.yaml files
       run: |
 
+        for entry in ./gitops_tmp/*
+        do
+          echo "$entry"
+        done
+
         cd ./gitops_tmp/cli/   
 
-        for entry in "./*"
+        for entry in ./*
         do
           echo "$entry"
         done
