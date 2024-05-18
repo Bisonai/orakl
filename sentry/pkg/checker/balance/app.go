@@ -3,35 +3,47 @@ package balance
 import (
 	"context"
 	"errors"
+	"fmt"
 	"math"
 	"math/big"
 	"os"
 	"strconv"
 	"time"
 
-	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/klaytn/klaytn/client"
 	"github.com/klaytn/klaytn/common"
 	"github.com/rs/zerolog/log"
 
+	"bisonai.com/orakl/node/pkg/utils/request"
 	"bisonai.com/orakl/sentry/pkg/alert"
+)
+
+const (
+	oraklApiEndpoint       = "/reporter"
+	oraklNodeAdminEndpoint = "/wallet/addresses"
+	oraklDelegatorEndpoint = "/sign/feePayer"
+	porEndpoint            = "/address"
 )
 
 var SubmitterAlarmAmount float64
 var DelegatorAlarmAmount float64
 var BalanceCheckInterval time.Duration
 var BalanceAlarmInterval time.Duration
+
 var klaytnClient *client.Client
 var wallets []Wallet
 
-type LoadedAddress struct {
-	Address string `db:"address" json:"address"`
+type Urls struct {
+	JsonRpcUrl        string
+	OraklApiUrl       string
+	OraklNodeAdminUrl string
+	OraklDelegatorUrl string
+	PorUrl            string
 }
 
 type Wallet struct {
-	Address string  `db:"address" json:"address"`
-	Balance float64 `db:"balance" json:"balance"`
+	Address common.Address `db:"address" json:"address"`
+	Balance float64        `db:"balance" json:"balance"`
 	Minimum float64
 }
 
@@ -39,6 +51,27 @@ func init() {
 	var err error
 	ctx := context.Background()
 
+	loadEnvs()
+	urls, err := getUrls()
+	if err != nil {
+		log.Error().Err(err).Msg("Error getting urls")
+		panic(err)
+	}
+
+	klaytnClient, err = client.Dial(urls.JsonRpcUrl)
+	if err != nil {
+		log.Error().Err(err).Msg("Error connecting to klaytn client")
+		panic(err)
+	}
+
+	wallets, err = loadWallets(ctx, urls)
+	if err != nil {
+		log.Error().Err(err).Msg("Error loading wallets")
+		panic(err)
+	}
+}
+
+func loadEnvs() {
 	SubmitterAlarmAmount = 25
 	DelegatorAlarmAmount = 10000
 	BalanceCheckInterval = 10 * time.Second
@@ -52,18 +85,6 @@ func init() {
 	delegatorAlarmAmountRaw := os.Getenv("DELEGATOR_ALARM_AMOUNT")
 	if delegatorAlarmAmountRaw != "" && isNumber(delegatorAlarmAmountRaw) {
 		DelegatorAlarmAmount, _ = strconv.ParseFloat(delegatorAlarmAmountRaw, 64)
-	}
-
-	jsonRpcUrl := os.Getenv("JSON_RPC_URL")
-	if jsonRpcUrl == "" {
-		log.Error().Msg("JSON_RPC_URL not found")
-		panic("JSON_RPC_URL not found")
-	}
-
-	klaytnClient, err = client.Dial(jsonRpcUrl)
-	if err != nil {
-		log.Error().Err(err).Msg("Error connecting to klaytn client")
-		panic(err)
 	}
 
 	checkInterval := os.Getenv("BALANCE_CHECK_INTERVAL")
@@ -81,75 +102,144 @@ func init() {
 	} else {
 		BalanceAlarmInterval = parsedAlarmInterval
 	}
+}
 
-	oraklDatabaseUrl := os.Getenv("ORAKL_DATABASE_URL")
-	if oraklDatabaseUrl == "" {
-		log.Error().Msg("ORAKL_DATABASE_URL not found")
-		panic("ORAKL_DATABASE_URL not found")
+func getUrls() (Urls, error) {
+	oraklApiUrl := os.Getenv("ORAKL_API_URL")
+	if oraklApiUrl == "" {
+		return Urls{}, errors.New("ORAKL_API_URL not found")
 	}
 
-	oraklPool, err := pgxpool.New(ctx, oraklDatabaseUrl)
+	oraklNodeAdminUrl := os.Getenv("ORAKL_NODE_ADMIN_URL")
+	if oraklNodeAdminUrl == "" {
+		return Urls{}, errors.New("ORAKL_NODE_ADMIN_URL not found")
+	}
+
+	oraklDelegatorUrl := os.Getenv("ORAKL_DELEGATOR_URL")
+	if oraklDelegatorUrl == "" {
+		return Urls{}, errors.New("ORAKL_DELEGATOR_URL not found")
+	}
+
+	porUrl := os.Getenv("POR_URL")
+	if porUrl == "" {
+		return Urls{}, errors.New("POR_URL not found")
+	}
+
+	jsonRpcUrl := os.Getenv("JSON_RPC_URL")
+	if jsonRpcUrl == "" {
+		return Urls{}, errors.New("JSON_RPC_URL not found")
+	}
+
+	return Urls{
+		JsonRpcUrl:        jsonRpcUrl,
+		OraklApiUrl:       oraklApiUrl,
+		OraklNodeAdminUrl: oraklNodeAdminUrl,
+		OraklDelegatorUrl: oraklDelegatorUrl,
+		PorUrl:            porUrl,
+	}, nil
+}
+
+func loadWallets(ctx context.Context, urls Urls) ([]Wallet, error) {
+	wallets := []Wallet{}
+
+	apiWallets, err := loadWalletFromOraklApi(ctx, urls.OraklApiUrl)
 	if err != nil {
-		log.Error().Err(err).Msg("Error connecting to orakl database")
-		panic(err)
+		return wallets, err
 	}
-	defer oraklPool.Close()
+	wallets = append(wallets, apiWallets...)
 
-	nodeDatabaseUrl := os.Getenv("NODE_DATABASE_URL")
-	if nodeDatabaseUrl == "" {
-		log.Error().Msg("NODE_DATABASE_URL not found")
-		panic("NODE_DATABASE_URL not found")
-	}
-
-	nodePool, err := pgxpool.New(ctx, nodeDatabaseUrl)
+	adminWallets, err := loadWalletFromOraklAdmin(ctx, urls.OraklNodeAdminUrl)
 	if err != nil {
-		log.Error().Err(err).Msg("Error connecting to node database")
-		panic(err)
+		return wallets, err
 	}
-	defer nodePool.Close()
+	wallets = append(wallets, adminWallets...)
 
-	delegatorAddress := os.Getenv("DELEGATOR_ADDRESS")
-	if delegatorAddress == "" {
-		panic("DELEGATOR_ADDRESS not found")
-	}
-
-	reportersFromOrakl, err := loadAddressesFromOrakl(ctx, oraklPool)
+	porWallet, err := loadWalletFromPor(ctx, urls.PorUrl)
 	if err != nil {
-		log.Error().Err(err).Msg("Error loading addresses from orakl")
-		panic(err)
+		return wallets, err
 	}
+	wallets = append(wallets, porWallet)
 
-	reportersFromNode, err := loadAddressesFromNode(ctx, nodePool)
+	delegatorWallet, err := loadWalletFromDelegator(ctx, urls.OraklDelegatorUrl)
 	if err != nil {
-		log.Error().Err(err).Msg("Error loading addresses from node")
-		panic(err)
+		return wallets, err
+	}
+	wallets = append(wallets, delegatorWallet)
+
+	return wallets, nil
+}
+
+func loadWalletFromOraklApi(ctx context.Context, url string) ([]Wallet, error) {
+	type ReporterModel struct {
+		Address string `json:"address"`
 	}
 
-	reporters := append(reportersFromOrakl, reportersFromNode...)
+	wallets := []Wallet{}
+	reporters, err := request.GetRequest[[]ReporterModel](url+oraklApiEndpoint, nil, nil)
+	if err != nil {
+		return wallets, err
+	}
+
 	for _, reporter := range reporters {
-		balance, err := getBalance(ctx, reporter.Address)
-		if err != nil {
-			balance = 0
-			continue
-		}
+		address := common.HexToAddress(reporter.Address)
 
 		wallet := Wallet{
-			Address: reporter.Address,
-			Balance: balance,
+			Address: address,
+			Balance: 0,
 			Minimum: SubmitterAlarmAmount,
 		}
 		wallets = append(wallets, wallet)
 	}
+	return wallets, nil
+}
 
-	delegatorBalance, err := getBalance(ctx, delegatorAddress)
+func loadWalletFromOraklAdmin(ctx context.Context, url string) ([]Wallet, error) {
+	wallets := []Wallet{}
+	reporters, err := request.GetRequest[[]string](url+oraklNodeAdminEndpoint, nil, nil)
 	if err != nil {
-		delegatorBalance = 0
+		return wallets, err
 	}
-	wallets = append(wallets, Wallet{
-		Address: delegatorAddress,
-		Balance: delegatorBalance,
+
+	for _, reporter := range reporters {
+		address := common.HexToAddress(reporter)
+		wallet := Wallet{
+			Address: address,
+			Balance: 0,
+			Minimum: SubmitterAlarmAmount,
+		}
+		wallets = append(wallets, wallet)
+	}
+	return wallets, nil
+}
+
+func loadWalletFromPor(ctx context.Context, url string) (Wallet, error) {
+	wallet := Wallet{}
+	reporter, err := request.GetRequest[string](url+porEndpoint, nil, nil)
+	if err != nil {
+		return wallet, err
+	}
+	address := common.HexToAddress(reporter)
+	wallet = Wallet{
+		Address: address,
+		Balance: 0,
+		Minimum: SubmitterAlarmAmount,
+	}
+	return wallet, nil
+}
+
+func loadWalletFromDelegator(ctx context.Context, url string) (Wallet, error) {
+	wallet := Wallet{}
+	feePayer, err := request.GetRequest[string](url+oraklDelegatorEndpoint, nil, nil)
+	if err != nil {
+		return wallet, err
+	}
+	address := common.HexToAddress(feePayer)
+	wallet = Wallet{
+		Address: address,
+		Balance: 0,
 		Minimum: DelegatorAlarmAmount,
-	})
+	}
+	return wallet, nil
 }
 
 func Start(ctx context.Context) {
@@ -164,39 +254,14 @@ func Start(ctx context.Context) {
 		select {
 		case <-checkTicker.C:
 			updateBalances(ctx, wallets)
+		case <-alarmTicker.C:
+			alarmWallets(wallets)
 		}
 	}
 }
 
-func loadAddressesFromOrakl(ctx context.Context, pool *pgxpool.Pool) ([]LoadedAddress, error) {
-	rows, err := pool.Query(ctx, "SELECT address FROM reporters")
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	addresses, err := pgx.CollectRows(rows, pgx.RowToStructByName[LoadedAddress])
-	if errors.Is(err, pgx.ErrNoRows) {
-		return nil, nil
-	}
-	return addresses, err
-}
-
-func loadAddressesFromNode(ctx context.Context, pool *pgxpool.Pool) ([]LoadedAddress, error) {
-	rows, err := pool.Query(ctx, "SELECT address FROM wallets")
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	addresses, err := pgx.CollectRows(rows, pgx.RowToStructByName[LoadedAddress])
-	if errors.Is(err, pgx.ErrNoRows) {
-		return nil, nil
-	}
-	return addresses, err
-}
-
-func getBalance(ctx context.Context, address string) (float64, error) {
-	account := common.HexToAddress(address)
-	balance, err := klaytnClient.BalanceAt(ctx, account, nil)
+func getBalance(ctx context.Context, address common.Address) (float64, error) {
+	balance, err := klaytnClient.BalanceAt(ctx, address, nil)
 	if err != nil {
 		return 0, err
 	}
@@ -209,11 +274,10 @@ func getBalance(ctx context.Context, address string) (float64, error) {
 
 func updateBalances(ctx context.Context, wallets []Wallet) {
 	for i, wallet := range wallets {
-
 		time.Sleep(1 * time.Second) //gracefully request to prevent json rpc blockage
 		balance, err := getBalance(ctx, wallet.Address)
 		if err != nil {
-			log.Error().Err(err).Str("address", wallet.Address).Msg("Error getting balance")
+			log.Error().Err(err).Str("address", wallet.Address.Hex()).Msg("Error getting balance")
 			continue
 		}
 		wallets[i].Balance = balance
@@ -224,8 +288,8 @@ func alarmWallets(wallets []Wallet) {
 	var alarmMessage = ""
 	for _, wallet := range wallets {
 		if wallet.Balance < wallet.Minimum {
-			log.Error().Str("address", wallet.Address).Float64("balance", wallet.Balance).Msg("Balance lower than minimum")
-			alarmMessage += wallet.Address + " balance is lower than minimum\n"
+			log.Error().Str("address", wallet.Address.Hex()).Float64("balance", wallet.Balance).Msg("Balance lower than minimum")
+			alarmMessage += fmt.Sprintf("%s balance(%f) is lower than minimum(%f)\n", wallet.Address.Hex(), wallet.Balance, wallet.Minimum)
 		}
 	}
 
