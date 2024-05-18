@@ -87,26 +87,19 @@ jobs:
           rm -rf ./gitops_tmp
 
           GH_URL=$(echo "$GITHUB_SERVER_URL" | sed 's,://,://x-access-token:'"${{ secrets.PAT }}"'@,g')
-          git clone --depth 1 ${GH_URL}/bisonai/orakl-helm-charts.git ./gitops_tmp
+          git clone --depth 1 --no-single-branch ${GH_URL}/bisonai/orakl-helm-charts.git ./gitops_tmp
 
         shell: bash
 
       - name: Verify and Checkout Branch
         run: |
           cd ./gitops_tmp/
-          git fetch --all
-          if git show-ref --quiet refs/heads/idc-fly; then
-            git checkout idc-fly
-          else
-            echo "Branch idc-fly does not exist. Exiting."
-            exit 1
-          fi
-
-        shell: bash
+          git fetch origin idc-fly:idc-fly
+          git checkout idc-fly
 
       - name: Update image tag in multiple values.baobab.yaml files
         run: |
-          cd ./gitops_tmp/cli/
+          cd ./cli/
 
           echo "Updating image tag in values.baobab.yaml files"
           sed -i 's/tag: .*$/tag: "v0.6.1.20240315.0618.c907cbb"/g' values.baobab.yaml
