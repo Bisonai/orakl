@@ -6,6 +6,9 @@ on:
       slack-message:
         required: true
         type: string
+    secrets:
+      SLACK_BOT_TOKEN:
+        required: true            
 jobs:
   post-to-slack:
     name: Post a message to a Slack channel
