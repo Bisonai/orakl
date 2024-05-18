@@ -24,7 +24,6 @@ on:
 
 jobs:
   update-image-tag:
-    name: Update Image Tag
     runs-on: ubuntu-latest
 
     permissions:
