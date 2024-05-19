@@ -48,19 +48,21 @@ type Wallet struct {
 }
 
 func init() {
-	var err error
+	loadEnvs()
+}
+
+func setUp() {
 	ctx := context.Background()
 
-	loadEnvs()
 	urls, err := getUrls()
 	if err != nil {
 		log.Error().Err(err).Msg("Error getting urls")
 		panic(err)
 	}
 
-	klaytnClient, err = client.Dial(urls.JsonRpcUrl)
+	err = setClient(urls.JsonRpcUrl)
 	if err != nil {
-		log.Error().Err(err).Msg("Error connecting to klaytn client")
+		log.Error().Err(err).Msg("Error setting up client")
 		panic(err)
 	}
 
@@ -68,6 +70,35 @@ func init() {
 	if err != nil {
 		log.Error().Err(err).Msg("Error loading wallets")
 		panic(err)
+	}
+}
+
+func setClient(jsonRpcUrl string) error {
+	var err error
+	klaytnClient, err = client.Dial(jsonRpcUrl)
+	if err != nil {
+		log.Error().Err(err).Msg("Error connecting to klaytn client")
+		return err
+	}
+	return nil
+}
+
+func Start(ctx context.Context) {
+	setUp()
+	log.Info().Msg("Starting balance checker")
+	checkTicker := time.NewTicker(BalanceCheckInterval)
+	defer checkTicker.Stop()
+
+	alarmTicker := time.NewTicker(BalanceAlarmInterval)
+	defer alarmTicker.Stop()
+
+	for {
+		select {
+		case <-checkTicker.C:
+			updateBalances(ctx, wallets)
+		case <-alarmTicker.C:
+			alarm(wallets)
+		}
 	}
 }
 
@@ -242,24 +273,6 @@ func loadWalletFromDelegator(ctx context.Context, url string) (Wallet, error) {
 	return wallet, nil
 }
 
-func Start(ctx context.Context) {
-	log.Info().Msg("Starting balance checker")
-	checkTicker := time.NewTicker(BalanceCheckInterval)
-	defer checkTicker.Stop()
-
-	alarmTicker := time.NewTicker(BalanceAlarmInterval)
-	defer alarmTicker.Stop()
-
-	for {
-		select {
-		case <-checkTicker.C:
-			updateBalances(ctx, wallets)
-		case <-alarmTicker.C:
-			alarmWallets(wallets)
-		}
-	}
-}
-
 func getBalance(ctx context.Context, address common.Address) (float64, error) {
 	balance, err := klaytnClient.BalanceAt(ctx, address, nil)
 	if err != nil {
@@ -284,7 +297,7 @@ func updateBalances(ctx context.Context, wallets []Wallet) {
 	}
 }
 
-func alarmWallets(wallets []Wallet) {
+func alarm(wallets []Wallet) {
 	var alarmMessage = ""
 	for _, wallet := range wallets {
 		if wallet.Balance < wallet.Minimum {

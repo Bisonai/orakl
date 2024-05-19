@@ -1,0 +1,10 @@
+version: "3"
+
+tasks:
+  test-health:
+    cmds:
+      - go test ./pkg/checker/health -v
+  test-balance:
+    dotenv: [".env"]
+    cmds:
+      - go test ./pkg/checker/balance -v
