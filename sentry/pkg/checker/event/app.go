@@ -3,6 +3,7 @@ package event
 import (
 	"context"
 	"os"
+	"strings"
 	"time"
 
 	"bisonai.com/orakl/sentry/pkg/alert"
@@ -114,7 +115,10 @@ func loadSubgraphInfoMap(ctx context.Context) (map[string]SubgraphInfo, error) {
 
 	subgraphInfoMap := make(map[string]SubgraphInfo)
 	for _, subgraphInfo := range subgraphInfos {
-		subgraphInfoMap[subgraphInfo.Name] = subgraphInfo
+		if strings.HasPrefix(subgraphInfo.Name, "Feed-") {
+			pricePairName := strings.TrimPrefix(subgraphInfo.Name, "Feed-")
+			subgraphInfoMap[pricePairName] = subgraphInfo
+		}
 	}
 
 	return subgraphInfoMap, nil
