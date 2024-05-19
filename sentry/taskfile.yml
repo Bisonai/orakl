@@ -8,3 +8,11 @@ tasks:
     dotenv: [".env"]
     cmds:
       - go test ./pkg/checker/balance -v
+  test:
+    cmds:
+      - task: test-health
+      - task: test-balance
+  run:
+    dotenv: [".env"]
+    cmds:
+      - go run ./cmd/main.go

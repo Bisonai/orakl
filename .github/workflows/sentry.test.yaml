@@ -1,0 +1,60 @@
+name: "orakl sentry test"
+
+on:
+  push:
+    branches-ignore:
+      - "master"
+    paths:
+      - "sentry/**"
+  workflow_dispatch:
+
+jobs:
+  core-build:
+    strategy:
+      fail-fast: false
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v3
+      - name: Setup Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: "1.22.3"
+          check-latest: true
+          cache-dependency-path: |
+            ./sentry/go.sum
+
+      - name: Run lint
+        uses: golangci/golangci-lint-action@v3
+        with:
+          version: v1.54
+          working-directory: sentry
+          skip-pkg-cache: true
+          skip-build-cache: true
+          args: --timeout=10m
+
+      - name: Run Vet
+        run: |
+          cd ./sentry
+          go install golang.org/x/tools/go/analysis/passes/shadow/cmd/shadow@latest
+          go vet ./...
+          go vet -vettool=$(which shadow) ./...
+
+      - name: Install dependencies
+        run: |
+          cd ./sentry
+          go mod tidy
+
+      - name: Install Task
+        uses: arduino/setup-task@v2
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Run test
+        run: |
+          cd ./sentry
+          task test
+        env:
+          CHAIN: "baobab"
+          JSON_RPC_URL: "https://klaytn-baobab-rpc.allthatnode.com:8551"
