@@ -10,7 +10,7 @@ import {
   PROVIDER_URL
 } from '../settings'
 import { IListenerConfig, IListenerRawConfig } from '../types'
-import { getListenerObservedBlock, getListeners } from './api'
+import { getListenerObservedBlock, getListeners, upsertListenerObservedBlock } from './api'
 import { IContracts, IHistoryListenerJob, ILatestListenerJob } from './types'
 import { postprocessListeners } from './utils'
 
@@ -181,6 +181,23 @@ export class State {
     const latestBlock = await this.latestBlockNumber()
     const observedBlock =
       observedBlockMetadata.blockKey === '' ? latestBlock : observedBlockMetadata.blockNumber
+
+    /**
+      observedBlock can be:
+        * empty (server returns zero) -> happens once when we migrate to this version
+          we need to update observedBlock to latestBlock - 1 in the db
+        * any number between 0 and latestBlock - 1 -> update observedBlock to latestBlock - 1 since 
+          all blocks in between will be processed by the history queue and worker
+        * equal to latestBlock - 1 -> no need to update observedBlock, latestQueue will continue with the latest block
+        * larger than latestBlock - 1 -> this could only happen in local, we need to update observedBlock to latestBlock - 1
+    */
+    if (observedBlock !== latestBlock - 1) {
+      await upsertListenerObservedBlock({
+        blockKey: observedBlockRedisKey,
+        blockNumber: observedBlock - 1,
+        logger: this.logger
+      })
+    }
 
     for (let blockNumber = observedBlock; blockNumber < latestBlock; ++blockNumber) {
       const historyOutData: IHistoryListenerJob = {
