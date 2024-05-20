@@ -115,11 +115,11 @@ const convertContractType = (contractType) => {
 async function main() {
   const tags = await fetchTags();
   const { feeds, others } = await readDeployments(addressesPath, tags);
-  await writeFileSync(
+  writeFileSync(
     path.join(addressesPath, "datafeeds-addresses.json"),
     JSON.stringify(feeds, null, 2)
   );
-  await writeFileSync(
+  writeFileSync(
     path.join(addressesPath, "others-addresses.json"),
     JSON.stringify(others, null, 2)
   );
