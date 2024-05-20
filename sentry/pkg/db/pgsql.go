@@ -3,9 +3,9 @@ package db
 import (
 	"context"
 	"errors"
-	"os"
 	"sync"
 
+	"bisonai.com/orakl/sentry/pkg/secrets"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/rs/zerolog/log"
@@ -41,7 +41,7 @@ func connectToPgsql(ctx context.Context, connectionString string) (*pgxpool.Pool
 }
 
 func loadPgsqlConnectionString() string {
-	return os.Getenv("DATABASE_URL")
+	return secrets.GetSecret("DATABASE_URL")
 }
 
 func Query(ctx context.Context, queryString string, args map[string]any) (pgx.Rows, error) {
