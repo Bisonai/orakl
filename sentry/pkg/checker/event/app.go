@@ -57,15 +57,19 @@ func setUp(ctx context.Context) error {
 	return nil
 }
 
-func Start(ctx context.Context) {
+func Start(ctx context.Context) error {
 	log.Info().Msg("Starting event checker")
-	setUp(ctx)
+	err := setUp(ctx)
+	if err != nil {
+		return err
+	}
 	ticker := time.NewTicker(EventCheckInterval)
 	defer ticker.Stop()
 
 	for range ticker.C {
 		check(ctx)
 	}
+	return nil
 }
 
 func check(ctx context.Context) {
