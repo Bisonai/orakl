@@ -359,7 +359,10 @@ contract SubmissionProxy is Ownable {
 
         uint256 feedsLength_ = _feedHashes.length;
         for (uint256 i = 0; i < feedsLength_; i++) {
-            if (_timestamps[i] <= block.timestamp - dataFreshness || lastSubmissionTimes[_feedHashes[i]] >= _timestamps[i]) {
+            if (
+                _timestamps[i] <= block.timestamp - dataFreshness
+                    || lastSubmissionTimes[_feedHashes[i]] >= _timestamps[i]
+            ) {
                 // answer is too old -> do not submit!
                 continue;
             }
