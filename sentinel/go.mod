@@ -1,4 +1,4 @@
-module bisonai.com/orakl/sentry
+module bisonai.com/orakl/sentinel
 
 go 1.22.3
 

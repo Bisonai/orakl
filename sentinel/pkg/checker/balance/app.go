@@ -14,8 +14,8 @@ import (
 	"github.com/klaytn/klaytn/common"
 	"github.com/rs/zerolog/log"
 
-	"bisonai.com/orakl/sentry/pkg/alert"
-	"bisonai.com/orakl/sentry/pkg/request"
+	"bisonai.com/orakl/sentinel/pkg/alert"
+	"bisonai.com/orakl/sentinel/pkg/request"
 )
 
 const (

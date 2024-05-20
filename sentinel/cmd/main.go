@@ -8,9 +8,9 @@ import (
 
 	"github.com/rs/zerolog"
 
-	"bisonai.com/orakl/sentry/pkg/checker/balance"
-	"bisonai.com/orakl/sentry/pkg/checker/health"
-	// "bisonai.com/orakl/sentry/pkg/checker/event"
+	"bisonai.com/orakl/sentinel/pkg/checker/balance"
+	"bisonai.com/orakl/sentinel/pkg/checker/health"
+	// "bisonai.com/orakl/sentinel/pkg/checker/event"
 )
 
 func main() {

@@ -5,7 +5,7 @@ import (
 	"errors"
 	"sync"
 
-	"bisonai.com/orakl/sentry/pkg/secrets"
+	"bisonai.com/orakl/sentinel/pkg/secrets"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/rs/zerolog/log"

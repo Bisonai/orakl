@@ -1,15 +1,15 @@
-name: sentry deploy to Amazon ECR
+name: sentinel deploy to Amazon ECR
 
 on:
   push:
     branches:
       - master
     paths:
-      - "sentry/**"
+      - "sentinel/**"
   workflow_dispatch:
 
 env:
-  ecr_url: public.ecr.aws/bisonai/orakl-sentry
+  ecr_url: public.ecr.aws/bisonai/orakl-sentinel
 
 jobs:
   prepare:
@@ -49,10 +49,10 @@ jobs:
           go-version: "1.22.3"
           check-latest: true
           cache-dependency-path: |
-            ./sentry/go.sum
-            ./sentry/go.mod
-      - name: Docker build orakl-sentry
-        run: SERVICE_NAME=orakl-sentry docker compose -f docker-compose.build.yaml build
+            ./sentinel/go.sum
+            ./sentinel/go.mod
+      - name: Docker build orakl-sentinel
+        run: SERVICE_NAME=orakl-sentinel docker compose -f docker-compose.build.yaml build
 
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v2
@@ -66,9 +66,9 @@ jobs:
         with:
           registry-type: public
 
-      - name: Publish Image to ECR(sentry)
+      - name: Publish Image to ECR(sentinel)
         run: |
-          docker tag  orakl-sentry ${{ env.ecr_url }}:latest
+          docker tag  orakl-sentinel ${{ env.ecr_url }}:latest
           docker push ${{ env.ecr_url }}:latest
           docker tag ${{ env.ecr_url }}:latest ${{ env.ecr_url }}:v0.0.1.${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }}
           docker push ${{ env.ecr_url }}:v0.0.1.${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }}

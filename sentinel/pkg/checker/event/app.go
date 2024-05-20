@@ -6,9 +6,9 @@ import (
 	"strings"
 	"time"
 
-	"bisonai.com/orakl/sentry/pkg/alert"
-	"bisonai.com/orakl/sentry/pkg/db"
-	"bisonai.com/orakl/sentry/pkg/request"
+	"bisonai.com/orakl/sentinel/pkg/alert"
+	"bisonai.com/orakl/sentinel/pkg/db"
+	"bisonai.com/orakl/sentinel/pkg/request"
 	"github.com/rs/zerolog/log"
 )
 

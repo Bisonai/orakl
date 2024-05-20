@@ -4,11 +4,11 @@ RUN apt-get update && apt-get install -y curl g++-x86-64-linux-gnu libc6-dev-amd
 
 WORKDIR /app
 
-COPY sentry sentry
+COPY sentinel sentinel
 
-WORKDIR /app/sentry
+WORKDIR /app/sentinel
 
-RUN CGO_ENABLED=1 CC=x86_64-linux-gnu-gcc GOOS=linux GOARCH=amd64 go build -o sentrybin -ldflags="-w -s" ./cmd/main.go
+RUN CGO_ENABLED=1 CC=x86_64-linux-gnu-gcc GOOS=linux GOARCH=amd64 go build -o sentinelbin -ldflags="-w -s" ./cmd/main.go
 
 # debian:bullseye-slim
 FROM debian@sha256:4b48997afc712259da850373fdbc60315316ee72213a4e77fc5a66032d790b2a
@@ -19,8 +19,8 @@ RUN sh -c "$(curl --location https://taskfile.dev/install.sh)" -- -d -b /usr/bin
 
 WORKDIR /app
 
-COPY --from=builder /app/sentry/taskfile.yml /app/taskfile.yml
+COPY --from=builder /app/sentinel/taskfile.yml /app/taskfile.yml
 
-COPY --from=builder /app/sentry/sentrybin /usr/bin
+COPY --from=builder /app/sentinel/sentinelbin /usr/bin
 
-CMD ["sentrybin"]
+CMD ["sentinelbin"]

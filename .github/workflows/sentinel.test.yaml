@@ -1,11 +1,11 @@
-name: "orakl sentry test"
+name: "orakl sentinel test"
 
 on:
   push:
     branches-ignore:
       - "master"
     paths:
-      - "sentry/**"
+      - "sentinel/**"
   workflow_dispatch:
 
 jobs:
@@ -34,27 +34,27 @@ jobs:
           go-version: "1.22.3"
           check-latest: true
           cache-dependency-path: |
-            ./sentry/go.sum
+            ./sentinel/go.sum
 
       - name: Run lint
         uses: golangci/golangci-lint-action@v3
         with:
           version: v1.54
-          working-directory: sentry
+          working-directory: sentinel
           skip-pkg-cache: true
           skip-build-cache: true
           args: --timeout=10m
 
       - name: Run Vet
         run: |
-          cd ./sentry
+          cd ./sentinel
           go install golang.org/x/tools/go/analysis/passes/shadow/cmd/shadow@latest
           go vet ./...
           go vet -vettool=$(which shadow) ./...
 
       - name: Install dependencies
         run: |
-          cd ./sentry
+          cd ./sentinel
           go mod tidy
 
       - name: Install Task
@@ -64,7 +64,7 @@ jobs:
 
       - name: Run test
         run: |
-          cd ./sentry
+          cd ./sentinel
           task test
         env:
           CHAIN: "baobab"

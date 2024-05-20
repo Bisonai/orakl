@@ -11,7 +11,7 @@ import (
 
 	"github.com/redis/go-redis/v9"
 
-	"bisonai.com/orakl/sentry/pkg/alert"
+	"bisonai.com/orakl/sentinel/pkg/alert"
 	"github.com/rs/zerolog/log"
 )
 

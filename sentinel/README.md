@@ -1,6 +1,6 @@
-# Orakl Sentry
+# Orakl sentinel
 
-Orakl Sentry is a service for monitoring Orakl Service.
+Orakl sentinel is a service for monitoring Orakl Service.
 It checks the service state regularly and sends a Slack message if required.
 
 ## Project Structure
