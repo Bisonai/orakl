@@ -9,7 +9,6 @@ import {
   IHistoryListenerJob,
   ILatestListenerJob,
   IProcessEventListenerJob,
-  ListenerInitType,
   ProcessEventOutputType
 } from './types'
 import { watchman } from './watchman'
@@ -40,7 +39,6 @@ const FILE_NAME = import.meta.url
  * @param {string} name of [worker] queue
  * @param {(log: ethers.Event) => Promise<ProcessEventOutputType>} event processing function
  * @param {RedisClientType} redis client
- * @params {ListenerInitType} listener initialization type
  * @param {Logger} pino logger
  */
 export async function listenerService({
@@ -56,7 +54,6 @@ export async function listenerService({
   workerQueueName,
   processFn,
   redisClient,
-  listenerInitType,
   logger
 }: {
   config: IListenerConfig[]
@@ -71,7 +68,6 @@ export async function listenerService({
   workerQueueName: string
   processFn: (log: ethers.Event) => Promise<ProcessEventOutputType | undefined>
   redisClient: RedisClientType
-  listenerInitType: ListenerInitType
   logger: Logger
 }) {
   const latestListenerQueue = new Queue(latestQueueName, BULLMQ_CONNECTION)
@@ -88,7 +84,6 @@ export async function listenerService({
     chain,
     eventName,
     abi,
-    listenerInitType,
     logger
   })
   await state.clear()

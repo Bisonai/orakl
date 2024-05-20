@@ -77,3 +77,8 @@ export interface IProcessEventListenerJob {
 export interface IContracts {
   [key: string]: ethers.Contract
 }
+
+export interface IObservedBlock {
+  blockNumber: number
+  blockKey: string
+}

@@ -317,11 +317,6 @@ export interface IListenerGroupConfig {
   [key: string]: IListenerConfig[]
 }
 
-export interface IListenerObservedBlock {
-  blockKey: string
-  blockValue: number
-}
-
 // Reporter
 export interface IReporterConfig {
   id: string

@@ -10,8 +10,8 @@ import {
   PROVIDER_URL
 } from '../settings'
 import { IListenerConfig, IListenerRawConfig } from '../types'
-import { getListeners } from './api'
-import { IContracts, IHistoryListenerJob, ILatestListenerJob, ListenerInitType } from './types'
+import { getListenerObservedBlock, getListeners } from './api'
+import { IContracts, IHistoryListenerJob, ILatestListenerJob } from './types'
 import { postprocessListeners } from './utils'
 
 const FILE_NAME = import.meta.url
@@ -48,7 +48,6 @@ export class State {
   logger: Logger
   provider: ethers.providers.JsonRpcProvider
   contracts: IContracts
-  listenerInitType: ListenerInitType
   abi: ethers.ContractInterface
 
   constructor({
@@ -60,7 +59,6 @@ export class State {
     chain,
     eventName,
     abi,
-    listenerInitType,
     logger
   }: {
     redisClient: RedisClientType
@@ -71,7 +69,6 @@ export class State {
     chain: string
     eventName: string
     abi: ethers.ContractInterface
-    listenerInitType: ListenerInitType
     logger: Logger
   }) {
     this.redisClient = redisClient
@@ -82,7 +79,6 @@ export class State {
     this.abi = abi
     this.chain = chain
     this.eventName = eventName
-    this.listenerInitType = listenerInitType
     this.logger = logger
     this.provider = new ethers.providers.JsonRpcProvider(PROVIDER_URL)
     this.contracts = {}
@@ -178,32 +174,22 @@ export class State {
 
     const contractAddress = toAddListener.address
     const observedBlockRedisKey = getObservedBlockRedisKey(contractAddress)
+    const observedBlockMetadata = await getListenerObservedBlock({
+      blockKey: observedBlockRedisKey,
+      logger: this.logger
+    })
     const latestBlock = await this.latestBlockNumber()
+    const observedBlock =
+      observedBlockMetadata.blockKey === '' ? latestBlock : observedBlockMetadata.blockNumber
 
-    switch (this.listenerInitType) {
-      case 'clear':
-        // Clear metadata about previously observed blocks for a specific
-        // `contractAddress`.
-        await this.redisClient.set(observedBlockRedisKey, latestBlock - 1)
-        break
-
-      case 'latest':
-        await this.setObservedBlockNumberIfNotDefined(observedBlockRedisKey, latestBlock - 1)
-        break
-
-      default:
-        // [block number] initialization
-        await this.setObservedBlockNumberIfNotDefined(observedBlockRedisKey, latestBlock - 1)
-        for (let blockNumber = this.listenerInitType; blockNumber < latestBlock; ++blockNumber) {
-          const historyOutData: IHistoryListenerJob = {
-            contractAddress,
-            blockNumber
-          }
-          await this.historyListenerQueue.add('history', historyOutData, {
-            ...LISTENER_JOB_SETTINGS
-          })
-        }
-        break
+    for (let blockNumber = observedBlock; blockNumber < latestBlock; ++blockNumber) {
+      const historyOutData: IHistoryListenerJob = {
+        contractAddress,
+        blockNumber
+      }
+      await this.historyListenerQueue.add('history', historyOutData, {
+        ...LISTENER_JOB_SETTINGS
+      })
     }
 
     // Insert listener jobs
