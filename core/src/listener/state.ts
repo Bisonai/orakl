@@ -183,21 +183,14 @@ export class State {
       observedBlockMetadata.blockKey === '' ? latestBlock : observedBlockMetadata.blockNumber
 
     /**
-      observedBlock can be:
-        * empty (server returns zero) -> happens once when we migrate to this version
-          we need to update observedBlock to latestBlock - 1 in the db
-        * any number between 0 and latestBlock - 1 -> update observedBlock to latestBlock - 1 since 
-          all blocks in between will be processed by the history queue and worker
-        * equal to latestBlock - 1 -> no need to update observedBlock, latestQueue will continue with the latest block
-        * larger than latestBlock - 1 -> this could only happen in local, we need to update observedBlock to latestBlock - 1
+      update observedBlock to latestBlock - 1 since all blocks in between will be handled
+      by history queue and worker
     */
-    if (observedBlock !== latestBlock - 1) {
-      await upsertListenerObservedBlock({
-        blockKey: observedBlockRedisKey,
-        blockNumber: observedBlock - 1,
-        logger: this.logger
-      })
-    }
+    await upsertListenerObservedBlock({
+      blockKey: observedBlockRedisKey,
+      blockNumber: Math.max(latestBlock - 1, 0),
+      logger: this.logger
+    })
 
     for (let blockNumber = observedBlock; blockNumber < latestBlock; ++blockNumber) {
       const historyOutData: IHistoryListenerJob = {
@@ -255,10 +248,10 @@ export class State {
     )
 
     if (jobs.length != 1) {
-      throw new OraklError(
-        OraklErrorCode.UnexpectedNumberOfJobsInQueue,
-        `Number of jobs ${jobs.length}`
-      )
+      // throw new OraklError(
+      //   OraklErrorCode.UnexpectedNumberOfJobsInQueue,
+      //   `Number of jobs ${jobs.length}`
+      // )
     } else {
       const delayedJob = jobs[0]
       await this.latestListenerQueue.removeRepeatableByKey(delayedJob.key)
