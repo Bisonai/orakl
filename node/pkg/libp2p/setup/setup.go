@@ -56,6 +56,7 @@ func SetupFromBootApi(ctx context.Context, port int) (host.Host, *pubsub.PubSub,
 		apiEndpoint = "http://localhost:8089"
 	}
 
+	log.Info().Str("ip", ip).Int("port", port).Str("host_id", hostId).Str("api_endpoint", apiEndpoint).Msg("connecting to boot API")
 	dbPeers, err := request.UrlRequest[[]BootPeerModel](apiEndpoint+"/api/v1/peer/sync", "POST", map[string]any{
 		"ip":      ip,
 		"port":    port,
