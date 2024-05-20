@@ -20,7 +20,7 @@ func TestWalletInsert(t *testing.T) {
 	defer cleanup()
 
 	mockWallet := wallet.WalletInsertModel{
-		Pk: "test_pk_v2",
+		Pk: "0x7b48c1fd1861ebc850e3a8629198e9c4d33fc16ff995162a25438b532c42253d",
 	}
 
 	readResultBefore, err := GetRequest[[]wallet.WalletModel](testItems.app, "/api/v1/wallet", nil)
@@ -71,6 +71,23 @@ func TestWalletGet(t *testing.T) {
 	assert.Equalf(t, readResult[0].Pk, testItems.tmpData.wallet.Pk, "expected to have the same wallet")
 }
 
+func TestWalletGetAddress(t *testing.T) {
+	ctx := context.Background()
+	cleanup, testItems, err := setup(ctx)
+	if err != nil {
+		t.Fatalf("error setting up test: %v", err)
+	}
+	defer cleanup()
+
+	readResult, err := GetRequest[[]string](testItems.app, "/api/v1/wallet/addresses", nil)
+	if err != nil {
+		t.Fatalf("error getting addresses: %v", err)
+	}
+
+	assert.Greaterf(t, len(readResult), 0, "expected to have at least one address")
+	assert.Equalf(t, readResult[0], "0xd45bd119bE9D4EE5dCd642978648142681caa7e6", "expected to have the same address")
+}
+
 func TestWalletGetById(t *testing.T) {
 	ctx := context.Background()
 	cleanup, testItems, err := setup(ctx)
@@ -102,7 +119,7 @@ func TestWalletUpdateById(t *testing.T) {
 	defer cleanup()
 
 	mockWallet := wallet.WalletInsertModel{
-		Pk: "test_pk_v2",
+		Pk: "0x7b48c1fd1861ebc850e3a8629198e9c4d33fc16ff995162a25438b532c42253d",
 	}
 
 	beforeUpdate, err := GetRequest[wallet.WalletModel](testItems.app, "/api/v1/wallet/"+strconv.FormatInt(*testItems.tmpData.wallet.Id, 10), nil)

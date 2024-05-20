@@ -1,6 +1,7 @@
 package wallet
 
 import (
+	chainUtils "bisonai.com/orakl/node/pkg/chain/utils"
 	"bisonai.com/orakl/node/pkg/db"
 	"bisonai.com/orakl/node/pkg/utils/encryptor"
 	"github.com/go-playground/validator/v10"
@@ -60,6 +61,29 @@ func get(c *fiber.Ctx) error {
 	}
 
 	return c.JSON(results)
+}
+
+func getAddresses(c *fiber.Ctx) error {
+	wallets, err := db.QueryRows[WalletModel](c.Context(), GetWallets, nil)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).SendString("failed to execute get wallet query: " + err.Error())
+	}
+	var result []string
+	for _, wallet := range wallets {
+		decryptedPk, err := encryptor.DecryptText(wallet.Pk)
+		if err != nil {
+			log.Warn().Err(err).Msg("failed to decrypt pk on get wallets query")
+			continue
+		}
+		address, err := chainUtils.StringPkToAddressHex(decryptedPk)
+		if err != nil {
+			log.Warn().Err(err).Msg("failed to convert pk to address on get wallets query")
+			continue
+		}
+		result = append(result, address)
+	}
+
+	return c.JSON(result)
 }
 
 func getById(c *fiber.Ctx) error {
