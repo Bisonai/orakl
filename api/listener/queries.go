@@ -43,7 +43,13 @@ const (
 		(SELECT name from services WHERE service_id = listeners.service_id) AS service_name;
 		`
 
-	InsertUpdateObservedBlock = `
+	GetObservedBlock = `
+		SELECT * FROM observed_block
+		WHERE block_key = @block_key
+		LIMIT 1;
+	`
+	
+	UpsertObservedBlock = `
 		INSERT INTO observed_block (block_key, block_number)
 		VALUES (@block_key, @block_number)
 		ON CONFLICT (block_key) 
