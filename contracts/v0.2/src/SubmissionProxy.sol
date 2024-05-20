@@ -383,8 +383,8 @@ contract SubmissionProxy is Ownable {
             bytes32 message_ = keccak256(abi.encodePacked(_answers[i], _timestamps[i], _feedHashes[i]));
             if (validateProof(_feedHashes[i], message_, proofs_)) {
                 feeds[_feedHashes[i]].submit(_answers[i]);
+                lastSubmissionTimes[_feedHashes[i]] = _timestamps[i];
             }
-            lastSubmissionTimes[_feedHashes[i]] = _timestamps[i];
         }
     }
 
