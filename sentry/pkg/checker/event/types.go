@@ -51,5 +51,5 @@ func feedEventQuery(schemaName string) string {
 }
 
 func loadOraklConfigUrl(chain string) string {
-	return fmt.Sprintf("https://raw.githubusercontent.com/Bisonai/orakl-config/master/%s_configs.json", chain)
+	return fmt.Sprintf("https://config.orakl.network/%s_configs.json", chain)
 }

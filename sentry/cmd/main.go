@@ -10,6 +10,7 @@ import (
 
 	"bisonai.com/orakl/sentry/pkg/checker/balance"
 	"bisonai.com/orakl/sentry/pkg/checker/health"
+	// "bisonai.com/orakl/sentry/pkg/checker/event"
 )
 
 func main() {
@@ -32,6 +33,13 @@ func main() {
 		defer wg.Done()
 		health.Start()
 	}()
+
+	// TODO: contract v2 should have graphnode deployed
+	// wg.Add(1)
+	// go func() {
+	// 	defer wg.Done()
+	// 	event.Start(ctx)
+	// }()
 
 	wg.Wait()
 }
