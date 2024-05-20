@@ -5,13 +5,13 @@ import (
 	"crypto/cipher"
 	"crypto/rand"
 	"encoding/hex"
-	"os"
 
+	"bisonai.com/orakl/node/pkg/secrets"
 	"golang.org/x/crypto/scrypt"
 )
 
 func EncryptText(textToEncrypt string) (string, error) {
-	password := os.Getenv("ENCRYPT_PASSWORD")
+	password := secrets.GetSecret("ENCRYPT_PASSWORD")
 	if password == "" {
 		password = "anything"
 	}
@@ -52,7 +52,7 @@ func EncryptText(textToEncrypt string) (string, error) {
 }
 
 func DecryptText(encryptedText string) (string, error) {
-	password := os.Getenv("ENCRYPT_PASSWORD")
+	password := secrets.GetSecret("ENCRYPT_PASSWORD")
 	if password == "" {
 		password = "anything"
 	}

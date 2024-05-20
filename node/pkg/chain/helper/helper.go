@@ -10,6 +10,7 @@ import (
 
 	"bisonai.com/orakl/node/pkg/chain/utils"
 	errorSentinel "bisonai.com/orakl/node/pkg/error"
+	"bisonai.com/orakl/node/pkg/secrets"
 	"bisonai.com/orakl/node/pkg/utils/request"
 	"github.com/klaytn/klaytn/blockchain/types"
 	"github.com/klaytn/klaytn/common"
@@ -29,7 +30,7 @@ func setProviderAndReporter(config *ChainHelperConfig, blockchainType Blockchain
 		}
 
 		if config.ReporterPk == "" {
-			config.ReporterPk = os.Getenv(KlaytnReporterPk)
+			config.ReporterPk = secrets.GetSecret(KlaytnReporterPk)
 			if config.ReporterPk == "" {
 				log.Warn().Msg("reporter pk not set")
 			}
@@ -44,7 +45,7 @@ func setProviderAndReporter(config *ChainHelperConfig, blockchainType Blockchain
 		}
 
 		if config.ReporterPk == "" {
-			config.ReporterPk = os.Getenv(EthReporterPk)
+			config.ReporterPk = secrets.GetSecret(EthReporterPk)
 			if config.ReporterPk == "" {
 				log.Warn().Msg("reporter pk not set")
 			}
@@ -280,7 +281,7 @@ func (t *ChainHelper) retryOnJsonRpcFailure(ctx context.Context, job func(c util
 
 func NewSignHelper(pk string) (*SignHelper, error) {
 	if pk == "" {
-		pk = os.Getenv(SignerPk)
+		pk = secrets.GetSecret(SignerPk)
 		if pk == "" {
 			log.Error().Msg("signer pk not set")
 			return nil, errorSentinel.ErrChainSignerPKNotFound
