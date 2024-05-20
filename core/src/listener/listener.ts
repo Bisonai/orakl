@@ -4,6 +4,7 @@ import { Logger } from 'pino'
 import type { RedisClientType } from 'redis'
 import { BULLMQ_CONNECTION, getObservedBlockRedisKey, LISTENER_JOB_SETTINGS } from '../settings'
 import { IListenerConfig } from '../types'
+import { getListenerObservedBlock } from './api'
 import { State } from './state'
 import {
   IHistoryListenerJob,
@@ -197,9 +198,14 @@ function latestJob({
     }
 
     try {
-      // We assume that redis cache has been initialized within
+      // We assume that observedBlock has been properly set in the db within
       // `State.add` method call.
-      observedBlock = Number(await redisClient.get(observedBlockRedisKey))
+      observedBlock = (
+        await getListenerObservedBlock({
+          blockKey: observedBlockRedisKey,
+          logger: this.logger
+        })
+      )['blockNumber']
     } catch (e) {
       // Similarly to the failure during fetching the latest block
       // number, this error doesn't require job resubmission. The next
@@ -208,11 +214,6 @@ function latestJob({
       logger.error('Failed to fetch the latest observed block from Redis.')
       logger.error(e)
       throw e
-    }
-
-    if (latestBlock < observedBlock) {
-      logger.warn('latestBlock < observedBlock. Updating observed block to revert the condition.')
-      observedBlock = Math.max(0, latestBlock - 1)
     }
 
     const logPrefix = generateListenerLogPrefix(contractAddress, observedBlock, latestBlock)
