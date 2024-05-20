@@ -70,14 +70,36 @@ func TestInitialize(t *testing.T) {
 
 	readResult, err := utils.GetRequest[utils.FeePayer](appConfig.App, "/readpk", nil)
 	assert.Nil(t, err)
-	assert.Equal(t, readResult.PrivateKey, "0x12345")
+	assert.Equal(t, readResult.PrivateKey, "12345")
 
 	err = utils.RawReq(appConfig.App, "GET", "/api/v1/sign/initialize", nil)
 	assert.Nil(t, err)
 
 	readResultRefreshed, err := utils.GetRequest[utils.FeePayer](appConfig.App, "/readpk", nil)
 	assert.Nil(t, err)
-	assert.NotEqual(t, readResultRefreshed.PrivateKey, "0x12345")
+	assert.NotEqual(t, readResultRefreshed.PrivateKey, "12345")
+}
+
+func TestGetFeePayerAddress(t *testing.T) {
+	err := setup()
+	assert.Nil(t, err)
+	defer t.Cleanup(cleanup)
+	defer appConfig.App.Shutdown()
+
+	appConfig.App.Get("/readpk", func(c *fiber.Ctx) error {
+		fp, error := utils.GetFeePayer(c)
+		if error != nil {
+			return error
+		}
+		return c.JSON(utils.FeePayer{PrivateKey: fp})
+	})
+
+	err = utils.RawReq(appConfig.App, "GET", "/api/v1/sign/initialize?feePayerPrivateKey=0x6014d3aa8be8980fd90146d10176e7ef632bdba96279e8bbe55421e79a979a2e", nil)
+	assert.Nil(t, err)
+
+	readResult, err := utils.GetRequest[string](appConfig.App, "/api/v1/sign/feePayer", nil)
+	assert.Nil(t, err)
+	assert.Equal(t, readResult, "0xda2E0E7089a479ef4A75a8c6Cc78426B9270EC08")
 }
 
 func TestInsert(t *testing.T) {

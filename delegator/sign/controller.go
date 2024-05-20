@@ -101,9 +101,38 @@ func initialize(c *fiber.Ctx) error {
 		return c.SendString("Initialized")
 	}
 
+	if strings.HasPrefix(pk, "0x") {
+		pk = strings.TrimPrefix(pk, "0x")
+	}
+
 	utils.UpdateFeePayer(pk)
 
 	return c.SendString("Initialized")
+}
+
+func getFeePayerAddress(c *fiber.Ctx) error {
+	pk, err := utils.GetFeePayer(c)
+	if err != nil {
+		return err
+	}
+
+	privateKey, err := crypto.HexToECDSA(pk)
+	if err != nil {
+		return err
+	}
+
+	publicKey := privateKey.Public()
+	publicKeyECDSA, ok := publicKey.(*ecdsa.PublicKey)
+	if !ok {
+		return errors.New("error casting public key to ECDSA")
+	}
+
+	result := crypto.PubkeyToAddress(*publicKeyECDSA).Hex()
+	if !strings.HasPrefix(result, "0x") {
+		result = "0x" + result
+	}
+
+	return c.JSON(result)
 }
 
 func insert(c *fiber.Ctx) error {
