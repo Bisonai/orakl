@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 
+	"bisonai.com/orakl/node/pkg/admin/feed"
 	"bisonai.com/orakl/node/pkg/db"
 	"bisonai.com/orakl/node/pkg/utils/request"
 	"github.com/gofiber/fiber/v2"
@@ -44,18 +45,56 @@ type ConfigNameIdModel struct {
 
 func Sync(c *fiber.Ctx) error {
 	configUrl := getConfigUrl()
-	configs, err := request.GetRequest[[]ConfigInsertModel](configUrl, nil, nil)
+	loadedConfigs, err := request.GetRequest[[]ConfigInsertModel](configUrl, nil, nil)
+	if err != nil {
+		return err
+	}
+	loadedConfigMap := map[string]ConfigInsertModel{}
+	loadedFeedMap := map[string]FeedInsertModel{}
+	for _, config := range loadedConfigs {
+		loadedConfigMap[config.Name] = config
+		for _, feed := range config.Feeds {
+			loadedFeedMap[feed.Name] = feed
+		}
+	}
+
+	// remove invalid configs
+	dbConfigs, err := db.QueryRows[ConfigModel](c.Context(), SelectConfigQuery, nil)
+	if err != nil {
+		return err
+	}
+	for _, dbConfig := range dbConfigs {
+		_, ok := loadedConfigMap[dbConfig.Name]
+		if !ok {
+			_, err := db.QueryRow[ConfigModel](c.Context(), DeleteConfigQuery, map[string]any{"id": dbConfig.Id})
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	// remove invalid feeds
+	dbFeeds, err := db.QueryRows[feed.FeedModel](c.Context(), feed.GetFeed, nil)
+	if err != nil {
+		return err
+	}
+	for _, dbFeed := range dbFeeds {
+		_, ok := loadedFeedMap[dbFeed.Name]
+		if !ok {
+			_, err := db.QueryRow[feed.FeedModel](c.Context(), "DELETE FROM feeds WHERE id = @id RETURNING *;", map[string]any{"id": dbFeed.Id})
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	err = bulkUpsertConfigs(c.Context(), loadedConfigs)
 	if err != nil {
 		return err
 	}
 
-	err = bulkUpsertConfigs(c.Context(), configs)
-	if err != nil {
-		return err
-	}
-
-	whereValues := make([]interface{}, 0, len(configs))
-	for _, config := range configs {
+	whereValues := make([]interface{}, 0, len(loadedConfigs))
+	for _, config := range loadedConfigs {
 		whereValues = append(whereValues, config.Name)
 	}
 
@@ -70,7 +109,7 @@ func Sync(c *fiber.Ctx) error {
 	}
 
 	upsertRows := make([][]any, 0)
-	for _, config := range configs {
+	for _, config := range loadedConfigs {
 		for _, feed := range config.Feeds {
 			configId, ok := configNameIdMap[config.Name]
 			if !ok {

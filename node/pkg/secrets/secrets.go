@@ -22,7 +22,7 @@ func init() {
 	vaultKeyName := os.Getenv("VAULT_KEY_NAME")
 
 	if vaultRole == "" || jwtPath == "" || vaultSecretPath == "" || vaultKeyName == "" {
-		log.Error().Msg("Missing required environment variables for Vault initialization")
+		log.Warn().Msg("Missing required environment variables for Vault initialization")
 		return
 	}
 
