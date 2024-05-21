@@ -2,10 +2,12 @@ package tests
 
 import (
 	"context"
+	"encoding/json"
 	"strconv"
 	"testing"
 
 	"bisonai.com/orakl/node/pkg/admin/config"
+	"bisonai.com/orakl/node/pkg/admin/feed"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -32,6 +34,22 @@ func TestConfigSync(t *testing.T) {
 		t.Fatalf("error getting config: %v", err)
 	}
 	assert.Greater(t, len(readResult), 1)
+
+	// should remove previously inserted config and feed which doesn't exist in orakl-config
+	readTmpConfigResult, err := GetRequest[config.ConfigModel](testItems.app, "/api/v1/config/"+strconv.Itoa(int(testItems.tmpData.config.Id)), nil)
+	if err != nil {
+		t.Fatalf("error getting config: %v", err)
+	}
+	assert.Equal(t, config.ConfigModel{}, readTmpConfigResult)
+
+	readTmpFeedResult, err := GetRequest[feed.FeedModel](testItems.app, "/api/v1/feed/"+strconv.FormatInt(*testItems.tmpData.feed.Id, 10), nil)
+	if err != nil {
+		t.Fatalf("error getting feeds: %v", err)
+	}
+	expectedFeed := feed.FeedModel{
+		Definition: json.RawMessage("null"),
+	}
+	assert.Equal(t, expectedFeed, readTmpFeedResult)
 }
 
 func TestConfigInsert(t *testing.T) {
