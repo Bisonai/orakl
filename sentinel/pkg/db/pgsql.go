@@ -19,6 +19,7 @@ var (
 )
 
 func GetPool(ctx context.Context) (*pgxpool.Pool, error) {
+	log.Debug().Msg("Attempting to connect to PostgreSQL")
 	return getPool(ctx, &initPgxOnce)
 }
 
@@ -86,6 +87,7 @@ func queryRow[T any](pool *pgxpool.Pool, queryString string, args map[string]any
 		log.Error().Err(err).Str("query", queryString).Msg("Error querying")
 		return result, err
 	}
+	log.Debug().Msg("Query executed successfully")
 
 	result, err = pgx.CollectOneRow(rows, pgx.RowToStructByName[T])
 	if errors.Is(err, pgx.ErrNoRows) {
@@ -103,6 +105,7 @@ func queryRows[T any](pool *pgxpool.Pool, queryString string, args map[string]an
 		log.Error().Err(err).Str("query", queryString).Msg("Error querying")
 		return results, err
 	}
+	log.Debug().Msg("Query executed successfully")
 
 	results, err = pgx.CollectRows(rows, pgx.RowToStructByName[T])
 	if errors.Is(err, pgx.ErrNoRows) {

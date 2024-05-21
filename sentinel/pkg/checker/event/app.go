@@ -17,6 +17,7 @@ var EventCheckInterval time.Duration
 var BUFFER = 1 * time.Second
 
 func setUp(ctx context.Context) error {
+	log.Debug().Msg("Setting up event checker")
 	EventCheckInterval = 60 * time.Second
 
 	interval := os.Getenv("EVENT_CHECK_INTERVAL")
@@ -74,6 +75,7 @@ func Start(ctx context.Context) error {
 }
 
 func check(ctx context.Context) {
+	log.Debug().Msg("Checking events")
 	msg := ""
 	for _, feed := range FeedsToCheck {
 		delayedTime, err := timeSinceLastEvent(ctx, feed)

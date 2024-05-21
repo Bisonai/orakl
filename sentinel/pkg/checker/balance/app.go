@@ -51,26 +51,27 @@ func init() {
 	loadEnvs()
 }
 
-func setUp() {
+func setUp() error {
 	ctx := context.Background()
 
 	urls, err := getUrls()
 	if err != nil {
 		log.Error().Err(err).Msg("Error getting urls")
-		panic(err)
+		return err
 	}
 
 	err = setClient(urls.JsonRpcUrl)
 	if err != nil {
 		log.Error().Err(err).Msg("Error setting up client")
-		panic(err)
+		return err
 	}
 
 	wallets, err = loadWallets(ctx, urls)
 	if err != nil {
 		log.Error().Err(err).Msg("Error loading wallets")
-		panic(err)
+		return err
 	}
+	return nil
 }
 
 func setClient(jsonRpcUrl string) error {
@@ -83,8 +84,11 @@ func setClient(jsonRpcUrl string) error {
 	return nil
 }
 
-func Start(ctx context.Context) {
-	setUp()
+func Start(ctx context.Context) error {
+	err := setUp()
+	if err != nil {
+		return err
+	}
 	log.Info().Msg("Starting balance checker")
 	checkTicker := time.NewTicker(BalanceCheckInterval)
 	defer checkTicker.Stop()
@@ -100,6 +104,7 @@ func Start(ctx context.Context) {
 			alarm(wallets)
 		}
 	}
+	return nil
 }
 
 func loadEnvs() {

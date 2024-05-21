@@ -25,7 +25,10 @@ func main() {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		balance.Start(ctx)
+		err := balance.Start(ctx)
+		if err != nil {
+			log.Error().Err(err).Msg("error starting balance checker")
+		}
 	}()
 
 	wg.Add(1)

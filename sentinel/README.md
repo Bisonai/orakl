@@ -63,7 +63,7 @@ go run ./script/collect-healthcheck-urls --chain={CHAIN} --kubeconfig={PATH_TO_K
 
 Default values are as follows:
 
-```
+```sh
 chain = "baobab"
 kubeconfig = "/Users/${USER}/.kube/config"
 contextName = "orakl-baobab-admin@bisonai"

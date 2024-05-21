@@ -3,7 +3,6 @@ package alert
 import (
 	"bytes"
 	"encoding/json"
-	"errors"
 	"flag"
 	"fmt"
 	"net/http"
@@ -18,10 +17,15 @@ var WEBHOOK_ENDPOINT string
 
 func init() {
 	// TODO load inside of env.go
-	WEBHOOK_ENDPOINT = os.Getenv("SLACK_WEBHOOK_ENDPOINT")
-	if WEBHOOK_ENDPOINT == "" && flag.Lookup("test.v") != nil {
+	WEBHOOK_ENDPOINT = loadWebhookEndpoint()
+}
+
+func loadWebhookEndpoint() string {
+	endpoint := os.Getenv("SLACK_WEBHOOK_ENDPOINT")
+	if endpoint == "" && flag.Lookup("test.v") != nil {
 		log.Error().Msg("SLACK_WEBHOOK_ENDPOINT not found")
 	}
+	return endpoint
 }
 
 func SlackAlert(text string) {
@@ -36,6 +40,10 @@ func SlackAlert(text string) {
 		return
 	}
 	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		log.Error().Msg(fmt.Sprintf("Slack Alert: Non-OK HTTP status: %s", resp.Status))
+		return
+	}
 	log.Debug().Msg(fmt.Sprintf("Slack Response Status: %s", resp.Status))
 }
 
@@ -154,13 +162,8 @@ func (sc SlackClient) sendHttpRequest(slackRequest SlackMessage) error {
 		return err
 	}
 
-	buf := new(bytes.Buffer)
-	_, err = buf.ReadFrom(resp.Body)
-	if err != nil {
-		return err
-	}
-	if buf.String() != "ok" {
-		return errors.New("non-ok response returned from slack")
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("non-ok response returned from slack: %s", resp.Status)
 	}
 	return nil
 }
