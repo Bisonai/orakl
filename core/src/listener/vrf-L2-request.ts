@@ -8,7 +8,6 @@ import {
   L1_ENDPOINT,
   L2_LISTENER_VRF_REQUEST_HISTORY_QUEUE_NAME,
   L2_LISTENER_VRF_REQUEST_LATEST_QUEUE_NAME,
-  L2_LISTENER_VRF_REQUEST_PROCESS_EVENT_QUEUE_NAME,
   L2_VRF_REQUEST_LISTENER_STATE_NAME,
   L2_VRF_REQUEST_SERVICE_NAME,
   L2_WORKER_VRF_REQUEST_QUEUE_NAME
@@ -30,7 +29,6 @@ export async function buildListener(
   const eventName = 'RandomWordsRequested'
   const latestQueueName = L2_LISTENER_VRF_REQUEST_LATEST_QUEUE_NAME
   const historyQueueName = L2_LISTENER_VRF_REQUEST_HISTORY_QUEUE_NAME
-  const processEventQueueName = L2_LISTENER_VRF_REQUEST_PROCESS_EVENT_QUEUE_NAME
   const workerQueueName = L2_WORKER_VRF_REQUEST_QUEUE_NAME
   const abi = L2Endpoint__factory.abi
   const iface = new ethers.utils.Interface(abi)
@@ -44,7 +42,6 @@ export async function buildListener(
     eventName,
     latestQueueName,
     historyQueueName,
-    processEventQueueName,
     workerQueueName,
     processFn: await processEvent({ iface, logger }),
     redisClient,

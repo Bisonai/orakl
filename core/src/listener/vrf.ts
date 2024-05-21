@@ -7,7 +7,6 @@ import {
   CHAIN,
   LISTENER_VRF_HISTORY_QUEUE_NAME,
   LISTENER_VRF_LATEST_QUEUE_NAME,
-  LISTENER_VRF_PROCESS_EVENT_QUEUE_NAME,
   VRF_LISTENER_STATE_NAME,
   VRF_SERVICE_NAME,
   WORKER_VRF_QUEUE_NAME
@@ -29,7 +28,6 @@ export async function buildListener(
   const eventName = 'RandomWordsRequested'
   const latestQueueName = LISTENER_VRF_LATEST_QUEUE_NAME
   const historyQueueName = LISTENER_VRF_HISTORY_QUEUE_NAME
-  const processEventQueueName = LISTENER_VRF_PROCESS_EVENT_QUEUE_NAME
   const workerQueueName = WORKER_VRF_QUEUE_NAME
   const abi = VRFCoordinator__factory.abi
   const iface = new ethers.utils.Interface(abi)
@@ -43,7 +41,6 @@ export async function buildListener(
     eventName,
     latestQueueName,
     historyQueueName,
-    processEventQueueName,
     workerQueueName,
     processFn: await processEvent({ iface, logger }),
     redisClient,

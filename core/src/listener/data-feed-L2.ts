@@ -10,7 +10,6 @@ import {
   L2_DATA_FEED_SERVICE_NAME,
   L2_LISTENER_DATA_FEED_HISTORY_QUEUE_NAME,
   L2_LISTENER_DATA_FEED_LATEST_QUEUE_NAME,
-  L2_LISTENER_DATA_FEED_PROCESS_EVENT_QUEUE_NAME,
   L2_WORKER_AGGREGATOR_QUEUE_NAME
 } from '../settings'
 import { IAnswerUpdated, IDataFeedListenerWorkerL2, IListenerConfig } from '../types'
@@ -30,7 +29,6 @@ export async function buildListener(
   const eventName = 'AnswerUpdated'
   const latestQueueName = L2_LISTENER_DATA_FEED_LATEST_QUEUE_NAME
   const historyQueueName = L2_LISTENER_DATA_FEED_HISTORY_QUEUE_NAME
-  const processEventQueueName = L2_LISTENER_DATA_FEED_PROCESS_EVENT_QUEUE_NAME
   const workerQueueName = L2_WORKER_AGGREGATOR_QUEUE_NAME
   const abi = Aggregator__factory.abi
   const iface = new ethers.utils.Interface(abi)
@@ -44,7 +42,6 @@ export async function buildListener(
     eventName,
     latestQueueName,
     historyQueueName,
-    processEventQueueName,
     workerQueueName,
     processFn: await processEvent({ iface, logger }),
     redisClient,

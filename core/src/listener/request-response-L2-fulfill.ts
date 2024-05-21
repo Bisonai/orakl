@@ -7,7 +7,6 @@ import {
   L1_ENDPOINT,
   L2_LISTENER_REQUEST_RESPONSE_FULFILL_HISTORY_QUEUE_NAME,
   L2_LISTENER_REQUEST_RESPONSE_FULFILL_LATEST_QUEUE_NAME,
-  L2_LISTENER_REQUEST_RESPONSE_FULFILL_PROCESS_EVENT_QUEUE_NAME,
   L2_REQUEST_RESPONSE_FULFILL_LISTENER_STATE_NAME,
   L2_REQUEST_RESPONSE_FULFILL_SERVICE_NAME,
   L2_WORKER_REQUEST_RESPONSE_FULFILL_QUEUE_NAME
@@ -34,7 +33,6 @@ export async function buildListener(
   const eventName = 'DataRequestFulfilled'
   const latestQueueName = L2_LISTENER_REQUEST_RESPONSE_FULFILL_LATEST_QUEUE_NAME
   const historyQueueName = L2_LISTENER_REQUEST_RESPONSE_FULFILL_HISTORY_QUEUE_NAME
-  const processEventQueueName = L2_LISTENER_REQUEST_RESPONSE_FULFILL_PROCESS_EVENT_QUEUE_NAME
   const workerQueueName = L2_WORKER_REQUEST_RESPONSE_FULFILL_QUEUE_NAME
   const abi = L1Endpoint__factory.abi
   const iface = new ethers.utils.Interface(abi)
@@ -48,7 +46,6 @@ export async function buildListener(
     eventName,
     latestQueueName,
     historyQueueName,
-    processEventQueueName,
     workerQueueName,
     processFn: await processEvent({ iface, logger }),
     redisClient,

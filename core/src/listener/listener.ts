@@ -4,7 +4,7 @@ import { Logger } from 'pino'
 import type { RedisClientType } from 'redis'
 import { BULLMQ_CONNECTION, getObservedBlockRedisKey, LISTENER_JOB_SETTINGS } from '../settings'
 import { IListenerConfig } from '../types'
-import { getListenerObservedBlock } from './api'
+import { upsertListenerObservedBlock } from './api'
 import { State } from './state'
 import {
   IHistoryListenerJob,
@@ -51,7 +51,6 @@ export async function listenerService({
   eventName,
   latestQueueName,
   historyQueueName,
-  processEventQueueName,
   workerQueueName,
   processFn,
   redisClient,
@@ -65,7 +64,6 @@ export async function listenerService({
   eventName: string
   latestQueueName: string
   historyQueueName: string
-  processEventQueueName: string
   workerQueueName: string
   processFn: (log: ethers.Event) => Promise<ProcessEventOutputType | undefined>
   redisClient: RedisClientType
@@ -73,7 +71,6 @@ export async function listenerService({
 }) {
   const latestListenerQueue = new Queue(latestQueueName, BULLMQ_CONNECTION)
   const historyListenerQueue = new Queue(historyQueueName, BULLMQ_CONNECTION)
-  const processEventQueue = new Queue(processEventQueueName, BULLMQ_CONNECTION)
   const workerQueue = new Queue(workerQueueName, BULLMQ_CONNECTION)
 
   const state = new State({
@@ -94,8 +91,9 @@ export async function listenerService({
     latestJob({
       state,
       historyListenerQueue,
-      processEventQueue,
+      workerQueue,
       redisClient,
+      processFn,
       logger
     }),
     BULLMQ_CONNECTION
@@ -106,19 +104,10 @@ export async function listenerService({
 
   const historyWorker = new Worker(
     historyQueueName,
-    historyJob({ state, processEventQueue, logger }),
+    historyJob({ state, logger, processFn, redisClient, workerQueue }),
     BULLMQ_CONNECTION
   )
   historyWorker.on('error', (e) => {
-    logger.error(e)
-  })
-
-  const processEventWorker = new Worker(
-    processEventQueueName,
-    processEventJob({ workerQueue, processFn, logger }),
-    BULLMQ_CONNECTION
-  )
-  processEventWorker.on('error', (e) => {
     logger.error(e)
   })
 
@@ -133,9 +122,8 @@ export async function listenerService({
 
     await latestWorker.close()
     await historyWorker.close()
-    await processEventWorker.close()
     await state.clear()
-    await watchmanServer.close()
+    watchmanServer.close()
     await redisClient.quit()
   }
   process.on('SIGINT', handleExit)
@@ -166,15 +154,17 @@ export async function listenerService({
  */
 function latestJob({
   state,
-  processEventQueue,
+  workerQueue,
   historyListenerQueue,
   redisClient,
+  processFn,
   logger
 }: {
   state: State
-  processEventQueue: Queue
   historyListenerQueue: Queue
   redisClient: RedisClientType
+  workerQueue: Queue
+  processFn: (log: ethers.Event) => Promise<ProcessEventOutputType | undefined>
   logger: Logger
 }) {
   async function wrapper(job: Job) {
@@ -200,12 +190,7 @@ function latestJob({
     try {
       // We assume that observedBlock has been properly set in the db within
       // `State.add` method call.
-      observedBlock = (
-        await getListenerObservedBlock({
-          blockKey: observedBlockRedisKey,
-          logger: this.logger
-        })
-      )['blockNumber']
+      observedBlock = Number(await redisClient.get(observedBlockRedisKey))
     } catch (e) {
       // Similarly to the failure during fetching the latest block
       // number, this error doesn't require job resubmission. The next
@@ -219,22 +204,31 @@ function latestJob({
     const logPrefix = generateListenerLogPrefix(contractAddress, observedBlock, latestBlock)
     try {
       if (latestBlock > observedBlock) {
-        await redisClient.set(observedBlockRedisKey, latestBlock)
-
+        const lockObservedBlock = observedBlock + 1
         // The `observedBlock` block number is already processed,
         // therefore we do not need to re-query the same event in such
         // block again.
-        const events = await state.queryEvent(contractAddress, observedBlock + 1, latestBlock)
-        for (const [index, event] of events.entries()) {
-          const outData: IProcessEventListenerJob = {
-            contractAddress,
-            event
+        for (let blockNumber = lockObservedBlock; blockNumber <= latestBlock; ++blockNumber) {
+          const events = await state.queryEvent(contractAddress, blockNumber, blockNumber)
+          for (const [_, event] of events.entries()) {
+            const jobMetadata = await processFn(event)
+            if (jobMetadata) {
+              const { jobId, jobName, jobData, jobQueueSettings } = jobMetadata
+              const queueSettings = jobQueueSettings ? jobQueueSettings : LISTENER_JOB_SETTINGS
+              await workerQueue.add(jobName, jobData, {
+                jobId,
+                ...queueSettings
+              })
+              logger.debug(`Listener submitted job [${jobId}] for [${jobName}]`)
+            }
           }
-          const jobId = getUniqueEventIdentifier(event, index)
-          await processEventQueue.add('latest', outData, {
-            jobId,
-            ...LISTENER_JOB_SETTINGS
+          await upsertListenerObservedBlock({
+            blockKey: observedBlockRedisKey,
+            blockNumber,
+            logger: this.logger
           })
+          await redisClient.set(observedBlockRedisKey, blockNumber)
+          observedBlock += 1 // in case of failure, dont add processed blocks to history queue
         }
         logger.debug(logPrefix)
       } else {
@@ -277,12 +271,16 @@ function latestJob({
  */
 function historyJob({
   state,
-  processEventQueue,
-  logger
+  logger,
+  processFn,
+  redisClient,
+  workerQueue
 }: {
   state: State
-  processEventQueue: Queue
   logger: Logger
+  redisClient: RedisClientType
+  workerQueue: Queue
+  processFn: (log: ethers.Event) => Promise<ProcessEventOutputType | undefined>
 }) {
   async function wrapper(job: Job) {
     const inData: IHistoryListenerJob = job.data
@@ -291,24 +289,33 @@ function historyJob({
 
     let events: ethers.Event[] = []
     try {
+      const observedBlockRedisKey = getObservedBlockRedisKey(contractAddress)
+      const observedBlock = Number(await redisClient.get(observedBlockRedisKey))
       events = await state.queryEvent(contractAddress, blockNumber, blockNumber)
+      for (const [_, event] of events.entries()) {
+        const jobMetadata = await processFn(event)
+        if (jobMetadata) {
+          const { jobId, jobName, jobData, jobQueueSettings } = jobMetadata
+          const queueSettings = jobQueueSettings ? jobQueueSettings : LISTENER_JOB_SETTINGS
+          await workerQueue.add(jobName, jobData, {
+            jobId,
+            ...queueSettings
+          })
+          logger.debug(`Listener submitted job [${jobId}] for [${jobName}]`)
+        }
+      }
+
+      if (blockNumber > observedBlock) {
+        await upsertListenerObservedBlock({
+          blockKey: observedBlockRedisKey,
+          blockNumber,
+          logger
+        })
+        await redisClient.set(observedBlockRedisKey, blockNumber)
+      }
     } catch (e) {
       logger.error(`${logPrefix} hist fail`)
       throw e
-    }
-
-    logger.debug(`${logPrefix} hist`)
-
-    for (const [index, event] of events.entries()) {
-      const outData: IProcessEventListenerJob = {
-        contractAddress,
-        event
-      }
-      const jobId = getUniqueEventIdentifier(event, index)
-      await processEventQueue.add('history', outData, {
-        jobId,
-        ...LISTENER_JOB_SETTINGS
-      })
     }
   }
 

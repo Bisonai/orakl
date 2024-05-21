@@ -6,7 +6,6 @@ import {
   CHAIN,
   LISTENER_REQUEST_RESPONSE_HISTORY_QUEUE_NAME,
   LISTENER_REQUEST_RESPONSE_LATEST_QUEUE_NAME,
-  LISTENER_REQUEST_RESPONSE_PROCESS_EVENT_QUEUE_NAME,
   REQUEST_RESPONSE_LISTENER_STATE_NAME,
   REQUEST_RESPONSE_SERVICE_NAME,
   WORKER_REQUEST_RESPONSE_QUEUE_NAME
@@ -28,7 +27,6 @@ export async function buildListener(
   const eventName = 'DataRequested'
   const latestQueueName = LISTENER_REQUEST_RESPONSE_LATEST_QUEUE_NAME
   const historyQueueName = LISTENER_REQUEST_RESPONSE_HISTORY_QUEUE_NAME
-  const processEventQueueName = LISTENER_REQUEST_RESPONSE_PROCESS_EVENT_QUEUE_NAME
   const workerQueueName = WORKER_REQUEST_RESPONSE_QUEUE_NAME
   const abi = RequestResponseCoordinator__factory.abi
   const iface = new ethers.utils.Interface(abi)
@@ -42,7 +40,6 @@ export async function buildListener(
     eventName,
     latestQueueName,
     historyQueueName,
-    processEventQueueName,
     workerQueueName,
     processFn: await processEvent({ iface, logger }),
     redisClient,
