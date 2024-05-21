@@ -182,7 +182,7 @@ function latestJob({
 
     try {
       // We assume that redis cache has been initialized within
-      // `State.add` method call.
+      // `State.add` method call and observedBlock has already been processed
       observedBlock = Number(await redisClient.get(observedBlockRedisKey))
     } catch (e) {
       // Similarly to the failure during fetching the latest block
@@ -199,13 +199,12 @@ function latestJob({
       observedBlock = Math.max(0, latestBlock - 1)
     }
 
-    const logPrefix = generateListenerLogPrefix(contractAddress, observedBlock, latestBlock)
     try {
       if (latestBlock > observedBlock) {
-        const lockObservedBlock = observedBlock + 1
         // The `observedBlock` block number is already processed,
         // therefore we do not need to re-query the same event in such
         // block again.
+        const lockObservedBlock = observedBlock + 1
         for (let blockNumber = lockObservedBlock; blockNumber <= latestBlock; ++blockNumber) {
           const events = await state.queryEvent(contractAddress, blockNumber, blockNumber)
           for (const [_, event] of events.entries()) {
@@ -228,16 +227,22 @@ function latestJob({
           await redisClient.set(observedBlockRedisKey, blockNumber)
           observedBlock += 1 // in case of failure, dont add processed blocks to history queue
         }
-        logger.debug(logPrefix)
+        logger.debug(
+          `${generateListenerLogPrefix(contractAddress, lockObservedBlock, observedBlock)} success`
+        )
       } else {
-        logger.debug(`${logPrefix} noop`)
+        logger.debug(
+          `${generateListenerLogPrefix(contractAddress, observedBlock, latestBlock)} noop`
+        )
       }
     } catch (e) {
       // Querying the latest events or passing data to [process] queue
       // failed. Repeateable [latest] job will continue listening for
       // new blocks, and the blocks which failed to be scanned for
       // events will be retried through [history] job.
-      logger.warn(`${logPrefix} fail`)
+      logger.warn(
+        `${generateListenerLogPrefix(contractAddress, observedBlock + 1, latestBlock)} fail`
+      )
 
       for (let blockNumber = observedBlock + 1; blockNumber <= latestBlock; ++blockNumber) {
         const outData: IHistoryListenerJob = { contractAddress, blockNumber }

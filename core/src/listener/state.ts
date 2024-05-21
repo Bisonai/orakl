@@ -11,7 +11,7 @@ import {
 } from '../settings'
 import { IListenerConfig, IListenerRawConfig } from '../types'
 import { getListenerObservedBlock, getListeners, upsertListenerObservedBlock } from './api'
-import { IContracts, IHistoryListenerJob, ILatestListenerJob } from './types'
+import { IContracts, ILatestListenerJob } from './types'
 import { postprocessListeners } from './utils'
 
 const FILE_NAME = import.meta.url
@@ -174,33 +174,26 @@ export class State {
 
     const contractAddress = toAddListener.address
     const observedBlockRedisKey = getObservedBlockRedisKey(contractAddress)
-    const observedBlockMetadata = await getListenerObservedBlock({
+    const latestBlock = await this.latestBlockNumber()
+    const { blockKey: observedBlockKey } = await getListenerObservedBlock({
       blockKey: observedBlockRedisKey,
       logger: this.logger
     })
-    const latestBlock = await this.latestBlockNumber()
-    const observedBlock =
-      observedBlockMetadata.blockKey === '' ? latestBlock : observedBlockMetadata.blockNumber
 
     /**
-      update observedBlock to latestBlock - 1 since all blocks in between will be handled
-      by history queue and worker
-    */
-    await upsertListenerObservedBlock({
-      blockKey: observedBlockRedisKey,
-      blockNumber: Math.max(latestBlock - 1, 0),
-      logger: this.logger
-    })
-    await this.redisClient.set(observedBlockRedisKey, Math.max(latestBlock - 1, 0))
-
-    for (let blockNumber = observedBlock; blockNumber < latestBlock; ++blockNumber) {
-      const historyOutData: IHistoryListenerJob = {
-        contractAddress,
-        blockNumber
-      }
-      await this.historyListenerQueue.add('history', historyOutData, {
-        ...LISTENER_JOB_SETTINGS
+     when listener starts, there are two options:
+      * latest observedBlock (key) exists -> do nothing 
+        (start latest job, it'll handle multiple blocks 
+        between observedBlock and latestBlock)
+      * it does not exist -> upsert latestBlock
+     */
+    if (observedBlockKey === '') {
+      await upsertListenerObservedBlock({
+        blockKey: observedBlockRedisKey,
+        blockNumber: Math.max(latestBlock - 1, 0),
+        logger: this.logger
       })
+      await this.redisClient.set(observedBlockRedisKey, Math.max(latestBlock - 1, 0))
     }
 
     // Insert listener jobs
