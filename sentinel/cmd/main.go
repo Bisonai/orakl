@@ -6,11 +6,11 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/rs/zerolog"
-
 	"bisonai.com/orakl/sentinel/pkg/checker/balance"
 	"bisonai.com/orakl/sentinel/pkg/checker/event"
 	"bisonai.com/orakl/sentinel/pkg/checker/health"
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 )
 
 func main() {
@@ -38,6 +38,10 @@ func main() {
 	go func() {
 		defer wg.Done()
 		event.Start(ctx)
+		err := event.Start(ctx)
+		if err != nil {
+			log.Error().Err(err).Msg("error starting event checker")
+		}
 	}()
 
 	wg.Wait()
