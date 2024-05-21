@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"net/http"
 	"os"
 	"strings"
 	"sync"
@@ -22,6 +23,27 @@ func main() {
 	zerolog.SetGlobalLevel(getLogLevel(logLevel))
 
 	var wg sync.WaitGroup
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		port := os.Getenv("POR_PORT")
+		if port == "" {
+			port = "3000"
+		}
+
+		http.HandleFunc("/api/v1", func(w http.ResponseWriter, r *http.Request) {
+			// Respond with a simple string
+			_, err := w.Write([]byte("Orakl Sentinel"))
+			if err != nil {
+				log.Error().Err(err).Msg("failed to write response")
+			}
+		})
+
+		if err := http.ListenAndServe(":"+port, nil); err != nil {
+			log.Fatal().Err(err).Msg("failed to start http server")
+		}
+	}()
+
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
