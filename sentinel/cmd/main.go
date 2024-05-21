@@ -37,7 +37,6 @@ func main() {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		event.Start(ctx)
 		err := event.Start(ctx)
 		if err != nil {
 			log.Error().Err(err).Msg("error starting event checker")
