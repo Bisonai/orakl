@@ -101,9 +101,7 @@ func initialize(c *fiber.Ctx) error {
 		return c.SendString("Initialized")
 	}
 
-	if strings.HasPrefix(pk, "0x") {
-		pk = strings.TrimPrefix(pk, "0x")
-	}
+	pk = strings.TrimPrefix(pk, "0x")
 
 	utils.UpdateFeePayer(pk)
 
