@@ -5,7 +5,7 @@ It checks the service state regularly and sends a Slack message if required.
 
 ## Project Structure
 
-- `cmd`: Holds entry point (`./cmd/main.go`) to run the service
+- `cmd`: Holds the entry point (`./cmd/main.go`) to run the service.
 - `pkg`: Packages with implementations
 
 ### Packages
