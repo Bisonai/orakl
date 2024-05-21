@@ -14,6 +14,7 @@ import (
 
 var FeedsToCheck = []FeedToCheck{}
 var EventCheckInterval time.Duration
+var BUFFER = 1 * time.Second
 
 func setUp(ctx context.Context) error {
 	EventCheckInterval = 60 * time.Second
@@ -79,7 +80,7 @@ func check(ctx context.Context) {
 		if err != nil {
 			continue
 		}
-		if delayedTime > time.Duration(feed.ExpectedInterval)*time.Millisecond {
+		if delayedTime > time.Duration(feed.ExpectedInterval)*time.Millisecond+BUFFER {
 			msg += feed.FeedName + " delayed by " + delayedTime.String() + "\n"
 		}
 	}

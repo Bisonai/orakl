@@ -9,8 +9,8 @@ import (
 	"github.com/rs/zerolog"
 
 	"bisonai.com/orakl/sentinel/pkg/checker/balance"
+	"bisonai.com/orakl/sentinel/pkg/checker/event"
 	"bisonai.com/orakl/sentinel/pkg/checker/health"
-	// "bisonai.com/orakl/sentinel/pkg/checker/event"
 )
 
 func main() {
@@ -34,12 +34,11 @@ func main() {
 		health.Start()
 	}()
 
-	// TODO: contract v2 should have graphnode deployed
-	// wg.Add(1)
-	// go func() {
-	// 	defer wg.Done()
-	// 	event.Start(ctx)
-	// }()
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		event.Start(ctx)
+	}()
 
 	wg.Wait()
 }
