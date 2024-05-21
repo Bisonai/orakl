@@ -186,12 +186,12 @@ export class State {
       update observedBlock to latestBlock - 1 since all blocks in between will be handled
       by history queue and worker
     */
-    upsertListenerObservedBlock({
+    await upsertListenerObservedBlock({
       blockKey: observedBlockRedisKey,
       blockNumber: Math.max(latestBlock - 1, 0),
       logger: this.logger
     })
-    this.redisClient.set(observedBlockRedisKey, Math.max(latestBlock - 1, 0))
+    await this.redisClient.set(observedBlockRedisKey, Math.max(latestBlock - 1, 0))
 
     for (let blockNumber = observedBlock; blockNumber < latestBlock; ++blockNumber) {
       const historyOutData: IHistoryListenerJob = {

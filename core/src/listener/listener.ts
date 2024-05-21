@@ -6,15 +6,8 @@ import { BULLMQ_CONNECTION, getObservedBlockRedisKey, LISTENER_JOB_SETTINGS } fr
 import { IListenerConfig } from '../types'
 import { upsertListenerObservedBlock } from './api'
 import { State } from './state'
-import {
-  IHistoryListenerJob,
-  ILatestListenerJob,
-  IProcessEventListenerJob,
-  ProcessEventOutputType
-} from './types'
+import { IHistoryListenerJob, ILatestListenerJob, ProcessEventOutputType } from './types'
 import { watchman } from './watchman'
-
-const FILE_NAME = import.meta.url
 
 /**
  * The listener service is used for tracking events emmitted by smart
@@ -188,7 +181,7 @@ function latestJob({
     }
 
     try {
-      // We assume that observedBlock has been properly set in the db within
+      // We assume that redis cache has been initialized within
       // `State.add` method call.
       observedBlock = Number(await redisClient.get(observedBlockRedisKey))
     } catch (e) {
@@ -199,6 +192,11 @@ function latestJob({
       logger.error('Failed to fetch the latest observed block from Redis.')
       logger.error(e)
       throw e
+    }
+
+    if (latestBlock < observedBlock) {
+      logger.warn('latestBlock < observedBlock. Updating observed block to revert the condition.')
+      observedBlock = Math.max(0, latestBlock - 1)
     }
 
     const logPrefix = generateListenerLogPrefix(contractAddress, observedBlock, latestBlock)
@@ -287,11 +285,10 @@ function historyJob({
     const { contractAddress, blockNumber } = inData
     const logPrefix = generateListenerLogPrefix(contractAddress, blockNumber, blockNumber)
 
-    let events: ethers.Event[] = []
     try {
       const observedBlockRedisKey = getObservedBlockRedisKey(contractAddress)
       const observedBlock = Number(await redisClient.get(observedBlockRedisKey))
-      events = await state.queryEvent(contractAddress, blockNumber, blockNumber)
+      const events = await state.queryEvent(contractAddress, blockNumber, blockNumber)
       for (const [_, event] of events.entries()) {
         const jobMetadata = await processFn(event)
         if (jobMetadata) {
@@ -320,60 +317,6 @@ function historyJob({
   }
 
   return wrapper
-}
-
-/**
- * The [processEvent] listener worker accepts jobs from [processEvent]
- * queue. The jobs are submitted either by the [latest] or [history]
- * listener worker.
- *
- * @param {(log: ethers.Event) => Promise<ProcessEventOutputType | undefined>} function that processes event caught by listener
- */
-function processEventJob({
-  workerQueue,
-  processFn,
-  logger
-}: {
-  workerQueue: Queue
-  processFn: (log: ethers.Event) => Promise<ProcessEventOutputType | undefined>
-  logger: Logger
-}) {
-  const _logger = logger.child({ name: 'processEventJob', file: FILE_NAME })
-
-  async function wrapper(job: Job) {
-    const inData: IProcessEventListenerJob = job.data
-    const { event } = inData
-    _logger.debug(event, 'event')
-
-    try {
-      const jobMetadata = await processFn(event)
-      if (jobMetadata) {
-        const { jobId, jobName, jobData, jobQueueSettings } = jobMetadata
-        const queueSettings = jobQueueSettings ? jobQueueSettings : LISTENER_JOB_SETTINGS
-        await workerQueue.add(jobName, jobData, {
-          jobId,
-          ...queueSettings
-        })
-        _logger.debug(`Listener submitted job [${jobId}] for [${jobName}]`)
-      }
-    } catch (e) {
-      _logger.error(e, 'Error in user defined listener processing function')
-      throw e
-    }
-  }
-
-  return wrapper
-}
-
-/**
- * Auxiliary function to create a unique identifier for a give `event`
- * and `index` of the even within the transaction.
- *
- * @param {ethers.Event} event
- * @param {number} index of event within a transaction
- */
-function getUniqueEventIdentifier(event: ethers.Event, index: number) {
-  return `${event.blockNumber}-${event.transactionHash}-${index}`
 }
 
 /**
