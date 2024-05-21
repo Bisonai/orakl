@@ -6,10 +6,10 @@ import (
 	"flag"
 	"fmt"
 	"net/http"
-	"os"
 	"strconv"
 	"time"
 
+	"bisonai.com/orakl/sentinel/pkg/secrets"
 	"github.com/rs/zerolog/log"
 )
 
@@ -21,7 +21,7 @@ func init() {
 }
 
 func loadWebhookEndpoint() string {
-	endpoint := os.Getenv("SLACK_WEBHOOK_ENDPOINT")
+	endpoint := secrets.GetSecret("SLACK_WEBHOOK_ENDPOINT")
 	if endpoint == "" && flag.Lookup("test.v") != nil {
 		log.Error().Msg("SLACK_WEBHOOK_ENDPOINT not found")
 	}
