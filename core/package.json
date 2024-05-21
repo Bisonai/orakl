@@ -68,7 +68,8 @@
     "dev:listener:vrf": "nodemon --ext ts --watch src/listener --exec 'tsc && yarn start:listener:vrf'",
     "dev:listener:request_response": "nodemon --ext ts --watch src/listener --exec 'tsc && yarn start:listener:request_response'",
     "dev:listener:data_feed": "nodemon --ext ts --watch src/listener --exec 'tsc && yarn start:listener:data_feed'",
-    "dev:worker:vrf": "nodemon --ext ts --watch src/worker --exec 'tsc && yarn start:worker:vrf'"
+    "dev:worker:vrf": "nodemon --ext ts --watch src/worker --exec 'tsc && yarn start:worker:vrf'",
+    "dev:reporter:vrf": "nodemon --ext ts --watch src/reporter --exec 'tsc && yarn start:reporter:vrf'"
   },
   "dependencies": {
     "@bisonai/orakl-contracts": "*",
