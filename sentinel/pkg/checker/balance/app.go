@@ -104,7 +104,6 @@ func Start(ctx context.Context) error {
 			alarm(wallets)
 		}
 	}
-	return nil
 }
 
 func loadEnvs() {
