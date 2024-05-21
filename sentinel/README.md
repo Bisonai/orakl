@@ -10,7 +10,7 @@ It checks the service state regularly and sends a Slack message if required.
 
 ### Packages
 
-- `alert`: Alert package to send Slack message on request
+- `alert`: Alert package to send Slack messages on request.
 - `checker`: Checker implementations
 - `request`: HTTP Request Helper
 
