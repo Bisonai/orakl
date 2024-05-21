@@ -16,12 +16,20 @@
     "url": "http://orakl-api.orakl.svc.cluster.local:3030/api/v1/"
   },
   {
+    "name": "orakl-boot-api",
+    "url": "http://orakl-boot-api.orakl.svc.cluster.local:5050/api/v1/"
+  },
+  {
     "name": "orakl-delegator",
     "url": "http://orakl-delegator.orakl.svc.cluster.local:80/api/v1/"
   },
   {
     "name": "orakl-fetcher",
     "url": "http://orakl-fetcher.orakl.svc.cluster.local:4040/api/v1"
+  },
+  {
+    "name": "orakl-node",
+    "url": "http://orakl-node.orakl.svc.cluster.local:3030/api/v1/"
   },
   {
     "name": "orakl-por",
@@ -58,6 +66,10 @@
   {
     "name": "redis-fetcher-master",
     "url": "redis://redis-fetcher-master.redis.svc.cluster.local:6379"
+  },
+  {
+    "name": "redis-node-master",
+    "url": "redis://redis-node-master.redis.svc.cluster.local:6379"
   },
   {
     "name": "redis-request-response-master",
