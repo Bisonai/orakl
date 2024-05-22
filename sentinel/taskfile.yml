@@ -1,0 +1,23 @@
+version: "3"
+
+tasks:
+  test-health:
+    cmds:
+      - go test ./pkg/checker/health -v
+  test-balance:
+    dotenv: [".env"]
+    cmds:
+      - go test ./pkg/checker/balance -v
+  test-event:
+    dotenv: [".env"]
+    cmds:
+      - go test ./pkg/checker/event -v
+  test:
+    cmds:
+      - task: test-health
+      - task: test-balance
+      - task: test-event
+  run:
+    dotenv: [".env"]
+    cmds:
+      - go run ./cmd/main.go
