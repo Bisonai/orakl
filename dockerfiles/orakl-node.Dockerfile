@@ -28,7 +28,7 @@ COPY --from=builder /app/node/taskfile.yml /app/taskfile.yml
 
 COPY --from=builder /app/node/taskfiles /app/taskfiles
 
-COPY --from=builder /app/node/migrations /app/migrations
+COPY --from=builder /app/node/migrations/node /app/migrations
 
 COPY --from=builder /app/node/nodebin /usr/bin
 
