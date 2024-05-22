@@ -33,7 +33,7 @@ check_used_tags() {
     chain="${1}"
 
     for service_name in ${service_names}; do
-        helm_chart=$(curl -s --raw https://raw.githubusercontent.com/Bisonai/orakl-helm-charts/gcp-${chain}-prod/${service_name}/values.yaml)
+        helm_chart=$(curl -s --raw https://raw.githubusercontent.com/Bisonai/orakl-helm-charts/idc-fly/${service_name}/values.${chain}.yaml)
         tag=$(echo "${helm_chart}" | yq eval '.global.image.tag')
 
         # Sometimes we split tags into listener, worker, and reporter.
