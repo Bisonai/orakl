@@ -1,1 +1,1 @@
-DROP TABLE IF EXISTS "observed_block";
+DROP TABLE IF EXISTS "observed_blocks";

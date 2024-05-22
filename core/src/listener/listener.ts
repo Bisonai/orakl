@@ -4,7 +4,7 @@ import { Logger } from 'pino'
 import type { RedisClientType } from 'redis'
 import { BULLMQ_CONNECTION, getObservedBlockRedisKey, LISTENER_JOB_SETTINGS } from '../settings'
 import { IListenerConfig } from '../types'
-import { upsertListenerObservedBlock } from './api'
+import { upsertObservedBlock } from './api'
 import { State } from './state'
 import { IHistoryListenerJob, ILatestListenerJob, ProcessEventOutputType } from './types'
 import { watchman } from './watchman'
@@ -155,8 +155,8 @@ function latestJob({
 }: {
   state: State
   historyListenerQueue: Queue
-  redisClient: RedisClientType
   workerQueue: Queue
+  redisClient: RedisClientType
   processFn: (log: ethers.Event) => Promise<ProcessEventOutputType | undefined>
   logger: Logger
 }) {
@@ -219,7 +219,7 @@ function latestJob({
               logger.debug(`Listener submitted job [${jobId}] for [${jobName}]`)
             }
           }
-          await upsertListenerObservedBlock({
+          await upsertObservedBlock({
             blockKey: observedBlockRedisKey,
             blockNumber,
             logger: this.logger
@@ -308,7 +308,7 @@ function historyJob({
       }
 
       if (blockNumber > observedBlock) {
-        await upsertListenerObservedBlock({
+        await upsertObservedBlock({
           blockKey: observedBlockRedisKey,
           blockNumber,
           logger

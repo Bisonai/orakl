@@ -60,7 +60,15 @@ export async function getListener({
   }
 }
 
-export async function getListenerObservedBlock({
+/**
+ * Get observed block number from the Orakl Network API for a given contract address
+ *
+ * @param {string} blockKey
+ * @param {pino.Logger} logger
+ * @return {Promise<IObservedBlock>}
+ * @exception {OraklErrorCode.GetObservedBlockFailed}
+ */
+export async function getObservedBlock({
   blockKey,
   logger
 }: {
@@ -71,8 +79,8 @@ export async function getListenerObservedBlock({
     const endpoint = buildUrl(ORAKL_NETWORK_API_URL, `listener/observed-block?blockKey=${blockKey}`)
     return (await axios.get(endpoint))?.data
   } catch (e) {
-    logger?.error({ name: 'getListenerObservedBlock', file: FILE_NAME, ...e }, 'error')
-    throw new OraklError(OraklErrorCode.GetListenerObservedBlockFailed)
+    logger?.error({ name: 'getObservedBlock', file: FILE_NAME, ...e }, 'error')
+    throw new OraklError(OraklErrorCode.GetObservedBlockFailed)
   }
 }
 
@@ -82,10 +90,10 @@ export async function getListenerObservedBlock({
  * @param {string} blockKey
  * @param {number} blockNumber
  * @param {pino.Logger} logger
- * @return {Promise<IListenerObservedBlock>}
- * @exception {UpsertListenerObservedBlockFailed}
+ * @return {Promise<IObservedBlock>}
+ * @exception {OraklErrorCode.UpsertObservedBlockFailed}
  */
-export async function upsertListenerObservedBlock({
+export async function upsertObservedBlock({
   blockKey,
   blockNumber,
   logger
@@ -98,7 +106,7 @@ export async function upsertListenerObservedBlock({
     const endpoint = buildUrl(ORAKL_NETWORK_API_URL, 'listener/observed-block')
     return (await axios.post(endpoint, { blockKey, blockNumber }))?.data
   } catch (e) {
-    logger?.error({ name: 'upsertListenerObservedBlock', file: FILE_NAME, ...e }, 'error')
-    throw new OraklError(OraklErrorCode.UpsertListenerObservedBlockFailed)
+    logger?.error({ name: 'upsertObservedBlock', file: FILE_NAME, ...e }, 'error')
+    throw new OraklError(OraklErrorCode.UpsertObservedBlockFailed)
   }
 }

@@ -1,5 +1,5 @@
-CREATE TABLE IF NOT EXISTS "observed_block" (
+CREATE TABLE IF NOT EXISTS "observed_blocks" (
     block_key TEXT NOT NULL,
     block_number BIGINT NOT NULL,
-    CONSTRAINT "observed_block_key" UNIQUE ("block_key")
+    CONSTRAINT "observed_blocks_key" UNIQUE ("block_key")
 )

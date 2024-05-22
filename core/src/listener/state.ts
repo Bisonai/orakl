@@ -10,7 +10,7 @@ import {
   PROVIDER_URL
 } from '../settings'
 import { IListenerConfig, IListenerRawConfig } from '../types'
-import { getListenerObservedBlock, getListeners, upsertListenerObservedBlock } from './api'
+import { getListeners, getObservedBlock, upsertObservedBlock } from './api'
 import { IContracts, ILatestListenerJob } from './types'
 import { postprocessListeners } from './utils'
 
@@ -175,7 +175,7 @@ export class State {
     const contractAddress = toAddListener.address
     const observedBlockRedisKey = getObservedBlockRedisKey(contractAddress)
     const latestBlock = await this.latestBlockNumber()
-    const { blockKey: observedBlockKey } = await getListenerObservedBlock({
+    const { blockKey: observedBlockKey } = await getObservedBlock({
       blockKey: observedBlockRedisKey,
       logger: this.logger
     })
@@ -188,7 +188,7 @@ export class State {
       * it does not exist -> upsert latestBlock
      */
     if (observedBlockKey === '') {
-      await upsertListenerObservedBlock({
+      await upsertObservedBlock({
         blockKey: observedBlockRedisKey,
         blockNumber: Math.max(latestBlock - 1, 0),
         logger: this.logger

@@ -34,7 +34,7 @@ type ListenerInsertModel struct {
 	Chain     string `db:"chain_name" json:"chain" validate:"required"`
 }
 
-type ListenerObservedBlockModel struct {
+type ObservedBlockModel struct {
 	BlockKey	string 	`db:"block_key" json:"blockKey" validate:"required"`
 	BlockNumber	int64 	`db:"block_number" json:"blockNumber" validate:"blockNumberValidator"`
 }
@@ -158,7 +158,7 @@ func deleteById(c *fiber.Ctx) error {
 }
 
 func upsertObservedBlock(c *fiber.Ctx) error {
-	payload := new(ListenerObservedBlockModel)
+	payload := new(ObservedBlockModel)
 	if err := c.BodyParser(payload); err != nil {
 		return err
 	}
@@ -171,7 +171,7 @@ func upsertObservedBlock(c *fiber.Ctx) error {
 		return err
 	}
 
-	result, err := utils.QueryRow[ListenerObservedBlockModel](c, UpsertObservedBlock, map[string]any{"block_key": payload.BlockKey, "block_number": payload.BlockNumber})
+	result, err := utils.QueryRow[ObservedBlockModel](c, UpsertObservedBlock, map[string]any{"block_key": payload.BlockKey, "block_number": payload.BlockNumber})
 	if err != nil {
 		return err
 	}
@@ -179,8 +179,8 @@ func upsertObservedBlock(c *fiber.Ctx) error {
 }
 
 func getObservedBlock(c *fiber.Ctx) error {
-	block_key := c.Query("blockKey")
-	result, err := utils.QueryRow[ListenerObservedBlockModel](c, GetObservedBlock, map[string]any{"block_key": block_key})
+	blockKey := c.Query("blockKey")
+	result, err := utils.QueryRow[ObservedBlockModel](c, GetObservedBlock, map[string]any{"block_key": blockKey})
 	if err != nil {
 		return err
 	}
