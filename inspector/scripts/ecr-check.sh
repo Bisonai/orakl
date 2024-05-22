@@ -67,7 +67,7 @@ check_tag() {
     fi
 
     found_tag=false
-    for i in $(seq 0 $((tag_count - 1))); do
+    for i in $(seq 0 $((tag_count))); do
         cur_image_tag=$(echo "${available_tags}" | jq -r ".imageTagDetails[$i].imageTag")
         if [ "${cur_image_tag}" = "${tag}" ]; then
             found_tag=true
