@@ -4,8 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"reflect"
+	"sort"
 	"testing"
 	"time"
+
+	"gotest.tools/assert"
 )
 
 func TestGetRedisConnSingleton(t *testing.T) {
@@ -317,5 +320,162 @@ func TestGetObject(t *testing.T) {
 	err = Del(ctx, key)
 	if err != nil {
 		t.Errorf("Error deleting key: %v", err)
+	}
+}
+
+func TestLPush(t *testing.T) {
+	ctx := context.Background()
+
+	key := "testKey"
+	values := []string{"value1", "value2", "value3"}
+
+	err := LPush(ctx, key, values)
+	if err != nil {
+		t.Errorf("Error pushing values to list: %v", err)
+	}
+
+	// Check if the values were pushed correctly
+	result, err := LRange(ctx, key, 0, -1)
+	if err != nil {
+		t.Errorf("Error getting list: %v", err)
+	}
+
+	expectedResult := []string{"value3", "value2", "value1"}
+	if !reflect.DeepEqual(result, expectedResult) {
+		t.Errorf("Result did not match expected. Got %+v, expected %+v", result, expectedResult)
+	}
+
+	// Clean up
+	err = Del(ctx, key)
+	if err != nil {
+		t.Errorf("Error deleting key: %v", err)
+	}
+}
+
+func TestLPushObject(t *testing.T) {
+	ctx := context.Background()
+
+	type TestStruct struct {
+		ID   int
+		Name string
+	}
+
+	key := "testKey"
+	values := []any{
+		TestStruct{ID: 1, Name: "Test1"},
+		TestStruct{ID: 2, Name: "Test2"},
+		TestStruct{ID: 3, Name: "Test3"},
+	}
+
+	err := LPushObject(ctx, key, values)
+	if err != nil {
+		t.Errorf("Error pushing objects to list: %v", err)
+	}
+
+	// Check if the objects were pushed correctly
+	result, err := LRange(ctx, key, 0, -1)
+	if err != nil {
+		t.Errorf("Error getting list: %v", err)
+	}
+
+	expectedResult := []string{}
+	for _, v := range values {
+		data, err := json.Marshal(v)
+		if err != nil {
+			t.Errorf("Error marshalling object: %v", err)
+		}
+		expectedResult = append(expectedResult, string(data))
+	}
+
+	sort.Strings(result)
+	sort.Strings(expectedResult)
+
+	if !reflect.DeepEqual(result, expectedResult) {
+		t.Errorf("Result did not match expected. Got %+v, expected %+v", result, expectedResult)
+	}
+
+	// Clean up
+	err = Del(ctx, key)
+	if err != nil {
+		t.Errorf("Error deleting key: %v", err)
+	}
+}
+
+func TestPopAll(t *testing.T) {
+	ctx := context.Background()
+
+	key := "testKey"
+	values := []string{"value1", "value2", "value3"}
+
+	// Push values to the list
+	err := LPush(ctx, key, values)
+	if err != nil {
+		t.Fatalf("Error pushing values to list: %v", err)
+	}
+
+	// Call PopAll
+	poppedValues, err := PopAll(ctx, key)
+	if err != nil {
+		t.Fatalf("Error popping all values: %v", err)
+	}
+
+	// Check if the popped values match the expected values
+	expectedValues := []string{"value3", "value2", "value1"}
+	assert.DeepEqual(t, poppedValues, expectedValues)
+
+	// Check if the list is empty after popping
+	result, err := Get(ctx, key)
+	if err == nil {
+		t.Fatalf("Expected to have err")
+	}
+	if len(result) != 0 {
+		t.Errorf("Expected empty list, got %+v", result)
+	}
+}
+
+func TestPopAllObject(t *testing.T) {
+	ctx := context.Background()
+
+	type TestStruct struct {
+		ID   int
+		Name string
+	}
+
+	key := "testKey"
+	values := []any{
+		TestStruct{ID: 1, Name: "Test1"},
+		TestStruct{ID: 2, Name: "Test2"},
+		TestStruct{ID: 3, Name: "Test3"},
+	}
+
+	// Push objects to the list
+	err := LPushObject(ctx, key, values)
+	if err != nil {
+		t.Fatalf("Error pushing objects to list: %v", err)
+	}
+
+	// Call PopAllObject
+	poppedValues, err := PopAllObject[TestStruct](ctx, key)
+	if err != nil {
+		t.Fatalf("Error popping all objects: %v", err)
+	}
+
+	// Check if the popped objects match the expected objects
+	expectedValues := []TestStruct{
+		{ID: 3, Name: "Test3"},
+		{ID: 2, Name: "Test2"},
+		{ID: 1, Name: "Test1"},
+	}
+	if !reflect.DeepEqual(poppedValues, expectedValues) {
+		t.Errorf("Popped objects did not match expected. Got %+v, expected %+v", poppedValues, expectedValues)
+	}
+
+	// Check if the list is empty after popping
+	result, err := Get(ctx, key)
+	if err == nil {
+		t.Fatalf("Expected to have err")
+	}
+	if len(result) != 0 {
+		t.Errorf("Expected empty list, got %+v", result)
 	}
 }
