@@ -380,9 +380,9 @@ func TestLPushObject(t *testing.T) {
 
 	expectedResult := []string{}
 	for _, v := range values {
-		data, err := json.Marshal(v)
-		if err != nil {
-			t.Errorf("Error marshalling object: %v", err)
+		data, marshallErr := json.Marshal(v)
+		if marshallErr != nil {
+			t.Errorf("Error marshalling object: %v", marshallErr)
 		}
 		expectedResult = append(expectedResult, string(data))
 	}
