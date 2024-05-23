@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"gotest.tools/assert"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestGetRedisConnSingleton(t *testing.T) {
@@ -422,7 +422,7 @@ func TestPopAll(t *testing.T) {
 
 	// Check if the popped values match the expected values
 	expectedValues := []string{"value3", "value2", "value1"}
-	assert.DeepEqual(t, poppedValues, expectedValues)
+	assert.ObjectsAreEqualValues(expectedValues, poppedValues)
 
 	// Check if the list is empty after popping
 	result, err := Get(ctx, key)
