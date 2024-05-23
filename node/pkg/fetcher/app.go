@@ -347,9 +347,9 @@ func (a *App) initialize(ctx context.Context) error {
 	a.Fetchers = make(map[int32]*Fetcher, len(configs))
 	a.Collectors = make(map[int32]*Collector, len(configs))
 	for _, config := range configs {
-		feeds, err := a.getFeeds(ctx, config.ID)
-		if err != nil {
-			return err
+		feeds, getFeedsErr := a.getFeeds(ctx, config.ID)
+		if getFeedsErr != nil {
+			return getFeedsErr
 		}
 
 		a.Fetchers[config.ID] = NewFetcher(config, feeds)
