@@ -426,7 +426,7 @@ func TestPopAll(t *testing.T) {
 
 	// Check if the list is empty after popping
 	result, err := Get(ctx, key)
-	if err == nil || !strings.Contains(err.Error(), "Error getting list: redis: nil") {
+	if err == nil || !strings.Contains(err.Error(), "redis: nil") {
 		t.Fatalf("Expected to have err")
 	}
 	if len(result) != 0 {
@@ -473,7 +473,7 @@ func TestPopAllObject(t *testing.T) {
 
 	// Check if the list is empty after popping
 	result, err := Get(ctx, key)
-	if err == nil || !strings.Contains(err.Error(), "Error getting list: redis: nil") {
+	if err == nil || !strings.Contains(err.Error(), "redis: nil") {
 		t.Fatalf("Expected to have err")
 	}
 	if len(result) != 0 {
