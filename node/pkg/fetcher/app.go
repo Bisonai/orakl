@@ -30,17 +30,7 @@ func (a *App) Run(ctx context.Context) error {
 
 	a.subscribe(ctx)
 
-	err = a.startAllFetchers(ctx)
-	if err != nil {
-		return err
-	}
-
-	err = a.startAllCollectors(ctx)
-	if err != nil {
-		return err
-	}
-
-	return a.startStreamer(ctx)
+	return a.startAll(ctx)
 }
 
 func (a *App) subscribe(ctx context.Context) {
