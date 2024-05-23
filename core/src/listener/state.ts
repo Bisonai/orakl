@@ -11,7 +11,7 @@ import {
 } from '../settings'
 import { IListenerConfig, IListenerRawConfig } from '../types'
 import { getListeners, getObservedBlock, upsertObservedBlock } from './api'
-import { IContracts, ILatestListenerJob } from './types'
+import { IContracts, IHistoryListenerJob, ILatestListenerJob } from './types'
 import { postprocessListeners } from './utils'
 
 const FILE_NAME = import.meta.url
@@ -175,26 +175,32 @@ export class State {
     const contractAddress = toAddListener.address
     const observedBlockRedisKey = getObservedBlockRedisKey(contractAddress)
     const latestBlock = await this.latestBlockNumber()
-    const { blockKey: observedBlockKey } = await getObservedBlock({
+    const { blockKey: observedBlockKey, blockNumber } = await getObservedBlock({
       blockKey: observedBlockRedisKey,
       logger: this.logger
     })
+    const observedBlockNumber = observedBlockKey === '' ? latestBlock : blockNumber
 
-    /**
-     when listener starts, there are two options:
-      * latest observedBlock (key) exists -> do nothing 
-        (start latest job, it'll handle multiple blocks 
-        between observedBlock and latestBlock)
-      * it does not exist -> upsert latestBlock
-     */
-    if (observedBlockKey === '') {
-      await upsertObservedBlock({
-        blockKey: observedBlockRedisKey,
-        blockNumber: Math.max(latestBlock - 1, 0),
-        logger: this.logger
+    // Insert history jobs if there are any unprocessed blocks
+    // observedBlockNumber is assumed to be already processed
+    // since we update observedBlock only after processing all events from that block
+    for (let blockNumber = observedBlockNumber + 1; blockNumber < latestBlock; ++blockNumber) {
+      const historyOutData: IHistoryListenerJob = {
+        contractAddress,
+        blockNumber
+      }
+      await this.historyListenerQueue.add('history', historyOutData, {
+        ...LISTENER_JOB_SETTINGS
       })
-      await this.redisClient.set(observedBlockRedisKey, Math.max(latestBlock - 1, 0))
     }
+
+    // Update observed block in db and redis
+    await upsertObservedBlock({
+      blockKey: observedBlockRedisKey,
+      blockNumber: Math.max(latestBlock - 1, 0),
+      logger: this.logger
+    })
+    await this.redisClient.set(observedBlockRedisKey, Math.max(latestBlock - 1, 0))
 
     // Insert listener jobs
     const outData: ILatestListenerJob = {

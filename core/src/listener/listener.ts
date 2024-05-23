@@ -217,6 +217,8 @@ function latestJob({
                 ...queueSettings
               })
               logger.debug(`Listener submitted job [${jobId}] for [${jobName}]`)
+            } else {
+              throw new Error(`jobMetadata is not defined for an event in block ${blockNumber}`)
             }
           }
           await upsertObservedBlock({
@@ -304,6 +306,8 @@ function historyJob({
             ...queueSettings
           })
           logger.debug(`Listener submitted job [${jobId}] for [${jobName}]`)
+        } else {
+          throw new Error(`jobMetadata is not defined for an event in block ${blockNumber}`)
         }
       }
 
