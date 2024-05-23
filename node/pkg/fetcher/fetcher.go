@@ -209,10 +209,3 @@ func (f *Fetcher) filterProxyByLocation(proxies []Proxy, location string) []Prox
 	}
 	return filteredProxies
 }
-
-func (f *Fetcher) Close() {
-	if f.cancel != nil {
-		f.cancel()
-	}
-	f.isRunning = false
-}
