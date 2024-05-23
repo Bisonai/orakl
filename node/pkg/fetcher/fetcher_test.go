@@ -10,7 +10,6 @@ import (
 	"net/http"
 
 	"bisonai.com/orakl/node/pkg/admin/tests"
-	"bisonai.com/orakl/node/pkg/db"
 	"github.com/elazarl/goproxy"
 	"github.com/rs/zerolog/log"
 	"github.com/stretchr/testify/assert"
@@ -97,71 +96,6 @@ func TestFetcherFetchProxy(t *testing.T) {
 		log.Fatal().Err(err).Msg("unexpected server shutdown")
 	}
 
-}
-
-func TestFetcherFetchAndInsertAdapter(t *testing.T) {
-	ctx := context.Background()
-	clean, testItems, err := setup(ctx)
-	if err != nil {
-		t.Fatalf("error setting up test: %v", err)
-	}
-	defer func() {
-		if cleanupErr := clean(); cleanupErr != nil {
-			t.Logf("Cleanup failed: %v", cleanupErr)
-		}
-	}()
-
-	app := testItems.app
-
-	err = app.initialize(ctx)
-	if err != nil {
-		log.Fatal().Err(err).Msg("error initializing fetcher")
-	}
-
-	for _, fetcher := range app.Fetchers {
-		err = fetcher.fetchAndInsert(ctx, app.ChainHelpers, app.Proxies)
-		assert.NoError(t, err, "fetchAndInsert should not return an error")
-	}
-	if err != nil {
-		t.Fatalf("error running adapter: %v", err)
-	}
-
-	for _, fetcher := range app.Fetchers {
-		pgResult, err := db.QueryRow[Aggregate](ctx, "SELECT * FROM local_aggregates WHERE config_id = @config_id", map[string]any{"config_id": fetcher.Config.ID})
-		if err != nil {
-			t.Fatalf("error reading from db: %v", err)
-		}
-		assert.NotNil(t, pgResult)
-
-		feedIds := make([]interface{}, len(fetcher.Feeds))
-		for i, feed := range fetcher.Feeds {
-			feedIds[i] = feed.ID
-		}
-
-		feedPgResult, err := db.BulkSelect[FeedDataFromDB](ctx, "feed_data", []string{"feed_id", "value", "timestamp"}, []string{"feed_id"}, feedIds)
-		if err != nil {
-			t.Fatalf("error reading from db: %v", err)
-		}
-		assert.Greater(t, len(feedPgResult), 0)
-
-		rdbResult, err := db.Get(ctx, "localAggregate:"+strconv.Itoa(int(fetcher.Config.ID)))
-		if err != nil {
-			t.Fatalf("error reading from redis: %v", err)
-		}
-		assert.NotNil(t, rdbResult)
-		var redisAgg RedisAggregate
-		err = json.Unmarshal([]byte(rdbResult), &redisAgg)
-		if err != nil {
-			t.Fatalf("error unmarshalling from redis: %v", err)
-		}
-		assert.NotNil(t, redisAgg)
-		assert.NotNil(t, redisAgg.Value)
-
-		err = db.Del(ctx, "localAggregate:"+strconv.Itoa(int(fetcher.Config.ID)))
-		if err != nil {
-			t.Fatalf("error removing from redis: %v", err)
-		}
-	}
 }
 
 func TestFetchSingle(t *testing.T) {

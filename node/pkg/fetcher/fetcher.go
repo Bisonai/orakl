@@ -9,7 +9,6 @@ import (
 	"time"
 
 	errorSentinel "bisonai.com/orakl/node/pkg/error"
-	"bisonai.com/orakl/node/pkg/utils/calculator"
 	"bisonai.com/orakl/node/pkg/utils/reducer"
 	"bisonai.com/orakl/node/pkg/utils/request"
 	"github.com/rs/zerolog/log"
@@ -30,8 +29,8 @@ func (f *Fetcher) Run(ctx context.Context, chainHelpers map[string]ChainHelper, 
 	f.cancel = cancel
 	f.isRunning = true
 
-	fetcher_frequency := time.Duration(f.FetchInterval) * time.Millisecond
-	ticker := time.NewTicker(fetcher_frequency)
+	fetcherFrequency := time.Duration(f.FetchInterval) * time.Millisecond
+	ticker := time.NewTicker(fetcherFrequency)
 	go func() {
 		for {
 			select {
@@ -39,7 +38,7 @@ func (f *Fetcher) Run(ctx context.Context, chainHelpers map[string]ChainHelper, 
 				ticker.Stop()
 				return
 			case <-ticker.C:
-				err := f.fetchAndInsert(f.fetcherCtx, chainHelpers, proxies)
+				err := f.fetcherJob(f.fetcherCtx, chainHelpers, proxies)
 				if err != nil {
 					log.Error().Str("Player", "Fetcher").Err(err).Msg("error in fetchAndInsert")
 				}
@@ -48,47 +47,21 @@ func (f *Fetcher) Run(ctx context.Context, chainHelpers map[string]ChainHelper, 
 	}()
 }
 
-func (f *Fetcher) fetchAndInsert(ctx context.Context, chainHelpers map[string]ChainHelper, proxies []Proxy) error {
-	log.Debug().Str("Player", "Fetcher").Str("fetcher", f.Name).Msg("fetching and inserting")
-	results, err := f.fetch(chainHelpers, proxies)
+func (f *Fetcher) fetcherJob(ctx context.Context, chainHelpers map[string]ChainHelper, proxies []Proxy) error {
+	log.Debug().Str("Player", "Fetcher").Str("fetcher", f.Name).Msg("fetcherJob")
+	result, err := f.fetch(chainHelpers, proxies)
 	if err != nil {
 		log.Error().Str("Player", "Fetcher").Err(err).Msg("error in fetch")
 		return err
 	}
-	log.Debug().Str("Player", "Fetcher").Str("fetcher", f.Name).Msg("fetch complete")
 
-	err = insertFeedData(ctx, results)
+	err = setLatestFeedData(ctx, result)
 	if err != nil {
-		log.Error().Str("Player", "Fetcher").Err(err).Msg("error in insertFeedData")
+		log.Error().Str("Player", "Fetcher").Err(err).Msg("error in setLatestFeedData")
 		return err
 	}
 
-	rawValues := make([]float64, len(results))
-	for i, result := range results {
-		rawValues[i] = result.Value
-	}
-
-	aggregated, err := calculator.GetFloatMed(rawValues)
-	if err != nil {
-		log.Error().Str("Player", "Fetcher").Err(err).Msg("error in GetFloatMed")
-		return err
-	}
-	log.Debug().Str("Player", "Fetcher").Str("fetcher", f.Name).Float64("aggregated", aggregated).Msg("aggregated")
-
-	err = insertLocalAggregatePgsql(ctx, f.ID, aggregated)
-	if err != nil {
-		log.Error().Str("Player", "Fetcher").Err(err).Msg("error in insertPgsql")
-		return err
-	}
-	log.Debug().Str("Player", "Fetcher").Str("fetcher", f.Name).Msg("inserted into pgsql")
-
-	err = insertLocalAggregateRdb(ctx, f.ID, aggregated)
-	if err != nil {
-		log.Error().Str("Player", "Fetcher").Err(err).Msg("error in insertRdb")
-		return err
-	}
-	log.Debug().Str("Player", "Fetcher").Str("fetcher", f.Name).Msg("inserted into rdb")
-	return nil
+	return setFeedDataBuffer(ctx, result)
 }
 
 func (f *Fetcher) fetch(chainHelpers map[string]ChainHelper, proxies []Proxy) ([]FeedData, error) {
@@ -130,8 +103,8 @@ func (f *Fetcher) fetch(chainHelpers map[string]ChainHelper, proxies []Proxy) ([
 			default:
 				errChan <- errorSentinel.ErrFetcherInvalidType
 			}
-
-			dataChan <- FeedData{FeedID: feed.ID, Value: resultValue}
+			now := time.Now()
+			dataChan <- FeedData{FeedID: feed.ID, Value: resultValue, Timestamp: &now}
 
 		}(feed)
 	}
@@ -235,4 +208,11 @@ func (f *Fetcher) filterProxyByLocation(proxies []Proxy, location string) []Prox
 		}
 	}
 	return filteredProxies
+}
+
+func (f *Fetcher) Close() {
+	if f.cancel != nil {
+		f.cancel()
+	}
+	f.isRunning = false
 }

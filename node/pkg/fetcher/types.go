@@ -19,8 +19,9 @@ const (
 )
 
 type FeedData struct {
-	FeedID int32   `db:"feed_id"`
-	Value  float64 `db:"value"`
+	FeedID    int32      `db:"feed_id"`
+	Value     float64    `db:"value"`
+	Timestamp *time.Time `db:"timestamp"`
 }
 
 type Config struct {
@@ -46,6 +47,23 @@ type Fetcher struct {
 	isRunning  bool
 }
 
+type Collector struct {
+	Config
+	Feeds []Feed
+
+	collectorCtx context.Context
+	cancel       context.CancelFunc
+	isRunning    bool
+}
+
+type Streamer struct {
+	Interval time.Duration
+
+	streamerCtx context.Context
+	cancel      context.CancelFunc
+	isRunning   bool
+}
+
 type Feed struct {
 	ID         int32           `db:"id"`
 	Name       string          `db:"name"`
@@ -56,6 +74,8 @@ type Feed struct {
 type App struct {
 	Bus          *bus.MessageBus
 	Fetchers     map[int32]*Fetcher
+	Collectors   map[int32]*Collector
+	Streamer     *Streamer
 	Proxies      []Proxy
 	ChainHelpers map[string]ChainHelper
 }

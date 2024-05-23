@@ -35,7 +35,12 @@ func (a *App) Run(ctx context.Context) error {
 		return err
 	}
 
-	return nil
+	err = a.startAllCollectors(ctx)
+	if err != nil {
+		return err
+	}
+
+	return a.startStreamer(ctx)
 }
 
 func (a *App) subscribe(ctx context.Context) {
@@ -162,6 +167,30 @@ func (a *App) startFetcher(ctx context.Context, fetcher *Fetcher) error {
 	return nil
 }
 
+func (a *App) startCollector(ctx context.Context, collector *Collector) error {
+	if collector.isRunning {
+		log.Debug().Str("Player", "Collector").Str("collector", collector.Name).Msg("collector already running")
+		return nil
+	}
+
+	collector.Run(ctx)
+
+	log.Debug().Str("Player", "Collector").Str("collector", collector.Name).Msg("collector started")
+	return nil
+}
+
+func (a *App) startStreamer(ctx context.Context) error {
+	if a.Streamer.isRunning {
+		log.Debug().Str("Player", "Streamer").Msg("streamer already running")
+		return nil
+	}
+
+	a.Streamer.Run(ctx)
+
+	log.Debug().Str("Player", "Streamer").Msg("streamer started")
+	return nil
+}
+
 func (a *App) startFetcherById(ctx context.Context, configId int32) error {
 	if fetcher, ok := a.Fetchers[configId]; ok {
 		return a.startFetcher(ctx, fetcher)
@@ -175,6 +204,19 @@ func (a *App) startAllFetchers(ctx context.Context) error {
 		err := a.startFetcher(ctx, fetcher)
 		if err != nil {
 			log.Error().Str("Player", "Fetcher").Err(err).Str("fetcher", fetcher.Name).Msg("failed to start fetcher")
+			return err
+		}
+		// starts with random sleep to avoid all fetchers starting at the same time
+		time.Sleep(time.Millisecond * time.Duration(rand.Intn(300)+100))
+	}
+	return nil
+}
+
+func (a *App) startAllCollectors(ctx context.Context) error {
+	for _, collector := range a.Collectors {
+		err := a.startCollector(ctx, collector)
+		if err != nil {
+			log.Error().Str("Player", "Collector").Err(err).Str("collector", collector.Name).Msg("failed to start collector")
 			return err
 		}
 		// starts with random sleep to avoid all fetchers starting at the same time
@@ -197,6 +239,20 @@ func (a *App) stopFetcher(ctx context.Context, fetcher *Fetcher) error {
 	return nil
 }
 
+func (a *App) stopCollector(ctx context.Context, collector *Collector) error {
+	log.Debug().Str("collector", collector.Name).Msg("stopping collector")
+	if !collector.isRunning {
+		log.Debug().Str("Player", "Collector").Str("collector", collector.Name).Msg("collector already stopped")
+		return nil
+	}
+	if collector.cancel == nil {
+		return errorSentinel.ErrCollectorCancelNotFound
+	}
+	collector.cancel()
+	collector.isRunning = false
+	return nil
+}
+
 func (a *App) stopFetcherById(ctx context.Context, configId int32) error {
 	if fetcher, ok := a.Fetchers[configId]; ok {
 		return a.stopFetcher(ctx, fetcher)
@@ -209,6 +265,17 @@ func (a *App) stopAllFetchers(ctx context.Context) error {
 		err := a.stopFetcher(ctx, fetcher)
 		if err != nil {
 			log.Error().Str("Player", "Fetcher").Err(err).Str("fetcher", fetcher.Name).Msg("failed to stop fetcher")
+			return err
+		}
+	}
+	return nil
+}
+
+func (a *App) stopAllCollectors(ctx context.Context) error {
+	for _, collector := range a.Collectors {
+		err := a.stopCollector(ctx, collector)
+		if err != nil {
+			log.Error().Str("Player", "Collector").Err(err).Str("collector", collector.Name).Msg("failed to stop collector")
 			return err
 		}
 	}
@@ -246,6 +313,7 @@ func (a *App) initialize(ctx context.Context) error {
 		return err
 	}
 	a.Fetchers = make(map[int32]*Fetcher, len(configs))
+	a.Collectors = make(map[int32]*Collector, len(configs))
 	for _, config := range configs {
 		feeds, err := a.getFeeds(ctx, config.ID)
 		if err != nil {
@@ -253,7 +321,14 @@ func (a *App) initialize(ctx context.Context) error {
 		}
 
 		a.Fetchers[config.ID] = NewFetcher(config, feeds)
+		a.Collectors[config.ID] = NewCollector(config, feeds)
 	}
+	streamIntervalRaw := os.Getenv("FEED_DATA_STREAM_INTERVAL")
+	streamInterval, err := time.ParseDuration(streamIntervalRaw)
+	if err != nil {
+		streamInterval = time.Second * 5
+	}
+	a.Streamer = NewStreamer(streamInterval)
 
 	proxies, getProxyErr := a.getProxies(ctx)
 	if getProxyErr != nil {
