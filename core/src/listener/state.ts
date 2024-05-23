@@ -242,10 +242,10 @@ export class State {
     )
 
     if (jobs.length != 1) {
-      // throw new OraklError(
-      //   OraklErrorCode.UnexpectedNumberOfJobsInQueue,
-      //   `Number of jobs ${jobs.length}`
-      // )
+      throw new OraklError(
+        OraklErrorCode.UnexpectedNumberOfJobsInQueue,
+        `Number of jobs ${jobs.length}`
+      )
     } else {
       const delayedJob = jobs[0]
       await this.latestListenerQueue.removeRepeatableByKey(delayedJob.key)
