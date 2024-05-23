@@ -155,6 +155,7 @@ func LRange(ctx context.Context, key string, start int64, end int64) ([]string, 
 	rdbConn, err := GetRedisConn(ctx)
 	if err != nil {
 		log.Error().Err(err).Msg("Error getting redis connection")
+		return nil, err
 	}
 	return rdbConn.LRange(ctx, key, start, end).Result()
 }
@@ -163,6 +164,7 @@ func LPush(ctx context.Context, key string, values ...any) error {
 	rdbConn, err := GetRedisConn(ctx)
 	if err != nil {
 		log.Error().Err(err).Msg("Error getting redis connection")
+		return err
 	}
 	return rdbConn.LPush(ctx, key, values...).Err()
 }
