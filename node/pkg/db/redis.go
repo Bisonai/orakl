@@ -222,19 +222,19 @@ func PopAllObject[T any](ctx context.Context, key string) ([]T, error) {
 }
 
 func LRange(ctx context.Context, key string, start int64, end int64) ([]string, error) {
-	rdb, err := GetRedisConn(ctx)
+	rdbConn, err := GetRedisConn(ctx)
 	if err != nil {
 		log.Error().Err(err).Msg("Error getting redis connection")
 	}
-	return rdb.LRange(ctx, key, start, end).Result()
+	return rdbConn.LRange(ctx, key, start, end).Result()
 }
 
 func LPush(ctx context.Context, key string, values ...any) error {
-	rdb, err := GetRedisConn(ctx)
+	rdbConn, err := GetRedisConn(ctx)
 	if err != nil {
 		log.Error().Err(err).Msg("Error getting redis connection")
 	}
-	return rdb.LPush(ctx, key, values...).Err()
+	return rdbConn.LPush(ctx, key, values...).Err()
 }
 
 func LPushObject(ctx context.Context, key string, values []any) error {
@@ -251,13 +251,13 @@ func LPushObject(ctx context.Context, key string, values []any) error {
 }
 
 func PopAll(ctx context.Context, key string) ([]string, error) {
-	rdb, err := GetRedisConn(ctx)
+	rdbConn, err := GetRedisConn(ctx)
 	if err != nil {
 		log.Error().Err(err).Msg("Error getting redis connection")
 		return nil, err
 	}
 
-	pipe := rdb.TxPipeline()
+	pipe := rdbConn.TxPipeline()
 	lrange := pipe.LRange(ctx, key, 0, -1)
 	pipe.Del(ctx, key)
 	_, err = pipe.Exec(ctx)
