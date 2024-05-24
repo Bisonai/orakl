@@ -10,7 +10,7 @@ import (
 )
 
 type WalletModel struct {
-	Id *int64 `db:"id" json:"id"`
+	Id *int32 `db:"id" json:"id"`
 	Pk string `db:"pk" json:"pk"`
 }
 

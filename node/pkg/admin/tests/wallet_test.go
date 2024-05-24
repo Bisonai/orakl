@@ -42,7 +42,7 @@ func TestWalletInsert(t *testing.T) {
 
 	assert.Greaterf(t, len(readResultAfter), len(readResultBefore), "expected to have more wallets after insertion")
 
-	readSingle, err := GetRequest[wallet.WalletModel](testItems.app, "/api/v1/wallet/"+strconv.FormatInt(*insertResult.Id, 10), nil)
+	readSingle, err := GetRequest[wallet.WalletModel](testItems.app, "/api/v1/wallet/"+strconv.Itoa(int(*insertResult.Id)), nil)
 	if err != nil {
 		t.Fatalf("error getting wallet by id: %v", err)
 	}
@@ -96,7 +96,7 @@ func TestWalletGetById(t *testing.T) {
 	}
 	defer cleanup()
 
-	readResultById, err := GetRequest[wallet.WalletModel](testItems.app, "/api/v1/wallet/"+strconv.FormatInt(*testItems.tmpData.wallet.Id, 10), nil)
+	readResultById, err := GetRequest[wallet.WalletModel](testItems.app, "/api/v1/wallet/"+strconv.Itoa(int(*testItems.tmpData.wallet.Id)), nil)
 	if err != nil {
 		t.Fatalf("error getting wallet by id: %v", err)
 	}
@@ -122,12 +122,12 @@ func TestWalletUpdateById(t *testing.T) {
 		Pk: "0x7b48c1fd1861ebc850e3a8629198e9c4d33fc16ff995162a25438b532c42253d",
 	}
 
-	beforeUpdate, err := GetRequest[wallet.WalletModel](testItems.app, "/api/v1/wallet/"+strconv.FormatInt(*testItems.tmpData.wallet.Id, 10), nil)
+	beforeUpdate, err := GetRequest[wallet.WalletModel](testItems.app, "/api/v1/wallet/"+strconv.Itoa(int(*testItems.tmpData.wallet.Id)), nil)
 	if err != nil {
 		t.Fatalf("error getting wallet by id before update: %v", err)
 	}
 
-	updateResult, err := PatchRequest[wallet.WalletModel](testItems.app, "/api/v1/wallet/"+strconv.FormatInt(*testItems.tmpData.wallet.Id, 10), map[string]any{"pk": mockWallet.Pk})
+	updateResult, err := PatchRequest[wallet.WalletModel](testItems.app, "/api/v1/wallet/"+strconv.Itoa(int(*testItems.tmpData.wallet.Id)), map[string]any{"pk": mockWallet.Pk})
 	if err != nil {
 		t.Fatalf("error updating wallet: %v", err)
 	}
@@ -149,7 +149,7 @@ func TestWalletDeleteById(t *testing.T) {
 		t.Fatalf("error getting wallets before: %v", err)
 	}
 
-	removeResult, err := DeleteRequest[wallet.WalletModel](testItems.app, "/api/v1/wallet/"+strconv.FormatInt(*testItems.tmpData.wallet.Id, 10), nil)
+	removeResult, err := DeleteRequest[wallet.WalletModel](testItems.app, "/api/v1/wallet/"+strconv.Itoa(int(*testItems.tmpData.wallet.Id)), nil)
 	if err != nil {
 		t.Fatalf("error deleting wallet: %v", err)
 	}
@@ -161,7 +161,7 @@ func TestWalletDeleteById(t *testing.T) {
 
 	assert.Lessf(t, len(readResultAfter), len(readResultBefore), "expected to have less wallets after deletion")
 
-	failReadAfterDelete, err := GetRequest[wallet.WalletModel](testItems.app, "/api/v1/wallet/"+strconv.FormatInt(*removeResult.Id, 10), nil)
+	failReadAfterDelete, err := GetRequest[wallet.WalletModel](testItems.app, "/api/v1/wallet/"+strconv.Itoa(int(*removeResult.Id)), nil)
 	if err != nil {
 		t.Fatalf("error getting wallet by id after deletion: %v", err)
 	}

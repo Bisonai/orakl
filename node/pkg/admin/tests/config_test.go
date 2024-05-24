@@ -42,7 +42,7 @@ func TestConfigSync(t *testing.T) {
 	}
 	assert.Equal(t, config.ConfigModel{}, readTmpConfigResult)
 
-	readTmpFeedResult, err := GetRequest[feed.FeedModel](testItems.app, "/api/v1/feed/"+strconv.FormatInt(*testItems.tmpData.feed.Id, 10), nil)
+	readTmpFeedResult, err := GetRequest[feed.FeedModel](testItems.app, "/api/v1/feed/"+strconv.Itoa(int(*testItems.tmpData.feed.Id)), nil)
 	if err != nil {
 		t.Fatalf("error getting feeds: %v", err)
 	}
