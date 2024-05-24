@@ -34,14 +34,14 @@ function processDirectory(dirPath) {
   const entries = fs.readdirSync(dirPath, { withFileTypes: true })
   let mapping = {}
 
-  entries.forEach((entry) => {
+  for (const entry of entries) {
     const fullPath = path.join(dirPath, entry.name)
     if (entry.isDirectory()) {
       mapping = { ...mapping, ...processDirectory(fullPath) }
     } else if (entry.isFile() && path.extname(entry.name) === '.sol') {
       mapping = { ...mapping, ...processFile(fullPath) }
     }
-  })
+  }
 
   return mapping
 }
