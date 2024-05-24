@@ -114,8 +114,14 @@ export class State {
       throw new OraklError(OraklErrorCode.ReporterNotAdded, msg)
     }
 
-    if (!isAddressValid(toAddReporter.address) || !isAddressValid(toAddReporter.oracleAddress)) {
-      const msg = `Reporter with ID=${id} has invalid address.`
+    if (!isAddressValid(toAddReporter.address)) {
+      const msg = `Reporter with ID=${id} has invalid reporter address: ${toAddReporter.address}.`
+      this.logger.debug({ name: 'add', file: FILE_NAME }, msg)
+      throw new OraklError(OraklErrorCode.ReporterNotAdded, msg)
+    }
+
+    if (!isAddressValid(toAddReporter.oracleAddress)) {
+      const msg = `Reporter with ID=${id} has invalid oracle address: ${toAddReporter.oracleAddress}.`
       this.logger.debug({ name: 'add', file: FILE_NAME }, msg)
       throw new OraklError(OraklErrorCode.ReporterNotAdded, msg)
     }
@@ -204,10 +210,15 @@ export class State {
           { name: 'refresh', file: FILE_NAME },
           `Reporter with ID=${reporter.id} has invalid private key.`
         )
-      } else if (!isAddressValid(reporter.address) || !isAddressValid(reporter.oracleAddress)) {
+      } else if (!isAddressValid(reporter.address)) {
         this.logger.warn(
           { name: 'refresh', file: FILE_NAME },
-          `Reporter with ID=${reporter.id} has invalid address.`
+          `Reporter with ID=${reporter.id} has invalid reporter address. ${reporter.address}`
+        )
+      } else if (!isAddressValid(reporter.oracleAddress)) {
+        this.logger.warn(
+          { name: 'refresh', file: FILE_NAME },
+          `Reporter with ID=${reporter.id} has invalid oracle address. ${reporter.oracleAddress}`
         )
       } else {
         reporters.push(reporter)
