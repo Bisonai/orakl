@@ -6,11 +6,13 @@ import (
 	"context"
 	"encoding/json"
 	"math/big"
+	"strconv"
 	"testing"
 
 	"net/http"
 	"net/http/httptest"
 
+	"bisonai.com/orakl/node/pkg/aggregator"
 	"bisonai.com/orakl/node/pkg/db"
 	"github.com/stretchr/testify/assert"
 )
@@ -259,4 +261,107 @@ func TestGetFeedDataBuffer(t *testing.T) {
 	assert.Equal(t, 2, len(result))
 	assert.Contains(t, result, feedData[0])
 	assert.Contains(t, result, feedData[1])
+}
+
+func TestInsertLocalAggregatePgsql(t *testing.T) {
+	ctx := context.Background()
+	clean, testItems, err := setup(ctx)
+	if err != nil {
+		t.Fatalf("error setting up test: %v", err)
+	}
+	defer func() {
+		if cleanupErr := clean(); cleanupErr != nil {
+			t.Logf("Cleanup failed: %v", cleanupErr)
+		}
+	}()
+
+	configs := testItems.insertedConfigs
+	for i, config := range configs {
+		//TODO: Remove int32 conversion after node admin fix pr has been merged
+		err := insertLocalAggregatePgsql(ctx, int32(config.Id), float64(i)+5)
+		if err != nil {
+			t.Fatalf("error inserting local aggregate pgsql: %v", err)
+		}
+	}
+
+	defer db.QueryWithoutResult(ctx, "DELETE FROM local_aggregate", nil)
+	result, err := db.QueryRows[aggregator.LocalAggregate](ctx, "SELECT * FROM local_aggregate", nil)
+	if err != nil {
+		t.Fatalf("error getting local aggregate pgsql: %v", err)
+	}
+
+	assert.Equal(t, len(configs), len(result))
+}
+
+func TestInsertLocalAggregateRdb(t *testing.T) {
+	ctx := context.Background()
+	clean, testItems, err := setup(ctx)
+	if err != nil {
+		t.Fatalf("error setting up test: %v", err)
+	}
+	defer func() {
+		if cleanupErr := clean(); cleanupErr != nil {
+			t.Logf("Cleanup failed: %v", cleanupErr)
+		}
+	}()
+
+	configs := testItems.insertedConfigs
+	for i, config := range configs {
+		//TODO: Remove int32 conversion after node admin fix pr has been merged
+		err := insertLocalAggregateRdb(ctx, int32(config.Id), float64(i)+5)
+		if err != nil {
+			t.Fatalf("error inserting local aggregate rdb: %v", err)
+		}
+		defer db.Del(ctx, "localAggregate:"+strconv.Itoa(int(config.Id)))
+	}
+
+	for _, config := range configs {
+		key := "localAggregate:" + strconv.Itoa(int(config.Id))
+		result, err := db.GetObject[aggregator.LocalAggregate](ctx, key)
+		if err != nil {
+			t.Fatalf("error getting local aggregate rdb: %v", err)
+		}
+		assert.Equal(t, config.Id, result.ConfigId)
+	}
+}
+
+func TestCopyFeedData(t *testing.T) {
+	ctx := context.Background()
+	clean, testItems, err := setup(ctx)
+	if err != nil {
+		t.Fatalf("error setting up test: %v", err)
+	}
+	defer func() {
+		if cleanupErr := clean(); cleanupErr != nil {
+			t.Logf("Cleanup failed: %v", cleanupErr)
+		}
+	}()
+
+	feeds := testItems.insertedFeeds
+	feedData := []FeedData{}
+	for i, feed := range feeds {
+		feedData = append(feedData, FeedData{
+			FeedID: int32(*feed.Id),
+			Value:  float64(i) + 5,
+		})
+	}
+
+	err = setFeedDataBuffer(ctx, feedData)
+	if err != nil {
+		t.Fatalf("error setting feed data buffer: %v", err)
+	}
+
+	defer db.Del(ctx, "feedDataBuffer")
+
+	err = copyFeedData(ctx, feedData)
+	if err != nil {
+		t.Fatalf("error copying feed data: %v", err)
+	}
+
+	defer db.QueryWithoutResult(ctx, "DELETE FROM feed_data", nil)
+	result, err := db.QueryRows[FeedData](ctx, "SELECT * FROM feed_data", nil)
+	if err != nil {
+		t.Fatalf("error getting feed data: %v", err)
+	}
+	assert.Contains(t, result, feedData[0])
 }
