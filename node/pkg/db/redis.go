@@ -166,6 +166,24 @@ func LRange(ctx context.Context, key string, start int64, end int64) ([]string, 
 	return rdbConn.LRange(ctx, key, start, end).Result()
 }
 
+func LRangeObject[T any](ctx context.Context, key string, start int64, end int64) ([]T, error) {
+	data, err := LRange(ctx, key, start, end)
+	if err != nil {
+		log.Error().Err(err).Msg("Error getting range")
+		return nil, err
+	}
+
+	results := make([]T, len(data))
+	for i, d := range data {
+		err = json.Unmarshal([]byte(d), &results[i])
+		if err != nil {
+			log.Error().Err(err).Msg("Error unmarshalling object")
+			return nil, err
+		}
+	}
+	return results, nil
+}
+
 func LPush(ctx context.Context, key string, values ...any) error {
 	rdbConn, err := GetRedisConn(ctx)
 	if err != nil {

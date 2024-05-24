@@ -3,7 +3,6 @@ package fetcher
 
 import (
 	"context"
-	"encoding/json"
 	"strconv"
 	"testing"
 
@@ -96,54 +95,4 @@ func TestFetcherFetchProxy(t *testing.T) {
 		log.Fatal().Err(err).Msg("unexpected server shutdown")
 	}
 
-}
-
-func TestFetchSingle(t *testing.T) {
-	t.Skip() // test fails if data provider refuses connection
-	ctx := context.Background()
-	rawDefinition := `
-	{
-        "url": "https://api.bybit.com/derivatives/v3/public/tickers?symbol=ADAUSDT",
-        "headers": {
-          "Content-Type": "application/json"
-        },
-        "method": "GET",
-        "reducers": [
-          {
-            "function": "PARSE",
-            "args": [
-              "result",
-              "list"
-            ]
-          },
-          {
-            "function": "INDEX",
-            "args": 0
-          },
-          {
-            "function": "PARSE",
-            "args": [
-              "lastPrice"
-            ]
-          },
-          {
-            "function": "POW10",
-            "args": 8
-          },
-          {
-            "function": "ROUND"
-          }
-        ]
-	}`
-	definition := new(Definition)
-	err := json.Unmarshal([]byte(rawDefinition), &definition)
-	if err != nil {
-		t.Fatalf("error unmarshalling definition: %v", err)
-	}
-
-	result, err := FetchSingle(ctx, definition)
-	if err != nil {
-		t.Fatalf("error fetching single: %v", err)
-	}
-	assert.Greater(t, result, float64(0))
 }

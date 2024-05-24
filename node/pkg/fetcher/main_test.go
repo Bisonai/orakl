@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"bisonai.com/orakl/node/pkg/admin/config"
+	"bisonai.com/orakl/node/pkg/admin/feed"
 	"bisonai.com/orakl/node/pkg/admin/fetcher"
 	"bisonai.com/orakl/node/pkg/admin/proxy"
 	"bisonai.com/orakl/node/pkg/admin/tests"
@@ -423,9 +424,11 @@ var sampleData = []string{`{
 }`}
 
 type TestItems struct {
-	admin      *fiber.App
-	messageBus *bus.MessageBus
-	app        *App
+	admin           *fiber.App
+	messageBus      *bus.MessageBus
+	app             *App
+	insertedConfigs []config.ConfigModel
+	insertedFeeds   []feed.FeedModel
 }
 
 func setup(ctx context.Context) (func() error, *TestItems, error) {
@@ -443,6 +446,7 @@ func setup(ctx context.Context) (func() error, *TestItems, error) {
 	config.Routes(v1)
 	proxy.Routes(v1)
 	fetcher.Routes(v1)
+	feed.Routes(v1)
 
 	app := New(mb)
 
@@ -450,34 +454,41 @@ func setup(ctx context.Context) (func() error, *TestItems, error) {
 	testItems.messageBus = mb
 	testItems.app = app
 
-	err = insertSampleData(ctx, admin)
+	configs, feeds, err := insertSampleData(ctx, admin)
 	if err != nil {
 		return nil, nil, err
 	}
+	testItems.insertedConfigs = configs
+	testItems.insertedFeeds = feeds
 
 	return cleanup(ctx, admin, app), testItems, nil
 }
 
-func insertSampleData(ctx context.Context, app *fiber.App) error {
+func insertSampleData(ctx context.Context, app *fiber.App) ([]config.ConfigModel, []feed.FeedModel, error) {
 	var insertData = make([]config.ConfigInsertModel, len(sampleData))
 	var insertResults = make([]config.ConfigModel, len(sampleData))
 
 	for i := range insertData {
 		err := json.Unmarshal([]byte(sampleData[i]), &insertData[i])
 		if err != nil {
-			return err
+			return nil, nil, err
 		}
 	}
 
 	for i := range insertResults {
 		tmp, err := tests.PostRequest[config.ConfigModel](app, "/api/v1/config", insertData[i])
 		if err != nil {
-			return err
+			return nil, nil, err
 		}
 		insertResults[i] = tmp
 	}
 
-	return nil
+	insertedFeeds, err := tests.GetRequest[[]feed.FeedModel](app, "/api/v1/feed", nil)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return insertResults, insertedFeeds, nil
 }
 
 func cleanup(ctx context.Context, admin *fiber.App, app *App) func() error {
