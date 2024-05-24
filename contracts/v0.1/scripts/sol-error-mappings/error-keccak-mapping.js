@@ -1,4 +1,5 @@
-const fs = require('fs')
+const fs = require('node:fs')
+const path = require('node:path')
 const path = require('path')
 const sha3 = require('js-sha3')
 
