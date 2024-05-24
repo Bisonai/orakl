@@ -8,6 +8,7 @@ import (
 	"math/big"
 	"strconv"
 	"testing"
+	"time"
 
 	"net/http"
 	"net/http/httptest"
@@ -284,8 +285,8 @@ func TestInsertLocalAggregatePgsql(t *testing.T) {
 		}
 	}
 
-	defer db.QueryWithoutResult(ctx, "DELETE FROM local_aggregate", nil)
-	result, err := db.QueryRows[aggregator.LocalAggregate](ctx, "SELECT * FROM local_aggregate", nil)
+	defer db.QueryWithoutResult(ctx, "DELETE FROM local_aggregates", nil)
+	result, err := db.QueryRows[aggregator.LocalAggregate](ctx, "SELECT * FROM local_aggregates", nil)
 	if err != nil {
 		t.Fatalf("error getting local aggregate pgsql: %v", err)
 	}
@@ -321,7 +322,7 @@ func TestInsertLocalAggregateRdb(t *testing.T) {
 		if err != nil {
 			t.Fatalf("error getting local aggregate rdb: %v", err)
 		}
-		assert.Equal(t, config.Id, result.ConfigId)
+		assert.Equal(t, int32(config.Id), result.ConfigId)
 	}
 }
 
@@ -339,10 +340,13 @@ func TestCopyFeedData(t *testing.T) {
 
 	feeds := testItems.insertedFeeds
 	feedData := []FeedData{}
+
 	for i, feed := range feeds {
+		now := time.Now().Round(time.Second)
 		feedData = append(feedData, FeedData{
-			FeedID: int32(*feed.Id),
-			Value:  float64(i) + 5,
+			FeedID:    int32(*feed.Id),
+			Value:     float64(i) + 5,
+			Timestamp: &now,
 		})
 	}
 

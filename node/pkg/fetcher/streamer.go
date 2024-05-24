@@ -27,7 +27,7 @@ func (s *Streamer) Run(ctx context.Context) {
 				ticker.Stop()
 				return
 			case <-ticker.C:
-				err := s.streamerJob(s.streamerCtx)
+				err := s.Job(s.streamerCtx)
 				if err != nil {
 					log.Error().Str("Player", "Streamer").Err(err).Msg("error in streamerJob")
 				}
@@ -36,7 +36,7 @@ func (s *Streamer) Run(ctx context.Context) {
 	}()
 }
 
-func (s *Streamer) streamerJob(ctx context.Context) error {
+func (s *Streamer) Job(ctx context.Context) error {
 	log.Debug().Str("Player", "Streamer").Msg("streamerJob")
 	result, err := getFeedDataBuffer(ctx)
 	if err != nil {

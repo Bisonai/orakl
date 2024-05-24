@@ -204,7 +204,7 @@ func (f *Fetcher) filterProxyByLocation(proxies []Proxy, location string) []Prox
 	filteredProxies := []Proxy{}
 	for _, proxy := range proxies {
 		if proxy.Location != nil && *proxy.Location == location {
-			filteredProxies = append(proxies, proxy)
+			filteredProxies = append(filteredProxies, proxy)
 		}
 	}
 	return filteredProxies

@@ -3,6 +3,8 @@ package fetcher
 import (
 	"context"
 	"encoding/json"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"testing"
 
@@ -18,410 +20,51 @@ import (
 	"github.com/rs/zerolog"
 )
 
-var sampleData = []string{`{
-  "name": "DAI-USDT",
-  "feeds": [
-    {
-      "name": "Binance-DAI-USDT",
-      "definition": {
-        "url": "https://api.binance.com/api/v3/avgPrice?symbol=DAIUSDT",
-        "headers": {
-          "Content-Type": "application/json"
-        },
-        "method": "GET",
-        "reducers": [
-          {
-            "function": "PARSE",
-            "args": [
-              "price"
-            ]
-          },
-          {
-            "function": "POW10",
-            "args": 8
-          },
-          {
-            "function": "ROUND"
-          }
-        ]
-      }
+const (
+	mockReply0 = `{
+    "mins": 5,
+    "price": "1.01827085",
+    "closeTime": 1597204784937
+  }`
+
+	mockReply1 = `{
+    "retCode": 0,
+    "retMsg": "OK",
+    "result": {
+      "category": "",
+      "list": [
+        {
+          "symbol": "DOGEUSDT",
+          "bidPrice": "0.15845",
+          "askPrice": "0.15846",
+          "lastPrice": "0.15845",
+          "lastTickDirection": "ZeroMinusTick",
+          "prevPrice24h": "0.16706",
+          "price24hPcnt": "-0.051538",
+          "highPrice24h": "0.17140",
+          "lowPrice24h": "0.15147",
+          "prevPrice1h": "0.15671",
+          "markPrice": "0.15846",
+          "indexPrice": "0.15839",
+          "openInterest": "1522687772",
+          "turnover24h": "773341302.2606",
+          "volume24h": "4789388852.0000",
+          "fundingRate": "0.0001",
+          "nextFundingTime": "1716537600000",
+          "predictedDeliveryPrice": "",
+          "basisRate": "",
+          "deliveryFeeRate": "",
+          "deliveryTime": "0",
+          "openInterestValue": "241285104.35"
+        }
+      ]
     },
-    {
-      "name": "Crypto-DAI-USDT",
-      "definition": {
-        "url": "https://api.crypto.com/v2/public/get-ticker?instrument_name=DAI_USDT",
-        "headers": {
-          "Content-Type": "application/json"
-        },
-        "method": "GET",
-        "reducers": [
-          {
-            "function": "PARSE",
-            "args": [
-              "result",
-              "data"
-            ]
-          },
-          {
-            "function": "INDEX",
-            "args": 0
-          },
-          {
-            "function": "PARSE",
-            "args": [
-              "a"
-            ]
-          },
-          {
-            "function": "POW10",
-            "args": 8
-          },
-          {
-            "function": "ROUND"
-          }
-        ]
-      }
+    "retExtInfo": {
+
     },
-    {
-      "name": "Coinbase-DAI-USDT",
-      "definition": {
-        "url": "https://api.coinbase.com/v2/exchange-rates?currency=DAI",
-        "headers": {
-          "Content-Type": "application/json"
-        },
-        "method": "GET",
-        "reducers": [
-          {
-            "function": "PARSE",
-            "args": [
-              "data",
-              "rates",
-              "USDT"
-            ]
-          },
-          {
-            "function": "POW10",
-            "args": 8
-          },
-          {
-            "function": "ROUND"
-          }
-        ]
-      }
-    },
-    {
-      "name": "Gateio-DAI-USDT",
-      "definition": {
-        "url": "https://api.gateio.ws/api/v4/spot/tickers?currency_pair=DAI_USDT",
-        "headers": {
-          "Content-Type": "application/json"
-        },
-        "method": "GET",
-        "reducers": [
-          {
-            "function": "INDEX",
-            "args": 0
-          },
-          {
-            "function": "PARSE",
-            "args": [
-              "last"
-            ]
-          },
-          {
-            "function": "POW10",
-            "args": 8
-          },
-          {
-            "function": "ROUND"
-          }
-        ]
-      }
-    },
-    {
-      "name": "Coinex-DAI-USDT",
-      "definition": {
-        "url": "https://api.coinex.com/v1/market/ticker?market=DAIUSDT",
-        "headers": {
-          "Content-Type": "application/json"
-        },
-        "method": "GET",
-        "reducers": [
-          {
-            "function": "PARSE",
-            "args": [
-              "data",
-              "ticker",
-              "last"
-            ]
-          },
-          {
-            "function": "POW10",
-            "args": 8
-          },
-          {
-            "function": "ROUND"
-          }
-        ]
-      }
-    },
-    {
-      "name": "UniswapV3-DAI-USDT",
-      "definition": {
-        "chainId": "1",
-        "address": "0x48da0965ab2d2cbf1c17c09cfb5cbe67ad5b1406",
-        "type": "UniswapPool",
-        "token0Decimals": 18,
-        "token1Decimals": 6
-      }
-    }
-  ],
-  "fetchInterval": 2000,
-  "aggregateInterval": 5000,
-  "submitInterval": 15000
-}`, `{
-"name": "DOGE-USDT",
-"feeds": [
-  {
-    "name": "Bybit-DOGE-USDT",
-    "definition": {
-      "url": "https://api.bybit.com/derivatives/v3/public/tickers?symbol=DOGEUSDT",
-      "headers": {
-        "Content-Type": "application/json"
-      },
-      "method": "GET",
-      "reducers": [
-        {
-          "function": "PARSE",
-          "args": [
-            "result",
-            "list"
-          ]
-        },
-        {
-          "function": "INDEX",
-          "args": 0
-        },
-        {
-          "function": "PARSE",
-          "args": [
-            "lastPrice"
-          ]
-        },
-        {
-          "function": "POW10",
-          "args": 8
-        },
-        {
-          "function": "ROUND"
-        }
-      ]
-    }
-  },
-  {
-    "name": "Binance-DOGE-USDT",
-    "definition": {
-      "url": "https://api.binance.com/api/v3/avgPrice?symbol=DOGEUSDT",
-      "headers": {
-        "Content-Type": "application/json"
-      },
-      "method": "GET",
-      "reducers": [
-        {
-          "function": "PARSE",
-          "args": [
-            "price"
-          ]
-        },
-        {
-          "function": "POW10",
-          "args": 8
-        },
-        {
-          "function": "ROUND"
-        }
-      ]
-    }
-  },
-  {
-    "name": "Kucoin-DOGE-USDT",
-    "definition": {
-      "url": "https://api.kucoin.com/api/v1/market/orderbook/level1?symbol=DOGE-USDT",
-      "headers": {
-        "Content-Type": "application/json"
-      },
-      "method": "GET",
-      "reducers": [
-        {
-          "function": "PARSE",
-          "args": [
-            "data",
-            "price"
-          ]
-        },
-        {
-          "function": "POW10",
-          "args": 8
-        },
-        {
-          "function": "ROUND"
-        }
-      ]
-    }
-  },
-  {
-    "name": "Crypto-DOGE-USDT",
-    "definition": {
-      "url": "https://api.crypto.com/v2/public/get-ticker?instrument_name=DOGE_USDT",
-      "headers": {
-        "Content-Type": "application/json"
-      },
-      "method": "GET",
-      "reducers": [
-        {
-          "function": "PARSE",
-          "args": [
-            "result",
-            "data"
-          ]
-        },
-        {
-          "function": "INDEX",
-          "args": 0
-        },
-        {
-          "function": "PARSE",
-          "args": [
-            "a"
-          ]
-        },
-        {
-          "function": "POW10",
-          "args": 8
-        },
-        {
-          "function": "ROUND"
-        }
-      ]
-    }
-  },
-  {
-    "name": "Btse-DOGE-USDT",
-    "definition": {
-      "url": "https://api.btse.com/spot/api/v3.2/price?symbol=DOGE-USDT",
-      "headers": {
-        "Content-Type": "application/json"
-      },
-      "method": "GET",
-      "reducers": [
-        {
-          "function": "INDEX",
-          "args": 0
-        },
-        {
-          "function": "PARSE",
-          "args": [
-            "indexPrice"
-          ]
-        },
-        {
-          "function": "POW10",
-          "args": 8
-        },
-        {
-          "function": "ROUND"
-        }
-      ]
-    }
-  },
-  {
-    "name": "Coinbase-DOGE-USDT",
-    "definition": {
-      "url": "https://api.coinbase.com/v2/exchange-rates?currency=DOGE",
-      "headers": {
-        "Content-Type": "application/json"
-      },
-      "method": "GET",
-      "reducers": [
-        {
-          "function": "PARSE",
-          "args": [
-            "data",
-            "rates",
-            "USDT"
-          ]
-        },
-        {
-          "function": "POW10",
-          "args": 8
-        },
-        {
-          "function": "ROUND"
-        }
-      ]
-    }
-  },
-  {
-    "name": "Gateio-DOGE-USDT",
-    "definition": {
-      "url": "https://api.gateio.ws/api/v4/spot/tickers?currency_pair=DOGE_USDT",
-      "headers": {
-        "Content-Type": "application/json"
-      },
-      "method": "GET",
-      "reducers": [
-        {
-          "function": "INDEX",
-          "args": 0
-        },
-        {
-          "function": "PARSE",
-          "args": [
-            "last"
-          ]
-        },
-        {
-          "function": "POW10",
-          "args": 8
-        },
-        {
-          "function": "ROUND"
-        }
-      ]
-    }
-  },
-  {
-    "name": "Coinex-DOGE-USDT",
-    "definition": {
-      "url": "https://api.coinex.com/v1/market/ticker?market=DOGEUSDT",
-      "headers": {
-        "Content-Type": "application/json"
-      },
-      "method": "GET",
-      "reducers": [
-        {
-          "function": "PARSE",
-          "args": [
-            "data",
-            "ticker",
-            "last"
-          ]
-        },
-        {
-          "function": "POW10",
-          "args": 8
-        },
-        {
-          "function": "ROUND"
-        }
-      ]
-    }
-  }
-],
-"fetchInterval": 2000,
-"aggregateInterval": 5000,
-"submitInterval": 15000
-}`}
+    "time": 1716537538486
+  }`
+)
 
 type TestItems struct {
 	admin           *fiber.App
@@ -429,6 +72,7 @@ type TestItems struct {
 	app             *App
 	insertedConfigs []config.ConfigModel
 	insertedFeeds   []feed.FeedModel
+	mockDataSource  []*httptest.Server
 }
 
 func setup(ctx context.Context) (func() error, *TestItems, error) {
@@ -450,21 +94,117 @@ func setup(ctx context.Context) (func() error, *TestItems, error) {
 
 	app := New(mb)
 
+	mockDataSource1 := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte(mockReply0))
+	}))
+
+	mockDataSource2 := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte(mockReply1))
+	}))
+
+	testItems.mockDataSource = []*httptest.Server{mockDataSource1, mockDataSource2}
 	testItems.admin = admin
 	testItems.messageBus = mb
 	testItems.app = app
 
-	configs, feeds, err := insertSampleData(ctx, admin)
+	configs, feeds, err := insertSampleData(ctx, testItems)
 	if err != nil {
 		return nil, nil, err
 	}
 	testItems.insertedConfigs = configs
 	testItems.insertedFeeds = feeds
 
-	return cleanup(ctx, admin, app), testItems, nil
+	return cleanup(ctx, testItems), testItems, nil
 }
 
-func insertSampleData(ctx context.Context, app *fiber.App) ([]config.ConfigModel, []feed.FeedModel, error) {
+func insertSampleData(ctx context.Context, testItems *TestItems) ([]config.ConfigModel, []feed.FeedModel, error) {
+	var sampleData = []string{`{
+    "name": "DAI-USDT",
+    "feeds": [
+      {
+        "name": "Binance-DAI-USDT",
+        "definition": {
+          "url": "` + testItems.mockDataSource[0].URL + `",
+          "headers": {
+            "Content-Type": "application/json"
+          },
+          "method": "GET",
+          "reducers": [
+            {
+              "function": "PARSE",
+              "args": [
+                "price"
+              ]
+            },
+            {
+              "function": "POW10",
+              "args": 8
+            },
+            {
+              "function": "ROUND"
+            }
+          ]
+        }
+      },
+      {
+        "name": "UniswapV3-DAI-USDT",
+        "definition": {
+          "chainId": "1",
+          "address": "0x48da0965ab2d2cbf1c17c09cfb5cbe67ad5b1406",
+          "type": "UniswapPool",
+          "token0Decimals": 18,
+          "token1Decimals": 6
+        }
+      }
+    ],
+    "fetchInterval": 2000,
+    "aggregateInterval": 5000,
+    "submitInterval": 15000
+  }`, `{
+  "name": "DOGE-USDT",
+  "feeds": [
+    {
+      "name": "Bybit-DOGE-USDT",
+      "definition": {
+        "url": "` + testItems.mockDataSource[1].URL + `",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "method": "GET",
+        "reducers": [
+          {
+            "function": "PARSE",
+            "args": [
+              "result",
+              "list"
+            ]
+          },
+          {
+            "function": "INDEX",
+            "args": 0
+          },
+          {
+            "function": "PARSE",
+            "args": [
+              "lastPrice"
+            ]
+          },
+          {
+            "function": "POW10",
+            "args": 8
+          },
+          {
+            "function": "ROUND"
+          }
+        ]
+      }
+    }
+  ],
+  "fetchInterval": 2000,
+  "aggregateInterval": 5000,
+  "submitInterval": 15000
+  }`}
+
 	var insertData = make([]config.ConfigInsertModel, len(sampleData))
 	var insertResults = make([]config.ConfigModel, len(sampleData))
 
@@ -476,14 +216,14 @@ func insertSampleData(ctx context.Context, app *fiber.App) ([]config.ConfigModel
 	}
 
 	for i := range insertResults {
-		tmp, err := tests.PostRequest[config.ConfigModel](app, "/api/v1/config", insertData[i])
+		tmp, err := tests.PostRequest[config.ConfigModel](testItems.admin, "/api/v1/config", insertData[i])
 		if err != nil {
 			return nil, nil, err
 		}
 		insertResults[i] = tmp
 	}
 
-	insertedFeeds, err := tests.GetRequest[[]feed.FeedModel](app, "/api/v1/feed", nil)
+	insertedFeeds, err := tests.GetRequest[[]feed.FeedModel](testItems.admin, "/api/v1/feed", nil)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -491,9 +231,9 @@ func insertSampleData(ctx context.Context, app *fiber.App) ([]config.ConfigModel
 	return insertResults, insertedFeeds, nil
 }
 
-func cleanup(ctx context.Context, admin *fiber.App, app *App) func() error {
+func cleanup(ctx context.Context, testItems *TestItems) func() error {
 	return func() error {
-		if err := admin.Shutdown(); err != nil {
+		if err := testItems.admin.Shutdown(); err != nil {
 			return err
 		}
 		err := db.QueryWithoutResult(ctx, "DELETE FROM configs", nil)
@@ -513,10 +253,15 @@ func cleanup(ctx context.Context, admin *fiber.App, app *App) func() error {
 		if err != nil {
 			return err
 		}
-		err = app.stopAllFetchers(ctx)
+		err = testItems.app.stopAllFetchers(ctx)
 		if err != nil {
 			return err
 		}
+
+		for _, server := range testItems.mockDataSource {
+			server.Close()
+		}
+
 		return nil
 	}
 }
