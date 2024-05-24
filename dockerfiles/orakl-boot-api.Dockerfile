@@ -22,7 +22,7 @@ WORKDIR /app
 
 RUN mkdir /app/migrations
 
-COPY --from=builder /app/node/migrations /app/migrations
+COPY --from=builder /app/node/migrations/boot /app/migrations
 
 COPY --from=builder /app/node/bootbin /usr/bin
 

@@ -30,12 +30,9 @@ Off-chain aggregator performs the following steps to regularly submit data into 
 2. Send and receive data with other nodes, aggregate all received data, and save aggregated data into the database.
 3. Submit aggregated data into the chain.
 
-
 <figure><img src="./Node.drawio.svg" alt=""><figcaption><p>Set of `Admin`, `fetcher`, `aggregator`, and `reporter` runs in a single Orakl Node</p></figcaption></figure>
 
-
 <figure><img src="./DAL.drawio.svg" alt=""><figcaption><p>Data Availability Layer for both pull & push pattern</p></figcaption></figure>
-
 
 ## Project Structure
 
@@ -150,7 +147,11 @@ After go-migrate is installed, run migration with the following command:
 More details about go migrate cli command can be found [here](https://github.com/golang-migrate/migrate/tree/master/cmd/migrate)
 
 ```sh
-migrate -database "{$DATABASE_URL}" -path ./migrations up
+# node
+migrate -database "{$DATABASE_URL}" -path ./migrations/node up
+
+# boot
+migrate -database "{$DATABASE_URL}" -path ./migrations/boot up
 ```
 
 This process will generate required tables and constraints to run the service.
@@ -174,12 +175,13 @@ JSON-RPCs are referenced from both fetcher and reporter. If provided, it'll try 
 ---
 
 If you want to set these settings, use [cli commands](#cli) while admin API is running. Admin API is run together while the node is running, or you can run Admin API separately without running the whole service through the following task command
+
 ```sh
 task local:admin
 ```
+
 - Run CLI commands while the admin API is running (e.g., `task local:add-wallet PK=0x123`).
 - If the whole service was running when adding the settings, refresh the related service to apply changes (e.g., `task local:refresh-reporter`).
-
 
 ### Run Node
 
@@ -188,22 +190,22 @@ Follow these steps to set up and run the application:
 1. **Set up the database**: Ensure PostgreSQL and Redis are running. PostgreSQL should have tables based on migration files.
 2. **Copy .env.local to .env**: Copy the local environment settings to the main environment file
 
-  ```sh
-  cp .env.local .env
-  ```
+```sh
+cp .env.local .env
+```
 
-3. **Update environment variables**: Replace `DATABASE_URL`, `KLAYTN_REPORTER_PK`, `SIGNER_PK`, and other values with valid ones in the .env file. 
+3. **Update environment variables**: Replace `DATABASE_URL`, `KLAYTN_REPORTER_PK`, `SIGNER_PK`, and other values with valid ones in the .env file.
 4. **Run Boot API**:
 
-    ```sh
-    task local:boot-api
-    ```
+   ```sh
+   task local:boot-api
+   ```
 
 5. **Run Node**: Execute this from a different shell.
 
-    ```sh
-    task local:node
-    ```
+   ```sh
+   task local:node
+   ```
 
 ## Other Task Commands
 
@@ -284,12 +286,14 @@ task local:get-json-rpc
 [Reference](https://github.com/klaytn/klaytn/issues/197#issuecomment-612597933)
 
 1. Install C compilers
+
 ```sh
 # use the appropriate command depending on the instance environment
 sudo apt-get install -y g++-x86-64-linux-gnu libc6-dev-amd64-cross
 ```
 
 2. Set variables
+
 ```sh
 set CGO_ENABLED=1
 set CC=[c cross compiler]
@@ -298,6 +302,7 @@ set GOARCH=amd64
 ```
 
 # POR
+
 Por service stands for proof of reserve. To be updated later, with scalability to support multiple providers.
 
 ## Quickstart
