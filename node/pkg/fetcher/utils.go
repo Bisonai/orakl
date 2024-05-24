@@ -72,11 +72,7 @@ func getLatestFeedData(ctx context.Context, feedIds []int32) ([]FeedData, error)
 }
 
 func setFeedDataBuffer(ctx context.Context, feedData []FeedData) error {
-	values := make([]interface{}, len(feedData))
-	for i, data := range feedData {
-		values[i] = data
-	}
-	return db.LPushObject(ctx, "feedDataBuffer", values)
+	return db.LPushObject(ctx, "feedDataBuffer", feedData)
 }
 
 func getFeedDataBuffer(ctx context.Context) ([]FeedData, error) {

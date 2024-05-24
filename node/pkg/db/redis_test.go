@@ -362,10 +362,10 @@ func TestLPushObject(t *testing.T) {
 	}
 
 	key := "testKey"
-	values := []any{
-		TestStruct{ID: 1, Name: "Test1"},
-		TestStruct{ID: 2, Name: "Test2"},
-		TestStruct{ID: 3, Name: "Test3"},
+	values := []TestStruct{
+		{ID: 1, Name: "Test1"},
+		{ID: 2, Name: "Test2"},
+		{ID: 3, Name: "Test3"},
 	}
 
 	err := LPushObject(ctx, key, values)
@@ -443,10 +443,10 @@ func TestPopAllObject(t *testing.T) {
 	}
 
 	key := "testKey"
-	values := []any{
-		TestStruct{ID: 1, Name: "Test1"},
-		TestStruct{ID: 2, Name: "Test2"},
-		TestStruct{ID: 3, Name: "Test3"},
+	values := []TestStruct{
+		{ID: 1, Name: "Test1"},
+		{ID: 2, Name: "Test2"},
+		{ID: 3, Name: "Test3"},
 	}
 
 	// Push objects to the list

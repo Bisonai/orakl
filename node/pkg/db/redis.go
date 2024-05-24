@@ -50,7 +50,7 @@ func MSet(ctx context.Context, values map[string]string) error {
 		return err
 	}
 
-	var pairs []interface{}
+	var pairs []any
 	for key, value := range values {
 		pairs = append(pairs, key, value)
 	}
@@ -58,16 +58,22 @@ func MSet(ctx context.Context, values map[string]string) error {
 }
 
 func MSetObject(ctx context.Context, values map[string]any) error {
-	stringMap := make(map[string]string)
+	rdbConn, err := GetRedisConn(ctx)
+	if err != nil {
+		return err
+	}
+
+	var pairs []any
 	for key, value := range values {
 		data, err := json.Marshal(value)
 		if err != nil {
 			log.Error().Err(err).Msg("Error marshalling object")
 			return err
 		}
-		stringMap[key] = string(data)
+		pairs = append(pairs, key, string(data))
 	}
-	return MSet(ctx, stringMap)
+
+	return rdbConn.MSet(ctx, pairs...).Err()
 }
 
 func Set(ctx context.Context, key string, value string, exp time.Duration) error {
@@ -169,7 +175,7 @@ func LPush(ctx context.Context, key string, values ...any) error {
 	return rdbConn.LPush(ctx, key, values...).Err()
 }
 
-func LPushObject(ctx context.Context, key string, values []any) error {
+func LPushObject[T any](ctx context.Context, key string, values []T) error {
 	stringValues := make([]interface{}, len(values))
 	for i, v := range values {
 		data, err := json.Marshal(v)
@@ -208,15 +214,13 @@ func PopAllObject[T any](ctx context.Context, key string) ([]T, error) {
 		return nil, err
 	}
 
-	results := []T{}
-	for _, d := range data {
-		var t T
-		err = json.Unmarshal([]byte(d), &t)
+	results := make([]T, len(data))
+	for i, d := range data {
+		err = json.Unmarshal([]byte(d), &results[i])
 		if err != nil {
 			log.Error().Err(err).Msg("Error unmarshalling object")
 			return nil, err
 		}
-		results = append(results, t)
 	}
 	return results, nil
 }
