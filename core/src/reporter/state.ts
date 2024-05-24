@@ -3,6 +3,7 @@ import type { RedisClientType } from 'redis'
 import { getReporter, getReporters } from '../api'
 import { OraklError, OraklErrorCode } from '../errors'
 import { IReporterConfig } from '../types'
+import { isAddressValid } from '../utils'
 import { buildCaverWallet, buildWallet, isPrivateKeyAddressPairValid } from './utils'
 
 const FILE_NAME = import.meta.url
@@ -113,6 +114,12 @@ export class State {
       throw new OraklError(OraklErrorCode.ReporterNotAdded, msg)
     }
 
+    if (!isAddressValid(toAddReporter.address) || !isAddressValid(toAddReporter.oracleAddress)) {
+      const msg = `Reporter with ID=${id} has invalid address.`
+      this.logger.debug({ name: 'add', file: FILE_NAME }, msg)
+      throw new OraklError(OraklErrorCode.ReporterNotAdded, msg)
+    }
+
     // Update active reporters
     const updatedActiveReporters = [...activeReporters, toAddReporter]
     await this.redisClient.set(this.stateName, JSON.stringify(updatedActiveReporters))
@@ -196,6 +203,11 @@ export class State {
         this.logger.warn(
           { name: 'refresh', file: FILE_NAME },
           `Reporter with ID=${reporter.id} has invalid private key.`
+        )
+      } else if (!isAddressValid(reporter.address) || !isAddressValid(reporter.oracleAddress)) {
+        this.logger.warn(
+          { name: 'refresh', file: FILE_NAME },
+          `Reporter with ID=${reporter.id} has invalid address.`
         )
       } else {
         reporters.push(reporter)
