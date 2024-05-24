@@ -8,7 +8,7 @@ function processFile(filePath) {
   const lines = content.split('\n')
   const mapping = {}
 
-  lines.forEach((line) => {
+  for (const line of lines) {
     const trimmedLine = line.trim()
     if (trimmedLine.startsWith('error ')) {
       const processedLine = trimmedLine
@@ -25,7 +25,7 @@ function processFile(filePath) {
       const hash = sha3.keccak256(processedLine)
       mapping[processedLine] = hash
     }
-  })
+  }
 
   return mapping
 }
