@@ -44,13 +44,13 @@ const (
 		`
 
 	GetObservedBlock = `
-		SELECT * FROM observed_block
+		SELECT * FROM observed_blocks
 		WHERE block_key = @block_key
 		LIMIT 1;
 	`
 	
 	UpsertObservedBlock = `
-		INSERT INTO observed_block (block_key, block_number)
+		INSERT INTO observed_blocks (block_key, block_number)
 		VALUES (@block_key, @block_number)
 		ON CONFLICT (block_key) 
 		DO UPDATE SET block_number = @block_number
