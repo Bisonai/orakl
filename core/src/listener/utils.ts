@@ -1,6 +1,7 @@
 import { Logger } from 'pino'
 import { OraklError, OraklErrorCode } from '../errors'
 import { IListenerConfig, IListenerGroupConfig, IListenerRawConfig } from '../types'
+import { isAddressValid } from '../utils'
 
 const FILE_NAME = import.meta.url
 
@@ -92,6 +93,13 @@ export function validateListenerConfig(config: IListenerConfig[], logger?: Logge
     const allPropertiesExist = propertyExist.every((i) => i)
     if (!allPropertiesExist) {
       logger?.error({ name: 'validateListenerConfig', file: FILE_NAME, ...c }, 'config')
+      return false
+    }
+    if (!isAddressValid(c.address)) {
+      logger?.error(
+        { name: 'validateListenerConfig', file: FILE_NAME, address: c.address },
+        'invalid address'
+      )
       return false
     }
   }

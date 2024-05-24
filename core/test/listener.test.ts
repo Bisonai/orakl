@@ -47,7 +47,7 @@ describe('Listener', function () {
     const config = [
       {
         id: '0',
-        address: '0x0165878a594ca255338adfa4d48449f69242eb8f',
+        address: '0x0165878A594ca255338adfa4d48449f69242Eb8F',
         eventName: 'RandomWordsRequested',
         chain: 'localhost'
       }
@@ -60,7 +60,7 @@ describe('Listener', function () {
     const config = [
       {
         id: '0',
-        address: '0x0165878a594ca255338adfa4d48449f69242eb8f',
+        address: '0x0165878A594ca255338adfa4d48449f69242Eb8F',
         //eventName: 'RandomWordsRequested'
         chain: 'localhost'
       }
