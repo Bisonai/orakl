@@ -49,12 +49,12 @@ func MSet(ctx context.Context, values map[string]string) error {
 	if err != nil {
 		return err
 	}
-	rdb = rdbConn
+
 	var pairs []interface{}
 	for key, value := range values {
 		pairs = append(pairs, key, value)
 	}
-	return rdb.MSet(ctx, pairs...).Err()
+	return rdbConn.MSet(ctx, pairs...).Err()
 }
 
 func MSetObject(ctx context.Context, values map[string]any) error {
@@ -76,8 +76,7 @@ func Set(ctx context.Context, key string, value string, exp time.Duration) error
 		log.Error().Err(err).Msg("Error getting redis connection")
 		return err
 	}
-	rdb = rdbConn
-	return setRedis(ctx, rdb, key, value, exp)
+	return setRedis(ctx, rdbConn, key, value, exp)
 }
 
 func SetObject(ctx context.Context, key string, value any, exp time.Duration) error {
@@ -95,8 +94,7 @@ func MGet(ctx context.Context, keys []string) ([]any, error) {
 		log.Error().Err(err).Msg("Error getting redis connection")
 		return nil, err
 	}
-	rdb = rdbConn
-	return rdb.MGet(ctx, keys...).Result()
+	return rdbConn.MGet(ctx, keys...).Result()
 }
 
 func MGetObject[T any](ctx context.Context, keys []string) ([]T, error) {
@@ -130,8 +128,7 @@ func Get(ctx context.Context, key string) (string, error) {
 		log.Error().Err(err).Msg("Error getting redis connection")
 		return "", err
 	}
-	rdb = rdbConn
-	return getRedis(ctx, rdb, key)
+	return getRedis(ctx, rdbConn, key)
 }
 
 func GetObject[T any](ctx context.Context, key string) (T, error) {
@@ -151,8 +148,77 @@ func Del(ctx context.Context, key string) error {
 		log.Error().Err(err).Msg("Error getting redis connection")
 		return err
 	}
-	rdb = rdbConn
-	return rdb.Del(ctx, key).Err()
+	return rdbConn.Del(ctx, key).Err()
+}
+
+func LRange(ctx context.Context, key string, start int64, end int64) ([]string, error) {
+	rdbConn, err := GetRedisConn(ctx)
+	if err != nil {
+		log.Error().Err(err).Msg("Error getting redis connection")
+		return nil, err
+	}
+	return rdbConn.LRange(ctx, key, start, end).Result()
+}
+
+func LPush(ctx context.Context, key string, values ...any) error {
+	rdbConn, err := GetRedisConn(ctx)
+	if err != nil {
+		log.Error().Err(err).Msg("Error getting redis connection")
+		return err
+	}
+	return rdbConn.LPush(ctx, key, values...).Err()
+}
+
+func LPushObject(ctx context.Context, key string, values []any) error {
+	stringValues := make([]interface{}, len(values))
+	for i, v := range values {
+		data, err := json.Marshal(v)
+		if err != nil {
+			log.Error().Err(err).Msg("Error marshalling object")
+			return err
+		}
+		stringValues[i] = string(data)
+	}
+	return LPush(ctx, key, stringValues...)
+}
+
+func PopAll(ctx context.Context, key string) ([]string, error) {
+	rdbConn, err := GetRedisConn(ctx)
+	if err != nil {
+		log.Error().Err(err).Msg("Error getting redis connection")
+		return nil, err
+	}
+
+	pipe := rdbConn.TxPipeline()
+	lrange := pipe.LRange(ctx, key, 0, -1)
+	pipe.Del(ctx, key)
+	_, err = pipe.Exec(ctx)
+	if err != nil {
+		log.Error().Err(err).Msg("Error executing pipeline")
+		return nil, err
+	}
+
+	return lrange.Val(), nil
+}
+
+func PopAllObject[T any](ctx context.Context, key string) ([]T, error) {
+	data, err := PopAll(ctx, key)
+	if err != nil {
+		log.Error().Err(err).Msg("Error popping all objects")
+		return nil, err
+	}
+
+	results := []T{}
+	for _, d := range data {
+		var t T
+		err = json.Unmarshal([]byte(d), &t)
+		if err != nil {
+			log.Error().Err(err).Msg("Error unmarshalling object")
+			return nil, err
+		}
+		results = append(results, t)
+	}
+	return results, nil
 }
 
 func connectToRedis(ctx context.Context, connectionInfo RedisConnectionInfo) (*redis.Conn, error) {
