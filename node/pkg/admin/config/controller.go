@@ -19,7 +19,7 @@ type BulkConfigs struct {
 type FeedInsertModel struct {
 	Name       string          `db:"name" json:"name" validate:"required"`
 	Definition json.RawMessage `db:"definition" json:"definition" validate:"required"`
-	ConfigId   *int64          `db:"config_id" json:"configId"`
+	ConfigId   *int32          `db:"config_id" json:"configId"`
 }
 
 type ConfigInsertModel struct {
@@ -31,7 +31,7 @@ type ConfigInsertModel struct {
 }
 
 type ConfigModel struct {
-	Id                int64  `db:"id" json:"id"`
+	Id                int32  `db:"id" json:"id"`
 	Name              string `db:"name" json:"name"`
 	FetchInterval     *int   `db:"fetch_interval" json:"fetchInterval"`
 	AggregateInterval *int   `db:"aggregate_interval" json:"aggregateInterval"`
@@ -40,7 +40,7 @@ type ConfigModel struct {
 
 type ConfigNameIdModel struct {
 	Name string `db:"name" json:"name"`
-	Id   int64  `db:"id" json:"id"`
+	Id   int32  `db:"id" json:"id"`
 }
 
 func Sync(c *fiber.Ctx) error {
@@ -103,7 +103,7 @@ func Sync(c *fiber.Ctx) error {
 		return err
 	}
 
-	configNameIdMap := map[string]int64{}
+	configNameIdMap := map[string]int32{}
 	for _, configId := range configIds {
 		configNameIdMap[configId.Name] = configId.Id
 	}
