@@ -17,7 +17,6 @@ import (
 )
 
 func TestFetcherRun(t *testing.T) {
-	t.Skip()
 	ctx := context.Background()
 	clean, testItems, err := setup(ctx)
 	if err != nil {
@@ -59,7 +58,6 @@ func TestFetcherRun(t *testing.T) {
 }
 
 func TestFetcherFetcherJob(t *testing.T) {
-	t.Skip()
 	ctx := context.Background()
 	clean, testItems, err := setup(ctx)
 	if err != nil {
@@ -105,7 +103,6 @@ func TestFetcherFetcherJob(t *testing.T) {
 }
 
 func TestFetcherFetch(t *testing.T) {
-	t.Skip()
 	ctx := context.Background()
 	clean, testItems, err := setup(ctx)
 	if err != nil {
@@ -134,7 +131,6 @@ func TestFetcherFetch(t *testing.T) {
 }
 
 func TestFetcherFetchProxy(t *testing.T) {
-	t.Skip()
 	ctx := context.Background()
 	clean, testItems, err := setup(ctx)
 	if err != nil {
@@ -190,7 +186,6 @@ func TestFetcherFetchProxy(t *testing.T) {
 }
 
 func TestFetcherCex(t *testing.T) {
-	t.Skip()
 	ctx := context.Background()
 	clean, testItems, err := setup(ctx)
 	if err != nil {
@@ -231,7 +226,6 @@ func TestFetcherCex(t *testing.T) {
 }
 
 func TestFetcherUniswapV3(t *testing.T) {
-	t.Skip()
 	ctx := context.Background()
 	clean, testItems, err := setup(ctx)
 	if err != nil {
@@ -272,7 +266,6 @@ func TestFetcherUniswapV3(t *testing.T) {
 }
 
 func TestRequestFeed(t *testing.T) {
-	t.Skip()
 	ctx := context.Background()
 	clean, testItems, err := setup(ctx)
 	if err != nil {
@@ -322,7 +315,6 @@ func TestFetcherRequestWithProxy(t *testing.T) {
 }
 
 func TestFetcherFilterProxyByLocation(t *testing.T) {
-	t.Skip()
 	uk := "uk"
 	us := "us"
 	kr := "kr"

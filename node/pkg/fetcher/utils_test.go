@@ -180,13 +180,6 @@ func TestGetLatestFeedData(t *testing.T) {
 	}
 
 	keys := []string{"latestFeedData:1", "latestFeedData:2"}
-	// err := db.MSetObject(ctx, map[string]any{
-	// 	keys[0]: feedData[0],
-	// 	keys[1]: feedData[1],
-	// })
-	// if err != nil {
-	// 	t.Fatalf("error setting latest feed data: %v", err)
-	// }
 	err := setLatestFeedData(ctx, feedData)
 	if err != nil {
 		t.Fatalf("error setting latest feed data: %v", err)
@@ -278,8 +271,8 @@ func TestInsertLocalAggregatePgsql(t *testing.T) {
 
 	configs := testItems.insertedConfigs
 	for i, config := range configs {
-		//TODO: Remove int32 conversion after node admin fix pr has been merged
-		err := insertLocalAggregatePgsql(ctx, int32(config.Id), float64(i)+5)
+
+		err := insertLocalAggregatePgsql(ctx, config.Id, float64(i)+5)
 		if err != nil {
 			t.Fatalf("error inserting local aggregate pgsql: %v", err)
 		}
@@ -308,8 +301,7 @@ func TestInsertLocalAggregateRdb(t *testing.T) {
 
 	configs := testItems.insertedConfigs
 	for i, config := range configs {
-		//TODO: Remove int32 conversion after node admin fix pr has been merged
-		err := insertLocalAggregateRdb(ctx, int32(config.Id), float64(i)+5)
+		err := insertLocalAggregateRdb(ctx, config.Id, float64(i)+5)
 		if err != nil {
 			t.Fatalf("error inserting local aggregate rdb: %v", err)
 		}
