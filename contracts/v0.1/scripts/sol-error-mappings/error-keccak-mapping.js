@@ -1,6 +1,5 @@
 const fs = require('node:fs')
 const path = require('node:path')
-const path = require('path')
 const sha3 = require('js-sha3')
 
 function processFile(filePath) {
@@ -16,7 +15,10 @@ function processFile(filePath) {
         .replace(
           /\(([^)]+)\)/,
           (match) =>
-            `${match.split(' ').filter((_, idx) => idx % 2 === 0).join(',')})`
+            `${match
+              .split(' ')
+              .filter((_, idx) => idx % 2 === 0)
+              .join(',')})`
         )
         .replace(';', '')
       const hash = sha3.keccak256(processedLine)
