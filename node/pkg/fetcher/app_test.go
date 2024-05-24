@@ -85,15 +85,15 @@ func TestAppRun(t *testing.T) {
 
 	for _, fetcher := range app.Fetchers {
 		for _, feed := range fetcher.Feeds {
-			result, err := db.GetObject[FeedData](ctx, "latestFeedData:"+strconv.Itoa(int(feed.ID)))
-			if err != nil {
-				t.Fatalf("error getting latest feed data: %v", err)
+			result, letestFeedDataErr := db.GetObject[FeedData](ctx, "latestFeedData:"+strconv.Itoa(int(feed.ID)))
+			if letestFeedDataErr != nil {
+				t.Fatalf("error getting latest feed data: %v", letestFeedDataErr)
 			}
 			assert.NotNil(t, result)
 		}
-		rdbResult, err := db.Get(ctx, "localAggregate:"+strconv.Itoa(int(fetcher.Config.ID)))
-		if err != nil {
-			t.Fatalf("error getting local aggregate: %v", err)
+		rdbResult, localAggregateErr := db.Get(ctx, "localAggregate:"+strconv.Itoa(int(fetcher.Config.ID)))
+		if localAggregateErr != nil {
+			t.Fatalf("error getting local aggregate: %v", localAggregateErr)
 		}
 		assert.NotNil(t, rdbResult)
 	}

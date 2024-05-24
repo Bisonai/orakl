@@ -270,10 +270,9 @@ func TestInsertLocalAggregatePgsql(t *testing.T) {
 
 	configs := testItems.insertedConfigs
 	for i, config := range configs {
-
-		err := insertLocalAggregatePgsql(ctx, config.Id, float64(i)+5)
-		if err != nil {
-			t.Fatalf("error inserting local aggregate pgsql: %v", err)
+		insertLocalAggregateErr := insertLocalAggregatePgsql(ctx, config.Id, float64(i)+5)
+		if insertLocalAggregateErr != nil {
+			t.Fatalf("error inserting local aggregate pgsql: %v", insertLocalAggregateErr)
 		}
 	}
 

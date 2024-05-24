@@ -77,18 +77,18 @@ func TestFetcherFetcherJob(t *testing.T) {
 	}
 
 	for _, fetcher := range app.Fetchers {
-		err := fetcher.fetcherJob(ctx, app.ChainHelpers, app.Proxies)
-		if err != nil {
-			t.Fatalf("error fetching: %v", err)
+		jobErr := fetcher.fetcherJob(ctx, app.ChainHelpers, app.Proxies)
+		if jobErr != nil {
+			t.Fatalf("error fetching: %v", jobErr)
 		}
 	}
 	defer db.Del(ctx, "feedDataBuffer")
 
 	for _, fetcher := range app.Fetchers {
 		for _, feed := range fetcher.Feeds {
-			res, err := db.GetObject[FeedData](ctx, "latestFeedData:"+strconv.Itoa(int(feed.ID)))
-			if err != nil {
-				t.Fatalf("error fetching feed data: %v", err)
+			res, latestFeedDataErr := db.GetObject[FeedData](ctx, "latestFeedData:"+strconv.Itoa(int(feed.ID)))
+			if latestFeedDataErr != nil {
+				t.Fatalf("error fetching feed data: %v", latestFeedDataErr)
 			}
 			assert.NotNil(t, res)
 			defer db.Del(ctx, "latestFeedData:"+strconv.Itoa(int(feed.ID)))
