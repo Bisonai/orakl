@@ -76,7 +76,7 @@ func setFeedDataBuffer(ctx context.Context, feedData []FeedData) error {
 }
 
 func getFeedDataBuffer(ctx context.Context) ([]FeedData, error) {
-	// beware, buffer will be flushed
+	// buffer flushed on pop all
 	return db.PopAllObject[FeedData](ctx, "feedDataBuffer")
 }
 
