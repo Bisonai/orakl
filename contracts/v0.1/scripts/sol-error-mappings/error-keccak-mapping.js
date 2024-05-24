@@ -16,10 +16,7 @@ function processFile(filePath) {
         .replace(
           /\(([^)]+)\)/,
           (match) =>
-            match
-              .split(' ')
-              .filter((_, idx) => idx % 2 === 0)
-              .join(',') + ')'
+            `${match.split(' ').filter((_, idx) => idx % 2 === 0).join(',')})`
         )
         .replace(';', '')
       const hash = sha3.keccak256(processedLine)
