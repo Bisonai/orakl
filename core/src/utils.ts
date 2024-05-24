@@ -150,5 +150,5 @@ export const getOraklErrorCode = (e, defaultErrorCode) => {
 }
 
 export function isAddressValid(addr: string): boolean {
-  return ethers.utils.isAddress(addr) && addr !== addr.toLowerCase() && addr !== addr.toUpperCase()
+  return ethers.utils.getAddress(addr) === addr
 }
