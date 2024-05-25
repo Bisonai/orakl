@@ -95,16 +95,16 @@ export async function getObservedBlock({
  */
 export async function upsertObservedBlock({
   blockKey,
-  blockValue,
+  blockNumber,
   logger
 }: {
   blockKey: string
-  blockValue: number
+  blockNumber: number
   logger?: Logger
 }): Promise<IObservedBlock> {
   try {
     const endpoint = buildUrl(ORAKL_NETWORK_API_URL, 'listener/observed-block')
-    return (await axios.post(endpoint, { blockKey, blockValue }))?.data
+    return (await axios.post(endpoint, { blockKey, blockNumber }))?.data
   } catch (e) {
     logger?.error({ name: 'upsertObservedBlock', file: FILE_NAME, ...e }, 'error')
     throw new OraklError(OraklErrorCode.UpsertObservedBlockFailed)

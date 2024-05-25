@@ -80,5 +80,5 @@ export interface IContracts {
 
 export interface IObservedBlock {
   blockKey: string
-  blockValue: number
+  blockNumber: number
 }
