@@ -24,8 +24,11 @@ function processFile(filePath) {
               .join(',')})`
         )
         .replace(';', '')
-      const hash = sha3.keccak256(processedLine)
-      mapping[processedLine] = hash
+      const hash = `0x${sha3.keccak256(processedLine)}`
+      mapping[hash] = {
+        file: filePath,
+        error: trimmedLine
+      }
     }
   }
 
