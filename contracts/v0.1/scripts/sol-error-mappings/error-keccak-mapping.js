@@ -2,6 +2,9 @@ const fs = require('node:fs')
 const path = require('node:path')
 const sha3 = require('js-sha3')
 
+const PROCESS_PATH = 'src'
+const RESULT_PATH = 'scripts/sol-error-mappings/errorMappings.json'
+
 function processFile(filePath) {
   const content = fs.readFileSync(filePath, 'utf8')
   const lines = content.split('\n')
@@ -45,5 +48,5 @@ function processDirectory(dirPath) {
   return mapping
 }
 
-const mapping = processDirectory('src')
-fs.writeFileSync('scripts/sol-error-mappings/errorMappings.json', JSON.stringify(mapping, null, 2))
+const mapping = processDirectory(PROCESS_PATH)
+fs.writeFileSync(RESULT_PATH, JSON.stringify(mapping, null, 2))
