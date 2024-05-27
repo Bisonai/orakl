@@ -1,6 +1,12 @@
 package blocks
 
 const (
+	// get observedBlock given service
+	GetObservedBlock = `
+		SELECT * FROM observed_blocks
+		WHERE service = @service;
+	`
+
 	// upsert to observed_blocks given service and block_number
 	UpsertObservedBlock = `
 		INSERT INTO observed_blocks (service, block_number)

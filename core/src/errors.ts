@@ -75,6 +75,7 @@ export enum OraklErrorCode {
   AxiosInvalidUrl,
   FailedToConnectAPI,
   FailedToGetUnprocessedBlocks,
+  FailedToGetObservedBlock,
   FailedUpsertObservedBlock,
   FailedInsertUnprocessedBlock,
   FailedDeleteUnprocessedBlock

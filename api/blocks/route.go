@@ -7,6 +7,7 @@ import (
 func Routes(router fiber.Router) {
 	blocks := router.Group("/blocks")
 
+	blocks.Get("/observed", getObservedBlock)
 	blocks.Post("/observed", upsertObservedBlock)
 	blocks.Post("/unprocessed", insertUnprocessedBlock)
 	blocks.Get("/unprocessed", getUnprocessedBlocks)

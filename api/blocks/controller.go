@@ -11,6 +11,21 @@ type BlockModel struct {
 	BlockNumber int64  `db:"block_number" json:"blockNumber" validate:"isZeroOrPositive"`
 }
 
+func getObservedBlock(c *fiber.Ctx) error {
+	service := c.Query("service")
+	if service == "" {
+		return fiber.NewError(fiber.StatusBadRequest, "service is required")
+	}
+	result, err := utils.QueryRows[BlockModel](c, GetObservedBlock, map[string]any{
+		"service": service,
+	})
+	if err != nil {
+		return err
+	}
+
+	return c.JSON(result)
+}
+
 func upsertObservedBlock(c *fiber.Ctx) error {
 	payload := new(BlockModel)
 	if err := c.BodyParser(payload); err != nil {
