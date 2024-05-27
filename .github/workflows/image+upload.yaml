@@ -13,7 +13,7 @@ jobs:
     outputs:
       tag_date: ${{ steps.hash.outputs.date }}
       tag_git_hash: ${{ steps.hash.outputs.git_hash }}    
-      service: orakl-${{ steps.extract_tags.outputs.service }}      
+      service: ${{ steps.extract_tags.outputs.service }}      
       version: ${{ steps.extract_tags.outputs.version }}
       ecr_url: ${{ steps.extract_tags.outputs.ecr_url }}
 
@@ -73,7 +73,7 @@ jobs:
       - uses: actions/checkout@v3
 
       - name: docker build ${{ needs.prepare.outputs.service }}
-        run: SERVICE_NAME=${{ needs.prepare.outputs.service }} docker compose -f docker-compose.build.yaml build
+        run: SERVICE_NAME=orakl-${{ needs.prepare.outputs.service }} docker compose -f docker-compose.build.yaml build
 
       - name: configure aws credentials
         uses: aws-actions/configure-aws-credentials@v2
@@ -89,7 +89,7 @@ jobs:
 
       - name: publish image to ecr
         run: |
-          docker tag ${{ needs.prepare.outputs.service }} ${{ needs.prepare.outputs.ecr_url }}:latest
+          docker tag orakl-${{ needs.prepare.outputs.service }} ${{ needs.prepare.outputs.ecr_url }}:latest
           docker push ${{ needs.prepare.outputs.ecr_url }}:latest
           docker tag ${{ needs.prepare.outputs.ecr_url }}:latest ${{ needs.prepare.outputs.ecr_url }}:${{ needs.prepare.outputs.version }}.${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }}
           docker push ${{ needs.prepare.outputs.ecr_url }}:${{ needs.prepare.outputs.version }}.${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }}
@@ -163,6 +163,6 @@ jobs:
     uses: ./.github/workflows/post.slack.yaml
     with:
       status: "Failed"
-      slack-message: "Failed to update image tag for *${{ needs.prepare.outputs.service }}* ${{ needs.prepare.outputs.version }}.${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }}"
+      slack-message: "Git action failed"
     secrets:
       SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}           
