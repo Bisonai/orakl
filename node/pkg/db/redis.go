@@ -68,12 +68,37 @@ func MSetObject(ctx context.Context, values map[string]any) error {
 		data, err := json.Marshal(value)
 		if err != nil {
 			log.Error().Err(err).Msg("Error marshalling object")
-			return err
+			continue
 		}
 		pairs = append(pairs, key, string(data))
 	}
 
 	return rdbConn.MSet(ctx, pairs...).Err()
+}
+
+func MSetObjectWithExp(ctx context.Context, values map[string]any, exp time.Duration) error {
+	rdbConn, err := GetRedisConn(ctx)
+	if err != nil {
+		return err
+	}
+
+	var pairs []any
+	for key, value := range values {
+		data, err := json.Marshal(value)
+		if err != nil {
+			log.Error().Err(err).Msg("Error marshalling object")
+			continue
+		}
+		pairs = append(pairs, key, string(data))
+	}
+
+	pipe := rdbConn.TxPipeline()
+	pipe.MSet(ctx, pairs...)
+	for key := range values {
+		pipe.Expire(ctx, key, exp)
+	}
+	_, err = pipe.Exec(ctx)
+	return err
 }
 
 func Set(ctx context.Context, key string, value string, exp time.Duration) error {

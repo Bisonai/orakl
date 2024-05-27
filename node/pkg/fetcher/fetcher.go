@@ -55,7 +55,7 @@ func (f *Fetcher) fetcherJob(ctx context.Context, chainHelpers map[string]ChainH
 		return err
 	}
 
-	err = setLatestFeedData(ctx, result)
+	err = setLatestFeedData(ctx, result, time.Duration(f.FetchInterval)*time.Millisecond)
 	if err != nil {
 		log.Error().Str("Player", "Fetcher").Err(err).Msg("error in setLatestFeedData")
 		return err

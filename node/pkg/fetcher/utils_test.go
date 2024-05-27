@@ -146,7 +146,7 @@ func TestSetLatestFeedData(t *testing.T) {
 		},
 	}
 
-	err := setLatestFeedData(ctx, feedData)
+	err := setLatestFeedData(ctx, feedData, 1*time.Second)
 	if err != nil {
 		t.Fatalf("error setting latest feed data: %v", err)
 	}
@@ -179,7 +179,7 @@ func TestGetLatestFeedData(t *testing.T) {
 	}
 
 	keys := []string{"latestFeedData:1", "latestFeedData:2"}
-	err := setLatestFeedData(ctx, feedData)
+	err := setLatestFeedData(ctx, feedData, 1*time.Second)
 	if err != nil {
 		t.Fatalf("error setting latest feed data: %v", err)
 	}

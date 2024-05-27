@@ -50,12 +50,12 @@ func getTokenPrice(sqrtPriceX96 *big.Int, definition *Definition) (float64, erro
 	return math.Round(result), nil
 }
 
-func setLatestFeedData(ctx context.Context, feedData []FeedData) error {
+func setLatestFeedData(ctx context.Context, feedData []FeedData, expiration time.Duration) error {
 	latestData := make(map[string]any)
 	for _, data := range feedData {
 		latestData["latestFeedData:"+strconv.Itoa(int(data.FeedID))] = data
 	}
-	return db.MSetObject(ctx, latestData)
+	return db.MSetObjectWithExp(ctx, latestData, expiration)
 }
 
 func getLatestFeedData(ctx context.Context, feedIds []int32) ([]FeedData, error) {
