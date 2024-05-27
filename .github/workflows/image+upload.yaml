@@ -127,14 +127,14 @@ jobs:
     needs: [prepare, build, image-update]
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout code
+        uses: actions/checkout@master
 
       - name: update package.json version
         if: needs.prepare.outputs.version
         run: |
-          echo ./*
-          cd ./gitops_tmp/orakl/${{ needs.prepare.outputs.service }}/
           version=${{ needs.prepare.outputs.version }}
-          sed -i 's/"version": "[^"]*"/"version": "'$version'"/' package.json
+          sed -i 's/"version": "[^"]*"/"version": "'$version'"/' cli/package.json
           echo "updating package.json to version $version"
           npm version $version --no-git-tag-version
 
