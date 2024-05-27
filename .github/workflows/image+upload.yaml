@@ -5,8 +5,7 @@ on:
     branches:
       - "fix-CI/CD"
     tags:
-      - "*"
-  workflow_dispatch:
+      - "*"      
 
 jobs:
 
