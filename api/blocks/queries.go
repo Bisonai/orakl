@@ -3,7 +3,7 @@ package blocks
 const (
 	// upsert to observed_blocks given service and block_number
 	UpsertObservedBlock = `
-		INSERT INTO observed_blocks (service_id, block_number)
+		INSERT INTO observed_blocks (service, block_number)
 		VALUES (@service, @block_number)
 		ON CONFLICT (service) DO UPDATE SET block_number = @block_number
 		RETURNING *;
