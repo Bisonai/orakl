@@ -19,16 +19,12 @@ func mockHandler(w http.ResponseWriter, r *http.Request) {
 		log.Error().Err(err).Msg("failed to accept websocket connection")
 		return
 	}
-	defer conn.Close(websocket.StatusInternalError, "the sky is falling")
+	defer conn.Close(websocket.StatusNormalClosure, "")
 
 	for {
-		ctx, cancel := context.WithTimeout(r.Context(), 1*time.Second)
-		defer cancel()
-
-		err := wsjson.Write(ctx, conn, "Hello")
+		err := wsjson.Write(r.Context(), conn, "Hello")
 		if err != nil {
 			log.Printf("failed to write message: %v", err)
-			conn.Close(websocket.StatusInternalError, "failed to write message")
 			return
 		}
 	}
@@ -50,7 +46,7 @@ func TestConnections(t *testing.T) {
 		}
 	}()
 	defer func() {
-		if err := srv.Shutdown(context.Background()); err != nil {
+		if err := srv.Close(); err != nil {
 			// unexpected error
 			t.Fatalf("Server Shutdown: %v", err)
 		}

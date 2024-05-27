@@ -40,7 +40,7 @@ func TestReadWriteAndClose(t *testing.T) {
 	mux.HandleFunc("/ws", echoHandler)
 	// Create an http.Server object
 	srv := &http.Server{
-		Addr:    ":8080",
+		Addr:    ":8088",
 		Handler: mux,
 	}
 	// Start the server in a goroutine
@@ -51,7 +51,7 @@ func TestReadWriteAndClose(t *testing.T) {
 		}
 	}()
 	defer func() {
-		if err := srv.Shutdown(context.Background()); err != nil {
+		if err := srv.Close(); err != nil {
 			// unexpected error
 			t.Fatalf("Server Shutdown: %v", err)
 		}
@@ -60,7 +60,7 @@ func TestReadWriteAndClose(t *testing.T) {
 	time.Sleep(time.Second)
 
 	// Create a WebSocket connection
-	conn, err := NewConnection(context.Background(), WithEndpoint("ws://localhost:8080/ws"))
+	conn, err := NewConnection(context.Background(), WithEndpoint("ws://localhost:8088/ws"))
 	assert.NoError(t, err)
 	assert.NotNil(t, conn)
 
