@@ -3,7 +3,7 @@ name: CLI Deploy to Amazon ECR TEST
 on:
   push:
     tags:
-      - "*"      
+      - "**"      
 
 jobs:
 
