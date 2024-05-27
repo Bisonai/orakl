@@ -82,6 +82,9 @@ tasks:
     dotenv: [".env"]
     cmds:
       - go test ./pkg/por -v
+  test-wss:
+    cmds:
+      - go test ./pkg/wss -v
 
   check-api:
     dotenv: [".env"]
@@ -139,3 +142,4 @@ tasks:
       - task: test-aggregator
       - task: test-reporter
       - task: test-chain
+      - task: test-wss

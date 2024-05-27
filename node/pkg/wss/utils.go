@@ -92,7 +92,7 @@ func (ws *wsConn) Read(ctx context.Context, ch chan interface{}) {
 	}
 }
 
-func (ws *wsConn) Close(ctx context.Context) error {
+func (ws *wsConn) Close() error {
 	err := ws.Conn.Close(websocket.StatusNormalClosure, "")
 	if err != nil {
 		log.Error().Err(err).Msg("error closing websocket")

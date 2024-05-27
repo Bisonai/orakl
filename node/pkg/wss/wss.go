@@ -4,12 +4,10 @@ import (
 	"context"
 	"fmt"
 	"sync"
-
-	"nhooyr.io/websocket"
 )
 
 type Connections struct {
-	m    map[string]*websocket.Conn
+	m    map[string]*wsConn
 	lock sync.RWMutex
 }
 
@@ -19,16 +17,16 @@ var (
 
 func init() {
 	connections = &Connections{
-		m: make(map[string]*websocket.Conn),
+		m: make(map[string]*wsConn),
 	}
 }
 
-func (c *Connections) Update(key string, conn *websocket.Conn) error {
+func (c *Connections) Update(key string, conn *wsConn) error {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 
 	if c.m[key] != nil {
-		err := c.m[key].Close(websocket.StatusNormalClosure, "")
+		err := c.m[key].Close()
 		if err != nil {
 			return err
 		}
@@ -42,7 +40,7 @@ func (c *Connections) Remove(key string) error {
 	defer c.lock.Unlock()
 
 	if c.m[key] != nil {
-		err := c.m[key].Close(websocket.StatusNormalClosure, "")
+		err := c.m[key].Close()
 		if err != nil {
 			return err
 		}
@@ -51,7 +49,7 @@ func (c *Connections) Remove(key string) error {
 	return nil
 }
 
-func (c *Connections) Get(key string) (*websocket.Conn, error) {
+func (c *Connections) Get(key string) (*wsConn, error) {
 	c.lock.RLock()
 	defer c.lock.RUnlock()
 
@@ -66,12 +64,12 @@ func getConnections() *Connections {
 	return connections
 }
 
-func UpdateConnection(ctx context.Context, key string, conn *websocket.Conn) error {
+func UpdateConnection(ctx context.Context, key string, conn *wsConn) error {
 	connections := getConnections()
 	return connections.Update(key, conn)
 }
 
-func GetConnection(key string) (*websocket.Conn, error) {
+func GetConnection(key string) (*wsConn, error) {
 	connections := getConnections()
 	return connections.Get(key)
 }
