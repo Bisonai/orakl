@@ -24,13 +24,13 @@ func echoHandler(w http.ResponseWriter, r *http.Request) {
 		var v interface{}
 		err := wsjson.Read(r.Context(), conn, &v)
 		if err != nil {
-			continue
+			break
 		}
 
 		err = wsjson.Write(r.Context(), conn, v)
 		if err != nil {
 			log.Error().Err(err).Msg("failed to write message")
-			continue
+			break
 		}
 	}
 }

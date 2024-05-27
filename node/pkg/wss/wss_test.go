@@ -24,7 +24,7 @@ func mockHandler(w http.ResponseWriter, r *http.Request) {
 	for {
 		err := wsjson.Write(r.Context(), conn, "Hello")
 		if err != nil {
-			log.Printf("failed to write message: %v", err)
+			log.Error().Err(err).Msg("failed to write message")
 			return
 		}
 	}
