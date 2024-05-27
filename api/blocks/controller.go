@@ -11,6 +11,11 @@ type BlockModel struct {
 	BlockNumber int64  `db:"block_number" json:"blockNumber" validate:"isZeroOrPositive"`
 }
 
+type BlocksModel struct {
+	Service	 string `db:"service" json:"service" validate:"required"`
+	Blocks 	[]int64 `db:"blocks" json:"blocks" validate:"dive,isZeroOrPositive"`
+}
+
 func getObservedBlock(c *fiber.Ctx) error {
 	service := c.Query("service")
 	if service == "" {
@@ -66,8 +71,8 @@ func getUnprocessedBlocks(c *fiber.Ctx) error {
 	return c.JSON(result)
 }
 
-func insertUnprocessedBlock(c *fiber.Ctx) error {
-	payload := new(BlockModel)
+func insertUnprocessedBlocks(c *fiber.Ctx) error {
+	payload := new(BlocksModel)
 	if err := c.BodyParser(payload); err != nil {
 		return err
 	}
@@ -80,10 +85,7 @@ func insertUnprocessedBlock(c *fiber.Ctx) error {
 		return err
 	}
 
-	result, err := utils.QueryRow[BlockModel](c, InsertUnprocessedBlock, map[string]any{
-		"service":      payload.Service,
-		"block_number": payload.BlockNumber,
-	})
+	result, err := utils.QueryRows[BlocksModel](c, GenerateInsertBlocksQuery(payload.Blocks, payload.Service), map[string]any{})
 	if err != nil {
 		return err
 	}

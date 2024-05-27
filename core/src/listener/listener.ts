@@ -4,6 +4,7 @@ import { Logger } from 'pino'
 import type { RedisClientType } from 'redis'
 import { BULLMQ_CONNECTION, getObservedBlockRedisKey, LISTENER_JOB_SETTINGS } from '../settings'
 import { IListenerConfig } from '../types'
+import { getObservedBlock } from './api'
 import { State } from './state'
 import {
   IHistoryListenerJob,
@@ -204,7 +205,7 @@ function latestJob({
     try {
       // We assume that redis cache has been initialized within
       // `State.add` method call.
-      observedBlock = Number(await redisClient.get(observedBlockRedisKey))
+      observedBlock = await getObservedBlock({ service: state.service })
     } catch (e) {
       // Similarly to the failure during fetching the latest block
       // number, this error doesn't require job resubmission. The next
@@ -215,6 +216,7 @@ function latestJob({
       throw e
     }
 
+    // happens only on localhost
     if (latestBlock < observedBlock) {
       logger.warn('latestBlock < observedBlock. Updating observed block to revert the condition.')
       observedBlock = Math.max(0, latestBlock - 1)

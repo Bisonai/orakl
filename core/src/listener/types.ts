@@ -78,9 +78,7 @@ export interface IContracts {
   [key: string]: ethers.Contract
 }
 
-export type ServiceType = 'vrf' | 'rr'
-
 export interface IBlock {
-  service: ServiceType
+  service: string
   blockNumber: number
 }

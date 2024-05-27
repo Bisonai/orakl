@@ -9,7 +9,7 @@ func Routes(router fiber.Router) {
 
 	blocks.Get("/observed", getObservedBlock)
 	blocks.Post("/observed", upsertObservedBlock)
-	blocks.Post("/unprocessed", insertUnprocessedBlock)
+	blocks.Post("/unprocessed", insertUnprocessedBlocks)
 	blocks.Get("/unprocessed", getUnprocessedBlocks)
 	blocks.Delete("/unprocessed/:service/:blockNumber", deleteUnprocessedBlock)
 }

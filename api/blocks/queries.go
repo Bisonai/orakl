@@ -1,5 +1,10 @@
 package blocks
 
+import (
+	"fmt"
+	"strings"
+)
+
 const (
 	// get observedBlock given service
 	GetObservedBlock = `
@@ -12,14 +17,6 @@ const (
 		INSERT INTO observed_blocks (service, block_number)
 		VALUES (@service, @block_number)
 		ON CONFLICT (service) DO UPDATE SET block_number = @block_number
-		RETURNING *;
-	`
-
-	// insert to unprocessed_blocks given service and block_number
-	InsertUnprocessedBlock = `
-		INSERT INTO unprocessed_blocks (service, block_number)
-		VALUES (@service, @block_number)
-		ON CONFLICT (service, block_number) DO NOTHING
 		RETURNING *;
 	`
 
@@ -36,3 +33,19 @@ const (
 		RETURNING *;
 	`
 )
+
+func GenerateInsertBlocksQuery(blocks []int64, service string) string {
+	baseQuery := `
+		INSERT INTO unprocessed_blocks (service, block_number)
+		VALUES
+	`
+	onConflict := `
+		ON CONFLICT (service, block_number) DO NOTHING;
+	`
+	values := make([]string, 0, len(blocks))
+	for _, block := range blocks {
+		values = append(values, fmt.Sprintf("('%s', %d)", service, block))
+	}
+
+	return baseQuery + strings.Join(values, ",") + onConflict
+}

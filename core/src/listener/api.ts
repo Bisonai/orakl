@@ -4,7 +4,7 @@ import { OraklError, OraklErrorCode } from '../errors'
 import { ORAKL_NETWORK_API_URL } from '../settings'
 import { IListenerRawConfig } from '../types'
 import { buildUrl } from '../utils'
-import { IBlock, ServiceType } from './types'
+import { IBlock } from './types'
 
 const FILE_NAME = import.meta.url
 
@@ -62,13 +62,13 @@ export async function getListener({
 
 /**
  * @param {string} service
- * @return {Promise<IBlocks>}
+ * @return {Promise<number>}
  * @exception {FailedToGetObservedBlock}
  */
-export async function getObservedBlock({ service }: { service: ServiceType }): Promise<IBlock> {
+export async function getObservedBlock({ service }: { service: string }): Promise<number> {
   try {
     const endpoint = buildUrl(ORAKL_NETWORK_API_URL, `blocks/observed?service=${service}`)
-    return (await axios.get(endpoint))?.data
+    return (await axios.get(endpoint))?.data?.blockNumber
   } catch (e) {
     throw new OraklError(OraklErrorCode.FailedToGetObservedBlock)
   }
@@ -79,11 +79,7 @@ export async function getObservedBlock({ service }: { service: ServiceType }): P
  * @return {Promise<IBlocks[]>}
  * @exception {FailedToGetUnprocessedBlocks}
  */
-export async function getUnprocessedBlocks({
-  service
-}: {
-  service: ServiceType
-}): Promise<IBlock[]> {
+export async function getUnprocessedBlocks({ service }: { service: string }): Promise<IBlock[]> {
   try {
     const endpoint = buildUrl(ORAKL_NETWORK_API_URL, `blocks/unprocessed?service=${service}`)
     return (await axios.get(endpoint))?.data
@@ -95,19 +91,19 @@ export async function getUnprocessedBlocks({
 /**
  * @param {string} service
  * @param {number} blockNumber
- * @return {Promise<IBlock>}
+ * @return {Promise<void>}
  * @exception {FailedInsertUnprocessedBlock}
  */
-export async function insertUnprocessedBlock({
-  blockNumber,
+export async function insertUnprocessedBlocks({
+  blocks,
   service
 }: {
-  service: ServiceType
-  blockNumber: number
-}): Promise<IBlock> {
+  service: string
+  blocks: number[]
+}): Promise<void> {
   try {
     const endpoint = buildUrl(ORAKL_NETWORK_API_URL, `blocks/unprocessed`)
-    return (await axios.post(endpoint, { service, blockNumber }))?.data
+    return (await axios.post(endpoint, { service, blocks }))?.data
   } catch (e) {
     throw new OraklError(OraklErrorCode.FailedInsertUnprocessedBlock)
   }
@@ -124,7 +120,7 @@ export async function deleteUnprocessedBlock({
   service
 }: {
   blockNumber: number
-  service: ServiceType
+  service: string
 }): Promise<IBlock> {
   try {
     const endpoint = buildUrl(ORAKL_NETWORK_API_URL, `blocks/unprocessed/${service}/${blockNumber}`)
@@ -144,7 +140,7 @@ export async function upsertObservedBlock({
   blockNumber,
   service
 }: {
-  service: ServiceType
+  service: string
   blockNumber: number
 }): Promise<IBlock> {
   try {
