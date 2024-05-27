@@ -16,6 +16,92 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func TestFetcherRun(t *testing.T) {
+	ctx := context.Background()
+	clean, testItems, err := setup(ctx)
+	if err != nil {
+		t.Fatalf("error setting up test: %v", err)
+	}
+	defer func() {
+		if cleanupErr := clean(); cleanupErr != nil {
+			t.Logf("Cleanup failed: %v", cleanupErr)
+		}
+	}()
+
+	app := testItems.app
+
+	err = app.initialize(ctx)
+	if err != nil {
+		t.Fatalf("error initializing fetcher: %v", err)
+	}
+
+	for _, fetcher := range app.Fetchers {
+		fetcher.Run(ctx, app.ChainHelpers, app.Proxies)
+	}
+
+	for _, fetcher := range app.Fetchers {
+		assert.True(t, fetcher.isRunning)
+	}
+
+	for _, fetcher := range app.Fetchers {
+		fetcher.cancel()
+	}
+
+	defer func() {
+		db.Del(ctx, "feedDataBuffer")
+		for _, fetcher := range app.Fetchers {
+			for _, feed := range fetcher.Feeds {
+				db.Del(ctx, "latestFeedData:"+strconv.Itoa(int(feed.ID)))
+			}
+		}
+	}()
+}
+
+func TestFetcherFetcherJob(t *testing.T) {
+	ctx := context.Background()
+	clean, testItems, err := setup(ctx)
+	if err != nil {
+		t.Fatalf("error setting up test: %v", err)
+	}
+	defer func() {
+		if cleanupErr := clean(); cleanupErr != nil {
+			t.Logf("Cleanup failed: %v", cleanupErr)
+		}
+	}()
+
+	app := testItems.app
+
+	err = app.initialize(ctx)
+	if err != nil {
+		t.Fatalf("error initializing fetcher: %v", err)
+	}
+
+	for _, fetcher := range app.Fetchers {
+		jobErr := fetcher.fetcherJob(ctx, app.ChainHelpers, app.Proxies)
+		if jobErr != nil {
+			t.Fatalf("error fetching: %v", jobErr)
+		}
+	}
+	defer db.Del(ctx, "feedDataBuffer")
+
+	for _, fetcher := range app.Fetchers {
+		for _, feed := range fetcher.Feeds {
+			res, latestFeedDataErr := db.GetObject[FeedData](ctx, "latestFeedData:"+strconv.Itoa(int(feed.ID)))
+			if latestFeedDataErr != nil {
+				t.Fatalf("error fetching feed data: %v", latestFeedDataErr)
+			}
+			assert.NotNil(t, res)
+			defer db.Del(ctx, "latestFeedData:"+strconv.Itoa(int(feed.ID)))
+		}
+	}
+
+	buffer, err := db.LRangeObject[FeedData](ctx, "feedDataBuffer", 0, -1)
+	if err != nil {
+		t.Fatalf("error fetching buffer: %v", err)
+	}
+	assert.Greater(t, len(buffer), 0)
+}
+
 func TestFetcherFetch(t *testing.T) {
 	ctx := context.Background()
 	clean, testItems, err := setup(ctx)
@@ -69,11 +155,20 @@ func TestFetcherFetchProxy(t *testing.T) {
 			log.Fatal().Err(proxyServeErr).Msg("unexpected server shutdown")
 		}
 	}()
-
 	proxy, err := tests.PostRequest[Proxy](testItems.admin, "/api/v1/proxy", map[string]any{"protocol": "http", "host": "localhost", "port": 8088})
 	if err != nil {
 		t.Fatalf("error creating proxy: %v", err)
 	}
+	defer func() {
+		_, err = tests.DeleteRequest[Proxy](testItems.admin, "/api/v1/proxy/"+strconv.FormatInt(proxy.ID, 10), nil)
+		if err != nil {
+			t.Fatalf("error cleaning up proxy: %v", err)
+		}
+
+		if err = srv.Shutdown(ctx); err != nil {
+			log.Fatal().Err(err).Msg("unexpected server shutdown")
+		}
+	}()
 
 	err = app.initialize(ctx)
 	if err != nil {
@@ -88,18 +183,9 @@ func TestFetcherFetchProxy(t *testing.T) {
 		assert.Greater(t, len(result), 0)
 	}
 
-	_, err = tests.DeleteRequest[Proxy](testItems.admin, "/api/v1/proxy/"+strconv.FormatInt(proxy.ID, 10), nil)
-	if err != nil {
-		t.Fatalf("error cleaning up proxy: %v", err)
-	}
-
-	if err = srv.Shutdown(ctx); err != nil {
-		log.Fatal().Err(err).Msg("unexpected server shutdown")
-	}
-
 }
 
-func TestFetcherFetchAndInsertAdapter(t *testing.T) {
+func TestFetcherCex(t *testing.T) {
 	ctx := context.Background()
 	clean, testItems, err := setup(ctx)
 	if err != nil {
@@ -115,101 +201,140 @@ func TestFetcherFetchAndInsertAdapter(t *testing.T) {
 
 	err = app.initialize(ctx)
 	if err != nil {
-		log.Fatal().Err(err).Msg("error initializing fetcher")
+		t.Fatalf("error initializing fetcher: %v", err)
 	}
 
 	for _, fetcher := range app.Fetchers {
-		err = fetcher.fetchAndInsert(ctx, app.ChainHelpers, app.Proxies)
-		assert.NoError(t, err, "fetchAndInsert should not return an error")
-	}
-	if err != nil {
-		t.Fatalf("error running adapter: %v", err)
-	}
+		for _, feed := range fetcher.Feeds {
+			definition := new(Definition)
 
-	for _, fetcher := range app.Fetchers {
-		pgResult, err := db.QueryRow[Aggregate](ctx, "SELECT * FROM local_aggregates WHERE config_id = @config_id", map[string]any{"config_id": fetcher.Config.ID})
-		if err != nil {
-			t.Fatalf("error reading from db: %v", err)
-		}
-		assert.NotNil(t, pgResult)
+			err := json.Unmarshal(feed.Definition, &definition)
+			if err != nil {
+				t.Fatalf("error unmarshalling definition: %v", err)
+			}
+			if definition.Type != nil {
+				continue
+			}
 
-		feedIds := make([]interface{}, len(fetcher.Feeds))
-		for i, feed := range fetcher.Feeds {
-			feedIds[i] = feed.ID
-		}
-
-		feedPgResult, err := db.BulkSelect[FeedDataFromDB](ctx, "feed_data", []string{"feed_id", "value", "timestamp"}, []string{"feed_id"}, feedIds)
-		if err != nil {
-			t.Fatalf("error reading from db: %v", err)
-		}
-		assert.Greater(t, len(feedPgResult), 0)
-
-		rdbResult, err := db.Get(ctx, "localAggregate:"+strconv.Itoa(int(fetcher.Config.ID)))
-		if err != nil {
-			t.Fatalf("error reading from redis: %v", err)
-		}
-		assert.NotNil(t, rdbResult)
-		var redisAgg RedisAggregate
-		err = json.Unmarshal([]byte(rdbResult), &redisAgg)
-		if err != nil {
-			t.Fatalf("error unmarshalling from redis: %v", err)
-		}
-		assert.NotNil(t, redisAgg)
-		assert.NotNil(t, redisAgg.Value)
-
-		err = db.Del(ctx, "localAggregate:"+strconv.Itoa(int(fetcher.Config.ID)))
-		if err != nil {
-			t.Fatalf("error removing from redis: %v", err)
+			result, err := fetcher.cex(definition, app.Proxies)
+			if err != nil {
+				t.Fatalf("error fetching: %v", err)
+			}
+			assert.Greater(t, result, float64(0))
 		}
 	}
 }
 
-func TestFetchSingle(t *testing.T) {
-	t.Skip() // test fails if data provider refuses connection
+func TestFetcherUniswapV3(t *testing.T) {
 	ctx := context.Background()
-	rawDefinition := `
-	{
-        "url": "https://api.bybit.com/derivatives/v3/public/tickers?symbol=ADAUSDT",
-        "headers": {
-          "Content-Type": "application/json"
-        },
-        "method": "GET",
-        "reducers": [
-          {
-            "function": "PARSE",
-            "args": [
-              "result",
-              "list"
-            ]
-          },
-          {
-            "function": "INDEX",
-            "args": 0
-          },
-          {
-            "function": "PARSE",
-            "args": [
-              "lastPrice"
-            ]
-          },
-          {
-            "function": "POW10",
-            "args": 8
-          },
-          {
-            "function": "ROUND"
-          }
-        ]
-	}`
-	definition := new(Definition)
-	err := json.Unmarshal([]byte(rawDefinition), &definition)
+	clean, testItems, err := setup(ctx)
 	if err != nil {
-		t.Fatalf("error unmarshalling definition: %v", err)
+		t.Fatalf("error setting up test: %v", err)
+	}
+	defer func() {
+		if cleanupErr := clean(); cleanupErr != nil {
+			t.Logf("Cleanup failed: %v", cleanupErr)
+		}
+	}()
+
+	app := testItems.app
+
+	err = app.initialize(ctx)
+	if err != nil {
+		t.Fatalf("error initializing fetcher: %v", err)
 	}
 
-	result, err := FetchSingle(ctx, definition)
-	if err != nil {
-		t.Fatalf("error fetching single: %v", err)
+	for _, fetcher := range app.Fetchers {
+		for _, feed := range fetcher.Feeds {
+			definition := new(Definition)
+
+			err := json.Unmarshal(feed.Definition, &definition)
+			if err != nil {
+				t.Fatalf("error unmarshalling definition: %v", err)
+			}
+			if definition.Type == nil || *definition.Type != "UniswapPool" {
+				continue
+			}
+
+			result, err := fetcher.uniswapV3(definition, app.ChainHelpers)
+			if err != nil {
+				t.Fatalf("error fetching: %v", err)
+			}
+			assert.Greater(t, result, float64(0))
+		}
 	}
-	assert.Greater(t, result, float64(0))
+}
+
+func TestRequestFeed(t *testing.T) {
+	ctx := context.Background()
+	clean, testItems, err := setup(ctx)
+	if err != nil {
+		t.Fatalf("error setting up test: %v", err)
+	}
+	defer func() {
+		if cleanupErr := clean(); cleanupErr != nil {
+			t.Logf("Cleanup failed: %v", cleanupErr)
+		}
+	}()
+
+	app := testItems.app
+
+	err = app.initialize(ctx)
+	if err != nil {
+		t.Fatalf("error initializing fetcher: %v", err)
+	}
+
+	for _, fetcher := range app.Fetchers {
+		for _, feed := range fetcher.Feeds {
+			definition := new(Definition)
+			err := json.Unmarshal(feed.Definition, &definition)
+			if err != nil {
+				t.Fatalf("error unmarshalling definition: %v", err)
+			}
+			if definition.Type != nil {
+				continue
+			}
+
+			result, err := fetcher.requestFeed(definition, app.Proxies)
+			if err != nil {
+				t.Fatalf("error fetching: %v", err)
+			}
+			assert.NotEqual(t, result, nil)
+		}
+	}
+}
+
+func TestFetcherRequestWithoutProxy(t *testing.T) {
+	// Being tested in TestFetcherFetch
+	t.Skip()
+}
+
+func TestFetcherRequestWithProxy(t *testing.T) {
+	// Being tested in TestFetcherFetchProxy
+	t.Skip()
+}
+
+func TestFetcherFilterProxyByLocation(t *testing.T) {
+	uk := "uk"
+	us := "us"
+	kr := "kr"
+	proxies := []Proxy{
+		{ID: 1, Protocol: "http", Host: "localhost", Port: 8080, Location: &uk},
+		{ID: 2, Protocol: "http", Host: "localhost", Port: 8081, Location: &us},
+		{ID: 3, Protocol: "http", Host: "localhost", Port: 8082, Location: &kr},
+	}
+
+	fetcher := NewFetcher(Config{}, []Feed{})
+
+	res := fetcher.filterProxyByLocation(proxies, uk)
+	assert.Greater(t, len(res), 0)
+	assert.Equal(t, res[0], proxies[0])
+
+	res = fetcher.filterProxyByLocation(proxies, us)
+	assert.Greater(t, len(res), 0)
+	assert.Equal(t, res[0], proxies[1])
+
+	res = fetcher.filterProxyByLocation(proxies, kr)
+	assert.Greater(t, len(res), 0)
+	assert.Equal(t, res[0], proxies[2])
 }
