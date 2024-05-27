@@ -11,7 +11,6 @@ import (
 	errorSentinel "bisonai.com/orakl/node/pkg/error"
 	"bisonai.com/orakl/node/pkg/utils/reducer"
 	"bisonai.com/orakl/node/pkg/utils/request"
-	"github.com/rs/zerolog/log"
 )
 
 func FetchSingle(ctx context.Context, definition *Definition) (float64, error) {
@@ -51,17 +50,34 @@ func getTokenPrice(sqrtPriceX96 *big.Int, definition *Definition) (float64, erro
 	return math.Round(result), nil
 }
 
-func insertFeedData(ctx context.Context, feedData []FeedData) error {
-	insertRows := make([][]any, 0, len(feedData))
+func setLatestFeedData(ctx context.Context, feedData []FeedData, expiration time.Duration) error {
+	latestData := make(map[string]any)
 	for _, data := range feedData {
-		insertRows = append(insertRows, []any{data.FeedID, data.Value})
+		latestData["latestFeedData:"+strconv.Itoa(int(data.FeedID))] = data
+	}
+	return db.MSetObjectWithExp(ctx, latestData, expiration)
+}
+
+func getLatestFeedData(ctx context.Context, feedIds []int32) ([]FeedData, error) {
+	keys := make([]string, len(feedIds))
+	for i, feedId := range feedIds {
+		keys[i] = "latestFeedData:" + strconv.Itoa(int(feedId))
+	}
+	feedData, err := db.MGetObject[FeedData](ctx, keys)
+	if err != nil {
+		return nil, err
 	}
 
-	err := db.BulkInsert(ctx, "feed_data", []string{"feed_id", "value"}, insertRows)
-	if err != nil {
-		log.Error().Str("Player", "Fetcher").Err(err).Msg("failed to insert feed data")
-	}
-	return err
+	return feedData, nil
+}
+
+func setFeedDataBuffer(ctx context.Context, feedData []FeedData) error {
+	return db.LPushObject(ctx, "feedDataBuffer", feedData)
+}
+
+func getFeedDataBuffer(ctx context.Context) ([]FeedData, error) {
+	// buffer flushed on pop all
+	return db.PopAllObject[FeedData](ctx, "feedDataBuffer")
 }
 
 func insertLocalAggregatePgsql(ctx context.Context, configId int32, value float64) error {
@@ -73,4 +89,13 @@ func insertLocalAggregateRdb(ctx context.Context, configId int32, value float64)
 	key := "localAggregate:" + strconv.Itoa(int(configId))
 	data := RedisAggregate{ConfigId: configId, Value: int64(value), Timestamp: time.Now()}
 	return db.SetObject(ctx, key, data, time.Duration(5*time.Minute))
+}
+
+func copyFeedData(ctx context.Context, feedData []FeedData) error {
+	insertRows := make([][]any, len(feedData))
+	for i, data := range feedData {
+		insertRows[i] = []any{data.FeedID, data.Value, data.Timestamp}
+	}
+	_, err := db.BulkCopy(ctx, "feed_data", []string{"feed_id", "value", "timestamp"}, insertRows)
+	return err
 }

@@ -30,12 +30,7 @@ func (a *App) Run(ctx context.Context) error {
 
 	a.subscribe(ctx)
 
-	err = a.startAllFetchers(ctx)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return a.startAll(ctx)
 }
 
 func (a *App) subscribe(ctx context.Context) {
@@ -109,7 +104,7 @@ func (a *App) handleMessage(ctx context.Context, msg bus.Message) {
 		msg.Response <- bus.MessageResponse{Success: true}
 	case bus.STOP_FETCHER_APP:
 		log.Debug().Str("Player", "Fetcher").Msg("stopping all fetchers")
-		err := a.stopAllFetchers(ctx)
+		err := a.stopAll(ctx)
 		if err != nil {
 			log.Error().Err(err).Str("Player", "Fetcher").Msg("failed to stop all fetchers")
 			bus.HandleMessageError(err, msg, "failed to stop all fetchers")
@@ -118,7 +113,7 @@ func (a *App) handleMessage(ctx context.Context, msg bus.Message) {
 		msg.Response <- bus.MessageResponse{Success: true}
 	case bus.START_FETCHER_APP:
 		log.Debug().Str("Player", "Fetcher").Msg("starting all fetchers")
-		err := a.startAllFetchers(ctx)
+		err := a.startAll(ctx)
 		if err != nil {
 			log.Error().Err(err).Str("Player", "Fetcher").Msg("failed to start all fetchers")
 			bus.HandleMessageError(err, msg, "failed to start all fetchers")
@@ -126,7 +121,7 @@ func (a *App) handleMessage(ctx context.Context, msg bus.Message) {
 		}
 		msg.Response <- bus.MessageResponse{Success: true}
 	case bus.REFRESH_FETCHER_APP:
-		err := a.stopAllFetchers(ctx)
+		err := a.stopAll(ctx)
 		if err != nil {
 			log.Error().Err(err).Str("Player", "Fetcher").Msg("failed to stop all fetchers")
 			bus.HandleMessageError(err, msg, "failed to stop all fetchers")
@@ -138,7 +133,7 @@ func (a *App) handleMessage(ctx context.Context, msg bus.Message) {
 			bus.HandleMessageError(err, msg, "failed to initialize fetchers")
 			return
 		}
-		err = a.startAllFetchers(ctx)
+		err = a.startAll(ctx)
 		if err != nil {
 			log.Error().Err(err).Str("Player", "Fetcher").Msg("failed to start all fetchers")
 			bus.HandleMessageError(err, msg, "failed to start all fetchers")
@@ -150,6 +145,34 @@ func (a *App) handleMessage(ctx context.Context, msg bus.Message) {
 	}
 }
 
+func (a *App) startAll(ctx context.Context) error {
+	err := a.startAllFetchers(ctx)
+	if err != nil {
+		return err
+	}
+
+	err = a.startAllCollectors(ctx)
+	if err != nil {
+		return err
+	}
+
+	return a.startStreamer(ctx)
+}
+
+func (a *App) stopAll(ctx context.Context) error {
+	err := a.stopAllFetchers(ctx)
+	if err != nil {
+		return err
+	}
+
+	err = a.stopAllCollectors(ctx)
+	if err != nil {
+		return err
+	}
+
+	return a.stopStreamer(ctx)
+}
+
 func (a *App) startFetcher(ctx context.Context, fetcher *Fetcher) error {
 	if fetcher.isRunning {
 		log.Debug().Str("Player", "Fetcher").Str("fetcher", fetcher.Name).Msg("fetcher already running")
@@ -159,6 +182,30 @@ func (a *App) startFetcher(ctx context.Context, fetcher *Fetcher) error {
 	fetcher.Run(ctx, a.ChainHelpers, a.Proxies)
 
 	log.Debug().Str("Player", "Fetcher").Str("fetcher", fetcher.Name).Msg("fetcher started")
+	return nil
+}
+
+func (a *App) startCollector(ctx context.Context, collector *Collector) error {
+	if collector.isRunning {
+		log.Debug().Str("Player", "Collector").Str("collector", collector.Name).Msg("collector already running")
+		return nil
+	}
+
+	collector.Run(ctx)
+
+	log.Debug().Str("Player", "Collector").Str("collector", collector.Name).Msg("collector started")
+	return nil
+}
+
+func (a *App) startStreamer(ctx context.Context) error {
+	if a.Streamer.isRunning {
+		log.Debug().Str("Player", "Streamer").Msg("streamer already running")
+		return nil
+	}
+
+	a.Streamer.Run(ctx)
+
+	log.Debug().Str("Player", "Streamer").Msg("streamer started")
 	return nil
 }
 
@@ -183,6 +230,19 @@ func (a *App) startAllFetchers(ctx context.Context) error {
 	return nil
 }
 
+func (a *App) startAllCollectors(ctx context.Context) error {
+	for _, collector := range a.Collectors {
+		err := a.startCollector(ctx, collector)
+		if err != nil {
+			log.Error().Str("Player", "Collector").Err(err).Str("collector", collector.Name).Msg("failed to start collector")
+			return err
+		}
+		// starts with random sleep to avoid all fetchers starting at the same time
+		time.Sleep(time.Millisecond * time.Duration(rand.Intn(300)+100))
+	}
+	return nil
+}
+
 func (a *App) stopFetcher(ctx context.Context, fetcher *Fetcher) error {
 	log.Debug().Str("fetcher", fetcher.Name).Msg("stopping fetcher")
 	if !fetcher.isRunning {
@@ -194,6 +254,34 @@ func (a *App) stopFetcher(ctx context.Context, fetcher *Fetcher) error {
 	}
 	fetcher.cancel()
 	fetcher.isRunning = false
+	return nil
+}
+
+func (a *App) stopCollector(ctx context.Context, collector *Collector) error {
+	log.Debug().Str("collector", collector.Name).Msg("stopping collector")
+	if !collector.isRunning {
+		log.Debug().Str("Player", "Collector").Str("collector", collector.Name).Msg("collector already stopped")
+		return nil
+	}
+	if collector.cancel == nil {
+		return errorSentinel.ErrCollectorCancelNotFound
+	}
+	collector.cancel()
+	collector.isRunning = false
+	return nil
+}
+
+func (a *App) stopStreamer(ctx context.Context) error {
+	log.Debug().Msg("stopping streamer")
+	if !a.Streamer.isRunning {
+		log.Debug().Str("Player", "Streamer").Msg("streamer already stopped")
+		return nil
+	}
+	if a.Streamer.cancel == nil {
+		return errorSentinel.ErrStreamerCancelNotFound
+	}
+	a.Streamer.cancel()
+	a.Streamer.isRunning = false
 	return nil
 }
 
@@ -209,6 +297,17 @@ func (a *App) stopAllFetchers(ctx context.Context) error {
 		err := a.stopFetcher(ctx, fetcher)
 		if err != nil {
 			log.Error().Str("Player", "Fetcher").Err(err).Str("fetcher", fetcher.Name).Msg("failed to stop fetcher")
+			return err
+		}
+	}
+	return nil
+}
+
+func (a *App) stopAllCollectors(ctx context.Context) error {
+	for _, collector := range a.Collectors {
+		err := a.stopCollector(ctx, collector)
+		if err != nil {
+			log.Error().Str("Player", "Collector").Err(err).Str("collector", collector.Name).Msg("failed to stop collector")
 			return err
 		}
 	}
@@ -246,14 +345,22 @@ func (a *App) initialize(ctx context.Context) error {
 		return err
 	}
 	a.Fetchers = make(map[int32]*Fetcher, len(configs))
+	a.Collectors = make(map[int32]*Collector, len(configs))
 	for _, config := range configs {
-		feeds, err := a.getFeeds(ctx, config.ID)
-		if err != nil {
-			return err
+		feeds, getFeedsErr := a.getFeeds(ctx, config.ID)
+		if getFeedsErr != nil {
+			return getFeedsErr
 		}
 
 		a.Fetchers[config.ID] = NewFetcher(config, feeds)
+		a.Collectors[config.ID] = NewCollector(config, feeds)
 	}
+	streamIntervalRaw := os.Getenv("FEED_DATA_STREAM_INTERVAL")
+	streamInterval, err := time.ParseDuration(streamIntervalRaw)
+	if err != nil {
+		streamInterval = time.Second * 5
+	}
+	a.Streamer = NewStreamer(streamInterval)
 
 	proxies, getProxyErr := a.getProxies(ctx)
 	if getProxyErr != nil {

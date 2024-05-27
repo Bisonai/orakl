@@ -7,7 +7,6 @@ import (
 	"testing"
 	"time"
 
-	"bisonai.com/orakl/node/pkg/admin/tests"
 	"bisonai.com/orakl/node/pkg/db"
 	"github.com/stretchr/testify/assert"
 )
@@ -37,273 +36,9 @@ func TestFetcherInitialize(t *testing.T) {
 	for _, adapter := range app.Fetchers {
 		assert.Greater(t, len(adapter.Feeds), 0)
 	}
-
 }
 
-func TestFetcherRun(t *testing.T) {
-	ctx := context.Background()
-	clean, testItems, err := setup(ctx)
-	if err != nil {
-		t.Fatalf("error setting up test: %v", err)
-	}
-	defer func() {
-		if cleanupErr := clean(); cleanupErr != nil {
-			t.Logf("Cleanup failed: %v", cleanupErr)
-		}
-	}()
-
-	app := testItems.app
-
-	err = app.initialize(ctx)
-	if err != nil {
-		t.Fatalf("error initializing fetcher: %v", err)
-	}
-
-	rowsBefore, err := db.QueryRows[Aggregate](ctx, "SELECT * FROM local_aggregates", nil)
-	if err != nil {
-		t.Fatalf("error reading from db: %v", err)
-	}
-	assert.Equal(t, 0, len(rowsBefore))
-
-	feedDataRowsBefore, err := db.QueryRows[FeedDataFromDB](ctx, "SELECT * FROM feed_data", nil)
-	if err != nil {
-		t.Fatalf("error reading from db: %v", err)
-	}
-	assert.Equal(t, 0, len(rowsBefore))
-
-	err = app.Run(ctx)
-	if err != nil {
-		t.Fatalf("error running fetcher: %v", err)
-	}
-
-	for _, fetcher := range app.Fetchers {
-		assert.True(t, fetcher.isRunning)
-	}
-
-	// wait for fetcher to run
-	time.Sleep(WAIT_SECONDS)
-
-	// stop running after 2 seconds
-	for _, fetcher := range app.Fetchers {
-		app.stopFetcher(ctx, fetcher)
-		assert.False(t, fetcher.isRunning)
-	}
-
-	rowsAfter, err := db.QueryRows[Aggregate](ctx, "SELECT * FROM local_aggregates", nil)
-	if err != nil {
-		t.Fatalf("error reading from db: %v", err)
-	}
-	assert.Greater(t, len(rowsAfter), len(rowsBefore))
-	feedDataRowsAfter, err := db.QueryRows[FeedDataFromDB](ctx, "SELECT * FROM feed_data", nil)
-	if err != nil {
-		t.Fatalf("error reading from db: %v", err)
-	}
-	assert.Greater(t, len(feedDataRowsAfter), len(feedDataRowsBefore))
-
-	for _, fetcher := range app.Fetchers {
-		configId := fetcher.Config.ID
-		rdbResult, err := db.Get(ctx, "localAggregate:"+strconv.Itoa(int(configId)))
-		if err != nil {
-			t.Fatalf("error reading from redis: %v", err)
-		}
-		assert.NotNil(t, rdbResult)
-
-		defer func() {
-			err = db.Del(ctx, "localAggregate:"+strconv.Itoa(int(configId)))
-			if err != nil {
-				t.Fatalf("error removing from redis: %v", err)
-			}
-		}()
-
-	}
-}
-
-func TestFetcherFetcherStart(t *testing.T) {
-	ctx := context.Background()
-	clean, testItems, err := setup(ctx)
-	if err != nil {
-		t.Fatalf("error setting up test: %v", err)
-	}
-	defer func() {
-		if cleanupErr := clean(); cleanupErr != nil {
-			t.Logf("Cleanup failed: %v", cleanupErr)
-		}
-	}()
-
-	app := testItems.app
-
-	err = app.initialize(ctx)
-	if err != nil {
-		t.Fatalf("error initializing fetcher: %v", err)
-	}
-
-	rowsBefore, err := db.QueryRows[Aggregate](ctx, "SELECT * FROM local_aggregates", nil)
-	if err != nil {
-		t.Fatalf("error reading from db: %v", err)
-	}
-	feedDataRowsBefore, err := db.QueryRows[FeedDataFromDB](ctx, "SELECT * FROM feed_data", nil)
-	if err != nil {
-		t.Fatalf("error reading from db: %v", err)
-	}
-
-	for _, fetcher := range app.Fetchers {
-		err = app.startFetcher(ctx, fetcher)
-		if err != nil {
-			t.Fatalf("error starting adapter: %v", err)
-		}
-		assert.True(t, fetcher.isRunning)
-	}
-
-	// wait for fetcher to run
-	time.Sleep(WAIT_SECONDS)
-
-	// stop running after 2 seconds
-	for _, fetcher := range app.Fetchers {
-		app.stopFetcher(ctx, fetcher)
-		assert.False(t, fetcher.isRunning)
-	}
-
-	rowsAfter, err := db.QueryRows[Aggregate](ctx, "SELECT * FROM local_aggregates", nil)
-	if err != nil {
-		t.Fatalf("error reading from db: %v", err)
-	}
-	assert.Greater(t, len(rowsAfter), len(rowsBefore))
-	feedDataRowsAfter, err := db.QueryRows[FeedDataFromDB](ctx, "SELECT * FROM feed_data", nil)
-	if err != nil {
-		t.Fatalf("error reading from db: %v", err)
-	}
-	assert.Greater(t, len(feedDataRowsAfter), len(feedDataRowsBefore))
-
-	// check rdb and cleanup rdb
-	for _, fetcher := range app.Fetchers {
-		configId := fetcher.Config.ID
-		rdbResult, err := db.Get(ctx, "localAggregate:"+strconv.Itoa(int(configId)))
-		if err != nil {
-			t.Fatalf("error reading from redis: %v", err)
-		}
-		assert.NotNil(t, rdbResult)
-		defer func() {
-			err = db.Del(ctx, "localAggregate:"+strconv.Itoa(int(configId)))
-			if err != nil {
-				t.Fatalf("error removing from redis: %v", err)
-			}
-		}()
-	}
-}
-
-func TestFetcherFetcherStop(t *testing.T) {
-	ctx := context.Background()
-	clean, testItems, err := setup(ctx)
-	if err != nil {
-		t.Fatalf("error setting up test: %v", err)
-	}
-	defer func() {
-		if cleanupErr := clean(); cleanupErr != nil {
-			t.Logf("Cleanup failed: %v", cleanupErr)
-		}
-	}()
-
-	app := testItems.app
-
-	err = app.initialize(ctx)
-	if err != nil {
-		t.Fatalf("error initializing fetcher: %v", err)
-	}
-
-	// first start adapters to stop
-	for _, fetcher := range app.Fetchers {
-		err = app.startFetcher(ctx, fetcher)
-		if err != nil {
-			t.Fatalf("error starting adapter: %v", err)
-		}
-		assert.True(t, fetcher.isRunning)
-	}
-
-	// wait for fetcher to run
-	time.Sleep(WAIT_SECONDS)
-
-	// stop adapters
-	for _, fetcher := range app.Fetchers {
-		app.stopFetcher(ctx, fetcher)
-		assert.False(t, fetcher.isRunning)
-	}
-
-	time.Sleep(WAIT_SECONDS / 2)
-	rowsBefore, err := db.QueryRows[Aggregate](ctx, "SELECT * FROM local_aggregates", nil)
-	if err != nil {
-		t.Fatalf("error reading from db: %v", err)
-	}
-	feedDataRowsBefore, err := db.QueryRows[FeedDataFromDB](ctx, "SELECT * FROM feed_data", nil)
-	if err != nil {
-		t.Fatalf("error reading from db: %v", err)
-	}
-	assert.Greater(t, len(rowsBefore), 0)
-	time.Sleep(WAIT_SECONDS / 2)
-
-	// no rows should be added after stopping
-	rowsAfter, err := db.QueryRows[Aggregate](ctx, "SELECT * FROM local_aggregates", nil)
-	if err != nil {
-		t.Fatalf("error reading from db: %v", err)
-	}
-	assert.Equal(t, len(rowsAfter), len(rowsBefore))
-	feedDataRowsAfter, err := db.QueryRows[FeedDataFromDB](ctx, "SELECT * FROM feed_data", nil)
-	if err != nil {
-		t.Fatalf("error reading from db: %v", err)
-	}
-	assert.Equal(t, len(feedDataRowsAfter), len(feedDataRowsBefore))
-
-	// check rdb and cleanup rdb
-	for _, fetcher := range app.Fetchers {
-		configId := fetcher.Config.ID
-		rdbResult, err := db.Get(ctx, "localAggregate:"+strconv.Itoa(int(configId)))
-		if err != nil {
-			t.Fatalf("error reading from redis: %v", err)
-		}
-		assert.NotNil(t, rdbResult)
-		defer func() {
-			err = db.Del(ctx, "localAggregate:"+strconv.Itoa(int(configId)))
-			if err != nil {
-				t.Fatalf("error removing from redis: %v", err)
-			}
-		}()
-	}
-}
-
-func TestFetcherFetcherStartById(t *testing.T) {
-	ctx := context.Background()
-	clean, testItems, err := setup(ctx)
-	if err != nil {
-		t.Fatalf("error setting up test: %v", err)
-	}
-	defer func() {
-		if cleanupErr := clean(); cleanupErr != nil {
-			t.Logf("Cleanup failed: %v", cleanupErr)
-		}
-	}()
-
-	app := testItems.app
-
-	err = app.initialize(ctx)
-	if err != nil {
-		t.Fatalf("error initializing fetcher: %v", err)
-	}
-
-	app.subscribe(ctx)
-
-	for _, fetcher := range app.Fetchers {
-		_, requestErr := tests.RawPostRequest(testItems.admin, "/api/v1/fetcher/activate/"+strconv.Itoa(int(fetcher.Config.ID)), nil)
-		if requestErr != nil {
-			t.Fatalf("error starting adapter: %v", requestErr)
-		}
-	}
-
-	for _, fetcher := range app.Fetchers {
-		assert.True(t, fetcher.isRunning)
-	}
-
-}
-
-func TestFetcherFetcherStopById(t *testing.T) {
+func TestAppRun(t *testing.T) {
 	ctx := context.Background()
 	clean, testItems, err := setup(ctx)
 	if err != nil {
@@ -329,15 +64,59 @@ func TestFetcherFetcherStopById(t *testing.T) {
 	for _, fetcher := range app.Fetchers {
 		assert.True(t, fetcher.isRunning)
 	}
-
-	for _, fetcher := range app.Fetchers {
-		_, requestErr := tests.RawPostRequest(testItems.admin, "/api/v1/fetcher/deactivate/"+strconv.Itoa(int(fetcher.Config.ID)), nil)
-		if requestErr != nil {
-			t.Fatalf("error stopping adapter: %v", requestErr)
-		}
+	for _, collector := range app.Collectors {
+		assert.True(t, collector.isRunning)
 	}
+	assert.True(t, app.Streamer.isRunning)
 
+	time.Sleep(WAIT_SECONDS)
+
+	err = app.stopAll(ctx)
+	if err != nil {
+		t.Fatalf("error stopping fetcher: %v", err)
+	}
 	for _, fetcher := range app.Fetchers {
 		assert.False(t, fetcher.isRunning)
 	}
+	for _, collector := range app.Collectors {
+		assert.False(t, collector.isRunning)
+	}
+	assert.False(t, app.Streamer.isRunning)
+
+	for _, fetcher := range app.Fetchers {
+		for _, feed := range fetcher.Feeds {
+			result, letestFeedDataErr := db.GetObject[FeedData](ctx, "latestFeedData:"+strconv.Itoa(int(feed.ID)))
+			if letestFeedDataErr != nil {
+				t.Fatalf("error getting latest feed data: %v", letestFeedDataErr)
+			}
+			assert.NotNil(t, result)
+		}
+		rdbResult, localAggregateErr := db.Get(ctx, "localAggregate:"+strconv.Itoa(int(fetcher.Config.ID)))
+		if localAggregateErr != nil {
+			t.Fatalf("error getting local aggregate: %v", localAggregateErr)
+		}
+		assert.NotNil(t, rdbResult)
+	}
+	buffer, err := db.LRangeObject[FeedData](ctx, "feedDataBuffer", 0, -1)
+	if err != nil {
+		t.Fatalf("error getting feed data buffer: %v", err)
+	}
+	assert.Greater(t, len(buffer), 0)
+
+	err = app.Streamer.Job(ctx)
+	if err != nil {
+		t.Fatalf("error running streamer job: %v", err)
+	}
+
+	feedResult, err := db.QueryRows[FeedData](ctx, "SELECT * FROM feed_data", nil)
+	if err != nil {
+		t.Fatalf("error querying feed data: %v", err)
+	}
+	assert.Greater(t, len(feedResult), 0)
+
+	localAggregateResult, err := db.QueryRows[Aggregate](ctx, "SELECT * FROM local_aggregates", nil)
+	if err != nil {
+		t.Fatalf("error querying local aggregates: %v", err)
+	}
+	assert.Greater(t, len(localAggregateResult), 0)
 }

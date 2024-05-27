@@ -135,6 +135,8 @@ var (
 	ErrFetcherConvertToBigInt             = &CustomError{Service: Fetcher, Code: InternalError, Message: "Failed to convert to big.Int"}
 	ErrFetcherInvalidInput                = &CustomError{Service: Fetcher, Code: InvalidInputError, Message: "Invalid input"}
 	ErrFetcherDivisionByZero              = &CustomError{Service: Fetcher, Code: InternalError, Message: "Division by zero"}
+	ErrCollectorCancelNotFound            = &CustomError{Service: Fetcher, Code: InternalError, Message: "Collector cancel function not found"}
+	ErrStreamerCancelNotFound             = &CustomError{Service: Fetcher, Code: InternalError, Message: "Streamer cancel function not found"}
 
 	ErrLibP2pEmptyNonLocalAddress = &CustomError{Service: Others, Code: InternalError, Message: "Host has no non-local addresses"}
 	ErrLibP2pAddressSplitFail     = &CustomError{Service: Others, Code: InternalError, Message: "Failed to split address"}

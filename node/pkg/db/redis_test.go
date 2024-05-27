@@ -362,10 +362,10 @@ func TestLPushObject(t *testing.T) {
 	}
 
 	key := "testKey"
-	values := []any{
-		TestStruct{ID: 1, Name: "Test1"},
-		TestStruct{ID: 2, Name: "Test2"},
-		TestStruct{ID: 3, Name: "Test3"},
+	values := []TestStruct{
+		{ID: 1, Name: "Test1"},
+		{ID: 2, Name: "Test2"},
+		{ID: 3, Name: "Test3"},
 	}
 
 	err := LPushObject(ctx, key, values)
@@ -443,10 +443,10 @@ func TestPopAllObject(t *testing.T) {
 	}
 
 	key := "testKey"
-	values := []any{
-		TestStruct{ID: 1, Name: "Test1"},
-		TestStruct{ID: 2, Name: "Test2"},
-		TestStruct{ID: 3, Name: "Test3"},
+	values := []TestStruct{
+		{ID: 1, Name: "Test1"},
+		{ID: 2, Name: "Test2"},
+		{ID: 3, Name: "Test3"},
 	}
 
 	// Push objects to the list
@@ -478,5 +478,49 @@ func TestPopAllObject(t *testing.T) {
 	}
 	if len(result) != 0 {
 		t.Errorf("Expected empty list, got %+v", result)
+	}
+}
+func TestMSetObjectWithExp(t *testing.T) {
+	ctx := context.Background()
+
+	values := map[string]any{
+		"key1": "value1",
+		"key2": "value2",
+	}
+
+	exp := 1 * time.Second
+
+	err := MSetObjectWithExp(ctx, values, exp)
+	if err != nil {
+		t.Errorf("Error setting objects with expiration: %v", err)
+	}
+
+	// Check if the values were set correctly
+	for key, value := range values {
+		gotValue, getValueErr := Get(ctx, key)
+		if getValueErr != nil {
+			t.Errorf("Error getting key: %v", getValueErr)
+		}
+		expectedValue, marshalErr := json.Marshal(value)
+		if marshalErr != nil {
+			t.Errorf("Error marshalling value: %v", marshalErr)
+			continue
+		}
+		if gotValue != string(expectedValue) {
+			t.Errorf("Value did not match expected. Got %v, expected %v", gotValue, string(expectedValue))
+		}
+	}
+
+	time.Sleep(1001 * time.Millisecond)
+
+	// Check if the values were expired
+	for key := range values {
+		gotValue, getValueErr := Get(ctx, key)
+		if getValueErr == nil || !strings.Contains(getValueErr.Error(), "redis: nil") {
+			t.Errorf("Expected to have err")
+		}
+		if gotValue != "" {
+			t.Errorf("Expected empty value, got %v", gotValue)
+		}
 	}
 }
