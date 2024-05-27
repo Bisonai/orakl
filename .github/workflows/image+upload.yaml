@@ -18,7 +18,7 @@ jobs:
       ecr_url: ${{ steps.extract_tags.outputs.ecr_url }}
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v2
 
       - name: get date and git hash
         id: hash
@@ -51,7 +51,6 @@ jobs:
             echo "service=${service}" >> $GITHUB_OUTPUT
             echo "version=${version}" >> $GITHUB_OUTPUT
             echo "ecr_url=public.ecr.aws/bisonai/orakl-${service}" >> $GITHUB_OUTPUT
-            printenv
           else
             echo "Tag does not match the pattern."
             exit 1
@@ -89,10 +88,10 @@ jobs:
 
       - name: publish image to ecr
         run: |
-          docker tag orakl-${{ needs.prepare.outputs.service }} ${{ needs.prepare.outputs.ecr_url }}
-          docker push ${{ needs.prepare.outputs.ecr_url }}
-          docker tag ${{ needs.prepare.outputs.ecr_url }} ${{ needs.prepare.outputs.ecr_url }}:${{ needs.prepare.outputs.version }}.${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }}
-          docker push ${{ needs.prepare.outputs.ecr_url }}:${{ needs.prepare.outputs.version }}.${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }}
+          docker tag orakl-${{ needs.prepare.outputs.service }} ${{ needs.prepare.outputs.ecr_url }}:latest
+          docker push ${{ needs.prepare.outputs.ecr_url }}:latest
+          docker tag ${{ needs.prepare.outputs.ecr_url }}:latest ${{ needs.prepare.outputs.ecr_url }}:v${{ needs.prepare.outputs.version }}.${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }}
+          docker push ${{ needs.prepare.outputs.ecr_url }}:v${{ needs.prepare.outputs.version }}.${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }}
 
       - name: image tag output
         id: img-tag
@@ -132,7 +131,7 @@ jobs:
       - name: update package.json version
         if: needs.prepare.outputs.version
         run: |
-          cd ${{ needs.prepare.outputs.service }}
+          cd orakl/${{ needs.prepare.outputs.service }}
           version=${{ needs.prepare.outputs.version }}
           echo "updating package.json to version $version"
           npm version $version --no-git-tag-version
