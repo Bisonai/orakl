@@ -68,7 +68,9 @@
     "request-vrf": "yarn hardhat run scripts/vrf/integration/request-vrf.ts",
     "get-vrf": "yarn hardhat run scripts/vrf/integration/read-vrf.ts",
     "request-rr": "yarn hardhat run scripts/request-response/integration/request-data.ts",
-    "get-rr": "yarn hardhat run scripts/request-response/integration/read-data.ts"
+    "get-rr": "yarn hardhat run scripts/request-response/integration/read-data.ts",
+    "sol-error-mappings": "node scripts/sol-error-mappings/error-keccak-mapping.js",
+    "get-error-from-hash": "node scripts/sol-error-mappings/get-error-from-encoding.js"
   },
   "devDependencies": {
     "@bisonai/orakl-vrf": "*",

@@ -1,5 +1,6 @@
 import { IncomingWebhook } from '@slack/webhook'
 import Hook from 'console-hook'
+import { ethers } from 'ethers'
 import * as Fs from 'node:fs/promises'
 import os from 'node:os'
 import type { RedisClientType } from 'redis'
@@ -146,4 +147,8 @@ export const getOraklErrorCode = (e, defaultErrorCode) => {
   } else {
     return defaultErrorCode
   }
+}
+
+export function isAddressValid(addr: string): boolean {
+  return ethers.utils.getAddress(addr) === addr
 }

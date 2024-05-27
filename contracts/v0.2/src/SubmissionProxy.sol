@@ -38,6 +38,7 @@ contract SubmissionProxy is Ownable {
     mapping(address => OracleInfo) public whitelist;
     mapping(bytes32 feedHash => uint8 threshold) thresholds;
     mapping(bytes32 feedHash => IFeed feed) feeds;
+    mapping(bytes32 feedHash => uint256 lastSubmissionTime) lastSubmissionTimes;
 
     event OracleAdded(address oracle, uint256 expirationTime);
     event OracleRemoved(address oracle);
@@ -358,7 +359,10 @@ contract SubmissionProxy is Ownable {
 
         uint256 feedsLength_ = _feedHashes.length;
         for (uint256 i = 0; i < feedsLength_; i++) {
-            if (_timestamps[i] <= block.timestamp - dataFreshness) {
+            if (
+                _timestamps[i] <= block.timestamp - dataFreshness
+                    || lastSubmissionTimes[_feedHashes[i]] >= _timestamps[i]
+            ) {
                 // answer is too old -> do not submit!
                 continue;
             }
@@ -382,6 +386,7 @@ contract SubmissionProxy is Ownable {
             bytes32 message_ = keccak256(abi.encodePacked(_answers[i], _timestamps[i], _feedHashes[i]));
             if (validateProof(_feedHashes[i], message_, proofs_)) {
                 feeds[_feedHashes[i]].submit(_answers[i]);
+                lastSubmissionTimes[_feedHashes[i]] = _timestamps[i];
             }
         }
     }

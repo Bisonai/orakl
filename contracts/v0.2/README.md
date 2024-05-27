@@ -58,6 +58,14 @@ Following command will generate migration file for whole deployment in `./migrat
 node ./script/generate-migration-from-config.cjs --chain test
 ```
 
+### Generated Collected Addresses
+
+Following command collects deployed addresses into json files `datafeeds-addresses.json` and `others-addresses.json`. Stores in ./addresses path
+
+```shell
+node ./script/collect-addresses.cjs
+```
+
 ## Migration Examples
 
 ### `./migration/{CHAIN(local/baobab/cypress)}/Feed/{migrationFile}.json`

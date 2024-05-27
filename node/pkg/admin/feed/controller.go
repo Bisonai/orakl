@@ -8,10 +8,10 @@ import (
 )
 
 type FeedModel struct {
-	Id         *int64          `db:"id" json:"id"`
+	Id         *int32          `db:"id" json:"id"`
 	Name       string          `db:"name" json:"name"`
 	Definition json.RawMessage `db:"definition" json:"definition"`
-	ConfigId   *int64          `db:"config_id" json:"configId"`
+	ConfigId   *int32          `db:"config_id" json:"configId"`
 }
 
 func get(c *fiber.Ctx) error {

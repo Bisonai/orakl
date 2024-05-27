@@ -33,7 +33,11 @@ check_used_tags() {
     chain="${1}"
 
     for service_name in ${service_names}; do
-        helm_chart=$(curl -s --raw https://raw.githubusercontent.com/Bisonai/orakl-helm-charts/gcp-${chain}-prod/${service_name}/values.yaml)
+        helm_chart=$(curl -s --raw "https://raw.githubusercontent.com/Bisonai/orakl-helm-charts/idc-fly/${service_name}/values.${chain}.yaml")
+        listener_tag=$(echo "${helm_chart}" | yq eval ".global.image.listenerTag")
+        worker_tag=$(echo "${helm_chart}" | yq eval ".global.image.workerTag")
+        reporter_tag=$(echo "${helm_chart}" | yq eval ".global.image.reporterTag")
+        cur_image_tag=$(echo "${available_tags}" | jq -r ".imageTagDetails[$i].imageTag")
         tag=$(echo "${helm_chart}" | yq eval '.global.image.tag')
 
         # Sometimes we split tags into listener, worker, and reporter.
@@ -63,7 +67,7 @@ check_tag() {
     fi
 
     found_tag=false
-    for i in $(seq 0 $((tag_count - 1))); do
+    for i in $(seq 0 $((tag_count))); do
         cur_image_tag=$(echo "${available_tags}" | jq -r ".imageTagDetails[$i].imageTag")
         if [ "${cur_image_tag}" = "${tag}" ]; then
             found_tag=true

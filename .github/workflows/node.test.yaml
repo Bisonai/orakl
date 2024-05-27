@@ -73,7 +73,7 @@ jobs:
       - name: Migrate up
         run: |
           cd ./node
-          migrate -database "postgresql://postgres:postgres@localhost:5432/orakl-test?search_path=public&sslmode=disable" -verbose -path ./migrations up
+          migrate -database "postgresql://postgres:postgres@localhost:5432/orakl-test?search_path=public&sslmode=disable" -verbose -path ./migrations/node up
 
       - name: Install dependencies
         run: |
@@ -94,6 +94,7 @@ jobs:
           REDIS_HOST: "localhost"
           REDIS_PORT: "6379"
           ENCRYPT_PASSWORD: "anything"
+          FETCHER_CYPRESS_PROVIDER_URL: "https://klaytn-mainnet-rpc.allthatnode.com:8551"
           KLAYTN_PROVIDER_URL: "https://api.baobab.klaytn.net:8651"
           KLAYTN_REPORTER_PK: ${{ secrets.TEST_DELEGATOR_REPORTER_PK}}
           ETH_PROVIDER_URL: "https://ethereum-sepolia-rpc.allthatnode.com"

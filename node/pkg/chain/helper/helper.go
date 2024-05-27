@@ -10,6 +10,7 @@ import (
 
 	"bisonai.com/orakl/node/pkg/chain/utils"
 	errorSentinel "bisonai.com/orakl/node/pkg/error"
+	"bisonai.com/orakl/node/pkg/secrets"
 	"bisonai.com/orakl/node/pkg/utils/request"
 	"github.com/klaytn/klaytn/blockchain/types"
 	"github.com/klaytn/klaytn/common"
@@ -29,7 +30,7 @@ func setProviderAndReporter(config *ChainHelperConfig, blockchainType Blockchain
 		}
 
 		if config.ReporterPk == "" {
-			config.ReporterPk = os.Getenv(KlaytnReporterPk)
+			config.ReporterPk = secrets.GetSecret(KlaytnReporterPk)
 			if config.ReporterPk == "" {
 				log.Warn().Msg("reporter pk not set")
 			}
@@ -44,7 +45,7 @@ func setProviderAndReporter(config *ChainHelperConfig, blockchainType Blockchain
 		}
 
 		if config.ReporterPk == "" {
-			config.ReporterPk = os.Getenv(EthReporterPk)
+			config.ReporterPk = secrets.GetSecret(EthReporterPk)
 			if config.ReporterPk == "" {
 				log.Warn().Msg("reporter pk not set")
 			}
@@ -109,7 +110,21 @@ func NewChainHelper(ctx context.Context, opts ...ChainHelperOption) (*ChainHelpe
 	}
 	if config.ReporterPk != "" {
 		primaryWallet := strings.TrimPrefix(config.ReporterPk, "0x")
-		wallets = append([]string{primaryWallet}, wallets...)
+		exists := false
+		for _, wallet := range wallets {
+			if wallet == primaryWallet {
+				exists = true
+				break
+			}
+		}
+
+		if !exists {
+			wallets = append([]string{primaryWallet}, wallets...)
+			err = utils.InsertWallet(ctx, primaryWallet)
+			if err != nil {
+				log.Warn().Err(err).Msg("failed to insert primary wallet")
+			}
+		}
 	}
 
 	delegatorUrl := os.Getenv(EnvDelegatorUrl)
@@ -280,7 +295,7 @@ func (t *ChainHelper) retryOnJsonRpcFailure(ctx context.Context, job func(c util
 
 func NewSignHelper(pk string) (*SignHelper, error) {
 	if pk == "" {
-		pk = os.Getenv(SignerPk)
+		pk = secrets.GetSecret(SignerPk)
 		if pk == "" {
 			log.Error().Msg("signer pk not set")
 			return nil, errorSentinel.ErrChainSignerPKNotFound

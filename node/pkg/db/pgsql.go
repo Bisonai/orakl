@@ -4,11 +4,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"os"
 	"strings"
 	"sync"
 
 	errorSentinel "bisonai.com/orakl/node/pkg/error"
+	"bisonai.com/orakl/node/pkg/secrets"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/rs/zerolog/log"
@@ -46,7 +46,7 @@ func connectToPgsql(ctx context.Context, connectionString string) (*pgxpool.Pool
 }
 
 func loadPgsqlConnectionString() string {
-	return os.Getenv("DATABASE_URL")
+	return secrets.GetSecret("DATABASE_URL")
 }
 
 func QueryWithoutResult(ctx context.Context, queryString string, args map[string]any) error {

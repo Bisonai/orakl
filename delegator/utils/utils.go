@@ -87,18 +87,13 @@ func InitFeePayerPK(ctx context.Context, pgxPool *pgxpool.Pool) error {
 
 	useGoogleSecretManager, _ := strconv.ParseBool(os.Getenv("USE_GOOGLE_SECRET_MANAGER"))
 	useVault, _ := strconv.ParseBool(os.Getenv("USE_VAULT"))
-	if useGoogleSecretManager {
-		feePayer, err = LoadFeePayerFromGSM(ctx)
-		if err != nil {
-			return err
-		}
-	} else if useVault {
+	if useVault {
 		feePayer, err = LoadFeePayerFromVault(ctx)
 		if err != nil {
 			return err
 		}
-	} else {
-		feePayer, err = LoadFeePayer(pgxPool)
+	} else if useGoogleSecretManager {
+		feePayer, err = LoadFeePayerFromGSM(ctx)
 		if err != nil {
 			return err
 		}
@@ -246,24 +241,6 @@ func QueryRowsWithoutFiberCtx[T any](postgres *pgxpool.Pool, query string, args 
 		return results, nil
 	}
 	return results, err
-}
-
-func LoadFeePayer(postgres *pgxpool.Pool) (string, error) {
-	rows, err := postgres.Query(context.Background(), "SELECT * FROM fee_payers;")
-	if err != nil {
-		return "", err
-	}
-
-	results, err := pgx.CollectRows(rows, pgx.RowToStructByName[FeePayer])
-	if errors.Is(err, pgx.ErrNoRows) || len(results) == 0 {
-		return "", fmt.Errorf("no fee payer found")
-	}
-
-	if len(results) > 1 {
-		return "", fmt.Errorf("too many fee payers")
-	}
-
-	return results[0].PrivateKey, nil
 }
 
 func LoadFeePayerFromGSM(ctx context.Context) (string, error) {

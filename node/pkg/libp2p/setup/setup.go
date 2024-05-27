@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"bisonai.com/orakl/node/pkg/libp2p/utils"
+	"bisonai.com/orakl/node/pkg/secrets"
 	"bisonai.com/orakl/node/pkg/utils/request"
 
 	"github.com/libp2p/go-libp2p"
@@ -55,6 +56,7 @@ func SetupFromBootApi(ctx context.Context, port int) (host.Host, *pubsub.PubSub,
 		apiEndpoint = "http://localhost:8089"
 	}
 
+	log.Info().Str("ip", ip).Int("port", port).Str("host_id", hostId).Str("api_endpoint", apiEndpoint).Msg("connecting to boot API")
 	dbPeers, err := request.UrlRequest[[]BootPeerModel](apiEndpoint+"/api/v1/peer/sync", "POST", map[string]any{
 		"ip":      ip,
 		"port":    port,
@@ -111,7 +113,7 @@ func makeHost(listenPort int, priv crypto.PrivKey) (host.Host, error) {
 		opts = append(opts, libp2p.ListenAddrStrings(fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", listenPort)))
 	}
 
-	secretString := os.Getenv("PRIVATE_NETWORK_SECRET")
+	secretString := secrets.GetSecret("PRIVATE_NETWORK_SECRET")
 	if secretString != "" {
 		hash := sha256.Sum256([]byte(secretString))
 		protector := pnet.PSK(hash[:])

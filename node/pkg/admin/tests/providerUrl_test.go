@@ -74,7 +74,7 @@ func TestProviderUrlGetById(t *testing.T) {
 	}
 	defer cleanup()
 
-	readResult, err := GetRequest[providerUrl.ProviderUrlModel](testItems.app, "/api/v1/provider-url/"+strconv.FormatInt(*testItems.tmpData.providerUrl.Id, 10), nil)
+	readResult, err := GetRequest[providerUrl.ProviderUrlModel](testItems.app, "/api/v1/provider-url/"+strconv.Itoa(int(*testItems.tmpData.providerUrl.Id)), nil)
 	if err != nil {
 		t.Fatalf("error getting provider urls: %v", err)
 	}

@@ -149,6 +149,19 @@ func GetWallets(ctx context.Context) ([]string, error) {
 	return wallets, nil
 }
 
+func InsertWallet(ctx context.Context, pk string) error {
+	if os.Getenv("DATABASE_URL") == "" {
+		log.Warn().Msg("DATABASE_URL is not set, skipping wallet insert")
+		return nil
+	}
+	encryptedPk, err := encryptor.EncryptText(pk)
+	if err != nil {
+		return err
+	}
+
+	return db.QueryWithoutResult(ctx, "INSERT INTO wallets (pk) VALUES (@pk)", map[string]any{"pk": encryptedPk})
+}
+
 func GetChainID(ctx context.Context, client ClientInterface) (*big.Int, error) {
 	return client.NetworkID(ctx)
 }
@@ -591,6 +604,24 @@ func Value2HashForSign(value int64, timestamp int64, name string) []byte {
 
 func StringToPk(pk string) (*ecdsa.PrivateKey, error) {
 	return crypto.HexToECDSA(strings.TrimPrefix(pk, "0x"))
+}
+
+func StringPkToAddressHex(pk string) (string, error) {
+	privateKey, err := StringToPk(pk)
+	if err != nil {
+		return "", err
+	}
+	publicKey := privateKey.Public()
+	publicKeyECDSA, ok := publicKey.(*ecdsa.PublicKey)
+	if !ok {
+		return "", errorSentinel.ErrChainPubKeyToECDSAFail
+	}
+	result := crypto.PubkeyToAddress(*publicKeyECDSA).Hex()
+	if !strings.HasPrefix(result, "0x") {
+		result = "0x" + result
+	}
+
+	return result, nil
 }
 
 func RecoverSigner(hash []byte, signature []byte) (address common.Address, err error) {

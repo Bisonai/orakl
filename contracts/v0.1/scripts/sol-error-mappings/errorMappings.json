@@ -1,0 +1,278 @@
+{
+  "0x05a48e0fc42b9cfeed3601aff0cfc0d560d245d28de6c384623d71dc535c2272": {
+    "file": "src/Account.sol",
+    "error": "error TooManyConsumers();"
+  },
+  "0xd084e975a962ac435d13cd622ad247f5a0482af4cce640e1af8dc9e5e88a9c36": {
+    "file": "src/Account.sol",
+    "error": "error MustBeRequestedOwner(address requestedOwner);"
+  },
+  "0x901d952135d9fbff82866f5ab8abcdb4238495fa6f2e413f956656e6569f4dee": {
+    "file": "src/Account.sol",
+    "error": "error MustBeAccountOwner(address owner);"
+  },
+  "0x57695ced935a1fd278569366d16f14a9cb59efb1e3a7239e369fafbf4745c8a3": {
+    "file": "src/Account.sol",
+    "error": "error MustBePaymentSolution(address paymentSolution);"
+  },
+  "0xf4d678b8ce6b5157126b1484a53523762a93571537a7d5ae97d8014a44715c94": {
+    "file": "src/Registry.sol",
+    "error": "error InsufficientBalance();"
+  },
+  "0x728aeb5f6831d2f2f092f1e141ae8764971c162caea49044ed3a78fe5232582d": {
+    "file": "src/Account.sol",
+    "error": "error InvalidConsumer(address consumer);"
+  },
+  "0x0e27e65d5fdc901a0726228f89f2ab787c6a59f7cca806b536517699aa1c3de9": {
+    "file": "src/Prepayment.sol",
+    "error": "error BurnFeeFailed();"
+  },
+  "0xb7c1cac73e34902c9c8abee43a3fb8ee3aeb181d4d854c2bb6bba5f2bf286099": {
+    "file": "src/Prepayment.sol",
+    "error": "error OperatorFeeFailed();"
+  },
+  "0xf56213a3d238fd70a27d8220682ab7179f7213c5a97e0195e8c3e26103474d7d": {
+    "file": "src/Prepayment.sol",
+    "error": "error ProtocolFeeFailed();"
+  },
+  "0x9c90768ec46bef7bfbf90cde0bcbadf080f9e05b098f3b4e799d81965fd2e400": {
+    "file": "src/Aggregator.sol",
+    "error": "error OracleAlreadyEnabled();"
+  },
+  "0x1c22532f29444f8b045b26ef3311cf25bc6a4ba557f5dfd18d66dd5e05b5401d": {
+    "file": "src/Aggregator.sol",
+    "error": "error OracleNotEnabled();"
+  },
+  "0x8d07577c33e72bbdc050f789f325f74809772dfa9aa1baa567c84149d1603806": {
+    "file": "src/Aggregator.sol",
+    "error": "error OffChainReadingOnly();"
+  },
+  "0xaf9a0f5911839e4d4579f16962159b0836dd84da595c5381414fa7445ffe6302": {
+    "file": "src/Aggregator.sol",
+    "error": "error RequesterNotAuthorized();"
+  },
+  "0x403ea3fa7d59dc3326f7bfa4b2a4d911c220d61ad68cafcac6ecbde8ee2c1bb0": {
+    "file": "src/Aggregator.sol",
+    "error": "error PrevRoundNotSupersedable();"
+  },
+  "0x575c0ddbb1cd0ca17eede1a2e2cdd66b144be386f3f1aa736f49c13d84ae92fd": {
+    "file": "src/Aggregator.sol",
+    "error": "error RoundNotAcceptingSubmission();"
+  },
+  "0x25d0209c0efd050954bc628679b901fe7e35bdd632e71f070173b6a6e30f7048": {
+    "file": "src/RequestResponseCoordinator.sol",
+    "error": "error TooManyOracles();"
+  },
+  "0xbb258700699f4449978821f51700c766295ef133e7bb6177607142c8d88db786": {
+    "file": "src/Aggregator.sol",
+    "error": "error NoDataPresent();"
+  },
+  "0xc30a2a1232535b9b0e7074f65c6d557222b26cc3456cb7c4d60ca55214c38e72": {
+    "file": "src/Aggregator.sol",
+    "error": "error NewRequestTooSoon();"
+  },
+  "0xfd97bd0fe21f60c1ff361d27f277b231ff2909164349ef648a3e1d7fadb92f2a": {
+    "file": "src/Aggregator.sol",
+    "error": "error MinSubmissionGtMaxSubmission();"
+  },
+  "0xd16b17e2a9d6c5e644833990df9cd32dca3a6d98bbfae18b85c424146b6b5a37": {
+    "file": "src/Aggregator.sol",
+    "error": "error RestartDelayExceedOracleNum();"
+  },
+  "0x5ea0323e3a2de042f2998e13913310e0daab30fbadeec260bc0afab13e3d6965": {
+    "file": "src/Aggregator.sol",
+    "error": "error MinSubmissionZero();"
+  },
+  "0x08bc6c01863fb00e1fafb244b24cd46afcbeeab6313836ee09f8e24e2567fc66": {
+    "file": "src/Aggregator.sol",
+    "error": "error MaxSubmissionGtOracleNum();"
+  },
+  "0x7751b623ca7ec42248b6c4c383057d69d4d1dd5b5f25437058a4d63d49841c00": {
+    "file": "src/AggregatorProxy.sol",
+    "error": "error InvalidProposedAggregator();"
+  },
+  "0xed3ba6a62877a99990a32617b4e001f2c85c7886f010c9b166e8438fd38bcb40": {
+    "file": "src/L2EndpointBase.sol",
+    "error": "error Reentrant();"
+  },
+  "0x3688124ad82f221eb78a677092ca0117cccfe21e434a0580aae4708fa81ac9b3": {
+    "file": "src/CoordinatorBase.sol",
+    "error": "error NoCorrespondingRequest();"
+  },
+  "0x517907dd6adedc432a6bf3f39b24ae9de6d6b2c28b882262c688c83967d8e73d": {
+    "file": "src/CoordinatorBase.sol",
+    "error": "error NotRequestOwner();"
+  },
+  "0x6ff7406ab9964292a7f6959f9445e5acd14929b00e1793fc155e682f7bfb024a": {
+    "file": "src/CoordinatorBase.sol",
+    "error": "error OracleAlreadyRegistered(address oracle);"
+  },
+  "0xf9a0ffdffcc2341356fb22ccddc9690c8e363ebd79e1335b10f6254fd1a761b7": {
+    "file": "src/CoordinatorBase.sol",
+    "error": "error NoSuchOracle(address oracle);"
+  },
+  "0xef7a4b61c46ff73f9899d25704b7b276a655f7a132026f96485e1c55f362e25a": {
+    "file": "src/CoordinatorBase.sol",
+    "error": "error RefundFailure();"
+  },
+  "0xf0019fe6aece70bd274bf825267212b1ed3198ad77f148bf9fc22ae438a8f1a5": {
+    "file": "src/CoordinatorBase.sol",
+    "error": "error InvalidConsumer(uint64 accId, address consumer);"
+  },
+  "0xd529142c8650841feedc2ecdf8de95e62557caf485696b524803b961fd23badb": {
+    "file": "src/CoordinatorBase.sol",
+    "error": "error IncorrectCommitment();"
+  },
+  "0xf5d7e01ea5c32f94380825bc1f2bdcf8c3aa85c2719c136d325e11fe7e490679": {
+    "file": "src/CoordinatorBase.sol",
+    "error": "error GasLimitTooBig(uint32 have, uint32 want);"
+  },
+  "0xb99e2ab74a9c2e995ae1a652f5e2850be9926ff7f7c383e9a2f87106a5985716": {
+    "file": "src/CoordinatorBase.sol",
+    "error": "error InsufficientPayment(uint256 have, uint256 want);"
+  },
+  "0xa4790ee39e8168587bb57070e7257e57f6ad4498f84af6daaae5a8d9a80ec7ff": {
+    "file": "src/Prepayment.sol",
+    "error": "error FailedToDeposit();"
+  },
+  "0x80fee105c2072ed9e186f4c861f8af91e75494f49bfc0883cbebb2900e492022": {
+    "file": "src/L1EndpointBase.sol",
+    "error": "error OnlyOracle();"
+  },
+  "0x2c34ebbf4c035a75a99ae0583a1c87ed95ed68773bcee27e118bd364c24a0170": {
+    "file": "src/L1EndpointBase.sol",
+    "error": "error ConsumerValid();"
+  },
+  "0xd443d157584d886dc1572efda8ff618310478fef234cf21bd6474dcff9630061": {
+    "file": "src/L1EndpointVRF.sol",
+    "error": "error OnlyVRFCoordinatorCanFulfill(address have, address want);"
+  },
+  "0xbff93c5c4e58ecd14ea39b5e97b748def2b298a392498d6a6b987c36adbddfd1": {
+    "file": "src/L2EndpointBase.sol",
+    "error": "error InvalidSubmitter(address submitter);"
+  },
+  "0x5c8bf34d0efb9c869ef3d02642453dee7ff6788522ea14f1171ebbafe4006f2d": {
+    "file": "src/L2endpoint.sol",
+    "error": "error InvalidAggregator(address aggregator);"
+  },
+  "0xb42f66e892a890021cc99a072a4941254adf08d9d07497a5763974f07c7c250d": {
+    "file": "src/Prepayment.sol",
+    "error": "error PendingRequestExists();"
+  },
+  "0x61888397e7f6abdb7aa5606af645adcc5be5105ffc1d57ff51bf37371c757dbd": {
+    "file": "src/Prepayment.sol",
+    "error": "error InvalidCoordinator();"
+  },
+  "0x6d187b28dc0ac7ec3747dcca312a7f01229ba51941237588cf813e48090f2a50": {
+    "file": "src/Prepayment.sol",
+    "error": "error InvalidAccount();"
+  },
+  "0x60743613d42355a1b7abca5eaf70188edd0a8d0d296764d8322174ea3816893b": {
+    "file": "src/Prepayment.sol",
+    "error": "error MustBeAccountOwner();"
+  },
+  "0x4a580a4d9ca7d6bcc6346bb1fc0c966702dca7bc7dbdc75426088ad78c2fa1c7": {
+    "file": "src/Prepayment.sol",
+    "error": "error RatioOutOfBounds();"
+  },
+  "0x2aa6965e71a4ababe401114aeaa32fbb68542241412cdba5d07adda7d0ca4be4": {
+    "file": "src/Prepayment.sol",
+    "error": "error FailedToWithdraw(uint64 accId);"
+  },
+  "0x59f4e0cc50f0a25bb90ab2bc2a96e0bbba42c00b7c69072801c99993cbc962f1": {
+    "file": "src/Prepayment.sol",
+    "error": "error CoordinatorExists();"
+  },
+  "0xecfd94be746422361a4b6e08111919d03cc4e69503f524e682b4b9ca82d55ca6": {
+    "file": "src/Prepayment.sol",
+    "error": "error TooHighFeeRatio();"
+  },
+  "0x4319610c477765e6fb8ad0b74d559e67cd8d815d34e1d3a8e74236b24df2f384": {
+    "file": "src/Prepayment.sol",
+    "error": "error FailedToWithdrawFromTemporaryAccount(uint64 accId);"
+  },
+  "0x688e55ae57be53a93b8e2e12ae566cdd98fe14bce2962b4791d131389e632084": {
+    "file": "src/Registry.sol",
+    "error": "error NotEnoughFee();"
+  },
+  "0x86d846fdeeed7b22f570e447c0a11d55fe5d60ad04021185a696b5e8f4c82ac8": {
+    "file": "src/Registry.sol",
+    "error": "error InvalidChainID();"
+  },
+  "0xc64f1d96590306c7e5ab187fdf4fbf6bbc75c350609fca0f154d9d98d680572d": {
+    "file": "src/Registry.sol",
+    "error": "error InvalidAccId();"
+  },
+  "0x08b6c186b6fadb3156daae316e1969249df0b936e8ad6038fffc96eda20248b4": {
+    "file": "src/Registry.sol",
+    "error": "error AccountExisted();"
+  },
+  "0xef4c0fcce60bb76e1d03909de72b1439fa82e2a3dc6d39d0e5010c38a2e2d3ed": {
+    "file": "src/Registry.sol",
+    "error": "error NotFeePayerOwner();"
+  },
+  "0x8e14d678438e2ae0ce60f28aaf69a8198b00eda08ad18ed869cfd86c846f4144": {
+    "file": "src/Registry.sol",
+    "error": "error NotChainOwner();"
+  },
+  "0xab83f3d420fd41f647e71956d5b4650cca8ad5cdbcd3c4bdbd79926d7f48ecf4": {
+    "file": "src/Registry.sol",
+    "error": "error ChainExisted();"
+  },
+  "0x21d77dc1d9dd29cafa8bcab7bf62a90b98ed6298942903fe19e6755978d538d3": {
+    "file": "src/Registry.sol",
+    "error": "error DecreaseBalanceFailed();"
+  },
+  "0x1cf993f4855ca2a758bea0e0e264b2cd16369bc2acc356b4ef6323767def33d8": {
+    "file": "src/VRFConsumerBase.sol",
+    "error": "error OnlyCoordinatorCanFulfill(address have, address want);"
+  },
+  "0xd6c3374809b73865a62040e9d4175a675ce5241e7dd83442b8b143f05384928d": {
+    "file": "src/RequestResponseCoordinator.sol",
+    "error": "error UnregisteredOracleFulfillment(address oracle);"
+  },
+  "0x9a358cc50a97a124848276b4066b530e81634389418e22304209dac916351c5a": {
+    "file": "src/RequestResponseCoordinator.sol",
+    "error": "error InvalidJobId();"
+  },
+  "0xfa163bb0c495b3525bdc00f733bd249631de579def4e3252546f8b503e1d8723": {
+    "file": "src/RequestResponseCoordinator.sol",
+    "error": "error InvalidNumSubmission();"
+  },
+  "0x9f17b6ef8f30ce6f653f38decba609f847cc97a6449d90057c0459bf9c69faf3": {
+    "file": "src/RequestResponseCoordinator.sol",
+    "error": "error OracleAlreadySubmitted();"
+  },
+  "0xe7b9d74d25161aa458668c8a74ef4e7d4b3b306260ed8f44c342e6ecbb6c47cc": {
+    "file": "src/RequestResponseCoordinator.sol",
+    "error": "error IncompatibleJobId();"
+  },
+  "0xb3c2774795da0f5e59df6e814034a6f42e598a2dbd2cfb9ca2033325cfc3c596": {
+    "file": "src/VRFCoordinator.sol",
+    "error": "error InvalidAccRequest();"
+  },
+  "0xc954459da22ef97b64dd32d2273f28881c8659c5b02396c8e6197ee2ce82f1c7": {
+    "file": "src/VRFCoordinator.sol",
+    "error": "error InvalidKeyHash(bytes32 keyHash);"
+  },
+  "0x47386bec2b588c425db14fbb8b0a29247107dbf09065dfab1c591defa56e13e6": {
+    "file": "src/VRFCoordinator.sol",
+    "error": "error NumWordsTooBig(uint32 have, uint32 want);"
+  },
+  "0x77f5b84cb29891be0bb7312b5b6396a8514375e9bdc6eece1026e676bac49dde": {
+    "file": "src/VRFCoordinator.sol",
+    "error": "error NoSuchProvingKey(bytes32 keyHash);"
+  },
+  "0x0a81fe0db8ac23ede61d8dd687fa3f905c52b59950e09f53876faf9702bdc0b2": {
+    "file": "src/libraries/MajorityVoting.sol",
+    "error": "error EvenLengthList();"
+  },
+  "0x0a86c02ac610fb23f42673818e2633fb2c60a86b7fe508c07305449f01b527ed": {
+    "file": "src/mocks/VRFConsumerMock.sol",
+    "error": "error OnlyOwner(address notOwner);"
+  },
+  "0x36bed872d00b13403f2e085c920f912c513613c2a9a3132df9f54ed1c465106d": {
+    "file": "src/mocks/VRFConsumerRevertFulfillmentMock.sol",
+    "error": "error AnyError();"
+  }
+}

@@ -1,13 +1,11 @@
 package peer
 
 import (
-	"encoding/hex"
 	"fmt"
 
 	"bisonai.com/orakl/node/pkg/db"
 	libp2pSetup "bisonai.com/orakl/node/pkg/libp2p/setup"
 	libp2pUtils "bisonai.com/orakl/node/pkg/libp2p/utils"
-	"github.com/akamensky/base58"
 	"github.com/go-playground/validator"
 	"github.com/gofiber/fiber/v2"
 	"github.com/rs/zerolog/log"
@@ -78,10 +76,8 @@ func sync(c *fiber.Ctx) error {
 		log.Error().Err(err).Msg("Failed to make host")
 		return c.Status(fiber.StatusInternalServerError).SendString("Failed to make host")
 	}
-	decoded, _ := base58.Decode(payload.HostId)
-	peerId := hex.EncodeToString(decoded)
-	log.Info().Str("peer", peerId).Msg("decoded peer")
-	connectionUrl := fmt.Sprintf("/ip4/%s/tcp/%d/p2p/%s", payload.Ip, payload.Port, peerId)
+
+	connectionUrl := fmt.Sprintf("/ip4/%s/tcp/%d/p2p/%s", payload.Ip, payload.Port, payload.HostId)
 	isAlive, _ := libp2pUtils.IsHostAlive(c.Context(), h, connectionUrl)
 	if !isAlive {
 		log.Info().Str("peer", connectionUrl).Msg("invalid peer")
