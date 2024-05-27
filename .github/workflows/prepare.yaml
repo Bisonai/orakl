@@ -1,0 +1,49 @@
+name: prepare
+
+on:
+  workflow_call:
+    inputs:
+
+
+jobs:
+  update-version:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: '14'
+
+      - name: Extract version from tag
+        id: extract_version
+        run: |
+          tag_ref=${GITHUB_REF#refs/tags/}
+          echo "Tag: $tag_ref"
+          if [[ $tag_ref =~ ^v([0-9]+\.[0-9]+\.[0-9]+)$ ]]; then
+            version="${BASH_REMATCH[1]}"
+            echo "Found version: $version"
+            echo "::set-output name=version::$version"
+          else
+            echo "Tag does not match version pattern."
+            exit 1
+          fi
+
+      - name: Update package.json version
+        if: steps.extract_version.outputs.version
+        run: |
+          version=${{ steps.extract_version.outputs.version }}
+          echo "Updating package.json to version $version"
+          npm version $version --no-git-tag-version
+
+      - name: Commit updated package.json
+        if: steps.extract_version.outputs.version
+        run: |
+          git config --global user.name 'github-actions'
+          git config --global user.email 'github-actions@github.com'
+          git add package.json
+          git commit -m "chore: update package.json version to ${{ steps.extract_version.outputs.version }}"
+          git push origin HEAD:${{ github.event.inputs.branch }}

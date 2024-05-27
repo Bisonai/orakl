@@ -3,6 +3,9 @@ name: "update-image-tag"
 on:
   workflow_call:
     inputs:
+      network:
+        required: true
+        type: string
       project-name:
         required: true
         type: string

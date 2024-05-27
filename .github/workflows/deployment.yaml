@@ -35,7 +35,7 @@ jobs:
       - name: Trigger network specific workflow
         run: |
           if [ "${{ github.event.inputs.network }}" == "Baobab" ]; then
-            gh workflow run ${{ github.event.inputs.application }}.image+upload.yaml
+            gh workflow run ${{ github.event.inputs.application }}.image+upload.yaml -f service=${{ github.event.inputs.service }}
           elif [ "${{ github.event.inputs.network }}" == "Cypress" ]; then
             echo "Cypress network is not supported yet"
           fi
