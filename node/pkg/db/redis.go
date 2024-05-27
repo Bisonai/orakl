@@ -68,7 +68,7 @@ func MSetObject(ctx context.Context, values map[string]any) error {
 		data, err := json.Marshal(value)
 		if err != nil {
 			log.Error().Err(err).Msg("Error marshalling object")
-			continue
+			return err
 		}
 		pairs = append(pairs, key, string(data))
 	}
@@ -87,7 +87,7 @@ func MSetObjectWithExp(ctx context.Context, values map[string]any, exp time.Dura
 		data, jsonMarshalErr := json.Marshal(value)
 		if jsonMarshalErr != nil {
 			log.Error().Err(jsonMarshalErr).Msg("Error marshalling object")
-			continue
+			return jsonMarshalErr
 		}
 		pairs = append(pairs, key, string(data))
 	}
