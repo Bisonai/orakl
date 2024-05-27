@@ -77,3 +77,10 @@ export interface IProcessEventListenerJob {
 export interface IContracts {
   [key: string]: ethers.Contract
 }
+
+export type ServiceType = 'vrf' | 'rr'
+
+export interface IBlock {
+  service: ServiceType
+  blockNumber: number
+}
