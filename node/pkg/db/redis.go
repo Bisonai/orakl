@@ -84,9 +84,9 @@ func MSetObjectWithExp(ctx context.Context, values map[string]any, exp time.Dura
 
 	var pairs []any
 	for key, value := range values {
-		data, err := json.Marshal(value)
-		if err != nil {
-			log.Error().Err(err).Msg("Error marshalling object")
+		data, jsonMarshalErr := json.Marshal(value)
+		if jsonMarshalErr != nil {
+			log.Error().Err(jsonMarshalErr).Msg("Error marshalling object")
 			continue
 		}
 		pairs = append(pairs, key, string(data))
