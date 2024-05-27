@@ -145,7 +145,7 @@ jobs:
           git config --global user.email 'github-actions@github.com'
           git add package.json
           git commit -m "chore: update package.json version to ${{ needs.prepare.outputs.version }}"
-          git push origin HEAD:${{ github.ref_name }}      
+          git push origin HEAD:${GITHUB_REF}    
 
   post-slack-tag-update-success:
     name: Post slack message for tag update success
