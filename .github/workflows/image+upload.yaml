@@ -18,7 +18,7 @@ jobs:
       ecr_url: ${{ steps.extract_tags.outputs.ecr_url }}
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
 
       - name: get date and git hash
         id: hash
