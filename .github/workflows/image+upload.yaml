@@ -18,7 +18,7 @@ jobs:
       ecr_url: ${{ steps.extract_tags.outputs.ecr_url }}
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@master
 
       - name: get date and git hash
         id: hash
@@ -69,7 +69,7 @@ jobs:
       img_tag: ${{ steps.img-tag.outputs.img_tag }}
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@master
 
       - name: docker build ${{ needs.prepare.outputs.service }}
         run: SERVICE_NAME=orakl-${{ needs.prepare.outputs.service }} docker compose -f docker-compose.build.yaml build
@@ -131,7 +131,8 @@ jobs:
       - name: update package.json version
         if: needs.prepare.outputs.version
         run: |
-          cd ./gitops_tmp/${{ needs.prepare.outputs.service }}/
+          echo ./*
+          cd ./gitops_tmp/orakl/${{ needs.prepare.outputs.service }}/
           version=${{ needs.prepare.outputs.version }}
           sed -i 's/"version": "[^"]*"/"version": "'$version'"/' package.json
           echo "updating package.json to version $version"
