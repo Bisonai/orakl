@@ -9,8 +9,8 @@ const (
 		RETURNING *;
 	`
 
-	// upsert to unprocessed_blocks given service and block_number
-	UpsertUnprocessedBlock = `
+	// insert to unprocessed_blocks given service and block_number
+	InsertUnprocessedBlock = `
 		INSERT INTO unprocessed_blocks (service, block_number)
 		VALUES (@service, @block_number)
 		ON CONFLICT (service, block_number) DO NOTHING
@@ -19,11 +19,14 @@ const (
 
 	// get all unprocessed blocks given service
 	GetUnprocessedBlocks = `
-		SELECT * FROM unprocessed_blocks WHERE service = @service
+		SELECT * FROM unprocessed_blocks
+		WHERE service = @service;
 	`
 
 	// delete unprocessed block given service and block_number
 	DeleteUnprocessedBlock = `
-		DELETE FROM unprocessed_blocks WHERE service = @service AND block_number = @block_number
+		DELETE FROM unprocessed_blocks
+		WHERE service = @service AND block_number = @block_number
+		RETURNING *;
 	`
 )
