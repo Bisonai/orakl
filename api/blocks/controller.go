@@ -21,7 +21,7 @@ func getObservedBlock(c *fiber.Ctx) error {
 	if service == "" {
 		return fiber.NewError(fiber.StatusBadRequest, "service is required")
 	}
-	result, err := utils.QueryRows[BlockModel](c, GetObservedBlock, map[string]any{
+	result, err := utils.QueryRow[BlockModel](c, GetObservedBlock, map[string]any{
 		"service": service,
 	})
 	if err != nil {

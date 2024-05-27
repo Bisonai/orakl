@@ -209,7 +209,7 @@ function latestJob({
     try {
       // We assume that redis cache has been initialized within
       // `State.add` method call.
-      observedBlock = await getObservedBlock({ service })
+      observedBlock = (await getObservedBlock({ service })).blockNumber
     } catch (e) {
       // Similarly to the failure during fetching the latest block
       // number, this error doesn't require job resubmission. The next
