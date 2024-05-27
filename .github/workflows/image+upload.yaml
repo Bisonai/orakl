@@ -38,6 +38,7 @@ jobs:
       - name: Check if ref is a tag
         id: check_tag
         run: |
+          echo "Tag name from GITHUB_REF_NAME: $GITHUB_REF_NAME"
           if [ "${GITHUB_REF_TYPE}" != "tag" ]; then
             echo "This workflow only processes tags. Exiting."
             exit 0
