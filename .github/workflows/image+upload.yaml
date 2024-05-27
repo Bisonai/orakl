@@ -13,9 +13,9 @@ jobs:
     outputs:
       tag_date: ${{ steps.hash.outputs.date }}
       tag_git_hash: ${{ steps.hash.outputs.git_hash }}    
-      service: ${{ steps.extract_tags.service }}      
-      version: ${{ steps.extract_tags.version }}
-      ecr_url: ${{ steps.extract_tags.ecr_url }}
+      service: ${{ steps.extract_tags.outputs.service }}      
+      version: ${{ steps.extract_tags.outputs.version }}
+      ecr_url: ${{ steps.extract_tags.outputs.ecr_url }}
 
     steps:
       - uses: actions/checkout@v3
@@ -51,6 +51,7 @@ jobs:
             echo "service=${service}" >> $GITHUB_OUTPUT
             echo "version=${version}" >> $GITHUB_OUTPUT
             echo "ecr_url=public.ecr.aws/bisonai/orakl-${service}" >> $GITHUB_OUTPUT
+            printenv
           else
             echo "Tag does not match the pattern."
             exit 1
