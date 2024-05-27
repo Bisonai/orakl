@@ -13,7 +13,7 @@ jobs:
     outputs:
       tag_date: ${{ steps.hash.outputs.date }}
       tag_git_hash: ${{ steps.hash.outputs.git_hash }}    
-      service: ${{ steps.extract_tags.outputs.service }}      
+      service: orakl-${{ steps.extract_tags.outputs.service }}      
       version: ${{ steps.extract_tags.outputs.version }}
       ecr_url: ${{ steps.extract_tags.outputs.ecr_url }}
 
