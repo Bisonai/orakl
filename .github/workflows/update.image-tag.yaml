@@ -54,8 +54,10 @@ jobs:
           cd ./gitops_tmp/${{ inputs.project-name }}/
           echo "Updating image tag in values.baobab.yaml files"
           sed -i 's/tag: .*$/tag: "${{ inputs.image-tag }}"/g' values.baobab.yaml
-          echo "Update App Version in Chart.yaml"
-          sed -i 's/appVersion: .*$/appVersion: "v${{ inputs.version }}"/g' Chart.yaml
+
+          # this function will be used in helm chart
+          # echo "Update App Version in Chart.yaml"
+          # sed -i 's/appVersion: .*$/appVersion: "v${{ inputs.version }}"/g' Chart.yaml
         shell: bash
 
       - name: Commit and Push Changes

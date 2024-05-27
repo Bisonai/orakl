@@ -1,4 +1,4 @@
-name: CLI Deploy to Amazon ECR TEST
+name: Build and Deploy
 
 on:
   push:
@@ -89,9 +89,9 @@ jobs:
 
       - name: publish image to ecr
         run: |
-          docker tag orakl-${{ needs.prepare.outputs.service }} ${{ needs.prepare.outputs.ecr_url }}:latest
-          docker push ${{ needs.prepare.outputs.ecr_url }}:latest
-          docker tag ${{ needs.prepare.outputs.ecr_url }}:latest ${{ needs.prepare.outputs.ecr_url }}:${{ needs.prepare.outputs.version }}.${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }}
+          docker tag orakl-${{ needs.prepare.outputs.service }} ${{ needs.prepare.outputs.ecr_url }}
+          docker push ${{ needs.prepare.outputs.ecr_url }}
+          docker tag ${{ needs.prepare.outputs.ecr_url }} ${{ needs.prepare.outputs.ecr_url }}:${{ needs.prepare.outputs.version }}.${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }}
           docker push ${{ needs.prepare.outputs.ecr_url }}:${{ needs.prepare.outputs.version }}.${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }}
 
       - name: image tag output
