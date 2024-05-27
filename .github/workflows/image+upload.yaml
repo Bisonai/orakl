@@ -18,13 +18,7 @@ jobs:
       ecr_url: ${{ steps.extract_tags.ecr_url }}
 
     steps:
-      - name: checkout code
-        uses: actions/checkout@v2
-
-      - name: set up Node.js
-        uses: actions/setup-node@v2
-        with:
-          node-version: '14'
+      - uses: actions/checkout@v3
 
       - name: get date and git hash
         id: hash
