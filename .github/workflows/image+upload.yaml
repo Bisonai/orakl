@@ -4,8 +4,8 @@ on:
   push:
     branches:
       - "fix-CI/CD"
-      tags:
-        - "*"
+    tags:
+      - "*"
   workflow_dispatch:
 
 jobs:
