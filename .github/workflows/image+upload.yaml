@@ -3,7 +3,7 @@ name: CLI Deploy to Amazon ECR TEST
 on:
   push:
     branches:
-      - "fix-CI/CD"
+      - "feat/fix-CI/CD"
     tags:
       - "*"      
 
