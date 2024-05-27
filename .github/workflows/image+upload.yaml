@@ -132,6 +132,7 @@ jobs:
       - name: update package.json version
         if: needs.prepare.outputs.version
         run: |
+          cd ${{ needs.prepare.outputs.service }}
           version=${{ needs.prepare.outputs.version }}
           echo "updating package.json to version $version"
           npm version $version --no-git-tag-version
