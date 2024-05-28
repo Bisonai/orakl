@@ -114,7 +114,7 @@ jobs:
       slack-message: "${{ github.event.inputs.network }} ${{ github.event.inputs.application }}* : *${{ needs.prepare.outputs.service }}* ${{ needs.prepare.outputs.version }}.${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }} is uploaded"
     secrets:
       SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}  
-    if: ${{ github.event.inputs.network == 'Baobab' && success() }}
+    if: ${{ github.event.inputs.network == Baobab' && success() }}
 
   image-update:
     name: Update image tag
@@ -140,7 +140,7 @@ jobs:
       slack-message: "${{ github.event.inputs.network }} *${{ github.event.inputs.application }}* : *${{ needs.prepare.outputs.service }}* new image tag ${{ needs.prepare.outputs.version }}.${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }} is updated"
     secrets:
       SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}      
-    if: ${{ github.event.inputs.network == 'Baobab' }} && ${{ success() }}  
+    if: ${{ github.event.inputs.network == 'Baobab' && success() }}  
 
   cypress-image-update:
     name: cypress image update
@@ -161,15 +161,15 @@ jobs:
       slack-message: "${{ github.event.inputs.network }} *${{ github.event.inputs.application }}* : *${{ needs.prepare.outputs.service }}* new image tag ${{ needs.prepare.outputs.version }}.${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }} is updated"
     secrets:
       SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}      
-    if: ${{ github.event.inputs.network == 'Cypress' }} && ${{ success() }}  
+    if: ${{ github.event.inputs.network == 'Cypress' && success() }}  
 
   post-slack-tag-update-failure:
-      name: Post to a slack message for tag update failure
-      needs: [prepare, build, image-update]
-      uses: ./.github/workflows/post.slack.yaml
-      with:
-        status: "Failed"
-        slack-message: "${{ github.event.inputs.network }} *${{ github.event.inputs.application }}* git action failed"
-      secrets:
-        SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}       
-      if: ${{ github.event.inputs.network == 'Baobab' && failure() }}
+    name: Post to a slack message for tag update failure
+    needs: [prepare, build, image-update]
+    uses: ./.github/workflows/post.slack.yaml
+    with:
+      status: "Failed"
+      slack-message: "${{ github.event.inputs.network }} *${{ github.event.inputs.application }}* git action failed"
+    secrets:
+      SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}       
+    if: ${{ github.event.inputs.network == 'Baobab' && failure() }}
