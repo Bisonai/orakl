@@ -226,8 +226,8 @@ function latestJob({
       observedBlock = Math.max(0, latestBlock - 1)
     }
 
-    let logPrefix = generateListenerLogPrefix(contractAddress, observedBlock, latestBlock)
     try {
+      const logPrefix = generateListenerLogPrefix(contractAddress, observedBlock, latestBlock)
       if (latestBlock > observedBlock) {
         // create record for each block in unprocessed_blocks table
         // dont include observedBlock as it's considered processed
@@ -265,7 +265,7 @@ function latestJob({
       // failed. Repeateable [latest] job will continue listening for
       // new blocks, and the blocks which failed to be scanned for
       // events will be retried through [history] job.
-      logPrefix = generateListenerLogPrefix(contractAddress, observedBlock, latestBlock)
+      const logPrefix = generateListenerLogPrefix(contractAddress, observedBlock, latestBlock)
       logger.warn(`${logPrefix} fail`)
 
       for (let blockNumber = observedBlock + 1; blockNumber <= latestBlock; ++blockNumber) {
