@@ -23,7 +23,7 @@ on:
         type: string        
     secrets:
       PAT:
-        required: false        
+        required: true        
 
 jobs:
   update-image-tag:
@@ -63,8 +63,10 @@ jobs:
               sed -i 's/reporterTag: .*$/reporterTag: "${reporter_baobab_tag}"/g' values.${{ inputs.network }}.yaml
               worker_baobab_tag=$(grep -oP 'tag: "\K[^"]+' values.baobab.yaml)
               sed -i 's/workerTag: .*$/workerTag: "${worker_baobab_tag}"/g' values.${{ inputs.network }}.yaml
-            fi          
+            fi    
+
             baobab_tag=$(grep -oP 'tag: "\K[^"]+' values.baobab.yaml)
+            echo $baobab_tag
             sed -i 's/tag: .*$/tag: "${baobab_tag}"/g' values.${{ inputs.network }}.yaml
           else 
             if [[ "${{ inputs.project-name }}" == "vrf" || "${{ inputs.project-name }}" == "request-response" || "${{ inputs.project-name }}" == "aggregator" ]]; then
@@ -81,10 +83,10 @@ jobs:
 
       - name: Commit and Push Changes
         run: |
-          cd ./gitops_tmp/
-          git config --global user.name 'github-actions'
-          git config --global user.email 'github-actions@github.com'
-          git add .
-          git commit -m 'v${{ inputs.version }}.${{ inputs.tag_date }}.${{ inputs.tag_git_hash }} is updated'
-          git push origin idc-fly
+          #cd ./gitops_tmp/
+          #git config --global user.name 'github-actions'
+          #git config --global user.email 'github-actions@github.com'
+          #git add .
+          #git commit -m 'v${{ inputs.version }}.${{ inputs.tag_date }}.${{ inputs.tag_git_hash }} is updated'
+          #git push origin idc-fly
         shell: bash
