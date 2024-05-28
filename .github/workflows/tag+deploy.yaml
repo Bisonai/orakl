@@ -142,7 +142,7 @@ jobs:
         if: needs.prepare.outputs.version
         run: |
           version=${{ needs.prepare.outputs.version }}
-          sed -i 's/"version": "[^"]*"/"version": "'$version'"/' cli/package.json
+          sed -i 's/"version": "[^"]*"/"version": "'$version'"/' ${{ needs.prepare.outputs.service }}/package.json
           echo "updating package.json to version $version"
           npm version $version --no-git-tag-version
 
