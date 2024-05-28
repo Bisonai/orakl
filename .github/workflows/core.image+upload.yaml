@@ -183,7 +183,7 @@ jobs:
 
   cypress-image-update:
     name: cypress image update
-    uses: ./.github/workflows/update.cypress.image-tag.yaml
+    uses: ./.github/workflows/update.image-tag.yaml
     with:
       network: "cypress"
       project-name: ${{ github.event.inputs.application }}
