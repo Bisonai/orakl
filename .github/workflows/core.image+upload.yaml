@@ -1,4 +1,4 @@
-name: Deploy by dispatch
+name: Dispatch Deploy
 
 on:
   workflow_dispatch:
@@ -48,7 +48,7 @@ jobs:
           echo "date=$(date +'%Y%m%d.%H%M')" >> $GITHUB_OUTPUT
           echo "git_hash=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
           echo "app_name=${service}" >> $GITHUB_OUTPUT
-          service = ${{ github.event.inputs.application }}
+          service="${{ github.event.inputs.application }}"
           if [[ "${{ github.event.inputs.application }}" == "vrf" || "${{ github.event.inputs.application }}" == "request-response" || "${{ github.event.inputs.application }}" == "aggregator" ]]; then
             service="core"
           fi            
