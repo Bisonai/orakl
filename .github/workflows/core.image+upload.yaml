@@ -131,34 +131,6 @@ jobs:
       PAT: ${{ secrets.PAT }}
     if: ${{ github.event.inputs.network == 'Baobab' }}
 
-  update-package-json-version:
-    name: Update package.json version
-    needs: [prepare, build, image-update]
-    runs-on: ubuntu-latest
-    if: ${{ github.event.inputs.network == 'Baobab' }}
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
-        with:
-          fetch-depth: 0 
-
-      - name: update package.json version
-        if: needs.prepare.outputs.version
-        run: |
-          version=${{ needs.prepare.outputs.version }}
-          sed -i 's/"version": "[^"]*"/"version": "'$version'"/' ${{ github.event.inputs.application }}/package.json
-          echo "updating package.json to version $version"
-          npm version $version --no-git-tag-version
-
-      - name: commit updated package.json
-        if: needs.prepare.outputs.version
-        run: |
-          git config --global user.name 'github-actions'
-          git config --global user.email 'github-actions@github.com'
-          git add package.json
-          git commit -m "chore: update package.json version to ${{ needs.prepare.outputs.version }}"
-          git push -f --tags origin HEAD:${{ github.ref_name }}
-
   post-slack-tag-update-success:
     name: Post slack message for tag update success
     needs: [prepare, build, image-update]
