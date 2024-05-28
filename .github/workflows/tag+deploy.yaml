@@ -44,7 +44,7 @@ jobs:
           echo "Tag: $tag_ref"
           
           # Extract service name and version from the tag (e.g., service_name/v1.2.3)
-          if [[ $tag_ref =~ ^([a-zA-Z0-9_]+)/v([0-9]+\.[0-9]+\.[0-9]+)$ ]]; then
+          if [[ $tag_ref =~ ^([a-zA-Z0-9]+-?[a-zA-Z0-9]+)/v([0-9]+\.[0-9]+\.[0-9]+)$ ]]; then
             service="${BASH_REMATCH[1]}"
             version="${BASH_REMATCH[2]}"
             echo "Found service: $service"
