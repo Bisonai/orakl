@@ -199,11 +199,6 @@ export class State {
     if (observedBlock.service === '') {
       switch (this.listenerInitType) {
         case 'clear':
-          // Clear metadata about previously observed blocks for a specific
-          // `contractAddress`.
-          await upsertObservedBlock({ service: this.service, blockNumber: latestBlock - 1 })
-          break
-
         case 'latest':
           await upsertObservedBlock({ service: this.service, blockNumber: latestBlock - 1 })
           break
