@@ -66,7 +66,8 @@ jobs:
             fi    
             baobab_tag=$(grep -oP 'tag: "\K[^"]+' values.baobab.yaml)
 
-            sed -i 's/tag: .*$/tag: "$baobab_tag"/g' values.${{ inputs.network }}.yaml
+            sed -i "s/tag: \".*\"/tag: \"$baobab_tag\"/" values.${{ inputs.network }}.yaml
+
           else 
             if [[ "${{ inputs.project-name }}" == "vrf" || "${{ inputs.project-name }}" == "request-response" || "${{ inputs.project-name }}" == "aggregator" ]]; then
               sed -i 's/listenerTag: .*$/listenerTag: "${{ inputs.image-tag }}"/g' values.${{ inputs.network }}.yaml
