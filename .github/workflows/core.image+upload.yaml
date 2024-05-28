@@ -114,7 +114,7 @@ jobs:
       slack-message: "${{ github.event.inputs.network }} ${{ github.event.inputs.application }}* : *${{ needs.prepare.outputs.service }}* ${{ needs.prepare.outputs.version }}.${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }} is uploaded"
     secrets:
       SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}  
-    if: ${{ github.event.inputs.network == Baobab' && success() }}
+    if: ${{ github.event.inputs.network == 'Baobab' && success() }}
 
   image-update:
     name: Update image tag
