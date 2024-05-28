@@ -55,7 +55,7 @@ jobs:
           echo "Updating image tag in values.${{ inputs.network }}.yaml files"
 
          
-          if [[ "${{ inputs.network}} "]] == "cypress" ]]; then
+          if [[ "${{ inputs.network}}" == "cypress" ]]; then
             if [[ "${{ inputs.project-name }}" == "vrf" || "${{ inputs.project-name }}" == "request-response" || "${{ inputs.project-name }}" == "aggregator" ]]; then
               listener_baobab_tag=$(grep -oP 'tag: "\K[^"]+' values.baobab.yaml)
               sed -i 's/listenerTag: .*$/listenerTag: "${listener_baobab_tag}"/g' values.${{ inputs.network }}.yaml
