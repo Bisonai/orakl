@@ -35,9 +35,9 @@
     "deploy:baobab:Feed": "forge script DeployFeed --broadcast --gas-estimate-multiplier 300 --rpc-url https://api.baobab.klaytn.net:8651",
     "deploy:baobab:FeedRouter": "forge script DeployFeedRouter --broadcast --gas-estimate-multiplier 300 --rpc-url https://api.baobab.klaytn.net:8651",
     "deploy:baobab:SubmissionProxy": "forge script DeploySubmissionProxy --broadcast --gas-estimate-multiplier 300 --rpc-url https://api.baobab.klaytn.net:8651",
-    "deploy:cypress:Feed": "forge script DeployFeed --broadcast --gas-estimate-multiplier 300 --rpc-url https://klaytn-mainnet-rpc.allthatnode.com:8551",
-    "deploy:cypress:FeedRouter": "forge script DeployFeedRouter --broadcast --gas-estimate-multiplier 300 --rpc-url https://klaytn-mainnet-rpc.allthatnode.com:8551",
-    "deploy:cypress:SubmissionProxy": "forge script DeploySubmissionProxy --broadcast --gas-estimate-multiplier 300 --rpc-url https://klaytn-mainnet-rpc.allthatnode.com:8551"
+    "deploy:cypress:Feed": "forge script DeployFeed --broadcast --gas-estimate-multiplier 300 --rpc-url https://public-en-cypress.klaytn.net",
+    "deploy:cypress:FeedRouter": "forge script DeployFeedRouter --broadcast --gas-estimate-multiplier 300 --rpc-url https://public-en-cypress.klaytn.net",
+    "deploy:cypress:SubmissionProxy": "forge script DeploySubmissionProxy --broadcast --gas-estimate-multiplier 300 --rpc-url https://public-en-cypress.klaytn.net"
   },
   "devDependencies": {
     "@typechain/ethers-v5": "^11.1.2",
