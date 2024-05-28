@@ -53,6 +53,13 @@ jobs:
         run: |
           cd ./gitops_tmp/${{ inputs.project-name }}/
           echo "Updating image tag in values.${{ inputs.network }}.yaml files"
+
+          if [[ "${{ inputs.project-name }}" == "vrf" || "${{ inputs.project-name }}" == "request-response" || "${{ inputs.project-name }}" == "aggregator" ]]; then
+            sed -i 's/listenerTag: .*$/listenerTag: "${{ inputs.image-tag }}"/g' values.${{ inputs.network }}.yaml
+            sed -i 's/reporterTag: .*$/reporterTag: "${{ inputs.image-tag }}"/g' values.${{ inputs.network }}.yaml
+            sed -i 's/workerTag: .*$/workerTag: "${{ inputs.image-tag }}"/g' values.${{ inputs.network }}.yaml
+          fi
+          
           sed -i 's/tag: .*$/tag: "${{ inputs.image-tag }}"/g' values.${{ inputs.network }}.yaml
 
         shell: bash
