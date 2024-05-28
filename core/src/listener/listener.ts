@@ -375,6 +375,7 @@ function processEventJob({
           _logger.debug(`Listener submitted job [${jobId}] for [${jobName}]`)
         } else {
           _logger.error(event, `Couldn't process event in block [${blockNumber}]`)
+          throw new Error()
         }
       }
 
