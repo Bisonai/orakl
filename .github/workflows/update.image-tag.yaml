@@ -20,10 +20,10 @@ on:
         type: string
       tag_git_hash:
         required: false
-        type: string        
+        type: string
     secrets:
       PAT:
-        required: true        
+        required: true
 
 jobs:
   update-image-tag:
@@ -32,7 +32,7 @@ jobs:
 
     permissions:
       id-token: write
-      contents: read 
+      contents: read
 
     steps:
       - name: Checkout gitops
@@ -54,8 +54,8 @@ jobs:
           cd ./gitops_tmp/${{ inputs.project-name }}/
           echo "Updating image tag in values.${{ inputs.network }}.yaml files"
 
-         
           if [[ "${{ inputs.network}}" == "cypress" ]]; then
+
             if [[ "${{ inputs.project-name }}" == "vrf" || "${{ inputs.project-name }}" == "request-response" || "${{ inputs.project-name }}" == "aggregator" ]]; then
               listener_baobab_tag=$(grep -oP 'listenerTag: "\K[^"]+' values.baobab.yaml)
               sed -i 's/listenerTag: .*$/listenerTag: "$listener_baobab_tag"/g' values.${{ inputs.network }}.yaml
@@ -64,17 +64,20 @@ jobs:
               worker_baobab_tag=$(grep -oP 'workerTag: "\K[^"]+' values.baobab.yaml)
               sed -i 's/workerTag: .*$/workerTag: "$worker_baobab_tag"/g' values.${{ inputs.network }}.yaml
             fi    
-            baobab_tag=$(grep -oP 'tag: "\K[^"]+' values.baobab.yaml)
 
+            baobab_tag=$(grep -oP 'tag: "\K[^"]+' values.baobab.yaml)
             sed -i "s/tag: \".*\"/tag: \"$baobab_tag\"/" values.${{ inputs.network }}.yaml
 
           else 
+
             if [[ "${{ inputs.project-name }}" == "vrf" || "${{ inputs.project-name }}" == "request-response" || "${{ inputs.project-name }}" == "aggregator" ]]; then
               sed -i 's/listenerTag: .*$/listenerTag: "${{ inputs.image-tag }}"/g' values.${{ inputs.network }}.yaml
               sed -i 's/reporterTag: .*$/reporterTag: "${{ inputs.image-tag }}"/g' values.${{ inputs.network }}.yaml
               sed -i 's/workerTag: .*$/workerTag: "${{ inputs.image-tag }}"/g' values.${{ inputs.network }}.yaml
-            fi          
+            fi         
+
             sed -i 's/tag: .*$/tag: "${{ inputs.image-tag }}"/g' values.${{ inputs.network }}.yaml
+            
           fi
         shell: bash
 
