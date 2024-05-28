@@ -16,6 +16,7 @@ jobs:
       service: ${{ steps.extract_tags.outputs.service }}      
       version: ${{ steps.extract_tags.outputs.version }}
       ecr_url: ${{ steps.extract_tags.outputs.ecr_url }}
+      app_name: ${{ steps.extract_tags.outputs.app_name }}
 
     steps:
       - uses: actions/checkout@master
@@ -48,6 +49,11 @@ jobs:
             version="${BASH_REMATCH[2]}"
             echo "Found service: $service"
             echo "Found version: $version"
+            echo "app_name=${service}" >> $GITHUB_OUTPUT
+            if [[ "$service" == "vrf" || "$service" == "request-response" || "$service" == "aggregator" ]]; then
+              service="core"
+            fi            
+
             echo "service=${service}" >> $GITHUB_OUTPUT
             echo "version=${version}" >> $GITHUB_OUTPUT
             echo "ecr_url=public.ecr.aws/bisonai/orakl-${service}" >> $GITHUB_OUTPUT
@@ -103,7 +109,7 @@ jobs:
     uses: ./.github/workflows/post.slack.yaml
     with:
       status: "Success"
-      slack-message: "*${{ needs.prepare.outputs.service }}* ${{ needs.prepare.outputs.version }}.${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }} is uploaded"
+      slack-message: "*${{ needs.prepare.outputs.app_name }}* : *${{ needs.prepare.outputs.service }}* ${{ needs.prepare.outputs.version }}.${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }} is uploaded"
     secrets:
       SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}  
     if: ${{ success() }}    
@@ -114,7 +120,7 @@ jobs:
     uses: ./.github/workflows/update.image-tag.yaml
     with:
       network: "baobab"
-      project-name: ${{ needs.prepare.outputs.service }}
+      project-name: ${{ needs.prepare.outputs.app_name }}
       version: ${{ needs.prepare.outputs.version }}
       image-tag: ${{ needs.build.outputs.img_tag }}
       tag_date: ${{ needs.prepare.outputs.tag_date }}
@@ -156,7 +162,7 @@ jobs:
     if: ${{ success() }}
     with:
       status: "Success"
-      slack-message: "*${{ needs.prepare.outputs.service }}* new image tag ${{ needs.prepare.outputs.version }}.${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }} is updated"
+      slack-message: "*${{ needs.prepare.outputs.app_name }}* : *${{ needs.prepare.outputs.service }}* new image tag ${{ needs.prepare.outputs.version }}.${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }} is updated"
     secrets:
       SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}        
 
@@ -167,6 +173,6 @@ jobs:
     uses: ./.github/workflows/post.slack.yaml
     with:
       status: "Failed"
-      slack-message: "Git action failed"
+      slack-message: "*${{ needs.prepare.outputs.app_name }}* git action failed"
     secrets:
       SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}           

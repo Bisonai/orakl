@@ -49,15 +49,12 @@ jobs:
           git fetch origin idc-fly:idc-fly
           git checkout idc-fly
 
-      - name: Update image tag in values.baobab.yaml files
+      - name: Update image tag in values.${{ inputs.network }}.yaml files
         run: |
           cd ./gitops_tmp/${{ inputs.project-name }}/
-          echo "Updating image tag in values.baobab.yaml files"
-          sed -i 's/tag: .*$/tag: "${{ inputs.image-tag }}"/g' values.baobab.yaml
+          echo "Updating image tag in values.${{ inputs.network }}.yaml files"
+          sed -i 's/tag: .*$/tag: "${{ inputs.image-tag }}"/g' values.${{ inputs.network }}.yaml
 
-          # this function will be used in helm chart
-          # echo "Update App Version in Chart.yaml"
-          # sed -i 's/appVersion: .*$/appVersion: "v${{ inputs.version }}"/g' Chart.yaml
         shell: bash
 
       - name: Commit and Push Changes
