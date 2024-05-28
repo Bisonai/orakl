@@ -16,7 +16,7 @@ const (
 	UpsertObservedBlock = `
 		INSERT INTO observed_blocks (service, block_number)
 		VALUES (@service, @block_number)
-		ON CONFLICT (service) DO UPDATE SET block_number = @block_number
+		ON CONFLICT (service) DO UPDATE SET block_number = GREATEST(observed_blocks.block_number, EXCLUDED.block_number)
 		RETURNING *;
 	`
 
