@@ -226,23 +226,25 @@ function latestJob({
       observedBlock = Math.max(0, latestBlock - 1)
     }
 
+    let latestObservedBlock = observedBlock
     try {
       const logPrefix = generateListenerLogPrefix(contractAddress, observedBlock, latestBlock)
       if (latestBlock > observedBlock) {
         // create record for each block in unprocessed_blocks table
         // dont include observedBlock as it's considered processed
+        const unprocessedBlocks = Array.from(
+          { length: latestBlock - observedBlock },
+          (_, i) => observedBlock + i + 1
+        )
         await insertUnprocessedBlocks({
-          blocks: Array.from(
-            { length: latestBlock - observedBlock },
-            (_, i) => observedBlock + i + 1
-          ),
+          blocks: unprocessedBlocks,
           service
         })
 
         // Update observed_block table
         await upsertObservedBlock({ service, blockNumber: latestBlock })
 
-        for (let blockNumber = observedBlock + 1; blockNumber <= latestBlock; ++blockNumber) {
+        for (const blockNumber of unprocessedBlocks) {
           const events = await state.queryEvent(contractAddress, blockNumber, blockNumber)
           const outData: IProcessEventListenerJob = {
             contractAddress,
@@ -254,7 +256,7 @@ function latestJob({
           await processEventQueue.add('latest', outData, {
             ...LISTENER_JOB_SETTINGS
           })
-          ++observedBlock
+          latestObservedBlock = blockNumber
         }
         logger.debug(logPrefix)
       } else {
@@ -268,7 +270,7 @@ function latestJob({
       const logPrefix = generateListenerLogPrefix(contractAddress, observedBlock, latestBlock)
       logger.warn(`${logPrefix} fail`)
 
-      for (let blockNumber = observedBlock + 1; blockNumber <= latestBlock; ++blockNumber) {
+      for (let blockNumber = latestObservedBlock + 1; blockNumber <= latestBlock; ++blockNumber) {
         const outData: IHistoryListenerJob = { contractAddress, blockNumber }
         await historyListenerQueue.add('failure', outData, {
           jobId: `${blockNumber.toString()}-${contractAddress}`,
@@ -372,6 +374,8 @@ function processEventJob({
             ...queueSettings
           })
           _logger.debug(`Listener submitted job [${jobId}] for [${jobName}]`)
+        } else {
+          _logger.error(event, `Couldn't process event in block [${blockNumber}]`)
         }
       }
 
