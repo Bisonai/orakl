@@ -103,7 +103,7 @@ export async function insertUnprocessedBlocks({
 }): Promise<void> {
   try {
     const endpoint = buildUrl(ORAKL_NETWORK_API_URL, `blocks/unprocessed`)
-    return (await axios.post(endpoint, { service, blocks }))?.data
+    await axios.post(endpoint, { service, blocks })
   } catch (e) {
     throw new OraklError(OraklErrorCode.FailedInsertUnprocessedBlock)
   }
@@ -112,7 +112,7 @@ export async function insertUnprocessedBlocks({
 /**
  * @param {string} service
  * @param {number} blockNumber
- * @return {Promise<IBlock>}
+ * @return {Promise<void>}
  * @exception {FailedDeleteUnprocessedBlock}
  */
 export async function deleteUnprocessedBlock({
@@ -121,10 +121,10 @@ export async function deleteUnprocessedBlock({
 }: {
   blockNumber: number
   service: string
-}): Promise<IBlock> {
+}): Promise<void> {
   try {
     const endpoint = buildUrl(ORAKL_NETWORK_API_URL, `blocks/unprocessed/${service}/${blockNumber}`)
-    return (await axios.delete(endpoint))?.data
+    await axios.delete(endpoint)
   } catch (e) {
     throw new OraklError(OraklErrorCode.FailedDeleteUnprocessedBlock)
   }
