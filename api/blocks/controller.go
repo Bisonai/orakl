@@ -16,6 +16,19 @@ type BlocksModel struct {
 	Blocks 	[]int64 `db:"blocks" json:"blocks" validate:"dive,isZeroOrPositive"`
 }
 
+var validate *validator.Validate
+
+func init() {
+	validate = validator.New()
+	validate.RegisterValidation("isZeroOrPositive", func(fl validator.FieldLevel) bool {
+		return fl.Field().Int() >= 0
+	})
+}
+
+func validateBlockPayload(payload interface{}) error {
+	return validate.Struct(payload)
+}
+
 func getObservedBlock(c *fiber.Ctx) error {
 	service := c.Query("service")
 	if service == "" {
@@ -37,11 +50,7 @@ func upsertObservedBlock(c *fiber.Ctx) error {
 		return err
 	}
 
-	validate := validator.New()
-	validate.RegisterValidation("isZeroOrPositive", func(fl validator.FieldLevel) bool {
-		return fl.Field().Int() >= 0
-	})
-	if err := validate.Struct(payload); err != nil {
+	if err := validateBlockPayload(payload); err != nil {
 		return err
 	}
 
@@ -77,11 +86,7 @@ func insertUnprocessedBlocks(c *fiber.Ctx) error {
 		return err
 	}
 
-	validate := validator.New()
-	validate.RegisterValidation("isZeroOrPositive", func(fl validator.FieldLevel) bool {
-		return fl.Field().Int() >= 0
-	})
-	if err := validate.Struct(payload); err != nil {
+	if err := validateBlockPayload(payload); err != nil {
 		return err
 	}
 
