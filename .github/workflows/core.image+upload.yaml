@@ -32,6 +32,7 @@ jobs:
   prepare:
     name: Prepare
     runs-on: ubuntu-latest
+    if: ${{ github.event.inputs.network == 'Baobab' }}  
 
     outputs:
       tag_date: ${{ steps.tag.outputs.date }}
@@ -66,6 +67,7 @@ jobs:
     name: Build
     runs-on: ubuntu-latest
     needs: prepare
+    if: ${{ github.event.inputs.network == 'Baobab' }} 
 
     permissions:
       id-token: write
@@ -112,7 +114,7 @@ jobs:
       slack-message: "*${{ github.event.inputs.application }}* : *${{ needs.prepare.outputs.service }}* ${{ needs.prepare.outputs.version }}.${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }} is uploaded"
     secrets:
       SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}  
-    if: ${{ success() }}    
+    if: ${{ github.event.inputs.network == 'Baobab' }} && ${{ success() }}
 
   image-update:
     name: Update image tag
@@ -127,11 +129,13 @@ jobs:
       tag_git_hash: ${{ needs.prepare.outputs.tag_git_hash }}
     secrets:
       PAT: ${{ secrets.PAT }}
+    if: ${{ github.event.inputs.network == 'Baobab' }}
 
   update-package-json-version:
     name: Update package.json version
     needs: [prepare, build, image-update]
     runs-on: ubuntu-latest
+    if: ${{ github.event.inputs.network == 'Baobab' }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
@@ -159,20 +163,31 @@ jobs:
     name: Post slack message for tag update success
     needs: [prepare, build, image-update]
     uses: ./.github/workflows/post.slack.yaml
-    if: ${{ success() }}
     with:
       status: "Success"
       slack-message: "*${{ github.event.inputs.application }}* : *${{ needs.prepare.outputs.service }}* new image tag ${{ needs.prepare.outputs.version }}.${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }} is updated"
     secrets:
-      SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}        
+      SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}      
+    if: ${{ github.event.inputs.network == 'Baobab' }} && ${{ success() }}  
 
   post-slack-tag-update-failure:
     name: Post to a slack message for tag update failure
     needs: [prepare, build, image-update]
-    if: ${{ failure() }}
     uses: ./.github/workflows/post.slack.yaml
     with:
       status: "Failed"
       slack-message: "*${{ github.event.inputs.application }}* git action failed"
     secrets:
-      SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}           
+      SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+    if: ${{ github.event.inputs.network == 'Baobab' }} && ${{ failure() }}          
+
+  cypress-image-update:
+    name: cypress image update
+    uses: ./.github/workflows/update.cypress.image-tag.yaml
+    with:
+      network: "cypress"
+      project-name: ${{ github.event.inputs.application }}
+    secrets:
+      PAT: ${{ secrets.PAT }}
+    if: ${{ github.event.inputs.network == 'Cypress' }}
+
