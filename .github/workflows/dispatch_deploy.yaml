@@ -1,0 +1,176 @@
+name: Deploy by dispatch
+
+on:
+  workflow_dispatch:
+    inputs:
+      application:
+        description: 'Application to deploy'
+        required: true
+        type: choice
+        options:
+          - 'cli'
+          - 'aggregator'          
+          - 'vrf'
+          - 'request-response'
+          - 'delegator'
+          - 'fetcher'
+          - 'por'
+          - 'node'
+          - 'boot-api'
+          - 'monitor'
+
+      network:
+        description: 'Network to deploy to'
+        required: true
+        default: 'Baobab'
+        type: choice
+        options:
+          - 'Baobab'
+          - 'Cypress'  
+
+jobs:
+  prepare:
+    name: Prepare
+    runs-on: ubuntu-latest
+
+    outputs:
+      tag_date: ${{ steps.tag.outputs.date }}
+      tag_git_hash: ${{ steps.tag.outputs.git_hash }}
+      service: ${{ steps.tag.outputs.service }}      
+      version: ${{ steps.package.outputs.version }}
+
+    steps:
+      - uses: actions/checkout@master
+
+      - name: Get time TAG
+        id: tag
+        run: |
+          echo "date=$(date +'%Y%m%d.%H%M')" >> $GITHUB_OUTPUT
+          echo "git_hash=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+          echo "app_name=${service}" >> $GITHUB_OUTPUT
+          service = ${{ github.event.inputs.application }}
+          if [[ "${{ github.event.inputs.application }}" == "vrf" || "${{ github.event.inputs.application }}" == "request-response" || "${{ github.event.inputs.application }}" == "aggregator" ]]; then
+            service="core"
+          fi            
+          echo "service=${service}" >> $GITHUB_OUTPUT
+
+      - name: Get package version
+        id: package
+        run: |
+          echo "version=$(node -p -e "require('./core/package.json').version")" >> $GITHUB_OUTPUT
+
+
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    needs: prepare
+
+    permissions:
+      id-token: write
+      contents: read
+
+    outputs:
+      img_tag: ${{ steps.img-tag.outputs.img_tag }}
+
+    steps:
+      - uses: actions/checkout@master
+
+      - name: docker build ${{ inputs.application }}
+        run: SERVICE_NAME=orakl-${{ needs.prepare.outputs.service }} docker compose -f docker-compose.build.yaml build
+
+      - name: configure aws credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-region: us-east-1
+          role-to-assume: ${{ secrets.ROLE_ARN }}
+
+      - name: login to amazon ecr
+        id: login-ecr-public
+        uses: aws-actions/amazon-ecr-login@v1
+        with:
+          registry-type: public
+
+      - name: publish image to ecr
+        run: |
+          docker tag orakl-${{ needs.prepare.outputs.service }} ${{ needs.prepare.outputs.ecr_url }}:latest
+          docker push ${{ needs.prepare.outputs.ecr_url }}:latest
+          docker tag ${{ needs.prepare.outputs.ecr_url }}:latest ${{ needs.prepare.outputs.ecr_url }}:v${{ needs.prepare.outputs.version }}.${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }}
+          docker push ${{ needs.prepare.outputs.ecr_url }}:v${{ needs.prepare.outputs.version }}.${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }}
+
+      - name: image tag output
+        id: img-tag
+        run: echo "img_tag=v${{ needs.prepare.outputs.version }}.${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }}" >> $GITHUB_OUTPUT
+
+  post-slack-image-upload:
+    name: Slack message for image upload 
+    needs: [prepare, build]
+    uses: ./.github/workflows/post.slack.yaml
+    with:
+      status: "Success"
+      slack-message: "*${{ needs.prepare.outputs.app_name }}* : *${{ needs.prepare.outputs.service }}* ${{ needs.prepare.outputs.version }}.${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }} is uploaded"
+    secrets:
+      SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}  
+    if: ${{ success() }}    
+
+  image-update:
+    name: Update image tag
+    needs: [prepare, build]
+    uses: ./.github/workflows/update.image-tag.yaml
+    with:
+      network: "baobab"
+      project-name: ${{ needs.prepare.outputs.app_name }}
+      version: ${{ needs.prepare.outputs.version }}
+      image-tag: ${{ needs.build.outputs.img_tag }}
+      tag_date: ${{ needs.prepare.outputs.tag_date }}
+      tag_git_hash: ${{ needs.prepare.outputs.tag_git_hash }}
+    secrets:
+      PAT: ${{ secrets.PAT }}
+
+  update-package-json-version:
+    name: Update package.json version
+    needs: [prepare, build, image-update]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0 
+
+      - name: update package.json version
+        if: needs.prepare.outputs.version
+        run: |
+          version=${{ needs.prepare.outputs.version }}
+          sed -i 's/"version": "[^"]*"/"version": "'$version'"/' cli/package.json
+          echo "updating package.json to version $version"
+          npm version $version --no-git-tag-version
+
+      - name: commit updated package.json
+        if: needs.prepare.outputs.version
+        run: |
+          git config --global user.name 'github-actions'
+          git config --global user.email 'github-actions@github.com'
+          git add package.json
+          git commit -m "chore: update package.json version to ${{ needs.prepare.outputs.version }}"
+          git push -f --tags origin HEAD:${{ github.ref_name }}
+
+  post-slack-tag-update-success:
+    name: Post slack message for tag update success
+    needs: [prepare, build, image-update]
+    uses: ./.github/workflows/post.slack.yaml
+    if: ${{ success() }}
+    with:
+      status: "Success"
+      slack-message: "*${{ needs.prepare.outputs.app_name }}* : *${{ needs.prepare.outputs.service }}* new image tag ${{ needs.prepare.outputs.version }}.${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }} is updated"
+    secrets:
+      SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}        
+
+  post-slack-tag-update-failure:
+    name: Post to a slack message for tag update failure
+    needs: [prepare, build, image-update]
+    if: ${{ failure() }}
+    uses: ./.github/workflows/post.slack.yaml
+    with:
+      status: "Failed"
+      slack-message: "*${{ needs.prepare.outputs.app_name }}* git action failed"
+    secrets:
+      SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}           
