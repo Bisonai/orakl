@@ -57,16 +57,16 @@ jobs:
          
           if [[ "${{ inputs.network}}" == "cypress" ]]; then
             if [[ "${{ inputs.project-name }}" == "vrf" || "${{ inputs.project-name }}" == "request-response" || "${{ inputs.project-name }}" == "aggregator" ]]; then
-              listener_baobab_tag=$(grep -oP 'tag: "\K[^"]+' values.baobab.yaml)
-              sed -i 's/listenerTag: .*$/listenerTag: "${listener_baobab_tag}"/g' values.${{ inputs.network }}.yaml
-              reporter_baobab_tag=$(grep -oP 'tag: "\K[^"]+' values.baobab.yaml)
-              sed -i 's/reporterTag: .*$/reporterTag: "${reporter_baobab_tag}"/g' values.${{ inputs.network }}.yaml
-              worker_baobab_tag=$(grep -oP 'tag: "\K[^"]+' values.baobab.yaml)
-              sed -i 's/workerTag: .*$/workerTag: "${worker_baobab_tag}"/g' values.${{ inputs.network }}.yaml
+              listener_baobab_tag=$(grep -oP 'listenerTag: "\K[^"]+' values.baobab.yaml)
+              sed -i 's/listenerTag: .*$/listenerTag: "$listener_baobab_tag"/g' values.${{ inputs.network }}.yaml
+              reporter_baobab_tag=$(grep -oP 'reporterTag: "\K[^"]+' values.baobab.yaml)
+              sed -i 's/reporterTag: .*$/reporterTag: "$reporter_baobab_tag"/g' values.${{ inputs.network }}.yaml
+              worker_baobab_tag=$(grep -oP 'workerTag: "\K[^"]+' values.baobab.yaml)
+              sed -i 's/workerTag: .*$/workerTag: "$worker_baobab_tag"/g' values.${{ inputs.network }}.yaml
             fi    
-
             baobab_tag=$(grep -oP 'tag: "\K[^"]+' values.baobab.yaml)
-            sed -i 's/tag: .*$/tag: "${baobab_tag}"/g' values.${{ inputs.network }}.yaml
+
+            sed -i 's/tag: .*$/tag: "$baobab_tag"/g' values.${{ inputs.network }}.yaml
           else 
             if [[ "${{ inputs.project-name }}" == "vrf" || "${{ inputs.project-name }}" == "request-response" || "${{ inputs.project-name }}" == "aggregator" ]]; then
               sed -i 's/listenerTag: .*$/listenerTag: "${{ inputs.image-tag }}"/g' values.${{ inputs.network }}.yaml
