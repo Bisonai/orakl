@@ -18,6 +18,7 @@ type WebsocketHelper struct {
 	Endpoint      string
 	Subscriptions []any
 	Proxy         string
+	IsRunning     bool
 	mu            sync.Mutex
 }
 
@@ -100,6 +101,15 @@ func (ws *WebsocketHelper) Dial(ctx context.Context) error {
 }
 
 func (ws *WebsocketHelper) Run(ctx context.Context, router func(context.Context, map[string]any) error) {
+	if ws.IsRunning {
+		log.Warn().Msg("websocket is already running")
+		return
+	}
+	ws.IsRunning = true
+	defer func() {
+		ws.IsRunning = false
+	}()
+
 	dialJob := func() error {
 		return ws.Dial(ctx)
 	}
@@ -116,35 +126,43 @@ func (ws *WebsocketHelper) Run(ctx context.Context, router func(context.Context,
 	}
 
 	for {
-		err := retrier.Retry(dialJob, 3, 1, 10)
-		if err != nil {
-			log.Error().Err(err).Msg("error dialing websocket")
-			break
-		}
-
-		err = retrier.Retry(subscribeJob, 3, 1, 10)
-		if err != nil {
-			log.Error().Err(err).Msg("error subscribing to websocket")
-			break
-		}
-
-		for {
-			var data map[string]any
-			ws.mu.Lock()
-			err := wsjson.Read(ctx, ws.Conn, &data)
-			ws.mu.Unlock()
+		select {
+		case <-ctx.Done():
+			log.Info().Msg("context cancelled, stopping websocket")
+			return
+		default:
+			err := retrier.Retry(dialJob, 3, 1, 10)
 			if err != nil {
-				log.Error().Err(err).Msg("error reading from websocket")
+				log.Error().Err(err).Msg("error dialing websocket")
 				break
 			}
-			err = router(ctx, data)
+
+			err = retrier.Retry(subscribeJob, 3, 1, 10)
 			if err != nil {
-				log.Error().Err(err).Msg("error processing message")
+				log.Error().Err(err).Msg("error subscribing to websocket")
+				break
 			}
+
+			for {
+				var data map[string]interface{}
+				ws.mu.Lock()
+				err := wsjson.Read(ctx, ws.Conn, &data)
+				ws.mu.Unlock()
+				if err != nil {
+					log.Error().Err(err).Msg("error reading from websocket")
+					break
+				}
+				go func() {
+					routerErr := router(ctx, data)
+					if routerErr != nil {
+						log.Warn().Err(routerErr).Msg("error processing websocket message")
+					}
+				}()
+			}
+			ws.mu.Lock()
+			ws.Close()
+			ws.mu.Unlock()
 		}
-		ws.mu.Lock()
-		ws.Close()
-		ws.mu.Unlock()
 	}
 }
 
@@ -170,6 +188,9 @@ func (ws *WebsocketHelper) Read(ctx context.Context, ch chan any) error {
 }
 
 func (ws *WebsocketHelper) Close() error {
+	if ws.Conn == nil {
+		return nil
+	}
 	err := ws.Conn.Close(websocket.StatusNormalClosure, "")
 	if err != nil {
 		log.Error().Err(err).Msg("error closing websocket")
