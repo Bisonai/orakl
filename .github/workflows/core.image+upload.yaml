@@ -158,7 +158,7 @@ jobs:
     uses: ./.github/workflows/post.slack.yaml
     with:
       status: "Success"
-      slack-message: "${{ github.event.inputs.network }} *${{ github.event.inputs.application }}* : *${{ needs.prepare.outputs.service }}* new image tag ${{ needs.prepare.outputs.version }}.${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }} is updated"
+      slack-message: "${{ github.event.inputs.network }} *${{ github.event.inputs.application }}* is updated"
     secrets:
       SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}      
     if: ${{ github.event.inputs.network == 'Cypress' && success() }}  
