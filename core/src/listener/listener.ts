@@ -208,7 +208,7 @@ function latestJob({
 
     try {
       // We assume that observedBlock has been initialized in the db in state.add()
-      observedBlock = (await getObservedBlock({ service })).blockNumber
+      observedBlock = (await getObservedBlock({ service }))?.blockNumber as number
     } catch (e) {
       // Similarly to the failure during fetching the latest block
       // number, this error doesn't require job resubmission. The next

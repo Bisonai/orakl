@@ -194,9 +194,7 @@ export class State {
       await this.addBlockToHistoryQueue(contractAddress, block.blockNumber)
     }
 
-    // if there is no observedBlock record in the db,
-    // use the listenerInitType to determine how to initialize the listener
-    if (observedBlock.service === '') {
+    if (observedBlock == null) {
       switch (this.listenerInitType) {
         case 'clear':
         case 'latest':

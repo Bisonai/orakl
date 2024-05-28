@@ -65,7 +65,7 @@ export async function getListener({
  * @return {Promise<IBlock>}
  * @exception {FailedToGetObservedBlock}
  */
-export async function getObservedBlock({ service }: { service: string }): Promise<IBlock> {
+export async function getObservedBlock({ service }: { service: string }): Promise<IBlock | null> {
   try {
     const endpoint = buildUrl(ORAKL_NETWORK_API_URL, `blocks/observed?service=${service}`)
     return (await axios.get(endpoint))?.data

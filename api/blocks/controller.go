@@ -40,6 +40,9 @@ func getObservedBlock(c *fiber.Ctx) error {
 	if err != nil {
 		return err
 	}
+	if result.Service == "" {
+		return c.JSON(nil)
+	}
 
 	return c.JSON(result)
 }
