@@ -2,8 +2,14 @@ import { Job, Queue, Worker } from 'bullmq'
 import { ethers } from 'ethers'
 import { Logger } from 'pino'
 import type { RedisClientType } from 'redis'
-import { BULLMQ_CONNECTION, getObservedBlockRedisKey, LISTENER_JOB_SETTINGS } from '../settings'
+import { BULLMQ_CONNECTION, LISTENER_JOB_SETTINGS } from '../settings'
 import { IListenerConfig } from '../types'
+import {
+  deleteUnprocessedBlock,
+  getObservedBlock,
+  insertUnprocessedBlocks,
+  upsertObservedBlock
+} from './api'
 import { State } from './state'
 import {
   IHistoryListenerJob,
@@ -99,7 +105,7 @@ export async function listenerService({
       state,
       historyListenerQueue,
       processEventQueue,
-      redisClient,
+      service,
       logger
     }),
     BULLMQ_CONNECTION
@@ -110,7 +116,7 @@ export async function listenerService({
 
   const historyWorker = new Worker(
     historyQueueName,
-    historyJob({ state, processEventQueue, logger }),
+    historyJob({ state, processEventQueue, service, logger }),
     BULLMQ_CONNECTION
   )
   historyWorker.on('error', (e) => {
@@ -119,7 +125,7 @@ export async function listenerService({
 
   const processEventWorker = new Worker(
     processEventQueueName,
-    processEventJob({ workerQueue, processFn, logger }),
+    processEventJob({ workerQueue, processFn, service, logger }),
     BULLMQ_CONNECTION
   )
   processEventWorker.on('error', (e) => {
@@ -172,19 +178,18 @@ function latestJob({
   state,
   processEventQueue,
   historyListenerQueue,
-  redisClient,
+  service,
   logger
 }: {
   state: State
   processEventQueue: Queue
   historyListenerQueue: Queue
-  redisClient: RedisClientType
+  service: string
   logger: Logger
 }) {
   async function wrapper(job: Job) {
     const inData: ILatestListenerJob = job.data
     const { contractAddress } = inData
-    const observedBlockRedisKey = getObservedBlockRedisKey(contractAddress)
 
     let latestBlock: number
     let observedBlock: number
@@ -202,9 +207,8 @@ function latestJob({
     }
 
     try {
-      // We assume that redis cache has been initialized within
-      // `State.add` method call.
-      observedBlock = Number(await redisClient.get(observedBlockRedisKey))
+      // We assume that observedBlock has been initialized in the db in state.add()
+      observedBlock = (await getObservedBlock({ service }))?.blockNumber as number
     } catch (e) {
       // Similarly to the failure during fetching the latest block
       // number, this error doesn't require job resubmission. The next
@@ -215,30 +219,43 @@ function latestJob({
       throw e
     }
 
+    // happens only on localhost
     if (latestBlock < observedBlock) {
       logger.warn('latestBlock < observedBlock. Updating observed block to revert the condition.')
       observedBlock = Math.max(0, latestBlock - 1)
     }
 
-    const logPrefix = generateListenerLogPrefix(contractAddress, observedBlock, latestBlock)
+    let latestObservedBlock = observedBlock
     try {
+      const logPrefix = generateListenerLogPrefix(contractAddress, observedBlock, latestBlock)
       if (latestBlock > observedBlock) {
-        await redisClient.set(observedBlockRedisKey, latestBlock)
+        // create record for each block in unprocessed_blocks table
+        // dont include observedBlock as it's considered processed
+        const unprocessedBlocks = Array.from(
+          { length: latestBlock - observedBlock },
+          (_, i) => observedBlock + i + 1
+        )
+        await insertUnprocessedBlocks({
+          blocks: unprocessedBlocks,
+          service
+        })
 
-        // The `observedBlock` block number is already processed,
-        // therefore we do not need to re-query the same event in such
-        // block again.
-        const events = await state.queryEvent(contractAddress, observedBlock + 1, latestBlock)
-        for (const [index, event] of events.entries()) {
+        // Update observed_block table
+        await upsertObservedBlock({ service, blockNumber: latestBlock })
+
+        for (const blockNumber of unprocessedBlocks) {
+          const events = await state.queryEvent(contractAddress, blockNumber, blockNumber)
           const outData: IProcessEventListenerJob = {
             contractAddress,
-            event
+            events,
+            blockNumber
           }
-          const jobId = getUniqueEventIdentifier(event, index)
+          // dont submit jobId to process so that historyJob can submit duplicate jobs
+          // in case of failure
           await processEventQueue.add('latest', outData, {
-            jobId,
             ...LISTENER_JOB_SETTINGS
           })
+          latestObservedBlock = blockNumber
         }
         logger.debug(logPrefix)
       } else {
@@ -249,9 +266,10 @@ function latestJob({
       // failed. Repeateable [latest] job will continue listening for
       // new blocks, and the blocks which failed to be scanned for
       // events will be retried through [history] job.
+      const logPrefix = generateListenerLogPrefix(contractAddress, latestObservedBlock, latestBlock)
       logger.warn(`${logPrefix} fail`)
 
-      for (let blockNumber = observedBlock + 1; blockNumber <= latestBlock; ++blockNumber) {
+      for (let blockNumber = latestObservedBlock + 1; blockNumber <= latestBlock; ++blockNumber) {
         const outData: IHistoryListenerJob = { contractAddress, blockNumber }
         await historyListenerQueue.add('failure', outData, {
           jobId: `${blockNumber.toString()}-${contractAddress}`,
@@ -282,10 +300,12 @@ function latestJob({
 function historyJob({
   state,
   processEventQueue,
+  service,
   logger
 }: {
   state: State
   processEventQueue: Queue
+  service: string
   logger: Logger
 }) {
   async function wrapper(job: Job) {
@@ -295,6 +315,7 @@ function historyJob({
 
     let events: ethers.Event[] = []
     try {
+      await insertUnprocessedBlocks({ blocks: [blockNumber], service })
       events = await state.queryEvent(contractAddress, blockNumber, blockNumber)
     } catch (e) {
       logger.error(`${logPrefix} hist fail`)
@@ -303,17 +324,14 @@ function historyJob({
 
     logger.debug(`${logPrefix} hist`)
 
-    for (const [index, event] of events.entries()) {
-      const outData: IProcessEventListenerJob = {
-        contractAddress,
-        event
-      }
-      const jobId = getUniqueEventIdentifier(event, index)
-      await processEventQueue.add('history', outData, {
-        jobId,
-        ...LISTENER_JOB_SETTINGS
-      })
+    const outData: IProcessEventListenerJob = {
+      contractAddress,
+      events,
+      blockNumber
     }
+    await processEventQueue.add('history', outData, {
+      ...LISTENER_JOB_SETTINGS
+    })
   }
 
   return wrapper
@@ -329,30 +347,42 @@ function historyJob({
 function processEventJob({
   workerQueue,
   processFn,
+  service,
   logger
 }: {
   workerQueue: Queue
   processFn: (log: ethers.Event) => Promise<ProcessEventOutputType | undefined>
+  service: string
   logger: Logger
 }) {
   const _logger = logger.child({ name: 'processEventJob', file: FILE_NAME })
 
   async function wrapper(job: Job) {
     const inData: IProcessEventListenerJob = job.data
-    const { event } = inData
-    _logger.debug(event, 'event')
+    const { events, blockNumber } = inData
 
     try {
-      const jobMetadata = await processFn(event)
-      if (jobMetadata) {
-        const { jobId, jobName, jobData, jobQueueSettings } = jobMetadata
-        const queueSettings = jobQueueSettings ? jobQueueSettings : LISTENER_JOB_SETTINGS
-        await workerQueue.add(jobName, jobData, {
-          jobId,
-          ...queueSettings
-        })
-        _logger.debug(`Listener submitted job [${jobId}] for [${jobName}]`)
+      for (const event of events) {
+        _logger.debug(event, 'event')
+        const jobMetadata = await processFn(event)
+        if (jobMetadata) {
+          const { jobId, jobName, jobData, jobQueueSettings } = jobMetadata
+          const queueSettings = jobQueueSettings ? jobQueueSettings : LISTENER_JOB_SETTINGS
+          await workerQueue.add(jobName, jobData, {
+            jobId,
+            ...queueSettings
+          })
+          _logger.debug(`Listener submitted job [${jobId}] for [${jobName}]`)
+        } else {
+          _logger.error(event, `Couldn't process event in block [${blockNumber}]`)
+          throw new Error()
+        }
       }
+
+      await deleteUnprocessedBlock({
+        blockNumber,
+        service
+      })
     } catch (e) {
       _logger.error(e, 'Error in user defined listener processing function')
       throw e
@@ -360,17 +390,6 @@ function processEventJob({
   }
 
   return wrapper
-}
-
-/**
- * Auxiliary function to create a unique identifier for a give `event`
- * and `index` of the even within the transaction.
- *
- * @param {ethers.Event} event
- * @param {number} index of event within a transaction
- */
-function getUniqueEventIdentifier(event: ethers.Event, index: number) {
-  return `${event.blockNumber}-${event.transactionHash}-${index}`
 }
 
 /**

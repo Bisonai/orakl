@@ -73,5 +73,10 @@ export enum OraklErrorCode {
   AxiosCanceledByUser,
   AxiosNotSupported,
   AxiosInvalidUrl,
-  FailedToConnectAPI
+  FailedToConnectAPI,
+  FailedToGetUnprocessedBlocks,
+  FailedToGetObservedBlock,
+  FailedUpsertObservedBlock,
+  FailedInsertUnprocessedBlock,
+  FailedDeleteUnprocessedBlock
 }

@@ -71,9 +71,15 @@ export interface IHistoryListenerJob {
 
 export interface IProcessEventListenerJob {
   contractAddress: string
-  event: ethers.Event
+  events: ethers.Event[]
+  blockNumber: number
 }
 
 export interface IContracts {
   [key: string]: ethers.Contract
+}
+
+export interface IBlock {
+  service: string
+  blockNumber: number
 }
