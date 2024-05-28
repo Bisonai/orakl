@@ -37,7 +37,9 @@ jobs:
       tag_date: ${{ steps.tag.outputs.date }}
       tag_git_hash: ${{ steps.tag.outputs.git_hash }}
       service: ${{ steps.tag.outputs.service }}      
+      ecr_url: ${{ steps.tag.outputs.ecr_url }}
       version: ${{ steps.package.outputs.version }}
+      
 
     steps:
       - uses: actions/checkout@master
@@ -53,6 +55,7 @@ jobs:
             service="core"
           fi            
           echo "service=${service}" >> $GITHUB_OUTPUT
+          echo "ecr_url=public.ecr.aws/bisonai/orakl-${service}" >> $GITHUB_OUTPUT
 
       - name: Get package version
         id: package
