@@ -182,8 +182,17 @@ export class State {
     await this.redisClient.set(this.stateName, JSON.stringify(updatedActiveListeners))
 
     const contractAddress = toAddListener.address
+    const contract = new ethers.Contract(contractAddress, this.abi, this.provider)
+    this.contracts = { ...this.contracts, [contractAddress]: contract }
+
     const latestBlock = await this.latestBlockNumber()
     const observedBlock = await getObservedBlock({ service: this.service })
+
+    // fetch all unprocessed blocks and pass to the history queue
+    const unprocessedBlocks = await getUnprocessedBlocks({ service: this.service })
+    for (const block of unprocessedBlocks) {
+      await this.addBlockToHistoryQueue(contractAddress, block.blockNumber)
+    }
 
     // if there is no observedBlock record in the db,
     // use the listenerInitType to determine how to initialize the listener
@@ -201,27 +210,21 @@ export class State {
 
         default:
           // [block number] initialization
-          for (let blockNumber = this.listenerInitType; blockNumber < latestBlock; ++blockNumber) {
+          for (let blockNumber = this.listenerInitType; blockNumber <= latestBlock; ++blockNumber) {
             await this.addBlockToHistoryQueue(contractAddress, blockNumber)
           }
-          await upsertObservedBlock({ service: this.service, blockNumber: latestBlock - 1 })
+          await upsertObservedBlock({ service: this.service, blockNumber: latestBlock })
           break
       }
     } else {
       for (
         let blockNumber = observedBlock.blockNumber + 1;
-        blockNumber < latestBlock;
+        blockNumber <= latestBlock;
         ++blockNumber
       ) {
         await this.addBlockToHistoryQueue(contractAddress, blockNumber)
       }
-      await upsertObservedBlock({ service: this.service, blockNumber: latestBlock - 1 })
-    }
-
-    // fetch all unprocessed blocks and pass to the history queue
-    const unprocessedBlocks = await getUnprocessedBlocks({ service: this.service })
-    for (const block of unprocessedBlocks) {
-      await this.addBlockToHistoryQueue(contractAddress, block.blockNumber)
+      await upsertObservedBlock({ service: this.service, blockNumber: latestBlock })
     }
 
     // Insert listener jobs
@@ -235,9 +238,6 @@ export class State {
         every: LISTENER_DELAY
       }
     })
-
-    const contract = new ethers.Contract(contractAddress, this.abi, this.provider)
-    this.contracts = { ...this.contracts, [contractAddress]: contract }
 
     return toAddListener
   }
