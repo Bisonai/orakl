@@ -5,19 +5,26 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"sync"
 
+	"bisonai.com/orakl/node/pkg/utils/retrier"
 	"github.com/rs/zerolog/log"
 	"nhooyr.io/websocket"
 	"nhooyr.io/websocket/wsjson"
 )
 
-type wsConn struct {
-	*websocket.Conn
+type WebsocketHelper struct {
+	Conn          *websocket.Conn
+	Endpoint      string
+	Subscriptions []any
+	Proxy         string
+	mu            sync.Mutex
 }
 
 type ConnectionConfig struct {
-	Endpoint string
-	ProxyUrl string
+	Endpoint      string
+	Proxy         string
+	Subscriptions []any
 }
 
 type ConnectionOption func(*ConnectionConfig)
@@ -30,11 +37,17 @@ func WithEndpoint(endpoint string) ConnectionOption {
 
 func WithProxyUrl(proxyUrl string) ConnectionOption {
 	return func(c *ConnectionConfig) {
-		c.ProxyUrl = proxyUrl
+		c.Proxy = proxyUrl
 	}
 }
 
-func NewConnection(ctx context.Context, opts ...ConnectionOption) (*wsConn, error) {
+func WithSubscriptions(subscriptions []any) ConnectionOption {
+	return func(c *ConnectionConfig) {
+		c.Subscriptions = subscriptions
+	}
+}
+
+func NewWebsocketHelper(ctx context.Context, opts ...ConnectionOption) (*WebsocketHelper, error) {
 	config := &ConnectionConfig{}
 	for _, opt := range opts {
 		opt(config)
@@ -45,12 +58,26 @@ func NewConnection(ctx context.Context, opts ...ConnectionOption) (*wsConn, erro
 		return nil, fmt.Errorf("endpoint is required")
 	}
 
-	dialOption := &websocket.DialOptions{}
+	if config.Subscriptions == nil {
+		log.Warn().Msg("no subscriptions provided")
+	}
 
-	if config.ProxyUrl != "" {
-		proxyURL, err := url.Parse(config.ProxyUrl)
+	return &WebsocketHelper{
+		Endpoint:      config.Endpoint,
+		Subscriptions: config.Subscriptions,
+		Proxy:         config.Proxy,
+		mu:            sync.Mutex{},
+	}, nil
+}
+
+func (ws *WebsocketHelper) Dial(ctx context.Context) error {
+	ws.mu.Lock()
+	defer ws.mu.Unlock()
+	dialOption := &websocket.DialOptions{}
+	if ws.Proxy != "" {
+		proxyURL, err := url.Parse(ws.Proxy)
 		if err != nil {
-			return nil, err
+			return err
 		}
 
 		proxyTransport := http.DefaultTransport.(*http.Transport).Clone()
@@ -63,15 +90,65 @@ func NewConnection(ctx context.Context, opts ...ConnectionOption) (*wsConn, erro
 		}
 	}
 
-	conn, _, err := websocket.Dial(ctx, config.Endpoint, dialOption)
+	conn, _, err := websocket.Dial(ctx, ws.Endpoint, dialOption)
 	if err != nil {
 		log.Error().Err(err).Msg("error opening websocket connection")
-		return nil, err
+		return err
 	}
-	return &wsConn{conn}, nil
+	ws.Conn = conn
+	return nil
 }
 
-func (ws *wsConn) Write(ctx context.Context, message interface{}) error {
+func (ws *WebsocketHelper) Run(ctx context.Context, router func(context.Context, map[string]any) error) {
+	dialJob := func() error {
+		return ws.Dial(ctx)
+	}
+
+	subscribeJob := func() error {
+		for _, subscription := range ws.Subscriptions {
+			err := ws.Write(ctx, subscription)
+			if err != nil {
+				log.Error().Err(err).Msg("error writing subscription to websocket")
+				return err
+			}
+		}
+		return nil
+	}
+
+	for {
+		err := retrier.Retry(dialJob, 3, 1, 10)
+		if err != nil {
+			log.Error().Err(err).Msg("error dialing websocket")
+			break
+		}
+
+		err = retrier.Retry(subscribeJob, 3, 1, 10)
+		if err != nil {
+			log.Error().Err(err).Msg("error subscribing to websocket")
+			break
+		}
+
+		for {
+			var data map[string]any
+			ws.mu.Lock()
+			err := wsjson.Read(ctx, ws.Conn, &data)
+			ws.mu.Unlock()
+			if err != nil {
+				log.Error().Err(err).Msg("error reading from websocket")
+				break
+			}
+			err = router(ctx, data)
+			if err != nil {
+				log.Error().Err(err).Msg("error processing message")
+			}
+		}
+		ws.mu.Lock()
+		ws.Close()
+		ws.mu.Unlock()
+	}
+}
+
+func (ws *WebsocketHelper) Write(ctx context.Context, message interface{}) error {
 	err := wsjson.Write(ctx, ws.Conn, message)
 	if err != nil {
 		log.Error().Err(err).Msg("error writing to websocket")
@@ -80,19 +157,19 @@ func (ws *wsConn) Write(ctx context.Context, message interface{}) error {
 	return nil
 }
 
-func (ws *wsConn) Read(ctx context.Context, ch chan interface{}) {
+func (ws *WebsocketHelper) Read(ctx context.Context, ch chan any) error {
 	for {
-		var t interface{}
+		var t any
 		err := wsjson.Read(ctx, ws.Conn, &t)
 		if err != nil {
 			log.Error().Err(err).Msg("error reading from websocket")
-			break
+			return err
 		}
 		ch <- t
 	}
 }
 
-func (ws *wsConn) Close() error {
+func (ws *WebsocketHelper) Close() error {
 	err := ws.Conn.Close(websocket.StatusNormalClosure, "")
 	if err != nil {
 		log.Error().Err(err).Msg("error closing websocket")

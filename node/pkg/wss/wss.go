@@ -7,7 +7,7 @@ import (
 )
 
 type Connections struct {
-	m    map[string]*wsConn
+	m    map[string]*WebsocketHelper
 	lock sync.RWMutex
 }
 
@@ -17,11 +17,11 @@ var (
 
 func init() {
 	connections = &Connections{
-		m: make(map[string]*wsConn),
+		m: make(map[string]*WebsocketHelper),
 	}
 }
 
-func (c *Connections) Update(key string, conn *wsConn) error {
+func (c *Connections) Update(key string, conn *WebsocketHelper) error {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 
@@ -39,7 +39,7 @@ func (c *Connections) Remove(key string) error {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 
-	if c.m[key] != nil {
+	if c.m[key] != nil && c.m[key].Conn != nil {
 		err := c.m[key].Close()
 		if err != nil {
 			return err
@@ -49,7 +49,7 @@ func (c *Connections) Remove(key string) error {
 	return nil
 }
 
-func (c *Connections) Get(key string) (*wsConn, error) {
+func (c *Connections) Get(key string) (*WebsocketHelper, error) {
 	c.lock.RLock()
 	defer c.lock.RUnlock()
 
@@ -64,12 +64,12 @@ func getConnections() *Connections {
 	return connections
 }
 
-func UpdateConnection(ctx context.Context, key string, conn *wsConn) error {
+func UpdateConnection(ctx context.Context, key string, conn *WebsocketHelper) error {
 	connections := getConnections()
 	return connections.Update(key, conn)
 }
 
-func GetConnection(key string) (*wsConn, error) {
+func GetConnection(key string) (*WebsocketHelper, error) {
 	connections := getConnections()
 	return connections.Get(key)
 }

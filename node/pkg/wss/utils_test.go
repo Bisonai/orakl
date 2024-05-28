@@ -1,3 +1,4 @@
+//nolint:all
 package wss
 
 import (
@@ -60,16 +61,20 @@ func TestReadWriteAndClose(t *testing.T) {
 	time.Sleep(time.Second)
 
 	// Create a WebSocket connection
-	conn, err := NewConnection(context.Background(), WithEndpoint("ws://localhost:8088/ws"))
+	conn, err := NewWebsocketHelper(context.Background(), WithEndpoint("ws://localhost:8088/ws"))
 	assert.NoError(t, err)
 	assert.NotNil(t, conn)
+
+	// Test Dial
+	err = conn.Dial(context.Background())
+	assert.NoError(t, err)
 
 	// Test Write
 	err = conn.Write(context.Background(), "Hello")
 	assert.NoError(t, err)
 
 	// Test Read
-	ch := make(chan interface{})
+	ch := make(chan any)
 	go conn.Read(context.Background(), ch)
 	assert.Equal(t, "Hello", <-ch)
 
