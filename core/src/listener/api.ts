@@ -102,7 +102,7 @@ export async function insertUnprocessedBlocks({
   blocks: number[]
 }): Promise<void> {
   try {
-    const endpoint = buildUrl(ORAKL_NETWORK_API_URL, `blocks/unprocessed`)
+    const endpoint = buildUrl(ORAKL_NETWORK_API_URL, 'blocks/unprocessed')
     await axios.post(endpoint, { service, blocks })
   } catch (e) {
     throw new OraklError(OraklErrorCode.FailedInsertUnprocessedBlock)
@@ -144,7 +144,7 @@ export async function upsertObservedBlock({
   blockNumber: number
 }): Promise<IBlock> {
   try {
-    const endpoint = buildUrl(ORAKL_NETWORK_API_URL, `blocks/observed`)
+    const endpoint = buildUrl(ORAKL_NETWORK_API_URL, 'blocks/observed')
     return (await axios.post(endpoint, { service, blockNumber }))?.data
   } catch (e) {
     throw new OraklError(OraklErrorCode.FailedUpsertObservedBlock)
