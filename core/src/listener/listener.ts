@@ -207,8 +207,7 @@ function latestJob({
     }
 
     try {
-      // We assume that redis cache has been initialized within
-      // `State.add` method call.
+      // We assume that observedBlock has been initialized in the db in state.add()
       observedBlock = (await getObservedBlock({ service })).blockNumber
     } catch (e) {
       // Similarly to the failure during fetching the latest block
@@ -267,7 +266,7 @@ function latestJob({
       // failed. Repeateable [latest] job will continue listening for
       // new blocks, and the blocks which failed to be scanned for
       // events will be retried through [history] job.
-      const logPrefix = generateListenerLogPrefix(contractAddress, observedBlock, latestBlock)
+      const logPrefix = generateListenerLogPrefix(contractAddress, latestObservedBlock, latestBlock)
       logger.warn(`${logPrefix} fail`)
 
       for (let blockNumber = latestObservedBlock + 1; blockNumber <= latestBlock; ++blockNumber) {
