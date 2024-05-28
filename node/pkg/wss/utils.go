@@ -38,6 +38,9 @@ func WithEndpoint(endpoint string) ConnectionOption {
 
 func WithProxyUrl(proxyUrl string) ConnectionOption {
 	return func(c *ConnectionConfig) {
+		if proxyUrl == "" {
+			return
+		}
 		c.Proxy = proxyUrl
 	}
 }

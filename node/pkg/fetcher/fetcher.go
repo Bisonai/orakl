@@ -100,6 +100,8 @@ func (f *Fetcher) fetch(chainHelpers map[string]ChainHelper, proxies []Proxy) ([
 					errChan <- fetchErr
 					return
 				}
+			case *definition.Type == "websocket":
+				return
 			default:
 				errChan <- errorSentinel.ErrFetcherInvalidType
 			}

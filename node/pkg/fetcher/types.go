@@ -8,6 +8,7 @@ import (
 
 	"bisonai.com/orakl/node/pkg/bus"
 	"bisonai.com/orakl/node/pkg/utils/reducer"
+	"bisonai.com/orakl/node/pkg/wfetcher"
 )
 
 const (
@@ -76,6 +77,7 @@ type App struct {
 	Fetchers     map[int32]*Fetcher
 	Collectors   map[int32]*Collector
 	Streamer     *Streamer
+	WFetcher     *wfetcher.App
 	Proxies      []Proxy
 	ChainHelpers map[string]ChainHelper
 }
