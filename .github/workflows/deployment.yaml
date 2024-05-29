@@ -22,7 +22,6 @@ on:
           - "node"
           - "boot-api"
           - "sentinel"
-
       network:
         description: "Network to deploy to"
         required: true
