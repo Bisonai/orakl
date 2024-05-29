@@ -75,17 +75,7 @@ jobs:
       img_tag: ${{ steps.img-tag.outputs.img_tag }}
 
     steps:
-      - uses: actions/checkout@master
-
-      - name: Setup Go
-        uses: actions/setup-go@v4
-        with:
-          go-version: "1.22.3"
-          check-latest: true
-          cache-dependency-path: |
-            ./${{ needs.prepare.outputs.service }}/go.sum
-            ./${{ needs.prepare.outputs.service }}/go.mod
-        if: ${{ needs.prepare.outputs.service != 'core' || needs.prepare.outputs.service != 'fetcher' || needs.prepare.outputs.service != 'cli' }}
+      - uses: actions/checkout@v4
 
       - name: docker build ${{ needs.prepare.outputs.service }}
         run: SERVICE_NAME=orakl-${{ needs.prepare.outputs.service }} docker compose -f docker-compose.build.yaml build
@@ -138,6 +128,37 @@ jobs:
     secrets:
       PAT: ${{ secrets.PAT }}
     if: ${{ success() }}  
+
+  update-package-json-version:
+    name: Update package.json version
+    needs: [prepare, build, image-update]
+    runs-on: ubuntu-latest
+    steps:
+
+      - name: Read package.json
+        id: package
+        uses: juliangruber/read-file-action@v1
+        with:
+          path: ./package.json
+      - name: Echo package.json
+        run: echo "${{ steps.package.outputs.content }}"
+
+      - name: update package.json version
+        if: needs.prepare.outputs.version
+        run: |
+          version=v${{ needs.prepare.outputs.version }}        
+          echo "updating package.json to version $version"          
+          cd ./${{ needs.prepare.outputs.service }}
+          npm version $version --no-git-tag-version
+
+      - name: commit updated package.json
+        if: needs.prepare.outputs.version
+        run: |
+          git config --global user.name 'github-actions'
+          git config --global user.email 'github-actions@github.com'
+          git add package.json
+          git commit -m "chore: update package.json version to ${{ needs.prepare.outputs.version }}"
+          git push origin HEAD:${{ github.ref_name }}      
 
   post-slack-tag-update-success:
     name: Post slack message for tag update success
