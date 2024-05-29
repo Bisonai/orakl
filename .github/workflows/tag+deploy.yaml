@@ -126,7 +126,7 @@ jobs:
 
   update-package-json-version:
     name: Update package.json version
-    needs: [prepare, build, image-update]
+    needs: [prepare, build]
     runs-on: ubuntu-latest
     steps:
 
