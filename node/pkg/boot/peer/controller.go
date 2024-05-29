@@ -78,7 +78,11 @@ func sync(c *fiber.Ctx) error {
 	}
 
 	connectionUrl := fmt.Sprintf("/ip4/%s/tcp/%d/p2p/%s", payload.Ip, payload.Port, payload.HostId)
-	isAlive, _ := libp2pUtils.IsHostAlive(c.Context(), h, connectionUrl)
+	isAlive, err := libp2pUtils.IsHostAlive(c.Context(), h, connectionUrl)
+	if err != nil {
+		log.Error().Err(err).Msg("Failed to check peer")
+		return c.Status(fiber.StatusInternalServerError).SendString("Failed to check peer")
+	}
 	if !isAlive {
 		log.Info().Str("peer", connectionUrl).Msg("invalid peer")
 		err = h.Close()
