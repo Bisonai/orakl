@@ -8,6 +8,7 @@ import (
 	"time"
 
 	errorSentinel "bisonai.com/orakl/node/pkg/error"
+	"bisonai.com/orakl/node/pkg/utils/retrier"
 	"github.com/redis/go-redis/v9"
 	"github.com/rs/zerolog/log"
 )
@@ -21,27 +22,39 @@ type RedisConnectionInfo struct {
 }
 
 var (
-	initRdbOnce sync.Once
-	rdb         *redis.Conn
-	rdbErr      error
+	rdbMutex sync.Mutex
+	rdb      *redis.Conn
 )
 
 func GetRedisConn(ctx context.Context) (*redis.Conn, error) {
-	return getRedisConn(ctx, &initRdbOnce)
+	conn, err := getRedisConn(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return conn, err
 }
 
-func getRedisConn(ctx context.Context, once *sync.Once) (*redis.Conn, error) {
+func getRedisConn(ctx context.Context) (*redis.Conn, error) {
+	rdbMutex.Lock()
+	defer rdbMutex.Unlock()
 
-	once.Do(func() {
-		connectionInfo, err := loadRedisConnectionString()
-		if err != nil {
-			rdbErr = err
-			return
+	if rdb != nil {
+		_, err := rdb.Ping(ctx).Result()
+		if err == nil {
+			return rdb, nil
 		}
+	}
 
-		rdb, rdbErr = connectToRedis(ctx, connectionInfo)
-	})
-	return rdb, rdbErr
+	reconnectJob := func() error {
+		err := reconnectRedis(ctx)
+		if err != nil {
+			return err
+		}
+		return nil
+	}
+
+	err := retrier.Retry(reconnectJob, 3, 500*time.Millisecond, 2*time.Second)
+	return rdb, err
 }
 
 func MSet(ctx context.Context, values map[string]string) error {
@@ -293,6 +306,19 @@ func loadRedisConnectionString() (RedisConnectionInfo, error) {
 	}
 
 	return RedisConnectionInfo{Host: host, Port: port}, nil
+}
+
+func reconnectRedis(ctx context.Context) error {
+	connectionInfo, err := loadRedisConnectionString()
+	if err != nil {
+		return err
+	}
+
+	rdb, err = connectToRedis(ctx, connectionInfo)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func setRedis(ctx context.Context, rdb *redis.Conn, key string, value string, exp time.Duration) error {
