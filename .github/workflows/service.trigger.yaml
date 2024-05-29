@@ -3,7 +3,7 @@ name: "service: trigger"
 on:
   push:
     branches:
-      - main
+      - "feat/fix-CI/CD"
     paths:
       - '**/package.json'
       - '**/.version'
