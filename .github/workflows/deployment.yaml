@@ -1,6 +1,10 @@
 name: Dispatch Deploy
 
 on:
+  push:
+    branches:
+      - "feat/fix-CI/CD"
+      
   workflow_dispatch:
     inputs:
       application:
