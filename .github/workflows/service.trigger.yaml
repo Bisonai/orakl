@@ -28,22 +28,7 @@ jobs:
           done
 
       - name: Trigger Dispatch Deploy
-        uses: actions/github-script@v4
+        uses: ./.github/workflows/deployment.yaml
         with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          script: |
-            const apps = '${{ steps.trigger_deploy.outputs.application }}'.split(',');
-            const network = '${{ steps.trigger_deploy.outputs.network }}';
-            const ref = '${{ steps.trigger_deploy.outputs.ref }}';
-            for (const app of apps) {
-              github.actions.createWorkflowDispatch({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                workflow_id: 'deployment.yaml',
-                ref: ref,
-                inputs: {
-                  application: app,
-                  network: network
-                }
-              });
-            }
+          application: ${{ steps.trigger_deploy.outputs.application }}
+          network: ${{ steps.trigger_deploy.outputs.network }}
