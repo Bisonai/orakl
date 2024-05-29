@@ -28,6 +28,15 @@ on:
           - "Baobab"
           - "Cypress"
 
+  workflow_call:
+    inputs:
+      application:
+        required: true
+        type: string
+      network:
+        required: true
+        type: string      
+
 jobs:
   prepare:
     name: Prepare
