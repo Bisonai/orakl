@@ -150,7 +150,7 @@ jobs:
 
   image-update:
     name: Update image tag
-    needs: [prepare, build]
+    needs: [prepare, build, update-package-json-version]
     uses: ./.github/workflows/update.image-tag.yaml
     with:
       network: "baobab"
@@ -161,7 +161,7 @@ jobs:
       tag_git_hash: ${{ needs.prepare.outputs.tag_git_hash }}
     secrets:
       PAT: ${{ secrets.PAT }}
-    if: ${{ update-package-json-version.outputs.success }}
+    if: ${{ success() }}  
 
   post-slack-tag-update-success:
     name: Post slack message for tag update success
