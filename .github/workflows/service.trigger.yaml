@@ -9,8 +9,13 @@ on:
 
 jobs:
 
+  prepare:
+    name: Prepare
+    runs-on: ubuntu-latest
+
   trigger_deploy:
     name: Trigger Dispatch Deploy
+    needs: prepare
     uses: .github/workflows/deployment.yaml
     with:
       application: "cli"
