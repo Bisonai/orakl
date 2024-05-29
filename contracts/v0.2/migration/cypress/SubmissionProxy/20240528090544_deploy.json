@@ -1,0 +1,40 @@
+{
+  "deploy": {},
+  "deployFeed": {
+    "feedNames": [
+      "ADA-USDT",
+      "ATOM-USDT",
+      "AVAX-USDT",
+      "BNB-USDT",
+      "BORA-KRW",
+      "BTC-USDT",
+      "CHF-USD",
+      "DAI-USDT",
+      "DOGE-USDT",
+      "DOT-USDT",
+      "ETH-USDT",
+      "EUR-USD",
+      "FTM-USDT",
+      "GBP-USD",
+      "JOY-USDT",
+      "JPY-USD",
+      "KLAY-USDT",
+      "KRW-USD",
+      "KSP-KRW",
+      "LTC-USDT",
+      "MATIC-USDT",
+      "MBX-KRW",
+      "MNR-KRW",
+      "PAXG-USDT",
+      "PER-KLAY",
+      "SHIB-USDT",
+      "SOL-USDT",
+      "TRX-USDT",
+      "UNI-USDT",
+      "USDC-USDT",
+      "WEMIX-USDT",
+      "XRP-USDT"
+    ]
+  },
+  "deployFeedRouter": {}
+}

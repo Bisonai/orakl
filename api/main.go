@@ -8,6 +8,7 @@ import (
 	"bisonai.com/orakl/api/aggregate"
 	"bisonai.com/orakl/api/aggregator"
 	"bisonai.com/orakl/api/apierr"
+	"bisonai.com/orakl/api/blocks"
 	"bisonai.com/orakl/api/chain"
 	"bisonai.com/orakl/api/data"
 	"bisonai.com/orakl/api/feed"
@@ -80,4 +81,5 @@ func SetRouter(_router fiber.Router) {
 	reporter.Routes(_router)
 	service.Routes(_router)
 	vrf.Routes(_router)
+	blocks.Routes(_router)
 }

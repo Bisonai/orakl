@@ -3,14 +3,9 @@ import ethers from 'ethers'
 import { Logger } from 'pino'
 import type { RedisClientType } from 'redis'
 import { OraklError, OraklErrorCode } from '../errors'
-import {
-  getObservedBlockRedisKey,
-  LISTENER_DELAY,
-  LISTENER_JOB_SETTINGS,
-  PROVIDER_URL
-} from '../settings'
+import { LISTENER_DELAY, LISTENER_JOB_SETTINGS, PROVIDER_URL } from '../settings'
 import { IListenerConfig, IListenerRawConfig } from '../types'
-import { getListeners } from './api'
+import { getListeners, getObservedBlock, getUnprocessedBlocks, upsertObservedBlock } from './api'
 import { IContracts, IHistoryListenerJob, ILatestListenerJob, ListenerInitType } from './types'
 import { postprocessListeners } from './utils'
 
@@ -131,6 +126,16 @@ export class State {
     return state ? JSON.parse(state) : []
   }
 
+  async addBlockToHistoryQueue(contractAddress: string, blockNumber: number) {
+    const historyOutData: IHistoryListenerJob = {
+      contractAddress,
+      blockNumber
+    }
+    await this.historyListenerQueue.add('history', historyOutData, {
+      ...LISTENER_JOB_SETTINGS
+    })
+  }
+
   /**
    * Add listener identified by `id` parameter. `id` is a global
    * listener identifier stored at permanent listener state. Listener
@@ -177,33 +182,42 @@ export class State {
     await this.redisClient.set(this.stateName, JSON.stringify(updatedActiveListeners))
 
     const contractAddress = toAddListener.address
-    const observedBlockRedisKey = getObservedBlockRedisKey(contractAddress)
+    const contract = new ethers.Contract(contractAddress, this.abi, this.provider)
+    this.contracts = { ...this.contracts, [contractAddress]: contract }
+
     const latestBlock = await this.latestBlockNumber()
+    const observedBlock = await getObservedBlock({ service: this.service })
 
-    switch (this.listenerInitType) {
-      case 'clear':
-        // Clear metadata about previously observed blocks for a specific
-        // `contractAddress`.
-        await this.redisClient.set(observedBlockRedisKey, latestBlock - 1)
-        break
+    // fetch all unprocessed blocks and pass to the history queue
+    const unprocessedBlocks = await getUnprocessedBlocks({ service: this.service })
+    for (const block of unprocessedBlocks) {
+      await this.addBlockToHistoryQueue(contractAddress, block.blockNumber)
+    }
 
-      case 'latest':
-        await this.setObservedBlockNumberIfNotDefined(observedBlockRedisKey, latestBlock - 1)
-        break
+    if (observedBlock == null) {
+      switch (this.listenerInitType) {
+        case 'clear':
+        case 'latest':
+          await upsertObservedBlock({ service: this.service, blockNumber: latestBlock - 1 })
+          break
 
-      default:
-        // [block number] initialization
-        await this.setObservedBlockNumberIfNotDefined(observedBlockRedisKey, latestBlock - 1)
-        for (let blockNumber = this.listenerInitType; blockNumber < latestBlock; ++blockNumber) {
-          const historyOutData: IHistoryListenerJob = {
-            contractAddress,
-            blockNumber
+        default:
+          // [block number] initialization
+          for (let blockNumber = this.listenerInitType; blockNumber <= latestBlock; ++blockNumber) {
+            await this.addBlockToHistoryQueue(contractAddress, blockNumber)
           }
-          await this.historyListenerQueue.add('history', historyOutData, {
-            ...LISTENER_JOB_SETTINGS
-          })
-        }
-        break
+          await upsertObservedBlock({ service: this.service, blockNumber: latestBlock })
+          break
+      }
+    } else {
+      for (
+        let blockNumber = observedBlock.blockNumber + 1;
+        blockNumber <= latestBlock;
+        ++blockNumber
+      ) {
+        await this.addBlockToHistoryQueue(contractAddress, blockNumber)
+      }
+      await upsertObservedBlock({ service: this.service, blockNumber: latestBlock })
     }
 
     // Insert listener jobs
@@ -217,9 +231,6 @@ export class State {
         every: LISTENER_DELAY
       }
     })
-
-    const contract = new ethers.Contract(contractAddress, this.abi, this.provider)
-    this.contracts = { ...this.contracts, [contractAddress]: contract }
 
     return toAddListener
   }
