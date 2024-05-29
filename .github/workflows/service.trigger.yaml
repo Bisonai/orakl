@@ -8,18 +8,13 @@ on:
     #   - 'cli/package.json'
 
 jobs:
-  post-slack-image-upload:
-    name: Slack message for image upload 
-    uses: ./.github/workflows/post.slack.yaml
-    with:
-      status: "Success"
-      slack-message: testing"
-    secrets:
-      SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}  
 
   trigger_deploy:
     runs-on: ubuntu-latest
-
+    permissions:
+      id-token: write
+      contents: read
+      
     steps:
       - uses: actions/checkout@master
 
