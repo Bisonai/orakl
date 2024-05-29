@@ -61,10 +61,10 @@ jobs:
           if [[ "${{ steps.tag.outputs.service }}" == "cli" || "${{ steps.tag.outputs.service }}" == "fetcher" || "${{ steps.tag.outputs.service }}" == "core" ]]; then
             echo "version=$(node -p -e "require('./"${{ steps.tag.outputs.service }}"/package.json').version")" >> $GITHUB_OUTPUT
           else 
-            if [[ "${{ steps.tag.outputs.service }} "" == "boot-api"]]; then
+            if [[ "${{ steps.tag.outputs.service }}" == "boot-api" ]]; then
               version=$(cat ./node/.version)
             else
-              version=$(cat ./"${{ steps.tag.outputs.service }}"/.version)
+              version=$(cat ./${{ steps.tag.outputs.service }}/.version)
             fi
             echo "version=$version" >> $GITHUB_OUTPUT
           fi

@@ -54,7 +54,7 @@ jobs:
           cd ./gitops_tmp/${{ inputs.project-name }}/
           echo "Updating image tag in values.${{ inputs.network }}.yaml files"
 
-          if [[ "${{ inputs.network}}" == "cypress" ]]; then
+          if [[ "${{ inputs.network }}" == "cypress" ]]; then
 
             if [[ "${{ inputs.project-name }}" == "vrf" || "${{ inputs.project-name }}" == "request-response" || "${{ inputs.project-name }}" == "aggregator" ]]; then
               listener_baobab_tag=$(grep -oP 'listenerTag: "\K[^"]+' values.baobab.yaml)
