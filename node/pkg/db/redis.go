@@ -39,6 +39,7 @@ func getRedisConn(ctx context.Context) (*redis.Conn, error) {
 	defer rdbMutex.Unlock()
 
 	if rdb != nil {
+		log.Debug().Msg("Attempting to ping Redis")
 		_, err := rdb.Ping(ctx).Result()
 		if err == nil {
 			return rdb, nil
@@ -53,6 +54,7 @@ func getRedisConn(ctx context.Context) (*redis.Conn, error) {
 		return nil
 	}
 
+	log.Debug().Msg("Reconnecting to Redis")
 	err := retrier.Retry(reconnectJob, 3, 500*time.Millisecond, 2*time.Second)
 	return rdb, err
 }
@@ -311,11 +313,13 @@ func loadRedisConnectionString() (RedisConnectionInfo, error) {
 func reconnectRedis(ctx context.Context) error {
 	connectionInfo, err := loadRedisConnectionString()
 	if err != nil {
+		log.Error().Err(err).Msg("Failed to load Redis connection string")
 		return err
 	}
 
 	rdb, err = connectToRedis(ctx, connectionInfo)
 	if err != nil {
+		log.Error().Err(err).Msg("Failed to connect to Redis")
 		return err
 	}
 	return nil
