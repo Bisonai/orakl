@@ -27,10 +27,6 @@ on:
           - "Baobab"
           - "Cypress"
 
-  push:
-    branches:
-      - "feat/fix-CI/CD"
-
 jobs:
   prepare:
     name: Prepare
