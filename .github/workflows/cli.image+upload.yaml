@@ -1,6 +1,10 @@
 name: CLI Deploy to Amazon ECR
 
 on:
+  push:
+    branches:
+      - "feat/fix-CI/CD"
+      
   workflow_dispatch:
     inputs:
       application:
