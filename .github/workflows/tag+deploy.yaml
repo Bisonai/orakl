@@ -77,6 +77,16 @@ jobs:
     steps:
       - uses: actions/checkout@master
 
+      - name: Setup Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: "1.22.3"
+          check-latest: true
+          cache-dependency-path: |
+            ./${{ needs.prepare.outputs.service }}/go.sum
+            ./${{ needs.prepare.outputs.service }}/go.mod
+        if: ${{ needs.prepare.outputs.service != 'core' || needs.prepare.outputs.service != 'fetcher' || needs.prepare.outputs.service != 'cli' }}
+
       - name: docker build ${{ needs.prepare.outputs.service }}
         run: SERVICE_NAME=orakl-${{ needs.prepare.outputs.service }} docker compose -f docker-compose.build.yaml build
 

@@ -4,43 +4,42 @@ on:
   workflow_dispatch:
     inputs:
       application:
-        description: 'Application to deploy'
+        description: "Application to deploy"
         required: true
         type: choice
         options:
-          - 'cli'
-          - 'aggregator'          
-          - 'vrf'
-          - 'request-response'
-          - 'delegator'
-          - 'fetcher'
-          - 'por'
-          - 'node'
-          - 'boot-api'
-          - 'monitor'
+          - "cli"
+          - "aggregator"
+          - "vrf"
+          - "request-response"
+          - "delegator"
+          - "fetcher"
+          - "por"
+          - "node"
+          - "boot-api"
+          - "sentinel"
 
       network:
-        description: 'Network to deploy to'
+        description: "Network to deploy to"
         required: true
-        default: 'Baobab'
+        default: "Baobab"
         type: choice
         options:
-          - 'Baobab'
-          - 'Cypress'  
+          - "Baobab"
+          - "Cypress"
 
 jobs:
   prepare:
     name: Prepare
     runs-on: ubuntu-latest
-    if: ${{ github.event.inputs.network == 'Baobab' }}  
+    if: ${{ github.event.inputs.network == 'Baobab' }}
 
     outputs:
       tag_date: ${{ steps.tag.outputs.date }}
       tag_git_hash: ${{ steps.tag.outputs.git_hash }}
-      service: ${{ steps.tag.outputs.service }}      
+      service: ${{ steps.tag.outputs.service }}
       ecr_url: ${{ steps.tag.outputs.ecr_url }}
       version: ${{ steps.package.outputs.version }}
-      
 
     steps:
       - uses: actions/checkout@master
@@ -62,12 +61,11 @@ jobs:
         run: |
           echo "version=$(node -p -e "require('./core/package.json').version")" >> $GITHUB_OUTPUT
 
-
   build:
     name: Build
     runs-on: ubuntu-latest
     needs: prepare
-    if: ${{ github.event.inputs.network == 'Baobab' }} 
+    if: ${{ github.event.inputs.network == 'Baobab' }}
 
     permissions:
       id-token: write
@@ -78,6 +76,16 @@ jobs:
 
     steps:
       - uses: actions/checkout@master
+
+      - name: Setup Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: "1.22.3"
+          check-latest: true
+          cache-dependency-path: |
+            ./${{ needs.prepare.outputs.service }}/go.sum
+            ./${{ needs.prepare.outputs.service }}/go.mod
+        if: ${{ needs.prepare.outputs.service != 'core' || needs.prepare.outputs.service != 'fetcher' || needs.prepare.outputs.service != 'cli' }}
 
       - name: docker build ${{ inputs.application }}
         run: SERVICE_NAME=orakl-${{ needs.prepare.outputs.service }} docker compose -f docker-compose.build.yaml build
@@ -106,14 +114,14 @@ jobs:
         run: echo "img_tag=v${{ needs.prepare.outputs.version }}.${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }}" >> $GITHUB_OUTPUT
 
   post-slack-image-upload:
-    name: Slack message for image upload 
+    name: Slack message for image upload
     needs: [prepare, build]
     uses: ./.github/workflows/post.slack.yaml
     with:
       status: "Success"
       slack-message: "${{ github.event.inputs.network }} ${{ github.event.inputs.application }}* : *${{ needs.prepare.outputs.service }}* ${{ needs.prepare.outputs.version }}.${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }} is uploaded"
     secrets:
-      SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}  
+      SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
     if: ${{ github.event.inputs.network == 'Baobab' && success() }}
 
   image-update:
@@ -139,8 +147,8 @@ jobs:
       status: "Success"
       slack-message: "${{ github.event.inputs.network }} *${{ github.event.inputs.application }}* : *${{ needs.prepare.outputs.service }}* new image tag ${{ needs.prepare.outputs.version }}.${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }} is updated"
     secrets:
-      SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}      
-    if: ${{ github.event.inputs.network == 'Baobab' && success() }}  
+      SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+    if: ${{ github.event.inputs.network == 'Baobab' && success() }}
 
   cypress-image-update:
     name: cypress image update
@@ -160,8 +168,8 @@ jobs:
       status: "Success"
       slack-message: "${{ github.event.inputs.network }} *${{ github.event.inputs.application }}* is updated"
     secrets:
-      SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}      
-    if: ${{ github.event.inputs.network == 'Cypress' && success() }}  
+      SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+    if: ${{ github.event.inputs.network == 'Cypress' && success() }}
 
   post-slack-tag-update-failure:
     name: Post to a slack message for tag update failure
@@ -171,5 +179,5 @@ jobs:
       status: "Failed"
       slack-message: "${{ github.event.inputs.network }} *${{ github.event.inputs.application }}* git action failed"
     secrets:
-      SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}       
+      SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
     if: ${{ github.event.inputs.network == 'Baobab' && failure() }}
