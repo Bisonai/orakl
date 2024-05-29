@@ -44,6 +44,7 @@ func getRedisConn(ctx context.Context) (*redis.Conn, error) {
 		if err == nil {
 			return rdb, nil
 		}
+		_ = rdb.Close()
 	}
 
 	reconnectJob := func() error {
