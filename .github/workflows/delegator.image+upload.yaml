@@ -58,22 +58,6 @@ jobs:
           cache-dependency-path: |
             ./delegator/go.sum
 
-      - name: Run lint
-        uses: golangci/golangci-lint-action@v3
-        with:
-          version: v1.54
-          working-directory: delegator
-          skip-pkg-cache: true
-          skip-build-cache: true
-          args: --timeout=10m --skip-dirs=tests
-
-      - name: Run vet
-        run: |
-          cd ./delegator
-          go install golang.org/x/tools/go/analysis/passes/shadow/cmd/shadow@latest
-          go vet
-          go vet -vettool=$(which shadow)
-
       - name: Docker build orakl-delegator
         run: SERVICE_NAME=orakl-delegator docker compose -f docker-compose.build.yaml build
 

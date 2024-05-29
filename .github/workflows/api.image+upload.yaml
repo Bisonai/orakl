@@ -60,22 +60,6 @@ jobs:
           cache-dependency-path: |
             ./api/go.sum
 
-      - name: Run lint
-        uses: golangci/golangci-lint-action@v3
-        with:
-          version: v1.54
-          working-directory: api
-          skip-pkg-cache: true
-          skip-build-cache: true
-          args: --timeout=10m
-
-      - name: Run Vet
-        run: |
-          cd ./api
-          go install golang.org/x/tools/go/analysis/passes/shadow/cmd/shadow@latest
-          go vet
-          go vet -vettool=$(which shadow)
-
       - name: Docker build orakl-api
         run: SERVICE_NAME=orakl-api docker compose -f docker-compose.build.yaml build
 

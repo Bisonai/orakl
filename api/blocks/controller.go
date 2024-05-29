@@ -20,7 +20,7 @@ var validate *validator.Validate
 
 func init() {
 	validate = validator.New()
-	validate.RegisterValidation("isZeroOrPositive", func(fl validator.FieldLevel) bool {
+	_ = validate.RegisterValidation("isZeroOrPositive", func(fl validator.FieldLevel) bool {
 		return fl.Field().Int() >= 0
 	})
 }
