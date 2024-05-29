@@ -27,14 +27,6 @@ on:
           - "Cypress"
 
 jobs:
-  test:
-    name: Test
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@master
-      - name: Test
-        run: echo "Testing"
-
   prepare:
     name: Prepare
     runs-on: ubuntu-latest
@@ -59,7 +51,7 @@ jobs:
           if [[ "${{ github.event.inputs.application }}" == "vrf" || "${{ github.event.inputs.application }}" == "request-response" || "${{ github.event.inputs.application }}" == "aggregator" ]]; then
             service="core"
           fi            
-          echo "service=${service}" >> $GITHUB_OUTPUT
+          echo "service=$service" >> $GITHUB_OUTPUT
           echo "ecr_url=public.ecr.aws/bisonai/orakl-${service}" >> $GITHUB_OUTPUT
 
       - name: Get package version
