@@ -1,7 +1,6 @@
 name: Dispatch Deploy
 
 on:
-
   workflow_dispatch:
     inputs:
       application:
@@ -28,8 +27,6 @@ on:
         options:
           - "Baobab"
           - "Cypress"
-
-
 
 jobs:
   prepare:
@@ -68,7 +65,6 @@ jobs:
             version=$(cat ./"${{ steps.tag.outputs.service }}"/.version)
             echo "version=$version" >> $GITHUB_OUTPUT
           fi
-          
 
   build:
     name: Build
