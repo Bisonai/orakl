@@ -61,7 +61,13 @@ jobs:
       - name: Get package version
         id: package
         run: |
-          echo "version=$(node -p -e "require('./core/package.json').version")" >> $GITHUB_OUTPUT
+          if [[ "${{ steps.tag.outputs.service }}" == "cli" || "${{ steps.tag.outputs.service }}" == "fetcher" || "${{ steps.tag.outputs.service }}" == "core" ]]; then
+            echo "version=$(node -p -e "require('./"${{ steps.tag.outputs.service }}"/package.json').version")" >> $GITHUB_OUTPUT
+          else 
+            version=$(cat ./"${{ steps.tag.outputs.service }}"/.version)
+            echo "version=$version" >> $GITHUB_OUTPUT
+          fi
+          
 
   build:
     name: Build
