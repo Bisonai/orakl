@@ -34,7 +34,7 @@ on:
         required: true
         type: string
       network:
-        required: true
+        required: false
         default: "Baobab"
         type: string      
 
