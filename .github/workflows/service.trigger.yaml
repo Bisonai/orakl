@@ -1,0 +1,49 @@
+name: "service: trigger"
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '**/package.json'
+      - '**/.version'
+
+jobs:
+  trigger_deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Extract Application Name and Trigger Deploy
+        run: |
+          # Extract the directories that contain changed package.json files
+          apps=$(git diff --name-only HEAD^ HEAD | grep 'package.json' | awk -F'/' '{print $1}' | uniq)
+          for app in $apps; do
+            echo "Triggering deploy for $app"
+            echo "::set-output name=application::$app"
+            echo "::set-output name=network::Baobab"
+            echo "::set-output name=ref::${{ github.ref }}"
+          done
+
+      - name: Trigger Dispatch Deploy
+        uses: actions/github-script@v4
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const apps = '${{ steps.trigger_deploy.outputs.application }}'.split(',');
+            const network = '${{ steps.trigger_deploy.outputs.network }}';
+            const ref = '${{ steps.trigger_deploy.outputs.ref }}';
+            for (const app of apps) {
+              github.actions.createWorkflowDispatch({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                workflow_id: 'deployment.yaml',
+                ref: ref,
+                inputs: {
+                  application: app,
+                  network: network
+                }
+              });
+            }
