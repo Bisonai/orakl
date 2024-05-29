@@ -22,5 +22,3 @@ jobs:
     with:
       application: "cli"
       network: "Baobab"
-    secrets:
-      AT: ${{ secrets.PAT }}
