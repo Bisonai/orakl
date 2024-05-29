@@ -12,6 +12,8 @@ jobs:
   prepare:
     name: Prepare
     runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@master
 
   trigger_deploy:
     name: Trigger Dispatch Deploy
