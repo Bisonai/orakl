@@ -31,7 +31,11 @@ jobs:
   test:
     name: Test
     runs-on: ubuntu-latest
-    
+    steps:
+      - uses: actions/checkout@master
+      - name: Test
+        run: echo "Testing"
+
   prepare:
     name: Prepare
     runs-on: ubuntu-latest
