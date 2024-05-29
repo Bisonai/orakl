@@ -1,10 +1,6 @@
 name: Dispatch Deploy
 
 on:
-  push:
-    branches:
-      - "feat/fix-CI/CD"
-
   workflow_dispatch:
     inputs:
       application:
@@ -25,7 +21,6 @@ on:
       network:
         description: "Network to deploy to"
         required: true
-        default: "Baobab"
         type: choice
         options:
           - "Baobab"
