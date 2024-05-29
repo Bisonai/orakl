@@ -1,0 +1,95 @@
+name: "update-image-tag"
+
+on:
+  workflow_call:
+    inputs:
+      network:
+        required: true
+        type: string
+      project-name:
+        required: true
+        type: string
+      version:
+        required: false
+        type: string
+      image-tag:
+        required: false
+        type: string
+      tag_date:
+        required: false
+        type: string
+      tag_git_hash:
+        required: false
+        type: string
+    secrets:
+      PAT:
+        required: true
+
+jobs:
+  update-image-tag:
+    name: Push to Orakl Helm Charts
+    runs-on: ubuntu-latest
+
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - name: Checkout gitops
+        run: |
+          echo Checking out ${GITHUB_SERVER_URL}/bisonai/orakl-helm-charts.git
+          rm -rf ./gitops_tmp
+          GH_URL=$(echo "$GITHUB_SERVER_URL" | sed 's,://,://x-access-token:'"${{ secrets.PAT }}"'@,g')
+          git clone --depth 1 --no-single-branch ${GH_URL}/bisonai/orakl-helm-charts.git ./gitops_tmp
+        shell: bash
+
+      - name: Verify and Checkout Branch
+        run: |
+          cd ./gitops_tmp/
+          git fetch origin idc-fly:idc-fly
+          git checkout idc-fly
+
+      - name: Update image tag in values.${{ inputs.network }}.yaml files
+        run: |
+          cd ./gitops_tmp/${{ inputs.project-name }}/
+          echo "Updating image tag in values.${{ inputs.network }}.yaml files"
+
+          if [[ "${{ inputs.network }}" == "cypress" ]]; then
+
+            if [[ "${{ inputs.project-name }}" == "vrf" || "${{ inputs.project-name }}" == "request-response" || "${{ inputs.project-name }}" == "aggregator" ]]; then
+              listener_baobab_tag=$(grep -oP 'listenerTag: "\K[^"]+' values.baobab.yaml)
+              sed -i 's/listenerTag: .*$/listenerTag: "$listener_baobab_tag"/g' values.${{ inputs.network }}.yaml
+              reporter_baobab_tag=$(grep -oP 'reporterTag: "\K[^"]+' values.baobab.yaml)
+              sed -i 's/reporterTag: .*$/reporterTag: "$reporter_baobab_tag"/g' values.${{ inputs.network }}.yaml
+              worker_baobab_tag=$(grep -oP 'workerTag: "\K[^"]+' values.baobab.yaml)
+              sed -i 's/workerTag: .*$/workerTag: "$worker_baobab_tag"/g' values.${{ inputs.network }}.yaml
+            fi    
+
+            baobab_tag=$(grep -oP 'tag: "\K[^"]+' values.baobab.yaml)
+            sed -i "s/tag: \".*\"/tag: \"$baobab_tag\"/" values.${{ inputs.network }}.yaml
+
+          else 
+
+            if [[ "${{ inputs.project-name }}" == "vrf" || "${{ inputs.project-name }}" == "request-response" || "${{ inputs.project-name }}" == "aggregator" ]]; then
+              sed -i 's/listenerTag: .*$/listenerTag: "${{ inputs.image-tag }}"/g' values.${{ inputs.network }}.yaml
+              sed -i 's/reporterTag: .*$/reporterTag: "${{ inputs.image-tag }}"/g' values.${{ inputs.network }}.yaml
+              sed -i 's/workerTag: .*$/workerTag: "${{ inputs.image-tag }}"/g' values.${{ inputs.network }}.yaml
+            fi         
+
+            sed -i 's/tag: .*$/tag: "${{ inputs.image-tag }}"/g' values.${{ inputs.network }}.yaml
+            sed -i 's/appVersion: .*$/appVersion: "${{ inputs.image-tag }}"/g' values.${{ inputs.network }}.yaml
+            
+            sed -i 's/^appVersion:.*$/appVersion: v'${{ inputs.version }}'.'${{ inputs.tag_date }}'.'${{ inputs.tag_git_hash }}'/' Chart.yaml
+
+          fi
+        shell: bash
+
+      - name: Commit and Push Changes
+        run: |
+          cd ./gitops_tmp/
+          git config --global user.name 'github-actions'
+          git config --global user.email 'github-actions@github.com'
+          git add .
+          git commit -m 'v${{ inputs.version }}.${{ inputs.tag_date }}.${{ inputs.tag_git_hash }} is updated'
+          git push origin idc-fly
+        shell: bash
