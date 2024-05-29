@@ -124,6 +124,30 @@ jobs:
       SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}  
     if: ${{ success() }}    
 
+  update-package-json-version:
+    name: Update package.json version
+    needs: [prepare, build, image-update]
+    runs-on: ubuntu-latest
+    steps:
+
+      - name: update package.json version
+        if: needs.prepare.outputs.version
+        run: |
+          ls ../
+          cd ../orakl/${{ needs.prepare.outputs.service }}
+          version=${{ needs.prepare.outputs.version }}
+          echo "updating package.json to version $version"
+          npm version $version --no-git-tag-version
+
+      - name: commit updated package.json
+        if: needs.prepare.outputs.version
+        run: |
+          git config --global user.name 'github-actions'
+          git config --global user.email 'github-actions@github.com'
+          git add package.json
+          git commit -m "chore: update package.json version to ${{ needs.prepare.outputs.version }}"
+          git push -f --tags origin HEAD:${{ github.ref_name }}
+
   image-update:
     name: Update image tag
     needs: [prepare, build]
@@ -137,6 +161,7 @@ jobs:
       tag_git_hash: ${{ needs.prepare.outputs.tag_git_hash }}
     secrets:
       PAT: ${{ secrets.PAT }}
+    if: ${{ update-package-json-version.outputs.success }}
 
   post-slack-tag-update-success:
     name: Post slack message for tag update success
