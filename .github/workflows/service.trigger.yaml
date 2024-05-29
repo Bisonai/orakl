@@ -4,16 +4,15 @@ on:
   push:
     branches:
       - "feat/fix-CI/CD"
-    paths:
-      - 'cli/package.json'
+    # paths:
+    #   - 'cli/package.json'
 
 jobs:
   trigger_deploy:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@master
+      - uses: actions/checkout@master
 
       - name: Trigger Dispatch Deploy
         uses: ./.github/workflows/deployment.yaml
