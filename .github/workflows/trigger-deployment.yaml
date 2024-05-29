@@ -1,34 +1,15 @@
-name: Dispatch Deploy
+name: Trigger Deploy
 
 on:
-  workflow_dispatch:
+  workflow_call:
     inputs:
       application:
-        description: "Application to deploy"
         required: true
-        type: choice
-        options:
-          - "cli"
-          - "aggregator"
-          - "vrf"
-          - "request-response"
-          - "delegator"
-          - "fetcher"
-          - "por"
-          - "node"
-          - "boot-api"
-          - "sentinel"
-
+        type: string
       network:
-        description: "Network to deploy to"
-        required: true
+        required: false
         default: "Baobab"
-        type: choice
-        options:
-          - "Baobab"
-          - "Cypress"
-
-
+        type: string      
 
 jobs:
   prepare:

@@ -18,7 +18,7 @@ jobs:
   trigger_deploy:
     name: Trigger Dispatch Deploy
     needs: prepare
-    uses: ./.github/workflows/deployment.yaml
+    uses: ./.github/workflows/trigger-deployment.yaml
     with:
       application: "cli"
       network: "Baobab"
