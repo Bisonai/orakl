@@ -1,0 +1,70 @@
+name: "create-helmchart-pr"
+
+on:
+  workflow_call:
+    inputs:
+      project-name:
+        required: true
+        type: string
+      version:
+        required: true
+        type: string
+      tag_date:
+        required: true
+        type: string
+      tag_git_hash:
+        required: true
+        type: string
+
+    secrets:
+      PAT:
+        required: true
+
+jobs:
+  create-helmchart-pr:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        environment: ["baobab", "cypress"]
+        include:
+          - environment: "baobab"
+            base: "gcp-baobab-prod"
+          - environment: "cypress"
+            base: "gcp-cypress-prod"
+    steps:
+      - name: Find Original PR
+        uses: jwalton/gh-find-current-pr@master
+        id: findPr
+        with:
+          state: closed
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ matrix.base }}
+          repository: "Bisonai/orakl-helm-charts"
+          token: ${{ secrets.PAT }}
+
+      - name: Install YQ
+        uses: dcarbone/install-yq-action@v1.1.1
+
+      - name: Create commits
+        run: |
+          set -e
+          git config --global user.email "orakl-bot@users.noreply.github.com"
+          git config --global user.name "orakl-bot"
+
+          yq eval '.global.image.tag = "v${{ inputs.version }}.${{ inputs.tag_date }}.${{ inputs.tag_git_hash }}"' -i ./${{ inputs.project-name }}/values.yaml
+          yq eval '.appVersion = "v${{ inputs.version }}.${{ inputs.tag_date }}.${{ inputs.tag_git_hash }}"' -i ./${{ inputs.project-name }}/Chart.yaml
+          git add .
+          git commit -m "feat: deploy v${{ inputs.version }}.${{ inputs.tag_date }}.${{ inputs.tag_git_hash }}"
+
+      - name: create PR
+        uses: peter-evans/create-pull-request@v6
+        with:
+          token: ${{ secrets.PAT }}
+          commit-message: "feat: deploy v${{ inputs.version }}.${{ inputs.tag_date }}.${{ inputs.tag_git_hash }}"
+          title: "deploy ${{ matrix.environment }}-${{ inputs.project-name }}-v${{ inputs.version }}.${{ inputs.tag_date }}.${{ inputs.tag_git_hash }}"
+          body: "${{ matrix.environment }}-${{ inputs.project-name }}-v${{ inputs.version }}.${{ inputs.tag_date }}.${{ inputs.tag_git_hash }}\n### ${{ steps.findPr.outputs.title }}\n ${{ steps.findPr.outputs.body }}\n - PR: ${{ steps.findPr.outputs.pr }}"
+          base: "${{ matrix.base }}"
+          branch: "deploy/${{ matrix.environment }}-${{ inputs.project-name }}-v${{ inputs.version }}.${{ inputs.tag_date }}.${{ inputs.tag_git_hash }}"
+          reviewers: "Bisonai/orakl-team"
