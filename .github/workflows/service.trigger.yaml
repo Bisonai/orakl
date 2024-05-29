@@ -10,16 +10,10 @@ on:
 jobs:
 
   trigger_deploy:
-    runs-on: ubuntu-latest
-    permissions:
-      id-token: write
-      contents: read
-      
-    steps:
-      - uses: actions/checkout@master
-
-      - name: Trigger Dispatch Deploy
-        uses: ./.github/workflows/deployment.yaml
-        with:
-          application: "cli"
-          network: "Baobab"
+    name: Trigger Dispatch Deploy
+    uses: .github/workflows/deployment.yaml
+    with:
+      application: "cli"
+      network: "Baobab"
+    secrets:
+      AT: ${{ secrets.PAT }}
