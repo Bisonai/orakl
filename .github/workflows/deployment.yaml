@@ -28,6 +28,10 @@ on:
           - "Cypress"
 
 jobs:
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    
   prepare:
     name: Prepare
     runs-on: ubuntu-latest
