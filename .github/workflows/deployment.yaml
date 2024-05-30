@@ -50,11 +50,6 @@ jobs:
     steps:
       - uses: actions/checkout@master
 
-      - name: Set up GitHub CLI
-        uses: cli/gh-action@v2
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Get time TAG
         id: tag
         run: |
@@ -210,12 +205,6 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@master
 
-      - name: Set up GitHub CLI
-        uses: cli/gh-action@master
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-
-
       - name: Get Latest PR Title and Description
         id: pr_info
         run: |
@@ -223,6 +212,8 @@ jobs:
           PR_DESCRIPTION=$(gh pr view ${GITHUB_REF} --json body -q ".body")
           echo "pr_title=${PR_TITLE}" >> $GITHUB_ENV
           echo "pr_description=${PR_DESCRIPTION}" >> $GITHUB_ENV
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Update Workflow Dispatch Options
         run: |
