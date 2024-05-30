@@ -201,6 +201,7 @@ jobs:
     name: Update Workflow and README
     runs-on: ubuntu-latest
     needs: [image-update]
+    env:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v2
@@ -235,4 +236,4 @@ jobs:
           git commit -m "Update workflow dispatch options and README with new image tag ${NEW_TAG}"
           git push
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ github.token }}
