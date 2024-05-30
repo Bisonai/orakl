@@ -206,8 +206,10 @@ jobs:
       contents: write
           
     steps:
-      - name: Checkout Repository
-        uses: actions/checkout@master
+      - uses: actions/checkout@master
+        with:
+          persist-credentials: false 
+          fetch-depth: 0  
 
       - name: get latest merged pull request
         id: pr_info
