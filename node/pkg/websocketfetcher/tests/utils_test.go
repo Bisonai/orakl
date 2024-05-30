@@ -20,25 +20,25 @@ var testFeeds = []common.Feed{
 	{
 		ID:         1,
 		Name:       "binance-wss-BTC-USDT",
-		Definition: nil,
+		Definition: json.RawMessage(`{"type": "wss", "provider": "binance", "base": "btc", "quote": "usdt"}`),
 		ConfigID:   1,
 	},
 	{
 		ID:         2,
 		Name:       "coinbase-wss-ADA-USDT",
-		Definition: nil,
+		Definition: json.RawMessage(`{"type": "wss", "provider": "coinbase", "base": "ada", "quote": "usdt"}`),
 		ConfigID:   2,
 	},
 	{
 		ID:         3,
 		Name:       "coinone-wss-BTC-KRW",
-		Definition: nil,
+		Definition: json.RawMessage(`{"type": "wss", "provider": "coinone", "base": "btc", "quote": "krw"}`),
 		ConfigID:   3,
 	},
 	{
 		ID:         4,
 		Name:       "korbit-wss-BORA-KRW",
-		Definition: nil,
+		Definition: json.RawMessage(`{"type": "wss", "provider": "korbit", "base": "bora", "quote": "krw"}`),
 		ConfigID:   4,
 	},
 }

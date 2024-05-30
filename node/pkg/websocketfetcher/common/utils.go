@@ -19,19 +19,17 @@ The reason for this is that different exchanges use different naming conventions
 func GetWssFeedMap(feeds []Feed) map[string]FeedMaps {
 	feedMaps := make(map[string]FeedMaps)
 	for _, feed := range feeds {
-		if !strings.Contains(feed.Name, "wss") {
+		var def Definition
+		err := json.Unmarshal(feed.Definition, &def)
+		if err != nil {
+			log.Warn().Err(err).Msg("failed to unmarshal definition")
 			continue
 		}
 
-		raw := strings.Split(feed.Name, "-")
-		if len(raw) != 4 {
-			log.Warn().Str("name", feed.Name).Msg("invalid name")
-			continue
-		}
+		provider := strings.ToLower(def.Provider)
+		base := strings.ToUpper(def.Base)
+		quote := strings.ToUpper(def.Quote)
 
-		provider := strings.ToLower(raw[0])
-		base := strings.ToUpper(raw[2])
-		quote := strings.ToUpper(raw[3])
 		combinedName := base + quote
 		separatedName := base + "-" + quote
 

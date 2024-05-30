@@ -91,7 +91,7 @@ func (a *App) Init(ctx context.Context, opts ...AppOption) error {
 	var feeds []common.Feed
 	if appConfig.SetFromDB {
 		var err error
-		feeds, err = db.QueryRows[common.Feed](ctx, common.GetAllFeedsQuery, nil)
+		feeds, err = db.QueryRows[common.Feed](ctx, common.GetAllWebsocketFeedsQuery, nil)
 		if err != nil {
 			log.Error().Err(err).Msg("error in fetching feeds")
 			return err
