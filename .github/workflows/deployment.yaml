@@ -209,7 +209,7 @@ jobs:
     steps:
       - uses: actions/checkout@master
         with:
-          token: ${{ secrets.PAT }}
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: get latest merged pull request
         id: pr_info
@@ -218,7 +218,7 @@ jobs:
           PR_TITLE=$(echo $pr | jq -r '.[0].title')
           echo "PR_TITLE=${PR_TITLE}" >> $GITHUB_OUTPUT
         env:
-          GH_TOKEN: ${{ secrets.PAT }}             
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}             
 
       - name: Update Workflow Dispatch Options
         run: |
@@ -226,7 +226,7 @@ jobs:
           sed -i "/options:/a\          - \"${NEW_TAG}\"" .github/workflows/deployment.yaml
           git add .github/workflows/deployment.yaml
         env:
-          GH_TOKEN: ${{ secrets.PAT }}             
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}             
 
       - name: Update README with Latest PR Info
         run: |
@@ -238,6 +238,6 @@ jobs:
       - name: Commit & Push changes
         uses: actions-js/push@master
         with:
-          github_token: ${{ secrets.PAT }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
           branch: ${{ github.ref }}
           repository: ${{ github.repository }}
