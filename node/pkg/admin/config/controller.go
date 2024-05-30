@@ -10,6 +10,7 @@ import (
 	"bisonai.com/orakl/node/pkg/db"
 	"bisonai.com/orakl/node/pkg/utils/request"
 	"github.com/gofiber/fiber/v2"
+	"github.com/rs/zerolog/log"
 )
 
 type BulkConfigs struct {
@@ -66,6 +67,7 @@ func Sync(c *fiber.Ctx) error {
 	for _, dbConfig := range dbConfigs {
 		_, ok := loadedConfigMap[dbConfig.Name]
 		if !ok {
+			log.Info().Str("Player", "Config").Str("Config", dbConfig.Name).Msg("Config not found in config")
 			_, err = db.QueryRow[ConfigModel](c.Context(), DeleteConfigQuery, map[string]any{"id": dbConfig.Id})
 			if err != nil {
 				return err
@@ -81,6 +83,7 @@ func Sync(c *fiber.Ctx) error {
 	for _, dbFeed := range dbFeeds {
 		_, ok := loadedFeedMap[dbFeed.Name]
 		if !ok {
+			log.Info().Str("Player", "Config").Str("Feed", dbFeed.Name).Msg("Feed not found in config")
 			_, err = db.QueryRow[feed.FeedModel](c.Context(), "DELETE FROM feeds WHERE id = @id RETURNING *;", map[string]any{"id": dbFeed.Id})
 			if err != nil {
 				return err
