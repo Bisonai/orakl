@@ -10,8 +10,10 @@ import (
 )
 
 const (
-	DECIMALS           = 8
-	GetAllFeedsQuery   = `SELECT * FROM feeds`
+	DECIMALS                  = 8
+	GetAllWebsocketFeedsQuery = `SELECT *
+	FROM feeds
+	WHERE definition @> '{"type": "wss"}';`
 	GetAllProxiesQuery = `SELECT * FROM proxies`
 )
 
@@ -32,6 +34,13 @@ type Feed struct {
 	Name       string          `db:"name"`
 	Definition json.RawMessage `db:"definition"`
 	ConfigID   int32           `db:"config_id"`
+}
+
+type Definition struct {
+	Type     string `json:"type"`
+	Provider string `json:"provider"`
+	Base     string `json:"base"`
+	Quote    string `json:"quote"`
 }
 
 type FeedData struct {
