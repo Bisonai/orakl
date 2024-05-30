@@ -134,7 +134,7 @@ func (a *App) Start(ctx context.Context) {
 			ticker.Stop()
 			return
 		case <-ticker.C:
-			go a.storeFeedData(ctx)
+			a.storeFeedData(ctx)
 		}
 	}
 }
