@@ -35,6 +35,7 @@ on:
           - cli:vtestversion
           - cli:vtestversion
           - cli:vtestversion
+          - cli:vtestversion
 jobs:
   prepare:
     name: Prepare
