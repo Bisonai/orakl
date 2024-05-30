@@ -208,7 +208,7 @@ jobs:
       - name: get latest merged pull request
         id: pr_info
         run: |
-          pr=$(gh pr list --state merged --sort merged --json title,body -L 1)
+          pr=$(gh pr list --state merged --json title,body -L 1)
           PR_TITLE=$(echo $pr | jq -r '.[0].title')
           PR_BODY=$(echo $pr | jq -r '.[0].body')
           echo "PR_TITLE=${PR_TITLE}" >> $GITHUB_OUTPUT
