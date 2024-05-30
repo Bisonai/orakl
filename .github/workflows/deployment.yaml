@@ -33,6 +33,7 @@ on:
         options:
           - new
           - cli:v0.6.2.20240530.0504.dfd8382
+          - cli:v0.6.2.20240530.0610.d118307
 jobs:
   prepare:
     name: Prepare
