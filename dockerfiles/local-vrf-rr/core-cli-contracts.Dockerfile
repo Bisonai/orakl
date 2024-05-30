@@ -25,19 +25,18 @@ COPY core core
 
 COPY cli cli
 
-RUN yarn core install
-
-RUN yarn core build
-
-RUN yarn cli install
-
-RUN yarn cli build
+RUN yarn core install \
+    && yarn core build \
+    && yarn cli install \
+    && yarn cli build
 
 FROM node@sha256:18aacc7993a16f1d766c21e3bff922e830bcdc7b549bbb789ceb7374a6138480
 
 WORKDIR /app
 
-RUN apt-get update && apt-get install -y curl postgresql-client netcat-openbsd && rm -rf /var/lib/apt/lists/*
+RUN apt-get update \
+    && apt-get install -y curl postgresql-client netcat-openbsd --no-install-recommends \
+    && rm -rf /var/lib/apt/lists/*
 
 COPY --from=build /app/package.json /app/package.json
 
