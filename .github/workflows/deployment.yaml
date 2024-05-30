@@ -203,7 +203,7 @@ jobs:
     needs: [prepare]
     permissions:
       id-token: write
-      contents: read
+      contents: write
           
     steps:
       - name: Checkout Repository
@@ -239,3 +239,4 @@ jobs:
           git config --global user.email 'github-actions@github.com'
           git commit -m "Update workflow dispatch options and README with new image tag ${NEW_TAG}"
           git push origin HEAD:${GITHUB_REF}
+        shell: bash
