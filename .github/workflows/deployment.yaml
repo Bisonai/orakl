@@ -8,6 +8,7 @@ on:
         required: true
         type: choice
         options:
+          - "cli/"
           - "Baobab"
           - "Cypress"    
       application:
@@ -15,6 +16,7 @@ on:
         required: true
         type: choice
         options:
+          - "cli/"
           - "cli"
           - "aggregator"
           - "vrf"
@@ -32,6 +34,7 @@ on:
         type: choice
         default: "new"
         options:
+          - "cli/"
           - "new"
 
 jobs:
@@ -224,6 +227,7 @@ jobs:
         run: |
           NEW_TAG=${{ github.event.inputs.application }}/${{ needs.build.outputs.img_tag }}
           sed -i "/options:/a\          - \"${NEW_TAG}\"" .github/workflows/deployment.yaml
+          - "cli/"
           git add .github/workflows/deployment.yaml
         env:
           GH_TOKEN: ${{ secrets.WORKFLOW_PAT }}             
