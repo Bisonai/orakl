@@ -31,8 +31,8 @@ on:
         required: true
         type: choice
         default: "new"
-        options:
-          - "new"
+        options:  
+          - new
 
 jobs:
   prepare:
@@ -220,10 +220,15 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.WORKFLOW_PAT }}             
 
+      - name: Install yq
+        run: |
+          sudo wget https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -O /usr/bin/yq
+          sudo chmod +x /usr/bin/yq
+
       - name: Update Workflow Dispatch Options
         run: |
-          NEW_TAG=${{ github.event.inputs.application }}/${{ needs.build.outputs.img_tag }}
-          sed -i "/image:/ {/options:/a\          - \"${NEW_TAG}\";}" .github/workflows/deployment.yaml
+          NEW_TAG=${{ github.event.inputs.application }}:${{ needs.build.outputs.img_tag }}
+          yq eval '.on.workflow_dispatch.inputs.image.options += ["'"${NEW_TAG}"'"]' -i .github/workflows/deployment.yaml
           git add .github/workflows/deployment.yaml
         env:
           GH_TOKEN: ${{ secrets.WORKFLOW_PAT }}             
