@@ -10,7 +10,7 @@ replace `SERVICE` with whichever service you'd like to run. The options are `vrf
 
 Here is what happens after the above command is run:
 
-- api, postgres, redis, and json-rpc services will start
+- api, postgres, redis, and json-rpc services will start as separate docker containers
 - postgres will get populated with necessary data:
   - chains
   - services

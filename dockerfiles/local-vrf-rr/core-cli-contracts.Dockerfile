@@ -62,5 +62,3 @@ COPY --from=build /app/util /app/util
 COPY --from=build /app/core /app/core
 
 COPY --from=build /app/cli /app/cli
-
-CMD ["tail", "-f", "/dev/null"]
