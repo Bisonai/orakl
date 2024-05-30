@@ -182,6 +182,7 @@ jobs:
         run: |
           pr=$(gh pr list --state merged --json title -L 1)
           PR_TITLE=$(echo $pr | jq -r '.[0].title')
+          PR_TITLE=$(echo "${PR_TITLE}}" | sed 's/\\/\\\\/g; s/"/\\"/g; s/`/\\`/g; s/\$/\\$/g')"
           echo "PR_TITLE=${PR_TITLE}" >> $GITHUB_OUTPUT
         env:
           GH_TOKEN: ${{ secrets.WORKFLOW_PAT }}
@@ -212,7 +213,7 @@ jobs:
     uses: ./.github/workflows/post.slack.yaml
     with:
       status: "Success"
-      slack-message: "`${{ github.event.inputs.application }}` \n *Tag Version:* ${{ needs.build.outputs.img_tag }} \n *PR:* ${{ needs.update-workflow-and-readme.outputs.pr_title}}"
+      slack-message: "${{ github.event.inputs.application }} \n *Tag Version:* ${{ needs.build.outputs.img_tag }} \n *PR:* ${{ needs.update-workflow-and-readme.outputs.pr_title}}"
       channel: "orakl-images"
     secrets:
       SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
