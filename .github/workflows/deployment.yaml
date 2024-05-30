@@ -37,6 +37,7 @@ on:
           - cli:vtestversion
           - cli:vtestversion
           - cli:vtestversion
+          - cli:v0.6.2.20240530.0903.62ea1a9
 jobs:
   prepare:
     name: Prepare
@@ -109,7 +110,6 @@ jobs:
     secrets:
       SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
     if: ${{ github.event.inputs.network == 'Baobab' && success() }}
-
   image-update:
     name: Update image tag
     needs: [prepare, build]
@@ -124,7 +124,6 @@ jobs:
     secrets:
       PAT: ${{ secrets.PAT }}
     if: ${{ github.event.inputs.network == 'Baobab' }}
-
   post-slack-baobab-tag-update-success:
     name: Post slack message for tag update success
     needs: [prepare, build, image-update]
@@ -136,7 +135,6 @@ jobs:
     secrets:
       SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
     if: ${{ github.event.inputs.network == 'Baobab' && success() }}
-
   cypress-image-update:
     name: cypress image update
     uses: ./.github/workflows/update.image-tag.yaml
@@ -146,7 +144,6 @@ jobs:
     secrets:
       PAT: ${{ secrets.PAT }}
     if: ${{ github.event.inputs.network == 'Cypress' }}
-
   post-slack-cypress-tag-update-success:
     name: Post slack message for tag update success
     needs: [cypress-image-update]
@@ -197,7 +194,6 @@ jobs:
         run: |
           sudo wget https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -O /usr/bin/yq
           sudo chmod +x /usr/bin/yq
-        
       - name: Update Workflow Dispatch Options
         id: tag_info
         run: |
