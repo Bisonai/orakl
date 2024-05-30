@@ -4,7 +4,6 @@ cd cli || exit
 
 yarn cli chain insert --name localhost
 yarn cli service insert --name VRF
-yarn cli service insert --name DATA_FEED
 yarn cli service insert --name REQUEST_RESPONSE
 
 cd .. || exit

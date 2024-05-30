@@ -6,12 +6,12 @@ From the root of the repo, run
 SERVICE=rr docker-compose -f docker-compose.local-core.yaml up -d
 ```
 
-replace `SERVICE` with whichever service you'd like to run. The options are `vrf` and `rr`.
+Replace `SERVICE` with whichever service you'd like to run. The options are `vrf` and `rr` which represent VRF and Request-Response services respectively.
 
 Here is what happens after the above command is run:
 
-- api, postgres, redis, and json-rpc services will start as separate docker containers
-- postgres will get populated with necessary data:
+- `api`, `postgres`, `redis`, and `json-rpc` services will start as separate docker containers
+- `postgres` will get populated with necessary data:
   - chains
   - services
   - vrf keys in case if the service is vrf
@@ -22,9 +22,9 @@ Here is what happens after the above command is run:
 
 Keep in mind that you'll need the `keyHash` value for VRF consumer and update it in `vrf-consumer/scripts/utils.ts`
 
-You can spin up the listener, worker, and reporter services from [core](../../core/) and make requests from VRF/RR consumers after deploying consumer contracts
+You can spin up the listener, worker, and reporter services from [core](../../core/) and make requests to VRF or Request-Response consumers after deploying consumer contracts.
 
-### Note
+### Notes
 
-- current automation is not designed to run both VRF and RR.
-- so you'll need to run one service (vrf/rr) service at a time and make sure to restart the `json-rpc` docker service if you'd like to run a different (vrf/rr) service
+- The current automation is not designed to run both VRF and Request-Response services.
+- Therefore, you'll need to run one service (either VRF or Request-Response) at a time and make sure to restart the `json-rpc` docker service if you'd like to run a different service (VRF or Request-Response).
