@@ -32,7 +32,7 @@ on:
         default: "new"
         options:
           - new
-          - cli:v0.6.2.20240530.2339.cc6a7ab:OraklNodeUpdatehowfeedsarepars...
+
 jobs:
   prepare-taskflow:
     name: Prepare
@@ -50,10 +50,14 @@ jobs:
         id: taskflow-tag
         run: |
           IMAGE_TAG="${{ github.event.inputs.image }}"
-          TAG=$(echo "${IMAGE_TAG}" | sed 's/^\([^:]*:[^:]*\):.*/\1/')
+          TAG=$(echo "${TAG}" | sed 's/^\([^:]*:[^:]*\):.*/\1/')
+          echo $TAG;
           VERSION=$(echo "${IMAGE_TAG}" | cut -d':' -f2 | cut -d'.' -f1-3)
+          echo $VERSION
           TAG_DATE=$(echo "${IMAGE_TAG}" | cut -d':' -f2 | cut -d'.' -f4-5)
+          echo $TAG_DATE
           TAG_GIT_HASH=$(echo "${IMAGE_TAG}" | cut -d':' -f2 | cut -d'.' -f6)
+          echo $TAG_GIT_HASH
           echo "version=${VERSION}" >> $GITHUB_OUTPUT
           echo "tag_date=${TAG_DATE}" >> $GITHUB_OUTPUT
           echo "tag_git_hash=${TAG_GIT_HASH}" >> $GITHUB_OUTPUT
@@ -100,10 +104,32 @@ jobs:
       - uses: actions/checkout@master
       - name: get time tag
         id: tag
-        run: "echo \"date=$(date +'%Y%m%d.%H%M')\" >> $GITHUB_OUTPUT\necho \"git_hash=$(git rev-parse --short HEAD)\" >> $GITHUB_OUTPUT\nservice=\"${{ github.event.inputs.application }}\"\nif [[ \"${{ github.event.inputs.application }}\" == \"vrf\" || \"${{ github.event.inputs.application }}\" == \"request-response\" || \"${{ github.event.inputs.application }}\" == \"aggregator\" ]]; then\n  service=\"core\"\nfi            \necho \"service=$service\" >> $GITHUB_OUTPUT\necho \"ecr_url=public.ecr.aws/bisonai/orakl-${service}\" >> $GITHUB_OUTPUT\n"
+        run: | 
+          echo "date=$(date +'%Y%m%d.%H%M')" >> $GITHUB_OUTPUT
+          echo "git_hash=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+          service="${{ github.event.inputs.application }}"
+          if [[ "${{ github.event.inputs.application }}" == "vrf" || "${{ github.event.inputs.application }}" == "request-response" || "${{ github.event.inputs.application }}" == "aggregator" ]]; then
+            service="core"
+          fi            
+          echo "service=$service" >> $GITHUB_OUTPUT
+          echo "ecr_url=public.ecr.aws/bisonai/orakl-${service}" >> $GITHUB_OUTPUT
+        env:
+          GH_TOKEN: ${{ secrets.WORKFLOW_PAT }}
       - name: get package version
         id: package
-        run: "if [[ \"${{ steps.tag.outputs.service }}\" == \"cli\" || \"${{ steps.tag.outputs.service }}\" == \"fetcher\" || \"${{ steps.tag.outputs.service }}\" == \"core\" ]]; then\n  echo \"version=$(node -p -e \"require('./\"${{ steps.tag.outputs.service }}\"/package.json').version\")\" >> $GITHUB_OUTPUT\nelse \n  if [[ \"${{ steps.tag.outputs.service }}\" == \"boot-api\" ]]; then\n    version=$(cat ./node/.version)\n  else\n    version=$(cat ./${{ steps.tag.outputs.service }}/.version)\n  fi\n  echo \"version=$version\" >> $GITHUB_OUTPUT\nfi\n"
+        run: |
+          if [[ "${{ steps.tag.outputs.service }}" == "cli" || "${{ steps.tag.outputs.service }}" == "fetcher" || "${{ steps.tag.outputs.service }}" == "core" ]]; then
+            echo "version=$(node -p -e "require('./"${{ steps.tag.outputs.service }}"/package.json').version")" >> $GITHUB_OUTPUT
+          else 
+            if [[ "${{ steps.tag.outputs.service }}" == "boot-api" ]]; then
+              version=$(cat ./node/.version)
+            else
+              version=$(cat ./${{ steps.tag.outputs.service }}/.version)
+            fi
+            echo "version=$version" >> $GITHUB_OUTPUT
+          fi
+        env:
+          GH_TOKEN: ${{ secrets.WORKFLOW_PAT }}
   build:
     name: Build
     runs-on: ubuntu-latest
@@ -235,7 +261,7 @@ jobs:
           pr=$(gh pr list --state merged --json title -L 1)
           PR_TITLE=$(echo $pr | jq -r '.[0].title')
           PR_TITLE=$(echo "${PR_TITLE}" | sed 's/\\/\\\\/g; s/"/\\"/g; s/`/\\`/g; s/\$/\\$/g')
-          PR_TITLE=$(echo "${PR_TITLE}" | sed 's/[^a-zA-Z0-9]//g')
+          PR_TITLE=$(echo "${PR_TITLE}" | sed 's/[^a-zA-Z0-9 ]//g')
           echo "PR_TITLE=${PR_TITLE}" >> $GITHUB_OUTPUT
         env:
           GH_TOKEN: ${{ secrets.WORKFLOW_PAT }}
@@ -245,7 +271,17 @@ jobs:
           sudo chmod +x /usr/bin/yq
       - name: truncate PR title
         id: truncate_pr_title
-        run: "TR_PR_TITLE=\"${{steps.pr_info.outputs.PR_TITLE}}\"\nMAX_LENGTH=30\nif [ ${#TR_PR_TITLE} -gt $MAX_LENGTH ]; then\n  TRUNCATED_TITLE=\"${TR_PR_TITLE:0:$MAX_LENGTH}...\"\nelse\n  TRUNCATED_TITLE=\"$TR_PR_TITLE\"\nfi\necho \"truncated_title=$TRUNCATED_TITLE\" >> $GITHUB_OUTPUT          \n"
+        run: |
+          TR_PR_TITLE="${{steps.pr_info.outputs.PR_TITLE}}"
+          MAX_LENGTH=30
+          if [ ${#TR_PR_TITLE} -gt $MAX_LENGTH ]; then
+            TRUNCATED_TITLE="${TR_PR_TITLE:0:$MAX_LENGTH}..."
+          else
+            TRUNCATED_TITLE="$TR_PR_TITLE"
+          fi
+          echo "truncated_title=$TRUNCATED_TITLE" >> $GITHUB_OUTPUT  
+        env:
+          GH_TOKEN: ${{ secrets.WORKFLOW_PAT }}          
       - name: Update Workflow Dispatch Options
         id: tag_info
         run: |
