@@ -182,7 +182,7 @@ jobs:
         run: |
           pr=$(gh pr list --state merged --json title -L 1)
           PR_TITLE=$(echo $pr | jq -r '.[0].title')
-          PR_TITLE=$(echo "${PR_TITLE}}" | sed 's/\\/\\\\/g; s/"/\\"/g; s/`/\\`/g; s/\$/\\$/g')"
+          PR_TITLE=$(echo "${PR_TITLE}" | sed 's/\\/\\\\/g; s/"/\\"/g; s/`/\\`/g; s/\$/\\$/g')
           echo "PR_TITLE=${PR_TITLE}" >> $GITHUB_OUTPUT
         env:
           GH_TOKEN: ${{ secrets.WORKFLOW_PAT }}
@@ -207,6 +207,7 @@ jobs:
           github_token: ${{ secrets.WORKFLOW_PAT }}
           branch: ${{ github.ref }}
           repository: ${{ github.repository }}
+          
   post-slack-pr-update:
     name: Post to a slack message for tag update failure
     needs: [prepare, build, image-update, update-workflow-and-readme]
