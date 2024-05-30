@@ -32,8 +32,8 @@ on:
         default: "new"
         options:
           - new
-          - cli:v0.6.2.20240530.0903.62ea1a9(Hotfix add missing ...)
-          - cli:v0.6.2.20240530.0951.f3c7bbb(Hotfix add missing ...)
+          - cli:v0.6.2.20240530.0903.62ea1a9(Hotfix add missing ..)
+          - cli:v0.6.2.20240530.0951.f3c7bbb(Hotfix add missing ..)
 jobs:
   prepare-taskflow:
     name: Prepare
@@ -47,7 +47,7 @@ jobs:
       img_tag: ${{ steps.taskflow-tag.outputs.img_tag }}
     steps:
       - uses: actions/checkout@master
-      - name: Get time TAG
+      - name: extract tags
         id: taskflow-tag
         run: |
           IMAGE_TAG="${{ github.event.inputs.image }}"
@@ -66,7 +66,7 @@ jobs:
           echo "img_tag=${TAG}" >> $GITHUB_OUTPUT
 
   taskflow-image-update:
-    name: Taskflow update image tag
+    name: Update Image Tag
     needs: [prepare-taskflow]
     uses: ./.github/workflows/update.image-tag.yaml
     with:
@@ -104,10 +104,10 @@ jobs:
       version: ${{ steps.package.outputs.version }}
     steps:
       - uses: actions/checkout@master
-      - name: Get time TAG
+      - name: get time tag
         id: tag
         run: "echo \"date=$(date +'%Y%m%d.%H%M')\" >> $GITHUB_OUTPUT\necho \"git_hash=$(git rev-parse --short HEAD)\" >> $GITHUB_OUTPUT\nservice=\"${{ github.event.inputs.application }}\"\nif [[ \"${{ github.event.inputs.application }}\" == \"vrf\" || \"${{ github.event.inputs.application }}\" == \"request-response\" || \"${{ github.event.inputs.application }}\" == \"aggregator\" ]]; then\n  service=\"core\"\nfi            \necho \"service=$service\" >> $GITHUB_OUTPUT\necho \"ecr_url=public.ecr.aws/bisonai/orakl-${service}\" >> $GITHUB_OUTPUT\n"
-      - name: Get package version
+      - name: get package version
         id: package
         run: "if [[ \"${{ steps.tag.outputs.service }}\" == \"cli\" || \"${{ steps.tag.outputs.service }}\" == \"fetcher\" || \"${{ steps.tag.outputs.service }}\" == \"core\" ]]; then\n  echo \"version=$(node -p -e \"require('./\"${{ steps.tag.outputs.service }}\"/package.json').version\")\" >> $GITHUB_OUTPUT\nelse \n  if [[ \"${{ steps.tag.outputs.service }}\" == \"boot-api\" ]]; then\n    version=$(cat ./node/.version)\n  else\n    version=$(cat ./${{ steps.tag.outputs.service }}/.version)\n  fi\n  echo \"version=$version\" >> $GITHUB_OUTPUT\nfi\n"
   build:
@@ -230,6 +230,7 @@ jobs:
     outputs:
       new_tag: ${{ steps.tag_info.outputs.NEW_TAG }}
       pr_title: ${{ steps.pr_info.outputs.PR_TITLE }}
+      truncated_title: ${{ steps.truncate_pr_title.outputs.truncated_title }}
     steps:
       - uses: actions/checkout@master
         with:
@@ -247,6 +248,17 @@ jobs:
         run: |
           sudo wget https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -O /usr/bin/yq
           sudo chmod +x /usr/bin/yq
+      - name: truncate PR title
+        id: truncate_pr_title
+        run: |
+          TR_PR_TITLE="${{steps.pr_info.outputs.PR_TITLE}}"
+          MAX_LENGTH=30
+          if [ ${TR_PR_TITLE} -gt $MAX_LENGTH ]; then
+            TRUNCATED_TITLE="${TR_PR_TITLE:0:$MAX_LENGTH}..."
+          else
+            TRUNCATED_TITLE="$TR_PR_TITLE"
+          fi
+          echo "truncated_title=$TRUNCATED_TITLE" >> $GITHUB_OUTPUT          
       - name: Update Workflow Dispatch Options
         id: tag_info
         run: |
@@ -254,7 +266,8 @@ jobs:
           git pull
           NEW_TAG=${{ github.event.inputs.application }}:${{ needs.build.outputs.img_tag }}
           echo "NEW_TAG=${NEW_TAG}" >> $GITHUB_OUTPUT
-          yq eval '.on.workflow_dispatch.inputs.image.options += ["'"${NEW_TAG}"'"]' -i .github/workflows/deployment.yaml
+          TAG_WITH_DESCRIPTION="${{ steps.truncate_pr_title.outputs.truncated_title }}"
+          yq eval '.on.workflow_dispatch.inputs.image.options += ["'"${TAG_WITH_DESCRIPTION}"'"]' -i .github/workflows/deployment.yaml
           git add .github/workflows/deployment.yaml
         env:
           GH_TOKEN: ${{ secrets.WORKFLOW_PAT }}
