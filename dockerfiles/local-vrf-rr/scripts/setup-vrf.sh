@@ -21,7 +21,7 @@ node update-vrf-migration.js $pkX $pkY
 node update-hardhat-network.js
 
 cd contracts/v0.1 || exit
-prepayment_output=$(yarn deploy:localhost:prepayment)
+yarn deploy:localhost:prepayment
 vrf_output=$(yarn deploy:localhost:vrf)
 vrf_address=$(echo $vrf_output | awk -F'deployed at ' '{print $2}' | awk '{print $1}')
 

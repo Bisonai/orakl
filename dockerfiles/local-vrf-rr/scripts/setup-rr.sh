@@ -12,7 +12,7 @@ node update-rr-migration.js
 node update-hardhat-network.js
 
 cd contracts/v0.1 || exit
-prepayment_output=$(yarn deploy:localhost:prepayment)
+yarn deploy:localhost:prepayment
 rr_output=$(yarn deploy:localhost:rr)
 rr_address=$(echo "$rr_output" | awk -F'deployed at ' '{print $2}' | awk '{print $1}')
 
