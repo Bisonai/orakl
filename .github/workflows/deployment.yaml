@@ -196,10 +196,10 @@ jobs:
         run: |
           sudo wget https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -O /usr/bin/yq
           sudo chmod +x /usr/bin/yq
+        # NEW_TAG=${{ github.event.inputs.application }}:${{ needs.build.outputs.img_tag }}
       - name: Update Workflow Dispatch Options
         run: |
-          # NEW_TAG=${{ github.event.inputs.application }}:${{ needs.build.outputs.img_tag }}
-          NEW_TAG=${{ github.event.inputs.application }}:Test Image Version
+          NEW_TAG=${{ github.event.inputs.application }}:vtestversion
           yq eval '.on.workflow_dispatch.inputs.image.options += ["'"${NEW_TAG}"'"]' -i .github/workflows/deployment.yaml
           git add .github/workflows/deployment.yaml
         env:
