@@ -223,7 +223,7 @@ jobs:
     uses: ./.github/workflows/post.image.slack.yaml
     with:
       # slack-message: "${{ github.event.inputs.application }} *Tag Version:* ${{ needs.build.outputs.img_tag }} *PR:* ${{ needs.update-workflow-and-readme.outputs.pr_title}}"
-      slack-message: " *Service:* ${{ github.event.inputs.application }} \\n *Version:* Test Image Version \\n *PR:* ${{ needs.update-workflow-and-readme.outputs.pr_title}}"
+      slack-message: "\\n *Service:* ${{ github.event.inputs.application }} \\n *Version:* Test Image Version \\n *PR:* ${{ needs.update-workflow-and-readme.outputs.pr_title}}"
       channel: "orakl-images"
     secrets:
       SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
