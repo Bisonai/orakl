@@ -13,9 +13,9 @@ COPY contracts/v0.1 contracts/v0.1
 
 COPY vrf vrf
 
-RUN yarn contracts install
+RUN yarn contracts-v01 install
 
-RUN yarn contracts compile
+RUN yarn contracts-v01 compile
 
 RUN mkdir -p /app/contracts/v0.1/scripts/tmp
 

@@ -13,6 +13,8 @@ COPY dockerfiles/local-vrf-rr/scripts/update-rr-migration.js update-rr-migration
 
 COPY dockerfiles/local-vrf-rr/scripts/update-vrf-migration.js update-vrf-migration.js
 
+COPY dockerfiles/local-vrf-rr/scripts/update-hardhat-network.js update-hardhat-network.js
+
 COPY contracts/v0.1 contracts/v0.1
 
 COPY vrf vrf
@@ -35,13 +37,15 @@ FROM node@sha256:18aacc7993a16f1d766c21e3bff922e830bcdc7b549bbb789ceb7374a613848
 
 WORKDIR /app
 
-RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y curl postgresql-client netcat-openbsd && rm -rf /var/lib/apt/lists/*
 
 COPY --from=build /app/package.json /app/package.json
 
 COPY --from=build /app/update-rr-migration.js /app/update-rr-migration.js
 
 COPY --from=build /app/update-vrf-migration.js /app/update-vrf-migration.js
+
+COPY --from=build /app/update-hardhat-network.js /app/update-hardhat-network.js
 
 COPY --from=build /app/node_modules /app/node_modules
 

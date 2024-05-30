@@ -1,10 +1,8 @@
 #!/bin/bash
-psql $DATABASE_URL -c "
-DO $$ 
-DECLARE 
-   r RECORD;
-BEGIN
-   FOR r IN (SELECT tablename FROM pg_tables WHERE schemaname = current_schema()) LOOP
-      EXECUTE 'DELETE FROM ' || quote_ident(r.tablename) || ' CASCADE';
-   END LOOP;
-END $$;"
+psql -h postgres -U ${POSTGRES_USER} -d ${POSTGRES_DB} <<EOF
+DELETE FROM vrf_keys CASCADE;
+DELETE FROM listeners CASCADE;
+DELETE FROM reporters CASCADE;
+DELETE FROM chains CASCADE;
+DELETE FROM services CASCADE;
+EOF

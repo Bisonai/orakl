@@ -11,6 +11,8 @@ services:
       - ./dockerfiles/local-vrf-rr/envs/.postgres.env
     expose:
       - "5432"
+    ports:
+      - "5432:5432"
     volumes:
       - pgsql_volume:/var/lib/postgresql/data
     healthcheck:
@@ -30,6 +32,8 @@ services:
     container_name: redis
     expose:
       - "6379"
+    ports:
+      - "6379:6379"
     healthcheck:
       test: ["CMD-SHELL", "redis-cli", "ping"]
       interval: 10s
@@ -43,6 +47,8 @@ services:
     image: orakl-api
     expose:
       - "3000"
+    ports:
+      - "3000:3000"
     depends_on:
       postgres:
         condition: service_healthy
@@ -63,17 +69,33 @@ services:
       retries: 5
       start_period: 15s
 
+  json-rpc:
+    build:
+      context: .
+      dockerfile: dockerfiles/local-data-feed/contracts.Dockerfile
+    image: json-rpc
+    expose:
+      - "8545"
+    ports:
+      - "8545:8545"
+    healthcheck:
+      test: ["CMD", "nc", "-z", "-v", "localhost", "8545"]
+      interval: 15s
+      timeout: 3m
+      retries: 5
+      start_period: 15s
+    command: /bin/sh -c "npx hardhat node --no-deploy"
+
   core-cli-contracts:
     build:
       context: .
       dockerfile: dockerfiles/local-vrf-rr/core-cli-contracts.Dockerfile
     image: core-cli-contracts
-    ports:
-      - "8545:8545"
     volumes:
-      - ./dockerfiles/local-vrf-rr/scripts/setup.sh:/setup.sh
+      - ./dockerfiles/local-vrf-rr/scripts/clean-db-tables.sh:/clean-db-tables.sh
+      - ./dockerfiles/local-vrf-rr/scripts/setup-${SERVICE}.sh:/setup.sh
     depends_on:
       api:
         condition: service_healthy
     env_file: dockerfiles/local-vrf-rr/envs/.core-cli-contracts.env
-    command: /setup.sh
+    command: /bin/sh -c "/clean-db-tables.sh && /setup.sh"
