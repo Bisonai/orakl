@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"math/big"
 	"math/rand"
+	"sync"
 	"time"
 
 	errorSentinel "bisonai.com/orakl/node/pkg/error"
@@ -72,11 +73,12 @@ func (f *Fetcher) fetch(chainHelpers map[string]ChainHelper, proxies []Proxy) ([
 	dataChan := make(chan FeedData)
 	errChan := make(chan error)
 
-	defer close(dataChan)
-	defer close(errChan)
+	var wg sync.WaitGroup
+	wg.Add(len(feeds))
 
 	for _, feed := range feeds {
 		go func(feed Feed) {
+			defer wg.Done()
 			definition := new(Definition)
 			err := json.Unmarshal(feed.Definition, &definition)
 			if err != nil {
@@ -100,7 +102,7 @@ func (f *Fetcher) fetch(chainHelpers map[string]ChainHelper, proxies []Proxy) ([
 					errChan <- fetchErr
 					return
 				}
-			case *definition.Type == "websocket":
+			case *definition.Type == "wss":
 				return
 			default:
 				errChan <- errorSentinel.ErrFetcherInvalidType
@@ -110,6 +112,12 @@ func (f *Fetcher) fetch(chainHelpers map[string]ChainHelper, proxies []Proxy) ([
 
 		}(feed)
 	}
+
+	go func() {
+		wg.Wait()
+		close(dataChan)
+		close(errChan)
+	}()
 
 	for i := 0; i < len(feeds); i++ {
 		select {
