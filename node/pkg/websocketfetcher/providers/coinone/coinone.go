@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	"bisonai.com/orakl/node/pkg/wfetcher/common"
+	"bisonai.com/orakl/node/pkg/websocketfetcher/common"
 	"bisonai.com/orakl/node/pkg/wss"
 	"github.com/rs/zerolog/log"
 )

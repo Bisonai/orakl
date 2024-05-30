@@ -6,8 +6,8 @@ import (
 	"time"
 
 	"bisonai.com/orakl/node/pkg/db"
-	"bisonai.com/orakl/node/pkg/wfetcher"
-	"bisonai.com/orakl/node/pkg/wfetcher/common"
+	"bisonai.com/orakl/node/pkg/websocketfetcher"
+	"bisonai.com/orakl/node/pkg/websocketfetcher/common"
 	"github.com/rs/zerolog/log"
 )
 
@@ -23,7 +23,7 @@ func main() {
 		},
 		{
 			ID:         2,
-			Name:       "coinbase-wss-ADA-USDT",
+			Name:       "coinbase-wss-ETH-USDT",
 			Definition: nil,
 			ConfigID:   2,
 		},
@@ -41,12 +41,17 @@ func main() {
 		},
 	}
 
-	app := wfetcher.New()
+	// factories := map[string]func(context.Context, ...common.FetcherOption) (common.FetcherInterface, error){
+	// 	"coinbase": coinbase.New,
+	// }
+
+	app := websocketfetcher.New()
 	err := app.Init(
 		ctx,
-		wfetcher.WithFeeds(feeds),
-		wfetcher.WithBufferSize(100),
-		wfetcher.WithStoreInterval(500*time.Millisecond),
+		// websocketfetcher.WithFactories(factories),
+		websocketfetcher.WithFeeds(feeds),
+		websocketfetcher.WithBufferSize(100),
+		websocketfetcher.WithStoreInterval(500*time.Millisecond),
 	)
 	if err != nil {
 		log.Error().Err(err).Msg("error in Init")
@@ -65,14 +70,14 @@ func main() {
 	}
 
 	for range ticker.C {
-		feedData, err := db.MGetObject[common.FeedData](ctx, latestKeys)
-		if err != nil {
-			log.Error().Err(err).Msg("error in MGetObject")
-			continue
-		}
-		for _, data := range feedData {
-			log.Info().Any("FeedData", data).Msg("FeedData")
-		}
+		// feedData, err := db.MGetObject[common.FeedData](ctx, latestKeys)
+		// if err != nil {
+		// 	log.Error().Err(err).Msg("error in MGetObject")
+		// 	continue
+		// }
+		// for _, data := range feedData {
+		// 	log.Info().Any("FeedData", data).Msg("FeedData")
+		// }
 
 		bufferData, err := db.PopAllObject[common.FeedData](ctx, "feedDataBuffer")
 		if err != nil {

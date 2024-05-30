@@ -5,7 +5,7 @@ import (
 	"strings"
 	"time"
 
-	"bisonai.com/orakl/node/pkg/wfetcher/common"
+	"bisonai.com/orakl/node/pkg/websocketfetcher/common"
 	"github.com/rs/zerolog/log"
 )
 

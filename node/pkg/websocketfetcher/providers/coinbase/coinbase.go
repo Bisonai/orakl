@@ -2,8 +2,9 @@ package coinbase
 
 import (
 	"context"
+	"fmt"
 
-	"bisonai.com/orakl/node/pkg/wfetcher/common"
+	"bisonai.com/orakl/node/pkg/websocketfetcher/common"
 	"bisonai.com/orakl/node/pkg/wss"
 	"github.com/rs/zerolog/log"
 )
@@ -44,6 +45,7 @@ func New(ctx context.Context, opts ...common.FetcherOption) (common.FetcherInter
 }
 
 func (c *CoinbaseFetcher) handleMessage(ctx context.Context, message map[string]any) error {
+	fmt.Println(message)
 	ticker, err := common.MessageToStruct[Ticker](message)
 	if err != nil {
 		return err

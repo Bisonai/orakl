@@ -1,15 +1,15 @@
-package wfetcher
+package websocketfetcher
 
 import (
 	"context"
 	"time"
 
 	"bisonai.com/orakl/node/pkg/db"
-	"bisonai.com/orakl/node/pkg/wfetcher/common"
-	"bisonai.com/orakl/node/pkg/wfetcher/providers/binance"
-	"bisonai.com/orakl/node/pkg/wfetcher/providers/coinbase"
-	"bisonai.com/orakl/node/pkg/wfetcher/providers/coinone"
-	"bisonai.com/orakl/node/pkg/wfetcher/providers/korbit"
+	"bisonai.com/orakl/node/pkg/websocketfetcher/common"
+	"bisonai.com/orakl/node/pkg/websocketfetcher/providers/binance"
+	"bisonai.com/orakl/node/pkg/websocketfetcher/providers/coinbase"
+	"bisonai.com/orakl/node/pkg/websocketfetcher/providers/coinone"
+	"bisonai.com/orakl/node/pkg/websocketfetcher/providers/korbit"
 	"github.com/rs/zerolog/log"
 )
 

@@ -12,15 +12,15 @@ import (
 	chainHelper "bisonai.com/orakl/node/pkg/chain/helper"
 	"bisonai.com/orakl/node/pkg/db"
 	errorSentinel "bisonai.com/orakl/node/pkg/error"
-	"bisonai.com/orakl/node/pkg/wfetcher"
+	"bisonai.com/orakl/node/pkg/websocketfetcher"
 	"github.com/rs/zerolog/log"
 )
 
 func New(bus *bus.MessageBus) *App {
 	return &App{
-		Fetchers: make(map[int32]*Fetcher, 0),
-		WFetcher: wfetcher.New(),
-		Bus:      bus,
+		Fetchers:         make(map[int32]*Fetcher, 0),
+		WebsocketFetcher: websocketfetcher.New(),
+		Bus:              bus,
 	}
 }
 
@@ -158,7 +158,7 @@ func (a *App) startAll(ctx context.Context) error {
 		return err
 	}
 
-	go a.WFetcher.Start(ctx)
+	go a.WebsocketFetcher.Start(ctx)
 
 	return a.startStreamer(ctx)
 }
@@ -384,7 +384,7 @@ func (a *App) initialize(ctx context.Context) error {
 	}
 	a.ChainHelpers = chainHelpers
 
-	err = a.WFetcher.Init(ctx)
+	err = a.WebsocketFetcher.Init(ctx)
 	if err != nil {
 		return err
 	}

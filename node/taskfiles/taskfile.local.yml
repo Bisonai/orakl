@@ -38,10 +38,10 @@ tasks:
     dotenv: [".env"]
     cmds:
       - go run ./script/test_raft/main.go -p={{.P}}
-  script-test-wfetcher:
+  script-test-websocketfetcher:
     dotenv: [".env"]
     cmds:
-      - go run ./script/test_wfetcher/main.go
+      - go run ./script/test_websocketfetcher/main.go
 
   test-db:
     dotenv: [".env"]
