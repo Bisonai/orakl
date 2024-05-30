@@ -34,6 +34,7 @@ on:
           - new
           - cli:v0.6.2.20240530.0504.dfd8382
           - cli:v0.6.2.20240530.0610.d118307
+          - cli:v0.6.2.20240530.0639.dac1d13
 jobs:
   prepare:
     name: Prepare
@@ -162,7 +163,6 @@ jobs:
     secrets:
       SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
     if: ${{ github.event.inputs.network == 'Baobab' && failure() }}
-
   update-workflow-and-readme:
     name: Update Workflow and README
     needs: [prepare, build, image-update]
@@ -206,7 +206,6 @@ jobs:
           github_token: ${{ secrets.WORKFLOW_PAT }}
           branch: ${{ github.ref }}
           repository: ${{ github.repository }}
-
   post-slack-pr-update:
     name: Post to a slack message for tag update failure
     needs: [prepare, build, image-update, update-workflow-and-readme]
@@ -217,4 +216,4 @@ jobs:
       channel: "orakl-images"
     secrets:
       SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
-    if: ${{ success() }}      
+    if: ${{ success() }}

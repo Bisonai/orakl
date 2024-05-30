@@ -75,3 +75,4 @@ docker-compose -f docker-compose.local-data-feed.yaml down -v
 
 - **cli:v0.6.2.20240530.0348.3469b5f** <br> *`PR`*: Implement new deployment method <br><br>
 - **** <br> *`PR`*:  <br><br>
+- **** <br> *`PR`*:  <br><br>
