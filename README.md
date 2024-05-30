@@ -68,7 +68,5 @@ docker-compose -f docker-compose.local-data-feed.yaml down -v
 
 ## Image Tag List
 
-
-
 - **** <br> *`PR`*: Hotfix add missing return statement on switch default <br><br> 
 - **** <br> *`PR`*: Hotfix add missing return statement on switch default <br><br> 
