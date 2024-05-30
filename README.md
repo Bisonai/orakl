@@ -65,13 +65,10 @@ docker-compose -f docker-compose.local-data-feed.yaml up
 docker-compose -f docker-compose.local-data-feed.yaml down -v
 ```
 
-# Deployment Workflow
 
-### Image Tag### 
-#### PR Title
+## Image Tag List
 
-### ** : 
-#### PR Title
+- **cli:v0.6.2.20240530.0348.3469b5f** <br> *`PR`*: Implement new deployment method <br><br> 
+- **cli:v0.6.2.20240530.0348.3469b5f** <br> *`PR`*: Fix typo and prevent possible unexpected channel close <br><br>
 
-- **cli:v0.6.2.20240530.0348.3469b5f** <br> *`PR`*: Implement new deployment method <br><br>- **cli:v0.6.2.20240530.0348.3469b5f** <br> *`PR`*: Fix typo and prevent possible unexpected channel close <br><br>
-- **** <br> *`PR`*:  <br><br>
+
