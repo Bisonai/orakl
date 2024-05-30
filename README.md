@@ -67,3 +67,4 @@ docker-compose -f docker-compose.local-data-feed.yaml down -v
 
 
 ## Image Tag List
+- **cli:v0.6.2.20240530.2356.423011b** <br> *`PR`*: OraklNode Update how feeds are parsed from database <br><br> 
