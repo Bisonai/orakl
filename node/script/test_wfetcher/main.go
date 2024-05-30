@@ -42,12 +42,16 @@ func main() {
 	}
 
 	app := wfetcher.New()
-	app.Init(
+	err := app.Init(
 		ctx,
 		wfetcher.WithFeeds(feeds),
 		wfetcher.WithBufferSize(100),
 		wfetcher.WithStoreInterval(500*time.Millisecond),
 	)
+	if err != nil {
+		log.Error().Err(err).Msg("error in Init")
+		return
+	}
 	go app.Start(ctx)
 
 	rdbCheckInterval := 1000 * time.Millisecond
