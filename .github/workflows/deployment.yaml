@@ -32,17 +32,67 @@ on:
         default: "new"
         options:
           - new
-          - cli:vtestversion
-          - cli:vtestversion
-          - cli:vtestversion
-          - cli:vtestversion
-          - cli:vtestversion
           - cli:v0.6.2.20240530.0903.62ea1a9
 jobs:
+
+  prepare-taskflow:
+    name: Prepare
+    runs-on: ubuntu-latest
+    if: ${{ github.event.inputs.network == 'Baobab' && github.event.inputs.image != 'new' }}
+    outputs:
+      service: ${{ steps.tag.outputs.service }}
+      version: ${{ steps.package.outputs.version }}    
+      tag_date: ${{ steps.taskflow-tag.outputs.tag_date }}
+      tag_git_hash: ${{ stemps.taskflow-tag.outputs.tag_git_hash}}
+      img_tag: ${{ steps.parse.outputs.img_tag }}
+    steps:
+      - uses: actions/checkout@master
+      - name: Get time TAG
+        id: taskflow-tag
+        run: |
+          IMAGE_TAG="${{ github.event.inputs.image }}"
+          TAG=$(echo "${IMAGE_TAG}" | sed "s/^${SERVICE}://")
+          VERSION=$(echo "${IMAGE_TAG}" | cut -d':' -f2 | cut -d'.' -f1-3)
+          TAG_DATE=$(echo "${IMAGE_TAG}" | cut -d':' -f2 | cut -d'.' -f4-5)
+          TAG_GIT_HASH=$(echo "${IMAGE_TAG}" | cut -d':' -f2 | cut -d'.' -f6)
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
+          echo "tag_date=${TAG_DATE}" >> $GITHUB_OUTPUT
+          echo "tag_git_hash=${TAG_GIT_HASH}" >> $GITHUB_OUTPUT
+          echo "img_tag=${TAG}" >> $GITHUB_OUTPUT
+
+
+  taskflow-image-update:
+    name: Taskflow update image tag
+    needs: [prepare-taskflow]
+    uses: ./.github/workflows/update.image-tag.yaml
+    with:
+      network: "baobab"
+      project-name: ${{ github.event.inputs.application }}
+      version: ${{ needs.prepare-taskflow.outputs.version }}
+      image-tag: ${{ needs.prepare-taskflow.outputs.img_tag}}
+      tag_date: ${{ needs.prepare-taskflow.outputs.tag_date }}
+      tag_git_hash: ${{ needs.prepare-taskflow.outputs.tag_git_hash }}
+    secrets:
+      PAT: ${{ secrets.PAT }}
+    if: ${{ github.event.inputs.network == 'Baobab' && github.event.inputs.image != 'new' }}
+
+  post-slack-taskflow-image-upload:
+    name: Slack message for image upload
+    needs: [prepare-taskflow, taskflow-image-update]
+    uses: ./.github/workflows/post.slack.yaml
+    with:
+      status: "Success"
+      slack-message: "${{ github.event.inputs.network }} ${{ github.event.inputs.application }}* : *${{ needs.prepare-taskflow.outputs.img_tag}}* is updated"
+      channel: "orakl-notification"
+    secrets:
+      SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+    if: ${{ github.event.inputs.network == 'Baobab' && success() }}
+
+
   prepare:
     name: Prepare
     runs-on: ubuntu-latest
-    if: ${{ github.event.inputs.network == 'Baobab' }}
+    if: ${{ github.event.inputs.network == 'Baobab' && github.event.inputs.image == 'new' }}
     outputs:
       tag_date: ${{ steps.tag.outputs.date }}
       tag_git_hash: ${{ steps.tag.outputs.git_hash }}
@@ -61,7 +111,7 @@ jobs:
     name: Build
     runs-on: ubuntu-latest
     needs: prepare
-    if: ${{ github.event.inputs.network == 'Baobab' }}
+    if: ${{ github.event.inputs.network == 'Baobab' && github.event.inputs.image == 'new' }}
     permissions:
       id-token: write
       contents: read
@@ -99,6 +149,7 @@ jobs:
       - name: image tag output
         id: img-tag
         run: echo "img_tag=v${{ needs.prepare.outputs.version }}.${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }}" >> $GITHUB_OUTPUT
+
   post-slack-image-upload:
     name: Slack message for image upload
     needs: [prepare, build]
@@ -110,6 +161,7 @@ jobs:
     secrets:
       SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
     if: ${{ github.event.inputs.network == 'Baobab' && success() }}
+
   image-update:
     name: Update image tag
     needs: [prepare, build]
@@ -123,7 +175,8 @@ jobs:
       tag_git_hash: ${{ needs.prepare.outputs.tag_git_hash }}
     secrets:
       PAT: ${{ secrets.PAT }}
-    if: ${{ github.event.inputs.network == 'Baobab' }}
+    if: ${{ github.event.inputs.network == 'Baobab' && github.event.inputs.image == 'new' }}
+
   post-slack-baobab-tag-update-success:
     name: Post slack message for tag update success
     needs: [prepare, build, image-update]
@@ -134,7 +187,8 @@ jobs:
       channel: "orakl-notification"
     secrets:
       SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
-    if: ${{ github.event.inputs.network == 'Baobab' && success() }}
+    if: ${{ github.event.inputs.network == 'Baobab' && github.event.inputs.image == 'new' && success() }}
+
   cypress-image-update:
     name: cypress image update
     uses: ./.github/workflows/update.image-tag.yaml
@@ -165,7 +219,8 @@ jobs:
       channel: "orakl-notification"
     secrets:
       SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
-    if: ${{ github.event.inputs.network == 'Baobab' && failure() }}
+    if: ${{ github.event.inputs.network == 'Baobab' && github.event.inputs.image == 'new' && failure() }}
+    
   update-workflow-and-readme:
     name: Update Workflow and README
     needs: [prepare, build, image-update]
