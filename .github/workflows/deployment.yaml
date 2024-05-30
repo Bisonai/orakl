@@ -51,6 +51,7 @@ jobs:
         id: taskflow-tag
         run: |
           IMAGE_TAG="${{ github.event.inputs.image }}"
+          IMAGE_TAG=$(echo "${IMAGE_TAG}" | sed 's/([^)]*)//') 
           TAG=$(echo "${IMAGE_TAG}" | sed 's/^[^:]*://')
           echo $TAG;
           VERSION=$(echo "${IMAGE_TAG}" | cut -d':' -f2 | cut -d'.' -f1-3)
