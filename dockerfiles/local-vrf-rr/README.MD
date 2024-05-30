@@ -1,6 +1,6 @@
 # Run VRF and RR services locally
 
-From the root of the repo, run
+From the root of the repository, execute the following command:
 
 ```bash
 SERVICE=rr docker-compose -f docker-compose.local-core.yaml up -d

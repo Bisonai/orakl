@@ -13,7 +13,7 @@ pkX=$(echo "$keygen_output" | awk -F'pkX=' '{print $2}' | awk '{print $1}')
 pkY=$(echo "$keygen_output" | awk -F'pkY=' '{print $2}' | awk '{print $1}')
 keyHash=$(echo "$keygen_output" | awk -F'keyHash=' '{print $2}' | awk '{print $1}')
 
-yarn cli vrf insert --chain localhost --sk $sk --pk $pk --pkX $pkX --pkY $pkY --keyHash $keyHash
+yarn cli vrf insert --chain localhost --sk "$sk" --pk "$pk" --pkX "$pkX" --pkY "$pkY" --keyHash "$keyHash"
 
 cd .. || exit
 node update-vrf-migration.js $pkX $pkY
@@ -22,7 +22,7 @@ node update-hardhat-network.js
 cd contracts/v0.1 || exit
 yarn deploy:localhost:prepayment
 vrf_output=$(yarn deploy:localhost:vrf)
-vrf_address=$(echo $vrf_output | awk -F'deployed at ' '{print $2}' | awk '{print $1}')
+vrf_address=$(echo "$vrf_output" | awk -F'deployed at ' '{print $2}' | awk '{print $1}')
 
 cd ../../cli || exit
 yarn cli listener insert --chain localhost --service VRF --address "$vrf_address" --eventName RandomWordsRequested
