@@ -67,6 +67,7 @@ func main() {
 		log.Error().Err(err).Msg("Failed to wait api")
 		return
 	}
+	log.Info().Msg("API is live")
 
 	syncUrl := "http://localhost:" + port + "/api/v1/config/sync"
 	_, err = http.Post(syncUrl, "application/json", nil)
@@ -74,6 +75,7 @@ func main() {
 		log.Error().Err(err).Msg("Failed to sync from orakl config")
 		return
 	}
+	log.Info().Msg("Synced from orakl config")
 
 	wg.Add(1)
 	go func() {
@@ -85,6 +87,7 @@ func main() {
 			return
 		}
 	}()
+	log.Info().Msg("Fetcher started")
 
 	wg.Add(1)
 	go func() {
@@ -97,6 +100,7 @@ func main() {
 			return
 		}
 	}()
+	log.Info().Msg("Aggregator started")
 
 	wg.Add(1)
 	go func() {
@@ -109,6 +113,7 @@ func main() {
 			return
 		}
 	}()
+	log.Info().Msg("Reporter started")
 
 	wg.Wait()
 }
