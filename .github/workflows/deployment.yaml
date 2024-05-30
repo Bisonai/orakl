@@ -170,7 +170,8 @@ jobs:
   #   if: ${{ github.event.inputs.network == 'Baobab' && failure() }}
   update-workflow-and-readme:
     name: Update Workflow and README
-    needs: [prepare, build, image-update]
+    # needs: [prepare, build, image-update]
+    needs: [prepare]
     runs-on: ubuntu-latest
     permissions:
       id-token: write
