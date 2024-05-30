@@ -34,7 +34,7 @@ on:
           - new
           - cli:v0.6.2.20240530.0903.62ea1a9(Hotfix add missing ..)
           - cli:v0.6.2.20240530.0951.f3c7bbb(Hotfix add missing ..)
-          - (OraklNode) Update how feeds a...
+          - cli:v0.6.2.20240530.2320.6c13025((OraklNode) Update how feeds a...)
 jobs:
   prepare-taskflow:
     name: Prepare
@@ -243,7 +243,7 @@ jobs:
           git pull
           NEW_TAG=${{ github.event.inputs.application }}:${{ needs.build.outputs.img_tag }}
           echo "NEW_TAG=${NEW_TAG}" >> $GITHUB_OUTPUT
-          TAG_WITH_DESCRIPTION="${{ steps.truncate_pr_title.outputs.truncated_title }}"
+          TAG_WITH_DESCRIPTION="${NEW_TAG}\(${{ steps.truncate_pr_title.outputs.truncated_title }}\)"
           yq eval '.on.workflow_dispatch.inputs.image.options += ["'"${TAG_WITH_DESCRIPTION}"'"]' -i .github/workflows/deployment.yaml
           git add .github/workflows/deployment.yaml
         env:
