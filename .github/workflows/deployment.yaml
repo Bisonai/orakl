@@ -190,9 +190,7 @@ jobs:
           GH_TOKEN: ${{ secrets.WORKFLOW_PAT }}
       - name: Update README with Latest PR Info
         run: |
-          echo "### *${NEW_TAG}* : " >> README.md
-          echo "#### PR Title" >> README.md
-          echo "${{ env.PR_TITLE }}" >> README.md
+          echo "- **${NEW_TAG}** <br> *\`PR\`*: ${PR_TITLE} <br><br>" >> README.md
           git add README.md
       - name: Commit & Push changes
         uses: actions-js/push@master
