@@ -204,7 +204,7 @@ jobs:
     permissions:
       id-token: write
       contents: write
-      pages: write
+      actions: write
           
     steps:
       - uses: actions/checkout@master
