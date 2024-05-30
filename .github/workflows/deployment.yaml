@@ -3,8 +3,15 @@ name: Dispatch Deploy
 on:
   workflow_dispatch:
     inputs:
+      network:
+        description: "Network"
+        required: true
+        type: choice
+        options:
+          - "Baobab"
+          - "Cypress"    
       application:
-        description: "Application to deploy"
+        description: "Service"
         required: true
         type: choice
         options:
@@ -19,13 +26,13 @@ on:
           - "node"
           - "boot-api"
           - "sentinel"
-      network:
-        description: "Network to deploy to"
+      image:
+        description: "Image Version"
         required: true
         type: choice
+        default: "new"
         options:
-          - "Baobab"
-          - "Cypress"
+          - "new"
 
 jobs:
   prepare:
@@ -95,7 +102,7 @@ jobs:
             ./${{ needs.prepare.outputs.service }}/go.mod
         if: ${{ needs.prepare.outputs.service != 'core' || needs.prepare.outputs.service != 'fetcher' || needs.prepare.outputs.service != 'cli' }}
 
-      - name: docker build ${{ inputs.application }}
+      - name: docker build ${{ github.event.inputs.application }}
         run: SERVICE_NAME=orakl-${{ needs.prepare.outputs.service }} docker compose -f docker-compose.build.yaml build
 
       - name: configure aws credentials
@@ -189,3 +196,43 @@ jobs:
     secrets:
       SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
     if: ${{ github.event.inputs.network == 'Baobab' && failure() }}
+
+  update-workflow-and-readme:
+    name: Update Workflow and README
+    runs-on: ubuntu-latest
+    needs: [image-update]
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v2
+
+      - name: Get Latest PR Title and Description
+        id: pr_info
+        run: |
+          PR_TITLE=$(gh pr view ${GITHUB_REF} --json title -q ".title")
+          PR_DESCRIPTION=$(gh pr view ${GITHUB_REF} --json body -q ".body")
+          echo "pr_title=${PR_TITLE}" >> $GITHUB_ENV
+          echo "pr_description=${PR_DESCRIPTION}" >> $GITHUB_ENV
+
+      - name: Update Workflow Dispatch Options
+        run: |
+          NEW_TAG=${{ github.event.inputs.application }}/${{ needs.build.outputs.img_tag }}
+          sed -i "/options:/a\          - \"${NEW_TAG}\"" .github/workflows/deployment.yaml
+          git add .github/workflows/deployment.yaml
+
+      - name: Update README with Latest PR Info
+        run: |
+          echo "### ${NEW_TAG}" >> README.md
+          echo "#### PR Title" >> README.md
+          echo "${{ env.pr_title }}" >> README.md
+          echo "#### PR Description" >> README.md
+          echo "${{ env.pr_description }}" >> README.md
+          git add README.md
+
+      - name: Commit and Push Changes
+        run: |
+          git config --global user.name 'github-actions'
+          git config --global user.email 'github-actions@github.com'
+          git commit -m "Update workflow dispatch options and README with new image tag ${NEW_TAG}"
+          git push
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

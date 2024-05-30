@@ -64,3 +64,7 @@ docker-compose -f docker-compose.local-data-feed.yaml up
 ```bash
 docker-compose -f docker-compose.local-data-feed.yaml down -v
 ```
+
+# Deployment Workflow
+
+### Image Tag
