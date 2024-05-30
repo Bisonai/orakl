@@ -14,7 +14,7 @@ node update-hardhat-network.js
 cd contracts/v0.1 || exit
 prepayment_output=$(yarn deploy:localhost:prepayment)
 rr_output=$(yarn deploy:localhost:rr)
-rr_address=$(echo $rr_output | awk -F'deployed at ' '{print $2}' | awk '{print $1}')
+rr_address=$(echo "$rr_output" | awk -F'deployed at ' '{print $2}' | awk '{print $1}')
 
 cd ../../cli || exit
 yarn cli listener insert --chain localhost --service REQUEST_RESPONSE --address "$rr_address" --eventName DataRequested

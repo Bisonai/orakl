@@ -8,11 +8,11 @@ yarn cli service insert --name DATA_FEED
 yarn cli service insert --name REQUEST_RESPONSE
 
 keygen_output=$(yarn cli vrf keygen)
-sk=$(echo $keygen_output | awk -F'sk=' '{print $2}' | awk '{print $1}')
-pk=$(echo $keygen_output | awk -F'pk=' '{print $2}' | awk '{print $1}')
-pkX=$(echo $keygen_output | awk -F'pkX=' '{print $2}' | awk '{print $1}')
-pkY=$(echo $keygen_output | awk -F'pkY=' '{print $2}' | awk '{print $1}')
-keyHash=$(echo $keygen_output | awk -F'keyHash=' '{print $2}' | awk '{print $1}')
+sk=$(echo "$keygen_output" | awk -F'sk=' '{print $2}' | awk '{print $1}')
+pk=$(echo "$keygen_output" | awk -F'pk=' '{print $2}' | awk '{print $1}')
+pkX=$(echo "$keygen_output" | awk -F'pkX=' '{print $2}' | awk '{print $1}')
+pkY=$(echo "$keygen_output" | awk -F'pkY=' '{print $2}' | awk '{print $1}')
+keyHash=$(echo "$keygen_output" | awk -F'keyHash=' '{print $2}' | awk '{print $1}')
 
 yarn cli vrf insert --chain localhost --sk $sk --pk $pk --pkX $pkX --pkY $pkY --keyHash $keyHash
 
