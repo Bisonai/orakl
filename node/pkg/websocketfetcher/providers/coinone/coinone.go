@@ -48,7 +48,7 @@ func New(ctx context.Context, opts ...common.FetcherOption) (common.FetcherInter
 		wss.WithSubscriptions(subscriptions),
 		wss.WithProxyUrl(config.Proxy))
 	if err != nil {
-		log.Error().Str("Player", "Coinone").Err(err).Msg("error in NewWebsocketHelper")
+		log.Error().Str("Player", "Coinone").Err(err).Msg("error in coinone.New")
 		return nil, err
 	}
 	fetcher.Ws = ws
