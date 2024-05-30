@@ -43,7 +43,7 @@ jobs:
       service: ${{ steps.tag.outputs.service }}
       version: ${{ steps.package.outputs.version }}    
       tag_date: ${{ steps.taskflow-tag.outputs.tag_date }}
-      tag_git_hash: ${{ stemps.taskflow-tag.outputs.tag_git_hash}}
+      tag_git_hash: ${{ steps.taskflow-tag.outputs.tag_git_hash}}
       img_tag: ${{ steps.parse.outputs.img_tag }}
     steps:
       - uses: actions/checkout@master
