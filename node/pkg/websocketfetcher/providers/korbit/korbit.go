@@ -28,7 +28,7 @@ func New(ctx context.Context, opts ...common.FetcherOption) (common.FetcherInter
 	for feed := range fetcher.FeedMap {
 		raw := strings.Split(feed, "-")
 		if len(raw) < 2 {
-			log.Error().Str("Player", "Coinone").Msg("invalid feed name")
+			log.Error().Str("Player", "Korbit").Msg("invalid feed name")
 			return nil, fmt.Errorf("invalid feed name")
 		}
 		base := raw[0]
