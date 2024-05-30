@@ -8,7 +8,6 @@ on:
         required: true
         type: choice
         options:
-          - "cli/"
           - "Baobab"
           - "Cypress"    
       application:
@@ -16,7 +15,6 @@ on:
         required: true
         type: choice
         options:
-          - "cli/"
           - "cli"
           - "aggregator"
           - "vrf"
