@@ -79,7 +79,7 @@ func main() {
 		// 	log.Info().Any("FeedData", data).Msg("FeedData")
 		// }
 
-		bufferData, err := db.PopAllObject[common.FeedData](ctx, "feedDataBuffer")
+		bufferData, err := db.PopAllObject[common.FeedData](ctx, keys.FeedDataBufferKey())
 		if err != nil {
 			log.Error().Err(err).Msg("error in PopAllObject")
 			continue

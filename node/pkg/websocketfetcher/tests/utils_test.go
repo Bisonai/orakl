@@ -127,7 +127,7 @@ func TestStoreFeeds(t *testing.T) {
 		t.Errorf("expected value 20001, got %f", latestFeed2.Value)
 	}
 
-	buffer, err := db.PopAllObject[common.FeedData](ctx, "feedDataBuffer")
+	buffer, err := db.PopAllObject[common.FeedData](ctx, keys.FeedDataBufferKey())
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
