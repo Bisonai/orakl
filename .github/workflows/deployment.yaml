@@ -223,7 +223,7 @@ jobs:
       - name: Update Workflow Dispatch Options
         run: |
           NEW_TAG=${{ github.event.inputs.application }}/${{ needs.build.outputs.img_tag }}
-          sed -i "/image:/,/options:/ {/options:/a\          - \"${NEW_TAG}\";}" .github/workflows/deployment.yaml
+          sed -i "/image:/ {/options:/a\          - \"${NEW_TAG}\";}" .github/workflows/deployment.yaml
           git add .github/workflows/deployment.yaml
         env:
           GH_TOKEN: ${{ secrets.WORKFLOW_PAT }}             
