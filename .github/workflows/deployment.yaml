@@ -233,10 +233,7 @@ jobs:
           echo "${{ env.PR_TITLE }}" >> README.md
           git add README.md
    
-      - name: Commit and Push Changes
-        run: |
-          git config --global user.name 'github-actions'
-          git config --global user.email 'github-actions@github.com'
-          git commit -m "Update workflow dispatch options and README with new image tag ${NEW_TAG}"
-          git push origin HEAD:${GITHUB_REF}
-        shell: bash
+      - name: Commit & Push changes
+        uses: actions-js/push@master
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
