@@ -37,7 +37,7 @@ on:
           - cli:v0.6.2.20240530.0639.dac1d13
           - cli:v0.6.2.20240530.0700.1c8fe4e
           - cli:vtestversion
-          - cli:vtestversion
+
 jobs:
   prepare:
     name: Prepare
@@ -208,7 +208,7 @@ jobs:
           GH_TOKEN: ${{ secrets.WORKFLOW_PAT }}
       - name: Update README with Latest PR Info
         run: |
-          echo "- **${NEW_TAG}** <br> *\`PR\`*: ${PR_TITLE} <br><br> \n" >> README.md
+          echo "- **${NEW_TAG}** <br> *\`PR\`*: ${{steps.pr_info.outputs.PR_TITLE}} <br><br> \n" >> README.md
           git add README.md
       - name: Commit & Push changes
         uses: actions-js/push@master
