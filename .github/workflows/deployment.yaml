@@ -34,6 +34,7 @@ on:
           - new
           - cli:v0.6.2.20240530.0903.62ea1a9(Hotfix add missing ..)
           - cli:v0.6.2.20240530.0951.f3c7bbb(Hotfix add missing ..)
+          - (OraklNode) Update how feeds a...
 jobs:
   prepare-taskflow:
     name: Prepare
@@ -49,22 +50,7 @@ jobs:
       - uses: actions/checkout@master
       - name: extract tags
         id: taskflow-tag
-        run: |
-          IMAGE_TAG="${{ github.event.inputs.image }}"
-          IMAGE_TAG=$(echo "${IMAGE_TAG}" | sed 's/([^)]*)//') 
-          TAG=$(echo "${IMAGE_TAG}" | sed 's/^[^:]*://')
-          echo $TAG;
-          VERSION=$(echo "${IMAGE_TAG}" | cut -d':' -f2 | cut -d'.' -f1-3)
-          echo $VERSION
-          TAG_DATE=$(echo "${IMAGE_TAG}" | cut -d':' -f2 | cut -d'.' -f4-5)
-          echo $TAG_DATE
-          TAG_GIT_HASH=$(echo "${IMAGE_TAG}" | cut -d':' -f2 | cut -d'.' -f6)
-          echo $TAG_GIT_HASH
-          echo "version=${VERSION}" >> $GITHUB_OUTPUT
-          echo "tag_date=${TAG_DATE}" >> $GITHUB_OUTPUT
-          echo "tag_git_hash=${TAG_GIT_HASH}" >> $GITHUB_OUTPUT
-          echo "img_tag=${TAG}" >> $GITHUB_OUTPUT
-
+        run: "IMAGE_TAG=\"${{ github.event.inputs.image }}\"\nIMAGE_TAG=$(echo \"${IMAGE_TAG}\" | sed 's/([^)]*)//') \nTAG=$(echo \"${IMAGE_TAG}\" | sed 's/^[^:]*://')\necho $TAG;\nVERSION=$(echo \"${IMAGE_TAG}\" | cut -d':' -f2 | cut -d'.' -f1-3)\necho $VERSION\nTAG_DATE=$(echo \"${IMAGE_TAG}\" | cut -d':' -f2 | cut -d'.' -f4-5)\necho $TAG_DATE\nTAG_GIT_HASH=$(echo \"${IMAGE_TAG}\" | cut -d':' -f2 | cut -d'.' -f6)\necho $TAG_GIT_HASH\necho \"version=${VERSION}\" >> $GITHUB_OUTPUT\necho \"tag_date=${TAG_DATE}\" >> $GITHUB_OUTPUT\necho \"tag_git_hash=${TAG_GIT_HASH}\" >> $GITHUB_OUTPUT\necho \"img_tag=${TAG}\" >> $GITHUB_OUTPUT\n"
   taskflow-image-update:
     name: Update Image Tag
     needs: [prepare-taskflow]
@@ -80,7 +66,6 @@ jobs:
     secrets:
       PAT: ${{ secrets.PAT }}
     if: ${{ github.event.inputs.image != 'new' }}
-
   post-slack-taskflow-image-upload:
     name: Slack message for image upload
     needs: [prepare-taskflow, taskflow-image-update]
@@ -250,15 +235,7 @@ jobs:
           sudo chmod +x /usr/bin/yq
       - name: truncate PR title
         id: truncate_pr_title
-        run: |
-          TR_PR_TITLE="${{steps.pr_info.outputs.PR_TITLE}}"
-          MAX_LENGTH=30
-          if [ ${#TR_PR_TITLE} -gt $MAX_LENGTH ]; then
-            TRUNCATED_TITLE="${TR_PR_TITLE:0:$MAX_LENGTH}..."
-          else
-            TRUNCATED_TITLE="$TR_PR_TITLE"
-          fi
-          echo "truncated_title=$TRUNCATED_TITLE" >> $GITHUB_OUTPUT          
+        run: "TR_PR_TITLE=\"${{steps.pr_info.outputs.PR_TITLE}}\"\nMAX_LENGTH=30\nif [ ${#TR_PR_TITLE} -gt $MAX_LENGTH ]; then\n  TRUNCATED_TITLE=\"${TR_PR_TITLE:0:$MAX_LENGTH}...\"\nelse\n  TRUNCATED_TITLE=\"$TR_PR_TITLE\"\nfi\necho \"truncated_title=$TRUNCATED_TITLE\" >> $GITHUB_OUTPUT          \n"
       - name: Update Workflow Dispatch Options
         id: tag_info
         run: |
