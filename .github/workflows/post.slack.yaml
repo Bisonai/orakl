@@ -9,6 +9,9 @@ on:
       status:
         required: true
         type: string
+      channel:
+        required: true
+        type: string
     secrets:
       SLACK_BOT_TOKEN:
         required: true
@@ -36,7 +39,9 @@ jobs:
         id: slack
         uses: slackapi/slack-github-action@v1.26.0
         with:
-          channel-id: 'orakl-notification'
+          channel-id: ${{ inputs.channel }}
           payload: ${{ steps.set-payload.outputs.payload }}
         env:
           SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+
+

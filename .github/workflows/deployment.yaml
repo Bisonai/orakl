@@ -102,6 +102,7 @@ jobs:
     with:
       status: "Success"
       slack-message: "${{ github.event.inputs.network }} ${{ github.event.inputs.application }}* : *${{ needs.prepare.outputs.service }}* ${{ needs.prepare.outputs.version }}.${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }} is uploaded"
+      channel: "orakl-notification"
     secrets:
       SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
     if: ${{ github.event.inputs.network == 'Baobab' && success() }}
@@ -126,6 +127,7 @@ jobs:
     with:
       status: "Success"
       slack-message: "${{ github.event.inputs.network }} *${{ github.event.inputs.application }}* : *${{ needs.prepare.outputs.service }}* new image tag ${{ needs.prepare.outputs.version }}.${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }} is updated"
+      channel: "orakl-notification"
     secrets:
       SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
     if: ${{ github.event.inputs.network == 'Baobab' && success() }}
@@ -145,6 +147,7 @@ jobs:
     with:
       status: "Success"
       slack-message: "${{ github.event.inputs.network }} *${{ github.event.inputs.application }}* is updated"
+      channel: "orakl-notification"
     secrets:
       SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
     if: ${{ github.event.inputs.network == 'Cypress' && success() }}
@@ -155,9 +158,11 @@ jobs:
     with:
       status: "Failed"
       slack-message: "${{ github.event.inputs.network }} *${{ github.event.inputs.application }}* git action failed"
+      channel: "orakl-notification"
     secrets:
       SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
     if: ${{ github.event.inputs.network == 'Baobab' && failure() }}
+
   update-workflow-and-readme:
     name: Update Workflow and README
     needs: [prepare, build, image-update]
@@ -199,3 +204,15 @@ jobs:
           github_token: ${{ secrets.WORKFLOW_PAT }}
           branch: ${{ github.ref }}
           repository: ${{ github.repository }}
+
+  post-slack-pr-update:
+    name: Post to a slack message for tag update failure
+    needs: [prepare, build, image-update, update-workflow-and-readme]
+    uses: ./.github/workflows/post.slack.yaml
+    with:
+      status: "Success"
+      slack-message: "${{ github.event.inputs.network }} *${{ github.event.inputs.application }}* git action failed"
+      channel: "orakl-images"
+    secrets:
+      SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+    if: ${{ success() }}
