@@ -1,0 +1,40 @@
+name: Post to a Slack channel
+
+on:
+  workflow_call:
+    inputs:
+      slack-message:
+        required: true
+        type: string
+      channel:
+        required: true
+        type: string
+    secrets:
+      SLACK_BOT_TOKEN:
+        required: true
+
+jobs:
+  post-to-slack:
+    name: Post a message to a Slack channel
+    runs-on: ubuntu-latest
+
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - name: Set Slack Payload
+        id: set-payload
+        run: |
+          echo "::set-output name=payload::{\"text\":\"${{ inputs.slack-message }}\"}"
+
+      - name: Post to a Slack channel
+        id: slack
+        uses: slackapi/slack-github-action@v1.26.0
+        with:
+          channel-id: ${{ inputs.channel }}
+          payload: ${{ steps.set-payload.outputs.payload }}
+        env:
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+
+

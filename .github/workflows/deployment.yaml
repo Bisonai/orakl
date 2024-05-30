@@ -219,11 +219,10 @@ jobs:
     name: Post to a slack message for tag update failure
     # needs: [prepare, build, image-update, update-workflow-and-readme]
     needs: [prepare, update-workflow-and-readme]
-    uses: ./.github/workflows/post.slack.yaml
+    uses: ./.github/workflows/post.image.slack.yaml
     with:
-      status: "Success"
       # slack-message: "${{ github.event.inputs.application }} *Tag Version:* ${{ needs.build.outputs.img_tag }} *PR:* ${{ needs.update-workflow-and-readme.outputs.pr_title}}"
-      slack-message: "${{ github.event.inputs.application }} *Tag Version:* Test Image Version *PR:* ${{ needs.update-workflow-and-readme.outputs.pr_title}}"
+      slack-message: "*Service:* ${{ github.event.inputs.application }} \n *Tag Version:* Test Image Version \n *PR:* ${{ needs.update-workflow-and-readme.outputs.pr_title}}"
       channel: "orakl-images"
     secrets:
       SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
