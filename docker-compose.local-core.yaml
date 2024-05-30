@@ -62,3 +62,18 @@ services:
       timeout: 5s
       retries: 5
       start_period: 15s
+
+  core-cli-contracts:
+    build:
+      context: .
+      dockerfile: dockerfiles/local-vrf-rr/core-cli-contracts.Dockerfile
+    image: core-cli-contracts
+    ports:
+      - "8545:8545"
+    volumes:
+      - ./dockerfiles/local-vrf-rr/scripts/setup.sh:/setup.sh
+    depends_on:
+      api:
+        condition: service_healthy
+    env_file: dockerfiles/local-vrf-rr/envs/.core-cli-contracts.env
+    command: /setup.sh

@@ -9,6 +9,10 @@ COPY package.json .
 
 COPY yarn.lock .
 
+COPY dockerfiles/local-vrf-rr/scripts/update-rr-migration.js update-rr-migration.js
+
+COPY dockerfiles/local-vrf-rr/scripts/update-vrf-migration.js update-vrf-migration.js
+
 COPY contracts/v0.1 contracts/v0.1
 
 COPY vrf vrf
@@ -35,6 +39,10 @@ RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
 
 COPY --from=build /app/package.json /app/package.json
 
+COPY --from=build /app/update-rr-migration.js /app/update-rr-migration.js
+
+COPY --from=build /app/update-vrf-migration.js /app/update-vrf-migration.js
+
 COPY --from=build /app/node_modules /app/node_modules
 
 COPY --from=build /app/core/node_modules /app/core/node_modules
@@ -51,4 +59,4 @@ COPY --from=build /app/core /app/core
 
 COPY --from=build /app/cli /app/cli
 
-WORKDIR /app/core
+CMD ["tail", "-f", "/dev/null"]
