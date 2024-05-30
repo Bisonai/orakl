@@ -178,7 +178,7 @@ jobs:
       contents: write
       pages: write
     outputs:
-      new_tag: ${{ github.event.inputs.application }}:${{ needs.build.outputs.img_tag }}
+      new_tag: ${{ steps.tag_info.outputs.NEW_TAG }}
       pr_title: ${{ steps.pr_info.outputs.PR_TITLE }}
     steps:
       - uses: actions/checkout@master
@@ -199,17 +199,19 @@ jobs:
           sudo chmod +x /usr/bin/yq
         
       - name: Update Workflow Dispatch Options
+        id: tag_info
         run: |
           git stash
           git pull
           NEW_TAG=${{ github.event.inputs.application }}:${{ needs.build.outputs.img_tag }}
+          echo "NEW_TAG=${NEW_TAG}" >> $GITHUB_OUTPUT
           yq eval '.on.workflow_dispatch.inputs.image.options += ["'"${NEW_TAG}"'"]' -i .github/workflows/deployment.yaml
           git add .github/workflows/deployment.yaml
         env:
           GH_TOKEN: ${{ secrets.WORKFLOW_PAT }}
       - name: Update README with Latest PR Info
         run: |
-          echo "- **${NEW_TAG}** <br> *\`PR\`*: ${{steps.pr_info.outputs.PR_TITLE}} <br><br> " >> README.md
+          echo "- **${{steps.tag_info.outputs.NEW_TAG}}** <br> *\`PR\`*: ${{steps.pr_info.outputs.PR_TITLE}} <br><br> " >> README.md
           git add README.md
       - name: Commit & Push changes
         uses: actions-js/push@master
@@ -222,7 +224,7 @@ jobs:
     needs: [prepare, build, image-update, update-workflow-and-readme]
     uses: ./.github/workflows/post.image.slack.yaml
     with:
-      slack-message: "\\n \\n> *Service:* ${{ github.event.inputs.application }} \\n> *Version:* Test Image Version \\n> *PR:* ${{ needs.update-workflow-and-readme.outputs.pr_title}}"
+      slack-message: "\\n \\n> *Service:* ${{ github.event.inputs.application }} \\n> *Version:* ${{ needs.build.outputs.img_tag }} \\n> *PR:* ${{ needs.update-workflow-and-readme.outputs.pr_title}}"
       channel: "orakl-images"
     secrets:
       SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
