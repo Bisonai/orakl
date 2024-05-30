@@ -205,15 +205,16 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@master
 
-      - name: Get Latest PR Title and Description
+      - name: get latest merged pull request
         id: pr_info
         run: |
-          PR_TITLE=$(gh pr view ${GITHUB_REF} --json title -q ".title")
-          PR_DESCRIPTION=$(gh pr view ${GITHUB_REF} --json body -q ".body")
-          echo "pr_title=${PR_TITLE}" >> $GITHUB_ENV
-          echo "pr_description=${PR_DESCRIPTION}" >> $GITHUB_ENV
+          pr=$(gh pr list --state merged --sort merged --json title,body -L 1)
+          PR_TITLE=$(echo $pr | jq -r '.[0].title')
+          PR_BODY=$(echo $pr | jq -r '.[0].body')
+          echo "PR_TITLE=${PR_TITLE}" >> $GITHUB_OUTPUT
+          echo "PR_BODY=${PR_BODY}" >> $GITHUB_OUTPUT       
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}             
 
       - name: Update Workflow Dispatch Options
         run: |
@@ -225,9 +226,9 @@ jobs:
         run: |
           echo "### ${NEW_TAG}" >> README.md
           echo "#### PR Title" >> README.md
-          echo "${{ env.pr_title }}" >> README.md
+          echo "${{ env.PR_TITLE }}" >> README.md
           echo "#### PR Description" >> README.md
-          echo "${{ env.pr_description }}" >> README.md
+          echo "${{ env.PR_BODY }}" >> README.md
           git add README.md
 
       - name: Commit and Push Changes
