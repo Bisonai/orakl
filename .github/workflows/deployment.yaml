@@ -253,7 +253,7 @@ jobs:
         run: |
           TR_PR_TITLE="${{steps.pr_info.outputs.PR_TITLE}}"
           MAX_LENGTH=30
-          if [ ${TR_PR_TITLE} -gt $MAX_LENGTH ]; then
+          if [ ${#TR_PR_TITLE} -gt $MAX_LENGTH ]; then
             TRUNCATED_TITLE="${TR_PR_TITLE:0:$MAX_LENGTH}..."
           else
             TRUNCATED_TITLE="$TR_PR_TITLE"
