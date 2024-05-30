@@ -32,7 +32,7 @@ on:
         default: "new"
         options:
           - new
-
+          - cli:v0.6.2.20240530.2339.cc6a7ab:OraklNodeUpdatehowfeedsarepars...
 jobs:
   prepare-taskflow:
     name: Prepare
@@ -60,7 +60,6 @@ jobs:
           echo "img_tag=${TAG}" >> $GITHUB_OUTPUT
         env:
           GH_TOKEN: ${{ secrets.WORKFLOW_PAT }}
-
   taskflow-image-update:
     name: Update Image Tag
     needs: [prepare-taskflow]
