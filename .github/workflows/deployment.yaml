@@ -199,6 +199,8 @@ jobs:
         # NEW_TAG=${{ github.event.inputs.application }}:${{ needs.build.outputs.img_tag }}
       - name: Update Workflow Dispatch Options
         run: |
+          git stash
+          git pull
           NEW_TAG=${{ github.event.inputs.application }}:vtestversion
           yq eval '.on.workflow_dispatch.inputs.image.options += ["'"${NEW_TAG}"'"]' -i .github/workflows/deployment.yaml
           git add .github/workflows/deployment.yaml
