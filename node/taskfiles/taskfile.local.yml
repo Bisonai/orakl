@@ -89,10 +89,10 @@ tasks:
   test-wss:
     cmds:
       - go test ./pkg/wss -v
-  test-wfetcher:
+  test-websocketfetcher:
     dotenv: [".env"]
     cmds:
-      - go test ./pkg/wfetcher/tests -v
+      - go test ./pkg/websocketfetcher/tests -v
 
   check-api:
     dotenv: [".env"]
@@ -151,4 +151,4 @@ tasks:
       - task: test-reporter
       - task: test-chain
       - task: test-wss
-      - task: test-wfetcher
+      - task: test-websocketfetcher
