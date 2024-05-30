@@ -32,13 +32,13 @@ on:
         default: "new"
         options:
           - new
-          - cli:v0.6.2.20240530.0903.62ea1a9
-          - cli:v0.6.2.20240530.0951.f3c7bbb
+          - cli:v0.6.2.20240530.0903.62ea1a9(Hotfix add missing ...)
+          - cli:v0.6.2.20240530.0951.f3c7bbb(Hotfix add missing ...)
 jobs:
   prepare-taskflow:
     name: Prepare
     runs-on: ubuntu-latest
-    if: ${{ github.event.inputs.network == 'Baobab' && github.event.inputs.image != 'new' }}
+    if: ${{ github.event.inputs.image != 'new' }}
     outputs:
       service: ${{ steps.tag.outputs.service }}
       version: ${{ steps.package.outputs.version }}
@@ -63,12 +63,14 @@ jobs:
           echo "tag_date=${TAG_DATE}" >> $GITHUB_OUTPUT
           echo "tag_git_hash=${TAG_GIT_HASH}" >> $GITHUB_OUTPUT
           echo "img_tag=${TAG}" >> $GITHUB_OUTPUT
+
   taskflow-image-update:
     name: Taskflow update image tag
     needs: [prepare-taskflow]
     uses: ./.github/workflows/update.image-tag.yaml
     with:
       network: "baobab"
+      build: false
       project-name: ${{ github.event.inputs.application }}
       version: ${{ needs.prepare-taskflow.outputs.version }}
       image-tag: ${{ needs.prepare-taskflow.outputs.img_tag}}
@@ -76,7 +78,8 @@ jobs:
       tag_git_hash: ${{ needs.prepare-taskflow.outputs.tag_git_hash }}
     secrets:
       PAT: ${{ secrets.PAT }}
-    if: ${{ github.event.inputs.network == 'Baobab' && github.event.inputs.image != 'new' }}
+    if: ${{ github.event.inputs.image != 'new' }}
+
   post-slack-taskflow-image-upload:
     name: Slack message for image upload
     needs: [prepare-taskflow, taskflow-image-update]

@@ -6,20 +6,24 @@ on:
       network:
         required: true
         type: string
+      build:
+        required: true
+        default: true
+        type: boolean
       project-name:
         required: true
         type: string
       version:
-        required: false
+        required: true
         type: string
       image-tag:
-        required: false
+        required: true
         type: string
       tag_date:
-        required: false
+        required: true
         type: string
       tag_git_hash:
-        required: false
+        required: true
         type: string
     secrets:
       PAT:
