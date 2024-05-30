@@ -134,35 +134,35 @@ func (a *App) Start(ctx context.Context) {
 			ticker.Stop()
 			return
 		case <-ticker.C:
-			a.storeFeedData(ctx)
+			go a.storeFeedData(ctx)
 		}
 	}
 }
 
 func (a *App) storeFeedData(ctx context.Context) {
-	for {
-		select {
-		case <-ctx.Done():
-			return
-		case feedData := <-a.buffer:
-			batch := []common.FeedData{feedData}
-			// Continue to drain the buffer until it's empty
-			draining := true
-			for draining {
-				select {
-				case feedData := <-a.buffer:
-					batch = append(batch, feedData)
-				default:
-					draining = false
-				}
-			}
 
-			err := common.StoreFeeds(ctx, batch)
-			if err != nil {
-				log.Error().Err(err).Msg("error in storing feed data")
+	select {
+	case <-ctx.Done():
+		return
+	case feedData := <-a.buffer:
+		batch := []common.FeedData{feedData}
+		// Continue to drain the buffer until it's empty
+		draining := true
+		for draining {
+			select {
+			case feedData := <-a.buffer:
+				batch = append(batch, feedData)
+			default:
+				draining = false
 			}
-		default:
-			return
 		}
+
+		err := common.StoreFeeds(ctx, batch)
+		if err != nil {
+			log.Error().Err(err).Msg("error in storing feed data")
+		}
+	default:
+		return
 	}
+
 }
