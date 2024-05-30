@@ -69,7 +69,7 @@ func PriceStringToFloat64(price string) (float64, error) {
 		return 0, err
 	}
 
-	return f * float64(math.Pow10(int(DECIMALS))), nil
+	return f * float64(math.Pow10(DECIMALS)), nil
 }
 
 func MessageToStruct[T any](message map[string]any) (T, error) {
