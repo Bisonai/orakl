@@ -201,6 +201,10 @@ jobs:
     name: Update Workflow and README
     runs-on: ubuntu-latest
     needs: [prepare]
+    permissions:
+      id-token: write
+      contents: read
+          
     steps:
       - name: Checkout Repository
         uses: actions/checkout@master
@@ -219,6 +223,8 @@ jobs:
           NEW_TAG=${{ github.event.inputs.application }}/${{ needs.build.outputs.img_tag }}
           sed -i "/options:/a\          - \"${NEW_TAG}\"" .github/workflows/deployment.yaml
           git add .github/workflows/deployment.yaml
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}             
 
       - name: Update README with Latest PR Info
         run: |
@@ -226,7 +232,7 @@ jobs:
           echo "#### PR Title" >> README.md
           echo "${{ env.PR_TITLE }}" >> README.md
           git add README.md
-
+   
       - name: Commit and Push Changes
         run: |
           git config --global user.name 'github-actions'
