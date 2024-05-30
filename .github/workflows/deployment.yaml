@@ -36,6 +36,7 @@ on:
           - cli:v0.6.2.20240530.0610.d118307
           - cli:v0.6.2.20240530.0639.dac1d13
           - cli:v0.6.2.20240530.0700.1c8fe4e
+          - cli:vtestversion
 jobs:
   prepare:
     name: Prepare
@@ -214,7 +215,6 @@ jobs:
           github_token: ${{ secrets.WORKFLOW_PAT }}
           branch: ${{ github.ref }}
           repository: ${{ github.repository }}
-
   post-slack-pr-update:
     name: Post to a slack message for tag update failure
     # needs: [prepare, build, image-update, update-workflow-and-readme]
@@ -223,7 +223,7 @@ jobs:
     with:
       status: "Success"
       # slack-message: "${{ github.event.inputs.application }} *Tag Version:* ${{ needs.build.outputs.img_tag }} *PR:* ${{ needs.update-workflow-and-readme.outputs.pr_title}}"
-      slack-message: "${{ github.event.inputs.application }} *Tag Version:* Test Image Version *PR:* ${{ needs.update-workflow-and-readme.outputs.pr_title}}"      
+      slack-message: "${{ github.event.inputs.application }} *Tag Version:* Test Image Version *PR:* ${{ needs.update-workflow-and-readme.outputs.pr_title}}"
       channel: "orakl-images"
     secrets:
       SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
