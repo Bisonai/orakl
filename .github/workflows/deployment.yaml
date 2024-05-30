@@ -32,14 +32,7 @@ on:
         default: "new"
         options:
           - new
-          - cli:v0.6.2.20240530.0504.dfd8382
-          - cli:v0.6.2.20240530.0610.d118307
-          - cli:v0.6.2.20240530.0639.dac1d13
-          - cli:v0.6.2.20240530.0700.1c8fe4e
-          - cli:vtestversion
-          - cli:vtestversion
-          - cli:vtestversion
-          - cli:vtestversion
+   
 jobs:
   prepare:
     name: Prepare
