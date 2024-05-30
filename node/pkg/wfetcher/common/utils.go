@@ -6,7 +6,6 @@ import (
 	"math"
 	"strconv"
 	"strings"
-	"time"
 
 	"bisonai.com/orakl/node/pkg/db"
 	"github.com/rs/zerolog/log"
@@ -46,14 +45,6 @@ func GetWssFeedMap(feeds []Feed) map[string]FeedMaps {
 		feedMaps[provider].Separated[separatedName] = feed.ID
 	}
 	return feedMaps
-}
-
-func StoreFeed(ctx context.Context, feedData FeedData, expiration time.Duration) error {
-	err := db.SetObject(ctx, "latestFeedData:"+strconv.Itoa(int(feedData.FeedId)), feedData, expiration)
-	if err != nil {
-		return err
-	}
-	return db.LPushObject(ctx, "feedDataBuffer", []FeedData{feedData})
 }
 
 func StoreFeeds(ctx context.Context, feedData []FeedData) error {

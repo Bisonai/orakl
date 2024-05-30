@@ -89,6 +89,10 @@ tasks:
   test-wss:
     cmds:
       - go test ./pkg/wss -v
+  test-wfetcher:
+    dotenv: [".env"]
+    cmds:
+      - go test ./pkg/wfetcher/tests -v
 
   check-api:
     dotenv: [".env"]
@@ -147,3 +151,4 @@ tasks:
       - task: test-reporter
       - task: test-chain
       - task: test-wss
+      - task: test-wfetcher
