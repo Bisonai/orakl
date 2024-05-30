@@ -199,8 +199,8 @@ jobs:
 
   update-workflow-and-readme:
     name: Update Workflow and README
+    needs: [prepare, build, image-update]
     runs-on: ubuntu-latest
-    needs: [prepare]
     permissions:
       id-token: write
       contents: write
