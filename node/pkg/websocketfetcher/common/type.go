@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"bisonai.com/orakl/node/pkg/common"
+	"bisonai.com/orakl/node/pkg/common/types"
 	"bisonai.com/orakl/node/pkg/wss"
 )
 
@@ -17,7 +17,7 @@ const (
 	GetAllProxiesQuery = `SELECT * FROM proxies`
 )
 
-type Proxy common.Proxy
+type Proxy types.Proxy
 
 func (proxy *Proxy) GetProxyUrl() string {
 	return fmt.Sprintf("%s://%s:%d", proxy.Protocol, proxy.Host, proxy.Port)
@@ -30,7 +30,7 @@ type Feed struct {
 	ConfigID   int32           `db:"config_id"`
 }
 
-type FeedData common.FeedData
+type FeedData types.FeedData
 
 type Definition struct {
 	Type     string `json:"type"`

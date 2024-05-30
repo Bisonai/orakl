@@ -3,17 +3,16 @@ package aggregator
 import (
 	"bytes"
 	"context"
-	"strconv"
 	"time"
 
+	"bisonai.com/orakl/node/pkg/common/keys"
 	"bisonai.com/orakl/node/pkg/db"
 	errorSentinel "bisonai.com/orakl/node/pkg/error"
 	"github.com/rs/zerolog/log"
 )
 
 func GetLatestLocalAggregateFromRdb(ctx context.Context, configId int32) (LocalAggregate, error) {
-	key := "localAggregate:" + strconv.Itoa(int(configId))
-	return db.GetObject[LocalAggregate](ctx, key)
+	return db.GetObject[LocalAggregate](ctx, keys.LocalAggregateKey(configId))
 }
 
 func GetLatestLocalAggregateFromPgs(ctx context.Context, configId int32) (LocalAggregate, error) {
@@ -58,9 +57,8 @@ func insertPgsql(ctx context.Context, configId int32, value int64, round int32, 
 }
 
 func insertRdb(ctx context.Context, configId int32, value int64, round int32, timestamp time.Time) error {
-	key := "globalAggregate:" + strconv.Itoa(int(configId))
 	data := GlobalAggregate{ConfigID: configId, Value: value, Round: round, Timestamp: timestamp}
-	return db.SetObject(ctx, key, data, time.Duration(5*time.Minute))
+	return db.SetObject(ctx, keys.GlobalAggregateKey(configId), data, time.Duration(5*time.Minute))
 }
 
 func InsertProof(ctx context.Context, configId int32, round int32, proofs [][]byte) error {
@@ -97,7 +95,7 @@ func insertProofPgsql(ctx context.Context, configId int32, round int32, proofs [
 
 func insertProofRdb(ctx context.Context, configId int32, round int32, proofs [][]byte) error {
 	concatProof := bytes.Join(proofs, nil)
-	key := "proof:" + strconv.Itoa(int(configId)) + "|round:" + strconv.Itoa(int(round))
+	key := keys.ProofKey(configId, round)
 	data := Proof{ConfigID: configId, Round: round, Proof: concatProof}
 	return db.SetObject(ctx, key, data, time.Duration(5*time.Minute))
 }
@@ -124,8 +122,7 @@ func getLatestRoundId(ctx context.Context, configId int32) (int32, error) {
 
 // used for testing
 func getProofFromRdb(ctx context.Context, configId int32, round int32) (Proof, error) {
-	key := "proof:" + strconv.Itoa(int(configId)) + "|round:" + strconv.Itoa(int(round))
-	return db.GetObject[Proof](ctx, key)
+	return db.GetObject[Proof](ctx, keys.ProofKey(configId, round))
 }
 
 // used for testing
@@ -141,6 +138,5 @@ func getProofFromPgsql(ctx context.Context, configId int32, round int32) (Proof,
 
 // used for testing
 func getLatestGlobalAggregateFromRdb(ctx context.Context, configId int32) (GlobalAggregate, error) {
-	key := "globalAggregate:" + strconv.Itoa(int(configId))
-	return db.GetObject[GlobalAggregate](ctx, key)
+	return db.GetObject[GlobalAggregate](ctx, keys.GlobalAggregateKey(configId))
 }

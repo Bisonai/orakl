@@ -2,19 +2,19 @@ package main
 
 import (
 	"context"
-	"strconv"
 	"time"
 
+	"bisonai.com/orakl/node/pkg/common/keys"
 	"bisonai.com/orakl/node/pkg/db"
 	"bisonai.com/orakl/node/pkg/websocketfetcher"
-	"bisonai.com/orakl/node/pkg/websocketfetcher/common"
+	wscommon "bisonai.com/orakl/node/pkg/websocketfetcher/common"
 	"github.com/rs/zerolog/log"
 )
 
 func main() {
 
 	ctx := context.Background()
-	feeds := []common.Feed{
+	feeds := []wscommon.Feed{
 		{
 			ID:         1,
 			Name:       "binance-wss-BTC-USDT",
@@ -66,7 +66,7 @@ func main() {
 
 	latestKeys := make([]string, len(feedIds))
 	for i, feedId := range feedIds {
-		latestKeys[i] = "latestFeedData:" + strconv.Itoa(int(feedId))
+		latestKeys[i] = keys.LatestFeedDataKey(feedId)
 	}
 
 	for range ticker.C {
@@ -79,7 +79,7 @@ func main() {
 		// 	log.Info().Any("FeedData", data).Msg("FeedData")
 		// }
 
-		bufferData, err := db.PopAllObject[common.FeedData](ctx, "feedDataBuffer")
+		bufferData, err := db.PopAllObject[wscommon.FeedData](ctx, "feedDataBuffer")
 		if err != nil {
 			log.Error().Err(err).Msg("error in PopAllObject")
 			continue

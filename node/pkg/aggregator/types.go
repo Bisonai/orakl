@@ -7,7 +7,7 @@ import (
 
 	"bisonai.com/orakl/node/pkg/bus"
 	"bisonai.com/orakl/node/pkg/chain/helper"
-	"bisonai.com/orakl/node/pkg/common"
+	"bisonai.com/orakl/node/pkg/common/types"
 	"bisonai.com/orakl/node/pkg/raft"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 	"github.com/libp2p/go-libp2p/core/host"
@@ -29,7 +29,7 @@ const (
 	InsertProofQuery                 = `INSERT INTO proofs (config_id, round, proof) VALUES (@config_id, @round, @proof) RETURNING *`
 )
 
-type LocalAggregate common.LocalAggregate
+type LocalAggregate types.LocalAggregate
 
 type PgsqlProof struct {
 	ID        int64     `db:"id"`
@@ -45,7 +45,7 @@ type Proof struct {
 	Proof    []byte `json:"proofs"`
 }
 
-type GlobalAggregate common.GlobalAggregate
+type GlobalAggregate types.GlobalAggregate
 
 type App struct {
 	Bus         *bus.MessageBus

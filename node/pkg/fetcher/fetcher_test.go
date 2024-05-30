@@ -10,6 +10,7 @@ import (
 	"net/http"
 
 	"bisonai.com/orakl/node/pkg/admin/tests"
+	"bisonai.com/orakl/node/pkg/common/keys"
 	"bisonai.com/orakl/node/pkg/db"
 	"github.com/elazarl/goproxy"
 	"github.com/rs/zerolog/log"
@@ -48,10 +49,10 @@ func TestFetcherRun(t *testing.T) {
 	}
 
 	defer func() {
-		db.Del(ctx, "feedDataBuffer")
+		db.Del(ctx, keys.FeedDataBufferKey())
 		for _, fetcher := range app.Fetchers {
 			for _, feed := range fetcher.Feeds {
-				db.Del(ctx, "latestFeedData:"+strconv.Itoa(int(feed.ID)))
+				db.Del(ctx, keys.LatestFeedDataKey(feed.ID))
 			}
 		}
 	}()
@@ -82,20 +83,20 @@ func TestFetcherFetcherJob(t *testing.T) {
 			t.Fatalf("error fetching: %v", jobErr)
 		}
 	}
-	defer db.Del(ctx, "feedDataBuffer")
+	defer db.Del(ctx, keys.FeedDataBufferKey())
 
 	for _, fetcher := range app.Fetchers {
 		for _, feed := range fetcher.Feeds {
-			res, latestFeedDataErr := db.GetObject[FeedData](ctx, "latestFeedData:"+strconv.Itoa(int(feed.ID)))
+			res, latestFeedDataErr := db.GetObject[FeedData](ctx, keys.LatestFeedDataKey(feed.ID))
 			if latestFeedDataErr != nil {
 				t.Fatalf("error fetching feed data: %v", latestFeedDataErr)
 			}
 			assert.NotNil(t, res)
-			defer db.Del(ctx, "latestFeedData:"+strconv.Itoa(int(feed.ID)))
+			defer db.Del(ctx, keys.LatestFeedDataKey(feed.ID))
 		}
 	}
 
-	buffer, err := db.LRangeObject[FeedData](ctx, "feedDataBuffer", 0, -1)
+	buffer, err := db.LRangeObject[FeedData](ctx, keys.FeedDataBufferKey(), 0, -1)
 	if err != nil {
 		t.Fatalf("error fetching buffer: %v", err)
 	}

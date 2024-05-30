@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"bisonai.com/orakl/node/pkg/bus"
-	"bisonai.com/orakl/node/pkg/common"
+	"bisonai.com/orakl/node/pkg/common/types"
 	"bisonai.com/orakl/node/pkg/utils/reducer"
 	"bisonai.com/orakl/node/pkg/websocketfetcher"
 )
@@ -20,7 +20,7 @@ const (
 	DECIMALS                   = 8
 )
 
-type FeedData common.FeedData
+type FeedData types.FeedData
 
 type Config struct {
 	ID            int32  `db:"id"`
@@ -28,7 +28,7 @@ type Config struct {
 	FetchInterval int32  `db:"fetch_interval"`
 }
 
-type Proxy common.Proxy
+type Proxy types.Proxy
 
 type Fetcher struct {
 	Config
@@ -89,7 +89,7 @@ type Definition struct {
 	Reciprocal     *bool   `json:"reciprocal"`
 }
 
-type LocalAggregate common.LocalAggregate
+type LocalAggregate types.LocalAggregate
 
 type ChainHelper interface {
 	ReadContract(ctx context.Context, contractAddress string, functionString string, args ...interface{}) (interface{}, error)

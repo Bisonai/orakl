@@ -6,7 +6,6 @@ import (
 	"context"
 	"encoding/json"
 	"os"
-	"strconv"
 	"testing"
 	"time"
 
@@ -14,6 +13,7 @@ import (
 	"bisonai.com/orakl/node/pkg/admin/utils"
 	"bisonai.com/orakl/node/pkg/bus"
 	"bisonai.com/orakl/node/pkg/chain/helper"
+	"bisonai.com/orakl/node/pkg/common/keys"
 	"bisonai.com/orakl/node/pkg/db"
 	libp2pSetup "bisonai.com/orakl/node/pkg/libp2p/setup"
 	"github.com/gofiber/fiber/v2"
@@ -60,7 +60,7 @@ func insertSampleData(ctx context.Context) (*TmpData, error) {
 		return nil, err
 	}
 
-	key := "globalAggregate:" + strconv.Itoa(int(tmpConfig.ID))
+	key := keys.GlobalAggregateKey(tmpConfig.ID)
 	data, err := json.Marshal(map[string]any{"configId": tmpConfig.ID, "value": int64(15), "round": int64(1), "timestamp": proofTime})
 	if err != nil {
 		return nil, err
@@ -95,7 +95,7 @@ func insertSampleData(ctx context.Context) (*TmpData, error) {
 		return nil, err
 	}
 
-	err = db.Set(ctx, "proof:"+strconv.Itoa(int(tmpConfig.ID))+"|round:1", string(rdbProofData), time.Duration(10*time.Second))
+	err = db.Set(ctx, keys.ProofKey(tmpConfig.ID, 1), string(rdbProofData), time.Duration(10*time.Second))
 	if err != nil {
 		return nil, err
 	}

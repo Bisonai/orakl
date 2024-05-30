@@ -4,13 +4,13 @@ import (
 	"context"
 	"encoding/json"
 	"os"
-	"strconv"
 	"testing"
 	"time"
 
 	"bisonai.com/orakl/node/pkg/admin/aggregator"
 	"bisonai.com/orakl/node/pkg/admin/config"
 	"bisonai.com/orakl/node/pkg/admin/utils"
+	"bisonai.com/orakl/node/pkg/common/keys"
 
 	"bisonai.com/orakl/node/pkg/bus"
 	"bisonai.com/orakl/node/pkg/db"
@@ -97,7 +97,7 @@ func insertSampleData(ctx context.Context) (*TmpData, error) {
 
 	localAggregateInsertTime := time.Now()
 
-	key := "localAggregate:" + strconv.Itoa(int(tmpConfig.ID))
+	key := keys.LocalAggregateKey(tmpConfig.ID)
 	data, err := json.Marshal(LocalAggregate{ConfigID: tmpConfig.ID, Value: int64(10), Timestamp: localAggregateInsertTime})
 	if err != nil {
 		return nil, err
@@ -143,9 +143,11 @@ func aggregatorCleanup(ctx context.Context, admin *fiber.App, app *App) func() e
 			return err
 		}
 
-		err = db.Del(ctx, "localAggregate:test_pair")
-		if err != nil {
-			return err
+		for i := range app.Aggregators {
+			err = db.Del(ctx, keys.LocalAggregateKey(i))
+			if err != nil {
+				return err
+			}
 		}
 
 		err = admin.Shutdown()

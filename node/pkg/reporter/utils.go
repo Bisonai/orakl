@@ -5,11 +5,11 @@ import (
 	"context"
 	"math"
 	"math/big"
-	"strconv"
 	"time"
 
 	"bisonai.com/orakl/node/pkg/chain/helper"
 	chainUtils "bisonai.com/orakl/node/pkg/chain/utils"
+	"bisonai.com/orakl/node/pkg/common/keys"
 	"bisonai.com/orakl/node/pkg/db"
 	errorSentinel "bisonai.com/orakl/node/pkg/error"
 
@@ -52,13 +52,13 @@ func ShouldReportDeviation(oldValue int64, newValue int64) bool {
 }
 
 func GetLastSubmission(ctx context.Context, submissionPairs map[int32]SubmissionPair) ([]GlobalAggregate, error) {
-	keys := make([]string, 0, len(submissionPairs))
+	keyList := make([]string, 0, len(submissionPairs))
 
-	for config_id := range submissionPairs {
-		keys = append(keys, "lastSubmission:"+strconv.Itoa(int(config_id)))
+	for configID := range submissionPairs {
+		keyList = append(keyList, keys.LastSubmissionKey(configID))
 	}
 
-	return db.MGetObject[GlobalAggregate](ctx, keys)
+	return db.MGetObject[GlobalAggregate](ctx, keyList)
 }
 
 func StoreLastSubmission(ctx context.Context, aggregates []GlobalAggregate) error {
@@ -69,8 +69,7 @@ func StoreLastSubmission(ctx context.Context, aggregates []GlobalAggregate) erro
 			log.Error().Str("Player", "Reporter").Int32("ConfigID", agg.ConfigID).Msg("skipping invalid aggregate")
 			continue
 		}
-		key := "lastSubmission:" + strconv.Itoa(int(agg.ConfigID))
-		vals[key] = agg
+		vals[keys.LastSubmissionKey(agg.ConfigID)] = agg
 	}
 
 	if len(vals) == 0 {
@@ -161,11 +160,11 @@ func GetProofs(ctx context.Context, aggregates []GlobalAggregate) ([]Proof, erro
 }
 
 func GetProofsRdb(ctx context.Context, aggregates []GlobalAggregate) ([]Proof, error) {
-	keys := make([]string, 0, len(aggregates))
+	keyList := make([]string, 0, len(aggregates))
 	for _, agg := range aggregates {
-		keys = append(keys, "proof:"+strconv.Itoa(int(agg.ConfigID))+"|round:"+strconv.Itoa(int(agg.Round)))
+		keyList = append(keyList, keys.ProofKey(agg.ConfigID, agg.Round))
 	}
-	return db.MGetObject[Proof](ctx, keys)
+	return db.MGetObject[Proof](ctx, keyList)
 }
 
 func GetProofsPgsql(ctx context.Context, aggregates []GlobalAggregate) ([]Proof, error) {
@@ -212,13 +211,13 @@ func GetLatestGlobalAggregatesPgsql(ctx context.Context, submissionPairs map[int
 }
 
 func GetLatestGlobalAggregatesRdb(ctx context.Context, submissionPairs map[int32]SubmissionPair) ([]GlobalAggregate, error) {
-	keys := make([]string, 0, len(submissionPairs))
+	keyList := make([]string, 0, len(submissionPairs))
 
 	for configId := range submissionPairs {
-		keys = append(keys, "globalAggregate:"+strconv.Itoa(int(configId)))
+		keyList = append(keyList, keys.GlobalAggregateKey(configId))
 	}
 
-	return db.MGetObject[GlobalAggregate](ctx, keys)
+	return db.MGetObject[GlobalAggregate](ctx, keyList)
 }
 
 func ValidateAggregateTimestampValues(aggregates []GlobalAggregate) bool {

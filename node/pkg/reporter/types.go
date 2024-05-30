@@ -8,9 +8,9 @@ import (
 
 	"bisonai.com/orakl/node/pkg/bus"
 	"bisonai.com/orakl/node/pkg/chain/helper"
-	"bisonai.com/orakl/node/pkg/common"
+	"bisonai.com/orakl/node/pkg/common/types"
 	"bisonai.com/orakl/node/pkg/raft"
-	klaytnCommon "github.com/klaytn/klaytn/common"
+	"github.com/klaytn/klaytn/common"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 	"github.com/libp2p/go-libp2p/core/host"
 )
@@ -65,7 +65,7 @@ type ReporterConfig struct {
 	Configs         []Config
 	Interval        int
 	ContractAddress string
-	CachedWhitelist []klaytnCommon.Address
+	CachedWhitelist []common.Address
 	JobType         JobType
 }
 
@@ -101,7 +101,7 @@ func WithContractAddress(address string) ReporterOption {
 	}
 }
 
-func WithCachedWhitelist(whitelist []klaytnCommon.Address) ReporterOption {
+func WithCachedWhitelist(whitelist []common.Address) ReporterOption {
 	return func(c *ReporterConfig) {
 		c.CachedWhitelist = whitelist
 	}
@@ -118,7 +118,7 @@ type Reporter struct {
 	KlaytnHelper       *helper.ChainHelper
 	SubmissionPairs    map[int32]SubmissionPair
 	SubmissionInterval time.Duration
-	CachedWhitelist    []klaytnCommon.Address
+	CachedWhitelist    []common.Address
 
 	contractAddress string
 
@@ -127,7 +127,7 @@ type Reporter struct {
 	isRunning  bool
 }
 
-type GlobalAggregate common.GlobalAggregate
+type GlobalAggregate types.GlobalAggregate
 
 type Proof struct {
 	ConfigID int32  `json:"configId"`

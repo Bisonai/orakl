@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"strings"
 
+	"bisonai.com/orakl/node/pkg/common/keys"
 	"bisonai.com/orakl/node/pkg/db"
 	"github.com/rs/zerolog/log"
 )
@@ -48,7 +49,7 @@ func GetWssFeedMap(feeds []Feed) map[string]FeedMaps {
 func StoreFeeds(ctx context.Context, feedData []FeedData) error {
 	latestData := make(map[string]any)
 	for _, data := range feedData {
-		key := "latestFeedData:" + strconv.Itoa(int(data.FeedID))
+		key := keys.LatestFeedDataKey(data.FeedID)
 		if latestData[key] != nil && latestData[key].(FeedData).Timestamp.After(*data.Timestamp) {
 			continue
 		}
@@ -58,7 +59,7 @@ func StoreFeeds(ctx context.Context, feedData []FeedData) error {
 	if err != nil {
 		return err
 	}
-	return db.LPushObject(ctx, "feedDataBuffer", feedData)
+	return db.LPushObject(ctx, keys.FeedDataBufferKey(), feedData)
 }
 
 func PriceStringToFloat64(price string) (float64, error) {

@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"bisonai.com/orakl/node/pkg/common/keys"
 	"bisonai.com/orakl/node/pkg/db"
 	"bisonai.com/orakl/node/pkg/websocketfetcher/common"
 	"bisonai.com/orakl/node/pkg/websocketfetcher/providers/binance"
@@ -110,7 +111,7 @@ func TestStoreFeeds(t *testing.T) {
 		t.Errorf("unexpected error: %v", err)
 	}
 
-	latestFeed1, err := db.GetObject[common.FeedData](ctx, "latestFeedData:1")
+	latestFeed1, err := db.GetObject[common.FeedData](ctx, keys.LatestFeedDataKey(1))
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
@@ -118,7 +119,7 @@ func TestStoreFeeds(t *testing.T) {
 		t.Errorf("expected value 10001, got %f", latestFeed1.Value)
 	}
 
-	latestFeed2, err := db.GetObject[common.FeedData](ctx, "latestFeedData:2")
+	latestFeed2, err := db.GetObject[common.FeedData](ctx, keys.LatestFeedDataKey(2))
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
