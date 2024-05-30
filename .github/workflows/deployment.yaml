@@ -234,6 +234,7 @@ jobs:
 
       - name: Update Workflow Dispatch Options
         run: |
+          cd ./gitops_tmp/
           NEW_TAG=${{ github.event.inputs.application }}/${{ needs.build.outputs.img_tag }}
           sed -i "/options:/a\          - \"${NEW_TAG}\"" .github/workflows/deployment.yaml
           git add .github/workflows/deployment.yaml
@@ -242,6 +243,7 @@ jobs:
 
       - name: Update README with Latest PR Info
         run: |
+          cd ./gitops_tmp/
           echo "### ${NEW_TAG}" >> README.md
           echo "#### PR Title" >> README.md
           echo "${{ env.PR_TITLE }}" >> README.md
