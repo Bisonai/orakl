@@ -201,7 +201,6 @@ jobs:
     name: Update Workflow and README
     runs-on: ubuntu-latest
     needs: [image-update]
-    env:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v2
