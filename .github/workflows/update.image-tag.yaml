@@ -13,16 +13,16 @@ on:
         required: true
         type: string
       version:
-        required: true
+        required: false
         type: string
       image-tag:
-        required: true
+        required: false
         type: string
       tag_date:
-        required: true
+        required: false
         type: string
       tag_git_hash:
-        required: true
+        required: false
         type: string
     secrets:
       PAT:
