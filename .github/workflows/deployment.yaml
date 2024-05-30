@@ -33,6 +33,7 @@ on:
         options:
           - new
           - cli:vtestversion
+          - cli:vtestversion
 jobs:
   prepare:
     name: Prepare
