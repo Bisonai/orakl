@@ -11,7 +11,6 @@ import (
 
 const (
 	DECIMALS           = 8
-	BufferSize         = 500
 	GetAllFeedsQuery   = `SELECT * FROM feeds`
 	GetAllProxiesQuery = `SELECT * FROM proxies`
 )

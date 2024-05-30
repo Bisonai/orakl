@@ -37,7 +37,10 @@ func GetWssFeedMap(feeds []Feed) map[string]FeedMaps {
 		separatedName := base + "-" + quote
 
 		if _, exists := feedMaps[provider]; !exists {
-			feedMaps[provider] = FeedMaps{}
+			feedMaps[provider] = FeedMaps{
+				Combined:  make(map[string]int32),
+				Separated: make(map[string]int32),
+			}
 		}
 		feedMaps[provider].Combined[combinedName] = feed.ID
 		feedMaps[provider].Separated[separatedName] = feed.ID

@@ -38,6 +38,10 @@ tasks:
     dotenv: [".env"]
     cmds:
       - go run ./script/test_raft/main.go -p={{.P}}
+  script-test-wfetcher:
+    dotenv: [".env"]
+    cmds:
+      - go run ./script/test_wfetcher/main.go
 
   test-db:
     dotenv: [".env"]

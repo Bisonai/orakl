@@ -48,6 +48,10 @@ func (b *BinanceFetcher) handleMessage(ctx context.Context, message map[string]a
 		return err
 	}
 
+	if ticker.EventType != "24hrMiniTicker" {
+		return nil
+	}
+
 	feedData, err := TickerToFeedData(ticker, b.FeedMap)
 	if err != nil {
 		log.Error().Str("Player", "Binance").Err(err).Msg("error in MiniTickerToFeedData")
