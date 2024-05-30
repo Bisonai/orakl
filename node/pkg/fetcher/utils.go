@@ -87,7 +87,7 @@ func insertLocalAggregatePgsql(ctx context.Context, configId int32, value float6
 
 func insertLocalAggregateRdb(ctx context.Context, configId int32, value float64) error {
 	key := "localAggregate:" + strconv.Itoa(int(configId))
-	data := RedisAggregate{ConfigId: configId, Value: int64(value), Timestamp: time.Now()}
+	data := LocalAggregate{ConfigID: configId, Value: int64(value), Timestamp: time.Now()}
 	return db.SetObject(ctx, key, data, time.Duration(5*time.Minute))
 }
 

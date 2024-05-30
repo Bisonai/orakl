@@ -312,7 +312,7 @@ func TestInsertLocalAggregateRdb(t *testing.T) {
 		if err != nil {
 			t.Fatalf("error getting local aggregate rdb: %v", err)
 		}
-		assert.Equal(t, int32(config.Id), result.ConfigId)
+		assert.Equal(t, int32(config.Id), result.ConfigID)
 	}
 }
 

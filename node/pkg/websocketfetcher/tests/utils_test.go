@@ -84,22 +84,22 @@ func TestStoreFeeds(t *testing.T) {
 
 	feedData := []common.FeedData{
 		{
-			FeedId:    1,
+			FeedID:    1,
 			Value:     10000,
 			Timestamp: &testTimestamps[0],
 		},
 		{
-			FeedId:    1,
+			FeedID:    1,
 			Value:     10001,
 			Timestamp: &testTimestamps[1],
 		},
 		{
-			FeedId:    2,
+			FeedID:    2,
 			Value:     20000,
 			Timestamp: &testTimestamps[2],
 		},
 		{
-			FeedId:    2,
+			FeedID:    2,
 			Value:     20001,
 			Timestamp: &testTimestamps[3],
 		},

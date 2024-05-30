@@ -48,7 +48,7 @@ func GetWssFeedMap(feeds []Feed) map[string]FeedMaps {
 func StoreFeeds(ctx context.Context, feedData []FeedData) error {
 	latestData := make(map[string]any)
 	for _, data := range feedData {
-		key := "latestFeedData:" + strconv.Itoa(int(data.FeedId))
+		key := "latestFeedData:" + strconv.Itoa(int(data.FeedID))
 		if latestData[key] != nil && latestData[key].(FeedData).Timestamp.After(*data.Timestamp) {
 			continue
 		}

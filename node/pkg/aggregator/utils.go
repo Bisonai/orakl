@@ -16,8 +16,8 @@ func GetLatestLocalAggregateFromRdb(ctx context.Context, configId int32) (LocalA
 	return db.GetObject[LocalAggregate](ctx, key)
 }
 
-func GetLatestLocalAggregateFromPgs(ctx context.Context, configId int32) (PgsLocalAggregate, error) {
-	return db.QueryRow[PgsLocalAggregate](ctx, SelectLatestLocalAggregateQuery, map[string]any{"config_id": configId})
+func GetLatestLocalAggregateFromPgs(ctx context.Context, configId int32) (LocalAggregate, error) {
+	return db.QueryRow[LocalAggregate](ctx, SelectLatestLocalAggregateQuery, map[string]any{"config_id": configId})
 }
 
 func FilterNegative(values []int64) []int64 {

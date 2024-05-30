@@ -30,7 +30,7 @@ const (
 type TmpData struct {
 	config          Config
 	rLocalAggregate LocalAggregate
-	pLocalAggregate PgsLocalAggregate
+	pLocalAggregate LocalAggregate
 	globalAggregate GlobalAggregate
 }
 
@@ -98,7 +98,7 @@ func insertSampleData(ctx context.Context) (*TmpData, error) {
 	localAggregateInsertTime := time.Now()
 
 	key := "localAggregate:" + strconv.Itoa(int(tmpConfig.ID))
-	data, err := json.Marshal(LocalAggregate{ConfigId: tmpConfig.ID, Value: int64(10), Timestamp: localAggregateInsertTime})
+	data, err := json.Marshal(LocalAggregate{ConfigID: tmpConfig.ID, Value: int64(10), Timestamp: localAggregateInsertTime})
 	if err != nil {
 		return nil, err
 	}
@@ -108,9 +108,9 @@ func insertSampleData(ctx context.Context) (*TmpData, error) {
 		return nil, err
 	}
 
-	tmpData.rLocalAggregate = LocalAggregate{ConfigId: tmpConfig.ID, Value: int64(10), Timestamp: localAggregateInsertTime}
+	tmpData.rLocalAggregate = LocalAggregate{ConfigID: tmpConfig.ID, Value: int64(10), Timestamp: localAggregateInsertTime}
 
-	tmpPLocalAggregate, err := db.QueryRow[PgsLocalAggregate](ctx, InsertLocalAggregateQuery, map[string]any{"config_id": tmpConfig.ID, "value": int64(10), "time": localAggregateInsertTime})
+	tmpPLocalAggregate, err := db.QueryRow[LocalAggregate](ctx, InsertLocalAggregateQuery, map[string]any{"config_id": tmpConfig.ID, "value": int64(10), "time": localAggregateInsertTime})
 	if err != nil {
 		return nil, err
 	}

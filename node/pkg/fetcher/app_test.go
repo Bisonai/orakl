@@ -114,7 +114,7 @@ func TestAppRun(t *testing.T) {
 	}
 	assert.Greater(t, len(feedResult), 0)
 
-	localAggregateResult, err := db.QueryRows[Aggregate](ctx, "SELECT * FROM local_aggregates", nil)
+	localAggregateResult, err := db.QueryRows[LocalAggregate](ctx, "SELECT * FROM local_aggregates", nil)
 	if err != nil {
 		t.Fatalf("error querying local aggregates: %v", err)
 	}
