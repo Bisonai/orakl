@@ -32,9 +32,7 @@ on:
         default: "new"
         options:
           - new
-          - cli:v0.6.2.20240530.0903.62ea1a9(Hotfix add missing ..)
-          - cli:v0.6.2.20240530.0951.f3c7bbb(Hotfix add missing ..)
-          - cli:v0.6.2.20240530.2320.6c13025((OraklNode) Update how feeds a...)
+
 jobs:
   prepare-taskflow:
     name: Prepare
@@ -50,7 +48,19 @@ jobs:
       - uses: actions/checkout@master
       - name: extract tags
         id: taskflow-tag
-        run: "IMAGE_TAG=\"${{ github.event.inputs.image }}\"\nIMAGE_TAG=$(echo \"${IMAGE_TAG}\" | sed 's/([^)]*)//') \nTAG=$(echo \"${IMAGE_TAG}\" | sed 's/^[^:]*://')\necho $TAG;\nVERSION=$(echo \"${IMAGE_TAG}\" | cut -d':' -f2 | cut -d'.' -f1-3)\necho $VERSION\nTAG_DATE=$(echo \"${IMAGE_TAG}\" | cut -d':' -f2 | cut -d'.' -f4-5)\necho $TAG_DATE\nTAG_GIT_HASH=$(echo \"${IMAGE_TAG}\" | cut -d':' -f2 | cut -d'.' -f6)\necho $TAG_GIT_HASH\necho \"version=${VERSION}\" >> $GITHUB_OUTPUT\necho \"tag_date=${TAG_DATE}\" >> $GITHUB_OUTPUT\necho \"tag_git_hash=${TAG_GIT_HASH}\" >> $GITHUB_OUTPUT\necho \"img_tag=${TAG}\" >> $GITHUB_OUTPUT\n"
+        run: |
+          IMAGE_TAG="${{ github.event.inputs.image }}"
+          TAG=$(echo "${IMAGE_TAG}" | sed 's/^\([^:]*:[^:]*\):.*/\1/')
+          VERSION=$(echo "${IMAGE_TAG}" | cut -d':' -f2 | cut -d'.' -f1-3)
+          TAG_DATE=$(echo "${IMAGE_TAG}" | cut -d':' -f2 | cut -d'.' -f4-5)
+          TAG_GIT_HASH=$(echo "${IMAGE_TAG}" | cut -d':' -f2 | cut -d'.' -f6)
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
+          echo "tag_date=${TAG_DATE}" >> $GITHUB_OUTPUT
+          echo "tag_git_hash=${TAG_GIT_HASH}" >> $GITHUB_OUTPUT
+          echo "img_tag=${TAG}" >> $GITHUB_OUTPUT
+        env:
+          GH_TOKEN: ${{ secrets.WORKFLOW_PAT }}
+
   taskflow-image-update:
     name: Update Image Tag
     needs: [prepare-taskflow]
@@ -226,6 +236,7 @@ jobs:
           pr=$(gh pr list --state merged --json title -L 1)
           PR_TITLE=$(echo $pr | jq -r '.[0].title')
           PR_TITLE=$(echo "${PR_TITLE}" | sed 's/\\/\\\\/g; s/"/\\"/g; s/`/\\`/g; s/\$/\\$/g')
+          PR_TITLE=$(echo "${PR_TITLE}" | sed 's/[^a-zA-Z0-9]//g')
           echo "PR_TITLE=${PR_TITLE}" >> $GITHUB_OUTPUT
         env:
           GH_TOKEN: ${{ secrets.WORKFLOW_PAT }}
@@ -243,7 +254,7 @@ jobs:
           git pull
           NEW_TAG=${{ github.event.inputs.application }}:${{ needs.build.outputs.img_tag }}
           echo "NEW_TAG=${NEW_TAG}" >> $GITHUB_OUTPUT
-          TAG_WITH_DESCRIPTION="${NEW_TAG}\(${{ steps.truncate_pr_title.outputs.truncated_title }}\)"
+          TAG_WITH_DESCRIPTION="${NEW_TAG}:${{ steps.truncate_pr_title.outputs.truncated_title }}"
           yq eval '.on.workflow_dispatch.inputs.image.options += ["'"${TAG_WITH_DESCRIPTION}"'"]' -i .github/workflows/deployment.yaml
           git add .github/workflows/deployment.yaml
         env:
