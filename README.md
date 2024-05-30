@@ -74,3 +74,4 @@ docker-compose -f docker-compose.local-data-feed.yaml down -v
 - **** <br> *`PR`*: Hotfix add missing return statement on switch default <br><br> 
 - **** <br> *`PR`*: Hotfix add missing return statement on switch default <br><br> 
 - **cli:v0.6.2.20240530.0903.62ea1a9** <br> *`PR`*: Hotfix add missing return statement on switch default <br><br> 
+- **cli:v0.6.2.20240530.0951.f3c7bbb** <br> *`PR`*: Hotfix add missing return statement on switch default <br><br> 

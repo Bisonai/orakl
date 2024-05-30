@@ -33,15 +33,15 @@ on:
         options:
           - new
           - cli:v0.6.2.20240530.0903.62ea1a9
+          - cli:v0.6.2.20240530.0951.f3c7bbb
 jobs:
-
   prepare-taskflow:
     name: Prepare
     runs-on: ubuntu-latest
     if: ${{ github.event.inputs.network == 'Baobab' && github.event.inputs.image != 'new' }}
     outputs:
       service: ${{ steps.tag.outputs.service }}
-      version: ${{ steps.package.outputs.version }}    
+      version: ${{ steps.package.outputs.version }}
       tag_date: ${{ steps.taskflow-tag.outputs.tag_date }}
       tag_git_hash: ${{ steps.taskflow-tag.outputs.tag_git_hash}}
       img_tag: ${{ steps.parse.outputs.img_tag }}
@@ -59,8 +59,6 @@ jobs:
           echo "tag_date=${TAG_DATE}" >> $GITHUB_OUTPUT
           echo "tag_git_hash=${TAG_GIT_HASH}" >> $GITHUB_OUTPUT
           echo "img_tag=${TAG}" >> $GITHUB_OUTPUT
-
-
   taskflow-image-update:
     name: Taskflow update image tag
     needs: [prepare-taskflow]
@@ -75,7 +73,6 @@ jobs:
     secrets:
       PAT: ${{ secrets.PAT }}
     if: ${{ github.event.inputs.network == 'Baobab' && github.event.inputs.image != 'new' }}
-
   post-slack-taskflow-image-upload:
     name: Slack message for image upload
     needs: [prepare-taskflow, taskflow-image-update]
@@ -87,8 +84,6 @@ jobs:
     secrets:
       SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
     if: ${{ github.event.inputs.network == 'Baobab' && success() }}
-
-
   prepare:
     name: Prepare
     runs-on: ubuntu-latest
@@ -149,7 +144,6 @@ jobs:
       - name: image tag output
         id: img-tag
         run: echo "img_tag=v${{ needs.prepare.outputs.version }}.${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }}" >> $GITHUB_OUTPUT
-
   post-slack-image-upload:
     name: Slack message for image upload
     needs: [prepare, build]
@@ -161,7 +155,6 @@ jobs:
     secrets:
       SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
     if: ${{ github.event.inputs.network == 'Baobab' && success() }}
-
   image-update:
     name: Update image tag
     needs: [prepare, build]
@@ -176,7 +169,6 @@ jobs:
     secrets:
       PAT: ${{ secrets.PAT }}
     if: ${{ github.event.inputs.network == 'Baobab' && github.event.inputs.image == 'new' }}
-
   post-slack-baobab-tag-update-success:
     name: Post slack message for tag update success
     needs: [prepare, build, image-update]
@@ -188,7 +180,6 @@ jobs:
     secrets:
       SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
     if: ${{ github.event.inputs.network == 'Baobab' && github.event.inputs.image == 'new' && success() }}
-
   cypress-image-update:
     name: cypress image update
     uses: ./.github/workflows/update.image-tag.yaml
@@ -220,7 +211,6 @@ jobs:
     secrets:
       SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
     if: ${{ github.event.inputs.network == 'Baobab' && github.event.inputs.image == 'new' && failure() }}
-    
   update-workflow-and-readme:
     name: Update Workflow and README
     needs: [prepare, build, image-update]
