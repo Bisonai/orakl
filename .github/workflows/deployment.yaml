@@ -79,126 +79,126 @@ jobs:
             echo "version=$version" >> $GITHUB_OUTPUT
           fi
 
-  # build:
-  #   name: Build
-  #   runs-on: ubuntu-latest
-  #   needs: prepare
-  #   if: ${{ github.event.inputs.network == 'Baobab' }}
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    needs: prepare
+    if: ${{ github.event.inputs.network == 'Baobab' }}
 
-  #   permissions:
-  #     id-token: write
-  #     contents: read
+    permissions:
+      id-token: write
+      contents: read
 
-  #   outputs:
-  #     img_tag: ${{ steps.img-tag.outputs.img_tag }}
+    outputs:
+      img_tag: ${{ steps.img-tag.outputs.img_tag }}
 
-  #   steps:
-  #     - uses: actions/checkout@master
+    steps:
+      - uses: actions/checkout@master
 
-  #     - name: Setup Go
-  #       uses: actions/setup-go@v4
-  #       with:
-  #         go-version: "1.22.3"
-  #         check-latest: true
-  #         cache-dependency-path: |
-  #           ./${{ needs.prepare.outputs.service }}/go.sum
-  #           ./${{ needs.prepare.outputs.service }}/go.mod
-  #       if: ${{ needs.prepare.outputs.service != 'core' || needs.prepare.outputs.service != 'fetcher' || needs.prepare.outputs.service != 'cli' }}
+      - name: Setup Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: "1.22.3"
+          check-latest: true
+          cache-dependency-path: |
+            ./${{ needs.prepare.outputs.service }}/go.sum
+            ./${{ needs.prepare.outputs.service }}/go.mod
+        if: ${{ needs.prepare.outputs.service != 'core' || needs.prepare.outputs.service != 'fetcher' || needs.prepare.outputs.service != 'cli' }}
 
-  #     - name: docker build ${{ github.event.inputs.application }}
-  #       run: SERVICE_NAME=orakl-${{ needs.prepare.outputs.service }} docker compose -f docker-compose.build.yaml build
+      - name: docker build ${{ github.event.inputs.application }}
+        run: SERVICE_NAME=orakl-${{ needs.prepare.outputs.service }} docker compose -f docker-compose.build.yaml build
 
-  #     - name: configure aws credentials
-  #       uses: aws-actions/configure-aws-credentials@v2
-  #       with:
-  #         aws-region: us-east-1
-  #         role-to-assume: ${{ secrets.ROLE_ARN }}
+      - name: configure aws credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-region: us-east-1
+          role-to-assume: ${{ secrets.ROLE_ARN }}
 
-  #     - name: login to amazon ecr
-  #       id: login-ecr-public
-  #       uses: aws-actions/amazon-ecr-login@v1
-  #       with:
-  #         registry-type: public
+      - name: login to amazon ecr
+        id: login-ecr-public
+        uses: aws-actions/amazon-ecr-login@v1
+        with:
+          registry-type: public
 
-  #     - name: publish image to ecr
-  #       run: |
-  #         docker tag orakl-${{ needs.prepare.outputs.service }} ${{ needs.prepare.outputs.ecr_url }}:latest
-  #         docker push ${{ needs.prepare.outputs.ecr_url }}:latest
-  #         docker tag ${{ needs.prepare.outputs.ecr_url }}:latest ${{ needs.prepare.outputs.ecr_url }}:v${{ needs.prepare.outputs.version }}.${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }}
-  #         docker push ${{ needs.prepare.outputs.ecr_url }}:v${{ needs.prepare.outputs.version }}.${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }}
+      - name: publish image to ecr
+        run: |
+          docker tag orakl-${{ needs.prepare.outputs.service }} ${{ needs.prepare.outputs.ecr_url }}:latest
+          docker push ${{ needs.prepare.outputs.ecr_url }}:latest
+          docker tag ${{ needs.prepare.outputs.ecr_url }}:latest ${{ needs.prepare.outputs.ecr_url }}:v${{ needs.prepare.outputs.version }}.${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }}
+          docker push ${{ needs.prepare.outputs.ecr_url }}:v${{ needs.prepare.outputs.version }}.${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }}
 
-  #     - name: image tag output
-  #       id: img-tag
-  #       run: echo "img_tag=v${{ needs.prepare.outputs.version }}.${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }}" >> $GITHUB_OUTPUT
+      - name: image tag output
+        id: img-tag
+        run: echo "img_tag=v${{ needs.prepare.outputs.version }}.${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }}" >> $GITHUB_OUTPUT
 
-  # post-slack-image-upload:
-  #   name: Slack message for image upload
-  #   needs: [prepare, build]
-  #   uses: ./.github/workflows/post.slack.yaml
-  #   with:
-  #     status: "Success"
-  #     slack-message: "${{ github.event.inputs.network }} ${{ github.event.inputs.application }}* : *${{ needs.prepare.outputs.service }}* ${{ needs.prepare.outputs.version }}.${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }} is uploaded"
-  #   secrets:
-  #     SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
-  #   if: ${{ github.event.inputs.network == 'Baobab' && success() }}
+  post-slack-image-upload:
+    name: Slack message for image upload
+    needs: [prepare, build]
+    uses: ./.github/workflows/post.slack.yaml
+    with:
+      status: "Success"
+      slack-message: "${{ github.event.inputs.network }} ${{ github.event.inputs.application }}* : *${{ needs.prepare.outputs.service }}* ${{ needs.prepare.outputs.version }}.${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }} is uploaded"
+    secrets:
+      SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+    if: ${{ github.event.inputs.network == 'Baobab' && success() }}
 
-  # image-update:
-  #   name: Update image tag
-  #   needs: [prepare, build]
-  #   uses: ./.github/workflows/update.image-tag.yaml
-  #   with:
-  #     network: "baobab"
-  #     project-name: ${{ github.event.inputs.application }}
-  #     version: ${{ needs.prepare.outputs.version }}
-  #     image-tag: ${{ needs.build.outputs.img_tag }}
-  #     tag_date: ${{ needs.prepare.outputs.tag_date }}
-  #     tag_git_hash: ${{ needs.prepare.outputs.tag_git_hash }}
-  #   secrets:
-  #     PAT: ${{ secrets.PAT }}
-  #   if: ${{ github.event.inputs.network == 'Baobab' }}
+  image-update:
+    name: Update image tag
+    needs: [prepare, build]
+    uses: ./.github/workflows/update.image-tag.yaml
+    with:
+      network: "baobab"
+      project-name: ${{ github.event.inputs.application }}
+      version: ${{ needs.prepare.outputs.version }}
+      image-tag: ${{ needs.build.outputs.img_tag }}
+      tag_date: ${{ needs.prepare.outputs.tag_date }}
+      tag_git_hash: ${{ needs.prepare.outputs.tag_git_hash }}
+    secrets:
+      PAT: ${{ secrets.PAT }}
+    if: ${{ github.event.inputs.network == 'Baobab' }}
 
-  # post-slack-baobab-tag-update-success:
-  #   name: Post slack message for tag update success
-  #   needs: [prepare, build, image-update]
-  #   uses: ./.github/workflows/post.slack.yaml
-  #   with:
-  #     status: "Success"
-  #     slack-message: "${{ github.event.inputs.network }} *${{ github.event.inputs.application }}* : *${{ needs.prepare.outputs.service }}* new image tag ${{ needs.prepare.outputs.version }}.${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }} is updated"
-  #   secrets:
-  #     SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
-  #   if: ${{ github.event.inputs.network == 'Baobab' && success() }}
+  post-slack-baobab-tag-update-success:
+    name: Post slack message for tag update success
+    needs: [prepare, build, image-update]
+    uses: ./.github/workflows/post.slack.yaml
+    with:
+      status: "Success"
+      slack-message: "${{ github.event.inputs.network }} *${{ github.event.inputs.application }}* : *${{ needs.prepare.outputs.service }}* new image tag ${{ needs.prepare.outputs.version }}.${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }} is updated"
+    secrets:
+      SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+    if: ${{ github.event.inputs.network == 'Baobab' && success() }}
 
-  # cypress-image-update:
-  #   name: cypress image update
-  #   uses: ./.github/workflows/update.image-tag.yaml
-  #   with:
-  #     network: "cypress"
-  #     project-name: ${{ github.event.inputs.application }}
-  #   secrets:
-  #     PAT: ${{ secrets.PAT }}
-  #   if: ${{ github.event.inputs.network == 'Cypress' }}
+  cypress-image-update:
+    name: cypress image update
+    uses: ./.github/workflows/update.image-tag.yaml
+    with:
+      network: "cypress"
+      project-name: ${{ github.event.inputs.application }}
+    secrets:
+      PAT: ${{ secrets.PAT }}
+    if: ${{ github.event.inputs.network == 'Cypress' }}
 
-  # post-slack-cypress-tag-update-success:
-  #   name: Post slack message for tag update success
-  #   needs: [cypress-image-update]
-  #   uses: ./.github/workflows/post.slack.yaml
-  #   with:
-  #     status: "Success"
-  #     slack-message: "${{ github.event.inputs.network }} *${{ github.event.inputs.application }}* is updated"
-  #   secrets:
-  #     SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
-  #   if: ${{ github.event.inputs.network == 'Cypress' && success() }}
+  post-slack-cypress-tag-update-success:
+    name: Post slack message for tag update success
+    needs: [cypress-image-update]
+    uses: ./.github/workflows/post.slack.yaml
+    with:
+      status: "Success"
+      slack-message: "${{ github.event.inputs.network }} *${{ github.event.inputs.application }}* is updated"
+    secrets:
+      SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+    if: ${{ github.event.inputs.network == 'Cypress' && success() }}
 
-  # post-slack-tag-update-failure:
-  #   name: Post to a slack message for tag update failure
-  #   needs: [prepare, build, image-update]
-  #   uses: ./.github/workflows/post.slack.yaml
-  #   with:
-  #     status: "Failed"
-  #     slack-message: "${{ github.event.inputs.network }} *${{ github.event.inputs.application }}* git action failed"
-  #   secrets:
-  #     SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
-  #   if: ${{ github.event.inputs.network == 'Baobab' && failure() }}
+  post-slack-tag-update-failure:
+    name: Post to a slack message for tag update failure
+    needs: [prepare, build, image-update]
+    uses: ./.github/workflows/post.slack.yaml
+    with:
+      status: "Failed"
+      slack-message: "${{ github.event.inputs.network }} *${{ github.event.inputs.application }}* git action failed"
+    secrets:
+      SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+    if: ${{ github.event.inputs.network == 'Baobab' && failure() }}
 
   update-workflow-and-readme:
     name: Update Workflow and README
@@ -234,7 +234,7 @@ jobs:
 
       - name: Update README with Latest PR Info
         run: |
-          echo "### ${NEW_TAG}" >> README.md
+          echo "### *${NEW_TAG}* : " >> README.md
           echo "#### PR Title" >> README.md
           echo "${{ env.PR_TITLE }}" >> README.md
           git add README.md
