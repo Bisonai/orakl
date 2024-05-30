@@ -8,6 +8,7 @@ import (
 
 	"bisonai.com/orakl/node/pkg/bus"
 	"bisonai.com/orakl/node/pkg/utils/reducer"
+	"bisonai.com/orakl/node/pkg/websocketfetcher"
 )
 
 const (
@@ -72,12 +73,13 @@ type Feed struct {
 }
 
 type App struct {
-	Bus          *bus.MessageBus
-	Fetchers     map[int32]*Fetcher
-	Collectors   map[int32]*Collector
-	Streamer     *Streamer
-	Proxies      []Proxy
-	ChainHelpers map[string]ChainHelper
+	Bus              *bus.MessageBus
+	Fetchers         map[int32]*Fetcher
+	Collectors       map[int32]*Collector
+	Streamer         *Streamer
+	WebsocketFetcher *websocketfetcher.App
+	Proxies          []Proxy
+	ChainHelpers     map[string]ChainHelper
 }
 
 type Definition struct {

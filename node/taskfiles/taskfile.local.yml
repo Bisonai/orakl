@@ -38,6 +38,10 @@ tasks:
     dotenv: [".env"]
     cmds:
       - go run ./script/test_raft/main.go -p={{.P}}
+  script-test-websocketfetcher:
+    dotenv: [".env"]
+    cmds:
+      - go run ./script/test_websocketfetcher/main.go
 
   test-db:
     dotenv: [".env"]
@@ -85,6 +89,10 @@ tasks:
   test-wss:
     cmds:
       - go test ./pkg/wss -v
+  test-websocketfetcher:
+    dotenv: [".env"]
+    cmds:
+      - go test ./pkg/websocketfetcher/tests -v
 
   check-api:
     dotenv: [".env"]
@@ -143,3 +151,4 @@ tasks:
       - task: test-reporter
       - task: test-chain
       - task: test-wss
+      - task: test-websocketfetcher
