@@ -171,6 +171,8 @@ jobs:
       id-token: write
       contents: write
       pages: write
+    outputs:
+      pr_title: ${{ steps.pr_info.outputs.PR_TITLE }}
     steps:
       - uses: actions/checkout@master
         with:
@@ -211,8 +213,8 @@ jobs:
     uses: ./.github/workflows/post.slack.yaml
     with:
       status: "Success"
-      slack-message: "${{ github.event.inputs.network }} *${{ github.event.inputs.application }}* git action failed"
+      slack-message: "`${{ github.event.inputs.application }}` \n *Tag Version:* ${{ needs.build.outputs.img_tag }} \n *PR:* ${{ needs.update-workflow-and-readme.outputs.pr_title}}"
       channel: "orakl-images"
     secrets:
       SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
-    if: ${{ success() }}
+    if: ${{ success() }}      
