@@ -34,10 +34,6 @@ type Feed struct {
 	ConfigID   int32           `db:"config_id"`
 }
 
-type Definition struct {
-	Type *string `json:"type"`
-}
-
 type FeedData struct {
 	FeedId    int32      `db:"feed_id"`
 	Value     float64    `db:"value"`
