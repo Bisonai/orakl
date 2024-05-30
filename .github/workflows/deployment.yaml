@@ -204,57 +204,40 @@ jobs:
     permissions:
       id-token: write
       contents: write
-      actions: write
-      
+      pages: write
           
     steps:
-      - name: Checkout gitops
-        run: |
-          echo Checking out ${GITHUB_SERVER_URL}/bisonai/orakl.git
-          rm -rf ./gitops_tmp
-          GH_URL=$(echo "$GITHUB_SERVER_URL" | sed 's,://,://x-access-token:'"${{ secrets.PAT }}"'@,g')
-          git clone --depth 1 --no-single-branch ${GH_URL}/bisonai/orakl.git ./gitops_tmp
-        shell: bash
-
-      - name: Verify and Checkout Branch
-        run: |
-          cd ./gitops_tmp/
-          git fetch origin feat/image-tag-description:feat/image-tag-description
-          git checkout feat/image-tag-description
+      - uses: actions/checkout@master
+        with:
+          token: ${{ secrets.WORKFLOW_PAT }}
 
       - name: get latest merged pull request
         id: pr_info
         run: |
-          cd ./gitops_tmp/
           pr=$(gh pr list --state merged --json title -L 1)
           PR_TITLE=$(echo $pr | jq -r '.[0].title')
-          echo "PR_TITLE=${PR_TITLE}" >> $GITHUB_OUTPUT
+          echo "PR_TITLE=${PR_TITLE}" >> $WORKFLOW_PAT
         env:
-          GH_TOKEN: ${{ secrets.PAT }}             
+          GH_TOKEN: ${{ secrets.WORKFLOW_PAT }}             
 
       - name: Update Workflow Dispatch Options
         run: |
-          cd ./gitops_tmp/
           NEW_TAG=${{ github.event.inputs.application }}/${{ needs.build.outputs.img_tag }}
           sed -i "/options:/a\          - \"${NEW_TAG}\"" .github/workflows/deployment.yaml
           git add .github/workflows/deployment.yaml
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}             
+          GH_TOKEN: ${{ secrets.WORKFLOW_PAT }}             
 
       - name: Update README with Latest PR Info
         run: |
-          cd ./gitops_tmp/
           echo "### ${NEW_TAG}" >> README.md
           echo "#### PR Title" >> README.md
           echo "${{ env.PR_TITLE }}" >> README.md
           git add README.md
    
-      - name: Commit and Push Changes
-        run: |
-          cd ./gitops_tmp/
-          git config --global user.name 'github-actions'
-          git config --global user.email 'github-actions@github.com'
-          git add .
-          git commit -m 'test commit'
-          git push origin feat/image-tag-description
-        shell: bash
+      - name: Commit & Push changes
+        uses: actions-js/push@master
+        with:
+          github_token: ${{ secrets.WORKFLOW_PAT }}
+          branch: ${{ github.ref }}
+          repository: ${{ github.repository }}
