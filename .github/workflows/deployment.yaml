@@ -249,19 +249,17 @@ jobs:
       - name: Update Workflow Dispatch Options
         id: tag_info
         run: |
-          git stash
           git pull
-
           NEW_TAG=${{ github.event.inputs.application }}:${{ needs.build.outputs.img_tag }}
           echo "NEW_TAG=${NEW_TAG}" >> $GITHUB_OUTPUT
           TAG_WITH_DESCRIPTION="${NEW_TAG}:${{ steps.truncate_pr_title.outputs.truncated_title }}"
-
           CURRENT_OPTIONS=$(yq eval '.on.workflow_dispatch.inputs.image.options' .github/workflows/deployment.yaml)
           NEW_OPTIONS=$(echo "$CURRENT_OPTIONS" | yq eval -j - | jq -r '.[]' | grep -v '^new$' | sed '/./!d')
           SERVICE_DATE_OPTIONS=$(echo -e "${NEW_OPTIONS}\n${TAG_WITH_DESCRIPTION}" | awk -F':' '{print $1 ":" $3 ":" $2}')
           SORTED_OPTIONS=$(echo "$SERVICE_DATE_OPTIONS" | sort -t: -k3,3r -k1,1 | awk -F':' '{printf "- \"%s:%s:%s\",\n", $1, $3, $2}' | sed 's/,$//')
           SORTED_OPTIONS_WITH_NEW=$(echo "- \"new\"\n${SORTED_OPTIONS}")
           SORTED_OPTIONS_WITH_NEW=$(echo "$SORTED_OPTIONS_WITH_NEW" | sed 's/^- //')
+          yq eval 'del(.on.workflow_dispatch.inputs.image.options)' -i .github/workflows/deployment.yaml
           while IFS= read -r line; do  
               yq eval ".on.workflow_dispatch.inputs.image.options += ["$line"]" -i .github/workflows/deployment.yaml
           done <<< "$SORTED_OPTIONS_WITH_NEW"
