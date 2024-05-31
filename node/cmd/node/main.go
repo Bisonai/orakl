@@ -69,13 +69,13 @@ func main() {
 	}
 	log.Info().Msg("API is live")
 
-	syncUrl := "http://localhost:" + port + "/api/v1/config/sync"
-	_, err = http.Post(syncUrl, "application/json", nil)
+	log.Info().Msg("Syncing orakl config")
+	err = admin.SyncOraklConfig(ctx)
 	if err != nil {
-		log.Error().Err(err).Msg("Failed to sync from orakl config")
+		log.Error().Err(err).Msg("Failed to sync orakl config")
 		return
 	}
-	log.Info().Msg("Synced from orakl config")
+	log.Info().Msg("Orakl config synced")
 
 	wg.Add(1)
 	go func() {
