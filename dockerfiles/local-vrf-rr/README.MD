@@ -6,7 +6,7 @@ From the root of the repository, execute the following command:
 SERVICE=rr docker-compose -f docker-compose.local-core.yaml up -d
 ```
 
-Replace `SERVICE` with whichever service you'd like to run. The options are `vrf` and `rr` which represent VRF and Request-Response services respectively.
+Replace `SERVICE` with whichever service you'd like to run. The options are `vrf` and `rr` which represent VRF and Request-Response services respectively. To ensure your docker images that are used in the `docker-compose.local-core.yaml` file are up to date, you can add `--build` flag to the above command, which will rebuild all
 
 Here is what happens after the above command is run:
 

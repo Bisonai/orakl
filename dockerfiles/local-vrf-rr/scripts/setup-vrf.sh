@@ -21,9 +21,10 @@ node update-hardhat-network.js
 
 cd contracts/v0.1 || exit
 yarn deploy:localhost:prepayment
-vrf_output=$(yarn deploy:localhost:vrf)
-vrf_address=$(echo "$vrf_output" | awk -F'deployed at ' '{print $2}' | awk '{print $1}')
+yarn deploy:localhost:vrf
 
 cd ../../cli || exit
-yarn cli listener insert --chain localhost --service VRF --address "$vrf_address" --eventName RandomWordsRequested
-yarn cli reporter insert --chain localhost --service VRF --address 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 --privateKey 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80 --oracleAddress "$vrf_address"
+yarn cli listener insert --chain localhost --service VRF --address 0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512 --eventName RandomWordsRequested
+yarn cli reporter insert --chain localhost --service VRF --address 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 --privateKey 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80 --oracleAddress 0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512
+
+tail -f /dev/null
