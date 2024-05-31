@@ -50,13 +50,13 @@ jobs:
         id: taskflow-tag
         run: |
           IMAGE_TAG="${{ github.event.inputs.image }}"
-          TAG=$(echo "${TAG}" | sed 's/^\([^:]*:[^:]*\):.*/\1/')
-          echo $TAG;
           VERSION=$(echo "${IMAGE_TAG}" | cut -d':' -f2 | cut -d'.' -f1-3)
           echo $VERSION
           TAG_DATE=$(echo "${IMAGE_TAG}" | cut -d':' -f2 | cut -d'.' -f4-5)
           echo $TAG_DATE
           TAG_GIT_HASH=$(echo "${IMAGE_TAG}" | cut -d':' -f2 | cut -d'.' -f6)
+          TAG="${VERSION}.${TAG_DATE}.${TAG_GIT_HASH}"
+          echo $TAG;          
           echo $TAG_GIT_HASH
           echo "version=${VERSION}" >> $GITHUB_OUTPUT
           echo "tag_date=${TAG_DATE}" >> $GITHUB_OUTPUT
