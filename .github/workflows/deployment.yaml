@@ -265,7 +265,7 @@ jobs:
           echo "LINE:"
           while IFS= read -r line; do  
             echo "$line"
-            yq eval ".on.workflow_dispatch.inputs.image.options += [\"$line\"]" -i .github/workflows/deployment.yaml
+            yq eval ".on.workflow_dispatch.inputs.image.options += ["$line"]" -i .github/workflows/deployment.yaml
           done <<< "$SORTED_OPTIONS_WITH_NEW"
           git add .github/workflows/deployment.yaml
         env:
