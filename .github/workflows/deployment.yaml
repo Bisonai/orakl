@@ -33,6 +33,7 @@ on:
         options:
           - new
           - cli:v0.6.2.20240530.2356.423011b:OraklNode Update how feeds are...
+          - cli:v0.6.2.20240531.0009.a16ca11:OraklNode Update how feeds are...
 jobs:
   prepare-taskflow:
     name: Prepare
@@ -48,20 +49,7 @@ jobs:
       - uses: actions/checkout@master
       - name: extract tags
         id: taskflow-tag
-        run: |
-          IMAGE_TAG="${{ github.event.inputs.image }}"
-          VERSION=$(echo "${IMAGE_TAG}" | cut -d':' -f2 | cut -d'.' -f1-3)
-          echo $VERSION
-          TAG_DATE=$(echo "${IMAGE_TAG}" | cut -d':' -f2 | cut -d'.' -f4-5)
-          echo $TAG_DATE
-          TAG_GIT_HASH=$(echo "${IMAGE_TAG}" | cut -d':' -f2 | cut -d'.' -f6)
-          TAG="${VERSION}.${TAG_DATE}.${TAG_GIT_HASH}"
-          echo $TAG;          
-          echo $TAG_GIT_HASH
-          echo "version=${VERSION}" >> $GITHUB_OUTPUT
-          echo "tag_date=${TAG_DATE}" >> $GITHUB_OUTPUT
-          echo "tag_git_hash=${TAG_GIT_HASH}" >> $GITHUB_OUTPUT
-          echo "img_tag=${TAG}" >> $GITHUB_OUTPUT
+        run: "IMAGE_TAG=\"${{ github.event.inputs.image }}\"\nVERSION=$(echo \"${IMAGE_TAG}\" | cut -d':' -f2 | cut -d'.' -f1-3)\necho $VERSION\nTAG_DATE=$(echo \"${IMAGE_TAG}\" | cut -d':' -f2 | cut -d'.' -f4-5)\necho $TAG_DATE\nTAG_GIT_HASH=$(echo \"${IMAGE_TAG}\" | cut -d':' -f2 | cut -d'.' -f6)\nTAG=\"${VERSION}.${TAG_DATE}.${TAG_GIT_HASH}\"\necho $TAG;          \necho $TAG_GIT_HASH\necho \"version=${VERSION}\" >> $GITHUB_OUTPUT\necho \"tag_date=${TAG_DATE}\" >> $GITHUB_OUTPUT\necho \"tag_git_hash=${TAG_GIT_HASH}\" >> $GITHUB_OUTPUT\necho \"img_tag=${TAG}\" >> $GITHUB_OUTPUT\n"
         env:
           GH_TOKEN: ${{ secrets.WORKFLOW_PAT }}
   taskflow-image-update:
