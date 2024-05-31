@@ -32,8 +32,9 @@ on:
         default: "new"
         options:
           - new
-          - cli:v0.6.2.20240530.2356.423011b:OraklNode Update how feeds are...
+          - cli:v0.6.2.20240531.0032.ef9b79a:OraklNode Update how feeds are...
           - cli:v0.6.2.20240531.0009.a16ca11:OraklNode Update how feeds are...
+          - cli:v0.6.2.20240530.2356.423011b:OraklNode Update how feeds are...
           - request-response:v0.5.1.20240531.0021.36de1a2:OraklNode Update how feeds are...
 jobs:
   prepare-taskflow:
@@ -255,7 +256,15 @@ jobs:
           echo "NEW_TAG=${NEW_TAG}" >> $GITHUB_OUTPUT
           TAG_WITH_DESCRIPTION="${NEW_TAG}:${{ steps.truncate_pr_title.outputs.truncated_title }}"
 
-          yq eval '.on.workflow_dispatch.inputs.image.options |= ["new"] + (del(.[] | select(. == "new")) + ["'"${TAG_WITH_DESCRIPTION}"'"] | sort)' -i .github/workflows/deployment.yaml
+          CURRENT_OPTIONS=$(yq eval '.on.workflow_dispatch.inputs.image.options' .github/workflows/deployment.yaml)
+          NEW_OPTIONS=$(echo "$CURRENT_OPTIONS" | yq eval -j - | jq -r '.[]' | grep -v '^new$' | sed '/./!d')
+          SERVICE_DATE_OPTIONS=$(echo -e "${NEW_OPTIONS}\n${TAG_WITH_DESCRIPTION}" | awk -F':' '{print $1 ":" $3 ":" $2}')
+          SORTED_OPTIONS=$(echo "$SERVICE_DATE_OPTIONS" | sort -t: -k3,3r -k1,1 | awk -F':' '{printf "- \"%s:%s:%s\",\n", $1, $3, $2}' | sed 's/,$//')
+          SORTED_OPTIONS_WITH_NEW=$(echo "- \"new\"\n${SORTED_OPTIONS}")
+          SORTED_OPTIONS_WITH_NEW=$(echo "$SORTED_OPTIONS_WITH_NEW" | sed 's/^- //')
+          while IFS= read -r line; do  
+              yq eval ".on.workflow_dispatch.inputs.image.options += ["$line"]" -i .github/workflows/deployment.yaml
+          done <<< "$SORTED_OPTIONS_WITH_NEW"
           git add .github/workflows/deployment.yaml
         env:
           GH_TOKEN: ${{ secrets.WORKFLOW_PAT }}
