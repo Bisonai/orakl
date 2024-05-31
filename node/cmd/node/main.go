@@ -54,12 +54,6 @@ func main() {
 		}
 	}()
 
-	port := os.Getenv("APP_PORT")
-	if port == "" {
-		log.Info().Msg("No APP_PORT specified, using default 8088")
-		port = "8088"
-	}
-
 	log.Info().Msg("Syncing orakl config")
 	err = admin.SyncOraklConfig(ctx)
 	if err != nil {
