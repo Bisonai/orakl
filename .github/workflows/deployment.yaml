@@ -250,10 +250,12 @@ jobs:
         run: |
           git stash
           git pull
+
           NEW_TAG=${{ github.event.inputs.application }}:${{ needs.build.outputs.img_tag }}
           echo "NEW_TAG=${NEW_TAG}" >> $GITHUB_OUTPUT
           TAG_WITH_DESCRIPTION="${NEW_TAG}:${{ steps.truncate_pr_title.outputs.truncated_title }}"
-          yq eval '.on.workflow_dispatch.inputs.image.options += ["'"${TAG_WITH_DESCRIPTION}"'"]' -i .github/workflows/deployment.yaml
+
+          yq eval '.on.workflow_dispatch.inputs.image.options |= ["new"] + (del(.[] | select(. == "new")) + ["'"${TAG_WITH_DESCRIPTION}"'"] | sort)' -i .github/workflows/deployment.yaml
           git add .github/workflows/deployment.yaml
         env:
           GH_TOKEN: ${{ secrets.WORKFLOW_PAT }}
