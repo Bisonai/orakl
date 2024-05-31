@@ -261,7 +261,8 @@ jobs:
           SORTED_OPTIONS_WITH_NEW=$(echo "$SORTED_OPTIONS_WITH_NEW" | sed 's/^- //')
           yq eval 'del(.on.workflow_dispatch.inputs.image.options)' -i .github/workflows/deployment.yaml
           while IFS= read -r line; do  
-              yq eval ".on.workflow_dispatch.inputs.image.options += ["$line"]" -i .github/workflows/deployment.yaml
+            echo $line
+            yq eval ".on.workflow_dispatch.inputs.image.options += ["$line"]" -i .github/workflows/deployment.yaml
           done <<< "$SORTED_OPTIONS_WITH_NEW"
           git add .github/workflows/deployment.yaml
         env:
