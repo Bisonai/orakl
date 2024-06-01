@@ -23,6 +23,7 @@ import (
 	"bisonai.com/orakl/node/pkg/websocketfetcher/providers/gemini"
 	"bisonai.com/orakl/node/pkg/websocketfetcher/providers/korbit"
 	"bisonai.com/orakl/node/pkg/websocketfetcher/providers/kucoin"
+	"bisonai.com/orakl/node/pkg/websocketfetcher/providers/lbank"
 	"bisonai.com/orakl/node/pkg/websocketfetcher/providers/upbit"
 	"github.com/stretchr/testify/assert"
 )
@@ -755,5 +756,42 @@ func TestMessageToStruct(t *testing.T) {
 
 		assert.Equal(t, "BTCUSD", txData.Events[0].Symbol)
 		assert.Equal(t, "67643.09", txData.Events[0].Price)
+	})
+
+	t.Run("TestMessageToStructLbank", func(t *testing.T) {
+		jsonStr := `{
+			"SERVER": "V2",
+			"TS": "2024-06-02T00:40:21.527",
+			"pair": "btc_usdt",
+			"tick": {
+				"change": 1.03,
+				"cny": 490024.55,
+				"dir": "sell",
+				"high": 67988.17,
+				"latest": 67668.93,
+				"low": 66928.53,
+				"to_cny": 7.24,
+				"to_usd": 1,
+				"turnover": 96477021.02,
+				"usd": 67668.93,
+				"vol": 1427.1578
+			},
+			"type": "tick"
+		}`
+
+		var txResult map[string]any
+		err := json.Unmarshal([]byte(jsonStr), &txResult)
+		if err != nil {
+			t.Errorf("unexpected error: %v", err)
+		}
+
+		txData, err := common.MessageToStruct[lbank.Response](txResult)
+		if err != nil {
+			t.Errorf("unexpected error: %v", err)
+		}
+
+		assert.Equal(t, "btc_usdt", txData.Pair)
+		assert.Equal(t, float64(67668.93), txData.Tick.Latest)
+
 	})
 }
