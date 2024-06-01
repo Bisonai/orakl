@@ -11,6 +11,7 @@ import (
 	"bisonai.com/orakl/node/pkg/db"
 	"bisonai.com/orakl/node/pkg/websocketfetcher/common"
 	"bisonai.com/orakl/node/pkg/websocketfetcher/providers/binance"
+	"bisonai.com/orakl/node/pkg/websocketfetcher/providers/bithumb"
 	"bisonai.com/orakl/node/pkg/websocketfetcher/providers/btse"
 	"bisonai.com/orakl/node/pkg/websocketfetcher/providers/bybit"
 	"bisonai.com/orakl/node/pkg/websocketfetcher/providers/coinbase"
@@ -452,6 +453,87 @@ func TestMessageToStruct(t *testing.T) {
 		assert.Equal(t, "ADA-USDT", data.Data[0].Symbol)
 		assert.Equal(t, float64(0.44804), data.Data[0].Price)
 		assert.Equal(t, int64(1717227427438), data.Data[0].Timestamp)
+	})
+
+	t.Run("TestMessageToStructBithumb", func(t *testing.T) {
+		txJsonStr := `{
+			"type": "transaction",
+			"content": {
+				"list": [
+					{
+						"symbol": "BTC_KRW",
+						"buySellGb": "1",
+						"contPrice": "10579000",
+						"contQty": "0.01",
+						"contAmt": "105790.00",
+						"contDtm": "2020-01-29 12:24:18.830039",
+						"updn": "dn"
+					},
+					{
+						"symbol": "ETH_KRW",
+						"buySellGb": "2",
+						"contPrice": "200000",
+						"contQty": "0.05",
+						"contAmt": "10000.00",
+						"contDtm": "2020-01-29 12:24:18.830039",
+						"updn": "up"
+					}
+				]
+			}
+		}`
+
+		tickerJsonStr := `{
+			"type": "ticker",
+			"content": {
+				"symbol": "BTC_KRW",
+				"tickType": "1H",
+				"date": "20240601",
+				"time": "171451",
+				"openPrice": "1227",
+				"closePrice": "1224",
+				"lowPrice": "1223",
+				"highPrice": "1230",
+				"value": "22271989.6261801699999998",
+				"volume": "18172.56112368162601626",
+				"sellVolume": "10920.87235377",
+				"buyVolume": "7251.68876991162601626",
+				"prevClosePrice": "1211",
+				"chgRate": "-0.24",
+				"chgAmt": "-3",
+				"volumePower": "66.4"
+			}
+		}`
+
+		var txResult map[string]any
+		err := json.Unmarshal([]byte(txJsonStr), &txResult)
+		if err != nil {
+			t.Errorf("unexpected error: %v", err)
+		}
+
+		txData, err := common.MessageToStruct[bithumb.TransactionResponse](txResult)
+		if err != nil {
+			t.Errorf("unexpected error: %v", err)
+		}
+
+		assert.Equal(t, "BTC_KRW", txData.Content.List[0].Symbol)
+		assert.Equal(t, "10579000", txData.Content.List[0].ContPrice)
+		assert.Equal(t, "2020-01-29 12:24:18.830039", txData.Content.List[0].ContDtm)
+
+		var tickerResult map[string]any
+		err = json.Unmarshal([]byte(tickerJsonStr), &tickerResult)
+		if err != nil {
+			t.Errorf("unexpected error: %v", err)
+		}
+
+		tickerData, err := common.MessageToStruct[bithumb.TickerResponse](tickerResult)
+		if err != nil {
+			t.Errorf("unexpected error: %v", err)
+		}
+
+		assert.Equal(t, "BTC_KRW", tickerData.Content.Symbol)
+		assert.Equal(t, "20240601", tickerData.Content.Date)
+		assert.Equal(t, "171451", tickerData.Content.Time)
+
 	})
 
 }
