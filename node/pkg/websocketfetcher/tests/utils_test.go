@@ -12,6 +12,7 @@ import (
 	"bisonai.com/orakl/node/pkg/websocketfetcher/common"
 	"bisonai.com/orakl/node/pkg/websocketfetcher/providers/binance"
 	"bisonai.com/orakl/node/pkg/websocketfetcher/providers/bithumb"
+	"bisonai.com/orakl/node/pkg/websocketfetcher/providers/bitstamp"
 	"bisonai.com/orakl/node/pkg/websocketfetcher/providers/btse"
 	"bisonai.com/orakl/node/pkg/websocketfetcher/providers/bybit"
 	"bisonai.com/orakl/node/pkg/websocketfetcher/providers/coinbase"
@@ -685,6 +686,39 @@ func TestMessageToStruct(t *testing.T) {
 
 		assert.Equal(t, "state.update", txData.Method)
 		assert.Equal(t, "67649.41", txData.Params[0]["BTCUSDT"].Last)
+	})
+
+	t.Run("TestMessageToStructBitstamp", func(t *testing.T) {
+		jsonStr := `{
+			"channel": "live_trades_btcusd",
+			"data": {
+			  "id": 342188568,
+			  "amount": 0.00054,
+			  "amount_str": "0.00054000",
+			  "price": 67703,
+			  "price_str": "67703",
+			  "type": 0,
+			  "timestamp": "1717255024",
+			  "microtimestamp": "1717255024403000",
+			  "buy_order_id": 1754808523759616,
+			  "sell_order_id": 1754808285728768
+			},
+			"event": "trade"
+		  }`
+
+		var txResult map[string]any
+		err := json.Unmarshal([]byte(jsonStr), &txResult)
+		if err != nil {
+			t.Errorf("unexpected error: %v", err)
+		}
+
+		txData, err := common.MessageToStruct[bitstamp.TradeEvent](txResult)
+		if err != nil {
+			t.Errorf("unexpected error: %v", err)
+		}
+
+		assert.Equal(t, "live_trades_btcusd", txData.Channel)
+		assert.Equal(t, "67703", txData.Data.PriceStr)
 
 	})
 }
