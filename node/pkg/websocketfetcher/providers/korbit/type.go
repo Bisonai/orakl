@@ -23,13 +23,13 @@ type Ticker struct {
 	Change       string `json:"change"`
 }
 
+type Data struct {
+	Channels []string `json:"channels"`
+}
+
 type Subscription struct {
 	AccessToken *string `json:"accessToken"`
 	Timestamp   int64   `json:"timestamp"`
 	Event       string  `json:"event"`
 	Data        Data    `json:"data"`
-}
-
-type Data struct {
-	Channels []string `json:"channels"`
 }
