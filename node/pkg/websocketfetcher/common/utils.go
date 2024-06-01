@@ -68,7 +68,11 @@ func PriceStringToFloat64(price string) (float64, error) {
 		return 0, err
 	}
 
-	return f * float64(math.Pow10(DECIMALS)), nil
+	return FormatFloat64Price(f), nil
+}
+
+func FormatFloat64Price(price float64) float64 {
+	return price * float64(math.Pow10(DECIMALS))
 }
 
 func MessageToStruct[T any](message map[string]any) (T, error) {

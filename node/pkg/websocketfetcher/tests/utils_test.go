@@ -19,6 +19,7 @@ import (
 	"bisonai.com/orakl/node/pkg/websocketfetcher/providers/crypto"
 	"bisonai.com/orakl/node/pkg/websocketfetcher/providers/korbit"
 	"bisonai.com/orakl/node/pkg/websocketfetcher/providers/kucoin"
+	"bisonai.com/orakl/node/pkg/websocketfetcher/providers/upbit"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -534,6 +535,62 @@ func TestMessageToStruct(t *testing.T) {
 		assert.Equal(t, "20240601", tickerData.Content.Date)
 		assert.Equal(t, "171451", tickerData.Content.Time)
 
+	})
+
+	t.Run("TestMessageToStructUpbit", func(t *testing.T) {
+		jsonStr := `{
+			"ty": "ticker",
+			"cd": "KRW-BORA",
+			"op": 204.1,
+			"hp": 209.4,
+			"lp": 204.1,
+			"tp": 205.7,
+			"pcp": 204.1,
+			"c": "RISE",
+			"cp": 1.6,
+			"scp": 1.6,
+			"cr": 0.0078392945,
+			"scr": 0.0078392945,
+			"tv": 772.15285594,
+			"atv": 1.519251400033162e+07,
+			"atv24h": 2.363356548175399e+07,
+			"atp": 3.1378159174206986e+09,
+			"atp24h": 4.862222332728324e+09,
+			"td": "20240601",
+			"ttm": "095356",
+			"ttms": 1.717235636497e+12,
+			"ab": "ASK",
+			"aav": 8.55746037890694e+06,
+			"abv": 6.63505362142468e+06,
+			"h52wp": 346.4,
+			"h52wdt": "2024-03-14",
+			"l52wp": 140,
+			"l52wdt": "2023-09-13",
+			"ts": null,
+			"ms": "ACTIVE",
+			"msfi": null,
+			"its": false,
+			"dd": null,
+			"mw": "NONE",
+			"tms": 1.717235640279e+12,
+			"st": "REALTIME",
+			"sid": null
+		  }`
+
+		var txResult map[string]any
+		err := json.Unmarshal([]byte(jsonStr), &txResult)
+		if err != nil {
+			t.Errorf("unexpected error: %v", err)
+		}
+
+		txData, err := common.MessageToStruct[upbit.Response](txResult)
+		if err != nil {
+			t.Errorf("unexpected error: %v", err)
+		}
+
+		assert.Equal(t, "KRW-BORA", txData.Code)
+		assert.Equal(t, float64(205.7), txData.TradePrice)
+		assert.Equal(t, int64(1.717235636497e+12), txData.TradeTimestamp)
 	})
 
 }

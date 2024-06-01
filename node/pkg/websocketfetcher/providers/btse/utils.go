@@ -1,7 +1,6 @@
 package btse
 
 import (
-	"math"
 	"time"
 
 	"bisonai.com/orakl/node/pkg/websocketfetcher/common"
@@ -13,7 +12,7 @@ func ResponseToFeedDataList(data Response, feedMap map[string]int32) ([]*common.
 
 	for _, ticker := range data.Data {
 		timestamp := time.Unix(ticker.Timestamp/1000, 0)
-		price := ticker.Price * float64(math.Pow10(common.DECIMALS))
+		price := common.FormatFloat64Price(ticker.Price)
 		id, exists := feedMap[ticker.Symbol]
 		if !exists {
 			log.Warn().Str("Player", "btse").Str("symbol", ticker.Symbol).Msg("feed not found")
