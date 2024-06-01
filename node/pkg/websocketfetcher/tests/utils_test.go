@@ -20,6 +20,7 @@ import (
 	"bisonai.com/orakl/node/pkg/websocketfetcher/providers/coinone"
 	"bisonai.com/orakl/node/pkg/websocketfetcher/providers/crypto"
 	"bisonai.com/orakl/node/pkg/websocketfetcher/providers/gateio"
+	"bisonai.com/orakl/node/pkg/websocketfetcher/providers/gemini"
 	"bisonai.com/orakl/node/pkg/websocketfetcher/providers/korbit"
 	"bisonai.com/orakl/node/pkg/websocketfetcher/providers/kucoin"
 	"bisonai.com/orakl/node/pkg/websocketfetcher/providers/upbit"
@@ -720,5 +721,39 @@ func TestMessageToStruct(t *testing.T) {
 		assert.Equal(t, "live_trades_btcusd", txData.Channel)
 		assert.Equal(t, "67703", txData.Data.PriceStr)
 
+	})
+
+	t.Run("TestMessageToStructGemini", func(t *testing.T) {
+		jsonStr := `{
+			"eventId": 1.713628958452305e+15,
+			"events": [
+			  {
+				"amount": "0.00570297",
+				"makerSide": "bid",
+				"price": "67643.09",
+				"symbol": "BTCUSD",
+				"tid": "2.840140843076036e+15",
+				"type": "trade"
+			  }
+			],
+			"socket_sequence": 5,
+			"timestamp": 1.717258316e+09,
+			"timestampms": 1.717258316107e+12,
+			"type": "update"
+		  }`
+
+		var txResult map[string]any
+		err := json.Unmarshal([]byte(jsonStr), &txResult)
+		if err != nil {
+			t.Errorf("unexpected error: %v", err)
+		}
+
+		txData, err := common.MessageToStruct[gemini.Response](txResult)
+		if err != nil {
+			t.Errorf("unexpected error: %v", err)
+		}
+
+		assert.Equal(t, "BTCUSD", txData.Events[0].Symbol)
+		assert.Equal(t, "67643.09", txData.Events[0].Price)
 	})
 }
