@@ -123,6 +123,10 @@ func (a *App) Init(ctx context.Context, opts ...AppOption) error {
 	a.storeInterval = appConfig.StoreInterval
 
 	for name, factory := range appConfig.Factories {
+		if _, ok := feedMap[name]; !ok {
+			log.Warn().Msgf("no feeds for %s", name)
+			continue
+		}
 		fetcher, err := factory(
 			ctx,
 			common.WithFeedDataBuffer(a.buffer),
