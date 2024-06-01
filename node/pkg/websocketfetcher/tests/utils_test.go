@@ -14,6 +14,7 @@ import (
 	"bisonai.com/orakl/node/pkg/websocketfetcher/providers/coinbase"
 	"bisonai.com/orakl/node/pkg/websocketfetcher/providers/coinone"
 	"bisonai.com/orakl/node/pkg/websocketfetcher/providers/korbit"
+	"bisonai.com/orakl/node/pkg/websocketfetcher/providers/kucoin"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -295,5 +296,39 @@ func TestMessageToStruct(t *testing.T) {
 		assert.Equal(t, "btc_krw", data.Data.CurrencyPair)
 		assert.Equal(t, int64(1558590089274), data.Data.Timestamp)
 		assert.Equal(t, "9198500.1235789", data.Data.Last)
+	})
+
+	t.Run("TestMessageToStructKucoin", func(t *testing.T) {
+		jsonStr := `{
+			"type": "message",
+			"topic": "/market/ticker:BTC-USDT",
+			"subject": "trade.ticker",
+			"data": {
+			  "sequence": "1545896668986",
+			  "price": "0.08",
+			  "size": "0.011",
+			  "bestAsk": "0.08",
+			  "bestAskSize": "0.18",
+			  "bestBid": "0.049",
+			  "bestBidSize": "0.036",
+			  "Time": 1704873323416
+			}
+		  }`
+
+		var result map[string]any
+		err := json.Unmarshal([]byte(jsonStr), &result)
+		if err != nil {
+			t.Errorf("unexpected error: %v", err)
+		}
+
+		data, err := common.MessageToStruct[kucoin.Raw](result)
+		if err != nil {
+			t.Errorf("unexpected error: %v", err)
+		}
+
+		assert.Equal(t, "/market/ticker:BTC-USDT", data.Topic)
+		assert.Equal(t, "0.08", data.Data.Price)
+		assert.Equal(t, int64(1704873323416), data.Data.Time)
+
 	})
 }
