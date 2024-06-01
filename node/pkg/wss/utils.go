@@ -75,13 +75,18 @@ func NewWebsocketHelper(ctx context.Context, opts ...ConnectionOption) (*Websock
 		log.Warn().Msg("no subscriptions provided")
 	}
 
-	return &WebsocketHelper{
-		Endpoint:       config.Endpoint,
-		Subscriptions:  config.Subscriptions,
-		Proxy:          config.Proxy,
-		CustomDialFunc: &config.DialFunc,
-		mu:             sync.Mutex{},
-	}, nil
+	ws := &WebsocketHelper{
+		Endpoint:      config.Endpoint,
+		Subscriptions: config.Subscriptions,
+		Proxy:         config.Proxy,
+		mu:            sync.Mutex{},
+	}
+
+	if config.DialFunc != nil {
+		ws.CustomDialFunc = &config.DialFunc
+	}
+
+	return ws, nil
 }
 
 func (ws *WebsocketHelper) Dial(ctx context.Context) error {
