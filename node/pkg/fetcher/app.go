@@ -327,7 +327,7 @@ func (a *App) getConfigs(ctx context.Context) ([]Config, error) {
 }
 
 func (a *App) getFeeds(ctx context.Context, configId int32) ([]Feed, error) {
-	feeds, err := db.QueryRows[Feed](ctx, SelectFeedsByConfigIdQuery, map[string]any{"config_id": configId})
+	feeds, err := db.QueryRows[Feed](ctx, SelectHttpRequestFeedsByConfigIdQuery, map[string]any{"config_id": configId})
 	if err != nil {
 		return nil, err
 	}
