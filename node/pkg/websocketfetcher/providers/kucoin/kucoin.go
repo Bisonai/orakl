@@ -5,10 +5,13 @@ import (
 	"fmt"
 	"strings"
 
+	"net/http"
+
 	"bisonai.com/orakl/node/pkg/utils/request"
 	"bisonai.com/orakl/node/pkg/websocketfetcher/common"
 	"bisonai.com/orakl/node/pkg/wss"
 	"github.com/rs/zerolog/log"
+	"nhooyr.io/websocket"
 )
 
 type KucoinFetcher common.Fetcher
@@ -42,18 +45,9 @@ func New(ctx context.Context, opts ...common.FetcherOption) (common.FetcherInter
 		Response: true,
 	}
 
-	fmt.Println(subscription)
-
-	resp, err := request.UrlRequest[TokenResponse](TokenUrl, "POST", nil, nil, "")
-	if err != nil {
-		log.Error().Str("Player", "Kucoin").Err(err).Msg("error in kucoin.New")
-		return nil, err
-	}
-	token := resp.Data.Token
-	url := URL + "?token=" + token
-
 	ws, err := wss.NewWebsocketHelper(ctx,
-		wss.WithEndpoint(url),
+		wss.WithCustomDialFunc(fetcher.customDialFunc),
+		wss.WithEndpoint(URL),
 		wss.WithSubscriptions([]any{subscription}),
 		wss.WithProxyUrl(config.Proxy))
 	if err != nil {
@@ -87,4 +81,25 @@ func (f *KucoinFetcher) handleMessage(ctx context.Context, message map[string]an
 
 func (f *KucoinFetcher) Run(ctx context.Context) {
 	f.Ws.Run(ctx, f.handleMessage)
+}
+
+func (f *KucoinFetcher) customDialFunc(ctx context.Context, endpoint string, dialOptions *websocket.DialOptions) (*websocket.Conn, *http.Response, error) {
+	token, err := f.getToken()
+	if err != nil {
+		log.Error().Str("Player", "Kucoin").Err(err).Msg("error in kucoin.customDialFunc")
+		return nil, nil, err
+	}
+
+	url := endpoint + "?token=" + token
+
+	return websocket.Dial(ctx, url, dialOptions)
+}
+
+func (f *KucoinFetcher) getToken() (string, error) {
+	resp, err := request.UrlRequest[TokenResponse](TokenUrl, "POST", nil, nil, "")
+	if err != nil {
+		log.Error().Str("Player", "Kucoin").Err(err).Msg("error in kucoin.getToken")
+		return "", err
+	}
+	return resp.Data.Token, nil
 }
