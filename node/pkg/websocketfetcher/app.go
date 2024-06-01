@@ -7,9 +7,17 @@ import (
 	"bisonai.com/orakl/node/pkg/db"
 	"bisonai.com/orakl/node/pkg/websocketfetcher/common"
 	"bisonai.com/orakl/node/pkg/websocketfetcher/providers/binance"
+	"bisonai.com/orakl/node/pkg/websocketfetcher/providers/bithumb"
+	"bisonai.com/orakl/node/pkg/websocketfetcher/providers/btse"
+	"bisonai.com/orakl/node/pkg/websocketfetcher/providers/bybit"
 	"bisonai.com/orakl/node/pkg/websocketfetcher/providers/coinbase"
+	"bisonai.com/orakl/node/pkg/websocketfetcher/providers/coinex"
 	"bisonai.com/orakl/node/pkg/websocketfetcher/providers/coinone"
+	"bisonai.com/orakl/node/pkg/websocketfetcher/providers/crypto"
+	"bisonai.com/orakl/node/pkg/websocketfetcher/providers/gateio"
 	"bisonai.com/orakl/node/pkg/websocketfetcher/providers/korbit"
+	"bisonai.com/orakl/node/pkg/websocketfetcher/providers/kucoin"
+	"bisonai.com/orakl/node/pkg/websocketfetcher/providers/upbit"
 	"github.com/rs/zerolog/log"
 )
 
@@ -75,6 +83,14 @@ func (a *App) Init(ctx context.Context, opts ...AppOption) error {
 		"coinbase": coinbase.New,
 		"coinone":  coinone.New,
 		"korbit":   korbit.New,
+		"kucoin":   kucoin.New,
+		"bybit":    bybit.New,
+		"upbit":    upbit.New,
+		"crypto":   crypto.New,
+		"btse":     btse.New,
+		"bithumb":  bithumb.New,
+		"gateio":   gateio.New,
+		"coinex":   coinex.New,
 	}
 
 	appConfig := &AppConfig{
@@ -106,8 +122,8 @@ func (a *App) Init(ctx context.Context, opts ...AppOption) error {
 	a.buffer = make(chan common.FeedData, appConfig.BufferSize)
 	a.storeInterval = appConfig.StoreInterval
 
-	for name, creator := range appConfig.Factories {
-		fetcher, err := creator(
+	for name, factory := range appConfig.Factories {
+		fetcher, err := factory(
 			ctx,
 			common.WithFeedDataBuffer(a.buffer),
 			common.WithFeedMaps(feedMap[name]),
@@ -147,13 +163,13 @@ func (a *App) storeFeedData(ctx context.Context) {
 	case feedData := <-a.buffer:
 		batch := []common.FeedData{feedData}
 		// Continue to drain the buffer until it's empty
-		draining := true
-		for draining {
+	loop:
+		for {
 			select {
 			case feedData := <-a.buffer:
 				batch = append(batch, feedData)
 			default:
-				draining = false
+				break loop
 			}
 		}
 
