@@ -17,6 +17,7 @@ import (
 	"bisonai.com/orakl/node/pkg/websocketfetcher/providers/coinbase"
 	"bisonai.com/orakl/node/pkg/websocketfetcher/providers/coinone"
 	"bisonai.com/orakl/node/pkg/websocketfetcher/providers/crypto"
+	"bisonai.com/orakl/node/pkg/websocketfetcher/providers/gateio"
 	"bisonai.com/orakl/node/pkg/websocketfetcher/providers/korbit"
 	"bisonai.com/orakl/node/pkg/websocketfetcher/providers/kucoin"
 	"bisonai.com/orakl/node/pkg/websocketfetcher/providers/upbit"
@@ -593,4 +594,38 @@ func TestMessageToStruct(t *testing.T) {
 		assert.Equal(t, int64(1.717235636497e+12), txData.TradeTimestamp)
 	})
 
+	t.Run("TestMessageToStructGateio", func(t *testing.T) {
+		jsonStr := `{
+			"time": 1717237882,
+			"time_ms": 1717237882464,
+			"channel": "spot.tickers",
+			"event": "update",
+			"result": {
+			  "currency_pair": "ADA_USDT",
+			  "last": "0.4479",
+			  "lowest_ask": "0.448",
+			  "highest_bid": "0.4479",
+			  "change_percentage": "-0.1115",
+			  "base_volume": "3532549.45",
+			  "quote_volume": "1588551.077087",
+			  "high_24h": "0.4558",
+			  "low_24h": "0.4437"
+			}
+		  }`
+
+		var txResult map[string]any
+		err := json.Unmarshal([]byte(jsonStr), &txResult)
+		if err != nil {
+			t.Errorf("unexpected error: %v", err)
+		}
+
+		txData, err := common.MessageToStruct[gateio.Response](txResult)
+		if err != nil {
+			t.Errorf("unexpected error: %v", err)
+		}
+
+		assert.Equal(t, "spot.tickers", txData.Channel)
+		assert.Equal(t, "ADA_USDT", txData.Result.CurrencyPair)
+		assert.Equal(t, "0.4479", txData.Result.Last)
+	})
 }
