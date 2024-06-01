@@ -102,6 +102,10 @@ tasks:
     dotenv: [".env"]
     cmds:
       - curl -X POST "http://localhost:$APP_PORT/api/v1/fetcher/refresh"
+  refresh-aggregator:
+    dotenv: [".env"]
+    cmds:
+      - curl -X POST "http://localhost:$APP_PORT/api/v1/aggregator/refresh"
   refresh-reporter:
     dotenv: [".env"]
     cmds:

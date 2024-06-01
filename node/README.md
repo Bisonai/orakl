@@ -260,6 +260,9 @@ task local:refresh-fetcher
 # refresh reporter, trigger it after adding wallet or json rpc. Execute only if service is running.
 task local:refresh-reporter
 
+# refresh aggregator, reloads aggregators and signers.
+task local:refresh-aggregator
+
 # `LOCATION` is an optional parameter
 task local:add-proxy HOST="127.0.0.2" PORT=8080 PROTOCOL="http" LOCATION="kr"
 
