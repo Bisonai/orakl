@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/url"
 	"sync"
+	"time"
 
 	"bisonai.com/orakl/node/pkg/utils/retrier"
 	"github.com/rs/zerolog/log"
@@ -139,6 +140,9 @@ func (ws *WebsocketHelper) Run(ctx context.Context, router func(context.Context,
 				log.Error().Err(err).Msg("error dialing websocket")
 				break
 			}
+
+			// Some providers block immediate subscription after dialing
+			time.Sleep(time.Second)
 
 			err = retrier.Retry(subscribeJob, 3, 1, 10)
 			if err != nil {

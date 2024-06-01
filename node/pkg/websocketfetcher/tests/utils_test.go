@@ -14,6 +14,7 @@ import (
 	"bisonai.com/orakl/node/pkg/websocketfetcher/providers/bybit"
 	"bisonai.com/orakl/node/pkg/websocketfetcher/providers/coinbase"
 	"bisonai.com/orakl/node/pkg/websocketfetcher/providers/coinone"
+	"bisonai.com/orakl/node/pkg/websocketfetcher/providers/crypto"
 	"bisonai.com/orakl/node/pkg/websocketfetcher/providers/korbit"
 	"bisonai.com/orakl/node/pkg/websocketfetcher/providers/kucoin"
 	"github.com/stretchr/testify/assert"
@@ -376,6 +377,49 @@ func TestMessageToStruct(t *testing.T) {
 		assert.Equal(t, "mockSymbol", *data.Data.Symbol)
 		assert.Equal(t, "456.78", *data.Data.LastPrice)
 		assert.Equal(t, int64(234567890123456), data.Ts)
-
 	})
+
+	t.Run("TestMessageToStructCryptoDotCom", func(t *testing.T) {
+		jsonStr := `{
+			"id": -1,
+			"method": "subscribe",
+			"code": 0,
+			"result": {
+			  "channel": "ticker",
+			  "instrument_name": "ADA_USDT",
+			  "subscription": "ticker.ADA_USDT",
+			  "data": [
+				{
+				  "h": "0.45575",
+				  "l": "0.44387",
+				  "a": "0.44878",
+				  "i": "ADA_USDT",
+				  "v": "2900036",
+				  "vv": "1303481.10",
+				  "oi": "0",
+				  "c": "0.0016",
+				  "b": "0.44870",
+				  "k": "0.44880",
+				  "t": 1717223914135
+				}
+			  ]
+			}
+		  }`
+		var result map[string]any
+		err := json.Unmarshal([]byte(jsonStr), &result)
+		if err != nil {
+			t.Errorf("unexpected error: %v", err)
+		}
+
+		data, err := common.MessageToStruct[crypto.Response](result)
+		if err != nil {
+			t.Errorf("unexpected error: %v", err)
+		}
+
+		assert.Equal(t, "ticker", data.Result.Channel)
+		assert.Equal(t, "ADA_USDT", data.Result.InstrumentName)
+		assert.Equal(t, int64(1717223914135), data.Result.Data[0].Timestamp)
+		assert.Equal(t, "0.44878", *data.Result.Data[0].LastTradePrice)
+	})
+
 }
