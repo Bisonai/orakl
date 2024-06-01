@@ -15,6 +15,7 @@ import (
 	"bisonai.com/orakl/node/pkg/websocketfetcher/providers/btse"
 	"bisonai.com/orakl/node/pkg/websocketfetcher/providers/bybit"
 	"bisonai.com/orakl/node/pkg/websocketfetcher/providers/coinbase"
+	"bisonai.com/orakl/node/pkg/websocketfetcher/providers/coinex"
 	"bisonai.com/orakl/node/pkg/websocketfetcher/providers/coinone"
 	"bisonai.com/orakl/node/pkg/websocketfetcher/providers/crypto"
 	"bisonai.com/orakl/node/pkg/websocketfetcher/providers/gateio"
@@ -627,5 +628,63 @@ func TestMessageToStruct(t *testing.T) {
 		assert.Equal(t, "spot.tickers", txData.Channel)
 		assert.Equal(t, "ADA_USDT", txData.Result.CurrencyPair)
 		assert.Equal(t, "0.4479", txData.Result.Last)
+	})
+
+	t.Run("TestMessageToStructCoinex", func(t *testing.T) {
+		jsonStr := `{
+			"method": "state.update",
+			"params": [
+			  {
+				"BTCUSDT": {
+				  "open": "68217.41",
+				  "last": "67649.41",
+				  "high": "69037.30",
+				  "low": "66678.34",
+				  "deal": "12707367.97477132400000000000",
+				  "volume": "187.73201806",
+				  "sell_total": "4.47703848",
+				  "buy_total": "2.37157686",
+				  "period": 86400
+				},
+				"ETHUSDT": {
+				  "open": "3781.50",
+				  "last": "3786.55",
+				  "high": "3844.89",
+				  "low": "3725.78",
+				  "deal": "5307095.72019325730000000000",
+				  "volume": "1402.85217886",
+				  "sell_total": "68.74665541",
+				  "buy_total": "76.70077360",
+				  "period": 86400
+				},
+				"MATICUSDT": {
+				  "open": "0.6971",
+				  "last": "0.6975",
+				  "high": "0.709000000000",
+				  "low": "0.6832",
+				  "deal": "184896.63142549148200000000",
+				  "volume": "265725.85573677",
+				  "sell_total": "8251.71403154",
+				  "buy_total": "8521.89898481",
+				  "period": 86400
+				}
+			  }
+			],
+			"id": null
+		  }`
+		var txResult map[string]any
+		err := json.Unmarshal([]byte(jsonStr), &txResult)
+		if err != nil {
+			t.Errorf("unexpected error: %v", err)
+		}
+
+		txData, err := common.MessageToStruct[coinex.Response](txResult)
+		if err != nil {
+			t.Errorf("unexpected error: %v", err)
+		}
+
+		assert.Equal(t, "state.update", txData.Method)
+		assert.Equal(t, "67649.41", txData.Params[0]["BTCUSDT"].Last)
+
 	})
 }
