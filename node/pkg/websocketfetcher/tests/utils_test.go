@@ -11,6 +11,7 @@ import (
 	"bisonai.com/orakl/node/pkg/db"
 	"bisonai.com/orakl/node/pkg/websocketfetcher/common"
 	"bisonai.com/orakl/node/pkg/websocketfetcher/providers/binance"
+	"bisonai.com/orakl/node/pkg/websocketfetcher/providers/btse"
 	"bisonai.com/orakl/node/pkg/websocketfetcher/providers/bybit"
 	"bisonai.com/orakl/node/pkg/websocketfetcher/providers/coinbase"
 	"bisonai.com/orakl/node/pkg/websocketfetcher/providers/coinone"
@@ -420,6 +421,37 @@ func TestMessageToStruct(t *testing.T) {
 		assert.Equal(t, "ADA_USDT", data.Result.InstrumentName)
 		assert.Equal(t, int64(1717223914135), data.Result.Data[0].Timestamp)
 		assert.Equal(t, "0.44878", *data.Result.Data[0].LastTradePrice)
+	})
+
+	t.Run("TestMessageToStructBtse", func(t *testing.T) {
+		jsonStr := `{
+			"topic": "tradeHistoryApi:ADA-USDT",
+			"data": [
+			  {
+				"symbol": "ADA-USDT",
+				"side": "SELL",
+				"size": 122.4,
+				"price": 0.44804,
+				"tradeId": 62497538,
+				"timestamp": 1717227427438
+			  }
+			]
+		  }`
+
+		var result map[string]any
+		err := json.Unmarshal([]byte(jsonStr), &result)
+		if err != nil {
+			t.Errorf("unexpected error: %v", err)
+		}
+
+		data, err := common.MessageToStruct[btse.Response](result)
+		if err != nil {
+			t.Errorf("unexpected error: %v", err)
+		}
+
+		assert.Equal(t, "ADA-USDT", data.Data[0].Symbol)
+		assert.Equal(t, float64(0.44804), data.Data[0].Price)
+		assert.Equal(t, int64(1717227427438), data.Data[0].Timestamp)
 	})
 
 }

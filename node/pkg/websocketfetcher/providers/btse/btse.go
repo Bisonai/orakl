@@ -1,8 +1,7 @@
-package crypto
+package btse
 
 import (
 	"context"
-	"fmt"
 	"strings"
 
 	"bisonai.com/orakl/node/pkg/websocketfetcher/common"
@@ -10,7 +9,7 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-type CryptoDotComFetcher common.Fetcher
+type BtseFetcher common.Fetcher
 
 func New(ctx context.Context, opts ...common.FetcherOption) (common.FetcherInterface, error) {
 	config := &common.FetcherConfig{}
@@ -18,26 +17,19 @@ func New(ctx context.Context, opts ...common.FetcherOption) (common.FetcherInter
 		opt(config)
 	}
 
-	fetcher := &CryptoDotComFetcher{}
+	fetcher := &BtseFetcher{}
 	fetcher.FeedMap = config.FeedMaps.Separated
 	fetcher.FeedDataBuffer = config.FeedDataBuffer
 
-	channels := []string{}
+	args := []string{}
 
 	for feed := range fetcher.FeedMap {
-		splitted := strings.Split(feed, "-")
-		base := splitted[0]
-		quote := splitted[1]
-		channels = append(channels, "ticker."+base+"_"+quote)
+		args = append(args, "tradeHistoryApi:"+feed)
 	}
 
 	subscription := Subscription{
-		Method: "subscribe",
-		Params: struct {
-			Channels []string `json:"channels"`
-		}{
-			Channels: channels,
-		},
+		Op:   "subscribe",
+		Args: args,
 	}
 
 	ws, err := wss.NewWebsocketHelper(ctx,
@@ -45,7 +37,7 @@ func New(ctx context.Context, opts ...common.FetcherOption) (common.FetcherInter
 		wss.WithSubscriptions([]any{subscription}),
 		wss.WithProxyUrl(config.Proxy))
 	if err != nil {
-		log.Error().Str("Player", "CryptoDotCom").Err(err).Msg("error in cryptodotcom.New")
+		log.Error().Str("Player", "Btse").Err(err).Msg("error in btse.New")
 		return nil, err
 	}
 
@@ -53,31 +45,29 @@ func New(ctx context.Context, opts ...common.FetcherOption) (common.FetcherInter
 	return fetcher, nil
 }
 
-func (f *CryptoDotComFetcher) handleMessage(ctx context.Context, message map[string]any) error {
+func (f *BtseFetcher) handleMessage(ctx context.Context, message map[string]any) error {
 	response, err := common.MessageToStruct[Response](message)
 	if err != nil {
-		log.Error().Str("Player", "CryptoDotCom").Err(err).Msg("error in cryptodotcom.handleMessage")
+		log.Error().Str("Player", "Btse").Err(err).Msg("error in btse.handleMessage")
 		return err
 	}
 
-	if response.Result.Channel != "ticker" {
+	if !strings.HasPrefix(response.Topic, "tradeHistoryApi:") {
 		return nil
 	}
 
 	feedDataList, err := ResponseToFeedDataList(response, f.FeedMap)
 	if err != nil {
-		log.Error().Str("Player", "CryptoDotCom").Err(err).Msg("error in cryptodotcom.handleMessage")
+		log.Error().Str("Player", "Btse").Err(err).Msg("error in btse.handleMessage")
 		return err
 	}
 
 	for _, feedData := range feedDataList {
-		fmt.Println(feedData)
-		// f.FeedDataBuffer <- *feedData
+		f.FeedDataBuffer <- *feedData
 	}
-
 	return nil
 }
 
-func (f *CryptoDotComFetcher) Run(ctx context.Context) {
+func (f *BtseFetcher) Run(ctx context.Context) {
 	f.Ws.Run(ctx, f.handleMessage)
 }
