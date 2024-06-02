@@ -2,7 +2,6 @@ package kucoin
 
 import (
 	"context"
-	"fmt"
 	"strings"
 
 	"net/http"
@@ -26,22 +25,15 @@ func New(ctx context.Context, opts ...common.FetcherOption) (common.FetcherInter
 	fetcher.FeedMap = config.FeedMaps.Separated
 	fetcher.FeedDataBuffer = config.FeedDataBuffer
 
-	pairListString := []string{}
+	symbols := []string{}
 	for feed := range fetcher.FeedMap {
-		raw := strings.Split(feed, "-")
-		if len(raw) < 2 {
-			log.Error().Str("Player", "Kucoin").Msg("invalid feed name")
-			return nil, fmt.Errorf("invalid feed name")
-		}
-		base := raw[0]
-		quote := raw[1]
-		pairListString = append(pairListString, fmt.Sprintf("%s-%s", strings.ToUpper(base), strings.ToUpper(quote)))
+		symbols = append(symbols, feed)
 	}
 
 	subscription := Subscription{
 		ID:       1,
 		Type:     "subscribe",
-		Topic:    "/market/ticker:" + strings.Join(pairListString, ","),
+		Topic:    "/market/ticker:" + strings.Join(symbols, ","),
 		Response: true,
 	}
 

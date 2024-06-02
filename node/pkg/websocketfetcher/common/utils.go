@@ -20,7 +20,7 @@ The reason for this is that different exchanges use different naming conventions
 func GetWssFeedMap(feeds []Feed) map[string]FeedMaps {
 	feedMaps := make(map[string]FeedMaps)
 	for _, feed := range feeds {
-		var def Definition
+		var def FeedDefinition
 		err := json.Unmarshal(feed.Definition, &def)
 		if err != nil {
 			log.Warn().Err(err).Msg("failed to unmarshal definition")
@@ -28,11 +28,11 @@ func GetWssFeedMap(feeds []Feed) map[string]FeedMaps {
 		}
 
 		provider := strings.ToLower(def.Provider)
-		base := strings.ToUpper(def.Base)
-		quote := strings.ToUpper(def.Quote)
+		baseSymbol := strings.ToUpper(def.Base)
+		quoteSymbol := strings.ToUpper(def.Quote)
 
-		combinedName := base + quote
-		separatedName := base + "-" + quote
+		combinedName := baseSymbol + quoteSymbol
+		separatedName := baseSymbol + "-" + quoteSymbol
 
 		if _, exists := feedMaps[provider]; !exists {
 			feedMaps[provider] = FeedMaps{

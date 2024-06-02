@@ -24,10 +24,9 @@ func New(ctx context.Context, opts ...common.FetcherOption) (common.FetcherInter
 	channels := []string{}
 
 	for feed := range fetcher.FeedMap {
-		splitted := strings.Split(feed, "-")
-		base := splitted[0]
-		quote := splitted[1]
-		channels = append(channels, "ticker."+base+"_"+quote)
+		symbol := strings.ReplaceAll(feed, "-", "_")
+
+		channels = append(channels, "ticker."+symbol)
 	}
 
 	subscription := Subscription{

@@ -24,8 +24,8 @@ func New(ctx context.Context, opts ...common.FetcherOption) (common.FetcherInter
 	symbols := []string{}
 
 	for feed := range fetcher.FeedMap {
-		splitted := strings.Split(feed, "-")
-		symbols = append(symbols, splitted[0]+"_"+splitted[1])
+		symbol := strings.ReplaceAll(feed, "-", "_")
+		symbols = append(symbols, symbol)
 	}
 
 	transactionSubscription := Subscription{

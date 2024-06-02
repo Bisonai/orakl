@@ -24,7 +24,7 @@ func New(ctx context.Context, opts ...common.FetcherOption) (common.FetcherInter
 
 	payload := []string{}
 	for feed := range fetcher.FeedMap {
-		payload = append(payload, strings.Replace(feed, "-", "_", 1))
+		payload = append(payload, strings.ReplaceAll(feed, "-", "_"))
 	}
 
 	channel := "spot.tickers"

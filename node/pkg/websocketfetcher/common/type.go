@@ -32,7 +32,7 @@ type Feed struct {
 
 type FeedData types.FeedData
 
-type Definition struct {
+type FeedDefinition struct {
 	Type     string `json:"type"`
 	Provider string `json:"provider"`
 	Base     string `json:"base"`
