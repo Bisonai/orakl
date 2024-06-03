@@ -15,7 +15,11 @@ const timeLayout = "150405"
 
 func TransactionResponseToFeedDataList(data TransactionResponse, feedMap map[string]int32) ([]*common.FeedData, error) {
 	feedData := []*common.FeedData{}
-	loc, _ := time.LoadLocation("Asia/Seoul")
+	loc, err := time.LoadLocation("Asia/Seoul")
+	if err != nil {
+		log.Error().Err(err).Msg("error in bithumb load location")
+		return feedData, err
+	}
 
 	for _, transaction := range data.Content.List {
 		rawTime := transaction.ContDtm

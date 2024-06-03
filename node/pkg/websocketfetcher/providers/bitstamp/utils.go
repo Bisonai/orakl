@@ -17,7 +17,11 @@ func TradeEventToFeedData(data TradeEvent, feedMap map[string]int32) (*common.Fe
 	}
 	timestamp := time.Unix(0, rawTimestamp*int64(time.Microsecond))
 	value := common.FormatFloat64Price(data.Data.Price)
-	rawSymbol := strings.Split(data.Channel, "_")[2]
+	splitted := strings.Split(data.Channel, "_")
+	if len(splitted) < 3 {
+		return feedData, fmt.Errorf("invalid feed name")
+	}
+	rawSymbol := splitted[2]
 	id, exists := feedMap[strings.ToUpper(rawSymbol)]
 	if !exists {
 		return feedData, fmt.Errorf("feed not found")
