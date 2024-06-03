@@ -9,7 +9,7 @@ type Stream string
 type Subscription struct {
 	Method string   `json:"method"`
 	Params []Stream `json:"params"`
-	Id     uint32   `json:"id"`
+	ID     uint32   `json:"id"`
 }
 
 type MiniTicker struct {
