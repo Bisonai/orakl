@@ -270,7 +270,7 @@ func TestInsertLocalAggregatePgsql(t *testing.T) {
 
 	configs := testItems.insertedConfigs
 	for i, config := range configs {
-		insertLocalAggregateErr := insertLocalAggregatePgsql(ctx, config.Id, float64(i)+5)
+		insertLocalAggregateErr := insertLocalAggregatePgsql(ctx, config.ID, float64(i)+5)
 		if insertLocalAggregateErr != nil {
 			t.Fatalf("error inserting local aggregate pgsql: %v", insertLocalAggregateErr)
 		}
@@ -299,19 +299,19 @@ func TestInsertLocalAggregateRdb(t *testing.T) {
 
 	configs := testItems.insertedConfigs
 	for i, config := range configs {
-		err := insertLocalAggregateRdb(ctx, config.Id, float64(i)+5)
+		err := insertLocalAggregateRdb(ctx, config.ID, float64(i)+5)
 		if err != nil {
 			t.Fatalf("error inserting local aggregate rdb: %v", err)
 		}
-		defer db.Del(ctx, keys.LocalAggregateKey(config.Id))
+		defer db.Del(ctx, keys.LocalAggregateKey(config.ID))
 	}
 
 	for _, config := range configs {
-		result, err := db.GetObject[aggregator.LocalAggregate](ctx, keys.LocalAggregateKey(config.Id))
+		result, err := db.GetObject[aggregator.LocalAggregate](ctx, keys.LocalAggregateKey(config.ID))
 		if err != nil {
 			t.Fatalf("error getting local aggregate rdb: %v", err)
 		}
-		assert.Equal(t, int32(config.Id), result.ConfigID)
+		assert.Equal(t, int32(config.ID), result.ConfigID)
 	}
 }
 
@@ -333,7 +333,7 @@ func TestCopyFeedData(t *testing.T) {
 	for i, feed := range feeds {
 		now := time.Now().Round(time.Second)
 		feedData = append(feedData, FeedData{
-			FeedID:    int32(*feed.Id),
+			FeedID:    int32(*feed.ID),
 			Value:     float64(i) + 5,
 			Timestamp: &now,
 		})

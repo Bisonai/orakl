@@ -52,7 +52,7 @@ func TestPeerInsert(t *testing.T) {
 	assert.Greaterf(t, len(readResultAfter), len(readResultBefore), "expected to have more peers after insertion")
 
 	//cleanup
-	_, err = db.QueryRow[peer.PeerModel](ctx, peer.DeletePeerById, map[string]any{"id": insertResult.Id})
+	_, err = db.QueryRow[peer.PeerModel](ctx, peer.DeletePeerById, map[string]any{"id": insertResult.ID})
 	if err != nil {
 		t.Fatalf("error cleaning up test: %v", err)
 	}
