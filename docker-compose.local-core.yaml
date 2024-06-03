@@ -1,0 +1,99 @@
+volumes:
+  pgsql_volume:
+    name: pgsql_volume
+
+services:
+  postgres:
+    image: postgres:latest
+    restart: always
+    container_name: postgres
+    env_file:
+      - ./dockerfiles/local-vrf-rr/envs/.postgres.env
+    expose:
+      - "5432"
+    volumes:
+      - pgsql_volume:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -d $$POSTGRES_DB -U $$POSTGRES_USER"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    command:
+      [
+        "bash",
+        "-c",
+        "rm -rf /var/lib/postgresql/data/* && docker-entrypoint.sh postgres",
+      ]
+
+  redis:
+    image: redis:latest
+    container_name: redis
+    expose:
+      - "6379"
+    ports:
+      - "6380:6379"
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build:
+      context: .
+      dockerfile: dockerfiles/orakl-api.Dockerfile
+    image: orakl-api
+    expose:
+      - "3000"
+    ports:
+      - "3000:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    env_file:
+      - ./dockerfiles/local-vrf-rr/envs/.api.env
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "bash",
+          "-c",
+          "curl -s http://api:$${APP_PORT}/api/v1 | grep -q 'Orakl Network API'",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+
+  json-rpc:
+    build:
+      context: .
+      dockerfile: dockerfiles/local-data-feed/contracts.Dockerfile
+    image: json-rpc
+    expose:
+      - "8545"
+    ports:
+      - "8545:8545"
+    healthcheck:
+      test: ["CMD", "nc", "-z", "-v", "localhost", "8545"]
+      interval: 15s
+      timeout: 3m
+      retries: 5
+      start_period: 15s
+    command: /bin/sh -c "npx hardhat node --no-deploy"
+
+  core-cli-contracts:
+    build:
+      context: .
+      dockerfile: dockerfiles/local-vrf-rr/core-cli-contracts.Dockerfile
+    image: core-cli-contracts
+    volumes:
+      - ./dockerfiles/local-vrf-rr/scripts/clean-db-tables.sh:/clean-db-tables.sh
+      - ./dockerfiles/local-vrf-rr/scripts/setup-${SERVICE}.sh:/setup.sh
+    depends_on:
+      api:
+        condition: service_healthy
+    env_file: dockerfiles/local-vrf-rr/envs/.core-cli-contracts.env
+    command: /bin/sh -c "/clean-db-tables.sh && /setup.sh"
