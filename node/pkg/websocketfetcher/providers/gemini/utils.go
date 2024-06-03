@@ -24,7 +24,7 @@ func TradeResponseToFeedDataList(data Response, feedMap map[string]int32) ([]*co
 			log.Warn().Str("Player", "Gemini").Err(err).Msg("error in PriceStringToFloat64")
 			continue
 		}
-		feedData.FeedId = id
+		feedData.FeedID = id
 		feedData.Value = price
 		feedData.Timestamp = &timestamp
 		feedDataList = append(feedDataList, feedData)

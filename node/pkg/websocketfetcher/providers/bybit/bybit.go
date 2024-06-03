@@ -2,7 +2,6 @@ package bybit
 
 import (
 	"context"
-	"fmt"
 	"strings"
 
 	"bisonai.com/orakl/node/pkg/websocketfetcher/common"
@@ -61,8 +60,8 @@ func (f *BybitFetcher) handleMessage(ctx context.Context, message map[string]any
 		log.Error().Str("Player", "Bybit").Err(err).Msg("error in bybit.handleMessage")
 		return err
 	}
-	fmt.Println(feedData)
-	// f.FeedDataBuffer <- *feedData
+
+	f.FeedDataBuffer <- *feedData
 	return nil
 }
 

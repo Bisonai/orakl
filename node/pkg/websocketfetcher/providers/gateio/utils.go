@@ -23,7 +23,7 @@ func ResponseToFeedData(data Response, feedMap map[string]int32) (*common.FeedDa
 		return feedData, fmt.Errorf("feed not found")
 	}
 
-	feedData.FeedId = id
+	feedData.FeedID = id
 	feedData.Value = price
 	feedData.Timestamp = &timestamp
 	return feedData, nil

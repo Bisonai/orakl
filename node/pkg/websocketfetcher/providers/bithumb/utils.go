@@ -47,7 +47,7 @@ func TransactionResponseToFeedDataList(data TransactionResponse, feedMap map[str
 		}
 
 		feedData = append(feedData, &common.FeedData{
-			FeedId:    id,
+			FeedID:    id,
 			Value:     price,
 			Timestamp: &timestamp,
 		})
@@ -88,7 +88,7 @@ func TickerResponseToFeedData(data TickerResponse, feedMap map[string]int32) (*c
 	}
 
 	return &common.FeedData{
-		FeedId:    id,
+		FeedID:    id,
 		Value:     price,
 		Timestamp: &timestamp,
 	}, nil

@@ -24,7 +24,7 @@ func ResponseToFeedDataList(data Response, feedMap map[string]int32) ([]*common.
 				continue
 			}
 			timestamp := time.Now()
-			feedData.FeedId = id
+			feedData.FeedID = id
 			feedData.Value = price
 			feedData.Timestamp = &timestamp
 			feedDataList = append(feedDataList, feedData)

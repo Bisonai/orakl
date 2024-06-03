@@ -22,7 +22,7 @@ func ResponseToFeedDataList(data Response, feedMap map[string]int32) ([]*common.
 			continue
 		}
 		feedData := &common.FeedData{
-			FeedId:    id,
+			FeedID:    id,
 			Value:     value,
 			Timestamp: &timestamp,
 		}

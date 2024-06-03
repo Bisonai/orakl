@@ -20,7 +20,7 @@ func ResponseToFeedDataList(data Response, feedMap map[string]int32) ([]*common.
 		}
 
 		feedData = append(feedData, &common.FeedData{
-			FeedId:    id,
+			FeedID:    id,
 			Value:     price,
 			Timestamp: &timestamp,
 		})
