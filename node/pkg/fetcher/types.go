@@ -16,6 +16,7 @@ const (
 	SelectAllProxiesQuery                 = `SELECT * FROM proxies`
 	SelectConfigsQuery                    = `SELECT id, name, fetch_interval FROM configs`
 	SelectHttpRequestFeedsByConfigIdQuery = `SELECT * FROM feeds WHERE config_id = @config_id AND NOT (definition::jsonb @> '{"type": "wss"}'::jsonb)`
+	SelectFeedsByConfigIdQuery            = `SELECT * FROM feeds WHERE config_id = @config_id`
 	InsertLocalAggregateQuery             = `INSERT INTO local_aggregates (config_id, value) VALUES (@config_id, @value)`
 	DECIMALS                              = 8
 )

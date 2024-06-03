@@ -59,6 +59,9 @@ func setLatestFeedData(ctx context.Context, feedData []FeedData, expiration time
 }
 
 func getLatestFeedData(ctx context.Context, feedIds []int32) ([]FeedData, error) {
+	if len(feedIds) == 0 {
+		return []FeedData{}, nil
+	}
 	keyList := make([]string, len(feedIds))
 	for i, feedId := range feedIds {
 		keyList[i] = keys.LatestFeedDataKey(feedId)
