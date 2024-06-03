@@ -22,7 +22,7 @@ type Wallet struct {
 }
 
 type ProviderUrl struct {
-	Id       *int64 `db:"id"`
+	ID       *int64 `db:"id"`
 	ChainId  *int   `db:"chain_id"`
 	Url      string `db:"url"`
 	Priority *int   `db:"priority"`
@@ -44,7 +44,7 @@ type SignInsertPayload struct {
 }
 
 type SignModel struct {
-	Id          int64     `json:"id" db:"transaction_id"`
+	ID          int64     `json:"id" db:"transaction_id"`
 	Timestamp   time.Time `json:"timestamp" db:"timestamp"`
 	From        string    `json:"from" db:"from"`
 	To          string    `json:"to" db:"to"`
