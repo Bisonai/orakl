@@ -10,6 +10,7 @@ func Routes(router fiber.Router) {
 	wallets.Post("", insert)
 	wallets.Get("", get)
 	wallets.Get("/addresses", getAddresses)
+	wallets.Get("/signer", getSignerAddress)
 	wallets.Get("/:id", getById)
 	wallets.Patch("/:id", updateById)
 	wallets.Delete("/:id", deleteById)
