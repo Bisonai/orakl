@@ -104,7 +104,7 @@ func RefreshJob(ctx context.Context) error {
 		}
 
 		log.Info().Str("peer", connectionUrl).Msg("Peer is not alive")
-		err = db.QueryWithoutResult(ctx, peer.DeletePeerById, map[string]any{"id": p.Id})
+		err = db.QueryWithoutResult(ctx, peer.DeletePeerById, map[string]any{"id": p.ID})
 		if err != nil {
 			log.Error().Err(err).Msg("Failed to delete peer")
 		}

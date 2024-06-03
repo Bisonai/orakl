@@ -27,7 +27,7 @@ func DataToFeedData(data Ticker, feedMap map[string]int32) (*common.FeedData, er
 	if !exists {
 		return feedData, fmt.Errorf("feed not found")
 	}
-	feedData.FeedId = id
+	feedData.FeedID = id
 	feedData.Value = value
 	feedData.Timestamp = &timestamp
 	return feedData, nil

@@ -12,7 +12,7 @@ import (
 )
 
 type PeerModel struct {
-	Id     int64  `db:"id" json:"id"`
+	ID     int64  `db:"id" json:"id"`
 	Ip     string `db:"ip" json:"ip"`
 	Port   int    `db:"port" json:"port"`
 	HostId string `db:"host_id" json:"host_id"`

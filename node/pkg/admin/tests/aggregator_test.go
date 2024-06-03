@@ -80,7 +80,7 @@ func TestAggregatorActivate(t *testing.T) {
 	channel := testItems.mb.Subscribe(bus.AGGREGATOR)
 	waitForMessage(t, channel, bus.ADMIN, bus.AGGREGATOR, bus.ACTIVATE_AGGREGATOR)
 
-	_, err = RawPostRequest(testItems.app, "/api/v1/aggregator/activate/"+strconv.Itoa(int(testItems.tmpData.config.Id)), nil)
+	_, err = RawPostRequest(testItems.app, "/api/v1/aggregator/activate/"+strconv.Itoa(int(testItems.tmpData.config.ID)), nil)
 	if err != nil {
 		t.Fatalf("error activating aggregator: %v", err)
 	}
@@ -98,7 +98,7 @@ func TestAggregatorDeactivate(t *testing.T) {
 	channel := testItems.mb.Subscribe(bus.AGGREGATOR)
 	waitForMessage(t, channel, bus.ADMIN, bus.AGGREGATOR, bus.DEACTIVATE_AGGREGATOR)
 
-	_, err = RawPostRequest(testItems.app, "/api/v1/aggregator/deactivate/"+strconv.Itoa(int(testItems.tmpData.config.Id)), nil)
+	_, err = RawPostRequest(testItems.app, "/api/v1/aggregator/deactivate/"+strconv.Itoa(int(testItems.tmpData.config.ID)), nil)
 	if err != nil {
 		t.Fatalf("error deactivating aggregator: %v", err)
 	}

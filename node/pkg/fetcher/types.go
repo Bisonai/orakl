@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"bisonai.com/orakl/node/pkg/bus"
+	"bisonai.com/orakl/node/pkg/common/types"
 	"bisonai.com/orakl/node/pkg/utils/reducer"
 	"bisonai.com/orakl/node/pkg/websocketfetcher"
 )
@@ -19,11 +20,7 @@ const (
 	DECIMALS                   = 8
 )
 
-type FeedData struct {
-	FeedID    int32      `db:"feed_id"`
-	Value     float64    `db:"value"`
-	Timestamp *time.Time `db:"timestamp"`
-}
+type FeedData types.FeedData
 
 type Config struct {
 	ID            int32  `db:"id"`
@@ -31,13 +28,7 @@ type Config struct {
 	FetchInterval int32  `db:"fetch_interval"`
 }
 
-type Proxy struct {
-	ID       int64   `db:"id"`
-	Protocol string  `db:"protocol"`
-	Host     string  `db:"host"`
-	Port     int     `db:"port"`
-	Location *string `db:"location"`
-}
+type Proxy types.Proxy
 
 type Fetcher struct {
 	Config
@@ -98,23 +89,7 @@ type Definition struct {
 	Reciprocal     *bool   `json:"reciprocal"`
 }
 
-type Aggregate struct {
-	ConfigId  int32      `db:"config_id"`
-	Value     int64      `db:"value"`
-	Timestamp *time.Time `db:"timestamp"`
-}
-
-type FeedDataFromDB struct {
-	FeedId    int32      `db:"feed_id"`
-	Value     float64    `db:"value"`
-	Timestamp *time.Time `db:"timestamp"`
-}
-
-type RedisAggregate struct {
-	ConfigId  int32     `json:"configId"`
-	Value     int64     `json:"value"`
-	Timestamp time.Time `json:"timestamp"`
-}
+type LocalAggregate types.LocalAggregate
 
 type ChainHelper interface {
 	ReadContract(ctx context.Context, contractAddress string, functionString string, args ...interface{}) (interface{}, error)

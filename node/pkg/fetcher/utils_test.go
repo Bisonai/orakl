@@ -5,7 +5,6 @@ import (
 	"context"
 	"encoding/json"
 	"math/big"
-	"strconv"
 	"testing"
 	"time"
 
@@ -13,6 +12,7 @@ import (
 	"net/http/httptest"
 
 	"bisonai.com/orakl/node/pkg/aggregator"
+	"bisonai.com/orakl/node/pkg/common/keys"
 	"bisonai.com/orakl/node/pkg/db"
 	"github.com/stretchr/testify/assert"
 )
@@ -150,7 +150,7 @@ func TestSetLatestFeedData(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error setting latest feed data: %v", err)
 	}
-	keys := []string{"latestFeedData:1", "latestFeedData:2"}
+	keys := []string{keys.LatestFeedDataKey(1), keys.LatestFeedDataKey(2)}
 
 	defer db.Del(ctx, keys[0])
 	defer db.Del(ctx, keys[1])
@@ -178,7 +178,7 @@ func TestGetLatestFeedData(t *testing.T) {
 		},
 	}
 
-	keys := []string{"latestFeedData:1", "latestFeedData:2"}
+	keys := []string{keys.LatestFeedDataKey(1), keys.LatestFeedDataKey(2)}
 	err := setLatestFeedData(ctx, feedData, 1*time.Second)
 	if err != nil {
 		t.Fatalf("error setting latest feed data: %v", err)
@@ -214,9 +214,9 @@ func TestSetFeedDataBuffer(t *testing.T) {
 		t.Fatalf("error setting feed data buffer: %v", err)
 	}
 
-	defer db.Del(ctx, "feedDataBuffer")
+	defer db.Del(ctx, keys.FeedDataBufferKey())
 
-	result, err := db.LRangeObject[FeedData](ctx, "feedDataBuffer", 0, -1)
+	result, err := db.LRangeObject[FeedData](ctx, keys.FeedDataBufferKey(), 0, -1)
 	if err != nil {
 		t.Fatalf("error getting feed data buffer: %v", err)
 	}
@@ -244,7 +244,7 @@ func TestGetFeedDataBuffer(t *testing.T) {
 		t.Fatalf("error setting feed data buffer: %v", err)
 	}
 
-	defer db.Del(ctx, "feedDataBuffer")
+	defer db.Del(ctx, keys.FeedDataBufferKey())
 
 	result, err := getFeedDataBuffer(ctx)
 	if err != nil {
@@ -270,7 +270,7 @@ func TestInsertLocalAggregatePgsql(t *testing.T) {
 
 	configs := testItems.insertedConfigs
 	for i, config := range configs {
-		insertLocalAggregateErr := insertLocalAggregatePgsql(ctx, config.Id, float64(i)+5)
+		insertLocalAggregateErr := insertLocalAggregatePgsql(ctx, config.ID, float64(i)+5)
 		if insertLocalAggregateErr != nil {
 			t.Fatalf("error inserting local aggregate pgsql: %v", insertLocalAggregateErr)
 		}
@@ -299,20 +299,19 @@ func TestInsertLocalAggregateRdb(t *testing.T) {
 
 	configs := testItems.insertedConfigs
 	for i, config := range configs {
-		err := insertLocalAggregateRdb(ctx, config.Id, float64(i)+5)
+		err := insertLocalAggregateRdb(ctx, config.ID, float64(i)+5)
 		if err != nil {
 			t.Fatalf("error inserting local aggregate rdb: %v", err)
 		}
-		defer db.Del(ctx, "localAggregate:"+strconv.Itoa(int(config.Id)))
+		defer db.Del(ctx, keys.LocalAggregateKey(config.ID))
 	}
 
 	for _, config := range configs {
-		key := "localAggregate:" + strconv.Itoa(int(config.Id))
-		result, err := db.GetObject[aggregator.LocalAggregate](ctx, key)
+		result, err := db.GetObject[aggregator.LocalAggregate](ctx, keys.LocalAggregateKey(config.ID))
 		if err != nil {
 			t.Fatalf("error getting local aggregate rdb: %v", err)
 		}
-		assert.Equal(t, int32(config.Id), result.ConfigId)
+		assert.Equal(t, int32(config.ID), result.ConfigID)
 	}
 }
 
@@ -334,7 +333,7 @@ func TestCopyFeedData(t *testing.T) {
 	for i, feed := range feeds {
 		now := time.Now().Round(time.Second)
 		feedData = append(feedData, FeedData{
-			FeedID:    int32(*feed.Id),
+			FeedID:    int32(*feed.ID),
 			Value:     float64(i) + 5,
 			Timestamp: &now,
 		})
@@ -345,7 +344,7 @@ func TestCopyFeedData(t *testing.T) {
 		t.Fatalf("error setting feed data buffer: %v", err)
 	}
 
-	defer db.Del(ctx, "feedDataBuffer")
+	defer db.Del(ctx, keys.FeedDataBufferKey())
 
 	err = copyFeedData(ctx, feedData)
 	if err != nil {

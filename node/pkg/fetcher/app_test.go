@@ -3,10 +3,10 @@ package fetcher
 
 import (
 	"context"
-	"strconv"
 	"testing"
 	"time"
 
+	"bisonai.com/orakl/node/pkg/common/keys"
 	"bisonai.com/orakl/node/pkg/db"
 	"github.com/stretchr/testify/assert"
 )
@@ -85,19 +85,20 @@ func TestAppRun(t *testing.T) {
 
 	for _, fetcher := range app.Fetchers {
 		for _, feed := range fetcher.Feeds {
-			result, letestFeedDataErr := db.GetObject[FeedData](ctx, "latestFeedData:"+strconv.Itoa(int(feed.ID)))
+
+			result, letestFeedDataErr := db.GetObject[FeedData](ctx, keys.LatestFeedDataKey(feed.ID))
 			if letestFeedDataErr != nil {
 				t.Fatalf("error getting latest feed data: %v", letestFeedDataErr)
 			}
 			assert.NotNil(t, result)
 		}
-		rdbResult, localAggregateErr := db.Get(ctx, "localAggregate:"+strconv.Itoa(int(fetcher.Config.ID)))
+		rdbResult, localAggregateErr := db.Get(ctx, keys.LocalAggregateKey(fetcher.Config.ID))
 		if localAggregateErr != nil {
 			t.Fatalf("error getting local aggregate: %v", localAggregateErr)
 		}
 		assert.NotNil(t, rdbResult)
 	}
-	buffer, err := db.LRangeObject[FeedData](ctx, "feedDataBuffer", 0, -1)
+	buffer, err := db.LRangeObject[FeedData](ctx, keys.FeedDataBufferKey(), 0, -1)
 	if err != nil {
 		t.Fatalf("error getting feed data buffer: %v", err)
 	}
@@ -114,7 +115,7 @@ func TestAppRun(t *testing.T) {
 	}
 	assert.Greater(t, len(feedResult), 0)
 
-	localAggregateResult, err := db.QueryRows[Aggregate](ctx, "SELECT * FROM local_aggregates", nil)
+	localAggregateResult, err := db.QueryRows[LocalAggregate](ctx, "SELECT * FROM local_aggregates", nil)
 	if err != nil {
 		t.Fatalf("error querying local aggregates: %v", err)
 	}

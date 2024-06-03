@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"bisonai.com/orakl/node/pkg/common/keys"
 	"bisonai.com/orakl/node/pkg/db"
 	"bisonai.com/orakl/node/pkg/websocketfetcher/common"
 	"bisonai.com/orakl/node/pkg/websocketfetcher/providers/binance"
@@ -84,22 +85,22 @@ func TestStoreFeeds(t *testing.T) {
 
 	feedData := []common.FeedData{
 		{
-			FeedId:    1,
+			FeedID:    1,
 			Value:     10000,
 			Timestamp: &testTimestamps[0],
 		},
 		{
-			FeedId:    1,
+			FeedID:    1,
 			Value:     10001,
 			Timestamp: &testTimestamps[1],
 		},
 		{
-			FeedId:    2,
+			FeedID:    2,
 			Value:     20000,
 			Timestamp: &testTimestamps[2],
 		},
 		{
-			FeedId:    2,
+			FeedID:    2,
 			Value:     20001,
 			Timestamp: &testTimestamps[3],
 		},
@@ -110,7 +111,7 @@ func TestStoreFeeds(t *testing.T) {
 		t.Errorf("unexpected error: %v", err)
 	}
 
-	latestFeed1, err := db.GetObject[common.FeedData](ctx, "latestFeedData:1")
+	latestFeed1, err := db.GetObject[common.FeedData](ctx, keys.LatestFeedDataKey(1))
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
@@ -118,7 +119,7 @@ func TestStoreFeeds(t *testing.T) {
 		t.Errorf("expected value 10001, got %f", latestFeed1.Value)
 	}
 
-	latestFeed2, err := db.GetObject[common.FeedData](ctx, "latestFeedData:2")
+	latestFeed2, err := db.GetObject[common.FeedData](ctx, keys.LatestFeedDataKey(2))
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
@@ -126,7 +127,7 @@ func TestStoreFeeds(t *testing.T) {
 		t.Errorf("expected value 20001, got %f", latestFeed2.Value)
 	}
 
-	buffer, err := db.PopAllObject[common.FeedData](ctx, "feedDataBuffer")
+	buffer, err := db.PopAllObject[common.FeedData](ctx, keys.FeedDataBufferKey())
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}

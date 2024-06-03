@@ -21,7 +21,7 @@ func DataToFeedData(data Data, feedMap map[string]int32) (*common.FeedData, erro
 	if !exists {
 		return feedData, fmt.Errorf("feed not found")
 	}
-	feedData.FeedId = id
+	feedData.FeedID = id
 	feedData.Value = value
 	feedData.Timestamp = &timestamp
 	return feedData, nil

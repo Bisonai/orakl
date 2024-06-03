@@ -28,7 +28,7 @@ func TickerToFeedData(ticker Ticker, feedMap map[string]int32) (*common.FeedData
 		return feedData, err
 	}
 
-	feedData.FeedId = id
+	feedData.FeedID = id
 	feedData.Value = value
 	feedData.Timestamp = &timestamp
 
