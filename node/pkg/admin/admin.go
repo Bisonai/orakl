@@ -1,6 +1,7 @@
 package admin
 
 import (
+	"context"
 	"fmt"
 	"os"
 
@@ -54,5 +55,10 @@ func Run(bus *bus.MessageBus) error {
 		log.Fatal().Err(err).Msg("Failed to start admin server")
 		return err
 	}
+
 	return nil
+}
+
+func SyncOraklConfig(ctx context.Context) error {
+	return config.InitSyncDb(ctx)
 }

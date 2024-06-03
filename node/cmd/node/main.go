@@ -2,13 +2,10 @@ package main
 
 import (
 	"context"
-	"errors"
-	"net/http"
 	"os"
 	"strconv"
 	"strings"
 	"sync"
-	"time"
 
 	"bisonai.com/orakl/node/pkg/admin"
 	"bisonai.com/orakl/node/pkg/aggregator"
@@ -57,25 +54,13 @@ func main() {
 		}
 	}()
 
-	port := os.Getenv("APP_PORT")
-	if port == "" {
-		log.Info().Msg("No APP_PORT specified, using default 8088")
-		port = "8088"
-	}
-
-	if err = waitForApi(port); err != nil {
-		log.Error().Err(err).Msg("Failed to wait api")
-		return
-	}
-	log.Info().Msg("API is live")
-
-	syncUrl := "http://localhost:" + port + "/api/v1/config/sync"
-	_, err = http.Post(syncUrl, "application/json", nil)
+	log.Info().Msg("Syncing orakl config")
+	err = admin.SyncOraklConfig(ctx)
 	if err != nil {
-		log.Error().Err(err).Msg("Failed to sync from orakl config")
+		log.Error().Err(err).Msg("Failed to sync orakl config")
 		return
 	}
-	log.Info().Msg("Synced from orakl config")
+	log.Info().Msg("Orakl config synced")
 
 	wg.Add(1)
 	go func() {
@@ -116,18 +101,6 @@ func main() {
 	log.Info().Msg("Reporter started")
 
 	wg.Wait()
-}
-
-func waitForApi(port string) error {
-	syncUrl := "http://localhost:" + port + "/api/v1"
-	for i := 0; i < 10; i++ {
-		resp, err := http.Get(syncUrl)
-		if err == nil && resp.StatusCode == http.StatusOK {
-			return nil
-		}
-		time.Sleep(1 * time.Second)
-	}
-	return errors.New("API did not become live within the expected time")
 }
 
 func getLogLevel(input string) zerolog.Level {

@@ -44,7 +44,15 @@ type ConfigNameIdModel struct {
 	ID   int32  `db:"id" json:"id"`
 }
 
+func InitSyncDb(ctx context.Context) error {
+	return sync(ctx)
+}
+
 func Sync(c *fiber.Ctx) error {
+	return sync(c.Context())
+}
+
+func sync(ctx context.Context) error {
 	configUrl := getConfigUrl()
 	loadedConfigs, err := request.GetRequest[[]ConfigInsertModel](configUrl, nil, nil)
 	if err != nil {
@@ -60,7 +68,7 @@ func Sync(c *fiber.Ctx) error {
 	}
 
 	// remove invalid configs
-	dbConfigs, err := db.QueryRows[ConfigModel](c.Context(), SelectConfigQuery, nil)
+	dbConfigs, err := db.QueryRows[ConfigModel](ctx, SelectConfigQuery, nil)
 	if err != nil {
 		return err
 	}
@@ -68,7 +76,7 @@ func Sync(c *fiber.Ctx) error {
 		_, ok := loadedConfigMap[dbConfig.Name]
 		if !ok {
 			log.Info().Str("Player", "Config").Str("Config", dbConfig.Name).Msg("Config not found in config")
-			_, err = db.QueryRow[ConfigModel](c.Context(), DeleteConfigQuery, map[string]any{"id": dbConfig.ID})
+			_, err = db.QueryRow[ConfigModel](ctx, DeleteConfigQuery, map[string]any{"id": dbConfig.ID})
 			if err != nil {
 				return err
 			}
@@ -76,7 +84,7 @@ func Sync(c *fiber.Ctx) error {
 	}
 
 	// remove invalid feeds
-	dbFeeds, err := db.QueryRows[feed.FeedModel](c.Context(), feed.GetFeed, nil)
+	dbFeeds, err := db.QueryRows[feed.FeedModel](ctx, feed.GetFeed, nil)
 	if err != nil {
 		return err
 	}
@@ -84,14 +92,14 @@ func Sync(c *fiber.Ctx) error {
 		_, ok := loadedFeedMap[dbFeed.Name]
 		if !ok {
 			log.Info().Str("Player", "Config").Str("Feed", dbFeed.Name).Msg("Feed not found in config")
-			_, err = db.QueryRow[feed.FeedModel](c.Context(), "DELETE FROM feeds WHERE id = @id RETURNING *;", map[string]any{"id": dbFeed.ID})
+			_, err = db.QueryRow[feed.FeedModel](ctx, DeleteFeedQuery, map[string]any{"id": dbFeed.ID})
 			if err != nil {
 				return err
 			}
 		}
 	}
 
-	err = bulkUpsertConfigs(c.Context(), loadedConfigs)
+	err = bulkUpsertConfigs(ctx, loadedConfigs)
 	if err != nil {
 		return err
 	}
@@ -101,7 +109,7 @@ func Sync(c *fiber.Ctx) error {
 		whereValues = append(whereValues, config.Name)
 	}
 
-	configIds, err := db.BulkSelect[ConfigNameIdModel](c.Context(), "configs", []string{"name", "id"}, []string{"name"}, whereValues)
+	configIds, err := db.BulkSelect[ConfigNameIdModel](ctx, "configs", []string{"name", "id"}, []string{"name"}, whereValues)
 	if err != nil {
 		return err
 	}
@@ -122,7 +130,7 @@ func Sync(c *fiber.Ctx) error {
 		}
 	}
 
-	return db.BulkUpsert(c.Context(), "feeds", []string{"name", "definition", "config_id"}, upsertRows, []string{"name"}, []string{"definition", "config_id"})
+	return db.BulkUpsert(ctx, "feeds", []string{"name", "definition", "config_id"}, upsertRows, []string{"name"}, []string{"definition", "config_id"})
 }
 
 func Insert(c *fiber.Ctx) error {
