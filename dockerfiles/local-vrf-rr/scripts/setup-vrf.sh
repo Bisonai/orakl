@@ -6,17 +6,21 @@ yarn cli chain insert --name localhost
 yarn cli service insert --name VRF
 yarn cli service insert --name REQUEST_RESPONSE
 
-keygen_output=$(yarn cli vrf keygen)
-sk=$(echo "$keygen_output" | awk -F'sk=' '{print $2}' | awk '{print $1}')
-pk=$(echo "$keygen_output" | awk -F'pk=' '{print $2}' | awk '{print $1}')
-pkX=$(echo "$keygen_output" | awk -F'pkX=' '{print $2}' | awk '{print $1}')
-pkY=$(echo "$keygen_output" | awk -F'pkY=' '{print $2}' | awk '{print $1}')
-keyHash=$(echo "$keygen_output" | awk -F'keyHash=' '{print $2}' | awk '{print $1}')
+cd .. || exit
+vrf_keys_path="vrf-keys.json"
+sk=$(jq -r '.sk' "$vrf_keys_path")
+pk=$(jq -r '.pk' "$vrf_keys_path")
+pkX=$(jq -r '.pkX' "$vrf_keys_path")
+pkY=$(jq -r '.pkY' "$vrf_keys_path")
+keyHash=$(jq -r '.keyHash' "$vrf_keys_path")
 
+echo $keyHash
+
+cd cli || exit
 yarn cli vrf insert --chain localhost --sk "$sk" --pk "$pk" --pkX "$pkX" --pkY "$pkY" --keyHash "$keyHash"
 
 cd .. || exit
-node update-vrf-migration.js $pkX $pkY
+node update-vrf-migration.js "$pkX" "$pkY"
 node update-hardhat-network.js
 
 cd contracts/v0.1 || exit
