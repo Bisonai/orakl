@@ -46,7 +46,7 @@ func TestProxyInsert(t *testing.T) {
 
 	assert.Greaterf(t, len(readResultAfter), len(readResultBefore), "expected to have more proxies after insertion")
 
-	_, err = db.QueryRow[proxy.ProxyModel](context.Background(), proxy.DeleteProxyById, map[string]any{"id": insertResult.Id})
+	_, err = db.QueryRow[proxy.ProxyModel](context.Background(), proxy.DeleteProxyById, map[string]any{"id": insertResult.ID})
 	if err != nil {
 		t.Fatalf("error cleaning up test: %v", err)
 	}
@@ -76,12 +76,12 @@ func TestProxyGetById(t *testing.T) {
 	}
 	defer cleanup()
 
-	readResultById, err := GetRequest[proxy.ProxyModel](testItems.app, "/api/v1/proxy/"+strconv.Itoa(int(*testItems.tmpData.proxy.Id)), nil)
+	readResultById, err := GetRequest[proxy.ProxyModel](testItems.app, "/api/v1/proxy/"+strconv.Itoa(int(*testItems.tmpData.proxy.ID)), nil)
 	if err != nil {
 		t.Fatalf("error getting proxy by id: %v", err)
 	}
 
-	assert.Equal(t, readResultById.Id, testItems.tmpData.proxy.Id)
+	assert.Equal(t, readResultById.ID, testItems.tmpData.proxy.ID)
 }
 
 func TestProxyUpdateById(t *testing.T) {
@@ -111,14 +111,14 @@ func TestProxyUpdateById(t *testing.T) {
 		Location: nil,
 	}
 
-	updateResult, err := PatchRequest[proxy.ProxyModel](testItems.app, "/api/v1/proxy/"+strconv.Itoa(int(*insertResult.Id)), mockProxyUpdate)
+	updateResult, err := PatchRequest[proxy.ProxyModel](testItems.app, "/api/v1/proxy/"+strconv.Itoa(int(*insertResult.ID)), mockProxyUpdate)
 	if err != nil {
 		t.Fatalf("error updating proxy: %v", err)
 	}
 
 	assert.Equal(t, updateResult.Host, mockProxyUpdate.Host)
 
-	_, err = db.QueryRow[proxy.ProxyModel](context.Background(), proxy.DeleteProxyById, map[string]any{"id": insertResult.Id})
+	_, err = db.QueryRow[proxy.ProxyModel](context.Background(), proxy.DeleteProxyById, map[string]any{"id": insertResult.ID})
 	if err != nil {
 		t.Fatalf("error deleting proxy: %v", err)
 	}
@@ -144,12 +144,12 @@ func TestProxyDeleteById(t *testing.T) {
 		t.Fatalf("error inserting proxy: %v", err)
 	}
 
-	_, err = DeleteRequest[proxy.ProxyModel](testItems.app, "/api/v1/proxy/"+strconv.Itoa(int(*insertResult.Id)), nil)
+	_, err = DeleteRequest[proxy.ProxyModel](testItems.app, "/api/v1/proxy/"+strconv.Itoa(int(*insertResult.ID)), nil)
 	if err != nil {
 		t.Fatalf("error deleting proxy: %v", err)
 	}
 
-	result, err := GetRequest[proxy.ProxyModel](testItems.app, "/api/v1/proxy/"+strconv.Itoa(int(*insertResult.Id)), nil)
+	result, err := GetRequest[proxy.ProxyModel](testItems.app, "/api/v1/proxy/"+strconv.Itoa(int(*insertResult.ID)), nil)
 	if err != nil {
 		t.Fatalf("error getting proxy by id: %v", err)
 	}

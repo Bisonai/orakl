@@ -7,7 +7,7 @@ import (
 )
 
 type ProxyModel struct {
-	Id       *int32  `db:"id" json:"id"`
+	ID       *int32  `db:"id" json:"id"`
 	Protocol string  `db:"protocol" json:"protocol"`
 	Host     string  `db:"host" json:"host"`
 	Port     int     `db:"port" json:"port"`

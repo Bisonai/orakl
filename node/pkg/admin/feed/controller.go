@@ -8,7 +8,7 @@ import (
 )
 
 type FeedModel struct {
-	Id         *int32          `db:"id" json:"id"`
+	ID         *int32          `db:"id" json:"id"`
 	Name       string          `db:"name" json:"name"`
 	Definition json.RawMessage `db:"definition" json:"definition"`
 	ConfigId   *int32          `db:"config_id" json:"configId"`

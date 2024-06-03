@@ -74,7 +74,7 @@ func TestProviderUrlGetById(t *testing.T) {
 	}
 	defer cleanup()
 
-	readResult, err := GetRequest[providerUrl.ProviderUrlModel](testItems.app, "/api/v1/provider-url/"+strconv.Itoa(int(*testItems.tmpData.providerUrl.Id)), nil)
+	readResult, err := GetRequest[providerUrl.ProviderUrlModel](testItems.app, "/api/v1/provider-url/"+strconv.Itoa(int(*testItems.tmpData.providerUrl.ID)), nil)
 	if err != nil {
 		t.Fatalf("error getting provider urls: %v", err)
 	}
@@ -96,7 +96,7 @@ func TestProviderDeleteById(t *testing.T) {
 		t.Fatalf("error getting provider urls before: %v", err)
 	}
 
-	_, err = db.QueryRow[providerUrl.ProviderUrlModel](context.Background(), providerUrl.DeleteProviderUrlById, map[string]interface{}{"id": testItems.tmpData.providerUrl.Id})
+	_, err = db.QueryRow[providerUrl.ProviderUrlModel](context.Background(), providerUrl.DeleteProviderUrlById, map[string]interface{}{"id": testItems.tmpData.providerUrl.ID})
 	if err != nil {
 		t.Fatalf("error cleaning up test: %v", err)
 	}

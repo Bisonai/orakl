@@ -78,7 +78,7 @@ func TestFetcherDeactivate(t *testing.T) {
 	channel := testItems.mb.Subscribe(bus.FETCHER)
 	waitForMessage(t, channel, bus.ADMIN, bus.FETCHER, bus.DEACTIVATE_FETCHER)
 
-	_, err = RawPostRequest(testItems.app, "/api/v1/fetcher/deactivate/"+strconv.Itoa(int(testItems.tmpData.config.Id)), nil)
+	_, err = RawPostRequest(testItems.app, "/api/v1/fetcher/deactivate/"+strconv.Itoa(int(testItems.tmpData.config.ID)), nil)
 	if err != nil {
 		t.Fatalf("error deactivating adapter: %v", err)
 	}
@@ -96,7 +96,7 @@ func TestAdapterActivate(t *testing.T) {
 	waitForMessage(t, channel, bus.ADMIN, bus.FETCHER, bus.ACTIVATE_FETCHER)
 
 	// activate
-	_, err = RawPostRequest(testItems.app, "/api/v1/fetcher/activate/"+strconv.Itoa(int(testItems.tmpData.config.Id)), nil)
+	_, err = RawPostRequest(testItems.app, "/api/v1/fetcher/activate/"+strconv.Itoa(int(testItems.tmpData.config.ID)), nil)
 	if err != nil {
 		t.Fatalf("error activating adapter: %v", err)
 	}

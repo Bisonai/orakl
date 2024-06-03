@@ -32,7 +32,7 @@ type ConfigInsertModel struct {
 }
 
 type ConfigModel struct {
-	Id                int32  `db:"id" json:"id"`
+	ID                int32  `db:"id" json:"id"`
 	Name              string `db:"name" json:"name"`
 	FetchInterval     *int   `db:"fetch_interval" json:"fetchInterval"`
 	AggregateInterval *int   `db:"aggregate_interval" json:"aggregateInterval"`
@@ -41,7 +41,7 @@ type ConfigModel struct {
 
 type ConfigNameIdModel struct {
 	Name string `db:"name" json:"name"`
-	Id   int32  `db:"id" json:"id"`
+	ID   int32  `db:"id" json:"id"`
 }
 
 func Sync(c *fiber.Ctx) error {
@@ -68,7 +68,7 @@ func Sync(c *fiber.Ctx) error {
 		_, ok := loadedConfigMap[dbConfig.Name]
 		if !ok {
 			log.Info().Str("Player", "Config").Str("Config", dbConfig.Name).Msg("Config not found in config")
-			_, err = db.QueryRow[ConfigModel](c.Context(), DeleteConfigQuery, map[string]any{"id": dbConfig.Id})
+			_, err = db.QueryRow[ConfigModel](c.Context(), DeleteConfigQuery, map[string]any{"id": dbConfig.ID})
 			if err != nil {
 				return err
 			}
@@ -84,7 +84,7 @@ func Sync(c *fiber.Ctx) error {
 		_, ok := loadedFeedMap[dbFeed.Name]
 		if !ok {
 			log.Info().Str("Player", "Config").Str("Feed", dbFeed.Name).Msg("Feed not found in config")
-			_, err = db.QueryRow[feed.FeedModel](c.Context(), "DELETE FROM feeds WHERE id = @id RETURNING *;", map[string]any{"id": dbFeed.Id})
+			_, err = db.QueryRow[feed.FeedModel](c.Context(), "DELETE FROM feeds WHERE id = @id RETURNING *;", map[string]any{"id": dbFeed.ID})
 			if err != nil {
 				return err
 			}
@@ -108,7 +108,7 @@ func Sync(c *fiber.Ctx) error {
 
 	configNameIdMap := map[string]int32{}
 	for _, configId := range configIds {
-		configNameIdMap[configId.Name] = configId.Id
+		configNameIdMap[configId.Name] = configId.ID
 	}
 
 	upsertRows := make([][]any, 0)
@@ -143,8 +143,8 @@ func Insert(c *fiber.Ctx) error {
 	}
 
 	for _, feed := range config.Feeds {
-		feed.ConfigId = &result.Id
-		err = db.QueryWithoutResult(c.Context(), InsertFeedQuery, map[string]any{"name": feed.Name, "definition": feed.Definition, "config_id": result.Id})
+		feed.ConfigId = &result.ID
+		err = db.QueryWithoutResult(c.Context(), InsertFeedQuery, map[string]any{"name": feed.Name, "definition": feed.Definition, "config_id": result.ID})
 		if err != nil {
 			return err
 		}
