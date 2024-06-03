@@ -44,6 +44,8 @@ DELEGATOR_REPORTER_PK={private key for delegator fee payer}
 
 ## Run docker
 
+### Data feed
+
 1. Docker Compose Build
    Builds all required images for docker-compose.
 
@@ -58,9 +60,55 @@ docker-compose -f docker-compose.local-data-feed.yaml build
 docker-compose -f docker-compose.local-data-feed.yaml up
 ```
 
-2. Docker Compose Down
+3. Docker Compose Down
    Close all related containers.
 
 ```bash
 docker-compose -f docker-compose.local-data-feed.yaml down -v
 ```
+
+### VRF / Request-Response
+
+1. Docker Compose Build
+   Builds all required images for docker-compose.
+
+```bash
+docker-compose -f docker-compose.local-core.yaml build
+```
+
+2. Docker Compose Up
+   Runs all required images to run datafeed locally.
+
+```bash
+SERVICE=rr docker-compose -f docker-compose.local-core.yaml up --force-recreate
+```
+
+3. Docker Compose Down
+   Close all related containers.
+
+```bash
+docker-compose -f docker-compose.local-core.yaml down -v
+```
+
+Replace `SERVICE` with whichever service you'd like to run. The options are `vrf` and `rr` which represent VRF and Request-Response services respectively.
+
+Here is what happens after the above command is run:
+
+- `api`, `postgres`, `redis`, and `json-rpc` services will start as separate docker containers
+- `postgres` will get populated with necessary data:
+  - chains
+  - services
+  - vrf keys in case if the service is vrf
+  - listener (after contracts are deployed)
+  - reporter (after contracts are deployed)
+- migration files in `contracts/v0.1/migration/` get updated with provided keys and other values
+- relevant coordinator and prepayment contracts get deployed
+
+Keep in mind that you'll need the [keyHash](/dockerfiles/local-vrf-rr/envs/vrf-keys.json) value for VRF consumer and update it in `vrf-consumer/scripts/utils.ts`
+
+You can spin up the listener, worker, and reporter services from [core](../../core/) and make requests to VRF or Request-Response consumers after deploying consumer contracts.
+
+### Notes
+
+- The current automation is not designed to run both VRF and Request-Response services.
+- Therefore, every time a new service (VRF or Request-Response) is started, all the running containers related to `core` will be recreated, meaning you'll lose all changes in those containers
