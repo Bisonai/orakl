@@ -21,6 +21,7 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
+// TODO: utilize unused providers: bitstamp, gemini, lbank, bitget (should be included in orakl config)
 const (
 	DefaultStoreInterval = 1000 * time.Millisecond
 	DefaultBufferSize    = 500
