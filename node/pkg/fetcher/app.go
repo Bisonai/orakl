@@ -326,12 +326,20 @@ func (a *App) getConfigs(ctx context.Context) ([]Config, error) {
 	return configs, err
 }
 
-func (a *App) getFeeds(ctx context.Context, configId int32) ([]Feed, error) {
+func (a *App) getFeedsWithoutWss(ctx context.Context, configId int32) ([]Feed, error) {
 	feeds, err := db.QueryRows[Feed](ctx, SelectHttpRequestFeedsByConfigIdQuery, map[string]any{"config_id": configId})
 	if err != nil {
 		return nil, err
 	}
 
+	return feeds, err
+}
+
+func (a *App) getFeeds(ctx context.Context, configId int32) ([]Feed, error) {
+	feeds, err := db.QueryRows[Feed](ctx, SelectFeedsByConfigIdQuery, map[string]any{"config_id": configId})
+	if err != nil {
+		return nil, err
+	}
 	return feeds, err
 }
 
@@ -351,13 +359,19 @@ func (a *App) initialize(ctx context.Context) error {
 	a.Fetchers = make(map[int32]*Fetcher, len(configs))
 	a.Collectors = make(map[int32]*Collector, len(configs))
 	for _, config := range configs {
-		feeds, getFeedsErr := a.getFeeds(ctx, config.ID)
+		// for fetcher it'll get fetcherFeeds without websocket fetcherFeeds
+		fetcherFeeds, getFeedsErr := a.getFeedsWithoutWss(ctx, config.ID)
 		if getFeedsErr != nil {
 			return getFeedsErr
 		}
+		a.Fetchers[config.ID] = NewFetcher(config, fetcherFeeds)
 
-		a.Fetchers[config.ID] = NewFetcher(config, feeds)
-		a.Collectors[config.ID] = NewCollector(config, feeds)
+		// for collector it'll get all feeds to be collected
+		collectorFeeds, getFeedsErr := a.getFeeds(ctx, config.ID)
+		if getFeedsErr != nil {
+			return getFeedsErr
+		}
+		a.Collectors[config.ID] = NewCollector(config, collectorFeeds)
 	}
 	streamIntervalRaw := os.Getenv("FEED_DATA_STREAM_INTERVAL")
 	streamInterval, err := time.ParseDuration(streamIntervalRaw)
