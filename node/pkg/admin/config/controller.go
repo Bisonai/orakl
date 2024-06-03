@@ -92,7 +92,7 @@ func sync(ctx context.Context) error {
 		_, ok := loadedFeedMap[dbFeed.Name]
 		if !ok {
 			log.Info().Str("Player", "Config").Str("Feed", dbFeed.Name).Msg("Feed not found in config")
-			_, err = db.QueryRow[feed.FeedModel](ctx, "DELETE FROM feeds WHERE id = @id RETURNING *;", map[string]any{"id": dbFeed.ID})
+			_, err = db.QueryRow[feed.FeedModel](ctx, DeleteFeedQuery, map[string]any{"id": dbFeed.ID})
 			if err != nil {
 				return err
 			}
