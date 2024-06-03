@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/url"
 	"sync"
+	"time"
 
 	"bisonai.com/orakl/node/pkg/utils/retrier"
 	"github.com/rs/zerolog/log"
@@ -14,18 +15,20 @@ import (
 )
 
 type WebsocketHelper struct {
-	Conn          *websocket.Conn
-	Endpoint      string
-	Subscriptions []any
-	Proxy         string
-	IsRunning     bool
-	mu            sync.Mutex
+	Conn           *websocket.Conn
+	Endpoint       string
+	Subscriptions  []any
+	Proxy          string
+	IsRunning      bool
+	CustomDialFunc *func(context.Context, string, *websocket.DialOptions) (*websocket.Conn, *http.Response, error)
+	mu             sync.Mutex
 }
 
 type ConnectionConfig struct {
 	Endpoint      string
 	Proxy         string
 	Subscriptions []any
+	DialFunc      func(context.Context, string, *websocket.DialOptions) (*websocket.Conn, *http.Response, error)
 }
 
 type ConnectionOption func(*ConnectionConfig)
@@ -51,6 +54,12 @@ func WithSubscriptions(subscriptions []any) ConnectionOption {
 	}
 }
 
+func WithCustomDialFunc(dialFunc func(context.Context, string, *websocket.DialOptions) (*websocket.Conn, *http.Response, error)) ConnectionOption {
+	return func(c *ConnectionConfig) {
+		c.DialFunc = dialFunc
+	}
+}
+
 func NewWebsocketHelper(ctx context.Context, opts ...ConnectionOption) (*WebsocketHelper, error) {
 	config := &ConnectionConfig{}
 	for _, opt := range opts {
@@ -66,12 +75,18 @@ func NewWebsocketHelper(ctx context.Context, opts ...ConnectionOption) (*Websock
 		log.Warn().Msg("no subscriptions provided")
 	}
 
-	return &WebsocketHelper{
+	ws := &WebsocketHelper{
 		Endpoint:      config.Endpoint,
 		Subscriptions: config.Subscriptions,
 		Proxy:         config.Proxy,
 		mu:            sync.Mutex{},
-	}, nil
+	}
+
+	if config.DialFunc != nil {
+		ws.CustomDialFunc = &config.DialFunc
+	}
+
+	return ws, nil
 }
 
 func (ws *WebsocketHelper) Dial(ctx context.Context) error {
@@ -94,7 +109,11 @@ func (ws *WebsocketHelper) Dial(ctx context.Context) error {
 		}
 	}
 
-	conn, _, err := websocket.Dial(ctx, ws.Endpoint, dialOption)
+	dialFunc := websocket.Dial
+	if ws.CustomDialFunc != nil {
+		dialFunc = *ws.CustomDialFunc
+	}
+	conn, _, err := dialFunc(ctx, ws.Endpoint, dialOption)
 	if err != nil {
 		log.Error().Err(err).Msg("error opening websocket connection")
 		return err
@@ -139,6 +158,9 @@ func (ws *WebsocketHelper) Run(ctx context.Context, router func(context.Context,
 				log.Error().Err(err).Msg("error dialing websocket")
 				break
 			}
+
+			// Some providers block immediate subscription after dialing
+			time.Sleep(time.Second)
 
 			err = retrier.Retry(subscribeJob, 3, 1, 10)
 			if err != nil {

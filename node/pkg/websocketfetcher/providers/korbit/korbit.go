@@ -2,7 +2,6 @@ package korbit
 
 import (
 	"context"
-	"fmt"
 	"strings"
 	"time"
 
@@ -24,16 +23,10 @@ func New(ctx context.Context, opts ...common.FetcherOption) (common.FetcherInter
 	fetcher.FeedMap = config.FeedMaps.Separated
 	fetcher.FeedDataBuffer = config.FeedDataBuffer
 
-	pairListString := []string{}
+	symbols := []string{}
 	for feed := range fetcher.FeedMap {
-		raw := strings.Split(feed, "-")
-		if len(raw) < 2 {
-			log.Error().Str("Player", "Korbit").Msg("invalid feed name")
-			return nil, fmt.Errorf("invalid feed name")
-		}
-		base := raw[0]
-		quote := raw[1]
-		pairListString = append(pairListString, fmt.Sprintf("%s_%s", strings.ToLower(base), strings.ToLower(quote)))
+		symbol := strings.ToLower(strings.ReplaceAll(feed, "-", "_"))
+		symbols = append(symbols, symbol)
 	}
 
 	subscription := Subscription{
@@ -41,7 +34,7 @@ func New(ctx context.Context, opts ...common.FetcherOption) (common.FetcherInter
 		Timestamp:   time.Now().Unix(),
 		Event:       "korbit:subscribe",
 		Data: Data{Channels: []string{
-			"ticker:" + strings.Join(pairListString, ","),
+			"ticker:" + strings.Join(symbols, ","),
 		}},
 	}
 
