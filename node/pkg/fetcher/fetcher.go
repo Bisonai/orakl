@@ -3,6 +3,7 @@ package fetcher
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"math/big"
 	"math/rand"
@@ -39,7 +40,7 @@ func (f *Fetcher) Run(ctx context.Context, chainHelpers map[string]ChainHelper, 
 				return
 			case <-ticker.C:
 				err := f.fetcherJob(f.fetcherCtx, chainHelpers, proxies)
-				if err != nil {
+				if err != nil && !errors.Is(err, errorSentinel.ErrFetcherNoDataFetched) {
 					log.Error().Str("Player", "Fetcher").Err(err).Msg("error in fetchAndInsert")
 				}
 			}
@@ -50,9 +51,13 @@ func (f *Fetcher) Run(ctx context.Context, chainHelpers map[string]ChainHelper, 
 func (f *Fetcher) fetcherJob(ctx context.Context, chainHelpers map[string]ChainHelper, proxies []Proxy) error {
 	log.Debug().Str("Player", "Fetcher").Str("fetcher", f.Name).Msg("fetcherJob")
 	result, err := f.fetch(chainHelpers, proxies)
-	if err != nil {
+	if err != nil && !errors.Is(err, errorSentinel.ErrFetcherNoDataFetched) {
 		log.Error().Str("Player", "Fetcher").Err(err).Msg("error in fetch")
 		return err
+	}
+
+	if len(result) == 0 {
+		return errorSentinel.ErrFetcherNoDataFetched
 	}
 
 	err = setLatestFeedData(ctx, result, time.Duration(f.FetchInterval)*time.Millisecond)

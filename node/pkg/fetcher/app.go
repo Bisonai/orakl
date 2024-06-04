@@ -376,7 +376,7 @@ func (a *App) initialize(ctx context.Context) error {
 	streamIntervalRaw := os.Getenv("FEED_DATA_STREAM_INTERVAL")
 	streamInterval, err := time.ParseDuration(streamIntervalRaw)
 	if err != nil {
-		streamInterval = time.Second * 5
+		streamInterval = time.Second * 1
 	}
 	a.Streamer = NewStreamer(streamInterval)
 
