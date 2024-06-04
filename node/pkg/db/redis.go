@@ -147,6 +147,10 @@ func MGet(ctx context.Context, keys []string) ([]any, error) {
 func MGetObject[T any](ctx context.Context, keys []string) ([]T, error) {
 	results := []T{}
 
+	if len(keys) == 0 {
+		return results, nil
+	}
+
 	data, err := MGet(ctx, keys)
 	if err != nil {
 		log.Error().Strs("keys", keys).Err(err).Msg("Error getting objects from MGetObject")

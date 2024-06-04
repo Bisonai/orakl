@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"strconv"
+	"strings"
 
 	"bisonai.com/orakl/node/pkg/admin/feed"
 	"bisonai.com/orakl/node/pkg/db"
@@ -72,15 +74,18 @@ func sync(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+
+	removingConfigs := []string{}
 	for _, dbConfig := range dbConfigs {
 		_, ok := loadedConfigMap[dbConfig.Name]
 		if !ok {
 			log.Info().Str("Player", "Config").Str("Config", dbConfig.Name).Msg("Config not found in config")
-			_, err = db.QueryRow[ConfigModel](ctx, DeleteConfigQuery, map[string]any{"id": dbConfig.ID})
-			if err != nil {
-				return err
-			}
+			removingConfigs = append(removingConfigs, strconv.Itoa(int(dbConfig.ID)))
 		}
+	}
+	err = db.QueryWithoutResult(ctx, BulkDeleteConfigQuery, map[string]any{"ids": strings.Join(removingConfigs, ",")})
+	if err != nil {
+		return err
 	}
 
 	// remove invalid feeds
@@ -88,15 +93,18 @@ func sync(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+
+	removingFeeds := []string{}
 	for _, dbFeed := range dbFeeds {
 		_, ok := loadedFeedMap[dbFeed.Name]
 		if !ok {
 			log.Info().Str("Player", "Config").Str("Feed", dbFeed.Name).Msg("Feed not found in config")
-			_, err = db.QueryRow[feed.FeedModel](ctx, DeleteFeedQuery, map[string]any{"id": dbFeed.ID})
-			if err != nil {
-				return err
-			}
+			removingFeeds = append(removingFeeds, strconv.Itoa(int(*dbFeed.ID)))
 		}
+	}
+	err = db.QueryWithoutResult(ctx, BulkDeleteFeedQuery, map[string]any{"ids": strings.Join(removingFeeds, ",")})
+	if err != nil {
+		return err
 	}
 
 	err = bulkUpsertConfigs(ctx, loadedConfigs)
