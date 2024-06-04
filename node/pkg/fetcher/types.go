@@ -19,7 +19,7 @@ const (
 	SelectFeedsByConfigIdQuery            = `SELECT * FROM feeds WHERE config_id = @config_id`
 	InsertLocalAggregateQuery             = `INSERT INTO local_aggregates (config_id, value) VALUES (@config_id, @value)`
 	DECIMALS                              = 8
-	DefaultStreamInterval                 = time.Second * 2
+	DefaultStreamInterval                 = time.Second * 5
 )
 
 type FeedData types.FeedData
