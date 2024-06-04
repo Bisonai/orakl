@@ -49,6 +49,10 @@ func (c *Collector) Job(ctx context.Context) error {
 		return err
 	}
 
+	if len(rawResult) == 0 {
+		return nil
+	}
+
 	aggregated, err := calculator.GetFloatMed(rawResult)
 	if err != nil {
 		log.Error().Str("Player", "Collector").Err(err).Msg("error in GetFloatMed")
