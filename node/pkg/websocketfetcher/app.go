@@ -15,8 +15,10 @@ import (
 	"bisonai.com/orakl/node/pkg/websocketfetcher/providers/coinone"
 	"bisonai.com/orakl/node/pkg/websocketfetcher/providers/crypto"
 	"bisonai.com/orakl/node/pkg/websocketfetcher/providers/gateio"
+	"bisonai.com/orakl/node/pkg/websocketfetcher/providers/huobi"
 	"bisonai.com/orakl/node/pkg/websocketfetcher/providers/korbit"
 	"bisonai.com/orakl/node/pkg/websocketfetcher/providers/kucoin"
+	"bisonai.com/orakl/node/pkg/websocketfetcher/providers/mexc"
 	"bisonai.com/orakl/node/pkg/websocketfetcher/providers/upbit"
 	"github.com/rs/zerolog/log"
 )
@@ -92,6 +94,8 @@ func (a *App) Init(ctx context.Context, opts ...AppOption) error {
 		"bithumb":  bithumb.New,
 		"gateio":   gateio.New,
 		"coinex":   coinex.New,
+		"huobi":    huobi.New,
+		"mexc":     mexc.New,
 	}
 
 	appConfig := &AppConfig{
