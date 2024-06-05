@@ -28,10 +28,6 @@ func main() {
 	mb := bus.New(10)
 	var wg sync.WaitGroup
 
-	bootnode := os.Getenv("BOOT_NODE")
-	if bootnode == "" {
-		log.Debug().Msg("No bootnode specified")
-	}
 	listenPort, err := strconv.Atoi(os.Getenv("LISTEN_PORT"))
 	if err != nil {
 		log.Error().Err(err).Msg("Error parsing LISTEN_PORT")
