@@ -50,9 +50,13 @@ func (f *HuobiFetcher) handleMessage(ctx context.Context, message map[string]any
 			log.Error().Str("Player", "Huobi").Err(err).Msg("error in huobi.handleMessage")
 			return err
 		}
-		f.Ws.Write(ctx, HeartbeatResponse{
+		err = f.Ws.Write(ctx, HeartbeatResponse{
 			Pong: heartbeat.Ping,
 		})
+		if err != nil {
+			log.Error().Str("Player", "Huobi").Err(err).Msg("failed to resond to heartbeat")
+			return err
+		}
 	} else {
 		response, err := common.MessageToStruct[Response](message)
 		if err != nil {
