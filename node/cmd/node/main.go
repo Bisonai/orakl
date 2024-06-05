@@ -41,7 +41,7 @@ func main() {
 	host, ps, err := libp2pSetup.SetupFromBootApi(ctx, listenPort)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to setup libp2p")
-		return
+		select {}
 	}
 
 	wg.Add(1)
