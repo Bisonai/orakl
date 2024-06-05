@@ -3,6 +3,7 @@ package utils
 import (
 	"context"
 	"fmt"
+	"os"
 	"strconv"
 	"time"
 
@@ -100,6 +101,10 @@ func ExtractPayloadFromHost(h host.Host) (ip string, port int, host_id string, e
 	if err != nil {
 		log.Error().Err(err).Msg("error converting port to int")
 		return "", 0, "", err
+	}
+
+	if os.Getenv("HOST_IP") != "" {
+		ip = os.Getenv("HOST_IP")
 	}
 
 	return ip, port, h.ID().String(), nil
