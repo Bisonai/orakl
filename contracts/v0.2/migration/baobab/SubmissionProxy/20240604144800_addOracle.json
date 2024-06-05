@@ -1,0 +1,6 @@
+{
+  "address": "0xde8fb45ff8e330ccf8e5cc0913ee0143b2a0ebdb",
+  "addOracle": {
+    "oracles": ["0x65F5179129f17C0973AE3b88d4d28cDC700b906B"]
+  }
+}
