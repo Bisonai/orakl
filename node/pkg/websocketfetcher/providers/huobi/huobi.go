@@ -1,0 +1,99 @@
+package huobi
+
+import (
+	"context"
+	"encoding/json"
+	"strings"
+
+	"bisonai.com/orakl/node/pkg/websocketfetcher/common"
+	"bisonai.com/orakl/node/pkg/wss"
+	"github.com/rs/zerolog/log"
+	"nhooyr.io/websocket"
+)
+
+type HuobiFetcher common.Fetcher
+
+func New(ctx context.Context, opts ...common.FetcherOption) (common.FetcherInterface, error) {
+	config := &common.FetcherConfig{}
+	for _, opt := range opts {
+		opt(config)
+	}
+
+	fetcher := &HuobiFetcher{}
+	fetcher.FeedMap = config.FeedMaps.Combined
+	fetcher.FeedDataBuffer = config.FeedDataBuffer
+
+	subscriptions := []any{}
+	for feed := range fetcher.FeedMap {
+		subscriptions = append(subscriptions, Subscription{
+			Sub: "market." + strings.ToLower(feed) + ".ticker",
+		})
+	}
+
+	ws, err := wss.NewWebsocketHelper(ctx,
+		wss.WithCustomReadFunc(fetcher.customReadFunc),
+		wss.WithEndpoint(URL),
+		wss.WithSubscriptions(subscriptions),
+		wss.WithProxyUrl(config.Proxy))
+	if err != nil {
+		log.Error().Str("Player", "Huobi").Err(err).Msg("error in huobi.New")
+		return nil, err
+	}
+	fetcher.Ws = ws
+	return fetcher, nil
+}
+
+func (f *HuobiFetcher) handleMessage(ctx context.Context, message map[string]any) error {
+	if _, exists := message["ping"]; exists {
+		heartbeat, err := common.MessageToStruct[Heartbeat](message)
+		if err != nil {
+			log.Error().Str("Player", "Huobi").Err(err).Msg("error in huobi.handleMessage")
+			return err
+		}
+		f.Ws.Write(ctx, HeartbeatResponse{
+			Pong: heartbeat.Ping,
+		})
+	} else {
+		response, err := common.MessageToStruct[Response](message)
+		if err != nil {
+			log.Error().Str("Player", "Huobi").Err(err).Msg("error in huobi.handleMessage")
+			return err
+		}
+		feedData, err := ResponseToFeedData(response, f.FeedMap)
+		if err != nil {
+			log.Error().Str("Player", "Huobi").Err(err).Msg("error in huobi.handleMessage")
+			return err
+		}
+
+		f.FeedDataBuffer <- *feedData
+	}
+
+	return nil
+}
+
+func (f *HuobiFetcher) Run(ctx context.Context) {
+	f.Ws.Run(ctx, f.handleMessage)
+}
+
+func (f *HuobiFetcher) customReadFunc(ctx context.Context, conn *websocket.Conn) (map[string]interface{}, error) {
+	var result map[string]interface{}
+	_, data, err := conn.Read(ctx)
+	if err != nil {
+		log.Error().Str("Player", "Huobi").Err(err).Msg("error in huobi.customReadFunc")
+		return nil, err
+	}
+
+	decompressed, err := common.DecompressGzip(data)
+	if err != nil {
+		log.Error().Str("Player", "Huobi").Err(err).Msg("error in huobi.customReadFunc")
+		return nil, err
+	}
+
+	err = json.Unmarshal(decompressed, &result)
+	if err != nil {
+		log.Error().Str("Player", "Huobi").Err(err).Msg("error in huobi.customReadFunc")
+		return nil, err
+	}
+
+	return result, nil
+}

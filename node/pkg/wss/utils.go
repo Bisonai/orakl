@@ -21,6 +21,7 @@ type WebsocketHelper struct {
 	Proxy          string
 	IsRunning      bool
 	CustomDialFunc *func(context.Context, string, *websocket.DialOptions) (*websocket.Conn, *http.Response, error)
+	CustomReadFunc *func(context.Context, *websocket.Conn) (map[string]interface{}, error)
 	mu             sync.Mutex
 }
 
@@ -29,6 +30,7 @@ type ConnectionConfig struct {
 	Proxy         string
 	Subscriptions []any
 	DialFunc      func(context.Context, string, *websocket.DialOptions) (*websocket.Conn, *http.Response, error)
+	ReadFunc      func(context.Context, *websocket.Conn) (map[string]interface{}, error)
 }
 
 type ConnectionOption func(*ConnectionConfig)
@@ -60,6 +62,12 @@ func WithCustomDialFunc(dialFunc func(context.Context, string, *websocket.DialOp
 	}
 }
 
+func WithCustomReadFunc(readFunc func(context.Context, *websocket.Conn) (map[string]interface{}, error)) ConnectionOption {
+	return func(c *ConnectionConfig) {
+		c.ReadFunc = readFunc
+	}
+}
+
 func NewWebsocketHelper(ctx context.Context, opts ...ConnectionOption) (*WebsocketHelper, error) {
 	config := &ConnectionConfig{}
 	for _, opt := range opts {
@@ -84,6 +92,10 @@ func NewWebsocketHelper(ctx context.Context, opts ...ConnectionOption) (*Websock
 
 	if config.DialFunc != nil {
 		ws.CustomDialFunc = &config.DialFunc
+	}
+
+	if config.ReadFunc != nil {
+		ws.CustomReadFunc = &config.ReadFunc
 	}
 
 	return ws, nil
@@ -123,6 +135,11 @@ func (ws *WebsocketHelper) Dial(ctx context.Context) error {
 }
 
 func (ws *WebsocketHelper) Run(ctx context.Context, router func(context.Context, map[string]any) error) {
+	readFunc := defaultReader
+	if ws.CustomReadFunc != nil {
+		readFunc = *ws.CustomReadFunc
+	}
+
 	if ws.IsRunning {
 		log.Warn().Msg("websocket is already running")
 		return
@@ -169,9 +186,8 @@ func (ws *WebsocketHelper) Run(ctx context.Context, router func(context.Context,
 			}
 
 			for {
-				var data map[string]interface{}
 				ws.mu.Lock()
-				err := wsjson.Read(ctx, ws.Conn, &data)
+				data, err := readFunc(ctx, ws.Conn)
 				ws.mu.Unlock()
 				if err != nil {
 					log.Error().Err(err).Msg("error reading from websocket")
@@ -222,4 +238,14 @@ func (ws *WebsocketHelper) Close() error {
 		return err
 	}
 	return nil
+}
+
+func defaultReader(ctx context.Context, conn *websocket.Conn) (map[string]interface{}, error) {
+	var data map[string]interface{}
+	err := wsjson.Read(ctx, conn, &data)
+	if err != nil {
+		log.Error().Err(err).Msg("error reading from websocket")
+		return nil, err
+	}
+	return data, nil
 }
