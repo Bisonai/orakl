@@ -94,6 +94,9 @@ func insertLocalAggregateRdb(ctx context.Context, configId int32, value float64)
 }
 
 func copyFeedData(ctx context.Context, feedData []FeedData) error {
+	if len(feedData) == 0 {
+		return nil
+	}
 	insertRows := make([][]any, len(feedData))
 	for i, data := range feedData {
 		insertRows[i] = []any{data.FeedID, data.Value, data.Timestamp}

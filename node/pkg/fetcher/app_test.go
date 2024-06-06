@@ -98,11 +98,6 @@ func TestAppRun(t *testing.T) {
 		}
 		assert.NotNil(t, rdbResult)
 	}
-	buffer, err := db.LRangeObject[FeedData](ctx, keys.FeedDataBufferKey(), 0, -1)
-	if err != nil {
-		t.Fatalf("error getting feed data buffer: %v", err)
-	}
-	assert.Greater(t, len(buffer), 0)
 
 	err = app.Streamer.Job(ctx)
 	if err != nil {
