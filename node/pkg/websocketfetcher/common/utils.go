@@ -1,8 +1,11 @@
 package common
 
 import (
+	"bytes"
+	"compress/gzip"
 	"context"
 	"encoding/json"
+	"io"
 	"math"
 	"strconv"
 	"strings"
@@ -91,4 +94,14 @@ func MessageToStruct[T any](message map[string]any) (T, error) {
 	}
 
 	return result, nil
+}
+
+func DecompressGzip(data []byte) ([]byte, error) {
+	r, err := gzip.NewReader(bytes.NewReader(data))
+	if err != nil {
+		return nil, err
+	}
+	defer r.Close()
+
+	return io.ReadAll(r)
 }
