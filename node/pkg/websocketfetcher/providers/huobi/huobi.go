@@ -47,25 +47,25 @@ func (f *HuobiFetcher) handleMessage(ctx context.Context, message map[string]any
 	if _, exists := message["ping"]; exists {
 		heartbeat, err := common.MessageToStruct[Heartbeat](message)
 		if err != nil {
-			log.Error().Str("Player", "Huobi").Err(err).Msg("error in huobi.handleMessage")
+			log.Error().Str("Player", "Huobi").Err(err).Msg("error in huobi.handleMessage, failed to parse heartbeat")
 			return err
 		}
 		err = f.Ws.Write(ctx, HeartbeatResponse{
 			Pong: heartbeat.Ping,
 		})
 		if err != nil {
-			log.Error().Str("Player", "Huobi").Err(err).Msg("failed to resond to heartbeat")
+			log.Error().Str("Player", "Huobi").Err(err).Msg("failed to resond to heartbeat, failed to write to websocket")
 			return err
 		}
 	} else {
 		response, err := common.MessageToStruct[Response](message)
 		if err != nil {
-			log.Error().Str("Player", "Huobi").Err(err).Msg("error in huobi.handleMessage")
+			log.Error().Str("Player", "Huobi").Err(err).Msg("error in huobi.handleMessage, failed to parse response")
 			return err
 		}
 		feedData, err := ResponseToFeedData(response, f.FeedMap)
 		if err != nil {
-			log.Error().Str("Player", "Huobi").Err(err).Msg("error in huobi.handleMessage")
+			log.Error().Str("Player", "Huobi").Err(err).Msg("error in huobi.handleMessage, failed to convert response to feed data")
 			return err
 		}
 
@@ -83,19 +83,19 @@ func (f *HuobiFetcher) customReadFunc(ctx context.Context, conn *websocket.Conn)
 	var result map[string]interface{}
 	_, data, err := conn.Read(ctx)
 	if err != nil {
-		log.Error().Str("Player", "Huobi").Err(err).Msg("error in huobi.customReadFunc")
+		log.Error().Str("Player", "Huobi").Err(err).Msg("error in huobi.customReadFunc, failed to read from websocket")
 		return nil, err
 	}
 
 	decompressed, err := common.DecompressGzip(data)
 	if err != nil {
-		log.Error().Str("Player", "Huobi").Err(err).Msg("error in huobi.customReadFunc")
+		log.Error().Str("Player", "Huobi").Err(err).Msg("error in huobi.customReadFunc, failed to decompress data")
 		return nil, err
 	}
 
 	err = json.Unmarshal(decompressed, &result)
 	if err != nil {
-		log.Error().Str("Player", "Huobi").Err(err).Msg("error in huobi.customReadFunc")
+		log.Error().Str("Player", "Huobi").Err(err).Msg("error in huobi.customReadFunc, failed to unmarshal data")
 		return nil, err
 	}
 

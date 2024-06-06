@@ -47,13 +47,13 @@ func New(ctx context.Context, opts ...common.FetcherOption) (common.FetcherInter
 func (f *MexcFetcher) handleMessage(ctx context.Context, message map[string]any) error {
 	response, err := common.MessageToStruct[Response](message)
 	if err != nil {
-		log.Error().Str("Player", "Mexc").Err(err).Msg("error in mexc.handleMessage")
+		log.Error().Str("Player", "Mexc").Err(err).Msg("failed to parse message to response")
 		return err
 	}
 
 	feedData, err := ResponseToFeedData(response, f.FeedMap)
 	if err != nil {
-		log.Error().Str("Player", "Mexc").Err(err).Msg("error in mexc.handleMessage")
+		log.Error().Str("Player", "Mexc").Err(err).Msg("failed to extract feedData from response")
 		return err
 	}
 
