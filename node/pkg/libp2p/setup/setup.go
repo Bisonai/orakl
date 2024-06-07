@@ -113,6 +113,8 @@ func makeHost(listenPort int, priv crypto.PrivKey) (host.Host, error) {
 		opts = append(opts, libp2p.ListenAddrStrings(fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", listenPort)))
 	}
 
+	opts = append(opts, libp2p.NATPortMap())
+
 	secretString := secrets.GetSecret("PRIVATE_NETWORK_SECRET")
 	if secretString != "" {
 		hash := sha256.Sum256([]byte(secretString))
