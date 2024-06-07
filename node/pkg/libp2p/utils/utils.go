@@ -56,6 +56,7 @@ func IsHostAlive(ctx context.Context, h host.Host, addr string) (bool, error) {
 
 	lastErr := retrier.Retry(
 		func() error {
+			log.Info().Str("addr", addr).Str("peer", info.ID.String()).Msg("checking peer alive")
 			return h.Connect(ctx, *info)
 		},
 		3,
