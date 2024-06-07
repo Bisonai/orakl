@@ -83,7 +83,7 @@ async function startListenerService(service: string, redisClient: RedisClientTyp
     logger: LOGGER
   })
 
-  if (!LISTENERS[service] || !listenersConfig[service]) {
+  if (!listenersConfig[service]) {
     LOGGER.error({ name: 'main', file: FILE_NAME, service }, 'service')
     throw new OraklError(OraklErrorCode.UndefinedListenerRequested)
   }
