@@ -115,6 +115,8 @@ func makeHost(listenPort int, priv crypto.PrivKey) (host.Host, error) {
 
 	// opts = append(opts, libp2p.NATPortMap())
 
+	opts = append(opts, libp2p.EnableHolePunching())
+
 	secretString := secrets.GetSecret("PRIVATE_NETWORK_SECRET")
 	if secretString != "" {
 		hash := sha256.Sum256([]byte(secretString))
