@@ -26,3 +26,8 @@ type Response struct {
 	Channel string `json:"c"`
 	Data    Ticker `json:"d"`
 }
+
+type BatchResponse struct {
+	Channel string   `json:"c"`
+	Data    []Ticker `json:"d"`
+}
