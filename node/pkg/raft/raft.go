@@ -160,7 +160,7 @@ func (r *Raft) handleHeartbeat(msg Message) error {
 		r.UpdateLeader(heartbeatMessage.LeaderID)
 	}
 
-	return r.sendReplyHeartbeat(heartbeatMessage.Term)
+	return r.sendReplyHeartbeat()
 }
 
 func (r *Raft) handleRequestVote(msg Message) error {
@@ -271,10 +271,8 @@ func (r *Raft) sendHeartbeat() error {
 	return nil
 }
 
-func (r *Raft) sendReplyHeartbeat(term int) error {
-	replyHeartbeatMessage := ReplyHeartbeatMessage{
-		Term: term,
-	}
+func (r *Raft) sendReplyHeartbeat() error {
+	replyHeartbeatMessage := ReplyHeartbeatMessage{}
 	marshalledReplyHeartbeatMsg, err := json.Marshal(replyHeartbeatMessage)
 	if err != nil {
 		return err

@@ -43,9 +43,7 @@ type HeartbeatMessage struct {
 	Term     int    `json:"term"`
 }
 
-type ReplyHeartbeatMessage struct {
-	Term int `json:"term"`
-}
+type ReplyHeartbeatMessage struct{}
 
 type ReplyRequestVoteMessage struct {
 	VoteGranted bool   `json:"voteGranted"`
