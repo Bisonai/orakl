@@ -119,7 +119,7 @@ func setup(ctx context.Context) (func() error, *TestItems, error) {
 
 	testItems.admin = admin
 
-	h, err := libp2pSetup.MakeHost(10001)
+	h, err := libp2pSetup.NewHost(ctx, libp2pSetup.WithHolePunch(), libp2pSetup.WithPort(10001))
 	if err != nil {
 		return nil, nil, err
 	}

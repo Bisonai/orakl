@@ -3,8 +3,6 @@ package utils
 import (
 	"context"
 	"fmt"
-	"os"
-	"strconv"
 	"time"
 
 	"strings"
@@ -44,12 +42,7 @@ func GetHostAddress(host host.Host) (string, error) {
 }
 
 func IsHostAlive(ctx context.Context, h host.Host, addr string) (bool, error) {
-	maddr, err := multiaddr.NewMultiaddr(addr)
-	if err != nil {
-		return false, err
-	}
-
-	info, err := peer.AddrInfoFromP2pAddr(maddr)
+	info, err := ConnectionUrl2AddrInfo(addr)
 	if err != nil {
 		return false, err
 	}
@@ -76,7 +69,7 @@ func IsHostAlive(ctx context.Context, h host.Host, addr string) (bool, error) {
 	return true, nil
 }
 
-func ExtractPayloadFromHost(h host.Host) (ip string, port int, host_id string, err error) {
+func ExtractConnectionUrl(h host.Host) (string, error) {
 	var addr multiaddr.Multiaddr
 	for _, a := range h.Addrs() {
 		if strings.Contains(a.String(), "127.0.0.1") {
@@ -88,25 +81,22 @@ func ExtractPayloadFromHost(h host.Host) (ip string, port int, host_id string, e
 
 	if addr == nil {
 		log.Error().Msg("host has no non-local addresses")
-		return "", 0, "", errorSentinel.ErrLibP2pEmptyNonLocalAddress
+		return "", errorSentinel.ErrLibP2pEmptyNonLocalAddress
 	}
 
-	splitted := strings.Split(addr.String(), "/")
-	if len(splitted) < 5 {
-		log.Error().Msg("error splitting address")
-		return "", 0, "", errorSentinel.ErrLibP2pAddressSplitFail
-	}
-	ip = splitted[2]
-	rawPort := splitted[4]
-	port, err = strconv.Atoi(rawPort)
+	return addr.String() + "/p2p/" + h.ID().String(), nil
+}
+
+func ConnectionUrl2AddrInfo(url string) (*peer.AddrInfo, error) {
+	peerMultiAddr, err := multiaddr.NewMultiaddr(url)
 	if err != nil {
-		log.Error().Err(err).Msg("error converting port to int")
-		return "", 0, "", err
+		return nil, err
 	}
 
-	if os.Getenv("HOST_IP") != "" {
-		ip = os.Getenv("HOST_IP")
+	info, err := peer.AddrInfoFromP2pAddr(peerMultiAddr)
+	if err != nil {
+		return nil, err
 	}
 
-	return ip, port, h.ID().String(), nil
+	return info, nil
 }

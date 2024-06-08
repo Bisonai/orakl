@@ -17,10 +17,9 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-const REFRESH_INTERVAL = 60 * time.Second
+const REFRESH_INTERVAL = 10 * time.Second
 
 func Run(ctx context.Context) error {
-
 	log.Debug().Msg("Starting boot server")
 	app, err := utils.Setup(ctx)
 	if err != nil {
@@ -84,15 +83,15 @@ func RefreshJob(ctx context.Context) error {
 		return nil
 	}
 
-	h, err := libp2pSetup.MakeHost(0)
+	h, err := libp2pSetup.NewHost(ctx, libp2pSetup.WithHolePunch(), libp2pSetup.WithQuic())
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to make host")
 		return err
 	}
 
 	for _, p := range peers {
-		connectionUrl := fmt.Sprintf("/ip4/%s/tcp/%d/p2p/%s", p.Ip, p.Port, p.HostId)
-		isAlive, liveCheckErr := libp2pUtils.IsHostAlive(ctx, h, connectionUrl)
+
+		isAlive, liveCheckErr := libp2pUtils.IsHostAlive(ctx, h, p.Url)
 		if liveCheckErr != nil {
 			log.Error().Err(liveCheckErr).Msg("Failed to check peer")
 			if !errors.Is(liveCheckErr, errorSentinel.ErrLibP2pFailToConnectPeer) {
@@ -103,7 +102,7 @@ func RefreshJob(ctx context.Context) error {
 			continue
 		}
 
-		log.Info().Str("peer", connectionUrl).Msg("Peer is not alive")
+		log.Info().Str("peer", p.Url).Msg("Peer is not alive")
 		err = db.QueryWithoutResult(ctx, peer.DeletePeerById, map[string]any{"id": p.ID})
 		if err != nil {
 			log.Error().Err(err).Msg("Failed to delete peer")

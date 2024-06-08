@@ -1,8 +1,6 @@
 package peer
 
 import (
-	"fmt"
-
 	"bisonai.com/orakl/node/pkg/db"
 	libp2pSetup "bisonai.com/orakl/node/pkg/libp2p/setup"
 	libp2pUtils "bisonai.com/orakl/node/pkg/libp2p/utils"
@@ -12,16 +10,12 @@ import (
 )
 
 type PeerModel struct {
-	ID     int64  `db:"id" json:"id"`
-	Ip     string `db:"ip" json:"ip"`
-	Port   int    `db:"port" json:"port"`
-	HostId string `db:"host_id" json:"host_id"`
+	ID  int64  `db:"id" json:"id"`
+	Url string `db:"url" json:"url"`
 }
 
 type PeerInsertModel struct {
-	Ip     string `db:"ip" json:"ip" validate:"required"`
-	Port   int    `db:"port" json:"port" validate:"required"`
-	HostId string `db:"host_id" json:"host_id" validate:"required"`
+	Url string `db:"url" json:"url" validate:"required"`
 }
 
 func insert(c *fiber.Ctx) error {
@@ -38,9 +32,7 @@ func insert(c *fiber.Ctx) error {
 	}
 
 	result, err := db.QueryRow[PeerModel](c.Context(), InsertPeer, map[string]any{
-		"ip":      payload.Ip,
-		"port":    payload.Port,
-		"host_id": payload.HostId})
+		"url": payload.Url})
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to execute insert query")
 		return c.Status(fiber.StatusInternalServerError).SendString("Failed to execute insert query")
@@ -71,25 +63,30 @@ func sync(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusBadRequest).SendString("Failed to validate request")
 	}
 
-	h, err := libp2pSetup.MakeHost(0)
+	h, err := libp2pSetup.NewHost(c.Context(), libp2pSetup.WithHolePunch(), libp2pSetup.WithQuic())
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to make host")
 		return c.Status(fiber.StatusInternalServerError).SendString("Failed to make host")
 	}
+	defer func() {
+		err := h.Close()
+		if err != nil {
+			log.Error().Err(err).Msg("Failed to close host")
+		}
+	}()
 
-	connectionUrl := fmt.Sprintf("/ip4/%s/tcp/%d/p2p/%s", payload.Ip, payload.Port, payload.HostId)
-	isAlive, err := libp2pUtils.IsHostAlive(c.Context(), h, connectionUrl)
+	isAlive, err := libp2pUtils.IsHostAlive(c.Context(), h, payload.Url)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to check peer")
 		return c.Status(fiber.StatusInternalServerError).SendString("Failed to check peer")
 	}
 	if !isAlive {
-		log.Info().Str("peer", connectionUrl).Msg("invalid peer")
+		log.Info().Str("peer", payload.Url).Msg("invalid peer")
 		err = h.Close()
 		if err != nil {
 			log.Error().Err(err).Msg("Failed to close host")
 		}
-		log.Info().Str("peer", connectionUrl).Msg("invalid peer")
+		log.Info().Str("peer", payload.Url).Msg("invalid peer")
 		return c.Status(fiber.StatusBadRequest).SendString("invalid peer")
 	}
 
@@ -100,18 +97,10 @@ func sync(c *fiber.Ctx) error {
 	}
 
 	_, err = db.QueryRow[PeerModel](c.Context(), InsertPeer, map[string]any{
-		"ip":      payload.Ip,
-		"port":    payload.Port,
-		"host_id": payload.HostId})
+		"url": payload.Url})
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to execute insert query")
 		return c.Status(fiber.StatusInternalServerError).SendString("Failed to execute insert query")
-	}
-
-	err = h.Close()
-	if err != nil {
-		log.Error().Err(err).Msg("Failed to close host")
-		return c.Status(fiber.StatusInternalServerError).SendString("Failed to close host")
 	}
 
 	return c.JSON(peers)
