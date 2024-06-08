@@ -63,7 +63,7 @@ func sync(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusBadRequest).SendString("Failed to validate request")
 	}
 
-	h, err := libp2pSetup.NewHost(c.Context(), libp2pSetup.WithHolePunch(), libp2pSetup.WithQuic())
+	h, err := libp2pSetup.NewHost(c.Context(), libp2pSetup.WithHolePunch(), libp2pSetup.WithPort(0))
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to make host")
 		return c.Status(fiber.StatusInternalServerError).SendString("Failed to make host")
