@@ -20,3 +20,18 @@ func TestSetBasicOperations(t *testing.T) {
 	assert.Equal(t, 0, s.Size())
 	assert.False(t, s.Contains(1))
 }
+
+func TestSetAddDuplicates(t *testing.T) {
+	s := set.NewSet[int]()
+	s.Add(1)
+	s.Add(1) // Attempt to add duplicate
+	assert.Equal(t, 1, s.Size(), "Set should not allow duplicates")
+	assert.True(t, s.Contains(1))
+}
+
+func TestSetOperationsOnEmpty(t *testing.T) {
+	s := set.NewSet[int]()
+	assert.False(t, s.Contains(1), "Empty set should not contain any element")
+	s.Remove(1) // Attempt to remove from empty set
+	assert.Equal(t, 0, s.Size(), "Size should remain 0 after remove operation on empty set")
+}
