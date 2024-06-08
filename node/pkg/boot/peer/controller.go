@@ -69,9 +69,9 @@ func sync(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusInternalServerError).SendString("Failed to make host")
 	}
 	defer func() {
-		err := h.Close()
-		if err != nil {
-			log.Error().Err(err).Msg("Failed to close host")
+		closeErr := h.Close()
+		if closeErr != nil {
+			log.Error().Err(closeErr).Msg("Failed to close host")
 		}
 	}()
 
