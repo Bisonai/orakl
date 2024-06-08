@@ -83,7 +83,7 @@ func RefreshJob(ctx context.Context) error {
 		return nil
 	}
 
-	h, err := libp2pSetup.NewHost(ctx, libp2pSetup.WithHolePunch(), libp2pSetup.WithQuic())
+	h, err := libp2pSetup.NewHost(ctx, libp2pSetup.WithHolePunch(), libp2pSetup.WithPort(0))
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to make host")
 		return err
