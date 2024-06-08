@@ -63,7 +63,7 @@ func NewHost(ctx context.Context, opts ...HostOption) (host.Host, error) {
 	defaultPortStr := os.Getenv("LISTEN_PORT")
 	if defaultPortStr != "" {
 		tmp, err := strconv.Atoi(defaultPortStr)
-		if err != nil {
+		if err == nil {
 			defaultPort = tmp
 		}
 	}

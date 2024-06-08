@@ -82,11 +82,6 @@ func sync(c *fiber.Ctx) error {
 	}
 	if !isAlive {
 		log.Info().Str("peer", payload.Url).Msg("invalid peer")
-		err = h.Close()
-		if err != nil {
-			log.Error().Err(err).Msg("Failed to close host")
-		}
-		log.Info().Str("peer", payload.Url).Msg("invalid peer")
 		return c.Status(fiber.StatusBadRequest).SendString("invalid peer")
 	}
 
