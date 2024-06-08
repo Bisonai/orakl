@@ -75,12 +75,12 @@ func TestSync(t *testing.T) {
 	}
 	defer cleanup()
 
-	mockHost1, err := libp2pSetup.NewHost(ctx, libp2pSetup.WithHolePunch(), libp2pSetup.WithQuic())
+	mockHost1, err := libp2pSetup.NewHost(ctx, libp2pSetup.WithHolePunch())
 	if err != nil {
 		t.Fatalf("error making host: %v", err)
 	}
 
-	mockHost2, err := libp2pSetup.NewHost(ctx, libp2pSetup.WithHolePunch(), libp2pSetup.WithQuic())
+	mockHost2, err := libp2pSetup.NewHost(ctx, libp2pSetup.WithHolePunch())
 	if err != nil {
 		t.Fatalf("error making host: %v", err)
 	}
@@ -131,7 +131,7 @@ func TestRefresh(t *testing.T) {
 	}
 	defer cleanup()
 
-	h, err := libp2pSetup.NewHost(ctx, libp2pSetup.WithHolePunch(), libp2pSetup.WithQuic(), libp2pSetup.WithPort(10010))
+	h, err := libp2pSetup.NewHost(ctx, libp2pSetup.WithHolePunch(), libp2pSetup.WithPort(10010))
 	if err != nil {
 		t.Fatalf("error making host: %v", err)
 	}

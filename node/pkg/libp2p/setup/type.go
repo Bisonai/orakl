@@ -23,7 +23,7 @@ type HostConfig struct {
 	PrivateKey   crypto.PrivKey
 	SecretString string
 	HolePunch    bool
-	Quic         bool
+	Tcp          bool
 }
 
 type HostOption func(*HostConfig)
@@ -52,9 +52,9 @@ func WithHolePunch() HostOption {
 	}
 }
 
-func WithQuic() HostOption {
+func WithTcp() HostOption {
 	return func(hc *HostConfig) {
-		hc.Quic = true
+		hc.Tcp = true
 	}
 }
 
@@ -73,7 +73,7 @@ func NewHost(ctx context.Context, opts ...HostOption) (host.Host, error) {
 		PrivateKey:   nil,
 		SecretString: secrets.GetSecret("PRIVATE_NETWORK_SECRET"),
 		HolePunch:    false,
-		Quic:         false,
+		Tcp:          false,
 	}
 	for _, opt := range opts {
 		opt(config)
@@ -88,10 +88,10 @@ func NewHost(ctx context.Context, opts ...HostOption) (host.Host, error) {
 	}
 
 	listenStr := ""
-	if config.Quic {
-		listenStr = fmt.Sprintf("/ip4/0.0.0.0/udp/%d/quic-v1", config.Port)
-	} else {
+	if config.Tcp {
 		listenStr = fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", config.Port)
+	} else {
+		listenStr = fmt.Sprintf("/ip4/0.0.0.0/udp/%d/quic-v1", config.Port)
 	}
 
 	libp2pOpts := []libp2p.Option{
