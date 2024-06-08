@@ -5,8 +5,6 @@ import (
 	"crypto/rand"
 	"crypto/sha256"
 	"fmt"
-	"os"
-	"strconv"
 
 	"bisonai.com/orakl/node/pkg/secrets"
 
@@ -59,17 +57,8 @@ func WithTcp() HostOption {
 }
 
 func NewHost(ctx context.Context, opts ...HostOption) (host.Host, error) {
-	defaultPort := 0
-	defaultPortStr := os.Getenv("LISTEN_PORT")
-	if defaultPortStr != "" {
-		tmp, err := strconv.Atoi(defaultPortStr)
-		if err == nil {
-			defaultPort = tmp
-		}
-	}
-
 	config := &HostConfig{
-		Port:         defaultPort,
+		Port:         0,
 		PrivateKey:   nil,
 		SecretString: secrets.GetSecret("PRIVATE_NETWORK_SECRET"),
 		HolePunch:    false,
