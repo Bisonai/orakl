@@ -100,3 +100,9 @@ func ConnectionUrl2AddrInfo(url string) (*peer.AddrInfo, error) {
 
 	return info, nil
 }
+
+func ReplaceIpFromUrl(url string, ip string) string {
+	parts := strings.Split(url, "/")
+	parts[2] = ip
+	return strings.Join(parts, "/")
+}
