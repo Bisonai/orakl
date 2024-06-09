@@ -36,13 +36,13 @@ func TestConfigSync(t *testing.T) {
 	assert.Greater(t, len(readResult), 1)
 
 	// should remove previously inserted config and feed which doesn't exist in orakl-config
-	readTmpConfigResult, err := GetRequest[config.ConfigModel](testItems.app, "/api/v1/config/"+strconv.Itoa(int(testItems.tmpData.config.Id)), nil)
+	readTmpConfigResult, err := GetRequest[config.ConfigModel](testItems.app, "/api/v1/config/"+strconv.Itoa(int(testItems.tmpData.config.ID)), nil)
 	if err != nil {
 		t.Fatalf("error getting config: %v", err)
 	}
 	assert.Equal(t, config.ConfigModel{}, readTmpConfigResult)
 
-	readTmpFeedResult, err := GetRequest[feed.FeedModel](testItems.app, "/api/v1/feed/"+strconv.Itoa(int(*testItems.tmpData.feed.Id)), nil)
+	readTmpFeedResult, err := GetRequest[feed.FeedModel](testItems.app, "/api/v1/feed/"+strconv.Itoa(int(*testItems.tmpData.feed.ID)), nil)
 	if err != nil {
 		t.Fatalf("error getting feeds: %v", err)
 	}
@@ -74,7 +74,7 @@ func TestConfigInsert(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error inserting config: %v", err)
 	}
-	assert.NotEqual(t, 0, insertResult.Id)
+	assert.NotEqual(t, 0, insertResult.ID)
 
 }
 
@@ -111,11 +111,11 @@ func TestConfigReadById(t *testing.T) {
 		}
 	}()
 
-	readResult, err := GetRequest[config.ConfigModel](testItems.app, "/api/v1/config/"+strconv.Itoa(int(testItems.tmpData.config.Id)), nil)
+	readResult, err := GetRequest[config.ConfigModel](testItems.app, "/api/v1/config/"+strconv.Itoa(int(testItems.tmpData.config.ID)), nil)
 	if err != nil {
 		t.Fatalf("error getting config: %v", err)
 	}
-	assert.Equal(t, testItems.tmpData.config.Id, readResult.Id)
+	assert.Equal(t, testItems.tmpData.config.ID, readResult.ID)
 }
 
 func TestConfigDeleteById(t *testing.T) {
@@ -131,11 +131,11 @@ func TestConfigDeleteById(t *testing.T) {
 		}
 	}()
 
-	deleted, err := DeleteRequest[config.ConfigModel](testItems.app, "/api/v1/config/"+strconv.Itoa(int(testItems.tmpData.config.Id)), nil)
+	deleted, err := DeleteRequest[config.ConfigModel](testItems.app, "/api/v1/config/"+strconv.Itoa(int(testItems.tmpData.config.ID)), nil)
 	if err != nil {
 		t.Fatalf("error deleting config: %v", err)
 	}
-	assert.Equal(t, testItems.tmpData.config.Id, deleted.Id)
+	assert.Equal(t, testItems.tmpData.config.ID, deleted.ID)
 
 	readResult, err := GetRequest[[]config.ConfigModel](testItems.app, "/api/v1/config", nil)
 	if err != nil {

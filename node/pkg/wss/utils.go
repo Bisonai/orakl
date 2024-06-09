@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/url"
 	"sync"
+	"time"
 
 	"bisonai.com/orakl/node/pkg/utils/retrier"
 	"github.com/rs/zerolog/log"
@@ -14,18 +15,22 @@ import (
 )
 
 type WebsocketHelper struct {
-	Conn          *websocket.Conn
-	Endpoint      string
-	Subscriptions []any
-	Proxy         string
-	IsRunning     bool
-	mu            sync.Mutex
+	Conn           *websocket.Conn
+	Endpoint       string
+	Subscriptions  []any
+	Proxy          string
+	IsRunning      bool
+	CustomDialFunc *func(context.Context, string, *websocket.DialOptions) (*websocket.Conn, *http.Response, error)
+	CustomReadFunc *func(context.Context, *websocket.Conn) (map[string]interface{}, error)
+	mu             sync.Mutex
 }
 
 type ConnectionConfig struct {
 	Endpoint      string
 	Proxy         string
 	Subscriptions []any
+	DialFunc      func(context.Context, string, *websocket.DialOptions) (*websocket.Conn, *http.Response, error)
+	ReadFunc      func(context.Context, *websocket.Conn) (map[string]interface{}, error)
 }
 
 type ConnectionOption func(*ConnectionConfig)
@@ -38,6 +43,9 @@ func WithEndpoint(endpoint string) ConnectionOption {
 
 func WithProxyUrl(proxyUrl string) ConnectionOption {
 	return func(c *ConnectionConfig) {
+		if proxyUrl == "" {
+			return
+		}
 		c.Proxy = proxyUrl
 	}
 }
@@ -45,6 +53,18 @@ func WithProxyUrl(proxyUrl string) ConnectionOption {
 func WithSubscriptions(subscriptions []any) ConnectionOption {
 	return func(c *ConnectionConfig) {
 		c.Subscriptions = subscriptions
+	}
+}
+
+func WithCustomDialFunc(dialFunc func(context.Context, string, *websocket.DialOptions) (*websocket.Conn, *http.Response, error)) ConnectionOption {
+	return func(c *ConnectionConfig) {
+		c.DialFunc = dialFunc
+	}
+}
+
+func WithCustomReadFunc(readFunc func(context.Context, *websocket.Conn) (map[string]interface{}, error)) ConnectionOption {
+	return func(c *ConnectionConfig) {
+		c.ReadFunc = readFunc
 	}
 }
 
@@ -63,12 +83,22 @@ func NewWebsocketHelper(ctx context.Context, opts ...ConnectionOption) (*Websock
 		log.Warn().Msg("no subscriptions provided")
 	}
 
-	return &WebsocketHelper{
+	ws := &WebsocketHelper{
 		Endpoint:      config.Endpoint,
 		Subscriptions: config.Subscriptions,
 		Proxy:         config.Proxy,
 		mu:            sync.Mutex{},
-	}, nil
+	}
+
+	if config.DialFunc != nil {
+		ws.CustomDialFunc = &config.DialFunc
+	}
+
+	if config.ReadFunc != nil {
+		ws.CustomReadFunc = &config.ReadFunc
+	}
+
+	return ws, nil
 }
 
 func (ws *WebsocketHelper) Dial(ctx context.Context) error {
@@ -91,7 +121,11 @@ func (ws *WebsocketHelper) Dial(ctx context.Context) error {
 		}
 	}
 
-	conn, _, err := websocket.Dial(ctx, ws.Endpoint, dialOption)
+	dialFunc := websocket.Dial
+	if ws.CustomDialFunc != nil {
+		dialFunc = *ws.CustomDialFunc
+	}
+	conn, _, err := dialFunc(ctx, ws.Endpoint, dialOption)
 	if err != nil {
 		log.Error().Err(err).Msg("error opening websocket connection")
 		return err
@@ -101,6 +135,11 @@ func (ws *WebsocketHelper) Dial(ctx context.Context) error {
 }
 
 func (ws *WebsocketHelper) Run(ctx context.Context, router func(context.Context, map[string]any) error) {
+	readFunc := defaultReader
+	if ws.CustomReadFunc != nil {
+		readFunc = *ws.CustomReadFunc
+	}
+
 	if ws.IsRunning {
 		log.Warn().Msg("websocket is already running")
 		return
@@ -137,6 +176,9 @@ func (ws *WebsocketHelper) Run(ctx context.Context, router func(context.Context,
 				break
 			}
 
+			// Some providers block immediate subscription after dialing
+			time.Sleep(time.Second)
+
 			err = retrier.Retry(subscribeJob, 3, 1, 10)
 			if err != nil {
 				log.Error().Err(err).Msg("error subscribing to websocket")
@@ -144,9 +186,8 @@ func (ws *WebsocketHelper) Run(ctx context.Context, router func(context.Context,
 			}
 
 			for {
-				var data map[string]interface{}
 				ws.mu.Lock()
-				err := wsjson.Read(ctx, ws.Conn, &data)
+				data, err := readFunc(ctx, ws.Conn)
 				ws.mu.Unlock()
 				if err != nil {
 					log.Error().Err(err).Msg("error reading from websocket")
@@ -197,4 +238,14 @@ func (ws *WebsocketHelper) Close() error {
 		return err
 	}
 	return nil
+}
+
+func defaultReader(ctx context.Context, conn *websocket.Conn) (map[string]interface{}, error) {
+	var data map[string]interface{}
+	err := wsjson.Read(ctx, conn, &data)
+	if err != nil {
+		log.Error().Err(err).Msg("error reading from websocket")
+		return nil, err
+	}
+	return data, nil
 }

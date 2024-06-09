@@ -79,7 +79,7 @@ func insertSampleData(ctx context.Context) (*TmpData, error) {
 	}
 	tmpData.config = tmpConfig
 
-	tmpFeed, err := db.QueryRow[feed.FeedModel](ctx, "INSERT INTO feeds (name, config_id, definition) VALUES (@name, @config_id, @definition) RETURNING *;", map[string]any{"name": "test_feed", "config_id": tmpConfig.Id, "definition": `{"test": "test"}`})
+	tmpFeed, err := db.QueryRow[feed.FeedModel](ctx, "INSERT INTO feeds (name, config_id, definition) VALUES (@name, @config_id, @definition) RETURNING *;", map[string]any{"name": "test_feed", "config_id": tmpConfig.ID, "definition": `{"test": "test"}`})
 	if err != nil {
 		return nil, err
 	}
@@ -118,12 +118,12 @@ func adminCleanup(testItems *TestItems) func() error {
 			return err
 		}
 
-		_, err = db.QueryRow[proxy.ProxyModel](context.Background(), proxy.DeleteProxyById, map[string]any{"id": testItems.tmpData.proxy.Id})
+		_, err = db.QueryRow[proxy.ProxyModel](context.Background(), proxy.DeleteProxyById, map[string]any{"id": testItems.tmpData.proxy.ID})
 		if err != nil {
 			return err
 		}
 
-		_, err = db.QueryRow[providerUrl.ProviderUrlModel](context.Background(), providerUrl.DeleteProviderUrlById, map[string]any{"id": testItems.tmpData.providerUrl.Id})
+		_, err = db.QueryRow[providerUrl.ProviderUrlModel](context.Background(), providerUrl.DeleteProviderUrlById, map[string]any{"id": testItems.tmpData.providerUrl.ID})
 		if err != nil {
 			return err
 		}
@@ -133,7 +133,7 @@ func adminCleanup(testItems *TestItems) func() error {
 			return err
 		}
 
-		return db.QueryWithoutResult(context.Background(), wallet.DeleteWalletById, map[string]any{"id": testItems.tmpData.wallet.Id})
+		return db.QueryWithoutResult(context.Background(), wallet.DeleteWalletById, map[string]any{"id": testItems.tmpData.wallet.ID})
 	}
 }
 

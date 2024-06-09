@@ -3,6 +3,7 @@ package wallet
 import (
 	chainUtils "bisonai.com/orakl/node/pkg/chain/utils"
 	"bisonai.com/orakl/node/pkg/db"
+	"bisonai.com/orakl/node/pkg/secrets"
 	"bisonai.com/orakl/node/pkg/utils/encryptor"
 	"github.com/go-playground/validator/v10"
 	"github.com/gofiber/fiber/v2"
@@ -10,7 +11,7 @@ import (
 )
 
 type WalletModel struct {
-	Id *int32 `db:"id" json:"id"`
+	ID *int32 `db:"id" json:"id"`
 	Pk string `db:"pk" json:"pk"`
 }
 
@@ -84,6 +85,19 @@ func getAddresses(c *fiber.Ctx) error {
 	}
 
 	return c.JSON(result)
+}
+
+func getSignerAddress(c *fiber.Ctx) error {
+	signerPk := secrets.GetSecret("SIGNER_PK")
+	if signerPk == "" {
+		return c.Status(fiber.StatusInternalServerError).SendString("failed to get signer pk")
+	}
+	signerAddress, err := chainUtils.StringPkToAddressHex(signerPk)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).SendString("failed to convert signer pk to address")
+	}
+
+	return c.JSON(signerAddress)
 }
 
 func getById(c *fiber.Ctx) error {

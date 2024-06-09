@@ -62,7 +62,7 @@ func bootCleanup(testItems *TestItems) func() error {
 			return err
 		}
 
-		return db.QueryWithoutResult(context.Background(), peer.DeletePeerById, map[string]any{"id": testItems.tmpData.peer.Id})
+		return db.QueryWithoutResult(context.Background(), peer.DeletePeerById, map[string]any{"id": testItems.tmpData.peer.ID})
 	}
 }
 

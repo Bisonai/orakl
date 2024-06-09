@@ -3,6 +3,7 @@ package utils
 import (
 	"context"
 	"fmt"
+	"os"
 	"strconv"
 	"time"
 
@@ -55,6 +56,7 @@ func IsHostAlive(ctx context.Context, h host.Host, addr string) (bool, error) {
 
 	lastErr := retrier.Retry(
 		func() error {
+			log.Info().Str("addr", addr).Str("peer", info.ID.String()).Msg("checking peer alive")
 			return h.Connect(ctx, *info)
 		},
 		3,
@@ -100,6 +102,10 @@ func ExtractPayloadFromHost(h host.Host) (ip string, port int, host_id string, e
 	if err != nil {
 		log.Error().Err(err).Msg("error converting port to int")
 		return "", 0, "", err
+	}
+
+	if os.Getenv("HOST_IP") != "" {
+		ip = os.Getenv("HOST_IP")
 	}
 
 	return ip, port, h.ID().String(), nil

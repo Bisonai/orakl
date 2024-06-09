@@ -39,7 +39,6 @@ func getRedisConn(ctx context.Context) (*redis.Conn, error) {
 	defer rdbMutex.Unlock()
 
 	if rdb != nil {
-		log.Debug().Msg("Attempting to ping Redis")
 		_, err := rdb.Ping(ctx).Result()
 		if err == nil {
 			return rdb, nil
@@ -147,6 +146,10 @@ func MGet(ctx context.Context, keys []string) ([]any, error) {
 func MGetObject[T any](ctx context.Context, keys []string) ([]T, error) {
 	results := []T{}
 
+	if len(keys) == 0 {
+		return results, nil
+	}
+
 	data, err := MGet(ctx, keys)
 	if err != nil {
 		log.Error().Strs("keys", keys).Err(err).Msg("Error getting objects from MGetObject")
@@ -155,7 +158,6 @@ func MGetObject[T any](ctx context.Context, keys []string) ([]T, error) {
 
 	for _, d := range data {
 		if d == nil {
-			log.Warn().Msg("Nil value in MGetObject")
 			continue
 		}
 		var t T

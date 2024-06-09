@@ -7,7 +7,7 @@ import (
 )
 
 type ProviderUrlModel struct {
-	Id       *int32 `db:"id" json:"id"`
+	ID       *int32 `db:"id" json:"id"`
 	ChainId  *int   `db:"chain_id" json:"chain_id"`
 	Url      string `db:"url" json:"url"`
 	Priority *int   `db:"priority" json:"priority"`

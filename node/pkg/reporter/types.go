@@ -8,6 +8,7 @@ import (
 
 	"bisonai.com/orakl/node/pkg/bus"
 	"bisonai.com/orakl/node/pkg/chain/helper"
+	"bisonai.com/orakl/node/pkg/common/types"
 	"bisonai.com/orakl/node/pkg/raft"
 	"github.com/klaytn/klaytn/common"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
@@ -126,12 +127,7 @@ type Reporter struct {
 	isRunning  bool
 }
 
-type GlobalAggregate struct {
-	ConfigID  int32     `db:"config_id" json:"configId"`
-	Value     int64     `db:"value" json:"value"`
-	Round     int32     `db:"round" json:"round"`
-	Timestamp time.Time `db:"timestamp" json:"timestamp"`
-}
+type GlobalAggregate types.GlobalAggregate
 
 type Proof struct {
 	ConfigID int32  `json:"configId"`

@@ -4,9 +4,9 @@ import (
 	"context"
 	"math"
 	"math/big"
-	"strconv"
 	"time"
 
+	"bisonai.com/orakl/node/pkg/common/keys"
 	"bisonai.com/orakl/node/pkg/db"
 	errorSentinel "bisonai.com/orakl/node/pkg/error"
 	"bisonai.com/orakl/node/pkg/utils/reducer"
@@ -53,17 +53,20 @@ func getTokenPrice(sqrtPriceX96 *big.Int, definition *Definition) (float64, erro
 func setLatestFeedData(ctx context.Context, feedData []FeedData, expiration time.Duration) error {
 	latestData := make(map[string]any)
 	for _, data := range feedData {
-		latestData["latestFeedData:"+strconv.Itoa(int(data.FeedID))] = data
+		latestData[keys.LatestFeedDataKey(data.FeedID)] = data
 	}
 	return db.MSetObjectWithExp(ctx, latestData, expiration)
 }
 
 func getLatestFeedData(ctx context.Context, feedIds []int32) ([]FeedData, error) {
-	keys := make([]string, len(feedIds))
-	for i, feedId := range feedIds {
-		keys[i] = "latestFeedData:" + strconv.Itoa(int(feedId))
+	if len(feedIds) == 0 {
+		return []FeedData{}, nil
 	}
-	feedData, err := db.MGetObject[FeedData](ctx, keys)
+	keyList := make([]string, len(feedIds))
+	for i, feedId := range feedIds {
+		keyList[i] = keys.LatestFeedDataKey(feedId)
+	}
+	feedData, err := db.MGetObject[FeedData](ctx, keyList)
 	if err != nil {
 		return nil, err
 	}
@@ -72,12 +75,12 @@ func getLatestFeedData(ctx context.Context, feedIds []int32) ([]FeedData, error)
 }
 
 func setFeedDataBuffer(ctx context.Context, feedData []FeedData) error {
-	return db.LPushObject(ctx, "feedDataBuffer", feedData)
+	return db.LPushObject(ctx, keys.FeedDataBufferKey(), feedData)
 }
 
 func getFeedDataBuffer(ctx context.Context) ([]FeedData, error) {
 	// buffer flushed on pop all
-	return db.PopAllObject[FeedData](ctx, "feedDataBuffer")
+	return db.PopAllObject[FeedData](ctx, keys.FeedDataBufferKey())
 }
 
 func insertLocalAggregatePgsql(ctx context.Context, configId int32, value float64) error {
@@ -86,12 +89,14 @@ func insertLocalAggregatePgsql(ctx context.Context, configId int32, value float6
 }
 
 func insertLocalAggregateRdb(ctx context.Context, configId int32, value float64) error {
-	key := "localAggregate:" + strconv.Itoa(int(configId))
-	data := RedisAggregate{ConfigId: configId, Value: int64(value), Timestamp: time.Now()}
-	return db.SetObject(ctx, key, data, time.Duration(5*time.Minute))
+	data := LocalAggregate{ConfigID: configId, Value: int64(value), Timestamp: time.Now()}
+	return db.SetObject(ctx, keys.LocalAggregateKey(configId), data, time.Duration(5*time.Minute))
 }
 
 func copyFeedData(ctx context.Context, feedData []FeedData) error {
+	if len(feedData) == 0 {
+		return nil
+	}
 	insertRows := make([][]any, len(feedData))
 	for i, data := range feedData {
 		insertRows[i] = []any{data.FeedID, data.Value, data.Timestamp}

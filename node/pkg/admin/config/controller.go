@@ -5,11 +5,14 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"strconv"
+	"strings"
 
 	"bisonai.com/orakl/node/pkg/admin/feed"
 	"bisonai.com/orakl/node/pkg/db"
 	"bisonai.com/orakl/node/pkg/utils/request"
 	"github.com/gofiber/fiber/v2"
+	"github.com/rs/zerolog/log"
 )
 
 type BulkConfigs struct {
@@ -31,7 +34,7 @@ type ConfigInsertModel struct {
 }
 
 type ConfigModel struct {
-	Id                int32  `db:"id" json:"id"`
+	ID                int32  `db:"id" json:"id"`
 	Name              string `db:"name" json:"name"`
 	FetchInterval     *int   `db:"fetch_interval" json:"fetchInterval"`
 	AggregateInterval *int   `db:"aggregate_interval" json:"aggregateInterval"`
@@ -40,10 +43,18 @@ type ConfigModel struct {
 
 type ConfigNameIdModel struct {
 	Name string `db:"name" json:"name"`
-	Id   int32  `db:"id" json:"id"`
+	ID   int32  `db:"id" json:"id"`
+}
+
+func InitSyncDb(ctx context.Context) error {
+	return sync(ctx)
 }
 
 func Sync(c *fiber.Ctx) error {
+	return sync(c.Context())
+}
+
+func sync(ctx context.Context) error {
 	configUrl := getConfigUrl()
 	loadedConfigs, err := request.GetRequest[[]ConfigInsertModel](configUrl, nil, nil)
 	if err != nil {
@@ -59,36 +70,44 @@ func Sync(c *fiber.Ctx) error {
 	}
 
 	// remove invalid configs
-	dbConfigs, err := db.QueryRows[ConfigModel](c.Context(), SelectConfigQuery, nil)
+	dbConfigs, err := db.QueryRows[ConfigModel](ctx, SelectConfigQuery, nil)
 	if err != nil {
 		return err
 	}
+
+	removingConfigs := []string{}
 	for _, dbConfig := range dbConfigs {
 		_, ok := loadedConfigMap[dbConfig.Name]
 		if !ok {
-			_, err = db.QueryRow[ConfigModel](c.Context(), DeleteConfigQuery, map[string]any{"id": dbConfig.Id})
-			if err != nil {
-				return err
-			}
+			log.Info().Str("Player", "Config").Str("Config", dbConfig.Name).Msg("Config not found in config")
+			removingConfigs = append(removingConfigs, strconv.Itoa(int(dbConfig.ID)))
 		}
 	}
-
-	// remove invalid feeds
-	dbFeeds, err := db.QueryRows[feed.FeedModel](c.Context(), feed.GetFeed, nil)
+	err = db.QueryWithoutResult(ctx, BulkDeleteConfigQuery, map[string]any{"ids": strings.Join(removingConfigs, ",")})
 	if err != nil {
 		return err
 	}
+
+	// remove invalid feeds
+	dbFeeds, err := db.QueryRows[feed.FeedModel](ctx, feed.GetFeed, nil)
+	if err != nil {
+		return err
+	}
+
+	removingFeeds := []string{}
 	for _, dbFeed := range dbFeeds {
 		_, ok := loadedFeedMap[dbFeed.Name]
 		if !ok {
-			_, err = db.QueryRow[feed.FeedModel](c.Context(), "DELETE FROM feeds WHERE id = @id RETURNING *;", map[string]any{"id": dbFeed.Id})
-			if err != nil {
-				return err
-			}
+			log.Info().Str("Player", "Config").Str("Feed", dbFeed.Name).Msg("Feed not found in config")
+			removingFeeds = append(removingFeeds, strconv.Itoa(int(*dbFeed.ID)))
 		}
 	}
+	err = db.QueryWithoutResult(ctx, BulkDeleteFeedQuery, map[string]any{"ids": strings.Join(removingFeeds, ",")})
+	if err != nil {
+		return err
+	}
 
-	err = bulkUpsertConfigs(c.Context(), loadedConfigs)
+	err = bulkUpsertConfigs(ctx, loadedConfigs)
 	if err != nil {
 		return err
 	}
@@ -98,14 +117,14 @@ func Sync(c *fiber.Ctx) error {
 		whereValues = append(whereValues, config.Name)
 	}
 
-	configIds, err := db.BulkSelect[ConfigNameIdModel](c.Context(), "configs", []string{"name", "id"}, []string{"name"}, whereValues)
+	configIds, err := db.BulkSelect[ConfigNameIdModel](ctx, "configs", []string{"name", "id"}, []string{"name"}, whereValues)
 	if err != nil {
 		return err
 	}
 
 	configNameIdMap := map[string]int32{}
 	for _, configId := range configIds {
-		configNameIdMap[configId.Name] = configId.Id
+		configNameIdMap[configId.Name] = configId.ID
 	}
 
 	upsertRows := make([][]any, 0)
@@ -119,7 +138,7 @@ func Sync(c *fiber.Ctx) error {
 		}
 	}
 
-	return db.BulkUpsert(c.Context(), "feeds", []string{"name", "definition", "config_id"}, upsertRows, []string{"name"}, []string{"definition", "config_id"})
+	return db.BulkUpsert(ctx, "feeds", []string{"name", "definition", "config_id"}, upsertRows, []string{"name"}, []string{"definition", "config_id"})
 }
 
 func Insert(c *fiber.Ctx) error {
@@ -140,8 +159,8 @@ func Insert(c *fiber.Ctx) error {
 	}
 
 	for _, feed := range config.Feeds {
-		feed.ConfigId = &result.Id
-		err = db.QueryWithoutResult(c.Context(), InsertFeedQuery, map[string]any{"name": feed.Name, "definition": feed.Definition, "config_id": result.Id})
+		feed.ConfigId = &result.ID
+		err = db.QueryWithoutResult(c.Context(), InsertFeedQuery, map[string]any{"name": feed.Name, "definition": feed.Definition, "config_id": result.ID})
 		if err != nil {
 			return err
 		}

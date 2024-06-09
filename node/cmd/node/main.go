@@ -2,13 +2,10 @@ package main
 
 import (
 	"context"
-	"errors"
-	"net/http"
 	"os"
 	"strconv"
 	"strings"
 	"sync"
-	"time"
 
 	"bisonai.com/orakl/node/pkg/admin"
 	"bisonai.com/orakl/node/pkg/aggregator"
@@ -31,10 +28,6 @@ func main() {
 	mb := bus.New(10)
 	var wg sync.WaitGroup
 
-	bootnode := os.Getenv("BOOT_NODE")
-	if bootnode == "" {
-		log.Debug().Msg("No bootnode specified")
-	}
 	listenPort, err := strconv.Atoi(os.Getenv("LISTEN_PORT"))
 	if err != nil {
 		log.Error().Err(err).Msg("Error parsing LISTEN_PORT")
@@ -44,7 +37,7 @@ func main() {
 	host, ps, err := libp2pSetup.SetupFromBootApi(ctx, listenPort)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to setup libp2p")
-		return
+		select {}
 	}
 
 	wg.Add(1)
@@ -57,23 +50,13 @@ func main() {
 		}
 	}()
 
-	port := os.Getenv("APP_PORT")
-	if port == "" {
-		log.Info().Msg("No APP_PORT specified, using default 8088")
-		port = "8088"
-	}
-
-	if err = waitForApi(port); err != nil {
-		log.Error().Err(err).Msg("Failed to wait api")
-		return
-	}
-
-	syncUrl := "http://localhost:" + port + "/api/v1/config/sync"
-	_, err = http.Post(syncUrl, "application/json", nil)
+	log.Info().Msg("Syncing orakl config")
+	err = admin.SyncOraklConfig(ctx)
 	if err != nil {
-		log.Error().Err(err).Msg("Failed to sync from orakl config")
+		log.Error().Err(err).Msg("Failed to sync orakl config")
 		return
 	}
+	log.Info().Msg("Orakl config synced")
 
 	wg.Add(1)
 	go func() {
@@ -85,6 +68,7 @@ func main() {
 			return
 		}
 	}()
+	log.Info().Msg("Fetcher started")
 
 	wg.Add(1)
 	go func() {
@@ -97,6 +81,7 @@ func main() {
 			return
 		}
 	}()
+	log.Info().Msg("Aggregator started")
 
 	wg.Add(1)
 	go func() {
@@ -109,20 +94,9 @@ func main() {
 			return
 		}
 	}()
+	log.Info().Msg("Reporter started")
 
 	wg.Wait()
-}
-
-func waitForApi(port string) error {
-	syncUrl := "http://localhost:" + port + "/api/v1"
-	for i := 0; i < 10; i++ {
-		resp, err := http.Get(syncUrl)
-		if err == nil && resp.StatusCode == http.StatusOK {
-			return nil
-		}
-		time.Sleep(1 * time.Second)
-	}
-	return errors.New("API did not become live within the expected time")
 }
 
 func getLogLevel(input string) zerolog.Level {

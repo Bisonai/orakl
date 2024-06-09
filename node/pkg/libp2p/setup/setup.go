@@ -25,7 +25,7 @@ import (
 )
 
 type BootPeerModel struct {
-	Id     int64  `db:"id" json:"id"`
+	ID     int64  `db:"id" json:"id"`
 	Ip     string `db:"ip" json:"ip"`
 	Port   int    `db:"port" json:"port"`
 	HostId string `db:"host_id" json:"host_id"`
@@ -112,6 +112,10 @@ func makeHost(listenPort int, priv crypto.PrivKey) (host.Host, error) {
 	if listenPort != 0 {
 		opts = append(opts, libp2p.ListenAddrStrings(fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", listenPort)))
 	}
+
+	// opts = append(opts, libp2p.NATPortMap())
+
+	opts = append(opts, libp2p.EnableHolePunching())
 
 	secretString := secrets.GetSecret("PRIVATE_NETWORK_SECRET")
 	if secretString != "" {

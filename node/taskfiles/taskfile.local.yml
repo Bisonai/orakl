@@ -38,6 +38,10 @@ tasks:
     dotenv: [".env"]
     cmds:
       - go run ./script/test_raft/main.go -p={{.P}}
+  script-test-websocketfetcher:
+    dotenv: [".env"]
+    cmds:
+      - go run ./script/test_websocketfetcher/main.go
 
   test-db:
     dotenv: [".env"]
@@ -85,6 +89,10 @@ tasks:
   test-wss:
     cmds:
       - go test ./pkg/wss -v
+  test-websocketfetcher:
+    dotenv: [".env"]
+    cmds:
+      - go test ./pkg/websocketfetcher/tests -v
 
   check-api:
     dotenv: [".env"]
@@ -94,6 +102,10 @@ tasks:
     dotenv: [".env"]
     cmds:
       - curl -X POST "http://localhost:$APP_PORT/api/v1/fetcher/refresh"
+  refresh-aggregator:
+    dotenv: [".env"]
+    cmds:
+      - curl -X POST "http://localhost:$APP_PORT/api/v1/aggregator/refresh"
   refresh-reporter:
     dotenv: [".env"]
     cmds:
@@ -120,6 +132,10 @@ tasks:
     dotenv: [".env"]
     cmds:
       - curl -X GET "http://localhost:$APP_PORT/api/v1/wallet" | jq
+  get-signer:
+    dotenv: [".env"]
+    cmds:
+      - curl -X GET "http://localhost:$APP_PORT/api/v1/wallet/signer" | jq
   add-json-rpc:
     dotenv: [".env"]
     cmds:
@@ -143,3 +159,4 @@ tasks:
       - task: test-reporter
       - task: test-chain
       - task: test-wss
+      - task: test-websocketfetcher
