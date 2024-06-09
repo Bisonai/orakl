@@ -24,7 +24,11 @@ func ConnectThroughBootApi(ctx context.Context, h host.Host) error {
 
 	externalIp := os.Getenv("HOST_IP")
 	if externalIp != "" {
-		url = utils.ReplaceIpFromUrl(url, externalIp)
+		url, err = utils.ReplaceIpFromUrl(url, externalIp)
+		if err != nil {
+			log.Error().Err(err).Msg("failed to replace ip")
+			return err
+		}
 	}
 
 	apiEndpoint := os.Getenv("BOOT_API_URL")

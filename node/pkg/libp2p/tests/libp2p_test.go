@@ -54,7 +54,10 @@ func TestReplaceIp(t *testing.T) {
 		t.Fatalf("Failed to extract connection url: %v", err)
 	}
 
-	result := utils.ReplaceIpFromUrl(url, "127.0.0.1")
+	result, err := utils.ReplaceIpFromUrl(url, "127.0.0.1")
+	if err != nil {
+		t.Errorf("Failed to replace ip: %v", err)
+	}
 
 	if url == result {
 		t.Errorf("Failed to replace ip: %v", err)
