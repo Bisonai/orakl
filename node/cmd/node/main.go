@@ -39,11 +39,9 @@ func main() {
 		log.Error().Err(err).Msg("Failed to make pubsub")
 	}
 
-	retrier.Retry(func() error {
+	err = retrier.Retry(func() error {
 		return libp2pSetup.ConnectThroughBootApi(ctx, host)
 	}, 5, 10*time.Second, 30*time.Second)
-
-	err = libp2pSetup.ConnectThroughBootApi(ctx, host)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to setup libp2p")
 		select {}
