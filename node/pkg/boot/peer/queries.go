@@ -1,7 +1,7 @@
 package peer
 
 const (
-	InsertPeer = `INSERT INTO peers (ip, port, host_id) VALUES (@ip, @port, @host_id) RETURNING *;`
+	InsertPeer = `INSERT INTO peers (url) VALUES (@url) RETURNING *;`
 
 	GetPeer = `SELECT * FROM peers;`
 

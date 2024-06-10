@@ -20,16 +20,9 @@ func New(ctx context.Context, opts ...common.FetcherOption) (common.FetcherInter
 	fetcher.FeedMap = config.FeedMaps.Combined
 	fetcher.FeedDataBuffer = config.FeedDataBuffer
 
-	params := []string{}
-
-	for feed := range fetcher.FeedMap {
-		param := "spot@public.miniTicker.v3.api@" + feed + "@UTC+0"
-		params = append(params, param)
-	}
-
 	subscription := Subscription{
 		Method: "SUBSCRIPTION",
-		Params: params,
+		Params: []string{"spot@public.miniTickers.v3.api@UTC+0"},
 	}
 
 	ws, err := wss.NewWebsocketHelper(ctx,
@@ -45,19 +38,22 @@ func New(ctx context.Context, opts ...common.FetcherOption) (common.FetcherInter
 }
 
 func (f *MexcFetcher) handleMessage(ctx context.Context, message map[string]any) error {
-	response, err := common.MessageToStruct[Response](message)
+	response, err := common.MessageToStruct[BatchResponse](message)
 	if err != nil {
 		log.Error().Str("Player", "Mexc").Err(err).Msg("failed to parse message to response")
 		return err
 	}
 
-	feedData, err := ResponseToFeedData(response, f.FeedMap)
+	feedData, err := ResponseToFeedDataList(response, f.FeedMap)
 	if err != nil {
 		log.Error().Str("Player", "Mexc").Err(err).Msg("failed to extract feedData from response")
 		return err
 	}
 
-	f.FeedDataBuffer <- *feedData
+	for _, feed := range feedData {
+		f.FeedDataBuffer <- *feed
+	}
+
 	return nil
 }
 

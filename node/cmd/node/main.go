@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"os"
-	"strconv"
 	"strings"
 	"sync"
 
@@ -28,13 +27,17 @@ func main() {
 	mb := bus.New(10)
 	var wg sync.WaitGroup
 
-	listenPort, err := strconv.Atoi(os.Getenv("LISTEN_PORT"))
+	host, err := libp2pSetup.NewHost(ctx, libp2pSetup.WithHolePunch())
 	if err != nil {
-		log.Error().Err(err).Msg("Error parsing LISTEN_PORT")
-		return
+		log.Error().Err(err).Msg("Failed to make host")
 	}
 
-	host, ps, err := libp2pSetup.SetupFromBootApi(ctx, listenPort)
+	ps, err := libp2pSetup.MakePubsub(ctx, host)
+	if err != nil {
+		log.Error().Err(err).Msg("Failed to make pubsub")
+	}
+
+	err = libp2pSetup.ConnectThroughBootApi(ctx, host)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to setup libp2p")
 		select {}
