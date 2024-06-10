@@ -5,6 +5,7 @@ import (
 	"os"
 	"strings"
 	"sync"
+	"time"
 
 	"bisonai.com/orakl/node/pkg/admin"
 	"bisonai.com/orakl/node/pkg/aggregator"
@@ -12,6 +13,7 @@ import (
 	"bisonai.com/orakl/node/pkg/fetcher"
 	libp2pSetup "bisonai.com/orakl/node/pkg/libp2p/setup"
 	"bisonai.com/orakl/node/pkg/reporter"
+	"bisonai.com/orakl/node/pkg/utils/retrier"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 )
@@ -36,6 +38,10 @@ func main() {
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to make pubsub")
 	}
+
+	retrier.Retry(func() error {
+		return libp2pSetup.ConnectThroughBootApi(ctx, host)
+	}, 5, 10*time.Second, 30*time.Second)
 
 	err = libp2pSetup.ConnectThroughBootApi(ctx, host)
 	if err != nil {
