@@ -19,7 +19,7 @@ var signerCheckInterval time.Duration
 var signer RegsiteredSigner
 
 func setUp(ctx context.Context) error {
-	signerCheckInterval = 2 * time.Hour
+	signerCheckInterval = 12 * time.Hour
 	checkInterval := os.Getenv("SIGNER_CHECK_INTERVAL")
 	parsedCheckInterval, err := time.ParseDuration(checkInterval)
 	if err != nil {
@@ -76,8 +76,10 @@ func Start(ctx context.Context) error {
 }
 
 func check(ctx context.Context) {
-	if time.Now().After(signer.Exp) {
-		log.Info().Msg("Signer expired")
-		alert.SlackAlert("Signer expired")
+	baseDate := time.Now().AddDate(0, 0, 7)
+
+	if baseDate.After(signer.Exp) {
+		remainingTime := signer.Exp.Sub(time.Now())
+		alert.SlackAlert("Signer expires in: " + remainingTime.String())
 	}
 }
