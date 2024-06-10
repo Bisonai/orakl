@@ -372,10 +372,12 @@ func (r *Raft) becomeLeader(ctx context.Context) {
 				}
 
 			case <-r.LeaderJobTicker.C:
-				err := r.LeaderJob()
-				if err != nil {
-					log.Error().Err(err).Msg("failed to execute leader job")
-				}
+				go func() {
+					err := r.LeaderJob()
+					if err != nil {
+						log.Error().Err(err).Msg("failed to execute leader job")
+					}
+				}()
 
 			case <-ctx.Done():
 				log.Debug().Msg("context cancelled")
