@@ -21,7 +21,7 @@ type HostConfig struct {
 	PrivateKey   crypto.PrivKey
 	SecretString string
 	HolePunch    bool
-	Tcp          bool
+	Quic         bool
 }
 
 type HostOption func(*HostConfig)
@@ -50,19 +50,20 @@ func WithHolePunch() HostOption {
 	}
 }
 
-func WithTcp() HostOption {
+func WithQuic() HostOption {
 	return func(hc *HostConfig) {
-		hc.Tcp = true
+		hc.Quic = true
 	}
 }
 
 func NewHost(ctx context.Context, opts ...HostOption) (host.Host, error) {
+	libp2pOpts := []libp2p.Option{}
 	config := &HostConfig{
 		Port:         0,
 		PrivateKey:   nil,
 		SecretString: secrets.GetSecret("PRIVATE_NETWORK_SECRET"),
 		HolePunch:    false,
-		Tcp:          false,
+		Quic:         false,
 	}
 	for _, opt := range opts {
 		opt(config)
@@ -75,18 +76,15 @@ func NewHost(ctx context.Context, opts ...HostOption) (host.Host, error) {
 		}
 		config.PrivateKey = priv
 	}
+	libp2pOpts = append(libp2pOpts, libp2p.Identity(config.PrivateKey))
 
 	listenStr := ""
-	if config.Tcp {
-		listenStr = fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", config.Port)
-	} else {
+	if config.Quic {
 		listenStr = fmt.Sprintf("/ip4/0.0.0.0/udp/%d/quic-v1", config.Port)
+	} else {
+		listenStr = fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", config.Port)
 	}
-
-	libp2pOpts := []libp2p.Option{
-		libp2p.Identity(config.PrivateKey),
-		libp2p.ListenAddrStrings(listenStr),
-	}
+	libp2pOpts = append(libp2pOpts, libp2p.ListenAddrStrings(listenStr))
 
 	if config.SecretString != "" {
 		hash := sha256.Sum256([]byte(config.SecretString))
