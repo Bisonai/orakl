@@ -5,3 +5,4 @@ yarn-error.log
 dockerfiles/local-data-feed/tmp/**
 .env
 .aider*
+.idea

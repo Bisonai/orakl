@@ -24,8 +24,13 @@ on:
         required: true
         type: choice
         options:
+<<<<<<< Updated upstream
           - "Baobab"
           - "Cypress"
+=======
+          - new
+          - cli:v0.6.2.20240530.0903.62ea1a9(Hotfix add missing ..)
+>>>>>>> Stashed changes
 
 jobs:
   prepare:
