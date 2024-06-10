@@ -59,7 +59,7 @@ func sync(c *fiber.Ctx) error {
 
 	validate := validator.New()
 	if err := validate.Struct(payload); err != nil {
-		log.Error().Err(err).Msg("Failed to validate request")
+		log.Error().Any("payload", payload).Err(err).Msg("Failed to validate request")
 		return c.Status(fiber.StatusBadRequest).SendString("Failed to validate request")
 	}
 
