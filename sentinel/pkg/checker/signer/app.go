@@ -11,21 +11,21 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-type RegsiteredSigner struct {
+type RegisteredSigner struct {
 	Exp time.Time
 }
 
 var signerCheckInterval time.Duration
-var signer RegsiteredSigner
+var signer RegisteredSigner
+
+const ExpirationWarningThreshold = 7 * 24 * time.Hour
 
 func setUp(ctx context.Context) error {
-	signerCheckInterval = 12 * time.Hour
-	checkInterval := os.Getenv("SIGNER_CHECK_INTERVAL")
-	parsedCheckInterval, err := time.ParseDuration(checkInterval)
+	var err error
+	signerCheckInterval, err = time.ParseDuration(os.Getenv("SIGNER_CHECK_INTERVAL"))
 	if err != nil {
-		log.Error().Err(err).Msg("Failed to parse SIGNER_CHECK_INTERVAL, using default 2h")
-	} else {
-		signerCheckInterval = parsedCheckInterval
+		signerCheckInterval = 12 * time.Hour
+		log.Error().Err(err).Msg("Using default signer check interval of 12 hours")
 	}
 
 	nodeAdminUrl := os.Getenv("ORAKL_NODE_ADMIN_URL")
@@ -53,7 +53,7 @@ func setUp(ctx context.Context) error {
 		return err
 	}
 
-	signer = RegsiteredSigner{
+	signer = RegisteredSigner{
 		Exp: *exp,
 	}
 	return nil
@@ -62,6 +62,7 @@ func setUp(ctx context.Context) error {
 func Start(ctx context.Context) error {
 	err := setUp(ctx)
 	if err != nil {
+		log.Error().Err(err).Msg("Failed to set up signer expiration checker")
 		return err
 	}
 
@@ -76,7 +77,7 @@ func Start(ctx context.Context) error {
 }
 
 func check(ctx context.Context) {
-	if time.Until(signer.Exp) < 7*24*time.Hour {
+	if time.Until(signer.Exp) < ExpirationWarningThreshold {
 		remainingTime := time.Until(signer.Exp)
 		alert.SlackAlert("Signer expires in: " + remainingTime.String())
 	}
