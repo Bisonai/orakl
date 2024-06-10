@@ -35,19 +35,23 @@ func ExtractExpirationFromContract(ctx context.Context, jsonrpc string, submissi
 }
 
 func ReadContract(ctx context.Context, client client.Client, functionString string, contractAddress string, args ...interface{}) (interface{}, error) {
+	log.Info().Msg("Preparing to read contract")
 	functionName, inputs, outputs, err := ParseMethodSignature(functionString)
 	if err != nil {
+		log.Error().Err(err).Msg("Failed to parse method signature")
 		return nil, err
 	}
 
 	abi, err := GenerateViewABI(functionName, inputs, outputs)
 	if err != nil {
+		log.Error().Err(err).Msg("Failed to generate ABI")
 		return nil, err
 	}
 
 	contractAddressHex := common.HexToAddress(contractAddress)
 	callData, err := abi.Pack(functionName, args...)
 	if err != nil {
+		log.Error().Err(err).Msg("Failed to pack call data")
 		return nil, err
 	}
 
@@ -55,13 +59,14 @@ func ReadContract(ctx context.Context, client client.Client, functionString stri
 		To:   &contractAddressHex,
 		Data: callData,
 	}, nil)
-
 	if err != nil {
+		log.Error().Err(err).Msg("Failed to call contract")
 		return nil, err
 	}
 
 	output, err := abi.Unpack(functionName, result)
 	if err != nil {
+		log.Error().Err(err).Msg("Failed to unpack result")
 		return nil, err
 	}
 

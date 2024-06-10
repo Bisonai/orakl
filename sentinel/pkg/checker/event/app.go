@@ -78,11 +78,12 @@ func check(ctx context.Context) {
 	log.Debug().Msg("Checking events")
 	msg := ""
 	for _, feed := range FeedsToCheck {
-		delayedTime, err := timeSinceLastEvent(ctx, feed)
+		offSet, err := timeSinceLastEvent(ctx, feed)
 		if err != nil {
 			continue
 		}
-		if delayedTime > time.Duration(feed.ExpectedInterval)*time.Millisecond+BUFFER {
+		if offSet > time.Duration(feed.ExpectedInterval)*time.Millisecond+BUFFER {
+			delayedTime := offSet - time.Duration(feed.ExpectedInterval)*time.Millisecond
 			msg += feed.FeedName + " delayed by " + delayedTime.String() + "\n"
 		}
 	}
