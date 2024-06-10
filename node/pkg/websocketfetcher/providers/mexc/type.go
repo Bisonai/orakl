@@ -19,10 +19,10 @@ type Ticker struct {
 	LastRT                string `json:"lastRT"`
 	MergeTimes            string `json:"MT"`
 	NetValue              string `json:"NV"`
-	Time                  string `json:"t"`
 }
 
-type Response struct {
-	Channel string `json:"c"`
-	Data    Ticker `json:"d"`
+type BatchResponse struct {
+	Channel string   `json:"c"`
+	Data    []Ticker `json:"d"`
+	Time    int64    `json:"t"`
 }
