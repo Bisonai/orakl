@@ -26,6 +26,7 @@ on:
         options:
           - "Baobab"
           - "Cypress"
+
 jobs:
   prepare:
     name: Prepare
