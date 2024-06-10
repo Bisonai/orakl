@@ -76,10 +76,8 @@ func Start(ctx context.Context) error {
 }
 
 func check(ctx context.Context) {
-	baseDate := time.Now().AddDate(0, 0, 7)
-
-	if baseDate.After(signer.Exp) {
-		remainingTime := signer.Exp.Sub(time.Now())
+	if time.Until(signer.Exp) < 7*24*time.Hour {
+		remainingTime := time.Until(signer.Exp)
 		alert.SlackAlert("Signer expires in: " + remainingTime.String())
 	}
 }
