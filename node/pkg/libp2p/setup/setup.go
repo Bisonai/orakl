@@ -3,9 +3,11 @@ package setup
 import (
 	"context"
 	"os"
+	"time"
 
 	"bisonai.com/orakl/node/pkg/libp2p/utils"
 	"bisonai.com/orakl/node/pkg/utils/request"
+	"bisonai.com/orakl/node/pkg/utils/retrier"
 
 	"github.com/libp2p/go-libp2p/core/host"
 	"github.com/rs/zerolog/log"
@@ -54,7 +56,9 @@ func ConnectThroughBootApi(ctx context.Context, h host.Host) error {
 			continue
 		}
 
-		err = h.Connect(ctx, *info)
+		err = retrier.Retry(func() error {
+			return h.Connect(ctx, *info)
+		}, 5, 1*time.Second, 5*time.Second)
 		if err != nil {
 			log.Error().Err(err).Msg("error connecting to peer: " + dbPeer.Url)
 			continue
