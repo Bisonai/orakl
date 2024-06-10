@@ -22,6 +22,15 @@ func ConnectThroughBootApi(ctx context.Context, h host.Host) error {
 		return err
 	}
 
+	externalIp := os.Getenv("HOST_IP")
+	if externalIp != "" {
+		url, err = utils.ReplaceIpFromUrl(url, externalIp)
+		if err != nil {
+			log.Error().Err(err).Msg("failed to replace ip")
+			return err
+		}
+	}
+
 	apiEndpoint := os.Getenv("BOOT_API_URL")
 	if apiEndpoint == "" {
 		log.Info().Msg("boot api endpoint not set, using default url: http://localhost:8089")
