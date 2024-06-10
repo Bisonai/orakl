@@ -30,11 +30,20 @@ func main() {
 
 	listenPort, err := strconv.Atoi(os.Getenv("LISTEN_PORT"))
 	if err != nil {
-		log.Error().Err(err).Msg("Error parsing LISTEN_PORT")
-		return
+		log.Warn().Msg("LISTEN_PORT missing, using random port for libp2p")
 	}
 
-	host, ps, err := libp2pSetup.SetupFromBootApi(ctx, listenPort)
+	host, err := libp2pSetup.NewHost(ctx, libp2pSetup.WithHolePunch(), libp2pSetup.WithPort(listenPort))
+	if err != nil {
+		log.Error().Err(err).Msg("Failed to make host")
+	}
+
+	ps, err := libp2pSetup.MakePubsub(ctx, host)
+	if err != nil {
+		log.Error().Err(err).Msg("Failed to make pubsub")
+	}
+
+	err = libp2pSetup.ConnectThroughBootApi(ctx, host)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to setup libp2p")
 		select {}

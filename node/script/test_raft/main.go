@@ -20,9 +20,19 @@ func main() {
 
 	flag.Parse()
 
-	host, ps, err := libp2pSetup.SetupFromBootApi(ctx, *port)
+	host, err := libp2pSetup.NewHost(ctx, libp2pSetup.WithPort(*port))
 	if err != nil {
-		log.Fatal().Err(err).Msg("Failed to setup libp2p")
+		log.Fatal().Err(err).Msg("Failed to make host")
+	}
+
+	ps, err := libp2pSetup.MakePubsub(ctx, host)
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed to make pubsub")
+	}
+
+	err = libp2pSetup.ConnectThroughBootApi(ctx, host)
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed to connect through boot api")
 	}
 
 	log.Debug().Msg("connecting to topic string")
@@ -34,7 +44,7 @@ func main() {
 	log.Debug().Msg("connected to topic string")
 
 	log.Debug().Msg("creating raft node")
-	node := raft.NewRaftNode(host, ps, topic, 100, 5*time.Second)
+	node := raft.NewRaftNode(host, ps, topic, 100, 1*time.Second)
 	node.LeaderJob = func() error {
 		log.Debug().Int("subscribers", node.SubscribersCount()).Int("Term", node.GetCurrentTerm()).Msg("Leader job")
 		node.IncreaseTerm()

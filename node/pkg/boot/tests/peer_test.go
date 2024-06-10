@@ -3,8 +3,6 @@ package tests
 
 import (
 	"context"
-	"strconv"
-	"strings"
 	"testing"
 
 	adminTests "bisonai.com/orakl/node/pkg/admin/tests"
@@ -14,8 +12,6 @@ import (
 	libp2pSetup "bisonai.com/orakl/node/pkg/libp2p/setup"
 	libp2pUtils "bisonai.com/orakl/node/pkg/libp2p/utils"
 
-	_peer "github.com/libp2p/go-libp2p/core/peer"
-	"github.com/multiformats/go-multiaddr"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -28,9 +24,7 @@ func TestPeerInsert(t *testing.T) {
 	defer cleanup()
 
 	mockPeer1 := peer.PeerInsertModel{
-		Ip:     "127.0.0.2",
-		Port:   10002,
-		HostId: "12DGKooWM8vWWqGPWWNCVPqb4tfqGrzx45W257GDBSeYbDSSLdef",
+		Url: "/ip4/100.78.175.63/udp/10002/quic-v1/p2p/12D3KooWLT1Pp1EN1G4waBShMWgr67acueYfnrWMtkpsUbAt59Lj",
 	}
 
 	readResultBefore, err := adminTests.GetRequest[[]peer.PeerModel](testItems.app, "/api/v1/peer", nil)
@@ -42,7 +36,7 @@ func TestPeerInsert(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error inserting peer: %v", err)
 	}
-	assert.Equal(t, insertResult.Ip, mockPeer1.Ip)
+	assert.Equal(t, insertResult.Url, mockPeer1.Url)
 
 	readResultAfter, err := adminTests.GetRequest[[]peer.PeerModel](testItems.app, "/api/v1/peer", nil)
 	if err != nil {
@@ -81,35 +75,31 @@ func TestSync(t *testing.T) {
 	}
 	defer cleanup()
 
-	mockHost1, err := libp2pSetup.MakeHost(0)
+	mockHost1, err := libp2pSetup.NewHost(ctx, libp2pSetup.WithHolePunch())
 	if err != nil {
 		t.Fatalf("error making host: %v", err)
 	}
 
-	mockHost2, err := libp2pSetup.MakeHost(0)
+	mockHost2, err := libp2pSetup.NewHost(ctx, libp2pSetup.WithHolePunch())
 	if err != nil {
 		t.Fatalf("error making host: %v", err)
 	}
 
-	ip1, port1, hostId1, err := libp2pUtils.ExtractPayloadFromHost(mockHost1)
+	url1, err := libp2pUtils.ExtractConnectionUrl(mockHost1)
 	if err != nil {
 		t.Fatalf("error extracting payload from host: %v", err)
 	}
-	ip2, port2, hostId2, err := libp2pUtils.ExtractPayloadFromHost(mockHost2)
+	url2, err := libp2pUtils.ExtractConnectionUrl(mockHost2)
 	if err != nil {
 		t.Fatalf("error extracting payload from host: %v", err)
 	}
 
 	mockPeer1 := peer.PeerInsertModel{
-		Ip:     ip1,
-		Port:   port1,
-		HostId: hostId1,
+		Url: url1,
 	}
 
 	mockPeer2 := peer.PeerInsertModel{
-		Ip:     ip2,
-		Port:   port2,
-		HostId: hostId2,
+		Url: url2,
 	}
 
 	syncResult, err := adminTests.PostRequest[[]peer.PeerModel](testItems.app, "/api/v1/peer/sync", mockPeer1)
@@ -141,41 +131,18 @@ func TestRefresh(t *testing.T) {
 	}
 	defer cleanup()
 
-	h, err := libp2pSetup.MakeHost(10011)
+	h, err := libp2pSetup.NewHost(ctx, libp2pSetup.WithHolePunch(), libp2pSetup.WithPort(10010))
 	if err != nil {
 		t.Fatalf("error making host: %v", err)
 	}
 
-	pi := _peer.AddrInfo{
-		ID:    h.ID(),
-		Addrs: h.Addrs(),
-	}
-
-	var addr multiaddr.Multiaddr
-	for _, a := range pi.Addrs {
-		if strings.Contains(a.String(), "127.0.0.1") {
-			continue
-		}
-		addr = a
-		break
-	}
-
-	splitted := strings.Split(addr.String(), "/")
-	if len(splitted) < 5 {
-		t.Fatalf("error splitting address: %v", splitted)
-	}
-	ip := splitted[2]
-	port := splitted[4]
-
-	portInt, err := strconv.Atoi(port)
+	url, err := libp2pUtils.ExtractConnectionUrl(h)
 	if err != nil {
-		t.Fatalf("error converting port to int: %v", err)
+		t.Fatalf("error extracting payload from host: %v", err)
 	}
 
 	res, err := adminTests.PostRequest[peer.PeerModel](testItems.app, "/api/v1/peer", peer.PeerInsertModel{
-		Ip:     ip,
-		Port:   portInt,
-		HostId: h.ID().String(),
+		Url: url,
 	})
 	if err != nil {
 		t.Fatalf("error inserting peer: %v", err)
@@ -186,7 +153,7 @@ func TestRefresh(t *testing.T) {
 		t.Fatalf("error getting peers before: %v", err)
 	}
 
-	assert.Equal(t, res.Ip, ip, "expected to have the same ip")
+	assert.Equal(t, res.Url, url, "expected to have the same url")
 
 	err = boot.RefreshJob(ctx)
 	if err != nil {

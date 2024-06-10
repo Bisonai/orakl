@@ -22,9 +22,20 @@ func main() {
 	}
 
 	startTime := time.Now()
-	_, ps, err := libp2pSetup.SetupFromBootApi(ctx, *port)
+
+	h, err := libp2pSetup.NewHost(ctx, libp2pSetup.WithHolePunch(), libp2pSetup.WithPort(*port))
 	if err != nil {
-		log.Fatal().Err(err).Msg("Failed to setup libp2p")
+		log.Fatal().Err(err).Msg("Failed to make host")
+	}
+
+	ps, err := libp2pSetup.MakePubsub(ctx, h)
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed to make pubsub")
+	}
+
+	err = libp2pSetup.ConnectThroughBootApi(ctx, h)
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed to connect through boot api")
 	}
 
 	topic, err := ps.Join(topicString)
