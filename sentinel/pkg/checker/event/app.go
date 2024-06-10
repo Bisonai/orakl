@@ -23,7 +23,7 @@ func setUp(ctx context.Context) error {
 	interval := os.Getenv("EVENT_CHECK_INTERVAL")
 	parsedInterval, err := time.ParseDuration(interval)
 	if err != nil {
-		log.Error().Err(err).Msg("Failed to parse HEALTH_CHECK_INTERVAL, using default 60s")
+		log.Error().Err(err).Msg("Failed to parse EVENT_CHECK_INTERVAL, using default 60s")
 	} else {
 		EventCheckInterval = parsedInterval
 	}
