@@ -12,6 +12,8 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
+const AlarmOffset = 3
+
 var FeedsToCheck = []FeedToCheck{}
 var EventCheckInterval time.Duration
 var BUFFER = 1 * time.Second
@@ -53,6 +55,7 @@ func setUp(ctx context.Context) error {
 			SchemaName:       subgraphInfo.SchemaName,
 			FeedName:         config.Name,
 			ExpectedInterval: config.SubmitInterval,
+			LatencyChecked:   0,
 		})
 	}
 
@@ -83,8 +86,12 @@ func check(ctx context.Context) {
 			continue
 		}
 		if offSet > time.Duration(feed.ExpectedInterval)*time.Millisecond+BUFFER {
-			delayedTime := offSet - time.Duration(feed.ExpectedInterval)*time.Millisecond
-			msg += feed.FeedName + " delayed by " + delayedTime.String() + "\n"
+			feed.LatencyChecked++
+			if feed.LatencyChecked > AlarmOffset {
+				msg += feed.FeedName + " delayed by " + (offSet - time.Duration(feed.ExpectedInterval)*time.Millisecond).String() + "\n"
+			}
+		} else {
+			feed.LatencyChecked = 0
 		}
 	}
 	if msg != "" {

@@ -44,6 +44,7 @@ type FeedToCheck struct {
 	SchemaName       string
 	FeedName         string
 	ExpectedInterval int
+	LatencyChecked   int
 }
 
 func feedEventQuery(schemaName string) string {
