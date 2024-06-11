@@ -21,7 +21,8 @@ export function reporter(state: State, logger: Logger) {
 
     let delegatorOkay = true
     const NUM_TRANSACTION_TRIALS = 3
-    const txParams = { wallet, to, payload, gasLimit, logger }
+    const nonce = await state.getAndIncrementNonce(to)
+    const txParams = { wallet, to, payload, gasLimit, logger, nonce }
 
     for (let i = 0; i < NUM_TRANSACTION_TRIALS; ++i) {
       if (state.delegatedFee && delegatorOkay) {
