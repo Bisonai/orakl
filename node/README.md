@@ -59,6 +59,8 @@ Check the source code inside `./pkg` for details:
 - **Reporter**: Submits data from `global_aggregates` with the latest Round to the chain.
 - **Utils**: Contains helper functions usable among other packages.
 - **Por**: Package to run a separate service for POR.
+- **wss**: Helper package for websocket implementation
+- **websocketfetcher**: Fetcher app based on websocket
 
 ### Main Elements
 
@@ -93,9 +95,6 @@ REDIS_HOST=<Your Redis Host>
 
 # Redis port, defaults to 6379
 REDIS_PORT=<Your Redis Port>
-
-# libp2p listen port
-LISTEN_PORT=<Your Listen Port>
 
 # provider URL for `klaytn_helper`
 KLAYTN_PROVIDER_URL=<Your Provider URL>
@@ -196,6 +195,7 @@ cp .env.local .env
 
 3. **Update environment variables**: Replace `DATABASE_URL`, `KLAYTN_REPORTER_PK`, `SIGNER_PK`, and other values with valid ones in the .env file.
 4. **Run Boot API**:
+   skip this step if connecting to pre-existing boot api
 
    ```sh
    task local:boot-api
