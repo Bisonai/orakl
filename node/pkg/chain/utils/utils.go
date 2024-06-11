@@ -432,6 +432,39 @@ func UpdateFeePayer(tx *types.Transaction, feePayer common.Address) (*types.Tran
 	return newTx, err
 }
 
+func UpdateGasPrice(tx *types.Transaction, gasPrice *big.Int) (*types.Transaction, error) {
+	from, err := tx.From()
+	if err != nil {
+		return nil, err
+	}
+
+	to := tx.To()
+	if to == nil {
+		return nil, errorSentinel.ErrChainEmptyToAddress
+	}
+
+	feePayer, err := tx.FeePayer()
+	if err != nil {
+		return nil, err
+	}
+
+	remap := map[types.TxValueKeyType]interface{}{
+		types.TxValueKeyNonce:    tx.Nonce(),
+		types.TxValueKeyGasPrice: gasPrice,
+		types.TxValueKeyGasLimit: tx.Gas(),
+		types.TxValueKeyTo:       *to,
+		types.TxValueKeyAmount:   tx.Value(),
+		types.TxValueKeyFrom:     from,
+		types.TxValueKeyData:     tx.Data(),
+		types.TxValueKeyFeePayer: feePayer,
+	}
+
+	newTx, err := types.NewTransactionWithMap(types.TxTypeFeeDelegatedSmartContractExecution, remap)
+
+	newTx.SetSignature(tx.GetTxInternalData().RawSignatureValues())
+	return newTx, err
+}
+
 func ReadContract(ctx context.Context, client ClientInterface, functionString string, contractAddress string, args ...interface{}) (interface{}, error) {
 	if client == nil {
 		return nil, errorSentinel.ErrChainEmptyClientParam
