@@ -10,7 +10,6 @@ import (
 	"os"
 	"regexp"
 	"strings"
-	"time"
 
 	"bisonai.com/orakl/node/pkg/db"
 	errorSentinel "bisonai.com/orakl/node/pkg/error"
@@ -369,7 +368,7 @@ func SubmitRawTx(ctx context.Context, client ClientInterface, tx *types.Transact
 	}
 	log.Debug().Str("Player", "ChainHelper").Str("tx", tx.Hash().String()).Msg("tx sent")
 
-	ctxWithTimeout, cancel := context.WithTimeout(ctx, 5*time.Second)
+	ctxWithTimeout, cancel := context.WithTimeout(ctx, DEFAULT_MINE_WAIT_TIME)
 	defer cancel()
 
 	log.Debug().Str("Player", "ChainHelper").Str("tx", tx.Hash().String()).Msg("waiting for tx to be mined")
