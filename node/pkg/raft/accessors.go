@@ -73,7 +73,7 @@ func (r *Raft) UpdateVotedFor(votedFor string) {
 }
 
 func (r *Raft) SubscribersCount() int {
-	return r.Peers.Size()
+	return len(r.Ps.ListPeers(r.Topic.String()))
 }
 
 func (r *Raft) GetHostId() string {
