@@ -72,6 +72,7 @@ func (r *Reporter) Run(ctx context.Context) {
 
 func (r *Reporter) leaderJob() error {
 	start := time.Now()
+	log.Info().Str("Player", "Reporter").Time("start", start).Msg("reporter job")
 	r.Raft.IncreaseTerm()
 	ctx := context.Background()
 
@@ -120,7 +121,7 @@ func (r *Reporter) leaderJob() error {
 		pair.LastSubmission = agg.Round
 		r.SubmissionPairs[agg.ConfigID] = pair
 	}
-	log.Debug().Str("Player", "Reporter").Dur("duration", time.Since(start)).Msg("reporting done")
+	log.Info().Str("Player", "Reporter").Dur("duration", time.Since(start)).Msg("reporting done")
 
 	return nil
 }
@@ -285,6 +286,7 @@ func (r *Reporter) SetKlaytnHelper(ctx context.Context) error {
 
 func (r *Reporter) deviationJob() error {
 	start := time.Now()
+	log.Info().Str("Player", "Reporter").Time("start", start).Msg("reporter deviation job")
 	r.Raft.IncreaseTerm()
 	ctx := context.Background()
 
@@ -346,8 +348,7 @@ func (r *Reporter) deviationJob() error {
 		r.SubmissionPairs[agg.ConfigID] = pair
 	}
 
-	log.Debug().Str("Player", "Reporter").Dur("duration", time.Since(start)).Msg("reporting deviation done")
-
+	log.Info().Str("Player", "Reporter").Dur("duration", time.Since(start)).Msg("reporting deviation done")
 	return nil
 }
 
