@@ -1,16 +1,22 @@
 package kucoin
 
 const (
-	TokenUrl = "https://api.kucoin.com/api/v1/bullet-public"
-	URL      = "wss://ws-api-spot.kucoin.com/"
+	TokenUrl              = "https://api.kucoin.com/api/v1/bullet-public"
+	URL                   = "wss://ws-api-spot.kucoin.com/"
+	DEFAULT_PING_INTERVAL = 18000
 )
 
 type TokenResponse struct {
-	Data Token `json:"data"`
+	Data ResponseData `json:"data"`
 }
 
-type Token struct {
-	Token string `json:"token"`
+type InstanceServers struct {
+	PingInterval int `json:"pingInterval"`
+}
+
+type ResponseData struct {
+	Token           string            `json:"token"`
+	InstanceServers []InstanceServers `json:"instanceServers"`
 }
 
 type Subscription struct {
@@ -18,6 +24,11 @@ type Subscription struct {
 	Type     string `json:"type"`
 	Topic    string `json:"topic"`
 	Response bool   `json:"response"`
+}
+
+type Ping struct {
+	ID   int    `json:"id"`
+	Type string `json:"type"`
 }
 
 type Data struct {
