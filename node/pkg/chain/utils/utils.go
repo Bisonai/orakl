@@ -433,6 +433,10 @@ func UpdateFeePayer(tx *types.Transaction, feePayer common.Address) (*types.Tran
 }
 
 func UpdateGasPrice(tx *types.Transaction, gasPrice *big.Int) (*types.Transaction, error) {
+	if gasPrice == nil {
+		return nil, errorSentinel.ErrChainEmptyGasPrice
+	}
+
 	from, err := tx.From()
 	if err != nil {
 		return nil, err
