@@ -13,7 +13,7 @@ import (
 )
 
 func GetRequest[T any](urlEndpoint string, requestBody interface{}, headers map[string]string) (T, error) {
-	return UrlRequest[T](urlEndpoint, "GET", requestBody, headers, "")
+	return UrlRequest[T](urlEndpoint, "GET", requestBody, headers, "", )
 }
 
 func UrlRequest[T any](urlEndpoint string, method string, requestBody interface{}, headers map[string]string, proxy string) (T, error) {
@@ -84,7 +84,7 @@ func UrlRequestRaw(urlEndpoint string, method string, requestBody interface{}, h
 	}
 
 	client := &http.Client{
-		Timeout: time.Second, // Set the timeout to 1 second
+		Timeout: time.Second * 12, // Set the timeout to 1 second
 	}
 
 	if proxy != "" {

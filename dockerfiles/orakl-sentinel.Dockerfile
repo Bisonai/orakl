@@ -8,7 +8,7 @@ COPY sentinel sentinel
 
 WORKDIR /app/sentinel
 
-RUN CGO_ENABLED=1 CC=x86_64-linux-gnu-gcc GOOS=linux GOARCH=amd64 go build -o sentinelbin -ldflags="-w -s" ./cmd/main.go
+RUN CGO_ENABLED=1 CGO_CFLAGS="-O -D__BLST_PORTABLE__" CGO_CFLAGS_ALLOW="-O -D__BLST_PORTABLE__" CC=x86_64-linux-gnu-gcc GOOS=linux GOARCH=amd64 go build -o sentinelbin -ldflags="-w -s" ./cmd/main.go
 
 # debian:bullseye-slim
 FROM debian@sha256:4b48997afc712259da850373fdbc60315316ee72213a4e77fc5a66032d790b2a
