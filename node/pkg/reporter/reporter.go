@@ -76,19 +76,24 @@ func (r *Reporter) leaderJob() error {
 	r.Raft.IncreaseTerm()
 	ctx := context.Background()
 
+	loadLatestGlobalAggregateStart := time.Now()
 	aggregates, err := GetLatestGlobalAggregates(ctx, r.SubmissionPairs)
 	if err != nil {
 		log.Error().Str("Player", "Reporter").Err(err).Msg("GetLatestGlobalAggregates")
 		return err
 	}
+	log.Info().Str("Player", "Reporter").Str("Duration", time.Since(loadLatestGlobalAggregateStart).String()).Msg("loaded latest global aggregates")
 
+	filterValidAggregateStart := time.Now()
 	validAggregates := FilterInvalidAggregates(aggregates, r.SubmissionPairs)
 	if len(validAggregates) == 0 {
 		log.Warn().Str("Player", "Reporter").Msg("no valid aggregates to report")
 		return nil
 	}
 	log.Debug().Str("Player", "Reporter").Int("validAggregates", len(validAggregates)).Msg("valid aggregates")
+	log.Info().Str("Player", "Reporter").Str("Duration", time.Since(filterValidAggregateStart).String()).Msg("filtered valid aggregates")
 
+	reportStart := time.Now()
 	reportJob := func() error {
 		err = r.report(ctx, validAggregates)
 		if err != nil {
@@ -109,19 +114,24 @@ func (r *Reporter) leaderJob() error {
 		r.resignLeader()
 		return errorSentinel.ErrReporterReportFailed
 	}
+	log.Info().Str("Player", "Reporter").Str("Duration", time.Since(reportStart).String()).Msg("reported from reporter leader job")
 
+	publishSubmissionMessageStart := time.Now()
 	err = r.PublishSubmissionMessage(validAggregates)
 	if err != nil {
 		log.Error().Str("Player", "Reporter").Err(err).Msg("PublishSubmissionMessage")
 		return err
 	}
+	log.Info().Str("Player", "Reporter").Str("Duration", time.Since(publishSubmissionMessageStart).String()).Msg("published submission message")
 
+	updateValidAggregatesStart := time.Now()
 	for _, agg := range validAggregates {
 		pair := r.SubmissionPairs[agg.ConfigID]
 		pair.LastSubmission = agg.Round
 		r.SubmissionPairs[agg.ConfigID] = pair
 	}
-	log.Info().Str("Player", "Reporter").Dur("duration", time.Since(start)).Msg("reporting done")
+	log.Info().Str("Player", "Reporter").Str("Duration", time.Since(updateValidAggregatesStart).String()).Msg("updated valid aggregates")
+	log.Info().Str("Player", "Reporter").Str("Duration", time.Since(start).String()).Msg("reporting done")
 
 	return nil
 }
