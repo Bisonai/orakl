@@ -3,6 +3,7 @@ package reporter
 import (
 	"context"
 	"encoding/json"
+	"math/big"
 	"strconv"
 	"time"
 
@@ -284,9 +285,21 @@ func (r *Reporter) reportDelegated(ctx context.Context, functionString string, a
 		log.Error().Str("Player", "Reporter").Err(err).Msg("MakeFeeDelegatedTx")
 		return err
 	}
-	log.Debug().Str("Player", "Reporter").Str("RawTx", rawTx.String()).Msg("delegated raw tx generated")
+
+	// update gas price by 20%
+	// check attributes here: https://docs.klaytn.foundation/docs/learn/transactions/fee-delegation/#txtypefeedelegatedsmartcontractexecution-
+	prevGas := rawTx.GasPrice().Int64()
+	increasedGasInt64 := int64(float64(prevGas) * 1.2)
+	increaseGasPrice := new(big.Int).SetInt64(increasedGasInt64)
+	increasedTx, err := chainUtils.UpdateGasPrice(rawTx, increaseGasPrice)
+	if err != nil {
+		log.Error().Str("Player", "Reporter").Err(err).Msg("UpdateGasPrice")
+		return err
+	}
+
+	log.Debug().Str("Player", "Reporter").Str("RawTx", increasedTx.String()).Msg("delegated raw tx generated")
 	delegatorRequestStart := time.Now()
-	signedTx, err := r.KlaytnHelper.GetSignedFromDelegator(rawTx)
+	signedTx, err := r.KlaytnHelper.GetSignedFromDelegator(increasedTx)
 	if err != nil {
 		log.Error().Str("Player", "Reporter").Err(err).Msg("GetSignedFromDelegator")
 		return err
