@@ -120,7 +120,7 @@ func (r *Reporter) leaderJob() error {
 		pair.LastSubmission = agg.Round
 		r.SubmissionPairs[agg.ConfigID] = pair
 	}
-	log.Debug().Str("Player", "Reporter").Dur("duration", time.Since(start)).Msg("reporting done")
+	log.Info().Str("Player", "Reporter").Dur("duration", time.Since(start)).Msg("reporting done")
 
 	return nil
 }
@@ -346,8 +346,7 @@ func (r *Reporter) deviationJob() error {
 		r.SubmissionPairs[agg.ConfigID] = pair
 	}
 
-	log.Debug().Str("Player", "Reporter").Dur("duration", time.Since(start)).Msg("reporting deviation done")
-
+	log.Info().Str("Player", "Reporter").Dur("duration", time.Since(start)).Msg("reporting deviation done")
 	return nil
 }
 
