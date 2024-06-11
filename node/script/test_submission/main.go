@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"math/big"
 	"time"
 
@@ -22,7 +23,30 @@ func testContractDirectCall(ctx context.Context, contractAddress string, contrac
 		return err
 	}
 
+	fmt.Println(rawTx.GasPrice().String())
+
 	return klaytnHelper.SubmitRawTx(ctx, rawTx)
+}
+
+func testContractFeeDelegatedCall(ctx context.Context, contractAddress string, contractFunction string, args ...interface{}) error {
+	klaytnHelper, err := helper.NewChainHelper(ctx)
+	if err != nil {
+		log.Error().Err(err).Msg("NewTxHelper")
+		return err
+	}
+	rawTx, err := klaytnHelper.MakeFeeDelegatedTx(ctx, contractAddress, contractFunction, 1.5, args...)
+	if err != nil {
+		log.Error().Err(err).Msg("MakeFeeDelegated")
+		return err
+	}
+
+	signedTx, err := klaytnHelper.SignTxByFeePayer(ctx, rawTx)
+	if err != nil {
+		log.Error().Err(err).Msg("SignTxByFeePayer")
+		return err
+	}
+
+	return klaytnHelper.SubmitRawTx(ctx, signedTx)
 }
 
 func main() {
@@ -44,7 +68,7 @@ func main() {
 	proofs := [][]byte{proof, proof}
 	testProof := concatBytes(proofs)
 
-	err = testContractDirectCall(ctx, contractAddress, contractFunction, answer, testProof)
+	err = testContractFeeDelegatedCall(ctx, contractAddress, contractFunction, answer, testProof)
 	if err != nil {
 		log.Error().Err(err).Msg("testContractDirectCall")
 	}

@@ -191,7 +191,7 @@ func TestMakeFeeDelegatedTx(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		feeDelegatedTx, err := klaytnHelper.MakeFeeDelegatedTx(ctx, test.contractAddress, test.functionString)
+		feeDelegatedTx, err := klaytnHelper.MakeFeeDelegatedTx(ctx, test.contractAddress, test.functionString, 0)
 		if err != nil {
 			assert.ErrorIs(t, err, test.expectedError)
 		}
@@ -211,7 +211,7 @@ func TestTxToHashToTx(t *testing.T) {
 	}
 	defer klaytnHelper.Close()
 
-	rawTx, err := klaytnHelper.MakeFeeDelegatedTx(ctx, "0x93120927379723583c7a0dd2236fcb255e96949f", "increment()")
+	rawTx, err := klaytnHelper.MakeFeeDelegatedTx(ctx, "0x93120927379723583c7a0dd2236fcb255e96949f", "increment()", 0)
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
 	}
@@ -268,7 +268,7 @@ func TestSubmitRawTxString(t *testing.T) {
 	}
 	defer klaytnHelper.Close()
 
-	rawTx, err := klaytnHelper.MakeFeeDelegatedTx(ctx, "0x93120927379723583c7a0dd2236fcb255e96949f", "increment()")
+	rawTx, err := klaytnHelper.MakeFeeDelegatedTx(ctx, "0x93120927379723583c7a0dd2236fcb255e96949f", "increment()", 0)
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
 	}
