@@ -16,7 +16,7 @@ import (
 
 type KucoinFetcher common.Fetcher
 
-var pingInterval = 18000
+var pingInterval = DEFAULT_PING_INTERVAL
 
 func New(ctx context.Context, opts ...common.FetcherOption) (common.FetcherInterface, error) {
 	config := &common.FetcherConfig{}

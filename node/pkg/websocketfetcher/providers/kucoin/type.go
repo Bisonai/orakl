@@ -1,8 +1,9 @@
 package kucoin
 
 const (
-	TokenUrl = "https://api.kucoin.com/api/v1/bullet-public"
-	URL      = "wss://ws-api-spot.kucoin.com/"
+	TokenUrl              = "https://api.kucoin.com/api/v1/bullet-public"
+	URL                   = "wss://ws-api-spot.kucoin.com/"
+	DEFAULT_PING_INTERVAL = 18000
 )
 
 type TokenResponse struct {
