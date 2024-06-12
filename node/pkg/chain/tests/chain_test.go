@@ -26,7 +26,7 @@ func TestNewKlaytnHelper(t *testing.T) {
 
 	err := db.QueryWithoutResult(ctx, InsertProviderUrlQuery, map[string]any{
 		"chain_id": 1001,
-		"url":      "https://api.baobab.klaytn.net:8651",
+		"url":      "https://public-en.kairos.node.kaia.io",
 		"priority": 1,
 	})
 	if err != nil {
