@@ -244,7 +244,11 @@ func MakeDirectTx(ctx context.Context, client ClientInterface, contractAddressHe
 	return types.SignTx(tx, types.NewEIP155Signer(chainID), privateKey)
 }
 
-func MakeFeeDelegatedTx(ctx context.Context, client ClientInterface, contractAddressHex string, reporter string, functionString string, chainID *big.Int, args ...interface{}) (*types.Transaction, error) {
+func MakeFeeDelegatedTx(ctx context.Context, client ClientInterface, contractAddressHex string, reporter string, functionString string, chainID *big.Int, gasMultiplier float64, args ...interface{}) (*types.Transaction, error) {
+	if gasMultiplier > 2.5 {
+		return nil, errorSentinel.ErrChainGasMultiplierTooHigh
+	}
+
 	if client == nil {
 		return nil, errorSentinel.ErrChainEmptyClientParam
 	}
@@ -305,6 +309,11 @@ func MakeFeeDelegatedTx(ctx context.Context, client ClientInterface, contractAdd
 		return nil, err
 	}
 
+	if gasMultiplier > 1.0 {
+		increasedGasInt64 := int64(float64(gasPrice.Int64()) * gasMultiplier)
+		gasPrice = new(big.Int).SetInt64(increasedGasInt64)
+	}
+
 	contractAddress := common.HexToAddress(contractAddressHex)
 
 	estimatedGas, err := client.EstimateGas(ctx, klaytn.CallMsg{
@@ -338,7 +347,7 @@ func MakeFeeDelegatedTx(ctx context.Context, client ClientInterface, contractAdd
 	return types.SignTx(unsigned, types.NewEIP155Signer(chainID), privateKey)
 }
 
-func SignTxByFeePayer(ctx context.Context, client ClientInterface, tx *types.Transaction, chainID *big.Int) (*types.Transaction, error) {
+func SignTxByFeePayer(ctx context.Context, tx *types.Transaction, chainID *big.Int) (*types.Transaction, error) {
 	feePayer := strings.TrimPrefix(os.Getenv("TEST_FEE_PAYER_PK"), "0x")
 	feePayerPrivateKey, err := crypto.HexToECDSA(feePayer)
 	if err != nil {
@@ -418,43 +427,6 @@ func UpdateFeePayer(tx *types.Transaction, feePayer common.Address) (*types.Tran
 	remap := map[types.TxValueKeyType]interface{}{
 		types.TxValueKeyNonce:    tx.Nonce(),
 		types.TxValueKeyGasPrice: tx.GasPrice(),
-		types.TxValueKeyGasLimit: tx.Gas(),
-		types.TxValueKeyTo:       *to,
-		types.TxValueKeyAmount:   tx.Value(),
-		types.TxValueKeyFrom:     from,
-		types.TxValueKeyData:     tx.Data(),
-		types.TxValueKeyFeePayer: feePayer,
-	}
-
-	newTx, err := types.NewTransactionWithMap(types.TxTypeFeeDelegatedSmartContractExecution, remap)
-
-	newTx.SetSignature(tx.GetTxInternalData().RawSignatureValues())
-	return newTx, err
-}
-
-func UpdateGasPrice(tx *types.Transaction, gasPrice *big.Int) (*types.Transaction, error) {
-	if gasPrice == nil {
-		return nil, errorSentinel.ErrChainEmptyGasPrice
-	}
-
-	from, err := tx.From()
-	if err != nil {
-		return nil, err
-	}
-
-	to := tx.To()
-	if to == nil {
-		return nil, errorSentinel.ErrChainEmptyToAddress
-	}
-
-	feePayer, err := tx.FeePayer()
-	if err != nil {
-		return nil, err
-	}
-
-	remap := map[types.TxValueKeyType]interface{}{
-		types.TxValueKeyNonce:    tx.Nonce(),
-		types.TxValueKeyGasPrice: gasPrice,
 		types.TxValueKeyGasLimit: tx.Gas(),
 		types.TxValueKeyTo:       *to,
 		types.TxValueKeyAmount:   tx.Value(),

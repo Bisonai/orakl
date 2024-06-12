@@ -117,6 +117,7 @@ var (
 	ErrChainEmptyChainIdParam                = &CustomError{Service: Others, Code: InvalidInputError, Message: "empty chain id param"}
 	ErrChainEmptyToAddress                   = &CustomError{Service: Others, Code: InvalidInputError, Message: "to address is empty"}
 	ErrChainEmptyGasPrice                    = &CustomError{Service: Others, Code: InvalidInputError, Message: "gas price is empty"}
+	ErrChainGasMultiplierTooHigh             = &CustomError{Service: Others, Code: InvalidInputError, Message: "gas multiplier too high"}
 
 	ErrDbDatabaseUrlNotFound            = &CustomError{Service: Others, Code: InternalError, Message: "DATABASE_URL not found"}
 	ErrDbEmptyTableNameParam            = &CustomError{Service: Others, Code: InvalidInputError, Message: "empty table name"}

@@ -5,7 +5,6 @@ import (
 	"context"
 	"math"
 	"math/big"
-	"time"
 
 	"bisonai.com/orakl/node/pkg/chain/helper"
 	chainUtils "bisonai.com/orakl/node/pkg/chain/utils"
@@ -222,7 +221,7 @@ func GetLatestGlobalAggregatesRdb(ctx context.Context, submissionPairs map[int32
 
 func ValidateAggregateTimestampValues(aggregates []GlobalAggregate) bool {
 	for _, agg := range aggregates {
-		if agg.Timestamp.IsZero() || agg.Timestamp.After(time.Now()) {
+		if agg.Timestamp.IsZero() {
 			return false
 		}
 	}

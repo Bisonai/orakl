@@ -190,10 +190,10 @@ func (t *ChainHelper) MakeDirectTx(ctx context.Context, contractAddressHex strin
 	return result, err
 }
 
-func (t *ChainHelper) MakeFeeDelegatedTx(ctx context.Context, contractAddressHex string, functionString string, args ...interface{}) (*types.Transaction, error) {
+func (t *ChainHelper) MakeFeeDelegatedTx(ctx context.Context, contractAddressHex string, functionString string, gasMultiplier float64, args ...interface{}) (*types.Transaction, error) {
 	var result *types.Transaction
 	job := func(c utils.ClientInterface) error {
-		tmp, err := utils.MakeFeeDelegatedTx(ctx, c, contractAddressHex, t.NextReporter(), functionString, t.chainID, args...)
+		tmp, err := utils.MakeFeeDelegatedTx(ctx, c, contractAddressHex, t.NextReporter(), functionString, t.chainID, gasMultiplier, args...)
 		if err == nil {
 			result = tmp
 		}
@@ -219,16 +219,7 @@ func (t *ChainHelper) SubmitRawTxString(ctx context.Context, rawTx string) error
 
 // SignTxByFeePayer: used for testing purpose
 func (t *ChainHelper) SignTxByFeePayer(ctx context.Context, tx *types.Transaction) (*types.Transaction, error) {
-	var result *types.Transaction
-	job := func(c utils.ClientInterface) error {
-		tmp, err := utils.SignTxByFeePayer(ctx, c, tx, t.chainID)
-		if err == nil {
-			result = tmp
-		}
-		return err
-	}
-	err := t.retryOnJsonRpcFailure(ctx, job)
-	return result, err
+	return utils.SignTxByFeePayer(ctx, tx, t.chainID)
 }
 
 func (t *ChainHelper) ReadContract(ctx context.Context, contractAddressHex string, functionString string, args ...interface{}) (interface{}, error) {
