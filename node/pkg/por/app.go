@@ -28,7 +28,7 @@ func New(ctx context.Context) (*App, error) {
 
 	providerUrl := os.Getenv("POR_PROVIDER_URL")
 	if providerUrl == "" {
-		providerUrl = os.Getenv("KLAYTN_PROVIDER_URL")
+		providerUrl = os.Getenv("KAIA_PROVIDER_URL")
 		if providerUrl == "" {
 			return nil, errorSentinel.ErrPorProviderUrlNotFound
 		}
@@ -70,7 +70,7 @@ func New(ctx context.Context) (*App, error) {
 
 	chainHelper, err := helper.NewChainHelper(
 		ctx,
-		helper.WithBlockchainType(helper.Klaytn),
+		helper.WithBlockchainType(helper.Kaia),
 		helper.WithReporterPk(porReporterPk),
 		helper.WithProviderUrl(providerUrl),
 		helper.WithoutAdditionalProviderUrls(),
@@ -85,7 +85,7 @@ func New(ctx context.Context) (*App, error) {
 		Definition:      definition,
 		FetchInterval:   fetchInterval,
 		SubmitInterval:  submitInterval,
-		KlaytnHelper:    chainHelper,
+		KaiaHelper:      chainHelper,
 		ContractAddress: aggregator.Address,
 	}, nil
 }
@@ -210,13 +210,13 @@ func (a *App) report(ctx context.Context, submissionValue float64, latestRoundId
 
 	latestRoundIdParam := new(big.Int).SetUint64(uint64(latestRoundId))
 
-	tx, err := a.KlaytnHelper.MakeDirectTx(ctx, a.ContractAddress, SUBMIT_FUNCTION_STRING, latestRoundIdParam, submissionValueParam)
+	tx, err := a.KaiaHelper.MakeDirectTx(ctx, a.ContractAddress, SUBMIT_FUNCTION_STRING, latestRoundIdParam, submissionValueParam)
 	if err != nil {
 		log.Error().Err(err).Msg("failed to make direct tx")
 		return err
 	}
 
-	err = a.KlaytnHelper.SubmitRawTx(ctx, tx)
+	err = a.KaiaHelper.SubmitRawTx(ctx, tx)
 	if err != nil {
 		log.Error().Err(err).Msg("failed to submit raw tx")
 		return err
@@ -244,12 +244,12 @@ func (a *App) DeviationCheck(oldValue float64, newValue float64) bool {
 }
 
 func (a *App) GetRoundID(ctx context.Context) (uint32, error) {
-	publicAddress, err := a.KlaytnHelper.PublicAddress()
+	publicAddress, err := a.KaiaHelper.PublicAddress()
 	if err != nil {
 		return 0, err
 	}
 
-	rawResult, err := a.KlaytnHelper.ReadContract(ctx, a.ContractAddress, READ_ROUND_ID, publicAddress, uint32(0))
+	rawResult, err := a.KaiaHelper.ReadContract(ctx, a.ContractAddress, READ_ROUND_ID, publicAddress, uint32(0))
 	if err != nil {
 		return 0, err
 	}
@@ -268,7 +268,7 @@ func (a *App) GetRoundID(ctx context.Context) (uint32, error) {
 }
 
 func (a *App) GetLastInfo(ctx context.Context) (LastInfo, error) {
-	rawResult, err := a.KlaytnHelper.ReadContract(ctx, a.ContractAddress, READ_LATEST_ROUND_DATA)
+	rawResult, err := a.KaiaHelper.ReadContract(ctx, a.ContractAddress, READ_LATEST_ROUND_DATA)
 	if err != nil {
 		return LastInfo{}, err
 	}

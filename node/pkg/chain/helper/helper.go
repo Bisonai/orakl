@@ -20,9 +20,9 @@ import (
 
 func setProviderAndReporter(config *ChainHelperConfig, blockchainType BlockchainType) error {
 	switch blockchainType {
-	case Klaytn:
+	case Kaia:
 		if config.ProviderUrl == "" {
-			config.ProviderUrl = os.Getenv(KlaytnProviderUrl)
+			config.ProviderUrl = os.Getenv(KaiaProviderUrl)
 			if config.ProviderUrl == "" {
 				log.Error().Msg("provider url not set")
 				return errorSentinel.ErrChainProviderUrlNotFound
@@ -30,7 +30,7 @@ func setProviderAndReporter(config *ChainHelperConfig, blockchainType Blockchain
 		}
 
 		if config.ReporterPk == "" {
-			config.ReporterPk = secrets.GetSecret(KlaytnReporterPk)
+			config.ReporterPk = secrets.GetSecret(KaiaReporterPk)
 			if config.ReporterPk == "" {
 				log.Warn().Msg("reporter pk not set")
 			}
@@ -59,7 +59,7 @@ func setProviderAndReporter(config *ChainHelperConfig, blockchainType Blockchain
 
 func NewChainHelper(ctx context.Context, opts ...ChainHelperOption) (*ChainHelper, error) {
 	config := &ChainHelperConfig{
-		BlockchainType:            Klaytn,
+		BlockchainType:            Kaia,
 		UseAdditionalWallets:      true,
 		UseAdditionalProviderUrls: true,
 	}

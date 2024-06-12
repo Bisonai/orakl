@@ -43,7 +43,7 @@ type App struct {
 	Definition      *fetcher.Definition
 	FetchInterval   time.Duration
 	SubmitInterval  time.Duration
-	KlaytnHelper    *helper.ChainHelper
+	KaiaHelper      *helper.ChainHelper
 	ContractAddress string
 }
 

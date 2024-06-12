@@ -68,12 +68,12 @@ type signedTx struct {
 type BlockchainType int
 
 const (
-	Klaytn BlockchainType = iota
+	Kaia BlockchainType = iota
 	Ethereum
 )
 
 var dialFuncs = map[BlockchainType]func(url string) (utils.ClientInterface, error){
-	Klaytn: func(rawurl string) (utils.ClientInterface, error) {
+	Kaia: func(rawurl string) (utils.ClientInterface, error) {
 		return client.Dial(rawurl)
 	},
 	Ethereum: func(rawurl string) (utils.ClientInterface, error) {
@@ -84,10 +84,10 @@ var dialFuncs = map[BlockchainType]func(url string) (utils.ClientInterface, erro
 const (
 	DelegatorEndpoint = "/api/v1/sign/v2"
 
-	EnvDelegatorUrl   = "DELEGATOR_URL"
-	KlaytnProviderUrl = "KLAYTN_PROVIDER_URL"
-	KlaytnReporterPk  = "KLAYTN_REPORTER_PK"
-	SignerPk          = "SIGNER_PK"
-	EthProviderUrl    = "ETH_PROVIDER_URL"
-	EthReporterPk     = "ETH_REPORTER_PK"
+	EnvDelegatorUrl = "DELEGATOR_URL"
+	KaiaProviderUrl = "KAIA_PROVIDER_URL"
+	KaiaReporterPk  = "KAIA_REPORTER_PK"
+	SignerPk        = "SIGNER_PK"
+	EthProviderUrl  = "ETH_PROVIDER_URL"
+	EthReporterPk   = "ETH_REPORTER_PK"
 )

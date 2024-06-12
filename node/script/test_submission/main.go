@@ -12,13 +12,13 @@ import (
 )
 
 func testContractDirectCall(ctx context.Context, contractAddress string, contractFunction string, args ...interface{}) error {
-	klaytnHelper, err := helper.NewChainHelper(ctx)
+	kaiaHelper, err := helper.NewChainHelper(ctx)
 	if err != nil {
 		log.Error().Err(err).Msg("NewTxHelper")
 		return err
 	}
 
-	rawTx, err := klaytnHelper.MakeDirectTx(ctx, contractAddress, contractFunction, args...)
+	rawTx, err := kaiaHelper.MakeDirectTx(ctx, contractAddress, contractFunction, args...)
 	if err != nil {
 		log.Error().Err(err).Msg("MakeDirect")
 		return err
@@ -26,28 +26,28 @@ func testContractDirectCall(ctx context.Context, contractAddress string, contrac
 
 	fmt.Println(rawTx.GasPrice().String())
 
-	return klaytnHelper.SubmitRawTx(ctx, rawTx)
+	return kaiaHelper.SubmitRawTx(ctx, rawTx)
 }
 
 func testContractFeeDelegatedCall(ctx context.Context, contractAddress string, contractFunction string, args ...interface{}) error {
-	klaytnHelper, err := helper.NewChainHelper(ctx)
+	kaiaHelper, err := helper.NewChainHelper(ctx)
 	if err != nil {
 		log.Error().Err(err).Msg("NewTxHelper")
 		return err
 	}
-	rawTx, err := klaytnHelper.MakeFeeDelegatedTx(ctx, contractAddress, contractFunction, 1.5, args...)
+	rawTx, err := kaiaHelper.MakeFeeDelegatedTx(ctx, contractAddress, contractFunction, 1.5, args...)
 	if err != nil {
 		log.Error().Err(err).Msg("MakeFeeDelegated")
 		return err
 	}
 
-	signedTx, err := klaytnHelper.SignTxByFeePayer(ctx, rawTx)
+	signedTx, err := kaiaHelper.SignTxByFeePayer(ctx, rawTx)
 	if err != nil {
 		log.Error().Err(err).Msg("SignTxByFeePayer")
 		return err
 	}
 
-	return klaytnHelper.SubmitRawTx(ctx, signedTx)
+	return kaiaHelper.SubmitRawTx(ctx, signedTx)
 }
 
 func main() {

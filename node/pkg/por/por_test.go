@@ -17,10 +17,10 @@ func TestNew(t *testing.T) {
 	assert.Equal(t, "PEG-POR", app.Name)
 	assert.Equal(t, 60*time.Second, app.FetchInterval)
 	assert.Equal(t, 60*time.Minute, app.SubmitInterval)
-	assert.NotNil(t, app.KlaytnHelper)
+	assert.NotNil(t, app.KaiaHelper)
 	assert.Equal(t, "0x58798D6Ca40480DF2FAd1b69939C3D29d91b60d3", app.ContractAddress)
 
-	publicAddress, err := app.KlaytnHelper.PublicAddressString()
+	publicAddress, err := app.KaiaHelper.PublicAddressString()
 	if err != nil {
 		t.Fatal(err)
 	}

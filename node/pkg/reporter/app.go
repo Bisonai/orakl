@@ -259,9 +259,9 @@ func startReporter(ctx context.Context, reporter *Reporter) error {
 		return errorSentinel.ErrReporterAlreadyRunning
 	}
 
-	err := reporter.SetKlaytnHelper(ctx)
+	err := reporter.SetKaiaHelper(ctx)
 	if err != nil {
-		log.Error().Str("Player", "Reporter").Err(err).Msg("failed to set klaytn helper")
+		log.Error().Str("Player", "Reporter").Err(err).Msg("failed to set kaia helper")
 		return err
 	}
 
@@ -287,7 +287,7 @@ func stopReporter(reporter *Reporter) error {
 
 	reporter.nodeCancel()
 	reporter.isRunning = false
-	reporter.KlaytnHelper.Close()
+	reporter.KaiaHelper.Close()
 	<-reporter.nodeCtx.Done()
 	return nil
 }
