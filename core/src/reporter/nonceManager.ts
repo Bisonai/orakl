@@ -16,7 +16,6 @@ export function nonceManager(
 
     try {
       const nonce = await state.getAndIncrementNonce(to)
-      logger.info(`-------------nonce: ${nonce}-----------------`)
       const txWithNonce: ITransactionParametersWithNonce = { ...tx, nonce }
       await reporterQueue.add(jobName, txWithNonce, {
         jobId: job.id,
