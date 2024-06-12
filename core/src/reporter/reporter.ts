@@ -1,16 +1,16 @@
 import { Job } from 'bullmq'
 import { Logger } from 'pino'
 import { OraklError, OraklErrorCode } from '../errors'
-import { ITransactionParameters } from '../types'
+import { ITransactionParametersWithNonce } from '../types'
 import { State } from './state'
 import { sendTransaction, sendTransactionCaver, sendTransactionDelegatedFee } from './utils'
 
 export function reporter(state: State, logger: Logger) {
   async function wrapper(job: Job) {
-    const inData: ITransactionParameters = job.data
+    const inData: ITransactionParametersWithNonce = job.data
     logger.debug(inData, 'inData')
 
-    const { payload, gasLimit, to } = inData
+    const { payload, gasLimit, to, nonce } = inData
 
     const wallet = state.wallets[to]
     if (!wallet) {
@@ -21,7 +21,6 @@ export function reporter(state: State, logger: Logger) {
 
     let delegatorOkay = true
     const NUM_TRANSACTION_TRIALS = 3
-    const nonce = await state.getAndIncrementNonce(to)
     const txParams = { wallet, to, payload, gasLimit, logger, nonce }
 
     for (let i = 0; i < NUM_TRANSACTION_TRIALS; ++i) {

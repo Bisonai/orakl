@@ -6,7 +6,7 @@ import { Logger } from 'pino'
 import type { RedisClientType } from 'redis'
 import {
   BULLMQ_CONNECTION,
-  REPORTER_REQUEST_RESPONSE_QUEUE_NAME,
+  NONCE_MANAGER_REQUEST_RESPONSE_QUEUE_NAME,
   REQUEST_RESPONSE_FULFILL_GAS_MINIMUM,
   WORKER_JOB_SETTINGS,
   WORKER_REQUEST_RESPONSE_QUEUE_NAME
@@ -27,7 +27,7 @@ const FILE_NAME = import.meta.url
 
 export async function worker(redisClient: RedisClientType, _logger: Logger) {
   const logger = _logger.child({ name: 'worker', file: FILE_NAME })
-  const queue = new Queue(REPORTER_REQUEST_RESPONSE_QUEUE_NAME, BULLMQ_CONNECTION)
+  const queue = new Queue(NONCE_MANAGER_REQUEST_RESPONSE_QUEUE_NAME, BULLMQ_CONNECTION)
   const worker = new Worker(
     WORKER_REQUEST_RESPONSE_QUEUE_NAME,
     await job(queue, _logger),

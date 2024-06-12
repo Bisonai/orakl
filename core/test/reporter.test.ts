@@ -36,12 +36,13 @@ describe('Reporter', function () {
           privateKey: PRIVATE_KEY,
           providerUrl: PROVIDER_URL
         })
+        const nonce = await wallet.getTransactionCount()
 
         const to = '0x000000000000000000000000000000000000000' // wrong address
         const payload = '0x'
 
         expect(async () => {
-          await sendTransaction({ wallet, to, payload, logger })
+          await sendTransaction({ wallet, to, payload, logger, nonce })
         }).rejects.toThrow('TxInvalidAddress')
       } catch (e) {
         if (e.code == OraklErrorCode.ProviderNetworkError) {
@@ -80,6 +81,7 @@ describe('Reporter', function () {
       privateKey: '0xaa8707622845b72c76b7b9f329b154140441eda385ca39e3cdc66d2bee5f98e0',
       providerUrl: 'https://public-en.kairos.node.kaia.io'
     })
+    const nonce = Number(await wallet.caver.rpc.klay.getTransactionCount(wallet.address))
 
     const iface = new ethers.utils.Interface(COUNTER.abi)
     const payload = iface.encodeFunctionData('increment')
@@ -89,7 +91,8 @@ describe('Reporter', function () {
       to: COUNTER.address,
       payload,
       logger,
-      gasLimit: 100_000
+      gasLimit: 100_000,
+      nonce
     })
   })
 })
@@ -97,12 +100,14 @@ describe('Reporter', function () {
 describe('Filter invalid reporters inside of State', function () {
   const PROVIDER_URL = process.env.GITHUB_ACTIONS
     ? 'https://public-en-cypress.klaytn.net'
-    : 'http://127.0.0.1:8545'
+    : 'https://public-en.kairos.node.kaia.io'
   const redisClient: RedisClientType = createClient({ url: '' })
+
+  // Empty wallet on kairos (baobab)
   const VALID_REPORTER = {
     id: '2',
-    address: '0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266',
-    privateKey: '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80',
+    address: '0xBa6d8c06b4b086E8D883e025Cc1Cb477241afC8b',
+    privateKey: '0x77487195a50a7ca67d0bb5caebe3672b62aeb956d9ca6316723de1e19de84976',
     oracleAddress: '0x0E4E90de7701B72df6F21343F51C833F7d2d3CFb',
     chain: '',
     service: ''
