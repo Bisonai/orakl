@@ -4,8 +4,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"math"
 	"math/big"
+	"net/http"
 	"os"
 	"strconv"
 	"time"
@@ -249,11 +251,25 @@ func loadWalletFromOraklAdmin(ctx context.Context, url string) ([]Wallet, error)
 
 func loadWalletFromPor(ctx context.Context, url string) (Wallet, error) {
 	wallet := Wallet{}
-	reporter, err := request.GetRequest[string](url+porEndpoint, nil, nil)
+	resp, err := request.UrlRequestRaw(url+porEndpoint, "GET", nil, nil, "")
 	if err != nil {
 		return wallet, err
 	}
-	address := common.HexToAddress(reporter)
+
+	if resp.StatusCode != http.StatusOK {
+		log.Info().
+			Int("status", resp.StatusCode).
+			Str("url", url+porEndpoint).
+			Msg("failed to make request")
+		return wallet, errors.New("status not okay")
+	}
+
+	reporter, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return wallet, err
+	}
+
+	address := common.HexToAddress(string(reporter))
 	wallet = Wallet{
 		Address: address,
 		Balance: 0,
