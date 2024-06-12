@@ -142,7 +142,7 @@ func (r *Reporter) report(ctx context.Context, aggregates []GlobalAggregate) err
 
 	startPrepareProofMap := time.Now()
 	proofMap, err := GetProofsAsMap(ctx, aggregates)
-	if err != nil || !ValidateAggregateTimestampValues(aggregates) {
+	if err != nil {
 		log.Error().Str("Player", "Reporter").Err(err).Msg("submit without proofs")
 		return err
 	}
@@ -262,7 +262,7 @@ func (r *Reporter) reportWithProofs(ctx context.Context, aggregates []GlobalAggr
 		log.Error().Str("Player", "Reporter").Err(err).Msg("reporting directly")
 		return r.reportDirect(ctx, SUBMIT_WITH_PROOFS, feedHashes, values, timestamps, proofs)
 	}
-	log.Info().Str("Player", "Reporter").Str("Duration", time.Since(startReport).String()).Msg("delegated reported")
+	log.Info().Str("Player", "Reporter").Int("aggregates", len(values)).Int("proofs", len(proofs)).Str("Duration", time.Since(startReport).String()).Msg("delegated reported")
 	log.Info().Str("Player", "Reporter").Str("Duration", time.Since(now).String()).Msg("submitted with proofs")
 	return nil
 }
