@@ -140,12 +140,18 @@ func (r *Reporter) report(ctx context.Context, aggregates []GlobalAggregate) err
 	startPrepareProof := time.Now()
 	log.Debug().Str("Player", "Reporter").Int("aggregates", len(aggregates)).Msg("reporting")
 
+	if !ValidateAggregateTimestampValues(aggregates) {
+		log.Error().Str("Player", "Reporter").Msg("ValidateAggregateTimestampValues, zero timestamp exists")
+		return errorSentinel.ErrReporterValidateAggregateTimestampValues
+	}
+
 	startPrepareProofMap := time.Now()
 	proofMap, err := GetProofsAsMap(ctx, aggregates)
 	if err != nil {
 		log.Error().Str("Player", "Reporter").Err(err).Msg("submit without proofs")
 		return err
 	}
+
 	log.Info().Str("Player", "Reporter").Str("Duration", time.Since(startPrepareProofMap).String()).Msg("prepared proof map")
 	log.Debug().Str("Player", "Reporter").Int("proofs", len(proofMap)).Msg("proof map generated")
 
