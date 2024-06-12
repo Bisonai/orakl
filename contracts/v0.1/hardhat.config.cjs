@@ -15,7 +15,7 @@ const commonConfig = {
 }
 
 const _baobab = {
-  url: 'https://api.baobab.klaytn.net:8651',
+  url: 'https://public-en.kairos.node.kaia.io',
   chainId: 1001,
   ...commonConfig,
   gasPrice: 250_000_000_000

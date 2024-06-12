@@ -78,7 +78,7 @@ describe('Reporter', function () {
       // 0 $KLAY in Account
       // address: '0x9bf123A486DD67d5B2B859c74BFa3035c99b9243'
       privateKey: '0xaa8707622845b72c76b7b9f329b154140441eda385ca39e3cdc66d2bee5f98e0',
-      providerUrl: 'https://api.baobab.klaytn.net:8651'
+      providerUrl: 'https://public-en.kairos.node.kaia.io'
     })
 
     const iface = new ethers.utils.Interface(COUNTER.abi)
