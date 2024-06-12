@@ -6,7 +6,6 @@ import (
 	"sync"
 	"time"
 
-	"bisonai.com/orakl/node/pkg/utils/set"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 	"github.com/libp2p/go-libp2p/core/host"
 )
@@ -15,13 +14,11 @@ type MessageType string
 type RoleType string
 
 const (
-	Heartbeat MessageType = "heartbeat"
-	// ReplyHeartbeat     MessageType = "replyHeartbeat"
+	Heartbeat          MessageType = "heartbeat"
 	RequestVote        MessageType = "requestVote"
 	ReplyVote          MessageType = "replyVote"
 	AppendEntries      MessageType = "appendEntries"
 	ReplyAppendEntries MessageType = "replyAppendEntries"
-	ReplyHeartbeat     MessageType = "replyHeartbeat"
 
 	Leader    RoleType = "leader"
 	Candidate RoleType = "candidate"
@@ -42,8 +39,6 @@ type HeartbeatMessage struct {
 	LeaderID string `json:"leaderID"`
 	Term     int    `json:"term"`
 }
-
-type ReplyHeartbeatMessage struct{}
 
 type ReplyRequestVoteMessage struct {
 	VoteGranted bool   `json:"voteGranted"`
@@ -72,7 +67,4 @@ type Raft struct {
 	LeaderJobTicker     *time.Ticker
 	HandleCustomMessage func(context.Context, Message) error
 	LeaderJob           func() error
-
-	PrevPeers set.Set[string]
-	Peers     set.Set[string]
 }

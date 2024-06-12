@@ -10,7 +10,6 @@ import (
 	"github.com/rs/zerolog/log"
 
 	errorSentinel "bisonai.com/orakl/node/pkg/error"
-	"bisonai.com/orakl/node/pkg/utils/set"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 	"github.com/libp2p/go-libp2p/core/host"
 )
@@ -41,9 +40,6 @@ func NewRaftNode(
 		HeartbeatTimeout: HEARTBEAT_TIMEOUT,
 
 		LeaderJobTimeout: leaderJobTimeout,
-
-		PrevPeers: *set.NewSet[string](),
-		Peers:     *set.NewSet[string](),
 	}
 	return r
 }
@@ -108,17 +104,12 @@ func (r *Raft) handleMessage(ctx context.Context, msg Message) error {
 		return r.handleRequestVote(msg)
 	case ReplyVote:
 		return r.handleReplyVote(ctx, msg)
-	case ReplyHeartbeat:
-		return r.handleReplyHeartbeat(msg)
 	default:
 		return r.HandleCustomMessage(ctx, msg)
 	}
 }
 
 func (r *Raft) handleHeartbeat(msg Message) error {
-	r.Peers = r.PrevPeers
-	r.PrevPeers = *set.NewSet[string]()
-
 	if msg.SentFrom == r.GetHostId() {
 		return nil
 	}
@@ -160,7 +151,7 @@ func (r *Raft) handleHeartbeat(msg Message) error {
 		r.UpdateLeader(heartbeatMessage.LeaderID)
 	}
 
-	return r.sendReplyHeartbeat()
+	return nil
 }
 
 func (r *Raft) handleRequestVote(msg Message) error {
@@ -225,17 +216,6 @@ func (r *Raft) handleReplyVote(ctx context.Context, msg Message) error {
 	return nil
 }
 
-func (r *Raft) handleReplyHeartbeat(msg Message) error {
-	var replyHeartbeatMessage ReplyHeartbeatMessage
-	err := json.Unmarshal(msg.Data, &replyHeartbeatMessage)
-	if err != nil {
-		return err
-	}
-
-	r.PrevPeers.Add(msg.SentFrom)
-	return nil
-}
-
 // publishing messages
 
 func (r *Raft) PublishMessage(msg Message) error {
@@ -266,24 +246,6 @@ func (r *Raft) sendHeartbeat() error {
 	err = r.PublishMessage(message)
 	if err != nil {
 		log.Error().Err(err).Msg("failed to send heartbeat")
-		return err
-	}
-	return nil
-}
-
-func (r *Raft) sendReplyHeartbeat() error {
-	replyHeartbeatMessage := ReplyHeartbeatMessage{}
-	marshalledReplyHeartbeatMsg, err := json.Marshal(replyHeartbeatMessage)
-	if err != nil {
-		return err
-	}
-	message := Message{
-		Type:     ReplyHeartbeat,
-		SentFrom: r.GetHostId(),
-		Data:     json.RawMessage(marshalledReplyHeartbeatMsg),
-	}
-	err = r.PublishMessage(message)
-	if err != nil {
 		return err
 	}
 	return nil
