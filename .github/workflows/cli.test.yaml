@@ -80,7 +80,7 @@ jobs:
         run: go run main.go &
         env:
           DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/delegator?search_path=public"
-          PROVIDER_URL: "https://api.baobab.klaytn.net:8651"
+          PROVIDER_URL: "https://public-en.kairos.node.kaia.io"
           APP_PORT: "3002"
 
       - name: Run api

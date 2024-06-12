@@ -95,7 +95,7 @@ jobs:
           REDIS_PORT: "6379"
           ENCRYPT_PASSWORD: "anything"
           FETCHER_CYPRESS_PROVIDER_URL: "https://klaytn-mainnet-rpc.allthatnode.com:8551"
-          KLAYTN_PROVIDER_URL: "https://api.baobab.klaytn.net:8651"
+          KLAYTN_PROVIDER_URL: "https://public-en.kairos.node.kaia.io"
           KLAYTN_REPORTER_PK: ${{ secrets.TEST_DELEGATOR_REPORTER_PK}}
           ETH_PROVIDER_URL: "https://ethereum-sepolia-rpc.allthatnode.com"
           ETH_REPORTER_PK: ${{ secrets.TEST_DELEGATOR_REPORTER_PK}}
