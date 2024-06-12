@@ -68,4 +68,4 @@ jobs:
           task test
         env:
           CHAIN: "baobab"
-          JSON_RPC_URL: "https://klaytn-baobab-rpc.allthatnode.com:8551"
+          JSON_RPC_URL: "https://public-en.kairos.node.kaia.io"
