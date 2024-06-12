@@ -131,7 +131,7 @@ func (r *Reporter) leaderJob() error {
 		r.SubmissionPairs[agg.ConfigID] = pair
 	}
 	log.Info().Str("Player", "Reporter").Str("Duration", time.Since(updateValidAggregatesStart).String()).Msg("updated valid aggregates")
-	log.Info().Str("Player", "Reporter").Str("Duration", time.Since(start).String()).Msg("reporting done")
+	log.Info().Int("validAggregates", len(validAggregates)).Str("Player", "Reporter").Str("Duration", time.Since(start).String()).Msg("reporting done")
 
 	return nil
 }
