@@ -106,7 +106,7 @@ func (a *App) Run(ctx context.Context) error {
 		})
 
 		http.HandleFunc("/api/v1/address", func(w http.ResponseWriter, r *http.Request) {
-			porReporterPk := os.Getenv("POR_REPORTER_PK")
+			porReporterPk := secrets.GetSecret("POR_REPORTER_PK")
 			addr, err := chainUtils.StringPkToAddressHex(porReporterPk)
 			if err != nil {
 				log.Error().Err(err).Msg("failed to convert pk to address")
