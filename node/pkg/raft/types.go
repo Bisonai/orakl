@@ -14,8 +14,7 @@ type MessageType string
 type RoleType string
 
 const (
-	Heartbeat MessageType = "heartbeat"
-	// ReplyHeartbeat     MessageType = "replyHeartbeat"
+	Heartbeat          MessageType = "heartbeat"
 	RequestVote        MessageType = "requestVote"
 	ReplyVote          MessageType = "replyVote"
 	AppendEntries      MessageType = "appendEntries"
