@@ -263,8 +263,9 @@ func loadWalletFromPor(ctx context.Context, url string) (Wallet, error) {
 		log.Info().
 			Int("status", resp.StatusCode).
 			Str("url", url+porEndpoint).
+			Str("func", "loadWalletFromPor").
 			Msg("failed to make request")
-		return wallet, errors.New("status not okay")
+		return wallet, errors.New("status not okay from por wallet request")
 	}
 
 	reporter, err := io.ReadAll(resp.Body)
