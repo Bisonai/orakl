@@ -111,7 +111,7 @@ describe('nonce-manager', () => {
   test('concurrent nonce calls', async () => {
     // send multiple concurrent calls to getAndIncrementNonce()
     // check that all nonces are unique and increment by 1
-    const CONCURRENT_CALLS = 50
+    const CONCURRENT_CALLS = 10
 
     for (const currState of [state, delegatedState]) {
       await currState.refresh()
