@@ -101,8 +101,6 @@ export const L2_WORKER_REQUEST_RESPONSE_FULFILL_QUEUE_NAME = `${DEPLOYMENT_NAME}
 
 export const NONCE_MANAGER_REQUEST_RESPONSE_QUEUE_NAME = `${DEPLOYMENT_NAME}-nonce-manager-request-response-queue`
 export const NONCE_MANAGER_VRF_QUEUE_NAME = `${DEPLOYMENT_NAME}-nonce-manager-vrf-queue`
-export const NONCE_MANAGER_L2_DATA_FEED_QUEUE_NAME = `${DEPLOYMENT_NAME}-nonce-manager-data-feed-l2-queue`
-export const NONCE_MANAGER_DATA_FEED_QUEUE_NAME = `${DEPLOYMENT_NAME}-nonce-manager-data-feed-queue`
 export const NONCE_MANAGER_L2_REQUEST_RESPONSE_FUFILL_QUEUE_NAME = `${DEPLOYMENT_NAME}-nonce-manager-request-response-l2-fulfill-queue`
 export const NONCE_MANAGER_L2_REQUEST_RESPONSE_REQUEST_QUEUE_NAME = `${DEPLOYMENT_NAME}-nonce-manager-request-response-l2-request-queue`
 export const NONCE_MANAGER_L2_VRF_FULFILL_QUEUE_NAME = `${DEPLOYMENT_NAME}-nonce-manager-vrf-l2-fulfill-queue`
