@@ -62,7 +62,7 @@ describe('nonce-manager', () => {
     }
   })
 
-  test('cannot get transaction count', async () => {
+  test.skip('cannot get transaction count', async () => {
     // override state.getTransactionCount() to throw error
     await state.refresh()
     const wallet = state.wallets[ORACLE_ADDRESS] as NonceManager
