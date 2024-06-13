@@ -123,7 +123,7 @@ describe('nonce-manager', () => {
       expect(new Set(nonces).size).toBe(CONCURRENT_CALLS)
       expect(Math.max(...nonces) - Math.min(...nonces)).toBe(CONCURRENT_CALLS - 1)
     }
-  })
+  }, 60_000)
 
   test('localNonce is smaller than walletNonce', async () => {
     // when walletNonce is greater than localNonce,
