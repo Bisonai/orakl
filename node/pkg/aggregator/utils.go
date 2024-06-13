@@ -33,6 +33,10 @@ func FilterNegative(values []int64) []int64 {
 func InsertGlobalAggregate(ctx context.Context, configId int32, value int64, round int32, timestamp time.Time) error {
 	var errs []string
 
+	if value == 0 || timestamp.IsZero() {
+		return errorSentinel.ErrAggregatorInvalidGlobalAggInsertion
+	}
+
 	err := insertRdb(ctx, configId, value, round, timestamp)
 	if err != nil {
 		log.Error().Str("Player", "Aggregator").Err(err).Msg("failed to insert global aggregate into rdb")
