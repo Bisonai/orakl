@@ -1,9 +1,15 @@
+import { NonceManager } from '@ethersproject/experimental'
 import { Job } from 'bullmq'
 import { Logger } from 'pino'
 import { OraklError, OraklErrorCode } from '../errors'
 import { ITransactionParametersWithNonce } from '../types'
 import { State } from './state'
-import { sendTransaction, sendTransactionCaver, sendTransactionDelegatedFee } from './utils'
+import {
+  CaverWallet,
+  sendTransaction,
+  sendTransactionCaver,
+  sendTransactionDelegatedFee
+} from './utils'
 
 export function reporter(state: State, logger: Logger) {
   async function wrapper(job: Job) {
@@ -21,19 +27,19 @@ export function reporter(state: State, logger: Logger) {
 
     let delegatorOkay = true
     const NUM_TRANSACTION_TRIALS = 3
-    const txParams = { wallet, to, payload, gasLimit, logger, nonce }
+    const txParams = { to, payload, gasLimit, logger, nonce }
 
     for (let i = 0; i < NUM_TRANSACTION_TRIALS; ++i) {
       if (state.delegatedFee && delegatorOkay) {
         try {
-          await sendTransactionDelegatedFee(txParams)
+          await sendTransactionDelegatedFee({ ...txParams, wallet: wallet as CaverWallet })
           break
         } catch (e) {
           delegatorOkay = false
         }
       } else if (state.delegatedFee) {
         try {
-          await sendTransactionCaver(txParams)
+          await sendTransactionCaver({ ...txParams, wallet: wallet as CaverWallet })
           break
         } catch (e) {
           if (![OraklErrorCode.CaverTxTransactionFailed].includes(e.code)) {
@@ -42,7 +48,7 @@ export function reporter(state: State, logger: Logger) {
         }
       } else {
         try {
-          await sendTransaction(txParams)
+          await sendTransaction({ ...txParams, wallet: wallet as NonceManager })
           break
         } catch (e) {
           if (

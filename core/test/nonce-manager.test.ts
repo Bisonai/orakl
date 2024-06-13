@@ -63,6 +63,7 @@ describe('nonce-manager', () => {
   })
 
   test('cannot get transaction count', async () => {
+    // override state.getTransactionCount() to throw error
     await state.refresh()
     const wallet = state.wallets[ORACLE_ADDRESS] as NonceManager
     jest.spyOn(wallet, 'getTransactionCount').mockImplementation(async () => {
@@ -91,6 +92,7 @@ describe('nonce-manager', () => {
   })
 
   test('check delegatedFee handling', async () => {
+    // check that nonce is updated correctly when delegatedFee is true & false
     await state.refresh()
     const wallet = state.wallets[ORACLE_ADDRESS] as NonceManager
     const currNonce = await wallet.getTransactionCount()
@@ -107,6 +109,8 @@ describe('nonce-manager', () => {
   })
 
   test('concurrent nonce calls', async () => {
+    // send multiple concurrent calls to getAndIncrementNonce()
+    // check that all nonces are unique and increment by 1
     const CONCURRENT_CALLS = 50
 
     for (const currState of [state, delegatedState]) {
@@ -122,6 +126,8 @@ describe('nonce-manager', () => {
   })
 
   test('localNonce is smaller than walletNonce', async () => {
+    // when walletNonce is greater than localNonce,
+    // localNonce should be updated to walletNonce
     for (const currState of [state, delegatedState]) {
       await currState.refresh()
       currState.nonces[ORACLE_ADDRESS] = 0
@@ -142,6 +148,8 @@ describe('nonce-manager', () => {
   })
 
   test('localNonce is greater than walletNonce', async () => {
+    // when localNonce is smaller than walletNonce,
+    // nothing should happen, localNonce should be returned and incremented
     for (const currState of [state, delegatedState]) {
       await currState.refresh()
 
