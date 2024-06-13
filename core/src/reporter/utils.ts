@@ -264,3 +264,7 @@ export function isPrivateKeyAddressPairValid(sk: string, addr: string): boolean 
     return false
   }
 }
+
+export async function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms))
+}

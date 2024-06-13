@@ -4,10 +4,17 @@ import { Logger } from 'pino'
 import type { RedisClientType } from 'redis'
 import { getReporter, getReporters } from '../api'
 import { OraklError, OraklErrorCode } from '../errors'
+import { NONCE_MANAGER_POLLING_INTERVAL, NONCE_MANAGER_SLACK_FREQUENCY_RETRIES } from '../settings'
 import { IReporterConfig } from '../types'
 import { isAddressValid } from '../utils'
 import { Wallet } from './types'
-import { buildCaverWallet, buildWallet, CaverWallet, isPrivateKeyAddressPairValid } from './utils'
+import {
+  buildCaverWallet,
+  buildWallet,
+  CaverWallet,
+  isPrivateKeyAddressPairValid,
+  sleep
+} from './utils'
 
 const FILE_NAME = import.meta.url
 
@@ -294,38 +301,55 @@ export class State {
         throw new OraklError(OraklErrorCode.WalletNotActive, msg)
       }
 
-      let remoteNonce: number
-      try {
-        if (this.delegatedFee) {
-          const caverWallet = wallet as CaverWallet
-          remoteNonce = Number(
-            await caverWallet.caver.rpc.klay.getTransactionCount(caverWallet.address)
+      // Assumption: the only source of error can be json-rpc call
+      // Solution: keep polling/retrying until json-rpc becomes responsive
+      // If successful, the "return" statement will break the infinite loop
+      let retryCount = 0
+      while (true) {
+        try {
+          let remoteNonce: number
+          if (this.delegatedFee) {
+            const caverWallet = wallet as CaverWallet
+            remoteNonce = Number(
+              await caverWallet.caver.rpc.klay.getTransactionCount(caverWallet.address)
+            )
+          } else {
+            remoteNonce = await (wallet as NonceManager).getTransactionCount()
+          }
+
+          const localNonce = this.nonces[oracleAddress]
+
+          let nonce: number
+          if (!localNonce || remoteNonce > localNonce) {
+            this.logger.warn(
+              { name: 'getAndIncrementNonce', file: FILE_NAME },
+              `Nonce value discrepancy. Remote: ${remoteNonce}, Local: ${localNonce}. Updating local nonce to remote nonce.`
+            )
+            nonce = remoteNonce
+          } else {
+            nonce = localNonce
+          }
+
+          this.nonces[oracleAddress] = nonce + 1
+
+          return nonce
+        } catch (error) {
+          retryCount += 1
+
+          this.logger.error(
+            { name: 'getAndIncrementNonce', file: FILE_NAME },
+            `Error while fetching nonce for oracle ${oracleAddress}. Retrying...`
           )
-        } else {
-          remoteNonce = await (wallet as NonceManager).getTransactionCount()
+
+          // Slack the error message every half an hour
+          if (NONCE_MANAGER_SLACK_FREQUENCY_RETRIES % retryCount === 0) {
+            // Send slack message
+          }
+
+          // Sleep before retrying
+          await sleep(NONCE_MANAGER_POLLING_INTERVAL)
         }
-      } catch (error) {
-        const msg = `Failed to get nonce for wallet`
-        this.logger.error({ name: 'getAndIncrementNonce', file: FILE_NAME }, msg)
-        throw new OraklError(OraklErrorCode.FailedToGetWalletTransactionCount, msg)
       }
-
-      const localNonce = this.nonces[oracleAddress]
-
-      let nonce: number
-      if (!localNonce || remoteNonce > localNonce) {
-        this.logger.warn(
-          { name: 'getAndIncrementNonce', file: FILE_NAME },
-          `Nonce value discrepancy. Remote: ${remoteNonce}, Local: ${localNonce}. Updating local nonce to remote nonce.`
-        )
-        nonce = remoteNonce
-      } else {
-        nonce = localNonce
-      }
-
-      this.nonces[oracleAddress] = nonce + 1
-
-      return nonce
     })
   }
 }
