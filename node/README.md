@@ -269,17 +269,26 @@ task local:add-proxy HOST="127.0.0.2" PORT=8080 PROTOCOL="http" LOCATION="kr"
 # get all registered proxies
 task local:get-proxy
 
+# remove proxy by id
+task local:remove-proxy ID=10
+
 # add a wallet which triggers submission
 task local:add-wallet PK=0x123
 
 # get all registered wallets
 task local:get-wallet
 
+# remove wallet by id
+task local:remove-wallet ID=10
+
 # add fallback JSON-RPC, lower priority value will be referenced first
 task local:add-json-rpc CHAIN_ID=1001 URL="http://test.com" PRIORITY=10
 
 # get all registered fallback JSON-RPC
 task local:get-json-rpc
+
+# remove fallback json-rpc
+task local:remove-json-rpc ID=10
 ```
 
 ## Troubleshooting
