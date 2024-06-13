@@ -1,3 +1,4 @@
+//nolint:all
 package db
 
 import (
@@ -11,6 +12,109 @@ import (
 
 	"github.com/stretchr/testify/assert"
 )
+
+func TestZAddNX(t *testing.T) {
+	ctx := context.Background()
+	key := "test_zaddnx"
+	scores := []float64{1.0, 2.0, 3.0}
+	values := []string{"a", "b", "c"}
+	err := ZAddNX(ctx, key, scores, values)
+	if err != nil {
+		t.Fatalf("ZAddNX failed: %v", err)
+	}
+	// Cleanup
+	defer func() {
+		err = Del(ctx, key)
+		if err != nil {
+			t.Fatalf("Del failed: %v", err)
+		}
+	}()
+
+	// Check the sorted set
+	rdbConn, err := GetRedisConn(ctx)
+	if err != nil {
+		t.Fatalf("GetRedisConn failed: %v", err)
+	}
+	zrangeResult, err := rdbConn.ZRangeWithScores(ctx, key, 0, -1).Result()
+	if err != nil {
+		t.Fatalf("ZRangeWithScores failed: %v", err)
+	}
+
+	sort.Slice(zrangeResult, func(i, j int) bool {
+		return zrangeResult[i].Score < zrangeResult[j].Score
+	})
+	for i := 0; i < len(scores); i++ {
+		if zrangeResult[i].Member != values[i] || zrangeResult[i].Score != scores[i] {
+			t.Fatalf("ZAddNX failed: expected %v,%v, got %v,%v", values[i], scores[i], zrangeResult[i].Member, zrangeResult[i].Score)
+		}
+	}
+
+}
+
+func TestZRangeByScore(t *testing.T) {
+	ctx := context.Background()
+	key := "test_zrangebyscore"
+	scores := []float64{1.0, 2.0, 3.0}
+	values := []string{"a", "b", "c"}
+
+	// Add items to the sorted set
+	err := ZAddNX(ctx, key, scores, values)
+	if err != nil {
+		t.Fatalf("ZAddNX failed: %v", err)
+	}
+
+	// Cleanup
+	defer func() {
+		err = Del(ctx, key)
+		if err != nil {
+			t.Fatalf("Del failed: %v", err)
+		}
+	}()
+
+	// Check the sorted set
+	min := 2.0
+	max := 3.0
+	result, err := ZRangeByScore(ctx, key, min, max)
+	if err != nil {
+		t.Fatalf("ZRangeByScore failed: %v", err)
+	}
+
+	// Sort the result
+	sort.Strings(result)
+
+	// Verify the results
+	assert.Equal(t, []string{"b", "c"}, result)
+}
+
+func TestZRemRangeByScore(t *testing.T) {
+	ctx := context.Background()
+	key := "test_zremrangebyscore"
+	scores := []float64{1.0, 2.0, 3.0}
+	values := []string{"a", "b", "c"}
+	err := ZAddNX(ctx, key, scores, values)
+	if err != nil {
+		t.Fatalf("ZAddNX failed: %v", err)
+	}
+
+	// Cleanup
+	defer func() {
+		err = Del(ctx, key)
+		if err != nil {
+			t.Fatalf("Del failed: %v", err)
+		}
+	}()
+
+	// Remove the range
+	min := 2.0
+	max := 3.0
+	err = ZRemRangeByScore(ctx, key, min, max)
+	if err != nil {
+		t.Fatalf("ZRemRangeByScore failed: %v", err)
+	}
+
+	res, err := ZRangeByScore(ctx, key, 0, 3.0)
+	assert.Equal(t, []string{"a"}, res)
+}
 
 func TestGetRedisConnSingleton(t *testing.T) {
 	ctx := context.Background()

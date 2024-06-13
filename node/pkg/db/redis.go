@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"os"
+	"strconv"
 	"sync"
 	"time"
 
@@ -247,6 +248,44 @@ func LPushObject[T any](ctx context.Context, key string, values []T) error {
 		stringValues[i] = string(data)
 	}
 	return LPush(ctx, key, stringValues...)
+}
+
+func ZAddNX(ctx context.Context, key string, scores []float64, values []string) error {
+	rdbConn, err := GetRedisConn(ctx)
+	if err != nil {
+		log.Error().Err(err).Msg("Error getting redis connection")
+		return err
+	}
+	z := []redis.Z{}
+	for i := 0; i < len(scores); i++ {
+		z = append(z, redis.Z{
+			Score:  scores[i],
+			Member: values[i],
+		})
+	}
+	cmd := rdbConn.ZAddNX(ctx, key, z...)
+	return cmd.Err()
+}
+
+func ZRangeByScore(ctx context.Context, key string, min float64, max float64) ([]string, error) {
+	rdbConn, err := GetRedisConn(ctx)
+	if err != nil {
+		log.Error().Err(err).Msg("Error getting redis connection")
+		return nil, err
+	}
+	return rdbConn.ZRangeByScore(ctx, key, &redis.ZRangeBy{
+		Min: strconv.FormatFloat(min, 'f', -1, 64),
+		Max: strconv.FormatFloat(max, 'f', -1, 64),
+	}).Result()
+}
+
+func ZRemRangeByScore(ctx context.Context, key string, min float64, max float64) error {
+	rdbConn, err := GetRedisConn(ctx)
+	if err != nil {
+		log.Error().Err(err).Msg("Error getting redis connection")
+		return err
+	}
+	return rdbConn.ZRemRangeByScore(ctx, key, strconv.FormatFloat(min, 'f', -1, 64), strconv.FormatFloat(max, 'f', -1, 64)).Err()
 }
 
 func PopAll(ctx context.Context, key string) ([]string, error) {
