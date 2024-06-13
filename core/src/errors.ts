@@ -79,5 +79,6 @@ export enum OraklErrorCode {
   FailedUpsertObservedBlock,
   FailedInsertUnprocessedBlock,
   FailedDeleteUnprocessedBlock,
-  NonceNotFound
+  NonceNotFound,
+  FailedToGetWalletTransactionCount
 }
