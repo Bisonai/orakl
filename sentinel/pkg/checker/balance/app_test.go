@@ -55,7 +55,7 @@ func TestLoadWalletFromOraklAdmin(t *testing.T) {
 func TestLoadWalletFromPor(t *testing.T) {
 	ctx := context.Background()
 	mockServer := httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
-		rw.Write([]byte(`"` + testAddr0 + `"`))
+		rw.Write([]byte(testAddr0))
 	}))
 	defer mockServer.Close()
 

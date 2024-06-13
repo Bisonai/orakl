@@ -4,8 +4,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"math"
 	"math/big"
+	"net/http"
 	"os"
 	"strconv"
 	"time"
@@ -42,6 +44,7 @@ type Urls struct {
 }
 
 type Wallet struct {
+	Tag     string
 	Address common.Address `db:"address" json:"address"`
 	Balance float64        `db:"balance" json:"balance"`
 	Minimum float64
@@ -222,6 +225,7 @@ func loadWalletFromOraklApi(ctx context.Context, url string) ([]Wallet, error) {
 			Address: address,
 			Balance: 0,
 			Minimum: SubmitterAlarmAmount,
+			Tag:     "reporter loaded from orakl api",
 		}
 		wallets = append(wallets, wallet)
 	}
@@ -241,6 +245,7 @@ func loadWalletFromOraklAdmin(ctx context.Context, url string) ([]Wallet, error)
 			Address: address,
 			Balance: 0,
 			Minimum: SubmitterAlarmAmount,
+			Tag:     "reporter loaded from orakl node admin",
 		}
 		wallets = append(wallets, wallet)
 	}
@@ -249,15 +254,31 @@ func loadWalletFromOraklAdmin(ctx context.Context, url string) ([]Wallet, error)
 
 func loadWalletFromPor(ctx context.Context, url string) (Wallet, error) {
 	wallet := Wallet{}
-	reporter, err := request.GetRequest[string](url+porEndpoint, nil, nil)
+	resp, err := request.UrlRequestRaw(url+porEndpoint, "GET", nil, nil, "")
 	if err != nil {
 		return wallet, err
 	}
-	address := common.HexToAddress(reporter)
+
+	if resp.StatusCode != http.StatusOK {
+		log.Info().
+			Int("status", resp.StatusCode).
+			Str("url", url+porEndpoint).
+			Str("func", "loadWalletFromPor").
+			Msg("failed to make request")
+		return wallet, errors.New("status not okay from por wallet request")
+	}
+
+	reporter, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return wallet, err
+	}
+
+	address := common.HexToAddress(string(reporter))
 	wallet = Wallet{
 		Address: address,
 		Balance: 0,
 		Minimum: SubmitterAlarmAmount,
+		Tag:     "reporter loaded from por",
 	}
 	return wallet, nil
 }
@@ -273,6 +294,7 @@ func loadWalletFromDelegator(ctx context.Context, url string) (Wallet, error) {
 		Address: address,
 		Balance: 0,
 		Minimum: DelegatorAlarmAmount,
+		Tag:     "reporter loaded from delegator",
 	}
 	return wallet, nil
 }
@@ -306,7 +328,7 @@ func alarm(wallets []Wallet) {
 	for _, wallet := range wallets {
 		if wallet.Balance < wallet.Minimum {
 			log.Error().Str("address", wallet.Address.Hex()).Float64("balance", wallet.Balance).Msg("Balance lower than minimum")
-			alarmMessage += fmt.Sprintf("%s balance(%f) is lower than minimum(%f)\n", wallet.Address.Hex(), wallet.Balance, wallet.Minimum)
+			alarmMessage += fmt.Sprintf("%s balance(%f) is lower than minimum(%f) | %s\n", wallet.Address.Hex(), wallet.Balance, wallet.Minimum, wallet.Tag)
 		}
 	}
 
