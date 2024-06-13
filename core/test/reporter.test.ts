@@ -105,8 +105,8 @@ describe('Filter invalid reporters inside of State', function () {
 
   const VALID_REPORTER = {
     id: '2',
-    address: '0xBa6d8c06b4b086E8D883e025Cc1Cb477241afC8b',
-    privateKey: '0x77487195a50a7ca67d0bb5caebe3672b62aeb956d9ca6316723de1e19de84976',
+    address: '0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266',
+    privateKey: '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80',
     oracleAddress: '0x0E4E90de7701B72df6F21343F51C833F7d2d3CFb',
     chain: '',
     service: ''
