@@ -22,10 +22,7 @@ export function nonceManager(
         ...NONCE_MANAGER_JOB_SETTINGS
       })
     } catch (e) {
-      logger.error(
-        e,
-        `Failed to get and increment nonce for oracle with address ${to}. Retrying...`
-      )
+      logger.error(`Failed to get and increment nonce for oracle with address ${to}. Retrying...`)
       throw e
     }
   }
