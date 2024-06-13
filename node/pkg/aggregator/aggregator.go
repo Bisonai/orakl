@@ -230,7 +230,7 @@ func (n *Aggregator) HandlePriceDataMessage(ctx context.Context, msg raft.Messag
 			log.Error().Str("Player", "Aggregator").Err(err).Msg("failed to get median")
 			return err
 		}
-		log.Debug().Str("Player", "Aggregator").Int32("roundId", priceDataMessage.RoundID).Int64("global_aggregate", median).Msg("global aggregated")
+		log.Info().Str("Player", "Aggregator").Str("Name", n.Name).Any("collected prices", filteredCollectedPrices).Int32("roundId", priceDataMessage.RoundID).Int64("global_aggregate", median).Msg("global aggregated")
 		n.PreparedGlobalAggregates[priceDataMessage.RoundID] = GlobalAggregate{
 			ConfigID:  n.ID,
 			Value:     median,
