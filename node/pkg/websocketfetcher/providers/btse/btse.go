@@ -11,6 +11,8 @@ import (
 
 type BtseFetcher common.Fetcher
 
+// use http api endpoint to retrieve volume: https://btsecom.github.io/docs/spot/en/#market-summary
+
 func New(ctx context.Context, opts ...common.FetcherOption) (common.FetcherInterface, error) {
 	config := &common.FetcherConfig{}
 	for _, opt := range opts {

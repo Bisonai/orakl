@@ -99,8 +99,8 @@ func copyFeedData(ctx context.Context, feedData []FeedData) error {
 	}
 	insertRows := make([][]any, len(feedData))
 	for i, data := range feedData {
-		insertRows[i] = []any{data.FeedID, data.Value, data.Timestamp}
+		insertRows[i] = []any{data.FeedID, data.Value, data.Timestamp, data.Volume}
 	}
-	_, err := db.BulkCopy(ctx, "feed_data", []string{"feed_id", "value", "timestamp"}, insertRows)
+	_, err := db.BulkCopy(ctx, "feed_data", []string{"feed_id", "value", "timestamp", "volume"}, insertRows)
 	return err
 }

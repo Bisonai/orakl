@@ -9,6 +9,10 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
+// TODO: check candle data close price keeps returning changed data
+// IF NOT, use http endpoint to retrieve volume
+// don't use volume in worst case
+
 type GeminiFetcher common.Fetcher
 
 func New(ctx context.Context, opts ...common.FetcherOption) (common.FetcherInterface, error) {

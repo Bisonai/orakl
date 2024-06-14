@@ -13,6 +13,7 @@ const layout = "2006-01-02 15:04:05.999999"
 const dateLayout = "20060102"
 const timeLayout = "150405"
 
+// currently not referenced since Transaction api does not support volume data
 func TransactionResponseToFeedDataList(data TransactionResponse, feedMap map[string]int32) ([]*common.FeedData, error) {
 	feedData := []*common.FeedData{}
 	loc, err := time.LoadLocation("Asia/Seoul")
@@ -60,13 +61,13 @@ func TickerResponseToFeedData(data TickerResponse, feedMap map[string]int32) (*c
 
 	date, err := time.ParseInLocation(dateLayout, data.Content.Date, loc)
 	if err != nil {
-		log.Error().Err(err).Msg("error in bithumb.TickerResponseToFeedData")
+		log.Error().Err(err).Msg("error in bithumb.TickerResponseToFeedData, failed to parse date with location")
 		return nil, err
 	}
 
 	t, err := time.ParseInLocation(timeLayout, data.Content.Time, loc)
 	if err != nil {
-		log.Error().Err(err).Msg("error in bithumb.TickerResponseToFeedData")
+		log.Error().Err(err).Msg("error in bithumb.TickerResponseToFeedData, failed to parse time with locaiton")
 		return nil, err
 	}
 
@@ -75,9 +76,15 @@ func TickerResponseToFeedData(data TickerResponse, feedMap map[string]int32) (*c
 
 	price, err := common.PriceStringToFloat64(data.Content.ClosePrice)
 	if err != nil {
-		log.Error().Err(err).Msg("error in bithumb.TickerResponseToFeedData")
+		log.Error().Err(err).Msg("error in bithumb.TickerResponseToFeedData, failed to convert price string to float64")
 		return nil, err
 	}
+
+	volume, err := common.VolumeStringToFloat64(data.Content.Volume)
+	if err != nil {
+		log.Error().Err(err).Msg("error in bithumb.TickerResponseToFeedData, failed to convert volume string to float64")
+	}
+
 	splitted := strings.Split(data.Content.Symbol, "_")
 	symbol := splitted[0] + "-" + splitted[1]
 
@@ -91,6 +98,7 @@ func TickerResponseToFeedData(data TickerResponse, feedMap map[string]int32) (*c
 		FeedID:    id,
 		Value:     price,
 		Timestamp: &timestamp,
+		Volume:    volume,
 	}, nil
 
 }

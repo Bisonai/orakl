@@ -31,5 +31,6 @@ func ResponseToFeedData(response Response, feedMap map[string]int32) (*common.Fe
 	feedData.FeedID = id
 	feedData.Value = price
 	feedData.Timestamp = &timestamp
+	feedData.Volume = response.Tick.Amount
 	return feedData, nil
 }

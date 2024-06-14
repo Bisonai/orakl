@@ -15,6 +15,11 @@ func TickerToFeedData(miniTicker MiniTicker, feedMap map[string]int32) (*common.
 		return feedData, err
 	}
 
+	volume, err := common.VolumeStringToFloat64(miniTicker.Volume)
+	if err != nil {
+		return feedData, err
+	}
+
 	id, exists := feedMap[miniTicker.Symbol]
 	if !exists {
 		return feedData, fmt.Errorf("feed not found")
@@ -22,5 +27,7 @@ func TickerToFeedData(miniTicker MiniTicker, feedMap map[string]int32) (*common.
 	feedData.FeedID = id
 	feedData.Value = value
 	feedData.Timestamp = &timestamp
+	feedData.Volume = volume
+
 	return feedData, nil
 }

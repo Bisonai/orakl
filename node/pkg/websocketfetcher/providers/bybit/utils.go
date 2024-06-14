@@ -16,12 +16,19 @@ func ResponseToFeedData(data Response, feedMap map[string]int32) (*common.FeedDa
 		return feedData, err
 	}
 
+	volume, err := common.VolumeStringToFloat64(*data.Data.Volume24h)
+	if err != nil {
+		return feedData, err
+	}
+
 	id, exists := feedMap[*data.Data.Symbol]
 	if !exists {
 		return feedData, fmt.Errorf("feed not found")
 	}
+
 	feedData.FeedID = id
 	feedData.Value = value
 	feedData.Timestamp = &timestamp
+	feedData.Volume = volume
 	return feedData, nil
 }

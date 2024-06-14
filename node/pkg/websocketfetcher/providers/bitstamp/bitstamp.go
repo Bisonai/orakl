@@ -11,6 +11,8 @@ import (
 
 type BitstampFetcher common.Fetcher
 
+// TODO: use http api endpoint to retrieve volume https://www.bitstamp.net/api/#tag/Tickers/operation/GetCurrencyPairTickers
+
 func New(ctx context.Context, opts ...common.FetcherOption) (common.FetcherInterface, error) {
 	config := &common.FetcherConfig{}
 	for _, opt := range opts {

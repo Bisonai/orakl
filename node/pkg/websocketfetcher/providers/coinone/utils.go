@@ -17,6 +17,11 @@ func DataToFeedData(data Data, feedMap map[string]int32) (*common.FeedData, erro
 		return feedData, err
 	}
 
+	volume, err := common.VolumeStringToFloat64(data.TargetVolume)
+	if err != nil {
+		return feedData, err
+	}
+
 	id, exists := feedMap[strings.ToUpper(data.TargetCurrency)+"-"+strings.ToUpper(data.QuoteCurrency)]
 	if !exists {
 		return feedData, fmt.Errorf("feed not found")
@@ -24,5 +29,6 @@ func DataToFeedData(data Data, feedMap map[string]int32) (*common.FeedData, erro
 	feedData.FeedID = id
 	feedData.Value = value
 	feedData.Timestamp = &timestamp
+	feedData.Volume = volume
 	return feedData, nil
 }

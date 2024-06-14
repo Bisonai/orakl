@@ -23,10 +23,16 @@ func ResponseToFeedDataList(data Response, feedMap map[string]int32) ([]*common.
 				log.Error().Str("Player", "Coinex").Err(err).Msg("error in PriceStringToFloat64")
 				continue
 			}
+			volume, err := common.VolumeStringToFloat64(value.Volume)
+			if err != nil {
+				log.Error().Str("Player", "Coinex").Err(err).Msg("error in VolumeStringToFloat64")
+				continue
+			}
 			timestamp := time.Now()
 			feedData.FeedID = id
 			feedData.Value = price
 			feedData.Timestamp = &timestamp
+			feedData.Volume = volume
 			feedDataList = append(feedDataList, feedData)
 		}
 	}

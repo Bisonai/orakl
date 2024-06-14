@@ -23,9 +23,16 @@ func ResponseToFeedDataList(response BatchResponse, feedMap map[string]int32) ([
 		if err != nil {
 			return feedDataList, err
 		}
+
+		volume, err := common.VolumeStringToFloat64(item.Volume)
+		if err != nil {
+			return feedDataList, err
+		}
+
 		feedData.FeedID = id
 		feedData.Value = value
 		feedData.Timestamp = &timestamp
+		feedData.Volume = volume
 		feedDataList = append(feedDataList, feedData)
 	}
 	return feedDataList, nil

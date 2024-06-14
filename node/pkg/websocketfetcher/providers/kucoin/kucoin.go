@@ -14,6 +14,8 @@ import (
 	"nhooyr.io/websocket"
 )
 
+// TODO: to retrieve volume, use `marketSnapshot api` instead of ticker
+
 type KucoinFetcher common.Fetcher
 
 var pingInterval = DEFAULT_PING_INTERVAL
