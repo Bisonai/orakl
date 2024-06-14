@@ -54,7 +54,7 @@ export async function sendToSlack(e: Error) {
 
     try {
       // if the same error message is sent to slack before
-      if (e && e.message && errMsg === e.message) {
+      if (e?.message && errMsg === e.message) {
         const now = new Date().getTime()
         // if it's over 1 min since the last message was sent
         if (slackSentTime + 60_000 < now) {
