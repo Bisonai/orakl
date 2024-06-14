@@ -1,7 +1,8 @@
-import { Worker } from 'bullmq'
+import { Queue, Worker } from 'bullmq'
 import { Logger } from 'pino'
 import type { RedisClientType } from 'redis'
 import { BULLMQ_CONNECTION, CHAIN, PROVIDER_URL } from '../settings'
+import { nonceManager } from './nonceManager'
 import { reporter } from './reporter'
 import { State } from './state'
 import { watchman } from './watchman'
@@ -12,6 +13,7 @@ export async function factory({
   redisClient,
   stateName,
   service,
+  nonceManagerQueueName,
   reporterQueueName,
   concurrency,
   delegatedFee,
@@ -22,6 +24,7 @@ export async function factory({
   redisClient: RedisClientType
   stateName: string
   service: string
+  nonceManagerQueueName: string
   reporterQueueName: string
   concurrency: number
   delegatedFee: boolean
@@ -49,6 +52,19 @@ export async function factory({
     }),
     'Active reporters'
   )
+
+  const reporterQueue = new Queue(reporterQueueName, BULLMQ_CONNECTION)
+  const nonceManagerWorker = new Worker(
+    nonceManagerQueueName,
+    await nonceManager(reporterQueue, service, state, logger),
+    {
+      ...BULLMQ_CONNECTION,
+      concurrency
+    }
+  )
+  nonceManagerWorker.on('error', (e) => {
+    logger.error(e)
+  })
 
   const reporterWorker = new Worker(reporterQueueName, await reporter(state, logger), {
     ...BULLMQ_CONNECTION,

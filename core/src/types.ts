@@ -391,6 +391,10 @@ export interface ITransactionParameters {
   to: string
 }
 
+export interface ITransactionParametersWithNonce extends ITransactionParameters {
+  nonce: number
+}
+
 export interface IVrfTransactionParameters {
   blockNum: string
   seed: string

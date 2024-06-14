@@ -83,6 +83,7 @@
     "@bisonai/orakl-vrf": "*",
     "@ethersproject/experimental": "^5.7.0",
     "@slack/webhook": "^6.1.0",
+    "async-mutex": "^0.5.0",
     "axios": "^1.2.2",
     "bullmq": "^3.2.2",
     "caver-js": "^1.10.1",

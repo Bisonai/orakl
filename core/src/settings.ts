@@ -99,6 +99,13 @@ export const L2_WORKER_VRF_FULFILL_QUEUE_NAME = `${DEPLOYMENT_NAME}-worker-vrf-f
 export const L2_WORKER_REQUEST_RESPONSE_REQUEST_QUEUE_NAME = `${DEPLOYMENT_NAME}-worker-request-response-request-l2-queue`
 export const L2_WORKER_REQUEST_RESPONSE_FULFILL_QUEUE_NAME = `${DEPLOYMENT_NAME}-worker-request-response-fulfill-l2-queue`
 
+export const NONCE_MANAGER_REQUEST_RESPONSE_QUEUE_NAME = `${DEPLOYMENT_NAME}-nonce-manager-request-response-queue`
+export const NONCE_MANAGER_VRF_QUEUE_NAME = `${DEPLOYMENT_NAME}-nonce-manager-vrf-queue`
+export const NONCE_MANAGER_L2_REQUEST_RESPONSE_FUFILL_QUEUE_NAME = `${DEPLOYMENT_NAME}-nonce-manager-request-response-l2-fulfill-queue`
+export const NONCE_MANAGER_L2_REQUEST_RESPONSE_REQUEST_QUEUE_NAME = `${DEPLOYMENT_NAME}-nonce-manager-request-response-l2-request-queue`
+export const NONCE_MANAGER_L2_VRF_FULFILL_QUEUE_NAME = `${DEPLOYMENT_NAME}-nonce-manager-vrf-l2-fulfill-queue`
+export const NONCE_MANAGER_L2_VRF_REQUEST_QUEUE_NAME = `${DEPLOYMENT_NAME}-nonce-manager-vrf-l2-request-queue`
+
 export const REPORTER_REQUEST_RESPONSE_QUEUE_NAME = `${DEPLOYMENT_NAME}-reporter-request-response-queue`
 export const REPORTER_VRF_QUEUE_NAME = `${DEPLOYMENT_NAME}-reporter-vrf-queue`
 export const REPORTER_AGGREGATOR_QUEUE_NAME = `${DEPLOYMENT_NAME}-reporter-aggregator-queue`
@@ -218,6 +225,15 @@ export const LISTENER_JOB_SETTINGS = {
 }
 
 export const WORKER_JOB_SETTINGS = {
+  removeOnComplete: REMOVE_ON_COMPLETE,
+  // FIXME Should not be removed until resolved, however, for now in
+  // testnet, we can safely keep this settings.
+  removeOnFail: REMOVE_ON_FAIL,
+  attempts: 10,
+  backoff: 1_000
+}
+
+export const NONCE_MANAGER_JOB_SETTINGS = {
   removeOnComplete: REMOVE_ON_COMPLETE,
   // FIXME Should not be removed until resolved, however, for now in
   // testnet, we can safely keep this settings.

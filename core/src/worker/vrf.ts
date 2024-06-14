@@ -8,7 +8,7 @@ import { getVrfConfig } from '../api'
 import {
   BULLMQ_CONNECTION,
   CHAIN,
-  REPORTER_VRF_QUEUE_NAME,
+  NONCE_MANAGER_VRF_QUEUE_NAME,
   VRF_FULFILL_GAS_MINIMUM,
   VRF_FULLFILL_GAS_PER_WORD,
   WORKER_JOB_SETTINGS,
@@ -29,12 +29,12 @@ const FILE_NAME = import.meta.url
 
 export async function worker(redisClient: RedisClientType, _logger: Logger) {
   const logger = _logger.child({ name: 'worker', file: FILE_NAME })
-  const queue = new Queue(REPORTER_VRF_QUEUE_NAME, BULLMQ_CONNECTION)
+  const nonceManagerQueue = new Queue(NONCE_MANAGER_VRF_QUEUE_NAME, BULLMQ_CONNECTION)
   // FIXME add checks if exists and if includes all information
   const vrfConfig = await getVrfConfig({ chain: CHAIN, logger })
   const worker = new Worker(
     WORKER_VRF_QUEUE_NAME,
-    await job(queue, vrfConfig, _logger),
+    await job(nonceManagerQueue, vrfConfig, _logger),
     BULLMQ_CONNECTION
   )
 
@@ -48,7 +48,7 @@ export async function worker(redisClient: RedisClientType, _logger: Logger) {
   process.on('SIGTERM', handleExit)
 }
 
-export async function job(reporterQueue: QueueType, config: IVrfConfig, _logger: Logger) {
+export async function job(nonceManagerQueue: QueueType, config: IVrfConfig, _logger: Logger) {
   const logger = _logger.child({ name: 'vrfJob', file: FILE_NAME })
   const iface = new ethers.utils.Interface(VRFCoordinator__factory.abi)
 
@@ -89,7 +89,7 @@ export async function job(reporterQueue: QueueType, config: IVrfConfig, _logger:
       )
       logger.debug(tx, 'tx')
 
-      await reporterQueue.add('vrf', tx, {
+      await nonceManagerQueue.add('vrf', tx, {
         jobId: inData.requestId,
         ...WORKER_JOB_SETTINGS
       })
