@@ -37,20 +37,26 @@ export function pad32Bytes(data) {
 }
 
 let slackSentTime = new Date().getTime()
-let errMsg = null
+let errMsg: string | null = null
 
-async function sendToSlack(error) {
+export async function sendToSlack(e: Error) {
   if (SLACK_WEBHOOK_URL) {
-    const e = error[0]
     const webhook = new IncomingWebhook(SLACK_WEBHOOK_URL)
+    const errorObj = {
+      message: e.message,
+      stack: e.stack,
+      name: e.name
+    }
     const text = ` :fire: _An error has occurred at_ \`${os.hostname()}\`\n \`\`\`${JSON.stringify(
-      e
+      errorObj
     )} \`\`\`\n>*System information*\n>*memory*: ${os.freemem()}/${os.totalmem()}\n>*machine*: ${os.machine()}\n>*platform*: ${os.platform()}\n>*upTime*: ${os.uptime()}\n>*version*: ${os.version()}
    `
 
     try {
+      // if the same error message is sent to slack before
       if (e && e.message && errMsg === e.message) {
         const now = new Date().getTime()
+        // if it's over 1 min since the last message was sent
         if (slackSentTime + 60_000 < now) {
           await webhook.send({ text })
           slackSentTime = now

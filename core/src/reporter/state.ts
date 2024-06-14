@@ -6,7 +6,7 @@ import { getReporter, getReporters } from '../api'
 import { OraklError, OraklErrorCode } from '../errors'
 import { NONCE_MANAGER_POLLING_INTERVAL, NONCE_MANAGER_SLACK_FREQUENCY_RETRIES } from '../settings'
 import { IReporterConfig } from '../types'
-import { isAddressValid } from '../utils'
+import { isAddressValid, sendToSlack } from '../utils'
 import { Wallet } from './types'
 import {
   buildCaverWallet,
@@ -334,17 +334,15 @@ export class State {
 
           return nonce
         } catch (error) {
-          retryCount += 1
-
-          this.logger.error(
-            { name: 'getAndIncrementNonce', file: FILE_NAME },
-            `Error while fetching nonce for oracle ${oracleAddress}. Retrying...`
-          )
-
           // Slack the error message every half an hour
-          if (NONCE_MANAGER_SLACK_FREQUENCY_RETRIES % retryCount === 0) {
-            // Send slack message
+          if (retryCount % NONCE_MANAGER_SLACK_FREQUENCY_RETRIES === 0) {
+            this.logger.error(
+              { name: 'getAndIncrementNonce', file: FILE_NAME },
+              `Error while fetching nonce for oracle ${oracleAddress}. Retrying...`
+            )
+            await sendToSlack(error)
           }
+          retryCount += 1
 
           // Sleep before retrying
           await sleep(NONCE_MANAGER_POLLING_INTERVAL)
