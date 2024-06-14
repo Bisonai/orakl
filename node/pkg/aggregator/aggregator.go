@@ -399,33 +399,10 @@ func (n *Aggregator) isTimeValid(timeToValidate time.Time, baseTime time.Time) b
 }
 
 func (n *Aggregator) cleanUpRoundData(roundId int32) {
-	_, ok := n.CollectedPrices[roundId]
-	if ok {
-		delete(n.CollectedPrices, roundId)
-	}
-
-	_, ok = n.CollectedProofs[roundId]
-	if ok {
-		delete(n.CollectedProofs, roundId)
-	}
-
-	_, ok = n.CollectedAgreements[roundId]
-	if ok {
-		delete(n.CollectedAgreements, roundId)
-	}
-
-	_, ok = n.PreparedLocalAggregates[roundId]
-	if ok {
-		delete(n.PreparedLocalAggregates, roundId)
-	}
-
-	_, ok = n.PreparedGlobalAggregates[roundId]
-	if ok {
-		delete(n.PreparedGlobalAggregates, roundId)
-	}
-
-	_, ok = n.SyncedTimes[roundId]
-	if ok {
-		delete(n.SyncedTimes, roundId)
-	}
+	delete(n.CollectedPrices, roundId)
+	delete(n.CollectedProofs, roundId)
+	delete(n.CollectedAgreements, roundId)
+	delete(n.PreparedLocalAggregates, roundId)
+	delete(n.PreparedGlobalAggregates, roundId)
+	delete(n.SyncedTimes, roundId)
 }
