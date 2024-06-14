@@ -66,7 +66,6 @@ func (n *Aggregator) Run(ctx context.Context) {
 }
 
 func (n *Aggregator) LeaderJob() error {
-	n.cleanUpRoundData(n.RoundID)
 	n.RoundID++
 	n.Raft.IncreaseTerm()
 	return n.PublishSyncMessage(n.RoundID, time.Now())
@@ -110,6 +109,8 @@ func (n *Aggregator) HandleRoundSyncMessage(ctx context.Context, msg raft.Messag
 	if n.Raft.GetRole() != raft.Leader {
 		n.RoundID = roundSyncMessage.RoundID
 	}
+
+	n.cleanUpRoundData(roundSyncMessage.RoundID - 1)
 
 	n.AggregatorMutex.Lock()
 	defer n.AggregatorMutex.Unlock()
