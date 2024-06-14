@@ -66,6 +66,7 @@ func (n *Aggregator) Run(ctx context.Context) {
 }
 
 func (n *Aggregator) LeaderJob() error {
+	n.cleanUpRoundData(n.RoundID)
 	n.RoundID++
 	n.Raft.IncreaseTerm()
 	return n.PublishSyncMessage(n.RoundID, time.Now())
@@ -394,4 +395,36 @@ func (n *Aggregator) PublishProofMessage(roundId int32, proof []byte) error {
 func (n *Aggregator) isTimeValid(timeToValidate time.Time, baseTime time.Time) bool {
 	aggregatorInterval := time.Duration(n.AggregateInterval) * time.Millisecond
 	return timeToValidate.After(baseTime.Add(-aggregatorInterval)) && timeToValidate.Before(baseTime)
+}
+
+func (n *Aggregator) cleanUpRoundData(roundId int32) {
+	_, ok := n.CollectedPrices[roundId]
+	if ok {
+		delete(n.CollectedPrices, roundId)
+	}
+
+	_, ok = n.CollectedProofs[roundId]
+	if ok {
+		delete(n.CollectedProofs, roundId)
+	}
+
+	_, ok = n.CollectedAgreements[roundId]
+	if ok {
+		delete(n.CollectedAgreements, roundId)
+	}
+
+	_, ok = n.PreparedLocalAggregates[roundId]
+	if ok {
+		delete(n.PreparedLocalAggregates, roundId)
+	}
+
+	_, ok = n.PreparedGlobalAggregates[roundId]
+	if ok {
+		delete(n.PreparedGlobalAggregates, roundId)
+	}
+
+	_, ok = n.SyncedTimes[roundId]
+	if ok {
+		delete(n.SyncedTimes, roundId)
+	}
 }
