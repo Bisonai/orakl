@@ -229,10 +229,10 @@ func (r *Reporter) handleCustomMessage(ctx context.Context, msg raft.Message) er
 }
 
 func (r *Reporter) reportWithProofs(ctx context.Context, aggregates []GlobalAggregate, proofMap map[int32][]byte) error {
-	log.Debug().Str("Player", "Reporter").Int("aggregates", len(aggregates)).Msg("reporting with proofs")
 	if r.KaiaHelper == nil {
 		return errorSentinel.ErrReporterKaiaHelperNotFound
 	}
+	log.Debug().Str("Player", "Reporter").Int("aggregates", len(aggregates)).Msg("reporting with proofs")
 
 	feedHashes, values, timestamps, proofs, err := MakeContractArgsWithProofs(aggregates, r.SubmissionPairs, proofMap)
 	if err != nil {
