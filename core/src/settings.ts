@@ -246,7 +246,7 @@ export function getObservedBlockRedisKey(contractAddress: string) {
   return `${contractAddress}-listener-${DEPLOYMENT_NAME}`
 }
 
-export const NONCE_MANAGER_POLLING_INTERVAL = 2_000 // ms
-export const NONCE_MANAGER_SLACK_FREQUENCY_TIME = 30 // every 30 minutes
+export const NONCE_MANAGER_POLLING_INTERVAL = 1_000 // ms
+export const NONCE_MANAGER_SLACK_FREQUENCY_TIME = 10 // min
 export const NONCE_MANAGER_SLACK_FREQUENCY_RETRIES =
-  (NONCE_MANAGER_SLACK_FREQUENCY_TIME * 60) / NONCE_MANAGER_POLLING_INTERVAL
+  (NONCE_MANAGER_SLACK_FREQUENCY_TIME * 60) / (NONCE_MANAGER_POLLING_INTERVAL / 1000)
