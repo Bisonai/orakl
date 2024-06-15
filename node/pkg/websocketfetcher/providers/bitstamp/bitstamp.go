@@ -3,6 +3,8 @@ package bitstamp
 import (
 	"context"
 	"strings"
+	"sync"
+	"time"
 
 	"bisonai.com/orakl/node/pkg/websocketfetcher/common"
 	"bisonai.com/orakl/node/pkg/wss"
@@ -11,7 +13,10 @@ import (
 
 type BitstampFetcher common.Fetcher
 
-// TODO: use http api endpoint to retrieve volume https://www.bitstamp.net/api/#tag/Tickers/operation/GetCurrencyPairTickers
+var volumeCacheMap = common.VolumeCacheMap{
+	Map:   make(map[int32]common.VolumeCache),
+	Mutex: sync.Mutex{},
+}
 
 func New(ctx context.Context, opts ...common.FetcherOption) (common.FetcherInterface, error) {
 	config := &common.FetcherConfig{}
@@ -59,7 +64,7 @@ func (f *BitstampFetcher) handleMessage(ctx context.Context, message map[string]
 		return nil
 	}
 
-	feedData, err := TradeEventToFeedData(response, f.FeedMap)
+	feedData, err := TradeEventToFeedData(response, f.FeedMap, &volumeCacheMap)
 	if err != nil {
 		log.Error().Str("Player", "Bitstamp").Err(err).Msg("error in TradeEventToFeedData")
 		return err
@@ -71,5 +76,18 @@ func (f *BitstampFetcher) handleMessage(ctx context.Context, message map[string]
 }
 
 func (f *BitstampFetcher) Run(ctx context.Context) {
+	go f.CacheVolumes()
 	f.Ws.Run(ctx, f.handleMessage)
+}
+
+func (f *BitstampFetcher) CacheVolumes() {
+	volumeTicker := time.NewTicker(common.VolumeFetchInterval * time.Millisecond)
+	defer volumeTicker.Stop()
+
+	for range volumeTicker.C {
+		err := FetchVolumes(f.FeedMap, &volumeCacheMap)
+		if err != nil {
+			log.Error().Str("Player", "Bitstamp").Err(err).Msg("error in fetchVolumes")
+		}
+	}
 }

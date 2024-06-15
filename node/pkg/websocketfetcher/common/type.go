@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"sync"
+	"time"
 
 	"bisonai.com/orakl/node/pkg/common/types"
 	"bisonai.com/orakl/node/pkg/wss"
@@ -14,7 +16,9 @@ const (
 	GetAllWebsocketFeedsQuery = `SELECT *
 	FROM feeds
 	WHERE definition @> '{"type": "wss"}';`
-	GetAllProxiesQuery = `SELECT * FROM proxies`
+	GetAllProxiesQuery  = `SELECT * FROM proxies`
+	VolumeCacheLifespan = 10 * time.Minute
+	VolumeFetchInterval = 10000
 )
 
 type Proxy types.Proxy
@@ -78,4 +82,14 @@ type Fetcher struct {
 
 type FetcherInterface interface {
 	Run(context.Context)
+}
+
+type VolumeCache struct {
+	UpdatedAt time.Time
+	Volume    float64
+}
+
+type VolumeCacheMap struct {
+	Map   map[int32]VolumeCache
+	Mutex sync.Mutex
 }

@@ -2,7 +2,6 @@ package kucoin
 
 import (
 	"context"
-	"strings"
 	"time"
 
 	"net/http"
@@ -13,8 +12,6 @@ import (
 	"github.com/rs/zerolog/log"
 	"nhooyr.io/websocket"
 )
-
-// TODO: to retrieve volume, use `marketSnapshot api` instead of ticker
 
 type KucoinFetcher common.Fetcher
 
@@ -30,15 +27,11 @@ func New(ctx context.Context, opts ...common.FetcherOption) (common.FetcherInter
 	fetcher.FeedMap = config.FeedMaps.Separated
 	fetcher.FeedDataBuffer = config.FeedDataBuffer
 
-	symbols := []string{}
-	for feed := range fetcher.FeedMap {
-		symbols = append(symbols, feed)
-	}
-
+	// subscribe to market snapshot to avoid potential rate limit
 	subscription := Subscription{
 		ID:       1,
 		Type:     "subscribe",
-		Topic:    "/market/ticker:" + strings.Join(symbols, ","),
+		Topic:    "/market/snapshot:USDT",
 		Response: true,
 	}
 
@@ -56,23 +49,22 @@ func New(ctx context.Context, opts ...common.FetcherOption) (common.FetcherInter
 }
 
 func (f *KucoinFetcher) handleMessage(ctx context.Context, message map[string]any) error {
-	raw, err := common.MessageToStruct[Raw](message)
+	raw, err := common.MessageToStruct[MarketSnapshotRaw](message)
 	if err != nil {
 		log.Error().Str("Player", "Kucoin").Err(err).Msg("error in kucoin.handleMessage")
 		return err
 	}
 
-	if raw.Subject != "trade.ticker" {
+	if raw.Subject != "trade.snapshot" {
 		return nil
 	}
 
-	feedData, err := RawDataToFeedData(raw, f.FeedMap)
-	if err != nil {
-		log.Error().Str("Player", "Kucoin").Err(err).Msg("error in kucoin.handleMessage")
-		return err
+	feedDataList := RawDataToFeedData(raw, f.FeedMap)
+
+	for _, feedData := range feedDataList {
+		f.FeedDataBuffer <- *feedData
 	}
 
-	f.FeedDataBuffer <- *feedData
 	return nil
 }
 

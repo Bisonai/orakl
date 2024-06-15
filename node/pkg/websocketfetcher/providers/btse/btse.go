@@ -3,6 +3,8 @@ package btse
 import (
 	"context"
 	"strings"
+	"sync"
+	"time"
 
 	"bisonai.com/orakl/node/pkg/websocketfetcher/common"
 	"bisonai.com/orakl/node/pkg/wss"
@@ -11,7 +13,10 @@ import (
 
 type BtseFetcher common.Fetcher
 
-// use http api endpoint to retrieve volume: https://btsecom.github.io/docs/spot/en/#market-summary
+var volumeCacheMap = common.VolumeCacheMap{
+	Map:   make(map[int32]common.VolumeCache),
+	Mutex: sync.Mutex{},
+}
 
 func New(ctx context.Context, opts ...common.FetcherOption) (common.FetcherInterface, error) {
 	config := &common.FetcherConfig{}
@@ -58,7 +63,7 @@ func (f *BtseFetcher) handleMessage(ctx context.Context, message map[string]any)
 		return nil
 	}
 
-	feedDataList, err := ResponseToFeedDataList(response, f.FeedMap)
+	feedDataList, err := ResponseToFeedDataList(response, f.FeedMap, &volumeCacheMap)
 	if err != nil {
 		log.Error().Str("Player", "Btse").Err(err).Msg("error in btse.handleMessage")
 		return err
@@ -71,5 +76,18 @@ func (f *BtseFetcher) handleMessage(ctx context.Context, message map[string]any)
 }
 
 func (f *BtseFetcher) Run(ctx context.Context) {
+	go f.CacheVolumes()
 	f.Ws.Run(ctx, f.handleMessage)
+}
+
+func (f *BtseFetcher) CacheVolumes() {
+	volumeTicker := time.NewTicker(common.VolumeFetchInterval * time.Millisecond)
+	defer volumeTicker.Stop()
+
+	for range volumeTicker.C {
+		err := FetchVolumes(f.FeedMap, &volumeCacheMap)
+		if err != nil {
+			log.Error().Str("Player", "Btse").Err(err).Msg("error in fetchVolumes")
+		}
+	}
 }

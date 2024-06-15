@@ -31,20 +31,21 @@ type Ping struct {
 	Type string `json:"type"`
 }
 
-type Data struct {
-	Sequence    string `json:"sequence"`
-	Price       string `json:"price"`
-	Size        string `json:"size"`
-	BestAsk     string `json:"bestAsk"`
-	BestAskSize string `json:"bestAskSize"`
-	BestBid     string `json:"bestBid"`
-	BestBidSize string `json:"bestBidSize"`
-	Time        int64  `json:"time"`
+type MarketSnapshotSingleData struct {
+	Symbol string  `json:"symbol"`
+	Price  float64 `json:"lastTradedPrice"`
+	Volume float64 `json:"vol"`
+	Time   int64   `json:"datetime"`
 }
 
-type Raw struct {
-	Type    string `json:"type"`
-	Topic   string `json:"topic"`
-	Subject string `json:"subject"`
-	Data    Data   `json:"data"`
+type MarketSnapshotData struct {
+	Sequence string                     `json:"sequence"`
+	Data     []MarketSnapshotSingleData `json:"data"`
+}
+
+type MarketSnapshotRaw struct {
+	Type    string              `json:"type"`
+	Topic   string              `json:"topic"`
+	Subject string              `json:"subject"`
+	Data    *MarketSnapshotData `json:"data"`
 }

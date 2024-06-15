@@ -3,17 +3,20 @@ package gemini
 import (
 	"context"
 	"strings"
+	"sync"
+	"time"
 
 	"bisonai.com/orakl/node/pkg/websocketfetcher/common"
 	"bisonai.com/orakl/node/pkg/wss"
 	"github.com/rs/zerolog/log"
 )
 
-// TODO: check candle data close price keeps returning changed data
-// IF NOT, use http endpoint to retrieve volume
-// don't use volume in worst case
-
 type GeminiFetcher common.Fetcher
+
+var volumeCacheMap = common.VolumeCacheMap{
+	Map:   make(map[int32]common.VolumeCache),
+	Mutex: sync.Mutex{},
+}
 
 func New(ctx context.Context, opts ...common.FetcherOption) (common.FetcherInterface, error) {
 	config := &common.FetcherConfig{}
@@ -53,7 +56,7 @@ func (f *GeminiFetcher) handleMessage(ctx context.Context, message map[string]an
 	if response.Type != "update" || len(response.Events) == 0 {
 		return nil
 	}
-	feedDataList, err := TradeResponseToFeedDataList(response, f.FeedMap)
+	feedDataList, err := TradeResponseToFeedDataList(response, f.FeedMap, &volumeCacheMap)
 	if err != nil {
 		log.Error().Str("Player", "Gemini").Err(err).Msg("error in TradeResponseToFeedDataList")
 		return err
@@ -65,5 +68,15 @@ func (f *GeminiFetcher) handleMessage(ctx context.Context, message map[string]an
 }
 
 func (f *GeminiFetcher) Run(ctx context.Context) {
+	go f.CacheVolumes()
 	f.Ws.Run(ctx, f.handleMessage)
+}
+
+func (f *GeminiFetcher) CacheVolumes() {
+	volumeTicker := time.NewTicker(common.VolumeFetchInterval * time.Millisecond)
+	defer volumeTicker.Stop()
+
+	for range volumeTicker.C {
+		FetchVolumes(f.FeedMap, &volumeCacheMap)
+	}
 }
