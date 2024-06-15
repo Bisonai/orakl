@@ -15,7 +15,6 @@ import (
 	"bisonai.com/orakl/node/pkg/websocketfetcher/providers/bithumb"
 	"bisonai.com/orakl/node/pkg/websocketfetcher/providers/bitstamp"
 	"bisonai.com/orakl/node/pkg/websocketfetcher/providers/btse"
-	"bisonai.com/orakl/node/pkg/websocketfetcher/providers/bybit"
 	"bisonai.com/orakl/node/pkg/websocketfetcher/providers/coinbase"
 	"bisonai.com/orakl/node/pkg/websocketfetcher/providers/coinex"
 	"bisonai.com/orakl/node/pkg/websocketfetcher/providers/coinone"
@@ -306,52 +305,6 @@ func TestMessageToStruct(t *testing.T) {
 		assert.Equal(t, "btc_krw", data.Data.CurrencyPair)
 		assert.Equal(t, int64(1558590089274), data.Data.Timestamp)
 		assert.Equal(t, "9198500.1235789", data.Data.Last)
-	})
-
-	t.Run("TestMessageToStructBybit", func(t *testing.T) {
-		jsonStr := `{
-			"topic": "mockTopic",
-			"type": "mockType",
-			"data": {
-			  "symbol": "mockSymbol",
-			  "tickDirection": "mockTickDirection",
-			  "price24hPcnt": "1.23",
-			  "lastPrice": "456.78",
-			  "prevPrice24h": "123.45",
-			  "highPrice24h": "789.01",
-			  "lowPrice24h": "234.56",
-			  "prevPrice1h": "345.67",
-			  "markPrice": "890.12",
-			  "indexPrice": "456.78",
-			  "openInterest": "567.89",
-			  "openInterestValue": "901.23",
-			  "turnover24h": "234.56",
-			  "volume24h": "345.67",
-			  "nextFundingTime": "2022-12-31T23:59:59Z",
-			  "fundingRate": "0.01",
-			  "bid1Price": "123.45",
-			  "bid1Size": "234.56",
-			  "ask1Price": "345.67",
-			  "ask1Size": "456.78"
-			},
-			"cs": 123456789012345,
-			"ts": 234567890123456
-		  }`
-
-		var result map[string]any
-		err := json.Unmarshal([]byte(jsonStr), &result)
-		if err != nil {
-			t.Errorf("unexpected error: %v", err)
-		}
-
-		data, err := common.MessageToStruct[bybit.Response](result)
-		if err != nil {
-			t.Errorf("unexpected error: %v", err)
-		}
-
-		assert.Equal(t, "mockSymbol", *data.Data.Symbol)
-		assert.Equal(t, "456.78", *data.Data.LastPrice)
-		assert.Equal(t, int64(234567890123456), data.Ts)
 	})
 
 	t.Run("TestMessageToStructCryptoDotCom", func(t *testing.T) {

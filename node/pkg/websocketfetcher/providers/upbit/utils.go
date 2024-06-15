@@ -14,7 +14,7 @@ func ResponseToFeedData(data Response, feedMap map[string]int32) (*common.FeedDa
 	timestamp := time.Unix(data.TradeTimestamp/1000, 0)
 	price := common.FormatFloat64Price(data.TradePrice)
 
-	volume := data.AccTradePrice24h
+	volume := data.AccTradeVolume24h
 
 	splitted := strings.Split(data.Code, "-")
 	base := splitted[1]

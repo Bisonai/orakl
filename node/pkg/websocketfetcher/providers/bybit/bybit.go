@@ -51,7 +51,7 @@ func (f *BybitFetcher) handleMessage(ctx context.Context, message map[string]any
 		return err
 	}
 
-	if !strings.HasPrefix(response.Topic, "tickers.") || response.Data.LastPrice == nil {
+	if !strings.HasPrefix(response.Topic, "tickers.") || response.Data.Price == nil {
 		return nil
 	}
 

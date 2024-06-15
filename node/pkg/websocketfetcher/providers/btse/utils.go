@@ -58,12 +58,11 @@ func FetchVolumes(feedMap map[string]int32, volumeCacheMap *common.VolumeCacheMa
 		volume := entry.Size
 
 		volumeCacheMap.Mutex.Lock()
-		defer volumeCacheMap.Mutex.Unlock()
-
-		volumeCache := volumeCacheMap.Map[id]
-		volumeCache.UpdatedAt = time.Now()
-		volumeCache.Volume = volume
-		volumeCacheMap.Map[id] = volumeCache
+		volumeCacheMap.Map[id] = common.VolumeCache{
+			UpdatedAt: time.Now(),
+			Volume:    volume,
+		}
+		volumeCacheMap.Mutex.Unlock()
 	}
 	return nil
 }

@@ -2,6 +2,7 @@ package kucoin
 
 import (
 	"context"
+	"strings"
 	"time"
 
 	"net/http"
@@ -27,11 +28,17 @@ func New(ctx context.Context, opts ...common.FetcherOption) (common.FetcherInter
 	fetcher.FeedMap = config.FeedMaps.Separated
 	fetcher.FeedDataBuffer = config.FeedDataBuffer
 
+	symbols := []string{}
+
+	for feed := range fetcher.FeedMap {
+		symbols = append(symbols, feed)
+	}
+
 	// subscribe to market snapshot to avoid potential rate limit
 	subscription := Subscription{
 		ID:       1,
 		Type:     "subscribe",
-		Topic:    "/market/snapshot:USDT",
+		Topic:    "/market/snapshot:" + strings.Join(symbols, ","),
 		Response: true,
 	}
 
@@ -49,7 +56,7 @@ func New(ctx context.Context, opts ...common.FetcherOption) (common.FetcherInter
 }
 
 func (f *KucoinFetcher) handleMessage(ctx context.Context, message map[string]any) error {
-	raw, err := common.MessageToStruct[MarketSnapshotRaw](message)
+	raw, err := common.MessageToStruct[SymbolSnapshotRaw](message)
 	if err != nil {
 		log.Error().Str("Player", "Kucoin").Err(err).Msg("error in kucoin.handleMessage")
 		return err
@@ -59,11 +66,9 @@ func (f *KucoinFetcher) handleMessage(ctx context.Context, message map[string]an
 		return nil
 	}
 
-	feedDataList := RawDataToFeedData(raw, f.FeedMap)
+	feedData := RawDataToFeedData(raw, f.FeedMap)
 
-	for _, feedData := range feedDataList {
-		f.FeedDataBuffer <- *feedData
-	}
+	f.FeedDataBuffer <- *feedData
 
 	return nil
 }

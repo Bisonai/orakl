@@ -44,14 +44,14 @@ func (f *MexcFetcher) handleMessage(ctx context.Context, message map[string]any)
 		return err
 	}
 
-	feedData, err := ResponseToFeedDataList(response, f.FeedMap)
+	feedDataList, err := ResponseToFeedDataList(response, f.FeedMap)
 	if err != nil {
 		log.Error().Str("Player", "Mexc").Err(err).Msg("failed to extract feedData from response")
 		return err
 	}
 
-	for _, feed := range feedData {
-		f.FeedDataBuffer <- *feed
+	for _, feedData := range feedDataList {
+		f.FeedDataBuffer <- *feedData
 	}
 
 	return nil

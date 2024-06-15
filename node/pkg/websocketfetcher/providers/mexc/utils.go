@@ -24,7 +24,7 @@ func ResponseToFeedDataList(response BatchResponse, feedMap map[string]int32) ([
 			return feedDataList, err
 		}
 
-		volume, err := common.VolumeStringToFloat64(item.Volume)
+		volume, err := common.VolumeStringToFloat64(item.QuoteVolume)
 		if err != nil {
 			return feedDataList, err
 		}

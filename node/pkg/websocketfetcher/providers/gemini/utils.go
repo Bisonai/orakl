@@ -47,15 +47,16 @@ func FetchVolumes(feedMap map[string]int32, volumeCacheMap *common.VolumeCacheMa
 		endpoint := TICKER_ENDPOINT + strings.ToLower(symbol)
 		result, err := request.GetRequest[HttpTickerResponse](endpoint, nil, nil)
 		if err != nil {
-			log.Error().Str("Player", "Gemini").Err(err).Msg("error in FetchVolumes")
+			log.Error().Str("Player", "Gemini").Err(err).Msg("fetch volumes, http request failed")
 			continue
 		}
-		timestampRaw, ok := result.Volume["timestamp"].(int64)
+		timestampRaw, ok := result.Volume["timestamp"].(float64)
 		if !ok {
-			log.Error().Str("Player", "Gemini").Msg("error in FetchVolumes")
+			log.Error().Str("Player", "Gemini").Msg("fetch volumes, entry timestamp not found")
 			continue
 		}
-		timestamp := time.Unix(timestampRaw/1000, 0)
+
+		timestamp := time.Unix(int64(timestampRaw)/1000, 0)
 
 		for key, value := range result.Volume {
 			if strings.HasPrefix(symbol, key) {
@@ -71,12 +72,11 @@ func FetchVolumes(feedMap map[string]int32, volumeCacheMap *common.VolumeCacheMa
 				}
 
 				volumeCacheMap.Mutex.Lock()
-				defer volumeCacheMap.Mutex.Unlock()
-
 				volumeCacheMap.Map[id] = common.VolumeCache{
 					UpdatedAt: timestamp,
 					Volume:    volume,
 				}
+				volumeCacheMap.Mutex.Unlock()
 			}
 		}
 
