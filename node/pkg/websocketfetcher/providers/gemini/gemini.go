@@ -76,6 +76,8 @@ func (f *GeminiFetcher) CacheVolumes() {
 	volumeTicker := time.NewTicker(common.VolumeFetchInterval * time.Millisecond)
 	defer volumeTicker.Stop()
 
+	FetchVolumes(f.FeedMap, &volumeCacheMap)
+
 	for range volumeTicker.C {
 		FetchVolumes(f.FeedMap, &volumeCacheMap)
 	}

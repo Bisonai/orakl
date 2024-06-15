@@ -84,6 +84,11 @@ func (f *BtseFetcher) CacheVolumes() {
 	volumeTicker := time.NewTicker(common.VolumeFetchInterval * time.Millisecond)
 	defer volumeTicker.Stop()
 
+	err := FetchVolumes(f.FeedMap, &volumeCacheMap)
+	if err != nil {
+		log.Error().Str("Player", "Btse").Err(err).Msg("error in fetchVolumes")
+	}
+
 	for range volumeTicker.C {
 		err := FetchVolumes(f.FeedMap, &volumeCacheMap)
 		if err != nil {
