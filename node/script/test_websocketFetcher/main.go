@@ -2,91 +2,51 @@ package main
 
 import (
 	"context"
-	"time"
+	"encoding/json"
+	"sync"
 
-	"bisonai.com/orakl/node/pkg/common/keys"
-	"bisonai.com/orakl/node/pkg/db"
-	"bisonai.com/orakl/node/pkg/websocketfetcher"
 	"bisonai.com/orakl/node/pkg/websocketfetcher/common"
+	"bisonai.com/orakl/node/pkg/websocketfetcher/providers/coinbase"
 	"github.com/rs/zerolog/log"
 )
 
 func main() {
-
+	var wg sync.WaitGroup
 	ctx := context.Background()
-	feeds := []common.Feed{
+	feed := []common.Feed{
 		{
 			ID:         1,
-			Name:       "binance-wss-BTC-USDT",
-			Definition: nil,
+			Name:       "coinbase-wss-BTC-USDT",
+			Definition: json.RawMessage(`{"type": "wss", "provider": "coinbase", "base": "btc", "quote": "usdt"}`),
 			ConfigID:   1,
 		},
 		{
 			ID:         2,
 			Name:       "coinbase-wss-ETH-USDT",
-			Definition: nil,
+			Definition: json.RawMessage(`{"type": "wss", "provider": "coinbase", "base": "eth", "quote": "usdt"}`),
 			ConfigID:   2,
 		},
-		{
-			ID:         3,
-			Name:       "coinone-wss-BTC-KRW",
-			Definition: nil,
-			ConfigID:   3,
-		},
-		{
-			ID:         4,
-			Name:       "korbit-wss-BORA-KRW",
-			Definition: nil,
-			ConfigID:   4,
-		},
+		// {
+		// 	ID:         1,
+		// 	Name:       "coinbase-wss-BORA-KRW",
+		// 	Definition: json.RawMessage(`{"type": "wss", "provider": "coinbase", "base": "bora", "quote": "krw"}`),
+		// 	ConfigID:   1,
+		// },
+		// {
+		// 	ID:         2,
+		// 	Name:       "coinbase-wss-MBX-KRW",
+		// 	Definition: json.RawMessage(`{"type": "wss", "provider": "coinbase", "base": "mbx", "quote": "krw"}`),
+		// 	ConfigID:   2,
+		// },
 	}
-
-	// factories := map[string]func(context.Context, ...common.FetcherOption) (common.FetcherInterface, error){
-	// 	"coinbase": coinbase.New,
-	// }
-
-	app := websocketfetcher.New()
-	err := app.Init(
-		ctx,
-		// websocketfetcher.WithFactories(factories),
-		websocketfetcher.WithFeeds(feeds),
-		websocketfetcher.WithBufferSize(100),
-		websocketfetcher.WithStoreInterval(500*time.Millisecond),
-	)
+	feedMap := common.GetWssFeedMap(feed)
+	fetcher, err := coinbase.New(ctx, common.WithFeedMaps(feedMap["coinbase"]))
 	if err != nil {
-		log.Error().Err(err).Msg("error in Init")
+		log.Error().Err(err).Msg("failed to create coinbase fetcher")
 		return
 	}
-	go app.Start(ctx)
+	wg.Add(1)
+	fetcher.Run(ctx)
 
-	rdbCheckInterval := 1000 * time.Millisecond
-	ticker := time.NewTicker(rdbCheckInterval)
-
-	feedIds := []int32{1}
-
-	latestKeys := make([]string, len(feedIds))
-	for i, feedId := range feedIds {
-		latestKeys[i] = keys.LatestFeedDataKey(feedId)
-	}
-
-	for range ticker.C {
-		// feedData, err := db.MGetObject[common.FeedData](ctx, latestKeys)
-		// if err != nil {
-		// 	log.Error().Err(err).Msg("error in MGetObject")
-		// 	continue
-		// }
-		// for _, data := range feedData {
-		// 	log.Info().Any("FeedData", data).Msg("FeedData")
-		// }
-
-		bufferData, err := db.PopAllObject[common.FeedData](ctx, keys.FeedDataBufferKey())
-		if err != nil {
-			log.Error().Err(err).Msg("error in PopAllObject")
-			continue
-		}
-		for _, data := range bufferData {
-			log.Info().Any("FeedData", data).Msg("FeedDataBuffer")
-		}
-	}
-
+	wg.Wait()
 }

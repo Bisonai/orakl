@@ -4,13 +4,16 @@ import (
 	"context"
 	"math"
 	"math/big"
+	"strings"
 	"time"
 
 	"bisonai.com/orakl/node/pkg/common/keys"
 	"bisonai.com/orakl/node/pkg/db"
 	errorSentinel "bisonai.com/orakl/node/pkg/error"
+	"bisonai.com/orakl/node/pkg/utils/calculator"
 	"bisonai.com/orakl/node/pkg/utils/reducer"
 	"bisonai.com/orakl/node/pkg/utils/request"
+	"github.com/rs/zerolog/log"
 )
 
 func FetchSingle(ctx context.Context, definition *Definition) (float64, error) {
@@ -103,4 +106,43 @@ func copyFeedData(ctx context.Context, feedData []FeedData) error {
 	}
 	_, err := db.BulkCopy(ctx, "feed_data", []string{"feed_id", "value", "timestamp", "volume"}, insertRows)
 	return err
+}
+
+func calculateVWAP(feedData []FeedData) (float64, error) {
+	if len(feedData) == 0 {
+		log.Debug().Str("Player", "Collector").Msg("no feed data to calculate VWAP")
+		return 0, nil
+	}
+
+	totalPrice := 0.0
+	totalVolume := 0.0
+	for _, data := range feedData {
+		totalPrice += data.Value * data.Volume
+		totalVolume += data.Volume
+	}
+
+	if totalVolume == 0 {
+		log.Debug().Str("Player", "Collector").Msg("total volume is zero to calculate VWAP")
+		return 0, errorSentinel.ErrCollectorZeroVolume
+	}
+
+	return totalPrice / totalVolume, nil
+}
+
+func calculateMedian(feedData []FeedData) (float64, error) {
+	if len(feedData) == 0 {
+		log.Debug().Str("Player", "Collector").Msg("no feed data to calculate median")
+		return 0, nil
+	}
+
+	prices := []float64{}
+	for _, data := range feedData {
+		prices = append(prices, data.Value)
+	}
+
+	return calculator.GetFloatMed(prices)
+}
+
+func isFXPricePair(name string) bool {
+	return strings.Contains(ForeignExchangePricePairs, name)
 }

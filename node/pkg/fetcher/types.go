@@ -20,6 +20,8 @@ const (
 	InsertLocalAggregateQuery             = `INSERT INTO local_aggregates (config_id, value) VALUES (@config_id, @value)`
 	DECIMALS                              = 8
 	DefaultStreamInterval                 = time.Second * 5
+	ForeignExchangePricePairs             = "GBP-USD,EUR-USD,KRW-USD,JPY-USD,CHF-USD"
+	DefaultMedianRatio                    = 0.05
 )
 
 type FeedData types.FeedData
