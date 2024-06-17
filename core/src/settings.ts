@@ -235,18 +235,11 @@ export const WORKER_JOB_SETTINGS = {
 
 export const NONCE_MANAGER_JOB_SETTINGS = {
   removeOnComplete: REMOVE_ON_COMPLETE,
-  // FIXME Should not be removed until resolved, however, for now in
-  // testnet, we can safely keep this settings.
   removeOnFail: REMOVE_ON_FAIL,
   attempts: 10,
-  backoff: 1_000
+  backoff: 500
 }
 
 export function getObservedBlockRedisKey(contractAddress: string) {
   return `${contractAddress}-listener-${DEPLOYMENT_NAME}`
 }
-
-export const NONCE_MANAGER_POLLING_INTERVAL = 1_000 // ms
-export const NONCE_MANAGER_SLACK_FREQUENCY_TIME = 10 // min
-export const NONCE_MANAGER_SLACK_FREQUENCY_RETRIES =
-  (NONCE_MANAGER_SLACK_FREQUENCY_TIME * 60) / (NONCE_MANAGER_POLLING_INTERVAL / 1000)
