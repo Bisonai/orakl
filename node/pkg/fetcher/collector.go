@@ -64,7 +64,7 @@ func (c *Collector) processFeeds(ctx context.Context, feeds []FeedData) error {
 func (c *Collector) processFXPricePair(ctx context.Context, feeds []FeedData) error {
 	median, err := calculateMedian(feeds)
 	if err != nil {
-		return fmt.Errorf("error calculating median: %w", err)
+		return err
 	}
 	return insertAggregateData(ctx, c.ID, median)
 }
@@ -73,11 +73,11 @@ func (c *Collector) processVolumeWeightedFeeds(ctx context.Context, feeds []Feed
 	volumeWeightedFeeds := filterFeedsWithVolume(feeds)
 	vwap, err := calculateVWAP(volumeWeightedFeeds)
 	if err != nil {
-		return fmt.Errorf("error calculating VWAP: %w", err)
+		return err
 	}
 	median, err := calculateMedian(feeds)
 	if err != nil {
-		return fmt.Errorf("error calculating median: %w", err)
+		return err
 	}
 	aggregated := calculateAggregatedPrice(vwap, median)
 	return insertAggregateData(ctx, c.ID, aggregated)
