@@ -112,7 +112,7 @@ func Start(ctx context.Context) error {
 func loadEnvs() {
 	SubmitterAlarmAmount = 25
 	DelegatorAlarmAmount = 10000
-	BalanceCheckInterval = 10 * time.Second
+	BalanceCheckInterval = 60 * time.Second
 	BalanceAlarmInterval = 30 * time.Minute
 
 	submitterAlarmAmountRaw := os.Getenv("SUBMITTER_ALARM_AMOUNT")
@@ -313,13 +313,13 @@ func getBalance(ctx context.Context, address common.Address) (float64, error) {
 
 func updateBalances(ctx context.Context, wallets []Wallet) {
 	for i, wallet := range wallets {
-		time.Sleep(1 * time.Second) //gracefully request to prevent json rpc blockage
+		time.Sleep(500 * time.Millisecond) //gracefully request to prevent json rpc blockage
 		balance, err := getBalance(ctx, wallet.Address)
 		if err != nil {
 			log.Error().Err(err).Str("address", wallet.Address.Hex()).Msg("Error getting balance")
 			continue
 		}
-		log.Debug().Str("address", wallet.Address.Hex()).Float64("balance", balance).Msg(wallet.Tag)
+		log.Debug().Str("address", wallet.Address.Hex()).Float64("balance", balance).Str("tag", wallet.Tag).Msg("Updated balance")
 		wallets[i].Balance = balance
 	}
 }
