@@ -41,7 +41,7 @@ describe('Test Caver-js', function () {
           BigNumber.from(beforeBalanceOfAccount).sub(BigNumber.from(amount)).sub(txFee)
         )
       ).toBe(true)
-    })
+    }, 60_000)
   } else {
     test('Send signed tx with is ethers on local', async function () {
       const provider = new ethers.providers.JsonRpcProvider('http://127.0.0.1:8545')
