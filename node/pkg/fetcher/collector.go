@@ -44,7 +44,7 @@ func (c *Collector) Run(ctx context.Context) {
 func (c *Collector) Job(ctx context.Context) error {
 	feeds, err := c.collect(ctx)
 	if err != nil {
-		return fmt.Errorf("error collecting feeds: %w", err)
+		return err
 	}
 
 	if len(feeds) == 0 {
@@ -112,16 +112,10 @@ func insertAggregateData(ctx context.Context, id int32, aggregated float64) erro
 	err1 := insertLocalAggregateRdb(ctx, id, aggregated)
 	err2 := insertLocalAggregatePgsql(ctx, id, aggregated)
 
-	var errs []error
-	if err1 != nil {
-		errs = append(errs, err1)
+	if err1 != nil || err2 != nil {
+		return fmt.Errorf("errors occurred in insertAggregateData: %v, %v", err1, err2)
 	}
-	if err2 != nil {
-		errs = append(errs, err2)
-	}
-	if len(errs) > 0 {
-		return fmt.Errorf("%v", errs)
-	}
+
 	return nil
 }
 
