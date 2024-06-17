@@ -44,7 +44,7 @@ func main() {
 	}, 5, 10*time.Second, 30*time.Second)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to setup libp2p")
-		select {}
+		return
 	}
 
 	wg.Add(1)
@@ -53,7 +53,7 @@ func main() {
 		adminErr := admin.Run(mb)
 		if adminErr != nil {
 			log.Error().Err(adminErr).Msg("Failed to start admin server")
-			return
+			os.Exit(1)
 		}
 	}()
 
@@ -72,7 +72,7 @@ func main() {
 		fetcherErr := f.Run(ctx)
 		if fetcherErr != nil {
 			log.Error().Err(fetcherErr).Msg("Failed to start fetcher")
-			return
+			os.Exit(1)
 		}
 	}()
 	log.Info().Msg("Fetcher started")
@@ -85,7 +85,7 @@ func main() {
 		aggregatorErr := a.Run(ctx)
 		if aggregatorErr != nil {
 			log.Error().Err(aggregatorErr).Msg("Failed to start aggregator")
-			return
+			os.Exit(1)
 		}
 	}()
 	log.Info().Msg("Aggregator started")
@@ -98,7 +98,7 @@ func main() {
 		reporterErr := r.Run(ctx)
 		if reporterErr != nil {
 			log.Error().Err(reporterErr).Msg("Failed to start reporter")
-			return
+			os.Exit(1)
 		}
 	}()
 	log.Info().Msg("Reporter started")
