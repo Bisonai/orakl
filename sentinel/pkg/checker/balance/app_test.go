@@ -21,7 +21,7 @@ const (
 func TestLoadWalletFromOraklApi(t *testing.T) {
 	ctx := context.Background()
 	mockServer := httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
-		rw.Write([]byte(`[{"pk":"abc", "address":"` + testAddr0 + `"},{"pk":"def", "address":"` + testAddr1 + `"}]`))
+		rw.Write([]byte(`[{"pk":"abc", "address":"` + testAddr0 + `", "service":"REQUEST_RESPONSE"},{"pk":"def", "address":"` + testAddr1 + `", "service":"VRF"}]`))
 	}))
 	defer mockServer.Close()
 
@@ -84,7 +84,7 @@ func TestLoadWalletFromDelegator(t *testing.T) {
 
 func TestGetBalance(t *testing.T) {
 	ctx := context.Background()
-	err := setClient("https://klaytn-baobab-rpc.allthatnode.com:8551")
+	err := setClient("https://klaytn-baobab.g.allthatnode.com/full/evm")
 	if err != nil {
 		t.Fatalf("Expected no error, got %v", err)
 	}
