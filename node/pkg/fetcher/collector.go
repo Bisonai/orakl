@@ -52,9 +52,9 @@ func (c *Collector) Job(ctx context.Context) error {
 	}
 
 	if isFXPricePair(c.Name) {
-		median, err := calculateMedian(feeds)
-		if err != nil {
-			return err
+		median, medianErr := calculateMedian(feeds)
+		if medianErr != nil {
+			return medianErr
 		}
 		return insertAggregateData(ctx, c.ID, median)
 	}
