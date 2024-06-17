@@ -210,6 +210,7 @@ func loadWallets(ctx context.Context, urls Urls) ([]Wallet, error) {
 func loadWalletFromOraklApi(ctx context.Context, url string) ([]Wallet, error) {
 	type ReporterModel struct {
 		Address string `json:"address"`
+		Service string `json:"service"`
 	}
 
 	wallets := []Wallet{}
@@ -219,6 +220,9 @@ func loadWalletFromOraklApi(ctx context.Context, url string) ([]Wallet, error) {
 	}
 
 	for _, reporter := range reporters {
+		if reporter.Service == "DATA_FEED" {
+			continue
+		}
 		address := common.HexToAddress(reporter.Address)
 
 		wallet := Wallet{
