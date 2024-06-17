@@ -18,6 +18,11 @@ tasks:
     cmds:
       - go run ./cmd/por/main.go
 
+  fetcher:
+    dotenv: [".env"]
+    cmds:
+      - go run ./cmd/fetcher/main.go
+
   script-submission:
     dotenv: [".env"]
     cmds:
