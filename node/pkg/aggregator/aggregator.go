@@ -110,7 +110,7 @@ func (n *Aggregator) HandleRoundSyncMessage(ctx context.Context, msg raft.Messag
 		n.RoundID = roundSyncMessage.RoundID
 	}
 
-	n.cleanUpRoundData(roundSyncMessage.RoundID - 1)
+	// n.cleanUpRoundData(roundSyncMessage.RoundID - 1)
 
 	n.AggregatorMutex.Lock()
 	defer n.AggregatorMutex.Unlock()
@@ -399,11 +399,11 @@ func (n *Aggregator) isTimeValid(timeToValidate time.Time, baseTime time.Time) b
 	return timeToValidate.After(baseTime.Add(-aggregatorInterval)) && timeToValidate.Before(baseTime)
 }
 
-func (n *Aggregator) cleanUpRoundData(roundId int32) {
-	delete(n.CollectedPrices, roundId)
-	delete(n.CollectedProofs, roundId)
-	delete(n.CollectedAgreements, roundId)
-	delete(n.PreparedLocalAggregates, roundId)
-	delete(n.PreparedGlobalAggregates, roundId)
-	delete(n.SyncedTimes, roundId)
-}
+// func (n *Aggregator) cleanUpRoundData(roundId int32) {
+// 	delete(n.CollectedPrices, roundId)
+// 	delete(n.CollectedProofs, roundId)
+// 	delete(n.CollectedAgreements, roundId)
+// 	delete(n.PreparedLocalAggregates, roundId)
+// 	delete(n.PreparedGlobalAggregates, roundId)
+// 	delete(n.SyncedTimes, roundId)
+// }
