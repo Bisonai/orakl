@@ -44,29 +44,40 @@ func (c *Collector) Run(ctx context.Context) {
 func (c *Collector) Job(ctx context.Context) error {
 	feeds, err := c.collect(ctx)
 	if err != nil {
-		return err
+		return fmt.Errorf("error collecting feeds: %w", err)
 	}
 
 	if len(feeds) == 0 {
 		return nil
 	}
 
-	if isFXPricePair(c.Name) {
-		median, medianErr := calculateMedian(feeds)
-		if medianErr != nil {
-			return medianErr
-		}
-		return insertAggregateData(ctx, c.ID, median)
-	}
+	return c.processFeeds(ctx, feeds)
+}
 
+func (c *Collector) processFeeds(ctx context.Context, feeds []FeedData) error {
+	if isFXPricePair(c.Name) {
+		return c.processFXPricePair(ctx, feeds)
+	}
+	return c.processVolumeWeightedFeeds(ctx, feeds)
+}
+
+func (c *Collector) processFXPricePair(ctx context.Context, feeds []FeedData) error {
+	median, err := calculateMedian(feeds)
+	if err != nil {
+		return fmt.Errorf("error calculating median: %w", err)
+	}
+	return insertAggregateData(ctx, c.ID, median)
+}
+
+func (c *Collector) processVolumeWeightedFeeds(ctx context.Context, feeds []FeedData) error {
 	volumeWeightedFeeds := filterFeedsWithVolume(feeds)
 	vwap, err := calculateVWAP(volumeWeightedFeeds)
 	if err != nil {
-		return err
+		return fmt.Errorf("error calculating VWAP: %w", err)
 	}
 	median, err := calculateMedian(feeds)
 	if err != nil {
-		return err
+		return fmt.Errorf("error calculating median: %w", err)
 	}
 	aggregated := calculateAggregatedPrice(vwap, median)
 	return insertAggregateData(ctx, c.ID, aggregated)
