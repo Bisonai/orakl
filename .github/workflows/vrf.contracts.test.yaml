@@ -23,6 +23,10 @@ jobs:
           registry-url: "https://registry.npmjs.org"
           scope: "@bisonai"
           always-auth: true
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: nightly
       - run: yarn contracts install
       - run: yarn vrf build
       - run: yarn contracts prettier-solidity-check
