@@ -68,16 +68,7 @@ func (c *Collector) Job(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-
-	var aggregated float64
-	if vwap != 0 && median != 0 {
-		aggregated = calculateAggregatedPrice(vwap, median)
-	} else if vwap == 0 {
-		aggregated = median
-	} else {
-		aggregated = vwap
-	}
-
+	aggregated := calculateAggregatedPrice(vwap, median)
 	return insertAggregateData(ctx, c.ID, aggregated)
 }
 
@@ -92,7 +83,15 @@ func filterFeedsWithVolume(feeds []FeedData) []FeedData {
 }
 
 func calculateAggregatedPrice(valueWeightedAveragePrice, medianPrice float64) float64 {
-	return valueWeightedAveragePrice*(1-DefaultMedianRatio) + medianPrice*DefaultMedianRatio
+	if valueWeightedAveragePrice != 0 || medianPrice != 0 {
+		return valueWeightedAveragePrice*(1-DefaultMedianRatio) + medianPrice*DefaultMedianRatio
+	} else if valueWeightedAveragePrice == 0 && medianPrice != 0 {
+		return medianPrice
+	} else if medianPrice == 0 && valueWeightedAveragePrice != 0 {
+		return valueWeightedAveragePrice
+	} else {
+		return 0
+	}
 }
 
 func insertAggregateData(ctx context.Context, id int32, aggregated float64) error {

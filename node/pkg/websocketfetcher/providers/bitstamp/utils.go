@@ -60,22 +60,9 @@ func FetchVolumes(feedMap map[string]int32, volumeCacheMap *common.VolumeCacheMa
 
 		volume, err := common.VolumeStringToFloat64(entry.Volume)
 		if err != nil {
-			fmt.Println(err)
-			log.Error().Str("Player", "Bitstamp").Err(err).Msg("error in VolumeStringToFloat64")
+			log.Error().Str("Player", "Bitstamp").Err(err).Msg("Failed to convert volume string to float64 in FetchVolumes")
 			continue
 		}
-
-		// timestamp of volume data too quite old that it is older than 10 minutes
-		// since the data kept not being utilized, use time.Now() instead of api call time
-		// even though it isn't actually updated now, the value holds latest snapshot.
-		// if this behavior is not desired, use following commented code
-
-		// NumTimestamp, err := strconv.ParseInt(entry.Timestamp, 10, 64)
-		// if err != nil {
-		// 	log.Error().Str("Player", "Bitstamp").Err(err).Msg("error in ParseInt")
-		// 	continue
-		// }
-		// time := time.Unix(NumTimestamp, 0)
 
 		volumeCacheMap.Mutex.Lock()
 		volumeCacheMap.Map[id] = common.VolumeCache{
