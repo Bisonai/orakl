@@ -78,6 +78,7 @@ type Fetcher struct {
 	FeedMap        map[string]int32
 	Ws             *wss.WebsocketHelper
 	FeedDataBuffer chan FeedData
+	VolumeCacheMap VolumeCacheMap
 }
 
 type FetcherInterface interface {

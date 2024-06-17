@@ -13,11 +13,6 @@ import (
 
 type BtseFetcher common.Fetcher
 
-var volumeCacheMap = common.VolumeCacheMap{
-	Map:   make(map[int32]common.VolumeCache),
-	Mutex: sync.Mutex{},
-}
-
 func New(ctx context.Context, opts ...common.FetcherOption) (common.FetcherInterface, error) {
 	config := &common.FetcherConfig{}
 	for _, opt := range opts {
@@ -27,6 +22,10 @@ func New(ctx context.Context, opts ...common.FetcherOption) (common.FetcherInter
 	fetcher := &BtseFetcher{}
 	fetcher.FeedMap = config.FeedMaps.Separated
 	fetcher.FeedDataBuffer = config.FeedDataBuffer
+	fetcher.VolumeCacheMap = common.VolumeCacheMap{
+		Map:   make(map[int32]common.VolumeCache),
+		Mutex: sync.Mutex{},
+	}
 
 	args := []string{}
 
@@ -63,7 +62,7 @@ func (f *BtseFetcher) handleMessage(ctx context.Context, message map[string]any)
 		return nil
 	}
 
-	feedDataList, err := ResponseToFeedDataList(response, f.FeedMap, &volumeCacheMap)
+	feedDataList, err := ResponseToFeedDataList(response, f.FeedMap, &f.VolumeCacheMap)
 	if err != nil {
 		log.Error().Str("Player", "Btse").Err(err).Msg("error in btse.handleMessage")
 		return err
@@ -84,13 +83,13 @@ func (f *BtseFetcher) CacheVolumes() {
 	volumeTicker := time.NewTicker(common.VolumeFetchInterval * time.Millisecond)
 	defer volumeTicker.Stop()
 
-	err := FetchVolumes(f.FeedMap, &volumeCacheMap)
+	err := FetchVolumes(f.FeedMap, &f.VolumeCacheMap)
 	if err != nil {
 		log.Error().Str("Player", "Btse").Err(err).Msg("error in fetchVolumes")
 	}
 
 	for range volumeTicker.C {
-		err := FetchVolumes(f.FeedMap, &volumeCacheMap)
+		err := FetchVolumes(f.FeedMap, &f.VolumeCacheMap)
 		if err != nil {
 			log.Error().Str("Player", "Btse").Err(err).Msg("error in fetchVolumes")
 		}

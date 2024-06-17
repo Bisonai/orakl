@@ -13,11 +13,6 @@ import (
 
 type GeminiFetcher common.Fetcher
 
-var volumeCacheMap = common.VolumeCacheMap{
-	Map:   make(map[int32]common.VolumeCache),
-	Mutex: sync.Mutex{},
-}
-
 func New(ctx context.Context, opts ...common.FetcherOption) (common.FetcherInterface, error) {
 	config := &common.FetcherConfig{}
 	for _, opt := range opts {
@@ -27,6 +22,10 @@ func New(ctx context.Context, opts ...common.FetcherOption) (common.FetcherInter
 	fetcher := &GeminiFetcher{}
 	fetcher.FeedMap = config.FeedMaps.Combined
 	fetcher.FeedDataBuffer = config.FeedDataBuffer
+	fetcher.VolumeCacheMap = common.VolumeCacheMap{
+		Map:   make(map[int32]common.VolumeCache),
+		Mutex: sync.Mutex{},
+	}
 
 	symbols := []string{}
 	for feed := range fetcher.FeedMap {
@@ -56,7 +55,7 @@ func (f *GeminiFetcher) handleMessage(ctx context.Context, message map[string]an
 	if response.Type != "update" || len(response.Events) == 0 {
 		return nil
 	}
-	feedDataList, err := TradeResponseToFeedDataList(response, f.FeedMap, &volumeCacheMap)
+	feedDataList, err := TradeResponseToFeedDataList(response, f.FeedMap, &f.VolumeCacheMap)
 	if err != nil {
 		log.Error().Str("Player", "Gemini").Err(err).Msg("error in TradeResponseToFeedDataList")
 		return err
@@ -76,9 +75,9 @@ func (f *GeminiFetcher) CacheVolumes() {
 	volumeTicker := time.NewTicker(common.VolumeFetchInterval * time.Millisecond)
 	defer volumeTicker.Stop()
 
-	FetchVolumes(f.FeedMap, &volumeCacheMap)
+	FetchVolumes(f.FeedMap, &f.VolumeCacheMap)
 
 	for range volumeTicker.C {
-		FetchVolumes(f.FeedMap, &volumeCacheMap)
+		FetchVolumes(f.FeedMap, &f.VolumeCacheMap)
 	}
 }
