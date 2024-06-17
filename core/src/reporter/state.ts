@@ -283,6 +283,18 @@ export class State {
     return reporters
   }
 
+  async getRemoteNonce(wallet: Wallet): Promise<number> {
+    let nonce: number
+    if (this.delegatedFee) {
+      const caverWallet = wallet as CaverWallet
+      nonce = Number(await caverWallet.caver.rpc.klay.getTransactionCount(caverWallet.address))
+    } else {
+      nonce = await (wallet as NonceManager).getTransactionCount()
+    }
+
+    return nonce
+  }
+
   /**
    * Get nonce for oracleAddress. If nonce is not found, raise an error.
    * This function implements a mutex to ensure it cannot be called concurrently.
@@ -305,34 +317,11 @@ export class State {
       // Solution: keep polling/retrying until json-rpc becomes responsive
       // If successful, the "return" statement will break the infinite loop
       let retryCount = 0
+      let remoteNonce
       while (true) {
         try {
-          let remoteNonce: number
-          if (this.delegatedFee) {
-            const caverWallet = wallet as CaverWallet
-            remoteNonce = Number(
-              await caverWallet.caver.rpc.klay.getTransactionCount(caverWallet.address)
-            )
-          } else {
-            remoteNonce = await (wallet as NonceManager).getTransactionCount()
-          }
-
-          const localNonce = this.nonces[oracleAddress]
-
-          let nonce: number
-          if (!localNonce || remoteNonce > localNonce) {
-            this.logger.warn(
-              { name: 'getAndIncrementNonce', file: FILE_NAME },
-              `Nonce value discrepancy. Remote: ${remoteNonce}, Local: ${localNonce}. Updating local nonce to remote nonce.`
-            )
-            nonce = remoteNonce
-          } else {
-            nonce = localNonce
-          }
-
-          this.nonces[oracleAddress] = nonce + 1
-
-          return nonce
+          remoteNonce = await this.getRemoteNonce(wallet)
+          break
         } catch (error) {
           // Slack the error message every half an hour
           if (retryCount % NONCE_MANAGER_SLACK_FREQUENCY_RETRIES === 0) {
@@ -348,6 +337,11 @@ export class State {
           await sleep(NONCE_MANAGER_POLLING_INTERVAL)
         }
       }
+      const localNonce = this.nonces[oracleAddress]
+      const nonce = Math.max(localNonce, remoteNonce)
+      this.nonces[oracleAddress] = nonce + 1
+
+      return nonce
     })
   }
 }
