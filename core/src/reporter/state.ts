@@ -296,8 +296,11 @@ export class State {
   }
 
   /**
-   * Get nonce for oracleAddress. If nonce is not found, raise an error.
    * This function implements a mutex to ensure it cannot be called concurrently.
+   *
+   * Get remote and local nonce for a given wallet. If it fails to get the remote nonce,
+   * it will retry until it succeeds. If the remote nonce is greater than the local nonce,
+   * it will update the local nonce to the remote nonce.
    *
    * @param {string} oracleAddress
    * @return {number} nonce
@@ -315,9 +318,9 @@ export class State {
 
       // Assumption: the only source of error can be json-rpc call
       // Solution: keep polling/retrying until json-rpc becomes responsive
-      // If successful, the "return" statement will break the infinite loop
+      // If successful, the "break" statement will break the infinite loop
       let retryCount = 0
-      let remoteNonce
+      let remoteNonce: number
       while (true) {
         try {
           remoteNonce = await this.getRemoteNonce(wallet)
@@ -337,8 +340,7 @@ export class State {
           await sleep(NONCE_MANAGER_POLLING_INTERVAL)
         }
       }
-      const localNonce = this.nonces[oracleAddress]
-      const nonce = Math.max(localNonce, remoteNonce)
+      const nonce = Math.max(this.nonces[oracleAddress], remoteNonce)
       this.nonces[oracleAddress] = nonce + 1
 
       return nonce

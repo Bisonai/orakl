@@ -62,6 +62,8 @@ describe('nonce-manager', () => {
     }
   })
 
+  // The following test is an outdated implementation, before infinite polling.
+  // Running this now will cause an infinite loop. It needs to be updated accordingly.
   test.skip('cannot get transaction count', async () => {
     // override state.getTransactionCount() to throw error
     await state.refresh()
