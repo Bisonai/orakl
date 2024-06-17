@@ -77,6 +77,7 @@ func Start(ctx context.Context) error {
 }
 
 func check(ctx context.Context) {
+	log.Debug().Str("expiration", signer.Exp.String()).Msg("Checking signer expiration")
 	if time.Until(signer.Exp) < ExpirationWarningThreshold {
 		remainingTime := time.Until(signer.Exp)
 		alert.SlackAlert("Signer expires in: " + remainingTime.String())

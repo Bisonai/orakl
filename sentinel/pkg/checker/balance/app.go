@@ -319,6 +319,7 @@ func updateBalances(ctx context.Context, wallets []Wallet) {
 			log.Error().Err(err).Str("address", wallet.Address.Hex()).Msg("Error getting balance")
 			continue
 		}
+		log.Debug().Str("address", wallet.Address.Hex()).Float64("balance", balance).Msg(wallet.Tag)
 		wallets[i].Balance = balance
 	}
 }
@@ -326,6 +327,7 @@ func updateBalances(ctx context.Context, wallets []Wallet) {
 func alarm(wallets []Wallet) {
 	var alarmMessage = ""
 	for _, wallet := range wallets {
+		log.Debug().Str("address", wallet.Address.Hex()).Float64("balance", wallet.Balance).Float64("minimum", wallet.Minimum).Str("tag", wallet.Tag).Msg(wallet.Tag)
 		if wallet.Balance < wallet.Minimum {
 			log.Error().Str("address", wallet.Address.Hex()).Float64("balance", wallet.Balance).Msg("Balance lower than minimum")
 			alarmMessage += fmt.Sprintf("%s balance(%f) is lower than minimum(%f) | %s\n", wallet.Address.Hex(), wallet.Balance, wallet.Minimum, wallet.Tag)
