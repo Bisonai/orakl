@@ -8,10 +8,7 @@
     "plugin:@typescript-eslint/recommended",
     "plugin:prettier/recommended"
   ],
-  "plugins": [
-    "prettier",
-    "@typescript-eslint"
-  ],
+  "plugins": ["prettier", "@typescript-eslint"],
   "rules": {
     "no-throw-literal": "error",
     "prettier/prettier": "error",
@@ -23,11 +20,10 @@
         "varsIgnorePattern": "^_",
         "caughtErrorsIgnorePattern": "^_"
       }
-    ]
+    ],
+    "no-constant-condition": "warn"
   },
-  "ignorePatterns": [
-    "src/cli/orakl-cli/dist/**"
-  ],
+  "ignorePatterns": ["src/cli/orakl-cli/dist/**"],
   "parserOptions": {
     "sourceType": "module",
     "ecmaVersion": 2022,

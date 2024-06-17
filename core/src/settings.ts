@@ -56,7 +56,7 @@ export const MAX_DATA_STALENESS = 5_000
 // BullMQ
 export const REMOVE_ON_COMPLETE = 500
 export const REMOVE_ON_FAIL = 1_000
-export const CONCURRENCY = 12
+export const CONCURRENCY = 50
 export const DATA_FEED_REPORTER_CONCURRENCY =
   Number(process.env.DATA_FEED_REPORTER_CONCURRENCY) || 15
 
@@ -235,11 +235,9 @@ export const WORKER_JOB_SETTINGS = {
 
 export const NONCE_MANAGER_JOB_SETTINGS = {
   removeOnComplete: REMOVE_ON_COMPLETE,
-  // FIXME Should not be removed until resolved, however, for now in
-  // testnet, we can safely keep this settings.
   removeOnFail: REMOVE_ON_FAIL,
   attempts: 10,
-  backoff: 1_000
+  backoff: 500
 }
 
 export function getObservedBlockRedisKey(contractAddress: string) {

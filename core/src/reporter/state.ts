@@ -1,4 +1,3 @@
-import { NonceManager } from '@ethersproject/experimental'
 import { Mutex } from 'async-mutex'
 import { Logger } from 'pino'
 import type { RedisClientType } from 'redis'
@@ -7,7 +6,7 @@ import { OraklError, OraklErrorCode } from '../errors'
 import { IReporterConfig } from '../types'
 import { isAddressValid } from '../utils'
 import { Wallet } from './types'
-import { buildCaverWallet, buildWallet, CaverWallet, isPrivateKeyAddressPairValid } from './utils'
+import { buildCaverWallet, buildWallet, isPrivateKeyAddressPairValid } from './utils'
 
 const FILE_NAME = import.meta.url
 
@@ -277,52 +276,14 @@ export class State {
   }
 
   /**
-   * Get nonce for oracleAddress. If nonce is not found, raise an error.
    * This function implements a mutex to ensure it cannot be called concurrently.
    *
    * @param {string} oracleAddress
    * @return {number} nonce
-   * @exception {OraklErrorCode.WalletNotActive} raise when wallet is not active
-   * @exception {OraklErrorCode.FailedToGetWalletTransactionCount} raise when failed to get wallet transaction count
    */
   async getAndIncrementNonce(oracleAddress: string): Promise<number> {
     return await this.mutex.runExclusive(async () => {
-      const wallet = this.wallets[oracleAddress]
-      if (!wallet) {
-        const msg = `Wallet for oracle ${oracleAddress} is not active`
-        this.logger.error({ name: 'getAndIncrementNonce', file: FILE_NAME }, msg)
-        throw new OraklError(OraklErrorCode.WalletNotActive, msg)
-      }
-
-      let remoteNonce: number
-      try {
-        if (this.delegatedFee) {
-          const caverWallet = wallet as CaverWallet
-          remoteNonce = Number(
-            await caverWallet.caver.rpc.klay.getTransactionCount(caverWallet.address)
-          )
-        } else {
-          remoteNonce = await (wallet as NonceManager).getTransactionCount()
-        }
-      } catch (error) {
-        const msg = `Failed to get nonce for wallet`
-        this.logger.error({ name: 'getAndIncrementNonce', file: FILE_NAME }, msg)
-        throw new OraklError(OraklErrorCode.FailedToGetWalletTransactionCount, msg)
-      }
-
-      const localNonce = this.nonces[oracleAddress]
-
-      let nonce: number
-      if (!localNonce || remoteNonce > localNonce) {
-        this.logger.warn(
-          { name: 'getAndIncrementNonce', file: FILE_NAME },
-          `Nonce value discrepancy. Remote: ${remoteNonce}, Local: ${localNonce}. Updating local nonce to remote nonce.`
-        )
-        nonce = remoteNonce
-      } else {
-        nonce = localNonce
-      }
-
+      const nonce = this.nonces[oracleAddress]
       this.nonces[oracleAddress] = nonce + 1
 
       return nonce

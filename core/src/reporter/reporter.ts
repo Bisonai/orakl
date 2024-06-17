@@ -28,6 +28,7 @@ export function reporter(state: State, logger: Logger) {
     let delegatorOkay = true
     const NUM_TRANSACTION_TRIALS = 3
     const txParams = { to, payload, gasLimit, logger, nonce }
+    let localNonce = nonce
 
     for (let i = 0; i < NUM_TRANSACTION_TRIALS; ++i) {
       if (state.delegatedFee && delegatorOkay) {
@@ -36,14 +37,24 @@ export function reporter(state: State, logger: Logger) {
           break
         } catch (e) {
           delegatorOkay = false
+          if (e.code === OraklErrorCode.TxNonceExpired) {
+            localNonce = await state.getAndIncrementNonce(to)
+          }
         }
       } else if (state.delegatedFee) {
         try {
           await sendTransactionCaver({ ...txParams, wallet: wallet as CaverWallet })
           break
         } catch (e) {
-          if (![OraklErrorCode.CaverTxTransactionFailed].includes(e.code)) {
+          if (
+            ![OraklErrorCode.CaverTxTransactionFailed, OraklErrorCode.TxNonceExpired].includes(
+              e.code
+            )
+          ) {
             throw e
+          }
+          if (e.code === OraklErrorCode.TxNonceExpired) {
+            localNonce = await state.getAndIncrementNonce(to)
           }
         }
       } else {
@@ -55,15 +66,22 @@ export function reporter(state: State, logger: Logger) {
             ![
               OraklErrorCode.TxNotMined,
               OraklErrorCode.TxProcessingResponseError,
-              OraklErrorCode.TxMissingResponseError
+              OraklErrorCode.TxMissingResponseError,
+              OraklErrorCode.TxNonceExpired
             ].includes(e.code)
           ) {
             throw e
           }
 
+          if (e.code === OraklErrorCode.TxNonceExpired) {
+            localNonce = await state.getAndIncrementNonce(to)
+          }
+
           logger.info(`Retrying transaction. Trial number: ${i}`)
         }
       }
+
+      txParams.nonce = localNonce
     }
   }
 

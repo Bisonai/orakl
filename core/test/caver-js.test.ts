@@ -7,7 +7,7 @@ describe('Test Caver-js', function () {
 
   if (process.env.GITHUB_ACTIONS) {
     test('Send signed tx with is caver-js on Baobab', async function () {
-      const PROVIDER_URL = 'https://klaytn-baobab-rpc.allthatnode.com:8551'
+      const PROVIDER_URL = 'https://public-en.kairos.node.kaia.io'
       const caver = new Caver(PROVIDER_URL)
       const privateKey = process.env.CAVER_PRIVATE_KEY || ''
       const account = caver.klay.accounts.wallet.add(privateKey)
@@ -41,7 +41,7 @@ describe('Test Caver-js', function () {
           BigNumber.from(beforeBalanceOfAccount).sub(BigNumber.from(amount)).sub(txFee)
         )
       ).toBe(true)
-    })
+    }, 60_000)
   } else {
     test('Send signed tx with is ethers on local', async function () {
       const provider = new ethers.providers.JsonRpcProvider('http://127.0.0.1:8545')

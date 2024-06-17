@@ -121,6 +121,9 @@ export async function sendTransaction({
     } else if (e.code == 'UNPREDICTABLE_GAS_LIMIT') {
       msg = 'TxCannotEstimateGasError'
       error = new OraklError(OraklErrorCode.TxCannotEstimateGasError, msg, e.value)
+    } else if (e.code == 'NONCE_EXPIRED') {
+      msg = 'TxNonceExpired'
+      error = new OraklError(OraklErrorCode.TxNonceExpired, msg)
     } else {
       error = e
     }
@@ -263,4 +266,8 @@ export function isPrivateKeyAddressPairValid(sk: string, addr: string): boolean 
   } catch {
     return false
   }
+}
+
+export async function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms))
 }
