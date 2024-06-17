@@ -1,20 +1,12 @@
-import { NonceManager } from '@ethersproject/experimental'
 import { Mutex } from 'async-mutex'
 import { Logger } from 'pino'
 import type { RedisClientType } from 'redis'
 import { getReporter, getReporters } from '../api'
 import { OraklError, OraklErrorCode } from '../errors'
-import { NONCE_MANAGER_POLLING_INTERVAL, NONCE_MANAGER_SLACK_FREQUENCY_RETRIES } from '../settings'
 import { IReporterConfig } from '../types'
-import { isAddressValid, sendToSlack } from '../utils'
+import { isAddressValid } from '../utils'
 import { Wallet } from './types'
-import {
-  buildCaverWallet,
-  buildWallet,
-  CaverWallet,
-  isPrivateKeyAddressPairValid,
-  sleep
-} from './utils'
+import { buildCaverWallet, buildWallet, isPrivateKeyAddressPairValid } from './utils'
 
 const FILE_NAME = import.meta.url
 
@@ -283,64 +275,15 @@ export class State {
     return reporters
   }
 
-  async getRemoteNonce(wallet: Wallet): Promise<number> {
-    let nonce: number
-    if (this.delegatedFee) {
-      const caverWallet = wallet as CaverWallet
-      nonce = Number(await caverWallet.caver.rpc.klay.getTransactionCount(caverWallet.address))
-    } else {
-      nonce = await (wallet as NonceManager).getTransactionCount()
-    }
-
-    return nonce
-  }
-
   /**
    * This function implements a mutex to ensure it cannot be called concurrently.
    *
-   * Get remote and local nonce for a given wallet. If it fails to get the remote nonce,
-   * it will retry until it succeeds. If the remote nonce is greater than the local nonce,
-   * it will update the local nonce to the remote nonce.
-   *
    * @param {string} oracleAddress
    * @return {number} nonce
-   * @exception {OraklErrorCode.WalletNotActive} raise when wallet is not active
-   * @exception {OraklErrorCode.FailedToGetWalletTransactionCount} raise when failed to get wallet transaction count
    */
   async getAndIncrementNonce(oracleAddress: string): Promise<number> {
     return await this.mutex.runExclusive(async () => {
-      const wallet = this.wallets[oracleAddress]
-      if (!wallet) {
-        const msg = `Wallet for oracle ${oracleAddress} is not active`
-        this.logger.error({ name: 'getAndIncrementNonce', file: FILE_NAME }, msg)
-        throw new OraklError(OraklErrorCode.WalletNotActive, msg)
-      }
-
-      // Assumption: the only source of error can be json-rpc call
-      // Solution: keep polling/retrying until json-rpc becomes responsive
-      // If successful, the "break" statement will break the infinite loop
-      let retryCount = 0
-      let remoteNonce: number
-      while (true) {
-        try {
-          remoteNonce = await this.getRemoteNonce(wallet)
-          break
-        } catch (error) {
-          // Slack the error message every half an hour
-          if (retryCount % NONCE_MANAGER_SLACK_FREQUENCY_RETRIES === 0) {
-            this.logger.error(
-              { name: 'getAndIncrementNonce', file: FILE_NAME },
-              `Error while fetching nonce for oracle ${oracleAddress}. Retrying...`
-            )
-            await sendToSlack(error)
-          }
-          retryCount += 1
-
-          // Sleep before retrying
-          await sleep(NONCE_MANAGER_POLLING_INTERVAL)
-        }
-      }
-      const nonce = Math.max(this.nonces[oracleAddress], remoteNonce)
+      const nonce = this.nonces[oracleAddress]
       this.nonces[oracleAddress] = nonce + 1
 
       return nonce

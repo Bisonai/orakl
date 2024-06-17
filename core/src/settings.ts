@@ -56,7 +56,7 @@ export const MAX_DATA_STALENESS = 5_000
 // BullMQ
 export const REMOVE_ON_COMPLETE = 500
 export const REMOVE_ON_FAIL = 1_000
-export const CONCURRENCY = 12
+export const CONCURRENCY = 50
 export const DATA_FEED_REPORTER_CONCURRENCY =
   Number(process.env.DATA_FEED_REPORTER_CONCURRENCY) || 15
 

@@ -42,10 +42,19 @@ let errMsg: string | null = null
 export async function sendToSlack(e: Error) {
   if (SLACK_WEBHOOK_URL) {
     const webhook = new IncomingWebhook(SLACK_WEBHOOK_URL)
-    const errorObj = {
-      message: e.message,
-      stack: e.stack,
-      name: e.name
+    let errorObj = {}
+    if (Array.isArray(e)) {
+      errorObj = {
+        message: e[0]?.message,
+        stack: e[0]?.stack,
+        name: e[0]?.name
+      }
+    } else {
+      errorObj = {
+        message: e.message,
+        stack: e.stack,
+        name: e.name
+      }
     }
     const text = ` :fire: _An error has occurred at_ \`${os.hostname()}\`\n \`\`\`${JSON.stringify(
       errorObj
