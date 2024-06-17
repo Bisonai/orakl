@@ -83,7 +83,7 @@ func filterFeedsWithVolume(feeds []FeedData) []FeedData {
 }
 
 func calculateAggregatedPrice(valueWeightedAveragePrice, medianPrice float64) float64 {
-	if valueWeightedAveragePrice != 0 || medianPrice != 0 {
+	if valueWeightedAveragePrice != 0 && medianPrice != 0 {
 		return valueWeightedAveragePrice*(1-DefaultMedianRatio) + medianPrice*DefaultMedianRatio
 	} else if valueWeightedAveragePrice == 0 && medianPrice != 0 {
 		return medianPrice
