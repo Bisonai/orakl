@@ -83,9 +83,12 @@ func check(ctx context.Context) {
 	for _, feed := range FeedsToCheck {
 		offSet, err := timeSinceLastEvent(ctx, feed)
 		if err != nil {
+			log.Error().Err(err).Msg("Failed to check feed")
 			continue
 		}
+		log.Debug().Str("feed", feed.FeedName).Str("offset", offSet.String()).Msg("Checking feed")
 		if offSet > time.Duration(feed.ExpectedInterval)*time.Millisecond+BUFFER {
+			log.Debug().Str("feed", feed.FeedName).Str("offset", offSet.String()).Str("Delayed", (offSet - time.Duration(feed.ExpectedInterval)*time.Millisecond).String()).Msg("Feed delayed")
 			feed.LatencyChecked++
 			if feed.LatencyChecked > AlarmOffset {
 				msg += feed.FeedName + " delayed by " + (offSet - time.Duration(feed.ExpectedInterval)*time.Millisecond).String() + "\n"
