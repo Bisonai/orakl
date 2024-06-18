@@ -32,6 +32,5 @@ jobs:
       - run: yarn contracts prettier-solidity-check
       - run: yarn contracts solhint
       - run: yarn contracts lint
+      - run: yarn contracts clean && yarn contracts build
       - run: yarn contracts-v01 test-vrf
-      - run: yarn contracts compile
-      - run: yarn contracts build
