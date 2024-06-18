@@ -24,7 +24,7 @@
   "license": "MIT",
   "scripts": {
     "compile": "forge build",
-    "prebuild": "yarn compile && typechain --target ethers-v5 --out-dir typechain-types './out/**/*.json'",
+    "prebuild": "yarn compile && typechain --target ethers-v5 --out-dir typechain-types './out/**/*[!dbg].json'",
     "build": "tsc",
     "clean": "forge clean && rm -rf dist",
     "test": "forge test",
