@@ -24,8 +24,8 @@ func setUp(ctx context.Context) error {
 	var err error
 	signerCheckInterval, err = time.ParseDuration(os.Getenv("SIGNER_CHECK_INTERVAL"))
 	if err != nil {
-		signerCheckInterval = 12 * time.Hour
-		log.Error().Err(err).Msg("Using default signer check interval of 12 hours")
+		signerCheckInterval = 6 * time.Hour
+		log.Error().Err(err).Msg("Using default signer check interval of 6 hours")
 	}
 
 	nodeAdminUrl := os.Getenv("ORAKL_NODE_ADMIN_URL")
@@ -69,7 +69,7 @@ func Start(ctx context.Context) error {
 	log.Info().Msg("Starting signer expiration checker")
 	checkTicker := time.NewTicker(signerCheckInterval)
 	defer checkTicker.Stop()
-
+	check(ctx)
 	for range checkTicker.C {
 		check(ctx)
 	}
