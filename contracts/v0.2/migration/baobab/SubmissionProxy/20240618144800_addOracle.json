@@ -1,0 +1,9 @@
+{
+  "address": "0xde8fb45ff8e330ccf8e5cc0913ee0143b2a0ebdb",
+  "addOracle": {
+    "oracles": ["0xBA6BD8Ee7D89E8aEa657e5A9F8D32A494f6676c5"]
+  },
+  "removeOracle": {
+    "oracles": ["0x9dDa69d0CCdB06125a662070138800D4CE4F53b9"]
+  }
+}
