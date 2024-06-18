@@ -2,6 +2,7 @@ package event
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"strings"
 	"time"
@@ -78,24 +79,25 @@ func Start(ctx context.Context) error {
 }
 
 func check(ctx context.Context) {
-	log.Debug().Msg("Checking events")
 	msg := ""
-	for _, feed := range FeedsToCheck {
-		offSet, err := timeSinceLastEvent(ctx, feed)
+	for i, feed := range FeedsToCheck {
+		offset, err := timeSinceLastEvent(ctx, feed)
 		if err != nil {
-			log.Error().Err(err).Msg("Failed to check feed")
+			log.Error().Err(err).Str("feed", feed.FeedName).Msg("Failed to check feed")
 			continue
 		}
-		log.Debug().Str("feed", feed.FeedName).Str("offset", offSet.String()).Msg("Checking feed")
-		if offSet > time.Duration(feed.ExpectedInterval)*time.Millisecond+BUFFER {
-			log.Debug().Str("feed", feed.FeedName).Str("offset", offSet.String()).Str("Delayed", (offSet - time.Duration(feed.ExpectedInterval)*time.Millisecond).String()).Msg("Feed delayed")
+
+		if offset > time.Duration(feed.ExpectedInterval)*time.Millisecond+BUFFER {
+			log.Warn().Str("feed", feed.FeedName).Msg(fmt.Sprintf("%s delayed by %s\n", feed.FeedName, offset-time.Duration(feed.ExpectedInterval)*time.Millisecond))
 			feed.LatencyChecked++
 			if feed.LatencyChecked > AlarmOffset {
-				msg += feed.FeedName + " delayed by " + (offSet - time.Duration(feed.ExpectedInterval)*time.Millisecond).String() + "\n"
+				msg += fmt.Sprintf("%s delayed by %s\n", feed.FeedName, offset-time.Duration(feed.ExpectedInterval)*time.Millisecond)
+				feed.LatencyChecked = 0
 			}
 		} else {
 			feed.LatencyChecked = 0
 		}
+		FeedsToCheck[i] = feed
 	}
 	if msg != "" {
 		alert.SlackAlert(msg)

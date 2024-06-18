@@ -25,6 +25,7 @@ const (
 	oraklNodeAdminEndpoint = "/wallet/addresses"
 	oraklDelegatorEndpoint = "/sign/feePayer"
 	porEndpoint            = "/address"
+	DefaultRRMinimum       = 1
 )
 
 var SubmitterAlarmAmount float64
@@ -223,12 +224,17 @@ func loadWalletFromOraklApi(ctx context.Context, url string) ([]Wallet, error) {
 		if reporter.Service == "DATA_FEED" {
 			continue
 		}
+
 		address := common.HexToAddress(reporter.Address)
+		minimumBalance := SubmitterAlarmAmount
+		if reporter.Service == "REQUEST_RESPONSE" {
+			minimumBalance = DefaultRRMinimum
+		}
 
 		wallet := Wallet{
 			Address: address,
 			Balance: 0,
-			Minimum: SubmitterAlarmAmount,
+			Minimum: minimumBalance,
 			Tag:     "reporter loaded from orakl api",
 		}
 		wallets = append(wallets, wallet)
