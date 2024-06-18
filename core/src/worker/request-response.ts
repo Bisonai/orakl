@@ -19,6 +19,7 @@ import {
 } from '../types'
 
 import { buildReducer, pipe, REDUCER_MAPPING } from '@bisonai/orakl-util'
+import { OraklError } from '../errors'
 import { storeErrorMsg } from './api'
 import { decodeRequest } from './decoding'
 import { buildTransaction } from './request-response.utils'
@@ -84,18 +85,19 @@ export async function job(reporterQueue: QueueType, _logger: Logger) {
 
       return tx
     } catch (e) {
-      logger.error(e)
+      const error = e as Error | OraklError
+      logger.error(error)
 
       const errorData: IErrorMsgData = {
         requestId: inData.requestId,
         timestamp: new Date(Date.now()).toISOString(),
-        code: e.code.toString(),
-        name: e.name.toString(),
-        stack: JSON.stringify(e)
+        code: error instanceof OraklError ? error.code.toString() : '',
+        name: error.name.toString(),
+        stack: JSON.stringify(error)
       }
 
       await storeErrorMsg({ data: errorData, logger: _logger })
-      throw e
+      throw error
     }
   }
 
