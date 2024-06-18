@@ -89,15 +89,14 @@ func check(ctx context.Context) {
 
 		if offset > time.Duration(feed.ExpectedInterval)*time.Millisecond+BUFFER {
 			log.Warn().Str("feed", feed.FeedName).Msg(fmt.Sprintf("%s delayed by %s\n", feed.FeedName, offset-time.Duration(feed.ExpectedInterval)*time.Millisecond))
-			feed.LatencyChecked++
-			if feed.LatencyChecked > AlarmOffset {
+			FeedsToCheck[i].LatencyChecked++
+			if FeedsToCheck[i].LatencyChecked > AlarmOffset {
 				msg += fmt.Sprintf("%s delayed by %s\n", feed.FeedName, offset-time.Duration(feed.ExpectedInterval)*time.Millisecond)
-				feed.LatencyChecked = 0
+				FeedsToCheck[i].LatencyChecked = 0
 			}
 		} else {
-			feed.LatencyChecked = 0
+			FeedsToCheck[i].LatencyChecked = 0
 		}
-		FeedsToCheck[i] = feed
 	}
 	if msg != "" {
 		alert.SlackAlert(msg)
