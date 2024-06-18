@@ -28,9 +28,9 @@ jobs:
         with:
           version: nightly
       - run: yarn contracts install
-      - run: yarn vrf build
       - run: yarn contracts prettier-solidity-check
       - run: yarn contracts solhint
       - run: yarn contracts lint
       - run: yarn contracts clean && yarn contracts build
+      - run: yarn vrf build
       - run: yarn contracts-v01 test-vrf
