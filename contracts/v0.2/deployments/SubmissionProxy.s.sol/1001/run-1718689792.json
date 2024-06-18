@@ -1,0 +1,83 @@
+{
+  "transactions": [
+    {
+      "hash": "0x238ea0f97949775507a611db5a09d367381561fc4cdb6e1aeae99a4da7ed071f",
+      "transactionType": "CALL",
+      "contractName": null,
+      "contractAddress": "0xdE8fb45ff8e330Ccf8E5CC0913eE0143b2A0eBDB",
+      "function": "addOracle(address)",
+      "arguments": [
+        "0xBA6BD8Ee7D89E8aEa657e5A9F8D32A494f6676c5"
+      ],
+      "transaction": {
+        "type": "0x02",
+        "from": "0xa195be68bd37ebffb056279dc3d236faa6f23670",
+        "to": "0xde8fb45ff8e330ccf8e5cc0913ee0143b2a0ebdb",
+        "gas": "0x54b76",
+        "value": "0x0",
+        "data": "0xdf5dd1a5000000000000000000000000ba6bd8ee7d89e8aea657e5a9f8d32a494f6676c5",
+        "nonce": "0x536c2",
+        "accessList": []
+      },
+      "additionalContracts": [],
+      "isFixedGasLimit": false
+    },
+    {
+      "hash": "0x05cdf0e7d36bb5a039453906e7230019be98dd8e0acb35c215f40f39cde8aab4",
+      "transactionType": "CALL",
+      "contractName": null,
+      "contractAddress": "0xdE8fb45ff8e330Ccf8E5CC0913eE0143b2A0eBDB",
+      "function": "removeOracle(address)",
+      "arguments": [
+        "0x9dDa69d0CCdB06125a662070138800D4CE4F53b9"
+      ],
+      "transaction": {
+        "type": "0x02",
+        "from": "0xa195be68bd37ebffb056279dc3d236faa6f23670",
+        "to": "0xde8fb45ff8e330ccf8e5cc0913ee0143b2a0ebdb",
+        "gas": "0x24c8d",
+        "value": "0x0",
+        "data": "0xfdc85fc40000000000000000000000009dda69d0ccdb06125a662070138800d4ce4f53b9",
+        "nonce": "0x536c3",
+        "accessList": []
+      },
+      "additionalContracts": [],
+      "isFixedGasLimit": false
+    },
+    {
+      "hash": "0x4d7251ddcbb83597ce94248268b874c59e631face40d69ccbf2a0e9edbdb8c91",
+      "transactionType": "CALL",
+      "contractName": "UtilsScript",
+      "contractAddress": "0xC7f2Cf4845C6db0e1a1e91ED41Bcd0FcC1b0E141",
+      "function": "updateMigration(string,string)",
+      "arguments": [
+        "\"/migration/baobab/SubmissionProxy\"",
+        "\"/Users/nick/development/orakl/contracts/v0.2/migration/baobab/SubmissionProxy/20240618144800_addOracle.json\""
+      ],
+      "transaction": {
+        "type": "0x02",
+        "from": "0xa195be68bd37ebffb056279dc3d236faa6f23670",
+        "to": "0xc7f2cf4845c6db0e1a1e91ed41bcd0fcc1b0e141",
+        "gas": "0x12bb8",
+        "value": "0x0",
+        "data": "0xa9612f6d000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000a000000000000000000000000000000000000000000000000000000000000000212f6d6967726174696f6e2f62616f6261622f5375626d697373696f6e50726f787900000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000006b2f55736572732f6e69636b2f646576656c6f706d656e742f6f72616b6c2f636f6e7472616374732f76302e322f6d6967726174696f6e2f62616f6261622f5375626d697373696f6e50726f78792f32303234303631383134343830305f6164644f7261636c652e6a736f6e000000000000000000000000000000000000000000",
+        "nonce": "0x536c4",
+        "accessList": []
+      },
+      "additionalContracts": [],
+      "isFixedGasLimit": false
+    }
+  ],
+  "receipts": [],
+  "libraries": [],
+  "pending": [
+    "0x238ea0f97949775507a611db5a09d367381561fc4cdb6e1aeae99a4da7ed071f",
+    "0x05cdf0e7d36bb5a039453906e7230019be98dd8e0acb35c215f40f39cde8aab4",
+    "0x4d7251ddcbb83597ce94248268b874c59e631face40d69ccbf2a0e9edbdb8c91"
+  ],
+  "returns": {},
+  "timestamp": 1718689792,
+  "chain": 1001,
+  "multi": false,
+  "commit": "478fc869"
+}
