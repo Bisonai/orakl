@@ -9,7 +9,7 @@ import (
 
 func TickerToFeedData(miniTicker MiniTicker, feedMap map[string]int32) (*common.FeedData, error) {
 	feedData := new(common.FeedData)
-	timestamp := time.Unix(miniTicker.EventTime/1000, 0)
+	timestamp := time.UnixMilli(miniTicker.EventTime)
 	value, err := common.PriceStringToFloat64(miniTicker.Price)
 	if err != nil {
 		return feedData, err

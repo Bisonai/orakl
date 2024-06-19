@@ -9,7 +9,7 @@ import (
 func ResponseToFeedDataList(response BatchResponse, feedMap map[string]int32) ([]*common.FeedData, error) {
 	feedDataList := []*common.FeedData{}
 
-	timestamp := time.Unix(response.Time/1000, 0)
+	timestamp := time.UnixMilli(int64(response.Time))
 
 	for _, item := range response.Data {
 		id, exists := feedMap[item.Symbol]
@@ -24,6 +24,7 @@ func ResponseToFeedDataList(response BatchResponse, feedMap map[string]int32) ([
 			return feedDataList, err
 		}
 
+		// mexc is using quote volume and volume in a opposite way
 		volume, err := common.VolumeStringToFloat64(item.QuoteVolume)
 		if err != nil {
 			return feedDataList, err

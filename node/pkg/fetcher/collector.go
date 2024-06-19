@@ -70,12 +70,13 @@ func (c *Collector) processFXPricePair(ctx context.Context, feeds []FeedData) er
 }
 
 func (c *Collector) processVolumeWeightedFeeds(ctx context.Context, feeds []FeedData) error {
-	volumeWeightedFeeds := filterFeedsWithVolume(feeds)
+	volumeWeightedFeeds, medianFeeds := partitionFeeds(feeds)
 	vwap, err := calculateVWAP(volumeWeightedFeeds)
 	if err != nil {
 		return err
 	}
-	median, err := calculateMedian(feeds)
+
+	median, err := calculateMedian(medianFeeds)
 	if err != nil {
 		return err
 	}
@@ -83,14 +84,37 @@ func (c *Collector) processVolumeWeightedFeeds(ctx context.Context, feeds []Feed
 	return insertAggregateData(ctx, c.ID, aggregated)
 }
 
-func filterFeedsWithVolume(feeds []FeedData) []FeedData {
+func partitionFeeds(feeds []FeedData) ([]FeedData, []FeedData) {
 	volumeWeightedFeeds := []FeedData{}
+	medianFeeds := []FeedData{}
+	var maxVolume, secondMaxVolume float64
+
 	for _, feed := range feeds {
 		if feed.Volume > 0 {
 			volumeWeightedFeeds = append(volumeWeightedFeeds, feed)
+
+			if feed.Volume > maxVolume {
+				secondMaxVolume = maxVolume
+				maxVolume = feed.Volume
+			} else if feed.Volume > secondMaxVolume {
+				secondMaxVolume = feed.Volume
+			}
+		} else {
+			medianFeeds = append(medianFeeds, feed)
 		}
 	}
-	return volumeWeightedFeeds
+
+	if maxVolume > secondMaxVolume*100 {
+		log.Warn().Str("Player", "Collector").Float64("maxVolume", maxVolume).Float64("secondMaxVolume", secondMaxVolume).Msg("outlier detected, removing outlier")
+		for i, feed := range volumeWeightedFeeds {
+			if feed.Volume == maxVolume {
+				medianFeeds = append(medianFeeds, feed)
+				volumeWeightedFeeds = append(volumeWeightedFeeds[:i], volumeWeightedFeeds[i+1:]...)
+			}
+		}
+	}
+
+	return volumeWeightedFeeds, medianFeeds
 }
 
 func calculateAggregatedPrice(valueWeightedAveragePrice, medianPrice float64) float64 {

@@ -34,7 +34,6 @@ func New(ctx context.Context, opts ...common.FetcherOption) (common.FetcherInter
 		symbols = append(symbols, feed)
 	}
 
-	// subscribe to market snapshot to avoid potential rate limit
 	subscription := Subscription{
 		ID:       1,
 		Type:     "subscribe",

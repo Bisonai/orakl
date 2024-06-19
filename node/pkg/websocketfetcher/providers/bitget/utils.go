@@ -16,7 +16,7 @@ func ResponseToFeedDataList(data Response, feedMap map[string]int32) ([]*common.
 			continue
 		}
 
-		timestamp := time.Unix(0, tick.Ts*int64(time.Millisecond))
+		timestamp := time.UnixMilli(tick.Ts)
 		value, err := common.PriceStringToFloat64(tick.Last)
 		if err != nil {
 			log.Error().Err(err).Msg("failed to convert price string to float64")

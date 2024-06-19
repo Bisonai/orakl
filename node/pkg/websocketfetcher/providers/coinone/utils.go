@@ -11,7 +11,7 @@ import (
 func DataToFeedData(data Data, feedMap map[string]int32) (*common.FeedData, error) {
 	feedData := new(common.FeedData)
 
-	timestamp := time.Unix(data.Timestamp/1000, 0)
+	timestamp := time.UnixMilli(data.Timestamp)
 	value, err := common.PriceStringToFloat64(data.Last)
 	if err != nil {
 		return feedData, err

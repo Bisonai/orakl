@@ -15,7 +15,7 @@ func ResponseToFeedDataList(data Response, feedMap map[string]int32) ([]*common.
 		if tick.LastTradePrice == nil {
 			continue
 		}
-		timestamp := time.Unix(tick.Timestamp/1000, 0)
+		timestamp := time.UnixMilli(tick.Timestamp)
 		value, err := common.PriceStringToFloat64(*tick.LastTradePrice)
 		if err != nil {
 			log.Warn().Str("Player", "cryptodotcom").Str("priceValue", *tick.LastTradePrice).Err(err).Msg("failed to convert price string to float64")

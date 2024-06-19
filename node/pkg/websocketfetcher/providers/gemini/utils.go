@@ -12,7 +12,7 @@ import (
 func TradeResponseToFeedDataList(data Response, feedMap map[string]int32, volumeCacheMap *common.VolumeCacheMap) ([]*common.FeedData, error) {
 	feedDataList := []*common.FeedData{}
 
-	timestamp := time.Unix(*data.TimestampMs/1000, 0)
+	timestamp := time.UnixMilli(*data.TimestampMs)
 	for _, event := range data.Events {
 		feedData := new(common.FeedData)
 		id, exists := feedMap[event.Symbol]
@@ -56,7 +56,7 @@ func FetchVolumes(feedMap map[string]int32, volumeCacheMap *common.VolumeCacheMa
 			continue
 		}
 
-		timestamp := time.Unix(int64(timestampRaw)/1000, 0)
+		timestamp := time.UnixMilli(int64(timestampRaw))
 
 		for key, value := range result.Volume {
 			if strings.HasPrefix(symbol, key) {

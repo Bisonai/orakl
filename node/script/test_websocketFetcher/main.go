@@ -26,18 +26,6 @@ func main() {
 			Definition: json.RawMessage(`{"type": "wss", "provider": "coinbase", "base": "eth", "quote": "usdt"}`),
 			ConfigID:   2,
 		},
-		// {
-		// 	ID:         1,
-		// 	Name:       "coinbase-wss-BORA-KRW",
-		// 	Definition: json.RawMessage(`{"type": "wss", "provider": "coinbase", "base": "bora", "quote": "krw"}`),
-		// 	ConfigID:   1,
-		// },
-		// {
-		// 	ID:         2,
-		// 	Name:       "coinbase-wss-MBX-KRW",
-		// 	Definition: json.RawMessage(`{"type": "wss", "provider": "coinbase", "base": "mbx", "quote": "krw"}`),
-		// 	ConfigID:   2,
-		// },
 	}
 	feedMap := common.GetWssFeedMap(feed)
 	fetcher, err := coinbase.New(ctx, common.WithFeedMaps(feedMap["coinbase"]))

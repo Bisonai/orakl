@@ -10,7 +10,7 @@ import (
 func ResponseToFeedData(data Response, feedMap map[string]int32) (*common.FeedData, error) {
 	feedData := new(common.FeedData)
 
-	timestamp := time.Unix(*data.Data.Time/1000, 0)
+	timestamp := time.UnixMilli(*data.Data.Time)
 	value, err := common.PriceStringToFloat64(*data.Data.Price)
 	if err != nil {
 		return feedData, err

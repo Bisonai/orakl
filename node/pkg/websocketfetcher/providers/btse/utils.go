@@ -19,7 +19,7 @@ func ResponseToFeedDataList(data Response, feedMap map[string]int32, volumeCache
 			continue
 		}
 
-		timestamp := time.Unix(ticker.Timestamp/1000, 0)
+		timestamp := time.UnixMilli(ticker.Timestamp)
 		price := common.FormatFloat64Price(ticker.Price)
 
 		entry := common.FeedData{
