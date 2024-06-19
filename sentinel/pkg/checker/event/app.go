@@ -167,18 +167,12 @@ func timeSinceLastPorEvent(ctx context.Context, feed FeedToCheck) (time.Duration
 
 func loadExpectedEventIntervals() ([]Config, error) {
 	chain := os.Getenv("CHAIN")
-	if chain == "" {
-		chain = "baobab"
-	}
 	url := loadOraklConfigUrl(chain)
 	return request.GetRequest[[]Config](url, nil, nil)
 }
 
 func loadPegPorEventInterval() (PegPorConfig, error) {
 	chain := os.Getenv("CHAIN")
-	if chain == "" {
-		chain = "baobab"
-	}
 	url := loadPegPorConfigUrl(chain)
 	return request.GetRequest[PegPorConfig](url, nil, nil)
 }
