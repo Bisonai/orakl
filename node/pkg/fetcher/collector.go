@@ -2,9 +2,9 @@ package fetcher
 
 import (
 	"context"
+	"fmt"
 	"time"
 
-	"bisonai.com/orakl/node/pkg/utils/calculator"
 	"github.com/rs/zerolog/log"
 )
 
@@ -42,43 +42,93 @@ func (c *Collector) Run(ctx context.Context) {
 }
 
 func (c *Collector) Job(ctx context.Context) error {
-	log.Debug().Str("Player", "Collector").Str("collector", c.Name).Msg("collectorJob")
-	rawResult, err := c.collect(ctx)
+	feeds, err := c.collect(ctx)
 	if err != nil {
-		log.Error().Str("Player", "Collector").Err(err).Msg("error in collect")
 		return err
 	}
 
-	if len(rawResult) == 0 {
+	if len(feeds) == 0 {
 		return nil
 	}
 
-	aggregated, err := calculator.GetFloatMed(rawResult)
-	if err != nil {
-		log.Error().Str("Player", "Collector").Err(err).Msg("error in GetFloatMed")
-		return err
-	}
-	err = insertLocalAggregateRdb(ctx, c.ID, aggregated)
-	if err != nil {
-		log.Error().Str("Player", "Collector").Err(err).Msg("error in insertLocalAggregateRdb")
-		return err
-	}
-	return insertLocalAggregatePgsql(ctx, c.ID, aggregated)
+	return c.processFeeds(ctx, feeds)
 }
 
-func (c *Collector) collect(ctx context.Context) ([]float64, error) {
+func (c *Collector) processFeeds(ctx context.Context, feeds []FeedData) error {
+	if isFXPricePair(c.Name) {
+		return c.processFXPricePair(ctx, feeds)
+	}
+	return c.processVolumeWeightedFeeds(ctx, feeds)
+}
+
+func (c *Collector) processFXPricePair(ctx context.Context, feeds []FeedData) error {
+	median, err := calculateMedian(feeds)
+	if err != nil {
+		log.Error().Err(err).Str("Player", "Collector").Msg("error in calculateMedian in collector")
+		return err
+	}
+	return insertAggregateData(ctx, c.ID, median)
+}
+
+func (c *Collector) processVolumeWeightedFeeds(ctx context.Context, feeds []FeedData) error {
+	volumeWeightedFeeds, medianFeeds := partitionFeeds(feeds)
+	vwap, err := calculateVWAP(volumeWeightedFeeds)
+	if err != nil {
+		log.Error().Err(err).Str("Player", "Collector").Msg("error in calculateVWAP in collector")
+		return err
+	}
+
+	median, err := calculateMedian(medianFeeds)
+	if err != nil {
+		log.Error().Err(err).Str("Player", "Collector").Msg("error in calculateMedian in collector")
+		return err
+	}
+	aggregated := calculateAggregatedPrice(vwap, median)
+	return insertAggregateData(ctx, c.ID, aggregated)
+}
+
+func partitionFeeds(feeds []FeedData) ([]FeedData, []FeedData) {
+	volumeWeightedFeeds := []FeedData{}
+	medianFeeds := []FeedData{}
+
+	for _, feed := range feeds {
+		if feed.Volume > 0 {
+			volumeWeightedFeeds = append(volumeWeightedFeeds, feed)
+		} else {
+			medianFeeds = append(medianFeeds, feed)
+		}
+	}
+
+	return volumeWeightedFeeds, medianFeeds
+}
+
+func calculateAggregatedPrice(valueWeightedAveragePrice, medianPrice float64) float64 {
+	if valueWeightedAveragePrice == 0 {
+		return medianPrice
+	} else if medianPrice == 0 {
+		return valueWeightedAveragePrice
+	}
+	return valueWeightedAveragePrice*(1-DefaultMedianRatio) + medianPrice*DefaultMedianRatio
+}
+
+func insertAggregateData(ctx context.Context, id int32, aggregated float64) error {
+	if aggregated == 0 {
+		return nil
+	}
+	err1 := insertLocalAggregateRdb(ctx, id, aggregated)
+	err2 := insertLocalAggregatePgsql(ctx, id, aggregated)
+
+	if err1 != nil || err2 != nil {
+		return fmt.Errorf("errors occurred in insertAggregateData: %v, %v", err1, err2)
+	}
+
+	return nil
+}
+
+func (c *Collector) collect(ctx context.Context) ([]FeedData, error) {
 	feedIds := make([]int32, len(c.Feeds))
 	for i, feed := range c.Feeds {
 		feedIds[i] = feed.ID
 	}
-	feedData, err := getLatestFeedData(ctx, feedIds)
-	if err != nil {
-		log.Error().Str("Player", "Collector").Err(err).Msg("error in getLatestFeedData")
-		return nil, err
-	}
-	result := make([]float64, len(feedData))
-	for i, data := range feedData {
-		result[i] = data.Value
-	}
-	return result, nil
+	return getLatestFeedData(ctx, feedIds)
 }

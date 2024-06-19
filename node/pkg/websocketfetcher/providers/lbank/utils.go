@@ -21,6 +21,7 @@ func ResponseToFeedData(data Response, feedMap map[string]int32) (*common.FeedDa
 	timestamp := timestampRaw.UTC()
 	value := common.FormatFloat64Price(data.Tick.Latest)
 	symbol := strings.ToUpper(strings.ReplaceAll(data.Pair, "_", "-"))
+	volume := data.Tick.Vol
 
 	id, exists := feedMap[symbol]
 	if !exists {
@@ -29,6 +30,7 @@ func ResponseToFeedData(data Response, feedMap map[string]int32) (*common.FeedDa
 	feedData.FeedID = id
 	feedData.Value = value
 	feedData.Timestamp = &timestamp
+	feedData.Volume = volume
 
 	return feedData, nil
 }

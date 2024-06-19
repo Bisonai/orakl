@@ -1,6 +1,9 @@
 package bitstamp
 
-const URL = "wss://ws.bitstamp.net"
+const (
+	URL                               = "wss://ws.bitstamp.net"
+	ALL_CURRENCY_PAIR_TICKER_ENDPOINT = "https://www.bitstamp.net/api/v2/ticker/"
+)
 
 type Subscription struct {
 	Event string `json:"event"`
@@ -26,4 +29,10 @@ type TradeEvent struct {
 	Channel string `json:"channel"`
 	Data    Trade  `json:"data"`
 	Event   string `json:"event"`
+}
+
+type VolumeEntry struct {
+	Timestamp string `json:"timestamp"`
+	Volume    string `json:"volume"`
+	Pair      string `json:"pair"`
 }

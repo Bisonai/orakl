@@ -28,19 +28,15 @@ func New(ctx context.Context, opts ...common.FetcherOption) (common.FetcherInter
 		symbols = append(symbols, symbol)
 	}
 
-	transactionSubscription := Subscription{
-		Type:    "transaction",
-		Symbols: symbols,
-	}
 	tickerSubscription := Subscription{
 		Type:      "ticker",
 		Symbols:   symbols,
-		TickTypes: []string{"30M", "1H", "12H", "24H", "MID"},
+		TickTypes: []string{"24H"},
 	}
 
 	ws, err := wss.NewWebsocketHelper(ctx,
 		wss.WithEndpoint(URL),
-		wss.WithSubscriptions([]any{transactionSubscription, tickerSubscription}),
+		wss.WithSubscriptions([]any{tickerSubscription}),
 		wss.WithProxyUrl(config.Proxy))
 	if err != nil {
 		log.Error().Str("Player", "Bithumb").Err(err).Msg("error in bithumb.New")
@@ -59,40 +55,23 @@ func (f *BithumbFetcher) handleMessage(ctx context.Context, message map[string]a
 		return err
 	}
 
-	if response.Type != "transaction" && response.Type != "ticker" {
+	if response.Type != "ticker" {
 		return nil
-	} else if response.Type == "ticker" {
-		tickerResponse, err := common.MessageToStruct[TickerResponse](message)
-		if err != nil {
-			log.Error().Str("Player", "Bithumb").Err(err).Msg("error in bithumb.handleMessage")
-			return err
-		}
-
-		feedData, err := TickerResponseToFeedData(tickerResponse, f.FeedMap)
-		if err != nil {
-			log.Error().Str("Player", "Bithumb").Err(err).Msg("error in bithumb.handleMessage")
-			return err
-		}
-
-		f.FeedDataBuffer <- *feedData
-
-	} else if response.Type == "transaction" {
-		transactionResponse, err := common.MessageToStruct[TransactionResponse](message)
-		if err != nil {
-			log.Error().Str("Player", "Bithumb").Err(err).Msg("error in bithumb.handleMessage")
-			return err
-		}
-
-		feedDataList, err := TransactionResponseToFeedDataList(transactionResponse, f.FeedMap)
-		if err != nil {
-			log.Error().Str("Player", "Bithumb").Err(err).Msg("error in bithumb.handleMessage")
-			return err
-		}
-
-		for _, feedData := range feedDataList {
-			f.FeedDataBuffer <- *feedData
-		}
 	}
+
+	tickerResponse, err := common.MessageToStruct[TickerResponse](message)
+	if err != nil {
+		log.Error().Str("Player", "Bithumb").Err(err).Msg("error in bithumb.handleMessage")
+		return err
+	}
+
+	feedData, err := TickerResponseToFeedData(tickerResponse, f.FeedMap)
+	if err != nil {
+		log.Error().Str("Player", "Bithumb").Err(err).Msg("error in bithumb.handleMessage")
+		return err
+	}
+
+	f.FeedDataBuffer <- *feedData
 
 	return nil
 }

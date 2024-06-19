@@ -29,6 +29,7 @@ func New(ctx context.Context, opts ...common.FetcherOption) (common.FetcherInter
 	fetcher.FeedDataBuffer = config.FeedDataBuffer
 
 	symbols := []string{}
+
 	for feed := range fetcher.FeedMap {
 		symbols = append(symbols, feed)
 	}
@@ -36,7 +37,7 @@ func New(ctx context.Context, opts ...common.FetcherOption) (common.FetcherInter
 	subscription := Subscription{
 		ID:       1,
 		Type:     "subscribe",
-		Topic:    "/market/ticker:" + strings.Join(symbols, ","),
+		Topic:    "/market/snapshot:" + strings.Join(symbols, ","),
 		Response: true,
 	}
 
@@ -54,23 +55,20 @@ func New(ctx context.Context, opts ...common.FetcherOption) (common.FetcherInter
 }
 
 func (f *KucoinFetcher) handleMessage(ctx context.Context, message map[string]any) error {
-	raw, err := common.MessageToStruct[Raw](message)
+	raw, err := common.MessageToStruct[SymbolSnapshotRaw](message)
 	if err != nil {
 		log.Error().Str("Player", "Kucoin").Err(err).Msg("error in kucoin.handleMessage")
 		return err
 	}
 
-	if raw.Subject != "trade.ticker" {
+	if raw.Subject != "trade.snapshot" {
 		return nil
 	}
 
-	feedData, err := RawDataToFeedData(raw, f.FeedMap)
-	if err != nil {
-		log.Error().Str("Player", "Kucoin").Err(err).Msg("error in kucoin.handleMessage")
-		return err
-	}
+	feedData := RawDataToFeedData(raw, f.FeedMap)
 
 	f.FeedDataBuffer <- *feedData
+
 	return nil
 }
 

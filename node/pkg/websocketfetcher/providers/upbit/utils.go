@@ -11,8 +11,11 @@ import (
 func ResponseToFeedData(data Response, feedMap map[string]int32) (*common.FeedData, error) {
 	feedData := new(common.FeedData)
 
-	timestamp := time.Unix(data.TradeTimestamp/1000, 0)
+	timestamp := time.UnixMilli(data.TradeTimestamp)
 	price := common.FormatFloat64Price(data.TradePrice)
+
+	volume := data.AccTradeVolume24h
+
 	splitted := strings.Split(data.Code, "-")
 	base := splitted[1]
 	quote := splitted[0]
@@ -24,5 +27,6 @@ func ResponseToFeedData(data Response, feedMap map[string]int32) (*common.FeedDa
 	feedData.FeedID = id
 	feedData.Value = price
 	feedData.Timestamp = &timestamp
+	feedData.Volume = *volume
 	return feedData, nil
 }

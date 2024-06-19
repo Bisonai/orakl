@@ -1,6 +1,11 @@
 package gemini
 
-const URL = "wss://api.gemini.com/v1/multimarketdata?bids=false&offers=false&top_of_book=true&symbols="
+const URL = "wss://api.gemini.com/v1/multimarketdata?bids=false&heartbeat=true&offers=false&top_of_book=true&symbols="
+
+// rate limit of http request: 120/min.
+// recommended: 1/sec
+// ex: https://api.gemini.com/v1/pubticker/btcusd
+const TICKER_ENDPOINT = "https://api.gemini.com/v1/pubticker/"
 
 type Response struct {
 	Type        string  `json:"type"`
@@ -18,4 +23,8 @@ type Event struct {
 	Delta     *string `json:"delta"`
 	Amount    *string `json:"amount"`
 	MakerSide *string `json:"makerSide"`
+}
+
+type HttpTickerResponse struct {
+	Volume map[string]any `json:"volume"`
 }

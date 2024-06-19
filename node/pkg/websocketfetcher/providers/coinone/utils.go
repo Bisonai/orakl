@@ -11,8 +11,13 @@ import (
 func DataToFeedData(data Data, feedMap map[string]int32) (*common.FeedData, error) {
 	feedData := new(common.FeedData)
 
-	timestamp := time.Unix(data.Timestamp/1000, 0)
+	timestamp := time.UnixMilli(data.Timestamp)
 	value, err := common.PriceStringToFloat64(data.Last)
+	if err != nil {
+		return feedData, err
+	}
+
+	volume, err := common.VolumeStringToFloat64(data.TargetVolume)
 	if err != nil {
 		return feedData, err
 	}
@@ -24,5 +29,6 @@ func DataToFeedData(data Data, feedMap map[string]int32) (*common.FeedData, erro
 	feedData.FeedID = id
 	feedData.Value = value
 	feedData.Timestamp = &timestamp
+	feedData.Volume = volume
 	return feedData, nil
 }

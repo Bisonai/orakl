@@ -17,6 +17,11 @@ func ResponseToFeedData(data Response, feedMap map[string]int32) (*common.FeedDa
 		return feedData, err
 	}
 
+	volume, err := common.VolumeStringToFloat64(data.Result.BaseVolume)
+	if err != nil {
+		return feedData, err
+	}
+
 	key := strings.Replace(data.Result.CurrencyPair, "_", "-", 1)
 	id, exists := feedMap[key]
 	if !exists {
@@ -26,5 +31,6 @@ func ResponseToFeedData(data Response, feedMap map[string]int32) (*common.FeedDa
 	feedData.FeedID = id
 	feedData.Value = price
 	feedData.Timestamp = &timestamp
+	feedData.Volume = volume
 	return feedData, nil
 }

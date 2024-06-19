@@ -3,6 +3,8 @@ package gemini
 import (
 	"context"
 	"strings"
+	"sync"
+	"time"
 
 	"bisonai.com/orakl/node/pkg/websocketfetcher/common"
 	"bisonai.com/orakl/node/pkg/wss"
@@ -20,6 +22,10 @@ func New(ctx context.Context, opts ...common.FetcherOption) (common.FetcherInter
 	fetcher := &GeminiFetcher{}
 	fetcher.FeedMap = config.FeedMaps.Combined
 	fetcher.FeedDataBuffer = config.FeedDataBuffer
+	fetcher.VolumeCacheMap = common.VolumeCacheMap{
+		Map:   make(map[int32]common.VolumeCache),
+		Mutex: sync.Mutex{},
+	}
 
 	symbols := []string{}
 	for feed := range fetcher.FeedMap {
@@ -49,7 +55,7 @@ func (f *GeminiFetcher) handleMessage(ctx context.Context, message map[string]an
 	if response.Type != "update" || len(response.Events) == 0 {
 		return nil
 	}
-	feedDataList, err := TradeResponseToFeedDataList(response, f.FeedMap)
+	feedDataList, err := TradeResponseToFeedDataList(response, f.FeedMap, &f.VolumeCacheMap)
 	if err != nil {
 		log.Error().Str("Player", "Gemini").Err(err).Msg("error in TradeResponseToFeedDataList")
 		return err
@@ -61,5 +67,18 @@ func (f *GeminiFetcher) handleMessage(ctx context.Context, message map[string]an
 }
 
 func (f *GeminiFetcher) Run(ctx context.Context) {
+	go f.CacheVolumes()
 	f.Ws.Run(ctx, f.handleMessage)
+}
+
+func (f *GeminiFetcher) CacheVolumes() {
+	volumeTimer := time.NewTimer(common.VolumeFetchInterval * time.Millisecond)
+
+	FetchVolumes(f.FeedMap, &f.VolumeCacheMap)
+
+	for {
+		<-volumeTimer.C
+		FetchVolumes(f.FeedMap, &f.VolumeCacheMap)
+		volumeTimer.Reset(common.VolumeFetchInterval * time.Millisecond)
+	}
 }

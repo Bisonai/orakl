@@ -59,6 +59,7 @@ func (f *LbankFetcher) handleMessage(ctx context.Context, message map[string]any
 		log.Error().Str("Player", "Lbank").Err(err).Msg("error in ResponseToFeedData")
 		return err
 	}
+
 	f.FeedDataBuffer <- *feedData
 
 	return nil

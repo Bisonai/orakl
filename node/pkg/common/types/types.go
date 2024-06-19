@@ -15,6 +15,7 @@ type Proxy struct {
 type FeedData struct {
 	FeedID    int32      `db:"feed_id"`
 	Value     float64    `db:"value"`
+	Volume    float64    `db:"volume"`
 	Timestamp *time.Time `db:"timestamp"`
 }
 
