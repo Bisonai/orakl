@@ -19,7 +19,7 @@ var FeedsToCheck = []FeedToCheck{}
 var PegPorToCheck = FeedToCheck{}
 var EventCheckInterval time.Duration
 var BUFFER = 1 * time.Second
-var POR_BUFFER = 1 * time.Minute
+var POR_BUFFER = 60 * time.Second
 
 func setUp(ctx context.Context) error {
 	log.Debug().Msg("Setting up event checker")
