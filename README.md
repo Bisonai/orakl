@@ -75,7 +75,7 @@ Run the following command to build all images
 docker-compose -f docker-compose.local-core.yaml build
 ```
 
-Set wallet credentials, `ADDRESS` and `PRIVATE_KEY` values, in the [.core-cli-contracts.env](./dockerfiles/local-vrf-rr/envs/.core-cli-contracts.env) file. Keep in mind that the default chain is `localhost`. If you'd like to change it to either `baobab` or `cypress`, update `CHAIN` and `PROVIDER_URL` values in the earlier mentioned `.env` file. Note that if the chain is not `localhost`, `Coordinator` and `Prepayment` contracts won't be deployed. Instead, Bisonai's already deployed contract addresses ([VRF](https://github.com/Bisonai/vrf-consumer/blob/master/hardhat.config.ts), [RR](https://github.com/Bisonai/request-response-consumer/blob/master/hardhat.config.ts)) will be used. After setting the appropriate `.env` values, run the following command to start the VRF service:
+Set wallet credentials, `ADDRESS` and `PRIVATE_KEY` values, in the [.core-cli-contracts.env](./dockerfiles/local-vrf-rr/envs/.core-cli-contracts.env) file. Keep in mind that the default chain is `localhost`. If changes are required, update `CHAIN` (other options being `baobab` and `cypress`) and `PROVIDER_URL` values. Note that if the chain is not `localhost`, `Coordinator` and `Prepayment` contracts won't be deployed. Instead, Bisonai's already deployed contract addresses ([VRF](https://github.com/Bisonai/vrf-consumer/blob/master/hardhat.config.ts), [RR](https://github.com/Bisonai/request-response-consumer/blob/master/hardhat.config.ts)) will be used. After setting the appropriate `.env` values, run the following command to start the VRF service:
 
 ```bash
 SERVICE=vrf docker-compose -f docker-compose.local-core.yaml up --force-recreate
@@ -99,9 +99,7 @@ Here is what happens after the above command is run:
   - `contracts/v0.1/hardhat.config.cjs` file gets updated with `PROVIDER_URL`
   - relevant coordinator and prepayment contracts get deployed
 
-Keep in mind that for VRF service if the chain is `localhost` you'll need the [keyHash](/dockerfiles/local-vrf-rr/envs/vrf-keys.json) value for VRF consumer and update it in [vrf-consumer/scripts/utils.ts](https://github.com/Bisonai/vrf-consumer/blob/master/scripts/utils.ts)
-
-To start core microservices (listener, worker, reporter) as as singleton run:
+To start core microservices (listener, worker, reporter) as a singleton service run:
 
 - production mode
   ```sh
