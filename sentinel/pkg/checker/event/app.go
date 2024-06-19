@@ -72,13 +72,14 @@ func setUp(ctx context.Context) error {
 	pegPorSubgraphInfo, ok := subgraphInfoMap[pegPorConfig.Name]
 	if !ok {
 		log.Warn().Msg("Peg Por subgraph info not found")
-	} else {
-		PegPorToCheck = FeedToCheck{
-			SchemaName:       pegPorSubgraphInfo.SchemaName,
-			FeedName:         pegPorConfig.Name,
-			ExpectedInterval: pegPorConfig.Heartbeat,
-			LatencyChecked:   0,
-		}
+		return nil
+	}
+
+	PegPorToCheck = FeedToCheck{
+		SchemaName:       pegPorSubgraphInfo.SchemaName,
+		FeedName:         pegPorConfig.Name,
+		ExpectedInterval: pegPorConfig.Heartbeat,
+		LatencyChecked:   0,
 	}
 
 	return nil
