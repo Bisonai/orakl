@@ -67,7 +67,7 @@ func TickerResponseToFeedData(data TickerResponse, feedMap map[string]int32) (*c
 
 	t, err := time.ParseInLocation(timeLayout, data.Content.Time, loc)
 	if err != nil {
-		log.Error().Err(err).Msg("error in bithumb.TickerResponseToFeedData, failed to parse time with locaiton")
+		log.Error().Err(err).Msg("error in bithumb.TickerResponseToFeedData, failed to parse time with location")
 		return nil, err
 	}
 
