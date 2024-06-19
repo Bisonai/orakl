@@ -17,4 +17,4 @@ export const CYPRESS_PROVIDER_URL =
   process.env.CYPRESS_PROVIDER_URL || 'https://public-en-cypress.klaytn.net'
 
 export const ETHEREUM_PROVIDER_URL =
-  process.env.ETHEREUM_PROVIDER_URL || 'https://ethereum-mainnet-rpc.allthatnode.com'
+  process.env.ETHEREUM_PROVIDER_URL || 'https://ethereum-mainnet.g.allthatnode.com/full/evm'
