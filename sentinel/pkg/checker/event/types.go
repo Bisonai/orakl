@@ -40,6 +40,11 @@ type Config struct {
 	SubmitInterval int    `json:"submitInterval"`
 }
 
+type PegPorConfig struct {
+	Name      string `json:"name"`
+	Heartbeat int    `json:"heartbeat"`
+}
+
 type FeedToCheck struct {
 	SchemaName       string
 	FeedName         string
@@ -51,6 +56,14 @@ func feedEventQuery(schemaName string) string {
 	return fmt.Sprintf(`SELECT time FROM %s.feed_feed_updated ORDER BY time DESC LIMIT 1;`, schemaName)
 }
 
+func aggregatorEventQuery(schemaName string) string {
+	return fmt.Sprintf(`SELECT time FROM %s.aggregator_submission_received ORDER BY time DESC LIMIT 1;`, schemaName)
+}
+
 func loadOraklConfigUrl(chain string) string {
 	return fmt.Sprintf("https://config.orakl.network/%s_configs.json", chain)
+}
+
+func loadPegPorConfigUrl(chain string) string {
+	return fmt.Sprintf("https://config.orakl.network/aggregator/%s/peg.por.json", chain)
 }
