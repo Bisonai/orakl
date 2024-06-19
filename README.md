@@ -69,28 +69,21 @@ docker-compose -f docker-compose.local-data-feed.yaml down -v
 
 ### VRF / Request-Response
 
-1. Docker Compose Build
-   Builds all required images for docker-compose.
+Run the following command to build all images
 
 ```bash
 docker-compose -f docker-compose.local-core.yaml build
 ```
 
-2. Docker Compose Up
-   Runs all required images to run datafeed locally.
+Set wallet credentials, `ADDRESS` and `PRIVATE_KEY` values, in the [.core-cli-contracts.env](./dockerfiles/local-vrf-rr/envs/.core-cli-contracts.env) file. Keep in mind that the default chain is `localhost`. If you'd like to change it to either `baobab` or `cypress`, update `CHAIN` and `PROVIDER_URL` values in the earlier mentioned `.env` file. Note that if the chain is not `localhost`, `Coordinator` and `Prepayment` contracts won't be deployed. Instead, Bisonai's already deployed contract addresses ([VRF](https://github.com/Bisonai/vrf-consumer/blob/master/hardhat.config.ts), [RR](https://github.com/Bisonai/request-response-consumer/blob/master/hardhat.config.ts)) will be used. After setting the appropriate `.env` values, run the following command to start the VRF service:
 
 ```bash
-SERVICE=rr docker-compose -f docker-compose.local-core.yaml up --force-recreate
+SERVICE=vrf docker-compose -f docker-compose.local-core.yaml up --force-recreate
 ```
 
-3. Docker Compose Down
-   Close all related containers.
+`SERVICE` is an env variable that will be used to spin up the specified service. The options are `rr` and `vrf` stands for Request-Response and VRF, respectively.
 
-```bash
-docker-compose -f docker-compose.local-core.yaml down -v
-```
-
-Replace `SERVICE` with whichever service you'd like to run. The options are `vrf` and `rr` which represent VRF and Request-Response services respectively.
+**Note** that the current docker implementation is designed to run a single service, either `rr` or `vrf`, at a time. Therefore, it's highly recommended to add `--force-recreate` when running `docker-compose up` command. That will restart all containers thus removing all the modified data in those containers.
 
 Here is what happens after the above command is run:
 
@@ -102,13 +95,25 @@ Here is what happens after the above command is run:
   - listener (after contracts are deployed)
   - reporter (after contracts are deployed)
 - migration files in `contracts/v0.1/migration/` get updated with provided keys and other values
-- relevant coordinator and prepayment contracts get deployed
+- if the chain is `localhost`:
+  - `contracts/v0.1/hardhat.config.cjs` file gets updated with `PROVIDER_URL`
+  - relevant coordinator and prepayment contracts get deployed
 
-Keep in mind that you'll need the [keyHash](/dockerfiles/local-vrf-rr/envs/vrf-keys.json) value for VRF consumer and update it in `vrf-consumer/scripts/utils.ts`
+Keep in mind that for VRF service if the chain is `localhost` you'll need the [keyHash](/dockerfiles/local-vrf-rr/envs/vrf-keys.json) value for VRF consumer and update it in [vrf-consumer/scripts/utils.ts](https://github.com/Bisonai/vrf-consumer/blob/master/scripts/utils.ts)
 
-You can spin up the listener, worker, and reporter services from [core](../../core/) and make requests to VRF or Request-Response consumers after deploying consumer contracts.
+To start core microservices (listener, worker, reporter) as as singleton run:
 
-### Notes
+- production mode
+  ```sh
+  yarn start:core:vrf
+  # or
+  yarn start:core:request_response
+  ```
+- development mode
+  ```sh
+  yarn dev:core:vrf
+  # or
+  yarn dev:core:request_response
+  ```
 
-- The current automation is not designed to run both VRF and Request-Response services.
-- Therefore, every time a new service (VRF or Request-Response) is started, all the running containers related to `core` will be recreated, meaning you'll lose all changes in those containers
+The microservices can also be started separately in any arbitrary order by replacing `core` in the above commands with either `listener`, `worker`, or `reporter`
