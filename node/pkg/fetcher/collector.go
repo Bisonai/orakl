@@ -87,30 +87,12 @@ func (c *Collector) processVolumeWeightedFeeds(ctx context.Context, feeds []Feed
 func partitionFeeds(feeds []FeedData) ([]FeedData, []FeedData) {
 	volumeWeightedFeeds := []FeedData{}
 	medianFeeds := []FeedData{}
-	var maxVolume, secondMaxVolume float64
 
 	for _, feed := range feeds {
 		if feed.Volume > 0 {
 			volumeWeightedFeeds = append(volumeWeightedFeeds, feed)
-
-			if feed.Volume > maxVolume {
-				secondMaxVolume = maxVolume
-				maxVolume = feed.Volume
-			} else if feed.Volume > secondMaxVolume {
-				secondMaxVolume = feed.Volume
-			}
 		} else {
 			medianFeeds = append(medianFeeds, feed)
-		}
-	}
-
-	if maxVolume > secondMaxVolume*100 {
-		log.Warn().Str("Player", "Collector").Float64("maxVolume", maxVolume).Float64("secondMaxVolume", secondMaxVolume).Msg("outlier detected, removing outlier")
-		for i, feed := range volumeWeightedFeeds {
-			if feed.Volume == maxVolume {
-				medianFeeds = append(medianFeeds, feed)
-				volumeWeightedFeeds = append(volumeWeightedFeeds[:i], volumeWeightedFeeds[i+1:]...)
-			}
 		}
 	}
 
