@@ -166,7 +166,7 @@ var (
 	ErrReporterReportFailed                     = &CustomError{Service: Reporter, Code: InternalError, Message: "Report failed"}
 	ErrReporterProofNotFound                    = &CustomError{Service: Reporter, Code: InternalError, Message: "Proof not found"}
 	ErrReporterUnknownMessageType               = &CustomError{Service: Reporter, Code: InvalidRaftMessageError, Message: "Unknown message type"}
-	ErrReporterKlaytnHelperNotFound             = &CustomError{Service: Reporter, Code: InternalError, Message: "Klaytn helper not found"}
+	ErrReporterKaiaHelperNotFound               = &CustomError{Service: Reporter, Code: InternalError, Message: "Kaia helper not found"}
 	ErrReporterDeviationReportFail              = &CustomError{Service: Reporter, Code: InternalError, Message: "Deviation report failed"}
 	ErrReporterEmptyValidAggregates             = &CustomError{Service: Reporter, Code: InternalError, Message: "Empty valid aggregates"}
 	ErrReporterEmptyAggregatesParam             = &CustomError{Service: Reporter, Code: InvalidInputError, Message: "Empty aggregates param"}

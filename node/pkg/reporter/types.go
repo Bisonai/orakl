@@ -116,7 +116,7 @@ func WithJobType(jobType JobType) ReporterOption {
 
 type Reporter struct {
 	Raft               *raft.Raft
-	KlaytnHelper       *helper.ChainHelper
+	KaiaHelper         *helper.ChainHelper
 	SubmissionPairs    map[int32]SubmissionPair
 	SubmissionInterval time.Duration
 	CachedWhitelist    []common.Address

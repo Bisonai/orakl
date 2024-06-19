@@ -96,8 +96,8 @@ REDIS_HOST=<Your Redis Host>
 # Redis port, defaults to 6379
 REDIS_PORT=<Your Redis Port>
 
-# provider URL for `klaytn_helper`
-KLAYTN_PROVIDER_URL=<Your Provider URL>
+# provider URL for `kaia_helper`
+KAIA_PROVIDER_URL=<Your Provider URL>
 
 # provider URL for `eth_helper`
 ETH_PROVIDER_URL=<Provider URL>
@@ -117,8 +117,8 @@ ENCRYPT_PASSWORD=<Your Encrypt Password>
 # Chain name, 'baobab', 'cypress', or 'test'
 CHAIN=<Your Chain Name>
 
-# tx submission wallet for `klaytn_helper`
-KLAYTN_REPORTER_PK=<Your Reporter PK>
+# tx submission wallet for `kaia_helper`
+KAIA_REPORTER_PK=<Your Reporter PK>
 
 # tx submission wallet for `eth_helper`
 ETH_REPORTER_PK=<Reporter PK>
@@ -193,7 +193,7 @@ Follow these steps to set up and run the application:
 cp .env.local .env
 ```
 
-3. **Update environment variables**: Replace `DATABASE_URL`, `KLAYTN_REPORTER_PK`, `SIGNER_PK`, and other values with valid ones in the .env file.
+3. **Update environment variables**: Replace `DATABASE_URL`, `KAIA_REPORTER_PK`, `SIGNER_PK`, and other values with valid ones in the .env file.
 4. **Run Boot API**:
    skip this step if connecting to pre-existing boot api
 
