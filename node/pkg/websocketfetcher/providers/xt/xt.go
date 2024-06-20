@@ -59,7 +59,7 @@ func (f *XtFetcher) handleMessage(ctx context.Context, message map[string]any) e
 	}
 	raw, err := common.MessageToStruct[Response](message)
 	if err != nil {
-		log.Error().Str("Player", "Xt").Err(err).Msg("error in xt.handleMessage")
+		log.Error().Str("Player", "Xt").Err(err).Msg("error in xt.handleMessage, failed to parse response")
 		return err
 	}
 	if raw.Topic != "ticker" {
@@ -68,11 +68,11 @@ func (f *XtFetcher) handleMessage(ctx context.Context, message map[string]any) e
 
 	feedData, err := ResponseToFeedData(raw, f.FeedMap)
 	if err != nil {
-		log.Error().Str("Player", "Xt").Err(err).Msg("error in xt.handleMessage")
+		log.Error().Str("Player", "Xt").Err(err).Msg("error in xt.handleMessage, failed to convert response to feed data")
 		return err
 	}
-	fmt.Println(feedData)
-	// f.FeedDataBuffer <- *feedData
+
+	f.FeedDataBuffer <- *feedData
 	return nil
 }
 

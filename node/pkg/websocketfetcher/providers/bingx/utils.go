@@ -13,7 +13,7 @@ func ResponseToFeedData(response Response, feedMap map[string]int32) (*common.Fe
 	symbol := response.Data.Symbol
 	id, exists := feedMap[symbol]
 	if !exists {
-		return feedData, fmt.Errorf("feed not found")
+		return feedData, fmt.Errorf("feed not found for %s", symbol)
 	}
 	timestamp := time.UnixMilli(response.Data.EventTime)
 	value := common.FormatFloat64Price(response.Data.Price)
