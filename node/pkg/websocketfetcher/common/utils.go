@@ -109,3 +109,10 @@ func DecompressGzip(data []byte) ([]byte, error) {
 
 	return io.ReadAll(r)
 }
+
+func Min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
+}
