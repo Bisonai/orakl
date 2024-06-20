@@ -18,7 +18,7 @@ func TradeEventToFeedData(data TradeEvent, feedMap map[string]int32, volumeCache
 		return feedData, err
 	}
 
-	timestamp := time.UnixMilli(rawTimestamp)
+	timestamp := time.Unix(0, rawTimestamp*int64(time.Microsecond))
 	value := common.FormatFloat64Price(data.Data.Price)
 	splitted := strings.Split(data.Channel, "_")
 	if len(splitted) < 3 {
