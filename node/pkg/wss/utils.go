@@ -20,6 +20,7 @@ type WebsocketHelper struct {
 	Subscriptions  []any
 	Proxy          string
 	IsRunning      bool
+	Compression    bool
 	CustomDialFunc *func(context.Context, string, *websocket.DialOptions) (*websocket.Conn, *http.Response, error)
 	CustomReadFunc *func(context.Context, *websocket.Conn) (map[string]interface{}, error)
 	mu             sync.Mutex
@@ -29,6 +30,7 @@ type ConnectionConfig struct {
 	Endpoint      string
 	Proxy         string
 	Subscriptions []any
+	Compression   bool
 	DialFunc      func(context.Context, string, *websocket.DialOptions) (*websocket.Conn, *http.Response, error)
 	ReadFunc      func(context.Context, *websocket.Conn) (map[string]interface{}, error)
 }
@@ -68,6 +70,12 @@ func WithCustomReadFunc(readFunc func(context.Context, *websocket.Conn) (map[str
 	}
 }
 
+func WithCompressionMode() ConnectionOption {
+	return func(c *ConnectionConfig) {
+		c.Compression = true
+	}
+}
+
 func NewWebsocketHelper(ctx context.Context, opts ...ConnectionOption) (*WebsocketHelper, error) {
 	config := &ConnectionConfig{}
 	for _, opt := range opts {
@@ -87,6 +95,7 @@ func NewWebsocketHelper(ctx context.Context, opts ...ConnectionOption) (*Websock
 		Endpoint:      config.Endpoint,
 		Subscriptions: config.Subscriptions,
 		Proxy:         config.Proxy,
+		Compression:   config.Compression,
 		mu:            sync.Mutex{},
 	}
 
@@ -119,6 +128,10 @@ func (ws *WebsocketHelper) Dial(ctx context.Context) error {
 				Transport: proxyTransport,
 			},
 		}
+	}
+
+	if ws.Compression {
+		dialOption.CompressionMode = websocket.CompressionContextTakeover
 	}
 
 	dialFunc := websocket.Dial
@@ -216,6 +229,10 @@ func (ws *WebsocketHelper) Write(ctx context.Context, message interface{}) error
 	return nil
 }
 
+func (ws *WebsocketHelper) RawWrite(ctx context.Context, message string) error {
+	return ws.Conn.Write(ctx, websocket.MessageText, []byte(message))
+}
+
 func (ws *WebsocketHelper) Read(ctx context.Context, ch chan any) error {
 	for {
 		var t any
@@ -244,7 +261,7 @@ func defaultReader(ctx context.Context, conn *websocket.Conn) (map[string]interf
 	var data map[string]interface{}
 	err := wsjson.Read(ctx, conn, &data)
 	if err != nil {
-		log.Error().Err(err).Msg("error reading from websocket")
+		log.Error().Err(err).Msg("wsjson read error")
 		return nil, err
 	}
 	return data, nil
