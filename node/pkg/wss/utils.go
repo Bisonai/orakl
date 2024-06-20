@@ -127,7 +127,7 @@ func (ws *WebsocketHelper) Dial(ctx context.Context) error {
 	}
 	conn, _, err := dialFunc(ctx, ws.Endpoint, dialOption)
 	if err != nil {
-		log.Error().Err(err).Msg("error opening websocket connection")
+		log.Error().Err(err).Str("endpoint", ws.Endpoint).Msg("error opening websocket connection")
 		return err
 	}
 	ws.Conn = conn
@@ -157,7 +157,7 @@ func (ws *WebsocketHelper) Run(ctx context.Context, router func(context.Context,
 		for _, subscription := range ws.Subscriptions {
 			err := ws.Write(ctx, subscription)
 			if err != nil {
-				log.Error().Err(err).Msg("error writing subscription to websocket")
+				log.Error().Err(err).Str("endpoint", ws.Endpoint).Msg("error writing subscription to websocket")
 				return err
 			}
 		}
@@ -172,7 +172,7 @@ func (ws *WebsocketHelper) Run(ctx context.Context, router func(context.Context,
 		default:
 			err := retrier.Retry(dialJob, 3, 1, 10)
 			if err != nil {
-				log.Error().Err(err).Msg("error dialing websocket")
+				log.Error().Err(err).Str("endpoint", ws.Endpoint).Msg("error dialing websocket")
 				break
 			}
 
@@ -181,7 +181,7 @@ func (ws *WebsocketHelper) Run(ctx context.Context, router func(context.Context,
 
 			err = retrier.Retry(subscribeJob, 3, 1, 10)
 			if err != nil {
-				log.Error().Err(err).Msg("error subscribing to websocket")
+				log.Error().Err(err).Str("endpoint", ws.Endpoint).Msg("error subscribing to websocket")
 				break
 			}
 
@@ -190,13 +190,13 @@ func (ws *WebsocketHelper) Run(ctx context.Context, router func(context.Context,
 				data, err := readFunc(ctx, ws.Conn)
 				ws.mu.Unlock()
 				if err != nil {
-					log.Error().Err(err).Msg("error reading from websocket")
+					log.Error().Err(err).Str("endpoint", ws.Endpoint).Msg("error reading from websocket")
 					break
 				}
 				go func() {
 					routerErr := router(ctx, data)
 					if routerErr != nil {
-						log.Warn().Err(routerErr).Msg("error processing websocket message")
+						log.Warn().Err(routerErr).Str("endpoint", ws.Endpoint).Msg("error processing websocket message")
 					}
 				}()
 			}
@@ -210,7 +210,7 @@ func (ws *WebsocketHelper) Run(ctx context.Context, router func(context.Context,
 func (ws *WebsocketHelper) Write(ctx context.Context, message interface{}) error {
 	err := wsjson.Write(ctx, ws.Conn, message)
 	if err != nil {
-		log.Error().Err(err).Msg("error writing to websocket")
+		log.Error().Err(err).Str("endpoint", ws.Endpoint).Msg("error writing to websocket")
 		return err
 	}
 	return nil
@@ -221,7 +221,7 @@ func (ws *WebsocketHelper) Read(ctx context.Context, ch chan any) error {
 		var t any
 		err := wsjson.Read(ctx, ws.Conn, &t)
 		if err != nil {
-			log.Error().Err(err).Msg("error reading from websocket")
+			log.Error().Err(err).Str("endpoint", ws.Endpoint).Msg("error reading from websocket")
 			return err
 		}
 		ch <- t
@@ -234,7 +234,7 @@ func (ws *WebsocketHelper) Close() error {
 	}
 	err := ws.Conn.Close(websocket.StatusNormalClosure, "")
 	if err != nil {
-		log.Error().Err(err).Msg("error closing websocket")
+		log.Error().Err(err).Str("endpoint", ws.Endpoint).Msg("error closing websocket")
 		return err
 	}
 	return nil
