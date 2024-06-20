@@ -29,6 +29,7 @@ func New(ctx context.Context, opts ...common.FetcherOption) (common.FetcherInter
 	params := []string{}
 	for feed := range fetcher.FeedMap {
 		symbol := strings.ReplaceAll(feed, "-", "_")
+		symbol = strings.ToLower(symbol)
 		params = append(params, fmt.Sprintf("ticker@%s", symbol))
 	}
 
