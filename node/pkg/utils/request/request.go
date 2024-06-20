@@ -88,7 +88,7 @@ func UrlRequestRaw(urlEndpoint string, method string, requestBody interface{}, h
 	}
 
 	client := &http.Client{
-		Timeout: time.Second, // Set the timeout to 1 second
+		Timeout: 2 * time.Second,
 	}
 
 	if proxy != "" {
