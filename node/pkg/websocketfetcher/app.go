@@ -7,8 +7,10 @@ import (
 	"bisonai.com/orakl/node/pkg/db"
 	"bisonai.com/orakl/node/pkg/websocketfetcher/common"
 	"bisonai.com/orakl/node/pkg/websocketfetcher/providers/binance"
+	"bisonai.com/orakl/node/pkg/websocketfetcher/providers/bingx"
 	"bisonai.com/orakl/node/pkg/websocketfetcher/providers/bitget"
 	"bisonai.com/orakl/node/pkg/websocketfetcher/providers/bithumb"
+	"bisonai.com/orakl/node/pkg/websocketfetcher/providers/bitmart"
 	"bisonai.com/orakl/node/pkg/websocketfetcher/providers/bitstamp"
 	"bisonai.com/orakl/node/pkg/websocketfetcher/providers/btse"
 	"bisonai.com/orakl/node/pkg/websocketfetcher/providers/bybit"
@@ -20,10 +22,13 @@ import (
 	"bisonai.com/orakl/node/pkg/websocketfetcher/providers/gemini"
 	"bisonai.com/orakl/node/pkg/websocketfetcher/providers/huobi"
 	"bisonai.com/orakl/node/pkg/websocketfetcher/providers/korbit"
+	"bisonai.com/orakl/node/pkg/websocketfetcher/providers/kraken"
 	"bisonai.com/orakl/node/pkg/websocketfetcher/providers/kucoin"
 	"bisonai.com/orakl/node/pkg/websocketfetcher/providers/lbank"
 	"bisonai.com/orakl/node/pkg/websocketfetcher/providers/mexc"
+	"bisonai.com/orakl/node/pkg/websocketfetcher/providers/okx"
 	"bisonai.com/orakl/node/pkg/websocketfetcher/providers/upbit"
+	"bisonai.com/orakl/node/pkg/websocketfetcher/providers/xt"
 	"github.com/rs/zerolog/log"
 )
 
@@ -104,6 +109,11 @@ func (a *App) Init(ctx context.Context, opts ...AppOption) error {
 		"gemini":   gemini.New,
 		"lbank":    lbank.New,
 		"bitget":   bitget.New,
+		"okx":      okx.New,
+		"kraken":   kraken.New,
+		"bingx":    bingx.New,
+		"bitmart":  bitmart.New,
+		"xt":       xt.New,
 	}
 
 	appConfig := &AppConfig{
