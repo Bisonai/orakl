@@ -28,14 +28,21 @@ func New(ctx context.Context, opts ...common.FetcherOption) (common.FetcherInter
 		args = append(args, fmt.Sprintf("spot/ticker:%s", symbol))
 	}
 
-	subscription := Subscription{
-		Operation: "subscribe",
-		Args:      args,
+	subscriptions := []any{}
+	for i := 0; i < len(args); i += 3 {
+		end := i + 3
+		if end > len(args) {
+			end = len(args)
+		}
+		subscriptions = append(subscriptions, Subscription{
+			Operation: "subscribe",
+			Args:      args[i:end],
+		})
 	}
 
 	ws, err := wss.NewWebsocketHelper(ctx,
 		wss.WithEndpoint(URL),
-		wss.WithSubscriptions([]any{subscription}),
+		wss.WithSubscriptions(subscriptions),
 		wss.WithProxyUrl(config.Proxy))
 	if err != nil {
 		log.Error().Str("Player", "Bitmart").Err(err).Msg("error in bitmart.New")
