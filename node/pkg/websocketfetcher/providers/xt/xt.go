@@ -26,24 +26,25 @@ func New(ctx context.Context, opts ...common.FetcherOption) (common.FetcherInter
 	fetcher.FeedMap = config.FeedMaps.Separated
 	fetcher.FeedDataBuffer = config.FeedDataBuffer
 
-	params := []string{}
+	subscriptions := []any{}
 	for feed := range fetcher.FeedMap {
 		symbol := strings.ReplaceAll(feed, "-", "_")
 		symbol = strings.ToLower(symbol)
-		params = append(params, fmt.Sprintf("ticker@%s", symbol))
-	}
+		params := []string{
+			fmt.Sprintf("ticker@%s", symbol)}
 
-	subscription := Subscription{
-		Method: "subscribe",
-		Params: params,
-		ID:     uuid.New().String(),
+		subscriptions = append(subscriptions, Subscription{
+			Method: "subscribe",
+			Params: params,
+			ID:     uuid.New().String(),
+		})
 	}
 
 	ws, err := wss.NewWebsocketHelper(ctx,
 		wss.WithCustomReadFunc(fetcher.customReadFunc),
 		wss.WithCompressionMode(),
 		wss.WithEndpoint(URL),
-		wss.WithSubscriptions([]any{subscription}),
+		wss.WithSubscriptions(subscriptions),
 		wss.WithProxyUrl(config.Proxy))
 	if err != nil {
 		log.Error().Str("Player", "Xt").Err(err).Msg("error in xt.New")
