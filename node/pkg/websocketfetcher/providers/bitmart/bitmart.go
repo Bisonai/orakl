@@ -30,10 +30,7 @@ func New(ctx context.Context, opts ...common.FetcherOption) (common.FetcherInter
 
 	subscriptions := []any{}
 	for i := 0; i < len(args); i += 3 {
-		end := i + 3
-		if end > len(args) {
-			end = len(args)
-		}
+		end := common.Min(i+3, len(args))
 		subscriptions = append(subscriptions, Subscription{
 			Operation: "subscribe",
 			Args:      args[i:end],

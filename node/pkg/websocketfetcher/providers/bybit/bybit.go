@@ -29,11 +29,7 @@ func New(ctx context.Context, opts ...common.FetcherOption) (common.FetcherInter
 
 	subscriptions := []any{}
 	for i := 0; i < len(pairList); i += 3 {
-		end := i + 3
-		if end > len(pairList) {
-			end = len(pairList)
-		}
-
+		end := common.Min(i+3, len(pairList))
 		subscriptions = append(subscriptions, Subscription{
 			Op:   "subscribe",
 			Args: pairList[i:end],
