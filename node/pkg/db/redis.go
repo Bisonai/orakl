@@ -82,7 +82,7 @@ func MSetObject(ctx context.Context, values map[string]any) error {
 	for key, value := range values {
 		data, err := json.Marshal(value)
 		if err != nil {
-			log.Error().Err(err).Msg("Error marshalling object")
+			log.Error().Err(err).Any("key", key).Any("Data", data).Msg("Error marshalling object")
 			return err
 		}
 		pairs = append(pairs, key, string(data))
