@@ -9,12 +9,12 @@ const addressesPath = path.join(__dirname, "../addresses/");
 
 const fetchTags = async () => {
   // TODO: link is for v1, update later
-  const url = "https://config.orakl.network/cypress_adapters.json";
+  const url = "https://config.orakl.network/cypress_configs.json";
   let tags = {};
 
   try {
     const res = await axios.get(url);
-    (res.data.result || []).forEach((feed) => {
+    (res.data || []).forEach((feed) => {
       const numFeeds = feed.feeds.length;
       const tag =
         numFeeds > 8 ? "premium" : numFeeds > 5 ? "standard" : "basic";
