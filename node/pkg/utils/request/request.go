@@ -166,21 +166,24 @@ func requestRaw(config RequestConfig) (*http.Response, error) {
 	}
 
 	if config.Proxy != "" {
-		proxyUrl, err := url.Parse(config.Proxy)
+		err := setProxy(client, config.Proxy)
 		if err != nil {
-			log.Error().Err(err).Str("proxy", config.Proxy).Msg("failed to parse proxy")
 			return nil, err
-		}
-
-		client.Transport = &http.Transport{
-			Proxy: http.ProxyURL(proxyUrl),
-		}
-
-		if url.Scheme == "https" {
-			url.Scheme = "http"
-			req.URL = url
 		}
 	}
 
 	return client.Do(req)
+}
+
+func setProxy(client *http.Client, proxyURL string) error {
+	parsedURL, err := url.Parse(proxyURL)
+	if err != nil {
+		log.Error().Err(err).Str("proxy", proxyURL).Msg("failed to parse proxy")
+		return err
+	}
+
+	client.Transport = &http.Transport{
+		Proxy: http.ProxyURL(parsedURL),
+	}
+	return nil
 }
