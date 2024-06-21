@@ -97,12 +97,12 @@ jobs:
           echo "git_hash=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
           service="${{ github.event.inputs.application }}"
           # Set the service name
-          if [[ "${{ github.event.inputs.application }}" == "vrf" || "${{ github.event.inputs.application }}" == "request-response" || "${{ github.event.inputs.application }}" == "aggregator" ]]; then
+          if [[ "$service" == "vrf" || "$service" == "request-response" || "$service" == "aggregator" ]]; then
             service="core"
           fi            
           # Set the ecr url
           echo "service=$service" >> $GITHUB_OUTPUT
-          echo "ecr_url=public.ecr.aws/bisonai/orakl-${service}" >> $GITHUB_OUTPUT"
+          echo "ecr_url=public.ecr.aws/bisonai/orakl-${service}" >> $GITHUB_OUTPUT
           # end of the script
         env:
           GH_TOKEN: ${{ secrets.WORKFLOW_PAT }}
