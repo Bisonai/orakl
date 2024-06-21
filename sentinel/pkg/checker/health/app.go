@@ -71,6 +71,7 @@ func Start() {
 	for range ticker.C {
 		alarmMessage := ""
 		for _, healthCheckUrl := range HealthCheckUrls {
+			log.Debug().Str("name", healthCheckUrl.Name).Str("url", healthCheckUrl.Url).Msg("Checking health")
 			isAlive := checkUrl(healthCheckUrl)
 			if !isAlive {
 				alarmMessage += healthCheckUrl.Name + " is down\n"

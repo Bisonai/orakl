@@ -11,11 +11,17 @@ import (
 func DataToFeedData(data Ticker, feedMap map[string]int32) (*common.FeedData, error) {
 	feedData := new(common.FeedData)
 
-	timestamp := time.Unix(data.Timestamp/1000, 0)
+	timestamp := time.UnixMilli(data.Timestamp)
 	value, err := common.PriceStringToFloat64(data.Last)
 	if err != nil {
 		return feedData, err
 	}
+
+	volume, err := common.VolumeStringToFloat64(data.Volume)
+	if err != nil {
+		return feedData, err
+	}
+
 	rawPair := strings.Split(data.CurrencyPair, "_")
 	if len(rawPair) < 2 {
 		return feedData, fmt.Errorf("invalid feed name")
@@ -30,5 +36,6 @@ func DataToFeedData(data Ticker, feedMap map[string]int32) (*common.FeedData, er
 	feedData.FeedID = id
 	feedData.Value = value
 	feedData.Timestamp = &timestamp
+	feedData.Volume = volume
 	return feedData, nil
 }

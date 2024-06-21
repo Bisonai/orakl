@@ -1,0 +1,1 @@
+ALTER TABLE feed_data DROP COLUMN IF EXISTS volume;

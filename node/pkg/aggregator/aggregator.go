@@ -110,6 +110,8 @@ func (n *Aggregator) HandleRoundSyncMessage(ctx context.Context, msg raft.Messag
 		n.RoundID = roundSyncMessage.RoundID
 	}
 
+	n.cleanUpRoundData(roundSyncMessage.RoundID - 1)
+
 	n.AggregatorMutex.Lock()
 	defer n.AggregatorMutex.Unlock()
 
@@ -221,6 +223,7 @@ func (n *Aggregator) HandlePriceDataMessage(ctx context.Context, msg raft.Messag
 
 	n.CollectedPrices[priceDataMessage.RoundID] = append(n.CollectedPrices[priceDataMessage.RoundID], priceDataMessage.PriceData)
 	if len(n.CollectedPrices[priceDataMessage.RoundID]) >= n.Raft.SubscribersCount()+1 {
+		log.Info().Str("Player", "Aggregator").Any("collected prices", n.CollectedPrices[priceDataMessage.RoundID]).Int32("roundId", priceDataMessage.RoundID).Msg("collected prices")
 		defer delete(n.CollectedPrices, priceDataMessage.RoundID)
 		defer delete(n.SyncedTimes, priceDataMessage.RoundID)
 		filteredCollectedPrices := FilterNegative(n.CollectedPrices[priceDataMessage.RoundID])
@@ -230,7 +233,7 @@ func (n *Aggregator) HandlePriceDataMessage(ctx context.Context, msg raft.Messag
 			log.Error().Str("Player", "Aggregator").Err(err).Msg("failed to get median")
 			return err
 		}
-		log.Debug().Str("Player", "Aggregator").Int32("roundId", priceDataMessage.RoundID).Int64("global_aggregate", median).Msg("global aggregated")
+		log.Info().Str("Player", "Aggregator").Str("Name", n.Name).Any("filtered collected prices", filteredCollectedPrices).Int32("roundId", priceDataMessage.RoundID).Int64("global_aggregate", median).Msg("global aggregated")
 		n.PreparedGlobalAggregates[priceDataMessage.RoundID] = GlobalAggregate{
 			ConfigID:  n.ID,
 			Value:     median,
@@ -394,4 +397,13 @@ func (n *Aggregator) PublishProofMessage(roundId int32, proof []byte) error {
 func (n *Aggregator) isTimeValid(timeToValidate time.Time, baseTime time.Time) bool {
 	aggregatorInterval := time.Duration(n.AggregateInterval) * time.Millisecond
 	return timeToValidate.After(baseTime.Add(-aggregatorInterval)) && timeToValidate.Before(baseTime)
+}
+
+func (n *Aggregator) cleanUpRoundData(roundId int32) {
+	delete(n.CollectedPrices, roundId)
+	delete(n.CollectedProofs, roundId)
+	delete(n.CollectedAgreements, roundId)
+	delete(n.PreparedLocalAggregates, roundId)
+	delete(n.PreparedGlobalAggregates, roundId)
+	delete(n.SyncedTimes, roundId)
 }

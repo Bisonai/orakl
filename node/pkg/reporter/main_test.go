@@ -119,7 +119,7 @@ func setup(ctx context.Context) (func() error, *TestItems, error) {
 
 	testItems.admin = admin
 
-	h, err := libp2pSetup.MakeHost(10001)
+	h, err := libp2pSetup.NewHost(ctx, libp2pSetup.WithHolePunch())
 	if err != nil {
 		return nil, nil, err
 	}
@@ -171,7 +171,7 @@ func reporterCleanup(ctx context.Context, admin *fiber.App, app *App) func() err
 		if err != nil {
 			return err
 		}
-		return nil
+		return app.Host.Close()
 	}
 }
 

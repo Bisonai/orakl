@@ -1,33 +1,40 @@
 package mexc
 
 import (
-	"fmt"
-	"strconv"
 	"time"
 
 	"bisonai.com/orakl/node/pkg/websocketfetcher/common"
 )
 
-func ResponseToFeedData(response Response, feedMap map[string]int32) (*common.FeedData, error) {
-	feedData := new(common.FeedData)
+func ResponseToFeedDataList(response BatchResponse, feedMap map[string]int32) ([]*common.FeedData, error) {
+	feedDataList := []*common.FeedData{}
 
-	timestampRaw, err := strconv.ParseInt(response.Data.Time, 10, 64)
-	if err != nil {
-		return feedData, err
-	}
+	timestamp := time.UnixMilli(int64(response.Time))
 
-	timestamp := time.Unix(timestampRaw/1000, 0)
-	value, err := common.PriceStringToFloat64(response.Data.Price)
-	if err != nil {
-		return feedData, err
-	}
+	for _, item := range response.Data {
+		id, exists := feedMap[item.Symbol]
+		if !exists {
+			continue
+		}
 
-	id, exists := feedMap[response.Data.Symbol]
-	if !exists {
-		return feedData, fmt.Errorf("feed not found")
+		feedData := new(common.FeedData)
+
+		value, err := common.PriceStringToFloat64(item.Price)
+		if err != nil {
+			return feedDataList, err
+		}
+
+		// mexc is using quote volume and volume in a opposite way
+		volume, err := common.VolumeStringToFloat64(item.QuoteVolume)
+		if err != nil {
+			return feedDataList, err
+		}
+
+		feedData.FeedID = id
+		feedData.Value = value
+		feedData.Timestamp = &timestamp
+		feedData.Volume = volume
+		feedDataList = append(feedDataList, feedData)
 	}
-	feedData.FeedID = id
-	feedData.Value = value
-	feedData.Timestamp = &timestamp
-	return feedData, nil
+	return feedDataList, nil
 }

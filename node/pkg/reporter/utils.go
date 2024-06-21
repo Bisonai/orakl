@@ -5,7 +5,6 @@ import (
 	"context"
 	"math"
 	"math/big"
-	"time"
 
 	"bisonai.com/orakl/node/pkg/chain/helper"
 	chainUtils "bisonai.com/orakl/node/pkg/chain/utils"
@@ -160,7 +159,7 @@ func GetProofs(ctx context.Context, aggregates []GlobalAggregate) ([]Proof, erro
 }
 
 func GetProofsRdb(ctx context.Context, aggregates []GlobalAggregate) ([]Proof, error) {
-	keyList := make([]string, 0, len(aggregates))
+	keyList := []string{}
 	for _, agg := range aggregates {
 		keyList = append(keyList, keys.ProofKey(agg.ConfigID, agg.Round))
 	}
@@ -222,7 +221,7 @@ func GetLatestGlobalAggregatesRdb(ctx context.Context, submissionPairs map[int32
 
 func ValidateAggregateTimestampValues(aggregates []GlobalAggregate) bool {
 	for _, agg := range aggregates {
-		if agg.Timestamp.IsZero() || agg.Timestamp.After(time.Now()) {
+		if agg.Timestamp.IsZero() {
 			return false
 		}
 	}
@@ -295,7 +294,7 @@ func GetSignerMap(signers []common.Address, proofChunks [][]byte) map[common.Add
 }
 
 func GetSignerListFromProofs(hash []byte, proofChunks [][]byte) ([]common.Address, error) {
-	signers := make([]common.Address, 0, len(proofChunks))
+	signers := []common.Address{}
 	for _, p := range proofChunks {
 		signer, err := chainUtils.RecoverSigner(hash, p)
 		if err != nil {

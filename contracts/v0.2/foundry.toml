@@ -10,4 +10,4 @@ optimizer-runs = 100_000
 
 [rpc_endpoints]
 anvil = "http://127.0.0.1:8545"
-baobab = "https://api.baobab.klaytn.net:8651"
+baobab = "https://public-en.kairos.node.kaia.io"

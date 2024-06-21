@@ -18,6 +18,11 @@ tasks:
     cmds:
       - go run ./cmd/por/main.go
 
+  fetcher:
+    dotenv: [".env"]
+    cmds:
+      - go run ./cmd/fetcher/main.go
+
   script-submission:
     dotenv: [".env"]
     cmds:
@@ -117,6 +122,12 @@ tasks:
         curl -X POST "http://localhost:$APP_PORT/api/v1/proxy" \
         -H "Content-Type: application/json" \
         -d '{"protocol": "{{.PROTOCOL}}", "host": "{{.HOST}}", "port": {{.PORT}}, "location": "{{.LOCATION}}"}'| jq
+  remove-proxy:
+    dotenv: [".env"]
+    cmds:
+      - |
+        curl -X DELETE "http://localhost:$APP_PORT/api/v1/proxy/{{.ID}}" \
+        -H "Content-Type: application/json" | jq
   get-proxy:
     dotenv: [".env"]
     cmds:
@@ -128,6 +139,12 @@ tasks:
         curl -X POST "http://localhost:$APP_PORT/api/v1/wallet" \
         -H "Content-Type: application/json" \
         -d '{"pk": "{{.PK}}"}'| jq
+  remove-wallet:
+    dotenv: [".env"]
+    cmds:
+      - |
+        curl -X DELETE "http://localhost:$APP_PORT/api/v1/wallet/{{.ID}}" \
+        -H "Content-Type: application/json" | jq
   get-wallet:
     dotenv: [".env"]
     cmds:
@@ -143,6 +160,12 @@ tasks:
         curl -X POST "http://localhost:$APP_PORT/api/v1/provider-url" \
         -H "Content-Type: application/json" \
         -d '{"chain_id": {{.CHAIN_ID}}, "url": "{{.URL}}", "priority": {{.PRIORITY}}}' | jq
+  remove-json-rpc:
+    dotenv: [".env"]
+    cmds:
+      - |
+        curl -X DELETE "http://localhost:$APP_PORT/api/v1/provider-url/{{.ID}}" \
+        -H "Content-Type: application/json" | jq
   get-json-rpc:
     dotenv: [".env"]
     cmds:

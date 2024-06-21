@@ -421,8 +421,8 @@ func (a *App) getChainHelpers(ctx context.Context) (map[string]ChainHelper, erro
 
 	ethereumProviderUrl := os.Getenv("FETCHER_ETHEREUM_PROVIDER_URL")
 	if ethereumProviderUrl == "" {
-		log.Info().Msg("ethereum provider url not set, using default url: https://ethereum-mainnet-rpc.allthatnode.com")
-		ethereumProviderUrl = "https://ethereum-mainnet-rpc.allthatnode.com"
+		log.Info().Msg("ethereum provider url not set, using default url: https://ethereum-mainnet.g.allthatnode.com/full/evm")
+		ethereumProviderUrl = "https://ethereum-mainnet.g.allthatnode.com/full/evm"
 	}
 
 	ethereumHelper, err := chainHelper.NewChainHelper(ctx, chainHelper.WithBlockchainType(chainHelper.Ethereum), chainHelper.WithProviderUrl(ethereumProviderUrl))

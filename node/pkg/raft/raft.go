@@ -227,6 +227,7 @@ func (r *Raft) PublishMessage(msg Message) error {
 }
 
 func (r *Raft) sendHeartbeat() error {
+
 	heartbeatMessage := HeartbeatMessage{
 		LeaderID: r.GetHostId(),
 		Term:     r.GetCurrentTerm(),
@@ -333,10 +334,17 @@ func (r *Raft) becomeLeader(ctx context.Context) {
 				}
 
 			case <-r.LeaderJobTicker.C:
-				err := r.LeaderJob()
-				if err != nil {
-					log.Error().Err(err).Msg("failed to execute leader job")
-				}
+				go func() {
+					defer func() {
+						if r := recover(); r != nil {
+							log.Error().Msgf("recovered from panic in leader job: %v", r)
+						}
+					}()
+					err := r.LeaderJob()
+					if err != nil {
+						log.Error().Err(err).Msg("failed to execute leader job")
+					}
+				}()
 
 			case <-ctx.Done():
 				log.Debug().Msg("context cancelled")

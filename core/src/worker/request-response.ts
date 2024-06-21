@@ -6,7 +6,7 @@ import { Logger } from 'pino'
 import type { RedisClientType } from 'redis'
 import {
   BULLMQ_CONNECTION,
-  REPORTER_REQUEST_RESPONSE_QUEUE_NAME,
+  NONCE_MANAGER_REQUEST_RESPONSE_QUEUE_NAME,
   REQUEST_RESPONSE_FULFILL_GAS_MINIMUM,
   WORKER_JOB_SETTINGS,
   WORKER_REQUEST_RESPONSE_QUEUE_NAME
@@ -19,6 +19,7 @@ import {
 } from '../types'
 
 import { buildReducer, pipe, REDUCER_MAPPING } from '@bisonai/orakl-util'
+import { OraklError } from '../errors'
 import { storeErrorMsg } from './api'
 import { decodeRequest } from './decoding'
 import { buildTransaction } from './request-response.utils'
@@ -27,7 +28,7 @@ const FILE_NAME = import.meta.url
 
 export async function worker(redisClient: RedisClientType, _logger: Logger) {
   const logger = _logger.child({ name: 'worker', file: FILE_NAME })
-  const queue = new Queue(REPORTER_REQUEST_RESPONSE_QUEUE_NAME, BULLMQ_CONNECTION)
+  const queue = new Queue(NONCE_MANAGER_REQUEST_RESPONSE_QUEUE_NAME, BULLMQ_CONNECTION)
   const worker = new Worker(
     WORKER_REQUEST_RESPONSE_QUEUE_NAME,
     await job(queue, _logger),
@@ -84,18 +85,19 @@ export async function job(reporterQueue: QueueType, _logger: Logger) {
 
       return tx
     } catch (e) {
-      logger.error(e)
+      const error = e as Error | OraklError
+      logger.error(error)
 
       const errorData: IErrorMsgData = {
         requestId: inData.requestId,
         timestamp: new Date(Date.now()).toISOString(),
-        code: e.code.toString(),
-        name: e.name.toString(),
-        stack: JSON.stringify(e)
+        code: error instanceof OraklError ? error.code.toString() : '',
+        name: error.name.toString(),
+        stack: JSON.stringify(error)
       }
 
       await storeErrorMsg({ data: errorData, logger: _logger })
-      throw e
+      throw error
     }
   }
 

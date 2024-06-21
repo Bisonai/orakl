@@ -77,6 +77,10 @@ func PriceStringToFloat64(price string) (float64, error) {
 	return FormatFloat64Price(f), nil
 }
 
+func VolumeStringToFloat64(volume string) (float64, error) {
+	return strconv.ParseFloat(volume, 64)
+}
+
 func FormatFloat64Price(price float64) float64 {
 	return price * float64(math.Pow10(DECIMALS))
 }
@@ -104,4 +108,11 @@ func DecompressGzip(data []byte) ([]byte, error) {
 	defer r.Close()
 
 	return io.ReadAll(r)
+}
+
+func Min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
 }

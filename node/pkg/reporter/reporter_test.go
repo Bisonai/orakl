@@ -85,7 +85,7 @@ func TestLeaderJob(t *testing.T) {
 		t.Fatalf("error getting reporter: %v", err)
 	}
 
-	reporter.SetKlaytnHelper(ctx)
+	reporter.SetKaiaHelper(ctx)
 	err = reporter.leaderJob()
 	if err != nil {
 		t.Fatal("error running leader job")

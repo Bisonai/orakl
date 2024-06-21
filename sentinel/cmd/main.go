@@ -10,6 +10,7 @@ import (
 	"bisonai.com/orakl/sentinel/pkg/checker/balance"
 	"bisonai.com/orakl/sentinel/pkg/checker/event"
 	"bisonai.com/orakl/sentinel/pkg/checker/health"
+	"bisonai.com/orakl/sentinel/pkg/checker/signer"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 )
@@ -53,11 +54,15 @@ func main() {
 		}
 	}()
 
+	log.Info().Msg("balance checker started")
+
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
 		health.Start()
 	}()
+
+	log.Info().Msg("health checker started")
 
 	wg.Add(1)
 	go func() {
@@ -67,6 +72,19 @@ func main() {
 			log.Error().Err(err).Msg("error starting event checker")
 		}
 	}()
+
+	log.Info().Msg("event checker started")
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		err := signer.Start(ctx)
+		if err != nil {
+			log.Error().Err(err).Msg("error starting signer checker")
+		}
+	}()
+
+	log.Info().Msg("signer checker started")
 
 	wg.Wait()
 }

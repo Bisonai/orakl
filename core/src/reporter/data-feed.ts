@@ -22,6 +22,7 @@ export async function buildReporter(redisClient: RedisClientType, logger: Logger
   await factory({
     redisClient,
     stateName: DATA_FEED_REPORTER_STATE_NAME,
+    nonceManagerQueueName: 'NONCE_MANAGER_DATA_FEED_QUEUE_NAME',
     service: DATA_FEED_SERVICE_NAME,
     reporterQueueName: REPORTER_AGGREGATOR_QUEUE_NAME,
     concurrency: DATA_FEED_REPORTER_CONCURRENCY,

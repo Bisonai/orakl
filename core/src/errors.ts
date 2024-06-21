@@ -78,5 +78,7 @@ export enum OraklErrorCode {
   FailedToGetObservedBlock,
   FailedUpsertObservedBlock,
   FailedInsertUnprocessedBlock,
-  FailedDeleteUnprocessedBlock
+  FailedDeleteUnprocessedBlock,
+  NonceNotFound,
+  TxNonceExpired
 }

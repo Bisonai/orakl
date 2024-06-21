@@ -21,12 +21,12 @@ var (
 	InsertProviderUrlQuery = "INSERT INTO provider_urls (chain_id, url, priority) VALUES (@chain_id, @url, @priority)"
 )
 
-func TestNewKlaytnHelper(t *testing.T) {
+func TestNewKaiaHelper(t *testing.T) {
 	ctx := context.Background()
 
 	err := db.QueryWithoutResult(ctx, InsertProviderUrlQuery, map[string]any{
 		"chain_id": 1001,
-		"url":      "https://api.baobab.klaytn.net:8651",
+		"url":      "https://public-en.kairos.node.kaia.io",
 		"priority": 1,
 	})
 	if err != nil {
@@ -35,20 +35,20 @@ func TestNewKlaytnHelper(t *testing.T) {
 	}
 	err = db.QueryWithoutResult(ctx, InsertProviderUrlQuery, map[string]any{
 		"chain_id": 1001,
-		"url":      "https://klaytn-baobab-rpc.allthatnode.com:8551",
+		"url":      "https://public-en.kairos.node.kaia.io",
 		"priority": 2,
 	})
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
 	}
 
-	klaytnHelper, err := helper.NewChainHelper(ctx)
+	kaiaHelper, err := helper.NewChainHelper(ctx)
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
 	}
-	assert.Equal(t, 3, klaytnHelper.NumClients())
+	assert.Equal(t, 3, kaiaHelper.NumClients())
 
-	klaytnHelper.Close()
+	kaiaHelper.Close()
 	err = db.QueryWithoutResult(ctx, "DELETE FROM provider_urls;", nil)
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
@@ -96,13 +96,13 @@ func TestNewEthHelper(t *testing.T) {
 
 func TestNextReporter(t *testing.T) {
 	ctx := context.Background()
-	klaytnHelper, err := helper.NewChainHelper(ctx)
+	kaiaHelper, err := helper.NewChainHelper(ctx)
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
 	}
-	defer klaytnHelper.Close()
+	defer kaiaHelper.Close()
 
-	reporter := klaytnHelper.NextReporter()
+	reporter := kaiaHelper.NextReporter()
 	if reporter == "" {
 		t.Errorf("Unexpected reporter: %v", reporter)
 	}
@@ -110,11 +110,11 @@ func TestNextReporter(t *testing.T) {
 
 func TestMakeDirectTx(t *testing.T) {
 	ctx := context.Background()
-	klaytnHelper, err := helper.NewChainHelper(ctx)
+	kaiaHelper, err := helper.NewChainHelper(ctx)
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
 	}
-	defer klaytnHelper.Close()
+	defer kaiaHelper.Close()
 
 	tests := []struct {
 		name            string
@@ -143,7 +143,7 @@ func TestMakeDirectTx(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		directTx, err := klaytnHelper.MakeDirectTx(ctx, test.contractAddress, test.functionString)
+		directTx, err := kaiaHelper.MakeDirectTx(ctx, test.contractAddress, test.functionString)
 		if err != nil {
 			if err.Error() != test.expectedError.Error() {
 				t.Errorf("Test case %s: Expected error '%v', but got '%v'", test.name, test.expectedError, err)
@@ -158,11 +158,11 @@ func TestMakeDirectTx(t *testing.T) {
 
 func TestMakeFeeDelegatedTx(t *testing.T) {
 	ctx := context.Background()
-	klaytnHelper, err := helper.NewChainHelper(ctx)
+	kaiaHelper, err := helper.NewChainHelper(ctx)
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
 	}
-	defer klaytnHelper.Close()
+	defer kaiaHelper.Close()
 
 	tests := []struct {
 		name            string
@@ -191,7 +191,7 @@ func TestMakeFeeDelegatedTx(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		feeDelegatedTx, err := klaytnHelper.MakeFeeDelegatedTx(ctx, test.contractAddress, test.functionString)
+		feeDelegatedTx, err := kaiaHelper.MakeFeeDelegatedTx(ctx, test.contractAddress, test.functionString, 0)
 		if err != nil {
 			assert.ErrorIs(t, err, test.expectedError)
 		}
@@ -205,13 +205,13 @@ func TestMakeFeeDelegatedTx(t *testing.T) {
 
 func TestTxToHashToTx(t *testing.T) {
 	ctx := context.Background()
-	klaytnHelper, err := helper.NewChainHelper(ctx)
+	kaiaHelper, err := helper.NewChainHelper(ctx)
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
 	}
-	defer klaytnHelper.Close()
+	defer kaiaHelper.Close()
 
-	rawTx, err := klaytnHelper.MakeFeeDelegatedTx(ctx, "0x93120927379723583c7a0dd2236fcb255e96949f", "increment()")
+	rawTx, err := kaiaHelper.MakeFeeDelegatedTx(ctx, "0x93120927379723583c7a0dd2236fcb255e96949f", "increment()", 0)
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
 	}
@@ -262,24 +262,24 @@ func TestGenerateViewABI(t *testing.T) {
 func TestSubmitRawTxString(t *testing.T) {
 	// testing based on baobab testnet
 	ctx := context.Background()
-	klaytnHelper, err := helper.NewChainHelper(ctx)
+	kaiaHelper, err := helper.NewChainHelper(ctx)
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
 	}
-	defer klaytnHelper.Close()
+	defer kaiaHelper.Close()
 
-	rawTx, err := klaytnHelper.MakeFeeDelegatedTx(ctx, "0x93120927379723583c7a0dd2236fcb255e96949f", "increment()")
+	rawTx, err := kaiaHelper.MakeFeeDelegatedTx(ctx, "0x93120927379723583c7a0dd2236fcb255e96949f", "increment()", 0)
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
 	}
 
-	signedTx, err := klaytnHelper.SignTxByFeePayer(ctx, rawTx)
+	signedTx, err := kaiaHelper.SignTxByFeePayer(ctx, rawTx)
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
 	}
 
 	rawTxString := utils.TxToHash(signedTx)
-	err = klaytnHelper.SubmitRawTxString(ctx, rawTxString)
+	err = kaiaHelper.SubmitRawTxString(ctx, rawTxString)
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
 	}
@@ -288,13 +288,13 @@ func TestSubmitRawTxString(t *testing.T) {
 func TestReadContract(t *testing.T) {
 	// testing based on baobab testnet
 	ctx := context.Background()
-	klaytnHelper, err := helper.NewChainHelper(ctx)
+	kaiaHelper, err := helper.NewChainHelper(ctx)
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
 	}
-	defer klaytnHelper.Close()
+	defer kaiaHelper.Close()
 
-	result, err := klaytnHelper.ReadContract(ctx, "0x93120927379723583c7a0dd2236fcb255e96949f", "COUNTER() returns (uint256)")
+	result, err := kaiaHelper.ReadContract(ctx, "0x93120927379723583c7a0dd2236fcb255e96949f", "COUNTER() returns (uint256)")
 
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
@@ -540,7 +540,7 @@ func TestMakeGlobalAggregateProof(t *testing.T) {
 		t.Errorf("Unexpected error: %v", err)
 	}
 
-	pk, err := utils.StringToPk(os.Getenv("KLAYTN_REPORTER_PK"))
+	pk, err := utils.StringToPk(os.Getenv("KAIA_REPORTER_PK"))
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
 	}

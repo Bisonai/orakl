@@ -65,22 +65,24 @@ export async function sendTransaction({
   payload,
   gasLimit,
   value,
-  logger
+  logger,
+  nonce
 }: {
-  wallet
+  wallet: NonceManager
   to: string
   payload?: string
   gasLimit?: number | string
   value?: number | string | ethers.BigNumber
   logger: Logger
+  nonce: number
 }) {
   const _logger = logger.child({ name: 'sendTransaction', file: FILE_NAME })
 
   if (payload) {
     payload = add0x(payload)
   }
-
   const tx = {
+    nonce,
     from: await wallet.getAddress(),
     to: to,
     data: payload || '0x00',
@@ -119,6 +121,9 @@ export async function sendTransaction({
     } else if (e.code == 'UNPREDICTABLE_GAS_LIMIT') {
       msg = 'TxCannotEstimateGasError'
       error = new OraklError(OraklErrorCode.TxCannotEstimateGasError, msg, e.value)
+    } else if (e.code == 'NONCE_EXPIRED') {
+      msg = 'TxNonceExpired'
+      error = new OraklError(OraklErrorCode.TxNonceExpired, msg)
     } else {
       error = e
     }
@@ -134,7 +139,8 @@ export async function sendTransactionDelegatedFee({
   payload,
   gasLimit,
   value,
-  logger
+  logger,
+  nonce
 }: {
   wallet: CaverWallet
   to: string
@@ -142,10 +148,12 @@ export async function sendTransactionDelegatedFee({
   gasLimit?: number | string
   value?: number | string
   logger: Logger
+  nonce: number
 }) {
   const _logger = logger.child({ name: 'sendTransactionDelegatedFee', file: FILE_NAME })
 
   const txParams = {
+    nonce,
     from: wallet.address,
     to,
     input: payload,
@@ -211,7 +219,8 @@ export async function sendTransactionCaver({
   payload,
   gasLimit,
   logger,
-  value
+  value,
+  nonce
 }: {
   wallet: CaverWallet
   to: string
@@ -219,10 +228,12 @@ export async function sendTransactionCaver({
   gasLimit: number | string
   logger: Logger
   value?: number | string
+  nonce: number
 }) {
   const _logger = logger.child({ name: 'sendTransactionCaver', file: FILE_NAME })
 
   const txParams = {
+    nonce,
     from: wallet.address,
     to,
     input: payload,
@@ -255,4 +266,8 @@ export function isPrivateKeyAddressPairValid(sk: string, addr: string): boolean 
   } catch {
     return false
   }
+}
+
+export async function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms))
 }

@@ -72,6 +72,7 @@ func (r *Reporter) Run(ctx context.Context) {
 
 func (r *Reporter) leaderJob() error {
 	start := time.Now()
+	log.Info().Str("Player", "Reporter").Time("start", start).Msg("reporter job")
 	r.Raft.IncreaseTerm()
 	ctx := context.Background()
 
@@ -120,15 +121,22 @@ func (r *Reporter) leaderJob() error {
 		pair.LastSubmission = agg.Round
 		r.SubmissionPairs[agg.ConfigID] = pair
 	}
-	log.Debug().Str("Player", "Reporter").Dur("duration", time.Since(start)).Msg("reporting done")
+	log.Info().Int("validAggregates", len(validAggregates)).Str("Player", "Reporter").Str("Duration", time.Since(start).String()).Msg("reporting done")
 
 	return nil
 }
 
 func (r *Reporter) report(ctx context.Context, aggregates []GlobalAggregate) error {
+
 	log.Debug().Str("Player", "Reporter").Int("aggregates", len(aggregates)).Msg("reporting")
+
+	if !ValidateAggregateTimestampValues(aggregates) {
+		log.Error().Str("Player", "Reporter").Msg("ValidateAggregateTimestampValues, zero timestamp exists")
+		return errorSentinel.ErrReporterValidateAggregateTimestampValues
+	}
+
 	proofMap, err := GetProofsAsMap(ctx, aggregates)
-	if err != nil || !ValidateAggregateTimestampValues(aggregates) {
+	if err != nil {
 		log.Error().Str("Player", "Reporter").Err(err).Msg("submit without proofs")
 		return err
 	}
@@ -139,6 +147,7 @@ func (r *Reporter) report(ctx context.Context, aggregates []GlobalAggregate) err
 		log.Error().Str("Player", "Reporter").Err(err).Msg("orderProofs")
 		return err
 	}
+
 	log.Debug().Str("Player", "Reporter").Int("orderedProofs", len(orderedProofMap)).Msg("ordered proof map generated")
 
 	err = UpdateProofs(ctx, aggregates, orderedProofMap)
@@ -147,7 +156,6 @@ func (r *Reporter) report(ctx context.Context, aggregates []GlobalAggregate) err
 		return err
 	}
 	log.Debug().Str("Player", "Reporter").Msg("proofs updated to db, reporting with proofs")
-
 	return r.reportWithProofs(ctx, aggregates, orderedProofMap)
 }
 
@@ -169,7 +177,7 @@ func (r *Reporter) orderProof(ctx context.Context, proof []byte, aggregate Globa
 	err = CheckForNonWhitelistedSigners(signers, r.CachedWhitelist)
 	if err != nil {
 		log.Warn().Str("Player", "Reporter").Err(err).Msg("non-whitelisted signers in proof, reloading whitelist")
-		reloadedWhitelist, contractReadErr := ReadOnchainWhitelist(ctx, r.KlaytnHelper, r.contractAddress, GET_ONCHAIN_WHITELIST)
+		reloadedWhitelist, contractReadErr := ReadOnchainWhitelist(ctx, r.KaiaHelper, r.contractAddress, GET_ONCHAIN_WHITELIST)
 		if contractReadErr != nil {
 			log.Error().Str("Player", "Reporter").Err(contractReadErr).Msg("failed to reload whitelist")
 			return nil, contractReadErr
@@ -221,10 +229,10 @@ func (r *Reporter) handleCustomMessage(ctx context.Context, msg raft.Message) er
 }
 
 func (r *Reporter) reportWithProofs(ctx context.Context, aggregates []GlobalAggregate, proofMap map[int32][]byte) error {
-	log.Debug().Str("Player", "Reporter").Int("aggregates", len(aggregates)).Msg("reporting with proofs")
-	if r.KlaytnHelper == nil {
-		return errorSentinel.ErrReporterKlaytnHelperNotFound
+	if r.KaiaHelper == nil {
+		return errorSentinel.ErrReporterKaiaHelperNotFound
 	}
+	log.Debug().Str("Player", "Reporter").Int("aggregates", len(aggregates)).Msg("reporting with proofs")
 
 	feedHashes, values, timestamps, proofs, err := MakeContractArgsWithProofs(aggregates, r.SubmissionPairs, proofMap)
 	if err != nil {
@@ -242,49 +250,50 @@ func (r *Reporter) reportWithProofs(ctx context.Context, aggregates []GlobalAggr
 }
 
 func (r *Reporter) reportDirect(ctx context.Context, functionString string, args ...interface{}) error {
-	rawTx, err := r.KlaytnHelper.MakeDirectTx(ctx, r.contractAddress, functionString, args...)
+	rawTx, err := r.KaiaHelper.MakeDirectTx(ctx, r.contractAddress, functionString, args...)
 	if err != nil {
 		log.Error().Str("Player", "Reporter").Err(err).Msg("MakeDirectTx")
 		return err
 	}
 
-	return r.KlaytnHelper.SubmitRawTx(ctx, rawTx)
+	return r.KaiaHelper.SubmitRawTx(ctx, rawTx)
 }
 
 func (r *Reporter) reportDelegated(ctx context.Context, functionString string, args ...interface{}) error {
 	log.Debug().Str("Player", "Reporter").Msg("reporting delegated")
-	rawTx, err := r.KlaytnHelper.MakeFeeDelegatedTx(ctx, r.contractAddress, functionString, args...)
+	rawTx, err := r.KaiaHelper.MakeFeeDelegatedTx(ctx, r.contractAddress, functionString, GAS_MULTIPLIER, args...)
 	if err != nil {
 		log.Error().Str("Player", "Reporter").Err(err).Msg("MakeFeeDelegatedTx")
 		return err
 	}
-	log.Debug().Str("Player", "Reporter").Str("RawTx", rawTx.String()).Msg("delegated raw tx generated")
 
-	signedTx, err := r.KlaytnHelper.GetSignedFromDelegator(rawTx)
+	log.Debug().Str("Player", "Reporter").Str("RawTx", rawTx.String()).Msg("delegated raw tx generated")
+	signedTx, err := r.KaiaHelper.GetSignedFromDelegator(rawTx)
 	if err != nil {
 		log.Error().Str("Player", "Reporter").Err(err).Msg("GetSignedFromDelegator")
 		return err
 	}
 	log.Debug().Str("Player", "Reporter").Str("signedTx", signedTx.String()).Msg("signed tx generated, submitting raw tx")
 
-	return r.KlaytnHelper.SubmitRawTx(ctx, signedTx)
+	return r.KaiaHelper.SubmitRawTx(ctx, signedTx)
 }
 
-func (r *Reporter) SetKlaytnHelper(ctx context.Context) error {
-	if r.KlaytnHelper != nil {
-		r.KlaytnHelper.Close()
+func (r *Reporter) SetKaiaHelper(ctx context.Context) error {
+	if r.KaiaHelper != nil {
+		r.KaiaHelper.Close()
 	}
-	klaytnHelper, err := helper.NewChainHelper(ctx)
+	kaiaHelper, err := helper.NewChainHelper(ctx)
 	if err != nil {
-		log.Error().Str("Player", "Reporter").Err(err).Msg("failed to create klaytn helper")
+		log.Error().Str("Player", "Reporter").Err(err).Msg("failed to create kaia helper")
 		return err
 	}
-	r.KlaytnHelper = klaytnHelper
+	r.KaiaHelper = kaiaHelper
 	return nil
 }
 
 func (r *Reporter) deviationJob() error {
 	start := time.Now()
+	log.Info().Str("Player", "Reporter").Time("start", start).Msg("reporter deviation job")
 	r.Raft.IncreaseTerm()
 	ctx := context.Background()
 
@@ -346,8 +355,7 @@ func (r *Reporter) deviationJob() error {
 		r.SubmissionPairs[agg.ConfigID] = pair
 	}
 
-	log.Debug().Str("Player", "Reporter").Dur("duration", time.Since(start)).Msg("reporting deviation done")
-
+	log.Info().Int("deviations", len(deviatingAggregates)).Str("Player", "Reporter").Dur("duration", time.Since(start)).Msg("reporting deviation done")
 	return nil
 }
 

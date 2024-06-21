@@ -3,9 +3,9 @@ package main
 import (
 	"context"
 	"os"
-	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	"bisonai.com/orakl/node/pkg/admin"
 	"bisonai.com/orakl/node/pkg/aggregator"
@@ -13,6 +13,7 @@ import (
 	"bisonai.com/orakl/node/pkg/fetcher"
 	libp2pSetup "bisonai.com/orakl/node/pkg/libp2p/setup"
 	"bisonai.com/orakl/node/pkg/reporter"
+	"bisonai.com/orakl/node/pkg/utils/retrier"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 )
@@ -28,16 +29,22 @@ func main() {
 	mb := bus.New(10)
 	var wg sync.WaitGroup
 
-	listenPort, err := strconv.Atoi(os.Getenv("LISTEN_PORT"))
+	host, err := libp2pSetup.NewHost(ctx, libp2pSetup.WithHolePunch())
 	if err != nil {
-		log.Error().Err(err).Msg("Error parsing LISTEN_PORT")
-		return
+		log.Error().Err(err).Msg("Failed to make host")
 	}
 
-	host, ps, err := libp2pSetup.SetupFromBootApi(ctx, listenPort)
+	ps, err := libp2pSetup.MakePubsub(ctx, host)
+	if err != nil {
+		log.Error().Err(err).Msg("Failed to make pubsub")
+	}
+
+	err = retrier.Retry(func() error {
+		return libp2pSetup.ConnectThroughBootApi(ctx, host)
+	}, 5, 10*time.Second, 30*time.Second)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to setup libp2p")
-		select {}
+		return
 	}
 
 	wg.Add(1)
@@ -46,7 +53,7 @@ func main() {
 		adminErr := admin.Run(mb)
 		if adminErr != nil {
 			log.Error().Err(adminErr).Msg("Failed to start admin server")
-			return
+			os.Exit(1)
 		}
 	}()
 
@@ -65,7 +72,7 @@ func main() {
 		fetcherErr := f.Run(ctx)
 		if fetcherErr != nil {
 			log.Error().Err(fetcherErr).Msg("Failed to start fetcher")
-			return
+			os.Exit(1)
 		}
 	}()
 	log.Info().Msg("Fetcher started")
@@ -78,7 +85,7 @@ func main() {
 		aggregatorErr := a.Run(ctx)
 		if aggregatorErr != nil {
 			log.Error().Err(aggregatorErr).Msg("Failed to start aggregator")
-			return
+			os.Exit(1)
 		}
 	}()
 	log.Info().Msg("Aggregator started")
@@ -91,7 +98,7 @@ func main() {
 		reporterErr := r.Run(ctx)
 		if reporterErr != nil {
 			log.Error().Err(reporterErr).Msg("Failed to start reporter")
-			return
+			os.Exit(1)
 		}
 	}()
 	log.Info().Msg("Reporter started")

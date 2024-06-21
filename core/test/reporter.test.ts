@@ -36,12 +36,13 @@ describe('Reporter', function () {
           privateKey: PRIVATE_KEY,
           providerUrl: PROVIDER_URL
         })
+        const nonce = await wallet.getTransactionCount()
 
         const to = '0x000000000000000000000000000000000000000' // wrong address
         const payload = '0x'
 
         expect(async () => {
-          await sendTransaction({ wallet, to, payload, logger })
+          await sendTransaction({ wallet, to, payload, logger, nonce })
         }).rejects.toThrow('TxInvalidAddress')
       } catch (e) {
         if (e.code == OraklErrorCode.ProviderNetworkError) {
@@ -78,8 +79,9 @@ describe('Reporter', function () {
       // 0 $KLAY in Account
       // address: '0x9bf123A486DD67d5B2B859c74BFa3035c99b9243'
       privateKey: '0xaa8707622845b72c76b7b9f329b154140441eda385ca39e3cdc66d2bee5f98e0',
-      providerUrl: 'https://api.baobab.klaytn.net:8651'
+      providerUrl: 'https://public-en.kairos.node.kaia.io'
     })
+    const nonce = Number(await wallet.caver.rpc.klay.getTransactionCount(wallet.address))
 
     const iface = new ethers.utils.Interface(COUNTER.abi)
     const payload = iface.encodeFunctionData('increment')
@@ -89,7 +91,8 @@ describe('Reporter', function () {
       to: COUNTER.address,
       payload,
       logger,
-      gasLimit: 100_000
+      gasLimit: 100_000,
+      nonce
     })
   })
 })
@@ -97,8 +100,9 @@ describe('Reporter', function () {
 describe('Filter invalid reporters inside of State', function () {
   const PROVIDER_URL = process.env.GITHUB_ACTIONS
     ? 'https://public-en-cypress.klaytn.net'
-    : 'http://127.0.0.1:8545'
+    : 'https://public-en.kairos.node.kaia.io'
   const redisClient: RedisClientType = createClient({ url: '' })
+
   const VALID_REPORTER = {
     id: '2',
     address: '0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266',

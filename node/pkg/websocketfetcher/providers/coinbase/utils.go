@@ -28,9 +28,15 @@ func TickerToFeedData(ticker Ticker, feedMap map[string]int32) (*common.FeedData
 		return feedData, err
 	}
 
+	volume, err := common.VolumeStringToFloat64(ticker.Volume24h)
+	if err != nil {
+		return feedData, err
+	}
+
 	feedData.FeedID = id
 	feedData.Value = value
 	feedData.Timestamp = &timestamp
+	feedData.Volume = volume
 
 	return feedData, nil
 

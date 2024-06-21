@@ -10,7 +10,6 @@ import (
 	"os"
 	"regexp"
 	"strings"
-	"time"
 
 	"bisonai.com/orakl/node/pkg/db"
 	errorSentinel "bisonai.com/orakl/node/pkg/error"
@@ -245,7 +244,11 @@ func MakeDirectTx(ctx context.Context, client ClientInterface, contractAddressHe
 	return types.SignTx(tx, types.NewEIP155Signer(chainID), privateKey)
 }
 
-func MakeFeeDelegatedTx(ctx context.Context, client ClientInterface, contractAddressHex string, reporter string, functionString string, chainID *big.Int, args ...interface{}) (*types.Transaction, error) {
+func MakeFeeDelegatedTx(ctx context.Context, client ClientInterface, contractAddressHex string, reporter string, functionString string, chainID *big.Int, gasMultiplier float64, args ...interface{}) (*types.Transaction, error) {
+	if gasMultiplier > 2.5 {
+		return nil, errorSentinel.ErrChainGasMultiplierTooHigh
+	}
+
 	if client == nil {
 		return nil, errorSentinel.ErrChainEmptyClientParam
 	}
@@ -306,6 +309,11 @@ func MakeFeeDelegatedTx(ctx context.Context, client ClientInterface, contractAdd
 		return nil, err
 	}
 
+	if gasMultiplier > 1.0 {
+		increasedGasInt64 := int64(float64(gasPrice.Int64()) * gasMultiplier)
+		gasPrice = new(big.Int).SetInt64(increasedGasInt64)
+	}
+
 	contractAddress := common.HexToAddress(contractAddressHex)
 
 	estimatedGas, err := client.EstimateGas(ctx, klaytn.CallMsg{
@@ -339,7 +347,7 @@ func MakeFeeDelegatedTx(ctx context.Context, client ClientInterface, contractAdd
 	return types.SignTx(unsigned, types.NewEIP155Signer(chainID), privateKey)
 }
 
-func SignTxByFeePayer(ctx context.Context, client ClientInterface, tx *types.Transaction, chainID *big.Int) (*types.Transaction, error) {
+func SignTxByFeePayer(ctx context.Context, tx *types.Transaction, chainID *big.Int) (*types.Transaction, error) {
 	feePayer := strings.TrimPrefix(os.Getenv("TEST_FEE_PAYER_PK"), "0x")
 	feePayerPrivateKey, err := crypto.HexToECDSA(feePayer)
 	if err != nil {
@@ -369,7 +377,7 @@ func SubmitRawTx(ctx context.Context, client ClientInterface, tx *types.Transact
 	}
 	log.Debug().Str("Player", "ChainHelper").Str("tx", tx.Hash().String()).Msg("tx sent")
 
-	ctxWithTimeout, cancel := context.WithTimeout(ctx, 5*time.Second)
+	ctxWithTimeout, cancel := context.WithTimeout(ctx, DEFAULT_MINE_WAIT_TIME)
 	defer cancel()
 
 	log.Debug().Str("Player", "ChainHelper").Str("tx", tx.Hash().String()).Msg("waiting for tx to be mined")

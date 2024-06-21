@@ -27,14 +27,18 @@ func New(ctx context.Context, opts ...common.FetcherOption) (common.FetcherInter
 		pairList = append(pairList, "tickers."+feed)
 	}
 
-	subscription := Subscription{
-		Op:   "subscribe",
-		Args: pairList,
+	subscriptions := []any{}
+	for i := 0; i < len(pairList); i += 3 {
+		end := common.Min(i+3, len(pairList))
+		subscriptions = append(subscriptions, Subscription{
+			Op:   "subscribe",
+			Args: pairList[i:end],
+		})
 	}
 
 	ws, err := wss.NewWebsocketHelper(ctx,
 		wss.WithEndpoint(URL),
-		wss.WithSubscriptions([]any{subscription}),
+		wss.WithSubscriptions(subscriptions),
 		wss.WithProxyUrl(config.Proxy))
 	if err != nil {
 		log.Error().Str("Player", "Bybit").Err(err).Msg("error in bybit.New")
@@ -51,7 +55,7 @@ func (f *BybitFetcher) handleMessage(ctx context.Context, message map[string]any
 		return err
 	}
 
-	if !strings.HasPrefix(response.Topic, "tickers.") || response.Data.LastPrice == nil {
+	if !strings.HasPrefix(response.Topic, "tickers.") || response.Data.Price == nil {
 		return nil
 	}
 

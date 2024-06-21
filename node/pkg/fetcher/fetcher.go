@@ -110,7 +110,7 @@ func (f *Fetcher) fetch(chainHelpers map[string]ChainHelper, proxies []Proxy) ([
 				return
 			}
 			now := time.Now()
-			dataChan <- FeedData{FeedID: feed.ID, Value: resultValue, Timestamp: &now}
+			dataChan <- FeedData{FeedID: feed.ID, Value: resultValue, Timestamp: &now, Volume: 0}
 
 		}(feed)
 	}

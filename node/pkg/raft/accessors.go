@@ -1,7 +1,5 @@
 package raft
 
-import "github.com/libp2p/go-libp2p/core/peer"
-
 func (r *Raft) IncreaseTerm() {
 	r.Mutex.Lock()
 	defer r.Mutex.Unlock()
@@ -75,11 +73,7 @@ func (r *Raft) UpdateVotedFor(votedFor string) {
 }
 
 func (r *Raft) SubscribersCount() int {
-	return len(r.Subscribers())
-}
-
-func (r *Raft) Subscribers() []peer.ID {
-	return r.Ps.ListPeers(r.Topic.String())
+	return len(r.Ps.ListPeers(r.Topic.String()))
 }
 
 func (r *Raft) GetHostId() string {

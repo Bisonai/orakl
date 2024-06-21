@@ -1,9 +1,11 @@
+import { Mutex } from 'async-mutex'
 import { Logger } from 'pino'
 import type { RedisClientType } from 'redis'
 import { getReporter, getReporters } from '../api'
 import { OraklError, OraklErrorCode } from '../errors'
 import { IReporterConfig } from '../types'
 import { isAddressValid } from '../utils'
+import { Wallet } from './types'
 import { buildCaverWallet, buildWallet, isPrivateKeyAddressPairValid } from './utils'
 
 const FILE_NAME = import.meta.url
@@ -16,7 +18,9 @@ export class State {
   chain: string
   delegatedFee: boolean
   logger: Logger
-  wallets
+  wallets: { [key: string]: Wallet }
+  nonces: { [key: string]: number }
+  mutex: Mutex
 
   constructor({
     redisClient,
@@ -131,19 +135,28 @@ export class State {
     await this.redisClient.set(this.stateName, JSON.stringify(updatedActiveReporters))
 
     // Update wallets
-    let wallet
+    let wallet: Wallet
+    let nonce: number
     if (this.delegatedFee) {
-      wallet = await buildCaverWallet({
+      wallet = buildCaverWallet({
         privateKey: toAddReporter.privateKey,
         providerUrl: this.providerUrl
       })
+      nonce = Number(await wallet.caver.rpc.klay.getTransactionCount(wallet.address))
     } else {
-      wallet = await buildWallet({
+      wallet = buildWallet({
         privateKey: toAddReporter.privateKey,
         providerUrl: this.providerUrl
       })
+      nonce = await wallet.getTransactionCount()
     }
     this.wallets = { ...this.wallets, [toAddReporter.oracleAddress]: wallet }
+
+    // Update nonce
+    this.nonces = {
+      ...this.nonces,
+      [toAddReporter.oracleAddress]: nonce
+    }
 
     return toAddReporter
   }
@@ -225,27 +238,55 @@ export class State {
       }
     })
 
-    const wallets = reporters.map((R) => {
-      let wallet
+    const wallets: { [key: string]: Wallet }[] = []
+    for (const R of reporters) {
+      let wallet: Wallet
+      let nonce: number
       if (this.delegatedFee) {
         wallet = buildCaverWallet({
           privateKey: R.privateKey,
           providerUrl: this.providerUrl
         })
+        nonce = Number(await wallet.caver.rpc.klay.getTransactionCount(wallet.address))
       } else {
         wallet = buildWallet({
           privateKey: R.privateKey,
           providerUrl: this.providerUrl
         })
+        nonce = await wallet.getTransactionCount()
       }
 
-      return { [R.oracleAddress]: wallet }
-    })
+      wallets.push({ [R.oracleAddress]: wallet })
+
+      // Update nonce
+      this.nonces = {
+        ...this.nonces,
+        [R.oracleAddress]: nonce
+      }
+
+      // Create a mutex object
+      this.mutex = new Mutex()
+    }
 
     // Update
     await this.redisClient.set(this.stateName, JSON.stringify(reporters))
     this.wallets = Object.assign({}, ...wallets)
 
     return reporters
+  }
+
+  /**
+   * This function implements a mutex to ensure it cannot be called concurrently.
+   *
+   * @param {string} oracleAddress
+   * @return {number} nonce
+   */
+  async getAndIncrementNonce(oracleAddress: string): Promise<number> {
+    return await this.mutex.runExclusive(async () => {
+      const nonce = this.nonces[oracleAddress]
+      this.nonces[oracleAddress] = nonce + 1
+
+      return nonce
+    })
   }
 }

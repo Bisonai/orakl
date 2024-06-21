@@ -1,16 +1,22 @@
 package kucoin
 
 const (
-	TokenUrl = "https://api.kucoin.com/api/v1/bullet-public"
-	URL      = "wss://ws-api-spot.kucoin.com/"
+	TokenUrl              = "https://api.kucoin.com/api/v1/bullet-public"
+	URL                   = "wss://ws-api-spot.kucoin.com/"
+	DEFAULT_PING_INTERVAL = 18000
 )
 
 type TokenResponse struct {
-	Data Token `json:"data"`
+	Data ResponseData `json:"data"`
 }
 
-type Token struct {
-	Token string `json:"token"`
+type InstanceServers struct {
+	PingInterval int `json:"pingInterval"`
+}
+
+type ResponseData struct {
+	Token           string            `json:"token"`
+	InstanceServers []InstanceServers `json:"instanceServers"`
 }
 
 type Subscription struct {
@@ -20,20 +26,24 @@ type Subscription struct {
 	Response bool   `json:"response"`
 }
 
-type Data struct {
-	Sequence    string `json:"sequence"`
-	Price       string `json:"price"`
-	Size        string `json:"size"`
-	BestAsk     string `json:"bestAsk"`
-	BestAskSize string `json:"bestAskSize"`
-	BestBid     string `json:"bestBid"`
-	BestBidSize string `json:"bestBidSize"`
-	Time        int64  `json:"time"`
+type Ping struct {
+	ID   int    `json:"id"`
+	Type string `json:"type"`
 }
 
-type Raw struct {
-	Type    string `json:"type"`
-	Topic   string `json:"topic"`
-	Subject string `json:"subject"`
-	Data    Data   `json:"data"`
+type SymbolSnapshotData struct {
+	Sequence string `json:"sequence"`
+	Data     struct {
+		Symbol string  `json:"symbol"`
+		Price  float64 `json:"lastTradedPrice"`
+		Volume float64 `json:"vol"`
+		Time   int64   `json:"datetime"`
+	} `json:"data"`
+}
+
+type SymbolSnapshotRaw struct {
+	Type    string             `json:"type"`
+	Topic   string             `json:"topic"`
+	Subject string             `json:"subject"`
+	Data    SymbolSnapshotData `json:"data"`
 }

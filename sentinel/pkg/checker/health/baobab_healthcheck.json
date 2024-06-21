@@ -1,17 +1,5 @@
 [
   {
-    "name": "orakl-aggregator-listener",
-    "url": "http://orakl-aggregator-listener.orakl.svc.cluster.local:8080/health"
-  },
-  {
-    "name": "orakl-aggregator-reporter",
-    "url": "http://orakl-aggregator-reporter.orakl.svc.cluster.local:8080/"
-  },
-  {
-    "name": "orakl-aggregator-worker",
-    "url": "http://orakl-aggregator-worker.orakl.svc.cluster.local:8080/"
-  },
-  {
     "name": "orakl-api",
     "url": "http://orakl-api.orakl.svc.cluster.local:3030/api/v1/"
   },
@@ -24,10 +12,6 @@
     "url": "http://orakl-delegator.orakl.svc.cluster.local:80/api/v1/"
   },
   {
-    "name": "orakl-fetcher",
-    "url": "http://orakl-fetcher.orakl.svc.cluster.local:4040/api/v1"
-  },
-  {
     "name": "orakl-node",
     "url": "http://orakl-node.orakl.svc.cluster.local:3030/api/v1/"
   },
@@ -36,28 +20,12 @@
     "url": "http://orakl-por.orakl.svc.cluster.local:3000/api/v1"
   },
   {
-    "name": "orakl-request-response-listener",
-    "url": "http://orakl-request-response-listener.orakl.svc.cluster.local:8080/"
+    "name": "orakl-request-response-core",
+    "url": "http://orakl-request-response-core.orakl.svc.cluster.local:8080/"
   },
   {
-    "name": "orakl-request-response-reporter",
-    "url": "http://orakl-request-response-reporter.orakl.svc.cluster.local:8080/"
-  },
-  {
-    "name": "orakl-request-response-worker",
-    "url": "http://orakl-request-response-worker.orakl.svc.cluster.local:8080/"
-  },
-  {
-    "name": "orakl-vrf-listener",
-    "url": "http://orakl-vrf-listener.orakl.svc.cluster.local:8080/"
-  },
-  {
-    "name": "orakl-vrf-reporter",
-    "url": "http://orakl-vrf-reporter.orakl.svc.cluster.local:8080/"
-  },
-  {
-    "name": "orakl-vrf-worker",
-    "url": "http://orakl-vrf-worker.orakl.svc.cluster.local:8080/"
+    "name": "orakl-vrf-core",
+    "url": "http://orakl-vrf-core.orakl.svc.cluster.local:8080/"
   },
   {
     "name": "redis-data-feed-master",

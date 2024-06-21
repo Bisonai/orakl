@@ -31,6 +31,7 @@ const (
 	DEVIATION_THRESHOLD          = 0.05
 	DEVIATION_ABSOLUTE_THRESHOLD = 0.1
 	DECIMALS                     = 8
+	GAS_MULTIPLIER               = 0
 )
 
 type Config struct {
@@ -115,7 +116,7 @@ func WithJobType(jobType JobType) ReporterOption {
 
 type Reporter struct {
 	Raft               *raft.Raft
-	KlaytnHelper       *helper.ChainHelper
+	KaiaHelper         *helper.ChainHelper
 	SubmissionPairs    map[int32]SubmissionPair
 	SubmissionInterval time.Duration
 	CachedWhitelist    []common.Address

@@ -44,6 +44,8 @@ ORAKL_DELEGATOR_URL=
 POR_URL=
 # (required) Slack webhook URL
 SLACK_WEBHOOK_URL=
+# (required) Submission proxy contract to read signer expiration
+SUBMISSION_PROXY_CONTRACT=
 ```
 
 ## Checkers

@@ -10,7 +10,6 @@ type Subscription struct {
 }
 
 type Response struct {
-	ID     int    `json:"id"`
 	Method string `json:"method"`
 	Code   int    `json:"code"`
 	Result struct {
