@@ -250,11 +250,9 @@ jobs:
           git pull
           # NEW_TAG=${{ github.event.inputs.application }}:${{ needs.build.outputs.img_tag }}
           NEW_TAG="v0TEST_TAG"
-          echo "NEW_TAG=${NEW_TAG}" >> $GITHUB_OUTPUT
           TAG_WITH_DESCRIPTION="${NEW_TAG}:${{ steps.truncate_pr_title.outputs.truncated_title }}"
           CURRENT_OPTIONS=$(yq eval '.on.workflow_dispatch.inputs.image.options' .github/workflows/deployment.yaml)
-          # add new tag to the options
-          OPTIONS = $(echo $CURRENT_OPTIONS | sed 's/]/, "'$TAG_WITH_DESCRIPTION'"]/g')
+          OPTIONS = $(echo "$CURRENT_OPTIONS"/n"$TAG_WITH_DESCRIPTION")
 
           echo "option:" $OPTIONS
           echo "LINE:"
