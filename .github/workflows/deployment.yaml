@@ -32,10 +32,7 @@ on:
         default: "new"
         options:
           - new
-          - cli:v0.6.2.20240531.0032.ef9b79a:OraklNode Update how feeds are...
-          - cli:v0.6.2.20240531.0009.a16ca11:OraklNode Update how feeds are...
-          - cli:v0.6.2.20240530.2356.423011b:OraklNode Update how feeds are...
-          - request-response:v0.5.1.20240531.0021.36de1a2:OraklNode Update how feeds are...
+
 jobs:
   prepare-taskflow:
     name: Prepare
@@ -258,7 +255,7 @@ jobs:
           NEW_OPTIONS=$(echo "$CURRENT_OPTIONS" | yq eval -j - | jq -r '.[]' | grep -v '^new$' | sed '/./!d')
           SERVICE_DATE_OPTIONS=$(echo -e "${NEW_OPTIONS}\n${TAG_WITH_DESCRIPTION}" | awk -F':' '{print $1 ":" $3 ":" $2}')
           SORTED_OPTIONS=$(echo "$SERVICE_DATE_OPTIONS" | sort -t: -k3,3r -k1,1 | awk -F':' '{printf "- \"%s:%s:%s\",\n", $1, $3, $2}' | sed 's/,$//')
-          SORTED_OPTIONS_WITH_NEW=$(echo "- \"new\"\n${SORTED_OPTIONS}")
+          SORTED_OPTIONS_WITH_NEW=$(echo "- new" "${SORTED_OPTIONS}")
           SORTED_OPTIONS_WITH_NEW=$(echo "$SORTED_OPTIONS_WITH_NEW" | sed 's/^- //')
           echo $SORTED_OPTIONS_WITH_NEW
           yq eval 'del(.on.workflow_dispatch.inputs.image.options)' -i .github/workflows/deployment.yaml
