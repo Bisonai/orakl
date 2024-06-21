@@ -274,7 +274,7 @@ jobs:
           GH_TOKEN: ${{ secrets.WORKFLOW_PAT }}
       - name: Update README with Latest PR Info
         run: |
-          echo "-** ${{ github.event.inputs.application }}:${{ needs.build.outputs.img_tag }}** <br> *\`PR\`*: ${{steps.truncate_pr_title.outputs.truncated_title}} <br><br> " >> README.md
+          echo "-** ${{ github.event.inputs.application }} ** ${{ needs.build.outputs.img_tag }} <br> *\`PR\`*: ${{steps.truncate_pr_title.outputs.truncated_title}} <br><br> " >> README.md
           git add README.md
       - name: Commit & Push changes
         uses: actions-js/push@master
