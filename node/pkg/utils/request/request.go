@@ -18,7 +18,7 @@ type RequestConfig struct {
 	Body     interface{}
 	Headers  map[string]string
 	Proxy    string
-	method   string
+	Method   string
 }
 
 type RequestOption func(*RequestConfig)
@@ -55,7 +55,7 @@ func WithProxy(proxy string) RequestOption {
 
 func WithMethod(method string) RequestOption {
 	return func(config *RequestConfig) {
-		config.method = method
+		config.Method = method
 	}
 }
 
@@ -64,7 +64,7 @@ func Request[T any](opts ...RequestOption) (T, error) {
 
 	config := RequestConfig{
 		Timeout: 2 * time.Second,
-		method:  "GET",
+		Method:  "GET",
 	}
 	for _, opt := range opts {
 		opt(&config)
@@ -102,7 +102,7 @@ func Request[T any](opts ...RequestOption) (T, error) {
 func RequestRaw(opts ...RequestOption) (*http.Response, error) {
 	config := RequestConfig{
 		Timeout: 2 * time.Second,
-		method:  "GET",
+		Method:  "GET",
 	}
 	for _, opt := range opts {
 		opt(&config)
@@ -129,7 +129,7 @@ func requestRaw(config RequestConfig) (*http.Response, error) {
 	}
 
 	req, err := http.NewRequest(
-		config.method,
+		config.Method,
 		url.String(),
 		body,
 	)
