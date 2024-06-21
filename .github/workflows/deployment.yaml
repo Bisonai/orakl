@@ -248,22 +248,25 @@ jobs:
       - name: Update Workflow Dispatch Options
         id: tag_info
         run: |
+          git stash
           git pull
 
+          echo "1"
           NEW_TAG=${{ github.event.inputs.application }}:${{ needs.build.outputs.img_tag }}
           TAG_WITH_DESCRIPTION="${NEW_TAG}:${{ steps.truncate_pr_title.outputs.truncated_title }}"
           CURRENT_OPTIONS=$(yq e '.on.workflow_dispatch.inputs.image.options' .github/workflows/deployment.yaml | grep -v 'new' | grep -v "$TAG_WITH_DESCRIPTION")
           UPDATED_OPTIONS=$(printf "new\n%s\n%s\n" "$CURRENT_OPTIONS" "$TAG_WITH_DESCRIPTION" | awk 'NF')
-
+          echo "2"
           yq e -i '.on.workflow_dispatch.inputs.image.options = []' .github/workflows/deployment.yaml
-
+          echo "3"
           while IFS= read -r line; do
             yq eval ".on.workflow_dispatch.inputs.image.options += [\"$line\"]" -i .github/workflows/deployment.yaml
           done <<< "$UPDATED_OPTIONS"
-
+          echo "4"
           git add .github/workflows/deployment.yaml
-
-        env:
+          git commit -m "Update Workflow Dispatch Options"
+          git push
+        env:  
           GH_TOKEN: ${{ secrets.WORKFLOW_PAT }}
       - name: Update README with Latest PR Info
         run: |
