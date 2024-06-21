@@ -4,6 +4,7 @@ import (
 	"bisonai.com/orakl/node/pkg/db"
 	"github.com/go-playground/validator/v10"
 	"github.com/gofiber/fiber/v2"
+	"github.com/rs/zerolog/log"
 )
 
 type ProxyModel struct {
@@ -24,11 +25,13 @@ type ProxyInsertModel struct {
 func insert(c *fiber.Ctx) error {
 	payload := new(ProxyInsertModel)
 	if err := c.BodyParser(payload); err != nil {
+		log.Error().Err(err).Str("Player", "Admin").Str("payload", string(c.Body())).Msg("failed to parse body for proxy insert payload")
 		return c.Status(fiber.StatusInternalServerError).SendString("failed to parse request body: " + err.Error())
 	}
 
 	validate := validator.New()
 	if err := validate.Struct(payload); err != nil {
+		log.Error().Err(err).Str("Player", "Admin").Msg("failed to validate proxy insert payload")
 		return c.Status(fiber.StatusInternalServerError).SendString("failed to validate request body: " + err.Error())
 	}
 
@@ -42,6 +45,7 @@ func insert(c *fiber.Ctx) error {
 		"port":     payload.Port,
 		"location": &payload.Location})
 	if err != nil {
+		log.Error().Err(err).Str("Player", "Admin").Msg("failed to execute proxy insert query")
 		return c.Status(fiber.StatusInternalServerError).SendString("failed to execute insert proxy query: " + err.Error())
 	}
 
@@ -51,6 +55,7 @@ func insert(c *fiber.Ctx) error {
 func get(c *fiber.Ctx) error {
 	results, err := db.QueryRows[ProxyModel](c.Context(), GetProxies, nil)
 	if err != nil {
+		log.Error().Err(err).Str("Player", "Admin").Msg("failed to execute get proxy query")
 		return c.Status(fiber.StatusInternalServerError).SendString("failed to execute get proxy query: " + err.Error())
 	}
 
@@ -61,6 +66,7 @@ func getById(c *fiber.Ctx) error {
 	id := c.Params("id")
 	result, err := db.QueryRow[ProxyModel](c.Context(), GetProxyById, map[string]any{"id": id})
 	if err != nil {
+		log.Error().Err(err).Str("Player", "Admin").Msg("failed to execute get proxy by id query")
 		return c.Status(fiber.StatusInternalServerError).SendString("failed to execute get proxy by id query: " + err.Error())
 	}
 	return c.JSON(result)
@@ -70,11 +76,13 @@ func updateById(c *fiber.Ctx) error {
 	id := c.Params("id")
 	payload := new(ProxyInsertModel)
 	if err := c.BodyParser(payload); err != nil {
+		log.Error().Err(err).Str("Player", "Admin").Str("payload", string(c.Body())).Msg("failed to parse body for proxy update payload")
 		return c.Status(fiber.StatusInternalServerError).SendString("failed to parse request body: " + err.Error())
 	}
 
 	validate := validator.New()
 	if err := validate.Struct(payload); err != nil {
+		log.Error().Err(err).Str("Player", "Admin").Msg("failed to validate proxy update payload")
 		return c.Status(fiber.StatusInternalServerError).SendString("failed to validate request body: " + err.Error())
 	}
 
@@ -86,6 +94,7 @@ func updateById(c *fiber.Ctx) error {
 		"location": &payload.Location})
 
 	if err != nil {
+		log.Error().Err(err).Str("Player", "Admin").Msg("failed to execute update proxy by id query")
 		return c.Status(fiber.StatusInternalServerError).SendString("failed to execute update proxy by id query: " + err.Error())
 	}
 
@@ -96,6 +105,7 @@ func deleteById(c *fiber.Ctx) error {
 	id := c.Params("id")
 	result, err := db.QueryRow[ProxyModel](c.Context(), DeleteProxyById, map[string]any{"id": id})
 	if err != nil {
+		log.Error().Err(err).Str("Player", "Admin").Msg("failed to execute delete proxy by id query")
 		return c.Status(fiber.StatusInternalServerError).SendString("failed to execute delete proxy by id query: " + err.Error())
 	}
 	return c.JSON(result)

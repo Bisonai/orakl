@@ -58,6 +58,7 @@ func sync(ctx context.Context) error {
 	configUrl := getConfigUrl()
 	loadedConfigs, err := request.GetRequest[[]ConfigInsertModel](configUrl, nil, nil)
 	if err != nil {
+		log.Error().Err(err).Str("Player", "Admin").Str("Url", configUrl).Msg("failed to load config from url")
 		return err
 	}
 	loadedConfigMap := map[string]ConfigInsertModel{}
@@ -72,6 +73,7 @@ func sync(ctx context.Context) error {
 	// remove invalid configs
 	dbConfigs, err := db.QueryRows[ConfigModel](ctx, SelectConfigQuery, nil)
 	if err != nil {
+		log.Error().Err(err).Str("Player", "Admin").Str("Query", SelectConfigQuery).Msg("failed to load config from db")
 		return err
 	}
 
@@ -85,12 +87,14 @@ func sync(ctx context.Context) error {
 	}
 	err = db.QueryWithoutResult(ctx, BulkDeleteConfigQuery, map[string]any{"ids": strings.Join(removingConfigs, ",")})
 	if err != nil {
+		log.Error().Err(err).Str("Player", "Admin").Str("Query", BulkDeleteConfigQuery).Msg("failed to remove invalid configs from db")
 		return err
 	}
 
 	// remove invalid feeds
 	dbFeeds, err := db.QueryRows[feed.FeedModel](ctx, feed.GetFeed, nil)
 	if err != nil {
+		log.Error().Err(err).Str("Player", "Admin").Str("Query", feed.GetFeed).Msg("failed to get feeds from db")
 		return err
 	}
 
@@ -104,11 +108,13 @@ func sync(ctx context.Context) error {
 	}
 	err = db.QueryWithoutResult(ctx, BulkDeleteFeedQuery, map[string]any{"ids": strings.Join(removingFeeds, ",")})
 	if err != nil {
+		log.Error().Err(err).Str("Player", "Admin").Str("Query", BulkDeleteFeedQuery).Msg("failed to remove invalid feeds from db")
 		return err
 	}
 
 	err = bulkUpsertConfigs(ctx, loadedConfigs)
 	if err != nil {
+		log.Error().Err(err).Str("Player", "Admin").Msg("failed to upsert configs")
 		return err
 	}
 
@@ -119,6 +125,7 @@ func sync(ctx context.Context) error {
 
 	configIds, err := db.BulkSelect[ConfigNameIdModel](ctx, "configs", []string{"name", "id"}, []string{"name"}, whereValues)
 	if err != nil {
+		log.Error().Err(err).Str("Player", "Admin").Msg("failed to get config ids")
 		return err
 	}
 
@@ -144,6 +151,7 @@ func sync(ctx context.Context) error {
 func Insert(c *fiber.Ctx) error {
 	config := new(ConfigInsertModel)
 	if err := c.BodyParser(config); err != nil {
+		log.Error().Err(err).Str("payload", string(c.Body())).Str("Player", "Admin").Msg("failed to parse body")
 		return err
 	}
 
@@ -155,6 +163,7 @@ func Insert(c *fiber.Ctx) error {
 		"aggregate_interval": config.AggregateInterval,
 		"submit_interval":    config.SubmitInterval})
 	if err != nil {
+		log.Error().Err(err).Str("Player", "Admin").Msg("failed to insert config")
 		return err
 	}
 
@@ -162,6 +171,7 @@ func Insert(c *fiber.Ctx) error {
 		feed.ConfigId = &result.ID
 		err = db.QueryWithoutResult(c.Context(), InsertFeedQuery, map[string]any{"name": feed.Name, "definition": feed.Definition, "config_id": result.ID})
 		if err != nil {
+			log.Error().Err(err).Str("Player", "Admin").Msg("failed to insert feed")
 			return err
 		}
 	}
@@ -172,6 +182,7 @@ func Insert(c *fiber.Ctx) error {
 func Get(c *fiber.Ctx) error {
 	configs, err := db.QueryRows[ConfigModel](c.Context(), SelectConfigQuery, nil)
 	if err != nil {
+		log.Error().Err(err).Str("Player", "Admin").Msg("failed to get configs")
 		return err
 	}
 	return c.JSON(configs)
@@ -181,6 +192,7 @@ func GetById(c *fiber.Ctx) error {
 	id := c.Params("id")
 	config, err := db.QueryRow[ConfigModel](c.Context(), SelectConfigByIdQuery, map[string]any{"id": id})
 	if err != nil {
+		log.Error().Err(err).Str("Player", "Admin").Msg("failed to get config")
 		return err
 	}
 	return c.JSON(config)
@@ -190,6 +202,7 @@ func DeleteById(c *fiber.Ctx) error {
 	id := c.Params("id")
 	deleted, err := db.QueryRow[ConfigModel](c.Context(), DeleteConfigQuery, map[string]any{"id": id})
 	if err != nil {
+		log.Error().Err(err).Str("Player", "Admin").Msg("failed to delete config")
 		return err
 	}
 	return c.JSON(deleted)
@@ -220,7 +233,7 @@ func setDefaultIntervals(config *ConfigInsertModel) {
 	}
 	if config.AggregateInterval == nil || *config.AggregateInterval == 0 {
 		config.AggregateInterval = new(int)
-		*config.AggregateInterval = 5000
+		*config.AggregateInterval = 3000
 	}
 	if config.SubmitInterval == nil || *config.SubmitInterval == 0 {
 		config.SubmitInterval = new(int)

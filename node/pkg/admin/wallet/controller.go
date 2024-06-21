@@ -22,22 +22,26 @@ type WalletInsertModel struct {
 func insert(c *fiber.Ctx) error {
 	payload := new(WalletInsertModel)
 	if err := c.BodyParser(payload); err != nil {
+		log.Error().Err(err).Str("Player", "Admin").Str("payload", string(c.Body())).Msg("failed to parse body for wallet insert payload")
 		return c.Status(fiber.StatusInternalServerError).SendString("failed to parse request body: " + err.Error())
 	}
 
 	validate := validator.New()
 	if err := validate.Struct(payload); err != nil {
+		log.Error().Err(err).Str("Player", "Admin").Msg("failed to validate wallet insert payload")
 		return c.Status(fiber.StatusInternalServerError).SendString("failed to validate request body: " + err.Error())
 	}
 
 	encryptedPk, err := encryptor.EncryptText(payload.Pk)
 	if err != nil {
+		log.Error().Err(err).Str("Player", "Admin").Msg("failed to encrypt pk")
 		return c.Status(fiber.StatusInternalServerError).SendString("failed to encrypt pk: " + err.Error())
 	}
 
 	result, err := db.QueryRow[WalletModel](c.Context(), InsertWallet, map[string]any{
 		"pk": encryptedPk})
 	if err != nil {
+		log.Error().Err(err).Str("Player", "Admin").Msg("failed to execute insert wallet query")
 		return c.Status(fiber.StatusInternalServerError).SendString("failed to execute insert wallet query: " + err.Error())
 	}
 
@@ -49,6 +53,7 @@ func insert(c *fiber.Ctx) error {
 func get(c *fiber.Ctx) error {
 	results, err := db.QueryRows[WalletModel](c.Context(), GetWallets, nil)
 	if err != nil {
+		log.Error().Err(err).Str("Player", "Admin").Msg("failed to execute get wallet query")
 		return c.Status(fiber.StatusInternalServerError).SendString("failed to execute get wallet query: " + err.Error())
 	}
 
@@ -90,10 +95,12 @@ func getAddresses(c *fiber.Ctx) error {
 func getSignerAddress(c *fiber.Ctx) error {
 	signerPk := secrets.GetSecret("SIGNER_PK")
 	if signerPk == "" {
+		log.Error().Str("Player", "Admin").Msg("empty signer pk")
 		return c.Status(fiber.StatusInternalServerError).SendString("failed to get signer pk")
 	}
 	signerAddress, err := chainUtils.StringPkToAddressHex(signerPk)
 	if err != nil {
+		log.Error().Err(err).Str("Player", "Admin").Msg("failed to convert signer pk to address")
 		return c.Status(fiber.StatusInternalServerError).SendString("failed to convert signer pk to address")
 	}
 
@@ -104,12 +111,14 @@ func getById(c *fiber.Ctx) error {
 	id := c.Params("id")
 	result, err := db.QueryRow[WalletModel](c.Context(), GetWalletById, map[string]any{"id": id})
 	if err != nil {
+		log.Error().Err(err).Str("Player", "Admin").Msg("failed to execute get wallet by id query")
 		return c.Status(fiber.StatusInternalServerError).SendString("failed to execute get wallet by id query: " + err.Error())
 	}
 	if result.Pk != "" {
 		result.Pk, err = encryptor.DecryptText(result.Pk)
 	}
 	if err != nil {
+		log.Warn().Err(err).Str("Player", "Admin").Msg("failed to decrypt pk on get wallet by id query")
 		return c.Status(fiber.StatusInternalServerError).SendString("failed to decrypt pk: " + err.Error())
 	}
 
@@ -120,21 +129,25 @@ func updateById(c *fiber.Ctx) error {
 	id := c.Params("id")
 	payload := new(WalletInsertModel)
 	if err := c.BodyParser(payload); err != nil {
+		log.Error().Err(err).Str("Player", "Admin").Str("payload", string(c.Body())).Msg("failed to parse body for wallet update payload")
 		return c.Status(fiber.StatusInternalServerError).SendString("failed to parse request body: " + err.Error())
 	}
 
 	validate := validator.New()
 	if err := validate.Struct(payload); err != nil {
+		log.Error().Err(err).Str("Player", "Admin").Msg("failed to validate wallet update payload")
 		return c.Status(fiber.StatusInternalServerError).SendString("failed to validate request body: " + err.Error())
 	}
 
 	encryptedPk, err := encryptor.EncryptText(payload.Pk)
 	if err != nil {
+		log.Error().Err(err).Str("Player", "Admin").Msg("failed to encrypt pk")
 		return c.Status(fiber.StatusInternalServerError).SendString("failed to encrypt pk: " + err.Error())
 	}
 
 	result, err := db.QueryRow[WalletModel](c.Context(), UpdateWalletById, map[string]any{"pk": encryptedPk, "id": id})
 	if err != nil {
+		log.Error().Err(err).Str("Player", "Admin").Msg("failed to execute update wallet by id query")
 		return c.Status(fiber.StatusInternalServerError).SendString("failed to execute update wallet by id query: " + err.Error())
 	}
 
@@ -147,6 +160,7 @@ func deleteById(c *fiber.Ctx) error {
 	id := c.Params("id")
 	result, err := db.QueryRow[WalletModel](c.Context(), DeleteWalletById, map[string]any{"id": id})
 	if err != nil {
+		log.Error().Err(err).Str("Player", "Admin").Msg("failed to execute delete wallet by id query")
 		return c.Status(fiber.StatusInternalServerError).SendString("failed to execute delete wallet by id query: " + err.Error())
 	}
 	return c.JSON(result)
