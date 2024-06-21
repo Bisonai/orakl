@@ -27,3 +27,13 @@ type Response struct {
 	Server string `json:"SERVER"`
 	TS     string `json:"TS"`
 }
+
+type Ping struct {
+	Action string `json:"action"`
+	Ping   string `json:"ping"`
+}
+
+type Pong struct {
+	Action string `json:"action"`
+	Pong   string `json:"pong"`
+}

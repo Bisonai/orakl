@@ -1,5 +1,7 @@
 package bitget
 
+// TODO: migrate to v2 (reference: https://www.bitget.com/api-doc/spot/websocket/public/Tickers-Channel)
+// wss://ws.bitget.com/v2/ws/public
 const URL = "wss://ws.bitget.com/mix/v1/stream"
 
 type Arg struct {

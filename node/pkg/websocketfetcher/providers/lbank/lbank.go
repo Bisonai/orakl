@@ -46,6 +46,17 @@ func New(ctx context.Context, opts ...common.FetcherOption) (common.FetcherInter
 }
 
 func (f *LbankFetcher) handleMessage(ctx context.Context, message map[string]any) error {
+	if _, exists := message["ping"]; exists {
+		ping, err := common.MessageToStruct[Ping](message)
+		if err != nil {
+			log.Error().Str("Player", "Lbank").Err(err).Msg("error in MessageToPing")
+			return err
+		}
+		return f.Ws.Write(ctx, Pong{
+			Action: "pong",
+			Pong:   ping.Ping,
+		})
+	}
 	response, err := common.MessageToStruct[Response](message)
 	if err != nil {
 		log.Error().Str("Player", "Lbank").Err(err).Msg("error in MessageToResponse")
