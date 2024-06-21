@@ -108,7 +108,7 @@ func (f *KucoinFetcher) customDialFunc(ctx context.Context, endpoint string, dia
 }
 
 func (f *KucoinFetcher) getTokenAndPingInterval() (string, int, error) {
-	resp, err := request.UrlRequest[TokenResponse](TokenUrl, "POST", nil, nil, "")
+	resp, err := request.Request[TokenResponse](request.WithEndpoint(TokenUrl), request.WithMethod("POST"))
 	if err != nil {
 		log.Error().Str("Player", "Kucoin").Err(err).Msg("error in kucoin.getToken")
 		return "", 18000, err

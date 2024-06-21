@@ -98,7 +98,7 @@ func TestGetRequest(t *testing.T) {
 		Test: "value",
 	}
 
-	testResponse, err := request.GetRequest[TestResponse](server.URL, requestBody, headers)
+	testResponse, err := request.Request[TestResponse](request.WithEndpoint(server.URL), request.WithBody(requestBody), request.WithHeaders(headers))
 	if err != nil {
 		t.Errorf("Error making request: %v", err)
 	}
@@ -120,7 +120,7 @@ func TestGetRequestRaw(t *testing.T) {
 		Test: "value",
 	}
 
-	res, err := request.GetRequestRaw(server.URL, requestBody, headers)
+	res, err := request.RequestRaw(request.WithEndpoint(server.URL), request.WithBody(requestBody), request.WithHeaders(headers))
 	if err != nil {
 		t.Errorf("Error making request: %v", err)
 	}
@@ -157,7 +157,7 @@ func TestUrlRequest(t *testing.T) {
 		Test: "value",
 	}
 
-	testResponse, err := request.UrlRequest[TestResponse](server.URL, "GET", requestBody, headers, "")
+	testResponse, err := request.Request[TestResponse](request.WithEndpoint(server.URL), request.WithBody(requestBody), request.WithHeaders(headers))
 	if err != nil {
 		t.Errorf("Error making request: %v", err)
 	}
@@ -180,7 +180,7 @@ func TestUrlRequestRaw(t *testing.T) {
 		Test: "value",
 	}
 
-	res, err := request.UrlRequestRaw(server.URL, "GET", requestBody, headers, "")
+	res, err := request.RequestRaw(request.WithEndpoint(server.URL), request.WithBody(requestBody), request.WithHeaders(headers))
 	if err != nil {
 		t.Errorf("Error making request: %v", err)
 	}
@@ -223,7 +223,7 @@ func TestGetRequestProxy(t *testing.T) {
 		Test: "value",
 	}
 
-	testResponse, err := request.GetRequestProxy[TestResponse](server.URL, requestBody, headers, proxy.URL)
+	testResponse, err := request.Request[TestResponse](request.WithEndpoint(server.URL), request.WithBody(requestBody), request.WithHeaders(headers), request.WithProxy(proxy.URL))
 	if err != nil {
 		t.Errorf("Error making request: %v", err)
 	}
@@ -249,7 +249,7 @@ func TestUrlRequestProxy(t *testing.T) {
 		"Test-Header": "test-value",
 	}
 
-	testResponse, err := request.UrlRequest[TestResponse](server.URL, "GET", requestBody, headers, proxy.URL)
+	testResponse, err := request.Request[TestResponse](request.WithEndpoint(server.URL), request.WithBody(requestBody), request.WithHeaders(headers), request.WithProxy(proxy.URL))
 	if err != nil {
 		t.Errorf("Error making request: %v", err)
 	}
@@ -276,7 +276,7 @@ func TestUrlRequestRawProxy(t *testing.T) {
 		"Test-Header": "test-value",
 	}
 
-	res, err := request.UrlRequestRaw(server.URL, "GET", requestBody, headers, proxy.URL)
+	res, err := request.RequestRaw(request.WithEndpoint(server.URL), request.WithBody(requestBody), request.WithHeaders(headers), request.WithProxy(proxy.URL))
 	if err != nil {
 		t.Errorf("Error making request: %v", err)
 	}

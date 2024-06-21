@@ -37,7 +37,7 @@ func New(ctx context.Context) (*App, error) {
 	adapterUrl := "https://config.orakl.network/adapter/" + chain + "/peg-" + chain + ".por.json"
 	aggregatorUrl := "https://config.orakl.network/aggregator/" + chain + "/peg.por.json"
 
-	adapter, err := request.GetRequest[AdapterModel](adapterUrl, nil, nil)
+	adapter, err := request.Request[AdapterModel](request.WithEndpoint(adapterUrl))
 	if err != nil {
 		return nil, err
 	}
@@ -47,7 +47,7 @@ func New(ctx context.Context) (*App, error) {
 		fetchInterval = time.Duration(*adapter.Interval) * time.Millisecond
 	}
 
-	aggregator, err := request.GetRequest[AggregatorModel](aggregatorUrl, nil, nil)
+	aggregator, err := request.Request[AggregatorModel](request.WithEndpoint(aggregatorUrl))
 	if err != nil {
 		return nil, err
 	}

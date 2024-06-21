@@ -199,11 +199,11 @@ func (f *Fetcher) requestFeed(definition *Definition, proxies []Proxy) (interfac
 }
 
 func (f *Fetcher) requestWithoutProxy(definition *Definition) (interface{}, error) {
-	return request.GetRequest[interface{}](*definition.Url, nil, definition.Headers)
+	return request.Request[interface{}](request.WithEndpoint(*definition.Url), request.WithHeaders(definition.Headers))
 }
 
 func (f *Fetcher) requestWithProxy(definition *Definition, proxyUrl string) (interface{}, error) {
-	return request.GetRequestProxy[interface{}](*definition.Url, nil, definition.Headers, proxyUrl)
+	return request.Request[interface{}](request.WithEndpoint(*definition.Url), request.WithHeaders(definition.Headers), request.WithProxy(proxyUrl))
 }
 
 func (f *Fetcher) filterProxyByLocation(proxies []Proxy, location string) []Proxy {
