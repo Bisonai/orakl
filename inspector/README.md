@@ -88,4 +88,4 @@ npx hardhat load-test-vrf --network baobab --batch n
 npx hardhat load-test-rr --network baobab --batch n
 ```
 
-Replace `n` with any number of batches you'd like to run. Each batch will make 50 requests. Every batch is awaited to be mined before making the next batch request. The results of each request is measured in how many blocks it takes to fulfill, which is equivalent to seconds. The results are collected in arbitrary order and printed to the console in ascending order. The consumer contract keeps track each request's requestId and will compute how many blocks/seconds it takes to fulfill the request.
+Replace `n` with any number of batches you'd like to run. Each batch will make 50 requests. Every batch is awaited to be mined before making the next batch request. The results of each request are measured by the number of blocks it takes to fulfill, which is equivalent to seconds. The consumer contract keeps track of each request's requestId and computes the time it takes to fulfill the request.

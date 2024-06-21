@@ -127,9 +127,9 @@ task("load-test-vrf", "Load test vrf task")
 
       let blocks = "";
       blockRecords
-        .map((block: BigInt) => Number(block))
+        .map((block: bigint) => Number(block))
         .sort((a, b) => a - b)
-        .map((block) => (blocks += block + " "));
+        .map((block) => (blocks = blocks + block + " "));
 
       console.log(
         `Number of blocks/seconds it took to fulfill ${count} requests, in ascending order: `
@@ -187,9 +187,9 @@ task("load-test-rr", "Load test task")
 
       let blocks = "";
       blockRecords
-        .map((block: BigInt) => Number(block))
+        .map((block: bigint) => Number(block))
         .sort((a, b) => a - b)
-        .map((block) => (blocks += block + " "));
+        .map((block) => (blocks = blocks + block + " "));
 
       console.log(
         `Number of blocks/seconds it took to fulfill ${count} requests, in ascending order: `
@@ -239,7 +239,7 @@ task("addConsumer", "Add consumer")
 
       console.log(`Added consumer ${consumerAddress} to prepayment account`);
     } else {
-      if (!accId) console.log(`Prepayment accountId is not defined`);
-      if (!consumerAddress) console.log(`Consumer Address is not defined`);
+      if (!accId) console.error(`Prepayment accountId is not defined`);
+      if (!consumerAddress) console.error(`Consumer Address is not defined`);
     }
   });
