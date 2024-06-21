@@ -12,6 +12,8 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
+const DefaultTimeout = 2 * time.Second
+
 type RequestConfig struct {
 	Timeout  time.Duration
 	Endpoint string
@@ -63,7 +65,7 @@ func Request[T any](opts ...RequestOption) (T, error) {
 	var result T
 
 	config := RequestConfig{
-		Timeout: 2 * time.Second,
+		Timeout: DefaultTimeout,
 		Method:  "GET",
 	}
 	for _, opt := range opts {
@@ -101,7 +103,7 @@ func Request[T any](opts ...RequestOption) (T, error) {
 
 func RequestRaw(opts ...RequestOption) (*http.Response, error) {
 	config := RequestConfig{
-		Timeout: 2 * time.Second,
+		Timeout: DefaultTimeout,
 		Method:  "GET",
 	}
 	for _, opt := range opts {
@@ -128,6 +130,20 @@ func requestRaw(config RequestConfig) (*http.Response, error) {
 		return nil, err
 	}
 
+	validMethod := []string{"GET", "POST", "PUT", "PATCH", "DELETE"}
+	notFound := true
+	for _, s := range validMethod {
+		if s == config.Method {
+			notFound = false
+			break
+		}
+	}
+
+	if notFound {
+		log.Error().Str("method", config.Method).Msg("invalid method")
+		return nil, errorSentinel.ErrRequestInvalidMethod
+	}
+
 	req, err := http.NewRequest(
 		config.Method,
 		url.String(),
@@ -144,12 +160,9 @@ func requestRaw(config RequestConfig) (*http.Response, error) {
 			req.Header.Set(key, value)
 		}
 	}
-	timeout := 2 * time.Second
-	if config.Timeout > 0 {
-		timeout = config.Timeout
-	}
+
 	client := &http.Client{
-		Timeout: timeout,
+		Timeout: config.Timeout,
 	}
 
 	if config.Proxy != "" {

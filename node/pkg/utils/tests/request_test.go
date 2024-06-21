@@ -6,7 +6,9 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
+	"time"
 
 	"bisonai.com/orakl/node/pkg/utils/request"
 )
@@ -298,5 +300,120 @@ func TestUrlRequestRawProxy(t *testing.T) {
 
 	if result.Message != "Mock server response" {
 		t.Errorf("Expected response message 'Mock server response' but got %v", result.Message)
+	}
+}
+
+func TestRequestMultipleCases(t *testing.T) {
+	server := createMockServer()
+	defer server.Close()
+
+	headers := map[string]string{
+		"Test-Header": "test-value",
+	}
+
+	requestBody := TestRequestBody{
+		Test: "value",
+	}
+
+	tests := []struct {
+		name       string
+		options    []request.RequestOption
+		wantErr    bool
+		errMessage string
+	}{
+		{
+			name: "Normal operation",
+			options: []request.RequestOption{
+				request.WithEndpoint(server.URL),
+				request.WithBody(requestBody),
+				request.WithHeaders(headers),
+			},
+			wantErr: false,
+		},
+		{
+			name: "Invalid endpoint",
+			options: []request.RequestOption{
+				request.WithEndpoint("invalid-url"),
+			},
+			wantErr:    true,
+			errMessage: "Get \"invalid-url\": unsupported protocol scheme \"\"",
+		},
+		{
+			name: "Unsupported method",
+			options: []request.RequestOption{
+				request.WithEndpoint(server.URL),
+				request.WithMethod("INVALID"),
+			},
+			wantErr:    true,
+			errMessage: "Invalid method",
+		},
+		{
+			name: "Short timeout",
+			options: []request.RequestOption{
+				request.WithEndpoint(server.URL),
+				request.WithTimeout(1 * time.Nanosecond),
+			},
+			wantErr:    true,
+			errMessage: "context deadline exceeded (Client.Timeout exceeded while awaiting headers)",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, err := request.Request[TestResponse](tt.options...)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("Request() error = %v, wantErr %v", err, tt.wantErr)
+			} else if err != nil && !(strings.Contains(err.Error(), tt.errMessage) || err.Error() == tt.errMessage) {
+				t.Errorf("Request() error message = %s, wantErrMessage %s", err.Error(), tt.errMessage)
+			}
+		})
+	}
+}
+
+func TestRequestRawMultipleCases(t *testing.T) {
+	server := createMockServer()
+	defer server.Close()
+	tests := []struct {
+		name       string
+		options    []request.RequestOption
+		wantErr    bool
+		errMessage string
+	}{
+		{
+			name: "Normal operation",
+			options: []request.RequestOption{
+				request.WithEndpoint("http://example.com"),
+				request.WithMethod("GET"),
+			},
+			wantErr: false,
+		},
+		{
+			name: "Connection error",
+			options: []request.RequestOption{
+				request.WithEndpoint("http://thisurldoesnotexist.tld"),
+			},
+			wantErr:    true,
+			errMessage: "no such host",
+		},
+		{
+			name: "Invalid method",
+			options: []request.RequestOption{
+				request.WithEndpoint(server.URL),
+				request.WithMethod("INVALID"),
+			},
+			wantErr:    true,
+			errMessage: "Invalid method",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, err := request.RequestRaw(tt.options...)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("RequestRaw() error = %v, wantErr %v", err, tt.wantErr)
+			} else if err != nil && !(strings.Contains(err.Error(), tt.errMessage) || err.Error() == tt.errMessage) {
+				t.Errorf("RequestRaw() error message = %s, wantErrMessage %s", err.Error(), tt.errMessage)
+			}
+		})
 	}
 }
