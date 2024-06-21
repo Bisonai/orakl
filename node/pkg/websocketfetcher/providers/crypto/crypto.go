@@ -59,10 +59,10 @@ func (f *CryptoDotComFetcher) handleMessage(ctx context.Context, message map[str
 	}
 
 	if response.Method == "public/heartbeat" {
-		heartbeat, err := common.MessageToStruct[Heartbeat](message)
-		if err != nil {
-			log.Error().Str("Player", "CryptoDotCom").Err(err).Msg("error in cryptodotcom.handleMessage")
-			return err
+		heartbeat, heartbeatConvertErr := common.MessageToStruct[Heartbeat](message)
+		if heartbeatConvertErr != nil {
+			log.Error().Str("Player", "CryptoDotCom").Err(heartbeatConvertErr).Msg("error in cryptodotcom.handleMessage")
+			return heartbeatConvertErr
 		}
 		return f.Ws.Write(ctx, Heartbeat{
 			ID:     heartbeat.ID,

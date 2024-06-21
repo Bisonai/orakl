@@ -85,7 +85,10 @@ func (f *BitmartFetcher) ping(ctx context.Context) {
 			select {
 			case <-ticker.C:
 				log.Debug().Str("Player", "Bitmart").Msg("sending ping message to bitmart server")
-				f.Ws.RawWrite(ctx, "ping")
+				err := f.Ws.RawWrite(ctx, "ping")
+				if err != nil {
+					log.Error().Str("Player", "Bitmart").Err(err).Msg("error in bitmart.ping")
+				}
 			case <-ctx.Done():
 				ticker.Stop()
 				return
