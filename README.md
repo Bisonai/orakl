@@ -117,5 +117,4 @@ To start core microservices (listener, worker, reporter) as a singleton service 
 The microservices can also be started separately in any arbitrary order by replacing `core` in the above commands with either `listener`, `worker`, or `reporter`
 
 ## Image tag release (do not write under this section)
-- **por** v0.0.1.20240621.0703.82429c9 <br> *`PR`*: Update price pair tags <br><br> 
-- **vrf** v0.5.1.20240621.0710.dfa5c7d <br> *`PR`*: Update price pair tags <br><br> 
+
