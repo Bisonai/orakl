@@ -32,7 +32,8 @@ on:
         default: "new"
         options:
           - new
-
+          - '- new'
+          - cli:v0.6.2.20240621.0518.1917a34:OraklNode Hotfix UnixMilli to ...
 jobs:
   prepare-taskflow:
     name: Prepare
@@ -208,7 +209,6 @@ jobs:
     secrets:
       SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
     if: ${{ github.event.inputs.network == 'Baobab' && github.event.inputs.image == 'new' && failure() }}
-
   update-workflow-and-readme:
     name: Update Workflow and README
     needs: [prepare, build, image-update]
@@ -244,7 +244,6 @@ jobs:
         run: "TR_PR_TITLE=\"${{steps.pr_info.outputs.PR_TITLE}}\"\nMAX_LENGTH=30\nif [ ${#TR_PR_TITLE} -gt $MAX_LENGTH ]; then\n  TRUNCATED_TITLE=\"${TR_PR_TITLE:0:$MAX_LENGTH}...\"\nelse\n  TRUNCATED_TITLE=\"$TR_PR_TITLE\"\nfi\necho \"truncated_title=$TRUNCATED_TITLE\" >> $GITHUB_OUTPUT  \n"
         env:
           GH_TOKEN: ${{ secrets.WORKFLOW_PAT }}
-
       - name: Update Workflow Dispatch Options
         id: tag_info
         run: |
@@ -267,7 +266,7 @@ jobs:
           done <<< "$UPDATED_OPTIONS"
           echo "4"
           git add .github/workflows/deployment.yaml
-        env:  
+        env:
           GH_TOKEN: ${{ secrets.WORKFLOW_PAT }}
       - name: Update README with Latest PR Info
         run: |
