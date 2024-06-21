@@ -32,7 +32,7 @@ on:
         default: "new"
         options:
           - new
-
+          - cli:v0.6.2.20240621.0620.8da2428:Update price pair tags
 jobs:
   prepare-taskflow:
     name: Prepare
