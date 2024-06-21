@@ -253,10 +253,13 @@ jobs:
           TAG_WITH_DESCRIPTION="${NEW_TAG}:${{ steps.truncate_pr_title.outputs.truncated_title }}"
 
           CURRENT_OPTIONS=$(yq e '.on.workflow_dispatch.inputs.image.options' .github/workflows/deployment.yaml)
-          UPDATED_OPTIONS="new\n$(echo "$CURRENT_OPTIONS" | grep -v 'new' | grep -v "$TAG_WITH_DESCRIPTION")\n$TAG_WITH_DESCRIPTION"
+          echo "current: $CURRENT_OPTIONS"
+          UPDATED_OPTIONS=$(printf "new\n%s\n%s\n" "$(echo "$CURRENT_OPTIONS" | grep -v 'new' | grep -v "$TAG_WITH_DESCRIPTION")" "$TAG_WITH_DESCRIPTION" | awk '!a[$0]++')
           
           echo "$UPDATED_OPTIONS" | yq e '.on.workflow_dispatch.inputs.image.options = load("stdin")' -i .github/workflows/deployment.yaml
           
+          echo "updated: "$UPDATED_OPTIONS""
+
           git add .github/workflows/deployment.yaml
 
         env:
