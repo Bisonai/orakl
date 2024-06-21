@@ -31,7 +31,7 @@ on:
         type: choice
         default: "new"
         options:
-          - new
+          - "new"
 
 jobs:
   prepare-taskflow:
@@ -251,16 +251,14 @@ jobs:
           # NEW_TAG=${{ github.event.inputs.application }}:${{ needs.build.outputs.img_tag }}
           NEW_TAG="v0TEST_TAG"
           TAG_WITH_DESCRIPTION="${NEW_TAG}:${{ steps.truncate_pr_title.outputs.truncated_title }}"
-          CURRENT_OPTIONS=$(yq eval '.on.workflow_dispatch.inputs.image.options' .github/workflows/deployment.yaml)
-          OPTIONS = $(echo "$CURRENT_OPTIONS"/n"$TAG_WITH_DESCRIPTION")
 
-          echo "option:" $OPTIONS
-          echo "LINE:"
-          while IFS= read -r line; do  
-            yq eval ".on.workflow_dispatch.inputs.image.options += ["$line"]" -i .github/workflows/deployment.yaml
-          done <<< "$OPTIONS"
-
+          CURRENT_OPTIONS=$(yq e '.on.workflow_dispatch.inputs.image.options' .github/workflows/deployment.yaml)
+          UPDATED_OPTIONS="new\n$(echo "$CURRENT_OPTIONS" | grep -v 'new' | grep -v "$TAG_WITH_DESCRIPTION")\n$TAG_WITH_DESCRIPTION"
+          
+          echo "$UPDATED_OPTIONS" | yq e '.on.workflow_dispatch.inputs.image.options = load("stdin")' -i .github/workflows/deployment.yaml
+          
           git add .github/workflows/deployment.yaml
+
         env:
           GH_TOKEN: ${{ secrets.WORKFLOW_PAT }}
       # - name: Update README with Latest PR Info
