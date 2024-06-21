@@ -31,3 +31,8 @@ type Response struct {
 		} `json:"data"`
 	} `json:"result"`
 }
+
+type Heartbeat struct {
+	ID     int    `json:"id"`
+	Method string `json:"method"`
+}

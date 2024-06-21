@@ -58,6 +58,18 @@ func (f *CryptoDotComFetcher) handleMessage(ctx context.Context, message map[str
 		return err
 	}
 
+	if response.Method == "public/heartbeat" {
+		heartbeat, err := common.MessageToStruct[Heartbeat](message)
+		if err != nil {
+			log.Error().Str("Player", "CryptoDotCom").Err(err).Msg("error in cryptodotcom.handleMessage")
+			return err
+		}
+		return f.Ws.Write(ctx, Heartbeat{
+			ID:     heartbeat.ID,
+			Method: "public/respond-heartbeat",
+		})
+	}
+
 	if response.Result.Channel != "ticker" {
 		return nil
 	}
