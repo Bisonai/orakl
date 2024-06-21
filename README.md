@@ -118,3 +118,4 @@ The microservices can also be started separately in any arbitrary order by repla
 
 ## Image tag release (do not write under this section)
 - **por** v0.0.1.20240621.0703.82429c9 <br> *`PR`*: Update price pair tags <br><br> 
+- **vrf** v0.5.1.20240621.0710.dfa5c7d <br> *`PR`*: Update price pair tags <br><br> 

@@ -33,6 +33,7 @@ on:
         options:
           - new
           - por:v0.0.1.20240621.0703.82429c9:Update price pair tags
+          - vrf:v0.5.1.20240621.0710.dfa5c7d:Update price pair tags
 jobs:
   prepare-taskflow:
     name: Prepare
