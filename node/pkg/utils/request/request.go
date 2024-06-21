@@ -130,16 +130,8 @@ func requestRaw(config RequestConfig) (*http.Response, error) {
 		return nil, err
 	}
 
-	validMethod := []string{"GET", "POST", "PUT", "PATCH", "DELETE"}
-	notFound := true
-	for _, s := range validMethod {
-		if s == config.Method {
-			notFound = false
-			break
-		}
-	}
-
-	if notFound {
+	validMethods := map[string]bool{"GET": true, "POST": true, "PUT": true, "PATCH": true, "DELETE": true}
+	if !validMethods[config.Method] {
 		log.Error().Str("method", config.Method).Msg("invalid method")
 		return nil, errorSentinel.ErrRequestInvalidMethod
 	}
