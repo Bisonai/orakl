@@ -256,11 +256,10 @@ jobs:
           NEW_TAG=${{ github.event.inputs.application }}:${{ needs.build.outputs.img_tag }}
           TAG_WITH_DESCRIPTION="${NEW_TAG}:${{ steps.truncate_pr_title.outputs.truncated_title }}"
           echo "1-1"
-          CURRENT_OPTIONS=$(yq e '.on.workflow_dispatch.inputs.image.options' .github/workflows/deployment.yaml | grep -v 'new' | grep -v "$TAG_WITH_DESCRIPTION")
+          CURRENT_OPTIONS=$(yq eval '.on.workflow_dispatch.inputs.image.options' .github/workflows/deployment.yaml)
           echo $CURRENT_OPTIONS
           echo "1-2"
           UPDATED_OPTIONS=$(printf "new\n%s\n%s\n" "$CURRENT_OPTIONS" "$TAG_WITH_DESCRIPTION" | awk 'NF')
-          echo "1-3"
           echo "2"
           yq e -i '.on.workflow_dispatch.inputs.image.options = []' .github/workflows/deployment.yaml
           echo "3"
