@@ -4,6 +4,7 @@ import (
 	"bisonai.com/orakl/node/pkg/db"
 	"github.com/go-playground/validator"
 	"github.com/gofiber/fiber/v2"
+	"github.com/rs/zerolog/log"
 )
 
 type ProviderUrlModel struct {
@@ -22,11 +23,13 @@ type ProviderUrlInsertModel struct {
 func insert(c *fiber.Ctx) error {
 	payload := new(ProviderUrlInsertModel)
 	if err := c.BodyParser(payload); err != nil {
+		log.Error().Err(err).Str("Player", "Admin").Str("payload", string(c.Body())).Msg("failed to parse body for provider insert payload")
 		return c.Status(fiber.StatusInternalServerError).SendString("failed to parse body for provider insert payload: " + err.Error())
 	}
 
 	validate := validator.New()
 	if err := validate.Struct(payload); err != nil {
+		log.Error().Err(err).Str("Player", "Admin").Msg("failed to validate provider insert payload")
 		return c.Status(fiber.StatusBadRequest).SendString("failed to validate provider insert payload: " + err.Error())
 	}
 
@@ -36,6 +39,7 @@ func insert(c *fiber.Ctx) error {
 		"priority": payload.Priority,
 	})
 	if err != nil {
+		log.Error().Err(err).Str("Player", "Admin").Msg("failed to execute provider insert query")
 		return c.Status(fiber.StatusInternalServerError).SendString("failed to execute provider insert query: " + err.Error())
 	}
 	return c.JSON(result)
@@ -44,6 +48,7 @@ func insert(c *fiber.Ctx) error {
 func get(c *fiber.Ctx) error {
 	results, err := db.QueryRows[ProviderUrlModel](c.Context(), GetProviderUrl, nil)
 	if err != nil {
+		log.Error().Err(err).Str("Player", "Admin").Msg("failed to execute provider get query")
 		return c.Status(fiber.StatusInternalServerError).SendString("failed to execute provider get query: " + err.Error())
 	}
 	return c.JSON(results)
@@ -53,6 +58,7 @@ func getById(c *fiber.Ctx) error {
 	id := c.Params("id")
 	result, err := db.QueryRow[ProviderUrlModel](c.Context(), GetProviderUrlById, map[string]any{"id": id})
 	if err != nil {
+		log.Error().Err(err).Str("Player", "Admin").Msg("failed to execute provider get by id query")
 		return c.Status(fiber.StatusInternalServerError).SendString("failed to execute provider get by id query: " + err.Error())
 	}
 	return c.JSON(result)
@@ -62,6 +68,7 @@ func deleteById(c *fiber.Ctx) error {
 	id := c.Params("id")
 	result, err := db.QueryRow[ProviderUrlModel](c.Context(), DeleteProviderUrlById, map[string]any{"id": id})
 	if err != nil {
+		log.Error().Err(err).Str("Player", "Admin").Msg("failed to execute provider delete by id query")
 		return c.Status(fiber.StatusInternalServerError).SendString("failed to execute provider delete by id query: " + err.Error())
 	}
 	return c.JSON(result)

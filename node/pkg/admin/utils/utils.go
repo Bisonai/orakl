@@ -31,11 +31,13 @@ func Setup(setupInfo SetupInfo) (*fiber.App, error) {
 	ctx := context.Background()
 	_, err := db.GetPool(ctx)
 	if err != nil {
+		log.Error().Err(err).Msg("error getting db pool")
 		return nil, errorSentinel.ErrAdminDbPoolNotFound
 	}
 
 	_, err = db.GetRedisConn(ctx)
 	if err != nil {
+		log.Error().Err(err).Msg("error getting redis conn")
 		return nil, errorSentinel.ErrAdminRedisConnNotFound
 	}
 
