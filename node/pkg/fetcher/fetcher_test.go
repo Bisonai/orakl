@@ -226,46 +226,6 @@ func TestFetcherCex(t *testing.T) {
 	}
 }
 
-func TestFetcherUniswapV3(t *testing.T) {
-	ctx := context.Background()
-	clean, testItems, err := setup(ctx)
-	if err != nil {
-		t.Fatalf("error setting up test: %v", err)
-	}
-	defer func() {
-		if cleanupErr := clean(); cleanupErr != nil {
-			t.Logf("Cleanup failed: %v", cleanupErr)
-		}
-	}()
-
-	app := testItems.app
-
-	err = app.initialize(ctx)
-	if err != nil {
-		t.Fatalf("error initializing fetcher: %v", err)
-	}
-
-	for _, fetcher := range app.Fetchers {
-		for _, feed := range fetcher.Feeds {
-			definition := new(Definition)
-
-			err := json.Unmarshal(feed.Definition, &definition)
-			if err != nil {
-				t.Fatalf("error unmarshalling definition: %v", err)
-			}
-			if definition.Type == nil || *definition.Type != "UniswapPool" {
-				continue
-			}
-
-			result, err := fetcher.uniswapV3(definition, app.ChainHelpers)
-			if err != nil {
-				t.Fatalf("error fetching: %v", err)
-			}
-			assert.Greater(t, result, float64(0))
-		}
-	}
-}
-
 func TestRequestFeed(t *testing.T) {
 	ctx := context.Background()
 	clean, testItems, err := setup(ctx)

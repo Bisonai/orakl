@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"math/big"
 	"math/rand"
 	"time"
 
@@ -99,12 +98,6 @@ func (f *Fetcher) fetch(chainHelpers map[string]ChainHelper, proxies []Proxy) ([
 					errChan <- fetchErr
 					return
 				}
-			case *definition.Type == "UniswapPool":
-				resultValue, fetchErr = f.uniswapV3(definition, chainHelpers)
-				if fetchErr != nil {
-					errChan <- fetchErr
-					return
-				}
 			default:
 				errChan <- errorSentinel.ErrFetcherInvalidType
 				return
@@ -148,36 +141,6 @@ func (f *Fetcher) cex(definition *Definition, proxies []Proxy) (float64, error) 
 	}
 
 	return reducer.Reduce(rawResult, definition.Reducers)
-}
-
-func (f *Fetcher) uniswapV3(definition *Definition, chainHelpers map[string]ChainHelper) (float64, error) {
-	if definition.Address == nil || definition.ChainID == nil || definition.Token0Decimals == nil || definition.Token1Decimals == nil {
-		log.Error().Any("definition", definition).Msg("missing required fields for uniswapV3")
-		return 0, errorSentinel.ErrFetcherInvalidDexFetcherDefinition
-	}
-
-	helper := chainHelpers[*definition.ChainID]
-	if helper == nil {
-		return 0, errorSentinel.ErrFetcherChainHelperNotFound
-	}
-
-	rawResult, err := helper.ReadContract(context.Background(), *definition.Address, "function slot0() external view returns (uint160 sqrtPriceX96, int24 tick, uint16 observationIndex, uint16 observationCardinality, uint16 observationCardinalityNext, uint8 feeProtocol, bool unlocked)")
-	if err != nil {
-		log.Error().Err(err).Msg("failed to read contract for uniswap v3 pool contract")
-		return 0, err
-	}
-
-	rawResultSlice, ok := rawResult.([]interface{})
-	if !ok || len(rawResultSlice) < 1 {
-		return 0, errorSentinel.ErrFetcherInvalidRawResult
-	}
-
-	sqrtPriceX96, ok := rawResultSlice[0].(*big.Int)
-	if !ok {
-		return 0, errorSentinel.ErrFetcherConvertToBigInt
-	}
-
-	return getTokenPrice(sqrtPriceX96, definition)
 }
 
 func (f *Fetcher) requestFeed(definition *Definition, proxies []Proxy) (interface{}, error) {

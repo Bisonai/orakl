@@ -47,6 +47,14 @@ tasks:
     dotenv: [".env"]
     cmds:
       - go run ./script/test_websocketfetcher/main.go
+  script-test-websocketchainreader:
+    dotenv: [".env"]
+    cmds:
+      - go run ./script/test_websocketchainreader/main.go
+  script-test-websocketdexfetcher:
+    dotenv: [".env"]
+    cmds:
+      - go run ./script/test_websocketdexfetcher/main.go
 
   test-db:
     dotenv: [".env"]
