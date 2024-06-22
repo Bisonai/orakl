@@ -3,6 +3,7 @@ package event
 import (
 	"context"
 	"fmt"
+	"math/big"
 	"os"
 	"strings"
 	"time"
@@ -14,13 +15,14 @@ import (
 )
 
 const AlarmOffset = 3
+const VRF_EVENT = "vrf_random_words_fulfilled"
+const RR_EVENT = ""
 
-var FeedsToCheck = []FeedToCheck{}
-var PegPorToCheck = FeedToCheck{}
 var EventCheckInterval time.Duration
 var POR_BUFFER = 60 * time.Second
+var VRF_ALARM_WINDOW = 180 * time.Second
 
-func setUp(ctx context.Context) error {
+func setUp(ctx context.Context) (*CheckList, error) {
 	log.Debug().Msg("Setting up event checker")
 	EventCheckInterval = 60 * time.Second
 
@@ -35,21 +37,22 @@ func setUp(ctx context.Context) error {
 	configs, err := loadExpectedEventIntervals()
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to load expected event intervals")
-		return err
+		return nil, err
 	}
 
 	pegPorConfig, err := loadPegPorEventInterval()
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to load peg por event interval")
-		return err
+		return nil, err
 	}
 
 	subgraphInfoMap, err := loadSubgraphInfoMap(ctx)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to load subgraph info")
-		return err
+		return nil, err
 	}
 
+	FeedsToCheck := []FeedToCheck{}
 	for _, config := range configs {
 		subgraphInfo, ok := subgraphInfoMap[config.Name]
 		if !ok {
@@ -71,22 +74,33 @@ func setUp(ctx context.Context) error {
 	pegPorSubgraphInfo, ok := subgraphInfoMap[pegPorConfig.Name]
 	if !ok {
 		log.Warn().Msg("Peg Por subgraph info not found")
-		return nil
+		return nil, fmt.Errorf("por subgraph info not found")
 	}
 
-	PegPorToCheck = FeedToCheck{
+	PegPorToCheck := FeedToCheck{
 		SchemaName:       pegPorSubgraphInfo.SchemaName,
 		FeedName:         pegPorConfig.Name,
 		ExpectedInterval: pegPorConfig.Heartbeat,
 		LatencyChecked:   0,
 	}
 
-	return nil
+	VRFToCheck := FullfillEventToCheck{
+		SchemaName: subgraphInfoMap["VRF"].SchemaName,
+		Name:       "VRF Fullfillment",
+		EventName:  VRF_EVENT,
+	}
+
+	return &CheckList{
+		Feeds: FeedsToCheck,
+		Por:   PegPorToCheck,
+		VRF:   VRFToCheck,
+	}, nil
+
 }
 
 func Start(ctx context.Context) error {
 	log.Info().Msg("Starting event checker")
-	err := setUp(ctx)
+	checkList, err := setUp(ctx)
 	if err != nil {
 		return err
 	}
@@ -94,12 +108,18 @@ func Start(ctx context.Context) error {
 	defer ticker.Stop()
 
 	for range ticker.C {
-		check(ctx)
+		check(ctx, checkList)
 	}
 	return nil
 }
 
-func check(ctx context.Context) {
+func check(ctx context.Context, checkList *CheckList) {
+	checkFeeds(ctx, checkList.Feeds)
+	checkPors(ctx, checkList.Por)
+	checkVRF(ctx, checkList.VRF)
+}
+
+func checkFeeds(ctx context.Context, FeedsToCheck []FeedToCheck) {
 	msg := ""
 	for i, feed := range FeedsToCheck {
 		offset, err := timeSinceLastFeedEvent(ctx, feed)
@@ -119,7 +139,13 @@ func check(ctx context.Context) {
 			FeedsToCheck[i].LatencyChecked = 0
 		}
 	}
+	if msg != "" {
+		alert.SlackAlert(msg)
+	}
+}
 
+func checkPors(ctx context.Context, PegPorToCheck FeedToCheck) {
+	msg := ""
 	porOffset, err := timeSinceLastPorEvent(ctx, PegPorToCheck)
 	if err != nil {
 		log.Error().Err(err).Str("feed", PegPorToCheck.FeedName).Msg("Failed to check peg por")
@@ -128,6 +154,36 @@ func check(ctx context.Context) {
 		if porOffset > time.Duration(PegPorToCheck.ExpectedInterval)*time.Millisecond+POR_BUFFER {
 			log.Warn().Str("feed", PegPorToCheck.FeedName).Msg(fmt.Sprintf("%s delayed by %s\n", PegPorToCheck.FeedName, porOffset-time.Duration(PegPorToCheck.ExpectedInterval)*time.Millisecond))
 			msg += fmt.Sprintf("%s delayed by %s\n", PegPorToCheck.FeedName, porOffset-time.Duration(PegPorToCheck.ExpectedInterval)*time.Millisecond)
+		}
+	}
+
+	if msg != "" {
+		alert.SlackAlert(msg)
+	}
+}
+
+func checkVRF(ctx context.Context, vrfToCheck FullfillEventToCheck) {
+	msg := ""
+	type Fullfillment struct {
+		Block     int32    `db:"block"`
+		ID        string   `db:"id"`
+		RequestId *big.Int `db:"request_id"`
+		Time      int64    `db:"time"`
+	}
+	query := loadUnfullfilledVRFEventQuery(vrfToCheck.SchemaName, vrfToCheck.EventName)
+	unfullfilled, err := db.QueryRows[Fullfillment](ctx, query, nil)
+	if err != nil {
+		log.Error().Err(err).Msg("Failed to query unfullfilled events")
+		return
+	}
+	log.Debug().Msg("Loaded unfullfilled events")
+
+	for _, unfullfilledEvent := range unfullfilled {
+		unfullfedTime := time.Unix(unfullfilledEvent.Time, 0)
+		offset := time.Since(unfullfedTime)
+		if offset < VRF_ALARM_WINDOW {
+			log.Warn().Msg(fmt.Sprintf("%s delayed by %s (id: %s, request_id: %s, time: %s)", vrfToCheck.Name, offset, unfullfilledEvent.ID, unfullfilledEvent.RequestId.String(), unfullfedTime.String()))
+			msg += fmt.Sprintf("%s delayed by %s (id: %s, request_id: %s, time: %s)", vrfToCheck.Name, offset, unfullfilledEvent.ID, unfullfilledEvent.RequestId.String(), unfullfedTime.String())
 		}
 	}
 
@@ -192,6 +248,10 @@ func loadSubgraphInfoMap(ctx context.Context) (map[string]SubgraphInfo, error) {
 		if strings.HasPrefix(subgraphInfo.Name, "Aggregator-") && strings.HasSuffix(subgraphInfo.Name, "-POR") {
 			porName := strings.TrimPrefix(subgraphInfo.Name, "Aggregator-")
 			subgraphInfoMap[porName] = subgraphInfo
+		}
+
+		if subgraphInfo.Name == "VRFCalculator" {
+			subgraphInfoMap["VRF"] = subgraphInfo
 		}
 	}
 

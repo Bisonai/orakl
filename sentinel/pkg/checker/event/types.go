@@ -52,12 +52,28 @@ type FeedToCheck struct {
 	LatencyChecked   int
 }
 
+type FullfillEventToCheck struct {
+	SchemaName string
+	Name       string
+	EventName  string
+}
+
+type CheckList struct {
+	Feeds []FeedToCheck
+	Por   FeedToCheck
+	VRF   FullfillEventToCheck
+}
+
 func feedEventQuery(schemaName string) string {
 	return fmt.Sprintf(`SELECT time FROM %s.feed_feed_updated ORDER BY time DESC LIMIT 1;`, schemaName)
 }
 
 func aggregatorEventQuery(schemaName string) string {
 	return fmt.Sprintf(`SELECT time FROM %s.aggregator_submission_received ORDER BY time DESC LIMIT 1;`, schemaName)
+}
+
+func loadUnfullfilledVRFEventQuery(schemaName string, eventName string) string {
+	return fmt.Sprintf(`SELECT * FROM %s.%s WHERE success = false ORDER BY time DESC;`, schemaName, eventName)
 }
 
 func loadOraklConfigUrl(chain string) string {
