@@ -176,10 +176,11 @@ func checkVRF(ctx context.Context, vrfToCheck FullfillEventToCheck) {
 	log.Debug().Msg("Loaded unfullfilled events")
 
 	for _, unfullfilledEvent := range unfullfilled {
-		log.Debug().Any("unfullfilledEvent", unfullfilledEvent).Msg("Checking unfullfilled event")
+		log.Debug().Str("id", unfullfilledEvent.ID).Int32("block", unfullfilledEvent.Block).Str("time", time.Unix(unfullfilledEvent.Time, 0).String()).Msg("Checking unfullfilled event")
 		unfullfedTime := time.Unix(unfullfilledEvent.Time, 0)
 		offset := time.Since(unfullfedTime)
-		if offset > VRF_ALARM_WINDOW {
+		// typically takes about 2 seconds to fulfill, skip if less than 3 seconds
+		if offset > VRF_ALARM_WINDOW && offset < 3*time.Second {
 			continue
 		}
 
