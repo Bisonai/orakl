@@ -164,7 +164,7 @@ func checkPors(ctx context.Context, PegPorToCheck FeedToCheck) {
 func checkVRF(ctx context.Context, vrfToCheck FullfillEventToCheck) {
 	msg := ""
 	type Fullfillment struct {
-		Block     int32    `db:"block"`
+		Block     int32    `db:"block$"`
 		ID        string   `db:"id"`
 		RequestId *big.Int `db:"request_id"`
 		Time      int64    `db:"time"`
