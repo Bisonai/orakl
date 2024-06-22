@@ -41,9 +41,9 @@ func ConnectThroughBootApi(ctx context.Context, h host.Host) error {
 
 	log.Info().Str("url", url).Str("api_endpoint", apiEndpoint).Msg("connecting to boot API")
 
-	dbPeers, err := request.UrlRequest[[]BootPeerModel](apiEndpoint+"/api/v1/peer/sync", "POST", map[string]any{
+	dbPeers, err := request.Request[[]BootPeerModel](request.WithEndpoint(apiEndpoint+"/api/v1/peer/sync"), request.WithMethod("POST"), request.WithBody(map[string]any{
 		"url": url,
-	}, nil, "")
+	}))
 	if err != nil {
 		log.Error().Err(err).Msg("Error connecting to boot API")
 		return err

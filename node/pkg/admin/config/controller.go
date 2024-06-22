@@ -56,7 +56,7 @@ func Sync(c *fiber.Ctx) error {
 
 func sync(ctx context.Context) error {
 	configUrl := getConfigUrl()
-	loadedConfigs, err := request.GetRequest[[]ConfigInsertModel](configUrl, nil, nil)
+	loadedConfigs, err := request.Request[[]ConfigInsertModel](request.WithEndpoint(configUrl))
 	if err != nil {
 		return err
 	}

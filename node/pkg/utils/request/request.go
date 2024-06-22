@@ -12,17 +12,66 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-func GetRequest[T any](urlEndpoint string, requestBody interface{}, headers map[string]string) (T, error) {
-	return UrlRequest[T](urlEndpoint, "GET", requestBody, headers, "")
+const DefaultTimeout = 2 * time.Second
+
+type RequestConfig struct {
+	Timeout  time.Duration
+	Endpoint string
+	Body     interface{}
+	Headers  map[string]string
+	Proxy    string
+	Method   string
 }
 
-func GetRequestRaw(urlEndpoint string, requestBody interface{}, headers map[string]string) (*http.Response, error) {
-	return UrlRequestRaw(urlEndpoint, "GET", requestBody, headers, "")
+type RequestOption func(*RequestConfig)
+
+func WithTimeout(timeout time.Duration) RequestOption {
+	return func(config *RequestConfig) {
+		config.Timeout = timeout
+	}
 }
 
-func UrlRequest[T any](urlEndpoint string, method string, requestBody interface{}, headers map[string]string, proxy string) (T, error) {
+func WithEndpoint(endpoint string) RequestOption {
+	return func(config *RequestConfig) {
+		config.Endpoint = endpoint
+	}
+}
+
+func WithBody(body interface{}) RequestOption {
+	return func(config *RequestConfig) {
+		config.Body = body
+	}
+}
+
+func WithHeaders(headers map[string]string) RequestOption {
+	return func(config *RequestConfig) {
+		config.Headers = headers
+	}
+}
+
+func WithProxy(proxy string) RequestOption {
+	return func(config *RequestConfig) {
+		config.Proxy = proxy
+	}
+}
+
+func WithMethod(method string) RequestOption {
+	return func(config *RequestConfig) {
+		config.Method = method
+	}
+}
+
+func Request[T any](opts ...RequestOption) (T, error) {
 	var result T
-	response, err := UrlRequestRaw(urlEndpoint, method, requestBody, headers, proxy)
+
+	config := RequestConfig{
+		Timeout: DefaultTimeout,
+		Method:  "GET",
+	}
+	for _, opt := range opts {
+		opt(&config)
+	}
+	response, err := requestRaw(config)
 	if err != nil {
 		log.Error().Err(err).Msg("failed to make request")
 		return result, err
@@ -31,7 +80,7 @@ func UrlRequest[T any](urlEndpoint string, method string, requestBody interface{
 	if response.StatusCode != http.StatusOK {
 		log.Info().
 			Int("status", response.StatusCode).
-			Str("url", urlEndpoint).
+			Str("url", config.Endpoint).
 			Msg("failed to make request")
 		return result, errorSentinel.ErrRequestStatusNotOk
 	}
@@ -52,11 +101,22 @@ func UrlRequest[T any](urlEndpoint string, method string, requestBody interface{
 	return result, nil
 }
 
-func UrlRequestRaw(urlEndpoint string, method string, requestBody interface{}, headers map[string]string, proxy string) (*http.Response, error) {
+func RequestRaw(opts ...RequestOption) (*http.Response, error) {
+	config := RequestConfig{
+		Timeout: DefaultTimeout,
+		Method:  "GET",
+	}
+	for _, opt := range opts {
+		opt(&config)
+	}
+	return requestRaw(config)
+}
+
+func requestRaw(config RequestConfig) (*http.Response, error) {
 	var body io.Reader
 
-	if requestBody != nil {
-		marshalledData, err := json.Marshal(requestBody)
+	if config.Body != nil {
+		marshalledData, err := json.Marshal(config.Body)
 		if err != nil {
 			log.Error().Err(err).Msg("failed to marshal request body")
 			return nil, err
@@ -64,14 +124,20 @@ func UrlRequestRaw(urlEndpoint string, method string, requestBody interface{}, h
 		body = bytes.NewReader(marshalledData)
 	}
 
-	url, err := url.Parse(urlEndpoint)
+	url, err := url.Parse(config.Endpoint)
 	if err != nil {
-		log.Error().Err(err).Str("url", urlEndpoint).Msg("failed to parse url")
+		log.Error().Err(err).Str("url", config.Endpoint).Msg("failed to parse url")
 		return nil, err
 	}
 
+	validMethods := map[string]bool{"GET": true, "POST": true, "PUT": true, "PATCH": true, "DELETE": true}
+	if !validMethods[config.Method] {
+		log.Error().Str("method", config.Method).Msg("invalid method")
+		return nil, errorSentinel.ErrRequestInvalidMethod
+	}
+
 	req, err := http.NewRequest(
-		method,
+		config.Method,
 		url.String(),
 		body,
 	)
@@ -81,37 +147,35 @@ func UrlRequestRaw(urlEndpoint string, method string, requestBody interface{}, h
 	}
 
 	req.Header.Set("Content-Type", "application/json")
-	if len(headers) > 0 {
-		for key, value := range headers {
+	if len(config.Headers) > 0 {
+		for key, value := range config.Headers {
 			req.Header.Set(key, value)
 		}
 	}
 
 	client := &http.Client{
-		Timeout: 2 * time.Second,
+		Timeout: config.Timeout,
 	}
 
-	if proxy != "" {
-		proxyUrl, err := url.Parse(proxy)
+	if config.Proxy != "" {
+		err := setProxy(client, config.Proxy)
 		if err != nil {
-			log.Error().Err(err).Str("proxy", proxy).Msg("failed to parse proxy")
 			return nil, err
-		}
-
-		client.Transport = &http.Transport{
-			Proxy: http.ProxyURL(proxyUrl),
-		}
-
-		if url.Scheme == "https" {
-			url.Scheme = "http"
-			req.URL = url
 		}
 	}
 
 	return client.Do(req)
 }
 
-func GetRequestProxy[T any](urlEndpoint string, requestBody interface{}, headers map[string]string, proxy string) (T, error) {
-	log.Debug().Str("url", urlEndpoint).Str("proxy", proxy).Msg("making request with proxy")
-	return UrlRequest[T](urlEndpoint, "GET", requestBody, headers, proxy)
+func setProxy(client *http.Client, proxyURL string) error {
+	parsedURL, err := url.Parse(proxyURL)
+	if err != nil {
+		log.Error().Err(err).Str("proxy", proxyURL).Msg("failed to parse proxy")
+		return err
+	}
+
+	client.Transport = &http.Transport{
+		Proxy: http.ProxyURL(parsedURL),
+	}
+	return nil
 }
