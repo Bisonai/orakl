@@ -252,7 +252,7 @@ func loadSubgraphInfoMap(ctx context.Context) (map[string]SubgraphInfo, error) {
 			subgraphInfoMap[porName] = subgraphInfo
 		}
 
-		if subgraphInfo.Name == "VRFCalculator" {
+		if subgraphInfo.Name == "VRFCoordinator" {
 			subgraphInfoMap["VRF"] = subgraphInfo
 		}
 	}
