@@ -16,7 +16,6 @@ import (
 
 const AlarmOffset = 3
 const VRF_EVENT = "vrf_random_words_fulfilled"
-const RR_EVENT = ""
 
 var EventCheckInterval time.Duration
 var POR_BUFFER = 60 * time.Second
@@ -129,7 +128,7 @@ func checkFeeds(ctx context.Context, FeedsToCheck []FeedToCheck) {
 		}
 
 		if offset > time.Duration(feed.ExpectedInterval)*time.Millisecond*2 {
-			log.Warn().Str("feed", feed.FeedName).Msg(fmt.Sprintf("%s delayed by %s\n", feed.FeedName, offset-time.Duration(feed.ExpectedInterval)*time.Millisecond))
+			log.Warn().Str("feed", feed.FeedName).Msg(fmt.Sprintf("%s delayed by %s", feed.FeedName, offset-time.Duration(feed.ExpectedInterval)*time.Millisecond))
 			FeedsToCheck[i].LatencyChecked++
 			if FeedsToCheck[i].LatencyChecked > AlarmOffset {
 				msg += fmt.Sprintf("%s delayed by %s\n", feed.FeedName, offset-time.Duration(feed.ExpectedInterval)*time.Millisecond)
@@ -152,7 +151,7 @@ func checkPors(ctx context.Context, PegPorToCheck FeedToCheck) {
 	} else {
 		log.Debug().Str("POR offset", porOffset.String()).Msg("POR offset")
 		if porOffset > time.Duration(PegPorToCheck.ExpectedInterval)*time.Millisecond+POR_BUFFER {
-			log.Warn().Str("feed", PegPorToCheck.FeedName).Msg(fmt.Sprintf("%s delayed by %s\n", PegPorToCheck.FeedName, porOffset-time.Duration(PegPorToCheck.ExpectedInterval)*time.Millisecond))
+			log.Warn().Str("feed", PegPorToCheck.FeedName).Msg(fmt.Sprintf("%s delayed by %s", PegPorToCheck.FeedName, porOffset-time.Duration(PegPorToCheck.ExpectedInterval)*time.Millisecond))
 			msg += fmt.Sprintf("%s delayed by %s\n", PegPorToCheck.FeedName, porOffset-time.Duration(PegPorToCheck.ExpectedInterval)*time.Millisecond)
 		}
 	}
@@ -179,12 +178,15 @@ func checkVRF(ctx context.Context, vrfToCheck FullfillEventToCheck) {
 	log.Debug().Msg("Loaded unfullfilled events")
 
 	for _, unfullfilledEvent := range unfullfilled {
+		log.Debug().Any("unfullfilledEvent", unfullfilledEvent).Msg("Checking unfullfilled event")
 		unfullfedTime := time.Unix(unfullfilledEvent.Time, 0)
 		offset := time.Since(unfullfedTime)
-		if offset < VRF_ALARM_WINDOW {
-			log.Warn().Msg(fmt.Sprintf("%s delayed by %s (id: %s, request_id: %s, time: %s)", vrfToCheck.Name, offset, unfullfilledEvent.ID, unfullfilledEvent.RequestId.String(), unfullfedTime.String()))
-			msg += fmt.Sprintf("%s delayed by %s (id: %s, request_id: %s, time: %s)", vrfToCheck.Name, offset, unfullfilledEvent.ID, unfullfilledEvent.RequestId.String(), unfullfedTime.String())
+		if offset > VRF_ALARM_WINDOW {
+			continue
 		}
+
+		log.Warn().Msg(fmt.Sprintf("%s delayed by %s (id: %s, request_id: %s, time: %s)", vrfToCheck.Name, offset, unfullfilledEvent.ID, unfullfilledEvent.RequestId.String(), unfullfedTime.String()))
+		msg += fmt.Sprintf("%s delayed by %s (id: %s, request_id: %s, time: %s)\n", vrfToCheck.Name, offset, unfullfilledEvent.ID, unfullfilledEvent.RequestId.String(), unfullfedTime.String())
 	}
 
 	if msg != "" {
