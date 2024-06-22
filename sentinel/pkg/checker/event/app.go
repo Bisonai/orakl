@@ -3,7 +3,6 @@ package event
 import (
 	"context"
 	"fmt"
-	"math/big"
 	"os"
 	"strings"
 	"time"
@@ -164,10 +163,9 @@ func checkPors(ctx context.Context, PegPorToCheck FeedToCheck) {
 func checkVRF(ctx context.Context, vrfToCheck FullfillEventToCheck) {
 	msg := ""
 	type Fullfillment struct {
-		Block     int32    `db:"block$"`
-		ID        string   `db:"id"`
-		RequestId *big.Int `db:"request_id"`
-		Time      int64    `db:"time"`
+		Block int32  `db:"block$"`
+		ID    string `db:"id"`
+		Time  int64  `db:"time"`
 	}
 	query := loadUnfullfilledVRFEventQuery(vrfToCheck.SchemaName, vrfToCheck.EventName)
 	unfullfilled, err := db.QueryRows[Fullfillment](ctx, query, nil)
@@ -185,8 +183,8 @@ func checkVRF(ctx context.Context, vrfToCheck FullfillEventToCheck) {
 			continue
 		}
 
-		log.Warn().Msg(fmt.Sprintf("%s delayed by %s (id: %s, request_id: %s, time: %s)", vrfToCheck.Name, offset, unfullfilledEvent.ID, unfullfilledEvent.RequestId.String(), unfullfedTime.String()))
-		msg += fmt.Sprintf("%s delayed by %s (id: %s, request_id: %s, time: %s)\n", vrfToCheck.Name, offset, unfullfilledEvent.ID, unfullfilledEvent.RequestId.String(), unfullfedTime.String())
+		log.Warn().Msg(fmt.Sprintf("%s delayed by %s (id: %s, time: %s)", vrfToCheck.Name, offset, unfullfilledEvent.ID, unfullfedTime.String()))
+		msg += fmt.Sprintf("%s delayed by %s (id: %s, time: %s)\n", vrfToCheck.Name, offset, unfullfilledEvent.ID, unfullfedTime.String())
 	}
 
 	if msg != "" {

@@ -73,7 +73,7 @@ func aggregatorEventQuery(schemaName string) string {
 }
 
 func loadUnfullfilledVRFEventQuery(schemaName string, eventName string) string {
-	return fmt.Sprintf(`SELECT block$, id, request_id, time FROM %s.%s WHERE success = false ORDER BY time DESC;`, schemaName, eventName)
+	return fmt.Sprintf(`SELECT block$, id, time FROM %s.%s WHERE success = false ORDER BY time DESC;`, schemaName, eventName)
 }
 
 func loadOraklConfigUrl(chain string) string {
