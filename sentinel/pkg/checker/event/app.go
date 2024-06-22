@@ -18,7 +18,6 @@ const AlarmOffset = 3
 var FeedsToCheck = []FeedToCheck{}
 var PegPorToCheck = FeedToCheck{}
 var EventCheckInterval time.Duration
-var BUFFER = 1 * time.Second
 var POR_BUFFER = 60 * time.Second
 
 func setUp(ctx context.Context) error {
@@ -109,7 +108,7 @@ func check(ctx context.Context) {
 			continue
 		}
 
-		if offset > time.Duration(feed.ExpectedInterval)*time.Millisecond+BUFFER {
+		if offset > time.Duration(feed.ExpectedInterval)*time.Millisecond*2 {
 			log.Warn().Str("feed", feed.FeedName).Msg(fmt.Sprintf("%s delayed by %s\n", feed.FeedName, offset-time.Duration(feed.ExpectedInterval)*time.Millisecond))
 			FeedsToCheck[i].LatencyChecked++
 			if FeedsToCheck[i].LatencyChecked > AlarmOffset {
