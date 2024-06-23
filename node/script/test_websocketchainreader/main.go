@@ -34,6 +34,7 @@ func main() {
 	}
 
 	channel := make(chan types.Log)
+	defer close(channel)
 	address := "0x11b815efb8f581194ae79006d24e0d814b7697f6" // ETH-USDT 0.03
 
 	eventName, input, _, err := utils.ParseMethodSignature(Event)
@@ -44,7 +45,7 @@ func main() {
 
 	abi, err := utils.GenerateEventABI(eventName, input)
 	if err != nil {
-		log.Error().Err(err).Msg("failed to generate event abi")
+		log.Error().Err(err).Msgf("failed to generate event ABI for event: %s", eventName)
 		return
 	}
 

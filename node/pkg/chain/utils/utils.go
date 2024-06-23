@@ -130,7 +130,7 @@ func generateABI(functionName string, inputs string, outputs string, stateMutabi
 
 func GenerateEventABI(eventName string, inputs string) (*abi.ABI, error) {
 	if eventName == "" {
-		return nil, errorSentinel.ErrChainEmptyFuncStringParam
+		return nil, errorSentinel.ErrChainEmptyEventNameStringParam
 	}
 
 	inputArgs := MakeAbiFuncAttribute(inputs)

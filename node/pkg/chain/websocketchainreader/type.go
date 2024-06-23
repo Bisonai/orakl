@@ -21,8 +21,8 @@ const Event = `event Swap(
 type BlockchainType int
 
 const (
-	Kaia BlockchainType = iota
-	Ethereum
+	Kaia     BlockchainType = 1
+	Ethereum BlockchainType = 2
 )
 
 type ChainReader struct {

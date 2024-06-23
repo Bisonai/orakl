@@ -124,6 +124,7 @@ var (
 	ErrChainEthWebsocketUrlNotFound          = &CustomError{Service: Others, Code: InvalidInputError, Message: "eth websocket url not found"}
 	ErrChainWebsocketContractAddressNotfound = &CustomError{Service: Others, Code: InvalidInputError, Message: "websocket contract address not found"}
 	ErrChainWebsocketChannelNotfound         = &CustomError{Service: Others, Code: InvalidInputError, Message: "websocket channel not found"}
+	ErrChainEmptyEventNameStringParam        = &CustomError{Service: Others, Code: InvalidInputError, Message: "empty event name string param"}
 
 	ErrDbDatabaseUrlNotFound            = &CustomError{Service: Others, Code: InternalError, Message: "DATABASE_URL not found"}
 	ErrDbEmptyTableNameParam            = &CustomError{Service: Others, Code: InvalidInputError, Message: "empty table name"}
@@ -148,7 +149,7 @@ var (
 	ErrStreamerCancelNotFound             = &CustomError{Service: Fetcher, Code: InternalError, Message: "Streamer cancel function not found"}
 	ErrFetcherNoMatchingChainID           = &CustomError{Service: Fetcher, Code: InvalidInputError, Message: "No matching chain ID"}
 	ErrFetcherFailedToGetDexResultSlice   = &CustomError{Service: Fetcher, Code: InternalError, Message: "Failed to get dex result slice"}
-	ErrFetcherFailedBigIntConvert         = &CustomError{Service: Fetcher, Code: InternalError, Message: "Failed to convert to big.Int"}
+	ErrFetcherFailedBigIntConvert         = &CustomError{Service: Fetcher, Code: InternalError, Message: "Failed to convert to fetched data to big.Int"}
 
 	ErrLibP2pEmptyNonLocalAddress = &CustomError{Service: Others, Code: InternalError, Message: "Host has no non-local addresses"}
 	ErrLibP2pAddressSplitFail     = &CustomError{Service: Others, Code: InternalError, Message: "Failed to split address"}
