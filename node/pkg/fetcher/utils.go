@@ -2,8 +2,6 @@ package fetcher
 
 import (
 	"context"
-	"math"
-	"math/big"
 	"strings"
 	"time"
 
@@ -22,35 +20,6 @@ func FetchSingle(ctx context.Context, definition *Definition) (float64, error) {
 		return 0, err
 	}
 	return reducer.Reduce(rawResult, definition.Reducers)
-}
-
-func getTokenPrice(sqrtPriceX96 *big.Int, definition *Definition) (float64, error) {
-	decimal0 := *definition.Token0Decimals
-	decimal1 := *definition.Token1Decimals
-	if sqrtPriceX96 == nil || decimal0 == 0 || decimal1 == 0 {
-		return 0, errorSentinel.ErrFetcherInvalidInput
-	}
-
-	sqrtPriceX96Float := new(big.Float).SetInt(sqrtPriceX96)
-	sqrtPriceX96Float.Quo(sqrtPriceX96Float, new(big.Float).SetFloat64(math.Pow(2, 96)))
-	sqrtPriceX96Float.Mul(sqrtPriceX96Float, sqrtPriceX96Float) // square
-
-	decimalDiff := new(big.Float).SetFloat64(math.Pow(10, float64(decimal1-decimal0)))
-
-	datum := sqrtPriceX96Float.Quo(sqrtPriceX96Float, decimalDiff)
-	if definition.Reciprocal != nil && *definition.Reciprocal {
-		if datum == nil || datum.Sign() == 0 {
-			return 0, errorSentinel.ErrFetcherDivisionByZero
-		}
-		datum = datum.Quo(new(big.Float).SetFloat64(1), datum)
-	}
-
-	multiplier := new(big.Float).SetFloat64(math.Pow(10, DECIMALS))
-	datum.Mul(datum, multiplier)
-
-	result, _ := datum.Float64()
-
-	return math.Round(result), nil
 }
 
 func setLatestFeedData(ctx context.Context, feedData []FeedData, expiration time.Duration) error {
