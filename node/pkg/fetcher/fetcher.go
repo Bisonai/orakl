@@ -23,7 +23,7 @@ func NewFetcher(config Config, feeds []Feed) *Fetcher {
 	}
 }
 
-func (f *Fetcher) Run(ctx context.Context, chainHelpers map[string]ChainHelper, proxies []Proxy) {
+func (f *Fetcher) Run(ctx context.Context, proxies []Proxy) {
 	fetcherCtx, cancel := context.WithCancel(ctx)
 	f.fetcherCtx = fetcherCtx
 	f.cancel = cancel
@@ -38,7 +38,7 @@ func (f *Fetcher) Run(ctx context.Context, chainHelpers map[string]ChainHelper, 
 				ticker.Stop()
 				return
 			case <-ticker.C:
-				err := f.fetcherJob(f.fetcherCtx, chainHelpers, proxies)
+				err := f.fetcherJob(f.fetcherCtx, proxies)
 				if err != nil && !errors.Is(err, errorSentinel.ErrFetcherNoDataFetched) {
 					log.Error().Str("Player", "Fetcher").Err(err).Msg("error in fetchAndInsert")
 				}
@@ -47,9 +47,9 @@ func (f *Fetcher) Run(ctx context.Context, chainHelpers map[string]ChainHelper, 
 	}()
 }
 
-func (f *Fetcher) fetcherJob(ctx context.Context, chainHelpers map[string]ChainHelper, proxies []Proxy) error {
+func (f *Fetcher) fetcherJob(ctx context.Context, proxies []Proxy) error {
 	log.Debug().Str("Player", "Fetcher").Str("fetcher", f.Name).Msg("fetcherJob")
-	result, err := f.fetch(chainHelpers, proxies)
+	result, err := f.fetch(proxies)
 	if err != nil && !errors.Is(err, errorSentinel.ErrFetcherNoDataFetched) {
 		log.Error().Str("Player", "Fetcher").Err(err).Msg("error in fetch")
 		return err
@@ -68,7 +68,7 @@ func (f *Fetcher) fetcherJob(ctx context.Context, chainHelpers map[string]ChainH
 	return setFeedDataBuffer(ctx, result)
 }
 
-func (f *Fetcher) fetch(chainHelpers map[string]ChainHelper, proxies []Proxy) ([]FeedData, error) {
+func (f *Fetcher) fetch(proxies []Proxy) ([]FeedData, error) {
 	feeds := f.Feeds
 
 	data := []FeedData{}

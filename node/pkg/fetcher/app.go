@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"bisonai.com/orakl/node/pkg/bus"
-	chainHelper "bisonai.com/orakl/node/pkg/chain/helper"
 	"bisonai.com/orakl/node/pkg/db"
 	errorSentinel "bisonai.com/orakl/node/pkg/error"
 	"bisonai.com/orakl/node/pkg/websocketfetcher"
@@ -183,7 +182,7 @@ func (a *App) startFetcher(ctx context.Context, fetcher *Fetcher) error {
 		return nil
 	}
 
-	fetcher.Run(ctx, a.ChainHelpers, a.Proxies)
+	fetcher.Run(ctx, a.Proxies)
 
 	log.Debug().Str("Player", "Fetcher").Str("fetcher", fetcher.Name).Msg("fetcher started")
 	return nil
@@ -386,60 +385,12 @@ func (a *App) initialize(ctx context.Context) error {
 	}
 	a.Proxies = proxies
 
-	if a.ChainHelpers != nil && len(a.ChainHelpers) > 0 {
-		for _, chainHelper := range a.ChainHelpers {
-			chainHelper.Close()
-		}
-	}
-
-	chainHelpers, getChainHelpersErr := a.getChainHelpers(ctx)
-	if getChainHelpersErr != nil {
-		return getChainHelpersErr
-	}
-	a.ChainHelpers = chainHelpers
-
 	err = a.WebsocketFetcher.Init(ctx)
 	if err != nil {
 		return err
 	}
 
 	return nil
-}
-
-func (a *App) getChainHelpers(ctx context.Context) (map[string]ChainHelper, error) {
-	cypressProviderUrl := os.Getenv("FETCHER_CYPRESS_PROVIDER_URL")
-	if cypressProviderUrl == "" {
-		log.Info().Msg("cypress provider url not set, using default url: https://public-en-cypress.klaytn.net")
-		cypressProviderUrl = "https://public-en-cypress.klaytn.net"
-	}
-
-	cypressHelper, err := chainHelper.NewChainHelper(ctx, chainHelper.WithProviderUrl(cypressProviderUrl))
-	if err != nil {
-		log.Error().Err(err).Msg("failed to create cypress helper")
-		return nil, err
-	}
-
-	ethereumProviderUrl := os.Getenv("FETCHER_ETHEREUM_PROVIDER_URL")
-	if ethereumProviderUrl == "" {
-		log.Info().Msg("ethereum provider url not set, using default url: https://ethereum-mainnet.g.allthatnode.com/full/evm")
-		ethereumProviderUrl = "https://ethereum-mainnet.g.allthatnode.com/full/evm"
-	}
-
-	ethereumHelper, err := chainHelper.NewChainHelper(ctx, chainHelper.WithBlockchainType(chainHelper.Ethereum), chainHelper.WithProviderUrl(ethereumProviderUrl))
-	if err != nil {
-		log.Error().Err(err).Msg("failed to create ethereum helper")
-		return nil, err
-	}
-
-	var result = make(map[string]ChainHelper, 2)
-
-	cypressChainId := cypressHelper.ChainID()
-	result[cypressChainId.String()] = cypressHelper
-
-	ethereumChainId := ethereumHelper.ChainID()
-	result[ethereumChainId.String()] = ethereumHelper
-
-	return result, nil
 }
 
 func (a *App) String() string {

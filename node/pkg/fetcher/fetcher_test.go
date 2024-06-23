@@ -37,7 +37,7 @@ func TestFetcherRun(t *testing.T) {
 	}
 
 	for _, fetcher := range app.Fetchers {
-		fetcher.Run(ctx, app.ChainHelpers, app.Proxies)
+		fetcher.Run(ctx, app.Proxies)
 	}
 
 	for _, fetcher := range app.Fetchers {
@@ -78,7 +78,7 @@ func TestFetcherFetcherJob(t *testing.T) {
 	}
 
 	for _, fetcher := range app.Fetchers {
-		jobErr := fetcher.fetcherJob(ctx, app.ChainHelpers, app.Proxies)
+		jobErr := fetcher.fetcherJob(ctx, app.Proxies)
 		if jobErr != nil {
 			t.Fatalf("error fetching: %v", jobErr)
 		}
@@ -123,7 +123,7 @@ func TestFetcherFetch(t *testing.T) {
 	}
 
 	for _, fetcher := range app.Fetchers {
-		result, err := fetcher.fetch(app.ChainHelpers, app.Proxies)
+		result, err := fetcher.fetch(app.Proxies)
 		if err != nil {
 			t.Fatalf("error fetching: %v", err)
 		}
@@ -177,7 +177,7 @@ func TestFetcherFetchProxy(t *testing.T) {
 	}
 	log.Info().Msg("initialized")
 	for _, fetcher := range app.Fetchers {
-		result, fetchErr := fetcher.fetch(app.ChainHelpers, app.Proxies)
+		result, fetchErr := fetcher.fetch(app.Proxies)
 		if fetchErr != nil {
 			t.Fatalf("error fetching: %v", fetchErr)
 		}

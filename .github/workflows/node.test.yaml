@@ -94,8 +94,8 @@ jobs:
           REDIS_HOST: "localhost"
           REDIS_PORT: "6379"
           ENCRYPT_PASSWORD: "anything"
-          FETCHER_ETHEREUM_PROVIDER_URL: "https://ethereum-mainnet.g.allthatnode.com/full/evm"
-          FETCHER_CYPRESS_PROVIDER_URL: "https://klaytn-mainnet.g.allthatnode.com/full/evm"
+          KAIA_WEBSOCKET_URL: "wss://public-en-cypress.klaytn.net/ws"
+          ETH_WEBSOCKET_URL: "wss://ethereum-rpc.publicnode.com"
           KAIA_PROVIDER_URL: "https://public-en.kairos.node.kaia.io"
           KAIA_REPORTER_PK: ${{ secrets.TEST_DELEGATOR_REPORTER_PK}}
           ETH_PROVIDER_URL: "https://ethereum-sepolia.g.allthatnode.com/full/evm"

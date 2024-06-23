@@ -74,7 +74,6 @@ type App struct {
 	Streamer         *Streamer
 	WebsocketFetcher *websocketfetcher.App
 	Proxies          []Proxy
-	ChainHelpers     map[string]ChainHelper
 }
 
 type Definition struct {
