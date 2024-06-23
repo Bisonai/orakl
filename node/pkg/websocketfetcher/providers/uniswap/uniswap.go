@@ -69,7 +69,11 @@ func (f *UniswapFetcher) run(ctx context.Context, feed common.Feed) {
 	log.Debug().Str("Player", "Uniswap").Any("feedData", initialFeedData).Msg("initial price fetched")
 	f.FeedDataBuffer <- initialFeedData
 	// 2. get subsequent data through websocket
-	f.subscribeEvent(ctx, feed)
+	err = f.subscribeEvent(ctx, feed)
+	if err != nil {
+		log.Error().Str("Player", "Uniswap").Err(err).Msg("error in uniswap.run, failed to subscribe event")
+		return
+	}
 }
 
 func (f *UniswapFetcher) getInitialPrice(ctx context.Context, feed common.Feed) (*float64, error) {
