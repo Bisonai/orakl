@@ -9,7 +9,7 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-const DefaultLocalAggregateInterval = 500
+const DefaultLocalAggregateInterval = 250
 
 func NewCollector(config Config, feeds []Feed) *Collector {
 	return &Collector{
@@ -31,8 +31,7 @@ func (c *Collector) Run(ctx context.Context) {
 	if err != nil {
 		localAggregateInterval = DefaultLocalAggregateInterval * time.Millisecond
 	}
-	collectorFrequency := localAggregateInterval
-	ticker := time.NewTicker(collectorFrequency)
+	ticker := time.NewTicker(localAggregateInterval)
 	go func() {
 		for {
 			select {
