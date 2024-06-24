@@ -162,6 +162,11 @@ func requestRaw(config RequestConfig) (*http.Response, error) {
 		if err != nil {
 			return nil, err
 		}
+
+		if url.Scheme == "https" {
+			url.Scheme = "http"
+			req.URL = url
+		}
 	}
 
 	return client.Do(req)
@@ -177,5 +182,6 @@ func setProxy(client *http.Client, proxyURL string) error {
 	client.Transport = &http.Transport{
 		Proxy: http.ProxyURL(parsedURL),
 	}
+
 	return nil
 }
