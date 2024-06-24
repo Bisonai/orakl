@@ -2,8 +2,11 @@ package websocketfetcher
 
 import (
 	"context"
+	"errors"
+	"os"
 	"time"
 
+	"bisonai.com/orakl/node/pkg/chain/websocketchainreader"
 	"bisonai.com/orakl/node/pkg/db"
 	"bisonai.com/orakl/node/pkg/websocketfetcher/common"
 	"bisonai.com/orakl/node/pkg/websocketfetcher/providers/binance"
@@ -27,6 +30,7 @@ import (
 	"bisonai.com/orakl/node/pkg/websocketfetcher/providers/lbank"
 	"bisonai.com/orakl/node/pkg/websocketfetcher/providers/mexc"
 	"bisonai.com/orakl/node/pkg/websocketfetcher/providers/okx"
+	"bisonai.com/orakl/node/pkg/websocketfetcher/providers/uniswap"
 	"bisonai.com/orakl/node/pkg/websocketfetcher/providers/upbit"
 	"bisonai.com/orakl/node/pkg/websocketfetcher/providers/xt"
 	"github.com/rs/zerolog/log"
@@ -41,7 +45,8 @@ const (
 type AppConfig struct {
 	SetFromDB     bool
 	Feeds         []common.Feed
-	Factories     map[string]func(context.Context, ...common.FetcherOption) (common.FetcherInterface, error)
+	CexFactories  map[string]func(context.Context, ...common.FetcherOption) (common.FetcherInterface, error)
+	DexFactories  map[string]func(...common.DexFetcherOption) common.FetcherInterface
 	BufferSize    int
 	StoreInterval time.Duration
 }
@@ -60,9 +65,9 @@ func WithFeeds(feeds []common.Feed) AppOption {
 	}
 }
 
-func WithFactories(factories map[string]func(context.Context, ...common.FetcherOption) (common.FetcherInterface, error)) AppOption {
+func WithCexFactories(factories map[string]func(context.Context, ...common.FetcherOption) (common.FetcherInterface, error)) AppOption {
 	return func(c *AppConfig) {
-		c.Factories = factories
+		c.CexFactories = factories
 	}
 }
 
@@ -82,6 +87,7 @@ type App struct {
 	fetchers      []common.FetcherInterface
 	buffer        chan common.FeedData
 	storeInterval time.Duration
+	chainReader   *websocketchainreader.ChainReader
 }
 
 func New() *App {
@@ -90,7 +96,7 @@ func New() *App {
 
 func (a *App) Init(ctx context.Context, opts ...AppOption) error {
 	// TODO: Proxy support
-	factories := map[string]func(context.Context, ...common.FetcherOption) (common.FetcherInterface, error){
+	cexFactories := map[string]func(context.Context, ...common.FetcherOption) (common.FetcherInterface, error){
 		"binance":  binance.New,
 		"coinbase": coinbase.New,
 		"coinone":  coinone.New,
@@ -116,9 +122,14 @@ func (a *App) Init(ctx context.Context, opts ...AppOption) error {
 		"xt":       xt.New,
 	}
 
+	dexFactories := map[string]func(...common.DexFetcherOption) common.FetcherInterface{
+		"uniswap": uniswap.New,
+	}
+
 	appConfig := &AppConfig{
 		SetFromDB:     true,
-		Factories:     factories,
+		CexFactories:  cexFactories,
+		DexFactories:  dexFactories,
 		BufferSize:    DefaultBufferSize,
 		StoreInterval: DefaultStoreInterval,
 	}
@@ -127,6 +138,18 @@ func (a *App) Init(ctx context.Context, opts ...AppOption) error {
 		opt(appConfig)
 	}
 
+	if err := a.initializeCex(ctx, *appConfig); err != nil {
+		return err
+	}
+
+	if err := a.initializeDex(ctx, *appConfig); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (a *App) initializeCex(ctx context.Context, appConfig AppConfig) error {
 	var feeds []common.Feed
 	if appConfig.SetFromDB {
 		var err error
@@ -145,7 +168,7 @@ func (a *App) Init(ctx context.Context, opts ...AppOption) error {
 	a.buffer = make(chan common.FeedData, appConfig.BufferSize)
 	a.storeInterval = appConfig.StoreInterval
 
-	for name, factory := range appConfig.Factories {
+	for name, factory := range appConfig.CexFactories {
 		if _, ok := feedMap[name]; !ok {
 			log.Warn().Msgf("no feeds for %s", name)
 			continue
@@ -159,6 +182,38 @@ func (a *App) Init(ctx context.Context, opts ...AppOption) error {
 			log.Error().Err(err).Msgf("error in creating %s fetcher", name)
 			return err
 		}
+		a.fetchers = append(a.fetchers, fetcher)
+	}
+	return nil
+}
+
+func (a *App) initializeDex(ctx context.Context, appConfig AppConfig) error {
+	kaiaWebsocketUrl := os.Getenv("KAIA_WEBSOCKET_URL")
+	ethWebsocketUrl := os.Getenv("ETH_WEBSOCKET_URL")
+	if kaiaWebsocketUrl == "" || ethWebsocketUrl == "" {
+		log.Error().Msg("KAIA_WEBSOCKET_URL and ETH_WEBSOCKET_URL must be set")
+		return errors.New("KAIA_WEBSOCKET_URL and ETH_WEBSOCKET_URL must be set")
+	}
+
+	chainReader, err := websocketchainreader.New(kaiaWebsocketUrl, ethWebsocketUrl)
+	if err != nil {
+		log.Error().Err(err).Msg("error in creating chain reader")
+		return err
+	}
+	a.chainReader = chainReader
+
+	for name, factory := range appConfig.DexFactories {
+		feeds, err := db.QueryRows[common.Feed](ctx, common.GetDexFeedsQuery(name), nil)
+		if err != nil {
+			log.Error().Err(err).Msg("error in fetching feeds")
+			return err
+		}
+		fetcher := factory(
+			common.WithFeeds(feeds),
+			common.WithDexFeedDataBuffer(a.buffer),
+			common.WithWebsocketChainReader(a.chainReader),
+		)
+
 		a.fetchers = append(a.fetchers, fetcher)
 	}
 
@@ -207,5 +262,4 @@ func (a *App) storeFeedData(ctx context.Context) {
 	default:
 		return
 	}
-
 }

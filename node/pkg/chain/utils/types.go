@@ -76,6 +76,8 @@ type ClientInterface interface {
 	NetworkID(ctx context.Context) (*big.Int, error)
 	CodeAt(ctx context.Context, account common.Address, blockNumber *big.Int) ([]byte, error)
 	TransactionReceipt(ctx context.Context, txHash common.Hash) (*types.Receipt, error)
+	BlockNumber(ctx context.Context) (*big.Int, error)
+	SubscribeFilterLogs(ctx context.Context, q klaytn.FilterQuery, ch chan<- types.Log) (klaytn.Subscription, error)
 }
 
 type JsonRpcError interface {

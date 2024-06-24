@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"math/big"
 	"math/rand"
 	"time"
 
@@ -24,7 +23,7 @@ func NewFetcher(config Config, feeds []Feed) *Fetcher {
 	}
 }
 
-func (f *Fetcher) Run(ctx context.Context, chainHelpers map[string]ChainHelper, proxies []Proxy) {
+func (f *Fetcher) Run(ctx context.Context, proxies []Proxy) {
 	fetcherCtx, cancel := context.WithCancel(ctx)
 	f.fetcherCtx = fetcherCtx
 	f.cancel = cancel
@@ -39,7 +38,7 @@ func (f *Fetcher) Run(ctx context.Context, chainHelpers map[string]ChainHelper, 
 				ticker.Stop()
 				return
 			case <-ticker.C:
-				err := f.fetcherJob(f.fetcherCtx, chainHelpers, proxies)
+				err := f.fetcherJob(f.fetcherCtx, proxies)
 				if err != nil && !errors.Is(err, errorSentinel.ErrFetcherNoDataFetched) {
 					log.Error().Str("Player", "Fetcher").Err(err).Msg("error in fetchAndInsert")
 				}
@@ -48,9 +47,9 @@ func (f *Fetcher) Run(ctx context.Context, chainHelpers map[string]ChainHelper, 
 	}()
 }
 
-func (f *Fetcher) fetcherJob(ctx context.Context, chainHelpers map[string]ChainHelper, proxies []Proxy) error {
+func (f *Fetcher) fetcherJob(ctx context.Context, proxies []Proxy) error {
 	log.Debug().Str("Player", "Fetcher").Str("fetcher", f.Name).Msg("fetcherJob")
-	result, err := f.fetch(chainHelpers, proxies)
+	result, err := f.fetch(proxies)
 	if err != nil && !errors.Is(err, errorSentinel.ErrFetcherNoDataFetched) {
 		log.Error().Str("Player", "Fetcher").Err(err).Msg("error in fetch")
 		return err
@@ -69,7 +68,7 @@ func (f *Fetcher) fetcherJob(ctx context.Context, chainHelpers map[string]ChainH
 	return setFeedDataBuffer(ctx, result)
 }
 
-func (f *Fetcher) fetch(chainHelpers map[string]ChainHelper, proxies []Proxy) ([]FeedData, error) {
+func (f *Fetcher) fetch(proxies []Proxy) ([]FeedData, error) {
 	feeds := f.Feeds
 
 	data := []FeedData{}
@@ -95,12 +94,6 @@ func (f *Fetcher) fetch(chainHelpers map[string]ChainHelper, proxies []Proxy) ([
 			switch {
 			case definition.Type == nil:
 				resultValue, fetchErr = f.cex(definition, proxies)
-				if fetchErr != nil {
-					errChan <- fetchErr
-					return
-				}
-			case *definition.Type == "UniswapPool":
-				resultValue, fetchErr = f.uniswapV3(definition, chainHelpers)
 				if fetchErr != nil {
 					errChan <- fetchErr
 					return
@@ -148,36 +141,6 @@ func (f *Fetcher) cex(definition *Definition, proxies []Proxy) (float64, error) 
 	}
 
 	return reducer.Reduce(rawResult, definition.Reducers)
-}
-
-func (f *Fetcher) uniswapV3(definition *Definition, chainHelpers map[string]ChainHelper) (float64, error) {
-	if definition.Address == nil || definition.ChainID == nil || definition.Token0Decimals == nil || definition.Token1Decimals == nil {
-		log.Error().Any("definition", definition).Msg("missing required fields for uniswapV3")
-		return 0, errorSentinel.ErrFetcherInvalidDexFetcherDefinition
-	}
-
-	helper := chainHelpers[*definition.ChainID]
-	if helper == nil {
-		return 0, errorSentinel.ErrFetcherChainHelperNotFound
-	}
-
-	rawResult, err := helper.ReadContract(context.Background(), *definition.Address, "function slot0() external view returns (uint160 sqrtPriceX96, int24 tick, uint16 observationIndex, uint16 observationCardinality, uint16 observationCardinalityNext, uint8 feeProtocol, bool unlocked)")
-	if err != nil {
-		log.Error().Err(err).Msg("failed to read contract for uniswap v3 pool contract")
-		return 0, err
-	}
-
-	rawResultSlice, ok := rawResult.([]interface{})
-	if !ok || len(rawResultSlice) < 1 {
-		return 0, errorSentinel.ErrFetcherInvalidRawResult
-	}
-
-	sqrtPriceX96, ok := rawResultSlice[0].(*big.Int)
-	if !ok {
-		return 0, errorSentinel.ErrFetcherConvertToBigInt
-	}
-
-	return getTokenPrice(sqrtPriceX96, definition)
 }
 
 func (f *Fetcher) requestFeed(definition *Definition, proxies []Proxy) (interface{}, error) {

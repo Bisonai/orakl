@@ -37,7 +37,7 @@ func TestFetcherRun(t *testing.T) {
 	}
 
 	for _, fetcher := range app.Fetchers {
-		fetcher.Run(ctx, app.ChainHelpers, app.Proxies)
+		fetcher.Run(ctx, app.Proxies)
 	}
 
 	for _, fetcher := range app.Fetchers {
@@ -78,7 +78,7 @@ func TestFetcherFetcherJob(t *testing.T) {
 	}
 
 	for _, fetcher := range app.Fetchers {
-		jobErr := fetcher.fetcherJob(ctx, app.ChainHelpers, app.Proxies)
+		jobErr := fetcher.fetcherJob(ctx, app.Proxies)
 		if jobErr != nil {
 			t.Fatalf("error fetching: %v", jobErr)
 		}
@@ -123,7 +123,7 @@ func TestFetcherFetch(t *testing.T) {
 	}
 
 	for _, fetcher := range app.Fetchers {
-		result, err := fetcher.fetch(app.ChainHelpers, app.Proxies)
+		result, err := fetcher.fetch(app.Proxies)
 		if err != nil {
 			t.Fatalf("error fetching: %v", err)
 		}
@@ -177,7 +177,7 @@ func TestFetcherFetchProxy(t *testing.T) {
 	}
 	log.Info().Msg("initialized")
 	for _, fetcher := range app.Fetchers {
-		result, fetchErr := fetcher.fetch(app.ChainHelpers, app.Proxies)
+		result, fetchErr := fetcher.fetch(app.Proxies)
 		if fetchErr != nil {
 			t.Fatalf("error fetching: %v", fetchErr)
 		}
@@ -218,46 +218,6 @@ func TestFetcherCex(t *testing.T) {
 			}
 
 			result, err := fetcher.cex(definition, app.Proxies)
-			if err != nil {
-				t.Fatalf("error fetching: %v", err)
-			}
-			assert.Greater(t, result, float64(0))
-		}
-	}
-}
-
-func TestFetcherUniswapV3(t *testing.T) {
-	ctx := context.Background()
-	clean, testItems, err := setup(ctx)
-	if err != nil {
-		t.Fatalf("error setting up test: %v", err)
-	}
-	defer func() {
-		if cleanupErr := clean(); cleanupErr != nil {
-			t.Logf("Cleanup failed: %v", cleanupErr)
-		}
-	}()
-
-	app := testItems.app
-
-	err = app.initialize(ctx)
-	if err != nil {
-		t.Fatalf("error initializing fetcher: %v", err)
-	}
-
-	for _, fetcher := range app.Fetchers {
-		for _, feed := range fetcher.Feeds {
-			definition := new(Definition)
-
-			err := json.Unmarshal(feed.Definition, &definition)
-			if err != nil {
-				t.Fatalf("error unmarshalling definition: %v", err)
-			}
-			if definition.Type == nil || *definition.Type != "UniswapPool" {
-				continue
-			}
-
-			result, err := fetcher.uniswapV3(definition, app.ChainHelpers)
 			if err != nil {
 				t.Fatalf("error fetching: %v", err)
 			}

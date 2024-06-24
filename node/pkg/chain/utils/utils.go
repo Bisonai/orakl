@@ -128,6 +128,30 @@ func generateABI(functionName string, inputs string, outputs string, stateMutabi
 	return &parsedABI, nil
 }
 
+func GenerateEventABI(eventName string, inputs string) (*abi.ABI, error) {
+	if eventName == "" {
+		return nil, errorSentinel.ErrChainEmptyEventNameStringParam
+	}
+
+	inputArgs := MakeAbiFuncAttribute(inputs)
+	json := fmt.Sprintf(`[
+		{
+			"anonymous": false,
+			"inputs": [%s],
+			"name": "%s",
+			"type": "event"
+		}
+	]`, inputArgs, eventName)
+
+	parsedABI, err := abi.JSON(strings.NewReader(json))
+	if err != nil {
+		log.Error().Err(err).Msg("failed to parse abi")
+		return nil, err
+	}
+
+	return &parsedABI, nil
+}
+
 func GetWallets(ctx context.Context) ([]string, error) {
 	reporterModels, err := db.QueryRows[Wallet](ctx, SELECT_WALLETS_QUERY, nil)
 	if err != nil {
@@ -539,6 +563,8 @@ func MakeAbiFuncAttribute(args string) string {
 
 		if len(part) < 2 {
 			parts = append(parts, fmt.Sprintf(`{"type":"%s"}`, part[0]))
+		} else if part[1] == "indexed" && len(part) > 2 {
+			parts = append(parts, fmt.Sprintf(`{"type":"%s","name":"%s","indexed":true}`, part[0], part[len(part)-1]))
 		} else {
 			parts = append(parts, fmt.Sprintf(`{"type":"%s","name":"%s"}`, part[0], part[len(part)-1]))
 		}

@@ -104,6 +104,10 @@ func (ec *EthClient) HeaderByNumber(ctx context.Context, number *big.Int) (*type
 	return head, err
 }
 
+func (ec *EthClient) SubscribeFilterLogs(ctx context.Context, q klaytn.FilterQuery, ch chan<- types.Log) (klaytn.Subscription, error) {
+	return ec.c.Subscribe(ctx, "eth", ch, "logs", toFilterArg(q))
+}
+
 type rpcTransaction struct {
 	tx *types.Transaction
 	txExtraInfo
@@ -283,10 +287,6 @@ func (ec *EthClient) FilterLogs(ctx context.Context, q klaytn.FilterQuery) ([]ty
 	var result []types.Log
 	err := ec.c.CallContext(ctx, &result, "eth_getLogs", toFilterArg(q))
 	return result, err
-}
-
-func (ec *EthClient) SubscribeFilterLogs(ctx context.Context, q klaytn.FilterQuery, ch chan<- types.Log) (klaytn.Subscription, error) {
-	return ec.c.KlaySubscribe(ctx, ch, "logs", toFilterArg(q))
 }
 
 func toFilterArg(q klaytn.FilterQuery) interface{} {
@@ -481,7 +481,7 @@ func (ec *EthClient) ChainID(ctx context.Context) (*big.Int, error) {
 	}
 
 	var result hexutil.Big
-	err := ec.c.CallContext(ctx, &result, "eth_chainID")
+	err := ec.c.CallContext(ctx, &result, "eth_chainId")
 	if err == nil {
 		ec.chainID = (*big.Int)(&result)
 	}

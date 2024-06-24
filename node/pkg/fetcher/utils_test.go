@@ -4,7 +4,6 @@ package fetcher
 import (
 	"context"
 	"encoding/json"
-	"math/big"
 	"testing"
 	"time"
 
@@ -106,31 +105,6 @@ func TestFetchSingle(t *testing.T) {
 		t.Fatalf("error fetching single: %v", err)
 	}
 	assert.Greater(t, result, float64(0))
-}
-
-func TestGetTokenPrice(t *testing.T) {
-	rawDefinition := `{
-        "chainId": "1",
-        "address": "0x9db9e0e53058c89e5b94e29621a205198648425b",
-        "type": "UniswapPool",
-        "token0Decimals": 8,
-        "token1Decimals": 6
-	}`
-
-	definition := new(Definition)
-	err := json.Unmarshal([]byte(rawDefinition), &definition)
-	if err != nil {
-		t.Fatalf("error unmarshalling definition: %v", err)
-	}
-
-	sqrtPriceX96 := new(big.Int)
-	sqrtPriceX96.SetString("2055909007346292057510600778491", 10)
-	result, err := getTokenPrice(sqrtPriceX96, definition)
-	if err != nil {
-		t.Fatalf("error getting token price: %v", err)
-	}
-
-	assert.Equal(t, float64(6.733620107923e+12), result)
 }
 
 func TestSetLatestFeedData(t *testing.T) {
