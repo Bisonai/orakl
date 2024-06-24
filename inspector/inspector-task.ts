@@ -7,7 +7,10 @@ import {
   requestAll,
   requestVrf,
   requestRr,
+  getKeyHash,
 } from "./scripts/utils";
+import { Prepayment__factory } from "@bisonai/orakl-contracts";
+import "@nomiclabs/hardhat-ethers";
 
 task("inspect", "Main task")
   .addParam("service", "The service to use", "all")
@@ -69,5 +72,174 @@ task("inspect", "Main task")
 
       checkFulfillment(before, after, "rrRequestId", "sResponse", "RR");
       checkFulfillment(before, after, "vrfRequestId", "sRandomWord", "VRF");
+    }
+  });
+
+task("load-test-vrf", "Load test vrf task")
+  .addOptionalParam("batch", "Batch size")
+  .setAction(async (taskArgs, hre: HardhatRuntimeEnvironment) => {
+    try {
+      const { ethers, deployments, network } = hre;
+      const batch = Number(taskArgs.batch) || 1;
+
+      const accId =
+        network.name == "baobab"
+          ? (process.env.BAOBAB_ACC_ID as string)
+          : (process.env.CYPRESS_ACC_ID as string);
+
+      const _loadTestVRFConsumer = await deployments.get("LoadTestVRFConsumer");
+      const loadTestVRFConsumer = await ethers.getContractAt(
+        _loadTestVRFConsumer.abi,
+        _loadTestVRFConsumer.address
+      );
+
+      const keyHash = getKeyHash(network.name);
+      const callbackGasLimit = 500_000;
+      const numWords = 1;
+
+      console.log(
+        `Batch size: ${batch}. Each batch contains 50 requests. Total requests: ${
+          50 * batch
+        }`
+      );
+      for (let i = 0; i < batch; i++) {
+        await (
+          await loadTestVRFConsumer.requestVRF(
+            keyHash,
+            accId,
+            callbackGasLimit,
+            numWords
+          )
+        ).wait();
+      }
+
+      const count = 50 * batch;
+      let len = 0;
+
+      while (len < count) {
+        len = await loadTestVRFConsumer.getBlockRecordsLength();
+      }
+
+      const blockRecords = [];
+      for (let i = 0; i < count; i++) {
+        blockRecords.push(await loadTestVRFConsumer.blockRecords(i));
+      }
+
+      let blocks = "";
+      blockRecords
+        .map((block: bigint) => Number(block))
+        .sort((a, b) => a - b)
+        .map((block) => (blocks = blocks + block + " "));
+
+      console.log(
+        `Number of blocks/seconds it took to fulfill ${count} requests, in ascending order: `
+      );
+      console.log(blocks);
+
+      await loadTestVRFConsumer.clear();
+    } catch (e) {
+      console.error(e);
+    }
+  });
+
+task("load-test-rr", "Load test task")
+  .addOptionalParam("batch", "Batch size")
+  .setAction(async (taskArgs, hre: HardhatRuntimeEnvironment) => {
+    try {
+      const { ethers, deployments, network } = hre;
+      const batch = Number(taskArgs.batch) || 1;
+
+      const accId =
+        network.name == "baobab"
+          ? (process.env.BAOBAB_ACC_ID as string)
+          : (process.env.CYPRESS_ACC_ID as string);
+
+      const _loadTestRRConsumer = await deployments.get("LoadTestRRConsumer");
+      const loadTestRRConsumer = await ethers.getContractAt(
+        _loadTestRRConsumer.abi,
+        _loadTestRRConsumer.address
+      );
+
+      const callbackGasLimit = 500_000;
+
+      console.log(
+        `Batch size: ${batch}. Each batch contains 50 requests. Total requests: ${
+          50 * batch
+        }`
+      );
+      for (let i = 0; i < batch; i++) {
+        await (
+          await loadTestRRConsumer.requestRR(accId, callbackGasLimit)
+        ).wait();
+      }
+
+      const count = 50 * batch;
+      let len = 0;
+
+      while (len < count) {
+        len = await loadTestRRConsumer.getBlockRecordsLength();
+      }
+
+      const blockRecords = [];
+      for (let i = 0; i < count; i++) {
+        blockRecords.push(await loadTestRRConsumer.blockRecords(i));
+      }
+
+      let blocks = "";
+      blockRecords
+        .map((block: bigint) => Number(block))
+        .sort((a, b) => a - b)
+        .map((block) => (blocks = blocks + block + " "));
+
+      console.log(
+        `Number of blocks/seconds it took to fulfill ${count} requests, in ascending order: `
+      );
+      console.log(blocks);
+
+      await loadTestRRConsumer.clear();
+    } catch (e) {
+      console.error(e);
+    }
+  });
+
+task("addConsumer", "Add consumer")
+  .addOptionalParam("consumer", "Consumer Contract Name")
+  .setAction(async (taskArgs, hre) => {
+    const { deployments } = hre;
+    const accId =
+      network.name === "baobab"
+        ? process.env.BAOBAB_ACC_ID
+        : process.env.CYPRESS_ACC_ID;
+
+    // consumer options are: "inspector", "vrf", "rr"
+    let consumerContractName;
+    switch (taskArgs.consumer) {
+      case "inspector":
+        consumerContractName = "InspectorConsumer";
+        break;
+      case "vrf":
+        consumerContractName = "LoadTestVRFConsumer";
+        break;
+      case "rr":
+        consumerContractName = "LoadTestRRConsumer";
+        break;
+      default:
+        consumerContractName = "InspectorConsumer";
+    }
+    const consumerAddress = (await deployments.get(consumerContractName))
+      .address;
+
+    if (accId && consumerAddress) {
+      const { prepayment: prepaymentAddress } = await hre.getNamedAccounts();
+      const prepayment = await ethers.getContractAt(
+        Prepayment__factory.abi,
+        prepaymentAddress
+      );
+      await (await prepayment.addConsumer(accId, consumerAddress)).wait();
+
+      console.log(`Added consumer ${consumerAddress} to prepayment account`);
+    } else {
+      if (!accId) console.error(`Prepayment accountId is not defined`);
+      if (!consumerAddress) console.error(`Consumer Address is not defined`);
     }
   });
