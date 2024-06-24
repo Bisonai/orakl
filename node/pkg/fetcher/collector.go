@@ -39,10 +39,12 @@ func (c *Collector) Run(ctx context.Context) {
 				ticker.Stop()
 				return
 			case <-ticker.C:
-				err := c.Job(c.collectorCtx)
-				if err != nil {
-					log.Error().Str("Player", "Collector").Err(err).Msg("error in collectorJob")
-				}
+				go func() {
+					err := c.Job(c.collectorCtx)
+					if err != nil {
+						log.Error().Str("Player", "Collector").Err(err).Msg("error in collectorJob")
+					}
+				}()
 			}
 		}
 	}()
