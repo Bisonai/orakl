@@ -117,7 +117,10 @@ func (c *ChainReader) handleSubscription(ctx context.Context, config *SubscribeC
 		defer sub.Unsubscribe()
 
 		if !processLogs(ctx, sub, logs, config.Ch) {
-			return
+			if !retryWithContext(ctx, c.RetryPeriod) {
+				return
+			}
+			continue
 		}
 
 		initialTrigger = false
