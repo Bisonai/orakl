@@ -3,10 +3,13 @@ package fetcher
 import (
 	"context"
 	"fmt"
+	"os"
 	"time"
 
 	"github.com/rs/zerolog/log"
 )
+
+const DefaultLocalAggregateInterval = 500
 
 func NewCollector(config Config, feeds []Feed) *Collector {
 	return &Collector{
@@ -23,7 +26,12 @@ func (c *Collector) Run(ctx context.Context) {
 	c.cancel = cancel
 	c.isRunning = true
 
-	collectorFrequency := time.Duration(c.FetchInterval) * time.Millisecond
+	localAggregateIntervalRaw := os.Getenv("LOCAL_AGGREGATE_INTERVAL")
+	localAggregateInterval, err := time.ParseDuration(localAggregateIntervalRaw)
+	if err != nil {
+		localAggregateInterval = DefaultLocalAggregateInterval * time.Millisecond
+	}
+	collectorFrequency := localAggregateInterval
 	ticker := time.NewTicker(collectorFrequency)
 	go func() {
 		for {
