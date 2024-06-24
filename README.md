@@ -118,3 +118,4 @@ The microservices can also be started separately in any arbitrary order by repla
 
 ## Image tag release (do not write under this section)
 
+- **node** v0.0.1.20240624.0427.15e4017 <br> *`PR`*: OraklNode Websocket dex fetche... <br><br> 

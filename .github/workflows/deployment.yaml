@@ -32,7 +32,7 @@ on:
         default: "new"
         options:
           - new
-
+          - node:v0.0.1.20240624.0427.15e4017:OraklNode Websocket dex fetche...
 jobs:
   prepare-taskflow:
     name: Prepare
