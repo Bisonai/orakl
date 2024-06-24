@@ -97,6 +97,7 @@ func (c *ChainReader) handleSubscription(ctx context.Context, config *SubscribeC
 			if !retryWithContext(ctx, c.RetryPeriod) {
 				return
 			}
+			log.Debug().Err(err).Str("Player", "ChainReader").Msg("Retrying subscription")
 			continue
 		}
 
@@ -112,6 +113,7 @@ func (c *ChainReader) handleSubscription(ctx context.Context, config *SubscribeC
 			if !retryWithContext(ctx, c.RetryPeriod) {
 				return
 			}
+			log.Debug().Err(err).Str("Player", "ChainReader").Msg("Retrying subscription")
 			continue
 		}
 		defer sub.Unsubscribe()
@@ -120,6 +122,7 @@ func (c *ChainReader) handleSubscription(ctx context.Context, config *SubscribeC
 			if !retryWithContext(ctx, c.RetryPeriod) {
 				return
 			}
+			log.Debug().Err(err).Str("Player", "ChainReader").Msg("Retrying subscription")
 			continue
 		}
 
