@@ -68,14 +68,20 @@ func Start() {
 	ticker := time.NewTicker(HealthCheckInterval)
 	defer ticker.Stop()
 
+	downServices := make(map[string]bool)
+
 	for range ticker.C {
 		alarmMessage := ""
 		for _, healthCheckUrl := range HealthCheckUrls {
 			log.Debug().Str("name", healthCheckUrl.Name).Str("url", healthCheckUrl.Url).Msg("Checking health")
 			isAlive := checkUrl(healthCheckUrl)
 			if !isAlive {
+				downServices[healthCheckUrl.Name] = true
 				alarmMessage += healthCheckUrl.Name + " is down\n"
-			}
+			} else if serviceWasDown, serviceNameFound := downServices[healthCheckUrl.Name]; serviceWasDown && serviceNameFound {
+				downServices[healthCheckUrl.Name] = false
+				alarmMessage += healthCheckUrl.Name + " is back up\n"
+			} 
 		}
 		if alarmMessage != "" {
 			alert.SlackAlert(alarmMessage)
