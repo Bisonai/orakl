@@ -15,19 +15,23 @@ cd cli || exit
 yarn cli chain insert --name "$CHAIN"
 yarn cli service insert --name VRF
 
+cd .. || exit
+vrf_keys_path="vrf-keys-$CHAIN.json"
+sk=$(jq -r '.sk' "$vrf_keys_path")
+pk=$(jq -r '.pk' "$vrf_keys_path")
+pkX=$(jq -r '.pkX' "$vrf_keys_path")
+pkY=$(jq -r '.pkY' "$vrf_keys_path")
+keyHash=$(jq -r '.keyHash' "$vrf_keys_path")
+
+if [[ -z "$sk" || -z "$pk" || -z "$pkX" || -z "$pkY" || -z "$keyHash" ]]; then
+  echo "VRF keyHash values are not set in the vrf-keys-$CHAIN.json file. Exiting."
+  exit 1
+fi
+
+cd cli || exit
+yarn cli vrf insert --chain "$CHAIN" --sk "$sk" --pk "$pk" --pkX "$pkX" --pkY "$pkY" --keyHash "$keyHash"
 
 if [ "$CHAIN" == "localhost" ]; then
-  cd .. || exit
-  vrf_keys_path="vrf-keys.json"
-  sk=$(jq -r '.sk' "$vrf_keys_path")
-  pk=$(jq -r '.pk' "$vrf_keys_path")
-  pkX=$(jq -r '.pkX' "$vrf_keys_path")
-  pkY=$(jq -r '.pkY' "$vrf_keys_path")
-  keyHash=$(jq -r '.keyHash' "$vrf_keys_path")
-
-  cd cli || exit
-  yarn cli vrf insert --chain localhost --sk "$sk" --pk "$pk" --pkX "$pkX" --pkY "$pkY" --keyHash "$keyHash"
-
   cd .. || exit
   node update-vrf-migration.js "$pkX" "$pkY" "$ADDRESS"
   node update-hardhat-network.js "$PROVIDER_URL"
@@ -35,20 +39,6 @@ if [ "$CHAIN" == "localhost" ]; then
   yarn deploy:localhost:prepayment
   yarn deploy:localhost:vrf
   cd ../../cli || exit
-else
-  # set keyHash values for baobab/cypress chains:
-  sk=""
-  pk=""
-  pkX=""
-  pkY=""
-  keyHash=""
-
-  if [[ -z "$sk" || -z "$pk" || -z "$pkX" || -z "$pkY" || -z "$keyHash" ]]; then
-    echo "VRF keyHash values are not set in the setup-vrf.sh file. Exiting."
-    exit 1
-  fi
-
-  yarn cli vrf insert --chain "$CHAIN" --sk "$sk" --pk "$pk" --pkX "$pkX" --pkY "$pkY" --keyHash "$keyHash"
 fi
 
 ORACLE_ADDRESS=0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512
