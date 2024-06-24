@@ -209,4 +209,5 @@ var (
 	ErrRequestInvalidMethod            = &CustomError{Service: Others, Code: InvalidInputError, Message: "Invalid method"}
 	ErrCalculatorEmptyArr              = &CustomError{Service: Others, Code: InternalError, Message: "Empty array"}
 	ErrRetrierJobFail                  = &CustomError{Service: Others, Code: InternalError, Message: "Job failed"}
+	ErrReducerIndexOutOfBounds         = &CustomError{Service: Others, Code: InvalidInputError, Message: "Index out of bounds"}
 )
