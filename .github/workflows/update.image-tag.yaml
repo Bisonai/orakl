@@ -6,6 +6,9 @@ on:
       network:
         required: true
         type: string
+      build:
+        default: true
+        type: boolean
       project-name:
         required: true
         type: string
@@ -54,7 +57,7 @@ jobs:
           cd ./gitops_tmp/${{ inputs.project-name }}/
           echo "Updating image tag in values.${{ inputs.network }}.yaml files"
 
-          if [[ "${{ inputs.network }}" == "cypress" ]]; then
+          if [[ "${{ inputs.network }}" == "cypress" && "${{ inputs.build }}" ]]; then
 
             if [[ "${{ inputs.project-name }}" == "vrf" || "${{ inputs.project-name }}" == "request-response" || "${{ inputs.project-name }}" == "aggregator" ]]; then
               listener_baobab_tag=$(grep -oP 'listenerTag: "\K[^"]+' values.baobab.yaml)
@@ -84,12 +87,23 @@ jobs:
           fi
         shell: bash
 
-      - name: Commit and Push Changes
+      - name: Check for Changes
+        id: check_changes
         run: |
           cd ./gitops_tmp/
           git config --global user.name 'github-actions'
           git config --global user.email 'github-actions@github.com'
           git add .
+          if git diff-index --quiet HEAD --; then
+            echo "::set-output name=changes_detected::false"
+          else
+            echo "::set-output name=changes_detected::true"
+          fi
+
+      - name: Commit and Push Changes
+        if: steps.check_changes.outputs.changes_detected == 'true'
+        run: |
+          cd ./gitops_tmp/
           git commit -m 'v${{ inputs.version }}.${{ inputs.tag_date }}.${{ inputs.tag_git_hash }} is updated'
           git push origin idc-fly
         shell: bash

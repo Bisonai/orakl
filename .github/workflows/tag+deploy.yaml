@@ -1,0 +1,152 @@
+name: Build and Deploy
+
+on:
+  push:
+    tags:
+      - "**"      
+
+jobs:
+  prepare:
+    name: Prepare
+    runs-on: ubuntu-latest
+
+    outputs:
+      tag_date: ${{ steps.hash.outputs.date }}
+      tag_git_hash: ${{ steps.hash.outputs.git_hash }}    
+      service: ${{ steps.extract_tags.outputs.service }}      
+      version: ${{ steps.extract_tags.outputs.version }}
+      ecr_url: ${{ steps.extract_tags.outputs.ecr_url }}
+      app_name: ${{ steps.extract_tags.outputs.app_name }}
+
+    steps:
+      - uses: actions/checkout@master
+
+      - name: get date and git hash
+        id: hash
+        run: |
+          echo "date=$(date +'%Y%m%d.%H%M')" >> $GITHUB_OUTPUT
+          echo "git_hash=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+
+      - name: Check if ref is a tag
+        id: check_tag
+        run: |
+          echo "Tag name from GITHUB_REF_NAME: $GITHUB_REF_NAME"
+          echo "tag: ${{github.ref_name}}"
+          if [ "${GITHUB_REF_TYPE}" != "tag" ]; then
+            echo "This workflow only processes tags. Exiting."
+            exit 0
+          fi
+
+      - name: extract version and service from tag
+        id: extract_tags
+        run: |
+          tag_ref=${GITHUB_REF#refs/tags/}
+          echo "Tag: $tag_ref"
+          
+          # Extract service name and version from the tag (e.g., service_name/v1.2.3)
+          if [[ $tag_ref =~ ^([a-zA-Z0-9]+-?[a-zA-Z0-9]+)/v([0-9]+\.[0-9]+\.[0-9]+)$ ]]; then
+            service="${BASH_REMATCH[1]}"
+            version="${BASH_REMATCH[2]}"
+            echo "Found service: $service"
+            echo "Found version: $version"
+            echo "app_name=${service}" >> $GITHUB_OUTPUT
+            if [[ "$service" == "vrf" || "$service" == "request-response" || "$service" == "aggregator" ]]; then
+              service="core"
+            fi            
+
+            echo "service=${service}" >> $GITHUB_OUTPUT
+            echo "version=${version}" >> $GITHUB_OUTPUT
+            echo "ecr_url=public.ecr.aws/bisonai/orakl-${service}" >> $GITHUB_OUTPUT
+          else
+            echo "Tag does not match the pattern."
+            exit 1
+          fi
+
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    needs: prepare
+
+    permissions:
+      id-token: write
+      contents: read
+
+    outputs:
+      img_tag: ${{ steps.img-tag.outputs.img_tag }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: docker build ${{ needs.prepare.outputs.service }}
+        run: SERVICE_NAME=orakl-${{ needs.prepare.outputs.service }} docker compose -f docker-compose.build.yaml build
+
+      - name: configure aws credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-region: us-east-1
+          role-to-assume: ${{ secrets.ROLE_ARN }}
+
+      - name: login to amazon ecr
+        id: login-ecr-public
+        uses: aws-actions/amazon-ecr-login@v1
+        with:
+          registry-type: public
+
+      - name: publish image to ecr
+        run: |
+          docker tag orakl-${{ needs.prepare.outputs.service }} ${{ needs.prepare.outputs.ecr_url }}:latest
+          docker push ${{ needs.prepare.outputs.ecr_url }}:latest
+          docker tag ${{ needs.prepare.outputs.ecr_url }}:latest ${{ needs.prepare.outputs.ecr_url }}:v${{ needs.prepare.outputs.version }}.${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }}
+          docker push ${{ needs.prepare.outputs.ecr_url }}:v${{ needs.prepare.outputs.version }}.${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }}
+
+      - name: image tag output
+        id: img-tag
+        run: echo "img_tag=v${{ needs.prepare.outputs.version }}.${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }}" >> $GITHUB_OUTPUT
+
+  post-slack-image-upload:
+    name: Slack message for image upload 
+    needs: [prepare, build]
+    uses: ./.github/workflows/post.slack.yaml
+    with:
+      status: "Success"
+      slack-message: "*${{ needs.prepare.outputs.app_name }}* : *${{ needs.prepare.outputs.service }}* ${{ needs.prepare.outputs.version }}.${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }} is uploaded"
+    secrets:
+      SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}  
+    if: ${{ success() }}    
+
+  image-update:
+    name: Update image tag
+    needs: [prepare, build]
+    uses: ./.github/workflows/update.image-tag.yaml
+    with:
+      network: "baobab"
+      project-name: ${{ needs.prepare.outputs.app_name }}
+      version: ${{ needs.prepare.outputs.version }}
+      image-tag: ${{ needs.build.outputs.img_tag }}
+      tag_date: ${{ needs.prepare.outputs.tag_date }}
+      tag_git_hash: ${{ needs.prepare.outputs.tag_git_hash }}
+    secrets:
+      PAT: ${{ secrets.PAT }}
+    if: ${{ success() }}  
+
+  post-slack-tag-update-success:
+    name: Post slack message for tag update success
+    needs: [prepare, build, image-update]
+    uses: ./.github/workflows/post.slack.yaml
+    if: ${{ success() }}
+    with:
+      status: "Success"
+      slack-message: "*${{ needs.prepare.outputs.app_name }}* : *${{ needs.prepare.outputs.service }}* new image tag ${{ needs.prepare.outputs.version }}.${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }} is updated"
+    secrets:
+      SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}        
+
+  post-slack-tag-update-failure:
+    name: Post to a slack message for tag update failure
+    needs: [prepare, build, image-update]
+    if: ${{ failure() }}
+    uses: ./.github/workflows/post.slack.yaml
+    with:
+      status: "Failed"
+      slack-message: "*${{ needs.prepare.outputs.app_name }}* git action failed"
+    secrets:
+      SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}           

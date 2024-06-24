@@ -1,10 +1,16 @@
 name: Dispatch Deploy
-
 on:
   workflow_dispatch:
     inputs:
+      network:
+        description: "Network"
+        required: true
+        type: choice
+        options:
+          - "Baobab"
+          - "Cypress"
       application:
-        description: "Application to deploy"
+        description: "Service"
         required: true
         type: choice
         options:
@@ -19,72 +25,92 @@ on:
           - "node"
           - "boot-api"
           - "sentinel"
-      network:
-        description: "Network to deploy to"
+      image:
+        description: "Image Version"
         required: true
         type: choice
+        default: "new"
         options:
-          - "Baobab"
-          - "Cypress"
+          - new
 
 jobs:
+  prepare-taskflow:
+    name: Prepare
+    runs-on: ubuntu-latest
+    if: ${{ github.event.inputs.image != 'new' }}
+    outputs:
+      service: ${{ steps.tag.outputs.service }}
+      version: ${{ steps.package.outputs.version }}
+      tag_date: ${{ steps.taskflow-tag.outputs.tag_date }}
+      tag_git_hash: ${{ steps.taskflow-tag.outputs.tag_git_hash}}
+      img_tag: ${{ steps.taskflow-tag.outputs.img_tag }}
+    steps:
+      - uses: actions/checkout@master
+      - name: extract tags
+        id: taskflow-tag
+        run: "IMAGE_TAG=\"${{ github.event.inputs.image }}\"\nVERSION=$(echo \"${IMAGE_TAG}\" | cut -d':' -f2 | cut -d'.' -f1-3)\necho $VERSION\nTAG_DATE=$(echo \"${IMAGE_TAG}\" | cut -d':' -f2 | cut -d'.' -f4-5)\necho $TAG_DATE\nTAG_GIT_HASH=$(echo \"${IMAGE_TAG}\" | cut -d':' -f2 | cut -d'.' -f6)\nTAG=\"${VERSION}.${TAG_DATE}.${TAG_GIT_HASH}\"\necho $TAG;          \necho $TAG_GIT_HASH\necho \"version=${VERSION}\" >> $GITHUB_OUTPUT\necho \"tag_date=${TAG_DATE}\" >> $GITHUB_OUTPUT\necho \"tag_git_hash=${TAG_GIT_HASH}\" >> $GITHUB_OUTPUT\necho \"img_tag=${TAG}\" >> $GITHUB_OUTPUT\n"
+        env:
+          GH_TOKEN: ${{ secrets.WORKFLOW_PAT }}
+  taskflow-image-update:
+    name: Update Image Tag
+    needs: [prepare-taskflow]
+    uses: ./.github/workflows/update.image-tag.yaml
+    with:
+      network: "baobab"
+      build: false
+      project-name: ${{ github.event.inputs.application }}
+      version: ${{ needs.prepare-taskflow.outputs.version }}
+      image-tag: ${{ needs.prepare-taskflow.outputs.img_tag}}
+      tag_date: ${{ needs.prepare-taskflow.outputs.tag_date }}
+      tag_git_hash: ${{ needs.prepare-taskflow.outputs.tag_git_hash }}
+    secrets:
+      PAT: ${{ secrets.PAT }}
+    if: ${{ github.event.inputs.image != 'new' }}
+  post-slack-taskflow-image-upload:
+    name: Slack message for image upload
+    needs: [prepare-taskflow, taskflow-image-update]
+    uses: ./.github/workflows/post.slack.yaml
+    with:
+      status: "Success"
+      slack-message: "${{ github.event.inputs.network }} ${{ github.event.inputs.application }}* : *${{ needs.prepare-taskflow.outputs.img_tag}}* is updated"
+      channel: "orakl-notification"
+    secrets:
+      SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+    if: ${{ github.event.inputs.network == 'Baobab' && success() }}
   prepare:
     name: Prepare
     runs-on: ubuntu-latest
-    if: ${{ github.event.inputs.network == 'Baobab' }}
-
+    if: ${{ github.event.inputs.network == 'Baobab' && github.event.inputs.image == 'new' }}
     outputs:
       tag_date: ${{ steps.tag.outputs.date }}
       tag_git_hash: ${{ steps.tag.outputs.git_hash }}
       service: ${{ steps.tag.outputs.service }}
       ecr_url: ${{ steps.tag.outputs.ecr_url }}
       version: ${{ steps.package.outputs.version }}
-
     steps:
       - uses: actions/checkout@master
-
-      - name: Get time TAG
+      - name: get time tag
         id: tag
-        run: |
-          echo "date=$(date +'%Y%m%d.%H%M')" >> $GITHUB_OUTPUT
-          echo "git_hash=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
-          service="${{ github.event.inputs.application }}"
-          if [[ "${{ github.event.inputs.application }}" == "vrf" || "${{ github.event.inputs.application }}" == "request-response" || "${{ github.event.inputs.application }}" == "aggregator" ]]; then
-            service="core"
-          fi            
-          echo "service=$service" >> $GITHUB_OUTPUT
-          echo "ecr_url=public.ecr.aws/bisonai/orakl-${service}" >> $GITHUB_OUTPUT
-
-      - name: Get package version
+        run: "# Get the date and git hash\necho \"date=$(date +'%Y%m%d.%H%M')\" >> $GITHUB_OUTPUT\necho \"git_hash=$(git rev-parse --short HEAD)\" >> $GITHUB_OUTPUT\nservice=\"${{ github.event.inputs.application }}\"\n# Set the service name\nif [[ \"$service\" == \"vrf\" || \"$service\" == \"request-response\" || \"$service\" == \"aggregator\" ]]; then\n  service=\"core\"\nfi            \n# Set the ecr url\necho \"service=$service\" >> $GITHUB_OUTPUT\necho \"ecr_url=public.ecr.aws/bisonai/orakl-${service}\" >> $GITHUB_OUTPUT\n# end of the script\n"
+        env:
+          GH_TOKEN: ${{ secrets.WORKFLOW_PAT }}
+      - name: get package version
         id: package
-        run: |
-          if [[ "${{ steps.tag.outputs.service }}" == "cli" || "${{ steps.tag.outputs.service }}" == "fetcher" || "${{ steps.tag.outputs.service }}" == "core" ]]; then
-            echo "version=$(node -p -e "require('./"${{ steps.tag.outputs.service }}"/package.json').version")" >> $GITHUB_OUTPUT
-          else
-            if [[ "${{ steps.tag.outputs.service }}" == "boot-api" || "${{ steps.tag.outputs.service }}" == "por" ]]; then
-              version=$(cat ./node/.version)
-            else
-              version=$(cat ./${{ steps.tag.outputs.service }}/.version)
-            fi
-            echo "version=$version" >> $GITHUB_OUTPUT
-          fi
-
+        run: "# Get the version from the package.json file\nif [[ \"${{ steps.tag.outputs.service }}\" == \"cli\" || \"${{ steps.tag.outputs.service }}\" == \"fetcher\" || \"${{ steps.tag.outputs.service }}\" == \"core\" ]]; then  \necho \"version=$(node -p -e \"require('./\"${{ steps.tag.outputs.service }}\"/package.json').version\")\" >> $GITHUB_OUTPUT\nelse \n  if [[ \"${{ steps.tag.outputs.service }}\" == \"boot-api\" || \"${{ steps.tag.outputs.service }}\" == \"node\" || \"${{ steps.tag.outputs.service }}\" == \"por\" ]]; then    \n    version=$(cat ./node/.version)  \n  else\n    version=$(cat ./${{ steps.tag.outputs.service }}/.version)\n  fi\n  echo \"version=$version\" >> $GITHUB_OUTPUT\nfi\n"
+        env:
+          GH_TOKEN: ${{ secrets.WORKFLOW_PAT }}
   build:
     name: Build
     runs-on: ubuntu-latest
     needs: prepare
-    if: ${{ github.event.inputs.network == 'Baobab' }}
-
+    if: ${{ github.event.inputs.network == 'Baobab' && github.event.inputs.image == 'new' }}
     permissions:
       id-token: write
       contents: read
-
     outputs:
       img_tag: ${{ steps.img-tag.outputs.img_tag }}
-
     steps:
       - uses: actions/checkout@master
-
       - name: Setup Go
         uses: actions/setup-go@v4
         with:
@@ -94,33 +120,27 @@ jobs:
             ./${{ needs.prepare.outputs.service }}/go.sum
             ./${{ needs.prepare.outputs.service }}/go.mod
         if: ${{ needs.prepare.outputs.service != 'core' || needs.prepare.outputs.service != 'fetcher' || needs.prepare.outputs.service != 'cli' }}
-
-      - name: docker build ${{ inputs.application }}
+      - name: docker build ${{ github.event.inputs.application }}
         run: SERVICE_NAME=orakl-${{ needs.prepare.outputs.service }} docker compose -f docker-compose.build.yaml build
-
       - name: configure aws credentials
         uses: aws-actions/configure-aws-credentials@v2
         with:
           aws-region: us-east-1
           role-to-assume: ${{ secrets.ROLE_ARN }}
-
       - name: login to amazon ecr
         id: login-ecr-public
         uses: aws-actions/amazon-ecr-login@v1
         with:
           registry-type: public
-
       - name: publish image to ecr
         run: |
           docker tag orakl-${{ needs.prepare.outputs.service }} ${{ needs.prepare.outputs.ecr_url }}:latest
           docker push ${{ needs.prepare.outputs.ecr_url }}:latest
           docker tag ${{ needs.prepare.outputs.ecr_url }}:latest ${{ needs.prepare.outputs.ecr_url }}:v${{ needs.prepare.outputs.version }}.${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }}
           docker push ${{ needs.prepare.outputs.ecr_url }}:v${{ needs.prepare.outputs.version }}.${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }}
-
       - name: image tag output
         id: img-tag
         run: echo "img_tag=v${{ needs.prepare.outputs.version }}.${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }}" >> $GITHUB_OUTPUT
-
   post-slack-image-upload:
     name: Slack message for image upload
     needs: [prepare, build]
@@ -128,10 +148,10 @@ jobs:
     with:
       status: "Success"
       slack-message: "${{ github.event.inputs.network }} ${{ github.event.inputs.application }}* : *${{ needs.prepare.outputs.service }}* ${{ needs.prepare.outputs.version }}.${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }} is uploaded"
+      channel: "orakl-notification"
     secrets:
       SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
     if: ${{ github.event.inputs.network == 'Baobab' && success() }}
-
   image-update:
     name: Update image tag
     needs: [prepare, build]
@@ -145,8 +165,7 @@ jobs:
       tag_git_hash: ${{ needs.prepare.outputs.tag_git_hash }}
     secrets:
       PAT: ${{ secrets.PAT }}
-    if: ${{ github.event.inputs.network == 'Baobab' }}
-
+    if: ${{ github.event.inputs.network == 'Baobab' && github.event.inputs.image == 'new' }}
   post-slack-baobab-tag-update-success:
     name: Post slack message for tag update success
     needs: [prepare, build, image-update]
@@ -154,10 +173,10 @@ jobs:
     with:
       status: "Success"
       slack-message: "${{ github.event.inputs.network }} *${{ github.event.inputs.application }}* : *${{ needs.prepare.outputs.service }}* new image tag ${{ needs.prepare.outputs.version }}.${{ needs.prepare.outputs.tag_date }}.${{ needs.prepare.outputs.tag_git_hash }} is updated"
+      channel: "orakl-notification"
     secrets:
       SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
-    if: ${{ github.event.inputs.network == 'Baobab' && success() }}
-
+    if: ${{ github.event.inputs.network == 'Baobab' && github.event.inputs.image == 'new' && success() }}
   cypress-image-update:
     name: cypress image update
     uses: ./.github/workflows/update.image-tag.yaml
@@ -167,7 +186,6 @@ jobs:
     secrets:
       PAT: ${{ secrets.PAT }}
     if: ${{ github.event.inputs.network == 'Cypress' }}
-
   post-slack-cypress-tag-update-success:
     name: Post slack message for tag update success
     needs: [cypress-image-update]
@@ -175,10 +193,10 @@ jobs:
     with:
       status: "Success"
       slack-message: "${{ github.event.inputs.network }} *${{ github.event.inputs.application }}* is updated"
+      channel: "orakl-notification"
     secrets:
       SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
     if: ${{ github.event.inputs.network == 'Cypress' && success() }}
-
   post-slack-tag-update-failure:
     name: Post to a slack message for tag update failure
     needs: [prepare, build, image-update]
@@ -186,6 +204,90 @@ jobs:
     with:
       status: "Failed"
       slack-message: "${{ github.event.inputs.network }} *${{ github.event.inputs.application }}* git action failed"
+      channel: "orakl-notification"
     secrets:
       SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
-    if: ${{ github.event.inputs.network == 'Baobab' && failure() }}
+    if: ${{ github.event.inputs.network == 'Baobab' && github.event.inputs.image == 'new' && failure() }}
+  update-workflow-and-readme:
+    name: Update Workflow and README
+    needs: [prepare, build, image-update]
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: write
+      pages: write
+    outputs:
+      new_tag: ${{ steps.tag_info.outputs.NEW_TAG }}
+      pr_title: ${{ steps.pr_info.outputs.PR_TITLE }}
+      truncated_title: ${{ steps.truncate_pr_title.outputs.truncated_title }}
+    steps:
+      - uses: actions/checkout@master
+        with:
+          token: ${{ secrets.WORKFLOW_PAT }}
+      - name: get latest merged pull request
+        id: pr_info
+        run: |
+          pr=$(gh pr list --state merged --json title -L 1)
+          PR_TITLE=$(echo $pr | jq -r '.[0].title')
+          PR_TITLE=$(echo "${PR_TITLE}" | sed 's/\\/\\\\/g; s/"/\\"/g; s/`/\\`/g; s/\$/\\$/g')
+          PR_TITLE=$(echo "${PR_TITLE}" | sed 's/[^a-zA-Z0-9 ]//g')
+          echo "PR_TITLE=${PR_TITLE}" >> $GITHUB_OUTPUT
+        env:
+          GH_TOKEN: ${{ secrets.WORKFLOW_PAT }}
+      - name: Install yq
+        run: |
+          sudo wget https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -O /usr/bin/yq
+          sudo chmod +x /usr/bin/yq
+      - name: truncate PR title
+        id: truncate_pr_title
+        run: "TR_PR_TITLE=\"${{steps.pr_info.outputs.PR_TITLE}}\"\nMAX_LENGTH=30\nif [ ${#TR_PR_TITLE} -gt $MAX_LENGTH ]; then\n  TRUNCATED_TITLE=\"${TR_PR_TITLE:0:$MAX_LENGTH}...\"\nelse\n  TRUNCATED_TITLE=\"$TR_PR_TITLE\"\nfi\necho \"truncated_title=$TRUNCATED_TITLE\" >> $GITHUB_OUTPUT  \n"
+        env:
+          GH_TOKEN: ${{ secrets.WORKFLOW_PAT }}
+      - name: Update Workflow Dispatch Options
+        id: tag_info
+        run: |
+          # Update the deployment.yaml file with the new tag
+          git pull
+
+          # Get the new tag
+          NEW_TAG=${{ github.event.inputs.application }}:${{ needs.build.outputs.img_tag }}
+          TAG_WITH_DESCRIPTION="${NEW_TAG}:${{ steps.truncate_pr_title.outputs.truncated_title }}"
+
+          CURRENT_OPTIONS=$(yq e '.on.workflow_dispatch.inputs.image.options[]' .github/workflows/deployment.yaml | sed 's/^- //')
+          OPTIONS_ARRAY=()
+
+          while IFS= read -r line; do
+            OPTIONS_ARRAY+=("\"$line\"")
+          done <<< "$CURRENT_OPTIONS"
+
+          OPTIONS_ARRAY+=("\"$TAG_WITH_DESCRIPTION\"")
+
+          yq eval 'del(.on.workflow_dispatch.inputs.image.options)' -i .github/workflows/deployment.yaml
+
+          for option in "${OPTIONS_ARRAY[@]}"; do
+            yq eval ".on.workflow_dispatch.inputs.image.options += [$option]" -i .github/workflows/deployment.yaml
+          done
+
+          git add .github/workflows/deployment.yaml
+        env:
+          GH_TOKEN: ${{ secrets.WORKFLOW_PAT }}
+      - name: Update README with Latest PR Info
+        run: |
+          echo "- **${{ github.event.inputs.application }}** ${{ needs.build.outputs.img_tag }} <br> *\`PR\`*: ${{steps.truncate_pr_title.outputs.truncated_title}} <br><br> " >> README.md
+          git add README.md
+      - name: Commit & Push changes
+        uses: actions-js/push@master
+        with:
+          github_token: ${{ secrets.WORKFLOW_PAT }}
+          branch: ${{ github.ref }}
+          repository: ${{ github.repository }}
+  post-slack-pr-update:
+    name: Post to a slack message for tag update failure
+    needs: [prepare, build, image-update, update-workflow-and-readme]
+    uses: ./.github/workflows/post.image.slack.yaml
+    with:
+      slack-message: "\\n \\n> *Service:* ${{ github.event.inputs.application }} \\n> *Version:* ${{ needs.build.outputs.img_tag }} \\n> *PR:* ${{ needs.update-workflow-and-readme.outputs.pr_title}}"
+      channel: "orakl-images"
+    secrets:
+      SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+    if: ${{ success() }}
