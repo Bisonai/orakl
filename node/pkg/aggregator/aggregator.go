@@ -397,7 +397,7 @@ func (n *Aggregator) PublishProofMessage(roundId int32, proof []byte) error {
 
 func (n *Aggregator) isTimeValid(timeToValidate time.Time, baseTime time.Time) bool {
 	aggregatorInterval := time.Duration(n.AggregateInterval) * time.Millisecond
-	return timeToValidate.After(baseTime.Add(-aggregatorInterval)) && timeToValidate.Before(baseTime)
+	return timeToValidate.After(baseTime.Add(-aggregatorInterval))
 }
 
 func (n *Aggregator) cleanUpRoundData(roundId int32) {
