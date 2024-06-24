@@ -38,7 +38,7 @@ import (
 
 // TODO: utilize unused providers: bitstamp, gemini, lbank, bitget (should be included in orakl config)
 const (
-	DefaultStoreInterval = 1000 * time.Millisecond
+	DefaultStoreInterval = 500 * time.Millisecond
 	DefaultBufferSize    = 500
 )
 

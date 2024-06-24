@@ -110,7 +110,8 @@ func (n *Aggregator) HandleRoundSyncMessage(ctx context.Context, msg raft.Messag
 		n.RoundID = roundSyncMessage.RoundID
 	}
 
-	n.cleanUpRoundData(roundSyncMessage.RoundID - 1)
+	// removes old round data (2 rounds ago)
+	n.cleanUpRoundData(roundSyncMessage.RoundID - 2)
 
 	n.AggregatorMutex.Lock()
 	defer n.AggregatorMutex.Unlock()
