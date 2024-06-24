@@ -40,6 +40,10 @@ func reduce(raw interface{}, reducer Reducer) (interface{}, error) {
 			return nil, err
 		}
 
+		if len(castedRaw) <= int(index) {
+			return nil, errorSentinel.ErrReducerIndexOutOfBounds
+		}
+
 		return castedRaw[int(index)], nil
 	case "PARSE":
 		args, ok := reducer.Args.([]interface{})
