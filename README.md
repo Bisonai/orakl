@@ -123,3 +123,4 @@ The microservices can also be started separately in any arbitrary order by repla
 - **sentinel** v0.0.1.20240624.0545.3e49d01 <br> *`PR`*: OraklNode Update fetcher init <br><br> 
 - **sentinel** v0.0.1.20240624.0757.8096587 <br> *`PR`*: send service is up slack messa... <br><br> 
 - **node** v0.0.1.20240624.0815.2b2ed32 <br> *`PR`*: OraklNode Update proxy request <br><br> 
+- **node** v0.0.1.20240624.0824.a6ca4ab <br> *`PR`*: OraklNode Index out of bound p... <br><br> 

@@ -37,6 +37,7 @@ on:
           - sentinel:v0.0.1.20240624.0545.3e49d01:OraklNode Update fetcher init
           - sentinel:v0.0.1.20240624.0757.8096587:send service is up slack messa...
           - node:v0.0.1.20240624.0815.2b2ed32:OraklNode Update proxy request
+          - node:v0.0.1.20240624.0824.a6ca4ab:OraklNode Index out of bound p...
 jobs:
   prepare-taskflow:
     name: Prepare
