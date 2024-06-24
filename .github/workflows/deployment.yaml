@@ -35,6 +35,7 @@ on:
           - node:v0.0.1.20240624.0427.15e4017:OraklNode Websocket dex fetche...
           - node:v0.0.1.20240624.0527.8a67f20:OraklNode Update fetcher init
           - sentinel:v0.0.1.20240624.0545.3e49d01:OraklNode Update fetcher init
+          - sentinel:v0.0.1.20240624.0757.8096587:send service is up slack messa...
 jobs:
   prepare-taskflow:
     name: Prepare
