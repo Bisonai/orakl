@@ -33,6 +33,7 @@ on:
         options:
           - new
           - node:v0.0.1.20240624.0427.15e4017:OraklNode Websocket dex fetche...
+          - node:v0.0.1.20240624.0527.8a67f20:OraklNode Update fetcher init
 jobs:
   prepare-taskflow:
     name: Prepare
