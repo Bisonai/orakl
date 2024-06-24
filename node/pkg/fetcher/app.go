@@ -363,7 +363,10 @@ func (a *App) initialize(ctx context.Context) error {
 		if getFeedsErr != nil {
 			return getFeedsErr
 		}
-		a.Fetchers[config.ID] = NewFetcher(config, fetcherFeeds)
+
+		if len(fetcherFeeds) > 0 {
+			a.Fetchers[config.ID] = NewFetcher(config, fetcherFeeds)
+		}
 
 		// for collector it'll get all feeds to be collected
 		collectorFeeds, getFeedsErr := a.getFeeds(ctx, config.ID)
