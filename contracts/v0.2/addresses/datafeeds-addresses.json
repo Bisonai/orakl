@@ -1,13 +1,24 @@
 {
-  "BORA-KRW": {
+  "ADA-USDT": {
     "baobab": {
-      "proxy": "0x3b69e44aa3b85b6e34c182229371458b5fbdd79e",
-      "feed": "0x48cc97f2d086c22686e0fc6a5c88fa6878fe3136"
+      "proxy": "0x5256c1281fb565a8cdef04b8ddb8566f59debc51",
+      "feed": "0x2390c83f1bb3be9bfcfde1de3fa1e736bc2e502a"
     },
-    "tag": "basic",
+    "tag": "premium",
     "cypress": {
-      "proxy": "0x2fd4255c0a84623fcd78cceb94b81c18b74c1f79",
-      "feed": "0x2c06cf572374f1bc73f924949c18a9f3a6504f2f"
+      "proxy": "0x22740d5af8ee07a8cfc717d076e6f83b08553623",
+      "feed": "0xc90658b795c1ccfeab8ee9d87fac489cf5802822"
+    }
+  },
+  "AVAX-USDT": {
+    "baobab": {
+      "proxy": "0xf7df62ad50f12177c1781a285544bab4af5aa05b",
+      "feed": "0x33df6c4c6e2c667e5333f58fcc2a7312c37d57ae"
+    },
+    "tag": "premium",
+    "cypress": {
+      "proxy": "0x48802c3ab12a7f8859e1d9bbd6fa7b0b23b7a9b7",
+      "feed": "0xf89c790169d4b0a0bf1f3bf529c0a3abb3c68e72"
     }
   },
   "ATOM-USDT": {
@@ -32,37 +43,15 @@
       "feed": "0xa6f7d434001282600865755bc39e68462a334d15"
     }
   },
-  "AVAX-USDT": {
+  "BORA-KRW": {
     "baobab": {
-      "proxy": "0xf7df62ad50f12177c1781a285544bab4af5aa05b",
-      "feed": "0x33df6c4c6e2c667e5333f58fcc2a7312c37d57ae"
-    },
-    "tag": "premium",
-    "cypress": {
-      "proxy": "0x48802c3ab12a7f8859e1d9bbd6fa7b0b23b7a9b7",
-      "feed": "0xf89c790169d4b0a0bf1f3bf529c0a3abb3c68e72"
-    }
-  },
-  "CHF-USD": {
-    "baobab": {
-      "proxy": "0xbfe41c350bc3cf8c449402aba59f544d6bf8b273",
-      "feed": "0xb49872685415d82b54e9cb1e26eff86651d5ae63"
+      "proxy": "0x3b69e44aa3b85b6e34c182229371458b5fbdd79e",
+      "feed": "0x48cc97f2d086c22686e0fc6a5c88fa6878fe3136"
     },
     "tag": "basic",
     "cypress": {
-      "proxy": "0x1c8754c75ce2affcfcbe10ab6463bf2cc8d01506",
-      "feed": "0xfc6eb8834fa837b0a325d07ef6271478d20d601b"
-    }
-  },
-  "DOGE-USDT": {
-    "baobab": {
-      "proxy": "0xa9b27bb0637eaed113cc1233242ceee44a33ae6c",
-      "feed": "0xa97f5c2a3c892c1d3cd4df6bcd5338c8b444d1d0"
-    },
-    "tag": "premium",
-    "cypress": {
-      "proxy": "0xd24e57982b62e13834d504817c15c92977e13fa1",
-      "feed": "0xefb69ddb3d045be86474d63cafc3ed74c6ff653a"
+      "proxy": "0x2fd4255c0a84623fcd78cceb94b81c18b74c1f79",
+      "feed": "0x2c06cf572374f1bc73f924949c18a9f3a6504f2f"
     }
   },
   "BTC-USDT": {
@@ -76,6 +65,17 @@
       "feed": "0x624c060ea3fe93321e40530f3f7e587545d594aa"
     }
   },
+  "CHF-USD": {
+    "baobab": {
+      "proxy": "0xbfe41c350bc3cf8c449402aba59f544d6bf8b273",
+      "feed": "0xb49872685415d82b54e9cb1e26eff86651d5ae63"
+    },
+    "tag": "basic",
+    "cypress": {
+      "proxy": "0x1c8754c75ce2affcfcbe10ab6463bf2cc8d01506",
+      "feed": "0xfc6eb8834fa837b0a325d07ef6271478d20d601b"
+    }
+  },
   "DAI-USDT": {
     "baobab": {
       "proxy": "0x1d83aedcf6414e0db1fab0070427657202138445",
@@ -85,6 +85,28 @@
     "cypress": {
       "proxy": "0x7104dc056e45efcfbdff9e24d2aae76fa4dab6a3",
       "feed": "0x7565719e067bd4efdbcb4389c17ac04c0d7b9e65"
+    }
+  },
+  "DOGE-USDT": {
+    "baobab": {
+      "proxy": "0xa9b27bb0637eaed113cc1233242ceee44a33ae6c",
+      "feed": "0xa97f5c2a3c892c1d3cd4df6bcd5338c8b444d1d0"
+    },
+    "tag": "premium",
+    "cypress": {
+      "proxy": "0xd24e57982b62e13834d504817c15c92977e13fa1",
+      "feed": "0xefb69ddb3d045be86474d63cafc3ed74c6ff653a"
+    }
+  },
+  "DOT-USDT": {
+    "baobab": {
+      "proxy": "0x66be0ac3c8b4683e23b706166e2079479c77d880",
+      "feed": "0x29b5d8c4f299a7ca5f0ff293bd4bff4171fa64b8"
+    },
+    "tag": "premium",
+    "cypress": {
+      "proxy": "0xd4ce8ccd0da36e2ad29f94dda28eee8eb6cfaf22",
+      "feed": "0x592e3f6f7bcb2272c1ef572f9b12a44c591fb457"
     }
   },
   "ETH-USDT": {
@@ -109,6 +131,17 @@
       "feed": "0x254a3ce8daba7f137633fd6511c29d14da3cd9fc"
     }
   },
+  "JOY-USDT": {
+    "baobab": {
+      "proxy": "0x2be0d3cee8c4390f8456b3e7b457d9ed9baa0378",
+      "feed": "0x905d3535285ea692a2ec0a6b135c6841033dab4b"
+    },
+    "tag": "standard",
+    "cypress": {
+      "proxy": "0xaa4adf8428e689c603f4cb0c9073f28f72aff572",
+      "feed": "0x603a7458f850b7d213102acba2b478afdef2fe77"
+    }
+  },
   "GBP-USD": {
     "baobab": {
       "proxy": "0xa5a211ad06c356369de0a3dce2916e56bb9f88da",
@@ -131,17 +164,6 @@
       "feed": "0x40acd43de259ded2bf6f4869a1c00569aed4e3d9"
     }
   },
-  "JOY-USDT": {
-    "baobab": {
-      "proxy": "0x2be0d3cee8c4390f8456b3e7b457d9ed9baa0378",
-      "feed": "0x905d3535285ea692a2ec0a6b135c6841033dab4b"
-    },
-    "tag": "standard",
-    "cypress": {
-      "proxy": "0xaa4adf8428e689c603f4cb0c9073f28f72aff572",
-      "feed": "0x603a7458f850b7d213102acba2b478afdef2fe77"
-    }
-  },
   "JPY-USD": {
     "baobab": {
       "proxy": "0x718290292b95a09e1d9bf23c4a9fce8f18e27947",
@@ -151,17 +173,6 @@
     "cypress": {
       "proxy": "0x9eed0595681448866aad64a6de1490c01faa1b6a",
       "feed": "0x5aa7b27a7f74c30333bdfdb6ec1186fc132589c5"
-    }
-  },
-  "DOT-USDT": {
-    "baobab": {
-      "proxy": "0x66be0ac3c8b4683e23b706166e2079479c77d880",
-      "feed": "0x29b5d8c4f299a7ca5f0ff293bd4bff4171fa64b8"
-    },
-    "tag": "premium",
-    "cypress": {
-      "proxy": "0xd4ce8ccd0da36e2ad29f94dda28eee8eb6cfaf22",
-      "feed": "0x592e3f6f7bcb2272c1ef572f9b12a44c591fb457"
     }
   },
   "KLAY-USDT": {
@@ -175,54 +186,15 @@
       "feed": "0x612e5b796c07940ada4bfb6603def23178765200"
     }
   },
-  "KRW-USD": {
+  "LTC-USDT": {
     "baobab": {
-      "proxy": "0x87b68836ad679b712e0a0da98698592c6be11959",
-      "feed": "0x64e33713cf64cf384accbb12a925130b311d0ea5"
-    },
-    "tag": "basic",
-    "cypress": {
-      "proxy": "0xc90431adfa8ee2bfeb97d03800a6e6f765ab117b",
-      "feed": "0x1b1508dbb318fec1b42648f455910547d6393efe"
-    }
-  },
-  "MBX-KRW": {
-    "baobab": {
-      "proxy": "0x8b9a9bbcd10ba3e514cd899dab59f20ca9be623f",
-      "feed": "0xc852fc6975f6c1fa228dd4f1b77e7f870677d736"
-    },
-    "tag": "basic",
-    "cypress": {
-      "proxy": "0x4d700eab8d99614370108886fe38f5f875b036c9",
-      "feed": "0xdcc8cee678733758c3f65fe630cb9bfb4291b6cb"
-    }
-  },
-  "PEPE-USDT": {
-    "baobab": {
-      "proxy": "0x4ca0c8b81fe8a6d7709b98720e50abe9855a5cfb",
-      "feed": "0x3f027b0155e24c761e1e04ec43094fdbeb2ceaf9"
-    }
-  },
-  "MATIC-USDT": {
-    "baobab": {
-      "proxy": "0xa829309e98add53df0e90cbdc6291b5a9ccf2ab0",
-      "feed": "0xfa712fedad654b7087c245c0e1765fae24b1fd01"
+      "proxy": "0x40ffd1a4422f1fcd1683a98767c959cdc0b1b9b2",
+      "feed": "0xa7333364d913d6a58092fd7d2aa57765ffdaab43"
     },
     "tag": "premium",
     "cypress": {
-      "proxy": "0x713fc15ad95457f6ae936ce10426914ea6ca31b5",
-      "feed": "0x8adbaecd8fa6ad3228823fad3fa896842b6a1c25"
-    }
-  },
-  "ADA-USDT": {
-    "baobab": {
-      "proxy": "0x5256c1281fb565a8cdef04b8ddb8566f59debc51",
-      "feed": "0x2390c83f1bb3be9bfcfde1de3fa1e736bc2e502a"
-    },
-    "tag": "premium",
-    "cypress": {
-      "proxy": "0x22740d5af8ee07a8cfc717d076e6f83b08553623",
-      "feed": "0xc90658b795c1ccfeab8ee9d87fac489cf5802822"
+      "proxy": "0x16047900cf569e63441f0be392ada15ccd9e8b15",
+      "feed": "0x605a57dd4fcf6b3cb12aee26b84f982b9c182700"
     }
   },
   "KSP-KRW": {
@@ -236,15 +208,37 @@
       "feed": "0x86e8945a220a24a44831a3a714870409057a66e7"
     }
   },
-  "LTC-USDT": {
+  "KRW-USD": {
     "baobab": {
-      "proxy": "0x40ffd1a4422f1fcd1683a98767c959cdc0b1b9b2",
-      "feed": "0xa7333364d913d6a58092fd7d2aa57765ffdaab43"
+      "proxy": "0x87b68836ad679b712e0a0da98698592c6be11959",
+      "feed": "0x64e33713cf64cf384accbb12a925130b311d0ea5"
+    },
+    "tag": "basic",
+    "cypress": {
+      "proxy": "0xc90431adfa8ee2bfeb97d03800a6e6f765ab117b",
+      "feed": "0x1b1508dbb318fec1b42648f455910547d6393efe"
+    }
+  },
+  "MATIC-USDT": {
+    "baobab": {
+      "proxy": "0xa829309e98add53df0e90cbdc6291b5a9ccf2ab0",
+      "feed": "0xfa712fedad654b7087c245c0e1765fae24b1fd01"
     },
     "tag": "premium",
     "cypress": {
-      "proxy": "0x16047900cf569e63441f0be392ada15ccd9e8b15",
-      "feed": "0x605a57dd4fcf6b3cb12aee26b84f982b9c182700"
+      "proxy": "0x713fc15ad95457f6ae936ce10426914ea6ca31b5",
+      "feed": "0x8adbaecd8fa6ad3228823fad3fa896842b6a1c25"
+    }
+  },
+  "MBX-KRW": {
+    "baobab": {
+      "proxy": "0x8b9a9bbcd10ba3e514cd899dab59f20ca9be623f",
+      "feed": "0xc852fc6975f6c1fa228dd4f1b77e7f870677d736"
+    },
+    "tag": "basic",
+    "cypress": {
+      "proxy": "0x4d700eab8d99614370108886fe38f5f875b036c9",
+      "feed": "0xdcc8cee678733758c3f65fe630cb9bfb4291b6cb"
     }
   },
   "MNR-KRW": {
@@ -258,15 +252,37 @@
       "feed": "0x07be342841a01cadcc849f877832369c137e05e2"
     }
   },
-  "SOL-USDT": {
+  "PAXG-USDT": {
     "baobab": {
-      "proxy": "0x0e6913d6c98ee6e28858603cf24562c4f49afe80",
-      "feed": "0x721c8beee58c900a5e467d6a28c45b8c7522d7a9"
+      "proxy": "0x5b2d6d46099c876f99d2fd35fd461b0836ba26c7",
+      "feed": "0x97fb85225c4f21c271eedd1fd96306f81eb60604"
+    },
+    "tag": "standard",
+    "cypress": {
+      "proxy": "0x357405f2d669b13c43a6887e9a34288d1bf2131e",
+      "feed": "0xce0fa2b930b0b4384edad8ab6fb19e961d9da068"
+    }
+  },
+  "PEPE-USDT": {
+    "baobab": {
+      "proxy": "0x4ca0c8b81fe8a6d7709b98720e50abe9855a5cfb",
+      "feed": "0x3f027b0155e24c761e1e04ec43094fdbeb2ceaf9"
     },
     "tag": "premium",
     "cypress": {
-      "proxy": "0xa1d63586497f6de047df2ba4ce63718d07e9c7df",
-      "feed": "0x4d64fe56e8fd4d478337d540cc69c9a5ac5eaa2c"
+      "proxy": "0x7ef4bf25c48d837751c3abdaab3298c485f9c08b",
+      "feed": "0x484f0d4dfa19ba3f47620236b772db8b88122b0f"
+    }
+  },
+  "PER-KLAY": {
+    "baobab": {
+      "proxy": "0x3221b09f568235c2ef487523931d993ca544c630",
+      "feed": "0x6633bab27d6c4a7beab2f3b6c1cab5d1aa922734"
+    },
+    "tag": "basic",
+    "cypress": {
+      "proxy": "0x4028ecf422b5a6ddb75e68fc98b079bc41e63630",
+      "feed": "0x73fd23f8e20294429f850d3b4700f373f7dd68e8"
     }
   },
   "SHIB-USDT": {
@@ -280,15 +296,15 @@
       "feed": "0xf6405ff566c5020daea1cdbea279f10383cfb056"
     }
   },
-  "PAXG-USDT": {
+  "SOL-USDT": {
     "baobab": {
-      "proxy": "0x5b2d6d46099c876f99d2fd35fd461b0836ba26c7",
-      "feed": "0x97fb85225c4f21c271eedd1fd96306f81eb60604"
+      "proxy": "0x0e6913d6c98ee6e28858603cf24562c4f49afe80",
+      "feed": "0x721c8beee58c900a5e467d6a28c45b8c7522d7a9"
     },
-    "tag": "standard",
+    "tag": "premium",
     "cypress": {
-      "proxy": "0x357405f2d669b13c43a6887e9a34288d1bf2131e",
-      "feed": "0xce0fa2b930b0b4384edad8ab6fb19e961d9da068"
+      "proxy": "0xa1d63586497f6de047df2ba4ce63718d07e9c7df",
+      "feed": "0x4d64fe56e8fd4d478337d540cc69c9a5ac5eaa2c"
     }
   },
   "UNI-USDT": {
@@ -313,28 +329,6 @@
       "feed": "0x9cc98bdda2e707826c0dfeb6ae74d14acc404436"
     }
   },
-  "USDC-USDT": {
-    "baobab": {
-      "proxy": "0x1498ce6b25e183ddbec29bfc5885c168c84ac57d",
-      "feed": "0xaa622bea10e59fe082b192804ba1512174a50349"
-    },
-    "tag": "premium",
-    "cypress": {
-      "proxy": "0x2a6c17ec5639d495e78bfb0be145b8d575bc9bf2",
-      "feed": "0x09ca669ece35558bb8148fd8a26cb5a7a3e00c71"
-    }
-  },
-  "PER-KLAY": {
-    "baobab": {
-      "proxy": "0x3221b09f568235c2ef487523931d993ca544c630",
-      "feed": "0x6633bab27d6c4a7beab2f3b6c1cab5d1aa922734"
-    },
-    "tag": "basic",
-    "cypress": {
-      "proxy": "0x4028ecf422b5a6ddb75e68fc98b079bc41e63630",
-      "feed": "0x73fd23f8e20294429f850d3b4700f373f7dd68e8"
-    }
-  },
   "WEMIX-USDT": {
     "baobab": {
       "proxy": "0x659ae627c7b7a612af5e8cf2c8591aea753362fe",
@@ -344,6 +338,17 @@
     "cypress": {
       "proxy": "0xcdf1dbc6d4a7a983b06d61efb4d125b97eff9258",
       "feed": "0xf849f54f18ef9900d844e935f40dc03149462fc9"
+    }
+  },
+  "USDC-USDT": {
+    "baobab": {
+      "proxy": "0x1498ce6b25e183ddbec29bfc5885c168c84ac57d",
+      "feed": "0xaa622bea10e59fe082b192804ba1512174a50349"
+    },
+    "tag": "premium",
+    "cypress": {
+      "proxy": "0x2a6c17ec5639d495e78bfb0be145b8d575bc9bf2",
+      "feed": "0x09ca669ece35558bb8148fd8a26cb5a7a3e00c71"
     }
   },
   "XRP-USDT": {
