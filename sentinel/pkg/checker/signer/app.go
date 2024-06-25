@@ -3,7 +3,9 @@ package signer
 import (
 	"context"
 	"errors"
+	"fmt"
 	"os"
+	"strings"
 	"time"
 
 	"bisonai.com/orakl/sentinel/pkg/alert"
@@ -12,11 +14,13 @@ import (
 )
 
 type RegisteredSigner struct {
-	Exp time.Time
+	Name    string
+	Address string
+	Exp     time.Time
 }
 
 var signerCheckInterval time.Duration
-var signer RegisteredSigner
+var signers []RegisteredSigner
 
 const ExpirationWarningThreshold = 7 * 24 * time.Hour
 
@@ -38,6 +42,25 @@ func setUp(ctx context.Context) error {
 		return err
 	}
 
+	signers = append(signers,
+		RegisteredSigner{
+			Name:    "main",
+			Address: signerAddr,
+		},
+	)
+
+	if signerStr := os.Getenv("SIGNER"); signerStr != "" {
+		addrs := strings.Split(strings.TrimSpace(signerStr), ",")
+		for _, addr := range addrs {
+			signers = append(signers,
+				RegisteredSigner{
+					Name:    "sub",
+					Address: addr,
+				},
+			)
+		}
+	}
+
 	jsonRpcUrl := os.Getenv("JSON_RPC_URL")
 	if jsonRpcUrl == "" {
 		return errors.New("JSON_RPC_URL not found")
@@ -48,13 +71,14 @@ func setUp(ctx context.Context) error {
 		return errors.New("SUBMISSION_PROXY_CONTRACT not found")
 	}
 
-	exp, err := ExtractExpirationFromContract(ctx, jsonRpcUrl, submissionProxyContractAddr, signerAddr)
-	if err != nil {
-		return err
-	}
+	for i, signer := range signers {
+		exp, err := ExtractExpirationFromContract(ctx, jsonRpcUrl, submissionProxyContractAddr, signer.Address)
+		if err != nil {
+			log.Error().Err(err).Msg(fmt.Sprintf("Failed to extract expiration for signer: %s", signer.Address))
+			continue
+		}
 
-	signer = RegisteredSigner{
-		Exp: *exp,
+		signers[i].Exp = *exp
 	}
 	return nil
 }
@@ -77,9 +101,11 @@ func Start(ctx context.Context) error {
 }
 
 func check(ctx context.Context) {
-	log.Debug().Str("expiration", signer.Exp.String()).Msg("Checking signer expiration")
-	if time.Until(signer.Exp) < ExpirationWarningThreshold {
-		remainingTime := time.Until(signer.Exp)
-		alert.SlackAlert("Signer expires in: " + remainingTime.String())
+	for _, signer := range signers {
+		log.Debug().Str("expiration", signer.Exp.String()).Msg("Checking signer expiration")
+		if time.Until(signer.Exp) < ExpirationWarningThreshold {
+			remainingTime := time.Until(signer.Exp)
+			alert.SlackAlert(fmt.Sprintf("Signer %s(%s) expires in: %s", signer.Name, signer.Address, remainingTime.String()))
+		}
 	}
 }
