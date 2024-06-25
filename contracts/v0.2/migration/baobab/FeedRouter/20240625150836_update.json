@@ -3,7 +3,7 @@
   "updateProxyBulk": [
     {
       "feedName": ["PEPE-USDT"],
-      "proxyAddress": "to be updated after SubmissionProxy update"
+      "proxyAddress": "0x4ca0c8b81fe8a6d7709b98720e50abe9855a5cfb"
     }
   ]
 }
