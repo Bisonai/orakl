@@ -49,8 +49,8 @@ func setUp(ctx context.Context) error {
 		},
 	)
 
-	if os.Getenv("SIGNER") != "" {
-		addrs := strings.Split(strings.TrimSpace(os.Getenv("SIGNER")), ",")
+	if signerStr := os.Getenv("SIGNER"); signerStr != "" {
+		addrs := strings.Split(strings.TrimSpace(signerStr), ",")
 		for _, addr := range addrs {
 			signers = append(signers,
 				RegisteredSigner{
