@@ -39,6 +39,7 @@ on:
           - node:v0.0.1.20240624.0815.2b2ed32:OraklNode Update proxy request
           - node:v0.0.1.20240624.0824.a6ca4ab:OraklNode Index out of bound p...
           - node:v0.0.1.20240624.2328.3517cf5:OraklNode Execute local aggreg...
+          - node:v0.0.1.20240624.2359.c658e51:OraklNode Reduce intervals
 jobs:
   prepare-taskflow:
     name: Prepare
