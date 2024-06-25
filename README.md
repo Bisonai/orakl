@@ -126,3 +126,4 @@ The microservices can also be started separately in any arbitrary order by repla
 - **node** v0.0.1.20240624.0824.a6ca4ab <br> *`PR`*: OraklNode Index out of bound p... <br><br> 
 - **node** v0.0.1.20240624.2328.3517cf5 <br> *`PR`*: OraklNode Execute local aggreg... <br><br> 
 - **node** v0.0.1.20240624.2359.c658e51 <br> *`PR`*: OraklNode Reduce intervals <br><br> 
+- **sentinel** v0.0.1.20240625.0255.5673f9d <br> *`PR`*: Sentinel Add external signers ... <br><br> 
