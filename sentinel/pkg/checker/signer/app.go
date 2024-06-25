@@ -50,7 +50,7 @@ func setUp(ctx context.Context) error {
 	)
 
 	if os.Getenv("SIGNER") != "" {
-		addrs := strings.Split(os.Getenv("SIGNER"), ",")
+		addrs := strings.Split(strings.TrimSpace(os.Getenv("SIGNER")), ",")
 		for _, addr := range addrs {
 			signers = append(signers,
 				RegisteredSigner{
@@ -74,6 +74,7 @@ func setUp(ctx context.Context) error {
 	for i, signer := range signers {
 		exp, err := ExtractExpirationFromContract(ctx, jsonRpcUrl, submissionProxyContractAddr, signer.Address)
 		if err != nil {
+			log.Error().Err(err).Msg(fmt.Sprintf("Failed to extract expiration for signer: %s", signer.Address))
 			continue
 		}
 
