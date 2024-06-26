@@ -263,6 +263,17 @@
       "aggregator": "0x384C4A7ee7B8Ef8D6a46E2f262581632EF06E313"
     }
   },
+  "PEPE-USDT": {
+    "baobab": {
+      "proxy": "0x4ca0c8b81fe8a6d7709b98720e50abe9855a5cfb",
+      "aggregator": "0x3f027b0155e24c761e1e04ec43094fdbeb2ceaf9"
+    },
+    "tag": "premium",
+    "cypress": {
+      "proxy": "0x7ef4bf25c48d837751c3abdaab3298c485f9c08b",
+      "aggregator": "0x484f0d4dfa19ba3f47620236b772db8b88122b0f"
+    }
+  },
   "PER-KLAY": {
     "baobab": {
       "proxy": "0xD8D8edeEbC22cCd0802a0Bf1123fFC8078D6890C",
