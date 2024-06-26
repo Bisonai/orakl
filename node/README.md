@@ -254,6 +254,9 @@ task local:script-test-raft
 # check if admin api is live
 task local:check-api
 
+# sync config
+task local:sync
+
 # refresh fetcher, trigger it after adding proxy or json rpc. Execute only if service is running.
 task local:refresh-fetcher
 

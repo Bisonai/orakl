@@ -85,10 +85,13 @@ func sync(ctx context.Context) error {
 			removingConfigs = append(removingConfigs, strconv.Itoa(int(dbConfig.ID)))
 		}
 	}
-	err = db.QueryWithoutResult(ctx, BulkDeleteConfigQuery, map[string]any{"ids": strings.Join(removingConfigs, ",")})
-	if err != nil {
-		log.Error().Err(err).Str("Player", "Admin").Str("Query", BulkDeleteConfigQuery).Msg("failed to remove invalid configs from db")
-		return err
+	if len(removingConfigs) > 0 {
+		bulkDeleteConfigQuery := fmt.Sprintf("DELETE FROM configs WHERE id IN (%s)", strings.Join(removingConfigs, ","))
+		err = db.QueryWithoutResult(ctx, bulkDeleteConfigQuery, nil)
+		if err != nil {
+			log.Error().Err(err).Str("Player", "Admin").Str("Query", bulkDeleteConfigQuery).Msg("failed to remove invalid configs from db")
+			return err
+		}
 	}
 
 	// remove invalid feeds
@@ -106,10 +109,15 @@ func sync(ctx context.Context) error {
 			removingFeeds = append(removingFeeds, strconv.Itoa(int(*dbFeed.ID)))
 		}
 	}
-	err = db.QueryWithoutResult(ctx, BulkDeleteFeedQuery, map[string]any{"ids": strings.Join(removingFeeds, ",")})
-	if err != nil {
-		log.Error().Err(err).Str("Player", "Admin").Str("Query", BulkDeleteFeedQuery).Msg("failed to remove invalid feeds from db")
-		return err
+	log.Debug().Str("Player", "Admin").Msg("removingFeeds: " + strings.Join(removingFeeds, ","))
+
+	if len(removingFeeds) > 0 {
+		bulkDeleteQuery := fmt.Sprintf("DELETE FROM feeds WHERE id IN (%s)", strings.Join(removingFeeds, ","))
+		err = db.QueryWithoutResult(ctx, bulkDeleteQuery, nil)
+		if err != nil {
+			log.Error().Err(err).Str("Player", "Admin").Str("Query", bulkDeleteQuery).Msg("failed to remove invalid feeds from db")
+			return err
+		}
 	}
 
 	err = bulkUpsertConfigs(ctx, loadedConfigs)
