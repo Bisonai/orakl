@@ -207,7 +207,11 @@ func (f *UniswapFetcher) wssBase(ctx context.Context, feed common.Feed, definiti
 		return err
 	}
 
-	err = f.WebsocketChainReader.Subscribe(ctx, websocketchainreader.WithAddress(address), websocketchainreader.WithChannel(logChannel), websocketchainreader.WithChainType(chainType), websocketchainreader.WithBlockNumber(big.NewInt(157383590)))
+	err = f.WebsocketChainReader.Subscribe(
+		ctx,
+		websocketchainreader.WithAddress(address),
+		websocketchainreader.WithChannel(logChannel),
+		websocketchainreader.WithChainType(chainType))
 	if err != nil {
 		log.Error().Str("Player", "Uniswap").Err(err).Msg("error in uniswap.subscribeEvent, failed to subscribe")
 		return err
@@ -218,7 +222,6 @@ func (f *UniswapFetcher) wssBase(ctx context.Context, feed common.Feed, definiti
 		if err != nil {
 			continue
 		}
-		log.Debug().Str("Player", "Uniswap").Any("res", res).Msg("unpacking event log")
 		var sqrtPrice interface{}
 
 		if chainType == websocketchainreader.Ethereum {
