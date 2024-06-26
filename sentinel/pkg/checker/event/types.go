@@ -68,6 +68,10 @@ func feedEventQuery(schemaName string) string {
 	return fmt.Sprintf(`SELECT time FROM %s.feed_feed_updated ORDER BY time DESC LIMIT 1;`, schemaName)
 }
 
+func feedLastMinEventQuery(schemaName string) string {
+	return fmt.Sprintf(`SELECT COUNT(*) FROM %s.feed_feed_updated WHERE time >= NOW() - INTERVAL '1 minute';`, schemaName)
+}
+
 func aggregatorEventQuery(schemaName string) string {
 	return fmt.Sprintf(`SELECT time FROM %s.aggregator_submission_received ORDER BY time DESC LIMIT 1;`, schemaName)
 }

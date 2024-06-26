@@ -15,6 +15,7 @@ import (
 
 const AlarmOffset = 3
 const VRF_EVENT = "vrf_random_words_fulfilled"
+const MAX_FEED_SUBMISSION_COUNT = 8
 
 var EventCheckInterval time.Duration
 var POR_BUFFER = 60 * time.Second
@@ -136,6 +137,17 @@ func checkFeeds(ctx context.Context, FeedsToCheck []FeedToCheck) {
 		} else {
 			FeedsToCheck[i].LatencyChecked = 0
 		}
+
+		count, err := countLastMinFeedEvents(ctx, feed)
+		if err != nil {
+			log.Error().Err(err).Str("feed", feed.FeedName).Msg("Failed to count last minute feed events")
+			continue
+		}
+
+		if count >= MAX_FEED_SUBMISSION_COUNT {
+			log.Warn().Str("feed", feed.FeedName).Msg(fmt.Sprintf("%s submitted %d times in one minute", feed.FeedName, count))
+			msg += fmt.Sprintf("%s submitted %d times in one minute\n", feed.FeedName, count)
+		}
 	}
 	if msg != "" {
 		alert.SlackAlert(msg)
@@ -205,6 +217,20 @@ func timeSinceLastFeedEvent(ctx context.Context, feed FeedToCheck) (time.Duratio
 	}
 	lastEventTime := time.Unix(queriedTime.UnixTime, 0)
 	return time.Since(lastEventTime), nil
+}
+
+func countLastMinFeedEvents(ctx context.Context, feed FeedToCheck) (int, error) {
+	type Count struct {
+		Count int `db:"count"`
+	}
+	query := feedLastMinEventQuery(feed.SchemaName)
+	count, err := db.QueryRow[Count](ctx, query, nil)
+	if err != nil {
+		log.Error().Err(err).Msg("Failed to query last minute event count")
+		return 0, err
+	}
+	return count.Count, nil
+
 }
 
 func timeSinceLastPorEvent(ctx context.Context, feed FeedToCheck) (time.Duration, error) {
