@@ -28,6 +28,15 @@ const (
     uint128 liquidity,
     int24 tick
   )`
+	EVENT_KLAYSWAP = `event Swap(
+    address sender,
+    address recipient,
+    int256 amount0,
+    int256 amount1,
+    uint160 sqrtPriceX96,
+    uint128 liquidity,
+    int24 tick
+  )`
 )
 
 func New(opts ...common.DexFetcherOption) common.FetcherInterface {
@@ -122,11 +131,34 @@ func (f *UniswapFetcher) subscribeEvent(ctx context.Context, feed common.Feed) e
 	logChannel := make(chan types.Log)
 	address := definition.Address
 
-	eventName, input, _, err := utils.ParseMethodSignature(EVENT)
-	if err != nil {
-		log.Error().Str("Player", "Uniswap").Err(err).Msg("error in uniswap.subscribeEvent, failed to parse method signature")
-		return err
+	chainType, ok := f.WebsocketChainReader.ChainIdToChainType[definition.ChainId]
+	if !ok {
+		log.Error().Str("Player", "Uniswap").Str("chainId", definition.ChainId).Msg("error in uniswap.getInitialPrice, chain type not found")
+		return errorSentinel.ErrFetcherNoMatchingChainID
 	}
+
+	var eventName, input string
+	var eventParseErr error
+
+	if chainType == websocketchainreader.Ethereum {
+		log.Debug().Str("Player", "Uniswap").Msg("Using uniswap event")
+		eventName, input, _, eventParseErr = utils.ParseMethodSignature(EVENT)
+		if eventParseErr != nil {
+			log.Error().Str("Player", "Uniswap").Err(eventParseErr).Msg("error in uniswap.subscribeEvent, failed to parse method signature")
+			return eventParseErr
+		}
+	} else if chainType == websocketchainreader.Kaia {
+		log.Debug().Str("Player", "Uniswap").Msg("Using klayswap event")
+		eventName, input, _, eventParseErr = utils.ParseMethodSignature(EVENT_KLAYSWAP)
+		if eventParseErr != nil {
+			log.Error().Str("Player", "Uniswap").Err(eventParseErr).Msg("error in uniswap.subscribeEvent, failed to parse method signature")
+			return eventParseErr
+		}
+	} else {
+		log.Error().Err(errorSentinel.ErrFetcherNoMatchingChainID).Msg("error in uniswap.subscribeEvent, chain type not found")
+		return errorSentinel.ErrFetcherNoMatchingChainID
+	}
+	fmt.Println("chainType", chainType)
 
 	abi, err := utils.GenerateEventABI(eventName, input)
 	if err != nil {
@@ -146,6 +178,13 @@ func (f *UniswapFetcher) subscribeEvent(ctx context.Context, feed common.Feed) e
 			continue
 		}
 		sqrtPrice := res[2]
+		var sqrtPrice interface{}
+
+		if chainType == websocketchainreader.Ethereum {
+			sqrtPrice = res[2]
+		} else if chainType == websocketchainreader.Kaia {
+			sqrtPrice = res[4]
+		}
 		price, err := getTokenPrice(sqrtPrice.(*big.Int), definition)
 		if err != nil {
 			continue
