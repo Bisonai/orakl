@@ -1,6 +1,7 @@
 package types
 
 import (
+	"encoding/json"
 	"time"
 )
 
@@ -10,6 +11,13 @@ type Proxy struct {
 	Host     string  `db:"host"`
 	Port     int     `db:"port"`
 	Location *string `db:"location"`
+}
+
+type Feed struct {
+	ID         int32           `db:"id"`
+	Name       string          `db:"name"`
+	Definition json.RawMessage `db:"definition"`
+	ConfigID   int32           `db:"config_id"`
 }
 
 type FeedData struct {
