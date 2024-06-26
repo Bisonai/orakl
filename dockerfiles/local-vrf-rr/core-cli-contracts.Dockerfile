@@ -15,7 +15,9 @@ COPY dockerfiles/local-vrf-rr/scripts/update-vrf-migration.js update-vrf-migrati
 
 COPY dockerfiles/local-vrf-rr/scripts/update-hardhat-network.js update-hardhat-network.js
 
-COPY dockerfiles/local-vrf-rr/envs/vrf-keys.json vrf-keys.json 
+COPY dockerfiles/local-vrf-rr/envs/vrf-keys-localhost.json vrf-keys-localhost.json 
+COPY dockerfiles/local-vrf-rr/envs/vrf-keys-baobab.json vrf-keys-baobab.json 
+COPY dockerfiles/local-vrf-rr/envs/vrf-keys-cypress.json vrf-keys-cypress.json 
 
 COPY contracts/v0.1 contracts/v0.1
 
@@ -48,7 +50,9 @@ COPY --from=build /app/update-vrf-migration.js /app/update-vrf-migration.js
 
 COPY --from=build /app/update-hardhat-network.js /app/update-hardhat-network.js
 
-COPY --from=build /app/vrf-keys.json /app/vrf-keys.json
+COPY --from=build /app/vrf-keys-localhost.json /app/vrf-keys-localhost.json
+COPY --from=build /app/vrf-keys-baobab.json /app/vrf-keys-baobab.json
+COPY --from=build /app/vrf-keys-cypress.json /app/vrf-keys-cypress.json
 
 COPY --from=build /app/node_modules /app/node_modules
 

@@ -30,6 +30,8 @@ services:
     container_name: redis
     expose:
       - "6379"
+    ports:
+      - "6380:6379"
     healthcheck:
       test: ["CMD-SHELL", "redis-cli", "ping"]
       interval: 10s
