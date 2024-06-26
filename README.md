@@ -127,3 +127,4 @@ The microservices can also be started separately in any arbitrary order by repla
 - **node** v0.0.1.20240624.2328.3517cf5 <br> _`PR`_: OraklNode Execute local aggreg... <br><br>
 - **node** v0.0.1.20240624.2359.c658e51 <br> _`PR`_: OraklNode Reduce intervals <br><br>
 - **sentinel** v0.0.1.20240625.0255.5673f9d <br> _`PR`_: Sentinel Add external signers ... <br><br>
+- **node** v0.0.1.20240626.0736.d9a8df4 <br> *`PR`*: OraklNode Rollback klayswap ba... <br><br> 
