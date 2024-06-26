@@ -2,7 +2,6 @@ package common
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"sync"
 	"time"
@@ -34,13 +33,7 @@ func (proxy *Proxy) GetProxyUrl() string {
 	return fmt.Sprintf("%s://%s:%d", proxy.Protocol, proxy.Host, proxy.Port)
 }
 
-type Feed struct {
-	ID         int32           `db:"id"`
-	Name       string          `db:"name"`
-	Definition json.RawMessage `db:"definition"`
-	ConfigID   int32           `db:"config_id"`
-}
-
+type Feed types.Feed
 type FeedData types.FeedData
 
 type FeedDefinition struct {

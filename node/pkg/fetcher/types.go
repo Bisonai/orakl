@@ -2,7 +2,6 @@ package fetcher
 
 import (
 	"context"
-	"encoding/json"
 	"math/big"
 	"time"
 
@@ -24,6 +23,7 @@ const (
 	DefaultMedianRatio                    = 0.05
 )
 
+type Feed types.Feed
 type FeedData types.FeedData
 
 type Config struct {
@@ -58,13 +58,6 @@ type Streamer struct {
 	streamerCtx context.Context
 	cancel      context.CancelFunc
 	isRunning   bool
-}
-
-type Feed struct {
-	ID         int32           `db:"id"`
-	Name       string          `db:"name"`
-	Definition json.RawMessage `db:"definition"`
-	ConfigID   int32           `db:"config_id"`
 }
 
 type App struct {
