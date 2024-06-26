@@ -168,6 +168,7 @@ func processLogs(ctx context.Context, sub klaytn.Subscription, logs <-chan types
 		case vLog := <-logs:
 			select {
 			case ch <- vLog:
+				continue
 			case <-ctx.Done():
 				return false
 			}

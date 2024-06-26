@@ -49,7 +49,7 @@ func WithChainType(chainType BlockchainType) SubscribeOption {
 	}
 }
 
-func WithBlockNumber(blockNumber *big.Int) SubscribeOption {
+func WithStartBlockNumber(blockNumber *big.Int) SubscribeOption {
 	return func(c *SubscribeConfig) {
 		c.BlockNumber = blockNumber
 	}
