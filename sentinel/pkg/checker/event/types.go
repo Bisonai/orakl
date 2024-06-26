@@ -69,7 +69,7 @@ func feedEventQuery(schemaName string) string {
 }
 
 func feedLastMinEventQuery(schemaName string) string {
-	return fmt.Sprintf(`SELECT COUNT(*) FROM %s.feed_feed_updated WHERE time >= NOW() - INTERVAL '1 minute';`, schemaName)
+	return fmt.Sprintf(`SELECT COUNT(*) FROM %s.feed_feed_updated WHERE time >= EXTRACT(EPOCH FROM NOW() - INTERVAL '1 minute');`, schemaName)
 }
 
 func aggregatorEventQuery(schemaName string) string {
