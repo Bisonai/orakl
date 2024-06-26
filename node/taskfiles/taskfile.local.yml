@@ -111,6 +111,10 @@ tasks:
     dotenv: [".env"]
     cmds:
       - curl -X GET "http://localhost:$APP_PORT/api/v1"
+  sync:
+    dotenv: [".env"]
+    cmds:
+      - curl -X POST "http://localhost:$APP_PORT/api/v1/config/sync"
   refresh-fetcher:
     dotenv: [".env"]
     cmds:

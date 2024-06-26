@@ -133,7 +133,7 @@ func adminCleanup(testItems *TestItems) func() error {
 			return err
 		}
 
-		return db.QueryWithoutResult(context.Background(), wallet.DeleteWalletById, map[string]any{"id": testItems.tmpData.wallet.ID})
+		return db.QueryWithoutResult(context.Background(), "DELETE FROM wallets", nil)
 	}
 }
 
