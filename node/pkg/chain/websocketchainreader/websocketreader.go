@@ -2,6 +2,7 @@ package websocketchainreader
 
 import (
 	"context"
+	"fmt"
 	"math/big"
 	"time"
 
