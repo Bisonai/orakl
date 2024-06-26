@@ -73,7 +73,7 @@ func TestSync(t *testing.T) {
 
 func TestRefresh(t *testing.T) {
 	ctx := context.Background()
-	cleanup, testItems, err := setup(ctx)
+	cleanup, _, err := setup(ctx)
 	if err != nil {
 		t.Fatalf("error setting up test: %v", err)
 	}
@@ -89,14 +89,14 @@ func TestRefresh(t *testing.T) {
 		t.Fatalf("error extracting payload from host: %v", err)
 	}
 
-	res, err := adminTests.PostRequest[peer.PeerModel](testItems.app, "/api/v1/peer", peer.PeerInsertModel{
-		Url: url,
+	res, err := db.QueryRow[peer.PeerModel](ctx, peer.InsertPeer, map[string]any{
+		"url": url,
 	})
 	if err != nil {
 		t.Fatalf("error inserting peer: %v", err)
 	}
 
-	readResultBefore, err := adminTests.GetRequest[[]peer.PeerModel](testItems.app, "/api/v1/peer", nil)
+	readResultBefore, err := db.QueryRows[peer.PeerModel](ctx, peer.GetPeer, nil)
 	if err != nil {
 		t.Fatalf("error getting peers before: %v", err)
 	}
@@ -108,7 +108,7 @@ func TestRefresh(t *testing.T) {
 		t.Fatalf("error refreshing peers: %v", err)
 	}
 
-	readResultAfter, err := adminTests.GetRequest[[]peer.PeerModel](testItems.app, "/api/v1/peer", nil)
+	readResultAfter, err := db.QueryRows[peer.PeerModel](ctx, peer.GetPeer, nil)
 	if err != nil {
 		t.Fatalf("error getting peers after: %v", err)
 	}
@@ -122,7 +122,7 @@ func TestRefresh(t *testing.T) {
 		t.Fatalf("error refreshing peers: %v", err)
 	}
 
-	readResultFinal, err := adminTests.GetRequest[[]peer.PeerModel](testItems.app, "/api/v1/peer", nil)
+	readResultFinal, err := db.QueryRows[peer.PeerModel](ctx, peer.GetPeer, nil)
 	if err != nil {
 		t.Fatalf("error getting peers final: %v", err)
 	}
