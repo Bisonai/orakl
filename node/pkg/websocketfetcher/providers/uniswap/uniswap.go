@@ -123,7 +123,7 @@ func (f *UniswapFetcher) subscribeEvent(ctx context.Context, feed common.Feed) e
 
 func (f *UniswapFetcher) slotBase(ctx context.Context, feed common.Feed, definition *common.DexFeedDefinition) error {
 	ticker := time.NewTicker(2 * time.Second)
-
+	defer ticker.Stop()
 	for range ticker.C {
 		price, err := f.getPriceThroughSlotCall(ctx, definition)
 		if err != nil {
