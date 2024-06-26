@@ -37,8 +37,8 @@ import (
 )
 
 const (
-	DefaultStoreInterval = 250 * time.Millisecond
-	DefaultBufferSize    = 500
+	DefaultStoreInterval = 200 * time.Millisecond
+	DefaultBufferSize    = 400
 )
 
 type AppConfig struct {

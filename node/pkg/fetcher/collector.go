@@ -9,7 +9,7 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-const DefaultLocalAggregateInterval = 250 * time.Millisecond
+const DefaultLocalAggregateInterval = 200 * time.Millisecond
 
 func NewCollector(config Config, feeds []Feed) *Collector {
 	return &Collector{
