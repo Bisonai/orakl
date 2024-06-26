@@ -18,38 +18,6 @@ type PeerInsertModel struct {
 	Url string `db:"url" json:"url" validate:"required"`
 }
 
-func insert(c *fiber.Ctx) error {
-	payload := new(PeerInsertModel)
-	if err := c.BodyParser(payload); err != nil {
-		log.Error().Err(err).Msg("Failed to parse request")
-		return c.Status(fiber.StatusBadRequest).SendString("Failed to parse request")
-	}
-
-	validate := validator.New()
-	if err := validate.Struct(payload); err != nil {
-		log.Error().Err(err).Msg("Failed to validate request")
-		return c.Status(fiber.StatusBadRequest).SendString("Failed to validate request")
-	}
-
-	result, err := db.QueryRow[PeerModel](c.Context(), InsertPeer, map[string]any{
-		"url": payload.Url})
-	if err != nil {
-		log.Error().Err(err).Msg("Failed to execute insert query")
-		return c.Status(fiber.StatusInternalServerError).SendString("Failed to execute insert query")
-	}
-
-	return c.JSON(result)
-}
-
-func get(c *fiber.Ctx) error {
-	result, err := db.QueryRows[PeerModel](c.Context(), GetPeer, nil)
-	if err != nil {
-		log.Error().Err(err).Msg("Failed to execute get query")
-		return c.Status(fiber.StatusInternalServerError).SendString("Failed to execute get query")
-	}
-	return c.JSON(result)
-}
-
 func sync(c *fiber.Ctx) error {
 	payload := new(PeerInsertModel)
 	if err := c.BodyParser(payload); err != nil {
