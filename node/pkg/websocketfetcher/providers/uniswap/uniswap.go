@@ -93,7 +93,7 @@ func (f *UniswapFetcher) subscribeEvent(ctx context.Context, feed common.Feed) e
 		return err
 	}
 
-	return f.subscribeSwap(ctx, feed, definition)
+	return f.readSwapEvent(ctx, feed, definition)
 }
 
 func (f *UniswapFetcher) getPriceThroughSlotCall(ctx context.Context, definition *common.DexFeedDefinition) (*float64, error) {
@@ -124,7 +124,7 @@ func (f *UniswapFetcher) getPriceThroughSlotCall(ctx context.Context, definition
 	return getTokenPrice(sqrtPrice, definition)
 }
 
-func (f *UniswapFetcher) subscribeSwap(ctx context.Context, feed common.Feed, definition *common.DexFeedDefinition) error {
+func (f *UniswapFetcher) readSwapEvent(ctx context.Context, feed common.Feed, definition *common.DexFeedDefinition) error {
 	logChannel := make(chan types.Log)
 	address := definition.Address
 
