@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"os"
-	"sync"
 
 	"bisonai.com/orakl/node/pkg/chain/websocketchainreader"
 	"bisonai.com/orakl/node/pkg/websocketfetcher/common"
@@ -14,7 +13,6 @@ import (
 
 func main() {
 	ctx := context.Background()
-	var wg sync.WaitGroup
 
 	feeds := []common.Feed{
 		{
@@ -114,9 +112,15 @@ func main() {
 
 	ch := make(chan common.FeedData)
 	fetcher := uniswap.New(common.WithDexFeedDataBuffer(ch), common.WithWebsocketChainReader(chainReader), common.WithFeeds(feeds))
-	wg.Add(1)
-
 	fetcher.Run(ctx)
+	for {
+		select {
+		case data := <-ch:
+			log.Info().Interface("data", data).Msg("data")
+		case <-ctx.Done():
 
-	wg.Wait()
+			return
+		}
+	}
+
 }
