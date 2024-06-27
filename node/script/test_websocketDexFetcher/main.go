@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"os"
-	"sync"
 
 	"bisonai.com/orakl/node/pkg/chain/websocketchainreader"
 	"bisonai.com/orakl/node/pkg/websocketfetcher/common"
@@ -14,7 +13,6 @@ import (
 
 func main() {
 	ctx := context.Background()
-	var wg sync.WaitGroup
 
 	feeds := []common.Feed{
 		{
@@ -120,7 +118,7 @@ func main() {
 		case data := <-ch:
 			log.Info().Interface("data", data).Msg("data")
 		case <-ctx.Done():
-			wg.Done()
+
 			return
 		}
 	}
