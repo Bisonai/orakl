@@ -129,3 +129,4 @@ The microservices can also be started separately in any arbitrary order by repla
 - **sentinel** v0.0.1.20240625.0255.5673f9d <br> _`PR`_: Sentinel Add external signers ... <br><br>
 - **node** v0.0.1.20240626.0736.d9a8df4 <br> *`PR`*: OraklNode Rollback klayswap ba... <br><br> 
 - **node** v0.0.1.20240626.0926.c3f91cb <br> *`PR`*: OraklNode Update sync <br><br> 
+- **node** v0.0.1.20240627.0431.bac3940 <br> *`PR`*: OraklNode Update klayswap to u... <br><br> 
