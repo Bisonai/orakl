@@ -114,9 +114,15 @@ func main() {
 
 	ch := make(chan common.FeedData)
 	fetcher := uniswap.New(common.WithDexFeedDataBuffer(ch), common.WithWebsocketChainReader(chainReader), common.WithFeeds(feeds))
-	wg.Add(1)
-
 	fetcher.Run(ctx)
+	for {
+		select {
+		case data := <-ch:
+			log.Info().Interface("data", data).Msg("data")
+		case <-ctx.Done():
+			wg.Done()
+			return
+		}
+	}
 
-	wg.Wait()
 }
