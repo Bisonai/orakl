@@ -31,11 +31,13 @@ func main() {
 	host, err := libp2pSetup.NewHost(ctx, libp2pSetup.WithHolePunch())
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to make host")
+		return
 	}
 
 	ps, err := libp2pSetup.MakePubsub(ctx, host)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to make pubsub")
+		return
 	}
 
 	err = retrier.Retry(func() error {
