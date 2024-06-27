@@ -122,31 +122,35 @@ func checkFeeds(ctx context.Context, FeedsToCheck []FeedToCheck) {
 	msg := ""
 	for i, feed := range FeedsToCheck {
 		offset, err := timeSinceLastFeedEvent(ctx, feed)
-		if err != nil {
-			log.Error().Err(err).Str("feed", feed.FeedName).Msg("Failed to check feed")
-			continue
-		}
-
-		if offset > time.Duration(feed.ExpectedInterval)*time.Millisecond*2 {
-			log.Warn().Str("feed", feed.FeedName).Msg(fmt.Sprintf("%s delayed by %s", feed.FeedName, offset-time.Duration(feed.ExpectedInterval)*time.Millisecond))
-			FeedsToCheck[i].LatencyChecked++
-			if FeedsToCheck[i].LatencyChecked > AlarmOffset {
-				msg += fmt.Sprintf("%s delayed by %s\n", feed.FeedName, offset-time.Duration(feed.ExpectedInterval)*time.Millisecond)
+		if err == nil {
+			if offset > time.Duration(feed.ExpectedInterval)*time.Millisecond*2 {
+				log.Warn().Str("feed", feed.FeedName).Msg(fmt.Sprintf("%s delayed by %s", feed.FeedName, offset-time.Duration(feed.ExpectedInterval)*time.Millisecond))
+				FeedsToCheck[i].LatencyChecked++
+				if FeedsToCheck[i].LatencyChecked > AlarmOffset {
+					msg += fmt.Sprintf("%s delayed by %s\n", feed.FeedName, offset-time.Duration(feed.ExpectedInterval)*time.Millisecond)
+					FeedsToCheck[i].LatencyChecked = 0
+				}
+			} else {
 				FeedsToCheck[i].LatencyChecked = 0
 			}
 		} else {
-			FeedsToCheck[i].LatencyChecked = 0
+			log.Error().Err(err).Str("feed", feed.FeedName).Msg("Failed to check feed")
 		}
 
 		count, err := countLastMinFeedEvents(ctx, feed)
-		if err != nil {
+		if err == nil {
+			if count >= MAX_FEED_SUBMISSION_COUNT {
+				log.Warn().Str("feed", feed.FeedName).Msg(fmt.Sprintf("%s submitted %d times in one minute", feed.FeedName, count))
+				FeedsToCheck[i].OversubmissionCount++
+				if FeedsToCheck[i].OversubmissionCount > AlarmOffset {
+					msg += fmt.Sprintf("%s made over %d submissions/minute %d times consecutively\n", feed.FeedName, MAX_FEED_SUBMISSION_COUNT, AlarmOffset+1)
+					FeedsToCheck[i].OversubmissionCount = 0
+				}
+			} else {
+				FeedsToCheck[i].OversubmissionCount = 0
+			}
+		} else {
 			log.Error().Err(err).Str("feed", feed.FeedName).Msg("Failed to count last minute feed events")
-			continue
-		}
-
-		if count >= MAX_FEED_SUBMISSION_COUNT {
-			log.Warn().Str("feed", feed.FeedName).Msg(fmt.Sprintf("%s submitted %d times in one minute", feed.FeedName, count))
-			msg += fmt.Sprintf("%s submitted %d times in one minute\n", feed.FeedName, count)
 		}
 	}
 	if msg != "" {

@@ -50,6 +50,7 @@ type FeedToCheck struct {
 	FeedName         string
 	ExpectedInterval int
 	LatencyChecked   int
+	OversubmissionCount int
 }
 
 type FullfillEventToCheck struct {
