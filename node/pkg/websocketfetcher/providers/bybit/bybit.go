@@ -3,6 +3,7 @@ package bybit
 import (
 	"context"
 	"strings"
+	"time"
 
 	"bisonai.com/orakl/node/pkg/websocketfetcher/common"
 	"bisonai.com/orakl/node/pkg/wss"
@@ -28,8 +29,8 @@ func New(ctx context.Context, opts ...common.FetcherOption) (common.FetcherInter
 	}
 
 	subscriptions := []any{}
-	for i := 0; i < len(pairList); i += 3 {
-		end := common.Min(i+3, len(pairList))
+	for i := 0; i < len(pairList); i += 10 {
+		end := common.Min(i+10, len(pairList))
 		subscriptions = append(subscriptions, Subscription{
 			Op:   "subscribe",
 			Args: pairList[i:end],
@@ -55,7 +56,7 @@ func (f *BybitFetcher) handleMessage(ctx context.Context, message map[string]any
 		return err
 	}
 
-	if !strings.HasPrefix(response.Topic, "tickers.") || response.Data.Price == nil {
+	if response.Topic == nil || !strings.HasPrefix(*response.Topic, "tickers.") {
 		return nil
 	}
 
@@ -70,5 +71,27 @@ func (f *BybitFetcher) handleMessage(ctx context.Context, message map[string]any
 }
 
 func (f *BybitFetcher) Run(ctx context.Context) {
+	go f.ping(ctx)
 	f.Ws.Run(ctx, f.handleMessage)
+}
+
+func (f *BybitFetcher) ping(ctx context.Context) {
+	ticker := time.NewTicker(20 * time.Second)
+	go func() {
+		for {
+			select {
+			case <-ticker.C:
+				log.Debug().Str("Player", "Bybit").Msg("sending ping message to bybit server")
+				err := f.Ws.Write(ctx, Heartbeat{
+					Op: "ping",
+				})
+				if err != nil {
+					log.Error().Str("Player", "Bybit").Err(err).Msg("error in bybit.ping")
+				}
+			case <-ctx.Done():
+				ticker.Stop()
+				return
+			}
+		}
+	}()
 }

@@ -1,19 +1,22 @@
 package bybit
 
-const URL = "wss://stream.bybit.com/spot/public/v3"
+const URL = "wss://stream.bybit.com/v5/public/spot"
 
 type Subscription struct {
 	Op   string   `json:"op"`
 	Args []string `json:"args"`
 }
-
 type Response struct {
-	Topic string `json:"topic"`
-	Type  string `json:"type"`
-	Data  struct {
-		Time   *int64  `json:"t"`
-		Symbol *string `json:"s"`
-		Price  *string `json:"c"`
-		Volume *string `json:"v"`
-	} `json:"data"`
+	Topic     *string `json:"topic"`
+	Timestamp *int64  `json:"ts"`
+	Type      *string `json:"type"`
+	Data      struct {
+		Symbol string `json:"symbol"`
+		Price  string `json:"lastPrice"`
+		Volume string `json:"volume24h"`
+	}
+}
+
+type Heartbeat struct {
+	Op string `json:"op"`
 }

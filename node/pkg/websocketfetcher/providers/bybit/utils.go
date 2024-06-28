@@ -10,20 +10,20 @@ import (
 func ResponseToFeedData(data Response, feedMap map[string]int32) (*common.FeedData, error) {
 	feedData := new(common.FeedData)
 
-	timestamp := time.UnixMilli(*data.Data.Time)
-	value, err := common.PriceStringToFloat64(*data.Data.Price)
-	if err != nil {
-		return feedData, err
-	}
-
-	volume, err := common.VolumeStringToFloat64(*data.Data.Volume)
-	if err != nil {
-		return feedData, err
-	}
-
-	id, exists := feedMap[*data.Data.Symbol]
+	id, exists := feedMap[data.Data.Symbol]
 	if !exists {
 		return feedData, fmt.Errorf("feed not found")
+	}
+
+	timestamp := time.UnixMilli(*data.Timestamp)
+	value, err := common.PriceStringToFloat64(data.Data.Price)
+	if err != nil {
+		return feedData, err
+	}
+
+	volume, err := common.VolumeStringToFloat64(data.Data.Volume)
+	if err != nil {
+		return feedData, err
 	}
 
 	feedData.FeedID = id

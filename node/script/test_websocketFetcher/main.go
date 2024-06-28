@@ -3,38 +3,58 @@ package main
 import (
 	"context"
 	"encoding/json"
-	"sync"
+	"fmt"
 
 	"bisonai.com/orakl/node/pkg/websocketfetcher/common"
-	"bisonai.com/orakl/node/pkg/websocketfetcher/providers/coinbase"
+	"bisonai.com/orakl/node/pkg/websocketfetcher/providers/bybit"
 	"github.com/rs/zerolog/log"
 )
 
 func main() {
-	var wg sync.WaitGroup
+
 	ctx := context.Background()
 	feed := []common.Feed{
 		{
 			ID:         1,
-			Name:       "coinbase-wss-BTC-USDT",
-			Definition: json.RawMessage(`{"type": "wss", "provider": "coinbase", "base": "btc", "quote": "usdt"}`),
+			Name:       "bybit-wss-BTC-USDT",
+			Definition: json.RawMessage(`{"type": "wss", "provider": "bybit", "base": "btc", "quote": "usdt"}`),
 			ConfigID:   1,
 		},
 		{
 			ID:         2,
-			Name:       "coinbase-wss-ETH-USDT",
-			Definition: json.RawMessage(`{"type": "wss", "provider": "coinbase", "base": "eth", "quote": "usdt"}`),
+			Name:       "bybit-wss-ETH-USDT",
+			Definition: json.RawMessage(`{"type": "wss", "provider": "bybit", "base": "eth", "quote": "usdt"}`),
 			ConfigID:   2,
+		},
+		{
+			ID:         3,
+			Name:       "bybit-wss-ADA-USDT",
+			Definition: json.RawMessage(`{"type": "wss", "provider": "bybit", "base": "ada", "quote": "usdt"}`),
+			ConfigID:   3,
+		},
+		{
+			ID:         4,
+			Name:       "bybit-wss-BNB-USDT",
+			Definition: json.RawMessage(`{"type": "wss", "provider": "bybit", "base": "bnb", "quote": "usdt"}`),
+			ConfigID:   4,
 		},
 	}
 	feedMap := common.GetWssFeedMap(feed)
-	fetcher, err := coinbase.New(ctx, common.WithFeedMaps(feedMap["coinbase"]))
+
+	ch := make(chan common.FeedData)
+	fetcher, err := bybit.New(ctx, common.WithFeedDataBuffer(ch), common.WithFeedMaps(feedMap["bybit"]))
 	if err != nil {
-		log.Error().Err(err).Msg("failed to create coinbase fetcher")
+		log.Error().Err(err).Msg("failed to create bybit fetcher")
 		return
 	}
-	wg.Add(1)
-	fetcher.Run(ctx)
 
-	wg.Wait()
+	go fetcher.Run(ctx)
+	for {
+		select {
+		case data := <-ch:
+			fmt.Println(data)
+		case <-ctx.Done():
+			return
+		}
+	}
 }
