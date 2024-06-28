@@ -215,7 +215,7 @@ func loadWalletFromOraklApi(ctx context.Context, url string) ([]Wallet, error) {
 	}
 
 	wallets := []Wallet{}
-	reporters, err := request.GetRequest[[]ReporterModel](url+oraklApiEndpoint, nil, nil)
+	reporters, err := request.Request[[]ReporterModel](request.WithEndpoint(url+oraklApiEndpoint), request.WithTimeout(30*time.Second))
 	if err != nil {
 		return wallets, err
 	}
@@ -244,7 +244,7 @@ func loadWalletFromOraklApi(ctx context.Context, url string) ([]Wallet, error) {
 
 func loadWalletFromOraklAdmin(ctx context.Context, url string) ([]Wallet, error) {
 	wallets := []Wallet{}
-	reporters, err := request.GetRequest[[]string](url+oraklNodeAdminEndpoint, nil, nil)
+	reporters, err := request.Request[[]string](request.WithEndpoint(url + oraklNodeAdminEndpoint))
 	if err != nil {
 		return wallets, err
 	}
@@ -264,7 +264,7 @@ func loadWalletFromOraklAdmin(ctx context.Context, url string) ([]Wallet, error)
 
 func loadWalletFromPor(ctx context.Context, url string) (Wallet, error) {
 	wallet := Wallet{}
-	resp, err := request.UrlRequestRaw(url+porEndpoint, "GET", nil, nil, "")
+	resp, err := request.RequestRaw(request.WithEndpoint(url + porEndpoint))
 	if err != nil {
 		return wallet, err
 	}
@@ -295,7 +295,7 @@ func loadWalletFromPor(ctx context.Context, url string) (Wallet, error) {
 
 func loadWalletFromDelegator(ctx context.Context, url string) (Wallet, error) {
 	wallet := Wallet{}
-	feePayer, err := request.GetRequest[string](url+oraklDelegatorEndpoint, nil, nil)
+	feePayer, err := request.Request[string](request.WithEndpoint(url + oraklDelegatorEndpoint))
 	if err != nil {
 		return wallet, err
 	}
