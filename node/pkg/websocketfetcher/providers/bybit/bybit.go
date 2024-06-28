@@ -78,6 +78,8 @@ func (f *BybitFetcher) Run(ctx context.Context) {
 }
 
 func (f *BybitFetcher) ping(ctx context.Context) {
+	// bybit expects ping message every 20seconds for stable subscription
+	// https://bybit-exchange.github.io/docs/v5/ws/connect#how-to-send-the-heartbeat-packet
 	ticker := time.NewTicker(20 * time.Second)
 	go func() {
 		for {
