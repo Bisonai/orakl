@@ -3,12 +3,12 @@ package request
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"net/url"
 	"time"
 
-	errorSentinel "bisonai.com/orakl/node/pkg/error"
 	"github.com/rs/zerolog/log"
 )
 
@@ -82,7 +82,7 @@ func Request[T any](opts ...RequestOption) (T, error) {
 			Int("status", response.StatusCode).
 			Str("url", config.Endpoint).
 			Msg("failed to make request")
-		return result, errorSentinel.ErrRequestStatusNotOk
+		return result, fmt.Errorf("status not okay: %d", response.StatusCode)
 	}
 
 	resultBody, err := io.ReadAll(response.Body)
@@ -133,7 +133,7 @@ func requestRaw(config RequestConfig) (*http.Response, error) {
 	validMethods := map[string]bool{"GET": true, "POST": true, "PUT": true, "PATCH": true, "DELETE": true}
 	if !validMethods[config.Method] {
 		log.Error().Str("method", config.Method).Msg("invalid method")
-		return nil, errorSentinel.ErrRequestInvalidMethod
+		return nil, fmt.Errorf("invalid method: %s", config.Method)
 	}
 
 	req, err := http.NewRequest(
