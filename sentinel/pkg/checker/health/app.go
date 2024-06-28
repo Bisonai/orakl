@@ -67,7 +67,6 @@ func setUp() error {
 func Start() error {
 	err := setUp()
 	if err != nil {
-		log.Error().Err(err).Msg("Failed to set up health checker")
 		return err
 	}
 
