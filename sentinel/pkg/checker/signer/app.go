@@ -37,7 +37,7 @@ func setUp(ctx context.Context) error {
 		return errors.New("ORAKL_NODE_ADMIN_URL not found")
 	}
 
-	signerAddr, err := request.GetRequest[string](nodeAdminUrl+"/wallet/signer", nil, nil)
+	signerAddr, err := request.Request[string](request.WithEndpoint(nodeAdminUrl + "/wallet/signer"))
 	if err != nil {
 		return err
 	}

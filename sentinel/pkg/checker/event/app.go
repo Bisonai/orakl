@@ -235,13 +235,13 @@ func timeSinceLastPorEvent(ctx context.Context, feed FeedToCheck) (time.Duration
 func loadExpectedEventIntervals() ([]Config, error) {
 	chain := os.Getenv("CHAIN")
 	url := loadOraklConfigUrl(chain)
-	return request.GetRequest[[]Config](url, nil, nil)
+	return request.Request[[]Config](request.WithEndpoint(url))
 }
 
 func loadPegPorEventInterval() (PegPorConfig, error) {
 	chain := os.Getenv("CHAIN")
 	url := loadPegPorConfigUrl(chain)
-	return request.GetRequest[PegPorConfig](url, nil, nil)
+	return request.Request[PegPorConfig](request.WithEndpoint(url))
 }
 
 func loadSubgraphInfoMap(ctx context.Context) (map[string]SubgraphInfo, error) {
@@ -284,7 +284,7 @@ func handleFeedSubmissionDelay(offset time.Duration, feed *FeedToCheck, msg *str
 }
 
 func handleFeedOverSubmission(count int, feed *FeedToCheck, msg *string) {
-	maxFeedSubmissionCount := int(time.Minute.Milliseconds() / (time.Duration(feed.ExpectedInterval) * time.Millisecond).Milliseconds()) * 2
+	maxFeedSubmissionCount := int(time.Minute.Milliseconds()/(time.Duration(feed.ExpectedInterval)*time.Millisecond).Milliseconds()) * 2
 	if count >= maxFeedSubmissionCount {
 		log.Warn().Str("feed", feed.FeedName).Msg(fmt.Sprintf("%s submitted %d times in one minute", feed.FeedName, count))
 		feed.OversubmissionCount++
