@@ -1,0 +1,6 @@
+{
+  "address": "0xbfdb0c7f84b494272278cdad77de21634c395eda",
+  "removeOracle": {
+    "oracles": ["0x7AA7B4ED3d9Da95689AA23f30D187e14759460C1"]
+  }
+}
