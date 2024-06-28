@@ -81,15 +81,13 @@ var (
 	ErrAdminRedisConnNotFound  = &CustomError{Service: Admin, Code: InternalError, Message: "redisconn not found"}
 	ErrAdminMessageBusNotFound = &CustomError{Service: Admin, Code: InternalError, Message: "messagebus not found"}
 
-	ErrAggregatorInvalidInitValue          = &CustomError{Service: Aggregator, Code: InvalidInputError, Message: "Invalid init value parameters"}
-	ErrAggregatorUnhandledCustomMessage    = &CustomError{Service: Aggregator, Code: UnknownCaseError, Message: "Unhandled custom message"}
-	ErrAggregatorInvalidRaftMessage        = &CustomError{Service: Aggregator, Code: InvalidRaftMessageError, Message: "Invalid raft message"}
-	ErrAggregatorNonLeaderRaftMessage      = &CustomError{Service: Aggregator, Code: InvalidRaftMessageError, Message: "Invalid raft message: message sent from non-leader"}
-	ErrAggregatorGlobalAggregateInsertion  = &CustomError{Service: Aggregator, Code: DatabaseError, Message: "Failed to insert global aggregator"}
-	ErrAggregatorProofInsertion            = &CustomError{Service: Aggregator, Code: DatabaseError, Message: "Failed to insert proof"}
-	ErrAggregatorNotFound                  = &CustomError{Service: Aggregator, Code: InternalError, Message: "Aggregator not found"}
-	ErrAggregatorCancelNotFound            = &CustomError{Service: Aggregator, Code: InternalError, Message: "Aggregator cancel function not found"}
-	ErrAggregatorInvalidGlobalAggInsertion = &CustomError{Service: Aggregator, Code: InternalError, Message: "Invalid global aggregator insertion"}
+	ErrAggregatorInvalidInitValue         = &CustomError{Service: Aggregator, Code: InvalidInputError, Message: "Invalid init value parameters"}
+	ErrAggregatorUnhandledCustomMessage   = &CustomError{Service: Aggregator, Code: UnknownCaseError, Message: "Unhandled custom message"}
+	ErrAggregatorInvalidRaftMessage       = &CustomError{Service: Aggregator, Code: InvalidRaftMessageError, Message: "Invalid raft message"}
+	ErrAggregatorNonLeaderRaftMessage     = &CustomError{Service: Aggregator, Code: InvalidRaftMessageError, Message: "Invalid raft message: message sent from non-leader"}
+	ErrAggregatorGlobalAggregateInsertion = &CustomError{Service: Aggregator, Code: DatabaseError, Message: "Failed to insert global aggregator"}
+	ErrAggregatorNotFound                 = &CustomError{Service: Aggregator, Code: InternalError, Message: "Aggregator not found"}
+	ErrAggregatorCancelNotFound           = &CustomError{Service: Aggregator, Code: InternalError, Message: "Aggregator cancel function not found"}
 
 	ErrBootAPIDbPoolNotFound = &CustomError{Service: BootAPI, Code: InternalError, Message: "db pool not found"}
 

@@ -5,6 +5,7 @@ import (
 	"context"
 	"strconv"
 	"testing"
+	"time"
 
 	"bisonai.com/orakl/node/pkg/admin/tests"
 	"github.com/stretchr/testify/assert"
@@ -22,7 +23,12 @@ func TestInit(t *testing.T) {
 		}
 	}()
 
-	err = testItems.app.setAggregators(ctx, testItems.app.Host, testItems.app.Pubsub)
+	configs, err := testItems.app.getConfigs(ctx)
+	if err != nil {
+		t.Fatal("error getting configs")
+	}
+
+	err = testItems.app.setAggregators(ctx, testItems.app.Host, testItems.app.Pubsub, configs)
 	if err != nil {
 		t.Fatal("error initializing app")
 	}
@@ -65,7 +71,12 @@ func TestStartAggregator(t *testing.T) {
 		}
 	}()
 
-	err = testItems.app.setAggregators(ctx, testItems.app.Host, testItems.app.Pubsub)
+	configs, err := testItems.app.getConfigs(ctx)
+	if err != nil {
+		t.Fatal("error getting configs")
+	}
+
+	err = testItems.app.setAggregators(ctx, testItems.app.Host, testItems.app.Pubsub, configs)
 	if err != nil {
 		t.Fatal("error initializing app")
 	}
@@ -90,7 +101,12 @@ func TestStartAggregatorById(t *testing.T) {
 		}
 	}()
 
-	err = testItems.app.setAggregators(ctx, testItems.app.Host, testItems.app.Pubsub)
+	configs, err := testItems.app.getConfigs(ctx)
+	if err != nil {
+		t.Fatal("error getting configs")
+	}
+
+	err = testItems.app.setAggregators(ctx, testItems.app.Host, testItems.app.Pubsub, configs)
 	if err != nil {
 		t.Fatal("error initializing app")
 	}
@@ -118,7 +134,12 @@ func TestStopAggregator(t *testing.T) {
 		}
 	}()
 
-	err = testItems.app.setAggregators(ctx, testItems.app.Host, testItems.app.Pubsub)
+	configs, err := testItems.app.getConfigs(ctx)
+	if err != nil {
+		t.Fatal("error getting configs")
+	}
+
+	err = testItems.app.setAggregators(ctx, testItems.app.Host, testItems.app.Pubsub, configs)
 	if err != nil {
 		t.Fatal("error initializing app")
 	}
@@ -148,7 +169,12 @@ func TestStopAggregatorById(t *testing.T) {
 		}
 	}()
 
-	err = testItems.app.setAggregators(ctx, testItems.app.Host, testItems.app.Pubsub)
+	configs, err := testItems.app.getConfigs(ctx)
+	if err != nil {
+		t.Fatal("error getting configs")
+	}
+
+	err = testItems.app.setAggregators(ctx, testItems.app.Host, testItems.app.Pubsub, configs)
 	if err != nil {
 		t.Fatal("error initializing app")
 	}
@@ -165,31 +191,6 @@ func TestStopAggregatorById(t *testing.T) {
 	assert.Equal(t, testItems.app.Aggregators[testItems.tmpData.config.ID].isRunning, false)
 }
 
-func TestGetAggregatorByName(t *testing.T) {
-	ctx := context.Background()
-	cleanup, testItems, err := setup(ctx)
-	if err != nil {
-		t.Fatalf("error setting up test: %v", err)
-	}
-	defer func() {
-		if cleanupErr := cleanup(); cleanupErr != nil {
-			t.Logf("Cleanup failed: %v", cleanupErr)
-		}
-	}()
-
-	err = testItems.app.setAggregators(ctx, testItems.app.Host, testItems.app.Pubsub)
-	if err != nil {
-		t.Fatal("error initializing app")
-	}
-
-	aggregator, err := testItems.app.getAggregatorByName(testItems.tmpData.config.Name)
-	if err != nil {
-		t.Fatal("error getting aggregator by name")
-	}
-	assert.NotNil(t, aggregator)
-	assert.Equal(t, aggregator.Name, testItems.tmpData.config.Name)
-}
-
 func TestActivateAggregatorByAdmin(t *testing.T) {
 	ctx := context.Background()
 	cleanup, testItems, err := setup(ctx)
@@ -204,7 +205,12 @@ func TestActivateAggregatorByAdmin(t *testing.T) {
 
 	testItems.app.subscribe(ctx)
 
-	err = testItems.app.setAggregators(ctx, testItems.app.Host, testItems.app.Pubsub)
+	configs, err := testItems.app.getConfigs(ctx)
+	if err != nil {
+		t.Fatal("error getting configs")
+	}
+
+	err = testItems.app.setAggregators(ctx, testItems.app.Host, testItems.app.Pubsub, configs)
 	if err != nil {
 		t.Fatal("error initializing app")
 	}
@@ -214,10 +220,8 @@ func TestActivateAggregatorByAdmin(t *testing.T) {
 		t.Fatalf("error activating aggregator: %v", err)
 	}
 
-	aggregator, err := testItems.app.getAggregatorByName(testItems.tmpData.config.Name)
-	if err != nil {
-		t.Fatal("error getting aggregator by name")
-	}
+	aggregator := testItems.app.Aggregators[testItems.tmpData.config.ID]
+
 	assert.NotNil(t, aggregator)
 	assert.True(t, aggregator.isRunning)
 }
@@ -236,7 +240,12 @@ func TestDeactivateAggregatorByAdmin(t *testing.T) {
 
 	testItems.app.subscribe(ctx)
 
-	err = testItems.app.setAggregators(ctx, testItems.app.Host, testItems.app.Pubsub)
+	configs, err := testItems.app.getConfigs(ctx)
+	if err != nil {
+		t.Fatal("error getting configs")
+	}
+
+	err = testItems.app.setAggregators(ctx, testItems.app.Host, testItems.app.Pubsub, configs)
 	if err != nil {
 		t.Fatal("error initializing app")
 	}
@@ -252,10 +261,7 @@ func TestDeactivateAggregatorByAdmin(t *testing.T) {
 		t.Fatalf("error deactivating aggregator: %v", err)
 	}
 
-	aggregator, err := testItems.app.getAggregatorByName(testItems.tmpData.config.Name)
-	if err != nil {
-		t.Fatal("error getting aggregator by name")
-	}
+	aggregator := testItems.app.Aggregators[testItems.tmpData.config.ID]
 	assert.NotNil(t, aggregator)
 	assert.False(t, aggregator.isRunning)
 }
@@ -274,7 +280,12 @@ func TestStartAppByAdmin(t *testing.T) {
 
 	testItems.app.subscribe(ctx)
 
-	err = testItems.app.setAggregators(ctx, testItems.app.Host, testItems.app.Pubsub)
+	configs, err := testItems.app.getConfigs(ctx)
+	if err != nil {
+		t.Fatal("error getting configs")
+	}
+	testItems.app.setStreamer(configs)
+	err = testItems.app.setAggregators(ctx, testItems.app.Host, testItems.app.Pubsub, configs)
 	if err != nil {
 		t.Fatal("error initializing app")
 	}
@@ -285,6 +296,7 @@ func TestStartAppByAdmin(t *testing.T) {
 	}
 
 	assert.Equal(t, true, testItems.app.Aggregators[testItems.tmpData.config.ID].isRunning)
+	assert.NotEqual(t, nil, testItems.app.Streamer.ctx)
 }
 
 func TestStopAppByAdmin(t *testing.T) {
@@ -301,7 +313,12 @@ func TestStopAppByAdmin(t *testing.T) {
 
 	testItems.app.subscribe(ctx)
 
-	err = testItems.app.setAggregators(ctx, testItems.app.Host, testItems.app.Pubsub)
+	configs, err := testItems.app.getConfigs(ctx)
+	if err != nil {
+		t.Fatal("error getting configs")
+	}
+	testItems.app.setStreamer(configs)
+	err = testItems.app.setAggregators(ctx, testItems.app.Host, testItems.app.Pubsub, configs)
 	if err != nil {
 		t.Fatal("error initializing app")
 	}
@@ -311,6 +328,7 @@ func TestStopAppByAdmin(t *testing.T) {
 		t.Fatalf("error starting app: %v", err)
 	}
 	assert.Equal(t, true, testItems.app.Aggregators[testItems.tmpData.config.ID].isRunning)
+	assert.NotEqual(t, nil, testItems.app.Streamer.ctx)
 
 	_, err = tests.RawPostRequest(testItems.admin, "/api/v1/aggregator/stop", nil)
 	if err != nil {
@@ -318,6 +336,7 @@ func TestStopAppByAdmin(t *testing.T) {
 	}
 
 	assert.Equal(t, false, testItems.app.Aggregators[testItems.tmpData.config.ID].isRunning)
+	assert.Equal(t, nil, testItems.app.Streamer.ctx)
 }
 
 func TestRefreshAppByAdmin(t *testing.T) {
@@ -334,7 +353,12 @@ func TestRefreshAppByAdmin(t *testing.T) {
 
 	testItems.app.subscribe(ctx)
 
-	err = testItems.app.setAggregators(ctx, testItems.app.Host, testItems.app.Pubsub)
+	configs, err := testItems.app.getConfigs(ctx)
+	if err != nil {
+		t.Fatal("error getting configs")
+	}
+	testItems.app.setStreamer(configs)
+	err = testItems.app.setAggregators(ctx, testItems.app.Host, testItems.app.Pubsub, configs)
 	if err != nil {
 		t.Fatal("error initializing app")
 	}
@@ -345,6 +369,8 @@ func TestRefreshAppByAdmin(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error starting app: %v", err)
 	}
+
+	time.Sleep(time.Second)
 
 	_, err = tests.RawPostRequest(testItems.admin, "/api/v1/config", map[string]any{"name": "test_pair_2", "fetch_interval": 2000, "aggregate_interval": 5000, "submit_interval": 15000})
 	if err != nil {

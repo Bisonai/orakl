@@ -25,30 +25,60 @@ func New(bus *bus.MessageBus, h host.Host, ps *pubsub.PubSub) *App {
 }
 
 func (a *App) Run(ctx context.Context) error {
-	err := a.setAggregators(ctx, a.Host, a.Pubsub)
+	defer a.subscribe(ctx)
+
+	configs, err := a.getConfigs(ctx)
 	if err != nil {
+		log.Error().Err(err).Str("Player", "Aggregator").Msg("failed to get configs")
 		return err
 	}
 
-	a.subscribe(ctx)
+	a.setStreamer(configs)
+	a.Streamer.Start(ctx)
 
-	return a.startAllAggregators(ctx)
+	err = a.setAggregators(ctx, a.Host, a.Pubsub, configs)
+	if err != nil {
+		log.Error().Err(err).Str("Player", "Aggregator").Msg("failed to set aggregators")
+		return err
+	}
+	err = a.startAllAggregators(ctx)
+	if err != nil {
+		log.Error().Err(err).Str("Player", "Aggregator").Msg("failed to start aggregators")
+		return err
+	}
+
+	return nil
 }
 
-func (a *App) setAggregators(ctx context.Context, h host.Host, ps *pubsub.PubSub) error {
+func (a *App) setStreamer(configs []Config) {
+	if a.Streamer != nil {
+		a.stopStreamer()
+	}
+
+	configIds := make([]int32, len(configs))
+	for i, config := range configs {
+		configIds[i] = config.ID
+	}
+
+	a.Streamer = NewStreamer(WithConfigIds(configIds))
+}
+
+func (a *App) startStreamer(ctx context.Context) {
+	a.Streamer.Start(ctx)
+}
+
+func (a *App) stopStreamer() {
+	a.Streamer.Stop()
+}
+
+func (a *App) setAggregators(ctx context.Context, h host.Host, ps *pubsub.PubSub, configs []Config) error {
 	err := a.clearAggregators()
 	if err != nil {
 		log.Error().Str("Player", "Aggregator").Err(err).Msg("failed to clear aggregators in setAggregators method")
 		return err
 	}
 
-	loadedAggregators, err := a.getConfigs(ctx)
-	if err != nil {
-		log.Error().Str("Player", "Aggregator").Err(err).Msg("failed to get aggregator configs")
-		return err
-	}
-
-	return a.initializeLoadedAggregators(loadedAggregators, h, ps)
+	return a.initializeLoadedAggregators(configs, h, ps)
 }
 
 func (a *App) clearAggregators() error {
@@ -68,18 +98,18 @@ func (a *App) clearAggregators() error {
 	return nil
 }
 
-func (a *App) initializeLoadedAggregators(loadedAggregators []Config, h host.Host, ps *pubsub.PubSub) error {
-	for _, aggregator := range loadedAggregators {
-		if a.Aggregators[aggregator.ID] != nil {
+func (a *App) initializeLoadedAggregators(loadedConfigs []Config, h host.Host, ps *pubsub.PubSub) error {
+	for _, config := range loadedConfigs {
+		if a.Aggregators[config.ID] != nil {
 			continue
 		}
 
-		topicString := aggregator.Name + "-global-aggregator-topic-" + strconv.Itoa(int(aggregator.AggregateInterval))
-		tmpNode, err := NewAggregator(h, ps, topicString, aggregator)
+		topicString := config.Name + "-global-aggregator-topic-" + strconv.Itoa(int(config.AggregateInterval))
+		tmpNode, err := NewAggregator(h, ps, topicString, config)
 		if err != nil {
 			return err
 		}
-		a.Aggregators[aggregator.ID] = tmpNode
+		a.Aggregators[config.ID] = tmpNode
 
 	}
 	return nil
@@ -189,15 +219,6 @@ func (a *App) subscribe(ctx context.Context) {
 	}()
 }
 
-func (a *App) getAggregatorByName(name string) (*Aggregator, error) {
-	for _, aggregator := range a.Aggregators {
-		if aggregator.Name == name {
-			return aggregator, nil
-		}
-	}
-	return nil, errorSentinel.ErrAggregatorNotFound
-}
-
 func (a *App) handleMessage(ctx context.Context, msg bus.Message) {
 	// TODO: Consider refactoring the handleMessage method to improve its structure and readability. Using a switch-case with many cases can be simplified by mapping commands to handler functions.
 
@@ -248,12 +269,21 @@ func (a *App) handleMessage(ctx context.Context, msg bus.Message) {
 		msg.Response <- bus.MessageResponse{Success: true}
 	case bus.REFRESH_AGGREGATOR_APP:
 		log.Debug().Str("Player", "Aggregator").Msg("refresh aggregator msg received")
+		a.stopStreamer()
 		err := a.stopAllAggregators()
 		if err != nil {
 			bus.HandleMessageError(err, msg, "failed to stop all aggregators")
 			return
 		}
-		err = a.setAggregators(ctx, a.Host, a.Pubsub)
+
+		configs, err := a.getConfigs(ctx)
+		if err != nil {
+			bus.HandleMessageError(err, msg, "failed to get configs")
+			return
+		}
+
+		a.setStreamer(configs)
+		err = a.setAggregators(ctx, a.Host, a.Pubsub, configs)
 		if err != nil {
 			bus.HandleMessageError(err, msg, "failed to set aggregators")
 			return
@@ -263,9 +293,12 @@ func (a *App) handleMessage(ctx context.Context, msg bus.Message) {
 			bus.HandleMessageError(err, msg, "failed to start all aggregators")
 			return
 		}
+		a.startStreamer(ctx)
+
 		msg.Response <- bus.MessageResponse{Success: true}
 	case bus.STOP_AGGREGATOR_APP:
 		log.Debug().Str("Player", "Aggregator").Msg("stop aggregator msg received")
+		a.stopStreamer()
 		err := a.stopAllAggregators()
 		if err != nil {
 			bus.HandleMessageError(err, msg, "failed to stop all aggregators")
@@ -279,6 +312,7 @@ func (a *App) handleMessage(ctx context.Context, msg bus.Message) {
 			bus.HandleMessageError(err, msg, "failed to start all aggregators")
 			return
 		}
+		a.startStreamer(ctx)
 		msg.Response <- bus.MessageResponse{Success: true}
 	default:
 		bus.HandleMessageError(errorSentinel.ErrBusUnknownCommand, msg, "aggregator received unknown command")

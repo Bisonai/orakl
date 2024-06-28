@@ -72,7 +72,7 @@ func setup(ctx context.Context) (func() error, *TestItems, error) {
 
 	testItems.topicString = "test-topic"
 
-	tmpData, err := insertSampleData(ctx)
+	tmpData, err := insertSampleData(ctx, app)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -85,7 +85,7 @@ func setup(ctx context.Context) (func() error, *TestItems, error) {
 	return aggregatorCleanup(ctx, admin, app), testItems, nil
 }
 
-func insertSampleData(ctx context.Context) (*TmpData, error) {
+func insertSampleData(ctx context.Context, app *App) (*TmpData, error) {
 	var tmpData = new(TmpData)
 
 	tmpConfig, err := db.QueryRow[Config](ctx, InsertConfigQuery, map[string]any{"name": "test_pair", "fetch_interval": 2000, "aggregate_interval": 5000, "submit_interval": 15000})
@@ -123,6 +123,7 @@ func insertSampleData(ctx context.Context) (*TmpData, error) {
 		return nil, err
 	}
 	tmpData.globalAggregate = tmpGlobalAggregate
+
 	return tmpData, nil
 }
 

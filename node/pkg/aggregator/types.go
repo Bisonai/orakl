@@ -37,6 +37,7 @@ type GlobalAggregate types.GlobalAggregate
 type App struct {
 	Bus         *bus.MessageBus
 	Aggregators map[int32]*Aggregator
+	Streamer    *Streamer
 	Host        host.Host
 	Pubsub      *pubsub.PubSub
 }

@@ -1,6 +1,7 @@
 package aggregator
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"sync"
@@ -275,16 +276,20 @@ func (n *Aggregator) HandleProofMessage(ctx context.Context, msg raft.Message) e
 	if len(n.CollectedProofs[proofMessage.RoundID]) >= n.Raft.SubscribersCount()+1 {
 		defer delete(n.CollectedProofs, proofMessage.RoundID)
 		defer delete(n.PreparedGlobalAggregates, proofMessage.RoundID)
-		err := InsertProof(ctx, n.ID, proofMessage.RoundID, n.CollectedProofs[proofMessage.RoundID])
-		if err != nil {
-			log.Error().Str("Player", "Aggregator").Err(err).Msg("failed to insert proof")
-			return err
-		}
-		err = InsertGlobalAggregate(ctx, n.ID, n.PreparedGlobalAggregates[proofMessage.RoundID].Value, proofMessage.RoundID, n.PreparedGlobalAggregates[proofMessage.RoundID].Timestamp)
-		if err != nil {
-			log.Error().Str("Player", "Aggregator").Err(err).Msg("failed to insert global aggregate")
-			return err
-		}
+		globalAggregate := GlobalAggregate{
+			ConfigID:  n.ID,
+			Value:     n.PreparedGlobalAggregates[proofMessage.RoundID].Value,
+			Round:     proofMessage.RoundID,
+			Timestamp: n.PreparedGlobalAggregates[proofMessage.RoundID].Timestamp}
+		concatProof := bytes.Join(n.CollectedProofs[proofMessage.RoundID], nil)
+		proof := Proof{ConfigID: n.ID, Round: proofMessage.RoundID, Proof: concatProof}
+
+		go func() {
+			err := PublishGlobalAggregateAndProof(ctx, globalAggregate, proof)
+			if err != nil {
+				log.Error().Str("Player", "Aggregator").Err(err).Msg("failed to publish global aggregate and proof")
+			}
+		}()
 	}
 	return nil
 }
