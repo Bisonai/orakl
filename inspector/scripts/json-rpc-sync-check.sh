@@ -2,13 +2,17 @@
 
 # Dependencies: jq, curl
 
+readonly OUR_KAIROS_JSON_RPC="http://100.93.31.29:8551"
+readonly OUR_KAIA_JSON_RPC="http://100.75.43.49:8551"
+
+readonly PUBLIC_KAIROS_JSON_RPC="https://public-en.kairos.node.kaia.io"
+readonly PUBLIC_KAIA_JSON_RPC="https://public-en-cypress.klaytn.net"
+
 check_klay_sync_baobab() {
-    our_json_rpc="http://100.93.31.29:8551"
-    our_block_hex=$(get_our_klay_block $our_json_rpc)
+    our_block_hex=$(get_our_klay_block $OUR_KAIROS_JSON_RPC)
     our_block=$((16#$our_block_hex)) || { echo "[ERROR] Failed to convert hex to decimal from our block in check_klay_sync_baobab()"; exit 1; }
 
-    public_json_rpc="https://public-en.kairos.node.kaia.io"
-    public_block_hex=$(get_public_klay_block $public_json_rpc)
+    public_block_hex=$(get_public_klay_block $PUBLIC_KAIROS_JSON_RPC)
     public_block=$((16#$public_block_hex)) || { echo "[ERROR] Failed to convert hex to decimal from public block in check_klay_sync_baobab()"; exit 1; }
 
     # Calculate difference
@@ -23,12 +27,10 @@ check_klay_sync_baobab() {
 }
 
 check_klay_sync_cypress() {
-    our_json_rpc="http://100.75.43.49:8551"
-    our_block_hex=$(get_our_klay_block $our_json_rpc)
+    our_block_hex=$(get_our_klay_block $OUR_KAIA_JSON_RPC)
     our_block=$((16#$our_block_hex)) || { echo "[ERROR] Failed to convert hex to decimal from our block in check_klay_sync_cypress()"; exit 1; }
 
-    public_json_rpc="https://public-en-cypress.klaytn.net"
-    public_block_hex=$(get_public_klay_block $public_json_rpc)
+    public_block_hex=$(get_public_klay_block $PUBLIC_KAIA_JSON_RPC)
     public_block=$((16#$public_block_hex)) || { echo "[ERROR] Failed to convert hex to decimal from public block in check_klay_sync_cypress()"; exit 1; }
 
     # Calculate difference
