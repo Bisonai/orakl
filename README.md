@@ -130,3 +130,4 @@ The microservices can also be started separately in any arbitrary order by repla
 - **node** v0.0.1.20240626.0736.d9a8df4 <br> *`PR`*: OraklNode Rollback klayswap ba... <br><br> 
 - **node** v0.0.1.20240626.0926.c3f91cb <br> *`PR`*: OraklNode Update sync <br><br> 
 - **node** v0.0.1.20240627.0431.bac3940 <br> *`PR`*: OraklNode Update klayswap to u... <br><br> 
+- **cli** v0.6.2.20240628.0216.0cec242 <br> *`PR`*: OraklNode Update klayswap to u... <br><br> 
