@@ -33,3 +33,14 @@ orakl-delegator: count OK
 (cypress) orakl-delegator: delegator FAIL (v0.0.1.20230707.0137.513e9f9)
 (baobab) orakl-delegator: delegator OK (v0.0.1.20231211.0735.867d885)
 ```
+
+## JSON RPC sync status check
+
+```
+./json-rpc-sync-check.sh
+```
+
+```
+[INFO] Baobab json-rpc is synchronized
+[INFO] Cypress json-rpc is synchronized
+```
