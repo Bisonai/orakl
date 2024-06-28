@@ -29,6 +29,8 @@ func New(ctx context.Context, opts ...common.FetcherOption) (common.FetcherInter
 	}
 
 	subscriptions := []any{}
+	// bybit allows maximum 10 pairs per subscription
+	// https://bybit-exchange.github.io/docs/v5/ws/connect#public-channel---args-limits
 	for i := 0; i < len(pairList); i += 10 {
 		end := common.Min(i+10, len(pairList))
 		subscriptions = append(subscriptions, Subscription{
