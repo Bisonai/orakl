@@ -45,13 +45,13 @@ func setUp() error {
 	}
 
 	if chain == "baobab" {
-		err := json.Unmarshal(baobabJSON, &HealthCheckUrls)
+		err = json.Unmarshal(baobabJSON, &HealthCheckUrls)
 		if err != nil {
 			log.Error().Err(err).Msg("Failed to unmarshal baobab_healthcheck.json")
 			return err
 		}
 	} else if chain == "cypress" {
-		err := json.Unmarshal(cypressJSON, &HealthCheckUrls)
+		err = json.Unmarshal(cypressJSON, &HealthCheckUrls)
 		if err != nil {
 			log.Error().Err(err).Msg("Failed to unmarshal cypress_healthcheck.json")
 			return err
