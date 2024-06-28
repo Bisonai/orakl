@@ -30,9 +30,9 @@ jobs:
         id: set-payload
         run: |
           if [ "${{ inputs.status }}" == "Success" ]; then
-            echo "::set-output name=payload::{\"text\":\":white_check_mark: ${{ inputs.slack-message }}\",\"attachments\":[{\"color\":\"28a745\",\"fields\":[{\"title\":\"Status\",\"short\":true,\"value\":\"${{ inputs.status }}\"}]}]}"
-          else 
-            echo "::set-output name=payload::{\"text\":\":exclamation: ${{ inputs.slack-message }}\",\"attachments\":[{\"color\":\"E96D76\",\"fields\":[{\"title\":\"Status\",\"short\":true,\"value\":\"${{ inputs.status }}\"}]}]}"
+            echo "payload={\"text\":\":white_check_mark: ${{ inputs.slack-message }}\",\"attachments\":[{\"color\":\"28a745\",\"fields\":[{\"title\":\"Status\",\"short\":true,\"value\":\"${{ inputs.status }}\"}]}]}" >> $GITHUB_OUTPUT
+          else
+            echo "payload={\"text\":\":exclamation: ${{ inputs.slack-message }}\",\"attachments\":[{\"color\":\"E96D76\",\"fields\":[{\"title\":\"Status\",\"short\":true,\"value\":\"${{ inputs.status }}\"}]}]}" >> $GITHUB_OUTPUT
           fi
 
       - name: Post to a Slack channel
@@ -43,5 +43,3 @@ jobs:
           payload: ${{ steps.set-payload.outputs.payload }}
         env:
           SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
-
-
