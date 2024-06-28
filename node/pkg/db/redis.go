@@ -67,7 +67,7 @@ func executeWithRetry(ctx context.Context, operation func(*redis.Client) error) 
 		}
 		return err
 	}
-	return retrier.Retry(retryOperation, 3, 200*time.Millisecond, 2*time.Second)
+	return retrier.Retry(retryOperation, 3, 100*time.Millisecond, 2*time.Second)
 }
 
 func isConnectionError(err error) bool {
