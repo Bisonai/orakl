@@ -734,12 +734,12 @@ func TestMessageToStruct(t *testing.T) {
 				"high24h": "3814.00",
 				"instId": "ETHUSDT",
 				"labeId": 0,
-				"last": "3802.72",
+				"lastPR": "3802.72",
 				"low24h": "3742.72",
 				"open24h": "3798.77",
 				"openUtc": "3761.93",
 				"quoteVolume": "164693970.1506",
-				"ts": 1.717262817224e+12
+				"ts": "1719555625603"
 			  }
 			],
 			"ts": 1.717262817225e+12
@@ -757,7 +757,7 @@ func TestMessageToStruct(t *testing.T) {
 		}
 
 		assert.Equal(t, "ETHUSDT", txData.Data[0].InstId)
-		assert.Equal(t, "3802.72", txData.Data[0].Last)
+		assert.Equal(t, "3802.72", txData.Data[0].Price)
 
 	})
 }
